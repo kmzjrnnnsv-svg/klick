@@ -2,9 +2,21 @@
 
 import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { recomputeMatchesForCandidate } from "@/app/actions/matches";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { type BadgeMeta, users, type VaultItem, vaultItems } from "@/db/schema";
+import {
+	type BadgeMeta,
+	candidateProfiles,
+	type ProfileEducation,
+	type ProfileExperience,
+	type ProfileSkill,
+	users,
+	type VaultItem,
+	vaultItems,
+} from "@/db/schema";
+import { getAIProvider } from "@/lib/ai";
 import {
 	encryptBytes,
 	generateDek,
@@ -13,13 +25,15 @@ import {
 	wrapDek,
 } from "@/lib/crypto/envelope";
 import { deleteObject, putBytes } from "@/lib/storage/s3";
+import { detectKindFromFilename } from "@/lib/vault/detect-kind";
 
 const VALID_KINDS = ["cv", "certificate", "badge", "id_doc", "other"] as const;
 type Kind = (typeof VALID_KINDS)[number];
 
-function pickKind(raw: FormDataEntryValue | null): Kind {
-	const v = String(raw ?? "other");
-	return (VALID_KINDS as readonly string[]).includes(v) ? (v as Kind) : "other";
+function pickKind(raw: FormDataEntryValue | null): Kind | null {
+	const v = raw == null ? "" : String(raw).trim();
+	if (!v) return null;
+	return (VALID_KINDS as readonly string[]).includes(v) ? (v as Kind) : null;
 }
 
 async function ensureUserDek(userId: string): Promise<Uint8Array> {
@@ -52,7 +66,13 @@ export async function uploadVaultItem(formData: FormData): Promise<void> {
 		throw new Error("no file");
 	}
 
-	const kind = pickKind(formData.get("kind"));
+	const mime = file.type || "application/octet-stream";
+	// User-supplied kind (from upload-zone dropdown) wins; otherwise fall back
+	// to filename heuristics so the user doesn't have to label every doc.
+	const explicitKind = pickKind(formData.get("kind"));
+	const detectedKind = detectKindFromFilename(file.name, mime);
+	const kind: Kind = explicitKind ?? detectedKind;
+
 	const tagsRaw = String(formData.get("tags") ?? "");
 	const tags = tagsRaw
 		.split(",")
@@ -67,19 +87,152 @@ export async function uploadVaultItem(formData: FormData): Promise<void> {
 	await putBytes(storageKey, ciphertext);
 	const sha256 = await sha256Hex(ciphertext);
 
-	await db.insert(vaultItems).values({
-		userId,
-		kind,
-		filename: file.name,
-		mime: file.type || "application/octet-stream",
-		sizeBytes: plain.length,
-		storageKey,
-		nonce: Buffer.from(nonce).toString("base64"),
-		sha256,
-		tags: tags.length > 0 ? tags : null,
-	});
+	const [inserted] = await db
+		.insert(vaultItems)
+		.values({
+			userId,
+			kind,
+			filename: file.name,
+			mime,
+			sizeBytes: plain.length,
+			storageKey,
+			nonce: Buffer.from(nonce).toString("base64"),
+			sha256,
+			tags: tags.length > 0 ? tags : null,
+		})
+		.returning({ id: vaultItems.id });
 
 	revalidatePath("/vault");
+
+	// Background extraction: run AI on the uploaded file and persist results.
+	// CVs additionally back-fill the candidate profile so the search profile
+	// is populated immediately. Errors are swallowed so a flaky AI call never
+	// breaks the upload UX — the file is already safely stored.
+	if (inserted?.id) {
+		after(() =>
+			extractAndPersist(inserted.id, userId, plain, mime, kind).catch((e) => {
+				console.error("[vault.extract] failed", { id: inserted.id, error: e });
+			}),
+		);
+	}
+}
+
+async function extractAndPersist(
+	itemId: string,
+	userId: string,
+	plain: Uint8Array,
+	mime: string,
+	hint: Kind,
+): Promise<void> {
+	const ai = getAIProvider();
+	const extracted = await ai.extractDocument(plain, mime, hint);
+
+	await db
+		.update(vaultItems)
+		.set({
+			extractedKind: extracted.kind,
+			extractedMeta: extracted,
+			extractedAt: new Date(),
+			// If detection corrected the kind (cv heuristic but it's actually a
+			// certificate, etc.), promote it so the UI labels match.
+			kind: extracted.kind,
+		})
+		.where(eq(vaultItems.id, itemId));
+
+	if (extracted.kind === "cv") {
+		await mergeCvIntoProfile(userId, extracted.data as Record<string, unknown>);
+		// Match-Engine neu rechnen, weil sich Skills/Erfahrung geändert haben.
+		await recomputeMatchesForCandidate(userId);
+	}
+
+	revalidatePath("/vault");
+	revalidatePath("/profile");
+}
+
+// Conservative merge: only fill candidate profile fields that are currently
+// empty / null. We never overwrite something the user typed by hand.
+async function mergeCvIntoProfile(
+	userId: string,
+	cv: Record<string, unknown>,
+): Promise<void> {
+	const [existing] = await db
+		.select()
+		.from(candidateProfiles)
+		.where(eq(candidateProfiles.userId, userId))
+		.limit(1);
+
+	const patch: Partial<typeof candidateProfiles.$inferInsert> = {};
+
+	const pickStr = (key: string): string | undefined => {
+		const v = cv[key];
+		return typeof v === "string" && v.trim() ? v : undefined;
+	};
+	const pickInt = (key: string): number | undefined => {
+		const v = cv[key];
+		return typeof v === "number" && Number.isFinite(v)
+			? Math.floor(v)
+			: undefined;
+	};
+
+	if (!existing?.displayName) patch.displayName = pickStr("displayName");
+	if (!existing?.headline) patch.headline = pickStr("headline");
+	if (!existing?.location) patch.location = pickStr("location");
+	if (existing?.yearsExperience == null)
+		patch.yearsExperience = pickInt("yearsExperience");
+	if (!existing?.summary) patch.summary = pickStr("summary");
+
+	const langs = cv.languages;
+	if (!existing?.languages?.length && Array.isArray(langs)) {
+		const list = langs.filter((l): l is string => typeof l === "string");
+		if (list.length > 0) patch.languages = list;
+	}
+
+	const skills = cv.skills;
+	if (!existing?.skills?.length && Array.isArray(skills)) {
+		const list = skills.filter(
+			(s): s is ProfileSkill =>
+				typeof s === "object" &&
+				s !== null &&
+				typeof (s as { name?: unknown }).name === "string",
+		);
+		if (list.length > 0) patch.skills = list;
+	}
+
+	const exp = cv.experience;
+	if (!existing?.experience?.length && Array.isArray(exp)) {
+		const list = exp.filter(
+			(e): e is ProfileExperience =>
+				typeof e === "object" &&
+				e !== null &&
+				typeof (e as { company?: unknown }).company === "string" &&
+				typeof (e as { role?: unknown }).role === "string" &&
+				typeof (e as { start?: unknown }).start === "string",
+		);
+		if (list.length > 0) patch.experience = list;
+	}
+
+	const edu = cv.education;
+	if (!existing?.education?.length && Array.isArray(edu)) {
+		const list = edu.filter(
+			(e): e is ProfileEducation =>
+				typeof e === "object" &&
+				e !== null &&
+				typeof (e as { institution?: unknown }).institution === "string" &&
+				typeof (e as { degree?: unknown }).degree === "string",
+		);
+		if (list.length > 0) patch.education = list;
+	}
+
+	if (Object.keys(patch).length === 0) return;
+
+	const values = { userId, ...patch, updatedAt: new Date() };
+	await db
+		.insert(candidateProfiles)
+		.values(values)
+		.onConflictDoUpdate({
+			target: candidateProfiles.userId,
+			set: { ...patch, updatedAt: new Date() },
+		});
 }
 
 export async function deleteVaultItem(id: string): Promise<void> {

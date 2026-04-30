@@ -83,7 +83,8 @@
 		"badgeUrlTitle": "Open badge by link",
 		"badgeUrlHint": "Got a Credly badge or another Open Badge URL? Paste the JSON-LD link and we'll pull in name, issuer and image automatically.",
 		"badgeUrlPlaceholder": "https://api.credly.com/v1/obi/v2/badges/…",
-		"badgeUrlSubmit": "Add badge"
+		"badgeUrlSubmit": "Add badge",
+		"extracting": "Reading contents…"
 	},
 	"Profile": {
 		"title": "My profile",
@@ -383,6 +384,48 @@
 			"celebrationBody": "Check the first match suggestions or polish your profile.",
 			"ctaMatches": "Go to my matches",
 			"ctaProfile": "Keep filling out profile"
+		},
+		"employer": {
+			"welcome": {
+				"title": "Welcome.",
+				"subtitle": "Two quick steps and you can post roles and see matching profiles.",
+				"steps": {
+					"1": {
+						"title": "Set up your company",
+						"body": "Name, website, a few lines about who you are. Recruiter agency? Check the box."
+					},
+					"2": {
+						"title": "Post your first role",
+						"body": "We'll suggest required skills directly from your description."
+					}
+				},
+				"etaNote": "Under 2 minutes.",
+				"cta": "Let's go"
+			},
+			"company": {
+				"title": "Who are you?",
+				"subtitle": "Candidates see this once they accept a match.",
+				"companyNameLabel": "Company name",
+				"companyNamePlaceholder": "Acme Studios GmbH",
+				"websiteLabel": "Website",
+				"websitePlaceholder": "acme.com",
+				"websiteHint": "We add https:// for you.",
+				"descriptionLabel": "What do you do?",
+				"descriptionPlaceholder": "We build tools for creative teams …",
+				"descriptionHint": "Two or three sentences. Shown in the match.",
+				"agencyLabel": "We recruit on behalf (headhunter / agency)",
+				"agencyHint": "So candidates know the role is filled through you, not at your company. Klick surfaces this in the match.",
+				"finish": "Finish"
+			},
+			"done": {
+				"title": "Ready, {company}.",
+				"subtitleCompany": "Your company profile is live. Post your first role now.",
+				"subtitleAgency": "Your agency profile is live. Post the first position you're hiring for now.",
+				"celebrationTitle": "All set.",
+				"celebrationBody": "Once a role is live we'll suggest anonymized matching profiles.",
+				"ctaNewJob": "Create first role",
+				"ctaJobs": "Open overview"
+			}
 		}
 	}
 }

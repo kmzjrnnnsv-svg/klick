@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type {
 	AIProvider,
+	ExtractedDocument,
 	ExtractedProfile,
 	MatchRationaleInput,
 	SuggestedJobRequirement,
@@ -153,6 +154,133 @@ export class ClaudeAIProvider implements AIProvider {
 			throw new Error("Claude did not return a tool_use block");
 		}
 		return toolUse.input as ExtractedProfile;
+	}
+
+	async extractDocument(
+		bytes: Uint8Array,
+		mime: string,
+		hint: "cv" | "certificate" | "badge" | "id_doc" | "other",
+	): Promise<ExtractedDocument> {
+		const isImage = SUPPORTED_IMAGE_MIME.has(mime);
+		const isPdf = mime === "application/pdf";
+		if (!isImage && !isPdf) {
+			// Non-visual files (json, plain text, etc.) — let the heuristic stand;
+			// we'd need a different prompt path to handle these.
+			return { kind: hint, data: {} } as ExtractedDocument;
+		}
+
+		// CV path is fully implemented elsewhere — reuse it for the rich shape.
+		if (hint === "cv") {
+			const data = await this.parseCv(bytes, mime);
+			return { kind: "cv", data };
+		}
+
+		const base64 = Buffer.from(bytes).toString("base64");
+		const documentBlock = isImage
+			? {
+					type: "image" as const,
+					source: {
+						type: "base64" as const,
+						media_type: mime as
+							| "image/jpeg"
+							| "image/png"
+							| "image/gif"
+							| "image/webp",
+						data: base64,
+					},
+				}
+			: {
+					type: "document" as const,
+					source: {
+						type: "base64" as const,
+						media_type: "application/pdf" as const,
+						data: base64,
+					},
+				};
+
+		const schemaByHint: Record<string, Record<string, unknown>> = {
+			certificate: {
+				type: "object",
+				properties: {
+					title: { type: "string" },
+					issuer: { type: "string" },
+					subject: { type: "string" },
+					grade: { type: "string" },
+					issuedAt: { type: "string", description: "YYYY-MM(-DD)" },
+					expiresAt: { type: "string" },
+					credentialId: { type: "string" },
+				},
+			},
+			id_doc: {
+				type: "object",
+				properties: {
+					docType: {
+						type: "string",
+						enum: ["passport", "id_card", "drivers_license", "other"],
+					},
+					fullName: { type: "string" },
+					expiresAt: { type: "string" },
+				},
+			},
+			badge: {
+				type: "object",
+				properties: {
+					name: { type: "string" },
+					issuerName: { type: "string" },
+					issuedAt: { type: "string" },
+					criteriaUrl: { type: "string" },
+					imageUrl: { type: "string" },
+				},
+			},
+			other: {
+				type: "object",
+				properties: {
+					title: { type: "string" },
+					summary: { type: "string", maxLength: 300 },
+				},
+			},
+		};
+
+		const promptByHint: Record<string, string> = {
+			certificate:
+				"Extrahiere die Eckdaten dieses Zertifikats / Zeugnisses. Nur was klar im Dokument steht. Keine Vermutungen.",
+			id_doc:
+				"Erkenne nur den Dokumenttyp (Pass / Ausweis / Führerschein) und ggf. das Ablaufdatum. KEINE biometrischen oder MRZ-Daten ausgeben.",
+			badge:
+				"Extrahiere Name, Aussteller und Ausstellungsdatum dieses Open Badges. Falls Bild- oder Kriterien-URL erkennbar, mit angeben.",
+			other:
+				"Erkenne grob, was das für ein Dokument ist. Liefere Titel + 1-2 Sätze Zusammenfassung.",
+		};
+
+		const result = await this.client.messages.create({
+			model: "claude-sonnet-4-6",
+			max_tokens: 1024,
+			tools: [
+				{
+					name: "save_metadata",
+					description:
+						"Save the structured metadata extracted from the document.",
+					input_schema: schemaByHint[hint] as never,
+				},
+			],
+			tool_choice: { type: "tool", name: "save_metadata" },
+			messages: [
+				{
+					role: "user",
+					content: [
+						documentBlock,
+						{ type: "text" as const, text: promptByHint[hint] },
+					],
+				},
+			],
+		});
+
+		const toolUse = result.content.find((b) => b.type === "tool_use");
+		const data =
+			toolUse && toolUse.type === "tool_use"
+				? (toolUse.input as Record<string, unknown>)
+				: {};
+		return { kind: hint, data } as ExtractedDocument;
 	}
 
 	async suggestJobRequirements(input: {

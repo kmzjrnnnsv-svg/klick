@@ -83,7 +83,8 @@
 		"badgeUrlTitle": "Open Badge per Link",
 		"badgeUrlHint": "Hast du einen Credly-Badge oder ein anderes Open-Badge-Profil? Füge einfach die JSON-LD-URL ein — wir holen Name, Aussteller und Bild automatisch.",
 		"badgeUrlPlaceholder": "https://api.credly.com/v1/obi/v2/badges/…",
-		"badgeUrlSubmit": "Badge hinzufügen"
+		"badgeUrlSubmit": "Badge hinzufügen",
+		"extracting": "Liest Inhalt aus …"
 	},
 	"Profile": {
 		"title": "Mein Profil",
@@ -383,6 +384,48 @@
 			"celebrationBody": "Schau dir die ersten Match-Vorschläge an oder ergänze dein Profil.",
 			"ctaMatches": "Zu meinen Matches",
 			"ctaProfile": "Profil weiter ausfüllen"
+		},
+		"employer": {
+			"welcome": {
+				"title": "Willkommen.",
+				"subtitle": "Zwei kurze Schritte, dann kannst du Stellen veröffentlichen und passende Profile sehen.",
+				"steps": {
+					"1": {
+						"title": "Unternehmen anlegen",
+						"body": "Name, Website, ein paar Sätze zum Wer-und-Was. Headhunter? Setz das Häkchen."
+					},
+					"2": {
+						"title": "Erste Stelle erstellen",
+						"body": "Mit KI-Unterstützung schlagen wir Skills + Anforderungen direkt aus deiner Beschreibung vor."
+					}
+				},
+				"etaNote": "Dauert keine 2 Minuten.",
+				"cta": "Los geht's"
+			},
+			"company": {
+				"title": "Wer seid ihr?",
+				"subtitle": "Diese Angaben sehen Kandidat:innen, sobald sie ein Match annehmen.",
+				"companyNameLabel": "Firmenname",
+				"companyNamePlaceholder": "Acme Studios GmbH",
+				"websiteLabel": "Website",
+				"websitePlaceholder": "acme.de",
+				"websiteHint": "https:// ergänzen wir automatisch.",
+				"descriptionLabel": "Was macht ihr?",
+				"descriptionPlaceholder": "Wir entwickeln Werkzeuge für kreative Teams …",
+				"descriptionHint": "Zwei, drei Sätze reichen. Erscheint im Match.",
+				"agencyLabel": "Wir vermitteln im Auftrag (Headhunter / Personalberatung)",
+				"agencyHint": "Damit Kandidat:innen wissen, dass die Stelle nicht direkt bei euch besetzt wird. Klick blendet das im Match-Profil ein.",
+				"finish": "Fertig"
+			},
+			"done": {
+				"title": "Bereit, {company}.",
+				"subtitleCompany": "Dein Unternehmens-Profil ist live. Veröffentliche jetzt die erste Stelle.",
+				"subtitleAgency": "Dein Agentur-Profil ist live. Veröffentliche jetzt die erste Position, die du besetzen sollst.",
+				"celebrationTitle": "Eingerichtet.",
+				"celebrationBody": "Sobald die erste Stelle live ist, schlagen wir dir passende anonymisierte Profile vor.",
+				"ctaNewJob": "Erste Stelle erstellen",
+				"ctaJobs": "Übersicht öffnen"
+			}
 		}
 	}
 }

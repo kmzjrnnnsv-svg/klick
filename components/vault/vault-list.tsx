@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, FileText, ImageIcon, Trash2 } from "lucide-react";
+import { Award, FileText, ImageIcon, Sparkles, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { deleteVaultItem } from "@/app/actions/vault";
@@ -16,6 +16,42 @@ function humanSize(bytes: number): string {
 
 function isImage(mime: string | null) {
 	return !!mime && mime.startsWith("image/");
+}
+
+// Cherry-pick a single short label from extracted metadata so the list stays
+// scannable. Falls back to nothing — the row is still readable from filename.
+function extractedSummary(item: VaultItem): string | null {
+	const meta = item.extractedMeta;
+	if (!meta) return null;
+	const data = meta.data as Record<string, unknown>;
+	const str = (k: string) =>
+		typeof data[k] === "string" ? (data[k] as string) : null;
+
+	switch (meta.kind) {
+		case "cv": {
+			const skills = data.skills;
+			if (Array.isArray(skills) && skills.length > 0) {
+				const names = skills
+					.map((s) =>
+						typeof s === "object" && s && "name" in s
+							? (s as { name: unknown }).name
+							: null,
+					)
+					.filter((n): n is string => typeof n === "string")
+					.slice(0, 3);
+				if (names.length > 0) return names.join(" · ");
+			}
+			return str("headline") ?? str("displayName");
+		}
+		case "certificate":
+			return [str("title"), str("issuer")].filter(Boolean).join(" — ") || null;
+		case "id_doc":
+			return str("docType");
+		case "badge":
+			return str("name") ?? str("issuerName");
+		default:
+			return str("title");
+	}
 }
 
 export function VaultList({ items }: { items: VaultItem[] }) {
@@ -105,6 +141,28 @@ export function VaultList({ items }: { items: VaultItem[] }) {
 									</>
 								)}
 							</div>
+							{(() => {
+								const summary = extractedSummary(item);
+								if (summary) {
+									return (
+										<div className="mt-1 flex items-center gap-1.5 text-primary text-xs">
+											<Sparkles
+												className="h-3 w-3 shrink-0"
+												strokeWidth={1.5}
+											/>
+											<span className="truncate">{summary}</span>
+										</div>
+									);
+								}
+								if (!isUrlBadge && item.storageKey && !item.extractedAt) {
+									return (
+										<div className="mt-1 text-muted-foreground text-xs italic">
+											{t("extracting")}
+										</div>
+									);
+								}
+								return null;
+							})()}
 						</div>
 						<form
 							action={(fd) => {

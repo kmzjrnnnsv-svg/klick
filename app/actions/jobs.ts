@@ -2,6 +2,7 @@
 
 import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
 import { computeMatchesForJob } from "@/app/actions/matches";
@@ -82,6 +83,49 @@ export async function ensureEmployer(companyName: string): Promise<Employer> {
 		.values({ userId, tenantId, companyName })
 		.returning();
 	return created;
+}
+
+// Onboarding-form action — full employer create/update + advance the wizard.
+// Covers Headhunter (isAgency=true) since the table is shared.
+export async function saveEmployerOnboarding(
+	formData: FormData,
+): Promise<void> {
+	const { userId, tenantId } = await requireEmployerSession();
+
+	const companyName = String(formData.get("companyName") ?? "").trim();
+	if (!companyName) throw new Error("Bitte einen Firmennamen angeben.");
+	const websiteRaw = String(formData.get("website") ?? "").trim();
+	const description = String(formData.get("description") ?? "").trim() || null;
+	const isAgency = formData.get("isAgency") === "on";
+
+	let website: string | null = null;
+	if (websiteRaw) {
+		try {
+			const u = new URL(
+				websiteRaw.startsWith("http") ? websiteRaw : `https://${websiteRaw}`,
+			);
+			website = u.toString().replace(/\/$/, "");
+		} catch {
+			throw new Error("Website ist keine gültige URL.");
+		}
+	}
+
+	const values = {
+		userId,
+		tenantId,
+		companyName,
+		website,
+		description,
+		isAgency,
+	};
+
+	await db.insert(employers).values(values).onConflictDoUpdate({
+		target: employers.userId,
+		set: { companyName, website, description, isAgency },
+	});
+
+	revalidatePath("/jobs");
+	redirect("/onboarding/employer/done");
 }
 
 export async function getEmployer(): Promise<Employer | null> {

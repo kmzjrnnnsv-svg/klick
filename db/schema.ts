@@ -1,4 +1,5 @@
 import {
+	boolean,
 	integer,
 	jsonb,
 	pgTable,
@@ -111,6 +112,14 @@ export type BadgeMeta = {
 	criteriaUrl?: string;
 };
 
+// Result of running the AI extractor on an uploaded file. Shape varies by
+// document kind — keep it loose so the AI module owns the strict types and
+// the schema doesn't dictate them.
+export type ExtractedDocumentMeta = {
+	kind: "cv" | "certificate" | "id_doc" | "badge" | "other";
+	data: Record<string, unknown>;
+};
+
 export const vaultItems = pgTable("vault_items", {
 	id: text("id")
 		.primaryKey()
@@ -132,6 +141,15 @@ export const vaultItems = pgTable("vault_items", {
 	sha256: text("sha256"), // hex of ciphertext for integrity + audit
 	sourceUrl: text("source_url"), // populated for URL-based items (Credly badges)
 	badgeMeta: jsonb("badge_meta").$type<BadgeMeta>(),
+	// AI-extracted metadata + the kind the extractor settled on (may differ
+	// from the user-supplied `kind` when auto-detection corrects it).
+	// `extractedAt` is set even when extraction returns nothing — that way the
+	// UI can distinguish "not yet processed" from "processed, no data".
+	extractedKind: text("extracted_kind", {
+		enum: ["cv", "certificate", "badge", "id_doc", "other"],
+	}),
+	extractedMeta: jsonb("extracted_meta").$type<ExtractedDocumentMeta>(),
+	extractedAt: timestamp("extracted_at", { mode: "date" }),
 	tags: text("tags").array(),
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
@@ -202,6 +220,9 @@ export const employers = pgTable("employers", {
 	companyName: text("company_name").notNull(),
 	website: text("website"),
 	description: text("description"),
+	// Headhunter / Personalberatung. Same access rights as a regular employer
+	// for now; the flag drives onboarding copy + UI labels ("Im Auftrag von …").
+	isAgency: boolean("is_agency").notNull().default(false),
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
