@@ -286,5 +286,103 @@
 		"saving": "Saving…",
 		"delete": "Delete",
 		"confirmDelete": "Really delete this job? Cannot be undone."
+	},
+	"Onboarding": {
+		"layout": {
+			"skipForNow": "Set up later",
+			"stepOf": "Step {current} of {total}"
+		},
+		"welcome": {
+			"title": "Welcome to Klick.",
+			"subtitle": "In a few minutes we'll set up your profile so the right employers can find you — without you being on display.",
+			"steps": {
+				"1": {
+					"title": "Basics",
+					"body": "Name, location, experience. Three fields, no photo, no required fields."
+				},
+				"2": {
+					"title": "Upload your CV (optional)",
+					"body": "We read it encrypted and pre-fill the next step. You verify everything yourself."
+				},
+				"3": {
+					"title": "Skills & experience",
+					"body": "What you're good at. You can add more anytime."
+				},
+				"4": {
+					"title": "Visibility",
+					"body": "You decide who can find you — before anyone gets a hint."
+				}
+			},
+			"etaNote": "Takes about 3 minutes.",
+			"cta": "Let's go"
+		},
+		"basics": {
+			"title": "Who are you?",
+			"subtitle": "Employers only see this once you approve their request.",
+			"displayNameLabel": "How should we address you?",
+			"displayNameHint": "Real name or a pseudonym. Change it anytime.",
+			"displayNamePlaceholder": "Kai Sommer",
+			"headlineLabel": "In one sentence: what do you do?",
+			"headlineHint": "Current role or focus — not a CV, just a label.",
+			"headlinePlaceholder": "Senior frontend engineer focused on design systems",
+			"locationLabel": "Location",
+			"locationPlaceholder": "Berlin",
+			"yearsLabel": "Years of experience",
+			"languagesLabel": "Languages",
+			"languagesHint": "Comma-separated — e.g. German, English.",
+			"languagesPlaceholder": "German, English",
+			"next": "Next"
+		},
+		"upload": {
+			"title": "Your CV — encrypted in the vault.",
+			"subtitle": "Optional. If you upload one, the AI can pre-fill skills + experience in the next step.",
+			"dropTitle": "Drop here or tap to choose",
+			"dropHint": "PDF or image — up to 25 MB. Encrypted on arrival.",
+			"uploadedHint": "Looks good. Hit 'Next'.",
+			"skip": "Skip CV",
+			"next": "Next"
+		},
+		"skills": {
+			"title": "What can you actually do?",
+			"subtitle": "Skills drive the match. Add more details later in your profile.",
+			"importTitle": "Pre-fill from CV",
+			"importHint": "We extract skills, summary, experience + education from '{filename}'. You verify everything.",
+			"importCta": "Pre-fill",
+			"importing": "Reading…",
+			"skillsLabel": "Skills",
+			"skillsHint": "One skill per line. Optional level 1–5 after a colon — e.g. 'TypeScript: 5'.",
+			"skillsPlaceholder": "TypeScript: 5\nReact: 5\nNext.js: 4\nTailwind",
+			"summaryLabel": "Short bio",
+			"summaryPlaceholder": "Two or three sentences. What drives you, what you love working on.",
+			"moreLater": "You can add work experience and education anytime in 'Profile'.",
+			"next": "Next"
+		},
+		"visibility": {
+			"title": "Who can find you?",
+			"subtitle": "You can change this anytime. The default is the anonymous match view — employers only see you once you reveal yourself.",
+			"options": {
+				"private": {
+					"title": "Private",
+					"body": "Nobody sees your profile. No match suggestions."
+				},
+				"matches_only": {
+					"title": "Matches only (recommended)",
+					"body": "Employers see anonymized suggestions. Identity revealed only on your approval."
+				},
+				"public": {
+					"title": "Public",
+					"body": "Your profile is visible to logged-in employers — no request needed."
+				}
+			},
+			"finish": "Finish"
+		},
+		"done": {
+			"title": "Done.",
+			"subtitle": "Your profile is live. We're looking for matching jobs in the background from now on.",
+			"celebrationTitle": "You're in.",
+			"celebrationBody": "Check the first match suggestions or polish your profile.",
+			"ctaMatches": "Go to my matches",
+			"ctaProfile": "Keep filling out profile"
+		}
 	}
 }

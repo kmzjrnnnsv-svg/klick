@@ -57,6 +57,13 @@
       "when": 1777588144031,
       "tag": "0007_brief_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777588610248,
+      "tag": "0008_gorgeous_landau",
+      "breakpoints": true
     }
   ]
 }

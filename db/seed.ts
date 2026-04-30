@@ -159,6 +159,9 @@ async function ensureCandidateProfile(userId: string): Promise<void> {
 		summary:
 			"Frontend-Spezialist mit Schwerpunkt Design-Systeme, Performance und Developer Experience.",
 		visibility: "matches_only",
+		// Demo user is "ready to go" — onboarding not needed for the seeded
+		// account. Real magic-link signups land in /onboarding.
+		onboardingCompletedAt: new Date(),
 	});
 }
 
