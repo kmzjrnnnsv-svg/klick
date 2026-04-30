@@ -144,7 +144,16 @@ export default async function JobCandidatesPage({
 												{t("insightsToggle")}
 											</summary>
 											<div className="mt-3">
-												<CandidateInsightsView insights={c.insights} />
+												<CandidateInsightsView
+													insights={c.insights}
+													profileExtras={{
+														industries: c.industries,
+														awards: c.awards,
+														certificationsMentioned: c.certificationsMentioned,
+														mobility: c.mobility,
+														preferredRoleLevel: c.preferredRoleLevel,
+													}}
+												/>
 											</div>
 										</details>
 									)}

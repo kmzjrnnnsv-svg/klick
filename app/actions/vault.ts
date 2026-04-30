@@ -228,6 +228,54 @@ async function mergeCvIntoProfile(
 		if (list.length > 0) patch.education = list;
 	}
 
+	const industries = cv.industries;
+	if (!existing?.industries?.length && Array.isArray(industries)) {
+		const list = industries
+			.filter((i): i is string => typeof i === "string" && i.trim().length > 0)
+			.slice(0, 8);
+		if (list.length > 0) patch.industries = list;
+	}
+
+	const awards = cv.awards;
+	if (!existing?.awards?.length && Array.isArray(awards)) {
+		const list = awards
+			.filter((a): a is string => typeof a === "string" && a.trim().length > 0)
+			.slice(0, 12);
+		if (list.length > 0) patch.awards = list;
+	}
+
+	const certs = cv.certificationsMentioned;
+	if (!existing?.certificationsMentioned?.length && Array.isArray(certs)) {
+		const list = certs.filter(
+			(c): c is { name: string; issuer?: string; year?: string } =>
+				typeof c === "object" &&
+				c !== null &&
+				typeof (c as { name?: unknown }).name === "string",
+		);
+		if (list.length > 0) patch.certificationsMentioned = list;
+	}
+
+	if (!existing?.mobility) {
+		const mob = pickStr("mobility");
+		if (mob) patch.mobility = mob;
+	}
+
+	if (!existing?.preferredRoleLevel) {
+		const lvl = cv.preferredRoleLevel;
+		if (
+			typeof lvl === "string" &&
+			["junior", "mid", "senior", "lead", "principal", "exec"].includes(lvl)
+		) {
+			patch.preferredRoleLevel = lvl as
+				| "junior"
+				| "mid"
+				| "senior"
+				| "lead"
+				| "principal"
+				| "exec";
+		}
+	}
+
 	if (Object.keys(patch).length === 0) return;
 
 	const values = { userId, ...patch, updatedAt: new Date() };

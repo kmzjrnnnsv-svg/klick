@@ -238,6 +238,20 @@ export type AnonymousCandidateMatchView = {
 	yearsExperience: number | null;
 	summary: string | null;
 	insights: import("@/lib/insights/types").CandidateInsights | null;
+	industries: string[] | null;
+	awards: string[] | null;
+	certificationsMentioned:
+		| import("@/db/schema").ProfileCertificationMention[]
+		| null;
+	mobility: string | null;
+	preferredRoleLevel:
+		| "junior"
+		| "mid"
+		| "senior"
+		| "lead"
+		| "principal"
+		| "exec"
+		| null;
 };
 
 export async function listMatchesForJob(
@@ -273,6 +287,11 @@ export async function listMatchesForJob(
 			yearsExperience: candidateProfiles.yearsExperience,
 			summary: candidateProfiles.summary,
 			insights: candidateProfiles.insights,
+			industries: candidateProfiles.industries,
+			awards: candidateProfiles.awards,
+			certificationsMentioned: candidateProfiles.certificationsMentioned,
+			mobility: candidateProfiles.mobility,
+			preferredRoleLevel: candidateProfiles.preferredRoleLevel,
 		})
 		.from(matches)
 		.innerJoin(

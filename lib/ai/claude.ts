@@ -74,6 +74,44 @@ const PROFILE_TOOL_SCHEMA = {
 			maxLength: 500,
 			description: "Short professional summary, written in same language as CV",
 		},
+		industries: {
+			type: "array",
+			items: { type: "string", maxLength: 60 },
+			description:
+				"Industries / domains the candidate worked in. 1-5 short labels in the CV's language (e.g. ['Fintech', 'Healthcare', 'E-Commerce']).",
+		},
+		awards: {
+			type: "array",
+			items: { type: "string", maxLength: 200 },
+			description:
+				"Awards, prizes, publications, talks, hackathon wins. One line each. Only if explicit in the CV.",
+		},
+		certificationsMentioned: {
+			type: "array",
+			items: {
+				type: "object",
+				properties: {
+					name: { type: "string" },
+					issuer: { type: "string" },
+					year: { type: "string", description: "YYYY" },
+				},
+				required: ["name"],
+			},
+			description:
+				"Certifications cited in the CV body (the candidate may or may not have uploaded the file).",
+		},
+		mobility: {
+			type: "string",
+			maxLength: 80,
+			description:
+				"Working-style preference if explicitly stated: 'remote', 'hybrid Berlin', 'open to relocation'. Don't infer.",
+		},
+		preferredRoleLevel: {
+			type: "string",
+			enum: ["junior", "mid", "senior", "lead", "principal", "exec"],
+			description:
+				"Inferred career level based on titles + years. Skip if unclear.",
+		},
 	},
 };
 
@@ -141,10 +179,18 @@ export class ClaudeAIProvider implements AIProvider {
 						{
 							type: "text" as const,
 							text:
-								"Extract the structured profile from this CV. " +
-								"Call save_profile with only fields clearly present in the document. " +
-								"Be conservative: omit a field rather than guess. " +
-								"Write summary in the same language the CV uses.",
+								"Extract the structured profile from this CV.\n\n" +
+								"Be thorough: comb through the document for every relevant field, including:\n" +
+								"- skills (with self-rated levels if mentioned)\n" +
+								"- every employment row with start/end dates\n" +
+								"- every education entry\n" +
+								"- industries / domains worked in (e.g. Fintech, Healthcare)\n" +
+								"- awards, prizes, talks, publications, certifications cited in the body\n" +
+								"- mobility preferences if explicitly stated (remote / hybrid X / relocation)\n" +
+								"- inferred role level (junior … exec) based on titles + years\n\n" +
+								"Be conservative on identity / private fields: omit rather than guess.\n" +
+								"Write summary in the same language the CV uses.\n" +
+								"Call save_profile.",
 						},
 					],
 				},

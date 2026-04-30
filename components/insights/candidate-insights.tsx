@@ -1,16 +1,32 @@
 import {
 	AlertTriangle,
 	Award,
+	BadgeCheck,
 	Briefcase,
 	CheckCircle2,
 	Clock,
 	GraduationCap,
 	Sparkles,
+	Target,
 	TrendingUp,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { CandidateProfile } from "@/db/schema";
+import { classifyIssuer } from "@/lib/insights/issuers";
 import type { CandidateInsights } from "@/lib/insights/types";
 import { cn } from "@/lib/utils";
+
+// Subset of CandidateProfile we surface in the "extracted from CV" section.
+// Passed in optionally so the component still works on screens that don't
+// have the full profile loaded (e.g. employer match list).
+export type ProfileExtras = Pick<
+	CandidateProfile,
+	| "industries"
+	| "awards"
+	| "certificationsMentioned"
+	| "mobility"
+	| "preferredRoleLevel"
+>;
 
 function monthsToYears(m: number): string {
 	const y = m / 12;
@@ -21,9 +37,11 @@ function monthsToYears(m: number): string {
 
 export function CandidateInsightsView({
 	insights,
+	profileExtras,
 	emptyHint,
 }: {
 	insights: CandidateInsights | null;
+	profileExtras?: ProfileExtras | null;
 	emptyHint?: string;
 }) {
 	const t = useTranslations("Insights");
@@ -35,7 +53,14 @@ export function CandidateInsightsView({
 		);
 	}
 
-	const { experience, tenure, certificates, narrative } = insights;
+	const { experience, tenure, tenureScore, certificates, narrative } = insights;
+	const hasExtras =
+		!!profileExtras &&
+		((profileExtras.industries?.length ?? 0) > 0 ||
+			(profileExtras.awards?.length ?? 0) > 0 ||
+			(profileExtras.certificationsMentioned?.length ?? 0) > 0 ||
+			!!profileExtras.mobility ||
+			!!profileExtras.preferredRoleLevel);
 	const yearText = (n: number) =>
 		n === 0 ? t("less.year") : n === 1 ? t("one.year") : t("many.years", { n });
 
@@ -132,6 +157,35 @@ export function CandidateInsightsView({
 				</section>
 			)}
 
+			{tenure.totalRoles > 0 && (
+				<section className="rounded-lg border border-border bg-background p-4">
+					<div className="mb-2 flex items-center justify-between gap-2">
+						<div className="flex items-center gap-2 font-medium text-sm">
+							<Target className="h-4 w-4" strokeWidth={1.5} />
+							{t("tenureScore.title")}
+						</div>
+						<span
+							className={cn(
+								"rounded-md px-2 py-0.5 font-mono text-[11px]",
+								tenureScore.band === "strong"
+									? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+									: tenureScore.band === "good"
+										? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+										: tenureScore.band === "ok"
+											? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+											: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
+							)}
+						>
+							{tenureScore.value}/100 ·{" "}
+							{t(`tenureScore.band.${tenureScore.band}`)}
+						</span>
+					</div>
+					<p className="text-muted-foreground text-xs">
+						{tenureScore.rationale}
+					</p>
+				</section>
+			)}
+
 			{(tenure.currentRole || tenure.firstJob) && (
 				<section className="space-y-2">
 					{tenure.currentRole && (
@@ -224,12 +278,144 @@ export function CandidateInsightsView({
 						{certificates.issuers.length > 0 && (
 							<KvRow
 								label={t("certs.issuers")}
-								value={certificates.issuers.join(" · ")}
+								value={
+									<span className="flex flex-wrap items-center gap-1.5">
+										{certificates.issuers.map((iss) => {
+											const cls = classifyIssuer(iss);
+											return (
+												<span
+													key={iss}
+													className={cn(
+														"inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs",
+														cls.verified
+															? "border border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300"
+															: "bg-muted text-muted-foreground",
+													)}
+													title={
+														cls.verified
+															? t(`certs.cat.${cls.category}`)
+															: undefined
+													}
+												>
+													{cls.verified && (
+														<BadgeCheck
+															className="h-3 w-3 shrink-0"
+															strokeWidth={1.5}
+														/>
+													)}
+													{iss}
+												</span>
+											);
+										})}
+									</span>
+								}
+								hint={t("certs.issuerLegitimacy", {
+									verified: certificates.verifiedIssuers,
+									unknown: certificates.unknownIssuers,
+								})}
+							/>
+						)}
+						{certificates.total > 0 && (
+							<KvRow
+								label={t("certs.alignment")}
+								value={
+									<span
+										className={cn(
+											"font-mono",
+											certificates.careerAlignmentPct >= 70
+												? "text-emerald-600 dark:text-emerald-300"
+												: certificates.careerAlignmentPct >= 40
+													? "text-amber-600 dark:text-amber-300"
+													: "text-muted-foreground",
+										)}
+									>
+										{certificates.careerAlignmentPct}%
+									</span>
+								}
+								hint={t("certs.alignmentHint")}
 							/>
 						)}
 					</div>
 				)}
 			</section>
+
+			{hasExtras && profileExtras && (
+				<section className="rounded-lg border border-border bg-background p-4">
+					<div className="mb-3 font-medium text-sm">{t("extras.title")}</div>
+					<div className="space-y-2">
+						{profileExtras.preferredRoleLevel && (
+							<KvRow
+								label={t("extras.level")}
+								value={t(`extras.levels.${profileExtras.preferredRoleLevel}`)}
+							/>
+						)}
+						{profileExtras.mobility && (
+							<KvRow
+								label={t("extras.mobility")}
+								value={profileExtras.mobility}
+							/>
+						)}
+						{profileExtras.industries &&
+							profileExtras.industries.length > 0 && (
+								<KvRow
+									label={t("extras.industries")}
+									value={
+										<span className="flex flex-wrap gap-1.5">
+											{profileExtras.industries.map((i) => (
+												<span
+													key={i}
+													className="rounded-md bg-muted px-2 py-0.5 text-xs"
+												>
+													{i}
+												</span>
+											))}
+										</span>
+									}
+								/>
+							)}
+						{profileExtras.awards && profileExtras.awards.length > 0 && (
+							<KvRow
+								label={t("extras.awards")}
+								value={
+									<ul className="list-disc space-y-0.5 pl-4 text-xs">
+										{profileExtras.awards.map((a) => (
+											<li key={a}>{a}</li>
+										))}
+									</ul>
+								}
+							/>
+						)}
+						{profileExtras.certificationsMentioned &&
+							profileExtras.certificationsMentioned.length > 0 && (
+								<KvRow
+									label={t("extras.certificationsMentioned")}
+									value={
+										<ul className="space-y-0.5 text-xs">
+											{profileExtras.certificationsMentioned.map((c) => (
+												<li key={`${c.name}:${c.issuer ?? ""}:${c.year ?? ""}`}>
+													{c.name}
+													{c.issuer && (
+														<span className="text-muted-foreground">
+															{" "}
+															— {c.issuer}
+														</span>
+													)}
+													{c.year && (
+														<span className="text-muted-foreground">
+															{" "}
+															({c.year})
+														</span>
+													)}
+												</li>
+											))}
+										</ul>
+									}
+									hint={t("extras.certificationsMentionedHint")}
+								/>
+							)}
+					</div>
+				</section>
+			)}
 		</div>
 	);
 }

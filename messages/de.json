@@ -460,13 +460,50 @@
 			"expired": "abgelaufen",
 			"perYear": "Pro Jahr",
 			"issuers": "Aussteller",
+			"issuerLegitimacy": "{verified} bekannte · {unknown} unbekannte Aussteller",
+			"alignment": "Career-Match",
+			"alignmentHint": "Anteil der Zertifikate, deren Titel oder Aussteller mit den Skills oder dem Werdegang zusammenpasst.",
 			"pattern": {
 				"none": "—",
 				"single": "Einzelnes Zertifikat",
 				"burst": "Konzentriert in einem Zeitraum",
 				"steady": "Kontinuierliche Weiterbildung",
 				"sparse": "Wenige, verteilt"
+			},
+			"cat": {
+				"cloud": "Cloud-Anbieter",
+				"vendor": "Hersteller-Zertifikat",
+				"mooc": "Lernplattform",
+				"academic": "Hochschule",
+				"open": "Open-Badge-Netzwerk",
+				"industry": "Fachverband"
 			}
+		},
+		"tenureScore": {
+			"title": "Stabilitäts-Score",
+			"band": {
+				"weak": "instabil",
+				"ok": "akzeptabel",
+				"good": "stabil",
+				"strong": "sehr stabil"
+			}
+		},
+		"extras": {
+			"title": "Aus dem Lebenslauf gelesen",
+			"level": "Karrierestufe",
+			"levels": {
+				"junior": "Junior",
+				"mid": "Mid-Level",
+				"senior": "Senior",
+				"lead": "Lead",
+				"principal": "Principal",
+				"exec": "Executive"
+			},
+			"mobility": "Arbeitsweise",
+			"industries": "Branchen",
+			"awards": "Auszeichnungen / Publikationen",
+			"certificationsMentioned": "Im CV erwähnte Zertifikate",
+			"certificationsMentionedHint": "Stehen so im Lebenslauf, sind aber nicht zwingend als Datei im Vault."
 		}
 	}
 }

@@ -4,10 +4,12 @@ import type {
 	ProfileExperience,
 	VaultItem,
 } from "@/db/schema";
+import { classifyIssuer } from "./issuers";
 import type {
 	CandidateInsights,
 	CertificateStats,
 	ExperienceConflict,
+	TenureScore,
 	TenureStats,
 } from "./types";
 
@@ -177,7 +179,11 @@ function computeExperienceConflict(
 	};
 }
 
-function computeCertificateStats(items: VaultItem[]): CertificateStats {
+function computeCertificateStats(
+	items: VaultItem[],
+	candidateSkills: string[],
+	candidateRoleHints: string[],
+): CertificateStats {
 	// Includes both encrypted certificate uploads (kind=certificate) and
 	// URL-based / file-based open badges (kind=badge). For the cert pattern
 	// we count anything with a recognizable issued year.
@@ -189,8 +195,12 @@ function computeCertificateStats(items: VaultItem[]): CertificateStats {
 	let valid = 0;
 	let expired = 0;
 	let withoutDate = 0;
+	let alignedCount = 0;
 	const perYear: Record<string, number> = {};
 	const issuersSet = new Set<string>();
+	const verifiedIssuersSet = new Set<string>();
+	const skillsLc = candidateSkills.map((s) => s.toLowerCase());
+	const roleHintsLc = candidateRoleHints.map((s) => s.toLowerCase());
 
 	for (const item of relevant) {
 		const meta = item.extractedMeta as ExtractedDocumentMeta | null;
@@ -209,7 +219,27 @@ function computeCertificateStats(items: VaultItem[]): CertificateStats {
 			(typeof data.issuerName === "string" && data.issuerName) ||
 			(typeof badge?.issuerName === "string" && badge.issuerName) ||
 			null;
-		if (issuer) issuersSet.add(issuer.trim());
+		if (issuer) {
+			issuersSet.add(issuer.trim());
+			const cls = classifyIssuer(issuer);
+			if (cls.verified) verifiedIssuersSet.add(cls.name);
+		}
+
+		// Career alignment: cert title / subject mentions a candidate skill or
+		// role keyword. Item filename is also checked as fallback.
+		const haystackParts = [
+			typeof data.title === "string" ? data.title : "",
+			typeof data.subject === "string" ? data.subject : "",
+			typeof data.name === "string" ? data.name : "",
+			typeof badge?.name === "string" ? badge.name : "",
+			item.filename,
+		];
+		const haystack = haystackParts.join(" ").toLowerCase();
+		const hits =
+			haystack.length > 0 &&
+			(skillsLc.some((s) => s.length >= 2 && haystack.includes(s)) ||
+				roleHintsLc.some((r) => r.length >= 3 && haystack.includes(r)));
+		if (hits) alignedCount += 1;
 
 		if (expires) {
 			const expDate = new Date(expires);
@@ -250,6 +280,11 @@ function computeCertificateStats(items: VaultItem[]): CertificateStats {
 		else pattern = "sparse";
 	}
 
+	const verifiedIssuers = verifiedIssuersSet.size;
+	const unknownIssuers = Math.max(0, issuersSet.size - verifiedIssuers);
+	const careerAlignmentPct =
+		total > 0 ? Math.round((alignedCount / total) * 100) : 0;
+
 	return {
 		total,
 		valid,
@@ -258,7 +293,49 @@ function computeCertificateStats(items: VaultItem[]): CertificateStats {
 		perYear,
 		pattern,
 		issuers: Array.from(issuersSet).slice(0, 8),
+		verifiedIssuers,
+		unknownIssuers,
+		careerAlignmentPct,
 	};
+}
+
+function computeTenureScore(stats: TenureStats): TenureScore {
+	if (stats.totalRoles === 0) {
+		return { value: 0, band: "weak", rationale: "Keine Anstellungen erfasst." };
+	}
+	const avg = stats.averageMonths;
+	let value = 0;
+	if (avg >= 48) value = 95;
+	else if (avg >= 30) value = 85;
+	else if (avg >= 18) value = 70;
+	else if (avg >= 12) value = 55;
+	else if (avg >= 6) value = 35;
+	else value = 20;
+
+	// Penalty: short shortest tenure with many roles → suggests churn.
+	if (stats.shortestMonths < 6 && stats.totalRoles >= 3) value -= 10;
+	// Bonus: a single long role is a strong stability signal.
+	if (stats.longestMonths >= 60) value = Math.min(100, value + 5);
+	value = Math.max(0, Math.min(100, value));
+
+	let band: TenureScore["band"] = "weak";
+	if (value >= 80) band = "strong";
+	else if (value >= 65) band = "good";
+	else if (value >= 45) band = "ok";
+
+	const rationale = (() => {
+		const yrs = avg / 12;
+		const yrsLabel =
+			yrs < 1 ? "< 1 Jahr" : `${Math.round(yrs * 10) / 10} Jahre`;
+		const longest = stats.longestMonths / 12;
+		const longestLabel =
+			longest < 1
+				? `${stats.longestMonths} Monate`
+				: `${Math.round(longest)} Jahre`;
+		return `Ø Verweildauer ${yrsLabel}, längste ${longestLabel}.`;
+	})();
+
+	return { value, band, rationale };
 }
 
 export function computeInsightsFromData(
@@ -270,12 +347,25 @@ export function computeInsightsFromData(
 		profile.experience,
 	);
 	const tenure = computeTenure(profile.experience);
-	const certificates = computeCertificateStats(vaultItems);
+	const tenureScore = computeTenureScore(tenure);
+
+	const skillNames = (profile.skills ?? []).map((s) => s.name);
+	const roleHints = [
+		...(profile.headline ? [profile.headline] : []),
+		...(profile.experience ?? []).map((e) => e.role),
+		...(profile.industries ?? []),
+	];
+	const certificates = computeCertificateStats(
+		vaultItems,
+		skillNames,
+		roleHints,
+	);
 
 	return {
 		computedAt: new Date().toISOString(),
 		experience: expCalc,
 		tenure,
+		tenureScore,
 		certificates,
 	};
 }

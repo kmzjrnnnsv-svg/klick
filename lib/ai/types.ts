@@ -18,6 +18,12 @@ export type ExtractedEducation = {
 	end?: string;
 };
 
+export type ExtractedCertificationMention = {
+	name: string;
+	issuer?: string;
+	year?: string;
+};
+
 export type ExtractedProfile = {
 	displayName?: string;
 	headline?: string;
@@ -28,6 +34,18 @@ export type ExtractedProfile = {
 	experience?: ExtractedExperience[];
 	education?: ExtractedEducation[];
 	summary?: string;
+	// Richer signals the model picks out of the CV body.
+	industries?: string[]; // e.g. ["Fintech", "E-commerce"]
+	awards?: string[]; // recognitions, prizes, publications
+	certificationsMentioned?: ExtractedCertificationMention[]; // certs cited but not uploaded
+	mobility?: string; // "Remote", "Hybrid Berlin", "open to relocation"
+	preferredRoleLevel?:
+		| "junior"
+		| "mid"
+		| "senior"
+		| "lead"
+		| "principal"
+		| "exec";
 };
 
 export type SuggestedJobRequirement = {
