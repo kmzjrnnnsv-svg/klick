@@ -7,6 +7,7 @@
 		"productName": "TrustVault",
 		"openVault": "Vault",
 		"openProfile": "Profile",
+		"openMatches": "Matches",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
 		"login": "Sign in",
@@ -109,6 +110,25 @@
 		"save": "Save",
 		"saving": "Saving…",
 		"savedAt": "Saved at {time}"
+	},
+	"Matches": {
+		"title": "Job matches",
+		"subtitle": "Jobs that fit your profile. Anonymized to the employer until you allow interest.",
+		"empty": "No matches yet. Save your profile and wait for published jobs.",
+		"candidatesTitle": "Candidates",
+		"candidatesSubtitle": "Anonymized suggestions — identity only after the candidate approves an interest request.",
+		"candidatesEmpty": "No candidates for this job yet. Match runs in the background after publishing.",
+		"draftHint": "This job is a draft. Publish it to run matching.",
+		"anonymousCandidate": "Candidate",
+		"anonymizedHint": "Anonymized. Once you signal interest and the candidate approves (P5), you'll see identity and vault contents.",
+		"yearsAbbr": "{years} yrs experience",
+		"seeCandidates": "See {count} candidates",
+		"salary": "Salary",
+		"remoteOptions": {
+			"onsite": "On-site",
+			"hybrid": "Hybrid",
+			"remote": "Fully remote"
+		}
 	},
 	"Jobs": {
 		"title": "Jobs",

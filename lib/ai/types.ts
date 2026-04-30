@@ -23,7 +23,6 @@ export type ExtractedProfile = {
 	headline?: string;
 	location?: string;
 	yearsExperience?: number;
-	/** Format: `lang:level` where level ∈ {native, c2, c1, b2, b1, a2, a1}. Example: "de:native". */
 	languages?: string[];
 	skills?: ExtractedSkill[];
 	experience?: ExtractedExperience[];
@@ -37,6 +36,17 @@ export type SuggestedJobRequirement = {
 	minLevel?: 1 | 2 | 3 | 4 | 5;
 };
 
+export type MatchRationaleInput = {
+	jobTitle: string;
+	jobDescription: string;
+	candidateHeadline: string | null | undefined;
+	candidateSummary: string | null | undefined;
+	matchedSkills: string[];
+	missingSkills: string[];
+	yearsExperience: number | null | undefined;
+	yearsRequired: number | null | undefined;
+};
+
 export interface AIProvider {
 	readonly slug: string;
 	parseCv(bytes: Uint8Array, mime: string): Promise<ExtractedProfile>;
@@ -44,4 +54,5 @@ export interface AIProvider {
 		title: string;
 		description: string;
 	}): Promise<SuggestedJobRequirement[]>;
+	matchRationale(input: MatchRationaleInput): Promise<string>;
 }

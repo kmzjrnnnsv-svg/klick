@@ -29,6 +29,13 @@
       "when": 1777537601266,
       "tag": "0003_far_reavers",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777538028081,
+      "tag": "0004_useful_maestro",
+      "breakpoints": true
     }
   ]
 }

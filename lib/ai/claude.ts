@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type {
 	AIProvider,
 	ExtractedProfile,
+	MatchRationaleInput,
 	SuggestedJobRequirement,
 } from "./types";
 
@@ -209,5 +210,30 @@ export class ClaudeAIProvider implements AIProvider {
 		}
 		const out = toolUse.input as { requirements: SuggestedJobRequirement[] };
 		return out.requirements ?? [];
+	}
+
+	async matchRationale(input: MatchRationaleInput): Promise<string> {
+		const prompt =
+			`Du erklärst in einem Satz (max 30 Wörter), warum dieser Kandidat zu dieser Stelle passt.\n\n` +
+			`Stelle: ${input.jobTitle}\n` +
+			`Beschreibung-Auszug: ${input.jobDescription.slice(0, 500)}\n` +
+			`Kandidat: ${input.candidateHeadline ?? "—"}\n` +
+			`Profil: ${input.candidateSummary ?? "—"}\n` +
+			`Skills die matchen: ${input.matchedSkills.join(", ") || "—"}\n` +
+			`Skills die fehlen: ${input.missingSkills.join(", ") || "—"}\n` +
+			`Erfahrung: ${input.yearsExperience ?? "?"} Jahre (gefordert: ${input.yearsRequired ?? 0}).\n\n` +
+			`Schreib einen Satz auf Deutsch, sachlich, konkret. Keine Floskeln.`;
+
+		const result = await this.client.messages.create({
+			model: "claude-sonnet-4-6",
+			max_tokens: 200,
+			messages: [{ role: "user", content: prompt }],
+		});
+		const text = result.content
+			.filter((b) => b.type === "text")
+			.map((b) => (b.type === "text" ? b.text : ""))
+			.join(" ")
+			.trim();
+		return text || "Profil und Stelle passen inhaltlich.";
 	}
 }

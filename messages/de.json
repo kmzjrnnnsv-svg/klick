@@ -7,6 +7,7 @@
 		"productName": "TrustVault",
 		"openVault": "Vault",
 		"openProfile": "Profil",
+		"openMatches": "Matches",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
 		"login": "Anmelden",
@@ -109,6 +110,25 @@
 		"save": "Speichern",
 		"saving": "Speichere…",
 		"savedAt": "Gespeichert um {time}"
+	},
+	"Matches": {
+		"title": "Job-Matches",
+		"subtitle": "Stellen, die zu deinem Profil passen. Anonymisiert für den Arbeitgeber, bis du Interesse zulässt.",
+		"empty": "Noch keine Matches. Speicher dein Profil und warte auf veröffentlichte Stellen.",
+		"candidatesTitle": "Kandidat:innen",
+		"candidatesSubtitle": "Anonymisierte Vorschläge — Identität erst, wenn der Kandidat einer Anfrage zustimmt.",
+		"candidatesEmpty": "Noch keine Kandidat:innen für diese Stelle. Match wird nach Veröffentlichung im Hintergrund berechnet.",
+		"draftHint": "Stelle ist noch ein Entwurf. Veröffentliche sie, dann läuft der Match.",
+		"anonymousCandidate": "Kandidat:in",
+		"anonymizedHint": "Anonymisiert. Sobald du Interesse zeigst und der Kandidat zustimmt (P5), siehst du Identität und Vault-Inhalte.",
+		"yearsAbbr": "{years} J. Erfahrung",
+		"seeCandidates": "{count} Kandidat:innen ansehen",
+		"salary": "Gehalt",
+		"remoteOptions": {
+			"onsite": "Vor Ort",
+			"hybrid": "Hybrid",
+			"remote": "Voll remote"
+		}
 	},
 	"Jobs": {
 		"title": "Jobs",

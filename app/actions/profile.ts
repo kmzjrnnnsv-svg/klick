@@ -2,7 +2,9 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
+import { recomputeMatchesForCandidate } from "@/app/actions/matches";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
@@ -172,6 +174,7 @@ export async function saveProfile(formData: FormData): Promise<void> {
 	});
 
 	revalidatePath("/profile");
+	after(() => recomputeMatchesForCandidate(userId));
 }
 
 function tryParseJsonArray(raw: string | undefined): unknown[] | undefined {

@@ -5,6 +5,7 @@ import {
 	primaryKey,
 	text,
 	timestamp,
+	unique,
 } from "drizzle-orm/pg-core";
 
 // ─── Tenants ──────────────────────────────────────────────────────────────
@@ -229,3 +230,47 @@ export const jobs = pgTable("jobs", {
 });
 
 export type Job = typeof jobs.$inferSelect;
+
+// ─── Matches ──────────────────────────────────────────────────────────────
+// Computed by lib/match/engine.ts whenever a job is published or a profile is
+// saved. Hard score is binary pass/fail (0|100). Soft score 0-100 ranks the
+// passing candidates. Rationale is a short LLM text shown to both sides.
+//
+// Status drives the Interest flow (P5):
+//   suggested → employer hasn't acted yet
+//   interested → employer requested verification (Interest record exists)
+//   approved   → candidate granted disclosure
+//   rejected   → either side declined
+export const matches = pgTable(
+	"matches",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		jobId: text("job_id")
+			.notNull()
+			.references(() => jobs.id, { onDelete: "cascade" }),
+		candidateUserId: text("candidate_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		hardScore: integer("hard_score").notNull(),
+		softScore: integer("soft_score").notNull(),
+		rationale: text("rationale"),
+		hardReasons: jsonb("hard_reasons").$type<string[]>(),
+		matchedSkills: jsonb("matched_skills").$type<string[]>(),
+		missingSkills: jsonb("missing_skills").$type<string[]>(),
+		status: text("status", {
+			enum: ["suggested", "interested", "approved", "rejected"],
+		})
+			.notNull()
+			.default("suggested"),
+		computedAt: timestamp("computed_at", { mode: "date" })
+			.notNull()
+			.defaultNow(),
+	},
+	(t) => [
+		unique("matches_job_candidate_unique").on(t.jobId, t.candidateUserId),
+	],
+);
+
+export type Match = typeof matches.$inferSelect;

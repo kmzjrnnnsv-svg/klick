@@ -1,6 +1,7 @@
 import type {
 	AIProvider,
 	ExtractedProfile,
+	MatchRationaleInput,
 	SuggestedJobRequirement,
 } from "./types";
 
@@ -87,5 +88,21 @@ export class MockAIProvider implements AIProvider {
 			weight: i < 2 ? ("must" as const) : ("nice" as const),
 			minLevel: i < 2 ? (3 as const) : undefined,
 		}));
+	}
+
+	async matchRationale(input: MatchRationaleInput): Promise<string> {
+		const head = input.candidateHeadline ?? "Kandidat:in";
+		const matched = input.matchedSkills.slice(0, 3).join(", ");
+		const missing = input.missingSkills.slice(0, 2).join(", ");
+		const yrs = input.yearsExperience ?? 0;
+		if (input.matchedSkills.length === 0 && input.missingSkills.length === 0) {
+			return `${head}, ${yrs} Jahre Erfahrung — passt grundsätzlich zur Stelle.`;
+		}
+		const parts = [
+			`${head} (${yrs} Jahre)`,
+			matched ? `bringt ${matched} mit` : null,
+			missing ? `noch offen: ${missing}` : null,
+		].filter(Boolean);
+		return `${parts.join(", ")}.`;
 	}
 }

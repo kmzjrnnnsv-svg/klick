@@ -2,7 +2,9 @@
 
 import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
+import { computeMatchesForJob } from "@/app/actions/matches";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
@@ -155,6 +157,9 @@ export async function saveJob(
 			.where(eq(jobs.id, id));
 		revalidatePath("/jobs");
 		revalidatePath(`/jobs/${id}`);
+		if (data.status === "published") {
+			after(() => computeMatchesForJob(id));
+		}
 		return { id };
 	}
 	const [created] = await db
@@ -162,6 +167,9 @@ export async function saveJob(
 		.values({ employerId: e.id, ...data })
 		.returning({ id: jobs.id });
 	revalidatePath("/jobs");
+	if (data.status === "published") {
+		after(() => computeMatchesForJob(created.id));
+	}
 	return { id: created.id };
 }
 
