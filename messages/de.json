@@ -132,6 +132,17 @@
 			"remote": "Voll remote"
 		}
 	},
+	"Admin": {
+		"title": "Admin",
+		"subtitle": "Plattform-Übersicht. Volle Tenant- und Connector-Verwaltung folgt mit P7.",
+		"auditTitle": "Audit-Log (letzte 200 Einträge)",
+		"auditEmpty": "Noch keine Aktivität.",
+		"auditFootnote": "Append-only. Einträge bleiben auch nach Löschung der Quell-Datensätze für Compliance.",
+		"comingTitle": "Bald hier",
+		"comingDynamicRoutes": "Dynamische API-Routen-Verwaltung im UI (proxy / sql / jsonata-Handler)",
+		"comingTenants": "Tenant-Verwaltung mit Subdomain-Branding",
+		"comingConnectors": "Verify-Connector-Definitionen (Credly Partner-OAuth, IDnow-Sandbox)"
+	},
 	"Interest": {
 		"title": "Interesse zeigen",
 		"subtitle": "Der Kandidat sieht deine Anfrage und entscheidet, ob die Identität freigegeben wird.",

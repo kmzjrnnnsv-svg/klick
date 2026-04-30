@@ -22,8 +22,29 @@ export async function generateMetadata(): Promise<Metadata> {
 	return {
 		title: t("title"),
 		description: t("description"),
+		manifest: "/manifest.json",
+		applicationName: "TrustVault",
+		appleWebApp: {
+			capable: true,
+			title: "TrustVault",
+			statusBarStyle: "default",
+		},
+		formatDetection: { telephone: false },
+		other: {
+			"mobile-web-app-capable": "yes",
+		},
 	};
 }
+
+export const viewport = {
+	themeColor: [
+		{ media: "(prefers-color-scheme: light)", color: "#ffffff" },
+		{ media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+	],
+	width: "device-width",
+	initialScale: 1,
+	viewportFit: "cover" as const,
+};
 
 export default async function RootLayout({
 	children,

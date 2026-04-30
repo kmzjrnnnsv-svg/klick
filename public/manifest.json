@@ -1,0 +1,17 @@
+{
+	"name": "TrustVault",
+	"short_name": "TrustVault",
+	"description": "Bewerben. Aber souverän.",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#0a0a0a",
+	"theme_color": "#3B6FE4",
+	"orientation": "portrait",
+	"icons": [
+		{
+			"src": "/favicon.ico",
+			"sizes": "256x256",
+			"type": "image/x-icon"
+		}
+	]
+}

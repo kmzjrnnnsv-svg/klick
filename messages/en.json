@@ -132,6 +132,17 @@
 			"remote": "Fully remote"
 		}
 	},
+	"Admin": {
+		"title": "Admin",
+		"subtitle": "Platform overview. Full tenant + connector management ships in P7.",
+		"auditTitle": "Audit log (last 200 entries)",
+		"auditEmpty": "No activity yet.",
+		"auditFootnote": "Append-only. Entries remain after source records are deleted, for compliance.",
+		"comingTitle": "Coming next",
+		"comingDynamicRoutes": "Dynamic API route management in the UI (proxy / sql / jsonata handlers)",
+		"comingTenants": "Tenant management with subdomain branding",
+		"comingConnectors": "Verify connector definitions (Credly partner OAuth, IDnow sandbox)"
+	},
 	"Interest": {
 		"title": "Show interest",
 		"subtitle": "The candidate sees your request and decides whether to reveal their identity.",
