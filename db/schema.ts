@@ -175,6 +175,13 @@ export type ProfileEducation = {
 	end?: string;
 };
 
+// Certifications mentioned in the CV body (distinct from vault-uploaded ones).
+export type ProfileCertificationMention = {
+	name: string;
+	issuer?: string;
+	year?: string;
+};
+
 export const candidateProfiles = pgTable("candidate_profiles", {
 	userId: text("user_id")
 		.primaryKey()
@@ -189,6 +196,16 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 	experience: jsonb("experience").$type<ProfileExperience[]>(),
 	education: jsonb("education").$type<ProfileEducation[]>(),
 	summary: text("summary"),
+	// Richer fields the CV-extractor mines from the document body. All optional.
+	industries: text("industries").array(), // e.g. ["Fintech", "Healthcare"]
+	awards: text("awards").array(), // free-form short strings
+	certificationsMentioned: jsonb("certifications_mentioned").$type<
+		ProfileCertificationMention[]
+	>(), // certs cited in the CV but not uploaded to vault
+	mobility: text("mobility"), // "remote", "hybrid Berlin", "open to relocation"
+	preferredRoleLevel: text("preferred_role_level", {
+		enum: ["junior", "mid", "senior", "lead", "principal", "exec"],
+	}),
 	visibility: text("visibility", {
 		enum: ["private", "matches_only", "public"],
 	})

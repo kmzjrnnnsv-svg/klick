@@ -43,6 +43,18 @@ export type CertificateStats = {
 	pattern: "none" | "single" | "burst" | "steady" | "sparse";
 	// Issuer names (deduped) — surfaced so employers can eyeball legitimacy.
 	issuers: string[];
+	// Of the issuers above, how many match a known provider (AWS, Coursera, …).
+	verifiedIssuers: number;
+	unknownIssuers: number;
+	// 0–100: how many certs name a skill that the candidate also lists.
+	// 100 means "every cert is in their declared toolbox", 0 means "none align".
+	careerAlignmentPct: number;
+};
+
+export type TenureScore = {
+	value: number; // 0-100
+	band: "weak" | "ok" | "good" | "strong";
+	rationale: string;
 };
 
 export type CandidateInsights = {
@@ -54,6 +66,7 @@ export type CandidateInsights = {
 		conflict: ExperienceConflict;
 	};
 	tenure: TenureStats;
+	tenureScore: TenureScore;
 	certificates: CertificateStats;
 
 	// Optional, set by AIProvider.summarizeCandidate. Skipped when no AI is

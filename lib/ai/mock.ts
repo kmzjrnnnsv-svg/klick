@@ -57,6 +57,17 @@ export class MockAIProvider implements AIProvider {
 			],
 			summary:
 				"Mock-Profil für die Entwicklungs-Umgebung. Kein echter CV-Inhalt — setze ANTHROPIC_API_KEY für die echte Extraktion.",
+			industries: ["SaaS", "Fintech"],
+			awards: ["Best Paper @ Demo-Conf 2023"],
+			certificationsMentioned: [
+				{
+					name: "AWS Solutions Architect — Associate",
+					issuer: "AWS",
+					year: "2023",
+				},
+			],
+			mobility: "Hybrid Berlin / 2 Tage Office",
+			preferredRoleLevel: "senior",
 		};
 	}
 

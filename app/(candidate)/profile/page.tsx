@@ -34,7 +34,20 @@ export default async function ProfilePage() {
 
 				<section className="mb-10">
 					<h2 className="mb-4 font-medium text-base">{t("insightsHeading")}</h2>
-					<CandidateInsightsView insights={insights} />
+					<CandidateInsightsView
+						insights={insights}
+						profileExtras={
+							profile
+								? {
+										industries: profile.industries,
+										awards: profile.awards,
+										certificationsMentioned: profile.certificationsMentioned,
+										mobility: profile.mobility,
+										preferredRoleLevel: profile.preferredRoleLevel,
+									}
+								: null
+						}
+					/>
 				</section>
 
 				<ProfileForm initial={profile} cvs={cvs} />

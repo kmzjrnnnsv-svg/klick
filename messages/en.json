@@ -460,13 +460,50 @@
 			"expired": "expired",
 			"perYear": "Per year",
 			"issuers": "Issuers",
+			"issuerLegitimacy": "{verified} known · {unknown} unknown issuers",
+			"alignment": "Career match",
+			"alignmentHint": "Share of certificates whose title or issuer aligns with declared skills or roles.",
 			"pattern": {
 				"none": "—",
 				"single": "Single certificate",
 				"burst": "Concentrated in a window",
 				"steady": "Continuous learning",
 				"sparse": "Few, scattered"
+			},
+			"cat": {
+				"cloud": "Cloud provider",
+				"vendor": "Vendor certification",
+				"mooc": "Learning platform",
+				"academic": "Academic",
+				"open": "Open Badge network",
+				"industry": "Industry body"
 			}
+		},
+		"tenureScore": {
+			"title": "Stability score",
+			"band": {
+				"weak": "low",
+				"ok": "acceptable",
+				"good": "stable",
+				"strong": "very stable"
+			}
+		},
+		"extras": {
+			"title": "Read from the CV",
+			"level": "Career level",
+			"levels": {
+				"junior": "Junior",
+				"mid": "Mid-level",
+				"senior": "Senior",
+				"lead": "Lead",
+				"principal": "Principal",
+				"exec": "Executive"
+			},
+			"mobility": "Work setup",
+			"industries": "Industries",
+			"awards": "Awards / publications",
+			"certificationsMentioned": "Certifications cited in CV",
+			"certificationsMentionedHint": "Mentioned in the CV body, not necessarily uploaded as a file in the vault."
 		}
 	}
 }
