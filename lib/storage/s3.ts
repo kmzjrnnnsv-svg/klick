@@ -11,7 +11,7 @@ if (!process.env.S3_SECRET_ACCESS_KEY) {
 	throw new Error("S3_SECRET_ACCESS_KEY missing");
 }
 
-export const BUCKET = process.env.S3_BUCKET ?? "trustvault";
+export const BUCKET = process.env.S3_BUCKET ?? "klick";
 
 export const s3 = new S3Client({
 	endpoint: process.env.S3_ENDPOINT,

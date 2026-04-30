@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# TrustVault — Projekt-Gedächtnis
+# Klick — Projekt-Gedächtnis
 
 > Dies ist das laufende Notizbuch für künftige Sessions. Halte es aktuell.
 
@@ -41,7 +41,7 @@ Vollständiger Implementierungsplan: `~/.claude/plans/trustvault-initial-prompt-
 - **Mobile First**: jeder Layout-Pass beginnt bei 375px, breakpoint-up.
 - **Server Components by default**, `"use client"` nur wo State/Browser-API gebraucht wird.
 - **Tailwind v4 Tokens** in `app/globals.css` (oklch). Akzent: `--primary` ≈ `#3B6FE4` (light), `#7B9CFF` (dark).
-- **Auth-Adapter-Tabellen** heißen `users`, `accounts`, `sessions`, `verification_tokens`. `users` ist um TrustVault-Felder erweitert (`tenantId`, `role`, `locale`, `encryptedDek`).
+- **Auth-Adapter-Tabellen** heißen `users`, `accounts`, `sessions`, `verification_tokens`. `users` ist um Klick-Felder erweitert (`tenantId`, `role`, `locale`, `encryptedDek`).
 - **Tenant-Spalte** ab Tag 1 in jeder mandantenrelevanten Tabelle. Lokal: ein Default-Tenant `default` (gesetzt durch `pnpm db:seed`). Prod: subdomain-Lookup via `proxy.ts` setzt `x-tenant-slug`-Header.
 - **Magic Link in Dev**: erscheint in der Server-Konsole. Niemals echten Mailer für Dev konfigurieren.
 - **Commits klein und thematisch.** Co-Author auf Claude wird automatisch bei `git commit` ergänzt (über harness).

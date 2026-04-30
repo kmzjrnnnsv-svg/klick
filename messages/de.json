@@ -1,10 +1,10 @@
 {
 	"Meta": {
-		"title": "TrustVault — Bewerben. Aber souverän.",
-		"description": "TrustVault ist die Recruiting-Plattform, die deine Daten dir lässt. Du entscheidest pro Arbeitgeber, was geteilt und was geprüft wird."
+		"title": "Klick — Bewerben. Aber souverän.",
+		"description": "Klick ist die Recruiting-Plattform, die deine Daten dir lässt. Du entscheidest pro Arbeitgeber, was geteilt und was geprüft wird."
 	},
 	"Header": {
-		"productName": "TrustVault",
+		"productName": "Klick",
 		"openVault": "Vault",
 		"openProfile": "Profil",
 		"openMatches": "Matches",
@@ -23,7 +23,7 @@
 	"Landing": {
 		"hero": {
 			"title": "Bewerben. Aber souverän.",
-			"subtitle": "TrustVault ist deine private Bewerbungsmappe. Lade Lebenslauf, Zeugnisse und Open Badges einmal hoch — und entscheide dann pro Arbeitgeber, was geteilt und was geprüft wird.",
+			"subtitle": "Klick ist deine private Bewerbungsmappe. Lade Lebenslauf, Zeugnisse und Open Badges einmal hoch — und entscheide dann pro Arbeitgeber, was geteilt und was geprüft wird.",
 			"cta": "Vault eröffnen"
 		},
 		"pillars": {
@@ -42,7 +42,7 @@
 		}
 	},
 	"Login": {
-		"title": "Bei TrustVault anmelden",
+		"title": "Bei Klick anmelden",
 		"subtitle": "Wir schicken dir einen Magic Link. Kein Passwort, kein Tracking.",
 		"emailLabel": "E-Mail-Adresse",
 		"emailPlaceholder": "du@beispiel.de",

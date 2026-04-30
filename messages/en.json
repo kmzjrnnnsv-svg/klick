@@ -1,10 +1,10 @@
 {
 	"Meta": {
-		"title": "TrustVault — Apply. On your terms.",
-		"description": "TrustVault is the recruiting platform that leaves your data with you. You decide per employer what gets shared and what gets verified."
+		"title": "Klick — Apply. On your terms.",
+		"description": "Klick is the recruiting platform that leaves your data with you. You decide per employer what gets shared and what gets verified."
 	},
 	"Header": {
-		"productName": "TrustVault",
+		"productName": "Klick",
 		"openVault": "Vault",
 		"openProfile": "Profile",
 		"openMatches": "Matches",
@@ -23,7 +23,7 @@
 	"Landing": {
 		"hero": {
 			"title": "Apply. On your terms.",
-			"subtitle": "TrustVault is your private application folder. Upload your CV, certificates and open badges once — then decide per employer what gets shared and what gets verified.",
+			"subtitle": "Klick is your private application folder. Upload your CV, certificates and open badges once — then decide per employer what gets shared and what gets verified.",
 			"cta": "Open my vault"
 		},
 		"pillars": {
@@ -42,7 +42,7 @@
 		}
 	},
 	"Login": {
-		"title": "Sign in to TrustVault",
+		"title": "Sign in to Klick",
 		"subtitle": "We'll send you a magic link. No password, no tracking.",
 		"emailLabel": "Email address",
 		"emailPlaceholder": "you@example.com",

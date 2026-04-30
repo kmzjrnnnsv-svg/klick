@@ -1,4 +1,4 @@
-# TrustVault
+# Klick
 
 Recruiting-Plattform, die deine Daten dir lässt. Du entscheidest pro Arbeitgeber, was geteilt und was geprüft wird.
 

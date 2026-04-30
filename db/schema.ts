@@ -23,7 +23,7 @@ export const tenants = pgTable("tenants", {
 export type Tenant = typeof tenants.$inferSelect;
 
 // ─── Users (extended Auth.js shape) ───────────────────────────────────────
-// Standard Auth.js fields + TrustVault extensions: tenant scope, role, locale,
+// Standard Auth.js fields + Klick extensions: tenant scope, role, locale,
 // envelope-encrypted DEK for vault crypto (added in P1).
 export const users = pgTable("users", {
 	id: text("id")

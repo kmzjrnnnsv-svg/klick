@@ -13,13 +13,13 @@ export function resolveTenantSlug(host: string): string {
 	if (isLocal) return fallback;
 
 	const parts = hostname.split(".");
-	// e.g. acme.trustvault.eu → ["acme", "trustvault", "eu"] → "acme"
+	// e.g. acme.klick.app → ["acme", "klick", "app"] → "acme"
 	return parts.length > 2 ? parts[0] : fallback;
 }
 
 // Tenant subdomain resolver.
 // Local dev: no subdomain → default tenant slug from env.
-// Production: `acme.trustvault.eu` → tenantSlug = "acme".
+// Production: `acme.klick.app` → tenantSlug = "acme".
 // The slug is forwarded as `x-tenant-slug` request header so server components
 // and route handlers can resolve the tenant row from the DB.
 export function proxy(request: NextRequest) {

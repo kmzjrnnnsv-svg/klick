@@ -14,7 +14,7 @@ const consoleEmailProvider = {
 	id: "email",
 	type: "email" as const,
 	name: "Email",
-	from: process.env.MAIL_FROM ?? "noreply@trustvault.local",
+	from: process.env.MAIL_FROM ?? "noreply@klick.local",
 	maxAge: 60 * 60 * 24, // 24 hours
 	options: {},
 	async sendVerificationRequest({

@@ -8,12 +8,12 @@ describe("resolveTenantSlug", () => {
 	});
 
 	it("extracts subdomain from production host", () => {
-		expect(resolveTenantSlug("acme.trustvault.eu")).toBe("acme");
+		expect(resolveTenantSlug("acme.klick.app")).toBe("acme");
 	});
 
 	it("falls back when no subdomain is present in production host", () => {
 		process.env.DEFAULT_TENANT_SLUG = "default";
-		expect(resolveTenantSlug("trustvault.eu")).toBe("default");
+		expect(resolveTenantSlug("klick.app")).toBe("default");
 	});
 
 	it("respects DEFAULT_TENANT_SLUG env override", () => {
