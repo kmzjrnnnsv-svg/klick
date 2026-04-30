@@ -9,6 +9,33 @@ export type ExperienceConflict = {
 	severity: "none" | "minor" | "major";
 };
 
+export type EmploymentMix = {
+	// Total months attributable to each working relationship. Rows with
+	// undefined employmentType fall under "employee" by convention so the
+	// mix matches naive "years of experience" expectations.
+	employedMonths: number;
+	selfEmployedMonths: number;
+	freelanceMonths: number;
+	founderMonths: number;
+	internshipMonths: number;
+	otherMonths: number;
+};
+
+// Each experience row classified by whether it aligns with the candidate's
+// declared core focus (skills + education + headline). Detours include
+// fachfremde Studi-Jobs, Karriere-Wechsel zurückblickend, etc.
+export type FocusStats = {
+	focusedRoles: number;
+	detourRoles: number;
+	focusedMonths: number;
+	detourMonths: number;
+	detours: Array<{
+		company: string;
+		role: string;
+		months: number;
+	}>;
+};
+
 export type TenureStats = {
 	totalRoles: number;
 	averageMonths: number;
@@ -30,6 +57,8 @@ export type TenureStats = {
 		toYearMonth: string;
 		months: number;
 	}>;
+	mix: EmploymentMix;
+	focus: FocusStats;
 };
 
 export type CertificateStats = {

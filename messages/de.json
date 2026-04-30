@@ -490,6 +490,21 @@
 				"strong": "sehr stabil"
 			}
 		},
+		"mix": {
+			"title": "Anstellungs-Mix",
+			"employee": "Angestellt",
+			"self_employed": "Selbstständig",
+			"freelance": "Freelance",
+			"founder": "Gründer:in",
+			"internship": "Praktikum / Werkstudent",
+			"other": "Fachfremd / Sonstiges"
+		},
+		"focus": {
+			"title": "Fokus vs. Karriere-Abstecher",
+			"onTrack": "auf Kurs",
+			"body": "{focused} Stationen im Kernfeld, {detour} außerhalb der angegebenen Skills / Ausbildung.",
+			"showDetours": "{n} Abstecher anzeigen"
+		},
 		"extras": {
 			"title": "Aus dem Lebenslauf gelesen",
 			"level": "Karrierestufe",

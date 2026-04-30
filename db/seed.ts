@@ -139,13 +139,32 @@ async function ensureCandidateProfile(userId: string): Promise<void> {
 				start: "2022-01",
 				description:
 					"Verantwortlich für das Design-System und Performance-Initiativen.",
+				employmentType: "employee",
+			},
+			{
+				company: "Klick.work (eigene Gründung)",
+				role: "Co-Founder & CTO",
+				start: "2020-09",
+				end: "2021-12",
+				description: "Eigene Gründung, B2B-SaaS für Recruiting-Workflows.",
+				employmentType: "founder",
 			},
 			{
 				company: "Demo AG",
 				role: "Frontend Engineer",
 				start: "2019-06",
-				end: "2021-12",
+				end: "2020-08",
 				description: "Migration von jQuery-Stack auf React + TypeScript.",
+				employmentType: "employee",
+			},
+			{
+				company: "Café Mittel",
+				role: "Servicekraft (Werkstudent)",
+				start: "2017-10",
+				end: "2019-05",
+				description:
+					"Studienbegleitend, fachfremd. Schichtleitung der Wochenend-Crew.",
+				employmentType: "other",
 			},
 		],
 		education: [

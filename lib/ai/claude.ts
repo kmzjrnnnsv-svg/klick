@@ -52,6 +52,19 @@ const PROFILE_TOOL_SCHEMA = {
 					start: { type: "string", description: "YYYY-MM" },
 					end: { type: "string", description: "YYYY-MM or 'present'" },
 					description: { type: "string" },
+					employmentType: {
+						type: "string",
+						enum: [
+							"employee",
+							"self_employed",
+							"freelance",
+							"founder",
+							"internship",
+							"other",
+						],
+						description:
+							"Working relationship for this row. Use 'founder' ONLY for entrepreneurial roles where the candidate built or co-founded the company (Gründer:in, Co-Founder, CEO own startup). 'self_employed' for sole proprietor / Inhaber:in / Geschäftsführer:in own established business that wasn't a fresh founding. 'freelance' for freelance / contractor work without permanent role. 'employee' for permanent employment. 'internship' for Praktikum / Werkstudent. 'other' otherwise. Skip if unclear.",
+					},
 				},
 				required: ["company", "role", "start"],
 			},
