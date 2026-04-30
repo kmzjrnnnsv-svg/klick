@@ -84,6 +84,29 @@ export type MatchRationaleInput = {
 	yearsRequired: number | null | undefined;
 };
 
+// Holistic narrative shown to employers + the candidate. Built from the
+// already-computed deterministic insights (tenure, certs, gaps) plus the
+// raw profile text. Never echoes raw PII back — focuses on style/strengths.
+export type CandidateNarrativeInput = {
+	headline: string | null;
+	summary: string | null;
+	yearsActive: number;
+	yearsContinuous: number;
+	totalRoles: number;
+	currentRole?: { company: string; role: string; monthsOngoing: number };
+	firstJobYear?: number;
+	gaps: number; // count
+	skills: string[];
+	certificateCount: number;
+	certificatePattern: "none" | "single" | "burst" | "steady" | "sparse";
+};
+
+export type CandidateNarrative = {
+	summary: string; // 2 short sentences
+	workStyle: string[]; // 3-5 short tags, e.g. "detail-oriented", "ownership"
+	strengths: string[]; // 2-4 short phrases
+};
+
 export interface AIProvider {
 	readonly slug: string;
 	parseCv(bytes: Uint8Array, mime: string): Promise<ExtractedProfile>;
@@ -101,4 +124,8 @@ export interface AIProvider {
 		description: string;
 	}): Promise<SuggestedJobRequirement[]>;
 	matchRationale(input: MatchRationaleInput): Promise<string>;
+	// Build a workStyle/strengths summary the employer reads at a glance.
+	summarizeCandidate(
+		input: CandidateNarrativeInput,
+	): Promise<CandidateNarrative>;
 }

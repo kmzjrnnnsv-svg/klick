@@ -1,5 +1,7 @@
 import type {
 	AIProvider,
+	CandidateNarrative,
+	CandidateNarrativeInput,
 	ExtractedDocument,
 	ExtractedProfile,
 	MatchRationaleInput,
@@ -129,6 +131,38 @@ export class MockAIProvider implements AIProvider {
 			default:
 				return { kind: "other", data: { sizeBytes: bytes.length } };
 		}
+	}
+
+	async summarizeCandidate(
+		input: CandidateNarrativeInput,
+	): Promise<CandidateNarrative> {
+		const tags: string[] = [];
+		if (input.totalRoles >= 4) tags.push("vielseitig");
+		if (input.yearsContinuous >= 3) tags.push("verlässlich");
+		if (input.certificatePattern === "steady") tags.push("lernfreudig");
+		if (input.certificatePattern === "burst") tags.push("zielstrebig");
+		if (input.skills.length >= 5) tags.push("breites Skill-Set");
+		if (input.gaps >= 2) tags.push("eigenständige Phasen");
+		if (tags.length === 0) tags.push("fokussiert");
+
+		const strengths: string[] = [];
+		if (input.skills[0]) strengths.push(`Kernstärke: ${input.skills[0]}`);
+		if (input.yearsActive >= 5)
+			strengths.push(`${input.yearsActive} Jahre Praxis`);
+		if (input.certificateCount > 0)
+			strengths.push(`${input.certificateCount} Zertifikate`);
+		if (strengths.length === 0) strengths.push("Solider Einstieg");
+
+		const role = input.currentRole?.role ?? input.headline ?? "Profi";
+		const summary =
+			`${role} mit ${input.yearsActive} Jahren Berufserfahrung. ` +
+			`Mock-Narrative — setze ANTHROPIC_API_KEY für eine echte KI-Zusammenfassung.`;
+
+		return {
+			summary,
+			workStyle: tags.slice(0, 5),
+			strengths: strengths.slice(0, 4),
+		};
 	}
 
 	async matchRationale(input: MatchRationaleInput): Promise<string> {

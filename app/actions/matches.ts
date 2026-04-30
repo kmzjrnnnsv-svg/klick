@@ -237,6 +237,7 @@ export type AnonymousCandidateMatchView = {
 	location: string | null;
 	yearsExperience: number | null;
 	summary: string | null;
+	insights: import("@/lib/insights/types").CandidateInsights | null;
 };
 
 export async function listMatchesForJob(
@@ -271,6 +272,7 @@ export async function listMatchesForJob(
 			location: candidateProfiles.location,
 			yearsExperience: candidateProfiles.yearsExperience,
 			summary: candidateProfiles.summary,
+			insights: candidateProfiles.insights,
 		})
 		.from(matches)
 		.innerJoin(
@@ -279,5 +281,5 @@ export async function listMatchesForJob(
 		)
 		.where(eq(matches.jobId, jobId))
 		.orderBy(desc(matches.softScore));
-	return rows;
+	return rows as AnonymousCandidateMatchView[];
 }

@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { getMyInsights } from "@/app/actions/insights";
 import { getProfile, listCvVaultItems } from "@/app/actions/profile";
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { CandidateInsightsView } from "@/components/insights/candidate-insights";
 import { ProfileForm } from "@/components/profile/profile-form";
 
 export default async function ProfilePage() {
@@ -11,7 +13,11 @@ export default async function ProfilePage() {
 	if (!session?.user) redirect("/login");
 
 	const t = await getTranslations("Profile");
-	const [profile, cvs] = await Promise.all([getProfile(), listCvVaultItems()]);
+	const [profile, cvs, insights] = await Promise.all([
+		getProfile(),
+		listCvVaultItems(),
+		getMyInsights(),
+	]);
 
 	return (
 		<>
@@ -25,6 +31,12 @@ export default async function ProfilePage() {
 						{t("subtitle")}
 					</p>
 				</header>
+
+				<section className="mb-10">
+					<h2 className="mb-4 font-medium text-base">{t("insightsHeading")}</h2>
+					<CandidateInsightsView insights={insights} />
+				</section>
+
 				<ProfileForm initial={profile} cvs={cvs} />
 			</main>
 			<Footer />

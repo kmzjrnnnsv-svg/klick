@@ -198,6 +198,11 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 	// end). Drives /post-login routing — null = funnel them through the wizard,
 	// timestamp = treat as a returning user and go straight to /vault.
 	onboardingCompletedAt: timestamp("onboarding_completed_at", { mode: "date" }),
+	// Computed insights (tenure stats, cert analytics, narrative). Filled by
+	// recomputeInsights() whenever profile or vault changes. Never touched by
+	// user input. Shape: see lib/insights/types.ts (CandidateInsights).
+	insights: jsonb("insights"),
+	insightsUpdatedAt: timestamp("insights_updated_at", { mode: "date" }),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
 

@@ -89,6 +89,7 @@
 	"Profile": {
 		"title": "Mein Profil",
 		"subtitle": "Was Arbeitgeber sehen, sobald du Interesse zulässt. Du kontrollierst Sichtbarkeit und Inhalt.",
+		"insightsHeading": "So liest sich dein Profil",
 		"importFromCv": "Aus CV importieren",
 		"importHint": "Wähle einen CV aus deinem Vault — die Felder unten werden mit dem KI-Vorschlag vorbefüllt. Du prüfst und korrigierst.",
 		"importDisclaimer": "Die KI macht Fehler. Prüfe alles. Speichere erst, wenn es stimmt.",
@@ -132,6 +133,7 @@
 		"candidatesTitle": "Kandidat:innen",
 		"candidatesSubtitle": "Anonymisierte Vorschläge — Identität erst, wenn der Kandidat einer Anfrage zustimmt.",
 		"candidatesEmpty": "Noch keine Kandidat:innen für diese Stelle. Match wird nach Veröffentlichung im Hintergrund berechnet.",
+		"insightsToggle": "Karriere-Insights anzeigen",
 		"draftHint": "Stelle ist noch ein Entwurf. Veröffentliche sie, dann läuft der Match.",
 		"anonymousCandidate": "Kandidat:in",
 		"anonymizedHint": "Anonymisiert. Zeig Interesse, dann entscheidet der Kandidat über Identität.",
@@ -425,6 +427,45 @@
 				"celebrationBody": "Sobald die erste Stelle live ist, schlagen wir dir passende anonymisierte Profile vor.",
 				"ctaNewJob": "Erste Stelle erstellen",
 				"ctaJobs": "Übersicht öffnen"
+			}
+		}
+	},
+	"Insights": {
+		"empty": "Sobald du dein Profil ausgefüllt oder einen CV hochgeladen hast, erscheinen hier die berechneten Karriere-Insights.",
+		"narrativeTitle": "Profil-Lesart",
+		"yearsActive": "Berufsjahre aktiv",
+		"yearsActiveHint": "Summe aller Anstellungs-Phasen.",
+		"yearsContinuous": "Längste durchgehend",
+		"yearsContinuousHint": "Längste ununterbrochene Anstellung.",
+		"totalRoles": "Stationen",
+		"totalRolesHint": "Anzahl Arbeitgeber im Lebenslauf.",
+		"conflictTitle": "Eigene Angabe weicht von berechneter Erfahrung ab",
+		"conflictBody": "Selbst angegeben: {declared} Jahre · Aus den Anstellungs-Daten ergeben sich {computed}. Bitte Daten ergänzen oder Jahresangabe korrigieren.",
+		"currentRole": "Aktuell",
+		"currentRoleSince": "seit {since} ({duration})",
+		"firstJob": "Erster Job",
+		"firstJobSince": "Eintritt: {year}",
+		"avgTenure": "Ø Verweildauer",
+		"tenureRange": "Spanne: {min} – {max}",
+		"gaps": "Lücken (≥ 3 Mon.)",
+		"gapsValue": "{n} Phase(n)",
+		"less": { "year": "< 1 Jahr" },
+		"one": { "year": "1 Jahr" },
+		"many": { "years": "{n} Jahre" },
+		"certs": {
+			"title": "Zertifikate & Badges",
+			"empty": "Noch keine Zertifikate / Badges hochgeladen.",
+			"count": "Gesamt",
+			"validity": "Gültig",
+			"expired": "abgelaufen",
+			"perYear": "Pro Jahr",
+			"issuers": "Aussteller",
+			"pattern": {
+				"none": "—",
+				"single": "Einzelnes Zertifikat",
+				"burst": "Konzentriert in einem Zeitraum",
+				"steady": "Kontinuierliche Weiterbildung",
+				"sparse": "Wenige, verteilt"
 			}
 		}
 	}
