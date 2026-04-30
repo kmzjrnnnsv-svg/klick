@@ -88,3 +88,35 @@ export const verificationTokens = pgTable(
 	},
 	(t) => [primaryKey({ columns: [t.identifier, t.token] })],
 );
+
+// ─── Vault items ──────────────────────────────────────────────────────────
+// One row per file in a candidate's encrypted vault. Ciphertext lives in S3
+// under `storageKey`; nonce is stored alongside so the server can decrypt
+// using the user's DEK (unwrapped from `users.encryptedDek` via KEK).
+//
+// `encryptedDek` here is reserved for future per-file rewrap (sharing/disclosure
+// flows in P5) — for now files use the user-level DEK directly.
+export const vaultItems = pgTable("vault_items", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	kind: text("kind", {
+		enum: ["cv", "certificate", "badge", "id_doc", "other"],
+	})
+		.notNull()
+		.default("other"),
+	filename: text("filename").notNull(),
+	mime: text("mime").notNull(),
+	sizeBytes: integer("size_bytes").notNull(),
+	storageKey: text("storage_key").notNull(),
+	nonce: text("nonce").notNull(), // base64
+	encryptedDek: text("encrypted_dek"), // optional per-file rewrap (P5)
+	sha256: text("sha256").notNull(), // hex of ciphertext for integrity + audit
+	tags: text("tags").array(),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type VaultItem = typeof vaultItems.$inferSelect;

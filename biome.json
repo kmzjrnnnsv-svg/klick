@@ -10,6 +10,7 @@
 		"includes": [
 			"**",
 			"!**/.next",
+			"!**/.claude",
 			"!**/db/migrations",
 			"!**/node_modules",
 			"!**/pnpm-lock.yaml",

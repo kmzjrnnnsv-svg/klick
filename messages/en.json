@@ -52,7 +52,23 @@
 	},
 	"Vault": {
 		"title": "My vault",
-		"empty": "Your documents will live here soon. P1 ships the upload."
+		"subtitle": "Encrypted at rest. What you put here is invisible without your approval.",
+		"empty": "Nothing here yet. Drop a file in the box above.",
+		"listHeading": "Your files",
+		"kindLabel": "Kind",
+		"tagsLabel": "Tags (comma-separated)",
+		"tagsPlaceholder": "e.g. 2024, finance",
+		"dropTitle": "Drop here or tap to choose",
+		"dropHint": "PDF, images, open badges — up to 25 MB",
+		"scanWithCamera": "Scan with camera",
+		"delete": "Delete",
+		"kinds": {
+			"cv": "CV",
+			"certificate": "Certificate",
+			"badge": "Open Badge",
+			"id_doc": "ID document",
+			"other": "Other"
+		}
 	},
 	"Jobs": {
 		"title": "Jobs",

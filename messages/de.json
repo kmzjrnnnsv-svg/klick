@@ -52,7 +52,23 @@
 	},
 	"Vault": {
 		"title": "Mein Vault",
-		"empty": "Hier liegen bald deine Unterlagen. P1 bringt den Upload."
+		"subtitle": "Verschlüsselt im Ruhezustand. Was du hier ablegst, sieht ohne deine Freigabe niemand sonst.",
+		"empty": "Noch keine Datei. Zieh sie einfach in die Box oben.",
+		"listHeading": "Deine Dateien",
+		"kindLabel": "Art",
+		"tagsLabel": "Tags (kommagetrennt)",
+		"tagsPlaceholder": "z. B. 2024, finance",
+		"dropTitle": "Hierher ziehen oder antippen",
+		"dropHint": "PDF, Bilder, Open Badges — bis 25 MB",
+		"scanWithCamera": "Mit Kamera scannen",
+		"delete": "Löschen",
+		"kinds": {
+			"cv": "Lebenslauf",
+			"certificate": "Zeugnis",
+			"badge": "Open Badge",
+			"id_doc": "Identitätsnachweis",
+			"other": "Sonstiges"
+		}
 	},
 	"Jobs": {
 		"title": "Jobs",
