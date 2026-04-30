@@ -22,18 +22,20 @@ export default async function ProfilePage() {
 	return (
 		<>
 			<Header />
-			<main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-12 pb-24 sm:px-6 sm:pt-16">
-				<header className="mb-8">
-					<h1 className="font-semibold text-2xl tracking-tight sm:text-3xl">
+			<main className="mx-auto w-full max-w-3xl flex-1 px-3 pt-6 pb-20 sm:px-6 sm:pt-12">
+				<header className="mb-5 sm:mb-7">
+					<h1 className="font-semibold text-xl tracking-tight sm:text-3xl">
 						{t("title")}
 					</h1>
-					<p className="mt-2 text-muted-foreground text-sm leading-relaxed">
+					<p className="mt-1.5 text-muted-foreground text-sm leading-snug">
 						{t("subtitle")}
 					</p>
 				</header>
 
-				<section className="mb-10">
-					<h2 className="mb-4 font-medium text-base">{t("insightsHeading")}</h2>
+				<section className="mb-6 sm:mb-8">
+					<h2 className="mb-2.5 font-medium text-sm sm:text-base">
+						{t("insightsHeading")}
+					</h2>
 					<CandidateInsightsView
 						insights={insights}
 						profileExtras={

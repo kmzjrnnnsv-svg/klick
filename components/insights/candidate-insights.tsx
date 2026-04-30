@@ -72,16 +72,16 @@ export function CandidateInsightsView({
 				: "";
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-4">
 			{narrative && (
-				<section className="rounded-lg border border-primary/30 bg-primary/5 p-5">
-					<div className="mb-2 flex items-center gap-2 text-primary text-xs uppercase tracking-wide">
+				<section className="rounded-lg border border-primary/30 bg-primary/5 p-3.5 sm:p-4">
+					<div className="mb-1.5 flex items-center gap-2 text-primary text-xs uppercase tracking-wide">
 						<Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
 						{t("narrativeTitle")}
 					</div>
-					<p className="text-sm leading-relaxed">{narrative.summary}</p>
+					<p className="text-sm leading-snug">{narrative.summary}</p>
 					{narrative.workStyle.length > 0 && (
-						<div className="mt-3 flex flex-wrap gap-1.5">
+						<div className="mt-2.5 flex flex-wrap gap-1">
 							{narrative.workStyle.map((tag) => (
 								<span
 									key={tag}
@@ -93,7 +93,7 @@ export function CandidateInsightsView({
 						</div>
 					)}
 					{narrative.strengths.length > 0 && (
-						<ul className="mt-4 space-y-1.5 text-muted-foreground text-xs">
+						<ul className="mt-3 space-y-1 text-muted-foreground text-xs">
 							{narrative.strengths.map((s) => (
 								<li key={s} className="flex items-start gap-1.5">
 									<TrendingUp
@@ -108,7 +108,7 @@ export function CandidateInsightsView({
 				</section>
 			)}
 
-			<section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+			<section className="grid grid-cols-3 gap-2 sm:gap-3">
 				<Stat
 					icon={Briefcase}
 					label={t("yearsActive")}
@@ -158,8 +158,8 @@ export function CandidateInsightsView({
 			)}
 
 			{tenure.totalRoles > 0 && (
-				<section className="rounded-lg border border-border bg-background p-4">
-					<div className="mb-2 flex items-center justify-between gap-2">
+				<section className="rounded-lg border border-border bg-background p-3 sm:p-4">
+					<div className="mb-1.5 flex items-center justify-between gap-2">
 						<div className="flex items-center gap-2 font-medium text-sm">
 							<Target className="h-4 w-4" strokeWidth={1.5} />
 							{t("tenureScore.title")}
@@ -232,8 +232,8 @@ export function CandidateInsightsView({
 				</section>
 			)}
 
-			<section className="rounded-lg border border-border bg-background p-4">
-				<div className="mb-3 flex items-center gap-2 font-medium text-sm">
+			<section className="rounded-lg border border-border bg-background p-3 sm:p-4">
+				<div className="mb-2 flex items-center gap-2 font-medium text-sm">
 					<Award className="h-4 w-4" strokeWidth={1.5} />
 					{t("certs.title")}
 				</div>
@@ -340,8 +340,8 @@ export function CandidateInsightsView({
 			</section>
 
 			{hasExtras && profileExtras && (
-				<section className="rounded-lg border border-border bg-background p-4">
-					<div className="mb-3 font-medium text-sm">{t("extras.title")}</div>
+				<section className="rounded-lg border border-border bg-background p-3 sm:p-4">
+					<div className="mb-2 font-medium text-sm">{t("extras.title")}</div>
 					<div className="space-y-2">
 						{profileExtras.preferredRoleLevel && (
 							<KvRow
@@ -432,14 +432,16 @@ function Stat({
 	hint?: string;
 }) {
 	return (
-		<div className="rounded-lg border border-border bg-background p-4">
-			<div className="mb-1 flex items-center gap-1.5 text-muted-foreground text-xs">
-				<Icon className="h-3.5 w-3.5" strokeWidth={1.5} />
-				{label}
+		<div className="rounded-lg border border-border bg-background p-2.5 sm:p-3">
+			<div className="flex items-center gap-1.5 text-muted-foreground text-[11px] leading-tight sm:text-xs">
+				<Icon className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+				<span className="truncate">{label}</span>
 			</div>
-			<div className="font-semibold text-lg">{value}</div>
+			<div className="mt-1 font-semibold text-base sm:text-lg">{value}</div>
 			{hint && (
-				<div className="mt-0.5 text-muted-foreground text-xs">{hint}</div>
+				<div className="mt-0.5 hidden text-muted-foreground text-xs sm:block">
+					{hint}
+				</div>
 			)}
 		</div>
 	);
@@ -455,12 +457,14 @@ function KvRow({
 	hint?: string;
 }) {
 	return (
-		<div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
-			<span className="text-muted-foreground text-xs sm:w-32 sm:shrink-0">
-				{label}
-			</span>
+		<div className="grid grid-cols-[7rem_1fr] items-baseline gap-x-3 gap-y-0 sm:grid-cols-[8rem_1fr]">
+			<span className="text-muted-foreground text-xs">{label}</span>
 			<span className="text-sm">{value}</span>
-			{hint && <span className="text-muted-foreground text-xs">{hint}</span>}
+			{hint && (
+				<span className="col-start-2 text-muted-foreground text-xs">
+					{hint}
+				</span>
+			)}
 		</div>
 	);
 }
