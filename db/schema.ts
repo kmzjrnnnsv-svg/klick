@@ -331,3 +331,40 @@ export const auditLog = pgTable("audit_log", {
 });
 
 export type AuditLogEntry = typeof auditLog.$inferSelect;
+
+// ─── Verifications ────────────────────────────────────────────────────────
+// One row per individual check triggered by an Interest. The orchestrator
+// (lib/verify/orchestrator.ts) decides which connectors run for each
+// verifyDepth (light = none, standard = cert + badge, deep = + identity).
+//
+// Connector slug references lib/verify/registry. Evidence is connector-shaped
+// JSON (e.g. IDnow returns a transaction id; Credly returns badge JSON-LD).
+export type VerificationKind = "identity" | "cert" | "badge" | "employment";
+
+export const verifications = pgTable("verifications", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	interestId: text("interest_id")
+		.notNull()
+		.references(() => interests.id, { onDelete: "cascade" }),
+	candidateUserId: text("candidate_user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	vaultItemId: text("vault_item_id").references(() => vaultItems.id, {
+		onDelete: "set null",
+	}),
+	connector: text("connector").notNull(),
+	kind: text("kind", {
+		enum: ["identity", "cert", "badge", "employment"],
+	}).notNull(),
+	status: text("status", { enum: ["pending", "passed", "failed"] })
+		.notNull()
+		.default("pending"),
+	message: text("message"),
+	evidence: jsonb("evidence"),
+	startedAt: timestamp("started_at", { mode: "date" }).notNull().defaultNow(),
+	completedAt: timestamp("completed_at", { mode: "date" }),
+});
+
+export type Verification = typeof verifications.$inferSelect;

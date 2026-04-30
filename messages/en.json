@@ -181,9 +181,11 @@
 		},
 		"depthExplain": {
 			"light": "Releases identity (name + email). No external check.",
-			"standard": "Adds CV authenticity and badge validation. (Connector P6)",
-			"deep": "Adds external identity verification. (Connector P6)"
+			"standard": "Adds CV authenticity and badge validation via external connectors.",
+			"deep": "Adds external identity verification (e.g. IDnow / Postident)."
 		},
+		"verificationsTitle": "Planned checks",
+		"verificationsHint": "These checks run once you approve. You see the results first.",
 		"status": {
 			"pending": "pending",
 			"approved": "approved",

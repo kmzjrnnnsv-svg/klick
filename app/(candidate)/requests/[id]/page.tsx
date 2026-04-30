@@ -6,6 +6,21 @@ import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { DecisionButtons } from "@/components/interests/decision-buttons";
+import { cn } from "@/lib/utils";
+import { listVerificationsForInterest } from "@/lib/verify/orchestrator";
+
+const KIND_LABELS: Record<string, string> = {
+	identity: "Identität",
+	cert: "Zertifikat",
+	badge: "Open Badge",
+	employment: "Arbeitsverhältnis",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+	pending: "border-amber-500/40 text-amber-700 dark:text-amber-300",
+	passed: "border-emerald-500/40 text-emerald-700 dark:text-emerald-300",
+	failed: "border-rose-500/40 text-rose-700 dark:text-rose-300",
+};
 
 export default async function RequestDetailPage({
 	params,
@@ -22,6 +37,7 @@ export default async function RequestDetailPage({
 	const t = await getTranslations("Requests");
 	const fmt = await getFormatter();
 	const { interest, job, companyName } = item;
+	const verifications = await listVerificationsForInterest(id);
 
 	return (
 		<>
@@ -47,6 +63,45 @@ export default async function RequestDetailPage({
 							{t(`depthExplain.${interest.verifyDepth}`)}
 						</p>
 					</div>
+
+					{verifications.length > 0 && (
+						<div className="rounded-lg border border-border bg-background p-4 sm:p-5">
+							<h2 className="font-medium text-sm">{t("verificationsTitle")}</h2>
+							<p className="mt-1 mb-3 text-muted-foreground text-xs leading-relaxed">
+								{t("verificationsHint")}
+							</p>
+							<ul className="space-y-2">
+								{verifications.map((v) => (
+									<li
+										key={v.id}
+										className="flex items-start justify-between gap-3 rounded-md border border-border bg-muted/20 p-3"
+									>
+										<div className="min-w-0 flex-1">
+											<div className="font-medium text-sm">
+												{KIND_LABELS[v.kind] ?? v.kind}{" "}
+												<span className="font-mono text-muted-foreground text-xs">
+													· {v.connector}
+												</span>
+											</div>
+											{v.message && (
+												<div className="mt-0.5 text-muted-foreground text-xs">
+													{v.message}
+												</div>
+											)}
+										</div>
+										<span
+											className={cn(
+												"shrink-0 rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider",
+												STATUS_COLORS[v.status],
+											)}
+										>
+											{v.status}
+										</span>
+									</li>
+								))}
+							</ul>
+						</div>
+					)}
 
 					{interest.message && (
 						<div className="rounded-lg border border-border bg-background p-4 sm:p-5">

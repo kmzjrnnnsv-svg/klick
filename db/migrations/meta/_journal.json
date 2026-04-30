@@ -43,6 +43,13 @@
       "when": 1777538317957,
       "tag": "0005_slow_spitfire",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777538601393,
+      "tag": "0006_motionless_network",
+      "breakpoints": true
     }
   ]
 }

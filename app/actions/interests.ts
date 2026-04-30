@@ -2,6 +2,7 @@
 
 import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -16,6 +17,7 @@ import {
 	matches,
 	users,
 } from "@/db/schema";
+import { orchestrateVerifications } from "@/lib/verify/orchestrator";
 
 const showInterestSchema = z.object({
 	matchId: z.string().min(1),
@@ -107,6 +109,13 @@ export async function showInterest(input: {
 
 	revalidatePath(`/jobs/${match.jobId}/candidates`);
 	revalidatePath("/requests");
+
+	// Kick off verifications based on depth. light = noop. standard/deep run
+	// connectors (Mock by default) without blocking the form response.
+	if (data.verifyDepth !== "light") {
+		after(() => orchestrateVerifications(created.id));
+	}
+
 	return { id: created.id };
 }
 

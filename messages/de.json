@@ -181,9 +181,11 @@
 		},
 		"depthExplain": {
 			"light": "Identität (Name + E-Mail) wird freigegeben. Keine externe Prüfung.",
-			"standard": "Zusätzlich CV-Echtheit und Badge-Validierung. (Connector P6)",
-			"deep": "Zusätzlich externe Identitätsverifikation. (Connector P6)"
+			"standard": "Zusätzlich CV-Echtheit und Badge-Validierung über externe Connectoren.",
+			"deep": "Zusätzlich externe Identitätsverifikation (z. B. IDnow / Postident)."
 		},
+		"verificationsTitle": "Geplante Prüfungen",
+		"verificationsHint": "Diese Prüfungen laufen, sobald du freigibst. Ergebnisse siehst du hier zuerst.",
 		"status": {
 			"pending": "offen",
 			"approved": "freigegeben",
