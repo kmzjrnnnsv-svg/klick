@@ -1,4 +1,5 @@
 import {
+	boolean,
 	integer,
 	jsonb,
 	pgTable,
@@ -92,12 +93,33 @@ export const verificationTokens = pgTable(
 );
 
 // ─── Vault items ──────────────────────────────────────────────────────────
-// One row per file in a candidate's encrypted vault. Ciphertext lives in S3
-// under `storageKey`; nonce is stored alongside so the server can decrypt
-// using the user's DEK (unwrapped from `users.encryptedDek` via KEK).
+// One row per file in a candidate's encrypted vault. Two flavors:
+//   1) File upload — ciphertext in S3 under `storageKey`; `nonce` set so the
+//      server can decrypt using the user's DEK (unwrapped from
+//      `users.encryptedDek` via KEK). `sourceUrl` / `badgeMeta` null.
+//   2) Open Badge from URL — no S3 file. `sourceUrl` points at the public
+//      JSON-LD endpoint (Credly etc.); `badgeMeta` caches the parsed metadata
+//      for display. Storage fields stay null.
 //
-// `encryptedDek` here is reserved for future per-file rewrap (sharing/disclosure
+// `encryptedDek` is reserved for future per-file rewrap (sharing/disclosure
 // flows in P5) — for now files use the user-level DEK directly.
+export type BadgeMeta = {
+	name?: string;
+	description?: string;
+	imageUrl?: string;
+	issuerName?: string;
+	issuedAt?: string;
+	criteriaUrl?: string;
+};
+
+// Result of running the AI extractor on an uploaded file. Shape varies by
+// document kind — keep it loose so the AI module owns the strict types and
+// the schema doesn't dictate them.
+export type ExtractedDocumentMeta = {
+	kind: "cv" | "certificate" | "id_doc" | "badge" | "other";
+	data: Record<string, unknown>;
+};
+
 export const vaultItems = pgTable("vault_items", {
 	id: text("id")
 		.primaryKey()
@@ -111,12 +133,23 @@ export const vaultItems = pgTable("vault_items", {
 		.notNull()
 		.default("other"),
 	filename: text("filename").notNull(),
-	mime: text("mime").notNull(),
-	sizeBytes: integer("size_bytes").notNull(),
-	storageKey: text("storage_key").notNull(),
-	nonce: text("nonce").notNull(), // base64
+	mime: text("mime"),
+	sizeBytes: integer("size_bytes"),
+	storageKey: text("storage_key"),
+	nonce: text("nonce"), // base64
 	encryptedDek: text("encrypted_dek"), // optional per-file rewrap (P5)
-	sha256: text("sha256").notNull(), // hex of ciphertext for integrity + audit
+	sha256: text("sha256"), // hex of ciphertext for integrity + audit
+	sourceUrl: text("source_url"), // populated for URL-based items (Credly badges)
+	badgeMeta: jsonb("badge_meta").$type<BadgeMeta>(),
+	// AI-extracted metadata + the kind the extractor settled on (may differ
+	// from the user-supplied `kind` when auto-detection corrects it).
+	// `extractedAt` is set even when extraction returns nothing — that way the
+	// UI can distinguish "not yet processed" from "processed, no data".
+	extractedKind: text("extracted_kind", {
+		enum: ["cv", "certificate", "badge", "id_doc", "other"],
+	}),
+	extractedMeta: jsonb("extracted_meta").$type<ExtractedDocumentMeta>(),
+	extractedAt: timestamp("extracted_at", { mode: "date" }),
 	tags: text("tags").array(),
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
@@ -161,6 +194,10 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 	})
 		.notNull()
 		.default("matches_only"),
+	// Set when the candidate completes the onboarding wizard (or skips to the
+	// end). Drives /post-login routing — null = funnel them through the wizard,
+	// timestamp = treat as a returning user and go straight to /vault.
+	onboardingCompletedAt: timestamp("onboarding_completed_at", { mode: "date" }),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
 
@@ -183,6 +220,9 @@ export const employers = pgTable("employers", {
 	companyName: text("company_name").notNull(),
 	website: text("website"),
 	description: text("description"),
+	// Headhunter / Personalberatung. Same access rights as a regular employer
+	// for now; the flag drives onboarding copy + UI labels ("Im Auftrag von …").
+	isAgency: boolean("is_agency").notNull().default(false),
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 

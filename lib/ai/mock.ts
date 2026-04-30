@@ -1,5 +1,6 @@
 import type {
 	AIProvider,
+	ExtractedDocument,
 	ExtractedProfile,
 	MatchRationaleInput,
 	SuggestedJobRequirement,
@@ -88,6 +89,46 @@ export class MockAIProvider implements AIProvider {
 			weight: i < 2 ? ("must" as const) : ("nice" as const),
 			minLevel: i < 2 ? (3 as const) : undefined,
 		}));
+	}
+
+	async extractDocument(
+		bytes: Uint8Array,
+		mime: string,
+		hint: "cv" | "certificate" | "badge" | "id_doc" | "other",
+	): Promise<ExtractedDocument> {
+		// Deterministic fake metadata. Real provider hits the model with the file.
+		switch (hint) {
+			case "cv": {
+				const data = await this.parseCv(bytes, mime);
+				return { kind: "cv", data };
+			}
+			case "certificate":
+				return {
+					kind: "certificate",
+					data: {
+						title: "Beispiel-Zertifikat",
+						issuer: "Demo-Akademie",
+						issuedAt: "2024-06",
+						grade: "1,7",
+					},
+				};
+			case "id_doc":
+				return {
+					kind: "id_doc",
+					data: { docType: "id_card", fullName: undefined },
+				};
+			case "badge":
+				return {
+					kind: "badge",
+					data: {
+						name: "Mock Open Badge",
+						issuerName: "Demo Issuer",
+						issuedAt: "2025-03",
+					},
+				};
+			default:
+				return { kind: "other", data: { sizeBytes: bytes.length } };
+		}
 	}
 
 	async matchRationale(input: MatchRationaleInput): Promise<string> {

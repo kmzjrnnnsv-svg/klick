@@ -99,7 +99,7 @@ export async function getProfile(): Promise<CandidateProfile | null> {
 export async function listCvVaultItems() {
 	const session = await auth();
 	if (!session?.user?.id) return [];
-	return db
+	const rows = await db
 		.select({
 			id: vaultItems.id,
 			filename: vaultItems.filename,
@@ -110,6 +110,11 @@ export async function listCvVaultItems() {
 		.where(
 			and(eq(vaultItems.userId, session.user.id), eq(vaultItems.kind, "cv")),
 		);
+	// CV import only makes sense for items with a real file (have a mime type).
+	return rows.filter(
+		(r): r is { id: string; filename: string; mime: string; createdAt: Date } =>
+			r.mime !== null,
+	);
 }
 
 export async function parseCvFromVault(
@@ -132,6 +137,10 @@ export async function parseCvFromVault(
 		.where(eq(users.id, userId))
 		.limit(1);
 	if (!user?.encryptedDek) throw new Error("vault key missing");
+	if (!item.storageKey || !item.nonce || !item.mime) {
+		// URL-only items (e.g. Credly badges) carry no payload to parse.
+		throw new Error("vault item has no file payload");
+	}
 
 	const dek = await unwrapDek(user.encryptedDek);
 	const ciphertext = await getBytes(item.storageKey);

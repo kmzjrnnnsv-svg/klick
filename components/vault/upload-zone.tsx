@@ -1,9 +1,9 @@
 "use client";
 
-import { Camera, FileUp, Loader2 } from "lucide-react";
+import { Award, Camera, FileUp, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
-import { uploadVaultItem } from "@/app/actions/vault";
+import { addBadgeFromUrl, uploadVaultItem } from "@/app/actions/vault";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,7 @@ export function UploadZone() {
 	const [isPending, startTransition] = useTransition();
 	const [kind, setKind] = useState<Kind>("other");
 	const [tags, setTags] = useState("");
+	const [badgeUrl, setBadgeUrl] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const fileRef = useRef<HTMLInputElement>(null);
 	const cameraRef = useRef<HTMLInputElement>(null);
@@ -35,6 +36,21 @@ export function UploadZone() {
 					setError(e instanceof Error ? e.message : String(e));
 					return;
 				}
+			}
+		});
+	}
+
+	function handleBadgeSubmit() {
+		if (!badgeUrl.trim()) return;
+		setError(null);
+		startTransition(async () => {
+			const fd = new FormData();
+			fd.set("url", badgeUrl.trim());
+			try {
+				await addBadgeFromUrl(fd);
+				setBadgeUrl("");
+			} catch (e) {
+				setError(e instanceof Error ? e.message : String(e));
 			}
 		});
 	}
@@ -134,6 +150,39 @@ export function UploadZone() {
 				hidden
 				onChange={(e) => handleFiles(e.target.files)}
 			/>
+
+			<div className="rounded-lg border border-border border-dashed bg-muted/20 p-4">
+				<div className="mb-2 flex items-center gap-2">
+					<Award className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+					<p className="font-medium text-sm">{t("badgeUrlTitle")}</p>
+				</div>
+				<p className="mb-3 text-muted-foreground text-xs leading-relaxed">
+					{t("badgeUrlHint")}
+				</p>
+				<div className="flex flex-col gap-2 sm:flex-row">
+					<input
+						type="url"
+						value={badgeUrl}
+						onChange={(e) => setBadgeUrl(e.target.value)}
+						disabled={isPending}
+						placeholder={t("badgeUrlPlaceholder")}
+						className="h-10 flex-1 rounded-md border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+					/>
+					<Button
+						type="button"
+						onClick={handleBadgeSubmit}
+						disabled={isPending || !badgeUrl.trim()}
+						variant="outline"
+						className="sm:w-auto"
+					>
+						{isPending ? (
+							<Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
+						) : (
+							t("badgeUrlSubmit")
+						)}
+					</Button>
+				</div>
+			</div>
 
 			{error && (
 				<p className="rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-rose-700 text-xs dark:text-rose-300">

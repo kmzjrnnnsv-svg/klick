@@ -47,7 +47,15 @@
 		"emailLabel": "E-Mail-Adresse",
 		"emailPlaceholder": "du@beispiel.de",
 		"submit": "Magic Link senden",
-		"note": "In der Entwicklungs-Umgebung erscheint der Link in der Server-Konsole."
+		"note": "In der Entwicklungs-Umgebung erscheint der Link in der Server-Konsole.",
+		"demoTitle": "Demo-Zugänge",
+		"demoSubtitle": "Klick eine Rolle, um die App sofort aus dieser Sicht zu erleben. Nur sichtbar, weil ENABLE_DEMO_LOGIN aktiv ist.",
+		"demoRoles": {
+			"admin": "Admin",
+			"company": "Unternehmen",
+			"headhunter": "Headhunter",
+			"candidate": "Kandidat:in"
+		}
 	},
 	"LoginCheck": {
 		"title": "Schau in dein Postfach",
@@ -71,7 +79,12 @@
 			"badge": "Open Badge",
 			"id_doc": "Identitätsnachweis",
 			"other": "Sonstiges"
-		}
+		},
+		"badgeUrlTitle": "Open Badge per Link",
+		"badgeUrlHint": "Hast du einen Credly-Badge oder ein anderes Open-Badge-Profil? Füge einfach die JSON-LD-URL ein — wir holen Name, Aussteller und Bild automatisch.",
+		"badgeUrlPlaceholder": "https://api.credly.com/v1/obi/v2/badges/…",
+		"badgeUrlSubmit": "Badge hinzufügen",
+		"extracting": "Liest Inhalt aus …"
 	},
 	"Profile": {
 		"title": "Mein Profil",
@@ -274,5 +287,145 @@
 		"saving": "Speichere…",
 		"delete": "Löschen",
 		"confirmDelete": "Diese Stelle wirklich löschen? Vorgang nicht rückgängig zu machen."
+	},
+	"Onboarding": {
+		"layout": {
+			"skipForNow": "Später einrichten",
+			"stepOf": "Schritt {current} von {total}"
+		},
+		"welcome": {
+			"title": "Willkommen bei Klick.",
+			"subtitle": "In ein paar Minuten richten wir dein Profil so ein, dass dich passende Arbeitgeber finden — ohne dass du im Schaufenster stehst.",
+			"steps": {
+				"1": {
+					"title": "Grunddaten",
+					"body": "Name, Standort, Erfahrung. Drei Felder, kein Foto, keine Pflichtfelder."
+				},
+				"2": {
+					"title": "CV hochladen (optional)",
+					"body": "Wir lesen ihn verschlüsselt aus und füllen den nächsten Schritt vor. Du prüfst alles selbst."
+				},
+				"3": {
+					"title": "Skills & Erfahrung",
+					"body": "Was kannst du gut. Mehr kannst du jederzeit ergänzen."
+				},
+				"4": {
+					"title": "Sichtbarkeit",
+					"body": "Du entscheidest, wer dich finden darf — bevor irgendwer Bescheid weiß."
+				}
+			},
+			"etaNote": "Dauert etwa 3 Minuten.",
+			"cta": "Los geht's"
+		},
+		"basics": {
+			"title": "Wer bist du?",
+			"subtitle": "Diese Angaben sehen Arbeitgeber erst, wenn du eine Anfrage freigibst.",
+			"displayNameLabel": "Wie sollen wir dich anreden?",
+			"displayNameHint": "Vor- und Nachname oder ein Künstlername. Kann jederzeit geändert werden.",
+			"displayNamePlaceholder": "Kai Sommer",
+			"headlineLabel": "In einem Satz: Was machst du?",
+			"headlineHint": "Aktuelle Position oder Schwerpunkt — kein Lebenslauf, nur Etikett.",
+			"headlinePlaceholder": "Senior Frontend Engineer mit Schwerpunkt Design-Systeme",
+			"locationLabel": "Standort",
+			"locationPlaceholder": "Berlin",
+			"yearsLabel": "Berufserfahrung (Jahre)",
+			"languagesLabel": "Sprachen",
+			"languagesHint": "Kommagetrennt — z. B. Deutsch, Englisch.",
+			"languagesPlaceholder": "Deutsch, Englisch",
+			"next": "Weiter"
+		},
+		"upload": {
+			"title": "Dein Lebenslauf — verschlüsselt im Vault.",
+			"subtitle": "Optional. Wenn du einen hochlädst, kann die KI im nächsten Schritt deine Skills + Erfahrung vorbefüllen.",
+			"dropTitle": "Hierher ziehen oder antippen",
+			"dropHint": "PDF oder Bild — bis 25 MB. Wird sofort verschlüsselt.",
+			"uploadedHint": "Sieht gut aus. Klick auf 'Weiter'.",
+			"skip": "Ohne CV weiter",
+			"next": "Weiter"
+		},
+		"skills": {
+			"title": "Was kannst du wirklich?",
+			"subtitle": "Skills helfen uns beim Match. Mehr Felder kannst du später im Profil ergänzen.",
+			"importTitle": "Aus CV vorbefüllen",
+			"importHint": "Wir extrahieren Skills, Zusammenfassung, Erfahrung + Ausbildung aus '{filename}'. Du prüfst alles.",
+			"importCta": "Vorbefüllen",
+			"importing": "Lese aus…",
+			"skillsLabel": "Skills",
+			"skillsHint": "Eine Zeile pro Skill. Optional Level 1–5 nach Doppelpunkt — z. B. 'TypeScript: 5'.",
+			"skillsPlaceholder": "TypeScript: 5\nReact: 5\nNext.js: 4\nTailwind",
+			"summaryLabel": "Kurz über dich",
+			"summaryPlaceholder": "Zwei, drei Sätze. Was treibt dich an, woran arbeitest du am liebsten.",
+			"moreLater": "Berufserfahrung + Ausbildung kannst du jederzeit im Profil ergänzen.",
+			"next": "Weiter"
+		},
+		"visibility": {
+			"title": "Wer darf dich finden?",
+			"subtitle": "Du kannst das jederzeit ändern. Der Default ist die anonyme Match-Sicht — Arbeitgeber sehen dich erst, wenn du sie freigibst.",
+			"options": {
+				"private": {
+					"title": "Privat",
+					"body": "Niemand sieht dein Profil. Keine Match-Vorschläge."
+				},
+				"matches_only": {
+					"title": "Nur Matches (empfohlen)",
+					"body": "Arbeitgeber sehen anonymisierte Vorschläge. Identität erst nach deiner Freigabe."
+				},
+				"public": {
+					"title": "Öffentlich",
+					"body": "Dein Profil ist für eingeloggte Arbeitgeber sichtbar — ohne Anfrage."
+				}
+			},
+			"finish": "Fertig"
+		},
+		"done": {
+			"title": "Geschafft.",
+			"subtitle": "Dein Profil ist live. Wir suchen ab jetzt im Hintergrund nach passenden Stellen.",
+			"celebrationTitle": "Du bist drin.",
+			"celebrationBody": "Schau dir die ersten Match-Vorschläge an oder ergänze dein Profil.",
+			"ctaMatches": "Zu meinen Matches",
+			"ctaProfile": "Profil weiter ausfüllen"
+		},
+		"employer": {
+			"welcome": {
+				"title": "Willkommen.",
+				"subtitle": "Zwei kurze Schritte, dann kannst du Stellen veröffentlichen und passende Profile sehen.",
+				"steps": {
+					"1": {
+						"title": "Unternehmen anlegen",
+						"body": "Name, Website, ein paar Sätze zum Wer-und-Was. Headhunter? Setz das Häkchen."
+					},
+					"2": {
+						"title": "Erste Stelle erstellen",
+						"body": "Mit KI-Unterstützung schlagen wir Skills + Anforderungen direkt aus deiner Beschreibung vor."
+					}
+				},
+				"etaNote": "Dauert keine 2 Minuten.",
+				"cta": "Los geht's"
+			},
+			"company": {
+				"title": "Wer seid ihr?",
+				"subtitle": "Diese Angaben sehen Kandidat:innen, sobald sie ein Match annehmen.",
+				"companyNameLabel": "Firmenname",
+				"companyNamePlaceholder": "Acme Studios GmbH",
+				"websiteLabel": "Website",
+				"websitePlaceholder": "acme.de",
+				"websiteHint": "https:// ergänzen wir automatisch.",
+				"descriptionLabel": "Was macht ihr?",
+				"descriptionPlaceholder": "Wir entwickeln Werkzeuge für kreative Teams …",
+				"descriptionHint": "Zwei, drei Sätze reichen. Erscheint im Match.",
+				"agencyLabel": "Wir vermitteln im Auftrag (Headhunter / Personalberatung)",
+				"agencyHint": "Damit Kandidat:innen wissen, dass die Stelle nicht direkt bei euch besetzt wird. Klick blendet das im Match-Profil ein.",
+				"finish": "Fertig"
+			},
+			"done": {
+				"title": "Bereit, {company}.",
+				"subtitleCompany": "Dein Unternehmens-Profil ist live. Veröffentliche jetzt die erste Stelle.",
+				"subtitleAgency": "Dein Agentur-Profil ist live. Veröffentliche jetzt die erste Position, die du besetzen sollst.",
+				"celebrationTitle": "Eingerichtet.",
+				"celebrationBody": "Sobald die erste Stelle live ist, schlagen wir dir passende anonymisierte Profile vor.",
+				"ctaNewJob": "Erste Stelle erstellen",
+				"ctaJobs": "Übersicht öffnen"
+			}
+		}
 	}
 }
