@@ -274,3 +274,60 @@ export const matches = pgTable(
 );
 
 export type Match = typeof matches.$inferSelect;
+
+// ─── Interests + Disclosures ──────────────────────────────────────────────
+// An interest is the employer asking "I want to talk to this candidate".
+// The candidate decides via decidedAt + status. When approved, identity
+// (name + email) becomes visible to the employer for that job. Per-field
+// disclosure (vault items, individual profile fields) lives in `disclosures`
+// and is granted/revoked by the candidate independently.
+export const interests = pgTable("interests", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	matchId: text("match_id")
+		.notNull()
+		.references(() => matches.id, { onDelete: "cascade" }),
+	jobId: text("job_id")
+		.notNull()
+		.references(() => jobs.id, { onDelete: "cascade" }),
+	employerId: text("employer_id")
+		.notNull()
+		.references(() => employers.id, { onDelete: "cascade" }),
+	candidateUserId: text("candidate_user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	verifyDepth: text("verify_depth", {
+		enum: ["light", "standard", "deep"],
+	})
+		.notNull()
+		.default("light"),
+	message: text("message"),
+	status: text("status", {
+		enum: ["pending", "approved", "rejected", "expired"],
+	})
+		.notNull()
+		.default("pending"),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+	expiresAt: timestamp("expires_at", { mode: "date" }),
+	decidedAt: timestamp("decided_at", { mode: "date" }),
+});
+
+export type Interest = typeof interests.$inferSelect;
+
+// ─── Audit log ────────────────────────────────────────────────────────────
+// Append-only record of important actions (interest created/approved/rejected,
+// vault delete, etc). Kept even after row deletions for compliance.
+export const auditLog = pgTable("audit_log", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	tenantId: text("tenant_id").references(() => tenants.id),
+	actorUserId: text("actor_user_id"),
+	action: text("action").notNull(),
+	target: text("target"),
+	payload: jsonb("payload"),
+	at: timestamp("at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type AuditLogEntry = typeof auditLog.$inferSelect;

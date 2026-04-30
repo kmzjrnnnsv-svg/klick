@@ -8,6 +8,7 @@
 		"openVault": "Vault",
 		"openProfile": "Profile",
 		"openMatches": "Matches",
+		"openRequests": "Requests",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
 		"login": "Sign in",
@@ -120,7 +121,8 @@
 		"candidatesEmpty": "No candidates for this job yet. Match runs in the background after publishing.",
 		"draftHint": "This job is a draft. Publish it to run matching.",
 		"anonymousCandidate": "Candidate",
-		"anonymizedHint": "Anonymized. Once you signal interest and the candidate approves (P5), you'll see identity and vault contents.",
+		"anonymizedHint": "Anonymized. Show interest, then the candidate decides on identity.",
+		"revealedHint": "Identity revealed. Vault disclosure ships in P5.5.",
 		"yearsAbbr": "{years} yrs experience",
 		"seeCandidates": "See {count} candidates",
 		"salary": "Salary",
@@ -128,6 +130,65 @@
 			"onsite": "On-site",
 			"hybrid": "Hybrid",
 			"remote": "Fully remote"
+		}
+	},
+	"Interest": {
+		"title": "Show interest",
+		"subtitle": "The candidate sees your request and decides whether to reveal their identity.",
+		"depthLabel": "Verification depth",
+		"depths": {
+			"light": {
+				"title": "Light — profile only",
+				"body": "Reveals name, location and summary. No third-party check."
+			},
+			"standard": {
+				"title": "Standard — + CV verification",
+				"body": "Adds CV authenticity (layout heuristics) and open-badge validation. (Connector ships P6)"
+			},
+			"deep": {
+				"title": "Deep — + identity verification",
+				"body": "Adds identity check via external provider (IDnow, Postident). (Connector ships P6)"
+			}
+		},
+		"messageLabel": "Personal message (optional)",
+		"messagePlaceholder": "What draws you to this candidate? What would be the next steps?",
+		"send": "Send request",
+		"sending": "Sending…",
+		"cancel": "Cancel",
+		"close": "Close",
+		"showInterest": "Show interest",
+		"waitingApproval": "Awaiting approval",
+		"approved": "Approved",
+		"rejected": "Declined",
+		"approveAction": "Reveal identity",
+		"rejectAction": "Decline",
+		"decideHint": "You release only name + email. Vault contents are requested later (P5.5) per file."
+	},
+	"Requests": {
+		"title": "Requests for you",
+		"subtitle": "Employers wanting to talk. You decide per request.",
+		"empty": "No requests yet. Save your profile and wait for match interest.",
+		"whatTheyAsked": "What was asked",
+		"messageFrom": "Message from {company}",
+		"aboutTheJob": "About the job",
+		"receivedAt": "Received {time}",
+		"expiresAt": "Expires {time}",
+		"decidedAt": "Decided {time}",
+		"depths": {
+			"light": "Light",
+			"standard": "Standard",
+			"deep": "Deep"
+		},
+		"depthExplain": {
+			"light": "Releases identity (name + email). No external check.",
+			"standard": "Adds CV authenticity and badge validation. (Connector P6)",
+			"deep": "Adds external identity verification. (Connector P6)"
+		},
+		"status": {
+			"pending": "pending",
+			"approved": "approved",
+			"rejected": "declined",
+			"expired": "expired"
 		}
 	},
 	"Jobs": {

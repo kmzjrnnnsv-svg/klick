@@ -8,6 +8,7 @@
 		"openVault": "Vault",
 		"openProfile": "Profil",
 		"openMatches": "Matches",
+		"openRequests": "Anfragen",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
 		"login": "Anmelden",
@@ -120,7 +121,8 @@
 		"candidatesEmpty": "Noch keine Kandidat:innen für diese Stelle. Match wird nach Veröffentlichung im Hintergrund berechnet.",
 		"draftHint": "Stelle ist noch ein Entwurf. Veröffentliche sie, dann läuft der Match.",
 		"anonymousCandidate": "Kandidat:in",
-		"anonymizedHint": "Anonymisiert. Sobald du Interesse zeigst und der Kandidat zustimmt (P5), siehst du Identität und Vault-Inhalte.",
+		"anonymizedHint": "Anonymisiert. Zeig Interesse, dann entscheidet der Kandidat über Identität.",
+		"revealedHint": "Identität freigegeben. Vault-Disclosure folgt in P5.5.",
 		"yearsAbbr": "{years} J. Erfahrung",
 		"seeCandidates": "{count} Kandidat:innen ansehen",
 		"salary": "Gehalt",
@@ -128,6 +130,65 @@
 			"onsite": "Vor Ort",
 			"hybrid": "Hybrid",
 			"remote": "Voll remote"
+		}
+	},
+	"Interest": {
+		"title": "Interesse zeigen",
+		"subtitle": "Der Kandidat sieht deine Anfrage und entscheidet, ob die Identität freigegeben wird.",
+		"depthLabel": "Verifikations-Tiefe",
+		"depths": {
+			"light": {
+				"title": "Light — nur Profil",
+				"body": "Sichtbar werden Name, Standort und Kurzprofil. Keine Drittprüfung."
+			},
+			"standard": {
+				"title": "Standard — + CV-Verifikation",
+				"body": "Zusätzlich: CV-Echtheit (Layout-Heuristik) und Open-Badge-Validierung. (Connector kommt P6)"
+			},
+			"deep": {
+				"title": "Deep — + Identitätsnachweis",
+				"body": "Zusätzlich: Identitätsverifikation via externem Anbieter (IDnow, Postident). (Connector kommt P6)"
+			}
+		},
+		"messageLabel": "Persönliche Nachricht (optional)",
+		"messagePlaceholder": "Was reizt dich an diesem Kandidaten? Was wären die nächsten Schritte?",
+		"send": "Anfrage senden",
+		"sending": "Sende…",
+		"cancel": "Abbrechen",
+		"close": "Schließen",
+		"showInterest": "Interesse zeigen",
+		"waitingApproval": "Wartet auf Freigabe",
+		"approved": "Freigegeben",
+		"rejected": "Abgelehnt",
+		"approveAction": "Identität freigeben",
+		"rejectAction": "Ablehnen",
+		"decideHint": "Du gibst nur Name + E-Mail frei. Vault-Inhalte werden später (P5.5) pro Datei separat angefragt."
+	},
+	"Requests": {
+		"title": "Anfragen an dich",
+		"subtitle": "Arbeitgeber, die dich näher kennenlernen wollen. Du entscheidest pro Anfrage.",
+		"empty": "Noch keine Anfrage. Speichere dein Profil und warte auf Match-Anfragen.",
+		"whatTheyAsked": "Was angefragt wurde",
+		"messageFrom": "Nachricht von {company}",
+		"aboutTheJob": "Über die Stelle",
+		"receivedAt": "Eingegangen {time}",
+		"expiresAt": "Läuft ab am {time}",
+		"decidedAt": "Entschieden {time}",
+		"depths": {
+			"light": "Light",
+			"standard": "Standard",
+			"deep": "Deep"
+		},
+		"depthExplain": {
+			"light": "Identität (Name + E-Mail) wird freigegeben. Keine externe Prüfung.",
+			"standard": "Zusätzlich CV-Echtheit und Badge-Validierung. (Connector P6)",
+			"deep": "Zusätzlich externe Identitätsverifikation. (Connector P6)"
+		},
+		"status": {
+			"pending": "offen",
+			"approved": "freigegeben",
+			"rejected": "abgelehnt",
+			"expired": "abgelaufen"
 		}
 	},
 	"Jobs": {

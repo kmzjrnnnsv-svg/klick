@@ -36,6 +36,13 @@
       "when": 1777538028081,
       "tag": "0004_useful_maestro",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777538317957,
+      "tag": "0005_slow_spitfire",
+      "breakpoints": true
     }
   ]
 }
