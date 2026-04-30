@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
+import { recomputeInsights } from "@/app/actions/insights";
 import { recomputeMatchesForCandidate } from "@/app/actions/matches";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -128,7 +129,10 @@ export async function finishOnboarding(formData: FormData): Promise<void> {
 		onboardingCompletedAt: new Date(),
 	});
 	revalidatePath("/profile");
-	after(() => recomputeMatchesForCandidate(userId));
+	after(async () => {
+		await recomputeInsights(userId);
+		await recomputeMatchesForCandidate(userId);
+	});
 	redirect("/onboarding/done");
 }
 

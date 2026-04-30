@@ -88,6 +88,7 @@
 	},
 	"Profile": {
 		"title": "My profile",
+		"insightsHeading": "How your profile reads",
 		"subtitle": "What employers see once you allow interest. You control visibility and content.",
 		"importFromCv": "Import from CV",
 		"importHint": "Pick a CV from your vault — the fields below get pre-filled with the AI's suggestion. You review and correct.",
@@ -132,6 +133,7 @@
 		"candidatesTitle": "Candidates",
 		"candidatesSubtitle": "Anonymized suggestions — identity only after the candidate approves an interest request.",
 		"candidatesEmpty": "No candidates for this job yet. Match runs in the background after publishing.",
+		"insightsToggle": "Show career insights",
 		"draftHint": "This job is a draft. Publish it to run matching.",
 		"anonymousCandidate": "Candidate",
 		"anonymizedHint": "Anonymized. Show interest, then the candidate decides on identity.",
@@ -425,6 +427,45 @@
 				"celebrationBody": "Once a role is live we'll suggest anonymized matching profiles.",
 				"ctaNewJob": "Create first role",
 				"ctaJobs": "Open overview"
+			}
+		}
+	},
+	"Insights": {
+		"empty": "Once you fill in your profile or upload a CV, computed career insights show up here.",
+		"narrativeTitle": "Reads at a glance",
+		"yearsActive": "Years active",
+		"yearsActiveHint": "Sum of all employment phases.",
+		"yearsContinuous": "Longest continuous",
+		"yearsContinuousHint": "Longest uninterrupted employment.",
+		"totalRoles": "Stations",
+		"totalRolesHint": "Number of employers on the CV.",
+		"conflictTitle": "Self-declared experience differs from computed",
+		"conflictBody": "Declared: {declared} years · Employment data shows {computed}. Please fill in missing dates or correct the declared value.",
+		"currentRole": "Current",
+		"currentRoleSince": "since {since} ({duration})",
+		"firstJob": "First job",
+		"firstJobSince": "Started: {year}",
+		"avgTenure": "Avg tenure",
+		"tenureRange": "Range: {min} – {max}",
+		"gaps": "Gaps (≥ 3 mo.)",
+		"gapsValue": "{n} phase(s)",
+		"less": { "year": "< 1 year" },
+		"one": { "year": "1 year" },
+		"many": { "years": "{n} years" },
+		"certs": {
+			"title": "Certificates & badges",
+			"empty": "No certificates / badges uploaded yet.",
+			"count": "Total",
+			"validity": "Valid",
+			"expired": "expired",
+			"perYear": "Per year",
+			"issuers": "Issuers",
+			"pattern": {
+				"none": "—",
+				"single": "Single certificate",
+				"burst": "Concentrated in a window",
+				"steady": "Continuous learning",
+				"sparse": "Few, scattered"
 			}
 		}
 	}

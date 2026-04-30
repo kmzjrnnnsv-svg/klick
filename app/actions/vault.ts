@@ -3,6 +3,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+import { recomputeInsights } from "@/app/actions/insights";
 import { recomputeMatchesForCandidate } from "@/app/actions/matches";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -141,7 +142,11 @@ async function extractAndPersist(
 
 	if (extracted.kind === "cv") {
 		await mergeCvIntoProfile(userId, extracted.data as Record<string, unknown>);
-		// Match-Engine neu rechnen, weil sich Skills/Erfahrung geändert haben.
+	}
+	// Anything that changes the vault (cert added, badge added, CV merged)
+	// also changes the insights snapshot — recompute.
+	await recomputeInsights(userId);
+	if (extracted.kind === "cv") {
 		await recomputeMatchesForCandidate(userId);
 	}
 

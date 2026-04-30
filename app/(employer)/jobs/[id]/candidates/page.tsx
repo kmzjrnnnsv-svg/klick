@@ -7,6 +7,7 @@ import { listMatchesForJob } from "@/app/actions/matches";
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { CandidateInsightsView } from "@/components/insights/candidate-insights";
 import { ShowInterestButton } from "@/components/interests/show-interest-button";
 import { cn } from "@/lib/utils";
 
@@ -136,6 +137,16 @@ export default async function JobCandidatesPage({
 										<p className="mt-3 line-clamp-3 text-muted-foreground text-xs leading-relaxed">
 											{c.summary}
 										</p>
+									)}
+									{c.insights && (
+										<details className="mt-4 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
+											<summary className="cursor-pointer font-medium text-xs text-muted-foreground">
+												{t("insightsToggle")}
+											</summary>
+											<div className="mt-3">
+												<CandidateInsightsView insights={c.insights} />
+											</div>
+										</details>
 									)}
 									<div className="mt-4 flex items-center justify-between gap-3 border-border border-t pt-3 text-muted-foreground text-xs">
 										<span>

@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type {
 	AIProvider,
+	CandidateNarrative,
+	CandidateNarrativeInput,
 	ExtractedDocument,
 	ExtractedProfile,
 	MatchRationaleInput,
@@ -338,6 +340,85 @@ export class ClaudeAIProvider implements AIProvider {
 		}
 		const out = toolUse.input as { requirements: SuggestedJobRequirement[] };
 		return out.requirements ?? [];
+	}
+
+	async summarizeCandidate(
+		input: CandidateNarrativeInput,
+	): Promise<CandidateNarrative> {
+		const result = await this.client.messages.create({
+			model: "claude-sonnet-4-6",
+			max_tokens: 600,
+			tools: [
+				{
+					name: "save_narrative",
+					description:
+						"Save the holistic candidate narrative read by the employer.",
+					input_schema: {
+						type: "object" as const,
+						properties: {
+							summary: {
+								type: "string",
+								maxLength: 280,
+								description:
+									"Two short sentences in German. Style: confident, factual, no fluff. Reference the strongest signal (current role, longest tenure, top skill).",
+							},
+							workStyle: {
+								type: "array",
+								maxItems: 5,
+								items: { type: "string", maxLength: 30 },
+								description:
+									"3-5 short tags in German lowercase, e.g. 'verlässlich', 'eigenverantwortlich', 'cross-funktional', 'detailorientiert'. No fluff.",
+							},
+							strengths: {
+								type: "array",
+								maxItems: 4,
+								items: { type: "string", maxLength: 60 },
+								description:
+									"2-4 short concrete phrases (e.g. '7 Jahre TypeScript', 'mehrere Zertifikate in Cloud', 'lange Tenure bei Acme').",
+							},
+						},
+						required: ["summary", "workStyle", "strengths"],
+					},
+				},
+			],
+			tool_choice: { type: "tool", name: "save_narrative" },
+			messages: [
+				{
+					role: "user",
+					content:
+						`Erstelle eine Kandidaten-Zusammenfassung für eine:n Arbeitgeber:in. Datenbasis (alles berechnet, keine Selbstbeschreibung):\n\n` +
+						`- Aktueller Titel: ${input.headline ?? "—"}\n` +
+						`- Selbst-Summary: ${input.summary?.slice(0, 400) ?? "—"}\n` +
+						`- Berufsjahre (aktiv): ${input.yearsActive}\n` +
+						`- Längste durchgehende Phase: ${input.yearsContinuous} Jahre\n` +
+						`- Anzahl Stationen: ${input.totalRoles}\n` +
+						(input.currentRole
+							? `- Aktuelle Rolle: ${input.currentRole.role} bei ${input.currentRole.company} seit ${Math.round(
+									input.currentRole.monthsOngoing / 12,
+								)} Jahre\n`
+							: "") +
+						(input.firstJobYear
+							? `- Erster Job: ${input.firstJobYear}\n`
+							: "") +
+						`- Lücken im Werdegang: ${input.gaps}\n` +
+						`- Top-Skills: ${input.skills.slice(0, 8).join(", ") || "—"}\n` +
+						`- Zertifikate gesamt: ${input.certificateCount} (Muster: ${input.certificatePattern})\n\n` +
+						`Schreibe sachlich, ohne Floskeln. Keine "Teamplayer"-Phrasen ohne Beleg. Wenn Daten dünn sind, sag das. ` +
+						`Vermeide Wertungen wie "exzellent". Speichere via save_narrative.`,
+				},
+			],
+		});
+
+		const toolUse = result.content.find((b) => b.type === "tool_use");
+		if (!toolUse || toolUse.type !== "tool_use") {
+			// Graceful fallback: return a minimal, honest narrative.
+			return {
+				summary: "Profil-Zusammenfassung gerade nicht verfügbar.",
+				workStyle: [],
+				strengths: [],
+			};
+		}
+		return toolUse.input as CandidateNarrative;
 	}
 
 	async matchRationale(input: MatchRationaleInput): Promise<string> {

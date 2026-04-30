@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
+import { recomputeInsights } from "@/app/actions/insights";
 import { recomputeMatchesForCandidate } from "@/app/actions/matches";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -183,7 +184,10 @@ export async function saveProfile(formData: FormData): Promise<void> {
 	});
 
 	revalidatePath("/profile");
-	after(() => recomputeMatchesForCandidate(userId));
+	after(async () => {
+		await recomputeInsights(userId);
+		await recomputeMatchesForCandidate(userId);
+	});
 }
 
 function tryParseJsonArray(raw: string | undefined): unknown[] | undefined {
