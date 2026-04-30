@@ -186,6 +186,148 @@ export function CandidateInsightsView({
 				</section>
 			)}
 
+			{(() => {
+				const m = tenure.mix;
+				const totalMixMonths =
+					m.employedMonths +
+					m.founderMonths +
+					m.selfEmployedMonths +
+					m.freelanceMonths +
+					m.internshipMonths +
+					m.otherMonths;
+				if (totalMixMonths < 6) return null;
+				const segments = (
+					[
+						{
+							key: "employedMonths",
+							value: m.employedMonths,
+							labelKey: "Insights.mix.employee",
+							color: "bg-primary",
+						},
+						{
+							key: "founderMonths",
+							value: m.founderMonths,
+							labelKey: "Insights.mix.founder",
+							color: "bg-fuchsia-500",
+						},
+						{
+							key: "selfEmployedMonths",
+							value: m.selfEmployedMonths,
+							labelKey: "Insights.mix.self_employed",
+							color: "bg-emerald-500",
+						},
+						{
+							key: "freelanceMonths",
+							value: m.freelanceMonths,
+							labelKey: "Insights.mix.freelance",
+							color: "bg-amber-500",
+						},
+						{
+							key: "internshipMonths",
+							value: m.internshipMonths,
+							labelKey: "Insights.mix.internship",
+							color: "bg-zinc-500",
+						},
+						{
+							key: "otherMonths",
+							value: m.otherMonths,
+							labelKey: "Insights.mix.other",
+							color: "bg-zinc-400",
+						},
+					] as const
+				).filter((s) => s.value > 0);
+				return (
+					<section className="rounded-lg border border-border bg-background p-3 sm:p-4">
+						<div className="mb-2 font-medium text-sm">{t("mix.title")}</div>
+						<div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+							{segments.map((s) => (
+								<div
+									key={s.key}
+									className={s.color}
+									style={{
+										width: `${(s.value / totalMixMonths) * 100}%`,
+									}}
+								/>
+							))}
+						</div>
+						<ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs sm:grid-cols-3">
+							{segments.map((s) => (
+								<li key={s.key} className="flex items-center gap-1.5">
+									<span
+										className={cn("h-2 w-2 shrink-0 rounded-full", s.color)}
+									/>
+									<span className="text-muted-foreground">
+										{t(s.labelKey.replace("Insights.", ""))}:
+									</span>
+									<span className="font-medium">{monthsToYears(s.value)}</span>
+								</li>
+							))}
+						</ul>
+					</section>
+				);
+			})()}
+
+			{(() => {
+				const f = tenure.focus;
+				const totalFocusMonths = f.focusedMonths + f.detourMonths;
+				if (totalFocusMonths < 6 || f.focusedRoles + f.detourRoles < 2)
+					return null;
+				const focusedPct = Math.round(
+					(f.focusedMonths / totalFocusMonths) * 100,
+				);
+				return (
+					<section className="rounded-lg border border-border bg-background p-3 sm:p-4">
+						<div className="mb-1.5 flex items-center justify-between gap-2">
+							<div className="font-medium text-sm">{t("focus.title")}</div>
+							<span
+								className={cn(
+									"rounded-md px-2 py-0.5 font-mono text-[11px]",
+									focusedPct >= 75
+										? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+										: focusedPct >= 50
+											? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+											: "bg-zinc-500/10 text-muted-foreground",
+								)}
+							>
+								{focusedPct}% {t("focus.onTrack")}
+							</span>
+						</div>
+						<p className="text-muted-foreground text-xs">
+							{t("focus.body", {
+								focused: f.focusedRoles,
+								detour: f.detourRoles,
+							})}
+						</p>
+						{f.detours.length > 0 && (
+							<details className="mt-2 text-xs">
+								<summary className="cursor-pointer text-muted-foreground">
+									{t("focus.showDetours", { n: f.detours.length })}
+								</summary>
+								<ul className="mt-2 space-y-1">
+									{f.detours.map((d) => (
+										<li
+											key={`${d.company}:${d.role}`}
+											className="flex items-baseline justify-between gap-2"
+										>
+											<span className="truncate">
+												{d.role}
+												<span className="text-muted-foreground">
+													{" "}
+													· {d.company}
+												</span>
+											</span>
+											<span className="shrink-0 font-mono text-muted-foreground">
+												{monthsToYears(d.months)}
+											</span>
+										</li>
+									))}
+								</ul>
+							</details>
+						)}
+					</section>
+				);
+			})()}
+
 			{(tenure.currentRole || tenure.firstJob) && (
 				<section className="space-y-2">
 					{tenure.currentRole && (

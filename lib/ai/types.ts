@@ -3,12 +3,21 @@ export type ExtractedSkill = {
 	level?: 1 | 2 | 3 | 4 | 5;
 };
 
+export type ExtractedEmploymentType =
+	| "employee"
+	| "self_employed"
+	| "freelance"
+	| "founder"
+	| "internship"
+	| "other";
+
 export type ExtractedExperience = {
 	company: string;
 	role: string;
 	start: string; // YYYY-MM
 	end?: string; // YYYY-MM or "present"
 	description?: string;
+	employmentType?: ExtractedEmploymentType;
 };
 
 export type ExtractedEducation = {

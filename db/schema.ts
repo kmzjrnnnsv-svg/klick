@@ -161,12 +161,23 @@ export type VaultItem = typeof vaultItems.$inferSelect;
 // JSONB for fast iteration in P2/P3; promoted to relational tables in P4
 // when the match engine needs joins on skills.
 export type ProfileSkill = { name: string; level?: 1 | 2 | 3 | 4 | 5 };
+export type ProfileEmploymentType =
+	| "employee"
+	| "self_employed"
+	| "freelance"
+	| "founder"
+	| "internship"
+	| "other";
+
 export type ProfileExperience = {
 	company: string;
 	role: string;
 	start: string;
 	end?: string;
 	description?: string;
+	// What kind of working relationship this row was. Inferred by the AI;
+	// defaults to "employee" in display when missing.
+	employmentType?: ProfileEmploymentType;
 };
 export type ProfileEducation = {
 	institution: string;

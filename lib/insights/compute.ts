@@ -58,6 +58,7 @@ function mergeRanges(
 
 function computeTenure(
 	experience: ProfileExperience[] | null | undefined,
+	focusKeywords: string[],
 ): TenureStats {
 	const rows = (experience ?? [])
 		.map((e) => {
@@ -79,6 +80,77 @@ function computeTenure(
 	const avg = lengths.length
 		? Math.round(lengths.reduce((a, b) => a + b, 0) / lengths.length)
 		: 0;
+
+	const mix = {
+		employedMonths: 0,
+		selfEmployedMonths: 0,
+		freelanceMonths: 0,
+		founderMonths: 0,
+		internshipMonths: 0,
+		otherMonths: 0,
+	};
+	const focusKwLc = focusKeywords
+		.map((k) => k.toLowerCase().trim())
+		.filter((k) => k.length >= 3);
+	const focus = {
+		focusedRoles: 0,
+		detourRoles: 0,
+		focusedMonths: 0,
+		detourMonths: 0,
+		detours: [] as TenureStats["focus"]["detours"],
+	};
+	for (const r of rows) {
+		const months = r.end - r.start;
+		switch (r.e.employmentType) {
+			case "self_employed":
+				mix.selfEmployedMonths += months;
+				break;
+			case "freelance":
+				mix.freelanceMonths += months;
+				break;
+			case "founder":
+				mix.founderMonths += months;
+				break;
+			case "internship":
+				mix.internshipMonths += months;
+				break;
+			case "other":
+				mix.otherMonths += months;
+				break;
+			default:
+				mix.employedMonths += months;
+		}
+
+		// Focus / detour: does role/company/description mention any of the
+		// candidate's core keywords (skills, education, headline)?
+		// Internships / "other" can never be "focused" — treated as detour
+		// unless the user has zero focus signal at all.
+		const haystack = [r.e.role, r.e.company, r.e.description ?? ""]
+			.join(" ")
+			.toLowerCase();
+		const matches =
+			focusKwLc.length > 0 && focusKwLc.some((k) => haystack.includes(k));
+		const isStructurallyDetour =
+			r.e.employmentType === "internship" || r.e.employmentType === "other";
+
+		if (matches && !isStructurallyDetour) {
+			focus.focusedRoles += 1;
+			focus.focusedMonths += months;
+		} else if (focusKwLc.length > 0) {
+			focus.detourRoles += 1;
+			focus.detourMonths += months;
+			focus.detours.push({
+				company: r.e.company,
+				role: r.e.role,
+				months,
+			});
+		} else {
+			// No focus signal at all → don't classify; count as focused so the
+			// detour block doesn't shame an empty profile.
+			focus.focusedRoles += 1;
+			focus.focusedMonths += months;
+		}
+	}
 
 	const currentRow = [...rows]
 		.filter((r) => {
@@ -130,6 +202,14 @@ function computeTenure(
 		currentRole: current,
 		firstJob: first,
 		gaps,
+		mix,
+		focus: {
+			focusedRoles: focus.focusedRoles,
+			detourRoles: focus.detourRoles,
+			focusedMonths: focus.focusedMonths,
+			detourMonths: focus.detourMonths,
+			detours: focus.detours.slice(0, 5),
+		},
 	};
 }
 
@@ -346,10 +426,27 @@ export function computeInsightsFromData(
 		profile.yearsExperience,
 		profile.experience,
 	);
-	const tenure = computeTenure(profile.experience);
-	const tenureScore = computeTenureScore(tenure);
 
 	const skillNames = (profile.skills ?? []).map((s) => s.name);
+	const eduTokens = (profile.education ?? []).flatMap((e) =>
+		[e.degree, e.institution]
+			.filter((s): s is string => typeof s === "string")
+			.flatMap((s) => s.split(/[\s.,;:/-]+/))
+			.filter((s) => s.length >= 3),
+	);
+	const headlineTokens = profile.headline
+		? profile.headline.split(/[\s.,;:/-]+/).filter((s) => s.length >= 3)
+		: [];
+	const focusKeywords = [
+		...skillNames,
+		...eduTokens,
+		...headlineTokens,
+		...(profile.industries ?? []),
+	];
+
+	const tenure = computeTenure(profile.experience, focusKeywords);
+	const tenureScore = computeTenureScore(tenure);
+
 	const roleHints = [
 		...(profile.headline ? [profile.headline] : []),
 		...(profile.experience ?? []).map((e) => e.role),
