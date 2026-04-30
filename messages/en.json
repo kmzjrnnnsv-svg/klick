@@ -13,7 +13,9 @@
 		"openAdmin": "Admin",
 		"login": "Sign in",
 		"toggleTheme": "Toggle theme",
-		"toggleLocale": "Switch language"
+		"toggleLocale": "Switch language",
+		"openMenu": "Open menu",
+		"closeMenu": "Close menu"
 	},
 	"Footer": {
 		"tagline": "You stay in control.",

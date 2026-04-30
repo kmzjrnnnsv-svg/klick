@@ -48,24 +48,24 @@ export default async function JobCandidatesPage({
 	return (
 		<>
 			<Header />
-			<main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-12 pb-24 sm:px-6 sm:pt-16">
-				<header className="mb-8">
+			<main className="mx-auto w-full max-w-3xl flex-1 px-3 pt-6 pb-20 sm:px-6 sm:pt-12">
+				<header className="mb-5 sm:mb-7">
 					<Link
 						href={`/jobs/${id}`}
 						className="text-muted-foreground text-xs hover:text-foreground"
 					>
 						← {job.title}
 					</Link>
-					<h1 className="mt-1 font-semibold text-2xl tracking-tight sm:text-3xl">
+					<h1 className="mt-0.5 font-semibold text-xl tracking-tight sm:text-3xl">
 						{t("candidatesTitle")}
 					</h1>
-					<p className="mt-1 text-muted-foreground text-sm">
+					<p className="mt-1 text-muted-foreground text-sm leading-snug">
 						{t("candidatesSubtitle")}
 					</p>
 				</header>
 
 				{candidates.length === 0 ? (
-					<div className="rounded-lg border border-border border-dashed p-10 text-center sm:p-16">
+					<div className="rounded-lg border border-border border-dashed p-8 text-center sm:p-14">
 						<p className="text-muted-foreground text-sm">
 							{job.status === "published"
 								? t("candidatesEmpty")
@@ -73,7 +73,7 @@ export default async function JobCandidatesPage({
 						</p>
 					</div>
 				) : (
-					<ul className="space-y-3">
+					<ul className="space-y-2.5">
 						{candidates.map((c) => {
 							const interest = interestByMatch.get(c.match.id) ?? null;
 							const revealedName =
@@ -83,7 +83,7 @@ export default async function JobCandidatesPage({
 							return (
 								<li
 									key={c.match.id}
-									className="rounded-lg border border-border bg-background p-4 sm:p-5"
+									className="rounded-lg border border-border bg-background p-3 sm:p-4"
 								>
 									<div className="flex items-start justify-between gap-3">
 										<div className="min-w-0 flex-1">
@@ -104,7 +104,7 @@ export default async function JobCandidatesPage({
 										</div>
 										<span
 											className={cn(
-												"rounded-md px-2 py-0.5 font-mono text-[11px]",
+												"shrink-0 rounded-md px-2 py-0.5 font-mono text-[11px]",
 												c.match.softScore >= 70
 													? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
 													: c.match.softScore >= 40
@@ -116,17 +116,17 @@ export default async function JobCandidatesPage({
 										</span>
 									</div>
 									{c.match.rationale && (
-										<p className="mt-3 text-foreground/90 text-sm leading-relaxed">
+										<p className="mt-2 text-foreground/90 text-sm leading-snug">
 											{c.match.rationale}
 										</p>
 									)}
 									{c.match.matchedSkills &&
 										c.match.matchedSkills.length > 0 && (
-											<div className="mt-3 flex flex-wrap gap-1.5">
+											<div className="mt-2 flex flex-wrap gap-1">
 												{c.match.matchedSkills.map((s) => (
 													<span
 														key={s}
-														className="rounded-md bg-muted px-2 py-0.5 font-mono text-[11px]"
+														className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px]"
 													>
 														{s}
 													</span>
@@ -134,16 +134,16 @@ export default async function JobCandidatesPage({
 											</div>
 										)}
 									{c.summary && (
-										<p className="mt-3 line-clamp-3 text-muted-foreground text-xs leading-relaxed">
+										<p className="mt-2 line-clamp-2 text-muted-foreground text-xs leading-snug">
 											{c.summary}
 										</p>
 									)}
 									{c.insights && (
-										<details className="mt-4 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
+										<details className="mt-3 rounded-md border border-border bg-muted/20 px-2.5 py-1.5 text-sm">
 											<summary className="cursor-pointer font-medium text-xs text-muted-foreground">
 												{t("insightsToggle")}
 											</summary>
-											<div className="mt-3">
+											<div className="mt-2.5">
 												<CandidateInsightsView
 													insights={c.insights}
 													profileExtras={{
@@ -157,7 +157,7 @@ export default async function JobCandidatesPage({
 											</div>
 										</details>
 									)}
-									<div className="mt-4 flex items-center justify-between gap-3 border-border border-t pt-3 text-muted-foreground text-xs">
+									<div className="mt-3 flex items-center justify-between gap-3 border-border border-t pt-2.5 text-muted-foreground text-xs">
 										<span>
 											{interest?.status === "approved"
 												? t("revealedHint")

@@ -13,7 +13,9 @@
 		"openAdmin": "Admin",
 		"login": "Anmelden",
 		"toggleTheme": "Theme wechseln",
-		"toggleLocale": "Sprache wechseln"
+		"toggleLocale": "Sprache wechseln",
+		"openMenu": "Menü öffnen",
+		"closeMenu": "Menü schließen"
 	},
 	"Footer": {
 		"tagline": "Du behältst die Kontrolle.",

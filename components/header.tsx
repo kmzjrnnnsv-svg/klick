@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
+import { HeaderMobileMenu } from "@/components/header-mobile-menu";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { buttonVariants } from "@/components/ui/button";
@@ -27,9 +28,11 @@ export async function Header() {
 						]
 					: [];
 
+	const isLoggedIn = !!session?.user;
+
 	return (
 		<header className="sticky top-0 z-30 w-full border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-			<div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
+			<div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-3 sm:px-6">
 				<div className="flex items-center gap-4">
 					<Link
 						href="/"
@@ -54,14 +57,24 @@ export async function Header() {
 				<div className="flex items-center gap-1">
 					<LocaleSwitcher />
 					<ThemeSwitcher />
-					{!session?.user && (
+					{!isLoggedIn && (
 						<Link
 							href="/login"
-							className={cn(buttonVariants({ size: "sm" }), "ml-1")}
+							className={cn(
+								buttonVariants({ size: "sm" }),
+								"ml-1 hidden sm:inline-flex",
+							)}
 						>
 							{t("login")}
 						</Link>
 					)}
+					<HeaderMobileMenu
+						links={navLinks}
+						loginLabel={t("login")}
+						isLoggedIn={isLoggedIn}
+						openLabel={t("openMenu")}
+						closeLabel={t("closeMenu")}
+					/>
 				</div>
 			</div>
 		</header>
