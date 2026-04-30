@@ -112,6 +112,73 @@
 	},
 	"Jobs": {
 		"title": "Jobs",
-		"empty": "Manage your job postings here soon. P3 ships the wizard."
+		"subtitle": "Your job postings. Match suggestions go live in P4.",
+		"newJob": "New job",
+		"editJob": "Edit job",
+		"listEmpty": "No job yet. Create one and it shows up here.",
+		"editorHint": "Write the title and description first — the skill suggester works from those.",
+		"onboardingTitle": "One workspace per company",
+		"onboardingHint": "We'll create your employer profile. The name shows above your dashboard.",
+		"companyName": "Company name",
+		"create": "Create",
+		"creating": "Creating…",
+		"titleLabel": "Title",
+		"titlePlaceholder": "e.g. Senior Backend Engineer (TypeScript)",
+		"descriptionLabel": "Description",
+		"descriptionPlaceholder": "What does this team do? What does this role actually own? What's expected in the first 6 months?",
+		"section": {
+			"basics": "Basics",
+			"requirements": "Requirements",
+			"context": "Context",
+			"salary": "Salary",
+			"status": "Status"
+		},
+		"requirementsEmpty": "No requirements yet. Use \"Suggest skills\" or add manually.",
+		"skillName": "Skill",
+		"weight": {
+			"must": "Must",
+			"nice": "Nice"
+		},
+		"levelAny": "Any",
+		"remove": "Remove",
+		"addRequirement": "+ Add requirement",
+		"suggestSkills": "Suggest skills",
+		"suggesting": "Suggesting…",
+		"location": "Location",
+		"yearsExperienceMin": "Min years of experience",
+		"remotePolicy": "Remote policy",
+		"remoteOptions": {
+			"onsite": "On-site",
+			"hybrid": "Hybrid",
+			"remote": "Fully remote"
+		},
+		"employmentType": "Employment type",
+		"typeOptions": {
+			"fulltime": "Full-time",
+			"parttime": "Part-time",
+			"contract": "Contract",
+			"internship": "Internship"
+		},
+		"languages": "Languages (comma-separated)",
+		"salaryMin": "Salary from (€/year)",
+		"salaryMax": "Salary to (€/year)",
+		"statusOptions": {
+			"draft": {
+				"title": "Draft",
+				"body": "Only you see this. No matches are produced."
+			},
+			"published": {
+				"title": "Published",
+				"body": "Live, producing match suggestions."
+			},
+			"archived": {
+				"title": "Archived",
+				"body": "Out of matching, but kept on file."
+			}
+		},
+		"save": "Save",
+		"saving": "Saving…",
+		"delete": "Delete",
+		"confirmDelete": "Really delete this job? Cannot be undone."
 	}
 }

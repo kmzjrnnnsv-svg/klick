@@ -164,3 +164,68 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 });
 
 export type CandidateProfile = typeof candidateProfiles.$inferSelect;
+
+// ─── Employers ────────────────────────────────────────────────────────────
+// One row per company. 1:1 with the owning employer-role user for now;
+// multi-recruiter teams come later.
+export const employers = pgTable("employers", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	userId: text("user_id")
+		.notNull()
+		.unique()
+		.references(() => users.id, { onDelete: "cascade" }),
+	tenantId: text("tenant_id")
+		.notNull()
+		.references(() => tenants.id, { onDelete: "cascade" }),
+	companyName: text("company_name").notNull(),
+	website: text("website"),
+	description: text("description"),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type Employer = typeof employers.$inferSelect;
+
+// ─── Jobs ─────────────────────────────────────────────────────────────────
+// Requirements live inline as JSONB (per P4 we'll keep this and join via the
+// skills lookup table for vector match). Status drives visibility in /matches.
+export type JobRequirement = {
+	name: string;
+	weight: "must" | "nice";
+	minLevel?: 1 | 2 | 3 | 4 | 5;
+};
+
+export const jobs = pgTable("jobs", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	employerId: text("employer_id")
+		.notNull()
+		.references(() => employers.id, { onDelete: "cascade" }),
+	title: text("title").notNull(),
+	description: text("description").notNull(),
+	location: text("location"),
+	remotePolicy: text("remote_policy", {
+		enum: ["onsite", "hybrid", "remote"],
+	})
+		.notNull()
+		.default("hybrid"),
+	employmentType: text("employment_type", {
+		enum: ["fulltime", "parttime", "contract", "internship"],
+	})
+		.notNull()
+		.default("fulltime"),
+	salaryMin: integer("salary_min"),
+	salaryMax: integer("salary_max"),
+	yearsExperienceMin: integer("years_experience_min").default(0),
+	languages: text("languages").array(),
+	requirements: jsonb("requirements").$type<JobRequirement[]>(),
+	status: text("status", { enum: ["draft", "published", "archived"] })
+		.notNull()
+		.default("draft"),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type Job = typeof jobs.$inferSelect;

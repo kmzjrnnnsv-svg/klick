@@ -22,6 +22,13 @@
       "when": 1777537314887,
       "tag": "0002_narrow_martin_li",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777537601266,
+      "tag": "0003_far_reavers",
+      "breakpoints": true
     }
   ]
 }

@@ -112,6 +112,73 @@
 	},
 	"Jobs": {
 		"title": "Jobs",
-		"empty": "Hier verwaltest du bald deine Stellenanzeigen. P3 bringt das Wizard."
+		"subtitle": "Deine Stellen. Match-Vorschläge gehen in P4 live.",
+		"newJob": "Neue Stelle",
+		"editJob": "Stelle bearbeiten",
+		"listEmpty": "Noch keine Stelle. Leg eine an, dann siehst du sie hier.",
+		"editorHint": "Schreib zuerst Titel und Beschreibung — der Skill-Vorschlag arbeitet auf dieser Basis.",
+		"onboardingTitle": "Ein Workspace pro Unternehmen",
+		"onboardingHint": "Wir erstellen dir einen Arbeitgeber-Profil-Datensatz. Den Namen siehst du oben in deiner Übersicht.",
+		"companyName": "Unternehmensname",
+		"create": "Anlegen",
+		"creating": "Lege an…",
+		"titleLabel": "Titel",
+		"titlePlaceholder": "z. B. Senior Backend Engineer (TypeScript)",
+		"descriptionLabel": "Beschreibung",
+		"descriptionPlaceholder": "Was tut dieses Team? Was macht der Job konkret aus? Was wird in den ersten 6 Monaten erwartet?",
+		"section": {
+			"basics": "Grunddaten",
+			"requirements": "Anforderungen",
+			"context": "Rahmen",
+			"salary": "Gehalt",
+			"status": "Status"
+		},
+		"requirementsEmpty": "Noch keine Anforderung. Nutze „Skills vorschlagen“ oder leg manuell an.",
+		"skillName": "Skill",
+		"weight": {
+			"must": "Muss",
+			"nice": "Wunsch"
+		},
+		"levelAny": "Beliebig",
+		"remove": "Entfernen",
+		"addRequirement": "+ Anforderung hinzufügen",
+		"suggestSkills": "Skills vorschlagen",
+		"suggesting": "Schlage vor…",
+		"location": "Standort",
+		"yearsExperienceMin": "Mind. Berufsjahre",
+		"remotePolicy": "Remote-Modell",
+		"remoteOptions": {
+			"onsite": "Vor Ort",
+			"hybrid": "Hybrid",
+			"remote": "Voll remote"
+		},
+		"employmentType": "Anstellungsart",
+		"typeOptions": {
+			"fulltime": "Vollzeit",
+			"parttime": "Teilzeit",
+			"contract": "Freelance",
+			"internship": "Praktikum"
+		},
+		"languages": "Sprachen (kommagetrennt)",
+		"salaryMin": "Gehalt von (€/Jahr)",
+		"salaryMax": "Gehalt bis (€/Jahr)",
+		"statusOptions": {
+			"draft": {
+				"title": "Entwurf",
+				"body": "Nur du siehst diese Stelle. Kein Match wird ausgelöst."
+			},
+			"published": {
+				"title": "Veröffentlicht",
+				"body": "Stelle ist live und produziert Match-Vorschläge."
+			},
+			"archived": {
+				"title": "Archiviert",
+				"body": "Aus dem Match raus, bleibt aber gespeichert."
+			}
+		},
+		"save": "Speichern",
+		"saving": "Speichere…",
+		"delete": "Löschen",
+		"confirmDelete": "Diese Stelle wirklich löschen? Vorgang nicht rückgängig zu machen."
 	}
 }

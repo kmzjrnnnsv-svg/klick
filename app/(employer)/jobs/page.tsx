@@ -1,24 +1,69 @@
+import { eq } from "drizzle-orm";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { getEmployer, listJobs } from "@/app/actions/jobs";
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { EmployerOnboarding } from "@/components/jobs/employer-onboarding";
+import { JobsList } from "@/components/jobs/jobs-list";
+import { buttonVariants } from "@/components/ui/button";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { cn } from "@/lib/utils";
 
 export default async function JobsPage() {
 	const session = await auth();
-	if (!session?.user) redirect("/login");
+	if (!session?.user?.id) redirect("/login");
+
+	const [user] = await db
+		.select({ role: users.role })
+		.from(users)
+		.where(eq(users.id, session.user.id))
+		.limit(1);
+	if (user?.role !== "employer") redirect("/post-login");
 
 	const t = await getTranslations("Jobs");
+	const employer = await getEmployer();
+
+	if (!employer) {
+		return (
+			<>
+				<Header />
+				<main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-12 pb-24 sm:px-6 sm:pt-16">
+					<header className="mb-8">
+						<h1 className="font-semibold text-2xl tracking-tight sm:text-3xl">
+							{t("title")}
+						</h1>
+					</header>
+					<EmployerOnboarding />
+				</main>
+				<Footer />
+			</>
+		);
+	}
+
+	const jobs = await listJobs();
+
 	return (
 		<>
 			<Header />
-			<main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-14 pb-24 sm:px-6 sm:pt-20">
-				<h1 className="font-semibold text-2xl tracking-tight sm:text-3xl">
-					{t("title")}
-				</h1>
-				<div className="mt-12 rounded-lg border border-border border-dashed p-10 text-center sm:p-16">
-					<p className="text-muted-foreground text-sm">{t("empty")}</p>
-				</div>
+			<main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-12 pb-24 sm:px-6 sm:pt-16">
+				<header className="mb-8 flex items-end justify-between gap-4">
+					<div>
+						<h1 className="font-semibold text-2xl tracking-tight sm:text-3xl">
+							{employer.companyName}
+						</h1>
+						<p className="mt-1 text-muted-foreground text-sm">
+							{t("subtitle")}
+						</p>
+					</div>
+					<Link href="/jobs/new" className={cn(buttonVariants({ size: "sm" }))}>
+						{t("newJob")}
+					</Link>
+				</header>
+				<JobsList jobs={jobs} />
 			</main>
 			<Footer />
 		</>

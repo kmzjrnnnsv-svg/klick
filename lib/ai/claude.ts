@@ -1,5 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { AIProvider, ExtractedProfile } from "./types";
+import type {
+	AIProvider,
+	ExtractedProfile,
+	SuggestedJobRequirement,
+} from "./types";
 
 const PROFILE_TOOL_SCHEMA = {
 	type: "object" as const,
@@ -148,5 +152,62 @@ export class ClaudeAIProvider implements AIProvider {
 			throw new Error("Claude did not return a tool_use block");
 		}
 		return toolUse.input as ExtractedProfile;
+	}
+
+	async suggestJobRequirements(input: {
+		title: string;
+		description: string;
+	}): Promise<SuggestedJobRequirement[]> {
+		const result = await this.client.messages.create({
+			model: "claude-sonnet-4-6",
+			max_tokens: 1024,
+			tools: [
+				{
+					name: "save_requirements",
+					description:
+						"Save the suggested job requirements as a structured list.",
+					input_schema: {
+						type: "object" as const,
+						properties: {
+							requirements: {
+								type: "array",
+								items: {
+									type: "object",
+									properties: {
+										name: { type: "string" },
+										weight: { type: "string", enum: ["must", "nice"] },
+										minLevel: {
+											type: "integer",
+											minimum: 1,
+											maximum: 5,
+										},
+									},
+									required: ["name", "weight"],
+								},
+							},
+						},
+						required: ["requirements"],
+					},
+				},
+			],
+			tool_choice: { type: "tool", name: "save_requirements" },
+			messages: [
+				{
+					role: "user",
+					content:
+						`Extract concrete, testable skill requirements from this job posting. ` +
+						`Mark up to 4 as "must" (truly essential), the rest as "nice". ` +
+						`Use 1-5 levels for must-haves where seniority is implied.\n\n` +
+						`Title: ${input.title}\n\n${input.description}`,
+				},
+			],
+		});
+
+		const toolUse = result.content.find((b) => b.type === "tool_use");
+		if (!toolUse || toolUse.type !== "tool_use") {
+			throw new Error("Claude did not return a tool_use block");
+		}
+		const out = toolUse.input as { requirements: SuggestedJobRequirement[] };
+		return out.requirements ?? [];
 	}
 }

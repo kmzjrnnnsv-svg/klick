@@ -31,7 +31,17 @@ export type ExtractedProfile = {
 	summary?: string;
 };
 
+export type SuggestedJobRequirement = {
+	name: string;
+	weight: "must" | "nice";
+	minLevel?: 1 | 2 | 3 | 4 | 5;
+};
+
 export interface AIProvider {
 	readonly slug: string;
 	parseCv(bytes: Uint8Array, mime: string): Promise<ExtractedProfile>;
+	suggestJobRequirements(input: {
+		title: string;
+		description: string;
+	}): Promise<SuggestedJobRequirement[]>;
 }

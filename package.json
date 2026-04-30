@@ -17,7 +17,8 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:push": "drizzle-kit push",
 		"db:studio": "drizzle-kit studio",
-		"db:seed": "tsx db/seed.ts"
+		"db:seed": "tsx db/seed.ts",
+		"set-role": "tsx scripts/set-role.ts"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.91.1",

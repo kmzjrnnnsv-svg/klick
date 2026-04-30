@@ -1,4 +1,8 @@
-import type { AIProvider, ExtractedProfile } from "./types";
+import type {
+	AIProvider,
+	ExtractedProfile,
+	SuggestedJobRequirement,
+} from "./types";
 
 export class MockAIProvider implements AIProvider {
 	readonly slug = "mock";
@@ -50,5 +54,38 @@ export class MockAIProvider implements AIProvider {
 			summary:
 				"Mock-Profil für die Entwicklungs-Umgebung. Kein echter CV-Inhalt — setze ANTHROPIC_API_KEY für die echte Extraktion.",
 		};
+	}
+
+	async suggestJobRequirements(input: {
+		title: string;
+		description: string;
+	}): Promise<SuggestedJobRequirement[]> {
+		// Pull a handful of common keywords out of the description as a fake AI.
+		const VOCAB = [
+			"TypeScript",
+			"React",
+			"Node.js",
+			"PostgreSQL",
+			"Python",
+			"Docker",
+			"Kubernetes",
+			"AWS",
+			"Figma",
+			"Tailwind",
+			"GraphQL",
+			"REST",
+			"PHP",
+			"Laravel",
+			"Java",
+			"Kotlin",
+		];
+		const text = `${input.title} ${input.description}`.toLowerCase();
+		const hits = VOCAB.filter((v) => text.includes(v.toLowerCase()));
+		const chosen = hits.length > 0 ? hits : ["Communication", "Teamwork"];
+		return chosen.slice(0, 6).map((name, i) => ({
+			name,
+			weight: i < 2 ? ("must" as const) : ("nice" as const),
+			minLevel: i < 2 ? (3 as const) : undefined,
+		}));
 	}
 }
