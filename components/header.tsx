@@ -13,39 +13,46 @@ export async function Header() {
 		(session?.user as { role?: "candidate" | "employer" | "admin" } | undefined)
 			?.role ?? null;
 
-	const dashboardHref =
-		role === "employer" ? "/jobs" : role === "admin" ? "/admin" : "/vault";
-
-	const dashboardLabel =
+	const navLinks: { href: string; label: string }[] =
 		role === "employer"
-			? t("openJobs")
+			? [{ href: "/jobs", label: t("openJobs") }]
 			: role === "admin"
-				? t("openAdmin")
-				: t("openVault");
+				? [{ href: "/admin", label: t("openAdmin") }]
+				: role === "candidate"
+					? [
+							{ href: "/vault", label: t("openVault") },
+							{ href: "/profile", label: t("openProfile") },
+						]
+					: [];
 
 	return (
 		<header className="sticky top-0 z-30 w-full border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 			<div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
-				<Link
-					href="/"
-					className="font-semibold tracking-tight text-foreground transition-opacity hover:opacity-80"
-				>
-					{t("productName")}
-				</Link>
+				<div className="flex items-center gap-4">
+					<Link
+						href="/"
+						className="font-semibold tracking-tight text-foreground transition-opacity hover:opacity-80"
+					>
+						{t("productName")}
+					</Link>
+					{navLinks.length > 0 && (
+						<nav className="hidden gap-1 sm:flex">
+							{navLinks.map((l) => (
+								<Link
+									key={l.href}
+									href={l.href}
+									className="rounded-md px-2 py-1 text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground"
+								>
+									{l.label}
+								</Link>
+							))}
+						</nav>
+					)}
+				</div>
 				<div className="flex items-center gap-1">
 					<LocaleSwitcher />
 					<ThemeSwitcher />
-					{session?.user ? (
-						<Link
-							href={dashboardHref}
-							className={cn(
-								buttonVariants({ variant: "outline", size: "sm" }),
-								"ml-1",
-							)}
-						>
-							{dashboardLabel}
-						</Link>
-					) : (
+					{!session?.user && (
 						<Link
 							href="/login"
 							className={cn(buttonVariants({ size: "sm" }), "ml-1")}

@@ -5,8 +5,9 @@
 	},
 	"Header": {
 		"productName": "TrustVault",
-		"openVault": "Vault öffnen",
-		"openJobs": "Jobs öffnen",
+		"openVault": "Vault",
+		"openProfile": "Profil",
+		"openJobs": "Jobs",
 		"openAdmin": "Admin",
 		"login": "Anmelden",
 		"toggleTheme": "Theme wechseln",
@@ -69,6 +70,45 @@
 			"id_doc": "Identitätsnachweis",
 			"other": "Sonstiges"
 		}
+	},
+	"Profile": {
+		"title": "Mein Profil",
+		"subtitle": "Was Arbeitgeber sehen, sobald du Interesse zulässt. Du kontrollierst Sichtbarkeit und Inhalt.",
+		"importFromCv": "Aus CV importieren",
+		"importHint": "Wähle einen CV aus deinem Vault — die Felder unten werden mit dem KI-Vorschlag vorbefüllt. Du prüfst und korrigierst.",
+		"importDisclaimer": "Die KI macht Fehler. Prüfe alles. Speichere erst, wenn es stimmt.",
+		"noCvHint": "Lege erst einen CV im Vault ab (Art = Lebenslauf), dann erscheint er hier.",
+		"extract": "Extrahieren",
+		"extracting": "Extrahiere…",
+		"basics": "Grunddaten",
+		"displayName": "Name",
+		"headline": "Aktuelle Position",
+		"location": "Standort",
+		"yearsExperience": "Jahre Berufserfahrung",
+		"languages": "Sprachen (kommagetrennt)",
+		"skills": "Skills",
+		"skillsHint": "Eine Zeile pro Skill. Optional Level 1–5 nach Doppelpunkt.",
+		"experience": "Berufserfahrung",
+		"education": "Ausbildung",
+		"summary": "Kurzprofil",
+		"visibility": "Sichtbarkeit",
+		"visibilityOptions": {
+			"private": {
+				"title": "Privat",
+				"body": "Nur du siehst dieses Profil. Keine Match-Vorschläge an Arbeitgeber."
+			},
+			"matches_only": {
+				"title": "Nur für Matches",
+				"body": "Anonymisiert sichtbar in Match-Vorschlägen. Identität erst nach deiner Freigabe."
+			},
+			"public": {
+				"title": "Öffentlich",
+				"body": "Profil ist für alle Arbeitgeber durchsuchbar. Keine Anonymisierung."
+			}
+		},
+		"save": "Speichern",
+		"saving": "Speichere…",
+		"savedAt": "Gespeichert um {time}"
 	},
 	"Jobs": {
 		"title": "Jobs",

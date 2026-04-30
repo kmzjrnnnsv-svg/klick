@@ -20,6 +20,7 @@
 		"db:seed": "tsx db/seed.ts"
 	},
 	"dependencies": {
+		"@anthropic-ai/sdk": "^0.91.1",
 		"@auth/drizzle-adapter": "^1.11.2",
 		"@aws-sdk/client-s3": "^3.1039.0",
 		"@aws-sdk/s3-request-presigner": "^3.1039.0",

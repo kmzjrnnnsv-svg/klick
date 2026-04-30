@@ -15,6 +15,13 @@
       "when": 1777534796571,
       "tag": "0001_blushing_marten_broadcloak",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777537314887,
+      "tag": "0002_narrow_martin_li",
+      "breakpoints": true
     }
   ]
 }

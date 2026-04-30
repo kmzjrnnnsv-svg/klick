@@ -5,8 +5,9 @@
 	},
 	"Header": {
 		"productName": "TrustVault",
-		"openVault": "Open vault",
-		"openJobs": "Open jobs",
+		"openVault": "Vault",
+		"openProfile": "Profile",
+		"openJobs": "Jobs",
 		"openAdmin": "Admin",
 		"login": "Sign in",
 		"toggleTheme": "Toggle theme",
@@ -69,6 +70,45 @@
 			"id_doc": "ID document",
 			"other": "Other"
 		}
+	},
+	"Profile": {
+		"title": "My profile",
+		"subtitle": "What employers see once you allow interest. You control visibility and content.",
+		"importFromCv": "Import from CV",
+		"importHint": "Pick a CV from your vault — the fields below get pre-filled with the AI's suggestion. You review and correct.",
+		"importDisclaimer": "The AI makes mistakes. Check everything. Save only when correct.",
+		"noCvHint": "Upload a CV to your vault first (kind = CV), then it shows up here.",
+		"extract": "Extract",
+		"extracting": "Extracting…",
+		"basics": "Basics",
+		"displayName": "Name",
+		"headline": "Current position",
+		"location": "Location",
+		"yearsExperience": "Years of experience",
+		"languages": "Languages (comma-separated)",
+		"skills": "Skills",
+		"skillsHint": "One skill per line. Optional level 1–5 after a colon.",
+		"experience": "Experience",
+		"education": "Education",
+		"summary": "Summary",
+		"visibility": "Visibility",
+		"visibilityOptions": {
+			"private": {
+				"title": "Private",
+				"body": "Only you see this profile. No match suggestions to employers."
+			},
+			"matches_only": {
+				"title": "Matches only",
+				"body": "Visible anonymized in match suggestions. Identity only after your approval."
+			},
+			"public": {
+				"title": "Public",
+				"body": "Searchable by any employer. No anonymization."
+			}
+		},
+		"save": "Save",
+		"saving": "Saving…",
+		"savedAt": "Saved at {time}"
 	},
 	"Jobs": {
 		"title": "Jobs",

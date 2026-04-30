@@ -1,5 +1,6 @@
 import {
 	integer,
+	jsonb,
 	pgTable,
 	primaryKey,
 	text,
@@ -120,3 +121,46 @@ export const vaultItems = pgTable("vault_items", {
 });
 
 export type VaultItem = typeof vaultItems.$inferSelect;
+
+// ─── Candidate profile ────────────────────────────────────────────────────
+// Single row per candidate user. Skills + experience + education stored as
+// JSONB for fast iteration in P2/P3; promoted to relational tables in P4
+// when the match engine needs joins on skills.
+export type ProfileSkill = { name: string; level?: 1 | 2 | 3 | 4 | 5 };
+export type ProfileExperience = {
+	company: string;
+	role: string;
+	start: string;
+	end?: string;
+	description?: string;
+};
+export type ProfileEducation = {
+	institution: string;
+	degree: string;
+	start?: string;
+	end?: string;
+};
+
+export const candidateProfiles = pgTable("candidate_profiles", {
+	userId: text("user_id")
+		.primaryKey()
+		.references(() => users.id, { onDelete: "cascade" }),
+	displayName: text("display_name"),
+	headline: text("headline"),
+	location: text("location"),
+	yearsExperience: integer("years_experience"),
+	salaryMin: integer("salary_min"),
+	languages: text("languages").array(),
+	skills: jsonb("skills").$type<ProfileSkill[]>(),
+	experience: jsonb("experience").$type<ProfileExperience[]>(),
+	education: jsonb("education").$type<ProfileEducation[]>(),
+	summary: text("summary"),
+	visibility: text("visibility", {
+		enum: ["private", "matches_only", "public"],
+	})
+		.notNull()
+		.default("matches_only"),
+	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type CandidateProfile = typeof candidateProfiles.$inferSelect;
