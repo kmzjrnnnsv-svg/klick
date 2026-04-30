@@ -1,65 +1,45 @@
-import Image from "next/image";
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { Footer } from "@/components/footer";
+import { Header } from "@/components/header";
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+export default async function Home() {
+	const t = await getTranslations("Landing");
+
+	return (
+		<>
+			<Header />
+			<main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-14 pb-24 sm:px-6 sm:pt-24">
+				<section className="space-y-6">
+					<h1 className="text-balance font-semibold text-4xl leading-[1.05] tracking-tight sm:text-5xl">
+						{t("hero.title")}
+					</h1>
+					<p className="max-w-2xl text-balance text-base text-muted-foreground leading-relaxed sm:text-lg">
+						{t("hero.subtitle")}
+					</p>
+					<div className="pt-2">
+						<Link
+							href="/login"
+							className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-6 font-medium text-primary-foreground text-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+						>
+							{t("hero.cta")} →
+						</Link>
+					</div>
+				</section>
+				<section className="mt-20 grid gap-10 sm:mt-28 sm:grid-cols-3 sm:gap-12">
+					{(["1", "2", "3"] as const).map((n) => (
+						<div key={n} className="space-y-2">
+							<h2 className="font-medium tracking-tight">
+								{t(`pillars.${n}.title`)}
+							</h2>
+							<p className="text-muted-foreground text-sm leading-relaxed">
+								{t(`pillars.${n}.body`)}
+							</p>
+						</div>
+					))}
+				</section>
+			</main>
+			<Footer />
+		</>
+	);
 }

@@ -1,0 +1,61 @@
+{
+	"Meta": {
+		"title": "TrustVault — Apply. On your terms.",
+		"description": "TrustVault is the recruiting platform that leaves your data with you. You decide per employer what gets shared and what gets verified."
+	},
+	"Header": {
+		"productName": "TrustVault",
+		"openVault": "Open vault",
+		"openJobs": "Open jobs",
+		"openAdmin": "Admin",
+		"login": "Sign in",
+		"toggleTheme": "Toggle theme",
+		"toggleLocale": "Switch language"
+	},
+	"Footer": {
+		"tagline": "You stay in control.",
+		"privacy": "Privacy",
+		"imprint": "Imprint"
+	},
+	"Landing": {
+		"hero": {
+			"title": "Apply. On your terms.",
+			"subtitle": "TrustVault is your private application folder. Upload your CV, certificates and open badges once — then decide per employer what gets shared and what gets verified.",
+			"cta": "Open my vault"
+		},
+		"pillars": {
+			"1": {
+				"title": "Your data, your call",
+				"body": "Everything in the vault is encrypted. You delete what you want to delete — anytime, no questions asked."
+			},
+			"2": {
+				"title": "Verification on demand",
+				"body": "Only when an employer is seriously interested do we run a check. You approve each item. You see the result first."
+			},
+			"3": {
+				"title": "No public profile",
+				"body": "You are not searchable. Matches come to you anonymously — you decide whether to reveal yourself."
+			}
+		}
+	},
+	"Login": {
+		"title": "Sign in to TrustVault",
+		"subtitle": "We'll send you a magic link. No password, no tracking.",
+		"emailLabel": "Email address",
+		"emailPlaceholder": "you@example.com",
+		"submit": "Send magic link",
+		"note": "In dev, the link appears in the server console."
+	},
+	"LoginCheck": {
+		"title": "Check your inbox",
+		"body": "We've sent you a sign-in link. Click it to continue."
+	},
+	"Vault": {
+		"title": "My vault",
+		"empty": "Your documents will live here soon. P1 ships the upload."
+	},
+	"Jobs": {
+		"title": "Jobs",
+		"empty": "Manage your job postings here soon. P3 ships the wizard."
+	}
+}

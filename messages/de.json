@@ -1,0 +1,61 @@
+{
+	"Meta": {
+		"title": "TrustVault — Bewerben. Aber souverän.",
+		"description": "TrustVault ist die Recruiting-Plattform, die deine Daten dir lässt. Du entscheidest pro Arbeitgeber, was geteilt und was geprüft wird."
+	},
+	"Header": {
+		"productName": "TrustVault",
+		"openVault": "Vault öffnen",
+		"openJobs": "Jobs öffnen",
+		"openAdmin": "Admin",
+		"login": "Anmelden",
+		"toggleTheme": "Theme wechseln",
+		"toggleLocale": "Sprache wechseln"
+	},
+	"Footer": {
+		"tagline": "Du behältst die Kontrolle.",
+		"privacy": "Datenschutz",
+		"imprint": "Impressum"
+	},
+	"Landing": {
+		"hero": {
+			"title": "Bewerben. Aber souverän.",
+			"subtitle": "TrustVault ist deine private Bewerbungsmappe. Lade Lebenslauf, Zeugnisse und Open Badges einmal hoch — und entscheide dann pro Arbeitgeber, was geteilt und was geprüft wird.",
+			"cta": "Vault eröffnen"
+		},
+		"pillars": {
+			"1": {
+				"title": "Daten in deiner Hand",
+				"body": "Alles im Vault ist verschlüsselt. Du löschst, was du löschen willst — jederzeit, ohne Rückfrage."
+			},
+			"2": {
+				"title": "Verifikation auf Abruf",
+				"body": "Erst wenn ein Arbeitgeber ernsthaft interessiert ist, läuft eine Prüfung. Du gibst pro Punkt frei. Das Ergebnis siehst du zuerst."
+			},
+			"3": {
+				"title": "Kein öffentliches Profil",
+				"body": "Du wirst nicht durchsuchbar. Matches kommen anonymisiert zu dir — du entscheidest, ob du sichtbar wirst."
+			}
+		}
+	},
+	"Login": {
+		"title": "Bei TrustVault anmelden",
+		"subtitle": "Wir schicken dir einen Magic Link. Kein Passwort, kein Tracking.",
+		"emailLabel": "E-Mail-Adresse",
+		"emailPlaceholder": "du@beispiel.de",
+		"submit": "Magic Link senden",
+		"note": "In der Entwicklungs-Umgebung erscheint der Link in der Server-Konsole."
+	},
+	"LoginCheck": {
+		"title": "Schau in dein Postfach",
+		"body": "Wir haben dir einen Anmelde-Link geschickt. Klick ihn an, um fortzufahren."
+	},
+	"Vault": {
+		"title": "Mein Vault",
+		"empty": "Hier liegen bald deine Unterlagen. P1 bringt den Upload."
+	},
+	"Jobs": {
+		"title": "Jobs",
+		"empty": "Hier verwaltest du bald deine Stellenanzeigen. P3 bringt das Wizard."
+	}
+}
