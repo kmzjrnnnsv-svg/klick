@@ -24,6 +24,16 @@ export async function GET(
 		.limit(1);
 	if (!item) return new Response("not found", { status: 404 });
 
+	// URL-based items (e.g. Credly badges) have no encrypted file — point the
+	// caller at the source URL instead of trying to decrypt nothing.
+	if (item.sourceUrl && !item.storageKey) {
+		return Response.redirect(item.sourceUrl, 302);
+	}
+
+	if (!item.storageKey || !item.nonce || !item.mime) {
+		return new Response("vault item has no payload", { status: 500 });
+	}
+
 	const [user] = await db
 		.select({ encryptedDek: users.encryptedDek })
 		.from(users)

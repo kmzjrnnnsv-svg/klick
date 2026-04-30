@@ -4,7 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { users, type VaultItem, vaultItems } from "@/db/schema";
+import { type BadgeMeta, users, type VaultItem, vaultItems } from "@/db/schema";
 import {
 	encryptBytes,
 	generateDek,
@@ -94,11 +94,101 @@ export async function deleteVaultItem(id: string): Promise<void> {
 		.limit(1);
 	if (!item) throw new Error("not found");
 
-	// Hard-delete: object first, row second. The sha256 stays in audit logs (P5+).
-	await deleteObject(item.storageKey);
+	// Hard-delete: object first (if any), row second. The sha256 stays in audit
+	// logs (P5+). URL-based items have no S3 object to remove.
+	if (item.storageKey) {
+		await deleteObject(item.storageKey);
+	}
 	await db.delete(vaultItems).where(eq(vaultItems.id, id));
 
 	revalidatePath("/vault");
+}
+
+// Adds an Open Badge purely by URL — no file upload, no encryption. We fetch
+// the badge's public JSON-LD (Credly etc.), pull out the displayable fields,
+// and persist a vault_items row with sourceUrl + badgeMeta. The image lives
+// at the issuer; we just keep the URL.
+export async function addBadgeFromUrl(formData: FormData): Promise<void> {
+	const session = await auth();
+	if (!session?.user?.id) throw new Error("unauthenticated");
+	const userId = session.user.id;
+
+	const url = String(formData.get("url") ?? "").trim();
+	if (!url) throw new Error("Bitte eine URL angeben.");
+
+	let parsed: URL;
+	try {
+		parsed = new URL(url);
+	} catch {
+		throw new Error("Keine gültige URL.");
+	}
+	if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+		throw new Error("Nur http(s)-URLs sind erlaubt.");
+	}
+
+	const res = await fetch(url, { headers: { Accept: "application/json" } });
+	if (!res.ok) {
+		throw new Error(`Badge nicht erreichbar (HTTP ${res.status}).`);
+	}
+	const json = (await res.json()) as Record<string, unknown>;
+
+	const meta = parseBadgeJsonLd(json);
+	const filename = meta.name ?? parsed.hostname + parsed.pathname;
+
+	await db.insert(vaultItems).values({
+		userId,
+		kind: "badge",
+		filename,
+		sourceUrl: url,
+		badgeMeta: meta,
+		mime: "application/ld+json",
+		sizeBytes: 0,
+	});
+
+	revalidatePath("/vault");
+}
+
+// Best-effort extractor for OBI 2.0 + Credly assertion shapes. Anything we
+// can't find stays undefined; the UI handles missing fields gracefully.
+function parseBadgeJsonLd(json: Record<string, unknown>): BadgeMeta {
+	const get = (...path: string[]): unknown => {
+		let cur: unknown = json;
+		for (const key of path) {
+			if (cur && typeof cur === "object" && key in (cur as object)) {
+				cur = (cur as Record<string, unknown>)[key];
+			} else {
+				return undefined;
+			}
+		}
+		return cur;
+	};
+	const str = (v: unknown): string | undefined =>
+		typeof v === "string" ? v : undefined;
+
+	return {
+		name:
+			str(get("name")) ??
+			str(get("badge", "name")) ??
+			str(get("badge_template", "name")),
+		description:
+			str(get("description")) ??
+			str(get("badge", "description")) ??
+			str(get("badge_template", "description")),
+		imageUrl:
+			str(get("image")) ??
+			str(get("image", "id")) ??
+			str(get("badge", "image")) ??
+			str(get("image_url")),
+		issuerName:
+			str(get("issuer", "name")) ??
+			str(get("badge", "issuer", "name")) ??
+			str(get("issuer")),
+		issuedAt: str(get("issuedOn")) ?? str(get("issued_at")),
+		criteriaUrl:
+			str(get("criteria")) ??
+			str(get("criteria", "id")) ??
+			str(get("badge", "criteria_url")),
+	};
 }
 
 export async function listVaultItems(): Promise<VaultItem[]> {

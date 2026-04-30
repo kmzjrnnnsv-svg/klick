@@ -47,7 +47,15 @@
 		"emailLabel": "E-Mail-Adresse",
 		"emailPlaceholder": "du@beispiel.de",
 		"submit": "Magic Link senden",
-		"note": "In der Entwicklungs-Umgebung erscheint der Link in der Server-Konsole."
+		"note": "In der Entwicklungs-Umgebung erscheint der Link in der Server-Konsole.",
+		"demoTitle": "Demo-Zugänge",
+		"demoSubtitle": "Klick eine Rolle, um die App sofort aus dieser Sicht zu erleben. Nur sichtbar, weil ENABLE_DEMO_LOGIN aktiv ist.",
+		"demoRoles": {
+			"admin": "Admin",
+			"company": "Unternehmen",
+			"headhunter": "Headhunter",
+			"candidate": "Kandidat:in"
+		}
 	},
 	"LoginCheck": {
 		"title": "Schau in dein Postfach",
@@ -71,7 +79,11 @@
 			"badge": "Open Badge",
 			"id_doc": "Identitätsnachweis",
 			"other": "Sonstiges"
-		}
+		},
+		"badgeUrlTitle": "Open Badge per Link",
+		"badgeUrlHint": "Hast du einen Credly-Badge oder ein anderes Open-Badge-Profil? Füge einfach die JSON-LD-URL ein — wir holen Name, Aussteller und Bild automatisch.",
+		"badgeUrlPlaceholder": "https://api.credly.com/v1/obi/v2/badges/…",
+		"badgeUrlSubmit": "Badge hinzufügen"
 	},
 	"Profile": {
 		"title": "Mein Profil",

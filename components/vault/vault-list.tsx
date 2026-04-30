@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, ImageIcon, Trash2 } from "lucide-react";
+import { Award, FileText, ImageIcon, Trash2 } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { deleteVaultItem } from "@/app/actions/vault";
@@ -14,8 +14,8 @@ function humanSize(bytes: number): string {
 	return `${Math.round(bytes / 104857.6) / 10} MB`;
 }
 
-function isImage(mime: string) {
-	return mime.startsWith("image/");
+function isImage(mime: string | null) {
+	return !!mime && mime.startsWith("image/");
 }
 
 export function VaultList({ items }: { items: VaultItem[] }) {
@@ -35,8 +35,17 @@ export function VaultList({ items }: { items: VaultItem[] }) {
 	return (
 		<ul className="divide-y divide-border rounded-lg border border-border bg-background">
 			{items.map((item) => {
-				const Icon = isImage(item.mime) ? ImageIcon : FileText;
-				const fileUrl = `/api/vault/${item.id}/file`;
+				const isUrlBadge = !!item.sourceUrl && !item.storageKey;
+				const Icon = isUrlBadge
+					? Award
+					: isImage(item.mime)
+						? ImageIcon
+						: FileText;
+				const href = isUrlBadge ? item.sourceUrl : `/api/vault/${item.id}/file`;
+				const displayName =
+					isUrlBadge && item.badgeMeta?.name
+						? item.badgeMeta.name
+						: item.filename;
 				return (
 					<li
 						key={item.id}
@@ -45,22 +54,41 @@ export function VaultList({ items }: { items: VaultItem[] }) {
 							pendingId === item.id && "opacity-50",
 						)}
 					>
-						<div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
-							<Icon className="h-4 w-4" strokeWidth={1.5} />
+						<div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-md bg-muted text-muted-foreground">
+							{isUrlBadge && item.badgeMeta?.imageUrl ? (
+								// biome-ignore lint/performance/noImgElement: external badge image, next/image would need allowlisting
+								<img
+									src={item.badgeMeta.imageUrl}
+									alt=""
+									className="h-full w-full object-cover"
+								/>
+							) : (
+								<Icon className="h-4 w-4" strokeWidth={1.5} />
+							)}
 						</div>
 						<div className="min-w-0 flex-1">
 							<a
-								href={fileUrl}
+								href={href ?? "#"}
 								target="_blank"
 								rel="noreferrer"
 								className="block truncate font-medium text-sm hover:underline"
 							>
-								{item.filename}
+								{displayName}
 							</a>
 							<div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-muted-foreground text-xs">
 								<span>{t(`kinds.${item.kind}`)}</span>
-								<span>·</span>
-								<span>{humanSize(item.sizeBytes)}</span>
+								{isUrlBadge && item.badgeMeta?.issuerName && (
+									<>
+										<span>·</span>
+										<span>{item.badgeMeta.issuerName}</span>
+									</>
+								)}
+								{!isUrlBadge && item.sizeBytes != null && (
+									<>
+										<span>·</span>
+										<span>{humanSize(item.sizeBytes)}</span>
+									</>
+								)}
 								<span>·</span>
 								<span>
 									{fmt.dateTime(item.createdAt, {
