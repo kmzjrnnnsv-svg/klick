@@ -4,8 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 
-export function MatchFilters() {
-	const t = useTranslations("Matches.filters");
+export function JobBrowseFilters() {
+	const t = useTranslations("Browse.filters");
 	const router = useRouter();
 	const params = useSearchParams();
 	const [isPending, startTransition] = useTransition();
@@ -18,19 +18,30 @@ export function MatchFilters() {
 			next.delete(key);
 		}
 		startTransition(() => {
-			router.push(`/matches${next.size > 0 ? `?${next}` : ""}`);
+			router.push(`/jobs/browse${next.size > 0 ? `?${next}` : ""}`);
 		});
 	}
 
+	const q = params.get("q") ?? "";
 	const remote = params.get("remote") ?? "any";
 	const minSalary = params.get("minSalary") ?? "";
-	const maxCommute = params.get("maxCommuteMinutes") ?? "";
-	const sort = params.get("sort") ?? "score";
 
 	return (
 		<div
-			className={`mb-4 grid grid-cols-1 gap-2 sm:grid-cols-4 ${isPending ? "opacity-60" : ""}`}
+			className={`mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3 ${
+				isPending ? "opacity-60" : ""
+			}`}
 		>
+			<label className="space-y-1 sm:col-span-2">
+				<span className="text-muted-foreground text-xs">{t("query")}</span>
+				<input
+					type="search"
+					value={q}
+					onChange={(e) => update("q", e.target.value)}
+					placeholder={t("queryPlaceholder")}
+					className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+				/>
+			</label>
 			<label className="space-y-1">
 				<span className="text-muted-foreground text-xs">{t("remote")}</span>
 				<select
@@ -54,31 +65,6 @@ export function MatchFilters() {
 					min={0}
 					className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
 				/>
-			</label>
-			<label className="space-y-1">
-				<span className="text-muted-foreground text-xs">{t("maxCommute")}</span>
-				<input
-					type="number"
-					inputMode="numeric"
-					value={maxCommute}
-					onChange={(e) => update("maxCommuteMinutes", e.target.value)}
-					placeholder={t("maxCommutePlaceholder")}
-					min={0}
-					max={240}
-					className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
-				/>
-			</label>
-			<label className="space-y-1">
-				<span className="text-muted-foreground text-xs">{t("sort")}</span>
-				<select
-					value={sort}
-					onChange={(e) => update("sort", e.target.value)}
-					className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
-				>
-					<option value="score">{t("sortScore")}</option>
-					<option value="commute">{t("sortCommute")}</option>
-					<option value="salary">{t("sortSalary")}</option>
-				</select>
 			</label>
 		</div>
 	);

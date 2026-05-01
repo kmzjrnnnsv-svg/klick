@@ -8,6 +8,7 @@
 		"openVault": "Vault",
 		"openProfile": "Profil",
 		"openMatches": "Matches",
+		"openBrowse": "Stellen",
 		"openRequests": "Anfragen",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
@@ -168,7 +169,11 @@
 			"noRemote": "Vor Ort / Hybrid",
 			"minSalary": "Mindestgehalt (€/Jahr)",
 			"maxCommute": "Max. Pendelminuten",
-			"maxCommutePlaceholder": "z. B. 45"
+			"maxCommutePlaceholder": "z. B. 45",
+			"sort": "Sortieren",
+			"sortScore": "Match-Score",
+			"sortCommute": "Kürzester Weg",
+			"sortSalary": "Höchstes Gehalt"
 		},
 		"candidatesTitle": "Kandidat:innen",
 		"candidatesSubtitle": "Anonymisierte Vorschläge — Identität erst, wenn der Kandidat einer Anfrage zustimmt.",
@@ -237,6 +242,12 @@
 		"whatTheyAsked": "Was angefragt wurde",
 		"messageFrom": "Nachricht von {company}",
 		"aboutTheJob": "Über die Stelle",
+		"salaryHeading": "Gehalt + Markteinschätzung",
+		"salaryGross": "brutto/Jahr",
+		"salaryBenchmark": "Marktüblich für vergleichbare Rollen: {low} – {high}",
+		"salaryUnder": "{pct}% unter Markt",
+		"salaryOver": "{pct}% über Markt",
+		"salaryFair": "im üblichen Korridor",
 		"receivedAt": "Eingegangen {time}",
 		"expiresAt": "Läuft ab am {time}",
 		"decidedAt": "Entschieden {time}",
@@ -581,6 +592,28 @@
 			"awards": "Auszeichnungen / Publikationen",
 			"certificationsMentioned": "Im CV erwähnte Zertifikate",
 			"certificationsMentionedHint": "Stehen so im Lebenslauf, sind aber nicht zwingend als Datei im Vault."
+		}
+	},
+	"Browse": {
+		"title": "Stellen-Suche",
+		"subtitle": "Alle veröffentlichten Stellen in deinem Workspace. Mit Match-Score: wie gut du auf die Stelle passt.",
+		"empty": "Keine Stellen gefunden. Filter ändern oder Suchbegriff entfernen.",
+		"scoreHint": "Score basiert auf deinem Profil — keine Bewerbungs-Pflicht.",
+		"notQualified": "passt nicht",
+		"commuteOverLimit": "über Wunsch-Limit",
+		"remote": {
+			"onsite": "Vor Ort",
+			"hybrid": "Hybrid",
+			"remote": "Remote"
+		},
+		"filters": {
+			"query": "Suche",
+			"queryPlaceholder": "Titel, Skills, Firma…",
+			"remote": "Arbeitsmodell",
+			"remoteAny": "Egal",
+			"remoteOnly": "Nur Remote",
+			"noRemote": "Vor Ort / Hybrid",
+			"minSalary": "Mindestgehalt"
 		}
 	}
 }

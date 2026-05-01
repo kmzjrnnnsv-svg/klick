@@ -8,6 +8,7 @@
 		"openVault": "Vault",
 		"openProfile": "Profile",
 		"openMatches": "Matches",
+		"openBrowse": "Jobs",
 		"openRequests": "Requests",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
@@ -168,7 +169,11 @@
 			"noRemote": "On-site / hybrid",
 			"minSalary": "Min salary (€/yr)",
 			"maxCommute": "Max commute mins",
-			"maxCommutePlaceholder": "e.g. 45"
+			"maxCommutePlaceholder": "e.g. 45",
+			"sort": "Sort",
+			"sortScore": "Match score",
+			"sortCommute": "Shortest commute",
+			"sortSalary": "Highest salary"
 		},
 		"candidatesTitle": "Candidates",
 		"candidatesSubtitle": "Anonymized suggestions — identity only after the candidate approves an interest request.",
@@ -237,6 +242,12 @@
 		"whatTheyAsked": "What was asked",
 		"messageFrom": "Message from {company}",
 		"aboutTheJob": "About the job",
+		"salaryHeading": "Salary + market signal",
+		"salaryGross": "gross/yr",
+		"salaryBenchmark": "Market range for similar roles: {low} – {high}",
+		"salaryUnder": "{pct}% below market",
+		"salaryOver": "{pct}% above market",
+		"salaryFair": "within typical corridor",
 		"receivedAt": "Received {time}",
 		"expiresAt": "Expires {time}",
 		"decidedAt": "Decided {time}",
@@ -581,6 +592,28 @@
 			"awards": "Awards / publications",
 			"certificationsMentioned": "Certifications cited in CV",
 			"certificationsMentionedHint": "Mentioned in the CV body, not necessarily uploaded as a file in the vault."
+		}
+	},
+	"Browse": {
+		"title": "Browse jobs",
+		"subtitle": "All published jobs in your workspace. With match score — how well you fit.",
+		"empty": "No jobs found. Adjust filters or clear the search.",
+		"scoreHint": "Score is based on your profile — no obligation to apply.",
+		"notQualified": "no fit",
+		"commuteOverLimit": "over commute limit",
+		"remote": {
+			"onsite": "On-site",
+			"hybrid": "Hybrid",
+			"remote": "Remote"
+		},
+		"filters": {
+			"query": "Search",
+			"queryPlaceholder": "Title, skills, company…",
+			"remote": "Work mode",
+			"remoteAny": "Any",
+			"remoteOnly": "Remote only",
+			"noRemote": "On-site / hybrid",
+			"minSalary": "Min salary"
 		}
 	}
 }

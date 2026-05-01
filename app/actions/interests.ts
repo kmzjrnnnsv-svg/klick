@@ -121,7 +121,20 @@ export async function showInterest(input: {
 
 export type CandidateInterestView = {
 	interest: Interest;
-	job: Pick<Job, "id" | "title" | "description" | "location" | "remotePolicy">;
+	job: Pick<
+		Job,
+		| "id"
+		| "title"
+		| "description"
+		| "location"
+		| "remotePolicy"
+		| "salaryMin"
+		| "salaryMax"
+		| "salaryBenchmarkLow"
+		| "salaryBenchmarkHigh"
+		| "salaryFairness"
+		| "salaryDeltaPct"
+	>;
 	companyName: string;
 };
 
@@ -139,6 +152,12 @@ export async function listIncomingInterests(): Promise<
 				description: jobs.description,
 				location: jobs.location,
 				remotePolicy: jobs.remotePolicy,
+				salaryMin: jobs.salaryMin,
+				salaryMax: jobs.salaryMax,
+				salaryBenchmarkLow: jobs.salaryBenchmarkLow,
+				salaryBenchmarkHigh: jobs.salaryBenchmarkHigh,
+				salaryFairness: jobs.salaryFairness,
+				salaryDeltaPct: jobs.salaryDeltaPct,
 			},
 			companyName: employers.companyName,
 		})
@@ -163,6 +182,12 @@ export async function getIncomingInterest(
 				description: jobs.description,
 				location: jobs.location,
 				remotePolicy: jobs.remotePolicy,
+				salaryMin: jobs.salaryMin,
+				salaryMax: jobs.salaryMax,
+				salaryBenchmarkLow: jobs.salaryBenchmarkLow,
+				salaryBenchmarkHigh: jobs.salaryBenchmarkHigh,
+				salaryFairness: jobs.salaryFairness,
+				salaryDeltaPct: jobs.salaryDeltaPct,
 			},
 			companyName: employers.companyName,
 		})

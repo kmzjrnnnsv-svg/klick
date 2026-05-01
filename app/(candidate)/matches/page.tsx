@@ -14,6 +14,7 @@ export default async function MatchesPage({
 		remote?: string;
 		minSalary?: string;
 		maxCommuteMinutes?: string;
+		sort?: string;
 	}>;
 }) {
 	const session = await auth();
@@ -32,10 +33,15 @@ export default async function MatchesPage({
 	const maxCommuteMinutes = params.maxCommuteMinutes
 		? Number.parseInt(params.maxCommuteMinutes, 10) || 0
 		: 0;
+	const sort: "score" | "commute" | "salary" =
+		params.sort === "commute" || params.sort === "salary"
+			? params.sort
+			: "score";
 	const matches = await listMatchesForCandidate({
 		remote,
 		minSalary: minSalary || undefined,
 		maxCommuteMinutes: maxCommuteMinutes || undefined,
+		sort,
 	});
 
 	return (

@@ -28,6 +28,7 @@ export async function Header() {
 							{ href: "/vault", label: t("openVault") },
 							{ href: "/profile", label: t("openProfile") },
 							{ href: "/matches", label: t("openMatches") },
+							{ href: "/jobs/browse", label: t("openBrowse") },
 							{ href: "/requests", label: t("openRequests") },
 						]
 					: [];

@@ -235,10 +235,103 @@ export type CandidateMatchView = {
 	employer: Pick<Employer, "id" | "companyName">;
 };
 
+// Public-ish job listing for candidates: shows every published job in
+// their tenant, regardless of match score. Adds a soft preview of how
+// they'd score for it (so they can self-assess before sending interest).
+export type BrowseJob = {
+	job: Job;
+	companyName: string;
+	hardPass: boolean;
+	softScore: number;
+	matchedSkills: string[];
+	missingSkills: string[];
+	commute: import("@/lib/match/engine").MatchScore["commute"];
+};
+
+export async function browseJobs(
+	filters: {
+		remote?: "any" | "remote_only" | "no_remote";
+		minSalary?: number;
+		q?: string;
+	} = {},
+): Promise<BrowseJob[]> {
+	const session = await auth();
+	if (!session?.user?.id) return [];
+	const userId = session.user.id;
+
+	const [user] = await db
+		.select({ tenantId: users.tenantId })
+		.from(users)
+		.where(eq(users.id, userId))
+		.limit(1);
+	if (!user?.tenantId) return [];
+
+	const [profile] = await db
+		.select()
+		.from(candidateProfiles)
+		.where(eq(candidateProfiles.userId, userId))
+		.limit(1);
+
+	const rows = await db
+		.select({
+			job: jobs,
+			companyName: employers.companyName,
+		})
+		.from(jobs)
+		.innerJoin(employers, eq(employers.id, jobs.employerId))
+		.where(
+			and(eq(employers.tenantId, user.tenantId), eq(jobs.status, "published")),
+		)
+		.orderBy(desc(jobs.updatedAt));
+
+	const { scoreMatch } = await import("@/lib/match/engine");
+	const out: BrowseJob[] = [];
+	for (const r of rows) {
+		const q = filters.q?.trim().toLowerCase();
+		if (q) {
+			const haystack =
+				`${r.job.title} ${r.job.description} ${r.companyName} ${(r.job.requirements ?? []).map((req) => req.name).join(" ")}`.toLowerCase();
+			if (!haystack.includes(q)) continue;
+		}
+		if (filters.remote === "remote_only" && r.job.remotePolicy !== "remote") {
+			continue;
+		}
+		if (filters.remote === "no_remote" && r.job.remotePolicy === "remote") {
+			continue;
+		}
+		if (filters.minSalary && filters.minSalary > 0) {
+			const cap = r.job.salaryMax ?? r.job.salaryMin ?? 0;
+			if (cap < filters.minSalary) continue;
+		}
+		const score = profile
+			? scoreMatch(r.job, profile)
+			: {
+					hardPass: false,
+					softScore: 0,
+					matchedSkills: [],
+					missingSkills: (r.job.requirements ?? [])
+						.filter((req) => req.weight === "must")
+						.map((req) => req.name),
+					commute: null,
+				};
+		out.push({
+			job: r.job,
+			companyName: r.companyName,
+			hardPass: score.hardPass,
+			softScore: score.softScore,
+			matchedSkills: score.matchedSkills,
+			missingSkills: score.missingSkills,
+			commute: score.commute,
+		});
+	}
+	return out;
+}
+
 export type MatchFilters = {
 	remote?: "any" | "remote_only" | "no_remote";
 	minSalary?: number;
 	maxCommuteMinutes?: number;
+	sort?: "score" | "commute" | "salary";
 };
 
 export async function listMatchesForCandidate(
@@ -265,7 +358,7 @@ export async function listMatchesForCandidate(
 		)
 		.orderBy(desc(matches.softScore));
 
-	return rows.filter(({ job, match }) => {
+	const filtered = rows.filter(({ job, match }) => {
 		if (filters.remote === "remote_only" && job.remotePolicy !== "remote") {
 			return false;
 		}
@@ -281,6 +374,23 @@ export async function listMatchesForCandidate(
 		}
 		return true;
 	});
+
+	if (filters.sort === "commute") {
+		filtered.sort((a, b) => {
+			const am = a.match.commute?.minutes ?? Number.POSITIVE_INFINITY;
+			const bm = b.match.commute?.minutes ?? Number.POSITIVE_INFINITY;
+			return am - bm;
+		});
+	} else if (filters.sort === "salary") {
+		filtered.sort((a, b) => {
+			const ax = a.job.salaryMax ?? a.job.salaryMin ?? 0;
+			const bx = b.job.salaryMax ?? b.job.salaryMin ?? 0;
+			return bx - ax;
+		});
+	}
+	// "score" is the default — already sorted by softScore desc.
+
+	return filtered;
 }
 
 export type AnonymousCandidateMatchView = {

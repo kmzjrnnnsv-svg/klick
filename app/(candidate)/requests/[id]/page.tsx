@@ -121,6 +121,67 @@ export default async function RequestDetailPage({
 						</p>
 					</div>
 
+					{(job.salaryMin || job.salaryMax || job.salaryBenchmarkLow) && (
+						<div
+							className={cn(
+								"rounded-lg border p-4 sm:p-5",
+								job.salaryFairness === "under"
+									? "border-rose-500/30 bg-rose-500/5"
+									: job.salaryFairness === "over"
+										? "border-amber-500/30 bg-amber-500/5"
+										: "border-border bg-background",
+							)}
+						>
+							<h2 className="font-medium text-sm">{t("salaryHeading")}</h2>
+							{(job.salaryMin || job.salaryMax) && (
+								<p className="mt-2 font-mono text-sm">
+									{job.salaryMin
+										? fmt.number(job.salaryMin, {
+												style: "currency",
+												currency: "EUR",
+												maximumFractionDigits: 0,
+											})
+										: ""}
+									{job.salaryMax && job.salaryMin ? " – " : ""}
+									{job.salaryMax
+										? fmt.number(job.salaryMax, {
+												style: "currency",
+												currency: "EUR",
+												maximumFractionDigits: 0,
+											})
+										: ""}{" "}
+									<span className="text-muted-foreground text-xs">
+										{t("salaryGross")}
+									</span>
+								</p>
+							)}
+							{job.salaryBenchmarkLow != null &&
+								job.salaryBenchmarkHigh != null && (
+									<p className="mt-2 text-muted-foreground text-xs leading-snug">
+										{t("salaryBenchmark", {
+											low: fmt.number(job.salaryBenchmarkLow, {
+												style: "currency",
+												currency: "EUR",
+												maximumFractionDigits: 0,
+											}),
+											high: fmt.number(job.salaryBenchmarkHigh, {
+												style: "currency",
+												currency: "EUR",
+												maximumFractionDigits: 0,
+											}),
+										})}
+										{job.salaryFairness === "under" &&
+											job.salaryDeltaPct != null &&
+											` · ${t("salaryUnder", { pct: Math.abs(job.salaryDeltaPct) })}`}
+										{job.salaryFairness === "over" &&
+											job.salaryDeltaPct != null &&
+											` · ${t("salaryOver", { pct: job.salaryDeltaPct })}`}
+										{job.salaryFairness === "fair" && ` · ${t("salaryFair")}`}
+									</p>
+								)}
+						</div>
+					)}
+
 					<div className="rounded-lg border border-border bg-background p-4 text-muted-foreground text-xs sm:p-5">
 						{t("receivedAt", {
 							time: fmt.dateTime(interest.createdAt, {
