@@ -20,6 +20,7 @@ import {
 import { getAIProvider } from "@/lib/ai";
 import type { ExtractedProfile } from "@/lib/ai/types";
 import { decryptBytes, unwrapDek } from "@/lib/crypto/envelope";
+import { geocode } from "@/lib/geo/geocode";
 import { getBytes } from "@/lib/storage/s3";
 
 const skillSchema: z.ZodType<ProfileSkill> = z.object({
@@ -172,9 +173,35 @@ export async function saveProfile(formData: FormData): Promise<void> {
 
 	const parsed = profileFormSchema.parse(raw);
 
+	// Commute-related fields (separate from the zod schema for now — pure
+	// optionals that bypass legacy form payload).
+	const maxCommuteMinutesRaw = formData
+		.get("maxCommuteMinutes")
+		?.toString()
+		.trim();
+	const maxCommuteMinutes = maxCommuteMinutesRaw
+		? Math.max(0, Math.min(240, Number.parseInt(maxCommuteMinutesRaw, 10) || 0))
+		: undefined;
+	const transportModeRaw = formData.get("transportMode")?.toString();
+	const transportMode: "car" | "transit" | "bike" | "walk" | undefined =
+		transportModeRaw === "car" ||
+		transportModeRaw === "transit" ||
+		transportModeRaw === "bike" ||
+		transportModeRaw === "walk"
+			? transportModeRaw
+			: undefined;
+
+	// Geocode the location (cached in DB) so the match engine can compute
+	// commute distance later. Failures degrade silently.
+	const geo = parsed.location ? await geocode(parsed.location) : null;
+
 	const values = {
 		userId,
 		...parsed,
+		...(maxCommuteMinutes !== undefined ? { maxCommuteMinutes } : {}),
+		...(transportMode !== undefined ? { transportMode } : {}),
+		addressLat: geo?.lat ?? null,
+		addressLng: geo?.lng ?? null,
 		updatedAt: new Date(),
 	};
 

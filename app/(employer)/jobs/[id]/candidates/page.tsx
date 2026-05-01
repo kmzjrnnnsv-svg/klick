@@ -131,8 +131,29 @@ export default async function JobCandidatesPage({
 														{s}
 													</span>
 												))}
+												{c.match.adjacentSkills?.map((s) => (
+													<span
+														key={`adj-${s}`}
+														className="rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[11px] text-amber-700 dark:text-amber-300"
+													>
+														{s} ⤴
+													</span>
+												))}
 											</div>
 										)}
+									{c.match.commute && (
+										<div className="mt-2 text-muted-foreground text-xs">
+											{c.match.commute.km} km · ~{c.match.commute.minutes} min{" "}
+											{c.match.commute.mode === "car"
+												? "Auto"
+												: c.match.commute.mode === "transit"
+													? "ÖPNV"
+													: c.match.commute.mode === "bike"
+														? "Rad"
+														: "zu Fuß"}
+											{c.match.commute.exceedsLimit && " · über Wunsch-Limit"}
+										</div>
+									)}
 									{c.summary && (
 										<p className="mt-2 line-clamp-2 text-muted-foreground text-xs leading-snug">
 											{c.summary}

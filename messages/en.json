@@ -132,6 +132,23 @@
 		"title": "Job matches",
 		"subtitle": "Jobs that fit your profile. Anonymized to the employer until you allow interest.",
 		"empty": "No matches yet. Save your profile and wait for published jobs.",
+		"commute": "Commute: {km} km · ~{minutes} min {mode}",
+		"adjacentTooltip": "Career-pivot — you bring an adjacent skill",
+		"mode": {
+			"car": "by car",
+			"transit": "by transit",
+			"bike": "by bike",
+			"walk": "on foot"
+		},
+		"filters": {
+			"remote": "Work mode",
+			"remoteAny": "Any",
+			"remoteOnly": "Remote only",
+			"noRemote": "On-site / hybrid",
+			"minSalary": "Min salary (€/yr)",
+			"maxCommute": "Max commute mins",
+			"maxCommutePlaceholder": "e.g. 45"
+		},
 		"candidatesTitle": "Candidates",
 		"candidatesSubtitle": "Anonymized suggestions — identity only after the candidate approves an interest request.",
 		"candidatesEmpty": "No candidates for this job yet. Match runs in the background after publishing.",
@@ -345,6 +362,15 @@
 			"languagesLabel": "Languages",
 			"languagesHint": "Comma-separated — e.g. German, English.",
 			"languagesPlaceholder": "German, English",
+			"commuteMaxLabel": "Max commute minutes",
+			"commuteMaxHint": "What you're willing to commute daily (for non-remote roles).",
+			"transportLabel": "Preferred transport",
+			"transport": {
+				"car": "Car",
+				"transit": "Transit / rail",
+				"bike": "Bike",
+				"walk": "Walk"
+			},
 			"next": "Next"
 		},
 		"upload": {

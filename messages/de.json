@@ -132,6 +132,23 @@
 		"title": "Job-Matches",
 		"subtitle": "Stellen, die zu deinem Profil passen. Anonymisiert für den Arbeitgeber, bis du Interesse zulässt.",
 		"empty": "Noch keine Matches. Speicher dein Profil und warte auf veröffentlichte Stellen.",
+		"commute": "Pendelweg: {km} km · ~{minutes} min {mode}",
+		"adjacentTooltip": "Quereinstieg — du bringst eine verwandte Skill mit",
+		"mode": {
+			"car": "mit Auto",
+			"transit": "mit ÖPNV",
+			"bike": "mit Rad",
+			"walk": "zu Fuß"
+		},
+		"filters": {
+			"remote": "Arbeitsmodell",
+			"remoteAny": "Egal",
+			"remoteOnly": "Nur Remote",
+			"noRemote": "Vor Ort / Hybrid",
+			"minSalary": "Mindestgehalt (€/Jahr)",
+			"maxCommute": "Max. Pendelminuten",
+			"maxCommutePlaceholder": "z. B. 45"
+		},
 		"candidatesTitle": "Kandidat:innen",
 		"candidatesSubtitle": "Anonymisierte Vorschläge — Identität erst, wenn der Kandidat einer Anfrage zustimmt.",
 		"candidatesEmpty": "Noch keine Kandidat:innen für diese Stelle. Match wird nach Veröffentlichung im Hintergrund berechnet.",
@@ -345,6 +362,15 @@
 			"languagesLabel": "Sprachen",
 			"languagesHint": "Kommagetrennt — z. B. Deutsch, Englisch.",
 			"languagesPlaceholder": "Deutsch, Englisch",
+			"commuteMaxLabel": "Max. Pendelminuten",
+			"commuteMaxHint": "Was du täglich zu fahren bereit bist (für nicht-remote Stellen).",
+			"transportLabel": "Bevorzugtes Verkehrsmittel",
+			"transport": {
+				"car": "Auto",
+				"transit": "ÖPNV / Bahn",
+				"bike": "Fahrrad",
+				"walk": "zu Fuß"
+			},
 			"next": "Weiter"
 		},
 		"upload": {
