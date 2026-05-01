@@ -9,59 +9,55 @@ import {
 	users,
 	verificationTokens,
 } from "@/db/schema";
+import { sendTransactionalMail } from "@/lib/mail/send";
 
+// Auth.js wirft eine generische "Server error"-Seite, wenn
+// sendVerificationRequest throwt. Daher fangen wir hier alles ab und
+// loggen den Link notfalls in die Konsole — der Login-Flow kommt zur
+// Bestätigungs-Seite, der Admin sieht in journalctl den Link.
 async function sendMagicLinkEmail(identifier: string, url: string) {
-	// Real SMTP path: when SMTP_HOST is set, send via Nodemailer.
-	// Works with PrivateEmail (Namecheap), Brevo, Mailgun, your own server, etc.
-	if (process.env.SMTP_HOST) {
-		const nodemailer = await import("nodemailer");
-		const port = Number(process.env.SMTP_PORT ?? 465);
-		const transport = nodemailer.createTransport({
-			host: process.env.SMTP_HOST,
-			port,
-			// Port 465 = implicit TLS; 587 = STARTTLS upgrade.
-			secure: port === 465,
-			auth:
-				process.env.SMTP_USER && process.env.SMTP_PASS
-					? {
-							user: process.env.SMTP_USER,
-							pass: process.env.SMTP_PASS,
-						}
-					: undefined,
-		});
+	const host = (() => {
+		try {
+			return new URL(url).host;
+		} catch {
+			return "Klick";
+		}
+	})();
+	const text =
+		`Hier ist dein Anmelde-Link für ${host}:\n\n${url}\n\n` +
+		`Gültig für 24 Stunden. Wenn du das nicht angefordert hast, ignoriere diese Mail.`;
+	const html = `
+		<div style="font-family:'Jost','Futura',system-ui,sans-serif;max-width:520px;margin:0 auto;padding:32px;color:#211c14;background:#f7f3ec">
+			<p style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#6b5e4a;margin:0 0 24px 0">Maison Klick</p>
+			<h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:500;margin:0 0 16px 0">Anmelden bei Klick</h1>
+			<p style="margin:0 0 24px 0;font-size:14px;line-height:1.6">
+				Klick auf den Button — du wirst direkt eingeloggt.
+			</p>
+			<p style="margin:0 0 24px 0">
+				<a href="${url}" style="display:inline-block;background:#211c14;color:#f7f3ec;padding:14px 28px;border-radius:2px;text-decoration:none;font-size:11px;font-weight:500;letter-spacing:0.22em;text-transform:uppercase">Bei ${host} anmelden</a>
+			</p>
+			<p style="margin:32px 0 0 0;font-size:12px;color:#6b5e4a;line-height:1.6">
+				Oder kopiere den Link manuell:<br/>
+				<span style="word-break:break-all">${url}</span>
+			</p>
+			<p style="margin:24px 0 0 0;font-size:11px;color:#a09478">
+				Gültig 24 Stunden. Nicht angefordert? Ignoriere diese Mail.
+			</p>
+		</div>
+	`;
 
-		const from = process.env.MAIL_FROM ?? "noreply@klick.local";
-		const host = new URL(url).host;
-		await transport.sendMail({
+	try {
+		await sendTransactionalMail({
 			to: identifier,
-			from,
 			subject: "Dein Anmelde-Link für Klick",
-			text:
-				`Hier ist dein Anmelde-Link für ${host}:\n\n${url}\n\n` +
-				`Gültig für 24 Stunden. Wenn du das nicht angefordert hast, ignoriere diese Mail.`,
-			html: `
-				<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#1a1a1a">
-					<h1 style="font-size:18px;font-weight:600;margin:0 0 12px 0">Anmelden bei Klick</h1>
-					<p style="margin:0 0 16px 0;font-size:14px;line-height:1.5">
-						Klick auf den Button — du wirst direkt eingeloggt.
-					</p>
-					<p style="margin:0 0 16px 0">
-						<a href="${url}" style="display:inline-block;background:#3B6FE4;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:500">Bei ${host} anmelden</a>
-					</p>
-					<p style="margin:24px 0 0 0;font-size:12px;color:#666;line-height:1.5">
-						Oder kopiere diesen Link manuell:<br/>
-						<span style="word-break:break-all">${url}</span>
-					</p>
-					<p style="margin:24px 0 0 0;font-size:12px;color:#999">
-						Gültig 24 Stunden. Nicht angefordert? Ignoriere diese Mail.
-					</p>
-				</div>
-			`,
+			text,
+			html,
 		});
-		return;
+	} catch (e) {
+		console.error("[auth] sendMagicLinkEmail unexpected failure:", e);
 	}
-
-	// Dev fallback: log the magic link to the server console.
+	// Immer zusätzlich in die Konsole loggen — als Diagnose-Hilfe und für
+	// Dev/Demo-Setups, in denen Mail nicht zustellbar ist.
 	console.log(
 		`\n┌──── Magic Link ────────────────────────────────────\n│ to:  ${identifier}\n│ url: ${url}\n└────────────────────────────────────────────────────\n`,
 	);

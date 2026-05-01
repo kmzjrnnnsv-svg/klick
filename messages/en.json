@@ -33,15 +33,22 @@
 		"imprint": "Imprint"
 	},
 	"Landing": {
+		"eyebrow": "Maison Klick — Est. 2026",
 		"hero": {
 			"title": "Apply. On your terms.",
 			"subtitle": "Klick is your private application folder. Upload your CV, certificates and open badges once — then decide per employer what gets shared and what gets verified.",
-			"cta": "Open my vault"
+			"cta": "Open my vault",
+			"secondary": "Browse jobs"
+		},
+		"manifesto": {
+			"eyebrow": "Manifesto",
+			"title": "Three promises we don't break.",
+			"body": "Recruiting has lost its dignity. Data is hoarded, profiles are scraped, CVs are dissected before any real conversation. We flip that around."
 		},
 		"pillars": {
 			"1": {
 				"title": "Your data, your call",
-				"body": "Everything in the vault is encrypted. You delete what you want to delete — anytime, no questions asked."
+				"body": "Everything in the vault is encrypted with XChaCha20-Poly1305. You delete what you want to delete — anytime, no questions asked."
 			},
 			"2": {
 				"title": "Verification on demand",
@@ -51,6 +58,155 @@
 				"title": "No public profile",
 				"body": "You are not searchable. Matches come to you anonymously — you decide whether to reveal yourself."
 			}
+		},
+		"candidateJourney": {
+			"eyebrow": "For candidates",
+			"title": "Five steps. No more CV ping-pong.",
+			"steps": {
+				"1": {
+					"title": "Open the vault",
+					"body": "Magic-link sign-in. No password, no tracking. You're in within 30 seconds."
+				},
+				"2": {
+					"title": "Upload documents",
+					"body": "CV, references, certificates, ID. Encrypted at the moment of upload."
+				},
+				"3": {
+					"title": "AI extracts your profile",
+					"body": "Claude reads your CV, recognises skills, industries, mobility. You correct as needed."
+				},
+				"4": {
+					"title": "Anonymous matches arrive",
+					"body": "Roles that fit you — with salary verdict, commute estimate and an AI-written rationale."
+				},
+				"5": {
+					"title": "You decide",
+					"body": "Per request you grant: which file becomes visible, which check may run, whether your name is revealed."
+				}
+			}
+		},
+		"employerJourney": {
+			"eyebrow": "For employers",
+			"title": "Post a role. Get real profiles.",
+			"steps": {
+				"1": {
+					"title": "Create a role",
+					"body": "Type or upload a PDF — Klick extracts requirements, salary band and location automatically."
+				},
+				"2": {
+					"title": "Match engine runs",
+					"body": "Hard filters (must-have skills, minimum tenure) plus soft score with career-pivot tolerance and commute check."
+				},
+				"3": {
+					"title": "Anonymous shortlist",
+					"body": "Top candidates with score, pros & cons, match rationale, salary fairness — no real names yet."
+				},
+				"4": {
+					"title": "Interest + verification",
+					"body": "You pick the verification depth and write a message. Identity and vault appear only after approval."
+				}
+			}
+		},
+		"features": {
+			"eyebrow": "Features",
+			"title": "Everything you need. Nothing we sell.",
+			"vault": {
+				"title": "Encrypted vault",
+				"body": "Envelope encryption with per-user DEK. Drag-and-drop or camera upload from mobile."
+			},
+			"cv": {
+				"title": "AI profile from CV",
+				"body": "Claude detects skills, industries, mobility, awards, language level. Mock works offline."
+			},
+			"badges": {
+				"title": "Open Badges & Credly",
+				"body": "Add by URL — JSON-LD parsed, issuer verified, authenticity signaled."
+			},
+			"verify": {
+				"title": "Verification on demand",
+				"body": "Mock, Credly or IDnow — per request. Connector pattern, more sources pluggable."
+			},
+			"match": {
+				"title": "Match engine",
+				"body": "Skill clusters for career pivots, commute via OSRM/OTP, salary band check, AI rationale."
+			},
+			"salary": {
+				"title": "Salary benchmark",
+				"body": "AI compares the job's salary to the market. Candidate sees: under, fair, over."
+			},
+			"insights": {
+				"title": "Insights & tenure score",
+				"body": "Tenure, gaps, switch rhythm, certificate quality, issuer legitimacy."
+			},
+			"disclosure": {
+				"title": "Per-file disclosure",
+				"body": "Even after approval: grant or revoke each file individually. Audit log included."
+			},
+			"public": {
+				"title": "Public profile (optional)",
+				"body": "Generate a share link with a token. Revoke anytime — old links die instantly."
+			}
+		},
+		"trust": {
+			"eyebrow": "Security & trust",
+			"title": "Encrypted at rest. EU-hosted. Audited.",
+			"items": {
+				"1": {
+					"title": "XChaCha20-Poly1305",
+					"body": "libsodium envelope with per-user DEK. Server only sees plaintext briefly during upload."
+				},
+				"2": {
+					"title": "EU region",
+					"body": "Postgres and object storage in Germany (Hetzner). No US data transfers."
+				},
+				"3": {
+					"title": "Audit log",
+					"body": "Every grant, every vault access, every verification logged with timestamp and actor."
+				},
+				"4": {
+					"title": "Hard delete",
+					"body": "When you delete, it's gone. No soft-delete shadows, no backups bringing it back."
+				}
+			}
+		},
+		"faq": {
+			"eyebrow": "FAQ",
+			"title": "Clear answers.",
+			"items": {
+				"1": {
+					"q": "What does Klick cost candidates?",
+					"a": "Nothing. Ever. We earn through employer subscriptions — not through your data."
+				},
+				"2": {
+					"q": "What if the AI gets something wrong?",
+					"a": "Every field is editable. The AI is a suggestion, not a verdict — you remain in control."
+				},
+				"3": {
+					"q": "Are my documents truly deleted?",
+					"a": "One click. Hard delete. Even the encrypted blob in storage is removed."
+				},
+				"4": {
+					"q": "Who verifies the Open Badges?",
+					"a": "We read the official JSON-LD URL and check the issuer against our allowlist (~35 established providers)."
+				},
+				"5": {
+					"q": "Does it work in my industry?",
+					"a": "Klick is industry-agnostic. Skill clusters cover tech, design, marketing, data, mobile and more — with career-pivot logic."
+				}
+			}
+		},
+		"finalCta": {
+			"title": "Ready for an application with dignity?",
+			"body": "Magic link, no password. In two minutes your vault is open.",
+			"cta": "Sign in now",
+			"secondary": "Explore the demo"
+		},
+		"imageCaption": {
+			"hero": "Editorial",
+			"vault": "Vault",
+			"profile": "Profile",
+			"match": "Match",
+			"trust": "Trust"
 		}
 	},
 	"Login": {
