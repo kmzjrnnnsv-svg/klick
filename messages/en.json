@@ -162,6 +162,10 @@
 		"title": "Job matches",
 		"subtitle": "Jobs that fit your profile. Anonymized to the employer until you allow interest.",
 		"empty": "No matches yet. Save your profile and wait for published jobs.",
+		"nextStepsTitle": "What happens next",
+		"nextStep1": "You stay anonymous. Employers see only headline + skills, no name.",
+		"nextStep2": "When an employer shows interest, verification runs and you get a request in 'Requests'.",
+		"nextStep3": "You decide per request: reveal identity (or not) — and per file which to share.",
 		"commute": "Commute: {km} km · ~{minutes} min {mode}",
 		"adjacentTooltip": "Career-pivot — you bring an adjacent skill",
 		"mode": {
@@ -221,7 +225,30 @@
 		"comingTitle": "Coming next",
 		"comingDynamicRoutes": "Dynamic API route management in the UI (proxy / sql / jsonata handlers)",
 		"comingTenants": "Tenant management with subdomain branding",
-		"comingConnectors": "Verify connector definitions (Credly partner OAuth, IDnow sandbox)"
+		"comingConnectors": "Verify connector definitions (Credly partner OAuth, IDnow sandbox)",
+		"cmsLink": "Manage content (imprint, privacy …)"
+	},
+	"AdminCms": {
+		"title": "Content (CMS)",
+		"subtitle": "Static pages like imprint, privacy, terms. Public at /<slug>.",
+		"newPage": "New page",
+		"empty": "No pages yet. Start from a template:",
+		"starter": {
+			"imprint": "Imprint template",
+			"privacy": "Privacy template",
+			"terms": "Terms template"
+		},
+		"preview": "Preview",
+		"edit": "Edit",
+		"slug": "Path",
+		"slugHint": "URL segment, e.g. 'imprint'. Lowercase, digits, dashes only.",
+		"titleField": "Title",
+		"body": "Body",
+		"bodyHint": "Plain text with newlines. Rendered as-is.",
+		"save": "Save",
+		"starterImprint": "Provider:\n[Company]\n[Address]\n[Postal code, city]\n\nRepresented by:\n[CEO]\n\nContact:\nPhone: [Number]\nE-mail: [Address]\n\nRegister entry:\nCommercial register, court [City], number [HRB ...]",
+		"starterPrivacy": "Privacy policy\n\n1. Controller\n[Provider as in imprint]\n\n2. Data processed\nE-mail, profile fields you enter, vault content (encrypted at rest).\n\n3. Purpose\nMatchmaking between candidates and employers.\n\n4. Retention\nProfile data until account deletion. Vault content until you delete it.\n\n5. Your rights\nAccess, rectification, deletion, restriction, portability. Write to [email].\n\n6. Objection\nYou can object to processing at any time.",
+		"starterTerms": "Terms of Service\n\n1. Scope\nThese terms govern use of the Klick platform.\n\n2. Service\nKlick connects candidates with employers. No claim to placement arises.\n\n3. User obligations\nTruthful information. No sharing of credentials.\n\n4. Data protection\nSee privacy policy.\n\n5. Liability\nKlick is liable only for intent and gross negligence.\n\n6. Governing law\nGerman law applies. Venue: [city]."
 	},
 	"Interest": {
 		"title": "Show interest",

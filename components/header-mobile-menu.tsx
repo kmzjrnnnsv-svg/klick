@@ -64,14 +64,14 @@ export function HeaderMobileMenu({
 			</Button>
 
 			{open && (
-				<div className="fixed inset-x-0 top-14 z-30 sm:hidden">
+				<div className="fixed inset-x-0 top-14 z-50 sm:hidden">
 					<div
 						className="absolute inset-x-0 top-0 bg-background/80 backdrop-blur"
 						style={{ height: "calc(100svh - 3.5rem)" }}
 						onClick={() => setOpen(false)}
 						aria-hidden
 					/>
-					<nav className="relative mx-2 mt-2 rounded-lg border border-border bg-popover p-1 shadow-lg">
+					<nav className="relative mx-2 mt-2 rounded-lg border border-border bg-background p-1 shadow-lg">
 						{links.map((l) => {
 							const active =
 								pathname === l.href ||

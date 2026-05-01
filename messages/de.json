@@ -162,6 +162,10 @@
 		"title": "Job-Matches",
 		"subtitle": "Stellen, die zu deinem Profil passen. Anonymisiert für den Arbeitgeber, bis du Interesse zulässt.",
 		"empty": "Noch keine Matches. Speicher dein Profil und warte auf veröffentlichte Stellen.",
+		"nextStepsTitle": "Was passiert als Nächstes",
+		"nextStep1": "Du bleibst anonym. Arbeitgeber sehen nur Headline + Skills, kein Name.",
+		"nextStep2": "Wenn ein Arbeitgeber Interesse zeigt, läuft die Verifikation und du bekommst eine Anfrage in Anfragen.",
+		"nextStep3": "Du entscheidest pro Anfrage: identität freigeben (oder nicht) — und pro Datei welche du teilst.",
 		"commute": "Pendelweg: {km} km · ~{minutes} min {mode}",
 		"adjacentTooltip": "Quereinstieg — du bringst eine verwandte Skill mit",
 		"mode": {
@@ -221,7 +225,30 @@
 		"comingTitle": "Bald hier",
 		"comingDynamicRoutes": "Dynamische API-Routen-Verwaltung im UI (proxy / sql / jsonata-Handler)",
 		"comingTenants": "Tenant-Verwaltung mit Subdomain-Branding",
-		"comingConnectors": "Verify-Connector-Definitionen (Credly Partner-OAuth, IDnow-Sandbox)"
+		"comingConnectors": "Verify-Connector-Definitionen (Credly Partner-OAuth, IDnow-Sandbox)",
+		"cmsLink": "Inhalte verwalten (Impressum, Datenschutz …)"
+	},
+	"AdminCms": {
+		"title": "Inhalte (CMS)",
+		"subtitle": "Statische Seiten wie Impressum, Datenschutz, AGB. Werden unter /<slug> öffentlich.",
+		"newPage": "Neue Seite",
+		"empty": "Noch keine Seiten. Mit einer Vorlage starten:",
+		"starter": {
+			"imprint": "Impressum-Vorlage",
+			"privacy": "Datenschutz-Vorlage",
+			"terms": "AGB-Vorlage"
+		},
+		"preview": "Ansehen",
+		"edit": "Bearbeiten",
+		"slug": "Pfad",
+		"slugHint": "URL-Segment, z. B. 'imprint'. Nur Kleinbuchstaben, Zahlen, Bindestriche.",
+		"titleField": "Titel",
+		"body": "Inhalt",
+		"bodyHint": "Plain-Text mit Zeilenumbrüchen. Wird 1:1 dargestellt.",
+		"save": "Speichern",
+		"starterImprint": "Anbieter:\n[Firmenname]\n[Anschrift]\n[PLZ Ort]\n\nVertreten durch:\n[Geschäftsführer]\n\nKontakt:\nTelefon: [Telefonnummer]\nE-Mail: [E-Mail]\n\nRegistereintrag:\nEintragung im Handelsregister.\nRegistergericht: [Stadt]\nRegisternummer: [HRB ...]\n\nUmsatzsteuer-ID:\nUSt-IdNr.: [DE ...]\n\nVerantwortlich für den Inhalt nach § 55 Abs. 2 RStV:\n[Name, Anschrift]",
+		"starterPrivacy": "Datenschutzerklärung\n\n1. Verantwortliche Stelle\n[Anbieter wie im Impressum]\n\n2. Erfasste Daten\nWir erfassen E-Mail-Adresse, Profildaten (von dir freiwillig eingegeben) und Vault-Inhalte (verschlüsselt im Ruhezustand).\n\n3. Zweck\nVermittlung zwischen Kandidat:innen und Arbeitgebern.\n\n4. Speicherdauer\nProfildaten bis zur Löschung des Accounts. Vault-Inhalte bis zur manuellen Löschung durch dich.\n\n5. Deine Rechte\nAuskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit. Schreib uns an [E-Mail].\n\n6. Widerspruch\nDu kannst der Verarbeitung jederzeit widersprechen.",
+		"starterTerms": "Allgemeine Geschäftsbedingungen\n\n1. Geltungsbereich\nDiese AGB gelten für die Nutzung der Plattform Klick.\n\n2. Leistungsumfang\nKlick vermittelt Kandidat:innen an Arbeitgeber. Es entsteht kein Anspruch auf Vermittlung.\n\n3. Pflichten der Nutzer:innen\nWahrheitsgemäße Angaben. Keine Weitergabe der Zugangsdaten.\n\n4. Datenschutz\nSiehe Datenschutzerklärung.\n\n5. Haftung\nKlick haftet nur für Vorsatz und grobe Fahrlässigkeit.\n\n6. Schlussbestimmungen\nGerichtsstand: [Stadt]. Anwendbar ist deutsches Recht."
 	},
 	"Interest": {
 		"title": "Interesse zeigen",

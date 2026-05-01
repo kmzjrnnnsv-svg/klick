@@ -59,6 +59,17 @@ export default async function MatchesPage({
 
 				<MatchFilters />
 
+				{matches.length > 0 && (
+					<div className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-muted-foreground sm:p-4">
+						<p className="font-medium text-primary">{t("nextStepsTitle")}</p>
+						<ol className="mt-2 list-decimal space-y-1 pl-4">
+							<li>{t("nextStep1")}</li>
+							<li>{t("nextStep2")}</li>
+							<li>{t("nextStep3")}</li>
+						</ol>
+					</div>
+				)}
+
 				{matches.length === 0 ? (
 					<div className="rounded-lg border border-border border-dashed p-10 text-center sm:p-16">
 						<p className="text-muted-foreground text-sm">{t("empty")}</p>
