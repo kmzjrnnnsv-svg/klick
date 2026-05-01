@@ -60,6 +60,30 @@ export default async function OnboardingBasics() {
 						placeholder={t("languagesPlaceholder")}
 					/>
 				</Field>
+				<div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+					<Field label={t("commuteMaxLabel")} hint={t("commuteMaxHint")}>
+						<Input
+							type="number"
+							name="maxCommuteMinutes"
+							defaultValue={profile?.maxCommuteMinutes ?? ""}
+							placeholder="45"
+							min={0}
+							max={240}
+						/>
+					</Field>
+					<Field label={t("transportLabel")}>
+						<select
+							name="transportMode"
+							defaultValue={profile?.transportMode ?? "car"}
+							className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
+						>
+							<option value="car">{t("transport.car")}</option>
+							<option value="transit">{t("transport.transit")}</option>
+							<option value="bike">{t("transport.bike")}</option>
+							<option value="walk">{t("transport.walk")}</option>
+						</select>
+					</Field>
+				</div>
 				<div className="flex justify-end gap-3 pt-2">
 					<Button type="submit" size="lg">
 						{t("next")}

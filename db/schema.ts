@@ -1,5 +1,6 @@
 import {
 	boolean,
+	doublePrecision,
 	integer,
 	jsonb,
 	pgTable,
@@ -217,6 +218,16 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 	preferredRoleLevel: text("preferred_role_level", {
 		enum: ["junior", "mid", "senior", "lead", "principal", "exec"],
 	}),
+	// Commute willingness — used by the match engine when the job is not remote.
+	// Distance is computed via lat/lng (geocoded once and cached). Transport
+	// mode is informational for now; minute-thresholds are an honest straight-
+	// line + speed-class estimate until we wire a routing API.
+	maxCommuteMinutes: integer("max_commute_minutes"), // null = no preference
+	transportMode: text("transport_mode", {
+		enum: ["car", "transit", "bike", "walk"],
+	}),
+	addressLat: doublePrecision("address_lat"),
+	addressLng: doublePrecision("address_lng"),
 	visibility: text("visibility", {
 		enum: ["private", "matches_only", "public"],
 	})
@@ -298,11 +309,24 @@ export const jobs = pgTable("jobs", {
 	status: text("status", { enum: ["draft", "published", "archived"] })
 		.notNull()
 		.default("draft"),
+	// Cached geocode of `location` — set when the job is saved.
+	locationLat: doublePrecision("location_lat"),
+	locationLng: doublePrecision("location_lng"),
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
 
 export type Job = typeof jobs.$inferSelect;
+
+// Geocode cache so we don't hammer Nominatim on every save. Key is the
+// normalized location string (lowercased, trimmed); value is the resolved
+// lat/lng or null when the geocoder couldn't place it.
+export const geocodeCache = pgTable("geocode_cache", {
+	query: text("query").primaryKey(),
+	lat: doublePrecision("lat"),
+	lng: doublePrecision("lng"),
+	resolvedAt: timestamp("resolved_at", { mode: "date" }).notNull().defaultNow(),
+});
 
 // ─── Matches ──────────────────────────────────────────────────────────────
 // Computed by lib/match/engine.ts whenever a job is published or a profile is
@@ -332,6 +356,17 @@ export const matches = pgTable(
 		hardReasons: jsonb("hard_reasons").$type<string[]>(),
 		matchedSkills: jsonb("matched_skills").$type<string[]>(),
 		missingSkills: jsonb("missing_skills").$type<string[]>(),
+		// Skills the candidate brings that aren't exact matches but live in
+		// the same skill cluster as a required skill (Quereinstieg).
+		adjacentSkills: jsonb("adjacent_skills").$type<string[]>(),
+		// Cached commute computation for the employer view: km + minutes +
+		// transport mode + whether it exceeds the candidate's preference.
+		commute: jsonb("commute").$type<{
+			km: number;
+			minutes: number;
+			mode: "car" | "transit" | "bike" | "walk";
+			exceedsLimit: boolean;
+		}>(),
 		status: text("status", {
 			enum: ["suggested", "interested", "approved", "rejected"],
 		})

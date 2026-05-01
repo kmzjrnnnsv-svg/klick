@@ -40,7 +40,11 @@ async function ensureTenant(slug: string, name: string): Promise<string> {
 
 async function ensureUser(
 	tenantId: string,
-	demo: (typeof DEMO_USERS)[keyof typeof DEMO_USERS],
+	demo: {
+		email: string;
+		name: string;
+		role: "admin" | "employer" | "candidate";
+	},
 ): Promise<string> {
 	const [existing] = await db
 		.select()
@@ -110,7 +114,10 @@ async function ensureJob(
 	});
 }
 
-async function ensureCandidateProfile(userId: string): Promise<void> {
+async function ensureCandidateProfile(
+	userId: string,
+	data: Partial<typeof candidateProfiles.$inferInsert>,
+): Promise<void> {
 	const [existing] = await db
 		.select()
 		.from(candidateProfiles)
@@ -119,6 +126,621 @@ async function ensureCandidateProfile(userId: string): Promise<void> {
 	if (existing) return;
 	await db.insert(candidateProfiles).values({
 		userId,
+		visibility: "matches_only",
+		// Seeded demo accounts are "ready to go" — skip the onboarding wizard.
+		onboardingCompletedAt: new Date(),
+		...data,
+	});
+}
+
+// Extra candidates beyond the primary candidate@klick.local — populate the
+// match list so employers see varied profiles when they sign in. Mix of
+// junior / senior / freelancer / designer and different employment types.
+const EXTRA_CANDIDATES: Array<{
+	email: string;
+	name: string;
+	profile: Partial<typeof candidateProfiles.$inferInsert>;
+}> = [
+	{
+		email: "junior.dev@klick.local",
+		name: "Lara Weiss",
+		profile: {
+			displayName: "Lara Weiss",
+			headline: "Junior Frontend Engineer",
+			location: "Leipzig",
+			yearsExperience: 1,
+			salaryMin: 48000,
+			languages: ["Deutsch", "Englisch"],
+			skills: [
+				{ name: "TypeScript", level: 3 },
+				{ name: "React", level: 3 },
+				{ name: "Tailwind CSS", level: 4 },
+				{ name: "Vite", level: 3 },
+			],
+			experience: [
+				{
+					company: "Junges Studio GmbH",
+					role: "Junior Frontend Engineer",
+					start: "2024-09",
+					description: "Erstes festes Engagement nach Werkstudent-Phase.",
+					employmentType: "employee",
+				},
+				{
+					company: "HTW Berlin",
+					role: "Werkstudent UI",
+					start: "2023-04",
+					end: "2024-08",
+					description: "Komponenten-Bibliothek für interne Tools.",
+					employmentType: "internship",
+				},
+			],
+			education: [
+				{
+					institution: "HTW Berlin",
+					degree: "B.Sc. Wirtschaftsinformatik",
+					start: "2020",
+					end: "2024",
+				},
+			],
+			summary:
+				"Frische Absolventin mit Fokus auf moderne Frontend-Stacks und Design-Tokens.",
+			industries: ["EdTech"],
+			preferredRoleLevel: "junior",
+			mobility: "Hybrid Berlin / Leipzig",
+		},
+	},
+	{
+		email: "lead.dev@klick.local",
+		name: "Marko Petrović",
+		profile: {
+			displayName: "Marko Petrović",
+			headline: "Engineering Manager — Plattform",
+			location: "Hamburg",
+			yearsExperience: 13,
+			salaryMin: 110000,
+			languages: ["Deutsch", "Englisch", "Serbisch"],
+			skills: [
+				{ name: "Engineering Management", level: 5 },
+				{ name: "TypeScript", level: 4 },
+				{ name: "Node.js", level: 5 },
+				{ name: "PostgreSQL", level: 5 },
+				{ name: "Kubernetes", level: 4 },
+				{ name: "AWS", level: 4 },
+			],
+			experience: [
+				{
+					company: "FinTech Nord AG",
+					role: "Engineering Manager",
+					start: "2021-03",
+					description:
+						"Plattform-Team mit 9 Engineers, Fokus Zahlungsverkehr und Compliance.",
+					employmentType: "employee",
+				},
+				{
+					company: "Petrović Consulting (eigene Gründung)",
+					role: "Founder & Principal Engineer",
+					start: "2018-06",
+					end: "2021-02",
+					description:
+						"Eigene Beratungs-GmbH, B2B-Plattformen für 3 Mittelständler.",
+					employmentType: "founder",
+				},
+				{
+					company: "ScaleUp GmbH",
+					role: "Senior Backend Engineer",
+					start: "2014-01",
+					end: "2018-05",
+					employmentType: "employee",
+				},
+			],
+			education: [
+				{
+					institution: "Uni Hamburg",
+					degree: "M.Sc. Informatik",
+					start: "2009",
+					end: "2013",
+				},
+			],
+			summary:
+				"Skaliert Plattform-Teams in regulierten Märkten. Hands-on bei Architektur, Mentor:in für Engineers in 3 Karrierestufen.",
+			industries: ["Fintech", "Compliance"],
+			awards: ["DACH Tech Lead of the Year 2023 (Shortlist)"],
+			preferredRoleLevel: "lead",
+			mobility: "Hybrid Hamburg / 1 Tag Remote-OK",
+		},
+	},
+	{
+		email: "designer@klick.local",
+		name: "Aylin Demir",
+		profile: {
+			displayName: "Aylin Demir",
+			headline: "Product Designer — Design Systems",
+			location: "Berlin",
+			yearsExperience: 6,
+			salaryMin: 70000,
+			languages: ["Deutsch", "Englisch", "Türkisch"],
+			skills: [
+				{ name: "Figma", level: 5 },
+				{ name: "Design Systems", level: 5 },
+				{ name: "Prototyping", level: 5 },
+				{ name: "Accessibility", level: 4 },
+				{ name: "UX Research", level: 3 },
+			],
+			experience: [
+				{
+					company: "Studio Demir",
+					role: "Selbstständige Product Designerin",
+					start: "2022-04",
+					description: "Eigene Auftragsbasis mit Scale-up-Kunden.",
+					employmentType: "self_employed",
+				},
+				{
+					company: "ClickHaus AG",
+					role: "Senior Product Designer",
+					start: "2019-08",
+					end: "2022-03",
+					description: "Design-System für SaaS-Produkt mit 6 Squads.",
+					employmentType: "employee",
+				},
+			],
+			education: [
+				{
+					institution: "UdK Berlin",
+					degree: "M.A. Visual Communication",
+					start: "2017",
+					end: "2019",
+				},
+			],
+			summary:
+				"Baut Design-Systeme die Engineering wirklich nutzt. Brücke zwischen Brand und Code.",
+			industries: ["SaaS", "B2B"],
+			preferredRoleLevel: "senior",
+			mobility: "Remote / EU-Zeitzonen",
+		},
+	},
+	{
+		email: "freelancer@klick.local",
+		name: "Tom Becker",
+		profile: {
+			displayName: "Tom Becker",
+			headline: "Freelance Fullstack Engineer",
+			location: "Köln",
+			yearsExperience: 9,
+			salaryMin: 0,
+			languages: ["Deutsch", "Englisch"],
+			skills: [
+				{ name: "TypeScript", level: 5 },
+				{ name: "Next.js", level: 5 },
+				{ name: "Node.js", level: 5 },
+				{ name: "PostgreSQL", level: 4 },
+				{ name: "AWS", level: 4 },
+				{ name: "Stripe", level: 4 },
+			],
+			experience: [
+				{
+					company: "Tom Becker — Freelance",
+					role: "Freelance Fullstack Engineer",
+					start: "2019-01",
+					description:
+						"~7 abgeschlossene Projekte für DACH-Scale-ups, MRR-Wachstum + Migrations.",
+					employmentType: "freelance",
+				},
+				{
+					company: "Becker Software UG",
+					role: "Founder & Engineer",
+					start: "2016-04",
+					end: "2018-12",
+					description: "Eigene UG, B2C-Marketplace, später eingestellt.",
+					employmentType: "founder",
+				},
+			],
+			education: [
+				{
+					institution: "Uni zu Köln",
+					degree: "B.Sc. Wirtschaftsinformatik",
+					start: "2012",
+					end: "2015",
+				},
+			],
+			summary:
+				"Liefert produktnahe Full-Stack-Features auf Auftragsbasis. Stack TypeScript-only, monorepo-affin.",
+			industries: ["E-Commerce", "SaaS"],
+			preferredRoleLevel: "senior",
+			mobility: "Remote nur, kein On-Site",
+		},
+	},
+	{
+		email: "devops@klick.local",
+		name: "Sebastian Reuter",
+		profile: {
+			displayName: "Sebastian Reuter",
+			headline: "Staff DevOps / Platform Engineer",
+			location: "München",
+			yearsExperience: 11,
+			salaryMin: 95000,
+			languages: ["Deutsch", "Englisch"],
+			skills: [
+				{ name: "Kubernetes", level: 5 },
+				{ name: "AWS", level: 5 },
+				{ name: "Terraform", level: 5 },
+				{ name: "Linux", level: 5 },
+				{ name: "Go", level: 4 },
+				{ name: "PostgreSQL", level: 4 },
+			],
+			experience: [
+				{
+					company: "BavariaCloud GmbH",
+					role: "Staff Platform Engineer",
+					start: "2020-05",
+					description:
+						"Multi-Region-Plattform für 300+ interne Services, on-call Lead.",
+					employmentType: "employee",
+				},
+				{
+					company: "OpsHaus GmbH",
+					role: "DevOps Engineer",
+					start: "2014-09",
+					end: "2020-04",
+					description: "Ansible→Terraform-Migration, K8s-Onboarding.",
+					employmentType: "employee",
+				},
+			],
+			education: [
+				{
+					institution: "TU München",
+					degree: "M.Sc. Informatik",
+					start: "2010",
+					end: "2014",
+				},
+			],
+			summary:
+				"Hands-on Platform-Engineer für regulierte Cloud-Umgebungen. SLO-getrieben, kein Hype-Stack.",
+			industries: ["Cloud", "Enterprise SaaS"],
+			preferredRoleLevel: "principal",
+			mobility: "Hybrid München, 2 Tage Office",
+		},
+	},
+	{
+		email: "data@klick.local",
+		name: "Sofia Romano",
+		profile: {
+			displayName: "Sofia Romano",
+			headline: "Senior Data Engineer",
+			location: "Wien",
+			yearsExperience: 8,
+			salaryMin: 78000,
+			languages: ["Deutsch", "Englisch", "Italienisch"],
+			skills: [
+				{ name: "Python", level: 5 },
+				{ name: "SQL", level: 5 },
+				{ name: "Apache Airflow", level: 4 },
+				{ name: "dbt", level: 4 },
+				{ name: "Snowflake", level: 4 },
+				{ name: "Spark", level: 3 },
+			],
+			experience: [
+				{
+					company: "DataDeck AG",
+					role: "Senior Data Engineer",
+					start: "2022-02",
+					description: "Owns das ETL-Layer + DataMesh für Marketing-Analytics.",
+					employmentType: "employee",
+				},
+				{
+					company: "Romano Analytics e.U.",
+					role: "Selbstständige Data Engineer",
+					start: "2018-08",
+					end: "2022-01",
+					description: "EU-Förderprojekte mit Public-Sector-Kunden.",
+					employmentType: "self_employed",
+				},
+			],
+			education: [
+				{
+					institution: "TU Wien",
+					degree: "M.Sc. Data Science",
+					start: "2014",
+					end: "2017",
+				},
+			],
+			summary:
+				"Baut robuste Daten-Pipelines, die auch bei Schema-Drift nicht kollabieren. SQL-first, Python für glue.",
+			industries: ["Adtech", "Public Sector"],
+			preferredRoleLevel: "senior",
+			mobility: "Hybrid Wien / Remote-OK in CET",
+		},
+	},
+	{
+		email: "backend.java@klick.local",
+		name: "Erik Lindqvist",
+		profile: {
+			displayName: "Erik Lindqvist",
+			headline: "Principal Backend Engineer (Java/Kotlin)",
+			location: "Stuttgart",
+			yearsExperience: 15,
+			salaryMin: 105000,
+			languages: ["Deutsch", "Englisch", "Schwedisch"],
+			skills: [
+				{ name: "Java", level: 5 },
+				{ name: "Kotlin", level: 5 },
+				{ name: "Spring Boot", level: 5 },
+				{ name: "Kafka", level: 4 },
+				{ name: "PostgreSQL", level: 5 },
+				{ name: "AWS", level: 3 },
+			],
+			experience: [
+				{
+					company: "AutoMobile AG",
+					role: "Principal Engineer",
+					start: "2017-04",
+					description:
+						"Backbone-Service für Fahrzeug-Telemetrie, 200k events/sec peak.",
+					employmentType: "employee",
+				},
+				{
+					company: "Telekom IT",
+					role: "Senior Engineer",
+					start: "2010-06",
+					end: "2017-03",
+					employmentType: "employee",
+				},
+			],
+			education: [
+				{
+					institution: "KTH Stockholm",
+					degree: "M.Sc. Computer Science",
+					start: "2005",
+					end: "2010",
+				},
+			],
+			summary:
+				"Backend-Architektur für Massendaten + harte Latenzen. Mentor für Junior-Engineers in JVM-Stacks.",
+			industries: ["Automotive", "Telco"],
+			preferredRoleLevel: "principal",
+			mobility: "Hybrid Stuttgart / 1 Tag Remote",
+		},
+	},
+	{
+		email: "mobile@klick.local",
+		name: "Nina Garcia",
+		profile: {
+			displayName: "Nina Garcia",
+			headline: "Senior Mobile Engineer (iOS + React Native)",
+			location: "Barcelona",
+			yearsExperience: 7,
+			salaryMin: 72000,
+			languages: ["Englisch", "Spanisch", "Deutsch"],
+			skills: [
+				{ name: "Swift", level: 5 },
+				{ name: "React Native", level: 5 },
+				{ name: "TypeScript", level: 4 },
+				{ name: "iOS", level: 5 },
+				{ name: "Android", level: 3 },
+				{ name: "GraphQL", level: 3 },
+			],
+			experience: [
+				{
+					company: "MoveApp SL",
+					role: "Senior Mobile Engineer",
+					start: "2021-09",
+					description: "Cross-Platform-App, 2M MAU, App-Store-Rating 4.7.",
+					employmentType: "employee",
+				},
+				{
+					company: "Garcia Studio",
+					role: "Freelance Mobile Engineer",
+					start: "2019-01",
+					end: "2021-08",
+					description: "Eigene Aufträge, Schwerpunkt Health + FinTech-Apps.",
+					employmentType: "freelance",
+				},
+			],
+			education: [
+				{
+					institution: "Universitat Pompeu Fabra",
+					degree: "B.Sc. Computer Engineering",
+					start: "2014",
+					end: "2018",
+				},
+			],
+			summary:
+				"Mobile-First-Engineer mit Auge für UX-Details. Versendet Apps, die im Store oben stehen.",
+			industries: ["Health Tech", "Fintech"],
+			preferredRoleLevel: "senior",
+			mobility: "Remote in CET +/- 2h",
+		},
+	},
+	{
+		email: "growth@klick.local",
+		name: "Jakob Hoffmann",
+		profile: {
+			displayName: "Jakob Hoffmann",
+			headline: "Growth Marketing Lead",
+			location: "Berlin",
+			yearsExperience: 10,
+			salaryMin: 85000,
+			languages: ["Deutsch", "Englisch"],
+			skills: [
+				{ name: "Performance Marketing", level: 5 },
+				{ name: "SEO", level: 5 },
+				{ name: "Content Strategy", level: 4 },
+				{ name: "Analytics", level: 5 },
+				{ name: "HubSpot", level: 4 },
+			],
+			experience: [
+				{
+					company: "GrowthBox AG",
+					role: "Head of Growth",
+					start: "2021-01",
+					description: "B2B-SaaS, von 200k zu 1.4M ARR in 2 Jahren skaliert.",
+					employmentType: "employee",
+				},
+				{
+					company: "Hoffmann & Partner GbR",
+					role: "Mitgründer & Marketer",
+					start: "2017-04",
+					end: "2020-12",
+					description: "Eigene Performance-Marketing-Agentur, 3 Mitarbeitende.",
+					employmentType: "founder",
+				},
+				{
+					company: "BurgerWerk",
+					role: "Counter-Aushilfe (nebenher)",
+					start: "2015-06",
+					end: "2017-03",
+					description: "Studienbegleitend, fachfremd.",
+					employmentType: "other",
+				},
+			],
+			education: [
+				{
+					institution: "FU Berlin",
+					degree: "M.Sc. Marketing & Innovation",
+					start: "2014",
+					end: "2017",
+				},
+			],
+			summary:
+				"Treibt Wachstum mit Daten + Content. Versteht Funnel-Mechanik genauso wie SEO-Trends.",
+			industries: ["B2B SaaS", "E-Commerce"],
+			awards: ["B2B Growth Hacker of the Year 2023 (Top 10)"],
+			preferredRoleLevel: "lead",
+			mobility: "Berlin Hybrid / 2 Tage Remote",
+		},
+	},
+];
+
+async function main() {
+	const tenantId = await ensureTenant(DEMO_TENANT_SLUG, "Default Workspace");
+	console.log(`✔ tenant '${DEMO_TENANT_SLUG}' (id=${tenantId})`);
+
+	const adminId = await ensureUser(tenantId, DEMO_USERS.admin);
+	console.log(`✔ admin   ${DEMO_USERS.admin.email} (id=${adminId})`);
+
+	const companyUserId = await ensureUser(tenantId, DEMO_USERS.company);
+	const companyEmployerId = await ensureEmployer(
+		companyUserId,
+		tenantId,
+		"Acme Studios GmbH",
+		"Wir entwickeln Werkzeuge für kreative Teams und sind immer auf der Suche nach Frontend-Talenten.",
+		"https://example.com/acme",
+	);
+	await ensureJob(
+		companyEmployerId,
+		"Senior Frontend Engineer (m/w/d)",
+		"Du baust unser Design-System weiter aus, optimierst Performance und treibst die DX im Team voran. Stack: TypeScript, React, Next.js, Tailwind.",
+		{
+			location: "Berlin",
+			remotePolicy: "hybrid",
+			employmentType: "fulltime",
+			salaryMin: 75000,
+			salaryMax: 95000,
+			yearsExperienceMin: 4,
+			languages: ["Deutsch", "Englisch"],
+			requirements: [
+				{ name: "TypeScript", weight: "must", minLevel: 4 },
+				{ name: "React", weight: "must", minLevel: 4 },
+				{ name: "Next.js", weight: "nice", minLevel: 3 },
+				{ name: "Tailwind CSS", weight: "nice" },
+			],
+		},
+	);
+	await ensureJob(
+		companyEmployerId,
+		"Junior Frontend Engineer (Remote / EU)",
+		"Erste Festanstellung nach Studium oder Werkstudent? Komm an Bord. Wir pairen viel und erwarten keine 'Senior von Tag 1'-Werbeversprechen.",
+		{
+			location: "Remote / EU",
+			remotePolicy: "remote",
+			employmentType: "fulltime",
+			salaryMin: 48000,
+			salaryMax: 58000,
+			yearsExperienceMin: 0,
+			languages: ["Deutsch", "Englisch"],
+			requirements: [
+				{ name: "TypeScript", weight: "must", minLevel: 2 },
+				{ name: "React", weight: "must", minLevel: 2 },
+				{ name: "Tailwind CSS", weight: "nice" },
+			],
+		},
+	);
+	await ensureJob(
+		companyEmployerId,
+		"Product Designer — Design Systems",
+		"Du übernimmst unser Design-System, arbeitest eng mit drei Engineering-Squads, ownst Komponenten + Tokens.",
+		{
+			location: "Berlin",
+			remotePolicy: "hybrid",
+			employmentType: "fulltime",
+			salaryMin: 65000,
+			salaryMax: 85000,
+			yearsExperienceMin: 4,
+			languages: ["Deutsch", "Englisch"],
+			requirements: [
+				{ name: "Figma", weight: "must", minLevel: 4 },
+				{ name: "Design Systems", weight: "must", minLevel: 4 },
+				{ name: "Accessibility", weight: "nice" },
+			],
+		},
+	);
+	console.log(
+		`✔ company ${DEMO_USERS.company.email} (employer=${companyEmployerId})`,
+	);
+
+	const headhunterUserId = await ensureUser(tenantId, DEMO_USERS.headhunter);
+	const headhunterEmployerId = await ensureEmployer(
+		headhunterUserId,
+		tenantId,
+		"Talent Hunters AG",
+		"Spezialisierte Personalberatung. Wir vermitteln Senior-Engineering-Profile an europäische Scale-ups.",
+		"https://example.com/talenthunters",
+	);
+	await ensureJob(
+		headhunterEmployerId,
+		"Engineering Manager — namhaftes Fintech",
+		"Im Auftrag eines etablierten Fintech-Unternehmens (Kundenname auf Anfrage) suchen wir eine Engineering Manager:in für ein 8-köpfiges Plattform-Team.",
+		{
+			location: "Frankfurt",
+			remotePolicy: "remote",
+			employmentType: "fulltime",
+			salaryMin: 95000,
+			salaryMax: 130000,
+			yearsExperienceMin: 6,
+			languages: ["Deutsch", "Englisch"],
+			requirements: [
+				{ name: "Engineering Management", weight: "must", minLevel: 4 },
+				{ name: "Node.js", weight: "must", minLevel: 4 },
+				{ name: "PostgreSQL", weight: "nice", minLevel: 3 },
+				{ name: "Kubernetes", weight: "nice" },
+			],
+		},
+	);
+	await ensureJob(
+		headhunterEmployerId,
+		"Freelance Fullstack — 6-Monats-Projekt",
+		"Im Auftrag eines DACH-Scale-ups: Migration eines bestehenden React-SPA auf Next.js mit Stripe-Integration und Postgres-Backend. 6 Monate, vollständig remote.",
+		{
+			location: "Remote / EU",
+			remotePolicy: "remote",
+			employmentType: "contract",
+			salaryMin: 0,
+			salaryMax: 0,
+			yearsExperienceMin: 5,
+			languages: ["Deutsch", "Englisch"],
+			requirements: [
+				{ name: "Next.js", weight: "must", minLevel: 4 },
+				{ name: "TypeScript", weight: "must", minLevel: 4 },
+				{ name: "Stripe", weight: "must", minLevel: 3 },
+				{ name: "PostgreSQL", weight: "nice" },
+			],
+		},
+	);
+	console.log(
+		`✔ headhunter ${DEMO_USERS.headhunter.email} (employer=${headhunterEmployerId})`,
+	);
+
+	const candidateUserId = await ensureUser(tenantId, DEMO_USERS.candidate);
+	await ensureCandidateProfile(candidateUserId, {
 		displayName: "Kai Sommer",
 		headline: "Senior Frontend Engineer",
 		location: "Berlin",
@@ -177,88 +799,20 @@ async function ensureCandidateProfile(userId: string): Promise<void> {
 		],
 		summary:
 			"Frontend-Spezialist mit Schwerpunkt Design-Systeme, Performance und Developer Experience.",
-		visibility: "matches_only",
-		// Demo user is "ready to go" — onboarding not needed for the seeded
-		// account. Real magic-link signups land in /onboarding.
-		onboardingCompletedAt: new Date(),
 	});
-}
-
-async function main() {
-	const tenantId = await ensureTenant(DEMO_TENANT_SLUG, "Default Workspace");
-	console.log(`✔ tenant '${DEMO_TENANT_SLUG}' (id=${tenantId})`);
-
-	const adminId = await ensureUser(tenantId, DEMO_USERS.admin);
-	console.log(`✔ admin   ${DEMO_USERS.admin.email} (id=${adminId})`);
-
-	const companyUserId = await ensureUser(tenantId, DEMO_USERS.company);
-	const companyEmployerId = await ensureEmployer(
-		companyUserId,
-		tenantId,
-		"Acme Studios GmbH",
-		"Wir entwickeln Werkzeuge für kreative Teams und sind immer auf der Suche nach Frontend-Talenten.",
-		"https://example.com/acme",
-	);
-	await ensureJob(
-		companyEmployerId,
-		"Senior Frontend Engineer (m/w/d)",
-		"Du baust unser Design-System weiter aus, optimierst Performance und treibst die DX im Team voran. Stack: TypeScript, React, Next.js, Tailwind.",
-		{
-			location: "Berlin",
-			remotePolicy: "hybrid",
-			employmentType: "fulltime",
-			salaryMin: 75000,
-			salaryMax: 95000,
-			yearsExperienceMin: 4,
-			languages: ["Deutsch", "Englisch"],
-			requirements: [
-				{ name: "TypeScript", weight: "must", minLevel: 4 },
-				{ name: "React", weight: "must", minLevel: 4 },
-				{ name: "Next.js", weight: "nice", minLevel: 3 },
-				{ name: "Tailwind CSS", weight: "nice" },
-			],
-		},
-	);
-	console.log(
-		`✔ company ${DEMO_USERS.company.email} (employer=${companyEmployerId})`,
-	);
-
-	const headhunterUserId = await ensureUser(tenantId, DEMO_USERS.headhunter);
-	const headhunterEmployerId = await ensureEmployer(
-		headhunterUserId,
-		tenantId,
-		"Talent Hunters AG",
-		"Spezialisierte Personalberatung. Wir vermitteln Senior-Engineering-Profile an europäische Scale-ups.",
-		"https://example.com/talenthunters",
-	);
-	await ensureJob(
-		headhunterEmployerId,
-		"Engineering Manager — namhaftes Fintech",
-		"Im Auftrag eines etablierten Fintech-Unternehmens (Kundenname auf Anfrage) suchen wir eine Engineering Manager:in für ein 8-köpfiges Plattform-Team.",
-		{
-			location: "Frankfurt",
-			remotePolicy: "remote",
-			employmentType: "fulltime",
-			salaryMin: 95000,
-			salaryMax: 130000,
-			yearsExperienceMin: 6,
-			languages: ["Deutsch", "Englisch"],
-			requirements: [
-				{ name: "People Management", weight: "must" },
-				{ name: "Backend", weight: "must" },
-				{ name: "Fintech-Erfahrung", weight: "nice" },
-			],
-		},
-	);
-	console.log(
-		`✔ headhunter ${DEMO_USERS.headhunter.email} (employer=${headhunterEmployerId})`,
-	);
-
-	const candidateUserId = await ensureUser(tenantId, DEMO_USERS.candidate);
-	await ensureCandidateProfile(candidateUserId);
 	console.log(
 		`✔ candidate ${DEMO_USERS.candidate.email} (user=${candidateUserId})`,
 	);
+
+	for (const extra of EXTRA_CANDIDATES) {
+		const id = await ensureUser(tenantId, {
+			email: extra.email,
+			name: extra.name,
+			role: "candidate",
+		});
+		await ensureCandidateProfile(id, extra.profile);
+		console.log(`✔ candidate ${extra.email} (user=${id})`);
+	}
 
 	console.log(
 		"\nDemo-Login (mit ENABLE_DEMO_LOGIN=true): /api/demo-login?role=<admin|company|headhunter|candidate>",

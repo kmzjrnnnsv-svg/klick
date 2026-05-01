@@ -4,28 +4,54 @@ import { listMatchesForCandidate } from "@/app/actions/matches";
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { MatchFilters } from "@/components/matches/match-filters";
 import { cn } from "@/lib/utils";
 
-export default async function MatchesPage() {
+export default async function MatchesPage({
+	searchParams,
+}: {
+	searchParams: Promise<{
+		remote?: string;
+		minSalary?: string;
+		maxCommuteMinutes?: string;
+	}>;
+}) {
 	const session = await auth();
 	if (!session?.user) redirect("/login");
 
 	const t = await getTranslations("Matches");
 	const fmt = await getFormatter();
-	const matches = await listMatchesForCandidate();
+	const params = await searchParams;
+	const remote =
+		params.remote === "remote_only" || params.remote === "no_remote"
+			? params.remote
+			: "any";
+	const minSalary = params.minSalary
+		? Number.parseInt(params.minSalary, 10) || 0
+		: 0;
+	const maxCommuteMinutes = params.maxCommuteMinutes
+		? Number.parseInt(params.maxCommuteMinutes, 10) || 0
+		: 0;
+	const matches = await listMatchesForCandidate({
+		remote,
+		minSalary: minSalary || undefined,
+		maxCommuteMinutes: maxCommuteMinutes || undefined,
+	});
 
 	return (
 		<>
 			<Header />
 			<main className="mx-auto w-full max-w-3xl flex-1 px-3 pt-6 pb-20 sm:px-6 sm:pt-12">
-				<header className="mb-5 sm:mb-7">
+				<header className="mb-4 sm:mb-6">
 					<h1 className="font-semibold text-xl tracking-tight sm:text-3xl">
 						{t("title")}
 					</h1>
-					<p className="mt-2 text-muted-foreground text-sm leading-relaxed">
+					<p className="mt-1.5 text-muted-foreground text-sm leading-snug">
 						{t("subtitle")}
 					</p>
 				</header>
+
+				<MatchFilters />
 
 				{matches.length === 0 ? (
 					<div className="rounded-lg border border-border border-dashed p-10 text-center sm:p-16">
@@ -80,6 +106,24 @@ export default async function MatchesPage() {
 												{s}
 											</span>
 										))}
+										{match.adjacentSkills?.map((s) => (
+											<span
+												key={`adj-${s}`}
+												title={t("adjacentTooltip")}
+												className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono text-[11px] text-amber-700 dark:text-amber-300"
+											>
+												{s} ⤴
+											</span>
+										))}
+									</div>
+								)}
+								{match.commute && (
+									<div className="mt-2 text-muted-foreground text-xs">
+										{t("commute", {
+											km: match.commute.km,
+											minutes: match.commute.minutes,
+											mode: t(`mode.${match.commute.mode}`),
+										})}
 									</div>
 								)}
 								{job.salaryMin && (

@@ -14,6 +14,7 @@ import {
 	type ProfileExperience,
 	type ProfileSkill,
 } from "@/db/schema";
+import { geocode } from "@/lib/geo/geocode";
 
 async function requireUserId(): Promise<string> {
 	const session = await auth();
@@ -75,10 +76,27 @@ function tryParseJsonArray<T>(raw: string | null): T[] | undefined {
 
 export async function saveBasicsStep(formData: FormData): Promise<void> {
 	const userId = await requireUserId();
+	const location = formData.get("location")?.toString().trim() || null;
+	const geo = location ? await geocode(location) : null;
+	const maxCommuteMinutesRaw = formData
+		.get("maxCommuteMinutes")
+		?.toString()
+		.trim();
+	const maxCommuteMinutes = maxCommuteMinutesRaw
+		? Math.max(0, Math.min(240, Number.parseInt(maxCommuteMinutesRaw, 10) || 0))
+		: null;
+	const transportModeRaw = formData.get("transportMode")?.toString();
+	const transportMode =
+		transportModeRaw === "car" ||
+		transportModeRaw === "transit" ||
+		transportModeRaw === "bike" ||
+		transportModeRaw === "walk"
+			? transportModeRaw
+			: null;
 	await upsertProfileFields(userId, {
 		displayName: formData.get("displayName")?.toString().trim() || null,
 		headline: formData.get("headline")?.toString().trim() || null,
-		location: formData.get("location")?.toString().trim() || null,
+		location,
 		yearsExperience: (() => {
 			const raw = formData.get("yearsExperience")?.toString().trim();
 			if (!raw) return null;
@@ -86,6 +104,10 @@ export async function saveBasicsStep(formData: FormData): Promise<void> {
 			return Number.isFinite(n) && n >= 0 ? n : null;
 		})(),
 		languages: parseList(formData.get("languages")?.toString() ?? null) ?? null,
+		maxCommuteMinutes,
+		transportMode,
+		addressLat: geo?.lat ?? null,
+		addressLng: geo?.lng ?? null,
 	});
 	redirect("/onboarding/upload");
 }

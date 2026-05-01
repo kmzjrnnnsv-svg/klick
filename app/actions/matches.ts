@@ -49,6 +49,8 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 		hardReasons: string[];
 		matchedSkills: string[];
 		missingSkills: string[];
+		adjacentSkills: string[];
+		commute: ReturnType<typeof scoreMatch>["commute"];
 	}[] = [];
 
 	for (const { profile, user } of candidates) {
@@ -63,6 +65,8 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 			hardReasons: score.hardReasons,
 			matchedSkills: score.matchedSkills,
 			missingSkills: score.missingSkills,
+			adjacentSkills: score.adjacentSkills,
+			commute: score.commute,
 		});
 	}
 
@@ -95,6 +99,8 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 					hardReasons: m.hardReasons,
 					matchedSkills: m.matchedSkills,
 					missingSkills: m.missingSkills,
+					adjacentSkills: m.adjacentSkills,
+					commute: m.commute ?? null,
 				})
 				.onConflictDoUpdate({
 					target: [matches.jobId, matches.candidateUserId],
@@ -105,6 +111,8 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 						hardReasons: m.hardReasons,
 						matchedSkills: m.matchedSkills,
 						missingSkills: m.missingSkills,
+						adjacentSkills: m.adjacentSkills,
+						commute: m.commute ?? null,
 						computedAt: new Date(),
 					},
 				});
@@ -207,7 +215,15 @@ export type CandidateMatchView = {
 	employer: Pick<Employer, "id" | "companyName">;
 };
 
-export async function listMatchesForCandidate(): Promise<CandidateMatchView[]> {
+export type MatchFilters = {
+	remote?: "any" | "remote_only" | "no_remote";
+	minSalary?: number;
+	maxCommuteMinutes?: number;
+};
+
+export async function listMatchesForCandidate(
+	filters: MatchFilters = {},
+): Promise<CandidateMatchView[]> {
 	const session = await auth();
 	if (!session?.user?.id) return [];
 
@@ -228,7 +244,23 @@ export async function listMatchesForCandidate(): Promise<CandidateMatchView[]> {
 			),
 		)
 		.orderBy(desc(matches.softScore));
-	return rows;
+
+	return rows.filter(({ job, match }) => {
+		if (filters.remote === "remote_only" && job.remotePolicy !== "remote") {
+			return false;
+		}
+		if (filters.remote === "no_remote" && job.remotePolicy === "remote") {
+			return false;
+		}
+		if (filters.minSalary && filters.minSalary > 0) {
+			const cap = job.salaryMax ?? job.salaryMin ?? 0;
+			if (cap < filters.minSalary) return false;
+		}
+		if (filters.maxCommuteMinutes && match.commute) {
+			if (match.commute.minutes > filters.maxCommuteMinutes) return false;
+		}
+		return true;
+	});
 }
 
 export type AnonymousCandidateMatchView = {

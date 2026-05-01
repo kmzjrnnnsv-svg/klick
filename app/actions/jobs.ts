@@ -18,6 +18,7 @@ import {
 } from "@/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import type { SuggestedJobRequirement } from "@/lib/ai/types";
+import { geocode } from "@/lib/geo/geocode";
 
 const requirementSchema: z.ZodType<JobRequirement> = z.object({
 	name: z.string().min(1).max(80),
@@ -188,6 +189,18 @@ export async function saveJob(
 	};
 	const data = jobFormSchema.parse(raw);
 
+	// Geocode the job location for commute matching. Remote-only postings
+	// keep null lat/lng — the engine treats commute as N/A then.
+	const geo =
+		data.location && data.remotePolicy !== "remote"
+			? await geocode(data.location)
+			: null;
+	const dataWithGeo = {
+		...data,
+		locationLat: geo?.lat ?? null,
+		locationLng: geo?.lng ?? null,
+	};
+
 	if (id) {
 		const [existing] = await db
 			.select({ id: jobs.id })
@@ -197,7 +210,7 @@ export async function saveJob(
 		if (!existing) throw new Error("not found");
 		await db
 			.update(jobs)
-			.set({ ...data, updatedAt: new Date() })
+			.set({ ...dataWithGeo, updatedAt: new Date() })
 			.where(eq(jobs.id, id));
 		revalidatePath("/jobs");
 		revalidatePath(`/jobs/${id}`);
@@ -208,7 +221,7 @@ export async function saveJob(
 	}
 	const [created] = await db
 		.insert(jobs)
-		.values({ employerId: e.id, ...data })
+		.values({ employerId: e.id, ...dataWithGeo })
 		.returning({ id: jobs.id });
 	revalidatePath("/jobs");
 	if (data.status === "published") {
