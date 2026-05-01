@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { deleteJob, saveJob, suggestRequirements } from "@/app/actions/jobs";
+import { JobUploader } from "@/components/jobs/job-uploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Job, JobRequirement } from "@/db/schema";
+import type { ExtractedJobPosting } from "@/lib/ai/types";
 import { cn } from "@/lib/utils";
 
 const REMOTE_OPTIONS = ["onsite", "hybrid", "remote"] as const;
@@ -91,6 +93,25 @@ export function JobForm({ initial }: { initial: Job | null }) {
 		});
 	}
 
+	function applyExtracted(data: ExtractedJobPosting) {
+		if (data.title) setTitle(data.title);
+		if (data.description) setDescription(data.description);
+		if (data.location !== undefined) setLocation(data.location);
+		if (data.remotePolicy) setRemotePolicy(data.remotePolicy);
+		if (data.employmentType) setEmploymentType(data.employmentType);
+		if (data.salaryMin !== undefined) setSalaryMin(String(data.salaryMin));
+		if (data.salaryMax !== undefined) setSalaryMax(String(data.salaryMax));
+		if (data.yearsExperienceMin !== undefined) {
+			setYearsExperienceMin(String(data.yearsExperienceMin));
+		}
+		if (data.languages && data.languages.length > 0) {
+			setLanguages(data.languages.join(", "));
+		}
+		if (data.requirements && data.requirements.length > 0) {
+			setRequirements(data.requirements.map(withKey));
+		}
+	}
+
 	function handleSubmit(formData: FormData) {
 		const stripped: JobRequirement[] = requirements.map(
 			({ _key: _ignore, ...rest }) => rest,
@@ -121,7 +142,10 @@ export function JobForm({ initial }: { initial: Job | null }) {
 	}
 
 	return (
-		<form action={handleSubmit} className="space-y-8">
+		<form action={handleSubmit} className="space-y-6 sm:space-y-8">
+			{!initial && (
+				<JobUploader onExtracted={applyExtracted} disabled={isPending} />
+			)}
 			<section className="space-y-3">
 				<h2 className="font-medium text-sm">{t("section.basics")}</h2>
 				<label className="block space-y-1.5">

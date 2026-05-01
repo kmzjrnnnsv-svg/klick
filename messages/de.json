@@ -226,6 +226,15 @@
 		"subtitle": "Deine Stellen. Match-Vorschläge gehen in P4 live.",
 		"newJob": "Neue Stelle",
 		"editJob": "Stelle bearbeiten",
+		"uploader": {
+			"title": "Stellenanzeige hochladen",
+			"hint": "PDF oder Bild reinziehen — KI füllt Titel, Beschreibung, Anforderungen, Gehalt und Sprachen automatisch. Du prüfst und korrigierst.",
+			"dropTitle": "Hierher ziehen oder antippen",
+			"dropHint": "PDF oder Bild — bis 25 MB. Wird sofort gelesen, nicht gespeichert.",
+			"processing": "Liest die Anzeige aus …",
+			"done": "Fertig — Felder wurden befüllt. Bitte prüfen und ggf. korrigieren.",
+			"reset": "Andere Datei"
+		},
 		"listEmpty": "Noch keine Stelle. Leg eine an, dann siehst du sie hier.",
 		"editorHint": "Schreib zuerst Titel und Beschreibung — der Skill-Vorschlag arbeitet auf dieser Basis.",
 		"onboardingTitle": "Ein Workspace pro Unternehmen",

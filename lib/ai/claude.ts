@@ -4,6 +4,7 @@ import type {
 	CandidateNarrative,
 	CandidateNarrativeInput,
 	ExtractedDocument,
+	ExtractedJobPosting,
 	ExtractedProfile,
 	MatchRationaleInput,
 	SuggestedJobRequirement,
@@ -478,6 +479,126 @@ export class ClaudeAIProvider implements AIProvider {
 			};
 		}
 		return toolUse.input as CandidateNarrative;
+	}
+
+	async extractJobPosting(
+		bytes: Uint8Array,
+		mime: string,
+	): Promise<ExtractedJobPosting> {
+		const isImage = SUPPORTED_IMAGE_MIME.has(mime);
+		const isPdf = mime === "application/pdf";
+		if (!isImage && !isPdf) {
+			throw new Error(`Unsupported MIME for job posting: ${mime}`);
+		}
+		const base64 = Buffer.from(bytes).toString("base64");
+		const documentBlock = isImage
+			? {
+					type: "image" as const,
+					source: {
+						type: "base64" as const,
+						media_type: mime as
+							| "image/jpeg"
+							| "image/png"
+							| "image/gif"
+							| "image/webp",
+						data: base64,
+					},
+				}
+			: {
+					type: "document" as const,
+					source: {
+						type: "base64" as const,
+						media_type: "application/pdf" as const,
+						data: base64,
+					},
+				};
+
+		const result = await this.client.messages.create({
+			model: "claude-sonnet-4-6",
+			max_tokens: 4096,
+			tools: [
+				{
+					name: "save_job",
+					description:
+						"Save the structured job posting extracted from the document.",
+					input_schema: {
+						type: "object" as const,
+						properties: {
+							title: { type: "string", maxLength: 200 },
+							description: {
+								type: "string",
+								maxLength: 6000,
+								description:
+									"Full role description in the document's language. Keep formatting if helpful (bullets ok). Strip company-confidential parts.",
+							},
+							location: { type: "string", maxLength: 120 },
+							remotePolicy: {
+								type: "string",
+								enum: ["onsite", "hybrid", "remote"],
+							},
+							employmentType: {
+								type: "string",
+								enum: ["fulltime", "parttime", "contract", "internship"],
+							},
+							salaryMin: {
+								type: "integer",
+								description:
+									"Annual € minimum if stated. Convert ranges. Skip if not in document.",
+							},
+							salaryMax: { type: "integer" },
+							yearsExperienceMin: {
+								type: "integer",
+								minimum: 0,
+								maximum: 40,
+							},
+							languages: {
+								type: "array",
+								items: { type: "string", maxLength: 40 },
+							},
+							requirements: {
+								type: "array",
+								items: {
+									type: "object",
+									properties: {
+										name: { type: "string" },
+										weight: { type: "string", enum: ["must", "nice"] },
+										minLevel: { type: "integer", minimum: 1, maximum: 5 },
+									},
+									required: ["name", "weight"],
+								},
+							},
+						},
+						required: ["title", "description"],
+					},
+				},
+			],
+			tool_choice: { type: "tool", name: "save_job" },
+			messages: [
+				{
+					role: "user",
+					content: [
+						documentBlock,
+						{
+							type: "text" as const,
+							text:
+								"Extract this job posting into structured fields.\n\n" +
+								"- title + description always required\n" +
+								"- For requirements, mark hard skills explicit in the doc as 'must', " +
+								"nice-to-haves as 'nice'. Up to ~8 entries — be concrete (frameworks, " +
+								"languages, tools), not buzzwords.\n" +
+								"- salary fields only when an explicit € amount is stated\n" +
+								"- skip fields that aren't clearly in the document",
+						},
+					],
+				},
+			],
+		});
+
+		const toolUse = result.content.find((b) => b.type === "tool_use");
+		if (!toolUse || toolUse.type !== "tool_use") {
+			throw new Error("Claude did not return a tool_use block for job posting");
+		}
+		return toolUse.input as ExtractedJobPosting;
 	}
 
 	async matchRationale(input: MatchRationaleInput): Promise<string> {

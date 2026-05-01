@@ -3,6 +3,7 @@ import type {
 	CandidateNarrative,
 	CandidateNarrativeInput,
 	ExtractedDocument,
+	ExtractedJobPosting,
 	ExtractedProfile,
 	MatchRationaleInput,
 	SuggestedJobRequirement,
@@ -183,6 +184,34 @@ export class MockAIProvider implements AIProvider {
 			summary,
 			workStyle: tags.slice(0, 5),
 			strengths: strengths.slice(0, 4),
+		};
+	}
+
+	async extractJobPosting(
+		bytes: Uint8Array,
+		_mime: string,
+	): Promise<ExtractedJobPosting> {
+		const seed = bytes.length % 2;
+		return {
+			title: [
+				"Senior Frontend Engineer (m/w/d)",
+				"Product Designer — Design Systems",
+			][seed],
+			description:
+				"Mock-Stellenanzeige für die Entwicklungs-Umgebung. Setze ANTHROPIC_API_KEY für echte Extraktion. Aufgaben: Design-System weiter ausbauen, Performance optimieren, im Cross-Functional-Team treiben. Stack: TypeScript, React, Next.js, Tailwind.",
+			location: ["Berlin", "Remote / EU"][seed],
+			remotePolicy: ["hybrid", "remote"][seed] as "hybrid" | "remote",
+			employmentType: "fulltime",
+			salaryMin: 75000,
+			salaryMax: 95000,
+			yearsExperienceMin: 4,
+			languages: ["Deutsch", "Englisch"],
+			requirements: [
+				{ name: "TypeScript", weight: "must", minLevel: 4 },
+				{ name: "React", weight: "must", minLevel: 4 },
+				{ name: "Next.js", weight: "nice", minLevel: 3 },
+				{ name: "Tailwind CSS", weight: "nice" },
+			],
 		};
 	}
 
