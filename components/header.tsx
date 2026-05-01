@@ -39,17 +39,17 @@ export async function Header() {
 				<div className="flex items-center gap-4">
 					<Link
 						href="/"
-						className="font-semibold tracking-tight text-foreground transition-opacity hover:opacity-80"
+						className="lv-wordmark text-[0.95rem] text-foreground transition-opacity hover:opacity-70"
 					>
 						{t("productName")}
 					</Link>
 					{navLinks.length > 0 && (
-						<nav className="hidden gap-1 sm:flex">
+						<nav className="hidden gap-5 sm:flex">
 							{navLinks.map((l) => (
 								<Link
 									key={l.href}
 									href={l.href}
-									className="rounded-md px-2 py-1 text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground"
+									className="lv-nav px-1 py-1 text-[0.7rem] text-muted-foreground transition-colors hover:text-foreground"
 								>
 									{l.label}
 								</Link>
