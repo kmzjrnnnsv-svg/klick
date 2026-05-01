@@ -63,6 +63,22 @@ export type SuggestedJobRequirement = {
 	minLevel?: 1 | 2 | 3 | 4 | 5;
 };
 
+// Structured extraction of a complete job posting (PDF / image / text).
+// All fields are optional — the model fills what it sees, the form keeps
+// existing values for the rest.
+export type ExtractedJobPosting = {
+	title?: string;
+	description?: string;
+	location?: string;
+	remotePolicy?: "onsite" | "hybrid" | "remote";
+	employmentType?: "fulltime" | "parttime" | "contract" | "internship";
+	salaryMin?: number;
+	salaryMax?: number;
+	yearsExperienceMin?: number;
+	languages?: string[];
+	requirements?: SuggestedJobRequirement[];
+};
+
 // Light-weight metadata extracted from non-CV documents. Each extractor
 // returns at most this set of fields; missing fields stay undefined.
 
@@ -150,6 +166,12 @@ export interface AIProvider {
 		title: string;
 		description: string;
 	}): Promise<SuggestedJobRequirement[]>;
+	// Extracts a full job posting from an uploaded document. The form
+	// pre-fills every returned field; the user reviews + tweaks before save.
+	extractJobPosting(
+		bytes: Uint8Array,
+		mime: string,
+	): Promise<ExtractedJobPosting>;
 	matchRationale(input: MatchRationaleInput): Promise<string>;
 	// Build a workStyle/strengths summary the employer reads at a glance.
 	summarizeCandidate(

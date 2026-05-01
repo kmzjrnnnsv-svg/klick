@@ -226,6 +226,15 @@
 		"subtitle": "Your job postings. Match suggestions go live in P4.",
 		"newJob": "New job",
 		"editJob": "Edit job",
+		"uploader": {
+			"title": "Upload job posting",
+			"hint": "Drop a PDF or image — AI fills title, description, requirements, salary and languages automatically. You verify and tweak.",
+			"dropTitle": "Drop here or tap to choose",
+			"dropHint": "PDF or image — up to 25 MB. Read on the fly, not stored.",
+			"processing": "Reading the posting …",
+			"done": "Done — fields are filled. Please review and tweak.",
+			"reset": "Different file"
+		},
 		"listEmpty": "No job yet. Create one and it shows up here.",
 		"editorHint": "Write the title and description first — the skill suggester works from those.",
 		"onboardingTitle": "One workspace per company",

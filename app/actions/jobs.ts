@@ -235,6 +235,29 @@ export async function suggestRequirements(input: {
 	return getAIProvider().suggestJobRequirements(input);
 }
 
+// Reads a job posting (PDF / image), extracts structured fields via AI.
+// Caller pre-fills the JobForm with the result and lets the user review.
+// Throws on unauthorized access or unsupported file type.
+export async function parseJobPostingFromUpload(formData: FormData) {
+	await requireEmployerSession();
+	const file = formData.get("file");
+	if (!(file instanceof File) || file.size === 0) {
+		throw new Error("Bitte eine Datei hochladen.");
+	}
+	const mime = file.type || "application/octet-stream";
+	const supported =
+		mime === "application/pdf" ||
+		mime === "image/jpeg" ||
+		mime === "image/png" ||
+		mime === "image/gif" ||
+		mime === "image/webp";
+	if (!supported) {
+		throw new Error("Nur PDF- und Bild-Dateien werden unterstützt.");
+	}
+	const bytes = new Uint8Array(await file.arrayBuffer());
+	return getAIProvider().extractJobPosting(bytes, mime);
+}
+
 function parseList(raw: string): string[] {
 	return raw
 		.split(",")
