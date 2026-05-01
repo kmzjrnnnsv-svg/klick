@@ -16,6 +16,8 @@ import {
 	users,
 } from "@/db/schema";
 import { getAIProvider } from "@/lib/ai";
+import { osrmRoute } from "@/lib/geo/distance";
+import { sendTransactionalMail } from "@/lib/mail/send";
 import { scoreMatch } from "@/lib/match/engine";
 
 const TOP_N = 20;
@@ -44,6 +46,7 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 	const passing: {
 		profile: CandidateProfile;
 		userId: string;
+		userEmail: string | null;
 		hardScore: 0 | 100;
 		softScore: number;
 		hardReasons: string[];
@@ -57,16 +60,48 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 		if (profile.visibility === "private") continue;
 		const score = scoreMatch(job, profile);
 		if (!score.hardPass) continue;
+		// Upgrade commute estimate with real OSRM routing (driving / cycling /
+		// walking only — transit needs a different routing engine). Best-
+		// effort: keep the haversine result if the call fails.
+		let commute = score.commute;
+		if (
+			commute &&
+			(commute.mode === "car" ||
+				commute.mode === "bike" ||
+				commute.mode === "walk") &&
+			profile.addressLat != null &&
+			profile.addressLng != null &&
+			job.locationLat != null &&
+			job.locationLng != null
+		) {
+			const real = await osrmRoute(
+				{ lat: profile.addressLat, lng: profile.addressLng },
+				{ lat: job.locationLat, lng: job.locationLng },
+				commute.mode,
+			);
+			if (real) {
+				const exceedsLimit =
+					profile.maxCommuteMinutes != null &&
+					real.minutes > profile.maxCommuteMinutes;
+				commute = {
+					km: Math.round(real.km),
+					minutes: real.minutes,
+					mode: commute.mode,
+					exceedsLimit,
+				};
+			}
+		}
 		passing.push({
 			profile,
 			userId: user.id,
+			userEmail: user.email ?? null,
 			hardScore: score.hardScore,
 			softScore: score.softScore,
 			hardReasons: score.hardReasons,
 			matchedSkills: score.matchedSkills,
 			missingSkills: score.missingSkills,
 			adjacentSkills: score.adjacentSkills,
-			commute: score.commute,
+			commute,
 		});
 	}
 
@@ -74,6 +109,16 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 	const top = passing.slice(0, TOP_N);
 
 	const ai = getAIProvider();
+
+	// Find existing matches so we know which are NEW (worth a notification).
+	const existingMatchIds = new Set(
+		(
+			await db
+				.select({ candidateUserId: matches.candidateUserId })
+				.from(matches)
+				.where(eq(matches.jobId, job.id))
+		).map((r) => r.candidateUserId),
+	);
 
 	// Compute rationales + assessments (one per top match). Sequential to
 	// avoid rate limits.
@@ -102,6 +147,7 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 					adjacentSkills: m.adjacentSkills,
 				}),
 			]);
+			const isNew = !existingMatchIds.has(m.userId);
 			await db
 				.insert(matches)
 				.values({
@@ -136,6 +182,23 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 						computedAt: new Date(),
 					},
 				});
+
+			// Notify the candidate when this is a fresh, strong match. Skip
+			// re-runs and weak matches to avoid spamming. Best-effort.
+			if (isNew && m.softScore >= 60 && m.userEmail) {
+				const baseUrl = process.env.AUTH_URL ?? "https://raza.work";
+				await sendTransactionalMail({
+					to: m.userEmail,
+					subject: `Neue passende Stelle: ${job.title}`,
+					text:
+						`Eine neue Stelle könnte zu dir passen:\n\n` +
+						`${job.title}${job.location ? ` · ${job.location}` : ""}\n` +
+						`Match-Score: ${m.softScore}/100\n\n` +
+						`${rationale}\n\n` +
+						`Schau sie dir an: ${baseUrl}/matches\n\n` +
+						`Du erhältst diese Mail, weil dein Profil bei Klick zu dieser Stelle passt. Du bleibst anonym, bis du selbst Interesse zeigst.`,
+				});
+			}
 		} catch (e) {
 			console.error("match rationale failed", e);
 		}

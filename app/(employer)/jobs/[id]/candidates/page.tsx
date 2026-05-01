@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { listInterestsForJob } from "@/app/actions/interests";
+import {
+	listDisclosedItemsForInterest,
+	listInterestsForJob,
+} from "@/app/actions/interests";
 import { getJob } from "@/app/actions/jobs";
 import { listMatchesForJob } from "@/app/actions/matches";
 import { auth } from "@/auth";
@@ -32,16 +35,26 @@ export default async function JobCandidatesPage({
 	const interestByMatch = new Map<
 		string,
 		{
+			id: string;
 			status: "pending" | "approved" | "rejected" | "expired";
 			email: string | null;
 			displayName: string | null;
+			disclosedItems?: Awaited<
+				ReturnType<typeof listDisclosedItemsForInterest>
+			>;
 		}
 	>();
 	for (const i of interestsForJob) {
+		const disclosed =
+			i.interest.status === "approved"
+				? await listDisclosedItemsForInterest(i.interest.id)
+				: undefined;
 		interestByMatch.set(i.interest.matchId, {
+			id: i.interest.id,
 			status: i.interest.status,
 			email: i.candidate.email,
 			displayName: i.candidate.displayName,
+			disclosedItems: disclosed,
 		});
 	}
 
@@ -101,6 +114,28 @@ export default async function JobCandidatesPage({
 													{interest.email}
 												</div>
 											)}
+											{interest?.disclosedItems &&
+												interest.disclosedItems.length > 0 && (
+													<div className="mt-2">
+														<p className="text-[10px] uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+															Freigegebene Dateien
+														</p>
+														<ul className="mt-1 space-y-0.5">
+															{interest.disclosedItems.map((d) => (
+																<li key={d.id} className="text-xs">
+																	<a
+																		href={`/api/vault/${d.id}/file`}
+																		target="_blank"
+																		rel="noreferrer"
+																		className="text-primary hover:underline"
+																	>
+																		{d.filename}
+																	</a>
+																</li>
+															))}
+														</ul>
+													</div>
+												)}
 										</div>
 										<span
 											className={cn(

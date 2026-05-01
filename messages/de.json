@@ -114,6 +114,14 @@
 		"title": "Mein Profil",
 		"subtitle": "Was Arbeitgeber sehen, sobald du Interesse zulässt. Du kontrollierst Sichtbarkeit und Inhalt.",
 		"insightsHeading": "So liest sich dein Profil",
+		"share": {
+			"title": "Öffentlicher Share-Link",
+			"subtitle": "Optional. Aktiviert eine schreibgeschützte Profilseite, die du teilen kannst — z. B. in einer Bewerbung oder im Lebenslauf-Header. Du kannst sie jederzeit zurückziehen.",
+			"generate": "Link erzeugen",
+			"copy": "Kopieren",
+			"copied": "Kopiert",
+			"revoke": "Link zurückziehen"
+		},
 		"importFromCv": "Aus CV importieren",
 		"importHint": "Wähle einen CV aus deinem Vault — die Felder unten werden mit dem KI-Vorschlag vorbefüllt. Du prüfst und korrigierst.",
 		"importDisclaimer": "Die KI macht Fehler. Prüfe alles. Speichere erst, wenn es stimmt.",
@@ -195,9 +203,21 @@
 	"Admin": {
 		"title": "Admin",
 		"subtitle": "Plattform-Übersicht. Volle Tenant- und Connector-Verwaltung folgt mit P7.",
-		"auditTitle": "Audit-Log (letzte 200 Einträge)",
-		"auditEmpty": "Noch keine Aktivität.",
+		"auditTitle": "Audit-Log",
+		"auditEmpty": "Keine Einträge mit diesen Filtern.",
 		"auditFootnote": "Append-only. Einträge bleiben auch nach Löschung der Quell-Datensätze für Compliance.",
+		"filters": {
+			"action": "Aktion",
+			"any": "Alle",
+			"query": "Suche im Target",
+			"queryPlaceholder": "z. B. user-id-prefix",
+			"since": "Zeitraum",
+			"anyTime": "Egal",
+			"since1h": "Letzte Stunde",
+			"since24h": "Letzte 24 h",
+			"since7d": "Letzte 7 Tage",
+			"since30d": "Letzte 30 Tage"
+		},
 		"comingTitle": "Bald hier",
 		"comingDynamicRoutes": "Dynamische API-Routen-Verwaltung im UI (proxy / sql / jsonata-Handler)",
 		"comingTenants": "Tenant-Verwaltung mit Subdomain-Branding",
@@ -248,6 +268,18 @@
 		"salaryUnder": "{pct}% unter Markt",
 		"salaryOver": "{pct}% über Markt",
 		"salaryFair": "im üblichen Korridor",
+		"disclosures": {
+			"title": "Dateien für diesen Arbeitgeber freigeben",
+			"subtitle": "Wähle pro Datei, ob der Arbeitgeber sie sehen darf. Du kannst jederzeit zurücknehmen.",
+			"emptyVault": "Kein Vault-Inhalt zum Teilen.",
+			"kind": {
+				"cv": "CV",
+				"certificate": "Zertifikat",
+				"badge": "Badge",
+				"id_doc": "Ausweis",
+				"other": "Sonstiges"
+			}
+		},
 		"receivedAt": "Eingegangen {time}",
 		"expiresAt": "Läuft ab am {time}",
 		"decidedAt": "Entschieden {time}",
@@ -593,6 +625,13 @@
 			"certificationsMentioned": "Im CV erwähnte Zertifikate",
 			"certificationsMentionedHint": "Stehen so im Lebenslauf, sind aber nicht zwingend als Datei im Vault."
 		}
+	},
+	"PublicProfile": {
+		"publicLabel": "Geteiltes Profil",
+		"anonymous": "Kandidat:in",
+		"skills": "Skills",
+		"insightsHeading": "Karriere-Insights",
+		"footerHint": "Diese Seite zeigt nur was die Person freiwillig öffentlich gemacht hat. Vault-Inhalte bleiben privat. Über Klick kannst du Kontakt aufnehmen."
 	},
 	"Browse": {
 		"title": "Stellen-Suche",

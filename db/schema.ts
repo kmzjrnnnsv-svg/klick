@@ -242,6 +242,9 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 	// user input. Shape: see lib/insights/types.ts (CandidateInsights).
 	insights: jsonb("insights"),
 	insightsUpdatedAt: timestamp("insights_updated_at", { mode: "date" }),
+	// Opaque token candidate can share to expose a read-only public profile
+	// at /p/<token>. Null = sharing disabled. Re-generated on revoke+enable.
+	publicShareToken: text("public_share_token").unique(),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
 
@@ -339,6 +342,31 @@ export const geocodeCache = pgTable("geocode_cache", {
 	lng: doublePrecision("lng"),
 	resolvedAt: timestamp("resolved_at", { mode: "date" }).notNull().defaultNow(),
 });
+
+// Per-file disclosure: which vault items has the candidate explicitly
+// shared with a given interest? Empty = nothing shared, the employer just
+// sees identity (after Interest is approved). Each row is a one-way grant.
+export const disclosures = pgTable(
+	"disclosures",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		interestId: text("interest_id")
+			.notNull()
+			.references(() => interests.id, { onDelete: "cascade" }),
+		vaultItemId: text("vault_item_id")
+			.notNull()
+			.references(() => vaultItems.id, { onDelete: "cascade" }),
+		grantedAt: timestamp("granted_at", { mode: "date" }).notNull().defaultNow(),
+		revokedAt: timestamp("revoked_at", { mode: "date" }),
+	},
+	(t) => [
+		unique("disclosures_interest_vault_unique").on(t.interestId, t.vaultItemId),
+	],
+);
+
+export type Disclosure = typeof disclosures.$inferSelect;
 
 // ─── Matches ──────────────────────────────────────────────────────────────
 // Computed by lib/match/engine.ts whenever a job is published or a profile is

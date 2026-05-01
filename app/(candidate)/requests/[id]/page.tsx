@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
+import { listActiveDisclosures } from "@/app/actions/disclosures";
 import { getIncomingInterest } from "@/app/actions/interests";
+import { listVaultItems } from "@/app/actions/vault";
 import { auth } from "@/auth";
+import { FileDisclosureList } from "@/components/disclosures/file-disclosure-list";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { DecisionButtons } from "@/components/interests/decision-buttons";
@@ -38,6 +41,9 @@ export default async function RequestDetailPage({
 	const fmt = await getFormatter();
 	const { interest, job, companyName } = item;
 	const verifications = await listVerificationsForInterest(id);
+	const vaultItemsAll = await listVaultItems();
+	const activeDisclosures = await listActiveDisclosures(id);
+	const grantedIds = new Set(activeDisclosures.map((d) => d.vaultItemId));
 
 	return (
 		<>
@@ -200,6 +206,26 @@ export default async function RequestDetailPage({
 							</>
 						)}
 					</div>
+
+					{interest.status === "approved" && (
+						<div className="rounded-lg border border-border bg-background p-4 sm:p-5">
+							<h2 className="font-medium text-sm">{t("disclosures.title")}</h2>
+							<p className="mt-1 mb-3 text-muted-foreground text-xs leading-relaxed">
+								{t("disclosures.subtitle")}
+							</p>
+							<FileDisclosureList
+								interestId={interest.id}
+								items={vaultItemsAll
+									.filter((v) => v.storageKey || v.sourceUrl)
+									.map((v) => ({
+										id: v.id,
+										filename: v.filename,
+										kind: v.kind,
+									}))}
+								grantedIds={grantedIds}
+							/>
+						</div>
+					)}
 
 					{interest.status === "pending" ? (
 						<DecisionButtons interestId={interest.id} />

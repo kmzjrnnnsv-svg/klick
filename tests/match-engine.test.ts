@@ -59,6 +59,7 @@ const baseProfile: CandidateProfile = {
 	onboardingCompletedAt: new Date(),
 	insights: null,
 	insightsUpdatedAt: null,
+	publicShareToken: null,
 	updatedAt: new Date(),
 };
 

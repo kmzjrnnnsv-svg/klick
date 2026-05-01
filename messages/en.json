@@ -113,6 +113,14 @@
 	"Profile": {
 		"title": "My profile",
 		"insightsHeading": "How your profile reads",
+		"share": {
+			"title": "Public share link",
+			"subtitle": "Optional. Exposes a read-only profile page you can share — e.g. in an application or your CV header. You can revoke anytime.",
+			"generate": "Generate link",
+			"copy": "Copy",
+			"copied": "Copied",
+			"revoke": "Revoke link"
+		},
 		"subtitle": "What employers see once you allow interest. You control visibility and content.",
 		"importFromCv": "Import from CV",
 		"importHint": "Pick a CV from your vault — the fields below get pre-filled with the AI's suggestion. You review and correct.",
@@ -195,9 +203,21 @@
 	"Admin": {
 		"title": "Admin",
 		"subtitle": "Platform overview. Full tenant + connector management ships in P7.",
-		"auditTitle": "Audit log (last 200 entries)",
-		"auditEmpty": "No activity yet.",
+		"auditTitle": "Audit log",
+		"auditEmpty": "No entries with these filters.",
 		"auditFootnote": "Append-only. Entries remain after source records are deleted, for compliance.",
+		"filters": {
+			"action": "Action",
+			"any": "All",
+			"query": "Search in target",
+			"queryPlaceholder": "e.g. user-id-prefix",
+			"since": "Period",
+			"anyTime": "Any",
+			"since1h": "Last hour",
+			"since24h": "Last 24 h",
+			"since7d": "Last 7 days",
+			"since30d": "Last 30 days"
+		},
 		"comingTitle": "Coming next",
 		"comingDynamicRoutes": "Dynamic API route management in the UI (proxy / sql / jsonata handlers)",
 		"comingTenants": "Tenant management with subdomain branding",
@@ -248,6 +268,18 @@
 		"salaryUnder": "{pct}% below market",
 		"salaryOver": "{pct}% above market",
 		"salaryFair": "within typical corridor",
+		"disclosures": {
+			"title": "Share specific files",
+			"subtitle": "Pick which vault items this employer can read. Revoke anytime.",
+			"emptyVault": "No vault items to share.",
+			"kind": {
+				"cv": "CV",
+				"certificate": "Cert",
+				"badge": "Badge",
+				"id_doc": "ID",
+				"other": "Other"
+			}
+		},
 		"receivedAt": "Received {time}",
 		"expiresAt": "Expires {time}",
 		"decidedAt": "Decided {time}",
@@ -593,6 +625,13 @@
 			"certificationsMentioned": "Certifications cited in CV",
 			"certificationsMentionedHint": "Mentioned in the CV body, not necessarily uploaded as a file in the vault."
 		}
+	},
+	"PublicProfile": {
+		"publicLabel": "Shared profile",
+		"anonymous": "Candidate",
+		"skills": "Skills",
+		"insightsHeading": "Career insights",
+		"footerHint": "Only what the person voluntarily made public. Vault content stays private. Reach out via Klick."
 	},
 	"Browse": {
 		"title": "Browse jobs",
