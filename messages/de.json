@@ -264,6 +264,10 @@
 		"subtitle": "Deine Stellen. Match-Vorschläge gehen in P4 live.",
 		"newJob": "Neue Stelle",
 		"editJob": "Stelle bearbeiten",
+		"benchmarkTitle": "KI-Marktschätzung:",
+		"benchmarkUnder": "Du bezahlst {pct}% unter dem Marktdurchschnitt — Erhöhung empfohlen.",
+		"benchmarkOver": "Du bezahlst {pct}% über dem Marktdurchschnitt — eher Verhandlungsspielraum.",
+		"benchmarkFair": "Im üblichen Korridor.",
 		"uploader": {
 			"title": "Stellenanzeige hochladen",
 			"hint": "PDF oder Bild reinziehen — KI füllt Titel, Beschreibung, Anforderungen, Gehalt und Sprachen automatisch. Du prüfst und korrigierst.",

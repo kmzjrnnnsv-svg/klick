@@ -5,7 +5,11 @@ import type {
 	ExtractedDocument,
 	ExtractedJobPosting,
 	ExtractedProfile,
+	MatchAssessment,
+	MatchAssessmentInput,
 	MatchRationaleInput,
+	SalaryBenchmark,
+	SalaryBenchmarkInput,
 	SuggestedJobRequirement,
 } from "./types";
 
@@ -213,6 +217,64 @@ export class MockAIProvider implements AIProvider {
 				{ name: "Tailwind CSS", weight: "nice" },
 			],
 		};
+	}
+
+	async benchmarkSalary(input: SalaryBenchmarkInput): Promise<SalaryBenchmark> {
+		// Heuristic: base + per-year bump + level adjustment.
+		const base = 45000;
+		const years = Math.max(0, Math.min(20, input.yearsRequired));
+		const yearBump = years * 4500;
+		const lvlBump =
+			input.level === "principal"
+				? 25000
+				: input.level === "lead"
+					? 18000
+					: input.level === "senior"
+						? 10000
+						: input.level === "mid"
+							? 4000
+							: 0;
+		const remoteBump = input.remote === "remote" ? -3000 : 0;
+		const center = Math.max(35000, base + yearBump + lvlBump + remoteBump);
+		const low = Math.round((center - 6000) / 1000) * 1000;
+		const high = Math.round((center + 12000) / 1000) * 1000;
+		return {
+			low,
+			high,
+			currency: "EUR",
+			rationale: `Mock-Schätzung: ${input.title} · ${years} J. Erfahrung · ${input.remote}. Setze ANTHROPIC_API_KEY für echte Markteinschätzung.`,
+		};
+	}
+
+	async assessMatch(input: MatchAssessmentInput): Promise<MatchAssessment> {
+		const pros: string[] = [];
+		const cons: string[] = [];
+		if (input.matchedSkills.length > 0) {
+			pros.push(`Bringt ${input.matchedSkills.slice(0, 3).join(", ")} mit.`);
+		}
+		if (input.adjacentSkills.length > 0) {
+			pros.push(
+				`Quereinstieg über ${input.adjacentSkills.slice(0, 2).join(", ")} möglich.`,
+			);
+		}
+		const yrs = input.candidateYears ?? 0;
+		if (yrs >= input.yearsRequired + 3) {
+			pros.push(`${yrs} Jahre — komfortabel über dem Anforderungs-Minimum.`);
+		}
+		if (input.missingSkills.length > 0) {
+			cons.push(`Fehlt: ${input.missingSkills.slice(0, 3).join(", ")}.`);
+		}
+		if (yrs > 0 && yrs < input.yearsRequired) {
+			cons.push(
+				`Erfahrung knapp: ${yrs} statt geforderte ${input.yearsRequired}.`,
+			);
+		}
+		if (cons.length === 0) cons.push("Keine offensichtlichen Schwächen.");
+		const verdict =
+			yrs >= input.yearsRequired
+				? `${yrs} J. — ${yrs - input.yearsRequired >= 0 ? `+${yrs - input.yearsRequired}` : ""} ggü. gefordert.`
+				: `${yrs} J. — ${input.yearsRequired - yrs} unter Mindest.`;
+		return { pros, cons, experienceVerdict: verdict };
 	}
 
 	async matchRationale(input: MatchRationaleInput): Promise<string> {

@@ -75,19 +75,33 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 
 	const ai = getAIProvider();
 
-	// Compute rationales (one per top match). Sequential to avoid rate limits.
+	// Compute rationales + assessments (one per top match). Sequential to
+	// avoid rate limits.
 	for (const m of top) {
 		try {
-			const rationale = await ai.matchRationale({
-				jobTitle: job.title,
-				jobDescription: job.description,
-				candidateHeadline: m.profile.headline,
-				candidateSummary: m.profile.summary,
-				matchedSkills: m.matchedSkills,
-				missingSkills: m.missingSkills,
-				yearsExperience: m.profile.yearsExperience,
-				yearsRequired: job.yearsExperienceMin,
-			});
+			const [rationale, assessment] = await Promise.all([
+				ai.matchRationale({
+					jobTitle: job.title,
+					jobDescription: job.description,
+					candidateHeadline: m.profile.headline,
+					candidateSummary: m.profile.summary,
+					matchedSkills: m.matchedSkills,
+					missingSkills: m.missingSkills,
+					yearsExperience: m.profile.yearsExperience,
+					yearsRequired: job.yearsExperienceMin,
+				}),
+				ai.assessMatch({
+					jobTitle: job.title,
+					jobDescription: job.description,
+					yearsRequired: job.yearsExperienceMin ?? 0,
+					candidateHeadline: m.profile.headline,
+					candidateSummary: m.profile.summary,
+					candidateYears: m.profile.yearsExperience,
+					matchedSkills: m.matchedSkills,
+					missingSkills: m.missingSkills,
+					adjacentSkills: m.adjacentSkills,
+				}),
+			]);
 			await db
 				.insert(matches)
 				.values({
@@ -101,6 +115,9 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 					missingSkills: m.missingSkills,
 					adjacentSkills: m.adjacentSkills,
 					commute: m.commute ?? null,
+					pros: assessment.pros,
+					cons: assessment.cons,
+					experienceVerdict: assessment.experienceVerdict,
 				})
 				.onConflictDoUpdate({
 					target: [matches.jobId, matches.candidateUserId],
@@ -113,6 +130,9 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 						missingSkills: m.missingSkills,
 						adjacentSkills: m.adjacentSkills,
 						commute: m.commute ?? null,
+						pros: assessment.pros,
+						cons: assessment.cons,
+						experienceVerdict: assessment.experienceVerdict,
 						computedAt: new Date(),
 					},
 				});

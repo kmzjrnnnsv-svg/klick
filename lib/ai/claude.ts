@@ -6,7 +6,11 @@ import type {
 	ExtractedDocument,
 	ExtractedJobPosting,
 	ExtractedProfile,
+	MatchAssessment,
+	MatchAssessmentInput,
 	MatchRationaleInput,
+	SalaryBenchmark,
+	SalaryBenchmarkInput,
 	SuggestedJobRequirement,
 } from "./types";
 
@@ -599,6 +603,139 @@ export class ClaudeAIProvider implements AIProvider {
 			throw new Error("Claude did not return a tool_use block for job posting");
 		}
 		return toolUse.input as ExtractedJobPosting;
+	}
+
+	async benchmarkSalary(input: SalaryBenchmarkInput): Promise<SalaryBenchmark> {
+		const result = await this.client.messages.create({
+			model: "claude-sonnet-4-6",
+			max_tokens: 600,
+			tools: [
+				{
+					name: "save_benchmark",
+					description: "Save the estimated annual salary range in EUR.",
+					input_schema: {
+						type: "object" as const,
+						properties: {
+							low: {
+								type: "integer",
+								minimum: 20000,
+								description: "Lower bound, EUR/yr gross.",
+							},
+							high: {
+								type: "integer",
+								description: "Upper bound, EUR/yr gross.",
+							},
+							rationale: {
+								type: "string",
+								maxLength: 200,
+								description:
+									"Eine deutsche Sentence: warum dieser Bereich plausibel ist. Hinweis auf Unsicherheit, falls Daten dünn.",
+							},
+						},
+						required: ["low", "high", "rationale"],
+					},
+				},
+			],
+			tool_choice: { type: "tool", name: "save_benchmark" },
+			messages: [
+				{
+					role: "user",
+					content:
+						"Schätze den marktüblichen Brutto-Jahresgehalt-Bereich in EUR für folgende Stelle. " +
+						"Berücksichtige Region, Erfahrungsstufe, Stack, Remote-Anteil. Gib einen 25.-/75.-Percentil-Range, keinen Median.\n\n" +
+						`Titel: ${input.title}\n` +
+						`Beschreibung-Auszug: ${input.description.slice(0, 500)}\n` +
+						`Standort: ${input.location ?? "—"}\n` +
+						`Modus: ${input.remote}\n` +
+						`Mindest-Erfahrung: ${input.yearsRequired} Jahre\n` +
+						`Level: ${input.level ?? "—"}\n` +
+						`Skills: ${input.requirements.join(", ") || "—"}\n\n` +
+						"Schreib die rationale auf Deutsch, sachlich, max 1 Satz. Speichere via save_benchmark.",
+				},
+			],
+		});
+
+		const toolUse = result.content.find((b) => b.type === "tool_use");
+		if (!toolUse || toolUse.type !== "tool_use") {
+			return {
+				low: 0,
+				high: 0,
+				currency: "EUR",
+				rationale: "Schätzung gerade nicht verfügbar.",
+			};
+		}
+		const out = toolUse.input as {
+			low: number;
+			high: number;
+			rationale: string;
+		};
+		return { ...out, currency: "EUR" };
+	}
+
+	async assessMatch(input: MatchAssessmentInput): Promise<MatchAssessment> {
+		const result = await this.client.messages.create({
+			model: "claude-sonnet-4-6",
+			max_tokens: 600,
+			tools: [
+				{
+					name: "save_assessment",
+					description: "Save the pro/con assessment of this match.",
+					input_schema: {
+						type: "object" as const,
+						properties: {
+							pros: {
+								type: "array",
+								maxItems: 4,
+								items: { type: "string", maxLength: 140 },
+								description:
+									"2-4 konkrete Pro-Punkte auf Deutsch. Belege mit Skills, Jahren, Erfahrung. Keine Floskeln.",
+							},
+							cons: {
+								type: "array",
+								maxItems: 4,
+								items: { type: "string", maxLength: 140 },
+								description:
+									"2-4 ehrliche Bedenken oder Lücken. Wenn nichts wirklich fehlt: 'Keine offensichtlichen Schwächen.'",
+							},
+							experienceVerdict: {
+								type: "string",
+								maxLength: 80,
+								description:
+									"Ein Satz: Erfahrungs-Vergleich. Z. B. '9 J. — 3 mehr als gefordert' oder '4 J. — 2 unter Anforderung'.",
+							},
+						},
+						required: ["pros", "cons", "experienceVerdict"],
+					},
+				},
+			],
+			tool_choice: { type: "tool", name: "save_assessment" },
+			messages: [
+				{
+					role: "user",
+					content:
+						"Bewerte diesen Match aus Arbeitgeber-Sicht. Pro/Con + 1-Satz-Erfahrungsverdict.\n\n" +
+						`Stelle: ${input.jobTitle}\n` +
+						`Stelle-Beschreibung: ${input.jobDescription.slice(0, 400)}\n` +
+						`Mindest-Erfahrung: ${input.yearsRequired} Jahre\n` +
+						`Kandidat: ${input.candidateHeadline ?? "—"}\n` +
+						`Kandidat-Summary: ${input.candidateSummary ?? "—"}\n` +
+						`Kandidat-Erfahrung: ${input.candidateYears ?? 0} Jahre\n` +
+						`Match-Skills: ${input.matchedSkills.join(", ") || "—"}\n` +
+						`Adjacent (Quereinstieg): ${input.adjacentSkills.join(", ") || "—"}\n` +
+						`Fehlt: ${input.missingSkills.join(", ") || "—"}\n\n` +
+						"Sei direkt. Floskeln raus. Speichere via save_assessment.",
+				},
+			],
+		});
+		const toolUse = result.content.find((b) => b.type === "tool_use");
+		if (!toolUse || toolUse.type !== "tool_use") {
+			return {
+				pros: [],
+				cons: [],
+				experienceVerdict: `${input.candidateYears ?? 0} J.`,
+			};
+		}
+		return toolUse.input as MatchAssessment;
 	}
 
 	async matchRationale(input: MatchRationaleInput): Promise<string> {

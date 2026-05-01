@@ -195,10 +195,45 @@ export async function saveJob(
 		data.location && data.remotePolicy !== "remote"
 			? await geocode(data.location)
 			: null;
+
+	// AI salary benchmark — best-effort, swallowed on failure so a flaky
+	// model call doesn't block the save.
+	let benchmark: { low: number; high: number } | null = null;
+	let salaryFairness: "under" | "fair" | "over" | null = null;
+	let salaryDeltaPct: number | null = null;
+	try {
+		const ai = getAIProvider();
+		const bm = await ai.benchmarkSalary({
+			title: data.title,
+			description: data.description,
+			location: data.location ?? null,
+			yearsRequired: data.yearsExperienceMin ?? 0,
+			level: undefined,
+			requirements: (data.requirements ?? []).map((r) => r.name),
+			remote: data.remotePolicy,
+		});
+		if (bm.low > 0 && bm.high > 0) {
+			benchmark = { low: bm.low, high: bm.high };
+			const declared = data.salaryMax ?? data.salaryMin ?? null;
+			if (declared) {
+				const mid = (bm.low + bm.high) / 2;
+				const delta = ((declared - mid) / mid) * 100;
+				salaryDeltaPct = Math.round(delta);
+				salaryFairness = delta >= 5 ? "over" : delta <= -5 ? "under" : "fair";
+			}
+		}
+	} catch (e) {
+		console.warn("[salary] benchmark failed", e);
+	}
+
 	const dataWithGeo = {
 		...data,
 		locationLat: geo?.lat ?? null,
 		locationLng: geo?.lng ?? null,
+		salaryBenchmarkLow: benchmark?.low ?? null,
+		salaryBenchmarkHigh: benchmark?.high ?? null,
+		salaryFairness,
+		salaryDeltaPct,
 	};
 
 	if (id) {

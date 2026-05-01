@@ -154,6 +154,40 @@ export default async function JobCandidatesPage({
 											{c.match.commute.exceedsLimit && " · über Wunsch-Limit"}
 										</div>
 									)}
+									{((c.match.pros?.length ?? 0) > 0 ||
+										(c.match.cons?.length ?? 0) > 0) && (
+										<div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+											{c.match.pros && c.match.pros.length > 0 && (
+												<div>
+													<p className="mb-1 font-medium text-emerald-700 text-xs dark:text-emerald-300">
+														+ Pro
+													</p>
+													<ul className="space-y-0.5 text-xs">
+														{c.match.pros.map((p) => (
+															<li key={p}>{p}</li>
+														))}
+													</ul>
+												</div>
+											)}
+											{c.match.cons && c.match.cons.length > 0 && (
+												<div>
+													<p className="mb-1 font-medium text-amber-700 text-xs dark:text-amber-300">
+														– Bedenken
+													</p>
+													<ul className="space-y-0.5 text-xs">
+														{c.match.cons.map((p) => (
+															<li key={p}>{p}</li>
+														))}
+													</ul>
+												</div>
+											)}
+										</div>
+									)}
+									{c.match.experienceVerdict && (
+										<p className="mt-2 font-mono text-[11px] text-muted-foreground">
+											{c.match.experienceVerdict}
+										</p>
+									)}
 									{c.summary && (
 										<p className="mt-2 line-clamp-2 text-muted-foreground text-xs leading-snug">
 											{c.summary}

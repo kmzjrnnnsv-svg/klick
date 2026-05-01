@@ -312,6 +312,18 @@ export const jobs = pgTable("jobs", {
 	// Cached geocode of `location` — set when the job is saved.
 	locationLat: doublePrecision("location_lat"),
 	locationLng: doublePrecision("location_lng"),
+	// AI-estimated market salary range for this role + location + level.
+	// Computed on save; null if AI hasn't returned a guess.
+	salaryBenchmarkLow: integer("salary_benchmark_low"),
+	salaryBenchmarkHigh: integer("salary_benchmark_high"),
+	// Verdict relative to declared salaryMin/Max. "under" → employer pays
+	// less than market, "over" → above market, "fair" → within ±5%, null
+	// when no declared salary or no benchmark.
+	salaryFairness: text("salary_fairness", {
+		enum: ["under", "fair", "over"],
+	}),
+	// Percentage delta vs midpoint of benchmark (negative = below market).
+	salaryDeltaPct: integer("salary_delta_pct"),
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
@@ -367,6 +379,13 @@ export const matches = pgTable(
 			mode: "car" | "transit" | "bike" | "walk";
 			exceedsLimit: boolean;
 		}>(),
+		// Pro/Con bullet points produced by the AI matcher. Surfaced in the
+		// detail view next to the rationale.
+		pros: jsonb("pros").$type<string[]>(),
+		cons: jsonb("cons").$type<string[]>(),
+		// Years comparison: candidate vs required + tenure context. Short
+		// string for the UI to display verbatim ("9 J. — 3 mehr als gefordert").
+		experienceVerdict: text("experience_verdict"),
 		status: text("status", {
 			enum: ["suggested", "interested", "approved", "rejected"],
 		})

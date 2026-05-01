@@ -52,6 +52,35 @@ export default async function EditJobPage({
 						</Link>
 					)}
 				</header>
+				{job.salaryBenchmarkLow != null && job.salaryBenchmarkHigh != null && (
+					<div
+						className={cn(
+							"mb-6 rounded-lg border p-4",
+							job.salaryFairness === "under"
+								? "border-rose-500/30 bg-rose-500/5"
+								: job.salaryFairness === "over"
+									? "border-amber-500/30 bg-amber-500/5"
+									: "border-emerald-500/30 bg-emerald-500/5",
+						)}
+					>
+						<p className="font-medium text-sm">
+							{t("benchmarkTitle")}{" "}
+							<span className="font-mono text-xs">
+								{job.salaryBenchmarkLow.toLocaleString("de-DE")} –{" "}
+								{job.salaryBenchmarkHigh.toLocaleString("de-DE")} €
+							</span>
+						</p>
+						{job.salaryFairness && job.salaryDeltaPct != null && (
+							<p className="mt-1 text-muted-foreground text-xs leading-snug">
+								{job.salaryFairness === "under" &&
+									t("benchmarkUnder", { pct: Math.abs(job.salaryDeltaPct) })}
+								{job.salaryFairness === "over" &&
+									t("benchmarkOver", { pct: job.salaryDeltaPct })}
+								{job.salaryFairness === "fair" && t("benchmarkFair")}
+							</p>
+						)}
+					</div>
+				)}
 				<JobForm initial={job} />
 			</main>
 			<Footer />

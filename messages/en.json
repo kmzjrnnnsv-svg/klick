@@ -264,6 +264,10 @@
 		"subtitle": "Your job postings. Match suggestions go live in P4.",
 		"newJob": "New job",
 		"editJob": "Edit job",
+		"benchmarkTitle": "Market estimate (AI):",
+		"benchmarkUnder": "You're paying {pct}% below market — consider raising.",
+		"benchmarkOver": "You're paying {pct}% above market — likely room to negotiate.",
+		"benchmarkFair": "Within the typical corridor.",
 		"uploader": {
 			"title": "Upload job posting",
 			"hint": "Drop a PDF or image — AI fills title, description, requirements, salary and languages automatically. You verify and tweak.",
