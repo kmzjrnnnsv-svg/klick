@@ -8,6 +8,7 @@
 		"openVault": "Vault",
 		"openProfile": "Profil",
 		"openMatches": "Matches",
+		"openBrowse": "Stellen",
 		"openRequests": "Anfragen",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
@@ -15,7 +16,16 @@
 		"toggleTheme": "Theme wechseln",
 		"toggleLocale": "Sprache wechseln",
 		"openMenu": "Menü öffnen",
-		"closeMenu": "Menü schließen"
+		"closeMenu": "Menü schließen",
+		"user": {
+			"openMenu": "Konto-Menü",
+			"logout": "Abmelden",
+			"role": {
+				"candidate": "Kandidat:in",
+				"employer": "Arbeitgeber",
+				"admin": "Admin"
+			}
+		}
 	},
 	"Footer": {
 		"tagline": "Du behältst die Kontrolle.",
@@ -54,9 +64,21 @@
 		"demoSubtitle": "Klick eine Rolle, um die App sofort aus dieser Sicht zu erleben. Nur sichtbar, weil ENABLE_DEMO_LOGIN aktiv ist.",
 		"demoRoles": {
 			"admin": "Admin",
-			"company": "Unternehmen",
-			"headhunter": "Headhunter",
-			"candidate": "Kandidat:in"
+			"company": "Unternehmen — Acme Studios",
+			"headhunter": "Headhunter — Talent Hunters AG",
+			"candidate": "Kandidat:in — Kai Sommer"
+		},
+		"demoEmails": {
+			"admin": "admin@klick.local",
+			"company": "company@klick.local",
+			"headhunter": "headhunter@klick.local",
+			"candidate": "candidate@klick.local"
+		},
+		"demoDescriptions": {
+			"admin": "Audit-Log + Tenant-Übersicht.",
+			"company": "Acme Studios mit 3 publizierten Stellen + Match-Liste.",
+			"headhunter": "Talent Hunters AG, vermittelt 2 Senior-Stellen im Auftrag.",
+			"candidate": "Senior Frontend Engineer mit Insights, Vault, Matches."
 		}
 	},
 	"LoginCheck": {
@@ -92,6 +114,14 @@
 		"title": "Mein Profil",
 		"subtitle": "Was Arbeitgeber sehen, sobald du Interesse zulässt. Du kontrollierst Sichtbarkeit und Inhalt.",
 		"insightsHeading": "So liest sich dein Profil",
+		"share": {
+			"title": "Öffentlicher Share-Link",
+			"subtitle": "Optional. Aktiviert eine schreibgeschützte Profilseite, die du teilen kannst — z. B. in einer Bewerbung oder im Lebenslauf-Header. Du kannst sie jederzeit zurückziehen.",
+			"generate": "Link erzeugen",
+			"copy": "Kopieren",
+			"copied": "Kopiert",
+			"revoke": "Link zurückziehen"
+		},
 		"importFromCv": "Aus CV importieren",
 		"importHint": "Wähle einen CV aus deinem Vault — die Felder unten werden mit dem KI-Vorschlag vorbefüllt. Du prüfst und korrigierst.",
 		"importDisclaimer": "Die KI macht Fehler. Prüfe alles. Speichere erst, wenn es stimmt.",
@@ -147,7 +177,11 @@
 			"noRemote": "Vor Ort / Hybrid",
 			"minSalary": "Mindestgehalt (€/Jahr)",
 			"maxCommute": "Max. Pendelminuten",
-			"maxCommutePlaceholder": "z. B. 45"
+			"maxCommutePlaceholder": "z. B. 45",
+			"sort": "Sortieren",
+			"sortScore": "Match-Score",
+			"sortCommute": "Kürzester Weg",
+			"sortSalary": "Höchstes Gehalt"
 		},
 		"candidatesTitle": "Kandidat:innen",
 		"candidatesSubtitle": "Anonymisierte Vorschläge — Identität erst, wenn der Kandidat einer Anfrage zustimmt.",
@@ -169,9 +203,21 @@
 	"Admin": {
 		"title": "Admin",
 		"subtitle": "Plattform-Übersicht. Volle Tenant- und Connector-Verwaltung folgt mit P7.",
-		"auditTitle": "Audit-Log (letzte 200 Einträge)",
-		"auditEmpty": "Noch keine Aktivität.",
+		"auditTitle": "Audit-Log",
+		"auditEmpty": "Keine Einträge mit diesen Filtern.",
 		"auditFootnote": "Append-only. Einträge bleiben auch nach Löschung der Quell-Datensätze für Compliance.",
+		"filters": {
+			"action": "Aktion",
+			"any": "Alle",
+			"query": "Suche im Target",
+			"queryPlaceholder": "z. B. user-id-prefix",
+			"since": "Zeitraum",
+			"anyTime": "Egal",
+			"since1h": "Letzte Stunde",
+			"since24h": "Letzte 24 h",
+			"since7d": "Letzte 7 Tage",
+			"since30d": "Letzte 30 Tage"
+		},
 		"comingTitle": "Bald hier",
 		"comingDynamicRoutes": "Dynamische API-Routen-Verwaltung im UI (proxy / sql / jsonata-Handler)",
 		"comingTenants": "Tenant-Verwaltung mit Subdomain-Branding",
@@ -216,6 +262,24 @@
 		"whatTheyAsked": "Was angefragt wurde",
 		"messageFrom": "Nachricht von {company}",
 		"aboutTheJob": "Über die Stelle",
+		"salaryHeading": "Gehalt + Markteinschätzung",
+		"salaryGross": "brutto/Jahr",
+		"salaryBenchmark": "Marktüblich für vergleichbare Rollen: {low} – {high}",
+		"salaryUnder": "{pct}% unter Markt",
+		"salaryOver": "{pct}% über Markt",
+		"salaryFair": "im üblichen Korridor",
+		"disclosures": {
+			"title": "Dateien für diesen Arbeitgeber freigeben",
+			"subtitle": "Wähle pro Datei, ob der Arbeitgeber sie sehen darf. Du kannst jederzeit zurücknehmen.",
+			"emptyVault": "Kein Vault-Inhalt zum Teilen.",
+			"kind": {
+				"cv": "CV",
+				"certificate": "Zertifikat",
+				"badge": "Badge",
+				"id_doc": "Ausweis",
+				"other": "Sonstiges"
+			}
+		},
 		"receivedAt": "Eingegangen {time}",
 		"expiresAt": "Läuft ab am {time}",
 		"decidedAt": "Entschieden {time}",
@@ -243,6 +307,10 @@
 		"subtitle": "Deine Stellen. Match-Vorschläge gehen in P4 live.",
 		"newJob": "Neue Stelle",
 		"editJob": "Stelle bearbeiten",
+		"benchmarkTitle": "KI-Marktschätzung:",
+		"benchmarkUnder": "Du bezahlst {pct}% unter dem Marktdurchschnitt — Erhöhung empfohlen.",
+		"benchmarkOver": "Du bezahlst {pct}% über dem Marktdurchschnitt — eher Verhandlungsspielraum.",
+		"benchmarkFair": "Im üblichen Korridor.",
 		"uploader": {
 			"title": "Stellenanzeige hochladen",
 			"hint": "PDF oder Bild reinziehen — KI füllt Titel, Beschreibung, Anforderungen, Gehalt und Sprachen automatisch. Du prüfst und korrigierst.",
@@ -556,6 +624,35 @@
 			"awards": "Auszeichnungen / Publikationen",
 			"certificationsMentioned": "Im CV erwähnte Zertifikate",
 			"certificationsMentionedHint": "Stehen so im Lebenslauf, sind aber nicht zwingend als Datei im Vault."
+		}
+	},
+	"PublicProfile": {
+		"publicLabel": "Geteiltes Profil",
+		"anonymous": "Kandidat:in",
+		"skills": "Skills",
+		"insightsHeading": "Karriere-Insights",
+		"footerHint": "Diese Seite zeigt nur was die Person freiwillig öffentlich gemacht hat. Vault-Inhalte bleiben privat. Über Klick kannst du Kontakt aufnehmen."
+	},
+	"Browse": {
+		"title": "Stellen-Suche",
+		"subtitle": "Alle veröffentlichten Stellen in deinem Workspace. Mit Match-Score: wie gut du auf die Stelle passt.",
+		"empty": "Keine Stellen gefunden. Filter ändern oder Suchbegriff entfernen.",
+		"scoreHint": "Score basiert auf deinem Profil — keine Bewerbungs-Pflicht.",
+		"notQualified": "passt nicht",
+		"commuteOverLimit": "über Wunsch-Limit",
+		"remote": {
+			"onsite": "Vor Ort",
+			"hybrid": "Hybrid",
+			"remote": "Remote"
+		},
+		"filters": {
+			"query": "Suche",
+			"queryPlaceholder": "Titel, Skills, Firma…",
+			"remote": "Arbeitsmodell",
+			"remoteAny": "Egal",
+			"remoteOnly": "Nur Remote",
+			"noRemote": "Vor Ort / Hybrid",
+			"minSalary": "Mindestgehalt"
 		}
 	}
 }

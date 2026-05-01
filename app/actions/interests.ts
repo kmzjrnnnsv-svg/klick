@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { db } from "@/db";
 import {
 	auditLog,
 	candidateProfiles,
+	disclosures,
 	employers,
 	type Interest,
 	interests,
@@ -16,6 +17,7 @@ import {
 	jobs,
 	matches,
 	users,
+	vaultItems,
 } from "@/db/schema";
 import { orchestrateVerifications } from "@/lib/verify/orchestrator";
 
@@ -121,9 +123,58 @@ export async function showInterest(input: {
 
 export type CandidateInterestView = {
 	interest: Interest;
-	job: Pick<Job, "id" | "title" | "description" | "location" | "remotePolicy">;
+	job: Pick<
+		Job,
+		| "id"
+		| "title"
+		| "description"
+		| "location"
+		| "remotePolicy"
+		| "salaryMin"
+		| "salaryMax"
+		| "salaryBenchmarkLow"
+		| "salaryBenchmarkHigh"
+		| "salaryFairness"
+		| "salaryDeltaPct"
+	>;
 	companyName: string;
 };
+
+// Helper for employer view: which vault items has THIS candidate disclosed
+// for this interest? Returns the file metadata (no decryption) so the
+// employer can click through to /api/vault/[id]/file (auth-gated; backend
+// still enforces ownership).
+export async function listDisclosedItemsForInterest(interestId: string) {
+	const session = await auth();
+	if (!session?.user?.id) return [];
+	// Verify the requester owns the underlying employer for this interest.
+	const [row] = await db
+		.select({
+			employerUser: employers.userId,
+		})
+		.from(interests)
+		.innerJoin(employers, eq(employers.id, interests.employerId))
+		.where(eq(interests.id, interestId))
+		.limit(1);
+	if (!row || row.employerUser !== session.user.id) return [];
+
+	return db
+		.select({
+			id: disclosures.vaultItemId,
+			filename: vaultItems.filename,
+			kind: vaultItems.kind,
+			mime: vaultItems.mime,
+			sourceUrl: vaultItems.sourceUrl,
+		})
+		.from(disclosures)
+		.innerJoin(vaultItems, eq(vaultItems.id, disclosures.vaultItemId))
+		.where(
+			and(
+				eq(disclosures.interestId, interestId),
+				isNull(disclosures.revokedAt),
+			),
+		);
+}
 
 export async function listIncomingInterests(): Promise<
 	CandidateInterestView[]
@@ -139,6 +190,12 @@ export async function listIncomingInterests(): Promise<
 				description: jobs.description,
 				location: jobs.location,
 				remotePolicy: jobs.remotePolicy,
+				salaryMin: jobs.salaryMin,
+				salaryMax: jobs.salaryMax,
+				salaryBenchmarkLow: jobs.salaryBenchmarkLow,
+				salaryBenchmarkHigh: jobs.salaryBenchmarkHigh,
+				salaryFairness: jobs.salaryFairness,
+				salaryDeltaPct: jobs.salaryDeltaPct,
 			},
 			companyName: employers.companyName,
 		})
@@ -163,6 +220,12 @@ export async function getIncomingInterest(
 				description: jobs.description,
 				location: jobs.location,
 				remotePolicy: jobs.remotePolicy,
+				salaryMin: jobs.salaryMin,
+				salaryMax: jobs.salaryMax,
+				salaryBenchmarkLow: jobs.salaryBenchmarkLow,
+				salaryBenchmarkHigh: jobs.salaryBenchmarkHigh,
+				salaryFairness: jobs.salaryFairness,
+				salaryDeltaPct: jobs.salaryDeltaPct,
 			},
 			companyName: employers.companyName,
 		})

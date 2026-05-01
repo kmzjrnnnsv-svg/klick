@@ -8,6 +8,7 @@
 		"openVault": "Vault",
 		"openProfile": "Profile",
 		"openMatches": "Matches",
+		"openBrowse": "Jobs",
 		"openRequests": "Requests",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
@@ -15,7 +16,16 @@
 		"toggleTheme": "Toggle theme",
 		"toggleLocale": "Switch language",
 		"openMenu": "Open menu",
-		"closeMenu": "Close menu"
+		"closeMenu": "Close menu",
+		"user": {
+			"openMenu": "Account menu",
+			"logout": "Sign out",
+			"role": {
+				"candidate": "Candidate",
+				"employer": "Employer",
+				"admin": "Admin"
+			}
+		}
 	},
 	"Footer": {
 		"tagline": "You stay in control.",
@@ -54,9 +64,21 @@
 		"demoSubtitle": "Pick a role to enter the app from that perspective. Only visible because ENABLE_DEMO_LOGIN is set.",
 		"demoRoles": {
 			"admin": "Admin",
-			"company": "Company",
-			"headhunter": "Headhunter",
-			"candidate": "Candidate"
+			"company": "Company — Acme Studios",
+			"headhunter": "Headhunter — Talent Hunters AG",
+			"candidate": "Candidate — Kai Sommer"
+		},
+		"demoEmails": {
+			"admin": "admin@klick.local",
+			"company": "company@klick.local",
+			"headhunter": "headhunter@klick.local",
+			"candidate": "candidate@klick.local"
+		},
+		"demoDescriptions": {
+			"admin": "Audit log + tenant overview.",
+			"company": "Acme Studios with 3 published roles + match list.",
+			"headhunter": "Talent Hunters AG, recruiting for 2 senior roles.",
+			"candidate": "Senior frontend engineer with insights, vault, matches."
 		}
 	},
 	"LoginCheck": {
@@ -91,6 +113,14 @@
 	"Profile": {
 		"title": "My profile",
 		"insightsHeading": "How your profile reads",
+		"share": {
+			"title": "Public share link",
+			"subtitle": "Optional. Exposes a read-only profile page you can share — e.g. in an application or your CV header. You can revoke anytime.",
+			"generate": "Generate link",
+			"copy": "Copy",
+			"copied": "Copied",
+			"revoke": "Revoke link"
+		},
 		"subtitle": "What employers see once you allow interest. You control visibility and content.",
 		"importFromCv": "Import from CV",
 		"importHint": "Pick a CV from your vault — the fields below get pre-filled with the AI's suggestion. You review and correct.",
@@ -147,7 +177,11 @@
 			"noRemote": "On-site / hybrid",
 			"minSalary": "Min salary (€/yr)",
 			"maxCommute": "Max commute mins",
-			"maxCommutePlaceholder": "e.g. 45"
+			"maxCommutePlaceholder": "e.g. 45",
+			"sort": "Sort",
+			"sortScore": "Match score",
+			"sortCommute": "Shortest commute",
+			"sortSalary": "Highest salary"
 		},
 		"candidatesTitle": "Candidates",
 		"candidatesSubtitle": "Anonymized suggestions — identity only after the candidate approves an interest request.",
@@ -169,9 +203,21 @@
 	"Admin": {
 		"title": "Admin",
 		"subtitle": "Platform overview. Full tenant + connector management ships in P7.",
-		"auditTitle": "Audit log (last 200 entries)",
-		"auditEmpty": "No activity yet.",
+		"auditTitle": "Audit log",
+		"auditEmpty": "No entries with these filters.",
 		"auditFootnote": "Append-only. Entries remain after source records are deleted, for compliance.",
+		"filters": {
+			"action": "Action",
+			"any": "All",
+			"query": "Search in target",
+			"queryPlaceholder": "e.g. user-id-prefix",
+			"since": "Period",
+			"anyTime": "Any",
+			"since1h": "Last hour",
+			"since24h": "Last 24 h",
+			"since7d": "Last 7 days",
+			"since30d": "Last 30 days"
+		},
 		"comingTitle": "Coming next",
 		"comingDynamicRoutes": "Dynamic API route management in the UI (proxy / sql / jsonata handlers)",
 		"comingTenants": "Tenant management with subdomain branding",
@@ -216,6 +262,24 @@
 		"whatTheyAsked": "What was asked",
 		"messageFrom": "Message from {company}",
 		"aboutTheJob": "About the job",
+		"salaryHeading": "Salary + market signal",
+		"salaryGross": "gross/yr",
+		"salaryBenchmark": "Market range for similar roles: {low} – {high}",
+		"salaryUnder": "{pct}% below market",
+		"salaryOver": "{pct}% above market",
+		"salaryFair": "within typical corridor",
+		"disclosures": {
+			"title": "Share specific files",
+			"subtitle": "Pick which vault items this employer can read. Revoke anytime.",
+			"emptyVault": "No vault items to share.",
+			"kind": {
+				"cv": "CV",
+				"certificate": "Cert",
+				"badge": "Badge",
+				"id_doc": "ID",
+				"other": "Other"
+			}
+		},
 		"receivedAt": "Received {time}",
 		"expiresAt": "Expires {time}",
 		"decidedAt": "Decided {time}",
@@ -243,6 +307,10 @@
 		"subtitle": "Your job postings. Match suggestions go live in P4.",
 		"newJob": "New job",
 		"editJob": "Edit job",
+		"benchmarkTitle": "Market estimate (AI):",
+		"benchmarkUnder": "You're paying {pct}% below market — consider raising.",
+		"benchmarkOver": "You're paying {pct}% above market — likely room to negotiate.",
+		"benchmarkFair": "Within the typical corridor.",
 		"uploader": {
 			"title": "Upload job posting",
 			"hint": "Drop a PDF or image — AI fills title, description, requirements, salary and languages automatically. You verify and tweak.",
@@ -556,6 +624,35 @@
 			"awards": "Awards / publications",
 			"certificationsMentioned": "Certifications cited in CV",
 			"certificationsMentionedHint": "Mentioned in the CV body, not necessarily uploaded as a file in the vault."
+		}
+	},
+	"PublicProfile": {
+		"publicLabel": "Shared profile",
+		"anonymous": "Candidate",
+		"skills": "Skills",
+		"insightsHeading": "Career insights",
+		"footerHint": "Only what the person voluntarily made public. Vault content stays private. Reach out via Klick."
+	},
+	"Browse": {
+		"title": "Browse jobs",
+		"subtitle": "All published jobs in your workspace. With match score — how well you fit.",
+		"empty": "No jobs found. Adjust filters or clear the search.",
+		"scoreHint": "Score is based on your profile — no obligation to apply.",
+		"notQualified": "no fit",
+		"commuteOverLimit": "over commute limit",
+		"remote": {
+			"onsite": "On-site",
+			"hybrid": "Hybrid",
+			"remote": "Remote"
+		},
+		"filters": {
+			"query": "Search",
+			"queryPlaceholder": "Title, skills, company…",
+			"remote": "Work mode",
+			"remoteAny": "Any",
+			"remoteOnly": "Remote only",
+			"noRemote": "On-site / hybrid",
+			"minSalary": "Min salary"
 		}
 	}
 }

@@ -83,6 +83,7 @@ Vollständiger Implementierungsplan: `~/.claude/plans/trustvault-initial-prompt-
 - **Kontext**: pg-boss ist installiert aber nicht initialisiert; Match-Compute + Verify-Orchestrator sollen Form-Response nicht blockieren.
 - **Entscheidung**: Next.js' `after()` für nicht-blockierende Post-Response-Arbeit. Genug für MVP, Single-Server.
 - **Folgen**: Kein Retry, kein Cross-Process-Queue. Bei mehreren Replicas brauchen wir pg-boss — der Refactor ist klein (Funktion-Body in pg-boss-Job-Handler verschieben).
+- **Geplant für eigene Session**: Refactor sobald Match-Mengen > einige hundert pro Job oder Mail-Versand (`lib/mail/send.ts`) skalieren muss. Heute genutzt für: matches.computeMatchesForJob, matches.recomputeMatchesForCandidate, vault.extractAndPersist, insights.recomputeInsights, mail.sendTransactionalMail bei neuem Match.
 
 ## Wichtige Datei-Pfade
 

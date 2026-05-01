@@ -242,6 +242,9 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 	// user input. Shape: see lib/insights/types.ts (CandidateInsights).
 	insights: jsonb("insights"),
 	insightsUpdatedAt: timestamp("insights_updated_at", { mode: "date" }),
+	// Opaque token candidate can share to expose a read-only public profile
+	// at /p/<token>. Null = sharing disabled. Re-generated on revoke+enable.
+	publicShareToken: text("public_share_token").unique(),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
 
@@ -312,6 +315,18 @@ export const jobs = pgTable("jobs", {
 	// Cached geocode of `location` — set when the job is saved.
 	locationLat: doublePrecision("location_lat"),
 	locationLng: doublePrecision("location_lng"),
+	// AI-estimated market salary range for this role + location + level.
+	// Computed on save; null if AI hasn't returned a guess.
+	salaryBenchmarkLow: integer("salary_benchmark_low"),
+	salaryBenchmarkHigh: integer("salary_benchmark_high"),
+	// Verdict relative to declared salaryMin/Max. "under" → employer pays
+	// less than market, "over" → above market, "fair" → within ±5%, null
+	// when no declared salary or no benchmark.
+	salaryFairness: text("salary_fairness", {
+		enum: ["under", "fair", "over"],
+	}),
+	// Percentage delta vs midpoint of benchmark (negative = below market).
+	salaryDeltaPct: integer("salary_delta_pct"),
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
@@ -327,6 +342,31 @@ export const geocodeCache = pgTable("geocode_cache", {
 	lng: doublePrecision("lng"),
 	resolvedAt: timestamp("resolved_at", { mode: "date" }).notNull().defaultNow(),
 });
+
+// Per-file disclosure: which vault items has the candidate explicitly
+// shared with a given interest? Empty = nothing shared, the employer just
+// sees identity (after Interest is approved). Each row is a one-way grant.
+export const disclosures = pgTable(
+	"disclosures",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		interestId: text("interest_id")
+			.notNull()
+			.references(() => interests.id, { onDelete: "cascade" }),
+		vaultItemId: text("vault_item_id")
+			.notNull()
+			.references(() => vaultItems.id, { onDelete: "cascade" }),
+		grantedAt: timestamp("granted_at", { mode: "date" }).notNull().defaultNow(),
+		revokedAt: timestamp("revoked_at", { mode: "date" }),
+	},
+	(t) => [
+		unique("disclosures_interest_vault_unique").on(t.interestId, t.vaultItemId),
+	],
+);
+
+export type Disclosure = typeof disclosures.$inferSelect;
 
 // ─── Matches ──────────────────────────────────────────────────────────────
 // Computed by lib/match/engine.ts whenever a job is published or a profile is
@@ -367,6 +407,13 @@ export const matches = pgTable(
 			mode: "car" | "transit" | "bike" | "walk";
 			exceedsLimit: boolean;
 		}>(),
+		// Pro/Con bullet points produced by the AI matcher. Surfaced in the
+		// detail view next to the rationale.
+		pros: jsonb("pros").$type<string[]>(),
+		cons: jsonb("cons").$type<string[]>(),
+		// Years comparison: candidate vs required + tenure context. Short
+		// string for the UI to display verbatim ("9 J. — 3 mehr als gefordert").
+		experienceVerdict: text("experience_verdict"),
 		status: text("status", {
 			enum: ["suggested", "interested", "approved", "rejected"],
 		})

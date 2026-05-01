@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { listInterestsForJob } from "@/app/actions/interests";
+import {
+	listDisclosedItemsForInterest,
+	listInterestsForJob,
+} from "@/app/actions/interests";
 import { getJob } from "@/app/actions/jobs";
 import { listMatchesForJob } from "@/app/actions/matches";
 import { auth } from "@/auth";
@@ -32,16 +35,26 @@ export default async function JobCandidatesPage({
 	const interestByMatch = new Map<
 		string,
 		{
+			id: string;
 			status: "pending" | "approved" | "rejected" | "expired";
 			email: string | null;
 			displayName: string | null;
+			disclosedItems?: Awaited<
+				ReturnType<typeof listDisclosedItemsForInterest>
+			>;
 		}
 	>();
 	for (const i of interestsForJob) {
+		const disclosed =
+			i.interest.status === "approved"
+				? await listDisclosedItemsForInterest(i.interest.id)
+				: undefined;
 		interestByMatch.set(i.interest.matchId, {
+			id: i.interest.id,
 			status: i.interest.status,
 			email: i.candidate.email,
 			displayName: i.candidate.displayName,
+			disclosedItems: disclosed,
 		});
 	}
 
@@ -101,6 +114,28 @@ export default async function JobCandidatesPage({
 													{interest.email}
 												</div>
 											)}
+											{interest?.disclosedItems &&
+												interest.disclosedItems.length > 0 && (
+													<div className="mt-2">
+														<p className="text-[10px] uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+															Freigegebene Dateien
+														</p>
+														<ul className="mt-1 space-y-0.5">
+															{interest.disclosedItems.map((d) => (
+																<li key={d.id} className="text-xs">
+																	<a
+																		href={`/api/vault/${d.id}/file`}
+																		target="_blank"
+																		rel="noreferrer"
+																		className="text-primary hover:underline"
+																	>
+																		{d.filename}
+																	</a>
+																</li>
+															))}
+														</ul>
+													</div>
+												)}
 										</div>
 										<span
 											className={cn(
@@ -153,6 +188,40 @@ export default async function JobCandidatesPage({
 														: "zu Fuß"}
 											{c.match.commute.exceedsLimit && " · über Wunsch-Limit"}
 										</div>
+									)}
+									{((c.match.pros?.length ?? 0) > 0 ||
+										(c.match.cons?.length ?? 0) > 0) && (
+										<div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+											{c.match.pros && c.match.pros.length > 0 && (
+												<div>
+													<p className="mb-1 font-medium text-emerald-700 text-xs dark:text-emerald-300">
+														+ Pro
+													</p>
+													<ul className="space-y-0.5 text-xs">
+														{c.match.pros.map((p) => (
+															<li key={p}>{p}</li>
+														))}
+													</ul>
+												</div>
+											)}
+											{c.match.cons && c.match.cons.length > 0 && (
+												<div>
+													<p className="mb-1 font-medium text-amber-700 text-xs dark:text-amber-300">
+														– Bedenken
+													</p>
+													<ul className="space-y-0.5 text-xs">
+														{c.match.cons.map((p) => (
+															<li key={p}>{p}</li>
+														))}
+													</ul>
+												</div>
+											)}
+										</div>
+									)}
+									{c.match.experienceVerdict && (
+										<p className="mt-2 font-mono text-[11px] text-muted-foreground">
+											{c.match.experienceVerdict}
+										</p>
 									)}
 									{c.summary && (
 										<p className="mt-2 line-clamp-2 text-muted-foreground text-xs leading-snug">

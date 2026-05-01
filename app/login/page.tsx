@@ -13,10 +13,30 @@ async function loginAction(formData: FormData) {
 }
 
 const DEMO_ROLES = [
-	{ key: "admin", labelKey: "demoRoles.admin" },
-	{ key: "company", labelKey: "demoRoles.company" },
-	{ key: "headhunter", labelKey: "demoRoles.headhunter" },
-	{ key: "candidate", labelKey: "demoRoles.candidate" },
+	{
+		key: "candidate",
+		labelKey: "demoRoles.candidate",
+		emailKey: "demoEmails.candidate",
+		descKey: "demoDescriptions.candidate",
+	},
+	{
+		key: "company",
+		labelKey: "demoRoles.company",
+		emailKey: "demoEmails.company",
+		descKey: "demoDescriptions.company",
+	},
+	{
+		key: "headhunter",
+		labelKey: "demoRoles.headhunter",
+		emailKey: "demoEmails.headhunter",
+		descKey: "demoDescriptions.headhunter",
+	},
+	{
+		key: "admin",
+		labelKey: "demoRoles.admin",
+		emailKey: "demoEmails.admin",
+		descKey: "demoDescriptions.admin",
+	},
 ] as const;
 
 export default async function LoginPage() {
@@ -58,17 +78,28 @@ export default async function LoginPage() {
 						<p className="mt-1 text-muted-foreground text-xs leading-relaxed">
 							{t("demoSubtitle")}
 						</p>
-						<div className="mt-4 grid grid-cols-2 gap-2">
+						<ul className="mt-4 space-y-2">
 							{DEMO_ROLES.map((r) => (
-								<a
-									key={r.key}
-									href={`/api/demo-login?role=${r.key}`}
-									className="rounded-md border border-border bg-background px-3 py-2 text-center text-sm transition hover:bg-muted"
-								>
-									{t(r.labelKey)}
-								</a>
+								<li key={r.key}>
+									<a
+										href={`/api/demo-login?role=${r.key}`}
+										className="block rounded-md border border-border bg-background p-3 transition hover:border-primary/40 hover:bg-muted"
+									>
+										<div className="flex items-center justify-between gap-3">
+											<span className="font-medium text-sm">
+												{t(r.labelKey)}
+											</span>
+											<span className="font-mono text-[10px] text-muted-foreground">
+												{t(r.emailKey)}
+											</span>
+										</div>
+										<p className="mt-1 text-muted-foreground text-xs leading-snug">
+											{t(r.descKey)}
+										</p>
+									</a>
+								</li>
 							))}
-						</div>
+						</ul>
 					</div>
 				)}
 			</main>

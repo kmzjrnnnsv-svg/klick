@@ -5,6 +5,7 @@ import { HeaderMobileMenu } from "@/components/header-mobile-menu";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { buttonVariants } from "@/components/ui/button";
+import { UserMenu } from "@/components/user-menu";
 import { cn } from "@/lib/utils";
 
 export async function Header() {
@@ -13,6 +14,9 @@ export async function Header() {
 	const role =
 		(session?.user as { role?: "candidate" | "employer" | "admin" } | undefined)
 			?.role ?? null;
+	const isLoggedIn = !!session?.user;
+	const userEmail = session?.user?.email ?? null;
+	const userName = session?.user?.name ?? null;
 
 	const navLinks: { href: string; label: string }[] =
 		role === "employer"
@@ -24,11 +28,10 @@ export async function Header() {
 							{ href: "/vault", label: t("openVault") },
 							{ href: "/profile", label: t("openProfile") },
 							{ href: "/matches", label: t("openMatches") },
+							{ href: "/jobs/browse", label: t("openBrowse") },
 							{ href: "/requests", label: t("openRequests") },
 						]
 					: [];
-
-	const isLoggedIn = !!session?.user;
 
 	return (
 		<header className="sticky top-0 z-30 w-full border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -57,6 +60,9 @@ export async function Header() {
 				<div className="flex items-center gap-1">
 					<LocaleSwitcher />
 					<ThemeSwitcher />
+					{isLoggedIn && userEmail && role && (
+						<UserMenu email={userEmail} name={userName} role={role} />
+					)}
 					{!isLoggedIn && (
 						<Link
 							href="/login"

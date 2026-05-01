@@ -150,6 +150,45 @@ export type CandidateNarrative = {
 	strengths: string[]; // 2-4 short phrases
 };
 
+// Salary benchmark for a published job. Returned in EUR by the AI provider —
+// rough market-fit estimate, not a contract. Always discloses uncertainty.
+export type SalaryBenchmark = {
+	low: number;
+	high: number;
+	currency: "EUR";
+	rationale: string; // single sentence, "warum dieser Bereich"
+};
+
+export type SalaryBenchmarkInput = {
+	title: string;
+	description: string;
+	location: string | null;
+	yearsRequired: number;
+	level?: string; // "junior" | "mid" | "senior" | "lead" | "principal"
+	requirements: string[]; // skill names
+	remote: "onsite" | "hybrid" | "remote";
+};
+
+// Per-match assessment shown next to the rationale: pro/con bullets +
+// short experience comparison line.
+export type MatchAssessment = {
+	pros: string[];
+	cons: string[];
+	experienceVerdict: string;
+};
+
+export type MatchAssessmentInput = {
+	jobTitle: string;
+	jobDescription: string;
+	yearsRequired: number;
+	candidateHeadline: string | null;
+	candidateSummary: string | null;
+	candidateYears: number | null;
+	matchedSkills: string[];
+	missingSkills: string[];
+	adjacentSkills: string[];
+};
+
 export interface AIProvider {
 	readonly slug: string;
 	parseCv(bytes: Uint8Array, mime: string): Promise<ExtractedProfile>;
@@ -177,4 +216,11 @@ export interface AIProvider {
 	summarizeCandidate(
 		input: CandidateNarrativeInput,
 	): Promise<CandidateNarrative>;
+	// Estimate market salary range for a published job. Used to flag jobs
+	// where the employer pays under/over market, and shown to candidates as
+	// a transparency signal.
+	benchmarkSalary(input: SalaryBenchmarkInput): Promise<SalaryBenchmark>;
+	// Pro/con + tenure summary attached to each match. Helps employers
+	// decide quickly without reading the whole profile.
+	assessMatch(input: MatchAssessmentInput): Promise<MatchAssessment>;
 }

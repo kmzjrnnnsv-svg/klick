@@ -16,6 +16,8 @@ import {
 	users,
 } from "@/db/schema";
 import { getAIProvider } from "@/lib/ai";
+import { osrmRoute } from "@/lib/geo/distance";
+import { sendTransactionalMail } from "@/lib/mail/send";
 import { scoreMatch } from "@/lib/match/engine";
 
 const TOP_N = 20;
@@ -44,6 +46,7 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 	const passing: {
 		profile: CandidateProfile;
 		userId: string;
+		userEmail: string | null;
 		hardScore: 0 | 100;
 		softScore: number;
 		hardReasons: string[];
@@ -57,16 +60,48 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 		if (profile.visibility === "private") continue;
 		const score = scoreMatch(job, profile);
 		if (!score.hardPass) continue;
+		// Upgrade commute estimate with real OSRM routing (driving / cycling /
+		// walking only — transit needs a different routing engine). Best-
+		// effort: keep the haversine result if the call fails.
+		let commute = score.commute;
+		if (
+			commute &&
+			(commute.mode === "car" ||
+				commute.mode === "bike" ||
+				commute.mode === "walk") &&
+			profile.addressLat != null &&
+			profile.addressLng != null &&
+			job.locationLat != null &&
+			job.locationLng != null
+		) {
+			const real = await osrmRoute(
+				{ lat: profile.addressLat, lng: profile.addressLng },
+				{ lat: job.locationLat, lng: job.locationLng },
+				commute.mode,
+			);
+			if (real) {
+				const exceedsLimit =
+					profile.maxCommuteMinutes != null &&
+					real.minutes > profile.maxCommuteMinutes;
+				commute = {
+					km: Math.round(real.km),
+					minutes: real.minutes,
+					mode: commute.mode,
+					exceedsLimit,
+				};
+			}
+		}
 		passing.push({
 			profile,
 			userId: user.id,
+			userEmail: user.email ?? null,
 			hardScore: score.hardScore,
 			softScore: score.softScore,
 			hardReasons: score.hardReasons,
 			matchedSkills: score.matchedSkills,
 			missingSkills: score.missingSkills,
 			adjacentSkills: score.adjacentSkills,
-			commute: score.commute,
+			commute,
 		});
 	}
 
@@ -75,19 +110,44 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 
 	const ai = getAIProvider();
 
-	// Compute rationales (one per top match). Sequential to avoid rate limits.
+	// Find existing matches so we know which are NEW (worth a notification).
+	const existingMatchIds = new Set(
+		(
+			await db
+				.select({ candidateUserId: matches.candidateUserId })
+				.from(matches)
+				.where(eq(matches.jobId, job.id))
+		).map((r) => r.candidateUserId),
+	);
+
+	// Compute rationales + assessments (one per top match). Sequential to
+	// avoid rate limits.
 	for (const m of top) {
 		try {
-			const rationale = await ai.matchRationale({
-				jobTitle: job.title,
-				jobDescription: job.description,
-				candidateHeadline: m.profile.headline,
-				candidateSummary: m.profile.summary,
-				matchedSkills: m.matchedSkills,
-				missingSkills: m.missingSkills,
-				yearsExperience: m.profile.yearsExperience,
-				yearsRequired: job.yearsExperienceMin,
-			});
+			const [rationale, assessment] = await Promise.all([
+				ai.matchRationale({
+					jobTitle: job.title,
+					jobDescription: job.description,
+					candidateHeadline: m.profile.headline,
+					candidateSummary: m.profile.summary,
+					matchedSkills: m.matchedSkills,
+					missingSkills: m.missingSkills,
+					yearsExperience: m.profile.yearsExperience,
+					yearsRequired: job.yearsExperienceMin,
+				}),
+				ai.assessMatch({
+					jobTitle: job.title,
+					jobDescription: job.description,
+					yearsRequired: job.yearsExperienceMin ?? 0,
+					candidateHeadline: m.profile.headline,
+					candidateSummary: m.profile.summary,
+					candidateYears: m.profile.yearsExperience,
+					matchedSkills: m.matchedSkills,
+					missingSkills: m.missingSkills,
+					adjacentSkills: m.adjacentSkills,
+				}),
+			]);
+			const isNew = !existingMatchIds.has(m.userId);
 			await db
 				.insert(matches)
 				.values({
@@ -101,6 +161,9 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 					missingSkills: m.missingSkills,
 					adjacentSkills: m.adjacentSkills,
 					commute: m.commute ?? null,
+					pros: assessment.pros,
+					cons: assessment.cons,
+					experienceVerdict: assessment.experienceVerdict,
 				})
 				.onConflictDoUpdate({
 					target: [matches.jobId, matches.candidateUserId],
@@ -113,9 +176,29 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 						missingSkills: m.missingSkills,
 						adjacentSkills: m.adjacentSkills,
 						commute: m.commute ?? null,
+						pros: assessment.pros,
+						cons: assessment.cons,
+						experienceVerdict: assessment.experienceVerdict,
 						computedAt: new Date(),
 					},
 				});
+
+			// Notify the candidate when this is a fresh, strong match. Skip
+			// re-runs and weak matches to avoid spamming. Best-effort.
+			if (isNew && m.softScore >= 60 && m.userEmail) {
+				const baseUrl = process.env.AUTH_URL ?? "https://raza.work";
+				await sendTransactionalMail({
+					to: m.userEmail,
+					subject: `Neue passende Stelle: ${job.title}`,
+					text:
+						`Eine neue Stelle könnte zu dir passen:\n\n` +
+						`${job.title}${job.location ? ` · ${job.location}` : ""}\n` +
+						`Match-Score: ${m.softScore}/100\n\n` +
+						`${rationale}\n\n` +
+						`Schau sie dir an: ${baseUrl}/matches\n\n` +
+						`Du erhältst diese Mail, weil dein Profil bei Klick zu dieser Stelle passt. Du bleibst anonym, bis du selbst Interesse zeigst.`,
+				});
+			}
 		} catch (e) {
 			console.error("match rationale failed", e);
 		}
@@ -215,10 +298,103 @@ export type CandidateMatchView = {
 	employer: Pick<Employer, "id" | "companyName">;
 };
 
+// Public-ish job listing for candidates: shows every published job in
+// their tenant, regardless of match score. Adds a soft preview of how
+// they'd score for it (so they can self-assess before sending interest).
+export type BrowseJob = {
+	job: Job;
+	companyName: string;
+	hardPass: boolean;
+	softScore: number;
+	matchedSkills: string[];
+	missingSkills: string[];
+	commute: import("@/lib/match/engine").MatchScore["commute"];
+};
+
+export async function browseJobs(
+	filters: {
+		remote?: "any" | "remote_only" | "no_remote";
+		minSalary?: number;
+		q?: string;
+	} = {},
+): Promise<BrowseJob[]> {
+	const session = await auth();
+	if (!session?.user?.id) return [];
+	const userId = session.user.id;
+
+	const [user] = await db
+		.select({ tenantId: users.tenantId })
+		.from(users)
+		.where(eq(users.id, userId))
+		.limit(1);
+	if (!user?.tenantId) return [];
+
+	const [profile] = await db
+		.select()
+		.from(candidateProfiles)
+		.where(eq(candidateProfiles.userId, userId))
+		.limit(1);
+
+	const rows = await db
+		.select({
+			job: jobs,
+			companyName: employers.companyName,
+		})
+		.from(jobs)
+		.innerJoin(employers, eq(employers.id, jobs.employerId))
+		.where(
+			and(eq(employers.tenantId, user.tenantId), eq(jobs.status, "published")),
+		)
+		.orderBy(desc(jobs.updatedAt));
+
+	const { scoreMatch } = await import("@/lib/match/engine");
+	const out: BrowseJob[] = [];
+	for (const r of rows) {
+		const q = filters.q?.trim().toLowerCase();
+		if (q) {
+			const haystack =
+				`${r.job.title} ${r.job.description} ${r.companyName} ${(r.job.requirements ?? []).map((req) => req.name).join(" ")}`.toLowerCase();
+			if (!haystack.includes(q)) continue;
+		}
+		if (filters.remote === "remote_only" && r.job.remotePolicy !== "remote") {
+			continue;
+		}
+		if (filters.remote === "no_remote" && r.job.remotePolicy === "remote") {
+			continue;
+		}
+		if (filters.minSalary && filters.minSalary > 0) {
+			const cap = r.job.salaryMax ?? r.job.salaryMin ?? 0;
+			if (cap < filters.minSalary) continue;
+		}
+		const score = profile
+			? scoreMatch(r.job, profile)
+			: {
+					hardPass: false,
+					softScore: 0,
+					matchedSkills: [],
+					missingSkills: (r.job.requirements ?? [])
+						.filter((req) => req.weight === "must")
+						.map((req) => req.name),
+					commute: null,
+				};
+		out.push({
+			job: r.job,
+			companyName: r.companyName,
+			hardPass: score.hardPass,
+			softScore: score.softScore,
+			matchedSkills: score.matchedSkills,
+			missingSkills: score.missingSkills,
+			commute: score.commute,
+		});
+	}
+	return out;
+}
+
 export type MatchFilters = {
 	remote?: "any" | "remote_only" | "no_remote";
 	minSalary?: number;
 	maxCommuteMinutes?: number;
+	sort?: "score" | "commute" | "salary";
 };
 
 export async function listMatchesForCandidate(
@@ -245,7 +421,7 @@ export async function listMatchesForCandidate(
 		)
 		.orderBy(desc(matches.softScore));
 
-	return rows.filter(({ job, match }) => {
+	const filtered = rows.filter(({ job, match }) => {
 		if (filters.remote === "remote_only" && job.remotePolicy !== "remote") {
 			return false;
 		}
@@ -261,6 +437,23 @@ export async function listMatchesForCandidate(
 		}
 		return true;
 	});
+
+	if (filters.sort === "commute") {
+		filtered.sort((a, b) => {
+			const am = a.match.commute?.minutes ?? Number.POSITIVE_INFINITY;
+			const bm = b.match.commute?.minutes ?? Number.POSITIVE_INFINITY;
+			return am - bm;
+		});
+	} else if (filters.sort === "salary") {
+		filtered.sort((a, b) => {
+			const ax = a.job.salaryMax ?? a.job.salaryMin ?? 0;
+			const bx = b.job.salaryMax ?? b.job.salaryMin ?? 0;
+			return bx - ax;
+		});
+	}
+	// "score" is the default — already sorted by softScore desc.
+
+	return filtered;
 }
 
 export type AnonymousCandidateMatchView = {

@@ -2,21 +2,24 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getMyInsights } from "@/app/actions/insights";
 import { getProfile, listCvVaultItems } from "@/app/actions/profile";
+import { getMyShareToken } from "@/app/actions/public-profile";
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { CandidateInsightsView } from "@/components/insights/candidate-insights";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { ShareLink } from "@/components/profile/share-link";
 
 export default async function ProfilePage() {
 	const session = await auth();
 	if (!session?.user) redirect("/login");
 
 	const t = await getTranslations("Profile");
-	const [profile, cvs, insights] = await Promise.all([
+	const [profile, cvs, insights, shareToken] = await Promise.all([
 		getProfile(),
 		listCvVaultItems(),
 		getMyInsights(),
+		getMyShareToken(),
 	]);
 
 	return (
@@ -50,6 +53,10 @@ export default async function ProfilePage() {
 								: null
 						}
 					/>
+				</section>
+
+				<section className="mb-6">
+					<ShareLink initialToken={shareToken} />
 				</section>
 
 				<ProfileForm initial={profile} cvs={cvs} />
