@@ -55,12 +55,24 @@ export async function GET(req: NextRequest) {
 		expires,
 	});
 
-	const isSecure = req.nextUrl.protocol === "https:";
+	// Build the redirect against the public base URL — req.url reflects the
+	// internal listener (localhost:3000) when running behind a proxy.
+	// AUTH_URL is set to the canonical https://… origin in production.
+	const forwardedProto = req.headers.get("x-forwarded-proto");
+	const forwardedHost =
+		req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+	const baseUrl =
+		process.env.AUTH_URL ??
+		(forwardedProto && forwardedHost
+			? `${forwardedProto}://${forwardedHost}`
+			: new URL(req.url).origin);
+
+	const isSecure = baseUrl.startsWith("https://");
 	const cookieName = isSecure
 		? "__Secure-authjs.session-token"
 		: "authjs.session-token";
 
-	const res = NextResponse.redirect(new URL("/post-login", req.url));
+	const res = NextResponse.redirect(new URL("/post-login", baseUrl));
 	res.cookies.set(cookieName, sessionToken, {
 		path: "/",
 		httpOnly: true,
