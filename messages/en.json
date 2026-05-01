@@ -15,7 +15,16 @@
 		"toggleTheme": "Toggle theme",
 		"toggleLocale": "Switch language",
 		"openMenu": "Open menu",
-		"closeMenu": "Close menu"
+		"closeMenu": "Close menu",
+		"user": {
+			"openMenu": "Account menu",
+			"logout": "Sign out",
+			"role": {
+				"candidate": "Candidate",
+				"employer": "Employer",
+				"admin": "Admin"
+			}
+		}
 	},
 	"Footer": {
 		"tagline": "You stay in control.",
@@ -54,9 +63,21 @@
 		"demoSubtitle": "Pick a role to enter the app from that perspective. Only visible because ENABLE_DEMO_LOGIN is set.",
 		"demoRoles": {
 			"admin": "Admin",
-			"company": "Company",
-			"headhunter": "Headhunter",
-			"candidate": "Candidate"
+			"company": "Company — Acme Studios",
+			"headhunter": "Headhunter — Talent Hunters AG",
+			"candidate": "Candidate — Kai Sommer"
+		},
+		"demoEmails": {
+			"admin": "admin@klick.local",
+			"company": "company@klick.local",
+			"headhunter": "headhunter@klick.local",
+			"candidate": "candidate@klick.local"
+		},
+		"demoDescriptions": {
+			"admin": "Audit log + tenant overview.",
+			"company": "Acme Studios with 3 published roles + match list.",
+			"headhunter": "Talent Hunters AG, recruiting for 2 senior roles.",
+			"candidate": "Senior frontend engineer with insights, vault, matches."
 		}
 	},
 	"LoginCheck": {

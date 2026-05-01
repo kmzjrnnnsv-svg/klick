@@ -15,7 +15,16 @@
 		"toggleTheme": "Theme wechseln",
 		"toggleLocale": "Sprache wechseln",
 		"openMenu": "Menü öffnen",
-		"closeMenu": "Menü schließen"
+		"closeMenu": "Menü schließen",
+		"user": {
+			"openMenu": "Konto-Menü",
+			"logout": "Abmelden",
+			"role": {
+				"candidate": "Kandidat:in",
+				"employer": "Arbeitgeber",
+				"admin": "Admin"
+			}
+		}
 	},
 	"Footer": {
 		"tagline": "Du behältst die Kontrolle.",
@@ -54,9 +63,21 @@
 		"demoSubtitle": "Klick eine Rolle, um die App sofort aus dieser Sicht zu erleben. Nur sichtbar, weil ENABLE_DEMO_LOGIN aktiv ist.",
 		"demoRoles": {
 			"admin": "Admin",
-			"company": "Unternehmen",
-			"headhunter": "Headhunter",
-			"candidate": "Kandidat:in"
+			"company": "Unternehmen — Acme Studios",
+			"headhunter": "Headhunter — Talent Hunters AG",
+			"candidate": "Kandidat:in — Kai Sommer"
+		},
+		"demoEmails": {
+			"admin": "admin@klick.local",
+			"company": "company@klick.local",
+			"headhunter": "headhunter@klick.local",
+			"candidate": "candidate@klick.local"
+		},
+		"demoDescriptions": {
+			"admin": "Audit-Log + Tenant-Übersicht.",
+			"company": "Acme Studios mit 3 publizierten Stellen + Match-Liste.",
+			"headhunter": "Talent Hunters AG, vermittelt 2 Senior-Stellen im Auftrag.",
+			"candidate": "Senior Frontend Engineer mit Insights, Vault, Matches."
 		}
 	},
 	"LoginCheck": {
