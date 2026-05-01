@@ -33,15 +33,22 @@
 		"imprint": "Impressum"
 	},
 	"Landing": {
+		"eyebrow": "Maison Klick — Est. 2026",
 		"hero": {
 			"title": "Bewerben. Aber souverän.",
 			"subtitle": "Klick ist deine private Bewerbungsmappe. Lade Lebenslauf, Zeugnisse und Open Badges einmal hoch — und entscheide dann pro Arbeitgeber, was geteilt und was geprüft wird.",
-			"cta": "Vault eröffnen"
+			"cta": "Vault eröffnen",
+			"secondary": "Stellen ansehen"
+		},
+		"manifesto": {
+			"eyebrow": "Manifest",
+			"title": "Drei Versprechen, die wir nicht brechen.",
+			"body": "Recruiting hat seine Würde verloren. Daten werden gehortet, Profile durchsucht, Lebensläufe vor jeder echten Konversation auseinandergenommen. Wir drehen das um."
 		},
 		"pillars": {
 			"1": {
 				"title": "Daten in deiner Hand",
-				"body": "Alles im Vault ist verschlüsselt. Du löschst, was du löschen willst — jederzeit, ohne Rückfrage."
+				"body": "Alles im Vault ist mit XChaCha20-Poly1305 verschlüsselt. Du löschst, was du löschen willst — jederzeit, ohne Rückfrage."
 			},
 			"2": {
 				"title": "Verifikation auf Abruf",
@@ -51,6 +58,155 @@
 				"title": "Kein öffentliches Profil",
 				"body": "Du wirst nicht durchsuchbar. Matches kommen anonymisiert zu dir — du entscheidest, ob du sichtbar wirst."
 			}
+		},
+		"candidateJourney": {
+			"eyebrow": "Für Kandidat:innen",
+			"title": "Fünf Schritte. Kein Lebenslauf-Ping-Pong mehr.",
+			"steps": {
+				"1": {
+					"title": "Vault eröffnen",
+					"body": "Magic-Link-Anmeldung. Kein Passwort, kein Tracking. In 30 Sekunden drin."
+				},
+				"2": {
+					"title": "Dokumente hochladen",
+					"body": "Lebenslauf, Arbeitszeugnisse, Zertifikate, ID. Alles wird beim Upload verschlüsselt."
+				},
+				"3": {
+					"title": "KI extrahiert dein Profil",
+					"body": "Claude liest deinen Lebenslauf, erkennt Skills, Branchen, Mobilität. Du korrigierst, falls nötig."
+				},
+				"4": {
+					"title": "Matches erscheinen anonym",
+					"body": "Stellen, die zu dir passen — mit Gehalts-Einschätzung, Pendelweg-Berechnung und KI-Begründung."
+				},
+				"5": {
+					"title": "Du entscheidest",
+					"body": "Pro Anfrage gibst du frei: welche Datei sichtbar wird, welche Prüfung laufen darf, ob dein Name fällt."
+				}
+			}
+		},
+		"employerJourney": {
+			"eyebrow": "Für Arbeitgeber",
+			"title": "Stellen ausschreiben. Echte Profile bekommen.",
+			"steps": {
+				"1": {
+					"title": "Stelle anlegen",
+					"body": "Tippen oder PDF hochladen — Klick extrahiert Anforderungen, Gehaltsband und Standort automatisch."
+				},
+				"2": {
+					"title": "Match-Engine läuft",
+					"body": "Hard-Filter (Pflicht-Skills, Mindesterfahrung) plus Soft-Score mit Quereinstiegs-Toleranz und Pendelweg-Check."
+				},
+				"3": {
+					"title": "Anonyme Liste",
+					"body": "Top-Kandidat:innen mit Score, Pro/Contra, Match-Begründung, Gehaltsfairness — ohne Klarnamen."
+				},
+				"4": {
+					"title": "Interesse + Verifikation",
+					"body": "Du wählst Prüfungstiefe und schreibst eine Nachricht. Erst nach Approval siehst du Identität und Vault."
+				}
+			}
+		},
+		"features": {
+			"eyebrow": "Funktionen",
+			"title": "Alles, was du brauchst. Nichts, was wir verkaufen.",
+			"vault": {
+				"title": "Verschlüsselter Vault",
+				"body": "Envelope-Encryption mit Per-User-DEK. Drag-and-Drop oder Kamera-Upload direkt vom Handy."
+			},
+			"cv": {
+				"title": "KI-Profil aus Lebenslauf",
+				"body": "Claude erkennt Skills, Branchen, Mobilität, Auszeichnungen, Sprachniveau. Mock läuft offline."
+			},
+			"badges": {
+				"title": "Open Badges & Credly",
+				"body": "Per Link einbinden — JSON-LD wird gelesen, Aussteller geprüft, Echtheit signalisiert."
+			},
+			"verify": {
+				"title": "Verifikation on demand",
+				"body": "Mock, Credly oder IDnow — pro Anfrage einzeln. Connector-Pattern, weitere Quellen pluggable."
+			},
+			"match": {
+				"title": "Match-Engine",
+				"body": "Skill-Cluster für Quereinstieg, Pendelweg via OSRM/OTP, Gehaltsband-Abgleich, KI-Begründung."
+			},
+			"salary": {
+				"title": "Gehaltsbenchmark",
+				"body": "KI vergleicht das Stellen-Gehalt mit dem Markt. Kandidat:in sieht: zu niedrig, fair, generös."
+			},
+			"insights": {
+				"title": "Insights & Tenure-Score",
+				"body": "Verweildauer, Lücken, Wechselrhythmus, Zertifikats-Qualität, Aussteller-Legitimität."
+			},
+			"disclosure": {
+				"title": "Per-File-Disclosure",
+				"body": "Selbst nach Approval: jede Datei einzeln freigeben oder zurückziehen. Audit-Log inklusive."
+			},
+			"public": {
+				"title": "Öffentliches Profil (optional)",
+				"body": "Erstelle einen Share-Link mit Token. Dreh ihn ab, wann du willst — alte Links werden ungültig."
+			}
+		},
+		"trust": {
+			"eyebrow": "Sicherheit & Vertrauen",
+			"title": "Verschlüsselt im Ruhezustand. EU-gehostet. Auditiert.",
+			"items": {
+				"1": {
+					"title": "XChaCha20-Poly1305",
+					"body": "libsodium-Envelope mit per-User-DEK. Server sieht Klartext nur kurz beim Upload."
+				},
+				"2": {
+					"title": "EU-Region",
+					"body": "Postgres und Object-Storage in Deutschland (Hetzner). Keine US-Datentransfers."
+				},
+				"3": {
+					"title": "Audit-Log",
+					"body": "Jede Freigabe, jeder Vault-Zugriff, jede Verifikation wird zeit- und akteursgenau protokolliert."
+				},
+				"4": {
+					"title": "Hard-Delete",
+					"body": "Wenn du löschst, ist es weg. Keine Soft-Delete-Schatten, keine Backups, die zurückkommen."
+				}
+			}
+		},
+		"faq": {
+			"eyebrow": "Häufige Fragen",
+			"title": "Klärende Antworten.",
+			"items": {
+				"1": {
+					"q": "Was kostet Klick für Kandidat:innen?",
+					"a": "Nichts. Nie. Wir verdienen über Arbeitgeber-Abonnements — nicht durch deine Daten."
+				},
+				"2": {
+					"q": "Was, wenn die KI etwas falsch erkennt?",
+					"a": "Jedes Feld ist editierbar. Du behältst die Kontrolle über dein Profil — die KI ist Vorschlag, nicht Diktat."
+				},
+				"3": {
+					"q": "Werden meine Dokumente gelöscht?",
+					"a": "Mit einem Klick. Wir machen Hard-Delete. Auch das verschlüsselte File im Storage wird entfernt."
+				},
+				"4": {
+					"q": "Wer prüft die Open Badges?",
+					"a": "Wir lesen die offizielle JSON-LD-URL und checken den Aussteller gegen unsere Allowlist (~35 etablierte Anbieter)."
+				},
+				"5": {
+					"q": "Funktioniert das in meiner Branche?",
+					"a": "Klick ist branchenoffen. Skill-Cluster decken Tech, Design, Marketing, Data, Mobile und mehr ab — mit Quereinstiegs-Logik."
+				}
+			}
+		},
+		"finalCta": {
+			"title": "Bereit für eine Bewerbung mit Würde?",
+			"body": "Magic Link, kein Passwort. In zwei Minuten ist dein Vault offen.",
+			"cta": "Jetzt anmelden",
+			"secondary": "Demo erkunden"
+		},
+		"imageCaption": {
+			"hero": "Editorial",
+			"vault": "Vault",
+			"profile": "Profil",
+			"match": "Match",
+			"trust": "Trust"
 		}
 	},
 	"Login": {
