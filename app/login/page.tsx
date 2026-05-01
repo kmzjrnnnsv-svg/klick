@@ -45,14 +45,17 @@ export default async function LoginPage() {
 	return (
 		<>
 			<Header />
-			<main className="mx-auto w-full max-w-sm flex-1 px-4 pt-16 pb-24 sm:pt-24">
-				<h1 className="font-semibold text-2xl tracking-tight sm:text-3xl">
+			<main className="mx-auto w-full max-w-sm flex-1 px-4 pt-20 pb-24 sm:pt-28">
+				<p className="lv-eyebrow text-center text-[0.6rem] text-muted-foreground">
+					Maison Klick
+				</p>
+				<h1 className="mt-4 text-center font-serif-display text-3xl sm:text-4xl">
 					{t("title")}
 				</h1>
-				<p className="mt-3 text-muted-foreground text-sm leading-relaxed">
+				<p className="mx-auto mt-4 max-w-xs text-center text-muted-foreground text-sm leading-relaxed">
 					{t("subtitle")}
 				</p>
-				<form action={loginAction} className="mt-8 space-y-3">
+				<form action={loginAction} className="mt-10 space-y-5">
 					<Input
 						type="email"
 						name="email"
@@ -66,34 +69,37 @@ export default async function LoginPage() {
 						{t("submit")}
 					</Button>
 				</form>
-				<p className="mt-6 text-center text-muted-foreground text-xs leading-relaxed">
+				<p className="mt-8 text-center text-muted-foreground text-xs leading-relaxed">
 					{t("note")}
 				</p>
 
 				{demoEnabled && (
-					<div className="mt-10 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
-						<p className="font-medium text-amber-700 text-xs uppercase tracking-wide dark:text-amber-300">
+					<div className="mt-12 border-t border-border pt-8">
+						<p className="lv-eyebrow text-[0.6rem] text-foreground">
 							{t("demoTitle")}
 						</p>
-						<p className="mt-1 text-muted-foreground text-xs leading-relaxed">
+						<p className="mt-2 text-muted-foreground text-xs leading-relaxed">
 							{t("demoSubtitle")}
 						</p>
-						<ul className="mt-4 space-y-2">
+						<ul className="mt-6 space-y-0">
 							{DEMO_ROLES.map((r) => (
-								<li key={r.key}>
+								<li
+									key={r.key}
+									className="border-border/60 border-b last:border-b-0"
+								>
 									<a
 										href={`/api/demo-login?role=${r.key}`}
-										className="block rounded-md border border-border bg-background p-3 transition hover:border-primary/40 hover:bg-muted"
+										className="block py-4 transition hover:opacity-70"
 									>
 										<div className="flex items-center justify-between gap-3">
-											<span className="font-medium text-sm">
+											<span className="lv-eyebrow text-[0.65rem] text-foreground">
 												{t(r.labelKey)}
 											</span>
 											<span className="font-mono text-[10px] text-muted-foreground">
 												{t(r.emailKey)}
 											</span>
 										</div>
-										<p className="mt-1 text-muted-foreground text-xs leading-snug">
+										<p className="mt-1.5 text-muted-foreground text-xs leading-snug">
 											{t(r.descKey)}
 										</p>
 									</a>

@@ -3,24 +3,25 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-	--background: oklch(1 0 0);
-	--foreground: oklch(0.145 0 0);
-	--muted: oklch(0.97 0 0);
-	--muted-foreground: oklch(0.45 0 0);
-	--border: oklch(0.92 0 0);
-	--primary: oklch(0.55 0.165 263); /* ≈ #3B6FE4 */
-	--primary-foreground: oklch(0.985 0 0);
-	--radius: 0.625rem;
+	/* LV-inspired monogram cream + brown */
+	--background: oklch(0.985 0.008 85); /* ≈ #f7f3ec cream */
+	--foreground: oklch(0.18 0.015 60); /* ≈ #211c14 deep brown-black */
+	--muted: oklch(0.94 0.012 80); /* ≈ #ece6d9 paper */
+	--muted-foreground: oklch(0.45 0.02 60); /* ≈ #6b5e4a */
+	--border: oklch(0.86 0.018 75); /* ≈ #d8cfbd */
+	--primary: oklch(0.42 0.06 55); /* ≈ #6a4a2a monogram brown */
+	--primary-foreground: oklch(0.985 0.008 85);
+	--radius: 0.25rem;
 }
 
 .dark {
-	--background: oklch(0.145 0 0);
-	--foreground: oklch(0.97 0 0);
-	--muted: oklch(0.21 0 0);
-	--muted-foreground: oklch(0.7 0 0);
-	--border: oklch(0.27 0 0);
-	--primary: oklch(0.74 0.13 262); /* ≈ #7B9CFF */
-	--primary-foreground: oklch(0.145 0 0);
+	--background: oklch(0.16 0.012 60); /* ≈ #1d180f deep cocoa */
+	--foreground: oklch(0.95 0.012 80); /* ≈ #ede5d4 cream */
+	--muted: oklch(0.24 0.014 60); /* ≈ #2c2418 */
+	--muted-foreground: oklch(0.72 0.018 75); /* ≈ #beb29a */
+	--border: oklch(0.32 0.016 65); /* ≈ #3e3424 */
+	--primary: oklch(0.78 0.08 75); /* ≈ #d6b890 warm gold */
+	--primary-foreground: oklch(0.16 0.012 60);
 }
 
 @theme inline {
@@ -31,11 +32,15 @@
 	--color-border: var(--border);
 	--color-primary: var(--primary);
 	--color-primary-foreground: var(--primary-foreground);
-	--radius-sm: calc(var(--radius) - 2px);
+	--radius-sm: calc(var(--radius) - 1px);
 	--radius-md: var(--radius);
 	--radius-lg: calc(var(--radius) + 2px);
 	--font-sans:
-		var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+		var(--font-sans-display), "Futura", "Century Gothic", ui-sans-serif,
+		system-ui, -apple-system, sans-serif;
+	--font-serif:
+		var(--font-serif-display), "Didot", "Bodoni 72", "Hoefler Text", Cambria,
+		Georgia, serif;
 	--font-mono:
 		var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", monospace;
 }
@@ -49,10 +54,51 @@ body {
 	background: var(--background);
 	color: var(--foreground);
 	font-family: var(--font-sans);
+	font-feature-settings: "ss01", "cv11";
 	-webkit-font-smoothing: antialiased;
 	text-rendering: optimizeLegibility;
 }
 
 ::selection {
 	background: oklch(from var(--primary) l c h / 0.25);
+}
+
+/* LV-inspired typographic utilities */
+.font-serif-display {
+	font-family: var(--font-serif);
+	font-weight: 500;
+	letter-spacing: -0.01em;
+}
+
+.lv-eyebrow {
+	font-family: var(--font-sans);
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.22em;
+}
+
+.lv-wordmark {
+	font-family: var(--font-sans);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.32em;
+}
+
+.lv-nav {
+	font-family: var(--font-sans);
+	font-weight: 400;
+	text-transform: uppercase;
+	letter-spacing: 0.18em;
+}
+
+h1,
+h2,
+h3 {
+	font-family: var(--font-serif);
+	font-weight: 500;
+	letter-spacing: -0.005em;
+}
+
+h1 {
+	font-weight: 500;
 }
