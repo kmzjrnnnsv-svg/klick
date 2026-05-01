@@ -333,6 +333,28 @@ export const jobs = pgTable("jobs", {
 
 export type Job = typeof jobs.$inferSelect;
 
+// Editorial pages (Impressum, Datenschutz, AGB, …) per tenant. Admin-only
+// edit, public read. Keyed by slug so /imprint resolves to slug='imprint'.
+export const cmsPages = pgTable(
+	"cms_pages",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		tenantId: text("tenant_id")
+			.notNull()
+			.references(() => tenants.id, { onDelete: "cascade" }),
+		slug: text("slug").notNull(),
+		title: text("title").notNull(),
+		body: text("body").notNull().default(""),
+		updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+		updatedByUserId: text("updated_by_user_id").references(() => users.id),
+	},
+	(t) => [unique("cms_pages_tenant_slug_unique").on(t.tenantId, t.slug)],
+);
+
+export type CmsPage = typeof cmsPages.$inferSelect;
+
 // Geocode cache so we don't hammer Nominatim on every save. Key is the
 // normalized location string (lowercased, trimmed); value is the resolved
 // lat/lng or null when the geocoder couldn't place it.

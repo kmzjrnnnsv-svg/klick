@@ -735,8 +735,92 @@ async function main() {
 			],
 		},
 	);
+	await ensureJob(
+		headhunterEmployerId,
+		"Backend Lead — JVM-Stack",
+		"Im Auftrag eines Stuttgarter Mittelständlers: Backend-Lead für eine Plattform mit hohen Latenzanforderungen. Stack: Java oder Kotlin, Spring Boot, Kafka, PostgreSQL.",
+		{
+			location: "Stuttgart",
+			remotePolicy: "hybrid",
+			employmentType: "fulltime",
+			salaryMin: 90000,
+			salaryMax: 115000,
+			yearsExperienceMin: 8,
+			languages: ["Deutsch", "Englisch"],
+			requirements: [
+				{ name: "Java", weight: "must", minLevel: 4 },
+				{ name: "Spring Boot", weight: "must", minLevel: 4 },
+				{ name: "Kafka", weight: "nice" },
+				{ name: "PostgreSQL", weight: "nice" },
+			],
+		},
+	);
+	await ensureJob(
+		headhunterEmployerId,
+		"Lead Mobile Engineer — iOS + RN",
+		"Cross-Platform-App eines DACH-Health-Scale-ups, 2M MAU. Suchen Lead für 4-köpfiges Mobile-Team.",
+		{
+			location: "Remote / EU",
+			remotePolicy: "remote",
+			employmentType: "fulltime",
+			salaryMin: 80000,
+			salaryMax: 100000,
+			yearsExperienceMin: 6,
+			languages: ["Englisch"],
+			requirements: [
+				{ name: "Swift", weight: "must", minLevel: 4 },
+				{ name: "React Native", weight: "must", minLevel: 4 },
+				{ name: "iOS", weight: "must", minLevel: 4 },
+				{ name: "TypeScript", weight: "nice" },
+			],
+		},
+	);
 	console.log(
 		`✔ headhunter ${DEMO_USERS.headhunter.email} (employer=${headhunterEmployerId})`,
+	);
+
+	// Two more Acme-side roles so the data + growth candidates also have a
+	// strong match in the demo data.
+	await ensureJob(
+		companyEmployerId,
+		"Senior Data Engineer (m/w/d)",
+		"Du baust unser ETL-Layer für Marketing-Analytics aus, ownst Daten-Pipelines und arbeitest eng mit dem Data-Science-Team.",
+		{
+			location: "Berlin",
+			remotePolicy: "hybrid",
+			employmentType: "fulltime",
+			salaryMin: 75000,
+			salaryMax: 95000,
+			yearsExperienceMin: 5,
+			languages: ["Deutsch", "Englisch"],
+			requirements: [
+				{ name: "Python", weight: "must", minLevel: 4 },
+				{ name: "SQL", weight: "must", minLevel: 4 },
+				{ name: "Apache Airflow", weight: "nice" },
+				{ name: "dbt", weight: "nice" },
+				{ name: "Snowflake", weight: "nice" },
+			],
+		},
+	);
+	await ensureJob(
+		companyEmployerId,
+		"Growth Marketing Manager",
+		"Du übernimmst Performance-Marketing + SEO + Content für unser B2B-SaaS. Eng mit Sales und Produkt verzahnt.",
+		{
+			location: "Berlin",
+			remotePolicy: "hybrid",
+			employmentType: "fulltime",
+			salaryMin: 70000,
+			salaryMax: 90000,
+			yearsExperienceMin: 5,
+			languages: ["Deutsch", "Englisch"],
+			requirements: [
+				{ name: "Performance Marketing", weight: "must", minLevel: 4 },
+				{ name: "SEO", weight: "must", minLevel: 4 },
+				{ name: "Analytics", weight: "must", minLevel: 4 },
+				{ name: "HubSpot", weight: "nice" },
+			],
+		},
 	);
 
 	const candidateUserId = await ensureUser(tenantId, DEMO_USERS.candidate);

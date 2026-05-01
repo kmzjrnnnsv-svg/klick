@@ -79,15 +79,15 @@ export default async function JobsBrowsePage({
 												{job.location && ` · ${job.location}`} ·{" "}
 												{t(`remote.${job.remotePolicy}`)}
 											</div>
-											{job.salaryMin && (
+											{(job.salaryMin ?? 0) > 0 && (
 												<div className="mt-1 font-mono text-muted-foreground text-xs">
-													{fmt.number(job.salaryMin, {
+													{fmt.number(job.salaryMin ?? 0, {
 														style: "currency",
 														currency: "EUR",
 														maximumFractionDigits: 0,
 													})}
-													{job.salaryMax &&
-														` – ${fmt.number(job.salaryMax, { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}`}
+													{(job.salaryMax ?? 0) > 0 &&
+														` – ${fmt.number(job.salaryMax ?? 0, { style: "currency", currency: "EUR", maximumFractionDigits: 0 })}`}
 												</div>
 											)}
 										</div>

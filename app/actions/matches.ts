@@ -17,6 +17,7 @@ import {
 } from "@/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { osrmRoute } from "@/lib/geo/distance";
+import { otpTransitRoute } from "@/lib/geo/transit";
 import { sendTransactionalMail } from "@/lib/mail/send";
 import { scoreMatch } from "@/lib/match/engine";
 
@@ -60,25 +61,29 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 		if (profile.visibility === "private") continue;
 		const score = scoreMatch(job, profile);
 		if (!score.hardPass) continue;
-		// Upgrade commute estimate with real OSRM routing (driving / cycling /
-		// walking only — transit needs a different routing engine). Best-
-		// effort: keep the haversine result if the call fails.
+		// Upgrade commute estimate with a real routing engine when available.
+		// car/bike/walk → OSRM; transit → OpenTripPlanner. Both fall back to
+		// the haversine-based estimate if the API isn't reachable.
 		let commute = score.commute;
 		if (
 			commute &&
-			(commute.mode === "car" ||
-				commute.mode === "bike" ||
-				commute.mode === "walk") &&
 			profile.addressLat != null &&
 			profile.addressLng != null &&
 			job.locationLat != null &&
 			job.locationLng != null
 		) {
-			const real = await osrmRoute(
-				{ lat: profile.addressLat, lng: profile.addressLng },
-				{ lat: job.locationLat, lng: job.locationLng },
-				commute.mode,
-			);
+			const from = { lat: profile.addressLat, lng: profile.addressLng };
+			const to = { lat: job.locationLat, lng: job.locationLng };
+			let real: { km: number; minutes: number } | null = null;
+			if (
+				commute.mode === "car" ||
+				commute.mode === "bike" ||
+				commute.mode === "walk"
+			) {
+				real = await osrmRoute(from, to, commute.mode);
+			} else if (commute.mode === "transit") {
+				real = await otpTransitRoute(from, to);
+			}
 			if (real) {
 				const exceedsLimit =
 					profile.maxCommuteMinutes != null &&

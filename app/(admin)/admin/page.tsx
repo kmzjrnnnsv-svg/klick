@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { listAuditActions, listAuditEntries } from "@/app/actions/admin";
@@ -6,6 +7,7 @@ import { auth } from "@/auth";
 import { AuditFilters } from "@/components/admin/audit-filters";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { buttonVariants } from "@/components/ui/button";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 
@@ -47,13 +49,21 @@ export default async function AdminPage({
 		<>
 			<Header />
 			<main className="mx-auto w-full max-w-4xl flex-1 px-3 pt-6 pb-20 sm:px-6 sm:pt-12">
-				<header className="mb-5 sm:mb-7">
-					<h1 className="font-semibold text-xl tracking-tight sm:text-3xl">
-						{t("title")}
-					</h1>
-					<p className="mt-1.5 text-muted-foreground text-sm leading-snug">
-						{t("subtitle")}
-					</p>
+				<header className="mb-5 flex items-end justify-between gap-3 sm:mb-7">
+					<div>
+						<h1 className="font-semibold text-xl tracking-tight sm:text-3xl">
+							{t("title")}
+						</h1>
+						<p className="mt-1.5 text-muted-foreground text-sm leading-snug">
+							{t("subtitle")}
+						</p>
+					</div>
+					<Link
+						href="/admin/cms"
+						className={buttonVariants({ size: "sm", variant: "outline" })}
+					>
+						{t("cmsLink")}
+					</Link>
 				</header>
 
 				<section>
