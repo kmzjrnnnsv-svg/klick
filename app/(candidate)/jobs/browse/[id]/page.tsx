@@ -13,7 +13,7 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { JobQuestionForm } from "@/components/jobs/job-question-form";
 import { db } from "@/db";
-import { employers, jobs } from "@/db/schema";
+import { employers, jobMandates, jobs } from "@/db/schema";
 
 export default async function JobDetailPage({
 	params,
@@ -40,6 +40,16 @@ export default async function JobDetailPage({
 		.limit(1);
 	if (!row || row.job.status !== "published") notFound();
 	const { job } = row;
+
+	// Mandate (only "named" or "anonymous" leak to public). "private" stays
+	// internal to the agency.
+	const [mandateRow] = await db
+		.select()
+		.from(jobMandates)
+		.where(eq(jobMandates.jobId, id))
+		.limit(1);
+	const mandate =
+		mandateRow && mandateRow.clientVisibility !== "private" ? mandateRow : null;
 
 	const publicQA = await listPublicQuestionsForJob(id);
 	let myQA: Awaited<ReturnType<typeof listMyQuestionsForJob>> = [];
@@ -76,6 +86,16 @@ export default async function JobDetailPage({
 							? t("via", { name: row.employerName ?? "" })
 							: row.employerName}
 					</p>
+					{mandate && (
+						<p className="mt-2 text-muted-foreground text-xs">
+							{mandate.clientVisibility === "named"
+								? t("mandateNamed", { client: mandate.clientName })
+								: t("mandateAnonymous", {
+										industry:
+											mandate.clientIndustry ?? t("mandateGenericIndustry"),
+									})}
+						</p>
+					)}
 					<h1 className="mt-3 font-serif-display text-3xl sm:text-5xl">
 						{job.title}
 					</h1>

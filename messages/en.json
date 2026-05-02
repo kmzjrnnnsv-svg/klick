@@ -1060,6 +1060,9 @@
 	"JobDetail": {
 		"backToList": "Back to list",
 		"via": "Via {name}",
+		"mandateNamed": "On behalf of {client}",
+		"mandateAnonymous": "On behalf of a company — industry: {industry}",
+		"mandateGenericIndustry": "unspecified",
 		"description": "Job description",
 		"requirements": "Requirements",
 		"must": "Must",
@@ -1302,6 +1305,41 @@
 		"hint": "You've been invited to a recruiter team. Accepting gives you access to roles, candidates and negotiations.",
 		"accept": "Accept invitation",
 		"emailMatchHint": "Your account email must match the invited address."
+	},
+	"Mandate": {
+		"sectionTitle": "Mandate (on behalf of …)",
+		"openMandate": "Add mandate",
+		"hint": "You're placing this role for a client. Visibility controls what candidates see — from anonymous industry hint to full client name.",
+		"clientName": "Client (company name)",
+		"clientNamePlaceholder": "Acme Industries Ltd",
+		"clientWebsite": "Website",
+		"clientIndustry": "Industry",
+		"clientIndustryPlaceholder": "Mechanical engineering / mid-cap",
+		"clientNote": "Internal note",
+		"clientNotePlaceholder": "Internal only — note for you + team.",
+		"commissionPct": "Commission (%)",
+		"visibility": "Visibility to candidates",
+		"visibilityOptions": {
+			"private": {
+				"title": "Private",
+				"body": "Only you + your team see the mandate. Nothing on the public job page."
+			},
+			"anonymous": {
+				"title": "Anonymous",
+				"body": "Candidates see 'on behalf of a mid-cap in mechanical engineering' — industry only."
+			},
+			"named": {
+				"title": "Named",
+				"body": "Candidates see the client by name + optional website."
+			}
+		},
+		"nameRequired": "Please enter a client name.",
+		"save": "Save",
+		"saving": "Saving…",
+		"savedAt": "Saved at {time}",
+		"notSaved": "Not saved yet",
+		"delete": "Remove mandate",
+		"confirmDelete": "Really remove the mandate?"
 	},
 	"Career": {
 		"emptyHint": "Let the AI deeply analyse your profile — salary band, primary and non-obvious industries, certifications, role options, market context. Takes ~30 seconds.",

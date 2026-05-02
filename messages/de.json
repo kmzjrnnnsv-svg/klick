@@ -1060,6 +1060,9 @@
 	"JobDetail": {
 		"backToList": "Zurück zur Liste",
 		"via": "Vermittelt von {name}",
+		"mandateNamed": "Im Auftrag von {client}",
+		"mandateAnonymous": "Im Auftrag eines Unternehmens — Branche: {industry}",
+		"mandateGenericIndustry": "nicht angegeben",
 		"description": "Stellenbeschreibung",
 		"requirements": "Anforderungen",
 		"must": "Muss",
@@ -1302,6 +1305,41 @@
 		"hint": "Du wurdest in ein Recruiter-Team eingeladen. Mit Annahme bekommst du Zugriff auf Stellen, Kandidat:innen und Verhandlungen.",
 		"accept": "Einladung annehmen",
 		"emailMatchHint": "Die E-Mail deines Kontos muss zur eingeladenen Adresse passen."
+	},
+	"Mandate": {
+		"sectionTitle": "Mandat (im Auftrag von …)",
+		"openMandate": "Mandat hinterlegen",
+		"hint": "Du vermittelst diese Stelle für einen Endkunden. Die Sichtbarkeit steuert, was Bewerbende sehen — vom anonymen Branchen-Hinweis bis zum Klarnamen.",
+		"clientName": "Endkunde (Firmenname)",
+		"clientNamePlaceholder": "Acme Industrie GmbH",
+		"clientWebsite": "Website",
+		"clientIndustry": "Branche",
+		"clientIndustryPlaceholder": "Maschinenbau / Mittelstand",
+		"clientNote": "Interne Notiz",
+		"clientNotePlaceholder": "Nur intern sichtbar — Notiz für dich + Team.",
+		"commissionPct": "Provision (%)",
+		"visibility": "Sichtbarkeit für Bewerbende",
+		"visibilityOptions": {
+			"private": {
+				"title": "Privat",
+				"body": "Nur du + dein Team sehen das Mandat. Kein Hinweis auf der Stellen-Seite."
+			},
+			"anonymous": {
+				"title": "Anonym",
+				"body": "Bewerbende sehen einen Hinweis wie 'im Auftrag eines Mittelständlers im Maschinenbau' — keine Firma, nur Branche."
+			},
+			"named": {
+				"title": "Klarname",
+				"body": "Bewerbende sehen den Endkunden mit Namen + ggf. Website."
+			}
+		},
+		"nameRequired": "Bitte einen Endkunden-Namen angeben.",
+		"save": "Speichern",
+		"saving": "Speichere…",
+		"savedAt": "Gespeichert um {time}",
+		"notSaved": "Noch nicht gespeichert",
+		"delete": "Mandat entfernen",
+		"confirmDelete": "Mandat wirklich entfernen?"
 	},
 	"Career": {
 		"emptyHint": "Lass die KI dein Profil tief auswerten — Gehaltsband, primäre und verdeckte Branchen, Zertifizierungen, Rollen-Optionen, aktuelle Marktlage. Dauert ~30 Sekunden.",

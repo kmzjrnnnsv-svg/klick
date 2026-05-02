@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { getJob } from "@/app/actions/jobs";
+import { getJobMandate } from "@/app/actions/agency";
+import { getEmployer, getJob } from "@/app/actions/jobs";
 import { listMatchesForJob } from "@/app/actions/matches";
 import { auth } from "@/auth";
+import { JobMandateForm } from "@/components/agency/job-mandate-form";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { JobForm } from "@/components/jobs/job-form";
@@ -24,8 +26,11 @@ export default async function EditJobPage({
 
 	const t = await getTranslations("Jobs");
 	const tm = await getTranslations("Matches");
+	const tMandate = await getTranslations("Mandate");
 	const matchCount =
 		job.status === "published" ? (await listMatchesForJob(id)).length : 0;
+	const employer = await getEmployer();
+	const mandate = employer?.isAgency ? await getJobMandate(id) : null;
 
 	return (
 		<>
@@ -172,6 +177,14 @@ export default async function EditJobPage({
 							);
 						})()
 					: null}
+				{employer?.isAgency && (
+					<section className="mb-6">
+						<h2 className="mb-2 font-medium text-sm">
+							{tMandate("sectionTitle")}
+						</h2>
+						<JobMandateForm jobId={id} initial={mandate} />
+					</section>
+				)}
 				<JobForm initial={job} />
 			</main>
 			<Footer />
