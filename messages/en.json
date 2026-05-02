@@ -9,9 +9,11 @@
 		"openProfile": "Profile",
 		"openMatches": "Matches",
 		"openBrowse": "Jobs",
+		"openOffers": "Offers",
 		"openRequests": "Requests",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
+		"notifications": "Notifications",
 		"login": "Sign in",
 		"toggleTheme": "Toggle theme",
 		"toggleLocale": "Switch language",
@@ -295,6 +297,28 @@
 		"experience": "Experience",
 		"education": "Education",
 		"summary": "Summary",
+		"compensation": "Salary & target salary",
+		"compensationHint": "We show employers your target salary in match lists. Your minimum is used internally for fairness scoring.",
+		"salaryMin": "Minimum (€/yr)",
+		"salaryDesired": "Target (€/yr)",
+		"contactability": "Who may contact you?",
+		"contactabilityHint": "You can exclude headhunters. Offers from agencies will be blocked; direct employers still come through.",
+		"contactabilityOptions": {
+			"all": {
+				"title": "Everyone: companies + headhunters",
+				"body": "You receive offers from both. Agency offers are clearly labeled."
+			},
+			"employers_only": {
+				"title": "Direct employers only",
+				"body": "Recruiters/headhunters are blocked. Only direct employers may reach out."
+			},
+			"none": {
+				"title": "Nobody (paused)",
+				"body": "You're offline for new requests. Existing negotiations continue."
+			}
+		},
+		"openToOffers": "Actively looking",
+		"openToOffersHint": "Confirmed every 30 days — after that we reset it automatically and remind you.",
 		"visibility": "Visibility",
 		"visibilityOptions": {
 			"private": {
@@ -837,5 +861,59 @@
 			"noRemote": "On-site / hybrid",
 			"minSalary": "Min salary"
 		}
+	},
+	"Notifications": {
+		"eyebrow": "Activity",
+		"title": "Notifications",
+		"empty": "Nothing yet. Once matches, requests or offers come in, you'll see them here.",
+		"markAllRead": "Mark all read"
+	},
+	"Offers": {
+		"eyebrow": "Inbox",
+		"title": "Your offers",
+		"subtitle": "Concrete offers from companies or headhunters — with target salary and start date. Like a transfer offer.",
+		"empty": "No offers yet. They'll show up here once someone makes you one.",
+		"via": "Via {name}",
+		"forJob": "For role: {title}",
+		"salary": "Offered salary",
+		"start": "Start date",
+		"expires": "Valid until",
+		"message": "Sender's message",
+		"yourMessage": "Your reply",
+		"viewJob": "View role",
+		"viewCompany": "View company",
+		"backToInbox": "Back to inbox",
+		"decide": "How do you respond?",
+		"decideHint": "Accept → we share your identity with the sender. Counter → propose your number. Decline → it's settled.",
+		"accept": "Accept offer",
+		"acceptMessage": "Optional note (e.g. \"looking forward to talking\")",
+		"counter": "Counter-offer",
+		"counterSalary": "Your target salary",
+		"counterMessage": "Optional rationale",
+		"counterSend": "Send counter",
+		"decline": "Decline",
+		"declineMessage": "Optional polite reason",
+		"status": {
+			"label": "Status",
+			"pending": "New",
+			"seen": "Seen",
+			"accepted": "Accepted",
+			"declined": "Declined",
+			"countered": "Counter sent",
+			"withdrawn": "Withdrawn",
+			"expired": "Expired"
+		}
+	},
+	"Company": {
+		"employer": "Company",
+		"agency": "Recruitment agency",
+		"memberSince": "On Klick since",
+		"about": "About",
+		"openRoles": "Open roles ({count})",
+		"noOpenRoles": "No roles currently posted.",
+		"remote": "Remote",
+		"remote_onsite": "On-site",
+		"remote_hybrid": "Hybrid",
+		"remote_remote": "Remote"
 	}
 }

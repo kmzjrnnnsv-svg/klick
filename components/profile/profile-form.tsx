@@ -49,6 +49,18 @@ export function ProfileForm({
 	);
 	const [skillsText, setSkillsText] = useState(skillsToText(initial?.skills));
 	const [summary, setSummary] = useState(initial?.summary ?? "");
+	const [salaryMin, setSalaryMin] = useState(
+		initial?.salaryMin?.toString() ?? "",
+	);
+	const [salaryDesired, setSalaryDesired] = useState(
+		initial?.salaryDesired?.toString() ?? "",
+	);
+	const [canBeContactedBy, setCanBeContactedBy] = useState<
+		"all" | "employers_only" | "none"
+	>(initial?.canBeContactedBy ?? "all");
+	const [openToOffers, setOpenToOffers] = useState(
+		initial?.openToOffers ?? true,
+	);
 	const [visibility, setVisibility] = useState<
 		"private" | "matches_only" | "public"
 	>(initial?.visibility ?? "matches_only");
@@ -243,6 +255,88 @@ export function ProfileForm({
 					maxLength={2000}
 					className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 				/>
+			</section>
+
+			<section className="space-y-3 rounded-lg border border-border bg-background p-4 sm:p-6">
+				<h2 className="font-medium text-sm">{t("compensation")}</h2>
+				<p className="text-muted-foreground text-xs">{t("compensationHint")}</p>
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<label className="space-y-1">
+						<span className="text-muted-foreground text-xs">
+							{t("salaryMin")}
+						</span>
+						<Input
+							name="salaryMin"
+							type="number"
+							min={0}
+							step={1000}
+							value={salaryMin}
+							onChange={(e) => setSalaryMin(e.target.value)}
+							placeholder="65000"
+						/>
+					</label>
+					<label className="space-y-1">
+						<span className="text-muted-foreground text-xs">
+							{t("salaryDesired")}
+						</span>
+						<Input
+							name="salaryDesired"
+							type="number"
+							min={0}
+							step={1000}
+							value={salaryDesired}
+							onChange={(e) => setSalaryDesired(e.target.value)}
+							placeholder="80000"
+						/>
+					</label>
+				</div>
+			</section>
+
+			<section className="space-y-3">
+				<h2 className="font-medium text-sm">{t("contactability")}</h2>
+				<p className="text-muted-foreground text-xs">
+					{t("contactabilityHint")}
+				</p>
+				<div className="space-y-2">
+					{(["all", "employers_only", "none"] as const).map((v) => (
+						<label
+							key={v}
+							className="flex items-start gap-3 rounded-md border border-border bg-background p-3 has-[:checked]:border-primary"
+						>
+							<input
+								type="radio"
+								name="canBeContactedBy"
+								value={v}
+								checked={canBeContactedBy === v}
+								onChange={() => setCanBeContactedBy(v)}
+								className="mt-0.5"
+							/>
+							<div className="text-sm">
+								<div className="font-medium">
+									{t(`contactabilityOptions.${v}.title`)}
+								</div>
+								<div className="text-muted-foreground text-xs">
+									{t(`contactabilityOptions.${v}.body`)}
+								</div>
+							</div>
+						</label>
+					))}
+				</div>
+				<label className="mt-2 flex items-start gap-3 rounded-md border border-border bg-background p-3 has-[:checked]:border-primary">
+					<input
+						type="checkbox"
+						name="openToOffers"
+						checked={openToOffers}
+						onChange={(e) => setOpenToOffers(e.target.checked)}
+						className="mt-1"
+					/>
+					<div className="text-sm">
+						<div className="font-medium">{t("openToOffers")}</div>
+						<div className="text-muted-foreground text-xs">
+							{t("openToOffersHint")}
+						</div>
+					</div>
+				</label>
 			</section>
 
 			<section className="space-y-3">

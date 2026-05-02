@@ -1,5 +1,7 @@
+import { Bell } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { unreadCount } from "@/app/actions/notifications";
 import { auth } from "@/auth";
 import { HeaderMobileMenu } from "@/components/header-mobile-menu";
 import { LocaleSwitcher } from "@/components/locale-switcher";
@@ -20,7 +22,10 @@ export async function Header() {
 
 	const navLinks: { href: string; label: string }[] =
 		role === "employer"
-			? [{ href: "/jobs", label: t("openJobs") }]
+			? [
+					{ href: "/jobs", label: t("openJobs") },
+					{ href: "/offers", label: t("openOffers") },
+				]
 			: role === "admin"
 				? [{ href: "/admin", label: t("openAdmin") }]
 				: role === "candidate"
@@ -29,9 +34,19 @@ export async function Header() {
 							{ href: "/profile", label: t("openProfile") },
 							{ href: "/matches", label: t("openMatches") },
 							{ href: "/jobs/browse", label: t("openBrowse") },
+							{ href: "/offers", label: t("openOffers") },
 							{ href: "/requests", label: t("openRequests") },
 						]
 					: [];
+
+	let unread = 0;
+	if (isLoggedIn) {
+		try {
+			unread = await unreadCount();
+		} catch {
+			unread = 0;
+		}
+	}
 
 	return (
 		<header className="sticky top-0 z-30 w-full border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -58,6 +73,20 @@ export async function Header() {
 					)}
 				</div>
 				<div className="flex items-center gap-1">
+					{isLoggedIn && (
+						<Link
+							href="/notifications"
+							aria-label={t("notifications")}
+							className="relative inline-flex h-9 w-9 items-center justify-center rounded-sm text-foreground/80 transition-colors hover:bg-muted hover:text-foreground"
+						>
+							<Bell className="h-4 w-4" strokeWidth={1.5} />
+							{unread > 0 && (
+								<span className="-top-0.5 -right-0.5 absolute flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 font-medium text-[0.55rem] text-primary-foreground">
+									{unread > 9 ? "9+" : unread}
+								</span>
+							)}
+						</Link>
+					)}
 					<LocaleSwitcher />
 					<ThemeSwitcher />
 					{isLoggedIn && userEmail && role && (

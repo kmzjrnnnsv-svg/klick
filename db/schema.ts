@@ -203,6 +203,23 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 	location: text("location"),
 	yearsExperience: integer("years_experience"),
 	salaryMin: integer("salary_min"),
+	// Wunschgehalt — was der Kandidat aktiv anstrebt. salaryMin ist der
+	// untere Akzeptanzwert ("darunter nicht"); salaryDesired ist die Ansage
+	// nach oben ("das wäre für mich passend").
+	salaryDesired: integer("salary_desired"),
+	// Wer darf mich kontaktieren? Steuert sowohl die Match-Sichtbarkeit für
+	// Headhunter-Employers (isAgency=true) als auch wer Angebote/Interessen
+	// schicken darf. "none" = ich pausiere komplett.
+	canBeContactedBy: text("can_be_contacted_by", {
+		enum: ["all", "employers_only", "none"],
+	})
+		.notNull()
+		.default("all"),
+	// Aktiv auf Suche? Wird nach 30 Tagen automatisch auf false gesetzt; der
+	// Kandidat bekommt eine Erinnerung. Off = Profil bleibt da, aber keine
+	// neuen Anfragen/Angebote werden zugestellt.
+	openToOffers: boolean("open_to_offers").notNull().default(true),
+	openToOffersUntil: timestamp("open_to_offers_until", { mode: "date" }),
 	languages: text("languages").array(),
 	skills: jsonb("skills").$type<ProfileSkill[]>(),
 	experience: jsonb("experience").$type<ProfileExperience[]>(),
@@ -545,3 +562,151 @@ export const verifications = pgTable("verifications", {
 });
 
 export type Verification = typeof verifications.$inferSelect;
+
+// ─── Favorites ────────────────────────────────────────────────────────────
+// Per-Job-Shortlist eines Arbeitgebers. Favoriten bleiben anonym bis zur
+// Approval — der Star ist nur die Notiz "den merke ich mir, evtl. Angebot".
+export const favorites = pgTable(
+	"favorites",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		employerId: text("employer_id")
+			.notNull()
+			.references(() => employers.id, { onDelete: "cascade" }),
+		jobId: text("job_id")
+			.notNull()
+			.references(() => jobs.id, { onDelete: "cascade" }),
+		candidateUserId: text("candidate_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		// Kurze interne Notiz, nur für den Employer sichtbar.
+		notes: text("notes"),
+		createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+	},
+	(t) => [
+		unique("favorites_unique").on(t.employerId, t.jobId, t.candidateUserId),
+	],
+);
+
+export type Favorite = typeof favorites.$inferSelect;
+
+// ─── Offers ───────────────────────────────────────────────────────────────
+// FIFA-Karrieremode-Style "Transfer-Angebot" — der Arbeitgeber/Headhunter
+// macht ein konkretes Angebot mit Gehalt + Startdatum + Position. Der
+// Kandidat sieht das Angebot, kann das Unternehmen + die Stelle ansehen
+// und annehmen/ablehnen/Gegenangebot abgeben (counter via parentOfferId).
+export const offers = pgTable("offers", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	jobId: text("job_id")
+		.notNull()
+		.references(() => jobs.id, { onDelete: "cascade" }),
+	employerId: text("employer_id")
+		.notNull()
+		.references(() => employers.id, { onDelete: "cascade" }),
+	candidateUserId: text("candidate_user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	// Falls Counter-Offer: zeigt auf das vorherige Angebot. So entsteht eine
+	// Verhandlungs-Kette pro Job/Kandidat.
+	parentOfferId: text("parent_offer_id"),
+	roleTitle: text("role_title").notNull(),
+	salaryProposed: integer("salary_proposed").notNull(),
+	startDateProposed: timestamp("start_date_proposed", { mode: "date" }),
+	message: text("message"),
+	status: text("status", {
+		enum: [
+			"pending",
+			"seen",
+			"accepted",
+			"declined",
+			"countered",
+			"withdrawn",
+			"expired",
+		],
+	})
+		.notNull()
+		.default("pending"),
+	// Wer hat das Angebot zuletzt verändert? "employer" = ursprüngliches
+	// Angebot oder Counter vom Employer; "candidate" = Counter vom Kandidaten.
+	lastActor: text("last_actor", {
+		enum: ["employer", "candidate"],
+	})
+		.notNull()
+		.default("employer"),
+	decidedMessage: text("decided_message"),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+	expiresAt: timestamp("expires_at", { mode: "date" }),
+	decidedAt: timestamp("decided_at", { mode: "date" }),
+});
+
+export type Offer = typeof offers.$inferSelect;
+
+// ─── Notifications ────────────────────────────────────────────────────────
+// Generischer Activity-Feed pro User. UI rendert je nach `kind` einen
+// passenden Link. Mail-Versand ist orthogonal — Notifications sind die
+// In-App-Variante.
+export const notifications = pgTable("notifications", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	kind: text("kind", {
+		enum: [
+			"new_match",
+			"new_interest",
+			"interest_decided",
+			"new_offer",
+			"offer_decided",
+			"verification_done",
+			"saved_search_hit",
+			"system",
+		],
+	}).notNull(),
+	title: text("title").notNull(),
+	body: text("body"),
+	link: text("link"),
+	payload: jsonb("payload"),
+	readAt: timestamp("read_at", { mode: "date" }),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+
+// ─── Saved Searches ───────────────────────────────────────────────────────
+// Kandidat speichert einen Filtersatz (Skills, remote, salary, location).
+// Ein Hintergrund-Job (P4) prüft täglich ob neue Jobs matchen und legt
+// eine Notification + Mail an.
+export const savedSearches = pgTable("saved_searches", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	name: text("name").notNull(),
+	criteria: jsonb("criteria")
+		.$type<{
+			query?: string;
+			skills?: string[];
+			remote?: "remote_only" | "no_remote" | "any";
+			minSalary?: number;
+			maxCommuteMinutes?: number;
+			location?: string;
+		}>()
+		.notNull(),
+	notifyChannel: text("notify_channel", {
+		enum: ["inapp", "email", "both"],
+	})
+		.notNull()
+		.default("inapp"),
+	lastNotifiedAt: timestamp("last_notified_at", { mode: "date" }),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type SavedSearch = typeof savedSearches.$inferSelect;
