@@ -2,11 +2,14 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
+import { aggregateOutcomesForEmployer } from "@/app/actions/outcomes";
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { db } from "@/db";
 import { employers, jobs } from "@/db/schema";
+
+const MIN_REPORTS_FOR_TRUST_SIGNAL = 5;
 
 export default async function CompanyPublicPage({
 	params,
@@ -32,6 +35,12 @@ export default async function CompanyPublicPage({
 		.from(jobs)
 		.where(eq(jobs.employerId, employer.id));
 	const published = openJobs.filter((j) => j.status === "published");
+	const outcomeStats = await aggregateOutcomesForEmployer(employer.id);
+	const decided = outcomeStats.hired + outcomeStats.declined;
+	const hireRate =
+		decided >= MIN_REPORTS_FOR_TRUST_SIGNAL
+			? Math.round((outcomeStats.hired / decided) * 100)
+			: null;
 
 	return (
 		<>
@@ -58,6 +67,21 @@ export default async function CompanyPublicPage({
 						{t("memberSince")}:{" "}
 						{fmt.dateTime(employer.createdAt, { dateStyle: "long" })}
 					</p>
+					{hireRate !== null && (
+						<div className="mt-5 inline-flex items-center gap-3 rounded-sm border border-emerald-500/30 bg-emerald-500/5 px-4 py-2">
+							<span className="font-serif-display text-2xl text-emerald-700 dark:text-emerald-300">
+								{hireRate}%
+							</span>
+							<div>
+								<p className="lv-eyebrow text-[0.55rem] text-emerald-700 dark:text-emerald-300">
+									{t("trustHireRate")}
+								</p>
+								<p className="text-[10px] text-muted-foreground">
+									{t("trustBasis", { count: decided })}
+								</p>
+							</div>
+						</div>
+					)}
 				</header>
 
 				{employer.description && (

@@ -338,6 +338,8 @@
 		"save": "Save",
 		"saving": "Saving…",
 		"savedAt": "Saved at {time}",
+		"careerHeading": "Career analysis",
+		"careerSubtitle": "A comprehensive read of your profile — salary band, fitting industries, non-obvious industry hits, certification suggestions, pros/cons. Generated on demand via AI; only you see it.",
 		"referencesHeading": "References",
 		"referencesSubtitle": "Invite former managers or peers to answer three questions. You see the answers — the employer only sees them if you grant access.",
 		"diversityHeading": "Diversity self-ID (optional)",
@@ -930,7 +932,9 @@
 		"remote": "Remote",
 		"remote_onsite": "On-site",
 		"remote_hybrid": "Hybrid",
-		"remote_remote": "Remote"
+		"remote_remote": "Remote",
+		"trustHireRate": "Hire rate",
+		"trustBasis": "Basis: {count} decided requests"
 	},
 	"EmployerActions": {
 		"favorite": "Add to favorites",
@@ -1241,5 +1245,33 @@
 			"no": "Without disability"
 		},
 		"suppressionNote": "Values under 5 are reported as 0 to prevent re-identification. Free-text ethnicity entries only appear if ≥5 people used the exact same wording."
+	},
+	"Career": {
+		"emptyHint": "Let the AI deeply analyse your profile — salary band, primary and non-obvious industries, certifications, role options, market context. Takes ~30 seconds.",
+		"generate": "Generate analysis",
+		"generating": "AI thinking…",
+		"regenerate": "Regenerate",
+		"regenerating": "Updating…",
+		"updatedAt": "As of: {date}",
+		"salaryBand": "Salary band",
+		"salaryRange": "Range: {low} € – {high} €",
+		"strengths": "Your strengths",
+		"growthAreas": "Growth areas",
+		"primaryIndustries": "Obvious industry fit",
+		"adjacentIndustries": "Hidden opportunities",
+		"roleSuggestions": "Role options",
+		"obvious": "Obvious",
+		"hidden": "Hidden",
+		"certifications": "Certification suggestions",
+		"effortHours": "≈ {hours} h",
+		"issuedBy": "Issuer: {issuer}",
+		"hiringPros": "Arguments FOR you",
+		"hiringCons": "Arguments AGAINST",
+		"marketContext": "Market 2026",
+		"demand": {
+			"high": "High",
+			"medium": "Medium",
+			"low": "Low"
+		}
 	}
 }

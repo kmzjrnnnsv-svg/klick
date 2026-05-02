@@ -254,4 +254,77 @@ export interface AIProvider {
 			  }
 		>
 	>;
+	// Comprehensive career analysis on top of the parsed CV. Used to give
+	// the candidate a substantial "what do I bring + where can I go" view
+	// and the employer / headhunter additional context. All fields can be
+	// empty arrays — never throw.
+	analyzeCareerProspects(input: {
+		profile: ExtractedProfile;
+		yearsActive?: number;
+		insights?: unknown;
+	}): Promise<CareerAnalysis>;
+	// Analytical signal on a job posting itself. Helps employers/headhunter
+	// see whether the role is well-described and helps the matching engine
+	// later reason about quality.
+	assessJobPostingQuality(input: {
+		title: string;
+		description: string;
+		requirements: { name: string; weight: "must" | "nice" }[];
+		salaryMin: number | null;
+		salaryMax: number | null;
+		remotePolicy: string;
+	}): Promise<JobPostingQuality>;
 }
+
+// Shape returned by analyzeCareerProspects. Rich enough to power a
+// dedicated /profile section.
+export type CareerAnalysis = {
+	// One-paragraph executive summary (~80 words).
+	headline: string;
+	// 3-5 strengths the candidate can lean into.
+	strengths: string[];
+	// 3-5 honest weaknesses or risks (used internally; visible to the
+	// candidate as "growth areas").
+	growthAreas: string[];
+	// Salary band the candidate could realistically command at their
+	// current level + market.
+	salary: {
+		low: number;
+		mid: number;
+		high: number;
+		currency: string;
+		rationale: string;
+	};
+	// Industries that would obviously fit (based on stated experience).
+	primaryIndustries: string[];
+	// Industries that aren't immediately obvious but would be a strong
+	// fit given the skill mix.
+	adjacentIndustries: { name: string; rationale: string }[];
+	// Concrete certifications worth pursuing in the next 12 months.
+	certificationSuggestions: {
+		name: string;
+		issuer: string;
+		why: string;
+		effortHours: number;
+	}[];
+	// Job titles the candidate should look at, including non-obvious ones.
+	roleSuggestions: { title: string; rationale: string; obvious: boolean }[];
+	// Pro / contra hiring this candidate, employer-facing.
+	hiringPros: string[];
+	hiringCons: string[];
+	// Current market context for this kind of profile.
+	marketContext: {
+		demand: "high" | "medium" | "low";
+		notes: string;
+	};
+};
+
+// Quality assessment of a posted job. Used to nudge employers to write
+// better descriptions and to surface red flags to candidates.
+export type JobPostingQuality = {
+	score: number; // 0-100
+	completeness: number; // 0-100 — has salary, location, requirements, …
+	clarity: number; // 0-100 — is the description specific enough
+	redFlags: string[];
+	suggestions: string[];
+};

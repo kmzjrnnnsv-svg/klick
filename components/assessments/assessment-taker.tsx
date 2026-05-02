@@ -17,12 +17,14 @@ export function AssessmentTaker({
 	alreadySubmitted,
 	gradedScore,
 	gradedMax,
+	responseId,
 }: {
 	jobId: string;
 	questions: JobAssessmentQuestion[];
 	alreadySubmitted: boolean;
 	gradedScore: number | null;
 	gradedMax: number | null;
+	responseId: string | null;
 }) {
 	const t = useTranslations("Assessment");
 	const [answers, setAnswers] = useState<Answer[]>(
@@ -70,6 +72,14 @@ export function AssessmentTaker({
 					<p className="mt-3 font-mono text-base">
 						{t("yourScore")}: {gradedScore}/{gradedMax}
 					</p>
+				)}
+				{responseId && (
+					<a
+						href={`/assessments/${responseId}`}
+						className="lv-eyebrow mt-3 inline-block rounded-sm border border-emerald-700/40 px-3 py-1.5 text-[0.55rem] hover:bg-emerald-700 hover:text-emerald-50"
+					>
+						{t("seeFeedback")}
+					</a>
 				)}
 			</div>
 		);

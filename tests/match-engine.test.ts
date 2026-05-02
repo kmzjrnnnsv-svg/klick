@@ -26,6 +26,14 @@ const baseJob: Job = {
 	salaryBenchmarkHigh: 95000,
 	salaryFairness: "fair",
 	salaryDeltaPct: -2,
+	teamSize: null,
+	growthStage: null,
+	techStackDetail: null,
+	decisionProcess: null,
+	remoteOnsiteRatio: null,
+	mustReasoning: null,
+	first90DaysGoals: null,
+	postingQuality: null,
 	createdAt: new Date(),
 	updatedAt: new Date(),
 };
@@ -63,6 +71,8 @@ const baseProfile: CandidateProfile = {
 	onboardingCompletedAt: new Date(),
 	insights: null,
 	insightsUpdatedAt: null,
+	careerAnalysis: null,
+	careerAnalysisAt: null,
 	publicShareToken: null,
 	updatedAt: new Date(),
 };

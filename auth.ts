@@ -10,6 +10,7 @@ import {
 	verificationTokens,
 } from "@/db/schema";
 import { sendTransactionalMail } from "@/lib/mail/send";
+import { magicLinkEmail } from "@/lib/mail/templates";
 
 // Auth.js wirft eine generische "Server error"-Seite, wenn
 // sendVerificationRequest throwt. Daher fangen wir hier alles ab und
@@ -23,35 +24,14 @@ async function sendMagicLinkEmail(identifier: string, url: string) {
 			return "Klick";
 		}
 	})();
-	const text =
-		`Hier ist dein Anmelde-Link für ${host}:\n\n${url}\n\n` +
-		`Gültig für 24 Stunden. Wenn du das nicht angefordert hast, ignoriere diese Mail.`;
-	const html = `
-		<div style="font-family:'Jost','Futura',system-ui,sans-serif;max-width:520px;margin:0 auto;padding:32px;color:#211c14;background:#f7f3ec">
-			<p style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#6b5e4a;margin:0 0 24px 0">Maison Klick</p>
-			<h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:500;margin:0 0 16px 0">Anmelden bei Klick</h1>
-			<p style="margin:0 0 24px 0;font-size:14px;line-height:1.6">
-				Klick auf den Button — du wirst direkt eingeloggt.
-			</p>
-			<p style="margin:0 0 24px 0">
-				<a href="${url}" style="display:inline-block;background:#211c14;color:#f7f3ec;padding:14px 28px;border-radius:2px;text-decoration:none;font-size:11px;font-weight:500;letter-spacing:0.22em;text-transform:uppercase">Bei ${host} anmelden</a>
-			</p>
-			<p style="margin:32px 0 0 0;font-size:12px;color:#6b5e4a;line-height:1.6">
-				Oder kopiere den Link manuell:<br/>
-				<span style="word-break:break-all">${url}</span>
-			</p>
-			<p style="margin:24px 0 0 0;font-size:11px;color:#a09478">
-				Gültig 24 Stunden. Nicht angefordert? Ignoriere diese Mail.
-			</p>
-		</div>
-	`;
+	const tpl = magicLinkEmail({ url, host });
 
 	try {
 		await sendTransactionalMail({
 			to: identifier,
-			subject: "Dein Anmelde-Link für Klick",
-			text,
-			html,
+			subject: tpl.subject,
+			text: tpl.text,
+			html: tpl.html,
 		});
 	} catch (e) {
 		console.error("[auth] sendMagicLinkEmail unexpected failure:", e);

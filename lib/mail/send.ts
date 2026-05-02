@@ -74,24 +74,93 @@ async function sendViaSmtp(input: SendMailInput): Promise<void> {
 	});
 }
 
+// Reports which path was actually used. Helpful for diagnosing why mail
+// "didn't arrive": you see in journalctl whether Resend was tried, whether
+// SMTP fell back, whether MAIL_FROM was missing.
+export type SendOutcome =
+	| { path: "resend"; ok: true }
+	| { path: "smtp"; ok: true }
+	| { path: "console"; ok: true; reason: string }
+	| { path: "resend" | "smtp" | "console"; ok: false; error: string };
+
 export async function sendTransactionalMail(
 	input: SendMailInput,
-): Promise<void> {
+): Promise<SendOutcome> {
+	const from = fromAddress();
+	const fromIsFallback = from === FROM_FALLBACK;
+
 	if (process.env.RESEND_API_KEY) {
+		if (fromIsFallback) {
+			console.warn(
+				"[mail] MAIL_FROM not set — Resend will likely reject sender. Set MAIL_FROM to a verified address.",
+			);
+		}
 		try {
 			await sendViaResend(input);
-			return;
+			console.log(
+				`[mail] ✓ resend ok · to=${input.to} subject="${input.subject}" from=${from}`,
+			);
+			return { path: "resend", ok: true };
 		} catch (e) {
-			console.error("[mail] resend failed, falling back:", e);
+			const error = e instanceof Error ? e.message : String(e);
+			console.error(`[mail] ✗ resend failed (${error}), falling back…`);
+			if (!process.env.SMTP_HOST) {
+				logToConsole(input, `resend failed: ${error}`);
+				return { path: "console", ok: true, reason: `resend_failed:${error}` };
+			}
 		}
 	}
 	if (process.env.SMTP_HOST) {
+		if (fromIsFallback) {
+			console.warn(
+				"[mail] MAIL_FROM not set — SMTP server will likely reject sender. Set MAIL_FROM to match SMTP_USER's domain.",
+			);
+		}
 		try {
 			await sendViaSmtp(input);
-			return;
+			console.log(
+				`[mail] ✓ smtp ok · to=${input.to} subject="${input.subject}" from=${from} host=${process.env.SMTP_HOST}:${process.env.SMTP_PORT ?? 587}`,
+			);
+			return { path: "smtp", ok: true };
 		} catch (e) {
-			console.error("[mail] smtp failed, logging to console:", e);
+			const error = e instanceof Error ? e.message : String(e);
+			console.error(`[mail] ✗ smtp failed (${error}), logging to console…`);
+			logToConsole(input, `smtp failed: ${error}`);
+			return { path: "console", ok: true, reason: `smtp_failed:${error}` };
 		}
 	}
-	logToConsole(input, "no provider configured");
+	logToConsole(
+		input,
+		"no provider configured (set RESEND_API_KEY or SMTP_HOST)",
+	);
+	return {
+		path: "console",
+		ok: true,
+		reason: "no_provider",
+	};
+}
+
+// Explicit diagnostic — call from a script or admin endpoint to verify the
+// configured mail path without actually triggering an auth flow.
+export async function diagnoseMailConfig(): Promise<{
+	mailFrom: string;
+	mailFromIsFallback: boolean;
+	hasResendKey: boolean;
+	hasSmtpHost: boolean;
+	smtpHost?: string;
+	smtpPort?: number;
+	likelyPath: "resend" | "smtp" | "console";
+}> {
+	const from = fromAddress();
+	const hasResend = !!process.env.RESEND_API_KEY;
+	const hasSmtp = !!process.env.SMTP_HOST;
+	return {
+		mailFrom: from,
+		mailFromIsFallback: from === FROM_FALLBACK,
+		hasResendKey: hasResend,
+		hasSmtpHost: hasSmtp,
+		smtpHost: process.env.SMTP_HOST,
+		smtpPort: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined,
+		likelyPath: hasResend ? "resend" : hasSmtp ? "smtp" : "console",
+	};
 }

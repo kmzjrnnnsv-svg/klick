@@ -259,6 +259,11 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 	// user input. Shape: see lib/insights/types.ts (CandidateInsights).
 	insights: jsonb("insights"),
 	insightsUpdatedAt: timestamp("insights_updated_at", { mode: "date" }),
+	// Comprehensive career analysis from AI: salary band, primary +
+	// adjacent industries, certification suggestions, hiring pros/cons,
+	// market context. Shape: see lib/ai/types.ts (CareerAnalysis).
+	careerAnalysis: jsonb("career_analysis"),
+	careerAnalysisAt: timestamp("career_analysis_at", { mode: "date" }),
 	// Opaque token candidate can share to expose a read-only public profile
 	// at /p/<token>. Null = sharing disabled. Re-generated on revoke+enable.
 	publicShareToken: text("public_share_token").unique(),
@@ -344,6 +349,30 @@ export const jobs = pgTable("jobs", {
 	}),
 	// Percentage delta vs midpoint of benchmark (negative = below market).
 	salaryDeltaPct: integer("salary_delta_pct"),
+	// Analytical metadata employers fill in to make the role legible to
+	// candidates. All optional, but a posting with 0 of these gets a
+	// quality penalty in the AI assessor.
+	teamSize: integer("team_size"),
+	growthStage: text("growth_stage", {
+		enum: [
+			"pre_seed",
+			"seed",
+			"series_a",
+			"series_b",
+			"series_c_plus",
+			"profitable",
+			"public",
+			"non_profit",
+			"agency",
+		],
+	}),
+	techStackDetail: text("tech_stack_detail"),
+	decisionProcess: text("decision_process"), // "1 Screening + 2 Tech-Interviews + Take-Home"
+	remoteOnsiteRatio: integer("remote_onsite_ratio"), // 0-100, % remote
+	mustReasoning: text("must_reasoning"), // why these are MUSTs
+	first90DaysGoals: text("first_90_days_goals"),
+	// Cached job-posting quality assessment from AI.
+	postingQuality: jsonb("posting_quality"),
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });

@@ -338,6 +338,8 @@
 		"save": "Speichern",
 		"saving": "Speichere…",
 		"savedAt": "Gespeichert um {time}",
+		"careerHeading": "Karriere-Analyse",
+		"careerSubtitle": "Eine umfassende Auswertung deines Profils — Gehaltsband, passende Branchen, verdeckte Industrie-Treffer, Zertifizierungs-Vorschläge, Pro/Contra. Wird per Klick mit KI generiert und ist nur für dich sichtbar.",
 		"referencesHeading": "Referenzen",
 		"referencesSubtitle": "Lade alte Vorgesetzte oder Kolleg:innen ein, drei Fragen zu beantworten. Du siehst die Antworten — der Arbeitgeber sieht sie nur, wenn du sie freigibst.",
 		"diversityHeading": "Diversitäts-Selbst-ID (optional)",
@@ -930,7 +932,9 @@
 		"remote": "Remote",
 		"remote_onsite": "Vor Ort",
 		"remote_hybrid": "Hybrid",
-		"remote_remote": "Remote"
+		"remote_remote": "Remote",
+		"trustHireRate": "Vertrags-Quote",
+		"trustBasis": "Basis: {count} entschiedene Anfragen"
 	},
 	"EmployerActions": {
 		"favorite": "Zu Favoriten hinzufügen",
@@ -1241,5 +1245,33 @@
 			"no": "Ohne Behinderung"
 		},
 		"suppressionNote": "Werte unter 5 werden auf 0 gesetzt, um Re-Identifikation einzelner Personen zu verhindern. Frei eingegebene Herkunfts-Texte erscheinen nur dann, wenn ≥5 Personen denselben Wortlaut verwendet haben."
+	},
+	"Career": {
+		"emptyHint": "Lass die KI dein Profil tief auswerten — Gehaltsband, primäre und verdeckte Branchen, Zertifizierungen, Rollen-Optionen, aktuelle Marktlage. Dauert ~30 Sekunden.",
+		"generate": "Analyse erstellen",
+		"generating": "KI denkt nach…",
+		"regenerate": "Neu auswerten",
+		"regenerating": "Aktualisiere…",
+		"updatedAt": "Stand: {date}",
+		"salaryBand": "Gehaltsband",
+		"salaryRange": "Range: {low} € – {high} €",
+		"strengths": "Deine Stärken",
+		"growthAreas": "Entwicklungsfelder",
+		"primaryIndustries": "Klare Branchen-Treffer",
+		"adjacentIndustries": "Verdeckte Möglichkeiten",
+		"roleSuggestions": "Rollen-Optionen",
+		"obvious": "Klar",
+		"hidden": "Verdeckt",
+		"certifications": "Zertifizierungs-Vorschläge",
+		"effortHours": "≈ {hours} h",
+		"issuedBy": "Aussteller: {issuer}",
+		"hiringPros": "Argumente FÜR dich",
+		"hiringCons": "Argumente DAGEGEN",
+		"marketContext": "Markt 2026",
+		"demand": {
+			"high": "Hoch",
+			"medium": "Mittel",
+			"low": "Niedrig"
+		}
 	}
 }

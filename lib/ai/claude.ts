@@ -3,9 +3,11 @@ import type {
 	AIProvider,
 	CandidateNarrative,
 	CandidateNarrativeInput,
+	CareerAnalysis,
 	ExtractedDocument,
 	ExtractedJobPosting,
 	ExtractedProfile,
+	JobPostingQuality,
 	MatchAssessment,
 	MatchAssessmentInput,
 	MatchRationaleInput,
@@ -842,5 +844,82 @@ Schema pro Eintrag:
 			console.error("[ai] suggestAssessmentQuestions failed", e);
 		}
 		return [];
+	}
+
+	async analyzeCareerProspects(input: {
+		profile: ExtractedProfile;
+		yearsActive?: number;
+	}): Promise<CareerAnalysis> {
+		const sys = `Du bist erfahrener Career Coach mit DACH-Marktwissen 2026. Lies das Profil und gib eine umfassende Karriere-Analyse als JSON zurück. Sei konkret, nicht generisch — keine Buzzwords, klare Begründungen.
+
+Schema:
+{
+	"headline": "1 Absatz, ~80 Wörter",
+	"strengths": ["3-5 stärken"],
+	"growthAreas": ["3-5 entwicklungsfelder"],
+	"salary": {"low": int, "mid": int, "high": int, "currency": "EUR", "rationale": "..."},
+	"primaryIndustries": ["..."],
+	"adjacentIndustries": [{"name": "...", "rationale": "..."}],
+	"certificationSuggestions": [{"name": "...", "issuer": "...", "why": "...", "effortHours": int}],
+	"roleSuggestions": [{"title": "...", "rationale": "...", "obvious": bool}],
+	"hiringPros": ["..."],
+	"hiringCons": ["..."],
+	"marketContext": {"demand": "high"|"medium"|"low", "notes": "..."}
+}`;
+		const user = JSON.stringify({
+			profile: input.profile,
+			yearsActive: input.yearsActive,
+		});
+		try {
+			const result = await this.client.messages.create({
+				model: "claude-sonnet-4-6",
+				max_tokens: 3500,
+				system: sys,
+				messages: [{ role: "user", content: user }],
+			});
+			const text = result.content
+				.flatMap((b) => (b.type === "text" ? [b.text] : []))
+				.join("")
+				.trim();
+			const m = text.match(/\{[\s\S]*\}/);
+			if (m) return JSON.parse(m[0]) as CareerAnalysis;
+		} catch (e) {
+			console.error("[ai] analyzeCareerProspects failed", e);
+		}
+		throw new Error("analyzeCareerProspects: empty result");
+	}
+
+	async assessJobPostingQuality(input: {
+		title: string;
+		description: string;
+		requirements: { name: string; weight: "must" | "nice" }[];
+		salaryMin: number | null;
+		salaryMax: number | null;
+		remotePolicy: string;
+	}): Promise<JobPostingQuality> {
+		const sys = `Du bewertest Stellenanzeigen aus Bewerber-Sicht. Gib JSON zurück: {"score":<0-100>,"completeness":<0-100>,"clarity":<0-100>,"redFlags":["..."],"suggestions":["..."]}. Konkret, nicht generisch.`;
+		try {
+			const result = await this.client.messages.create({
+				model: "claude-sonnet-4-6",
+				max_tokens: 1200,
+				system: sys,
+				messages: [{ role: "user", content: JSON.stringify(input) }],
+			});
+			const text = result.content
+				.flatMap((b) => (b.type === "text" ? [b.text] : []))
+				.join("")
+				.trim();
+			const m = text.match(/\{[\s\S]*\}/);
+			if (m) return JSON.parse(m[0]) as JobPostingQuality;
+		} catch (e) {
+			console.error("[ai] assessJobPostingQuality failed", e);
+		}
+		return {
+			score: 50,
+			completeness: 50,
+			clarity: 50,
+			redFlags: [],
+			suggestions: [],
+		};
 	}
 }
