@@ -4,6 +4,7 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import {
 	counterOffer,
 	getOfferForCandidate,
+	getOfferThread,
 	markOfferSeen,
 	respondToOffer,
 } from "@/app/actions/offers";
@@ -12,6 +13,16 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+const STATUS_TONES: Record<string, string> = {
+	pending: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+	seen: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
+	accepted: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+	declined: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
+	countered: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+	withdrawn: "bg-zinc-500/10 text-muted-foreground",
+	expired: "bg-zinc-500/10 text-muted-foreground",
+};
 
 export default async function OfferDetailPage({
 	params,
@@ -31,7 +42,12 @@ export default async function OfferDetailPage({
 	if (item.offer.status === "pending") await markOfferSeen(id);
 
 	const { offer, employer, job } = item;
-	const isOpen = offer.status === "pending" || offer.status === "seen";
+	const thread = await getOfferThread(id);
+	// Show actions only if the candidate is the next to respond.
+	// (= last actor was the employer, status open)
+	const isOpen =
+		(offer.status === "pending" || offer.status === "seen") &&
+		offer.lastActor === "employer";
 
 	async function accept(fd: FormData) {
 		"use server";
@@ -163,6 +179,55 @@ export default async function OfferDetailPage({
 						</Link>
 					)}
 				</section>
+
+				{thread.length > 1 && (
+					<section className="mt-8">
+						<p className="lv-eyebrow text-[0.55rem] text-muted-foreground">
+							{t("thread")}
+						</p>
+						<ol className="mt-3 space-y-3">
+							{thread.map((step, idx) => (
+								<li
+									key={step.id}
+									className="rounded-sm border border-border bg-background p-4"
+								>
+									<div className="flex items-start justify-between gap-3">
+										<div>
+											<p className="lv-eyebrow text-[0.55rem] text-muted-foreground">
+												{step.lastActor === "employer"
+													? employer.name
+													: t("you")}
+												{` · #${idx + 1}`}
+											</p>
+											<div className="mt-1 font-serif-display text-xl">
+												{fmt.number(step.salaryProposed, {
+													style: "currency",
+													currency: "EUR",
+													maximumFractionDigits: 0,
+												})}
+											</div>
+											<p className="mt-1 font-mono text-[10px] text-muted-foreground">
+												{fmt.dateTime(step.createdAt, { dateStyle: "short" })}
+											</p>
+											{step.message && (
+												<p className="mt-2 whitespace-pre-wrap text-foreground/90 text-xs leading-relaxed">
+													{step.message}
+												</p>
+											)}
+										</div>
+										<span
+											className={`shrink-0 rounded-sm px-2 py-1 font-mono text-[10px] uppercase tracking-wide ${
+												STATUS_TONES[step.status] ?? STATUS_TONES.pending
+											}`}
+										>
+											{t(`status.${step.status}`)}
+										</span>
+									</div>
+								</li>
+							))}
+						</ol>
+					</section>
+				)}
 
 				{isOpen && (
 					<section className="mt-10 space-y-6 border-border border-t pt-8">

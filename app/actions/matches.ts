@@ -3,6 +3,7 @@
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { pushNotification } from "@/app/actions/notifications";
+import { notifySavedSearchHits } from "@/app/actions/saved-searches";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
@@ -27,6 +28,10 @@ const TOP_N = 20;
 export async function computeMatchesForJob(jobId: string): Promise<void> {
 	const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
 	if (!job || job.status !== "published") return;
+
+	// Fan-out saved-search hits — independent of match scoring; even if no
+	// candidate scores high, a saved search may want to see the new posting.
+	await notifySavedSearchHits(job);
 
 	const [emp] = await db
 		.select()

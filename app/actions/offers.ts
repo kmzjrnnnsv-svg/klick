@@ -355,3 +355,174 @@ export async function listOffersForEmployer(jobId?: string): Promise<Offer[]> {
 		: eq(offers.employerId, employer.id);
 	return db.select().from(offers).where(where).orderBy(desc(offers.createdAt));
 }
+
+// Negotiation chain — collects every offer linked by parentOfferId.
+// Returns oldest → newest so the UI can render a timeline.
+export async function getOfferThread(rootOfferId: string): Promise<Offer[]> {
+	// Walk up to the absolute root, then collect descendants.
+	const seen = new Set<string>();
+	const collected: Offer[] = [];
+	let cursor: string | null = rootOfferId;
+
+	while (cursor && !seen.has(cursor)) {
+		seen.add(cursor);
+		const [row] = await db
+			.select()
+			.from(offers)
+			.where(eq(offers.id, cursor))
+			.limit(1);
+		if (!row) break;
+		collected.unshift(row);
+		cursor = row.parentOfferId;
+	}
+
+	// Walk down: find any offer whose parentOfferId is the most recent
+	// collected. Loop until none.
+	let lastIdNorm: string = collected[collected.length - 1]?.id ?? rootOfferId;
+	while (true) {
+		const [child] = await db
+			.select()
+			.from(offers)
+			.where(eq(offers.parentOfferId, lastIdNorm))
+			.limit(1);
+		if (!child || seen.has(child.id)) break;
+		seen.add(child.id);
+		collected.push(child);
+		lastIdNorm = child.id;
+	}
+
+	return collected;
+}
+
+// Employer accepts the candidate's most recent counter — closes negotiation.
+export async function acceptCounter(offerId: string): Promise<void> {
+	const { employer } = await requireEmployerWithRow();
+	const [o] = await db
+		.select()
+		.from(offers)
+		.where(eq(offers.id, offerId))
+		.limit(1);
+	if (!o || o.employerId !== employer.id) throw new Error("not found");
+	if (
+		o.lastActor !== "candidate" ||
+		(o.status !== "pending" && o.status !== "seen")
+	) {
+		throw new Error("offer not in counter state");
+	}
+	await db
+		.update(offers)
+		.set({ status: "accepted", decidedAt: new Date() })
+		.where(eq(offers.id, offerId));
+
+	await pushNotification({
+		userId: o.candidateUserId,
+		kind: "offer_decided",
+		title: `Angebot angenommen: ${o.roleTitle}`,
+		body: `${employer.companyName} akzeptiert deinen Vorschlag von ${o.salaryProposed.toLocaleString("de-DE")} €.`,
+		link: `/offers/${o.id}`,
+		payload: { offerId: o.id },
+	});
+
+	revalidatePath("/offers");
+	revalidatePath(`/offers/${o.id}`);
+	revalidatePath(`/jobs/${o.jobId}/offers`);
+}
+
+// Employer counters the candidate's counter — fresh offer in the chain.
+export async function employerCounter(input: {
+	parentOfferId: string;
+	salaryProposed: number;
+	message?: string;
+}): Promise<{ id: string }> {
+	const { employer } = await requireEmployerWithRow();
+	const [parent] = await db
+		.select()
+		.from(offers)
+		.where(eq(offers.id, input.parentOfferId))
+		.limit(1);
+	if (!parent || parent.employerId !== employer.id)
+		throw new Error("not found");
+	if (parent.lastActor !== "candidate") {
+		throw new Error("can only counter a candidate's counter");
+	}
+
+	await db
+		.update(offers)
+		.set({ status: "countered", decidedAt: new Date() })
+		.where(eq(offers.id, parent.id));
+
+	const [created] = await db
+		.insert(offers)
+		.values({
+			jobId: parent.jobId,
+			employerId: parent.employerId,
+			candidateUserId: parent.candidateUserId,
+			parentOfferId: parent.id,
+			roleTitle: parent.roleTitle,
+			salaryProposed: input.salaryProposed,
+			startDateProposed: parent.startDateProposed,
+			message: input.message,
+			lastActor: "employer",
+			expiresAt: parent.expiresAt,
+		})
+		.returning({ id: offers.id });
+
+	await pushNotification({
+		userId: parent.candidateUserId,
+		kind: "new_offer",
+		title: `${employer.companyName} hat dein Gegenangebot beantwortet`,
+		body: `Neuer Vorschlag: ${input.salaryProposed.toLocaleString("de-DE")} €`,
+		link: `/offers/${created.id}`,
+		payload: { offerId: created.id, parentOfferId: parent.id },
+	});
+
+	revalidatePath("/offers");
+	revalidatePath(`/jobs/${parent.jobId}/offers`);
+	return { id: created.id };
+}
+
+export type EmployerOfferDetail = {
+	offer: Offer;
+	candidate: {
+		userId: string;
+		displayName: string | null;
+		email: string | null;
+	};
+	job: { id: string; title: string };
+	thread: Offer[];
+};
+
+export async function getOfferForEmployer(
+	id: string,
+): Promise<EmployerOfferDetail | null> {
+	const { employer } = await requireEmployerWithRow();
+	const [r] = await db
+		.select({
+			offer: offers,
+			candidateUserId: offers.candidateUserId,
+			displayName: candidateProfiles.displayName,
+			email: users.email,
+			jobTitle: jobs.title,
+		})
+		.from(offers)
+		.leftJoin(
+			candidateProfiles,
+			eq(candidateProfiles.userId, offers.candidateUserId),
+		)
+		.leftJoin(users, eq(users.id, offers.candidateUserId))
+		.leftJoin(jobs, eq(jobs.id, offers.jobId))
+		.where(and(eq(offers.id, id), eq(offers.employerId, employer.id)))
+		.limit(1);
+	if (!r) return null;
+	const thread = await getOfferThread(id);
+	return {
+		offer: r.offer,
+		candidate: {
+			userId: r.candidateUserId,
+			displayName: r.displayName,
+			email: r.email,
+		},
+		job: { id: r.offer.jobId, title: r.jobTitle ?? "" },
+		thread,
+	};
+}

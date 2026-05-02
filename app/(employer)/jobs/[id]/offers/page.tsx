@@ -72,70 +72,74 @@ export default async function JobOffersPage({
 						{items.map((o) => (
 							<li
 								key={o.id}
-								className="rounded-sm border border-border bg-background p-4 sm:p-5"
+								className="rounded-sm border border-border bg-background p-4 transition-colors hover:bg-muted/30 sm:p-5"
 							>
-								<div className="flex items-start justify-between gap-3">
-									<div className="min-w-0">
-										<div className="font-serif-display text-lg">
-											{o.roleTitle}
-										</div>
-										<div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-											<span>
-												<span className="text-muted-foreground">
-													{t("salary")}:{" "}
-												</span>
-												{fmt.number(o.salaryProposed, {
-													style: "currency",
-													currency: "EUR",
-													maximumFractionDigits: 0,
-												})}
-											</span>
-											{o.startDateProposed && (
+								<Link href={`/jobs/${id}/offers/${o.id}`} className="block">
+									<div className="flex items-start justify-between gap-3">
+										<div className="min-w-0">
+											<div className="font-serif-display text-lg">
+												{o.roleTitle}
+											</div>
+											<div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
 												<span>
 													<span className="text-muted-foreground">
-														{t("start")}:{" "}
+														{t("salary")}:{" "}
 													</span>
-													{fmt.dateTime(o.startDateProposed, {
-														dateStyle: "medium",
+													{fmt.number(o.salaryProposed, {
+														style: "currency",
+														currency: "EUR",
+														maximumFractionDigits: 0,
 													})}
 												</span>
-											)}
-											{o.lastActor === "candidate" && (
-												<span className="text-indigo-700 dark:text-indigo-300">
-													{t("counterIncoming")}
-												</span>
-											)}
-										</div>
-										<p className="mt-2 font-mono text-[10px] text-muted-foreground">
-											{t("sentAt", {
-												date: fmt.dateTime(o.createdAt, { dateStyle: "short" }),
-											})}
-											{o.expiresAt &&
-												` · ${t("validUntil", {
-													date: fmt.dateTime(o.expiresAt, {
+												{o.startDateProposed && (
+													<span>
+														<span className="text-muted-foreground">
+															{t("start")}:{" "}
+														</span>
+														{fmt.dateTime(o.startDateProposed, {
+															dateStyle: "medium",
+														})}
+													</span>
+												)}
+												{o.lastActor === "candidate" && (
+													<span className="text-indigo-700 dark:text-indigo-300">
+														{t("counterIncoming")}
+													</span>
+												)}
+											</div>
+											<p className="mt-2 font-mono text-[10px] text-muted-foreground">
+												{t("sentAt", {
+													date: fmt.dateTime(o.createdAt, {
 														dateStyle: "short",
 													}),
-												})}`}
-										</p>
-										{o.message && (
-											<p className="mt-2 line-clamp-3 text-muted-foreground text-xs leading-relaxed">
-												{o.message}
+												})}
+												{o.expiresAt &&
+													` · ${t("validUntil", {
+														date: fmt.dateTime(o.expiresAt, {
+															dateStyle: "short",
+														}),
+													})}`}
 											</p>
-										)}
-										{o.decidedMessage && (
-											<p className="mt-2 rounded-sm border-l-2 border-primary/40 bg-muted/40 px-2 py-1 text-foreground text-xs leading-relaxed">
-												{o.decidedMessage}
-											</p>
-										)}
+											{o.message && (
+												<p className="mt-2 line-clamp-3 text-muted-foreground text-xs leading-relaxed">
+													{o.message}
+												</p>
+											)}
+											{o.decidedMessage && (
+												<p className="mt-2 rounded-sm border-l-2 border-primary/40 bg-muted/40 px-2 py-1 text-foreground text-xs leading-relaxed">
+													{o.decidedMessage}
+												</p>
+											)}
+										</div>
+										<span
+											className={`shrink-0 rounded-sm px-2 py-1 font-mono text-[10px] uppercase tracking-wide ${
+												STATUS_TONES[o.status] ?? STATUS_TONES.pending
+											}`}
+										>
+											{t(`status.${o.status}`)}
+										</span>
 									</div>
-									<span
-										className={`shrink-0 rounded-sm px-2 py-1 font-mono text-[10px] uppercase tracking-wide ${
-											STATUS_TONES[o.status] ?? STATUS_TONES.pending
-										}`}
-									>
-										{t(`status.${o.status}`)}
-									</span>
-								</div>
+								</Link>
 								{(o.status === "pending" || o.status === "seen") && (
 									<form
 										action={withdraw}
