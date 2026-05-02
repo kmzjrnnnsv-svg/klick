@@ -12,6 +12,7 @@
 		"openOffers": "Offers",
 		"openSearches": "Searches",
 		"openRequests": "Requests",
+		"openTeam": "Team",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
 		"notifications": "Notifications",
@@ -534,6 +535,8 @@
 		"benchmarkUnder": "You're paying {pct}% below market — consider raising.",
 		"benchmarkOver": "You're paying {pct}% above market — likely room to negotiate.",
 		"benchmarkFair": "Within the typical corridor.",
+		"qualityTitle": "Posting quality",
+		"qualityBreakdown": "Completeness {completeness} · Clarity {clarity}",
 		"uploader": {
 			"title": "Upload job posting",
 			"hint": "Drop a PDF or image — AI fills title, description, requirements, salary and languages automatically. You verify and tweak.",
@@ -559,8 +562,33 @@
 			"requirements": "Requirements",
 			"context": "Context",
 			"salary": "Salary",
-			"status": "Status"
+			"status": "Status",
+			"deepContext": "More context (optional, raises quality score)"
 		},
+		"deepContextHint": "These fields are optional but help candidates decide — and raise the AI quality score of your posting.",
+		"teamSize": "Team size",
+		"growthStage": "Stage",
+		"growthStageNone": "Unspecified",
+		"growthStages": {
+			"pre_seed": "Pre-seed",
+			"seed": "Seed",
+			"series_a": "Series A",
+			"series_b": "Series B",
+			"series_c_plus": "Series C+",
+			"profitable": "Profitable / bootstrap",
+			"public": "Public",
+			"non_profit": "Non-profit",
+			"agency": "Agency"
+		},
+		"techStackDetail": "Tech stack in detail",
+		"techStackDetailPlaceholder": "Backend: Node + Postgres, auth via Clerk; Frontend: Next 16 + Tailwind. Infra: Vercel + Hetzner.",
+		"decisionProcess": "Selection process",
+		"decisionProcessPlaceholder": "1× screening (30min), 1× tech interview with coding (60min), 1× team fit (45min).",
+		"remoteOnsiteRatio": "Remote ratio (%)",
+		"mustReasoning": "Why are these skills MUST?",
+		"mustReasoningPlaceholder": "We're migrating to TypeScript — without solid background, candidates cost us weeks.",
+		"first90DaysGoals": "First 90-day goals",
+		"first90DaysGoalsPlaceholder": "Day 30: onboarded + first PRs merged. Day 60: feature live. Day 90: architecture proposal for module X.",
 		"requirementsEmpty": "No requirements yet. Use \"Suggest skills\" or add manually.",
 		"skillName": "Skill",
 		"weight": {
@@ -1245,6 +1273,35 @@
 			"no": "Without disability"
 		},
 		"suppressionNote": "Values under 5 are reported as 0 to prevent re-identification. Free-text ethnicity entries only appear if ≥5 people used the exact same wording."
+	},
+	"Agency": {
+		"eyebrow": "Recruiter team",
+		"title": "Team management",
+		"subtitle": "Invite additional recruiters. Each gets their own magic-link account — no shared logins.",
+		"inviteEyebrow": "Invitation",
+		"inviteTitle": "Invite a recruiter",
+		"emailPlaceholder": "colleague@company.com",
+		"role": {
+			"owner": "Owner",
+			"recruiter": "Recruiter",
+			"viewer": "Read-only"
+		},
+		"invite": "Invite",
+		"sending": "Sending…",
+		"sentTo": "Invitation sent to {email}.",
+		"teamEyebrow": "Team",
+		"teamTitle": "Current members",
+		"joinedAt": "Joined {date}",
+		"invitedAt": "Invited {date}",
+		"remove": "Remove",
+		"confirmRemove": "Really remove this person from the team?"
+	},
+	"AgencyInvite": {
+		"eyebrow": "Team invitation",
+		"title": "Accept?",
+		"hint": "You've been invited to a recruiter team. Accepting gives you access to roles, candidates and negotiations.",
+		"accept": "Accept invitation",
+		"emailMatchHint": "Your account email must match the invited address."
 	},
 	"Career": {
 		"emptyHint": "Let the AI deeply analyse your profile — salary band, primary and non-obvious industries, certifications, role options, market context. Takes ~30 seconds.",

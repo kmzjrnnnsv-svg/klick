@@ -1,5 +1,6 @@
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { eq } from "drizzle-orm";
+import { after } from "next/server";
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import { db } from "@/db";
 import {
@@ -13,9 +14,11 @@ import { sendTransactionalMail } from "@/lib/mail/send";
 import { magicLinkEmail } from "@/lib/mail/templates";
 
 // Auth.js wirft eine generische "Server error"-Seite, wenn
-// sendVerificationRequest throwt. Daher fangen wir hier alles ab und
-// loggen den Link notfalls in die Konsole — der Login-Flow kommt zur
-// Bestätigungs-Seite, der Admin sieht in journalctl den Link.
+// sendVerificationRequest throwt. Daher fangen wir hier alles ab —
+// und vor allem schicken wir die Mail in `after()`, damit der Response
+// SOFORT auf die /login/check-email-Seite redirected. Davor blockierte
+// jede Magic-Link-Anforderung bis zu 35s (SMTP/Resend-Timeouts), was
+// als "lange Ladezeit" sichtbar wurde.
 async function sendMagicLinkEmail(identifier: string, url: string) {
 	const host = (() => {
 		try {
@@ -26,21 +29,25 @@ async function sendMagicLinkEmail(identifier: string, url: string) {
 	})();
 	const tpl = magicLinkEmail({ url, host });
 
-	try {
-		await sendTransactionalMail({
-			to: identifier,
-			subject: tpl.subject,
-			text: tpl.text,
-			html: tpl.html,
-		});
-	} catch (e) {
-		console.error("[auth] sendMagicLinkEmail unexpected failure:", e);
-	}
-	// Immer zusätzlich in die Konsole loggen — als Diagnose-Hilfe und für
-	// Dev/Demo-Setups, in denen Mail nicht zustellbar ist.
+	// 1) Sofort in die Konsole — Diagnostik in journalctl + Notfall-Zugang
 	console.log(
 		`\n┌──── Magic Link ────────────────────────────────────\n│ to:  ${identifier}\n│ url: ${url}\n└────────────────────────────────────────────────────\n`,
 	);
+
+	// 2) Mail im Hintergrund schicken — Response geht sofort weiter.
+	after(async () => {
+		try {
+			const outcome = await sendTransactionalMail({
+				to: identifier,
+				subject: tpl.subject,
+				text: tpl.text,
+				html: tpl.html,
+			});
+			console.log(`[auth] magic-link mail dispatched via ${outcome.path}`);
+		} catch (e) {
+			console.error("[auth] sendMagicLinkEmail unexpected failure:", e);
+		}
+	});
 }
 
 const emailProvider = {

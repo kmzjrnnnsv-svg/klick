@@ -990,3 +990,63 @@ export const referenceDisclosures = pgTable(
 );
 
 export type ReferenceDisclosure = typeof referenceDisclosures.$inferSelect;
+
+// ─── Agency Members ────────────────────────────────────────────────────────
+// Mehrere Recruiter pro Employer/Agency. Owner kann andere User per E-Mail
+// einladen (User wird beim ersten Login mit dem Token verknüpft). Rolle
+// owner = Vollzugriff (inkl. Member-Verwaltung), recruiter = darf alles
+// auf Stellen + Kandidaten, viewer = nur Lesen.
+export const agencyMembers = pgTable(
+	"agency_members",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		employerId: text("employer_id")
+			.notNull()
+			.references(() => employers.id, { onDelete: "cascade" }),
+		// Null bis das Invite angenommen ist. inviteEmail bleibt das stabile
+		// Identifier — wir ordnen den User beim Annahme-Flow zu.
+		userId: text("user_id").references(() => users.id, {
+			onDelete: "cascade",
+		}),
+		inviteEmail: text("invite_email").notNull(),
+		inviteToken: text("invite_token").unique(),
+		role: text("role", { enum: ["owner", "recruiter", "viewer"] })
+			.notNull()
+			.default("recruiter"),
+		invitedAt: timestamp("invited_at", { mode: "date" }).notNull().defaultNow(),
+		joinedAt: timestamp("joined_at", { mode: "date" }),
+		invitedByUserId: text("invited_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+	},
+	(t) => [unique("agency_members_unique").on(t.employerId, t.inviteEmail)],
+);
+
+export type AgencyMember = typeof agencyMembers.$inferSelect;
+
+// ─── Job Mandates ──────────────────────────────────────────────────────────
+// Wenn eine Agency (employer.isAgency=true) eine Stelle im Auftrag eines
+// Endkunden postet, dokumentiert sie hier das Mandat. Sichtbarkeit per
+// `clientVisibility`: "private" (nur intern), "anonymous" (Kandidat sieht
+// "im Auftrag eines Mittelständlers"), "named" (Klarname öffentlich).
+export const jobMandates = pgTable("job_mandates", {
+	jobId: text("job_id")
+		.primaryKey()
+		.references(() => jobs.id, { onDelete: "cascade" }),
+	clientName: text("client_name").notNull(),
+	clientWebsite: text("client_website"),
+	clientIndustry: text("client_industry"),
+	clientNote: text("client_note"),
+	clientVisibility: text("client_visibility", {
+		enum: ["private", "anonymous", "named"],
+	})
+		.notNull()
+		.default("anonymous"),
+	commissionPct: integer("commission_pct"), // optional, internal only
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type JobMandate = typeof jobMandates.$inferSelect;

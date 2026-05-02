@@ -117,6 +117,61 @@ export default async function EditJobPage({
 						)}
 					</div>
 				)}
+				{job.postingQuality
+					? (() => {
+							const q = job.postingQuality as {
+								score: number;
+								completeness: number;
+								clarity: number;
+								redFlags: string[];
+								suggestions: string[];
+							};
+							return (
+								<div
+									className={cn(
+										"mb-6 rounded-lg border p-4",
+										q.score >= 75
+											? "border-emerald-500/30 bg-emerald-500/5"
+											: q.score >= 50
+												? "border-amber-500/30 bg-amber-500/5"
+												: "border-rose-500/30 bg-rose-500/5",
+									)}
+								>
+									<div className="flex items-baseline justify-between gap-3">
+										<p className="font-medium text-sm">{t("qualityTitle")}</p>
+										<span className="font-mono text-base">{q.score}/100</span>
+									</div>
+									<p className="mt-1 font-mono text-[11px] text-muted-foreground">
+										{t("qualityBreakdown", {
+											completeness: q.completeness,
+											clarity: q.clarity,
+										})}
+									</p>
+									{q.redFlags.length > 0 && (
+										<ul className="mt-3 space-y-1 text-xs">
+											{q.redFlags.map((f) => (
+												<li
+													key={f}
+													className="text-rose-700 dark:text-rose-300"
+												>
+													⚠ {f}
+												</li>
+											))}
+										</ul>
+									)}
+									{q.suggestions.length > 0 && (
+										<ul className="mt-2 space-y-1 text-xs">
+											{q.suggestions.map((s) => (
+												<li key={s} className="text-muted-foreground">
+													→ {s}
+												</li>
+											))}
+										</ul>
+									)}
+								</div>
+							);
+						})()
+					: null}
 				<JobForm initial={job} />
 			</main>
 			<Footer />
