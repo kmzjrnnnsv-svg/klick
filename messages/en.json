@@ -380,6 +380,7 @@
 		"seeCandidates": "See {count} candidates",
 		"seeFavorites": "Favorites",
 		"seeOffers": "Offers",
+		"seeQuestions": "Questions",
 		"salary": "Salary",
 		"remoteOptions": {
 			"onsite": "On-site",
@@ -1013,5 +1014,52 @@
 		"cancel": "Cancel",
 		"remoteOnly": "Remote only",
 		"noRemote": "On-site"
+	},
+	"JobDetail": {
+		"backToList": "Back to list",
+		"via": "Via {name}",
+		"description": "Job description",
+		"requirements": "Requirements",
+		"must": "Must",
+		"viewCompany": "View company",
+		"remote": {
+			"onsite": "On-site",
+			"hybrid": "Hybrid",
+			"remote": "Remote"
+		},
+		"employmentType": {
+			"fulltime": "Full-time",
+			"parttime": "Part-time",
+			"contract": "Contract",
+			"internship": "Internship"
+		},
+		"askEyebrow": "Ask",
+		"askTitle": "Want to know something specific?",
+		"askHint": "Ask the employer questions without revealing your identity. We do NOT share your name — only the question. Reply comes as a notification.",
+		"askQuestion": "Send question",
+		"sending": "Sending…",
+		"questionPlaceholder": "How many on-site days? What's your backend stack? Why does this role excite you…",
+		"questionTooShort": "Question too short (min 5 chars).",
+		"questionAnonymousHint": "Anonymous — the employer only sees the question, not your name.",
+		"questionSent": "Sent. You'll get a notification as soon as there's an answer.",
+		"yourQuestions": "Your questions on this role",
+		"employerAnswered": "Reply from the employer",
+		"waitingForAnswer": "No reply yet.",
+		"publicFaqEyebrow": "FAQ",
+		"publicFaqTitle": "Frequently asked"
+	},
+	"EmployerQuestions": {
+		"eyebrow": "Anonymous questions",
+		"title": "Questions on this role",
+		"subtitle": "{count} questions — anonymously from candidates.",
+		"empty": "No questions yet. They'll appear here as soon as someone wants to know something.",
+		"openSection": "{count} unanswered",
+		"answeredSection": "{count} answered",
+		"answer": "Send reply",
+		"answerPlaceholder": "Clear, concise. If relevant for others → mark below as public.",
+		"makePublic": "Show as public FAQ on the job page",
+		"public": "Public",
+		"yourAnswer": "Your reply",
+		"anonymousAt": "Anonymous · {date}"
 	}
 }

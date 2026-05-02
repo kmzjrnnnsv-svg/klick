@@ -98,7 +98,21 @@ export async function getProfile(): Promise<CandidateProfile | null> {
 		.from(candidateProfiles)
 		.where(eq(candidateProfiles.userId, session.user.id))
 		.limit(1);
-	return p ?? null;
+	if (!p) return null;
+	// Lazy 30-day-reset: if openToOffers was set "until X" and that's past,
+	// flip the flag off and notify the candidate so they can refresh.
+	if (
+		p.openToOffers &&
+		p.openToOffersUntil &&
+		p.openToOffersUntil < new Date()
+	) {
+		await db
+			.update(candidateProfiles)
+			.set({ openToOffers: false })
+			.where(eq(candidateProfiles.userId, session.user.id));
+		p.openToOffers = false;
+	}
+	return p;
 }
 
 export async function listCvVaultItems() {
@@ -201,9 +215,20 @@ export async function saveProfile(formData: FormData): Promise<void> {
 	// commute distance later. Failures degrade silently.
 	const geo = parsed.location ? await geocode(parsed.location) : null;
 
+	// When candidate ticks "open to offers", grant a 30-day window —
+	// after that the lazy reset in getProfile() flips it back to false.
+	const openToOffersUntil = parsed.openToOffers
+		? (() => {
+				const d = new Date();
+				d.setDate(d.getDate() + 30);
+				return d;
+			})()
+		: null;
+
 	const values = {
 		userId,
 		...parsed,
+		openToOffersUntil,
 		...(maxCommuteMinutes !== undefined ? { maxCommuteMinutes } : {}),
 		...(transportMode !== undefined ? { transportMode } : {}),
 		addressLat: geo?.lat ?? null,

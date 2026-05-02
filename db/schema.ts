@@ -710,3 +710,33 @@ export const savedSearches = pgTable("saved_searches", {
 });
 
 export type SavedSearch = typeof savedSearches.$inferSelect;
+
+// ─── Job Questions (anonymous Q&A) ────────────────────────────────────────
+// Vor der Identitäts-Freigabe darf der/die Kandidat:in dem Arbeitgeber
+// Fragen stellen ("Wieviel Onsite?", "Welcher Tech-Stack im Backend?").
+// Der Employer sieht den Klarnamen NICHT — nur den anonymen Bezug zur
+// Stelle. Antworten können als "public" markiert werden — dann tauchen
+// sie als FAQ auf der öffentlichen Stellen-Detailseite auf.
+export const jobQuestions = pgTable("job_questions", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	jobId: text("job_id")
+		.notNull()
+		.references(() => jobs.id, { onDelete: "cascade" }),
+	candidateUserId: text("candidate_user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	body: text("body").notNull(),
+	answer: text("answer"),
+	answeredAt: timestamp("answered_at", { mode: "date" }),
+	answeredByUserId: text("answered_by_user_id").references(() => users.id, {
+		onDelete: "set null",
+	}),
+	// Wenn true, ist die Antwort öffentlich auf /jobs/browse/[id] sichtbar.
+	// Frage selbst wird anonymisiert. Default false → privater Q&A-Faden.
+	isPublic: boolean("is_public").notNull().default(false),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type JobQuestion = typeof jobQuestions.$inferSelect;

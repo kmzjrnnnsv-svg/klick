@@ -380,6 +380,7 @@
 		"seeCandidates": "{count} Kandidat:innen ansehen",
 		"seeFavorites": "Favoriten",
 		"seeOffers": "Angebote",
+		"seeQuestions": "Fragen",
 		"salary": "Gehalt",
 		"remoteOptions": {
 			"onsite": "Vor Ort",
@@ -1013,5 +1014,52 @@
 		"cancel": "Abbrechen",
 		"remoteOnly": "Nur Remote",
 		"noRemote": "Vor Ort"
+	},
+	"JobDetail": {
+		"backToList": "Zurück zur Liste",
+		"via": "Vermittelt von {name}",
+		"description": "Stellenbeschreibung",
+		"requirements": "Anforderungen",
+		"must": "Muss",
+		"viewCompany": "Unternehmen ansehen",
+		"remote": {
+			"onsite": "Vor Ort",
+			"hybrid": "Hybrid",
+			"remote": "Remote"
+		},
+		"employmentType": {
+			"fulltime": "Vollzeit",
+			"parttime": "Teilzeit",
+			"contract": "Befristet",
+			"internship": "Praktikum"
+		},
+		"askEyebrow": "Frage stellen",
+		"askTitle": "Etwas Konkretes wissen?",
+		"askHint": "Stelle dem Arbeitgeber Fragen, ohne deine Identität zu verraten. Wir geben deinen Namen NICHT weiter — nur die Frage. Antwort kommt als Notification.",
+		"askQuestion": "Frage senden",
+		"sending": "Sende…",
+		"questionPlaceholder": "Wie viele Onsite-Tage? Welcher Tech-Stack im Backend? Was reizt dich an dieser Person…",
+		"questionTooShort": "Die Frage ist zu kurz (min. 5 Zeichen).",
+		"questionAnonymousHint": "Anonym — der Arbeitgeber sieht nur die Frage, nicht deinen Namen.",
+		"questionSent": "Gesendet. Du bekommst eine Notification, sobald eine Antwort da ist.",
+		"yourQuestions": "Deine Fragen zu dieser Stelle",
+		"employerAnswered": "Antwort vom Arbeitgeber",
+		"waitingForAnswer": "Noch keine Antwort.",
+		"publicFaqEyebrow": "FAQ",
+		"publicFaqTitle": "Häufig gefragt"
+	},
+	"EmployerQuestions": {
+		"eyebrow": "Anonyme Fragen",
+		"title": "Fragen zu dieser Stelle",
+		"subtitle": "{count} Fragen — anonym von Kandidat:innen.",
+		"empty": "Noch keine Fragen. Sobald jemand etwas wissen will, taucht es hier auf.",
+		"openSection": "{count} unbeantwortet",
+		"answeredSection": "{count} beantwortet",
+		"answer": "Antwort senden",
+		"answerPlaceholder": "Klare, knappe Antwort. Wenn auch für andere relevant → unten als öffentlich markieren.",
+		"makePublic": "Als öffentliches FAQ auf der Stellen-Seite anzeigen",
+		"public": "Öffentlich",
+		"yourAnswer": "Deine Antwort",
+		"anonymousAt": "Anonym · {date}"
 	}
 }
