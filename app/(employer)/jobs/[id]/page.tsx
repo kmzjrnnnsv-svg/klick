@@ -69,6 +69,14 @@ export default async function EditJobPage({
 							>
 								{tm("seeOffers")}
 							</Link>
+							<Link
+								href={`/jobs/${id}/questions`}
+								className={cn(
+									buttonVariants({ size: "sm", variant: "outline" }),
+								)}
+							>
+								{tm("seeQuestions")}
+							</Link>
 						</div>
 					)}
 				</header>
