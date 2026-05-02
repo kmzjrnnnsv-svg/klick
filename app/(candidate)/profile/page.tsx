@@ -1,13 +1,17 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { getMyDiversity } from "@/app/actions/diversity";
 import { getMyInsights } from "@/app/actions/insights";
 import { getProfile, listCvVaultItems } from "@/app/actions/profile";
 import { getMyShareToken } from "@/app/actions/public-profile";
+import { listMyReferences } from "@/app/actions/references";
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { CandidateInsightsView } from "@/components/insights/candidate-insights";
+import { DiversityForm } from "@/components/profile/diversity-form";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { ReferencesForm } from "@/components/profile/references-form";
 import { ShareLink } from "@/components/profile/share-link";
 
 export default async function ProfilePage() {
@@ -15,12 +19,15 @@ export default async function ProfilePage() {
 	if (!session?.user) redirect("/login");
 
 	const t = await getTranslations("Profile");
-	const [profile, cvs, insights, shareToken] = await Promise.all([
-		getProfile(),
-		listCvVaultItems(),
-		getMyInsights(),
-		getMyShareToken(),
-	]);
+	const [profile, cvs, insights, shareToken, diversity, references] =
+		await Promise.all([
+			getProfile(),
+			listCvVaultItems(),
+			getMyInsights(),
+			getMyShareToken(),
+			getMyDiversity(),
+			listMyReferences(),
+		]);
 
 	return (
 		<>
@@ -60,6 +67,26 @@ export default async function ProfilePage() {
 				</section>
 
 				<ProfileForm initial={profile} cvs={cvs} />
+
+				<section className="mt-12 border-border border-t pt-8">
+					<h2 className="mb-2 font-serif-display text-xl">
+						{t("referencesHeading")}
+					</h2>
+					<p className="mb-4 text-muted-foreground text-xs leading-relaxed">
+						{t("referencesSubtitle")}
+					</p>
+					<ReferencesForm initial={references} />
+				</section>
+
+				<section className="mt-12 border-border border-t pt-8">
+					<h2 className="mb-2 font-serif-display text-xl">
+						{t("diversityHeading")}
+					</h2>
+					<p className="mb-4 text-muted-foreground text-xs leading-relaxed">
+						{t("diversitySubtitle")}
+					</p>
+					<DiversityForm initial={diversity} />
+				</section>
 			</main>
 			<Footer />
 		</>

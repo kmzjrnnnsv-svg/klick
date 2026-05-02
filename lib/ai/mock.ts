@@ -292,4 +292,25 @@ export class MockAIProvider implements AIProvider {
 		].filter(Boolean);
 		return `${parts.join(", ")}.`;
 	}
+
+	async gradeOpenAnswer(input: {
+		question: string;
+		rubric: string | null;
+		answer: string;
+		maxPoints: number;
+	}): Promise<{ pointsEarned: number; feedback: string }> {
+		// Deterministic mock — count meaningful words; cap at maxPoints.
+		const words = input.answer.trim().split(/\s+/).filter(Boolean).length;
+		const ratio = Math.max(0, Math.min(1, words / 60));
+		const pointsEarned = Math.round(ratio * input.maxPoints);
+		return {
+			pointsEarned,
+			feedback:
+				words < 10
+					? "Sehr knapp — mehr Detail zur Lösungsstrategie würde helfen."
+					: words < 40
+						? "Solide Antwort, könnte konkreter werden (Tools, Zahlen, Beispiele)."
+						: "Ausführlich, mit Kontext und Trade-offs. Gute Antwort.",
+		};
+	}
 }

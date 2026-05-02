@@ -223,4 +223,12 @@ export interface AIProvider {
 	// Pro/con + tenure summary attached to each match. Helps employers
 	// decide quickly without reading the whole profile.
 	assessMatch(input: MatchAssessmentInput): Promise<MatchAssessment>;
+	// Grade an open-ended assessment answer against a rubric. Returns a
+	// score in [0..maxPoints] plus short feedback the candidate sees.
+	gradeOpenAnswer(input: {
+		question: string;
+		rubric: string | null;
+		answer: string;
+		maxPoints: number;
+	}): Promise<{ pointsEarned: number; feedback: string }>;
 }
