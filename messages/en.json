@@ -377,6 +377,8 @@
 		"revealedHint": "Identity revealed. Vault disclosure ships in P5.5.",
 		"yearsAbbr": "{years} yrs experience",
 		"seeCandidates": "See {count} candidates",
+		"seeFavorites": "Favorites",
+		"seeOffers": "Offers",
 		"salary": "Salary",
 		"remoteOptions": {
 			"onsite": "On-site",
@@ -915,5 +917,66 @@
 		"remote_onsite": "On-site",
 		"remote_hybrid": "Hybrid",
 		"remote_remote": "Remote"
+	},
+	"EmployerActions": {
+		"favorite": "Add to favorites",
+		"unfavorite": "Remove from favorites",
+		"makeOffer": "Make offer",
+		"offerSent": "Offer sent",
+		"modalEyebrow": "Transfer offer",
+		"modalTitle": "Offer to this candidate",
+		"modalHint": "We send a notification. The candidate decides: accept, decline or counter. Identity is only revealed on accept.",
+		"roleTitle": "Role title",
+		"salary": "Salary (€/yr)",
+		"salaryRequired": "Please enter a valid salary.",
+		"startDate": "Start date (optional)",
+		"message": "Message (optional)",
+		"messagePlaceholder": "What draws you to this person? What do you offer that others don't?",
+		"send": "Send offer",
+		"sending": "Sending…",
+		"cancel": "Cancel",
+		"close": "Close",
+		"blockedNoOffers": "This person isn't taking offers right now (paused or inactive).",
+		"blockedAgency": "This person only accepts offers from direct employers, not agencies."
+	},
+	"Favorites": {
+		"eyebrow": "Shortlist",
+		"title": "Favorites for this role",
+		"subtitle": "{count} people you've shortlisted.",
+		"empty": "No favorites yet. Click the star on a match to collect them here.",
+		"emptyCta": "Go to matches",
+		"anonymous": "Anonymous candidate",
+		"addedAt": "Added on {date}",
+		"viewMatch": "View in match context",
+		"offerStatus": {
+			"pending": "Offer pending",
+			"seen": "Seen",
+			"accepted": "Accepted",
+			"declined": "Declined",
+			"countered": "Countered",
+			"withdrawn": "Withdrawn",
+			"expired": "Expired"
+		}
+	},
+	"EmployerOffers": {
+		"eyebrow": "Negotiations",
+		"title": "Offers for this role",
+		"subtitle": "{count} ongoing or completed offers.",
+		"empty": "No offers sent yet.",
+		"salary": "Salary",
+		"start": "Start",
+		"sentAt": "Sent: {date}",
+		"validUntil": "valid until {date}",
+		"counterIncoming": "Counter received",
+		"withdraw": "Withdraw offer",
+		"status": {
+			"pending": "New",
+			"seen": "Seen",
+			"accepted": "Accepted",
+			"declined": "Declined",
+			"countered": "Countered",
+			"withdrawn": "Withdrawn",
+			"expired": "Expired"
+		}
 	}
 }

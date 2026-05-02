@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { listFavoritesForJob } from "@/app/actions/favorites";
 import {
 	listDisclosedItemsForInterest,
 	listInterestsForJob,
 } from "@/app/actions/interests";
 import { getJob } from "@/app/actions/jobs";
 import { listMatchesForJob } from "@/app/actions/matches";
+import { listOffersForEmployer } from "@/app/actions/offers";
 import { auth } from "@/auth";
+import { CandidateActions } from "@/components/employer/candidate-actions";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { CandidateInsightsView } from "@/components/insights/candidate-insights";
@@ -29,6 +32,22 @@ export default async function JobCandidatesPage({
 	const t = await getTranslations("Matches");
 	const candidates = await listMatchesForJob(id);
 	const interestsForJob = await listInterestsForJob(id);
+	const favoriteRows = await listFavoritesForJob(id);
+	const favoritedSet = new Set(
+		favoriteRows.map((r) => r.favorite.candidateUserId),
+	);
+	const offersForJob = await listOffersForEmployer(id);
+	const offerCandidateSet = new Set(
+		offersForJob
+			.filter(
+				(o) =>
+					o.status === "pending" ||
+					o.status === "seen" ||
+					o.status === "countered" ||
+					o.status === "accepted",
+			)
+			.map((o) => o.candidateUserId),
+	);
 
 	// Map matchId → latest interest status (for the button) and revealed email
 	// when status === "approved".
@@ -247,16 +266,30 @@ export default async function JobCandidatesPage({
 											</div>
 										</details>
 									)}
-									<div className="mt-3 flex items-center justify-between gap-3 border-border border-t pt-2.5 text-muted-foreground text-xs">
+									<div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-border border-t pt-2.5 text-muted-foreground text-xs">
 										<span>
 											{interest?.status === "approved"
 												? t("revealedHint")
 												: t("anonymizedHint")}
 										</span>
-										<ShowInterestButton
-											matchId={c.match.id}
-											currentStatus={interest?.status ?? null}
-										/>
+										<div className="flex flex-wrap items-center gap-2">
+											<CandidateActions
+												jobId={id}
+												jobTitle={job.title}
+												candidateUserId={c.match.candidateUserId}
+												initialFavorited={favoritedSet.has(
+													c.match.candidateUserId,
+												)}
+												hasOffer={offerCandidateSet.has(
+													c.match.candidateUserId,
+												)}
+												defaultSalary={job.salaryMax ?? job.salaryMin ?? null}
+											/>
+											<ShowInterestButton
+												matchId={c.match.id}
+												currentStatus={interest?.status ?? null}
+											/>
+										</div>
 									</div>
 								</li>
 							);

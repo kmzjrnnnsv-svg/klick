@@ -377,6 +377,8 @@
 		"revealedHint": "Identität freigegeben. Vault-Disclosure folgt in P5.5.",
 		"yearsAbbr": "{years} J. Erfahrung",
 		"seeCandidates": "{count} Kandidat:innen ansehen",
+		"seeFavorites": "Favoriten",
+		"seeOffers": "Angebote",
 		"salary": "Gehalt",
 		"remoteOptions": {
 			"onsite": "Vor Ort",
@@ -915,5 +917,66 @@
 		"remote_onsite": "Vor Ort",
 		"remote_hybrid": "Hybrid",
 		"remote_remote": "Remote"
+	},
+	"EmployerActions": {
+		"favorite": "Zu Favoriten hinzufügen",
+		"unfavorite": "Aus Favoriten entfernen",
+		"makeOffer": "Angebot machen",
+		"offerSent": "Angebot gesendet",
+		"modalEyebrow": "Transfer-Angebot",
+		"modalTitle": "Angebot an diese:n Kandidat:in",
+		"modalHint": "Wir senden eine Benachrichtigung. Der/die Kandidat:in entscheidet: Annehmen, ablehnen oder Gegenangebot. Identität wird nur bei Annahme freigegeben.",
+		"roleTitle": "Position",
+		"salary": "Gehalt (€/Jahr)",
+		"salaryRequired": "Bitte ein gültiges Gehalt eingeben.",
+		"startDate": "Startdatum (optional)",
+		"message": "Nachricht (optional)",
+		"messagePlaceholder": "Was reizt dich an dieser Person? Was bieten wir, das andere nicht haben?",
+		"send": "Angebot abschicken",
+		"sending": "Sende…",
+		"cancel": "Abbrechen",
+		"close": "Schließen",
+		"blockedNoOffers": "Diese Person nimmt aktuell keine Angebote entgegen (Pause oder nicht aktiv).",
+		"blockedAgency": "Diese Person akzeptiert nur Angebote von direkten Arbeitgebern, nicht von Vermittlungen."
+	},
+	"Favorites": {
+		"eyebrow": "Shortlist",
+		"title": "Favoriten zu dieser Stelle",
+		"subtitle": "{count} Personen, die du dir gemerkt hast.",
+		"empty": "Noch keine Favoriten. Klick den Stern bei einem Match, um sie hier zu sammeln.",
+		"emptyCta": "Zu den Matches",
+		"anonymous": "Anonyme:r Kandidat:in",
+		"addedAt": "Hinzugefügt am {date}",
+		"viewMatch": "Im Match-Kontext ansehen",
+		"offerStatus": {
+			"pending": "Angebot offen",
+			"seen": "Gesehen",
+			"accepted": "Angenommen",
+			"declined": "Abgelehnt",
+			"countered": "Gegenangebot",
+			"withdrawn": "Zurückgezogen",
+			"expired": "Abgelaufen"
+		}
+	},
+	"EmployerOffers": {
+		"eyebrow": "Verhandlungen",
+		"title": "Angebote zu dieser Stelle",
+		"subtitle": "{count} laufende oder abgeschlossene Angebote.",
+		"empty": "Noch keine Angebote rausgegangen.",
+		"salary": "Gehalt",
+		"start": "Start",
+		"sentAt": "Gesendet: {date}",
+		"validUntil": "gültig bis {date}",
+		"counterIncoming": "Gegenangebot eingegangen",
+		"withdraw": "Angebot zurückziehen",
+		"status": {
+			"pending": "Neu",
+			"seen": "Gesehen",
+			"accepted": "Angenommen",
+			"declined": "Abgelehnt",
+			"countered": "Gegenangebot",
+			"withdrawn": "Zurückgezogen",
+			"expired": "Abgelaufen"
+		}
 	}
 }
