@@ -3,9 +3,14 @@ import { notFound, redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { listActiveDisclosures } from "@/app/actions/disclosures";
 import { getIncomingInterest } from "@/app/actions/interests";
+import {
+	listMyDisclosuresForInterest,
+	listMyReferences,
+} from "@/app/actions/references";
 import { listVaultItems } from "@/app/actions/vault";
 import { auth } from "@/auth";
 import { FileDisclosureList } from "@/components/disclosures/file-disclosure-list";
+import { ReferenceDisclosureList } from "@/components/disclosures/reference-disclosure-list";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { DecisionButtons } from "@/components/interests/decision-buttons";
@@ -44,6 +49,8 @@ export default async function RequestDetailPage({
 	const vaultItemsAll = await listVaultItems();
 	const activeDisclosures = await listActiveDisclosures(id);
 	const grantedIds = new Set(activeDisclosures.map((d) => d.vaultItemId));
+	const myReferences = await listMyReferences();
+	const grantedRefIds = await listMyDisclosuresForInterest(id);
 
 	return (
 		<>
@@ -208,23 +215,43 @@ export default async function RequestDetailPage({
 					</div>
 
 					{interest.status === "approved" && (
-						<div className="rounded-lg border border-border bg-background p-4 sm:p-5">
-							<h2 className="font-medium text-sm">{t("disclosures.title")}</h2>
-							<p className="mt-1 mb-3 text-muted-foreground text-xs leading-relaxed">
-								{t("disclosures.subtitle")}
-							</p>
-							<FileDisclosureList
-								interestId={interest.id}
-								items={vaultItemsAll
-									.filter((v) => v.storageKey || v.sourceUrl)
-									.map((v) => ({
-										id: v.id,
-										filename: v.filename,
-										kind: v.kind,
-									}))}
-								grantedIds={grantedIds}
-							/>
-						</div>
+						<>
+							<div className="rounded-lg border border-border bg-background p-4 sm:p-5">
+								<h2 className="font-medium text-sm">
+									{t("disclosures.title")}
+								</h2>
+								<p className="mt-1 mb-3 text-muted-foreground text-xs leading-relaxed">
+									{t("disclosures.subtitle")}
+								</p>
+								<FileDisclosureList
+									interestId={interest.id}
+									items={vaultItemsAll
+										.filter((v) => v.storageKey || v.sourceUrl)
+										.map((v) => ({
+											id: v.id,
+											filename: v.filename,
+											kind: v.kind,
+										}))}
+									grantedIds={grantedIds}
+								/>
+							</div>
+
+							{myReferences.length > 0 && (
+								<div className="rounded-lg border border-border bg-background p-4 sm:p-5">
+									<h2 className="font-medium text-sm">
+										{t("referenceDisclosure.title")}
+									</h2>
+									<p className="mt-1 mb-3 text-muted-foreground text-xs leading-relaxed">
+										{t("referenceDisclosure.subtitle")}
+									</p>
+									<ReferenceDisclosureList
+										interestId={interest.id}
+										references={myReferences}
+										initiallyGranted={grantedRefIds}
+									/>
+								</div>
+							)}
+						</>
 					)}
 
 					{interest.status === "pending" ? (

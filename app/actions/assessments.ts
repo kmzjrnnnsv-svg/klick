@@ -349,6 +349,19 @@ export async function listResponsesForJob(jobId: string) {
 		.orderBy(desc(assessmentResponses.submittedAt));
 }
 
+export async function suggestQuestionsForJob(jobId: string) {
+	const { employer } = await requireEmployer();
+	const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
+	if (!job || job.employerId !== employer.id) throw new Error("forbidden");
+	const ai = getAIProvider();
+	const suggestions = await ai.suggestAssessmentQuestions({
+		title: job.title,
+		description: job.description,
+		requirements: job.requirements ?? [],
+	});
+	return suggestions;
+}
+
 export async function getResponseScore(
 	candidateUserId: string,
 	jobId: string,

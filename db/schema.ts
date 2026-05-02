@@ -935,3 +935,29 @@ export const referenceChecks = pgTable("reference_checks", {
 });
 
 export type ReferenceCheck = typeof referenceChecks.$inferSelect;
+
+// ─── Reference Disclosures ────────────────────────────────────────────────
+// Per-Interest-Freigabe einer Referenz an genau einen Arbeitgeber. Solange
+// kein Disclosure existiert, sieht der Employer nichts. Revoke setzt
+// revokedAt — das blendet die Antwort sofort aus.
+export const referenceDisclosures = pgTable(
+	"reference_disclosures",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		interestId: text("interest_id")
+			.notNull()
+			.references(() => interests.id, { onDelete: "cascade" }),
+		referenceCheckId: text("reference_check_id")
+			.notNull()
+			.references(() => referenceChecks.id, { onDelete: "cascade" }),
+		grantedAt: timestamp("granted_at", { mode: "date" }).notNull().defaultNow(),
+		revokedAt: timestamp("revoked_at", { mode: "date" }),
+	},
+	(t) => [
+		unique("reference_disclosures_unique").on(t.interestId, t.referenceCheckId),
+	],
+);
+
+export type ReferenceDisclosure = typeof referenceDisclosures.$inferSelect;

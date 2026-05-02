@@ -1,9 +1,12 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Sparkles, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { upsertAssessment } from "@/app/actions/assessments";
+import {
+	suggestQuestionsForJob,
+	upsertAssessment,
+} from "@/app/actions/assessments";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type {
@@ -275,7 +278,7 @@ export function AssessmentBuilder({
 				))}
 			</ol>
 
-			<div className="flex flex-wrap gap-2">
+			<div className="flex flex-wrap items-center gap-2">
 				<Button
 					type="button"
 					variant="outline"
@@ -292,6 +295,29 @@ export function AssessmentBuilder({
 				>
 					{t("addOpen")}
 				</Button>
+				<button
+					type="button"
+					onClick={() => {
+						setError(null);
+						startTransition(async () => {
+							try {
+								const suggestions = await suggestQuestionsForJob(jobId);
+								if (suggestions.length === 0) {
+									setError(t("aiNoSuggestions"));
+									return;
+								}
+								setQuestions((qs) => [...qs, ...(suggestions as Q[])]);
+							} catch (e) {
+								setError(e instanceof Error ? e.message : String(e));
+							}
+						});
+					}}
+					disabled={isPending}
+					className="lv-eyebrow ml-auto inline-flex items-center gap-2 rounded-sm border border-primary/40 bg-primary/5 px-3 py-1.5 text-[0.6rem] text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+				>
+					<Sparkles className="h-3 w-3" strokeWidth={1.5} />
+					{isPending ? t("aiThinking") : t("aiSuggest")}
+				</button>
 			</div>
 
 			{error && (

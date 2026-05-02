@@ -415,7 +415,8 @@
 		"comingDynamicRoutes": "Dynamic API route management in the UI (proxy / sql / jsonata handlers)",
 		"comingTenants": "Tenant management with subdomain branding",
 		"comingConnectors": "Verify connector definitions (Credly partner OAuth, IDnow sandbox)",
-		"cmsLink": "Manage content (imprint, privacy …)"
+		"cmsLink": "Manage content (imprint, privacy …)",
+		"insightsLink": "Platform insights"
 	},
 	"AdminCms": {
 		"title": "Content (CMS)",
@@ -495,6 +496,10 @@
 				"id_doc": "ID",
 				"other": "Other"
 			}
+		},
+		"referenceDisclosure": {
+			"title": "Share references with this employer",
+			"subtitle": "Per reference, choose whether the employer sees the answers. You can revoke at any time."
 		},
 		"receivedAt": "Received {time}",
 		"expiresAt": "Expires {time}",
@@ -1091,6 +1096,9 @@
 		"removeQuestion": "Remove question",
 		"addMc": "+ Multiple choice",
 		"addOpen": "+ Open question",
+		"aiSuggest": "Load AI suggestions",
+		"aiThinking": "AI thinking…",
+		"aiNoSuggestions": "The AI didn't return suggestions. Try again later or write your own.",
 		"invalidQuestion": "At least one question has empty text or empty answer options.",
 		"save": "Save assessment",
 		"saving": "Saving…",
@@ -1192,5 +1200,46 @@
 		"submit": "Submit answers",
 		"alreadySubmitted": "Thank you — your answers have already been recorded.",
 		"expired": "This link has expired. Reach out to the requester directly if you'd still like to reply."
+	},
+	"ReferenceDisclosure": {
+		"toggle": "Grant or revoke {name}",
+		"noRelation": "Relation not provided",
+		"noReferences": "No answered references yet — send a request from your profile first.",
+		"preview": "Show preview"
+	},
+	"AdminInsights": {
+		"back": "Admin",
+		"eyebrow": "Platform insights",
+		"title": "Aggregated statistics",
+		"subtitle": "Tenant-wide analytics. Diversity buckets with under 5 people are suppressed to 0.",
+		"outcomesEyebrow": "Match outcomes",
+		"outcomesTitle": "How do matches conclude?",
+		"outcomeMetric": {
+			"totalReports": "Reports",
+			"hired": "Contracts",
+			"declinedByCandidate": "Candidate declined",
+			"declinedByEmployer": "Employer declined"
+		},
+		"hireRate": "Hire rate (of decided)",
+		"avgFinalSalary": "Avg final salary",
+		"diversityEyebrow": "Diversity",
+		"diversityTitle": "Self-ID aggregates",
+		"diversityDisclaimer": "{consented} of {total} candidates shared diversity data. Buckets under 5 suppressed.",
+		"diversityGender": "Gender identity",
+		"diversityAge": "Age group",
+		"diversityEthnicity": "Ethnicity",
+		"diversityDisability": "Disability",
+		"gender": {
+			"female": "Female",
+			"male": "Male",
+			"non_binary": "Non-binary",
+			"self_describe": "Self-described",
+			"prefer_not_to_say": "Prefer not to say"
+		},
+		"disability": {
+			"yes": "With disability",
+			"no": "Without disability"
+		},
+		"suppressionNote": "Values under 5 are reported as 0 to prevent re-identification. Free-text ethnicity entries only appear if ≥5 people used the exact same wording."
 	}
 }

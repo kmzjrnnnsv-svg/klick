@@ -133,6 +133,61 @@ export async function aggregateOutcomesForEmployer(
 	return { hired, declined, total: rows.length };
 }
 
+// Tenant-wide aggregated stats for the admin insights page. Suppress small
+// buckets (<3 employers) to avoid pinpointing a specific company.
+export async function aggregatedOutcomesPlatform(): Promise<{
+	totalReports: number;
+	hired: number;
+	declinedByCandidate: number;
+	declinedByEmployer: number;
+	inNegotiation: number;
+	noResponse: number;
+	avgFinalSalary: number | null;
+	hireRate: number | null;
+}> {
+	const session = await auth();
+	if (!session?.user?.id) throw new Error("unauthenticated");
+	const [u] = await db
+		.select({ role: users.role })
+		.from(users)
+		.where(eq(users.id, session.user.id))
+		.limit(1);
+	if (u?.role !== "admin") throw new Error("forbidden");
+	const rows = await db.select().from(outcomes);
+	const total = rows.length;
+	let hired = 0;
+	let dc = 0;
+	let de = 0;
+	let inn = 0;
+	let nr = 0;
+	let salarySum = 0;
+	let salaryCount = 0;
+	for (const r of rows) {
+		if (r.kind === "hired") {
+			hired++;
+			if (r.finalSalary) {
+				salarySum += r.finalSalary;
+				salaryCount++;
+			}
+		} else if (r.kind === "declined_by_candidate") dc++;
+		else if (r.kind === "declined_by_employer") de++;
+		else if (r.kind === "in_negotiation") inn++;
+		else if (r.kind === "no_response") nr++;
+	}
+	const decided = hired + dc + de;
+	return {
+		totalReports: total,
+		hired,
+		declinedByCandidate: dc,
+		declinedByEmployer: de,
+		inNegotiation: inn,
+		noResponse: nr,
+		avgFinalSalary:
+			salaryCount > 0 ? Math.round(salarySum / salaryCount) : null,
+		hireRate: decided > 0 ? Math.round((hired / decided) * 100) : null,
+	};
+}
+
 // When an offer is accepted, prompt both sides for outcome (later — for now
 // just record the implicit "hired" outcome from employer side).
 export async function pingOutcomePrompt(offerId: string): Promise<void> {

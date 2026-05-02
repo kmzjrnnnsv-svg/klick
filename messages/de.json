@@ -415,7 +415,8 @@
 		"comingDynamicRoutes": "Dynamische API-Routen-Verwaltung im UI (proxy / sql / jsonata-Handler)",
 		"comingTenants": "Tenant-Verwaltung mit Subdomain-Branding",
 		"comingConnectors": "Verify-Connector-Definitionen (Credly Partner-OAuth, IDnow-Sandbox)",
-		"cmsLink": "Inhalte verwalten (Impressum, Datenschutz …)"
+		"cmsLink": "Inhalte verwalten (Impressum, Datenschutz …)",
+		"insightsLink": "Plattform-Insights"
 	},
 	"AdminCms": {
 		"title": "Inhalte (CMS)",
@@ -495,6 +496,10 @@
 				"id_doc": "Ausweis",
 				"other": "Sonstiges"
 			}
+		},
+		"referenceDisclosure": {
+			"title": "Referenzen für diesen Arbeitgeber freigeben",
+			"subtitle": "Wähle pro Referenz, ob der Arbeitgeber die Antworten sehen darf. Du kannst jederzeit zurücknehmen."
 		},
 		"receivedAt": "Eingegangen {time}",
 		"expiresAt": "Läuft ab am {time}",
@@ -1091,6 +1096,9 @@
 		"removeQuestion": "Frage entfernen",
 		"addMc": "+ Multiple Choice",
 		"addOpen": "+ Offene Frage",
+		"aiSuggest": "KI-Vorschläge laden",
+		"aiThinking": "KI denkt nach…",
+		"aiNoSuggestions": "Die KI hat keine Vorschläge geliefert. Versuch's später erneut oder schreib selbst.",
 		"invalidQuestion": "Mindestens eine Frage hat keinen Text oder leere Antwortoptionen.",
 		"save": "Assessment speichern",
 		"saving": "Speichere…",
@@ -1192,5 +1200,46 @@
 		"submit": "Antworten absenden",
 		"alreadySubmitted": "Vielen Dank — deine Antworten wurden bereits gespeichert.",
 		"expired": "Dieser Link ist abgelaufen. Bitte sprich die anfragende Person an, falls du noch antworten möchtest."
+	},
+	"ReferenceDisclosure": {
+		"toggle": "{name} freigeben oder zurückziehen",
+		"noRelation": "Beziehung nicht angegeben",
+		"noReferences": "Keine beantwortete Referenz vorhanden — schicke erst eine Anfrage von deinem Profil aus.",
+		"preview": "Vorschau anzeigen"
+	},
+	"AdminInsights": {
+		"back": "Admin",
+		"eyebrow": "Plattform-Insights",
+		"title": "Aggregierte Statistiken",
+		"subtitle": "Tenant-weite Auswertung. Diversitäts-Buckets unter 5 Personen werden auf 0 unterdrückt.",
+		"outcomesEyebrow": "Match-Outcomes",
+		"outcomesTitle": "Wie laufen die Matches aus?",
+		"outcomeMetric": {
+			"totalReports": "Rückmeldungen",
+			"hired": "Verträge",
+			"declinedByCandidate": "Kandidat abgelehnt",
+			"declinedByEmployer": "Arbeitgeber abgelehnt"
+		},
+		"hireRate": "Vertrags-Quote (von entschiedenen)",
+		"avgFinalSalary": "Ø Endgehalt",
+		"diversityEyebrow": "Diversität",
+		"diversityTitle": "Selbst-ID-Aggregate",
+		"diversityDisclaimer": "{consented} von {total} Kandidat:innen haben Diversitätsdaten geteilt. Buckets unter 5 sind unterdrückt.",
+		"diversityGender": "Geschlechts-Identität",
+		"diversityAge": "Altersgruppe",
+		"diversityEthnicity": "Herkunft",
+		"diversityDisability": "Behinderung",
+		"gender": {
+			"female": "Weiblich",
+			"male": "Männlich",
+			"non_binary": "Nicht-binär",
+			"self_describe": "Selbst beschrieben",
+			"prefer_not_to_say": "Möchte nicht sagen"
+		},
+		"disability": {
+			"yes": "Mit Behinderung",
+			"no": "Ohne Behinderung"
+		},
+		"suppressionNote": "Werte unter 5 werden auf 0 gesetzt, um Re-Identifikation einzelner Personen zu verhindern. Frei eingegebene Herkunfts-Texte erscheinen nur dann, wenn ≥5 Personen denselben Wortlaut verwendet haben."
 	}
 }

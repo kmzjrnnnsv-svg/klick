@@ -1,10 +1,16 @@
 "use server";
 
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { type ReferenceCheck, referenceChecks, users } from "@/db/schema";
+import {
+	interests,
+	type ReferenceCheck,
+	referenceChecks,
+	referenceDisclosures,
+	users,
+} from "@/db/schema";
 import { sendTransactionalMail } from "@/lib/mail/send";
 
 const REFERENCE_QUESTIONS_DE = [
@@ -149,4 +155,136 @@ export async function deleteReference(id: string): Promise<void> {
 			),
 		);
 	revalidatePath("/profile");
+}
+
+// ─── Per-Interest Disclosure ───────────────────────────────────────────────
+// Kandidat gibt eine submitted Reference an einen konkreten Interest frei.
+// Der Employer sieht die Antworten auf seiner Interest-Detail-Seite. Revoke
+// blendet sie sofort wieder aus.
+
+async function ownInterest(
+	interestId: string,
+	candidateUserId: string,
+): Promise<boolean> {
+	const [i] = await db
+		.select({ id: interests.id })
+		.from(interests)
+		.where(
+			and(
+				eq(interests.id, interestId),
+				eq(interests.candidateUserId, candidateUserId),
+			),
+		)
+		.limit(1);
+	return !!i;
+}
+
+export async function grantReferenceDisclosure(input: {
+	interestId: string;
+	referenceCheckId: string;
+}): Promise<void> {
+	const userId = await requireCandidate();
+	if (!(await ownInterest(input.interestId, userId)))
+		throw new Error("not your interest");
+	const [ref] = await db
+		.select()
+		.from(referenceChecks)
+		.where(
+			and(
+				eq(referenceChecks.id, input.referenceCheckId),
+				eq(referenceChecks.candidateUserId, userId),
+			),
+		)
+		.limit(1);
+	if (!ref) throw new Error("reference not yours");
+	if (ref.status !== "submitted") throw new Error("reference not yet answered");
+
+	await db
+		.insert(referenceDisclosures)
+		.values({
+			interestId: input.interestId,
+			referenceCheckId: input.referenceCheckId,
+		})
+		.onConflictDoUpdate({
+			target: [
+				referenceDisclosures.interestId,
+				referenceDisclosures.referenceCheckId,
+			],
+			set: { revokedAt: null, grantedAt: new Date() },
+		});
+
+	revalidatePath(`/requests/${input.interestId}`);
+}
+
+export async function revokeReferenceDisclosure(input: {
+	interestId: string;
+	referenceCheckId: string;
+}): Promise<void> {
+	const userId = await requireCandidate();
+	if (!(await ownInterest(input.interestId, userId)))
+		throw new Error("not your interest");
+	await db
+		.update(referenceDisclosures)
+		.set({ revokedAt: new Date() })
+		.where(
+			and(
+				eq(referenceDisclosures.interestId, input.interestId),
+				eq(referenceDisclosures.referenceCheckId, input.referenceCheckId),
+			),
+		);
+	revalidatePath(`/requests/${input.interestId}`);
+}
+
+export async function listGrantedReferencesForInterest(
+	interestId: string,
+): Promise<
+	Array<{
+		referee: string;
+		relation: string | null;
+		answers: { question: string; answer: string }[];
+	}>
+> {
+	// Auth: must be the employer side OR the candidate (read-only).
+	const session = await auth();
+	if (!session?.user?.id) return [];
+	const rows = await db
+		.select({
+			ref: referenceChecks,
+			disc: referenceDisclosures,
+		})
+		.from(referenceDisclosures)
+		.innerJoin(
+			referenceChecks,
+			eq(referenceChecks.id, referenceDisclosures.referenceCheckId),
+		)
+		.where(
+			and(
+				eq(referenceDisclosures.interestId, interestId),
+				isNull(referenceDisclosures.revokedAt),
+			),
+		);
+	return rows
+		.filter((r) => r.ref.status === "submitted" && r.ref.answers)
+		.map((r) => ({
+			referee: r.ref.refereeName,
+			relation: r.ref.refereeRelation,
+			answers: r.ref.answers ?? [],
+		}));
+}
+
+export async function listMyDisclosuresForInterest(
+	interestId: string,
+): Promise<string[]> {
+	const userId = await requireCandidate();
+	if (!(await ownInterest(interestId, userId))) return [];
+	const rows = await db
+		.select({ id: referenceDisclosures.referenceCheckId })
+		.from(referenceDisclosures)
+		.where(
+			and(
+				eq(referenceDisclosures.interestId, interestId),
+				isNull(referenceDisclosures.revokedAt),
+			),
+		);
+	return rows.map((r) => r.id);
 }

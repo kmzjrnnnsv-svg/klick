@@ -231,4 +231,27 @@ export interface AIProvider {
 		answer: string;
 		maxPoints: number;
 	}): Promise<{ pointsEarned: number; feedback: string }>;
+	// Suggest 5 mini-assessment questions from a job posting. Mix of MC
+	// and open. The employer reviews + tweaks before saving.
+	suggestAssessmentQuestions(input: {
+		title: string;
+		description: string;
+		requirements: { name: string; weight: "must" | "nice" }[];
+	}): Promise<
+		Array<
+			| {
+					kind: "mc";
+					body: string;
+					choices: { text: string; weight: number }[];
+					correctChoice: number;
+					maxPoints: number;
+			  }
+			| {
+					kind: "open";
+					body: string;
+					rubric: string;
+					maxPoints: number;
+			  }
+		>
+	>;
 }
