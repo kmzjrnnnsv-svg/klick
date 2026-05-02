@@ -8,9 +8,11 @@ import {
 	markOfferSeen,
 	respondToOffer,
 } from "@/app/actions/offers";
+import { getOutcome } from "@/app/actions/outcomes";
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { OutcomePrompt } from "@/components/outcomes/outcome-prompt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -295,6 +297,31 @@ export default async function OfferDetailPage({
 						<p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
 							{offer.decidedMessage}
 						</p>
+					</section>
+				)}
+
+				{offer.status === "accepted" && (
+					<section className="mt-8">
+						<OutcomePrompt
+							jobId={offer.jobId}
+							candidateUserId={offer.candidateUserId}
+							actor="candidate"
+							existing={
+								await getOutcome({
+									jobId: offer.jobId,
+									candidateUserId: offer.candidateUserId,
+									role: "candidate",
+								}).then((o) =>
+									o
+										? {
+												kind: o.kind,
+												finalSalary: o.finalSalary,
+												notes: o.notes,
+											}
+										: null,
+								)
+							}
+						/>
 					</section>
 				)}
 			</main>

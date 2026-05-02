@@ -762,4 +762,85 @@ export class ClaudeAIProvider implements AIProvider {
 			.trim();
 		return text || "Profil und Stelle passen inhaltlich.";
 	}
+
+	async gradeOpenAnswer(input: {
+		question: string;
+		rubric: string | null;
+		answer: string;
+		maxPoints: number;
+	}): Promise<{ pointsEarned: number; feedback: string }> {
+		const sys = `Du bewertest die Antwort einer Person auf eine Bewerbungs-Assessment-Frage. Vergib ganzzahlige Punkte (0-${input.maxPoints}) gemäß der Rubrik. Antworte streng als JSON: {"points": <int>, "feedback": "<1-2 Sätze konstruktiv auf Deutsch>"}.`;
+		const user = [
+			`Frage: ${input.question}`,
+			`Rubrik: ${input.rubric ?? "(keine — bewerte fachliche Substanz, Klarheit, konkrete Beispiele)"}`,
+			`Antwort der Bewerbenden: ${input.answer}`,
+			`Maximalpunkte: ${input.maxPoints}`,
+		].join("\n");
+		try {
+			const result = await this.client.messages.create({
+				model: "claude-sonnet-4-6",
+				max_tokens: 300,
+				system: sys,
+				messages: [{ role: "user", content: user }],
+			});
+			const text = result.content
+				.flatMap((b) => (b.type === "text" ? [b.text] : []))
+				.join("")
+				.trim();
+			const m = text.match(/\{[\s\S]*\}/);
+			if (m) {
+				const parsed = JSON.parse(m[0]) as {
+					points?: number;
+					feedback?: string;
+				};
+				const pts = Math.max(
+					0,
+					Math.min(input.maxPoints, Math.round(parsed.points ?? 0)),
+				);
+				return {
+					pointsEarned: pts,
+					feedback: parsed.feedback ?? "Bewertet.",
+				};
+			}
+		} catch (e) {
+			console.error("[ai] gradeOpenAnswer failed", e);
+		}
+		return { pointsEarned: 0, feedback: "Konnte nicht bewertet werden." };
+	}
+
+	async suggestAssessmentQuestions(input: {
+		title: string;
+		description: string;
+		requirements: { name: string; weight: "must" | "nice" }[];
+	}) {
+		const sys = `Du formulierst 5 kurze Assessment-Fragen für eine Stellenausschreibung. Mix: 3 Multiple-Choice (mit genau einer richtigen Antwort + 2-3 Distraktoren) und 2 offene Fragen (mit kurzer Bewertungs-Rubrik). Antworte streng als JSON-Array, kein Markdown, kein Prosa.
+
+Schema pro Eintrag:
+- {"kind":"mc","body":"...","choices":[{"text":"...","weight":N},...],"correctChoice":<int>,"maxPoints":<1-3>}
+- {"kind":"open","body":"...","rubric":"...","maxPoints":<3-5>}`;
+		const user = [
+			`Stellentitel: ${input.title}`,
+			`Beschreibung: ${input.description}`,
+			`Anforderungen: ${input.requirements.map((r) => `${r.name} (${r.weight})`).join(", ")}`,
+		].join("\n");
+		try {
+			const result = await this.client.messages.create({
+				model: "claude-sonnet-4-6",
+				max_tokens: 2000,
+				system: sys,
+				messages: [{ role: "user", content: user }],
+			});
+			const text = result.content
+				.flatMap((b) => (b.type === "text" ? [b.text] : []))
+				.join("")
+				.trim();
+			const m = text.match(/\[[\s\S]*\]/);
+			if (m) {
+				return JSON.parse(m[0]);
+			}
+		} catch (e) {
+			console.error("[ai] suggestAssessmentQuestions failed", e);
+		}
+		return [];
+	}
 }

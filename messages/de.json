@@ -337,7 +337,11 @@
 		},
 		"save": "Speichern",
 		"saving": "Speichere…",
-		"savedAt": "Gespeichert um {time}"
+		"savedAt": "Gespeichert um {time}",
+		"referencesHeading": "Referenzen",
+		"referencesSubtitle": "Lade alte Vorgesetzte oder Kolleg:innen ein, drei Fragen zu beantworten. Du siehst die Antworten — der Arbeitgeber sieht sie nur, wenn du sie freigibst.",
+		"diversityHeading": "Diversitäts-Selbst-ID (optional)",
+		"diversitySubtitle": "Komplett freiwillig. Wir zeigen Daten nur aggregiert (mind. 5 Personen pro Bucket) und niemals dem Arbeitgeber direkt — sie helfen uns, Bias im Matching zu erkennen."
 	},
 	"Matches": {
 		"title": "Job-Matches",
@@ -381,6 +385,7 @@
 		"seeFavorites": "Favoriten",
 		"seeOffers": "Angebote",
 		"seeQuestions": "Fragen",
+		"seeAssessment": "Assessment",
 		"salary": "Gehalt",
 		"remoteOptions": {
 			"onsite": "Vor Ort",
@@ -410,7 +415,8 @@
 		"comingDynamicRoutes": "Dynamische API-Routen-Verwaltung im UI (proxy / sql / jsonata-Handler)",
 		"comingTenants": "Tenant-Verwaltung mit Subdomain-Branding",
 		"comingConnectors": "Verify-Connector-Definitionen (Credly Partner-OAuth, IDnow-Sandbox)",
-		"cmsLink": "Inhalte verwalten (Impressum, Datenschutz …)"
+		"cmsLink": "Inhalte verwalten (Impressum, Datenschutz …)",
+		"insightsLink": "Plattform-Insights"
 	},
 	"AdminCms": {
 		"title": "Inhalte (CMS)",
@@ -490,6 +496,10 @@
 				"id_doc": "Ausweis",
 				"other": "Sonstiges"
 			}
+		},
+		"referenceDisclosure": {
+			"title": "Referenzen für diesen Arbeitgeber freigeben",
+			"subtitle": "Wähle pro Referenz, ob der Arbeitgeber die Antworten sehen darf. Du kannst jederzeit zurücknehmen."
 		},
 		"receivedAt": "Eingegangen {time}",
 		"expiresAt": "Läuft ab am {time}",
@@ -1046,7 +1056,9 @@
 		"employerAnswered": "Antwort vom Arbeitgeber",
 		"waitingForAnswer": "Noch keine Antwort.",
 		"publicFaqEyebrow": "FAQ",
-		"publicFaqTitle": "Häufig gefragt"
+		"publicFaqTitle": "Häufig gefragt",
+		"assessmentEyebrow": "Skill-Assessment",
+		"assessmentHint": "{count} Fragen — abschicken hilft dem Arbeitgeber, deine Hard-Skills einzuschätzen, ohne dass du dich namentlich zu erkennen geben musst."
 	},
 	"EmployerQuestions": {
 		"eyebrow": "Anonyme Fragen",
@@ -1061,5 +1073,173 @@
 		"public": "Öffentlich",
 		"yourAnswer": "Deine Antwort",
 		"anonymousAt": "Anonym · {date}"
+	},
+	"Assessment": {
+		"eyebrowEmployer": "Skill-Assessment",
+		"titleEmployer": "Mini-Assessment für diese Stelle",
+		"subtitleEmployer": "3-7 Fragen, die Hard-Skills validieren. Multiple-Choice + offene Fragen. Offene Antworten werden von der KI gegen deine Rubrik bewertet. Score taucht im Match auf.",
+		"title": "Titel",
+		"titlePlaceholder": "z. B. Senior Backend — Coding Basics",
+		"titleRequired": "Bitte einen Titel angeben.",
+		"description": "Kurze Anleitung",
+		"descriptionPlaceholder": "Was Bewerbende erwartet — Zeitschätzung, Hinweis dass keine Hilfsmittel erlaubt sind, …",
+		"question": "Frage",
+		"multipleChoice": "Multiple Choice",
+		"openQuestion": "Offene Frage",
+		"questionPlaceholder": "Stell hier die Frage…",
+		"choicePlaceholder": "Antwortoption",
+		"markCorrect": "Als richtig markieren",
+		"removeChoice": "Option entfernen",
+		"addChoice": "Option hinzufügen",
+		"rubricPlaceholder": "Optionale Bewertungs-Rubrik für die KI: was eine gute Antwort ausmacht.",
+		"maxPoints": "Punkte",
+		"removeQuestion": "Frage entfernen",
+		"addMc": "+ Multiple Choice",
+		"addOpen": "+ Offene Frage",
+		"aiSuggest": "KI-Vorschläge laden",
+		"aiThinking": "KI denkt nach…",
+		"aiNoSuggestions": "Die KI hat keine Vorschläge geliefert. Versuch's später erneut oder schreib selbst.",
+		"invalidQuestion": "Mindestens eine Frage hat keinen Text oder leere Antwortoptionen.",
+		"save": "Assessment speichern",
+		"saving": "Speichere…",
+		"savedAt": "Gespeichert um {time}",
+		"notSaved": "Noch nicht gespeichert",
+		"seeResponses": "Antworten ansehen",
+		"back": "Zurück",
+		"responsesEyebrow": "Eingegangene Antworten",
+		"responsesTitle": "Assessment-Antworten",
+		"responsesSubtitle": "{count} Bewerbende haben das Assessment ausgefüllt.",
+		"responsesEmpty": "Noch keine Antworten.",
+		"anonymous": "Kandidat:in #{id}",
+		"submittedAt": "Abgeschickt: {date}",
+		"inProgress": "In Bearbeitung",
+		"graded": "bewertet",
+		"grading": "wird bewertet…",
+		"assessmentEyebrow": "Skill-Assessment",
+		"assessmentHint": "{count} Fragen — abschicken hilft dem Arbeitgeber, deine Hard-Skills einzuschätzen, ohne dass du dich namentlich zu erkennen geben musst.",
+		"point": "Punkt",
+		"points": "Punkte",
+		"openPlaceholder": "Schreib deine Antwort…",
+		"answerAllMc": "Bitte alle Multiple-Choice-Fragen beantworten.",
+		"submit": "Abschicken",
+		"submitting": "Sende…",
+		"submittedTitle": "Abgeschickt — danke!",
+		"submittedHint": "Die KI bewertet offene Antworten in den nächsten Sekunden. Score erscheint im Arbeitgeber-Match.",
+		"yourScore": "Dein Score"
+	},
+	"Outcome": {
+		"eyebrow": "Was ist daraus geworden?",
+		"hintCandidate": "Kurze Rückmeldung, ob das Angebot zum Vertrag geführt hat. Wir nutzen das nur intern, um Matching besser zu machen.",
+		"hintEmployer": "Schnelles Feedback hilft dem Algorithmus. Nur intern sichtbar.",
+		"selectKind": "Bitte auswählen…",
+		"kind": {
+			"hired": "Vertrag unterschrieben",
+			"declined_by_candidate": "Ich habe abgelehnt",
+			"declined_by_employer": "Arbeitgeber hat abgelehnt",
+			"in_negotiation": "Noch in Verhandlung",
+			"no_response": "Keine Rückmeldung mehr"
+		},
+		"finalSalaryPlaceholder": "Tatsächliches Gehalt (optional)",
+		"notesPlaceholder": "Kurze Notiz (optional)",
+		"save": "Speichern",
+		"saving": "Speichere…",
+		"thanksRecorded": "Danke — gespeichert.",
+		"editOutcome": "Bearbeiten"
+	},
+	"Diversity": {
+		"openOptIn": "Diversitäts-Selbst-ID öffnen",
+		"consentBlurb": "Alle Felder sind optional. Wir zeigen Daten nur aggregiert (≥5 Personen) und niemals dem Arbeitgeber direkt. Du kannst jederzeit zurückziehen.",
+		"genderIdentity": "Geschlechts-Identität",
+		"ageRange": "Altersgruppe",
+		"ethnicity": "Herkunft / Ethnie (frei)",
+		"ethnicityPlaceholder": "Frei formulieren oder leer lassen",
+		"disability": "Behinderung",
+		"yes": "Ja",
+		"no": "Nein",
+		"notSpecified": "Keine Angabe",
+		"gender": {
+			"female": "Weiblich",
+			"male": "Männlich",
+			"non_binary": "Nicht-binär",
+			"self_describe": "Selbst beschreiben",
+			"prefer_not_to_say": "Möchte nicht sagen"
+		},
+		"age": {
+			"18_24": "18–24",
+			"25_34": "25–34",
+			"35_44": "35–44",
+			"45_54": "45–54",
+			"55_plus": "55+"
+		},
+		"save": "Speichern",
+		"saving": "Speichere…",
+		"withdraw": "Daten löschen",
+		"lastSavedAt": "Zuletzt gespeichert: {time}",
+		"notSavedYet": "Noch nicht gespeichert"
+	},
+	"References": {
+		"hint": "Wir schicken eine Mail mit drei kurzen Fragen + einem privaten Link. Die Antwort landet in deinem Profil — der Arbeitgeber sieht sie nur, wenn du sie freigibst.",
+		"namePlaceholder": "Name der Referenz",
+		"emailPlaceholder": "E-Mail",
+		"relationPlaceholder": "Beziehung — z. B. Ex-Manager",
+		"sendRequest": "Anfrage senden",
+		"sending": "Sende…",
+		"nameEmailRequired": "Name und E-Mail sind Pflicht.",
+		"showAnswers": "Antworten anzeigen",
+		"delete": "Anfrage löschen",
+		"status": {
+			"pending": "Wartet auf Antwort",
+			"submitted": "Beantwortet",
+			"expired": "Abgelaufen"
+		}
+	},
+	"Reference": {
+		"eyebrow": "Vertrauliche Referenz-Anfrage",
+		"title": "Hallo {name}",
+		"hint": "Du wurdest auf der Plattform Klick als Referenz angefragt. Beantworte die drei kurzen Fragen — nur die anfragende Person sieht deine Antworten.",
+		"submit": "Antworten absenden",
+		"alreadySubmitted": "Vielen Dank — deine Antworten wurden bereits gespeichert.",
+		"expired": "Dieser Link ist abgelaufen. Bitte sprich die anfragende Person an, falls du noch antworten möchtest."
+	},
+	"ReferenceDisclosure": {
+		"toggle": "{name} freigeben oder zurückziehen",
+		"noRelation": "Beziehung nicht angegeben",
+		"noReferences": "Keine beantwortete Referenz vorhanden — schicke erst eine Anfrage von deinem Profil aus.",
+		"preview": "Vorschau anzeigen"
+	},
+	"AdminInsights": {
+		"back": "Admin",
+		"eyebrow": "Plattform-Insights",
+		"title": "Aggregierte Statistiken",
+		"subtitle": "Tenant-weite Auswertung. Diversitäts-Buckets unter 5 Personen werden auf 0 unterdrückt.",
+		"outcomesEyebrow": "Match-Outcomes",
+		"outcomesTitle": "Wie laufen die Matches aus?",
+		"outcomeMetric": {
+			"totalReports": "Rückmeldungen",
+			"hired": "Verträge",
+			"declinedByCandidate": "Kandidat abgelehnt",
+			"declinedByEmployer": "Arbeitgeber abgelehnt"
+		},
+		"hireRate": "Vertrags-Quote (von entschiedenen)",
+		"avgFinalSalary": "Ø Endgehalt",
+		"diversityEyebrow": "Diversität",
+		"diversityTitle": "Selbst-ID-Aggregate",
+		"diversityDisclaimer": "{consented} von {total} Kandidat:innen haben Diversitätsdaten geteilt. Buckets unter 5 sind unterdrückt.",
+		"diversityGender": "Geschlechts-Identität",
+		"diversityAge": "Altersgruppe",
+		"diversityEthnicity": "Herkunft",
+		"diversityDisability": "Behinderung",
+		"gender": {
+			"female": "Weiblich",
+			"male": "Männlich",
+			"non_binary": "Nicht-binär",
+			"self_describe": "Selbst beschrieben",
+			"prefer_not_to_say": "Möchte nicht sagen"
+		},
+		"disability": {
+			"yes": "Mit Behinderung",
+			"no": "Ohne Behinderung"
+		},
+		"suppressionNote": "Werte unter 5 werden auf 0 gesetzt, um Re-Identifikation einzelner Personen zu verhindern. Frei eingegebene Herkunfts-Texte erscheinen nur dann, wenn ≥5 Personen denselben Wortlaut verwendet haben."
 	}
 }

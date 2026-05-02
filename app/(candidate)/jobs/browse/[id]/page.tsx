@@ -2,11 +2,13 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
+import { getAssessmentForJob, getMyResponse } from "@/app/actions/assessments";
 import {
 	listMyQuestionsForJob,
 	listPublicQuestionsForJob,
 } from "@/app/actions/job-questions";
 import { auth } from "@/auth";
+import { AssessmentTaker } from "@/components/assessments/assessment-taker";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { JobQuestionForm } from "@/components/jobs/job-question-form";
@@ -45,6 +47,16 @@ export default async function JobDetailPage({
 		myQA = await listMyQuestionsForJob(id);
 	} catch {
 		myQA = [];
+	}
+
+	const assessmentBundle = await getAssessmentForJob(id);
+	let myResponse: Awaited<ReturnType<typeof getMyResponse>> = null;
+	if (assessmentBundle) {
+		try {
+			myResponse = await getMyResponse(id);
+		} catch {
+			myResponse = null;
+		}
 	}
 
 	return (
@@ -134,6 +146,37 @@ export default async function JobDetailPage({
 						>
 							{t("viewCompany")}
 						</Link>
+					</section>
+				)}
+
+				{assessmentBundle && (
+					<section className="mb-10 rounded-sm border border-primary/30 bg-primary/5 p-4 sm:p-6">
+						<p className="lv-eyebrow text-[0.6rem] text-primary">
+							{t("assessmentEyebrow")}
+						</p>
+						<h2 className="mt-2 font-serif-display text-xl sm:text-2xl">
+							{assessmentBundle.assessment.title}
+						</h2>
+						{assessmentBundle.assessment.description && (
+							<p className="mt-2 text-muted-foreground text-xs leading-relaxed">
+								{assessmentBundle.assessment.description}
+							</p>
+						)}
+						<p className="mt-3 mb-4 text-muted-foreground text-xs">
+							{t("assessmentHint", {
+								count: assessmentBundle.questions.length,
+							})}
+						</p>
+						<AssessmentTaker
+							jobId={id}
+							questions={assessmentBundle.questions}
+							alreadySubmitted={
+								myResponse?.status === "submitted" ||
+								myResponse?.status === "graded"
+							}
+							gradedScore={myResponse?.totalScore ?? null}
+							gradedMax={myResponse?.maxScore ?? null}
+						/>
 					</section>
 				)}
 

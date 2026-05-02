@@ -9,6 +9,7 @@ import {
 import { getJob } from "@/app/actions/jobs";
 import { listMatchesForJob } from "@/app/actions/matches";
 import { listOffersForEmployer } from "@/app/actions/offers";
+import { listGrantedReferencesForInterest } from "@/app/actions/references";
 import { auth } from "@/auth";
 import { CandidateActions } from "@/components/employer/candidate-actions";
 import { Footer } from "@/components/footer";
@@ -61,19 +62,26 @@ export default async function JobCandidatesPage({
 			disclosedItems?: Awaited<
 				ReturnType<typeof listDisclosedItemsForInterest>
 			>;
+			disclosedReferences?: Awaited<
+				ReturnType<typeof listGrantedReferencesForInterest>
+			>;
 		}
 	>();
 	for (const i of interestsForJob) {
-		const disclosed =
-			i.interest.status === "approved"
-				? await listDisclosedItemsForInterest(i.interest.id)
-				: undefined;
+		const isApproved = i.interest.status === "approved";
+		const disclosed = isApproved
+			? await listDisclosedItemsForInterest(i.interest.id)
+			: undefined;
+		const refs = isApproved
+			? await listGrantedReferencesForInterest(i.interest.id)
+			: undefined;
 		interestByMatch.set(i.interest.matchId, {
 			id: i.interest.id,
 			status: i.interest.status,
 			email: i.candidate.email,
 			displayName: i.candidate.displayName,
 			disclosedItems: disclosed,
+			disclosedReferences: refs,
 		});
 	}
 
@@ -150,6 +158,39 @@ export default async function JobCandidatesPage({
 																	>
 																		{d.filename}
 																	</a>
+																</li>
+															))}
+														</ul>
+													</div>
+												)}
+											{interest?.disclosedReferences &&
+												interest.disclosedReferences.length > 0 && (
+													<div className="mt-2">
+														<p className="text-[10px] uppercase tracking-wide text-indigo-700 dark:text-indigo-300">
+															Freigegebene Referenzen
+														</p>
+														<ul className="mt-1 space-y-1.5">
+															{interest.disclosedReferences.map((ref) => (
+																<li
+																	key={ref.referee + (ref.relation ?? "")}
+																	className="rounded-sm border border-indigo-500/20 bg-indigo-500/5 p-2"
+																>
+																	<p className="font-medium text-xs">
+																		{ref.referee}
+																		{ref.relation ? ` · ${ref.relation}` : ""}
+																	</p>
+																	<dl className="mt-1.5 space-y-1 text-[11px]">
+																		{ref.answers.map((a) => (
+																			<div key={a.question.slice(0, 32)}>
+																				<dt className="font-medium">
+																					{a.question}
+																				</dt>
+																				<dd className="text-muted-foreground">
+																					{a.answer}
+																				</dd>
+																			</div>
+																		))}
+																	</dl>
 																</li>
 															))}
 														</ul>

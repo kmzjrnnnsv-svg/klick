@@ -292,4 +292,92 @@ export class MockAIProvider implements AIProvider {
 		].filter(Boolean);
 		return `${parts.join(", ")}.`;
 	}
+
+	async gradeOpenAnswer(input: {
+		question: string;
+		rubric: string | null;
+		answer: string;
+		maxPoints: number;
+	}): Promise<{ pointsEarned: number; feedback: string }> {
+		// Deterministic mock — count meaningful words; cap at maxPoints.
+		const words = input.answer.trim().split(/\s+/).filter(Boolean).length;
+		const ratio = Math.max(0, Math.min(1, words / 60));
+		const pointsEarned = Math.round(ratio * input.maxPoints);
+		return {
+			pointsEarned,
+			feedback:
+				words < 10
+					? "Sehr knapp — mehr Detail zur Lösungsstrategie würde helfen."
+					: words < 40
+						? "Solide Antwort, könnte konkreter werden (Tools, Zahlen, Beispiele)."
+						: "Ausführlich, mit Kontext und Trade-offs. Gute Antwort.",
+		};
+	}
+
+	async suggestAssessmentQuestions(input: {
+		title: string;
+		description: string;
+		requirements: { name: string; weight: "must" | "nice" }[];
+	}) {
+		// Pick the first two must-have skills and build deterministic prompts.
+		const musts = input.requirements.filter((r) => r.weight === "must");
+		const a = musts[0]?.name ?? "TypeScript";
+		const b = musts[1]?.name ?? "PostgreSQL";
+		return [
+			{
+				kind: "mc" as const,
+				body: `In welchem Szenario ist ${a} klar die bessere Wahl?`,
+				choices: [
+					{
+						text: `Wenn Typsicherheit über Zeit erhalten bleiben muss`,
+						weight: 2,
+					},
+					{ text: `Bei reinen Prototypen ohne Tests`, weight: 0 },
+					{ text: `Wenn das Team Erfahrung in Python hat`, weight: 0 },
+				],
+				correctChoice: 0,
+				maxPoints: 2,
+			},
+			{
+				kind: "mc" as const,
+				body: `Welche Aussage zu ${b} stimmt?`,
+				choices: [
+					{
+						text: `MVCC erlaubt parallele Lese- und Schreib-Transaktionen ohne Lese-Locks`,
+						weight: 2,
+					},
+					{ text: `Alle Indexe sind clustered`, weight: 0 },
+					{ text: `Es kennt keine Foreign Keys`, weight: 0 },
+				],
+				correctChoice: 0,
+				maxPoints: 2,
+			},
+			{
+				kind: "open" as const,
+				body: `Beschreibe in 4-6 Sätzen, wie du ein Performance-Problem in einer ${input.title}-Codebase angehen würdest.`,
+				rubric: `Pluspunkte: Messen vor Optimieren, klares Bottleneck-Hypothese, konkrete Tools, Trade-offs reflektiert. Minuspunkte: Generische Phrasen, "Cache überall", keine Hypothese.`,
+				maxPoints: 4,
+			},
+			{
+				kind: "open" as const,
+				body: `Nenne ein konkretes Projekt, in dem du ${a} eingesetzt hast — was war die größte Herausforderung?`,
+				rubric: `Pluspunkte: konkrete Zahlen oder Kontext, eigene Verantwortung sichtbar, Trade-offs benannt. Minuspunkte: vage Aussagen ohne Beispiel.`,
+				maxPoints: 3,
+			},
+			{
+				kind: "mc" as const,
+				body: `Wann lehnst du eine Anforderung des Auftraggebers begründet ab?`,
+				choices: [
+					{
+						text: `Wenn sie das Produkt mittelfristig schadet und ich Alternativen anbiete`,
+						weight: 2,
+					},
+					{ text: `Wenn ich keine Lust habe`, weight: 0 },
+					{ text: `Niemals — der Kunde hat immer recht`, weight: 0 },
+				],
+				correctChoice: 0,
+				maxPoints: 1,
+			},
+		];
+	}
 }

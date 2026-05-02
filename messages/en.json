@@ -337,7 +337,11 @@
 		},
 		"save": "Save",
 		"saving": "Saving…",
-		"savedAt": "Saved at {time}"
+		"savedAt": "Saved at {time}",
+		"referencesHeading": "References",
+		"referencesSubtitle": "Invite former managers or peers to answer three questions. You see the answers — the employer only sees them if you grant access.",
+		"diversityHeading": "Diversity self-ID (optional)",
+		"diversitySubtitle": "Fully voluntary. We only ever show data in aggregate (min 5 people per bucket) and never directly to employers — it helps us detect matching bias."
 	},
 	"Matches": {
 		"title": "Job matches",
@@ -381,6 +385,7 @@
 		"seeFavorites": "Favorites",
 		"seeOffers": "Offers",
 		"seeQuestions": "Questions",
+		"seeAssessment": "Assessment",
 		"salary": "Salary",
 		"remoteOptions": {
 			"onsite": "On-site",
@@ -410,7 +415,8 @@
 		"comingDynamicRoutes": "Dynamic API route management in the UI (proxy / sql / jsonata handlers)",
 		"comingTenants": "Tenant management with subdomain branding",
 		"comingConnectors": "Verify connector definitions (Credly partner OAuth, IDnow sandbox)",
-		"cmsLink": "Manage content (imprint, privacy …)"
+		"cmsLink": "Manage content (imprint, privacy …)",
+		"insightsLink": "Platform insights"
 	},
 	"AdminCms": {
 		"title": "Content (CMS)",
@@ -490,6 +496,10 @@
 				"id_doc": "ID",
 				"other": "Other"
 			}
+		},
+		"referenceDisclosure": {
+			"title": "Share references with this employer",
+			"subtitle": "Per reference, choose whether the employer sees the answers. You can revoke at any time."
 		},
 		"receivedAt": "Received {time}",
 		"expiresAt": "Expires {time}",
@@ -1046,7 +1056,9 @@
 		"employerAnswered": "Reply from the employer",
 		"waitingForAnswer": "No reply yet.",
 		"publicFaqEyebrow": "FAQ",
-		"publicFaqTitle": "Frequently asked"
+		"publicFaqTitle": "Frequently asked",
+		"assessmentEyebrow": "Skill assessment",
+		"assessmentHint": "{count} questions — taking it helps the employer gauge your hard skills without you revealing your name."
 	},
 	"EmployerQuestions": {
 		"eyebrow": "Anonymous questions",
@@ -1061,5 +1073,173 @@
 		"public": "Public",
 		"yourAnswer": "Your reply",
 		"anonymousAt": "Anonymous · {date}"
+	},
+	"Assessment": {
+		"eyebrowEmployer": "Skill assessment",
+		"titleEmployer": "Mini-assessment for this role",
+		"subtitleEmployer": "3-7 questions that validate hard skills. Multiple-choice + open-ended. AI grades open answers against your rubric. Score appears in the match.",
+		"title": "Title",
+		"titlePlaceholder": "e.g. Senior Backend — Coding Basics",
+		"titleRequired": "Please enter a title.",
+		"description": "Short instructions",
+		"descriptionPlaceholder": "What candidates can expect — time estimate, no helpers allowed, …",
+		"question": "Question",
+		"multipleChoice": "Multiple choice",
+		"openQuestion": "Open question",
+		"questionPlaceholder": "Ask the question…",
+		"choicePlaceholder": "Answer option",
+		"markCorrect": "Mark as correct",
+		"removeChoice": "Remove option",
+		"addChoice": "Add option",
+		"rubricPlaceholder": "Optional grading rubric for the AI: what makes a good answer.",
+		"maxPoints": "Points",
+		"removeQuestion": "Remove question",
+		"addMc": "+ Multiple choice",
+		"addOpen": "+ Open question",
+		"aiSuggest": "Load AI suggestions",
+		"aiThinking": "AI thinking…",
+		"aiNoSuggestions": "The AI didn't return suggestions. Try again later or write your own.",
+		"invalidQuestion": "At least one question has empty text or empty answer options.",
+		"save": "Save assessment",
+		"saving": "Saving…",
+		"savedAt": "Saved at {time}",
+		"notSaved": "Not saved yet",
+		"seeResponses": "See responses",
+		"back": "Back",
+		"responsesEyebrow": "Responses received",
+		"responsesTitle": "Assessment responses",
+		"responsesSubtitle": "{count} candidates completed the assessment.",
+		"responsesEmpty": "No responses yet.",
+		"anonymous": "Candidate #{id}",
+		"submittedAt": "Submitted: {date}",
+		"inProgress": "In progress",
+		"graded": "graded",
+		"grading": "grading…",
+		"assessmentEyebrow": "Skill assessment",
+		"assessmentHint": "{count} questions — taking it helps the employer gauge your hard skills without you revealing your name.",
+		"point": "point",
+		"points": "points",
+		"openPlaceholder": "Write your answer…",
+		"answerAllMc": "Please answer all multiple-choice questions.",
+		"submit": "Submit",
+		"submitting": "Sending…",
+		"submittedTitle": "Submitted — thanks!",
+		"submittedHint": "The AI is grading open answers right now. Score appears in the employer's match view.",
+		"yourScore": "Your score"
+	},
+	"Outcome": {
+		"eyebrow": "What came of it?",
+		"hintCandidate": "Quick feedback on whether the offer led to a contract. Internal only — improves the matching.",
+		"hintEmployer": "Quick feedback helps the algorithm. Internal only.",
+		"selectKind": "Please select…",
+		"kind": {
+			"hired": "Contract signed",
+			"declined_by_candidate": "I declined",
+			"declined_by_employer": "Employer declined",
+			"in_negotiation": "Still negotiating",
+			"no_response": "No response since"
+		},
+		"finalSalaryPlaceholder": "Actual salary (optional)",
+		"notesPlaceholder": "Short note (optional)",
+		"save": "Save",
+		"saving": "Saving…",
+		"thanksRecorded": "Thanks — recorded.",
+		"editOutcome": "Edit"
+	},
+	"Diversity": {
+		"openOptIn": "Open diversity self-ID",
+		"consentBlurb": "All fields are optional. We only show data in aggregate (≥5 people) and never directly to employers. You can withdraw any time.",
+		"genderIdentity": "Gender identity",
+		"ageRange": "Age range",
+		"ethnicity": "Ethnicity (free text)",
+		"ethnicityPlaceholder": "Self-describe or leave blank",
+		"disability": "Disability",
+		"yes": "Yes",
+		"no": "No",
+		"notSpecified": "Prefer not to say",
+		"gender": {
+			"female": "Female",
+			"male": "Male",
+			"non_binary": "Non-binary",
+			"self_describe": "Self-describe",
+			"prefer_not_to_say": "Prefer not to say"
+		},
+		"age": {
+			"18_24": "18–24",
+			"25_34": "25–34",
+			"35_44": "35–44",
+			"45_54": "45–54",
+			"55_plus": "55+"
+		},
+		"save": "Save",
+		"saving": "Saving…",
+		"withdraw": "Delete data",
+		"lastSavedAt": "Last saved: {time}",
+		"notSavedYet": "Not saved yet"
+	},
+	"References": {
+		"hint": "We send an email with three short questions + a private link. The reply lands in your profile — the employer only sees it if you grant access.",
+		"namePlaceholder": "Referee name",
+		"emailPlaceholder": "Email",
+		"relationPlaceholder": "Relation — e.g. Former manager",
+		"sendRequest": "Send request",
+		"sending": "Sending…",
+		"nameEmailRequired": "Name and email are required.",
+		"showAnswers": "Show answers",
+		"delete": "Delete request",
+		"status": {
+			"pending": "Awaiting reply",
+			"submitted": "Replied",
+			"expired": "Expired"
+		}
+	},
+	"Reference": {
+		"eyebrow": "Confidential reference request",
+		"title": "Hello {name}",
+		"hint": "You were named as a reference on Klick. Answer three short questions — only the requester will see your replies.",
+		"submit": "Submit answers",
+		"alreadySubmitted": "Thank you — your answers have already been recorded.",
+		"expired": "This link has expired. Reach out to the requester directly if you'd still like to reply."
+	},
+	"ReferenceDisclosure": {
+		"toggle": "Grant or revoke {name}",
+		"noRelation": "Relation not provided",
+		"noReferences": "No answered references yet — send a request from your profile first.",
+		"preview": "Show preview"
+	},
+	"AdminInsights": {
+		"back": "Admin",
+		"eyebrow": "Platform insights",
+		"title": "Aggregated statistics",
+		"subtitle": "Tenant-wide analytics. Diversity buckets with under 5 people are suppressed to 0.",
+		"outcomesEyebrow": "Match outcomes",
+		"outcomesTitle": "How do matches conclude?",
+		"outcomeMetric": {
+			"totalReports": "Reports",
+			"hired": "Contracts",
+			"declinedByCandidate": "Candidate declined",
+			"declinedByEmployer": "Employer declined"
+		},
+		"hireRate": "Hire rate (of decided)",
+		"avgFinalSalary": "Avg final salary",
+		"diversityEyebrow": "Diversity",
+		"diversityTitle": "Self-ID aggregates",
+		"diversityDisclaimer": "{consented} of {total} candidates shared diversity data. Buckets under 5 suppressed.",
+		"diversityGender": "Gender identity",
+		"diversityAge": "Age group",
+		"diversityEthnicity": "Ethnicity",
+		"diversityDisability": "Disability",
+		"gender": {
+			"female": "Female",
+			"male": "Male",
+			"non_binary": "Non-binary",
+			"self_describe": "Self-described",
+			"prefer_not_to_say": "Prefer not to say"
+		},
+		"disability": {
+			"yes": "With disability",
+			"no": "Without disability"
+		},
+		"suppressionNote": "Values under 5 are reported as 0 to prevent re-identification. Free-text ethnicity entries only appear if ≥5 people used the exact same wording."
 	}
 }

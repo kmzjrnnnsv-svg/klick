@@ -58,12 +58,20 @@ export default async function AdminPage({
 							{t("subtitle")}
 						</p>
 					</div>
-					<Link
-						href="/admin/cms"
-						className={buttonVariants({ size: "sm", variant: "outline" })}
-					>
-						{t("cmsLink")}
-					</Link>
+					<div className="flex flex-wrap gap-2">
+						<Link
+							href="/admin/insights"
+							className={buttonVariants({ size: "sm", variant: "outline" })}
+						>
+							{t("insightsLink")}
+						</Link>
+						<Link
+							href="/admin/cms"
+							className={buttonVariants({ size: "sm", variant: "outline" })}
+						>
+							{t("cmsLink")}
+						</Link>
+					</div>
 				</header>
 
 				<section>

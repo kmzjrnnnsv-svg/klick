@@ -740,3 +740,224 @@ export const jobQuestions = pgTable("job_questions", {
 });
 
 export type JobQuestion = typeof jobQuestions.$inferSelect;
+
+// ─── Skill Assessments ─────────────────────────────────────────────────────
+// Optionales Mini-Assessment pro Stelle. Employer legt 3-7 Fragen an
+// (Multiple-Choice mit gewichteten Antworten + offene Fragen). Kandidat
+// beantwortet vor / während Disclosure. KI bewertet offene Antworten;
+// MC wird gegen die `correctChoice` gerechnet. Score taucht im Match auf.
+export type AssessmentChoice = { text: string; weight: number };
+
+export const jobAssessments = pgTable("job_assessments", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	jobId: text("job_id")
+		.notNull()
+		.unique()
+		.references(() => jobs.id, { onDelete: "cascade" }),
+	title: text("title").notNull(),
+	description: text("description"),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type JobAssessment = typeof jobAssessments.$inferSelect;
+
+export const jobAssessmentQuestions = pgTable("job_assessment_questions", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	assessmentId: text("assessment_id")
+		.notNull()
+		.references(() => jobAssessments.id, { onDelete: "cascade" }),
+	position: integer("position").notNull().default(0),
+	kind: text("kind", { enum: ["mc", "open"] }).notNull(),
+	body: text("body").notNull(),
+	// MC only — list of options with per-choice weight (0 - maxPoints).
+	// `correctChoice` is the index that scores the full maxPoints; other
+	// indices use their own weight as partial credit.
+	choices: jsonb("choices").$type<AssessmentChoice[]>(),
+	correctChoice: integer("correct_choice"),
+	// For open questions, this is the rubric the AI uses to grade.
+	rubric: text("rubric"),
+	maxPoints: integer("max_points").notNull().default(1),
+});
+
+export type JobAssessmentQuestion = typeof jobAssessmentQuestions.$inferSelect;
+
+export const assessmentResponses = pgTable(
+	"assessment_responses",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		assessmentId: text("assessment_id")
+			.notNull()
+			.references(() => jobAssessments.id, { onDelete: "cascade" }),
+		jobId: text("job_id")
+			.notNull()
+			.references(() => jobs.id, { onDelete: "cascade" }),
+		candidateUserId: text("candidate_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		status: text("status", {
+			enum: ["in_progress", "submitted", "graded"],
+		})
+			.notNull()
+			.default("in_progress"),
+		// Per-question entries with answer + grading. Keep inline for now —
+		// 5-10 answers per response is comfortable JSONB.
+		answers: jsonb("answers")
+			.$type<
+				Array<{
+					questionId: string;
+					kind: "mc" | "open";
+					choiceIndex?: number;
+					openText?: string;
+					pointsEarned?: number;
+					aiFeedback?: string;
+				}>
+			>()
+			.notNull()
+			.default([]),
+		totalScore: integer("total_score"),
+		maxScore: integer("max_score"),
+		submittedAt: timestamp("submitted_at", { mode: "date" }),
+		gradedAt: timestamp("graded_at", { mode: "date" }),
+		createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+	},
+	(t) => [
+		unique("assessment_response_unique").on(t.assessmentId, t.candidateUserId),
+	],
+);
+
+export type AssessmentResponse = typeof assessmentResponses.$inferSelect;
+
+// ─── Outcomes ──────────────────────────────────────────────────────────────
+// Feedback-Loop für Match-Qualität. Wird nach abgeschlossenem Offer-Flow
+// gefragt: "Hat das zum Vertrag geführt?" Beide Seiten dürfen melden;
+// die KI nutzt diese Daten später als Feedback (P5+).
+export const outcomes = pgTable(
+	"outcomes",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		jobId: text("job_id")
+			.notNull()
+			.references(() => jobs.id, { onDelete: "cascade" }),
+		candidateUserId: text("candidate_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		employerId: text("employer_id")
+			.notNull()
+			.references(() => employers.id, { onDelete: "cascade" }),
+		// Wer hat das Outcome eingetragen? Beide Seiten dürfen — wir
+		// vergleichen die Aussagen falls inkonsistent.
+		reportedByRole: text("reported_by_role", {
+			enum: ["candidate", "employer"],
+		}).notNull(),
+		reportedByUserId: text("reported_by_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		kind: text("kind", {
+			enum: [
+				"hired",
+				"declined_by_candidate",
+				"declined_by_employer",
+				"in_negotiation",
+				"no_response",
+			],
+		}).notNull(),
+		notes: text("notes"),
+		// Optional: Endgehalt, falls "hired". Hilft bei Salary-Benchmark-
+		// Lernen.
+		finalSalary: integer("final_salary"),
+		reportedAt: timestamp("reported_at", { mode: "date" })
+			.notNull()
+			.defaultNow(),
+	},
+	(t) => [
+		unique("outcome_per_role_unique").on(
+			t.jobId,
+			t.candidateUserId,
+			t.reportedByRole,
+		),
+	],
+);
+
+export type Outcome = typeof outcomes.$inferSelect;
+
+// ─── Diversity Self-ID ─────────────────────────────────────────────────────
+// Strikt opt-in. Daten erscheinen NUR aggregiert (für Employer-Bias-
+// Checks und interne Statistiken). Jeder Eintrag ist optional. Kandidat
+// kann jederzeit löschen oder zurückziehen.
+export const diversityResponses = pgTable("diversity_responses", {
+	userId: text("user_id")
+		.primaryKey()
+		.references(() => users.id, { onDelete: "cascade" }),
+	genderIdentity: text("gender_identity"),
+	ethnicity: text("ethnicity"),
+	hasDisability: boolean("has_disability"),
+	ageRange: text("age_range"),
+	consentedAt: timestamp("consented_at", { mode: "date" })
+		.notNull()
+		.defaultNow(),
+});
+
+export type DiversityResponse = typeof diversityResponses.$inferSelect;
+
+// ─── Reference Checks ──────────────────────────────────────────────────────
+// Opt-in: Kandidat trägt einen alten Vorgesetzten ein, das System
+// schickt eine Mail mit 3 Fragen + Token. Antworten landen verschlüsselt
+// in der Tabelle. Anti-Phishing: nur per gültigem Token zugreifbar.
+export const referenceChecks = pgTable("reference_checks", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	candidateUserId: text("candidate_user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	refereeName: text("referee_name").notNull(),
+	refereeEmail: text("referee_email").notNull(),
+	refereeRelation: text("referee_relation"), // "former manager", "peer", ...
+	token: text("token").notNull().unique(),
+	status: text("status", {
+		enum: ["pending", "submitted", "expired"],
+	})
+		.notNull()
+		.default("pending"),
+	// Antworten — JSONB mit { question, answer } Paaren.
+	answers: jsonb("answers").$type<{ question: string; answer: string }[]>(),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+	expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+	submittedAt: timestamp("submitted_at", { mode: "date" }),
+});
+
+export type ReferenceCheck = typeof referenceChecks.$inferSelect;
+
+// ─── Reference Disclosures ────────────────────────────────────────────────
+// Per-Interest-Freigabe einer Referenz an genau einen Arbeitgeber. Solange
+// kein Disclosure existiert, sieht der Employer nichts. Revoke setzt
+// revokedAt — das blendet die Antwort sofort aus.
+export const referenceDisclosures = pgTable(
+	"reference_disclosures",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		interestId: text("interest_id")
+			.notNull()
+			.references(() => interests.id, { onDelete: "cascade" }),
+		referenceCheckId: text("reference_check_id")
+			.notNull()
+			.references(() => referenceChecks.id, { onDelete: "cascade" }),
+		grantedAt: timestamp("granted_at", { mode: "date" }).notNull().defaultNow(),
+		revokedAt: timestamp("revoked_at", { mode: "date" }),
+	},
+	(t) => [
+		unique("reference_disclosures_unique").on(t.interestId, t.referenceCheckId),
+	],
+);
+
+export type ReferenceDisclosure = typeof referenceDisclosures.$inferSelect;
