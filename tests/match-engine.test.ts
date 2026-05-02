@@ -37,6 +37,10 @@ const baseProfile: CandidateProfile = {
 	location: "Berlin",
 	yearsExperience: 6,
 	salaryMin: 75000,
+	salaryDesired: null,
+	canBeContactedBy: "all",
+	openToOffers: true,
+	openToOffersUntil: null,
 	languages: ["de:native", "en:c1"],
 	skills: [
 		{ name: "TypeScript", level: 5 },

@@ -1,6 +1,16 @@
 import { eq } from "drizzle-orm";
+import { computeMatchesForJob } from "../app/actions/matches";
 import { db } from "./index";
-import { candidateProfiles, employers, jobs, tenants, users } from "./schema";
+import {
+	candidateProfiles,
+	employers,
+	favorites,
+	jobs,
+	notifications,
+	offers,
+	tenants,
+	users,
+} from "./schema";
 
 const DEMO_TENANT_SLUG = "default";
 
@@ -896,6 +906,161 @@ async function main() {
 		});
 		await ensureCandidateProfile(id, extra.profile);
 		console.log(`✔ candidate ${extra.email} (user=${id})`);
+	}
+
+	// ── Cross-product matching + demo favorites + demo offers ─────────────
+	// The match engine needs to run per published job, so all candidates
+	// appear with scores in the employer view. Idempotent: re-runs upsert.
+	console.log("\nComputing matches across all candidates × jobs…");
+	const allJobs = await db
+		.select()
+		.from(jobs)
+		.where(eq(jobs.status, "published"));
+	for (const j of allJobs) {
+		try {
+			await computeMatchesForJob(j.id);
+		} catch (e) {
+			console.warn(`  matches for ${j.title} skipped: ${(e as Error).message}`);
+		}
+	}
+	console.log(`✔ matched ${allJobs.length} published jobs`);
+
+	// Pick the company employer (Acme Studios) for demo favorites + offers.
+	const [acme] = await db
+		.select()
+		.from(employers)
+		.where(eq(employers.userId, await ensureUser(tenantId, DEMO_USERS.company)))
+		.limit(1);
+	const [headhunterEmp] = await db
+		.select()
+		.from(employers)
+		.where(
+			eq(employers.userId, await ensureUser(tenantId, DEMO_USERS.headhunter)),
+		)
+		.limit(1);
+
+	if (acme && allJobs.length > 0) {
+		// 3-4 favorites on Acme's jobs — pick varied candidates.
+		const acmeJobs = allJobs.filter((j) => j.employerId === acme.id);
+		const candidatesAll = await db
+			.select({
+				userId: candidateProfiles.userId,
+				name: candidateProfiles.displayName,
+			})
+			.from(candidateProfiles)
+			.limit(20);
+
+		const favPicks: Array<{
+			job: (typeof acmeJobs)[number];
+			cand: (typeof candidatesAll)[number];
+			notes: string;
+		}> = [];
+		for (
+			let i = 0;
+			i < Math.min(4, acmeJobs.length, candidatesAll.length);
+			i++
+		) {
+			favPicks.push({
+				job: acmeJobs[i % acmeJobs.length],
+				cand: candidatesAll[i],
+				notes: [
+					"Profil passt perfekt — Senior-Background sichtbar.",
+					"Quereinsteiger, aber starkes Portfolio.",
+					"Pendelweg knapp, Skills aber ideal.",
+					"Würde ich gern für ein erstes Gespräch.",
+				][i],
+			});
+		}
+		for (const p of favPicks) {
+			await db
+				.insert(favorites)
+				.values({
+					employerId: acme.id,
+					jobId: p.job.id,
+					candidateUserId: p.cand.userId,
+					notes: p.notes,
+				})
+				.onConflictDoNothing();
+		}
+		console.log(`✔ ${favPicks.length} demo favorites added`);
+
+		// Two demo offers: one pending (fresh), one accepted (closed).
+		if (acmeJobs[0] && candidatesAll[0] && candidatesAll[1]) {
+			const expires = new Date();
+			expires.setDate(expires.getDate() + 14);
+
+			// Pending offer to candidate #1
+			const [pending] = await db
+				.insert(offers)
+				.values({
+					jobId: acmeJobs[0].id,
+					employerId: acme.id,
+					candidateUserId: candidatesAll[0].userId,
+					roleTitle: acmeJobs[0].title,
+					salaryProposed:
+						acmeJobs[0].salaryMax ?? acmeJobs[0].salaryMin ?? 75000,
+					startDateProposed: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+					message:
+						"Wir wären begeistert, dich bei Acme willkommen zu heißen — das Team passt zu dir.",
+					expiresAt: expires,
+				})
+				.onConflictDoNothing()
+				.returning({ id: offers.id });
+
+			if (pending) {
+				await db
+					.insert(notifications)
+					.values({
+						userId: candidatesAll[0].userId,
+						kind: "new_offer",
+						title: `${acme.companyName} hat dir ein Angebot gemacht`,
+						body: `${acmeJobs[0].title} — Demo-Angebot`,
+						link: `/offers/${pending.id}`,
+					})
+					.onConflictDoNothing();
+			}
+
+			// Accepted offer to candidate #1 on a different job (history).
+			if (acmeJobs[1]) {
+				await db
+					.insert(offers)
+					.values({
+						jobId: acmeJobs[1].id,
+						employerId: acme.id,
+						candidateUserId: candidatesAll[1].userId,
+						roleTitle: acmeJobs[1].title,
+						salaryProposed:
+							acmeJobs[1].salaryMax ?? acmeJobs[1].salaryMin ?? 70000,
+						status: "accepted",
+						decidedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+						decidedMessage: "Sehr gerne — freue mich auf die Gespräche.",
+					})
+					.onConflictDoNothing();
+			}
+		}
+
+		// One offer from headhunter — to demo agency-vs-employer flow.
+		if (headhunterEmp && allJobs[0] && candidatesAll[2]) {
+			const [hhJob] = allJobs.filter((j) => j.employerId === headhunterEmp.id);
+			if (hhJob) {
+				await db
+					.insert(offers)
+					.values({
+						jobId: hhJob.id,
+						employerId: headhunterEmp.id,
+						candidateUserId: candidatesAll[2].userId,
+						roleTitle: hhJob.title,
+						salaryProposed: hhJob.salaryMax ?? hhJob.salaryMin ?? 90000,
+						message:
+							"Im Auftrag eines Kunden im Mittelstand — wir vermitteln den Erstkontakt.",
+					})
+					.onConflictDoNothing();
+			}
+		}
+
+		console.log(
+			"✔ demo offers added (1 pending, 1 accepted, 1 via headhunter)",
+		);
 	}
 
 	console.log(

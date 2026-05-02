@@ -44,12 +44,32 @@ export default async function EditJobPage({
 						</h1>
 					</div>
 					{job.status === "published" && (
-						<Link
-							href={`/jobs/${id}/candidates`}
-							className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
-						>
-							{tm("seeCandidates", { count: matchCount })}
-						</Link>
+						<div className="flex flex-wrap gap-2">
+							<Link
+								href={`/jobs/${id}/candidates`}
+								className={cn(
+									buttonVariants({ size: "sm", variant: "outline" }),
+								)}
+							>
+								{tm("seeCandidates", { count: matchCount })}
+							</Link>
+							<Link
+								href={`/jobs/${id}/favorites`}
+								className={cn(
+									buttonVariants({ size: "sm", variant: "outline" }),
+								)}
+							>
+								{tm("seeFavorites")}
+							</Link>
+							<Link
+								href={`/jobs/${id}/offers`}
+								className={cn(
+									buttonVariants({ size: "sm", variant: "outline" }),
+								)}
+							>
+								{tm("seeOffers")}
+							</Link>
+						</div>
 					)}
 				</header>
 				{job.salaryBenchmarkLow != null && job.salaryBenchmarkHigh != null && (

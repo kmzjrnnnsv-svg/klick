@@ -2,6 +2,8 @@
 
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { pushNotification } from "@/app/actions/notifications";
+import { notifySavedSearchHits } from "@/app/actions/saved-searches";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
@@ -26,6 +28,10 @@ const TOP_N = 20;
 export async function computeMatchesForJob(jobId: string): Promise<void> {
 	const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
 	if (!job || job.status !== "published") return;
+
+	// Fan-out saved-search hits — independent of match scoring; even if no
+	// candidate scores high, a saved search may want to see the new posting.
+	await notifySavedSearchHits(job);
 
 	const [emp] = await db
 		.select()
@@ -190,19 +196,29 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 
 			// Notify the candidate when this is a fresh, strong match. Skip
 			// re-runs and weak matches to avoid spamming. Best-effort.
-			if (isNew && m.softScore >= 60 && m.userEmail) {
-				const baseUrl = process.env.AUTH_URL ?? "https://raza.work";
-				await sendTransactionalMail({
-					to: m.userEmail,
-					subject: `Neue passende Stelle: ${job.title}`,
-					text:
-						`Eine neue Stelle könnte zu dir passen:\n\n` +
-						`${job.title}${job.location ? ` · ${job.location}` : ""}\n` +
-						`Match-Score: ${m.softScore}/100\n\n` +
-						`${rationale}\n\n` +
-						`Schau sie dir an: ${baseUrl}/matches\n\n` +
-						`Du erhältst diese Mail, weil dein Profil bei Klick zu dieser Stelle passt. Du bleibst anonym, bis du selbst Interesse zeigst.`,
+			if (isNew && m.softScore >= 60 && m.userId) {
+				await pushNotification({
+					userId: m.userId,
+					kind: "new_match",
+					title: `Neuer Match: ${job.title}`,
+					body: `Score ${m.softScore}/100${job.location ? ` · ${job.location}` : ""}`,
+					link: "/matches",
+					payload: { jobId: job.id, softScore: m.softScore },
 				});
+				if (m.userEmail) {
+					const baseUrl = process.env.AUTH_URL ?? "https://raza.work";
+					await sendTransactionalMail({
+						to: m.userEmail,
+						subject: `Neue passende Stelle: ${job.title}`,
+						text:
+							`Eine neue Stelle könnte zu dir passen:\n\n` +
+							`${job.title}${job.location ? ` · ${job.location}` : ""}\n` +
+							`Match-Score: ${m.softScore}/100\n\n` +
+							`${rationale}\n\n` +
+							`Schau sie dir an: ${baseUrl}/matches\n\n` +
+							`Du erhältst diese Mail, weil dein Profil bei Klick zu dieser Stelle passt. Du bleibst anonym, bis du selbst Interesse zeigst.`,
+					});
+				}
 			}
 		} catch (e) {
 			console.error("match rationale failed", e);

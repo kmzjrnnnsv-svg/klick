@@ -1,0 +1,88 @@
+"use server";
+
+import { and, desc, eq, isNull } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { type Notification, notifications, users } from "@/db/schema";
+
+async function requireUser(): Promise<string> {
+	const session = await auth();
+	if (!session?.user?.id) throw new Error("unauthenticated");
+	return session.user.id;
+}
+
+// Internal helper — used by other actions (matches, offers, interests) to
+// drop a row in the user's activity feed. Never throws on failure.
+export async function pushNotification(input: {
+	userId: string;
+	kind: Notification["kind"];
+	title: string;
+	body?: string;
+	link?: string;
+	payload?: Record<string, unknown>;
+}): Promise<void> {
+	try {
+		// Sanity check: skip if the user vanished (e.g. test fixtures)
+		const [u] = await db
+			.select({ id: users.id })
+			.from(users)
+			.where(eq(users.id, input.userId))
+			.limit(1);
+		if (!u) return;
+		await db.insert(notifications).values({
+			userId: input.userId,
+			kind: input.kind,
+			title: input.title,
+			body: input.body,
+			link: input.link,
+			payload: input.payload,
+		});
+	} catch (e) {
+		console.error("[notifications] push failed", e);
+	}
+}
+
+export async function listMyNotifications(input?: {
+	limit?: number;
+	onlyUnread?: boolean;
+}): Promise<Notification[]> {
+	const userId = await requireUser();
+	const limit = Math.min(Math.max(input?.limit ?? 20, 1), 100);
+	const where = input?.onlyUnread
+		? and(eq(notifications.userId, userId), isNull(notifications.readAt))
+		: eq(notifications.userId, userId);
+	return db
+		.select()
+		.from(notifications)
+		.where(where)
+		.orderBy(desc(notifications.createdAt))
+		.limit(limit);
+}
+
+export async function unreadCount(): Promise<number> {
+	const userId = await requireUser();
+	const rows = await db
+		.select({ id: notifications.id })
+		.from(notifications)
+		.where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
+	return rows.length;
+}
+
+export async function markRead(id: string): Promise<void> {
+	const userId = await requireUser();
+	await db
+		.update(notifications)
+		.set({ readAt: new Date() })
+		.where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+	revalidatePath("/notifications");
+}
+
+export async function markAllRead(): Promise<void> {
+	const userId = await requireUser();
+	await db
+		.update(notifications)
+		.set({ readAt: new Date() })
+		.where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
+	revalidatePath("/notifications");
+}
