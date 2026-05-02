@@ -12,6 +12,7 @@
 		"openOffers": "Angebote",
 		"openSearches": "Suchen",
 		"openRequests": "Anfragen",
+		"openTeam": "Team",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
 		"notifications": "Benachrichtigungen",
@@ -534,6 +535,8 @@
 		"benchmarkUnder": "Du bezahlst {pct}% unter dem Marktdurchschnitt — Erhöhung empfohlen.",
 		"benchmarkOver": "Du bezahlst {pct}% über dem Marktdurchschnitt — eher Verhandlungsspielraum.",
 		"benchmarkFair": "Im üblichen Korridor.",
+		"qualityTitle": "Qualität deiner Anzeige",
+		"qualityBreakdown": "Vollständigkeit {completeness} · Klarheit {clarity}",
 		"uploader": {
 			"title": "Stellenanzeige hochladen",
 			"hint": "PDF oder Bild reinziehen — KI füllt Titel, Beschreibung, Anforderungen, Gehalt und Sprachen automatisch. Du prüfst und korrigierst.",
@@ -559,8 +562,33 @@
 			"requirements": "Anforderungen",
 			"context": "Rahmen",
 			"salary": "Gehalt",
-			"status": "Status"
+			"status": "Status",
+			"deepContext": "Mehr Kontext (optional, hebt Quality-Score)"
 		},
+		"deepContextHint": "Diese Felder sind optional, helfen aber Bewerbenden enorm bei der Entscheidung — und hebt den AI-Quality-Score deiner Anzeige.",
+		"teamSize": "Team-Größe",
+		"growthStage": "Phase",
+		"growthStageNone": "Keine Angabe",
+		"growthStages": {
+			"pre_seed": "Pre-Seed",
+			"seed": "Seed",
+			"series_a": "Series A",
+			"series_b": "Series B",
+			"series_c_plus": "Series C+",
+			"profitable": "Profitabel / Bootstrap",
+			"public": "Börsennotiert",
+			"non_profit": "Non-Profit",
+			"agency": "Agentur"
+		},
+		"techStackDetail": "Tech-Stack im Detail",
+		"techStackDetailPlaceholder": "Backend: Node + Postgres, Auth via Clerk; Frontend: Next 16 + Tailwind. Infra: Vercel + Hetzner.",
+		"decisionProcess": "Auswahl-Prozess",
+		"decisionProcessPlaceholder": "1× Screening (30min), 1× Tech-Interview mit Coding (60min), 1× Team-Fit (45min).",
+		"remoteOnsiteRatio": "Remote-Anteil (%)",
+		"mustReasoning": "Warum sind diese Skills MUSS?",
+		"mustReasoningPlaceholder": "Wir migrieren gerade auf TypeScript — wer das nicht von der Pike auf kennt, kostet uns Wochen.",
+		"first90DaysGoals": "Ziele für die ersten 90 Tage",
+		"first90DaysGoalsPlaceholder": "Tag 30: Onboarding + erste PRs gemerged. Tag 60: Eigenverantwortliches Feature live. Tag 90: Architektur-Vorschlag für Modul X.",
 		"requirementsEmpty": "Noch keine Anforderung. Nutze „Skills vorschlagen“ oder leg manuell an.",
 		"skillName": "Skill",
 		"weight": {
@@ -1032,6 +1060,9 @@
 	"JobDetail": {
 		"backToList": "Zurück zur Liste",
 		"via": "Vermittelt von {name}",
+		"mandateNamed": "Im Auftrag von {client}",
+		"mandateAnonymous": "Im Auftrag eines Unternehmens — Branche: {industry}",
+		"mandateGenericIndustry": "nicht angegeben",
 		"description": "Stellenbeschreibung",
 		"requirements": "Anforderungen",
 		"must": "Muss",
@@ -1245,6 +1276,70 @@
 			"no": "Ohne Behinderung"
 		},
 		"suppressionNote": "Werte unter 5 werden auf 0 gesetzt, um Re-Identifikation einzelner Personen zu verhindern. Frei eingegebene Herkunfts-Texte erscheinen nur dann, wenn ≥5 Personen denselben Wortlaut verwendet haben."
+	},
+	"Agency": {
+		"eyebrow": "Recruiter-Team",
+		"title": "Team verwalten",
+		"subtitle": "Lade weitere Recruiter:innen ins Team ein. Jede Person bekommt eigenen Zugang mit Magic-Link — keine geteilten Logins.",
+		"inviteEyebrow": "Einladung",
+		"inviteTitle": "Recruiter:in einladen",
+		"emailPlaceholder": "kollegin@firma.de",
+		"role": {
+			"owner": "Owner",
+			"recruiter": "Recruiter:in",
+			"viewer": "Nur lesen"
+		},
+		"invite": "Einladen",
+		"sending": "Sende…",
+		"sentTo": "Einladung an {email} versendet.",
+		"teamEyebrow": "Team",
+		"teamTitle": "Aktuelle Mitglieder",
+		"joinedAt": "Beigetreten {date}",
+		"invitedAt": "Eingeladen {date}",
+		"remove": "Entfernen",
+		"confirmRemove": "Diese Person wirklich aus dem Team entfernen?"
+	},
+	"AgencyInvite": {
+		"eyebrow": "Team-Einladung",
+		"title": "Annehmen?",
+		"hint": "Du wurdest in ein Recruiter-Team eingeladen. Mit Annahme bekommst du Zugriff auf Stellen, Kandidat:innen und Verhandlungen.",
+		"accept": "Einladung annehmen",
+		"emailMatchHint": "Die E-Mail deines Kontos muss zur eingeladenen Adresse passen."
+	},
+	"Mandate": {
+		"sectionTitle": "Mandat (im Auftrag von …)",
+		"openMandate": "Mandat hinterlegen",
+		"hint": "Du vermittelst diese Stelle für einen Endkunden. Die Sichtbarkeit steuert, was Bewerbende sehen — vom anonymen Branchen-Hinweis bis zum Klarnamen.",
+		"clientName": "Endkunde (Firmenname)",
+		"clientNamePlaceholder": "Acme Industrie GmbH",
+		"clientWebsite": "Website",
+		"clientIndustry": "Branche",
+		"clientIndustryPlaceholder": "Maschinenbau / Mittelstand",
+		"clientNote": "Interne Notiz",
+		"clientNotePlaceholder": "Nur intern sichtbar — Notiz für dich + Team.",
+		"commissionPct": "Provision (%)",
+		"visibility": "Sichtbarkeit für Bewerbende",
+		"visibilityOptions": {
+			"private": {
+				"title": "Privat",
+				"body": "Nur du + dein Team sehen das Mandat. Kein Hinweis auf der Stellen-Seite."
+			},
+			"anonymous": {
+				"title": "Anonym",
+				"body": "Bewerbende sehen einen Hinweis wie 'im Auftrag eines Mittelständlers im Maschinenbau' — keine Firma, nur Branche."
+			},
+			"named": {
+				"title": "Klarname",
+				"body": "Bewerbende sehen den Endkunden mit Namen + ggf. Website."
+			}
+		},
+		"nameRequired": "Bitte einen Endkunden-Namen angeben.",
+		"save": "Speichern",
+		"saving": "Speichere…",
+		"savedAt": "Gespeichert um {time}",
+		"notSaved": "Noch nicht gespeichert",
+		"delete": "Mandat entfernen",
+		"confirmDelete": "Mandat wirklich entfernen?"
 	},
 	"Career": {
 		"emptyHint": "Lass die KI dein Profil tief auswerten — Gehaltsband, primäre und verdeckte Branchen, Zertifizierungen, Rollen-Optionen, aktuelle Marktlage. Dauert ~30 Sekunden.",

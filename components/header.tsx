@@ -25,6 +25,7 @@ export async function Header() {
 			? [
 					{ href: "/jobs", label: t("openJobs") },
 					{ href: "/offers", label: t("openOffers") },
+					{ href: "/agency/team", label: t("openTeam") },
 				]
 			: role === "admin"
 				? [{ href: "/admin", label: t("openAdmin") }]

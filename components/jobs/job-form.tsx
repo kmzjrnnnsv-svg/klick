@@ -61,6 +61,23 @@ export function JobForm({ initial }: { initial: Job | null }) {
 	const [status, setStatus] = useState<(typeof STATUS_OPTIONS)[number]>(
 		initial?.status ?? "draft",
 	);
+	const [teamSize, setTeamSize] = useState(initial?.teamSize?.toString() ?? "");
+	const [growthStage, setGrowthStage] = useState(initial?.growthStage ?? "");
+	const [techStackDetail, setTechStackDetail] = useState(
+		initial?.techStackDetail ?? "",
+	);
+	const [decisionProcess, setDecisionProcess] = useState(
+		initial?.decisionProcess ?? "",
+	);
+	const [remoteOnsiteRatio, setRemoteOnsiteRatio] = useState(
+		initial?.remoteOnsiteRatio?.toString() ?? "",
+	);
+	const [mustReasoning, setMustReasoning] = useState(
+		initial?.mustReasoning ?? "",
+	);
+	const [first90DaysGoals, setFirst90DaysGoals] = useState(
+		initial?.first90DaysGoals ?? "",
+	);
 
 	function addRequirement() {
 		setRequirements([...requirements, withKey({ name: "", weight: "nice" })]);
@@ -377,6 +394,130 @@ export function JobForm({ initial }: { initial: Job | null }) {
 					</label>
 				</div>
 			</section>
+
+			<details className="rounded-md border border-border bg-background">
+				<summary className="cursor-pointer p-3 font-medium text-sm">
+					{t("section.deepContext")}
+				</summary>
+				<div className="space-y-3 p-3 pt-0">
+					<p className="text-muted-foreground text-xs leading-relaxed">
+						{t("deepContextHint")}
+					</p>
+					<div className="grid gap-3 sm:grid-cols-2">
+						<label className="space-y-1">
+							<span className="text-muted-foreground text-xs">
+								{t("teamSize")}
+							</span>
+							<Input
+								name="teamSize"
+								type="number"
+								min={0}
+								value={teamSize}
+								onChange={(e) => setTeamSize(e.target.value)}
+								placeholder="8"
+							/>
+						</label>
+						<label className="space-y-1">
+							<span className="text-muted-foreground text-xs">
+								{t("growthStage")}
+							</span>
+							<select
+								name="growthStage"
+								value={growthStage}
+								onChange={(e) =>
+									setGrowthStage(e.target.value as typeof growthStage)
+								}
+								className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
+							>
+								<option value="">{t("growthStageNone")}</option>
+								{(
+									[
+										"pre_seed",
+										"seed",
+										"series_a",
+										"series_b",
+										"series_c_plus",
+										"profitable",
+										"public",
+										"non_profit",
+										"agency",
+									] as const
+								).map((s) => (
+									<option key={s} value={s}>
+										{t(`growthStages.${s}`)}
+									</option>
+								))}
+							</select>
+						</label>
+						<label className="space-y-1">
+							<span className="text-muted-foreground text-xs">
+								{t("remoteOnsiteRatio")}
+							</span>
+							<Input
+								name="remoteOnsiteRatio"
+								type="number"
+								min={0}
+								max={100}
+								value={remoteOnsiteRatio}
+								onChange={(e) => setRemoteOnsiteRatio(e.target.value)}
+								placeholder="60"
+							/>
+						</label>
+					</div>
+					<label className="block space-y-1">
+						<span className="text-muted-foreground text-xs">
+							{t("techStackDetail")}
+						</span>
+						<textarea
+							name="techStackDetail"
+							value={techStackDetail}
+							onChange={(e) => setTechStackDetail(e.target.value)}
+							rows={2}
+							placeholder={t("techStackDetailPlaceholder")}
+							className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+						/>
+					</label>
+					<label className="block space-y-1">
+						<span className="text-muted-foreground text-xs">
+							{t("decisionProcess")}
+						</span>
+						<textarea
+							name="decisionProcess"
+							value={decisionProcess}
+							onChange={(e) => setDecisionProcess(e.target.value)}
+							rows={2}
+							placeholder={t("decisionProcessPlaceholder")}
+							className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+						/>
+					</label>
+					<label className="block space-y-1">
+						<span className="text-muted-foreground text-xs">
+							{t("mustReasoning")}
+						</span>
+						<textarea
+							name="mustReasoning"
+							value={mustReasoning}
+							onChange={(e) => setMustReasoning(e.target.value)}
+							rows={2}
+							placeholder={t("mustReasoningPlaceholder")}
+							className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+						/>
+					</label>
+					<label className="block space-y-1">
+						<span className="text-muted-foreground text-xs">
+							{t("first90DaysGoals")}
+						</span>
+						<textarea
+							name="first90DaysGoals"
+							value={first90DaysGoals}
+							onChange={(e) => setFirst90DaysGoals(e.target.value)}
+							rows={3}
+							placeholder={t("first90DaysGoalsPlaceholder")}
+							className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+						/>
+					</label>
+				</div>
+			</details>
 
 			<section className="space-y-3">
 				<h2 className="font-medium text-sm">{t("section.status")}</h2>

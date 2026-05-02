@@ -48,6 +48,25 @@ const jobFormSchema = z.object({
 	languages: z.array(z.string()).optional(),
 	requirements: z.array(requirementSchema).optional(),
 	status: z.enum(["draft", "published", "archived"]).default("draft"),
+	teamSize: z.coerce.number().int().min(0).max(100000).optional(),
+	growthStage: z
+		.enum([
+			"pre_seed",
+			"seed",
+			"series_a",
+			"series_b",
+			"series_c_plus",
+			"profitable",
+			"public",
+			"non_profit",
+			"agency",
+		])
+		.optional(),
+	techStackDetail: z.string().max(2000).optional(),
+	decisionProcess: z.string().max(1000).optional(),
+	remoteOnsiteRatio: z.coerce.number().int().min(0).max(100).optional(),
+	mustReasoning: z.string().max(1500).optional(),
+	first90DaysGoals: z.string().max(2000).optional(),
 });
 
 async function requireEmployerSession() {
@@ -186,6 +205,14 @@ export async function saveJob(
 			formData.get("requirements")?.toString(),
 		),
 		status: formData.get("status")?.toString() ?? "draft",
+		teamSize: formData.get("teamSize")?.toString() || undefined,
+		growthStage: formData.get("growthStage")?.toString() || undefined,
+		techStackDetail: formData.get("techStackDetail")?.toString() || undefined,
+		decisionProcess: formData.get("decisionProcess")?.toString() || undefined,
+		remoteOnsiteRatio:
+			formData.get("remoteOnsiteRatio")?.toString() || undefined,
+		mustReasoning: formData.get("mustReasoning")?.toString() || undefined,
+		first90DaysGoals: formData.get("first90DaysGoals")?.toString() || undefined,
 	};
 	const data = jobFormSchema.parse(raw);
 
@@ -226,6 +253,25 @@ export async function saveJob(
 		console.warn("[salary] benchmark failed", e);
 	}
 
+	// Job-Posting-Quality — best-effort, swallowed on failure.
+	let postingQuality: unknown = null;
+	try {
+		const ai = getAIProvider();
+		postingQuality = await ai.assessJobPostingQuality({
+			title: data.title,
+			description: data.description,
+			requirements: (data.requirements ?? []).map((r) => ({
+				name: r.name,
+				weight: r.weight,
+			})),
+			salaryMin: data.salaryMin ?? null,
+			salaryMax: data.salaryMax ?? null,
+			remotePolicy: data.remotePolicy,
+		});
+	} catch (e) {
+		console.warn("[quality] assessment failed", e);
+	}
+
 	const dataWithGeo = {
 		...data,
 		locationLat: geo?.lat ?? null,
@@ -234,6 +280,7 @@ export async function saveJob(
 		salaryBenchmarkHigh: benchmark?.high ?? null,
 		salaryFairness,
 		salaryDeltaPct,
+		postingQuality,
 	};
 
 	if (id) {

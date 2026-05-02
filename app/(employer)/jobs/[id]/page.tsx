@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { getJob } from "@/app/actions/jobs";
+import { getJobMandate } from "@/app/actions/agency";
+import { getEmployer, getJob } from "@/app/actions/jobs";
 import { listMatchesForJob } from "@/app/actions/matches";
 import { auth } from "@/auth";
+import { JobMandateForm } from "@/components/agency/job-mandate-form";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { JobForm } from "@/components/jobs/job-form";
@@ -24,8 +26,11 @@ export default async function EditJobPage({
 
 	const t = await getTranslations("Jobs");
 	const tm = await getTranslations("Matches");
+	const tMandate = await getTranslations("Mandate");
 	const matchCount =
 		job.status === "published" ? (await listMatchesForJob(id)).length : 0;
+	const employer = await getEmployer();
+	const mandate = employer?.isAgency ? await getJobMandate(id) : null;
 
 	return (
 		<>
@@ -116,6 +121,69 @@ export default async function EditJobPage({
 							</p>
 						)}
 					</div>
+				)}
+				{job.postingQuality
+					? (() => {
+							const q = job.postingQuality as {
+								score: number;
+								completeness: number;
+								clarity: number;
+								redFlags: string[];
+								suggestions: string[];
+							};
+							return (
+								<div
+									className={cn(
+										"mb-6 rounded-lg border p-4",
+										q.score >= 75
+											? "border-emerald-500/30 bg-emerald-500/5"
+											: q.score >= 50
+												? "border-amber-500/30 bg-amber-500/5"
+												: "border-rose-500/30 bg-rose-500/5",
+									)}
+								>
+									<div className="flex items-baseline justify-between gap-3">
+										<p className="font-medium text-sm">{t("qualityTitle")}</p>
+										<span className="font-mono text-base">{q.score}/100</span>
+									</div>
+									<p className="mt-1 font-mono text-[11px] text-muted-foreground">
+										{t("qualityBreakdown", {
+											completeness: q.completeness,
+											clarity: q.clarity,
+										})}
+									</p>
+									{q.redFlags.length > 0 && (
+										<ul className="mt-3 space-y-1 text-xs">
+											{q.redFlags.map((f) => (
+												<li
+													key={f}
+													className="text-rose-700 dark:text-rose-300"
+												>
+													⚠ {f}
+												</li>
+											))}
+										</ul>
+									)}
+									{q.suggestions.length > 0 && (
+										<ul className="mt-2 space-y-1 text-xs">
+											{q.suggestions.map((s) => (
+												<li key={s} className="text-muted-foreground">
+													→ {s}
+												</li>
+											))}
+										</ul>
+									)}
+								</div>
+							);
+						})()
+					: null}
+				{employer?.isAgency && (
+					<section className="mb-6">
+						<h2 className="mb-2 font-medium text-sm">
+							{tMandate("sectionTitle")}
+						</h2>
+						<JobMandateForm jobId={id} initial={mandate} />
+					</section>
 				)}
 				<JobForm initial={job} />
 			</main>
