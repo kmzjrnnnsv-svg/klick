@@ -148,6 +148,13 @@
       "when": 1777720079004,
       "tag": "0020_flowery_dark_phoenix",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1777756701721,
+      "tag": "0021_odd_aaron_stack",
+      "breakpoints": true
     }
   ]
 }

@@ -54,35 +54,37 @@ export default async function AssessmentResponsesPage({
 				) : (
 					<ul className="divide-y divide-border border-border border-t border-b">
 						{items.map((r) => (
-							<li
-								key={r.id}
-								className="grid grid-cols-[1fr_auto] items-baseline gap-4 py-4"
-							>
-								<div>
-									<p className="lv-eyebrow text-[0.55rem] text-muted-foreground">
-										{t("anonymous", { id: r.candidateUserId.slice(0, 6) })}
-									</p>
-									<p className="mt-1 font-mono text-[10px] text-muted-foreground">
-										{r.submittedAt
-											? t("submittedAt", {
-													date: fmt.dateTime(r.submittedAt, {
-														dateStyle: "short",
-														timeStyle: "short",
-													}),
-												})
-											: t("inProgress")}
-										{r.status === "graded" && r.gradedAt
-											? ` · ${t("graded")}`
-											: r.status === "submitted"
-												? ` · ${t("grading")}`
-												: ""}
-									</p>
-								</div>
-								{r.totalScore !== null && r.maxScore !== null && (
-									<span className="font-mono text-base">
-										{r.totalScore}/{r.maxScore}
-									</span>
-								)}
+							<li key={r.id}>
+								<Link
+									href={`/assessments/${r.id}`}
+									className="grid grid-cols-[1fr_auto] items-baseline gap-4 py-4 transition-colors hover:bg-muted/30"
+								>
+									<div>
+										<p className="lv-eyebrow text-[0.55rem] text-muted-foreground">
+											{t("anonymous", { id: r.candidateUserId.slice(0, 6) })}
+										</p>
+										<p className="mt-1 font-mono text-[10px] text-muted-foreground">
+											{r.submittedAt
+												? t("submittedAt", {
+														date: fmt.dateTime(r.submittedAt, {
+															dateStyle: "short",
+															timeStyle: "short",
+														}),
+													})
+												: t("inProgress")}
+											{r.status === "graded" && r.gradedAt
+												? ` · ${t("graded")}`
+												: r.status === "submitted"
+													? ` · ${t("grading")}`
+													: ""}
+										</p>
+									</div>
+									{r.totalScore !== null && r.maxScore !== null && (
+										<span className="font-mono text-base">
+											{r.totalScore}/{r.maxScore}
+										</span>
+									)}
+								</Link>
 							</li>
 						))}
 					</ul>

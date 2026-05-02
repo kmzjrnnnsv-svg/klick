@@ -385,3 +385,50 @@ export async function getResponseScore(
 	if (!r || r.totalScore === null || r.maxScore === null) return null;
 	return { score: r.totalScore, max: r.maxScore, status: r.status };
 }
+
+// Detail view — candidate sees own response with per-question feedback,
+// employer sees any response on their job.
+export async function getResponseDetail(responseId: string) {
+	const session = await auth();
+	if (!session?.user?.id) return null;
+	const [resp] = await db
+		.select()
+		.from(assessmentResponses)
+		.where(eq(assessmentResponses.id, responseId))
+		.limit(1);
+	if (!resp) return null;
+
+	// Authz: candidate sees own; employer sees response on their job.
+	if (resp.candidateUserId !== session.user.id) {
+		const [job] = await db
+			.select({ employerId: jobs.employerId })
+			.from(jobs)
+			.where(eq(jobs.id, resp.jobId))
+			.limit(1);
+		if (!job) return null;
+		const [emp] = await db
+			.select({ id: employers.id })
+			.from(employers)
+			.where(eq(employers.userId, session.user.id))
+			.limit(1);
+		if (!emp || emp.id !== job.employerId) return null;
+	}
+
+	const questions = await db
+		.select()
+		.from(jobAssessmentQuestions)
+		.where(eq(jobAssessmentQuestions.assessmentId, resp.assessmentId))
+		.orderBy(jobAssessmentQuestions.position);
+	const [assessment] = await db
+		.select()
+		.from(jobAssessments)
+		.where(eq(jobAssessments.id, resp.assessmentId))
+		.limit(1);
+
+	return {
+		response: resp,
+		questions,
+		assessment: assessment ?? null,
+		isOwn: resp.candidateUserId === session.user.id,
+	};
+}

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { getMyCareerAnalysis } from "@/app/actions/career";
 import { getMyDiversity } from "@/app/actions/diversity";
 import { getMyInsights } from "@/app/actions/insights";
 import { getProfile, listCvVaultItems } from "@/app/actions/profile";
@@ -9,6 +10,7 @@ import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { CandidateInsightsView } from "@/components/insights/candidate-insights";
+import { CareerAnalysisView } from "@/components/profile/career-analysis-view";
 import { DiversityForm } from "@/components/profile/diversity-form";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { ReferencesForm } from "@/components/profile/references-form";
@@ -19,7 +21,7 @@ export default async function ProfilePage() {
 	if (!session?.user) redirect("/login");
 
 	const t = await getTranslations("Profile");
-	const [profile, cvs, insights, shareToken, diversity, references] =
+	const [profile, cvs, insights, shareToken, diversity, references, career] =
 		await Promise.all([
 			getProfile(),
 			listCvVaultItems(),
@@ -27,6 +29,7 @@ export default async function ProfilePage() {
 			getMyShareToken(),
 			getMyDiversity(),
 			listMyReferences(),
+			getMyCareerAnalysis(),
 		]);
 
 	return (
@@ -67,6 +70,19 @@ export default async function ProfilePage() {
 				</section>
 
 				<ProfileForm initial={profile} cvs={cvs} />
+
+				<section className="mt-12 border-border border-t pt-8">
+					<h2 className="mb-2 font-serif-display text-xl">
+						{t("careerHeading")}
+					</h2>
+					<p className="mb-4 text-muted-foreground text-xs leading-relaxed">
+						{t("careerSubtitle")}
+					</p>
+					<CareerAnalysisView
+						initial={career.analysis}
+						updatedAt={career.updatedAt}
+					/>
+				</section>
 
 				<section className="mt-12 border-border border-t pt-8">
 					<h2 className="mb-2 font-serif-display text-xl">

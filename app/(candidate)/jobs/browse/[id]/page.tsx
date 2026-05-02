@@ -176,6 +176,7 @@ export default async function JobDetailPage({
 							}
 							gradedScore={myResponse?.totalScore ?? null}
 							gradedMax={myResponse?.maxScore ?? null}
+							responseId={myResponse?.id ?? null}
 						/>
 					</section>
 				)}

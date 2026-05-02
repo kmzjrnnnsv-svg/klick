@@ -2,9 +2,11 @@ import type {
 	AIProvider,
 	CandidateNarrative,
 	CandidateNarrativeInput,
+	CareerAnalysis,
 	ExtractedDocument,
 	ExtractedJobPosting,
 	ExtractedProfile,
+	JobPostingQuality,
 	MatchAssessment,
 	MatchAssessmentInput,
 	MatchRationaleInput,
@@ -379,5 +381,206 @@ export class MockAIProvider implements AIProvider {
 				maxPoints: 1,
 			},
 		];
+	}
+
+	async analyzeCareerProspects(input: {
+		profile: ExtractedProfile;
+		yearsActive?: number;
+	}): Promise<CareerAnalysis> {
+		const skills = input.profile.skills?.map((s) => s.name) ?? [];
+		const years = input.yearsActive ?? input.profile.yearsExperience ?? 3;
+		const level = input.profile.preferredRoleLevel ?? "mid";
+		const baseSalary =
+			level === "principal" || level === "exec"
+				? 120000
+				: level === "lead"
+					? 105000
+					: level === "senior"
+						? 85000
+						: level === "mid"
+							? 65000
+							: 50000;
+		const isTech = skills.some((s) =>
+			["TypeScript", "React", "Python", "Go", "Java", "AWS"].some((k) =>
+				s.toLowerCase().includes(k.toLowerCase()),
+			),
+		);
+		const isDesign = skills.some((s) =>
+			["Figma", "Sketch", "Design"].some((k) =>
+				s.toLowerCase().includes(k.toLowerCase()),
+			),
+		);
+		const primary = isTech
+			? ["SaaS", "FinTech", "E-Commerce"]
+			: isDesign
+				? ["Agency", "Brand Studios", "Product"]
+				: ["Industry"];
+		const adjacent = isTech
+			? [
+					{
+						name: "Public Sector / GovTech",
+						rationale:
+							"Wachsende Digitalisierung, dein Profil passt — wenig Konkurrenz, dafür stabilere Anstellungen.",
+					},
+					{
+						name: "Climate Tech",
+						rationale:
+							"Hoher Talent-Mangel, Generalisten mit deinem Stack sind wertvoll. Sinn-Plus.",
+					},
+				]
+			: [
+					{
+						name: "Consulting (Boutique)",
+						rationale:
+							"Kombination aus Domänen-Expertise + Mandats-Vielfalt. Höheres Tagessatz-Niveau möglich.",
+					},
+				];
+		return {
+			headline: `${level === "senior" || level === "lead" ? "Erfahrene:r" : "Solide:r"} ${input.profile.headline ?? "Profi"} mit ${years} Jahren Praxis. Deutliche ${
+				skills[0] ?? "Generalist"
+			}-Stärke, gute Kombination aus Hands-on und Reflexion. Markt: aktiv. Mock-Analyse — setze ANTHROPIC_API_KEY für echten Bericht.`,
+			strengths: [
+				skills[0] ? `Tiefe in ${skills[0]}` : "Solider Generalist",
+				`${years} Jahre Praxis ohne längere Lücken`,
+				"Mix aus Tech und Kommunikation",
+			],
+			growthAreas: [
+				"Klarere Architektur-Story (mit Zahlen!)",
+				"Sichtbarkeit nach außen — Talks, Posts, OSS",
+				"Cross-funktionale Erfahrung mit Sales/Marketing",
+			],
+			salary: {
+				low: Math.round(baseSalary * 0.9),
+				mid: baseSalary,
+				high: Math.round(baseSalary * 1.2),
+				currency: "EUR",
+				rationale: `Basis: Level=${level}, ${years} Jahre, deutscher Markt. Remote oder Headhunter-Vermittlung kann +10% bringen.`,
+			},
+			primaryIndustries: primary,
+			adjacentIndustries: adjacent,
+			certificationSuggestions: isTech
+				? [
+						{
+							name: "AWS Solutions Architect — Associate",
+							issuer: "AWS",
+							why: "Standard-Anker für Backend/Infra, schnell ROI in Bewerbungen.",
+							effortHours: 60,
+						},
+						{
+							name: "CKA (Certified Kubernetes Administrator)",
+							issuer: "CNCF",
+							why: "Selten sichtbar, wenn vorhanden klares Differenzierungs-Signal.",
+							effortHours: 80,
+						},
+					]
+				: [
+						{
+							name: "Scrum Master Professional",
+							issuer: "Scrum.org",
+							why: "Hebt das Profil bei Senior-Generalisten heraus.",
+							effortHours: 30,
+						},
+					],
+			roleSuggestions: [
+				{
+					title: input.profile.headline ?? "Senior Engineer",
+					rationale: "Direkter Match zum aktuellen Profil.",
+					obvious: true,
+				},
+				{
+					title: isTech ? "Solutions Engineer" : "Product Owner",
+					rationale: isTech
+						? "Tech-Verständnis + Kunden-Kontakt — oft 15-20% mehr Gehalt."
+						: "Domänen-Wissen + Roadmap-Verantwortung passen zu deinem Profil.",
+					obvious: false,
+				},
+				{
+					title: isTech ? "Developer Advocate" : "Operations Lead",
+					rationale: isTech
+						? "Wenn dir Schreiben/Sprechen Spaß macht — Top-Markt 2026."
+						: "Schnittstelle zu Engineering, gefragter Quereinstieg.",
+					obvious: false,
+				},
+			],
+			hiringPros: [
+				"Glaubwürdige Praxisnähe ohne Buzzword-Bingo",
+				"Eigeninitiative — eigene Projekte/Studien sichtbar",
+			],
+			hiringCons: [
+				"Wenige Lead-/Mentoring-Erfahrungen sichtbar",
+				"Reine MitarbeiterIn-Geschichte ohne Skalierungs-Story",
+			],
+			marketContext: {
+				demand: isTech ? "high" : "medium",
+				notes: isTech
+					? "Senior Engineers im DACH stark nachgefragt; Headhunter-Quote ~30%."
+					: "Stabiler Markt, kein Bonus mehr für reines digital affin.",
+			},
+		};
+	}
+
+	async assessJobPostingQuality(input: {
+		title: string;
+		description: string;
+		requirements: { name: string; weight: "must" | "nice" }[];
+		salaryMin: number | null;
+		salaryMax: number | null;
+		remotePolicy: string;
+	}): Promise<JobPostingQuality> {
+		const desc = input.description.trim();
+		const wordCount = desc.split(/\s+/).length;
+		const hasSalary = input.salaryMin !== null && input.salaryMax !== null;
+		const mustCount = input.requirements.filter(
+			(r) => r.weight === "must",
+		).length;
+		const niceCount = input.requirements.filter(
+			(r) => r.weight === "nice",
+		).length;
+
+		const completeness = Math.min(
+			100,
+			(wordCount > 80 ? 30 : Math.round((wordCount / 80) * 30)) +
+				(hasSalary ? 25 : 0) +
+				(input.remotePolicy ? 15 : 0) +
+				(mustCount >= 2 ? 15 : mustCount * 7) +
+				(niceCount >= 2 ? 15 : niceCount * 7),
+		);
+		const clarity = Math.min(
+			100,
+			(desc.includes("Aufgaben") || desc.includes("Verantwortung") ? 30 : 0) +
+				(desc.match(/\b(\d+%|\d+ Jahre|\d+ Tage)\b/) ? 25 : 0) +
+				(wordCount > 120 ? 25 : Math.round((wordCount / 120) * 25)) +
+				(mustCount > 0 && mustCount <= 5 ? 20 : 10),
+		);
+		const redFlags: string[] = [];
+		const suggestions: string[] = [];
+		if (!hasSalary) {
+			redFlags.push("Kein Gehaltsband angegeben");
+			suggestions.push(
+				"Gehaltsband nennen — Stellen mit Range bekommen +40% Bewerbungen.",
+			);
+		}
+		if (mustCount > 6) {
+			redFlags.push("Über 6 Pflicht-Skills — schreckt Bewerbende ab");
+			suggestions.push(
+				"Reduziere Muss-Skills auf max 4-5; verschiebe den Rest zu Nice-to-have.",
+			);
+		}
+		if (wordCount < 80) {
+			suggestions.push(
+				"Beschreibung zu kurz. Was ist die Mission, das Team, die ersten 90 Tage?",
+			);
+		}
+		if (
+			desc.toLowerCase().includes("rockstar") ||
+			desc.toLowerCase().includes("ninja")
+		) {
+			redFlags.push(
+				"Buzzwords wie 'Rockstar' oder 'Ninja' wirken unprofessionell",
+			);
+		}
+
+		const score = Math.round((completeness + clarity) / 2);
+		return { score, completeness, clarity, redFlags, suggestions };
 	}
 }

@@ -3,25 +3,32 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-	/* LV-inspired monogram cream + brown */
-	--background: oklch(0.985 0.008 85); /* ≈ #f7f3ec cream */
-	--foreground: oklch(0.18 0.015 60); /* ≈ #211c14 deep brown-black */
-	--muted: oklch(0.94 0.012 80); /* ≈ #ece6d9 paper */
-	--muted-foreground: oklch(0.45 0.02 60); /* ≈ #6b5e4a */
-	--border: oklch(0.86 0.018 75); /* ≈ #d8cfbd */
-	--primary: oklch(0.42 0.06 55); /* ≈ #6a4a2a monogram brown */
-	--primary-foreground: oklch(0.985 0.008 85);
-	--radius: 0.25rem;
+	/* Recruiting-Refined — orientiert an Ashby / Welcome to the Jungle / Linear.
+	 * Fast monochrom: warmes Off-White Hintergrund, Graphit-Foreground,
+	 * gedecktes Slate-Blau als Primary. Kein lauter Akzent — Status (Grün/
+	 * Amber/Rose) bleibt für echte Zustände. */
+	--background: oklch(0.98 0.003 85); /* ≈ #f6f4ef warmes Off-White */
+	--foreground: oklch(0.21 0.008 250); /* ≈ #2a2d33 Graphit-Schwarz */
+	--muted: oklch(0.94 0.005 85); /* ≈ #ebe9e2 */
+	--muted-foreground: oklch(0.5 0.012 250); /* ≈ #6f7480 */
+	--border: oklch(0.88 0.005 85); /* ≈ #d8d6cf */
+	--primary: oklch(0.4 0.06 250); /* ≈ #46546a gedecktes Slate-Blau */
+	--primary-foreground: oklch(0.98 0.003 85);
+	--accent: oklch(0.72 0.04 80); /* ≈ #c1b59c warmer Sand — sehr leise */
+	--accent-foreground: oklch(0.21 0.008 250);
+	--radius: 0.375rem;
 }
 
 .dark {
-	--background: oklch(0.16 0.012 60); /* ≈ #1d180f deep cocoa */
-	--foreground: oklch(0.95 0.012 80); /* ≈ #ede5d4 cream */
-	--muted: oklch(0.24 0.014 60); /* ≈ #2c2418 */
-	--muted-foreground: oklch(0.72 0.018 75); /* ≈ #beb29a */
-	--border: oklch(0.32 0.016 65); /* ≈ #3e3424 */
-	--primary: oklch(0.78 0.08 75); /* ≈ #d6b890 warm gold */
-	--primary-foreground: oklch(0.16 0.012 60);
+	--background: oklch(0.18 0.008 250); /* ≈ #1c1e25 Graphit */
+	--foreground: oklch(0.95 0.004 85); /* ≈ #eceae3 warmes Off-White */
+	--muted: oklch(0.24 0.01 250); /* ≈ #2a2d35 */
+	--muted-foreground: oklch(0.7 0.012 250); /* ≈ #9da2af */
+	--border: oklch(0.31 0.012 250); /* ≈ #3a3e49 */
+	--primary: oklch(0.72 0.06 250); /* ≈ #9aaabe helles Slate */
+	--primary-foreground: oklch(0.18 0.008 250);
+	--accent: oklch(0.65 0.04 80); /* ≈ #a99c84 warmer Sand */
+	--accent-foreground: oklch(0.18 0.008 250);
 }
 
 @theme inline {
@@ -32,9 +39,11 @@
 	--color-border: var(--border);
 	--color-primary: var(--primary);
 	--color-primary-foreground: var(--primary-foreground);
-	--radius-sm: calc(var(--radius) - 1px);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--radius-sm: calc(var(--radius) - 2px);
 	--radius-md: var(--radius);
-	--radius-lg: calc(var(--radius) + 2px);
+	--radius-lg: calc(var(--radius) + 4px);
 	--font-sans:
 		var(--font-sans-display), "Futura", "Century Gothic", ui-sans-serif,
 		system-ui, -apple-system, sans-serif;
