@@ -44,29 +44,79 @@ function profileToExtracted(
 	};
 }
 
-export async function refreshCareerAnalysis(): Promise<CareerAnalysis> {
-	const userId = await requireCandidate();
+export type CareerActionResult =
+	| { ok: true; analysis: CareerAnalysis }
+	| { ok: false; error: string; code: string };
+
+// Result-pattern statt throw — sonst zeigt Next.js generisches
+// "An unexpected response was received from the server" beim Client.
+export async function refreshCareerAnalysis(): Promise<CareerActionResult> {
+	let userId: string;
+	try {
+		userId = await requireCandidate();
+	} catch (e) {
+		return {
+			ok: false,
+			code: "auth",
+			error: e instanceof Error ? e.message : "auth_failed",
+		};
+	}
+
 	const [profile] = await db
 		.select()
 		.from(candidateProfiles)
 		.where(eq(candidateProfiles.userId, userId))
 		.limit(1);
-	if (!profile) throw new Error("no profile");
+	if (!profile) {
+		return {
+			ok: false,
+			code: "no_profile",
+			error: "Bitte fülle erst dein Profil aus (mindestens Name + Skills).",
+		};
+	}
 
-	const ai = getAIProvider();
-	const analysis = await ai.analyzeCareerProspects({
-		profile: profileToExtracted(profile),
-		yearsActive: profile.yearsExperience ?? undefined,
-		insights: profile.insights,
-	});
+	let analysis: CareerAnalysis;
+	try {
+		const ai = getAIProvider();
+		analysis = await ai.analyzeCareerProspects({
+			profile: profileToExtracted(profile),
+			yearsActive: profile.yearsExperience ?? undefined,
+			insights: profile.insights,
+		});
+	} catch (e) {
+		console.error("[career] AI analyze failed", e);
+		return {
+			ok: false,
+			code: "ai_failed",
+			error:
+				e instanceof Error
+					? `KI konnte das Profil nicht auswerten: ${e.message}`
+					: "KI konnte das Profil nicht auswerten.",
+		};
+	}
 
-	await db
-		.update(candidateProfiles)
-		.set({ careerAnalysis: analysis, careerAnalysisAt: new Date() })
-		.where(eq(candidateProfiles.userId, userId));
+	try {
+		await db
+			.update(candidateProfiles)
+			.set({ careerAnalysis: analysis, careerAnalysisAt: new Date() })
+			.where(eq(candidateProfiles.userId, userId));
+	} catch (e) {
+		console.error("[career] DB update failed", e);
+		const msg = e instanceof Error ? e.message : String(e);
+		// Häufigste Ursache: Migration 0021 nicht gelaufen → Spalte fehlt.
+		if (msg.includes("career_analysis") || msg.includes("does not exist")) {
+			return {
+				ok: false,
+				code: "missing_column",
+				error:
+					"Datenbank-Spalte fehlt. Bitte 'pnpm db:migrate' auf dem Server ausführen.",
+			};
+		}
+		return { ok: false, code: "db_failed", error: msg };
+	}
 
 	revalidatePath("/profile");
-	return analysis;
+	return { ok: true, analysis };
 }
 
 export async function getMyCareerAnalysis(): Promise<{
@@ -74,16 +124,22 @@ export async function getMyCareerAnalysis(): Promise<{
 	updatedAt: Date | null;
 }> {
 	const userId = await requireCandidate();
-	const [row] = await db
-		.select({
-			analysis: candidateProfiles.careerAnalysis,
-			updatedAt: candidateProfiles.careerAnalysisAt,
-		})
-		.from(candidateProfiles)
-		.where(eq(candidateProfiles.userId, userId))
-		.limit(1);
-	return {
-		analysis: (row?.analysis ?? null) as CareerAnalysis | null,
-		updatedAt: row?.updatedAt ?? null,
-	};
+	try {
+		const [row] = await db
+			.select({
+				analysis: candidateProfiles.careerAnalysis,
+				updatedAt: candidateProfiles.careerAnalysisAt,
+			})
+			.from(candidateProfiles)
+			.where(eq(candidateProfiles.userId, userId))
+			.limit(1);
+		return {
+			analysis: (row?.analysis ?? null) as CareerAnalysis | null,
+			updatedAt: row?.updatedAt ?? null,
+		};
+	} catch (e) {
+		// Column probably missing. Gracefully degrade so /profile renders.
+		console.warn("[career] read failed, degrading", e);
+		return { analysis: null, updatedAt: null };
+	}
 }

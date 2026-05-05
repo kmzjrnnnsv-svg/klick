@@ -1050,3 +1050,101 @@ export const jobMandates = pgTable("job_mandates", {
 });
 
 export type JobMandate = typeof jobMandates.$inferSelect;
+
+// ─── Agency Collaborations ─────────────────────────────────────────────────
+// Eine konkrete Zusammenarbeit zwischen zwei Agenturen für eine Stelle.
+// Lead-Agency hält das Mandat, Partner-Agency liefert Kandidaten gegen
+// Provisions-Anteil. Schema lehnt sich an docs/agency-collaborations.md an.
+export const agencyCollaborations = pgTable(
+	"agency_collaborations",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		jobId: text("job_id")
+			.notNull()
+			.references(() => jobs.id, { onDelete: "cascade" }),
+		leadAgencyId: text("lead_agency_id")
+			.notNull()
+			.references(() => employers.id, { onDelete: "cascade" }),
+		// Bis zur Annahme nur per Email referenziert (Partner kann eine andere
+		// registrierte Agency sein oder noch keinen Klick-Account haben).
+		partnerAgencyId: text("partner_agency_id").references(() => employers.id, {
+			onDelete: "set null",
+		}),
+		partnerEmail: text("partner_email").notNull(),
+		partnerInviteToken: text("partner_invite_token").unique(),
+		status: text("status", {
+			enum: ["pending", "active", "ended", "rejected"],
+		})
+			.notNull()
+			.default("pending"),
+		leadCommissionPct: integer("lead_commission_pct").notNull().default(70),
+		partnerCommissionPct: integer("partner_commission_pct")
+			.notNull()
+			.default(30),
+		scope: text("scope"),
+		createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+		startedAt: timestamp("started_at", { mode: "date" }),
+		endedAt: timestamp("ended_at", { mode: "date" }),
+	},
+	(t) => [unique("collab_unique").on(t.jobId, t.partnerEmail)],
+);
+
+export type AgencyCollaboration = typeof agencyCollaborations.$inferSelect;
+
+// Welche Kandidaten hat der Partner für die Collab vorgeschlagen?
+export const collaborationCandidateProposals = pgTable(
+	"collaboration_candidate_proposals",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		collaborationId: text("collaboration_id")
+			.notNull()
+			.references(() => agencyCollaborations.id, { onDelete: "cascade" }),
+		candidateUserId: text("candidate_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		proposedByUserId: text("proposed_by_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		note: text("note"),
+		status: text("status", {
+			enum: ["proposed", "shortlisted", "rejected", "hired"],
+		})
+			.notNull()
+			.default("proposed"),
+		proposedAt: timestamp("proposed_at", { mode: "date" })
+			.notNull()
+			.defaultNow(),
+	},
+	(t) => [
+		unique("collab_proposal_unique").on(t.collaborationId, t.candidateUserId),
+	],
+);
+
+export type CollaborationCandidateProposal =
+	typeof collaborationCandidateProposals.$inferSelect;
+
+// Provisions-Tracking: wenn ein Outcome `hired` für einen Partner-Vorschlag
+// reportet wird, schreiben wir die Aufteilung als Audit-Trail. Auszahlung
+// passiert weiter über die Buchhaltung der Agenturen.
+export const commissionEvents = pgTable("commission_events", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	collaborationId: text("collaboration_id")
+		.notNull()
+		.references(() => agencyCollaborations.id, { onDelete: "cascade" }),
+	candidateUserId: text("candidate_user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	totalCommissionEur: integer("total_commission_eur").notNull(),
+	leadAmountEur: integer("lead_amount_eur").notNull(),
+	partnerAmountEur: integer("partner_amount_eur").notNull(),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+	settledAt: timestamp("settled_at", { mode: "date" }),
+});
+
+export type CommissionEvent = typeof commissionEvents.$inferSelect;

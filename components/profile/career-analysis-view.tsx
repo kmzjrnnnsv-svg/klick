@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { refreshCareerAnalysis } from "@/app/actions/career";
@@ -12,6 +12,36 @@ const DEMAND_TONE: Record<string, string> = {
 	medium: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
 	low: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
 };
+
+function AnalysisSkeleton({ tone }: { tone: "panel" | "inline" }) {
+	const wrap =
+		tone === "panel"
+			? "rounded-sm border border-primary/30 bg-primary/5 p-5"
+			: "rounded-sm border border-border bg-background p-4";
+	return (
+		<div className={wrap}>
+			<div className="flex items-center gap-3">
+				<Loader2
+					className="h-5 w-5 animate-spin text-primary"
+					strokeWidth={1.5}
+				/>
+				<p className="text-foreground text-sm">
+					KI liest dein Profil und schreibt die Auswertung — ~30 s …
+				</p>
+			</div>
+			<div className="mt-5 space-y-2.5">
+				{[80, 95, 70, 55, 88].map((w, i) => (
+					<div
+						// biome-ignore lint/suspicious/noArrayIndexKey: cosmetic skeleton
+						key={i}
+						className="h-2 animate-pulse rounded-full bg-muted"
+						style={{ width: `${w}%` }}
+					/>
+				))}
+			</div>
+		</div>
+	);
+}
 
 export function CareerAnalysisView({
 	initial,
@@ -30,8 +60,12 @@ export function CareerAnalysisView({
 		setError(null);
 		startTransition(async () => {
 			try {
-				const next = await refreshCareerAnalysis();
-				setAnalysis(next);
+				const result = await refreshCareerAnalysis();
+				if (!result.ok) {
+					setError(result.error);
+					return;
+				}
+				setAnalysis(result.analysis);
 				setGeneratedAt(new Date());
 			} catch (e) {
 				setError(e instanceof Error ? e.message : String(e));
@@ -40,6 +74,7 @@ export function CareerAnalysisView({
 	}
 
 	if (!analysis) {
+		if (isPending) return <AnalysisSkeleton tone="panel" />;
 		return (
 			<div className="rounded-sm border border-primary/30 bg-primary/5 p-5">
 				<p className="text-muted-foreground text-xs leading-relaxed">
@@ -52,7 +87,7 @@ export function CareerAnalysisView({
 					className="mt-4"
 				>
 					<Sparkles className="h-3 w-3" strokeWidth={1.5} />
-					{isPending ? t("generating") : t("generate")}
+					{t("generate")}
 				</Button>
 				{error && (
 					<p className="mt-3 text-rose-700 text-xs dark:text-rose-300">
@@ -65,6 +100,7 @@ export function CareerAnalysisView({
 
 	return (
 		<div className="space-y-6">
+			{isPending && <AnalysisSkeleton tone="inline" />}
 			<div className="flex flex-wrap items-end justify-between gap-3">
 				<div className="flex-1">
 					<p className="text-foreground/90 text-sm leading-relaxed">
@@ -80,12 +116,21 @@ export function CareerAnalysisView({
 					type="button"
 					onClick={refresh}
 					disabled={isPending}
-					className="lv-eyebrow inline-flex items-center gap-2 rounded-sm border border-primary/40 bg-primary/5 px-3 py-1.5 text-[0.55rem] text-primary hover:bg-primary hover:text-primary-foreground"
+					className="lv-eyebrow inline-flex items-center gap-2 rounded-sm border border-primary/40 bg-primary/5 px-3 py-1.5 text-[0.55rem] text-primary hover:bg-primary hover:text-primary-foreground disabled:opacity-60"
 				>
-					<Sparkles className="h-3 w-3" strokeWidth={1.5} />
+					{isPending ? (
+						<Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
+					) : (
+						<Sparkles className="h-3 w-3" strokeWidth={1.5} />
+					)}
 					{isPending ? t("regenerating") : t("regenerate")}
 				</button>
 			</div>
+			{error && (
+				<p className="rounded-sm border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-rose-700 text-xs dark:text-rose-300">
+					{error}
+				</p>
+			)}
 
 			{/* Salary band */}
 			<div className="rounded-sm border border-border bg-muted/30 p-4">
