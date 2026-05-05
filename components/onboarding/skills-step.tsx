@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { saveSkillsStep } from "@/app/actions/onboarding";
@@ -77,10 +77,29 @@ export function SkillsStep({
 							onClick={handleImport}
 							disabled={importPending}
 						>
-							<Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
+							{importPending ? (
+								<Loader2
+									className="h-3.5 w-3.5 animate-spin"
+									strokeWidth={1.5}
+								/>
+							) : (
+								<Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
+							)}
 							{importPending ? t("importing") : t("importCta")}
 						</Button>
 					</div>
+					{importPending && (
+						<div className="mt-4 space-y-2">
+							{[60, 85, 45, 75].map((w, i) => (
+								<div
+									// biome-ignore lint/suspicious/noArrayIndexKey: cosmetic skeleton
+									key={i}
+									className="h-2 animate-pulse rounded-full bg-primary/15"
+									style={{ width: `${w}%` }}
+								/>
+							))}
+						</div>
+					)}
 					{importError && (
 						<p className="mt-3 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-rose-700 text-xs dark:text-rose-300">
 							{importError}
@@ -91,14 +110,25 @@ export function SkillsStep({
 
 			<label className="block space-y-1.5">
 				<span className="font-medium text-sm">{t("skillsLabel")}</span>
-				<textarea
-					name="skills"
-					value={skillsText}
-					onChange={(e) => setSkillsText(e.target.value)}
-					rows={6}
-					placeholder={t("skillsPlaceholder")}
-					className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-				/>
+				<div className="relative">
+					<textarea
+						name="skills"
+						value={skillsText}
+						onChange={(e) => setSkillsText(e.target.value)}
+						rows={6}
+						placeholder={t("skillsPlaceholder")}
+						disabled={importPending}
+						className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-60"
+					/>
+					{importPending && (
+						<div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-background/60 backdrop-blur-[1px]">
+							<div className="flex items-center gap-2 rounded-full border border-primary/30 bg-background px-3 py-1.5 text-primary text-xs">
+								<Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.5} />
+								{t("importing")}
+							</div>
+						</div>
+					)}
+				</div>
 				<span className="block text-muted-foreground text-xs">
 					{t("skillsHint")}
 				</span>
