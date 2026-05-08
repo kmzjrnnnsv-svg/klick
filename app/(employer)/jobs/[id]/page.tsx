@@ -59,6 +59,14 @@ export default async function EditJobPage({
 								{tm("seeCandidates", { count: matchCount })}
 							</Link>
 							<Link
+								href={`/jobs/${id}/applications`}
+								className={cn(
+									buttonVariants({ size: "sm", variant: "outline" }),
+								)}
+							>
+								{tm("seeApplications")}
+							</Link>
+							<Link
 								href={`/jobs/${id}/favorites`}
 								className={cn(
 									buttonVariants({ size: "sm", variant: "outline" }),
