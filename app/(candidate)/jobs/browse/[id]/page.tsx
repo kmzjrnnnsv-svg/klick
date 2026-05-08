@@ -8,6 +8,7 @@ import {
 	listPublicQuestionsForJob,
 } from "@/app/actions/job-questions";
 import { auth } from "@/auth";
+import { ApplyButton } from "@/components/applications/apply-button";
 import { AssessmentTaker } from "@/components/assessments/assessment-taker";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
@@ -158,16 +159,17 @@ export default async function JobDetailPage({
 					</section>
 				)}
 
-				{row.employerId && (
-					<section className="mb-10 flex flex-wrap gap-3">
+				<section className="mb-10 flex flex-wrap items-center gap-3">
+					<ApplyButton jobId={id} />
+					{row.employerId && (
 						<Link
 							href={`/c/${row.employerId}`}
 							className="lv-eyebrow rounded-sm border border-foreground/30 px-4 py-2 text-[0.6rem] text-foreground transition-colors hover:bg-foreground hover:text-background"
 						>
 							{t("viewCompany")}
 						</Link>
-					</section>
-				)}
+					)}
+				</section>
 
 				{assessmentBundle && (
 					<section className="mb-10 rounded-sm border border-primary/30 bg-primary/5 p-4 sm:p-6">

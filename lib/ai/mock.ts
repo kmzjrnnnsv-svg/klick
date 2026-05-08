@@ -387,6 +387,9 @@ export class MockAIProvider implements AIProvider {
 		profile: ExtractedProfile;
 		yearsActive?: number;
 	}): Promise<CareerAnalysis> {
+		// Künstliche Latenz im Mock-Modus, damit die Progress-Animation
+		// im UI was zu zeigen hat — sonst snappt sie sofort auf 100%.
+		await new Promise((r) => setTimeout(r, 1500));
 		const skills = input.profile.skills?.map((s) => s.name) ?? [];
 		const years = input.yearsActive ?? input.profile.yearsExperience ?? 3;
 		const level = input.profile.preferredRoleLevel ?? "mid";

@@ -2,7 +2,7 @@
 
 import { Loader2, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { refreshCareerAnalysis } from "@/app/actions/career";
 import { Button } from "@/components/ui/button";
 import type { CareerAnalysis } from "@/lib/ai/types";
@@ -13,32 +13,93 @@ const DEMAND_TONE: Record<string, string> = {
 	low: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
 };
 
-function AnalysisSkeleton({ tone }: { tone: "panel" | "inline" }) {
+const STEPS = [
+	{ at: 0, label: "Profil lesen" },
+	{ at: 18, label: "Stärken & Lücken bewerten" },
+	{ at: 38, label: "Branchen-Treffer suchen" },
+	{ at: 58, label: "Zertifizierungs-Pfade prüfen" },
+	{ at: 78, label: "Markt vergleichen" },
+	{ at: 92, label: "Auswertung schreiben" },
+];
+
+// Echter Progress-Bar: animiert in ~12 Sekunden auf 92%, snapt zu 100% wenn
+// die Server-Action zurückkommt. Status-Text wechselt automatisch je nach
+// Fortschritt.
+function ProgressPanel({
+	tone,
+	done,
+}: {
+	tone: "panel" | "inline";
+	done: boolean;
+}) {
+	const [pct, setPct] = useState(0);
+
+	useEffect(() => {
+		if (done) {
+			setPct(100);
+			return;
+		}
+		const start = Date.now();
+		const id = setInterval(() => {
+			const elapsed = (Date.now() - start) / 1000;
+			// Asymptotisches Steigen: kommt nach ~12s nahe 92, danach minimal weiter
+			const next = Math.min(92, 92 * (1 - Math.exp(-elapsed / 5)));
+			setPct((p) => Math.max(p, next));
+		}, 80);
+		return () => clearInterval(id);
+	}, [done]);
+
+	const currentStep =
+		STEPS.filter((s) => s.at <= pct).at(-1)?.label ?? STEPS[0].label;
+
 	const wrap =
 		tone === "panel"
 			? "rounded-sm border border-primary/30 bg-primary/5 p-5"
 			: "rounded-sm border border-border bg-background p-4";
+
 	return (
 		<div className={wrap}>
-			<div className="flex items-center gap-3">
-				<Loader2
-					className="h-5 w-5 animate-spin text-primary"
-					strokeWidth={1.5}
+			<div className="flex items-center justify-between gap-3">
+				<div className="flex items-center gap-3">
+					{done ? (
+						<span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-emerald-50 text-xs">
+							✓
+						</span>
+					) : (
+						<Loader2
+							className="h-5 w-5 animate-spin text-primary"
+							strokeWidth={1.5}
+						/>
+					)}
+					<p className="text-foreground text-sm">
+						{done ? "Fertig — Auswertung wird angezeigt." : `${currentStep} …`}
+					</p>
+				</div>
+				<span className="font-mono text-[11px] text-muted-foreground tabular-nums">
+					{Math.round(pct)} %
+				</span>
+			</div>
+			<div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
+				<div
+					className="h-full rounded-full bg-primary transition-[width] duration-200 ease-out"
+					style={{ width: `${pct}%` }}
 				/>
-				<p className="text-foreground text-sm">
-					KI liest dein Profil und schreibt die Auswertung — ~30 s …
-				</p>
 			</div>
-			<div className="mt-5 space-y-2.5">
-				{[80, 95, 70, 55, 88].map((w, i) => (
-					<div
-						// biome-ignore lint/suspicious/noArrayIndexKey: cosmetic skeleton
-						key={i}
-						className="h-2 animate-pulse rounded-full bg-muted"
-						style={{ width: `${w}%` }}
-					/>
-				))}
-			</div>
+			<ol className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] sm:grid-cols-3">
+				{STEPS.map((s) => {
+					const reached = pct >= s.at;
+					return (
+						<li
+							key={s.label}
+							className={
+								reached ? "text-foreground" : "text-muted-foreground opacity-50"
+							}
+						>
+							{reached ? "●" : "○"} {s.label}
+						</li>
+					);
+				})}
+			</ol>
 		</div>
 	);
 }
@@ -74,7 +135,7 @@ export function CareerAnalysisView({
 	}
 
 	if (!analysis) {
-		if (isPending) return <AnalysisSkeleton tone="panel" />;
+		if (isPending) return <ProgressPanel tone="panel" done={false} />;
 		return (
 			<div className="rounded-sm border border-primary/30 bg-primary/5 p-5">
 				<p className="text-muted-foreground text-xs leading-relaxed">
@@ -100,7 +161,7 @@ export function CareerAnalysisView({
 
 	return (
 		<div className="space-y-6">
-			{isPending && <AnalysisSkeleton tone="inline" />}
+			{isPending && <ProgressPanel tone="inline" done={false} />}
 			<div className="flex flex-wrap items-end justify-between gap-3">
 				<div className="flex-1">
 					<p className="text-foreground/90 text-sm leading-relaxed">

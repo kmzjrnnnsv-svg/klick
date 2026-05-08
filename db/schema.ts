@@ -1148,3 +1148,124 @@ export const commissionEvents = pgTable("commission_events", {
 });
 
 export type CommissionEvent = typeof commissionEvents.$inferSelect;
+
+// ─── Applications (Kandidat-initiiert) ─────────────────────────────────────
+// Klassische Bewerbung: Kandidat findet Stelle, schickt Anschreiben + sein
+// aktuelles Profil. Beide Seiten sehen einen Food-Delivery-Style-Status.
+// Snapshots frieren Profil + Stelle + Match-Scoring zum Zeitpunkt der
+// Bewerbung ein — der Kandidat kann später vergleichen "was hatte ich
+// damals eingereicht vs. was bringe ich heute mit".
+export type ApplicationStatus =
+	| "submitted" // gerade abgeschickt
+	| "seen" // Arbeitgeber hat sie geöffnet
+	| "in_review" // wird intern besprochen
+	| "shortlisted" // engere Auswahl
+	| "interview" // Interview-Phase
+	| "offer" // Angebot raus
+	| "declined" // abgelehnt (egal welche Seite)
+	| "withdrawn" // Kandidat hat zurückgezogen
+	| "archived"; // archiviert nach offer/declined
+
+export type ApplicationProfileSnapshot = {
+	displayName?: string | null;
+	headline?: string | null;
+	location?: string | null;
+	yearsExperience?: number | null;
+	salaryDesired?: number | null;
+	skills?: { name: string; level?: number }[];
+	summary?: string | null;
+	industries?: string[] | null;
+};
+
+export type ApplicationJobSnapshot = {
+	title: string;
+	description: string;
+	location?: string | null;
+	remotePolicy?: string;
+	salaryMin?: number | null;
+	salaryMax?: number | null;
+	yearsExperienceMin?: number | null;
+	requirements?: { name: string; weight: "must" | "nice"; minLevel?: number }[];
+	languages?: string[] | null;
+};
+
+export type ApplicationMatchSnapshot = {
+	hardScore: number;
+	softScore: number;
+	matchedSkills: string[];
+	missingSkills: string[];
+	adjacentSkills?: string[];
+	rationale?: string | null;
+};
+
+export const applications = pgTable(
+	"applications",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		jobId: text("job_id")
+			.notNull()
+			.references(() => jobs.id, { onDelete: "cascade" }),
+		candidateUserId: text("candidate_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		employerId: text("employer_id")
+			.notNull()
+			.references(() => employers.id, { onDelete: "cascade" }),
+		coverLetter: text("cover_letter"),
+		status: text("status", {
+			enum: [
+				"submitted",
+				"seen",
+				"in_review",
+				"shortlisted",
+				"interview",
+				"offer",
+				"declined",
+				"withdrawn",
+				"archived",
+			],
+		})
+			.notNull()
+			.default("submitted"),
+		profileSnapshot: jsonb("profile_snapshot")
+			.$type<ApplicationProfileSnapshot>()
+			.notNull(),
+		jobSnapshot: jsonb("job_snapshot")
+			.$type<ApplicationJobSnapshot>()
+			.notNull(),
+		matchSnapshot: jsonb("match_snapshot").$type<ApplicationMatchSnapshot>(),
+		createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+	},
+	(t) => [unique("applications_unique").on(t.jobId, t.candidateUserId)],
+);
+
+export type Application = typeof applications.$inferSelect;
+
+// Jeder Status-Wechsel + jede Notiz wird als Event geschrieben → ergibt
+// die Food-Delivery-Style-Timeline. byRole sagt wer es gemacht hat
+// ("system" für automatische Events wie "seen" beim ersten Öffnen).
+export const applicationEvents = pgTable("application_events", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	applicationId: text("application_id")
+		.notNull()
+		.references(() => applications.id, { onDelete: "cascade" }),
+	kind: text("kind", {
+		enum: ["status_change", "note", "system"],
+	}).notNull(),
+	status: text("status"),
+	byRole: text("by_role", { enum: ["candidate", "employer", "system"] })
+		.notNull()
+		.default("system"),
+	byUserId: text("by_user_id").references(() => users.id, {
+		onDelete: "set null",
+	}),
+	note: text("note"),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type ApplicationEvent = typeof applicationEvents.$inferSelect;
