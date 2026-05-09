@@ -2,8 +2,10 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
+import { getEmployerStats } from "@/app/actions/company-stats";
 import { aggregateOutcomesForEmployer } from "@/app/actions/outcomes";
 import { auth } from "@/auth";
+import { CompanyStatsPanel } from "@/components/company/company-stats-panel";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { db } from "@/db";
@@ -41,6 +43,7 @@ export default async function CompanyPublicPage({
 		decided >= MIN_REPORTS_FOR_TRUST_SIGNAL
 			? Math.round((outcomeStats.hired / decided) * 100)
 			: null;
+	const stats = await getEmployerStats(employer.id);
 
 	return (
 		<>
@@ -94,6 +97,8 @@ export default async function CompanyPublicPage({
 						</p>
 					</section>
 				)}
+
+				<CompanyStatsPanel stats={stats} />
 
 				<section>
 					<p className="lv-eyebrow text-[0.55rem] text-muted-foreground">

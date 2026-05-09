@@ -1,8 +1,12 @@
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { getTranslations } from "next-intl/server";
-import { listOverdueApplicationsForEmployer } from "@/app/actions/applications";
+import {
+	listOverdueApplicationsForEmployer,
+	pruneGdprStaleApplications,
+} from "@/app/actions/applications";
 import { getEmployer, listJobs } from "@/app/actions/jobs";
 import { checkVolumeLock } from "@/app/actions/templates";
 import { auth } from "@/auth";
@@ -52,6 +56,10 @@ export default async function JobsPage() {
 		listOverdueApplicationsForEmployer(),
 		checkVolumeLock(employer.id),
 	]);
+
+	// DSGVO Lazy-Cron: Bei jedem Dashboard-Besuch nicht-blockierend
+	// stale Bewerbungen redacten (siehe ADR-007: after() statt pg-boss).
+	after(() => pruneGdprStaleApplications());
 
 	return (
 		<>

@@ -10,6 +10,7 @@ import {
 import { auth } from "@/auth";
 import { ApplicationMessageThread } from "@/components/applications/application-message-thread";
 import { ApplicationStageTimeline } from "@/components/applications/application-stage-timeline";
+import { ProfileEvolution } from "@/components/applications/profile-evolution";
 import { SnapshotCompare } from "@/components/applications/snapshot-compare";
 import { StageRatingPrompt } from "@/components/applications/stage-rating-prompt";
 import { Footer } from "@/components/footer";
@@ -130,6 +131,21 @@ export default async function ApplicationDetailPage({
 						currentSkills={currentProfile?.skills}
 					/>
 				</section>
+
+				{currentProfile && (
+					<section className="mb-8">
+						<p className="lv-eyebrow text-[0.55rem] text-muted-foreground">
+							{t("evolutionEyebrow")}
+						</p>
+						<h2 className="mt-2 mb-4 font-serif-display text-xl">
+							{t("evolutionTitle")}
+						</h2>
+						<ProfileEvolution
+							snap={app.profileSnapshot}
+							current={currentProfile}
+						/>
+					</section>
+				)}
 
 				<section className="mb-8">
 					<ApplicationMessageThread

@@ -1096,6 +1096,11 @@
 		"requirements": "Anforderungen",
 		"must": "Muss",
 		"viewCompany": "Unternehmen ansehen",
+		"processEyebrow": "Bewerbungs-Prozess",
+		"processTitle": "So läuft das hier ab",
+		"processHint": "Die Stages sind beim Veröffentlichen eingefroren — was hier steht, bekommst du auch. Erwartete Tage sind Richtwerte; rote Zone schaltet automatisch bei 50% Überschreitung.",
+		"processTotalDays": "Gesamt {min}–{max} Tage",
+		"processFootnote": "Wenn der Arbeitgeber 5+ Bewerbungen länger als 90 Tage offen lässt, blockieren wir bei ihm neue Stellen. Anti-Ghost-Regel.",
 		"honestFlag": {
 			"internal_preferred": {
 				"label": "Interner Kandidat bevorzugt",
@@ -1448,6 +1453,23 @@
 		"noHeadline": "Ohne Titel",
 		"newSinceTitle": "Was du seitdem dazu gelernt hast",
 		"newSinceHint": "Diese Skills hast du seit der Bewerbung ergänzt. Wenn die Stelle wieder ausgeschrieben wird oder eine ähnliche entsteht, lohnt sich eine erneute Bewerbung.",
+		"evolutionEyebrow": "Profil-Entwicklung",
+		"evolutionTitle": "Was sich seit der Bewerbung geändert hat",
+		"evolutionHint": "Vergleich des damaligen Snapshots mit deinem heutigen Profil. Hilft beim Re-Apply auf ähnliche Stellen.",
+		"evolutionNoChanges": "Dein Profil ist seit der Bewerbung unverändert.",
+		"evolutionEmpty": "(leer)",
+		"evolutionField": {
+			"headline": "Headline",
+			"location": "Standort",
+			"yearsExperience": "Jahre Erfahrung",
+			"salaryDesired": "Wunschgehalt (€)",
+			"summary": "Zusammenfassung",
+			"industries": "Branchen"
+		},
+		"evolutionSkillsTitle": "Skills",
+		"evolutionSkillsAdded": "{n} Skill(s) ergänzt",
+		"evolutionSkillsLeveled": "{n} Skill(s) ausgebaut",
+		"evolutionSkillsRemoved": "{n} Skill(s) entfernt",
 		"withdraw": "Bewerbung zurückziehen",
 		"timelineEyebrow": "Status",
 		"eventLog": "Verlauf",
@@ -1584,6 +1606,37 @@
 		"volumeLockEyebrow": "Volumen-Lock aktiv",
 		"volumeLockTitle": "{count} überfällige Bewerbungen — neue Stellen blockiert",
 		"volumeLockHint": "Du kannst keine neuen Stellen veröffentlichen, bis die offenen Bewerbungen entschieden sind. Das ist die Anti-Ghost-Regel: wer nicht antwortet, postet keine neuen Jobs."
+	},
+	"CompanyStats": {
+		"eyebrow": "Bewerber-Erfahrung",
+		"title": "So bewerten Bewerber den Prozess",
+		"methodology": "Daten kommen aus echten abgeschlossenen Bewerbungen — nicht aus anonymen Reviews. Anzeige erst ab 10 Bewertungen, damit eine einzelne Stimme die Statistik nicht verzerrt.",
+		"closureRate": "Closure-Rate",
+		"closureRateBasis": "von {count} Bewerbungen entschieden",
+		"avgDays": "Schnitt bis Entscheidung",
+		"avgDaysHint": "Median über alle entschiedenen Bewerbungen.",
+		"ratingBasis": "Basis: {count} Stage-Bewertungen",
+		"ratingHint": "1-5 Sterne pro Frage, von Bewerbern nach jeder Stage abgegeben.",
+		"dim": {
+			"clarity": "Klarheit der Kommunikation",
+			"respect": "Respekt im Umgang",
+			"effort": "Angemessener Aufwand",
+			"responseTime": "Antwortgeschwindigkeit"
+		},
+		"rejectBreakdown": "Ablehnungs-Gründe",
+		"rejectBreakdownHint": "Aus dem Pflicht-Katalog. Hilft Bewerbern einzuschätzen, was hier wirklich zählt.",
+		"rejectReason": {
+			"not_qualified_skills": "Skills haben nicht gepasst",
+			"not_qualified_experience": "Erfahrung hat nicht gepasst",
+			"salary_mismatch": "Gehaltsband außerhalb der Erwartung",
+			"location_mismatch": "Standort/Remote-Setup",
+			"culture_mismatch": "Culture-Fit",
+			"position_filled": "Anderweitig besetzt",
+			"position_canceled": "Stelle gestrichen",
+			"internal_candidate": "Interner Kandidat",
+			"other": "Sonstige Gründe"
+		},
+		"notEnoughYet": "Noch zu wenige Bewertungen für eine öffentliche Statistik. Wir zeigen Daten erst ab 10 Bewertungen — bis dahin könnte eine einzelne Erfahrung die Statistik kippen."
 	},
 	"Templates": {
 		"eyebrow": "Bewerbungs-Prozess",

@@ -1096,6 +1096,11 @@
 		"requirements": "Requirements",
 		"must": "Must",
 		"viewCompany": "View company",
+		"processEyebrow": "Hiring process",
+		"processTitle": "How this process works",
+		"processHint": "Stages are frozen on publish — what you see here is what you get. Expected days are guidelines; the red zone kicks in at 50% over.",
+		"processTotalDays": "Total {min}–{max} days",
+		"processFootnote": "If the employer leaves 5+ applications open longer than 90 days, we block them from publishing new jobs. Anti-ghost rule.",
 		"honestFlag": {
 			"internal_preferred": {
 				"label": "Internal candidate preferred",
@@ -1448,6 +1453,23 @@
 		"noHeadline": "No title",
 		"newSinceTitle": "What you've gained since",
 		"newSinceHint": "These skills you've added since this application. If the role re-opens or a similar one shows up, a fresh application makes sense.",
+		"evolutionEyebrow": "Profile evolution",
+		"evolutionTitle": "What changed since you applied",
+		"evolutionHint": "Comparing the snapshot from back then with your profile today. Helps when re-applying to similar roles.",
+		"evolutionNoChanges": "Your profile is unchanged since the application.",
+		"evolutionEmpty": "(empty)",
+		"evolutionField": {
+			"headline": "Headline",
+			"location": "Location",
+			"yearsExperience": "Years of experience",
+			"salaryDesired": "Desired salary (€)",
+			"summary": "Summary",
+			"industries": "Industries"
+		},
+		"evolutionSkillsTitle": "Skills",
+		"evolutionSkillsAdded": "{n} skill(s) added",
+		"evolutionSkillsLeveled": "{n} skill(s) leveled up",
+		"evolutionSkillsRemoved": "{n} skill(s) removed",
 		"withdraw": "Withdraw application",
 		"timelineEyebrow": "Status",
 		"eventLog": "Log",
@@ -1584,6 +1606,37 @@
 		"volumeLockEyebrow": "Volume lock active",
 		"volumeLockTitle": "{count} overdue applications — new postings blocked",
 		"volumeLockHint": "You can't publish new jobs until the open applications are decided. The anti-ghost rule: no answers, no new postings."
+	},
+	"CompanyStats": {
+		"eyebrow": "Candidate experience",
+		"title": "How candidates rate this process",
+		"methodology": "Data comes from real completed applications — not anonymous reviews. Shown only after 10 ratings, so a single voice doesn't skew the numbers.",
+		"closureRate": "Closure rate",
+		"closureRateBasis": "of {count} applications decided",
+		"avgDays": "Avg time to decision",
+		"avgDaysHint": "Median across all decided applications.",
+		"ratingBasis": "Based on {count} stage ratings",
+		"ratingHint": "1-5 stars per question, given by candidates after each stage.",
+		"dim": {
+			"clarity": "Clarity of communication",
+			"respect": "Respectful treatment",
+			"effort": "Reasonable effort required",
+			"responseTime": "Response speed"
+		},
+		"rejectBreakdown": "Rejection reasons",
+		"rejectBreakdownHint": "From the mandatory catalog. Helps candidates understand what really matters here.",
+		"rejectReason": {
+			"not_qualified_skills": "Skills didn't match",
+			"not_qualified_experience": "Experience didn't match",
+			"salary_mismatch": "Salary range outside expectation",
+			"location_mismatch": "Location/remote setup",
+			"culture_mismatch": "Culture fit",
+			"position_filled": "Filled elsewhere",
+			"position_canceled": "Position canceled",
+			"internal_candidate": "Internal candidate",
+			"other": "Other reasons"
+		},
+		"notEnoughYet": "Not enough ratings yet for public stats. We show data only after 10 ratings — until then a single experience could skew the numbers."
 	},
 	"Templates": {
 		"eyebrow": "Hiring process",

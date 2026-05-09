@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, desc, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, lte, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -436,10 +436,14 @@ export type ApplicationDetail = {
 	application: Application;
 	events: ApplicationEvent[];
 	currentProfile: {
+		displayName: string | null;
+		headline: string | null;
+		location: string | null;
 		skills: { name: string; level?: number }[];
 		summary: string | null;
 		yearsExperience: number | null;
 		salaryDesired: number | null;
+		industries: string[] | null;
 	} | null;
 	viewerRole: "candidate" | "employer" | null;
 };
@@ -479,20 +483,28 @@ export async function getApplicationDetail(
 	if (viewerRole === "candidate") {
 		const [p] = await db
 			.select({
+				displayName: candidateProfiles.displayName,
+				headline: candidateProfiles.headline,
+				location: candidateProfiles.location,
 				skills: candidateProfiles.skills,
 				summary: candidateProfiles.summary,
 				yearsExperience: candidateProfiles.yearsExperience,
 				salaryDesired: candidateProfiles.salaryDesired,
+				industries: candidateProfiles.industries,
 			})
 			.from(candidateProfiles)
 			.where(eq(candidateProfiles.userId, app.candidateUserId))
 			.limit(1);
 		if (p) {
 			currentProfile = {
+				displayName: p.displayName,
+				headline: p.headline,
+				location: p.location,
 				skills: (p.skills ?? []) as { name: string; level?: number }[],
 				summary: p.summary,
 				yearsExperience: p.yearsExperience,
 				salaryDesired: p.salaryDesired,
+				industries: p.industries,
 			};
 		}
 	}
@@ -950,30 +962,102 @@ export async function getStagesForApplication(
 	}
 }
 
-// ─── DSGVO: Auto-Lösch-Marker ─────────────────────────────────────────────
+// ─── DSGVO: Auto-Lösch-Cron ───────────────────────────────────────────────
 // Recherche: Bewerberdaten müssen nach Zweck gelöscht werden. 6 Monate
-// nach finalem Ablehnungs-/Withdraw-Ereignis ist die übliche Frist (für
-// AGG-Klagen). Wir markieren Bewerbungen für Auto-Cleanup. Der eigentliche
-// Cron-Job kommt P12.5 — die Funktion hier liefert die Liste.
+// nach finalem Closure-Ereignis ist die übliche Frist (Verjährung der
+// AGG-Klagen). Strategie: Redact statt Hard-Delete — wir behalten die
+// aggregierte Statistik (counts, ratings) aber entfernen alles Personen-
+// bezogene aus den Snapshots und löschen Cover-Letter + Messages +
+// Free-Text-Reject-Begründungen.
+const GDPR_RETENTION_DAYS = 180;
+
 export async function listApplicationsDueForGdprCleanup(): Promise<
 	Application[]
 > {
 	try {
-		const now = new Date();
-		const sixMonthsAgo = new Date(now);
-		sixMonthsAgo.setUTCMonth(sixMonthsAgo.getUTCMonth() - 6);
+		const cutoff = new Date(
+			Date.now() - GDPR_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+		);
 		return await db
 			.select()
 			.from(applications)
 			.where(
 				and(
 					sql`${applications.status} IN ('declined','withdrawn','archived')`,
-					lte(applications.updatedAt, sixMonthsAgo),
-					isNull(applications.rejectFreeText),
+					lte(applications.updatedAt, cutoff),
+					sql`${applications.profileSnapshot} ? 'displayName'`,
 				),
 			)
 			.limit(100);
 	} catch {
 		return [];
+	}
+}
+
+// Führt den Cleanup wirklich aus. Idempotent: doppelt aufgerufen passiert
+// nichts, weil die WHERE-Klausel die schon redacted Bewerbungen ausschließt
+// (`displayName` ist nach Redact aus dem JSONB raus).
+export async function pruneGdprStaleApplications(): Promise<{
+	redacted: number;
+}> {
+	try {
+		const cutoff = new Date(
+			Date.now() - GDPR_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+		);
+		const ids = await db
+			.select({ id: applications.id })
+			.from(applications)
+			.where(
+				and(
+					sql`${applications.status} IN ('declined','withdrawn','archived')`,
+					lte(applications.updatedAt, cutoff),
+					sql`${applications.profileSnapshot} ? 'displayName'`,
+				),
+			)
+			.limit(500);
+		if (ids.length === 0) return { redacted: 0 };
+
+		const idList = ids.map((r) => r.id);
+		const idSql = sql.join(
+			idList.map((id) => sql`${id}`),
+			sql`, `,
+		);
+
+		// Cover-Letter + Free-Text + Personenbezug aus Snapshot löschen.
+		// JSONB Operator `-` entfernt einen Schlüssel.
+		await db.execute(sql`
+			UPDATE applications
+			SET
+				cover_letter = NULL,
+				reject_free_text = NULL,
+				profile_snapshot = profile_snapshot
+					- 'displayName'
+					- 'location'
+					- 'salaryDesired'
+					- 'summary'
+			WHERE id IN (${idSql})
+		`);
+
+		// Messages hard-deleten — Free-Text-Inhalte.
+		await db.execute(sql`
+			DELETE FROM application_messages
+			WHERE application_id IN (${idSql})
+		`);
+
+		// Event-Log entpersonalisieren — Notes löschen, Timestamps +
+		// Status + Outcome bleiben für Audit/Statistik.
+		await db.execute(sql`
+			UPDATE application_events
+			SET note = NULL, by_user_id = NULL
+			WHERE application_id IN (${idSql})
+		`);
+
+		console.info(
+			`[gdpr] redacted ${idList.length} stale applications (>${GDPR_RETENTION_DAYS} days old)`,
+		);
+		return { redacted: idList.length };
+	} catch (e) {
+		console.warn("[gdpr] prune failed", e);
+		return { redacted: 0 };
 	}
 }
