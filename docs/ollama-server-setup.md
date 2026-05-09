@@ -58,6 +58,45 @@ OLLAMA_WG_IP=10.10.10.2 # Ollama im VPN
 WG_PORT=51820
 ```
 
+### IPv6-only-Variante (empfohlen wenn dein Klick-Server auch IPv6 hat)
+
+Hetzner verlangt für reine IPv4 ~€1/Monat extra. Reine IPv6 ist
+kostenlos und sogar weniger Scan-Lärm.
+
+Bei IPv6-only **alles** wie unten beschrieben mit drei Anpassungen:
+
+1. **Server bestellen**: in Phase 1.1 unter „Networking" das **IPv4
+   abwählen**. Hetzner zeigt dann nur eine IPv6 wie
+   `2a01:4f8:c012:abcd::1`.
+
+2. **WG-Endpoint im Klick-Config (Phase 2.4)**: IPv6 immer in eckige
+   Klammern, sonst parst WireGuard den Port falsch:
+   ```
+   Endpoint = [2a01:4f8:c012:abcd::1]:51820
+   ```
+
+3. **ufw-Regel SSH (Phase 3)**: statt einer einzelnen IPv4 das
+   /64-Prefix deines Klick-Servers freigeben (Hetzner gibt jeder VM
+   ein /64), z.B.:
+   ```bash
+   ufw allow from 2a01:4f8:1234:5678::/64 to any port 22 proto tcp
+   ```
+
+**Wartungs-Hinweis**: Wenn dein Heim-Anschluss / Mobilfunk kein IPv6
+hat (Tethering oft IPv4-only), kommst du nicht mehr direkt per SSH auf
+den Ollama-Server. Lösung: über den Klick-Server als Bastion springen:
+```bash
+ssh -J klickadmin@$KLICK_PUBLIC_IP klickadmin@2a01:4f8:c012:abcd::1
+```
+
+Du brauchst dann auf dem Klick-Server keine separaten Keys — `-J`
+nutzt deinen lokalen Agent über die Klick-Session weiter.
+
+**WG-Tunnel-Adressen bleiben IPv4**: innerhalb des Tunnels ist
+`10.10.10.1`↔`10.10.10.2` weiterhin die einfachste Variante. Das
+Transport-Layer (UDP/51820) läuft über IPv6, aber das ist transparent
+für Klick — die App spricht weiterhin `http://10.10.10.2:11434`.
+
 ---
 
 ## Phase 1 — Server bestellen & initialer Login
