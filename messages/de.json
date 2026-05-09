@@ -16,6 +16,7 @@
 		"openTeam": "Team",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
+		"openTemplates": "Prozesse",
 		"groupSearch": "Suche",
 		"groupActivity": "Aktivität",
 		"notifications": "Benachrichtigungen",
@@ -567,8 +568,32 @@
 			"context": "Rahmen",
 			"salary": "Gehalt",
 			"status": "Status",
-			"deepContext": "Mehr Kontext (optional, hebt Quality-Score)"
+			"deepContext": "Mehr Kontext (optional, hebt Quality-Score)",
+			"process": "Bewerbungs-Prozess",
+			"honestPosting": "Ehrlichkeit"
 		},
+		"processHint": "Welcher Stage-Plan? Beim Veröffentlichen werden die Stages eingefroren — Bewerber sehen genau dieselbe Reihenfolge.",
+		"templateLabel": "Template",
+		"templateNoneAvailable": "Kein Template — wird beim Speichern automatisch angelegt",
+		"templateDefault": "Standard",
+		"templateHint": "Templates verwaltest du unter",
+		"templateManageLink": "Prozesse",
+		"honestPostingHint": "Ehrlichkeit gegen Ghost-Jobs. Bewerber sehen das Flag direkt auf der Stelle. Studie 2025: 1 von 5 Stellen ist ein Ghost-Job — 81% der Recruiter geben es zu.",
+		"honestPosting": {
+			"open": {
+				"title": "Echte offene Stelle",
+				"body": "Wir suchen wirklich. Externe Bewerber haben eine faire Chance."
+			},
+			"internal_preferred": {
+				"title": "Interner Kandidat im Rennen",
+				"body": "Wir bewerten extern fair, aber ein interner Bewerber ist bevorzugt. Bewerber sehen das."
+			},
+			"compliance_only": {
+				"title": "Pflicht-Ausschreibung (intern besetzt)",
+				"body": "Posten muss ausgeschrieben werden, der Kandidat ist aber bereits intern festgelegt. Bewerber wissen das vorher."
+			}
+		},
+		"publishGuard": "Beim Veröffentlichen ist das Gehaltsband Pflicht — die EU Pay Transparency Directive ab Juni 2026 verlangt das. Speichere als Entwurf, wenn du das Gehalt noch nicht festgelegt hast.",
 		"deepContextHint": "Diese Felder sind optional, helfen aber Bewerbenden enorm bei der Entscheidung — und hebt den AI-Quality-Score deiner Anzeige.",
 		"teamSize": "Team-Größe",
 		"growthStage": "Phase",
@@ -1071,6 +1096,16 @@
 		"requirements": "Anforderungen",
 		"must": "Muss",
 		"viewCompany": "Unternehmen ansehen",
+		"honestFlag": {
+			"internal_preferred": {
+				"label": "Interner Kandidat bevorzugt",
+				"body": "Der Arbeitgeber gibt offen an, dass ein interner Bewerber bevorzugt wird. Externe werden trotzdem fair bewertet — die Chance ist aber kleiner."
+			},
+			"compliance_only": {
+				"label": "Pflicht-Ausschreibung",
+				"body": "Diese Stelle ist intern bereits besetzt, muss aber aus regulatorischen Gründen ausgeschrieben werden. Bewerbung möglich, aber realistisch ohne Aussicht auf Einstellung."
+			}
+		},
 		"remote": {
 			"onsite": "Vor Ort",
 			"hybrid": "Hybrid",
@@ -1468,7 +1503,139 @@
 		"anonymousCandidate": "Anonyme:r Kandidat:in",
 		"nextStepEyebrow": "Status setzen",
 		"nextStepTitle": "Nächster Schritt",
+		"nextStepInStage": "Was passiert in {stage}?",
+		"nextStepHint": "Drei Optionen — eine davon ist Pflicht. Keine Geister-Absagen.",
 		"nextStepNotePlaceholder": "Optionale Notiz an den Kandidaten / die Kandidatin",
-		"nextStepSubmit": "Status aktualisieren"
+		"nextStepSubmit": "Status aktualisieren",
+		"outcomePickRequired": "Bitte eine Option wählen.",
+		"outcomeAdvance": "Weiter zur nächsten Stage",
+		"outcomeAdvanceTo": "Weiter zu: {stage}",
+		"outcomeAdvanceFinal": "Endentscheidung treffen",
+		"outcomeAdvanceHint": "Bewerber zieht eine Stage weiter, Frist startet neu.",
+		"outcomeOnHold": "On-Hold setzen",
+		"outcomeOnHoldHint": "Pausiert kurz, ohne abzulehnen. Frist wird verlängert.",
+		"outcomeReject": "Ablehnen",
+		"outcomeRejectHint": "Pflicht-Grund aus Katalog. Kein anonymes Verschwinden.",
+		"rejectReasonEyebrow": "Begründung",
+		"rejectReasonRequired": "Bitte einen Grund wählen — anonyme Absagen sind hier nicht möglich.",
+		"rejectFreeTextPlaceholder": "Optionaler Freitext (wird dem Kandidaten gezeigt)",
+		"rejectFreeTextHint": "Freitext ist optional, der Pflicht-Grund reicht. Aber zwei Sätze ehrliches Feedback machen einen großen Unterschied.",
+		"rejectReason": {
+			"not_qualified_skills": "Skill-Profil hat nicht gepasst",
+			"not_qualified_experience": "Berufserfahrung hat nicht gepasst",
+			"salary_mismatch": "Gehaltsvorstellung außerhalb des Rahmens",
+			"location_mismatch": "Standort/Remote-Setup hat nicht gepasst",
+			"culture_mismatch": "Kulturelle Passung anders gesehen",
+			"position_filled": "Stelle ist anderweitig besetzt worden",
+			"position_canceled": "Stelle wurde gestrichen",
+			"internal_candidate": "Interner Kandidat hat die Stelle bekommen",
+			"other": "Andere Gründe"
+		},
+		"rejectReasonShort": {
+			"not_qualified_skills": "Skills",
+			"not_qualified_experience": "Erfahrung",
+			"salary_mismatch": "Gehalt",
+			"location_mismatch": "Standort",
+			"culture_mismatch": "Culture-Fit",
+			"position_filled": "Bereits besetzt",
+			"position_canceled": "Stelle gestrichen",
+			"internal_candidate": "Intern besetzt",
+			"other": "Sonstiges"
+		},
+		"zone": {
+			"green": "Im Soll",
+			"amber": "In Verzug",
+			"red": "Kritisch"
+		},
+		"noStagesHint": "Diese Stelle hat keinen Stage-Plan — sie nutzt das Klassik-Modell. Beim nächsten Save wird ein Standard-Template angelegt.",
+		"event": {
+			"message": "{by} hat eine Nachricht geschrieben",
+			"rejected": "Abgelehnt — {reason}",
+			"onHold": "On-Hold gesetzt",
+			"advancedTo": "Weiter zu: {stage}"
+		},
+		"messageThreadEyebrow": "Nachrichten",
+		"messageThreadTitle": "Direkter Austausch",
+		"messageThreadClosed": "Diese Bewerbung ist abgeschlossen. Keine neuen Nachrichten möglich.",
+		"messagePlaceholder": "Schreib direkt an die Gegenseite…",
+		"messageHint": "Nur intern — beide Seiten sehen den Verlauf, sonst niemand.",
+		"messageSend": "Senden",
+		"sending": "Sende…",
+		"ratingEyebrow": "Bewerber-Feedback",
+		"ratingCta": "Wie war \"{stage}\" für dich? (30 Sek.)",
+		"ratingDuration": "Vier kurze Fragen, optional Kommentar.",
+		"ratingTitle": "Wie war: {stage}",
+		"ratingHint": "Deine Antwort hilft anderen Bewerbern. Aggregiert und anonymisiert ab 10 Bewertungen.",
+		"ratingDim": {
+			"clarity": "Klarheit der Kommunikation",
+			"respect": "Respekt im Umgang",
+			"effort": "Angemessener Aufwand",
+			"responseTime": "Antwortgeschwindigkeit"
+		},
+		"ratingCommentPlaceholder": "Optional: Was lief gut? Was nicht?",
+		"ratingSubmit": "Bewertung abschicken",
+		"ratingSkip": "Später",
+		"ratingThanks": "Danke! Deine Bewertung fließt in die anonymisierte Statistik ein.",
+		"closureEyebrow": "Closure überfällig",
+		"closureTitle": "{count} Bewerbung(en) brauchen eine Entscheidung",
+		"closureHint": "Drei Monate ohne Reaktion ist die Außengrenze. Bitte räum diese Bewerbungen ab — entweder weiter, on-hold oder ehrlich abgelehnt mit Grund.",
+		"closureMore": "+{n} weitere",
+		"closureScale": "max. 90 Tage",
+		"volumeLockEyebrow": "Volumen-Lock aktiv",
+		"volumeLockTitle": "{count} überfällige Bewerbungen — neue Stellen blockiert",
+		"volumeLockHint": "Du kannst keine neuen Stellen veröffentlichen, bis die offenen Bewerbungen entschieden sind. Das ist die Anti-Ghost-Regel: wer nicht antwortet, postet keine neuen Jobs."
+	},
+	"Templates": {
+		"eyebrow": "Bewerbungs-Prozess",
+		"title": "Hiring-Process-Templates",
+		"subtitle": "Definiere wiederverwendbare Stage-Pläne. Beim Veröffentlichen einer Stelle werden die Stages als unveränderlicher Snapshot kopiert — Änderungen am Template wirken nur auf neue Stellen.",
+		"newTemplate": "Neues Template",
+		"newTitle": "Neues Template",
+		"empty": "Noch keine Templates. Beim ersten Job-Save wird automatisch ein Standard-Template angelegt.",
+		"default": "Standard",
+		"stagesCount": "{n} Stage(s)",
+		"back": "Zurück",
+		"nameLabel": "Name",
+		"nameRequired": "Bitte einen Namen angeben.",
+		"descriptionLabel": "Beschreibung (optional)",
+		"defaultLabel": "Als Standard für neue Stellen verwenden",
+		"stagesEyebrow": "Stages",
+		"stagesHint": "Reihenfolge per Pfeile, Standard 7 Stages",
+		"stagesRequired": "Mindestens eine Stage anlegen.",
+		"newStageDefault": "Neue Stage",
+		"addStage": "Stage hinzufügen",
+		"removeStage": "Entfernen",
+		"moveUp": "Nach oben",
+		"moveDown": "Nach unten",
+		"stageKindLabel": "Typ",
+		"stageNameLabel": "Anzeigename",
+		"stageDescriptionLabel": "Beschreibung",
+		"stageDaysLabel": "Erwartete Tage",
+		"stageResponsibleLabel": "Verantwortlich",
+		"stageRequiredLabel": "Pflicht-Stage",
+		"stageKind": {
+			"application_received": "Bewerbung eingegangen",
+			"automated_screening": "Automatisches Screening",
+			"recruiter_review": "Recruiter-Sichtung",
+			"hiring_manager_review": "Fachbereich",
+			"phone_screen": "Telefoninterview",
+			"technical_assessment": "Fachliche Aufgabe",
+			"interview": "Interview",
+			"assessment_center": "Assessment-Center",
+			"reference_check": "Referenz-Check",
+			"offer_preparation": "Angebot vorbereiten",
+			"offer_negotiation": "Angebots-Verhandlung",
+			"final_decision": "Endentscheidung"
+		},
+		"role": {
+			"recruiter": "Recruiter",
+			"hiring_manager": "Hiring Manager",
+			"team": "Team",
+			"system": "System (automatisch)"
+		},
+		"save": "Speichern",
+		"saving": "Speichere…",
+		"delete": "Template löschen",
+		"deleteConfirm": "Template wirklich löschen? Bestehende Stellen behalten ihre Stages."
 	}
 }

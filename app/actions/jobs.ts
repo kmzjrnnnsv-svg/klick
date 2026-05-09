@@ -6,6 +6,10 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
 import { computeMatchesForJob } from "@/app/actions/matches";
+import {
+	ensureDefaultTemplate,
+	instantiateJobStages,
+} from "@/app/actions/templates";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
@@ -67,6 +71,10 @@ const jobFormSchema = z.object({
 	remoteOnsiteRatio: z.coerce.number().int().min(0).max(100).optional(),
 	mustReasoning: z.string().max(1500).optional(),
 	first90DaysGoals: z.string().max(2000).optional(),
+	templateId: z.string().optional(),
+	honestPostingFlag: z
+		.enum(["open", "internal_preferred", "compliance_only"])
+		.default("open"),
 });
 
 async function requireEmployerSession() {
@@ -213,8 +221,24 @@ export async function saveJob(
 			formData.get("remoteOnsiteRatio")?.toString() || undefined,
 		mustReasoning: formData.get("mustReasoning")?.toString() || undefined,
 		first90DaysGoals: formData.get("first90DaysGoals")?.toString() || undefined,
+		templateId: formData.get("templateId")?.toString() || undefined,
+		honestPostingFlag: formData.get("honestPostingFlag")?.toString() || "open",
 	};
 	const data = jobFormSchema.parse(raw);
+
+	// EU Pay Transparency Directive (Juni 2026): Gehaltsband ist Pflicht
+	// in jedem Posting. Wir zwingen auch beim Speichern als Draft nicht,
+	// aber beim Veröffentlichen blockieren wir.
+	if (data.status === "published") {
+		if (!data.salaryMin || !data.salaryMax) {
+			throw new Error(
+				"Gehaltsband (Min + Max) ist Pflicht beim Veröffentlichen — die EU Pay Transparency Directive ab Juni 2026 verlangt das. Speicher die Stelle als Entwurf, oder ergänze das Gehalt.",
+			);
+		}
+		if (data.salaryMin > data.salaryMax) {
+			throw new Error("Salary-Min darf nicht über Salary-Max liegen.");
+		}
+	}
 
 	// Geocode the job location for commute matching. Remote-only postings
 	// keep null lat/lng — the engine treats commute as N/A then.
@@ -283,6 +307,20 @@ export async function saveJob(
 		postingQuality,
 	};
 
+	// Template-Vorbelegung: wenn keins gewählt, Standard-Template anlegen
+	// und auswählen. So bekommt jede Stelle Stages, ohne dass der
+	// Arbeitgeber sich initial darum kümmern muss.
+	let templateId: string | null = data.templateId ?? null;
+	if (!templateId) {
+		templateId = await ensureDefaultTemplate(e.id).catch(() => null);
+	}
+
+	const valuesWithTemplate = {
+		...dataWithGeo,
+		templateId,
+		honestPostingFlag: data.honestPostingFlag,
+	};
+
 	if (id) {
 		const [existing] = await db
 			.select({ id: jobs.id })
@@ -292,21 +330,31 @@ export async function saveJob(
 		if (!existing) throw new Error("not found");
 		await db
 			.update(jobs)
-			.set({ ...dataWithGeo, updatedAt: new Date() })
+			.set({ ...valuesWithTemplate, updatedAt: new Date() })
 			.where(eq(jobs.id, id));
 		revalidatePath("/jobs");
 		revalidatePath(`/jobs/${id}`);
 		if (data.status === "published") {
+			if (templateId) {
+				await instantiateJobStages(id, templateId).catch((err) => {
+					console.warn("[jobs] stage instantiate failed", err);
+				});
+			}
 			after(() => computeMatchesForJob(id));
 		}
 		return { id };
 	}
 	const [created] = await db
 		.insert(jobs)
-		.values({ employerId: e.id, ...dataWithGeo })
+		.values({ employerId: e.id, ...valuesWithTemplate })
 		.returning({ id: jobs.id });
 	revalidatePath("/jobs");
 	if (data.status === "published") {
+		if (templateId) {
+			await instantiateJobStages(created.id, templateId).catch((err) => {
+				console.warn("[jobs] stage instantiate failed", err);
+			});
+		}
 		after(() => computeMatchesForJob(created.id));
 	}
 	return { id: created.id };

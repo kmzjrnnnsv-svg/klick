@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lte, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -12,14 +12,33 @@ import {
 	type ApplicationProfileSnapshot,
 	type ApplicationStatus,
 	applicationEvents,
+	applicationMessages,
 	applications,
 	candidateProfiles,
 	employers,
+	type JobStage,
+	jobStages,
 	jobs,
 	matches,
+	REJECT_REASONS,
+	type RejectReason,
+	stageRatings,
 	users,
 } from "@/db/schema";
 import { pushNotification } from "./notifications";
+import { instantiateJobStages } from "./templates";
+
+// 3 Monate ohne Reaktion → Pflicht-Closure-Dialog für den Arbeitgeber.
+// Recherche: Median-Antwortzeit aktuell 6,7 Tage, Erwartung 1-2 Wochen,
+// 75% bekommen NIE Antwort. 90 Tage ist die Außengrenze "wir akzeptieren
+// nicht mehr dass das offen bleibt".
+const CLOSURE_DEADLINE_DAYS = 90;
+
+function addDays(date: Date, days: number): Date {
+	const d = new Date(date);
+	d.setUTCDate(d.getUTCDate() + days);
+	return d;
+}
 
 async function requireCandidate(): Promise<string> {
 	const session = await auth();
@@ -165,6 +184,26 @@ export async function submitApplication(input: {
 				}
 			: null;
 
+		// Wenn die Stelle ein Template hat, aber noch keine job_stages
+		// instanziiert wurden (z.B. weil sie schon vor Phase 12 published
+		// wurde), holen wir das jetzt nach.
+		if (job.templateId) {
+			await instantiateJobStages(job.id, job.templateId).catch(() => {
+				// kein Hard-Fail — Bewerbung darf trotzdem rein.
+			});
+		}
+
+		// Lade Stage-Liste (kann leer sein bei Legacy-Jobs ohne Template).
+		const stages = await db
+			.select()
+			.from(jobStages)
+			.where(eq(jobStages.jobId, job.id))
+			.orderBy(asc(jobStages.position))
+			.catch(() => [] as JobStage[]);
+
+		const firstStage = stages[0] ?? null;
+		const now = new Date();
+
 		const [created] = await db
 			.insert(applications)
 			.values({
@@ -175,13 +214,18 @@ export async function submitApplication(input: {
 				profileSnapshot,
 				jobSnapshot,
 				matchSnapshot,
+				currentStageId: firstStage?.id ?? null,
+				stageEnteredAt: firstStage ? now : null,
+				closureDeadlineAt: addDays(now, CLOSURE_DEADLINE_DAYS),
 			})
 			.returning({ id: applications.id });
 
 		await db.insert(applicationEvents).values({
 			applicationId: created.id,
-			kind: "status_change",
+			kind: firstStage ? "stage_change" : "status_change",
 			status: "submitted",
+			stageId: firstStage?.id ?? null,
+			outcome: "advance",
 			byRole: "candidate",
 			byUserId: userId,
 		});
@@ -454,4 +498,482 @@ export async function getApplicationDetail(
 	}
 
 	return { application: app, events, currentProfile, viewerRole };
+}
+
+// ─── Phase 12: Stage-Outcome-Aktionen ────────────────────────────────────
+// Drei Pflicht-Outcomes pro Stage: advance / reject / on_hold. Reject
+// MUSS eine Begründung aus dem festen Katalog tragen — verhindert
+// Geister-Absagen (siehe Studie: 75% Bewerbungen ohne jede Antwort).
+
+export type StageOutcomeKind = "advance" | "reject" | "on_hold";
+
+export type StageOutcomeInput = {
+	applicationId: string;
+	outcome: StageOutcomeKind;
+	rejectReason?: RejectReason;
+	rejectFreeText?: string;
+	note?: string;
+};
+
+export async function decideStageOutcome(
+	input: StageOutcomeInput,
+): Promise<{ ok: boolean; error?: string }> {
+	try {
+		const { userId, employerId } = await requireEmployer();
+		const [app] = await db
+			.select()
+			.from(applications)
+			.where(eq(applications.id, input.applicationId))
+			.limit(1);
+		if (!app || app.employerId !== employerId) {
+			return { ok: false, error: "Bewerbung nicht gefunden." };
+		}
+		if (
+			app.status === "declined" ||
+			app.status === "withdrawn" ||
+			app.status === "archived"
+		) {
+			return { ok: false, error: "Bewerbung ist bereits abgeschlossen." };
+		}
+
+		const stages = await db
+			.select()
+			.from(jobStages)
+			.where(eq(jobStages.jobId, app.jobId))
+			.orderBy(asc(jobStages.position));
+
+		const currentIdx = app.currentStageId
+			? stages.findIndex((s) => s.id === app.currentStageId)
+			: -1;
+		const nextStage =
+			currentIdx >= 0 && currentIdx + 1 < stages.length
+				? stages[currentIdx + 1]
+				: null;
+
+		const now = new Date();
+
+		if (input.outcome === "reject") {
+			if (!input.rejectReason || !REJECT_REASONS.includes(input.rejectReason)) {
+				return {
+					ok: false,
+					error:
+						"Bitte einen Ablehnungs-Grund aus dem Katalog wählen. Einfach 'abgelehnt' ohne Grund ist nicht erlaubt.",
+				};
+			}
+			await db
+				.update(applications)
+				.set({
+					status: "declined",
+					rejectReason: input.rejectReason,
+					rejectFreeText: input.rejectFreeText?.trim() || null,
+					closureDeadlineAt: null,
+					updatedAt: now,
+				})
+				.where(eq(applications.id, input.applicationId));
+			await db.insert(applicationEvents).values({
+				applicationId: input.applicationId,
+				kind: "stage_change",
+				status: "declined",
+				stageId: app.currentStageId,
+				outcome: "reject",
+				rejectReason: input.rejectReason,
+				byRole: "employer",
+				byUserId: userId,
+				note: input.rejectFreeText?.trim() || input.note?.trim() || null,
+			});
+			await pushNotification({
+				userId: app.candidateUserId,
+				kind: "system",
+				title: `Absage: ${app.jobSnapshot.title}`,
+				body: rejectReasonLabelDE(input.rejectReason),
+				link: `/applications/${input.applicationId}`,
+			});
+		} else if (input.outcome === "on_hold") {
+			// Hold = Status bleibt sichtbar in_review, aber Closure-Deadline
+			// wird verlängert. Kein Stage-Wechsel.
+			await db
+				.update(applications)
+				.set({
+					closureDeadlineAt: addDays(now, 30),
+					updatedAt: now,
+				})
+				.where(eq(applications.id, input.applicationId));
+			await db.insert(applicationEvents).values({
+				applicationId: input.applicationId,
+				kind: "stage_change",
+				stageId: app.currentStageId,
+				outcome: "on_hold",
+				byRole: "employer",
+				byUserId: userId,
+				note: input.note?.trim() || null,
+			});
+			await pushNotification({
+				userId: app.candidateUserId,
+				kind: "system",
+				title: `On-Hold: ${app.jobSnapshot.title}`,
+				body:
+					input.note?.trim() ??
+					"Der Arbeitgeber pausiert deine Bewerbung kurz. Du wirst informiert wenn es weiter geht.",
+				link: `/applications/${input.applicationId}`,
+			});
+		} else {
+			// advance — in nächste Stage. Wenn keine nächste Stage existiert,
+			// gilt es als Offer-Stage erreicht.
+			const targetStage = nextStage ?? stages[stages.length - 1] ?? null;
+			const isFinal = !nextStage;
+			await db
+				.update(applications)
+				.set({
+					status: isFinal ? "offer" : statusForStage(targetStage),
+					currentStageId: targetStage?.id ?? app.currentStageId,
+					stageEnteredAt: now,
+					closureDeadlineAt: addDays(now, CLOSURE_DEADLINE_DAYS),
+					updatedAt: now,
+				})
+				.where(eq(applications.id, input.applicationId));
+			await db.insert(applicationEvents).values({
+				applicationId: input.applicationId,
+				kind: "stage_change",
+				status: isFinal ? "offer" : statusForStage(targetStage),
+				stageId: targetStage?.id ?? null,
+				outcome: "advance",
+				byRole: "employer",
+				byUserId: userId,
+				note: input.note?.trim() || null,
+			});
+			await pushNotification({
+				userId: app.candidateUserId,
+				kind: "system",
+				title: `Weiter: ${app.jobSnapshot.title}`,
+				body: targetStage?.name ?? "Nächster Schritt",
+				link: `/applications/${input.applicationId}`,
+			});
+		}
+
+		revalidatePath(`/applications/${input.applicationId}`);
+		revalidatePath(`/jobs/${app.jobId}/applications`);
+		revalidatePath(`/jobs/${app.jobId}/applications/${input.applicationId}`);
+		return { ok: true };
+	} catch (e) {
+		console.error("[applications] decideStageOutcome", e);
+		const friendly = friendlyDbError(e);
+		if (friendly) return { ok: false, error: friendly };
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
+	}
+}
+
+function statusForStage(
+	stage: JobStage | null,
+): "in_review" | "interview" | "offer" {
+	if (!stage) return "in_review";
+	switch (stage.kind) {
+		case "phone_screen":
+		case "interview":
+		case "assessment_center":
+		case "technical_assessment":
+			return "interview";
+		case "offer_preparation":
+		case "offer_negotiation":
+		case "final_decision":
+			return "offer";
+		default:
+			return "in_review";
+	}
+}
+
+function rejectReasonLabelDE(r: RejectReason): string {
+	switch (r) {
+		case "not_qualified_skills":
+			return "Skill-Profil hat nicht gepasst.";
+		case "not_qualified_experience":
+			return "Berufserfahrung hat nicht gepasst.";
+		case "salary_mismatch":
+			return "Gehaltsvorstellung lag außerhalb des Rahmens.";
+		case "location_mismatch":
+			return "Standort/Remote-Setup hat nicht gepasst.";
+		case "culture_mismatch":
+			return "Kulturelle Passung wurde anders gesehen.";
+		case "position_filled":
+			return "Stelle ist anderweitig besetzt worden.";
+		case "position_canceled":
+			return "Stelle wurde gestrichen.";
+		case "internal_candidate":
+			return "Ein interner Kandidat hat die Stelle bekommen.";
+		case "other":
+			return "Andere Gründe — siehe Notiz.";
+	}
+}
+
+// ─── Per-Stage-Bewertung durch Bewerber ───────────────────────────────────
+// 4 Fragen — 1..5 Skala. Quelle: iCIMS/AIHR Candidate-Experience-Surveys.
+// Aggregiert auf Employer-Ebene (Min-Bucket 10) ergibt das öffentliche
+// Stats — Gegenpol zu Glassdoor: Daten kommen aus echten Prozessen, nicht
+// aus Anonym-Reviews.
+export async function rateStage(input: {
+	applicationId: string;
+	jobStageId: string;
+	clarity?: number | null;
+	respect?: number | null;
+	effort?: number | null;
+	responseTime?: number | null;
+	comment?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+	try {
+		const userId = await requireCandidate();
+		const [app] = await db
+			.select()
+			.from(applications)
+			.where(eq(applications.id, input.applicationId))
+			.limit(1);
+		if (!app || app.candidateUserId !== userId) {
+			return { ok: false, error: "Bewerbung nicht gefunden." };
+		}
+		const clamp = (n: number | null | undefined) =>
+			n == null ? null : Math.min(5, Math.max(1, Math.round(n)));
+		await db
+			.insert(stageRatings)
+			.values({
+				applicationId: input.applicationId,
+				jobStageId: input.jobStageId,
+				candidateUserId: userId,
+				clarity: clamp(input.clarity),
+				respect: clamp(input.respect),
+				effort: clamp(input.effort),
+				responseTime: clamp(input.responseTime),
+				comment: input.comment?.trim() || null,
+			})
+			.onConflictDoNothing();
+		revalidatePath(`/applications/${input.applicationId}`);
+		return { ok: true };
+	} catch (e) {
+		console.error("[applications] rateStage", e);
+		const friendly = friendlyDbError(e);
+		if (friendly) return { ok: false, error: friendly };
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
+	}
+}
+
+// ─── In-App-Messaging pro Bewerbung ───────────────────────────────────────
+// Beide Seiten dürfen schreiben sobald die Bewerbung aktiv ist. Quelle:
+// 87,5% der zurückgezogenen Bewerbungen begründen mit "Kommunikations-
+// Problemen" (Eddy 2023). Eine simple Thread-View löst das.
+export async function sendApplicationMessage(input: {
+	applicationId: string;
+	body: string;
+}): Promise<{ ok: boolean; error?: string; id?: string }> {
+	try {
+		const session = await auth();
+		if (!session?.user?.id) return { ok: false, error: "Nicht angemeldet." };
+		const userId = session.user.id;
+		const body = input.body.trim();
+		if (body.length < 1) return { ok: false, error: "Leere Nachricht." };
+		if (body.length > 2000)
+			return { ok: false, error: "Maximal 2000 Zeichen." };
+
+		const [app] = await db
+			.select()
+			.from(applications)
+			.where(eq(applications.id, input.applicationId))
+			.limit(1);
+		if (!app) return { ok: false, error: "Bewerbung nicht gefunden." };
+
+		let role: "candidate" | "employer" | null = null;
+		let recipientUserId: string | null = null;
+		if (app.candidateUserId === userId) {
+			role = "candidate";
+			const [emp] = await db
+				.select({ userId: employers.userId })
+				.from(employers)
+				.where(eq(employers.id, app.employerId))
+				.limit(1);
+			recipientUserId = emp?.userId ?? null;
+		} else {
+			const [emp] = await db
+				.select({ id: employers.id, userId: employers.userId })
+				.from(employers)
+				.where(eq(employers.userId, userId))
+				.limit(1);
+			if (emp?.id === app.employerId) {
+				role = "employer";
+				recipientUserId = app.candidateUserId;
+			}
+		}
+		if (!role) return { ok: false, error: "Kein Zugriff." };
+
+		const [created] = await db
+			.insert(applicationMessages)
+			.values({
+				applicationId: input.applicationId,
+				byUserId: userId,
+				byRole: role,
+				body,
+			})
+			.returning({ id: applicationMessages.id });
+
+		await db.insert(applicationEvents).values({
+			applicationId: input.applicationId,
+			kind: "message",
+			byRole: role,
+			byUserId: userId,
+			note: body.slice(0, 200),
+		});
+
+		if (recipientUserId) {
+			await pushNotification({
+				userId: recipientUserId,
+				kind: "system",
+				title: `Neue Nachricht: ${app.jobSnapshot.title}`,
+				body: body.slice(0, 140),
+				link:
+					role === "candidate"
+						? `/jobs/${app.jobId}/applications/${input.applicationId}`
+						: `/applications/${input.applicationId}`,
+			});
+		}
+
+		revalidatePath(`/applications/${input.applicationId}`);
+		revalidatePath(`/jobs/${app.jobId}/applications/${input.applicationId}`);
+		return { ok: true, id: created.id };
+	} catch (e) {
+		console.error("[applications] sendMessage", e);
+		const friendly = friendlyDbError(e);
+		if (friendly) return { ok: false, error: friendly };
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
+	}
+}
+
+export async function listApplicationMessages(applicationId: string) {
+	try {
+		const session = await auth();
+		if (!session?.user?.id) return [];
+		const [app] = await db
+			.select()
+			.from(applications)
+			.where(eq(applications.id, applicationId))
+			.limit(1);
+		if (!app) return [];
+		// Access-Check: Kandidat oder Employer-Owner.
+		if (app.candidateUserId !== session.user.id) {
+			const [emp] = await db
+				.select({ id: employers.id })
+				.from(employers)
+				.where(eq(employers.userId, session.user.id))
+				.limit(1);
+			if (emp?.id !== app.employerId) return [];
+		}
+		return await db
+			.select()
+			.from(applicationMessages)
+			.where(eq(applicationMessages.applicationId, applicationId))
+			.orderBy(asc(applicationMessages.createdAt));
+	} catch (e) {
+		if (friendlyDbError(e)) return [];
+		throw e;
+	}
+}
+
+// ─── Forced-Closure-Scanner ───────────────────────────────────────────────
+// Recherche: 1 in 5 Stellen ist "Ghost", 81% der Recruiter geben es zu,
+// 75% der Bewerbungen kriegen NIE Antwort. Lösung: hartes Closure-Limit.
+// Nach Ablauf der closureDeadlineAt erscheint ein Pflicht-Dialog beim
+// Arbeitgeber. Wenn er den ignoriert, blockiert der Volume-Lock neue
+// Stellen-Postings (siehe lib/match Volume-Lock-Hooks → templates.ts).
+export async function listOverdueApplicationsForEmployer(): Promise<
+	{
+		application: Application;
+		daysOverdue: number;
+	}[]
+> {
+	try {
+		const { employerId } = await requireEmployer();
+		const now = new Date();
+		const rows = await db
+			.select()
+			.from(applications)
+			.where(
+				and(
+					eq(applications.employerId, employerId),
+					or(
+						and(
+							sql`${applications.status} NOT IN ('declined','withdrawn','archived','offer')`,
+							lte(applications.closureDeadlineAt, now),
+						),
+					),
+				),
+			)
+			.orderBy(asc(applications.closureDeadlineAt))
+			.limit(20);
+		return rows.map((r) => ({
+			application: r,
+			daysOverdue: r.closureDeadlineAt
+				? Math.floor(
+						(now.getTime() - r.closureDeadlineAt.getTime()) /
+							(24 * 60 * 60 * 1000),
+					)
+				: 0,
+		}));
+	} catch (e) {
+		if (friendlyDbError(e)) return [];
+		throw e;
+	}
+}
+
+// Hilfsfunktion für Stage-Renderung pro Bewerbung — lädt die job_stages
+// passend zum Job der Bewerbung.
+export async function getStagesForApplication(
+	applicationId: string,
+): Promise<JobStage[]> {
+	try {
+		const [app] = await db
+			.select({ jobId: applications.jobId })
+			.from(applications)
+			.where(eq(applications.id, applicationId))
+			.limit(1);
+		if (!app) return [];
+		return await db
+			.select()
+			.from(jobStages)
+			.where(eq(jobStages.jobId, app.jobId))
+			.orderBy(asc(jobStages.position));
+	} catch (e) {
+		if (friendlyDbError(e)) return [];
+		throw e;
+	}
+}
+
+// ─── DSGVO: Auto-Lösch-Marker ─────────────────────────────────────────────
+// Recherche: Bewerberdaten müssen nach Zweck gelöscht werden. 6 Monate
+// nach finalem Ablehnungs-/Withdraw-Ereignis ist die übliche Frist (für
+// AGG-Klagen). Wir markieren Bewerbungen für Auto-Cleanup. Der eigentliche
+// Cron-Job kommt P12.5 — die Funktion hier liefert die Liste.
+export async function listApplicationsDueForGdprCleanup(): Promise<
+	Application[]
+> {
+	try {
+		const now = new Date();
+		const sixMonthsAgo = new Date(now);
+		sixMonthsAgo.setUTCMonth(sixMonthsAgo.getUTCMonth() - 6);
+		return await db
+			.select()
+			.from(applications)
+			.where(
+				and(
+					sql`${applications.status} IN ('declined','withdrawn','archived')`,
+					lte(applications.updatedAt, sixMonthsAgo),
+					isNull(applications.rejectFreeText),
+				),
+			)
+			.limit(100);
+	} catch {
+		return [];
+	}
 }

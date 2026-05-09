@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { getJobMandate } from "@/app/actions/agency";
 import { getEmployer, getJob } from "@/app/actions/jobs";
 import { listMatchesForJob } from "@/app/actions/matches";
+import { listTemplates } from "@/app/actions/templates";
 import { auth } from "@/auth";
 import { JobMandateForm } from "@/components/agency/job-mandate-form";
 import { Footer } from "@/components/footer";
@@ -31,6 +32,12 @@ export default async function EditJobPage({
 		job.status === "published" ? (await listMatchesForJob(id)).length : 0;
 	const employer = await getEmployer();
 	const mandate = employer?.isAgency ? await getJobMandate(id) : null;
+	let templates: Awaited<ReturnType<typeof listTemplates>> = [];
+	try {
+		templates = await listTemplates();
+	} catch (e) {
+		console.warn("[jobs/[id]] templates", e);
+	}
 
 	return (
 		<>
@@ -193,7 +200,14 @@ export default async function EditJobPage({
 						<JobMandateForm jobId={id} initial={mandate} />
 					</section>
 				)}
-				<JobForm initial={job} />
+				<JobForm
+					initial={job}
+					templates={templates.map((tt) => ({
+						id: tt.template.id,
+						name: tt.template.name,
+						isDefault: tt.template.isDefault,
+					}))}
+				/>
 			</main>
 			<Footer />
 		</>

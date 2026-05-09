@@ -38,6 +38,7 @@ export async function Header() {
 						links: [
 							{ href: "/offers", label: t("openOffers") },
 							{ href: "/agency/team", label: t("openTeam") },
+							{ href: "/templates", label: t("openTemplates") },
 						],
 					},
 				]

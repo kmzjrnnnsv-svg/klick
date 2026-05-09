@@ -3,11 +3,15 @@ import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import {
 	getApplicationDetail,
+	getStagesForApplication,
+	listApplicationMessages,
 	withdrawApplication,
 } from "@/app/actions/applications";
 import { auth } from "@/auth";
-import { ApplicationTimeline } from "@/components/applications/application-timeline";
+import { ApplicationMessageThread } from "@/components/applications/application-message-thread";
+import { ApplicationStageTimeline } from "@/components/applications/application-stage-timeline";
 import { SnapshotCompare } from "@/components/applications/snapshot-compare";
+import { StageRatingPrompt } from "@/components/applications/stage-rating-prompt";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -27,15 +31,29 @@ export default async function ApplicationDetailPage({
 
 	const t = await getTranslations("Applications");
 
-	// Employer-side: redirect to the employer URL with status setter.
 	if (viewerRole === "employer") {
 		redirect(`/jobs/${app.jobId}/applications/${id}`);
 	}
+
+	const [stages, messages] = await Promise.all([
+		getStagesForApplication(id),
+		listApplicationMessages(id),
+	]);
 
 	const isOpen =
 		app.status !== "withdrawn" &&
 		app.status !== "declined" &&
 		app.status !== "archived";
+
+	const currentStage = app.currentStageId
+		? stages.find((s) => s.id === app.currentStageId)
+		: null;
+
+	// Show rating prompt only when the candidate has been in this stage
+	// for at least one full day — otherwise it's premature.
+	const stageOldEnoughForRating =
+		app.stageEnteredAt &&
+		Date.now() - app.stageEnteredAt.getTime() > 24 * 60 * 60 * 1000;
 
 	async function withdraw() {
 		"use server";
@@ -68,8 +86,24 @@ export default async function ApplicationDetailPage({
 				</header>
 
 				<section className="mb-8">
-					<ApplicationTimeline currentStatus={app.status} events={events} />
+					<ApplicationStageTimeline
+						currentStatus={app.status}
+						currentStageId={app.currentStageId}
+						stageEnteredAt={app.stageEnteredAt}
+						stages={stages}
+						events={events}
+					/>
 				</section>
+
+				{isOpen && currentStage && stageOldEnoughForRating && (
+					<section className="mb-8">
+						<StageRatingPrompt
+							applicationId={id}
+							jobStageId={currentStage.id}
+							stageName={currentStage.name}
+						/>
+					</section>
+				)}
 
 				{app.coverLetter && (
 					<section className="mb-8">
@@ -94,6 +128,20 @@ export default async function ApplicationDetailPage({
 						profileSnap={app.profileSnapshot}
 						matchSnap={app.matchSnapshot}
 						currentSkills={currentProfile?.skills}
+					/>
+				</section>
+
+				<section className="mb-8">
+					<ApplicationMessageThread
+						applicationId={id}
+						viewerRole="candidate"
+						initial={messages.map((m) => ({
+							id: m.id,
+							body: m.body,
+							byRole: m.byRole as "candidate" | "employer",
+							createdAt: m.createdAt,
+						}))}
+						closed={!isOpen}
 					/>
 				</section>
 

@@ -16,6 +16,7 @@
 		"openTeam": "Team",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
+		"openTemplates": "Processes",
 		"groupSearch": "Search",
 		"groupActivity": "Activity",
 		"notifications": "Notifications",
@@ -567,8 +568,32 @@
 			"context": "Context",
 			"salary": "Salary",
 			"status": "Status",
-			"deepContext": "More context (optional, raises quality score)"
+			"deepContext": "More context (optional, raises quality score)",
+			"process": "Hiring process",
+			"honestPosting": "Honesty"
 		},
+		"processHint": "Which stage plan? On publish, stages are frozen — candidates see exactly the same sequence.",
+		"templateLabel": "Template",
+		"templateNoneAvailable": "No template — created automatically on save",
+		"templateDefault": "Default",
+		"templateHint": "Manage templates under",
+		"templateManageLink": "Processes",
+		"honestPostingHint": "Honesty against ghost jobs. Candidates see the flag directly. 2025 study: 1 in 5 jobs is a ghost job — 81% of recruiters admit it.",
+		"honestPosting": {
+			"open": {
+				"title": "Real open position",
+				"body": "We're really hiring. External candidates have a fair chance."
+			},
+			"internal_preferred": {
+				"title": "Internal candidate is in the running",
+				"body": "We assess externals fairly, but an internal candidate is preferred. Candidates see this."
+			},
+			"compliance_only": {
+				"title": "Compliance posting (filled internally)",
+				"body": "Position must be posted, but the candidate is already chosen internally. Candidates know upfront."
+			}
+		},
+		"publishGuard": "Salary range is required when publishing — the EU Pay Transparency Directive (June 2026) requires it. Save as draft if you haven't decided yet.",
 		"deepContextHint": "These fields are optional but help candidates decide — and raise the AI quality score of your posting.",
 		"teamSize": "Team size",
 		"growthStage": "Stage",
@@ -1071,6 +1096,16 @@
 		"requirements": "Requirements",
 		"must": "Must",
 		"viewCompany": "View company",
+		"honestFlag": {
+			"internal_preferred": {
+				"label": "Internal candidate preferred",
+				"body": "The employer openly states an internal candidate is preferred. External applicants are still assessed fairly, but the odds are lower."
+			},
+			"compliance_only": {
+				"label": "Compliance posting",
+				"body": "This role is already filled internally but must be posted for regulatory reasons. You can apply, but realistically there's no chance of being hired."
+			}
+		},
 		"remote": {
 			"onsite": "On-site",
 			"hybrid": "Hybrid",
@@ -1468,7 +1503,139 @@
 		"anonymousCandidate": "Anonymous candidate",
 		"nextStepEyebrow": "Set status",
 		"nextStepTitle": "Next step",
+		"nextStepInStage": "What happens in {stage}?",
+		"nextStepHint": "Three options — one is mandatory. No ghost-rejections.",
 		"nextStepNotePlaceholder": "Optional note to the candidate",
-		"nextStepSubmit": "Update status"
+		"nextStepSubmit": "Update status",
+		"outcomePickRequired": "Please pick an option.",
+		"outcomeAdvance": "Advance to next stage",
+		"outcomeAdvanceTo": "Advance to: {stage}",
+		"outcomeAdvanceFinal": "Make final decision",
+		"outcomeAdvanceHint": "Candidate moves one stage further, deadline restarts.",
+		"outcomeOnHold": "Put on hold",
+		"outcomeOnHoldHint": "Pause briefly without rejecting. Deadline extended.",
+		"outcomeReject": "Reject",
+		"outcomeRejectHint": "Mandatory reason from catalog. No silent disappearing.",
+		"rejectReasonEyebrow": "Reason",
+		"rejectReasonRequired": "Please pick a reason — silent rejections aren't possible here.",
+		"rejectFreeTextPlaceholder": "Optional free text (shown to the candidate)",
+		"rejectFreeTextHint": "Free text is optional, the catalog reason is enough. But two sentences of honest feedback go a long way.",
+		"rejectReason": {
+			"not_qualified_skills": "Skill profile didn't match",
+			"not_qualified_experience": "Experience didn't match",
+			"salary_mismatch": "Salary expectation outside range",
+			"location_mismatch": "Location/remote setup didn't match",
+			"culture_mismatch": "Cultural fit assessed differently",
+			"position_filled": "Position filled by someone else",
+			"position_canceled": "Position was canceled",
+			"internal_candidate": "Internal candidate took the role",
+			"other": "Other reasons"
+		},
+		"rejectReasonShort": {
+			"not_qualified_skills": "Skills",
+			"not_qualified_experience": "Experience",
+			"salary_mismatch": "Salary",
+			"location_mismatch": "Location",
+			"culture_mismatch": "Culture fit",
+			"position_filled": "Already filled",
+			"position_canceled": "Position canceled",
+			"internal_candidate": "Internal hire",
+			"other": "Other"
+		},
+		"zone": {
+			"green": "On track",
+			"amber": "Behind",
+			"red": "Critical"
+		},
+		"noStagesHint": "This job has no stage plan — using the classic model. Next save will create a default template.",
+		"event": {
+			"message": "{by} sent a message",
+			"rejected": "Rejected — {reason}",
+			"onHold": "Put on hold",
+			"advancedTo": "Advanced to: {stage}"
+		},
+		"messageThreadEyebrow": "Messages",
+		"messageThreadTitle": "Direct exchange",
+		"messageThreadClosed": "This application is closed. No new messages possible.",
+		"messagePlaceholder": "Write directly to the other side…",
+		"messageHint": "Internal only — both sides see the thread, nobody else.",
+		"messageSend": "Send",
+		"sending": "Sending…",
+		"ratingEyebrow": "Candidate feedback",
+		"ratingCta": "How was \"{stage}\" for you? (30 sec)",
+		"ratingDuration": "Four short questions, optional comment.",
+		"ratingTitle": "How was: {stage}",
+		"ratingHint": "Your answer helps other candidates. Aggregated and anonymized after 10 ratings.",
+		"ratingDim": {
+			"clarity": "Clarity of communication",
+			"respect": "Respectful treatment",
+			"effort": "Reasonable effort required",
+			"responseTime": "Response speed"
+		},
+		"ratingCommentPlaceholder": "Optional: what went well? What didn't?",
+		"ratingSubmit": "Submit rating",
+		"ratingSkip": "Later",
+		"ratingThanks": "Thanks! Your rating feeds the anonymized stats.",
+		"closureEyebrow": "Closure overdue",
+		"closureTitle": "{count} application(s) need a decision",
+		"closureHint": "Three months without response is the outer limit. Please clear these — advance, on-hold, or honest rejection with a reason.",
+		"closureMore": "+{n} more",
+		"closureScale": "max 90 days",
+		"volumeLockEyebrow": "Volume lock active",
+		"volumeLockTitle": "{count} overdue applications — new postings blocked",
+		"volumeLockHint": "You can't publish new jobs until the open applications are decided. The anti-ghost rule: no answers, no new postings."
+	},
+	"Templates": {
+		"eyebrow": "Hiring process",
+		"title": "Hiring-process templates",
+		"subtitle": "Define reusable stage plans. When you publish a job, the stages are copied as an immutable snapshot — template changes only affect new jobs.",
+		"newTemplate": "New template",
+		"newTitle": "New template",
+		"empty": "No templates yet. A default template is created automatically on the first job save.",
+		"default": "Default",
+		"stagesCount": "{n} stage(s)",
+		"back": "Back",
+		"nameLabel": "Name",
+		"nameRequired": "Please enter a name.",
+		"descriptionLabel": "Description (optional)",
+		"defaultLabel": "Use as default for new jobs",
+		"stagesEyebrow": "Stages",
+		"stagesHint": "Reorder via arrows, default 7 stages",
+		"stagesRequired": "Add at least one stage.",
+		"newStageDefault": "New stage",
+		"addStage": "Add stage",
+		"removeStage": "Remove",
+		"moveUp": "Move up",
+		"moveDown": "Move down",
+		"stageKindLabel": "Type",
+		"stageNameLabel": "Display name",
+		"stageDescriptionLabel": "Description",
+		"stageDaysLabel": "Expected days",
+		"stageResponsibleLabel": "Responsible",
+		"stageRequiredLabel": "Required stage",
+		"stageKind": {
+			"application_received": "Application received",
+			"automated_screening": "Automated screening",
+			"recruiter_review": "Recruiter review",
+			"hiring_manager_review": "Hiring manager review",
+			"phone_screen": "Phone screen",
+			"technical_assessment": "Technical assessment",
+			"interview": "Interview",
+			"assessment_center": "Assessment center",
+			"reference_check": "Reference check",
+			"offer_preparation": "Offer preparation",
+			"offer_negotiation": "Offer negotiation",
+			"final_decision": "Final decision"
+		},
+		"role": {
+			"recruiter": "Recruiter",
+			"hiring_manager": "Hiring manager",
+			"team": "Team",
+			"system": "System (automatic)"
+		},
+		"save": "Save",
+		"saving": "Saving…",
+		"delete": "Delete template",
+		"deleteConfirm": "Really delete this template? Existing jobs keep their stages."
 	}
 }

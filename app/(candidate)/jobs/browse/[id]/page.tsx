@@ -100,6 +100,22 @@ export default async function JobDetailPage({
 					<h1 className="mt-3 font-serif-display text-3xl sm:text-5xl">
 						{job.title}
 					</h1>
+					{job.honestPostingFlag && job.honestPostingFlag !== "open" && (
+						<div
+							className={`mt-3 rounded-sm border px-3 py-2 text-xs ${
+								job.honestPostingFlag === "internal_preferred"
+									? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+									: "border-rose-500/40 bg-rose-500/10 text-rose-800 dark:text-rose-200"
+							}`}
+						>
+							<p className="font-mono text-[10px] uppercase tracking-wide">
+								{t(`honestFlag.${job.honestPostingFlag}.label`)}
+							</p>
+							<p className="mt-1 leading-relaxed">
+								{t(`honestFlag.${job.honestPostingFlag}.body`)}
+							</p>
+						</div>
+					)}
 					<div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground text-sm">
 						{job.location && <span>{job.location}</span>}
 						<span>{t(`remote.${job.remotePolicy}`)}</span>

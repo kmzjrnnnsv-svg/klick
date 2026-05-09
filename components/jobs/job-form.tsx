@@ -27,12 +27,33 @@ function withKey(r: JobRequirement): LocalRequirement {
 	return { ...r, _key: crypto.randomUUID() };
 }
 
-export function JobForm({ initial }: { initial: Job | null }) {
+export function JobForm({
+	initial,
+	templates,
+}: {
+	initial: Job | null;
+	templates: { id: string; name: string; isDefault: boolean }[];
+}) {
 	const t = useTranslations("Jobs");
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 	const [isSuggesting, startSuggesting] = useTransition();
 	const [error, setError] = useState<string | null>(null);
+
+	const defaultTemplateId =
+		initial?.templateId ??
+		templates.find((tt) => tt.isDefault)?.id ??
+		templates[0]?.id ??
+		"";
+	const [templateId, setTemplateId] = useState(defaultTemplateId);
+	const [honestPostingFlag, setHonestPostingFlag] = useState<
+		"open" | "internal_preferred" | "compliance_only"
+	>(
+		(initial?.honestPostingFlag as
+			| "open"
+			| "internal_preferred"
+			| "compliance_only") ?? "open",
+	);
 
 	const [title, setTitle] = useState(initial?.title ?? "");
 	const [description, setDescription] = useState(initial?.description ?? "");
@@ -520,6 +541,78 @@ export function JobForm({ initial }: { initial: Job | null }) {
 			</details>
 
 			<section className="space-y-3">
+				<h2 className="font-medium text-sm">{t("section.process")}</h2>
+				<p className="text-muted-foreground text-xs leading-relaxed">
+					{t("processHint")}
+				</p>
+				<label className="block space-y-1.5">
+					<span className="text-muted-foreground text-xs">
+						{t("templateLabel")}
+					</span>
+					<select
+						name="templateId"
+						value={templateId}
+						onChange={(e) => setTemplateId(e.target.value)}
+						className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+					>
+						{templates.length === 0 && (
+							<option value="">{t("templateNoneAvailable")}</option>
+						)}
+						{templates.map((tt) => (
+							<option key={tt.id} value={tt.id}>
+								{tt.name}
+								{tt.isDefault ? ` · ${t("templateDefault")}` : ""}
+							</option>
+						))}
+					</select>
+				</label>
+				<p className="text-muted-foreground text-[11px] leading-relaxed">
+					{t("templateHint")}{" "}
+					<a
+						href="/templates"
+						className="underline underline-offset-2 hover:text-foreground"
+					>
+						{t("templateManageLink")}
+					</a>
+					.
+				</p>
+			</section>
+
+			<section className="space-y-3">
+				<h2 className="font-medium text-sm">{t("section.honestPosting")}</h2>
+				<p className="text-muted-foreground text-xs leading-relaxed">
+					{t("honestPostingHint")}
+				</p>
+				<div className="space-y-2">
+					{(["open", "internal_preferred", "compliance_only"] as const).map(
+						(f) => (
+							<label
+								key={f}
+								className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-background p-3 has-[:checked]:border-primary"
+							>
+								<input
+									type="radio"
+									name="honestPostingFlag"
+									value={f}
+									checked={honestPostingFlag === f}
+									onChange={() => setHonestPostingFlag(f)}
+									className="mt-0.5"
+								/>
+								<div className="text-sm">
+									<div className="font-medium">
+										{t(`honestPosting.${f}.title`)}
+									</div>
+									<div className="text-muted-foreground text-xs">
+										{t(`honestPosting.${f}.body`)}
+									</div>
+								</div>
+							</label>
+						),
+					)}
+				</div>
+			</section>
+
+			<section className="space-y-3">
 				<h2 className="font-medium text-sm">{t("section.status")}</h2>
 				<div className="space-y-2">
 					{STATUS_OPTIONS.map((s) => (
@@ -546,6 +639,11 @@ export function JobForm({ initial }: { initial: Job | null }) {
 						</label>
 					))}
 				</div>
+				{status === "published" && (
+					<p className="rounded-sm border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-800 text-xs leading-relaxed dark:text-amber-200">
+						{t("publishGuard")}
+					</p>
+				)}
 			</section>
 
 			{error && (
