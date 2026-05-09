@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { candidateProfiles, vaultItems } from "@/db/schema";
+import { candidateProfiles, users, vaultItems } from "@/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { computeInsightsFromData } from "@/lib/insights/compute";
 import type { CandidateInsights } from "@/lib/insights/types";
@@ -48,7 +48,20 @@ export async function recomputeInsights(userId: string): Promise<void> {
 					0,
 					insights.experience.yearsActive - currentRoleYears,
 				);
-				const narrative = await getAIProvider().summarizeCandidate({
+				const ai = getAIProvider();
+				// Origin-Sprache = User-Locale wenn gesetzt, sonst CV-Sprache,
+				// sonst DE.
+				const [u] = await db
+					.select({ locale: users.locale })
+					.from(users)
+					.where(eq(users.id, userId))
+					.limit(1);
+				const originLocale: "de" | "en" =
+					u?.locale === "en"
+						? "en"
+						: ((profile.profileLanguageOrigin as "de" | "en" | null) ?? "de");
+
+				const narrativeOrigin = await ai.summarizeCandidate({
 					headline: profile.headline,
 					summary: profile.summary,
 					yearsActive: insights.experience.yearsActive,
@@ -74,7 +87,39 @@ export async function recomputeInsights(userId: string): Promise<void> {
 					certificatePattern: insights.certificates.pattern,
 					asOf: new Date().toISOString().slice(0, 10),
 				});
-				insights.narrative = narrative;
+
+				// Übersetze Narrative in die jeweils andere Sprache. Bei Mock
+				// (kein API-Key) ist das ein No-Op und wir setzen einfach den
+				// Origin-Text auch in die andere Locale.
+				const otherLocale: "de" | "en" = originLocale === "de" ? "en" : "de";
+				const translation = await ai
+					.translateProfile({
+						from: originLocale,
+						to: otherLocale,
+						summary: narrativeOrigin.summary,
+						awards: narrativeOrigin.strengths,
+						industries: narrativeOrigin.workStyle,
+					})
+					.catch(() => null);
+
+				const narrativeOther = translation
+					? {
+							summary: translation.summary ?? narrativeOrigin.summary,
+							workStyle: translation.industries ?? narrativeOrigin.workStyle,
+							strengths: translation.awards ?? narrativeOrigin.strengths,
+						}
+					: narrativeOrigin;
+
+				insights.narrative = {
+					summary: narrativeOrigin.summary,
+					workStyle: narrativeOrigin.workStyle,
+					strengths: narrativeOrigin.strengths,
+					locale: originLocale,
+					byLocale: {
+						[originLocale]: narrativeOrigin,
+						[otherLocale]: narrativeOther,
+					},
+				};
 			} catch (e) {
 				console.warn("[insights] narrative failed", e);
 			}
@@ -108,9 +153,15 @@ export async function getMyInsights(): Promise<CandidateInsights | null> {
 	const ageMs = row?.updatedAt
 		? Date.now() - row.updatedAt.getTime()
 		: Number.POSITIVE_INFINITY;
-	if (ageMs > INSIGHTS_STALE_AFTER_DAYS * 24 * 60 * 60 * 1000) {
+	const insights = (row?.insights as CandidateInsights | null) ?? null;
+	const needsTranslationFill =
+		insights?.narrative != null && !insights.narrative.byLocale;
+	if (
+		ageMs > INSIGHTS_STALE_AFTER_DAYS * 24 * 60 * 60 * 1000 ||
+		needsTranslationFill
+	) {
 		after(() => recomputeInsights(userId));
 	}
 
-	return (row?.insights as CandidateInsights | null) ?? null;
+	return insights;
 }

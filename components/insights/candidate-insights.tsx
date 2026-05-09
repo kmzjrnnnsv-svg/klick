@@ -10,7 +10,7 @@ import {
 	Target,
 	TrendingUp,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { CandidateProfile } from "@/db/schema";
 import { classifyIssuer } from "@/lib/insights/issuers";
 import type { CandidateInsights } from "@/lib/insights/types";
@@ -45,6 +45,7 @@ export function CandidateInsightsView({
 	emptyHint?: string;
 }) {
 	const t = useTranslations("Insights");
+	const locale = useLocale() as "de" | "en";
 	if (!insights) {
 		return (
 			<div className="rounded-lg border border-border border-dashed p-6 text-center text-muted-foreground text-sm">
@@ -53,7 +54,23 @@ export function CandidateInsightsView({
 		);
 	}
 
-	const { experience, tenure, tenureScore, certificates, narrative } = insights;
+	const {
+		experience,
+		tenure,
+		tenureScore,
+		certificates,
+		narrative: rawNarrative,
+	} = insights;
+	// Pick the narrative variant for the active UI locale. If not yet
+	// translated (recomputeInsights schedules the translation in the
+	// background), fall back to the origin variant.
+	const narrative = rawNarrative
+		? (rawNarrative.byLocale?.[locale] ?? {
+				summary: rawNarrative.summary,
+				workStyle: rawNarrative.workStyle,
+				strengths: rawNarrative.strengths,
+			})
+		: undefined;
 	const hasExtras =
 		!!profileExtras &&
 		((profileExtras.industries?.length ?? 0) > 0 ||

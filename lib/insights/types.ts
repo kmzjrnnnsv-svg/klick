@@ -104,5 +104,16 @@ export type CandidateInsights = {
 		summary: string;
 		workStyle: string[];
 		strengths: string[];
+		// Sprache der oberen Felder (Origin). Wenn UI in einer anderen
+		// Locale rendert, fällt sie auf `byLocale[uiLocale]` zurück.
+		locale?: "de" | "en";
+		// Übersetzte Versionen pro Sprache. Beim ersten Render in einer
+		// anderen Sprache wird die fehlende Variante per AI nachgezogen.
+		byLocale?: Partial<
+			Record<
+				"de" | "en",
+				{ summary: string; workStyle: string[]; strengths: string[] }
+			>
+		>;
 	};
 };

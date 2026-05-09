@@ -1,11 +1,12 @@
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { CandidateInsightsView } from "@/components/insights/candidate-insights";
 import { db } from "@/db";
 import { candidateProfiles } from "@/db/schema";
+import { localizedProfile } from "@/lib/insights/locale";
 import type { CandidateInsights } from "@/lib/insights/types";
 
 export default async function PublicProfilePage({
@@ -24,6 +25,8 @@ export default async function PublicProfilePage({
 	if (!profile) notFound();
 
 	const t = await getTranslations("PublicProfile");
+	const locale = ((await getLocale()) as "de" | "en") ?? "de";
+	const view = localizedProfile(profile, locale);
 
 	return (
 		<>
@@ -36,27 +39,27 @@ export default async function PublicProfilePage({
 					<h1 className="mt-1 font-semibold text-xl tracking-tight sm:text-3xl">
 						{profile.displayName ?? t("anonymous")}
 					</h1>
-					{profile.headline && (
+					{view.headline && (
 						<p className="mt-1 text-muted-foreground text-sm">
-							{profile.headline}
+							{view.headline}
 							{profile.location && ` · ${profile.location}`}
 						</p>
 					)}
 				</header>
 
-				{profile.summary && (
+				{view.summary && (
 					<section className="mb-5 rounded-lg border border-border bg-background p-4">
 						<p className="text-foreground/90 text-sm leading-relaxed">
-							{profile.summary}
+							{view.summary}
 						</p>
 					</section>
 				)}
 
-				{profile.skills && profile.skills.length > 0 && (
+				{view.skills && view.skills.length > 0 && (
 					<section className="mb-5 rounded-lg border border-border bg-background p-4">
 						<h2 className="mb-2 font-medium text-sm">{t("skills")}</h2>
 						<div className="flex flex-wrap gap-1.5">
-							{profile.skills.map((s) => (
+							{view.skills.map((s) => (
 								<span
 									key={s.name}
 									className="rounded-md bg-muted px-2 py-0.5 font-mono text-[11px]"
@@ -74,10 +77,10 @@ export default async function PublicProfilePage({
 					<CandidateInsightsView
 						insights={(profile.insights as CandidateInsights | null) ?? null}
 						profileExtras={{
-							industries: profile.industries,
-							awards: profile.awards,
+							industries: view.industries,
+							awards: view.awards,
 							certificationsMentioned: profile.certificationsMentioned,
-							mobility: profile.mobility,
+							mobility: view.mobility,
 							preferredRoleLevel: profile.preferredRoleLevel,
 						}}
 					/>
