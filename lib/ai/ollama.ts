@@ -685,22 +685,33 @@ export class OllamaAIProvider implements AIProvider {
 
 // ─── PDF-Text-Extraktion ──────────────────────────────────────────────────
 // pdf-parse ist eine optionale Runtime-Dep. Wenn nicht installiert, fallen
-// wir auf einen Hinweis im Text zurück — der Provider funktioniert dann
-// nur für Text/Bilder. Installation: `pnpm add pdf-parse`.
+// wir auf einen Hinweis im Text zurück.
+//
+// WICHTIG: Wir importieren `pdf-parse/lib/pdf-parse.js` direkt statt
+// `pdf-parse`. Der Top-Level-Index der Lib hat eine if-Klausel die
+// versucht eine Test-PDF zu laden wenn kein require.main vorhanden ist —
+// das knallt unter Next.js/Turbopack mit "TypeError: d is not a function".
+// Der direkte Lib-Pfad umgeht das.
 async function extractPdfText(bytes: Uint8Array): Promise<string> {
 	try {
-		// String-Konkatenation ist Absicht: TypeScript soll das Modul nicht
-		// statisch auflösen. Erst zur Laufzeit wird geprüft ob pdf-parse
-		// installiert ist. Installation: `pnpm add pdf-parse`.
-		const modName = "pdf" + "-parse";
+		// String-Konkatenation: TypeScript soll das Modul nicht statisch
+		// auflösen, damit der Build ohne pdf-parse durchgeht.
+		const modPath = "pdf" + "-parse/lib/pdf-parse.js";
 		// biome-ignore lint/suspicious/noExplicitAny: optional runtime dep
-		const mod: any = await import(/* @vite-ignore */ modName).catch(() => null);
+		const mod: any = await import(/* @vite-ignore */ modPath).catch(() => null);
 		if (!mod) {
-			return "(pdf-parse nicht installiert — pnpm add pdf-parse, oder OLLAMA_MODEL_VISION verwenden)";
+			return "(pdf-parse nicht installiert — pnpm add pdf-parse)";
 		}
-		const fn = mod.default ?? mod;
+		const fn = typeof mod === "function" ? mod : (mod.default ?? mod);
+		if (typeof fn !== "function") {
+			console.warn(
+				"[ollama] pdf-parse export is not a function:",
+				Object.keys(mod),
+			);
+			return "(pdf-parse Modul-Export unerwartet — ggf. Version inkompatibel)";
+		}
 		const result = await fn(Buffer.from(bytes));
-		return (result.text as string) ?? "";
+		return (result?.text as string) ?? "";
 	} catch (e) {
 		console.warn("[ollama] pdf-parse failed", e);
 		return "(PDF-Text konnte nicht extrahiert werden)";
