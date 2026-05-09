@@ -245,7 +245,64 @@ export async function saveProfile(formData: FormData): Promise<void> {
 	after(async () => {
 		await recomputeInsights(userId);
 		await recomputeMatchesForCandidate(userId);
+		await translateProfileFields(userId).catch((e) =>
+			console.warn("[profile] translate failed", e),
+		);
 	});
+}
+
+// Übersetzt Profilfelder in die jeweils andere Sprache und speichert sie
+// im `translations`-JSONB. Wird nach jedem Save im Hintergrund gerufen.
+async function translateProfileFields(userId: string): Promise<void> {
+	const [profile] = await db
+		.select()
+		.from(candidateProfiles)
+		.where(eq(candidateProfiles.userId, userId))
+		.limit(1);
+	if (!profile) return;
+
+	// Origin = User-Locale wenn gesetzt, sonst Default 'de'.
+	const [u] = await db
+		.select({ locale: users.locale })
+		.from(users)
+		.where(eq(users.id, userId))
+		.limit(1);
+	const origin: "de" | "en" =
+		(profile.profileLanguageOrigin as "de" | "en" | null) ??
+		(u?.locale === "en" ? "en" : "de");
+	const target: "de" | "en" = origin === "de" ? "en" : "de";
+
+	const ai = getAIProvider();
+	const translation = await ai.translateProfile({
+		from: origin,
+		to: target,
+		headline: profile.headline,
+		summary: profile.summary,
+		industries: profile.industries,
+		skills: (profile.skills ?? null) as
+			| { name: string; level?: number }[]
+			| null,
+		experience: profile.experience
+			? profile.experience.map((e) => ({
+					role: e.role,
+					description: e.description,
+				}))
+			: null,
+		education: profile.education
+			? profile.education.map((e) => ({ degree: e.degree }))
+			: null,
+		awards: profile.awards,
+		mobility: profile.mobility,
+	});
+
+	await db
+		.update(candidateProfiles)
+		.set({
+			profileLanguageOrigin: origin,
+			translations: { [target]: translation },
+			translationsUpdatedAt: new Date(),
+		})
+		.where(eq(candidateProfiles.userId, userId));
 }
 
 function tryParseJsonArray(raw: string | undefined): unknown[] | undefined {
