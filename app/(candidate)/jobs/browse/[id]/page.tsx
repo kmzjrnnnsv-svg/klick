@@ -12,7 +12,7 @@ import { ApplyButton } from "@/components/applications/apply-button";
 import { AssessmentTaker } from "@/components/assessments/assessment-taker";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
-import { JobQuestionForm } from "@/components/jobs/job-question-form";
+import { JobQuestionThread } from "@/components/jobs/job-question-thread";
 import { db } from "@/db";
 import { employers, jobMandates, jobs } from "@/db/schema";
 
@@ -214,39 +214,19 @@ export default async function JobDetailPage({
 					<p className="mt-2 mb-4 text-muted-foreground text-xs leading-relaxed">
 						{t("askHint")}
 					</p>
-					<JobQuestionForm jobId={id} />
-
-					{myQA.length > 0 && (
-						<div className="mt-6 space-y-3 border-border border-t pt-4">
-							<p className="lv-eyebrow text-[0.55rem] text-muted-foreground">
-								{t("yourQuestions")}
-							</p>
-							<ul className="space-y-2">
-								{myQA.map((q) => (
-									<li
-										key={q.id}
-										className="rounded-sm border border-border bg-background p-3 text-xs"
-									>
-										<p className="font-medium">{q.body}</p>
-										{q.answer ? (
-											<div className="mt-2 border-primary/40 border-l-2 pl-3">
-												<p className="lv-eyebrow text-[0.5rem] text-primary">
-													{t("employerAnswered")}
-												</p>
-												<p className="mt-1 text-foreground/90 leading-relaxed">
-													{q.answer}
-												</p>
-											</div>
-										) : (
-											<p className="mt-2 text-muted-foreground italic">
-												{t("waitingForAnswer")}
-											</p>
-										)}
-									</li>
-								))}
-							</ul>
-						</div>
-					)}
+					<JobQuestionThread
+						jobId={id}
+						initial={myQA
+							.slice()
+							.reverse()
+							.map((q) => ({
+								id: q.id,
+								body: q.body,
+								answer: q.answer,
+								createdAt: q.createdAt,
+								answeredAt: q.answeredAt,
+							}))}
+					/>
 				</section>
 
 				{publicQA.length > 0 && (

@@ -16,6 +16,8 @@
 		"openTeam": "Team",
 		"openJobs": "Jobs",
 		"openAdmin": "Admin",
+		"groupSearch": "Search",
+		"groupActivity": "Activity",
 		"notifications": "Notifications",
 		"login": "Sign in",
 		"toggleTheme": "Toggle theme",
