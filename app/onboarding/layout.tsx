@@ -11,6 +11,14 @@ export default async function OnboardingLayout({
 	const session = await auth();
 	if (!session?.user) redirect("/login");
 
+	// Admin und Employer haben keinen Bedarf für das Kandidaten-Onboarding.
+	// Wenn sie hier reinrutschen (z.B. weil ihre Rolle nachträglich
+	// geändert wurde), schicken wir sie auf die passende Landing.
+	const role = (session.user as { role?: "candidate" | "employer" | "admin" })
+		.role;
+	if (role === "admin") redirect("/admin");
+	if (role === "employer") redirect("/jobs");
+
 	const t = await getTranslations("Onboarding");
 
 	return (

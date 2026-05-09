@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { signIn } from "@/auth";
+import { isMicrosoftSsoEnabled, signIn } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,11 @@ async function loginAction(formData: FormData) {
 	const email = String(formData.get("email") ?? "").trim();
 	if (!email) return;
 	await signIn("email", { email, redirectTo: "/post-login" });
+}
+
+async function microsoftSignIn() {
+	"use server";
+	await signIn("microsoft-entra-id", { redirectTo: "/post-login" });
 }
 
 const DEMO_ROLES = [
@@ -69,6 +74,33 @@ export default async function LoginPage() {
 						{t("submit")}
 					</Button>
 				</form>
+
+				{isMicrosoftSsoEnabled && (
+					<div className="mt-6">
+						<div className="relative my-4 text-center">
+							<span className="-translate-y-1/2 absolute top-1/2 left-0 block h-px w-full bg-border" />
+							<span className="relative inline-block bg-background px-3 text-[10px] text-muted-foreground uppercase tracking-wide">
+								{t("or")}
+							</span>
+						</div>
+						<form action={microsoftSignIn}>
+							<Button type="submit" variant="outline" className="w-full gap-2">
+								<svg viewBox="0 0 23 23" className="h-4 w-4" aria-hidden="true">
+									<title>Microsoft</title>
+									<rect x="1" y="1" width="10" height="10" fill="#f25022" />
+									<rect x="12" y="1" width="10" height="10" fill="#7fba00" />
+									<rect x="1" y="12" width="10" height="10" fill="#00a4ef" />
+									<rect x="12" y="12" width="10" height="10" fill="#ffb900" />
+								</svg>
+								{t("microsoftSso")}
+							</Button>
+						</form>
+						<p className="mt-2 text-center text-[11px] text-muted-foreground">
+							{t("microsoftSsoHint")}
+						</p>
+					</div>
+				)}
+
 				<p className="mt-8 text-center text-muted-foreground text-xs leading-relaxed">
 					{t("note")}
 				</p>
