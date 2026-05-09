@@ -1,12 +1,18 @@
 "use server";
 
 import { eq } from "drizzle-orm";
+import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { candidateProfiles, vaultItems } from "@/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { computeInsightsFromData } from "@/lib/insights/compute";
 import type { CandidateInsights } from "@/lib/insights/types";
+
+// Insights mit yearsActive werden täglich älter — Stand 31.12.23 zeigt
+// auch noch im Mai 2026 "10 Jahre" obwohl es längst 13 sind. Daher auf
+// Read-Pfaden nach 7 Tagen Staleness im Hintergrund neu berechnen.
+const INSIGHTS_STALE_AFTER_DAYS = 7;
 
 // Recompute the candidate's insights snapshot. Called from:
 //   - saveProfile / saveSkillsStep / finishOnboarding (profile changes)
@@ -35,11 +41,19 @@ export async function recomputeInsights(userId: string): Promise<void> {
 			insights.tenure.totalRoles > 0 || (profile.skills?.length ?? 0) >= 3;
 		if (hasSignal) {
 			try {
+				const currentRoleYears = insights.tenure.currentRole
+					? Math.round(insights.tenure.currentRole.monthsOngoing / 12)
+					: 0;
+				const previousYearsBeforeCurrent = Math.max(
+					0,
+					insights.experience.yearsActive - currentRoleYears,
+				);
 				const narrative = await getAIProvider().summarizeCandidate({
 					headline: profile.headline,
 					summary: profile.summary,
 					yearsActive: insights.experience.yearsActive,
 					yearsContinuous: insights.experience.yearsContinuous,
+					previousYearsBeforeCurrent,
 					totalRoles: insights.tenure.totalRoles,
 					currentRole: insights.tenure.currentRole
 						? {
@@ -58,6 +72,7 @@ export async function recomputeInsights(userId: string): Promise<void> {
 					skills: (profile.skills ?? []).map((s) => s.name).slice(0, 12),
 					certificateCount: insights.certificates.total,
 					certificatePattern: insights.certificates.pattern,
+					asOf: new Date().toISOString().slice(0, 10),
 				});
 				insights.narrative = narrative;
 			} catch (e) {
@@ -77,10 +92,25 @@ export async function recomputeInsights(userId: string): Promise<void> {
 export async function getMyInsights(): Promise<CandidateInsights | null> {
 	const session = await auth();
 	if (!session?.user?.id) return null;
+	const userId = session.user.id;
 	const [row] = await db
-		.select({ insights: candidateProfiles.insights })
+		.select({
+			insights: candidateProfiles.insights,
+			updatedAt: candidateProfiles.insightsUpdatedAt,
+		})
 		.from(candidateProfiles)
-		.where(eq(candidateProfiles.userId, session.user.id))
+		.where(eq(candidateProfiles.userId, userId))
 		.limit(1);
+
+	// Staleness-Check: über INSIGHTS_STALE_AFTER_DAYS Tage alt → im Hinter-
+	// grund neu berechnen. Der/die User:in sieht beim nächsten Aufruf
+	// frische Zahlen ohne diesen Request zu blockieren.
+	const ageMs = row?.updatedAt
+		? Date.now() - row.updatedAt.getTime()
+		: Number.POSITIVE_INFINITY;
+	if (ageMs > INSIGHTS_STALE_AFTER_DAYS * 24 * 60 * 60 * 1000) {
+		after(() => recomputeInsights(userId));
+	}
+
 	return (row?.insights as CandidateInsights | null) ?? null;
 }

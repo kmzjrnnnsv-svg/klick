@@ -76,6 +76,9 @@ const baseProfile: CandidateProfile = {
 	careerAnalysis: null,
 	careerAnalysisAt: null,
 	publicShareToken: null,
+	profileLanguageOrigin: null,
+	translations: null,
+	translationsUpdatedAt: null,
 	updatedAt: new Date(),
 };
 

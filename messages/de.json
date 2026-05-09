@@ -1011,7 +1011,12 @@
 			"industries": "Branchen",
 			"awards": "Auszeichnungen / Publikationen",
 			"certificationsMentioned": "Im CV erwähnte Zertifikate",
-			"certificationsMentionedHint": "Stehen so im Lebenslauf, sind aber nicht zwingend als Datei im Vault."
+			"certificationsMentionedHint": "Bezeichnung wie der Anbieter sie führt. Wenn nicht zuordenbar, bleibt der CV-Wortlaut. Nicht zwingend als Datei im Vault.",
+			"certStatus": {
+				"in_preparation": "in Vorbereitung",
+				"course_completed": "Lehrgang absolviert"
+			},
+			"certVerbatimHint": "Original-Wortlaut aus dem CV"
 		}
 	},
 	"PublicProfile": {

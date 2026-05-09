@@ -162,6 +162,25 @@ export type VaultItem = typeof vaultItems.$inferSelect;
 // JSONB for fast iteration in P2/P3; promoted to relational tables in P4
 // when the match engine needs joins on skills.
 export type ProfileSkill = { name: string; level?: 1 | 2 | 3 | 4 | 5 };
+
+// Felder die bei Sprachwechsel übersetzt werden. Eigennamen (Firmen,
+// Personennamen, Locations) bleiben gleich, ebenso Skills die feste
+// Begriffe sind (ISO 27001, AWS, …) — die KI entscheidet das.
+export type ProfileTranslationFields = {
+	headline?: string;
+	summary?: string;
+	industries?: string[];
+	skills?: { name: string; level?: number }[];
+	experience?: {
+		role: string;
+		description?: string;
+	}[];
+	education?: {
+		degree: string;
+	}[];
+	awards?: string[];
+	mobility?: string;
+};
 export type ProfileEmploymentType =
 	| "employee"
 	| "self_employed"
@@ -188,10 +207,14 @@ export type ProfileEducation = {
 };
 
 // Certifications mentioned in the CV body (distinct from vault-uploaded ones).
+// `name` ist die offizielle Anbieter-Bezeichnung wo möglich; bei generischen
+// Lehrgängen behalten wir den CV-Wortlaut. `verbatim` hält das Original.
 export type ProfileCertificationMention = {
 	name: string;
 	issuer?: string;
 	year?: string;
+	status?: "obtained" | "in_preparation" | "course_completed" | "unknown";
+	verbatim?: string;
 };
 
 export const candidateProfiles = pgTable("candidate_profiles", {
@@ -267,6 +290,23 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 	// Opaque token candidate can share to expose a read-only public profile
 	// at /p/<token>. Null = sharing disabled. Re-generated on revoke+enable.
 	publicShareToken: text("public_share_token").unique(),
+	// Original-Sprache des Profils — wird beim CV-Parse oder beim ersten
+	// Speichern gesetzt. Wird gebraucht um zu wissen welches Feld die
+	// "Quelle" ist und welches die Übersetzung.
+	profileLanguageOrigin: text("profile_language_origin", {
+		enum: ["de", "en"],
+	}),
+	// Übersetzte Felder in die "andere" Sprache. Wird im Hintergrund per
+	// AI gefüllt nach jedem Save. Form: { de?: ProfileTranslationFields,
+	// en?: ProfileTranslationFields }. Bei Anzeige in nicht-Origin-Locale
+	// werden die Felder von hier gemerged.
+	translations: jsonb("translations").$type<{
+		de?: ProfileTranslationFields;
+		en?: ProfileTranslationFields;
+	}>(),
+	translationsUpdatedAt: timestamp("translations_updated_at", {
+		mode: "date",
+	}),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
 

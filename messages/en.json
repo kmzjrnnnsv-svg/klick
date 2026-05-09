@@ -1011,7 +1011,12 @@
 			"industries": "Industries",
 			"awards": "Awards / publications",
 			"certificationsMentioned": "Certifications cited in CV",
-			"certificationsMentionedHint": "Mentioned in the CV body, not necessarily uploaded as a file in the vault."
+			"certificationsMentionedHint": "Official issuer wording where recognizable. Otherwise the CV's verbatim text. Not necessarily uploaded as a file.",
+			"certStatus": {
+				"in_preparation": "in preparation",
+				"course_completed": "course completed"
+			},
+			"certVerbatimHint": "Original wording from the CV"
 		}
 	},
 	"PublicProfile": {
