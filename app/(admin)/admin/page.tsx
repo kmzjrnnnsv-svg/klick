@@ -2,12 +2,15 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { listAuditActions, listAuditEntries } from "@/app/actions/admin";
+import {
+	getPlatformStats,
+	listAuditActions,
+	listAuditEntries,
+} from "@/app/actions/admin";
 import { auth } from "@/auth";
 import { AuditFilters } from "@/components/admin/audit-filters";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
-import { buttonVariants } from "@/components/ui/button";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 
@@ -36,43 +39,124 @@ export default async function AdminPage({
 		params.since === "30d"
 			? params.since
 			: undefined;
-	const [entries, actions] = await Promise.all([
+	const [entries, actions, stats] = await Promise.all([
 		listAuditEntries({
 			action: params.action || undefined,
 			q: params.q || undefined,
 			since,
 		}),
 		listAuditActions(),
+		getPlatformStats(),
 	]);
 
 	return (
 		<>
 			<Header />
 			<main className="mx-auto w-full max-w-4xl flex-1 px-3 pt-6 pb-20 sm:px-6 sm:pt-12">
-				<header className="mb-5 flex items-end justify-between gap-3 sm:mb-7">
-					<div>
-						<h1 className="font-semibold text-xl tracking-tight sm:text-3xl">
-							{t("title")}
-						</h1>
-						<p className="mt-1.5 text-muted-foreground text-sm leading-snug">
-							{t("subtitle")}
+				<header className="mb-5 sm:mb-7">
+					<h1 className="font-semibold text-xl tracking-tight sm:text-3xl">
+						{t("title")}
+					</h1>
+					<p className="mt-1.5 text-muted-foreground text-sm leading-snug">
+						{t("subtitle")}
+					</p>
+				</header>
+
+				<dl className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+					<div className="rounded-sm border border-border bg-background p-3">
+						<dt className="lv-eyebrow text-[0.5rem] text-muted-foreground">
+							{t("statUsers")}
+						</dt>
+						<dd className="mt-1 font-serif-display text-2xl">
+							{stats.users.total}
+						</dd>
+						<p className="mt-0.5 font-mono text-[9px] text-muted-foreground">
+							{stats.users.candidates}c · {stats.users.employers}e ·{" "}
+							{stats.users.admins}a
 						</p>
 					</div>
-					<div className="flex flex-wrap gap-2">
-						<Link
-							href="/admin/insights"
-							className={buttonVariants({ size: "sm", variant: "outline" })}
-						>
-							{t("insightsLink")}
-						</Link>
-						<Link
-							href="/admin/cms"
-							className={buttonVariants({ size: "sm", variant: "outline" })}
-						>
-							{t("cmsLink")}
-						</Link>
+					<div className="rounded-sm border border-border bg-background p-3">
+						<dt className="lv-eyebrow text-[0.5rem] text-muted-foreground">
+							{t("statCompanies")}
+						</dt>
+						<dd className="mt-1 font-serif-display text-2xl">
+							{stats.companies}
+						</dd>
+						<p className="mt-0.5 font-mono text-[9px] text-muted-foreground">
+							{stats.tenants} {t("tenants")}
+						</p>
 					</div>
-				</header>
+					<div className="rounded-sm border border-border bg-background p-3">
+						<dt className="lv-eyebrow text-[0.5rem] text-muted-foreground">
+							{t("statJobs")}
+						</dt>
+						<dd className="mt-1 font-serif-display text-2xl">
+							{stats.jobs.total}
+						</dd>
+						<p className="mt-0.5 font-mono text-[9px] text-muted-foreground">
+							{stats.jobs.published} {t("statPublished")}
+						</p>
+					</div>
+					<div className="rounded-sm border border-border bg-background p-3">
+						<dt className="lv-eyebrow text-[0.5rem] text-muted-foreground">
+							{t("statApplications")}
+						</dt>
+						<dd className="mt-1 font-serif-display text-2xl">
+							{stats.applications.total}
+						</dd>
+						<p className="mt-0.5 font-mono text-[9px] text-muted-foreground">
+							{stats.applications.open} {t("statOpen")}
+						</p>
+					</div>
+				</dl>
+
+				<nav className="mb-8 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+					<Link
+						href="/admin/users"
+						className="rounded-sm border border-border bg-background p-4 transition-colors hover:bg-muted/30"
+					>
+						<p className="font-medium text-sm">{t("navUsers")}</p>
+						<p className="mt-1 text-muted-foreground text-xs">
+							{t("navUsersHint")}
+						</p>
+					</Link>
+					<Link
+						href="/admin/companies"
+						className="rounded-sm border border-border bg-background p-4 transition-colors hover:bg-muted/30"
+					>
+						<p className="font-medium text-sm">{t("navCompanies")}</p>
+						<p className="mt-1 text-muted-foreground text-xs">
+							{t("navCompaniesHint")}
+						</p>
+					</Link>
+					<Link
+						href="/admin/processes"
+						className="rounded-sm border border-border bg-background p-4 transition-colors hover:bg-muted/30"
+					>
+						<p className="font-medium text-sm">{t("navProcesses")}</p>
+						<p className="mt-1 text-muted-foreground text-xs">
+							{t("navProcessesHint")}
+						</p>
+					</Link>
+					<Link
+						href="/admin/insights"
+						className="rounded-sm border border-border bg-background p-4 transition-colors hover:bg-muted/30"
+					>
+						<p className="font-medium text-sm">{t("insightsLink")}</p>
+						<p className="mt-1 text-muted-foreground text-xs">
+							{t("navInsightsHint")}
+						</p>
+					</Link>
+					<Link
+						href="/admin/cms"
+						className="rounded-sm border border-border bg-background p-4 transition-colors hover:bg-muted/30"
+					>
+						<p className="font-medium text-sm">{t("cmsLink")}</p>
+						<p className="mt-1 text-muted-foreground text-xs">
+							{t("navCmsHint")}
+						</p>
+					</Link>
+				</nav>
 
 				<section>
 					<h2 className="mb-2 font-medium text-sm">{t("auditTitle")}</h2>
@@ -122,15 +206,6 @@ export default async function AdminPage({
 					<p className="mt-3 text-muted-foreground text-xs">
 						{t("auditFootnote")}
 					</p>
-				</section>
-
-				<section className="mt-10">
-					<h2 className="mb-3 font-medium text-sm">{t("comingTitle")}</h2>
-					<ul className="space-y-1.5 text-muted-foreground text-sm">
-						<li>{t("comingDynamicRoutes")}</li>
-						<li>{t("comingTenants")}</li>
-						<li>{t("comingConnectors")}</li>
-					</ul>
 				</section>
 			</main>
 			<Footer />
