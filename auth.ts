@@ -2,6 +2,7 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { eq } from "drizzle-orm";
 import { after } from "next/server";
 import NextAuth, { type NextAuthConfig } from "next-auth";
+import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import { db } from "@/db";
 import {
 	accounts,
@@ -12,6 +13,17 @@ import {
 } from "@/db/schema";
 import { sendTransactionalMail } from "@/lib/mail/send";
 import { magicLinkEmail } from "@/lib/mail/templates";
+
+// Optionaler Microsoft-SSO. Wird nur registriert wenn Client-ID +
+// Secret + Tenant-ID per ENV gesetzt sind. Production-Setup:
+//   AZURE_AD_CLIENT_ID, AZURE_AD_CLIENT_SECRET, AZURE_AD_TENANT_ID
+// Im Azure Portal als Web-App registrieren mit Redirect-URL
+//   https://<deine-domain>/api/auth/callback/microsoft-entra-id
+export const isMicrosoftSsoEnabled = Boolean(
+	process.env.AZURE_AD_CLIENT_ID &&
+		process.env.AZURE_AD_CLIENT_SECRET &&
+		process.env.AZURE_AD_TENANT_ID,
+);
 
 // Auth.js wirft eine generische "Server error"-Seite, wenn
 // sendVerificationRequest throwt. Daher fangen wir hier alles ab —
@@ -80,7 +92,16 @@ export const authConfig = {
 		signIn: "/login",
 		verifyRequest: "/login/check-email",
 	},
-	providers: [emailProvider],
+	providers: isMicrosoftSsoEnabled
+		? [
+				emailProvider,
+				MicrosoftEntraID({
+					clientId: process.env.AZURE_AD_CLIENT_ID,
+					clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
+					issuer: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/v2.0`,
+				}),
+			]
+		: [emailProvider],
 	events: {
 		// Attach the default tenant to newly created users in dev.
 		// Production: read x-tenant-slug from the request context (proxy.ts).

@@ -224,6 +224,9 @@
 		"emailLabel": "Email address",
 		"emailPlaceholder": "you@example.com",
 		"submit": "Send magic link",
+		"or": "or",
+		"microsoftSso": "Sign in with Microsoft",
+		"microsoftSsoHint": "Single sign-on for company accounts (Microsoft 365 / Entra ID).",
 		"note": "In dev, the link appears in the server console.",
 		"demoTitle": "Demo logins",
 		"demoSubtitle": "Pick a role to enter the app from that perspective. Only visible because ENABLE_DEMO_LOGIN is set.",
@@ -1008,7 +1011,12 @@
 			"industries": "Industries",
 			"awards": "Awards / publications",
 			"certificationsMentioned": "Certifications cited in CV",
-			"certificationsMentionedHint": "Mentioned in the CV body, not necessarily uploaded as a file in the vault."
+			"certificationsMentionedHint": "Official issuer wording where recognizable. Otherwise the CV's verbatim text. Not necessarily uploaded as a file.",
+			"certStatus": {
+				"in_preparation": "in preparation",
+				"course_completed": "course completed"
+			},
+			"certVerbatimHint": "Original wording from the CV"
 		}
 	},
 	"PublicProfile": {

@@ -183,6 +183,13 @@
       "when": 1778344200327,
       "tag": "0025_magenta_the_fury",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1778354029673,
+      "tag": "0026_redundant_talon",
+      "breakpoints": true
     }
   ]
 }

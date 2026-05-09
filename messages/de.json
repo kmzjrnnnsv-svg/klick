@@ -224,6 +224,9 @@
 		"emailLabel": "E-Mail-Adresse",
 		"emailPlaceholder": "du@beispiel.de",
 		"submit": "Magic Link senden",
+		"or": "oder",
+		"microsoftSso": "Mit Microsoft anmelden",
+		"microsoftSsoHint": "Single-Sign-On für Unternehmens-Konten (Microsoft 365 / Entra ID).",
 		"note": "In der Entwicklungs-Umgebung erscheint der Link in der Server-Konsole.",
 		"demoTitle": "Demo-Zugänge",
 		"demoSubtitle": "Klick eine Rolle, um die App sofort aus dieser Sicht zu erleben. Nur sichtbar, weil ENABLE_DEMO_LOGIN aktiv ist.",
@@ -1008,7 +1011,12 @@
 			"industries": "Branchen",
 			"awards": "Auszeichnungen / Publikationen",
 			"certificationsMentioned": "Im CV erwähnte Zertifikate",
-			"certificationsMentionedHint": "Stehen so im Lebenslauf, sind aber nicht zwingend als Datei im Vault."
+			"certificationsMentionedHint": "Bezeichnung wie der Anbieter sie führt. Wenn nicht zuordenbar, bleibt der CV-Wortlaut. Nicht zwingend als Datei im Vault.",
+			"certStatus": {
+				"in_preparation": "in Vorbereitung",
+				"course_completed": "Lehrgang absolviert"
+			},
+			"certVerbatimHint": "Original-Wortlaut aus dem CV"
 		}
 	},
 	"PublicProfile": {

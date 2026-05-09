@@ -11,6 +11,8 @@ import type {
 	MatchAssessment,
 	MatchAssessmentInput,
 	MatchRationaleInput,
+	ProfileTranslationInput,
+	ProfileTranslationOutput,
 	SalaryBenchmark,
 	SalaryBenchmarkInput,
 	SuggestedJobRequirement,
@@ -111,14 +113,33 @@ const PROFILE_TOOL_SCHEMA = {
 			items: {
 				type: "object",
 				properties: {
-					name: { type: "string" },
-					issuer: { type: "string" },
+					name: {
+						type: "string",
+						description:
+							"OFFIZIELLE Bezeichnung wie der Anbieter sie nennt. Beispiele: 'ISO/IEC 27001:2022 Lead Implementer' (PECB), 'Microsoft Certified: Azure Administrator Associate' statt 'Microsoft Azure Administrator (AZ-104)', 'ITIL® 4 Foundation' statt 'ITIL V4'. Wenn die offizielle Bezeichnung NICHT eindeutig erkennbar ist, übernimm den Wortlaut aus dem CV unverändert — nicht raten.",
+					},
+					issuer: {
+						type: "string",
+						description:
+							"Offizieller Aussteller/Anbieter falls erkennbar (ISACA, PECB, Microsoft, AXELOS, ISC2, BSI, …). Leer lassen wenn nicht klar zuordenbar.",
+					},
 					year: { type: "string", description: "YYYY" },
+					status: {
+						type: "string",
+						enum: ["obtained", "in_preparation", "course_completed", "unknown"],
+						description:
+							"obtained = Prüfung bestanden / Zertifikat ausgestellt; in_preparation = Bewerber bereitet sich vor; course_completed = Lehrgang absolviert aber Prüfung nicht (oder noch nicht) abgelegt; unknown = nicht ableitbar.",
+					},
+					verbatim: {
+						type: "string",
+						description:
+							"Wortlaut wie er im CV steht — wird NUR gespeichert wenn der offizielle Name vom CV-Wortlaut abweicht. Hilft bei Zweifeln nachzuvollziehen woher die Normalisierung kam.",
+					},
 				},
 				required: ["name"],
 			},
 			description:
-				"Certifications cited in the CV body (the candidate may or may not have uploaded the file).",
+				"Certifications cited in the CV body (the candidate may or may not have uploaded the file). Normalisiere auf den offiziellen Anbieter-Wortlaut, falls erkennbar; sonst CV-Original behalten.",
 		},
 		mobility: {
 			type: "string",
@@ -208,6 +229,15 @@ export class ClaudeAIProvider implements AIProvider {
 								"- awards, prizes, talks, publications, certifications cited in the body\n" +
 								"- mobility preferences if explicitly stated (remote / hybrid X / relocation)\n" +
 								"- inferred role level (junior … exec) based on titles + years\n\n" +
+								"Zertifikats-Regel:\n" +
+								"  Verwende für `certificationsMentioned.name` die OFFIZIELLE Bezeichnung wie der Anbieter sie nennt, falls erkennbar. Beispiele:\n" +
+								"  - 'ISO 27001 Lead Implementer' → 'ISO/IEC 27001 Lead Implementer' + issuer 'PECB' (oder TÜV Rheinland je nach Kontext)\n" +
+								"  - 'Microsoft Azure Administrator (AZ-104)' → 'Microsoft Certified: Azure Administrator Associate' + issuer 'Microsoft'\n" +
+								"  - 'ITIL V4' → 'ITIL® 4 Foundation' (oder höhere Stufe wenn im CV) + issuer 'AXELOS / PeopleCert'\n" +
+								"  - 'CISM' → 'Certified Information Security Manager (CISM)' + issuer 'ISACA'\n" +
+								"  Wenn die offizielle Bezeichnung NICHT eindeutig zuordenbar ist (generische oder firmen-interne Lehrgänge), übernimm den Wortlaut aus dem CV UNVERÄNDERT und setze status='unknown'. Niemals raten.\n" +
+								"  Setze `status`: obtained / in_preparation / course_completed / unknown — basiert auf Worten wie 'absolviert', 'bestanden', 'in Vorbereitung', 'Lehrgang' im CV.\n" +
+								"  Setze `verbatim` mit dem Original-Wortlaut nur wenn `name` davon abweicht.\n\n" +
 								"Be conservative on identity / private fields: omit rather than guess.\n" +
 								"Write summary in the same language the CV uses.\n" +
 								"Call save_profile.",
@@ -455,13 +485,14 @@ export class ClaudeAIProvider implements AIProvider {
 						`Erstelle eine Kandidaten-Zusammenfassung für eine:n Arbeitgeber:in. Datenbasis (alles berechnet, keine Selbstbeschreibung):\n\n` +
 						`- Aktueller Titel: ${input.headline ?? "—"}\n` +
 						`- Selbst-Summary: ${input.summary?.slice(0, 400) ?? "—"}\n` +
-						`- Berufsjahre (aktiv): ${input.yearsActive}\n` +
+						`- GESAMT-Berufsjahre (inkl. aktueller Rolle, Stand ${input.asOf}): ${input.yearsActive}\n` +
+						`- Davon vor der aktuellen Rolle: ${input.previousYearsBeforeCurrent} Jahre\n` +
 						`- Längste durchgehende Phase: ${input.yearsContinuous} Jahre\n` +
 						`- Anzahl Stationen: ${input.totalRoles}\n` +
 						(input.currentRole
 							? `- Aktuelle Rolle: ${input.currentRole.role} bei ${input.currentRole.company} seit ${Math.round(
 									input.currentRole.monthsOngoing / 12,
-								)} Jahre\n`
+								)} Jahren (Teil der GESAMT-Jahre)\n`
 							: "") +
 						(input.firstJobYear
 							? `- Erster Job: ${input.firstJobYear}\n`
@@ -469,6 +500,12 @@ export class ClaudeAIProvider implements AIProvider {
 						`- Lücken im Werdegang: ${input.gaps}\n` +
 						`- Top-Skills: ${input.skills.slice(0, 8).join(", ") || "—"}\n` +
 						`- Zertifikate gesamt: ${input.certificateCount} (Muster: ${input.certificatePattern})\n\n` +
+						`WICHTIG zur Jahres-Semantik:\n` +
+						`  Die "GESAMT-Berufsjahre" enthalten die aktuelle Rolle bereits.\n` +
+						`  Wenn du sie erwähnst, schreibe "insgesamt X Jahre", NIEMALS "zuvor X Jahre".\n` +
+						`  Nur die "${input.previousYearsBeforeCurrent} Jahre vor der aktuellen Rolle" dürfen als "davor"/"zuvor" formuliert werden.\n` +
+						`  Beispiel richtig: "Seit 3 Jahren als ISO bei VDMA, davor 7 Jahre weitere IT-Erfahrung — insgesamt 10 Jahre."\n` +
+						`  Beispiel FALSCH: "Seit 3 Jahren als ISO, zuvor 10 Jahre IT-Erfahrung." (das würde 13 implizieren)\n\n` +
 						`Schreibe sachlich, ohne Floskeln. Keine "Teamplayer"-Phrasen ohne Beleg. Wenn Daten dünn sind, sag das. ` +
 						`Vermeide Wertungen wie "exzellent". Speichere via save_narrative.`,
 				},
@@ -920,6 +957,122 @@ Schema:
 			clarity: 50,
 			redFlags: [],
 			suggestions: [],
+		};
+	}
+
+	async translateProfile(
+		input: ProfileTranslationInput,
+	): Promise<ProfileTranslationOutput> {
+		if (input.from === input.to) {
+			return {
+				headline: input.headline ?? undefined,
+				summary: input.summary ?? undefined,
+				industries: input.industries ?? undefined,
+				skills: input.skills ?? undefined,
+				experience: input.experience
+					? input.experience.map((e) => ({
+							role: e.role,
+							description: e.description ?? undefined,
+						}))
+					: undefined,
+				education: input.education ?? undefined,
+				awards: input.awards ?? undefined,
+				mobility: input.mobility ?? undefined,
+			};
+		}
+
+		const targetLang = input.to === "de" ? "Deutsch" : "Englisch";
+		try {
+			const result = await this.client.messages.create({
+				model: "claude-sonnet-4-6",
+				max_tokens: 4096,
+				tools: [
+					{
+						name: "save_translation",
+						description: `Save the translated profile in ${targetLang}.`,
+						input_schema: {
+							type: "object" as const,
+							properties: {
+								headline: { type: "string" },
+								summary: { type: "string" },
+								industries: {
+									type: "array",
+									items: { type: "string" },
+								},
+								skills: {
+									type: "array",
+									items: {
+										type: "object",
+										properties: {
+											name: { type: "string" },
+											level: { type: "number" },
+										},
+										required: ["name"],
+									},
+								},
+								experience: {
+									type: "array",
+									items: {
+										type: "object",
+										properties: {
+											role: { type: "string" },
+											description: { type: "string" },
+										},
+										required: ["role"],
+									},
+								},
+								education: {
+									type: "array",
+									items: {
+										type: "object",
+										properties: { degree: { type: "string" } },
+										required: ["degree"],
+									},
+								},
+								awards: { type: "array", items: { type: "string" } },
+								mobility: { type: "string" },
+							},
+						},
+					},
+				],
+				tool_choice: { type: "tool", name: "save_translation" },
+				messages: [
+					{
+						role: "user",
+						content:
+							`Übersetze das folgende Kandidat:innen-Profil ins ${targetLang}.\n\n` +
+							`Regeln:\n` +
+							`- Eigennamen, Firmennamen, Personennamen, Standorte UNVERÄNDERT lassen.\n` +
+							`- Feststehende Bezeichnungen (ISO 27001, AWS, NIST CSF, AZ-104, ITIL, …) UNVERÄNDERT lassen.\n` +
+							`- Berufsbezeichnungen sinnvoll übersetzen (z.B. "Vertriebsleiter" ↔ "Sales Manager"), aber etablierte Anglizismen behalten ("Information Security Officer", "Product Owner").\n` +
+							`- Beschreibungstexte natürlich übersetzen — nicht wörtlich, aber faktentreu.\n` +
+							`- Skill-Levels nicht verändern.\n\n` +
+							`Quelle:\n${JSON.stringify(input, null, 2)}`,
+					},
+				],
+			});
+			const toolUse = result.content.find((b) => b.type === "tool_use");
+			if (toolUse?.type === "tool_use") {
+				return toolUse.input as ProfileTranslationOutput;
+			}
+		} catch (e) {
+			console.warn("[ai] translateProfile failed", e);
+		}
+		// Fallback: 1:1 zurückgeben, lieber nichts übersetzen als falsch.
+		return {
+			headline: input.headline ?? undefined,
+			summary: input.summary ?? undefined,
+			industries: input.industries ?? undefined,
+			skills: input.skills ?? undefined,
+			experience: input.experience
+				? input.experience.map((e) => ({
+						role: e.role,
+						description: e.description ?? undefined,
+					}))
+				: undefined,
+			education: input.education ?? undefined,
+			awards: input.awards ?? undefined,
+			mobility: input.mobility ?? undefined,
 		};
 	}
 }

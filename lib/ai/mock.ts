@@ -10,6 +10,8 @@ import type {
 	MatchAssessment,
 	MatchAssessmentInput,
 	MatchRationaleInput,
+	ProfileTranslationInput,
+	ProfileTranslationOutput,
 	SalaryBenchmark,
 	SalaryBenchmarkInput,
 	SuggestedJobRequirement,
@@ -176,20 +178,48 @@ export class MockAIProvider implements AIProvider {
 		const strengths: string[] = [];
 		if (input.skills[0]) strengths.push(`Kernstärke: ${input.skills[0]}`);
 		if (input.yearsActive >= 5)
-			strengths.push(`${input.yearsActive} Jahre Praxis`);
+			strengths.push(`Insgesamt ${input.yearsActive} Jahre Praxis`);
 		if (input.certificateCount > 0)
 			strengths.push(`${input.certificateCount} Zertifikate`);
 		if (strengths.length === 0) strengths.push("Solider Einstieg");
 
 		const role = input.currentRole?.role ?? input.headline ?? "Profi";
+		const currentRoleYears = input.currentRole
+			? Math.round(input.currentRole.monthsOngoing / 12)
+			: 0;
+		// Bewusst "insgesamt" statt "zuvor" — yearsActive enthält die
+		// aktuelle Rolle bereits.
 		const summary =
-			`${role} mit ${input.yearsActive} Jahren Berufserfahrung. ` +
-			`Mock-Narrative — setze ANTHROPIC_API_KEY für eine echte KI-Zusammenfassung.`;
+			currentRoleYears > 0 && input.previousYearsBeforeCurrent > 0
+				? `Seit ${currentRoleYears} Jahren als ${role}, davor ${input.previousYearsBeforeCurrent} Jahre weitere Berufserfahrung — insgesamt ${input.yearsActive} Jahre.`
+				: `${role} mit insgesamt ${input.yearsActive} Jahren Berufserfahrung.`;
 
 		return {
 			summary,
 			workStyle: tags.slice(0, 5),
 			strengths: strengths.slice(0, 4),
+		};
+	}
+
+	async translateProfile(
+		input: ProfileTranslationInput,
+	): Promise<ProfileTranslationOutput> {
+		// Mock-Provider übersetzt nicht — er gibt einfach die Eingabe 1:1
+		// zurück. Echte Übersetzung erfordert ANTHROPIC_API_KEY.
+		return {
+			headline: input.headline ?? undefined,
+			summary: input.summary ?? undefined,
+			industries: input.industries ?? undefined,
+			skills: input.skills ?? undefined,
+			experience: input.experience
+				? input.experience.map((e) => ({
+						role: e.role,
+						description: e.description ?? undefined,
+					}))
+				: undefined,
+			education: input.education ?? undefined,
+			awards: input.awards ?? undefined,
+			mobility: input.mobility ?? undefined,
 		};
 	}
 

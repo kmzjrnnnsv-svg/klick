@@ -28,9 +28,15 @@ export type ExtractedEducation = {
 };
 
 export type ExtractedCertificationMention = {
+	// Offizielle Anbieter-Bezeichnung wenn erkannt; sonst CV-Original.
 	name: string;
+	// Offizieller Aussteller (ISACA, PECB, Microsoft, AXELOS, ISC2, BSI, …).
 	issuer?: string;
 	year?: string;
+	status?: "obtained" | "in_preparation" | "course_completed" | "unknown";
+	// CV-Original-Wortlaut, nur gesetzt wenn `name` zur offiziellen
+	// Bezeichnung normalisiert wurde.
+	verbatim?: string;
 };
 
 export type ExtractedProfile = {
@@ -130,11 +136,23 @@ export type MatchRationaleInput = {
 // Holistic narrative shown to employers + the candidate. Built from the
 // already-computed deterministic insights (tenure, certs, gaps) plus the
 // raw profile text. Never echoes raw PII back — focuses on style/strengths.
+//
+// IMPORTANT — Jahres-Semantik:
+//   yearsActive          = GESAMT-Berufserfahrung inkl. der aktuellen Rolle.
+//   currentRoleYears     = wie lange der/die Bewerber:in in der aktuellen
+//                          Rolle ist (Teil von yearsActive).
+//   previousYearsBeforeCurrent = yearsActive - currentRoleYears.
+//                          Genau dieser Wert darf "zuvor X Jahre" formuliert
+//                          werden. yearsActive niemals als "zuvor".
+//   asOf                 = Datum auf das die Berechnung sich bezieht
+//                          (typischerweise heute), wird im Profil-Lesart
+//                          NICHT erwähnt — nur intern für Drift-Erkennung.
 export type CandidateNarrativeInput = {
 	headline: string | null;
 	summary: string | null;
 	yearsActive: number;
 	yearsContinuous: number;
+	previousYearsBeforeCurrent: number;
 	totalRoles: number;
 	currentRole?: { company: string; role: string; monthsOngoing: number };
 	firstJobYear?: number;
@@ -142,6 +160,7 @@ export type CandidateNarrativeInput = {
 	skills: string[];
 	certificateCount: number;
 	certificatePattern: "none" | "single" | "burst" | "steady" | "sparse";
+	asOf: string; // ISO yyyy-mm-dd
 };
 
 export type CandidateNarrative = {
@@ -274,7 +293,46 @@ export interface AIProvider {
 		salaryMax: number | null;
 		remotePolicy: string;
 	}): Promise<JobPostingQuality>;
+	// Übersetzt textuelle Profilinhalte in die andere Sprache (DE↔EN).
+	// Eigennamen, Firmen, Personennamen, Standorte und feststehende
+	// Skill-Bezeichnungen (ISO 27001, AWS, …) bleiben unverändert.
+	translateProfile(
+		input: ProfileTranslationInput,
+	): Promise<ProfileTranslationOutput>;
 }
+
+export type ProfileTranslationInput = {
+	from: "de" | "en";
+	to: "de" | "en";
+	headline?: string | null;
+	summary?: string | null;
+	industries?: string[] | null;
+	skills?: { name: string; level?: number }[] | null;
+	experience?:
+		| {
+				role: string;
+				description?: string | null;
+		  }[]
+		| null;
+	education?:
+		| {
+				degree: string;
+		  }[]
+		| null;
+	awards?: string[] | null;
+	mobility?: string | null;
+};
+
+export type ProfileTranslationOutput = {
+	headline?: string;
+	summary?: string;
+	industries?: string[];
+	skills?: { name: string; level?: number }[];
+	experience?: { role: string; description?: string }[];
+	education?: { degree: string }[];
+	awards?: string[];
+	mobility?: string;
+};
 
 // Shape returned by analyzeCareerProspects. Rich enough to power a
 // dedicated /profile section.

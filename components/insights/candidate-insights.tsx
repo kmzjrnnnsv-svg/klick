@@ -532,10 +532,20 @@ export function CandidateInsightsView({
 								<KvRow
 									label={t("extras.certificationsMentioned")}
 									value={
-										<ul className="space-y-0.5 text-xs">
+										<ul className="space-y-1 text-xs">
 											{profileExtras.certificationsMentioned.map((c) => (
 												<li key={`${c.name}:${c.issuer ?? ""}:${c.year ?? ""}`}>
-													{c.name}
+													<span className="text-foreground">{c.name}</span>
+													{c.status === "in_preparation" && (
+														<span className="ml-1 text-muted-foreground">
+															— {t("extras.certStatus.in_preparation")}
+														</span>
+													)}
+													{c.status === "course_completed" && (
+														<span className="ml-1 text-muted-foreground">
+															— {t("extras.certStatus.course_completed")}
+														</span>
+													)}
 													{c.issuer && (
 														<span className="text-muted-foreground">
 															{" "}
@@ -546,6 +556,14 @@ export function CandidateInsightsView({
 														<span className="text-muted-foreground">
 															{" "}
 															({c.year})
+														</span>
+													)}
+													{c.verbatim && c.verbatim !== c.name && (
+														<span
+															className="ml-1 font-mono text-[10px] text-muted-foreground/70"
+															title={t("extras.certVerbatimHint")}
+														>
+															· cv: „{c.verbatim}"
 														</span>
 													)}
 												</li>
