@@ -167,6 +167,57 @@ export async function getEmployer(): Promise<Employer | null> {
 	return e ?? null;
 }
 
+// Employer-Self-Service: Eigene Firmen-Daten bearbeiten. Anders als das
+// Onboarding-Form (das beim ersten Login durchläuft) ist das die Edit-
+// Variante, die jederzeit erreichbar ist.
+export async function updateOwnEmployer(
+	formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+	try {
+		const { userId } = await requireEmployerSession();
+		const [own] = await db
+			.select()
+			.from(employers)
+			.where(eq(employers.userId, userId))
+			.limit(1);
+		if (!own) return { ok: false, error: "Kein Unternehmen — erst onboarden." };
+
+		const companyName = String(formData.get("companyName") ?? "").trim();
+		if (!companyName) return { ok: false, error: "Bitte einen Firmennamen." };
+		const websiteRaw = String(formData.get("website") ?? "").trim();
+		const description =
+			String(formData.get("description") ?? "").trim() || null;
+		const isAgency = formData.get("isAgency") === "on";
+
+		let website: string | null = null;
+		if (websiteRaw) {
+			try {
+				const u = new URL(
+					websiteRaw.startsWith("http") ? websiteRaw : `https://${websiteRaw}`,
+				);
+				website = u.toString().replace(/\/$/, "");
+			} catch {
+				return { ok: false, error: "Website ist keine gültige URL." };
+			}
+		}
+
+		await db
+			.update(employers)
+			.set({ companyName, website, description, isAgency })
+			.where(eq(employers.id, own.id));
+
+		revalidatePath("/agency/profile");
+		revalidatePath("/jobs");
+		revalidatePath(`/c/${own.id}`);
+		return { ok: true };
+	} catch (e) {
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
+	}
+}
+
 export async function listJobs(): Promise<Job[]> {
 	const e = await getEmployer();
 	if (!e) return [];

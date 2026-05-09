@@ -37,6 +37,7 @@ export async function Header() {
 						label: t("groupActivity"),
 						links: [
 							{ href: "/offers", label: t("openOffers") },
+							{ href: "/agency/profile", label: t("openCompany") },
 							{ href: "/agency/team", label: t("openTeam") },
 							{ href: "/templates", label: t("openTemplates") },
 						],
