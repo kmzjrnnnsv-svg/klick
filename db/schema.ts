@@ -373,6 +373,18 @@ export const jobs = pgTable("jobs", {
 	first90DaysGoals: text("first_90_days_goals"),
 	// Cached job-posting quality assessment from AI.
 	postingQuality: jsonb("posting_quality"),
+	// Hiring-Process-Template, das beim Veröffentlichen nach `job_stages`
+	// kopiert wird. Null = Legacy-Pfad (klassische Status-Enum-Timeline).
+	templateId: text("template_id"),
+	// Ehrlichkeits-Flag aus dem Strategie-Plan: "open" = echte offene Stelle,
+	// "internal_preferred" = interner Kandidat ist im Rennen, "compliance_only"
+	// = Pflicht-Ausschreibung ohne realistische Chance. Wird Kandidaten als
+	// Badge gezeigt.
+	honestPostingFlag: text("honest_posting_flag", {
+		enum: ["open", "internal_preferred", "compliance_only"],
+	})
+		.notNull()
+		.default("open"),
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
@@ -1229,6 +1241,18 @@ export const applications = pgTable(
 		})
 			.notNull()
 			.default("submitted"),
+		// Aktueller Stage in `job_stages`. Null bei Legacy-Bewerbungen ohne
+		// Template — dann fällt die UI auf den klassischen Status zurück.
+		currentStageId: text("current_stage_id"),
+		// Zeitpunkt zu dem die Bewerbung in den aktuellen Stage gewechselt
+		// hat — Basis für den Drei-Zonen-Tracker.
+		stageEnteredAt: timestamp("stage_entered_at", { mode: "date" }),
+		// Forced-Closure-Deadline: nach 3 Monaten ohne Reaktion erscheint
+		// der Pflicht-Dialog beim nächsten Login des Arbeitgebers.
+		closureDeadlineAt: timestamp("closure_deadline_at", { mode: "date" }),
+		// Pflicht beim Status `declined`. Aus festem Katalog (REJECT_REASONS).
+		rejectReason: text("reject_reason"),
+		rejectFreeText: text("reject_free_text"),
 		profileSnapshot: jsonb("profile_snapshot")
 			.$type<ApplicationProfileSnapshot>()
 			.notNull(),
@@ -1255,9 +1279,14 @@ export const applicationEvents = pgTable("application_events", {
 		.notNull()
 		.references(() => applications.id, { onDelete: "cascade" }),
 	kind: text("kind", {
-		enum: ["status_change", "note", "system"],
+		enum: ["status_change", "stage_change", "note", "system", "message"],
 	}).notNull(),
 	status: text("status"),
+	// Bei stage_change: ID des Stages in den der Wechsel ging.
+	stageId: text("stage_id"),
+	// Pflicht-Outcome bei Stage-Wechsel ("advance" / "reject" / "on_hold").
+	outcome: text("outcome"),
+	rejectReason: text("reject_reason"),
 	byRole: text("by_role", { enum: ["candidate", "employer", "system"] })
 		.notNull()
 		.default("system"),
@@ -1269,3 +1298,221 @@ export const applicationEvents = pgTable("application_events", {
 });
 
 export type ApplicationEvent = typeof applicationEvents.$inferSelect;
+
+// ─── Hiring Process Templates ──────────────────────────────────────────────
+// Arbeitgeber definieren wiederverwendbare Stage-Templates ("Standard-DE",
+// "Tech-Senior", "Sales-EU"). Jede Vorlage hat geordnete Stages aus einem
+// festen Katalog (12 Typen). Beim Veröffentlichen einer Stelle wird die
+// Vorlage als unveränderlicher Snapshot in `job_stages` kopiert — spätere
+// Template-Änderungen rühren laufende Bewerbungen nicht an.
+export type StageKind =
+	| "application_received"
+	| "automated_screening"
+	| "recruiter_review"
+	| "hiring_manager_review"
+	| "phone_screen"
+	| "technical_assessment"
+	| "interview"
+	| "assessment_center"
+	| "reference_check"
+	| "offer_preparation"
+	| "offer_negotiation"
+	| "final_decision";
+
+export const STAGE_KINDS: StageKind[] = [
+	"application_received",
+	"automated_screening",
+	"recruiter_review",
+	"hiring_manager_review",
+	"phone_screen",
+	"technical_assessment",
+	"interview",
+	"assessment_center",
+	"reference_check",
+	"offer_preparation",
+	"offer_negotiation",
+	"final_decision",
+];
+
+// Pflicht-Outcomes pro Stage. "advance" = weiter zur nächsten Stage,
+// "reject" = abgelehnt (mit Pflicht-Reason aus festem Katalog),
+// "on_hold" = wartet auf Kandidat-Aktion / pausiert.
+export const STAGE_OUTCOMES = ["advance", "reject", "on_hold"] as const;
+export type StageOutcome = (typeof STAGE_OUTCOMES)[number];
+
+// Fester Katalog von Ablehnungs-Gründen. Pflicht beim "reject"-Outcome.
+// Verhindert Geister-Absagen und hält die Statistik vergleichbar.
+export const REJECT_REASONS = [
+	"not_qualified_skills",
+	"not_qualified_experience",
+	"salary_mismatch",
+	"location_mismatch",
+	"culture_mismatch",
+	"position_filled",
+	"position_canceled",
+	"internal_candidate",
+	"other",
+] as const;
+export type RejectReason = (typeof REJECT_REASONS)[number];
+
+export const hiringProcessTemplates = pgTable(
+	"hiring_process_templates",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		employerId: text("employer_id")
+			.notNull()
+			.references(() => employers.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		description: text("description"),
+		// Genau ein Default pro Employer — wird bei neuen Stellen vorausgewählt.
+		isDefault: boolean("is_default").notNull().default(false),
+		createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+	},
+	(t) => [
+		unique("hiring_process_templates_employer_name_unique").on(
+			t.employerId,
+			t.name,
+		),
+	],
+);
+
+export type HiringProcessTemplate = typeof hiringProcessTemplates.$inferSelect;
+
+// Blueprint-Stages eines Templates. Position bestimmt die Reihenfolge.
+// expectedDays + zoneOverride steuern den Drei-Zonen-Antwortzeit-Tracker
+// (angemessen / in_verzug / kritisch). Wenn null, gelten Branchen-Defaults.
+export const templateStages = pgTable("template_stages", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	templateId: text("template_id")
+		.notNull()
+		.references(() => hiringProcessTemplates.id, { onDelete: "cascade" }),
+	position: integer("position").notNull().default(0),
+	kind: text("kind", {
+		enum: [
+			"application_received",
+			"automated_screening",
+			"recruiter_review",
+			"hiring_manager_review",
+			"phone_screen",
+			"technical_assessment",
+			"interview",
+			"assessment_center",
+			"reference_check",
+			"offer_preparation",
+			"offer_negotiation",
+			"final_decision",
+		],
+	}).notNull(),
+	name: text("name").notNull(),
+	description: text("description"),
+	expectedDays: integer("expected_days"), // null = Default für Stage-Typ
+	responsibleRole: text("responsible_role", {
+		enum: ["recruiter", "hiring_manager", "team", "system"],
+	})
+		.notNull()
+		.default("recruiter"),
+	required: boolean("required").notNull().default(true),
+	materials: text("materials"), // freie Liste, eine Zeile pro Item
+});
+
+export type TemplateStage = typeof templateStages.$inferSelect;
+
+// Per-Stelle eingefrorene Stages. Beim Veröffentlichen kopiert. Diese Zeile
+// ist die "Source of Truth" für Bewerbungs-Status und die Timeline.
+export const jobStages = pgTable(
+	"job_stages",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		jobId: text("job_id")
+			.notNull()
+			.references(() => jobs.id, { onDelete: "cascade" }),
+		position: integer("position").notNull().default(0),
+		kind: text("kind", {
+			enum: [
+				"application_received",
+				"automated_screening",
+				"recruiter_review",
+				"hiring_manager_review",
+				"phone_screen",
+				"technical_assessment",
+				"interview",
+				"assessment_center",
+				"reference_check",
+				"offer_preparation",
+				"offer_negotiation",
+				"final_decision",
+			],
+		}).notNull(),
+		name: text("name").notNull(),
+		description: text("description"),
+		expectedDays: integer("expected_days"),
+		responsibleRole: text("responsible_role", {
+			enum: ["recruiter", "hiring_manager", "team", "system"],
+		})
+			.notNull()
+			.default("recruiter"),
+		required: boolean("required").notNull().default(true),
+		materials: text("materials"),
+	},
+	(t) => [unique("job_stages_position_unique").on(t.jobId, t.position)],
+);
+
+export type JobStage = typeof jobStages.$inferSelect;
+
+// Per-Stage-Bewerber-Bewertung. 4 Fragen (Klarheit / Respekt / Aufwand /
+// Antwortzeit) auf einer 1-5-Skala. Optionaler Freitext. Aggregiert ergibt
+// das öffentliche Company-Statistiken (ab Mindest-Bucket-Größe 10).
+export const stageRatings = pgTable(
+	"stage_ratings",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		applicationId: text("application_id")
+			.notNull()
+			.references(() => applications.id, { onDelete: "cascade" }),
+		jobStageId: text("job_stage_id")
+			.notNull()
+			.references(() => jobStages.id, { onDelete: "cascade" }),
+		candidateUserId: text("candidate_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		// 1..5; null = übersprungen.
+		clarity: integer("clarity"),
+		respect: integer("respect"),
+		effort: integer("effort"),
+		responseTime: integer("response_time"),
+		comment: text("comment"),
+		createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+	},
+	(t) => [unique("stage_ratings_unique").on(t.applicationId, t.jobStageId)],
+);
+
+export type StageRating = typeof stageRatings.$inferSelect;
+
+// Pro Bewerbung ein In-App-Thread. Beide Seiten dürfen schreiben sobald die
+// Bewerbung aktiv ist. Keine externen Mails, kein Lock-in beim Arbeitgeber.
+export const applicationMessages = pgTable("application_messages", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	applicationId: text("application_id")
+		.notNull()
+		.references(() => applications.id, { onDelete: "cascade" }),
+	byUserId: text("by_user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	byRole: text("by_role", { enum: ["candidate", "employer"] }).notNull(),
+	body: text("body").notNull(),
+	readAt: timestamp("read_at", { mode: "date" }),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type ApplicationMessage = typeof applicationMessages.$inferSelect;

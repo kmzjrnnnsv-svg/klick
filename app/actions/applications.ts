@@ -33,6 +33,28 @@ async function requireCandidate(): Promise<string> {
 	return session.user.id;
 }
 
+// Postgres meldet fehlende Tabellen / Spalten mit SQLSTATE 42P01 / 42703.
+// Wir mappen das auf eine Klartext-Botschaft, damit nicht der rohe Query
+// im UI landet wenn auf dem Server die Migration fehlt.
+function friendlyDbError(e: unknown): string | null {
+	const msg = e instanceof Error ? e.message : String(e);
+	const code =
+		typeof e === "object" && e !== null && "code" in e
+			? String((e as { code?: unknown }).code)
+			: "";
+	if (
+		code === "42P01" ||
+		/relation .* does not exist/i.test(msg) ||
+		/table .* does not exist/i.test(msg)
+	) {
+		return "Diese Funktion ist auf dem Server noch nicht aktiviert. Bitte 'pnpm db:migrate' ausführen.";
+	}
+	if (code === "42703" || /column .* does not exist/i.test(msg)) {
+		return "Schema veraltet. Bitte 'pnpm db:migrate' auf dem Server ausführen.";
+	}
+	return null;
+}
+
 async function requireEmployer(): Promise<{
 	userId: string;
 	employerId: string;
@@ -186,6 +208,8 @@ export async function submitApplication(input: {
 		return { ok: true, id: created.id };
 	} catch (e) {
 		console.error("[applications] submit failed", e);
+		const friendly = friendlyDbError(e);
+		if (friendly) return { ok: false, error: friendly };
 		return {
 			ok: false,
 			error: e instanceof Error ? e.message : "unbekannter Fehler",
@@ -235,6 +259,8 @@ export async function setApplicationStatus(input: {
 		return { ok: true };
 	} catch (e) {
 		console.error("[applications] set status failed", e);
+		const friendly = friendlyDbError(e);
+		if (friendly) return { ok: false, error: friendly };
 		return {
 			ok: false,
 			error: e instanceof Error ? e.message : "fehlgeschlagen",
@@ -326,26 +352,40 @@ export type ApplicationListEntry = {
 };
 
 export async function listMyApplications(): Promise<ApplicationListEntry[]> {
-	const userId = await requireCandidate();
-	const rows = await db
-		.select()
-		.from(applications)
-		.where(eq(applications.candidateUserId, userId))
-		.orderBy(desc(applications.createdAt));
-	return rows.map((r) => ({ application: r }));
+	try {
+		const userId = await requireCandidate();
+		const rows = await db
+			.select()
+			.from(applications)
+			.where(eq(applications.candidateUserId, userId))
+			.orderBy(desc(applications.createdAt));
+		return rows.map((r) => ({ application: r }));
+	} catch (e) {
+		if (friendlyDbError(e)) return [];
+		throw e;
+	}
 }
 
 export async function listApplicationsForJob(
 	jobId: string,
 ): Promise<Application[]> {
-	const { employerId } = await requireEmployer();
-	const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
-	if (!job || job.employerId !== employerId) return [];
-	return db
-		.select()
-		.from(applications)
-		.where(eq(applications.jobId, jobId))
-		.orderBy(desc(applications.createdAt));
+	try {
+		const { employerId } = await requireEmployer();
+		const [job] = await db
+			.select()
+			.from(jobs)
+			.where(eq(jobs.id, jobId))
+			.limit(1);
+		if (!job || job.employerId !== employerId) return [];
+		return await db
+			.select()
+			.from(applications)
+			.where(eq(applications.jobId, jobId))
+			.orderBy(desc(applications.createdAt));
+	} catch (e) {
+		if (friendlyDbError(e)) return [];
+		throw e;
+	}
 }
 
 export type ApplicationDetail = {

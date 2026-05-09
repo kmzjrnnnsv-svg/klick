@@ -34,6 +34,8 @@ const baseJob: Job = {
 	mustReasoning: null,
 	first90DaysGoals: null,
 	postingQuality: null,
+	templateId: null,
+	honestPostingFlag: "open",
 	createdAt: new Date(),
 	updatedAt: new Date(),
 };

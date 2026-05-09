@@ -4,11 +4,20 @@ import { getTranslations } from "next-intl/server";
 import { unreadCount } from "@/app/actions/notifications";
 import { auth } from "@/auth";
 import { HeaderMobileMenu } from "@/components/header-mobile-menu";
+import { HeaderNavDropdown } from "@/components/header-nav-dropdown";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { buttonVariants } from "@/components/ui/button";
 import { UserMenu } from "@/components/user-menu";
 import { cn } from "@/lib/utils";
+
+type NavLink = { href: string; label: string };
+type NavGroup = { label: string; links: NavLink[] };
+type NavItem = NavLink | NavGroup;
+
+function isGroup(item: NavItem): item is NavGroup {
+	return "links" in item;
+}
 
 export async function Header() {
 	const t = await getTranslations("Header");
@@ -20,27 +29,47 @@ export async function Header() {
 	const userEmail = session?.user?.email ?? null;
 	const userName = session?.user?.name ?? null;
 
-	const navLinks: { href: string; label: string }[] =
+	const navItems: NavItem[] =
 		role === "employer"
 			? [
 					{ href: "/jobs", label: t("openJobs") },
-					{ href: "/offers", label: t("openOffers") },
-					{ href: "/agency/team", label: t("openTeam") },
+					{
+						label: t("groupActivity"),
+						links: [
+							{ href: "/offers", label: t("openOffers") },
+							{ href: "/agency/team", label: t("openTeam") },
+						],
+					},
 				]
 			: role === "admin"
 				? [{ href: "/admin", label: t("openAdmin") }]
 				: role === "candidate"
 					? [
-							{ href: "/vault", label: t("openVault") },
-							{ href: "/profile", label: t("openProfile") },
-							{ href: "/matches", label: t("openMatches") },
 							{ href: "/jobs/browse", label: t("openBrowse") },
-							{ href: "/searches", label: t("openSearches") },
-							{ href: "/applications", label: t("openApplications") },
-							{ href: "/offers", label: t("openOffers") },
-							{ href: "/requests", label: t("openRequests") },
+							{ href: "/profile", label: t("openProfile") },
+							{
+								label: t("groupSearch"),
+								links: [
+									{ href: "/matches", label: t("openMatches") },
+									{ href: "/searches", label: t("openSearches") },
+									{ href: "/vault", label: t("openVault") },
+								],
+							},
+							{
+								label: t("groupActivity"),
+								links: [
+									{ href: "/applications", label: t("openApplications") },
+									{ href: "/offers", label: t("openOffers") },
+									{ href: "/requests", label: t("openRequests") },
+								],
+							},
 						]
 					: [];
+
+	// Mobile keeps the flat list — dropdowns expand inline.
+	const mobileLinks: NavLink[] = navItems.flatMap((it) =>
+		isGroup(it) ? it.links : [it],
+	);
 
 	let unread = 0;
 	if (isLoggedIn) {
@@ -61,17 +90,25 @@ export async function Header() {
 					>
 						{t("productName")}
 					</Link>
-					{navLinks.length > 0 && (
-						<nav className="hidden gap-5 sm:flex">
-							{navLinks.map((l) => (
-								<Link
-									key={l.href}
-									href={l.href}
-									className="lv-nav px-1 py-1 text-[0.7rem] text-muted-foreground transition-colors hover:text-foreground"
-								>
-									{l.label}
-								</Link>
-							))}
+					{navItems.length > 0 && (
+						<nav className="hidden items-center gap-5 sm:flex">
+							{navItems.map((it) =>
+								isGroup(it) ? (
+									<HeaderNavDropdown
+										key={it.label}
+										label={it.label}
+										links={it.links}
+									/>
+								) : (
+									<Link
+										key={it.href}
+										href={it.href}
+										className="lv-nav px-1 py-1 text-[0.7rem] text-muted-foreground transition-colors hover:text-foreground"
+									>
+										{it.label}
+									</Link>
+								),
+							)}
 						</nav>
 					)}
 				</div>
@@ -107,7 +144,7 @@ export async function Header() {
 						</Link>
 					)}
 					<HeaderMobileMenu
-						links={navLinks}
+						links={mobileLinks}
 						loginLabel={t("login")}
 						isLoggedIn={isLoggedIn}
 						openLabel={t("openMenu")}
