@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getEmployer } from "@/app/actions/jobs";
+import { listTemplates } from "@/app/actions/templates";
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
@@ -14,6 +15,12 @@ export default async function NewJobPage() {
 	if (!employer) redirect("/jobs");
 
 	const t = await getTranslations("Jobs");
+	let templates: Awaited<ReturnType<typeof listTemplates>> = [];
+	try {
+		templates = await listTemplates();
+	} catch (e) {
+		console.warn("[jobs/new] templates", e);
+	}
 	return (
 		<>
 			<Header />
@@ -26,7 +33,14 @@ export default async function NewJobPage() {
 						{t("editorHint")}
 					</p>
 				</header>
-				<JobForm initial={null} />
+				<JobForm
+					initial={null}
+					templates={templates.map((tt) => ({
+						id: tt.template.id,
+						name: tt.template.name,
+						isDefault: tt.template.isDefault,
+					}))}
+				/>
 			</main>
 			<Footer />
 		</>

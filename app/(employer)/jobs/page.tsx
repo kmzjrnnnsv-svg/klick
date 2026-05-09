@@ -1,9 +1,16 @@
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { getTranslations } from "next-intl/server";
+import {
+	listOverdueApplicationsForEmployer,
+	pruneGdprStaleApplications,
+} from "@/app/actions/applications";
 import { getEmployer, listJobs } from "@/app/actions/jobs";
+import { checkVolumeLock } from "@/app/actions/templates";
 import { auth } from "@/auth";
+import { ClosureBanner } from "@/components/applications/closure-banner";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { EmployerOnboarding } from "@/components/jobs/employer-onboarding";
@@ -44,7 +51,15 @@ export default async function JobsPage() {
 		);
 	}
 
-	const jobs = await listJobs();
+	const [jobs, overdue, lock] = await Promise.all([
+		listJobs(),
+		listOverdueApplicationsForEmployer(),
+		checkVolumeLock(employer.id),
+	]);
+
+	// DSGVO Lazy-Cron: Bei jedem Dashboard-Besuch nicht-blockierend
+	// stale Bewerbungen redacten (siehe ADR-007: after() statt pg-boss).
+	after(() => pruneGdprStaleApplications());
 
 	return (
 		<>
@@ -59,10 +74,18 @@ export default async function JobsPage() {
 							{t("subtitle")}
 						</p>
 					</div>
-					<Link href="/jobs/new" className={cn(buttonVariants({ size: "sm" }))}>
+					<Link
+						href="/jobs/new"
+						className={cn(
+							buttonVariants({ size: "sm" }),
+							lock.blocked && "pointer-events-none opacity-50",
+						)}
+						aria-disabled={lock.blocked}
+					>
 						{t("newJob")}
 					</Link>
 				</header>
+				<ClosureBanner overdue={overdue} blocked={lock.blocked} />
 				<JobsList jobs={jobs} />
 			</main>
 			<Footer />

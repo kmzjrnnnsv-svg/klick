@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
@@ -12,9 +12,10 @@ import { ApplyButton } from "@/components/applications/apply-button";
 import { AssessmentTaker } from "@/components/assessments/assessment-taker";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { JobProcessPreview } from "@/components/jobs/job-process-preview";
 import { JobQuestionThread } from "@/components/jobs/job-question-thread";
 import { db } from "@/db";
-import { employers, jobMandates, jobs } from "@/db/schema";
+import { employers, jobMandates, jobStages, jobs } from "@/db/schema";
 
 export default async function JobDetailPage({
 	params,
@@ -51,6 +52,13 @@ export default async function JobDetailPage({
 		.limit(1);
 	const mandate =
 		mandateRow && mandateRow.clientVisibility !== "private" ? mandateRow : null;
+
+	const stages = await db
+		.select()
+		.from(jobStages)
+		.where(eq(jobStages.jobId, id))
+		.orderBy(asc(jobStages.position))
+		.catch(() => [] as (typeof jobStages.$inferSelect)[]);
 
 	const publicQA = await listPublicQuestionsForJob(id);
 	let myQA: Awaited<ReturnType<typeof listMyQuestionsForJob>> = [];
@@ -100,6 +108,22 @@ export default async function JobDetailPage({
 					<h1 className="mt-3 font-serif-display text-3xl sm:text-5xl">
 						{job.title}
 					</h1>
+					{job.honestPostingFlag && job.honestPostingFlag !== "open" && (
+						<div
+							className={`mt-3 rounded-sm border px-3 py-2 text-xs ${
+								job.honestPostingFlag === "internal_preferred"
+									? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+									: "border-rose-500/40 bg-rose-500/10 text-rose-800 dark:text-rose-200"
+							}`}
+						>
+							<p className="font-mono text-[10px] uppercase tracking-wide">
+								{t(`honestFlag.${job.honestPostingFlag}.label`)}
+							</p>
+							<p className="mt-1 leading-relaxed">
+								{t(`honestFlag.${job.honestPostingFlag}.body`)}
+							</p>
+						</div>
+					)}
 					<div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground text-sm">
 						{job.location && <span>{job.location}</span>}
 						<span>{t(`remote.${job.remotePolicy}`)}</span>
@@ -158,6 +182,8 @@ export default async function JobDetailPage({
 						</ul>
 					</section>
 				)}
+
+				{stages.length > 0 && <JobProcessPreview stages={stages} />}
 
 				<section className="mb-10 flex flex-wrap items-center gap-3">
 					<ApplyButton jobId={id} />
