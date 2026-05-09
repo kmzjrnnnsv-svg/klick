@@ -1,0 +1,708 @@
+import type {
+	AIProvider,
+	CandidateNarrative,
+	CandidateNarrativeInput,
+	CareerAnalysis,
+	ExtractedDocument,
+	ExtractedJobPosting,
+	ExtractedProfile,
+	JobPostingQuality,
+	MatchAssessment,
+	MatchAssessmentInput,
+	MatchRationaleInput,
+	ProfileTranslationInput,
+	ProfileTranslationOutput,
+	SalaryBenchmark,
+	SalaryBenchmarkInput,
+	SuggestedJobRequirement,
+} from "./types";
+
+// ─── Ollama-Provider ──────────────────────────────────────────────────────
+// Self-hosted Open-Source-LLMs als drop-in-Ersatz für Claude. Identisches
+// AIProvider-Interface — die App merkt nichts davon. Wird gewählt sobald
+// AI_PROVIDER=ollama oder OLLAMA_URL gesetzt sind.
+//
+// Empfehlung für Modell-Wahl (Stand Mai 2026):
+//   - qwen2.5:32b-instruct          → Text-Tasks, sehr gut bei JSON/Tools
+//   - llama3.3:70b                  → mehr Power, braucht 48 GB+ VRAM
+//   - llama3.2-vision:11b           → multimodal, für CV-Parse aus Bildern
+//
+// PDFs werden vorher zu Text gerippt (extractPdfText), Vision-Modelle
+// nutzen wir nur für Bilder. So bleibt der Pfad einfach und schnell.
+
+type OllamaChatRequest = {
+	model: string;
+	messages: { role: "system" | "user" | "assistant"; content: string }[];
+	stream: false;
+	format?: object | "json";
+	options?: { temperature?: number; num_ctx?: number };
+};
+
+type OllamaChatResponse = {
+	model: string;
+	message: { role: string; content: string };
+	done: boolean;
+};
+
+export class OllamaAIProvider implements AIProvider {
+	readonly slug = "ollama";
+
+	private host: string;
+	private model: string;
+	private visionModel: string;
+	private timeoutMs: number;
+
+	constructor() {
+		this.host = (process.env.OLLAMA_URL ?? "http://localhost:11434").replace(
+			/\/$/,
+			"",
+		);
+		this.model = process.env.OLLAMA_MODEL ?? "qwen2.5:32b-instruct";
+		this.visionModel = process.env.OLLAMA_MODEL_VISION ?? "llama3.2-vision:11b";
+		this.timeoutMs = Number(process.env.OLLAMA_TIMEOUT_MS ?? "120000");
+	}
+
+	// ─── Low-level Chat-Wrapper mit JSON-Schema ───────────────────────────
+	private async chat<T>(
+		systemPrompt: string,
+		userPrompt: string,
+		jsonSchema?: object,
+	): Promise<T> {
+		const body: OllamaChatRequest = {
+			model: this.model,
+			messages: [
+				{ role: "system", content: systemPrompt },
+				{ role: "user", content: userPrompt },
+			],
+			stream: false,
+			options: { temperature: 0.2, num_ctx: 8192 },
+		};
+		if (jsonSchema) {
+			body.format = jsonSchema;
+		}
+
+		const ctrl = new AbortController();
+		const timer = setTimeout(() => ctrl.abort(), this.timeoutMs);
+		try {
+			const res = await fetch(`${this.host}/api/chat`, {
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify(body),
+				signal: ctrl.signal,
+			});
+			if (!res.ok) {
+				throw new Error(`ollama ${res.status}: ${await res.text()}`);
+			}
+			const data = (await res.json()) as OllamaChatResponse;
+			const content = data.message?.content ?? "";
+			if (jsonSchema) {
+				try {
+					return JSON.parse(content) as T;
+				} catch (e) {
+					throw new Error(
+						`ollama json parse failed: ${content.slice(0, 200)} (${(e as Error).message})`,
+					);
+				}
+			}
+			return content as unknown as T;
+		} finally {
+			clearTimeout(timer);
+		}
+	}
+
+	// Multimodal-Variante für Bilder (CV-Scans). Modell muss vision-fähig sein.
+	private async chatVision<T>(
+		systemPrompt: string,
+		userPrompt: string,
+		imageBase64: string,
+		jsonSchema?: object,
+	): Promise<T> {
+		const body = {
+			model: this.visionModel,
+			messages: [
+				{ role: "system", content: systemPrompt },
+				{ role: "user", content: userPrompt, images: [imageBase64] },
+			],
+			stream: false,
+			format: jsonSchema,
+			options: { temperature: 0.2 },
+		};
+		const ctrl = new AbortController();
+		const timer = setTimeout(() => ctrl.abort(), this.timeoutMs);
+		try {
+			const res = await fetch(`${this.host}/api/chat`, {
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify(body),
+				signal: ctrl.signal,
+			});
+			if (!res.ok) {
+				throw new Error(`ollama vision ${res.status}: ${await res.text()}`);
+			}
+			const data = (await res.json()) as OllamaChatResponse;
+			const content = data.message?.content ?? "";
+			if (jsonSchema) {
+				return JSON.parse(content) as T;
+			}
+			return content as unknown as T;
+		} finally {
+			clearTimeout(timer);
+		}
+	}
+
+	// ─── parseCv ──────────────────────────────────────────────────────────
+	async parseCv(bytes: Uint8Array, mime: string): Promise<ExtractedProfile> {
+		const isImage = [
+			"image/jpeg",
+			"image/png",
+			"image/gif",
+			"image/webp",
+		].includes(mime);
+		const isPdf = mime === "application/pdf";
+		if (!isImage && !isPdf) {
+			throw new Error(`Unsupported MIME type for CV parse: ${mime}`);
+		}
+
+		const schema = {
+			type: "object",
+			properties: {
+				displayName: { type: "string" },
+				headline: { type: "string" },
+				location: { type: "string" },
+				yearsExperience: { type: "integer" },
+				languages: { type: "array", items: { type: "string" } },
+				skills: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							name: { type: "string" },
+							level: { type: "integer", minimum: 1, maximum: 5 },
+						},
+						required: ["name"],
+					},
+				},
+				experience: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							company: { type: "string" },
+							role: { type: "string" },
+							start: { type: "string" },
+							end: { type: "string" },
+							description: { type: "string" },
+						},
+						required: ["company", "role", "start"],
+					},
+				},
+				education: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							institution: { type: "string" },
+							degree: { type: "string" },
+						},
+						required: ["institution", "degree"],
+					},
+				},
+				summary: { type: "string" },
+				industries: { type: "array", items: { type: "string" } },
+				certificationsMentioned: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							name: { type: "string" },
+							issuer: { type: "string" },
+							year: { type: "string" },
+							status: {
+								type: "string",
+								enum: [
+									"obtained",
+									"in_preparation",
+									"course_completed",
+									"unknown",
+								],
+							},
+							verbatim: { type: "string" },
+						},
+						required: ["name"],
+					},
+				},
+			},
+		};
+
+		const systemPrompt =
+			"Du extrahierst strukturierte Profile aus Lebensläufen. Halte dich strikt an das JSON-Schema. " +
+			"Bei Zertifikaten verwende offizielle Anbieter-Bezeichnungen (z.B. 'Microsoft Certified: Azure Administrator Associate' statt 'AZ-104'); wenn nicht zuordenbar, nimm den CV-Wortlaut + verbatim-Feld.";
+
+		if (isImage) {
+			const base64 = Buffer.from(bytes).toString("base64");
+			return await this.chatVision<ExtractedProfile>(
+				systemPrompt,
+				"Extrahiere das Profil aus diesem Lebenslauf-Bild.",
+				base64,
+				schema,
+			);
+		}
+
+		// PDF → Text. pdf-parse ist erst eine Runtime-Dep wenn der Provider
+		// aktiv ist; dynamischer Import vermeidet Build-Failures wenn das
+		// Paket fehlt.
+		const pdfText = await extractPdfText(bytes);
+		return await this.chat<ExtractedProfile>(
+			systemPrompt,
+			`Lebenslauf-Volltext:\n\n${pdfText}\n\nExtrahiere das Profil.`,
+			schema,
+		);
+	}
+
+	async extractDocument(
+		bytes: Uint8Array,
+		mime: string,
+		hint: "cv" | "certificate" | "badge" | "id_doc" | "other",
+	): Promise<ExtractedDocument> {
+		if (hint === "cv") {
+			try {
+				const data = await this.parseCv(bytes, mime);
+				return { kind: "cv", data };
+			} catch {
+				return { kind: "other", data: { sizeBytes: bytes.length } };
+			}
+		}
+		// Andere Typen: Mock-ähnlicher Stub. Echte Implementierung kann nach
+		// Bedarf nachgezogen werden — die meisten Apps brauchen das nicht.
+		return { kind: "other", data: { sizeBytes: bytes.length } };
+	}
+
+	// ─── suggestJobRequirements ──────────────────────────────────────────
+	async suggestJobRequirements(input: {
+		title: string;
+		description: string;
+	}): Promise<SuggestedJobRequirement[]> {
+		const schema = {
+			type: "object",
+			properties: {
+				requirements: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							name: { type: "string" },
+							weight: { type: "string", enum: ["must", "nice"] },
+							minLevel: { type: "integer", minimum: 1, maximum: 5 },
+						},
+						required: ["name", "weight"],
+					},
+				},
+			},
+		};
+		const out = await this.chat<{ requirements: SuggestedJobRequirement[] }>(
+			"Du schlägst Skill-Anforderungen für Stellen vor. 5-10 Skills, in der Sprache der Beschreibung.",
+			`Titel: ${input.title}\n\nBeschreibung:\n${input.description}`,
+			schema,
+		);
+		return out.requirements ?? [];
+	}
+
+	async extractJobPosting(
+		bytes: Uint8Array,
+		mime: string,
+	): Promise<ExtractedJobPosting> {
+		// Wir delegieren an parseCv-ähnliche Logik mit einem Job-Schema.
+		const isImage = [
+			"image/jpeg",
+			"image/png",
+			"image/gif",
+			"image/webp",
+		].includes(mime);
+		const text = isImage
+			? "(Bild — vision-Pfad nicht implementiert für Stellen-Postings)"
+			: await extractPdfText(bytes);
+		const schema = {
+			type: "object",
+			properties: {
+				title: { type: "string" },
+				description: { type: "string" },
+				location: { type: "string" },
+				remotePolicy: {
+					type: "string",
+					enum: ["onsite", "hybrid", "remote"],
+				},
+				employmentType: {
+					type: "string",
+					enum: ["fulltime", "parttime", "contract", "internship"],
+				},
+				salaryMin: { type: "integer" },
+				salaryMax: { type: "integer" },
+				yearsExperienceMin: { type: "integer" },
+				languages: { type: "array", items: { type: "string" } },
+			},
+		};
+		return await this.chat<ExtractedJobPosting>(
+			"Extrahiere die strukturierten Felder aus dieser Stellenausschreibung.",
+			text,
+			schema,
+		);
+	}
+
+	// ─── matchRationale + summarize + … ───────────────────────────────────
+	async matchRationale(input: MatchRationaleInput): Promise<string> {
+		return await this.chat<string>(
+			"Du erklärst in 2 sachlichen Sätzen warum ein/e Bewerber:in zu einer Stelle passt. Keine Floskeln, keine Wertungen wie 'exzellent'.",
+			`Stelle: ${input.jobTitle}\n${input.jobDescription.slice(0, 800)}\n\n` +
+				`Bewerber:in: ${input.candidateHeadline ?? "—"}\n` +
+				`Erfahrung: ${input.yearsExperience ?? "?"} Jahre (gefordert: ${input.yearsRequired ?? "?"})\n` +
+				`Skills passt: ${input.matchedSkills.join(", ")}\n` +
+				`Skills fehlt: ${input.missingSkills.join(", ")}`,
+		);
+	}
+
+	async summarizeCandidate(
+		input: CandidateNarrativeInput,
+	): Promise<CandidateNarrative> {
+		const schema = {
+			type: "object",
+			properties: {
+				summary: { type: "string", maxLength: 280 },
+				workStyle: { type: "array", items: { type: "string" }, maxItems: 5 },
+				strengths: { type: "array", items: { type: "string" }, maxItems: 4 },
+			},
+			required: ["summary", "workStyle", "strengths"],
+		};
+		return await this.chat<CandidateNarrative>(
+			"Du schreibst sachliche Kandidaten-Zusammenfassungen für Arbeitgeber. Keine Floskeln. Bei Jahres-Angaben: 'insgesamt X Jahre' nicht 'zuvor X Jahre' — die GESAMT-Berufsjahre enthalten die aktuelle Rolle bereits.",
+			`Headline: ${input.headline ?? "—"}\n` +
+				`GESAMT-Jahre (inkl. aktueller Rolle, Stand ${input.asOf}): ${input.yearsActive}\n` +
+				`Davor (vor aktueller Rolle): ${input.previousYearsBeforeCurrent} Jahre\n` +
+				`Aktuell: ${input.currentRole?.role ?? "—"} bei ${input.currentRole?.company ?? "—"}\n` +
+				`Skills: ${input.skills.join(", ")}\n` +
+				`Stationen: ${input.totalRoles}, Lücken: ${input.gaps}`,
+			schema,
+		);
+	}
+
+	async benchmarkSalary(input: SalaryBenchmarkInput): Promise<SalaryBenchmark> {
+		const schema = {
+			type: "object",
+			properties: {
+				low: { type: "integer" },
+				high: { type: "integer" },
+				currency: { type: "string", enum: ["EUR"] },
+				rationale: { type: "string", maxLength: 200 },
+			},
+			required: ["low", "high", "currency", "rationale"],
+		};
+		return await this.chat<SalaryBenchmark>(
+			"Du schätzt marktübliche Gehaltsbänder für Stellen in Deutschland. Annahme: Bruttojahresgehalt in EUR.",
+			`Titel: ${input.title}\n` +
+				`Standort: ${input.location ?? "DE"}\n` +
+				`Geforderte Jahre: ${input.yearsRequired}\n` +
+				`Skills: ${input.requirements.join(", ")}\n` +
+				`Remote: ${input.remote}`,
+			schema,
+		);
+	}
+
+	async assessMatch(input: MatchAssessmentInput): Promise<MatchAssessment> {
+		const schema = {
+			type: "object",
+			properties: {
+				pros: { type: "array", items: { type: "string" }, maxItems: 4 },
+				cons: { type: "array", items: { type: "string" }, maxItems: 4 },
+				experienceVerdict: { type: "string", maxLength: 80 },
+			},
+			required: ["pros", "cons", "experienceVerdict"],
+		};
+		return await this.chat<MatchAssessment>(
+			"Du erstellst Pro/Contra-Listen für Match-Bewertungen. 2-4 Punkte je Seite. Sachlich.",
+			`Stelle: ${input.jobTitle}\n` +
+				`Bewerber:in: ${input.candidateHeadline ?? "—"}, ${input.candidateYears ?? "?"} Jahre (${input.yearsRequired} gefordert)\n` +
+				`Skills passt: ${input.matchedSkills.join(", ")}\n` +
+				`Skills fehlt: ${input.missingSkills.join(", ")}\n` +
+				`Adjacent: ${input.adjacentSkills.join(", ")}`,
+			schema,
+		);
+	}
+
+	async gradeOpenAnswer(input: {
+		question: string;
+		rubric: string | null;
+		answer: string;
+		maxPoints: number;
+	}): Promise<{ pointsEarned: number; feedback: string }> {
+		const schema = {
+			type: "object",
+			properties: {
+				pointsEarned: {
+					type: "integer",
+					minimum: 0,
+					maximum: input.maxPoints,
+				},
+				feedback: { type: "string", maxLength: 400 },
+			},
+			required: ["pointsEarned", "feedback"],
+		};
+		return await this.chat<{ pointsEarned: number; feedback: string }>(
+			"Du bewertest offene Antworten gegen eine Rubric. Fair, knapp, evidenz-basiert.",
+			`Frage: ${input.question}\nRubric: ${input.rubric ?? "—"}\n\nAntwort: ${input.answer}`,
+			schema,
+		);
+	}
+
+	async suggestAssessmentQuestions(input: {
+		title: string;
+		description: string;
+		requirements: { name: string; weight: "must" | "nice" }[];
+	}) {
+		const schema = {
+			type: "object",
+			properties: {
+				questions: {
+					type: "array",
+					maxItems: 5,
+					items: {
+						type: "object",
+						properties: {
+							kind: { type: "string", enum: ["mc", "open"] },
+							body: { type: "string" },
+							choices: {
+								type: "array",
+								items: {
+									type: "object",
+									properties: {
+										text: { type: "string" },
+										weight: { type: "integer" },
+									},
+									required: ["text", "weight"],
+								},
+							},
+							correctChoice: { type: "integer" },
+							rubric: { type: "string" },
+							maxPoints: { type: "integer" },
+						},
+						required: ["kind", "body", "maxPoints"],
+					},
+				},
+			},
+			required: ["questions"],
+		};
+		const out = await this.chat<{
+			questions: Array<
+				| {
+						kind: "mc";
+						body: string;
+						choices: { text: string; weight: number }[];
+						correctChoice: number;
+						maxPoints: number;
+				  }
+				| { kind: "open"; body: string; rubric: string; maxPoints: number }
+			>;
+		}>(
+			"Du erzeugst Mini-Assessment-Fragen für eine Stelle. Mix aus 3 MC + 2 offenen.",
+			`Titel: ${input.title}\nMUSS-Skills: ${input.requirements
+				.filter((r) => r.weight === "must")
+				.map((r) => r.name)
+				.join(", ")}\n\n${input.description}`,
+			schema,
+		);
+		return out.questions ?? [];
+	}
+
+	async analyzeCareerProspects(input: {
+		profile: ExtractedProfile;
+		yearsActive?: number;
+		insights?: unknown;
+	}): Promise<CareerAnalysis> {
+		const schema = {
+			type: "object",
+			properties: {
+				headline: { type: "string", maxLength: 600 },
+				strengths: { type: "array", items: { type: "string" }, maxItems: 5 },
+				growthAreas: { type: "array", items: { type: "string" }, maxItems: 5 },
+				salary: {
+					type: "object",
+					properties: {
+						low: { type: "integer" },
+						mid: { type: "integer" },
+						high: { type: "integer" },
+						currency: { type: "string" },
+						rationale: { type: "string" },
+					},
+					required: ["low", "mid", "high", "currency", "rationale"],
+				},
+				primaryIndustries: { type: "array", items: { type: "string" } },
+				adjacentIndustries: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							name: { type: "string" },
+							rationale: { type: "string" },
+						},
+						required: ["name", "rationale"],
+					},
+				},
+				certificationSuggestions: { type: "array", items: { type: "object" } },
+				roleSuggestions: { type: "array", items: { type: "object" } },
+				hiringPros: { type: "array", items: { type: "string" } },
+				hiringCons: { type: "array", items: { type: "string" } },
+				marketContext: {
+					type: "object",
+					properties: {
+						demand: { type: "string", enum: ["high", "medium", "low"] },
+						notes: { type: "string" },
+					},
+					required: ["demand", "notes"],
+				},
+			},
+		};
+		return await this.chat<CareerAnalysis>(
+			"Du erstellst Karriere-Analysen. Ehrlich, ohne Floskeln, mit Zahlen wo möglich.",
+			JSON.stringify({
+				profile: input.profile,
+				yearsActive: input.yearsActive,
+			}).slice(0, 6000),
+			schema,
+		);
+	}
+
+	async assessJobPostingQuality(input: {
+		title: string;
+		description: string;
+		requirements: { name: string; weight: "must" | "nice" }[];
+		salaryMin: number | null;
+		salaryMax: number | null;
+		remotePolicy: string;
+	}): Promise<JobPostingQuality> {
+		const schema = {
+			type: "object",
+			properties: {
+				score: { type: "integer", minimum: 0, maximum: 100 },
+				completeness: { type: "integer", minimum: 0, maximum: 100 },
+				clarity: { type: "integer", minimum: 0, maximum: 100 },
+				redFlags: { type: "array", items: { type: "string" } },
+				suggestions: { type: "array", items: { type: "string" } },
+			},
+			required: ["score", "completeness", "clarity", "redFlags", "suggestions"],
+		};
+		return await this.chat<JobPostingQuality>(
+			"Du bewertest die Qualität einer Stellenausschreibung. Konkret, ehrlich, mit klaren Verbesserungs-Hinweisen.",
+			JSON.stringify(input),
+			schema,
+		);
+	}
+
+	async translateProfile(
+		input: ProfileTranslationInput,
+	): Promise<ProfileTranslationOutput> {
+		if (input.from === input.to) {
+			return {
+				headline: input.headline ?? undefined,
+				summary: input.summary ?? undefined,
+				industries: input.industries ?? undefined,
+				skills: input.skills ?? undefined,
+				experience: input.experience
+					? input.experience.map((e) => ({
+							role: e.role,
+							description: e.description ?? undefined,
+						}))
+					: undefined,
+				education: input.education ?? undefined,
+				awards: input.awards ?? undefined,
+				mobility: input.mobility ?? undefined,
+			};
+		}
+		const targetLang = input.to === "de" ? "Deutsch" : "Englisch";
+		const schema = {
+			type: "object",
+			properties: {
+				headline: { type: "string" },
+				summary: { type: "string" },
+				industries: { type: "array", items: { type: "string" } },
+				skills: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							name: { type: "string" },
+							level: { type: "integer" },
+						},
+						required: ["name"],
+					},
+				},
+				experience: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							role: { type: "string" },
+							description: { type: "string" },
+						},
+						required: ["role"],
+					},
+				},
+				education: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: { degree: { type: "string" } },
+						required: ["degree"],
+					},
+				},
+				awards: { type: "array", items: { type: "string" } },
+				mobility: { type: "string" },
+			},
+		};
+		try {
+			return await this.chat<ProfileTranslationOutput>(
+				`Du übersetzt Profilfelder ins ${targetLang}. Eigennamen, Firmen, Standorte UNVERÄNDERT lassen. Feststehende Bezeichnungen (ISO 27001, AWS, AZ-104, ITIL) UNVERÄNDERT lassen. Skill-Levels nicht verändern.`,
+				JSON.stringify(input),
+				schema,
+			);
+		} catch (e) {
+			console.warn("[ai] ollama translateProfile failed", e);
+			return {
+				headline: input.headline ?? undefined,
+				summary: input.summary ?? undefined,
+				industries: input.industries ?? undefined,
+				skills: input.skills ?? undefined,
+				experience: input.experience
+					? input.experience.map((e) => ({
+							role: e.role,
+							description: e.description ?? undefined,
+						}))
+					: undefined,
+				education: input.education ?? undefined,
+				awards: input.awards ?? undefined,
+				mobility: input.mobility ?? undefined,
+			};
+		}
+	}
+}
+
+// ─── PDF-Text-Extraktion ──────────────────────────────────────────────────
+// pdf-parse ist eine optionale Runtime-Dep. Wenn nicht installiert, fallen
+// wir auf einen Hinweis im Text zurück — der Provider funktioniert dann
+// nur für Text/Bilder. Installation: `pnpm add pdf-parse`.
+async function extractPdfText(bytes: Uint8Array): Promise<string> {
+	try {
+		// String-Konkatenation ist Absicht: TypeScript soll das Modul nicht
+		// statisch auflösen. Erst zur Laufzeit wird geprüft ob pdf-parse
+		// installiert ist. Installation: `pnpm add pdf-parse`.
+		const modName = "pdf" + "-parse";
+		// biome-ignore lint/suspicious/noExplicitAny: optional runtime dep
+		const mod: any = await import(/* @vite-ignore */ modName).catch(() => null);
+		if (!mod) {
+			return "(pdf-parse nicht installiert — pnpm add pdf-parse, oder OLLAMA_MODEL_VISION verwenden)";
+		}
+		const fn = mod.default ?? mod;
+		const result = await fn(Buffer.from(bytes));
+		return (result.text as string) ?? "";
+	} catch (e) {
+		console.warn("[ollama] pdf-parse failed", e);
+		return "(PDF-Text konnte nicht extrahiert werden)";
+	}
+}

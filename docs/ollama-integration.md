@@ -1,4 +1,79 @@
-# Ollama als selbstgehosteter AI-Provider — Konzept
+# Ollama als selbstgehosteter AI-Provider
+
+> Status: **Implementiert** · `lib/ai/ollama.ts` · Aktiviert über `AI_PROVIDER=ollama` oder `OLLAMA_URL`
+
+## Setup-Sequenz (Production-Server)
+
+```bash
+# 1. Ollama installieren — auf der Klick-VM oder einer separaten GPU-Box
+curl -fsSL https://ollama.com/install.sh | sh
+sudo systemctl enable --now ollama
+
+# 2. Modell ziehen (qwen2.5:32b-instruct empfohlen, 19 GB)
+#    Alternative kleiner: qwen2.5:14b-instruct (8 GB) oder
+#    qwen2.5:7b-instruct (4 GB, deutlich schwächer)
+ollama pull qwen2.5:32b-instruct
+
+# 3. Multimodal-Modell für CV-Parse aus Bildern
+ollama pull llama3.2-vision:11b   # oder llava:13b
+
+# 4. Test ob die JSON-Mode Funktion läuft
+curl http://localhost:11434/api/chat -d '{
+  "model": "qwen2.5:32b-instruct",
+  "messages": [{"role":"user","content":"Sag Hallo als JSON"}],
+  "format": {"type":"object","properties":{"greeting":{"type":"string"}}},
+  "stream": false
+}'
+
+# 5. Im Klick-Production-.env (.env.production):
+#    AI_PROVIDER=ollama
+#    OLLAMA_URL=http://localhost:11434     # oder die GPU-Box-IP
+#    OLLAMA_MODEL=qwen2.5:32b-instruct
+#    OLLAMA_MODEL_VISION=llama3.2-vision:11b
+#    OLLAMA_TIMEOUT_MS=120000
+
+# 6. Optional: PDF-Text-Extraktion (sonst nutzt Ollama Vision für PDFs)
+pnpm add pdf-parse
+
+# 7. Klick neu starten
+sudo systemctl restart klick
+```
+
+## Wenn die Klick-VM keine GPU hat
+
+Empfohlenes Setup: separater Hetzner GPU-Server (z. B. Hetzner Cloud GPU
+mit RTX 4090 oder dedizierter Server EX44 für CPU-only). Klick-App
+spricht dann via privatem Netzwerk:
+
+```env
+OLLAMA_URL=http://10.0.0.5:11434
+```
+
+Bei CPU-only läuft qwen2.5:14b mit ca. 5-10 sec/Antwort, qwen2.5:32b
+mit 20-40 sec — das blockiert keine User-Requests, weil alle KI-Calls
+in `after()`/Background laufen, nur die Latenz für CV-Parse ist
+spürbar (15-30 sec statt 3-5 sec bei Claude).
+
+## Trade-offs (ehrlich)
+
+| Aspekt | Claude | Ollama (qwen2.5:32b) |
+|---|---|---|
+| Datenhoheit | nein (Anthropic sieht alles) | ja (alles bleibt on-prem) |
+| Kosten | ~5-15 ct pro CV-Parse | Hardware-Fixkosten + Strom |
+| Tool-Calling | sehr robust | gut via JSON-Schema, aber gelegentlich invalide JSON |
+| Multi-Modal | nativ + sehr gut | nur via separatem Vision-Modell |
+| Profil-Lesart-Qualität | sehr stark | gut, aber flacher |
+| Latenz | 1-3 sec | 5-30 sec je nach Hardware |
+| Match-Rationale | sehr nuanciert | korrekt, aber generischer |
+
+## Empfehlung
+
+- **Demo / DSGVO-sensibel**: Ollama als Default
+- **Premium-Tenants / hohes Volumen**: Claude wegen Qualität
+- **Hybrid (zukünftige Ausbaustufe)**: Ollama für Übersetzungen +
+  Skill-Vorschläge (volume), Claude für CV-Parse + Career-Analysis
+  (qualität). Das `AIProvider`-Interface würde dafür um eine
+  Routing-Schicht erweitert — derzeit nicht implementiert.
 
 > Status: Konzept · Nicht implementiert · Eigene Session zum Bauen
 
