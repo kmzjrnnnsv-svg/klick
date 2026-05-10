@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, isNotNull, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -1087,4 +1087,455 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 		console.warn("[admin] getAdminAnalytics", e);
 		return empty;
 	}
+}
+
+// ─── Block / Unblock / Delete ─────────────────────────────────────────────
+// Sperren ist reversibel (blockedAt + Reason). Löschen ist irreversibel und
+// cascadiert via FK-onDelete. Beides nur für Admins.
+
+export async function blockUser(input: {
+	userId: string;
+	reason?: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	if (input.userId === adminId) {
+		return { ok: false, error: "Du kannst dich nicht selbst sperren." };
+	}
+	await db
+		.update(users)
+		.set({ blockedAt: new Date(), blockedReason: input.reason ?? null })
+		.where(eq(users.id, input.userId));
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "user.block",
+		target: input.userId,
+		payload: { reason: input.reason ?? null },
+	});
+	revalidatePath("/admin/users");
+	return { ok: true };
+}
+
+export async function unblockUser(
+	userId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	await db
+		.update(users)
+		.set({ blockedAt: null, blockedReason: null })
+		.where(eq(users.id, userId));
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "user.unblock",
+		target: userId,
+	});
+	revalidatePath("/admin/users");
+	return { ok: true };
+}
+
+export async function deleteUser(
+	userId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	if (userId === adminId) {
+		return { ok: false, error: "Du kannst dich nicht selbst löschen." };
+	}
+	const [target] = await db
+		.select({ email: users.email, role: users.role })
+		.from(users)
+		.where(eq(users.id, userId))
+		.limit(1);
+	if (!target) return { ok: false, error: "User nicht gefunden." };
+	// FK-Cascade kümmert sich um candidateProfiles, employers, applications,
+	// matches, interests, offers, etc. — alle hängen mit onDelete:'cascade'
+	// am users.id. Audit-Log NICHT cascadiert (actorUserId hat kein onDelete).
+	await db.delete(users).where(eq(users.id, userId));
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "user.delete",
+		target: userId,
+		payload: { email: target.email, role: target.role },
+	});
+	revalidatePath("/admin/users");
+	return { ok: true };
+}
+
+export async function blockEmployer(input: {
+	employerId: string;
+	reason?: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	await db
+		.update(employers)
+		.set({ blockedAt: new Date(), blockedReason: input.reason ?? null })
+		.where(eq(employers.id, input.employerId));
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "employer.block",
+		target: input.employerId,
+		payload: { reason: input.reason ?? null },
+	});
+	revalidatePath("/admin/companies");
+	return { ok: true };
+}
+
+export async function unblockEmployer(
+	employerId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	await db
+		.update(employers)
+		.set({ blockedAt: null, blockedReason: null })
+		.where(eq(employers.id, employerId));
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "employer.unblock",
+		target: employerId,
+	});
+	revalidatePath("/admin/companies");
+	return { ok: true };
+}
+
+export async function deleteEmployer(
+	employerId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	const [target] = await db
+		.select({ name: employers.companyName })
+		.from(employers)
+		.where(eq(employers.id, employerId))
+		.limit(1);
+	if (!target) return { ok: false, error: "Unternehmen nicht gefunden." };
+	await db.delete(employers).where(eq(employers.id, employerId));
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "employer.delete",
+		target: employerId,
+		payload: { companyName: target.name },
+	});
+	revalidatePath("/admin/companies");
+	return { ok: true };
+}
+
+// ─── Demo-Daten-Generator + Purge ────────────────────────────────────────
+// Erstellt eine Charge an Demo-Profilen und legt für jeden eine Bewerbung
+// an. Alles bekommt eine demoBatchId — ein Admin-Klick reicht zum
+// vollständigen Aufräumen.
+
+const DEMO_FIRST = [
+	"Anna",
+	"Lukas",
+	"Marie",
+	"Felix",
+	"Sophia",
+	"Jonas",
+	"Lena",
+	"Tobias",
+	"Hannah",
+	"Julian",
+	"Mia",
+	"Niklas",
+	"Emma",
+	"Paul",
+];
+const DEMO_LAST = [
+	"Müller",
+	"Schmidt",
+	"Becker",
+	"Wagner",
+	"Hoffmann",
+	"Schulz",
+	"Krause",
+	"Werner",
+	"Klein",
+	"Wolf",
+	"Neumann",
+	"Schwarz",
+];
+const DEMO_HEADLINES = [
+	"Senior Frontend Engineer",
+	"Backend Engineer (Node.js)",
+	"Product Designer",
+	"Engineering Manager",
+	"Data Engineer",
+	"DevOps Engineer",
+	"Mobile Engineer",
+	"Growth Marketing Manager",
+];
+const DEMO_SKILLS = [
+	"TypeScript",
+	"React",
+	"Next.js",
+	"Node.js",
+	"PostgreSQL",
+	"Python",
+	"AWS",
+	"Kubernetes",
+	"Tailwind CSS",
+	"Figma",
+	"GraphQL",
+	"Go",
+];
+const DEMO_LOCATIONS = [
+	"Berlin",
+	"Hamburg",
+	"München",
+	"Köln",
+	"Frankfurt",
+	"Leipzig",
+	"Wien",
+	"Zürich",
+];
+const DEMO_INDUSTRIES = ["Fintech", "SaaS", "E-Commerce", "HealthTech", "Mobility"];
+
+function pick<T>(arr: readonly T[], rng: () => number): T {
+	return arr[Math.floor(rng() * arr.length)];
+}
+
+// Deterministisches RNG damit re-runs reproduzierbar sind (gleicher Seed
+// = gleiche Demo-User, falls jemand in einem Loop testet).
+function makeRng(seed: string): () => number {
+	let h = 0;
+	for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+	return () => {
+		h = (h * 1103515245 + 12345) & 0x7fffffff;
+		return h / 0x7fffffff;
+	};
+}
+
+export type DemoGenResult = {
+	ok: true;
+	batchId: string;
+	candidatesCreated: number;
+	companyCreated: boolean;
+	jobsCreated: number;
+	applicationsCreated: number;
+};
+
+export async function generateDemoData(input: {
+	candidates?: number;
+	jobs?: number;
+}): Promise<DemoGenResult | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	const candidateCount = Math.min(Math.max(input.candidates ?? 8, 1), 50);
+	const jobCount = Math.min(Math.max(input.jobs ?? 4, 0), 20);
+	const batchId = `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+	const rng = makeRng(batchId);
+
+	const [tenant] = await db
+		.select({ id: tenants.id })
+		.from(tenants)
+		.where(eq(tenants.slug, "default"))
+		.limit(1);
+	if (!tenant) return { ok: false, error: "Default-Tenant nicht gefunden." };
+
+	let candidatesCreated = 0;
+	const createdUserIds: string[] = [];
+	for (let i = 0; i < candidateCount; i++) {
+		const first = pick(DEMO_FIRST, rng);
+		const last = pick(DEMO_LAST, rng);
+		const headline = pick(DEMO_HEADLINES, rng);
+		const location = pick(DEMO_LOCATIONS, rng);
+		const skills = Array.from(new Set([
+			pick(DEMO_SKILLS, rng),
+			pick(DEMO_SKILLS, rng),
+			pick(DEMO_SKILLS, rng),
+			pick(DEMO_SKILLS, rng),
+		])).map((name) => ({ name, level: 3 + Math.floor(rng() * 3) as 3 | 4 | 5 }));
+		const industries = [pick(DEMO_INDUSTRIES, rng)];
+		const years = 2 + Math.floor(rng() * 12);
+		const email = `demo-${batchId.slice(5, 13)}-${i}@klick.demo`;
+
+		const [u] = await db
+			.insert(users)
+			.values({
+				email,
+				name: `${first} ${last}`,
+				role: "candidate",
+				tenantId: tenant.id,
+				emailVerified: new Date(),
+				demoBatchId: batchId,
+			})
+			.returning({ id: users.id });
+		await db.insert(candidateProfiles).values({
+			userId: u.id,
+			displayName: `${first} ${last}`,
+			headline,
+			location,
+			yearsExperience: years,
+			languages: ["Deutsch", "Englisch"],
+			skills,
+			industries,
+			summary: `Demo-Kandidat:in mit Fokus auf ${headline.split(" ").slice(-2).join(" ")} und ${skills[0]?.name ?? "TypeScript"}. Generiert für Demo-Zwecke.`,
+			experience: [
+				{
+					company: pick(["Demo GmbH", "Beispiel AG", "Mock Studios"], rng),
+					role: headline,
+					start: `${2026 - Math.min(years, 5)}-01`,
+					description: `Aktuelle Rolle als ${headline}.`,
+					employmentType: "employee",
+				},
+			],
+			salaryMin: 50000 + years * 5000,
+			salaryDesired: 65000 + years * 6000,
+			onboardingCompletedAt: new Date(),
+			visibility: "matches_only",
+		});
+		createdUserIds.push(u.id);
+		candidatesCreated++;
+	}
+
+	// Demo-Company + Jobs
+	const companyEmail = `demo-${batchId.slice(5, 13)}-company@klick.demo`;
+	const [companyUser] = await db
+		.insert(users)
+		.values({
+			email: companyEmail,
+			name: "Demo Company",
+			role: "employer",
+			tenantId: tenant.id,
+			emailVerified: new Date(),
+			demoBatchId: batchId,
+		})
+		.returning({ id: users.id });
+	const [demoEmployer] = await db
+		.insert(employers)
+		.values({
+			userId: companyUser.id,
+			tenantId: tenant.id,
+			companyName: `Demo Studios ${batchId.slice(5, 11)}`,
+			description: "Generiertes Demo-Unternehmen für Showcase-Zwecke.",
+			demoBatchId: batchId,
+		})
+		.returning({ id: employers.id });
+
+	const jobIds: string[] = [];
+	let jobsCreated = 0;
+	for (let i = 0; i < jobCount; i++) {
+		const headline = pick(DEMO_HEADLINES, rng);
+		const requiredSkills = Array.from(
+			new Set([pick(DEMO_SKILLS, rng), pick(DEMO_SKILLS, rng), pick(DEMO_SKILLS, rng)]),
+		);
+		const [j] = await db
+			.insert(jobs)
+			.values({
+				employerId: demoEmployer.id,
+				title: `${headline} (Demo)`,
+				description: `Demo-Stelle für ${headline}. Diese Stelle wurde generiert um die Plattform-Funktionen zu zeigen.`,
+				location: pick(DEMO_LOCATIONS, rng),
+				remotePolicy: "hybrid",
+				employmentType: "fulltime",
+				salaryMin: 60000,
+				salaryMax: 95000,
+				yearsExperienceMin: 3,
+				languages: ["Deutsch", "Englisch"],
+				requirements: requiredSkills.map((name, idx) => ({
+					name,
+					weight: idx === 0 ? "must" : "nice",
+					minLevel: 3,
+				})) as { name: string; weight: "must" | "nice"; minLevel?: number }[],
+				status: "published",
+				demoBatchId: batchId,
+			})
+			.returning({ id: jobs.id });
+		jobIds.push(j.id);
+		jobsCreated++;
+	}
+
+	// Applications: jeder Demo-Kandidat bewirbt sich auf 1-2 zufällige Demo-Jobs.
+	let applicationsCreated = 0;
+	if (jobIds.length > 0) {
+		for (const userId of createdUserIds) {
+			const apps = 1 + Math.floor(rng() * 2);
+			const seen = new Set<string>();
+			for (let k = 0; k < apps; k++) {
+				const jobId = pick(jobIds, rng);
+				if (seen.has(jobId)) continue;
+				seen.add(jobId);
+				try {
+					await db.insert(applications).values({
+						jobId,
+						candidateUserId: userId,
+						status: pick(
+							["submitted", "in_review", "shortlist", "interview"],
+							rng,
+						) as "submitted",
+						coverLetter: `Demo-Anschreiben für die ausgeschriebene Stelle.`,
+					});
+					applicationsCreated++;
+				} catch {
+					// duplicate / FK race — ignorieren
+				}
+			}
+		}
+	}
+
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "demo.generate",
+		target: batchId,
+		payload: {
+			candidatesCreated,
+			jobsCreated,
+			applicationsCreated,
+		},
+	});
+	revalidatePath("/admin");
+	revalidatePath("/admin/users");
+	revalidatePath("/admin/companies");
+	revalidatePath("/admin/stats");
+
+	return {
+		ok: true,
+		batchId,
+		candidatesCreated,
+		companyCreated: true,
+		jobsCreated,
+		applicationsCreated,
+	};
+}
+
+export async function purgeDemoData(): Promise<{
+	ok: true;
+	deletedUsers: number;
+	deletedEmployers: number;
+	deletedJobs: number;
+}> {
+	const adminId = await requireAdmin();
+
+	// Reihenfolge wegen FK-cascading: Jobs (mit demoBatchId), dann Employers
+	// (mit demoBatchId), dann Users (mit demoBatchId). Cascade entsorgt den
+	// Rest (applications, matches, interests, offers, candidate_profiles).
+	const deletedJobs = await db
+		.delete(jobs)
+		.where(isNotNull(jobs.demoBatchId))
+		.returning({ id: jobs.id });
+	const deletedEmployers = await db
+		.delete(employers)
+		.where(isNotNull(employers.demoBatchId))
+		.returning({ id: employers.id });
+	const deletedUsers = await db
+		.delete(users)
+		.where(isNotNull(users.demoBatchId))
+		.returning({ id: users.id });
+
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "demo.purge",
+		payload: {
+			jobs: deletedJobs.length,
+			employers: deletedEmployers.length,
+			users: deletedUsers.length,
+		},
+	});
+	revalidatePath("/admin");
+	revalidatePath("/admin/users");
+	revalidatePath("/admin/companies");
+	revalidatePath("/admin/stats");
+
+	return {
+		ok: true,
+		deletedUsers: deletedUsers.length,
+		deletedEmployers: deletedEmployers.length,
+		deletedJobs: deletedJobs.length,
+	};
 }

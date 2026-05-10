@@ -48,6 +48,13 @@ export const users = pgTable("users", {
 		.notNull()
 		.default("de"),
 	encryptedDek: text("encrypted_dek"), // populated on first vault upload (P1)
+	// Admin sperrt einen Account: kein Login mehr möglich, Match-Engine
+	// blendet User aus. blockedReason ist Klartext für den Audit-Trail.
+	blockedAt: timestamp("blocked_at", { mode: "date" }),
+	blockedReason: text("blocked_reason"),
+	// Markierung für Demo-/Seed-Daten — erlaubt einen sauberen Bulk-Purge
+	// nachdem die Demo gezeigt wurde. Echte User haben das Feld auf null.
+	demoBatchId: text("demo_batch_id"),
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
@@ -447,6 +454,11 @@ export const employers = pgTable("employers", {
 	// Headhunter / Personalberatung. Same access rights as a regular employer
 	// for now; the flag drives onboarding copy + UI labels ("Im Auftrag von …").
 	isAgency: boolean("is_agency").notNull().default(false),
+	// Admin sperrt das Unternehmen: keine neuen Stellen mehr, bestehende
+	// werden im Browse versteckt.
+	blockedAt: timestamp("blocked_at", { mode: "date" }),
+	blockedReason: text("blocked_reason"),
+	demoBatchId: text("demo_batch_id"),
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
@@ -540,6 +552,7 @@ export const jobs = pgTable("jobs", {
 	})
 		.notNull()
 		.default("open"),
+	demoBatchId: text("demo_batch_id"),
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });

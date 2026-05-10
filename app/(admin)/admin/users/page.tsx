@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { listAllUsers } from "@/app/actions/admin";
 import { auth } from "@/auth";
+import { DemoDataPanel } from "@/components/admin/demo-data-panel";
+import { UserActions } from "@/components/admin/user-actions";
 import { UserRoleSelect } from "@/components/admin/user-role-select";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
@@ -75,6 +77,8 @@ export default async function AdminUsersPage({
 					</Link>
 				</header>
 
+				<DemoDataPanel />
+
 				<form className="mb-4 flex flex-wrap gap-2" action="/admin/users">
 					<input
 						type="search"
@@ -116,6 +120,10 @@ export default async function AdminUsersPage({
 									<th className="px-3 py-2 font-medium">{t("col.tenant")}</th>
 									<th className="px-3 py-2 font-medium">{t("col.locale")}</th>
 									<th className="px-3 py-2 font-medium">{t("col.created")}</th>
+									<th className="px-3 py-2 font-medium">{t("col.status")}</th>
+									<th className="px-3 py-2 font-medium text-right">
+										{t("col.actions")}
+									</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-border">
@@ -145,6 +153,31 @@ export default async function AdminUsersPage({
 										<td className="px-3 py-2">{u.locale}</td>
 										<td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">
 											{fmt.dateTime(u.createdAt, { dateStyle: "short" })}
+										</td>
+										<td className="px-3 py-2">
+											{u.blockedAt ? (
+												<span
+													className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 font-mono text-[10px] text-rose-700 dark:text-rose-300"
+													title={u.blockedReason ?? ""}
+												>
+													{t("status.blocked")}
+												</span>
+											) : u.demoBatchId ? (
+												<span className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 font-mono text-[10px] text-primary">
+													{t("status.demo")}
+												</span>
+											) : (
+												<span className="rounded-full bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] text-emerald-700 dark:text-emerald-300">
+													{t("status.active")}
+												</span>
+											)}
+										</td>
+										<td className="px-3 py-2 text-right">
+											<UserActions
+												userId={u.id}
+												isBlocked={!!u.blockedAt}
+												canActOn={u.id !== session.user?.id}
+											/>
 										</td>
 									</tr>
 								))}

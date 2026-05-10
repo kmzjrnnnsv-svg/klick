@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { listAllCompanies } from "@/app/actions/admin";
 import { auth } from "@/auth";
+import { EmployerActions } from "@/components/admin/employer-actions";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { buttonVariants } from "@/components/ui/button";
@@ -99,6 +100,16 @@ export default async function AdminCompaniesPage({
 														{t("agency")}
 													</span>
 												)}
+												{c.blockedAt && (
+													<span className="rounded-sm bg-rose-500/10 px-2 py-0.5 font-mono text-[10px] text-rose-700 uppercase dark:text-rose-300">
+														{t("blocked")}
+													</span>
+												)}
+												{c.demoBatchId && (
+													<span className="rounded-sm bg-primary/10 px-2 py-0.5 font-mono text-[10px] text-primary uppercase">
+														{t("demo")}
+													</span>
+												)}
 											</div>
 											<p className="mt-1 text-muted-foreground text-xs">
 												{c.ownerEmail ?? "—"}
@@ -119,6 +130,12 @@ export default async function AdminCompaniesPage({
 										</div>
 									</div>
 								</Link>
+								<div className="border-border border-t px-4 py-2">
+									<EmployerActions
+										employerId={c.id}
+										isBlocked={!!c.blockedAt}
+									/>
+								</div>
 							</li>
 						))}
 					</ul>

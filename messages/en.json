@@ -562,12 +562,30 @@
 			"role": "Role",
 			"tenant": "Tenant",
 			"locale": "Locale",
-			"created": "Created"
+			"created": "Created",
+			"status": "Status",
+			"actions": "Actions"
 		},
 		"role": {
 			"candidate": "Candidate",
 			"employer": "Employer",
 			"admin": "Admin"
+		},
+		"status": {
+			"active": "active",
+			"blocked": "blocked",
+			"demo": "demo"
+		},
+		"actions": {
+			"block": "Block",
+			"unblock": "Unblock",
+			"delete": "Delete",
+			"self": "(you)",
+			"blocked": "blocked",
+			"unblocked": "unblocked",
+			"deleted": "deleted",
+			"blockReason": "Reason for blocking? (optional, kept in audit log)",
+			"deleteConfirm": "Really delete this user? Profile data, applications and history will go with it. Not reversible."
 		},
 		"footnote": "{count} users total. You can't change your own role here (safety lock).",
 		"emailLabel": "Email",
@@ -590,6 +608,18 @@
 		"search": "Search",
 		"empty": "No companies for this query.",
 		"agency": "Agency",
+		"blocked": "blocked",
+		"demo": "demo",
+		"actions": {
+			"block": "Block",
+			"unblock": "Unblock",
+			"delete": "Delete",
+			"blocked": "blocked",
+			"unblocked": "unblocked",
+			"deleted": "deleted",
+			"blockReason": "Reason for blocking? (optional, kept in audit log)",
+			"deleteConfirm": "Really delete this company? Jobs, applications and matches will be removed. Not reversible."
+		},
 		"jobs": "Jobs (pub./total)",
 		"footnote": "{count} companies.",
 		"companyNameLabel": "Company name",
@@ -614,6 +644,17 @@
 		"statJobs": "Jobs",
 		"statApplications": "Applications",
 		"statTemplates": "Templates"
+	},
+	"AdminDemo": {
+		"title": "Demo data",
+		"subtitle": "Generates users + jobs + applications tagged 'demo' — perfect for showcasing. 'Purge demo' removes everything, cascading to matches/interests/offers.",
+		"candidates": "Candidates",
+		"jobs": "Jobs",
+		"generate": "Generate demo data",
+		"purge": "Purge all demo data",
+		"purgeConfirm": "Really delete all demo data? Real users stay.",
+		"generated": "✓ {candidates} candidates + {jobs} jobs + {applications} applications created.",
+		"purged": "✓ Cleaned up: {users} users, {employers} companies, {jobs} jobs removed."
 	},
 	"AdminProcesses": {
 		"backToAdmin": "Admin",
@@ -1653,6 +1694,13 @@
 		"submitting": "Sending…",
 		"cancel": "Cancel",
 		"close": "Close",
+		"stepProfile": "Snapshotting profile",
+		"stepSave": "Saving application",
+		"stepMatchUpdate": "Updating match score",
+		"stepRedirect": "Wrapping up",
+		"successTitle": "Application submitted",
+		"successHint": "You'll get a notification when the employer responds. Track status on the detail page.",
+		"successRedirect": "Redirecting…",
 		"listEyebrow": "My history",
 		"listTitle": "My applications",
 		"listSubtitle": "All applications you ever sent — with snapshot, status and timeline. Click in for details.",

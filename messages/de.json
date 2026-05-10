@@ -562,12 +562,30 @@
 			"role": "Rolle",
 			"tenant": "Tenant",
 			"locale": "Sprache",
-			"created": "Erstellt"
+			"created": "Erstellt",
+			"status": "Status",
+			"actions": "Aktionen"
 		},
 		"role": {
 			"candidate": "Kandidat:in",
 			"employer": "Arbeitgeber",
 			"admin": "Admin"
+		},
+		"status": {
+			"active": "aktiv",
+			"blocked": "gesperrt",
+			"demo": "demo"
+		},
+		"actions": {
+			"block": "Sperren",
+			"unblock": "Freigeben",
+			"delete": "Löschen",
+			"self": "(eigener)",
+			"blocked": "gesperrt",
+			"unblocked": "freigegeben",
+			"deleted": "gelöscht",
+			"blockReason": "Grund für die Sperre? (optional, aber wird im Audit-Log gespeichert)",
+			"deleteConfirm": "User wirklich löschen? Alle Profil-Daten, Bewerbungen und Verläufe gehen mit. Nicht rückgängig machbar."
 		},
 		"footnote": "{count} User insgesamt. Eigene Rolle kannst du hier nicht ändern (Sicherheits-Lock).",
 		"emailLabel": "E-Mail",
@@ -590,6 +608,18 @@
 		"search": "Suchen",
 		"empty": "Keine Unternehmen mit dieser Suche.",
 		"agency": "Agentur",
+		"blocked": "gesperrt",
+		"demo": "demo",
+		"actions": {
+			"block": "Sperren",
+			"unblock": "Freigeben",
+			"delete": "Löschen",
+			"blocked": "gesperrt",
+			"unblocked": "freigegeben",
+			"deleted": "gelöscht",
+			"blockReason": "Grund für die Sperre? (optional, aber wird im Audit-Log gespeichert)",
+			"deleteConfirm": "Unternehmen wirklich löschen? Stellen, Bewerbungen, Matches gehen mit. Nicht rückgängig machbar."
+		},
 		"jobs": "Stellen (publ./gesamt)",
 		"footnote": "{count} Unternehmen.",
 		"companyNameLabel": "Firmenname",
@@ -614,6 +644,17 @@
 		"statJobs": "Stellen",
 		"statApplications": "Bewerbungen",
 		"statTemplates": "Templates"
+	},
+	"AdminDemo": {
+		"title": "Demo-Daten",
+		"subtitle": "Generiert User + Stellen + Bewerbungen mit Markierung 'demo' — perfekt für Showcase. 'Demo löschen' entfernt alles wieder, samt Cascade auf Matches/Interests/Offers.",
+		"candidates": "Kandidat:innen",
+		"jobs": "Stellen",
+		"generate": "Demo-Daten generieren",
+		"purge": "Alle Demo-Daten löschen",
+		"purgeConfirm": "Wirklich alle Demo-Daten löschen? Echte User bleiben.",
+		"generated": "✓ {candidates} Kandidat:innen + {jobs} Stellen + {applications} Bewerbungen angelegt.",
+		"purged": "✓ Aufgeräumt: {users} User, {employers} Unternehmen, {jobs} Stellen entfernt."
 	},
 	"AdminProcesses": {
 		"backToAdmin": "Admin",
@@ -1653,6 +1694,13 @@
 		"submitting": "Sende…",
 		"cancel": "Abbrechen",
 		"close": "Schließen",
+		"stepProfile": "Profil-Snapshot erstellen",
+		"stepSave": "Bewerbung speichern",
+		"stepMatchUpdate": "Match-Score aktualisieren",
+		"stepRedirect": "Fertig stellen",
+		"successTitle": "Bewerbung eingereicht",
+		"successHint": "Du bekommst eine Notification, sobald der Arbeitgeber sich meldet. Status verfolgst du auf der Detail-Seite.",
+		"successRedirect": "Leite weiter…",
 		"listEyebrow": "Mein Verlauf",
 		"listTitle": "Meine Bewerbungen",
 		"listSubtitle": "Alle Bewerbungen, die du je geschickt hast — mit Snapshot, Status und Zeitlinie. Klick rein für Details.",
