@@ -88,7 +88,7 @@ const PROFILE_TOOL_SCHEMA = {
 					degree: {
 						type: "string",
 						description:
-							"Studien-/Ausbildungs-Bezeichnung OHNE Status-Zusätze. NICHT '(ohne Abschluss)' oder ähnliches in den Titel schreiben — dafür `completed=false` setzen.",
+							"Studien-/Ausbildungs-Bezeichnung OHNE Status-Zusätze. NICHT '(ohne Abschluss)' in den Titel schreiben — dafür `completed=false` setzen.",
 					},
 					start: { type: "string" },
 					end: { type: "string" },
@@ -97,9 +97,129 @@ const PROFILE_TOOL_SCHEMA = {
 						description:
 							"true wenn der/die Bewerber:in den Abschluss erlangt hat. false wenn der CV 'abgebrochen', 'ohne Abschluss', 'kein Abschluss', 'nicht abgeschlossen', 'discontinued' o.Ä. nennt. Im Zweifel true. Niemals raten.",
 					},
+					degreeType: {
+						type: "string",
+						enum: [
+							"school",
+							"apprenticeship",
+							"bachelor",
+							"master",
+							"phd",
+							"mba",
+							"other",
+						],
+						description:
+							"Klassifiziere den Abschluss-Typ: school = Abitur/Realschule, apprenticeship = duale Ausbildung/Lehre, bachelor / master / phd / mba selbsterklärend, other für alles andere (Diplom, Magister, Berufsfachschule).",
+					},
+					grade: {
+						type: "string",
+						maxLength: 60,
+						description:
+							"Abschlussnote / Endnote falls im CV genannt. Beispiele: '1,7', '2:1 (Honours)', 'summa cum laude', 'distinction', 'GPA 3.8'. Originalformat behalten. Nichts raten.",
+					},
+					thesisTitle: {
+						type: "string",
+						maxLength: 300,
+						description:
+							"Titel der Abschluss-/Bachelor-/Master-/Doktorarbeit, falls im CV genannt. Vollständig übernehmen.",
+					},
+					focus: {
+						type: "string",
+						maxLength: 200,
+						description:
+							"Schwerpunkt / Vertiefungsrichtung / Modul-Schwerpunkt, falls im CV genannt. Z.B. 'Maschinelles Lernen, Verteilte Systeme'.",
+					},
 				},
 				required: ["institution", "degree"],
 			},
+		},
+		publications: {
+			type: "array",
+			items: {
+				type: "object",
+				properties: {
+					title: { type: "string" },
+					year: { type: "string" },
+					kind: {
+						type: "string",
+						enum: ["article", "talk", "patent", "book", "other"],
+					},
+					venue: { type: "string" },
+					url: { type: "string" },
+				},
+				required: ["title"],
+			},
+			description:
+				"Veröffentlichungen, Vorträge, Patente, Bücher. Eines pro Eintrag mit Titel + Jahr (falls bekannt). Nur was im CV explizit genannt wird.",
+		},
+		projects: {
+			type: "array",
+			items: {
+				type: "object",
+				properties: {
+					name: { type: "string" },
+					role: { type: "string" },
+					url: { type: "string" },
+					description: { type: "string", maxLength: 500 },
+				},
+				required: ["name"],
+			},
+			description:
+				"Open-Source-Projekte, Side Projects, GitHub-Projekte mit eigener Beteiligung. Nicht jede Erfahrung — nur Projekte, die separat aufgeführt sind.",
+		},
+		volunteering: {
+			type: "array",
+			items: {
+				type: "object",
+				properties: {
+					organization: { type: "string" },
+					role: { type: "string" },
+					start: { type: "string", description: "YYYY-MM" },
+					end: { type: "string", description: "YYYY-MM or 'present'" },
+					description: { type: "string", maxLength: 500 },
+				},
+				required: ["organization", "role"],
+			},
+			description:
+				"Ehrenamtliche Tätigkeiten / Engagement (Vereine, NGOs, Hochschulgremien, Mentor:innen-Programme).",
+		},
+		drivingLicenses: {
+			type: "array",
+			items: { type: "string", maxLength: 8 },
+			description:
+				"Führerschein-Klassen wie 'B', 'BE', 'C1', 'A2'. Falls im CV unter 'Führerschein' / 'Driving License' genannt.",
+		},
+		availability: {
+			type: "object",
+			properties: {
+				status: {
+					type: "string",
+					enum: ["immediate", "notice", "date", "unknown"],
+					description:
+						"immediate = sofort verfügbar; notice = Kündigungsfrist (noticeWeeks setzen); date = ab konkretem Datum (availableFrom setzen); unknown = nicht aus dem CV ableitbar.",
+				},
+				noticeWeeks: { type: "integer", minimum: 0, maximum: 52 },
+				availableFrom: { type: "string", description: "YYYY-MM-DD" },
+			},
+			description:
+				"Verfügbarkeit / Kündigungsfrist. Nur ausfüllen wenn der CV es klar nennt.",
+		},
+		socialLinks: {
+			type: "object",
+			properties: {
+				github: { type: "string" },
+				linkedin: { type: "string" },
+				xing: { type: "string" },
+				website: { type: "string" },
+			},
+			description:
+				"Profil-/Portfolio-URLs aus dem CV-Header. Vollständige URLs mit Schema (https://).",
+		},
+		workPermitStatus: {
+			type: "string",
+			enum: ["eu", "permit", "requires_sponsorship", "unknown"],
+			description:
+				"eu = EU-/EWR-Bürger:in; permit = bestehende Aufenthalts-/Arbeitserlaubnis für DACH; requires_sponsorship = braucht Sponsoring; unknown = nicht erkennbar. Nur setzen wenn der CV das explizit nennt.",
 		},
 		summary: {
 			type: "string",
@@ -249,7 +369,8 @@ export class ClaudeAIProvider implements AIProvider {
 								"  Wenn die offizielle Bezeichnung NICHT eindeutig zuordenbar ist (generische oder firmen-interne Lehrgänge), übernimm den Wortlaut aus dem CV UNVERÄNDERT und setze status='unknown'. Niemals raten.\n" +
 								"  Setze `status`: obtained / in_preparation / course_completed / unknown — basiert auf Worten wie 'absolviert', 'bestanden', 'in Vorbereitung', 'Lehrgang' im CV.\n" +
 								"  Setze `verbatim` mit dem Original-Wortlaut nur wenn `name` davon abweicht.\n\n" +
-								"Bei `education` schreibe NIEMALS Status-Zusätze wie '(ohne Abschluss)' in den `degree`-Titel. Wenn das Studium abgebrochen wurde, setze `completed=false`. Sonst `completed=true` (oder weglassen).\n\n" +
+								"Bei `education` schreibe NIEMALS Status-Zusätze wie '(ohne Abschluss)' in den `degree`-Titel. Wenn das Studium abgebrochen wurde, setze `completed=false`. Sonst `completed=true` (oder weglassen). Klassifiziere `degreeType` (school/apprenticeship/bachelor/master/phd/mba/other), übernimm `grade` (Endnote, Originalformat) und `thesisTitle` (Bachelor-/Master-/Doktorarbeits-Titel) wenn im CV genannt. `focus` für Vertiefungsrichtung/Schwerpunkt.\n\n" +
+								"Wenn der CV folgende Sektionen enthält, fülle die zugehörigen Arrays/Objekte: `publications` (Veröffentlichungen + Vorträge + Patente), `projects` (Open-Source / Side Projects), `volunteering` (Ehrenamt), `drivingLicenses` (Führerschein-Klassen), `availability` (Verfügbarkeit / Kündigungsfrist), `socialLinks` (GitHub/LinkedIn/Xing/Portfolio aus dem Header), `workPermitStatus` (nur wenn explizit genannt). Niemals raten — wenn nicht im CV, weglassen.\n\n" +
 								"Be conservative on identity / private fields: omit rather than guess.\n" +
 								"`summary` IMMER befüllen — 2-4 Sätze, Sprache des CVs. Falls der CV keinen Profil-Text enthält, formuliere selbst aus Headline + Top-Skills + jüngster Erfahrung einen sachlichen Mini-Pitch.\n" +
 								"Call save_profile.",

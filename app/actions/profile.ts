@@ -11,12 +11,19 @@ import { db } from "@/db";
 import {
 	type CandidateProfile,
 	candidateProfiles,
+	type ProfileAvailability,
 	type ProfileEducation,
 	type ProfileExperience,
+	type ProfileProject,
+	type ProfilePublication,
+	type ProfileSectionVisibility,
 	type ProfileSkill,
+	type ProfileSocialLinks,
+	type ProfileVolunteering,
 	users,
 	vaultItems,
 } from "@/db/schema";
+import { ALL_SECTIONS } from "@/lib/profile/visibility";
 import { getAIProvider } from "@/lib/ai";
 import type { ExtractedProfile } from "@/lib/ai/types";
 import { decryptBytes, unwrapDek } from "@/lib/crypto/envelope";
@@ -48,7 +55,55 @@ const educationSchema: z.ZodType<ProfileEducation> = z.object({
 	start: z.string().max(20).optional(),
 	end: z.string().max(20).optional(),
 	completed: z.boolean().optional(),
+	degreeType: z
+		.enum(["school", "apprenticeship", "bachelor", "master", "phd", "mba", "other"])
+		.optional(),
+	grade: z.string().max(60).optional(),
+	thesisTitle: z.string().max(300).optional(),
+	focus: z.string().max(200).optional(),
 });
+
+const publicationSchema: z.ZodType<ProfilePublication> = z.object({
+	title: z.string().min(1).max(300),
+	year: z.string().max(10).optional(),
+	kind: z.enum(["article", "talk", "patent", "book", "other"]).optional(),
+	venue: z.string().max(200).optional(),
+	url: z.string().url().max(500).optional(),
+});
+
+const projectSchema: z.ZodType<ProfileProject> = z.object({
+	name: z.string().min(1).max(120),
+	role: z.string().max(120).optional(),
+	url: z.string().url().max(500).optional(),
+	description: z.string().max(1000).optional(),
+});
+
+const volunteeringSchema: z.ZodType<ProfileVolunteering> = z.object({
+	organization: z.string().min(1).max(160),
+	role: z.string().min(1).max(120),
+	start: z.string().max(20).optional(),
+	end: z.string().max(20).optional(),
+	description: z.string().max(1000).optional(),
+});
+
+const availabilitySchema: z.ZodType<ProfileAvailability> = z.object({
+	status: z.enum(["immediate", "notice", "date", "unknown"]),
+	noticeWeeks: z.coerce.number().int().min(0).max(52).optional(),
+	availableFrom: z.string().max(20).optional(),
+});
+
+const socialLinksSchema: z.ZodType<ProfileSocialLinks> = z.object({
+	github: z.string().url().max(300).optional(),
+	linkedin: z.string().url().max(300).optional(),
+	xing: z.string().url().max(300).optional(),
+	website: z.string().url().max(300).optional(),
+	other: z.string().url().max(300).optional(),
+});
+
+const sectionVisibilitySchema: z.ZodType<ProfileSectionVisibility> = z.record(
+	z.enum(ALL_SECTIONS as [string, ...string[]]),
+	z.enum(["private", "matches_only", "public"]),
+);
 
 const profileFormSchema = z.object({
 	displayName: z.string().max(120).optional(),
@@ -67,6 +122,16 @@ const profileFormSchema = z.object({
 	visibility: z
 		.enum(["private", "matches_only", "public"])
 		.default("matches_only"),
+	publications: z.array(publicationSchema).optional(),
+	projects: z.array(projectSchema).optional(),
+	volunteering: z.array(volunteeringSchema).optional(),
+	drivingLicenses: z.array(z.string().max(8)).optional(),
+	availability: availabilitySchema.optional(),
+	socialLinks: socialLinksSchema.optional(),
+	workPermitStatus: z
+		.enum(["eu", "permit", "requires_sponsorship", "unknown"])
+		.optional(),
+	sectionVisibility: sectionVisibilitySchema.optional(),
 });
 
 function parseList(raw: string): string[] {
@@ -190,6 +255,17 @@ export async function saveProfile(formData: FormData): Promise<void> {
 		education: tryParseJsonArray(formData.get("education")?.toString()),
 		summary: formData.get("summary")?.toString() || undefined,
 		visibility: formData.get("visibility")?.toString() ?? "matches_only",
+		publications: tryParseJsonArray(formData.get("publications")?.toString()),
+		projects: tryParseJsonArray(formData.get("projects")?.toString()),
+		volunteering: tryParseJsonArray(formData.get("volunteering")?.toString()),
+		drivingLicenses: parseList(formData.get("drivingLicenses")?.toString() ?? ""),
+		availability: tryParseJsonObject(formData.get("availability")?.toString()),
+		socialLinks: tryParseJsonObject(formData.get("socialLinks")?.toString()),
+		workPermitStatus:
+			formData.get("workPermitStatus")?.toString() || undefined,
+		sectionVisibility: tryParseJsonObject(
+			formData.get("sectionVisibility")?.toString(),
+		),
 	};
 
 	const parsed = profileFormSchema.parse(raw);
@@ -311,6 +387,16 @@ function tryParseJsonArray(raw: string | undefined): unknown[] | undefined {
 	try {
 		const v = JSON.parse(raw);
 		return Array.isArray(v) ? v : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+function tryParseJsonObject(raw: string | undefined): unknown | undefined {
+	if (!raw) return undefined;
+	try {
+		const v = JSON.parse(raw);
+		return v && typeof v === "object" && !Array.isArray(v) ? v : undefined;
 	} catch {
 		return undefined;
 	}

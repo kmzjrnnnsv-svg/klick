@@ -28,6 +28,53 @@ export type ExtractedEducation = {
 	// false wenn der CV "abgebrochen", "ohne Abschluss" o.Ä. signalisiert.
 	// Default: true (regulär abgeschlossen).
 	completed?: boolean;
+	degreeType?:
+		| "school"
+		| "apprenticeship"
+		| "bachelor"
+		| "master"
+		| "phd"
+		| "mba"
+		| "other";
+	grade?: string;
+	thesisTitle?: string;
+	focus?: string;
+};
+
+export type ExtractedPublication = {
+	title: string;
+	year?: string;
+	kind?: "article" | "talk" | "patent" | "book" | "other";
+	venue?: string;
+	url?: string;
+};
+
+export type ExtractedProject = {
+	name: string;
+	role?: string;
+	url?: string;
+	description?: string;
+};
+
+export type ExtractedVolunteering = {
+	organization: string;
+	role: string;
+	start?: string;
+	end?: string;
+	description?: string;
+};
+
+export type ExtractedAvailability = {
+	status: "immediate" | "notice" | "date" | "unknown";
+	noticeWeeks?: number;
+	availableFrom?: string;
+};
+
+export type ExtractedSocialLinks = {
+	github?: string;
+	linkedin?: string;
+	xing?: string;
+	website?: string;
 };
 
 export type ExtractedCertificationMention = {
@@ -64,6 +111,13 @@ export type ExtractedProfile = {
 		| "lead"
 		| "principal"
 		| "exec";
+	publications?: ExtractedPublication[];
+	projects?: ExtractedProject[];
+	volunteering?: ExtractedVolunteering[];
+	drivingLicenses?: string[];
+	availability?: ExtractedAvailability;
+	socialLinks?: ExtractedSocialLinks;
+	workPermitStatus?: "eu" | "permit" | "requires_sponsorship" | "unknown";
 };
 
 export type SuggestedJobRequirement = {

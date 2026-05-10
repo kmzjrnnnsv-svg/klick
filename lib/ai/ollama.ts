@@ -203,21 +203,97 @@ export class OllamaAIProvider implements AIProvider {
 						type: "object",
 						properties: {
 							institution: { type: "string" },
-							degree: {
-								type: "string",
-								description:
-									"Studien-/Ausbildungs-Bezeichnung OHNE Status-Zusätze. NICHT '(ohne Abschluss)' in den Titel schreiben — dafür `completed=false` setzen.",
-							},
+							degree: { type: "string" },
 							start: { type: "string" },
 							end: { type: "string" },
-							completed: {
-								type: "boolean",
-								description:
-									"true wenn der Abschluss erreicht wurde, false bei 'abgebrochen' / 'ohne Abschluss' / 'kein Abschluss' / 'nicht abgeschlossen'.",
+							completed: { type: "boolean" },
+							degreeType: {
+								type: "string",
+								enum: [
+									"school",
+									"apprenticeship",
+									"bachelor",
+									"master",
+									"phd",
+									"mba",
+									"other",
+								],
 							},
+							grade: { type: "string" },
+							thesisTitle: { type: "string" },
+							focus: { type: "string" },
 						},
 						required: ["institution", "degree"],
 					},
+				},
+				publications: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							title: { type: "string" },
+							year: { type: "string" },
+							kind: {
+								type: "string",
+								enum: ["article", "talk", "patent", "book", "other"],
+							},
+							venue: { type: "string" },
+							url: { type: "string" },
+						},
+						required: ["title"],
+					},
+				},
+				projects: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							name: { type: "string" },
+							role: { type: "string" },
+							url: { type: "string" },
+							description: { type: "string" },
+						},
+						required: ["name"],
+					},
+				},
+				volunteering: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							organization: { type: "string" },
+							role: { type: "string" },
+							start: { type: "string" },
+							end: { type: "string" },
+							description: { type: "string" },
+						},
+						required: ["organization", "role"],
+					},
+				},
+				drivingLicenses: { type: "array", items: { type: "string" } },
+				availability: {
+					type: "object",
+					properties: {
+						status: {
+							type: "string",
+							enum: ["immediate", "notice", "date", "unknown"],
+						},
+						noticeWeeks: { type: "integer" },
+						availableFrom: { type: "string" },
+					},
+				},
+				socialLinks: {
+					type: "object",
+					properties: {
+						github: { type: "string" },
+						linkedin: { type: "string" },
+						xing: { type: "string" },
+						website: { type: "string" },
+					},
+				},
+				workPermitStatus: {
+					type: "string",
+					enum: ["eu", "permit", "requires_sponsorship", "unknown"],
 				},
 				summary: {
 					type: "string",
@@ -253,7 +329,8 @@ export class OllamaAIProvider implements AIProvider {
 		const systemPrompt =
 			"Du extrahierst strukturierte Profile aus Lebensläufen. Halte dich strikt an das JSON-Schema. " +
 			"Bei Zertifikaten verwende offizielle Anbieter-Bezeichnungen (z.B. 'Microsoft Certified: Azure Administrator Associate' statt 'AZ-104'); wenn nicht zuordenbar, nimm den CV-Wortlaut + verbatim-Feld. " +
-			"Bei `education`: KEINE Status-Zusätze in den `degree`-Titel schreiben — wenn das Studium abgebrochen wurde, setze `completed=false`. " +
+			"Bei `education`: KEINE Status-Zusätze in den `degree`-Titel schreiben — wenn das Studium abgebrochen wurde, setze `completed=false`. Klassifiziere `degreeType` (school/apprenticeship/bachelor/master/phd/mba/other). Übernimm `grade` (Endnote im Originalformat) und `thesisTitle` (Bachelor-/Master-/Doktorarbeits-Titel) wenn genannt. `focus` für Vertiefungsrichtung. " +
+			"Falls der CV es nennt: `publications`, `projects`, `volunteering`, `drivingLicenses`, `availability`, `socialLinks`, `workPermitStatus` ausfüllen. Niemals raten. " +
 			"`summary` IMMER ausfüllen (2-4 Sätze). Wenn der CV keinen Profil-Text enthält, selbst aus Headline + Top-Skills + jüngster Rolle formulieren.";
 
 		if (isImage) {

@@ -207,7 +207,86 @@ export type ProfileEducation = {
 	// false wenn das Studium abgebrochen / ohne Abschluss beendet wurde.
 	// undefined ⇒ als abgeschlossen behandeln (Default für Altdaten).
 	completed?: boolean;
+	// Strukturierte Anreicherung — werden separat von `degree` gespeichert,
+	// damit Filter + Public-CV-View sauber rendern können.
+	degreeType?:
+		| "school"
+		| "apprenticeship"
+		| "bachelor"
+		| "master"
+		| "phd"
+		| "mba"
+		| "other";
+	grade?: string; // "1.7", "summa cum laude", "Distinction"
+	thesisTitle?: string;
+	focus?: string; // Schwerpunkt / Vertiefung
 };
+
+// Veröffentlichungen, Vorträge, Patente — gemischt in eine Liste, da der
+// Lebenslauf sie meist zusammen führt. `kind` macht Filter möglich.
+export type ProfilePublication = {
+	title: string;
+	year?: string;
+	kind?: "article" | "talk" | "patent" | "book" | "other";
+	venue?: string;
+	url?: string;
+};
+
+// Open-Source / Side Projects.
+export type ProfileProject = {
+	name: string;
+	role?: string;
+	url?: string;
+	description?: string;
+};
+
+// Ehrenamt.
+export type ProfileVolunteering = {
+	organization: string;
+	role: string;
+	start?: string;
+	end?: string;
+	description?: string;
+};
+
+// Verfügbarkeit / Kündigungsfrist.
+export type ProfileAvailability = {
+	status: "immediate" | "notice" | "date" | "unknown";
+	noticeWeeks?: number;
+	availableFrom?: string; // ISO YYYY-MM-DD
+};
+
+// Social-/Portfolio-Links.
+export type ProfileSocialLinks = {
+	github?: string;
+	linkedin?: string;
+	xing?: string;
+	website?: string;
+	other?: string;
+};
+
+// Per-Sektion-Sichtbarkeit. Default = "matches_only" für jede Sektion. Nur
+// Sektionen mit "public" tauchen in /p/[token] auf.
+export type ProfileSectionVisibility = Partial<
+	Record<ProfileSectionKey, "private" | "matches_only" | "public">
+>;
+
+export type ProfileSectionKey =
+	| "basics"
+	| "summary"
+	| "skills"
+	| "experience"
+	| "education"
+	| "certifications"
+	| "publications"
+	| "projects"
+	| "volunteering"
+	| "awards"
+	| "industries"
+	| "availability"
+	| "socialLinks"
+	| "drivingLicenses"
+	| "salary";
 
 // Certifications mentioned in the CV body (distinct from vault-uploaded ones).
 // `name` ist die offizielle Anbieter-Bezeichnung wo möglich; bei generischen
@@ -310,6 +389,19 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 	translationsUpdatedAt: timestamp("translations_updated_at", {
 		mode: "date",
 	}),
+	// Optionale Anreicherungs-Sektionen.
+	publications: jsonb("publications").$type<ProfilePublication[]>(),
+	projects: jsonb("projects").$type<ProfileProject[]>(),
+	volunteering: jsonb("volunteering").$type<ProfileVolunteering[]>(),
+	drivingLicenses: text("driving_licenses").array(), // ["B", "BE", "C1"]
+	availability: jsonb("availability").$type<ProfileAvailability>(),
+	socialLinks: jsonb("social_links").$type<ProfileSocialLinks>(),
+	workPermitStatus: text("work_permit_status", {
+		enum: ["eu", "permit", "requires_sponsorship", "unknown"],
+	}),
+	// Per-Sektion-Sichtbarkeit. Default = matches_only für alle Sektionen.
+	// Nur "public" Sektionen erscheinen unter /p/<token>.
+	sectionVisibility: jsonb("section_visibility").$type<ProfileSectionVisibility>(),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
 
