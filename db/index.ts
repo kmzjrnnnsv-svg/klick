@@ -1,12 +1,11 @@
-import { config } from "dotenv";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { ensureEnvLoaded } from "../lib/env";
 import * as schema from "./schema";
 
-// Idempotent: dotenv won't overwrite vars that are already set
-// (Next.js loads .env.local at boot; standalone scripts pick it up here).
-config({ path: ".env.local" });
-config({ path: ".env" });
+// Next.js already injects .env.local at boot; standalone scripts (seed,
+// db:migrate, set-role) need the loader to also pick up .env.production.
+ensureEnvLoaded();
 
 if (!process.env.DATABASE_URL) {
 	throw new Error("DATABASE_URL is required");
