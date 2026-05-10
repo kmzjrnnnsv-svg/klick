@@ -2078,9 +2078,9 @@ export async function generateDemoData(input: {
 				languages: ["Deutsch", "Englisch"],
 				requirements: requiredSkills.map((name, idx) => ({
 					name,
-					weight: idx === 0 ? "must" : "nice",
-					minLevel: 3,
-				})) as { name: string; weight: "must" | "nice"; minLevel?: number }[],
+					weight: (idx === 0 ? "must" : "nice") as "must" | "nice",
+					minLevel: 3 as 1 | 2 | 3 | 4 | 5,
+				})),
 				status: "published",
 				demoBatchId: batchId,
 			})
