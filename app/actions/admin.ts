@@ -2090,8 +2090,26 @@ export async function generateDemoData(input: {
 	}
 
 	// Applications: jeder Demo-Kandidat bewirbt sich auf 1-2 zufällige Demo-Jobs.
+	// Wir bauen mini-Snapshots — echte Bewerbungen ziehen die aus dem Profil,
+	// aber für die Demo reichen Platzhalter.
 	let applicationsCreated = 0;
 	if (jobIds.length > 0) {
+		// Job-Daten + Kandidat-Profile einmal vorab holen für Snapshots.
+		const demoJobsData = await db
+			.select()
+			.from(jobs)
+			.where(eq(jobs.employerId, demoEmployer.id));
+		const demoProfiles = await db
+			.select()
+			.from(candidateProfiles)
+			.where(eq(candidateProfiles.userId, createdUserIds[0]));
+		// Profile pro User indexieren
+		const profilesByUser = new Map<string, (typeof demoProfiles)[number]>();
+		const allProfiles = await db
+			.select()
+			.from(candidateProfiles);
+		for (const p of allProfiles) profilesByUser.set(p.userId, p);
+
 		for (const userId of createdUserIds) {
 			const apps = 1 + Math.floor(rng() * 2);
 			const seen = new Set<string>();
@@ -2099,15 +2117,48 @@ export async function generateDemoData(input: {
 				const jobId = pick(jobIds, rng);
 				if (seen.has(jobId)) continue;
 				seen.add(jobId);
+				const job = demoJobsData.find((j) => j.id === jobId);
+				const profile = profilesByUser.get(userId);
+				if (!job || !profile) continue;
 				try {
 					await db.insert(applications).values({
 						jobId,
 						candidateUserId: userId,
+						employerId: demoEmployer.id,
 						status: pick(
-							["submitted", "in_review", "shortlist", "interview"],
+							["submitted", "in_review", "shortlisted", "interview"] as const,
 							rng,
-						) as "submitted",
+						),
 						coverLetter: `Demo-Anschreiben für die ausgeschriebene Stelle.`,
+						profileSnapshot: {
+							displayName: profile.displayName,
+							headline: profile.headline,
+							location: profile.location,
+							yearsExperience: profile.yearsExperience,
+							salaryDesired: profile.salaryDesired,
+							skills: (profile.skills ?? undefined) as
+								| { name: string; level?: number }[]
+								| undefined,
+							summary: profile.summary,
+							industries: profile.industries,
+						},
+						jobSnapshot: {
+							title: job.title,
+							description: job.description,
+							location: job.location,
+							remotePolicy: job.remotePolicy,
+							salaryMin: job.salaryMin,
+							salaryMax: job.salaryMax,
+							yearsExperienceMin: job.yearsExperienceMin,
+							requirements: (job.requirements ?? undefined) as
+								| {
+										name: string;
+										weight: "must" | "nice";
+										minLevel?: number;
+								  }[]
+								| undefined,
+							languages: job.languages,
+						},
 					});
 					applicationsCreated++;
 				} catch {
