@@ -2092,6 +2092,13 @@
 		"ratingSubmit": "Bewertung abschicken",
 		"ratingSkip": "Später",
 		"ratingThanks": "Danke! Deine Bewertung fließt in die anonymisierte Statistik ein.",
+		"pastRatings": {
+			"eyebrow": "Rückblick",
+			"title": "Bewerte abgeschlossene Stufen",
+			"hint": "Du hast diese Stufen schon durchlaufen — eine kurze Rückmeldung hilft anderen Bewerber:innen und der Firma, sich zu verbessern.",
+			"rate": "Bewerten",
+			"done": "✓ bewertet"
+		},
 		"closureEyebrow": "Closure überfällig",
 		"closureTitle": "{count} Bewerbung(en) brauchen eine Entscheidung",
 		"closureHint": "Drei Monate ohne Reaktion ist die Außengrenze. Bitte räum diese Bewerbungen ab — entweder weiter, on-hold oder ehrlich abgelehnt mit Grund.",
