@@ -8,14 +8,19 @@ import {
 	type AuditLogEntry,
 	applications,
 	auditLog,
+	candidateProfiles,
 	type Employer,
 	employers,
 	hiringProcessTemplates,
+	interests,
 	jobs,
+	matches,
+	offers,
 	templateStages,
 	tenants,
 	type User,
 	users,
+	verifications,
 } from "@/db/schema";
 
 async function requireAdmin() {
@@ -680,4 +685,406 @@ export async function getTemplateAsAdmin(templateId: string) {
 export async function listTenants() {
 	await requireAdmin();
 	return db.select().from(tenants).orderBy(asc(tenants.slug));
+}
+
+// ─── Plattform-Analytics ─────────────────────────────────────────────────
+// Zentrale Stelle für Tracking. Wird auf /admin/stats gerendert.
+export type AdminAnalytics = {
+	// Wachstum: 7d / 30d-Vergleich
+	growth: {
+		users7d: number;
+		users30d: number;
+		jobs7d: number;
+		jobs30d: number;
+		matches7d: number;
+		matches30d: number;
+	};
+	// Funnel: Match → Interest → Approval → Offer → Acceptance
+	funnel: {
+		matches: number;
+		interests: number;
+		interestsApproved: number;
+		interestsRejected: number;
+		offers: number;
+		offersAccepted: number;
+		offersDeclined: number;
+		offersPending: number;
+	};
+	// Konversions-Raten (Prozent)
+	conversion: {
+		matchToInterest: number;
+		interestToApproval: number;
+		approvalToOffer: number;
+		offerToAccept: number;
+	};
+	// Antwort-Verhalten Arbeitnehmer (Kandidat:in entscheidet ein Interest)
+	candidateResponse: {
+		decided: number;
+		pending: number;
+		median_hours: number | null; // Median Zeit bis Entscheidung
+	};
+	// Antwort-Verhalten Arbeitgeber (Offer-Status nach 14 Tagen)
+	employerResponse: {
+		offersTotal: number;
+		offersDecided: number;
+		offersPending: number;
+		median_hours: number | null;
+	};
+	// Top-Skills auf der Plattform (häufigste Kandidaten-Skills)
+	topCandidateSkills: { name: string; n: number }[];
+	// Top-Skills in Job-Anforderungen
+	topJobSkills: { name: string; n: number }[];
+	// Top-Standorte
+	topLocations: { location: string; n: number }[];
+	// Verifikations-Mix
+	verifyMix: { kind: string; n: number }[];
+	// Aktive Tenants (mind. 1 published Job)
+	activeTenants: number;
+	// Profil-Vollständigkeit (Anteil mit summary, skills, education, experience)
+	profileCompleteness: {
+		hasSummary: number;
+		hasSkills: number;
+		hasEducation: number;
+		hasExperience: number;
+		total: number;
+	};
+};
+
+function pct(n: number, d: number): number {
+	if (!d) return 0;
+	return Math.round((n / d) * 1000) / 10;
+}
+
+// Median über positive number-Liste, oder null bei leer.
+function medianHours(rows: { dt: number | null }[]): number | null {
+	const xs = rows
+		.map((r) => r.dt)
+		.filter((x): x is number => x !== null && Number.isFinite(x))
+		.sort((a, b) => a - b);
+	if (xs.length === 0) return null;
+	const mid = Math.floor(xs.length / 2);
+	const m = xs.length % 2 === 0 ? (xs[mid - 1] + xs[mid]) / 2 : xs[mid];
+	return Math.round(m * 10) / 10;
+}
+
+export async function getAdminAnalytics(): Promise<AdminAnalytics> {
+	await requireAdmin();
+	const empty: AdminAnalytics = {
+		growth: {
+			users7d: 0,
+			users30d: 0,
+			jobs7d: 0,
+			jobs30d: 0,
+			matches7d: 0,
+			matches30d: 0,
+		},
+		funnel: {
+			matches: 0,
+			interests: 0,
+			interestsApproved: 0,
+			interestsRejected: 0,
+			offers: 0,
+			offersAccepted: 0,
+			offersDeclined: 0,
+			offersPending: 0,
+		},
+		conversion: {
+			matchToInterest: 0,
+			interestToApproval: 0,
+			approvalToOffer: 0,
+			offerToAccept: 0,
+		},
+		candidateResponse: { decided: 0, pending: 0, median_hours: null },
+		employerResponse: {
+			offersTotal: 0,
+			offersDecided: 0,
+			offersPending: 0,
+			median_hours: null,
+		},
+		topCandidateSkills: [],
+		topJobSkills: [],
+		topLocations: [],
+		verifyMix: [],
+		activeTenants: 0,
+		profileCompleteness: {
+			hasSummary: 0,
+			hasSkills: 0,
+			hasEducation: 0,
+			hasExperience: 0,
+			total: 0,
+		},
+	};
+	try {
+		const now = Date.now();
+		const since7 = new Date(now - 7 * 86400_000);
+		const since30 = new Date(now - 30 * 86400_000);
+
+		const cnt = async (
+			query: ReturnType<typeof db.select>,
+		): Promise<number> => {
+			const r = await query;
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic count select
+			return Number((r as any[])[0]?.n ?? 0);
+		};
+
+		const [users7d, users30d] = await Promise.all([
+			cnt(
+				db
+					.select({ n: sql<number>`count(*)::int`.as("n") })
+					.from(users)
+					.where(gte(users.createdAt, since7)),
+			),
+			cnt(
+				db
+					.select({ n: sql<number>`count(*)::int`.as("n") })
+					.from(users)
+					.where(gte(users.createdAt, since30)),
+			),
+		]);
+		const [jobs7d, jobs30d] = await Promise.all([
+			cnt(
+				db
+					.select({ n: sql<number>`count(*)::int`.as("n") })
+					.from(jobs)
+					.where(gte(jobs.createdAt, since7)),
+			),
+			cnt(
+				db
+					.select({ n: sql<number>`count(*)::int`.as("n") })
+					.from(jobs)
+					.where(gte(jobs.createdAt, since30)),
+			),
+		]);
+		const [matches7d, matches30d] = await Promise.all([
+			cnt(
+				db
+					.select({ n: sql<number>`count(*)::int`.as("n") })
+					.from(matches)
+					.where(gte(matches.computedAt, since7)),
+			),
+			cnt(
+				db
+					.select({ n: sql<number>`count(*)::int`.as("n") })
+					.from(matches)
+					.where(gte(matches.computedAt, since30)),
+			),
+		]);
+
+		const [matchesTotal, interestRows, offerRows] = await Promise.all([
+			db
+				.select({ n: sql<number>`count(*)::int`.as("n") })
+				.from(matches)
+				.then((rs) => Number(rs[0]?.n ?? 0)),
+			db
+				.select({
+					status: interests.status,
+					n: sql<number>`count(*)::int`.as("n"),
+				})
+				.from(interests)
+				.groupBy(interests.status),
+			db
+				.select({
+					status: offers.status,
+					n: sql<number>`count(*)::int`.as("n"),
+				})
+				.from(offers)
+				.groupBy(offers.status),
+		]);
+
+		const interestsByStatus = new Map(
+			interestRows.map((r) => [r.status, Number(r.n)]),
+		);
+		const interestsTotal = interestRows.reduce(
+			(a, r) => a + Number(r.n),
+			0,
+		);
+		const offersByStatus = new Map(offerRows.map((r) => [r.status, Number(r.n)]));
+		const offersTotal = offerRows.reduce((a, r) => a + Number(r.n), 0);
+
+		const interestsApproved = interestsByStatus.get("approved") ?? 0;
+		const interestsRejected = interestsByStatus.get("rejected") ?? 0;
+		const offersAccepted = offersByStatus.get("accepted") ?? 0;
+		const offersDeclined = offersByStatus.get("declined") ?? 0;
+		const offersPending = offersByStatus.get("pending") ?? 0;
+
+		const funnel = {
+			matches: matchesTotal,
+			interests: interestsTotal,
+			interestsApproved,
+			interestsRejected,
+			offers: offersTotal,
+			offersAccepted,
+			offersDeclined,
+			offersPending,
+		};
+
+		const conversion = {
+			matchToInterest: pct(interestsTotal, matchesTotal),
+			interestToApproval: pct(interestsApproved, interestsTotal),
+			approvalToOffer: pct(offersTotal, interestsApproved),
+			offerToAccept: pct(offersAccepted, offersTotal),
+		};
+
+		// Median candidate response time (interest.createdAt → decidedAt)
+		const decidedInterests = await db
+			.select({
+				createdAt: interests.createdAt,
+				decidedAt: interests.decidedAt,
+			})
+			.from(interests)
+			.where(sql`${interests.decidedAt} IS NOT NULL`);
+		const candidateResponse = {
+			decided: decidedInterests.length,
+			pending: interestsTotal - decidedInterests.length,
+			median_hours: medianHours(
+				decidedInterests.map((r) => ({
+					dt:
+						r.createdAt && r.decidedAt
+							? (r.decidedAt.getTime() - r.createdAt.getTime()) / 3600_000
+							: null,
+				})),
+			),
+		};
+
+		// Median employer response time (offer.createdAt → decidedAt)
+		const decidedOffers = await db
+			.select({
+				createdAt: offers.createdAt,
+				decidedAt: offers.decidedAt,
+			})
+			.from(offers)
+			.where(sql`${offers.decidedAt} IS NOT NULL`)
+			.catch(() => []);
+		const employerResponse = {
+			offersTotal,
+			offersDecided: decidedOffers.length,
+			offersPending: offersPending,
+			median_hours: medianHours(
+				decidedOffers.map((r) => ({
+					dt:
+						r.createdAt && r.decidedAt
+							? (r.decidedAt.getTime() - r.createdAt.getTime()) / 3600_000
+							: null,
+				})),
+			),
+		};
+
+		// Top candidate skills
+		const candProfiles = await db
+			.select({ skills: candidateProfiles.skills })
+			.from(candidateProfiles);
+		const candSkillCount = new Map<string, number>();
+		for (const p of candProfiles) {
+			for (const s of p.skills ?? []) {
+				const key = s.name.trim();
+				if (!key) continue;
+				candSkillCount.set(key, (candSkillCount.get(key) ?? 0) + 1);
+			}
+		}
+		const topCandidateSkills = [...candSkillCount.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 12)
+			.map(([name, n]) => ({ name, n }));
+
+		// Top job skills
+		const jobReqs = await db
+			.select({ requirements: jobs.requirements })
+			.from(jobs);
+		const jobSkillCount = new Map<string, number>();
+		for (const j of jobReqs) {
+			for (const r of j.requirements ?? []) {
+				const key = r.name.trim();
+				if (!key) continue;
+				jobSkillCount.set(key, (jobSkillCount.get(key) ?? 0) + 1);
+			}
+		}
+		const topJobSkills = [...jobSkillCount.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 12)
+			.map(([name, n]) => ({ name, n }));
+
+		// Top locations
+		const locationsRaw = await db
+			.select({
+				location: candidateProfiles.location,
+				n: sql<number>`count(*)::int`.as("n"),
+			})
+			.from(candidateProfiles)
+			.where(sql`${candidateProfiles.location} IS NOT NULL`)
+			.groupBy(candidateProfiles.location)
+			.orderBy(desc(sql<number>`count(*)`))
+			.limit(8);
+		const topLocations = locationsRaw
+			.filter((r) => !!r.location)
+			.map((r) => ({ location: r.location as string, n: Number(r.n) }));
+
+		// Verification mix
+		const verifyRows = await db
+			.select({
+				kind: verifications.kind,
+				n: sql<number>`count(*)::int`.as("n"),
+			})
+			.from(verifications)
+			.groupBy(verifications.kind)
+			.orderBy(desc(sql<number>`count(*)`))
+			.catch(() => []);
+		const verifyMix = verifyRows.map((r) => ({
+			kind: r.kind,
+			n: Number(r.n),
+		}));
+
+		// Active tenants — mindestens 1 published Job (via employers join)
+		const activeRows = await db
+			.select({ tenantId: employers.tenantId })
+			.from(jobs)
+			.innerJoin(employers, eq(employers.id, jobs.employerId))
+			.where(eq(jobs.status, "published"))
+			.groupBy(employers.tenantId);
+		const activeTenants = activeRows.length;
+
+		// Profile completeness
+		const allProfiles = await db
+			.select({
+				summary: candidateProfiles.summary,
+				skills: candidateProfiles.skills,
+				education: candidateProfiles.education,
+				experience: candidateProfiles.experience,
+			})
+			.from(candidateProfiles);
+		const completeness = {
+			hasSummary: allProfiles.filter(
+				(p) => p.summary && p.summary.trim().length > 0,
+			).length,
+			hasSkills: allProfiles.filter((p) => (p.skills ?? []).length > 0).length,
+			hasEducation: allProfiles.filter((p) => (p.education ?? []).length > 0)
+				.length,
+			hasExperience: allProfiles.filter((p) => (p.experience ?? []).length > 0)
+				.length,
+			total: allProfiles.length,
+		};
+
+		return {
+			growth: {
+				users7d,
+				users30d,
+				jobs7d,
+				jobs30d,
+				matches7d,
+				matches30d,
+			},
+			funnel,
+			conversion,
+			candidateResponse,
+			employerResponse,
+			topCandidateSkills,
+			topJobSkills,
+			topLocations,
+			verifyMix,
+			activeTenants,
+			profileCompleteness: completeness,
+		};
+	} catch (e) {
+		console.warn("[admin] getAdminAnalytics", e);
+		return empty;
+	}
 }

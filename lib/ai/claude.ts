@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { applyExtractionPostprocessing } from "./normalize";
 import type {
 	AIProvider,
 	CandidateNarrative,
@@ -84,17 +85,147 @@ const PROFILE_TOOL_SCHEMA = {
 				type: "object",
 				properties: {
 					institution: { type: "string" },
-					degree: { type: "string" },
+					degree: {
+						type: "string",
+						description:
+							"Studien-/Ausbildungs-Bezeichnung OHNE Status-Zusätze. NICHT '(ohne Abschluss)' in den Titel schreiben — dafür `completed=false` setzen.",
+					},
 					start: { type: "string" },
 					end: { type: "string" },
+					completed: {
+						type: "boolean",
+						description:
+							"true wenn der/die Bewerber:in den Abschluss erlangt hat. false wenn der CV 'abgebrochen', 'ohne Abschluss', 'kein Abschluss', 'nicht abgeschlossen', 'discontinued' o.Ä. nennt. Im Zweifel true. Niemals raten.",
+					},
+					degreeType: {
+						type: "string",
+						enum: [
+							"school",
+							"apprenticeship",
+							"bachelor",
+							"master",
+							"phd",
+							"mba",
+							"other",
+						],
+						description:
+							"Klassifiziere den Abschluss-Typ: school = Abitur/Realschule, apprenticeship = duale Ausbildung/Lehre, bachelor / master / phd / mba selbsterklärend, other für alles andere (Diplom, Magister, Berufsfachschule).",
+					},
+					grade: {
+						type: "string",
+						maxLength: 60,
+						description:
+							"Abschlussnote / Endnote falls im CV genannt. Beispiele: '1,7', '2:1 (Honours)', 'summa cum laude', 'distinction', 'GPA 3.8'. Originalformat behalten. Nichts raten.",
+					},
+					thesisTitle: {
+						type: "string",
+						maxLength: 300,
+						description:
+							"Titel der Abschluss-/Bachelor-/Master-/Doktorarbeit, falls im CV genannt. Vollständig übernehmen.",
+					},
+					focus: {
+						type: "string",
+						maxLength: 200,
+						description:
+							"Schwerpunkt / Vertiefungsrichtung / Modul-Schwerpunkt, falls im CV genannt. Z.B. 'Maschinelles Lernen, Verteilte Systeme'.",
+					},
 				},
 				required: ["institution", "degree"],
 			},
 		},
+		publications: {
+			type: "array",
+			items: {
+				type: "object",
+				properties: {
+					title: { type: "string" },
+					year: { type: "string" },
+					kind: {
+						type: "string",
+						enum: ["article", "talk", "patent", "book", "other"],
+					},
+					venue: { type: "string" },
+					url: { type: "string" },
+				},
+				required: ["title"],
+			},
+			description:
+				"Veröffentlichungen, Vorträge, Patente, Bücher. Eines pro Eintrag mit Titel + Jahr (falls bekannt). Nur was im CV explizit genannt wird.",
+		},
+		projects: {
+			type: "array",
+			items: {
+				type: "object",
+				properties: {
+					name: { type: "string" },
+					role: { type: "string" },
+					url: { type: "string" },
+					description: { type: "string", maxLength: 500 },
+				},
+				required: ["name"],
+			},
+			description:
+				"Open-Source-Projekte, Side Projects, GitHub-Projekte mit eigener Beteiligung. Nicht jede Erfahrung — nur Projekte, die separat aufgeführt sind.",
+		},
+		volunteering: {
+			type: "array",
+			items: {
+				type: "object",
+				properties: {
+					organization: { type: "string" },
+					role: { type: "string" },
+					start: { type: "string", description: "YYYY-MM" },
+					end: { type: "string", description: "YYYY-MM or 'present'" },
+					description: { type: "string", maxLength: 500 },
+				},
+				required: ["organization", "role"],
+			},
+			description:
+				"Ehrenamtliche Tätigkeiten / Engagement (Vereine, NGOs, Hochschulgremien, Mentor:innen-Programme).",
+		},
+		drivingLicenses: {
+			type: "array",
+			items: { type: "string", maxLength: 8 },
+			description:
+				"Führerschein-Klassen wie 'B', 'BE', 'C1', 'A2'. Falls im CV unter 'Führerschein' / 'Driving License' genannt.",
+		},
+		availability: {
+			type: "object",
+			properties: {
+				status: {
+					type: "string",
+					enum: ["immediate", "notice", "date", "unknown"],
+					description:
+						"immediate = sofort verfügbar; notice = Kündigungsfrist (noticeWeeks setzen); date = ab konkretem Datum (availableFrom setzen); unknown = nicht aus dem CV ableitbar.",
+				},
+				noticeWeeks: { type: "integer", minimum: 0, maximum: 52 },
+				availableFrom: { type: "string", description: "YYYY-MM-DD" },
+			},
+			description:
+				"Verfügbarkeit / Kündigungsfrist. Nur ausfüllen wenn der CV es klar nennt.",
+		},
+		socialLinks: {
+			type: "object",
+			properties: {
+				github: { type: "string" },
+				linkedin: { type: "string" },
+				xing: { type: "string" },
+				website: { type: "string" },
+			},
+			description:
+				"Profil-/Portfolio-URLs aus dem CV-Header. Vollständige URLs mit Schema (https://).",
+		},
+		workPermitStatus: {
+			type: "string",
+			enum: ["eu", "permit", "requires_sponsorship", "unknown"],
+			description:
+				"eu = EU-/EWR-Bürger:in; permit = bestehende Aufenthalts-/Arbeitserlaubnis für DACH; requires_sponsorship = braucht Sponsoring; unknown = nicht erkennbar. Nur setzen wenn der CV das explizit nennt.",
+		},
 		summary: {
 			type: "string",
 			maxLength: 500,
-			description: "Short professional summary, written in same language as CV",
+			description:
+				"Kurzprofil in 2-4 Sätzen, geschrieben in der Sprache des CVs. IMMER ausfüllen: wenn der CV keinen Profiltext enthält, formuliere selbst aus Titel + Top-Skills + Erfahrung einen sachlichen Mini-Pitch. Niemals leer lassen.",
 		},
 		industries: {
 			type: "array",
@@ -238,8 +369,10 @@ export class ClaudeAIProvider implements AIProvider {
 								"  Wenn die offizielle Bezeichnung NICHT eindeutig zuordenbar ist (generische oder firmen-interne Lehrgänge), übernimm den Wortlaut aus dem CV UNVERÄNDERT und setze status='unknown'. Niemals raten.\n" +
 								"  Setze `status`: obtained / in_preparation / course_completed / unknown — basiert auf Worten wie 'absolviert', 'bestanden', 'in Vorbereitung', 'Lehrgang' im CV.\n" +
 								"  Setze `verbatim` mit dem Original-Wortlaut nur wenn `name` davon abweicht.\n\n" +
+								"Bei `education` schreibe NIEMALS Status-Zusätze wie '(ohne Abschluss)' in den `degree`-Titel. Wenn das Studium abgebrochen wurde, setze `completed=false`. Sonst `completed=true` (oder weglassen). Klassifiziere `degreeType` (school/apprenticeship/bachelor/master/phd/mba/other), übernimm `grade` (Endnote, Originalformat) und `thesisTitle` (Bachelor-/Master-/Doktorarbeits-Titel) wenn im CV genannt. `focus` für Vertiefungsrichtung/Schwerpunkt.\n\n" +
+								"Wenn der CV folgende Sektionen enthält, fülle die zugehörigen Arrays/Objekte: `publications` (Veröffentlichungen + Vorträge + Patente), `projects` (Open-Source / Side Projects), `volunteering` (Ehrenamt), `drivingLicenses` (Führerschein-Klassen), `availability` (Verfügbarkeit / Kündigungsfrist), `socialLinks` (GitHub/LinkedIn/Xing/Portfolio aus dem Header), `workPermitStatus` (nur wenn explizit genannt). Niemals raten — wenn nicht im CV, weglassen.\n\n" +
 								"Be conservative on identity / private fields: omit rather than guess.\n" +
-								"Write summary in the same language the CV uses.\n" +
+								"`summary` IMMER befüllen — 2-4 Sätze, Sprache des CVs. Falls der CV keinen Profil-Text enthält, formuliere selbst aus Headline + Top-Skills + jüngster Erfahrung einen sachlichen Mini-Pitch.\n" +
 								"Call save_profile.",
 						},
 					],
@@ -251,7 +384,7 @@ export class ClaudeAIProvider implements AIProvider {
 		if (!toolUse || toolUse.type !== "tool_use") {
 			throw new Error("Claude did not return a tool_use block");
 		}
-		return toolUse.input as ExtractedProfile;
+		return applyExtractionPostprocessing(toolUse.input as ExtractedProfile);
 	}
 
 	async extractDocument(
@@ -887,43 +1020,119 @@ Schema pro Eintrag:
 		profile: ExtractedProfile;
 		yearsActive?: number;
 	}): Promise<CareerAnalysis> {
-		const sys = `Du bist erfahrener Career Coach mit DACH-Marktwissen 2026. Lies das Profil und gib eine umfassende Karriere-Analyse als JSON zurück. Sei konkret, nicht generisch — keine Buzzwords, klare Begründungen.
+		const careerSchema = {
+			type: "object" as const,
+			properties: {
+				headline: { type: "string", maxLength: 800 },
+				strengths: { type: "array", items: { type: "string", maxLength: 200 } },
+				growthAreas: {
+					type: "array",
+					items: { type: "string", maxLength: 200 },
+				},
+				salary: {
+					type: "object",
+					properties: {
+						low: { type: "integer", minimum: 0 },
+						mid: { type: "integer", minimum: 0 },
+						high: { type: "integer", minimum: 0 },
+						currency: { type: "string" },
+						rationale: { type: "string", maxLength: 500 },
+					},
+					required: ["low", "mid", "high", "currency", "rationale"],
+				},
+				primaryIndustries: { type: "array", items: { type: "string" } },
+				adjacentIndustries: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							name: { type: "string" },
+							rationale: { type: "string", maxLength: 300 },
+						},
+						required: ["name", "rationale"],
+					},
+				},
+				certificationSuggestions: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							name: { type: "string" },
+							issuer: { type: "string" },
+							why: { type: "string", maxLength: 300 },
+							effortHours: { type: "integer", minimum: 0 },
+						},
+						required: ["name", "issuer", "why", "effortHours"],
+					},
+				},
+				roleSuggestions: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							title: { type: "string" },
+							rationale: { type: "string", maxLength: 300 },
+							obvious: { type: "boolean" },
+						},
+						required: ["title", "rationale", "obvious"],
+					},
+				},
+				hiringPros: { type: "array", items: { type: "string", maxLength: 200 } },
+				hiringCons: { type: "array", items: { type: "string", maxLength: 200 } },
+				marketContext: {
+					type: "object",
+					properties: {
+						demand: { type: "string", enum: ["high", "medium", "low"] },
+						notes: { type: "string", maxLength: 500 },
+					},
+					required: ["demand", "notes"],
+				},
+			},
+			required: [
+				"headline",
+				"strengths",
+				"growthAreas",
+				"salary",
+				"primaryIndustries",
+				"adjacentIndustries",
+				"certificationSuggestions",
+				"roleSuggestions",
+				"hiringPros",
+				"hiringCons",
+				"marketContext",
+			],
+		};
 
-Schema:
-{
-	"headline": "1 Absatz, ~80 Wörter",
-	"strengths": ["3-5 stärken"],
-	"growthAreas": ["3-5 entwicklungsfelder"],
-	"salary": {"low": int, "mid": int, "high": int, "currency": "EUR", "rationale": "..."},
-	"primaryIndustries": ["..."],
-	"adjacentIndustries": [{"name": "...", "rationale": "..."}],
-	"certificationSuggestions": [{"name": "...", "issuer": "...", "why": "...", "effortHours": int}],
-	"roleSuggestions": [{"title": "...", "rationale": "...", "obvious": bool}],
-	"hiringPros": ["..."],
-	"hiringCons": ["..."],
-	"marketContext": {"demand": "high"|"medium"|"low", "notes": "..."}
-}`;
-		const user = JSON.stringify({
-			profile: input.profile,
-			yearsActive: input.yearsActive,
+		const result = await this.client.messages.create({
+			model: "claude-sonnet-4-6",
+			max_tokens: 4096,
+			tools: [
+				{
+					name: "save_career_analysis",
+					description:
+						"Speichert die Karriere-Analyse für den/die Bewerber:in. Sei konkret und marktnah (DACH 2026), nicht generisch — keine Buzzwords, klare Begründungen. headline ist 1 Absatz (~80 Wörter). strengths/growthAreas je 3-5 Einträge. adjacentIndustries sind nicht-offensichtliche Branchen-Treffer. roleSuggestions: `obvious=true` für naheliegende Rollen, `obvious=false` für überraschende. salary in EUR.",
+					input_schema: careerSchema,
+				},
+			],
+			tool_choice: { type: "tool", name: "save_career_analysis" },
+			system:
+				"Du bist erfahrene:r Career Coach mit DACH-Marktwissen Stand 2026. Antworte ausschließlich über das save_career_analysis-Tool.",
+			messages: [
+				{
+					role: "user",
+					content: JSON.stringify({
+						profile: input.profile,
+						yearsActive: input.yearsActive,
+					}),
+				},
+			],
 		});
-		try {
-			const result = await this.client.messages.create({
-				model: "claude-sonnet-4-6",
-				max_tokens: 2000,
-				system: sys,
-				messages: [{ role: "user", content: user }],
-			});
-			const text = result.content
-				.flatMap((b) => (b.type === "text" ? [b.text] : []))
-				.join("")
-				.trim();
-			const m = text.match(/\{[\s\S]*\}/);
-			if (m) return JSON.parse(m[0]) as CareerAnalysis;
-		} catch (e) {
-			console.error("[ai] analyzeCareerProspects failed", e);
+
+		const toolUse = result.content.find((b) => b.type === "tool_use");
+		if (!toolUse || toolUse.type !== "tool_use") {
+			throw new Error("Claude hat keinen tool_use-Block geliefert");
 		}
-		throw new Error("analyzeCareerProspects: empty result");
+		return toolUse.input as CareerAnalysis;
 	}
 
 	async assessJobPostingQuality(input: {
@@ -1074,5 +1283,66 @@ Schema:
 			awards: input.awards ?? undefined,
 			mobility: input.mobility ?? undefined,
 		};
+	}
+
+	async recommendCandidateSalary(input: {
+		profile: ExtractedProfile;
+		country: string;
+		currency: string;
+	}): Promise<{
+		low: number;
+		mid: number;
+		high: number;
+		currency: string;
+		rationale: string;
+	}> {
+		const schema = {
+			type: "object" as const,
+			properties: {
+				low: { type: "integer", minimum: 0 },
+				mid: { type: "integer", minimum: 0 },
+				high: { type: "integer", minimum: 0 },
+				currency: { type: "string" },
+				rationale: { type: "string", maxLength: 400 },
+			},
+			required: ["low", "mid", "high", "currency", "rationale"],
+		};
+		const result = await this.client.messages.create({
+			model: "claude-sonnet-4-6",
+			max_tokens: 800,
+			tools: [
+				{
+					name: "save_country_salary",
+					description:
+						"Empfohlenes Brutto-Jahresgehalt in der gewünschten Währung für genau dieses Profil und genau dieses Land. Berücksichtige Skill-Mix, Erfahrung, lokales Lohnniveau und ortsübliche Beschäftigungs-Konditionen. low/mid/high als Brutto pro Jahr (USA: vor Bonus). Rationale: 1-2 Sätze, was den Bereich rechtfertigt.",
+					input_schema: schema,
+				},
+			],
+			tool_choice: { type: "tool", name: "save_country_salary" },
+			system:
+				"Du kennst die DACH/EU/UK/US-Gehaltsmärkte (Stand 2026). Antworte ausschliesslich über das save_country_salary-Tool. Keine Buzzwords, keine Marketing-Sprache.",
+			messages: [
+				{
+					role: "user",
+					content: JSON.stringify({
+						profile: input.profile,
+						country: input.country,
+						currency: input.currency,
+					}),
+				},
+			],
+		});
+		const toolUse = result.content.find((b) => b.type === "tool_use");
+		if (!toolUse || toolUse.type !== "tool_use") {
+			throw new Error("Claude hat keinen tool_use-Block geliefert");
+		}
+		const out = toolUse.input as {
+			low: number;
+			mid: number;
+			high: number;
+			currency: string;
+			rationale: string;
+		};
+		return out;
 	}
 }

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { getMyCareerAnalysis } from "@/app/actions/career";
 import { getMyDiversity } from "@/app/actions/diversity";
 import { getMyInsights } from "@/app/actions/insights";
@@ -15,12 +15,16 @@ import { DiversityForm } from "@/components/profile/diversity-form";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { ReferencesForm } from "@/components/profile/references-form";
 import { ShareLink } from "@/components/profile/share-link";
+import type { CandidateProfile } from "@/db/schema";
+import { localizedProfile } from "@/lib/insights/locale";
 
 export default async function ProfilePage() {
 	const session = await auth();
 	if (!session?.user) redirect("/login");
 
 	const t = await getTranslations("Profile");
+	const localeRaw = await getLocale();
+	const locale: "de" | "en" = localeRaw === "en" ? "en" : "de";
 	const [profile, cvs, insights, shareToken, diversity, references, career] =
 		await Promise.all([
 			getProfile(),
@@ -31,6 +35,27 @@ export default async function ProfilePage() {
 			listMyReferences(),
 			getMyCareerAnalysis(),
 		]);
+
+	// Wir mischen Übersetzungen direkt in das Profil, das die Form erhält —
+	// so sieht der Kandidat die Felder in der UI-Sprache und kann sie auch
+	// sprachweise editieren. profileLanguageOrigin wird beim Save auf die
+	// aktuelle Locale gesetzt.
+	const localizedInitial: CandidateProfile | null = profile
+		? (() => {
+				const view = localizedProfile(profile, locale);
+				return {
+					...profile,
+					headline: view.headline,
+					summary: view.summary,
+					industries: view.industries,
+					awards: view.awards,
+					mobility: view.mobility,
+					skills: view.skills as CandidateProfile["skills"],
+					experience: view.experience,
+					education: view.education,
+				};
+			})()
+		: null;
 
 	return (
 		<>
@@ -54,10 +79,10 @@ export default async function ProfilePage() {
 						profileExtras={
 							profile
 								? {
-										industries: profile.industries,
-										awards: profile.awards,
+										industries: localizedInitial?.industries ?? null,
+										awards: localizedInitial?.awards ?? null,
 										certificationsMentioned: profile.certificationsMentioned,
-										mobility: profile.mobility,
+										mobility: localizedInitial?.mobility ?? null,
 										preferredRoleLevel: profile.preferredRoleLevel,
 									}
 								: null
@@ -69,7 +94,7 @@ export default async function ProfilePage() {
 					<ShareLink initialToken={shareToken} />
 				</section>
 
-				<ProfileForm initial={profile} cvs={cvs} />
+				<ProfileForm initial={localizedInitial} cvs={cvs} locale={locale} />
 
 				<section className="mt-12 border-border border-t pt-8">
 					<h2 className="mb-2 font-serif-display text-xl">
