@@ -616,4 +616,44 @@ export class MockAIProvider implements AIProvider {
 		const score = Math.round((completeness + clarity) / 2);
 		return { score, completeness, clarity, redFlags, suggestions };
 	}
+
+	async recommendCandidateSalary(input: {
+		profile: ExtractedProfile;
+		country: string;
+		currency: string;
+	}): Promise<{
+		low: number;
+		mid: number;
+		high: number;
+		currency: string;
+		rationale: string;
+	}> {
+		// Deterministischer Mock — basiert auf yearsExperience und Country-Multiplier.
+		const years = input.profile.yearsExperience ?? 5;
+		// Sehr grobe Multipliers, nur als Demo-Daten.
+		const m: Record<string, number> = {
+			DE: 1.0,
+			AT: 0.92,
+			CH: 1.45,
+			NL: 1.05,
+			GB: 1.1,
+			US: 1.6,
+			FR: 0.95,
+			IT: 0.8,
+			ES: 0.75,
+			PL: 0.6,
+		};
+		const mult = m[input.country] ?? 1.0;
+		const baseMid = (40000 + years * 6000) * mult;
+		const low = Math.round((baseMid * 0.85) / 1000) * 1000;
+		const high = Math.round((baseMid * 1.2) / 1000) * 1000;
+		const mid = Math.round(baseMid / 1000) * 1000;
+		return {
+			low,
+			mid,
+			high,
+			currency: input.currency,
+			rationale: `Mock-Empfehlung für ${input.country} basierend auf ${years} Jahren Erfahrung. Setze ANTHROPIC_API_KEY oder OLLAMA_URL für echte Markt-Daten.`,
+		};
+	}
 }

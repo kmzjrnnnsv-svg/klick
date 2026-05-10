@@ -190,6 +190,34 @@
       "when": 1778354029673,
       "tag": "0026_redundant_talon",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1778410844905,
+      "tag": "0027_profile_enrichment",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1778415204912,
+      "tag": "0028_salary_by_country",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1778423778077,
+      "tag": "0029_cms_default_stubs",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1778428267271,
+      "tag": "0030_block_and_demo",
+      "breakpoints": true
     }
   ]
 }

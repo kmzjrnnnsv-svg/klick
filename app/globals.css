@@ -3,32 +3,33 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-	/* Recruiting-Refined — orientiert an Ashby / Welcome to the Jungle / Linear.
-	 * Fast monochrom: warmes Off-White Hintergrund, Graphit-Foreground,
-	 * gedecktes Slate-Blau als Primary. Kein lauter Akzent — Status (Grün/
-	 * Amber/Rose) bleibt für echte Zustände. */
-	--background: oklch(0.98 0.003 85); /* ≈ #f6f4ef warmes Off-White */
-	--foreground: oklch(0.21 0.008 250); /* ≈ #2a2d33 Graphit-Schwarz */
-	--muted: oklch(0.94 0.005 85); /* ≈ #ebe9e2 */
-	--muted-foreground: oklch(0.5 0.012 250); /* ≈ #6f7480 */
-	--border: oklch(0.88 0.005 85); /* ≈ #d8d6cf */
-	--primary: oklch(0.4 0.06 250); /* ≈ #46546a gedecktes Slate-Blau */
-	--primary-foreground: oklch(0.98 0.003 85);
-	--accent: oklch(0.72 0.04 80); /* ≈ #c1b59c warmer Sand — sehr leise */
-	--accent-foreground: oklch(0.21 0.008 250);
-	--radius: 0.375rem;
+	/* Klick UI — Blau · Weiß · Elfenbein.
+	 * Hintergrund bleibt warm (Elfenbein-Off-White für Wärme statt steriles
+	 * Weiß), Primary wird zu einem klaren Vertrauens-Blau. Akzent stützt
+	 * mit wärmerem Hellblau-Highlight; Status-Farben (Emerald/Amber/Rose)
+	 * bleiben unverändert für echte Zustände. */
+	--background: oklch(0.985 0.004 90); /* ≈ #f8f6f0 helles Elfenbein */
+	--foreground: oklch(0.22 0.02 254); /* ≈ #232a3a Tinten-Blau */
+	--muted: oklch(0.95 0.005 90); /* ≈ #ece9e1 */
+	--muted-foreground: oklch(0.52 0.04 254); /* ≈ #6a748a Slate */
+	--border: oklch(0.9 0.012 254); /* ≈ #d6dae6 sanfter Blau-Touch */
+	--primary: oklch(0.46 0.18 254); /* ≈ #2c4ed8 klares Trust-Blau */
+	--primary-foreground: oklch(0.99 0.004 90); /* fast weiß */
+	--accent: oklch(0.85 0.07 254); /* ≈ #b8c8ee Hellblau-Highlight */
+	--accent-foreground: oklch(0.22 0.02 254);
+	--radius: 0.5rem;
 }
 
 .dark {
-	--background: oklch(0.18 0.008 250); /* ≈ #1c1e25 Graphit */
-	--foreground: oklch(0.95 0.004 85); /* ≈ #eceae3 warmes Off-White */
-	--muted: oklch(0.24 0.01 250); /* ≈ #2a2d35 */
-	--muted-foreground: oklch(0.7 0.012 250); /* ≈ #9da2af */
-	--border: oklch(0.31 0.012 250); /* ≈ #3a3e49 */
-	--primary: oklch(0.72 0.06 250); /* ≈ #9aaabe helles Slate */
-	--primary-foreground: oklch(0.18 0.008 250);
-	--accent: oklch(0.65 0.04 80); /* ≈ #a99c84 warmer Sand */
-	--accent-foreground: oklch(0.18 0.008 250);
+	--background: oklch(0.16 0.018 254); /* ≈ #161a25 Mitternachts-Blau */
+	--foreground: oklch(0.96 0.005 90); /* ≈ #ede9e0 warmes Off-White */
+	--muted: oklch(0.22 0.022 254); /* ≈ #20263a */
+	--muted-foreground: oklch(0.72 0.04 254); /* ≈ #a3afc6 */
+	--border: oklch(0.3 0.025 254); /* ≈ #3a4054 */
+	--primary: oklch(0.72 0.16 254); /* ≈ #7c9fee helles Blau */
+	--primary-foreground: oklch(0.16 0.018 254);
+	--accent: oklch(0.4 0.1 254); /* ≈ #4258a2 dunkleres Highlight */
+	--accent-foreground: oklch(0.96 0.005 90);
 }
 
 @theme inline {

@@ -25,6 +25,56 @@ export type ExtractedEducation = {
 	degree: string;
 	start?: string;
 	end?: string;
+	// false wenn der CV "abgebrochen", "ohne Abschluss" o.Ä. signalisiert.
+	// Default: true (regulär abgeschlossen).
+	completed?: boolean;
+	degreeType?:
+		| "school"
+		| "apprenticeship"
+		| "bachelor"
+		| "master"
+		| "phd"
+		| "mba"
+		| "other";
+	grade?: string;
+	thesisTitle?: string;
+	focus?: string;
+};
+
+export type ExtractedPublication = {
+	title: string;
+	year?: string;
+	kind?: "article" | "talk" | "patent" | "book" | "other";
+	venue?: string;
+	url?: string;
+};
+
+export type ExtractedProject = {
+	name: string;
+	role?: string;
+	url?: string;
+	description?: string;
+};
+
+export type ExtractedVolunteering = {
+	organization: string;
+	role: string;
+	start?: string;
+	end?: string;
+	description?: string;
+};
+
+export type ExtractedAvailability = {
+	status: "immediate" | "notice" | "date" | "unknown";
+	noticeWeeks?: number;
+	availableFrom?: string;
+};
+
+export type ExtractedSocialLinks = {
+	github?: string;
+	linkedin?: string;
+	xing?: string;
+	website?: string;
 };
 
 export type ExtractedCertificationMention = {
@@ -61,6 +111,13 @@ export type ExtractedProfile = {
 		| "lead"
 		| "principal"
 		| "exec";
+	publications?: ExtractedPublication[];
+	projects?: ExtractedProject[];
+	volunteering?: ExtractedVolunteering[];
+	drivingLicenses?: string[];
+	availability?: ExtractedAvailability;
+	socialLinks?: ExtractedSocialLinks;
+	workPermitStatus?: "eu" | "permit" | "requires_sponsorship" | "unknown";
 };
 
 export type SuggestedJobRequirement = {
@@ -176,6 +233,23 @@ export type SalaryBenchmark = {
 	high: number;
 	currency: "EUR";
 	rationale: string; // single sentence, "warum dieser Bereich"
+};
+
+// Pro Land empfohlene Gehaltsband für ein Profil. Wird genutzt wenn der/die
+// Kandidat:in sich auf Stellen in einem anderen Land bewerben will und den
+// lokalen Markt nicht kennt.
+export type CandidateSalaryRecommendationInput = {
+	profile: ExtractedProfile;
+	country: string; // ISO Country Code
+	currency: string; // 3-Letter (EUR, GBP, USD, CHF)
+};
+
+export type CandidateSalaryRecommendation = {
+	low: number;
+	mid: number;
+	high: number;
+	currency: string;
+	rationale: string; // 1-2 Sätze, warum dieses Band für genau dieses Land
 };
 
 export type SalaryBenchmarkInput = {
@@ -299,6 +373,11 @@ export interface AIProvider {
 	translateProfile(
 		input: ProfileTranslationInput,
 	): Promise<ProfileTranslationOutput>;
+	// Empfohlenes Gehaltsband für genau dieses Profil in einem konkreten Land.
+	// Berücksichtigt Skill-Mix, Erfahrung, Branche und lokales Lohnniveau.
+	recommendCandidateSalary(
+		input: CandidateSalaryRecommendationInput,
+	): Promise<CandidateSalaryRecommendation>;
 }
 
 export type ProfileTranslationInput = {

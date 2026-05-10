@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, isNotNull, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -8,14 +8,19 @@ import {
 	type AuditLogEntry,
 	applications,
 	auditLog,
+	candidateProfiles,
 	type Employer,
 	employers,
 	hiringProcessTemplates,
+	interests,
 	jobs,
+	matches,
+	offers,
 	templateStages,
 	tenants,
 	type User,
 	users,
+	verifications,
 } from "@/db/schema";
 
 async function requireAdmin() {
@@ -680,4 +685,857 @@ export async function getTemplateAsAdmin(templateId: string) {
 export async function listTenants() {
 	await requireAdmin();
 	return db.select().from(tenants).orderBy(asc(tenants.slug));
+}
+
+// ─── Plattform-Analytics ─────────────────────────────────────────────────
+// Zentrale Stelle für Tracking. Wird auf /admin/stats gerendert.
+export type AdminAnalytics = {
+	// Wachstum: 7d / 30d-Vergleich
+	growth: {
+		users7d: number;
+		users30d: number;
+		jobs7d: number;
+		jobs30d: number;
+		matches7d: number;
+		matches30d: number;
+	};
+	// Funnel: Match → Interest → Approval → Offer → Acceptance
+	funnel: {
+		matches: number;
+		interests: number;
+		interestsApproved: number;
+		interestsRejected: number;
+		offers: number;
+		offersAccepted: number;
+		offersDeclined: number;
+		offersPending: number;
+	};
+	// Konversions-Raten (Prozent)
+	conversion: {
+		matchToInterest: number;
+		interestToApproval: number;
+		approvalToOffer: number;
+		offerToAccept: number;
+	};
+	// Antwort-Verhalten Arbeitnehmer (Kandidat:in entscheidet ein Interest)
+	candidateResponse: {
+		decided: number;
+		pending: number;
+		median_hours: number | null; // Median Zeit bis Entscheidung
+	};
+	// Antwort-Verhalten Arbeitgeber (Offer-Status nach 14 Tagen)
+	employerResponse: {
+		offersTotal: number;
+		offersDecided: number;
+		offersPending: number;
+		median_hours: number | null;
+	};
+	// Top-Skills auf der Plattform (häufigste Kandidaten-Skills)
+	topCandidateSkills: { name: string; n: number }[];
+	// Top-Skills in Job-Anforderungen
+	topJobSkills: { name: string; n: number }[];
+	// Top-Standorte
+	topLocations: { location: string; n: number }[];
+	// Verifikations-Mix
+	verifyMix: { kind: string; n: number }[];
+	// Aktive Tenants (mind. 1 published Job)
+	activeTenants: number;
+	// Profil-Vollständigkeit (Anteil mit summary, skills, education, experience)
+	profileCompleteness: {
+		hasSummary: number;
+		hasSkills: number;
+		hasEducation: number;
+		hasExperience: number;
+		total: number;
+	};
+};
+
+function pct(n: number, d: number): number {
+	if (!d) return 0;
+	return Math.round((n / d) * 1000) / 10;
+}
+
+// Median über positive number-Liste, oder null bei leer.
+function medianHours(rows: { dt: number | null }[]): number | null {
+	const xs = rows
+		.map((r) => r.dt)
+		.filter((x): x is number => x !== null && Number.isFinite(x))
+		.sort((a, b) => a - b);
+	if (xs.length === 0) return null;
+	const mid = Math.floor(xs.length / 2);
+	const m = xs.length % 2 === 0 ? (xs[mid - 1] + xs[mid]) / 2 : xs[mid];
+	return Math.round(m * 10) / 10;
+}
+
+export async function getAdminAnalytics(): Promise<AdminAnalytics> {
+	await requireAdmin();
+	const empty: AdminAnalytics = {
+		growth: {
+			users7d: 0,
+			users30d: 0,
+			jobs7d: 0,
+			jobs30d: 0,
+			matches7d: 0,
+			matches30d: 0,
+		},
+		funnel: {
+			matches: 0,
+			interests: 0,
+			interestsApproved: 0,
+			interestsRejected: 0,
+			offers: 0,
+			offersAccepted: 0,
+			offersDeclined: 0,
+			offersPending: 0,
+		},
+		conversion: {
+			matchToInterest: 0,
+			interestToApproval: 0,
+			approvalToOffer: 0,
+			offerToAccept: 0,
+		},
+		candidateResponse: { decided: 0, pending: 0, median_hours: null },
+		employerResponse: {
+			offersTotal: 0,
+			offersDecided: 0,
+			offersPending: 0,
+			median_hours: null,
+		},
+		topCandidateSkills: [],
+		topJobSkills: [],
+		topLocations: [],
+		verifyMix: [],
+		activeTenants: 0,
+		profileCompleteness: {
+			hasSummary: 0,
+			hasSkills: 0,
+			hasEducation: 0,
+			hasExperience: 0,
+			total: 0,
+		},
+	};
+	try {
+		const now = Date.now();
+		const since7 = new Date(now - 7 * 86400_000);
+		const since30 = new Date(now - 30 * 86400_000);
+
+		const cnt = async (
+			query: ReturnType<typeof db.select>,
+		): Promise<number> => {
+			const r = await query;
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic count select
+			return Number((r as any[])[0]?.n ?? 0);
+		};
+
+		const [users7d, users30d] = await Promise.all([
+			cnt(
+				db
+					.select({ n: sql<number>`count(*)::int`.as("n") })
+					.from(users)
+					.where(gte(users.createdAt, since7)),
+			),
+			cnt(
+				db
+					.select({ n: sql<number>`count(*)::int`.as("n") })
+					.from(users)
+					.where(gte(users.createdAt, since30)),
+			),
+		]);
+		const [jobs7d, jobs30d] = await Promise.all([
+			cnt(
+				db
+					.select({ n: sql<number>`count(*)::int`.as("n") })
+					.from(jobs)
+					.where(gte(jobs.createdAt, since7)),
+			),
+			cnt(
+				db
+					.select({ n: sql<number>`count(*)::int`.as("n") })
+					.from(jobs)
+					.where(gte(jobs.createdAt, since30)),
+			),
+		]);
+		const [matches7d, matches30d] = await Promise.all([
+			cnt(
+				db
+					.select({ n: sql<number>`count(*)::int`.as("n") })
+					.from(matches)
+					.where(gte(matches.computedAt, since7)),
+			),
+			cnt(
+				db
+					.select({ n: sql<number>`count(*)::int`.as("n") })
+					.from(matches)
+					.where(gte(matches.computedAt, since30)),
+			),
+		]);
+
+		const [matchesTotal, interestRows, offerRows] = await Promise.all([
+			db
+				.select({ n: sql<number>`count(*)::int`.as("n") })
+				.from(matches)
+				.then((rs) => Number(rs[0]?.n ?? 0)),
+			db
+				.select({
+					status: interests.status,
+					n: sql<number>`count(*)::int`.as("n"),
+				})
+				.from(interests)
+				.groupBy(interests.status),
+			db
+				.select({
+					status: offers.status,
+					n: sql<number>`count(*)::int`.as("n"),
+				})
+				.from(offers)
+				.groupBy(offers.status),
+		]);
+
+		const interestsByStatus = new Map(
+			interestRows.map((r) => [r.status, Number(r.n)]),
+		);
+		const interestsTotal = interestRows.reduce(
+			(a, r) => a + Number(r.n),
+			0,
+		);
+		const offersByStatus = new Map(offerRows.map((r) => [r.status, Number(r.n)]));
+		const offersTotal = offerRows.reduce((a, r) => a + Number(r.n), 0);
+
+		const interestsApproved = interestsByStatus.get("approved") ?? 0;
+		const interestsRejected = interestsByStatus.get("rejected") ?? 0;
+		const offersAccepted = offersByStatus.get("accepted") ?? 0;
+		const offersDeclined = offersByStatus.get("declined") ?? 0;
+		const offersPending = offersByStatus.get("pending") ?? 0;
+
+		const funnel = {
+			matches: matchesTotal,
+			interests: interestsTotal,
+			interestsApproved,
+			interestsRejected,
+			offers: offersTotal,
+			offersAccepted,
+			offersDeclined,
+			offersPending,
+		};
+
+		const conversion = {
+			matchToInterest: pct(interestsTotal, matchesTotal),
+			interestToApproval: pct(interestsApproved, interestsTotal),
+			approvalToOffer: pct(offersTotal, interestsApproved),
+			offerToAccept: pct(offersAccepted, offersTotal),
+		};
+
+		// Median candidate response time (interest.createdAt → decidedAt)
+		const decidedInterests = await db
+			.select({
+				createdAt: interests.createdAt,
+				decidedAt: interests.decidedAt,
+			})
+			.from(interests)
+			.where(sql`${interests.decidedAt} IS NOT NULL`);
+		const candidateResponse = {
+			decided: decidedInterests.length,
+			pending: interestsTotal - decidedInterests.length,
+			median_hours: medianHours(
+				decidedInterests.map((r) => ({
+					dt:
+						r.createdAt && r.decidedAt
+							? (r.decidedAt.getTime() - r.createdAt.getTime()) / 3600_000
+							: null,
+				})),
+			),
+		};
+
+		// Median employer response time (offer.createdAt → decidedAt)
+		const decidedOffers = await db
+			.select({
+				createdAt: offers.createdAt,
+				decidedAt: offers.decidedAt,
+			})
+			.from(offers)
+			.where(sql`${offers.decidedAt} IS NOT NULL`)
+			.catch(() => []);
+		const employerResponse = {
+			offersTotal,
+			offersDecided: decidedOffers.length,
+			offersPending: offersPending,
+			median_hours: medianHours(
+				decidedOffers.map((r) => ({
+					dt:
+						r.createdAt && r.decidedAt
+							? (r.decidedAt.getTime() - r.createdAt.getTime()) / 3600_000
+							: null,
+				})),
+			),
+		};
+
+		// Top candidate skills
+		const candProfiles = await db
+			.select({ skills: candidateProfiles.skills })
+			.from(candidateProfiles);
+		const candSkillCount = new Map<string, number>();
+		for (const p of candProfiles) {
+			for (const s of p.skills ?? []) {
+				const key = s.name.trim();
+				if (!key) continue;
+				candSkillCount.set(key, (candSkillCount.get(key) ?? 0) + 1);
+			}
+		}
+		const topCandidateSkills = [...candSkillCount.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 12)
+			.map(([name, n]) => ({ name, n }));
+
+		// Top job skills
+		const jobReqs = await db
+			.select({ requirements: jobs.requirements })
+			.from(jobs);
+		const jobSkillCount = new Map<string, number>();
+		for (const j of jobReqs) {
+			for (const r of j.requirements ?? []) {
+				const key = r.name.trim();
+				if (!key) continue;
+				jobSkillCount.set(key, (jobSkillCount.get(key) ?? 0) + 1);
+			}
+		}
+		const topJobSkills = [...jobSkillCount.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 12)
+			.map(([name, n]) => ({ name, n }));
+
+		// Top locations
+		const locationsRaw = await db
+			.select({
+				location: candidateProfiles.location,
+				n: sql<number>`count(*)::int`.as("n"),
+			})
+			.from(candidateProfiles)
+			.where(sql`${candidateProfiles.location} IS NOT NULL`)
+			.groupBy(candidateProfiles.location)
+			.orderBy(desc(sql<number>`count(*)`))
+			.limit(8);
+		const topLocations = locationsRaw
+			.filter((r) => !!r.location)
+			.map((r) => ({ location: r.location as string, n: Number(r.n) }));
+
+		// Verification mix
+		const verifyRows = await db
+			.select({
+				kind: verifications.kind,
+				n: sql<number>`count(*)::int`.as("n"),
+			})
+			.from(verifications)
+			.groupBy(verifications.kind)
+			.orderBy(desc(sql<number>`count(*)`))
+			.catch(() => []);
+		const verifyMix = verifyRows.map((r) => ({
+			kind: r.kind,
+			n: Number(r.n),
+		}));
+
+		// Active tenants — mindestens 1 published Job (via employers join)
+		const activeRows = await db
+			.select({ tenantId: employers.tenantId })
+			.from(jobs)
+			.innerJoin(employers, eq(employers.id, jobs.employerId))
+			.where(eq(jobs.status, "published"))
+			.groupBy(employers.tenantId);
+		const activeTenants = activeRows.length;
+
+		// Profile completeness
+		const allProfiles = await db
+			.select({
+				summary: candidateProfiles.summary,
+				skills: candidateProfiles.skills,
+				education: candidateProfiles.education,
+				experience: candidateProfiles.experience,
+			})
+			.from(candidateProfiles);
+		const completeness = {
+			hasSummary: allProfiles.filter(
+				(p) => p.summary && p.summary.trim().length > 0,
+			).length,
+			hasSkills: allProfiles.filter((p) => (p.skills ?? []).length > 0).length,
+			hasEducation: allProfiles.filter((p) => (p.education ?? []).length > 0)
+				.length,
+			hasExperience: allProfiles.filter((p) => (p.experience ?? []).length > 0)
+				.length,
+			total: allProfiles.length,
+		};
+
+		return {
+			growth: {
+				users7d,
+				users30d,
+				jobs7d,
+				jobs30d,
+				matches7d,
+				matches30d,
+			},
+			funnel,
+			conversion,
+			candidateResponse,
+			employerResponse,
+			topCandidateSkills,
+			topJobSkills,
+			topLocations,
+			verifyMix,
+			activeTenants,
+			profileCompleteness: completeness,
+		};
+	} catch (e) {
+		console.warn("[admin] getAdminAnalytics", e);
+		return empty;
+	}
+}
+
+// ─── Block / Unblock / Delete ─────────────────────────────────────────────
+// Sperren ist reversibel (blockedAt + Reason). Löschen ist irreversibel und
+// cascadiert via FK-onDelete. Beides nur für Admins.
+
+export async function blockUser(input: {
+	userId: string;
+	reason?: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	if (input.userId === adminId) {
+		return { ok: false, error: "Du kannst dich nicht selbst sperren." };
+	}
+	await db
+		.update(users)
+		.set({ blockedAt: new Date(), blockedReason: input.reason ?? null })
+		.where(eq(users.id, input.userId));
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "user.block",
+		target: input.userId,
+		payload: { reason: input.reason ?? null },
+	});
+	revalidatePath("/admin/users");
+	return { ok: true };
+}
+
+export async function unblockUser(
+	userId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	await db
+		.update(users)
+		.set({ blockedAt: null, blockedReason: null })
+		.where(eq(users.id, userId));
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "user.unblock",
+		target: userId,
+	});
+	revalidatePath("/admin/users");
+	return { ok: true };
+}
+
+export async function deleteUser(
+	userId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	if (userId === adminId) {
+		return { ok: false, error: "Du kannst dich nicht selbst löschen." };
+	}
+	const [target] = await db
+		.select({ email: users.email, role: users.role })
+		.from(users)
+		.where(eq(users.id, userId))
+		.limit(1);
+	if (!target) return { ok: false, error: "User nicht gefunden." };
+	// FK-Cascade kümmert sich um candidateProfiles, employers, applications,
+	// matches, interests, offers, etc. — alle hängen mit onDelete:'cascade'
+	// am users.id. Audit-Log NICHT cascadiert (actorUserId hat kein onDelete).
+	await db.delete(users).where(eq(users.id, userId));
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "user.delete",
+		target: userId,
+		payload: { email: target.email, role: target.role },
+	});
+	revalidatePath("/admin/users");
+	return { ok: true };
+}
+
+export async function blockEmployer(input: {
+	employerId: string;
+	reason?: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	await db
+		.update(employers)
+		.set({ blockedAt: new Date(), blockedReason: input.reason ?? null })
+		.where(eq(employers.id, input.employerId));
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "employer.block",
+		target: input.employerId,
+		payload: { reason: input.reason ?? null },
+	});
+	revalidatePath("/admin/companies");
+	return { ok: true };
+}
+
+export async function unblockEmployer(
+	employerId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	await db
+		.update(employers)
+		.set({ blockedAt: null, blockedReason: null })
+		.where(eq(employers.id, employerId));
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "employer.unblock",
+		target: employerId,
+	});
+	revalidatePath("/admin/companies");
+	return { ok: true };
+}
+
+export async function deleteEmployer(
+	employerId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	const [target] = await db
+		.select({ name: employers.companyName })
+		.from(employers)
+		.where(eq(employers.id, employerId))
+		.limit(1);
+	if (!target) return { ok: false, error: "Unternehmen nicht gefunden." };
+	await db.delete(employers).where(eq(employers.id, employerId));
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "employer.delete",
+		target: employerId,
+		payload: { companyName: target.name },
+	});
+	revalidatePath("/admin/companies");
+	return { ok: true };
+}
+
+// ─── Demo-Daten-Generator + Purge ────────────────────────────────────────
+// Erstellt eine Charge an Demo-Profilen und legt für jeden eine Bewerbung
+// an. Alles bekommt eine demoBatchId — ein Admin-Klick reicht zum
+// vollständigen Aufräumen.
+
+const DEMO_FIRST = [
+	"Anna",
+	"Lukas",
+	"Marie",
+	"Felix",
+	"Sophia",
+	"Jonas",
+	"Lena",
+	"Tobias",
+	"Hannah",
+	"Julian",
+	"Mia",
+	"Niklas",
+	"Emma",
+	"Paul",
+];
+const DEMO_LAST = [
+	"Müller",
+	"Schmidt",
+	"Becker",
+	"Wagner",
+	"Hoffmann",
+	"Schulz",
+	"Krause",
+	"Werner",
+	"Klein",
+	"Wolf",
+	"Neumann",
+	"Schwarz",
+];
+const DEMO_HEADLINES = [
+	"Senior Frontend Engineer",
+	"Backend Engineer (Node.js)",
+	"Product Designer",
+	"Engineering Manager",
+	"Data Engineer",
+	"DevOps Engineer",
+	"Mobile Engineer",
+	"Growth Marketing Manager",
+];
+const DEMO_SKILLS = [
+	"TypeScript",
+	"React",
+	"Next.js",
+	"Node.js",
+	"PostgreSQL",
+	"Python",
+	"AWS",
+	"Kubernetes",
+	"Tailwind CSS",
+	"Figma",
+	"GraphQL",
+	"Go",
+];
+const DEMO_LOCATIONS = [
+	"Berlin",
+	"Hamburg",
+	"München",
+	"Köln",
+	"Frankfurt",
+	"Leipzig",
+	"Wien",
+	"Zürich",
+];
+const DEMO_INDUSTRIES = ["Fintech", "SaaS", "E-Commerce", "HealthTech", "Mobility"];
+
+function pick<T>(arr: readonly T[], rng: () => number): T {
+	return arr[Math.floor(rng() * arr.length)];
+}
+
+// Deterministisches RNG damit re-runs reproduzierbar sind (gleicher Seed
+// = gleiche Demo-User, falls jemand in einem Loop testet).
+function makeRng(seed: string): () => number {
+	let h = 0;
+	for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+	return () => {
+		h = (h * 1103515245 + 12345) & 0x7fffffff;
+		return h / 0x7fffffff;
+	};
+}
+
+export type DemoGenResult = {
+	ok: true;
+	batchId: string;
+	candidatesCreated: number;
+	companyCreated: boolean;
+	jobsCreated: number;
+	applicationsCreated: number;
+};
+
+export async function generateDemoData(input: {
+	candidates?: number;
+	jobs?: number;
+}): Promise<DemoGenResult | { ok: false; error: string }> {
+	const adminId = await requireAdmin();
+	const candidateCount = Math.min(Math.max(input.candidates ?? 8, 1), 50);
+	const jobCount = Math.min(Math.max(input.jobs ?? 4, 0), 20);
+	const batchId = `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+	const rng = makeRng(batchId);
+
+	const [tenant] = await db
+		.select({ id: tenants.id })
+		.from(tenants)
+		.where(eq(tenants.slug, "default"))
+		.limit(1);
+	if (!tenant) return { ok: false, error: "Default-Tenant nicht gefunden." };
+
+	let candidatesCreated = 0;
+	const createdUserIds: string[] = [];
+	for (let i = 0; i < candidateCount; i++) {
+		const first = pick(DEMO_FIRST, rng);
+		const last = pick(DEMO_LAST, rng);
+		const headline = pick(DEMO_HEADLINES, rng);
+		const location = pick(DEMO_LOCATIONS, rng);
+		const skills = Array.from(new Set([
+			pick(DEMO_SKILLS, rng),
+			pick(DEMO_SKILLS, rng),
+			pick(DEMO_SKILLS, rng),
+			pick(DEMO_SKILLS, rng),
+		])).map((name) => ({ name, level: 3 + Math.floor(rng() * 3) as 3 | 4 | 5 }));
+		const industries = [pick(DEMO_INDUSTRIES, rng)];
+		const years = 2 + Math.floor(rng() * 12);
+		const email = `demo-${batchId.slice(5, 13)}-${i}@klick.demo`;
+
+		const [u] = await db
+			.insert(users)
+			.values({
+				email,
+				name: `${first} ${last}`,
+				role: "candidate",
+				tenantId: tenant.id,
+				emailVerified: new Date(),
+				demoBatchId: batchId,
+			})
+			.returning({ id: users.id });
+		await db.insert(candidateProfiles).values({
+			userId: u.id,
+			displayName: `${first} ${last}`,
+			headline,
+			location,
+			yearsExperience: years,
+			languages: ["Deutsch", "Englisch"],
+			skills,
+			industries,
+			summary: `Demo-Kandidat:in mit Fokus auf ${headline.split(" ").slice(-2).join(" ")} und ${skills[0]?.name ?? "TypeScript"}. Generiert für Demo-Zwecke.`,
+			experience: [
+				{
+					company: pick(["Demo GmbH", "Beispiel AG", "Mock Studios"], rng),
+					role: headline,
+					start: `${2026 - Math.min(years, 5)}-01`,
+					description: `Aktuelle Rolle als ${headline}.`,
+					employmentType: "employee",
+				},
+			],
+			salaryMin: 50000 + years * 5000,
+			salaryDesired: 65000 + years * 6000,
+			onboardingCompletedAt: new Date(),
+			visibility: "matches_only",
+		});
+		createdUserIds.push(u.id);
+		candidatesCreated++;
+	}
+
+	// Demo-Company + Jobs
+	const companyEmail = `demo-${batchId.slice(5, 13)}-company@klick.demo`;
+	const [companyUser] = await db
+		.insert(users)
+		.values({
+			email: companyEmail,
+			name: "Demo Company",
+			role: "employer",
+			tenantId: tenant.id,
+			emailVerified: new Date(),
+			demoBatchId: batchId,
+		})
+		.returning({ id: users.id });
+	const [demoEmployer] = await db
+		.insert(employers)
+		.values({
+			userId: companyUser.id,
+			tenantId: tenant.id,
+			companyName: `Demo Studios ${batchId.slice(5, 11)}`,
+			description: "Generiertes Demo-Unternehmen für Showcase-Zwecke.",
+			demoBatchId: batchId,
+		})
+		.returning({ id: employers.id });
+
+	const jobIds: string[] = [];
+	let jobsCreated = 0;
+	for (let i = 0; i < jobCount; i++) {
+		const headline = pick(DEMO_HEADLINES, rng);
+		const requiredSkills = Array.from(
+			new Set([pick(DEMO_SKILLS, rng), pick(DEMO_SKILLS, rng), pick(DEMO_SKILLS, rng)]),
+		);
+		const [j] = await db
+			.insert(jobs)
+			.values({
+				employerId: demoEmployer.id,
+				title: `${headline} (Demo)`,
+				description: `Demo-Stelle für ${headline}. Diese Stelle wurde generiert um die Plattform-Funktionen zu zeigen.`,
+				location: pick(DEMO_LOCATIONS, rng),
+				remotePolicy: "hybrid",
+				employmentType: "fulltime",
+				salaryMin: 60000,
+				salaryMax: 95000,
+				yearsExperienceMin: 3,
+				languages: ["Deutsch", "Englisch"],
+				requirements: requiredSkills.map((name, idx) => ({
+					name,
+					weight: idx === 0 ? "must" : "nice",
+					minLevel: 3,
+				})) as { name: string; weight: "must" | "nice"; minLevel?: number }[],
+				status: "published",
+				demoBatchId: batchId,
+			})
+			.returning({ id: jobs.id });
+		jobIds.push(j.id);
+		jobsCreated++;
+	}
+
+	// Applications: jeder Demo-Kandidat bewirbt sich auf 1-2 zufällige Demo-Jobs.
+	let applicationsCreated = 0;
+	if (jobIds.length > 0) {
+		for (const userId of createdUserIds) {
+			const apps = 1 + Math.floor(rng() * 2);
+			const seen = new Set<string>();
+			for (let k = 0; k < apps; k++) {
+				const jobId = pick(jobIds, rng);
+				if (seen.has(jobId)) continue;
+				seen.add(jobId);
+				try {
+					await db.insert(applications).values({
+						jobId,
+						candidateUserId: userId,
+						status: pick(
+							["submitted", "in_review", "shortlist", "interview"],
+							rng,
+						) as "submitted",
+						coverLetter: `Demo-Anschreiben für die ausgeschriebene Stelle.`,
+					});
+					applicationsCreated++;
+				} catch {
+					// duplicate / FK race — ignorieren
+				}
+			}
+		}
+	}
+
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "demo.generate",
+		target: batchId,
+		payload: {
+			candidatesCreated,
+			jobsCreated,
+			applicationsCreated,
+		},
+	});
+	revalidatePath("/admin");
+	revalidatePath("/admin/users");
+	revalidatePath("/admin/companies");
+	revalidatePath("/admin/stats");
+
+	return {
+		ok: true,
+		batchId,
+		candidatesCreated,
+		companyCreated: true,
+		jobsCreated,
+		applicationsCreated,
+	};
+}
+
+export async function purgeDemoData(): Promise<{
+	ok: true;
+	deletedUsers: number;
+	deletedEmployers: number;
+	deletedJobs: number;
+}> {
+	const adminId = await requireAdmin();
+
+	// Reihenfolge wegen FK-cascading: Jobs (mit demoBatchId), dann Employers
+	// (mit demoBatchId), dann Users (mit demoBatchId). Cascade entsorgt den
+	// Rest (applications, matches, interests, offers, candidate_profiles).
+	const deletedJobs = await db
+		.delete(jobs)
+		.where(isNotNull(jobs.demoBatchId))
+		.returning({ id: jobs.id });
+	const deletedEmployers = await db
+		.delete(employers)
+		.where(isNotNull(employers.demoBatchId))
+		.returning({ id: employers.id });
+	const deletedUsers = await db
+		.delete(users)
+		.where(isNotNull(users.demoBatchId))
+		.returning({ id: users.id });
+
+	await db.insert(auditLog).values({
+		actorUserId: adminId,
+		action: "demo.purge",
+		payload: {
+			jobs: deletedJobs.length,
+			employers: deletedEmployers.length,
+			users: deletedUsers.length,
+		},
+	});
+	revalidatePath("/admin");
+	revalidatePath("/admin/users");
+	revalidatePath("/admin/companies");
+	revalidatePath("/admin/stats");
+
+	return {
+		ok: true,
+		deletedUsers: deletedUsers.length,
+		deletedEmployers: deletedEmployers.length,
+		deletedJobs: deletedJobs.length,
+	};
 }

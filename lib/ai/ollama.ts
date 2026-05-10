@@ -1,3 +1,4 @@
+import { applyExtractionPostprocessing } from "./normalize";
 import type {
 	AIProvider,
 	CandidateNarrative,
@@ -203,11 +204,102 @@ export class OllamaAIProvider implements AIProvider {
 						properties: {
 							institution: { type: "string" },
 							degree: { type: "string" },
+							start: { type: "string" },
+							end: { type: "string" },
+							completed: { type: "boolean" },
+							degreeType: {
+								type: "string",
+								enum: [
+									"school",
+									"apprenticeship",
+									"bachelor",
+									"master",
+									"phd",
+									"mba",
+									"other",
+								],
+							},
+							grade: { type: "string" },
+							thesisTitle: { type: "string" },
+							focus: { type: "string" },
 						},
 						required: ["institution", "degree"],
 					},
 				},
-				summary: { type: "string" },
+				publications: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							title: { type: "string" },
+							year: { type: "string" },
+							kind: {
+								type: "string",
+								enum: ["article", "talk", "patent", "book", "other"],
+							},
+							venue: { type: "string" },
+							url: { type: "string" },
+						},
+						required: ["title"],
+					},
+				},
+				projects: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							name: { type: "string" },
+							role: { type: "string" },
+							url: { type: "string" },
+							description: { type: "string" },
+						},
+						required: ["name"],
+					},
+				},
+				volunteering: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							organization: { type: "string" },
+							role: { type: "string" },
+							start: { type: "string" },
+							end: { type: "string" },
+							description: { type: "string" },
+						},
+						required: ["organization", "role"],
+					},
+				},
+				drivingLicenses: { type: "array", items: { type: "string" } },
+				availability: {
+					type: "object",
+					properties: {
+						status: {
+							type: "string",
+							enum: ["immediate", "notice", "date", "unknown"],
+						},
+						noticeWeeks: { type: "integer" },
+						availableFrom: { type: "string" },
+					},
+				},
+				socialLinks: {
+					type: "object",
+					properties: {
+						github: { type: "string" },
+						linkedin: { type: "string" },
+						xing: { type: "string" },
+						website: { type: "string" },
+					},
+				},
+				workPermitStatus: {
+					type: "string",
+					enum: ["eu", "permit", "requires_sponsorship", "unknown"],
+				},
+				summary: {
+					type: "string",
+					description:
+						"Kurzprofil in 2-4 Sätzen. IMMER ausfüllen — wenn der CV keinen Profil-Text enthält, selbst formulieren aus Titel + Top-Skills + jüngster Erfahrung.",
+				},
 				industries: { type: "array", items: { type: "string" } },
 				certificationsMentioned: {
 					type: "array",
@@ -236,27 +328,32 @@ export class OllamaAIProvider implements AIProvider {
 
 		const systemPrompt =
 			"Du extrahierst strukturierte Profile aus Lebensläufen. Halte dich strikt an das JSON-Schema. " +
-			"Bei Zertifikaten verwende offizielle Anbieter-Bezeichnungen (z.B. 'Microsoft Certified: Azure Administrator Associate' statt 'AZ-104'); wenn nicht zuordenbar, nimm den CV-Wortlaut + verbatim-Feld.";
+			"Bei Zertifikaten verwende offizielle Anbieter-Bezeichnungen (z.B. 'Microsoft Certified: Azure Administrator Associate' statt 'AZ-104'); wenn nicht zuordenbar, nimm den CV-Wortlaut + verbatim-Feld. " +
+			"Bei `education`: KEINE Status-Zusätze in den `degree`-Titel schreiben — wenn das Studium abgebrochen wurde, setze `completed=false`. Klassifiziere `degreeType` (school/apprenticeship/bachelor/master/phd/mba/other). Übernimm `grade` (Endnote im Originalformat) und `thesisTitle` (Bachelor-/Master-/Doktorarbeits-Titel) wenn genannt. `focus` für Vertiefungsrichtung. " +
+			"Falls der CV es nennt: `publications`, `projects`, `volunteering`, `drivingLicenses`, `availability`, `socialLinks`, `workPermitStatus` ausfüllen. Niemals raten. " +
+			"`summary` IMMER ausfüllen (2-4 Sätze). Wenn der CV keinen Profil-Text enthält, selbst aus Headline + Top-Skills + jüngster Rolle formulieren.";
 
 		if (isImage) {
 			const base64 = Buffer.from(bytes).toString("base64");
-			return await this.chatVision<ExtractedProfile>(
+			const raw = await this.chatVision<ExtractedProfile>(
 				systemPrompt,
 				"Extrahiere das Profil aus diesem Lebenslauf-Bild.",
 				base64,
 				schema,
 			);
+			return applyExtractionPostprocessing(raw);
 		}
 
 		// PDF → Text. pdf-parse ist erst eine Runtime-Dep wenn der Provider
 		// aktiv ist; dynamischer Import vermeidet Build-Failures wenn das
 		// Paket fehlt.
 		const pdfText = await extractPdfText(bytes);
-		return await this.chat<ExtractedProfile>(
+		const raw = await this.chat<ExtractedProfile>(
 			systemPrompt,
 			`Lebenslauf-Volltext:\n\n${pdfText}\n\nExtrahiere das Profil.`,
 			schema,
 		);
+		return applyExtractionPostprocessing(raw);
 	}
 
 	async extractDocument(
@@ -681,6 +778,40 @@ export class OllamaAIProvider implements AIProvider {
 			};
 		}
 	}
+
+	async recommendCandidateSalary(input: {
+		profile: ExtractedProfile;
+		country: string;
+		currency: string;
+	}): Promise<{
+		low: number;
+		mid: number;
+		high: number;
+		currency: string;
+		rationale: string;
+	}> {
+		const schema = {
+			type: "object",
+			properties: {
+				low: { type: "integer", minimum: 0 },
+				mid: { type: "integer", minimum: 0 },
+				high: { type: "integer", minimum: 0 },
+				currency: { type: "string" },
+				rationale: { type: "string" },
+			},
+			required: ["low", "mid", "high", "currency", "rationale"],
+		};
+		const sys =
+			"Du kennst DACH/EU/UK/US Gehaltsmärkte (Stand 2026). Antworte STRIKT als JSON nach Schema. Keine Buzzwords.";
+		const user = `Profil: ${JSON.stringify(input.profile)}\nLand: ${input.country}\nWährung: ${input.currency}\nGib das empfohlene Brutto-Jahresband (low/mid/high) + 1-2 Sätze Rationale.`;
+		return await this.chat<{
+			low: number;
+			mid: number;
+			high: number;
+			currency: string;
+			rationale: string;
+		}>(sys, user, schema);
+	}
 }
 
 // ─── PDF-Text-Extraktion ──────────────────────────────────────────────────
@@ -695,10 +826,14 @@ export class OllamaAIProvider implements AIProvider {
 async function extractPdfText(bytes: Uint8Array): Promise<string> {
 	try {
 		// String-Konkatenation: TypeScript soll das Modul nicht statisch
-		// auflösen, damit der Build ohne pdf-parse durchgeht.
+		// auflösen, damit der Build ohne pdf-parse durchgeht. Die magic
+		// comments sagen Webpack + Turbopack zusätzlich, dass sie diesen
+		// Aufruf gar nicht erst zu resolven versuchen sollen.
 		const modPath = "pdf" + "-parse/lib/pdf-parse.js";
 		// biome-ignore lint/suspicious/noExplicitAny: optional runtime dep
-		const mod: any = await import(/* @vite-ignore */ modPath).catch(() => null);
+		const mod: any = await import(
+			/* webpackIgnore: true */ /* turbopackIgnore: true */ modPath
+		).catch(() => null);
 		if (!mod) {
 			return "(pdf-parse nicht installiert — pnpm add pdf-parse)";
 		}
