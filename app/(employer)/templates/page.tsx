@@ -50,55 +50,67 @@ export default async function TemplatesPage() {
 					</p>
 				) : (
 					<ul className="space-y-3">
-						{templates.map(({ template, stages }) => (
-							<li
-								key={template.id}
-								className="rounded-sm border border-border bg-background"
-							>
-								<Link
-									href={`/templates/${template.id}`}
-									className="block p-4 transition-colors hover:bg-muted/30 sm:p-5"
+						{templates.map(({ template, stages }) => {
+							// Wenn das Template das default-System-Template ist, zeigen
+							// wir die i18n-Variante an statt der DB-gespeicherten
+							// deutschen Strings — sonst sähe es auf EN-Locale gemischt aus.
+							const displayName = template.isDefault
+								? t("defaultTemplateName")
+								: template.name;
+							const displayDescription =
+								template.isDefault && template.description
+									? t("defaultTemplateDescription")
+									: template.description;
+							return (
+								<li
+									key={template.id}
+									className="rounded-sm border border-border bg-background"
 								>
-									<div className="flex items-start justify-between gap-3">
-										<div className="min-w-0">
-											<div className="flex items-center gap-2">
-												<h2 className="font-serif-display text-lg sm:text-xl">
-													{template.name}
-												</h2>
-												{template.isDefault && (
-													<span className="rounded-sm bg-primary/15 px-2 py-0.5 font-mono text-[10px] text-primary uppercase tracking-wide">
-														{t("default")}
-													</span>
+									<Link
+										href={`/templates/${template.id}`}
+										className="block p-4 transition-colors hover:bg-muted/30 sm:p-5"
+									>
+										<div className="flex items-start justify-between gap-3">
+											<div className="min-w-0">
+												<div className="flex items-center gap-2">
+													<h2 className="font-serif-display text-lg sm:text-xl">
+														{displayName}
+													</h2>
+													{template.isDefault && (
+														<span className="rounded-sm bg-primary/15 px-2 py-0.5 font-mono text-[10px] text-primary uppercase tracking-wide">
+															{t("default")}
+														</span>
+													)}
+												</div>
+												{displayDescription && (
+													<p className="mt-1 text-muted-foreground text-xs">
+														{displayDescription}
+													</p>
 												)}
-											</div>
-											{template.description && (
-												<p className="mt-1 text-muted-foreground text-xs">
-													{template.description}
+												<p className="mt-2 font-mono text-[10px] text-muted-foreground">
+													{t("stagesCount", { n: stages.length })}
 												</p>
-											)}
-											<p className="mt-2 font-mono text-[10px] text-muted-foreground">
-												{t("stagesCount", { n: stages.length })}
-											</p>
+											</div>
 										</div>
-									</div>
-									<ol className="mt-3 flex flex-wrap gap-1.5">
-										{stages.map((s, i) => (
-											<li
-												key={s.id}
-												className="rounded-sm border border-border bg-background px-2 py-0.5 font-mono text-[10px]"
-											>
-												{i + 1}. {s.name}
-												{s.expectedDays != null && (
-													<span className="ml-1 text-muted-foreground">
-														· {s.expectedDays}d
-													</span>
-												)}
-											</li>
-										))}
-									</ol>
-								</Link>
-							</li>
-						))}
+										<ol className="mt-3 flex flex-wrap gap-1.5">
+											{stages.map((s, i) => (
+												<li
+													key={s.id}
+													className="rounded-sm border border-border bg-background px-2 py-0.5 font-mono text-[10px]"
+												>
+													{i + 1}. {t(`stageKind.${s.kind}`)}
+													{s.expectedDays != null && (
+														<span className="ml-1 text-muted-foreground">
+															· {s.expectedDays}d
+														</span>
+													)}
+												</li>
+											))}
+										</ol>
+									</Link>
+								</li>
+							);
+						})}
 					</ul>
 				)}
 			</main>

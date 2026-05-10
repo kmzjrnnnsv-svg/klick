@@ -2147,6 +2147,8 @@
 		"newTitle": "New template",
 		"empty": "No templates yet. A default template is created automatically on the first job save.",
 		"default": "Default",
+		"defaultTemplateName": "Standard process",
+		"defaultTemplateDescription": "Seven stages from incoming to final decision.",
 		"stagesCount": "{n} stage(s)",
 		"back": "Back",
 		"nameLabel": "Name",
