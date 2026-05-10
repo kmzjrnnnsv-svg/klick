@@ -2092,6 +2092,13 @@
 		"ratingSubmit": "Submit rating",
 		"ratingSkip": "Later",
 		"ratingThanks": "Thanks! Your rating feeds the anonymized stats.",
+		"pastRatings": {
+			"eyebrow": "Looking back",
+			"title": "Rate completed stages",
+			"hint": "You've already been through these stages — a quick rating helps other candidates and the company improve.",
+			"rate": "Rate",
+			"done": "✓ rated"
+		},
 		"closureEyebrow": "Closure overdue",
 		"closureTitle": "{count} application(s) need a decision",
 		"closureHint": "Three months without response is the outer limit. Please clear these — advance, on-hold, or honest rejection with a reason.",

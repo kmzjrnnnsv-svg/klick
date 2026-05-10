@@ -259,20 +259,62 @@ export async function submitApplication(input: {
 	}
 }
 
+// Wolt-Style-Copy für jeden Status-Wechsel. Title kommt aus der Sicht
+// des Kandidaten ("Deine Bewerbung wurde gesehen") und body erklärt
+// was als nächstes passiert. Keine Personennamen.
+function statusCandidateCopy(
+	status: ApplicationStatus,
+	jobTitle: string,
+	note?: string,
+): { title: string; body: string } {
+	const noteSuffix = note?.trim() ? ` — ${note.slice(0, 100)}` : "";
+	const titles: Record<ApplicationStatus, string> = {
+		submitted: `Bewerbung eingereicht: ${jobTitle}`,
+		seen: `Deine Bewerbung wurde gesehen: ${jobTitle}`,
+		in_review: `Bewerbung wird geprüft: ${jobTitle}`,
+		shortlisted: `Du bist auf der Shortlist: ${jobTitle}`,
+		interview: `Interview-Phase: ${jobTitle}`,
+		offer: `Angebot wird vorbereitet: ${jobTitle}`,
+		declined: `Absage: ${jobTitle}`,
+		withdrawn: `Zurückgezogen: ${jobTitle}`,
+		archived: `Archiviert: ${jobTitle}`,
+	};
+	const bodies: Record<ApplicationStatus, string> = {
+		submitted: "Die Firma hat deine Bewerbung erhalten.",
+		seen: "Jemand vom Team hat sich deine Bewerbung angeschaut.",
+		in_review: "Skills und Anforderungen werden gerade verglichen.",
+		shortlisted: "Du bist im engeren Kreis — vermutlich kommt bald eine Einladung.",
+		interview: "Du sprichst mit der Firma. Bei Rückfragen nutze den Chat.",
+		offer: "Schau in Offers, sobald das Angebot da ist.",
+		declined: "Im Feedback siehst du den Grund.",
+		withdrawn: "Bewerbung wurde von dir zurückgenommen.",
+		archived: "Bewerbung archiviert — Verlauf bleibt einsehbar.",
+	};
+	return {
+		title: titles[status],
+		body: `${bodies[status]}${noteSuffix}`,
+	};
+}
+
 export async function setApplicationStatus(input: {
 	applicationId: string;
 	status: ApplicationStatus;
 	note?: string;
 }): Promise<{ ok: boolean; error?: string }> {
 	try {
-		const { userId, employerId } = await requireEmployer();
+		// Auth: legacy-Owner ODER Team-Member.
+		const { userId } = await requireEmployerAccessForApp(input.applicationId);
 		const [app] = await db
 			.select()
 			.from(applications)
 			.where(eq(applications.id, input.applicationId))
 			.limit(1);
-		if (!app || app.employerId !== employerId)
-			return { ok: false, error: "Bewerbung nicht gefunden." };
+		if (!app) return { ok: false, error: "Bewerbung nicht gefunden." };
+
+		// Wenn Status sich nicht ändert, kein Spam-Event.
+		if (app.status === input.status) {
+			return { ok: true };
+		}
 
 		await db
 			.update(applications)
@@ -288,16 +330,24 @@ export async function setApplicationStatus(input: {
 			note: input.note?.trim(),
 		});
 
+		// Kandidat:in bekommt eine schöne Notification — keine Person,
+		// nur was als nächstes passiert.
+		const copy = statusCandidateCopy(
+			input.status,
+			app.jobSnapshot.title,
+			input.note,
+		);
 		await pushNotification({
 			userId: app.candidateUserId,
 			kind: "system",
-			title: `Status deiner Bewerbung: ${input.status}`,
-			body: `${app.jobSnapshot.title}${input.note ? ` — ${input.note.slice(0, 80)}` : ""}`,
+			title: copy.title,
+			body: copy.body,
 			link: `/applications/${input.applicationId}`,
 		});
 
 		revalidatePath(`/applications/${input.applicationId}`);
 		revalidatePath(`/jobs/${app.jobId}/applications`);
+		revalidatePath(`/jobs/${app.jobId}/applications/board`);
 		return { ok: true };
 	} catch (e) {
 		console.error("[applications] set status failed", e);
@@ -769,6 +819,33 @@ export async function rateStage(input: {
 	}
 }
 
+// Listet alle vom Kandidaten bereits eingereichten Bewertungen pro Stage
+// für genau diese Bewerbung. Hilft der UI: für vergangene Stages, die noch
+// nicht bewertet wurden, wird das Inline-Rating angezeigt.
+export async function listMyStageRatings(
+	applicationId: string,
+): Promise<{ jobStageId: string; createdAt: Date }[]> {
+	try {
+		const userId = await requireCandidate();
+		const [app] = await db
+			.select({ candidateUserId: applications.candidateUserId })
+			.from(applications)
+			.where(eq(applications.id, applicationId))
+			.limit(1);
+		if (!app || app.candidateUserId !== userId) return [];
+		return await db
+			.select({
+				jobStageId: stageRatings.jobStageId,
+				createdAt: stageRatings.createdAt,
+			})
+			.from(stageRatings)
+			.where(eq(stageRatings.applicationId, applicationId));
+	} catch (e) {
+		console.warn("[applications] listMyStageRatings", e);
+		return [];
+	}
+}
+
 // ─── In-App-Messaging pro Bewerbung ───────────────────────────────────────
 // Beide Seiten dürfen schreiben sobald die Bewerbung aktiv ist. Quelle:
 // 87,5% der zurückgezogenen Bewerbungen begründen mit "Kommunikations-
@@ -1210,33 +1287,6 @@ export async function deleteApplicationNote(
 }
 
 // ─── Status + Bulk-Status für Kanban / Liste ─────────────────────────────
-
-export async function setApplicationStatus(input: {
-	applicationId: string;
-	status: ApplicationStatus;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
-	try {
-		const { userId } = await requireEmployerAccessForApp(input.applicationId);
-		await db
-			.update(applications)
-			.set({ status: input.status, updatedAt: new Date() })
-			.where(eq(applications.id, input.applicationId));
-		await db.insert(applicationEvents).values({
-			applicationId: input.applicationId,
-			kind: "status_change",
-			status: input.status,
-			byRole: "employer",
-			byUserId: userId,
-		});
-		revalidatePath(`/applications/${input.applicationId}`);
-		return { ok: true };
-	} catch (e) {
-		return {
-			ok: false,
-			error: e instanceof Error ? e.message : "fehlgeschlagen",
-		};
-	}
-}
 
 export async function bulkSetApplicationStatus(input: {
 	applicationIds: string[];

@@ -5,11 +5,13 @@ import {
 	getApplicationDetail,
 	getStagesForApplication,
 	listApplicationMessages,
+	listMyStageRatings,
 	withdrawApplication,
 } from "@/app/actions/applications";
 import { auth } from "@/auth";
 import { ApplicationMessageThread } from "@/components/applications/application-message-thread";
 import { ApplicationStageTimeline } from "@/components/applications/application-stage-timeline";
+import { PastStageRatings } from "@/components/applications/past-stage-ratings";
 import { ProfileEvolution } from "@/components/applications/profile-evolution";
 import { SnapshotCompare } from "@/components/applications/snapshot-compare";
 import { StageRatingPrompt } from "@/components/applications/stage-rating-prompt";
@@ -37,10 +39,30 @@ export default async function ApplicationDetailPage({
 		redirect(`/jobs/${app.jobId}/applications/${id}`);
 	}
 
-	const [stages, messages] = await Promise.all([
+	const [stages, messages, myRatings] = await Promise.all([
 		getStagesForApplication(id),
 		listApplicationMessages(id),
+		listMyStageRatings(id),
 	]);
+	const ratedIds = new Set(myRatings.map((r) => r.jobStageId));
+
+	// Vergangene Stages = nicht der aktuelle Stage + bereits passiert.
+	// Wir leiten "passiert" einfach aus den Events ab: alle distinct
+	// stage_change-Events mit stageId, abzüglich des aktuellen Stage.
+	const visitedStageIds = new Set<string>();
+	for (const ev of events) {
+		if (ev.kind === "stage_change" && ev.stageId) {
+			visitedStageIds.add(ev.stageId);
+		}
+	}
+	const pastUnratedStages = stages
+		.filter(
+			(s) =>
+				s.id !== app.currentStageId &&
+				visitedStageIds.has(s.id) &&
+				!ratedIds.has(s.id),
+		)
+		.map((s) => ({ id: s.id, name: s.name }));
 
 	const isOpen =
 		app.status !== "withdrawn" &&
@@ -113,6 +135,15 @@ export default async function ApplicationDetailPage({
 							applicationId={id}
 							jobStageId={currentStage.id}
 							stageName={currentStage.name}
+						/>
+					</section>
+				)}
+
+				{pastUnratedStages.length > 0 && (
+					<section className="mb-8">
+						<PastStageRatings
+							applicationId={id}
+							stages={pastUnratedStages}
 						/>
 					</section>
 				)}
