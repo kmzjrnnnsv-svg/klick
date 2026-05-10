@@ -1573,8 +1573,8 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 			.groupBy(applicationEvents.outcome)
 			.catch(() => []);
 		const stageOutcomes = outcomeRows
-			.filter((r): r is { outcome: string; n: number } => r.outcome !== null)
-			.map((r) => ({ outcome: r.outcome, n: Number(r.n) }));
+			.filter((r) => r.outcome !== null)
+			.map((r) => ({ outcome: r.outcome as string, n: Number(r.n) }));
 
 		// Reject-Reasons
 		const rejectRows = await db
@@ -1589,8 +1589,8 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 			.limit(8)
 			.catch(() => []);
 		const rejectReasons = rejectRows
-			.filter((r): r is { reason: string; n: number } => r.reason !== null)
-			.map((r) => ({ reason: r.reason, n: Number(r.n) }));
+			.filter((r) => r.reason !== null)
+			.map((r) => ({ reason: r.reason as string, n: Number(r.n) }));
 
 		// Time-to-Fill: jobs.createdAt → erste accepted offer.decidedAt pro Job.
 		const filledRows = await db
