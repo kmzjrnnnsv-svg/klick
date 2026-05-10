@@ -826,10 +826,14 @@ export class OllamaAIProvider implements AIProvider {
 async function extractPdfText(bytes: Uint8Array): Promise<string> {
 	try {
 		// String-Konkatenation: TypeScript soll das Modul nicht statisch
-		// auflösen, damit der Build ohne pdf-parse durchgeht.
+		// auflösen, damit der Build ohne pdf-parse durchgeht. Die magic
+		// comments sagen Webpack + Turbopack zusätzlich, dass sie diesen
+		// Aufruf gar nicht erst zu resolven versuchen sollen.
 		const modPath = "pdf" + "-parse/lib/pdf-parse.js";
 		// biome-ignore lint/suspicious/noExplicitAny: optional runtime dep
-		const mod: any = await import(/* @vite-ignore */ modPath).catch(() => null);
+		const mod: any = await import(
+			/* webpackIgnore: true */ /* turbopackIgnore: true */ modPath
+		).catch(() => null);
 		if (!mod) {
 			return "(pdf-parse nicht installiert — pnpm add pdf-parse)";
 		}
