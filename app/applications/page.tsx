@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { listMyApplications } from "@/app/actions/applications";
 import { auth } from "@/auth";
+import { WoltTrackerMini } from "@/components/applications/wolt-tracker";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 
@@ -57,7 +58,7 @@ export default async function ApplicationsPage() {
 						{items.map(({ application: a }) => (
 							<li
 								key={a.id}
-								className="rounded-sm border border-border bg-background transition-colors hover:bg-muted/30"
+								className="rounded-lg border border-border bg-background transition-shadow hover:shadow-md"
 							>
 								<Link
 									href={`/applications/${a.id}`}
@@ -71,27 +72,35 @@ export default async function ApplicationsPage() {
 											<div className="mt-1 font-serif-display text-lg sm:text-xl">
 												{a.jobSnapshot.title}
 											</div>
-											{a.matchSnapshot && (
-												<p className="mt-1 font-mono text-[10px] text-muted-foreground">
-													{t("scoreAtTime")}: {a.matchSnapshot.softScore}/100
-												</p>
-											)}
 										</div>
 										<span
-											className={`shrink-0 rounded-sm px-2 py-1 font-mono text-[10px] uppercase tracking-wide ${
+											className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide ${
 												STATUS_TONES[a.status] ?? STATUS_TONES.submitted
 											}`}
 										>
 											{t(`status.${a.status}`)}
 										</span>
 									</div>
-									<p className="mt-3 font-mono text-[10px] text-muted-foreground">
-										{t("submittedAt", {
-											date: fmt.dateTime(a.createdAt, {
-												dateStyle: "medium",
-											}),
-										})}
-									</p>
+
+									{/* Mini-Tracker — sieht aus wie eine Wolt-Lieferleiste */}
+									<div className="mt-4">
+										<WoltTrackerMini status={a.status} />
+									</div>
+
+									<div className="mt-3 flex items-baseline justify-between gap-2 font-mono text-[10px] text-muted-foreground">
+										<span>
+											{t("submittedAt", {
+												date: fmt.dateTime(a.createdAt, {
+													dateStyle: "medium",
+												}),
+											})}
+										</span>
+										{a.matchSnapshot && (
+											<span>
+												{t("scoreAtTime")}: {a.matchSnapshot.softScore}/100
+											</span>
+										)}
+									</div>
 								</Link>
 							</li>
 						))}

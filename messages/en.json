@@ -1845,6 +1845,62 @@
 		}
 	},
 	"Applications": {
+		"tracker": {
+			"eyebrow": "Live status",
+			"today": "started today",
+			"daysInStep": "{days} days in this step",
+			"step": {
+				"submitted": "Submitted",
+				"seen": "Seen",
+				"in_review": "In review",
+				"shortlisted": "Shortlist",
+				"interview": "Interview",
+				"offer": "Offer"
+			},
+			"status": {
+				"submitted": {
+					"label": "Application submitted",
+					"hint": "The company has received your application. You'll get a notification as soon as they start reviewing it."
+				},
+				"seen": {
+					"label": "Application seen",
+					"hint": "Someone on the team has looked at your application — review is starting."
+				},
+				"in_review": {
+					"label": "Under review",
+					"hint": "The company is comparing your skills against the requirements. Expect feedback in the coming days."
+				},
+				"shortlisted": {
+					"label": "Shortlisted",
+					"hint": "Congrats — you're on the short list. An interview invite is likely coming soon."
+				},
+				"interview": {
+					"label": "Interview process",
+					"hint": "You're in conversation with the company. Use the message window below for questions."
+				},
+				"offer": {
+					"label": "Offer being prepared",
+					"hint": "The company is making you an offer. Check Offers for details."
+				}
+			},
+			"negative": {
+				"declined": {
+					"title": "Application declined",
+					"body": "The company chose not to move forward. Check the feedback below for the reason.",
+					"short": "Declined"
+				},
+				"withdrawn": {
+					"title": "You withdrew",
+					"body": "This application was withdrawn by you. You can re-apply anytime.",
+					"short": "Withdrawn"
+				},
+				"archived": {
+					"title": "Archived",
+					"body": "This application has been archived — the history stays accessible.",
+					"short": "Archived"
+				}
+			}
+		},
 		"applyCta": "Apply for this role",
 		"applyEyebrow": "Application",
 		"applyTitle": "Ready to apply?",

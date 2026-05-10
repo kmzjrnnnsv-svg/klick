@@ -13,6 +13,7 @@ import { ApplicationStageTimeline } from "@/components/applications/application-
 import { ProfileEvolution } from "@/components/applications/profile-evolution";
 import { SnapshotCompare } from "@/components/applications/snapshot-compare";
 import { StageRatingPrompt } from "@/components/applications/stage-rating-prompt";
+import { WoltTracker } from "@/components/applications/wolt-tracker";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -72,7 +73,7 @@ export default async function ApplicationDetailPage({
 					← {t("backToList")}
 				</Link>
 
-				<header className="mt-3 mb-6 border-border border-b pb-6">
+				<header className="mt-3 mb-6">
 					<p className="lv-eyebrow text-[0.6rem] text-primary">
 						{t("detailEyebrow")}
 					</p>
@@ -86,6 +87,16 @@ export default async function ApplicationDetailPage({
 					)}
 				</header>
 
+				{/* Wolt-Style Stepper oben */}
+				<section className="mb-8">
+					<WoltTracker
+						status={app.status}
+						enteredAt={app.stageEnteredAt ?? app.createdAt}
+					/>
+				</section>
+
+				{/* Detail-Timeline mit konkreten Events drunter — wer mag den
+				 * vollen Verlauf sehen, scrollt weiter. */}
 				<section className="mb-8">
 					<ApplicationStageTimeline
 						currentStatus={app.status}

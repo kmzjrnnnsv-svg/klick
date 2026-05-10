@@ -1845,6 +1845,62 @@
 		}
 	},
 	"Applications": {
+		"tracker": {
+			"eyebrow": "Live-Status",
+			"today": "heute begonnen",
+			"daysInStep": "{days} Tage in dieser Stufe",
+			"step": {
+				"submitted": "Eingereicht",
+				"seen": "Gesehen",
+				"in_review": "In Prüfung",
+				"shortlisted": "Shortlist",
+				"interview": "Interview",
+				"offer": "Angebot"
+			},
+			"status": {
+				"submitted": {
+					"label": "Bewerbung eingereicht",
+					"hint": "Die Firma hat deine Bewerbung erhalten. Du bekommst eine Notification, sobald sie geprüft wird."
+				},
+				"seen": {
+					"label": "Bewerbung gesehen",
+					"hint": "Jemand vom Team hat deine Bewerbung angeschaut — die inhaltliche Prüfung läuft an."
+				},
+				"in_review": {
+					"label": "Wird geprüft",
+					"hint": "Die Firma vergleicht deine Skills mit den Anforderungen. Erwartet wird eine Rückmeldung in den nächsten Tagen."
+				},
+				"shortlisted": {
+					"label": "Auf der Shortlist",
+					"hint": "Glückwunsch — du bist im engeren Kreis. Wahrscheinlich kommt bald eine Interview-Einladung."
+				},
+				"interview": {
+					"label": "Im Interview-Prozess",
+					"hint": "Du sprichst gerade mit der Firma. Bei Rückfragen nutze das Fenster unten."
+				},
+				"offer": {
+					"label": "Angebot vorbereitet",
+					"hint": "Die Firma macht dir gleich ein Angebot. Schau in Offers für die Details."
+				}
+			},
+			"negative": {
+				"declined": {
+					"title": "Bewerbung abgesagt",
+					"body": "Die Firma hat sich gegen deine Bewerbung entschieden. Im Feedback unten siehst du den Grund.",
+					"short": "Abgesagt"
+				},
+				"withdrawn": {
+					"title": "Du hast zurückgezogen",
+					"body": "Diese Bewerbung wurde von dir zurückgenommen. Du kannst dich jederzeit neu bewerben.",
+					"short": "Zurückgezogen"
+				},
+				"archived": {
+					"title": "Archiviert",
+					"body": "Diese Bewerbung wurde archiviert — Verlauf bleibt einsehbar.",
+					"short": "Archiviert"
+				}
+			}
+		},
 		"applyCta": "Auf Stelle bewerben",
 		"applyEyebrow": "Bewerbung",
 		"applyTitle": "Bereit, dich zu bewerben?",
