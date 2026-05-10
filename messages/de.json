@@ -1744,11 +1744,11 @@
 		"suppressionNote": "Werte unter 5 werden auf 0 gesetzt, um Re-Identifikation einzelner Personen zu verhindern. Frei eingegebene Herkunfts-Texte erscheinen nur dann, wenn ≥5 Personen denselben Wortlaut verwendet haben."
 	},
 	"Agency": {
-		"eyebrow": "Recruiter-Team",
+		"eyebrow": "Team",
 		"title": "Team verwalten",
-		"subtitle": "Lade weitere Recruiter:innen ins Team ein. Jede Person bekommt eigenen Zugang mit Magic-Link — keine geteilten Logins.",
+		"subtitle": "Lade weitere Kolleg:innen ins Team ein. Jede Person bekommt eigenen Zugang mit Magic-Link — keine geteilten Logins.",
 		"inviteEyebrow": "Einladung",
-		"inviteTitle": "Recruiter:in einladen",
+		"inviteTitle": "Mitglied einladen",
 		"emailPlaceholder": "kollegin@firma.de",
 		"role": {
 			"owner": "Owner",
@@ -1763,7 +1763,16 @@
 		"joinedAt": "Beigetreten {date}",
 		"invitedAt": "Eingeladen {date}",
 		"remove": "Entfernen",
-		"confirmRemove": "Diese Person wirklich aus dem Team entfernen?"
+		"confirmRemove": "Diese Person wirklich aus dem Team entfernen?",
+		"ownerCount": "{count} / {max} Owner",
+		"ownerCountHint": "Maximal 2 Personen pro Firma haben das Recht, neue Mitglieder einzuladen oder Rollen zu ändern.",
+		"ownerCapReached": "Owner-Limit erreicht ({max}). Stufe erst einen Owner herab, bevor du eine:n weitere:n als Owner einlädst.",
+		"readOnly": "Du hast Read-only-Zugriff auf das Team",
+		"readOnlyHint": "Nur Owner können einladen, entfernen oder Rollen ändern. Wende dich an deine:n Owner.",
+		"roleActions": {
+			"promote": "Zu Owner",
+			"demote": "Zu Recruiter"
+		}
 	},
 	"AgencyInvite": {
 		"eyebrow": "Team-Einladung",

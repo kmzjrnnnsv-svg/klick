@@ -27,7 +27,10 @@ import {
 	stageRatings,
 	users,
 } from "@/db/schema";
-import { pushNotification } from "./notifications";
+import {
+	pushNotification,
+	pushNotificationToEmployerTeam,
+} from "./notifications";
 import { instantiateJobStages } from "./templates";
 
 // 3 Monate ohne Reaktion → Pflicht-Closure-Dialog für den Arbeitgeber.
@@ -232,21 +235,14 @@ export async function submitApplication(input: {
 			byUserId: userId,
 		});
 
-		// Notify employer.
-		const [emp] = await db
-			.select({ userId: employers.userId, name: employers.companyName })
-			.from(employers)
-			.where(eq(employers.id, job.employerId))
-			.limit(1);
-		if (emp) {
-			await pushNotification({
-				userId: emp.userId,
-				kind: "system",
-				title: `Neue Bewerbung: ${job.title}`,
-				body: profile.displayName ?? "Anonyme:r Kandidat:in",
-				link: `/jobs/${job.id}/applications/${created.id}`,
-			});
-		}
+		// Notify employer-team (alle joined Members).
+		await pushNotificationToEmployerTeam({
+			employerId: job.employerId,
+			kind: "system",
+			title: `Neue Bewerbung: ${job.title}`,
+			body: profile.displayName ?? "Anonyme:r Kandidat:in",
+			link: `/jobs/${job.id}/applications/${created.id}`,
+		});
 
 		revalidatePath(`/jobs/browse/${input.jobId}`);
 		revalidatePath("/applications");
@@ -339,20 +335,13 @@ export async function withdrawApplication(
 			byUserId: userId,
 		});
 
-		const [emp] = await db
-			.select({ userId: employers.userId })
-			.from(employers)
-			.where(eq(employers.id, app.employerId))
-			.limit(1);
-		if (emp) {
-			await pushNotification({
-				userId: emp.userId,
-				kind: "system",
-				title: `Bewerbung zurückgezogen: ${app.jobSnapshot.title}`,
-				body: app.profileSnapshot.displayName ?? "Kandidat:in",
-				link: `/jobs/${app.jobId}/applications/${applicationId}`,
-			});
-		}
+		await pushNotificationToEmployerTeam({
+			employerId: app.employerId,
+			kind: "system",
+			title: `Bewerbung zurückgezogen: ${app.jobSnapshot.title}`,
+			body: app.profileSnapshot.displayName ?? "Kandidat:in",
+			link: `/jobs/${app.jobId}/applications/${applicationId}`,
+		});
 
 		revalidatePath("/applications");
 		revalidatePath(`/applications/${applicationId}`);
@@ -475,11 +464,18 @@ export async function getApplicationDetail(
 	}
 	if (!viewerRole) return null;
 
-	const events = await db
+	const eventsRaw = await db
 		.select()
 		.from(applicationEvents)
 		.where(eq(applicationEvents.applicationId, applicationId))
 		.orderBy(asc(applicationEvents.createdAt));
+	// Anonymität gegenüber Kandidat:innen: byUserId nie an die
+	// Kandidat-Sicht durchreichen — der Kandidat sieht nur Rollen
+	// (candidate / employer / system), nie konkrete Personen.
+	const events =
+		viewerRole === "candidate"
+			? eventsRaw.map((e) => ({ ...e, byUserId: null }))
+			: eventsRaw;
 
 	let currentProfile: ApplicationDetail["currentProfile"] = null;
 	if (viewerRole === "candidate") {
@@ -875,20 +871,39 @@ export async function listApplicationMessages(applicationId: string) {
 			.where(eq(applications.id, applicationId))
 			.limit(1);
 		if (!app) return [];
-		// Access-Check: Kandidat oder Employer-Owner.
-		if (app.candidateUserId !== session.user.id) {
+		// Access-Check: Kandidat oder Employer-Owner / Team-Mitglied.
+		const isCandidate = app.candidateUserId === session.user.id;
+		if (!isCandidate) {
 			const [emp] = await db
 				.select({ id: employers.id })
 				.from(employers)
 				.where(eq(employers.userId, session.user.id))
 				.limit(1);
-			if (emp?.id !== app.employerId) return [];
+			if (emp?.id !== app.employerId) {
+				// Auch Team-Mitglieder dürfen mitlesen.
+				const [member] = await db
+					.select({ id: agencyMembers.id })
+					.from(agencyMembers)
+					.where(
+						and(
+							eq(agencyMembers.employerId, app.employerId),
+							eq(agencyMembers.userId, session.user.id),
+						),
+					)
+					.limit(1);
+				if (!member) return [];
+			}
 		}
-		return await db
+		const rows = await db
 			.select()
 			.from(applicationMessages)
 			.where(eq(applicationMessages.applicationId, applicationId))
 			.orderBy(asc(applicationMessages.createdAt));
+		// Kandidat:innen sehen niemals, WELCHE konkrete Person eine
+		// Nachricht geschickt hat — nur die Rolle (candidate / employer).
+		return isCandidate
+			? rows.map((m) => ({ ...m, byUserId: null }))
+			: rows;
 	} catch (e) {
 		if (friendlyDbError(e)) return [];
 		throw e;

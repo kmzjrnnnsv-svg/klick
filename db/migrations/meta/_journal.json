@@ -225,6 +225,13 @@
       "when": 1778450787991,
       "tag": "0031_application_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1778452101145,
+      "tag": "0032_seed_legacy_owners",
+      "breakpoints": true
     }
   ]
 }

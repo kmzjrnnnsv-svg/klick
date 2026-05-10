@@ -13,6 +13,7 @@ import {
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
+	agencyMembers,
 	type Employer,
 	employers,
 	type Job,
@@ -110,6 +111,26 @@ export async function ensureEmployer(companyName: string): Promise<Employer> {
 		.insert(employers)
 		.values({ userId, tenantId, companyName })
 		.returning();
+
+	// Initialer Owner als agencyMembers-Row seed'en — so funktioniert die
+	// Team-Verwaltung und der Owner-Cap konsistent ab Tag 1.
+	const [u] = await db
+		.select({ email: users.email })
+		.from(users)
+		.where(eq(users.id, userId))
+		.limit(1);
+	if (u?.email) {
+		await db
+			.insert(agencyMembers)
+			.values({
+				employerId: created.id,
+				userId,
+				inviteEmail: u.email,
+				role: "owner",
+				joinedAt: new Date(),
+			})
+			.onConflictDoNothing();
+	}
 	return created;
 }
 

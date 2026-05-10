@@ -11,7 +11,10 @@ import {
 	jobs,
 	users,
 } from "@/db/schema";
-import { pushNotification } from "./notifications";
+import {
+	pushNotification,
+	pushNotificationToEmployerTeam,
+} from "./notifications";
 
 async function requireCandidate(): Promise<string> {
 	const session = await auth();
@@ -68,21 +71,14 @@ export async function askJobQuestion(input: {
 		})
 		.returning({ id: jobQuestions.id });
 
-	const [emp] = await db
-		.select({ userId: employers.userId })
-		.from(employers)
-		.where(eq(employers.id, job.employerId))
-		.limit(1);
-	if (emp) {
-		await pushNotification({
-			userId: emp.userId,
-			kind: "system",
-			title: `Neue Frage zu „${job.title}"`,
-			body: body.slice(0, 140),
-			link: `/jobs/${input.jobId}/questions`,
-			payload: { jobId: input.jobId, questionId: created.id },
-		});
-	}
+	await pushNotificationToEmployerTeam({
+		employerId: job.employerId,
+		kind: "system",
+		title: `Neue Frage zu „${job.title}"`,
+		body: body.slice(0, 140),
+		link: `/jobs/${input.jobId}/questions`,
+		payload: { jobId: input.jobId, questionId: created.id },
+	});
 
 	revalidatePath(`/jobs/browse/${input.jobId}`);
 	revalidatePath(`/jobs/${input.jobId}/questions`);

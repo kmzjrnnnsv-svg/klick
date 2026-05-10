@@ -81,6 +81,11 @@ function generateToken(): string {
 		.join("");
 }
 
+// Plattform-Regel: Max 2 Owner pro Firma. Wer einlädt, muss selbst Owner
+// sein. So bleibt die Verantwortung für neue User-Konten klein und
+// kontrolliert — die Firma kann zu zweit organisiert sein, kein Wildwuchs.
+const MAX_OWNERS_PER_EMPLOYER = 2;
+
 export async function inviteAgent(input: {
 	email: string;
 	role: "owner" | "recruiter" | "viewer";
@@ -90,6 +95,28 @@ export async function inviteAgent(input: {
 
 	const email = input.email.trim().toLowerCase();
 	if (!email.includes("@")) throw new Error("invalid email");
+
+	// Owner-Cap: max 2 pro Firma. Wenn die neue Einladung Owner-Rolle
+	// hätte und bereits 2 Owner existieren, ablehnen.
+	if (input.role === "owner") {
+		const owners = await db
+			.select({ id: agencyMembers.id, email: agencyMembers.inviteEmail })
+			.from(agencyMembers)
+			.where(
+				and(
+					eq(agencyMembers.employerId, employerId),
+					eq(agencyMembers.role, "owner"),
+				),
+			);
+		// Existierender Owner mit gleicher Mail = OK (Idempotenz-Upsert);
+		// neue Mail bei Cap = Reject.
+		const alreadyOwner = owners.some((o) => o.email === email);
+		if (!alreadyOwner && owners.length >= MAX_OWNERS_PER_EMPLOYER) {
+			throw new Error(
+				`Maximal ${MAX_OWNERS_PER_EMPLOYER} Owner pro Firma. Bitte erst einen bestehenden Owner zum Recruiter herabstufen.`,
+			);
+		}
+	}
 
 	const token = generateToken();
 	const [created] = await db
@@ -200,8 +227,141 @@ export async function removeAgent(memberId: string): Promise<void> {
 		.limit(1);
 	if (!m) throw new Error("not found");
 	await requireOwnerOf(m.employerId);
+	if (m.role === "owner") {
+		// Owner kann nicht direkt entfernt werden — sonst hätte die Firma
+		// niemanden mehr, der einladen darf. Erst herabstufen.
+		throw new Error(
+			"Owner kann nicht direkt entfernt werden — erst zum Recruiter herabstufen.",
+		);
+	}
 	await db.delete(agencyMembers).where(eq(agencyMembers.id, memberId));
 	revalidatePath("/agency/team");
+}
+
+export async function promoteMember(
+	memberId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	try {
+		const session = await auth();
+		if (!session?.user?.id) return { ok: false, error: "unauthenticated" };
+		const [m] = await db
+			.select()
+			.from(agencyMembers)
+			.where(eq(agencyMembers.id, memberId))
+			.limit(1);
+		if (!m) return { ok: false, error: "not found" };
+		await requireOwnerOf(m.employerId);
+		if (m.role === "owner") return { ok: true }; // bereits owner
+		// Cap-Check
+		const owners = await db
+			.select({ id: agencyMembers.id })
+			.from(agencyMembers)
+			.where(
+				and(
+					eq(agencyMembers.employerId, m.employerId),
+					eq(agencyMembers.role, "owner"),
+				),
+			);
+		if (owners.length >= MAX_OWNERS_PER_EMPLOYER) {
+			return {
+				ok: false,
+				error: `Maximal ${MAX_OWNERS_PER_EMPLOYER} Owner pro Firma. Stufe erst einen aktuellen Owner herab.`,
+			};
+		}
+		await db
+			.update(agencyMembers)
+			.set({ role: "owner" })
+			.where(eq(agencyMembers.id, memberId));
+		revalidatePath("/agency/team");
+		return { ok: true };
+	} catch (e) {
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
+	}
+}
+
+export async function demoteMember(
+	memberId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	try {
+		const session = await auth();
+		if (!session?.user?.id) return { ok: false, error: "unauthenticated" };
+		const [m] = await db
+			.select()
+			.from(agencyMembers)
+			.where(eq(agencyMembers.id, memberId))
+			.limit(1);
+		if (!m) return { ok: false, error: "not found" };
+		await requireOwnerOf(m.employerId);
+		if (m.role !== "owner") {
+			// Setze auf "recruiter" als sicheren Default für Nicht-Owner-Demote.
+			await db
+				.update(agencyMembers)
+				.set({ role: "recruiter" })
+				.where(eq(agencyMembers.id, memberId));
+			revalidatePath("/agency/team");
+			return { ok: true };
+		}
+		// Owner darf nur dann demoted werden, wenn mindestens ein zweiter
+		// Owner übrig bleibt — sonst hätte die Firma niemanden mehr, der
+		// einladen darf.
+		const otherOwners = await db
+			.select({ id: agencyMembers.id })
+			.from(agencyMembers)
+			.where(
+				and(
+					eq(agencyMembers.employerId, m.employerId),
+					eq(agencyMembers.role, "owner"),
+				),
+			);
+		if (otherOwners.length <= 1) {
+			return {
+				ok: false,
+				error:
+					"Mindestens 1 Owner muss bestehen bleiben. Befördere zuerst einen anderen Member.",
+			};
+		}
+		await db
+			.update(agencyMembers)
+			.set({ role: "recruiter" })
+			.where(eq(agencyMembers.id, memberId));
+		revalidatePath("/agency/team");
+		return { ok: true };
+	} catch (e) {
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
+	}
+}
+
+export async function getOwnerCount(): Promise<{
+	count: number;
+	max: number;
+	isFull: boolean;
+}> {
+	try {
+		const { employerId } = await requireMyEmployer();
+		const owners = await db
+			.select({ id: agencyMembers.id })
+			.from(agencyMembers)
+			.where(
+				and(
+					eq(agencyMembers.employerId, employerId),
+					eq(agencyMembers.role, "owner"),
+				),
+			);
+		const count = owners.length;
+		return {
+			count,
+			max: MAX_OWNERS_PER_EMPLOYER,
+			isFull: count >= MAX_OWNERS_PER_EMPLOYER,
+		};
+	} catch {
+		return { count: 0, max: MAX_OWNERS_PER_EMPLOYER, isFull: false };
+	}
 }
 
 export async function listAgents(): Promise<{

@@ -1744,11 +1744,11 @@
 		"suppressionNote": "Values under 5 are reported as 0 to prevent re-identification. Free-text ethnicity entries only appear if ≥5 people used the exact same wording."
 	},
 	"Agency": {
-		"eyebrow": "Recruiter team",
+		"eyebrow": "Team",
 		"title": "Team management",
-		"subtitle": "Invite additional recruiters. Each gets their own magic-link account — no shared logins.",
+		"subtitle": "Invite teammates. Each gets their own magic-link account — no shared logins.",
 		"inviteEyebrow": "Invitation",
-		"inviteTitle": "Invite a recruiter",
+		"inviteTitle": "Invite a teammate",
 		"emailPlaceholder": "colleague@company.com",
 		"role": {
 			"owner": "Owner",
@@ -1763,7 +1763,16 @@
 		"joinedAt": "Joined {date}",
 		"invitedAt": "Invited {date}",
 		"remove": "Remove",
-		"confirmRemove": "Really remove this person from the team?"
+		"confirmRemove": "Really remove this person from the team?",
+		"ownerCount": "{count} / {max} owners",
+		"ownerCountHint": "At most 2 people per company can invite new members or change roles.",
+		"ownerCapReached": "Owner cap reached ({max}). Demote an owner first before inviting another as owner.",
+		"readOnly": "You have read-only access to the team",
+		"readOnlyHint": "Only owners can invite, remove or change roles. Reach out to your owner.",
+		"roleActions": {
+			"promote": "Promote",
+			"demote": "Demote"
+		}
 	},
 	"AgencyInvite": {
 		"eyebrow": "Team invitation",

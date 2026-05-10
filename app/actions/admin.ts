@@ -469,6 +469,21 @@ export async function createCompanyAsAdmin(input: {
 			})
 			.returning({ id: employers.id });
 
+		// Initialer Owner als agencyMembers-Row anlegen, sodass der Cap +
+		// die Team-Verwaltung von Anfang an konsistent funktionieren. Bei
+		// Konflikt (sehr selten — gleiche email existiert schon): no-op.
+		await db
+			.insert(agencyMembers)
+			.values({
+				employerId: employer.id,
+				userId: owner.id,
+				inviteEmail: email,
+				role: "owner",
+				joinedAt: new Date(),
+				invitedByUserId: actorId,
+			})
+			.onConflictDoNothing();
+
 		await db.insert(auditLog).values({
 			tenantId: tenant.id,
 			actorUserId: actorId,

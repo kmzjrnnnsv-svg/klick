@@ -13,7 +13,10 @@ import {
 	users,
 } from "@/db/schema";
 import { sendTransactionalMail } from "@/lib/mail/send";
-import { pushNotification } from "./notifications";
+import {
+	pushNotification,
+	pushNotificationToEmployerTeam,
+} from "./notifications";
 
 async function requireEmployerWithRow() {
 	const session = await auth();
@@ -174,21 +177,14 @@ export async function counterOffer(input: {
 		})
 		.returning({ id: offers.id });
 
-	const [emp] = await db
-		.select({ userId: employers.userId, name: employers.companyName })
-		.from(employers)
-		.where(eq(employers.id, parent.employerId))
-		.limit(1);
-	if (emp) {
-		await pushNotification({
-			userId: emp.userId,
-			kind: "offer_decided",
-			title: "Gegenangebot eingegangen",
-			body: `Neuer Vorschlag: ${input.salaryProposed.toLocaleString("de-DE")} €`,
-			link: `/jobs/${parent.jobId}/offers/${created.id}`,
-			payload: { offerId: created.id, parentOfferId: parent.id },
-		});
-	}
+	await pushNotificationToEmployerTeam({
+		employerId: parent.employerId,
+		kind: "offer_decided",
+		title: "Gegenangebot eingegangen",
+		body: `Neuer Vorschlag: ${input.salaryProposed.toLocaleString("de-DE")} €`,
+		link: `/jobs/${parent.jobId}/offers/${created.id}`,
+		payload: { offerId: created.id, parentOfferId: parent.id },
+	});
 
 	revalidatePath("/offers");
 	revalidatePath(`/jobs/${parent.jobId}/offers`);
@@ -219,24 +215,17 @@ export async function respondToOffer(input: {
 		})
 		.where(eq(offers.id, o.id));
 
-	const [emp] = await db
-		.select({ userId: employers.userId, name: employers.companyName })
-		.from(employers)
-		.where(eq(employers.id, o.employerId))
-		.limit(1);
-	if (emp) {
-		await pushNotification({
-			userId: emp.userId,
-			kind: "offer_decided",
-			title:
-				input.decision === "accepted"
-					? `Angebot angenommen: ${o.roleTitle}`
-					: `Angebot abgelehnt: ${o.roleTitle}`,
-			body: input.message,
-			link: `/jobs/${o.jobId}/offers/${o.id}`,
-			payload: { offerId: o.id, decision: input.decision },
-		});
-	}
+	await pushNotificationToEmployerTeam({
+		employerId: o.employerId,
+		kind: "offer_decided",
+		title:
+			input.decision === "accepted"
+				? `Angebot angenommen: ${o.roleTitle}`
+				: `Angebot abgelehnt: ${o.roleTitle}`,
+		body: input.message,
+		link: `/jobs/${o.jobId}/offers/${o.id}`,
+		payload: { offerId: o.id, decision: input.decision },
+	});
 
 	revalidatePath("/offers");
 	revalidatePath(`/offers/${o.id}`);
