@@ -133,7 +133,7 @@ export default async function AdminStatsPage() {
 					</p>
 				</header>
 
-				{/* TOP-Tiles */}
+				{/* Top-Tiles */}
 				<section className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
 					<StatTile
 						label={t("usersLabel")}
@@ -154,10 +154,40 @@ export default async function AdminStatsPage() {
 						tone="primary"
 					/>
 					<StatTile
+						label={t("activeSessionsLabel")}
+						value={a.activeSessions.uniqueUsers}
+						hint={t("activeSessionsHint", {
+							total: a.activeSessions.total,
+						})}
+						tone="emerald"
+					/>
+				</section>
+
+				{/* Sekundäre Tiles */}
+				<section className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+					<StatTile
 						label={t("activeTenantsLabel")}
 						value={a.activeTenants}
 						hint={t("activeTenantsHint")}
-						tone="emerald"
+					/>
+					<StatTile
+						label={t("vaultItemsLabel")}
+						value={a.vault.totalItems}
+						hint={t("vaultOwnersHint", { owners: a.vault.uniqueOwners })}
+					/>
+					<StatTile
+						label={t("savedSearchesLabel")}
+						value={a.savedSearches.total}
+						hint={t("savedSearchesHint", {
+							owners: a.savedSearches.uniqueOwners,
+						})}
+					/>
+					<StatTile
+						label={t("careerAdoptionLabel")}
+						value={a.careerAdoption.hasAnalysis}
+						hint={t("careerAdoptionHint", {
+							total: a.careerAdoption.totalCandidates,
+						})}
 					/>
 				</section>
 
@@ -469,6 +499,220 @@ export default async function AdminStatsPage() {
 								</div>
 							))}
 						</div>
+					</Card>
+				</section>
+
+				{/* Application-Drop-Off + Stage-Outcomes + Reject-Reasons */}
+				<section className="mb-8 grid gap-3 sm:grid-cols-2">
+					<Card title={t("applicationStatus")} hint={t("applicationStatusHint")}>
+						<HBarChart
+							items={a.applicationStatusMix.map((s) => ({
+								label: s.status,
+								n: s.n,
+							}))}
+						/>
+					</Card>
+					<Card title={t("stageOutcomes")} hint={t("stageOutcomesHint")}>
+						<StackedBar
+							items={a.stageOutcomes.map((o) => ({
+								label: o.outcome,
+								n: o.n,
+								tone:
+									o.outcome === "advance"
+										? "bg-emerald-500"
+										: o.outcome === "reject"
+											? "bg-rose-500"
+											: "bg-amber-500",
+							}))}
+						/>
+						{a.rejectReasons.length > 0 && (
+							<div className="mt-4 border-border border-t pt-3">
+								<p className="mb-2 text-muted-foreground text-xs">
+									{t("topRejectReasons")}
+								</p>
+								<HBarChart
+									tone="rose"
+									items={a.rejectReasons.map((r) => ({
+										label: r.reason,
+										n: r.n,
+									}))}
+								/>
+							</div>
+						)}
+					</Card>
+				</section>
+
+				{/* Time-to-Fill */}
+				<section className="mb-8">
+					<Card title={t("timeToFill")} hint={t("timeToFillHint")}>
+						<dl className="grid grid-cols-4 gap-3 text-sm">
+							<div>
+								<dt className="text-muted-foreground text-xs">
+									{t("ttfCount")}
+								</dt>
+								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
+									{a.timeToFill.count}
+								</dd>
+							</div>
+							<div>
+								<dt className="text-muted-foreground text-xs">
+									{t("ttfP25")}
+								</dt>
+								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
+									{a.timeToFill.p25Days ?? "—"}
+								</dd>
+							</div>
+							<div>
+								<dt className="text-muted-foreground text-xs">
+									{t("ttfMedian")}
+								</dt>
+								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
+									{a.timeToFill.medianDays ?? "—"}
+								</dd>
+							</div>
+							<div>
+								<dt className="text-muted-foreground text-xs">
+									{t("ttfP75")}
+								</dt>
+								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
+									{a.timeToFill.p75Days ?? "—"}
+								</dd>
+							</div>
+						</dl>
+					</Card>
+				</section>
+
+				{/* Vault + Saved-Searches */}
+				<section className="mb-8 grid gap-3 sm:grid-cols-2">
+					<Card title={t("vaultMix")} hint={t("vaultMixHint")}>
+						<StackedBar
+							items={a.vault.kindMix.map((k) => ({ label: k.kind, n: k.n }))}
+						/>
+						<p className="mt-3 text-muted-foreground text-xs">
+							{t("vaultUrlOnly", { n: a.vault.urlOnly })}
+						</p>
+					</Card>
+					<Card title={t("savedSearchesAnalysis")} hint={t("savedSearchesHint2")}>
+						{a.savedSearches.topSkills.length === 0 ? (
+							<p className="text-muted-foreground text-xs italic">
+								{t("none")}
+							</p>
+						) : (
+							<>
+								<p className="mb-2 text-muted-foreground text-xs">
+									{t("ssTopSkills")}
+								</p>
+								<HBarChart
+									tone="amber"
+									items={a.savedSearches.topSkills.map((s) => ({
+										label: s.name,
+										n: s.n,
+									}))}
+								/>
+								{a.savedSearches.remoteMix.length > 0 && (
+									<div className="mt-4 border-border border-t pt-3">
+										<p className="mb-2 text-muted-foreground text-xs">
+											{t("ssRemoteMix")}
+										</p>
+										<StackedBar
+											items={a.savedSearches.remoteMix.map((r) => ({
+												label: r.policy,
+												n: r.n,
+											}))}
+										/>
+									</div>
+								)}
+							</>
+						)}
+					</Card>
+				</section>
+
+				{/* Notification-Engagement + Translations */}
+				<section className="mb-8 grid gap-3 sm:grid-cols-2">
+					<Card
+						title={t("notifEngagement")}
+						hint={t("notifEngagementHint", {
+							pct:
+								a.notificationEngagement.total > 0
+									? Math.round(
+											(a.notificationEngagement.read /
+												a.notificationEngagement.total) *
+												100,
+										)
+									: 0,
+						})}
+					>
+						{a.notificationEngagement.byKind.length === 0 ? (
+							<p className="text-muted-foreground text-xs italic">
+								{t("none")}
+							</p>
+						) : (
+							<ul className="space-y-2">
+								{a.notificationEngagement.byKind.map((k) => {
+									const pct =
+										k.total > 0 ? Math.round((k.read / k.total) * 100) : 0;
+									return (
+										<li key={k.kind}>
+											<div className="mb-1 flex items-baseline justify-between text-xs">
+												<span className="font-medium">{k.kind}</span>
+												<span className="font-mono text-muted-foreground">
+													{k.read}/{k.total} ({pct} %)
+												</span>
+											</div>
+											<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+												<div
+													className="h-full rounded-full bg-emerald-500"
+													style={{ width: `${pct}%` }}
+												/>
+											</div>
+										</li>
+									);
+								})}
+							</ul>
+						)}
+					</Card>
+					<Card
+						title={t("translationsCoverage")}
+						hint={t("translationsCoverageHint")}
+					>
+						<dl className="grid grid-cols-2 gap-3 text-sm">
+							<div>
+								<dt className="text-muted-foreground text-xs">
+									{t("totalProfiles", { n: a.translationsCoverage.total })}
+								</dt>
+								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
+									{a.translationsCoverage.hasTranslations}
+								</dd>
+								<p className="mt-1 font-mono text-[10px] text-muted-foreground">
+									{a.translationsCoverage.total > 0
+										? Math.round(
+												(a.translationsCoverage.hasTranslations /
+													a.translationsCoverage.total) *
+													100,
+											)
+										: 0}{" "}
+									%
+								</p>
+							</div>
+							<div>
+								<dt className="text-muted-foreground text-xs">
+									{t("careerAdoptionLabel")}
+								</dt>
+								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
+									{a.careerAdoption.hasAnalysis}
+								</dd>
+								<p className="mt-1 font-mono text-[10px] text-muted-foreground">
+									{a.careerAdoption.totalCandidates > 0
+										? Math.round(
+												(a.careerAdoption.hasAnalysis /
+													a.careerAdoption.totalCandidates) *
+													100,
+											)
+										: 0}{" "}
+									%
+								</p>
+							</div>
+						</dl>
 					</Card>
 				</section>
 

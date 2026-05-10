@@ -7,6 +7,7 @@ import { db } from "@/db";
 import {
 	type AuditLogEntry,
 	applications,
+	applicationEvents,
 	auditLog,
 	candidateProfiles,
 	diversityResponses,
@@ -16,11 +17,15 @@ import {
 	interests,
 	jobs,
 	matches,
+	notifications,
 	offers,
+	savedSearches,
+	sessions,
 	templateStages,
 	tenants,
 	type User,
 	users,
+	vaultItems,
 	verifications,
 } from "@/db/schema";
 
@@ -777,6 +782,60 @@ export type AdminAnalytics = {
 	};
 	// Aktive Tenants (mind. 1 published Job)
 	activeTenants: number;
+	// Vault-Statistik: Anzahl Items + kind-Mix + URL-only-Anteil.
+	vault: {
+		totalItems: number;
+		uniqueOwners: number;
+		kindMix: { kind: string; n: number }[];
+		urlOnly: number; // Items ohne storage_key (z.B. Credly-URL-Badges)
+	};
+	// Saved Searches: was suchen Kandidaten?
+	savedSearches: {
+		total: number;
+		uniqueOwners: number;
+		topSkills: { name: string; n: number }[];
+		topLocations: { location: string; n: number }[];
+		remoteMix: { policy: string; n: number }[];
+		notifyChannelMix: { channel: string; n: number }[];
+	};
+	// Application-Drop-Off pro Status. Hilft den Funnel-Verlust pro Stufe
+	// zu sehen.
+	applicationStatusMix: { status: string; n: number }[];
+	// Stage-Outcomes aus application_events: advance / reject / on_hold —
+	// pro Stage-ID. Wir aggregieren plattformweit (eigentlich pro
+	// Template, aber globale Sicht reicht für den Anfang).
+	stageOutcomes: { outcome: string; n: number }[];
+	// Reject-Reasons (top 5).
+	rejectReasons: { reason: string; n: number }[];
+	// Time-to-Fill in Tagen: jobs.createdAt → erste accepted Offer pro Job.
+	timeToFill: {
+		count: number; // Anzahl Jobs mit erfolgreichem Offer
+		medianDays: number | null;
+		p25Days: number | null;
+		p75Days: number | null;
+	};
+	// Übersetzungs-Coverage: wie viele Profile haben translations gepflegt.
+	translationsCoverage: {
+		total: number;
+		hasTranslations: number;
+	};
+	// Career-Analysis-Adoption: wie viele Profile haben sie generiert.
+	careerAdoption: {
+		totalCandidates: number;
+		hasAnalysis: number;
+	};
+	// Notification-Engagement: wie viele werden gelesen?
+	notificationEngagement: {
+		total: number;
+		read: number;
+		unread: number;
+		byKind: { kind: string; total: number; read: number }[];
+	};
+	// Aktive Sessions (Auth.js): Proxy für "wie viele User sind grad da".
+	activeSessions: {
+		total: number; // expires > now()
+		uniqueUsers: number;
+	};
 	// Profil-Vollständigkeit (Anteil mit summary, skills, education, experience)
 	profileCompleteness: {
 		hasSummary: number;
@@ -858,6 +917,23 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 		jobStatusMix: [],
 		diversity: { total: 0, gender: [], ageRange: [], hasDisability: [] },
 		activeTenants: 0,
+		vault: { totalItems: 0, uniqueOwners: 0, kindMix: [], urlOnly: 0 },
+		savedSearches: {
+			total: 0,
+			uniqueOwners: 0,
+			topSkills: [],
+			topLocations: [],
+			remoteMix: [],
+			notifyChannelMix: [],
+		},
+		applicationStatusMix: [],
+		stageOutcomes: [],
+		rejectReasons: [],
+		timeToFill: { count: 0, medianDays: null, p25Days: null, p75Days: null },
+		translationsCoverage: { total: 0, hasTranslations: 0 },
+		careerAdoption: { totalCandidates: 0, hasAnalysis: 0 },
+		notificationEngagement: { total: 0, read: 0, unread: 0, byKind: [] },
+		activeSessions: { total: 0, uniqueUsers: 0 },
 		profileCompleteness: {
 			hasSummary: 0,
 			hasSkills: 0,
@@ -1390,6 +1466,228 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 			hasDisability: dTotal >= 5 ? kAnon(disCount) : [],
 		};
 
+		// Vault-Statistik
+		const vaultRows = await db
+			.select({
+				userId: vaultItems.userId,
+				kind: vaultItems.kind,
+				storageKey: vaultItems.storageKey,
+			})
+			.from(vaultItems)
+			.catch(() => []);
+		const vaultKindCount = new Map<string, number>();
+		const vaultOwners = new Set<string>();
+		let vaultUrlOnly = 0;
+		for (const v of vaultRows) {
+			vaultKindCount.set(v.kind, (vaultKindCount.get(v.kind) ?? 0) + 1);
+			vaultOwners.add(v.userId);
+			if (!v.storageKey) vaultUrlOnly++;
+		}
+		const vaultStats = {
+			totalItems: vaultRows.length,
+			uniqueOwners: vaultOwners.size,
+			kindMix: [...vaultKindCount.entries()].map(([kind, n]) => ({ kind, n })),
+			urlOnly: vaultUrlOnly,
+		};
+
+		// Saved Searches: criteria-Analyse
+		const ssRows = await db
+			.select({
+				userId: savedSearches.userId,
+				criteria: savedSearches.criteria,
+				notifyChannel: savedSearches.notifyChannel,
+			})
+			.from(savedSearches)
+			.catch(() => []);
+		const ssOwners = new Set<string>();
+		const ssSkillCount = new Map<string, number>();
+		const ssLocationCount = new Map<string, number>();
+		const ssRemoteCount = new Map<string, number>();
+		const ssChannelCount = new Map<string, number>();
+		for (const r of ssRows) {
+			ssOwners.add(r.userId);
+			ssChannelCount.set(
+				r.notifyChannel,
+				(ssChannelCount.get(r.notifyChannel) ?? 0) + 1,
+			);
+			const c = r.criteria;
+			if (c?.skills) {
+				for (const s of c.skills) {
+					const k = s.trim();
+					if (!k) continue;
+					ssSkillCount.set(k, (ssSkillCount.get(k) ?? 0) + 1);
+				}
+			}
+			if (c?.location) {
+				const k = c.location.trim();
+				if (k) ssLocationCount.set(k, (ssLocationCount.get(k) ?? 0) + 1);
+			}
+			if (c?.remote) {
+				ssRemoteCount.set(
+					c.remote,
+					(ssRemoteCount.get(c.remote) ?? 0) + 1,
+				);
+			}
+		}
+		const savedSearchStats = {
+			total: ssRows.length,
+			uniqueOwners: ssOwners.size,
+			topSkills: [...ssSkillCount.entries()]
+				.sort((a, b) => b[1] - a[1])
+				.slice(0, 10)
+				.map(([name, n]) => ({ name, n })),
+			topLocations: [...ssLocationCount.entries()]
+				.sort((a, b) => b[1] - a[1])
+				.slice(0, 8)
+				.map(([location, n]) => ({ location, n })),
+			remoteMix: [...ssRemoteCount.entries()].map(([policy, n]) => ({
+				policy,
+				n,
+			})),
+			notifyChannelMix: [...ssChannelCount.entries()].map(([channel, n]) => ({
+				channel,
+				n,
+			})),
+		};
+
+		// Application-Status-Mix
+		const appStatusRows = await db
+			.select({
+				status: applications.status,
+				n: sql<number>`count(*)::int`.as("n"),
+			})
+			.from(applications)
+			.groupBy(applications.status)
+			.catch(() => []);
+		const applicationStatusMix = appStatusRows.map((r) => ({
+			status: r.status,
+			n: Number(r.n),
+		}));
+
+		// Stage-Outcomes aus application_events
+		const outcomeRows = await db
+			.select({
+				outcome: applicationEvents.outcome,
+				n: sql<number>`count(*)::int`.as("n"),
+			})
+			.from(applicationEvents)
+			.where(sql`${applicationEvents.outcome} IS NOT NULL`)
+			.groupBy(applicationEvents.outcome)
+			.catch(() => []);
+		const stageOutcomes = outcomeRows
+			.filter((r): r is { outcome: string; n: number } => r.outcome !== null)
+			.map((r) => ({ outcome: r.outcome, n: Number(r.n) }));
+
+		// Reject-Reasons
+		const rejectRows = await db
+			.select({
+				reason: applicationEvents.rejectReason,
+				n: sql<number>`count(*)::int`.as("n"),
+			})
+			.from(applicationEvents)
+			.where(sql`${applicationEvents.rejectReason} IS NOT NULL`)
+			.groupBy(applicationEvents.rejectReason)
+			.orderBy(desc(sql<number>`count(*)`))
+			.limit(8)
+			.catch(() => []);
+		const rejectReasons = rejectRows
+			.filter((r): r is { reason: string; n: number } => r.reason !== null)
+			.map((r) => ({ reason: r.reason, n: Number(r.n) }));
+
+		// Time-to-Fill: jobs.createdAt → erste accepted offer.decidedAt pro Job.
+		const filledRows = await db
+			.select({
+				jobCreated: jobs.createdAt,
+				decidedAt: offers.decidedAt,
+			})
+			.from(offers)
+			.innerJoin(jobs, eq(offers.jobId, jobs.id))
+			.where(eq(offers.status, "accepted"))
+			.catch(() => []);
+		// Pro Job nur die früheste accepted Offer zählen.
+		const earliestPerJob = new Map<number, number>();
+		for (const r of filledRows) {
+			if (!r.jobCreated || !r.decidedAt) continue;
+			const days = (r.decidedAt.getTime() - r.jobCreated.getTime()) / 86400_000;
+			const key = r.jobCreated.getTime();
+			const cur = earliestPerJob.get(key);
+			if (cur === undefined || days < cur) earliestPerJob.set(key, days);
+		}
+		const ttfDays = [...earliestPerJob.values()].sort((a, b) => a - b);
+		const quantile = (xs: number[], q: number): number | null => {
+			if (xs.length === 0) return null;
+			const i = Math.min(xs.length - 1, Math.floor(xs.length * q));
+			return Math.round(xs[i] * 10) / 10;
+		};
+		const timeToFill = {
+			count: ttfDays.length,
+			medianDays: quantile(ttfDays, 0.5),
+			p25Days: quantile(ttfDays, 0.25),
+			p75Days: quantile(ttfDays, 0.75),
+		};
+
+		// Translations-Coverage + Career-Analysis-Adoption (in einem Pass)
+		const coverRows = await db
+			.select({
+				hasTrans: sql<number>`(${candidateProfiles.translations} IS NOT NULL)::int`.as(
+					"has_trans",
+				),
+				hasAnalysis:
+					sql<number>`(${candidateProfiles.careerAnalysis} IS NOT NULL)::int`.as(
+						"has_analysis",
+					),
+			})
+			.from(candidateProfiles);
+		const translationsCoverage = {
+			total: coverRows.length,
+			hasTranslations: coverRows.reduce((a, r) => a + Number(r.hasTrans), 0),
+		};
+		const careerAdoption = {
+			totalCandidates: coverRows.length,
+			hasAnalysis: coverRows.reduce((a, r) => a + Number(r.hasAnalysis), 0),
+		};
+
+		// Notification-Engagement
+		const notifRows = await db
+			.select({
+				kind: notifications.kind,
+				readAt: notifications.readAt,
+			})
+			.from(notifications);
+		const notifByKind = new Map<string, { total: number; read: number }>();
+		let notifTotal = 0;
+		let notifRead = 0;
+		for (const n of notifRows) {
+			notifTotal++;
+			if (n.readAt) notifRead++;
+			const cur = notifByKind.get(n.kind) ?? { total: 0, read: 0 };
+			cur.total++;
+			if (n.readAt) cur.read++;
+			notifByKind.set(n.kind, cur);
+		}
+		const notificationEngagement = {
+			total: notifTotal,
+			read: notifRead,
+			unread: notifTotal - notifRead,
+			byKind: [...notifByKind.entries()].map(([kind, v]) => ({
+				kind,
+				total: v.total,
+				read: v.read,
+			})),
+		};
+
+		// Aktive Sessions (Auth.js)
+		const sessionRows = await db
+			.select({ userId: sessions.userId })
+			.from(sessions)
+			.where(gte(sessions.expires, new Date()));
+		const sessionUsers = new Set<string>();
+		for (const s of sessionRows) sessionUsers.add(s.userId);
+		const activeSessions = {
+			total: sessionRows.length,
+			uniqueUsers: sessionUsers.size,
+		};
+
 		return {
 			growth: {
 				users7d,
@@ -1423,6 +1721,16 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 			jobStatusMix,
 			diversity,
 			activeTenants,
+			vault: vaultStats,
+			savedSearches: savedSearchStats,
+			applicationStatusMix,
+			stageOutcomes,
+			rejectReasons,
+			timeToFill,
+			translationsCoverage,
+			careerAdoption,
+			notificationEngagement,
+			activeSessions,
 			profileCompleteness: completeness,
 		};
 	} catch (e) {
