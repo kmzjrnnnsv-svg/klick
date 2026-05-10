@@ -3,33 +3,37 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getAdminAnalytics } from "@/app/actions/admin";
 import { auth } from "@/auth";
+import {
+	FunnelChart,
+	HBarChart,
+	StackedBar,
+	VBarHistogram,
+} from "@/components/admin/charts";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 
-function pctBar({ pct }: { pct: number }) {
-	return (
-		<div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-			<div
-				className="h-full rounded-full bg-primary"
-				style={{ width: `${Math.min(100, pct)}%` }}
-			/>
-		</div>
-	);
-}
-
-function StatCard({
+function StatTile({
 	label,
 	value,
 	hint,
+	tone,
 }: {
 	label: string;
 	value: string | number;
 	hint?: string;
+	tone?: "primary" | "emerald" | "amber" | "rose";
 }) {
+	const ring: Record<string, string> = {
+		primary: "border-primary/30 bg-primary/5",
+		emerald: "border-emerald-500/30 bg-emerald-500/5",
+		amber: "border-amber-500/30 bg-amber-500/5",
+		rose: "border-rose-500/30 bg-rose-500/5",
+	};
+	const cls = tone ? ring[tone] : "border-border bg-background";
 	return (
-		<div className="rounded-sm border border-border bg-background p-3">
+		<div className={`rounded-lg border p-3 ${cls}`}>
 			<p className="lv-eyebrow text-[0.5rem] text-muted-foreground">{label}</p>
 			<p className="mt-1 font-serif-display text-2xl tabular-nums">{value}</p>
 			{hint && (
@@ -40,6 +44,63 @@ function StatCard({
 		</div>
 	);
 }
+
+function Card({
+	title,
+	hint,
+	children,
+}: {
+	title: string;
+	hint?: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<section className="rounded-lg border border-border bg-background p-4">
+			<h2 className="font-medium text-sm">{title}</h2>
+			{hint && (
+				<p className="mt-0.5 mb-3 text-muted-foreground text-xs">{hint}</p>
+			)}
+			{!hint && <div className="mt-3" />}
+			{children}
+		</section>
+	);
+}
+
+const DEGREE_LABEL: Record<string, string> = {
+	school: "Schule / Abi",
+	apprenticeship: "Ausbildung",
+	bachelor: "Bachelor",
+	master: "Master",
+	phd: "PhD",
+	mba: "MBA",
+	other: "Sonstige",
+};
+
+const POLICY_LABEL: Record<string, string> = {
+	onsite: "Vor Ort",
+	hybrid: "Hybrid",
+	remote: "Remote",
+};
+
+const EMPLOYMENT_LABEL: Record<string, string> = {
+	fulltime: "Vollzeit",
+	parttime: "Teilzeit",
+	contract: "Freelance/Contract",
+	internship: "Praktikum",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+	draft: "Entwurf",
+	published: "Veröffentlicht",
+	archived: "Archiviert",
+};
+
+const KIND_LABEL: Record<string, string> = {
+	identity: "Identität",
+	cert: "Zertifikat",
+	badge: "Badge",
+	employment: "Beschäftigung",
+};
 
 export default async function AdminStatsPage() {
 	const session = await auth();
@@ -62,8 +123,8 @@ export default async function AdminStatsPage() {
 	return (
 		<>
 			<Header />
-			<main className="mx-auto w-full max-w-5xl flex-1 px-3 pt-6 pb-20 sm:px-6 sm:pt-12">
-				<header className="mb-5 sm:mb-7">
+			<main className="mx-auto w-full max-w-6xl flex-1 px-3 pt-6 pb-20 sm:px-6 sm:pt-12">
+				<header className="mb-6 sm:mb-8">
 					<h1 className="font-semibold text-xl tracking-tight sm:text-3xl">
 						{t("title")}
 					</h1>
@@ -72,245 +133,396 @@ export default async function AdminStatsPage() {
 					</p>
 				</header>
 
-				<section className="mb-8">
-					<h2 className="mb-3 font-medium text-sm">{t("growth")}</h2>
-					<div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-						<StatCard
-							label={t("usersLabel")}
-							value={a.growth.users7d}
-							hint={t("over30d", { n: a.growth.users30d })}
-						/>
-						<StatCard
-							label={t("jobsLabel")}
-							value={a.growth.jobs7d}
-							hint={t("over30d", { n: a.growth.jobs30d })}
-						/>
-						<StatCard
-							label={t("matchesLabel")}
-							value={a.growth.matches7d}
-							hint={t("over30d", { n: a.growth.matches30d })}
-						/>
-					</div>
+				{/* TOP-Tiles */}
+				<section className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+					<StatTile
+						label={t("usersLabel")}
+						value={a.growth.users7d}
+						hint={t("over30d", { n: a.growth.users30d })}
+						tone="primary"
+					/>
+					<StatTile
+						label={t("jobsLabel")}
+						value={a.growth.jobs7d}
+						hint={t("over30d", { n: a.growth.jobs30d })}
+						tone="primary"
+					/>
+					<StatTile
+						label={t("matchesLabel")}
+						value={a.growth.matches7d}
+						hint={t("over30d", { n: a.growth.matches30d })}
+						tone="primary"
+					/>
+					<StatTile
+						label={t("activeTenantsLabel")}
+						value={a.activeTenants}
+						hint={t("activeTenantsHint")}
+						tone="emerald"
+					/>
 				</section>
 
+				{/* Funnel */}
 				<section className="mb-8">
-					<h2 className="mb-3 font-medium text-sm">{t("funnel")}</h2>
-					<div className="grid gap-3 sm:grid-cols-4">
-						<StatCard label={t("matchesLabel")} value={a.funnel.matches} />
-						<StatCard
-							label={t("interestsLabel")}
-							value={a.funnel.interests}
-							hint={t("conversionPct", { pct: a.conversion.matchToInterest })}
+					<Card title={t("funnel")} hint={t("funnelHint")}>
+						<FunnelChart
+							steps={[
+								{ label: t("matchesLabel"), n: a.funnel.matches },
+								{
+									label: t("interestsLabel"),
+									n: a.funnel.interests,
+									pct: a.conversion.matchToInterest,
+								},
+								{
+									label: t("approvedLabel"),
+									n: a.funnel.interestsApproved,
+									pct: a.conversion.interestToApproval,
+								},
+								{
+									label: t("offersLabel"),
+									n: a.funnel.offers,
+									pct: a.conversion.approvalToOffer,
+								},
+								{
+									label: t("offersAccepted"),
+									n: a.funnel.offersAccepted,
+									pct: a.conversion.offerToAccept,
+								},
+							]}
 						/>
-						<StatCard
-							label={t("approvedLabel")}
-							value={a.funnel.interestsApproved}
-							hint={t("conversionPct", { pct: a.conversion.interestToApproval })}
-						/>
-						<StatCard
-							label={t("offersLabel")}
-							value={a.funnel.offers}
-							hint={t("conversionPct", { pct: a.conversion.approvalToOffer })}
-						/>
-						<StatCard
-							label={t("offersAccepted")}
-							value={a.funnel.offersAccepted}
-							hint={t("conversionPct", { pct: a.conversion.offerToAccept })}
-						/>
-						<StatCard
-							label={t("offersDeclined")}
-							value={a.funnel.offersDeclined}
-						/>
-						<StatCard
-							label={t("offersPending")}
-							value={a.funnel.offersPending}
-						/>
-						<StatCard
-							label={t("interestsRejected")}
-							value={a.funnel.interestsRejected}
-						/>
-					</div>
+					</Card>
 				</section>
 
-				<section className="mb-8 grid gap-4 sm:grid-cols-2">
-					<div className="rounded-sm border border-border bg-background p-4">
-						<h2 className="mb-3 font-medium text-sm">
-							{t("candidateResponse")}
-						</h2>
-						<dl className="space-y-2 text-sm">
-							<div className="flex items-center justify-between">
-								<dt className="text-muted-foreground text-xs">
-									{t("decided")}
-								</dt>
-								<dd className="font-mono">{a.candidateResponse.decided}</dd>
+				{/* Antwortzeiten */}
+				<section className="mb-8 grid gap-3 sm:grid-cols-2">
+					<Card title={t("candidateResponse")}>
+						<dl className="grid grid-cols-3 gap-3 text-sm">
+							<div>
+								<dt className="text-muted-foreground text-xs">{t("decided")}</dt>
+								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
+									{a.candidateResponse.decided}
+								</dd>
 							</div>
-							<div className="flex items-center justify-between">
-								<dt className="text-muted-foreground text-xs">
-									{t("pending")}
-								</dt>
-								<dd className="font-mono">{a.candidateResponse.pending}</dd>
+							<div>
+								<dt className="text-muted-foreground text-xs">{t("pending")}</dt>
+								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
+									{a.candidateResponse.pending}
+								</dd>
 							</div>
-							<div className="flex items-center justify-between">
+							<div>
 								<dt className="text-muted-foreground text-xs">
 									{t("medianHours")}
 								</dt>
-								<dd className="font-mono">
+								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
 									{a.candidateResponse.median_hours ?? "—"}
 								</dd>
 							</div>
 						</dl>
-					</div>
-					<div className="rounded-sm border border-border bg-background p-4">
-						<h2 className="mb-3 font-medium text-sm">{t("employerResponse")}</h2>
-						<dl className="space-y-2 text-sm">
-							<div className="flex items-center justify-between">
+					</Card>
+					<Card title={t("employerResponse")}>
+						<dl className="grid grid-cols-3 gap-3 text-sm">
+							<div>
 								<dt className="text-muted-foreground text-xs">
 									{t("offersTotal")}
 								</dt>
-								<dd className="font-mono">{a.employerResponse.offersTotal}</dd>
+								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
+									{a.employerResponse.offersTotal}
+								</dd>
 							</div>
-							<div className="flex items-center justify-between">
-								<dt className="text-muted-foreground text-xs">
-									{t("decided")}
-								</dt>
-								<dd className="font-mono">{a.employerResponse.offersDecided}</dd>
+							<div>
+								<dt className="text-muted-foreground text-xs">{t("decided")}</dt>
+								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
+									{a.employerResponse.offersDecided}
+								</dd>
 							</div>
-							<div className="flex items-center justify-between">
+							<div>
 								<dt className="text-muted-foreground text-xs">
 									{t("medianHours")}
 								</dt>
-								<dd className="font-mono">
+								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
 									{a.employerResponse.median_hours ?? "—"}
 								</dd>
 							</div>
 						</dl>
-					</div>
+					</Card>
 				</section>
 
-				<section className="mb-8 grid gap-4 sm:grid-cols-2">
-					<div className="rounded-sm border border-border bg-background p-4">
-						<h2 className="mb-3 font-medium text-sm">
-							{t("topCandidateSkills")}
-						</h2>
-						{a.topCandidateSkills.length === 0 ? (
-							<p className="text-muted-foreground text-xs">{t("none")}</p>
-						) : (
-							<ul className="space-y-1.5 text-sm">
-								{a.topCandidateSkills.map((s) => (
-									<li
-										key={s.name}
-										className="flex items-center justify-between gap-3"
-									>
-										<span>{s.name}</span>
-										<span className="font-mono text-muted-foreground text-xs">
-											{s.n}
-										</span>
-									</li>
-								))}
-							</ul>
-						)}
-					</div>
-					<div className="rounded-sm border border-border bg-background p-4">
-						<h2 className="mb-3 font-medium text-sm">{t("topJobSkills")}</h2>
-						{a.topJobSkills.length === 0 ? (
-							<p className="text-muted-foreground text-xs">{t("none")}</p>
-						) : (
-							<ul className="space-y-1.5 text-sm">
-								{a.topJobSkills.map((s) => (
-									<li
-										key={s.name}
-										className="flex items-center justify-between gap-3"
-									>
-										<span>{s.name}</span>
-										<span className="font-mono text-muted-foreground text-xs">
-											{s.n}
-										</span>
-									</li>
-								))}
-							</ul>
-						)}
-					</div>
+				{/* Job-Daten Mix */}
+				<section className="mb-8 grid gap-3 sm:grid-cols-3">
+					<Card title={t("remotePolicy")}>
+						<StackedBar
+							items={a.remotePolicyMix.map((m) => ({
+								label: POLICY_LABEL[m.policy] ?? m.policy,
+								n: m.n,
+							}))}
+						/>
+					</Card>
+					<Card title={t("employmentType")}>
+						<StackedBar
+							items={a.employmentTypeMix.map((m) => ({
+								label: EMPLOYMENT_LABEL[m.type] ?? m.type,
+								n: m.n,
+							}))}
+						/>
+					</Card>
+					<Card title={t("jobStatus")}>
+						<StackedBar
+							items={a.jobStatusMix.map((m) => ({
+								label: STATUS_LABEL[m.status] ?? m.status,
+								n: m.n,
+							}))}
+						/>
+					</Card>
 				</section>
 
-				<section className="mb-8 grid gap-4 sm:grid-cols-2">
-					<div className="rounded-sm border border-border bg-background p-4">
-						<h2 className="mb-3 font-medium text-sm">{t("topLocations")}</h2>
-						{a.topLocations.length === 0 ? (
-							<p className="text-muted-foreground text-xs">{t("none")}</p>
-						) : (
-							<ul className="space-y-1.5 text-sm">
-								{a.topLocations.map((l) => (
-									<li
-										key={l.location}
-										className="flex items-center justify-between gap-3"
-									>
-										<span>{l.location}</span>
-										<span className="font-mono text-muted-foreground text-xs">
-											{l.n}
-										</span>
-									</li>
-								))}
-							</ul>
-						)}
-					</div>
-					<div className="rounded-sm border border-border bg-background p-4">
-						<h2 className="mb-3 font-medium text-sm">{t("verifyMix")}</h2>
-						{a.verifyMix.length === 0 ? (
-							<p className="text-muted-foreground text-xs">{t("none")}</p>
-						) : (
-							<ul className="space-y-1.5 text-sm">
-								{a.verifyMix.map((v) => (
-									<li
-										key={v.kind}
-										className="flex items-center justify-between gap-3"
-									>
-										<span>{v.kind}</span>
-										<span className="font-mono text-muted-foreground text-xs">
-											{v.n}
-										</span>
-									</li>
-								))}
-							</ul>
-						)}
-					</div>
+				{/* Distributions */}
+				<section className="mb-8 grid gap-3 sm:grid-cols-2">
+					<Card title={t("salaryDesired")} hint={t("salaryHint")}>
+						<VBarHistogram
+							items={a.salaryDesiredHist.map((b) => ({
+								label: b.bucket,
+								n: b.n,
+							}))}
+						/>
+					</Card>
+					<Card title={t("jobSalary")} hint={t("jobSalaryHint")}>
+						<VBarHistogram
+							items={a.jobSalaryHist.map((b) => ({
+								label: b.bucket,
+								n: b.n,
+							}))}
+						/>
+					</Card>
+					<Card title={t("yearsExperience")}>
+						<VBarHistogram
+							items={a.yearsExperienceHist.map((b) => ({
+								label: b.bucket,
+								n: b.n,
+							}))}
+						/>
+					</Card>
+					<Card title={t("yearsRequired")}>
+						<VBarHistogram
+							items={a.yearsRequiredHist.map((b) => ({
+								label: b.bucket,
+								n: b.n,
+							}))}
+						/>
+					</Card>
 				</section>
 
-				<section className="mb-8 rounded-sm border border-border bg-background p-4">
-					<h2 className="mb-3 font-medium text-sm">{t("profileCompleteness")}</h2>
-					<p className="mb-3 text-muted-foreground text-xs">
-						{t("totalProfiles", { n: a.profileCompleteness.total })}
-					</p>
-					<dl className="space-y-3 text-sm">
-						{(
-							[
-								["hasSummary", t("hasSummary"), a.profileCompleteness.hasSummary],
-								["hasSkills", t("hasSkills"), a.profileCompleteness.hasSkills],
+				<section className="mb-8">
+					<Card title={t("matchScore")} hint={t("matchScoreHint")}>
+						<VBarHistogram
+							items={a.matchScoreHist.map((b) => ({
+								label: b.bucket,
+								n: b.n,
+							}))}
+						/>
+					</Card>
+				</section>
+
+				{/* Top-Listen */}
+				<section className="mb-8 grid gap-3 sm:grid-cols-2">
+					<Card title={t("topCandidateSkills")}>
+						<HBarChart
+							items={a.topCandidateSkills.map((s) => ({ label: s.name, n: s.n }))}
+						/>
+					</Card>
+					<Card title={t("topJobSkills")}>
+						<HBarChart
+							tone="emerald"
+							items={a.topJobSkills.map((s) => ({ label: s.name, n: s.n }))}
+						/>
+					</Card>
+					<Card title={t("topLocations")}>
+						<HBarChart
+							items={a.topLocations.map((l) => ({ label: l.location, n: l.n }))}
+						/>
+					</Card>
+					<Card title={t("topJobLocations")}>
+						<HBarChart
+							tone="emerald"
+							items={a.topJobLocations.map((l) => ({
+								label: l.location,
+								n: l.n,
+							}))}
+						/>
+					</Card>
+					<Card title={t("topIndustries")}>
+						<HBarChart
+							tone="amber"
+							items={a.topIndustries.map((i) => ({ label: i.name, n: i.n }))}
+						/>
+					</Card>
+					<Card title={t("topLanguages")}>
+						<HBarChart
+							tone="amber"
+							items={a.topLanguages.map((l) => ({ label: l.name, n: l.n }))}
+						/>
+					</Card>
+				</section>
+
+				<section className="mb-8 grid gap-3 sm:grid-cols-2">
+					<Card title={t("topCertifications")}>
+						<HBarChart
+							items={a.topCertifications.map((c) => ({ label: c.name, n: c.n }))}
+						/>
+					</Card>
+					<Card title={t("degreeMix")}>
+						<StackedBar
+							items={a.degreeTypeMix.map((d) => ({
+								label: DEGREE_LABEL[d.type] ?? d.type,
+								n: d.n,
+							}))}
+						/>
+					</Card>
+				</section>
+
+				{/* Verify */}
+				<section className="mb-8 grid gap-3 sm:grid-cols-2">
+					<Card title={t("verifyMix")}>
+						<HBarChart
+							items={a.verifyMix.map((v) => ({
+								label: KIND_LABEL[v.kind] ?? v.kind,
+								n: v.n,
+							}))}
+						/>
+					</Card>
+					<Card title={t("verifyResults")} hint={t("verifyResultsHint")}>
+						{a.verifyResults.length === 0 ? (
+							<p className="text-muted-foreground text-xs italic">
+								{t("none")}
+							</p>
+						) : (
+							<ul className="space-y-2">
+								{a.verifyResults.map((v) => {
+									const tot = v.passed + v.failed + v.pending || 1;
+									return (
+										<li key={v.kind}>
+											<div className="mb-1 flex items-baseline justify-between text-xs">
+												<span className="font-medium">
+													{KIND_LABEL[v.kind] ?? v.kind}
+												</span>
+												<span className="font-mono text-muted-foreground">
+													{Math.round((v.passed / tot) * 100)} % passed
+												</span>
+											</div>
+											<StackedBar
+												items={[
+													{
+														label: "passed",
+														n: v.passed,
+														tone: "bg-emerald-500",
+													},
+													{ label: "failed", n: v.failed, tone: "bg-rose-500" },
+													{
+														label: "pending",
+														n: v.pending,
+														tone: "bg-amber-500",
+													},
+												]}
+											/>
+										</li>
+									);
+								})}
+							</ul>
+						)}
+					</Card>
+				</section>
+
+				{/* Profile completeness */}
+				<section className="mb-8">
+					<Card
+						title={t("profileCompleteness")}
+						hint={t("totalProfiles", { n: a.profileCompleteness.total })}
+					>
+						<div className="space-y-3 text-sm">
+							{(
 								[
-									"hasEducation",
-									t("hasEducation"),
-									a.profileCompleteness.hasEducation,
-								],
-								[
-									"hasExperience",
-									t("hasExperience"),
-									a.profileCompleteness.hasExperience,
-								],
-							] as const
-						).map(([k, label, n]) => (
-							<div key={k}>
-								<div className="flex items-center justify-between text-xs">
-									<dt>{label}</dt>
-									<dd className="font-mono">
-										{n} ({completionPct(n)} %)
-									</dd>
+									["hasSummary", t("hasSummary"), a.profileCompleteness.hasSummary],
+									["hasSkills", t("hasSkills"), a.profileCompleteness.hasSkills],
+									[
+										"hasEducation",
+										t("hasEducation"),
+										a.profileCompleteness.hasEducation,
+									],
+									[
+										"hasExperience",
+										t("hasExperience"),
+										a.profileCompleteness.hasExperience,
+									],
+								] as const
+							).map(([k, label, n]) => (
+								<div key={k}>
+									<div className="mb-1 flex items-center justify-between text-xs">
+										<span>{label}</span>
+										<span className="font-mono text-muted-foreground">
+											{n} ({completionPct(n)} %)
+										</span>
+									</div>
+									<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+										<div
+											className="h-full rounded-full bg-primary"
+											style={{ width: `${completionPct(n)}%` }}
+										/>
+									</div>
 								</div>
-								<div className="mt-1">{pctBar({ pct: completionPct(n) })}</div>
+							))}
+						</div>
+					</Card>
+				</section>
+
+				{/* Diversity (k-anonym) */}
+				<section className="mb-8">
+					<Card
+						title={t("diversity")}
+						hint={t("diversityHint", { n: a.diversity.total })}
+					>
+						{a.diversity.total < 5 ? (
+							<p className="text-muted-foreground text-xs italic">
+								{t("diversityTooSmall")}
+							</p>
+						) : (
+							<div className="grid gap-4 sm:grid-cols-3">
+								<div>
+									<p className="mb-2 text-muted-foreground text-xs">
+										{t("gender")}
+									</p>
+									<HBarChart
+										tone="amber"
+										items={a.diversity.gender.map((g) => ({
+											label: g.bucket,
+											n: g.n,
+										}))}
+									/>
+								</div>
+								<div>
+									<p className="mb-2 text-muted-foreground text-xs">
+										{t("age")}
+									</p>
+									<HBarChart
+										tone="amber"
+										items={a.diversity.ageRange.map((g) => ({
+											label: g.bucket,
+											n: g.n,
+										}))}
+									/>
+								</div>
+								<div>
+									<p className="mb-2 text-muted-foreground text-xs">
+										{t("disability")}
+									</p>
+									<HBarChart
+										tone="amber"
+										items={a.diversity.hasDisability.map((g) => ({
+											label: g.bucket,
+											n: g.n,
+										}))}
+									/>
+								</div>
 							</div>
-						))}
-					</dl>
-					<p className="mt-3 font-mono text-[10px] text-muted-foreground">
-						{t("activeTenants", { n: a.activeTenants })}
-					</p>
+						)}
+					</Card>
 				</section>
 			</main>
 			<Footer />

@@ -9,6 +9,7 @@ import {
 	applications,
 	auditLog,
 	candidateProfiles,
+	diversityResponses,
 	type Employer,
 	employers,
 	hiringProcessTemplates,
@@ -734,10 +735,46 @@ export type AdminAnalytics = {
 	topCandidateSkills: { name: string; n: number }[];
 	// Top-Skills in Job-Anforderungen
 	topJobSkills: { name: string; n: number }[];
-	// Top-Standorte
+	// Top-Standorte (Kandidaten)
 	topLocations: { location: string; n: number }[];
-	// Verifikations-Mix
+	// Top-Standorte (Jobs)
+	topJobLocations: { location: string; n: number }[];
+	// Top-Branchen (Kandidaten)
+	topIndustries: { name: string; n: number }[];
+	// Top-Sprachen (Kandidaten gesprochen)
+	topLanguages: { name: string; n: number }[];
+	// Top-Zertifikate (im CV erwähnt — nicht zwingend uploaded)
+	topCertifications: { name: string; n: number }[];
+	// Verifikations-Mix nach kind
 	verifyMix: { kind: string; n: number }[];
+	// Verifikations-Erfolgsquote nach kind: passed / failed / pending
+	verifyResults: { kind: string; passed: number; failed: number; pending: number }[];
+	// Histogramm: Berufsjahre der Kandidat:innen, in 5-Jahres-Buckets
+	yearsExperienceHist: { bucket: string; n: number }[];
+	// Histogramm: erforderliche Berufsjahre der Jobs
+	yearsRequiredHist: { bucket: string; n: number }[];
+	// Histogramm: Wunschgehalt der Kandidat:innen, in 10k-Buckets EUR
+	salaryDesiredHist: { bucket: string; n: number }[];
+	// Histogramm: Job-Salary-Mid (mid = (min+max)/2)
+	jobSalaryHist: { bucket: string; n: number }[];
+	// Histogramm: Match-Score-Verteilung
+	matchScoreHist: { bucket: string; n: number }[];
+	// Education-Typ-Verteilung (school / bachelor / master / phd …)
+	degreeTypeMix: { type: string; n: number }[];
+	// Remote-Policy Mix (jobs)
+	remotePolicyMix: { policy: string; n: number }[];
+	// Employment-Type Mix (jobs)
+	employmentTypeMix: { type: string; n: number }[];
+	// Job-Status Mix (draft / published / archived)
+	jobStatusMix: { status: string; n: number }[];
+	// Diversity-Aggregat — nur wenn Gesamt ≥ 5; sonst leer.
+	// Echte Buckets respektieren die ≥5-Regel pro Bucket (k-Anonymität).
+	diversity: {
+		total: number;
+		gender: { bucket: string; n: number }[];
+		ageRange: { bucket: string; n: number }[];
+		hasDisability: { bucket: string; n: number }[];
+	};
 	// Aktive Tenants (mind. 1 published Job)
 	activeTenants: number;
 	// Profil-Vollständigkeit (Anteil mit summary, skills, education, experience)
@@ -804,7 +841,22 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 		topCandidateSkills: [],
 		topJobSkills: [],
 		topLocations: [],
+		topJobLocations: [],
+		topIndustries: [],
+		topLanguages: [],
+		topCertifications: [],
 		verifyMix: [],
+		verifyResults: [],
+		yearsExperienceHist: [],
+		yearsRequiredHist: [],
+		salaryDesiredHist: [],
+		jobSalaryHist: [],
+		matchScoreHist: [],
+		degreeTypeMix: [],
+		remotePolicyMix: [],
+		employmentTypeMix: [],
+		jobStatusMix: [],
+		diversity: { total: 0, gender: [], ageRange: [], hasDisability: [] },
 		activeTenants: 0,
 		profileCompleteness: {
 			hasSummary: 0,
@@ -1042,13 +1094,19 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 			.groupBy(employers.tenantId);
 		const activeTenants = activeRows.length;
 
-		// Profile completeness
+		// Profile completeness + zusätzliche Auswertungen, die alle Profile
+		// einmalig in den Speicher ziehen (Plattform-Skala-Annahme: passt).
 		const allProfiles = await db
 			.select({
 				summary: candidateProfiles.summary,
 				skills: candidateProfiles.skills,
 				education: candidateProfiles.education,
 				experience: candidateProfiles.experience,
+				yearsExperience: candidateProfiles.yearsExperience,
+				salaryDesired: candidateProfiles.salaryDesired,
+				industries: candidateProfiles.industries,
+				languages: candidateProfiles.languages,
+				certificationsMentioned: candidateProfiles.certificationsMentioned,
 			})
 			.from(candidateProfiles);
 		const completeness = {
@@ -1061,6 +1119,275 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 			hasExperience: allProfiles.filter((p) => (p.experience ?? []).length > 0)
 				.length,
 			total: allProfiles.length,
+		};
+
+		// Histogramm-Helper
+		const histogram = (
+			values: number[],
+			buckets: { label: string; min: number; max: number }[],
+		) => {
+			return buckets.map((b) => ({
+				bucket: b.label,
+				n: values.filter((v) => v >= b.min && v < b.max).length,
+			}));
+		};
+
+		// Berufsjahre: 0-2 / 3-5 / 6-10 / 11-15 / 16+
+		const yearsExperienceHist = histogram(
+			allProfiles
+				.map((p) => p.yearsExperience)
+				.filter((y): y is number => y !== null),
+			[
+				{ label: "0–2", min: 0, max: 3 },
+				{ label: "3–5", min: 3, max: 6 },
+				{ label: "6–10", min: 6, max: 11 },
+				{ label: "11–15", min: 11, max: 16 },
+				{ label: "16+", min: 16, max: 999 },
+			],
+		);
+
+		// Wunschgehalt EUR in 10k-Schritten — wir kappen bei 200k (oben offen).
+		const salaryDesiredHist = histogram(
+			allProfiles
+				.map((p) => p.salaryDesired)
+				.filter((s): s is number => s !== null && s > 0),
+			[
+				{ label: "<40k", min: 0, max: 40_000 },
+				{ label: "40–60k", min: 40_000, max: 60_000 },
+				{ label: "60–80k", min: 60_000, max: 80_000 },
+				{ label: "80–100k", min: 80_000, max: 100_000 },
+				{ label: "100–130k", min: 100_000, max: 130_000 },
+				{ label: "130k+", min: 130_000, max: 9_999_999 },
+			],
+		);
+
+		// Industries
+		const industriesCount = new Map<string, number>();
+		for (const p of allProfiles) {
+			for (const i of p.industries ?? []) {
+				const k = i.trim();
+				if (!k) continue;
+				industriesCount.set(k, (industriesCount.get(k) ?? 0) + 1);
+			}
+		}
+		const topIndustries = [...industriesCount.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 10)
+			.map(([name, n]) => ({ name, n }));
+
+		// Languages — Format kann "de:c1" o.Ä. sein; nur Sprach-Code zählen.
+		const langCount = new Map<string, number>();
+		for (const p of allProfiles) {
+			for (const l of p.languages ?? []) {
+				const code = l.split(":")[0]?.trim();
+				if (!code) continue;
+				langCount.set(code, (langCount.get(code) ?? 0) + 1);
+			}
+		}
+		const topLanguages = [...langCount.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 10)
+			.map(([name, n]) => ({ name, n }));
+
+		// Certifications mentioned (offizielle Bezeichnung)
+		const certCount = new Map<string, number>();
+		for (const p of allProfiles) {
+			for (const c of p.certificationsMentioned ?? []) {
+				const k = c.name.trim();
+				if (!k) continue;
+				certCount.set(k, (certCount.get(k) ?? 0) + 1);
+			}
+		}
+		const topCertifications = [...certCount.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 10)
+			.map(([name, n]) => ({ name, n }));
+
+		// Education-Typ Mix
+		const degreeCount = new Map<string, number>();
+		for (const p of allProfiles) {
+			for (const e of p.education ?? []) {
+				const t = e.degreeType ?? "other";
+				degreeCount.set(t, (degreeCount.get(t) ?? 0) + 1);
+			}
+		}
+		const degreeTypeMix = [...degreeCount.entries()].map(([type, n]) => ({
+			type,
+			n,
+		}));
+
+		// Job-Daten: Salary, RemotePolicy, EmploymentType, Status, yearsRequired,
+		// JobLocations
+		const jobRows2 = await db
+			.select({
+				salaryMin: jobs.salaryMin,
+				salaryMax: jobs.salaryMax,
+				yearsExperienceMin: jobs.yearsExperienceMin,
+				location: jobs.location,
+				remotePolicy: jobs.remotePolicy,
+				employmentType: jobs.employmentType,
+				status: jobs.status,
+			})
+			.from(jobs);
+
+		const jobSalaryMids = jobRows2
+			.map((j) =>
+				j.salaryMin && j.salaryMax
+					? Math.round((j.salaryMin + j.salaryMax) / 2)
+					: j.salaryMin ?? j.salaryMax ?? null,
+			)
+			.filter((x): x is number => x !== null && x > 0);
+		const jobSalaryHist = histogram(jobSalaryMids, [
+			{ label: "<40k", min: 0, max: 40_000 },
+			{ label: "40–60k", min: 40_000, max: 60_000 },
+			{ label: "60–80k", min: 60_000, max: 80_000 },
+			{ label: "80–100k", min: 80_000, max: 100_000 },
+			{ label: "100–130k", min: 100_000, max: 130_000 },
+			{ label: "130k+", min: 130_000, max: 9_999_999 },
+		]);
+
+		const yearsRequiredHist = histogram(
+			jobRows2
+				.map((j) => j.yearsExperienceMin)
+				.filter((y): y is number => y !== null && y >= 0),
+			[
+				{ label: "0–2", min: 0, max: 3 },
+				{ label: "3–5", min: 3, max: 6 },
+				{ label: "6–10", min: 6, max: 11 },
+				{ label: "11+", min: 11, max: 999 },
+			],
+		);
+
+		const remotePolicyCount = new Map<string, number>();
+		for (const j of jobRows2) {
+			remotePolicyCount.set(
+				j.remotePolicy,
+				(remotePolicyCount.get(j.remotePolicy) ?? 0) + 1,
+			);
+		}
+		const remotePolicyMix = [...remotePolicyCount.entries()].map(
+			([policy, n]) => ({ policy, n }),
+		);
+
+		const employmentTypeCount = new Map<string, number>();
+		for (const j of jobRows2) {
+			employmentTypeCount.set(
+				j.employmentType,
+				(employmentTypeCount.get(j.employmentType) ?? 0) + 1,
+			);
+		}
+		const employmentTypeMix = [...employmentTypeCount.entries()].map(
+			([type, n]) => ({ type, n }),
+		);
+
+		const jobStatusCount = new Map<string, number>();
+		for (const j of jobRows2) {
+			jobStatusCount.set(j.status, (jobStatusCount.get(j.status) ?? 0) + 1);
+		}
+		const jobStatusMix = [...jobStatusCount.entries()].map(([status, n]) => ({
+			status,
+			n,
+		}));
+
+		const jobLocationCount = new Map<string, number>();
+		for (const j of jobRows2) {
+			if (j.location) {
+				jobLocationCount.set(
+					j.location,
+					(jobLocationCount.get(j.location) ?? 0) + 1,
+				);
+			}
+		}
+		const topJobLocations = [...jobLocationCount.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 8)
+			.map(([location, n]) => ({ location, n }));
+
+		// Match-Score-Verteilung (hardScore + softScore / 2 grobe Schätzung).
+		const matchScores = await db
+			.select({ hard: matches.hardScore, soft: matches.softScore })
+			.from(matches)
+			.catch(() => []);
+		const scoreVals = matchScores.map((m) =>
+			Math.round((Number(m.hard) + Number(m.soft)) / 2),
+		);
+		const matchScoreHist = histogram(scoreVals, [
+			{ label: "0–25", min: 0, max: 26 },
+			{ label: "26–50", min: 26, max: 51 },
+			{ label: "51–75", min: 51, max: 76 },
+			{ label: "76–90", min: 76, max: 91 },
+			{ label: "91–100", min: 91, max: 101 },
+		]);
+
+		// Verifikations-Erfolgsquote
+		const verifyResultsRows = await db
+			.select({
+				kind: verifications.kind,
+				status: verifications.status,
+				n: sql<number>`count(*)::int`.as("n"),
+			})
+			.from(verifications)
+			.groupBy(verifications.kind, verifications.status)
+			.catch(() => []);
+		const verifyByKind = new Map<
+			string,
+			{ passed: number; failed: number; pending: number }
+		>();
+		for (const r of verifyResultsRows) {
+			const cur = verifyByKind.get(r.kind) ?? {
+				passed: 0,
+				failed: 0,
+				pending: 0,
+			};
+			if (r.status === "passed") cur.passed = Number(r.n);
+			if (r.status === "failed") cur.failed = Number(r.n);
+			if (r.status === "pending") cur.pending = Number(r.n);
+			verifyByKind.set(r.kind, cur);
+		}
+		const verifyResults = [...verifyByKind.entries()].map(([kind, v]) => ({
+			kind,
+			...v,
+		}));
+
+		// Diversity — k-Anonymität: Buckets unter 5 Personen werden zu "<5"
+		// zusammengeführt, NICHT direkt ausgewiesen.
+		const dRows = await db
+			.select({
+				gender: diversityResponses.genderIdentity,
+				age: diversityResponses.ageRange,
+				disability: diversityResponses.hasDisability,
+			})
+			.from(diversityResponses)
+			.catch(() => []);
+		const dTotal = dRows.length;
+		const kAnon = (
+			counts: Map<string, number>,
+		): { bucket: string; n: number }[] => {
+			let small = 0;
+			const out: { bucket: string; n: number }[] = [];
+			for (const [k, n] of counts.entries()) {
+				if (n < 5) small += n;
+				else out.push({ bucket: k, n });
+			}
+			if (small > 0) out.push({ bucket: "<5", n: small });
+			return out.sort((a, b) => b.n - a.n);
+		};
+		const genderCount = new Map<string, number>();
+		const ageCount = new Map<string, number>();
+		const disCount = new Map<string, number>();
+		for (const r of dRows) {
+			if (r.gender) genderCount.set(r.gender, (genderCount.get(r.gender) ?? 0) + 1);
+			if (r.age) ageCount.set(r.age, (ageCount.get(r.age) ?? 0) + 1);
+			if (r.disability !== null) {
+				const k = r.disability ? "yes" : "no";
+				disCount.set(k, (disCount.get(k) ?? 0) + 1);
+			}
+		}
+		const diversity = {
+			total: dTotal,
+			gender: dTotal >= 5 ? kAnon(genderCount) : [],
+			ageRange: dTotal >= 5 ? kAnon(ageCount) : [],
+			hasDisability: dTotal >= 5 ? kAnon(disCount) : [],
 		};
 
 		return {
@@ -1079,7 +1406,22 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 			topCandidateSkills,
 			topJobSkills,
 			topLocations,
+			topJobLocations,
+			topIndustries,
+			topLanguages,
+			topCertifications,
 			verifyMix,
+			verifyResults,
+			yearsExperienceHist,
+			yearsRequiredHist,
+			salaryDesiredHist,
+			jobSalaryHist,
+			matchScoreHist,
+			degreeTypeMix,
+			remotePolicyMix,
+			employmentTypeMix,
+			jobStatusMix,
+			diversity,
 			activeTenants,
 			profileCompleteness: completeness,
 		};
