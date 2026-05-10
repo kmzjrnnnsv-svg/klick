@@ -778,6 +778,40 @@ export class OllamaAIProvider implements AIProvider {
 			};
 		}
 	}
+
+	async recommendCandidateSalary(input: {
+		profile: ExtractedProfile;
+		country: string;
+		currency: string;
+	}): Promise<{
+		low: number;
+		mid: number;
+		high: number;
+		currency: string;
+		rationale: string;
+	}> {
+		const schema = {
+			type: "object",
+			properties: {
+				low: { type: "integer", minimum: 0 },
+				mid: { type: "integer", minimum: 0 },
+				high: { type: "integer", minimum: 0 },
+				currency: { type: "string" },
+				rationale: { type: "string" },
+			},
+			required: ["low", "mid", "high", "currency", "rationale"],
+		};
+		const sys =
+			"Du kennst DACH/EU/UK/US Gehaltsmärkte (Stand 2026). Antworte STRIKT als JSON nach Schema. Keine Buzzwords.";
+		const user = `Profil: ${JSON.stringify(input.profile)}\nLand: ${input.country}\nWährung: ${input.currency}\nGib das empfohlene Brutto-Jahresband (low/mid/high) + 1-2 Sätze Rationale.`;
+		return await this.chat<{
+			low: number;
+			mid: number;
+			high: number;
+			currency: string;
+			rationale: string;
+		}>(sys, user, schema);
+	}
 }
 
 // ─── PDF-Text-Extraktion ──────────────────────────────────────────────────

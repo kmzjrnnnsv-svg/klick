@@ -271,6 +271,24 @@ export type ProfileSectionVisibility = Partial<
 	Record<ProfileSectionKey, "private" | "matches_only" | "public">
 >;
 
+// Gehalt-Erwartung in zusätzlichen Ländern. Maximal 2 Einträge zusätzlich zum
+// Heimatland. Empfehlung kommt von der KI auf Knopfdruck.
+export type ProfileSalaryByCountry = {
+	// ISO-Country-Code (DE, AT, CH, GB, US, NL, …).
+	country: string;
+	// 3-Letter Currency (EUR, GBP, USD, CHF).
+	currency: string;
+	min?: number;
+	desired?: number;
+	recommendation?: {
+		low: number;
+		mid: number;
+		high: number;
+		rationale: string;
+		generatedAt: string; // ISO date
+	};
+};
+
 export type ProfileSectionKey =
 	| "basics"
 	| "summary"
@@ -402,6 +420,8 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 	// Per-Sektion-Sichtbarkeit. Default = matches_only für alle Sektionen.
 	// Nur "public" Sektionen erscheinen unter /p/<token>.
 	sectionVisibility: jsonb("section_visibility").$type<ProfileSectionVisibility>(),
+	// Bis zu 2 zusätzliche Länder mit eigenem Gehalt + KI-Empfehlung.
+	salaryByCountry: jsonb("salary_by_country").$type<ProfileSalaryByCountry[]>(),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
 });
 

@@ -156,6 +156,15 @@ export default async function AdminPage({
 							{t("navCmsHint")}
 						</p>
 					</Link>
+					<Link
+						href="/admin/stats"
+						className="rounded-sm border border-border bg-background p-4 transition-colors hover:bg-muted/30"
+					>
+						<p className="font-medium text-sm">{t("statsLink")}</p>
+						<p className="mt-1 text-muted-foreground text-xs">
+							{t("navStatsHint")}
+						</p>
+					</Link>
 				</nav>
 
 				<section>

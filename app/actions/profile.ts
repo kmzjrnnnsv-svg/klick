@@ -16,6 +16,7 @@ import {
 	type ProfileExperience,
 	type ProfileProject,
 	type ProfilePublication,
+	type ProfileSalaryByCountry,
 	type ProfileSectionVisibility,
 	type ProfileSkill,
 	type ProfileSocialLinks,
@@ -105,6 +106,22 @@ const sectionVisibilitySchema: z.ZodType<ProfileSectionVisibility> = z.record(
 	z.enum(["private", "matches_only", "public"]),
 );
 
+const salaryByCountrySchema: z.ZodType<ProfileSalaryByCountry> = z.object({
+	country: z.string().min(2).max(3),
+	currency: z.string().min(3).max(3),
+	min: z.coerce.number().int().min(0).max(5_000_000).optional(),
+	desired: z.coerce.number().int().min(0).max(5_000_000).optional(),
+	recommendation: z
+		.object({
+			low: z.number().int().min(0),
+			mid: z.number().int().min(0),
+			high: z.number().int().min(0),
+			rationale: z.string().max(500),
+			generatedAt: z.string(),
+		})
+		.optional(),
+});
+
 const profileFormSchema = z.object({
 	displayName: z.string().max(120).optional(),
 	headline: z.string().max(200).optional(),
@@ -132,6 +149,7 @@ const profileFormSchema = z.object({
 		.enum(["eu", "permit", "requires_sponsorship", "unknown"])
 		.optional(),
 	sectionVisibility: sectionVisibilitySchema.optional(),
+	salaryByCountry: z.array(salaryByCountrySchema).max(2).optional(),
 });
 
 function parseList(raw: string): string[] {
@@ -266,6 +284,9 @@ export async function saveProfile(formData: FormData): Promise<void> {
 		sectionVisibility: tryParseJsonObject(
 			formData.get("sectionVisibility")?.toString(),
 		),
+		salaryByCountry: tryParseJsonArray(
+			formData.get("salaryByCountry")?.toString(),
+		),
 	};
 
 	const parsed = profileFormSchema.parse(raw);
@@ -302,12 +323,20 @@ export async function saveProfile(formData: FormData): Promise<void> {
 			})()
 		: null;
 
+	// Editiert der Kandidat in einer anderen UI-Sprache als bisher die Quelle?
+	// Dann wird genau diese Sprache zur neuen `profileLanguageOrigin` und der
+	// nachfolgende `translateProfileFields()`-Aufruf füllt die andere Seite neu.
+	const editLocaleRaw = formData.get("editLocale")?.toString();
+	const editLocale: "de" | "en" | null =
+		editLocaleRaw === "de" || editLocaleRaw === "en" ? editLocaleRaw : null;
+
 	const values = {
 		userId,
 		...parsed,
 		openToOffersUntil,
 		...(maxCommuteMinutes !== undefined ? { maxCommuteMinutes } : {}),
 		...(transportMode !== undefined ? { transportMode } : {}),
+		...(editLocale ? { profileLanguageOrigin: editLocale } : {}),
 		addressLat: geo?.lat ?? null,
 		addressLng: geo?.lng ?? null,
 		updatedAt: new Date(),
@@ -399,5 +428,72 @@ function tryParseJsonObject(raw: string | undefined): unknown | undefined {
 		return v && typeof v === "object" && !Array.isArray(v) ? v : undefined;
 	} catch {
 		return undefined;
+	}
+}
+
+// Holt eine KI-Gehaltsempfehlung für genau dieses Profil in einem Land.
+// Persistiert NICHT — die Form-State entscheidet, ob der/die User:in das
+// Ergebnis annimmt + speichert.
+export type CountrySalaryResult =
+	| {
+			ok: true;
+			low: number;
+			mid: number;
+			high: number;
+			currency: string;
+			rationale: string;
+	  }
+	| { ok: false; error: string };
+
+export async function recommendSalaryForCountry(
+	country: string,
+	currency: string,
+): Promise<CountrySalaryResult> {
+	const session = await auth();
+	if (!session?.user?.id) return { ok: false, error: "unauthenticated" };
+	if (!country || country.length < 2 || country.length > 3) {
+		return { ok: false, error: "Ungültiger Country-Code" };
+	}
+	if (!currency || currency.length !== 3) {
+		return { ok: false, error: "Ungültiger Currency-Code" };
+	}
+	const [profile] = await db
+		.select()
+		.from(candidateProfiles)
+		.where(eq(candidateProfiles.userId, session.user.id))
+		.limit(1);
+	if (!profile) {
+		return {
+			ok: false,
+			error: "Bitte fülle erst dein Profil aus, bevor du Empfehlungen anforderst.",
+		};
+	}
+	try {
+		const ai = getAIProvider();
+		const result = await ai.recommendCandidateSalary({
+			profile: {
+				headline: profile.headline ?? undefined,
+				location: profile.location ?? undefined,
+				yearsExperience: profile.yearsExperience ?? undefined,
+				skills: profile.skills ?? undefined,
+				experience: profile.experience ?? undefined,
+				education: profile.education ?? undefined,
+				summary: profile.summary ?? undefined,
+				industries: profile.industries ?? undefined,
+				preferredRoleLevel: profile.preferredRoleLevel ?? undefined,
+			},
+			country,
+			currency,
+		});
+		return { ok: true, ...result };
+	} catch (e) {
+		console.error("[profile] recommendSalaryForCountry", e);
+		return {
+			ok: false,
+			error:
+				e instanceof Error
+					? `KI-Empfehlung fehlgeschlagen: ${e.message}`
+					: "KI-Empfehlung fehlgeschlagen.",
+		};
 	}
 }

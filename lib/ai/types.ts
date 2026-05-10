@@ -235,6 +235,23 @@ export type SalaryBenchmark = {
 	rationale: string; // single sentence, "warum dieser Bereich"
 };
 
+// Pro Land empfohlene Gehaltsband für ein Profil. Wird genutzt wenn der/die
+// Kandidat:in sich auf Stellen in einem anderen Land bewerben will und den
+// lokalen Markt nicht kennt.
+export type CandidateSalaryRecommendationInput = {
+	profile: ExtractedProfile;
+	country: string; // ISO Country Code
+	currency: string; // 3-Letter (EUR, GBP, USD, CHF)
+};
+
+export type CandidateSalaryRecommendation = {
+	low: number;
+	mid: number;
+	high: number;
+	currency: string;
+	rationale: string; // 1-2 Sätze, warum dieses Band für genau dieses Land
+};
+
 export type SalaryBenchmarkInput = {
 	title: string;
 	description: string;
@@ -356,6 +373,11 @@ export interface AIProvider {
 	translateProfile(
 		input: ProfileTranslationInput,
 	): Promise<ProfileTranslationOutput>;
+	// Empfohlenes Gehaltsband für genau dieses Profil in einem konkreten Land.
+	// Berücksichtigt Skill-Mix, Erfahrung, Branche und lokales Lohnniveau.
+	recommendCandidateSalary(
+		input: CandidateSalaryRecommendationInput,
+	): Promise<CandidateSalaryRecommendation>;
 }
 
 export type ProfileTranslationInput = {

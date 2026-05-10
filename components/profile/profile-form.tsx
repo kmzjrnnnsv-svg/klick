@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { saveProfile } from "@/app/actions/profile";
 import { CvImporter } from "@/components/profile/cv-importer";
 import { EducationCard } from "@/components/profile/education-card";
+import { SalaryByCountry } from "@/components/profile/salary-by-country";
 import { SectionVisibilityChip } from "@/components/profile/section-visibility-chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import type {
 	ProfileEducation,
 	ProfileProject,
 	ProfilePublication,
+	ProfileSalaryByCountry,
 	ProfileSectionKey,
 	ProfileSectionVisibility,
 	ProfileSocialLinks,
@@ -67,9 +69,11 @@ function SectionHeader({
 export function ProfileForm({
 	initial,
 	cvs,
+	locale,
 }: {
 	initial: CandidateProfile | null;
 	cvs: CvItem[];
+	locale?: "de" | "en";
 }) {
 	const t = useTranslations("Profile");
 	const [isPending, startTransition] = useTransition();
@@ -139,6 +143,9 @@ export function ProfileForm({
 
 	const [sectionVisibility, setSectionVisibility] =
 		useState<ProfileSectionVisibility>(initial?.sectionVisibility ?? {});
+	const [salaryByCountry, setSalaryByCountry] = useState<
+		ProfileSalaryByCountry[]
+	>(initial?.salaryByCountry ?? []);
 
 	function setSV(section: ProfileSectionKey, next: Visibility) {
 		setSectionVisibility((prev) => ({ ...prev, [section]: next }));
@@ -207,6 +214,10 @@ export function ProfileForm({
 		formData.set("availability", JSON.stringify(availability));
 		formData.set("socialLinks", JSON.stringify(socialLinks));
 		formData.set("sectionVisibility", JSON.stringify(sectionVisibility));
+		formData.set("salaryByCountry", JSON.stringify(salaryByCountry));
+		// Die UI-Sprache, in der gerade editiert wird, wird zur neuen Quell-
+		// Sprache. Hintergrund-Translation in die andere Sprache läuft danach.
+		if (locale) formData.set("editLocale", locale);
 		setError(null);
 		startTransition(async () => {
 			try {
@@ -681,6 +692,15 @@ export function ProfileForm({
 							placeholder="80000"
 						/>
 					</label>
+				</div>
+				<div className="border-border border-t pt-3">
+					<h3 className="mb-2 font-medium text-sm">
+						{t("salaryByCountry.heading")}
+					</h3>
+					<SalaryByCountry
+						value={salaryByCountry}
+						onChange={setSalaryByCountry}
+					/>
 				</div>
 			</section>
 
