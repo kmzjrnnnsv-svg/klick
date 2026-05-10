@@ -57,12 +57,18 @@ export default async function AdminCompanyDetailPage({
 							</span>
 						)}
 					</div>
-					{detail.owner && (
-						<p className="mt-2 text-muted-foreground text-sm">
-							{t("owner")}: {detail.owner.email}
-							{detail.owner.name ? ` (${detail.owner.name})` : ""}
-						</p>
-					)}
+					<p className="mt-2 flex flex-wrap items-baseline gap-x-2 text-muted-foreground text-sm">
+						<span>
+							{t("owner")}: {detail.owner?.email ?? t("noOwner")}
+							{detail.owner?.name ? ` (${detail.owner.name})` : ""}
+						</span>
+						<Link
+							href={`/admin/companies/${detail.employer.id}/owner`}
+							className="text-primary text-xs hover:underline"
+						>
+							{t("manageTeam")} →
+						</Link>
+					</p>
 					<p className="mt-1 text-muted-foreground text-xs">
 						{t("tenant")}: {detail.tenantSlug ?? "—"} · ID:{" "}
 						<span className="font-mono">{detail.employer.id.slice(0, 8)}</span>

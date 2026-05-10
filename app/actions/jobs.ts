@@ -419,6 +419,41 @@ export async function deleteJob(id: string): Promise<void> {
 	revalidatePath("/jobs");
 }
 
+// Dupliziert eine Stelle inkl. Anforderungen/Sprachen/Salary etc., setzt
+// status auf "draft" und hängt " (Kopie)" an den Titel.
+export async function duplicateJob(
+	id: string,
+): Promise<{ ok: true; jobId: string } | { ok: false; error: string }> {
+	try {
+		await requireEmployerSession();
+		const e = await getEmployer();
+		if (!e) return { ok: false, error: "Kein Employer-Kontext." };
+		const [src] = await db
+			.select()
+			.from(jobs)
+			.where(and(eq(jobs.id, id), eq(jobs.employerId, e.id)))
+			.limit(1);
+		if (!src) return { ok: false, error: "Stelle nicht gefunden." };
+		// biome-ignore lint/correctness/noUnusedVariables: explizit auspacken
+		const { id: _id, createdAt: _c, updatedAt: _u, status: _s, ...rest } = src;
+		const [created] = await db
+			.insert(jobs)
+			.values({
+				...rest,
+				title: `${src.title} (Kopie)`,
+				status: "draft",
+			})
+			.returning({ id: jobs.id });
+		revalidatePath("/jobs");
+		return { ok: true, jobId: created.id };
+	} catch (err) {
+		return {
+			ok: false,
+			error: err instanceof Error ? err.message : "fehlgeschlagen",
+		};
+	}
+}
+
 export async function suggestRequirements(input: {
 	title: string;
 	description: string;

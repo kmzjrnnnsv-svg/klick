@@ -9,6 +9,7 @@ import { auth } from "@/auth";
 import { JobMandateForm } from "@/components/agency/job-mandate-form";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { DuplicateJobButton } from "@/components/jobs/duplicate-job-button";
 import { JobForm } from "@/components/jobs/job-form";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -105,6 +106,7 @@ export default async function EditJobPage({
 							>
 								{tm("seeAssessment")}
 							</Link>
+							<DuplicateJobButton jobId={id} />
 						</div>
 					)}
 				</header>

@@ -39,23 +39,28 @@ export default async function ProfilePage() {
 	// Wir mischen Übersetzungen direkt in das Profil, das die Form erhält —
 	// so sieht der Kandidat die Felder in der UI-Sprache und kann sie auch
 	// sprachweise editieren. profileLanguageOrigin wird beim Save auf die
-	// aktuelle Locale gesetzt.
-	const localizedInitial: CandidateProfile | null = profile
-		? (() => {
-				const view = localizedProfile(profile, locale);
-				return {
-					...profile,
-					headline: view.headline,
-					summary: view.summary,
-					industries: view.industries,
-					awards: view.awards,
-					mobility: view.mobility,
-					skills: view.skills as CandidateProfile["skills"],
-					experience: view.experience,
-					education: view.education,
-				};
-			})()
-		: null;
+	// aktuelle Locale gesetzt. Defensive try/catch: lieber Original anzeigen
+	// als crashen, wenn localizedProfile() durch eine Datenform überrascht wird.
+	let localizedInitial: CandidateProfile | null = profile;
+	if (profile) {
+		try {
+			const view = localizedProfile(profile, locale);
+			localizedInitial = {
+				...profile,
+				headline: view.headline,
+				summary: view.summary,
+				industries: view.industries,
+				awards: view.awards,
+				mobility: view.mobility,
+				skills: view.skills as CandidateProfile["skills"],
+				experience: view.experience,
+				education: view.education,
+			};
+		} catch (e) {
+			console.warn("[profile] localizedProfile failed, falling back to raw", e);
+			localizedInitial = profile;
+		}
+	}
 
 	return (
 		<>

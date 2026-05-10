@@ -10,6 +10,7 @@ import {
 import { auth } from "@/auth";
 import { ApplicationMessageThread } from "@/components/applications/application-message-thread";
 import { ApplicationStageTimeline } from "@/components/applications/application-stage-timeline";
+import { NotesThread } from "@/components/applications/notes-thread";
 import { SnapshotCompare } from "@/components/applications/snapshot-compare";
 import { StageOutcomeForm } from "@/components/applications/stage-outcome-form";
 import { Footer } from "@/components/footer";
@@ -126,6 +127,13 @@ export default async function EmployerApplicationDetailPage({
 						/>
 					</section>
 				)}
+
+				<section className="mb-8">
+					<NotesThread
+						applicationId={appId}
+						currentUserId={session.user?.id ?? null}
+					/>
+				</section>
 
 				<section className="mb-8">
 					<ApplicationMessageThread

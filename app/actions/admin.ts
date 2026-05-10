@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import {
 	type AuditLogEntry,
+	agencyMembers,
 	applications,
 	applicationEvents,
 	auditLog,
@@ -582,31 +583,52 @@ export async function getCompanyDetail(
 		.limit(1);
 	if (!row) return null;
 
+	// Jobs + Application-Counts pro Job. Statt SQL-Subquery: zwei Queries +
+	// In-Memory-Join — robuster gegen Drizzle-Tagged-Template-Subtleties.
 	const jobRows = await db
 		.select({
 			id: jobs.id,
 			title: jobs.title,
 			status: jobs.status,
 			createdAt: jobs.createdAt,
-			applicationCount: sql<number>`(
-				SELECT COUNT(*)::int FROM applications WHERE applications.job_id = ${jobs.id}
-			)`.as("application_count"),
 		})
 		.from(jobs)
 		.where(eq(jobs.employerId, employerId))
-		.orderBy(desc(jobs.createdAt));
+		.orderBy(desc(jobs.createdAt))
+		.catch((e) => {
+			console.warn("[admin] getCompanyDetail jobs", e);
+			return [] as { id: string; title: string; status: string; createdAt: Date }[];
+		});
 
-	const [appsAgg] = await db
+	const jobIds = jobRows.map((j) => j.id);
+	const appCountsByJob = new Map<string, number>();
+	if (jobIds.length > 0) {
+		try {
+			const counts = await db
+				.select({
+					jobId: applications.jobId,
+					n: sql<number>`count(*)::int`.as("n"),
+				})
+				.from(applications)
+				.where(eq(applications.employerId, employerId))
+				.groupBy(applications.jobId);
+			for (const c of counts) appCountsByJob.set(c.jobId, Number(c.n));
+		} catch (e) {
+			console.warn("[admin] getCompanyDetail app-counts", e);
+		}
+	}
+
+	const appsAgg = await db
 		.select({ n: sql<number>`count(*)::int`.as("n") })
 		.from(applications)
 		.where(eq(applications.employerId, employerId))
-		.catch(() => [{ n: 0 }]);
+		.catch(() => [] as { n: number }[]);
 
-	const [templatesAgg] = await db
+	const templatesAgg = await db
 		.select({ n: sql<number>`count(*)::int`.as("n") })
 		.from(hiringProcessTemplates)
 		.where(eq(hiringProcessTemplates.employerId, employerId))
-		.catch(() => [{ n: 0 }]);
+		.catch(() => [] as { n: number }[]);
 
 	return {
 		employer: row.employer,
@@ -620,10 +642,10 @@ export async function getCompanyDetail(
 			title: j.title,
 			status: j.status,
 			createdAt: j.createdAt,
-			applicationCount: Number(j.applicationCount ?? 0),
+			applicationCount: appCountsByJob.get(j.id) ?? 0,
 		})),
-		applicationsTotal: Number(appsAgg?.n ?? 0),
-		templatesCount: Number(templatesAgg?.n ?? 0),
+		applicationsTotal: Number(appsAgg[0]?.n ?? 0),
+		templatesCount: Number(templatesAgg[0]?.n ?? 0),
 	};
 }
 
@@ -2237,4 +2259,235 @@ export async function purgeDemoData(): Promise<{
 		deletedEmployers: deletedEmployers.length,
 		deletedJobs: deletedJobs.length,
 	};
+}
+
+// ─── Owner / Team-Verwaltung pro Firma (Admin) ───────────────────────────
+// Auch wenn der Begriff "Owner" auf eine 1:1-Beziehung hindeutet, modellieren
+// wir Team-Mitgliedschaften über `agencyMembers`. employers.userId bleibt als
+// Legacy-Pointer (alte Queries lesen ihn noch), wird aber automatisch
+// synchron gehalten.
+
+export type CompanyTeamRow = {
+	memberId: string;
+	userId: string | null;
+	email: string;
+	name: string | null;
+	role: "owner" | "recruiter" | "viewer";
+	invitedAt: Date;
+	joinedAt: Date | null;
+	isLegacyOwner: boolean;
+};
+
+export async function listCompanyTeam(
+	employerId: string,
+): Promise<CompanyTeamRow[]> {
+	await requireAdmin();
+	const rows = await db
+		.select({
+			memberId: agencyMembers.id,
+			userId: agencyMembers.userId,
+			email: agencyMembers.inviteEmail,
+			role: agencyMembers.role,
+			invitedAt: agencyMembers.invitedAt,
+			joinedAt: agencyMembers.joinedAt,
+			memberName: users.name,
+		})
+		.from(agencyMembers)
+		.leftJoin(users, eq(users.id, agencyMembers.userId))
+		.where(eq(agencyMembers.employerId, employerId))
+		.orderBy(desc(agencyMembers.invitedAt));
+
+	const [emp] = await db
+		.select({ legacyOwnerId: employers.userId })
+		.from(employers)
+		.where(eq(employers.id, employerId))
+		.limit(1);
+
+	return rows.map((r) => ({
+		memberId: r.memberId,
+		userId: r.userId,
+		email: r.email,
+		name: r.memberName,
+		role: r.role,
+		invitedAt: r.invitedAt,
+		joinedAt: r.joinedAt,
+		isLegacyOwner: !!emp && r.userId === emp.legacyOwnerId,
+	}));
+}
+
+export async function adminSetCompanyOwner(input: {
+	employerId: string;
+	email: string;
+}): Promise<
+	| { ok: true; userId: string | null; memberId: string; sentInvite: boolean }
+	| { ok: false; error: string }
+> {
+	try {
+		const adminId = await requireAdmin();
+		const email = input.email.trim().toLowerCase();
+		if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+			return { ok: false, error: "Bitte eine gültige E-Mail." };
+		}
+		const [emp] = await db
+			.select()
+			.from(employers)
+			.where(eq(employers.id, input.employerId))
+			.limit(1);
+		if (!emp) return { ok: false, error: "Firma nicht gefunden." };
+
+		// User existiert schon? Dann direkt promoten + employers.userId updaten.
+		const [existingUser] = await db
+			.select()
+			.from(users)
+			.where(eq(users.email, email))
+			.limit(1);
+
+		// Token nur generieren wenn wir einladen (User existiert nicht oder
+		// joinedAt fehlt). Sonst kann der bestehende User sofort loslegen.
+		const needsInvite = !existingUser;
+		const token = needsInvite
+			? Array.from(crypto.getRandomValues(new Uint8Array(24)))
+					.map((b) => b.toString(16).padStart(2, "0"))
+					.join("")
+			: null;
+
+		// Bestehenden Owner zu recruiter herabstufen (NICHT löschen).
+		await db
+			.update(agencyMembers)
+			.set({ role: "recruiter" })
+			.where(
+				and(
+					eq(agencyMembers.employerId, input.employerId),
+					eq(agencyMembers.role, "owner"),
+				),
+			);
+
+		// Upsert auf (employerId, inviteEmail).
+		const [member] = await db
+			.insert(agencyMembers)
+			.values({
+				employerId: input.employerId,
+				inviteEmail: email,
+				userId: existingUser?.id ?? null,
+				inviteToken: token,
+				role: "owner",
+				joinedAt: existingUser ? new Date() : null,
+				invitedByUserId: adminId,
+			})
+			.onConflictDoUpdate({
+				target: [agencyMembers.employerId, agencyMembers.inviteEmail],
+				set: {
+					userId: existingUser?.id ?? null,
+					inviteToken: token,
+					role: "owner",
+					joinedAt: existingUser ? new Date() : null,
+					invitedByUserId: adminId,
+				},
+			})
+			.returning({ id: agencyMembers.id });
+
+		// employers.userId synchron halten (Single-Source bleibt agency_members,
+		// aber Legacy-Code in vielen Actions liest direkt von employers.userId).
+		if (existingUser) {
+			await db
+				.update(employers)
+				.set({ userId: existingUser.id })
+				.where(eq(employers.id, input.employerId));
+		}
+
+		// Audit-Log
+		await db.insert(auditLog).values({
+			tenantId: emp.tenantId,
+			actorUserId: adminId,
+			action: "employer.owner_change",
+			target: input.employerId,
+			payload: {
+				oldOwnerUserId: emp.userId,
+				newOwnerUserId: existingUser?.id ?? null,
+				newOwnerEmail: email,
+				sentInvite: needsInvite,
+			},
+		});
+
+		// Mail nur senden wenn wir einladen. Reuse: dieselbe Logik wie
+		// inviteAgent — aber wir wollen keine Zirkular-Imports von actions
+		// auf actions, also bauen wir die Mail hier inline.
+		if (needsInvite && token) {
+			try {
+				const { transactionalEmail } = await import("@/lib/mail/templates");
+				const { sendTransactionalMail } = await import("@/lib/mail/send");
+				const baseUrl = process.env.AUTH_URL ?? "https://raza.work";
+				const inviteUrl = `${baseUrl}/agency/invites/${token}`;
+				const tpl = transactionalEmail({
+					subject: `${emp.companyName} braucht deine Bestätigung`,
+					eyebrow: "Owner-Einladung",
+					title: `Du wurdest als Owner von ${emp.companyName} eingetragen`,
+					body: `<p>Der Klick-Admin hat dich als Owner für <strong>${emp.companyName}</strong> festgelegt. Folge dem Link um die Mitgliedschaft zu bestätigen — danach kannst du Stellen ausschreiben, Team-Mitglieder einladen und Bewerbungen verwalten.</p>`,
+					cta: { label: "Einladung annehmen", url: inviteUrl },
+					footnote:
+						"Wenn du den Verdacht hast, das ist ein Versehen, ignoriere diese Mail einfach.",
+				});
+				await sendTransactionalMail({
+					to: email,
+					subject: tpl.subject,
+					text: tpl.text,
+					html: tpl.html,
+				});
+			} catch (e) {
+				console.warn("[admin] owner-invite mail failed (non-fatal)", e);
+			}
+		}
+
+		revalidatePath("/admin/companies");
+		revalidatePath(`/admin/companies/${input.employerId}`);
+		revalidatePath(`/admin/companies/${input.employerId}/owner`);
+
+		return {
+			ok: true,
+			userId: existingUser?.id ?? null,
+			memberId: member.id,
+			sentInvite: needsInvite,
+		};
+	} catch (e) {
+		console.error("[admin] adminSetCompanyOwner", e);
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
+	}
+}
+
+export async function adminRemoveCompanyMember(
+	memberId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	try {
+		const adminId = await requireAdmin();
+		const [m] = await db
+			.select()
+			.from(agencyMembers)
+			.where(eq(agencyMembers.id, memberId))
+			.limit(1);
+		if (!m) return { ok: false, error: "Member nicht gefunden." };
+		// Owner darf nicht entfernt werden — Admin muss erst Owner ändern.
+		if (m.role === "owner") {
+			return {
+				ok: false,
+				error: "Owner kann nicht direkt entfernt werden — erst neuen Owner setzen.",
+			};
+		}
+		await db.delete(agencyMembers).where(eq(agencyMembers.id, memberId));
+		await db.insert(auditLog).values({
+			actorUserId: adminId,
+			action: "employer.member_remove",
+			target: m.employerId,
+			payload: { memberId, email: m.inviteEmail, role: m.role },
+		});
+		revalidatePath(`/admin/companies/${m.employerId}/owner`);
+		return { ok: true };
+	} catch (e) {
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
+	}
 }
