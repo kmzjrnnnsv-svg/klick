@@ -653,7 +653,7 @@ export class MockAIProvider implements AIProvider {
 			mid,
 			high,
 			currency: input.currency,
-			rationale: `Mock-Empfehlung für ${input.country} basierend auf ${years} Jahren Erfahrung. Setze ANTHROPIC_API_KEY für echte Markt-Daten.`,
+			rationale: `Mock-Empfehlung für ${input.country} basierend auf ${years} Jahren Erfahrung. Setze ANTHROPIC_API_KEY oder OLLAMA_URL für echte Markt-Daten.`,
 		};
 	}
 }
