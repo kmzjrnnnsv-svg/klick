@@ -34,7 +34,7 @@ Auf `/login` E-Mail eingeben — der Magic Link erscheint in der **Server-Konsol
 | `pnpm format` | Biome format |
 | `pnpm test` | Vitest |
 | `pnpm db:generate` | Drizzle-Migration aus Schema generieren |
-| `pnpm db:migrate` | Pending Migrations anwenden |
+| `pnpm db:migrate` | Pending Migrations anwenden (lädt `.env.local`, `.env.production`, `.env`) |
 | `pnpm db:push` | Schema direkt pushen (Dev) |
 | `pnpm db:studio` | Drizzle Studio |
 | `pnpm db:seed` | Default-Tenant anlegen (idempotent) |

@@ -1,8 +1,7 @@
-import { config } from "dotenv";
 import { defineConfig } from "drizzle-kit";
+import { loadEnvFiles } from "./lib/env";
 
-config({ path: ".env.local" });
-config({ path: ".env" });
+loadEnvFiles();
 
 export default defineConfig({
 	out: "./db/migrations",
