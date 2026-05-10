@@ -204,6 +204,13 @@
       "when": 1778415204912,
       "tag": "0028_salary_by_country",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1778423778077,
+      "tag": "0029_cms_default_stubs",
+      "breakpoints": true
     }
   ]
 }

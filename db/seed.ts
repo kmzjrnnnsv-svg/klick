@@ -3,6 +3,7 @@ import { computeMatchesForJob } from "../app/actions/matches";
 import { db } from "./index";
 import {
 	candidateProfiles,
+	cmsPages,
 	employers,
 	favorites,
 	jobs,
@@ -620,9 +621,38 @@ const EXTRA_CANDIDATES: Array<{
 	},
 ];
 
+async function ensureCmsStubs(tenantId: string): Promise<void> {
+	// Footer linkt auf /datenschutz und /impressum — der Catch-All
+	// (app/(marketing)/[slug]/page.tsx) liest aus cms_pages. Ohne Stubs
+	// bekommt jeder Klick eine 404. onConflictDoNothing: einmal angelegt,
+	// nie überschrieben — Admins können das jederzeit unter /admin/cms
+	// editieren.
+	const stubs: Array<{ slug: string; title: string; body: string }> = [
+		{
+			slug: "impressum",
+			title: "Impressum",
+			body: "Pflicht-Platzhalter. Trag hier unter /admin/cms die echten Angaben nach §5 TMG ein: Anbieter, Anschrift, Vertretungsberechtigte, Kontakt, Handelsregister, USt-IdNr. (falls vorhanden).",
+		},
+		{
+			slug: "datenschutz",
+			title: "Datenschutz",
+			body: "Pflicht-Platzhalter. Trag hier unter /admin/cms die Datenschutzerklärung nach DSGVO ein: Verantwortlicher, Datenkategorien, Rechtsgrundlage, Speicherdauer, Empfänger, Betroffenenrechte, Datenschutzbeauftragte:r (falls vorhanden), Beschwerderecht.",
+		},
+	];
+	for (const s of stubs) {
+		await db
+			.insert(cmsPages)
+			.values({ tenantId, ...s })
+			.onConflictDoNothing();
+	}
+}
+
 async function main() {
 	const tenantId = await ensureTenant(DEMO_TENANT_SLUG, "Default Workspace");
 	console.log(`✔ tenant '${DEMO_TENANT_SLUG}' (id=${tenantId})`);
+
+	await ensureCmsStubs(tenantId);
+	console.log("✔ cms stubs (impressum, datenschutz) — idempotent");
 
 	const adminId = await ensureUser(tenantId, DEMO_USERS.admin);
 	console.log(`✔ admin   ${DEMO_USERS.admin.email} (id=${adminId})`);
