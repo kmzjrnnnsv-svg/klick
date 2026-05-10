@@ -551,14 +551,22 @@ export class ClaudeAIProvider implements AIProvider {
 				},
 			],
 			tool_choice: { type: "tool", name: "save_requirements" },
+			system:
+				"Du extrahierst konkrete, prüfbare Skill-Anforderungen aus Stellenbeschreibungen.\n\n" +
+				"REGELN FÜR `name`:\n" +
+				"• Verwende REALE, im Duden / im Branchen-Sprachgebrauch belegte Begriffe. Erfinde KEINE Wörter und KEINE Kunst-Komposita.\n" +
+				"• Bei Anglizismen die in der DACH-IT etabliert sind (TypeScript, Stakeholder-Management, Product Owner, SaaS, B2B) den Anglizismus beibehalten.\n" +
+				"• Software/Stack: offizielle Schreibweise (z.B. 'TypeScript' nicht 'Typescript', 'Next.js' nicht 'NextJs').\n" +
+				"• Soft Skills nur dann, wenn die Stellenbeschreibung sie EXPLIZIT verlangt (z.B. 'Kommunikationsstärke', 'Teamfähigkeit'). Niemals raten.\n" +
+				"• Jeder Skill prägnant: ein bis drei Worte. Lange Erklärungssätze gehören NICHT in `name`.\n" +
+				"• Wenn das Original-Posting deutsch ist, schreibe deutsche Begriffe. Wenn englisch, englische. Mische nicht.\n" +
+				"• Im Zweifel: lieber weniger Skills + dafür präzise.",
 			messages: [
 				{
 					role: "user",
 					content:
-						`Extract concrete, testable skill requirements from this job posting. ` +
-						`Mark up to 4 as "must" (truly essential), the rest as "nice". ` +
-						`Use 1-5 levels for must-haves where seniority is implied.\n\n` +
-						`Title: ${input.title}\n\n${input.description}`,
+						`Title: ${input.title}\n\n${input.description}\n\n` +
+						`Extrahiere bis zu 8 Skills. Markiere maximal 4 als "must" (wirklich essenziell), den Rest als "nice". Setze minLevel (1-5) für Must-Haves wo Seniorität impliziert ist.`,
 				},
 			],
 		});
