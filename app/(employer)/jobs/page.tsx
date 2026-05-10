@@ -51,10 +51,20 @@ export default async function JobsPage() {
 		);
 	}
 
+	// Defensive: jede Action darf crashen, ohne die ganze Seite zu kippen.
 	const [jobs, overdue, lock] = await Promise.all([
-		listJobs(),
-		listOverdueApplicationsForEmployer(),
-		checkVolumeLock(employer.id),
+		listJobs().catch((err) => {
+			console.error("[jobs] listJobs failed", err);
+			return [] as Awaited<ReturnType<typeof listJobs>>;
+		}),
+		listOverdueApplicationsForEmployer().catch((err) => {
+			console.error("[jobs] listOverdueApplicationsForEmployer failed", err);
+			return [] as Awaited<ReturnType<typeof listOverdueApplicationsForEmployer>>;
+		}),
+		checkVolumeLock(employer.id).catch((err) => {
+			console.error("[jobs] checkVolumeLock failed", err);
+			return { blocked: false, criticalCount: 0, overdueClosureCount: 0 };
+		}),
 	]);
 
 	// DSGVO Lazy-Cron: Bei jedem Dashboard-Besuch nicht-blockierend
