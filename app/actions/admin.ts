@@ -7,19 +7,25 @@ import { db } from "@/db";
 import {
 	type AuditLogEntry,
 	applications,
+	applicationEvents,
 	auditLog,
 	candidateProfiles,
+	diversityResponses,
 	type Employer,
 	employers,
 	hiringProcessTemplates,
 	interests,
 	jobs,
 	matches,
+	notifications,
 	offers,
+	savedSearches,
+	sessions,
 	templateStages,
 	tenants,
 	type User,
 	users,
+	vaultItems,
 	verifications,
 } from "@/db/schema";
 
@@ -734,12 +740,102 @@ export type AdminAnalytics = {
 	topCandidateSkills: { name: string; n: number }[];
 	// Top-Skills in Job-Anforderungen
 	topJobSkills: { name: string; n: number }[];
-	// Top-Standorte
+	// Top-Standorte (Kandidaten)
 	topLocations: { location: string; n: number }[];
-	// Verifikations-Mix
+	// Top-Standorte (Jobs)
+	topJobLocations: { location: string; n: number }[];
+	// Top-Branchen (Kandidaten)
+	topIndustries: { name: string; n: number }[];
+	// Top-Sprachen (Kandidaten gesprochen)
+	topLanguages: { name: string; n: number }[];
+	// Top-Zertifikate (im CV erwähnt — nicht zwingend uploaded)
+	topCertifications: { name: string; n: number }[];
+	// Verifikations-Mix nach kind
 	verifyMix: { kind: string; n: number }[];
+	// Verifikations-Erfolgsquote nach kind: passed / failed / pending
+	verifyResults: { kind: string; passed: number; failed: number; pending: number }[];
+	// Histogramm: Berufsjahre der Kandidat:innen, in 5-Jahres-Buckets
+	yearsExperienceHist: { bucket: string; n: number }[];
+	// Histogramm: erforderliche Berufsjahre der Jobs
+	yearsRequiredHist: { bucket: string; n: number }[];
+	// Histogramm: Wunschgehalt der Kandidat:innen, in 10k-Buckets EUR
+	salaryDesiredHist: { bucket: string; n: number }[];
+	// Histogramm: Job-Salary-Mid (mid = (min+max)/2)
+	jobSalaryHist: { bucket: string; n: number }[];
+	// Histogramm: Match-Score-Verteilung
+	matchScoreHist: { bucket: string; n: number }[];
+	// Education-Typ-Verteilung (school / bachelor / master / phd …)
+	degreeTypeMix: { type: string; n: number }[];
+	// Remote-Policy Mix (jobs)
+	remotePolicyMix: { policy: string; n: number }[];
+	// Employment-Type Mix (jobs)
+	employmentTypeMix: { type: string; n: number }[];
+	// Job-Status Mix (draft / published / archived)
+	jobStatusMix: { status: string; n: number }[];
+	// Diversity-Aggregat — nur wenn Gesamt ≥ 5; sonst leer.
+	// Echte Buckets respektieren die ≥5-Regel pro Bucket (k-Anonymität).
+	diversity: {
+		total: number;
+		gender: { bucket: string; n: number }[];
+		ageRange: { bucket: string; n: number }[];
+		hasDisability: { bucket: string; n: number }[];
+	};
 	// Aktive Tenants (mind. 1 published Job)
 	activeTenants: number;
+	// Vault-Statistik: Anzahl Items + kind-Mix + URL-only-Anteil.
+	vault: {
+		totalItems: number;
+		uniqueOwners: number;
+		kindMix: { kind: string; n: number }[];
+		urlOnly: number; // Items ohne storage_key (z.B. Credly-URL-Badges)
+	};
+	// Saved Searches: was suchen Kandidaten?
+	savedSearches: {
+		total: number;
+		uniqueOwners: number;
+		topSkills: { name: string; n: number }[];
+		topLocations: { location: string; n: number }[];
+		remoteMix: { policy: string; n: number }[];
+		notifyChannelMix: { channel: string; n: number }[];
+	};
+	// Application-Drop-Off pro Status. Hilft den Funnel-Verlust pro Stufe
+	// zu sehen.
+	applicationStatusMix: { status: string; n: number }[];
+	// Stage-Outcomes aus application_events: advance / reject / on_hold —
+	// pro Stage-ID. Wir aggregieren plattformweit (eigentlich pro
+	// Template, aber globale Sicht reicht für den Anfang).
+	stageOutcomes: { outcome: string; n: number }[];
+	// Reject-Reasons (top 5).
+	rejectReasons: { reason: string; n: number }[];
+	// Time-to-Fill in Tagen: jobs.createdAt → erste accepted Offer pro Job.
+	timeToFill: {
+		count: number; // Anzahl Jobs mit erfolgreichem Offer
+		medianDays: number | null;
+		p25Days: number | null;
+		p75Days: number | null;
+	};
+	// Übersetzungs-Coverage: wie viele Profile haben translations gepflegt.
+	translationsCoverage: {
+		total: number;
+		hasTranslations: number;
+	};
+	// Career-Analysis-Adoption: wie viele Profile haben sie generiert.
+	careerAdoption: {
+		totalCandidates: number;
+		hasAnalysis: number;
+	};
+	// Notification-Engagement: wie viele werden gelesen?
+	notificationEngagement: {
+		total: number;
+		read: number;
+		unread: number;
+		byKind: { kind: string; total: number; read: number }[];
+	};
+	// Aktive Sessions (Auth.js): Proxy für "wie viele User sind grad da".
+	activeSessions: {
+		total: number; // expires > now()
+		uniqueUsers: number;
+	};
 	// Profil-Vollständigkeit (Anteil mit summary, skills, education, experience)
 	profileCompleteness: {
 		hasSummary: number;
@@ -804,8 +900,40 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 		topCandidateSkills: [],
 		topJobSkills: [],
 		topLocations: [],
+		topJobLocations: [],
+		topIndustries: [],
+		topLanguages: [],
+		topCertifications: [],
 		verifyMix: [],
+		verifyResults: [],
+		yearsExperienceHist: [],
+		yearsRequiredHist: [],
+		salaryDesiredHist: [],
+		jobSalaryHist: [],
+		matchScoreHist: [],
+		degreeTypeMix: [],
+		remotePolicyMix: [],
+		employmentTypeMix: [],
+		jobStatusMix: [],
+		diversity: { total: 0, gender: [], ageRange: [], hasDisability: [] },
 		activeTenants: 0,
+		vault: { totalItems: 0, uniqueOwners: 0, kindMix: [], urlOnly: 0 },
+		savedSearches: {
+			total: 0,
+			uniqueOwners: 0,
+			topSkills: [],
+			topLocations: [],
+			remoteMix: [],
+			notifyChannelMix: [],
+		},
+		applicationStatusMix: [],
+		stageOutcomes: [],
+		rejectReasons: [],
+		timeToFill: { count: 0, medianDays: null, p25Days: null, p75Days: null },
+		translationsCoverage: { total: 0, hasTranslations: 0 },
+		careerAdoption: { totalCandidates: 0, hasAnalysis: 0 },
+		notificationEngagement: { total: 0, read: 0, unread: 0, byKind: [] },
+		activeSessions: { total: 0, uniqueUsers: 0 },
 		profileCompleteness: {
 			hasSummary: 0,
 			hasSkills: 0,
@@ -819,12 +947,10 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 		const since7 = new Date(now - 7 * 86400_000);
 		const since30 = new Date(now - 30 * 86400_000);
 
-		const cnt = async (
-			query: ReturnType<typeof db.select>,
-		): Promise<number> => {
+		// biome-ignore lint/suspicious/noExplicitAny: drizzle builder ist thenable
+		const cnt = async (query: PromiseLike<any[]>): Promise<number> => {
 			const r = await query;
-			// biome-ignore lint/suspicious/noExplicitAny: dynamic count select
-			return Number((r as any[])[0]?.n ?? 0);
+			return Number(r[0]?.n ?? 0);
 		};
 
 		const [users7d, users30d] = await Promise.all([
@@ -1042,13 +1168,19 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 			.groupBy(employers.tenantId);
 		const activeTenants = activeRows.length;
 
-		// Profile completeness
+		// Profile completeness + zusätzliche Auswertungen, die alle Profile
+		// einmalig in den Speicher ziehen (Plattform-Skala-Annahme: passt).
 		const allProfiles = await db
 			.select({
 				summary: candidateProfiles.summary,
 				skills: candidateProfiles.skills,
 				education: candidateProfiles.education,
 				experience: candidateProfiles.experience,
+				yearsExperience: candidateProfiles.yearsExperience,
+				salaryDesired: candidateProfiles.salaryDesired,
+				industries: candidateProfiles.industries,
+				languages: candidateProfiles.languages,
+				certificationsMentioned: candidateProfiles.certificationsMentioned,
 			})
 			.from(candidateProfiles);
 		const completeness = {
@@ -1061,6 +1193,497 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 			hasExperience: allProfiles.filter((p) => (p.experience ?? []).length > 0)
 				.length,
 			total: allProfiles.length,
+		};
+
+		// Histogramm-Helper
+		const histogram = (
+			values: number[],
+			buckets: { label: string; min: number; max: number }[],
+		) => {
+			return buckets.map((b) => ({
+				bucket: b.label,
+				n: values.filter((v) => v >= b.min && v < b.max).length,
+			}));
+		};
+
+		// Berufsjahre: 0-2 / 3-5 / 6-10 / 11-15 / 16+
+		const yearsExperienceHist = histogram(
+			allProfiles
+				.map((p) => p.yearsExperience)
+				.filter((y): y is number => y !== null),
+			[
+				{ label: "0–2", min: 0, max: 3 },
+				{ label: "3–5", min: 3, max: 6 },
+				{ label: "6–10", min: 6, max: 11 },
+				{ label: "11–15", min: 11, max: 16 },
+				{ label: "16+", min: 16, max: 999 },
+			],
+		);
+
+		// Wunschgehalt EUR in 10k-Schritten — wir kappen bei 200k (oben offen).
+		const salaryDesiredHist = histogram(
+			allProfiles
+				.map((p) => p.salaryDesired)
+				.filter((s): s is number => s !== null && s > 0),
+			[
+				{ label: "<40k", min: 0, max: 40_000 },
+				{ label: "40–60k", min: 40_000, max: 60_000 },
+				{ label: "60–80k", min: 60_000, max: 80_000 },
+				{ label: "80–100k", min: 80_000, max: 100_000 },
+				{ label: "100–130k", min: 100_000, max: 130_000 },
+				{ label: "130k+", min: 130_000, max: 9_999_999 },
+			],
+		);
+
+		// Industries
+		const industriesCount = new Map<string, number>();
+		for (const p of allProfiles) {
+			for (const i of p.industries ?? []) {
+				const k = i.trim();
+				if (!k) continue;
+				industriesCount.set(k, (industriesCount.get(k) ?? 0) + 1);
+			}
+		}
+		const topIndustries = [...industriesCount.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 10)
+			.map(([name, n]) => ({ name, n }));
+
+		// Languages — Format kann "de:c1" o.Ä. sein; nur Sprach-Code zählen.
+		const langCount = new Map<string, number>();
+		for (const p of allProfiles) {
+			for (const l of p.languages ?? []) {
+				const code = l.split(":")[0]?.trim();
+				if (!code) continue;
+				langCount.set(code, (langCount.get(code) ?? 0) + 1);
+			}
+		}
+		const topLanguages = [...langCount.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 10)
+			.map(([name, n]) => ({ name, n }));
+
+		// Certifications mentioned (offizielle Bezeichnung)
+		const certCount = new Map<string, number>();
+		for (const p of allProfiles) {
+			for (const c of p.certificationsMentioned ?? []) {
+				const k = c.name.trim();
+				if (!k) continue;
+				certCount.set(k, (certCount.get(k) ?? 0) + 1);
+			}
+		}
+		const topCertifications = [...certCount.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 10)
+			.map(([name, n]) => ({ name, n }));
+
+		// Education-Typ Mix
+		const degreeCount = new Map<string, number>();
+		for (const p of allProfiles) {
+			for (const e of p.education ?? []) {
+				const t = e.degreeType ?? "other";
+				degreeCount.set(t, (degreeCount.get(t) ?? 0) + 1);
+			}
+		}
+		const degreeTypeMix = [...degreeCount.entries()].map(([type, n]) => ({
+			type,
+			n,
+		}));
+
+		// Job-Daten: Salary, RemotePolicy, EmploymentType, Status, yearsRequired,
+		// JobLocations
+		const jobRows2 = await db
+			.select({
+				salaryMin: jobs.salaryMin,
+				salaryMax: jobs.salaryMax,
+				yearsExperienceMin: jobs.yearsExperienceMin,
+				location: jobs.location,
+				remotePolicy: jobs.remotePolicy,
+				employmentType: jobs.employmentType,
+				status: jobs.status,
+			})
+			.from(jobs);
+
+		const jobSalaryMids = jobRows2
+			.map((j) =>
+				j.salaryMin && j.salaryMax
+					? Math.round((j.salaryMin + j.salaryMax) / 2)
+					: j.salaryMin ?? j.salaryMax ?? null,
+			)
+			.filter((x): x is number => x !== null && x > 0);
+		const jobSalaryHist = histogram(jobSalaryMids, [
+			{ label: "<40k", min: 0, max: 40_000 },
+			{ label: "40–60k", min: 40_000, max: 60_000 },
+			{ label: "60–80k", min: 60_000, max: 80_000 },
+			{ label: "80–100k", min: 80_000, max: 100_000 },
+			{ label: "100–130k", min: 100_000, max: 130_000 },
+			{ label: "130k+", min: 130_000, max: 9_999_999 },
+		]);
+
+		const yearsRequiredHist = histogram(
+			jobRows2
+				.map((j) => j.yearsExperienceMin)
+				.filter((y): y is number => y !== null && y >= 0),
+			[
+				{ label: "0–2", min: 0, max: 3 },
+				{ label: "3–5", min: 3, max: 6 },
+				{ label: "6–10", min: 6, max: 11 },
+				{ label: "11+", min: 11, max: 999 },
+			],
+		);
+
+		const remotePolicyCount = new Map<string, number>();
+		for (const j of jobRows2) {
+			remotePolicyCount.set(
+				j.remotePolicy,
+				(remotePolicyCount.get(j.remotePolicy) ?? 0) + 1,
+			);
+		}
+		const remotePolicyMix = [...remotePolicyCount.entries()].map(
+			([policy, n]) => ({ policy, n }),
+		);
+
+		const employmentTypeCount = new Map<string, number>();
+		for (const j of jobRows2) {
+			employmentTypeCount.set(
+				j.employmentType,
+				(employmentTypeCount.get(j.employmentType) ?? 0) + 1,
+			);
+		}
+		const employmentTypeMix = [...employmentTypeCount.entries()].map(
+			([type, n]) => ({ type, n }),
+		);
+
+		const jobStatusCount = new Map<string, number>();
+		for (const j of jobRows2) {
+			jobStatusCount.set(j.status, (jobStatusCount.get(j.status) ?? 0) + 1);
+		}
+		const jobStatusMix = [...jobStatusCount.entries()].map(([status, n]) => ({
+			status,
+			n,
+		}));
+
+		const jobLocationCount = new Map<string, number>();
+		for (const j of jobRows2) {
+			if (j.location) {
+				jobLocationCount.set(
+					j.location,
+					(jobLocationCount.get(j.location) ?? 0) + 1,
+				);
+			}
+		}
+		const topJobLocations = [...jobLocationCount.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 8)
+			.map(([location, n]) => ({ location, n }));
+
+		// Match-Score-Verteilung (hardScore + softScore / 2 grobe Schätzung).
+		const matchScores = await db
+			.select({ hard: matches.hardScore, soft: matches.softScore })
+			.from(matches)
+			.catch(() => []);
+		const scoreVals = matchScores.map((m) =>
+			Math.round((Number(m.hard) + Number(m.soft)) / 2),
+		);
+		const matchScoreHist = histogram(scoreVals, [
+			{ label: "0–25", min: 0, max: 26 },
+			{ label: "26–50", min: 26, max: 51 },
+			{ label: "51–75", min: 51, max: 76 },
+			{ label: "76–90", min: 76, max: 91 },
+			{ label: "91–100", min: 91, max: 101 },
+		]);
+
+		// Verifikations-Erfolgsquote
+		const verifyResultsRows = await db
+			.select({
+				kind: verifications.kind,
+				status: verifications.status,
+				n: sql<number>`count(*)::int`.as("n"),
+			})
+			.from(verifications)
+			.groupBy(verifications.kind, verifications.status)
+			.catch(() => []);
+		const verifyByKind = new Map<
+			string,
+			{ passed: number; failed: number; pending: number }
+		>();
+		for (const r of verifyResultsRows) {
+			const cur = verifyByKind.get(r.kind) ?? {
+				passed: 0,
+				failed: 0,
+				pending: 0,
+			};
+			if (r.status === "passed") cur.passed = Number(r.n);
+			if (r.status === "failed") cur.failed = Number(r.n);
+			if (r.status === "pending") cur.pending = Number(r.n);
+			verifyByKind.set(r.kind, cur);
+		}
+		const verifyResults = [...verifyByKind.entries()].map(([kind, v]) => ({
+			kind,
+			...v,
+		}));
+
+		// Diversity — k-Anonymität: Buckets unter 5 Personen werden zu "<5"
+		// zusammengeführt, NICHT direkt ausgewiesen.
+		const dRows = await db
+			.select({
+				gender: diversityResponses.genderIdentity,
+				age: diversityResponses.ageRange,
+				disability: diversityResponses.hasDisability,
+			})
+			.from(diversityResponses)
+			.catch(() => []);
+		const dTotal = dRows.length;
+		const kAnon = (
+			counts: Map<string, number>,
+		): { bucket: string; n: number }[] => {
+			let small = 0;
+			const out: { bucket: string; n: number }[] = [];
+			for (const [k, n] of counts.entries()) {
+				if (n < 5) small += n;
+				else out.push({ bucket: k, n });
+			}
+			if (small > 0) out.push({ bucket: "<5", n: small });
+			return out.sort((a, b) => b.n - a.n);
+		};
+		const genderCount = new Map<string, number>();
+		const ageCount = new Map<string, number>();
+		const disCount = new Map<string, number>();
+		for (const r of dRows) {
+			if (r.gender) genderCount.set(r.gender, (genderCount.get(r.gender) ?? 0) + 1);
+			if (r.age) ageCount.set(r.age, (ageCount.get(r.age) ?? 0) + 1);
+			if (r.disability !== null) {
+				const k = r.disability ? "yes" : "no";
+				disCount.set(k, (disCount.get(k) ?? 0) + 1);
+			}
+		}
+		const diversity = {
+			total: dTotal,
+			gender: dTotal >= 5 ? kAnon(genderCount) : [],
+			ageRange: dTotal >= 5 ? kAnon(ageCount) : [],
+			hasDisability: dTotal >= 5 ? kAnon(disCount) : [],
+		};
+
+		// Vault-Statistik
+		const vaultRows = await db
+			.select({
+				userId: vaultItems.userId,
+				kind: vaultItems.kind,
+				storageKey: vaultItems.storageKey,
+			})
+			.from(vaultItems)
+			.catch(() => []);
+		const vaultKindCount = new Map<string, number>();
+		const vaultOwners = new Set<string>();
+		let vaultUrlOnly = 0;
+		for (const v of vaultRows) {
+			vaultKindCount.set(v.kind, (vaultKindCount.get(v.kind) ?? 0) + 1);
+			vaultOwners.add(v.userId);
+			if (!v.storageKey) vaultUrlOnly++;
+		}
+		const vaultStats = {
+			totalItems: vaultRows.length,
+			uniqueOwners: vaultOwners.size,
+			kindMix: [...vaultKindCount.entries()].map(([kind, n]) => ({ kind, n })),
+			urlOnly: vaultUrlOnly,
+		};
+
+		// Saved Searches: criteria-Analyse
+		const ssRows = await db
+			.select({
+				userId: savedSearches.userId,
+				criteria: savedSearches.criteria,
+				notifyChannel: savedSearches.notifyChannel,
+			})
+			.from(savedSearches)
+			.catch(() => []);
+		const ssOwners = new Set<string>();
+		const ssSkillCount = new Map<string, number>();
+		const ssLocationCount = new Map<string, number>();
+		const ssRemoteCount = new Map<string, number>();
+		const ssChannelCount = new Map<string, number>();
+		for (const r of ssRows) {
+			ssOwners.add(r.userId);
+			ssChannelCount.set(
+				r.notifyChannel,
+				(ssChannelCount.get(r.notifyChannel) ?? 0) + 1,
+			);
+			const c = r.criteria;
+			if (c?.skills) {
+				for (const s of c.skills) {
+					const k = s.trim();
+					if (!k) continue;
+					ssSkillCount.set(k, (ssSkillCount.get(k) ?? 0) + 1);
+				}
+			}
+			if (c?.location) {
+				const k = c.location.trim();
+				if (k) ssLocationCount.set(k, (ssLocationCount.get(k) ?? 0) + 1);
+			}
+			if (c?.remote) {
+				ssRemoteCount.set(
+					c.remote,
+					(ssRemoteCount.get(c.remote) ?? 0) + 1,
+				);
+			}
+		}
+		const savedSearchStats = {
+			total: ssRows.length,
+			uniqueOwners: ssOwners.size,
+			topSkills: [...ssSkillCount.entries()]
+				.sort((a, b) => b[1] - a[1])
+				.slice(0, 10)
+				.map(([name, n]) => ({ name, n })),
+			topLocations: [...ssLocationCount.entries()]
+				.sort((a, b) => b[1] - a[1])
+				.slice(0, 8)
+				.map(([location, n]) => ({ location, n })),
+			remoteMix: [...ssRemoteCount.entries()].map(([policy, n]) => ({
+				policy,
+				n,
+			})),
+			notifyChannelMix: [...ssChannelCount.entries()].map(([channel, n]) => ({
+				channel,
+				n,
+			})),
+		};
+
+		// Application-Status-Mix
+		const appStatusRows = await db
+			.select({
+				status: applications.status,
+				n: sql<number>`count(*)::int`.as("n"),
+			})
+			.from(applications)
+			.groupBy(applications.status)
+			.catch(() => []);
+		const applicationStatusMix = appStatusRows.map((r) => ({
+			status: r.status,
+			n: Number(r.n),
+		}));
+
+		// Stage-Outcomes aus application_events
+		const outcomeRows = await db
+			.select({
+				outcome: applicationEvents.outcome,
+				n: sql<number>`count(*)::int`.as("n"),
+			})
+			.from(applicationEvents)
+			.where(sql`${applicationEvents.outcome} IS NOT NULL`)
+			.groupBy(applicationEvents.outcome)
+			.catch(() => []);
+		const stageOutcomes = outcomeRows
+			.filter((r): r is { outcome: string; n: number } => r.outcome !== null)
+			.map((r) => ({ outcome: r.outcome, n: Number(r.n) }));
+
+		// Reject-Reasons
+		const rejectRows = await db
+			.select({
+				reason: applicationEvents.rejectReason,
+				n: sql<number>`count(*)::int`.as("n"),
+			})
+			.from(applicationEvents)
+			.where(sql`${applicationEvents.rejectReason} IS NOT NULL`)
+			.groupBy(applicationEvents.rejectReason)
+			.orderBy(desc(sql<number>`count(*)`))
+			.limit(8)
+			.catch(() => []);
+		const rejectReasons = rejectRows
+			.filter((r): r is { reason: string; n: number } => r.reason !== null)
+			.map((r) => ({ reason: r.reason, n: Number(r.n) }));
+
+		// Time-to-Fill: jobs.createdAt → erste accepted offer.decidedAt pro Job.
+		const filledRows = await db
+			.select({
+				jobCreated: jobs.createdAt,
+				decidedAt: offers.decidedAt,
+			})
+			.from(offers)
+			.innerJoin(jobs, eq(offers.jobId, jobs.id))
+			.where(eq(offers.status, "accepted"))
+			.catch(() => []);
+		// Pro Job nur die früheste accepted Offer zählen.
+		const earliestPerJob = new Map<number, number>();
+		for (const r of filledRows) {
+			if (!r.jobCreated || !r.decidedAt) continue;
+			const days = (r.decidedAt.getTime() - r.jobCreated.getTime()) / 86400_000;
+			const key = r.jobCreated.getTime();
+			const cur = earliestPerJob.get(key);
+			if (cur === undefined || days < cur) earliestPerJob.set(key, days);
+		}
+		const ttfDays = [...earliestPerJob.values()].sort((a, b) => a - b);
+		const quantile = (xs: number[], q: number): number | null => {
+			if (xs.length === 0) return null;
+			const i = Math.min(xs.length - 1, Math.floor(xs.length * q));
+			return Math.round(xs[i] * 10) / 10;
+		};
+		const timeToFill = {
+			count: ttfDays.length,
+			medianDays: quantile(ttfDays, 0.5),
+			p25Days: quantile(ttfDays, 0.25),
+			p75Days: quantile(ttfDays, 0.75),
+		};
+
+		// Translations-Coverage + Career-Analysis-Adoption (in einem Pass)
+		const coverRows = await db
+			.select({
+				hasTrans: sql<number>`(${candidateProfiles.translations} IS NOT NULL)::int`.as(
+					"has_trans",
+				),
+				hasAnalysis:
+					sql<number>`(${candidateProfiles.careerAnalysis} IS NOT NULL)::int`.as(
+						"has_analysis",
+					),
+			})
+			.from(candidateProfiles);
+		const translationsCoverage = {
+			total: coverRows.length,
+			hasTranslations: coverRows.reduce((a, r) => a + Number(r.hasTrans), 0),
+		};
+		const careerAdoption = {
+			totalCandidates: coverRows.length,
+			hasAnalysis: coverRows.reduce((a, r) => a + Number(r.hasAnalysis), 0),
+		};
+
+		// Notification-Engagement
+		const notifRows = await db
+			.select({
+				kind: notifications.kind,
+				readAt: notifications.readAt,
+			})
+			.from(notifications);
+		const notifByKind = new Map<string, { total: number; read: number }>();
+		let notifTotal = 0;
+		let notifRead = 0;
+		for (const n of notifRows) {
+			notifTotal++;
+			if (n.readAt) notifRead++;
+			const cur = notifByKind.get(n.kind) ?? { total: 0, read: 0 };
+			cur.total++;
+			if (n.readAt) cur.read++;
+			notifByKind.set(n.kind, cur);
+		}
+		const notificationEngagement = {
+			total: notifTotal,
+			read: notifRead,
+			unread: notifTotal - notifRead,
+			byKind: [...notifByKind.entries()].map(([kind, v]) => ({
+				kind,
+				total: v.total,
+				read: v.read,
+			})),
+		};
+
+		// Aktive Sessions (Auth.js)
+		const sessionRows = await db
+			.select({ userId: sessions.userId })
+			.from(sessions)
+			.where(gte(sessions.expires, new Date()));
+		const sessionUsers = new Set<string>();
+		for (const s of sessionRows) sessionUsers.add(s.userId);
+		const activeSessions = {
+			total: sessionRows.length,
+			uniqueUsers: sessionUsers.size,
 		};
 
 		return {
@@ -1079,8 +1702,33 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 			topCandidateSkills,
 			topJobSkills,
 			topLocations,
+			topJobLocations,
+			topIndustries,
+			topLanguages,
+			topCertifications,
 			verifyMix,
+			verifyResults,
+			yearsExperienceHist,
+			yearsRequiredHist,
+			salaryDesiredHist,
+			jobSalaryHist,
+			matchScoreHist,
+			degreeTypeMix,
+			remotePolicyMix,
+			employmentTypeMix,
+			jobStatusMix,
+			diversity,
 			activeTenants,
+			vault: vaultStats,
+			savedSearches: savedSearchStats,
+			applicationStatusMix,
+			stageOutcomes,
+			rejectReasons,
+			timeToFill,
+			translationsCoverage,
+			careerAdoption,
+			notificationEngagement,
+			activeSessions,
 			profileCompleteness: completeness,
 		};
 	} catch (e) {
