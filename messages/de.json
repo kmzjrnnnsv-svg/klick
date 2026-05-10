@@ -15,6 +15,7 @@
 		"openRequests": "Anfragen",
 		"openTeam": "Team",
 		"openJobs": "Jobs",
+		"openDashboard": "Dashboard",
 		"openAdmin": "Admin",
 		"openTemplates": "Prozesse",
 		"openCompany": "Firmenprofil",
@@ -692,6 +693,8 @@
 		"cancel": "Abbrechen",
 		"createNote": "Wenn der Owner-User mit dieser E-Mail noch nicht existiert, wird er als Employer angelegt. Existiert er als Kandidat, wird er zum Employer hochgestuft.",
 		"owner": "Owner",
+		"noOwner": "noch kein Owner",
+		"manageTeam": "Owner & Team verwalten",
 		"tenant": "Tenant",
 		"memberSince": "Angelegt",
 		"editTitle": "Bearbeiten",
@@ -701,6 +704,94 @@
 		"statJobs": "Stellen",
 		"statApplications": "Bewerbungen",
 		"statTemplates": "Templates"
+	},
+	"AdminCompanyOwner": {
+		"title": "Owner & Team",
+		"subtitle": "Lege fest, wer das Unternehmen verwalten darf. Owner haben volle Rechte, Recruiter und Viewer eingeschränkt.",
+		"setOwnerHeading": "Owner per E-Mail setzen",
+		"emailLabel": "E-Mail des neuen Owners",
+		"howItWorks": "Existiert der/die User:in bereits, wird sie:er sofort zum Owner. Sonst geht eine Einladung per Mail raus — bestehender Owner wird zum Recruiter herabgestuft.",
+		"setOwner": "Owner setzen",
+		"promoted": "User:in wurde zum Owner promoted.",
+		"invited": "Einladung per E-Mail verschickt.",
+		"done": "Fertig.",
+		"teamHeading": "Aktuelles Team",
+		"noTeam": "Noch keine Team-Mitglieder. Setze oben den ersten Owner.",
+		"pending": "ausstehend",
+		"col": {
+			"email": "E-Mail",
+			"role": "Rolle",
+			"invitedAt": "Eingeladen",
+			"joinedAt": "Beigetreten",
+			"actions": "Aktionen"
+		},
+		"role": {
+			"owner": "Owner",
+			"recruiter": "Recruiter",
+			"viewer": "Viewer"
+		},
+		"removeMember": "Entfernen",
+		"removeConfirm": "Mitglied wirklich aus dem Team entfernen? Owner können nicht entfernt werden."
+	},
+	"EmployerDashboard": {
+		"title": "Dashboard",
+		"subtitle": "Wachstum, Pipeline und Antwortzeiten — alles auf einen Blick für dein Unternehmen.",
+		"noEmployer": "Dieser Account ist noch keinem Unternehmen zugeordnet. Lege auf der Firmenseite ein Profil an.",
+		"postJobCta": "Stelle ausschreiben",
+		"openJobs": "Offene Stellen",
+		"apps30d": "Bewerbungen (30 T)",
+		"offerAcceptRate": "Offer-Annahmequote",
+		"medianResponse": "Median Antwort",
+		"hoursHint": "Stunden",
+		"funnel": "Funnel",
+		"funnelHint": "Von der Bewerbung bis zur angenommenen Offer. Prozent zeigt Konversion zur jeweils vorigen Stufe.",
+		"appsLabel": "Bewerbungen",
+		"seen": "Gesehen",
+		"inReview": "In Prüfung",
+		"shortlist": "Shortlist",
+		"interview": "Interview",
+		"offer": "Angebot",
+		"accepted": "Angenommen",
+		"statusMix": "Status-Verteilung",
+		"volume30d": "Bewerbungs-Volumen (30 T)",
+		"volume30dHint": "7-Tages-Buckets, ältester rechts.",
+		"topJobs": "Top-Stellen nach Bewerbungen",
+		"timeToFill": "Time-to-Fill (Tage)",
+		"timeToFillHint": "Von Stellen-Erstellung bis erste angenommene Offer.",
+		"ttfCount": "Stellen",
+		"median": "Median",
+		"activity": "Letzte Aktivität",
+		"activityHint": "Die jüngsten 10 Status-/Stage-Wechsel deiner Bewerbungen.",
+		"noActivity": "Noch keine Aktivität — sobald Bewerbungen ankommen, taucht hier was auf.",
+		"openApp": "öffnen",
+		"empty": {
+			"heading": "Willkommen bei Klick!",
+			"blurb": "Lass uns starten. In drei Schritten ist dein Unternehmen voll funktionsfähig.",
+			"postJobLabel": "Erste Stelle ausschreiben",
+			"postJobBody": "Mit KI-Vorschlägen für Anforderungen, Gehaltsbenchmark und Qualitäts-Score.",
+			"inviteTeamLabel": "Team einladen",
+			"inviteTeamBody": "Recruiter:innen oder Hiring-Manager hinzufügen — per E-Mail mit Einladungslink.",
+			"completeProfileLabel": "Firmenprofil schärfen",
+			"completeProfileBody": "Logo, Beschreibung und Website helfen Kandidat:innen, dich einzuordnen.",
+			"done": "✓ erledigt"
+		}
+	},
+	"ApplicationsBoard": {
+		"title": "Bewerbungs-Pipeline",
+		"listView": "Liste",
+		"openBoard": "Board-Ansicht",
+		"dragHint": "Tipp: Karte greifen und zur passenden Spalte ziehen.",
+		"saving": "Speichere Status…",
+		"empty": "Keine Bewerbungen in dieser Stufe."
+	},
+	"ApplicationNotes": {
+		"title": "Team-Notizen",
+		"internal": "intern",
+		"intro": "Nur für dein Team sichtbar — Kandidat:innen sehen diese Notizen nie.",
+		"placeholder": "Z.B. „Sehr starker erster Eindruck. Tech-Interview ansetzen.\"",
+		"add": "Notiz speichern",
+		"empty": "Noch keine Notizen.",
+		"remove": "Notiz löschen"
 	},
 	"AdminDemo": {
 		"title": "Demo-Daten",
@@ -847,6 +938,10 @@
 		"subtitle": "Deine Stellen. Match-Vorschläge gehen in P4 live.",
 		"newJob": "Neue Stelle",
 		"editJob": "Stelle bearbeiten",
+		"duplicate": {
+			"label": "Duplizieren",
+			"confirm": "Diese Stelle als Entwurf duplizieren?"
+		},
 		"benchmarkTitle": "KI-Marktschätzung:",
 		"benchmarkUnder": "Du bezahlst {pct}% unter dem Marktdurchschnitt — Erhöhung empfohlen.",
 		"benchmarkOver": "Du bezahlst {pct}% über dem Marktdurchschnitt — eher Verhandlungsspielraum.",
@@ -1649,11 +1744,11 @@
 		"suppressionNote": "Werte unter 5 werden auf 0 gesetzt, um Re-Identifikation einzelner Personen zu verhindern. Frei eingegebene Herkunfts-Texte erscheinen nur dann, wenn ≥5 Personen denselben Wortlaut verwendet haben."
 	},
 	"Agency": {
-		"eyebrow": "Recruiter-Team",
+		"eyebrow": "Team",
 		"title": "Team verwalten",
-		"subtitle": "Lade weitere Recruiter:innen ins Team ein. Jede Person bekommt eigenen Zugang mit Magic-Link — keine geteilten Logins.",
+		"subtitle": "Lade weitere Kolleg:innen ins Team ein. Jede Person bekommt eigenen Zugang mit Magic-Link — keine geteilten Logins.",
 		"inviteEyebrow": "Einladung",
-		"inviteTitle": "Recruiter:in einladen",
+		"inviteTitle": "Mitglied einladen",
 		"emailPlaceholder": "kollegin@firma.de",
 		"role": {
 			"owner": "Owner",
@@ -1668,7 +1763,16 @@
 		"joinedAt": "Beigetreten {date}",
 		"invitedAt": "Eingeladen {date}",
 		"remove": "Entfernen",
-		"confirmRemove": "Diese Person wirklich aus dem Team entfernen?"
+		"confirmRemove": "Diese Person wirklich aus dem Team entfernen?",
+		"ownerCount": "{count} / {max} Owner",
+		"ownerCountHint": "Maximal 2 Personen pro Firma haben das Recht, neue Mitglieder einzuladen oder Rollen zu ändern.",
+		"ownerCapReached": "Owner-Limit erreicht ({max}). Stufe erst einen Owner herab, bevor du eine:n weitere:n als Owner einlädst.",
+		"readOnly": "Du hast Read-only-Zugriff auf das Team",
+		"readOnlyHint": "Nur Owner können einladen, entfernen oder Rollen ändern. Wende dich an deine:n Owner.",
+		"roleActions": {
+			"promote": "Zu Owner",
+			"demote": "Zu Recruiter"
+		}
 	},
 	"AgencyInvite": {
 		"eyebrow": "Team-Einladung",

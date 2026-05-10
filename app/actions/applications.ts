@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
+	agencyMembers,
 	type Application,
 	type ApplicationEvent,
 	type ApplicationJobSnapshot,
@@ -13,6 +14,7 @@ import {
 	type ApplicationStatus,
 	applicationEvents,
 	applicationMessages,
+	applicationNotes,
 	applications,
 	candidateProfiles,
 	employers,
@@ -25,7 +27,10 @@ import {
 	stageRatings,
 	users,
 } from "@/db/schema";
-import { pushNotification } from "./notifications";
+import {
+	pushNotification,
+	pushNotificationToEmployerTeam,
+} from "./notifications";
 import { instantiateJobStages } from "./templates";
 
 // 3 Monate ohne Reaktion → Pflicht-Closure-Dialog für den Arbeitgeber.
@@ -230,21 +235,14 @@ export async function submitApplication(input: {
 			byUserId: userId,
 		});
 
-		// Notify employer.
-		const [emp] = await db
-			.select({ userId: employers.userId, name: employers.companyName })
-			.from(employers)
-			.where(eq(employers.id, job.employerId))
-			.limit(1);
-		if (emp) {
-			await pushNotification({
-				userId: emp.userId,
-				kind: "system",
-				title: `Neue Bewerbung: ${job.title}`,
-				body: profile.displayName ?? "Anonyme:r Kandidat:in",
-				link: `/jobs/${job.id}/applications/${created.id}`,
-			});
-		}
+		// Notify employer-team (alle joined Members).
+		await pushNotificationToEmployerTeam({
+			employerId: job.employerId,
+			kind: "system",
+			title: `Neue Bewerbung: ${job.title}`,
+			body: profile.displayName ?? "Anonyme:r Kandidat:in",
+			link: `/jobs/${job.id}/applications/${created.id}`,
+		});
 
 		revalidatePath(`/jobs/browse/${input.jobId}`);
 		revalidatePath("/applications");
@@ -337,20 +335,13 @@ export async function withdrawApplication(
 			byUserId: userId,
 		});
 
-		const [emp] = await db
-			.select({ userId: employers.userId })
-			.from(employers)
-			.where(eq(employers.id, app.employerId))
-			.limit(1);
-		if (emp) {
-			await pushNotification({
-				userId: emp.userId,
-				kind: "system",
-				title: `Bewerbung zurückgezogen: ${app.jobSnapshot.title}`,
-				body: app.profileSnapshot.displayName ?? "Kandidat:in",
-				link: `/jobs/${app.jobId}/applications/${applicationId}`,
-			});
-		}
+		await pushNotificationToEmployerTeam({
+			employerId: app.employerId,
+			kind: "system",
+			title: `Bewerbung zurückgezogen: ${app.jobSnapshot.title}`,
+			body: app.profileSnapshot.displayName ?? "Kandidat:in",
+			link: `/jobs/${app.jobId}/applications/${applicationId}`,
+		});
 
 		revalidatePath("/applications");
 		revalidatePath(`/applications/${applicationId}`);
@@ -473,11 +464,18 @@ export async function getApplicationDetail(
 	}
 	if (!viewerRole) return null;
 
-	const events = await db
+	const eventsRaw = await db
 		.select()
 		.from(applicationEvents)
 		.where(eq(applicationEvents.applicationId, applicationId))
 		.orderBy(asc(applicationEvents.createdAt));
+	// Anonymität gegenüber Kandidat:innen: byUserId nie an die
+	// Kandidat-Sicht durchreichen — der Kandidat sieht nur Rollen
+	// (candidate / employer / system), nie konkrete Personen.
+	const events =
+		viewerRole === "candidate"
+			? eventsRaw.map((e) => ({ ...e, byUserId: null }))
+			: eventsRaw;
 
 	let currentProfile: ApplicationDetail["currentProfile"] = null;
 	if (viewerRole === "candidate") {
@@ -873,20 +871,39 @@ export async function listApplicationMessages(applicationId: string) {
 			.where(eq(applications.id, applicationId))
 			.limit(1);
 		if (!app) return [];
-		// Access-Check: Kandidat oder Employer-Owner.
-		if (app.candidateUserId !== session.user.id) {
+		// Access-Check: Kandidat oder Employer-Owner / Team-Mitglied.
+		const isCandidate = app.candidateUserId === session.user.id;
+		if (!isCandidate) {
 			const [emp] = await db
 				.select({ id: employers.id })
 				.from(employers)
 				.where(eq(employers.userId, session.user.id))
 				.limit(1);
-			if (emp?.id !== app.employerId) return [];
+			if (emp?.id !== app.employerId) {
+				// Auch Team-Mitglieder dürfen mitlesen.
+				const [member] = await db
+					.select({ id: agencyMembers.id })
+					.from(agencyMembers)
+					.where(
+						and(
+							eq(agencyMembers.employerId, app.employerId),
+							eq(agencyMembers.userId, session.user.id),
+						),
+					)
+					.limit(1);
+				if (!member) return [];
+			}
 		}
-		return await db
+		const rows = await db
 			.select()
 			.from(applicationMessages)
 			.where(eq(applicationMessages.applicationId, applicationId))
 			.orderBy(asc(applicationMessages.createdAt));
+		// Kandidat:innen sehen niemals, WELCHE konkrete Person eine
+		// Nachricht geschickt hat — nur die Rolle (candidate / employer).
+		return isCandidate
+			? rows.map((m) => ({ ...m, byUserId: null }))
+			: rows;
 	} catch (e) {
 		if (friendlyDbError(e)) return [];
 		throw e;
@@ -1059,5 +1076,191 @@ export async function pruneGdprStaleApplications(): Promise<{
 	} catch (e) {
 		console.warn("[gdpr] prune failed", e);
 		return { redacted: 0 };
+	}
+}
+
+// ─── Team-Notizen ────────────────────────────────────────────────────────
+// Sichtbar nur für Employer-Members, NICHT für Kandidat:innen. Wird beim
+// Application-Detail-Page über dem Message-Thread eingebettet.
+
+async function requireEmployerAccessForApp(appId: string): Promise<{
+	userId: string;
+	employerId: string;
+}> {
+	const session = await auth();
+	if (!session?.user?.id) throw new Error("unauthenticated");
+	const [app] = await db
+		.select({ employerId: applications.employerId })
+		.from(applications)
+		.where(eq(applications.id, appId))
+		.limit(1);
+	if (!app) throw new Error("not found");
+	const [owner] = await db
+		.select({ id: employers.id })
+		.from(employers)
+		.where(
+			and(eq(employers.id, app.employerId), eq(employers.userId, session.user.id)),
+		)
+		.limit(1);
+	if (owner) return { userId: session.user.id, employerId: app.employerId };
+	const [member] = await db
+		.select({ id: agencyMembers.id })
+		.from(agencyMembers)
+		.where(
+			and(
+				eq(agencyMembers.employerId, app.employerId),
+				eq(agencyMembers.userId, session.user.id),
+			),
+		)
+		.limit(1);
+	if (!member) throw new Error("not authorised");
+	return { userId: session.user.id, employerId: app.employerId };
+}
+
+export async function listApplicationNotes(applicationId: string): Promise<
+	{
+		id: string;
+		body: string;
+		createdAt: Date;
+		authorName: string | null;
+		authorEmail: string | null;
+	}[]
+> {
+	await requireEmployerAccessForApp(applicationId);
+	const rows = await db
+		.select({
+			id: applicationNotes.id,
+			body: applicationNotes.body,
+			createdAt: applicationNotes.createdAt,
+			authorUserId: applicationNotes.authorUserId,
+			authorName: users.name,
+			authorEmail: users.email,
+		})
+		.from(applicationNotes)
+		.leftJoin(users, eq(users.id, applicationNotes.authorUserId))
+		.where(eq(applicationNotes.applicationId, applicationId))
+		.orderBy(desc(applicationNotes.createdAt));
+	return rows.map((r) => ({
+		id: r.id,
+		body: r.body,
+		createdAt: r.createdAt,
+		authorName: r.authorName,
+		authorEmail: r.authorEmail,
+	}));
+}
+
+export async function addApplicationNote(input: {
+	applicationId: string;
+	body: string;
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+	try {
+		const { userId } = await requireEmployerAccessForApp(input.applicationId);
+		const body = input.body.trim();
+		if (body.length === 0) {
+			return { ok: false, error: "Notiz darf nicht leer sein." };
+		}
+		if (body.length > 4000) {
+			return { ok: false, error: "Notiz ist zu lang (max 4000 Zeichen)." };
+		}
+		const [n] = await db
+			.insert(applicationNotes)
+			.values({
+				applicationId: input.applicationId,
+				authorUserId: userId,
+				body,
+			})
+			.returning({ id: applicationNotes.id });
+		revalidatePath(`/applications/${input.applicationId}`);
+		// Auch der Employer-Detail-Pfad (jobs/[id]/applications/[appId])
+		// rendert die Notes — beide Pfade revalidieren.
+		return { ok: true, id: n.id };
+	} catch (e) {
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
+	}
+}
+
+export async function deleteApplicationNote(
+	noteId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+	try {
+		const session = await auth();
+		if (!session?.user?.id) return { ok: false, error: "unauthenticated" };
+		const [n] = await db
+			.select()
+			.from(applicationNotes)
+			.where(eq(applicationNotes.id, noteId))
+			.limit(1);
+		if (!n) return { ok: false, error: "Notiz nicht gefunden." };
+		// Nur eigene Notizen darf der/die Author:in löschen.
+		if (n.authorUserId !== session.user.id) {
+			return { ok: false, error: "Nur eigene Notizen können gelöscht werden." };
+		}
+		await db.delete(applicationNotes).where(eq(applicationNotes.id, noteId));
+		revalidatePath(`/applications/${n.applicationId}`);
+		return { ok: true };
+	} catch (e) {
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
+	}
+}
+
+// ─── Status + Bulk-Status für Kanban / Liste ─────────────────────────────
+
+export async function setApplicationStatus(input: {
+	applicationId: string;
+	status: ApplicationStatus;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+	try {
+		const { userId } = await requireEmployerAccessForApp(input.applicationId);
+		await db
+			.update(applications)
+			.set({ status: input.status, updatedAt: new Date() })
+			.where(eq(applications.id, input.applicationId));
+		await db.insert(applicationEvents).values({
+			applicationId: input.applicationId,
+			kind: "status_change",
+			status: input.status,
+			byRole: "employer",
+			byUserId: userId,
+		});
+		revalidatePath(`/applications/${input.applicationId}`);
+		return { ok: true };
+	} catch (e) {
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
+	}
+}
+
+export async function bulkSetApplicationStatus(input: {
+	applicationIds: string[];
+	status: ApplicationStatus;
+}): Promise<{ ok: true; n: number } | { ok: false; error: string }> {
+	try {
+		const session = await auth();
+		if (!session?.user?.id) return { ok: false, error: "unauthenticated" };
+		let count = 0;
+		// Iteratiover Ansatz statt einem big-UPDATE: jede App muss einzeln
+		// gegen den Auth-Guard laufen (Mandanten-Trennung). Ist O(N) DB-Calls
+		// — bei realistischer Bulk-Größe (max 20-30) völlig okay.
+		for (const id of input.applicationIds) {
+			const r = await setApplicationStatus({
+				applicationId: id,
+				status: input.status,
+			});
+			if (r.ok) count++;
+		}
+		return { ok: true, n: count };
+	} catch (e) {
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
 	}
 }

@@ -49,9 +49,17 @@ export default async function JobApplicationsPage({
 					<p className="mt-3 lv-eyebrow text-[0.6rem] text-primary">
 						{t("employerListEyebrow")}
 					</p>
-					<h1 className="mt-2 font-serif-display text-3xl sm:text-4xl">
-						{t("employerListTitle")}
-					</h1>
+					<div className="mt-2 flex flex-wrap items-baseline justify-between gap-3">
+						<h1 className="font-serif-display text-3xl sm:text-4xl">
+							{t("employerListTitle")}
+						</h1>
+						<Link
+							href={`/jobs/${id}/applications/board`}
+							className="inline-flex h-9 items-center gap-2 rounded-sm border border-primary/40 bg-primary/5 px-3 text-primary text-xs hover:bg-primary hover:text-primary-foreground"
+						>
+							{t("openBoard")} →
+						</Link>
+					</div>
 					<p className="mt-2 text-muted-foreground text-sm">
 						{t("employerListSubtitle", { count: items.length })}
 					</p>

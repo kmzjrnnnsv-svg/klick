@@ -32,13 +32,14 @@ export async function Header() {
 	const navItems: NavItem[] =
 		role === "employer"
 			? [
+					{ href: "/dashboard", label: t("openDashboard") },
 					{ href: "/jobs", label: t("openJobs") },
+					{ href: "/agency/team", label: t("openTeam") },
 					{
 						label: t("groupActivity"),
 						links: [
 							{ href: "/offers", label: t("openOffers") },
 							{ href: "/agency/profile", label: t("openCompany") },
-							{ href: "/agency/team", label: t("openTeam") },
 							{ href: "/templates", label: t("openTemplates") },
 						],
 					},

@@ -13,6 +13,7 @@ import {
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
+	agencyMembers,
 	type Employer,
 	employers,
 	type Job,
@@ -110,6 +111,26 @@ export async function ensureEmployer(companyName: string): Promise<Employer> {
 		.insert(employers)
 		.values({ userId, tenantId, companyName })
 		.returning();
+
+	// Initialer Owner als agencyMembers-Row seed'en — so funktioniert die
+	// Team-Verwaltung und der Owner-Cap konsistent ab Tag 1.
+	const [u] = await db
+		.select({ email: users.email })
+		.from(users)
+		.where(eq(users.id, userId))
+		.limit(1);
+	if (u?.email) {
+		await db
+			.insert(agencyMembers)
+			.values({
+				employerId: created.id,
+				userId,
+				inviteEmail: u.email,
+				role: "owner",
+				joinedAt: new Date(),
+			})
+			.onConflictDoNothing();
+	}
 	return created;
 }
 
@@ -417,6 +438,41 @@ export async function deleteJob(id: string): Promise<void> {
 	if (!e) return;
 	await db.delete(jobs).where(and(eq(jobs.id, id), eq(jobs.employerId, e.id)));
 	revalidatePath("/jobs");
+}
+
+// Dupliziert eine Stelle inkl. Anforderungen/Sprachen/Salary etc., setzt
+// status auf "draft" und hängt " (Kopie)" an den Titel.
+export async function duplicateJob(
+	id: string,
+): Promise<{ ok: true; jobId: string } | { ok: false; error: string }> {
+	try {
+		await requireEmployerSession();
+		const e = await getEmployer();
+		if (!e) return { ok: false, error: "Kein Employer-Kontext." };
+		const [src] = await db
+			.select()
+			.from(jobs)
+			.where(and(eq(jobs.id, id), eq(jobs.employerId, e.id)))
+			.limit(1);
+		if (!src) return { ok: false, error: "Stelle nicht gefunden." };
+		// biome-ignore lint/correctness/noUnusedVariables: explizit auspacken
+		const { id: _id, createdAt: _c, updatedAt: _u, status: _s, ...rest } = src;
+		const [created] = await db
+			.insert(jobs)
+			.values({
+				...rest,
+				title: `${src.title} (Kopie)`,
+				status: "draft",
+			})
+			.returning({ id: jobs.id });
+		revalidatePath("/jobs");
+		return { ok: true, jobId: created.id };
+	} catch (err) {
+		return {
+			ok: false,
+			error: err instanceof Error ? err.message : "fehlgeschlagen",
+		};
+	}
 }
 
 export async function suggestRequirements(input: {

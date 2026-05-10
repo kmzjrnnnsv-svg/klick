@@ -15,6 +15,7 @@
 		"openRequests": "Requests",
 		"openTeam": "Team",
 		"openJobs": "Jobs",
+		"openDashboard": "Dashboard",
 		"openAdmin": "Admin",
 		"openTemplates": "Processes",
 		"openCompany": "Company profile",
@@ -692,6 +693,8 @@
 		"cancel": "Cancel",
 		"createNote": "If the owner email doesn't exist yet, a new employer user is created. If it exists as a candidate, they're upgraded to employer.",
 		"owner": "Owner",
+		"noOwner": "no owner yet",
+		"manageTeam": "Manage owner & team",
 		"tenant": "Tenant",
 		"memberSince": "Created",
 		"editTitle": "Edit",
@@ -701,6 +704,94 @@
 		"statJobs": "Jobs",
 		"statApplications": "Applications",
 		"statTemplates": "Templates"
+	},
+	"AdminCompanyOwner": {
+		"title": "Owner & team",
+		"subtitle": "Decide who runs this company. Owners have full rights, recruiters and viewers limited.",
+		"setOwnerHeading": "Set owner by email",
+		"emailLabel": "New owner email",
+		"howItWorks": "If the user already exists, they become owner immediately. Otherwise an invite mail is sent. The previous owner is downgraded to recruiter.",
+		"setOwner": "Set owner",
+		"promoted": "User promoted to owner.",
+		"invited": "Invite email sent.",
+		"done": "Done.",
+		"teamHeading": "Current team",
+		"noTeam": "No team members yet. Set the first owner above.",
+		"pending": "pending",
+		"col": {
+			"email": "Email",
+			"role": "Role",
+			"invitedAt": "Invited",
+			"joinedAt": "Joined",
+			"actions": "Actions"
+		},
+		"role": {
+			"owner": "Owner",
+			"recruiter": "Recruiter",
+			"viewer": "Viewer"
+		},
+		"removeMember": "Remove",
+		"removeConfirm": "Really remove this member from the team? Owners can't be removed."
+	},
+	"EmployerDashboard": {
+		"title": "Dashboard",
+		"subtitle": "Growth, pipeline and response times — everything at a glance for your company.",
+		"noEmployer": "This account isn't linked to a company yet. Set one up on the company page.",
+		"postJobCta": "Post a job",
+		"openJobs": "Open jobs",
+		"apps30d": "Applications (30d)",
+		"offerAcceptRate": "Offer accept rate",
+		"medianResponse": "Median response",
+		"hoursHint": "hours",
+		"funnel": "Funnel",
+		"funnelHint": "From application to accepted offer. Percentages show conversion to the previous step.",
+		"appsLabel": "Applications",
+		"seen": "Seen",
+		"inReview": "In review",
+		"shortlist": "Shortlist",
+		"interview": "Interview",
+		"offer": "Offer",
+		"accepted": "Accepted",
+		"statusMix": "Status mix",
+		"volume30d": "Application volume (30d)",
+		"volume30dHint": "7-day buckets, oldest on the right.",
+		"topJobs": "Top jobs by applications",
+		"timeToFill": "Time-to-fill (days)",
+		"timeToFillHint": "From job creation to first accepted offer.",
+		"ttfCount": "Jobs",
+		"median": "Median",
+		"activity": "Latest activity",
+		"activityHint": "The most recent 10 status/stage changes across your applications.",
+		"noActivity": "No activity yet — once applications come in, something will appear here.",
+		"openApp": "open",
+		"empty": {
+			"heading": "Welcome to Klick!",
+			"blurb": "Let's get started. Three steps to a fully functional company.",
+			"postJobLabel": "Post your first job",
+			"postJobBody": "With AI suggestions for requirements, salary benchmark and quality score.",
+			"inviteTeamLabel": "Invite your team",
+			"inviteTeamBody": "Add recruiters or hiring managers via email invite link.",
+			"completeProfileLabel": "Polish your company profile",
+			"completeProfileBody": "Logo, description and website help candidates understand you.",
+			"done": "✓ done"
+		}
+	},
+	"ApplicationsBoard": {
+		"title": "Application pipeline",
+		"listView": "List",
+		"openBoard": "Board view",
+		"dragHint": "Tip: grab a card and drag it to a different column.",
+		"saving": "Saving status…",
+		"empty": "No applications in this stage."
+	},
+	"ApplicationNotes": {
+		"title": "Team notes",
+		"internal": "internal",
+		"intro": "Only your team can see this — candidates never do.",
+		"placeholder": "e.g. \"Very strong first impression. Schedule tech interview.\"",
+		"add": "Save note",
+		"empty": "No notes yet.",
+		"remove": "Delete note"
 	},
 	"AdminDemo": {
 		"title": "Demo data",
@@ -847,6 +938,10 @@
 		"subtitle": "Your job postings. Match suggestions go live in P4.",
 		"newJob": "New job",
 		"editJob": "Edit job",
+		"duplicate": {
+			"label": "Duplicate",
+			"confirm": "Duplicate this job as a draft?"
+		},
 		"benchmarkTitle": "Market estimate (AI):",
 		"benchmarkUnder": "You're paying {pct}% below market — consider raising.",
 		"benchmarkOver": "You're paying {pct}% above market — likely room to negotiate.",
@@ -1649,11 +1744,11 @@
 		"suppressionNote": "Values under 5 are reported as 0 to prevent re-identification. Free-text ethnicity entries only appear if ≥5 people used the exact same wording."
 	},
 	"Agency": {
-		"eyebrow": "Recruiter team",
+		"eyebrow": "Team",
 		"title": "Team management",
-		"subtitle": "Invite additional recruiters. Each gets their own magic-link account — no shared logins.",
+		"subtitle": "Invite teammates. Each gets their own magic-link account — no shared logins.",
 		"inviteEyebrow": "Invitation",
-		"inviteTitle": "Invite a recruiter",
+		"inviteTitle": "Invite a teammate",
 		"emailPlaceholder": "colleague@company.com",
 		"role": {
 			"owner": "Owner",
@@ -1668,7 +1763,16 @@
 		"joinedAt": "Joined {date}",
 		"invitedAt": "Invited {date}",
 		"remove": "Remove",
-		"confirmRemove": "Really remove this person from the team?"
+		"confirmRemove": "Really remove this person from the team?",
+		"ownerCount": "{count} / {max} owners",
+		"ownerCountHint": "At most 2 people per company can invite new members or change roles.",
+		"ownerCapReached": "Owner cap reached ({max}). Demote an owner first before inviting another as owner.",
+		"readOnly": "You have read-only access to the team",
+		"readOnlyHint": "Only owners can invite, remove or change roles. Reach out to your owner.",
+		"roleActions": {
+			"promote": "Promote",
+			"demote": "Demote"
+		}
 	},
 	"AgencyInvite": {
 		"eyebrow": "Team invitation",

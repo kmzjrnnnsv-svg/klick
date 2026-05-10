@@ -1465,6 +1465,26 @@ export const applicationEvents = pgTable("application_events", {
 	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
+// Team-interne Notizen zu einer Bewerbung. Sichtbar nur für Employer-
+// Members, NICHT für den/die Kandidat:in. Separate Tabelle (statt
+// application_events) um klar abgegrenzt zu sein und einfacher Bulk-
+// Queries zu erlauben.
+export const applicationNotes = pgTable("application_notes", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	applicationId: text("application_id")
+		.notNull()
+		.references(() => applications.id, { onDelete: "cascade" }),
+	authorUserId: text("author_user_id").references(() => users.id, {
+		onDelete: "set null",
+	}),
+	body: text("body").notNull(),
+	createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export type ApplicationNote = typeof applicationNotes.$inferSelect;
+
 export type ApplicationEvent = typeof applicationEvents.$inferSelect;
 
 // ─── Hiring Process Templates ──────────────────────────────────────────────
