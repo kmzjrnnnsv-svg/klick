@@ -7,6 +7,7 @@
 		"dev": "next dev",
 		"build": "next build",
 		"start": "next start",
+		"deploy": "pnpm install --frozen-lockfile --prefer-offline && pnpm db:migrate && next build",
 		"lint": "biome check",
 		"lint:fix": "biome check --write",
 		"format": "biome format --write",

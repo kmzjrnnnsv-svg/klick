@@ -77,7 +77,7 @@ export function KanbanBoard({ initial }: { initial: BoardApp[] }) {
 			});
 			if (!r.ok) {
 				setApps(prev);
-				setError(r.error);
+				setError(r.error ?? "fehlgeschlagen");
 			}
 		});
 	}
