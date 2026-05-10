@@ -319,22 +319,36 @@ export async function saveJob(
 			? await geocode(data.location)
 			: null;
 
-	// AI salary benchmark — best-effort, swallowed on failure so a flaky
-	// model call doesn't block the save.
+	// AI-Calls dürfen das Save NIE blockieren — race gegen Timeout (10s).
+	// Wenn die KI hängt, speichern wir die Stelle trotzdem; Benchmark +
+	// Quality werden dann beim nächsten Edit nachgezogen.
+	function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+		return Promise.race<T>([
+			p,
+			new Promise<T>((_, reject) =>
+				setTimeout(() => reject(new Error(`${label} timeout ${ms}ms`)), ms),
+			),
+		]);
+	}
+
 	let benchmark: { low: number; high: number } | null = null;
 	let salaryFairness: "under" | "fair" | "over" | null = null;
 	let salaryDeltaPct: number | null = null;
 	try {
 		const ai = getAIProvider();
-		const bm = await ai.benchmarkSalary({
-			title: data.title,
-			description: data.description,
-			location: data.location ?? null,
-			yearsRequired: data.yearsExperienceMin ?? 0,
-			level: undefined,
-			requirements: (data.requirements ?? []).map((r) => r.name),
-			remote: data.remotePolicy,
-		});
+		const bm = await withTimeout(
+			ai.benchmarkSalary({
+				title: data.title,
+				description: data.description,
+				location: data.location ?? null,
+				yearsRequired: data.yearsExperienceMin ?? 0,
+				level: undefined,
+				requirements: (data.requirements ?? []).map((r) => r.name),
+				remote: data.remotePolicy,
+			}),
+			10_000,
+			"benchmarkSalary",
+		);
 		if (bm.low > 0 && bm.high > 0) {
 			benchmark = { low: bm.low, high: bm.high };
 			const declared = data.salaryMax ?? data.salaryMin ?? null;
@@ -349,21 +363,24 @@ export async function saveJob(
 		console.warn("[salary] benchmark failed", e);
 	}
 
-	// Job-Posting-Quality — best-effort, swallowed on failure.
 	let postingQuality: unknown = null;
 	try {
 		const ai = getAIProvider();
-		postingQuality = await ai.assessJobPostingQuality({
-			title: data.title,
-			description: data.description,
-			requirements: (data.requirements ?? []).map((r) => ({
-				name: r.name,
-				weight: r.weight,
-			})),
-			salaryMin: data.salaryMin ?? null,
-			salaryMax: data.salaryMax ?? null,
-			remotePolicy: data.remotePolicy,
-		});
+		postingQuality = await withTimeout(
+			ai.assessJobPostingQuality({
+				title: data.title,
+				description: data.description,
+				requirements: (data.requirements ?? []).map((r) => ({
+					name: r.name,
+					weight: r.weight,
+				})),
+				salaryMin: data.salaryMin ?? null,
+				salaryMax: data.salaryMax ?? null,
+				remotePolicy: data.remotePolicy,
+			}),
+			10_000,
+			"assessJobPostingQuality",
+		);
 	} catch (e) {
 		console.warn("[quality] assessment failed", e);
 	}

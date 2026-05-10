@@ -1969,7 +1969,7 @@
 		"eventLog": "Verlauf",
 		"genericEvent": "Update",
 		"role": {
-			"candidate": "Du",
+			"candidate": "dir",
 			"employer": "Arbeitgeber",
 			"system": "System"
 		},
