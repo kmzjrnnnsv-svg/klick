@@ -204,6 +204,9 @@ export type ProfileEducation = {
 	degree: string;
 	start?: string;
 	end?: string;
+	// false wenn das Studium abgebrochen / ohne Abschluss beendet wurde.
+	// undefined ⇒ als abgeschlossen behandeln (Default für Altdaten).
+	completed?: boolean;
 };
 
 // Certifications mentioned in the CV body (distinct from vault-uploaded ones).

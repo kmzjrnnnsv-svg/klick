@@ -25,6 +25,9 @@ export type ExtractedEducation = {
 	degree: string;
 	start?: string;
 	end?: string;
+	// false wenn der CV "abgebrochen", "ohne Abschluss" o.Ä. signalisiert.
+	// Default: true (regulär abgeschlossen).
+	completed?: boolean;
 };
 
 export type ExtractedCertificationMention = {

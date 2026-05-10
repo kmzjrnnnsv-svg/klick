@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CandidateProfile } from "@/db/schema";
 import type { ExtractedProfile } from "@/lib/ai";
+import { normalizeEducationDegree } from "@/lib/ai/normalize";
 
 type CvItem = { id: string; filename: string; mime: string; createdAt: Date };
 
@@ -65,7 +66,18 @@ export function ProfileForm({
 		"private" | "matches_only" | "public"
 	>(initial?.visibility ?? "matches_only");
 	const [experience, setExperience] = useState(initial?.experience ?? []);
-	const [education, setEducation] = useState(initial?.education ?? []);
+	const [education, setEducation] = useState(() =>
+		(initial?.education ?? []).map((e) => {
+			// Heile Altdaten beim ersten Render: '(ohne Abschluss)' aus dem Titel
+			// in das `completed`-Flag verschieben, sobald jemand das Profil speichert.
+			const norm = normalizeEducationDegree(e.degree);
+			return {
+				...e,
+				degree: norm.degree,
+				completed: e.completed ?? norm.completed,
+			};
+		}),
+	);
 
 	function applyExtracted(data: ExtractedProfile) {
 		if (data.displayName !== undefined) setDisplayName(data.displayName);
@@ -93,12 +105,19 @@ export function ProfileForm({
 			);
 		if (data.education)
 			setEducation(
-				data.education.map((e) => ({
-					institution: e.institution,
-					degree: e.degree,
-					start: e.start,
-					end: e.end,
-				})),
+				data.education.map((e) => {
+					// Provider-Postprocessing strippt Suffixe i.d.R. schon. Wir
+					// laufen die Normalisierung defensiv erneut, damit auch ältere
+					// Modell-Antworten ohne `completed` korrekt landen.
+					const norm = normalizeEducationDegree(e.degree);
+					return {
+						institution: e.institution,
+						degree: norm.degree,
+						start: e.start,
+						end: e.end,
+						completed: e.completed ?? norm.completed,
+					};
+				}),
 			);
 	}
 
@@ -231,14 +250,21 @@ export function ProfileForm({
 						{education.map((e) => (
 							<li
 								key={`${e.institution}-${e.degree}-${e.start ?? ""}`}
-								className="rounded-md border border-border bg-background p-3"
+								className="flex items-start justify-between gap-3 rounded-md border border-border bg-background p-3"
 							>
-								<div className="font-medium text-sm">{e.degree}</div>
-								<div className="text-muted-foreground text-xs">
-									{e.institution}
-									{e.start ? ` · ${e.start}` : ""}
-									{e.end ? ` – ${e.end}` : ""}
+								<div className="min-w-0 flex-1">
+									<div className="font-medium text-sm">{e.degree}</div>
+									<div className="text-muted-foreground text-xs">
+										{e.institution}
+										{e.start ? ` · ${e.start}` : ""}
+										{e.end ? ` – ${e.end}` : ""}
+									</div>
 								</div>
+								{e.completed === false && (
+									<span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-medium text-amber-700 text-xs dark:text-amber-300">
+										{t("noDegree")}
+									</span>
+								)}
 							</li>
 						))}
 					</ul>

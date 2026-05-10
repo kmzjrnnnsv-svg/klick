@@ -1,3 +1,4 @@
+import { applyExtractionPostprocessing } from "./normalize";
 import type {
 	AIProvider,
 	CandidateNarrative,
@@ -202,12 +203,27 @@ export class OllamaAIProvider implements AIProvider {
 						type: "object",
 						properties: {
 							institution: { type: "string" },
-							degree: { type: "string" },
+							degree: {
+								type: "string",
+								description:
+									"Studien-/Ausbildungs-Bezeichnung OHNE Status-Zusätze. NICHT '(ohne Abschluss)' in den Titel schreiben — dafür `completed=false` setzen.",
+							},
+							start: { type: "string" },
+							end: { type: "string" },
+							completed: {
+								type: "boolean",
+								description:
+									"true wenn der Abschluss erreicht wurde, false bei 'abgebrochen' / 'ohne Abschluss' / 'kein Abschluss' / 'nicht abgeschlossen'.",
+							},
 						},
 						required: ["institution", "degree"],
 					},
 				},
-				summary: { type: "string" },
+				summary: {
+					type: "string",
+					description:
+						"Kurzprofil in 2-4 Sätzen. IMMER ausfüllen — wenn der CV keinen Profil-Text enthält, selbst formulieren aus Titel + Top-Skills + jüngster Erfahrung.",
+				},
 				industries: { type: "array", items: { type: "string" } },
 				certificationsMentioned: {
 					type: "array",
@@ -236,27 +252,31 @@ export class OllamaAIProvider implements AIProvider {
 
 		const systemPrompt =
 			"Du extrahierst strukturierte Profile aus Lebensläufen. Halte dich strikt an das JSON-Schema. " +
-			"Bei Zertifikaten verwende offizielle Anbieter-Bezeichnungen (z.B. 'Microsoft Certified: Azure Administrator Associate' statt 'AZ-104'); wenn nicht zuordenbar, nimm den CV-Wortlaut + verbatim-Feld.";
+			"Bei Zertifikaten verwende offizielle Anbieter-Bezeichnungen (z.B. 'Microsoft Certified: Azure Administrator Associate' statt 'AZ-104'); wenn nicht zuordenbar, nimm den CV-Wortlaut + verbatim-Feld. " +
+			"Bei `education`: KEINE Status-Zusätze in den `degree`-Titel schreiben — wenn das Studium abgebrochen wurde, setze `completed=false`. " +
+			"`summary` IMMER ausfüllen (2-4 Sätze). Wenn der CV keinen Profil-Text enthält, selbst aus Headline + Top-Skills + jüngster Rolle formulieren.";
 
 		if (isImage) {
 			const base64 = Buffer.from(bytes).toString("base64");
-			return await this.chatVision<ExtractedProfile>(
+			const raw = await this.chatVision<ExtractedProfile>(
 				systemPrompt,
 				"Extrahiere das Profil aus diesem Lebenslauf-Bild.",
 				base64,
 				schema,
 			);
+			return applyExtractionPostprocessing(raw);
 		}
 
 		// PDF → Text. pdf-parse ist erst eine Runtime-Dep wenn der Provider
 		// aktiv ist; dynamischer Import vermeidet Build-Failures wenn das
 		// Paket fehlt.
 		const pdfText = await extractPdfText(bytes);
-		return await this.chat<ExtractedProfile>(
+		const raw = await this.chat<ExtractedProfile>(
 			systemPrompt,
 			`Lebenslauf-Volltext:\n\n${pdfText}\n\nExtrahiere das Profil.`,
 			schema,
 		);
+		return applyExtractionPostprocessing(raw);
 	}
 
 	async extractDocument(

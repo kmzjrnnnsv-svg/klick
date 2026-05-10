@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { applyExtractionPostprocessing } from "./normalize";
 import type {
 	AIProvider,
 	CandidateNarrative,
@@ -84,9 +85,18 @@ const PROFILE_TOOL_SCHEMA = {
 				type: "object",
 				properties: {
 					institution: { type: "string" },
-					degree: { type: "string" },
+					degree: {
+						type: "string",
+						description:
+							"Studien-/Ausbildungs-Bezeichnung OHNE Status-Zusätze. NICHT '(ohne Abschluss)' oder ähnliches in den Titel schreiben — dafür `completed=false` setzen.",
+					},
 					start: { type: "string" },
 					end: { type: "string" },
+					completed: {
+						type: "boolean",
+						description:
+							"true wenn der/die Bewerber:in den Abschluss erlangt hat. false wenn der CV 'abgebrochen', 'ohne Abschluss', 'kein Abschluss', 'nicht abgeschlossen', 'discontinued' o.Ä. nennt. Im Zweifel true. Niemals raten.",
+					},
 				},
 				required: ["institution", "degree"],
 			},
@@ -94,7 +104,8 @@ const PROFILE_TOOL_SCHEMA = {
 		summary: {
 			type: "string",
 			maxLength: 500,
-			description: "Short professional summary, written in same language as CV",
+			description:
+				"Kurzprofil in 2-4 Sätzen, geschrieben in der Sprache des CVs. IMMER ausfüllen: wenn der CV keinen Profiltext enthält, formuliere selbst aus Titel + Top-Skills + Erfahrung einen sachlichen Mini-Pitch. Niemals leer lassen.",
 		},
 		industries: {
 			type: "array",
@@ -238,8 +249,9 @@ export class ClaudeAIProvider implements AIProvider {
 								"  Wenn die offizielle Bezeichnung NICHT eindeutig zuordenbar ist (generische oder firmen-interne Lehrgänge), übernimm den Wortlaut aus dem CV UNVERÄNDERT und setze status='unknown'. Niemals raten.\n" +
 								"  Setze `status`: obtained / in_preparation / course_completed / unknown — basiert auf Worten wie 'absolviert', 'bestanden', 'in Vorbereitung', 'Lehrgang' im CV.\n" +
 								"  Setze `verbatim` mit dem Original-Wortlaut nur wenn `name` davon abweicht.\n\n" +
+								"Bei `education` schreibe NIEMALS Status-Zusätze wie '(ohne Abschluss)' in den `degree`-Titel. Wenn das Studium abgebrochen wurde, setze `completed=false`. Sonst `completed=true` (oder weglassen).\n\n" +
 								"Be conservative on identity / private fields: omit rather than guess.\n" +
-								"Write summary in the same language the CV uses.\n" +
+								"`summary` IMMER befüllen — 2-4 Sätze, Sprache des CVs. Falls der CV keinen Profil-Text enthält, formuliere selbst aus Headline + Top-Skills + jüngster Erfahrung einen sachlichen Mini-Pitch.\n" +
 								"Call save_profile.",
 						},
 					],
@@ -251,7 +263,7 @@ export class ClaudeAIProvider implements AIProvider {
 		if (!toolUse || toolUse.type !== "tool_use") {
 			throw new Error("Claude did not return a tool_use block");
 		}
-		return toolUse.input as ExtractedProfile;
+		return applyExtractionPostprocessing(toolUse.input as ExtractedProfile);
 	}
 
 	async extractDocument(

@@ -311,6 +311,7 @@
 		"skillsHint": "Eine Zeile pro Skill. Optional Level 1–5 nach Doppelpunkt.",
 		"experience": "Berufserfahrung",
 		"education": "Ausbildung",
+		"noDegree": "Kein Abschluss",
 		"summary": "Kurzprofil",
 		"compensation": "Gehalt & Wunschgehalt",
 		"compensationHint": "Wir zeigen Arbeitgebern dein Wunschgehalt nur in Match-Listen. Dein Mindestgehalt wird intern für die Fairness-Bewertung genutzt.",

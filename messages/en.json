@@ -311,6 +311,7 @@
 		"skillsHint": "One skill per line. Optional level 1–5 after a colon.",
 		"experience": "Experience",
 		"education": "Education",
+		"noDegree": "No degree",
 		"summary": "Summary",
 		"compensation": "Salary & target salary",
 		"compensationHint": "We show employers your target salary in match lists. Your minimum is used internally for fairness scoring.",

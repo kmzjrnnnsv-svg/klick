@@ -47,6 +47,7 @@ const educationSchema: z.ZodType<ProfileEducation> = z.object({
 	degree: z.string().min(1).max(120),
 	start: z.string().max(20).optional(),
 	end: z.string().max(20).optional(),
+	completed: z.boolean().optional(),
 });
 
 const profileFormSchema = z.object({
