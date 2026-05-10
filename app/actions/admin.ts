@@ -947,12 +947,10 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 		const since7 = new Date(now - 7 * 86400_000);
 		const since30 = new Date(now - 30 * 86400_000);
 
-		const cnt = async (
-			query: ReturnType<typeof db.select>,
-		): Promise<number> => {
+		// biome-ignore lint/suspicious/noExplicitAny: drizzle builder ist thenable
+		const cnt = async (query: PromiseLike<any[]>): Promise<number> => {
 			const r = await query;
-			// biome-ignore lint/suspicious/noExplicitAny: dynamic count select
-			return Number((r as any[])[0]?.n ?? 0);
+			return Number(r[0]?.n ?? 0);
 		};
 
 		const [users7d, users30d] = await Promise.all([
