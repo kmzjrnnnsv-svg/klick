@@ -228,7 +228,15 @@ export function ProfileForm({
 				await saveProfile(formData);
 				setSavedAt(new Date());
 			} catch (e) {
-				setError(e instanceof Error ? e.message : String(e));
+				// Volle Fehler-Info ins Browser-Log — damit der User auch dann
+				// was sieht wenn server-side journald nichts mehr ausspuckt.
+				console.error("[profile] saveProfile threw", e);
+				const msg = e instanceof Error ? e.message : String(e);
+				const digest =
+					e && typeof e === "object" && "digest" in e
+						? `\nDigest: ${(e as { digest?: string }).digest}`
+						: "";
+				setError(msg + digest);
 			}
 		});
 	}
@@ -802,9 +810,9 @@ export function ProfileForm({
 			</section>
 
 			{error && (
-				<p className="rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-rose-700 text-sm dark:text-rose-300">
+				<pre className="whitespace-pre-wrap rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-rose-700 text-sm dark:text-rose-300">
 					{error}
-				</p>
+				</pre>
 			)}
 
 			<div className="flex items-center gap-3">

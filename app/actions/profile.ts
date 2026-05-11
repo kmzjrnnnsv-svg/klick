@@ -271,17 +271,20 @@ export async function parseCvFromVault(
 }
 
 export async function saveProfile(formData: FormData): Promise<void> {
+	const startedAt = Date.now();
+	console.info("[profile.save] start");
 	try {
 		await saveProfileImpl(formData);
+		console.info(`[profile.save] ok in ${Date.now() - startedAt}ms`);
 	} catch (e) {
 		// Wandelt Zod-/DB-/Geocode-Errors in sprechende Messages um, damit der
 		// Client nicht das generische "An error occurred in the Server
 		// Components render"-Wall-of-Text sieht. Server-Logs bekommen die
 		// volle Stack-Trace.
-		console.error("[profile.save] failed", e);
+		console.error(`[profile.save] failed after ${Date.now() - startedAt}ms`, e);
 		if (e instanceof z.ZodError) {
 			const issues = e.issues
-				.slice(0, 3)
+				.slice(0, 5)
 				.map((i) => `${i.path.join(".") || "Feld"}: ${i.message}`)
 				.join(" · ");
 			throw new Error(`Profil-Daten ungültig — ${issues}`);
