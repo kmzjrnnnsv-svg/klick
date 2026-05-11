@@ -196,6 +196,19 @@ async function autoSeedCareerAnalysis(userId: string): Promise<void> {
 			(existing.primaryIndustries?.length ?? 0) > 0);
 	if (existingIsSubstantial) return;
 
+	// User-Locale lesen — Analyse wird in der UI-Sprache geschrieben.
+	let userLocale: "de" | "en" = "de";
+	try {
+		const [u] = await db
+			.select({ locale: users.locale })
+			.from(users)
+			.where(eq(users.id, userId))
+			.limit(1);
+		if (u?.locale === "en") userLocale = "en";
+	} catch (e) {
+		console.warn("[vault.auto-career] reading user locale failed", e);
+	}
+
 	const ai = getCareerAIProvider();
 	const analysis = await ai.analyzeCareerProspects({
 		profile: {
@@ -216,6 +229,7 @@ async function autoSeedCareerAnalysis(userId: string): Promise<void> {
 		},
 		yearsActive: profile.yearsExperience ?? undefined,
 		insights: profile.insights,
+		locale: userLocale,
 	});
 
 	await db

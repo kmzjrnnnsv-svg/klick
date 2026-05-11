@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, Sparkles } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { refreshCareerAnalysis } from "@/app/actions/career";
 import { Button } from "@/components/ui/button";
@@ -112,6 +112,8 @@ export function CareerAnalysisView({
 	updatedAt: Date | null;
 }) {
 	const t = useTranslations("Career");
+	const localeRaw = useLocale();
+	const uiLocale: "de" | "en" = localeRaw === "en" ? "en" : "de";
 	const [analysis, setAnalysis] = useState<CareerAnalysis | null>(initial);
 	const [generatedAt, setGeneratedAt] = useState<Date | null>(updatedAt);
 	const [error, setError] = useState<string | null>(null);
@@ -182,6 +184,14 @@ export function CareerAnalysisView({
 		certificationSuggestions.length === 0 &&
 		hiringPros.length === 0;
 
+	// Sprach-Mismatch: Analyse ist auf z. B. Deutsch, UI ist EN. Den User
+	// auf neu auswerten stoßen — die KI generiert dann direkt in der
+	// aktuellen UI-Sprache. Alte Einträge ohne `language`-Feld gelten
+	// implizit als deutsch (das war der Default bevor wir die Locale
+	// durchgereicht haben).
+	const analysisLanguage: "de" | "en" = analysis.language ?? "de";
+	const localeMismatch = !looksIncomplete && analysisLanguage !== uiLocale;
+
 	return (
 		<div className="space-y-6">
 			{isPending && <ProgressPanel tone="inline" done={false} />}
@@ -198,6 +208,24 @@ export function CareerAnalysisView({
 					>
 						<Sparkles className="h-3 w-3" strokeWidth={1.5} />
 						{t("regenerateNow")}
+					</button>
+				</div>
+			)}
+			{localeMismatch && !isPending && (
+				<div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-primary/30 bg-primary/5 p-3">
+					<p className="text-foreground/90 text-xs leading-relaxed">
+						{t("localeMismatchHint", {
+							lang: analysisLanguage === "de" ? "Deutsch" : "English",
+						})}
+					</p>
+					<button
+						type="button"
+						onClick={refresh}
+						disabled={isPending}
+						className="lv-eyebrow inline-flex items-center gap-2 rounded-sm border border-primary/40 bg-background px-3 py-1.5 text-[0.55rem] text-primary hover:bg-primary/10 disabled:opacity-60"
+					>
+						<Sparkles className="h-3 w-3" strokeWidth={1.5} />
+						{t("regenerateInLocale", { lang: uiLocale.toUpperCase() })}
 					</button>
 				</div>
 			)}

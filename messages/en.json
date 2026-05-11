@@ -1832,6 +1832,8 @@
 		"regenerate": "Regenerate",
 		"regenerating": "Updating…",
 		"regenerateNow": "Generate now",
+		"regenerateInLocale": "Regenerate in {lang}",
+		"localeMismatchHint": "This analysis is in {lang}, your UI is in another language right now. Want to regenerate it in the current language?",
 		"incompleteHint": "This analysis is incomplete — probably from an earlier profile version. Regenerate it so strengths, industry matches, certification suggestions and pros/cons reflect your current state.",
 		"updatedAt": "As of: {date}",
 		"salaryBand": "Salary band",

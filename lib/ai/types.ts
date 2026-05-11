@@ -358,6 +358,9 @@ export interface AIProvider {
 		profile: ExtractedProfile;
 		yearsActive?: number;
 		insights?: unknown;
+		// UI-Sprache in der die prose-Felder (headline, rationales, notes)
+		// formuliert werden sollen. Default 'de'.
+		locale?: "de" | "en";
 	}): Promise<CareerAnalysis>;
 	// Analytical signal on a job posting itself. Helps employers/headhunter
 	// see whether the role is well-described and helps the matching engine
@@ -433,6 +436,10 @@ export type ProfileTranslationOutput = {
 // Shape returned by analyzeCareerProspects. Rich enough to power a
 // dedicated /profile section.
 export type CareerAnalysis = {
+	// Sprache in der die prose-Felder geschrieben sind. Wird bei der
+	// Generierung gesetzt; Felder ohne language gelten implizit als 'de'
+	// (alte DB-Einträge vor diesem Feld).
+	language?: "de" | "en";
 	// One-paragraph executive summary (~80 words).
 	headline: string;
 	// 3-5 strengths the candidate can lean into.
