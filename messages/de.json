@@ -1224,6 +1224,9 @@
 	"Insights": {
 		"empty": "Sobald du dein Profil ausgefüllt oder einen CV hochgeladen hast, erscheinen hier die berechneten Karriere-Insights.",
 		"narrativeTitle": "Profil-Lesart",
+		"narrativeEmpty": "Noch keine KI-Lesart vorhanden. Generiere sie aus deinem aktuellen Profil + CV.",
+		"regenerate": "Neu generieren",
+		"regenerating": "Aktualisiere…",
 		"yearsActive": "Berufsjahre aktiv",
 		"yearsActiveHint": "Summe aller Anstellungs-Phasen.",
 		"yearsContinuous": "Längste durchgehend",
@@ -1828,6 +1831,8 @@
 		"generating": "KI denkt nach…",
 		"regenerate": "Neu auswerten",
 		"regenerating": "Aktualisiere…",
+		"regenerateNow": "Jetzt auswerten",
+		"incompleteHint": "Diese Auswertung ist unvollständig — wahrscheinlich aus einer früheren Profil-Version. Erstelle sie neu, dann werden Stärken, Branchen-Treffer, Zertifizierungs-Vorschläge und Pro/Contra mit deinem aktuellen Stand gefüllt.",
 		"updatedAt": "Stand: {date}",
 		"salaryBand": "Gehaltsband",
 		"salaryRange": "Range: {low} € – {high} €",

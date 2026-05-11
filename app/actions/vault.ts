@@ -148,10 +148,80 @@ async function extractAndPersist(
 	await recomputeInsights(userId);
 	if (extracted.kind === "cv") {
 		await recomputeMatchesForCandidate(userId);
+		// Frischer CV → KI-Gehaltsband automatisch für Deutschland holen,
+		// damit der User direkt eine Empfehlung sieht statt nur einen
+		// leeren KI-Empfehlung-Button. Fehlerschluckend, blockiert nichts.
+		await autoSeedSalaryRecommendation(userId).catch((e) => {
+			console.error("[vault.extract] auto-salary failed", e);
+		});
 	}
 
 	revalidatePath("/vault");
 	revalidatePath("/profile");
+}
+
+// Nach einem frisch geparsten CV automatisch eine Gehaltsempfehlung für
+// Deutschland holen und in salaryByCountry persistieren. Wird NICHT
+// überschrieben wenn der User bereits ein DE-Land mit Eigen-Recommendation
+// hinterlegt hat.
+async function autoSeedSalaryRecommendation(userId: string): Promise<void> {
+	const [profile] = await db
+		.select()
+		.from(candidateProfiles)
+		.where(eq(candidateProfiles.userId, userId))
+		.limit(1);
+	if (!profile) return;
+
+	// Genug Signal? Sonst ist die KI-Empfehlung Müll.
+	const hasSignal =
+		(profile.skills?.length ?? 0) >= 3 ||
+		(profile.yearsExperience ?? 0) >= 1 ||
+		!!profile.headline;
+	if (!hasSignal) return;
+
+	const existing = profile.salaryByCountry ?? [];
+	const existingDe = existing.find((c) => c.country === "DE");
+	if (existingDe?.recommendation) return;
+
+	const ai = getAIProvider();
+	const rec = await ai.recommendCandidateSalary({
+		profile: {
+			headline: profile.headline ?? undefined,
+			location: profile.location ?? undefined,
+			yearsExperience: profile.yearsExperience ?? undefined,
+			skills: profile.skills ?? undefined,
+			experience: profile.experience ?? undefined,
+			education: profile.education ?? undefined,
+			summary: profile.summary ?? undefined,
+			industries: profile.industries ?? undefined,
+			preferredRoleLevel: profile.preferredRoleLevel ?? undefined,
+		},
+		country: "DE",
+		currency: "EUR",
+	});
+
+	const generatedAt = new Date().toISOString();
+	const nextDe: (typeof existing)[number] = {
+		country: "DE",
+		currency: "EUR",
+		min: existingDe?.min,
+		desired: existingDe?.desired,
+		recommendation: {
+			low: rec.low,
+			mid: rec.mid,
+			high: rec.high,
+			rationale: rec.rationale,
+			generatedAt,
+		},
+	};
+	const next = existingDe
+		? existing.map((c) => (c.country === "DE" ? nextDe : c))
+		: [...existing, nextDe];
+
+	await db
+		.update(candidateProfiles)
+		.set({ salaryByCountry: next })
+		.where(eq(candidateProfiles.userId, userId));
 }
 
 // Conservative merge: only fill candidate profile fields that are currently

@@ -15,6 +15,7 @@ import type { CandidateProfile } from "@/db/schema";
 import { classifyIssuer } from "@/lib/insights/issuers";
 import type { CandidateInsights } from "@/lib/insights/types";
 import { cn } from "@/lib/utils";
+import { NarrativeRefreshButton } from "./narrative-refresh-button";
 
 // Subset of CandidateProfile we surface in the "extracted from CV" section.
 // Passed in optionally so the component still works on screens that don't
@@ -39,10 +40,14 @@ export function CandidateInsightsView({
 	insights,
 	profileExtras,
 	emptyHint,
+	showRefresh,
 }: {
 	insights: CandidateInsights | null;
 	profileExtras?: ProfileExtras | null;
 	emptyHint?: string;
+	// Nur auf dem eigenen Profil sinnvoll — Arbeitgeber-Match-Liste und
+	// Public-Share-Link sollen den Knopf nicht zeigen.
+	showRefresh?: boolean;
 }) {
 	const t = useTranslations("Insights");
 	const locale = useLocale() as "de" | "en";
@@ -90,6 +95,16 @@ export function CandidateInsightsView({
 
 	return (
 		<div className="space-y-4">
+			{!narrative && showRefresh && (
+				<section className="rounded-lg border border-primary/30 border-dashed bg-primary/5 p-3.5 sm:p-4">
+					<div className="mb-1.5 flex items-center gap-2 text-primary text-xs uppercase tracking-wide">
+						<Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
+						{t("narrativeTitle")}
+					</div>
+					<p className="text-muted-foreground text-xs">{t("narrativeEmpty")}</p>
+					<NarrativeRefreshButton />
+				</section>
+			)}
 			{narrative && (
 				<section className="rounded-lg border border-primary/30 bg-primary/5 p-3.5 sm:p-4">
 					<div className="mb-1.5 flex items-center gap-2 text-primary text-xs uppercase tracking-wide">
@@ -122,6 +137,7 @@ export function CandidateInsightsView({
 							))}
 						</ul>
 					)}
+					{showRefresh && <NarrativeRefreshButton />}
 				</section>
 			)}
 

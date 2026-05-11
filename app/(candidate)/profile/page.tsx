@@ -92,6 +92,7 @@ export default async function ProfilePage() {
 									}
 								: null
 						}
+						showRefresh
 					/>
 				</section>
 
