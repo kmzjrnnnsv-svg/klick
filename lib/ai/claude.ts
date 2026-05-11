@@ -1061,6 +1061,7 @@ Schema pro Eintrag:
 	async analyzeCareerProspects(input: {
 		profile: ExtractedProfile;
 		yearsActive?: number;
+		insights?: unknown;
 	}): Promise<CareerAnalysis> {
 		// Tight caps: jede Liste auf max 4-5 Einträge, jede rationale unter
 		// 180 Zeichen. Das reduziert die Output-Tokens deutlich und damit die
@@ -1190,14 +1191,39 @@ Schema pro Eintrag:
 			],
 			tool_choice: { type: "tool", name: "save_career_analysis" },
 			system:
-				"Du bist erfahrene:r Career Coach mit DACH-Marktwissen Stand 2026. Antworte ausschließlich über das save_career_analysis-Tool. Schreibe SO KURZ WIE MÖGLICH innerhalb der maxLength-Grenzen — Tiefe vor Breite, keine Wiederholungen.",
+				"Du bist erfahrene:r Career Coach mit DACH-Marktwissen Stand 2026. Antworte ausschließlich über das save_career_analysis-Tool. " +
+				"WICHTIG: Du MUSST ALLE Felder füllen — kein einziges leer lassen. " +
+				"Wenn ein Feld dünn wirkt, leite plausible Werte aus den vorhandenen Skills/Experience/Education ab. " +
+				"Schreibe SO KURZ WIE MÖGLICH innerhalb der maxLength-Grenzen — Tiefe vor Breite, keine Wiederholungen.",
 			messages: [
 				{
 					role: "user",
-					content: JSON.stringify({
-						profile: input.profile,
-						yearsActive: input.yearsActive,
-					}),
+					content:
+						`Datenbasis für die Karriere-Analyse:\n\n` +
+						`PROFIL:\n${JSON.stringify(input.profile, null, 2)}\n\n` +
+						(input.yearsActive
+							? `GESAMT-Berufsjahre: ${input.yearsActive}\n\n`
+							: "") +
+						(input.insights
+							? `BERECHNETE INSIGHTS (Tenure, Zertifikats-Analytics, Narrative):\n${JSON.stringify(
+									input.insights,
+									null,
+									2,
+								).slice(0, 6000)}\n\n`
+							: "") +
+						`Pflicht-Output (über save_career_analysis):\n` +
+						`- headline: 1 Absatz max 60 Wörter, fasst Profil zusammen.\n` +
+						`- strengths: 3-5 KONKRETE Stärken mit Beleg (Jahre, Domain, Tool).\n` +
+						`- growthAreas: 3-5 ehrliche Lücken/Wachstumsfelder.\n` +
+						`- salary: EUR-Band für DACH-Markt mit kurzer rationale.\n` +
+						`- primaryIndustries: 2-5 offensichtliche Branchen-Treffer.\n` +
+						`- adjacentIndustries: 2-4 NICHT-offensichtliche Branchen mit kurzer Begründung warum sie passen.\n` +
+						`- certificationSuggestions: 2-4 sinnvolle Zertifikate für nächsten Karriere-Schritt (Name + Issuer + Aufwand-Stunden + Begründung).\n` +
+						`- roleSuggestions: 3-5 Rollen-Titel (mix aus obvious=true + obvious=false), jeweils kurze rationale.\n` +
+						`- hiringPros: 3-4 Argumente für eine Einstellung dieses Profils.\n` +
+						`- hiringCons: 2-4 ehrliche Argumente dagegen / Risiken.\n` +
+						`- marketContext: demand-Level + 2-3 Sätze Markt-Notes.\n\n` +
+						`Jedes Feld muss gefüllt sein — wenn die Daten dünn sind, formuliere vorsichtig ("vermutlich", "abhängig von …"), aber liefere ab.`,
 				},
 			],
 		});

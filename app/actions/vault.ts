@@ -154,10 +154,63 @@ async function extractAndPersist(
 		await autoSeedSalaryRecommendation(userId).catch((e) => {
 			console.error("[vault.extract] auto-salary failed", e);
 		});
+		// Karriere-Analyse asynchron im Hintergrund anstoßen. Läuft mit
+		// nach() → User-Response wartet nicht. Beim nächsten /profile-
+		// Aufruf ist die Auswertung fertig.
+		after(() =>
+			autoSeedCareerAnalysis(userId).catch((e) => {
+				console.error("[vault.extract] auto-career failed", e);
+			}),
+		);
 	}
 
 	revalidatePath("/vault");
 	revalidatePath("/profile");
+}
+
+// Erst-Auswertung der Karriere im Hintergrund nach CV-Parse. Überschreibt
+// existierende Analyse NICHT — wenn der User schon eine hat (auch eine
+// alte), bleibt sie bis zum manuellen "Neu auswerten" stehen.
+async function autoSeedCareerAnalysis(userId: string): Promise<void> {
+	const [profile] = await db
+		.select()
+		.from(candidateProfiles)
+		.where(eq(candidateProfiles.userId, userId))
+		.limit(1);
+	if (!profile) return;
+	if (profile.careerAnalysis) return; // bereits vorhanden — nicht überschreiben
+	const hasSignal =
+		(profile.skills?.length ?? 0) >= 3 ||
+		(profile.yearsExperience ?? 0) >= 1 ||
+		!!profile.headline;
+	if (!hasSignal) return;
+
+	const ai = getAIProvider();
+	const analysis = await ai.analyzeCareerProspects({
+		profile: {
+			displayName: profile.displayName ?? undefined,
+			headline: profile.headline ?? undefined,
+			location: profile.location ?? undefined,
+			yearsExperience: profile.yearsExperience ?? undefined,
+			languages: profile.languages ?? undefined,
+			skills: profile.skills ?? undefined,
+			experience: profile.experience ?? undefined,
+			education: profile.education ?? undefined,
+			summary: profile.summary ?? undefined,
+			industries: profile.industries ?? undefined,
+			awards: profile.awards ?? undefined,
+			certificationsMentioned: profile.certificationsMentioned ?? undefined,
+			mobility: profile.mobility ?? undefined,
+			preferredRoleLevel: profile.preferredRoleLevel ?? undefined,
+		},
+		yearsActive: profile.yearsExperience ?? undefined,
+		insights: profile.insights,
+	});
+
+	await db
+		.update(candidateProfiles)
+		.set({ careerAnalysis: analysis, careerAnalysisAt: new Date() })
+		.where(eq(candidateProfiles.userId, userId));
 }
 
 // Nach einem frisch geparsten CV automatisch eine Gehaltsempfehlung für
