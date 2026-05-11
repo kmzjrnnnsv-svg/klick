@@ -36,6 +36,24 @@ export type FocusStats = {
 	}>;
 };
 
+// Detects time-overlap between roles — e.g. main job + freelance, or two
+// part-time positions running in parallel. Surfaced as a positive signal
+// (capacity, breadth) rather than red flag.
+export type ParallelStats = {
+	// Total months where ≥2 roles ran simultaneously, double-counted not
+	// summed — i.e. if 3 roles overlap for 4 months, that's 4 not 8.
+	overlapMonths: number;
+	// Highest count of roles running at the same time (e.g. 2 = at some
+	// point two parallel roles; 3 = at some point three).
+	peakConcurrency: number;
+	// Distinct pairs that overlapped at any point, sorted by overlap length.
+	pairs: Array<{
+		a: { company: string; role: string };
+		b: { company: string; role: string };
+		months: number;
+	}>;
+};
+
 export type TenureStats = {
 	totalRoles: number;
 	averageMonths: number;
@@ -59,6 +77,7 @@ export type TenureStats = {
 	}>;
 	mix: EmploymentMix;
 	focus: FocusStats;
+	parallel: ParallelStats;
 };
 
 export type CertificateStats = {

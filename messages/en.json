@@ -1289,10 +1289,16 @@
 			"other": "Off-track / Other"
 		},
 		"focus": {
-			"title": "Focus vs. career detours",
-			"onTrack": "on track",
-			"body": "{focused} roles in the core field, {detour} outside declared skills / education.",
-			"showDetours": "Show {n} detours"
+			"title": "Field focus",
+			"onTrack": "in core field",
+			"body": "{focused} roles in the core field, {detour} in other areas.",
+			"showDetours": "Show {n} in other areas"
+		},
+		"parallel": {
+			"title": "Multi-track career",
+			"badge": "{peak} in parallel",
+			"body": "{duration} total with at least two roles at the same time — a signal of capacity and initiative.",
+			"showPairs": "Show {n} parallel roles"
 		},
 		"extras": {
 			"title": "Read from the CV",

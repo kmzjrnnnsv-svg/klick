@@ -4,6 +4,7 @@ import { Languages, Loader2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { translateTexts } from "@/app/actions/translate";
+import type { ProfileExperience } from "@/db/schema";
 
 function looksGerman(text: string): boolean {
 	const t = text.toLowerCase();
@@ -78,21 +79,14 @@ export function ProfileFieldTranslate({
 
 // Bulk-Translate für die Experience-Liste: übersetzt jede description in
 // einem einzigen API-Call und schreibt sie zurück.
-type ExperienceItem = {
-	company: string;
-	role: string;
-	start: string;
-	end?: string;
-	description?: string;
-	employmentType?: string;
-};
-
+// Type stammt aus db/schema, damit hier kein paralleles Shape-Driften
+// entsteht — siehe CLAUDE.md.
 export function ProfileExperienceTranslate({
 	items,
 	setItems,
 }: {
-	items: ExperienceItem[];
-	setItems: (next: ExperienceItem[]) => void;
+	items: ProfileExperience[];
+	setItems: (next: ProfileExperience[]) => void;
 }) {
 	const t = useTranslations("Translate");
 	const localeRaw = useLocale();

@@ -178,6 +178,10 @@ function computeTenure(
 			}
 		: undefined;
 
+	// Parallel work: positive signal. Sweep-line over month-points to find
+	// how often ≥2 roles ran at the same time, plus pairwise overlap.
+	const parallel = computeParallel(rows);
+
 	// Gaps between merged employment ranges.
 	const merged = mergeRanges(rows.map((r) => ({ start: r.start, end: r.end })));
 	const gaps: TenureStats["gaps"] = [];
@@ -210,6 +214,63 @@ function computeTenure(
 			detourMonths: focus.detourMonths,
 			detours: focus.detours.slice(0, 5),
 		},
+		parallel,
+	};
+}
+
+// Detect time-overlap between roles. Returns peak concurrency, total
+// double-covered months, and the pairs with the longest overlap.
+function computeParallel(
+	rows: Array<{ e: ProfileExperience; start: number; end: number }>,
+): TenureStats["parallel"] {
+	if (rows.length < 2) {
+		return { overlapMonths: 0, peakConcurrency: rows.length, pairs: [] };
+	}
+
+	// Sweep-line: collect (month, delta) events, sort, walk through.
+	const events: Array<{ at: number; delta: number }> = [];
+	for (const r of rows) {
+		events.push({ at: r.start, delta: +1 });
+		events.push({ at: r.end, delta: -1 });
+	}
+	events.sort((a, b) => a.at - b.at || b.delta - a.delta);
+
+	let active = 0;
+	let peak = 0;
+	let overlap = 0;
+	let lastAt = events[0]?.at ?? 0;
+	for (const ev of events) {
+		// Months we just crossed at `active` level
+		if (active >= 2) overlap += ev.at - lastAt;
+		active += ev.delta;
+		peak = Math.max(peak, active);
+		lastAt = ev.at;
+	}
+
+	// Pairwise overlap — only keep pairs that actually overlap, then top 5.
+	const pairs: TenureStats["parallel"]["pairs"] = [];
+	for (let i = 0; i < rows.length; i++) {
+		for (let j = i + 1; j < rows.length; j++) {
+			const a = rows[i];
+			const b = rows[j];
+			const start = Math.max(a.start, b.start);
+			const end = Math.min(a.end, b.end);
+			const months = end - start;
+			// Below 2 months is just a job-change ramp, not real parallelism.
+			if (months < 2) continue;
+			pairs.push({
+				a: { company: a.e.company, role: a.e.role },
+				b: { company: b.e.company, role: b.e.role },
+				months,
+			});
+		}
+	}
+	pairs.sort((x, y) => y.months - x.months);
+
+	return {
+		overlapMonths: Math.max(0, overlap),
+		peakConcurrency: Math.max(1, peak),
+		pairs: pairs.slice(0, 5),
 	};
 }
 

@@ -1289,10 +1289,16 @@
 			"other": "Fachfremd / Sonstiges"
 		},
 		"focus": {
-			"title": "Fokus vs. Karriere-Abstecher",
-			"onTrack": "auf Kurs",
-			"body": "{focused} Stationen im Kernfeld, {detour} außerhalb der angegebenen Skills / Ausbildung.",
-			"showDetours": "{n} Abstecher anzeigen"
+			"title": "Tätigkeits-Schwerpunkt",
+			"onTrack": "im Kernfeld",
+			"body": "{focused} Stationen im Kernfeld, {detour} in anderen Bereichen.",
+			"showDetours": "{n} in anderen Bereichen anzeigen"
+		},
+		"parallel": {
+			"title": "Mehrgleisig unterwegs",
+			"badge": "{peak} parallel",
+			"body": "{duration} insgesamt mit mindestens zwei Rollen gleichzeitig — Zeichen für Kapazität und Eigeninitiative.",
+			"showPairs": "{n} parallele Stationen anzeigen"
 		},
 		"extras": {
 			"title": "Aus dem Lebenslauf gelesen",
