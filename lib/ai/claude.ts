@@ -1062,14 +1062,25 @@ Schema pro Eintrag:
 		profile: ExtractedProfile;
 		yearsActive?: number;
 	}): Promise<CareerAnalysis> {
+		// Tight caps: jede Liste auf max 4-5 Einträge, jede rationale unter
+		// 180 Zeichen. Das reduziert die Output-Tokens deutlich und damit die
+		// API-Latenz — wichtig damit wir unter Reverse-Proxy-Timeouts (nginx
+		// default 60s) bleiben.
 		const careerSchema = {
 			type: "object" as const,
 			properties: {
-				headline: { type: "string", maxLength: 800 },
-				strengths: { type: "array", items: { type: "string", maxLength: 200 } },
+				headline: { type: "string", maxLength: 400 },
+				strengths: {
+					type: "array",
+					minItems: 3,
+					maxItems: 5,
+					items: { type: "string", maxLength: 140 },
+				},
 				growthAreas: {
 					type: "array",
-					items: { type: "string", maxLength: 200 },
+					minItems: 3,
+					maxItems: 5,
+					items: { type: "string", maxLength: 140 },
 				},
 				salary: {
 					type: "object",
@@ -1078,30 +1089,39 @@ Schema pro Eintrag:
 						mid: { type: "integer", minimum: 0 },
 						high: { type: "integer", minimum: 0 },
 						currency: { type: "string" },
-						rationale: { type: "string", maxLength: 500 },
+						rationale: { type: "string", maxLength: 300 },
 					},
 					required: ["low", "mid", "high", "currency", "rationale"],
 				},
-				primaryIndustries: { type: "array", items: { type: "string" } },
+				primaryIndustries: {
+					type: "array",
+					minItems: 2,
+					maxItems: 5,
+					items: { type: "string", maxLength: 40 },
+				},
 				adjacentIndustries: {
 					type: "array",
+					minItems: 2,
+					maxItems: 4,
 					items: {
 						type: "object",
 						properties: {
-							name: { type: "string" },
-							rationale: { type: "string", maxLength: 300 },
+							name: { type: "string", maxLength: 40 },
+							rationale: { type: "string", maxLength: 180 },
 						},
 						required: ["name", "rationale"],
 					},
 				},
 				certificationSuggestions: {
 					type: "array",
+					minItems: 2,
+					maxItems: 4,
 					items: {
 						type: "object",
 						properties: {
-							name: { type: "string" },
-							issuer: { type: "string" },
-							why: { type: "string", maxLength: 300 },
+							name: { type: "string", maxLength: 80 },
+							issuer: { type: "string", maxLength: 40 },
+							why: { type: "string", maxLength: 180 },
 							effortHours: { type: "integer", minimum: 0 },
 						},
 						required: ["name", "issuer", "why", "effortHours"],
@@ -1109,11 +1129,13 @@ Schema pro Eintrag:
 				},
 				roleSuggestions: {
 					type: "array",
+					minItems: 3,
+					maxItems: 5,
 					items: {
 						type: "object",
 						properties: {
-							title: { type: "string" },
-							rationale: { type: "string", maxLength: 300 },
+							title: { type: "string", maxLength: 60 },
+							rationale: { type: "string", maxLength: 180 },
 							obvious: { type: "boolean" },
 						},
 						required: ["title", "rationale", "obvious"],
@@ -1121,17 +1143,21 @@ Schema pro Eintrag:
 				},
 				hiringPros: {
 					type: "array",
-					items: { type: "string", maxLength: 200 },
+					minItems: 3,
+					maxItems: 4,
+					items: { type: "string", maxLength: 140 },
 				},
 				hiringCons: {
 					type: "array",
-					items: { type: "string", maxLength: 200 },
+					minItems: 2,
+					maxItems: 4,
+					items: { type: "string", maxLength: 140 },
 				},
 				marketContext: {
 					type: "object",
 					properties: {
 						demand: { type: "string", enum: ["high", "medium", "low"] },
-						notes: { type: "string", maxLength: 500 },
+						notes: { type: "string", maxLength: 300 },
 					},
 					required: ["demand", "notes"],
 				},
@@ -1153,18 +1179,18 @@ Schema pro Eintrag:
 
 		const result = await this.client.messages.create({
 			model: "claude-sonnet-4-6",
-			max_tokens: 4096,
+			max_tokens: 2500,
 			tools: [
 				{
 					name: "save_career_analysis",
 					description:
-						"Speichert die Karriere-Analyse für den/die Bewerber:in. Sei konkret und marktnah (DACH 2026), nicht generisch — keine Buzzwords, klare Begründungen. headline ist 1 Absatz (~80 Wörter). strengths/growthAreas je 3-5 Einträge. adjacentIndustries sind nicht-offensichtliche Branchen-Treffer. roleSuggestions: `obvious=true` für naheliegende Rollen, `obvious=false` für überraschende. salary in EUR.",
+						"Speichert die Karriere-Analyse für den/die Bewerber:in. Sei konkret und marktnah (DACH 2026), nicht generisch — keine Buzzwords, klare Begründungen. headline ist 1 kurzer Absatz (max 60 Wörter). Halte ALLE Listen knapp (3-5 Einträge je). adjacentIndustries sind nicht-offensichtliche Branchen-Treffer. roleSuggestions: `obvious=true` für naheliegende Rollen, `obvious=false` für überraschende. salary in EUR.",
 					input_schema: careerSchema,
 				},
 			],
 			tool_choice: { type: "tool", name: "save_career_analysis" },
 			system:
-				"Du bist erfahrene:r Career Coach mit DACH-Marktwissen Stand 2026. Antworte ausschließlich über das save_career_analysis-Tool.",
+				"Du bist erfahrene:r Career Coach mit DACH-Marktwissen Stand 2026. Antworte ausschließlich über das save_career_analysis-Tool. Schreibe SO KURZ WIE MÖGLICH innerhalb der maxLength-Grenzen — Tiefe vor Breite, keine Wiederholungen.",
 			messages: [
 				{
 					role: "user",

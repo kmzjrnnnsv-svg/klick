@@ -94,6 +94,9 @@ export async function refreshCareerAnalysis(): Promise<CareerActionResult> {
 			// Hard timeout — reverse-Proxy (nginx default 60s) würde sonst die
 			// Response abschneiden und der Client sieht ein generisches
 			// "An unexpected response was received from the server".
+			// 120s gibt Claude für die strukturierte Analyse (Salary +
+			// Stärken + Wachstumsfelder + Branchen + Zertifizierungen +
+			// Rollen + Pros/Cons + Markt) realistischen Spielraum.
 			analysis = await Promise.race<CareerAnalysis>([
 				ai.analyzeCareerProspects({
 					profile: profileToExtracted(profile),
@@ -102,8 +105,8 @@ export async function refreshCareerAnalysis(): Promise<CareerActionResult> {
 				}),
 				new Promise<CareerAnalysis>((_, reject) =>
 					setTimeout(
-						() => reject(new Error("Timeout nach 50s – versuch's nochmal.")),
-						50_000,
+						() => reject(new Error("Timeout nach 120s – versuch's nochmal.")),
+						120_000,
 					),
 				),
 			]);
