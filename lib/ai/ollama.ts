@@ -45,6 +45,27 @@ type OllamaChatResponse = {
 	done: boolean;
 };
 
+// Qwen2.5 (chinesisches Modell) lässt manchmal CJK-Zeichen in deutschem
+// Text leaken — z. B. "VDMA,侷". Block-Listen-Regex entfernt CJK,
+// Hiragana, Katakana, Hangul, Arabisch, Hebräisch, Kyrillisch, Greek,
+// Devanagari, Thai etc. — alles was nicht zu deutschem/englischem Text
+// passt. Lateinische Akzente (ä/ö/ü/ß/é/è) bleiben drin.
+function stripNonLatin(s: string): string {
+	if (!s) return s;
+	return s.replace(
+		/[一-鿿㐀-䶿豈-﫿぀-ゟ゠-ヿㇰ-ㇿ가-힯؀-ۿ֐-׿Ѐ-ӿͰ-Ͽऀ-ॿ฀-๿຀-໿ༀ-࿿က-႟Ⴀ-ჿ　-〿]/g,
+		"",
+	);
+}
+
+function sanitizeNarrative(n: CandidateNarrative): CandidateNarrative {
+	return {
+		summary: stripNonLatin(n.summary ?? ""),
+		workStyle: (n.workStyle ?? []).map(stripNonLatin).filter(Boolean),
+		strengths: (n.strengths ?? []).map(stripNonLatin).filter(Boolean),
+	};
+}
+
 export class OllamaAIProvider implements AIProvider {
 	readonly slug = "ollama";
 
@@ -465,22 +486,59 @@ export class OllamaAIProvider implements AIProvider {
 		const schema = {
 			type: "object",
 			properties: {
-				summary: { type: "string", maxLength: 280 },
-				workStyle: { type: "array", items: { type: "string" }, maxItems: 5 },
-				strengths: { type: "array", items: { type: "string" }, maxItems: 4 },
+				summary: { type: "string", maxLength: 900 },
+				workStyle: {
+					type: "array",
+					minItems: 4,
+					maxItems: 8,
+					items: { type: "string", maxLength: 40 },
+				},
+				strengths: {
+					type: "array",
+					minItems: 5,
+					maxItems: 10,
+					items: { type: "string", maxLength: 160 },
+				},
 			},
 			required: ["summary", "workStyle", "strengths"],
 		};
-		return await this.chat<CandidateNarrative>(
-			"Du schreibst sachliche Kandidaten-Zusammenfassungen für Arbeitgeber. Keine Floskeln. Bei Jahres-Angaben: 'insgesamt X Jahre' nicht 'zuvor X Jahre' — die GESAMT-Berufsjahre enthalten die aktuelle Rolle bereits.",
+		// Skills nach Level absteigend sortiert — Modell soll Top-Skills (4-5)
+		// als "Schwerpunkt" formulieren, niedrigere als "Kenntnisse". Levels
+		// ohne Angabe gelten als 3 (Mittel).
+		const sortedSkills = [...input.skills].sort(
+			(a, b) => (b.level ?? 3) - (a.level ?? 3),
+		);
+		const primary = sortedSkills.filter((s) => (s.level ?? 3) >= 4);
+		const secondary = sortedSkills.filter((s) => (s.level ?? 3) < 4);
+		const out = await this.chat<CandidateNarrative>(
+			"Du schreibst sachliche Kandidaten-Lesarten für Arbeitgeber auf DEUTSCH. " +
+				"WICHTIG: Antworte AUSSCHLIESSLICH in deutscher Sprache mit lateinischen Zeichen. " +
+				"Keine chinesischen, japanischen oder anderen nicht-lateinischen Schriftzeichen. " +
+				"Wenn dir kein deutsches Wort einfällt, nimm das englische Original (z. B. 'Information Security Officer'). " +
+				"WICHTIG: Skills mit Level 4-5 sind aktive Schwerpunkte ('aktiv tätig in', 'Fokus auf'). " +
+				"Skills mit Level 1-3 sind nur Kenntnisse ('vertraut mit', 'Grundkenntnisse in'). " +
+				"NIEMALS Skills mit Level 1-3 als Schwerpunkt darstellen. " +
+				"Bei Jahres-Angaben: 'insgesamt X Jahre' nicht 'zuvor X Jahre' — die GESAMT-Berufsjahre enthalten die aktuelle Rolle bereits. " +
+				"summary: 4-5 zusammenhängende Sätze, immer mit Punkt enden. " +
+				"workStyle: 4-8 Themen-Tags (Frameworks, Normen, Tools — keine Soft-Skills). " +
+				"strengths: 5-10 konkrete Punkte mit Kontext (Jahre, Domain).",
 			`Headline: ${input.headline ?? "—"}\n` +
+				`Selbst-Summary: ${input.summary?.slice(0, 800) ?? "—"}\n` +
 				`GESAMT-Jahre (inkl. aktueller Rolle, Stand ${input.asOf}): ${input.yearsActive}\n` +
 				`Davor (vor aktueller Rolle): ${input.previousYearsBeforeCurrent} Jahre\n` +
-				`Aktuell: ${input.currentRole?.role ?? "—"} bei ${input.currentRole?.company ?? "—"}\n` +
-				`Skills: ${input.skills.join(", ")}\n` +
-				`Stationen: ${input.totalRoles}, Lücken: ${input.gaps}`,
+				`Längste durchgehende Phase: ${input.yearsContinuous} Jahre\n` +
+				`Aktuell: ${input.currentRole?.role ?? "—"} bei ${input.currentRole?.company ?? "—"}` +
+				(input.currentRole
+					? ` seit ${Math.round(input.currentRole.monthsOngoing / 12)} Jahren`
+					: "") +
+				`\n` +
+				`AKTIVE SCHWERPUNKTE (Level 4-5): ${primary.map((s) => `${s.name}:${s.level ?? "?"}`).join(", ") || "—"}\n` +
+				`Sonstige Kenntnisse (Level 1-3): ${secondary.map((s) => `${s.name}:${s.level ?? "?"}`).join(", ") || "—"}\n` +
+				`Stationen: ${input.totalRoles}, Lücken: ${input.gaps}\n` +
+				`Zertifikate: ${input.certificateCount} (${input.certificatePattern})`,
 			schema,
 		);
+		return sanitizeNarrative(out);
 	}
 
 	async benchmarkSalary(input: SalaryBenchmarkInput): Promise<SalaryBenchmark> {
