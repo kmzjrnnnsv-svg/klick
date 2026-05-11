@@ -17,6 +17,7 @@ const INSIGHTS_STALE_AFTER_DAYS = 7;
 // Recompute the candidate's insights snapshot. Called from:
 //   - saveProfile / saveSkillsStep / finishOnboarding (profile changes)
 //   - extractAndPersist after a CV import (skills + experience may have changed)
+//   - refreshMyInsights — direkt user-getriggert vom Profil-Lesart-Block
 // Errors are swallowed so a flaky AI call never breaks the calling action.
 export async function recomputeInsights(userId: string): Promise<void> {
 	try {
@@ -164,4 +165,38 @@ export async function getMyInsights(): Promise<CandidateInsights | null> {
 	}
 
 	return insights;
+}
+
+// User-getriggertes Refresh des Profil-Lesart-Blocks. Blockierend, damit
+// der Button am Ende vollendete Insights zurückbekommt. Result-Pattern,
+// damit Next.js keine generischen "unexpected response"-Fehler beim
+// Client zeigt.
+export type RefreshInsightsResult =
+	| { ok: true; insights: CandidateInsights | null }
+	| { ok: false; error: string };
+
+export async function refreshMyInsights(): Promise<RefreshInsightsResult> {
+	try {
+		const session = await auth();
+		if (!session?.user?.id) return { ok: false, error: "unauthenticated" };
+		const userId = session.user.id;
+
+		await recomputeInsights(userId);
+
+		const [row] = await db
+			.select({ insights: candidateProfiles.insights })
+			.from(candidateProfiles)
+			.where(eq(candidateProfiles.userId, userId))
+			.limit(1);
+		return {
+			ok: true,
+			insights: (row?.insights as CandidateInsights | null) ?? null,
+		};
+	} catch (e) {
+		console.error("[insights] refreshMyInsights failed", e);
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "unbekannter Fehler",
+		};
+	}
 }

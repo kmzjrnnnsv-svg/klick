@@ -172,9 +172,35 @@ export function CareerAnalysisView({
 	const hiringCons = analysis.hiringCons ?? [];
 	const marketContext = analysis.marketContext ?? null;
 
+	// Schema-Drift-Erkennung: wenn die wichtigen Listen alle leer sind,
+	// stammt die Analyse aus einer früheren Version oder die KI hat
+	// damals nichts geliefert. Den User auf "neu auswerten" stoßen.
+	const looksIncomplete =
+		strengths.length === 0 &&
+		growthAreas.length === 0 &&
+		primaryIndustries.length === 0 &&
+		certificationSuggestions.length === 0 &&
+		hiringPros.length === 0;
+
 	return (
 		<div className="space-y-6">
 			{isPending && <ProgressPanel tone="inline" done={false} />}
+			{looksIncomplete && !isPending && (
+				<div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-amber-500/30 bg-amber-500/5 p-3">
+					<p className="text-amber-800 text-xs leading-relaxed dark:text-amber-200">
+						{t("incompleteHint")}
+					</p>
+					<button
+						type="button"
+						onClick={refresh}
+						disabled={isPending}
+						className="lv-eyebrow inline-flex items-center gap-2 rounded-sm border border-amber-500/40 bg-background px-3 py-1.5 text-[0.55rem] text-amber-800 hover:bg-amber-500/10 disabled:opacity-60 dark:text-amber-200"
+					>
+						<Sparkles className="h-3 w-3" strokeWidth={1.5} />
+						{t("regenerateNow")}
+					</button>
+				</div>
+			)}
 			<div className="flex flex-wrap items-end justify-between gap-3">
 				<div className="flex-1">
 					<p className="text-foreground/90 text-sm leading-relaxed">

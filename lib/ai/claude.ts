@@ -606,7 +606,7 @@ export class ClaudeAIProvider implements AIProvider {
 	): Promise<CandidateNarrative> {
 		const result = await this.client.messages.create({
 			model: "claude-sonnet-4-6",
-			max_tokens: 1500,
+			max_tokens: 2000,
 			tools: [
 				{
 					name: "save_narrative",
@@ -617,25 +617,25 @@ export class ClaudeAIProvider implements AIProvider {
 						properties: {
 							summary: {
 								type: "string",
-								maxLength: 480,
+								maxLength: 900,
 								description:
-									"Maximal 2 kurze Sätze auf Deutsch, ZUSAMMEN unter 460 Zeichen. Stil: souverän, faktisch, ohne Floskeln. Stärkstes Signal nennen (aktuelle Rolle, längste Tenure, Top-Skill). IMMER mit Punkt enden — niemals mitten im Wort/Satz aufhören. Lieber 1 Satz weglassen als unvollständig schreiben.",
+									"4-5 zusammenhängende Sätze auf Deutsch, ZUSAMMEN unter 850 Zeichen. Aufbau: Satz 1 = aktuelle Rolle + Jahre Gesamterfahrung. Satz 2 = stärkster fachlicher Schwerpunkt + konkrete Domain. Satz 3 = bemerkenswerte Tenure / Frühere Stationen oder Branchen-Breite. Satz 4 = methodische Stärke oder Tool-Stack. Satz 5 (optional) = Eignung für welchen nächsten Schritt. IMMER mit Punkt enden — niemals mitten im Wort/Satz aufhören. Lieber 1 Satz weglassen als unvollständig schreiben. Stil: souverän, faktisch, ohne Floskeln, ohne 'Teamplayer'-Phrasen.",
 							},
 							workStyle: {
 								type: "array",
-								minItems: 3,
-								maxItems: 6,
+								minItems: 4,
+								maxItems: 8,
 								items: { type: "string", maxLength: 40 },
 								description:
-									"3-6 kompakte Tags auf Deutsch, kein lowercase-Zwang (Eigennamen wie 'ISO 27001' bleiben korrekt). Themen-/Fokus-Kompetenzen, nicht Soft-Skills. Beispiele: 'BSI Grundschutz', 'ISO 27001', 'Cloud Security', 'Incident Response'.",
+									"4-8 starke Fokus-Themen / Frameworks / Methoden aus dem Profil. Eigennamen original übernehmen ('ISO 27001', 'BSI Grundschutz', 'NIST CSF', 'TISAX', 'SOC 2'). Keine generischen Begriffe wie 'Sicherheit' oder 'IT' — immer das konkrete Framework/die konkrete Norm/das Tool. Wenn das Profil mehrere Branchen abdeckt, je 1 Branchen-Tag erlaubt ('Finance', 'Automotive'). Keine Soft-Skills.",
 							},
 							strengths: {
 								type: "array",
-								minItems: 4,
-								maxItems: 8,
-								items: { type: "string", maxLength: 140 },
+								minItems: 5,
+								maxItems: 10,
+								items: { type: "string", maxLength: 160 },
 								description:
-									"4-8 konkrete Wissens-/Erfahrungs-Punkte als VOLLE Aussagen mit Kontext (Jahre, Scope, Domain). Kein bloßes Schlagwort. Beispiele: '5 Jahre Threat Modeling im Finance-Umfeld', 'Mehrere ISO-27001-Audits federführend begleitet', 'Business Continuity Planning für 1.000+-MA-Unternehmen'. Keine Wiederholung des Summary.",
+									"5-10 konkrete Wissens-/Erfahrungs-Punkte als VOLLE Sätze mit Kontext (Jahre, Scope, Domain, Werkzeug). Vermeide Wiederholungen aus workStyle — diese Punkte sollen TIEFER gehen. Beispiele guter Punkte: '5 Jahre Threat Modeling im Finance-Umfeld mit STRIDE/PASTA', 'Mehrere ISO-27001-Audits federführend begleitet (Erstzertifizierung + Re-Audits)', 'Business Continuity Planning für 1.000+-MA-Unternehmen inkl. BIA und RTO/RPO-Definition', 'Aufbau eines SOC mit Splunk + Cortex XSOAR'. Schlecht: 'Threat Modeling' (zu kurz, keine Tiefe).",
 							},
 						},
 						required: ["summary", "workStyle", "strengths"],
@@ -647,9 +647,9 @@ export class ClaudeAIProvider implements AIProvider {
 				{
 					role: "user",
 					content:
-						`Erstelle eine Kandidaten-Zusammenfassung für eine:n Arbeitgeber:in. Datenbasis (alles berechnet, keine Selbstbeschreibung):\n\n` +
+						`Erstelle eine Kandidaten-Lesart für eine:n Arbeitgeber:in. Datenbasis (alles berechnet, keine Selbstbeschreibung):\n\n` +
 						`- Aktueller Titel: ${input.headline ?? "—"}\n` +
-						`- Selbst-Summary: ${input.summary?.slice(0, 400) ?? "—"}\n` +
+						`- Selbst-Summary: ${input.summary?.slice(0, 1200) ?? "—"}\n` +
 						`- GESAMT-Berufsjahre (inkl. aktueller Rolle, Stand ${input.asOf}): ${input.yearsActive}\n` +
 						`- Davon vor der aktuellen Rolle: ${input.previousYearsBeforeCurrent} Jahre\n` +
 						`- Längste durchgehende Phase: ${input.yearsContinuous} Jahre\n` +
@@ -663,15 +663,18 @@ export class ClaudeAIProvider implements AIProvider {
 							? `- Erster Job: ${input.firstJobYear}\n`
 							: "") +
 						`- Lücken im Werdegang: ${input.gaps}\n` +
-						`- Top-Skills: ${input.skills.slice(0, 8).join(", ") || "—"}\n` +
+						`- Top-Skills: ${input.skills.slice(0, 16).join(", ") || "—"}\n` +
 						`- Zertifikate gesamt: ${input.certificateCount} (Muster: ${input.certificatePattern})\n\n` +
 						`WICHTIG zur Jahres-Semantik:\n` +
 						`  Die "GESAMT-Berufsjahre" enthalten die aktuelle Rolle bereits.\n` +
 						`  Wenn du sie erwähnst, schreibe "insgesamt X Jahre", NIEMALS "zuvor X Jahre".\n` +
-						`  Nur die "${input.previousYearsBeforeCurrent} Jahre vor der aktuellen Rolle" dürfen als "davor"/"zuvor" formuliert werden.\n` +
-						`  Beispiel richtig: "Seit 3 Jahren als ISO bei VDMA, davor 7 Jahre weitere IT-Erfahrung — insgesamt 10 Jahre."\n` +
-						`  Beispiel FALSCH: "Seit 3 Jahren als ISO, zuvor 10 Jahre IT-Erfahrung." (das würde 13 implizieren)\n\n` +
-						`Schreibe sachlich, ohne Floskeln. Keine "Teamplayer"-Phrasen ohne Beleg. Wenn Daten dünn sind, sag das. ` +
+						`  Nur die "${input.previousYearsBeforeCurrent} Jahre vor der aktuellen Rolle" dürfen als "davor"/"zuvor" formuliert werden.\n\n` +
+						`WICHTIG zur Keyword-Auswahl (workStyle + strengths):\n` +
+						`  Nimm die TATSÄCHLICHEN Skills/Frameworks/Normen aus dem Profil — kein Hinzudichten. ` +
+						`Wenn der Kandidat ISO 27001 + BSI Grundschutz + NIST CSF nennt, müssen ALLE drei in workStyle stehen — nicht nur eine Stichprobe. ` +
+						`In strengths verbindest du Skill mit Kontext: "Wie viele Jahre? In welcher Branche? Mit welchem Tool?". ` +
+						`Wenn der CV das nicht hergibt, sei vorsichtig und kennzeichne Schätzungen mit "vermutlich" / "laut Selbstangabe".\n\n` +
+						`Schreibe sachlich, ohne Floskeln. Keine "Teamplayer"-Phrasen ohne Beleg. Wenn Daten dünn sind, sag das ehrlich. ` +
 						`Vermeide Wertungen wie "exzellent". Speichere via save_narrative.`,
 				},
 			],

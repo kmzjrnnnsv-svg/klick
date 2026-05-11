@@ -1224,6 +1224,9 @@
 	"Insights": {
 		"empty": "Once you fill in your profile or upload a CV, computed career insights show up here.",
 		"narrativeTitle": "Reads at a glance",
+		"narrativeEmpty": "No AI reading yet. Generate one from your current profile + CV.",
+		"regenerate": "Regenerate",
+		"regenerating": "Updating…",
 		"yearsActive": "Years active",
 		"yearsActiveHint": "Sum of all employment phases.",
 		"yearsContinuous": "Longest continuous",
@@ -1828,6 +1831,8 @@
 		"generating": "AI thinking…",
 		"regenerate": "Regenerate",
 		"regenerating": "Updating…",
+		"regenerateNow": "Generate now",
+		"incompleteHint": "This analysis is incomplete — probably from an earlier profile version. Regenerate it so strengths, industry matches, certification suggestions and pros/cons reflect your current state.",
 		"updatedAt": "As of: {date}",
 		"salaryBand": "Salary band",
 		"salaryRange": "Range: {low} € – {high} €",
