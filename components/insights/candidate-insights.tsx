@@ -29,11 +29,18 @@ export type ProfileExtras = Pick<
 	| "preferredRoleLevel"
 >;
 
-function monthsToYears(m: number): string {
-	const y = m / 12;
-	if (y < 1) return `${Math.round(m)} Monate`;
-	if (y < 2) return `${m >= 12 ? "1 Jahr" : `${Math.round(m)} Monate`}`;
-	return `${Math.round(y)} Jahre`;
+function makeMonthsToYears(locale: "de" | "en") {
+	return (m: number): string => {
+		const y = m / 12;
+		if (locale === "en") {
+			if (y < 1) return `${Math.round(m)} months`;
+			if (y < 2) return m >= 12 ? "1 year" : `${Math.round(m)} months`;
+			return `${Math.round(y)} years`;
+		}
+		if (y < 1) return `${Math.round(m)} Monate`;
+		if (y < 2) return m >= 12 ? "1 Jahr" : `${Math.round(m)} Monate`;
+		return `${Math.round(y)} Jahre`;
+	};
 }
 
 export function CandidateInsightsView({
@@ -51,6 +58,7 @@ export function CandidateInsightsView({
 }) {
 	const t = useTranslations("Insights");
 	const locale = useLocale() as "de" | "en";
+	const monthsToYears = makeMonthsToYears(locale);
 	if (!insights) {
 		return (
 			<div className="rounded-lg border border-border border-dashed p-6 text-center text-muted-foreground text-sm">
@@ -214,7 +222,12 @@ export function CandidateInsightsView({
 						</span>
 					</div>
 					<p className="text-muted-foreground text-xs">
-						{tenureScore.rationale}
+						{tenure.totalRoles === 0
+							? t("tenureScore.noRoles")
+							: t("tenureScore.rationale", {
+									avg: monthsToYears(tenure.averageMonths),
+									longest: monthsToYears(tenure.longestMonths),
+								})}
 					</p>
 				</section>
 			)}
