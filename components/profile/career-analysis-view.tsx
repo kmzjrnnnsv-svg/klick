@@ -22,9 +22,10 @@ const STEPS = [
 	{ at: 92, label: "Auswertung schreiben" },
 ];
 
-// Echter Progress-Bar: animiert in ~12 Sekunden auf 92%, snapt zu 100% wenn
-// die Server-Action zurückkommt. Status-Text wechselt automatisch je nach
-// Fortschritt.
+// Echter Progress-Bar: asymptotisch auf 92%, snapt auf 100% wenn die
+// Server-Action zurückkommt. Status-Text wechselt automatisch je nach
+// Fortschritt. Zeitkonstante 25s → bei 60s API-Antwort ist die Anzeige
+// bei ~85%, fühlt sich nicht "festgefroren bei 92%" an.
 function ProgressPanel({
 	tone,
 	done,
@@ -42,10 +43,9 @@ function ProgressPanel({
 		const start = Date.now();
 		const id = setInterval(() => {
 			const elapsed = (Date.now() - start) / 1000;
-			// Asymptotisches Steigen: kommt nach ~12s nahe 92, danach minimal weiter
-			const next = Math.min(92, 92 * (1 - Math.exp(-elapsed / 5)));
+			const next = Math.min(92, 92 * (1 - Math.exp(-elapsed / 25)));
 			setPct((p) => Math.max(p, next));
-		}, 80);
+		}, 120);
 		return () => clearInterval(id);
 	}, [done]);
 
