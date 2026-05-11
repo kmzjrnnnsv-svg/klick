@@ -417,6 +417,7 @@ export class MockAIProvider implements AIProvider {
 		profile: ExtractedProfile;
 		yearsActive?: number;
 		insights?: unknown;
+		locale?: "de" | "en";
 	}): Promise<CareerAnalysis> {
 		// Künstliche Latenz im Mock-Modus, damit die Progress-Animation
 		// im UI was zu zeigen hat — sonst snappt sie sofort auf 100%.

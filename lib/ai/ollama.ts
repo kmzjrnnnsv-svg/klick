@@ -614,7 +614,10 @@ export class OllamaAIProvider implements AIProvider {
 		profile: ExtractedProfile;
 		yearsActive?: number;
 		insights?: unknown;
+		locale?: "de" | "en";
 	}): Promise<CareerAnalysis> {
+		const locale: "de" | "en" = input.locale ?? "de";
+		const languageName = locale === "en" ? "English" : "German";
 		const schema = {
 			type: "object",
 			properties: {
@@ -728,12 +731,13 @@ export class OllamaAIProvider implements AIProvider {
 		const insightsStr = input.insights
 			? `\n\nBERECHNETE INSIGHTS:\n${JSON.stringify(input.insights).slice(0, 4000)}`
 			: "";
-		return await this.chat<CareerAnalysis>(
-			"Du bist erfahrene:r Career Coach mit DACH-Marktwissen Stand 2026. " +
-				"Du MUSST ALLE Felder füllen — kein einziges leer lassen. " +
-				"Wenn ein Feld dünn wirkt, leite plausible Werte aus den vorhandenen Skills/Experience/Education ab. " +
-				"Antworte AUSSCHLIEßLICH mit validem JSON gemäß Schema. Keine Floskeln, keine Buzzwords. " +
-				"Konkrete Stärken (Jahre, Domain, Tool). Salary in EUR für DACH-Markt.",
+		const out = await this.chat<CareerAnalysis>(
+			`You are an experienced career coach with DACH market knowledge as of 2026. ` +
+				`MOST IMPORTANT: ALL prose fields MUST be written in ${languageName}. ` +
+				`You MUST fill EVERY field — never leave any list empty. ` +
+				`If a field looks thin, derive plausible values from the available skills/experience/education. ` +
+				`Reply EXCLUSIVELY with valid JSON matching the schema. No filler, no buzzwords. ` +
+				`Concrete strengths (years, domain, tool). Salary in EUR for DACH market.`,
 			`PROFIL:\n${JSON.stringify(input.profile).slice(0, 5000)}` +
 				(input.yearsActive
 					? `\nGESAMT-Berufsjahre: ${input.yearsActive}`
@@ -745,6 +749,7 @@ export class OllamaAIProvider implements AIProvider {
 				`marketContext mit demand-Level + notes. salary low/mid/high in EUR + rationale.`,
 			schema,
 		);
+		return { ...out, language: locale };
 	}
 
 	async assessJobPostingQuality(input: {

@@ -88,20 +88,29 @@ export async function refreshCareerAnalysis(): Promise<CareerActionResult> {
 			};
 		}
 
+		// User-Locale aus DB lesen, damit die Analyse in der UI-Sprache
+		// formuliert wird. Default 'de'.
+		let userLocale: "de" | "en" = "de";
+		try {
+			const [u] = await db
+				.select({ locale: users.locale })
+				.from(users)
+				.where(eq(users.id, userId))
+				.limit(1);
+			if (u?.locale === "en") userLocale = "en";
+		} catch (e) {
+			console.warn("[career] reading user locale failed (default de)", e);
+		}
+
 		let analysis: CareerAnalysis;
 		try {
 			const ai = getCareerAIProvider();
-			// Hard timeout — reverse-Proxy (nginx default 60s) würde sonst die
-			// Response abschneiden und der Client sieht ein generisches
-			// "An unexpected response was received from the server".
-			// 120s gibt Claude für die strukturierte Analyse (Salary +
-			// Stärken + Wachstumsfelder + Branchen + Zertifizierungen +
-			// Rollen + Pros/Cons + Markt) realistischen Spielraum.
 			analysis = await Promise.race<CareerAnalysis>([
 				ai.analyzeCareerProspects({
 					profile: profileToExtracted(profile),
 					yearsActive: profile.yearsExperience ?? undefined,
 					insights: profile.insights,
+					locale: userLocale,
 				}),
 				new Promise<CareerAnalysis>((_, reject) =>
 					setTimeout(

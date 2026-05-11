@@ -1062,7 +1062,10 @@ Schema pro Eintrag:
 		profile: ExtractedProfile;
 		yearsActive?: number;
 		insights?: unknown;
+		locale?: "de" | "en";
 	}): Promise<CareerAnalysis> {
+		const locale: "de" | "en" = input.locale ?? "de";
+		const languageName = locale === "en" ? "English" : "German";
 		// Tight caps: jede Liste auf max 4-5 Einträge, jede rationale unter
 		// 180 Zeichen. Das reduziert die Output-Tokens deutlich und damit die
 		// API-Latenz — wichtig damit wir unter Reverse-Proxy-Timeouts (nginx
@@ -1070,6 +1073,7 @@ Schema pro Eintrag:
 		const careerSchema = {
 			type: "object" as const,
 			properties: {
+				language: { type: "string", enum: ["de", "en"] },
 				headline: { type: "string", maxLength: 400 },
 				strengths: {
 					type: "array",
@@ -1191,10 +1195,12 @@ Schema pro Eintrag:
 			],
 			tool_choice: { type: "tool", name: "save_career_analysis" },
 			system:
-				"Du bist erfahrene:r Career Coach mit DACH-Marktwissen Stand 2026. Antworte ausschließlich über das save_career_analysis-Tool. " +
-				"WICHTIG: Du MUSST ALLE Felder füllen — kein einziges leer lassen. " +
-				"Wenn ein Feld dünn wirkt, leite plausible Werte aus den vorhandenen Skills/Experience/Education ab. " +
-				"Schreibe SO KURZ WIE MÖGLICH innerhalb der maxLength-Grenzen — Tiefe vor Breite, keine Wiederholungen.",
+				`You are an experienced career coach with DACH market knowledge as of 2026. Reply exclusively through the save_career_analysis tool. ` +
+				`MOST IMPORTANT: ALL prose fields (headline, rationales, salary.rationale, marketContext.notes, hiringPros, hiringCons, strengths, growthAreas, certificationSuggestions.why, roleSuggestions.rationale, adjacentIndustries.rationale) MUST be written in ${languageName}. ` +
+				`Industry names and role titles also in ${languageName} where natural, but keep certification names (e.g. ISO 27001, CISSP) and brand names in their canonical form. ` +
+				`Set the 'language' field to '${locale}'. ` +
+				`You MUST fill EVERY field — never leave any list empty. If a field looks thin, derive plausible values from the available skills/experience/education. ` +
+				`Write AS SHORT AS POSSIBLE within the maxLength limits — depth over breadth, no repetition.`,
 			messages: [
 				{
 					role: "user",
@@ -1232,7 +1238,10 @@ Schema pro Eintrag:
 		if (!toolUse || toolUse.type !== "tool_use") {
 			throw new Error("Claude hat keinen tool_use-Block geliefert");
 		}
-		return toolUse.input as CareerAnalysis;
+		const out = toolUse.input as CareerAnalysis;
+		// Force-set language falls das Modell das Feld vergessen hat —
+		// damit Locale-Mismatch-Detection im UI verlässlich ist.
+		return { ...out, language: locale };
 	}
 
 	async assessJobPostingQuality(input: {

@@ -1832,6 +1832,8 @@
 		"regenerate": "Neu auswerten",
 		"regenerating": "Aktualisiere…",
 		"regenerateNow": "Jetzt auswerten",
+		"regenerateInLocale": "Auf {lang} neu auswerten",
+		"localeMismatchHint": "Diese Auswertung ist auf {lang}, deine Oberfläche aktuell in einer anderen Sprache. Möchtest du sie in der aktuellen Sprache neu erstellen?",
 		"incompleteHint": "Diese Auswertung ist unvollständig — wahrscheinlich aus einer früheren Profil-Version. Erstelle sie neu, dann werden Stärken, Branchen-Treffer, Zertifizierungs-Vorschläge und Pro/Contra mit deinem aktuellen Stand gefüllt.",
 		"updatedAt": "Stand: {date}",
 		"salaryBand": "Gehaltsband",
