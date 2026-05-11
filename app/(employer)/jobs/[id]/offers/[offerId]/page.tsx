@@ -10,6 +10,7 @@ import {
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { TranslatableText } from "@/components/translate/translatable-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -134,9 +135,13 @@ export default async function EmployerOfferDetailPage({
 											{fmt.dateTime(step.createdAt, { dateStyle: "short" })}
 										</p>
 										{step.message && (
-											<p className="mt-2 whitespace-pre-wrap text-foreground/90 text-xs leading-relaxed">
-												{step.message}
-											</p>
+											<div className="mt-2">
+												<TranslatableText
+													text={step.message}
+													context="Offer-Nachricht in einer Verhandlungs-Kette."
+													className="whitespace-pre-wrap text-foreground/90 text-xs leading-relaxed"
+												/>
+											</div>
 										)}
 										{step.decidedMessage && (
 											<p className="mt-2 rounded-sm border-l-2 border-primary/40 bg-muted/40 px-2 py-1 text-foreground text-xs leading-relaxed">

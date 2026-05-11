@@ -13,6 +13,7 @@ import { FileDisclosureList } from "@/components/disclosures/file-disclosure-lis
 import { ReferenceDisclosureList } from "@/components/disclosures/reference-disclosure-list";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { TranslatableText } from "@/components/translate/translatable-text";
 import { DecisionButtons } from "@/components/interests/decision-buttons";
 import { cn } from "@/lib/utils";
 import { listVerificationsForInterest } from "@/lib/verify/orchestrator";
@@ -121,17 +122,24 @@ export default async function RequestDetailPage({
 							<h2 className="font-medium text-sm">
 								{t("messageFrom", { company: companyName })}
 							</h2>
-							<p className="mt-2 whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed">
-								{interest.message}
-							</p>
+							<div className="mt-2">
+								<TranslatableText
+									text={interest.message}
+									context="Nachricht des Arbeitgebers in einer Interest-Anfrage."
+								/>
+							</div>
 						</div>
 					)}
 
 					<div className="rounded-lg border border-border bg-background p-4 sm:p-5">
 						<h2 className="font-medium text-sm">{t("aboutTheJob")}</h2>
-						<p className="mt-2 line-clamp-6 whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed">
-							{job.description}
-						</p>
+						<div className="mt-2">
+							<TranslatableText
+								text={job.description}
+								context="Kurz-Beschreibung der Stelle."
+								className="line-clamp-6 whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed"
+							/>
+						</div>
 					</div>
 
 					{(job.salaryMin || job.salaryMax || job.salaryBenchmarkLow) && (

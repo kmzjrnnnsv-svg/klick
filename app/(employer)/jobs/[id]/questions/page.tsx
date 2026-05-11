@@ -9,6 +9,7 @@ import { getJob } from "@/app/actions/jobs";
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { TranslatableText } from "@/components/translate/translatable-text";
 import { Button } from "@/components/ui/button";
 
 export default async function JobQuestionsPage({
@@ -129,7 +130,12 @@ export default async function JobQuestionsPage({
 											className="rounded-sm border border-border bg-background p-4"
 										>
 											<div className="flex items-start justify-between gap-3">
-												<p className="text-foreground/90 text-sm">{q.body}</p>
+												<TranslatableText
+													text={q.body}
+													context="Frage einer:s Kandidat:in zur Stellenausschreibung."
+													className="text-foreground/90 text-sm"
+													multiline={false}
+												/>
 												{q.isPublic && (
 													<span className="lv-eyebrow shrink-0 rounded-sm bg-emerald-500/10 px-2 py-1 text-[0.5rem] text-emerald-700 dark:text-emerald-300">
 														{t("public")}
@@ -140,9 +146,12 @@ export default async function JobQuestionsPage({
 												<p className="lv-eyebrow text-[0.5rem] text-primary">
 													{t("yourAnswer")}
 												</p>
-												<p className="mt-1 whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed">
-													{q.answer}
-												</p>
+												<div className="mt-1">
+													<TranslatableText
+														text={q.answer}
+														context="Antwort der Firma auf eine Bewerber-Frage."
+													/>
+												</div>
 											</div>
 										</li>
 									))}

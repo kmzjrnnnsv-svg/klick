@@ -16,6 +16,7 @@ import { ProfileEvolution } from "@/components/applications/profile-evolution";
 import { SnapshotCompare } from "@/components/applications/snapshot-compare";
 import { StageRatingPrompt } from "@/components/applications/stage-rating-prompt";
 import { WoltTracker } from "@/components/applications/wolt-tracker";
+import { TranslatableText } from "@/components/translate/translatable-text";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -153,8 +154,11 @@ export default async function ApplicationDetailPage({
 						<p className="lv-eyebrow text-[0.55rem] text-muted-foreground">
 							{t("yourCoverLetter")}
 						</p>
-						<div className="mt-2 whitespace-pre-wrap rounded-sm border border-border bg-muted/30 p-4 text-foreground/90 text-sm leading-relaxed">
-							{app.coverLetter}
+						<div className="mt-2 rounded-sm border border-border bg-muted/30 p-4">
+							<TranslatableText
+								text={app.coverLetter}
+								context="Bewerbungs-Anschreiben einer:s Kandidat:in."
+							/>
 						</div>
 					</section>
 				)}
