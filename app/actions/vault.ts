@@ -17,7 +17,7 @@ import {
 	type VaultItem,
 	vaultItems,
 } from "@/db/schema";
-import { getAIProvider } from "@/lib/ai";
+import { getAIProvider, getCareerAIProvider } from "@/lib/ai";
 import {
 	encryptBytes,
 	generateDek,
@@ -169,8 +169,9 @@ async function extractAndPersist(
 }
 
 // Erst-Auswertung der Karriere im Hintergrund nach CV-Parse. Überschreibt
-// existierende Analyse NICHT — wenn der User schon eine hat (auch eine
-// alte), bleibt sie bis zum manuellen "Neu auswerten" stehen.
+// EXISTIERENDE LEERE Analysen (Schema-Drift-Leichen) automatisch, lässt
+// gefüllte Analysen aber stehen — damit User-Korrekturen nicht zerstört
+// werden.
 async function autoSeedCareerAnalysis(userId: string): Promise<void> {
 	const [profile] = await db
 		.select()
@@ -178,14 +179,24 @@ async function autoSeedCareerAnalysis(userId: string): Promise<void> {
 		.where(eq(candidateProfiles.userId, userId))
 		.limit(1);
 	if (!profile) return;
-	if (profile.careerAnalysis) return; // bereits vorhanden — nicht überschreiben
 	const hasSignal =
 		(profile.skills?.length ?? 0) >= 3 ||
 		(profile.yearsExperience ?? 0) >= 1 ||
 		!!profile.headline;
 	if (!hasSignal) return;
 
-	const ai = getAIProvider();
+	// Wenn schon eine substantielle Analyse da ist → lassen.
+	const existing = profile.careerAnalysis as {
+		strengths?: unknown[];
+		primaryIndustries?: unknown[];
+	} | null;
+	const existingIsSubstantial =
+		!!existing &&
+		((existing.strengths?.length ?? 0) > 0 ||
+			(existing.primaryIndustries?.length ?? 0) > 0);
+	if (existingIsSubstantial) return;
+
+	const ai = getCareerAIProvider();
 	const analysis = await ai.analyzeCareerProspects({
 		profile: {
 			displayName: profile.displayName ?? undefined,

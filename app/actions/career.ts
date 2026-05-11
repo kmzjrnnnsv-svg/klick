@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import type { ProfileExperience } from "@/db/schema";
 import { candidateProfiles, users } from "@/db/schema";
-import { getAIProvider } from "@/lib/ai";
+import { getCareerAIProvider } from "@/lib/ai";
 import type { CareerAnalysis, ExtractedProfile } from "@/lib/ai/types";
 
 async function requireCandidate(): Promise<string> {
@@ -90,7 +90,7 @@ export async function refreshCareerAnalysis(): Promise<CareerActionResult> {
 
 		let analysis: CareerAnalysis;
 		try {
-			const ai = getAIProvider();
+			const ai = getCareerAIProvider();
 			// Hard timeout — reverse-Proxy (nginx default 60s) würde sonst die
 			// Response abschneiden und der Client sieht ein generisches
 			// "An unexpected response was received from the server".

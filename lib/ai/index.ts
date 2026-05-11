@@ -38,3 +38,34 @@ export function getAIProvider(): AIProvider {
 	console.info(`[ai] using provider: ${cached.slug}`);
 	return cached;
 }
+
+let cachedCareer: AIProvider | null = null;
+
+/**
+ * Provider speziell für die Karriere-Analyse. Bevorzugt Ollama, weil
+ *   1. der Output-Block groß ist (11 Felder, lange rationales) und
+ *      Claude-Tokens schnell teuer werden,
+ *   2. die Analyse keine harten Latency-Anforderungen hat — sie läuft
+ *      meist via next/after() im Hintergrund,
+ *   3. der eigene Ollama-Server keine externen Calls macht (Privatsphäre).
+ *
+ * Override via AI_PROVIDER_CAREER=claude|ollama|mock möglich.
+ * Fallback: derselbe Provider wie getAIProvider().
+ */
+export function getCareerAIProvider(): AIProvider {
+	if (cachedCareer) return cachedCareer;
+	const explicit = process.env.AI_PROVIDER_CAREER?.toLowerCase();
+	if (explicit === "mock") {
+		cachedCareer = new MockAIProvider();
+	} else if (explicit === "claude" || explicit === "anthropic") {
+		cachedCareer = new ClaudeAIProvider();
+	} else if (explicit === "ollama") {
+		cachedCareer = new OllamaAIProvider();
+	} else if (process.env.OLLAMA_URL) {
+		cachedCareer = new OllamaAIProvider();
+	} else {
+		cachedCareer = getAIProvider();
+	}
+	console.info(`[ai] career-analysis provider: ${cachedCareer.slug}`);
+	return cachedCareer;
+}
