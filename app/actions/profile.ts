@@ -350,18 +350,6 @@ async function saveProfileImpl(formData: FormData): Promise<void> {
 			? transportModeRaw
 			: undefined;
 
-	// Geocode the location (cached in DB) so the match engine can compute
-	// commute distance later. Failures degrade silently — geocode hängt am
-	// externen Nominatim und darf den Save nie killen.
-	let geo: { lat: number; lng: number } | null = null;
-	if (parsed.location) {
-		try {
-			geo = await geocode(parsed.location);
-		} catch (e) {
-			console.warn("[profile.save] geocode failed (non-fatal)", e);
-		}
-	}
-
 	// When candidate ticks "open to offers", grant a 30-day window —
 	// after that the lazy reset in getProfile() flips it back to false.
 	const openToOffersUntil = parsed.openToOffers
@@ -379,6 +367,21 @@ async function saveProfileImpl(formData: FormData): Promise<void> {
 	const editLocale: "de" | "en" | null =
 		editLocaleRaw === "de" || editLocaleRaw === "en" ? editLocaleRaw : null;
 
+	// Prüfen ob sich die Location geändert hat — wenn nicht, gar nicht neu
+	// geocoden. Wenn doch, alte Koords erstmal behalten (besser stale als
+	// missing) und das echte Geocoding in after() schieben.
+	const [existing] = await db
+		.select({
+			location: candidateProfiles.location,
+			addressLat: candidateProfiles.addressLat,
+			addressLng: candidateProfiles.addressLng,
+		})
+		.from(candidateProfiles)
+		.where(eq(candidateProfiles.userId, userId))
+		.limit(1);
+	const locationChanged =
+		!!parsed.location && parsed.location !== existing?.location;
+
 	const values = {
 		userId,
 		...parsed,
@@ -386,8 +389,11 @@ async function saveProfileImpl(formData: FormData): Promise<void> {
 		...(maxCommuteMinutes !== undefined ? { maxCommuteMinutes } : {}),
 		...(transportMode !== undefined ? { transportMode } : {}),
 		...(editLocale ? { profileLanguageOrigin: editLocale } : {}),
-		addressLat: geo?.lat ?? null,
-		addressLng: geo?.lng ?? null,
+		// Bestehende Koords behalten falls Location unverändert; sonst auf
+		// null setzen damit klar ist "noch nicht geocoded". after() füllt
+		// sie binnen Sekunden auf.
+		addressLat: locationChanged ? null : (existing?.addressLat ?? null),
+		addressLng: locationChanged ? null : (existing?.addressLng ?? null),
 		updatedAt: new Date(),
 	};
 
@@ -397,6 +403,25 @@ async function saveProfileImpl(formData: FormData): Promise<void> {
 	});
 
 	revalidatePath("/profile");
+
+	// Geocode jetzt async im Hintergrund — Nominatim kann 1-3s brauchen,
+	// das soll den User-sichtbaren Save nicht blockieren.
+	if (locationChanged && parsed.location) {
+		const locationToGeocode = parsed.location;
+		after(async () => {
+			try {
+				const geo = await geocode(locationToGeocode);
+				if (geo) {
+					await db
+						.update(candidateProfiles)
+						.set({ addressLat: geo.lat, addressLng: geo.lng })
+						.where(eq(candidateProfiles.userId, userId));
+				}
+			} catch (e) {
+				console.warn("[profile.save] background geocode failed", e);
+			}
+		});
+	}
 	after(async () => {
 		await recomputeInsights(userId);
 		await recomputeMatchesForCandidate(userId);
@@ -455,10 +480,34 @@ async function translateProfileFields(
 				}))
 			: null,
 		education: profile.education
-			? profile.education.map((e) => ({ degree: e.degree }))
+			? profile.education.map((e) => ({
+					degree: e.degree,
+					thesisTitle: e.thesisTitle,
+					focus: e.focus,
+				}))
 			: null,
 		awards: profile.awards,
 		mobility: profile.mobility,
+		projects: profile.projects
+			? profile.projects.map((p) => ({
+					name: p.name,
+					role: p.role,
+					description: p.description,
+				}))
+			: null,
+		publications: profile.publications
+			? profile.publications.map((p) => ({
+					title: p.title,
+					venue: p.venue,
+				}))
+			: null,
+		volunteering: profile.volunteering
+			? profile.volunteering.map((v) => ({
+					organization: v.organization,
+					role: v.role,
+					description: v.description,
+				}))
+			: null,
 	});
 
 	// MERGE statt overwrite — die andere Sprache (= origin selbst, falls

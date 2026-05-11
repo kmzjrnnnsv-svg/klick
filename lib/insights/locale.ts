@@ -15,6 +15,9 @@ export function localizedProfile(
 		| "education"
 		| "awards"
 		| "mobility"
+		| "projects"
+		| "publications"
+		| "volunteering"
 		| "translations"
 		| "profileLanguageOrigin"
 	>,
@@ -28,6 +31,9 @@ export function localizedProfile(
 	education: typeof profile.education;
 	awards: string[] | null;
 	mobility: string | null;
+	projects: typeof profile.projects;
+	publications: typeof profile.publications;
+	volunteering: typeof profile.volunteering;
 } {
 	const origin = profile.profileLanguageOrigin ?? "de";
 	// Wenn die UI-Locale = Origin, nichts zu tun.
@@ -43,6 +49,9 @@ export function localizedProfile(
 			education: profile.education,
 			awards: profile.awards ?? null,
 			mobility: profile.mobility,
+			projects: profile.projects,
+			publications: profile.publications,
+			volunteering: profile.volunteering,
 		};
 	}
 
@@ -71,9 +80,46 @@ export function localizedProfile(
 				return {
 					...e,
 					degree: pick(t?.degree, e.degree),
+					thesisTitle: pick(t?.thesisTitle, e.thesisTitle),
+					focus: pick(t?.focus, e.focus),
 				};
 			})
 		: profile.education;
+
+	const mergedProjects = profile.projects
+		? profile.projects.map((p, i) => {
+				const t = tr?.projects?.[i];
+				return {
+					...p,
+					name: pick(t?.name, p.name),
+					role: pick(t?.role, p.role),
+					description: pick(t?.description, p.description),
+				};
+			})
+		: profile.projects;
+
+	const mergedPublications = profile.publications
+		? profile.publications.map((p, i) => {
+				const t = tr?.publications?.[i];
+				return {
+					...p,
+					title: pick(t?.title, p.title),
+					venue: pick(t?.venue, p.venue),
+				};
+			})
+		: profile.publications;
+
+	const mergedVolunteering = profile.volunteering
+		? profile.volunteering.map((v, i) => {
+				const t = tr?.volunteering?.[i];
+				return {
+					...v,
+					organization: pick(t?.organization, v.organization),
+					role: pick(t?.role, v.role),
+					description: pick(t?.description, v.description),
+				};
+			})
+		: profile.volunteering;
 
 	return {
 		headline: pick(tr?.headline, profile.headline),
@@ -87,5 +133,8 @@ export function localizedProfile(
 		education: mergedEducation,
 		awards: pick(tr?.awards, profile.awards ?? null),
 		mobility: pick(tr?.mobility, profile.mobility),
+		projects: mergedProjects,
+		publications: mergedPublications,
+		volunteering: mergedVolunteering,
 	};
 }

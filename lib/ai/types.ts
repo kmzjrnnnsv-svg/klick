@@ -416,10 +416,32 @@ export type ProfileTranslationInput = {
 	education?:
 		| {
 				degree: string;
+				thesisTitle?: string | null;
+				focus?: string | null;
 		  }[]
 		| null;
 	awards?: string[] | null;
 	mobility?: string | null;
+	projects?:
+		| {
+				name: string;
+				role?: string | null;
+				description?: string | null;
+		  }[]
+		| null;
+	publications?:
+		| {
+				title: string;
+				venue?: string | null;
+		  }[]
+		| null;
+	volunteering?:
+		| {
+				organization: string;
+				role: string;
+				description?: string | null;
+		  }[]
+		| null;
 };
 
 export type ProfileTranslationOutput = {
@@ -428,9 +450,16 @@ export type ProfileTranslationOutput = {
 	industries?: string[];
 	skills?: { name: string; level?: number }[];
 	experience?: { role: string; description?: string }[];
-	education?: { degree: string }[];
+	education?: { degree: string; thesisTitle?: string; focus?: string }[];
 	awards?: string[];
 	mobility?: string;
+	projects?: { name: string; role?: string; description?: string }[];
+	publications?: { title: string; venue?: string }[];
+	volunteering?: {
+		organization: string;
+		role: string;
+		description?: string;
+	}[];
 };
 
 // Shape returned by analyzeCareerProspects. Rich enough to power a
