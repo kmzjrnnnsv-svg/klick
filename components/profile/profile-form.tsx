@@ -6,6 +6,10 @@ import { useState, useTransition } from "react";
 import { saveProfile } from "@/app/actions/profile";
 import { CvImporter } from "@/components/profile/cv-importer";
 import { EducationCard } from "@/components/profile/education-card";
+import {
+	ProfileExperienceTranslate,
+	ProfileFieldTranslate,
+} from "@/components/profile/profile-field-translate";
 import { SalaryByCountry } from "@/components/profile/salary-by-country";
 import { SectionVisibilityChip } from "@/components/profile/section-visibility-chip";
 import { Button } from "@/components/ui/button";
@@ -323,6 +327,11 @@ export function ProfileForm({
 					maxLength={2000}
 					className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 				/>
+				<ProfileFieldTranslate
+					currentText={summary}
+					setText={setSummary}
+					context="Kurzprofil eines Bewerbers."
+				/>
 			</section>
 
 			<section className="space-y-3">
@@ -341,6 +350,11 @@ export function ProfileForm({
 					className="block w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 				/>
 				<p className="text-muted-foreground text-xs">{t("skillsHint")}</p>
+				<ProfileFieldTranslate
+					currentText={skillsText}
+					setText={setSkillsText}
+					context="Skill-Liste eines Bewerbers (eine Zeile pro Skill, evtl. mit ': Level' am Ende). Skill-Bezeichnungen wie 'TypeScript', 'AWS', 'ISO 27001' UNVERÄNDERT lassen."
+				/>
 			</section>
 
 			{experience.length > 0 && (
@@ -370,6 +384,10 @@ export function ProfileForm({
 							</li>
 						))}
 					</ul>
+					<ProfileExperienceTranslate
+						items={experience}
+						setItems={setExperience}
+					/>
 				</section>
 			)}
 

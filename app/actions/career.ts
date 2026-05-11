@@ -91,11 +91,22 @@ export async function refreshCareerAnalysis(): Promise<CareerActionResult> {
 		let analysis: CareerAnalysis;
 		try {
 			const ai = getAIProvider();
-			analysis = await ai.analyzeCareerProspects({
-				profile: profileToExtracted(profile),
-				yearsActive: profile.yearsExperience ?? undefined,
-				insights: profile.insights,
-			});
+			// Hard timeout — reverse-Proxy (nginx default 60s) würde sonst die
+			// Response abschneiden und der Client sieht ein generisches
+			// "An unexpected response was received from the server".
+			analysis = await Promise.race<CareerAnalysis>([
+				ai.analyzeCareerProspects({
+					profile: profileToExtracted(profile),
+					yearsActive: profile.yearsExperience ?? undefined,
+					insights: profile.insights,
+				}),
+				new Promise<CareerAnalysis>((_, reject) =>
+					setTimeout(
+						() => reject(new Error("Timeout nach 50s – versuch's nochmal.")),
+						50_000,
+					),
+				),
+			]);
 		} catch (e) {
 			console.error("[career] AI analyze failed", e);
 			return {
