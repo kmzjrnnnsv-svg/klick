@@ -656,4 +656,16 @@ export class MockAIProvider implements AIProvider {
 			rationale: `Mock-Empfehlung für ${input.country} basierend auf ${years} Jahren Erfahrung. Setze ANTHROPIC_API_KEY oder OLLAMA_URL für echte Markt-Daten.`,
 		};
 	}
+
+	async translateTexts(input: {
+		texts: string[];
+		from: "de" | "en";
+		to: "de" | "en";
+		context?: string;
+	}): Promise<string[]> {
+		// Mock: prefixiert mit "[de]"/"[en]" — sichtbar als Hinweis dass
+		// Mock läuft, aber Reihenfolge bleibt.
+		if (input.from === input.to) return input.texts;
+		return input.texts.map((t) => (t ? `[${input.to}] ${t}` : t));
+	}
 }

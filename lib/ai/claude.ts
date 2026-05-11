@@ -517,7 +517,9 @@ export class ClaudeAIProvider implements AIProvider {
 	async suggestJobRequirements(input: {
 		title: string;
 		description: string;
+		locale?: "de" | "en";
 	}): Promise<SuggestedJobRequirement[]> {
+		const targetLang = input.locale === "en" ? "Englisch" : "Deutsch";
 		const result = await this.client.messages.create({
 			model: "claude-sonnet-4-6",
 			max_tokens: 1024,
@@ -553,20 +555,20 @@ export class ClaudeAIProvider implements AIProvider {
 			tool_choice: { type: "tool", name: "save_requirements" },
 			system:
 				"Du extrahierst konkrete, prüfbare Skill-Anforderungen aus Stellenbeschreibungen.\n\n" +
+				`AUSGABE-SPRACHE: ${targetLang}. ALLE \`name\`-Felder müssen in ${targetLang} sein, unabhängig von der Sprache der Stellenbeschreibung.\n\n` +
 				"REGELN FÜR `name`:\n" +
-				"• Verwende REALE, im Duden / im Branchen-Sprachgebrauch belegte Begriffe. Erfinde KEINE Wörter und KEINE Kunst-Komposita.\n" +
-				"• Bei Anglizismen die in der DACH-IT etabliert sind (TypeScript, Stakeholder-Management, Product Owner, SaaS, B2B) den Anglizismus beibehalten.\n" +
+				`• Verwende REALE, in ${targetLang} im Duden bzw. Branchen-Sprachgebrauch belegte Begriffe. Erfinde KEINE Wörter und KEINE Kunst-Komposita.\n` +
+				"• Etablierte Fachbegriffe (TypeScript, Stakeholder Management, Product Owner, SaaS, B2B, ISO 27001) bleiben in ihrer Standard-Form — diese sind sprach-neutral.\n" +
 				"• Software/Stack: offizielle Schreibweise (z.B. 'TypeScript' nicht 'Typescript', 'Next.js' nicht 'NextJs').\n" +
-				"• Soft Skills nur dann, wenn die Stellenbeschreibung sie EXPLIZIT verlangt (z.B. 'Kommunikationsstärke', 'Teamfähigkeit'). Niemals raten.\n" +
+				"• Soft Skills nur dann, wenn die Stellenbeschreibung sie EXPLIZIT verlangt. Niemals raten.\n" +
 				"• Jeder Skill prägnant: ein bis drei Worte. Lange Erklärungssätze gehören NICHT in `name`.\n" +
-				"• Wenn das Original-Posting deutsch ist, schreibe deutsche Begriffe. Wenn englisch, englische. Mische nicht.\n" +
 				"• Im Zweifel: lieber weniger Skills + dafür präzise.",
 			messages: [
 				{
 					role: "user",
 					content:
 						`Title: ${input.title}\n\n${input.description}\n\n` +
-						`Extrahiere bis zu 8 Skills. Markiere maximal 4 als "must" (wirklich essenziell), den Rest als "nice". Setze minLevel (1-5) für Must-Haves wo Seniorität impliziert ist.`,
+						`Extrahiere bis zu 8 Skills (ALLE Namen auf ${targetLang}). Markiere maximal 4 als "must" (wirklich essenziell), den Rest als "nice". Setze minLevel (1-5) für Must-Haves wo Seniorität impliziert ist.`,
 				},
 			],
 		});
@@ -1352,5 +1354,60 @@ Schema pro Eintrag:
 			rationale: string;
 		};
 		return out;
+	}
+
+	// Generische Text-Übersetzung für UI-Translate-on-demand. Bei Fehler
+	// werden die Originale zurückgegeben — NIEMALS throw.
+	async translateTexts(input: {
+		texts: string[];
+		from: "de" | "en";
+		to: "de" | "en";
+		context?: string;
+	}): Promise<string[]> {
+		if (input.texts.length === 0) return [];
+		if (input.from === input.to) return input.texts;
+		const targetLang = input.to === "de" ? "Deutsch" : "Englisch";
+		const schema = {
+			type: "object" as const,
+			properties: {
+				translations: { type: "array", items: { type: "string" } },
+			},
+			required: ["translations"],
+		};
+		try {
+			const result = await this.client.messages.create({
+				model: "claude-sonnet-4-6",
+				max_tokens: 1024,
+				tools: [
+					{
+						name: "save_translations",
+						description: `Speichert die Übersetzungen ins ${targetLang}. Reihenfolge = Eingabe-Reihenfolge. Eigennamen, Firmen, Personennamen, Standorte und feststehende Skill-Bezeichnungen (ISO 27001, AWS, NIST CSF, AZ-104, ITIL, …) UNVERÄNDERT lassen. Bei zusammengesetzten Wörtern echte Begriffe verwenden — niemals erfundene Komposita. Wenn ein Eingabe-String leer ist, gib einen leeren String zurück.`,
+						input_schema: schema,
+					},
+				],
+				tool_choice: { type: "tool", name: "save_translations" },
+				system:
+					"Du bist Übersetzer. Antworte ausschliesslich über das save_translations-Tool. Halte dich strikt an die Eingabe-Reihenfolge.",
+				messages: [
+					{
+						role: "user",
+						content:
+							(input.context ? `Kontext: ${input.context}\n\n` : "") +
+							`Übersetze ins ${targetLang}:\n\n${JSON.stringify(input.texts)}`,
+					},
+				],
+			});
+			const toolUse = result.content.find((b) => b.type === "tool_use");
+			if (!toolUse || toolUse.type !== "tool_use") return input.texts;
+			const out = (toolUse.input as { translations?: unknown[] }).translations;
+			if (!Array.isArray(out)) return input.texts;
+			return input.texts.map((orig, i) => {
+				const t = out[i];
+				return typeof t === "string" && t.length > 0 ? t : orig;
+			});
+		} catch (e) {
+			console.warn("[ai] translateTexts failed, returning originals", e);
+			return input.texts;
+		}
 	}
 }

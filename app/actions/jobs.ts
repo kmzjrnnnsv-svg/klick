@@ -495,11 +495,16 @@ export async function duplicateJob(
 export async function suggestRequirements(input: {
 	title: string;
 	description: string;
+	locale?: "de" | "en";
 }): Promise<SuggestedJobRequirement[]> {
 	if (!input.title.trim() || input.description.trim().length < 20) {
 		return [];
 	}
-	return getAIProvider().suggestJobRequirements(input);
+	return getAIProvider().suggestJobRequirements({
+		title: input.title,
+		description: input.description,
+		locale: input.locale,
+	});
 }
 
 // Reads a job posting (PDF / image), extracts structured fields via AI.

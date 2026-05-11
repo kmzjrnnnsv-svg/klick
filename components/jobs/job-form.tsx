@@ -2,7 +2,7 @@
 
 import { Save, Sparkles, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { deleteJob, saveJob, suggestRequirements } from "@/app/actions/jobs";
 import { JobUploader } from "@/components/jobs/job-uploader";
@@ -35,6 +35,8 @@ export function JobForm({
 	templates: { id: string; name: string; isDefault: boolean }[];
 }) {
 	const t = useTranslations("Jobs");
+	const localeRaw = useLocale();
+	const locale: "de" | "en" = localeRaw === "en" ? "en" : "de";
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 	const [isSuggesting, startSuggesting] = useTransition();
@@ -116,7 +118,7 @@ export function JobForm({
 		setError(null);
 		startSuggesting(async () => {
 			try {
-				const out = await suggestRequirements({ title, description });
+				const out = await suggestRequirements({ title, description, locale });
 				if (out.length === 0) return;
 				const existingNames = new Set(
 					requirements.map((r) => r.name.toLowerCase()),

@@ -297,6 +297,9 @@ export interface AIProvider {
 	suggestJobRequirements(input: {
 		title: string;
 		description: string;
+		// UI-Locale des Arbeitgebers — gibt's vor, in welcher Sprache die
+		// Skills zurückkommen sollen. Default: Sprache der Beschreibung.
+		locale?: "de" | "en";
 	}): Promise<SuggestedJobRequirement[]>;
 	// Extracts a full job posting from an uploaded document. The form
 	// pre-fills every returned field; the user reviews + tweaks before save.
@@ -378,6 +381,20 @@ export interface AIProvider {
 	recommendCandidateSalary(
 		input: CandidateSalaryRecommendationInput,
 	): Promise<CandidateSalaryRecommendation>;
+	// Generische Text-Übersetzung — für Freitexte (Nachrichten, Notizen,
+	// Snapshot-Skills). Eigennamen, Firmen, Standorte, feststehende
+	// Skill-Bezeichnungen (ISO 27001, AWS, …) bleiben unverändert. Wenn
+	// `texts` mehrere Strings hat, kommen sie in derselben Reihenfolge
+	// zurück. Robuster Fallback: bei Fehler liefert das Provider die
+	// Originale 1:1 zurück, niemals throw.
+	translateTexts(input: {
+		texts: string[];
+		from: "de" | "en";
+		to: "de" | "en";
+		// Hilft dem Modell, Konsistenz zu halten ("Skill-Namen", "Notiz",
+		// "Nachricht zwischen Recruiter und Kandidat:in" usw.)
+		context?: string;
+	}): Promise<string[]>;
 }
 
 export type ProfileTranslationInput = {
