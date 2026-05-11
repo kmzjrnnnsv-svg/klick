@@ -163,8 +163,13 @@ export async function getMyCareerAnalysis(): Promise<{
 	analysis: CareerAnalysis | null;
 	updatedAt: Date | null;
 }> {
-	const userId = await requireCandidate();
+	// NIEMALS werfen — wird in /profile via Promise.all() aufgerufen, und ein
+	// throw zerlegt die ganze Page in den generischen "Server Components
+	// render"-Crash. Auth-/Rollen-Fehler → leere Auswertung zurückgeben.
 	try {
+		const session = await auth();
+		if (!session?.user?.id) return { analysis: null, updatedAt: null };
+		const userId = session.user.id;
 		const [row] = await db
 			.select({
 				analysis: candidateProfiles.careerAnalysis,
@@ -178,7 +183,6 @@ export async function getMyCareerAnalysis(): Promise<{
 			updatedAt: row?.updatedAt ?? null,
 		};
 	} catch (e) {
-		// Column probably missing. Gracefully degrade so /profile renders.
 		console.warn("[career] read failed, degrading", e);
 		return { analysis: null, updatedAt: null };
 	}

@@ -301,8 +301,24 @@ export async function setApplicationStatus(input: {
 	applicationId: string;
 	status: ApplicationStatus;
 	note?: string;
+	rejectReason?: RejectReason;
+	rejectFreeText?: string;
 }): Promise<{ ok: boolean; error?: string }> {
 	try {
+		// Decline ohne Grund ist nicht erlaubt — Kandidat:innen haben ein Recht
+		// auf eine begründete Absage. UI soll immer Begründungs-Dialog zeigen.
+		if (input.status === "declined") {
+			if (!input.rejectReason) {
+				return {
+					ok: false,
+					error: "Absage braucht einen Grund — bitte wähle eine Kategorie aus.",
+				};
+			}
+			if (!REJECT_REASONS.includes(input.rejectReason)) {
+				return { ok: false, error: "Ungültiger Absage-Grund." };
+			}
+		}
+
 		// Auth: legacy-Owner ODER Team-Member.
 		const { userId } = await requireEmployerAccessForApp(input.applicationId);
 		const [app] = await db
@@ -317,18 +333,27 @@ export async function setApplicationStatus(input: {
 			return { ok: true };
 		}
 
+		const updateSet: Partial<typeof applications.$inferInsert> = {
+			status: input.status,
+			updatedAt: new Date(),
+		};
+		if (input.status === "declined") {
+			updateSet.rejectReason = input.rejectReason;
+			updateSet.rejectFreeText = input.rejectFreeText?.trim() || null;
+		}
 		await db
 			.update(applications)
-			.set({ status: input.status, updatedAt: new Date() })
+			.set(updateSet)
 			.where(eq(applications.id, input.applicationId));
 
 		await db.insert(applicationEvents).values({
 			applicationId: input.applicationId,
 			kind: "status_change",
 			status: input.status,
+			rejectReason: input.status === "declined" ? input.rejectReason : null,
 			byRole: "employer",
 			byUserId: userId,
-			note: input.note?.trim(),
+			note: input.note?.trim() || input.rejectFreeText?.trim(),
 		});
 
 		// Kandidat:in bekommt eine schöne Notification — keine Person,
@@ -1249,6 +1274,33 @@ export async function addApplicationNote(input: {
 				body,
 			})
 			.returning({ id: applicationNotes.id });
+
+		// Wenn die Bewerbung noch in "submitted" oder "seen" steht, hebt das
+		// erste Team-Kommentar sie automatisch auf "in_review" — denn ab dem
+		// Moment wird sie konkret diskutiert.
+		try {
+			const [app] = await db
+				.select({ status: applications.status })
+				.from(applications)
+				.where(eq(applications.id, input.applicationId))
+				.limit(1);
+			if (app && (app.status === "submitted" || app.status === "seen")) {
+				await db
+					.update(applications)
+					.set({ status: "in_review", updatedAt: new Date() })
+					.where(eq(applications.id, input.applicationId));
+				await db.insert(applicationEvents).values({
+					applicationId: input.applicationId,
+					kind: "status_change",
+					status: "in_review",
+					byRole: "system",
+					note: "Team-Notiz hinzugefügt — automatisch auf In Prüfung gesetzt.",
+				});
+			}
+		} catch (e) {
+			console.warn("[applications] auto-in_review failed", e);
+		}
+
 		revalidatePath(`/applications/${input.applicationId}`);
 		// Auch der Employer-Detail-Pfad (jobs/[id]/applications/[appId])
 		// rendert die Notes — beide Pfade revalidieren.
