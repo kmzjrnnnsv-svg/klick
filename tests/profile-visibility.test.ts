@@ -118,10 +118,22 @@ describe("redactProfile", () => {
 		expect(out.salaryMin).toBeNull();
 	});
 
-	it("matches scope zeigt matches_only-Default-Sektionen, blendet Salary aus", () => {
+	it("matches scope zeigt matches_only-Default-Sektionen + Salary (global=matches_only override)", () => {
 		const out = redactProfile(baseProfile, "matches");
 		expect(out.education).not.toBeNull();
 		expect(out.summary).not.toBeNull();
-		expect(out.salaryMin).toBeNull(); // salary default = private
+		// Mit dem neuen globalDefault-Verhalten gilt das Profil-Level
+		// `visibility` als Default für alle Sektionen ohne explizite Chip-
+		// Wahl — auch für Salary. Wer Salary verstecken will, muss den
+		// Salary-Chip explizit auf 'private' setzen.
+		expect(out.salaryMin).not.toBeNull();
+	});
+
+	it("explizit private salary chip versteckt salary auch wenn global=matches_only", () => {
+		const out = redactProfile(
+			{ ...baseProfile, sectionVisibility: { salary: "private" } },
+			"matches",
+		);
+		expect(out.salaryMin).toBeNull();
 	});
 });

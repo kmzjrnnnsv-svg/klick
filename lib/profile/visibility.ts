@@ -49,16 +49,24 @@ export const ALL_SECTIONS: ProfileSectionKey[] = [
 export function visibilityFor(
 	section: ProfileSectionKey,
 	map: ProfileSectionVisibility | null | undefined,
+	// Profil-Level Default — z.B. wenn der User die globale "Visibility"-Radio
+	// auf "public" stellt, sollte das für jede Sektion gelten, sofern die
+	// Sektion keinen expliziten chip-Override gesetzt hat.
+	globalDefault?: "private" | "matches_only" | "public" | null,
 ): "private" | "matches_only" | "public" {
-	return map?.[section] ?? DEFAULT_VISIBILITY[section];
+	const explicit = map?.[section];
+	if (explicit) return explicit;
+	if (globalDefault) return globalDefault;
+	return DEFAULT_VISIBILITY[section];
 }
 
 export function isVisibleAt(
 	section: ProfileSectionKey,
 	map: ProfileSectionVisibility | null | undefined,
 	scope: "matches" | "public",
+	globalDefault?: "private" | "matches_only" | "public" | null,
 ): boolean {
-	const v = visibilityFor(section, map);
+	const v = visibilityFor(section, map, globalDefault);
 	if (v === "private") return false;
 	if (scope === "matches") return v === "matches_only" || v === "public";
 	return v === "public";
@@ -71,7 +79,13 @@ export function redactProfile(
 	scope: "matches" | "public",
 ): CandidateProfile {
 	const map = profile.sectionVisibility;
-	const allow = (s: ProfileSectionKey) => isVisibleAt(s, map, scope);
+	const globalDefault = profile.visibility as
+		| "private"
+		| "matches_only"
+		| "public"
+		| null;
+	const allow = (s: ProfileSectionKey) =>
+		isVisibleAt(s, map, scope, globalDefault);
 
 	return {
 		...profile,
