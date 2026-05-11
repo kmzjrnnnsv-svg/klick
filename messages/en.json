@@ -1294,6 +1294,12 @@
 			"body": "{focused} roles in the core field, {detour} in other areas.",
 			"showDetours": "Show {n} in other areas"
 		},
+		"parallel": {
+			"title": "Multi-track career",
+			"badge": "{peak} in parallel",
+			"body": "{duration} total with at least two roles at the same time — a signal of capacity and initiative.",
+			"showPairs": "Show {n} parallel roles"
+		},
 		"extras": {
 			"title": "Read from the CV",
 			"level": "Career level",

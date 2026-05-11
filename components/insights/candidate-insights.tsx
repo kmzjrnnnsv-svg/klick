@@ -345,6 +345,50 @@ export function CandidateInsightsView({
 				);
 			})()}
 
+			{(() => {
+				const p = tenure.parallel;
+				// Defensive: ältere Insights ohne `parallel` (Schema-Drift)
+				if (!p || p.overlapMonths < 3 || p.peakConcurrency < 2) return null;
+				return (
+					<section className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 sm:p-4">
+						<div className="mb-1.5 flex items-center justify-between gap-2">
+							<div className="font-medium text-sm">{t("parallel.title")}</div>
+							<span className="rounded-md bg-emerald-500/10 px-2 py-0.5 font-mono text-[11px] text-emerald-700 dark:text-emerald-300">
+								{t("parallel.badge", { peak: p.peakConcurrency })}
+							</span>
+						</div>
+						<p className="text-muted-foreground text-xs">
+							{t("parallel.body", {
+								duration: monthsToYears(p.overlapMonths),
+							})}
+						</p>
+						{p.pairs.length > 0 && (
+							<details className="mt-2 text-xs">
+								<summary className="cursor-pointer text-muted-foreground">
+									{t("parallel.showPairs", { n: p.pairs.length })}
+								</summary>
+								<ul className="mt-2 space-y-1">
+									{p.pairs.map((pair, i) => (
+										<li
+											key={`${pair.a.company}:${pair.a.role}:${pair.b.company}:${pair.b.role}:${i}`}
+											className="flex items-baseline justify-between gap-2"
+										>
+											<span className="truncate">
+												{pair.a.role} <span className="text-muted-foreground">·</span>{" "}
+												{pair.b.role}
+											</span>
+											<span className="shrink-0 font-mono text-muted-foreground">
+												{monthsToYears(pair.months)}
+											</span>
+										</li>
+									))}
+								</ul>
+							</details>
+						)}
+					</section>
+				);
+			})()}
+
 			{(tenure.currentRole || tenure.firstJob) && (
 				<section className="space-y-2">
 					{tenure.currentRole && (
