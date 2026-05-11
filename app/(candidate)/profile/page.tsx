@@ -46,6 +46,16 @@ export default async function ProfilePage() {
 	// statt das deutsche Original.
 	await ensureTranslationForLocale(locale);
 
+	// Banner-Logik: zeigt einen Hinweis wenn UI-Locale ≠ Origin UND noch
+	// keine Übersetzung existiert (=== ensureTranslationForLocale hat
+	// gerade etwas in der Pipeline). User weiß: "Reload in 30s und es
+	// ist auf Englisch."
+	const originLocale: "de" | "en" =
+		(profile?.profileLanguageOrigin as "de" | "en" | null) ?? "de";
+	const hasTranslation = !!profile?.translations?.[locale];
+	const translationPending =
+		!!profile && locale !== originLocale && !hasTranslation;
+
 	// Wir mischen Übersetzungen direkt in das Profil, das die Form erhält —
 	// so sieht der Kandidat die Felder in der UI-Sprache und kann sie auch
 	// sprachweise editieren. profileLanguageOrigin wird beim Save auf die
@@ -87,6 +97,12 @@ export default async function ProfilePage() {
 						{t("subtitle")}
 					</p>
 				</header>
+
+				{translationPending && (
+					<div className="mb-5 rounded-sm border border-primary/30 bg-primary/5 p-3 text-xs leading-relaxed">
+						{t("translationPending")}
+					</div>
+				)}
 
 				<section className="mb-6 sm:mb-8">
 					<h2 className="mb-2.5 font-medium text-sm sm:text-base">

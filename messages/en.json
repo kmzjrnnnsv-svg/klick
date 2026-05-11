@@ -282,6 +282,7 @@
 	"Profile": {
 		"title": "My profile",
 		"insightsHeading": "How your profile reads",
+		"translationPending": "We're translating your profile in the background. Please reload the page in ~30 seconds — CV text, descriptions, education and projects will then appear in the selected language.",
 		"share": {
 			"title": "Public share link",
 			"subtitle": "Optional. Exposes a read-only profile page you can share — e.g. in an application or your CV header. You can revoke anytime.",
@@ -1275,6 +1276,8 @@
 		},
 		"tenureScore": {
 			"title": "Stability score",
+			"rationale": "Ø tenure {avg}, longest {longest}.",
+			"noRoles": "No employment records.",
 			"band": {
 				"weak": "low",
 				"ok": "acceptable",

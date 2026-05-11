@@ -283,6 +283,7 @@
 		"title": "Mein Profil",
 		"subtitle": "Was Arbeitgeber sehen, sobald du Interesse zulässt. Du kontrollierst Sichtbarkeit und Inhalt.",
 		"insightsHeading": "So liest sich dein Profil",
+		"translationPending": "Wir übersetzen dein Profil im Hintergrund. Bitte lade die Seite in ~30 Sekunden neu, dann erscheinen Lebenslauf-Texte, Beschreibungen, Bildung und Projekte in der gewählten Sprache.",
 		"share": {
 			"title": "Öffentlicher Share-Link",
 			"subtitle": "Optional. Aktiviert eine schreibgeschützte Profilseite, die du teilen kannst — z. B. in einer Bewerbung oder im Lebenslauf-Header. Du kannst sie jederzeit zurückziehen.",
@@ -1275,6 +1276,8 @@
 		},
 		"tenureScore": {
 			"title": "Stabilitäts-Score",
+			"rationale": "Ø Verweildauer {avg}, längste {longest}.",
+			"noRoles": "Keine Anstellungen erfasst.",
 			"band": {
 				"weak": "instabil",
 				"ok": "akzeptabel",
