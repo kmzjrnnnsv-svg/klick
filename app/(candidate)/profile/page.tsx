@@ -3,7 +3,11 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { getMyCareerAnalysis } from "@/app/actions/career";
 import { getMyDiversity } from "@/app/actions/diversity";
 import { getMyInsights } from "@/app/actions/insights";
-import { getProfile, listCvVaultItems } from "@/app/actions/profile";
+import {
+	ensureTranslationForLocale,
+	getProfile,
+	listCvVaultItems,
+} from "@/app/actions/profile";
 import { getMyShareToken } from "@/app/actions/public-profile";
 import { listMyReferences } from "@/app/actions/references";
 import { auth } from "@/auth";
@@ -35,6 +39,12 @@ export default async function ProfilePage() {
 			listMyReferences(),
 			getMyCareerAnalysis(),
 		]);
+
+	// Wenn UI-Locale ≠ Profil-Origin und in dieser Locale noch keine
+	// Übersetzung gespeichert ist, im Hintergrund (after()) eine generieren.
+	// Beim nächsten Aufruf der Seite sieht der User die übersetzten Felder
+	// statt das deutsche Original.
+	await ensureTranslationForLocale(locale);
 
 	// Wir mischen Übersetzungen direkt in das Profil, das die Form erhält —
 	// so sieht der Kandidat die Felder in der UI-Sprache und kann sie auch

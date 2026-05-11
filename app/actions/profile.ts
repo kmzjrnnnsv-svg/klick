@@ -408,7 +408,12 @@ async function saveProfileImpl(formData: FormData): Promise<void> {
 
 // Übersetzt Profilfelder in die jeweils andere Sprache und speichert sie
 // im `translations`-JSONB. Wird nach jedem Save im Hintergrund gerufen.
-async function translateProfileFields(userId: string): Promise<void> {
+// `force=false` → übersetzt nur in die NICHT-Origin-Sprache wenn der Eintrag
+// fehlt oder älter als das Profile-Update ist. `force=true` → immer neu.
+async function translateProfileFields(
+	userId: string,
+	force = false,
+): Promise<void> {
 	const [profile] = await db
 		.select()
 		.from(candidateProfiles)
@@ -426,6 +431,12 @@ async function translateProfileFields(userId: string): Promise<void> {
 		(profile.profileLanguageOrigin as "de" | "en" | null) ??
 		(u?.locale === "en" ? "en" : "de");
 	const target: "de" | "en" = origin === "de" ? "en" : "de";
+
+	// Skip wenn target-Übersetzung bereits existiert und nicht erzwungen
+	const existingTranslations = profile.translations ?? {};
+	if (!force && existingTranslations[target]) {
+		return;
+	}
 
 	const ai = getAIProvider();
 	const translation = await ai.translateProfile({
@@ -450,14 +461,50 @@ async function translateProfileFields(userId: string): Promise<void> {
 		mobility: profile.mobility,
 	});
 
+	// MERGE statt overwrite — die andere Sprache (= origin selbst, falls
+	// jemand mal eine "de"-Eigenübersetzung gespeichert hat) bleibt
+	// erhalten.
 	await db
 		.update(candidateProfiles)
 		.set({
 			profileLanguageOrigin: origin,
-			translations: { [target]: translation },
+			translations: { ...existingTranslations, [target]: translation },
 			translationsUpdatedAt: new Date(),
 		})
 		.where(eq(candidateProfiles.userId, userId));
+}
+
+// User-getriggertes Re-Translate. Wird vom Profile-Page-Loader gerufen
+// wenn die UI-Locale ≠ Profile-Origin ist und keine Übersetzung existiert.
+export async function ensureTranslationForLocale(
+	targetLocale: "de" | "en",
+): Promise<void> {
+	try {
+		const session = await auth();
+		const userId = session?.user?.id;
+		if (!userId) return;
+		const [profile] = await db
+			.select({
+				translations: candidateProfiles.translations,
+				profileLanguageOrigin: candidateProfiles.profileLanguageOrigin,
+			})
+			.from(candidateProfiles)
+			.where(eq(candidateProfiles.userId, userId))
+			.limit(1);
+		if (!profile) return;
+		const origin =
+			(profile.profileLanguageOrigin as "de" | "en" | null) ?? "de";
+		if (origin === targetLocale) return; // nichts zu tun, Origin selbst
+		if (profile.translations?.[targetLocale]) return; // schon da
+		// Asynchron im Hintergrund — niemand wartet auf das Result.
+		after(() =>
+			translateProfileFields(userId).catch((e) =>
+				console.warn("[profile] ensureTranslation failed", e),
+			),
+		);
+	} catch (e) {
+		console.warn("[profile] ensureTranslationForLocale failed", e);
+	}
 }
 
 function tryParseJsonArray(raw: string | undefined): unknown[] | undefined {
