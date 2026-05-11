@@ -32,11 +32,16 @@ export default async function PublicProfilePage({
 	const locale = ((await getLocale()) as "de" | "en") ?? "de";
 	const view = localizedProfile(profile, locale);
 	const map = raw.sectionVisibility;
+	const globalVis = raw.visibility as
+		| "private"
+		| "matches_only"
+		| "public"
+		| null;
 
 	const showInsights =
-		isVisibleAt("certifications", map, "public") ||
-		isVisibleAt("industries", map, "public") ||
-		isVisibleAt("awards", map, "public");
+		isVisibleAt("certifications", map, "public", globalVis) ||
+		isVisibleAt("industries", map, "public", globalVis) ||
+		isVisibleAt("awards", map, "public", globalVis);
 
 	return (
 		<>
@@ -259,16 +264,17 @@ export default async function PublicProfilePage({
 						<CandidateInsightsView
 							insights={(raw.insights as CandidateInsights | null) ?? null}
 							profileExtras={{
-								industries: isVisibleAt("industries", map, "public")
+								industries: isVisibleAt("industries", map, "public", globalVis)
 									? view.industries
 									: null,
-								awards: isVisibleAt("awards", map, "public")
+								awards: isVisibleAt("awards", map, "public", globalVis)
 									? view.awards
 									: null,
 								certificationsMentioned: isVisibleAt(
 									"certifications",
 									map,
 									"public",
+									globalVis,
 								)
 									? raw.certificationsMentioned
 									: null,

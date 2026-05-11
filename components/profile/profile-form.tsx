@@ -155,7 +155,7 @@ export function ProfileForm({
 		setSectionVisibility((prev) => ({ ...prev, [section]: next }));
 	}
 	function vis(section: ProfileSectionKey): Visibility {
-		return visibilityFor(section, sectionVisibility);
+		return visibilityFor(section, sectionVisibility, visibility);
 	}
 
 	function applyExtracted(data: ExtractedProfile) {
