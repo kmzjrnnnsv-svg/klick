@@ -183,28 +183,37 @@ function parseSkills(raw: string): ProfileSkill[] {
 }
 
 export async function getProfile(): Promise<CandidateProfile | null> {
-	const session = await auth();
-	if (!session?.user?.id) return null;
-	const [p] = await db
-		.select()
-		.from(candidateProfiles)
-		.where(eq(candidateProfiles.userId, session.user.id))
-		.limit(1);
-	if (!p) return null;
-	// Lazy 30-day-reset: if openToOffers was set "until X" and that's past,
-	// flip the flag off and notify the candidate so they can refresh.
-	if (
-		p.openToOffers &&
-		p.openToOffersUntil &&
-		p.openToOffersUntil < new Date()
-	) {
-		await db
-			.update(candidateProfiles)
-			.set({ openToOffers: false })
-			.where(eq(candidateProfiles.userId, session.user.id));
-		p.openToOffers = false;
+	try {
+		const session = await auth();
+		if (!session?.user?.id) return null;
+		const [p] = await db
+			.select()
+			.from(candidateProfiles)
+			.where(eq(candidateProfiles.userId, session.user.id))
+			.limit(1);
+		if (!p) return null;
+		// Lazy 30-day-reset: if openToOffers was set "until X" and that's past,
+		// flip the flag off and notify the candidate so they can refresh.
+		if (
+			p.openToOffers &&
+			p.openToOffersUntil &&
+			p.openToOffersUntil < new Date()
+		) {
+			try {
+				await db
+					.update(candidateProfiles)
+					.set({ openToOffers: false })
+					.where(eq(candidateProfiles.userId, session.user.id));
+				p.openToOffers = false;
+			} catch (e) {
+				console.warn("[profile] open-to-offers auto-reset failed", e);
+			}
+		}
+		return p;
+	} catch (e) {
+		console.warn("[profile] getProfile failed, returning null", e);
+		return null;
 	}
-	return p;
 }
 
 export async function listCvVaultItems() {
@@ -262,6 +271,29 @@ export async function parseCvFromVault(
 }
 
 export async function saveProfile(formData: FormData): Promise<void> {
+	try {
+		await saveProfileImpl(formData);
+	} catch (e) {
+		// Wandelt Zod-/DB-/Geocode-Errors in sprechende Messages um, damit der
+		// Client nicht das generische "An error occurred in the Server
+		// Components render"-Wall-of-Text sieht. Server-Logs bekommen die
+		// volle Stack-Trace.
+		console.error("[profile.save] failed", e);
+		if (e instanceof z.ZodError) {
+			const issues = e.issues
+				.slice(0, 3)
+				.map((i) => `${i.path.join(".") || "Feld"}: ${i.message}`)
+				.join(" · ");
+			throw new Error(`Profil-Daten ungültig — ${issues}`);
+		}
+		if (e instanceof Error) {
+			throw new Error(`Speichern fehlgeschlagen: ${e.message}`);
+		}
+		throw new Error("Speichern fehlgeschlagen (unbekannter Fehler).");
+	}
+}
+
+async function saveProfileImpl(formData: FormData): Promise<void> {
 	const session = await auth();
 	if (!session?.user?.id) throw new Error("unauthenticated");
 	const userId = session.user.id;
@@ -319,8 +351,16 @@ export async function saveProfile(formData: FormData): Promise<void> {
 			: undefined;
 
 	// Geocode the location (cached in DB) so the match engine can compute
-	// commute distance later. Failures degrade silently.
-	const geo = parsed.location ? await geocode(parsed.location) : null;
+	// commute distance later. Failures degrade silently — geocode hängt am
+	// externen Nominatim und darf den Save nie killen.
+	let geo: { lat: number; lng: number } | null = null;
+	if (parsed.location) {
+		try {
+			geo = await geocode(parsed.location);
+		} catch (e) {
+			console.warn("[profile.save] geocode failed (non-fatal)", e);
+		}
+	}
 
 	// When candidate ticks "open to offers", grant a 30-day window —
 	// after that the lazy reset in getProfile() flips it back to false.

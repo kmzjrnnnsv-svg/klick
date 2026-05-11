@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import type { ProfileExperience } from "@/db/schema";
 import { candidateProfiles, users } from "@/db/schema";
-import { getAIProvider } from "@/lib/ai";
+import { getCareerAIProvider } from "@/lib/ai";
 import type { CareerAnalysis, ExtractedProfile } from "@/lib/ai/types";
 
 async function requireCandidate(): Promise<string> {
@@ -90,7 +90,7 @@ export async function refreshCareerAnalysis(): Promise<CareerActionResult> {
 
 		let analysis: CareerAnalysis;
 		try {
-			const ai = getAIProvider();
+			const ai = getCareerAIProvider();
 			// Hard timeout — reverse-Proxy (nginx default 60s) würde sonst die
 			// Response abschneiden und der Client sieht ein generisches
 			// "An unexpected response was received from the server".
@@ -163,8 +163,13 @@ export async function getMyCareerAnalysis(): Promise<{
 	analysis: CareerAnalysis | null;
 	updatedAt: Date | null;
 }> {
-	const userId = await requireCandidate();
+	// NIEMALS werfen — wird in /profile via Promise.all() aufgerufen, und ein
+	// throw zerlegt die ganze Page in den generischen "Server Components
+	// render"-Crash. Auth-/Rollen-Fehler → leere Auswertung zurückgeben.
 	try {
+		const session = await auth();
+		if (!session?.user?.id) return { analysis: null, updatedAt: null };
+		const userId = session.user.id;
 		const [row] = await db
 			.select({
 				analysis: candidateProfiles.careerAnalysis,
@@ -178,7 +183,6 @@ export async function getMyCareerAnalysis(): Promise<{
 			updatedAt: row?.updatedAt ?? null,
 		};
 	} catch (e) {
-		// Column probably missing. Gracefully degrade so /profile renders.
 		console.warn("[career] read failed, degrading", e);
 		return { analysis: null, updatedAt: null };
 	}

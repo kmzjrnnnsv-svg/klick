@@ -24,13 +24,20 @@ async function requireCandidate(): Promise<string> {
 }
 
 export async function getMyDiversity(): Promise<DiversityResponse | null> {
-	const userId = await requireCandidate();
-	const [r] = await db
-		.select()
-		.from(diversityResponses)
-		.where(eq(diversityResponses.userId, userId))
-		.limit(1);
-	return r ?? null;
+	// fail-soft: niemals werfen — wird auf /profile via Promise.all() gerufen
+	try {
+		const session = await auth();
+		if (!session?.user?.id) return null;
+		const [r] = await db
+			.select()
+			.from(diversityResponses)
+			.where(eq(diversityResponses.userId, session.user.id))
+			.limit(1);
+		return r ?? null;
+	} catch (e) {
+		console.warn("[diversity] read failed, degrading", e);
+		return null;
+	}
 }
 
 export async function saveDiversity(input: {

@@ -87,12 +87,19 @@ export async function requestReference(input: {
 }
 
 export async function listMyReferences(): Promise<ReferenceCheck[]> {
-	const userId = await requireCandidate();
-	return db
-		.select()
-		.from(referenceChecks)
-		.where(eq(referenceChecks.candidateUserId, userId))
-		.orderBy(desc(referenceChecks.createdAt));
+	// fail-soft auf /profile — keine throws an die Server-Component-Render-Pipeline
+	try {
+		const session = await auth();
+		if (!session?.user?.id) return [];
+		return db
+			.select()
+			.from(referenceChecks)
+			.where(eq(referenceChecks.candidateUserId, session.user.id))
+			.orderBy(desc(referenceChecks.createdAt));
+	} catch (e) {
+		console.warn("[references] list failed, degrading", e);
+		return [];
+	}
 }
 
 export async function getReferenceByToken(token: string) {

@@ -618,9 +618,19 @@ export class OllamaAIProvider implements AIProvider {
 		const schema = {
 			type: "object",
 			properties: {
-				headline: { type: "string", maxLength: 600 },
-				strengths: { type: "array", items: { type: "string" }, maxItems: 5 },
-				growthAreas: { type: "array", items: { type: "string" }, maxItems: 5 },
+				headline: { type: "string", maxLength: 400 },
+				strengths: {
+					type: "array",
+					minItems: 3,
+					maxItems: 5,
+					items: { type: "string", maxLength: 140 },
+				},
+				growthAreas: {
+					type: "array",
+					minItems: 3,
+					maxItems: 5,
+					items: { type: "string", maxLength: 140 },
+				},
 				salary: {
 					type: "object",
 					properties: {
@@ -628,42 +638,111 @@ export class OllamaAIProvider implements AIProvider {
 						mid: { type: "integer" },
 						high: { type: "integer" },
 						currency: { type: "string" },
-						rationale: { type: "string" },
+						rationale: { type: "string", maxLength: 300 },
 					},
 					required: ["low", "mid", "high", "currency", "rationale"],
 				},
-				primaryIndustries: { type: "array", items: { type: "string" } },
+				primaryIndustries: {
+					type: "array",
+					minItems: 2,
+					maxItems: 5,
+					items: { type: "string", maxLength: 40 },
+				},
 				adjacentIndustries: {
 					type: "array",
+					minItems: 2,
+					maxItems: 4,
 					items: {
 						type: "object",
 						properties: {
-							name: { type: "string" },
-							rationale: { type: "string" },
+							name: { type: "string", maxLength: 40 },
+							rationale: { type: "string", maxLength: 180 },
 						},
 						required: ["name", "rationale"],
 					},
 				},
-				certificationSuggestions: { type: "array", items: { type: "object" } },
-				roleSuggestions: { type: "array", items: { type: "object" } },
-				hiringPros: { type: "array", items: { type: "string" } },
-				hiringCons: { type: "array", items: { type: "string" } },
+				certificationSuggestions: {
+					type: "array",
+					minItems: 2,
+					maxItems: 4,
+					items: {
+						type: "object",
+						properties: {
+							name: { type: "string", maxLength: 80 },
+							issuer: { type: "string", maxLength: 40 },
+							why: { type: "string", maxLength: 180 },
+							effortHours: { type: "integer" },
+						},
+						required: ["name", "issuer", "why", "effortHours"],
+					},
+				},
+				roleSuggestions: {
+					type: "array",
+					minItems: 3,
+					maxItems: 5,
+					items: {
+						type: "object",
+						properties: {
+							title: { type: "string", maxLength: 60 },
+							rationale: { type: "string", maxLength: 180 },
+							obvious: { type: "boolean" },
+						},
+						required: ["title", "rationale", "obvious"],
+					},
+				},
+				hiringPros: {
+					type: "array",
+					minItems: 3,
+					maxItems: 4,
+					items: { type: "string", maxLength: 140 },
+				},
+				hiringCons: {
+					type: "array",
+					minItems: 2,
+					maxItems: 4,
+					items: { type: "string", maxLength: 140 },
+				},
 				marketContext: {
 					type: "object",
 					properties: {
 						demand: { type: "string", enum: ["high", "medium", "low"] },
-						notes: { type: "string" },
+						notes: { type: "string", maxLength: 300 },
 					},
 					required: ["demand", "notes"],
 				},
 			},
+			required: [
+				"headline",
+				"strengths",
+				"growthAreas",
+				"salary",
+				"primaryIndustries",
+				"adjacentIndustries",
+				"certificationSuggestions",
+				"roleSuggestions",
+				"hiringPros",
+				"hiringCons",
+				"marketContext",
+			],
 		};
+		const insightsStr = input.insights
+			? `\n\nBERECHNETE INSIGHTS:\n${JSON.stringify(input.insights).slice(0, 4000)}`
+			: "";
 		return await this.chat<CareerAnalysis>(
-			"Du erstellst Karriere-Analysen. Ehrlich, ohne Floskeln, mit Zahlen wo möglich.",
-			JSON.stringify({
-				profile: input.profile,
-				yearsActive: input.yearsActive,
-			}).slice(0, 6000),
+			"Du bist erfahrene:r Career Coach mit DACH-Marktwissen Stand 2026. " +
+				"Du MUSST ALLE Felder füllen — kein einziges leer lassen. " +
+				"Wenn ein Feld dünn wirkt, leite plausible Werte aus den vorhandenen Skills/Experience/Education ab. " +
+				"Antworte AUSSCHLIEßLICH mit validem JSON gemäß Schema. Keine Floskeln, keine Buzzwords. " +
+				"Konkrete Stärken (Jahre, Domain, Tool). Salary in EUR für DACH-Markt.",
+			`PROFIL:\n${JSON.stringify(input.profile).slice(0, 5000)}` +
+				(input.yearsActive
+					? `\nGESAMT-Berufsjahre: ${input.yearsActive}`
+					: "") +
+				insightsStr +
+				`\n\nPflicht: 3-5 strengths, 3-5 growthAreas, 2-5 primaryIndustries, ` +
+				`2-4 adjacentIndustries, 2-4 certificationSuggestions, 3-5 roleSuggestions ` +
+				`(mix aus obvious=true/false), 3-4 hiringPros, 2-4 hiringCons. ` +
+				`marketContext mit demand-Level + notes. salary low/mid/high in EUR + rationale.`,
 			schema,
 		);
 	}
