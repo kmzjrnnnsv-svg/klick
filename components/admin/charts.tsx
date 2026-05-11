@@ -27,16 +27,17 @@ export function HBarChart({
 		rose: "bg-rose-500",
 	};
 	if (items.length === 0) {
-		return (
-			<p className="text-muted-foreground text-xs italic">Keine Daten.</p>
-		);
+		return <p className="text-muted-foreground text-xs italic">Keine Daten.</p>;
 	}
 	return (
 		<ul className="space-y-1.5">
 			{items.map((it) => {
 				const pct = Math.round((it.n / m) * 100);
 				return (
-					<li key={it.label} className="grid grid-cols-[minmax(0,1fr)_3rem] gap-3 text-sm">
+					<li
+						key={it.label}
+						className="grid grid-cols-[minmax(0,1fr)_3rem] gap-3 text-sm"
+					>
 						<div className="min-w-0">
 							<div className="flex items-baseline justify-between gap-2">
 								<span className="truncate">{it.label}</span>
@@ -63,9 +64,7 @@ export function HBarChart({
 export function VBarHistogram({ items }: { items: BarItem[] }) {
 	const m = maxOf(items);
 	if (items.length === 0) {
-		return (
-			<p className="text-muted-foreground text-xs italic">Keine Daten.</p>
-		);
+		return <p className="text-muted-foreground text-xs italic">Keine Daten.</p>;
 	}
 	return (
 		<div className="grid grid-flow-col auto-cols-fr items-end gap-1.5">
@@ -143,9 +142,7 @@ export function StackedBar({
 }) {
 	const total = items.reduce((a, b) => a + b.n, 0);
 	if (total === 0) {
-		return (
-			<p className="text-muted-foreground text-xs italic">Keine Daten.</p>
-		);
+		return <p className="text-muted-foreground text-xs italic">Keine Daten.</p>;
 	}
 	const palette = [
 		"bg-primary",

@@ -5,7 +5,7 @@ import { useEffect } from "react";
 // Route-Level-Error-Boundary. Greift bevor global-error.tsx einspringt,
 // behält Header/Footer und Theme, gibt einen Retry-Knopf. Ein User soll
 // nie auf eine "This page couldn't load"-Browser-Seite knallen.
-export default function Error({
+export default function RouteErrorBoundary({
 	error,
 	reset,
 }: {

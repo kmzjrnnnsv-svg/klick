@@ -322,7 +322,11 @@ export async function saveJob(
 	// AI-Calls dürfen das Save NIE blockieren — race gegen Timeout (10s).
 	// Wenn die KI hängt, speichern wir die Stelle trotzdem; Benchmark +
 	// Quality werden dann beim nächsten Edit nachgezogen.
-	function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+	function withTimeout<T>(
+		p: Promise<T>,
+		ms: number,
+		label: string,
+	): Promise<T> {
 		return Promise.race<T>([
 			p,
 			new Promise<T>((_, reject) =>
@@ -472,7 +476,6 @@ export async function duplicateJob(
 			.where(and(eq(jobs.id, id), eq(jobs.employerId, e.id)))
 			.limit(1);
 		if (!src) return { ok: false, error: "Stelle nicht gefunden." };
-		// biome-ignore lint/correctness/noUnusedVariables: explizit auspacken
 		const { id: _id, createdAt: _c, updatedAt: _u, status: _s, ...rest } = src;
 		const [created] = await db
 			.insert(jobs)

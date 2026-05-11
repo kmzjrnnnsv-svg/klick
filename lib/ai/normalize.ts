@@ -65,7 +65,9 @@ export function buildSummaryFallback(p: ExtractedProfile): string | undefined {
 
 	const parts: string[] = [];
 	if (headline) {
-		parts.push(years ? `${headline} mit ${years} Jahren Erfahrung.` : `${headline}.`);
+		parts.push(
+			years ? `${headline} mit ${years} Jahren Erfahrung.` : `${headline}.`,
+		);
 	} else if (top) {
 		parts.push(`${top.role} bei ${top.company}.`);
 	}
@@ -81,6 +83,8 @@ export function applyExtractionPostprocessing(
 ): ExtractedProfile {
 	const education = normalizeEducationList(p.education);
 	const summary =
-		p.summary && p.summary.trim().length > 0 ? p.summary : buildSummaryFallback(p);
+		p.summary && p.summary.trim().length > 0
+			? p.summary
+			: buildSummaryFallback(p);
 	return { ...p, education, summary };
 }

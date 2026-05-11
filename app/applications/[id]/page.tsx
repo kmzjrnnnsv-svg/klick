@@ -16,9 +16,9 @@ import { ProfileEvolution } from "@/components/applications/profile-evolution";
 import { SnapshotCompare } from "@/components/applications/snapshot-compare";
 import { StageRatingPrompt } from "@/components/applications/stage-rating-prompt";
 import { WoltTracker } from "@/components/applications/wolt-tracker";
-import { TranslatableText } from "@/components/translate/translatable-text";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { TranslatableText } from "@/components/translate/translatable-text";
 import { Button } from "@/components/ui/button";
 
 export default async function ApplicationDetailPage({
@@ -142,10 +142,7 @@ export default async function ApplicationDetailPage({
 
 				{pastUnratedStages.length > 0 && (
 					<section className="mb-8">
-						<PastStageRatings
-							applicationId={id}
-							stages={pastUnratedStages}
-						/>
+						<PastStageRatings applicationId={id} stages={pastUnratedStages} />
 					</section>
 				)}
 

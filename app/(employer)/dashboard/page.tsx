@@ -186,7 +186,9 @@ export default async function EmployerDashboardPage() {
 											n: a.funnel.inReview,
 											pct:
 												a.funnel.seen > 0
-													? Math.round((a.funnel.inReview / a.funnel.seen) * 100)
+													? Math.round(
+															(a.funnel.inReview / a.funnel.seen) * 100,
+														)
 													: 0,
 										},
 										{
@@ -224,7 +226,9 @@ export default async function EmployerDashboardPage() {
 											n: a.funnel.accepted,
 											pct:
 												a.funnel.offer > 0
-													? Math.round((a.funnel.accepted / a.funnel.offer) * 100)
+													? Math.round(
+															(a.funnel.accepted / a.funnel.offer) * 100,
+														)
 													: 0,
 										},
 									]}

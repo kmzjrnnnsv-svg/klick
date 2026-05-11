@@ -168,7 +168,8 @@ export default async function PublicProfilePage({
 					<section className="mb-5 rounded-lg border border-border bg-background p-4">
 						<h2 className="mb-2 font-medium text-sm">{t("availability")}</h2>
 						<p className="text-foreground/90 text-sm">
-							{profile.availability.status === "immediate" && t("availImmediate")}
+							{profile.availability.status === "immediate" &&
+								t("availImmediate")}
 							{profile.availability.status === "notice" &&
 								t("availNotice", {
 									weeks: profile.availability.noticeWeeks ?? 0,
@@ -261,8 +262,14 @@ export default async function PublicProfilePage({
 								industries: isVisibleAt("industries", map, "public")
 									? view.industries
 									: null,
-								awards: isVisibleAt("awards", map, "public") ? view.awards : null,
-								certificationsMentioned: isVisibleAt("certifications", map, "public")
+								awards: isVisibleAt("awards", map, "public")
+									? view.awards
+									: null,
+								certificationsMentioned: isVisibleAt(
+									"certifications",
+									map,
+									"public",
+								)
 									? raw.certificationsMentioned
 									: null,
 								mobility: view.mobility,

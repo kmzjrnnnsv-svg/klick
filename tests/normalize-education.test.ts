@@ -21,10 +21,12 @@ describe("normalizeEducationDegree", () => {
 	});
 
 	it("strippt 'Elektrotechnik (ohne Abschluss)'", () => {
-		expect(normalizeEducationDegree("Elektrotechnik (ohne Abschluss)")).toEqual({
-			degree: "Elektrotechnik",
-			completed: false,
-		});
+		expect(normalizeEducationDegree("Elektrotechnik (ohne Abschluss)")).toEqual(
+			{
+				degree: "Elektrotechnik",
+				completed: false,
+			},
+		);
 	});
 
 	it("strippt unklammerte Variante mit Bindestrich", () => {
@@ -54,7 +56,11 @@ describe("normalizeEducationDegree", () => {
 describe("normalizeEducationList", () => {
 	it("respektiert ein bereits gesetztes completed-Flag", () => {
 		const out = normalizeEducationList([
-			{ institution: "TU", degree: "Informatik (ohne Abschluss)", completed: true },
+			{
+				institution: "TU",
+				degree: "Informatik (ohne Abschluss)",
+				completed: true,
+			},
 		]);
 		expect(out?.[0]).toMatchObject({
 			degree: "Informatik",
@@ -78,11 +84,7 @@ describe("buildSummaryFallback", () => {
 		const text = buildSummaryFallback({
 			headline: "Senior Frontend Engineer",
 			yearsExperience: 7,
-			skills: [
-				{ name: "TypeScript" },
-				{ name: "React" },
-				{ name: "Next.js" },
-			],
+			skills: [{ name: "TypeScript" }, { name: "React" }, { name: "Next.js" }],
 		});
 		expect(text).toContain("Senior Frontend Engineer");
 		expect(text).toContain("7 Jahren");

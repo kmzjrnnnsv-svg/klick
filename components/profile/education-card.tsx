@@ -1,7 +1,10 @@
 import { useTranslations } from "next-intl";
 import type { ProfileEducation } from "@/db/schema";
 
-const DEGREE_TYPE_LABEL: Record<NonNullable<ProfileEducation["degreeType"]>, string> = {
+const DEGREE_TYPE_LABEL: Record<
+	NonNullable<ProfileEducation["degreeType"]>,
+	string
+> = {
 	school: "Schule",
 	apprenticeship: "Ausbildung",
 	bachelor: "Bachelor",

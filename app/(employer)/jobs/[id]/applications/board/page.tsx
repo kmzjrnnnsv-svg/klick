@@ -79,12 +79,8 @@ export default async function ApplicationsBoardPage({
 			candidateInitials: initials(name, fallback),
 			matchScore: scoreByUser.get(a.candidateUserId) ?? null,
 			daysInStatus: a.stageEnteredAt
-				? Math.floor(
-						(now - new Date(a.stageEnteredAt).getTime()) / 86400_000,
-					)
-				: Math.floor(
-						(now - new Date(a.createdAt).getTime()) / 86400_000,
-					),
+				? Math.floor((now - new Date(a.stageEnteredAt).getTime()) / 86400_000)
+				: Math.floor((now - new Date(a.createdAt).getTime()) / 86400_000),
 			status: a.status,
 			createdAt: new Date(a.createdAt),
 		};

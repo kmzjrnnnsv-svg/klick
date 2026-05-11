@@ -368,13 +368,14 @@ export function CandidateInsightsView({
 									{t("parallel.showPairs", { n: p.pairs.length })}
 								</summary>
 								<ul className="mt-2 space-y-1">
-									{p.pairs.map((pair, i) => (
+									{p.pairs.map((pair) => (
 										<li
-											key={`${pair.a.company}:${pair.a.role}:${pair.b.company}:${pair.b.role}:${i}`}
+											key={`${pair.a.company}:${pair.a.role}:${pair.b.company}:${pair.b.role}`}
 											className="flex items-baseline justify-between gap-2"
 										>
 											<span className="truncate">
-												{pair.a.role} <span className="text-muted-foreground">·</span>{" "}
+												{pair.a.role}{" "}
+												<span className="text-muted-foreground">·</span>{" "}
 												{pair.b.role}
 											</span>
 											<span className="shrink-0 font-mono text-muted-foreground">

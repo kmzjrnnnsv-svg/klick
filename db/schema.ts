@@ -426,7 +426,8 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 	}),
 	// Per-Sektion-Sichtbarkeit. Default = matches_only für alle Sektionen.
 	// Nur "public" Sektionen erscheinen unter /p/<token>.
-	sectionVisibility: jsonb("section_visibility").$type<ProfileSectionVisibility>(),
+	sectionVisibility:
+		jsonb("section_visibility").$type<ProfileSectionVisibility>(),
 	// Bis zu 2 zusätzliche Länder mit eigenem Gehalt + KI-Empfehlung.
 	salaryByCountry: jsonb("salary_by_country").$type<ProfileSalaryByCountry[]>(),
 	updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),

@@ -43,7 +43,7 @@ export function TranslateButton({
 				setError(r.error);
 				return;
 			}
-			onTranslated(Array.isArray(original) ? r.texts : r.texts[0] ?? "");
+			onTranslated(Array.isArray(original) ? r.texts : (r.texts[0] ?? ""));
 			setDone(true);
 		});
 	}

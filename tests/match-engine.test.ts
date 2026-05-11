@@ -36,6 +36,7 @@ const baseJob: Job = {
 	postingQuality: null,
 	templateId: null,
 	honestPostingFlag: "open",
+	demoBatchId: null,
 	createdAt: new Date(),
 	updatedAt: new Date(),
 };
@@ -79,6 +80,15 @@ const baseProfile: CandidateProfile = {
 	profileLanguageOrigin: null,
 	translations: null,
 	translationsUpdatedAt: null,
+	publications: null,
+	projects: null,
+	volunteering: null,
+	drivingLicenses: null,
+	availability: null,
+	socialLinks: null,
+	workPermitStatus: null,
+	sectionVisibility: null,
+	salaryByCountry: null,
 	updatedAt: new Date(),
 };
 

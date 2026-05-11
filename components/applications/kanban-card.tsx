@@ -7,8 +7,14 @@ import Link from "next/link";
 import type { BoardApp } from "./kanban-board";
 
 export function KanbanCard({ app }: { app: BoardApp }) {
-	const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-		useSortable({ id: app.id });
+	const {
+		attributes,
+		listeners,
+		setNodeRef,
+		transform,
+		transition,
+		isDragging,
+	} = useSortable({ id: app.id });
 	const style: React.CSSProperties = {
 		transform: CSS.Transform.toString(transform),
 		transition,

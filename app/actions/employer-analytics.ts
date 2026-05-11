@@ -9,9 +9,7 @@ import {
 	applications,
 	employers,
 	jobs,
-	matches,
 	offers,
-	users,
 	verifications,
 } from "@/db/schema";
 
@@ -58,8 +56,18 @@ export type EmployerAnalytics = {
 	stageOutcomes: { outcome: string; n: number }[];
 	topJobs: { id: string; title: string; n: number }[];
 	volume30d: { bucket: string; n: number }[]; // 7-tage-Buckets
-	verifyResults: { kind: string; passed: number; failed: number; pending: number }[];
-	timeToFill: { count: number; medianDays: number | null; p25Days: number | null; p75Days: number | null };
+	verifyResults: {
+		kind: string;
+		passed: number;
+		failed: number;
+		pending: number;
+	}[];
+	timeToFill: {
+		count: number;
+		medianDays: number | null;
+		p25Days: number | null;
+		p75Days: number | null;
+	};
 	teamSize: number;
 	activity: {
 		ts: Date;
@@ -76,9 +84,7 @@ function medianOf(xs: number[]): number | null {
 	const sorted = xs.slice().sort((a, b) => a - b);
 	const mid = Math.floor(sorted.length / 2);
 	const m =
-		sorted.length % 2 === 0
-			? (sorted[mid - 1] + sorted[mid]) / 2
-			: sorted[mid];
+		sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 	return Math.round(m * 10) / 10;
 }
 
@@ -264,7 +270,10 @@ export async function getEmployerAnalytics(): Promise<EmployerAnalytics | null> 
 			n: sql<number>`count(*)::int`.as("n"),
 		})
 		.from(verifications)
-		.innerJoin(applications, eq(applications.candidateUserId, verifications.candidateUserId))
+		.innerJoin(
+			applications,
+			eq(applications.candidateUserId, verifications.candidateUserId),
+		)
 		.where(eq(applications.employerId, employerId))
 		.groupBy(verifications.kind, verifications.status)
 		.catch(() => []);
@@ -279,7 +288,10 @@ export async function getEmployerAnalytics(): Promise<EmployerAnalytics | null> 
 		if (r.status === "pending") cur.pending = Number(r.n);
 		vMap.set(r.kind, cur);
 	}
-	const verifyResults = [...vMap.entries()].map(([kind, v]) => ({ kind, ...v }));
+	const verifyResults = [...vMap.entries()].map(([kind, v]) => ({
+		kind,
+		...v,
+	}));
 
 	// Time-to-Fill: Job-Created → erste accepted Offer
 	const ttfRows = await db
@@ -289,7 +301,9 @@ export async function getEmployerAnalytics(): Promise<EmployerAnalytics | null> 
 		})
 		.from(offers)
 		.innerJoin(jobs, eq(jobs.id, offers.jobId))
-		.where(and(eq(offers.employerId, employerId), eq(offers.status, "accepted")))
+		.where(
+			and(eq(offers.employerId, employerId), eq(offers.status, "accepted")),
+		)
 		.catch(() => []);
 	const ttfDays = ttfRows
 		.map((r) =>

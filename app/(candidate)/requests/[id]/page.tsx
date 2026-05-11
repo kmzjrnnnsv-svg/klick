@@ -13,8 +13,8 @@ import { FileDisclosureList } from "@/components/disclosures/file-disclosure-lis
 import { ReferenceDisclosureList } from "@/components/disclosures/reference-disclosure-list";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
-import { TranslatableText } from "@/components/translate/translatable-text";
 import { DecisionButtons } from "@/components/interests/decision-buttons";
+import { TranslatableText } from "@/components/translate/translatable-text";
 import { cn } from "@/lib/utils";
 import { listVerificationsForInterest } from "@/lib/verify/orchestrator";
 
