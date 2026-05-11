@@ -2139,6 +2139,9 @@
 		},
 		"notEnoughYet": "Noch zu wenige Bewertungen für eine öffentliche Statistik. Wir zeigen Daten erst ab 10 Bewertungen — bis dahin könnte eine einzelne Erfahrung die Statistik kippen."
 	},
+	"Translate": {
+		"translate": "Auf {to} übersetzen"
+	},
 	"Templates": {
 		"eyebrow": "Bewerbungs-Prozess",
 		"title": "Hiring-Prozess-Vorlagen",

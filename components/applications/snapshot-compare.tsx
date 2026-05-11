@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import { SnapshotSkillList } from "@/components/applications/snapshot-skill-list";
 import type {
 	ApplicationJobSnapshot,
 	ApplicationMatchSnapshot,
@@ -142,17 +143,9 @@ export function SnapshotCompare({
 					<p className="mt-3 lv-eyebrow text-[0.5rem] text-muted-foreground">
 						{t("yourSkillsAtTime")}
 					</p>
-					<ul className="mt-2 flex flex-wrap gap-1.5">
-						{(profileSnap.skills ?? []).map((s) => (
-							<li
-								key={s.name}
-								className="rounded-sm bg-muted px-2 py-0.5 font-mono text-[11px]"
-							>
-								{s.name}
-								{s.level ? ` · ${s.level}` : ""}
-							</li>
-						))}
-					</ul>
+					<div className="mt-2">
+						<SnapshotSkillList skills={profileSnap.skills ?? []} />
+					</div>
 				</div>
 			</div>
 

@@ -378,7 +378,9 @@ export class OllamaAIProvider implements AIProvider {
 	async suggestJobRequirements(input: {
 		title: string;
 		description: string;
+		locale?: "de" | "en";
 	}): Promise<SuggestedJobRequirement[]> {
+		const targetLang = input.locale === "en" ? "Englisch" : "Deutsch";
 		const schema = {
 			type: "object",
 			properties: {
@@ -397,8 +399,8 @@ export class OllamaAIProvider implements AIProvider {
 			},
 		};
 		const out = await this.chat<{ requirements: SuggestedJobRequirement[] }>(
-			"Du schlägst Skill-Anforderungen für Stellen vor. 5-10 Skills, in der Sprache der Beschreibung.",
-			`Titel: ${input.title}\n\nBeschreibung:\n${input.description}`,
+			`Du schlägst Skill-Anforderungen für Stellen vor. ALLE Skill-Namen müssen in ${targetLang} sein. Verwende reale, im ${targetLang}-Sprachgebrauch belegte Begriffe; keine erfundenen Komposita. Etablierte Fachbegriffe (TypeScript, AWS, ISO 27001) sprach-neutral lassen.`,
+			`Titel: ${input.title}\n\nBeschreibung:\n${input.description}\n\nGib bis zu 8 Skills auf ${targetLang} zurück.`,
 			schema,
 		);
 		return out.requirements ?? [];
@@ -811,6 +813,40 @@ export class OllamaAIProvider implements AIProvider {
 			currency: string;
 			rationale: string;
 		}>(sys, user, schema);
+	}
+
+	async translateTexts(input: {
+		texts: string[];
+		from: "de" | "en";
+		to: "de" | "en";
+		context?: string;
+	}): Promise<string[]> {
+		if (input.texts.length === 0) return [];
+		if (input.from === input.to) return input.texts;
+		const targetLang = input.to === "de" ? "Deutsch" : "Englisch";
+		const schema = {
+			type: "object",
+			properties: {
+				translations: { type: "array", items: { type: "string" } },
+			},
+			required: ["translations"],
+		};
+		try {
+			const out = await this.chat<{ translations: string[] }>(
+				`Du übersetzt ins ${targetLang}. Eigennamen / Firmen / Standorte / Skill-Bezeichnungen (ISO 27001, AWS, …) UNVERÄNDERT lassen. Reihenfolge = Eingabe-Reihenfolge.`,
+				(input.context ? `Kontext: ${input.context}\n\n` : "") +
+					`Übersetze:\n${JSON.stringify(input.texts)}`,
+				schema,
+			);
+			if (!Array.isArray(out?.translations)) return input.texts;
+			return input.texts.map((orig, i) => {
+				const t = out.translations[i];
+				return typeof t === "string" && t.length > 0 ? t : orig;
+			});
+		} catch (e) {
+			console.warn("[ollama] translateTexts failed", e);
+			return input.texts;
+		}
 	}
 }
 

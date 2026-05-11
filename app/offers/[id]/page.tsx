@@ -13,6 +13,7 @@ import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { OutcomePrompt } from "@/components/outcomes/outcome-prompt";
+import { TranslatableText } from "@/components/translate/translatable-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -157,9 +158,12 @@ export default async function OfferDetailPage({
 						<p className="lv-eyebrow text-[0.55rem] text-muted-foreground">
 							{t("message")}
 						</p>
-						<p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
-							{offer.message}
-						</p>
+						<div className="mt-2">
+							<TranslatableText
+								text={offer.message}
+								context="Nachricht des Arbeitgebers zu einem Angebot."
+							/>
+						</div>
 					</section>
 				)}
 

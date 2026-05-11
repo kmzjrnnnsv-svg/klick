@@ -1,9 +1,10 @@
 "use client";
 
 import { Send } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { sendApplicationMessage } from "@/app/actions/applications";
+import { TranslateButton } from "@/components/translate/translate-button";
 import { Button } from "@/components/ui/button";
 
 type ThreadMsg = {
@@ -13,6 +14,15 @@ type ThreadMsg = {
 	createdAt: Date;
 	pending?: boolean;
 };
+
+// Heuristik: deutsch-aussehend? Ausreichend für Translate-Button-Display.
+function looksGerman(text: string): boolean {
+	const t = text.toLowerCase();
+	if (/[äöüß]/.test(t)) return true;
+	return /\b(und|der|die|das|für|mit|von|über|ist|hat|nicht|kann|werden)\b/.test(
+		t,
+	);
+}
 
 export function ApplicationMessageThread({
 	applicationId,
@@ -27,6 +37,8 @@ export function ApplicationMessageThread({
 }) {
 	const t = useTranslations("Applications");
 	const fmt = useFormatter();
+	const localeRaw = useLocale();
+	const uiLocale: "de" | "en" = localeRaw === "en" ? "en" : "de";
 	const [messages, setMessages] = useState<ThreadMsg[]>(initial);
 	const [body, setBody] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -82,6 +94,9 @@ export function ApplicationMessageThread({
 				<div className="max-h-[24rem] space-y-2 overflow-y-auto rounded-sm border border-border bg-background p-3 sm:p-4">
 					{messages.map((m) => {
 						const mine = m.byRole === viewerRole;
+						const msgIsGerman = looksGerman(m.body);
+						const from: "de" | "en" = msgIsGerman ? "de" : "en";
+						const showTranslate = !m.pending && from !== uiLocale;
 						return (
 							<div
 								key={m.id}
@@ -97,16 +112,33 @@ export function ApplicationMessageThread({
 									<p className="whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed">
 										{m.body}
 									</p>
-									<p
-										className={`mt-1 font-mono text-[9px] text-muted-foreground ${mine ? "text-right" : ""}`}
+									<div
+										className={`mt-1 flex items-center gap-2 ${mine ? "justify-end" : "justify-start"}`}
 									>
-										{m.pending
-											? t("sending")
-											: fmt.dateTime(m.createdAt, {
-													dateStyle: "short",
-													timeStyle: "short",
-												})}
-									</p>
+										<p className="font-mono text-[9px] text-muted-foreground">
+											{m.pending
+												? t("sending")
+												: fmt.dateTime(m.createdAt, {
+														dateStyle: "short",
+														timeStyle: "short",
+													})}
+										</p>
+										{showTranslate && (
+											<TranslateButton
+												original={m.body}
+												from={from}
+												context="Eine Nachricht im Bewerbungs-Verlauf zwischen Kandidat:in und Arbeitgeber."
+												onTranslated={(translated) => {
+													if (typeof translated !== "string") return;
+													setMessages((prev) =>
+														prev.map((x) =>
+															x.id === m.id ? { ...x, body: translated } : x,
+														),
+													);
+												}}
+											/>
+										)}
+									</div>
 								</div>
 							</div>
 						);

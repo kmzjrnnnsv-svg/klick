@@ -2139,6 +2139,9 @@
 		},
 		"notEnoughYet": "Not enough ratings yet for public stats. We show data only after 10 ratings — until then a single experience could skew the numbers."
 	},
+	"Translate": {
+		"translate": "Translate to {to}"
+	},
 	"Templates": {
 		"eyebrow": "Hiring process",
 		"title": "Hiring-process templates",
