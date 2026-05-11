@@ -17,6 +17,7 @@ import {
 	type ProfileProject,
 	type ProfilePublication,
 	type ProfileSalaryByCountry,
+	type ProfileSectionKey,
 	type ProfileSectionVisibility,
 	type ProfileSkill,
 	type ProfileSocialLinks,
@@ -109,10 +110,25 @@ const socialLinksSchema: z.ZodType<ProfileSocialLinks> = z.object({
 	other: z.string().url().max(300).optional(),
 });
 
-const sectionVisibilitySchema: z.ZodType<ProfileSectionVisibility> = z.record(
-	z.enum(ALL_SECTIONS as [string, ...string[]]),
-	z.enum(["private", "matches_only", "public"]),
-);
+// Tolerant: lässt alle Strings als Keys durch und filtert ungültige
+// Werte raus statt zu werfen. Form-State kann von älteren DB-Einträgen
+// stammen die unbekannte Sections oder null-Werte enthalten — wir wollen
+// den Save nicht killen, sondern silently bereinigen.
+const sectionVisibilitySchema = z
+	.record(z.string(), z.unknown())
+	.optional()
+	.transform((raw): ProfileSectionVisibility | undefined => {
+		if (!raw) return undefined;
+		const allowed = new Set(ALL_SECTIONS);
+		const allowedVis = new Set(["private", "matches_only", "public"]);
+		const out: ProfileSectionVisibility = {};
+		for (const [k, v] of Object.entries(raw)) {
+			if (!allowed.has(k as ProfileSectionKey)) continue;
+			if (typeof v !== "string" || !allowedVis.has(v)) continue;
+			out[k as ProfileSectionKey] = v as "private" | "matches_only" | "public";
+		}
+		return out;
+	}) as unknown as z.ZodType<ProfileSectionVisibility | undefined>;
 
 const salaryByCountrySchema: z.ZodType<ProfileSalaryByCountry> = z.object({
 	country: z.string().min(2).max(3),
@@ -156,7 +172,7 @@ const profileFormSchema = z.object({
 	workPermitStatus: z
 		.enum(["eu", "permit", "requires_sponsorship", "unknown"])
 		.optional(),
-	sectionVisibility: sectionVisibilitySchema.optional(),
+	sectionVisibility: sectionVisibilitySchema,
 	salaryByCountry: z.array(salaryByCountrySchema).max(2).optional(),
 });
 
