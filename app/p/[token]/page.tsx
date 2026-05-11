@@ -169,22 +169,26 @@ export default async function PublicProfilePage({
 					</section>
 				)}
 
-				{profile.availability && (
-					<section className="mb-5 rounded-lg border border-border bg-background p-4">
-						<h2 className="mb-2 font-medium text-sm">{t("availability")}</h2>
-						<p className="text-foreground/90 text-sm">
-							{profile.availability.status === "immediate" &&
-								t("availImmediate")}
-							{profile.availability.status === "notice" &&
-								t("availNotice", {
-									weeks: profile.availability.noticeWeeks ?? 0,
-								})}
-							{profile.availability.status === "date" &&
-								profile.availability.availableFrom &&
-								t("availDate", { date: profile.availability.availableFrom })}
-						</p>
-					</section>
-				)}
+				{profile.availability &&
+					(profile.availability.status === "immediate" ||
+						profile.availability.status === "notice" ||
+						(profile.availability.status === "date" &&
+							profile.availability.availableFrom)) && (
+						<section className="mb-5 rounded-lg border border-border bg-background p-4">
+							<h2 className="mb-2 font-medium text-sm">{t("availability")}</h2>
+							<p className="text-foreground/90 text-sm">
+								{profile.availability.status === "immediate" &&
+									t("availImmediate")}
+								{profile.availability.status === "notice" &&
+									t("availNotice", {
+										weeks: profile.availability.noticeWeeks ?? 0,
+									})}
+								{profile.availability.status === "date" &&
+									profile.availability.availableFrom &&
+									t("availDate", { date: profile.availability.availableFrom })}
+							</p>
+						</section>
+					)}
 
 				{profile.drivingLicenses && profile.drivingLicenses.length > 0 && (
 					<section className="mb-5 rounded-lg border border-border bg-background p-4">
@@ -202,61 +206,66 @@ export default async function PublicProfilePage({
 					</section>
 				)}
 
-				{profile.socialLinks && (
-					<section className="mb-5 rounded-lg border border-border bg-background p-4">
-						<h2 className="mb-2 font-medium text-sm">{t("socialLinks")}</h2>
-						<ul className="space-y-1 text-sm">
-							{profile.socialLinks.github && (
-								<li>
-									<a
-										className="hover:underline"
-										href={profile.socialLinks.github}
-										target="_blank"
-										rel="noreferrer"
-									>
-										GitHub
-									</a>
-								</li>
-							)}
-							{profile.socialLinks.linkedin && (
-								<li>
-									<a
-										className="hover:underline"
-										href={profile.socialLinks.linkedin}
-										target="_blank"
-										rel="noreferrer"
-									>
-										LinkedIn
-									</a>
-								</li>
-							)}
-							{profile.socialLinks.xing && (
-								<li>
-									<a
-										className="hover:underline"
-										href={profile.socialLinks.xing}
-										target="_blank"
-										rel="noreferrer"
-									>
-										Xing
-									</a>
-								</li>
-							)}
-							{profile.socialLinks.website && (
-								<li>
-									<a
-										className="hover:underline"
-										href={profile.socialLinks.website}
-										target="_blank"
-										rel="noreferrer"
-									>
-										{t("website")}
-									</a>
-								</li>
-							)}
-						</ul>
-					</section>
-				)}
+				{profile.socialLinks &&
+					(profile.socialLinks.github ||
+						profile.socialLinks.linkedin ||
+						profile.socialLinks.xing ||
+						profile.socialLinks.website ||
+						profile.socialLinks.other) && (
+						<section className="mb-5 rounded-lg border border-border bg-background p-4">
+							<h2 className="mb-2 font-medium text-sm">{t("socialLinks")}</h2>
+							<ul className="space-y-1 text-sm">
+								{profile.socialLinks.github && (
+									<li>
+										<a
+											className="hover:underline"
+											href={profile.socialLinks.github}
+											target="_blank"
+											rel="noreferrer"
+										>
+											GitHub
+										</a>
+									</li>
+								)}
+								{profile.socialLinks.linkedin && (
+									<li>
+										<a
+											className="hover:underline"
+											href={profile.socialLinks.linkedin}
+											target="_blank"
+											rel="noreferrer"
+										>
+											LinkedIn
+										</a>
+									</li>
+								)}
+								{profile.socialLinks.xing && (
+									<li>
+										<a
+											className="hover:underline"
+											href={profile.socialLinks.xing}
+											target="_blank"
+											rel="noreferrer"
+										>
+											Xing
+										</a>
+									</li>
+								)}
+								{profile.socialLinks.website && (
+									<li>
+										<a
+											className="hover:underline"
+											href={profile.socialLinks.website}
+											target="_blank"
+											rel="noreferrer"
+										>
+											{t("website")}
+										</a>
+									</li>
+								)}
+							</ul>
+						</section>
+					)}
 
 				{showInsights && (
 					<section className="mb-5">
