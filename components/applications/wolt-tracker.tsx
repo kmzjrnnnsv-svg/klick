@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import {
 	Archive,
 	Check,
@@ -9,7 +10,6 @@ import {
 	Star,
 	XCircle,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 // Wolt/Lieferando-Style-Tracker: horizontale Schritt-Leiste mit Icons,
@@ -182,14 +182,9 @@ export function WoltTrackerMini({ status }: { status: string }) {
 				const active = i === idx;
 				return (
 					<span
-						// biome-ignore lint/suspicious/noArrayIndexKey: fixed stepper
 						key={s.key}
 						className={`block h-1.5 flex-1 rounded-full ${
-							done
-								? "bg-emerald-500"
-								: active
-									? "bg-primary"
-									: "bg-muted"
+							done ? "bg-emerald-500" : active ? "bg-primary" : "bg-muted"
 						}`}
 					/>
 				);

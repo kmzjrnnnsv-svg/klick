@@ -5,13 +5,13 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
-	agencyMembers,
 	type Application,
 	type ApplicationEvent,
 	type ApplicationJobSnapshot,
 	type ApplicationMatchSnapshot,
 	type ApplicationProfileSnapshot,
 	type ApplicationStatus,
+	agencyMembers,
 	applicationEvents,
 	applicationMessages,
 	applicationNotes,
@@ -283,7 +283,8 @@ function statusCandidateCopy(
 		submitted: "Die Firma hat deine Bewerbung erhalten.",
 		seen: "Jemand vom Team hat sich deine Bewerbung angeschaut.",
 		in_review: "Skills und Anforderungen werden gerade verglichen.",
-		shortlisted: "Du bist im engeren Kreis — vermutlich kommt bald eine Einladung.",
+		shortlisted:
+			"Du bist im engeren Kreis — vermutlich kommt bald eine Einladung.",
 		interview: "Du sprichst mit der Firma. Bei Rückfragen nutze den Chat.",
 		offer: "Schau in Offers, sobald das Angebot da ist.",
 		declined: "Im Feedback siehst du den Grund.",
@@ -978,9 +979,7 @@ export async function listApplicationMessages(applicationId: string) {
 			.orderBy(asc(applicationMessages.createdAt));
 		// Kandidat:innen sehen niemals, WELCHE konkrete Person eine
 		// Nachricht geschickt hat — nur die Rolle (candidate / employer).
-		return isCandidate
-			? rows.map((m) => ({ ...m, byUserId: null }))
-			: rows;
+		return isCandidate ? rows.map((m) => ({ ...m, byUserId: null })) : rows;
 	} catch (e) {
 		if (friendlyDbError(e)) return [];
 		throw e;
@@ -1176,7 +1175,10 @@ async function requireEmployerAccessForApp(appId: string): Promise<{
 		.select({ id: employers.id })
 		.from(employers)
 		.where(
-			and(eq(employers.id, app.employerId), eq(employers.userId, session.user.id)),
+			and(
+				eq(employers.id, app.employerId),
+				eq(employers.userId, session.user.id),
+			),
 		)
 		.limit(1);
 	if (owner) return { userId: session.user.id, employerId: app.employerId };

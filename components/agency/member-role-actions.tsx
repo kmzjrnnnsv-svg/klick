@@ -44,7 +44,10 @@ export function MemberRoleActions({
 					className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-primary text-xs hover:bg-primary/10 disabled:opacity-50"
 				>
 					{isPending ? (
-						<Loader2 className="inline h-3 w-3 animate-spin" strokeWidth={1.5} />
+						<Loader2
+							className="inline h-3 w-3 animate-spin"
+							strokeWidth={1.5}
+						/>
 					) : (
 						<ArrowUp className="inline h-3 w-3" strokeWidth={1.5} />
 					)}{" "}
@@ -59,7 +62,8 @@ export function MemberRoleActions({
 					title={t("demote")}
 					className="rounded-full border border-border bg-background px-2 py-0.5 text-muted-foreground text-xs hover:bg-muted disabled:opacity-50"
 				>
-					<ArrowDown className="inline h-3 w-3" strokeWidth={1.5} /> {t("demote")}
+					<ArrowDown className="inline h-3 w-3" strokeWidth={1.5} />{" "}
+					{t("demote")}
 				</button>
 			)}
 			{error && (

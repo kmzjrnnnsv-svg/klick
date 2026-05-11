@@ -227,13 +227,17 @@ export default async function AdminStatsPage() {
 					<Card title={t("candidateResponse")}>
 						<dl className="grid grid-cols-3 gap-3 text-sm">
 							<div>
-								<dt className="text-muted-foreground text-xs">{t("decided")}</dt>
+								<dt className="text-muted-foreground text-xs">
+									{t("decided")}
+								</dt>
 								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
 									{a.candidateResponse.decided}
 								</dd>
 							</div>
 							<div>
-								<dt className="text-muted-foreground text-xs">{t("pending")}</dt>
+								<dt className="text-muted-foreground text-xs">
+									{t("pending")}
+								</dt>
 								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
 									{a.candidateResponse.pending}
 								</dd>
@@ -259,7 +263,9 @@ export default async function AdminStatsPage() {
 								</dd>
 							</div>
 							<div>
-								<dt className="text-muted-foreground text-xs">{t("decided")}</dt>
+								<dt className="text-muted-foreground text-xs">
+									{t("decided")}
+								</dt>
 								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
 									{a.employerResponse.offersDecided}
 								</dd>
@@ -355,7 +361,10 @@ export default async function AdminStatsPage() {
 				<section className="mb-8 grid gap-3 sm:grid-cols-2">
 					<Card title={t("topCandidateSkills")}>
 						<HBarChart
-							items={a.topCandidateSkills.map((s) => ({ label: s.name, n: s.n }))}
+							items={a.topCandidateSkills.map((s) => ({
+								label: s.name,
+								n: s.n,
+							}))}
 						/>
 					</Card>
 					<Card title={t("topJobSkills")}>
@@ -395,7 +404,10 @@ export default async function AdminStatsPage() {
 				<section className="mb-8 grid gap-3 sm:grid-cols-2">
 					<Card title={t("topCertifications")}>
 						<HBarChart
-							items={a.topCertifications.map((c) => ({ label: c.name, n: c.n }))}
+							items={a.topCertifications.map((c) => ({
+								label: c.name,
+								n: c.n,
+							}))}
 						/>
 					</Card>
 					<Card title={t("degreeMix")}>
@@ -469,8 +481,16 @@ export default async function AdminStatsPage() {
 						<div className="space-y-3 text-sm">
 							{(
 								[
-									["hasSummary", t("hasSummary"), a.profileCompleteness.hasSummary],
-									["hasSkills", t("hasSkills"), a.profileCompleteness.hasSkills],
+									[
+										"hasSummary",
+										t("hasSummary"),
+										a.profileCompleteness.hasSummary,
+									],
+									[
+										"hasSkills",
+										t("hasSkills"),
+										a.profileCompleteness.hasSkills,
+									],
 									[
 										"hasEducation",
 										t("hasEducation"),
@@ -504,7 +524,10 @@ export default async function AdminStatsPage() {
 
 				{/* Application-Drop-Off + Stage-Outcomes + Reject-Reasons */}
 				<section className="mb-8 grid gap-3 sm:grid-cols-2">
-					<Card title={t("applicationStatus")} hint={t("applicationStatusHint")}>
+					<Card
+						title={t("applicationStatus")}
+						hint={t("applicationStatusHint")}
+					>
 						<HBarChart
 							items={a.applicationStatusMix.map((s) => ({
 								label: s.status,
@@ -555,9 +578,7 @@ export default async function AdminStatsPage() {
 								</dd>
 							</div>
 							<div>
-								<dt className="text-muted-foreground text-xs">
-									{t("ttfP25")}
-								</dt>
+								<dt className="text-muted-foreground text-xs">{t("ttfP25")}</dt>
 								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
 									{a.timeToFill.p25Days ?? "—"}
 								</dd>
@@ -571,9 +592,7 @@ export default async function AdminStatsPage() {
 								</dd>
 							</div>
 							<div>
-								<dt className="text-muted-foreground text-xs">
-									{t("ttfP75")}
-								</dt>
+								<dt className="text-muted-foreground text-xs">{t("ttfP75")}</dt>
 								<dd className="mt-0.5 font-serif-display text-xl tabular-nums">
 									{a.timeToFill.p75Days ?? "—"}
 								</dd>
@@ -592,7 +611,10 @@ export default async function AdminStatsPage() {
 							{t("vaultUrlOnly", { n: a.vault.urlOnly })}
 						</p>
 					</Card>
-					<Card title={t("savedSearchesAnalysis")} hint={t("savedSearchesHint2")}>
+					<Card
+						title={t("savedSearchesAnalysis")}
+						hint={t("savedSearchesHint2")}
+					>
 						{a.savedSearches.topSkills.length === 0 ? (
 							<p className="text-muted-foreground text-xs italic">
 								{t("none")}

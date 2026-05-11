@@ -23,7 +23,11 @@ type Role = (typeof VALID_ROLES)[number];
 
 async function defaultTenantId(): Promise<string> {
 	const slug = process.env.DEFAULT_TENANT_SLUG ?? "default";
-	const [t] = await db.select().from(tenants).where(eq(tenants.slug, slug)).limit(1);
+	const [t] = await db
+		.select()
+		.from(tenants)
+		.where(eq(tenants.slug, slug))
+		.limit(1);
 	if (t) return t.id;
 	const [created] = await db
 		.insert(tenants)
@@ -41,7 +45,9 @@ async function main() {
 		process.exit(1);
 	}
 	if (!VALID_ROLES.includes(roleRaw as Role)) {
-		console.error(`Role must be one of ${VALID_ROLES.join("|")}, got: ${roleRaw}`);
+		console.error(
+			`Role must be one of ${VALID_ROLES.join("|")}, got: ${roleRaw}`,
+		);
 		process.exit(1);
 	}
 	const role = roleRaw as Role;
@@ -74,7 +80,9 @@ async function main() {
 			// emailVerified bleibt null — beim ersten Magic-Link-Login wird's gesetzt.
 		})
 		.returning({ id: users.id, email: users.email, role: users.role });
-	console.log(`✔ created ${created.email} (id=${created.id}) → role=${created.role}`);
+	console.log(
+		`✔ created ${created.email} (id=${created.id}) → role=${created.role}`,
+	);
 	console.log(
 		"  Hinweis: User muss sich noch über /login per Magic Link einloggen, um den Account zu aktivieren.",
 	);

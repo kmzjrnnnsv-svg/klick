@@ -59,7 +59,9 @@ export default async function JobsPage() {
 		}),
 		listOverdueApplicationsForEmployer().catch((err) => {
 			console.error("[jobs] listOverdueApplicationsForEmployer failed", err);
-			return [] as Awaited<ReturnType<typeof listOverdueApplicationsForEmployer>>;
+			return [] as Awaited<
+				ReturnType<typeof listOverdueApplicationsForEmployer>
+			>;
 		}),
 		checkVolumeLock(employer.id).catch((err) => {
 			console.error("[jobs] checkVolumeLock failed", err);

@@ -17,7 +17,9 @@ async function main() {
 			console.error(`    ${resolve(cwd, file)}  [${status}]`);
 		}
 		console.error("\n  Lösung:");
-		console.error("    • Dev:   `cp .env.example .env.local` und DATABASE_URL setzen");
+		console.error(
+			"    • Dev:   `cp .env.example .env.local` und DATABASE_URL setzen",
+		);
 		console.error(
 			"    • Prod:  `.env.production` neben package.json anlegen (gleiche",
 		);

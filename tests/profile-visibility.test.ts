@@ -20,9 +20,7 @@ const baseProfile = {
 	languages: ["de", "en"],
 	skills: [{ name: "TypeScript" }],
 	experience: [],
-	education: [
-		{ institution: "TU München", degree: "M.Sc. Informatik" },
-	],
+	education: [{ institution: "TU München", degree: "M.Sc. Informatik" }],
 	summary: "Frontend-Spezialist mit Fokus auf Design-Systeme.",
 	industries: ["Fintech"],
 	awards: ["Best Paper 2023"],
@@ -84,12 +82,12 @@ describe("isVisibleAt", () => {
 	});
 
 	it("private-Sektion ist nirgends sichtbar", () => {
-		expect(
-			isVisibleAt("education", { education: "private" }, "public"),
-		).toBe(false);
-		expect(
-			isVisibleAt("education", { education: "private" }, "matches"),
-		).toBe(false);
+		expect(isVisibleAt("education", { education: "private" }, "public")).toBe(
+			false,
+		);
+		expect(isVisibleAt("education", { education: "private" }, "matches")).toBe(
+			false,
+		);
 	});
 });
 

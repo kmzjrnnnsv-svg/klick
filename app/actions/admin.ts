@@ -1,14 +1,24 @@
 "use server";
 
-import { and, asc, desc, eq, gte, ilike, isNotNull, or, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	gte,
+	ilike,
+	isNotNull,
+	or,
+	sql,
+} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
 	type AuditLogEntry,
 	agencyMembers,
-	applications,
 	applicationEvents,
+	applications,
 	auditLog,
 	candidateProfiles,
 	diversityResponses,
@@ -612,7 +622,12 @@ export async function getCompanyDetail(
 		.orderBy(desc(jobs.createdAt))
 		.catch((e) => {
 			console.warn("[admin] getCompanyDetail jobs", e);
-			return [] as { id: string; title: string; status: string; createdAt: Date }[];
+			return [] as {
+				id: string;
+				title: string;
+				status: string;
+				createdAt: Date;
+			}[];
 		});
 
 	const jobIds = jobRows.map((j) => j.id);
@@ -790,7 +805,12 @@ export type AdminAnalytics = {
 	// Verifikations-Mix nach kind
 	verifyMix: { kind: string; n: number }[];
 	// Verifikations-Erfolgsquote nach kind: passed / failed / pending
-	verifyResults: { kind: string; passed: number; failed: number; pending: number }[];
+	verifyResults: {
+		kind: string;
+		passed: number;
+		failed: number;
+		pending: number;
+	}[];
 	// Histogramm: Berufsjahre der Kandidat:innen, in 5-Jahres-Buckets
 	yearsExperienceHist: { bucket: string; n: number }[];
 	// Histogramm: erforderliche Berufsjahre der Jobs
@@ -1057,11 +1077,10 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 		const interestsByStatus = new Map(
 			interestRows.map((r) => [r.status, Number(r.n)]),
 		);
-		const interestsTotal = interestRows.reduce(
-			(a, r) => a + Number(r.n),
-			0,
+		const interestsTotal = interestRows.reduce((a, r) => a + Number(r.n), 0);
+		const offersByStatus = new Map(
+			offerRows.map((r) => [r.status, Number(r.n)]),
 		);
-		const offersByStatus = new Map(offerRows.map((r) => [r.status, Number(r.n)]));
 		const offersTotal = offerRows.reduce((a, r) => a + Number(r.n), 0);
 
 		const interestsApproved = interestsByStatus.get("approved") ?? 0;
@@ -1345,7 +1364,7 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 			.map((j) =>
 				j.salaryMin && j.salaryMax
 					? Math.round((j.salaryMin + j.salaryMax) / 2)
-					: j.salaryMin ?? j.salaryMax ?? null,
+					: (j.salaryMin ?? j.salaryMax ?? null),
 			)
 			.filter((x): x is number => x !== null && x > 0);
 		const jobSalaryHist = histogram(jobSalaryMids, [
@@ -1487,7 +1506,8 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 		const ageCount = new Map<string, number>();
 		const disCount = new Map<string, number>();
 		for (const r of dRows) {
-			if (r.gender) genderCount.set(r.gender, (genderCount.get(r.gender) ?? 0) + 1);
+			if (r.gender)
+				genderCount.set(r.gender, (genderCount.get(r.gender) ?? 0) + 1);
 			if (r.age) ageCount.set(r.age, (ageCount.get(r.age) ?? 0) + 1);
 			if (r.disability !== null) {
 				const k = r.disability ? "yes" : "no";
@@ -1558,10 +1578,7 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 				if (k) ssLocationCount.set(k, (ssLocationCount.get(k) ?? 0) + 1);
 			}
 			if (c?.remote) {
-				ssRemoteCount.set(
-					c.remote,
-					(ssRemoteCount.get(c.remote) ?? 0) + 1,
-				);
+				ssRemoteCount.set(c.remote, (ssRemoteCount.get(c.remote) ?? 0) + 1);
 			}
 		}
 		const savedSearchStats = {
@@ -1664,9 +1681,10 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
 		// Translations-Coverage + Career-Analysis-Adoption (in einem Pass)
 		const coverRows = await db
 			.select({
-				hasTrans: sql<number>`(${candidateProfiles.translations} IS NOT NULL)::int`.as(
-					"has_trans",
-				),
+				hasTrans:
+					sql<number>`(${candidateProfiles.translations} IS NOT NULL)::int`.as(
+						"has_trans",
+					),
 				hasAnalysis:
 					sql<number>`(${candidateProfiles.careerAnalysis} IS NOT NULL)::int`.as(
 						"has_analysis",
@@ -1970,7 +1988,13 @@ const DEMO_LOCATIONS = [
 	"Wien",
 	"Zürich",
 ];
-const DEMO_INDUSTRIES = ["Fintech", "SaaS", "E-Commerce", "HealthTech", "Mobility"];
+const DEMO_INDUSTRIES = [
+	"Fintech",
+	"SaaS",
+	"E-Commerce",
+	"HealthTech",
+	"Mobility",
+];
 
 function pick<T>(arr: readonly T[], rng: () => number): T {
 	return arr[Math.floor(rng() * arr.length)];
@@ -2020,12 +2044,17 @@ export async function generateDemoData(input: {
 		const last = pick(DEMO_LAST, rng);
 		const headline = pick(DEMO_HEADLINES, rng);
 		const location = pick(DEMO_LOCATIONS, rng);
-		const skills = Array.from(new Set([
-			pick(DEMO_SKILLS, rng),
-			pick(DEMO_SKILLS, rng),
-			pick(DEMO_SKILLS, rng),
-			pick(DEMO_SKILLS, rng),
-		])).map((name) => ({ name, level: 3 + Math.floor(rng() * 3) as 3 | 4 | 5 }));
+		const skills = Array.from(
+			new Set([
+				pick(DEMO_SKILLS, rng),
+				pick(DEMO_SKILLS, rng),
+				pick(DEMO_SKILLS, rng),
+				pick(DEMO_SKILLS, rng),
+			]),
+		).map((name) => ({
+			name,
+			level: (3 + Math.floor(rng() * 3)) as 3 | 4 | 5,
+		}));
 		const industries = [pick(DEMO_INDUSTRIES, rng)];
 		const years = 2 + Math.floor(rng() * 12);
 		const email = `demo-${batchId.slice(5, 13)}-${i}@klick.demo`;
@@ -2098,7 +2127,11 @@ export async function generateDemoData(input: {
 	for (let i = 0; i < jobCount; i++) {
 		const headline = pick(DEMO_HEADLINES, rng);
 		const requiredSkills = Array.from(
-			new Set([pick(DEMO_SKILLS, rng), pick(DEMO_SKILLS, rng), pick(DEMO_SKILLS, rng)]),
+			new Set([
+				pick(DEMO_SKILLS, rng),
+				pick(DEMO_SKILLS, rng),
+				pick(DEMO_SKILLS, rng),
+			]),
 		);
 		const [j] = await db
 			.insert(jobs)
@@ -2142,9 +2175,7 @@ export async function generateDemoData(input: {
 			.where(eq(candidateProfiles.userId, createdUserIds[0]));
 		// Profile pro User indexieren
 		const profilesByUser = new Map<string, (typeof demoProfiles)[number]>();
-		const allProfiles = await db
-			.select()
-			.from(candidateProfiles);
+		const allProfiles = await db.select().from(candidateProfiles);
 		for (const p of allProfiles) profilesByUser.set(p.userId, p);
 
 		for (const userId of createdUserIds) {
@@ -2487,7 +2518,8 @@ export async function adminRemoveCompanyMember(
 		if (m.role === "owner") {
 			return {
 				ok: false,
-				error: "Owner kann nicht direkt entfernt werden — erst neuen Owner setzen.",
+				error:
+					"Owner kann nicht direkt entfernt werden — erst neuen Owner setzen.",
 			};
 		}
 		await db.delete(agencyMembers).where(eq(agencyMembers.id, memberId));

@@ -24,11 +24,11 @@ import {
 	users,
 	vaultItems,
 } from "@/db/schema";
-import { ALL_SECTIONS } from "@/lib/profile/visibility";
 import { getAIProvider } from "@/lib/ai";
 import type { ExtractedProfile } from "@/lib/ai/types";
 import { decryptBytes, unwrapDek } from "@/lib/crypto/envelope";
 import { geocode } from "@/lib/geo/geocode";
+import { ALL_SECTIONS } from "@/lib/profile/visibility";
 import { getBytes } from "@/lib/storage/s3";
 
 const skillSchema: z.ZodType<ProfileSkill> = z.object({
@@ -57,7 +57,15 @@ const educationSchema: z.ZodType<ProfileEducation> = z.object({
 	end: z.string().max(20).optional(),
 	completed: z.boolean().optional(),
 	degreeType: z
-		.enum(["school", "apprenticeship", "bachelor", "master", "phd", "mba", "other"])
+		.enum([
+			"school",
+			"apprenticeship",
+			"bachelor",
+			"master",
+			"phd",
+			"mba",
+			"other",
+		])
 		.optional(),
 	grade: z.string().max(60).optional(),
 	thesisTitle: z.string().max(300).optional(),
@@ -276,11 +284,12 @@ export async function saveProfile(formData: FormData): Promise<void> {
 		publications: tryParseJsonArray(formData.get("publications")?.toString()),
 		projects: tryParseJsonArray(formData.get("projects")?.toString()),
 		volunteering: tryParseJsonArray(formData.get("volunteering")?.toString()),
-		drivingLicenses: parseList(formData.get("drivingLicenses")?.toString() ?? ""),
+		drivingLicenses: parseList(
+			formData.get("drivingLicenses")?.toString() ?? "",
+		),
 		availability: tryParseJsonObject(formData.get("availability")?.toString()),
 		socialLinks: tryParseJsonObject(formData.get("socialLinks")?.toString()),
-		workPermitStatus:
-			formData.get("workPermitStatus")?.toString() || undefined,
+		workPermitStatus: formData.get("workPermitStatus")?.toString() || undefined,
 		sectionVisibility: tryParseJsonObject(
 			formData.get("sectionVisibility")?.toString(),
 		),
@@ -465,7 +474,8 @@ export async function recommendSalaryForCountry(
 	if (!profile) {
 		return {
 			ok: false,
-			error: "Bitte fülle erst dein Profil aus, bevor du Empfehlungen anforderst.",
+			error:
+				"Bitte fülle erst dein Profil aus, bevor du Empfehlungen anforderst.",
 		};
 	}
 	try {

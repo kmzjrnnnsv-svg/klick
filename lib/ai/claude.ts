@@ -1116,8 +1116,14 @@ Schema pro Eintrag:
 						required: ["title", "rationale", "obvious"],
 					},
 				},
-				hiringPros: { type: "array", items: { type: "string", maxLength: 200 } },
-				hiringCons: { type: "array", items: { type: "string", maxLength: 200 } },
+				hiringPros: {
+					type: "array",
+					items: { type: "string", maxLength: 200 },
+				},
+				hiringCons: {
+					type: "array",
+					items: { type: "string", maxLength: 200 },
+				},
 				marketContext: {
 					type: "object",
 					properties: {

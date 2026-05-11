@@ -49,8 +49,7 @@ export function TranslatableText({
 
 	if (!text) return null;
 
-	const from: "de" | "en" =
-		forcedFrom ?? (looksGerman(current) ? "de" : "en");
+	const from: "de" | "en" = forcedFrom ?? (looksGerman(current) ? "de" : "en");
 	const needsTranslate = !translated && from !== to;
 
 	function handle() {

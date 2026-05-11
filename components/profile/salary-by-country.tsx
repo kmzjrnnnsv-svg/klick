@@ -45,10 +45,7 @@ export function SalaryByCountry({
 		// Default zu erstem nicht-vergebenen Land
 		const used = new Set(value.map((v) => v.country));
 		const first = COUNTRIES.find((c) => !used.has(c.code)) ?? COUNTRIES[0];
-		onChange([
-			...value,
-			{ country: first.code, currency: first.currency },
-		]);
+		onChange([...value, { country: first.code, currency: first.currency }]);
 	}
 
 	function setRow(i: number, patch: Partial<ProfileSalaryByCountry>) {

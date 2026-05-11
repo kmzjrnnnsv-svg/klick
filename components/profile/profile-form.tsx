@@ -771,7 +771,9 @@ export function ProfileForm({
 
 			<section className="space-y-3">
 				<h2 className="font-medium text-sm">{t("visibility")}</h2>
-				<p className="text-muted-foreground text-xs">{t("visibilityGlobalHint")}</p>
+				<p className="text-muted-foreground text-xs">
+					{t("visibilityGlobalHint")}
+				</p>
 				<div className="space-y-2">
 					{(["private", "matches_only", "public"] as const).map((v) => (
 						<label
