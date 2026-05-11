@@ -122,6 +122,33 @@ export const authConfig = {
 		},
 	},
 	callbacks: {
+		// Allow-list-Modus: in der Testphase darf NICHT jeder mit beliebiger
+		// E-Mail einen Magic-Link anfordern und damit ein Konto anlegen.
+		// Stattdessen muss der Admin den User vorher per `pnpm upsert-user`
+		// (oder Admin-UI) anlegen. Nur existierende User bekommen den Link.
+		// Override via env: AUTH_ALLOW_SIGNUP=true erlaubt offene Registrierung.
+		async signIn({ user, email }) {
+			if (process.env.AUTH_ALLOW_SIGNUP === "true") return true;
+			// Bei email-Provider: `email.verificationRequest` ist true beim
+			// initialen Anforder-Schritt. Bei einem späteren Klick auf den Link
+			// existiert der User schon und wir lassen durch.
+			const isInitialEmailRequest = email?.verificationRequest === true;
+			if (!isInitialEmailRequest) return true;
+			const addr = (user?.email ?? "").trim().toLowerCase();
+			if (!addr) return false;
+			const [existing] = await db
+				.select({ id: users.id })
+				.from(users)
+				.where(eq(users.email, addr))
+				.limit(1);
+			if (!existing) {
+				console.warn(
+					`[auth] signin blocked — no account for ${addr} (allow-list mode)`,
+				);
+				return false;
+			}
+			return true;
+		},
 		async session({ session, user }) {
 			if (session.user) {
 				// Surface custom fields to the client session.

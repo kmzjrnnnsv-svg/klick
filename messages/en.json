@@ -225,6 +225,7 @@
 		"emailLabel": "Email address",
 		"emailPlaceholder": "you@example.com",
 		"submit": "Send magic link",
+		"notInvited": "This account isn't invited yet. During the testing phase the admin creates accounts manually — once you've been invited you can request a magic link here.",
 		"or": "or",
 		"microsoftSso": "Sign in with Microsoft",
 		"microsoftSsoHint": "Single sign-on for company accounts (Microsoft 365 / Entra ID).",

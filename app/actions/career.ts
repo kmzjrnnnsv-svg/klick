@@ -105,6 +105,10 @@ export async function refreshCareerAnalysis(): Promise<CareerActionResult> {
 		let analysis: CareerAnalysis;
 		try {
 			const ai = getCareerAIProvider();
+			// Ollama auf CPU braucht für die volle Analyse 3-8 Minuten,
+			// Claude ~30s. Provider-abhängiger Timeout.
+			const isOllama = ai.slug === "ollama";
+			const timeoutMs = isOllama ? 600_000 : 120_000;
 			analysis = await Promise.race<CareerAnalysis>([
 				ai.analyzeCareerProspects({
 					profile: profileToExtracted(profile),
@@ -114,8 +118,13 @@ export async function refreshCareerAnalysis(): Promise<CareerActionResult> {
 				}),
 				new Promise<CareerAnalysis>((_, reject) =>
 					setTimeout(
-						() => reject(new Error("Timeout nach 120s – versuch's nochmal.")),
-						120_000,
+						() =>
+							reject(
+								new Error(
+									`Timeout nach ${timeoutMs / 1000}s – versuch's nochmal oder wechsle auf einen schnelleren Provider.`,
+								),
+							),
+						timeoutMs,
 					),
 				),
 			]);
