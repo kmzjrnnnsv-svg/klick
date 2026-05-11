@@ -375,7 +375,10 @@ export async function checkVolumeLock(employerId: string): Promise<{
 	criticalCount: number;
 	overdueClosureCount: number;
 }> {
-	const now = new Date();
+	// postgres-js akzeptiert Date-Objekte im Tagged-Template-SQL nicht direkt
+	// — encoded sie als "string" und kracht mit ERR_INVALID_ARG_TYPE.
+	// Workaround: ISO-String + Postgres-Cast auf timestamp.
+	const nowIso = new Date().toISOString();
 	const rows = await db.execute<{
 		critical_count: number;
 		overdue_count: number;
@@ -385,12 +388,12 @@ export async function checkVolumeLock(employerId: string): Promise<{
 				WHERE a.status NOT IN ('declined', 'withdrawn', 'archived', 'offer')
 				AND a.stage_entered_at IS NOT NULL
 				AND js.expected_days IS NOT NULL
-				AND a.stage_entered_at + (js.expected_days * 2 * INTERVAL '1 day') < ${now}
+				AND a.stage_entered_at + (js.expected_days * 2 * INTERVAL '1 day') < ${nowIso}::timestamp
 			)::int AS critical_count,
 			COUNT(*) FILTER (
 				WHERE a.status NOT IN ('declined', 'withdrawn', 'archived', 'offer')
 				AND a.closure_deadline_at IS NOT NULL
-				AND a.closure_deadline_at < ${now}
+				AND a.closure_deadline_at < ${nowIso}::timestamp
 			)::int AS overdue_count
 		FROM applications a
 		LEFT JOIN job_stages js ON js.id = a.current_stage_id

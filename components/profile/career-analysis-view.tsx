@@ -159,13 +159,26 @@ export function CareerAnalysisView({
 		);
 	}
 
+	// Defensive: ältere DB-Einträge können einzelne Listen-Felder als
+	// undefined haben (Schema-Drift). Mit leeren Defaults wird gerendert
+	// statt zu crashen.
+	const strengths = analysis.strengths ?? [];
+	const growthAreas = analysis.growthAreas ?? [];
+	const primaryIndustries = analysis.primaryIndustries ?? [];
+	const adjacentIndustries = analysis.adjacentIndustries ?? [];
+	const roleSuggestions = analysis.roleSuggestions ?? [];
+	const certificationSuggestions = analysis.certificationSuggestions ?? [];
+	const hiringPros = analysis.hiringPros ?? [];
+	const hiringCons = analysis.hiringCons ?? [];
+	const marketContext = analysis.marketContext ?? null;
+
 	return (
 		<div className="space-y-6">
 			{isPending && <ProgressPanel tone="inline" done={false} />}
 			<div className="flex flex-wrap items-end justify-between gap-3">
 				<div className="flex-1">
 					<p className="text-foreground/90 text-sm leading-relaxed">
-						{analysis.headline}
+						{analysis.headline ?? ""}
 					</p>
 					{generatedAt && (
 						<p className="mt-2 font-mono text-[10px] text-muted-foreground">
@@ -193,26 +206,33 @@ export function CareerAnalysisView({
 				</p>
 			)}
 
-			{/* Salary band */}
-			<div className="rounded-sm border border-border bg-muted/30 p-4">
-				<p className="lv-eyebrow text-[0.55rem] text-primary">
-					{t("salaryBand")}
-				</p>
-				<div className="mt-2 flex flex-wrap items-baseline gap-3">
-					<span className="font-serif-display text-3xl">
-						{analysis.salary.mid.toLocaleString()} €
-					</span>
-					<span className="text-muted-foreground text-xs">
-						{t("salaryRange", {
-							low: analysis.salary.low.toLocaleString(),
-							high: analysis.salary.high.toLocaleString(),
-						})}
-					</span>
+			{/* Salary band — defensiv: gespeicherte Analysen aus früheren
+			    Schema-Iterationen können ohne salary kommen, dann skippen. */}
+			{analysis.salary?.mid != null && (
+				<div className="rounded-sm border border-border bg-muted/30 p-4">
+					<p className="lv-eyebrow text-[0.55rem] text-primary">
+						{t("salaryBand")}
+					</p>
+					<div className="mt-2 flex flex-wrap items-baseline gap-3">
+						<span className="font-serif-display text-3xl">
+							{analysis.salary.mid.toLocaleString()} €
+						</span>
+						{analysis.salary.low != null && analysis.salary.high != null && (
+							<span className="text-muted-foreground text-xs">
+								{t("salaryRange", {
+									low: analysis.salary.low.toLocaleString(),
+									high: analysis.salary.high.toLocaleString(),
+								})}
+							</span>
+						)}
+					</div>
+					{analysis.salary.rationale && (
+						<p className="mt-2 text-muted-foreground text-xs leading-relaxed">
+							{analysis.salary.rationale}
+						</p>
+					)}
 				</div>
-				<p className="mt-2 text-muted-foreground text-xs leading-relaxed">
-					{analysis.salary.rationale}
-				</p>
-			</div>
+			)}
 
 			{/* Strengths + growth areas */}
 			<div className="grid gap-4 sm:grid-cols-2">
@@ -221,7 +241,7 @@ export function CareerAnalysisView({
 						{t("strengths")}
 					</p>
 					<ul className="mt-2 space-y-1.5 text-xs">
-						{analysis.strengths.map((s) => (
+						{strengths.map((s) => (
 							<li key={s} className="flex gap-2">
 								<span className="text-emerald-700 dark:text-emerald-300">
 									+
@@ -236,7 +256,7 @@ export function CareerAnalysisView({
 						{t("growthAreas")}
 					</p>
 					<ul className="mt-2 space-y-1.5 text-xs">
-						{analysis.growthAreas.map((g) => (
+						{growthAreas.map((g) => (
 							<li key={g} className="flex gap-2">
 								<span className="text-amber-700 dark:text-amber-300">→</span>
 								<span>{g}</span>
@@ -252,7 +272,7 @@ export function CareerAnalysisView({
 					{t("primaryIndustries")}
 				</p>
 				<div className="mt-2 flex flex-wrap gap-1.5">
-					{analysis.primaryIndustries.map((i) => (
+					{primaryIndustries.map((i) => (
 						<span
 							key={i}
 							className="rounded-sm bg-foreground px-2 py-0.5 font-mono text-[11px] text-background"
@@ -268,7 +288,7 @@ export function CareerAnalysisView({
 					{t("adjacentIndustries")}
 				</p>
 				<ul className="mt-2 space-y-2">
-					{analysis.adjacentIndustries.map((a) => (
+					{adjacentIndustries.map((a) => (
 						<li
 							key={a.name}
 							className="rounded-sm border border-border bg-background p-3 text-xs"
@@ -288,7 +308,7 @@ export function CareerAnalysisView({
 					{t("roleSuggestions")}
 				</p>
 				<ul className="mt-2 space-y-2">
-					{analysis.roleSuggestions.map((r) => (
+					{roleSuggestions.map((r) => (
 						<li
 							key={r.title}
 							className="grid grid-cols-[auto_1fr] gap-3 rounded-sm border border-border bg-background p-3 text-xs"
@@ -319,7 +339,7 @@ export function CareerAnalysisView({
 					{t("certifications")}
 				</p>
 				<ul className="mt-2 space-y-2">
-					{analysis.certificationSuggestions.map((c) => (
+					{certificationSuggestions.map((c) => (
 						<li
 							key={c.name}
 							className="rounded-sm border border-border bg-background p-3 text-xs"
@@ -348,7 +368,7 @@ export function CareerAnalysisView({
 						{t("hiringPros")}
 					</p>
 					<ul className="mt-2 space-y-1.5 text-xs">
-						{analysis.hiringPros.map((p) => (
+						{hiringPros.map((p) => (
 							<li key={p}>{p}</li>
 						))}
 					</ul>
@@ -358,31 +378,37 @@ export function CareerAnalysisView({
 						{t("hiringCons")}
 					</p>
 					<ul className="mt-2 space-y-1.5 text-xs">
-						{analysis.hiringCons.map((c) => (
+						{hiringCons.map((c) => (
 							<li key={c}>{c}</li>
 						))}
 					</ul>
 				</div>
 			</div>
 
-			{/* Market context */}
-			<div className="rounded-sm border border-border bg-muted/30 p-4">
-				<div className="flex items-center gap-2">
-					<p className="lv-eyebrow text-[0.55rem] text-muted-foreground">
-						{t("marketContext")}
-					</p>
-					<span
-						className={`lv-eyebrow rounded-sm px-2 py-0.5 text-[0.5rem] ${
-							DEMAND_TONE[analysis.marketContext.demand] ?? DEMAND_TONE.medium
-						}`}
-					>
-						{t(`demand.${analysis.marketContext.demand}`)}
-					</span>
+			{/* Market context — auch defensiv. */}
+			{marketContext && (
+				<div className="rounded-sm border border-border bg-muted/30 p-4">
+					<div className="flex items-center gap-2">
+						<p className="lv-eyebrow text-[0.55rem] text-muted-foreground">
+							{t("marketContext")}
+						</p>
+						{marketContext.demand && (
+							<span
+								className={`lv-eyebrow rounded-sm px-2 py-0.5 text-[0.5rem] ${
+									DEMAND_TONE[marketContext.demand] ?? DEMAND_TONE.medium
+								}`}
+							>
+								{t(`demand.${marketContext.demand}`)}
+							</span>
+						)}
+					</div>
+					{marketContext.notes && (
+						<p className="mt-2 text-foreground/90 text-xs leading-relaxed">
+							{marketContext.notes}
+						</p>
+					)}
 				</div>
-				<p className="mt-2 text-foreground/90 text-xs leading-relaxed">
-					{analysis.marketContext.notes}
-				</p>
-			</div>
+			)}
 		</div>
 	);
 }

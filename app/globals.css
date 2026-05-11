@@ -3,32 +3,31 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-	/* Klick UI — Blau · Weiß · Elfenbein.
-	 * Hintergrund bleibt warm (Elfenbein-Off-White für Wärme statt steriles
-	 * Weiß), Primary wird zu einem klaren Vertrauens-Blau. Akzent stützt
-	 * mit wärmerem Hellblau-Highlight; Status-Farben (Emerald/Amber/Rose)
-	 * bleiben unverändert für echte Zustände. */
+	/* Klick UI — Elfenbein · Blau · Schwarz.
+	 * Hintergrund warm-elfenbein, Foreground tiefes Schwarz für maximalen
+	 * Kontrast, Primary klares Trust-Blau. Status-Farben (Emerald/Amber/
+	 * Rose) bleiben für echte Zustände. */
 	--background: oklch(0.985 0.004 90); /* ≈ #f8f6f0 helles Elfenbein */
-	--foreground: oklch(0.22 0.02 254); /* ≈ #232a3a Tinten-Blau */
+	--foreground: oklch(0.13 0 0); /* ≈ #1c1c1c tiefes Schwarz */
 	--muted: oklch(0.95 0.005 90); /* ≈ #ece9e1 */
-	--muted-foreground: oklch(0.52 0.04 254); /* ≈ #6a748a Slate */
-	--border: oklch(0.9 0.012 254); /* ≈ #d6dae6 sanfter Blau-Touch */
-	--primary: oklch(0.46 0.18 254); /* ≈ #2c4ed8 klares Trust-Blau */
+	--muted-foreground: oklch(0.4 0.005 90); /* ≈ #5a5854 warm-grau */
+	--border: oklch(0.88 0.008 90); /* ≈ #d4d0c5 elfenbein-grau */
+	--primary: oklch(0.4 0.2 258); /* ≈ #1f3fd2 sattes Trust-Blau */
 	--primary-foreground: oklch(0.99 0.004 90); /* fast weiß */
 	--accent: oklch(0.85 0.07 254); /* ≈ #b8c8ee Hellblau-Highlight */
-	--accent-foreground: oklch(0.22 0.02 254);
+	--accent-foreground: oklch(0.13 0 0);
 	--radius: 0.5rem;
 }
 
 .dark {
-	--background: oklch(0.16 0.018 254); /* ≈ #161a25 Mitternachts-Blau */
+	--background: oklch(0.13 0 0); /* tiefes Schwarz */
 	--foreground: oklch(0.96 0.005 90); /* ≈ #ede9e0 warmes Off-White */
-	--muted: oklch(0.22 0.022 254); /* ≈ #20263a */
-	--muted-foreground: oklch(0.72 0.04 254); /* ≈ #a3afc6 */
-	--border: oklch(0.3 0.025 254); /* ≈ #3a4054 */
+	--muted: oklch(0.2 0 0); /* ≈ #2a2a2a */
+	--muted-foreground: oklch(0.72 0.005 90); /* warmes Grau */
+	--border: oklch(0.28 0 0); /* ≈ #3d3d3d */
 	--primary: oklch(0.72 0.16 254); /* ≈ #7c9fee helles Blau */
-	--primary-foreground: oklch(0.16 0.018 254);
-	--accent: oklch(0.4 0.1 254); /* ≈ #4258a2 dunkleres Highlight */
+	--primary-foreground: oklch(0.13 0 0);
+	--accent: oklch(0.4 0.1 254); /* dunkleres Highlight */
 	--accent-foreground: oklch(0.96 0.005 90);
 }
 
