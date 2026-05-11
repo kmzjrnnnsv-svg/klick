@@ -19,6 +19,26 @@ import type {
 	SuggestedJobRequirement,
 } from "./types";
 
+// Falls Claude wegen maxLength oder max_tokens mitten im Wort abschneidet
+// (z. B. "...Compliance mit D"), drop bis zum letzten echten Satz-Ende.
+// Wenn nichts Sinnvolles übrig bleibt → leerer String, der Caller blendet
+// das Feld dann aus statt einen Fragment anzuzeigen.
+function finishSentence(s: string): string {
+	const trimmed = s.trim();
+	if (!trimmed) return "";
+	if (/[.!?…»"')\]]$/.test(trimmed)) return trimmed;
+	const lastTerminator = Math.max(
+		trimmed.lastIndexOf("."),
+		trimmed.lastIndexOf("!"),
+		trimmed.lastIndexOf("?"),
+		trimmed.lastIndexOf("…"),
+	);
+	if (lastTerminator >= 20) return trimmed.slice(0, lastTerminator + 1);
+	// Komplett kaputt — kein Punkt drin oder zu wenig Substanz. Lieber
+	// nichts zeigen als hängende Halbzeile.
+	return "";
+}
+
 const PROFILE_TOOL_SCHEMA = {
 	type: "object" as const,
 	properties: {
@@ -586,7 +606,7 @@ export class ClaudeAIProvider implements AIProvider {
 	): Promise<CandidateNarrative> {
 		const result = await this.client.messages.create({
 			model: "claude-sonnet-4-6",
-			max_tokens: 600,
+			max_tokens: 1500,
 			tools: [
 				{
 					name: "save_narrative",
@@ -597,23 +617,25 @@ export class ClaudeAIProvider implements AIProvider {
 						properties: {
 							summary: {
 								type: "string",
-								maxLength: 280,
+								maxLength: 480,
 								description:
-									"Two short sentences in German. Style: confident, factual, no fluff. Reference the strongest signal (current role, longest tenure, top skill).",
+									"Maximal 2 kurze Sätze auf Deutsch, ZUSAMMEN unter 460 Zeichen. Stil: souverän, faktisch, ohne Floskeln. Stärkstes Signal nennen (aktuelle Rolle, längste Tenure, Top-Skill). IMMER mit Punkt enden — niemals mitten im Wort/Satz aufhören. Lieber 1 Satz weglassen als unvollständig schreiben.",
 							},
 							workStyle: {
 								type: "array",
-								maxItems: 5,
-								items: { type: "string", maxLength: 30 },
+								minItems: 3,
+								maxItems: 6,
+								items: { type: "string", maxLength: 40 },
 								description:
-									"3-5 short tags in German lowercase, e.g. 'verlässlich', 'eigenverantwortlich', 'cross-funktional', 'detailorientiert'. No fluff.",
+									"3-6 kompakte Tags auf Deutsch, kein lowercase-Zwang (Eigennamen wie 'ISO 27001' bleiben korrekt). Themen-/Fokus-Kompetenzen, nicht Soft-Skills. Beispiele: 'BSI Grundschutz', 'ISO 27001', 'Cloud Security', 'Incident Response'.",
 							},
 							strengths: {
 								type: "array",
-								maxItems: 4,
-								items: { type: "string", maxLength: 60 },
+								minItems: 4,
+								maxItems: 8,
+								items: { type: "string", maxLength: 140 },
 								description:
-									"2-4 short concrete phrases (e.g. '7 Jahre TypeScript', 'mehrere Zertifikate in Cloud', 'lange Tenure bei Acme').",
+									"4-8 konkrete Wissens-/Erfahrungs-Punkte als VOLLE Aussagen mit Kontext (Jahre, Scope, Domain). Kein bloßes Schlagwort. Beispiele: '5 Jahre Threat Modeling im Finance-Umfeld', 'Mehrere ISO-27001-Audits federführend begleitet', 'Business Continuity Planning für 1.000+-MA-Unternehmen'. Keine Wiederholung des Summary.",
 							},
 						},
 						required: ["summary", "workStyle", "strengths"],
@@ -664,7 +686,14 @@ export class ClaudeAIProvider implements AIProvider {
 				strengths: [],
 			};
 		}
-		return toolUse.input as CandidateNarrative;
+		const raw = toolUse.input as CandidateNarrative;
+		return {
+			summary: finishSentence(raw.summary ?? ""),
+			workStyle: (raw.workStyle ?? []).map((s) => s.trim()).filter(Boolean),
+			strengths: (raw.strengths ?? [])
+				.map((s) => finishSentence(s.trim()))
+				.filter(Boolean),
+		};
 	}
 
 	async extractJobPosting(
