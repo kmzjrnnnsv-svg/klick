@@ -19,6 +19,53 @@ import type {
 	SuggestedJobRequirement,
 } from "./types";
 
+// 1:1-Durchreichen bei from === to bzw. Fallback wenn die KI nicht antwortet.
+function passthroughTranslation(
+	input: ProfileTranslationInput,
+): ProfileTranslationOutput {
+	return {
+		headline: input.headline ?? undefined,
+		summary: input.summary ?? undefined,
+		industries: input.industries ?? undefined,
+		skills: input.skills ?? undefined,
+		experience: input.experience
+			? input.experience.map((e) => ({
+					role: e.role,
+					description: e.description ?? undefined,
+				}))
+			: undefined,
+		education: input.education
+			? input.education.map((e) => ({
+					degree: e.degree,
+					thesisTitle: e.thesisTitle ?? undefined,
+					focus: e.focus ?? undefined,
+				}))
+			: undefined,
+		awards: input.awards ?? undefined,
+		mobility: input.mobility ?? undefined,
+		projects: input.projects
+			? input.projects.map((p) => ({
+					name: p.name,
+					role: p.role ?? undefined,
+					description: p.description ?? undefined,
+				}))
+			: undefined,
+		publications: input.publications
+			? input.publications.map((p) => ({
+					title: p.title,
+					venue: p.venue ?? undefined,
+				}))
+			: undefined,
+		volunteering: input.volunteering
+			? input.volunteering.map((v) => ({
+					organization: v.organization,
+					role: v.role,
+					description: v.description ?? undefined,
+				}))
+			: undefined,
+	};
+}
+
 // Falls Claude wegen maxLength oder max_tokens mitten im Wort abschneidet
 // (z. B. "...Compliance mit D"), drop bis zum letzten echten Satz-Ende.
 // Wenn nichts Sinnvolles übrig bleibt → leerer String, der Caller blendet
@@ -1282,28 +1329,14 @@ Schema pro Eintrag:
 		input: ProfileTranslationInput,
 	): Promise<ProfileTranslationOutput> {
 		if (input.from === input.to) {
-			return {
-				headline: input.headline ?? undefined,
-				summary: input.summary ?? undefined,
-				industries: input.industries ?? undefined,
-				skills: input.skills ?? undefined,
-				experience: input.experience
-					? input.experience.map((e) => ({
-							role: e.role,
-							description: e.description ?? undefined,
-						}))
-					: undefined,
-				education: input.education ?? undefined,
-				awards: input.awards ?? undefined,
-				mobility: input.mobility ?? undefined,
-			};
+			return passthroughTranslation(input);
 		}
 
 		const targetLang = input.to === "de" ? "Deutsch" : "Englisch";
 		try {
 			const result = await this.client.messages.create({
 				model: "claude-sonnet-4-6",
-				max_tokens: 4096,
+				max_tokens: 6000,
 				tools: [
 					{
 						name: "save_translation",
@@ -1313,10 +1346,7 @@ Schema pro Eintrag:
 							properties: {
 								headline: { type: "string" },
 								summary: { type: "string" },
-								industries: {
-									type: "array",
-									items: { type: "string" },
-								},
+								industries: { type: "array", items: { type: "string" } },
 								skills: {
 									type: "array",
 									items: {
@@ -1343,12 +1373,51 @@ Schema pro Eintrag:
 									type: "array",
 									items: {
 										type: "object",
-										properties: { degree: { type: "string" } },
+										properties: {
+											degree: { type: "string" },
+											thesisTitle: { type: "string" },
+											focus: { type: "string" },
+										},
 										required: ["degree"],
 									},
 								},
 								awards: { type: "array", items: { type: "string" } },
 								mobility: { type: "string" },
+								projects: {
+									type: "array",
+									items: {
+										type: "object",
+										properties: {
+											name: { type: "string" },
+											role: { type: "string" },
+											description: { type: "string" },
+										},
+										required: ["name"],
+									},
+								},
+								publications: {
+									type: "array",
+									items: {
+										type: "object",
+										properties: {
+											title: { type: "string" },
+											venue: { type: "string" },
+										},
+										required: ["title"],
+									},
+								},
+								volunteering: {
+									type: "array",
+									items: {
+										type: "object",
+										properties: {
+											organization: { type: "string" },
+											role: { type: "string" },
+											description: { type: "string" },
+										},
+										required: ["organization", "role"],
+									},
+								},
 							},
 						},
 					},
@@ -1358,13 +1427,15 @@ Schema pro Eintrag:
 					{
 						role: "user",
 						content:
-							`Übersetze das folgende Kandidat:innen-Profil ins ${targetLang}.\n\n` +
+							`Übersetze das folgende Kandidat:innen-Profil ins ${targetLang}. ALLE Freitext-Felder müssen übersetzt werden, inklusive Projekt-Beschreibungen, Publikations-Titel, Ehrenamt-Beschreibungen, Studienschwerpunkte und Abschlussarbeit-Titel.\n\n` +
 							`Regeln:\n` +
-							`- Eigennamen, Firmennamen, Personennamen, Standorte UNVERÄNDERT lassen.\n` +
-							`- Feststehende Bezeichnungen (ISO 27001, AWS, NIST CSF, AZ-104, ITIL, …) UNVERÄNDERT lassen.\n` +
-							`- Berufsbezeichnungen sinnvoll übersetzen (z.B. "Vertriebsleiter" ↔ "Sales Manager"), aber etablierte Anglizismen behalten ("Information Security Officer", "Product Owner").\n` +
-							`- Beschreibungstexte natürlich übersetzen — nicht wörtlich, aber faktentreu.\n` +
-							`- Skill-Levels nicht verändern.\n\n` +
+							`- Personennamen, Firmennamen, Universitäts-/Schulnamen, Konferenz-/Journal-Namen, Standorte UNVERÄNDERT lassen.\n` +
+							`- Feststehende Bezeichnungen (ISO 27001, AWS, NIST CSF, AZ-104, ITIL, BSI Grundschutz, CISSP, …) UNVERÄNDERT lassen.\n` +
+							`- Berufsbezeichnungen sinnvoll übersetzen (z. B. "Vertriebsleiter" ↔ "Sales Manager"), aber etablierte Anglizismen behalten ("Information Security Officer", "Product Owner", "Scrum Master").\n` +
+							`- Studien-Abschlüsse: "Bachelor of Science" / "B.Sc." behalten; "Bachelor (Wirtschaftsinformatik)" wird zu "Bachelor (Business Informatics)" auf EN.\n` +
+							`- Beschreibungstexte natürlich übersetzen — nicht wörtlich, aber faktentreu. Auch Aufzählungen mit Semikolon-Trennern beibehalten.\n` +
+							`- Skill-Levels nicht verändern.\n` +
+							`- Industries / Awards / Mobility ebenfalls übersetzen sofern es sich nicht um Eigennamen handelt.\n\n` +
 							`Quelle:\n${JSON.stringify(input, null, 2)}`,
 					},
 				],
@@ -1377,21 +1448,7 @@ Schema pro Eintrag:
 			console.warn("[ai] translateProfile failed", e);
 		}
 		// Fallback: 1:1 zurückgeben, lieber nichts übersetzen als falsch.
-		return {
-			headline: input.headline ?? undefined,
-			summary: input.summary ?? undefined,
-			industries: input.industries ?? undefined,
-			skills: input.skills ?? undefined,
-			experience: input.experience
-				? input.experience.map((e) => ({
-						role: e.role,
-						description: e.description ?? undefined,
-					}))
-				: undefined,
-			education: input.education ?? undefined,
-			awards: input.awards ?? undefined,
-			mobility: input.mobility ?? undefined,
-		};
+		return passthroughTranslation(input);
 	}
 
 	async recommendCandidateSalary(input: {

@@ -65,6 +65,9 @@ export default async function ProfilePage() {
 				skills: view.skills as CandidateProfile["skills"],
 				experience: view.experience,
 				education: view.education,
+				projects: view.projects,
+				publications: view.publications,
+				volunteering: view.volunteering,
 			};
 		} catch (e) {
 			console.warn("[profile] localizedProfile failed, falling back to raw", e);

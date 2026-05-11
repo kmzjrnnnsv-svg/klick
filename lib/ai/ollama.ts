@@ -793,9 +793,35 @@ export class OllamaAIProvider implements AIProvider {
 							description: e.description ?? undefined,
 						}))
 					: undefined,
-				education: input.education ?? undefined,
+				education: input.education
+					? input.education.map((e) => ({
+							degree: e.degree,
+							thesisTitle: e.thesisTitle ?? undefined,
+							focus: e.focus ?? undefined,
+						}))
+					: undefined,
 				awards: input.awards ?? undefined,
 				mobility: input.mobility ?? undefined,
+				projects: input.projects
+					? input.projects.map((p) => ({
+							name: p.name,
+							role: p.role ?? undefined,
+							description: p.description ?? undefined,
+						}))
+					: undefined,
+				publications: input.publications
+					? input.publications.map((p) => ({
+							title: p.title,
+							venue: p.venue ?? undefined,
+						}))
+					: undefined,
+				volunteering: input.volunteering
+					? input.volunteering.map((v) => ({
+							organization: v.organization,
+							role: v.role,
+							description: v.description ?? undefined,
+						}))
+					: undefined,
 			};
 		}
 		const targetLang = input.to === "de" ? "Deutsch" : "Englisch";
@@ -858,9 +884,35 @@ export class OllamaAIProvider implements AIProvider {
 							description: e.description ?? undefined,
 						}))
 					: undefined,
-				education: input.education ?? undefined,
+				education: input.education
+					? input.education.map((e) => ({
+							degree: e.degree,
+							thesisTitle: e.thesisTitle ?? undefined,
+							focus: e.focus ?? undefined,
+						}))
+					: undefined,
 				awards: input.awards ?? undefined,
 				mobility: input.mobility ?? undefined,
+				projects: input.projects
+					? input.projects.map((p) => ({
+							name: p.name,
+							role: p.role ?? undefined,
+							description: p.description ?? undefined,
+						}))
+					: undefined,
+				publications: input.publications
+					? input.publications.map((p) => ({
+							title: p.title,
+							venue: p.venue ?? undefined,
+						}))
+					: undefined,
+				volunteering: input.volunteering
+					? input.volunteering.map((v) => ({
+							organization: v.organization,
+							role: v.role,
+							description: v.description ?? undefined,
+						}))
+					: undefined,
 			};
 		}
 	}

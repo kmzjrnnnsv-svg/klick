@@ -184,9 +184,25 @@ export type ProfileTranslationFields = {
 	}[];
 	education?: {
 		degree: string;
+		thesisTitle?: string;
+		focus?: string;
 	}[];
 	awards?: string[];
 	mobility?: string;
+	projects?: {
+		name: string;
+		role?: string;
+		description?: string;
+	}[];
+	publications?: {
+		title: string;
+		venue?: string;
+	}[];
+	volunteering?: {
+		organization: string;
+		role: string;
+		description?: string;
+	}[];
 };
 export type ProfileEmploymentType =
 	| "employee"
