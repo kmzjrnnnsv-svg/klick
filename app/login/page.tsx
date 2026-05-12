@@ -1,14 +1,34 @@
+import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { isMicrosoftSsoEnabled, signIn } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { db } from "@/db";
+import { users } from "@/db/schema";
 
 async function loginAction(formData: FormData) {
 	"use server";
-	const email = String(formData.get("email") ?? "").trim();
+	const email = String(formData.get("email") ?? "")
+		.trim()
+		.toLowerCase();
 	if (!email) return;
+
+	// Allow-list-Modus (Default): nur eingeladene/angelegte User dürfen
+	// Magic-Links anfordern. Override via AUTH_ALLOW_SIGNUP=true.
+	if (process.env.AUTH_ALLOW_SIGNUP !== "true") {
+		const [existing] = await db
+			.select({ id: users.id })
+			.from(users)
+			.where(eq(users.email, email))
+			.limit(1);
+		if (!existing) {
+			redirect("/login?error=not_invited");
+		}
+	}
+
 	await signIn("email", { email, redirectTo: "/post-login" });
 }
 
@@ -44,9 +64,15 @@ const DEMO_ROLES = [
 	},
 ] as const;
 
-export default async function LoginPage() {
+export default async function LoginPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ error?: string }>;
+}) {
 	const t = await getTranslations("Login");
 	const demoEnabled = process.env.ENABLE_DEMO_LOGIN === "true";
+	const params = await searchParams;
+	const showNotInvited = params.error === "not_invited";
 	return (
 		<>
 			<Header />
@@ -60,6 +86,11 @@ export default async function LoginPage() {
 				<p className="mx-auto mt-4 max-w-xs text-center text-muted-foreground text-sm leading-relaxed">
 					{t("subtitle")}
 				</p>
+				{showNotInvited && (
+					<div className="mt-6 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-amber-900 text-xs leading-relaxed dark:text-amber-200">
+						{t("notInvited")}
+					</div>
+				)}
 				<form action={loginAction} className="mt-10 space-y-5">
 					<Input
 						type="email"

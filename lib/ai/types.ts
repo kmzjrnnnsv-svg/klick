@@ -214,7 +214,7 @@ export type CandidateNarrativeInput = {
 	currentRole?: { company: string; role: string; monthsOngoing: number };
 	firstJobYear?: number;
 	gaps: number; // count
-	skills: string[];
+	skills: Array<{ name: string; level?: number }>;
 	certificateCount: number;
 	certificatePattern: "none" | "single" | "burst" | "steady" | "sparse";
 	asOf: string; // ISO yyyy-mm-dd

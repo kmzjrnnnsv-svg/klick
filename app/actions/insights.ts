@@ -83,7 +83,9 @@ export async function recomputeInsights(userId: string): Promise<void> {
 							)
 						: undefined,
 					gaps: insights.tenure.gaps.length,
-					skills: (profile.skills ?? []).map((s) => s.name).slice(0, 12),
+					skills: (profile.skills ?? [])
+						.slice(0, 16)
+						.map((s) => ({ name: s.name, level: s.level })),
 					certificateCount: insights.certificates.total,
 					certificatePattern: insights.certificates.pattern,
 					asOf: new Date().toISOString().slice(0, 10),

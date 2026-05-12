@@ -41,11 +41,17 @@ export async function translateTexts(
 	}
 	try {
 		const ai = getAIProvider();
-		// 15-Sek-Timeout — wir wollen den Browser nicht ewig warten lassen.
+		// Timeout abhängig vom Provider: Claude ist API-fast (~5s), lokales
+		// Ollama auf CPU braucht bei mehreren Texten gerne 30-90s.
+		const isOllama = ai.slug === "ollama";
+		const timeoutMs = isOllama ? 120_000 : 20_000;
 		const out = await Promise.race<string[]>([
 			ai.translateTexts(input),
 			new Promise<string[]>((_, reject) =>
-				setTimeout(() => reject(new Error("translation timeout 15s")), 15_000),
+				setTimeout(
+					() => reject(new Error(`translation timeout ${timeoutMs / 1000}s`)),
+					timeoutMs,
+				),
 			),
 		]);
 		return { ok: true, texts: out };
