@@ -256,34 +256,55 @@ export async function listCvVaultItems() {
 export async function parseCvFromVault(
 	vaultItemId: string,
 ): Promise<ExtractedProfile> {
-	const session = await auth();
-	if (!session?.user?.id) throw new Error("unauthenticated");
-	const userId = session.user.id;
+	const startedAt = Date.now();
+	console.info("[cv.parse] start", { vaultItemId });
+	try {
+		const session = await auth();
+		if (!session?.user?.id) throw new Error("unauthenticated");
+		const userId = session.user.id;
 
-	const [item] = await db
-		.select()
-		.from(vaultItems)
-		.where(and(eq(vaultItems.id, vaultItemId), eq(vaultItems.userId, userId)))
-		.limit(1);
-	if (!item) throw new Error("vault item not found");
+		const [item] = await db
+			.select()
+			.from(vaultItems)
+			.where(and(eq(vaultItems.id, vaultItemId), eq(vaultItems.userId, userId)))
+			.limit(1);
+		if (!item) throw new Error("CV-Datei nicht gefunden im Vault.");
 
-	const [user] = await db
-		.select({ encryptedDek: users.encryptedDek })
-		.from(users)
-		.where(eq(users.id, userId))
-		.limit(1);
-	if (!user?.encryptedDek) throw new Error("vault key missing");
-	if (!item.storageKey || !item.nonce || !item.mime) {
-		// URL-only items (e.g. Credly badges) carry no payload to parse.
-		throw new Error("vault item has no file payload");
+		const [user] = await db
+			.select({ encryptedDek: users.encryptedDek })
+			.from(users)
+			.where(eq(users.id, userId))
+			.limit(1);
+		if (!user?.encryptedDek) {
+			throw new Error(
+				"Verschlüsselungs-Key fehlt — bitte support@ kontaktieren.",
+			);
+		}
+		if (!item.storageKey || !item.nonce || !item.mime) {
+			throw new Error(
+				"Diese Datei hat keinen Inhalt zum Parsen (z. B. nur URL-Referenz).",
+			);
+		}
+
+		const dek = await unwrapDek(user.encryptedDek);
+		const ciphertext = await getBytes(item.storageKey);
+		const nonce = Uint8Array.from(Buffer.from(item.nonce, "base64"));
+		const plain = await decryptBytes(ciphertext, nonce, dek);
+
+		const result = await getAIProvider().parseCv(plain, item.mime);
+		console.info(`[cv.parse] ok in ${Date.now() - startedAt}ms`);
+		return result;
+	} catch (e) {
+		console.error(
+			`[cv.parse] failed after ${Date.now() - startedAt}ms`,
+			{ vaultItemId },
+			e,
+		);
+		if (e instanceof Error) {
+			throw new Error(`CV-Parse fehlgeschlagen: ${e.message}`);
+		}
+		throw new Error("CV-Parse fehlgeschlagen (unbekannter Fehler).");
 	}
-
-	const dek = await unwrapDek(user.encryptedDek);
-	const ciphertext = await getBytes(item.storageKey);
-	const nonce = Uint8Array.from(Buffer.from(item.nonce, "base64"));
-	const plain = await decryptBytes(ciphertext, nonce, dek);
-
-	return getAIProvider().parseCv(plain, item.mime);
 }
 
 export async function saveProfile(formData: FormData): Promise<void> {
