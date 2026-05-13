@@ -253,14 +253,24 @@ export async function listCvVaultItems() {
 	);
 }
 
+export type CvParseResult =
+	| { ok: true; profile: ExtractedProfile; ms: number }
+	| { ok: false; error: string; code: string };
+
+// Result-Pattern statt throw — Next.js wickelt jeden uncaught throw in eine
+// generische "An error occurred in the Server Components render"-Message
+// die der User nicht versteht. Mit { ok, error }-Tuples sieht der Client
+// die echte Ursache und kann sie lokalisiert anzeigen.
 export async function parseCvFromVault(
 	vaultItemId: string,
-): Promise<ExtractedProfile> {
+): Promise<CvParseResult> {
 	const startedAt = Date.now();
 	console.info("[cv.parse] start", { vaultItemId });
 	try {
 		const session = await auth();
-		if (!session?.user?.id) throw new Error("unauthenticated");
+		if (!session?.user?.id) {
+			return { ok: false, code: "unauthenticated", error: "Nicht angemeldet." };
+		}
 		const userId = session.user.id;
 
 		const [item] = await db
@@ -268,7 +278,13 @@ export async function parseCvFromVault(
 			.from(vaultItems)
 			.where(and(eq(vaultItems.id, vaultItemId), eq(vaultItems.userId, userId)))
 			.limit(1);
-		if (!item) throw new Error("CV-Datei nicht gefunden im Vault.");
+		if (!item) {
+			return {
+				ok: false,
+				code: "not_found",
+				error: "CV-Datei nicht gefunden im Vault.",
+			};
+		}
 
 		const [user] = await db
 			.select({ encryptedDek: users.encryptedDek })
@@ -276,14 +292,18 @@ export async function parseCvFromVault(
 			.where(eq(users.id, userId))
 			.limit(1);
 		if (!user?.encryptedDek) {
-			throw new Error(
-				"Verschlüsselungs-Key fehlt — bitte support@ kontaktieren.",
-			);
+			return {
+				ok: false,
+				code: "no_key",
+				error: "Verschlüsselungs-Key fehlt. Bitte support@ kontaktieren.",
+			};
 		}
 		if (!item.storageKey || !item.nonce || !item.mime) {
-			throw new Error(
-				"Diese Datei hat keinen Inhalt zum Parsen (z. B. nur URL-Referenz).",
-			);
+			return {
+				ok: false,
+				code: "no_payload",
+				error: "Diese Datei hat keinen Inhalt zum Parsen.",
+			};
 		}
 
 		const dek = await unwrapDek(user.encryptedDek);
@@ -291,19 +311,36 @@ export async function parseCvFromVault(
 		const nonce = Uint8Array.from(Buffer.from(item.nonce, "base64"));
 		const plain = await decryptBytes(ciphertext, nonce, dek);
 
-		const result = await getAIProvider().parseCv(plain, item.mime);
-		console.info(`[cv.parse] ok in ${Date.now() - startedAt}ms`);
-		return result;
+		const profile = await getAIProvider().parseCv(plain, item.mime);
+		const ms = Date.now() - startedAt;
+		console.info(`[cv.parse] ok in ${ms}ms`);
+		return { ok: true, profile, ms };
 	} catch (e) {
 		console.error(
 			`[cv.parse] failed after ${Date.now() - startedAt}ms`,
 			{ vaultItemId },
 			e,
 		);
-		if (e instanceof Error) {
-			throw new Error(`CV-Parse fehlgeschlagen: ${e.message}`);
+		const raw = e instanceof Error ? e.message : String(e);
+		// Erkennt typische Fehler-Klassen und gibt sprechende Codes zurück,
+		// damit der Client lokalisieren kann.
+		let code = "ai_failed";
+		let friendly = `CV konnte nicht ausgewertet werden: ${raw}`;
+		if (/fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT/i.test(raw)) {
+			code = "network";
+			friendly = "KI-Server nicht erreichbar — bitte später nochmal versuchen.";
+		} else if (/401|unauthorized|api[_-]?key/i.test(raw)) {
+			code = "auth";
+			friendly =
+				"KI-Zugang abgelaufen — Admin: ANTHROPIC_API_KEY in .env.production prüfen.";
+		} else if (/timeout/i.test(raw)) {
+			code = "timeout";
+			friendly = "KI-Auswertung dauerte zu lang. Bitte nochmal versuchen.";
+		} else if (/decrypt|cipher|nonce/i.test(raw)) {
+			code = "decrypt";
+			friendly = "CV-Datei konnte nicht entschlüsselt werden.";
 		}
-		throw new Error("CV-Parse fehlgeschlagen (unbekannter Fehler).");
+		return { ok: false, code, error: friendly };
 	}
 }
 

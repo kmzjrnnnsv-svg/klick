@@ -84,16 +84,25 @@ export function CvImporter({
 		setPendingId(id);
 		startTransition(async () => {
 			try {
-				const data = await parseCvFromVault(id);
+				const res = await parseCvFromVault(id);
+				if (!res.ok) {
+					// Action liefert Result-Pattern — wir sehen den echten Grund
+					// statt Next.js' generischer Prod-Wrapper-Message.
+					setError(res.error);
+					setPendingId(null);
+					return;
+				}
 				setProgress(1);
 				setPhaseIdx(PHASES.length - 1);
-				// Kurz die 100% zeigen bevor wir den Bar wegnehmen
 				setTimeout(() => {
-					onExtracted(data);
+					onExtracted(res.profile);
 					setPendingId(null);
 				}, 400);
 			} catch (e) {
-				setError(e instanceof Error ? e.message : String(e));
+				// Last-resort wenn die Server-Action selber crasht (sollte nicht
+				// passieren weil Result-Pattern alles catcht).
+				console.error("[cv-importer] action threw", e);
+				setError(t("extractFailedGeneric"));
 				setPendingId(null);
 			}
 		});

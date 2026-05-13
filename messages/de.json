@@ -299,6 +299,7 @@
 		"noCvHint": "Lege erst einen CV im Vault ab (Art = Lebenslauf), dann erscheint er hier.",
 		"extract": "Extrahieren",
 		"extracting": "Extrahiere…",
+		"extractFailedGeneric": "CV konnte nicht ausgewertet werden — bitte später nochmal versuchen.",
 		"phaseUpload": "Datei vorbereiten",
 		"phaseDecrypt": "Vault entschlüsseln",
 		"phasePdfText": "Text aus PDF lesen",
