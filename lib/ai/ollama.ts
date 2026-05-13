@@ -981,6 +981,13 @@ export class OllamaAIProvider implements AIProvider {
 		profile: ExtractedProfile;
 		country: string;
 		currency: string;
+		priorEvaluations?: {
+			low: number;
+			mid: number;
+			high: number;
+			currency: string;
+			rationale: string;
+		}[];
 	}): Promise<{
 		low: number;
 		mid: number;

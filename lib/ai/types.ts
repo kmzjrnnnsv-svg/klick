@@ -242,6 +242,10 @@ export type CandidateSalaryRecommendationInput = {
 	profile: ExtractedProfile;
 	country: string; // ISO Country Code
 	currency: string; // 3-Letter (EUR, GBP, USD, CHF)
+	// Bis zu N vorherige Auswertungen für DEN GLEICHEN Profil + Land —
+	// werden als Anker in den Prompt gemischt damit die KI nicht bei
+	// jedem Klick völlig neue Zahlen liefert. Reihenfolge: neueste zuerst.
+	priorEvaluations?: CandidateSalaryRecommendation[];
 };
 
 export type CandidateSalaryRecommendation = {
