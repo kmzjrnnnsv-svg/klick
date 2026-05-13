@@ -52,8 +52,12 @@ export function SkillsStep({
 		setImportError(null);
 		startImport(async () => {
 			try {
-				const data = await parseCvFromVault(cv.id);
-				applyExtracted(data);
+				const res = await parseCvFromVault(cv.id);
+				if (!res.ok) {
+					setImportError(res.error);
+					return;
+				}
+				applyExtracted(res.profile);
 			} catch (e) {
 				setImportError(e instanceof Error ? e.message : String(e));
 			}

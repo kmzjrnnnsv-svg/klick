@@ -299,6 +299,7 @@
 		"noCvHint": "Upload a CV to your vault first (kind = CV), then it shows up here.",
 		"extract": "Extract",
 		"extracting": "Extracting…",
+		"extractFailedGeneric": "Couldn't parse the CV — please try again in a moment.",
 		"phaseUpload": "Preparing file",
 		"phaseDecrypt": "Decrypting vault",
 		"phasePdfText": "Reading PDF text",
