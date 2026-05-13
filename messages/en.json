@@ -1334,6 +1334,8 @@
 		"publicLabel": "Shared profile",
 		"anonymous": "Candidate",
 		"skills": "Skills",
+		"languages": "Languages",
+		"experience": "Experience",
 		"education": "Education",
 		"publications": "Publications & talks",
 		"projects": "Projects",

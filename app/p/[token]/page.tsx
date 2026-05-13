@@ -70,6 +70,49 @@ export default async function PublicProfilePage({
 					</section>
 				)}
 
+				{profile.languages && profile.languages.length > 0 && (
+					<section className="mb-5 rounded-lg border border-border bg-background p-4">
+						<h2 className="mb-2 font-medium text-sm">{t("languages")}</h2>
+						<div className="flex flex-wrap gap-1.5">
+							{profile.languages.map((l) => (
+								<span
+									key={l}
+									className="rounded-md bg-muted px-2 py-0.5 font-mono text-[11px]"
+								>
+									{l}
+								</span>
+							))}
+						</div>
+					</section>
+				)}
+
+				{view.experience && view.experience.length > 0 && (
+					<section className="mb-5 rounded-lg border border-border bg-background p-4">
+						<h2 className="mb-3 font-medium text-sm">{t("experience")}</h2>
+						<ul className="space-y-3">
+							{view.experience.map((e) => (
+								<li
+									key={`${e.company}-${e.role}-${e.start}`}
+									className="text-sm"
+								>
+									<div className="font-medium">{e.role}</div>
+									<div className="text-muted-foreground text-xs">
+										{e.company}
+										{e.start ? ` · ${e.start}` : ""}
+										{e.end ? ` – ${e.end}` : e.start ? " – present" : ""}
+										{e.employmentType ? ` · ${e.employmentType}` : ""}
+									</div>
+									{e.description && (
+										<p className="mt-1 whitespace-pre-wrap text-foreground/90 text-xs leading-relaxed">
+											{e.description}
+										</p>
+									)}
+								</li>
+							))}
+						</ul>
+					</section>
+				)}
+
 				{view.skills && view.skills.length > 0 && (
 					<section className="mb-5 rounded-lg border border-border bg-background p-4">
 						<h2 className="mb-2 font-medium text-sm">{t("skills")}</h2>
