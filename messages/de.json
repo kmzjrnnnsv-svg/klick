@@ -378,7 +378,8 @@
 			"min": "Minimum ({currency})",
 			"desired": "Wunsch ({currency})",
 			"askAi": "KI-Empfehlung holen",
-			"midHint": "Mitte: {mid}"
+			"midHint": "Mitte: {mid}",
+			"salaryTrendLabel": "Bisherige Empfehlungen"
 		},
 		"salaryMin": "Mindestgehalt (€/Jahr)",
 		"salaryDesired": "Wunschgehalt (€/Jahr)",

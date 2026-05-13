@@ -745,6 +745,40 @@ export async function persistTranslation(input: {
 	}
 }
 
+// History der letzten Salary-Empfehlungen für den eingeloggten User +
+// gegebenes Land. Wird in der UI als kleiner Trend angezeigt.
+export async function getSalaryHistory(country: string): Promise<
+	Array<{
+		low: number;
+		mid: number;
+		high: number;
+		currency: string;
+		rationale: string;
+		at: Date;
+	}>
+> {
+	try {
+		const session = await auth();
+		if (!session?.user?.id) return [];
+		const rows = await recentAiEvaluations<{
+			low: number;
+			mid: number;
+			high: number;
+			currency: string;
+			rationale: string;
+		}>({
+			userId: session.user.id,
+			kind: "salary_country",
+			key: country,
+			limit: 5,
+		});
+		return rows.map((r) => ({ ...r.output, at: r.createdAt }));
+	} catch (e) {
+		console.warn("[profile] getSalaryHistory failed", e);
+		return [];
+	}
+}
+
 function tryParseJsonArray(raw: string | undefined): unknown[] | undefined {
 	if (!raw) return undefined;
 	try {

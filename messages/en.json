@@ -378,7 +378,8 @@
 			"min": "Minimum ({currency})",
 			"desired": "Target ({currency})",
 			"askAi": "Get AI recommendation",
-			"midHint": "Mid: {mid}"
+			"midHint": "Mid: {mid}",
+			"salaryTrendLabel": "Past recommendations"
 		},
 		"salaryMin": "Minimum (€/yr)",
 		"salaryDesired": "Target (€/yr)",
