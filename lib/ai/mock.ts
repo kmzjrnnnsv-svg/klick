@@ -210,6 +210,7 @@ export class MockAIProvider implements AIProvider {
 			headline: input.headline ?? undefined,
 			summary: input.summary ?? undefined,
 			industries: input.industries ?? undefined,
+			languages: input.languages ?? undefined,
 			skills: input.skills ?? undefined,
 			experience: input.experience
 				? input.experience.map((e) => ({

@@ -510,6 +510,7 @@ async function translateProfileFields(
 		headline: profile.headline,
 		summary: profile.summary,
 		industries: profile.industries,
+		languages: profile.languages,
 		skills: (profile.skills ?? null) as
 			| { name: string; level?: number }[]
 			| null,
@@ -581,6 +582,11 @@ export async function ensureTranslationForLocale(
 // Public-Share-Variante: triggert die Übersetzung für einen Profil-Owner
 // per userId statt per Session. Anonymer Besucher kann damit indirekt
 // eine Übersetzung anstoßen — Daten gehören dem Kandidaten, kein Risiko.
+//
+// Erkennt auch STALE Übersetzungen: wenn das Profil neuer ist als die
+// gespeicherte Übersetzung (Profil-Update nach letzter Translation),
+// wird neu generiert. Sonst sieht der User für immer alte deutsche
+// Texte obwohl er die UI längst umgestellt hat.
 export async function ensureTranslationForUser(
 	userId: string,
 	targetLocale: "de" | "en",
@@ -589,6 +595,8 @@ export async function ensureTranslationForUser(
 		const [profile] = await db
 			.select({
 				translations: candidateProfiles.translations,
+				translationsUpdatedAt: candidateProfiles.translationsUpdatedAt,
+				updatedAt: candidateProfiles.updatedAt,
 				profileLanguageOrigin: candidateProfiles.profileLanguageOrigin,
 			})
 			.from(candidateProfiles)
@@ -598,12 +606,20 @@ export async function ensureTranslationForUser(
 		const origin =
 			(profile.profileLanguageOrigin as "de" | "en" | null) ?? "de";
 		if (origin === targetLocale) return { alreadyHas: true, queued: false };
-		if (profile.translations?.[targetLocale])
+
+		const hasTranslation = !!profile.translations?.[targetLocale];
+		const isStale =
+			!profile.translationsUpdatedAt ||
+			(profile.updatedAt && profile.translationsUpdatedAt < profile.updatedAt);
+
+		if (hasTranslation && !isStale) {
 			return { alreadyHas: true, queued: false };
-		// Asynchron — Public-Visitor wartet nicht. Wird bei nächstem Aufruf
-		// sichtbar sein.
+		}
+
+		// Übersetzung fehlt ODER ist älter als das Profil → neu generieren.
+		// force=true weil wir wissen dass die existierende Version stale ist.
 		after(() =>
-			translateProfileFields(userId).catch((e) =>
+			translateProfileFields(userId, isStale).catch((e) =>
 				console.warn("[profile] ensureTranslationForUser failed", e),
 			),
 		);

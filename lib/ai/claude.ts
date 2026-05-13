@@ -27,6 +27,7 @@ function passthroughTranslation(
 		headline: input.headline ?? undefined,
 		summary: input.summary ?? undefined,
 		industries: input.industries ?? undefined,
+		languages: input.languages ?? undefined,
 		skills: input.skills ?? undefined,
 		experience: input.experience
 			? input.experience.map((e) => ({
@@ -1347,6 +1348,7 @@ Schema pro Eintrag:
 								headline: { type: "string" },
 								summary: { type: "string" },
 								industries: { type: "array", items: { type: "string" } },
+								languages: { type: "array", items: { type: "string" } },
 								skills: {
 									type: "array",
 									items: {
@@ -1435,7 +1437,8 @@ Schema pro Eintrag:
 							`- Studien-Abschlüsse: "Bachelor of Science" / "B.Sc." behalten; "Bachelor (Wirtschaftsinformatik)" wird zu "Bachelor (Business Informatics)" auf EN.\n` +
 							`- Beschreibungstexte natürlich übersetzen — nicht wörtlich, aber faktentreu. Auch Aufzählungen mit Semikolon-Trennern beibehalten.\n` +
 							`- Skill-Levels nicht verändern.\n` +
-							`- Industries / Awards / Mobility ebenfalls übersetzen sofern es sich nicht um Eigennamen handelt.\n\n` +
+							`- Industries / Awards / Mobility ebenfalls übersetzen sofern es sich nicht um Eigennamen handelt.\n` +
+							`- Languages: ÜBERSETZEN. "Deutsch" → "German", "Englisch" → "English", "Französisch" → "French", "Spanisch" → "Spanish", "Italienisch" → "Italian", "Niederländisch" → "Dutch", "Polnisch" → "Polish", "Russisch" → "Russian", "Türkisch" → "Turkish", "Arabisch" → "Arabic", "Chinesisch" → "Chinese", "Japanisch" → "Japanese". Falls als BCP47-Code wie "de:native" oder "en:c1" gespeichert, Code UNVERÄNDERT lassen — der Code ist sprach-unabhängig.\n\n` +
 							`Quelle:\n${JSON.stringify(input, null, 2)}`,
 					},
 				],

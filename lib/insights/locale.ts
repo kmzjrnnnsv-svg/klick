@@ -10,6 +10,7 @@ export function localizedProfile(
 		| "headline"
 		| "summary"
 		| "industries"
+		| "languages"
 		| "skills"
 		| "experience"
 		| "education"
@@ -26,6 +27,7 @@ export function localizedProfile(
 	headline: string | null;
 	summary: string | null;
 	industries: string[] | null;
+	languages: string[] | null;
 	skills: { name: string; level?: number }[] | null;
 	experience: typeof profile.experience;
 	education: typeof profile.education;
@@ -42,6 +44,7 @@ export function localizedProfile(
 			headline: profile.headline,
 			summary: profile.summary,
 			industries: profile.industries ?? null,
+			languages: profile.languages ?? null,
 			skills: (profile.skills ?? null) as
 				| { name: string; level?: number }[]
 				| null,
@@ -125,6 +128,7 @@ export function localizedProfile(
 		headline: pick(tr?.headline, profile.headline),
 		summary: pick(tr?.summary, profile.summary),
 		industries: pick(tr?.industries, profile.industries ?? null),
+		languages: pick(tr?.languages, profile.languages ?? null),
 		skills: pick(
 			tr?.skills,
 			(profile.skills ?? null) as { name: string; level?: number }[] | null,

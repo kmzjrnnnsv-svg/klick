@@ -406,6 +406,7 @@ export type ProfileTranslationInput = {
 	headline?: string | null;
 	summary?: string | null;
 	industries?: string[] | null;
+	languages?: string[] | null;
 	skills?: { name: string; level?: number }[] | null;
 	experience?:
 		| {
@@ -448,6 +449,7 @@ export type ProfileTranslationOutput = {
 	headline?: string;
 	summary?: string;
 	industries?: string[];
+	languages?: string[];
 	skills?: { name: string; level?: number }[];
 	experience?: { role: string; description?: string }[];
 	education?: { degree: string; thesisTitle?: string; focus?: string }[];

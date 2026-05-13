@@ -177,6 +177,7 @@ export type ProfileTranslationFields = {
 	headline?: string;
 	summary?: string;
 	industries?: string[];
+	languages?: string[];
 	skills?: { name: string; level?: number }[];
 	experience?: {
 		role: string;

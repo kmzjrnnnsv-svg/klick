@@ -106,11 +106,11 @@ export default async function PublicProfilePage({
 					</section>
 				)}
 
-				{profile.languages && profile.languages.length > 0 && (
+				{view.languages && view.languages.length > 0 && (
 					<section className="mb-5 rounded-lg border border-border bg-background p-4">
 						<h2 className="mb-2 font-medium text-sm">{t("languages")}</h2>
 						<div className="flex flex-wrap gap-1.5">
-							{profile.languages.map((l) => (
+							{view.languages.map((l) => (
 								<span
 									key={l}
 									className="rounded-md bg-muted px-2 py-0.5 font-mono text-[11px]"
