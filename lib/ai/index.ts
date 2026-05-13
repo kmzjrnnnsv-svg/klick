@@ -11,27 +11,25 @@ let cached: AIProvider | null = null;
  * Returns the active AI provider. Resolution order:
  *   1. AI_PROVIDER explicitly set            → exact provider
  *   2. ANTHROPIC_API_KEY set                 → claude
- *   3. OLLAMA_URL set                        → ollama
- *   4. fallback                              → mock
+ *   3. fallback                              → mock
  *
- * Mock is deterministic + offline. Claude needs ANTHROPIC_API_KEY.
- * Ollama needs a reachable Ollama server (default http://localhost:11434)
- * and a downloaded model (qwen2.5:32b-instruct empfohlen). Siehe
- * docs/ollama-integration.md.
+ * NOTE: Ollama wird NICHT mehr automatisch ausgewählt, auch wenn
+ * OLLAMA_URL gesetzt ist. Um Ollama zu nutzen, muss AI_PROVIDER=ollama
+ * EXPLIZIT in der Env stehen. So verhindern wir, dass ein vergessener
+ * Env-Eintrag Klick weiterhin zum (nicht mehr existierenden) Ollama-
+ * Server routet.
  */
 export function getAIProvider(): AIProvider {
 	if (cached) return cached;
 	const explicit = process.env.AI_PROVIDER?.toLowerCase();
 	if (explicit === "mock") {
 		cached = new MockAIProvider();
-	} else if (explicit === "claude" || explicit === "anthropic") {
-		cached = new ClaudeAIProvider();
 	} else if (explicit === "ollama") {
 		cached = new OllamaAIProvider();
+	} else if (explicit === "claude" || explicit === "anthropic") {
+		cached = new ClaudeAIProvider();
 	} else if (process.env.ANTHROPIC_API_KEY) {
 		cached = new ClaudeAIProvider();
-	} else if (process.env.OLLAMA_URL) {
-		cached = new OllamaAIProvider();
 	} else {
 		cached = new MockAIProvider();
 	}
@@ -42,15 +40,12 @@ export function getAIProvider(): AIProvider {
 let cachedCareer: AIProvider | null = null;
 
 /**
- * Provider speziell für die Karriere-Analyse. Bevorzugt Ollama, weil
- *   1. der Output-Block groß ist (11 Felder, lange rationales) und
- *      Claude-Tokens schnell teuer werden,
- *   2. die Analyse keine harten Latency-Anforderungen hat — sie läuft
- *      meist via next/after() im Hintergrund,
- *   3. der eigene Ollama-Server keine externen Calls macht (Privatsphäre).
+ * Provider speziell für die Karriere-Analyse.
  *
  * Override via AI_PROVIDER_CAREER=claude|ollama|mock möglich.
- * Fallback: derselbe Provider wie getAIProvider().
+ * Default: derselbe Provider wie getAIProvider() (also Claude, sofern
+ * ANTHROPIC_API_KEY gesetzt ist). Ollama wird NICHT mehr automatisch
+ * gewählt, nur via AI_PROVIDER_CAREER=ollama.
  */
 export function getCareerAIProvider(): AIProvider {
 	if (cachedCareer) return cachedCareer;
@@ -60,8 +55,6 @@ export function getCareerAIProvider(): AIProvider {
 	} else if (explicit === "claude" || explicit === "anthropic") {
 		cachedCareer = new ClaudeAIProvider();
 	} else if (explicit === "ollama") {
-		cachedCareer = new OllamaAIProvider();
-	} else if (process.env.OLLAMA_URL) {
 		cachedCareer = new OllamaAIProvider();
 	} else {
 		cachedCareer = getAIProvider();
