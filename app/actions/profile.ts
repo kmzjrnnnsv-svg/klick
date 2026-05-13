@@ -26,6 +26,7 @@ import {
 	vaultItems,
 } from "@/db/schema";
 import { getAIProvider } from "@/lib/ai";
+import { recentAiEvaluations, recordAiEvaluation } from "@/lib/ai/evaluations";
 import type { ExtractedProfile } from "@/lib/ai/types";
 import { decryptBytes, unwrapDek } from "@/lib/crypto/envelope";
 import { geocode } from "@/lib/geo/geocode";
@@ -804,6 +805,21 @@ export async function recommendSalaryForCountry(
 	}
 	try {
 		const ai = getAIProvider();
+		// Hole die letzten 3 Salary-Empfehlungen für dieses Land — als Anker
+		// gegen Flakiness ('jedes mal neue Werte'). Die KI bekommt sie als
+		// Kontext: weiche nur bei signifikanten Profil-Änderungen davon ab.
+		const priorEvals = await recentAiEvaluations<{
+			low: number;
+			mid: number;
+			high: number;
+			currency: string;
+			rationale: string;
+		}>({
+			userId: session.user.id,
+			kind: "salary_country",
+			key: country,
+			limit: 3,
+		});
 		const result = await ai.recommendCandidateSalary({
 			profile: {
 				headline: profile.headline ?? undefined,
@@ -818,6 +834,17 @@ export async function recommendSalaryForCountry(
 			},
 			country,
 			currency,
+			priorEvaluations: priorEvals.map((e) => e.output),
+		});
+		// Persistiert die neue Auswertung in der Historie — wird bei
+		// nächsten Calls als Anker mitgezogen.
+		await recordAiEvaluation({
+			userId: session.user.id,
+			kind: "salary_country",
+			key: country,
+			inputSnapshot: { country, currency, profileHash: profile.updatedAt },
+			output: result,
+			provider: ai.slug,
 		});
 		return { ok: true, ...result };
 	} catch (e) {

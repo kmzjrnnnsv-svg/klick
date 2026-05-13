@@ -1233,6 +1233,9 @@ Schema pro Eintrag:
 		const result = await this.client.messages.create({
 			model: "claude-sonnet-4-6",
 			max_tokens: 2500,
+			// Niedrige Temperature für Konsistenz — gleicher Input soll
+			// ähnlichen Output liefern statt 'jedes mal neue Werte'.
+			temperature: 0.3,
 			tools: [
 				{
 					name: "save_career_analysis",
@@ -1458,6 +1461,13 @@ Schema pro Eintrag:
 		profile: ExtractedProfile;
 		country: string;
 		currency: string;
+		priorEvaluations?: {
+			low: number;
+			mid: number;
+			high: number;
+			currency: string;
+			rationale: string;
+		}[];
 	}): Promise<{
 		low: number;
 		mid: number;
@@ -1476,9 +1486,26 @@ Schema pro Eintrag:
 			},
 			required: ["low", "mid", "high", "currency", "rationale"],
 		};
+
+		const priorBlock =
+			input.priorEvaluations && input.priorEvaluations.length > 0
+				? `\n\nVORHERIGE EMPFEHLUNGEN für diesen Kandidaten + Land (neueste zuerst):\n${input.priorEvaluations
+						.slice(0, 3)
+						.map(
+							(p, i) =>
+								`  #${i + 1}: ${p.low}-${p.mid}-${p.high} ${p.currency}. Rationale: ${p.rationale.slice(0, 200)}`,
+						)
+						.join(
+							"\n",
+						)}\n\nHalte dich an dieses Band (±10%) als Anker, sofern sich am Profil nichts Signifikantes geändert hat. Weiche nur ab wenn neue Skills/Erfahrungs-Jahre/Branchen-Wechsel das rechtfertigen — und erwähne dann KURZ warum in der rationale.`
+				: "";
+
 		const result = await this.client.messages.create({
 			model: "claude-sonnet-4-6",
 			max_tokens: 800,
+			// Niedrige Temperature für Konsistenz — gleicher Input soll
+			// (annähernd) gleichen Output liefern. 0.2 statt Default (1.0).
+			temperature: 0.2,
 			tools: [
 				{
 					name: "save_country_salary",
@@ -1489,15 +1516,16 @@ Schema pro Eintrag:
 			],
 			tool_choice: { type: "tool", name: "save_country_salary" },
 			system:
-				"Du kennst die DACH/EU/UK/US-Gehaltsmärkte (Stand 2026). Antworte ausschliesslich über das save_country_salary-Tool. Keine Buzzwords, keine Marketing-Sprache.",
+				"Du kennst die DACH/EU/UK/US-Gehaltsmärkte (Stand 2026). Antworte ausschliesslich über das save_country_salary-Tool. Keine Buzzwords, keine Marketing-Sprache. Wenn vorherige Empfehlungen vorliegen, behandle sie als Anker — bleibe in der Nähe sofern das Profil nicht signifikant gewachsen ist.",
 			messages: [
 				{
 					role: "user",
-					content: JSON.stringify({
-						profile: input.profile,
-						country: input.country,
-						currency: input.currency,
-					}),
+					content:
+						JSON.stringify({
+							profile: input.profile,
+							country: input.country,
+							currency: input.currency,
+						}) + priorBlock,
 				},
 			],
 		});

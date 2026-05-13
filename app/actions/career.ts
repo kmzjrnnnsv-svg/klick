@@ -7,6 +7,7 @@ import { db } from "@/db";
 import type { ProfileExperience } from "@/db/schema";
 import { candidateProfiles, users } from "@/db/schema";
 import { getCareerAIProvider } from "@/lib/ai";
+import { recordAiEvaluation } from "@/lib/ai/evaluations";
 import type { CareerAnalysis, ExtractedProfile } from "@/lib/ai/types";
 
 async function requireCandidate(): Promise<string> {
@@ -153,6 +154,20 @@ export async function refreshCareerAnalysis(): Promise<CareerActionResult> {
 		} catch (e) {
 			console.error("[career] DB update failed (non-fatal)", e);
 		}
+
+		// In die AI-History für späteres Anchoring + Audit. Niemals
+		// werfen — Logging blockiert die Action nicht.
+		await recordAiEvaluation({
+			userId,
+			kind: "career_analysis",
+			key: userLocale,
+			inputSnapshot: {
+				yearsActive: profile.yearsExperience ?? null,
+				profileUpdatedAt: profile.updatedAt,
+			},
+			output: analysis,
+			provider: getCareerAIProvider().slug,
+		});
 
 		// revalidatePath ist orthogonal — wenn es throwt darf das die Action
 		// nicht kaputtmachen (= "unexpected response"-Trigger).

@@ -1,6 +1,7 @@
 import {
 	boolean,
 	doublePrecision,
+	index,
 	integer,
 	jsonb,
 	pgTable,
@@ -1736,3 +1737,38 @@ export const applicationMessages = pgTable("application_messages", {
 });
 
 export type ApplicationMessage = typeof applicationMessages.$inferSelect;
+
+// KI-Auswertungs-Historie: jeder größere KI-Call (Salary-Empfehlung,
+// Karriere-Analyse, Narrative, Match-Rationale) wird hier persistiert.
+// Wird bei Folge-Calls als Anker in den Prompt gemischt — damit die
+// KI nicht bei jedem Klick völlig neue Werte produziert.
+export const aiEvaluations = pgTable(
+	"ai_evaluations",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		kind: text("kind").notNull(),
+		key: text("key"),
+		inputSnapshot: jsonb("input_snapshot"),
+		output: jsonb("output").notNull(),
+		provider: text("provider").notNull(),
+		model: text("model"),
+		tokensIn: integer("tokens_in"),
+		tokensOut: integer("tokens_out"),
+		createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+	},
+	(t) => [
+		index("ai_evaluations_user_kind_key_created_idx").on(
+			t.userId,
+			t.kind,
+			t.key,
+			t.createdAt,
+		),
+	],
+);
+
+export type AiEvaluation = typeof aiEvaluations.$inferSelect;
