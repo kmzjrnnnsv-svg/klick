@@ -339,6 +339,7 @@ export function ProfileForm({
 					currentText={summary}
 					setText={setSummary}
 					context="Kurzprofil eines Bewerbers."
+					persistAs="summary"
 				/>
 			</section>
 
