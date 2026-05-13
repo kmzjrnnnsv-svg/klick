@@ -9,6 +9,7 @@ import { Header } from "@/components/header";
 import { CandidateInsightsView } from "@/components/insights/candidate-insights";
 import { EducationCard } from "@/components/profile/education-card";
 import { PublicInterestCta } from "@/components/profile/public-interest-cta";
+import { PublicTranslateButton } from "@/components/profile/public-translate-button";
 import { db } from "@/db";
 import { candidateProfiles } from "@/db/schema";
 import { localizedProfile } from "@/lib/insights/locale";
@@ -88,10 +89,13 @@ export default async function PublicProfilePage({
 				</header>
 
 				{translationState.queued && (
-					<div className="mb-5 flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-foreground/90 text-xs leading-relaxed">
-						<span className="inline-block h-2 w-2 shrink-0 translate-y-1 animate-pulse rounded-full bg-primary" />
-						<span>{t("translationPending")}</span>
-					</div>
+					<>
+						<div className="mb-3 flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-foreground/90 text-xs leading-relaxed">
+							<span className="inline-block h-2 w-2 shrink-0 translate-y-1 animate-pulse rounded-full bg-primary" />
+							<span>{t("translationPending")}</span>
+						</div>
+						<PublicTranslateButton token={token} targetLocale={locale} />
+					</>
 				)}
 
 				{showInterestCta && (
