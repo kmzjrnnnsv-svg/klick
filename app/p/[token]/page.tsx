@@ -1,10 +1,14 @@
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
+import { listJobs } from "@/app/actions/jobs";
+import { ensureTranslationForUser } from "@/app/actions/profile";
+import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { CandidateInsightsView } from "@/components/insights/candidate-insights";
 import { EducationCard } from "@/components/profile/education-card";
+import { PublicInterestCta } from "@/components/profile/public-interest-cta";
 import { db } from "@/db";
 import { candidateProfiles } from "@/db/schema";
 import { localizedProfile } from "@/lib/insights/locale";
@@ -30,7 +34,28 @@ export default async function PublicProfilePage({
 	const profile = redactProfile(raw, "public");
 	const t = await getTranslations("PublicProfile");
 	const locale = ((await getLocale()) as "de" | "en") ?? "de";
+
+	// Übersetzung für Besucher-Locale anstoßen wenn fehlt. Läuft via
+	// after() im Hintergrund — beim nächsten Aufruf ist sie da.
+	const translationState = await ensureTranslationForUser(raw.userId, locale);
+
 	const view = localizedProfile(profile, locale);
+
+	// Viewer-Detection: wenn ein eingeloggter Employer das Public-Profil
+	// betrachtet (und nicht der Kandidat selbst), CTA für Direct-Interest
+	// anzeigen. Anonyme Besucher + Kandidaten + Admins sehen den CTA nicht.
+	const session = await auth();
+	const viewerRole = (session?.user as { role?: string } | undefined)?.role;
+	const isOwnProfile = session?.user?.id === raw.userId;
+	const showInterestCta =
+		!!session?.user?.id && viewerRole === "employer" && !isOwnProfile;
+	const employerJobs = showInterestCta
+		? await listJobs().then((js) =>
+				js
+					.filter((j) => j.status === "published")
+					.map((j) => ({ id: j.id, title: j.title })),
+			)
+		: [];
 	const map = raw.sectionVisibility;
 	const globalVis = raw.visibility as
 		| "private"
@@ -62,11 +87,65 @@ export default async function PublicProfilePage({
 					)}
 				</header>
 
+				{translationState.queued && (
+					<div className="mb-5 flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-foreground/90 text-xs leading-relaxed">
+						<span className="inline-block h-2 w-2 shrink-0 translate-y-1 animate-pulse rounded-full bg-primary" />
+						<span>{t("translationPending")}</span>
+					</div>
+				)}
+
+				{showInterestCta && (
+					<PublicInterestCta publicShareToken={token} jobs={employerJobs} />
+				)}
+
 				{view.summary && (
 					<section className="mb-5 rounded-lg border border-border bg-background p-4">
 						<p className="text-foreground/90 text-sm leading-relaxed">
 							{view.summary}
 						</p>
+					</section>
+				)}
+
+				{profile.languages && profile.languages.length > 0 && (
+					<section className="mb-5 rounded-lg border border-border bg-background p-4">
+						<h2 className="mb-2 font-medium text-sm">{t("languages")}</h2>
+						<div className="flex flex-wrap gap-1.5">
+							{profile.languages.map((l) => (
+								<span
+									key={l}
+									className="rounded-md bg-muted px-2 py-0.5 font-mono text-[11px]"
+								>
+									{l}
+								</span>
+							))}
+						</div>
+					</section>
+				)}
+
+				{view.experience && view.experience.length > 0 && (
+					<section className="mb-5 rounded-lg border border-border bg-background p-4">
+						<h2 className="mb-3 font-medium text-sm">{t("experience")}</h2>
+						<ul className="space-y-3">
+							{view.experience.map((e) => (
+								<li
+									key={`${e.company}-${e.role}-${e.start}`}
+									className="text-sm"
+								>
+									<div className="font-medium">{e.role}</div>
+									<div className="text-muted-foreground text-xs">
+										{e.company}
+										{e.start ? ` · ${e.start}` : ""}
+										{e.end ? ` – ${e.end}` : e.start ? " – present" : ""}
+										{e.employmentType ? ` · ${e.employmentType}` : ""}
+									</div>
+									{e.description && (
+										<p className="mt-1 whitespace-pre-wrap text-foreground/90 text-xs leading-relaxed">
+											{e.description}
+										</p>
+									)}
+								</li>
+							))}
+						</ul>
 					</section>
 				)}
 

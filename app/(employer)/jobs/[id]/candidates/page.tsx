@@ -68,6 +68,9 @@ export default async function JobCandidatesPage({
 		}
 	>();
 	for (const i of interestsForJob) {
+		// Match-Liste zeigt nur match-basierte Interests. Direct-Outreach
+		// (source='direct') haben kein matchId und gehören nicht in diese Map.
+		if (!i.interest.matchId) continue;
 		const isApproved = i.interest.status === "approved";
 		const disclosed = isApproved
 			? await listDisclosedItemsForInterest(i.interest.id)
