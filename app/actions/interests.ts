@@ -27,6 +27,16 @@ const showInterestSchema = z.object({
 	message: z.string().max(2000).optional(),
 });
 
+const expressDirectInterestSchema = z.object({
+	// Profil-Token statt direkter userId — verhindert dass Employer einfach
+	// User-IDs raten und massenhaft Interest-Spam schickt.
+	publicShareToken: z.string().min(16),
+	// Optional: ein eigener Job. Wenn null, ist's ein "nur kennenlernen"-Outreach.
+	jobId: z.string().min(1).nullable().optional(),
+	verifyDepth: z.enum(["light", "standard", "deep"]).default("light"),
+	message: z.string().max(2000).optional(),
+});
+
 async function requireEmployer() {
 	const session = await auth();
 	if (!session?.user?.id) throw new Error("unauthenticated");
@@ -119,6 +129,101 @@ export async function showInterest(input: {
 	}
 
 	return { id: created.id };
+}
+
+// Direct-Outreach: ein Employer hat das Public-Share-Profil eines
+// Kandidaten gefunden und möchte Interesse zeigen — entweder für eine
+// konkrete Stelle oder als "nur kennenlernen". Kein matchId nötig.
+export async function expressDirectInterest(input: {
+	publicShareToken: string;
+	jobId?: string | null;
+	verifyDepth?: "light" | "standard" | "deep";
+	message?: string;
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+	try {
+		const { userId, employer } = await requireEmployer();
+		const data = expressDirectInterestSchema.parse(input);
+
+		// Kandidat über Token auflösen — verhindert ID-Guessing.
+		const [candidate] = await db
+			.select({ userId: candidateProfiles.userId })
+			.from(candidateProfiles)
+			.where(eq(candidateProfiles.publicShareToken, data.publicShareToken))
+			.limit(1);
+		if (!candidate) return { ok: false, error: "Kandidat nicht gefunden." };
+
+		// Wenn ein Job angegeben ist, muss er dem Employer gehören.
+		if (data.jobId) {
+			const [job] = await db
+				.select({ id: jobs.id })
+				.from(jobs)
+				.where(and(eq(jobs.id, data.jobId), eq(jobs.employerId, employer.id)))
+				.limit(1);
+			if (!job) {
+				return {
+					ok: false,
+					error: "Diese Stelle gehört nicht zu deiner Firma.",
+				};
+			}
+		}
+
+		// Duplikat-Check: gibt's schon ein offenes Interest für diesen
+		// Kandidaten + (optional Job)?
+		const existingRows = await db
+			.select({ id: interests.id, jobId: interests.jobId })
+			.from(interests)
+			.where(
+				and(
+					eq(interests.candidateUserId, candidate.userId),
+					eq(interests.employerId, employer.id),
+					eq(interests.status, "pending"),
+				),
+			);
+		const dup = existingRows.find((r) => r.jobId === (data.jobId ?? null));
+		if (dup) return { ok: true, id: dup.id };
+
+		const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
+		const [created] = await db
+			.insert(interests)
+			.values({
+				source: "direct",
+				matchId: null,
+				jobId: data.jobId ?? null,
+				employerId: employer.id,
+				candidateUserId: candidate.userId,
+				verifyDepth: data.verifyDepth ?? "light",
+				message: data.message,
+				expiresAt,
+			})
+			.returning();
+
+		await db.insert(auditLog).values({
+			actorUserId: userId,
+			action: "interest.direct",
+			target: created.id,
+			payload: {
+				candidateUserId: candidate.userId,
+				jobId: data.jobId ?? null,
+				source: "direct",
+			},
+		});
+
+		revalidatePath("/requests");
+		if (data.jobId) revalidatePath(`/jobs/${data.jobId}/candidates`);
+
+		if ((data.verifyDepth ?? "light") !== "light") {
+			after(() => orchestrateVerifications(created.id));
+		}
+
+		return { ok: true, id: created.id };
+	} catch (e) {
+		console.error("[interests.direct] failed", e);
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "Anfrage fehlgeschlagen.",
+		};
+	}
 }
 
 export type CandidateInterestView = {
@@ -261,10 +366,14 @@ export async function decideInterest(
 		.set({ status: newStatus, decidedAt: new Date() })
 		.where(eq(interests.id, id));
 
-	await db
-		.update(matches)
-		.set({ status: approve ? "approved" : "rejected" })
-		.where(eq(matches.id, interest.matchId));
+	// Direct-Outreach (source='direct') hat keinen matchId — kein Match-
+	// Status zu aktualisieren.
+	if (interest.matchId) {
+		await db
+			.update(matches)
+			.set({ status: approve ? "approved" : "rejected" })
+			.where(eq(matches.id, interest.matchId));
+	}
 
 	await db.insert(auditLog).values({
 		actorUserId: userId,

@@ -705,12 +705,26 @@ export const interests = pgTable("interests", {
 	id: text("id")
 		.primaryKey()
 		.$defaultFn(() => crypto.randomUUID()),
-	matchId: text("match_id")
+	// Quelle des Interests:
+	//   'match'          → klassisch via Match-Liste (matchId gesetzt)
+	//   'direct'         → Employer hat Public-Share-Profil entdeckt
+	//   'recommendation' → Recruiter hat Kandidat empfohlen
+	source: text("source", {
+		enum: ["match", "direct", "recommendation"],
+	})
 		.notNull()
-		.references(() => matches.id, { onDelete: "cascade" }),
-	jobId: text("job_id")
-		.notNull()
-		.references(() => jobs.id, { onDelete: "cascade" }),
+		.default("match"),
+	// Nur bei source='match' gefüllt. Bei direct/recommendation null.
+	matchId: text("match_id").references(() => matches.id, {
+		onDelete: "cascade",
+	}),
+	// Nur bei source='recommendation' gefüllt: der Recruiter-User.
+	recommenderUserId: text("recommender_user_id").references(() => users.id, {
+		onDelete: "set null",
+	}),
+	// Nullable: 'direct' kann auch "nur kennenlernen" ohne konkrete Stelle.
+	// 'match' und 'recommendation' setzen es immer.
+	jobId: text("job_id").references(() => jobs.id, { onDelete: "cascade" }),
 	employerId: text("employer_id")
 		.notNull()
 		.references(() => employers.id, { onDelete: "cascade" }),

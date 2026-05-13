@@ -1333,6 +1333,7 @@
 	"PublicProfile": {
 		"publicLabel": "Geteiltes Profil",
 		"anonymous": "Kandidat:in",
+		"translationPending": "Übersetzung läuft im Hintergrund — lade die Seite in ca. 30 Sekunden neu, dann erscheint das Profil in deiner Sprache.",
 		"skills": "Skills",
 		"languages": "Sprachen",
 		"experience": "Berufserfahrung",
@@ -1348,7 +1349,32 @@
 		"website": "Website",
 		"drivingLicenses": "Führerschein",
 		"insightsHeading": "Karriere-Insights",
-		"footerHint": "Diese Seite zeigt nur was die Person freiwillig öffentlich gemacht hat. Vault-Inhalte bleiben privat. Über Klick kannst du Kontakt aufnehmen."
+		"footerHint": "Diese Seite zeigt nur was die Person freiwillig öffentlich gemacht hat. Vault-Inhalte bleiben privat. Über Klick kannst du Kontakt aufnehmen.",
+		"ctaTitle": "Interesse an dieser Person?",
+		"ctaSubtitle": "Schick eine Anfrage — entweder für eine konkrete Stelle oder einfach um sich kennenzulernen. Die Person entscheidet, ob sie antwortet.",
+		"ctaJobLabel": "Stelle",
+		"ctaJobNone": "Nur kennenlernen (keine konkrete Stelle)",
+		"ctaMessageLabel": "Nachricht (optional)",
+		"ctaMessagePlaceholder": "Kurz erklären, warum du dich meldest — z. B. was an dem Profil heraussticht.",
+		"ctaVerifyLabel": "Verifikations-Tiefe",
+		"ctaVerify": {
+			"light": {
+				"title": "Light",
+				"desc": "Nur Sichtbarkeit — keine Background-Checks."
+			},
+			"standard": {
+				"title": "Standard",
+				"desc": "Open Badges + Identität (sofern verfügbar)."
+			},
+			"deep": {
+				"title": "Tief",
+				"desc": "Standard + Arbeitsverhältnis-Bestätigung."
+			}
+		},
+		"ctaSubmit": "Anfrage senden",
+		"ctaSending": "Sende…",
+		"ctaSubmittedTitle": "Anfrage gesendet",
+		"ctaSubmittedBody": "Die Person bekommt eine Benachrichtigung. Du siehst die Antwort in deiner Anfragen-Übersicht."
 	},
 	"Browse": {
 		"title": "Stellen-Suche",

@@ -1333,6 +1333,7 @@
 	"PublicProfile": {
 		"publicLabel": "Shared profile",
 		"anonymous": "Candidate",
+		"translationPending": "Translation is running in the background — reload the page in about 30 seconds and the profile will appear in your language.",
 		"skills": "Skills",
 		"languages": "Languages",
 		"experience": "Experience",
@@ -1348,7 +1349,32 @@
 		"website": "Website",
 		"drivingLicenses": "Driving licence",
 		"insightsHeading": "Career insights",
-		"footerHint": "Only what the person voluntarily made public. Vault content stays private. Reach out via Klick."
+		"footerHint": "Only what the person voluntarily made public. Vault content stays private. Reach out via Klick.",
+		"ctaTitle": "Interested in this person?",
+		"ctaSubtitle": "Send a request — either for a specific role or just to get to know them. They decide whether to reply.",
+		"ctaJobLabel": "Job",
+		"ctaJobNone": "Just to get to know (no specific role)",
+		"ctaMessageLabel": "Message (optional)",
+		"ctaMessagePlaceholder": "Briefly say why you're reaching out — e.g. what stood out in the profile.",
+		"ctaVerifyLabel": "Verification depth",
+		"ctaVerify": {
+			"light": {
+				"title": "Light",
+				"desc": "Visibility only — no background checks."
+			},
+			"standard": {
+				"title": "Standard",
+				"desc": "Open Badges + identity (where available)."
+			},
+			"deep": {
+				"title": "Deep",
+				"desc": "Standard + employment confirmation."
+			}
+		},
+		"ctaSubmit": "Send request",
+		"ctaSending": "Sending…",
+		"ctaSubmittedTitle": "Request sent",
+		"ctaSubmittedBody": "The person will be notified. You'll see their response in your requests overview."
 	},
 	"Browse": {
 		"title": "Browse jobs",

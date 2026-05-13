@@ -572,6 +572,20 @@ export async function ensureTranslationForLocale(
 		const session = await auth();
 		const userId = session?.user?.id;
 		if (!userId) return;
+		await ensureTranslationForUser(userId, targetLocale);
+	} catch (e) {
+		console.warn("[profile] ensureTranslationForLocale failed", e);
+	}
+}
+
+// Public-Share-Variante: triggert die Übersetzung für einen Profil-Owner
+// per userId statt per Session. Anonymer Besucher kann damit indirekt
+// eine Übersetzung anstoßen — Daten gehören dem Kandidaten, kein Risiko.
+export async function ensureTranslationForUser(
+	userId: string,
+	targetLocale: "de" | "en",
+): Promise<{ alreadyHas: boolean; queued: boolean }> {
+	try {
 		const [profile] = await db
 			.select({
 				translations: candidateProfiles.translations,
@@ -580,19 +594,23 @@ export async function ensureTranslationForLocale(
 			.from(candidateProfiles)
 			.where(eq(candidateProfiles.userId, userId))
 			.limit(1);
-		if (!profile) return;
+		if (!profile) return { alreadyHas: false, queued: false };
 		const origin =
 			(profile.profileLanguageOrigin as "de" | "en" | null) ?? "de";
-		if (origin === targetLocale) return; // nichts zu tun, Origin selbst
-		if (profile.translations?.[targetLocale]) return; // schon da
-		// Asynchron im Hintergrund — niemand wartet auf das Result.
+		if (origin === targetLocale) return { alreadyHas: true, queued: false };
+		if (profile.translations?.[targetLocale])
+			return { alreadyHas: true, queued: false };
+		// Asynchron — Public-Visitor wartet nicht. Wird bei nächstem Aufruf
+		// sichtbar sein.
 		after(() =>
 			translateProfileFields(userId).catch((e) =>
-				console.warn("[profile] ensureTranslation failed", e),
+				console.warn("[profile] ensureTranslationForUser failed", e),
 			),
 		);
+		return { alreadyHas: false, queued: true };
 	} catch (e) {
-		console.warn("[profile] ensureTranslationForLocale failed", e);
+		console.warn("[profile] ensureTranslationForUser failed", e);
+		return { alreadyHas: false, queued: false };
 	}
 }
 
