@@ -667,6 +667,83 @@ export async function ensureTranslationForUser(
 	}
 }
 
+// User-getriggerte Persistierung einer einzelnen Übersetzung. Wird von
+// den Per-Field-Translate-Buttons aufgerufen, sobald die KI fertig ist.
+// Damit liegt die Übersetzung SOFORT in der DB und steht jedem späteren
+// Reader (Recruiter / Employer / Public-Share) instant zur Verfügung —
+// ohne dass auf ein nachträgliches Background-Translate gewartet werden
+// muss.
+//
+// Merge-Semantik: bestehendes translations[locale] bleibt, neue Felder
+// werden hinzugefügt/überschrieben. Andere Locales unberührt.
+export async function persistTranslation(input: {
+	targetLocale: "de" | "en";
+	patch: Partial<{
+		headline: string;
+		summary: string;
+		mobility: string;
+		industries: string[];
+		languages: string[];
+		awards: string[];
+		skills: { name: string; level?: number }[];
+		experience: { role: string; description?: string }[];
+		education: { degree: string; thesisTitle?: string; focus?: string }[];
+		projects: { name: string; role?: string; description?: string }[];
+		publications: { title: string; venue?: string }[];
+		volunteering: {
+			organization: string;
+			role: string;
+			description?: string;
+		}[];
+	}>;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+	try {
+		const session = await auth();
+		if (!session?.user?.id) return { ok: false, error: "unauthenticated" };
+		const userId = session.user.id;
+
+		const [row] = await db
+			.select({
+				translations: candidateProfiles.translations,
+				origin: candidateProfiles.profileLanguageOrigin,
+			})
+			.from(candidateProfiles)
+			.where(eq(candidateProfiles.userId, userId))
+			.limit(1);
+		if (!row) return { ok: false, error: "no_profile" };
+
+		// Wenn noch keine Origin gesetzt ist, setzen wir die OPPOSITE Sprache
+		// als Origin (User schreibt gerade die Übersetzung — die andere Sprache
+		// ist also die Quell-Sprache).
+		const origin =
+			(row.origin as "de" | "en" | null) ??
+			(input.targetLocale === "de" ? "en" : "de");
+
+		const existing = row.translations ?? {};
+		const existingForLocale = existing[input.targetLocale] ?? {};
+
+		const merged = { ...existingForLocale, ...input.patch };
+
+		await db
+			.update(candidateProfiles)
+			.set({
+				profileLanguageOrigin: origin,
+				translations: { ...existing, [input.targetLocale]: merged },
+				translationsUpdatedAt: new Date(),
+			})
+			.where(eq(candidateProfiles.userId, userId));
+
+		revalidatePath("/profile");
+		return { ok: true };
+	} catch (e) {
+		console.error("[profile] persistTranslation failed", e);
+		return {
+			ok: false,
+			error: e instanceof Error ? e.message : "fehlgeschlagen",
+		};
+	}
+}
+
 function tryParseJsonArray(raw: string | undefined): unknown[] | undefined {
 	if (!raw) return undefined;
 	try {
