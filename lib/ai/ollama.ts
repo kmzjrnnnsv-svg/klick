@@ -844,6 +844,7 @@ export class OllamaAIProvider implements AIProvider {
 				headline: input.headline ?? undefined,
 				summary: input.summary ?? undefined,
 				industries: input.industries ?? undefined,
+				languages: input.languages ?? undefined,
 				skills: input.skills ?? undefined,
 				experience: input.experience
 					? input.experience.map((e) => ({
@@ -935,6 +936,7 @@ export class OllamaAIProvider implements AIProvider {
 				headline: input.headline ?? undefined,
 				summary: input.summary ?? undefined,
 				industries: input.industries ?? undefined,
+				languages: input.languages ?? undefined,
 				skills: input.skills ?? undefined,
 				experience: input.experience
 					? input.experience.map((e) => ({
