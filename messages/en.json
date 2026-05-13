@@ -284,6 +284,13 @@
 		"title": "My profile",
 		"insightsHeading": "How your profile reads",
 		"translationPending": "We're translating your profile in the background. Please reload the page in ~30 seconds — CV text, descriptions, education and projects will then appear in the selected language.",
+		"editTabsLabel": "Edit language",
+		"tabDe": "Deutsch",
+		"tabEn": "English",
+		"tabSourceMark": "Source",
+		"translationTabHint": "You're editing the {lang} variant. Source: {source}. Save only translations here — salary, visibility and contact options live in the source tab.",
+		"autoFillAll": "Auto-translate all",
+		"autoFillPending": "Translating…",
 		"share": {
 			"title": "Public share link",
 			"subtitle": "Optional. Exposes a read-only profile page you can share — e.g. in an application or your CV header. You can revoke anytime.",
