@@ -14,6 +14,12 @@ import type { CandidateInsights } from "@/lib/insights/types";
 // Read-Pfaden nach 7 Tagen Staleness im Hintergrund neu berechnen.
 const INSIGHTS_STALE_AFTER_DAYS = 7;
 
+// Narrative-Schema-Version. Hochzählen, wenn sich die Struktur oder der
+// Übersetzungspfad ändert — getMyInsights rechnet Narrative mit älterer
+// Version im Hintergrund neu. v2: sauberer translateTexts-Pfad statt des
+// alten carrier-hacks (der gemischtsprachige byLocale-Varianten erzeugte).
+const NARRATIVE_SCHEMA_VERSION = 2;
+
 // Recompute the candidate's insights snapshot. Called from:
 //   - saveProfile / saveSkillsStep / finishOnboarding (profile changes)
 //   - extractAndPersist after a CV import (skills + experience may have changed)
@@ -130,6 +136,7 @@ export async function recomputeInsights(userId: string): Promise<void> {
 					workStyle: narrativeOrigin.workStyle,
 					strengths: narrativeOrigin.strengths,
 					locale: originLocale,
+					version: NARRATIVE_SCHEMA_VERSION,
 					byLocale: {
 						[originLocale]: narrativeOrigin,
 						[otherLocale]: narrativeOther,
@@ -169,11 +176,16 @@ export async function getMyInsights(): Promise<CandidateInsights | null> {
 		? Date.now() - row.updatedAt.getTime()
 		: Number.POSITIVE_INFINITY;
 	const insights = (row?.insights as CandidateInsights | null) ?? null;
-	const needsTranslationFill =
-		insights?.narrative != null && !insights.narrative.byLocale;
+	// Legacy-Narrative: kein byLocale (nie übersetzt) ODER ältere Schema-
+	// Version (alter carrier-hack → gemischte Sprachen). Beide im Hinter-
+	// grund neu rechnen, damit byLocale sauber pro Sprache gefüllt ist.
+	const narrativeOutdated =
+		insights?.narrative != null &&
+		(!insights.narrative.byLocale ||
+			(insights.narrative.version ?? 0) < NARRATIVE_SCHEMA_VERSION);
 	if (
 		ageMs > INSIGHTS_STALE_AFTER_DAYS * 24 * 60 * 60 * 1000 ||
-		needsTranslationFill
+		narrativeOutdated
 	) {
 		after(() => recomputeInsights(userId));
 	}

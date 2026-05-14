@@ -126,6 +126,11 @@ export type CandidateInsights = {
 		// Sprache der oberen Felder (Origin). Wenn UI in einer anderen
 		// Locale rendert, fällt sie auf `byLocale[uiLocale]` zurück.
 		locale?: "de" | "en";
+		// Schema-Version. Legacy-Narrative (kein Feld oder < CURRENT) wurden
+		// noch mit dem alten carrier-hack-Übersetzungspfad erzeugt und haben
+		// teils gemischtsprachige byLocale-Varianten — getMyInsights triggert
+		// für die einen Hintergrund-Recompute.
+		version?: number;
 		// Übersetzte Versionen pro Sprache. Beim ersten Render in einer
 		// anderen Sprache wird die fehlende Variante per AI nachgezogen.
 		byLocale?: Partial<
