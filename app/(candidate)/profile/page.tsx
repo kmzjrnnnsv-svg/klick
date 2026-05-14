@@ -66,13 +66,15 @@ export default async function ProfilePage({
 	const translationPending =
 		!!profile && locale !== originLocale && !hasTranslation;
 
-	// Origin-Tab → ProfileForm mit lokalisierter Initial-Datenbasis.
-	// Translation-Tab → ProfileTranslationForm mit Source-Snapshot + bisheriger
-	// Übersetzung als Vorbelegung.
+	// Datenbasis für die UI folgt dem aktiven Tab — auf dem EN-Tab werden
+	// industries/awards/mobility etc. aus translations.en gemerged, auf
+	// dem DE-Tab aus dem Original. ProfileForm rendert ohnehin nur wenn
+	// tab === originLocale, dort ist localizedProfile(profile, tab) eh
+	// die Quelle.
 	let localizedInitial: CandidateProfile | null = profile;
 	if (profile) {
 		try {
-			const view = localizedProfile(profile, originLocale);
+			const view = localizedProfile(profile, tab);
 			localizedInitial = {
 				...profile,
 				headline: view.headline,
@@ -136,6 +138,7 @@ export default async function ProfilePage({
 								: null
 						}
 						showRefresh
+						displayLocale={tab}
 					/>
 				</section>
 
