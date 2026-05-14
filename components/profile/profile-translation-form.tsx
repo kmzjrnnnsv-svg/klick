@@ -283,12 +283,7 @@ export function ProfileTranslationForm({
 			className="space-y-6"
 		>
 			<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 p-3">
-				<p className="text-xs leading-relaxed">
-					{t("translationTabHint", {
-						lang: targetLocale.toUpperCase(),
-						source: sourceLocale.toUpperCase(),
-					})}
-				</p>
+				<p className="text-xs leading-relaxed">{t("reviewTranslationHint")}</p>
 				<Button
 					type="button"
 					variant="outline"

@@ -4,7 +4,7 @@ import { getMyCareerAnalysis } from "@/app/actions/career";
 import { getMyDiversity } from "@/app/actions/diversity";
 import { getMyInsights } from "@/app/actions/insights";
 import {
-	ensureTranslationForLocale,
+	ensureTranslationForUser,
 	getProfile,
 	listCvVaultItems,
 } from "@/app/actions/profile";
@@ -16,8 +16,8 @@ import { Header } from "@/components/header";
 import { CandidateInsightsView } from "@/components/insights/candidate-insights";
 import { CareerAnalysisView } from "@/components/profile/career-analysis-view";
 import { DiversityForm } from "@/components/profile/diversity-form";
+import { LanguageToggle } from "@/components/profile/language-toggle";
 import { ProfileForm } from "@/components/profile/profile-form";
-import { ProfileTabSwitcher } from "@/components/profile/profile-tab-switcher";
 import { ProfileTranslationForm } from "@/components/profile/profile-translation-form";
 import { ReferencesForm } from "@/components/profile/references-form";
 import { ShareLink } from "@/components/profile/share-link";
@@ -27,7 +27,7 @@ import { localizedProfile } from "@/lib/insights/locale";
 export default async function ProfilePage({
 	searchParams,
 }: {
-	searchParams: Promise<{ tab?: string }>;
+	searchParams: Promise<{ lang?: string }>;
 }) {
 	const session = await auth();
 	if (!session?.user) redirect("/login");
@@ -46,32 +46,28 @@ export default async function ProfilePage({
 			getMyCareerAnalysis(),
 		]);
 
-	// Tab-Routing: ?tab=de|en. Default = Origin der existierenden Daten,
-	// sonst aktuelle UI-Locale. So landet ein neuer User in seiner UI-
-	// Sprache, ein DE-Bestandsuser bleibt im DE-Tab, kann aber gezielt
-	// auf EN klicken.
+	// Origin = Sprache, in der das Profil verfasst wurde. Der Editor zeigt
+	// IMMER die Origin-Inhalte; der ?lang=-Param steuert nur die Betrachter-
+	// Vorschau ("So liest sich dein Profil"). Default-Vorschau = Origin.
 	const originLocale: "de" | "en" =
 		(profile?.profileLanguageOrigin as "de" | "en" | null) ?? locale;
+	const otherLocale: "de" | "en" = originLocale === "de" ? "en" : "de";
 	const params = await searchParams;
-	const requestedTab =
-		params.tab === "en" ? "en" : params.tab === "de" ? "de" : null;
-	const tab: "de" | "en" = requestedTab ?? originLocale;
+	const requestedLang =
+		params.lang === "en" ? "en" : params.lang === "de" ? "de" : null;
+	const viewLang: "de" | "en" = requestedLang ?? originLocale;
 
-	// Auto-translate-trigger für den aktiven Profil-Tab: ist der Tab nicht
-	// die Quell-Sprache und existiert noch keine Übersetzung, wird sie im
-	// Hintergrund erzeugt. Der Header (UI-Locale) löst das NICHT aus — er
-	// steuert nur App-Chrome, nicht die Profil-Inhalte.
-	await ensureTranslationForLocale(tab);
-
-	const hasTranslation = !!profile?.translations?.[tab];
-	const translationPending =
-		!!profile && tab !== originLocale && !hasTranslation;
+	// Backfill-Netz für Legacy-Profile: fehlt die Übersetzung in die Gegen-
+	// sprache, im Hintergrund nachziehen. Neue Profile bekommen sie eager
+	// beim Speichern (saveProfile → translateProfileFields, force=true).
+	if (profile && session.user.id && !profile.translations?.[otherLocale]) {
+		await ensureTranslationForUser(session.user.id, otherLocale);
+	}
 
 	// Zwei lokalisierte Sichten des Profils:
-	//   - formInitial → ProfileForm: zeigt die Quell-Daten (originLocale).
-	//     ProfileForm rendert nur wenn tab === originLocale, daher korrekt.
+	//   - formInitial → ProfileForm: zeigt IMMER die Origin-Inhalte.
 	//   - insightsView → CandidateInsightsView profileExtras: folgt dem
-	//     Profil-Tab (= Inhalts-Sprache), NICHT dem Header.
+	//     Betrachter-Toggle (viewLang).
 	let formInitial: CandidateProfile | null = profile;
 	let insightsView: CandidateProfile | null = profile;
 	if (profile) {
@@ -91,7 +87,7 @@ export default async function ProfilePage({
 				publications: fv.publications,
 				volunteering: fv.volunteering,
 			};
-			const iv = localizedProfile(profile, tab);
+			const iv = localizedProfile(profile, viewLang);
 			insightsView = {
 				...profile,
 				industries: iv.industries,
@@ -104,8 +100,6 @@ export default async function ProfilePage({
 			insightsView = profile;
 		}
 	}
-
-	const isTranslationTab = tab !== originLocale;
 
 	return (
 		<>
@@ -120,23 +114,18 @@ export default async function ProfilePage({
 					</p>
 				</header>
 
-				{profile && (
-					<ProfileTabSwitcher currentTab={tab} origin={originLocale} />
-				)}
-
-				{translationPending && (
-					<div className="mb-5 rounded-sm border border-primary/30 bg-primary/5 p-3 text-xs leading-relaxed">
-						{t("translationPending")}
-					</div>
-				)}
-
 				<section className="mb-6 sm:mb-8">
-					<h2 className="mb-2.5 font-medium text-sm sm:text-base">
-						{t("insightsHeading")}
-					</h2>
+					<div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+						<h2 className="font-medium text-sm sm:text-base">
+							{t("insightsHeading")}
+						</h2>
+						{profile && (
+							<LanguageToggle origin={originLocale} current={viewLang} />
+						)}
+					</div>
 					<CandidateInsightsView
 						insights={insights}
-						contentLocale={tab}
+						contentLocale={viewLang}
 						profileExtras={
 							profile
 								? {
@@ -156,30 +145,37 @@ export default async function ProfilePage({
 					<ShareLink initialToken={shareToken} />
 				</section>
 
-				{isTranslationTab && profile ? (
-					<ProfileTranslationForm
-						targetLocale={tab}
-						sourceLocale={originLocale}
-						source={{
-							headline: profile.headline,
-							summary: profile.summary,
-							mobility: profile.mobility,
-							industries: profile.industries,
-							awards: profile.awards,
-							experience: profile.experience,
-							education: profile.education,
-							projects: profile.projects,
-							publications: profile.publications,
-							volunteering: profile.volunteering,
-						}}
-						initialTranslation={
-							(profile.translations?.[
-								tab
-							] as ProfileTranslationFields | null) ?? null
-						}
-					/>
-				) : (
-					<ProfileForm initial={formInitial} cvs={cvs} locale={tab} />
+				<ProfileForm initial={formInitial} cvs={cvs} locale={originLocale} />
+
+				{profile && (
+					<details className="mt-8 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+						<summary className="cursor-pointer font-medium text-muted-foreground text-sm">
+							{t("reviewTranslationHeading")}
+						</summary>
+						<div className="mt-4">
+							<ProfileTranslationForm
+								targetLocale={otherLocale}
+								sourceLocale={originLocale}
+								source={{
+									headline: profile.headline,
+									summary: profile.summary,
+									mobility: profile.mobility,
+									industries: profile.industries,
+									awards: profile.awards,
+									experience: profile.experience,
+									education: profile.education,
+									projects: profile.projects,
+									publications: profile.publications,
+									volunteering: profile.volunteering,
+								}}
+								initialTranslation={
+									(profile.translations?.[
+										otherLocale
+									] as ProfileTranslationFields | null) ?? null
+								}
+							/>
+						</div>
+					</details>
 				)}
 
 				<section className="mt-12 border-border border-t pt-8">

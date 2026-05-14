@@ -503,7 +503,10 @@ async function saveProfileImpl(formData: FormData): Promise<void> {
 	after(async () => {
 		await recomputeInsights(userId);
 		await recomputeMatchesForCandidate(userId);
-		await translateProfileFields(userId).catch((e) =>
+		// force=true: jeder Save regeneriert die Gegensprache, damit beide
+		// Sprachen IMMER parallel und aktuell vorliegen (Hybrid-Modell). So
+		// kann der Betrachter-Toggle ohne Wartezeit umschalten.
+		await translateProfileFields(userId, true).catch((e) =>
 			console.warn("[profile] translate failed", e),
 		);
 	});
@@ -600,21 +603,6 @@ async function translateProfileFields(
 			translationsUpdatedAt: new Date(),
 		})
 		.where(eq(candidateProfiles.userId, userId));
-}
-
-// User-getriggertes Re-Translate. Wird vom Profile-Page-Loader gerufen
-// wenn die UI-Locale ≠ Profile-Origin ist und keine Übersetzung existiert.
-export async function ensureTranslationForLocale(
-	targetLocale: "de" | "en",
-): Promise<void> {
-	try {
-		const session = await auth();
-		const userId = session?.user?.id;
-		if (!userId) return;
-		await ensureTranslationForUser(userId, targetLocale);
-	} catch (e) {
-		console.warn("[profile] ensureTranslationForLocale failed", e);
-	}
 }
 
 // Public-Share-Variante: triggert die Übersetzung für einen Profil-Owner

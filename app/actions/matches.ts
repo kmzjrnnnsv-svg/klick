@@ -502,6 +502,9 @@ export type AnonymousCandidateMatchView = {
 
 export async function listMatchesForJob(
 	jobId: string,
+	// Anzeige-Sprache des Recruiters. Lokalisiert die angezeigten Freitext-
+	// Felder aus translations[contentLocale], wenn ≠ Profil-Origin.
+	contentLocale?: "de" | "en",
 ): Promise<AnonymousCandidateMatchView[]> {
 	const session = await auth();
 	if (!session?.user?.id) return [];
@@ -538,6 +541,8 @@ export async function listMatchesForJob(
 			certificationsMentioned: candidateProfiles.certificationsMentioned,
 			mobility: candidateProfiles.mobility,
 			preferredRoleLevel: candidateProfiles.preferredRoleLevel,
+			translations: candidateProfiles.translations,
+			profileLanguageOrigin: candidateProfiles.profileLanguageOrigin,
 		})
 		.from(matches)
 		.innerJoin(
@@ -546,5 +551,32 @@ export async function listMatchesForJob(
 		)
 		.where(eq(matches.jobId, jobId))
 		.orderBy(desc(matches.softScore));
-	return rows as AnonymousCandidateMatchView[];
+
+	// Pro Kandidat:in die angezeigten Freitext-Felder in die Recruiter-
+	// Sprache mergen. Reines In-Memory-Merge — die teure Übersetzung lief
+	// schon beim Speichern des Profils. insights/certificationsMentioned
+	// bleiben roh (Narrative wird in der Komponente via contentLocale gewählt).
+	const pick = <T>(translated: T | null | undefined, fallback: T): T =>
+		translated !== undefined &&
+		translated !== null &&
+		(translated as unknown) !== ""
+			? translated
+			: fallback;
+
+	return rows.map(({ translations, profileLanguageOrigin, ...row }) => {
+		const origin = (profileLanguageOrigin as "de" | "en" | null) ?? "de";
+		if (!contentLocale || contentLocale === origin) {
+			return row as AnonymousCandidateMatchView;
+		}
+		const tr = translations?.[contentLocale];
+		if (!tr) return row as AnonymousCandidateMatchView;
+		return {
+			...row,
+			headline: pick(tr.headline, row.headline),
+			summary: pick(tr.summary, row.summary),
+			industries: pick(tr.industries, row.industries),
+			awards: pick(tr.awards, row.awards),
+			mobility: pick(tr.mobility, row.mobility),
+		} as AnonymousCandidateMatchView;
+	});
 }

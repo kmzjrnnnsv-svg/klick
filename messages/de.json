@@ -255,6 +255,12 @@
 		"title": "Schau in dein Postfach",
 		"body": "Wir haben dir einen Anmelde-Link geschickt. Klick ihn an, um fortzufahren."
 	},
+	"LanguageToggle": {
+		"seeTranslation": "Auf {lang} übersetzen",
+		"showOriginal": "Original anzeigen",
+		"autoTranslatedHint": "automatisch übersetzt",
+		"translatingHint": "Übersetzung wird erstellt — in Kürze neu laden"
+	},
 	"Vault": {
 		"title": "Mein Vault",
 		"subtitle": "Verschlüsselt im Ruhezustand. Was du hier ablegst, sieht ohne deine Freigabe niemand sonst.",
@@ -284,18 +290,10 @@
 		"title": "Mein Profil",
 		"subtitle": "Was Arbeitgeber sehen, sobald du Interesse zulässt. Du kontrollierst Sichtbarkeit und Inhalt.",
 		"insightsHeading": "So liest sich dein Profil",
-		"translationPending": "Wir übersetzen dein Profil im Hintergrund. Bitte lade die Seite in ~30 Sekunden neu, dann erscheinen Lebenslauf-Texte, Beschreibungen, Bildung und Projekte in der gewählten Sprache.",
-		"editTabsLabel": "Bearbeitungs-Sprache",
-		"tabDe": "Deutsch",
-		"tabEn": "English",
-		"tabSourceMark": "Quelle",
-		"translationTabHint": "Du bearbeitest gerade die {lang}-Variante. Quelle: {source}. Speichere hier nur Übersetzungen — Salary, Sichtbarkeit und Kontakt-Optionen liegen im Quell-Tab.",
+		"reviewTranslationHeading": "Übersetzung prüfen",
+		"reviewTranslationHint": "Dein Profil wird beim Speichern automatisch in die andere Sprache übersetzt. Hier kannst du die Übersetzung optional verfeinern — Salary, Sichtbarkeit und Kontakt-Optionen bleiben im Haupt-Editor.",
 		"autoFillAll": "Alles automatisch übersetzen",
 		"autoFillPending": "Übersetze…",
-		"autoTranslateAllHint": "Alle Texte automatisch auf {lang} übersetzen — Quell-Felder werden überschrieben. Du kannst danach noch manuell anpassen.",
-		"autoTranslateAllAction": "Alles auf {lang} übersetzen",
-		"autoTranslatePending": "Übersetze…",
-		"autoTranslateSameLang": "Profil ist bereits in dieser Sprache.",
 		"share": {
 			"title": "Öffentlicher Share-Link",
 			"subtitle": "Optional. Aktiviert eine schreibgeschützte Profilseite, die du teilen kannst — z. B. in einer Bewerbung oder im Lebenslauf-Header. Du kannst sie jederzeit zurückziehen.",
@@ -1346,10 +1344,6 @@
 	"PublicProfile": {
 		"publicLabel": "Geteiltes Profil",
 		"anonymous": "Kandidat:in",
-		"translationPending": "Übersetzung läuft im Hintergrund — lade die Seite in ca. 30 Sekunden neu, dann erscheint das Profil in deiner Sprache.",
-		"translateNowHint": "Möchtest du nicht warten? Übersetze das Profil jetzt sofort — dauert ~20 Sekunden.",
-		"translateNowAction": "Jetzt auf {lang} übersetzen",
-		"translateNowPending": "Übersetze…",
 		"skills": "Skills",
 		"languages": "Sprachen",
 		"experience": "Berufserfahrung",

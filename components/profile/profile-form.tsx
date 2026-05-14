@@ -4,7 +4,6 @@ import { Save, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { saveProfile } from "@/app/actions/profile";
-import { translateTexts } from "@/app/actions/translate";
 import { CvImporter } from "@/components/profile/cv-importer";
 import { EducationCard } from "@/components/profile/education-card";
 import {
@@ -242,112 +241,6 @@ export function ProfileForm({
 		});
 	}
 
-	// Sammelt alle Freitext-Felder, schickt sie in einem translateTexts-
-	// Call durch Claude und schreibt die Übersetzungen zurück in den
-	// Form-State. User reviewt → klickt Save → Source-Spalten werden
-	// überschrieben mit übersetzten Werten. Das ist das was der User
-	// will wenn er auf einen Tab klickt, dessen Sprache nicht zu seinem
-	// bisherigen Content passt.
-	const [isAutoTranslating, startAutoTranslate] = useTransition();
-	const [autoTranslateError, setAutoTranslateError] = useState<string | null>(
-		null,
-	);
-
-	function autoTranslateAll() {
-		setAutoTranslateError(null);
-		const target: "de" | "en" = locale === "en" ? "en" : "de";
-		const samplerText = [
-			headline,
-			summary,
-			skillsText,
-			experience[0]?.description ?? "",
-		]
-			.filter(Boolean)
-			.join(" ");
-		const looksGerman =
-			/[äöüß]/.test(samplerText.toLowerCase()) ||
-			/\b(und|der|die|das|für|mit|von|über|ist|hat|nicht|kann|werden|sein)\b/.test(
-				samplerText.toLowerCase(),
-			);
-		const from: "de" | "en" = looksGerman ? "de" : "en";
-		if (from === target) {
-			setAutoTranslateError(t("autoTranslateSameLang"));
-			return;
-		}
-
-		startAutoTranslate(async () => {
-			const texts: string[] = [
-				headline,
-				summary,
-				...experience.flatMap((e) => [e.role, e.description ?? ""]),
-				...education.flatMap((e) => [
-					e.degree,
-					e.thesisTitle ?? "",
-					e.focus ?? "",
-				]),
-				...projects.flatMap((p) => [p.name, p.role ?? "", p.description ?? ""]),
-				...publications.flatMap((p) => [p.title, p.venue ?? ""]),
-				...volunteering.flatMap((v) => [
-					v.organization,
-					v.role,
-					v.description ?? "",
-				]),
-			];
-			const r = await translateTexts({
-				texts,
-				from,
-				to: target,
-				context:
-					"Vollständiges Kandidat:innen-Profil. Firmen, Schulen, Eigennamen, Frameworks (ISO 27001, AWS, CISSP) UNVERÄNDERT lassen.",
-			});
-			if (!r.ok) {
-				setAutoTranslateError(r.error);
-				return;
-			}
-			let i = 0;
-			setHeadline(r.texts[i++] ?? headline);
-			setSummary(r.texts[i++] ?? summary);
-			setExperience(
-				experience.map((e) => {
-					const role = r.texts[i++] ?? e.role;
-					const description = r.texts[i++] ?? e.description ?? "";
-					return { ...e, role, description };
-				}),
-			);
-			setEducation(
-				education.map((e) => {
-					const degree = r.texts[i++] ?? e.degree;
-					const thesisTitle = r.texts[i++] ?? e.thesisTitle ?? "";
-					const focus = r.texts[i++] ?? e.focus ?? "";
-					return { ...e, degree, thesisTitle, focus };
-				}),
-			);
-			setProjects(
-				projects.map((p) => {
-					const name = r.texts[i++] ?? p.name;
-					const role = r.texts[i++] ?? p.role ?? "";
-					const description = r.texts[i++] ?? p.description ?? "";
-					return { ...p, name, role, description };
-				}),
-			);
-			setPublications(
-				publications.map((p) => {
-					const title = r.texts[i++] ?? p.title;
-					const venue = r.texts[i++] ?? p.venue ?? "";
-					return { ...p, title, venue };
-				}),
-			);
-			setVolunteering(
-				volunteering.map((v) => {
-					const organization = r.texts[i++] ?? v.organization;
-					const role = r.texts[i++] ?? v.role;
-					const description = r.texts[i++] ?? v.description ?? "";
-					return { ...v, organization, role, description };
-				}),
-			);
-		});
-	}
-
 	return (
 		<form action={handleSubmit} className="space-y-8">
 			<section className="rounded-lg border border-border bg-background p-4 sm:p-6">
@@ -356,31 +249,6 @@ export function ProfileForm({
 					{t("importDisclaimer")}
 				</p>
 				<CvImporter cvs={cvs} onExtracted={applyExtracted} />
-			</section>
-
-			<section className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 p-3">
-				<p className="text-xs leading-relaxed">
-					{t("autoTranslateAllHint", {
-						lang: (locale ?? "de").toUpperCase(),
-					})}
-				</p>
-				<button
-					type="button"
-					onClick={autoTranslateAll}
-					disabled={isAutoTranslating}
-					className="inline-flex shrink-0 items-center gap-2 rounded-full border border-primary bg-background px-3 py-1.5 font-mono text-[10px] text-primary hover:bg-primary hover:text-primary-foreground disabled:opacity-60"
-				>
-					{isAutoTranslating
-						? t("autoTranslatePending")
-						: t("autoTranslateAllAction", {
-								lang: (locale ?? "de").toUpperCase(),
-							})}
-				</button>
-				{autoTranslateError && (
-					<span className="basis-full text-rose-700 text-xs dark:text-rose-300">
-						{autoTranslateError}
-					</span>
-				)}
 			</section>
 
 			<p className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-foreground/80 text-xs leading-relaxed">
