@@ -15,7 +15,6 @@ import { SnapshotCompare } from "@/components/applications/snapshot-compare";
 import { StageOutcomeForm } from "@/components/applications/stage-outcome-form";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
-import { TranslatableText } from "@/components/translate/translatable-text";
 
 export default async function EmployerApplicationDetailPage({
 	params,
@@ -99,10 +98,9 @@ export default async function EmployerApplicationDetailPage({
 							{t("coverLetterFromCandidate")}
 						</p>
 						<div className="mt-2 rounded-sm border border-border bg-muted/30 p-4">
-							<TranslatableText
-								text={app.coverLetter}
-								context="Bewerbungs-Anschreiben einer:s Kandidat:in."
-							/>
+							<p className="whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed">
+								{app.coverLetter}
+							</p>
 						</div>
 					</section>
 				)}

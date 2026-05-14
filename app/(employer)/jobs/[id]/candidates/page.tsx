@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { listFavoritesForJob } from "@/app/actions/favorites";
 import {
 	listDisclosedItemsForInterest,
@@ -16,15 +16,12 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { CandidateInsightsView } from "@/components/insights/candidate-insights";
 import { ShowInterestButton } from "@/components/interests/show-interest-button";
-import { LanguageToggle } from "@/components/profile/language-toggle";
 import { cn } from "@/lib/utils";
 
 export default async function JobCandidatesPage({
 	params,
-	searchParams,
 }: {
 	params: Promise<{ id: string }>;
-	searchParams: Promise<{ lang?: string }>;
 }) {
 	const session = await auth();
 	if (!session?.user?.id) redirect("/login");
@@ -34,15 +31,7 @@ export default async function JobCandidatesPage({
 	if (!job) notFound();
 
 	const t = await getTranslations("Matches");
-	// Anzeige-Sprache der Kandidaten-Inhalte: ?lang=-Param ?? UI-Locale des
-	// Recruiters. Eine Liste hat keine einheitliche Origin, daher Default =
-	// Recruiter-Sprache statt einer Profil-Origin.
-	const headerLocale = ((await getLocale()) as "de" | "en") ?? "de";
-	const { lang: langParam } = await searchParams;
-	const requestedLang =
-		langParam === "en" ? "en" : langParam === "de" ? "de" : null;
-	const viewLang: "de" | "en" = requestedLang ?? headerLocale;
-	const candidates = await listMatchesForJob(id, viewLang);
+	const candidates = await listMatchesForJob(id);
 	const interestsForJob = await listInterestsForJob(id);
 	const favoriteRows = await listFavoritesForJob(id);
 	const favoritedSet = new Set(
@@ -116,13 +105,6 @@ export default async function JobCandidatesPage({
 					<p className="mt-1 text-muted-foreground text-sm leading-snug">
 						{t("candidatesSubtitle")}
 					</p>
-					{candidates.length > 0 && (
-						<LanguageToggle
-							origin={headerLocale}
-							current={viewLang}
-							className="mt-3"
-						/>
-					)}
 				</header>
 
 				{candidates.length === 0 ? (
@@ -317,7 +299,6 @@ export default async function JobCandidatesPage({
 											<div className="mt-2.5">
 												<CandidateInsightsView
 													insights={c.insights}
-													contentLocale={viewLang}
 													profileExtras={{
 														industries: c.industries,
 														awards: c.awards,

@@ -5,7 +5,6 @@ import { unreadCount } from "@/app/actions/notifications";
 import { auth } from "@/auth";
 import { HeaderMobileMenu } from "@/components/header-mobile-menu";
 import { HeaderNavDropdown } from "@/components/header-nav-dropdown";
-import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { buttonVariants } from "@/components/ui/button";
 import { UserMenu } from "@/components/user-menu";
@@ -130,7 +129,6 @@ export async function Header() {
 							)}
 						</Link>
 					)}
-					<LocaleSwitcher />
 					<ThemeSwitcher />
 					{isLoggedIn && userEmail && role && (
 						<UserMenu email={userEmail} name={userName} role={role} />

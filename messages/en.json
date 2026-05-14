@@ -24,7 +24,6 @@
 		"notifications": "Notifications",
 		"login": "Sign in",
 		"toggleTheme": "Toggle theme",
-		"toggleLocale": "Switch language",
 		"openMenu": "Open menu",
 		"closeMenu": "Close menu",
 		"user": {
@@ -255,12 +254,6 @@
 		"title": "Check your inbox",
 		"body": "We've sent you a sign-in link. Click it to continue."
 	},
-	"LanguageToggle": {
-		"seeTranslation": "Translate to {lang}",
-		"showOriginal": "Show original",
-		"autoTranslatedHint": "translated automatically",
-		"translatingHint": "Translation is being generated — reload shortly"
-	},
 	"Vault": {
 		"title": "My vault",
 		"subtitle": "Encrypted at rest. What you put here is invisible without your approval.",
@@ -289,10 +282,6 @@
 	"Profile": {
 		"title": "My profile",
 		"insightsHeading": "How your profile reads",
-		"reviewTranslationHeading": "Review translation",
-		"reviewTranslationHint": "Your profile is translated to the other language automatically when you save. You can optionally fine-tune the translation here — salary, visibility and contact options stay in the main editor.",
-		"autoFillAll": "Auto-translate all",
-		"autoFillPending": "Translating…",
 		"share": {
 			"title": "Public share link",
 			"subtitle": "Optional. Exposes a read-only profile page you can share — e.g. in an application or your CV header. You can revoke anytime.",
@@ -2193,9 +2182,6 @@
 			"other": "Other reasons"
 		},
 		"notEnoughYet": "Not enough ratings yet for public stats. We show data only after 10 ratings — until then a single experience could skew the numbers."
-	},
-	"Translate": {
-		"translate": "Translate to {to}"
 	},
 	"Templates": {
 		"eyebrow": "Hiring process",

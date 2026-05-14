@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { candidateProfiles, users, vaultItems } from "@/db/schema";
+import { candidateProfiles, vaultItems } from "@/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { computeInsightsFromData } from "@/lib/insights/compute";
 import type { CandidateInsights } from "@/lib/insights/types";
@@ -13,12 +13,6 @@ import type { CandidateInsights } from "@/lib/insights/types";
 // auch noch im Mai 2026 "10 Jahre" obwohl es längst 13 sind. Daher auf
 // Read-Pfaden nach 7 Tagen Staleness im Hintergrund neu berechnen.
 const INSIGHTS_STALE_AFTER_DAYS = 7;
-
-// Narrative-Schema-Version. Hochzählen, wenn sich die Struktur oder der
-// Übersetzungspfad ändert — getMyInsights rechnet Narrative mit älterer
-// Version im Hintergrund neu. v2: sauberer translateTexts-Pfad statt des
-// alten carrier-hacks (der gemischtsprachige byLocale-Varianten erzeugte).
-const NARRATIVE_SCHEMA_VERSION = 2;
 
 // Recompute the candidate's insights snapshot. Called from:
 //   - saveProfile / saveSkillsStep / finishOnboarding (profile changes)
@@ -56,19 +50,7 @@ export async function recomputeInsights(userId: string): Promise<void> {
 					insights.experience.yearsActive - currentRoleYears,
 				);
 				const ai = getAIProvider();
-				// Origin-Sprache = User-Locale wenn gesetzt, sonst CV-Sprache,
-				// sonst DE.
-				const [u] = await db
-					.select({ locale: users.locale })
-					.from(users)
-					.where(eq(users.id, userId))
-					.limit(1);
-				const originLocale: "de" | "en" =
-					u?.locale === "en"
-						? "en"
-						: ((profile.profileLanguageOrigin as "de" | "en" | null) ?? "de");
-
-				const narrativeOrigin = await ai.summarizeCandidate({
+				const narrative = await ai.summarizeCandidate({
 					headline: profile.headline,
 					summary: profile.summary,
 					yearsActive: insights.experience.yearsActive,
@@ -95,53 +77,13 @@ export async function recomputeInsights(userId: string): Promise<void> {
 					certificateCount: insights.certificates.total,
 					certificatePattern: insights.certificates.pattern,
 					asOf: new Date().toISOString().slice(0, 10),
-					locale: originLocale,
+					locale: "de",
 				});
 
-				// Übersetze Narrative in die jeweils andere Sprache. Sauber
-				// via translateTexts (jeder String einzeln korrekt übersetzt)
-				// statt via translateProfile's awards/industries-Felder zu
-				// missbrauchen — letzteres behandelte strengths als Eigennamen
-				// und ließ sie teils unübersetzt → gemischte Sprachen.
-				const otherLocale: "de" | "en" = originLocale === "de" ? "en" : "de";
-				const toTranslate = [
-					narrativeOrigin.summary,
-					...narrativeOrigin.strengths,
-					...narrativeOrigin.workStyle,
-				];
-				const translatedTexts = await ai
-					.translateTexts({
-						texts: toTranslate,
-						from: originLocale,
-						to: otherLocale,
-						context:
-							"Kandidat:innen-Profil-Lesart für Arbeitgeber. Eigennamen, Firmen, Frameworks (ISO 27001, NIST CSF, CISSP) UNVERÄNDERT lassen, alles andere natürlich übersetzen.",
-					})
-					.catch(() => null);
-
-				let narrativeOther = narrativeOrigin;
-				if (translatedTexts && translatedTexts.length === toTranslate.length) {
-					let i = 0;
-					const summary = translatedTexts[i++] ?? narrativeOrigin.summary;
-					const strengths = narrativeOrigin.strengths.map(
-						(s) => translatedTexts[i++] ?? s,
-					);
-					const workStyle = narrativeOrigin.workStyle.map(
-						(w) => translatedTexts[i++] ?? w,
-					);
-					narrativeOther = { summary, strengths, workStyle };
-				}
-
 				insights.narrative = {
-					summary: narrativeOrigin.summary,
-					workStyle: narrativeOrigin.workStyle,
-					strengths: narrativeOrigin.strengths,
-					locale: originLocale,
-					version: NARRATIVE_SCHEMA_VERSION,
-					byLocale: {
-						[originLocale]: narrativeOrigin,
-						[otherLocale]: narrativeOther,
-					},
+					summary: narrative.summary,
+					workStyle: narrative.workStyle,
+					strengths: narrative.strengths,
 				};
 			} catch (e) {
 				console.warn("[insights] narrative failed", e);
@@ -177,17 +119,7 @@ export async function getMyInsights(): Promise<CandidateInsights | null> {
 		? Date.now() - row.updatedAt.getTime()
 		: Number.POSITIVE_INFINITY;
 	const insights = (row?.insights as CandidateInsights | null) ?? null;
-	// Legacy-Narrative: kein byLocale (nie übersetzt) ODER ältere Schema-
-	// Version (alter carrier-hack → gemischte Sprachen). Beide im Hinter-
-	// grund neu rechnen, damit byLocale sauber pro Sprache gefüllt ist.
-	const narrativeOutdated =
-		insights?.narrative != null &&
-		(!insights.narrative.byLocale ||
-			(insights.narrative.version ?? 0) < NARRATIVE_SCHEMA_VERSION);
-	if (
-		ageMs > INSIGHTS_STALE_AFTER_DAYS * 24 * 60 * 60 * 1000 ||
-		narrativeOutdated
-	) {
+	if (ageMs > INSIGHTS_STALE_AFTER_DAYS * 24 * 60 * 60 * 1000) {
 		after(() => recomputeInsights(userId));
 	}
 
