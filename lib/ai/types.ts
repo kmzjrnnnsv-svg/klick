@@ -218,6 +218,8 @@ export type CandidateNarrativeInput = {
 	certificateCount: number;
 	certificatePattern: "none" | "single" | "burst" | "steady" | "sparse";
 	asOf: string; // ISO yyyy-mm-dd
+	// Sprache, in der summary/workStyle/strengths formuliert werden sollen.
+	locale: "de" | "en";
 };
 
 export type CandidateNarrative = {

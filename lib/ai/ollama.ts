@@ -510,11 +510,12 @@ export class OllamaAIProvider implements AIProvider {
 		);
 		const primary = sortedSkills.filter((s) => (s.level ?? 3) >= 4);
 		const secondary = sortedSkills.filter((s) => (s.level ?? 3) < 4);
+		const langName = input.locale === "en" ? "ENGLISCH" : "DEUTSCH";
 		const out = await this.chat<CandidateNarrative>(
-			"Du schreibst sachliche Kandidaten-Lesarten für Arbeitgeber auf DEUTSCH. " +
-				"WICHTIG: Antworte AUSSCHLIESSLICH in deutscher Sprache mit lateinischen Zeichen. " +
+			`Du schreibst sachliche Kandidaten-Lesarten für Arbeitgeber auf ${langName}. ` +
+				`WICHTIG: Antworte AUSSCHLIESSLICH in ${input.locale === "en" ? "englischer" : "deutscher"} Sprache mit lateinischen Zeichen. ` +
 				"Keine chinesischen, japanischen oder anderen nicht-lateinischen Schriftzeichen. " +
-				"Wenn dir kein deutsches Wort einfällt, nimm das englische Original (z. B. 'Information Security Officer'). " +
+				"Eigennamen und Frameworks unverändert lassen (z. B. 'Information Security Officer', 'ISO 27001'). " +
 				"WICHTIG: Skills mit Level 4-5 sind aktive Schwerpunkte ('aktiv tätig in', 'Fokus auf'). " +
 				"Skills mit Level 1-3 sind nur Kenntnisse ('vertraut mit', 'Grundkenntnisse in'). " +
 				"NIEMALS Skills mit Level 1-3 als Schwerpunkt darstellen. " +

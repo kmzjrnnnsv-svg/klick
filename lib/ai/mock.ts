@@ -166,22 +166,41 @@ export class MockAIProvider implements AIProvider {
 	async summarizeCandidate(
 		input: CandidateNarrativeInput,
 	): Promise<CandidateNarrative> {
+		const en = input.locale === "en";
 		const tags: string[] = [];
-		if (input.totalRoles >= 4) tags.push("vielseitig");
-		if (input.yearsContinuous >= 3) tags.push("verlässlich");
-		if (input.certificatePattern === "steady") tags.push("lernfreudig");
-		if (input.certificatePattern === "burst") tags.push("zielstrebig");
-		if (input.skills.length >= 5) tags.push("breites Skill-Set");
-		if (input.gaps >= 2) tags.push("eigenständige Phasen");
-		if (tags.length === 0) tags.push("fokussiert");
+		if (input.totalRoles >= 4) tags.push(en ? "versatile" : "vielseitig");
+		if (input.yearsContinuous >= 3) tags.push(en ? "reliable" : "verlässlich");
+		if (input.certificatePattern === "steady")
+			tags.push(en ? "eager to learn" : "lernfreudig");
+		if (input.certificatePattern === "burst")
+			tags.push(en ? "goal-driven" : "zielstrebig");
+		if (input.skills.length >= 5)
+			tags.push(en ? "broad skill set" : "breites Skill-Set");
+		if (input.gaps >= 2)
+			tags.push(en ? "independent phases" : "eigenständige Phasen");
+		if (tags.length === 0) tags.push(en ? "focused" : "fokussiert");
 
 		const strengths: string[] = [];
-		if (input.skills[0]) strengths.push(`Kernstärke: ${input.skills[0]}`);
+		if (input.skills[0])
+			strengths.push(
+				en
+					? `Core strength: ${input.skills[0]}`
+					: `Kernstärke: ${input.skills[0]}`,
+			);
 		if (input.yearsActive >= 5)
-			strengths.push(`Insgesamt ${input.yearsActive} Jahre Praxis`);
+			strengths.push(
+				en
+					? `${input.yearsActive} years of practice in total`
+					: `Insgesamt ${input.yearsActive} Jahre Praxis`,
+			);
 		if (input.certificateCount > 0)
-			strengths.push(`${input.certificateCount} Zertifikate`);
-		if (strengths.length === 0) strengths.push("Solider Einstieg");
+			strengths.push(
+				en
+					? `${input.certificateCount} certificates`
+					: `${input.certificateCount} Zertifikate`,
+			);
+		if (strengths.length === 0)
+			strengths.push(en ? "Solid foundation" : "Solider Einstieg");
 
 		const role = input.currentRole?.role ?? input.headline ?? "Profi";
 		const currentRoleYears = input.currentRole
@@ -191,8 +210,12 @@ export class MockAIProvider implements AIProvider {
 		// aktuelle Rolle bereits.
 		const summary =
 			currentRoleYears > 0 && input.previousYearsBeforeCurrent > 0
-				? `Seit ${currentRoleYears} Jahren als ${role}, davor ${input.previousYearsBeforeCurrent} Jahre weitere Berufserfahrung — insgesamt ${input.yearsActive} Jahre.`
-				: `${role} mit insgesamt ${input.yearsActive} Jahren Berufserfahrung.`;
+				? en
+					? `${role} for ${currentRoleYears} years, with ${input.previousYearsBeforeCurrent} years of prior experience — ${input.yearsActive} years in total.`
+					: `Seit ${currentRoleYears} Jahren als ${role}, davor ${input.previousYearsBeforeCurrent} Jahre weitere Berufserfahrung — insgesamt ${input.yearsActive} Jahre.`
+				: en
+					? `${role} with ${input.yearsActive} years of professional experience in total.`
+					: `${role} mit insgesamt ${input.yearsActive} Jahren Berufserfahrung.`;
 
 		return {
 			summary,

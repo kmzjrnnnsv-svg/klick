@@ -652,6 +652,7 @@ export class ClaudeAIProvider implements AIProvider {
 	async summarizeCandidate(
 		input: CandidateNarrativeInput,
 	): Promise<CandidateNarrative> {
+		const langName = input.locale === "en" ? "Englisch" : "Deutsch";
 		const result = await this.client.messages.create({
 			model: "claude-sonnet-4-6",
 			max_tokens: 2000,
@@ -666,8 +667,7 @@ export class ClaudeAIProvider implements AIProvider {
 							summary: {
 								type: "string",
 								maxLength: 900,
-								description:
-									"4-5 zusammenhängende Sätze auf Deutsch, ZUSAMMEN unter 850 Zeichen. Aufbau: Satz 1 = aktuelle Rolle + Jahre Gesamterfahrung. Satz 2 = stärkster fachlicher Schwerpunkt + konkrete Domain. Satz 3 = bemerkenswerte Tenure / Frühere Stationen oder Branchen-Breite. Satz 4 = methodische Stärke oder Tool-Stack. Satz 5 (optional) = Eignung für welchen nächsten Schritt. IMMER mit Punkt enden — niemals mitten im Wort/Satz aufhören. Lieber 1 Satz weglassen als unvollständig schreiben. Stil: souverän, faktisch, ohne Floskeln, ohne 'Teamplayer'-Phrasen.",
+								description: `4-5 zusammenhängende Sätze auf ${langName}, ZUSAMMEN unter 850 Zeichen. Aufbau: Satz 1 = aktuelle Rolle + Jahre Gesamterfahrung. Satz 2 = stärkster fachlicher Schwerpunkt + konkrete Domain. Satz 3 = bemerkenswerte Tenure / Frühere Stationen oder Branchen-Breite. Satz 4 = methodische Stärke oder Tool-Stack. Satz 5 (optional) = Eignung für welchen nächsten Schritt. IMMER mit Punkt enden — niemals mitten im Wort/Satz aufhören. Lieber 1 Satz weglassen als unvollständig schreiben. Stil: souverän, faktisch, ohne Floskeln, ohne 'Teamplayer'-Phrasen.`,
 							},
 							workStyle: {
 								type: "array",
@@ -723,7 +723,9 @@ export class ClaudeAIProvider implements AIProvider {
 						`In strengths verbindest du Skill mit Kontext: "Wie viele Jahre? In welcher Branche? Mit welchem Tool?". ` +
 						`Wenn der CV das nicht hergibt, sei vorsichtig und kennzeichne Schätzungen mit "vermutlich" / "laut Selbstangabe".\n\n` +
 						`Schreibe sachlich, ohne Floskeln. Keine "Teamplayer"-Phrasen ohne Beleg. Wenn Daten dünn sind, sag das ehrlich. ` +
-						`Vermeide Wertungen wie "exzellent". Speichere via save_narrative.`,
+						`Vermeide Wertungen wie "exzellent". Speichere via save_narrative.\n\n` +
+						`SPRACHE: summary, workStyle und strengths MÜSSEN vollständig auf ${langName} formuliert sein. ` +
+						`Eigennamen, Firmen, Normen und Frameworks (ISO 27001, NIST CSF, VDMA, …) bleiben unverändert.`,
 				},
 			],
 		});
@@ -732,7 +734,10 @@ export class ClaudeAIProvider implements AIProvider {
 		if (!toolUse || toolUse.type !== "tool_use") {
 			// Graceful fallback: return a minimal, honest narrative.
 			return {
-				summary: "Profil-Zusammenfassung gerade nicht verfügbar.",
+				summary:
+					input.locale === "en"
+						? "Profile summary currently unavailable."
+						: "Profil-Zusammenfassung gerade nicht verfügbar.",
 				workStyle: [],
 				strengths: [],
 			};

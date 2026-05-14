@@ -95,6 +95,7 @@ export async function recomputeInsights(userId: string): Promise<void> {
 					certificateCount: insights.certificates.total,
 					certificatePattern: insights.certificates.pattern,
 					asOf: new Date().toISOString().slice(0, 10),
+					locale: originLocale,
 				});
 
 				// Übersetze Narrative in die jeweils andere Sprache. Sauber
