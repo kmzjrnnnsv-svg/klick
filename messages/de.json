@@ -292,6 +292,10 @@
 		"translationTabHint": "Du bearbeitest gerade die {lang}-Variante. Quelle: {source}. Speichere hier nur Übersetzungen — Salary, Sichtbarkeit und Kontakt-Optionen liegen im Quell-Tab.",
 		"autoFillAll": "Alles automatisch übersetzen",
 		"autoFillPending": "Übersetze…",
+		"autoTranslateAllHint": "Alle Texte automatisch auf {lang} übersetzen — Quell-Felder werden überschrieben. Du kannst danach noch manuell anpassen.",
+		"autoTranslateAllAction": "Alles auf {lang} übersetzen",
+		"autoTranslatePending": "Übersetze…",
+		"autoTranslateSameLang": "Profil ist bereits in dieser Sprache.",
 		"share": {
 			"title": "Öffentlicher Share-Link",
 			"subtitle": "Optional. Aktiviert eine schreibgeschützte Profilseite, die du teilen kannst — z. B. in einer Bewerbung oder im Lebenslauf-Header. Du kannst sie jederzeit zurückziehen.",
