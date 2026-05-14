@@ -10,15 +10,20 @@ const HERO_IMAGE =
 const FEATURE_IMAGES = {
 	vault: "https://picsum.photos/seed/klick-vault-paper/1200/900?grayscale",
 	cv: "https://picsum.photos/seed/klick-cv-handwritten/1200/900?grayscale",
-	badges: "https://picsum.photos/seed/klick-badges-medal/1200/900?grayscale",
-	verify: "https://picsum.photos/seed/klick-verify-stamp/1200/900?grayscale",
-	match: "https://picsum.photos/seed/klick-match-meet/1200/900?grayscale",
-	salary: "https://picsum.photos/seed/klick-salary-coin/1200/900?grayscale",
 	insights:
 		"https://picsum.photos/seed/klick-insights-graph/1200/900?grayscale",
+	career: "https://picsum.photos/seed/klick-career-compass/1200/900?grayscale",
+	badges: "https://picsum.photos/seed/klick-badges-medal/1200/900?grayscale",
+	verify: "https://picsum.photos/seed/klick-verify-stamp/1200/900?grayscale",
+	references:
+		"https://picsum.photos/seed/klick-references-letter/1200/900?grayscale",
+	match: "https://picsum.photos/seed/klick-match-meet/1200/900?grayscale",
+	salary: "https://picsum.photos/seed/klick-salary-coin/1200/900?grayscale",
+	applications:
+		"https://picsum.photos/seed/klick-pipeline-board/1200/900?grayscale",
+	offers: "https://picsum.photos/seed/klick-offer-handshake/1200/900?grayscale",
 	disclosure:
 		"https://picsum.photos/seed/klick-disclosure-key/1200/900?grayscale",
-	public: "https://picsum.photos/seed/klick-public-mirror/1200/900?grayscale",
 } as const;
 
 const TRUST_IMAGE =
@@ -57,19 +62,28 @@ function SectionDivider() {
 const FEATURE_KEYS = [
 	"vault",
 	"cv",
+	"insights",
+	"career",
 	"badges",
 	"verify",
+	"references",
 	"match",
 	"salary",
-	"insights",
+	"applications",
+	"offers",
 	"disclosure",
-	"public",
 ] as const;
 
 const TRUST_KEYS = ["1", "2", "3", "4"] as const;
-const CANDIDATE_STEPS = ["1", "2", "3", "4", "5"] as const;
-const EMPLOYER_STEPS = ["1", "2", "3", "4"] as const;
-const FAQ_KEYS = ["1", "2", "3", "4", "5"] as const;
+const CANDIDATE_STEPS = ["1", "2", "3", "4", "5", "6"] as const;
+const EMPLOYER_STEPS = ["1", "2", "3", "4", "5", "6"] as const;
+const FAQ_KEYS = ["1", "2", "3", "4", "5", "6"] as const;
+
+// Brauntöne statt Schwarz für die Startseiten-CTAs.
+const CTA_PRIMARY =
+	"inline-flex h-12 items-center justify-center rounded-sm bg-brown px-8 font-medium text-[0.72rem] text-brown-foreground uppercase tracking-[0.22em] transition-opacity hover:opacity-90";
+const CTA_SECONDARY =
+	"inline-flex h-12 items-center justify-center rounded-sm border border-brown/45 px-8 font-medium text-[0.72rem] text-brown uppercase tracking-[0.22em] transition-colors hover:bg-brown hover:text-brown-foreground";
 
 export default async function Home() {
 	const t = await getTranslations("Landing");
@@ -96,23 +110,17 @@ export default async function Home() {
 						<p className="lv-eyebrow text-[0.65rem] text-muted-foreground">
 							{t("eyebrow")}
 						</p>
-						<h1 className="mx-auto mt-6 max-w-3xl text-balance font-serif-display text-5xl leading-[1.02] sm:text-7xl">
+						<h1 className="mx-auto mt-6 max-w-3xl text-balance font-serif-display text-5xl text-primary leading-[1.02] sm:text-7xl">
 							{t("hero.title")}
 						</h1>
 						<p className="mx-auto mt-7 max-w-2xl text-balance text-base text-muted-foreground leading-relaxed sm:text-lg">
 							{t("hero.subtitle")}
 						</p>
 						<div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-							<Link
-								href="/login"
-								className="inline-flex h-12 items-center justify-center rounded-sm bg-foreground px-8 font-medium text-[0.72rem] text-background uppercase tracking-[0.22em] transition-opacity hover:opacity-90"
-							>
+							<Link href="/login" className={CTA_PRIMARY}>
 								{t("hero.cta")}
 							</Link>
-							<Link
-								href="/jobs/browse"
-								className="inline-flex h-12 items-center justify-center rounded-sm border border-foreground/40 px-8 font-medium text-[0.72rem] text-foreground uppercase tracking-[0.22em] transition-colors hover:bg-foreground hover:text-background"
-							>
+							<Link href="/jobs/browse" className={CTA_SECONDARY}>
 								{t("hero.secondary")}
 							</Link>
 						</div>
@@ -125,7 +133,7 @@ export default async function Home() {
 						<p className="lv-eyebrow text-[0.6rem] text-primary">
 							{t("manifesto.eyebrow")}
 						</p>
-						<h2 className="mt-4 font-serif-display text-3xl sm:text-5xl">
+						<h2 className="mt-4 font-serif-display text-3xl text-primary sm:text-5xl">
 							{t("manifesto.title")}
 						</h2>
 						<p className="mt-5 text-muted-foreground text-sm leading-relaxed sm:text-base">
@@ -154,7 +162,7 @@ export default async function Home() {
 				{/* CANDIDATE JOURNEY */}
 				<section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
 					<div className="grid gap-12 lg:grid-cols-[5fr_7fr] lg:items-start lg:gap-16">
-						<div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-muted">
+						<div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-muted lg:sticky lg:top-24">
 							<Image
 								src={CANDIDATE_IMAGE}
 								alt=""
@@ -175,7 +183,7 @@ export default async function Home() {
 							<p className="lv-eyebrow text-[0.6rem] text-primary">
 								{t("candidateJourney.eyebrow")}
 							</p>
-							<h2 className="mt-4 font-serif-display text-3xl sm:text-5xl">
+							<h2 className="mt-4 font-serif-display text-3xl text-primary sm:text-5xl">
 								{t("candidateJourney.title")}
 							</h2>
 							<ol className="mt-10 divide-y divide-border border-border/60 border-t border-b">
@@ -209,7 +217,7 @@ export default async function Home() {
 							<p className="lv-eyebrow text-[0.6rem] text-primary">
 								{t("employerJourney.eyebrow")}
 							</p>
-							<h2 className="mt-4 font-serif-display text-3xl sm:text-5xl">
+							<h2 className="mt-4 font-serif-display text-3xl text-primary sm:text-5xl">
 								{t("employerJourney.title")}
 							</h2>
 							<ol className="mt-10 divide-y divide-border border-border/60 border-t border-b">
@@ -233,7 +241,7 @@ export default async function Home() {
 								))}
 							</ol>
 						</div>
-						<div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-muted lg:order-2">
+						<div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-muted lg:order-2 lg:sticky lg:top-24">
 							<Image
 								src={EMPLOYER_IMAGE}
 								alt=""
@@ -261,9 +269,12 @@ export default async function Home() {
 						<p className="lv-eyebrow text-[0.6rem] text-primary">
 							{t("features.eyebrow")}
 						</p>
-						<h2 className="mt-4 font-serif-display text-3xl sm:text-5xl">
+						<h2 className="mt-4 font-serif-display text-3xl text-primary sm:text-5xl">
 							{t("features.title")}
 						</h2>
+						<p className="mt-5 text-muted-foreground text-sm leading-relaxed sm:text-base">
+							{t("features.subtitle")}
+						</p>
 					</div>
 					<div className="mt-14 grid gap-x-8 gap-y-14 sm:mt-20 sm:grid-cols-2 lg:grid-cols-3">
 						{FEATURE_KEYS.map((key, idx) => (
@@ -310,7 +321,7 @@ export default async function Home() {
 							<p className="lv-eyebrow text-[0.6rem] text-primary">
 								{t("trust.eyebrow")}
 							</p>
-							<h2 className="mt-4 font-serif-display text-3xl sm:text-5xl">
+							<h2 className="mt-4 font-serif-display text-3xl text-primary sm:text-5xl">
 								{t("trust.title")}
 							</h2>
 						</div>
@@ -338,7 +349,7 @@ export default async function Home() {
 						<p className="lv-eyebrow text-[0.6rem] text-primary">
 							{t("faq.eyebrow")}
 						</p>
-						<h2 className="mt-4 font-serif-display text-3xl sm:text-5xl">
+						<h2 className="mt-4 font-serif-display text-3xl text-primary sm:text-5xl">
 							{t("faq.title")}
 						</h2>
 					</div>
@@ -365,23 +376,17 @@ export default async function Home() {
 						<p className="lv-eyebrow text-[0.6rem] text-primary">
 							{t("eyebrow")}
 						</p>
-						<h2 className="mt-5 font-serif-display text-3xl sm:text-5xl">
+						<h2 className="mt-5 font-serif-display text-3xl text-primary sm:text-5xl">
 							{t("finalCta.title")}
 						</h2>
 						<p className="mx-auto mt-5 max-w-xl text-muted-foreground text-sm leading-relaxed sm:text-base">
 							{t("finalCta.body")}
 						</p>
 						<div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-							<Link
-								href="/login"
-								className="inline-flex h-12 items-center justify-center rounded-sm bg-foreground px-8 font-medium text-[0.72rem] text-background uppercase tracking-[0.22em] transition-opacity hover:opacity-90"
-							>
+							<Link href="/login" className={CTA_PRIMARY}>
 								{t("finalCta.cta")}
 							</Link>
-							<Link
-								href="/jobs/browse"
-								className="inline-flex h-12 items-center justify-center rounded-sm border border-foreground/40 px-8 font-medium text-[0.72rem] text-foreground uppercase tracking-[0.22em] transition-colors hover:bg-foreground hover:text-background"
-							>
+							<Link href="/jobs/browse" className={CTA_SECONDARY}>
 								{t("finalCta.secondary")}
 							</Link>
 						</div>

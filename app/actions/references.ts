@@ -12,12 +12,7 @@ import {
 	users,
 } from "@/db/schema";
 import { sendTransactionalMail } from "@/lib/mail/send";
-
-const REFERENCE_QUESTIONS_DE = [
-	"In welchem Kontext habt ihr zusammengearbeitet (Rolle, Team, Zeitraum)?",
-	"Was war die größte Stärke der Person aus deiner Sicht?",
-	"Wo siehst du Entwicklungsfelder oder unter welchen Bedingungen würdest du erneut zusammenarbeiten?",
-];
+import { REFERENCE_QUESTIONS } from "@/lib/references/questions";
 
 async function requireCandidate(): Promise<string> {
 	const session = await auth();
@@ -77,7 +72,7 @@ export async function requestReference(input: {
 		text:
 			`${me?.name ?? "Eine Person"} hat dich auf der Plattform Klick als Referenz angefragt.\n\n` +
 			`Du beantwortest drei kurze Fragen — vertraulich, nur die anfragende Person sieht deine Antworten:\n\n` +
-			REFERENCE_QUESTIONS_DE.map((q, i) => `${i + 1}. ${q}`).join("\n") +
+			REFERENCE_QUESTIONS.map((q, i) => `${i + 1}. ${q}`).join("\n") +
 			`\n\nÖffne den Link, um zu antworten:\n${baseUrl}/r/${token}\n\n` +
 			`Der Link ist 21 Tage gültig. Du kannst die Anfrage jederzeit ignorieren.`,
 	});
@@ -109,8 +104,7 @@ export async function getReferenceByToken(token: string) {
 		.where(eq(referenceChecks.token, token))
 		.limit(1);
 	if (!r) return null;
-	if (r.status === "submitted")
-		return { ...r, questions: REFERENCE_QUESTIONS_DE };
+	if (r.status === "submitted") return { ...r, questions: REFERENCE_QUESTIONS };
 	if (r.expiresAt < new Date()) {
 		await db
 			.update(referenceChecks)
@@ -119,10 +113,10 @@ export async function getReferenceByToken(token: string) {
 		return {
 			...r,
 			status: "expired" as const,
-			questions: REFERENCE_QUESTIONS_DE,
+			questions: REFERENCE_QUESTIONS,
 		};
 	}
-	return { ...r, questions: REFERENCE_QUESTIONS_DE };
+	return { ...r, questions: REFERENCE_QUESTIONS };
 }
 
 export async function submitReference(input: {
