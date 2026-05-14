@@ -4,6 +4,7 @@ import { Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { recommendSalaryForCountry } from "@/app/actions/profile";
+import { SalaryHistory } from "@/components/profile/salary-history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ProfileSalaryByCountry } from "@/db/schema";
@@ -193,6 +194,7 @@ export function SalaryByCountry({
 							</p>
 						</div>
 					)}
+					<SalaryHistory country={row.country} />
 				</div>
 			))}
 			{error && (

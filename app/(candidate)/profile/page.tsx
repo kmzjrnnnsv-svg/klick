@@ -17,12 +17,18 @@ import { CandidateInsightsView } from "@/components/insights/candidate-insights"
 import { CareerAnalysisView } from "@/components/profile/career-analysis-view";
 import { DiversityForm } from "@/components/profile/diversity-form";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { ProfileTabSwitcher } from "@/components/profile/profile-tab-switcher";
+import { ProfileTranslationForm } from "@/components/profile/profile-translation-form";
 import { ReferencesForm } from "@/components/profile/references-form";
 import { ShareLink } from "@/components/profile/share-link";
-import type { CandidateProfile } from "@/db/schema";
+import type { CandidateProfile, ProfileTranslationFields } from "@/db/schema";
 import { localizedProfile } from "@/lib/insights/locale";
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+	searchParams,
+}: {
+	searchParams: Promise<{ tab?: string }>;
+}) {
 	const session = await auth();
 	if (!session?.user) redirect("/login");
 
@@ -40,31 +46,33 @@ export default async function ProfilePage() {
 			getMyCareerAnalysis(),
 		]);
 
-	// Wenn UI-Locale ≠ Profil-Origin und in dieser Locale noch keine
-	// Übersetzung gespeichert ist, im Hintergrund (after()) eine generieren.
-	// Beim nächsten Aufruf der Seite sieht der User die übersetzten Felder
-	// statt das deutsche Original.
+	// Tab-Routing: ?tab=de|en. Default = Origin der existierenden Daten,
+	// sonst aktuelle UI-Locale. So landet ein neuer User in seiner UI-
+	// Sprache, ein DE-Bestandsuser bleibt im DE-Tab, kann aber gezielt
+	// auf EN klicken.
+	const originLocale: "de" | "en" =
+		(profile?.profileLanguageOrigin as "de" | "en" | null) ?? locale;
+	const params = await searchParams;
+	const requestedTab =
+		params.tab === "en" ? "en" : params.tab === "de" ? "de" : null;
+	const tab: "de" | "en" = requestedTab ?? originLocale;
+
+	// Auto-translate-trigger nur in der UI-Locale wenn es nicht eh die
+	// Quell-Sprache ist und keine Übersetzung existiert. Greift unabhängig
+	// vom Tab.
 	await ensureTranslationForLocale(locale);
 
-	// Banner-Logik: zeigt einen Hinweis wenn UI-Locale ≠ Origin UND noch
-	// keine Übersetzung existiert (=== ensureTranslationForLocale hat
-	// gerade etwas in der Pipeline). User weiß: "Reload in 30s und es
-	// ist auf Englisch."
-	const originLocale: "de" | "en" =
-		(profile?.profileLanguageOrigin as "de" | "en" | null) ?? "de";
 	const hasTranslation = !!profile?.translations?.[locale];
 	const translationPending =
 		!!profile && locale !== originLocale && !hasTranslation;
 
-	// Wir mischen Übersetzungen direkt in das Profil, das die Form erhält —
-	// so sieht der Kandidat die Felder in der UI-Sprache und kann sie auch
-	// sprachweise editieren. profileLanguageOrigin wird beim Save auf die
-	// aktuelle Locale gesetzt. Defensive try/catch: lieber Original anzeigen
-	// als crashen, wenn localizedProfile() durch eine Datenform überrascht wird.
+	// Origin-Tab → ProfileForm mit lokalisierter Initial-Datenbasis.
+	// Translation-Tab → ProfileTranslationForm mit Source-Snapshot + bisheriger
+	// Übersetzung als Vorbelegung.
 	let localizedInitial: CandidateProfile | null = profile;
 	if (profile) {
 		try {
-			const view = localizedProfile(profile, locale);
+			const view = localizedProfile(profile, originLocale);
 			localizedInitial = {
 				...profile,
 				headline: view.headline,
@@ -85,6 +93,8 @@ export default async function ProfilePage() {
 		}
 	}
 
+	const isTranslationTab = tab !== originLocale;
+
 	return (
 		<>
 			<Header />
@@ -97,6 +107,10 @@ export default async function ProfilePage() {
 						{t("subtitle")}
 					</p>
 				</header>
+
+				{profile && (
+					<ProfileTabSwitcher currentTab={tab} origin={originLocale} />
+				)}
 
 				{translationPending && (
 					<div className="mb-5 rounded-sm border border-primary/30 bg-primary/5 p-3 text-xs leading-relaxed">
@@ -129,7 +143,31 @@ export default async function ProfilePage() {
 					<ShareLink initialToken={shareToken} />
 				</section>
 
-				<ProfileForm initial={localizedInitial} cvs={cvs} locale={locale} />
+				{isTranslationTab && profile ? (
+					<ProfileTranslationForm
+						targetLocale={tab}
+						sourceLocale={originLocale}
+						source={{
+							headline: profile.headline,
+							summary: profile.summary,
+							mobility: profile.mobility,
+							industries: profile.industries,
+							awards: profile.awards,
+							experience: profile.experience,
+							education: profile.education,
+							projects: profile.projects,
+							publications: profile.publications,
+							volunteering: profile.volunteering,
+						}}
+						initialTranslation={
+							(profile.translations?.[
+								tab
+							] as ProfileTranslationFields | null) ?? null
+						}
+					/>
+				) : (
+					<ProfileForm initial={localizedInitial} cvs={cvs} locale={tab} />
+				)}
 
 				<section className="mt-12 border-border border-t pt-8">
 					<h2 className="mb-2 font-serif-display text-xl">
