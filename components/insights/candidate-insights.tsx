@@ -48,6 +48,7 @@ export function CandidateInsightsView({
 	profileExtras,
 	emptyHint,
 	showRefresh,
+	contentLocale,
 }: {
 	insights: CandidateInsights | null;
 	profileExtras?: ProfileExtras | null;
@@ -55,11 +56,16 @@ export function CandidateInsightsView({
 	// Nur auf dem eigenen Profil sinnvoll — Arbeitgeber-Match-Liste und
 	// Public-Share-Link sollen den Knopf nicht zeigen.
 	showRefresh?: boolean;
+	// Sprache der INHALTLICHEN Texte (AI-Profil-Lesart). Auf /profile vom
+	// Profil-Tab gesteuert, NICHT vom Header. Ohne Angabe (Public-Share,
+	// Arbeitgeber-Match) folgt die Lesart der UI-Locale.
+	contentLocale?: "de" | "en";
 }) {
 	const t = useTranslations("Insights");
-	// Insights folgen IMMER der UI-Locale (Header DE/EN), NICHT dem
-	// Profil-Tab. Der Tab ist nur der Editor-Modus für die Profil-Inhalte.
+	// Header-Locale: steuert App-Chrome — Labels, Einheiten ("Jahre"/"years").
 	const locale = useLocale() as "de" | "en";
+	// Inhalts-Locale: steuert die AI-Lesart. Default = Header-Locale.
+	const narrativeLocale = contentLocale ?? locale;
 	const monthsToYears = makeMonthsToYears(locale);
 	if (!insights) {
 		return (
@@ -76,11 +82,11 @@ export function CandidateInsightsView({
 		certificates,
 		narrative: rawNarrative,
 	} = insights;
-	// Pick the narrative variant for the active UI locale. If not yet
+	// Pick the narrative variant for the active content locale. If not yet
 	// translated (recomputeInsights schedules the translation in the
 	// background), fall back to the origin variant.
 	const narrative = rawNarrative
-		? (rawNarrative.byLocale?.[locale] ?? {
+		? (rawNarrative.byLocale?.[narrativeLocale] ?? {
 				summary: rawNarrative.summary,
 				workStyle: rawNarrative.workStyle,
 				strengths: rawNarrative.strengths,
