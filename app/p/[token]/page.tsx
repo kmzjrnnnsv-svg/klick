@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { listJobs } from "@/app/actions/jobs";
 import { ensureTranslationForUser } from "@/app/actions/profile";
 import { auth } from "@/auth";
@@ -8,8 +8,8 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { CandidateInsightsView } from "@/components/insights/candidate-insights";
 import { EducationCard } from "@/components/profile/education-card";
+import { LanguageToggle } from "@/components/profile/language-toggle";
 import { PublicInterestCta } from "@/components/profile/public-interest-cta";
-import { PublicTranslateButton } from "@/components/profile/public-translate-button";
 import { db } from "@/db";
 import { candidateProfiles } from "@/db/schema";
 import { localizedProfile } from "@/lib/insights/locale";
@@ -18,8 +18,10 @@ import { isVisibleAt, redactProfile } from "@/lib/profile/visibility";
 
 export default async function PublicProfilePage({
 	params,
+	searchParams,
 }: {
 	params: Promise<{ token: string }>;
+	searchParams: Promise<{ lang?: string }>;
 }) {
 	const { token } = await params;
 	if (!token || token.length < 16) notFound();
@@ -34,13 +36,25 @@ export default async function PublicProfilePage({
 	// Redact alles, was der Kandidat nicht auf "public" gestellt hat.
 	const profile = redactProfile(raw, "public");
 	const t = await getTranslations("PublicProfile");
-	const locale = ((await getLocale()) as "de" | "en") ?? "de";
 
-	// Übersetzung für Besucher-Locale anstoßen wenn fehlt. Läuft via
-	// after() im Hintergrund — beim nächsten Aufruf ist sie da.
-	const translationState = await ensureTranslationForUser(raw.userId, locale);
+	// Default-Anzeige = Origin-Sprache des Profils. Der Besucher schaltet
+	// per ?lang=-Toggle selbst um (LinkedIn-Stil). Die UI-Locale (Header)
+	// steuert nur das App-Chrome, nicht die Profil-Inhalte.
+	const origin = (raw.profileLanguageOrigin as "de" | "en" | null) ?? "de";
+	const { lang: langParam } = await searchParams;
+	const requestedLang =
+		langParam === "en" ? "en" : langParam === "de" ? "de" : null;
+	const viewLang: "de" | "en" = requestedLang ?? origin;
 
-	const view = localizedProfile(profile, locale);
+	// Backfill-Netz: hat der Besucher die Gegensprache angefragt und sie
+	// fehlt (Altprofil, nie eager übersetzt), im Hintergrund nachziehen.
+	const translationMissing =
+		viewLang !== origin && !raw.translations?.[viewLang];
+	if (translationMissing) {
+		await ensureTranslationForUser(raw.userId, viewLang);
+	}
+
+	const view = localizedProfile(profile, viewLang);
 
 	// Viewer-Detection: wenn ein eingeloggter Employer das Public-Profil
 	// betrachtet (und nicht der Kandidat selbst), CTA für Direct-Interest
@@ -88,15 +102,13 @@ export default async function PublicProfilePage({
 					)}
 				</header>
 
-				{translationState.queued && (
-					<>
-						<div className="mb-3 flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-foreground/90 text-xs leading-relaxed">
-							<span className="inline-block h-2 w-2 shrink-0 translate-y-1 animate-pulse rounded-full bg-primary" />
-							<span>{t("translationPending")}</span>
-						</div>
-						<PublicTranslateButton token={token} targetLocale={locale} />
-					</>
-				)}
+				<div className="mb-5">
+					<LanguageToggle
+						origin={origin}
+						current={viewLang}
+						pending={translationMissing}
+					/>
+				</div>
 
 				{showInterestCta && (
 					<PublicInterestCta publicShareToken={token} jobs={employerJobs} />
@@ -355,6 +367,7 @@ export default async function PublicProfilePage({
 						<h2 className="mb-3 font-medium text-sm">{t("insightsHeading")}</h2>
 						<CandidateInsightsView
 							insights={(raw.insights as CandidateInsights | null) ?? null}
+							contentLocale={viewLang}
 							profileExtras={{
 								industries: isVisibleAt("industries", map, "public", globalVis)
 									? view.industries
