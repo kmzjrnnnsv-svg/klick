@@ -2,26 +2,21 @@ import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { listJobs } from "@/app/actions/jobs";
-import { ensureTranslationForUser } from "@/app/actions/profile";
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { CandidateInsightsView } from "@/components/insights/candidate-insights";
 import { EducationCard } from "@/components/profile/education-card";
-import { LanguageToggle } from "@/components/profile/language-toggle";
 import { PublicInterestCta } from "@/components/profile/public-interest-cta";
 import { db } from "@/db";
 import { candidateProfiles } from "@/db/schema";
-import { localizedProfile } from "@/lib/insights/locale";
 import type { CandidateInsights } from "@/lib/insights/types";
 import { isVisibleAt, redactProfile } from "@/lib/profile/visibility";
 
 export default async function PublicProfilePage({
 	params,
-	searchParams,
 }: {
 	params: Promise<{ token: string }>;
-	searchParams: Promise<{ lang?: string }>;
 }) {
 	const { token } = await params;
 	if (!token || token.length < 16) notFound();
@@ -36,25 +31,6 @@ export default async function PublicProfilePage({
 	// Redact alles, was der Kandidat nicht auf "public" gestellt hat.
 	const profile = redactProfile(raw, "public");
 	const t = await getTranslations("PublicProfile");
-
-	// Default-Anzeige = Origin-Sprache des Profils. Der Besucher schaltet
-	// per ?lang=-Toggle selbst um (LinkedIn-Stil). Die UI-Locale (Header)
-	// steuert nur das App-Chrome, nicht die Profil-Inhalte.
-	const origin = (raw.profileLanguageOrigin as "de" | "en" | null) ?? "de";
-	const { lang: langParam } = await searchParams;
-	const requestedLang =
-		langParam === "en" ? "en" : langParam === "de" ? "de" : null;
-	const viewLang: "de" | "en" = requestedLang ?? origin;
-
-	// Backfill-Netz: hat der Besucher die Gegensprache angefragt und sie
-	// fehlt (Altprofil, nie eager übersetzt), im Hintergrund nachziehen.
-	const translationMissing =
-		viewLang !== origin && !raw.translations?.[viewLang];
-	if (translationMissing) {
-		await ensureTranslationForUser(raw.userId, viewLang);
-	}
-
-	const view = localizedProfile(profile, viewLang);
 
 	// Viewer-Detection: wenn ein eingeloggter Employer das Public-Profil
 	// betrachtet (und nicht der Kandidat selbst), CTA für Direct-Interest
@@ -94,39 +70,31 @@ export default async function PublicProfilePage({
 					<h1 className="mt-1 font-semibold text-xl tracking-tight sm:text-3xl">
 						{profile.displayName ?? t("anonymous")}
 					</h1>
-					{view.headline && (
+					{profile.headline && (
 						<p className="mt-1 text-muted-foreground text-sm">
-							{view.headline}
+							{profile.headline}
 							{profile.location && ` · ${profile.location}`}
 						</p>
 					)}
 				</header>
 
-				<div className="mb-5">
-					<LanguageToggle
-						origin={origin}
-						current={viewLang}
-						pending={translationMissing}
-					/>
-				</div>
-
 				{showInterestCta && (
 					<PublicInterestCta publicShareToken={token} jobs={employerJobs} />
 				)}
 
-				{view.summary && (
+				{profile.summary && (
 					<section className="mb-5 rounded-lg border border-border bg-background p-4">
 						<p className="text-foreground/90 text-sm leading-relaxed">
-							{view.summary}
+							{profile.summary}
 						</p>
 					</section>
 				)}
 
-				{view.languages && view.languages.length > 0 && (
+				{profile.languages && profile.languages.length > 0 && (
 					<section className="mb-5 rounded-lg border border-border bg-background p-4">
 						<h2 className="mb-2 font-medium text-sm">{t("languages")}</h2>
 						<div className="flex flex-wrap gap-1.5">
-							{view.languages.map((l) => (
+							{profile.languages.map((l) => (
 								<span
 									key={l}
 									className="rounded-md bg-muted px-2 py-0.5 font-mono text-[11px]"
@@ -138,11 +106,11 @@ export default async function PublicProfilePage({
 					</section>
 				)}
 
-				{view.experience && view.experience.length > 0 && (
+				{profile.experience && profile.experience.length > 0 && (
 					<section className="mb-5 rounded-lg border border-border bg-background p-4">
 						<h2 className="mb-3 font-medium text-sm">{t("experience")}</h2>
 						<ul className="space-y-3">
-							{view.experience.map((e) => (
+							{profile.experience.map((e) => (
 								<li
 									key={`${e.company}-${e.role}-${e.start}`}
 									className="text-sm"
@@ -165,11 +133,11 @@ export default async function PublicProfilePage({
 					</section>
 				)}
 
-				{view.skills && view.skills.length > 0 && (
+				{profile.skills && profile.skills.length > 0 && (
 					<section className="mb-5 rounded-lg border border-border bg-background p-4">
 						<h2 className="mb-2 font-medium text-sm">{t("skills")}</h2>
 						<div className="flex flex-wrap gap-1.5">
-							{view.skills.map((s) => (
+							{profile.skills.map((s) => (
 								<span
 									key={s.name}
 									className="rounded-md bg-muted px-2 py-0.5 font-mono text-[11px]"
@@ -367,13 +335,12 @@ export default async function PublicProfilePage({
 						<h2 className="mb-3 font-medium text-sm">{t("insightsHeading")}</h2>
 						<CandidateInsightsView
 							insights={(raw.insights as CandidateInsights | null) ?? null}
-							contentLocale={viewLang}
 							profileExtras={{
 								industries: isVisibleAt("industries", map, "public", globalVis)
-									? view.industries
+									? profile.industries
 									: null,
 								awards: isVisibleAt("awards", map, "public", globalVis)
-									? view.awards
+									? profile.awards
 									: null,
 								certificationsMentioned: isVisibleAt(
 									"certifications",
@@ -383,7 +350,7 @@ export default async function PublicProfilePage({
 								)
 									? raw.certificationsMentioned
 									: null,
-								mobility: view.mobility,
+								mobility: profile.mobility,
 								preferredRoleLevel: raw.preferredRoleLevel,
 							}}
 						/>

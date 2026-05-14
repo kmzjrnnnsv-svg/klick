@@ -24,7 +24,6 @@
 		"notifications": "Benachrichtigungen",
 		"login": "Anmelden",
 		"toggleTheme": "Theme wechseln",
-		"toggleLocale": "Sprache wechseln",
 		"openMenu": "Menü öffnen",
 		"closeMenu": "Menü schließen",
 		"user": {
@@ -255,12 +254,6 @@
 		"title": "Schau in dein Postfach",
 		"body": "Wir haben dir einen Anmelde-Link geschickt. Klick ihn an, um fortzufahren."
 	},
-	"LanguageToggle": {
-		"seeTranslation": "Auf {lang} übersetzen",
-		"showOriginal": "Original anzeigen",
-		"autoTranslatedHint": "automatisch übersetzt",
-		"translatingHint": "Übersetzung wird erstellt — in Kürze neu laden"
-	},
 	"Vault": {
 		"title": "Mein Vault",
 		"subtitle": "Verschlüsselt im Ruhezustand. Was du hier ablegst, sieht ohne deine Freigabe niemand sonst.",
@@ -290,10 +283,6 @@
 		"title": "Mein Profil",
 		"subtitle": "Was Arbeitgeber sehen, sobald du Interesse zulässt. Du kontrollierst Sichtbarkeit und Inhalt.",
 		"insightsHeading": "So liest sich dein Profil",
-		"reviewTranslationHeading": "Übersetzung prüfen",
-		"reviewTranslationHint": "Dein Profil wird beim Speichern automatisch in die andere Sprache übersetzt. Hier kannst du die Übersetzung optional verfeinern — Salary, Sichtbarkeit und Kontakt-Optionen bleiben im Haupt-Editor.",
-		"autoFillAll": "Alles automatisch übersetzen",
-		"autoFillPending": "Übersetze…",
 		"share": {
 			"title": "Öffentlicher Share-Link",
 			"subtitle": "Optional. Aktiviert eine schreibgeschützte Profilseite, die du teilen kannst — z. B. in einer Bewerbung oder im Lebenslauf-Header. Du kannst sie jederzeit zurückziehen.",
@@ -2193,9 +2182,6 @@
 			"other": "Sonstige Gründe"
 		},
 		"notEnoughYet": "Noch zu wenige Bewertungen für eine öffentliche Statistik. Wir zeigen Daten erst ab 10 Bewertungen — bis dahin könnte eine einzelne Erfahrung die Statistik kippen."
-	},
-	"Translate": {
-		"translate": "Auf {to} übersetzen"
 	},
 	"Templates": {
 		"eyebrow": "Bewerbungs-Prozess",

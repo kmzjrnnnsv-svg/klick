@@ -14,7 +14,6 @@ import { ReferenceDisclosureList } from "@/components/disclosures/reference-disc
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { DecisionButtons } from "@/components/interests/decision-buttons";
-import { TranslatableText } from "@/components/translate/translatable-text";
 import { cn } from "@/lib/utils";
 import { listVerificationsForInterest } from "@/lib/verify/orchestrator";
 
@@ -123,10 +122,9 @@ export default async function RequestDetailPage({
 								{t("messageFrom", { company: companyName })}
 							</h2>
 							<div className="mt-2">
-								<TranslatableText
-									text={interest.message}
-									context="Nachricht des Arbeitgebers in einer Interest-Anfrage."
-								/>
+								<p className="whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed">
+									{interest.message}
+								</p>
 							</div>
 						</div>
 					)}
@@ -134,11 +132,9 @@ export default async function RequestDetailPage({
 					<div className="rounded-lg border border-border bg-background p-4 sm:p-5">
 						<h2 className="font-medium text-sm">{t("aboutTheJob")}</h2>
 						<div className="mt-2">
-							<TranslatableText
-								text={job.description}
-								context="Kurz-Beschreibung der Stelle."
-								className="line-clamp-6 whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed"
-							/>
+							<p className="line-clamp-6 whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed">
+								{job.description}
+							</p>
 						</div>
 					</div>
 

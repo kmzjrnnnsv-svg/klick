@@ -4,7 +4,6 @@ import { Send } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { askJobQuestion } from "@/app/actions/job-questions";
-import { TranslatableText } from "@/components/translate/translatable-text";
 import { Button } from "@/components/ui/button";
 
 type ThreadEntry = {
@@ -81,10 +80,9 @@ export function JobQuestionThread({
 							{/* Candidate bubble (right-aligned) */}
 							<div className="flex justify-end">
 								<div className="max-w-[80%] rounded-sm rounded-br-none border border-primary/30 bg-primary/10 px-3 py-2">
-									<TranslatableText
-										text={q.body}
-										context="Frage einer:s Kandidat:in zur Stellenausschreibung."
-									/>
+									<p className="whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed">
+										{q.body}
+									</p>
 									<p className="mt-1 text-right font-mono text-[9px] text-muted-foreground">
 										{q.pending
 											? t("sending")
@@ -103,10 +101,9 @@ export function JobQuestionThread({
 											{t("employerAnswered")}
 										</p>
 										<div className="mt-1">
-											<TranslatableText
-												text={q.answer}
-												context="Antwort der Firma auf eine Bewerber-Frage."
-											/>
+											<p className="whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed">
+												{q.answer}
+											</p>
 										</div>
 										{q.answeredAt && (
 											<p className="mt-1 font-mono text-[9px] text-muted-foreground">

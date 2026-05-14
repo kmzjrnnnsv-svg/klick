@@ -18,7 +18,6 @@ import { StageRatingPrompt } from "@/components/applications/stage-rating-prompt
 import { WoltTracker } from "@/components/applications/wolt-tracker";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
-import { TranslatableText } from "@/components/translate/translatable-text";
 import { Button } from "@/components/ui/button";
 
 export default async function ApplicationDetailPage({
@@ -152,10 +151,9 @@ export default async function ApplicationDetailPage({
 							{t("yourCoverLetter")}
 						</p>
 						<div className="mt-2 rounded-sm border border-border bg-muted/30 p-4">
-							<TranslatableText
-								text={app.coverLetter}
-								context="Bewerbungs-Anschreiben einer:s Kandidat:in."
-							/>
+							<p className="whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed">
+								{app.coverLetter}
+							</p>
 						</div>
 					</section>
 				)}

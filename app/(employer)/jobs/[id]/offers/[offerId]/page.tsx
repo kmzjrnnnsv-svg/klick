@@ -10,7 +10,6 @@ import {
 import { auth } from "@/auth";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
-import { TranslatableText } from "@/components/translate/translatable-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -136,11 +135,9 @@ export default async function EmployerOfferDetailPage({
 										</p>
 										{step.message && (
 											<div className="mt-2">
-												<TranslatableText
-													text={step.message}
-													context="Offer-Nachricht in einer Verhandlungs-Kette."
-													className="whitespace-pre-wrap text-foreground/90 text-xs leading-relaxed"
-												/>
+												<p className="whitespace-pre-wrap text-foreground/90 text-xs leading-relaxed">
+													{step.message}
+												</p>
 											</div>
 										)}
 										{step.decidedMessage && (

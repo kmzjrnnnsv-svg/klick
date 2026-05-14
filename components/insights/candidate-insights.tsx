@@ -10,7 +10,7 @@ import {
 	Target,
 	TrendingUp,
 } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import type { CandidateProfile } from "@/db/schema";
 import { classifyIssuer } from "@/lib/insights/issuers";
 import type { CandidateInsights } from "@/lib/insights/types";
@@ -29,18 +29,11 @@ export type ProfileExtras = Pick<
 	| "preferredRoleLevel"
 >;
 
-function makeMonthsToYears(locale: "de" | "en") {
-	return (m: number): string => {
-		const y = m / 12;
-		if (locale === "en") {
-			if (y < 1) return `${Math.round(m)} months`;
-			if (y < 2) return m >= 12 ? "1 year" : `${Math.round(m)} months`;
-			return `${Math.round(y)} years`;
-		}
-		if (y < 1) return `${Math.round(m)} Monate`;
-		if (y < 2) return m >= 12 ? "1 Jahr" : `${Math.round(m)} Monate`;
-		return `${Math.round(y)} Jahre`;
-	};
+function monthsToYears(m: number): string {
+	const y = m / 12;
+	if (y < 1) return `${Math.round(m)} Monate`;
+	if (y < 2) return m >= 12 ? "1 Jahr" : `${Math.round(m)} Monate`;
+	return `${Math.round(y)} Jahre`;
 }
 
 export function CandidateInsightsView({
@@ -48,7 +41,6 @@ export function CandidateInsightsView({
 	profileExtras,
 	emptyHint,
 	showRefresh,
-	contentLocale,
 }: {
 	insights: CandidateInsights | null;
 	profileExtras?: ProfileExtras | null;
@@ -56,17 +48,8 @@ export function CandidateInsightsView({
 	// Nur auf dem eigenen Profil sinnvoll — Arbeitgeber-Match-Liste und
 	// Public-Share-Link sollen den Knopf nicht zeigen.
 	showRefresh?: boolean;
-	// Sprache der INHALTLICHEN Texte (AI-Profil-Lesart). Auf /profile vom
-	// Profil-Tab gesteuert, NICHT vom Header. Ohne Angabe (Public-Share,
-	// Arbeitgeber-Match) folgt die Lesart der UI-Locale.
-	contentLocale?: "de" | "en";
 }) {
 	const t = useTranslations("Insights");
-	// Header-Locale: steuert App-Chrome — Labels, Einheiten ("Jahre"/"years").
-	const locale = useLocale() as "de" | "en";
-	// Inhalts-Locale: steuert die AI-Lesart. Default = Header-Locale.
-	const narrativeLocale = contentLocale ?? locale;
-	const monthsToYears = makeMonthsToYears(locale);
 	if (!insights) {
 		return (
 			<div className="rounded-lg border border-border border-dashed p-6 text-center text-muted-foreground text-sm">
@@ -75,23 +58,7 @@ export function CandidateInsightsView({
 		);
 	}
 
-	const {
-		experience,
-		tenure,
-		tenureScore,
-		certificates,
-		narrative: rawNarrative,
-	} = insights;
-	// Pick the narrative variant for the active content locale. If not yet
-	// translated (recomputeInsights schedules the translation in the
-	// background), fall back to the origin variant.
-	const narrative = rawNarrative
-		? (rawNarrative.byLocale?.[narrativeLocale] ?? {
-				summary: rawNarrative.summary,
-				workStyle: rawNarrative.workStyle,
-				strengths: rawNarrative.strengths,
-			})
-		: undefined;
+	const { experience, tenure, tenureScore, certificates, narrative } = insights;
 	const hasExtras =
 		!!profileExtras &&
 		((profileExtras.industries?.length ?? 0) > 0 ||

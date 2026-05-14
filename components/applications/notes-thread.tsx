@@ -1,21 +1,14 @@
 "use client";
 
 import { Loader2, MessageSquarePlus, Trash2 } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import {
 	addApplicationNote,
 	deleteApplicationNote,
 	listApplicationNotes,
 } from "@/app/actions/applications";
-import { TranslateButton } from "@/components/translate/translate-button";
 import { Button } from "@/components/ui/button";
-
-function looksGerman(text: string): boolean {
-	const t = text.toLowerCase();
-	if (/[äöüß]/.test(t)) return true;
-	return /\b(und|der|die|das|für|mit|von|über|ist|hat|nicht)\b/.test(t);
-}
 
 type Note = {
 	id: string;
@@ -33,8 +26,6 @@ export function NotesThread({
 	currentUserId: string | null;
 }) {
 	const t = useTranslations("ApplicationNotes");
-	const localeRaw = useLocale();
-	const uiLocale: "de" | "en" = localeRaw === "en" ? "en" : "de";
 	const [notes, setNotes] = useState<Note[]>([]);
 	const [body, setBody] = useState("");
 	const [isPending, startTransition] = useTransition();
@@ -139,27 +130,6 @@ export function NotesThread({
 								)}
 							</div>
 							<p className="whitespace-pre-wrap leading-relaxed">{n.body}</p>
-							{(() => {
-								const from: "de" | "en" = looksGerman(n.body) ? "de" : "en";
-								if (from === uiLocale) return null;
-								return (
-									<div className="mt-1.5">
-										<TranslateButton
-											original={n.body}
-											from={from}
-											context="Team-interne Notiz zu einer Bewerbung."
-											onTranslated={(translated) => {
-												if (typeof translated !== "string") return;
-												setNotes((prev) =>
-													prev.map((x) =>
-														x.id === n.id ? { ...x, body: translated } : x,
-													),
-												);
-											}}
-										/>
-									</div>
-								);
-							})()}
 						</li>
 					))}
 				</ul>

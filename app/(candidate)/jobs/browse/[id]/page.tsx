@@ -14,7 +14,6 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { JobProcessPreview } from "@/components/jobs/job-process-preview";
 import { JobQuestionThread } from "@/components/jobs/job-question-thread";
-import { TranslatableText } from "@/components/translate/translatable-text";
 import { db } from "@/db";
 import { employers, jobMandates, jobStages, jobs } from "@/db/schema";
 
@@ -155,11 +154,9 @@ export default async function JobDetailPage({
 						{t("description")}
 					</p>
 					<div className="mt-3">
-						<TranslatableText
-							text={job.description}
-							context="Stellenbeschreibung."
-							className="whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed sm:text-base"
-						/>
+						<p className="whitespace-pre-wrap text-foreground/90 text-sm leading-relaxed sm:text-base">
+							{job.description}
+						</p>
 					</div>
 				</section>
 
