@@ -57,22 +57,21 @@ export default async function ProfilePage({
 		params.tab === "en" ? "en" : params.tab === "de" ? "de" : null;
 	const tab: "de" | "en" = requestedTab ?? originLocale;
 
-	// Auto-translate-trigger nur in der UI-Locale wenn es nicht eh die
-	// Quell-Sprache ist und keine Übersetzung existiert. Greift unabhängig
-	// vom Tab.
-	await ensureTranslationForLocale(locale);
+	// Auto-translate-trigger für den aktiven Profil-Tab: ist der Tab nicht
+	// die Quell-Sprache und existiert noch keine Übersetzung, wird sie im
+	// Hintergrund erzeugt. Der Header (UI-Locale) löst das NICHT aus — er
+	// steuert nur App-Chrome, nicht die Profil-Inhalte.
+	await ensureTranslationForLocale(tab);
 
-	const hasTranslation = !!profile?.translations?.[locale];
+	const hasTranslation = !!profile?.translations?.[tab];
 	const translationPending =
-		!!profile && locale !== originLocale && !hasTranslation;
+		!!profile && tab !== originLocale && !hasTranslation;
 
-	// localizedInitial dient zwei Zwecken mit zwei Sprachen:
-	//   - ProfileForm (Origin-Tab): zeigt die Quell-Daten → originLocale.
-	//   - CandidateInsightsView profileExtras: folgt der UI-Locale (Header),
-	//     NICHT dem Tab. Der Tab ist nur Editor-Modus.
-	// Da ProfileForm nur rendert wenn tab === originLocale, ist
-	// localizedProfile(profile, originLocale) für die Form korrekt; die
-	// Insights bekommen separat die UI-Locale-Variante.
+	// Zwei lokalisierte Sichten des Profils:
+	//   - formInitial → ProfileForm: zeigt die Quell-Daten (originLocale).
+	//     ProfileForm rendert nur wenn tab === originLocale, daher korrekt.
+	//   - insightsView → CandidateInsightsView profileExtras: folgt dem
+	//     Profil-Tab (= Inhalts-Sprache), NICHT dem Header.
 	let formInitial: CandidateProfile | null = profile;
 	let insightsView: CandidateProfile | null = profile;
 	if (profile) {
@@ -92,7 +91,7 @@ export default async function ProfilePage({
 				publications: fv.publications,
 				volunteering: fv.volunteering,
 			};
-			const iv = localizedProfile(profile, locale);
+			const iv = localizedProfile(profile, tab);
 			insightsView = {
 				...profile,
 				industries: iv.industries,
@@ -137,6 +136,7 @@ export default async function ProfilePage({
 					</h2>
 					<CandidateInsightsView
 						insights={insights}
+						contentLocale={tab}
 						profileExtras={
 							profile
 								? {
