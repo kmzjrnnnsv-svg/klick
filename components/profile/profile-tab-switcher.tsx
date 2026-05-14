@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
-// Tab-Bar oben auf /profile — wechselt zwischen Quell-Sprache-Editor
-// (Default: DE) und Übersetzungs-Editor (EN). Server-Component, kein
-// Client-State nötig — Tab kommt aus dem URL-Param.
+// Tab-Bar oben auf /profile — wechselt zwischen DE/EN Editoren. Beide
+// Tabs sind gleichwertig: jeder editiert das Profil in seiner Sprache.
+// origin ist nur intern — der User soll nicht zwischen "Quelle" und
+// "Übersetzung" unterscheiden müssen.
 export async function ProfileTabSwitcher({
 	currentTab,
-	origin,
 }: {
 	currentTab: "de" | "en";
-	origin: "de" | "en";
+	origin?: "de" | "en";
 }) {
 	const t = await getTranslations("Profile");
 	return (
@@ -19,7 +19,6 @@ export async function ProfileTabSwitcher({
 		>
 			{(["de", "en"] as const).map((tab) => {
 				const active = tab === currentTab;
-				const isOrigin = tab === origin;
 				return (
 					<Link
 						key={tab}
@@ -32,17 +31,6 @@ export async function ProfileTabSwitcher({
 						}`}
 					>
 						<span>{tab === "de" ? t("tabDe") : t("tabEn")}</span>
-						{isOrigin && (
-							<span
-								className={`rounded-sm border px-1 py-px text-[9px] ${
-									active
-										? "border-primary-foreground/40 text-primary-foreground/80"
-										: "border-border text-muted-foreground"
-								}`}
-							>
-								{t("tabSourceMark")}
-							</span>
-						)}
 					</Link>
 				);
 			})}

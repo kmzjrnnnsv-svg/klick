@@ -91,27 +91,39 @@ export async function recomputeInsights(userId: string): Promise<void> {
 					asOf: new Date().toISOString().slice(0, 10),
 				});
 
-				// Übersetze Narrative in die jeweils andere Sprache. Bei Mock
-				// (kein API-Key) ist das ein No-Op und wir setzen einfach den
-				// Origin-Text auch in die andere Locale.
+				// Übersetze Narrative in die jeweils andere Sprache. Sauber
+				// via translateTexts (jeder String einzeln korrekt übersetzt)
+				// statt via translateProfile's awards/industries-Felder zu
+				// missbrauchen — letzteres behandelte strengths als Eigennamen
+				// und ließ sie teils unübersetzt → gemischte Sprachen.
 				const otherLocale: "de" | "en" = originLocale === "de" ? "en" : "de";
-				const translation = await ai
-					.translateProfile({
+				const toTranslate = [
+					narrativeOrigin.summary,
+					...narrativeOrigin.strengths,
+					...narrativeOrigin.workStyle,
+				];
+				const translatedTexts = await ai
+					.translateTexts({
+						texts: toTranslate,
 						from: originLocale,
 						to: otherLocale,
-						summary: narrativeOrigin.summary,
-						awards: narrativeOrigin.strengths,
-						industries: narrativeOrigin.workStyle,
+						context:
+							"Kandidat:innen-Profil-Lesart für Arbeitgeber. Eigennamen, Firmen, Frameworks (ISO 27001, NIST CSF, CISSP) UNVERÄNDERT lassen, alles andere natürlich übersetzen.",
 					})
 					.catch(() => null);
 
-				const narrativeOther = translation
-					? {
-							summary: translation.summary ?? narrativeOrigin.summary,
-							workStyle: translation.industries ?? narrativeOrigin.workStyle,
-							strengths: translation.awards ?? narrativeOrigin.strengths,
-						}
-					: narrativeOrigin;
+				let narrativeOther = narrativeOrigin;
+				if (translatedTexts && translatedTexts.length === toTranslate.length) {
+					let i = 0;
+					const summary = translatedTexts[i++] ?? narrativeOrigin.summary;
+					const strengths = narrativeOrigin.strengths.map(
+						(s) => translatedTexts[i++] ?? s,
+					);
+					const workStyle = narrativeOrigin.workStyle.map(
+						(w) => translatedTexts[i++] ?? w,
+					);
+					narrativeOther = { summary, strengths, workStyle };
+				}
 
 				insights.narrative = {
 					summary: narrativeOrigin.summary,

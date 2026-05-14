@@ -291,6 +291,10 @@
 		"translationTabHint": "You're editing the {lang} variant. Source: {source}. Save only translations here — salary, visibility and contact options live in the source tab.",
 		"autoFillAll": "Auto-translate all",
 		"autoFillPending": "Translating…",
+		"autoTranslateAllHint": "Auto-translate all text to {lang} — source fields will be overwritten. You can edit manually afterwards.",
+		"autoTranslateAllAction": "Translate everything to {lang}",
+		"autoTranslatePending": "Translating…",
+		"autoTranslateSameLang": "Profile is already in this language.",
 		"share": {
 			"title": "Public share link",
 			"subtitle": "Optional. Exposes a read-only profile page you can share — e.g. in an application or your CV header. You can revoke anytime.",
