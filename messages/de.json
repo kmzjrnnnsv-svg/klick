@@ -70,7 +70,7 @@
 		},
 		"candidateJourney": {
 			"eyebrow": "Für Kandidat:innen",
-			"title": "Fünf Schritte. Kein Lebenslauf-Ping-Pong mehr.",
+			"title": "Sechs Schritte. Kein Lebenslauf-Ping-Pong mehr.",
 			"steps": {
 				"1": {
 					"title": "Vault eröffnen",
@@ -78,19 +78,23 @@
 				},
 				"2": {
 					"title": "Dokumente hochladen",
-					"body": "Lebenslauf, Arbeitszeugnisse, Zertifikate, ID. Alles wird beim Upload verschlüsselt."
+					"body": "Lebenslauf, Arbeitszeugnisse, Zertifikate, ID, Open Badges. Alles wird beim Upload verschlüsselt."
 				},
 				"3": {
-					"title": "KI extrahiert dein Profil",
-					"body": "Claude liest deinen Lebenslauf, erkennt Skills, Branchen, Mobilität. Du korrigierst, falls nötig."
+					"title": "KI baut dein Profil",
+					"body": "Claude liest deinen Lebenslauf, erkennt Skills, Branchen, Sprachen, Mobilität. Du korrigierst jedes Feld selbst."
 				},
 				"4": {
-					"title": "Matches erscheinen anonym",
-					"body": "Stellen, die zu dir passen — mit Gehalts-Einschätzung, Pendelweg-Berechnung und KI-Begründung."
+					"title": "Tiefen-Analyse erhalten",
+					"body": "Insights & Tenure-Score plus eine KI-Karriere-Analyse: realistisches Gehaltsband, verdeckte Branchen, Zertifizierungs-Pfade, Pro und Contra."
 				},
 				"5": {
-					"title": "Du entscheidest",
-					"body": "Pro Anfrage gibst du frei: welche Datei sichtbar wird, welche Prüfung laufen darf, ob dein Name fällt."
+					"title": "Referenzen & Verifikation",
+					"body": "Lade Ex-Kolleg:innen zu drei kurzen Fragen ein. Verifikationen laufen erst bei echtem Arbeitgeber-Interesse — du gibst sie einzeln frei."
+				},
+				"6": {
+					"title": "Matches & Freigabe",
+					"body": "Passende Stellen kommen anonym zu dir. Pro Anfrage entscheidest du: welche Datei sichtbar wird, welche Prüfung läuft, ob dein Name fällt."
 				}
 			}
 		},
@@ -100,60 +104,81 @@
 			"steps": {
 				"1": {
 					"title": "Stelle anlegen",
-					"body": "Tippen oder PDF hochladen — Klick extrahiert Anforderungen, Gehaltsband und Standort automatisch."
+					"body": "Tippen oder PDF hochladen — Klick extrahiert Anforderungen, Gehaltsband und Standort. Wiederverwendbare Prozess-Vorlagen inklusive."
 				},
 				"2": {
 					"title": "Match-Engine läuft",
-					"body": "Hard-Filter (Pflicht-Skills, Mindesterfahrung) plus Soft-Score mit Quereinstiegs-Toleranz und Pendelweg-Check."
+					"body": "Hard-Filter (Pflicht-Skills, Mindesterfahrung, Sprachen) plus Soft-Score mit Quereinstiegs-Toleranz und Pendelweg-Check."
 				},
 				"3": {
-					"title": "Anonyme Liste",
-					"body": "Top-Kandidat:innen mit Score, Pro/Contra, Match-Begründung, Gehaltsfairness — ohne Klarnamen."
+					"title": "Anonyme Kandidaten-Liste",
+					"body": "Top-Profile mit Score, Pro/Contra, KI-Match-Begründung und Gehaltsfairness — ohne Klarnamen."
 				},
 				"4": {
 					"title": "Interesse + Verifikation",
-					"body": "Du wählst Prüfungstiefe und schreibst eine Nachricht. Erst nach Approval siehst du Identität und Vault."
+					"body": "Du wählst die Prüftiefe und schreibst eine Nachricht. Erst nach Approval siehst du Identität und freigegebenen Vault."
+				},
+				"5": {
+					"title": "Bewerbungs-Pipeline",
+					"body": "Kanban-Board mit eigenen Stufen, Assessments, Frage-Threads, Nachrichten und teaminternen Notizen — im Team mit geteilten Rollen."
+				},
+				"6": {
+					"title": "Angebot & Verhandlung",
+					"body": "Strukturierter Offer-Flow mit Gegenangeboten. Jede Entscheidung landet revisionssicher im Audit-Log."
 				}
 			}
 		},
 		"features": {
 			"eyebrow": "Funktionen",
 			"title": "Alles, was du brauchst. Nichts, was wir verkaufen.",
+			"subtitle": "Der komplette Funktionsumfang von Klick — vom verschlüsselten Upload bis zur Angebots-Verhandlung.",
 			"vault": {
 				"title": "Verschlüsselter Vault",
 				"body": "Envelope-Encryption mit Per-User-DEK. Drag-and-Drop oder Kamera-Upload direkt vom Handy."
 			},
 			"cv": {
 				"title": "KI-Profil aus Lebenslauf",
-				"body": "Claude erkennt Skills, Branchen, Mobilität, Auszeichnungen, Sprachniveau. Mock läuft offline."
+				"body": "Claude erkennt Skills, Branchen, Mobilität, Auszeichnungen, Sprachniveau. Mock-Provider läuft offline."
+			},
+			"insights": {
+				"title": "Insights & Tenure-Score",
+				"body": "Verweildauer, Lücken, Wechselrhythmus, Zertifikats-Qualität, Aussteller-Legitimität — automatisch berechnet."
+			},
+			"career": {
+				"title": "KI-Karriere-Analyse",
+				"body": "Tiefe Auswertung: Gehaltsband, klare und verdeckte Branchen, Zertifizierungs-Pfade, Rollen-Optionen, Pro und Contra, Marktlage."
 			},
 			"badges": {
 				"title": "Open Badges & Credly",
-				"body": "Per Link einbinden — JSON-LD wird gelesen, Aussteller geprüft, Echtheit signalisiert."
+				"body": "Per Link einbinden — JSON-LD wird gelesen, Aussteller gegen eine Allowlist geprüft, Echtheit signalisiert."
 			},
 			"verify": {
 				"title": "Verifikation on demand",
 				"body": "Mock, Credly oder IDnow — pro Anfrage einzeln. Connector-Pattern, weitere Quellen pluggable."
 			},
+			"references": {
+				"title": "Referenz-Checks",
+				"body": "Ex-Kolleg:innen beantworten drei kurze Fragen über einen privaten Link. Du gibst die Antworten pro Arbeitgeber frei."
+			},
 			"match": {
 				"title": "Match-Engine",
-				"body": "Skill-Cluster für Quereinstieg, Pendelweg via OSRM/OTP, Gehaltsband-Abgleich, KI-Begründung."
+				"body": "Skill-Cluster für Quereinstieg, Pendelweg via OSRM/OTP, Gehaltsband-Abgleich, KI-Begründung pro Treffer."
 			},
 			"salary": {
 				"title": "Gehaltsbenchmark",
-				"body": "KI vergleicht das Stellen-Gehalt mit dem Markt. Kandidat:in sieht: zu niedrig, fair, generös."
+				"body": "KI vergleicht das Stellen-Gehalt mit dem Markt — pro Land. Kandidat:in sieht: zu niedrig, fair, generös."
 			},
-			"insights": {
-				"title": "Insights & Tenure-Score",
-				"body": "Verweildauer, Lücken, Wechselrhythmus, Zertifikats-Qualität, Aussteller-Legitimität."
+			"applications": {
+				"title": "Bewerbungs-Pipeline",
+				"body": "ATS mit Kanban-Board, eigenen Stufen, Assessments, Frage-Threads, Nachrichten und teaminternen Notizen."
+			},
+			"offers": {
+				"title": "Angebote & Verhandlung",
+				"body": "Strukturierter Offer-Flow mit Gegenangeboten — jeder Schritt revisionssicher protokolliert."
 			},
 			"disclosure": {
 				"title": "Per-File-Disclosure",
-				"body": "Selbst nach Approval: jede Datei einzeln freigeben oder zurückziehen. Audit-Log inklusive."
-			},
-			"public": {
-				"title": "Öffentliches Profil (optional)",
-				"body": "Erstelle einen Share-Link mit Token. Dreh ihn ab, wann du willst — alte Links werden ungültig."
+				"body": "Selbst nach Approval: jede Datei und jede Referenz einzeln freigeben oder zurückziehen. Audit-Log inklusive."
 			}
 		},
 		"trust": {
@@ -199,6 +224,10 @@
 					"a": "Wir lesen die offizielle JSON-LD-URL und checken den Aussteller gegen unsere Allowlist (~35 etablierte Anbieter)."
 				},
 				"5": {
+					"q": "Wie funktionieren Referenzen?",
+					"a": "Du lädst Ex-Kolleg:innen per E-Mail ein. Sie beantworten drei kurze Fragen über einen privaten Link — die Antworten sieht nur, wem du sie freigibst."
+				},
+				"6": {
 					"q": "Funktioniert das in meiner Branche?",
 					"a": "Klick ist branchenoffen. Skill-Cluster decken Tech, Design, Marketing, Data, Mobile und mehr ab — mit Quereinstiegs-Logik."
 				}
@@ -1719,13 +1748,33 @@
 		"notSavedYet": "Noch nicht gespeichert"
 	},
 	"References": {
-		"hint": "Wir schicken eine Mail mit drei kurzen Fragen + einem privaten Link. Die Antwort landet in deinem Profil — der Arbeitgeber sieht sie nur, wenn du sie freigibst.",
+		"intro": "Referenzen sind dein stärkstes Signal — und sie gehören dir. Du lädst ehemalige Vorgesetzte oder Kolleg:innen ein, drei kurze Fragen zu beantworten. Die Antworten landen ausschließlich in deinem Profil. Kein Arbeitgeber sieht sie, bevor du sie für eine konkrete Anfrage freigibst.",
+		"flowHeading": "So läuft's",
+		"flow": {
+			"1": {
+				"title": "Einladen",
+				"body": "Name und E-Mail einer Referenz eintragen. Wir schicken eine Mail mit den drei Fragen und einem privaten Link."
+			},
+			"2": {
+				"title": "Privat beantworten",
+				"body": "Deine Referenz antwortet über den Link — ohne Account, in fünf Minuten. Der Link ist 21 Tage gültig."
+			},
+			"3": {
+				"title": "Gezielt freigeben",
+				"body": "Du siehst die Antworten zuerst. Pro Arbeitgeber-Anfrage entscheidest du einzeln, welche Referenz sichtbar wird — und ziehst sie jederzeit zurück."
+			}
+		},
+		"questionsHeading": "Diese drei Fragen beantwortet deine Referenz",
+		"addHeading": "Referenz einladen",
 		"namePlaceholder": "Name der Referenz",
 		"emailPlaceholder": "E-Mail",
 		"relationPlaceholder": "Beziehung — z. B. Ex-Manager",
 		"sendRequest": "Anfrage senden",
 		"sending": "Sende…",
 		"nameEmailRequired": "Name und E-Mail sind Pflicht.",
+		"expiresHint": "Der Link ist 21 Tage gültig. Deine Referenz kann die Anfrage jederzeit ignorieren.",
+		"listHeading": "Deine Anfragen",
+		"emptyState": "Noch keine Referenz angefragt — die erste Einladung ist in 30 Sekunden raus.",
 		"showAnswers": "Antworten anzeigen",
 		"delete": "Anfrage löschen",
 		"status": {

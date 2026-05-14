@@ -16,6 +16,8 @@
 	--primary-foreground: oklch(0.99 0.004 90); /* fast weiß */
 	--accent: oklch(0.85 0.07 254); /* ≈ #b8c8ee Hellblau-Highlight */
 	--accent-foreground: oklch(0.13 0 0);
+	--brown: oklch(0.38 0.055 65); /* ≈ #5a4632 warmes Walnuss-Braun */
+	--brown-foreground: oklch(0.985 0.004 90); /* helles Elfenbein */
 	--radius: 0.5rem;
 }
 
@@ -29,6 +31,8 @@
 	--primary-foreground: oklch(0.13 0 0);
 	--accent: oklch(0.4 0.1 254); /* dunkleres Highlight */
 	--accent-foreground: oklch(0.96 0.005 90);
+	--brown: oklch(0.62 0.07 65); /* ≈ #a8825c helles Karamell-Braun */
+	--brown-foreground: oklch(0.13 0 0); /* tiefes Schwarz */
 }
 
 @theme inline {
@@ -41,6 +45,8 @@
 	--color-primary-foreground: var(--primary-foreground);
 	--color-accent: var(--accent);
 	--color-accent-foreground: var(--accent-foreground);
+	--color-brown: var(--brown);
+	--color-brown-foreground: var(--brown-foreground);
 	--radius-sm: calc(var(--radius) - 2px);
 	--radius-md: var(--radius);
 	--radius-lg: calc(var(--radius) + 4px);

@@ -22,6 +22,14 @@ const STEPS = [
 	{ at: 92, label: "Auswertung schreiben" },
 ];
 
+// Platzhalter für eine leere Liste — verhindert, dass eine Sektion nur
+// aus ihrer Überschrift besteht (sah aus wie ein Render-Bug). Greift bei
+// Teil-Analysen aus früheren Schema-Versionen; der Incomplete-Banner
+// oben weist parallel auf "neu auswerten" hin.
+function EmptyLine() {
+	return <li className="text-muted-foreground/50 text-sm">—</li>;
+}
+
 // Echter Progress-Bar: asymptotisch auf 92%, snapt auf 100% wenn die
 // Server-Action zurückkommt. Status-Text wechselt automatisch je nach
 // Fortschritt. Zeitkonstante 25s → bei 60s API-Antwort ist die Anzeige
@@ -174,15 +182,20 @@ export function CareerAnalysisView({
 	const hiringCons = analysis.hiringCons ?? [];
 	const marketContext = analysis.marketContext ?? null;
 
-	// Schema-Drift-Erkennung: wenn die wichtigen Listen alle leer sind,
-	// stammt die Analyse aus einer früheren Version oder die KI hat
-	// damals nichts geliefert. Den User auf "neu auswerten" stoßen.
+	// Schema-Drift-Erkennung: das KI-Schema verlangt JEDE Liste gefüllt.
+	// Ist hier auch nur eine leer, stammt die Analyse aus einer früheren
+	// Profil-Version oder einem Teil-Fehlschlag — den User auf "neu
+	// auswerten" stoßen, damit z. B. die Pro/Contra-Argumente nicht leer
+	// bleiben.
 	const looksIncomplete =
-		strengths.length === 0 &&
-		growthAreas.length === 0 &&
-		primaryIndustries.length === 0 &&
-		certificationSuggestions.length === 0 &&
-		hiringPros.length === 0;
+		strengths.length === 0 ||
+		growthAreas.length === 0 ||
+		primaryIndustries.length === 0 ||
+		adjacentIndustries.length === 0 ||
+		certificationSuggestions.length === 0 ||
+		roleSuggestions.length === 0 ||
+		hiringPros.length === 0 ||
+		hiringCons.length === 0;
 
 	// Sprach-Mismatch: Analyse ist auf z. B. Deutsch, UI ist EN. Den User
 	// auf neu auswerten stoßen — die KI generiert dann direkt in der
@@ -295,14 +308,18 @@ export function CareerAnalysisView({
 						{t("strengths")}
 					</p>
 					<ul className="mt-2 space-y-1.5 text-xs">
-						{strengths.map((s) => (
-							<li key={s} className="flex gap-2">
-								<span className="text-emerald-700 dark:text-emerald-300">
-									+
-								</span>
-								<span>{s}</span>
-							</li>
-						))}
+						{strengths.length > 0 ? (
+							strengths.map((s) => (
+								<li key={s} className="flex gap-2">
+									<span className="text-emerald-700 dark:text-emerald-300">
+										+
+									</span>
+									<span>{s}</span>
+								</li>
+							))
+						) : (
+							<EmptyLine />
+						)}
 					</ul>
 				</div>
 				<div>
@@ -310,12 +327,16 @@ export function CareerAnalysisView({
 						{t("growthAreas")}
 					</p>
 					<ul className="mt-2 space-y-1.5 text-xs">
-						{growthAreas.map((g) => (
-							<li key={g} className="flex gap-2">
-								<span className="text-amber-700 dark:text-amber-300">→</span>
-								<span>{g}</span>
-							</li>
-						))}
+						{growthAreas.length > 0 ? (
+							growthAreas.map((g) => (
+								<li key={g} className="flex gap-2">
+									<span className="text-amber-700 dark:text-amber-300">→</span>
+									<span>{g}</span>
+								</li>
+							))
+						) : (
+							<EmptyLine />
+						)}
 					</ul>
 				</div>
 			</div>
@@ -326,14 +347,18 @@ export function CareerAnalysisView({
 					{t("primaryIndustries")}
 				</p>
 				<div className="mt-2 flex flex-wrap gap-1.5">
-					{primaryIndustries.map((i) => (
-						<span
-							key={i}
-							className="rounded-sm bg-foreground px-2 py-0.5 font-mono text-[11px] text-background"
-						>
-							{i}
-						</span>
-					))}
+					{primaryIndustries.length > 0 ? (
+						primaryIndustries.map((i) => (
+							<span
+								key={i}
+								className="rounded-sm bg-foreground px-2 py-0.5 font-mono text-[11px] text-background"
+							>
+								{i}
+							</span>
+						))
+					) : (
+						<span className="text-muted-foreground/50 text-sm">—</span>
+					)}
 				</div>
 			</div>
 
@@ -342,17 +367,21 @@ export function CareerAnalysisView({
 					{t("adjacentIndustries")}
 				</p>
 				<ul className="mt-2 space-y-2">
-					{adjacentIndustries.map((a) => (
-						<li
-							key={a.name}
-							className="rounded-sm border border-border bg-background p-3 text-xs"
-						>
-							<p className="font-medium">{a.name}</p>
-							<p className="mt-1 text-muted-foreground leading-relaxed">
-								{a.rationale}
-							</p>
-						</li>
-					))}
+					{adjacentIndustries.length > 0 ? (
+						adjacentIndustries.map((a) => (
+							<li
+								key={a.name}
+								className="rounded-sm border border-border bg-background p-3 text-xs"
+							>
+								<p className="font-medium">{a.name}</p>
+								<p className="mt-1 text-muted-foreground leading-relaxed">
+									{a.rationale}
+								</p>
+							</li>
+						))
+					) : (
+						<EmptyLine />
+					)}
 				</ul>
 			</div>
 
@@ -362,28 +391,32 @@ export function CareerAnalysisView({
 					{t("roleSuggestions")}
 				</p>
 				<ul className="mt-2 space-y-2">
-					{roleSuggestions.map((r) => (
-						<li
-							key={r.title}
-							className="grid grid-cols-[auto_1fr] gap-3 rounded-sm border border-border bg-background p-3 text-xs"
-						>
-							<span
-								className={`lv-eyebrow rounded-sm px-2 py-0.5 text-[0.5rem] ${
-									r.obvious
-										? "bg-muted text-muted-foreground"
-										: "bg-primary/10 text-primary"
-								}`}
+					{roleSuggestions.length > 0 ? (
+						roleSuggestions.map((r) => (
+							<li
+								key={r.title}
+								className="grid grid-cols-[auto_1fr] gap-3 rounded-sm border border-border bg-background p-3 text-xs"
 							>
-								{r.obvious ? t("obvious") : t("hidden")}
-							</span>
-							<div>
-								<p className="font-medium">{r.title}</p>
-								<p className="mt-1 text-muted-foreground leading-relaxed">
-									{r.rationale}
-								</p>
-							</div>
-						</li>
-					))}
+								<span
+									className={`lv-eyebrow rounded-sm px-2 py-0.5 text-[0.5rem] ${
+										r.obvious
+											? "bg-muted text-muted-foreground"
+											: "bg-primary/10 text-primary"
+									}`}
+								>
+									{r.obvious ? t("obvious") : t("hidden")}
+								</span>
+								<div>
+									<p className="font-medium">{r.title}</p>
+									<p className="mt-1 text-muted-foreground leading-relaxed">
+										{r.rationale}
+									</p>
+								</div>
+							</li>
+						))
+					) : (
+						<EmptyLine />
+					)}
 				</ul>
 			</div>
 
@@ -393,25 +426,29 @@ export function CareerAnalysisView({
 					{t("certifications")}
 				</p>
 				<ul className="mt-2 space-y-2">
-					{certificationSuggestions.map((c) => (
-						<li
-							key={c.name}
-							className="rounded-sm border border-border bg-background p-3 text-xs"
-						>
-							<div className="flex items-baseline justify-between gap-3">
-								<p className="font-medium">{c.name}</p>
-								<span className="font-mono text-[10px] text-muted-foreground">
-									{t("effortHours", { hours: c.effortHours })}
-								</span>
-							</div>
-							<p className="mt-0.5 text-[10px] text-muted-foreground">
-								{t("issuedBy", { issuer: c.issuer })}
-							</p>
-							<p className="mt-1 text-muted-foreground leading-relaxed">
-								{c.why}
-							</p>
-						</li>
-					))}
+					{certificationSuggestions.length > 0 ? (
+						certificationSuggestions.map((c) => (
+							<li
+								key={c.name}
+								className="rounded-sm border border-border bg-background p-3 text-xs"
+							>
+								<div className="flex items-baseline justify-between gap-3">
+									<p className="font-medium">{c.name}</p>
+									<span className="font-mono text-[10px] text-muted-foreground">
+										{t("effortHours", { hours: c.effortHours })}
+									</span>
+								</div>
+								<p className="mt-0.5 text-[10px] text-muted-foreground">
+									{t("issuedBy", { issuer: c.issuer })}
+								</p>
+								<p className="mt-1 text-muted-foreground leading-relaxed">
+									{c.why}
+								</p>
+							</li>
+						))
+					) : (
+						<EmptyLine />
+					)}
 				</ul>
 			</div>
 
@@ -422,9 +459,11 @@ export function CareerAnalysisView({
 						{t("hiringPros")}
 					</p>
 					<ul className="mt-2 space-y-1.5 text-xs">
-						{hiringPros.map((p) => (
-							<li key={p}>{p}</li>
-						))}
+						{hiringPros.length > 0 ? (
+							hiringPros.map((p) => <li key={p}>{p}</li>)
+						) : (
+							<EmptyLine />
+						)}
 					</ul>
 				</div>
 				<div>
@@ -432,9 +471,11 @@ export function CareerAnalysisView({
 						{t("hiringCons")}
 					</p>
 					<ul className="mt-2 space-y-1.5 text-xs">
-						{hiringCons.map((c) => (
-							<li key={c}>{c}</li>
-						))}
+						{hiringCons.length > 0 ? (
+							hiringCons.map((c) => <li key={c}>{c}</li>)
+						) : (
+							<EmptyLine />
+						)}
 					</ul>
 				</div>
 			</div>
