@@ -22,6 +22,7 @@ const RESERVED_SLUGS = new Set([
 	"onboarding",
 	"api",
 	"p",
+	"arbeitgeber",
 ]);
 
 export default async function CmsRenderPage({

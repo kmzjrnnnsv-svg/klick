@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -7,64 +8,69 @@ import {
 	MonogramPattern,
 	SectionDivider,
 } from "@/components/marketing/landing-decor";
+import { cn } from "@/lib/utils";
 
 const HERO_IMAGE =
-	"https://picsum.photos/seed/klick-maison-hero/2000/1300?grayscale";
+	"https://picsum.photos/seed/klick-employer-maison/2000/1300?grayscale";
+const JOURNEY_IMAGE =
+	"https://picsum.photos/seed/klick-employer-pipeline/1400/1700?grayscale";
+const TRUST_IMAGE =
+	"https://picsum.photos/seed/klick-employer-archive/2000/1100?grayscale";
 
 const FEATURE_IMAGES = {
-	vault: "https://picsum.photos/seed/klick-vault-paper/1200/900?grayscale",
-	cv: "https://picsum.photos/seed/klick-cv-handwritten/1200/900?grayscale",
-	insights:
-		"https://picsum.photos/seed/klick-insights-graph/1200/900?grayscale",
-	career: "https://picsum.photos/seed/klick-career-compass/1200/900?grayscale",
-	badges: "https://picsum.photos/seed/klick-badges-medal/1200/900?grayscale",
-	verify: "https://picsum.photos/seed/klick-verify-stamp/1200/900?grayscale",
-	references:
-		"https://picsum.photos/seed/klick-references-letter/1200/900?grayscale",
-	match: "https://picsum.photos/seed/klick-match-meet/1200/900?grayscale",
-	salary: "https://picsum.photos/seed/klick-salary-coin/1200/900?grayscale",
-	applications:
-		"https://picsum.photos/seed/klick-pipeline-board/1200/900?grayscale",
-	offers: "https://picsum.photos/seed/klick-offer-handshake/1200/900?grayscale",
-	disclosure:
-		"https://picsum.photos/seed/klick-disclosure-key/1200/900?grayscale",
+	jobs: "https://picsum.photos/seed/klick-emp-jobwizard/1200/900?grayscale",
+	match: "https://picsum.photos/seed/klick-emp-matchengine/1200/900?grayscale",
+	shortlist:
+		"https://picsum.photos/seed/klick-emp-shortlist/1200/900?grayscale",
+	pipeline: "https://picsum.photos/seed/klick-emp-kanban/1200/900?grayscale",
+	assessments:
+		"https://picsum.photos/seed/klick-emp-assessment/1200/900?grayscale",
+	questions:
+		"https://picsum.photos/seed/klick-emp-questions/1200/900?grayscale",
+	offers: "https://picsum.photos/seed/klick-emp-offer/1200/900?grayscale",
+	team: "https://picsum.photos/seed/klick-emp-team/1200/900?grayscale",
+	templates:
+		"https://picsum.photos/seed/klick-emp-templates/1200/900?grayscale",
+	verify: "https://picsum.photos/seed/klick-emp-verify/1200/900?grayscale",
+	audit: "https://picsum.photos/seed/klick-emp-audit/1200/900?grayscale",
+	benchmark:
+		"https://picsum.photos/seed/klick-emp-benchmark/1200/900?grayscale",
 } as const;
 
-const TRUST_IMAGE =
-	"https://picsum.photos/seed/klick-vault-arch/2000/1100?grayscale";
-const CANDIDATE_IMAGE =
-	"https://picsum.photos/seed/klick-candidate-portrait/1400/1700?grayscale";
-const EMPLOYER_IMAGE =
-	"https://picsum.photos/seed/klick-employer-desk/1400/1700?grayscale";
-
 const FEATURE_KEYS = [
-	"vault",
-	"cv",
-	"insights",
-	"career",
-	"badges",
-	"verify",
-	"references",
+	"jobs",
 	"match",
-	"salary",
-	"applications",
+	"shortlist",
+	"pipeline",
+	"assessments",
+	"questions",
 	"offers",
-	"disclosure",
+	"team",
+	"templates",
+	"verify",
+	"audit",
+	"benchmark",
 ] as const;
 
+const JOURNEY_STEPS = ["1", "2", "3", "4", "5", "6"] as const;
 const TRUST_KEYS = ["1", "2", "3", "4"] as const;
-const CANDIDATE_STEPS = ["1", "2", "3", "4", "5", "6"] as const;
-const EMPLOYER_STEPS = ["1", "2", "3", "4", "5", "6"] as const;
 const FAQ_KEYS = ["1", "2", "3", "4", "5", "6"] as const;
 
-// Brauntöne statt Schwarz für die Startseiten-CTAs.
+// Abo-Stufen. Reine Marketing-Darstellung — die Abrechnung selbst (Stripe)
+// ist bewusst noch nicht gebaut, alle CTAs führen in den Signup-Funnel.
+const TIERS = [
+	{ id: "start", featureCount: 5, featured: false },
+	{ id: "team", featureCount: 6, featured: true },
+	{ id: "agentur", featureCount: 6, featured: false },
+] as const;
+
 const CTA_PRIMARY =
 	"inline-flex h-12 items-center justify-center rounded-sm bg-brown px-8 font-medium text-[0.72rem] text-brown-foreground uppercase tracking-[0.22em] transition-opacity hover:opacity-90";
 const CTA_SECONDARY =
 	"inline-flex h-12 items-center justify-center rounded-sm border border-brown/45 px-8 font-medium text-[0.72rem] text-brown uppercase tracking-[0.22em] transition-colors hover:bg-brown hover:text-brown-foreground";
 
-export default async function Home() {
-	const t = await getTranslations("Landing");
+export default async function EmployerLandingPage() {
+	const t = await getTranslations("EmployerLanding");
 
 	return (
 		<>
@@ -98,24 +104,24 @@ export default async function Home() {
 							<Link href="/login" className={CTA_PRIMARY}>
 								{t("hero.cta")}
 							</Link>
-							<Link href="/jobs/browse" className={CTA_SECONDARY}>
+							<Link href="#preise" className={CTA_SECONDARY}>
 								{t("hero.secondary")}
 							</Link>
 						</div>
 					</div>
 				</section>
 
-				{/* MANIFESTO + PILLARS */}
+				{/* PROMISE */}
 				<section className="mx-auto w-full max-w-5xl px-4 py-24 sm:px-6 sm:py-32">
 					<div className="mx-auto max-w-2xl text-center">
 						<p className="lv-eyebrow text-[0.6rem] text-primary">
-							{t("manifesto.eyebrow")}
+							{t("promise.eyebrow")}
 						</p>
 						<h2 className="mt-4 font-serif-display text-3xl text-primary sm:text-5xl">
-							{t("manifesto.title")}
+							{t("promise.title")}
 						</h2>
 						<p className="mt-5 text-muted-foreground text-sm leading-relaxed sm:text-base">
-							{t("manifesto.body")}
+							{t("promise.body")}
 						</p>
 					</div>
 					<div className="mt-16 grid gap-x-12 gap-y-14 sm:mt-20 sm:grid-cols-3">
@@ -125,10 +131,10 @@ export default async function Home() {
 									{`0${n}`}
 								</p>
 								<h3 className="font-serif-display text-xl sm:text-2xl">
-									{t(`pillars.${n}.title`)}
+									{t(`promise.points.${n}.title`)}
 								</h3>
 								<p className="text-muted-foreground text-sm leading-relaxed">
-									{t(`pillars.${n}.body`)}
+									{t(`promise.points.${n}.body`)}
 								</p>
 							</div>
 						))}
@@ -137,12 +143,40 @@ export default async function Home() {
 
 				<SectionDivider />
 
-				{/* CANDIDATE JOURNEY */}
+				{/* JOURNEY */}
 				<section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-					<div className="grid gap-12 lg:grid-cols-[5fr_7fr] lg:items-start lg:gap-16">
+					<div className="grid gap-12 lg:grid-cols-[7fr_5fr] lg:items-start lg:gap-16">
+						<div>
+							<p className="lv-eyebrow text-[0.6rem] text-primary">
+								{t("journey.eyebrow")}
+							</p>
+							<h2 className="mt-4 font-serif-display text-3xl text-primary sm:text-5xl">
+								{t("journey.title")}
+							</h2>
+							<ol className="mt-10 divide-y divide-border border-border/60 border-t border-b">
+								{JOURNEY_STEPS.map((n) => (
+									<li
+										key={n}
+										className="grid grid-cols-[auto_1fr] items-baseline gap-6 py-5"
+									>
+										<span className="font-mono text-[0.7rem] text-primary tabular-nums">
+											{`0${n}`}
+										</span>
+										<div>
+											<h3 className="font-serif-display text-lg sm:text-xl">
+												{t(`journey.steps.${n}.title`)}
+											</h3>
+											<p className="mt-1.5 text-muted-foreground text-sm leading-relaxed">
+												{t(`journey.steps.${n}.body`)}
+											</p>
+										</div>
+									</li>
+								))}
+							</ol>
+						</div>
 						<div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-muted lg:sticky lg:top-24">
 							<Image
-								src={CANDIDATE_IMAGE}
+								src={JOURNEY_IMAGE}
 								alt=""
 								fill
 								sizes="(min-width: 1024px) 40vw, 100vw"
@@ -150,95 +184,10 @@ export default async function Home() {
 							/>
 							<div className="absolute right-3 bottom-3 left-3 flex items-center justify-between">
 								<span className="lv-eyebrow rounded-sm bg-background/80 px-3 py-1.5 text-[0.55rem] text-foreground backdrop-blur">
-									{t("imageCaption.profile")}
+									{t("imageCaption.pipeline")}
 								</span>
 								<span className="lv-eyebrow rounded-sm bg-background/80 px-3 py-1.5 text-[0.55rem] text-foreground backdrop-blur">
 									№ 01
-								</span>
-							</div>
-						</div>
-						<div>
-							<p className="lv-eyebrow text-[0.6rem] text-primary">
-								{t("candidateJourney.eyebrow")}
-							</p>
-							<h2 className="mt-4 font-serif-display text-3xl text-primary sm:text-5xl">
-								{t("candidateJourney.title")}
-							</h2>
-							<ol className="mt-10 divide-y divide-border border-border/60 border-t border-b">
-								{CANDIDATE_STEPS.map((n) => (
-									<li
-										key={n}
-										className="grid grid-cols-[auto_1fr] items-baseline gap-6 py-5"
-									>
-										<span className="font-mono text-[0.7rem] text-primary tabular-nums">
-											{`0${n}`}
-										</span>
-										<div>
-											<h3 className="font-serif-display text-lg sm:text-xl">
-												{t(`candidateJourney.steps.${n}.title`)}
-											</h3>
-											<p className="mt-1.5 text-muted-foreground text-sm leading-relaxed">
-												{t(`candidateJourney.steps.${n}.body`)}
-											</p>
-										</div>
-									</li>
-								))}
-							</ol>
-						</div>
-					</div>
-				</section>
-
-				{/* EMPLOYER JOURNEY */}
-				<section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-					<div className="grid gap-12 lg:grid-cols-[7fr_5fr] lg:items-start lg:gap-16">
-						<div className="lg:order-1">
-							<p className="lv-eyebrow text-[0.6rem] text-primary">
-								{t("employerJourney.eyebrow")}
-							</p>
-							<h2 className="mt-4 font-serif-display text-3xl text-primary sm:text-5xl">
-								{t("employerJourney.title")}
-							</h2>
-							<ol className="mt-10 divide-y divide-border border-border/60 border-t border-b">
-								{EMPLOYER_STEPS.map((n) => (
-									<li
-										key={n}
-										className="grid grid-cols-[auto_1fr] items-baseline gap-6 py-5"
-									>
-										<span className="font-mono text-[0.7rem] text-primary tabular-nums">
-											{`0${n}`}
-										</span>
-										<div>
-											<h3 className="font-serif-display text-lg sm:text-xl">
-												{t(`employerJourney.steps.${n}.title`)}
-											</h3>
-											<p className="mt-1.5 text-muted-foreground text-sm leading-relaxed">
-												{t(`employerJourney.steps.${n}.body`)}
-											</p>
-										</div>
-									</li>
-								))}
-							</ol>
-							<Link
-								href="/arbeitgeber"
-								className="mt-7 inline-flex items-center gap-2 font-medium text-[0.72rem] text-brown uppercase tracking-[0.22em] transition-opacity hover:opacity-70"
-							>
-								{t("employerJourney.cta")} →
-							</Link>
-						</div>
-						<div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-muted lg:order-2 lg:sticky lg:top-24">
-							<Image
-								src={EMPLOYER_IMAGE}
-								alt=""
-								fill
-								sizes="(min-width: 1024px) 40vw, 100vw"
-								className="object-cover"
-							/>
-							<div className="absolute right-3 bottom-3 left-3 flex items-center justify-between">
-								<span className="lv-eyebrow rounded-sm bg-background/80 px-3 py-1.5 text-[0.55rem] text-foreground backdrop-blur">
-									{t("imageCaption.match")}
-								</span>
-								<span className="lv-eyebrow rounded-sm bg-background/80 px-3 py-1.5 text-[0.55rem] text-foreground backdrop-blur">
-									№ 02
 								</span>
 							</div>
 						</div>
@@ -284,6 +233,92 @@ export default async function Home() {
 							</article>
 						))}
 					</div>
+				</section>
+
+				<SectionDivider />
+
+				{/* PRICING */}
+				<section
+					id="preise"
+					className="mx-auto w-full max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6 sm:py-24"
+				>
+					<div className="mx-auto max-w-2xl text-center">
+						<p className="lv-eyebrow text-[0.6rem] text-primary">
+							{t("pricing.eyebrow")}
+						</p>
+						<h2 className="mt-4 font-serif-display text-3xl text-primary sm:text-5xl">
+							{t("pricing.title")}
+						</h2>
+						<p className="mt-5 text-muted-foreground text-sm leading-relaxed sm:text-base">
+							{t("pricing.subtitle")}
+						</p>
+					</div>
+					<div className="mt-14 grid gap-5 sm:mt-16 lg:grid-cols-3">
+						{TIERS.map((tier) => (
+							<div
+								key={tier.id}
+								className={cn(
+									"flex flex-col rounded-sm border bg-background p-6 sm:p-7",
+									tier.featured ? "border-primary shadow-sm" : "border-border",
+								)}
+							>
+								<div className="flex items-center justify-between gap-2">
+									<h3 className="font-serif-display text-2xl">
+										{t(`pricing.tiers.${tier.id}.name`)}
+									</h3>
+									{tier.featured && (
+										<span className="lv-eyebrow rounded-sm bg-primary/10 px-2 py-0.5 text-[0.5rem] text-primary">
+											{t("pricing.recommended")}
+										</span>
+									)}
+								</div>
+								<p className="mt-1.5 text-muted-foreground text-sm leading-relaxed">
+									{t(`pricing.tiers.${tier.id}.tagline`)}
+								</p>
+								<div className="mt-5 flex items-baseline gap-2">
+									<span className="font-serif-display text-4xl">
+										{t(`pricing.tiers.${tier.id}.price`)}
+									</span>
+									<span className="text-muted-foreground text-xs">
+										{t(`pricing.tiers.${tier.id}.priceNote`)}
+									</span>
+								</div>
+								<ul className="mt-6 flex-1 space-y-2.5 text-sm">
+									{Array.from({ length: tier.featureCount }, (_, i) => {
+										const feature = t(
+											`pricing.tiers.${tier.id}.features.${i + 1}`,
+										);
+										return (
+											<li
+												key={feature}
+												className="grid grid-cols-[auto_1fr] gap-2.5"
+											>
+												<Check
+													className="mt-0.5 h-4 w-4 text-primary"
+													strokeWidth={1.5}
+												/>
+												<span className="text-foreground/90 leading-snug">
+													{feature}
+												</span>
+											</li>
+										);
+									})}
+								</ul>
+								<Link
+									href="/login"
+									className={cn(
+										"mt-7 w-full",
+										tier.featured ? CTA_PRIMARY : CTA_SECONDARY,
+									)}
+								>
+									{t(`pricing.tiers.${tier.id}.cta`)}
+								</Link>
+							</div>
+						))}
+					</div>
+					<p className="mx-auto mt-8 max-w-2xl text-center text-muted-foreground text-xs leading-relaxed">
+						{t("pricing.candidateNote")}
+					</p>
 				</section>
 
 				<SectionDivider />
@@ -370,10 +405,16 @@ export default async function Home() {
 							<Link href="/login" className={CTA_PRIMARY}>
 								{t("finalCta.cta")}
 							</Link>
-							<Link href="/jobs/browse" className={CTA_SECONDARY}>
+							<Link href="#preise" className={CTA_SECONDARY}>
 								{t("finalCta.secondary")}
 							</Link>
 						</div>
+						<Link
+							href="/"
+							className="mt-8 inline-block lv-eyebrow text-[0.58rem] text-muted-foreground transition-colors hover:text-foreground"
+						>
+							{t("finalCta.candidateLink")}
+						</Link>
 					</div>
 				</section>
 			</main>

@@ -11,6 +11,12 @@ export async function Footer() {
 				<nav className="flex gap-6">
 					<a
 						className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
+						href="/arbeitgeber"
+					>
+						{t("employers")}
+					</a>
+					<a
+						className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
 						href="/datenschutz"
 					>
 						{t("privacy")}

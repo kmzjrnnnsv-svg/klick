@@ -38,6 +38,7 @@
 	},
 	"Footer": {
 		"tagline": "Du behältst die Kontrolle.",
+		"employers": "Für Arbeitgeber",
 		"privacy": "Datenschutz",
 		"imprint": "Impressum"
 	},
@@ -101,6 +102,7 @@
 		"employerJourney": {
 			"eyebrow": "Für Arbeitgeber",
 			"title": "Stellen ausschreiben. Echte Profile bekommen.",
+			"cta": "Preise & Details für Arbeitgeber",
 			"steps": {
 				"1": {
 					"title": "Stelle anlegen",
@@ -245,6 +247,232 @@
 			"profile": "Profil",
 			"match": "Match",
 			"trust": "Trust"
+		}
+	},
+	"EmployerLanding": {
+		"eyebrow": "Maison Klick — Für Arbeitgeber",
+		"hero": {
+			"title": "Recruiting, das echte Profile liefert.",
+			"subtitle": "Klick bringt dir aktuelle, selbst gepflegte Kandidaten-Profile — anonymisiert bewertet, on demand geprüft. Schreib eine Stelle aus und sieh, wer wirklich passt.",
+			"cta": "Stelle ausschreiben",
+			"secondary": "Abos ansehen"
+		},
+		"promise": {
+			"eyebrow": "Warum Klick",
+			"title": "Du suchst Menschen, keine Lebenslauf-Halde.",
+			"body": "Klassische Job-Börsen schwemmen dich mit Profilen zu, die nie gepflegt wurden. Klick dreht das um: Kandidat:innen pflegen ihre Daten selbst, geben sie gezielt frei — und du bekommst echte, aktuelle Profile statt Karteileichen.",
+			"points": {
+				"1": {
+					"title": "Echte, aktuelle Profile",
+					"body": "Kandidat:innen besitzen ihre Daten und halten sie aktuell. Kein Scraping, keine toten Lebensläufe von 2019."
+				},
+				"2": {
+					"title": "Fairness ab dem ersten Blick",
+					"body": "Du bewertest anonymisierte Profile nach Score und Begründung — Name, Foto und Herkunft kommen erst nach gegenseitigem Interesse."
+				},
+				"3": {
+					"title": "Prüfung statt Bauchgefühl",
+					"body": "Zertifikate, Identität und Referenzen werden on demand geprüft — du verlässt dich auf Belege, nicht auf Behauptungen."
+				}
+			}
+		},
+		"journey": {
+			"eyebrow": "So läuft's",
+			"title": "Von der Stelle zur Zusage — in einem System.",
+			"steps": {
+				"1": {
+					"title": "Stelle anlegen",
+					"body": "Tippe die Stelle oder lade ein PDF hoch. Klick extrahiert Anforderungen, Gehaltsband und Standort. Mit Prozess-Vorlagen ist die nächste Ausschreibung in Minuten live."
+				},
+				"2": {
+					"title": "Match-Engine läuft",
+					"body": "Hard-Filter auf Pflicht-Skills, Mindesterfahrung und Sprachen, dann ein Soft-Score mit Quereinstiegs-Toleranz und Pendelweg-Check via OSRM/OTP."
+				},
+				"3": {
+					"title": "Anonyme Kandidaten-Liste",
+					"body": "Du siehst Top-Profile mit Score, Pro/Contra, KI-Match-Begründung und Gehaltsfairness — aber ohne Klarnamen. Fairness vor dem ersten Eindruck."
+				},
+				"4": {
+					"title": "Interesse + Verifikation",
+					"body": "Du wählst die Prüftiefe und schreibst eine persönliche Nachricht. Erst nach Zustimmung der Person siehst du Identität und freigegebene Dokumente."
+				},
+				"5": {
+					"title": "Bewerbungs-Pipeline im Team",
+					"body": "Kanban-Board mit eigenen Stufen, Assessments, Frage-Threads und Nachrichten. Dein Team arbeitet mit geteilten Rollen am selben Prozess."
+				},
+				"6": {
+					"title": "Angebot & Abschluss",
+					"body": "Strukturierter Offer-Flow mit Gegenangeboten. Jede Entscheidung — von der ersten Sichtung bis zur Zusage — landet revisionssicher im Audit-Log."
+				}
+			}
+		},
+		"features": {
+			"eyebrow": "Funktionen für Arbeitgeber",
+			"title": "Ein Werkzeugkasten für den ganzen Hiring-Prozess.",
+			"subtitle": "Alles vom Stellen-Wizard bis zur Angebots-Verhandlung — in einem zusammenhängenden System.",
+			"jobs": {
+				"title": "Stellen-Wizard",
+				"body": "Tippen oder PDF hochladen — KI extrahiert Anforderungen, Gewichtung, Gehaltsband und Standort."
+			},
+			"match": {
+				"title": "Match-Engine",
+				"body": "Hard-Filter plus Soft-Score mit Skill-Clustern für Quereinstieg und Pendelweg-Berechnung."
+			},
+			"shortlist": {
+				"title": "Anonyme Shortlist",
+				"body": "Top-Kandidat:innen mit Score, Pro/Contra und KI-Begründung — ohne Klarnamen, ohne Bias."
+			},
+			"pipeline": {
+				"title": "Bewerbungs-Pipeline",
+				"body": "ATS mit Kanban-Board, frei definierbaren Stufen und teaminternen Notizen."
+			},
+			"assessments": {
+				"title": "Assessments",
+				"body": "Stellenbezogene Aufgaben und Quizze — Antworten landen direkt am Kandidaten-Profil im Prozess."
+			},
+			"questions": {
+				"title": "Frage-Threads",
+				"body": "Kandidat:innen stellen Rückfragen zur Stelle, du beantwortest sie öffentlich oder privat."
+			},
+			"offers": {
+				"title": "Angebote & Verhandlung",
+				"body": "Strukturierter Offer-Flow mit Gegenangeboten — jeder Schritt revisionssicher dokumentiert."
+			},
+			"team": {
+				"title": "Team & Rollen",
+				"body": "Mehrere Recruiter-Sitze, geteilte Mandate, Einladungs-Flow und Kollaborations-Sicht pro Stelle."
+			},
+			"templates": {
+				"title": "Prozess-Vorlagen",
+				"body": "Wiederverwendbare Stufen-Pläne. Beim Veröffentlichen als unveränderlicher Snapshot kopiert."
+			},
+			"verify": {
+				"title": "Verifikation on demand",
+				"body": "Mock, Credly oder IDnow — pro Anfrage einzeln. Connector-Pattern, weitere Quellen pluggable."
+			},
+			"audit": {
+				"title": "Audit-Log",
+				"body": "Jede Freigabe, jeder Vault-Zugriff, jede Entscheidung — zeit- und akteursgenau protokolliert."
+			},
+			"benchmark": {
+				"title": "Gehaltsbenchmark",
+				"body": "KI vergleicht dein Stellen-Gehalt mit dem Markt und stupst zu fairen, konkurrenzfähigen Bändern."
+			}
+		},
+		"pricing": {
+			"eyebrow": "Abonnements",
+			"title": "Faire Preise. Kandidat:innen immer kostenlos.",
+			"subtitle": "Du zahlst für die Recruiting-Seite — nicht mit den Daten der Bewerber:innen. Drei Stufen, monatlich kündbar.",
+			"recommended": "Empfohlen",
+			"candidateNote": "Kandidat:innen nutzen Klick immer kostenlos. Du zahlst nur für die Recruiting-Seite — kein Datenverkauf, keine versteckten Gebühren.",
+			"tiers": {
+				"start": {
+					"name": "Start",
+					"tagline": "Für einzelne Vakanzen und den ersten Eindruck.",
+					"price": "149 €",
+					"priceNote": "/ Monat",
+					"cta": "Plan wählen",
+					"features": {
+						"1": "1 aktive Stellenausschreibung",
+						"2": "1 Recruiter-Sitz",
+						"3": "Match-Engine mit anonymer Kandidaten-Liste",
+						"4": "KI-Match-Begründung und Gehaltsfairness pro Treffer",
+						"5": "Verifikation on demand (Mock, Credly, IDnow)"
+					}
+				},
+				"team": {
+					"name": "Team",
+					"tagline": "Für laufendes Hiring im Recruiting-Team.",
+					"price": "449 €",
+					"priceNote": "/ Monat",
+					"cta": "Plan wählen",
+					"features": {
+						"1": "Bis zu 8 aktive Stellen gleichzeitig",
+						"2": "5 Recruiter-Sitze mit geteilten Rollen",
+						"3": "Volle Bewerbungs-Pipeline: Kanban-Board, eigene Stufen",
+						"4": "Assessments, Frage-Threads und interne Notizen",
+						"5": "Angebote & Verhandlung mit Audit-Log",
+						"6": "Wiederverwendbare Prozess-Vorlagen"
+					}
+				},
+				"agentur": {
+					"name": "Agentur",
+					"tagline": "Für Personalagenturen und Konzern-Recruiting.",
+					"price": "Individuell",
+					"priceNote": "auf Anfrage",
+					"cta": "Vertrieb kontaktieren",
+					"features": {
+						"1": "Unbegrenzte Stellen und Recruiter-Sitze",
+						"2": "Mehrere Mandanten / Kunden in einem Account",
+						"3": "SSO und feingranulares Rollen-Management",
+						"4": "Audit-Log-Export für Compliance",
+						"5": "Priorisierter Support mit SLA",
+						"6": "Dedizierter Support für eigene Verify-Connectoren"
+					}
+				}
+			}
+		},
+		"trust": {
+			"eyebrow": "Sicherheit & Compliance",
+			"title": "EU-gehostet. Auditiert. DSGVO-konform.",
+			"items": {
+				"1": {
+					"title": "EU-Region",
+					"body": "Postgres und Object-Storage in Deutschland (Hetzner). Keine US-Datentransfers."
+				},
+				"2": {
+					"title": "Verschlüsselter Vault",
+					"body": "Kandidaten-Dokumente liegen mit XChaCha20-Poly1305 verschlüsselt — du siehst nur, was freigegeben wurde."
+				},
+				"3": {
+					"title": "Lückenloses Audit-Log",
+					"body": "Jeder Zugriff und jede Freigabe ist nachvollziehbar — sauber für interne Revision und Betriebsrat."
+				},
+				"4": {
+					"title": "Mandantentrennung",
+					"body": "Jede Tabelle trägt eine Tenant-Spalte ab Tag 1. Agentur-Kunden bleiben sauber getrennt."
+				}
+			}
+		},
+		"faq": {
+			"eyebrow": "Häufige Fragen",
+			"title": "Antworten für Arbeitgeber.",
+			"items": {
+				"1": {
+					"q": "Was kostet Klick für Kandidat:innen?",
+					"a": "Nichts. Kandidat:innen nutzen die Plattform dauerhaft kostenlos — finanziert wird Klick ausschließlich über Arbeitgeber-Abonnements."
+				},
+				"2": {
+					"q": "Kann ich monatlich kündigen?",
+					"a": "Ja. Start und Team sind monatlich kündbar. Agentur-Verträge richten sich nach der vereinbarten Laufzeit."
+				},
+				"3": {
+					"q": "Was ist ein Recruiter-Sitz?",
+					"a": "Ein Sitz ist ein Login für eine Person in deinem Team. Sitze teilen sich Stellen, Pipeline und Notizen — jede:r mit eigener Rolle."
+				},
+				"4": {
+					"q": "Kann ich zwischen Plänen wechseln?",
+					"a": "Jederzeit. Ein Upgrade ist sofort aktiv, ein Downgrade zum nächsten Abrechnungszeitraum."
+				},
+				"5": {
+					"q": "Wie funktioniert die Verifikation?",
+					"a": "Du wählst pro Interesse die Prüftiefe. Klick stößt die passenden Connectoren an — die Person gibt jede Prüfung einzeln frei."
+				},
+				"6": {
+					"q": "Bekomme ich Profile auch ohne Stelle?",
+					"a": "Nein. Klick ist keine Lebenslauf-Datenbank. Matches entstehen nur über konkrete, veröffentlichte Stellen — das hält die Profile relevant."
+				}
+			}
+		},
+		"finalCta": {
+			"title": "Bereit für Recruiting mit Substanz?",
+			"body": "Magic-Link-Login, kein Passwort. Lege deine erste Stelle an und sieh die Match-Engine in Aktion.",
+			"cta": "Jetzt starten",
+			"secondary": "Abos vergleichen",
+			"candidateLink": "Du bist auf Jobsuche? Zur Kandidat:innen-Startseite"
+		},
+		"imageCaption": {
+			"pipeline": "Pipeline"
 		}
 	},
 	"Login": {
