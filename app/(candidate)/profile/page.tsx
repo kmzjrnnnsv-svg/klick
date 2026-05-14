@@ -66,32 +66,43 @@ export default async function ProfilePage({
 	const translationPending =
 		!!profile && locale !== originLocale && !hasTranslation;
 
-	// Datenbasis für die UI folgt dem aktiven Tab — auf dem EN-Tab werden
-	// industries/awards/mobility etc. aus translations.en gemerged, auf
-	// dem DE-Tab aus dem Original. ProfileForm rendert ohnehin nur wenn
-	// tab === originLocale, dort ist localizedProfile(profile, tab) eh
-	// die Quelle.
-	let localizedInitial: CandidateProfile | null = profile;
+	// localizedInitial dient zwei Zwecken mit zwei Sprachen:
+	//   - ProfileForm (Origin-Tab): zeigt die Quell-Daten → originLocale.
+	//   - CandidateInsightsView profileExtras: folgt der UI-Locale (Header),
+	//     NICHT dem Tab. Der Tab ist nur Editor-Modus.
+	// Da ProfileForm nur rendert wenn tab === originLocale, ist
+	// localizedProfile(profile, originLocale) für die Form korrekt; die
+	// Insights bekommen separat die UI-Locale-Variante.
+	let formInitial: CandidateProfile | null = profile;
+	let insightsView: CandidateProfile | null = profile;
 	if (profile) {
 		try {
-			const view = localizedProfile(profile, tab);
-			localizedInitial = {
+			const fv = localizedProfile(profile, originLocale);
+			formInitial = {
 				...profile,
-				headline: view.headline,
-				summary: view.summary,
-				industries: view.industries,
-				awards: view.awards,
-				mobility: view.mobility,
-				skills: view.skills as CandidateProfile["skills"],
-				experience: view.experience,
-				education: view.education,
-				projects: view.projects,
-				publications: view.publications,
-				volunteering: view.volunteering,
+				headline: fv.headline,
+				summary: fv.summary,
+				industries: fv.industries,
+				awards: fv.awards,
+				mobility: fv.mobility,
+				skills: fv.skills as CandidateProfile["skills"],
+				experience: fv.experience,
+				education: fv.education,
+				projects: fv.projects,
+				publications: fv.publications,
+				volunteering: fv.volunteering,
+			};
+			const iv = localizedProfile(profile, locale);
+			insightsView = {
+				...profile,
+				industries: iv.industries,
+				awards: iv.awards,
+				mobility: iv.mobility,
 			};
 		} catch (e) {
 			console.warn("[profile] localizedProfile failed, falling back to raw", e);
-			localizedInitial = profile;
+			formInitial = profile;
+			insightsView = profile;
 		}
 	}
 
@@ -129,16 +140,15 @@ export default async function ProfilePage({
 						profileExtras={
 							profile
 								? {
-										industries: localizedInitial?.industries ?? null,
-										awards: localizedInitial?.awards ?? null,
+										industries: insightsView?.industries ?? null,
+										awards: insightsView?.awards ?? null,
 										certificationsMentioned: profile.certificationsMentioned,
-										mobility: localizedInitial?.mobility ?? null,
+										mobility: insightsView?.mobility ?? null,
 										preferredRoleLevel: profile.preferredRoleLevel,
 									}
 								: null
 						}
 						showRefresh
-						displayLocale={tab}
 					/>
 				</section>
 
@@ -169,7 +179,7 @@ export default async function ProfilePage({
 						}
 					/>
 				) : (
-					<ProfileForm initial={localizedInitial} cvs={cvs} locale={tab} />
+					<ProfileForm initial={formInitial} cvs={cvs} locale={tab} />
 				)}
 
 				<section className="mt-12 border-border border-t pt-8">

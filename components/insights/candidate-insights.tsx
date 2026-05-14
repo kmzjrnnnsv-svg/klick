@@ -48,7 +48,6 @@ export function CandidateInsightsView({
 	profileExtras,
 	emptyHint,
 	showRefresh,
-	displayLocale,
 }: {
 	insights: CandidateInsights | null;
 	profileExtras?: ProfileExtras | null;
@@ -56,14 +55,11 @@ export function CandidateInsightsView({
 	// Nur auf dem eigenen Profil sinnvoll — Arbeitgeber-Match-Liste und
 	// Public-Share-Link sollen den Knopf nicht zeigen.
 	showRefresh?: boolean;
-	// Override für die Anzeige-Sprache der Narrative + Zahlen. Wenn der
-	// /profile-Tab z. B. auf EN steht, soll die Lesart auch EN sein —
-	// unabhängig von der globalen UI-Locale. Default: UI-Locale.
-	displayLocale?: "de" | "en";
 }) {
 	const t = useTranslations("Insights");
-	const uiLocale = useLocale() as "de" | "en";
-	const locale = displayLocale ?? uiLocale;
+	// Insights folgen IMMER der UI-Locale (Header DE/EN), NICHT dem
+	// Profil-Tab. Der Tab ist nur der Editor-Modus für die Profil-Inhalte.
+	const locale = useLocale() as "de" | "en";
 	const monthsToYears = makeMonthsToYears(locale);
 	if (!insights) {
 		return (
