@@ -152,7 +152,9 @@ export async function finishOnboarding(formData: FormData): Promise<void> {
 	});
 	revalidatePath("/profile");
 	after(async () => {
-		await recomputeInsights(userId);
+		// Onboarding-Abschluss läuft im Hintergrund — keine User-
+		// Auswertung → Mock.
+		await recomputeInsights(userId, { background: true });
 		await recomputeMatchesForCandidate(userId);
 	});
 	redirect("/onboarding/done");

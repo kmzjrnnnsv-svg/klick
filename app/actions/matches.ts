@@ -119,7 +119,9 @@ export async function computeMatchesForJob(jobId: string): Promise<void> {
 	passing.sort((a, b) => b.softScore - a.softScore);
 	const top = passing.slice(0, TOP_N);
 
-	const ai = getAIProvider();
+	// Match-Berechnung läuft immer im Hintergrund (after()-Hook nach Job-
+	// Publish), niemals als User-Auswertung → Mock-Provider, kein Claude.
+	const ai = getAIProvider({ background: true });
 
 	// Find existing matches so we know which are NEW (worth a notification).
 	const existingMatchIds = new Set(
@@ -256,7 +258,9 @@ export async function recomputeMatchesForCandidate(
 			and(eq(employers.tenantId, user.tenantId), eq(jobs.status, "published")),
 		);
 
-	const ai = getAIProvider();
+	// Reine after()-Hintergrund-Funktion (Profil-Save / CV-Import) →
+	// Mock-Provider, niemals Claude.
+	const ai = getAIProvider({ background: true });
 	for (const { job } of tenantJobs) {
 		const score = scoreMatch(job, profile);
 		if (!score.hardPass) {

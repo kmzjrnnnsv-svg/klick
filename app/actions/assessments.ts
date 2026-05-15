@@ -259,7 +259,10 @@ async function gradeAssessment(responseId: string): Promise<void> {
 		.from(jobAssessmentQuestions)
 		.where(eq(jobAssessmentQuestions.assessmentId, resp.assessmentId));
 	const byId = new Map(questions.map((q) => [q.id, q]));
-	const ai = getAIProvider();
+	// Auto-Grading läuft via after()-Hook nach dem Abschicken durch die
+	// Kandidat:in — keine explizite Auswertung durch den Recruiter →
+	// Mock-Provider, kein Claude.
+	const ai = getAIProvider({ background: true });
 
 	const graded: typeof resp.answers = [];
 	let total = 0;

@@ -125,7 +125,9 @@ async function extractAndPersist(
 	mime: string,
 	hint: Kind,
 ): Promise<void> {
-	const ai = getAIProvider();
+	// Automatische Vault-Extraktion (after()-Hook nach Upload), keine
+	// User-Auswertung → Mock-Provider, kein Claude.
+	const ai = getAIProvider({ background: true });
 	const extracted = await ai.extractDocument(plain, mime, hint);
 
 	await db
@@ -144,8 +146,9 @@ async function extractAndPersist(
 		await mergeCvIntoProfile(userId, extracted.data as Record<string, unknown>);
 	}
 	// Anything that changes the vault (cert added, badge added, CV merged)
-	// also changes the insights snapshot — recompute.
-	await recomputeInsights(userId);
+	// also changes the insights snapshot — recompute. Hintergrund-Pfad,
+	// reicht das background-Flag durch.
+	await recomputeInsights(userId, { background: true });
 	if (extracted.kind === "cv") {
 		await recomputeMatchesForCandidate(userId);
 		// Frischer CV → KI-Gehaltsband automatisch für Deutschland holen,
@@ -209,7 +212,10 @@ async function autoSeedCareerAnalysis(userId: string): Promise<void> {
 		console.warn("[vault.auto-career] reading user locale failed", e);
 	}
 
-	const ai = getCareerAIProvider();
+	// Automatischer Seed nach CV-Upload, KEINE User-Auswertung →
+	// Mock-Provider. Wer eine echte Karriere-Analyse will, klickt im
+	// Profil auf "Neu auswerten" (refreshCareerAnalysis → Claude).
+	const ai = getCareerAIProvider({ background: true });
 	const analysis = await ai.analyzeCareerProspects({
 		profile: {
 			displayName: profile.displayName ?? undefined,
@@ -261,7 +267,10 @@ async function autoSeedSalaryRecommendation(userId: string): Promise<void> {
 	const existingDe = existing.find((c) => c.country === "DE");
 	if (existingDe?.recommendation) return;
 
-	const ai = getAIProvider();
+	// Auto-Seed beim Vault-Upload, KEINE User-Auswertung → Mock.
+	// User-Klick auf "Empfehlung holen" (recommendSalaryForCountry)
+	// nutzt den echten Provider.
+	const ai = getAIProvider({ background: true });
 	const rec = await ai.recommendCandidateSalary({
 		profile: {
 			headline: profile.headline ?? undefined,

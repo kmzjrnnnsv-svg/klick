@@ -339,7 +339,9 @@ export async function saveJob(
 	let salaryFairness: "under" | "fair" | "over" | null = null;
 	let salaryDeltaPct: number | null = null;
 	try {
-		const ai = getAIProvider();
+		// Salary-Benchmark läuft als Side-Effect des Job-Save — keine
+		// explizite User-Auswertung → Mock.
+		const ai = getAIProvider({ background: true });
 		const bm = await withTimeout(
 			ai.benchmarkSalary({
 				title: data.title,
@@ -369,7 +371,9 @@ export async function saveJob(
 
 	let postingQuality: unknown = null;
 	try {
-		const ai = getAIProvider();
+		// Posting-Quality-Score läuft beim Save automatisch — keine
+		// User-Auswertung → Mock.
+		const ai = getAIProvider({ background: true });
 		postingQuality = await withTimeout(
 			ai.assessJobPostingQuality({
 				title: data.title,

@@ -44,6 +44,7 @@ Vollständiger Implementierungsplan: `~/.claude/plans/trustvault-initial-prompt-
 - **Auth-Adapter-Tabellen** heißen `users`, `accounts`, `sessions`, `verification_tokens`. `users` ist um Klick-Felder erweitert (`tenantId`, `role`, `locale`, `encryptedDek`).
 - **Tenant-Spalte** ab Tag 1 in jeder mandantenrelevanten Tabelle. Lokal: ein Default-Tenant `default` (gesetzt durch `pnpm db:seed`). Prod: subdomain-Lookup via `proxy.ts` setzt `x-tenant-slug`-Header.
 - **Magic Link in Dev**: erscheint in der Server-Konsole. Niemals echten Mailer für Dev konfigurieren.
+- **Claude nur bei User-Auswertungen**: `getAIProvider({ background: true })` / `getCareerAIProvider({ background: true })` zwingt den Mock — Pflicht für jeden after()-Hook und Hintergrund-Pfad (Match-Compute, Vault-Auto-Extract, Insights-Staleness-Refresh, Salary-Benchmark beim Save etc.). Echter Provider nur, wenn der User explizit auf einen "Auswerten / Vorschlagen"-Button klickt (Karriere-Analyse, refreshMyInsights, CV-Import, AI-Skill-Vorschlag, Salary-Empfehlung).
 - **Commits klein und thematisch.** Co-Author auf Claude wird automatisch bei `git commit` ergänzt (über harness).
 - **CLAUDE.md aktuell halten**, wann immer eine Architektur- oder Konventions-Entscheidung fällt.
 

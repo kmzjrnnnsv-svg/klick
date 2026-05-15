@@ -493,7 +493,11 @@ async function saveProfileImpl(formData: FormData): Promise<void> {
 		});
 	}
 	after(async () => {
-		await recomputeInsights(userId);
+		// Hintergrund-Recompute nach Profil-Save — keine User-Auswertung,
+		// daher Mock-Provider. Wer eine echte Auswertung will, klickt im
+		// Profil-Lesart-Block auf "Neu erstellen" (refreshMyInsights →
+		// Claude).
+		await recomputeInsights(userId, { background: true });
 		await recomputeMatchesForCandidate(userId);
 	});
 }

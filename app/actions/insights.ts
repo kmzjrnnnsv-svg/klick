@@ -19,7 +19,15 @@ const INSIGHTS_STALE_AFTER_DAYS = 7;
 //   - extractAndPersist after a CV import (skills + experience may have changed)
 //   - refreshMyInsights — direkt user-getriggert vom Profil-Lesart-Block
 // Errors are swallowed so a flaky AI call never breaks the calling action.
-export async function recomputeInsights(userId: string): Promise<void> {
+//
+// `opts.background` schaltet die Narrative-Generierung auf Mock — alle
+// after()-Pfade reichen `{ background: true }` durch, damit kein Claude-
+// Call im Hintergrund läuft. refreshMyInsights (User-Button) ruft ohne
+// Flag und bekommt den echten Provider.
+export async function recomputeInsights(
+	userId: string,
+	opts?: { background?: boolean },
+): Promise<void> {
 	try {
 		const [profile] = await db
 			.select()
@@ -49,7 +57,7 @@ export async function recomputeInsights(userId: string): Promise<void> {
 					0,
 					insights.experience.yearsActive - currentRoleYears,
 				);
-				const ai = getAIProvider();
+				const ai = getAIProvider({ background: opts?.background });
 				const narrative = await ai.summarizeCandidate({
 					headline: profile.headline,
 					summary: profile.summary,
@@ -120,7 +128,9 @@ export async function getMyInsights(): Promise<CandidateInsights | null> {
 		: Number.POSITIVE_INFINITY;
 	const insights = (row?.insights as CandidateInsights | null) ?? null;
 	if (ageMs > INSIGHTS_STALE_AFTER_DAYS * 24 * 60 * 60 * 1000) {
-		after(() => recomputeInsights(userId));
+		// Staleness-Refresh ist KEIN user-getriggerter Auswerten-Klick →
+		// Mock-Provider, kein Claude.
+		after(() => recomputeInsights(userId, { background: true }));
 	}
 
 	return insights;
