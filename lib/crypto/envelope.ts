@@ -1,79 +1,113 @@
 import { createHash } from "node:crypto";
 import sodium from "libsodium-wrappers";
+import { getKms, type Kms, type WrappedDek } from "./kms";
 
-let ready = false;
-async function ensure() {
-	if (ready) return;
-	await sodium.ready;
-	ready = true;
-}
+// Envelope-Verschlüsselung: per-Org-DEK (XChaCha20-Poly1305), DEK mit dem
+// KEK umschlossen (lib/crypto/kms.ts). Jedes Blob trägt einen kleinen
+// versionierten Header, damit Rotation und Formatwechsel ohne Big-Bang gehen.
 
-function getKek(): Uint8Array {
-	const b64 = process.env.VAULT_KEK_BASE64;
-	if (!b64) throw new Error("VAULT_KEK_BASE64 missing");
-	const bytes = Uint8Array.from(Buffer.from(b64, "base64"));
-	if (bytes.length !== 32) {
-		throw new Error(`KEK must be 32 bytes, got ${bytes.length}`);
-	}
-	return bytes;
-}
+export const ENVELOPE_VERSION = 1;
+const HEADER_BYTES = 1 + 2; // version (u8) + keyVersion (u16 BE)
 
-/** Generate a fresh per-user data encryption key (32 bytes). */
 export async function generateDek(): Promise<Uint8Array> {
-	await ensure();
-	return sodium.crypto_secretbox_keygen();
+	await sodium.ready;
+	return sodium.crypto_aead_xchacha20poly1305_ietf_keygen();
 }
 
-/** Wrap a DEK with the master KEK. Output is base64(nonce || ciphertext). */
-export async function wrapDek(dek: Uint8Array): Promise<string> {
-	await ensure();
-	const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
-	const ct = sodium.crypto_secretbox_easy(dek, nonce, getKek());
-	const out = new Uint8Array(nonce.length + ct.length);
-	out.set(nonce, 0);
-	out.set(ct, nonce.length);
-	return Buffer.from(out).toString("base64");
+export async function wrapDek(
+	dek: Uint8Array,
+	kms: Kms = getKms(),
+): Promise<WrappedDek> {
+	return kms.wrap(dek);
 }
 
-/** Reverse of wrapDek. */
-export async function unwrapDek(wrappedB64: string): Promise<Uint8Array> {
-	await ensure();
-	const wrapped = Uint8Array.from(Buffer.from(wrappedB64, "base64"));
-	const NONCE = sodium.crypto_secretbox_NONCEBYTES;
-	const nonce = wrapped.slice(0, NONCE);
-	const ct = wrapped.slice(NONCE);
-	const dek = sodium.crypto_secretbox_open_easy(ct, nonce, getKek());
-	if (!dek) throw new Error("DEK unwrap failed");
-	return dek;
+export async function unwrapDek(
+	wrapped: WrappedDek,
+	kms: Kms = getKms(),
+): Promise<Uint8Array> {
+	return kms.unwrap(wrapped);
 }
 
-/** Authenticated symmetric encryption with a DEK. */
+export type Sealed = {
+	version: number;
+	keyVersion: number;
+	nonce: Uint8Array;
+	ciphertext: Uint8Array;
+};
+
 export async function encryptBytes(
 	plain: Uint8Array,
 	dek: Uint8Array,
-): Promise<{ ciphertext: Uint8Array; nonce: Uint8Array }> {
-	await ensure();
-	const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
-	const ciphertext = sodium.crypto_secretbox_easy(plain, nonce, dek);
-	return { ciphertext, nonce };
+	opts: { keyVersion: number; aad?: string },
+): Promise<Sealed> {
+	await sodium.ready;
+	const nonce = sodium.randombytes_buf(
+		sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES,
+	);
+	const aad = opts.aad ? sodium.from_string(opts.aad) : null;
+	const ciphertext = sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(
+		plain,
+		aad,
+		null,
+		nonce,
+		dek,
+	);
+	return {
+		version: ENVELOPE_VERSION,
+		keyVersion: opts.keyVersion,
+		nonce,
+		ciphertext,
+	};
 }
 
-/** Authenticated symmetric decryption with a DEK. */
 export async function decryptBytes(
-	ciphertext: Uint8Array,
-	nonce: Uint8Array,
+	sealed: Sealed,
 	dek: Uint8Array,
+	aad?: string,
 ): Promise<Uint8Array> {
-	await ensure();
-	const plain = sodium.crypto_secretbox_open_easy(ciphertext, nonce, dek);
-	if (!plain)
-		throw new Error(
-			"decrypt failed (bad key, bad nonce, or tampered ciphertext)",
+	await sodium.ready;
+	try {
+		return sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(
+			null,
+			sealed.ciphertext,
+			aad ? sodium.from_string(aad) : null,
+			sealed.nonce,
+			dek,
 		);
-	return plain;
+	} catch {
+		throw new Error(
+			"Entschlüsselung fehlgeschlagen (falscher Schlüssel, falsche Nonce oder manipulierte Daten)",
+		);
+	}
 }
 
-/** Hex-encoded SHA-256 of arbitrary bytes (for integrity / audit hashing). */
-export async function sha256Hex(bytes: Uint8Array): Promise<string> {
+// Serialisierung: [version:u8][keyVersion:u16][nonce:24][ciphertext…]
+export function packEnvelope(sealed: Sealed): Uint8Array {
+	const out = new Uint8Array(
+		HEADER_BYTES + sealed.nonce.length + sealed.ciphertext.length,
+	);
+	out[0] = sealed.version;
+	out[1] = (sealed.keyVersion >> 8) & 0xff;
+	out[2] = sealed.keyVersion & 0xff;
+	out.set(sealed.nonce, HEADER_BYTES);
+	out.set(sealed.ciphertext, HEADER_BYTES + sealed.nonce.length);
+	return out;
+}
+
+export function unpackEnvelope(bytes: Uint8Array): Sealed {
+	if (bytes.length < HEADER_BYTES + 24 + 16) {
+		throw new Error("Envelope zu kurz");
+	}
+	const version = bytes[0];
+	if (version !== ENVELOPE_VERSION) {
+		throw new Error(`Unbekannte Envelope-Version ${version}`);
+	}
+	const keyVersion = (bytes[1] << 8) | bytes[2];
+	const nonce = bytes.slice(HEADER_BYTES, HEADER_BYTES + 24);
+	const ciphertext = bytes.slice(HEADER_BYTES + 24);
+	return { version, keyVersion, nonce, ciphertext };
+}
+
+export function sha256Hex(bytes: Uint8Array): string {
 	return createHash("sha256").update(Buffer.from(bytes)).digest("hex");
 }
