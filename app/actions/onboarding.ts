@@ -1,171 +1,139 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { APIError } from "better-auth/api";
+import { inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { after } from "next/server";
-import { recomputeInsights } from "@/app/actions/insights";
-import { recomputeMatchesForCandidate } from "@/app/actions/matches";
-import { auth } from "@/auth";
-import { db } from "@/db";
+import { headers } from "next/headers";
+import { frameworks, orgFrameworks, orgSettings } from "@/db/schema";
+import { audit } from "@/lib/audit";
 import {
-	candidateProfiles,
-	type ProfileEducation,
-	type ProfileExperience,
-	type ProfileSkill,
-} from "@/db/schema";
-import { geocode } from "@/lib/geo/geocode";
+	AuthError,
+	checkSessionRules,
+	getSessionCtx,
+	membershipCount,
+} from "@/lib/auth/guards";
+import { auth } from "@/lib/auth/server";
+import { generateDek, wrapDek } from "@/lib/crypto/envelope";
+import { listFrameworkOptions } from "@/lib/db/global";
+import { withOrg } from "@/lib/db/with-org";
+import { type ActionResult, fromZod } from "@/lib/validation/common";
+import { createOrganizationSchema } from "@/lib/validation/org";
 
-async function requireUserId(): Promise<string> {
-	const session = await auth();
-	if (!session?.user?.id) throw new Error("unauthenticated");
-	return session.user.id;
-}
+// Onboarding: Organisation anlegen → Better Auth (organization + owner-member)
+// → Org-Settings mit frischem DEK → Rechtskataster (org_frameworks) → Audit.
+// Synergie-Vorschau, Anwendbarkeit und Control-Initialisierung folgen in P1.
+export async function createOrganizationAction(
+	input: unknown,
+): Promise<ActionResult<{ orgId: string; slug: string }>> {
+	const ctx = await getSessionCtx();
+	if (!ctx) throw new AuthError("unauthenticated");
+	checkSessionRules(ctx);
+	if ((await membershipCount(ctx.user.id)) > 0) {
+		return { ok: false, error: "alreadyMember" };
+	}
+	const parsed = createOrganizationSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const data = parsed.data;
+	const h = await headers();
 
-// Upsert a partial set of profile fields without clobbering anything else.
-// Onboarding steps each call this with their own slice — first step inserts a
-// row, later steps update it.
-async function upsertProfileFields(
-	userId: string,
-	patch: Partial<typeof candidateProfiles.$inferInsert>,
-): Promise<void> {
-	const values = { userId, ...patch, updatedAt: new Date() };
-	await db
-		.insert(candidateProfiles)
-		.values(values)
-		.onConflictDoUpdate({
-			target: candidateProfiles.userId,
-			set: { ...patch, updatedAt: new Date() },
-		});
-}
-
-function parseList(raw: string | null): string[] | undefined {
-	if (!raw) return undefined;
-	const list = raw
-		.split(",")
-		.map((s) => s.trim())
-		.filter(Boolean);
-	return list.length > 0 ? list : undefined;
-}
-
-function parseSkills(raw: string | null): ProfileSkill[] | undefined {
-	if (!raw) return undefined;
-	const list = raw
-		.split(/\r?\n/)
-		.map((l) => l.trim())
-		.filter(Boolean)
-		.map((line): ProfileSkill => {
-			const [name, levelRaw] = line.split(":").map((s) => s.trim());
-			const level = levelRaw ? Number.parseInt(levelRaw, 10) : Number.NaN;
-			return level >= 1 && level <= 5
-				? { name, level: level as 1 | 2 | 3 | 4 | 5 }
-				: { name };
-		});
-	return list.length > 0 ? list : undefined;
-}
-
-function tryParseJsonArray<T>(raw: string | null): T[] | undefined {
-	if (!raw) return undefined;
+	let org: { id: string; slug: string };
 	try {
-		const v = JSON.parse(raw);
-		return Array.isArray(v) ? (v as T[]) : undefined;
+		const created = await auth.api.createOrganization({
+			body: { name: data.name, slug: data.slug },
+			headers: h,
+		});
+		if (!created) return { ok: false, error: "createFailed" };
+		org = { id: created.id, slug: created.slug };
+	} catch (e) {
+		if (e instanceof APIError && /slug/i.test(e.message)) {
+			return {
+				ok: false,
+				error: "slugTaken",
+				fieldErrors: { slug: ["slugTaken"] },
+			};
+		}
+		throw e;
+	}
+
+	await auth.api.setActiveOrganization({
+		body: { organizationId: org.id },
+		headers: h,
+	});
+
+	const dek = await generateDek();
+	const wrapped = await wrapDek(dek);
+
+	await withOrg(
+		{
+			orgId: org.id,
+			userId: ctx.user.id,
+			ip: ctx.ip,
+			userAgent: ctx.userAgent,
+		},
+		async (tx) => {
+			await tx.insert(orgSettings).values({
+				organizationId: org.id,
+				encryptedDek: wrapped.wrapped,
+				keyVersion: wrapped.keyVersion,
+				sector: data.sector,
+				licenceStage: data.licenceStage,
+				caspServices: data.caspServices,
+				applyBaseline: data.applyBaseline,
+				onboardingCompletedAt: new Date(),
+			});
+			const fws = await tx
+				.select({ id: frameworks.id, slug: frameworks.slug })
+				.from(frameworks)
+				.where(inArray(frameworks.slug, data.frameworks));
+			if (fws.length > 0) {
+				await tx.insert(orgFrameworks).values(
+					fws.map((f) => ({
+						organizationId: org.id,
+						frameworkId: f.id,
+						ownerUserId: ctx.user.id,
+					})),
+				);
+			}
+			await audit(
+				tx,
+				{ userId: ctx.user.id, ip: ctx.ip, userAgent: ctx.userAgent },
+				{
+					organizationId: org.id,
+					action: "org.onboarded",
+					target: `organization:${org.id}`,
+					after: {
+						sector: data.sector,
+						licenceStage: data.licenceStage,
+						caspServices: data.caspServices,
+						frameworks: fws.map((f) => f.slug),
+						keyVersion: wrapped.keyVersion,
+					},
+				},
+			);
+		},
+	);
+
+	revalidatePath("/", "layout");
+	return { ok: true, data: { orgId: org.id, slug: org.slug } };
+}
+
+export async function checkSlugAvailable(slug: string): Promise<boolean> {
+	const ctx = await getSessionCtx();
+	if (!ctx) return false;
+	const h = await headers();
+	try {
+		const res = await auth.api.checkOrganizationSlug({
+			body: { slug },
+			headers: h,
+		});
+		return Boolean(res?.status);
 	} catch {
-		return undefined;
+		return false;
 	}
 }
 
-export async function saveBasicsStep(formData: FormData): Promise<void> {
-	const userId = await requireUserId();
-	const location = formData.get("location")?.toString().trim() || null;
-	const geo = location ? await geocode(location) : null;
-	const maxCommuteMinutesRaw = formData
-		.get("maxCommuteMinutes")
-		?.toString()
-		.trim();
-	const maxCommuteMinutes = maxCommuteMinutesRaw
-		? Math.max(0, Math.min(240, Number.parseInt(maxCommuteMinutesRaw, 10) || 0))
-		: null;
-	const transportModeRaw = formData.get("transportMode")?.toString();
-	const transportMode =
-		transportModeRaw === "car" ||
-		transportModeRaw === "transit" ||
-		transportModeRaw === "bike" ||
-		transportModeRaw === "walk"
-			? transportModeRaw
-			: null;
-	await upsertProfileFields(userId, {
-		displayName: formData.get("displayName")?.toString().trim() || null,
-		headline: formData.get("headline")?.toString().trim() || null,
-		location,
-		yearsExperience: (() => {
-			const raw = formData.get("yearsExperience")?.toString().trim();
-			if (!raw) return null;
-			const n = Number.parseInt(raw, 10);
-			return Number.isFinite(n) && n >= 0 ? n : null;
-		})(),
-		languages: parseList(formData.get("languages")?.toString() ?? null) ?? null,
-		maxCommuteMinutes,
-		transportMode,
-		addressLat: geo?.lat ?? null,
-		addressLng: geo?.lng ?? null,
-	});
-	redirect("/onboarding/upload");
-}
-
-// CV upload step has nothing to save into the profile itself — the file lands
-// in vault via uploadVaultItem. This action just advances the wizard.
-export async function skipUploadStep(): Promise<void> {
-	await requireUserId();
-	redirect("/onboarding/skills");
-}
-
-export async function saveSkillsStep(formData: FormData): Promise<void> {
-	const userId = await requireUserId();
-	await upsertProfileFields(userId, {
-		skills: parseSkills(formData.get("skills")?.toString() ?? null) ?? null,
-		experience:
-			tryParseJsonArray<ProfileExperience>(
-				formData.get("experience")?.toString() ?? null,
-			) ?? null,
-		education:
-			tryParseJsonArray<ProfileEducation>(
-				formData.get("education")?.toString() ?? null,
-			) ?? null,
-		summary: formData.get("summary")?.toString().trim() || null,
-	});
-	redirect("/onboarding/visibility");
-}
-
-export async function finishOnboarding(formData: FormData): Promise<void> {
-	const userId = await requireUserId();
-	const visibility = formData.get("visibility")?.toString();
-	const safeVisibility =
-		visibility === "private" ||
-		visibility === "matches_only" ||
-		visibility === "public"
-			? visibility
-			: "matches_only";
-
-	await upsertProfileFields(userId, {
-		visibility: safeVisibility,
-		onboardingCompletedAt: new Date(),
-	});
-	revalidatePath("/profile");
-	after(async () => {
-		// Onboarding-Abschluss läuft im Hintergrund — keine User-
-		// Auswertung → Mock.
-		await recomputeInsights(userId, { background: true });
-		await recomputeMatchesForCandidate(userId);
-	});
-	redirect("/onboarding/done");
-}
-
-export async function getOnboardingProfile() {
-	const userId = await requireUserId();
-	const [p] = await db
-		.select()
-		.from(candidateProfiles)
-		.where(eq(candidateProfiles.userId, userId))
-		.limit(1);
-	return p ?? null;
+export async function frameworkOptions() {
+	const ctx = await getSessionCtx();
+	if (!ctx) throw new AuthError("unauthenticated");
+	return listFrameworkOptions();
 }

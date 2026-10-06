@@ -1,17 +1,37 @@
-import type { InputHTMLAttributes } from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import type * as React from "react";
 import { cn } from "@/lib/utils";
 
-export function Input({
+// Maison: Unterstrich-Eingabefeld als Default; "boxed" für dichte Formulare.
+const inputVariants = cva(
+	"flex h-10 w-full min-w-0 bg-transparent text-sm tracking-wide text-foreground placeholder:text-muted-foreground/70 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive",
+	{
+		variants: {
+			variant: {
+				underline:
+					"rounded-none border-0 border-b border-input px-1 py-2 focus-visible:border-foreground focus-visible:outline-none",
+				boxed:
+					"rounded-sm border border-input px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+			},
+		},
+		defaultVariants: { variant: "underline" },
+	},
+);
+
+function Input({
 	className,
+	variant,
+	type,
 	...props
-}: InputHTMLAttributes<HTMLInputElement>) {
+}: React.ComponentProps<"input"> & VariantProps<typeof inputVariants>) {
 	return (
 		<input
-			className={cn(
-				"flex h-11 w-full rounded-sm border-0 border-b border-border/80 bg-transparent px-1 py-2 text-sm tracking-wide placeholder:text-muted-foreground/70 focus-visible:border-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50",
-				className,
-			)}
+			type={type}
+			data-slot="input"
+			className={cn(inputVariants({ variant }), className)}
 			{...props}
 		/>
 	);
 }
+
+export { Input, inputVariants };

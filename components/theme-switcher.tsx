@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 export function ThemeSwitcher() {
 	const { resolvedTheme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
-	const t = useTranslations("Header");
+	const t = useTranslations("Common");
 
 	useEffect(() => setMounted(true), []);
 

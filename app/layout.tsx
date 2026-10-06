@@ -1,8 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, JetBrains_Mono, Jost } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 const jost = Jost({
@@ -29,30 +31,22 @@ const jetbrainsMono = JetBrains_Mono({
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations("Meta");
 	return {
-		title: t("title"),
+		title: { default: t("title"), template: "%s · Klick" },
 		description: t("description"),
-		manifest: "/manifest.json",
 		applicationName: "Klick",
-		appleWebApp: {
-			capable: true,
-			title: "Klick",
-			statusBarStyle: "default",
-		},
+		robots: { index: false, follow: false },
 		formatDetection: { telephone: false },
-		other: {
-			"mobile-web-app-capable": "yes",
-		},
 	};
 }
 
-export const viewport = {
+export const viewport: Viewport = {
 	themeColor: [
-		{ media: "(prefers-color-scheme: light)", color: "#ffffff" },
-		{ media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+		{ media: "(prefers-color-scheme: light)", color: "#f8f6f0" },
+		{ media: "(prefers-color-scheme: dark)", color: "#1c1c1c" },
 	],
 	width: "device-width",
 	initialScale: 1,
-	viewportFit: "cover" as const,
+	viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -68,15 +62,20 @@ export default async function RootLayout({
 			suppressHydrationWarning
 			className={`${jost.variable} ${cormorant.variable} ${jetbrainsMono.variable} h-full antialiased`}
 		>
-			<body className="bg-background text-foreground min-h-full flex flex-col">
+			<body className="flex min-h-full flex-col bg-background text-foreground">
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="system"
 					enableSystem
 					disableTransitionOnChange
 				>
-					<NextIntlClientProvider messages={messages} locale={locale}>
-						{children}
+					<NextIntlClientProvider
+						messages={messages}
+						locale={locale}
+						timeZone="Europe/Berlin"
+					>
+						<TooltipProvider>{children}</TooltipProvider>
+						<Toaster />
 					</NextIntlClientProvider>
 				</ThemeProvider>
 			</body>
