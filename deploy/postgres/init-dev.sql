@@ -1,0 +1,13 @@
+-- Nur Dev (docker-compose): Rollen mit bekannten Passwörtern + zwei DBs.
+CREATE ROLE klick_migrator LOGIN PASSWORD 'klick_migrator' CREATEDB NOBYPASSRLS;
+CREATE ROLE klick_app LOGIN PASSWORD 'klick_app' NOBYPASSRLS NOCREATEDB NOCREATEROLE NOSUPERUSER;
+CREATE DATABASE klick OWNER klick_migrator;
+CREATE DATABASE klick_test OWNER klick_migrator;
+\connect klick
+GRANT USAGE ON SCHEMA public TO klick_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE klick_migrator IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO klick_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE klick_migrator IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO klick_app;
+\connect klick_test
+GRANT USAGE ON SCHEMA public TO klick_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE klick_migrator IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO klick_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE klick_migrator IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO klick_app;
