@@ -2,180 +2,97 @@
 
 # Klick — Projekt-Gedächtnis
 
-> Dies ist das laufende Notizbuch für künftige Sessions. Halte es aktuell.
+> Laufendes Notizbuch für künftige Sessions. Aktuell halten.
 
 ## Was wir bauen
 
-Recruiting-Plattform mit klarem Versprechen: **Kandidat besitzt seine Daten, gibt sie selektiv frei, Verifikationen passieren on-demand bei echtem Arbeitgeber-Interesse.** Drei Rollen (Kandidat / Arbeitgeber / Admin) in einer App. Mobile-first, vertrauenswürdig, schlicht. Inspiration: Linear, Stripe-Dashboard, Apple Health — nicht LinkedIn.
+**Compliance-/GRC-SaaS** (Pivot Oktober 2026, vorher Recruiting — Archiv-Tag `recruiting-final`).
+Mandantenfähig, für regulierte Unternehmen: ISO 27001, DORA, NIS2, ZAG-MaRisk/MaRisk, MiCAR+KMAG,
+GwG → AMLR, TFR, Sanktionen, DSGVO, DAC8, AWV, Kassenrecht, KWG. Zwei Zwecke: (1) eigener Weg zur
+BaFin-Zulassung als CASP + ZAG (Stablecoin-Zahlungen, Businessplan Frankfurt 26.09.2026 ist Mandant 1),
+(2) SaaS für Firmen auf demselben Weg. Die Plattform ist **Mandant 0** und erfüllt die Anforderungen
+selbst (Nachweis: `/baseline`, P1).
 
-Vollständiger Implementierungsplan: `~/.claude/plans/trustvault-initial-prompt-effervescent-lighthouse.md`.
+**Kernkonzept:** Common Controls (Hub-and-Spoke). Rahmenwerk-Anforderungen sind das *Warum*,
+~120 harmonisierte Controls das *Was*, `control_requirements` die Synergie-Kante. Status wird pro
+Control geführt; Abdeckung je Rahmenwerk wird abgeleitet, nie gespeichert. Anwendbarkeit hängt an
+Lizenzstufe (`0_vorbereitung`…`4_bank`), CASP-Diensten und Stichtag (`effectiveFrom/Until`).
+
+Vollständiger Plan: `~/.claude/plans/nach-erstellen-der-firma-glimmering-volcano.md` (Phasen P0–P5,
+UX, Härtung, Katalog-Abgleich). Authoring-Quelle der Anforderungen:
+`docs/regulatory/anforderungskatalog-2026-10.md`.
 
 ## Stack (verbindlich)
 
 | Schicht | Wahl |
 |---|---|
-| Framework | Next.js 16 (App Router, React 19, Turbopack) |
-| Sprache | TypeScript strict |
-| Package Manager | pnpm 10 |
-| Node | 22 LTS empfohlen, aktuell installiert: 25.x |
-| Styling | Tailwind v4 + eigene shadcn-style UI-Komponenten in `components/ui/` |
-| Animation | Framer Motion (sparsam, kommt in P1) |
-| DB | PostgreSQL 16 (lokal nativ via brew, nicht Docker — siehe ADR unten) |
-| ORM | Drizzle ORM + drizzle-kit |
-| Auth | Auth.js v5 (next-auth@beta) mit DB-Sessions, Magic-Link-Provider |
-| Storage | S3-kompatibel (kommt in P1, Hetzner Object Storage geplant) |
-| Verschlüsselung | libsodium (Envelope-Pattern, kommt in P1) |
-| Validierung | Zod + react-hook-form |
-| AI | Anthropic Claude (claude-sonnet-4-6) für CV-Parse + Match-Begründung; Voyage AI für Embeddings — austauschbar hinter `AIProvider`-Interface (kommt in P2/P4) |
-| Background Jobs | pg-boss (Postgres-basiert, on-prem-fähig) — kommt in P4 |
-| i18n | next-intl 4 (cookie-based, kein URL-Prefix) |
-| Theme | next-themes (System-Default) |
-| Tests | Vitest + happy-dom; Playwright für E2E in P8 |
-| Lint/Format | Biome (kein ESLint, kein Prettier) |
-| Mail | P0: Console-Mock; Prod: Brevo SMTP (EU/FR-Region) |
-| Hosting | Dev: lokal; Prod: Vercel EU + Hetzner Postgres/Storage |
+| Framework | Next.js 16.2 (App Router, React 19, Turbopack), `proxy.ts` statt middleware |
+| Sprache | TypeScript strict, ES2022 |
+| Package Manager | pnpm 10 — `minimumReleaseAge: 10080` (7 Tage), Lifecycle-Skripte blockiert |
+| Node | 22 LTS (`.nvmrc`, `engines`) |
+| Styling | Tailwind v4 + eigene shadcn-v4-Primitives in `components/ui/` (handgeschrieben, Registry nicht erreichbar) auf Maison-Tokens |
+| DB | PostgreSQL 16, Drizzle ORM 0.45 (`casing: snake_case`), uuid-IDs |
+| Auth | **Better Auth 1.7.6** (`better-auth/minimal` + `@better-auth/drizzle-adapter`): magicLink, organization (eigene AC-Rollen), twoFactor, `@better-auth/passkey`, admin, nextCookies |
+| Jobs | pg-boss (Schema `pgboss` gehört der App-Rolle), Start in `instrumentation.ts` |
+| Logging | pino (Redaction), `/api/health`, `/api/ready` |
+| Krypto | libsodium XChaCha20-Poly1305, per-Org-DEK, `Kms`-Interface (`LocalKms`), `keyVersion` |
+| Validierung | zod 4 + react-hook-form; Schemas in `lib/validation/*` |
+| i18n | next-intl, **DE-only**, `timeZone: Europe/Berlin`, typisierte Keys (`global.d.ts`) |
+| Tests | Vitest (Unit + RLS-Integration mit `DATABASE_URL_TEST`); Playwright ab P4 |
+| Lint/Format | Biome (Tabs, double quotes) |
+| Mail | Resend → SMTP (Brevo) → Konsole; Magic-Link nie im Prod-Log |
+| Hosting | Hetzner, nginx + systemd (gehärtet), Postgres nativ; Dev: `docker-compose.yml` |
 
 ## Konventionen
 
-- **Du-Form überall**, auch in der Arbeitgeber-Sicht (ein Tonfall durchgängig statt fragmentierter Übersetzung).
-- **Mobile First**: jeder Layout-Pass beginnt bei 375px, breakpoint-up.
-- **Server Components by default**, `"use client"` nur wo State/Browser-API gebraucht wird.
-- **Tailwind v4 Tokens** in `app/globals.css` (oklch). Akzent: `--primary` ≈ `#3B6FE4` (light), `#7B9CFF` (dark).
-- **Auth-Adapter-Tabellen** heißen `users`, `accounts`, `sessions`, `verification_tokens`. `users` ist um Klick-Felder erweitert (`tenantId`, `role`, `locale`, `encryptedDek`).
-- **Tenant-Spalte** ab Tag 1 in jeder mandantenrelevanten Tabelle. Lokal: ein Default-Tenant `default` (gesetzt durch `pnpm db:seed`). Prod: subdomain-Lookup via `proxy.ts` setzt `x-tenant-slug`-Header.
-- **Magic Link in Dev**: erscheint in der Server-Konsole. Niemals echten Mailer für Dev konfigurieren.
-- **Claude nur bei User-Auswertungen**: `getAIProvider({ background: true })` / `getCareerAIProvider({ background: true })` zwingt den Mock — Pflicht für jeden after()-Hook und Hintergrund-Pfad (Match-Compute, Vault-Auto-Extract, Insights-Staleness-Refresh, Salary-Benchmark beim Save etc.). Echter Provider nur, wenn der User explizit auf einen "Auswerten / Vorschlagen"-Button klickt (Karriere-Analyse, refreshMyInsights, CV-Import, AI-Skill-Vorschlag, Salary-Empfehlung).
-- **Commits klein und thematisch.** Co-Author auf Claude wird automatisch bei `git commit` ergänzt (über harness).
-- **CLAUDE.md aktuell halten**, wann immer eine Architektur- oder Konventions-Entscheidung fällt.
+- **Du-Form überall**, deutsche Slugs (`/heute`, `/ueberblick`, `/risiken`, `/nachweise` …), Begriffe: Rahmenwerk · Anforderung · Control · Nachweis · Dokument · Prozess · Dienstleister · Vorfall · Abweichung · Freigabe · Kenntnisnahme · Verantwortlich (Owner) · Bearbeitet von (Assignee).
+- **Server Components by default**; `"use client"` nur bei State/Browser-API.
+- **Guards zuerst:** jede Action/Query → `requireOrg(perm?)` / `requireStepUp()` / `requirePlatformAdmin()`; Layout-Gates (`lib/auth/gates.ts`) sind nur UX.
+- **RLS immer:** Org-Queries in `readOrg`/`withOrg`/`mutateOrg`; Kontext transaktionslokal (`set_config(…, true)`); Plattform-Zugriff nur `withPlatform(ctx, reason)` (auditiert).
+- **Audit als letzte Anweisung** derselben Transaktion (`mutateOrg`), mit `before/after`; Hash-Kette je Org; Auth-Ereignisse über Better-Auth-Hooks (`lib/auth/audit-events.ts`).
+- **MFA für alle Rollen**, absolute Session 12 h, Idle 30 min, Step-up ≤ 10 min (`lib/auth/session-rules.ts` — pure, getestet).
+- **Keine KI in v1.** Falls später: nur auf expliziten Klick, nie im Hintergrund.
+- **Enums als Text-Spalten** mit TS-Unions (`db/schema/enums.ts`); `entityType` ist eine Union, kein pg-Enum.
+- **Neue Org-Tabelle** = `orgId()` + `orgPolicy()` + `.enableRLS()` + FORCE in Migration; Test `isolation.matrix` erzwingt das.
+- **Commits klein und thematisch**; `pnpm preflight` vor jedem Commit.
 
-## Architectural Decision Records (kurz)
+## ADRs (kurz)
 
-### ADR-001: Postgres nativ via brew statt Docker (P0)
-- **Kontext**: Plan sah Docker-Compose (Postgres + MinIO) vor. `brew install --cask docker-desktop` braucht sudo, das Claude nicht autonom geben kann.
-- **Entscheidung**: Postgres@16 nativ via `brew services start postgresql@16`, MinIO später analog.
-- **Folgen**: Kein einheitliches `docker compose up`-Setup für künftige Mitwirkende. Bei Bedarf wird das in P8 (Polish) nachgeholt — bis dahin reicht die brew-Variante für Solo-Dev.
+- **ADR-008 Pivot & Chain-Reset:** Recruiting komplett entfernt (Tag `recruiting-final`); Migrationshistorie neu ab `0000_pivot` (Block A drops Alt-Tabellen + RLS-Funktionen, Block B generiert, Block C FORCE RLS + Carry-over Admins/CMS + Audit-Trigger). Reproduzierbar über `scripts/wrap-pivot-migration.sh`.
+- **ADR-009 Better Auth statt Auth.js:** fertige Org-/Rollen-/MFA-/Passkey-Verwaltung. MFA-Gating, Idle/Absolut-Grenze und Step-up sind **unsere** Regeln im Guard (Plugin gated passwortlose Logins nicht). Ein User = eine Org (app-seitig). `member`/`invitation` sind die einzigen Org-Tabellen ohne RLS (Adapter liest ohne Kontext) — Fachcode filtert explizit.
+- **ADR-010 Postgres-RLS als zweite Verteidigungslinie:** App-Rolle `klick_app` ohne BYPASSRLS/DDL, Migrationen über `klick_migrator`; `app_current_org()` (uuid) / `app_is_platform()`.
+- **ADR-011 pg-boss statt `after()`** für geplante Arbeit; `after()` nur Fire-and-forget im Request.
+- **ADR-012 XChaCha20-Poly1305** (korrigiert: früher XSalsa20 secretbox) mit Org-DEK, Feldverschlüsselung für sensible Spalten (`lib/crypto/fields.ts`).
+- **ADR-013 shadcn ohne Registry:** `ui.shadcn.com` ist aus der Build-Umgebung nicht erreichbar → Primitives handgeschrieben im shadcn-v4-Stil (`radix-ui`, `cmdk`, `sonner`); `components.json` bleibt für späteren CLI-Einsatz.
 
-### ADR-002: Cookie-basiertes i18n statt URL-Prefix
-- **Kontext**: next-intl unterstützt beides. URL-Prefix (`/de/...`) hätte mit subdomain-Tenant-Routing kombiniert werden müssen.
-- **Entscheidung**: Cookie-basiert (`NEXT_LOCALE`), kein `[locale]`-Segment.
-- **Folgen**: Sauberere URLs, keine Kollision mit Tenant-Routing. SEO-Trade-off in Kauf genommen (Recruiting-App, kein Content-SEO).
+## Wichtige Pfade
 
-### ADR-003: Server-side Envelope Encryption statt Client-side (P1, umgesetzt)
-- **Kontext**: Kandidat hat volle Datenhoheit, ID-Dokumente liegen dauerhaft im Vault.
-- **Entscheidung**: Per-User-DEK, mit KEK (KMS / lokal openssl) verschlüsselt. Datei wird **server-seitig** vor S3-Upload mit DEK encrypted (XChaCha20-Poly1305 via libsodium).
-- **Folgen**: Multi-Device einfach (kein Key-Sync zwischen Browsern), aber Server sieht Klartext beim Upload kurz. Trade-off bewusst für MVP-UX.
+- `lib/auth/{server,client,permissions,guards,gates,session-rules,step-up,audit-events,org}.ts`
+- `lib/db/{with-org,global,health}.ts` · `lib/audit.ts` · `lib/audit-hash.ts` · `lib/log.ts` · `lib/env.ts`
+- `lib/crypto/{envelope,kms,fields}.ts` · `lib/uploads/validate.ts` · `lib/jobs/{boss,register}.ts`
+- `lib/nav.ts` (abgeleitete Navigation) · `lib/compliance/catalog/{types,frameworks,seed-catalog}.ts`
+- `db/schema/{enums,catalog,platform,registers,grc,management,aml}.ts` · `db/rls.ts` · `db/auth-schema.ts` (generiert)
+- `components/shell/*` (AppShell, Sidebar, ⌘K, Glocke) · `components/ui/*` · `components/auth/*`
+- `app/(marketing)` `/`, `/[slug]` · `app/(auth)` `/login`, `/login/verify`, `/login/2fa`, `/einrichtung/2fa`, `/onboarding`, `/einladung/[id]` · `app/(app)` `/heute`, `/ueberblick`, `/team`, `/einstellungen` · `app/(admin)/admin/*`
+- `deploy/{systemd,nginx,postgres,firewall.nft,README.md}` · `scripts/{db-migrate.ts,backup-db.sh,restore-db.sh,wrap-pivot-migration.sh}`
 
-### ADR-004: AIProvider-Interface mit Mock-Default (P2)
-- **Kontext**: Anthropic-API-Key ist nicht garantiert verfügbar; Dev sollte offline funktionieren.
-- **Entscheidung**: `AIProvider` als Interface, `getAIProvider()` wählt Claude wenn `ANTHROPIC_API_KEY` gesetzt, sonst Mock. Mock liefert deterministisch plausible Daten.
-- **Folgen**: Erste Demo läuft sofort ohne externe API. Echte Extraktion eine Env-Variable entfernt.
-
-### ADR-005: Match-Engine ohne pgvector im MVP (P4)
-- **Kontext**: pgvector + Embeddings (Voyage AI) hätte 1+ Session zusätzlich gekostet, ohne den UX-Kern zu verändern.
-- **Entscheidung**: Exakte Skill-Namen-Matches mit Hard-Filter (Berufsjahre, Muss-Skills, Sprachen) + Soft-Score (Nice-Skill-Ratio + Erfahrungs-Bonus).
-- **Folgen**: Keine fuzzy-Matches („React Native" matcht nicht „React"). Upgrade-Pfad klar: Embedding-Spalten nachziehen, Match-Engine erweitern. Schema reservieren wir nicht vor — wir bauen, wenn der Bedarf sichtbar wird.
-
-### ADR-006: Verify-Connector-Pattern mit Mock-First (P6)
-- **Kontext**: Echte Connectoren (Credly Partner-OAuth, IDnow-Sandbox) sind regulatorisch + zeitlich blockiert.
-- **Entscheidung**: Interface `VerifyConnector` + Registry. Mock-Connector liefert deterministisch passed (oder failed bei userId-Prefix `fail-`). Credly via öffentlicher JSON-LD-URL, IDnow als Stub. `pickConnectorForKind` wählt automatisch passend.
-- **Folgen**: Neuer Anbieter = eine Datei + Registry-Eintrag. Demo-Path immer grün. Production-Switch erfolgt durch ENV-Variable + DB-Connector-Definition (kommt P7).
-
-### ADR-007: Hintergrund-Arbeit via `next/server.after()` (P4–P6)
-- **Kontext**: pg-boss ist installiert aber nicht initialisiert; Match-Compute + Verify-Orchestrator sollen Form-Response nicht blockieren.
-- **Entscheidung**: Next.js' `after()` für nicht-blockierende Post-Response-Arbeit. Genug für MVP, Single-Server.
-- **Folgen**: Kein Retry, kein Cross-Process-Queue. Bei mehreren Replicas brauchen wir pg-boss — der Refactor ist klein (Funktion-Body in pg-boss-Job-Handler verschieben).
-- **Geplant für eigene Session**: Refactor sobald Match-Mengen > einige hundert pro Job oder Mail-Versand (`lib/mail/send.ts`) skalieren muss. Heute genutzt für: matches.computeMatchesForJob, matches.recomputeMatchesForCandidate, vault.extractAndPersist, insights.recomputeInsights, mail.sendTransactionalMail bei neuem Match.
-
-## Wichtige Datei-Pfade
-
-**Foundation**
-- `auth.ts` — Auth.js v5 + Drizzle-Adapter + Console-Mock-Mailer
-- `proxy.ts` — Tenant-Subdomain-Resolver (Next 16: `proxy`, ehemals `middleware`)
-- `db/schema.ts` — Drizzle-Schema (alle Tabellen)
-- `db/index.ts` — Client + dotenv für Standalone-Scripts
-- `i18n/request.ts` — next-intl Cookie-driven, DE default
-
-**Vault (P1)**
-- `lib/crypto/envelope.ts` — DEK/KEK + XChaCha20-Poly1305 (libsodium)
-- `lib/storage/s3.ts` — S3-Client (MinIO local, Hetzner prod)
-- `app/actions/vault.ts` — uploadVaultItem, deleteVaultItem (hard delete)
-- `app/api/vault/[id]/file/route.ts` — Auth-gated Decrypt-Stream
-- `components/vault/upload-zone.tsx` — Drag-Drop + Mobile-Kamera (`capture="environment"`)
-
-**AI (P2/P3/P4)**
-- `lib/ai/{types,index,mock,claude}.ts` — AIProvider mit Mock + Claude SDK (claude-sonnet-4-6)
-- `lib/match/engine.ts` — pure Scoring-Funktion (Hard-Filter + Soft-Score)
-
-**Match + Interest (P4/P5)**
-- `app/actions/{matches,interests}.ts` — Compute, listing, decision logic
-- `lib/verify/{types,registry,orchestrator}.ts` + `connectors/{mock,credly,idnow}.ts`
-
-**Routes**
-- `app/(marketing)/` → Landing
-- `app/(candidate)/{vault,profile,matches,requests}` — Kandidat
-- `app/(employer)/jobs[+/new+/[id]+/[id]/candidates]` — Arbeitgeber
-- `app/(admin)/admin` — Admin (P7-Lite: Audit-Viewer)
-
-**Dev-Hilfen**
-- `scripts/set-role.ts` (`pnpm set-role <email> <candidate|employer|admin>`)
-
-## Quickstart für künftige Sessions
+## Quickstart
 
 ```bash
-brew services start postgresql@16  # falls nicht läuft
-brew services start minio          # für Vault-Storage
-pnpm install
-pnpm db:migrate
-pnpm db:seed                        # default Tenant idempotent
-pnpm dev                            # http://localhost:3000
-pnpm test                           # Vitest
-pnpm lint                           # Biome
-pnpm typecheck                      # tsc --noEmit
+docker compose up -d && pnpm install && cp .env.example .env.local   # Secrets eintragen
+pnpm db:migrate && pnpm db:seed && pnpm dev
+pnpm preflight                                                       # vor jedem Commit
 ```
-
-**Magic-Link in Dev**: E-Mail in `/login` → Link erscheint als Box in der Server-Konsole.
-
-**Test-Rollen flippen**: `pnpm set-role you@example.com employer` (oder `candidate` / `admin`).
-
-**Mit echter KI testen**: `ANTHROPIC_API_KEY` in `.env.local` setzen, neu starten — getAIProvider() wechselt automatisch von Mock zu Claude.
-
-**MinIO Web-Console**: http://localhost:62351 (oder Port aus `tail /opt/homebrew/var/log/minio.log`), Login `minioadmin` / `minioadmin`.
+Lokal ohne Docker: Postgres 16 nativ, Rollen aus `deploy/postgres/init-dev.sql`.
 
 ## Phasen-Status
 
-- ✅ **P0 Skeleton** — Next 16 + Tailwind v4 + Drizzle + Auth.js v5 + i18n + Theme
-- ✅ **P1 Vault MVP** — Encrypted Upload (libsodium Envelope), Drag-Drop + Mobile-Kamera, Preview-Stream, Hard-Delete
-- ✅ **P2 Profil & CV-Parse** — AIProvider-Interface (Mock + Claude SDK), RHF-Editor, Visibility-Radio
-- ✅ **P3 Employer & Jobs** — Employer-Onboarding, Job-Form mit Sektionen, AI-Skill-Vorschlag
-- ✅ **P4 Match-Engine** — Hard-Filter + Skill-Score (kein pgvector im MVP), Claude-Rationale, anonymisierte Match-Listen
-- ✅ **P5 Interest & Disclosure** — Employer fragt mit Verify-Tiefe + Nachricht, Kandidat genehmigt, Identität wird sichtbar
-- ✅ **P6 Verify-Connector** — Interface + Registry, Mock + Credly (JSON-LD-Fallback) + IDnow-Stub, Orchestrator triggert via `after()`
-- 🟡 **P7 Admin-CMS** — Audit-Log-Viewer steht; dynamische API-Routen, Tenant-Verwaltung, Connector-Definitions-UI fehlen noch
-- 🟡 **P8 PWA, A11y, Polish** — manifest.json + Apple-Touch-Meta + viewport-themeColor; serwist-Service-Worker, A11y-Audit, E2E-Tests, Sentry stehen aus
+- ✅ **P0 Fundament** — Chain-Reset-Migration (93 Tabellen, 77 mit FORCE RLS), Better Auth mit MFA-Pflicht/Passkeys/Step-up, Guards/Gates, Audit-Hash-Kette, Org-DEK, pg-boss-Gerüst, Shell + 25 UI-Primitives, Login/2FA/Onboarding/Einladung, Heute/Überblick/Team/Einstellungen, Admin (Orgs/Users/Audit mit Kettenprüfung/CMS), Tests (Unit + RLS), CI mit Postgres/OSV/gitleaks/CodeQL, gehärtete Deploy-Artefakte.
+- ⬜ **P1 Synergie-Kern + UX-Basis** — `controls.ts`, Kanten ISO/DORA/NIS2, `recommendations.ts`, `coverage.ts`/`synergy.ts`, `<RegisterPage>`/`<EntityLayout>`, `/controls`, `/synergien`, `/rahmenwerke/[slug]`, `/nachweise`, `/baseline`, Setup-Checkliste live, Nonce-CSP, ZAP.
+- ⬜ **P2** Register, Risiko-Matrix, Freigaben, Dokumente, Vorfälle · ⬜ **P3** Managementsystem, Prüfer-Cockpit, Kalender · ⬜ **P4** AML/CASP, Restkataloge, Antrag, Playwright · ⬜ **P5** Datenschutz, Bank-Stufe, SSO, Prüfungspaket, `/vertrauen`.
 
-## Was komplett funktioniert (E2E)
+## Offene Punkte / Risiken
 
-1. Magic-Link-Login (Konsole zeigt Link), Session mit role+tenantId
-2. Vault-Upload mit Envelope-Encryption, Datei landet verschlüsselt in MinIO
-3. CV-Parse (Mock liefert plausibles Profil; mit ANTHROPIC_API_KEY echte Extraktion)
-4. Profil-Editor mit allen Feldern + Visibility
-5. Employer-Onboarding + Job-Wizard mit AI-Skill-Vorschlag
-6. Job veröffentlichen → Match-Engine berechnet Top-20 mit KI-Rationale
-7. Anonymisierte Kandidaten-Liste pro Stelle
-8. Interest-Anfrage mit Verify-Tiefe + Mock-Verifications laufen automatisch
-9. Kandidat sieht Anfrage + Prüfungs-Ergebnisse, entscheidet
-10. Approval → Employer sieht Identität, Audit-Log dokumentiert alles
-
-## Was bewusst noch nicht real ist
-
-- Echte Mail (Brevo) — Magic Link bleibt Konsole-Mock
-- Credly Partner-OAuth — JSON-LD-Fallback funktioniert; Partner-Status TODO
-- IDnow-Sandbox — Connector-Stub, Demo läuft über Mock
-- Background-Job-System (pg-boss) — `after()` reicht für MVP
-- Per-File-Disclosure (P5.5) — Approval ist binär, keine pro-Datei-Wahl
-- pgvector / fuzzy match (P4.5) — exakte Skill-Namen reichen
-- Dynamische API-Routen im Admin-CMS (P7-Hauptteil) — Catch-All-Endpoint nicht gebaut
-
-## Was wir bewusst NICHT bauen
-
-Bezahlung/Stripe, komplexe E-Mail-Templates jenseits Magic Link, komplexe Reportings, Sprachen außer DE/EN, native Mobile Apps (PWA reicht).
+- Rechtsinhalte (≈ 470 Anforderungen, ≈ 550 Kanten) sind der größte Aufwand; juristisches Review vor SaaS-Verkauf.
+- CSP mit `'unsafe-inline'` bis Nonce (P1). Kein KMS auf Hetzner bis Stufe 2.
+- Prod-Deploy: alte DB-Rolle zu `klick_migrator` umbenennen, damit `0000_pivot` die Alt-Tabellen droppen darf (`deploy/README.md`).

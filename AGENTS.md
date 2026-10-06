@@ -1,25 +1,29 @@
-<!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+
+# Mandanten-Kontext ist Pflicht
+
+Fachcode greift **nie** direkt auf `@/db` (`globalDb`) zu — Biome blockt den Import außerhalb von
+`lib/db`, `lib/auth`, `lib/jobs`, `lib/audit.ts`, `db`, `scripts`, `tests`. Jede Org-Query läuft in
+`readOrg()`/`withOrg()`/`mutateOrg()` aus `lib/db/with-org.ts`; jede exportierte Funktion in einer
+`"use server"`-Datei ruft zuerst einen Guard aus `lib/auth/guards.ts` (`requireOrg`, `requireStepUp`,
+`requirePlatformAdmin`). Mutationen schreiben ihren Audit-Eintrag als letzte Anweisung derselben
+Transaktion (`mutateOrg`).
 
 # Schema-Types nie redeklarieren
 
-Wenn ein Shape schon in `db/schema.ts` (z.B. `ProfileExperience`, `ProfileSkill`,
-`JobRequirement`) oder in `lib/ai/types.ts` (z.B. `CareerAnalysis`,
-`ExtractedProfile`) existiert: **importieren, nicht in der Komponente nochmal
-auftippen.** Schmalere Sub-Shapes über `Pick<…>`, Erweiterungen über
-`X & { _key: string }` (siehe `LocalRequirement` in `components/jobs/job-form.tsx`).
+Shapes aus `db/schema/*` (z. B. `Risk`, `Document`, `EntityKind`, `Domain`) und `lib/compliance/catalog/types.ts`
+werden importiert, nicht in Komponenten nachgetippt. Schmalere Sub-Shapes über `Pick<…>`.
 
-Diese Klasse Bug („lokales Lookalike-Shape driftet vom Schema") hat in der
-Vergangenheit mehrfach den Production-Build gebrochen, weil `string` plötzlich
-auf einen Literal-Union-Enum trifft.
+# Neue Tabelle? Dann auch RLS
+
+Jede Tabelle mit `organization_id` bekommt `orgPolicy("<table>")` und `.enableRLS()`; die Migration
+ergänzt `FORCE ROW LEVEL SECURITY` (siehe `scripts/wrap-pivot-migration.sh` für das Muster).
+`tests/isolation.matrix.test.ts` schlägt sonst fehl.
 
 # Vor Commit: `pnpm preflight`
 
-`pnpm preflight` = `pnpm typecheck && pnpm lint && pnpm test`. Wenn das grün
-ist, läuft auch `pnpm release` durch. CI auf GitHub Actions (`.github/workflows/ci.yml`)
-fährt dasselbe bei jedem Push — wenn dort ein roter X erscheint, **bitte nicht**
-auf dem Server `git pull && pnpm release` ausführen, sonst startet `klick`
-nicht neu.
+`pnpm preflight` = `pnpm typecheck && pnpm lint && pnpm test`. CI (`.github/workflows/ci.yml`) fährt
+dasselbe plus RLS-Integrationstests gegen Postgres, `pnpm audit`, OSV, gitleaks, CodeQL. Wenn CI rot
+ist, auf dem Server **kein** `pnpm release`.

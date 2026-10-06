@@ -1,0 +1,71 @@
+# /etc/systemd/system/klick.service — gehärtete Unit (CC-OPS-04, ISO A.8.9/A.8.20)
+#
+# Secrets kommen als systemd-Credentials (nie als EnvironmentFile im Repo):
+#   systemd-creds encrypt --name=better_auth_secret - /etc/credstore.encrypted/better_auth_secret
+#   systemd-creds encrypt --name=vault_kek_base64   - /etc/credstore.encrypted/vault_kek_base64
+#   systemd-creds encrypt --name=database_url       - /etc/credstore.encrypted/database_url
+#   systemd-creds encrypt --name=database_url_migrate - …
+#   systemd-creds encrypt --name=smtp_pass          - …
+# Die App liest sie über das kleine Wrapper-Skript deploy/systemd/klick-start.sh
+# ($CREDENTIALS_DIRECTORY → Env). Ziel: systemd-analyze security klick ≤ 2.0.
+[Unit]
+Description=Klick — Compliance-Plattform (Next.js)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=klick
+Group=klick
+WorkingDirectory=/opt/klick/current
+ExecStart=/opt/klick/current/deploy/systemd/klick-start.sh
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+KillSignal=SIGTERM
+
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+Environment=BETTER_AUTH_URL=https://raza.work
+Environment=LOG_LEVEL=info
+Environment=TRUSTED_PROXIES=127.0.0.1,::1
+EnvironmentFile=-/etc/klick/klick.env
+LoadCredentialEncrypted=better_auth_secret:/etc/credstore.encrypted/better_auth_secret
+LoadCredentialEncrypted=vault_kek_base64:/etc/credstore.encrypted/vault_kek_base64
+LoadCredentialEncrypted=database_url:/etc/credstore.encrypted/database_url
+LoadCredentialEncrypted=database_url_migrate:/etc/credstore.encrypted/database_url_migrate
+LoadCredentialEncrypted=smtp_pass:/etc/credstore.encrypted/smtp_pass
+
+# Sandbox
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallArchitectures=native
+UMask=0077
+# Node braucht JIT (kein MemoryDenyWriteExecute); schreibbar nur Cache + Logs.
+ReadWritePaths=/opt/klick/current/.next/cache /var/log/klick
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
