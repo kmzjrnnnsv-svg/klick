@@ -183,6 +183,7 @@ export default async function OverviewPage() {
 		},
 	].filter((x) => x.count > 0);
 	const hasNis2 = fws.includes("nis2");
+	const hasDora = fws.includes("dora");
 	const accepted = controls.filter((c) => c.status !== "not_started").length;
 	const withEvidence = new Set(evidence.flatMap((e) => e.controlCodes));
 	const implementedWithoutEvidence = controls.filter(
@@ -210,6 +211,18 @@ export default async function OverviewPage() {
 						key: "nis2",
 						label: t("setupNis2"),
 						done: settings?.nis2Status !== "unchecked",
+						href: "/einstellungen?tab=frameworks",
+					},
+				]
+			: []),
+		...(hasDora
+			? [
+					{
+						key: "tlpt",
+						label: t("setupTlpt"),
+						done:
+							Boolean(g.orgSettings?.setupFlags?.tlptConfirmedAt) ||
+							Boolean(settings?.tlptDesignated),
 						href: "/einstellungen?tab=frameworks",
 					},
 				]

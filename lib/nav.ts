@@ -323,7 +323,6 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "application",
 					href: "/antrag",
 					icon: "folder-open",
-					phase: "P4",
 				},
 			);
 		}

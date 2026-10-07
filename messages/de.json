@@ -164,7 +164,17 @@
 		"synergyEffort": "Geschätzter Aufwand: {s} klein · {m} mittel · {l} groß",
 		"synergyNoIndex": "Für diese Rahmenwerke liegen die Anforderungs-Indizes noch nicht vor (Phase 4/5). Sie sind wählbar, zählen aber noch nicht.",
 		"synergyWhatIf": "{newControls} neue Controls, {shared} bereits im Arbeitsvorrat, {pct} % der Anforderungen schon abgedeckt",
-		"synergyError": "Vorschau gerade nicht verfügbar."
+		"synergyError": "Vorschau gerade nicht verfügbar.",
+		"service_custody": "Verwahrung",
+		"service_exchange": "Tausch",
+		"service_transfer": "Transfer",
+		"service_fiat_onramp": "Fiat-Anbindung",
+		"service_platform": "Handelsplattform",
+		"service_execution": "Ausführung",
+		"service_placing": "Platzierung",
+		"service_reception_transmission": "Annahme & Übermittlung",
+		"service_advice": "Beratung",
+		"service_portfolio": "Portfolioverwaltung"
 	},
 	"Today": {
 		"title": "Heute",
@@ -236,7 +246,8 @@
 		"gapResolutions": "Pflichtbeschlüsse fehlen oder veraltet",
 		"gapProcessesA": "Prozesse ohne Verantwortliche:n (A)",
 		"gapNcs": "Abweichungen überfällig",
-		"gapRuns": "Pflichten-Läufe überfällig"
+		"gapRuns": "Pflichten-Läufe überfällig",
+		"setupTlpt": "TLPT-Benennung prüfen"
 	},
 	"Settings": {
 		"title": "Einstellungen",
@@ -294,7 +305,24 @@
 		"nextNumber": "nächste Nummer",
 		"notificationsLead": "Sofort per Mail: Zuweisung, Freigabeanfrage, Erwähnung, Vorfall-Frist, Risiko über Appetit. Alles andere im Tages-Digest.",
 		"digestOnly": "Alles nur im Digest",
-		"notificationsSaved": "Gespeichert."
+		"notificationsSaved": "Gespeichert.",
+		"stageTitle": "Lizenzstufe & Krypto-Dienste",
+		"stageLead": "Jede Stufe ändert, welche Pflichten gelten (0 Vorbereitung → 1 Agent → 2 CASP + ZAG → 3 E-Geld → 4 Bank). Der Report zeigt vor dem Wechsel, was neu anwendbar wird und was deine umgesetzten Controls schon abdecken.",
+		"stageReport": "Synergie-Report",
+		"reportApplicable": "anwendbare Anforderungen",
+		"reportNew": "neu / entfällt",
+		"reportCovered": "davon schon erfüllt",
+		"reportControls": "neue Controls (Aufwand)",
+		"reportCoverage": "Abdeckung {before} % → {after} %",
+		"reportNone": "Kein Report verfügbar.",
+		"applyStage": "Stufe und Dienste übernehmen",
+		"stageChanged": "Übernommen — {controls} neue Controls im Arbeitsvorrat, {na} Anforderungen nicht anwendbar.",
+		"tlptCheck": "TLPT-Benennung geprüft?",
+		"tlptUnconfirmed": "Noch nicht bestätigt — prüfen, ob die BaFin die Organisation für TLPT benannt hat (RTS 2025/1190), dann bestätigen.",
+		"tlptConfirmed": "Bestätigt am {date}: {status}",
+		"tlptYes": "benannt",
+		"tlptNo": "nicht benannt (Negativnachweis)",
+		"tlptConfirmButton": "Status bestätigen"
 	},
 	"Team": {
 		"title": "Team",
@@ -586,7 +614,11 @@
 		"domain_fraud": "Betrug",
 		"moduleEvidence": "Nachweis aus Modul",
 		"moduleEvidenceLead": "Dieses Governance-Control wird durch ein Modul gelebt — der Stand dort ist der Nachweis (abgeleitet, nicht gepflegt).",
-		"moduleOpen": "Modul öffnen"
+		"moduleOpen": "Modul öffnen",
+		"status_covered": "erfüllt",
+		"status_partial": "teilweise",
+		"status_open": "offen",
+		"status_not_applicable": "N/A"
 	},
 	"Frameworks": {
 		"title": "Rahmenwerke",
@@ -682,7 +714,25 @@
 		"alreadyNeeded": "bereits im Arbeitsvorrat",
 		"alreadyCovered": "schon erfüllt",
 		"summary": "{req} Anforderungen → {controls} Controls · {multi} Controls erfüllen ≥ 2 Rahmenwerke · Überlappung {pct} %",
-		"summaryNoOverlap": "{req} Anforderungen → {controls} Controls"
+		"summaryNoOverlap": "{req} Anforderungen → {controls} Controls",
+		"tabCompare": "Vergleich",
+		"compareLead": "Zwei Rahmenwerke gegenüberstellen: equivalent (Querverweis oder gemeinsames Control mit voller Kante), partial (gemeinsames Control, nur teilweise), unique (kein gemeinsames Control). Stichtag und Lizenzstufe filtern die Anwendbarkeit.",
+		"compareNeedTwo": "Für den Vergleich braucht die Organisation zwei Rahmenwerke mit Index.",
+		"compareA": "Rahmenwerk A",
+		"compareB": "Rahmenwerk B",
+		"asOf": "Stichtag",
+		"today": "heute",
+		"kind_equivalent": "äquivalent",
+		"kind_partial": "teilweise",
+		"kind_unique": "nur {fw}",
+		"kind_uniqueB": "nur {fw}",
+		"sharedControls": "{n} gemeinsame Controls",
+		"requirementTitle": "Anforderung",
+		"relation": "Beziehung",
+		"viaControls": "über Controls",
+		"orgStatus": "Status",
+		"uniqueBTitle": "{fw}-Anforderungen ohne Gegenstück in {other}",
+		"onlyControls": "Controls nur für {fw}"
 	},
 	"Evidence": {
 		"title": "Nachweise",
@@ -2189,5 +2239,33 @@
 		"gaps": "{n} offene Punkte",
 		"empty": "Noch keine Gesellschafter erfasst.",
 		"hint": "Antragsmappe MiCAR #6 / ZAG #8 wird grün, sobald mindestens ein Gesellschafter erfasst ist; Schwellen ohne Anzeige erscheinen als offener Punkt."
+	},
+	"Application": {
+		"title": "Antrag",
+		"lead": "Zwei Mappen — MiCAR-Zulassung (Art. 62) und ZAG-Erlaubnis (§ 10). Jeder Bestandteil ist mit den Modulen verknüpft; die Vollständigkeit wird aus deren Zustand abgeleitet. Nur Unterlagen außerhalb der Plattform hakst du manuell ab.",
+		"tabMicar": "MiCAR-Mappe (Art. 62)",
+		"tabZag": "ZAG-Mappe (§ 10)",
+		"micarLead": "Art. 62(2) MiCAR mit DelVO 2025/305: 17 Bestandteile; Dienste-abhängige Bestandteile (Verwahrung, Plattform, Tausch/Transfer) gelten nur für erbrachte Dienste.",
+		"zagLead": "§ 10 Abs. 2 ZAG: zehn Bestandteile von der Dienste-Einordnung bis zum Abschlussprüfer.",
+		"summary": "{done} vollständig · {partial} teilweise · {open} offen von {total} anwendbaren Bestandteilen",
+		"status_done": "vollständig",
+		"status_partial": "teilweise",
+		"status_open": "offen",
+		"status_not_applicable": "nicht anwendbar",
+		"openModule": "Zum Modul",
+		"notApplicableHint": "Nur bei Diensten: {services}",
+		"check_documents": "Dokumente freigegeben",
+		"check_controls": "Controls umgesetzt",
+		"check_functions": "Funktionen besetzt",
+		"check_own_funds": "Freigegebener Eigenmittel-Lauf",
+		"check_aml_risk_analysis": "Gültige AML-Risikoanalyse",
+		"check_providers": "Dienstleister erfasst",
+		"check_providers_outsourcing": "Auslagerungen erfasst",
+		"check_processes": "Mindestens {n} Prozess(e) erfasst",
+		"check_shareholders": "Gesellschafter erfasst",
+		"check_crypto_assets": "Kryptowerte erfasst",
+		"check_scope": "Geltungsbereich für {fw} definiert",
+		"check_manual": "Unterlage",
+		"disclaimer": "Orientierung nach Gesetzestext und RTS/ITS — kein Rechtsrat; das Dossier prüft eine Kanzlei. Antragsstrategie und Nachforderungen laufen über"
 	}
 }

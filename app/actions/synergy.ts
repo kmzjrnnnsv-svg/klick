@@ -2,14 +2,29 @@
 
 import { z } from "zod";
 import { CASP_SERVICES, LICENCE_STAGES } from "@/db/schema/enums";
-import { AuthError, getSessionCtx } from "@/lib/auth/guards";
+import {
+	AuthError,
+	getSessionCtx,
+	requireOrg,
+	toOrgCtx,
+} from "@/lib/auth/guards";
 import { synergyCatalogFor } from "@/lib/compliance/catalog-view";
+import {
+	getOrgProfile,
+	loadApplicability,
+	loadImplStatus,
+} from "@/lib/compliance/queries";
+import {
+	type StageReport,
+	stageChangeReport,
+} from "@/lib/compliance/stage-report";
 import {
 	computeSynergy,
 	type SynergyResult,
 	type WhatIfResult,
 	whatIfAddFramework,
 } from "@/lib/compliance/synergy";
+import { readOrg } from "@/lib/db/with-org";
 import type { ActionResult } from "@/lib/validation/common";
 import { fromZod } from "@/lib/validation/common";
 import { sectorSchema } from "@/lib/validation/org";
@@ -55,4 +70,55 @@ export async function previewSynergy(
 					.map((f) => whatIfAddFramework(current, f, catalog))
 			: [];
 	return { ok: true, data: { synergy, whatIf } };
+}
+
+const stageSchema = z.object({
+	licenceStage: z.enum(LICENCE_STAGES),
+	caspServices: z.array(z.enum(CASP_SERVICES)).default([]),
+	asOf: z.iso.date().optional(),
+});
+
+// Synergie-Report für Stufenwechsel/Dienste/Stichtag auf Basis der echten
+// Org (umgesetzte Controls, manuelle Anwendbarkeitsentscheidungen).
+export async function previewStageChange(
+	input: unknown,
+): Promise<ActionResult<StageReport>> {
+	const c = await requireOrg({ settings: ["read"] });
+	const parsed = stageSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const report = await readOrg(toOrgCtx(c), async (tx) => {
+		const p = await getOrgProfile(tx, c.orgId);
+		if (!p) return null;
+		const [impl, detail] = await Promise.all([
+			loadImplStatus(tx, c.orgId),
+			loadApplicability(tx, c.orgId),
+		]);
+		const overrides = new Map<string, boolean>();
+		for (const [k, v] of detail)
+			if (v.source === "manual") overrides.set(k, v.applicable);
+		const base = {
+			sector: p.profile.sector,
+			frameworks: p.frameworks,
+			tlptDesignated: p.profile.tlptDesignated,
+			issuesTokens: p.profile.issuesTokens,
+		};
+		return stageChangeReport(
+			{
+				...base,
+				licenceStage: p.profile.licenceStage,
+				caspServices: p.profile.caspServices,
+			},
+			{
+				...base,
+				licenceStage: d.licenceStage,
+				caspServices: d.caspServices,
+				asOf: d.asOf ? new Date(`${d.asOf}T00:00:00Z`) : undefined,
+			},
+			impl,
+			overrides,
+		);
+	});
+	if (!report) return { ok: false, error: "notFound" };
+	return { ok: true, data: report };
 }

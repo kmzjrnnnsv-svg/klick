@@ -9,6 +9,8 @@ import {
 	requirementApplicability,
 	requirements,
 } from "@/db/schema";
+import { CASP_SERVICES, LICENCE_STAGES } from "@/db/schema/enums";
+import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import {
 	AuthError,
 	requireOrg,
@@ -211,6 +213,102 @@ export async function updateProfileFlags(
 		};
 	});
 	revalidatePath("/", "layout");
+	return { ok: true, data: undefined };
+}
+
+const licenceProfileSchema = z.object({
+	licenceStage: z.enum(LICENCE_STAGES),
+	caspServices: z.array(z.enum(CASP_SERVICES)).max(10).default([]),
+});
+
+// Lizenzstufe und Krypto-Dienste ändern: Anwendbarkeit und Arbeitsvorrat
+// werden neu abgeleitet, stufenabhängige Workflows angelegt. Step-up.
+export async function updateLicenceProfile(
+	input: unknown,
+): Promise<ActionResult<{ controlsCreated: number; notApplicable: number }>> {
+	const guarded = await stepUpOrFail();
+	if (!guarded.ok) return guarded;
+	const c = guarded.ctx;
+	const parsed = licenceProfileSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const p = await getOrgProfile(tx, c.orgId);
+		if (!p) return { result: null, audit: [] };
+		await tx
+			.update(orgSettings)
+			.set({ licenceStage: d.licenceStage, caspServices: d.caspServices })
+			.where(eq(orgSettings.organizationId, c.orgId));
+		const init = await initializeOrg(tx, {
+			orgId: c.orgId,
+			userId: c.userId,
+			frameworks: p.frameworks,
+			sector: p.profile.sector,
+			licenceStage: d.licenceStage,
+			caspServices: d.caspServices,
+			applyBaseline: p.profile.applyBaseline,
+			tlptDesignated: p.profile.tlptDesignated,
+			issuesTokens: p.profile.issuesTokens,
+		});
+		await ensureOrgWorkflows(tx, c.orgId, d.licenceStage);
+		return {
+			result: {
+				controlsCreated: init.controlsCreated,
+				notApplicable: init.notApplicable,
+			},
+			audit: {
+				action: "org.stage_changed",
+				target: `organization:${c.orgId}`,
+				before: {
+					licenceStage: p.profile.licenceStage,
+					caspServices: p.profile.caspServices,
+				},
+				after: {
+					licenceStage: d.licenceStage,
+					caspServices: d.caspServices,
+					init,
+				},
+			},
+		};
+	});
+	if (!out) return { ok: false, error: "notFound" };
+	revalidatePath("/", "layout");
+	return { ok: true, data: out };
+}
+
+const setupFlagSchema = z.object({
+	key: z.enum(["tlptConfirmedAt"]),
+});
+
+// Setup-Checkliste: eine Prüfung als erledigt bestätigen (Zeitstempel).
+export async function confirmSetupFlag(input: unknown): Promise<ActionResult> {
+	const c = await requireOrg({ settings: ["update"] });
+	const parsed = setupFlagSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const { key } = parsed.data;
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [s] = await tx
+			.select({ flags: orgSettings.setupFlags })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		const flags = { ...(s?.flags ?? {}), [key]: new Date().toISOString() };
+		await tx
+			.update(orgSettings)
+			.set({ setupFlags: flags })
+			.where(eq(orgSettings.organizationId, c.orgId));
+		return {
+			result: null,
+			audit: {
+				action: "org.setup_flag",
+				target: `organization:${c.orgId}`,
+				before: { [key]: s?.flags?.[key] ?? null },
+				after: { [key]: flags[key] },
+			},
+		};
+	});
+	revalidatePath("/ueberblick");
+	revalidatePath("/einstellungen");
 	return { ok: true, data: undefined };
 }
 
