@@ -13,6 +13,7 @@ import {
 	membershipCount,
 } from "@/lib/auth/guards";
 import { auth } from "@/lib/auth/server";
+import { initializeOrg } from "@/lib/compliance/initialize-org";
 import { generateDek, wrapDek } from "@/lib/crypto/envelope";
 import { listFrameworkOptions } from "@/lib/db/global";
 import { withOrg } from "@/lib/db/with-org";
@@ -20,8 +21,8 @@ import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { createOrganizationSchema } from "@/lib/validation/org";
 
 // Onboarding: Organisation anlegen → Better Auth (organization + owner-member)
-// → Org-Settings mit frischem DEK → Rechtskataster (org_frameworks) → Audit.
-// Synergie-Vorschau, Anwendbarkeit und Control-Initialisierung folgen in P1.
+// → Org-Settings mit frischem DEK → Rechtskataster (org_frameworks)
+// → initializeOrg (Anwendbarkeit, Control-Arbeitsvorrat, Baseline) → Audit.
 export async function createOrganizationAction(
 	input: unknown,
 ): Promise<ActionResult<{ orgId: string; slug: string }>> {
@@ -78,7 +79,7 @@ export async function createOrganizationAction(
 				sector: data.sector,
 				licenceStage: data.licenceStage,
 				caspServices: data.caspServices,
-				applyBaseline: data.applyBaseline,
+				applyBaseline: data.applyBaseline && ctx.user.role === "admin",
 				onboardingCompletedAt: new Date(),
 			});
 			const fws = await tx
@@ -94,6 +95,17 @@ export async function createOrganizationAction(
 					})),
 				);
 			}
+			// Baseline nur für Plattform-Admins (Betreiber-Org).
+			const applyBaseline = data.applyBaseline && ctx.user.role === "admin";
+			const init = await initializeOrg(tx, {
+				orgId: org.id,
+				userId: ctx.user.id,
+				frameworks: fws.map((f) => f.slug),
+				sector: data.sector,
+				licenceStage: data.licenceStage,
+				caspServices: data.caspServices,
+				applyBaseline,
+			});
 			await audit(
 				tx,
 				{ userId: ctx.user.id, ip: ctx.ip, userAgent: ctx.userAgent },
@@ -107,6 +119,8 @@ export async function createOrganizationAction(
 						caspServices: data.caspServices,
 						frameworks: fws.map((f) => f.slug),
 						keyVersion: wrapped.keyVersion,
+						applyBaseline,
+						init,
 					},
 				},
 			);

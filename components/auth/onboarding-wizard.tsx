@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { createOrganizationAction } from "@/app/actions/onboarding";
+import { SynergyPreviewPanel } from "@/components/auth/synergy-preview";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -335,10 +336,15 @@ export function OnboardingWizard({
 								)}
 							/>
 						)}
-						<div className="rounded-md border border-dashed p-4 text-muted-foreground text-sm">
-							<p className="lv-eyebrow text-[0.58rem]">{t("synergyPreview")}</p>
-							<p className="mt-1">{t("synergyPending")}</p>
-						</div>
+						<SynergyPreviewPanel
+							frameworks={selected}
+							sector={sector ?? "other"}
+							licenceStage={form.watch("licenceStage") ?? "0_vorbereitung"}
+							caspServices={form.watch("caspServices") ?? []}
+							names={Object.fromEntries(
+								frameworks.map((f) => [f.slug, f.name]),
+							)}
+						/>
 					</div>
 				)}
 
@@ -359,7 +365,15 @@ export function OnboardingWizard({
 								)}
 							</dd>
 							<dt className="text-muted-foreground">{t("frameworks")}</dt>
-							<dd>{form.getValues("frameworks").join(", ")}</dd>
+							<dd>
+								{form
+									.getValues("frameworks")
+									.map(
+										(slug) =>
+											frameworks.find((f) => f.slug === slug)?.name ?? slug,
+									)
+									.join(", ")}
+							</dd>
 						</dl>
 						{canApplyBaseline && (
 							<FormField
