@@ -1,6 +1,6 @@
 "use client";
 
-import { Fingerprint } from "lucide-react";
+import { Building2, Fingerprint } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -10,13 +10,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/client";
 
-export function LoginForm({ microsoftEnabled }: { microsoftEnabled: boolean }) {
+export function LoginForm({
+	microsoftEnabled,
+	signupAllowed,
+}: {
+	microsoftEnabled: boolean;
+	signupAllowed: boolean;
+}) {
 	const t = useTranslations("Auth");
 	const router = useRouter();
 	const [email, setEmail] = useState("");
-	const [busy, setBusy] = useState<"link" | "passkey" | "microsoft" | null>(
-		null,
-	);
+	const [busy, setBusy] = useState<
+		"link" | "passkey" | "microsoft" | "sso" | null
+	>(null);
 
 	async function sendLink(e: React.FormEvent) {
 		e.preventDefault();
@@ -25,7 +31,7 @@ export function LoginForm({ microsoftEnabled }: { microsoftEnabled: boolean }) {
 		await authClient.signIn.magicLink({
 			email: email.trim().toLowerCase(),
 			callbackURL: "/heute",
-			newUserCallbackURL: "/heute",
+			newUserCallbackURL: "/onboarding",
 			errorCallbackURL: "/login?grund=link-ungueltig",
 		});
 		router.push("/login/verify");
@@ -51,6 +57,28 @@ export function LoginForm({ microsoftEnabled }: { microsoftEnabled: boolean }) {
 		});
 	}
 
+	// SSO der eigenen Organisation: Provider wird über die E-Mail-Domain
+	// gefunden (verifizierte Domain), dann Redirect zum IdP.
+	async function sso() {
+		const address = email.trim().toLowerCase();
+		if (!address.includes("@")) {
+			toast.error(t("ssoNeedsEmail"));
+			return;
+		}
+		setBusy("sso");
+		const res = await authClient.signIn.sso({
+			email: address,
+			callbackURL: "/heute",
+			errorCallbackURL: "/login?grund=sso",
+		});
+		if (res?.error || !res?.data?.url) {
+			setBusy(null);
+			toast.error(t("ssoNoProvider"));
+			return;
+		}
+		window.location.assign(res.data.url);
+	}
+
 	return (
 		<div className="flex flex-col gap-6">
 			<form onSubmit={sendLink} className="flex flex-col gap-4">
@@ -73,6 +101,9 @@ export function LoginForm({ microsoftEnabled }: { microsoftEnabled: boolean }) {
 				>
 					{t("sendLink")}
 				</Button>
+				{signupAllowed && (
+					<p className="text-muted-foreground text-xs">{t("signupHint")}</p>
+				)}
 			</form>
 			<div className="flex items-center gap-3 text-muted-foreground text-xs">
 				<span className="h-px flex-1 bg-border" />
@@ -87,6 +118,15 @@ export function LoginForm({ microsoftEnabled }: { microsoftEnabled: boolean }) {
 					disabled={busy !== null}
 				>
 					<Fingerprint /> {t("passkey")}
+				</Button>
+				<Button
+					type="button"
+					variant="outline"
+					onClick={sso}
+					disabled={busy !== null}
+					title={t("ssoHint")}
+				>
+					<Building2 /> {t("sso")}
 				</Button>
 				{microsoftEnabled && (
 					<Button

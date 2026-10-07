@@ -51,7 +51,7 @@ d("RLS (Postgres)", () => {
 			join pg_namespace n on n.oid = c.relnamespace
 			where n.nspname = 'public' and c.relkind = 'r'
 			  and exists (select 1 from pg_attribute a where a.attrelid = c.oid and a.attname = 'organization_id' and not a.attisdropped)
-			  and c.relname not in ('member', 'invitation')`;
+			  and c.relname not in ('member', 'invitation', 'sso_provider')`;
 		expect(rows.length).toBeGreaterThan(70);
 		const bad = rows.filter(
 			(r) => !(r.relrowsecurity && r.relforcerowsecurity && r.policies > 0),

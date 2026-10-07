@@ -1,6 +1,8 @@
 import {
 	DeleteObjectCommand,
+	DeleteObjectsCommand,
 	GetObjectCommand,
+	ListObjectsV2Command,
 	PutObjectCommand,
 	S3Client,
 } from "@aws-sdk/client-s3";
@@ -42,4 +44,37 @@ export async function getBytes(key: string): Promise<Uint8Array> {
 
 export async function deleteObject(key: string): Promise<void> {
 	await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}
+
+// Alle Objekte unter einem Präfix (Org-Löschung: org/<orgId>/).
+export async function listKeys(prefix: string): Promise<string[]> {
+	const keys: string[] = [];
+	let token: string | undefined;
+	do {
+		const out = await s3.send(
+			new ListObjectsV2Command({
+				Bucket: BUCKET,
+				Prefix: prefix,
+				ContinuationToken: token,
+			}),
+		);
+		for (const o of out.Contents ?? []) if (o.Key) keys.push(o.Key);
+		token = out.IsTruncated ? out.NextContinuationToken : undefined;
+	} while (token);
+	return keys;
+}
+
+export async function deleteObjects(keys: readonly string[]): Promise<number> {
+	let deleted = 0;
+	for (let i = 0; i < keys.length; i += 1000) {
+		const chunk = keys.slice(i, i + 1000);
+		const out = await s3.send(
+			new DeleteObjectsCommand({
+				Bucket: BUCKET,
+				Delete: { Objects: chunk.map((Key) => ({ Key })), Quiet: true },
+			}),
+		);
+		deleted += chunk.length - (out.Errors?.length ?? 0);
+	}
+	return deleted;
 }

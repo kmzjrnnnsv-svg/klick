@@ -2,18 +2,20 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
+import { DangerZonePanel } from "@/components/settings/danger-zone-panel";
 import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
 import { RiskSettingsPanel } from "@/components/settings/risk-settings-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
+import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { approvalWorkflows } from "@/db/schema";
 import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import { getSessionCtx, requireOrg, toOrgCtx } from "@/lib/auth/guards";
-import { getOrgSummary } from "@/lib/auth/org";
+import { getOrgSummary, listSsoProvidersForOrg } from "@/lib/auth/org";
 import { roleAllows } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
@@ -90,6 +92,8 @@ export default async function SettingsPage({
 	).map((f) => toItem(f.slug));
 	const canEditSettings = roleAllows(ctx.orgRole, { settings: ["update"] });
 	const orgSummary = await getOrgSummary(ctx.orgId);
+	const ssoProviders = await listSsoProvidersForOrg(ctx.orgId);
+	const callbackBase = (process.env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
 	const sctx = await getSessionCtx();
 	const t = await getTranslations("Settings");
 	const h = await headers();
@@ -109,6 +113,7 @@ export default async function SettingsPage({
 						"risk",
 						"numbering",
 						"organisation",
+						"sso",
 						"notifications",
 					].includes(tab)
 						? tab
@@ -122,6 +127,7 @@ export default async function SettingsPage({
 					<TabsTrigger value="risk">{t("tabRiskScales")}</TabsTrigger>
 					<TabsTrigger value="numbering">{t("tabNumbering")}</TabsTrigger>
 					<TabsTrigger value="organisation">{t("tabOrganisation")}</TabsTrigger>
+					<TabsTrigger value="sso">{t("tabSso")}</TabsTrigger>
 					<TabsTrigger value="notifications">
 						{t("tabNotifications")}
 					</TabsTrigger>
@@ -195,11 +201,21 @@ export default async function SettingsPage({
 						canEdit={canEditSettings}
 					/>
 				</TabsContent>
-				<TabsContent value="organisation">
+				<TabsContent value="organisation" className="flex flex-col gap-8">
 					<EntityProfilePanel
 						orgName={orgSummary?.name ?? ""}
 						profile={settings?.entityProfile ?? {}}
 						canEdit={canEditSettings}
+					/>
+					{ctx.orgRole === "owner" && (
+						<DangerZonePanel orgSlug={orgSummary?.slug ?? ""} canDelete />
+					)}
+				</TabsContent>
+				<TabsContent value="sso">
+					<SsoPanel
+						providers={ssoProviders}
+						callbackBase={callbackBase}
+						canEdit={ctx.orgRole === "owner"}
 					/>
 				</TabsContent>
 				<TabsContent value="notifications">

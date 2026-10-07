@@ -182,7 +182,7 @@ export function buildSupplierPack(input: SupplierPackInput): ZipEntry[] {
 			"| Feld (ITS) | Wert |",
 			"|---|---|",
 			`| B_05.01 c0050 Rechtlicher Name | ${md(o.name)} |`,
-			`| B_05.01 c0010/c0020 Kennung | ${o.lei ? `${o.lei} (LEI)` : "LEI noch nicht hinterlegt — Handelsregister: " + (o.registerNumber ?? "—")} |`,
+			`| B_05.01 c0010/c0020 Kennung | ${o.lei ? `${o.lei} (LEI)` : `LEI noch nicht hinterlegt — Handelsregister: ${o.registerNumber ?? "—"}`} |`,
 			`| B_05.01 c0070 Art der Person | juristische Person${o.legalForm ? ` (${md(o.legalForm)})` : ""} |`,
 			`| B_05.01 c0080 Land des Hauptsitzes | ${o.country ?? "DE"} |`,
 			`| B_02.02 c0060 Art der IKT-Dienstleistung | S19 Cloud: SaaS |`,
