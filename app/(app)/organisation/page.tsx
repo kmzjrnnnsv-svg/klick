@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { deleteShareholder } from "@/app/actions/casp";
 import {
 	deleteCommunication,
 	deleteContextIssue,
@@ -7,6 +8,7 @@ import {
 	deleteRoleAssignment,
 } from "@/app/actions/organisation";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
+import { ShareholderForm } from "@/components/casp/shareholder-form";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import {
@@ -61,6 +63,12 @@ import {
 	listRegulatorInteractions,
 	listScopes,
 } from "@/lib/compliance/queries-p3";
+import { listShareholders } from "@/lib/compliance/queries-p4";
+import {
+	inhaberkontrolleDeadline,
+	shareholderGaps,
+	totalSharePct,
+} from "@/lib/compliance/shareholders";
 import { decryptMany, fieldAad } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
@@ -76,6 +84,7 @@ const TABS = [
 	"kommunikation",
 	"aufsicht",
 	"konflikte",
+	"gesellschafter",
 ] as const;
 
 export default async function OrganisationPage({
@@ -93,6 +102,8 @@ export default async function OrganisationPage({
 	const ta = await getTranslations("Approvals");
 	const canEdit = roleAllows(ctx.orgRole, { organisation: ["update"] });
 	const canRoles = roleAllows(ctx.orgRole, { role_assignment: ["update"] });
+	const canShareholders = roleAllows(ctx.orgRole, { shareholder: ["update"] });
+	const tsh = await getTranslations("Shareholders");
 	const memberCount = (await listOrgMembers(ctx.orgId)).length;
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
@@ -151,6 +162,20 @@ export default async function OrganisationPage({
 				};
 			case "konflikte":
 				return { ...base, conflicts: await listConflicts(tx, ctx.orgId) };
+			case "gesellschafter": {
+				const shareholders = await listShareholders(tx, ctx.orgId);
+				const ubo = canShareholders
+					? await decryptMany<string>(
+							tx,
+							ctx.orgId,
+							shareholders.map((x) => ({
+								stored: x.uboChain,
+								aad: fieldAad("shareholders", x.id, "ubo_chain"),
+							})),
+						)
+					: shareholders.map(() => null);
+				return { ...base, shareholders, ubo };
+			}
 		}
 	});
 	const { members, orgFws, gov } = data;
@@ -187,6 +212,9 @@ export default async function OrganisationPage({
 					{ value: "kommunikation", label: t("tabCommunication") },
 					{ value: "aufsicht", label: t("tabRegulators") },
 					{ value: "konflikte", label: t("tabConflicts") },
+					...(data.fws.some((f) => ["micar", "zag", "kwg"].includes(f))
+						? [{ value: "gesellschafter", label: t("tabShareholders") }]
+						: []),
 				]}
 			/>
 
@@ -1134,6 +1162,198 @@ export default async function OrganisationPage({
 							</TableBody>
 						</Table>
 					)}
+				</section>
+			)}
+
+			{"shareholders" in data && (
+				<section className="flex flex-col gap-4">
+					<div className="flex items-start justify-between gap-3">
+						<p className="text-muted-foreground text-sm">{tsh("lead")}</p>
+						{canShareholders && <ShareholderForm />}
+					</div>
+					{(() => {
+						const rows = data.shareholders.map((x) => ({
+							...x,
+							sharePctN: x.sharePct === null ? null : Number(x.sharePct),
+							votingPctN: x.votingPct === null ? null : Number(x.votingPct),
+						}));
+						const gaps = shareholderGaps(
+							rows.map((x) => ({
+								name: x.name,
+								sharePct: x.sharePctN,
+								votingPct: x.votingPctN,
+								inhaberkontrolleStatus: x.inhaberkontrolleStatus,
+								notifiedAt: x.notifiedAt,
+								approvedAt: x.approvedAt,
+								sanctionsCheckedAt: x.sanctionsCheckedAt,
+							})),
+						);
+						const total = totalSharePct(
+							rows.map((x) => ({ sharePct: x.sharePctN })),
+						);
+						return (
+							<>
+								<div className="flex flex-wrap gap-2 text-sm">
+									<Badge variant={total > 100 ? "destructive" : "outline"}>
+										{tsh("total", { pct: total })}
+									</Badge>
+									<Badge variant={gaps.length > 0 ? "warning" : "success"}>
+										{tsh("gaps", { n: gaps.length })}
+									</Badge>
+								</div>
+								{gaps.length > 0 && (
+									<ul className="list-disc rounded-md border border-dashed p-3 pl-7 text-sm">
+										{gaps.map((g) => (
+											<li key={`${g.name}-${g.kind}`}>
+												<span className="font-medium">{g.name}</span>:{" "}
+												{g.detail}
+											</li>
+										))}
+									</ul>
+								)}
+								{rows.length === 0 ? (
+									<p className="text-sm">{tsh("empty")}</p>
+								) : (
+									<Table>
+										<TableHeader>
+											<TableRow>
+												<TableHead>{tsh("name")}</TableHead>
+												<TableHead className="w-24 text-right">
+													{tsh("sharePct")}
+												</TableHead>
+												<TableHead className="w-24 text-right">
+													{tsh("votingPct")}
+												</TableHead>
+												<TableHead className="w-24">
+													{tsh("threshold")}
+												</TableHead>
+												<TableHead className="w-44">{tsh("status")}</TableHead>
+												<TableHead className="w-32">
+													{tsh("deadline")}
+												</TableHead>
+												<TableHead className="w-28">
+													{tsh("sanctionsCheckedAt")}
+												</TableHead>
+												<TableHead className="w-24">{tsh("actions")}</TableHead>
+											</TableRow>
+										</TableHeader>
+										<TableBody>
+											{rows.map((x, i) => {
+												const due =
+													x.inhaberkontrolleStatus === "pending" && x.notifiedAt
+														? inhaberkontrolleDeadline(
+																new Date(`${x.notifiedAt}T00:00:00Z`),
+															)
+														: null;
+												return (
+													<TableRow key={x.id}>
+														<TableCell>
+															<p className="font-medium">
+																{x.name}{" "}
+																{x.isLegalPerson && (
+																	<Badge variant="outline">
+																		{tsh("legalPerson")}
+																	</Badge>
+																)}
+															</p>
+															{data.ubo[i] && (
+																<p className="line-clamp-2 text-muted-foreground text-xs">
+																	{tsh("uboChain")}: {data.ubo[i]}
+																</p>
+															)}
+														</TableCell>
+														<TableCell className="text-right">
+															{x.sharePctN === null ? "—" : `${x.sharePctN} %`}
+														</TableCell>
+														<TableCell className="text-right">
+															{x.votingPctN === null
+																? "—"
+																: `${x.votingPctN} %`}
+														</TableCell>
+														<TableCell>
+															{x.thresholdCrossed ? (
+																<Badge variant="warning">
+																	≥ {x.thresholdCrossed} %
+																</Badge>
+															) : (
+																<span className="text-muted-foreground text-xs">
+																	—
+																</span>
+															)}
+														</TableCell>
+														<TableCell>
+															<Badge
+																variant={
+																	x.inhaberkontrolleStatus === "approved"
+																		? "success"
+																		: x.inhaberkontrolleStatus === "pending"
+																			? "warning"
+																			: x.inhaberkontrolleStatus === "rejected"
+																				? "destructive"
+																				: "muted"
+																}
+															>
+																{tsh(`status_${x.inhaberkontrolleStatus}`)}
+															</Badge>
+														</TableCell>
+														<TableCell className="text-xs">
+															{due ? (
+																<Badge
+																	variant={
+																		due < new Date() ? "destructive" : "outline"
+																	}
+																>
+																	{fmtDate.format(due)}
+																</Badge>
+															) : (
+																"—"
+															)}
+														</TableCell>
+														<TableCell className="text-xs">
+															{x.sanctionsCheckedAt
+																? fmtDate.format(
+																		new Date(
+																			`${x.sanctionsCheckedAt}T00:00:00Z`,
+																		),
+																	)
+																: "—"}
+														</TableCell>
+														<TableCell>
+															{canShareholders && (
+																<div className="flex items-center gap-1">
+																	<ShareholderForm
+																		initial={{
+																			id: x.id,
+																			name: x.name,
+																			isLegalPerson: x.isLegalPerson,
+																			sharePct: x.sharePct ?? "",
+																			votingPct: x.votingPct ?? "",
+																			uboChain: data.ubo[i] ?? "",
+																			inhaberkontrolleStatus:
+																				x.inhaberkontrolleStatus,
+																			notifiedAt: x.notifiedAt,
+																			approvedAt: x.approvedAt,
+																			sanctionsCheckedAt: x.sanctionsCheckedAt,
+																		}}
+																	/>
+																	<DeleteRowButton
+																		id={x.id}
+																		action={deleteShareholder}
+																		label={tsh("delete")}
+																	/>
+																</div>
+															)}
+														</TableCell>
+													</TableRow>
+												);
+											})}
+										</TableBody>
+									</Table>
+								)}
+								<p className="text-muted-foreground text-xs">{tsh("hint")}</p>
+							</>
+						);
+					})()}
 				</section>
 			)}
 		</>

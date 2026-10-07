@@ -305,14 +305,12 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "ownFunds",
 					href: "/eigenmittel",
 					icon: "coins",
-					phase: "P4",
 				},
 				{
 					key: "cryptoAssets",
 					labelKey: "cryptoAssets",
 					href: "/kryptowerte",
 					icon: "bitcoin",
-					phase: "P4",
 				},
 				{
 					key: "complaints",

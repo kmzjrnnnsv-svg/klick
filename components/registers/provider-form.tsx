@@ -76,11 +76,15 @@ export function ProviderForm({
 	initial,
 	members,
 	trigger,
+	triggerLabel,
 }: {
 	initial?: ProviderDraft;
 	members: MemberOption[];
 	trigger?: "button" | "link";
+	// Beschriftung des Link-Triggers (z. B. „Als Dienstleister anlegen")
+	triggerLabel?: string;
 }) {
+	const isEdit = Boolean(initial?.providerId);
 	const t = useTranslations("Providers");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -108,7 +112,7 @@ export function ProviderForm({
 						variant="ghost"
 						className="normal-case tracking-normal"
 					>
-						{tc("edit")}
+						{triggerLabel ?? tc("edit")}
 					</Button>
 				) : (
 					<Button size="sm" variant="brown">
@@ -137,14 +141,14 @@ export function ProviderForm({
 								notes: d.notes ?? undefined,
 							});
 							if (!res.ok) return void toast.error(tc("error"));
-							toast.success(initial ? t("saved") : t("created"));
+							toast.success(isEdit ? t("saved") : t("created"));
 							setOpen(false);
 							router.refresh();
 						});
 					}}
 				>
 					<DialogHeader>
-						<DialogTitle>{initial ? tc("edit") : t("new")}</DialogTitle>
+						<DialogTitle>{isEdit ? tc("edit") : t("new")}</DialogTitle>
 						<DialogDescription>{t("lead")}</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-4 sm:grid-cols-2">
