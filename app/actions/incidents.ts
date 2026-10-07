@@ -17,6 +17,8 @@ import {
 	computeIncidentDeadlines,
 	nextIncidentCode,
 } from "@/lib/compliance/incident";
+import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
+import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { INCIDENT_STATUS } from "@/lib/entities/incident";
 import { canTransition } from "@/lib/entities/status-machine";
@@ -433,14 +435,30 @@ export async function setIncidentStatus(
 			kind: "status_change",
 			body: `Status: ${status}${note ? ` — ${note}` : ""}`,
 		});
+		// DORA Art. 13: jeder schwerwiegende Vorfall mündet in eine Abweichung (Lessons Learned).
+		const extra = [];
+		if (status === "closed") {
+			const draft = nonconformityFromIncident(row);
+			if (draft) {
+				const nc = await createNonconformity(
+					tx,
+					{ orgId: c.orgId, userId: c.userId },
+					draft,
+				);
+				extra.push(nc.audit);
+			}
+		}
 		return {
 			result: { ok: true, data: { status, approvalRequested: false } },
-			audit: {
-				action: "incident.status",
-				target: `incident:${row.id}`,
-				before: { status: row.status },
-				after: { status, note: note ?? null },
-			},
+			audit: [
+				{
+					action: "incident.status",
+					target: `incident:${row.id}`,
+					before: { status: row.status },
+					after: { status, note: note ?? null },
+				},
+				...extra,
+			],
 		};
 	});
 	revalidatePath("/vorfaelle", "layout");

@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
 import { AccessReview } from "@/components/team/access-review";
 import { InviteForm } from "@/components/team/invite-form";
+import { MemberAccessForm } from "@/components/team/member-access-form";
 import {
 	CancelInvitationButton,
 	MemberActions,
@@ -79,7 +81,16 @@ export default async function TeamPage() {
 							return (
 								<TableRow key={m.memberId}>
 									<TableCell className="font-medium">
-										{m.name}
+										{canManage ? (
+											<Link
+												href={`/team/${m.userId}`}
+												className="hover:underline underline-offset-4"
+											>
+												{m.name}
+											</Link>
+										) : (
+											m.name
+										)}
 										{m.userId === ctx.userId && (
 											<span className="ml-2 text-muted-foreground text-xs">
 												({t("you")})
@@ -102,8 +113,15 @@ export default async function TeamPage() {
 											{roleLabel(role)}
 										</Badge>
 										{m.accessUntil && (
-											<span className="ml-2 text-muted-foreground text-xs">
+											<span
+												className={`ml-2 text-xs ${m.accessUntil.getTime() < Date.now() ? "text-destructive" : "text-muted-foreground"}`}
+											>
 												bis {fmt.format(m.accessUntil)}
+											</span>
+										)}
+										{(m.grants?.length ?? 0) > 0 && (
+											<span className="ml-2 text-muted-foreground text-xs">
+												· {m.grants?.length} {t("grantsShort")}
 											</span>
 										)}
 									</TableCell>
@@ -119,11 +137,20 @@ export default async function TeamPage() {
 									</TableCell>
 									<TableCell className="text-right">
 										{canManage && (
-											<MemberActions
-												memberId={m.memberId}
-												currentRole={role}
-												isSelf={m.userId === ctx.userId}
-											/>
+											<span className="inline-flex items-center gap-1">
+												{(role === "auditor" || m.accessUntil) && (
+													<MemberAccessForm
+														memberId={m.memberId}
+														accessUntil={m.accessUntil}
+														grants={m.grants ?? []}
+													/>
+												)}
+												<MemberActions
+													memberId={m.memberId}
+													currentRole={role}
+													isSelf={m.userId === ctx.userId}
+												/>
+											</span>
 										)}
 									</TableCell>
 								</TableRow>

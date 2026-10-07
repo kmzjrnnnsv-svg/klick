@@ -15,10 +15,16 @@ import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
 import { CONTROL_BY_CODE, FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import {
+	requiredResolutions,
+	resolutionCoverage,
+} from "@/lib/compliance/catalog/resolutions-required";
+import {
 	CATALOG_CONTROL_REFS,
 	CATALOG_EDGES,
 	CATALOG_REQ_REFS,
 } from "@/lib/compliance/catalog-view";
+import { capaState } from "@/lib/compliance/nonconformity";
+import { runState } from "@/lib/compliance/obligations";
 import {
 	getOrgCoverageCached,
 	pct,
@@ -29,8 +35,23 @@ import {
 	listEvidenceWithControls,
 	listTasks,
 } from "@/lib/compliance/queries";
+import {
+	listDocuments,
+	listProviders,
+	listRisks,
+} from "@/lib/compliance/queries-p2";
+import {
+	dependencyMap,
+	governanceStatus,
+	listNonconformities,
+	listObligationRuns,
+	listProcesses,
+	listResolutions,
+} from "@/lib/compliance/queries-p3";
+import { DEFAULT_RISK_APPETITE } from "@/lib/compliance/risk";
 import { prioritizePlan } from "@/lib/compliance/synergy";
 import { readOrg } from "@/lib/db/with-org";
+import { getOrgSettings } from "@/lib/org/queries";
 
 const STAGE_LABEL: Record<string, string> = {
 	"0_vorbereitung": "0 · Vorbereitung",
@@ -49,16 +70,118 @@ export default async function OverviewPage() {
 		listPendingInvitations(ctx.orgId),
 		getOrgCoverageCached(ctx),
 	]);
-	const { controls, evidence, openTasks } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => ({
-			controls: await listControlRows(tx, ctx.orgId),
-			evidence: await listEvidenceWithControls(tx, ctx.orgId),
-			openTasks: (await listTasks(tx, ctx.orgId, { openOnly: true })).length,
-		}),
-	);
 	const settings = cov?.profile;
 	const fws = cov?.frameworks ?? [];
+	const stage = settings?.licenceStage ?? "0_vorbereitung";
+	const now = new Date();
+	const g = await readOrg(toOrgCtx(ctx), async (tx) => {
+		const [
+			controls,
+			evidence,
+			tasks,
+			orgSettings,
+			docs,
+			providers,
+			risks,
+			procs,
+			deps,
+			gov,
+			resolutions,
+			ncs,
+			runs,
+		] = await Promise.all([
+			listControlRows(tx, ctx.orgId),
+			listEvidenceWithControls(tx, ctx.orgId),
+			listTasks(tx, ctx.orgId, { openOnly: true }),
+			getOrgSettings(tx, ctx.orgId),
+			listDocuments(tx, ctx.orgId),
+			listProviders(tx, ctx.orgId),
+			listRisks(tx, ctx.orgId),
+			listProcesses(tx, ctx.orgId),
+			dependencyMap(tx, ctx.orgId),
+			governanceStatus(tx, ctx.orgId, fws, stage),
+			listResolutions(tx, ctx.orgId),
+			listNonconformities(tx, ctx.orgId),
+			listObligationRuns(tx, ctx.orgId),
+		]);
+		return {
+			controls,
+			evidence,
+			openTasks: tasks.length,
+			orgSettings,
+			docs,
+			providers,
+			risks,
+			procs,
+			deps,
+			gov,
+			resolutions,
+			ncs,
+			runs,
+		};
+	});
+	const { controls, evidence, openTasks } = g;
+	const appetiteConfirmed =
+		g.risks.length > 0 ||
+		JSON.stringify(g.orgSettings?.riskAppetite ?? DEFAULT_RISK_APPETITE) !==
+			JSON.stringify(DEFAULT_RISK_APPETITE);
+	const resCov = resolutionCoverage(
+		requiredResolutions(fws, stage),
+		g.resolutions
+			.filter((r) => r.effective)
+			.map((r) => ({
+				requiredCode: r.requiredCode,
+				date: r.date,
+				resolutionNumber: r.resolutionNumber,
+			})),
+		now,
+	);
+	const processesWithoutA = g.procs.filter(
+		(p) => p.status !== "retired" && !p.accountable,
+	);
+	const overdueNcs = g.ncs.filter((n) => capaState(n, now).overdue);
+	const overdueRuns = g.runs.filter(
+		(r) => runState(r, r.leadDays, now) === "overdue",
+	);
+	const sodBlocks = g.gov.sod.filter((v) => v.rule.severity === "block");
+	const gaps: { key: string; label: string; count: number; href: string }[] = [
+		{
+			key: "roles",
+			label: t("gapRoles"),
+			count: g.gov.coverage.gaps.length,
+			href: "/organisation?tab=rollen",
+		},
+		{
+			key: "sod",
+			label: t("gapSod"),
+			count: sodBlocks.length,
+			href: "/organisation?tab=rollen",
+		},
+		{
+			key: "resolutions",
+			label: t("gapResolutions"),
+			count: resCov.gaps.length,
+			href: "/beschluesse?tab=pflicht",
+		},
+		{
+			key: "processes",
+			label: t("gapProcessesA"),
+			count: processesWithoutA.length,
+			href: "/prozesse",
+		},
+		{
+			key: "ncs",
+			label: t("gapNcs"),
+			count: overdueNcs.length,
+			href: "/abweichungen?overdue=1",
+		},
+		{
+			key: "runs",
+			label: t("gapRuns"),
+			count: overdueRuns.length,
+			href: "/kalender",
+		},
+	].filter((x) => x.count > 0);
 	const hasNis2 = fws.includes("nis2");
 	const accepted = controls.filter((c) => c.status !== "not_started").length;
 	const withEvidence = new Set(evidence.flatMap((e) => e.controlCodes));
@@ -94,9 +217,8 @@ export default async function OverviewPage() {
 		{
 			key: "roles",
 			label: t("setupRoles"),
-			done: false,
-			href: "/organisation",
-			phase: "P3",
+			done: g.gov.required.length > 0 && g.gov.coverage.gaps.length === 0,
+			href: "/organisation?tab=rollen",
 		},
 		{
 			key: "controls",
@@ -110,23 +232,26 @@ export default async function OverviewPage() {
 		{
 			key: "appetite",
 			label: t("setupAppetite"),
-			done: false,
-			href: "/einstellungen",
-			phase: "P2",
+			done: appetiteConfirmed,
+			href: "/einstellungen?tab=risk",
 		},
 		{
 			key: "templates",
 			label: t("setupTemplates"),
-			done: false,
+			done: g.docs.length > 0,
 			href: "/dokumente",
-			phase: "P2",
 		},
 		{
 			key: "providers",
 			label: t("setupProviders"),
-			done: false,
+			done: g.providers.length > 0,
 			href: "/dienstleister",
-			phase: "P2",
+		},
+		{
+			key: "process",
+			label: t("setupProcess"),
+			done: g.deps.some((d) => d.assets.length > 0 && d.providers.length > 0),
+			href: "/prozesse",
 		},
 	];
 	const open = steps.filter((s) => !s.done);
@@ -245,6 +370,31 @@ export default async function OverviewPage() {
 								{steps.length - open.length} {t("done")} · {open.length}{" "}
 								{t("open")}
 							</p>
+						</CardContent>
+					</Card>
+					<Card>
+						<CardHeader>
+							<CardTitle className="text-base">{t("gapsTitle")}</CardTitle>
+							<CardDescription>{t("gapsLead")}</CardDescription>
+						</CardHeader>
+						<CardContent>
+							{gaps.length === 0 ? (
+								<p className="text-muted-foreground text-sm">{t("gapsNone")}</p>
+							) : (
+								<ul className="flex flex-col divide-y divide-border/60 text-sm">
+									{gaps.map((x) => (
+										<li
+											key={x.key}
+											className="flex items-center justify-between gap-2 py-2"
+										>
+											<Link href={x.href} className="hover:underline">
+												{x.label}
+											</Link>
+											<Badge variant="destructive">{x.count}</Badge>
+										</li>
+									))}
+								</ul>
+							)}
 						</CardContent>
 					</Card>
 				</div>

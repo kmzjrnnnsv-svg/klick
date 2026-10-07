@@ -1,11 +1,20 @@
 "use server";
 
 import { APIError } from "better-auth/api";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { requireOrg } from "@/lib/auth/guards";
+import { memberAccess } from "@/db/schema";
+import {
+	AuthError,
+	requireOrg,
+	requireStepUp,
+	toOrgCtx,
+} from "@/lib/auth/guards";
 import { auth } from "@/lib/auth/server";
+import { mutateOrg } from "@/lib/db/with-org";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
+import { memberAccessSchema } from "@/lib/validation/governance";
 import {
 	inviteMemberSchema,
 	updateMemberRoleSchema,
@@ -90,4 +99,54 @@ export async function removeMember(memberId: string): Promise<ActionResult> {
 	} catch (e) {
 		return mapError(e);
 	}
+}
+
+// Zeitlich begrenzter Zugang (Prüfer:innen) und Grants für sensible Register.
+// Step-up-pflichtig; Ablauf setzt der Guard durch (access_expired).
+export async function setMemberAccess(input: unknown): Promise<ActionResult> {
+	let c: Awaited<ReturnType<typeof requireStepUp>>;
+	try {
+		c = await requireStepUp({ member: ["update"] });
+	} catch (e) {
+		if (e instanceof AuthError && e.code === "step_up_required")
+			return { ok: false, error: "step_up_required" };
+		throw e;
+	}
+	const parsed = memberAccessSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const { memberId, accessUntil, grants } = parsed.data;
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [before] = await tx
+			.select({
+				accessUntil: memberAccess.accessUntil,
+				grants: memberAccess.grants,
+			})
+			.from(memberAccess)
+			.where(eq(memberAccess.memberId, memberId))
+			.limit(1);
+		await tx
+			.insert(memberAccess)
+			.values({
+				memberId,
+				organizationId: c.orgId,
+				accessUntil,
+				grants,
+				createdByUserId: c.userId,
+			})
+			.onConflictDoUpdate({
+				target: memberAccess.memberId,
+				set: { accessUntil, grants },
+			});
+		return {
+			result: null,
+			audit: {
+				action: "member.access",
+				target: `member:${memberId}`,
+				before: before ?? null,
+				after: { accessUntil, grants },
+			},
+		};
+	});
+	revalidatePath("/team");
+	return { ok: true, data: undefined };
 }

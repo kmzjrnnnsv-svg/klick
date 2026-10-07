@@ -25,6 +25,7 @@ import {
 	EDGES_BY_CONTROL,
 	REQUIREMENT_BY_KEY,
 } from "@/lib/compliance/catalog";
+import { moduleEvidenceFor } from "@/lib/compliance/module-evidence";
 import {
 	fmtDate,
 	frameworkNameMap,
@@ -151,6 +152,10 @@ export default async function ControlDetailPage({
 		})),
 	);
 
+	const moduleEv = await readOrg(toOrgCtx(ctx), (tx) =>
+		moduleEvidenceFor(tx, ctx.orgId, control.code),
+	);
+
 	return (
 		<EntityLayout
 			eyebrow={`${control.code} · ${t(`domain_${control.domain}`)}`}
@@ -269,6 +274,37 @@ export default async function ControlDetailPage({
 				</Section>
 			)}
 
+			{moduleEv && (
+				<Section title={t("moduleEvidence")}>
+					<p className="mb-2 text-muted-foreground text-xs">
+						{t("moduleEvidenceLead")}
+					</p>
+					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						{moduleEv.facts.map((f) => (
+							<li
+								key={f.label}
+								className="flex items-center justify-between gap-3 px-3 py-2"
+							>
+								<span>{f.label}</span>
+								<Badge
+									variant={
+										f.ok === null ? "outline" : f.ok ? "success" : "warning"
+									}
+									className="normal-case tracking-normal"
+								>
+									{f.value}
+								</Badge>
+							</li>
+						))}
+					</ul>
+					<Link
+						href={moduleEv.href}
+						className="mt-2 inline-block text-primary text-xs hover:underline"
+					>
+						{t("moduleOpen")}: {moduleEv.module} →
+					</Link>
+				</Section>
+			)}
 			<Section title={t("satisfies")}>
 				<p className="text-muted-foreground text-sm">{t("satisfiesLead")}</p>
 				<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">

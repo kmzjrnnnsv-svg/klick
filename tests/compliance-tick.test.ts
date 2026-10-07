@@ -20,6 +20,12 @@ const empty: DueRows = {
 	trainingAssignments: [],
 	incidents: [],
 	acknowledgements: [],
+	obligationRuns: [],
+	legalChanges: [],
+	nonconformities: [],
+	tlpt: null,
+	regulatorDeadlines: [],
+	accessExpiring: [],
 	openTasks: [],
 };
 
@@ -370,5 +376,137 @@ describe("dedupeNotifications", () => {
 		);
 		expect(out).toHaveLength(1);
 		expect(out[0]?.recipients).toEqual(["b"]);
+	});
+});
+
+describe("collectDueItems — Pflichten, Rechtsänderungen, Abweichungen, TLPT, Zugänge", () => {
+	it("Pflichten-Lauf im Vorlauf: Aufgabe + Status due; überfällig: Status overdue", () => {
+		const r = collectDueItems(NOW, {
+			...empty,
+			obligationRuns: [
+				{
+					id: "run1",
+					code: "OBL-DAC8",
+					title: "DAC8-Meldung",
+					dueAt: new Date(NOW.getTime() + 10 * DAY),
+					status: "upcoming",
+					leadDays: 60,
+					ownerUserId: "u1",
+				},
+				{
+					id: "run2",
+					code: "OBL-ZAG-MONTHLY",
+					title: "Monatsausweis",
+					dueAt: new Date(NOW.getTime() - 2 * DAY),
+					status: "due",
+					leadDays: 7,
+					ownerUserId: null,
+				},
+				{
+					id: "run3",
+					code: "OBL-X",
+					title: "weit weg",
+					dueAt: new Date(NOW.getTime() + 200 * DAY),
+					status: "upcoming",
+					leadDays: 14,
+					ownerUserId: null,
+				},
+			],
+		});
+		expect(r.actions).toEqual([
+			{ type: "mark_run_due", id: "run1" },
+			{ type: "mark_run_overdue", id: "run2" },
+		]);
+		expect(r.tasks).toHaveLength(1);
+		expect(r.tasks[0]).toMatchObject({
+			entityType: "obligation_run",
+			entityId: "run1",
+			sourceKind: "obligation",
+			assigneeUserId: "u1",
+		});
+		expect(r.notifications.map((n) => n.title)).toEqual([
+			"Pflicht fällig: DAC8-Meldung",
+			"Pflicht überfällig: Monatsausweis",
+		]);
+	});
+	it("Rechtsänderung genau 180 Tage vorher, sonst still", () => {
+		const in180 = new Date(NOW.getTime() + 180 * DAY)
+			.toISOString()
+			.slice(0, 10);
+		const in100 = new Date(NOW.getTime() + 100 * DAY)
+			.toISOString()
+			.slice(0, 10);
+		const r = collectDueItems(NOW, {
+			...empty,
+			legalChanges: [
+				{ date: in180, title: "AMLR gilt" },
+				{ date: in100, title: "Egal" },
+			],
+		});
+		expect(r.notifications).toHaveLength(1);
+		expect(r.notifications[0]?.dedupeKey).toBe(`legal:${in180}:180`);
+		expect(r.notifications[0]?.recipients).toEqual(["owner-1"]);
+	});
+	it("Abweichung: Frist und fällige Wirksamkeitsprüfung melden", () => {
+		const r = collectDueItems(NOW, {
+			...empty,
+			nonconformities: [
+				{
+					id: "nc1",
+					code: "NC-2026-001",
+					title: "Admin-Konten",
+					status: "in_progress",
+					dueAt: new Date(NOW.getTime() + 2 * DAY),
+					effectivenessCheckAt: new Date(NOW.getTime() - DAY),
+					effectivenessResult: null,
+					ownerUserId: "o",
+				},
+				{
+					id: "nc2",
+					code: "NC-2026-002",
+					title: "geschlossen",
+					status: "closed",
+					dueAt: new Date(NOW.getTime() - DAY),
+					effectivenessCheckAt: null,
+					effectivenessResult: "effective",
+					ownerUserId: "o",
+				},
+			],
+		});
+		expect(r.notifications.map((n) => n.title)).toEqual([
+			"Abweichung NC-2026-001: Admin-Konten",
+			"Wirksamkeitsprüfung NC-2026-001",
+		]);
+	});
+	it("TLPT nur bei Benennung; überfällig nach drei Jahren; Zugang abgelaufen → security_alert", () => {
+		expect(
+			collectDueItems(NOW, {
+				...empty,
+				tlpt: { designated: false, lastTlptAt: null },
+			}).notifications,
+		).toHaveLength(0);
+		const r = collectDueItems(NOW, {
+			...empty,
+			tlpt: { designated: true, lastTlptAt: "2023-01-01" },
+			accessExpiring: [
+				{
+					memberId: "m1",
+					userId: "au",
+					userName: "Prüferin",
+					accessUntil: new Date(NOW.getTime() - DAY),
+				},
+				{
+					memberId: "m2",
+					userId: "au2",
+					userName: "Prüfer",
+					accessUntil: new Date(NOW.getTime() + 3 * DAY),
+				},
+			],
+		});
+		expect(r.notifications.map((n) => [n.kind, n.title])).toEqual([
+			["review_due", "TLPT überfällig"],
+			["security_alert", "Zugang abgelaufen: Prüferin"],
+			["system", "Zugang läuft ab: Prüfer"],
+		]);
 	});
 });

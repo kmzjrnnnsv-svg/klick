@@ -1,10 +1,13 @@
 import { eq, inArray } from "drizzle-orm";
 import {
+	audits,
 	controlImplementations,
 	controls,
 	documents,
 	exceptions,
 	incidents,
+	nonconformities,
+	processes,
 	risks,
 } from "@/db/schema";
 import type { EntityKind } from "@/db/schema/enums";
@@ -29,6 +32,18 @@ export function entityHref(
 				: "/dokumente";
 		case "incident":
 			return `/vorfaelle/${id}`;
+		case "process":
+			return title
+				? `/prozesse/${encodeURIComponent(title.split(" ")[0] ?? "")}`
+				: "/prozesse";
+		case "nonconformity":
+			return `/abweichungen/${id}`;
+		case "audit":
+			return `/audits/${id}`;
+		case "audit_request":
+			return "/audits";
+		case "management_review":
+			return "/managementbewertung";
 		case "exception":
 			return "/risiken?tab=ausnahmen";
 		case "provider":
@@ -97,6 +112,32 @@ export async function resolveEntityTitles(
 			.from(incidents)
 			.where(inArray(incidents.id, ids("incident")));
 		for (const r of rows) out.set(`incident:${r.id}`, `${r.code} ${r.title}`);
+	}
+	if (ids("process").length) {
+		const rows = await tx
+			.select({ id: processes.id, code: processes.code, name: processes.name })
+			.from(processes)
+			.where(inArray(processes.id, ids("process")));
+		for (const r of rows) out.set(`process:${r.id}`, `${r.code} ${r.name}`);
+	}
+	if (ids("nonconformity").length) {
+		const rows = await tx
+			.select({
+				id: nonconformities.id,
+				code: nonconformities.code,
+				title: nonconformities.title,
+			})
+			.from(nonconformities)
+			.where(inArray(nonconformities.id, ids("nonconformity")));
+		for (const r of rows)
+			out.set(`nonconformity:${r.id}`, `${r.code} ${r.title}`);
+	}
+	if (ids("audit").length) {
+		const rows = await tx
+			.select({ id: audits.id, title: audits.title })
+			.from(audits)
+			.where(inArray(audits.id, ids("audit")));
+		for (const r of rows) out.set(`audit:${r.id}`, r.title);
 	}
 	if (ids("exception").length) {
 		const rows = await tx

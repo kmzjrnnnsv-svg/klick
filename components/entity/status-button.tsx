@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { setControlStatus } from "@/app/actions/controls";
 import { transitionDocument } from "@/app/actions/documents";
 import { setIncidentStatus } from "@/app/actions/incidents";
+import { setNonconformityStatus } from "@/app/actions/nonconformities";
+import { setProcessStatus } from "@/app/actions/processes";
 import { setRiskStatus } from "@/app/actions/risks";
 import { setTaskStatus } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,11 @@ import {
 	type DocumentStatus,
 } from "@/lib/entities/document";
 import { INCIDENT_STATUS, type IncidentStatus } from "@/lib/entities/incident";
+import {
+	NONCONFORMITY_STATUS,
+	type NonconformityStatus,
+} from "@/lib/entities/nonconformity";
+import { PROCESS_STATUS, type ProcessStatus } from "@/lib/entities/process";
 import { RISK_STATUS, type RiskStatus } from "@/lib/entities/risk";
 import { nextTransitions } from "@/lib/entities/status-machine";
 import { TASK_STATUS, type TaskStatus } from "@/lib/entities/task";
@@ -49,6 +56,12 @@ type Target =
 			aboveAppetite?: boolean;
 	  }
 	| { kind: "incident"; incidentId: string; status: IncidentStatus }
+	| { kind: "process"; processId: string; status: ProcessStatus }
+	| {
+			kind: "nonconformity";
+			nonconformityId: string;
+			status: NonconformityStatus;
+	  }
 	| { kind: "document"; documentId: string; status: DocumentStatus };
 
 const MACHINES = {
@@ -56,6 +69,8 @@ const MACHINES = {
 	task: TASK_STATUS,
 	risk: RISK_STATUS,
 	incident: INCIDENT_STATUS,
+	process: PROCESS_STATUS,
+	nonconformity: NONCONFORMITY_STATUS,
 	document: DOCUMENT_STATUS_MACHINE,
 } as const;
 
@@ -95,11 +110,15 @@ export function StatusButton({
 						? t("transitionBlocked")
 						: error === "rootCauseRequired"
 							? t("rootCauseRequired")
-							: error === "no_approver" ||
-									error.startsWith("solo_") ||
-									error === "workflow_disabled"
-								? t(`approvalError_${error}` as "approvalError_no_approver")
-								: tc("error"),
+							: error === "effectivenessRequired"
+								? t("effectivenessRequired")
+								: error === "correctiveActionRequired"
+									? t("correctiveActionRequired")
+									: error === "no_approver" ||
+											error.startsWith("solo_") ||
+											error === "workflow_disabled"
+										? t(`approvalError_${error}` as "approvalError_no_approver")
+										: tc("error"),
 				);
 				return undefined;
 			};
@@ -165,6 +184,22 @@ export function StatusButton({
 						? t("approvalRequested")
 						: t("statusChanged"),
 				);
+			} else if (target.kind === "nonconformity") {
+				const res = await setNonconformityStatus({
+					nonconformityId: target.nonconformityId,
+					status: to,
+					note: withNote,
+				});
+				if (!res.ok) return fail(res.error);
+				toast.success(t("statusChanged"));
+			} else if (target.kind === "process") {
+				const res = await setProcessStatus({
+					processId: target.processId,
+					status: to,
+					note: withNote,
+				});
+				if (!res.ok) return fail(res.error);
+				toast.success(t("statusChanged"));
 			} else {
 				const res = await transitionDocument({
 					documentId: target.documentId,
