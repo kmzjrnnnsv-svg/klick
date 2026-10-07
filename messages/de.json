@@ -191,6 +191,8 @@
 		"loginLead": "Du bekommst einen Anmelde-Link per E-Mail. Kein Passwort.",
 		"email": "E-Mail-Adresse",
 		"sendLink": "Anmelde-Link senden",
+		"sendingLink": "Link wird gesendet …",
+		"tooManyLinks": "Zu viele Anmelde-Links angefordert. Bitte warte 15 Minuten und versuche es dann erneut.",
 		"orPasskey": "oder",
 		"passkey": "Mit Passkey anmelden",
 		"microsoft": "Mit Microsoft anmelden",

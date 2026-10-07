@@ -28,12 +28,25 @@ export function LoginForm({
 		e.preventDefault();
 		setBusy("link");
 		// Antwort ist absichtlich identisch für bekannte und unbekannte Adressen.
-		await authClient.signIn.magicLink({
-			email: email.trim().toLowerCase(),
-			callbackURL: "/heute",
-			newUserCallbackURL: "/onboarding",
-			errorCallbackURL: "/login?grund=link-ungueltig",
-		});
+		try {
+			const res = await authClient.signIn.magicLink({
+				email: email.trim().toLowerCase(),
+				callbackURL: "/heute",
+				newUserCallbackURL: "/onboarding",
+				errorCallbackURL: "/login?grund=link-ungueltig",
+			});
+			if (res?.error) {
+				setBusy(null);
+				toast.error(
+					res.error.status === 429 ? t("tooManyLinks") : t("genericError"),
+				);
+				return;
+			}
+		} catch {
+			setBusy(null);
+			toast.error(t("genericError"));
+			return;
+		}
 		router.push("/login/verify");
 	}
 
@@ -104,7 +117,7 @@ export function LoginForm({
 					variant="brown"
 					disabled={busy !== null || email.length < 3}
 				>
-					{t("sendLink")}
+					{busy === "link" ? t("sendingLink") : t("sendLink")}
 				</Button>
 				{signupAllowed && (
 					<p className="text-muted-foreground text-xs">{t("signupHint")}</p>
