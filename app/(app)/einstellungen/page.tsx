@@ -1,17 +1,28 @@
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
+import { NumberingPanel } from "@/components/settings/numbering-panel";
+import { RiskSettingsPanel } from "@/components/settings/risk-settings-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
+import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { approvalWorkflows } from "@/db/schema";
+import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import { getSessionCtx, requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
+import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import { userNames } from "@/lib/compliance/queries";
-import { readOrg } from "@/lib/db/with-org";
-import { listOrgFrameworks } from "@/lib/org/queries";
+import {
+	DEFAULT_RISK_APPETITE,
+	DEFAULT_RISK_SCALES,
+} from "@/lib/compliance/risk";
+import { readOrg, withOrg } from "@/lib/db/with-org";
+import { getOrgSettings, listOrgFrameworks } from "@/lib/org/queries";
 
 export default async function SettingsPage({
 	searchParams,
@@ -21,6 +32,30 @@ export default async function SettingsPage({
 	const { tab } = await searchParams;
 	const ctx = await requireOrg();
 	const cov = await getOrgCoverageCached(ctx);
+	// Workflows je Org sicherstellen (Seed) und laden.
+	const { settings, workflows } = await withOrg(toOrgCtx(ctx), async (tx) => {
+		const settings = await getOrgSettings(tx, ctx.orgId);
+		await ensureOrgWorkflows(
+			tx,
+			ctx.orgId,
+			settings?.licenceStage ?? "0_vorbereitung",
+		);
+		const rows = await tx
+			.select()
+			.from(approvalWorkflows)
+			.where(eq(approvalWorkflows.organizationId, ctx.orgId));
+		const workflows = APPROVAL_WORKFLOW_TEMPLATES.map((tpl) => {
+			const row = rows.find((r) => r.kind === tpl.kind);
+			return {
+				kind: tpl.kind,
+				name: tpl.name,
+				description: tpl.description,
+				steps: row?.steps ?? tpl.steps,
+				enabled: row?.enabled ?? tpl.defaultEnabled,
+			};
+		});
+		return { settings, workflows };
+	});
 	const orgFws = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const rows = await listOrgFrameworks(tx, ctx.orgId);
 		const names = await userNames(
@@ -60,18 +95,24 @@ export default async function SettingsPage({
 	]);
 	const tabs = [
 		{ v: "organisation", l: t("tabOrganisation") },
-		{ v: "workflows", l: t("tabWorkflows") },
-		{ v: "risk", l: t("tabRiskScales") },
-		{ v: "numbering", l: t("tabNumbering") },
 		{ v: "notifications", l: t("tabNotifications") },
 	];
 	return (
 		<>
 			<PageHeader title={t("title")} />
-			<Tabs defaultValue={tab === "frameworks" ? "frameworks" : "security"}>
+			<Tabs
+				defaultValue={
+					tab && ["frameworks", "workflows", "risk", "numbering"].includes(tab)
+						? tab
+						: "security"
+				}
+			>
 				<TabsList>
 					<TabsTrigger value="security">{t("tabSecurity")}</TabsTrigger>
 					<TabsTrigger value="frameworks">{t("tabFrameworks")}</TabsTrigger>
+					<TabsTrigger value="workflows">{t("tabWorkflows")}</TabsTrigger>
+					<TabsTrigger value="risk">{t("tabRiskScales")}</TabsTrigger>
+					<TabsTrigger value="numbering">{t("tabNumbering")}</TabsTrigger>
 					{tabs.map((tab) => (
 						<TabsTrigger key={tab.v} value={tab.v}>
 							{tab.l}
@@ -113,9 +154,38 @@ export default async function SettingsPage({
 						/>
 					)}
 				</TabsContent>
+				<TabsContent value="workflows">
+					<WorkflowsPanel workflows={workflows} canEdit={canEditSettings} />
+				</TabsContent>
+				<TabsContent value="risk">
+					<RiskSettingsPanel
+						likelihood={
+							(settings?.riskScales ?? DEFAULT_RISK_SCALES).likelihood
+						}
+						impact={(settings?.riskScales ?? DEFAULT_RISK_SCALES).impact}
+						acceptable={
+							(settings?.riskAppetite ?? DEFAULT_RISK_APPETITE).acceptable
+						}
+						tolerable={
+							(settings?.riskAppetite ?? DEFAULT_RISK_APPETITE).tolerable
+						}
+						allowSelfApproval={settings?.allowSelfApproval ?? true}
+						canEdit={canEditSettings}
+					/>
+				</TabsContent>
+				<TabsContent value="numbering">
+					<NumberingPanel
+						numbering={settings?.documentNumbering ?? {}}
+						canEdit={canEditSettings}
+					/>
+				</TabsContent>
 				{tabs.map((tab) => (
 					<TabsContent key={tab.v} value={tab.v}>
-						<p className="text-muted-foreground text-sm">{t("comingSoon")}</p>
+						<p className="text-muted-foreground text-sm">
+							{tab.v === "notifications"
+								? t("notificationsLead")
+								: t("comingSoon")}
+						</p>
 					</TabsContent>
 				))}
 			</Tabs>

@@ -2,6 +2,7 @@ import { desc } from "drizzle-orm";
 import { getTranslations } from "next-intl/server";
 import { VerifyChainButton } from "@/components/admin/verify-chain-button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -38,7 +39,19 @@ export default async function AdminAuditPage() {
 				<h1 className="font-serif-display text-3xl text-primary">
 					{t("audit")}
 				</h1>
-				<VerifyChainButton />
+				<div className="flex flex-wrap items-start gap-3">
+					<Button
+						asChild
+						variant="outline"
+						size="sm"
+						title={t("exportCsvHint")}
+					>
+						<a href="/api/admin/audit.csv" download>
+							{t("exportCsv")}
+						</a>
+					</Button>
+					<VerifyChainButton />
+				</div>
 			</div>
 			<Table>
 				<TableHeader>

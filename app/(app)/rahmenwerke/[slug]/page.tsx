@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { CoverageBar } from "@/components/entity/coverage-bar";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { SoaTab } from "@/components/frameworks/soa-tab";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { requireOrg } from "@/lib/auth/guards";
+import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import {
 	CONTROL_BY_CODE,
 	EDGES_BY_REQUIREMENT,
@@ -17,6 +18,9 @@ import {
 	pct,
 	shortFrameworkName,
 } from "@/lib/compliance/page-data";
+import { listEvidenceWithControls } from "@/lib/compliance/queries";
+import { listDocuments } from "@/lib/compliance/queries-p2";
+import { readOrg } from "@/lib/db/with-org";
 
 const TONE: Record<ReqCoverage, "success" | "warning" | "outline" | "muted"> = {
 	covered: "success",
@@ -69,6 +73,30 @@ export default async function FrameworkPage({
 	const gaps = reqs.filter(
 		(x) => x.status === "open" || x.status === "partial",
 	);
+	// SoA nur für ISO 27001 (Annex A); Daten erst laden, wenn der Tab offen ist.
+	const soaEnabled = slug === "iso27001";
+	const annexA = fw.requirements.filter((r) => r.code.startsWith("A."));
+	const soaData =
+		soaEnabled && tab === "soa"
+			? await readOrg(toOrgCtx(ctx), async (tx) => {
+					const ev = await listEvidenceWithControls(tx, ctx.orgId);
+					const evidenceByControl = new Map<string, number>();
+					for (const e of ev)
+						for (const code of e.controlCodes)
+							evidenceByControl.set(
+								code,
+								(evidenceByControl.get(code) ?? 0) + 1,
+							);
+					const docs = (await listDocuments(tx, ctx.orgId)).map((d) => ({
+						docNumber: d.docNumber,
+						title: d.title,
+						status: d.status,
+						templateCode: d.templateCode,
+						isoMandatory: d.isoMandatory,
+					}));
+					return { evidenceByControl, documents: docs };
+				})
+			: null;
 
 	return (
 		<>
@@ -122,9 +150,20 @@ export default async function FrameworkPage({
 								count: reqs.length,
 							},
 							{ value: "luecken", label: t("gaps"), count: gaps.length },
+							...(soaEnabled
+								? [{ value: "soa", label: t("soa"), count: annexA.length }]
+								: []),
 						]}
 					/>
-					{tab === "luecken" ? (
+					{tab === "soa" && soaData ? (
+						<SoaTab
+							slug={slug}
+							requirements={annexA}
+							cov={cov}
+							evidenceByControl={soaData.evidenceByControl}
+							documents={soaData.documents}
+						/>
+					) : tab === "luecken" ? (
 						<>
 							<p className="mb-4 text-muted-foreground text-sm">
 								{t("gapsLead")}
