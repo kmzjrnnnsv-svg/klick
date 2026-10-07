@@ -26,7 +26,7 @@ UX, Härtung, Katalog-Abgleich). Authoring-Quelle der Anforderungen:
 
 | Schicht | Wahl |
 |---|---|
-| Framework | Next.js 16.2 (App Router, React 19, Turbopack), `proxy.ts` statt middleware |
+| Framework | Next.js 16.3 (App Router, React 19, Turbopack), `proxy.ts` statt middleware — Security-Patches zeitnah einspielen (`pnpm audit`), Cooldown 7 Tage beachten |
 | Sprache | TypeScript strict, ES2022 |
 | Package Manager | pnpm 10 — `minimumReleaseAge: 10080` (7 Tage), Lifecycle-Skripte blockiert |
 | Node | 22 LTS (`.nvmrc`, `engines`) |
