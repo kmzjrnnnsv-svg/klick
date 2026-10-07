@@ -5,7 +5,9 @@
 //   1. RESEND_API_KEY → HTTPS-POST an api.resend.com (umgeht SMTP-Blocks
 //      bei Hetzner/Cloudflare/etc., kein offener Port nötig).
 //   2. SMTP_HOST       → klassischer Nodemailer-Pfad.
-//   3. sonst           → Konsole-Log (Dev-Mock, sichtbar in journalctl).
+//   3. sonst           → Konsole-Log (Dev-Mock). In Produktion nur Metadaten:
+//      Body (Magic-Links, Einladungen) landet nie im Log, der Versand zählt
+//      als fehlgeschlagen (Digest versucht es erneut).
 
 export type SendMailInput = {
 	to: string;
@@ -20,7 +22,15 @@ function fromAddress(): string {
 	return process.env.MAIL_FROM ?? FROM_FALLBACK;
 }
 
+const isProd = (): boolean => process.env.NODE_ENV === "production";
+
 function logToConsole(input: SendMailInput, reason: string): void {
+	if (isProd()) {
+		console.error(
+			`[mail] ✗ nicht zugestellt (${reason}) · to=${input.to} subject="${input.subject}" — Inhalt bewusst nicht geloggt`,
+		);
+		return;
+	}
 	console.log(
 		`\n┌──── Mail (${reason}) ──────────────────────\n│ to:      ${input.to}\n│ from:    ${fromAddress()}\n│ subject: ${input.subject}\n│ body:    ${input.text.slice(0, 240).replace(/\n/g, "\n│         ")}\n└────────────────────────────────────────────\n`,
 	);
@@ -107,7 +117,7 @@ export async function sendTransactionalMail(
 			console.error(`[mail] ✗ resend failed (${error}), falling back…`);
 			if (!process.env.SMTP_HOST) {
 				logToConsole(input, `resend failed: ${error}`);
-				return { path: "console", ok: true, reason: `resend_failed:${error}` };
+				return consoleOutcome(`resend_failed:${error}`);
 			}
 		}
 	}
@@ -127,18 +137,21 @@ export async function sendTransactionalMail(
 			const error = e instanceof Error ? e.message : String(e);
 			console.error(`[mail] ✗ smtp failed (${error}), logging to console…`);
 			logToConsole(input, `smtp failed: ${error}`);
-			return { path: "console", ok: true, reason: `smtp_failed:${error}` };
+			return consoleOutcome(`smtp_failed:${error}`);
 		}
 	}
 	logToConsole(
 		input,
 		"no provider configured (set RESEND_API_KEY or SMTP_HOST)",
 	);
-	return {
-		path: "console",
-		ok: true,
-		reason: "no_provider",
-	};
+	return consoleOutcome("no_provider");
+}
+
+// Dev: Konsole ist der Zustellweg. Prod: nichts zugestellt → ok: false.
+function consoleOutcome(reason: string): SendOutcome {
+	return isProd()
+		? { path: "console", ok: false, error: reason }
+		: { path: "console", ok: true, reason };
 }
 
 // Explicit diagnostic — call from a script or admin endpoint to verify the

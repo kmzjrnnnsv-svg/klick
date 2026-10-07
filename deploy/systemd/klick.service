@@ -63,8 +63,10 @@ SystemCallFilter=@system-service
 SystemCallFilter=~@privileged @resources
 SystemCallArchitectures=native
 UMask=0077
-# Node braucht JIT (kein MemoryDenyWriteExecute); schreibbar nur Cache + Logs.
-ReadWritePaths=/opt/klick/current/.next/cache /var/log/klick
+# Node braucht JIT (kein MemoryDenyWriteExecute); schreibbar nur Caches + Logs.
+# /opt/klick/.cache: @swc/core legt dort beim Laden von next.config.ts sein
+# natives Binding ab (Lifecycle-Skripte sind blockiert).
+ReadWritePaths=/opt/klick/current/.next/cache /opt/klick/.cache /var/log/klick
 LimitNOFILE=65536
 
 [Install]
