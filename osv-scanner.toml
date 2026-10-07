@@ -1,0 +1,12 @@
+# OSV-Scanner: begründete Ausnahmen (nur Dev-Toolchain, nicht im Produkt-Bundle).
+# Spiegelt `auditConfig.ignoreGhsas` in pnpm-workspace.yaml. Bei Upstream-Fix entfernen.
+
+[[IgnoredVulns]]
+id = "GHSA-ch52-4w7c-c8xp"
+ignoreUntil = 2027-01-31
+reason = "http-cache-semantics via @cyclonedx/cyclonedx-npm → libxmljs2 → node-gyp → make-fetch-happen: SBOM-Generator läuft nur in CI, kein HTTP-Cache im Produkt; Upstream ohne gepatchte Version."
+
+[[IgnoredVulns]]
+id = "GHSA-67mh-4wv8-2f99"
+ignoreUntil = 2027-01-31
+reason = "esbuild 0.18 via drizzle-kit → @esbuild-kit/core-utils: betrifft nur den esbuild-Dev-Server (CORS), den drizzle-kit nicht startet; läuft nie auf dem Server."
