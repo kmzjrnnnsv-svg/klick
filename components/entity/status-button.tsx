@@ -6,6 +6,9 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { setControlStatus } from "@/app/actions/controls";
+import { transitionDocument } from "@/app/actions/documents";
+import { setIncidentStatus } from "@/app/actions/incidents";
+import { setRiskStatus } from "@/app/actions/risks";
 import { setTaskStatus } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +28,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { ImplStatus } from "@/db/schema/enums";
 import { CONTROL_STATUS } from "@/lib/entities/control";
+import {
+	DOCUMENT_STATUS_MACHINE,
+	type DocumentStatus,
+} from "@/lib/entities/document";
+import { INCIDENT_STATUS, type IncidentStatus } from "@/lib/entities/incident";
+import { RISK_STATUS, type RiskStatus } from "@/lib/entities/risk";
 import { nextTransitions } from "@/lib/entities/status-machine";
 import { TASK_STATUS, type TaskStatus } from "@/lib/entities/task";
 import type { StatusMachine } from "@/lib/entities/types";
@@ -32,7 +41,23 @@ import { StatusBadge } from "./status-badge";
 
 type Target =
 	| { kind: "control"; implementationId: string; status: ImplStatus }
-	| { kind: "task"; taskId: string; status: TaskStatus };
+	| { kind: "task"; taskId: string; status: TaskStatus }
+	| {
+			kind: "risk";
+			riskId: string;
+			status: RiskStatus;
+			aboveAppetite?: boolean;
+	  }
+	| { kind: "incident"; incidentId: string; status: IncidentStatus }
+	| { kind: "document"; documentId: string; status: DocumentStatus };
+
+const MACHINES = {
+	control: CONTROL_STATUS,
+	task: TASK_STATUS,
+	risk: RISK_STATUS,
+	incident: INCIDENT_STATUS,
+	document: DOCUMENT_STATUS_MACHINE,
+} as const;
 
 // Status wechselt per Button mit dem nächsten sinnvollen Übergang; weitere
 // Übergänge im Menü. Begründungspflichtige Übergänge öffnen einen Dialog.
@@ -53,29 +78,38 @@ export function StatusButton({
 	const [noteFor, setNoteFor] = useState<string | null>(null);
 	const [note, setNote] = useState("");
 
-	const machine = (
-		target.kind === "control" ? CONTROL_STATUS : TASK_STATUS
-	) as StatusMachine<string>;
-	const options = nextTransitions(machine, target.status, { hasNote: true });
+	const machine = MACHINES[target.kind] as StatusMachine<string>;
+	// Freigabepflichtige Übergänge bleiben wählbar — die Action startet den Workflow.
+	const options = nextTransitions(machine, target.status, {
+		hasNote: true,
+		approvalsSatisfied: true,
+	});
 	const primary = options.find((o) => o.primary) ?? options[0];
 	const rest = options.filter((o) => o !== primary);
 
 	function run(to: string, withNote?: string) {
 		start(async () => {
+			const fail = (error: string): undefined => {
+				toast.error(
+					error.startsWith("transition_")
+						? t("transitionBlocked")
+						: error === "rootCauseRequired"
+							? t("rootCauseRequired")
+							: error === "no_approver" ||
+									error.startsWith("solo_") ||
+									error === "workflow_disabled"
+								? t(`approvalError_${error}` as "approvalError_no_approver")
+								: tc("error"),
+				);
+				return undefined;
+			};
 			if (target.kind === "control") {
 				const res = await setControlStatus({
 					implementationId: target.implementationId,
 					status: to,
 					note: withNote,
 				});
-				if (!res.ok) {
-					toast.error(
-						res.error.startsWith("transition_")
-							? t("transitionBlocked")
-							: tc("error"),
-					);
-					return;
-				}
+				if (!res.ok) return fail(res.error);
 				const sat = res.data.satisfied;
 				const fw = res.data.frameworks.filter((f) => f.before !== f.after);
 				if (sat.length > 0 || fw.length > 0) {
@@ -99,21 +133,55 @@ export function StatusButton({
 				} else {
 					toast.success(t("statusChanged"));
 				}
-			} else {
+			} else if (target.kind === "task") {
 				const res = await setTaskStatus({
 					taskId: target.taskId,
 					status: to,
 					note: withNote,
 				});
-				if (!res.ok) {
-					toast.error(
-						res.error.startsWith("transition_")
-							? t("transitionBlocked")
-							: tc("error"),
-					);
-					return;
-				}
+				if (!res.ok) return fail(res.error);
 				toast.success(t("statusChanged"));
+			} else if (target.kind === "risk") {
+				const res = await setRiskStatus({
+					riskId: target.riskId,
+					status: to,
+					note: withNote,
+				});
+				if (!res.ok) return fail(res.error);
+				toast.success(
+					res.data.approvalRequested
+						? t("approvalRequested")
+						: t("statusChanged"),
+				);
+			} else if (target.kind === "incident") {
+				const res = await setIncidentStatus({
+					incidentId: target.incidentId,
+					status: to,
+					note: withNote,
+				});
+				if (!res.ok) return fail(res.error);
+				toast.success(
+					res.data.approvalRequested
+						? t("approvalRequested")
+						: t("statusChanged"),
+				);
+			} else {
+				const res = await transitionDocument({
+					documentId: target.documentId,
+					to: to as
+						| "in_review"
+						| "approved"
+						| "published"
+						| "retired"
+						| "draft",
+					note: withNote,
+				});
+				if (!res.ok) return fail(res.error);
+				toast.success(
+					res.data.approvalRequested
+						? t("approvalRequested")
+						: t("statusChanged"),
+				);
 			}
 			setNoteFor(null);
 			setNote("");

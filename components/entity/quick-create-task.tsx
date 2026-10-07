@@ -42,7 +42,13 @@ export function QuickCreateTask({
 	entityId?: string;
 	members: MemberOption[];
 	defaultAssignee?: string;
-	sourceKind?: "manual" | "remediation" | "review" | "evidence_request";
+	sourceKind?:
+		| "manual"
+		| "remediation"
+		| "review"
+		| "evidence_request"
+		| "treatment"
+		| "incident_action";
 	label?: string;
 	variant?: "outline" | "brown" | "default" | "ghost";
 }) {
