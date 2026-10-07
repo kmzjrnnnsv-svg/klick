@@ -107,3 +107,61 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  e2e:
+    name: Playwright (Header, Redirects, Login)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: check
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: klick_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      BETTER_AUTH_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+      BETTER_AUTH_URL: http://localhost:3100
+      VAULT_KEK_BASE64: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DATABASE_URL: postgres://klick_test_app:klick_test_app@localhost:5432/klick_test
+      DATABASE_URL_MIGRATE: postgres://postgres:postgres@localhost:5432/klick_test
+      KLICK_DISABLE_JOBS: "true"
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Test-Rolle, Migration, Grants, Seed
+        run: |
+          psql "$DATABASE_URL_MIGRATE" -v ON_ERROR_STOP=1 -c "CREATE ROLE klick_test_app LOGIN PASSWORD 'klick_test_app' NOBYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE;"
+          pnpm db:migrate
+          psql "$DATABASE_URL_MIGRATE" -v ON_ERROR_STOP=1 <<'SQL'
+          GRANT USAGE ON SCHEMA public TO klick_test_app;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO klick_test_app;
+          GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO klick_test_app;
+          CREATE SCHEMA IF NOT EXISTS pgboss AUTHORIZATION klick_test_app;
+          SQL
+          pnpm db:seed
+      - name: Build
+        run: pnpm build
+      - name: Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: E2E
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: test-results
+          retention-days: 7

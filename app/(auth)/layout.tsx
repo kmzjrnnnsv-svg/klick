@@ -2,6 +2,10 @@ import type { ReactNode } from "react";
 import { Footer } from "@/components/shell/footer";
 import { MarketingHeader } from "@/components/shell/marketing-header";
 
+// Auth-Seiten lesen die Sitzung je Request (Gates, 2FA-Stand) — nie statisch
+// vorrendern, wie (app) und (admin).
+export const dynamic = "force-dynamic";
+
 export default function AuthLayout({ children }: { children: ReactNode }) {
 	return (
 		<>
