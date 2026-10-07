@@ -184,7 +184,9 @@ export const auth = betterAuth({
 						`\n┌──── Magic Link ────────────────────────\n│ to:  ${email}\n│ url: ${url}\n└─────────────────────────────────────────\n`,
 					);
 				}
-				await sendTransactionalMail({
+				// Nicht auf SMTP warten: Antwort kommt sofort (UX, gleiche Laufzeit
+				// für bekannte/unbekannte Adressen). sendTransactionalMail wirft nie.
+				void sendTransactionalMail({
 					to: email,
 					subject: tpl.subject,
 					text: tpl.text,
