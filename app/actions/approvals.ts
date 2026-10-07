@@ -40,22 +40,30 @@ export async function decideApproval(
 			d,
 		);
 		if (!r.ok) return { result: r, audit: [] };
-		if (r.status !== "pending") {
-			await applyApprovalOutcome(tx, { orgId: c.orgId, userId: c.userId }, r);
-		}
+		const extra =
+			r.status !== "pending"
+				? await applyApprovalOutcome(
+						tx,
+						{ orgId: c.orgId, userId: c.userId },
+						r,
+					)
+				: [];
 		return {
 			result: r,
-			audit: {
-				action: `approval.${d.decision}`,
-				target: `${r.entityType}:${r.entityId}`,
-				after: {
-					requestId: d.requestId,
-					decision: d.decision,
-					note: d.note ?? null,
-					outcome: r.status,
-					onBehalfOf: r.onBehalfOf ?? null,
+			audit: [
+				{
+					action: `approval.${d.decision}`,
+					target: `${r.entityType}:${r.entityId}`,
+					after: {
+						requestId: d.requestId,
+						decision: d.decision,
+						note: d.note ?? null,
+						outcome: r.status,
+						onBehalfOf: r.onBehalfOf ?? null,
+					},
 				},
-			},
+				...extra,
+			],
 		};
 	});
 	if (!res.ok) return { ok: false, error: res.error };

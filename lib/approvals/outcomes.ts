@@ -5,7 +5,11 @@ import {
 	exceptions,
 	incidents,
 	risks,
+	scopes,
 } from "@/db/schema";
+import type { AuditInput } from "@/lib/audit";
+import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
+import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import type { OrgTx } from "@/lib/db/with-org";
 import type { DecideResult } from "./service";
 
@@ -16,8 +20,9 @@ export async function applyApprovalOutcome(
 	tx: OrgTx,
 	ctx: { orgId: string; userId: string },
 	r: Extract<DecideResult, { ok: true }>,
-): Promise<void> {
+): Promise<AuditInput[]> {
 	const approved = r.status === "approved";
+	const extra: AuditInput[] = [];
 	switch (r.entityType) {
 		case "document": {
 			const [doc] = await tx
@@ -34,7 +39,7 @@ export async function applyApprovalOutcome(
 					),
 				)
 				.limit(1);
-			if (!doc) return;
+			if (!doc) return extra;
 			if (approved) {
 				await tx
 					.update(documents)
@@ -55,7 +60,7 @@ export async function applyApprovalOutcome(
 					.set({ status: "draft" })
 					.where(eq(documents.id, doc.id));
 			}
-			return;
+			return extra;
 		}
 		case "risk": {
 			if (approved) {
@@ -70,7 +75,7 @@ export async function applyApprovalOutcome(
 						and(eq(risks.id, r.entityId), eq(risks.organizationId, ctx.orgId)),
 					);
 			}
-			return;
+			return extra;
 		}
 		case "exception": {
 			await tx
@@ -82,23 +87,56 @@ export async function applyApprovalOutcome(
 						eq(exceptions.organizationId, ctx.orgId),
 					),
 				);
-			return;
+			return extra;
 		}
 		case "incident": {
 			if (approved) {
-				await tx
-					.update(incidents)
-					.set({ status: "closed" })
+				const [inc] = await tx
+					.select()
+					.from(incidents)
 					.where(
 						and(
 							eq(incidents.id, r.entityId),
 							eq(incidents.organizationId, ctx.orgId),
 						),
+					)
+					.limit(1);
+				if (!inc) return extra;
+				await tx
+					.update(incidents)
+					.set({ status: "closed" })
+					.where(eq(incidents.id, inc.id));
+				// DORA Art. 13: schwerwiegender Vorfall → Abweichung (Lessons Learned)
+				const draft = nonconformityFromIncident(inc);
+				if (draft) {
+					const nc = await createNonconformity(
+						tx,
+						{ orgId: ctx.orgId, userId: ctx.userId },
+						draft,
 					);
+					extra.push(nc.audit);
+				}
 			}
-			return;
+			return extra;
+		}
+		case "scope": {
+			await tx
+				.update(scopes)
+				.set(
+					approved
+						? {
+								status: "approved",
+								approvedByUserId: ctx.userId,
+								approvedAt: new Date(),
+							}
+						: { status: "draft" },
+				)
+				.where(
+					and(eq(scopes.id, r.entityId), eq(scopes.organizationId, ctx.orgId)),
+				);
+			return extra;
 		}
 		default:
-			return;
+			return extra;
 	}
 }
