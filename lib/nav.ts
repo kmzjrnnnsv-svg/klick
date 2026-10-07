@@ -282,7 +282,6 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "roadmap",
 					href: "/roadmap",
 					icon: "map",
-					phase: "P4",
 				},
 			],
 		},
