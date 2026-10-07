@@ -110,7 +110,18 @@ export type NavInput = {
 	counts?: { today?: number };
 };
 
-const FINANCE_SLUGS = new Set(["micar", "zag", "zag-marisk", "kwg", "marisk"]);
+const FINANCE_SLUGS = new Set([
+	"micar",
+	"zag",
+	"zag-marisk",
+	"kwg",
+	"marisk",
+	"uk-fca",
+	"ae-vara",
+	"bh-cbb",
+	"ch-finma",
+	"br-bcb",
+]);
 const AML_SLUGS = new Set(["gwg", "amlr", "tfr", "sanctions"]);
 
 const STAGE_INDEX: Record<LicenceStage, number> = {
@@ -227,7 +238,6 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "privacy",
 					href: "/datenschutz",
 					icon: "lock",
-					phase: "P5",
 				},
 			],
 		},
@@ -282,7 +292,6 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "roadmap",
 					href: "/roadmap",
 					icon: "map",
-					phase: "P4",
 				},
 			],
 		},
@@ -296,7 +305,6 @@ export function buildNav(input: NavInput): NavGroup[] {
 				labelKey: "aml",
 				href: "/aml",
 				icon: "landmark",
-				phase: "P4",
 			});
 		}
 		if (hasFinance) {
@@ -306,14 +314,12 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "ownFunds",
 					href: "/eigenmittel",
 					icon: "coins",
-					phase: "P4",
 				},
 				{
 					key: "cryptoAssets",
 					labelKey: "cryptoAssets",
 					href: "/kryptowerte",
 					icon: "bitcoin",
-					phase: "P4",
 				},
 				{
 					key: "complaints",
@@ -326,7 +332,6 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "application",
 					href: "/antrag",
 					icon: "folder-open",
-					phase: "P4",
 				},
 			);
 		}

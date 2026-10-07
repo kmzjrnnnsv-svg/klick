@@ -47,6 +47,13 @@ export type DocumentNumbering = Record<
 	{ prefix: string; next: number }
 >;
 
+export type ApplicationItemState = {
+	done: boolean;
+	note?: string;
+	at: string;
+	by?: string;
+};
+
 export const orgSettings = pgTable(
 	"org_settings",
 	{
@@ -99,6 +106,12 @@ export const orgSettings = pgTable(
 		ipAllowlist: stringList(),
 		applyBaseline: boolean().notNull().default(false),
 		allowSelfApproval: boolean().notNull().default(true),
+		// Antragsmappen (/antrag): manuell abgehakte Bestandteile je Code.
+		applicationState: json<Record<string, ApplicationItemState>>()
+			.notNull()
+			.default({}),
+		// Setup-Checkliste: bestätigte Prüfungen (z. B. tlptConfirmedAt).
+		setupFlags: json<Record<string, string>>().notNull().default({}),
 		onboardingCompletedAt: ts(),
 		plan: text().notNull().default("start"),
 		...timestamps(),

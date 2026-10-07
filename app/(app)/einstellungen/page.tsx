@@ -6,6 +6,7 @@ import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
 import { RiskSettingsPanel } from "@/components/settings/risk-settings-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
+import { StagePanel } from "@/components/settings/stage-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { approvalWorkflows } from "@/db/schema";
@@ -138,7 +139,16 @@ export default async function SettingsPage({
 						}))}
 					/>
 				</TabsContent>
-				<TabsContent value="frameworks">
+				<TabsContent value="frameworks" className="flex flex-col gap-6">
+					{cov && (
+						<StagePanel
+							licenceStage={cov.profile.licenceStage}
+							caspServices={[...cov.profile.caspServices]}
+							tlptDesignated={cov.profile.tlptDesignated}
+							tlptConfirmedAt={settings?.setupFlags?.tlptConfirmedAt ?? null}
+							canEdit={canEditSettings}
+						/>
+					)}
 					{cov && (
 						<FrameworksPanel
 							active={activeItems}

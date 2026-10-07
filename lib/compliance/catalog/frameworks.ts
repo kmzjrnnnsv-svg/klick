@@ -1,3 +1,4 @@
+import { CORRIDOR_FRAMEWORK_METAS } from "./corridors";
 import type { CatalogFrameworkMeta } from "./types";
 
 // Rahmenwerk-Stammdaten (Rechtsstand Oktober 2026). Die Anforderungs-Indizes
@@ -214,6 +215,7 @@ export const FRAMEWORKS: CatalogFrameworkMeta[] = [
 		appliesFromStage: "4_bank",
 		phase: "P5",
 	},
+	...CORRIDOR_FRAMEWORK_METAS,
 ];
 
 export const FRAMEWORK_SLUGS = FRAMEWORKS.map((f) => f.slug);

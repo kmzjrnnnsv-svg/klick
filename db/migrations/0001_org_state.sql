@@ -1,0 +1,2 @@
+ALTER TABLE "org_settings" ADD COLUMN "application_state" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "org_settings" ADD COLUMN "setup_flags" jsonb DEFAULT '{}'::jsonb NOT NULL;

@@ -1,4 +1,6 @@
 import { getTranslations } from "next-intl/server";
+import { importAssetsCsv } from "@/app/actions/imports";
+import { CsvImport } from "@/components/entity/csv-import";
 import { EmptyState } from "@/components/entity/empty-state";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UserChip } from "@/components/entity/user-chip";
@@ -150,7 +152,14 @@ export default async function AssetsPage({
 			lead={t("lead")}
 			actions={
 				canEdit ? (
-					<AssetForm members={members} providers={providers} />
+					<>
+						<CsvImport
+							title={t("importTitle")}
+							columns="name;type;classification;location;description;isLegacy"
+							action={importAssetsCsv}
+						/>
+						<AssetForm members={members} providers={providers} />
+					</>
 				) : undefined
 			}
 			filters={[

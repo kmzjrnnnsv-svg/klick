@@ -7,12 +7,14 @@ import {
 	controlImplementations,
 	controls,
 	controlTests,
+	dataSubjectRequests,
 	documentAcknowledgements,
 	documents,
 	documentVersions,
 	evidence,
 	exceptions,
 	incidents,
+	insurancePolicies,
 	memberAccess,
 	nonconformities,
 	notifications,
@@ -468,6 +470,37 @@ async function loadDueRows(
 				isNotNull(regulatorInteractions.deadline),
 			),
 		);
+	const dsrRows = await tx
+		.select({
+			id: dataSubjectRequests.id,
+			type: dataSubjectRequests.type,
+			dueAt: dataSubjectRequests.dueAt,
+			extendedUntil: dataSubjectRequests.extendedUntil,
+			status: dataSubjectRequests.status,
+			ownerUserId: dataSubjectRequests.ownerUserId,
+		})
+		.from(dataSubjectRequests)
+		.where(
+			and(
+				eq(dataSubjectRequests.organizationId, orgId),
+				inArray(dataSubjectRequests.status, ["open", "in_progress"]),
+			),
+		);
+	const insuranceRows = await tx
+		.select({
+			id: insurancePolicies.id,
+			type: insurancePolicies.type,
+			insurer: insurancePolicies.insurer,
+			validUntil: insurancePolicies.validUntil,
+			ownerUserId: insurancePolicies.ownerUserId,
+		})
+		.from(insurancePolicies)
+		.where(
+			and(
+				eq(insurancePolicies.organizationId, orgId),
+				isNotNull(insurancePolicies.validUntil),
+			),
+		);
 	const accessRows = await tx
 		.select({
 			memberId: memberAccess.memberId,
@@ -507,6 +540,8 @@ async function loadDueRows(
 			userName: a.userName,
 			accessUntil: a.accessUntil as Date,
 		})),
+		dataSubjectRequests: dsrRows,
+		insurancePolicies: insuranceRows,
 		openTasks,
 	};
 }

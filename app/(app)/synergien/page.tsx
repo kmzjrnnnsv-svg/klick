@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { PageHeader } from "@/components/page-header";
+import { CompareControls } from "@/components/synergies/compare-controls";
 import { Badge } from "@/components/ui/badge";
 import {
 	Table,
@@ -14,15 +15,19 @@ import {
 } from "@/components/ui/table";
 import { requireOrg } from "@/lib/auth/guards";
 import {
+	ALL_REQUIREMENTS,
 	CONTROL_BY_CODE,
 	EDGES_BY_CONTROL,
 	frameworksWithIndex,
+	REQUIREMENT_BY_KEY,
 } from "@/lib/compliance/catalog";
 import {
 	CATALOG_CONTROL_REFS,
 	CATALOG_EDGES,
 	CATALOG_REQ_REFS,
+	profileApplicability,
 } from "@/lib/compliance/catalog-view";
+import { compareFrameworks } from "@/lib/compliance/compare";
 import { rankByLeverage } from "@/lib/compliance/coverage";
 import {
 	getOrgCoverageCached,
@@ -39,9 +44,14 @@ import {
 export default async function SynergiesPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ tab?: string }>;
+	searchParams: Promise<{
+		tab?: string;
+		a?: string;
+		b?: string;
+		stichtag?: string;
+	}>;
 }) {
-	const { tab = "plan" } = await searchParams;
+	const { tab = "plan", a: qa, b: qb, stichtag } = await searchParams;
 	const ctx = await requireOrg();
 	const t = await getTranslations("Synergies");
 	const tc = await getTranslations("Controls");
@@ -94,9 +104,194 @@ export default async function SynergiesPage({
 				tabs={[
 					{ value: "plan", label: t("tabPlan") },
 					{ value: "matrix", label: t("tabMatrix") },
+					{ value: "vergleich", label: t("tabCompare") },
 					{ value: "was-waere-wenn", label: t("tabWhatIf") },
 				]}
 			/>
+
+			{tab === "vergleich" &&
+				(() => {
+					const indexed = frameworksWithIndex().filter((f) =>
+						cov.frameworks.includes(f.slug),
+					);
+					const options = indexed.map((f) => ({
+						slug: f.slug,
+						name: shortFrameworkName(f.slug),
+					}));
+					const a = indexed.some((f) => f.slug === qa)
+						? (qa as string)
+						: (options[0]?.slug ?? "");
+					const b = indexed.some((f) => f.slug === qb && f.slug !== a)
+						? (qb as string)
+						: (options.find((o) => o.slug !== a)?.slug ?? "");
+					const asOf =
+						stichtag && /^\d{4}-\d{2}-\d{2}$/.test(stichtag) ? stichtag : null;
+					if (!a || !b) return <p className="text-sm">{t("compareNeedTwo")}</p>;
+					// Anwendbarkeit: heute aus der Org-Rechnung; am Stichtag neu abgeleitet,
+					// manuelle Entscheidungen bleiben darüber.
+					let applicabilityMap = applicability;
+					if (asOf) {
+						applicabilityMap = profileApplicability({
+							sector: cov.profile.sector,
+							licenceStage: cov.profile.licenceStage,
+							caspServices: cov.profile.caspServices,
+							frameworks: cov.frameworks,
+							tlptDesignated: cov.profile.tlptDesignated,
+							issuesTokens: cov.profile.issuesTokens,
+							asOf: new Date(`${asOf}T00:00:00Z`),
+						});
+						for (const [k, v] of cov.applicabilityDetail)
+							if (v.source === "manual") applicabilityMap.set(k, v.applicable);
+					}
+					const related = new Map<string, readonly string[]>();
+					for (const r of ALL_REQUIREMENTS)
+						if (r.relatedRequirements?.length)
+							related.set(`${r.framework}:${r.code}`, r.relatedRequirements);
+					const cmp = compareFrameworks(
+						a,
+						b,
+						{
+							requirements: CATALOG_REQ_REFS,
+							edges: CATALOG_EDGES,
+							applicability: applicabilityMap,
+							related,
+						},
+						cov.implStatus,
+					);
+					const KIND_TONE = {
+						equivalent: "success",
+						partial: "warning",
+						unique: "outline",
+					} as const;
+					const STATUS_TONE = {
+						covered: "success",
+						partial: "warning",
+						open: "outline",
+						not_applicable: "muted",
+					} as const;
+					return (
+						<>
+							<p className="mb-4 text-muted-foreground text-sm">
+								{t("compareLead")}
+							</p>
+							<CompareControls options={options} a={a} b={b} asOf={asOf} />
+							<div className="mb-4 flex flex-wrap gap-2 text-sm">
+								<Badge variant="success">
+									{t("kind_equivalent")}: {cmp.counts.equivalent}
+								</Badge>
+								<Badge variant="warning">
+									{t("kind_partial")}: {cmp.counts.partial}
+								</Badge>
+								<Badge variant="outline">
+									{t("kind_unique", { fw: fwLabel(a) })}: {cmp.counts.unique}
+								</Badge>
+								<Badge variant="outline">
+									{t("kind_uniqueB", { fw: fwLabel(b) })}: {cmp.counts.uniqueB}
+								</Badge>
+								<Badge variant="muted">
+									{t("sharedControls", { n: cmp.sharedControls.length })}
+								</Badge>
+							</div>
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead className="w-40">{fwLabel(a)}</TableHead>
+										<TableHead>{t("requirementTitle")}</TableHead>
+										<TableHead className="w-28">{t("relation")}</TableHead>
+										<TableHead className="w-48">{fwLabel(b)}</TableHead>
+										<TableHead className="w-44">{t("viaControls")}</TableHead>
+										<TableHead className="w-24">{t("orgStatus")}</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{cmp.rows.map((row) => (
+										<TableRow key={row.key}>
+											<TableCell className="font-mono text-xs">
+												<Link
+													href={`/rahmenwerke/${a}/${encodeURIComponent(row.code)}`}
+													className="hover:underline underline-offset-4"
+												>
+													{row.code}
+												</Link>
+											</TableCell>
+											<TableCell className="text-sm">
+												{REQUIREMENT_BY_KEY.get(row.key)?.title}
+											</TableCell>
+											<TableCell>
+												<Badge variant={KIND_TONE[row.kind]}>
+													{t(`kind_${row.kind}`)}
+												</Badge>
+											</TableCell>
+											<TableCell className="font-mono text-xs">
+												{row.counterparts.length === 0
+													? "—"
+													: row.counterparts.map((c) => (
+															<Link
+																key={c.key}
+																href={`/rahmenwerke/${b}/${encodeURIComponent(c.code)}`}
+																className="mr-1 inline-block hover:underline underline-offset-4"
+																title={REQUIREMENT_BY_KEY.get(c.key)?.title}
+															>
+																{c.code}
+															</Link>
+														))}
+											</TableCell>
+											<TableCell className="font-mono text-[0.65rem] text-muted-foreground">
+												{row.sharedControls.join(", ") || "—"}
+											</TableCell>
+											<TableCell>
+												<Badge variant={STATUS_TONE[row.status]}>
+													{tc(`status_${row.status}` as "status_open")}
+												</Badge>
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+							{cmp.uniqueB.length > 0 && (
+								<div className="mt-6">
+									<h3 className="font-medium text-sm">
+										{t("uniqueBTitle", { fw: fwLabel(b), other: fwLabel(a) })}
+									</h3>
+									<ul className="mt-2 flex flex-wrap gap-1">
+										{cmp.uniqueB.map((u) => (
+											<li key={u.key}>
+												<Link
+													href={`/rahmenwerke/${b}/${encodeURIComponent(u.code)}`}
+												>
+													<Badge
+														variant="outline"
+														className="normal-case tracking-normal"
+													>
+														{u.code} · {REQUIREMENT_BY_KEY.get(u.key)?.title}
+													</Badge>
+												</Link>
+											</li>
+										))}
+									</ul>
+								</div>
+							)}
+							<div className="mt-6 grid gap-4 text-sm sm:grid-cols-2">
+								<div>
+									<h3 className="font-medium">
+										{t("onlyControls", { fw: fwLabel(a) })}
+									</h3>
+									<p className="mt-1 font-mono text-muted-foreground text-xs">
+										{cmp.onlyA.join(", ") || "—"}
+									</p>
+								</div>
+								<div>
+									<h3 className="font-medium">
+										{t("onlyControls", { fw: fwLabel(b) })}
+									</h3>
+									<p className="mt-1 font-mono text-muted-foreground text-xs">
+										{cmp.onlyB.join(", ") || "—"}
+									</p>
+								</div>
+							</div>
+						</>
+					);
+				})()}
 
 			{tab === "matrix" && (
 				<>

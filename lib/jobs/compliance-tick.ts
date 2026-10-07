@@ -16,6 +16,7 @@ export const EXCEPTION_HORIZON_DAYS = 30;
 export const INCIDENT_SOON_HOURS = 2;
 export const DEDUPE_HOURS = 24;
 export const ACK_GRACE_DAYS = 7;
+export const INSURANCE_WARN_DAYS = 60;
 
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
@@ -124,6 +125,23 @@ export type DueRows = {
 		userId: string;
 		userName: string | null;
 		accessUntil: Date | string;
+	}[];
+	/** Betroffenenanfragen (DSGVO Art. 12 Abs. 3): Monatsfrist, ggf. verlängert. */
+	dataSubjectRequests: readonly {
+		id: string;
+		type: string;
+		dueAt: Date | string;
+		extendedUntil: Date | string | null;
+		status: string;
+		ownerUserId: string | null;
+	}[];
+	/** Versicherungen: Ablauf 60 Tage vorher und bei Ablauf. */
+	insurancePolicies: readonly {
+		id: string;
+		type: string;
+		insurer: string;
+		validUntil: Date | string | null;
+		ownerUserId: string | null;
 	}[];
 	/** Offene Aufgaben (für Dedupe von Eskalationen/Ablauf-Aufgaben). */
 	openTasks: readonly {
@@ -549,6 +567,37 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			body: dueWording(now, due),
 			link: "/organisation?tab=aufsicht",
 			dedupeKey: `regulator:${r.id}:${isoDay(due)}`,
+		});
+	}
+
+	// Betroffenenanfragen: 7 Tage vor Fristende und überfällig
+	for (const r of rows.dataSubjectRequests) {
+		if (r.status === "done" || r.status === "rejected") continue;
+		const due = toDate(r.extendedUntil ?? r.dueAt);
+		if (!due || due > horizon) continue;
+		notifications.push({
+			kind: "review_due",
+			recipients: recipientsOf(r.ownerUserId, rows.orgOwnerIds),
+			title: `Betroffenenanfrage (${r.type}) ${due < now ? "überfällig" : "fällig"}`,
+			body: dueWording(now, due),
+			link: "/datenschutz?tab=anfragen",
+			dedupeKey: `dsr:${r.id}:${isoDay(due)}`,
+		});
+	}
+
+	// Versicherungen: 60 Tage vor Ablauf und bei Ablauf
+	for (const p of rows.insurancePolicies) {
+		const until = toDate(p.validUntil);
+		if (!until) continue;
+		const days = daysUntil(now, until);
+		if (days > INSURANCE_WARN_DAYS) continue;
+		notifications.push({
+			kind: "review_due",
+			recipients: recipientsOf(p.ownerUserId, rows.orgOwnerIds),
+			title: `Versicherung ${p.type} (${p.insurer}) ${days < 0 ? "abgelaufen" : "läuft ab"}`,
+			body: dueWording(now, until),
+			link: "/organisation?tab=versicherungen",
+			dedupeKey: `insurance:${p.id}:${isoDay(until)}`,
 		});
 	}
 

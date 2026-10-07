@@ -1,9 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import {
+	amlRiskAnalyses,
 	documents,
 	documentVersions,
 	exceptions,
 	incidents,
+	ownFundsCalculations,
 	risks,
 	scopes,
 } from "@/db/schema";
@@ -133,6 +135,67 @@ export async function applyApprovalOutcome(
 				)
 				.where(
 					and(eq(scopes.id, r.entityId), eq(scopes.organizationId, ctx.orgId)),
+				);
+			return extra;
+		}
+		case "aml_risk_analysis": {
+			if (approved) {
+				// Vorherige gültige Analyse wird ersetzt; Review in zwölf Monaten.
+				const next = new Date();
+				next.setUTCFullYear(next.getUTCFullYear() + 1);
+				await tx
+					.update(amlRiskAnalyses)
+					.set({ status: "superseded" })
+					.where(
+						and(
+							eq(amlRiskAnalyses.organizationId, ctx.orgId),
+							eq(amlRiskAnalyses.status, "approved"),
+						),
+					);
+				await tx
+					.update(amlRiskAnalyses)
+					.set({
+						status: "approved",
+						approvedByUserId: ctx.userId,
+						approvedAt: new Date(),
+						nextReviewAt: next.toISOString().slice(0, 10),
+					})
+					.where(
+						and(
+							eq(amlRiskAnalyses.id, r.entityId),
+							eq(amlRiskAnalyses.organizationId, ctx.orgId),
+						),
+					);
+			} else {
+				await tx
+					.update(amlRiskAnalyses)
+					.set({ status: "draft" })
+					.where(
+						and(
+							eq(amlRiskAnalyses.id, r.entityId),
+							eq(amlRiskAnalyses.organizationId, ctx.orgId),
+						),
+					);
+			}
+			return extra;
+		}
+		case "own_funds_calculation": {
+			await tx
+				.update(ownFundsCalculations)
+				.set(
+					approved
+						? {
+								status: "approved",
+								approvedByUserId: ctx.userId,
+								approvedAt: new Date(),
+							}
+						: { status: "draft" },
+				)
+				.where(
+					and(
+						eq(ownFundsCalculations.id, r.entityId),
+						eq(ownFundsCalculations.organizationId, ctx.orgId),
+					),
 				);
 			return extra;
 		}

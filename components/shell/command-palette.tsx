@@ -17,11 +17,12 @@ import {
 import type { NavGroup } from "@/lib/nav";
 import { NavIcon } from "./nav-icon";
 
-// ⌘K: Navigation (P0), Volltext + „Neu: …" + Entitäts-Aktionen folgen P1/P4.
+// ⌘K: Navigation + Volltextsuche (/suche?q=…).
 export function CommandPalette({ groups }: { groups: NavGroup[] }) {
 	const t = useTranslations("Nav");
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
+	const [query, setQuery] = useState("");
 
 	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
@@ -67,9 +68,28 @@ export function CommandPalette({ groups }: { groups: NavGroup[] }) {
 				title={t("searchHint")}
 				description={t("searchHint")}
 			>
-				<CommandInput placeholder={t("searchHint")} />
+				<CommandInput
+					placeholder={t("searchHint")}
+					value={query}
+					onValueChange={setQuery}
+				/>
 				<CommandList>
 					<CommandEmpty>Nichts gefunden.</CommandEmpty>
+					{query.trim().length >= 2 && (
+						<CommandGroup heading={t("searchGroup")}>
+							<CommandItem
+								value={`suche ${query}`}
+								onSelect={() => {
+									setOpen(false);
+									router.push(`/suche?q=${encodeURIComponent(query.trim())}`);
+									setQuery("");
+								}}
+							>
+								<Search className="size-4" />
+								<span>{t("searchFor", { q: query.trim() })}</span>
+							</CommandItem>
+						</CommandGroup>
+					)}
 					<CommandGroup heading="Navigation">
 						{navigable.map((item) => (
 							<CommandItem
