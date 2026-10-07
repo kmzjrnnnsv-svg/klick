@@ -1,0 +1,69 @@
+name: ZAP Baseline
+
+# Passiver DAST-Scan gegen den Produktions-Build (CC-DEV-04, DORA Art. 25,
+# NIS2 Art. 21(2)(e)). Blockiert bei High-Alerts; Medium/Low landen im Report.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  zap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: klick_zap
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      NODE_ENV: production
+      KLICK_DISABLE_JOBS: "true"
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/klick_zap
+      DATABASE_URL_MIGRATE: postgres://postgres:postgres@localhost:5432/klick_zap
+      BETTER_AUTH_SECRET: zap-baseline-secret-not-for-production-0123456789
+      BETTER_AUTH_URL: http://localhost:3000
+      VAULT_KEK_BASE64: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      TRUSTED_PROXIES: 127.0.0.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate && pnpm db:seed
+      - run: pnpm build
+      - name: Start app
+        run: |
+          nohup pnpm start > app.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:3000/api/health && break
+            sleep 2
+          done
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: http://localhost:3000
+          rules_file_name: .zap/rules.tsv
+          cmd_options: "-a -j"
+          fail_action: true
+          allow_issue_writing: false
+      - name: App log on failure
+        if: failure()
+        run: tail -n 200 app.log

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, JetBrains_Mono, Jost } from "next/font/google";
+import { headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -56,6 +57,8 @@ export default async function RootLayout({
 }) {
 	const locale = await getLocale();
 	const messages = await getMessages();
+	// Nonce aus proxy.ts für das next-themes-Inline-Script (CSP ohne unsafe-inline).
+	const nonce = (await headers()).get("x-nonce") ?? undefined;
 	return (
 		<html
 			lang={locale}
@@ -68,6 +71,7 @@ export default async function RootLayout({
 					defaultTheme="system"
 					enableSystem
 					disableTransitionOnChange
+					nonce={nonce}
 				>
 					<NextIntlClientProvider
 						messages={messages}

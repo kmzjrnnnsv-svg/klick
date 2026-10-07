@@ -1,0 +1,7 @@
+# ZAP-Baseline: Regel-ID	Aktion (IGNORE|WARN|FAIL)	Begründung
+10038	WARN	CSP-Hinweise werden geprüft, aber nicht blockierend (Nonce-Policy in proxy.ts)
+10055	WARN	CSP-Einzelbewertungen
+10063	IGNORE	Permissions-Policy wird gesetzt; ZAP kennt nicht alle Direktiven
+10109	IGNORE	Modern-Web-Application-Hinweis (informativ)
+10027	IGNORE	Informative Kommentare im Quelltext
+90004	WARN	Spectre-Isolation (COOP/COEP) — COEP bewusst nicht gesetzt

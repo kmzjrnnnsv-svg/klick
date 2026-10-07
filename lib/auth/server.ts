@@ -9,10 +9,14 @@ import { organization } from "better-auth/plugins/organization";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { count, eq } from "drizzle-orm";
 import { globalDb, schema } from "../../db";
-import { member } from "../../db/auth-schema";
+import { member, session as sessionTable, user } from "../../db/auth-schema";
 import { auditPlatform } from "../audit";
 import { sendTransactionalMail } from "../mail/send";
-import { invitationEmail, magicLinkEmail } from "../mail/templates";
+import {
+	invitationEmail,
+	magicLinkEmail,
+	transactionalEmail,
+} from "../mail/templates";
 import { authAfterHook } from "./audit-events";
 import { ac, roles } from "./permissions";
 
@@ -119,6 +123,9 @@ export const auth = betterAuth({
 							userAgent: session.userAgent ?? null,
 						},
 						{ action: "auth.signin", target: `session:${session.id}` },
+					);
+					await notifyNewDevice(session).catch((err) =>
+						console.error("new-device notification failed", err),
 					);
 				},
 			},
@@ -324,3 +331,57 @@ export const auth = betterAuth({
 
 export type Auth = typeof auth;
 export type AuthSession = typeof auth.$Infer.Session;
+
+// Login-Benachrichtigung: erste Sitzung von einem neuen Gerät (User-Agent)
+// oder einer neuen IP → Mail an den Nutzer. Vergleich gegen frühere Sitzungen
+// desselben Users; die allererste Sitzung löst nichts aus.
+async function notifyNewDevice(session: {
+	id: string;
+	userId: string;
+	ipAddress?: string | null;
+	userAgent?: string | null;
+}): Promise<void> {
+	const previous = await globalDb
+		.select({
+			id: sessionTable.id,
+			ipAddress: sessionTable.ipAddress,
+			userAgent: sessionTable.userAgent,
+		})
+		.from(sessionTable)
+		.where(eq(sessionTable.userId, session.userId));
+	const others = previous.filter((p) => p.id !== session.id);
+	if (others.length === 0) return;
+	const known = others.some(
+		(p) =>
+			(p.userAgent ?? "") === (session.userAgent ?? "") &&
+			(p.ipAddress ?? "") === (session.ipAddress ?? ""),
+	);
+	if (known) return;
+	const [u] = await globalDb
+		.select({ email: user.email, name: user.name })
+		.from(user)
+		.where(eq(user.id, session.userId))
+		.limit(1);
+	if (!u) return;
+	const when = new Intl.DateTimeFormat("de-DE", {
+		dateStyle: "medium",
+		timeStyle: "short",
+		timeZone: "Europe/Berlin",
+	}).format(new Date());
+	const mail = transactionalEmail({
+		subject: "Neue Anmeldung bei Klick",
+		eyebrow: "Sicherheit",
+		title: "Neue Anmeldung von einem unbekannten Gerät",
+		body: `Hallo ${u.name || ""},\n\nam ${when} hat sich jemand mit deinem Konto angemeldet.\nIP: ${session.ipAddress ?? "unbekannt"}\nGerät: ${(session.userAgent ?? "unbekannt").slice(0, 120)}\n\nWarst das nicht du? Melde dich unter Einstellungen → Sicherheit überall ab und sprich mit deiner Organisation.`,
+		cta: { label: "Sitzungen prüfen", url: `${baseURL}/einstellungen` },
+	});
+	await sendTransactionalMail({ to: u.email, ...mail });
+	await auditPlatform(
+		{
+			userId: session.userId,
+			ip: session.ipAddress ?? null,
+			userAgent: session.userAgent ?? null,
+		},
+		{ action: "auth.new_device_notified", target: `session:${session.id}` },
+	);
+}

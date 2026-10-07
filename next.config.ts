@@ -3,30 +3,9 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
-const isDev = process.env.NODE_ENV === "development";
-
-// P0-CSP. 'unsafe-inline' für Skripte ist dem next-themes-Inline-Script
-// geschuldet und wird in P1 durch einen Request-Nonce in proxy.ts ersetzt.
-// Styles brauchen 'unsafe-inline' (Tailwind/Next-Inline-Styles). Alles andere
-// ist strikt: keine fremden Origins, keine Frames von außen, keine Plugins.
-const csp = [
-	"default-src 'self'",
-	`script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
-	"style-src 'self' 'unsafe-inline'",
-	"img-src 'self' data: blob:",
-	"font-src 'self'",
-	"connect-src 'self'",
-	// PDF-Inline-Vorschau (P2) kommt aus eigener, sandboxed Response.
-	"frame-src 'self'",
-	"frame-ancestors 'none'",
-	"object-src 'none'",
-	"base-uri 'self'",
-	"form-action 'self'",
-	...(isDev ? [] : ["upgrade-insecure-requests"]),
-].join("; ");
-
+// CSP kommt je Request mit Nonce aus proxy.ts (script-src 'nonce-…'
+// 'strict-dynamic'); hier nur die statischen Header.
 const securityHeaders = [
-	{ key: "Content-Security-Policy", value: csp },
 	{
 		key: "Strict-Transport-Security",
 		value: "max-age=63072000; includeSubDomains; preload",
