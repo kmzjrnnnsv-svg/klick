@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
+import { AccessReview } from "@/components/team/access-review";
 import { InviteForm } from "@/components/team/invite-form";
 import {
 	CancelInvitationButton,
@@ -14,8 +15,12 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { normalizeRole, requireOrg } from "@/lib/auth/guards";
+import { listRequestsForUser } from "@/lib/approvals/service";
+import { historyFor } from "@/lib/audit";
+import { normalizeRole, requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
+import { listControlRows, listTasks } from "@/lib/compliance/queries";
+import { readOrg } from "@/lib/db/with-org";
 
 export default async function TeamPage() {
 	const ctx = await requireOrg();
@@ -25,6 +30,20 @@ export default async function TeamPage() {
 		listPendingInvitations(ctx.orgId),
 	]);
 	const canManage = ctx.orgRole === "owner";
+	const { tasks, controls, approvals, lastReview } = await readOrg(
+		toOrgCtx(ctx),
+		async (tx) => ({
+			tasks: await listTasks(tx, ctx.orgId, { openOnly: true }),
+			controls: await listControlRows(tx, ctx.orgId),
+			approvals: await listRequestsForUser(tx, ctx.orgId, ctx.userId),
+			lastReview:
+				(await historyFor(tx, `organization:${ctx.orgId}`, 50)).find(
+					(h) => h.action === "access.review",
+				)?.at ?? null,
+		}),
+	);
+	const workload = (userId: string) =>
+		`${tasks.filter((x) => x.assigneeUserId === userId).length} ${t("openTasks")} · ${controls.filter((x) => x.ownerUserId === userId).length} ${t("ownedControls")} · ${approvals.filter((x) => x.requestedByUserId === userId).length} ${t("pendingApprovals")}`;
 	const fmt = new Intl.DateTimeFormat("de-DE", {
 		dateStyle: "medium",
 		timeZone: "Europe/Berlin",
@@ -49,6 +68,7 @@ export default async function TeamPage() {
 							<TableHead>Name</TableHead>
 							<TableHead>E-Mail</TableHead>
 							<TableHead>{t("inviteRole")}</TableHead>
+							<TableHead>{t("workload")}</TableHead>
 							<TableHead>MFA</TableHead>
 							<TableHead className="text-right" />
 						</TableRow>
@@ -86,6 +106,9 @@ export default async function TeamPage() {
 												bis {fmt.format(m.accessUntil)}
 											</span>
 										)}
+									</TableCell>
+									<TableCell className="text-muted-foreground text-xs">
+										{workload(m.userId)}
 									</TableCell>
 									<TableCell>
 										{m.twoFactorEnabled ? (
@@ -144,6 +167,11 @@ export default async function TeamPage() {
 					</Table>
 				)}
 			</section>
+			{canManage && (
+				<section className="mt-8 max-w-xl">
+					<AccessReview lastAt={lastReview} />
+				</section>
+			)}
 		</>
 	);
 }

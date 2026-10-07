@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { CommentForm } from "@/components/entity/comment-form";
+import { ControlTestForm } from "@/components/entity/control-test-form";
 import {
 	EntityLayout,
 	MetaItem,
@@ -39,6 +40,7 @@ import {
 	listWatcherIds,
 	userNames,
 } from "@/lib/compliance/queries";
+import { listControlTests } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { env } from "@/lib/env";
@@ -61,11 +63,12 @@ export default async function ControlDetailPage({
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const tf = await getTranslations("Frameworks");
+	const tt = await getTranslations("Tests");
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const row = await getControlRowByCode(tx, ctx.orgId, code);
 		if (!row) return null;
-		const [evidence, tasks, comments, history, watcherIds, members] =
+		const [evidence, tasks, comments, history, watcherIds, members, tests] =
 			await Promise.all([
 				listEvidenceForImplementation(tx, ctx.orgId, row.implementationId),
 				listTasks(tx, ctx.orgId, {
@@ -76,6 +79,7 @@ export default async function ControlDetailPage({
 				historyFor(tx, `control:${row.implementationId}`),
 				listWatcherIds(tx, ctx.orgId, "control", row.implementationId),
 				listMembersForPicker(tx, ctx.orgId),
+				listControlTests(tx, ctx.orgId, row.implementationId),
 			]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
@@ -89,6 +93,7 @@ export default async function ControlDetailPage({
 			history,
 			watcherIds,
 			members,
+			tests,
 			names,
 		};
 	});
@@ -101,6 +106,7 @@ export default async function ControlDetailPage({
 		history,
 		watcherIds,
 		members,
+		tests,
 		names,
 	} = data;
 	const cov = await getOrgCoverageCached(ctx);
@@ -373,6 +379,58 @@ export default async function ControlDetailPage({
 					<p className="text-muted-foreground text-xs">
 						{t("evidenceHints")}: {control.evidenceHints.join(" · ")}
 					</p>
+				)}
+			</Section>
+
+			<Section
+				title={tt("title")}
+				actions={
+					canEdit ? (
+						<ControlTestForm
+							implementationId={row.implementationId}
+							defaultMethod={control.testMethodHint ?? null}
+						/>
+					) : null
+				}
+			>
+				{tests.length === 0 ? (
+					<p className="text-muted-foreground text-sm">{tt("empty")}</p>
+				) : (
+					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						{tests.map((x) => (
+							<li
+								key={x.id}
+								className="flex flex-wrap items-center gap-2 px-3 py-2"
+							>
+								<Badge
+									variant="outline"
+									className="normal-case tracking-normal"
+								>
+									{tt(`method_${x.method}`)}
+								</Badge>
+								<span className="min-w-0 flex-1 truncate">
+									{x.scope ?? x.notes ?? ""}
+								</span>
+								<span className="text-muted-foreground text-xs">
+									{x.testedAt ? fmtDate.format(x.testedAt) : ""} ·{" "}
+									{x.names.testerUserId ?? "—"}
+								</span>
+								{x.result && (
+									<Badge
+										variant={
+											x.result === "pass"
+												? "success"
+												: x.result === "partial"
+													? "warning"
+													: "destructive"
+										}
+									>
+										{tt(`result_${x.result}`)}
+									</Badge>
+								)}
+							</li>
+						))}
+					</ul>
 				)}
 			</Section>
 

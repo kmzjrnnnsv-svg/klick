@@ -185,14 +185,12 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "risks",
 					href: "/risiken",
 					icon: "triangle-alert",
-					phase: "P2",
 				},
 				{
 					key: "documents",
 					labelKey: "documents",
 					href: "/dokumente",
 					icon: "file-text",
-					phase: "P2",
 				},
 				{
 					key: "processes",
@@ -206,28 +204,24 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "providers",
 					href: "/dienstleister",
 					icon: "truck",
-					phase: "P2",
 				},
 				{
 					key: "assets",
 					labelKey: "assets",
 					href: "/assets",
 					icon: "server",
-					phase: "P2",
 				},
 				{
 					key: "incidents",
 					labelKey: "incidents",
 					href: "/vorfaelle",
 					icon: "siren",
-					phase: "P2",
 				},
 				{
 					key: "trainings",
 					labelKey: "trainings",
 					href: "/schulungen",
 					icon: "graduation-cap",
-					phase: "P2",
 				},
 				{
 					key: "privacy",
@@ -381,7 +375,6 @@ export function buildNav(input: NavInput): NavGroup[] {
 			labelKey: "activity",
 			href: "/aktivitaet",
 			icon: "activity",
-			phase: "P2",
 		},
 	];
 	groups.push({
