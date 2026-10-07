@@ -9,7 +9,11 @@ import {
 	frameworksWithIndex,
 	REQUIREMENT_BY_KEY,
 } from "@/lib/compliance/catalog";
+import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
 import { BASELINE } from "@/lib/compliance/catalog/baseline";
+import { DOCUMENT_TEMPLATES } from "@/lib/compliance/catalog/document-templates";
+import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
+import { TRAINING_REQUIREMENTS } from "@/lib/compliance/catalog/training-requirements";
 
 // Form des Katalogs: eindeutige Codes, jede Anforderung (nicht aufgehoben)
 // hat ≥ 1 Kante, jede Kante ist auflösbar, jeder Querverweis zeigt auf eine
@@ -107,5 +111,31 @@ describe("catalog shape", () => {
 		expect(bad).toEqual([]);
 		const list = BASELINE.controls.map((b) => b.code);
 		expect(new Set(list).size).toBe(list.length);
+	});
+
+	it("Seeds: Vorlagen zeigen auf existierende Controls, Codes eindeutig", () => {
+		const codes = new Set<string>(CONTROLS.map((c) => c.code));
+		const badTemplates = DOCUMENT_TEMPLATES.flatMap((t) =>
+			t.controls.filter((c) => !codes.has(c)).map((c) => `${t.code} → ${c}`),
+		);
+		expect(badTemplates).toEqual([]);
+		for (const list of [
+			DOCUMENT_TEMPLATES.map((t) => t.code),
+			TASK_BUNDLES.map((b) => b.code),
+			TRAINING_REQUIREMENTS.map((r) => r.code),
+			APPROVAL_WORKFLOW_TEMPLATES.map((w) => w.kind),
+		]) {
+			expect(new Set(list).size).toBe(list.length);
+		}
+		expect(
+			DOCUMENT_TEMPLATES.filter((t) => t.isoMandatory).length,
+		).toBeGreaterThanOrEqual(8);
+		for (const w of APPROVAL_WORKFLOW_TEMPLATES) {
+			expect(w.steps.length).toBeGreaterThan(0);
+			expect(w.steps.map((s) => s.order)).toEqual(
+				[...w.steps.map((s) => s.order)].sort((a, b) => a - b),
+			);
+		}
+		for (const b of TASK_BUNDLES) expect(b.items.length).toBeGreaterThan(2);
 	});
 });

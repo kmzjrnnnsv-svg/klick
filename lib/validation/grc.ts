@@ -31,7 +31,14 @@ export const createTaskSchema = z.object({
 	entityType: z.enum(ENTITY_KINDS).optional(),
 	entityId: uuid.optional(),
 	sourceKind: z
-		.enum(["manual", "remediation", "review", "evidence_request"])
+		.enum([
+			"manual",
+			"remediation",
+			"review",
+			"evidence_request",
+			"treatment",
+			"incident_action",
+		])
 		.default("manual"),
 });
 export type CreateTaskInput = z.output<typeof createTaskSchema>;
