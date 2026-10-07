@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { ApprovalActions } from "@/components/approvals/approval-actions";
+import { AckButton } from "@/components/documents/ack-button";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { listRequestsForUser } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
@@ -12,12 +15,14 @@ import {
 	listMembersForPicker,
 	listTasks,
 } from "@/lib/compliance/queries";
+import { pendingAcknowledgements } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
+import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { listNotifications } from "@/lib/notifications/query";
 
-// Startseite nach Login: gestapelte Abschnitte, je max. fünf Einträge.
-// Freigaben und Kenntnisnahmen kommen mit Phase 2.
+// Startseite nach Login: gestapelte Abschnitte, je max. fünf Einträge —
+// Freigaben, Aufgaben, Fälliges, Kenntnisnahmen, Erwähnungen.
 export default async function TodayPage() {
 	const ctx = await requireOrg();
 	const t = await getTranslations("Today");
@@ -27,9 +32,19 @@ export default async function TodayPage() {
 		.toISOString()
 		.slice(0, 10);
 
-	const { tasks, controls, mentions, members } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => ({
+	const {
+		tasks,
+		controls,
+		mentions,
+		members,
+		approvals,
+		approvalTitles,
+		acks,
+	} = await readOrg(toOrgCtx(ctx), async (tx) => {
+		const requests = (
+			await listRequestsForUser(tx, ctx.orgId, ctx.userId)
+		).filter((r) => r.eligible);
+		return {
 			tasks: await listTasks(tx, ctx.orgId, {
 				assigneeUserId: ctx.userId,
 				openOnly: true,
@@ -39,8 +54,23 @@ export default async function TodayPage() {
 				(n) => n.kind === "mentioned" && !n.readAt,
 			),
 			members: await listMembersForPicker(tx, ctx.orgId),
-		}),
-	);
+			approvals: requests,
+			approvalTitles: await resolveEntityTitles(
+				tx,
+				ctx.orgId,
+				requests.map((r) => ({
+					entityType: r.entityType,
+					entityId: r.entityId,
+				})),
+			),
+			acks: await pendingAcknowledgements(
+				tx,
+				ctx.orgId,
+				ctx.userId,
+				ctx.orgRole,
+			),
+		};
+	});
 
 	const dueTasks = tasks.filter((x) => x.dueAt && x.dueAt <= weekAhead);
 	const dueReviews = controls.filter(
@@ -69,15 +99,49 @@ export default async function TodayPage() {
 			<div className="grid gap-4 md:grid-cols-2">
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">{t("approvals")}</CardTitle>
+						<CardTitle className="flex items-center justify-between text-base">
+							{t("approvals")}
+							<Link
+								href="/heute/freigaben"
+								className="text-primary text-xs font-normal normal-case hover:underline"
+							>
+								{t("showAll")}
+							</Link>
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<p className="text-muted-foreground text-sm">
-							{t("approvalsEmpty")}
-						</p>
-						<p className="mt-1 text-muted-foreground text-xs">
-							{t("phaseHint")}
-						</p>
+						{approvals.length === 0 ? (
+							<p className="text-muted-foreground text-sm">
+								{t("approvalsEmpty")}
+							</p>
+						) : (
+							<ul className="flex flex-col divide-y divide-border/60 text-sm">
+								{approvals.slice(0, 5).map((r) => {
+									const title =
+										approvalTitles.get(`${r.entityType}:${r.entityId}`) ??
+										r.workflowName;
+									return (
+										<li key={r.id} className="flex flex-col gap-2 py-2">
+											<Link
+												href={entityHref(r.entityType, r.entityId, title)}
+												className="min-w-0 truncate hover:underline"
+											>
+												<span className="text-muted-foreground">
+													{r.workflowName} ·{" "}
+												</span>
+												{title}
+											</Link>
+											<ApprovalActions
+												requestId={r.id}
+												eligible={r.eligible}
+												mine={false}
+												compact
+											/>
+										</li>
+									);
+								})}
+							</ul>
+						)}
 					</CardContent>
 				</Card>
 
@@ -196,12 +260,32 @@ export default async function TodayPage() {
 						<CardTitle className="text-base">{t("acknowledgements")}</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<p className="text-muted-foreground text-sm">
-							{t("acknowledgementsEmpty")}
-						</p>
-						<p className="mt-1 text-muted-foreground text-xs">
-							{t("phaseHint")}
-						</p>
+						{acks.length === 0 ? (
+							<p className="text-muted-foreground text-sm">
+								{t("acknowledgementsEmpty")}
+							</p>
+						) : (
+							<ul className="flex flex-col divide-y divide-border/60 text-sm">
+								{acks.slice(0, 5).map((d) => (
+									<li
+										key={d.id}
+										className="flex items-center justify-between gap-2 py-2"
+									>
+										<Link
+											href={`/dokumente/${encodeURIComponent(d.docNumber)}`}
+											className="min-w-0 truncate hover:underline"
+										>
+											<span className="font-mono text-xs">{d.docNumber}</span>{" "}
+											{d.title}{" "}
+											<span className="text-muted-foreground">
+												v{d.version}
+											</span>
+										</Link>
+										<AckButton documentId={d.id} label={t("ackNow")} />
+									</li>
+								))}
+							</ul>
+						)}
 					</CardContent>
 				</Card>
 
