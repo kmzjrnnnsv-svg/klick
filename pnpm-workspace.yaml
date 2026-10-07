@@ -12,3 +12,11 @@ ignoredBuiltDependencies:
   - "@tailwindcss/oxide"
   - "@biomejs/biome"
   - playwright
+
+# pnpm audit: begründete Ausnahmen (nur Dev-Toolchain, kein Fix verfügbar).
+# GHSA-ch52-4w7c-c8xp http-cache-semantics via @cyclonedx/cyclonedx-npm → libxmljs2
+# → node-gyp → make-fetch-happen: SBOM-Generator läuft nur in CI, kein HTTP-Cache
+# im Produkt; Upstream ohne gepatchte Version. Bei Fix entfernen.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-ch52-4w7c-c8xp

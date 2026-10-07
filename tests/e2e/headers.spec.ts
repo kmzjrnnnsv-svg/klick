@@ -43,6 +43,10 @@ test.describe("Security-Header", () => {
 		expect(pack.status()).toBe(200);
 		expect(pack.headers()["content-type"]).toContain("text/markdown");
 		expect(await pack.text()).toContain("Lieferantenpaket der Plattform");
+		expect((await request.get("/robots.txt")).status()).toBe(200);
+		const sitemap = await request.get("/sitemap.xml");
+		expect(sitemap.status()).toBe(200);
+		expect(await sitemap.text()).toContain("/vertrauen");
 	});
 
 	test("Health und Readiness antworten", async ({ request }) => {

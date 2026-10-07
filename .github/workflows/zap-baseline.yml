@@ -1,7 +1,9 @@
 name: ZAP Baseline
 
 # Passiver DAST-Scan gegen den Produktions-Build (CC-DEV-04, DORA Art. 25,
-# NIS2 Art. 21(2)(e)). Blockiert bei High-Alerts; Medium/Low landen im Report.
+# NIS2 Art. 21(2)(e)). Blockiert nur bei FAIL-Regeln (.zap/rules.tsv); WARN
+# landet im Report (-I: Warnungen sind kein Fehlschlag), Rest wird bewusst
+# ignoriert und begründet.
 
 on:
   push:
@@ -61,7 +63,7 @@ jobs:
         with:
           target: http://localhost:3000
           rules_file_name: .zap/rules.tsv
-          cmd_options: "-a -j"
+          cmd_options: "-a -j -I"
           fail_action: true
           allow_issue_writing: false
       - name: App log on failure
