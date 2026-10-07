@@ -2,10 +2,13 @@ import { AMLR_REQUIREMENTS, AMLR_SECTIONS } from "./amlr";
 import { BASELINE } from "./baseline";
 import { CONTROL_REQUIREMENTS } from "./control-requirements";
 import { CONTROL_BY_CODE, CONTROLS } from "./controls";
+import { CORRIDOR_INDICES } from "./corridors";
 import { DORA_REQUIREMENTS, DORA_SECTIONS } from "./dora";
+import { DSGVO_REQUIREMENTS, DSGVO_SECTIONS } from "./dsgvo";
 import { FRAMEWORKS } from "./frameworks";
 import { GWG_REQUIREMENTS, GWG_SECTIONS } from "./gwg";
 import { ISO27001_REQUIREMENTS, ISO27001_SECTIONS } from "./iso27001";
+import { KWG_REQUIREMENTS, KWG_SECTIONS } from "./kwg";
 import { MICAR_REQUIREMENTS, MICAR_SECTIONS } from "./micar";
 import {
 	AWV_REQUIREMENTS,
@@ -28,8 +31,8 @@ import type {
 import { ZAG_REQUIREMENTS, ZAG_SECTIONS } from "./zag";
 import { ZAG_MARISK_REQUIREMENTS, ZAG_MARISK_SECTIONS } from "./zag-marisk";
 
-// Zusammengesetzter Katalog. Rahmenwerke ohne Index (P5: DSGVO, KWG) tragen
-// leere Listen — sie sind wählbar, zeigen aber noch keine Anforderungen.
+// Zusammengesetzter Katalog: jedes Rahmenwerk in frameworks.ts hat seinen
+// Anforderungs-Index (P1 ISO/DORA/NIS2, P4 Finanz, P5 DSGVO/KWG/Korridore).
 
 const INDICES: Record<
 	string,
@@ -57,6 +60,9 @@ const INDICES: Record<
 	dac8: { sections: DAC8_SECTIONS, requirements: DAC8_REQUIREMENTS },
 	awv: { sections: AWV_SECTIONS, requirements: AWV_REQUIREMENTS },
 	kassen: { sections: KASSEN_SECTIONS, requirements: KASSEN_REQUIREMENTS },
+	dsgvo: { sections: DSGVO_SECTIONS, requirements: DSGVO_REQUIREMENTS },
+	kwg: { sections: KWG_SECTIONS, requirements: KWG_REQUIREMENTS },
+	...CORRIDOR_INDICES,
 };
 
 export const CATALOG_FRAMEWORKS: CatalogFramework[] = FRAMEWORKS.map(

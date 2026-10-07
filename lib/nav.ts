@@ -110,7 +110,18 @@ export type NavInput = {
 	counts?: { today?: number };
 };
 
-const FINANCE_SLUGS = new Set(["micar", "zag", "zag-marisk", "kwg", "marisk"]);
+const FINANCE_SLUGS = new Set([
+	"micar",
+	"zag",
+	"zag-marisk",
+	"kwg",
+	"marisk",
+	"uk-fca",
+	"ae-vara",
+	"bh-cbb",
+	"ch-finma",
+	"br-bcb",
+]);
 const AML_SLUGS = new Set(["gwg", "amlr", "tfr", "sanctions"]);
 
 const STAGE_INDEX: Record<LicenceStage, number> = {

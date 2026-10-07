@@ -37,16 +37,22 @@ describe("catalog shape", () => {
 				"dac8",
 				"awv",
 				"kassen",
+				"dsgvo",
+				"kwg",
+				"uk-fca",
+				"ae-vara",
+				"bh-cbb",
+				"ch-finma",
+				"br-bcb",
 			]),
 		);
-		// P5: DSGVO und KWG haben noch keinen Index.
-		expect(slugs).not.toContain("dsgvo");
-		expect(slugs).not.toContain("kwg");
+		// P5: jedes Rahmenwerk hat seinen Index.
+		expect(frameworksWithIndex().length).toBe(CATALOG_FRAMEWORKS.length);
 		const iso = CATALOG_FRAMEWORKS.find((f) => f.slug === "iso27001");
 		expect(iso?.requirements.length).toBe(118);
 		expect(iso?.sections.length).toBe(11);
-		expect(ALL_REQUIREMENTS.length).toBeGreaterThanOrEqual(320);
-		expect(EDGES.length).toBeGreaterThanOrEqual(500);
+		expect(ALL_REQUIREMENTS.length).toBeGreaterThanOrEqual(380);
+		expect(EDGES.length).toBeGreaterThanOrEqual(640);
 	});
 
 	it("Zeitliche Gültigkeit und Rollen sind im Finanz-Katalog gesetzt", () => {
