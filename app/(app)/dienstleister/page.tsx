@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { importProvidersCsv } from "@/app/actions/imports";
+import { CsvImport } from "@/components/entity/csv-import";
 import { EmptyState } from "@/components/entity/empty-state";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UrlTabs } from "@/components/entity/url-tabs";
@@ -253,6 +255,13 @@ export default async function ProvidersPage({
 					>
 						{t("tabTools")}
 					</Link>
+					{canEdit && (
+						<CsvImport
+							title={t("importTitle")}
+							columns="name;partnerType;serviceType;criticality;country;isOutsourcing;isMaterial;processesPersonalData;serviceDescription;contractEnd"
+							action={importProvidersCsv}
+						/>
+					)}
 					{canEdit && <ProviderForm members={members} />}
 				</span>
 			}

@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import {
+	BulkBar,
+	BulkCheckbox,
+	BulkProvider,
+} from "@/components/entity/bulk-select";
 import { EmptyState } from "@/components/entity/empty-state";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { StatusBadge } from "@/components/entity/status-badge";
@@ -7,8 +12,13 @@ import { UserChip } from "@/components/entity/user-chip";
 import { Button } from "@/components/ui/button";
 import { DOMAINS, type ImplStatus } from "@/db/schema/enums";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
-import { type ControlRow, listControlRows } from "@/lib/compliance/queries";
+import {
+	type ControlRow,
+	listControlRows,
+	listMembersForPicker,
+} from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
 import { CONTROL_STATUS } from "@/lib/entities/control";
 
@@ -25,10 +35,14 @@ export default async function ControlsPage({
 	const t = await getTranslations("Controls");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const [rows, cov] = await Promise.all([
-		readOrg(toOrgCtx(ctx), (tx) => listControlRows(tx, ctx.orgId)),
+	const [{ rows, members }, cov] = await Promise.all([
+		readOrg(toOrgCtx(ctx), async (tx) => ({
+			rows: await listControlRows(tx, ctx.orgId),
+			members: await listMembersForPicker(tx, ctx.orgId),
+		})),
 		getOrgCoverageCached(ctx),
 	]);
+	const canBulk = roleAllows(ctx.orgRole, { control: ["update", "assign"] });
 	const leverage = cov?.result.leverage ?? new Map();
 	const today = new Date().toISOString().slice(0, 10);
 
@@ -67,6 +81,22 @@ export default async function ControlsPage({
 	const inProgress = rows.filter((r) => r.status === "in_progress").length;
 
 	const columns: Column<ControlRow & { id: string }>[] = [
+		...(canBulk
+			? [
+					{
+						key: "select",
+						header: "",
+						className: "w-8",
+						mobile: false,
+						cell: (r: ControlRow & { id: string }) => (
+							<BulkCheckbox
+								id={r.id}
+								label={t("selectRow", { code: r.code })}
+							/>
+						),
+					},
+				]
+			: []),
 		{
 			key: "code",
 			header: te("code"),
@@ -132,54 +162,60 @@ export default async function ControlsPage({
 	];
 
 	return (
-		<RegisterPage
-			title={t("title")}
-			lead={t("lead")}
-			filters={[
-				{
-					key: "status",
-					label: te("status"),
-					options: CONTROL_STATUS.states.map((s) => ({
-						value: s,
-						label: ts(CONTROL_STATUS.labelKey[s] as "notStarted"),
-					})),
-				},
-				{
-					key: "domain",
-					label: t("domain"),
-					options: DOMAINS.map((d) => ({ value: d, label: t(`domain_${d}`) })),
-				},
-				{
-					key: "effort",
-					label: t("effort"),
-					options: (["S", "M", "L"] as const).map((e) => ({
-						value: e,
-						label: t(`effort_${e}`),
-					})),
-				},
-			]}
-			chips={[
-				{ key: "mine", label: te("chipMine") },
-				{ key: "overdue", label: te("chipOverdue") },
-				{ key: "unowned", label: te("chipUnowned") },
-			]}
-			columns={columns}
-			rows={filtered.map((r) => ({ ...r, id: r.implementationId }))}
-			rowHref={(r) => `/controls/${r.code}`}
-			empty={
-				<EmptyState
-					title={t("empty")}
-					lead={t("emptyLead")}
-					actions={
-						<Button asChild variant="outline" size="sm">
-							<Link href="/einstellungen?tab=frameworks">
-								Rahmenwerke wählen
-							</Link>
-						</Button>
-					}
-				/>
-			}
-			footer={t("countSummary", { n: rows.length, implemented, inProgress })}
-		/>
+		<BulkProvider>
+			<RegisterPage
+				title={t("title")}
+				lead={t("lead")}
+				filters={[
+					{
+						key: "status",
+						label: te("status"),
+						options: CONTROL_STATUS.states.map((s) => ({
+							value: s,
+							label: ts(CONTROL_STATUS.labelKey[s] as "notStarted"),
+						})),
+					},
+					{
+						key: "domain",
+						label: t("domain"),
+						options: DOMAINS.map((d) => ({
+							value: d,
+							label: t(`domain_${d}`),
+						})),
+					},
+					{
+						key: "effort",
+						label: t("effort"),
+						options: (["S", "M", "L"] as const).map((e) => ({
+							value: e,
+							label: t(`effort_${e}`),
+						})),
+					},
+				]}
+				chips={[
+					{ key: "mine", label: te("chipMine") },
+					{ key: "overdue", label: te("chipOverdue") },
+					{ key: "unowned", label: te("chipUnowned") },
+				]}
+				columns={columns}
+				rows={filtered.map((r) => ({ ...r, id: r.implementationId }))}
+				rowHref={(r) => `/controls/${r.code}`}
+				empty={
+					<EmptyState
+						title={t("empty")}
+						lead={t("emptyLead")}
+						actions={
+							<Button asChild variant="outline" size="sm">
+								<Link href="/einstellungen?tab=frameworks">
+									Rahmenwerke wählen
+								</Link>
+							</Button>
+						}
+					/>
+				}
+				footer={t("countSummary", { n: rows.length, implemented, inProgress })}
+			/>
+			{canBulk && <BulkBar members={members} />}
+		</BulkProvider>
 	);
 }

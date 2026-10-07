@@ -8,31 +8,17 @@ import { Progress } from "@/components/ui/progress";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import {
-	type ApplicationFacts,
 	type ApplicationCheck as Check,
 	type CheckStatus,
 	evaluateApplication,
 } from "@/lib/compliance/application";
+import { loadApplicationFacts } from "@/lib/compliance/application-facts";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { TEMPLATE_BY_CODE } from "@/lib/compliance/catalog/document-templates";
 import { MICAR_APPLICATION } from "@/lib/compliance/catalog/micar-application";
 import { ZAG_APPLICATION } from "@/lib/compliance/catalog/zag-application";
 import { fmtDate } from "@/lib/compliance/page-data";
-import { getOrgProfile, listControlRows } from "@/lib/compliance/queries";
-import { listDocuments, listProviders } from "@/lib/compliance/queries-p2";
-import {
-	listProcesses,
-	listRoleAssignments,
-	listScopes,
-} from "@/lib/compliance/queries-p3";
-import {
-	amlStatus,
-	listCryptoAssets,
-	listOwnFundsCalculations,
-	listShareholders,
-} from "@/lib/compliance/queries-p4";
 import { readOrg } from "@/lib/db/with-org";
-import { getOrgSettings } from "@/lib/org/queries";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -62,64 +48,8 @@ export default async function ApplicationPage({
 	const tf = await getTranslations("Functions");
 	const canEdit = roleAllows(ctx.orgRole, { organisation: ["update"] });
 
-	const { facts, services, state } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => {
-			const [
-				profile,
-				settings,
-				docs,
-				controls,
-				assignments,
-				ownFunds,
-				aml,
-				providers,
-				procs,
-				shareholders,
-				assets,
-				scopes,
-			] = await Promise.all([
-				getOrgProfile(tx, ctx.orgId),
-				getOrgSettings(tx, ctx.orgId),
-				listDocuments(tx, ctx.orgId),
-				listControlRows(tx, ctx.orgId),
-				listRoleAssignments(tx, ctx.orgId),
-				listOwnFundsCalculations(tx, ctx.orgId),
-				amlStatus(tx, ctx.orgId),
-				listProviders(tx, ctx.orgId),
-				listProcesses(tx, ctx.orgId),
-				listShareholders(tx, ctx.orgId),
-				listCryptoAssets(tx, ctx.orgId),
-				listScopes(tx, ctx.orgId),
-			]);
-			const state = settings?.applicationState ?? {};
-			const scopeSet = new Set<string>();
-			for (const s of scopes) {
-				if (s.frameworkSlug) scopeSet.add(s.frameworkSlug);
-				else for (const f of profile?.frameworks ?? []) scopeSet.add(f);
-			}
-			const facts: ApplicationFacts = {
-				documents: docs.map((d) => ({
-					templateCode: d.templateCode,
-					status: d.status,
-				})),
-				controls: new Map(controls.map((c) => [c.code, c.status])),
-				functions: new Set(assignments.map((a) => a.function)),
-				ownFundsApproved: ownFunds.some((r) => r.status === "approved"),
-				amlAnalysisApproved: aml.analysisApproved,
-				providers: providers.map((p) => ({ isOutsourcing: p.isOutsourcing })),
-				processes: procs.filter((p) => p.status !== "retired").length,
-				shareholders: shareholders.length,
-				cryptoAssets: assets.length,
-				scopes: scopeSet,
-				manualDone: new Set(
-					Object.entries(state)
-						.filter(([, v]) => v.done)
-						.map(([k]) => k),
-				),
-			};
-			return { facts, services: profile?.profile.caspServices ?? [], state };
-		},
+	const { facts, services, state } = await readOrg(toOrgCtx(ctx), (tx) =>
+		loadApplicationFacts(tx, ctx.orgId),
 	);
 
 	const items = tab === "zag" ? ZAG_APPLICATION : MICAR_APPLICATION;
@@ -180,7 +110,18 @@ export default async function ApplicationPage({
 
 	return (
 		<>
-			<PageHeader title={t("title")} lead={t("lead")} />
+			<PageHeader
+				title={t("title")}
+				lead={t("lead")}
+				actions={
+					<a
+						href={`/api/export/antrag.md?mappe=${tab}`}
+						className="text-primary text-sm hover:underline underline-offset-4"
+					>
+						{t("exportMd")}
+					</a>
+				}
+			/>
 			<UrlTabs
 				base="/antrag"
 				active={tab}

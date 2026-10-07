@@ -1,8 +1,10 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { controlImplementations, controls } from "@/db/schema";
+import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { REQUIREMENT_BY_KEY } from "@/lib/compliance/catalog";
 import { coverageDelta } from "@/lib/compliance/coverage";
@@ -11,7 +13,11 @@ import { mutateOrg } from "@/lib/db/with-org";
 import { CONTROL_STATUS } from "@/lib/entities/control";
 import { canTransition } from "@/lib/entities/status-machine";
 import { notify } from "@/lib/notifications/notify";
-import { type ActionResult, fromZod } from "@/lib/validation/common";
+import {
+	type ActionResult,
+	fromZod,
+	uuid as uuidSchema,
+} from "@/lib/validation/common";
 import {
 	assignControlSchema,
 	setControlStatusSchema,
@@ -195,4 +201,97 @@ export async function assignControl(input: unknown): Promise<ActionResult> {
 	if (!res) return { ok: false, error: "notFound" };
 	revalidatePath("/controls");
 	return { ok: true, data: undefined };
+}
+
+const bulkSchema = z.object({
+	implementationIds: z.array(uuidSchema).min(1).max(200),
+	status: z.enum(["not_started", "planned", "in_progress"]).optional(),
+	ownerUserId: uuidSchema.nullable().optional(),
+	assigneeUserId: uuidSchema.nullable().optional(),
+});
+
+// Bulk: Status (nur Übergänge ohne Begründungspflicht) und Zuweisung für
+// mehrere Controls. Jede Zeile einzeln geprüft (RLS, Statusmaschine) und
+// auditiert; nicht erlaubte Übergänge werden übersprungen.
+export async function bulkUpdateControls(
+	input: unknown,
+): Promise<ActionResult<{ updated: number; skipped: number }>> {
+	const c = await requireOrg({ control: ["update", "assign"] });
+	const parsed = bulkSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const rows = await tx
+			.select({
+				id: controlImplementations.id,
+				status: controlImplementations.status,
+				ownerUserId: controlImplementations.ownerUserId,
+				assigneeUserId: controlImplementations.assigneeUserId,
+				code: controls.code,
+				title: controls.title,
+			})
+			.from(controlImplementations)
+			.innerJoin(controls, eq(controls.id, controlImplementations.controlId))
+			.where(
+				and(
+					eq(controlImplementations.organizationId, c.orgId),
+					inArray(controlImplementations.id, d.implementationIds),
+				),
+			);
+		const audits: AuditInput[] = [];
+		let updated = 0;
+		let skipped = d.implementationIds.length - rows.length;
+		for (const row of rows) {
+			const patch: Partial<typeof controlImplementations.$inferInsert> = {};
+			if (d.status && d.status !== row.status) {
+				const check = canTransition(CONTROL_STATUS, row.status, d.status, {});
+				if (!check.ok) {
+					skipped += 1;
+					continue;
+				}
+				patch.status = d.status;
+				patch.source = "manual";
+			}
+			if (d.ownerUserId !== undefined) patch.ownerUserId = d.ownerUserId;
+			if (d.assigneeUserId !== undefined)
+				patch.assigneeUserId = d.assigneeUserId;
+			if (Object.keys(patch).length === 0) {
+				skipped += 1;
+				continue;
+			}
+			await tx
+				.update(controlImplementations)
+				.set(patch)
+				.where(eq(controlImplementations.id, row.id));
+			if (d.assigneeUserId && d.assigneeUserId !== row.assigneeUserId) {
+				await notify(tx, {
+					orgId: c.orgId,
+					recipients: [d.assigneeUserId],
+					actorUserId: c.userId,
+					kind: "task_assigned",
+					title: `Dir wurde ${row.code} · ${row.title} zugewiesen`,
+					link: `/controls/${row.code}`,
+				});
+			}
+			audits.push({
+				action: "control.bulk_update",
+				target: `control:${row.id}`,
+				before: {
+					status: row.status,
+					ownerUserId: row.ownerUserId,
+					assigneeUserId: row.assigneeUserId,
+				},
+				after: {
+					status: patch.status ?? row.status,
+					ownerUserId: patch.ownerUserId ?? row.ownerUserId,
+					assigneeUserId: patch.assigneeUserId ?? row.assigneeUserId,
+				},
+			});
+			updated += 1;
+		}
+		return { result: { updated, skipped }, audit: audits };
+	});
+	revalidatePath("/controls");
+	revalidatePath("/ueberblick");
+	return { ok: true, data: out };
 }

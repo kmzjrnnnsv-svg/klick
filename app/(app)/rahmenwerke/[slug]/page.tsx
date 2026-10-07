@@ -104,6 +104,24 @@ export default async function FrameworkPage({
 				eyebrow={`${fw.authority ?? ""} ${fw.version ?? ""}`.trim()}
 				title={fw.name}
 				lead={fw.description}
+				actions={
+					<span className="flex flex-wrap gap-3 text-sm">
+						<a
+							href={`/api/export/gap.csv?fw=${slug}`}
+							className="text-primary hover:underline underline-offset-4"
+						>
+							{t("exportGap")}
+						</a>
+						{soaEnabled && (
+							<a
+								href="/api/export/soa.md"
+								className="text-primary hover:underline underline-offset-4"
+							>
+								{t("exportSoa")}
+							</a>
+						)}
+					</span>
+				}
 			/>
 			{bucket && (
 				<div className="mb-6 grid gap-4 md:grid-cols-[1fr_auto]">

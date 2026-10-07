@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { importRisksCsv } from "@/app/actions/imports";
+import { CsvImport } from "@/components/entity/csv-import";
 import { EmptyState } from "@/components/entity/empty-state";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusBadge } from "@/components/entity/status-badge";
@@ -123,7 +125,24 @@ export default async function RisksPage({
 			<PageHeader
 				title={t("title")}
 				lead={t("lead")}
-				actions={canCreate ? <RiskQuickCreate scales={scales} /> : undefined}
+				actions={
+					<span className="flex flex-wrap items-center gap-2">
+						<a
+							href="/api/export/risiken.csv"
+							className="text-primary text-sm hover:underline underline-offset-4"
+						>
+							{t("exportCsv")}
+						</a>
+						{canCreate && (
+							<CsvImport
+								title={t("importTitle")}
+								columns="title;category;likelihood;impact;description"
+								action={importRisksCsv}
+							/>
+						)}
+						{canCreate && <RiskQuickCreate scales={scales} />}
+					</span>
+				}
 			/>
 			<UrlTabs
 				base="/risiken"

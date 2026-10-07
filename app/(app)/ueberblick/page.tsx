@@ -2,6 +2,7 @@ import { CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CoverageBar } from "@/components/entity/coverage-bar";
+import { Sparkline } from "@/components/entity/sparkline";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -30,6 +31,7 @@ import {
 	pct,
 	shortFrameworkName,
 } from "@/lib/compliance/page-data";
+import { postureTrend } from "@/lib/compliance/posture";
 import {
 	listControlRows,
 	listEvidenceWithControls,
@@ -48,6 +50,7 @@ import {
 	listProcesses,
 	listResolutions,
 } from "@/lib/compliance/queries-p3";
+import { listPostureSnapshots } from "@/lib/compliance/queries-p4";
 import { DEFAULT_RISK_APPETITE } from "@/lib/compliance/risk";
 import { prioritizePlan } from "@/lib/compliance/synergy";
 import { readOrg } from "@/lib/db/with-org";
@@ -89,6 +92,7 @@ export default async function OverviewPage() {
 			resolutions,
 			ncs,
 			runs,
+			snapshots,
 		] = await Promise.all([
 			listControlRows(tx, ctx.orgId),
 			listEvidenceWithControls(tx, ctx.orgId),
@@ -103,6 +107,7 @@ export default async function OverviewPage() {
 			listResolutions(tx, ctx.orgId),
 			listNonconformities(tx, ctx.orgId),
 			listObligationRuns(tx, ctx.orgId),
+			listPostureSnapshots(tx, ctx.orgId, 35),
 		]);
 		return {
 			controls,
@@ -118,6 +123,7 @@ export default async function OverviewPage() {
 			resolutions,
 			ncs,
 			runs,
+			snapshots,
 		};
 	});
 	const { controls, evidence, openTasks } = g;
@@ -327,6 +333,26 @@ export default async function OverviewPage() {
 											</span>
 										</div>
 										<CoverageBar bucket={b} labels={labels} />
+										{(() => {
+											const tr = postureTrend(
+												g.snapshots.filter((x) => x.slug === fw),
+												now,
+											);
+											if (tr.points.length < 2) return null;
+											return (
+												<div className="flex items-center justify-between text-muted-foreground text-xs">
+													<span>
+														{t("trend30", {
+															delta: `${(tr.deltaPct ?? 0) >= 0 ? "+" : ""}${tr.deltaPct ?? 0}`,
+														})}
+													</span>
+													<Sparkline
+														points={tr.points}
+														title={t("trendTitle")}
+													/>
+												</div>
+											);
+										})()}
 									</div>
 								);
 							})

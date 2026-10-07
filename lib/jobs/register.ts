@@ -7,6 +7,8 @@ import { verifyAuditChain } from "@/lib/audit";
 import { logger } from "@/lib/log";
 import { runComplianceTick } from "./compliance-tick-runner";
 import { runDigest, runImmediateMails } from "./digest";
+import { runPostureSnapshot } from "./posture";
+import { runRetention } from "./retention";
 
 // Job-Register (ADR-011). Zeitpläne in Europe/Berlin. Fachjobs laufen je Org
 // in eigenem RLS-Kontext (lib/db/with-org.ts#forEachOrg):
@@ -15,7 +17,8 @@ import { runDigest, runImmediateMails } from "./digest";
 //   notification-mail  alle 5 min  Sofort-Mails (IMMEDIATE_MAIL_KINDS)
 //   digest             07:00       Tages-Digest je Person
 //   verify-audit-chain 04:00       Hash-Kette je Org prüfen
-//   retention / posture-snapshot   Gerüst, Fachinhalt in P4
+//   retention          03:00       Sitzungen, Tokens, gelesene Benachrichtigungen > 180 d
+//   posture-snapshot   02:00       Abdeckung je Org/Rahmenwerk → Verlauf auf /ueberblick
 
 export const JOBS = {
 	complianceTick: "compliance-tick",
@@ -49,10 +52,10 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 		await runImmediateMails();
 	});
 	await boss.work(JOBS.retention, async () => {
-		logger.debug("retention: noch kein Fachinhalt (P4)");
+		await runRetention();
 	});
 	await boss.work(JOBS.postureSnapshot, async () => {
-		logger.debug("posture-snapshot: noch kein Fachinhalt (P4)");
+		await runPostureSnapshot();
 	});
 	await boss.work(JOBS.digest, async () => {
 		await runDigest();

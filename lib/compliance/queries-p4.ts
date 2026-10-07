@@ -1,13 +1,15 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray } from "drizzle-orm";
 import {
 	amlMonitoringRules,
 	amlRiskAnalyses,
 	controls,
 	cryptoAssets,
+	frameworks,
 	jurisdictions,
 	milestoneControls,
 	milestones,
 	ownFundsCalculations,
+	postureSnapshots,
 	shareholders,
 	suspiciousReports,
 	tasks,
@@ -185,5 +187,36 @@ export async function listMilestones(tx: OrgTx, orgId: string) {
 		sortOrder: r.sortOrder,
 		controlCodes: (codesBy.get(r.id) ?? []).sort(),
 		openTasks: taskCount.get(r.id) ?? 0,
+	}));
+}
+
+// Posture-Snapshots der letzten Tage je Rahmenwerk-Slug (Verlauf auf /ueberblick).
+export async function listPostureSnapshots(
+	tx: OrgTx,
+	orgId: string,
+	days = 35,
+) {
+	const from = new Date(Date.now() - days * 86_400_000)
+		.toISOString()
+		.slice(0, 10);
+	const rows = await tx
+		.select({
+			slug: frameworks.slug,
+			date: postureSnapshots.date,
+			coveragePct: postureSnapshots.coveragePct,
+		})
+		.from(postureSnapshots)
+		.innerJoin(frameworks, eq(frameworks.id, postureSnapshots.frameworkId))
+		.where(
+			and(
+				eq(postureSnapshots.organizationId, orgId),
+				gte(postureSnapshots.date, from),
+			),
+		)
+		.orderBy(asc(postureSnapshots.date));
+	return rows.map((r) => ({
+		slug: r.slug,
+		date: r.date,
+		coveragePct: r.coveragePct === null ? null : Number(r.coveragePct),
 	}));
 }

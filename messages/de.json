@@ -71,7 +71,9 @@
 		"notifications": "Benachrichtigungen",
 		"admin": "Plattform-Admin",
 		"comingSoon": "Kommt in einer späteren Phase",
-		"approvals": "Freigaben"
+		"approvals": "Freigaben",
+		"searchGroup": "Suche",
+		"searchFor": "In allem suchen: „{q}“"
 	},
 	"Footer": {
 		"tagline": "Maison Klick — Compliance, die zusammenpasst.",
@@ -247,7 +249,9 @@
 		"gapProcessesA": "Prozesse ohne Verantwortliche:n (A)",
 		"gapNcs": "Abweichungen überfällig",
 		"gapRuns": "Pflichten-Läufe überfällig",
-		"setupTlpt": "TLPT-Benennung prüfen"
+		"setupTlpt": "TLPT-Benennung prüfen",
+		"trend30": "{delta} Punkte in 30 Tagen",
+		"trendTitle": "Abdeckung der letzten 30 Tage"
 	},
 	"Settings": {
 		"title": "Einstellungen",
@@ -618,7 +622,14 @@
 		"status_covered": "erfüllt",
 		"status_partial": "teilweise",
 		"status_open": "offen",
-		"status_not_applicable": "N/A"
+		"status_not_applicable": "N/A",
+		"bulkSelected": "{n} ausgewählt",
+		"bulkStatus": "Status setzen",
+		"bulkOwner": "Verantwortlich",
+		"bulkAssignee": "Bearbeitet von",
+		"bulkApply": "Anwenden",
+		"bulkDone": "{n} Controls aktualisiert, {skipped} übersprungen.",
+		"selectRow": "{code} auswählen"
 	},
 	"Frameworks": {
 		"title": "Rahmenwerke",
@@ -686,7 +697,9 @@
 		"docPresent": "vorhanden",
 		"docMissing": "fehlt",
 		"docOpenTemplates": "Vorlagen übernehmen",
-		"isoMandatoryComplete": "{present} von {total} Pflichtdokumenten vorhanden"
+		"isoMandatoryComplete": "{present} von {total} Pflichtdokumenten vorhanden",
+		"exportGap": "Gap-Liste (CSV)",
+		"exportSoa": "SoA (Markdown)"
 	},
 	"Synergies": {
 		"title": "Synergien",
@@ -875,7 +888,9 @@
 		"recovery": "Wiedererlangung",
 		"cause": "Ursache",
 		"occurredAt": "Eingetreten",
-		"lossEventsEmpty": "Keine Schadensfälle erfasst."
+		"lossEventsEmpty": "Keine Schadensfälle erfasst.",
+		"exportCsv": "Export (CSV)",
+		"importTitle": "Risiken importieren"
 	},
 	"Documents": {
 		"title": "Dokumente",
@@ -1102,7 +1117,8 @@
 		"scale": "Skalierung",
 		"asProvider": "Dienstleister",
 		"createFromTool": "Als Dienstleister anlegen",
-		"toolsDisclaimer": "Marktbeispiele, keine Empfehlung im Rechtssinn; vor Vertragsschluss greift die Due Diligence nach DORA Art. 28."
+		"toolsDisclaimer": "Marktbeispiele, keine Empfehlung im Rechtssinn; vor Vertragsschluss greift die Due Diligence nach DORA Art. 28.",
+		"importTitle": "Dienstleister importieren"
 	},
 	"Assets": {
 		"title": "Assets",
@@ -1133,7 +1149,8 @@
 		"rotationDue": "Rotation fällig",
 		"empty": "Noch keine Assets.",
 		"emptyLead": "Kein Asset ohne Verantwortliche:n — starte mit den Systemen, die Kundendaten tragen.",
-		"requiredBy": "Gefordert von CC-AST-01 · ISO 27001 A.5.9 · DORA Art. 8"
+		"requiredBy": "Gefordert von CC-AST-01 · ISO 27001 A.5.9 · DORA Art. 8",
+		"importTitle": "Assets importieren"
 	},
 	"Trainings": {
 		"title": "Schulungen",
@@ -2266,7 +2283,8 @@
 		"check_crypto_assets": "Kryptowerte erfasst",
 		"check_scope": "Geltungsbereich für {fw} definiert",
 		"check_manual": "Unterlage",
-		"disclaimer": "Orientierung nach Gesetzestext und RTS/ITS — kein Rechtsrat; das Dossier prüft eine Kanzlei. Antragsstrategie und Nachforderungen laufen über"
+		"disclaimer": "Orientierung nach Gesetzestext und RTS/ITS — kein Rechtsrat; das Dossier prüft eine Kanzlei. Antragsstrategie und Nachforderungen laufen über",
+		"exportMd": "Aktengliederung (Markdown)"
 	},
 	"Roadmap": {
 		"title": "Roadmap",
@@ -2299,5 +2317,29 @@
 		"progress": "{done} von {total} erledigt",
 		"overdue": "{n} überfällig",
 		"hint": "Fristen (Art. 63 MiCAR: 25 + 40 Arbeitstage; § 10 ZAG: 3 Monate) sind Orientierung — kein Rechtsrat."
+	},
+	"Search": {
+		"title": "Suche",
+		"lead": "Volltext über Controls, Risiken, Dokumente, Prozesse, Dienstleister, Assets, Vorfälle, Aufgaben, Abweichungen und Kommentare — nur innerhalb deiner Organisation. Vertrauliche Register (Verdachtsmeldungen, Hinweise, Beschwerden, Gesellschafter) sind nicht indexiert; geheime Dokumente nur über Titel.",
+		"placeholder": "Suchbegriff … (⌘K)",
+		"hint": "Mindestens zwei Zeichen.",
+		"none": "Nichts gefunden für „{q}“.",
+		"count": "{n} Treffer für „{q}“",
+		"kind_control": "Controls",
+		"kind_risk": "Risiken",
+		"kind_document": "Dokumente",
+		"kind_process": "Prozesse",
+		"kind_provider": "Dienstleister",
+		"kind_asset": "Assets",
+		"kind_incident": "Vorfälle",
+		"kind_task": "Aufgaben",
+		"kind_nonconformity": "Abweichungen",
+		"kind_comment": "Kommentare"
+	},
+	"Import": {
+		"lead": "Kopfzeile mit Spaltennamen ({columns}); Trenner ; oder ,; jede Zeile wird wie das Formular validiert. Spalte organization_id wird ignoriert.",
+		"button": "CSV importieren",
+		"done": "{n} Zeilen importiert, {e} Fehler.",
+		"tooLarge": "Datei zu groß (max. 2 MB)."
 	}
 }
