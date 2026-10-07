@@ -6,14 +6,37 @@
    (`ALTER ROLE <alt> RENAME TO klick_migrator`), damit `0000_pivot` die
    Alt-Tabellen droppen darf. `roles.sql` legt auch das Schema `pgboss` (Owner `klick_app`) an;
    die pg-boss-Tabellen installiert die App beim ersten Start selbst (`lib/jobs/boss.ts`).
+   **Nach** dem ersten `pnpm release` `roles.sql` erneut ausführen: `0000_pivot` droppt ein
+   altes `pgboss`-Schema des Migrators, der zweite Lauf legt es für `klick_app` neu an.
 2. Secrets als systemd-Credentials verschlüsseln (siehe Kopf von `deploy/systemd/klick.service`).
 3. `deploy/systemd/klick.service` installieren, `deploy/nginx/raza.work.conf` aktivieren,
-   `nft -f deploy/firewall.nft`, fail2ban (sshd + nginx-limit-req), unattended-upgrades, chrony.
+   `nft -f deploy/firewall.nft` (macht `flush ruleset` — vorher SSH-Port und andere Dienste
+   auf dem Host prüfen), fail2ban (sshd + nginx-limit-req), unattended-upgrades, chrony.
 4. Backups: `scripts/backup-db.sh` als Timer (täglich), `BACKUP_AGE_RECIPIENT` + `BACKUP_RCLONE_REMOTE` setzen.
 
 ## Release
 CI grün → Wartungsfenster → `scripts/backup-db.sh` → `git pull && pnpm release`
 (migrate → seed → build) → `systemctl restart klick` → `curl -f https://raza.work/api/ready`.
+
+`pnpm release` läuft als User `klick` und braucht dieselben Secrets wie der Dienst
+(`db:seed` validiert die Env: `BETTER_AUTH_SECRET`, `VAULT_KEK_BASE64`, `BETTER_AUTH_URL`).
+Node muss systemweit liegen (`/usr/local/bin`, nicht nvm im Home — `ProtectHome=yes`):
+
+```bash
+sudo -u klick git -C /opt/klick/current pull --ff-only
+sudo bash -c '
+set -euo pipefail
+cd /opt/klick/current
+d() { systemd-creds decrypt "/etc/credstore.encrypted/$1" - 2>/dev/null; }
+set -a; . /etc/klick/klick.env; set +a
+unset NODE_ENV
+export HOME=/opt/klick COREPACK_ENABLE_DOWNLOAD_PROMPT=0 BETTER_AUTH_URL=https://raza.work
+export BETTER_AUTH_SECRET="$(d better_auth_secret)" VAULT_KEK_BASE64="$(d vault_kek_base64)"
+export DATABASE_URL="$(d database_url)" DATABASE_URL_MIGRATE="$(d database_url_migrate)"
+runuser -u klick -- pnpm release
+'
+sudo systemctl restart klick && curl -f https://raza.work/api/ready
+```
 
 **Rollback:** `scripts/restore-db.sh <dump> <url>` + `git checkout recruiting-final` + `pnpm release`.
 
