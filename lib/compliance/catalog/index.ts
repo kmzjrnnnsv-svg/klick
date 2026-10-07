@@ -1,10 +1,23 @@
+import { AMLR_REQUIREMENTS, AMLR_SECTIONS } from "./amlr";
 import { BASELINE } from "./baseline";
 import { CONTROL_REQUIREMENTS } from "./control-requirements";
 import { CONTROL_BY_CODE, CONTROLS } from "./controls";
 import { DORA_REQUIREMENTS, DORA_SECTIONS } from "./dora";
 import { FRAMEWORKS } from "./frameworks";
+import { GWG_REQUIREMENTS, GWG_SECTIONS } from "./gwg";
 import { ISO27001_REQUIREMENTS, ISO27001_SECTIONS } from "./iso27001";
+import { MICAR_REQUIREMENTS, MICAR_SECTIONS } from "./micar";
+import {
+	AWV_REQUIREMENTS,
+	AWV_SECTIONS,
+	DAC8_REQUIREMENTS,
+	DAC8_SECTIONS,
+	KASSEN_REQUIREMENTS,
+	KASSEN_SECTIONS,
+} from "./misc-finance";
 import { NIS2_REQUIREMENTS, NIS2_SECTIONS } from "./nis2";
+import { SANCTIONS_REQUIREMENTS, SANCTIONS_SECTIONS } from "./sanctions";
+import { TFR_REQUIREMENTS, TFR_SECTIONS } from "./tfr";
 import type {
 	CatalogControl,
 	CatalogControlMapping,
@@ -12,9 +25,11 @@ import type {
 	CatalogRequirement,
 	CatalogSection,
 } from "./types";
+import { ZAG_REQUIREMENTS, ZAG_SECTIONS } from "./zag";
+import { ZAG_MARISK_REQUIREMENTS, ZAG_MARISK_SECTIONS } from "./zag-marisk";
 
-// Zusammengesetzter Katalog. Rahmenwerke ohne Index (P4/P5) tragen leere
-// Listen — sie sind wählbar, zeigen aber noch keine Anforderungen.
+// Zusammengesetzter Katalog. Rahmenwerke ohne Index (P5: DSGVO, KWG) tragen
+// leere Listen — sie sind wählbar, zeigen aber noch keine Anforderungen.
 
 const INDICES: Record<
 	string,
@@ -26,6 +41,22 @@ const INDICES: Record<
 	},
 	dora: { sections: DORA_SECTIONS, requirements: DORA_REQUIREMENTS },
 	nis2: { sections: NIS2_SECTIONS, requirements: NIS2_REQUIREMENTS },
+	micar: { sections: MICAR_SECTIONS, requirements: MICAR_REQUIREMENTS },
+	zag: { sections: ZAG_SECTIONS, requirements: ZAG_REQUIREMENTS },
+	"zag-marisk": {
+		sections: ZAG_MARISK_SECTIONS,
+		requirements: ZAG_MARISK_REQUIREMENTS,
+	},
+	gwg: { sections: GWG_SECTIONS, requirements: GWG_REQUIREMENTS },
+	amlr: { sections: AMLR_SECTIONS, requirements: AMLR_REQUIREMENTS },
+	tfr: { sections: TFR_SECTIONS, requirements: TFR_REQUIREMENTS },
+	sanctions: {
+		sections: SANCTIONS_SECTIONS,
+		requirements: SANCTIONS_REQUIREMENTS,
+	},
+	dac8: { sections: DAC8_SECTIONS, requirements: DAC8_REQUIREMENTS },
+	awv: { sections: AWV_SECTIONS, requirements: AWV_REQUIREMENTS },
+	kassen: { sections: KASSEN_SECTIONS, requirements: KASSEN_REQUIREMENTS },
 };
 
 export const CATALOG_FRAMEWORKS: CatalogFramework[] = FRAMEWORKS.map(
