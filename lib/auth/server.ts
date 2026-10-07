@@ -10,7 +10,9 @@ import { twoFactor } from "better-auth/plugins/two-factor";
 import { count, eq } from "drizzle-orm";
 import { globalDb, schema } from "../../db";
 import { member, session as sessionTable, user } from "../../db/auth-schema";
+import { memberAccess } from "../../db/schema";
 import { auditPlatform } from "../audit";
+import { withOrg } from "../db/with-org";
 import { sendTransactionalMail } from "../mail/send";
 import {
 	invitationEmail,
@@ -246,13 +248,34 @@ export const auth = betterAuth({
 					}
 				},
 				async afterAcceptInvitation({ invitation, member: m, user }) {
+					// Prüfer:innen bekommen zeitlich begrenzten Zugang (Standard 6 Wochen);
+					// Owner passt Ablauf und Grants auf /team an.
+					if (m.role === "auditor") {
+						await withOrg(
+							{ orgId: invitation.organizationId, userId: user.id },
+							(tx) =>
+								tx
+									.insert(memberAccess)
+									.values({
+										memberId: m.id,
+										organizationId: invitation.organizationId,
+										accessUntil: new Date(Date.now() + 42 * 86_400_000),
+										grants: [],
+										createdByUserId: invitation.inviterId,
+									})
+									.onConflictDoNothing(),
+						);
+					}
 					await auditPlatform(
 						{ userId: user.id },
 						{
 							action: "org.member_joined",
 							target: `member:${m.id}`,
 							organizationId: invitation.organizationId,
-							after: { role: m.role },
+							after: {
+								role: m.role,
+								accessUntil: m.role === "auditor" ? "+42d" : null,
+							},
 						},
 					);
 				},

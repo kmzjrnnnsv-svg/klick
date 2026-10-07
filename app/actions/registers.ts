@@ -20,6 +20,8 @@ import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
 import { TRAINING_REQUIREMENTS } from "@/lib/compliance/catalog/training-requirements";
+import { nonconformityFromTest } from "@/lib/compliance/nonconformity";
+import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { syncTrainingAssignments } from "@/lib/trainings/assignments";
@@ -341,6 +343,7 @@ export async function recordControlTest(
 			.select({
 				id: controlImplementations.id,
 				code: controls.code,
+				title: controls.title,
 				ownerUserId: controlImplementations.ownerUserId,
 			})
 			.from(controlImplementations)
@@ -368,42 +371,41 @@ export async function recordControlTest(
 			})
 			.returning({ id: controlTests.id });
 		if (!row) throw new Error("insert failed");
+		// ISO 9.1/10.2: nicht wirksam → Abweichung mit Aufgabe und Wirksamkeitsprüfung
+		const extra = [];
 		if (d.result === "fail") {
-			const [task] = await tx
-				.insert(tasks)
-				.values({
-					organizationId: c.orgId,
-					title: `${impl.code}: Wirksamkeitstest nicht bestanden — Abweichung bearbeiten`,
-					assigneeUserId: impl.ownerUserId ?? c.userId,
-					createdByUserId: c.userId,
-					dueAt: addDays(new Date(), 14),
-					entityType: "control",
-					entityId: impl.id,
-					sourceKind: "remediation",
-					priority: "high",
-				})
-				.returning({ id: tasks.id });
-			await notify(tx, {
-				orgId: c.orgId,
-				recipients: [impl.ownerUserId],
-				actorUserId: c.userId,
-				kind: "task_assigned",
-				title: `${impl.code}: Test nicht bestanden`,
-				link: `/controls/${impl.code}`,
-				payload: { taskId: task?.id },
+			const draft = nonconformityFromTest({
+				id: row.id,
+				controlCode: impl.code,
+				controlTitle: impl.title,
+				method: d.method,
+				notes: d.notes ?? null,
+				ownerUserId: impl.ownerUserId ?? c.userId,
+				result: d.result,
 			});
+			if (draft) {
+				const nc = await createNonconformity(
+					tx,
+					{ orgId: c.orgId, userId: c.userId },
+					draft,
+				);
+				extra.push(nc.audit);
+			}
 		}
 		return {
 			result: row.id,
-			audit: {
-				action: "control.test",
-				target: `control:${impl.id}`,
-				after: {
-					method: d.method,
-					result: d.result ?? null,
-					nextTestAt: d.nextTestAt ?? null,
+			audit: [
+				{
+					action: "control.test",
+					target: `control:${impl.id}`,
+					after: {
+						method: d.method,
+						result: d.result ?? null,
+						nextTestAt: d.nextTestAt ?? null,
+					},
 				},
-			},
+				...extra,
+			],
 		};
 	});
 	revalidatePath("/controls", "layout");

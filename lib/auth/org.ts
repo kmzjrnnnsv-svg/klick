@@ -30,6 +30,7 @@ export async function listOrgMembers(orgId: string) {
 			twoFactorEnabled: user.twoFactorEnabled,
 			createdAt: member.createdAt,
 			accessUntil: memberAccess.accessUntil,
+			grants: memberAccess.grants,
 		})
 		.from(member)
 		.innerJoin(user, eq(user.id, member.userId))
