@@ -296,7 +296,6 @@ export function buildNav(input: NavInput): NavGroup[] {
 				labelKey: "aml",
 				href: "/aml",
 				icon: "landmark",
-				phase: "P4",
 			});
 		}
 		if (hasFinance) {

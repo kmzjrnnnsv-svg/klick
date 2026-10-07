@@ -46,6 +46,10 @@ export const statements = {
 	management_review: ["read", "create", "update"],
 	settings: ["read", "update"],
 	export: ["create"],
+	aml: ["read", "create", "update", "approve"],
+	own_funds: ["read", "create", "update", "approve"],
+	crypto_asset: ["read", "create", "update"],
+	shareholder: ["read", "create", "update"],
 } as const;
 
 export const ac = createAccessControl(statements);
@@ -74,6 +78,10 @@ const readAll = {
 	obligation: ["read"],
 	management_review: ["read"],
 	settings: ["read"],
+	aml: ["read"],
+	own_funds: ["read"],
+	crypto_asset: ["read"],
+	shareholder: ["read"],
 } as const;
 
 export const viewer = ac.newRole({
@@ -115,6 +123,10 @@ export const editor = ac.newRole({
 	management_review: ["read", "create", "update"],
 	settings: ["read"],
 	export: ["create"],
+	aml: ["read", "create", "update"],
+	own_funds: ["read", "create", "update"],
+	crypto_asset: ["read", "create", "update"],
+	shareholder: ["read", "create", "update"],
 });
 
 export const owner = ac.newRole({
@@ -144,6 +156,10 @@ export const owner = ac.newRole({
 	management_review: ["read", "create", "update"],
 	settings: ["read", "update"],
 	export: ["create"],
+	aml: ["read", "create", "update", "approve"],
+	own_funds: ["read", "create", "update", "approve"],
+	crypto_asset: ["read", "create", "update"],
+	shareholder: ["read", "create", "update"],
 });
 
 // Better Auth erwartet die Rolle "admin" in der Role-Map nicht zwingend;

@@ -52,6 +52,22 @@ export function entityHref(
 			return "/assets";
 		case "task":
 			return "/heute/aufgaben";
+		case "aml_risk_analysis":
+			return "/aml?tab=risikoanalyse";
+		case "aml_monitoring_rule":
+			return "/aml?tab=monitoring";
+		case "suspicious_report":
+			return "/aml?tab=verdacht";
+		case "jurisdiction":
+			return "/aml?tab=laender";
+		case "own_funds_calculation":
+			return "/eigenmittel";
+		case "crypto_asset":
+			return "/kryptowerte";
+		case "shareholder":
+			return "/organisation?tab=gesellschafter";
+		case "milestone":
+			return "/roadmap";
 		default:
 			return "/heute";
 	}
