@@ -36,6 +36,10 @@ ALTER DEFAULT PRIVILEGES FOR ROLE klick_migrator IN SCHEMA public
 ALTER DEFAULT PRIVILEGES FOR ROLE klick_migrator IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO klick_app;
 
--- pg-boss legt sein eigenes Schema an; die App-Rolle braucht es vollständig.
--- (Schema wird beim ersten Start von pg-boss durch klick_migrator erzeugt —
--- siehe scripts/db-migrate.ts / lib/jobs/boss.ts.)
+-- pg-boss-Schema: gehört der App-Rolle, damit pg-boss seine Tabellen dort
+-- selbst anlegen und migrieren kann. CREATE auf der Datenbank bekommt
+-- klick_app nicht — deshalb installiert lib/jobs/boss.ts beim ersten Start
+-- ohne CREATE SCHEMA (pg-boss getConstructionPlans mit createSchema: false).
+SELECT 'CREATE SCHEMA pgboss AUTHORIZATION klick_app'
+  WHERE NOT EXISTS (SELECT FROM pg_namespace WHERE nspname = 'pgboss')\gexec
+GRANT CONNECT ON DATABASE klick TO klick_migrator;

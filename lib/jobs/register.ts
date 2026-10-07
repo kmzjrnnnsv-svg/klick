@@ -5,17 +5,25 @@ import { organization, user } from "@/db/auth-schema";
 import { notifications } from "@/db/schema";
 import { verifyAuditChain } from "@/lib/audit";
 import { logger } from "@/lib/log";
+import { runComplianceTick } from "./compliance-tick-runner";
+import { runDigest, runImmediateMails } from "./digest";
 
-// Job-Register. Zeitpläne in Europe/Berlin. Handler laufen je Org in eigenem
-// RLS-Kontext (lib/db/with-org.ts#forEachOrg) — hier in P0 nur das Gerüst
-// plus die tägliche Kettenprüfung; Fachjobs folgen in P1–P4.
+// Job-Register (ADR-011). Zeitpläne in Europe/Berlin. Fachjobs laufen je Org
+// in eigenem RLS-Kontext (lib/db/with-org.ts#forEachOrg):
+//   compliance-tick    stündlich   Reviews, Fristen, SLA, Ausnahmen, Schulungen,
+//                                  Vorfall-Uhren, Kenntnisnahmen → Notifications/Tasks
+//   notification-mail  alle 5 min  Sofort-Mails (IMMEDIATE_MAIL_KINDS)
+//   digest             07:00       Tages-Digest je Person
+//   verify-audit-chain 04:00       Hash-Kette je Org prüfen
+//   retention / posture-snapshot   Gerüst, Fachinhalt in P4
 
 export const JOBS = {
-	complianceTick: "compliance-tick", // stündlich: Reviews, Fristen, Pflichten-Läufe
-	retention: "retention", // täglich: Sessions/Verification/gelesene Notifications
-	postureSnapshot: "posture-snapshot", // täglich: Abdeckung je Rahmenwerk
-	digest: "digest", // täglich 07:00: Tages-Digest per Mail
-	verifyAuditChain: "verify-audit-chain", // täglich: Hash-Kette je Org prüfen
+	complianceTick: "compliance-tick",
+	notificationMail: "notification-mail",
+	retention: "retention",
+	postureSnapshot: "posture-snapshot",
+	digest: "digest",
+	verifyAuditChain: "verify-audit-chain",
 } as const;
 
 const TZ = "Europe/Berlin";
@@ -26,13 +34,19 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	}
 
 	await boss.schedule(JOBS.complianceTick, "0 * * * *", {}, { tz: TZ });
+	await boss.schedule(JOBS.notificationMail, "*/5 * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.retention, "0 3 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.postureSnapshot, "0 2 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.digest, "0 7 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.verifyAuditChain, "0 4 * * *", {}, { tz: TZ });
 
 	await boss.work(JOBS.complianceTick, async () => {
-		logger.debug("compliance-tick: noch kein Fachinhalt (P1+)");
+		await runComplianceTick();
+		// Fällige Vorfall-Fristen o. ä. sollen nicht bis zum nächsten 5-min-Lauf warten.
+		await runImmediateMails();
+	});
+	await boss.work(JOBS.notificationMail, async () => {
+		await runImmediateMails();
 	});
 	await boss.work(JOBS.retention, async () => {
 		logger.debug("retention: noch kein Fachinhalt (P4)");
@@ -41,7 +55,7 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 		logger.debug("posture-snapshot: noch kein Fachinhalt (P4)");
 	});
 	await boss.work(JOBS.digest, async () => {
-		logger.debug("digest: noch kein Fachinhalt (P4)");
+		await runDigest();
 	});
 	await boss.work(JOBS.verifyAuditChain, async () => {
 		await runVerifyAuditChain();

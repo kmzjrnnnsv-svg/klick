@@ -4,7 +4,8 @@
 1. `deploy/postgres/roles.sql` als `postgres` ausführen; Passwörter setzen.
    Bei bestehender DB: alte App-Rolle zu `klick_migrator` umbenennen
    (`ALTER ROLE <alt> RENAME TO klick_migrator`), damit `0000_pivot` die
-   Alt-Tabellen droppen darf. Danach `CREATE SCHEMA pgboss AUTHORIZATION klick_app`.
+   Alt-Tabellen droppen darf. `roles.sql` legt auch das Schema `pgboss` (Owner `klick_app`) an;
+   die pg-boss-Tabellen installiert die App beim ersten Start selbst (`lib/jobs/boss.ts`).
 2. Secrets als systemd-Credentials verschlüsseln (siehe Kopf von `deploy/systemd/klick.service`).
 3. `deploy/systemd/klick.service` installieren, `deploy/nginx/raza.work.conf` aktivieren,
    `nft -f deploy/firewall.nft`, fail2ban (sshd + nginx-limit-req), unattended-upgrades, chrony.
