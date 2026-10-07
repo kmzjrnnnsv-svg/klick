@@ -5,3 +5,8 @@
 10109	IGNORE	Modern-Web-Application-Hinweis (informativ)
 10027	IGNORE	Informative Kommentare im Quelltext
 90004	WARN	Spectre-Isolation (COOP/COEP) — COEP bewusst nicht gesetzt
+10044	IGNORE	Next-307-Redirects tragen einen kleinen Body (RSC); kein Datenleck
+10049	IGNORE	Cache-Control no-store ist auf dynamischen Seiten gewollt (Mandantendaten nie cachen)
+10094	IGNORE	Base64 in Nonces/Inline-Daten des Frameworks, keine Geheimnisse
+90005	IGNORE	Sec-Fetch-Dest ist ein Request-Header des Browsers, nicht der App
+10024	WARN	E-Mail in URL: Login-Formular sendet per POST, Fund stammt aus JS-losem Spider-Submit

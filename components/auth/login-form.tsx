@@ -81,7 +81,12 @@ export function LoginForm({
 
 	return (
 		<div className="flex flex-col gap-6">
-			<form onSubmit={sendLink} className="flex flex-col gap-4">
+			<form
+				onSubmit={sendLink}
+				method="post"
+				action="/login"
+				className="flex flex-col gap-4"
+			>
 				<div className="grid gap-2">
 					<Label htmlFor="email">{t("email")}</Label>
 					<Input

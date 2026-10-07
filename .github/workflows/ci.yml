@@ -84,7 +84,8 @@ jobs:
       - name: pnpm audit (high+)
         run: pnpm audit --audit-level=high
       - name: OSV-Scanner
-        uses: google/osv-scanner-action/osv-scanner-action@v2
+        # Gepinnt: das Repo führt kein gleitendes v2-Tag (Set up job: „unable to find version v2").
+        uses: google/osv-scanner-action/osv-scanner-action@v2.6.0
         with:
           scan-args: |-
             --lockfile=pnpm-lock.yaml
