@@ -1,46 +1,45 @@
-# Klick
+# Klick — Compliance, die zusammenpasst
 
-Recruiting-Plattform, die deine Daten dir lässt. Du entscheidest pro Arbeitgeber, was geteilt und was geprüft wird.
+Mandantenfähige GRC-Plattform für ISO 27001, DORA, NIS2, ZAG-MaRisk/MaRisk, MiCAR, GwG/AMLR, TFR,
+ZAG/PSD2 und weitere Rahmenwerke. Kernidee: **ein harmonisierter Satz gemeinsamer Controls**
+erfüllt quer alle gewählten Rahmenwerke — einmal umsetzen, überall nachweisen. Die Plattform ist
+selbst ihr erster Mandant und erfüllt die Anforderungen technisch (RLS, Audit-Hash-Kette,
+Verschlüsselung je Organisation, MFA-Pflicht, gehärteter Betrieb).
 
-## Quickstart
-
-Voraussetzungen: macOS mit Homebrew, Node 22+ und pnpm.
+## Quickstart (lokal)
 
 ```bash
-brew install postgresql@16
-brew services start postgresql@16
-createdb trustvault
-
-pnpm install
-cp .env.example .env.local      # AUTH_SECRET via: openssl rand -base64 33
-pnpm db:migrate
-pnpm db:seed
-pnpm dev
+docker compose up -d                    # Postgres 16 + MinIO (Rollen klick_migrator/klick_app)
+pnpm install                            # Lieferketten-Cooldown 7 Tage ist aktiv
+cp .env.example .env.local              # BETTER_AUTH_SECRET: openssl rand -base64 33 · VAULT_KEK_BASE64: openssl rand -base64 32
+pnpm db:migrate                         # 0000_pivot (als klick_migrator)
+pnpm db:seed                            # Rahmenwerk-Stammdaten (idempotent)
+pnpm dev                                # http://localhost:3000
 ```
 
-→ http://localhost:3000
+Erster Plattform-Admin: `pnpm dlx auth@latest create-admin --email <email> --role admin`,
+dann Magic-Link (erscheint in der Dev-Konsole) → MFA einrichten → `/onboarding`.
 
-## Login (Dev)
-
-Auf `/login` E-Mail eingeben — der Magic Link erscheint in der **Server-Konsole** als Box (kein echter Mail-Versand).
-
-## Scripts
+## Skripte
 
 | Befehl | Wirkung |
 |---|---|
-| `pnpm dev` | Next.js Dev-Server (Turbopack) |
-| `pnpm build` / `pnpm start` | Production Build & Start |
-| `pnpm lint` / `pnpm lint:fix` | Biome check |
-| `pnpm format` | Biome format |
-| `pnpm test` | Vitest |
-| `pnpm db:generate` | Drizzle-Migration aus Schema generieren |
-| `pnpm db:migrate` | Pending Migrations anwenden (lädt `.env.local`, `.env.production`, `.env`) |
-| `pnpm db:push` | Schema direkt pushen (Dev) |
-| `pnpm db:studio` | Drizzle Studio |
-| `pnpm db:seed` | Default-Tenant anlegen (idempotent) |
+| `pnpm dev` / `pnpm build` / `pnpm start` | Next.js 16 |
+| `pnpm preflight` | typecheck + Biome + Vitest — vor jedem Commit |
+| `pnpm test` | Unit-Tests; mit `DATABASE_URL_TEST` auch RLS-Integrationstests |
+| `pnpm db:migrate` / `pnpm db:seed` | Migrationen (DDL-Rolle) / Katalog-Sync (App-Rolle) |
+| `pnpm auth:generate` / `pnpm auth:check` | Better-Auth-Schema erzeugen / prüfen |
+| `pnpm audit` / `pnpm sbom` | Dependency-Audit / CycloneDX-SBOM |
+| `pnpm release` | install → migrate → seed → build (Prod) |
 
-## Stack
+## Architektur in einem Absatz
 
-Next.js 16 (App Router) · TypeScript · Tailwind v4 · Drizzle ORM · PostgreSQL 16 · Auth.js v5 (Magic Link) · next-intl (DE/EN) · next-themes (Dark/Light) · Biome · Vitest.
+Next.js 16 (App Router) · Better Auth 1.7 (Magic-Link, Passkeys, TOTP-MFA für alle, Organisationen,
+Admin) · Drizzle + Postgres 16 mit **Row-Level-Security auf jeder Mandanten-Tabelle** (`withOrg()`
+setzt den Kontext transaktionslokal) · append-only Audit-Log mit SHA-256-Kette je Organisation ·
+XChaCha20-Poly1305-Envelope mit Org-DEK · pg-boss-Scheduler · pino · shadcn/ui unter Maison-Tokens.
+Details: `CLAUDE.md`, Bedrohungsmodell: `docs/security/threat-model.md`, Deploy: `deploy/README.md`.
 
-Vollständige Architektur-Notizen in [`CLAUDE.md`](CLAUDE.md).
+## Sicherheit
+
+Meldungen an security@raza.work — siehe `SECURITY.md`.

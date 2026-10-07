@@ -1,1 +1,0 @@
-ALTER TABLE "candidate_profiles" ADD COLUMN "onboarding_completed_at" timestamp;

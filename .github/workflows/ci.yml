@@ -2,38 +2,108 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-      - "claude/**"
+    branches: [main, "claude/**"]
   pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   check:
-    name: typecheck + lint + tests
+    name: typecheck · lint · tests (Postgres, RLS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: klick_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      BETTER_AUTH_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+      BETTER_AUTH_URL: http://localhost:3000
+      VAULT_KEK_BASE64: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DATABASE_URL: postgres://klick_test_app:klick_test_app@localhost:5432/klick_test
+      DATABASE_URL_MIGRATE: postgres://postgres:postgres@localhost:5432/klick_test
+      DATABASE_URL_TEST: postgres://klick_test_app:klick_test_app@localhost:5432/klick_test
+      KLICK_DISABLE_JOBS: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install (frozen lockfile, Release-Cooldown)
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
+      - name: Test-Rolle ohne BYPASSRLS anlegen
+        run: |
+          psql "$DATABASE_URL_MIGRATE" -v ON_ERROR_STOP=1 -c "CREATE ROLE klick_test_app LOGIN PASSWORD 'klick_test_app' NOBYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE;"
+      - name: Migration (0000_pivot) auf Test-DB
+        run: pnpm db:migrate
+      - name: Grants für Test-Rolle + pgboss-Schema
+        run: |
+          psql "$DATABASE_URL_MIGRATE" -v ON_ERROR_STOP=1 <<'SQL'
+          GRANT USAGE ON SCHEMA public TO klick_test_app;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO klick_test_app;
+          GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO klick_test_app;
+          CREATE SCHEMA IF NOT EXISTS pgboss AUTHORIZATION klick_test_app;
+          SQL
+      - name: Seed (idempotent, als App-Rolle)
+        run: pnpm db:seed
+      - name: Tests (Unit + RLS-Integration)
+        run: pnpm test
+
+  supply-chain:
+    name: pnpm audit · OSV · SBOM
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: pnpm audit (high+)
+        run: pnpm audit --audit-level=high
+      - name: OSV-Scanner
+        uses: google/osv-scanner-action/osv-scanner-action@v2
+        with:
+          scan-args: |-
+            --lockfile=pnpm-lock.yaml
+      - name: SBOM (CycloneDX)
+        run: pnpm sbom
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.cdx.json
+          retention-days: 90
 
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Tests
-        run: pnpm test
+  secrets:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

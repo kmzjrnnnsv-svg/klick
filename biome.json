@@ -14,7 +14,11 @@
 			"!**/db/migrations",
 			"!**/node_modules",
 			"!**/pnpm-lock.yaml",
-			"!**/*.css"
+			"!**/*.css",
+			"!**/components/ui",
+			"!**/db/auth-schema.ts",
+			"!**/playwright-report",
+			"!**/test-results"
 		]
 	},
 	"formatter": {
@@ -27,9 +31,42 @@
 			"recommended": true,
 			"a11y": {
 				"noLabelWithoutControl": "off"
+			},
+			"style": {
+				"noRestrictedImports": {
+					"level": "error",
+					"options": {
+						"paths": {
+							"@/db": "Kein Mandanten-Kontext: nutze withOrg()/readOrg() aus @/lib/db/with-org. Direkter Zugriff nur in lib/db, lib/auth, lib/jobs, db, scripts.",
+							"@/db/index": "Kein Mandanten-Kontext: nutze withOrg()/readOrg() aus @/lib/db/with-org."
+						}
+					}
+				}
 			}
 		}
 	},
+	"overrides": [
+		{
+			"includes": [
+				"lib/db/**",
+				"lib/audit.ts",
+				"lib/compliance/catalog/seed-catalog.ts",
+				"lib/auth/**",
+				"lib/jobs/**",
+				"db/**",
+				"scripts/**",
+				"tests/**",
+				"instrumentation.ts"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": "off"
+					}
+				}
+			}
+		}
+	],
 	"javascript": {
 		"formatter": {
 			"quoteStyle": "double"

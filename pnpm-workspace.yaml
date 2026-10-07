@@ -1,3 +1,14 @@
+# Lieferketten-Härtung (NIS2 Art. 21(2)(e), ISO A.8.8/A.8.25, CC-DEV-05):
+# - minimumReleaseAge: Pakete müssen 7 Tage alt sein, bevor pnpm sie auflöst.
+#   Schützt vor frisch kompromittierten Releases (Shai-Hulud-Klasse).
+# - Lifecycle-Skripte von Dependencies laufen nie (pnpm-10-Default); die
+#   Liste unten unterdrückt nur die Warnungen für bekannte Native-Pakete.
+minimumReleaseAge: 10080
+onlyBuiltDependencies: []
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+  - esbuild
+  - "@tailwindcss/oxide"
+  - "@biomejs/biome"
+  - playwright

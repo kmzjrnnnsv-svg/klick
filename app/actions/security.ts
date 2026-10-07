@@ -1,0 +1,53 @@
+"use server";
+
+import { APIError } from "better-auth/api";
+import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { AuthError, checkSessionRules, getSessionCtx } from "@/lib/auth/guards";
+import { auth } from "@/lib/auth/server";
+import { verifyStepUpCode } from "@/lib/auth/step-up";
+import type { ActionResult } from "@/lib/validation/common";
+
+export async function verifyStepUp(code: string): Promise<ActionResult> {
+	const ctx = await getSessionCtx();
+	if (!ctx) throw new AuthError("unauthenticated");
+	checkSessionRules(ctx);
+	const res = await verifyStepUpCode({
+		userId: ctx.user.id,
+		sessionId: ctx.session.id,
+		code,
+		ip: ctx.ip,
+		userAgent: ctx.userAgent,
+	});
+	if (!res.ok) return { ok: false, error: res.error };
+	revalidatePath("/", "layout");
+	return { ok: true, data: undefined };
+}
+
+export async function revokeSession(token: string): Promise<ActionResult> {
+	const ctx = await getSessionCtx();
+	if (!ctx) throw new AuthError("unauthenticated");
+	checkSessionRules(ctx);
+	try {
+		await auth.api.revokeSession({ body: { token }, headers: await headers() });
+		revalidatePath("/einstellungen");
+		return { ok: true, data: undefined };
+	} catch (e) {
+		if (e instanceof APIError) return { ok: false, error: e.message };
+		throw e;
+	}
+}
+
+export async function revokeOtherSessions(): Promise<ActionResult> {
+	const ctx = await getSessionCtx();
+	if (!ctx) throw new AuthError("unauthenticated");
+	checkSessionRules(ctx);
+	try {
+		await auth.api.revokeOtherSessions({ headers: await headers() });
+		revalidatePath("/einstellungen");
+		return { ok: true, data: undefined };
+	} catch (e) {
+		if (e instanceof APIError) return { ok: false, error: e.message };
+		throw e;
+	}
+}

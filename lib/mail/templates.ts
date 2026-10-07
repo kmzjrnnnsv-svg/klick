@@ -29,7 +29,7 @@ export function magicLinkEmail(input: { url: string; host: string }): {
 		``,
 		url,
 		``,
-		`Der Link ist 24 Stunden gültig und einmalig nutzbar.`,
+		`Der Link ist 15 Minuten gültig und einmalig nutzbar.`,
 		`Wenn du das nicht angefordert hast, ignoriere diese Mail einfach.`,
 		``,
 		`— Maison Klick`,
@@ -79,7 +79,7 @@ export function magicLinkEmail(input: { url: string; host: string }): {
 							</tr>
 						</table>
 						<p style="margin:0;font-size:11px;line-height:1.6;color:${STONE};text-align:center">
-							Der Link ist 24 Stunden gültig und einmalig nutzbar.
+							Der Link ist 15 Minuten gültig und einmalig nutzbar.
 						</p>
 						<hr style="border:0;border-top:1px solid ${BORDER};margin:36px 0">
 						<p style="margin:0;font-size:11px;color:${STONE};line-height:1.6">
@@ -183,4 +183,27 @@ ${preheader ? `<div style="display:none;font-size:1px;color:${CREAM};line-height
 </html>`;
 
 	return { subject, text, html };
+}
+
+// Einladung in eine Organisation (Better Auth organization-Plugin).
+export function invitationEmail(input: {
+	url: string;
+	organization: string;
+	inviter: string;
+	role: string;
+}): { subject: string; text: string; html: string } {
+	const roleLabel: Record<string, string> = {
+		owner: "Inhaber:in",
+		editor: "Bearbeiter:in",
+		viewer: "Lesend",
+		auditor: "Prüfer:in",
+	};
+	return transactionalEmail({
+		subject: `Einladung zu ${input.organization}`,
+		eyebrow: "Einladung",
+		title: `${input.inviter} lädt dich zu ${input.organization} ein.`,
+		body: `Du wirst als <strong>${roleLabel[input.role] ?? input.role}</strong> aufgenommen. Die Einladung ist 48 Stunden gültig. Beim ersten Login richtest du einen zweiten Faktor ein.`,
+		cta: { label: "Einladung annehmen", url: input.url },
+		footnote: "Wenn du diese Einladung nicht erwartest, ignoriere diese Mail.",
+	});
 }
