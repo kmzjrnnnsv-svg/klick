@@ -75,7 +75,9 @@ export const requirementApplicability = pgTable(
 			.references(() => requirements.id, { onDelete: "cascade" }),
 		applicable: boolean().notNull().default(true),
 		note: text(),
-		source: text({ enum: ["services", "lex_specialis", "stage", "manual"] })
+		source: text({
+			enum: ["services", "lex_specialis", "stage", "rule", "manual"],
+		})
 			.notNull()
 			.default("manual"),
 		...timestamps(),

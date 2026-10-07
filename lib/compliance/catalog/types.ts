@@ -1,6 +1,8 @@
 import type {
 	CaspService,
+	ControlTestMethod,
 	Domain,
+	ImplStatus,
 	LegalStatus,
 	LicenceStage,
 	OrgRoleLegal,
@@ -90,6 +92,7 @@ export type CatalogControl = {
 	evidenceHints?: string[];
 	recommendations?: Recommendation[];
 	auditQuestions?: string[];
+	testMethodHint?: ControlTestMethod;
 	templates?: string[];
 	processes?: string[];
 	obligations?: string[];
@@ -102,4 +105,56 @@ export type CatalogControlMapping = {
 	requirement: `${string}:${string}`; // framework:code
 	coverage: "full" | "partial";
 	note?: string;
+};
+
+// Ist-Stand der Plattform (Mandant 0) je Control — eine Quelle für den
+// Baseline-Seed beim Onboarding der Betreiber-Org und für /baseline.
+export type BaselineControl = {
+	code: string;
+	status: ImplStatus;
+	note: string;
+	evidence?: string[];
+};
+
+export type BaselineNarrative = {
+	domain: Domain;
+	title: string;
+	present: string[];
+	gaps: string[];
+	next: string[];
+};
+
+export type BaselineProvider = {
+	name: string;
+	partnerType: "ict" | "outsourcing";
+	serviceType:
+		| "cloud_iaas"
+		| "cloud_paas"
+		| "cloud_saas"
+		| "hosting"
+		| "software"
+		| "security"
+		| "other";
+	serviceDescription: string;
+	criticality: "critical" | "important" | "standard";
+	country: string;
+	dataLocations: string[];
+	isMaterial: boolean;
+	processesPersonalData: boolean;
+};
+
+export type BaselineAsset = {
+	name: string;
+	type: "system" | "application" | "data" | "service" | "device" | "facility";
+	classification: "public" | "internal" | "confidential" | "secret";
+	description: string;
+	provider?: string;
+};
+
+export type CatalogBaseline = {
+	asOf: ISODate;
+	narrative: BaselineNarrative[];
+	controls: BaselineControl[];
+	providers: BaselineProvider[];
+	assets: BaselineAsset[];
 };
