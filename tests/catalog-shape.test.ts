@@ -20,12 +20,58 @@ import { TRAINING_REQUIREMENTS } from "@/lib/compliance/catalog/training-require
 // existierende Anforderung, jede Baseline-Zeile auf ein Control.
 
 describe("catalog shape", () => {
-	it("Rahmenwerke mit Index: ISO 27001, DORA, NIS2", () => {
+	it("Rahmenwerke mit Index: P1 (ISO/DORA/NIS2) + P4 (Finanz-Rahmenwerke)", () => {
 		const slugs = frameworksWithIndex().map((f) => f.slug);
-		expect(slugs).toEqual(expect.arrayContaining(["iso27001", "dora", "nis2"]));
+		expect(slugs).toEqual(
+			expect.arrayContaining([
+				"iso27001",
+				"dora",
+				"nis2",
+				"micar",
+				"zag",
+				"zag-marisk",
+				"gwg",
+				"amlr",
+				"tfr",
+				"sanctions",
+				"dac8",
+				"awv",
+				"kassen",
+			]),
+		);
+		// P5: DSGVO und KWG haben noch keinen Index.
+		expect(slugs).not.toContain("dsgvo");
+		expect(slugs).not.toContain("kwg");
 		const iso = CATALOG_FRAMEWORKS.find((f) => f.slug === "iso27001");
 		expect(iso?.requirements.length).toBe(118);
 		expect(iso?.sections.length).toBe(11);
+		expect(ALL_REQUIREMENTS.length).toBeGreaterThanOrEqual(320);
+		expect(EDGES.length).toBeGreaterThanOrEqual(500);
+	});
+
+	it("Zeitliche Gültigkeit und Rollen sind im Finanz-Katalog gesetzt", () => {
+		const gwg = ALL_REQUIREMENTS.filter((r) => r.framework === "gwg");
+		expect(
+			gwg.filter((r) => r.effectiveUntil === "2027-07-09").length,
+		).toBeGreaterThanOrEqual(8);
+		const amlr = ALL_REQUIREMENTS.filter((r) => r.framework === "amlr");
+		expect(amlr.length).toBeGreaterThan(0);
+		for (const r of amlr) {
+			expect(r.effectiveFrom).toBe("2027-07-10");
+			expect(r.legalStatus).toBe("upcoming");
+		}
+		const repealed = ALL_REQUIREMENTS.filter(
+			(r) => r.legalStatus === "repealed",
+		).map((r) => `${r.framework}:${r.code}`);
+		expect(repealed).toEqual(
+			expect.arrayContaining(["zag-marisk:ZAIT", "zag-marisk:BAIT"]),
+		);
+		const issuer = ALL_REQUIREMENTS.filter(
+			(r) => r.framework === "micar" && r.appliesToRoles?.includes("issuer"),
+		);
+		expect(issuer.length).toBeGreaterThanOrEqual(4);
+		const custody = REQUIREMENT_BY_KEY.get("micar:Art.75");
+		expect(custody?.services).toEqual(["custody"]);
 	});
 
 	it("Codes sind je Rahmenwerk eindeutig, Sections aufgelöst, Domänen gültig", () => {
