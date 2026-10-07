@@ -6,6 +6,7 @@ import { decryptBytes, unpackEnvelope, unwrapDek } from "@/lib/crypto/envelope";
 import { mutateOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { evidenceAad } from "@/lib/evidence/aad";
+import { rateLimited } from "@/lib/export/respond";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export async function GET(
 	}
 	if (!/^[0-9a-f-]{36}$/i.test(id))
 		return new NextResponse(null, { status: 404 });
+	const limited = rateLimited(ctx.orgId);
+	if (limited) return limited;
 
 	const e = env();
 	if (!(e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY)) {

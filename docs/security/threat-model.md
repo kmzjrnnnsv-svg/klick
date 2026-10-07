@@ -27,15 +27,19 @@ A6 böswilliger Plattform-Admin · A7 Netzwerk-Mittelsmann.
 | Information Disclosure | Fremde Org liest Daten (A2) | Postgres RLS + FORCE auf jeder Org-Tabelle, Kontext transaktionslokal, App-Rolle ohne BYPASSRLS, 404 statt 403, Biome verbietet `globalDb` im Fachcode, Isolationstests | `db/rls.ts`, `lib/db/with-org.ts`, `tests/rls.integration.test.ts` |
 | Information Disclosure | DB-Dump (A5) | Per-Org-DEK (XChaCha20-Poly1305) für Nachweise; Feldverschlüsselung sensibler Spalten; KEK außerhalb der DB (systemd-Credentials) | `lib/crypto/*` |
 | Information Disclosure | Logs/Fehlerseiten leaken Daten | pino-Redaction (Token, URL, Cookie, E-Mail), keine Payloads; generische Fehlerseiten | `lib/log.ts` |
-| Information Disclosure | XSS / Clickjacking | CSP (P1: Nonce), `frame-ancestors 'none'`, kein HTML in Markdown, keine externen Skripte | `next.config.ts`, `components/markdown-view.tsx` |
+| Information Disclosure | XSS / Clickjacking | Nonce-CSP je Request (`strict-dynamic`), `frame-ancestors 'none'`, kein HTML in Markdown, keine externen Skripte | `proxy.ts`, `next.config.ts`, `components/markdown-view.tsx` |
 | Information Disclosure | Plattform-Admin greift unbemerkt auf Mandanten zu (A6) | `withPlatform(reason)` — jeder Zugriff mit Begründung im Audit, IP-Allowlist, Impersonation 30 min mit Banner | `lib/db/with-org.ts`, `lib/auth/guards.ts` |
-| Denial of Service | Flooding, große Uploads | nginx Rate-Limit-Zonen, `client_max_body_size 26m`, Upload-Limit 25 MB, Health ohne Limit; Hetzner-Firewall | `deploy/nginx`, `lib/uploads/validate.ts` |
+| Denial of Service | Flooding, große Uploads, Noisy Neighbour | nginx Rate-Limit-Zonen je IP, Rate-Limit je Organisation für Exporte/Downloads/Uploads (`ORG_RATE_LIMIT_PER_MIN`), `client_max_body_size 26m`, Upload-Limit 25 MB, Health ohne Limit; Hetzner-Firewall, CrowdSec (Runbook) | `deploy/nginx`, `lib/rate-limit.ts`, `lib/uploads/validate.ts` |
 | Elevation of Privilege | Rolle hochstufen, Mitglied werden | Berechtigungen serverseitig je Action (Access Control), Einladungen E-Mail-gebunden 48 h, ein User = eine Org, Entfernen widerruft Sessions | `lib/auth/permissions.ts`, `organizationHooks` |
 | Elevation of Privilege | Prozess-Kompromittierung (A1 → RCE) | systemd-Sandbox (ProtectSystem=strict, SystemCallFilter, keine Capabilities), dedizierter User, read-only Code | `deploy/systemd/klick.service` |
-| Malicious upload | Schadcode in Nachweisen | MIME-Allowlist, Magic-Bytes, Auslieferung als Attachment, SVG nie inline, ClamAV (P5) | `lib/uploads/validate.ts` |
+| Malicious upload | Schadcode in Nachweisen | MIME-Allowlist, Magic-Bytes, Auslieferung als Attachment, SVG nie inline, optional clamd-Scan fail closed (`CLAMD_HOST`), Treffer als `denied` im Audit | `lib/uploads/validate.ts`, `lib/uploads/clamav.ts` |
+| Information Disclosure | Fehler-Tracking leakt PII | GlitchTip über Store-API ohne SDK, Scrubbing von E-Mails, Tokens, Query-Strings, Cookies; nie Bodies | `lib/observability/glitchtip.ts` |
+| Information Disclosure | Schlüsselkompromittierung (KEK) | KEK-Rotation ohne Re-Encrypt der Nutzdaten (`pnpm kek:rotate`), Versionen im Envelope; Org-Löschung = Crypto-Shredding des DEK | `lib/crypto/rotate.ts`, `scripts/rotate-kek.ts` |
 
-## Bekannte Lücken (offen, mit Phase)
-- CSP `'unsafe-inline'` für Skripte bis zum Nonce in P1.
-- Kein KMS/HSM auf Hetzner → `LocalKms` + systemd-Credentials bis Lizenzstufe 2.
-- Playwright-E2E (URL-Tampering, Vier-Augen) ab P4; bis dahin manuelle Prüfung nach Verifikationsliste.
-- ClamAV, CrowdSec, Rate-Limits je Org in P5.
+## Bekannte Lücken (offen)
+- Style-CSP bleibt `'unsafe-inline'` (Tailwind/RSC-Inline-Styles); Skripte laufen mit Nonce.
+- Kein KMS/HSM auf Hetzner → `LocalKms` + systemd-Credentials bis Lizenzstufe 2 (Interface steht).
+- Playwright deckt Header, Redirects, Login und öffentliche Seiten ab; URL-Tampering und Vier-Augen-Flows laufen als RLS-/Unit-Tests, nicht im Browser.
+- Rate-Limit je Org lebt im Prozessspeicher (ein Server); bei mehreren Instanzen auf nginx/Redis verlagern.
+- clamd, CrowdSec und GlitchTip sind optional konfiguriert (Env/Runbook) und müssen auf dem Server installiert werden.
+- Externer Pentest vor Go-Live steht aus (`/testprogramm`).

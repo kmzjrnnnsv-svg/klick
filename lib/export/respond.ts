@@ -8,14 +8,29 @@ import {
 } from "@/lib/auth/guards";
 import { toCsv } from "@/lib/csv";
 import { mutateOrg } from "@/lib/db/with-org";
+import { getOrgLimiter } from "@/lib/rate-limit";
 
 // Exporte unter /api/export/*: Guard (export:create), Datei als Attachment,
 // jeder Export als Audit-Eintrag mit Zeilenzahl (Alarmierung > 1 000 Zeilen
 // läuft über den Audit-Log; vgl. Härtung „Export > 1 000 Zeilen").
 
+// Org-Rate-Limit (Noisy Neighbour) für die teuren Pfade: 429 mit Retry-After.
+export function rateLimited(orgId: string): NextResponse | null {
+	const d = getOrgLimiter().check(orgId);
+	if (d.allowed) return null;
+	return new NextResponse("Zu viele Anfragen für diese Organisation", {
+		status: 429,
+		headers: {
+			"Retry-After": String(Math.max(1, Math.ceil(d.retryAfterMs / 1000))),
+			"Cache-Control": "no-store",
+		},
+	});
+}
+
 export async function exportGuard(): Promise<OrgContext | NextResponse> {
 	try {
-		return await requireOrg({ export: ["create"] });
+		const ctx = await requireOrg({ export: ["create"] });
+		return rateLimited(ctx.orgId) ?? ctx;
 	} catch (e) {
 		if (e instanceof AuthError)
 			return new NextResponse(null, {
@@ -31,7 +46,8 @@ export async function exportStepUpGuard(
 	req: Request,
 ): Promise<OrgContext | NextResponse> {
 	try {
-		return await requireStepUp({ export: ["create"] });
+		const ctx = await requireStepUp({ export: ["create"] });
+		return rateLimited(ctx.orgId) ?? ctx;
 	} catch (e) {
 		if (e instanceof AuthError) {
 			if (e.code === "step_up_required") {

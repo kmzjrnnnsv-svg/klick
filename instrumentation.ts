@@ -11,6 +11,8 @@ export async function register() {
 	await startScheduler();
 }
 
+// Request-Fehler: strukturiert loggen und — wenn GLITCHTIP_DSN gesetzt ist —
+// gescrubbt an GlitchTip melden (lib/observability/glitchtip.ts, kein SDK).
 export const onRequestError: Instrumentation.onRequestError = async (
 	err,
 	request,
@@ -29,4 +31,13 @@ export const onRequestError: Instrumentation.onRequestError = async (
 		},
 		"request error",
 	);
+	// Erwartete Auth-Umleitungen sind kein Fehler für das Tracking.
+	if (e.name === "AuthError") return;
+	const { captureException } = await import("@/lib/observability/glitchtip");
+	await captureException(e, {
+		path: request.path,
+		method: request.method,
+		routeType: context.routeType,
+		routePath: context.routePath,
+	});
 };

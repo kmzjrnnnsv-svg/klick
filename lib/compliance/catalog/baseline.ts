@@ -18,13 +18,10 @@ export const BASELINE: CatalogBaseline = {
 				"Plattform-Admin mit IP-Allowlist, jeder Plattform-Zugriff mit Begründung im Audit-Log",
 				"Mandantentrennung in Postgres (RLS + FORCE auf jeder Org-Tabelle), App-Rolle ohne BYPASSRLS",
 			],
-			gaps: [
-				"Kein dediziertes PAM für Server-Zugänge (SSH nur Key-basiert)",
-				"Rezertifizierung von Zugriffsrechten noch manuell",
-			],
+			gaps: ["Kein dediziertes PAM für Server-Zugänge (SSH nur Key-basiert)"],
 			next: [
-				"Quartalsweiser Access-Review-Task (P3)",
-				"Sitzungsliste mit Geräte-/Ortsanzeige, Login-Benachrichtigung (P1)",
+				"SSO je Organisation (OIDC, DNS-verifiziert) für Kunden ausrollen",
+				"Passkey als Pflichtfaktor für Plattform-Admins erzwingen",
 			],
 		},
 		{
@@ -39,29 +36,24 @@ export const BASELINE: CatalogBaseline = {
 				"KEK liegt als systemd-Credential, nicht in einem KMS/HSM",
 				"Datenbank-Volume nicht separat verschlüsselt (Hetzner-Volume-Verschlüsselung ausstehend)",
 			],
-			next: [
-				"KEK-Rotationsskript (P5)",
-				"KMS/HSM spätestens mit Lizenzstufe 2",
-			],
+			next: ["KMS/HSM spätestens mit Lizenzstufe 2 (Kms-Interface steht)"],
 		},
 		{
 			domain: "operations",
 			title: "Betrieb, Protokollierung, Überwachung",
 			present: [
 				"Append-only Audit-Log mit SHA-256-Hash-Kette je Org, tägliche Kettenprüfung mit Alarm",
-				"Strukturiertes Logging (pino) mit Redaction von Tokens, URLs, PII",
+				"Strukturiertes Logging (pino) mit Redaction von Tokens, URLs, PII; Fehler-Tracking nach GlitchTip gescrubbt (ohne SDK)",
+				"KEK-Rotation ohne Re-Encrypt (pnpm kek:rotate), Rate-Limit je Organisation, optionaler clamd-Scan fail closed",
 				"systemd-Sandbox (ProtectSystem=strict, NoNewPrivileges, SystemCallFilter), Secrets über LoadCredentialEncrypted",
 				"Health-/Ready-Endpunkte, chrony, unattended-upgrades",
 			],
 			gaps: [
-				"Kein SIEM/SOC; Alarme nur für Kettenbruch und MFA-Lockout",
-				"Kein externer Uptime-Check, kein Error-Tracking (GlitchTip P5)",
+				"Kein SIEM/SOC; Alarme für Kettenbruch, MFA-Lockout, neues Gerät",
+				"Kein externer Uptime-Check; GlitchTip-Instanz muss auf dem Server installiert werden",
 				"Keine CIS-Baseline-Prüfung der Server",
 			],
-			next: [
-				"Alarmregeln (Login neues Land, Export > 1 000 Zeilen) (P2)",
-				"GlitchTip (P5)",
-			],
+			next: ["Externer Uptime-Check", "CrowdSec nach Runbook ausrollen"],
 		},
 		{
 			domain: "development",
@@ -73,14 +65,10 @@ export const BASELINE: CatalogBaseline = {
 				"Getrennte Datenbanken für Entwicklung, Test und Produktion",
 			],
 			gaps: [
-				"Kein DAST in CI (ZAP-Baseline P1)",
 				"Kein externer Pentest",
 				"Change-Management informell (PR + CI, kein Freigabeworkflow)",
 			],
-			next: [
-				"ZAP-Baseline (P1)",
-				"Externer Pentest vor Go-Live (Testprogramm)",
-			],
+			next: ["Externer Pentest vor Go-Live (Testprogramm)"],
 		},
 		{
 			domain: "network",
@@ -90,8 +78,11 @@ export const BASELINE: CatalogBaseline = {
 				"Postgres nur über localhost",
 				"Vollständiger Security-Header-Satz (CSP, HSTS, COOP/CORP, Permissions-Policy, X-Frame-Options)",
 			],
-			gaps: ["CSP mit 'unsafe-inline' bis Nonce (P1)", "Kein CDN/DDoS-Schutz"],
-			next: ["Nonce-CSP (P1)", "CrowdSec (P5)"],
+			gaps: [
+				"Style-CSP mit 'unsafe-inline' (Tailwind/RSC)",
+				"Kein CDN/DDoS-Schutz",
+			],
+			next: ["CrowdSec mit nftables-Bouncer (Runbook in deploy/README.md)"],
 		},
 		{
 			domain: "continuity",
@@ -100,14 +91,8 @@ export const BASELINE: CatalogBaseline = {
 				"Tägliche pg_dump-Backups, age-verschlüsselt, Offsite via rclone, 30 Tage",
 				"Restore-Skript vorhanden",
 			],
-			gaps: [
-				"Restore noch nicht als wiederkehrender Test mit Nachweis",
-				"Single-Server: keine Redundanz, kein Failover",
-			],
-			next: [
-				"Restore-Test quartalsweise als Pflicht-Lauf (P3)",
-				"Replikation prüfen (Stufe 2)",
-			],
+			gaps: ["Single-Server: keine Redundanz, kein Failover"],
+			next: ["Replikation prüfen (Stufe 2)"],
 		},
 		{
 			domain: "governance",
@@ -117,13 +102,12 @@ export const BASELINE: CatalogBaseline = {
 				"Kommunikationskanal für Sicherheitsmeldungen (security.txt, SECURITY.md)",
 			],
 			gaps: [
-				"Keine freigegebene Leitlinie, keine Themenrichtlinien",
+				"Leitlinie und Themenrichtlinien aus den Vorlagen noch nicht freigegeben",
 				"Pflichtfunktionen nicht formal besetzt (Solo-Betrieb)",
-				"Kein Risikoregister, kein Auditprogramm, keine Managementbewertung",
 			],
 			next: [
-				"Dokument-Vorlagen übernehmen und freigeben (P2)",
-				"Rollenregister, Beschlüsse, Managementbewertung (P3)",
+				"Vorlagen übernehmen, freigeben, Kenntnisnahme einholen",
+				"Rollenregister besetzen, erste Managementbewertung durchführen",
 			],
 		},
 		{
@@ -131,11 +115,14 @@ export const BASELINE: CatalogBaseline = {
 			title: "Dienstleister",
 			present: [
 				"Hetzner (Hosting), Brevo/Resend (Mail), GitHub (Code) als Seed im Register",
+				"Lieferantenpaket der Plattform mit Art.-30-Zusagen, Registerdatenblatt und Subunternehmern unter /vertrauen",
 			],
 			gaps: [
-				"Keine Due-Diligence-Akten, keine Art.-30-Klausel-Checkliste, kein Exit-Plan",
+				"Due-Diligence-Akten und Exit-Plan je Dienstleister noch nicht hinterlegt",
 			],
-			next: ["Dienstleister-Register vervollständigen (P2)"],
+			next: [
+				"Dienstleister-Register vervollständigen, Ausstiegsplan aus Vorlage freigeben",
+			],
 		},
 	],
 	controls: [
@@ -199,9 +186,13 @@ export const BASELINE: CatalogBaseline = {
 		},
 		{
 			code: "CC-CRY-03",
-			status: "in_progress",
-			note: "keyVersion und Kms-Interface vorhanden; KEK als systemd-Credential statt KMS.",
-			evidence: ["lib/crypto/kms.ts"],
+			status: "implemented",
+			note: "keyVersion im Envelope, Kms-Interface, KEK-Rotation per Skript ohne Re-Encrypt; KEK als systemd-Credential.",
+			evidence: [
+				"lib/crypto/kms.ts",
+				"lib/crypto/rotate.ts",
+				"scripts/rotate-kek.ts",
+			],
 		},
 		{
 			code: "CC-CRY-04",
@@ -257,8 +248,9 @@ export const BASELINE: CatalogBaseline = {
 		},
 		{
 			code: "CC-LOG-02",
-			status: "planned",
-			note: "Nur Kettenbruch- und Lockout-Alarme; weitere Alarmregeln P2.",
+			status: "in_progress",
+			note: "Alarme für Kettenbruch, Lockout, neues Gerät; Fehler-Tracking nach GlitchTip gescrubbt. Kein SIEM.",
+			evidence: ["lib/observability/glitchtip.ts", "instrumentation.ts"],
 		},
 		{
 			code: "CC-LOG-03",
@@ -298,8 +290,9 @@ export const BASELINE: CatalogBaseline = {
 		},
 		{
 			code: "CC-DEV-04",
-			status: "planned",
-			note: "ZAP-Baseline (P1), externer Pentest vor Go-Live.",
+			status: "in_progress",
+			note: "ZAP-Baseline in CI; externer Pentest vor Go-Live offen.",
+			evidence: [".github/workflows/zap-baseline.yml"],
 		},
 		{
 			code: "CC-DEV-05",
@@ -345,7 +338,7 @@ export const BASELINE: CatalogBaseline = {
 		{
 			code: "CC-RSK-02",
 			status: "in_progress",
-			note: "Threat Model als erster Risikoblick; Register folgt (P2).",
+			note: "Threat Model und Risikoregister vorhanden; Bewertung der Plattform-Risiken im Register steht aus.",
 		},
 		{
 			code: "CC-AST-01",
@@ -354,8 +347,9 @@ export const BASELINE: CatalogBaseline = {
 		},
 		{
 			code: "CC-AST-10",
-			status: "planned",
-			note: "Retention-Job (P4); Audit-Log und GwG-Aufzeichnungen ausgenommen.",
+			status: "implemented",
+			note: "Retention-Job täglich; Audit-Log und GwG-Aufzeichnungen ausgenommen; Org-Löschung mit Crypto-Shredding und Löschbestätigung.",
+			evidence: ["lib/jobs/retention.ts", "app/actions/settings.ts"],
 		},
 		{
 			code: "CC-TPR-01",
@@ -365,17 +359,26 @@ export const BASELINE: CatalogBaseline = {
 		{
 			code: "CC-CMP-01",
 			status: "in_progress",
-			note: "Datenschutzerklärung im CMS; VVT und DSFA (P5).",
+			note: "Datenschutzerklärung im CMS, VVT-Startliste, Betroffenenanfragen mit Monatsfrist, vollständiger Export; DSFA für die Plattform selbst offen.",
+			evidence: [
+				"lib/compliance/catalog/processing-activities.ts",
+				"app/api/export/organisation.zip/route.ts",
+			],
 		},
 		{
 			code: "CC-INC-01",
-			status: "planned",
-			note: "Vorfallregister kommt mit /vorfaelle (P2).",
+			status: "implemented",
+			note: "Vorfallregister mit Klassifizierung je Regime; Meldezusage ≤ 24 h an Kunden unter /vertrauen.",
+			evidence: [
+				"app/(app)/vorfaelle",
+				"lib/compliance/catalog/platform-supplier.ts",
+			],
 		},
 		{
 			code: "CC-INC-03",
-			status: "planned",
-			note: "Fristenuhren je Regime kommen mit /vorfaelle (P2).",
+			status: "implemented",
+			note: "Fristenuhren DORA/NIS2/DSGVO ab Kenntnis bzw. Abgabe des Vorberichts.",
+			evidence: ["lib/compliance/incident.ts"],
 		},
 	],
 	providers: [
