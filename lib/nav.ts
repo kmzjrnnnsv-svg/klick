@@ -238,7 +238,6 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "privacy",
 					href: "/datenschutz",
 					icon: "lock",
-					phase: "P5",
 				},
 			],
 		},

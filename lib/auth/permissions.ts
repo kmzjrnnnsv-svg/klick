@@ -50,6 +50,7 @@ export const statements = {
 	own_funds: ["read", "create", "update", "approve"],
 	crypto_asset: ["read", "create", "update"],
 	shareholder: ["read", "create", "update"],
+	privacy: ["read", "create", "update"],
 } as const;
 
 export const ac = createAccessControl(statements);
@@ -82,6 +83,7 @@ const readAll = {
 	own_funds: ["read"],
 	crypto_asset: ["read"],
 	shareholder: ["read"],
+	privacy: ["read"],
 } as const;
 
 export const viewer = ac.newRole({
@@ -127,6 +129,7 @@ export const editor = ac.newRole({
 	own_funds: ["read", "create", "update"],
 	crypto_asset: ["read", "create", "update"],
 	shareholder: ["read", "create", "update"],
+	privacy: ["read", "create", "update"],
 });
 
 export const owner = ac.newRole({
@@ -160,6 +163,7 @@ export const owner = ac.newRole({
 	own_funds: ["read", "create", "update", "approve"],
 	crypto_asset: ["read", "create", "update"],
 	shareholder: ["read", "create", "update"],
+	privacy: ["read", "create", "update"],
 });
 
 // Better Auth erwartet die Rolle "admin" in der Role-Map nicht zwingend;

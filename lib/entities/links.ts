@@ -68,6 +68,12 @@ export function entityHref(
 			return "/organisation?tab=gesellschafter";
 		case "milestone":
 			return "/roadmap";
+		case "processing_activity":
+			return "/datenschutz";
+		case "data_subject_request":
+			return "/datenschutz?tab=anfragen";
+		case "insurance_policy":
+			return "/organisation?tab=versicherungen";
 		default:
 			return "/heute";
 	}

@@ -26,6 +26,8 @@ const empty: DueRows = {
 	tlpt: null,
 	regulatorDeadlines: [],
 	accessExpiring: [],
+	dataSubjectRequests: [],
+	insurancePolicies: [],
 	openTasks: [],
 };
 
@@ -508,5 +510,78 @@ describe("collectDueItems — Pflichten, Rechtsänderungen, Abweichungen, TLPT, 
 			["security_alert", "Zugang abgelaufen: Prüferin"],
 			["system", "Zugang läuft ab: Prüfer"],
 		]);
+	});
+
+	it("Betroffenenanfrage: fällig in 7 Tagen und überfällig, Verlängerung verschiebt", () => {
+		const now = new Date("2026-10-07T08:00:00Z");
+		const res = collectDueItems(now, {
+			...empty,
+			dataSubjectRequests: [
+				{
+					id: "d1",
+					type: "auskunft",
+					dueAt: new Date("2026-10-10T08:00:00Z"),
+					extendedUntil: null,
+					status: "open",
+					ownerUserId: "u1",
+				},
+				{
+					id: "d2",
+					type: "loeschung",
+					dueAt: new Date("2026-10-01T08:00:00Z"),
+					extendedUntil: new Date("2026-12-01T08:00:00Z"),
+					status: "in_progress",
+					ownerUserId: null,
+				},
+				{
+					id: "d3",
+					type: "auskunft",
+					dueAt: new Date("2026-09-01T08:00:00Z"),
+					extendedUntil: null,
+					status: "done",
+					ownerUserId: null,
+				},
+			],
+		});
+		const dsr = res.notifications.filter((n) => n.dedupeKey.startsWith("dsr:"));
+		expect(dsr).toHaveLength(1);
+		expect(dsr[0]?.recipients).toEqual(["u1"]);
+		expect(dsr[0]?.link).toBe("/datenschutz?tab=anfragen");
+	});
+
+	it("Versicherung: 60 Tage vor Ablauf und abgelaufen, sonst still", () => {
+		const now = new Date("2026-10-07T08:00:00Z");
+		const res = collectDueItems(now, {
+			...empty,
+			insurancePolicies: [
+				{
+					id: "i1",
+					type: "cyber",
+					insurer: "A",
+					validUntil: "2026-11-20",
+					ownerUserId: "u1",
+				},
+				{
+					id: "i2",
+					type: "do",
+					insurer: "B",
+					validUntil: "2026-09-30",
+					ownerUserId: null,
+				},
+				{
+					id: "i3",
+					type: "crime",
+					insurer: "C",
+					validUntil: "2027-06-30",
+					ownerUserId: null,
+				},
+			],
+		});
+		const ins = res.notifications.filter((n) =>
+			n.dedupeKey.startsWith("insurance:"),
+		);
+		expect(ins.map((n) => n.dedupeKey.split(":")[1])).toEqual(["i1", "i2"]);
+		expect(ins[1]?.title).toContain("abgelaufen");
+		expect(ins[1]?.recipients).toEqual([...empty.orgOwnerIds]);
 	});
 });

@@ -7,6 +7,7 @@ import {
 	deleteInterestedParty,
 	deleteRoleAssignment,
 } from "@/app/actions/organisation";
+import { deleteInsurancePolicy } from "@/app/actions/privacy";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { ShareholderForm } from "@/components/casp/shareholder-form";
 import { UrlTabs } from "@/components/entity/url-tabs";
@@ -28,6 +29,7 @@ import {
 	ScopeForm,
 } from "@/components/organisation/roles-forms";
 import { PageHeader } from "@/components/page-header";
+import { InsuranceForm } from "@/components/privacy/privacy-forms";
 import { Badge } from "@/components/ui/badge";
 import {
 	Table,
@@ -48,6 +50,7 @@ import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate, shortFrameworkName } from "@/lib/compliance/page-data";
+import { insuranceState } from "@/lib/compliance/privacy";
 import {
 	getOrgProfile,
 	listMembersForPicker,
@@ -64,6 +67,7 @@ import {
 	listScopes,
 } from "@/lib/compliance/queries-p3";
 import { listShareholders } from "@/lib/compliance/queries-p4";
+import { listInsurancePolicies } from "@/lib/compliance/queries-p5";
 import {
 	inhaberkontrolleDeadline,
 	shareholderGaps,
@@ -85,6 +89,7 @@ const TABS = [
 	"aufsicht",
 	"konflikte",
 	"gesellschafter",
+	"versicherungen",
 ] as const;
 
 export default async function OrganisationPage({
@@ -104,6 +109,7 @@ export default async function OrganisationPage({
 	const canRoles = roleAllows(ctx.orgRole, { role_assignment: ["update"] });
 	const canShareholders = roleAllows(ctx.orgRole, { shareholder: ["update"] });
 	const tsh = await getTranslations("Shareholders");
+	const tin = await getTranslations("Insurance");
 	const memberCount = (await listOrgMembers(ctx.orgId)).length;
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
@@ -176,6 +182,11 @@ export default async function OrganisationPage({
 					: shareholders.map(() => null);
 				return { ...base, shareholders, ubo };
 			}
+			case "versicherungen":
+				return {
+					...base,
+					policies: await listInsurancePolicies(tx, ctx.orgId),
+				};
 		}
 	});
 	const { members, orgFws, gov } = data;
@@ -213,7 +224,10 @@ export default async function OrganisationPage({
 					{ value: "aufsicht", label: t("tabRegulators") },
 					{ value: "konflikte", label: t("tabConflicts") },
 					...(data.fws.some((f) => ["micar", "zag", "kwg"].includes(f))
-						? [{ value: "gesellschafter", label: t("tabShareholders") }]
+						? [
+								{ value: "gesellschafter", label: t("tabShareholders") },
+								{ value: "versicherungen", label: t("tabInsurance") },
+							]
 						: []),
 				]}
 			/>
@@ -1354,6 +1368,132 @@ export default async function OrganisationPage({
 							</>
 						);
 					})()}
+				</section>
+			)}
+
+			{"policies" in data && (
+				<section className="flex flex-col gap-4">
+					<div className="flex items-start justify-between gap-3">
+						<p className="text-muted-foreground text-sm">{tin("lead")}</p>
+						{canEdit && <InsuranceForm members={members} />}
+					</div>
+					{data.policies.length === 0 ? (
+						<p className="text-sm">{tin("empty")}</p>
+					) : (
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead className="w-36">{tin("type")}</TableHead>
+									<TableHead>{tin("insurer")}</TableHead>
+									<TableHead className="w-36 text-right">
+										{tin("coverageLimit")}
+									</TableHead>
+									<TableHead className="w-56">{tin("subLimits")}</TableHead>
+									<TableHead className="w-40">{tin("validity")}</TableHead>
+									<TableHead className="w-36">{tin("owner")}</TableHead>
+									<TableHead className="w-24">{tin("actions")}</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{data.policies.map((p) => {
+									const state = insuranceState(p.validUntil, new Date());
+									return (
+										<TableRow key={p.id}>
+											<TableCell>
+												<Badge variant="outline">{tin(`type_${p.type}`)}</Badge>
+											</TableCell>
+											<TableCell>
+												<p className="font-medium">{p.insurer}</p>
+												{p.policyRef && (
+													<p className="font-mono text-muted-foreground text-xs">
+														{p.policyRef}
+													</p>
+												)}
+												{p.exclusions && (
+													<p className="line-clamp-2 text-muted-foreground text-xs">
+														{tin("exclusions")}: {p.exclusions}
+													</p>
+												)}
+											</TableCell>
+											<TableCell className="text-right">
+												{p.coverageLimit
+													? new Intl.NumberFormat("de-DE", {
+															style: "currency",
+															currency: "EUR",
+															maximumFractionDigits: 0,
+														}).format(Number(p.coverageLimit))
+													: "—"}
+											</TableCell>
+											<TableCell className="text-xs">
+												{Object.entries(p.subLimits ?? {})
+													.map(
+														([k, v]) =>
+															`${k}: ${new Intl.NumberFormat("de-DE").format(v)} €`,
+													)
+													.join(" · ") || "—"}
+											</TableCell>
+											<TableCell>
+												<Badge
+													variant={
+														state === "expired"
+															? "destructive"
+															: state === "expiring"
+																? "warning"
+																: state === "active"
+																	? "success"
+																	: "muted"
+													}
+												>
+													{tin(`state_${state}`)}
+												</Badge>
+												{p.validUntil && (
+													<p className="text-[0.65rem] text-muted-foreground">
+														{tin("until")}{" "}
+														{fmtDate.format(
+															new Date(`${p.validUntil}T00:00:00Z`),
+														)}
+													</p>
+												)}
+											</TableCell>
+											<TableCell>
+												<UserChip name={p.ownerName} />
+											</TableCell>
+											<TableCell>
+												{canEdit && (
+													<div className="flex items-center gap-1">
+														<InsuranceForm
+															members={members}
+															initial={{
+																id: p.id,
+																type: p.type,
+																insurer: p.insurer,
+																policyRef: p.policyRef,
+																coverageLimit: p.coverageLimit ?? "",
+																subLimits: Object.entries(p.subLimits ?? {})
+																	.map(([k, v]) => `${k}=${v}`)
+																	.join("; "),
+																exclusions: p.exclusions,
+																validFrom: p.validFrom,
+																validUntil: p.validUntil,
+																premium: p.premium ?? "",
+																ownerUserId: p.ownerUserId,
+															}}
+														/>
+														<DeleteRowButton
+															id={p.id}
+															action={deleteInsurancePolicy}
+															label={tin("delete")}
+														/>
+													</div>
+												)}
+											</TableCell>
+										</TableRow>
+									);
+								})}
+							</TableBody>
+						</Table>
+					)}
+					<p className="text-muted-foreground text-xs">{tin("hint")}</p>
 				</section>
 			)}
 		</>
