@@ -87,7 +87,7 @@ export type NavItem = {
 	label?: string;
 	href: string;
 	icon: NavIcon;
-	phase?: "P1" | "P2" | "P3" | "P4" | "P5";
+	phase?: "P2" | "P3" | "P4" | "P5";
 	count?: number;
 };
 
@@ -161,21 +161,18 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "controls",
 					href: "/controls",
 					icon: "shield-check",
-					phase: "P1",
 				},
 				{
 					key: "synergies",
 					labelKey: "synergies",
 					href: "/synergien",
 					icon: "git-merge",
-					phase: "P1",
 				},
 				{
 					key: "evidence",
 					labelKey: "evidence",
 					href: "/nachweise",
 					icon: "file-check",
-					phase: "P1",
 				},
 			],
 		},
@@ -361,14 +358,12 @@ export function buildNav(input: NavInput): NavGroup[] {
 				label: f.name,
 				href: `/rahmenwerke/${f.slug}`,
 				icon: "book-open" as const,
-				phase: "P1" as const,
 			})),
 			{
 				key: "baseline",
 				labelKey: "baseline",
 				href: "/baseline",
 				icon: "shield-check",
-				phase: "P1",
 			},
 		],
 	});
