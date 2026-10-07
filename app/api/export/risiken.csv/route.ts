@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { listRisks } from "@/lib/compliance/queries-p2";
-import { assessRisk, DEFAULT_RISK_APPETITE } from "@/lib/compliance/risk";
+import { DEFAULT_RISK_APPETITE } from "@/lib/compliance/risk";
 import { readOrg } from "@/lib/db/with-org";
+import { buildRiskRows, RISK_HEADER } from "@/lib/export/builders";
 import {
 	auditExport,
 	csvResponse,
@@ -23,48 +24,7 @@ export async function GET() {
 			(await getOrgSettings(tx, ctx.orgId))?.riskAppetite ??
 			DEFAULT_RISK_APPETITE,
 	}));
-	const out = rows.map((r) => {
-		const a = assessRisk(r, appetite);
-		return [
-			r.code,
-			r.title,
-			r.category,
-			r.status,
-			r.likelihood,
-			r.impact,
-			a.inherent.score,
-			a.inherent.band,
-			r.treatment ?? "",
-			r.residualLikelihood ?? "",
-			r.residualImpact ?? "",
-			a.residual?.score ?? "",
-			a.aboveAppetite ? "ja" : "nein",
-			r.names.ownerUserId ?? "",
-			r.reviewAt ?? "",
-			r.description ?? "",
-		];
-	});
+	const out = buildRiskRows(rows, appetite);
 	await auditExport(ctx, "risks_csv", out.length);
-	return csvResponse(
-		`risiken-${stamp()}.csv`,
-		[
-			"code",
-			"titel",
-			"kategorie",
-			"status",
-			"eintrittswahrscheinlichkeit",
-			"auswirkung",
-			"score",
-			"band",
-			"behandlung",
-			"rest_eintrittswahrscheinlichkeit",
-			"rest_auswirkung",
-			"rest_score",
-			"ueber_appetit",
-			"verantwortlich",
-			"review",
-			"beschreibung",
-		],
-		out,
-	);
+	return csvResponse(`risiken-${stamp()}.csv`, RISK_HEADER, out);
 }

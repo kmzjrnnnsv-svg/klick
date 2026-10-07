@@ -274,3 +274,29 @@ export const passkeyRelations = relations(passkey, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// SSO-Provider je Organisation (@better-auth/sso). Der Adapter liest diese
+// Tabelle beim Login ohne Org-Kontext (Domain-Match) — deshalb, wie member und
+// invitation, ohne RLS; Fachcode filtert explizit (lib/auth/org.ts).
+export const ssoProvider = pgTable(
+  "sso_provider",
+  {
+    id: uuid("id")
+      .default(sql`pg_catalog.gen_random_uuid()`)
+      .primaryKey(),
+    issuer: text("issuer").notNull(),
+    oidcConfig: text("oidc_config"),
+    samlConfig: text("saml_config"),
+    userId: uuid("user_id").references(() => user.id, { onDelete: "cascade" }),
+    providerId: text("provider_id").notNull().unique(),
+    organizationId: uuid("organization_id").references(() => organization.id, {
+      onDelete: "cascade",
+    }),
+    domain: text("domain").notNull(),
+    domainVerified: boolean("domain_verified").default(false),
+  },
+  (table) => [
+    index("sso_provider_organizationId_idx").on(table.organizationId),
+    index("sso_provider_domain_idx").on(table.domain),
+  ],
+);

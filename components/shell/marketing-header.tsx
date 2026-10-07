@@ -10,6 +10,7 @@ export async function MarketingHeader({
 	showLogin?: boolean;
 }) {
 	const t = await getTranslations("Common");
+	const tf = await getTranslations("Footer");
 	return (
 		<header className="sticky top-0 z-30 w-full border-border/60 border-b bg-background/85 backdrop-blur">
 			<div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
@@ -19,6 +20,20 @@ export async function MarketingHeader({
 				>
 					{t("productName")}
 				</Link>
+				<nav className="hidden items-center gap-6 sm:flex">
+					<Link
+						href="/preise"
+						className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
+					>
+						{tf("pricing")}
+					</Link>
+					<Link
+						href="/vertrauen"
+						className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
+					>
+						{tf("trust")}
+					</Link>
+				</nav>
 				<div className="flex items-center gap-1">
 					<ThemeSwitcher />
 					{showLogin && (

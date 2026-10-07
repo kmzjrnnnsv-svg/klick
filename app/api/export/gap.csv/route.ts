@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { toOrgCtx } from "@/lib/auth/guards";
-import {
-	CONTROL_BY_CODE,
-	EDGES_BY_REQUIREMENT,
-	REQUIREMENT_BY_KEY,
-} from "@/lib/compliance/catalog";
 import { orgCoverage } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
+import { buildGapRows, GAP_HEADER } from "@/lib/export/builders";
 import {
 	auditExport,
 	csvResponse,
@@ -27,48 +23,7 @@ export async function GET(req: Request) {
 	const slugs = fw ? cov.frameworks.filter((s) => s === fw) : cov.frameworks;
 	if (slugs.length === 0)
 		return new NextResponse("unknown framework", { status: 400 });
-	const rows: unknown[][] = [];
-	for (const slug of slugs) {
-		for (const [key, status] of cov.result.byRequirement) {
-			if (!key.startsWith(`${slug}:`)) continue;
-			const req = REQUIREMENT_BY_KEY.get(key);
-			if (!req) continue;
-			const detail = cov.applicabilityDetail.get(key);
-			const edges = EDGES_BY_REQUIREMENT.get(key) ?? [];
-			rows.push([
-				slug,
-				req.code,
-				req.title,
-				req.domain,
-				status,
-				detail?.source ?? "default",
-				detail?.note ?? "",
-				edges
-					.map(
-						(e) =>
-							`${e.control} (${cov.implStatus.get(e.control) ?? "not_started"}${e.coverage === "partial" ? ", teilweise" : ""})`,
-					)
-					.join(" | "),
-				edges
-					.map((e) => CONTROL_BY_CODE.get(e.control)?.title ?? "")
-					.join(" | "),
-			]);
-		}
-	}
+	const rows = buildGapRows(cov, slugs);
 	await auditExport(ctx, "gap_csv", rows.length, { frameworks: slugs });
-	return csvResponse(
-		`gap-${fw ?? "alle"}-${stamp()}.csv`,
-		[
-			"rahmenwerk",
-			"code",
-			"anforderung",
-			"domaene",
-			"status",
-			"anwendbarkeit_quelle",
-			"anwendbarkeit_begruendung",
-			"controls_status",
-			"controls_titel",
-		],
-		rows,
-	);
+	return csvResponse(`gap-${fw ?? "alle"}-${stamp()}.csv`, GAP_HEADER, rows);
 }

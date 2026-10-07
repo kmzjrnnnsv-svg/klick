@@ -31,3 +31,45 @@ export const updateMemberRoleSchema = z.object({
 	memberId: z.uuid(),
 	role: z.enum(["owner", "editor", "viewer", "auditor"]),
 });
+
+// Stammdaten für Meldungen (Informationsregister, Antrag, Lieferantenpaket).
+const optionalText = (max: number) =>
+	z
+		.string()
+		.trim()
+		.max(max)
+		.transform((v) => (v === "" ? undefined : v))
+		.optional();
+
+export const entityProfileSchema = z.object({
+	lei: z
+		.string()
+		.trim()
+		.toUpperCase()
+		.transform((v) => (v === "" ? undefined : v))
+		.pipe(
+			z
+				.string()
+				.regex(/^[A-Z0-9]{18}[0-9]{2}$/, "LEI: 20 Zeichen (ISO 17442)")
+				.optional(),
+		),
+	country: z
+		.string()
+		.trim()
+		.toUpperCase()
+		.transform((v) => (v === "" ? undefined : v))
+		.pipe(
+			z
+				.string()
+				.regex(/^[A-Z]{2}$/, "ISO-3166 alpha-2")
+				.optional(),
+		),
+	competentAuthority: optionalText(80),
+	totalAssetsEur: z
+		.union([z.coerce.number().min(0).max(1e15), z.literal(""), z.null()])
+		.transform((v) => (v === "" || v === null ? undefined : v))
+		.optional(),
+	legalForm: optionalText(40),
+	registerNumber: optionalText(40),
+});
+export type EntityProfileInput = z.input<typeof entityProfileSchema>;

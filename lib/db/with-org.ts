@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { type DbTx, globalDb } from "@/db";
 import { type Actor, type AuditInput, audit } from "@/lib/audit";
+import { dbForOrg } from "./router";
 
 // Mandanten-Kontext für jede Datenbankarbeit.
 //
@@ -20,11 +21,13 @@ export type OrgCtx = {
 
 export type OrgTx = DbTx;
 
+// Enterprise-Option: dbForOrg() liefert die Org-eigene Datenbank, wenn
+// ORG_DATABASE_URLS sie kennt — sonst globalDb (lib/db/router.ts).
 export async function withOrg<T>(
 	ctx: OrgCtx,
 	fn: (tx: OrgTx) => Promise<T>,
 ): Promise<T> {
-	return globalDb.transaction(async (tx) => {
+	return dbForOrg(ctx.orgId).transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.org_id', ${ctx.orgId}, true)`);
 		return fn(tx);
 	});
@@ -36,7 +39,7 @@ export async function readOrg<T>(
 	ctx: OrgCtx,
 	fn: (tx: OrgTx) => Promise<T>,
 ): Promise<T> {
-	return globalDb.transaction(async (tx) => {
+	return dbForOrg(ctx.orgId).transaction(async (tx) => {
 		await tx.execute(sql`set transaction read only`);
 		await tx.execute(sql`select set_config('app.org_id', ${ctx.orgId}, true)`);
 		return fn(tx);

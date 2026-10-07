@@ -39,6 +39,28 @@ describe("env", () => {
 		).toBe(false);
 	});
 
+	it("Härtung III: Defaults und Validierung der optionalen Werte", () => {
+		const env = validateEnv(valid);
+		expect(env.CLAMD_HOST).toBeUndefined();
+		expect(env.CLAMD_PORT).toBe(3310);
+		expect(env.ORG_RATE_LIMIT_PER_MIN).toBe(600);
+		expect(env.GLITCHTIP_DSN).toBeUndefined();
+		expect(
+			envSchema.safeParse({ ...valid, GLITCHTIP_DSN: "kein-dsn" }).success,
+		).toBe(false);
+		expect(
+			envSchema.safeParse({ ...valid, ORG_DATABASE_URLS: '{"a":"mysql://x"}' })
+				.success,
+		).toBe(false);
+		expect(
+			envSchema.safeParse({
+				...valid,
+				ORG_DATABASE_URLS:
+					'{"11111111-2222-3333-4444-555555555555":"postgres://u@h/d"}',
+			}).success,
+		).toBe(true);
+	});
+
 	it("parst Listen", () => {
 		const env = validateEnv({
 			...valid,

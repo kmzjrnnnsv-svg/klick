@@ -16,14 +16,19 @@ export default async function LoginPage({
 			? t("reasonSessionExpired")
 			: grund === "zugang-abgelaufen"
 				? t("reasonAccessExpired")
-				: grund === "link-ungueltig"
-					? t("genericError")
-					: null;
+				: grund === "org-geloescht"
+					? t("reasonOrgDeleted")
+					: grund === "sso"
+						? t("ssoNoProvider")
+						: grund === "link-ungueltig"
+							? t("genericError")
+							: null;
 	const microsoftEnabled = Boolean(
 		process.env.MICROSOFT_CLIENT_ID &&
 			process.env.MICROSOFT_CLIENT_SECRET &&
 			process.env.MICROSOFT_TENANT_ID,
 	);
+	const signupAllowed = process.env.AUTH_ALLOW_SIGNUP === "true";
 	return (
 		<div className="flex flex-col gap-8">
 			<div>
@@ -34,11 +39,14 @@ export default async function LoginPage({
 				<p className="mt-2 text-muted-foreground text-sm">{t("loginLead")}</p>
 			</div>
 			{reason && (
-				<Alert variant="warning">
+				<Alert variant={grund === "org-geloescht" ? "default" : "warning"}>
 					<AlertDescription>{reason}</AlertDescription>
 				</Alert>
 			)}
-			<LoginForm microsoftEnabled={microsoftEnabled} />
+			<LoginForm
+				microsoftEnabled={microsoftEnabled}
+				signupAllowed={signupAllowed}
+			/>
 		</div>
 	);
 }

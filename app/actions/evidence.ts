@@ -19,6 +19,8 @@ import { mutateOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { evidenceAad } from "@/lib/evidence/aad";
 import { notify } from "@/lib/notifications/notify";
+import { getOrgLimiter } from "@/lib/rate-limit";
+import { clamdConfigured, scanBytes } from "@/lib/uploads/clamav";
 import { validateUpload } from "@/lib/uploads/validate";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { evidenceLinkSchema } from "@/lib/validation/grc";
@@ -99,6 +101,8 @@ export async function uploadEvidence(
 	if (!meta.success) return fromZod(meta.error);
 	const d = meta.data;
 
+	if (!getOrgLimiter().check(c.orgId).allowed)
+		return { ok: false, error: "rate_limited" };
 	const bytes = new Uint8Array(await file.arrayBuffer());
 	const v = await validateUpload({
 		name: file.name,
@@ -106,6 +110,34 @@ export async function uploadEvidence(
 		declaredMime: file.type,
 	});
 	if (!v.ok) return { ok: false, error: `upload_${v.reason}` };
+
+	// Optionaler Malware-Scan (clamd). Fail closed: konfiguriert, aber nicht
+	// erreichbar → Upload abgelehnt. Treffer stehen als denied im Audit-Log.
+	if (clamdConfigured()) {
+		const scan = await scanBytes(bytes);
+		if (scan.status !== "clean") {
+			await mutateOrg(toOrgCtx(c), async () => ({
+				result: null,
+				audit: {
+					action: "evidence.upload_blocked",
+					target: `organization:${c.orgId}`,
+					outcome: "denied" as const,
+					after: {
+						reason: scan.status,
+						signature: scan.status === "infected" ? scan.signature : undefined,
+						fileName: v.safeName,
+					},
+				},
+			}));
+			return {
+				ok: false,
+				error:
+					scan.status === "infected"
+						? "upload_malware"
+						: "upload_scan_unavailable",
+			};
+		}
+	}
 
 	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const [s] = await tx

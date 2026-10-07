@@ -1,5 +1,6 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { passkey } from "@better-auth/passkey";
+import { sso } from "@better-auth/sso";
 import { APIError } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
@@ -345,6 +346,17 @@ export const auth = betterAuth({
 			defaultRole: "user",
 			adminRoles: ["admin"],
 			impersonationSessionDuration: 30 * MINUTE,
+		}),
+
+		// SSO je Organisation (OIDC): Owner registrieren ihren IdP unter
+		// /einstellungen?tab=sso, Domain wird per DNS-TXT verifiziert, Nutzer der
+		// Domain werden als Mitglied provisioniert. MFA-Pflicht, Idle- und
+		// Step-up-Regeln gelten unverändert (lib/auth/guards.ts).
+		sso({
+			disableImplicitSignUp: false,
+			defaultOverrideUserInfo: false,
+			organizationProvisioning: { disabled: false, defaultRole: "member" },
+			domainVerification: { enabled: true, tokenPrefix: "klick-sso" },
 		}),
 
 		// Muss der letzte Plugin-Eintrag sein (setzt Cookies in Server Actions).

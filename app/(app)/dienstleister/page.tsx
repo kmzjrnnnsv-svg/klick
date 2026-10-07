@@ -44,6 +44,7 @@ export default async function ProvidersPage({
 		members: await listMembersForPicker(tx, ctx.orgId),
 	}));
 	const canEdit = roleAllows(ctx.orgRole, { provider: ["create", "update"] });
+	const canExport = roleAllows(ctx.orgRole, { export: ["create"] });
 	const tab = one(sp.tab) === "werkzeuge" ? "werkzeuge" : "register";
 	if (tab === "werkzeuge") {
 		return (
@@ -255,6 +256,24 @@ export default async function ProvidersPage({
 					>
 						{t("tabTools")}
 					</Link>
+					{canExport && (
+						<>
+							<a
+								href="/api/export/informationsregister.zip"
+								className="text-primary text-sm underline-offset-4 hover:underline"
+								title={t("exportRegisterHint")}
+							>
+								{t("exportRegister")}
+							</a>
+							<a
+								href="/api/export/lieferantenpaket.zip"
+								className="text-primary text-sm underline-offset-4 hover:underline"
+								title={t("exportSupplierPackHint")}
+							>
+								{t("exportSupplierPack")}
+							</a>
+						</>
+					)}
 					{canEdit && (
 						<CsvImport
 							title={t("importTitle")}

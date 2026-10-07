@@ -3,18 +3,34 @@ import {
 	AuthError,
 	type OrgContext,
 	requireOrg,
+	requireStepUp,
 	toOrgCtx,
 } from "@/lib/auth/guards";
 import { toCsv } from "@/lib/csv";
 import { mutateOrg } from "@/lib/db/with-org";
+import { getOrgLimiter } from "@/lib/rate-limit";
 
 // Exporte unter /api/export/*: Guard (export:create), Datei als Attachment,
 // jeder Export als Audit-Eintrag mit Zeilenzahl (Alarmierung > 1 000 Zeilen
 // läuft über den Audit-Log; vgl. Härtung „Export > 1 000 Zeilen").
 
+// Org-Rate-Limit (Noisy Neighbour) für die teuren Pfade: 429 mit Retry-After.
+export function rateLimited(orgId: string): NextResponse | null {
+	const d = getOrgLimiter().check(orgId);
+	if (d.allowed) return null;
+	return new NextResponse("Zu viele Anfragen für diese Organisation", {
+		status: 429,
+		headers: {
+			"Retry-After": String(Math.max(1, Math.ceil(d.retryAfterMs / 1000))),
+			"Cache-Control": "no-store",
+		},
+	});
+}
+
 export async function exportGuard(): Promise<OrgContext | NextResponse> {
 	try {
-		return await requireOrg({ export: ["create"] });
+		const ctx = await requireOrg({ export: ["create"] });
+		return rateLimited(ctx.orgId) ?? ctx;
 	} catch (e) {
 		if (e instanceof AuthError)
 			return new NextResponse(null, {
@@ -22,6 +38,47 @@ export async function exportGuard(): Promise<OrgContext | NextResponse> {
 			});
 		throw e;
 	}
+}
+
+// Pakete (ZIP) verlangen Step-up (Härtung: Export/Prüfungspaket). Fehlt die
+// frische Bestätigung, leiten wir zur 2FA-Seite und zurück zum Download.
+export async function exportStepUpGuard(
+	req: Request,
+): Promise<OrgContext | NextResponse> {
+	try {
+		const ctx = await requireStepUp({ export: ["create"] });
+		return rateLimited(ctx.orgId) ?? ctx;
+	} catch (e) {
+		if (e instanceof AuthError) {
+			if (e.code === "step_up_required") {
+				const url = new URL(req.url);
+				const back = `${url.pathname}${url.search}`;
+				return NextResponse.redirect(
+					new URL(
+						`/login/2fa?stepup=1&zurueck=${encodeURIComponent(back)}`,
+						url.origin,
+					),
+					303,
+				);
+			}
+			return new NextResponse(null, {
+				status: e.code === "unauthenticated" ? 401 : 403,
+			});
+		}
+		throw e;
+	}
+}
+
+export function zipResponse(filename: string, body: Uint8Array): NextResponse {
+	return new NextResponse(new Uint8Array(body), {
+		status: 200,
+		headers: {
+			...COMMON,
+			"Content-Type": "application/zip",
+			"Content-Disposition": `attachment; filename="${filename}"`,
+			"Content-Length": String(body.byteLength),
+		},
+	});
 }
 
 export async function auditExport(

@@ -31,6 +31,20 @@ test.describe("Security-Header", () => {
 		expect(nonce(a)).not.toBe(nonce(b));
 	});
 
+	test("Öffentliche Seiten /preise und /vertrauen liefern 200 und das Paket", async ({
+		request,
+	}) => {
+		for (const path of ["/preise", "/vertrauen"]) {
+			const res = await request.get(path);
+			expect(res.status(), path).toBe(200);
+			expect(res.headers()["x-frame-options"]).toBe("DENY");
+		}
+		const pack = await request.get("/vertrauen/paket.md");
+		expect(pack.status()).toBe(200);
+		expect(pack.headers()["content-type"]).toContain("text/markdown");
+		expect(await pack.text()).toContain("Lieferantenpaket der Plattform");
+	});
+
 	test("Health und Readiness antworten", async ({ request }) => {
 		expect((await request.get("/api/health")).status()).toBe(200);
 		const ready = await request.get("/api/ready");

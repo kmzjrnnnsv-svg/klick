@@ -1,6 +1,13 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { globalDb } from "@/db";
-import { invitation, member, organization, user } from "@/db/auth-schema";
+import {
+	invitation,
+	member,
+	organization,
+	session,
+	ssoProvider,
+	user,
+} from "@/db/auth-schema";
 import { memberAccess } from "@/db/schema";
 
 // Org-Stammdaten aus den Better-Auth-Tabellen (kein RLS, daher immer explizit
@@ -57,4 +64,61 @@ export async function listPendingInvitations(orgId: string) {
 			),
 		)
 		.orderBy(desc(invitation.createdAt));
+}
+
+// SSO-Provider der Org (ohne Client-Secret) für /einstellungen?tab=sso.
+export async function listSsoProvidersForOrg(orgId: string) {
+	const rows = await globalDb
+		.select({
+			id: ssoProvider.id,
+			providerId: ssoProvider.providerId,
+			issuer: ssoProvider.issuer,
+			domain: ssoProvider.domain,
+			domainVerified: ssoProvider.domainVerified,
+			oidcConfig: ssoProvider.oidcConfig,
+		})
+		.from(ssoProvider)
+		.where(eq(ssoProvider.organizationId, orgId))
+		.orderBy(ssoProvider.domain);
+	return rows.map((r) => {
+		let cfg: Record<string, unknown> = {};
+		try {
+			cfg = r.oidcConfig
+				? (JSON.parse(r.oidcConfig) as Record<string, unknown>)
+				: {};
+		} catch {
+			cfg = {};
+		}
+		return {
+			id: r.id,
+			providerId: r.providerId,
+			issuer: r.issuer,
+			domain: r.domain,
+			domainVerified: Boolean(r.domainVerified),
+			clientId: typeof cfg.clientId === "string" ? cfg.clientId : null,
+			discoveryEndpoint:
+				typeof cfg.discoveryEndpoint === "string"
+					? cfg.discoveryEndpoint
+					: null,
+		};
+	});
+}
+
+// Alle Sitzungen der Org-Mitglieder beenden (Org-Löschung, Notfall).
+// Optional den Akteur ausnehmen, damit er den Vorgang abschließen kann.
+export async function revokeSessionsOfOrgMembers(
+	orgId: string,
+	exceptUserId?: string,
+): Promise<number> {
+	const members = await globalDb
+		.select({ userId: member.userId })
+		.from(member)
+		.where(eq(member.organizationId, orgId));
+	const ids = members.map((m) => m.userId).filter((id) => id !== exceptUserId);
+	if (ids.length === 0) return 0;
+	const deleted = await globalDb
+		.delete(session)
+		.where(inArray(session.userId, ids))
+		.returning({ id: session.id });
+	return deleted.length;
 }

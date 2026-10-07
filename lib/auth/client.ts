@@ -1,4 +1,5 @@
 import { passkeyClient } from "@better-auth/passkey/client";
+import { ssoClient } from "@better-auth/sso/client";
 import {
 	adminClient,
 	inferAdditionalFields,
@@ -21,6 +22,7 @@ export const authClient = createAuthClient({
 			},
 		}),
 		passkeyClient(),
+		ssoClient(),
 		adminClient(),
 		inferAdditionalFields<typeof auth>(),
 	],

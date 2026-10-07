@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -35,6 +36,7 @@ import {
 } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
+import { cn } from "@/lib/utils";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -64,6 +66,7 @@ export default async function AuditsPage({
 	const canEdit = roleAllows(ctx.orgRole, { audit: ["create"] });
 	const canFinding = roleAllows(ctx.orgRole, { audit_finding: ["update"] });
 	const canNc = roleAllows(ctx.orgRole, { nonconformity: ["create"] });
+	const canExport = roleAllows(ctx.orgRole, { export: ["create"] });
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		audits: await listAudits(tx, ctx.orgId),
@@ -93,20 +96,32 @@ export default async function AuditsPage({
 				title={t("title")}
 				lead={t("lead")}
 				actions={
-					canEdit ? (
+					canEdit || canExport ? (
 						<div className="flex flex-wrap gap-2">
-							{tab === "programm" ? (
-								<ProgrammeForm />
-							) : (
-								<AuditForm
-									members={data.members}
-									frameworks={data.frameworks}
-									programmes={data.programmes.map((p) => ({
-										id: p.id,
-										title: p.title,
-									}))}
-								/>
+							{canExport && (
+								<a
+									href="/api/export/pruefungspaket.zip"
+									className={cn(
+										buttonVariants({ variant: "outline", size: "sm" }),
+									)}
+									title={t("exportPackageHint")}
+								>
+									{t("exportPackage")}
+								</a>
 							)}
+							{canEdit &&
+								(tab === "programm" ? (
+									<ProgrammeForm />
+								) : (
+									<AuditForm
+										members={data.members}
+										frameworks={data.frameworks}
+										programmes={data.programmes.map((p) => ({
+											id: p.id,
+											title: p.title,
+										}))}
+									/>
+								))}
 						</div>
 					) : undefined
 				}

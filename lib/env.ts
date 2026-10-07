@@ -116,6 +116,36 @@ export const envSchema = z.object({
 	LOG_LEVEL: z
 		.enum(["trace", "debug", "info", "warn", "error", "fatal"])
 		.default("info"),
+
+	// Härtung III (optional): Malware-Scan über clamd, Rate-Limit je Org,
+	// Fehler-Tracking (GlitchTip/Sentry-Store-API), eigene DB je Enterprise-Org.
+	CLAMD_HOST: z.string().optional(),
+	CLAMD_PORT: z.coerce.number().int().min(1).max(65535).default(3310),
+	ORG_RATE_LIMIT_PER_MIN: z.coerce.number().int().min(0).default(600),
+	GLITCHTIP_DSN: z.url().optional(),
+	KLICK_RELEASE: z.string().optional(),
+	ORG_DATABASE_URLS: z
+		.string()
+		.optional()
+		.refine(
+			(v) => {
+				if (!v?.trim()) return true;
+				try {
+					const parsed = JSON.parse(v) as unknown;
+					return (
+						typeof parsed === "object" &&
+						parsed !== null &&
+						!Array.isArray(parsed) &&
+						Object.values(parsed as Record<string, unknown>).every(
+							(u) => typeof u === "string" && /^postgres(ql)?:\/\//.test(u),
+						)
+					);
+				} catch {
+					return false;
+				}
+			},
+			{ message: "JSON-Objekt { orgId: postgres://… } erwartet" },
+		),
 });
 
 export type Env = z.infer<typeof envSchema>;

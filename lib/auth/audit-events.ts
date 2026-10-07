@@ -74,9 +74,25 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 		}
 
 		if (
+			path === "/sso/register" ||
+			path === "/sso/update-provider" ||
+			path === "/sso/delete-provider" ||
+			path === "/sso/request-domain-verification" ||
+			path === "/sso/verify-domain"
+		) {
+			await auditPlatform(actor, {
+				action: `sso.${path.slice("/sso/".length).replaceAll("-", "_")}`,
+				outcome,
+			});
+			return;
+		}
+
+		if (
 			failed &&
 			(path === "/magic-link/verify" ||
 				path === "/sign-in/social" ||
+				path === "/sign-in/sso" ||
+				path.startsWith("/sso/callback") ||
 				path.startsWith("/callback/") ||
 				path === "/passkey/verify-authentication" ||
 				path === "/sign-in/passkey")

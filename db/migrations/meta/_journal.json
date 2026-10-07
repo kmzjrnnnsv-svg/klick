@@ -15,6 +15,20 @@
       "when": 1791401631061,
       "tag": "0001_org_state",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791406752675,
+      "tag": "0002_entity_profile",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791408636711,
+      "tag": "0003_sso_provider",
+      "breakpoints": true
     }
   ]
 }
