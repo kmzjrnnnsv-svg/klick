@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 export async function Footer() {
 	const t = await getTranslations("Footer");
 	const links = [
+		{ href: "/preise", label: t("pricing") },
 		{ href: "/vertrauen", label: t("trust") },
 		{ href: "/datenschutz-erklaerung", label: t("privacy") },
 		{ href: "/impressum", label: t("imprint") },

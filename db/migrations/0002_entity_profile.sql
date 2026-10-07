@@ -1,0 +1,1 @@
+ALTER TABLE "org_settings" ADD COLUMN "entity_profile" jsonb DEFAULT '{}'::jsonb NOT NULL;

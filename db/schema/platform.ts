@@ -54,6 +54,17 @@ export type ApplicationItemState = {
 	by?: string;
 };
 
+// Stammdaten für Meldungen (Informationsregister ITS 2024/2956, Antragsakten,
+// Lieferantenpaket): LEI, Sitzland, zuständige Behörde, Bilanzsumme.
+export type EntityProfile = {
+	lei?: string;
+	country?: string;
+	competentAuthority?: string;
+	totalAssetsEur?: number;
+	legalForm?: string;
+	registerNumber?: string;
+};
+
 export const orgSettings = pgTable(
 	"org_settings",
 	{
@@ -112,6 +123,7 @@ export const orgSettings = pgTable(
 			.default({}),
 		// Setup-Checkliste: bestätigte Prüfungen (z. B. tlptConfirmedAt).
 		setupFlags: json<Record<string, string>>().notNull().default({}),
+		entityProfile: json<EntityProfile>().notNull().default({}),
 		onboardingCompletedAt: ts(),
 		plan: text().notNull().default("start"),
 		...timestamps(),

@@ -3,6 +3,7 @@ import {
 	AuthError,
 	type OrgContext,
 	requireOrg,
+	requireStepUp,
 	toOrgCtx,
 } from "@/lib/auth/guards";
 import { toCsv } from "@/lib/csv";
@@ -22,6 +23,46 @@ export async function exportGuard(): Promise<OrgContext | NextResponse> {
 			});
 		throw e;
 	}
+}
+
+// Pakete (ZIP) verlangen Step-up (Härtung: Export/Prüfungspaket). Fehlt die
+// frische Bestätigung, leiten wir zur 2FA-Seite und zurück zum Download.
+export async function exportStepUpGuard(
+	req: Request,
+): Promise<OrgContext | NextResponse> {
+	try {
+		return await requireStepUp({ export: ["create"] });
+	} catch (e) {
+		if (e instanceof AuthError) {
+			if (e.code === "step_up_required") {
+				const url = new URL(req.url);
+				const back = `${url.pathname}${url.search}`;
+				return NextResponse.redirect(
+					new URL(
+						`/login/2fa?stepup=1&zurueck=${encodeURIComponent(back)}`,
+						url.origin,
+					),
+					303,
+				);
+			}
+			return new NextResponse(null, {
+				status: e.code === "unauthenticated" ? 401 : 403,
+			});
+		}
+		throw e;
+	}
+}
+
+export function zipResponse(filename: string, body: Uint8Array): NextResponse {
+	return new NextResponse(new Uint8Array(body), {
+		status: 200,
+		headers: {
+			...COMMON,
+			"Content-Type": "application/zip",
+			"Content-Disposition": `attachment; filename="${filename}"`,
+			"Content-Length": String(body.byteLength),
+		},
+	});
 }
 
 export async function auditExport(

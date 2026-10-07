@@ -3,12 +3,13 @@
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { orgSettings } from "@/db/schema";
+import { type EntityProfile, orgSettings } from "@/db/schema";
 import { requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { AuthError } from "@/lib/auth/session-rules";
 import { mutateOrg } from "@/lib/db/with-org";
 import { DEFAULT_PREFIXES } from "@/lib/documents/numbering";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
+import { entityProfileSchema } from "@/lib/validation/org";
 
 async function stepUp(): Promise<
 	| { ok: true; ctx: Awaited<ReturnType<typeof requireStepUp>> }
@@ -125,6 +126,43 @@ export async function updateNumbering(input: unknown): Promise<ActionResult> {
 				target: `organization:${c.orgId}`,
 				before: before?.documentNumbering ?? null,
 				after: numbering,
+			},
+		};
+	});
+	revalidatePath("/einstellungen");
+	return { ok: true, data: undefined };
+}
+
+// Stammdaten für Meldungen: LEI, Sitzland, Behörde, Bilanzsumme, Rechtsform,
+// Registernummer — fließen in Informationsregister, Antrag, Lieferantenpaket.
+export async function updateEntityProfile(
+	input: unknown,
+): Promise<ActionResult> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = entityProfileSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const next: EntityProfile = Object.fromEntries(
+		Object.entries(parsed.data).filter(([, v]) => v !== undefined),
+	);
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [before] = await tx
+			.select({ entityProfile: orgSettings.entityProfile })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		await tx
+			.update(orgSettings)
+			.set({ entityProfile: next })
+			.where(eq(orgSettings.organizationId, c.orgId));
+		return {
+			result: null,
+			audit: {
+				action: "settings.entity_profile",
+				target: `organization:${c.orgId}`,
+				before: before?.entityProfile ?? null,
+				after: next,
 			},
 		};
 	});

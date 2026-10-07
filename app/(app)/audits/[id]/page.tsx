@@ -15,6 +15,7 @@ import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -51,6 +52,7 @@ import {
 } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
+import { cn } from "@/lib/utils";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -104,6 +106,7 @@ export default async function AuditCockpitPage({
 	const canDecide = roleAllows(ctx.orgRole, { audit_request: ["decide"] });
 	const canFinding = roleAllows(ctx.orgRole, { audit_finding: ["create"] });
 	const canNc = roleAllows(ctx.orgRole, { nonconformity: ["create"] });
+	const canExport = roleAllows(ctx.orgRole, { export: ["create"] });
 
 	const cov = await getOrgCoverageCached(ctx);
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
@@ -193,6 +196,17 @@ export default async function AuditCockpitPage({
 				lead={audit.scope ?? undefined}
 				actions={
 					<div className="flex flex-wrap items-center gap-2">
+						{canExport && (
+							<a
+								href={`/api/export/pruefungspaket.zip?audit=${audit.id}`}
+								className={cn(
+									buttonVariants({ variant: "outline", size: "sm" }),
+								)}
+								title={t("exportPackageHint")}
+							>
+								{t("exportPackage")}
+							</a>
+						)}
 						{canEdit ? (
 							<AuditStatusSelect auditId={audit.id} status={audit.status} />
 						) : (
