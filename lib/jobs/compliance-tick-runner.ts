@@ -1,19 +1,25 @@
 import { and, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { globalDb } from "@/db";
-import { member, organization } from "@/db/auth-schema";
+import { member, organization, user } from "@/db/auth-schema";
 import {
 	approvalRequests,
 	approvalWorkflows,
 	controlImplementations,
 	controls,
+	controlTests,
 	documentAcknowledgements,
 	documents,
 	documentVersions,
 	evidence,
 	exceptions,
 	incidents,
+	memberAccess,
+	nonconformities,
 	notifications,
+	obligationRuns,
+	obligations,
 	providers,
+	regulatorInteractions,
 	tasks,
 	trainingAssignments,
 	trainingRequirements,
@@ -23,7 +29,11 @@ import { eligibleApprovers } from "@/lib/approvals/rules";
 import { activeDelegations, loadCandidates } from "@/lib/approvals/service";
 import { audit } from "@/lib/audit";
 import { normalizeRole } from "@/lib/auth/guards";
+import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
+import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
 import { computeIncidentDeadlines } from "@/lib/compliance/incident";
+import { planObligationRuns } from "@/lib/compliance/obligations-service";
+import { getOrgProfile } from "@/lib/compliance/queries";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
 import { logger } from "@/lib/log";
 import {
@@ -366,7 +376,112 @@ async function loadDueRows(
 			and(
 				eq(tasks.organizationId, orgId),
 				ne(tasks.status, "done"),
-				inArray(tasks.sourceKind, ["escalation", "review", "acknowledgement"]),
+				inArray(tasks.sourceKind, [
+					"escalation",
+					"review",
+					"acknowledgement",
+					"obligation",
+				]),
+			),
+		);
+
+	// Pflichten-Läufe zwölf Monate voraus planen (idempotent), dann fällige lesen
+	const profile = await getOrgProfile(tx, orgId);
+	await planObligationRuns(
+		tx,
+		orgId,
+		now,
+		new Date(now.getTime() + 366 * 86_400_000),
+		OBLIGATION_BY_CODE,
+	);
+	const runRows = await tx
+		.select({
+			id: obligationRuns.id,
+			code: obligations.code,
+			title: obligations.title,
+			dueAt: obligationRuns.dueAt,
+			status: obligationRuns.status,
+			leadDays: obligations.leadDays,
+			ownerUserId: obligations.ownerUserId,
+		})
+		.from(obligationRuns)
+		.innerJoin(obligations, eq(obligations.id, obligationRuns.obligationId))
+		.where(
+			and(
+				eq(obligationRuns.organizationId, orgId),
+				inArray(obligationRuns.status, ["upcoming", "due", "overdue"]),
+				eq(obligations.active, true),
+			),
+		);
+	const legalChanges = upcomingLegalChanges(now, 190, profile?.frameworks).map(
+		(c) => ({ date: c.date, title: c.title }),
+	);
+	const ncRows = await tx
+		.select({
+			id: nonconformities.id,
+			code: nonconformities.code,
+			title: nonconformities.title,
+			status: nonconformities.status,
+			dueAt: nonconformities.dueAt,
+			effectivenessCheckAt: nonconformities.effectivenessCheckAt,
+			effectivenessResult: nonconformities.effectivenessResult,
+			ownerUserId: nonconformities.ownerUserId,
+		})
+		.from(nonconformities)
+		.where(
+			and(
+				eq(nonconformities.organizationId, orgId),
+				ne(nonconformities.status, "closed"),
+			),
+		);
+	let tlpt: DueRows["tlpt"] = null;
+	if (profile?.profile.tlptDesignated) {
+		const tests = await tx
+			.select({ testedAt: controlTests.testedAt })
+			.from(controlTests)
+			.where(
+				and(
+					eq(controlTests.organizationId, orgId),
+					eq(controlTests.method, "tlpt"),
+					isNotNull(controlTests.testedAt),
+				),
+			);
+		const last = tests
+			.map((t) => t.testedAt)
+			.filter((d): d is Date => d !== null)
+			.sort((a, b) => b.getTime() - a.getTime())[0];
+		tlpt = { designated: true, lastTlptAt: last ?? null };
+	}
+	const regulatorDeadlines = await tx
+		.select({
+			id: regulatorInteractions.id,
+			subject: regulatorInteractions.subject,
+			deadline: regulatorInteractions.deadline,
+			status: regulatorInteractions.status,
+			ownerUserId: regulatorInteractions.ownerUserId,
+		})
+		.from(regulatorInteractions)
+		.where(
+			and(
+				eq(regulatorInteractions.organizationId, orgId),
+				eq(regulatorInteractions.status, "open"),
+				isNotNull(regulatorInteractions.deadline),
+			),
+		);
+	const accessRows = await tx
+		.select({
+			memberId: memberAccess.memberId,
+			userId: member.userId,
+			userName: user.name,
+			accessUntil: memberAccess.accessUntil,
+		})
+		.from(memberAccess)
+		.innerJoin(member, eq(member.id, memberAccess.memberId))
+		.innerJoin(user, eq(user.id, member.userId))
+		.where(
+			and(
+				eq(memberAccess.organizationId, orgId),
+				isNotNull(memberAccess.accessUntil),
 			),
 		);
 
@@ -381,6 +496,17 @@ async function loadDueRows(
 		trainingAssignments: assignments,
 		incidents: incidentRows,
 		acknowledgements,
+		obligationRuns: runRows,
+		legalChanges,
+		nonconformities: ncRows,
+		tlpt,
+		regulatorDeadlines,
+		accessExpiring: accessRows.map((a) => ({
+			memberId: a.memberId,
+			userId: a.userId,
+			userName: a.userName,
+			accessUntil: a.accessUntil as Date,
+		})),
 		openTasks,
 	};
 }
@@ -502,6 +628,17 @@ async function applyTick(
 					after: { status: "expired" },
 				},
 			);
+			written = { ...written, actions: written.actions + 1 };
+		} else if (a.type === "mark_run_due" || a.type === "mark_run_overdue") {
+			await tx
+				.update(obligationRuns)
+				.set({ status: a.type === "mark_run_due" ? "due" : "overdue" })
+				.where(
+					and(
+						eq(obligationRuns.id, a.id),
+						eq(obligationRuns.organizationId, orgId),
+					),
+				);
 			written = { ...written, actions: written.actions + 1 };
 		} else if (a.type === "mark_training_overdue") {
 			await tx

@@ -16,6 +16,10 @@ import {
 	listTasks,
 } from "@/lib/compliance/queries";
 import { pendingAcknowledgements } from "@/lib/compliance/queries-p2";
+import {
+	listNonconformities,
+	listObligationRuns,
+} from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
 import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
 import { TASK_STATUS } from "@/lib/entities/task";
@@ -40,6 +44,8 @@ export default async function TodayPage() {
 		approvals,
 		approvalTitles,
 		acks,
+		runs,
+		ncs,
 	} = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const requests = (
 			await listRequestsForUser(tx, ctx.orgId, ctx.userId)
@@ -68,6 +74,20 @@ export default async function TodayPage() {
 				ctx.orgId,
 				ctx.userId,
 				ctx.orgRole,
+			),
+			runs: (await listObligationRuns(tx, ctx.orgId, { to: weekAhead })).filter(
+				(r) =>
+					r.status !== "done" &&
+					r.status !== "waived" &&
+					(r.ownerUserId === ctx.userId ||
+						(!r.ownerUserId && ctx.orgRole === "owner")),
+			),
+			ncs: (await listNonconformities(tx, ctx.orgId)).filter(
+				(n) =>
+					n.status !== "closed" &&
+					(n.ownerUserId === ctx.userId || n.assigneeUserId === ctx.userId) &&
+					n.dueAt !== null &&
+					n.dueAt <= weekAhead,
 			),
 		};
 	});
@@ -202,10 +222,21 @@ export default async function TodayPage() {
 
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">{t("due")}</CardTitle>
+						<CardTitle className="flex items-center justify-between text-base">
+							{t("due")}
+							<Link
+								href="/heute/verantwortung"
+								className="text-primary text-xs font-normal normal-case hover:underline"
+							>
+								{t("accountability")}
+							</Link>
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						{dueTasks.length === 0 && dueReviews.length === 0 ? (
+						{dueTasks.length === 0 &&
+						dueReviews.length === 0 &&
+						runs.length === 0 &&
+						ncs.length === 0 ? (
 							<p className="text-muted-foreground text-sm">{t("dueEmpty")}</p>
 						) : (
 							<ul className="flex flex-col divide-y divide-border/60 text-sm">
@@ -230,6 +261,44 @@ export default async function TodayPage() {
 											{c.nextReviewAt
 												? fmtDate.format(new Date(c.nextReviewAt))
 												: ""}
+										</Badge>
+									</li>
+								))}
+								{runs.slice(0, 5).map((r) => (
+									<li
+										key={r.id}
+										className="flex items-center justify-between gap-2 py-2"
+									>
+										<Link
+											href="/kalender"
+											className="min-w-0 truncate hover:underline"
+										>
+											{t("obligationDue")} · {r.title}
+										</Link>
+										<Badge
+											variant={r.dueAt < today ? "destructive" : "outline"}
+										>
+											{fmtDate.format(new Date(r.dueAt))}
+										</Badge>
+									</li>
+								))}
+								{ncs.slice(0, 5).map((n) => (
+									<li
+										key={n.id}
+										className="flex items-center justify-between gap-2 py-2"
+									>
+										<Link
+											href={`/abweichungen/${n.id}`}
+											className="min-w-0 truncate hover:underline"
+										>
+											{n.code} · {n.title}
+										</Link>
+										<Badge
+											variant={
+												n.dueAt && n.dueAt < today ? "destructive" : "outline"
+											}
+										>
+											{n.dueAt ? fmtDate.format(new Date(n.dueAt)) : ""}
 										</Badge>
 									</li>
 								))}

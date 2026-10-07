@@ -89,6 +89,42 @@ export type DueRows = {
 		publishedAt: Date | string | null;
 		missingUserIds: readonly string[];
 	}[];
+	/** Pflichten-Läufe (Kalender): Vorlauf → Aufgabe, überfällig → Status. */
+	obligationRuns: readonly {
+		id: string;
+		code: string;
+		title: string;
+		dueAt: Date | string;
+		status: "upcoming" | "due" | "done" | "overdue" | "waived";
+		leadDays: number;
+		ownerUserId: string | null;
+	}[];
+	/** Kommende Rechtsänderungen (vom Runner nach Rahmenwerken gefiltert). */
+	legalChanges: readonly { date: string; title: string }[];
+	nonconformities: readonly {
+		id: string;
+		code: string;
+		title: string;
+		status: string;
+		dueAt: Date | string | null;
+		effectivenessCheckAt: Date | string | null;
+		effectivenessResult: string | null;
+		ownerUserId: string | null;
+	}[];
+	tlpt: { designated: boolean; lastTlptAt: Date | string | null } | null;
+	regulatorDeadlines: readonly {
+		id: string;
+		subject: string;
+		deadline: Date | string | null;
+		status: string;
+		ownerUserId: string | null;
+	}[];
+	accessExpiring: readonly {
+		memberId: string;
+		userId: string;
+		userName: string | null;
+		accessUntil: Date | string;
+	}[];
 	/** Offene Aufgaben (für Dedupe von Eskalationen/Ablauf-Aufgaben). */
 	openTasks: readonly {
 		entityType: string | null;
@@ -115,12 +151,18 @@ export type PendingTask = {
 	priority: "low" | "normal" | "high" | "critical";
 	entityType: EntityKind;
 	entityId: string;
-	sourceKind: "escalation" | "review" | "acknowledgement";
+	sourceKind: "escalation" | "review" | "acknowledgement" | "obligation";
 };
 
 export type PendingAction =
 	| { type: "expire_exception"; id: string }
-	| { type: "mark_training_overdue"; id: string };
+	| { type: "mark_training_overdue"; id: string }
+	| { type: "mark_run_due"; id: string }
+	| { type: "mark_run_overdue"; id: string };
+
+export const LEGAL_CHANGE_MARKS = [180, 90, 30, 7] as const;
+export const TLPT_CYCLE_YEARS = 3;
+export const ACCESS_EXPIRY_WARN_DAYS = 7;
 
 export type TickResult = {
 	notifications: PendingNotification[];
@@ -373,6 +415,167 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			link: "/heute",
 			dedupeKey: `ack:${ack.docNumber}:${isoDay(published)}`,
 		});
+	}
+
+	// Pflichten-Läufe: im Vorlauf → Aufgabe + Hinweis; überfällig → Status + Hinweis
+	for (const run of rows.obligationRuns) {
+		if (run.status === "done" || run.status === "waived") continue;
+		const due = toDate(run.dueAt);
+		if (!due) continue;
+		const endOfDue = new Date(due.getTime() + DAY - 1);
+		if (endOfDue < now) {
+			if (run.status !== "overdue")
+				actions.push({ type: "mark_run_overdue", id: run.id });
+			notifications.push({
+				kind: "review_due",
+				recipients: recipientsOf(run.ownerUserId, rows.orgOwnerIds),
+				title: `Pflicht überfällig: ${run.title}`,
+				body: `${run.code} — ${dueWording(now, due)}.`,
+				link: "/kalender",
+				dedupeKey: `run_overdue:${run.id}`,
+			});
+			continue;
+		}
+		const leadStart = new Date(due.getTime() - run.leadDays * DAY);
+		if (now >= leadStart) {
+			if (run.status === "upcoming")
+				actions.push({ type: "mark_run_due", id: run.id });
+			if (!hasOpenTask("obligation_run", run.id, "obligation")) {
+				tasks.push({
+					title: `${run.title} (${run.code})`,
+					description: `Pflichten-Lauf fällig am ${fmtDay(due)}. Nachweis im Kalender eintragen.`,
+					assigneeUserId: run.ownerUserId ?? rows.orgOwnerIds[0] ?? null,
+					dueAt: isoDay(due),
+					priority: "normal",
+					entityType: "obligation_run",
+					entityId: run.id,
+					sourceKind: "obligation",
+				});
+			}
+			notifications.push({
+				kind: "review_due",
+				recipients: recipientsOf(run.ownerUserId, rows.orgOwnerIds),
+				title: `Pflicht fällig: ${run.title}`,
+				body: `${run.code} — ${dueWording(now, due)}.`,
+				link: "/kalender",
+				dedupeKey: `run_due:${run.id}:${isoDay(due)}`,
+			});
+		}
+	}
+
+	// Rechtsänderungen: Hinweis an Org-Owner bei 180/90/30/7 Tagen Vorlauf
+	for (const lc of rows.legalChanges) {
+		const d = toDate(`${lc.date}T00:00:00Z`);
+		if (!d) continue;
+		const days = daysUntil(now, d);
+		const mark = LEGAL_CHANGE_MARKS.find((m) => days === m);
+		if (mark === undefined) continue;
+		notifications.push({
+			kind: "system",
+			recipients: [...rows.orgOwnerIds],
+			title: `Rechtsänderung in ${mark} Tagen: ${lc.title}`,
+			body: `Gilt ab ${fmtDay(d)}. Rahmenwerke und Richtlinien prüfen.`,
+			link: "/kalender?tab=rechtsaenderungen",
+			dedupeKey: `legal:${lc.date}:${mark}`,
+		});
+	}
+
+	// Abweichungen: Frist und Wirksamkeitsprüfung
+	for (const nc of rows.nonconformities) {
+		if (nc.status === "closed") continue;
+		const due = toDate(nc.dueAt);
+		if (due && due <= horizon) {
+			notifications.push({
+				kind: "review_due",
+				recipients: recipientsOf(nc.ownerUserId, rows.orgOwnerIds),
+				title: `Abweichung ${nc.code}: ${nc.title}`,
+				body: dueWording(now, due),
+				link: `/abweichungen/${nc.id}`,
+				dedupeKey: `nc_due:${nc.id}:${isoDay(due)}`,
+			});
+		}
+		const eff = toDate(nc.effectivenessCheckAt);
+		if (eff && !nc.effectivenessResult && eff <= horizon) {
+			notifications.push({
+				kind: "review_due",
+				recipients: recipientsOf(nc.ownerUserId, rows.orgOwnerIds),
+				title: `Wirksamkeitsprüfung ${nc.code}`,
+				body: `${nc.title} — ${dueWording(now, eff)}.`,
+				link: `/abweichungen/${nc.id}`,
+				dedupeKey: `nc_eff:${nc.id}:${isoDay(eff)}`,
+			});
+		}
+	}
+
+	// TLPT-Uhr (nur bei Benennung): Monatshinweis bei „bald"/„überfällig"/„nie"
+	if (rows.tlpt?.designated) {
+		const last = toDate(rows.tlpt.lastTlptAt);
+		const month = isoDay(now).slice(0, 7);
+		if (!last) {
+			notifications.push({
+				kind: "review_due",
+				recipients: [...rows.orgOwnerIds],
+				title: "TLPT: noch kein bedrohungsorientierter Penetrationstest",
+				body: "Als benanntes Unternehmen ist ein TLPT alle drei Jahre fällig (DORA Art. 26).",
+				link: "/testprogramm",
+				dedupeKey: `tlpt:never:${month}`,
+			});
+		} else {
+			const due = new Date(last);
+			due.setFullYear(due.getFullYear() + TLPT_CYCLE_YEARS);
+			const days = daysUntil(now, due);
+			if (days <= 180) {
+				notifications.push({
+					kind: "review_due",
+					recipients: [...rows.orgOwnerIds],
+					title: days < 0 ? "TLPT überfällig" : "TLPT fällig",
+					body: dueWording(now, due),
+					link: "/testprogramm",
+					dedupeKey: `tlpt:${days < 0 ? "overdue" : "soon"}:${month}`,
+				});
+			}
+		}
+	}
+
+	// Aufsichtskontakte mit Frist
+	for (const r of rows.regulatorDeadlines) {
+		if (r.status !== "open") continue;
+		const due = toDate(r.deadline);
+		if (!due || due > horizon) continue;
+		notifications.push({
+			kind: "review_due",
+			recipients: recipientsOf(r.ownerUserId, rows.orgOwnerIds),
+			title: `Frist Aufsicht: ${r.subject}`,
+			body: dueWording(now, due),
+			link: "/organisation?tab=aufsicht",
+			dedupeKey: `regulator:${r.id}:${isoDay(due)}`,
+		});
+	}
+
+	// Zeitlich begrenzte Zugänge (Prüfer:innen): 7 Tage vorher und bei Ablauf
+	for (const a of rows.accessExpiring) {
+		const until = toDate(a.accessUntil);
+		if (!until) continue;
+		const days = daysUntil(now, until);
+		if (days < 0) {
+			notifications.push({
+				kind: "security_alert",
+				recipients: [...rows.orgOwnerIds],
+				title: `Zugang abgelaufen: ${a.userName ?? a.userId}`,
+				body: `Der zeitlich begrenzte Zugang endete am ${fmtDay(until)}. Mitglied entfernen oder verlängern.`,
+				link: "/team",
+				dedupeKey: `access_expired:${a.memberId}`,
+			});
+		} else if (days <= ACCESS_EXPIRY_WARN_DAYS) {
+			notifications.push({
+				kind: "system",
+				recipients: [...rows.orgOwnerIds],
+				title: `Zugang läuft ab: ${a.userName ?? a.userId}`,
+				body: dueWording(now, until),
+				link: "/team",
+				dedupeKey: `access_expiring:${a.memberId}:${isoDay(until)}`,
+			});
+		}
 	}
 
 	return { notifications, tasks, actions };
