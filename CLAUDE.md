@@ -96,6 +96,18 @@ UX, Härtung, Katalog-Abgleich). Authoring-Quelle der Anforderungen:
 - **P5** Kataloge `lib/compliance/catalog/{dsgvo,kwg,corridors,controls-privacy,processing-activities,art30-clauses,platform-supplier}.ts` · pure `lib/compliance/privacy.ts` · Queries `queries-p5.ts` · Actions `app/actions/{privacy,sso}.ts`, `settings.ts` (Stammdaten, Organisation löschen) · UI `components/privacy/*`, `components/settings/{entity-profile-panel,sso-panel,danger-zone-panel}.tsx` · **Exporte** `lib/export/{zip,builders,audit-package,information-register,supplier-pack,org-export,respond}.ts` + `app/api/export/{pruefungspaket,informationsregister,lieferantenpaket,organisation}.zip` · Marketing `app/(marketing)/{vertrauen,preise}` + `/vertrauen/paket.md` · **Härtung III** `lib/uploads/clamav.ts`, `lib/rate-limit.ts`, `lib/db/router.ts`, `lib/observability/glitchtip.ts`, `lib/crypto/rotate.ts`, `scripts/rotate-kek.ts`
 - `deploy/{systemd,nginx,postgres,firewall.nft,README.md}` (Runbooks: Release, KEK-Rotation, Org-Löschung, SSO, clamd/CrowdSec/GlitchTip/DB-Router) · `scripts/{db-migrate.ts,rotate-kek.ts,backup-db.sh,restore-db.sh,wrap-pivot-migration.sh}` · `playwright.config.ts` + `tests/e2e/*`
 
+## QA-Durchlauf (Klick-Crawler)
+
+`scripts/qa/crawl.ts` meldet sich über die echten Flows an (Magic-Link aus dem Server-Log, TOTP, Onboarding) und klickt alle Routen, Dialoge und Formulare durch; Report `/tmp/qa-report-<port>.json`.
+
+```bash
+AUTH_ALLOW_SIGNUP=true BETTER_AUTH_URL=http://localhost:3200 pnpm dev -p 3200 > /tmp/qa-dev.log 2>&1 &
+pnpm exec tsx scripts/qa/crawl.ts --login                     # einmal: QA-Konto + Org (alle Rahmenwerke, Stufe 2)
+pnpm exec tsx scripts/qa/crawl.ts                             # alle Seiten + Dialoge (~45 min)
+pnpm exec tsx scripts/qa/crawl.ts --no-follow --only /team,/beschluesse   # gezielt
+```
+Prod-Build testen: `QA_BASE=http://localhost:3300 QA_LOG=/tmp/qa-prod.log … --login` (Sitzung je Port, Magic-Link steht auch dort in der Konsolen-Mail, solange kein Mail-Provider konfiguriert ist). Stand 08.10.2026: 122 Seiten, 0 Fehlerseiten, 0 5xx; Funde behoben (siehe Commits `fix(auth)`, `fix(actions)`, `fix(team,beschluesse)`, `fix(nachweise,rahmenwerke)`).
+
 ## Quickstart
 
 ```bash
@@ -128,3 +140,4 @@ Lokal ohne Docker: Postgres 16 nativ, Rollen aus `deploy/postgres/init-dev.sql`.
 - `/preise` zeigt Richtwerte (290 €/890 €/auf Anfrage) ohne Abrechnung — vor Veröffentlichung festlegen. Juristische Person/Register für `/vertrauen` stehen nur im Impressum (CMS).
 - Rate-Limit je Org und DB-Router sind Single-Server-Lösungen (Prozessspeicher, Env-Mapping); clamd, CrowdSec, GlitchTip müssen auf dem Server installiert werden (Runbooks in `deploy/README.md`). SSO-Provisionierung legt Mitglieder als `viewer` an — Rollen danach im Team setzen.
 - Externer Pentest vor Go-Live steht aus (`/testprogramm`).
+- Prod-Meldung „Prozess anlegen → Fehlerseite“ (raza.work, 07.10.2026) ließ sich lokal weder im Dev- noch im Prod-Build reproduzieren (leeres und volles Formular, P-01 wie P-24). Seit `safeAction` landet ein solcher Fehler als Toast mit Referenz; die Referenz steht im Journal (`server action failed`, `ref`) — bei erneutem Auftreten diese Zeile prüfen.
