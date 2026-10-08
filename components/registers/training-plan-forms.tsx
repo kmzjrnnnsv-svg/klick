@@ -104,9 +104,7 @@ export function RequirementForm({
 					});
 					if (!res.ok)
 						return void toast.error(
-							res.error === "validation" || res.error.includes("url")
-								? t("invalidUrl")
-								: tc("error"),
+							res.fieldErrors?.courseUrl ? t("invalidUrl") : tc("error"),
 						);
 					toast.success(t("saved"));
 					setOpen(false);

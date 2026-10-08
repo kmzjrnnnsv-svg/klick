@@ -27,6 +27,7 @@ export async function createNonconformity(
 		now,
 	);
 	const owner = draft.ownerUserId ?? ctx.userId;
+	const assignee = draft.assigneeUserId ?? owner;
 	const [row] = await tx
 		.insert(nonconformities)
 		.values({
@@ -38,7 +39,7 @@ export async function createNonconformity(
 			description: draft.description,
 			rootCause: draft.rootCause,
 			ownerUserId: owner,
-			assigneeUserId: owner,
+			assigneeUserId: assignee,
 			dueAt: draft.dueAt,
 			effectivenessCheckAt: draft.effectivenessCheckAt,
 			status: "open",
@@ -52,7 +53,7 @@ export async function createNonconformity(
 			title: `${code}: Abweichung bearbeiten — ${draft.title}`,
 			description:
 				"Ursache analysieren, Korrektur und Korrekturmaßnahme festlegen, Wirksamkeitsprüfung terminieren.",
-			assigneeUserId: owner,
+			assigneeUserId: assignee,
 			createdByUserId: ctx.userId,
 			dueAt: draft.dueAt,
 			priority: "high",
@@ -61,10 +62,10 @@ export async function createNonconformity(
 			sourceKind: "remediation",
 		})
 		.returning({ id: tasks.id });
-	if (owner) {
+	if (owner || assignee) {
 		await notify(tx, {
 			orgId: ctx.orgId,
-			recipients: [owner],
+			recipients: [owner, assignee],
 			actorUserId: ctx.userId,
 			kind: "task_assigned",
 			title: `${code}: ${draft.title}`,

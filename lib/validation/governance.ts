@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { CRITICALITY, ENTITY_KINDS, ROLE_FUNCTIONS } from "@/db/schema/enums";
+import {
+	CRITICALITY,
+	ENTITY_KINDS,
+	NC_PRIORITIES,
+	ROLE_FUNCTIONS,
+} from "@/db/schema/enums";
 import { NONCONFORMITY_STATUSES } from "@/lib/entities/nonconformity";
 import { PROCESS_STATUSES } from "@/lib/entities/process";
 import { longText, shortText, uuid } from "./common";
@@ -387,6 +392,12 @@ export const nonconformitySchema = z.object({
 	assigneeUserId: uuid.nullable().optional(),
 	dueAt: optionalDate,
 	effectivenessCheckAt: optionalDate,
+});
+
+export const nonconformityPrioritySchema = z.object({
+	nonconformityId: uuid,
+	priority: z.enum(NC_PRIORITIES).nullable(),
+	note: z.string().trim().max(2000).optional(),
 });
 
 export const setNonconformityStatusSchema = z.object({

@@ -16,6 +16,7 @@ import { WatchButton } from "@/components/entity/watch-button";
 import {
 	EffectivenessForm,
 	NonconformityForm,
+	PriorityForm,
 } from "@/components/nonconformities/nc-forms";
 import { Badge } from "@/components/ui/badge";
 import { historyFor } from "@/lib/audit";
@@ -32,8 +33,10 @@ import {
 	userNames,
 } from "@/lib/compliance/queries";
 import { getNonconformity } from "@/lib/compliance/queries-p3";
+import { topManagementOf } from "@/lib/compliance/top-management";
 import { readOrg } from "@/lib/db/with-org";
 import { entityHref } from "@/lib/entities/links";
+import { NC_PRIORITY_TONE } from "@/lib/entities/nonconformity";
 import { TASK_STATUS } from "@/lib/entities/task";
 import {
 	type ActivityEntry,
@@ -73,15 +76,17 @@ export default async function NonconformityDetailPage({
 			listMembersForPicker(tx, ctx.orgId),
 			listTasks(tx, ctx.orgId, { entityType: "nonconformity", entityId: id }),
 		]);
+		const tm = await topManagementOf(tx, ctx.orgId, ctx.userId);
 		const names = await userNames(tx, [
+			r.nc.prioritizedByUserId,
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
 		]);
 		for (const [k, v] of r.names) names.set(k, v);
-		return { ...r, comments, history, watcherIds, members, tasks, names };
+		return { ...r, comments, history, watcherIds, members, tasks, names, tm };
 	});
 	if (!data) notFound();
-	const { nc, comments, history, watcherIds, members, tasks, names } = data;
+	const { nc, comments, history, watcherIds, members, tasks, names, tm } = data;
 	const state = capaState(nc);
 	const entries: ActivityEntry[] = mergeActivity(
 		toHistoryItems(history),
@@ -300,6 +305,56 @@ export default async function NonconformityDetailPage({
 					<div className="mt-3">
 						<EffectivenessForm nonconformityId={nc.id} />
 					</div>
+				)}
+			</Section>
+			<Section title={t("priorityTitle")}>
+				<div className="flex flex-wrap items-center gap-2 text-sm">
+					{nc.priority ? (
+						<Badge variant={NC_PRIORITY_TONE[nc.priority]}>
+							{t(`priority_${nc.priority}`)}
+						</Badge>
+					) : (
+						<span className="text-muted-foreground">{t("priorityNone")}</span>
+					)}
+					{nc.prioritizedAt && (
+						<span className="text-muted-foreground text-xs">
+							{t("prioritizedBy", {
+								name:
+									(nc.prioritizedByUserId &&
+										names.get(nc.prioritizedByUserId)) ||
+									"—",
+								date: fmtDate.format(nc.prioritizedAt),
+							})}
+						</span>
+					)}
+				</div>
+				{nc.priorityNote && (
+					<p className="mt-1 whitespace-pre-wrap text-sm">{nc.priorityNote}</p>
+				)}
+				{tm.isTopManagement && nc.status !== "closed" ? (
+					<div className="mt-3">
+						<PriorityForm
+							nonconformityId={nc.id}
+							value={nc.priority}
+							note={nc.priorityNote}
+						/>
+					</div>
+				) : (
+					<p className="mt-2 text-muted-foreground text-xs">
+						{tm.anyAssigned ? (
+							t("priorityOnlyTop")
+						) : (
+							<>
+								{t("priorityNoTop")}{" "}
+								<Link
+									href="/organisation?tab=rollen"
+									className="text-primary hover:underline"
+								>
+									{t("priorityAssignTop")}
+								</Link>
+							</>
+						)}
+					</p>
 				)}
 			</Section>
 		</EntityLayout>
