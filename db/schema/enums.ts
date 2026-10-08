@@ -93,6 +93,10 @@ export type Classification = (typeof CLASSIFICATIONS)[number];
 
 export const CRITICALITY = ["critical", "important", "standard"] as const;
 
+// Priorität einer Abweichung — setzt nur die Geschäftsleitung.
+export const NC_PRIORITIES = ["critical", "high", "medium", "low"] as const;
+export type NcPriority = (typeof NC_PRIORITIES)[number];
+
 // Polymorphe Verknüpfung (Kommentare, Aufgaben, Watcher, Freigaben, Historie).
 // Textspalte + Union statt pg-Enum, damit neue Entitäten keine Migration
 // brauchen; Zod validiert gegen diese Liste.

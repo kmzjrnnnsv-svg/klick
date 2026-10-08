@@ -30,6 +30,7 @@ import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { listOrgFrameworks } from "@/lib/org/queries";
+import { syncTrainingAssignments } from "@/lib/trainings/assignments";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	communicationSchema,
@@ -543,6 +544,8 @@ async function upsertRoleAssignmentImpl(
 				.update(roleAssignments)
 				.set({ ...base, fitProperChecklist: encrypted })
 				.where(eq(roleAssignments.id, id));
+			// Neue Funktion → zugehörige Pflichtschulungen zuweisen.
+			await syncTrainingAssignments(tx, c.orgId);
 			if (d.userId && d.userId !== before.userId) {
 				await notify(tx, {
 					orgId: c.orgId,
@@ -580,6 +583,7 @@ async function upsertRoleAssignmentImpl(
 			.values({ organizationId: c.orgId, ...base })
 			.returning({ id: roleAssignments.id });
 		if (!row) throw new Error("insert failed");
+		await syncTrainingAssignments(tx, c.orgId);
 		if (fitProperChecklist) {
 			await tx
 				.update(roleAssignments)

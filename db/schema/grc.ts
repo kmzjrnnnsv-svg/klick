@@ -976,6 +976,8 @@ export const trainingRequirements = pgTable(
 		orgRole: text(),
 		frequencyMonths: integer().notNull().default(12),
 		legalBasis: text(),
+		// Link zum Kurs (LMS, Video, Dokument) — „Zur Schulung“ im Plan.
+		courseUrl: text(),
 		createdAt: ts().notNull().defaultNow(),
 	},
 	(t) => [
@@ -999,6 +1001,11 @@ export const trainingAssignments = pgTable(
 		status: text({ enum: ["due", "overdue", "done"] })
 			.notNull()
 			.default("due"),
+		// Manuell zugewiesen (null = aus Rolle/Funktion abgeleitet).
+		assignedByUserId: userRef(),
+		// Selbstbestätigung: Zertifikat/Nachweis und Notiz der Person.
+		evidenceId: uuid().references(() => evidence.id, { onDelete: "set null" }),
+		note: text(),
 	},
 	(t) => [
 		index("training_assignments_user_idx").on(t.userId, t.status),

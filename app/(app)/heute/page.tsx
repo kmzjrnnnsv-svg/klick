@@ -5,6 +5,10 @@ import { AckButton } from "@/components/documents/ack-button";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { PageHeader } from "@/components/page-header";
+import {
+	CompleteTrainingButton,
+	CourseLink,
+} from "@/components/registers/training-plan-forms";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listRequestsForUser } from "@/lib/approvals/service";
@@ -16,7 +20,11 @@ import {
 	listMembersForPicker,
 	listTasks,
 } from "@/lib/compliance/queries";
-import { pendingAcknowledgements } from "@/lib/compliance/queries-p2";
+import {
+	listTrainingAssignments,
+	listTrainingRequirements,
+	pendingAcknowledgements,
+} from "@/lib/compliance/queries-p2";
 import {
 	listNonconformities,
 	listObligationRuns,
@@ -25,12 +33,14 @@ import { readOrg } from "@/lib/db/with-org";
 import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { listNotifications } from "@/lib/notifications/query";
+import { currentTrainings } from "@/lib/trainings/assignments";
 
 // Startseite nach Login: gestapelte Abschnitte, je max. fünf Einträge —
 // Freigaben, Aufgaben, Fälliges, Kenntnisnahmen, Erwähnungen.
 export default async function TodayPage() {
 	const ctx = await requireOrgPage();
 	const t = await getTranslations("Today");
+	const tt = await getTranslations("Trainings");
 	const ts = await getTranslations("Status");
 	const today = new Date().toISOString().slice(0, 10);
 	const weekAhead = new Date(Date.now() + 7 * 86_400_000)
@@ -47,6 +57,8 @@ export default async function TodayPage() {
 		acks,
 		runs,
 		ncs,
+		trainingRows,
+		trainingReqs,
 	} = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const requests = (
 			await listRequestsForUser(tx, ctx.orgId, ctx.userId)
@@ -83,6 +95,10 @@ export default async function TodayPage() {
 					(r.ownerUserId === ctx.userId ||
 						(!r.ownerUserId && ctx.orgRole === "owner")),
 			),
+			trainingRows: (await listTrainingAssignments(tx, ctx.orgId)).filter(
+				(a) => a.userId === ctx.userId,
+			),
+			trainingReqs: await listTrainingRequirements(tx, ctx.orgId),
 			ncs: (await listNonconformities(tx, ctx.orgId)).filter(
 				(n) =>
 					n.status !== "closed" &&
@@ -94,6 +110,14 @@ export default async function TodayPage() {
 	});
 
 	const dueTasks = tasks.filter((x) => x.dueAt && x.dueAt <= weekAhead);
+	const reqById = new Map(trainingReqs.map((r) => [r.id, r]));
+	const myTrainings = [...currentTrainings(trainingRows, today).values()]
+		.filter((x) => x.open && (x.state === "due" || x.state === "overdue"))
+		.map((x) => ({
+			...x,
+			req: x.open ? reqById.get(x.open.requirementId) : undefined,
+		}))
+		.sort((a, b) => (a.open?.dueAt ?? "").localeCompare(b.open?.dueAt ?? ""));
 	const dueReviews = controls.filter(
 		(c) =>
 			(c.ownerUserId === ctx.userId || c.assigneeUserId === ctx.userId) &&
@@ -118,6 +142,51 @@ export default async function TodayPage() {
 				}
 			/>
 			<div className="grid gap-4 md:grid-cols-2">
+				{myTrainings.length > 0 && (
+					<Card className="md:col-span-2">
+						<CardHeader>
+							<CardTitle className="flex items-center justify-between text-base">
+								{tt("heuteTitle")}
+								<Link
+									href="/schulungen?tab=meine"
+									className="text-primary text-xs font-normal normal-case hover:underline"
+								>
+									{t("showAll")}
+								</Link>
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<ul className="flex flex-col divide-y divide-border/60 text-sm">
+								{myTrainings.slice(0, 5).map((x) => (
+									<li
+										key={x.open?.id}
+										className="flex flex-wrap items-center justify-between gap-2 py-2"
+									>
+										<div className="min-w-0">
+											<p className="truncate">{x.req?.title}</p>
+											<CourseLink url={x.req?.courseUrl} />
+										</div>
+										<div className="flex shrink-0 items-center gap-2">
+											<Badge
+												variant={
+													x.state === "overdue" ? "destructive" : "warning"
+												}
+											>
+												{x.open ? fmtDate.format(new Date(x.open.dueAt)) : ""}
+											</Badge>
+											{x.open && (
+												<CompleteTrainingButton
+													assignmentId={x.open.id}
+													title={x.req?.title ?? ""}
+												/>
+											)}
+										</div>
+									</li>
+								))}
+							</ul>
+						</CardContent>
+					</Card>
+				)}
 				<Card>
 					<CardHeader>
 						<CardTitle className="flex items-center justify-between text-base">

@@ -395,7 +395,7 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			recipients: [ta.userId],
 			title: `Schulung fällig: ${ta.requirementTitle}`,
 			body: dueWording(now, due),
-			link: "/schulungen?tab=plan",
+			link: "/schulungen?tab=meine",
 			dedupeKey: `training:${ta.id}:${isoDay(due)}`,
 		});
 	}

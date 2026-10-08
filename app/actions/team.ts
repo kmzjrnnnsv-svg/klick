@@ -14,6 +14,7 @@ import {
 } from "@/lib/auth/guards";
 import { auth } from "@/lib/auth/server";
 import { mutateOrg } from "@/lib/db/with-org";
+import { syncTrainingAssignments } from "@/lib/trainings/assignments";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { memberAccessSchema } from "@/lib/validation/governance";
 import {
@@ -80,6 +81,20 @@ async function updateMemberRoleImpl(input: unknown): Promise<ActionResult> {
 				organizationId: c.orgId,
 			},
 			headers: await headers(),
+		});
+		// Neue Rolle → Pflichtschulungen dieser Rolle zuweisen.
+		await mutateOrg(toOrgCtx(c), async (tx) => {
+			const n = await syncTrainingAssignments(tx, c.orgId);
+			return {
+				result: n,
+				audit: n
+					? {
+							action: "training.assignments_synced",
+							target: `member:${parsed.data.memberId}`,
+							after: { assignments: n },
+						}
+					: [],
+			};
 		});
 		revalidatePath("/team");
 		return { ok: true, data: undefined };
