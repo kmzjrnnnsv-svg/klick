@@ -245,6 +245,16 @@ export default async function ResolutionsPage({
 										<p className="line-clamp-2 text-muted-foreground text-xs">
 											{r.decisionText}
 										</p>
+										{r.reviewHeldAt && (
+											<Link
+												href="/managementbewertung"
+												className="mt-0.5 block text-primary text-[0.65rem] hover:underline"
+											>
+												{t("fromReview", {
+													date: fmtDate.format(new Date(r.reviewHeldAt)),
+												})}
+											</Link>
+										)}
 										{r.attendeeNames.length > 0 && (
 											<p className="mt-0.5 text-muted-foreground text-[0.65rem]">
 												{t("attendees")}: {r.attendeeNames.join(", ")}

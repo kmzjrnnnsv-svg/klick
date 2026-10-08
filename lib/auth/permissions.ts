@@ -96,6 +96,9 @@ export const auditor = ac.newRole({
 	...readAll,
 	audit_request: ["read", "create", "decide"],
 	audit_finding: ["read", "create", "update"],
+	// Prüfer:innen dürfen Abweichungen anlegen (auch aus Findings), aber nicht
+	// bearbeiten oder schließen — die Umsetzung bleibt bei der Organisation.
+	nonconformity: ["read", "create"],
 });
 
 export const editor = ac.newRole({

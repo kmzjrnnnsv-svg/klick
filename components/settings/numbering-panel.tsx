@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updateNumbering } from "@/app/actions/settings";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { DocumentNumbering } from "@/db/schema/platform";
@@ -37,7 +38,9 @@ export function NumberingPanel({
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {
-					const res = await updateNumbering({ numbering: state });
+					const res = await withStepUp(() =>
+						updateNumbering({ numbering: state }),
+					);
 					if (!res.ok)
 						toast.error(
 							res.error === "step_up_required" ? t("stepUp") : tc("error"),

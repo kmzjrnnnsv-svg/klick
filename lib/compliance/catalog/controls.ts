@@ -237,7 +237,7 @@ const PART_A: CatalogControl[] = [
 			},
 		],
 		auditQuestions: [
-			"Zeigen Sie die Versionshistorie und Freigabekette einer beliebigen Richtlinie.",
+			"Zeig die Versionshistorie und Freigabekette einer beliebigen Richtlinie.",
 		],
 		testMethodHint: "inspection",
 		sortOrder: next(),
@@ -286,7 +286,7 @@ const PART_A: CatalogControl[] = [
 			},
 		],
 		auditQuestions: [
-			"Wie erfahren Sie von neuen aufsichtlichen Anforderungen und wer bewertet sie?",
+			"Wie erfährst du von neuen aufsichtlichen Anforderungen und wer bewertet sie?",
 		],
 		testMethodHint: "interview",
 		sortOrder: next(),
@@ -707,7 +707,7 @@ const PART_A: CatalogControl[] = [
 			},
 		],
 		auditQuestions: [
-			"Welche Dienstleister stützen Ihre kritischen Funktionen und wo steht das?",
+			"Welche Dienstleister stützen deine kritischen Funktionen und wo steht das?",
 		],
 		testMethodHint: "inspection",
 		sortOrder: next(),
@@ -780,7 +780,7 @@ const PART_A: CatalogControl[] = [
 		kind: "technical",
 		evidenceHints: ["DLP-Regeln", "Export-Alarme", "Auditierte Downloads"],
 		auditQuestions: [
-			"Wie würden Sie einen Massenexport von Kundendaten bemerken?",
+			"Wie würdest du einen Massenexport von Kundendaten bemerken?",
 		],
 		testMethodHint: "automated",
 		sortOrder: next(),
@@ -1242,7 +1242,7 @@ const PART_B: CatalogControl[] = [
 		kind: "technical",
 		evidenceHints: ["Baselines", "IaC-Repository", "Drift-Reports"],
 		auditQuestions: [
-			"Woran erkennen Sie, dass ein Server von der Baseline abweicht?",
+			"Woran erkennst du, dass ein Server von der Baseline abweicht?",
 		],
 		testMethodHint: "automated",
 		sortOrder: next(),
@@ -1374,7 +1374,7 @@ const PART_B: CatalogControl[] = [
 			},
 		],
 		auditQuestions: [
-			"Wie beweisen Sie, dass ein Audit-Eintrag nachträglich nicht verändert wurde?",
+			"Wie beweist du, dass ein Audit-Eintrag nachträglich nicht verändert wurde?",
 		],
 		testMethodHint: "reperformance",
 		sortOrder: next(),
@@ -1468,7 +1468,7 @@ const PART_B: CatalogControl[] = [
 			"DNS-/Mail-Sicherheit (SPF, DKIM, DMARC)",
 		],
 		auditQuestions: [
-			"Welche Sicherheitszusagen haben Ihre Netzdienstleister gemacht?",
+			"Welche Sicherheitszusagen haben deine Netzdienstleister gemacht?",
 		],
 		testMethodHint: "inspection",
 		sortOrder: next(),
@@ -1583,7 +1583,7 @@ const PART_B: CatalogControl[] = [
 			},
 		],
 		auditQuestions: [
-			"Wie schnell erfahren Sie von einer kompromittierten Abhängigkeit?",
+			"Wie schnell erfährst du von einer kompromittierten Abhängigkeit?",
 		],
 		testMethodHint: "automated",
 		sortOrder: next(),
@@ -1671,7 +1671,7 @@ const PART_B: CatalogControl[] = [
 			"Attestierung",
 		],
 		auditQuestions: [
-			"Wurde Ihr Institut für TLPT benannt? Wo ist das dokumentiert?",
+			"Wurde dein Institut für TLPT benannt? Wo ist das dokumentiert?",
 		],
 		testMethodHint: "tlpt",
 		sortOrder: next(),
@@ -1736,7 +1736,7 @@ const PART_B: CatalogControl[] = [
 			"Zertifikate (SOC 2, ISAE 3402, C5)",
 		],
 		auditQuestions: [
-			"Welche Prüfung ging dem Vertrag mit Ihrem Hosting-Anbieter voraus?",
+			"Welche Prüfung ging dem Vertrag mit deinem Hosting-Anbieter voraus?",
 		],
 		testMethodHint: "inspection",
 		sortOrder: next(),
@@ -1773,7 +1773,7 @@ const PART_B: CatalogControl[] = [
 		kind: "process",
 		evidenceHints: ["Jährliche Bewertungen", "Prüfberichte", "Eskalationen"],
 		auditQuestions: [
-			"Wann wurde Ihr kritischster Dienstleister zuletzt bewertet?",
+			"Wann wurde dein kritischster Dienstleister zuletzt bewertet?",
 		],
 		testMethodHint: "inspection",
 		sortOrder: next(),
@@ -1788,7 +1788,7 @@ const PART_B: CatalogControl[] = [
 		kind: "documentation",
 		evidenceHints: ["Exit-Pläne", "Testnachweise", "Kündigungsrechte"],
 		auditQuestions: [
-			"Wie lange bräuchten Sie, um den Hosting-Anbieter zu wechseln?",
+			"Wie lange bräuchtest du, um den Hosting-Anbieter zu wechseln?",
 		],
 		testMethodHint: "inspection",
 		sortOrder: next(),
@@ -1863,7 +1863,7 @@ const PART_B: CatalogControl[] = [
 			},
 		],
 		auditQuestions: [
-			"Zeigen Sie die letzten drei Vorfälle vom Eingang bis zum Abschluss.",
+			"Zeig die letzten drei Vorfälle vom Eingang bis zum Abschluss.",
 		],
 		testMethodHint: "inspection",
 		sortOrder: next(),
@@ -1884,7 +1884,7 @@ const PART_B: CatalogControl[] = [
 				source: "EBA GL",
 			},
 		],
-		auditQuestions: ["Wie entscheiden Sie, ob ein Vorfall schwerwiegend ist?"],
+		auditQuestions: ["Wie entscheidest du, ob ein Vorfall schwerwiegend ist?"],
 		testMethodHint: "reperformance",
 		sortOrder: next(),
 	},
@@ -1942,7 +1942,7 @@ const PART_B: CatalogControl[] = [
 			"Abgeleitete Massnahmen",
 		],
 		auditQuestions: [
-			"Was haben Sie aus dem letzten schwerwiegenden Vorfall geändert?",
+			"Was hast du aus dem letzten schwerwiegenden Vorfall geändert?",
 		],
 		testMethodHint: "inspection",
 		sortOrder: next(),
@@ -1960,7 +1960,7 @@ const PART_B: CatalogControl[] = [
 			"Retainer-Vertrag",
 			"Chain-of-Custody-Formulare",
 		],
-		auditQuestions: ["Wie sichern Sie Beweise, ohne sie zu verändern?"],
+		auditQuestions: ["Wie sicherst du Beweise, ohne sie zu verändern?"],
 		testMethodHint: "inspection",
 		sortOrder: next(),
 	},
@@ -2088,7 +2088,7 @@ const PART_B: CatalogControl[] = [
 			"Einberufungsprotokolle",
 		],
 		auditQuestions: [
-			"Wer ruft den Krisenstab ein und wie erreichen Sie ihn ohne Firmen-IT?",
+			"Wer ruft den Krisenstab ein und wie erreichst du ihn ohne Firmen-IT?",
 		],
 		testMethodHint: "bcm_exercise",
 		sortOrder: next(),

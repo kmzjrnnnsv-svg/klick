@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { CRITICALITY, ROLE_FUNCTIONS } from "@/db/schema/enums";
+import {
+	CRITICALITY,
+	ENTITY_KINDS,
+	NC_PRIORITIES,
+	ROLE_FUNCTIONS,
+} from "@/db/schema/enums";
 import { NONCONFORMITY_STATUSES } from "@/lib/entities/nonconformity";
 import { PROCESS_STATUSES } from "@/lib/entities/process";
 import { longText, shortText, uuid } from "./common";
@@ -252,7 +257,7 @@ export const resolutionSchema = z.object({
 	date: isoDate,
 	legalBasis: z.string().max(300).optional(),
 	requiredCode: z.string().max(60).nullable().optional(),
-	linkedEntityType: z.string().max(40).nullable().optional(),
+	linkedEntityType: z.enum(ENTITY_KINDS).nullable().optional(),
 	linkedEntityId: uuid.nullable().optional(),
 	attendeeUserIds: z.array(uuid).max(50).optional(),
 	minutesEvidenceId: uuid.nullable().optional(),
@@ -389,6 +394,12 @@ export const nonconformitySchema = z.object({
 	effectivenessCheckAt: optionalDate,
 });
 
+export const nonconformityPrioritySchema = z.object({
+	nonconformityId: uuid,
+	priority: z.enum(NC_PRIORITIES).nullable(),
+	note: z.string().trim().max(2000).optional(),
+});
+
 export const setNonconformityStatusSchema = z.object({
 	nonconformityId: uuid,
 	status: z.enum(NONCONFORMITY_STATUSES),
@@ -423,10 +434,14 @@ export const reviewInputsSchema = z.object({
 export const completeReviewSchema = z.object({
 	reviewId: uuid,
 	status: z.enum(["planned", "held", "done"]),
+	// Ergebnisse der Bewertung: Aufgabe (Maßnahme), Beschluss (ins
+	// Beschlussregister mit Freigabe) oder Abweichung (CAPA, ISO 27001 10.2).
 	actions: z
 		.array(
 			z.object({
+				kind: z.enum(["task", "resolution", "nonconformity"]).default("task"),
 				title: shortText,
+				text: z.string().trim().max(5000).optional(),
 				assigneeUserId: uuid.nullable().optional(),
 				dueAt: optionalDate,
 			}),

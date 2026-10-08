@@ -47,7 +47,7 @@ const CLAUSES: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["Kontextanalyse (SWOT/PESTEL)"],
 		auditQuestions: [
-			"Welche internen und externen Themen beeinflussen Ihr ISMS, und wo sind sie dokumentiert?",
+			"Welche internen und externen Themen beeinflussen dein ISMS, und wo sind sie dokumentiert?",
 			"Wann wurde die Kontextanalyse zuletzt überprüft?",
 		],
 		pitfalls: [
@@ -73,7 +73,7 @@ const CLAUSES: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["Stakeholder- und Rechtsregister"],
 		auditQuestions: [
-			"Welche interessierten Parteien haben Sie identifiziert, und welche Anforderungen stellen sie an die Informationssicherheit?",
+			"Welche interessierten Parteien hast du identifiziert, und welche Anforderungen stellen sie an die Informationssicherheit?",
 		],
 		pitfalls: [
 			"Aufsichtsbehörden werden als Partei genannt, ihre konkreten Anforderungen (Meldepflichten, Auslagerungsanzeigen) aber nicht abgeleitet.",
@@ -125,7 +125,7 @@ const CLAUSES: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["ISMS-Handbuch", "Prozesslandkarte"],
 		auditQuestions: [
-			"Welche Prozesse bilden Ihr ISMS, und wie hängen sie zusammen?",
+			"Welche Prozesse bilden dein ISMS, und wie hängen sie zusammen?",
 		],
 		recommendations: [
 			{
@@ -231,7 +231,7 @@ const CLAUSES: Draft[] = [
 		domain: "risk",
 		evidenceHints: ["Risiko- und Chancenregister"],
 		auditQuestions: [
-			"Welche Risiken und Chancen für das ISMS selbst haben Sie identifiziert, und wie behandeln Sie sie?",
+			"Welche Risiken und Chancen für das ISMS selbst hast du identifiziert, und wie behandelst du sie?",
 		],
 		recommendations: [
 			{
@@ -254,8 +254,8 @@ const CLAUSES: Draft[] = [
 		domain: "risk",
 		evidenceHints: ["(P) Risikobeurteilungsmethodik", "(P) Ergebnisse"],
 		auditQuestions: [
-			"Nach welcher Methode beurteilen Sie Risiken, und wo ist die Akzeptanzschwelle festgelegt?",
-			"Wie stellen Sie sicher, dass zwei Bewerter zum gleichen Ergebnis kommen?",
+			"Nach welcher Methode beurteilst du Risiken, und wo ist die Akzeptanzschwelle festgelegt?",
+			"Wie stellst du sicher, dass zwei Bewerter zum gleichen Ergebnis kommen?",
 		],
 		pitfalls: [
 			"Risikokriterien fehlen oder werden je Bewertung neu interpretiert; Ergebnisse sind nicht vergleichbar.",
@@ -321,7 +321,7 @@ const CLAUSES: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["(P) Zielkatalog mit KPIs"],
 		auditQuestions: [
-			"Welche messbaren Sicherheitsziele haben Sie, und wie steht es um die Zielerreichung?",
+			"Welche messbaren Sicherheitsziele hast du, und wie steht es um die Zielerreichung?",
 		],
 		pitfalls: ["Ziele sind Absichtserklärungen ohne Messgröße und Termin."],
 		recommendations: [
@@ -345,7 +345,7 @@ const CLAUSES: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["Change-Protokoll ISMS"],
 		auditQuestions: [
-			"Wie planen und dokumentieren Sie Änderungen am ISMS, z. B. bei neuem Scope oder neuer Lizenzstufe?",
+			"Wie planst und dokumentierst du Änderungen am ISMS, z. B. bei neuem Scope oder neuer Lizenzstufe?",
 		],
 		recommendations: [
 			{
@@ -390,7 +390,7 @@ const CLAUSES: Draft[] = [
 		domain: "hr",
 		evidenceHints: ["(P) Qualifikationsnachweise"],
 		auditQuestions: [
-			"Wie stellen Sie die Kompetenz von ISB, Administratoren und Geschäftsleitung sicher, und welche Nachweise liegen vor?",
+			"Wie stellst du die Kompetenz von ISB, Administratoren und Geschäftsleitung sicher, und welche Nachweise liegen vor?",
 		],
 		pitfalls: [
 			"Zertifikate sind vorhanden, aber nicht mit den Kompetenzanforderungen der Rolle verknüpft.",
@@ -416,7 +416,7 @@ const CLAUSES: Draft[] = [
 		domain: "hr",
 		evidenceHints: ["Awareness-Nachweise"],
 		auditQuestions: [
-			"Wie stellen Sie sicher, dass alle Mitarbeitenden die Leitlinie und ihre Pflichten kennen?",
+			"Wie stellst du sicher, dass alle Mitarbeitenden die Leitlinie und ihre Pflichten kennen?",
 		],
 		recommendations: [
 			{
@@ -462,7 +462,7 @@ const CLAUSES: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["(P) Dokumentenlenkungsregel"],
 		auditQuestions: [
-			"Wie stellen Sie sicher, dass nur die freigegebene Version einer Richtlinie gilt, und wer darf Dokumente ändern?",
+			"Wie stellst du sicher, dass nur die freigegebene Version einer Richtlinie gilt, und wer darf Dokumente ändern?",
 		],
 		pitfalls: [
 			"Richtlinien liegen als Office-Dateien in verschiedenen Versionen auf Laufwerken; niemand weiß, welche gilt.",
@@ -488,12 +488,12 @@ const CLAUSES: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["Betriebsdokumentation"],
 		auditQuestions: [
-			"Welche ISMS-Prozesse werden extern erbracht, und wie steuern Sie diese?",
+			"Welche ISMS-Prozesse werden extern erbracht, und wie steuerst du diese?",
 		],
 		recommendations: [
 			{
 				level: "should",
-				text: "Für jeden ISMS-Prozess Kriterien (SLA, KPI) festlegen, an denen Sie seine Steuerung nachweisen.",
+				text: "Für jeden ISMS-Prozess Kriterien (SLA, KPI) festlegen, an denen du seine Steuerung nachweist.",
 				source: "intern",
 			},
 		],
@@ -560,7 +560,7 @@ const CLAUSES: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["(P) Messergebnisse", "KPI-Report"],
 		auditQuestions: [
-			"Welche Kennzahlen messen Sie, wie oft, und wie fließen die Ergebnisse in Entscheidungen ein?",
+			"Welche Kennzahlen misst du, wie oft, und wie fließen die Ergebnisse in Entscheidungen ein?",
 		],
 		pitfalls: [
 			"Es werden Daten gesammelt, aber nie analysiert oder mit Zielwerten verglichen.",
@@ -586,7 +586,7 @@ const CLAUSES: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["(P) Auditprogramm und -berichte"],
 		auditQuestions: [
-			"Wie stellen Sie die Unabhängigkeit der internen Auditoren sicher?",
+			"Wie stellst du die Unabhängigkeit der internen Auditoren sicher?",
 			"Deckt das Auditprogramm alle Bereiche des ISMS über den Zertifizierungszyklus ab?",
 		],
 		pitfalls: ["ISB auditiert sein eigenes ISMS."],
@@ -644,7 +644,7 @@ const CLAUSES: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["Verbesserungslog"],
 		auditQuestions: [
-			"Welche Verbesserungen haben Sie im letzten Jahr umgesetzt, und woher kamen die Anstöße?",
+			"Welche Verbesserungen hast du im letzten Jahr umgesetzt, und woher kamen die Anstöße?",
 		],
 		recommendations: [
 			{
@@ -667,7 +667,7 @@ const CLAUSES: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["(P) Nachweis Nichtkonformitäten und Korrekturen"],
 		auditQuestions: [
-			"Wie behandeln Sie Nichtkonformitäten, und wie prüfen Sie die Wirksamkeit der Korrekturmaßnahmen?",
+			"Wie behandelst du Nichtkonformitäten, und wie prüfst du die Wirksamkeit der Korrekturmaßnahmen?",
 		],
 		pitfalls: [
 			"Symptom behoben, Ursache nicht analysiert; dasselbe Finding kommt im nächsten Audit wieder.",
@@ -738,7 +738,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["SoD-Matrix"],
 		auditQuestions: [
-			"Welche unvereinbaren Funktionen haben Sie identifiziert, und wie ist die Trennung technisch durchgesetzt?",
+			"Welche unvereinbaren Funktionen hast du identifiziert, und wie ist die Trennung technisch durchgesetzt?",
 		],
 		pitfalls: [
 			"Ein Administrator kann Zahlungen auslösen, freigeben und die Protokolle löschen.",
@@ -785,7 +785,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["Behördenliste (BaFin, Bundesbank, BSI, FIU, LKA)"],
 		auditQuestions: [
-			"Wen kontaktieren Sie bei einem Cyberangriff, und innerhalb welcher Fristen?",
+			"Wen kontaktierst du bei einem Cyberangriff, und innerhalb welcher Fristen?",
 		],
 		pitfalls: [
 			"Behördenliste existiert, aber Meldeportale und Zugangsdaten sind nicht eingerichtet.",
@@ -803,7 +803,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["Mitgliedschaften"],
 		auditQuestions: [
-			"In welchen Fachgremien oder Informationsnetzwerken sind Sie aktiv?",
+			"In welchen Fachgremien oder Informationsnetzwerken bist du aktiv?",
 		],
 		relatedRequirements: ["dora:Art.45", "nis2:Art.29"],
 		tools: tools(["Allianz für Cybersicherheit", "FS-ISAC", "Bitkom"]),
@@ -819,7 +819,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "governance",
 		evidenceHints: ["Threat-Intel-Prozess"],
 		auditQuestions: [
-			"Welche Bedrohungsquellen werten Sie aus, und wie fließen Erkenntnisse in Maßnahmen ein?",
+			"Welche Bedrohungsquellen wertest du aus, und wie fließen Erkenntnisse in Maßnahmen ein?",
 		],
 		pitfalls: [
 			"Newsletter-Abonnements ohne Bewertung und ohne dokumentierte Reaktion.",
@@ -870,7 +870,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "asset",
 		evidenceHints: ["Asset-Inventar"],
 		auditQuestions: [
-			"Wie vollständig und aktuell ist Ihr Asset-Inventar, und wer ist Eigentümer der kritischen Werte?",
+			"Wie vollständig und aktuell ist dein Asset-Inventar, und wer ist Eigentümer der kritischen Werte?",
 		],
 		pitfalls: [
 			"Inventar erfasst nur Laptops; Cloud-Ressourcen, SaaS-Dienste und Datenbestände fehlen.",
@@ -914,7 +914,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "asset",
 		evidenceHints: ["Austrittscheckliste"],
 		auditQuestions: [
-			"Wie stellen Sie sicher, dass beim Austritt alle Geräte und Zugangsmittel zurückgegeben werden?",
+			"Wie stellst du sicher, dass beim Austritt alle Geräte und Zugangsmittel zurückgegeben werden?",
 		],
 		pitfalls: [
 			"Hardware-Token und Recovery-Codes für Wallets werden bei der Rückgabe vergessen.",
@@ -932,7 +932,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "asset",
 		evidenceHints: ["Klassifizierungsschema"],
 		auditQuestions: [
-			"Welches Klassifizierungsschema nutzen Sie, und wie sind Kunden- und Transaktionsdaten eingestuft?",
+			"Welches Klassifizierungsschema nutzt du, und wie sind Kunden- und Transaktionsdaten eingestuft?",
 		],
 		recommendations: [
 			{
@@ -995,7 +995,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "access",
 		evidenceHints: ["Zugangsrichtlinie"],
 		auditQuestions: [
-			"Nach welchen Regeln werden Zugänge vergeben, und wie setzen Sie Need-to-know durch?",
+			"Nach welchen Regeln werden Zugänge vergeben, und wie setzt du Need-to-know durch?",
 		],
 		pitfalls: [
 			"Zugänge werden per Zuruf vergeben; es gibt kein Rollenkonzept.",
@@ -1101,7 +1101,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "supplier",
 		evidenceHints: ["Lieferantenrichtlinie"],
 		auditQuestions: [
-			"Wie bewerten Sie das Sicherheitsrisiko neuer Lieferanten, und welche Lieferanten gelten als kritisch?",
+			"Wie bewertest du das Sicherheitsrisiko neuer Lieferanten, und welche Lieferanten gelten als kritisch?",
 		],
 		pitfalls: [
 			"SaaS-Tools werden per Kreditkarte ohne Sicherheitsprüfung eingeführt (Schatten-IT).",
@@ -1137,7 +1137,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "supplier",
 		evidenceHints: ["Vertragsklauseln"],
 		auditQuestions: [
-			"Enthalten Ihre Verträge mit IKT-Dienstleistern Sicherheits-, Melde- und Prüfrechte?",
+			"Enthalten deine Verträge mit IKT-Dienstleistern Sicherheits-, Melde- und Prüfrechte?",
 		],
 		pitfalls: [
 			"Standard-AGB des Cloud-Anbieters akzeptiert, ohne DORA-Pflichtklauseln nachzuverhandeln.",
@@ -1155,7 +1155,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "supplier",
 		evidenceHints: ["Sub-Dienstleister-Analyse"],
 		auditQuestions: [
-			"Kennen Sie die wesentlichen Unterauftragnehmer Ihrer kritischen Dienstleister, und wie bewerten Sie Konzentrationsrisiken?",
+			"Kennst du die wesentlichen Unterauftragnehmer deiner kritischen Dienstleister, und wie bewertest du Konzentrationsrisiken?",
 		],
 		relatedRequirements: [
 			"dora:Art.28(4-6)",
@@ -1176,7 +1176,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "supplier",
 		evidenceHints: ["Jährliche Reviews", "SOC-2-/ISAE-3402-Berichte"],
 		auditQuestions: [
-			"Wie überwachen Sie Leistung und Sicherheit Ihrer kritischen Dienstleister im laufenden Betrieb?",
+			"Wie überwachst du Leistung und Sicherheit deiner kritischen Dienstleister im laufenden Betrieb?",
 		],
 		pitfalls: [
 			"Prüfberichte werden abgelegt, aber nie gelesen; Ausnahmen bleiben unbewertet.",
@@ -1195,7 +1195,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "supplier",
 		evidenceHints: ["Cloud-Richtlinie", "Exit-Plan"],
 		auditQuestions: [
-			"Welche Cloud-Dienste nutzen Sie, wo liegen die Daten, und wie sieht Ihr Exit-Plan für kritische Dienste aus?",
+			"Welche Cloud-Dienste nutzt du, wo liegen die Daten, und wie sieht dein Exit-Plan für kritische Dienste aus?",
 		],
 		pitfalls: [
 			"Exit-Plan ist eine Absichtserklärung ohne getesteten Export und ohne Alternativanbieter.",
@@ -1264,7 +1264,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "incident",
 		evidenceHints: ["Klassifizierungsschema"],
 		auditQuestions: [
-			"Nach welchen Kriterien entscheiden Sie, ob ein Ereignis ein Vorfall ist und ob er meldepflichtig wird?",
+			"Nach welchen Kriterien entscheidest du, ob ein Ereignis ein Vorfall ist und ob er meldepflichtig wird?",
 		],
 		recommendations: [
 			{
@@ -1337,7 +1337,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "incident",
 		evidenceHints: ["Forensik-Leitfaden"],
 		auditQuestions: [
-			"Wie sichern Sie Beweise gerichtsfest, und wer unterstützt Sie bei forensischen Analysen?",
+			"Wie sicherst du Beweise gerichtsfest, und wer unterstützt dich bei forensischen Analysen?",
 		],
 		pitfalls: [
 			"Kompromittierte Systeme werden neu aufgesetzt, bevor Beweise gesichert sind.",
@@ -1388,7 +1388,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "continuity",
 		evidenceHints: ["BIA", "Wiederanlauftests"],
 		auditQuestions: [
-			"Welche RTO/RPO gelten für Ihre kritischen Prozesse, und wann wurde der Wiederanlauf zuletzt getestet?",
+			"Welche RTO/RPO gelten für deine kritischen Prozesse, und wann wurde der Wiederanlauf zuletzt getestet?",
 		],
 		pitfalls: [
 			"Backups vorhanden, aber der Wiederanlauf im Ganzen wurde nie geübt; RTO ist eine Annahme.",
@@ -1424,7 +1424,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "compliance",
 		evidenceHints: ["Rechtskataster"],
 		auditQuestions: [
-			"Welche gesetzlichen und aufsichtlichen Anforderungen betreffen Ihr ISMS, und wie halten Sie das Kataster aktuell?",
+			"Welche gesetzlichen und aufsichtlichen Anforderungen betreffen dein ISMS, und wie hältst du das Kataster aktuell?",
 		],
 		pitfalls: [
 			"Rechtskataster listet Gesetze, aber keine konkreten Pflichten und keine Verantwortlichen.",
@@ -1455,7 +1455,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "compliance",
 		evidenceHints: ["Lizenzverzeichnis"],
 		auditQuestions: [
-			"Wie stellen Sie sicher, dass eingesetzte Software lizenzkonform genutzt wird?",
+			"Wie stellst du sicher, dass eingesetzte Software lizenzkonform genutzt wird?",
 		],
 		tools: tools(["Lansweeper", "FlexNet"]),
 	},
@@ -1470,7 +1470,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "compliance",
 		evidenceHints: ["Aufbewahrungs-/Löschkonzept"],
 		auditQuestions: [
-			"Welche Aufbewahrungsfristen gelten für Ihre Aufzeichnungen, und wie stellen Sie deren Unveränderbarkeit sicher?",
+			"Welche Aufbewahrungsfristen gelten für deine Aufzeichnungen, und wie stellst du deren Unveränderbarkeit sicher?",
 		],
 		pitfalls: [
 			"Aufbewahrungsfristen aus GwG und DSGVO widersprechen sich und sind im Konzept nicht aufgelöst.",
@@ -1511,7 +1511,7 @@ const ANNEX_A5: Draft[] = [
 		domain: "compliance",
 		evidenceHints: ["Externe Audits"],
 		auditQuestions: [
-			"Wer hat Ihr ISMS zuletzt unabhängig überprüft, und welche Feststellungen gab es?",
+			"Wer hat dein ISMS zuletzt unabhängig überprüft, und welche Feststellungen gab es?",
 		],
 		relatedRequirements: ["dora:Art.6(6)", "nis2:Art.21(2)(f)", "nis2:Art.24"],
 		tools: tools(["Zertifizierer (TÜV SÜD, DEKRA, DQS)"]),
@@ -1571,7 +1571,7 @@ const ANNEX_A6: Draft[] = [
 			"Bonitätsauskunft für Schlüsselpersonal",
 		],
 		auditQuestions: [
-			"Welche Überprüfungen führen Sie vor der Einstellung durch, und für welche Rollen gelten erweiterte Prüfungen?",
+			"Welche Überprüfungen führst du vor der Einstellung durch, und für welche Rollen gelten erweiterte Prüfungen?",
 		],
 		pitfalls: [
 			"Screening nur bei Festangestellten, nicht bei Freelancern und Dienstleister-Personal mit Admin-Rechten.",
@@ -1656,7 +1656,7 @@ const ANNEX_A6: Draft[] = [
 		domain: "hr",
 		evidenceHints: ["Austrittsprozess"],
 		auditQuestions: [
-			"Wie stellen Sie beim Austritt sicher, dass Pflichten kommuniziert und Zugänge entzogen werden?",
+			"Wie stellst du beim Austritt sicher, dass Pflichten kommuniziert und Zugänge entzogen werden?",
 		],
 		pitfalls: [
 			"Rollenwechsel (Mover) werden nicht als Anlass zur Rechteprüfung behandelt; Rechte häufen sich an.",
@@ -1780,7 +1780,7 @@ const ANNEX_A7: Draft[] = [
 		domain: "physical",
 		evidenceHints: ["Zutrittsprotokolle"],
 		auditQuestions: [
-			"Wie würden Sie einen unbefugten Zutritt außerhalb der Geschäftszeiten bemerken?",
+			"Wie würdest du einen unbefugten Zutritt außerhalb der Geschäftszeiten bemerken?",
 		],
 		pitfalls: [
 			"Videoüberwachung ohne Datenschutzprüfung und ohne Löschfristen.",
@@ -1798,7 +1798,7 @@ const ANNEX_A7: Draft[] = [
 		domain: "physical",
 		evidenceHints: ["Risikoanalyse Standort"],
 		auditQuestions: [
-			"Welche physischen Bedrohungen haben Sie für Ihre Standorte und Rechenzentren bewertet?",
+			"Welche physischen Bedrohungen hast du für deine Standorte und Rechenzentren bewertet?",
 		],
 		tools: tools([
 			"Rechenzentrum mit ISO 27001/EN 50600 (Equinix FR, Digital Realty, Telekom)",
@@ -1829,7 +1829,7 @@ const ANNEX_A7: Draft[] = [
 		domain: "physical",
 		evidenceHints: ["Clean-Desk-Richtlinie"],
 		auditQuestions: [
-			"Ist die Bildschirmsperre technisch erzwungen, und wie prüfen Sie die Clean-Desk-Regel?",
+			"Ist die Bildschirmsperre technisch erzwungen, und wie prüfst du die Clean-Desk-Regel?",
 		],
 	},
 	{
@@ -1843,7 +1843,7 @@ const ANNEX_A7: Draft[] = [
 		domain: "physical",
 		evidenceHints: ["Aufstellungsplan"],
 		auditQuestions: [
-			"Wo stehen Ihre kritischen Geräte, und wie sind sie vor Umwelteinflüssen und Zugriff geschützt?",
+			"Wo stehen deine kritischen Geräte, und wie sind sie vor Umwelteinflüssen und Zugriff geschützt?",
 		],
 	},
 	{
@@ -1890,7 +1890,7 @@ const ANNEX_A7: Draft[] = [
 		domain: "physical",
 		evidenceHints: ["USV-Nachweise"],
 		auditQuestions: [
-			"Wie ist die Stromversorgung Ihrer kritischen Systeme abgesichert, und wie weisen Sie das nach?",
+			"Wie ist die Stromversorgung deiner kritischen Systeme abgesichert, und wie weist du das nach?",
 		],
 		tools: tools(["RZ-Testat"]),
 	},
@@ -1905,7 +1905,7 @@ const ANNEX_A7: Draft[] = [
 		domain: "physical",
 		evidenceHints: ["Netzplan"],
 		auditQuestions: [
-			"Wie ist die Verkabelung in Ihren Räumen vor Zugriff und Beschädigung geschützt?",
+			"Wie ist die Verkabelung in deinen Räumen vor Zugriff und Beschädigung geschützt?",
 		],
 		tools: tools(["RZ-Testat"]),
 	},
@@ -1934,7 +1934,7 @@ const ANNEX_A7: Draft[] = [
 		domain: "physical",
 		evidenceHints: ["Löschzertifikate"],
 		auditQuestions: [
-			"Wie weisen Sie nach, dass ausgemusterte Geräte sicher gelöscht wurden?",
+			"Wie weist du nach, dass ausgemusterte Geräte sicher gelöscht wurden?",
 		],
 		pitfalls: [
 			"Alte Laptops werden an Mitarbeitende verkauft, ohne dokumentierte Löschung.",
@@ -2007,7 +2007,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "access",
 		evidenceHints: ["Berechtigungskonzept"],
 		auditQuestions: [
-			"Wie ist der Zugriff auf Kunden- und Transaktionsdaten in Ihren Anwendungen beschränkt?",
+			"Wie ist der Zugriff auf Kunden- und Transaktionsdaten in deinen Anwendungen beschränkt?",
 		],
 		relatedRequirements: ["dora:Art.9(4)(c)"],
 		tools: tools(["Entra ID", "Okta"]),
@@ -2072,7 +2072,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "operations",
 		evidenceHints: ["Kapazitätsplanung"],
 		auditQuestions: [
-			"Wie überwachen Sie Kapazitäten, und wie planen Sie für Wachstum und Lastspitzen?",
+			"Wie überwachst du Kapazitäten, und wie planst du für Wachstum und Lastspitzen?",
 		],
 		relatedRequirements: ["dora:Art.7"],
 		tools: tools(["Datadog", "Grafana", "AWS CloudWatch"]),
@@ -2088,7 +2088,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "operations",
 		evidenceHints: ["EDR-Abdeckung"],
 		auditQuestions: [
-			"Wie hoch ist die EDR-Abdeckung Ihrer Geräte, und wie reagieren Sie auf Alarme?",
+			"Wie hoch ist die EDR-Abdeckung deiner Geräte, und wie reagierst du auf Alarme?",
 		],
 		pitfalls: [
 			"Server und Linux-Systeme ohne EDR, weil nur Clients betrachtet wurden.",
@@ -2111,7 +2111,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "operations",
 		evidenceHints: ["Scan-Berichte", "Patch-SLAs"],
 		auditQuestions: [
-			"Wie schnell schließen Sie kritische Schwachstellen, und wie weisen Sie das nach?",
+			"Wie schnell schließt du kritische Schwachstellen, und wie weist du das nach?",
 			"Welche Systeme sind vom Scan ausgenommen, und warum?",
 		],
 		pitfalls: [
@@ -2154,7 +2154,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "operations",
 		evidenceHints: ["Baselines (CIS)"],
 		auditQuestions: [
-			"Welche Härtungsbaselines gelten, und wie erkennen Sie Abweichungen?",
+			"Welche Härtungsbaselines gelten, und wie erkennst du Abweichungen?",
 		],
 		pitfalls: [
 			"Cloud-Ressourcen per Konsole angelegt; Konfigurationen weichen unbemerkt von der Baseline ab.",
@@ -2181,7 +2181,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "asset",
 		evidenceHints: ["Löschkonzept (DIN 66398)"],
 		auditQuestions: [
-			"Nach welchen Regeln löschen Sie Daten, und wie weisen Sie die Löschung nach?",
+			"Nach welchen Regeln löschst du Daten, und wie weist du die Löschung nach?",
 		],
 		pitfalls: ["Backups und Logs werden bei der Löschung vergessen."],
 		tools: tools(["Blancco", "Cloud-Lifecycle-Policies"]),
@@ -2212,7 +2212,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "asset",
 		evidenceHints: ["DLP-Regeln"],
 		auditQuestions: [
-			"Wie verhindern oder erkennen Sie den Abfluss vertraulicher Daten per E-Mail, Cloud oder USB?",
+			"Wie verhinderst oder erkennst du den Abfluss vertraulicher Daten per E-Mail, Cloud oder USB?",
 		],
 		pitfalls: [
 			"DLP nur im Monitoring-Modus eingeführt und nie scharf geschaltet.",
@@ -2230,7 +2230,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "continuity",
 		evidenceHints: ["Backup-Konzept", "Restore-Tests"],
 		auditQuestions: [
-			"Wann haben Sie zuletzt eine Wiederherstellung aus dem Backup getestet, und wie lange dauerte sie?",
+			"Wann hast du zuletzt eine Wiederherstellung aus dem Backup getestet, und wie lange dauerte sie?",
 		],
 		pitfalls: [
 			"Backups liegen im selben Cloud-Account mit denselben Admin-Rechten wie die Produktion.",
@@ -2279,7 +2279,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "operations",
 		evidenceHints: ["Logging-Konzept"],
 		auditQuestions: [
-			"Welche Ereignisse protokollieren Sie, wie lange, und wie sind Protokolle vor Veränderung geschützt?",
+			"Welche Ereignisse protokollierst du, wie lange, und wie sind Protokolle vor Veränderung geschützt?",
 		],
 		pitfalls: [
 			"Logs liegen nur lokal auf den Systemen und gehen bei einer Kompromittierung mit verloren.",
@@ -2317,7 +2317,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "operations",
 		evidenceHints: ["SOC-Nachweise"],
 		auditQuestions: [
-			"Wer überwacht Ihre Systeme außerhalb der Geschäftszeiten, und wie schnell wird auf Alarme reagiert?",
+			"Wer überwacht deine Systeme außerhalb der Geschäftszeiten, und wie schnell wird auf Alarme reagiert?",
 		],
 		pitfalls: ["SIEM eingeführt, aber niemand bearbeitet die Alarme."],
 		recommendations: [
@@ -2346,7 +2346,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "operations",
 		evidenceHints: ["NTP-Konfiguration"],
 		auditQuestions: [
-			"Gegen welche Zeitquelle synchronisieren Ihre Systeme, und wie wird das überwacht?",
+			"Gegen welche Zeitquelle synchronisieren deine Systeme, und wie wird das überwacht?",
 		],
 		tools: tools(["PTB-NTP", "AWS Time Sync"]),
 	},
@@ -2393,7 +2393,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "network",
 		evidenceHints: ["Netzsicherheitskonzept"],
 		auditQuestions: [
-			"Wie sind Ihre Netzgrenzen gesichert, und wer darf Firewall-Regeln ändern?",
+			"Wie sind deine Netzgrenzen gesichert, und wer darf Firewall-Regeln ändern?",
 		],
 		pitfalls: [
 			"Firewall-Regeln wachsen ungeprüft an; niemand weiß, welche noch nötig sind.",
@@ -2420,7 +2420,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "network",
 		evidenceHints: ["SLA-Nachweise"],
 		auditQuestions: [
-			"Welche Netzdienste beziehen Sie extern, und wie überwachen Sie deren Sicherheit und Verfügbarkeit?",
+			"Welche Netzdienste beziehst du extern, und wie überwachst du deren Sicherheit und Verfügbarkeit?",
 		],
 		relatedRequirements: ["dora:Art.9(4)(b)"],
 		tools: tools(["Cloudflare", "Akamai"]),
@@ -2463,7 +2463,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "network",
 		evidenceHints: ["Filterregeln"],
 		auditQuestions: [
-			"Wie schützen Sie Mitarbeitende vor schädlichen Websites, auch außerhalb des Büronetzes?",
+			"Wie schützt du Mitarbeitende vor schädlichen Websites, auch außerhalb des Büronetzes?",
 		],
 		tools: tools(["Cloudflare Gateway", "Zscaler"]),
 	},
@@ -2518,7 +2518,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "development",
 		evidenceHints: ["SDLC-Richtlinie"],
 		auditQuestions: [
-			"Welche Sicherheitsschritte sind in Ihrem Entwicklungsprozess verbindlich, und wie wird deren Durchführung nachgewiesen?",
+			"Welche Sicherheitsschritte sind in deinem Entwicklungsprozess verbindlich, und wie wird deren Durchführung nachgewiesen?",
 		],
 		pitfalls: [
 			"Sicherheitstests sind optional und werden unter Zeitdruck übersprungen.",
@@ -2545,7 +2545,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "development",
 		evidenceHints: ["Anforderungskatalog"],
 		auditQuestions: [
-			"Wo sind die Sicherheitsanforderungen an Ihre Anwendungen festgelegt, und wie werden sie in der Entwicklung berücksichtigt?",
+			"Wo sind die Sicherheitsanforderungen an deine Anwendungen festgelegt, und wie werden sie in der Entwicklung berücksichtigt?",
 		],
 		relatedRequirements: ["nis2:Art.21(2)(e)"],
 		tools: tools(["OWASP ASVS"]),
@@ -2561,7 +2561,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "development",
 		evidenceHints: ["Architekturprinzipien"],
 		auditQuestions: [
-			"Welche Sicherheitsprinzipien gelten für Ihre Architektur, und wann wurde zuletzt ein Threat Modeling durchgeführt?",
+			"Welche Sicherheitsprinzipien gelten für deine Architektur, und wann wurde zuletzt ein Threat Modeling durchgeführt?",
 		],
 		pitfalls: [
 			"Threat Modeling einmal zu Projektstart, nie nach Architekturänderungen.",
@@ -2596,7 +2596,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "development",
 		evidenceHints: ["DAST", "Pentest-Berichte"],
 		auditQuestions: [
-			"Wann wurde Ihr letzter externer Penetrationstest durchgeführt, und wie wurden die Findings behandelt?",
+			"Wann wurde dein letzter externer Penetrationstest durchgeführt, und wie wurden die Findings behandelt?",
 		],
 		pitfalls: [
 			"Pentest-Bericht liegt vor, kritische Findings sind nach einem Jahr noch offen.",
@@ -2633,7 +2633,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "development",
 		evidenceHints: ["Lieferantenvorgaben"],
 		auditQuestions: [
-			"Welche Sicherheitsvorgaben machen Sie externen Entwicklern, und wie prüfen Sie deren Lieferungen?",
+			"Welche Sicherheitsvorgaben machst du externen Entwicklern, und wie prüfst du deren Lieferungen?",
 		],
 		relatedRequirements: ["dora:Art.30", "nis2:Art.21(2)(d)"],
 		tools: tools(["Vertragsklauseln"]),
@@ -2649,7 +2649,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "development",
 		evidenceHints: ["Dev/Test/Prod-Konzept"],
 		auditQuestions: [
-			"Wie sind Ihre Umgebungen getrennt, und wer darf in die Produktion deployen?",
+			"Wie sind deine Umgebungen getrennt, und wer darf in die Produktion deployen?",
 		],
 		pitfalls: ["Produktionsdatenbank-Dump als Testdatenbasis ohne Maskierung."],
 		relatedRequirements: ["dora:Art.9(4)(e)"],
@@ -2693,7 +2693,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "development",
 		evidenceHints: ["Testdatenrichtlinie"],
 		auditQuestions: [
-			"Woher stammen Ihre Testdaten, und wie stellen Sie sicher, dass keine echten Kundendaten verwendet werden?",
+			"Woher stammen deine Testdaten, und wie stellst du sicher, dass keine echten Kundendaten verwendet werden?",
 		],
 		tools: tools(["Tonic.ai"]),
 	},
@@ -2708,7 +2708,7 @@ const ANNEX_A8: Draft[] = [
 		domain: "compliance",
 		evidenceHints: ["Audit-Zugriffsregeln"],
 		auditQuestions: [
-			"Wie stellen Sie sicher, dass Audits und Tests den Produktionsbetrieb nicht gefährden?",
+			"Wie stellst du sicher, dass Audits und Tests den Produktionsbetrieb nicht gefährden?",
 		],
 		relatedRequirements: ["dora:Art.24"],
 	},

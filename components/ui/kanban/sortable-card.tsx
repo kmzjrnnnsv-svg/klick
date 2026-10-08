@@ -22,6 +22,10 @@ export function SortableCard({
 		transition,
 		isDragging,
 	} = useSortable({ id, disabled });
+	// Tastatur-Drag nur, wenn die Karte selbst fokussiert ist: Enter/Space aus
+	// Buttons, Links oder Dialog-Feldern (React-Events bubbeln durch Portale)
+	// sollen klicken bzw. tippen, nicht ziehen.
+	const { onKeyDown, ...pointerListeners } = listeners ?? {};
 	return (
 		<div
 			ref={setNodeRef}
@@ -32,7 +36,10 @@ export function SortableCard({
 				isDragging && "opacity-40",
 			)}
 			{...attributes}
-			{...listeners}
+			{...pointerListeners}
+			onKeyDown={(e) => {
+				if (e.target === e.currentTarget) onKeyDown?.(e);
+			}}
 		>
 			{children}
 		</div>

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { decideApproval, withdrawApproval } from "@/app/actions/approvals";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -29,11 +30,13 @@ export function ApprovalActions({
 
 	function run(decision: "approved" | "rejected" | "changes_requested") {
 		start(async () => {
-			const res = await decideApproval({
-				requestId,
-				decision,
-				note: note || undefined,
-			});
+			const res = await withStepUp(() =>
+				decideApproval({
+					requestId,
+					decision,
+					note: note || undefined,
+				}),
+			);
 			if (!res.ok) {
 				if (res.error === "step_up_required") toast.error(ts("stepUp"));
 				else if (

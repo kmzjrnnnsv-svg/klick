@@ -3,7 +3,12 @@
 import { Plus, Sparkles, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { type ReactNode, useState, useTransition } from "react";
+import {
+	type ComponentProps,
+	type ReactNode,
+	useState,
+	useTransition,
+} from "react";
 import { toast } from "sonner";
 import {
 	applyGovernanceSeed,
@@ -13,6 +18,7 @@ import {
 	upsertInterestedParty,
 	upsertRegulatorInteraction,
 } from "@/app/actions/organisation";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
 import {
@@ -99,18 +105,33 @@ export function FormDialog({
 	);
 }
 
-export function EditTrigger({ label }: { label?: string }) {
+// Trigger für `DialogTrigger asChild`: Radix injiziert onClick, ref, aria-*
+// und data-state — ohne Weitergabe an den Button öffnet der Dialog nie.
+type TriggerProps = Omit<ComponentProps<typeof Button>, "children">;
+
+export function EditTrigger({
+	label,
+	...props
+}: TriggerProps & { label?: string }) {
 	const tc = useTranslations("Common");
 	return (
-		<Button size="sm" variant="ghost" className="normal-case tracking-normal">
+		<Button
+			size="sm"
+			variant="ghost"
+			className="normal-case tracking-normal"
+			{...props}
+		>
 			{label ?? tc("edit")}
 		</Button>
 	);
 }
 
-export function NewTrigger({ label }: { label: string }) {
+export function NewTrigger({
+	label,
+	...props
+}: TriggerProps & { label: string }) {
 	return (
-		<Button size="sm" variant="brown">
+		<Button size="sm" variant="brown" {...props}>
 			<Plus />
 			{label}
 		</Button>
@@ -273,7 +294,7 @@ function useSave<T extends { ok: boolean }>(
 	const [pending, start] = useTransition();
 	const run = (fn: () => Promise<T & { error?: string }>) =>
 		start(async () => {
-			const res = await fn();
+			const res = await withStepUp(fn);
 			if (!res.ok) {
 				toast.error(
 					res.error === "step_up_required" ? t("stepUp") : tc("error"),

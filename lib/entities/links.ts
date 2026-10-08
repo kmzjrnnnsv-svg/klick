@@ -8,6 +8,7 @@ import {
 	incidents,
 	nonconformities,
 	processes,
+	resolutions,
 	risks,
 } from "@/db/schema";
 import type { EntityKind } from "@/db/schema/enums";
@@ -44,6 +45,10 @@ export function entityHref(
 			return "/audits";
 		case "management_review":
 			return "/managementbewertung";
+		case "resolution":
+			return "/beschluesse";
+		case "training":
+			return "/schulungen";
 		case "exception":
 			return "/risiken?tab=ausnahmen";
 		case "provider":
@@ -169,5 +174,17 @@ export async function resolveEntityTitles(
 		for (const r of rows) out.set(`exception:${r.id}`, r.title);
 	}
 	void orgId;
+	if (ids("resolution").length) {
+		const rows = await tx
+			.select({
+				id: resolutions.id,
+				number: resolutions.resolutionNumber,
+				subject: resolutions.subject,
+			})
+			.from(resolutions)
+			.where(inArray(resolutions.id, ids("resolution")));
+		for (const r of rows)
+			out.set(`resolution:${r.id}`, `${r.number} ${r.subject}`);
+	}
 	return out;
 }

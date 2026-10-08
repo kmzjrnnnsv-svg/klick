@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { setMemberAccess } from "@/app/actions/team";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -56,11 +57,13 @@ export function MemberAccessForm({
 					onSubmit={(e) => {
 						e.preventDefault();
 						start(async () => {
-							const res = await setMemberAccess({
-								memberId,
-								accessUntil: until ? new Date(`${until}T23:59:59`) : null,
-								grants: [...picked],
-							});
+							const res = await withStepUp(() =>
+								setMemberAccess({
+									memberId,
+									accessUntil: until ? new Date(`${until}T23:59:59`) : null,
+									grants: [...picked],
+								}),
+							);
 							if (!res.ok)
 								return void toast.error(
 									res.error === "step_up_required" ? t("stepUp") : tc("error"),

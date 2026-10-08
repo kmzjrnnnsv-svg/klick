@@ -15,6 +15,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { NC_PRIORITIES } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
@@ -26,10 +27,19 @@ import { readOrg } from "@/lib/db/with-org";
 import {
 	NONCONFORMITY_STATUS,
 	NONCONFORMITY_STATUSES,
+	NC_PRIORITY_TONE as PRIORITY_TONE,
 } from "@/lib/entities/nonconformity";
 import { NC_SOURCES } from "@/lib/validation/governance";
 
 type Search = Record<string, string | string[] | undefined>;
+const PRIORITY_RANK = {
+	critical: 0,
+	high: 1,
+	medium: 2,
+	low: 3,
+	none: 4,
+} as const;
+
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 export default async function NonconformitiesPage({
@@ -51,6 +61,7 @@ export default async function NonconformitiesPage({
 	const q = one(sp.q)?.toLowerCase();
 	const status = one(sp.status);
 	const source = one(sp.source);
+	const priority = one(sp.priority);
 	const mine = one(sp.mine) === "1";
 	const overdue = one(sp.overdue) === "1";
 	const assessed = rows.map((r) => ({ r, s: capaState(r, now) }));
@@ -60,11 +71,22 @@ export default async function NonconformitiesPage({
 		.filter(({ r }) => !source || r.source === source)
 		.filter(
 			({ r }) =>
+				!priority ||
+				(priority === "none" ? !r.priority : r.priority === priority),
+		)
+		.filter(
+			({ r }) =>
 				!mine ||
 				r.ownerUserId === ctx.userId ||
 				r.assigneeUserId === ctx.userId,
 		)
-		.filter(({ s }) => !overdue || s.overdue || s.effectivenessDue);
+		.filter(({ s }) => !overdue || s.overdue || s.effectivenessDue)
+		// Von der Geschäftsleitung priorisierte zuerst (kritisch → niedrig).
+		.sort(
+			(a, b) =>
+				PRIORITY_RANK[a.r.priority ?? "none"] -
+				PRIORITY_RANK[b.r.priority ?? "none"],
+		);
 	const openCount = rows.filter((r) => r.status !== "closed").length;
 	const overdueCount = assessed.filter(({ s }) => s.overdue).length;
 
@@ -105,6 +127,17 @@ export default async function NonconformitiesPage({
 							})),
 						},
 						{
+							key: "priority",
+							label: t("priority"),
+							options: [
+								...NC_PRIORITIES.map((p) => ({
+									value: p,
+									label: t(`priority_${p}`),
+								})),
+								{ value: "none", label: t("priorityNone") },
+							],
+						},
+						{
 							key: "source",
 							label: t("source"),
 							options: NC_SOURCES.map((s) => ({
@@ -133,6 +166,7 @@ export default async function NonconformitiesPage({
 					<TableHeader>
 						<TableRow>
 							<TableHead className="w-28">{t("code")}</TableHead>
+							<TableHead className="w-28">{t("priority")}</TableHead>
 							<TableHead>{t("titleField")}</TableHead>
 							<TableHead className="w-32">{t("source")}</TableHead>
 							<TableHead className="w-36">{t("owner")}</TableHead>
@@ -151,6 +185,15 @@ export default async function NonconformitiesPage({
 									>
 										{r.code}
 									</Link>
+								</TableCell>
+								<TableCell>
+									{r.priority ? (
+										<Badge variant={PRIORITY_TONE[r.priority]}>
+											{t(`priority_${r.priority}`)}
+										</Badge>
+									) : (
+										<span className="text-muted-foreground text-xs">—</span>
+									)}
 								</TableCell>
 								<TableCell>
 									<Link

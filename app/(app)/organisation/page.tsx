@@ -57,6 +57,7 @@ import {
 	listMembersForPicker,
 	userNames,
 } from "@/lib/compliance/queries";
+import { listAssets } from "@/lib/compliance/queries-p2";
 import {
 	governanceStatus,
 	listCommunications,
@@ -152,7 +153,8 @@ export default async function OrganisationPage({
 						aad: fieldAad("role_assignments", a.id, "fit_proper_checklist"),
 					})),
 				);
-				return { ...base, checklists };
+				const assetRows = await listAssets(tx, ctx.orgId);
+				return { ...base, checklists, assetRows };
 			}
 			case "ziele":
 				return { ...base, objectives: await listObjectives(tx, ctx.orgId) };
@@ -778,6 +780,13 @@ export default async function OrganisationPage({
 						</TableBody>
 					</Table>
 					<p className="text-muted-foreground text-xs">{t("rolesFootnote")}</p>
+					<AssetOwners
+						rows={data.assetRows.filter((a) => a.status !== "retired")}
+						title={t("assetOwnersTitle")}
+						lead={t("assetOwnersLead")}
+						gapLabel={(n) => t("assetOwnersGap", { n })}
+						countLabel={(n) => t("assetOwnersCount", { n })}
+					/>
 				</section>
 			)}
 
@@ -1498,5 +1507,61 @@ export default async function OrganisationPage({
 				</section>
 			)}
 		</>
+	);
+}
+
+// Asset-Verantwortliche (ISO 27001 A.5.9): wer für wie viele Assets
+// verantwortlich ist, und welche Assets noch niemandem gehören.
+function AssetOwners({
+	rows,
+	title,
+	lead,
+	gapLabel,
+	countLabel,
+}: {
+	rows: { id: string; ownerUserId: string | null; ownerName: string | null }[];
+	title: string;
+	lead: string;
+	gapLabel: (n: number) => string;
+	countLabel: (n: number) => string;
+}) {
+	const byOwner = new Map<string, { name: string; n: number }>();
+	for (const a of rows) {
+		if (!a.ownerUserId) continue;
+		const e = byOwner.get(a.ownerUserId) ?? { name: a.ownerName ?? "—", n: 0 };
+		e.n += 1;
+		byOwner.set(a.ownerUserId, e);
+	}
+	const unowned = rows.filter((a) => !a.ownerUserId).length;
+	return (
+		<div className="flex flex-col gap-2 rounded-md border p-3 text-sm">
+			<h3 className="font-medium">{title}</h3>
+			<p className="text-muted-foreground text-xs">{lead}</p>
+			{unowned > 0 && (
+				<Link
+					href="/assets?unowned=1"
+					className="w-fit rounded-md border border-warning/40 bg-warning/5 px-2 py-1 text-warning text-xs hover:underline"
+				>
+					{gapLabel(unowned)}
+				</Link>
+			)}
+			<ul className="flex flex-wrap gap-2">
+				{[...byOwner.entries()]
+					.sort((a, b) => b[1].n - a[1].n)
+					.map(([userId, e]) => (
+						<li key={userId}>
+							<Link
+								href={`/team/${userId}`}
+								className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"
+							>
+								{e.name}
+								<span className="text-muted-foreground">
+									· {countLabel(e.n)}
+								</span>
+							</Link>
+						</li>
+					))}
+			</ul>
+		</div>
 	);
 }

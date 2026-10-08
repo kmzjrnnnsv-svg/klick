@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { importProvidersCsv } from "@/app/actions/imports";
 import { CsvImport } from "@/components/entity/csv-import";
 import { EmptyState } from "@/components/entity/empty-state";
+import { LinkChips } from "@/components/entity/link-chips";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
@@ -24,6 +25,7 @@ import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { TOOL_LANDSCAPE } from "@/lib/compliance/catalog/tool-landscape";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
+import { linkIndex } from "@/lib/compliance/queries-links";
 import { listProviders } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 
@@ -40,9 +42,10 @@ export default async function ProvidersPage({
 	const sp = await searchParams;
 	const t = await getTranslations("Providers");
 	const te = await getTranslations("Entity");
-	const { rows, members } = await readOrg(toOrgCtx(ctx), async (tx) => ({
+	const { rows, members, links } = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		rows: await listProviders(tx, ctx.orgId),
 		members: await listMembersForPicker(tx, ctx.orgId),
+		links: await linkIndex(tx, ctx.orgId),
 	}));
 	const canEdit = roleAllows(ctx.orgRole, { provider: ["create", "update"] });
 	const canExport = roleAllows(ctx.orgRole, { export: ["create"] });
@@ -206,6 +209,31 @@ export default async function ProvidersPage({
 			mobile: false,
 			cell: (r) =>
 				r.contractEnd ? fmtDate.format(new Date(r.contractEnd)) : "—",
+		},
+		{
+			key: "links",
+			header: t("linked"),
+			className: "w-48",
+			mobile: false,
+			cell: (r) => (
+				<span className="flex flex-col gap-1">
+					<LinkChips
+						items={(links.processesByProvider.get(r.id) ?? []).map((p) => ({
+							key: p.code,
+							label: p.code,
+							title: p.name,
+							href: `/prozesse/${encodeURIComponent(p.code)}`,
+						}))}
+					/>
+					{(links.assetsByProvider.get(r.id)?.length ?? 0) > 0 && (
+						<span className="text-muted-foreground text-xs">
+							{t("assetsCount", {
+								n: links.assetsByProvider.get(r.id)?.length ?? 0,
+							})}
+						</span>
+					)}
+				</span>
+			),
 		},
 		{
 			key: "owner",

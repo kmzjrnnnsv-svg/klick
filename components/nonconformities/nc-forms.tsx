@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
 	recordEffectiveness,
+	setNonconformityPriority,
 	upsertNonconformity,
 } from "@/app/actions/nonconformities";
 import type { MemberOption } from "@/components/entity/owner-assignee";
@@ -26,6 +27,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { NC_PRIORITIES, type NcPriority } from "@/db/schema/enums";
 import { NC_SOURCES } from "@/lib/validation/governance";
 
 export type NcDraft = {
@@ -78,7 +80,14 @@ export function NonconformityForm({
 						dueAt: d.dueAt || null,
 						effectivenessCheckAt: d.effectivenessCheckAt || null,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok)
+						return void toast.error(
+							res.error === "forbidden"
+								? t("forbidden")
+								: res.fieldErrors
+									? t("invalid")
+									: tc("error"),
+						);
 					toast.success(
 						initial ? t("saved") : t("created", { code: res.data.code }),
 					);
@@ -240,5 +249,80 @@ export function EffectivenessForm({
 				onChange={(e) => setNote(e.target.value)}
 			/>
 		</form>
+	);
+}
+
+// Priorität durch die Geschäftsleitung: Auswahl + Begründung, sofort wirksam.
+export function PriorityForm({
+	nonconformityId,
+	value,
+	note,
+}: {
+	nonconformityId: string;
+	value: NcPriority | null;
+	note: string | null;
+}) {
+	const t = useTranslations("Nonconformities");
+	const tc = useTranslations("Common");
+	const router = useRouter();
+	const [pending, start] = useTransition();
+	const [priority, setPriority] = useState<NcPriority | "none">(
+		value ?? "none",
+	);
+	const [text, setText] = useState(note ?? "");
+	return (
+		<div className="flex flex-col gap-2">
+			<div className="flex flex-wrap items-end gap-2">
+				<div className="flex flex-col gap-1.5">
+					<Label>{t("priority")}</Label>
+					<Select
+						value={priority}
+						onValueChange={(v) => setPriority(v as NcPriority | "none")}
+					>
+						<SelectTrigger className="w-44">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="none">{t("priorityNone")}</SelectItem>
+							{NC_PRIORITIES.map((p) => (
+								<SelectItem key={p} value={p}>
+									{t(`priority_${p}`)}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+				<Button
+					size="sm"
+					disabled={pending}
+					onClick={() =>
+						start(async () => {
+							const res = await setNonconformityPriority({
+								nonconformityId,
+								priority: priority === "none" ? null : priority,
+								note: text.trim() || undefined,
+							});
+							if (!res.ok)
+								return void toast.error(
+									res.error === "not_top_management" ||
+										res.error === "no_top_management"
+										? t(`priorityError_${res.error}`)
+										: tc("error"),
+								);
+							toast.success(t("prioritySaved"));
+							router.refresh();
+						})
+					}
+				>
+					{tc("save")}
+				</Button>
+			</div>
+			<Textarea
+				rows={2}
+				placeholder={t("priorityNote")}
+				value={text}
+				onChange={(e) => setText(e.target.value)}
+			/>
+		</div>
 	);
 }

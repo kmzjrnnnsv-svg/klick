@@ -47,3 +47,11 @@ export const NONCONFORMITY_ENTITY: EntityDef<NonconformityStatus> = {
 	i18nNamespace: "Nonconformities",
 	statusMachine: NONCONFORMITY_STATUS,
 };
+
+// Badge-Ton je Priorität (gesetzt von der Geschäftsleitung).
+export const NC_PRIORITY_TONE = {
+	critical: "destructive",
+	high: "warning",
+	medium: "outline",
+	low: "muted",
+} as const;

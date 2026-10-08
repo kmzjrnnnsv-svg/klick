@@ -29,6 +29,13 @@
       "when": 1791408636711,
       "tag": "0003_sso_provider",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791459130475,
+      "tag": "0004_trainings_assign_nc_priority",
+      "breakpoints": true
     }
   ]
 }

@@ -20,6 +20,7 @@ import {
 	magicLinkEmail,
 	transactionalEmail,
 } from "../mail/templates";
+import { syncTrainingAssignments } from "../trainings/assignments";
 import { authAfterHook } from "./audit-events";
 import { ac, roles } from "./permissions";
 
@@ -251,6 +252,11 @@ export const auth = betterAuth({
 					}
 				},
 				async afterAcceptInvitation({ invitation, member: m, user }) {
+					// Pflichtschulungen der Rolle sofort zuweisen.
+					await withOrg(
+						{ orgId: invitation.organizationId, userId: user.id },
+						(tx) => syncTrainingAssignments(tx, invitation.organizationId),
+					);
 					// Prüfer:innen bekommen zeitlich begrenzten Zugang (Standard 6 Wochen);
 					// Owner passt Ablauf und Grants auf /team an.
 					if (m.role === "auditor") {

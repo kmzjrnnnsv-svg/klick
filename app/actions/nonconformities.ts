@@ -2,6 +2,7 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { member } from "@/db/auth-schema";
 import { nonconformities, tasks } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
@@ -11,13 +12,15 @@ import {
 	NC_EFFECTIVENESS_DAYS,
 } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
-import { mutateOrg } from "@/lib/db/with-org";
+import { topManagementOf } from "@/lib/compliance/top-management";
+import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { NONCONFORMITY_STATUS } from "@/lib/entities/nonconformity";
 import { canTransition } from "@/lib/entities/status-machine";
 import { notify } from "@/lib/notifications/notify";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	effectivenessSchema,
+	nonconformityPrioritySchema,
 	nonconformitySchema,
 	setNonconformityStatusSchema,
 } from "@/lib/validation/governance";
@@ -28,13 +31,27 @@ function plusDays(days: number): string {
 	return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
 }
 
+async function firstOwner(tx: OrgTx, orgId: string): Promise<string | null> {
+	const rows = await tx
+		.select({ userId: member.userId, role: member.role })
+		.from(member)
+		.where(eq(member.organizationId, orgId));
+	return (
+		rows.find((r) => r.role === "owner" || r.role === "admin")?.userId ?? null
+	);
+}
+
 async function upsertNonconformityImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; code: string }>> {
-	const c = await requireOrg({ nonconformity: ["create", "update"] });
+	// Anlegen braucht „create“ (auch Prüfer:innen), Bearbeiten „update“.
+	const c = await requireOrg({ nonconformity: ["create"] });
 	const parsed = nonconformitySchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { id, ...d } = parsed.data;
+	if (id && !roleAllows(c.orgRole, { nonconformity: ["update"] }))
+		return { ok: false, error: "forbidden" };
+	const byAuditor = c.orgRole === "auditor";
 	const res = await mutateOrg<{ id: string; code: string } | null>(
 		toOrgCtx(c),
 		async (tx) => {
@@ -101,16 +118,23 @@ async function upsertNonconformityImpl(
 					},
 				};
 			}
+			// Prüfer:innen sind nie verantwortlich: ohne Auswahl übernimmt eine
+			// Inhaberin/ein Inhaber der Organisation.
+			const owner =
+				d.ownerUserId ??
+				(byAuditor ? await firstOwner(tx, c.orgId) : c.userId) ??
+				c.userId;
 			const nc = await createNonconformity(
 				tx,
 				{ orgId: c.orgId, userId: c.userId },
 				{
-					source: d.source,
+					source: byAuditor ? "audit" : d.source,
 					sourceRefId: null,
 					title: d.title,
 					description: d.description ?? null,
 					rootCause: d.rootCause ?? null,
-					ownerUserId: d.ownerUserId ?? c.userId,
+					ownerUserId: owner,
+					assigneeUserId: d.assigneeUserId ?? null,
 					dueAt: d.dueAt ?? plusDays(NC_DUE_DAYS),
 					effectivenessCheckAt:
 						d.effectivenessCheckAt ?? plusDays(NC_EFFECTIVENESS_DAYS),
@@ -263,6 +287,69 @@ async function recordEffectivenessImpl(input: unknown): Promise<ActionResult> {
 
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
+// Priorität setzen — nur Top-Management (Funktion Geschäftsleitung inkl.
+// Vertretung, Organisation → Rollen & Leitung).
+async function setNonconformityPriorityImpl(
+	input: unknown,
+): Promise<ActionResult> {
+	const c = await requireOrg({ nonconformity: ["read"] });
+	const parsed = nonconformityPrioritySchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+		const tm = await topManagementOf(tx, c.orgId, c.userId);
+		if (!tm.isTopManagement)
+			return {
+				result: {
+					ok: false,
+					error: tm.anyAssigned ? "not_top_management" : "no_top_management",
+				},
+				audit: [],
+			};
+		const [before] = await tx
+			.select()
+			.from(nonconformities)
+			.where(
+				and(
+					eq(nonconformities.id, d.nonconformityId),
+					eq(nonconformities.organizationId, c.orgId),
+				),
+			)
+			.limit(1);
+		if (!before) return { result: { ok: false, error: "notFound" }, audit: [] };
+		const now = new Date();
+		await tx
+			.update(nonconformities)
+			.set({
+				priority: d.priority,
+				priorityNote: d.note?.trim() || null,
+				prioritizedByUserId: d.priority ? c.userId : null,
+				prioritizedAt: d.priority ? now : null,
+			})
+			.where(eq(nonconformities.id, before.id));
+		await notify(tx, {
+			orgId: c.orgId,
+			recipients: [before.ownerUserId, before.assigneeUserId],
+			actorUserId: c.userId,
+			kind: "entity_changed",
+			title: `${before.code}: Priorität ${d.priority ?? "entfernt"}`,
+			body: d.note?.trim() || undefined,
+			link: `${PATH}/${before.id}`,
+		});
+		return {
+			result: { ok: true, data: undefined },
+			audit: {
+				action: "nonconformity.prioritize",
+				target: `nonconformity:${before.id}`,
+				before: { priority: before.priority },
+				after: { priority: d.priority, note: d.note?.trim() || null },
+			},
+		};
+	});
+	revalidatePath(PATH, "layout");
+	return res;
+}
+
 export const upsertNonconformity = safeAction(
 	"upsertNonconformity",
 	upsertNonconformityImpl,
@@ -274,4 +361,8 @@ export const setNonconformityStatus = safeAction(
 export const recordEffectiveness = safeAction(
 	"recordEffectiveness",
 	recordEffectivenessImpl,
+);
+export const setNonconformityPriority = safeAction(
+	"setNonconformityPriority",
+	setNonconformityPriorityImpl,
 );

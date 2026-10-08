@@ -17,6 +17,7 @@ export function buildAccountabilitySections(
 		| "controls"
 		| "overdueReviews"
 		| "processes"
+		| "assets"
 		| "documents"
 		| "risks"
 		| "tasks"
@@ -99,6 +100,15 @@ export function buildAccountabilitySections(
 				status: p.criticality,
 				dueAt: p.reviewAt,
 				overdue: Boolean(p.reviewAt && p.reviewAt < today),
+			})),
+		),
+		sec(
+			"assets",
+			acc.assets.map((a) => ({
+				id: a.id,
+				href: "/assets",
+				title: a.name,
+				meta: a.classification,
 			})),
 		),
 		sec(

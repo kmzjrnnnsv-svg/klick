@@ -19,7 +19,7 @@ import {
 	userRef,
 } from "./_shared";
 import { controls, frameworks, requirements } from "./catalog";
-import { ENTITY_KINDS, ROLE_FUNCTIONS } from "./enums";
+import { ENTITY_KINDS, NC_PRIORITIES, ROLE_FUNCTIONS } from "./enums";
 import { documents, evidence, risks } from "./grc";
 
 // Managementsystem-Schicht (ISO 27001 Klauseln 4–10 und Pendants in DORA,
@@ -295,6 +295,11 @@ export const nonconformities = pgTable(
 		status: text({ enum: ["open", "in_progress", "verified", "closed"] })
 			.notNull()
 			.default("open"),
+		// Priorisierung durch die Geschäftsleitung (Funktion management_body).
+		priority: text({ enum: NC_PRIORITIES }),
+		priorityNote: text(),
+		prioritizedByUserId: userRef(),
+		prioritizedAt: ts(),
 		...timestamps(),
 	},
 	(t) => [unique().on(t.organizationId, t.code), orgPolicy("nonconformities")],

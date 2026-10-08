@@ -37,6 +37,7 @@ import {
 	risks,
 	roleAssignments,
 	scopes,
+	tasks,
 	whistleblowingReports,
 } from "@/db/schema";
 import type { LicenceStage } from "@/db/schema/enums";
@@ -44,7 +45,7 @@ import type { OrgTx } from "@/lib/db/with-org";
 import { requiredFunctions, roleCoverage } from "./catalog/required-functions";
 import { checkSod } from "./catalog/sod-rules";
 import { listControlRows, listTasks, userNames } from "./queries";
-import { listDocuments, listRisks } from "./queries-p2";
+import { listAssets, listDocuments, listRisks } from "./queries-p2";
 
 // Org-gescopte Lesezugriffe für die Managementsystem-Schicht (P3) — immer in
 // readOrg/withOrg.
@@ -513,6 +514,28 @@ export async function listResolutions(tx: OrgTx, orgId: string) {
 		)
 		.where(eq(resolutions.organizationId, orgId))
 		.orderBy(asc(resolutions.date), asc(resolutions.resolutionNumber));
+	const reviewIds = rows
+		.filter((x) => x.r.linkedEntityType === "management_review")
+		.map((x) => x.r.linkedEntityId)
+		.filter((id): id is string => !!id);
+	const reviewDates = new Map(
+		reviewIds.length
+			? (
+					await tx
+						.select({
+							id: managementReviews.id,
+							heldAt: managementReviews.heldAt,
+						})
+						.from(managementReviews)
+						.where(
+							and(
+								eq(managementReviews.organizationId, orgId),
+								inArray(managementReviews.id, reviewIds),
+							),
+						)
+				).map((r) => [r.id, r.heldAt] as const)
+			: [],
+	);
 	const names = await userNames(
 		tx,
 		rows.flatMap((x) => [x.r.createdByUserId, ...x.r.attendeeUserIds]),
@@ -522,6 +545,10 @@ export async function listResolutions(tx: OrgTx, orgId: string) {
 		approvalStatus: x.approvalStatus,
 		// gilt als gefasst, wenn keine Freigabe nötig war oder sie erteilt wurde
 		effective: !x.r.approvalRequestId || x.approvalStatus === "approved",
+		reviewHeldAt:
+			x.r.linkedEntityType === "management_review" && x.r.linkedEntityId
+				? (reviewDates.get(x.r.linkedEntityId) ?? null)
+				: null,
 		createdByName: x.r.createdByUserId
 			? (names.get(x.r.createdByUserId) ?? null)
 			: null,
@@ -735,11 +762,122 @@ export async function listManagementReviews(tx: OrgTx, orgId: string) {
 		tx,
 		rows.flatMap((r) => [r.ownerUserId, ...r.attendeeUserIds]),
 	);
+	const outcomes = await reviewOutcomes(
+		tx,
+		orgId,
+		rows.map((r) => r.id),
+	);
 	return rows.map((r) => ({
 		...r,
 		ownerName: r.ownerUserId ? (names.get(r.ownerUserId) ?? null) : null,
 		attendeeNames: r.attendeeUserIds.map((id) => names.get(id) ?? id),
+		outcomes: outcomes.get(r.id) ?? {
+			resolutions: [],
+			tasks: [],
+			nonconformities: [],
+		},
 	}));
+}
+
+export type ReviewOutcomes = {
+	resolutions: {
+		id: string;
+		number: string;
+		subject: string;
+		approvalStatus: string | null;
+		effective: boolean;
+	}[];
+	tasks: { id: string; title: string; status: string }[];
+	nonconformities: {
+		id: string;
+		code: string;
+		title: string;
+		status: string;
+	}[];
+};
+
+// Ergebnisse je Bewertung: Beschlüsse (resolutions.linkedEntity*), Aufgaben
+// (tasks.entityType) und Abweichungen (nonconformities.source/sourceRefId).
+async function reviewOutcomes(
+	tx: OrgTx,
+	orgId: string,
+	reviewIds: string[],
+): Promise<Map<string, ReviewOutcomes>> {
+	const out = new Map<string, ReviewOutcomes>();
+	if (reviewIds.length === 0) return out;
+	const get = (id: string) => {
+		let o = out.get(id);
+		if (!o) {
+			o = { resolutions: [], tasks: [], nonconformities: [] };
+			out.set(id, o);
+		}
+		return o;
+	};
+	const res = await tx
+		.select({ r: resolutions, approvalStatus: approvalRequests.status })
+		.from(resolutions)
+		.leftJoin(
+			approvalRequests,
+			eq(approvalRequests.id, resolutions.approvalRequestId),
+		)
+		.where(
+			and(
+				eq(resolutions.organizationId, orgId),
+				eq(resolutions.linkedEntityType, "management_review"),
+				inArray(resolutions.linkedEntityId, reviewIds),
+			),
+		)
+		.orderBy(asc(resolutions.resolutionNumber));
+	for (const x of res) {
+		if (!x.r.linkedEntityId) continue;
+		get(x.r.linkedEntityId).resolutions.push({
+			id: x.r.id,
+			number: x.r.resolutionNumber,
+			subject: x.r.subject,
+			approvalStatus: x.approvalStatus,
+			effective: !x.r.approvalRequestId || x.approvalStatus === "approved",
+		});
+	}
+	const ts = await tx
+		.select({
+			id: tasks.id,
+			title: tasks.title,
+			status: tasks.status,
+			entityId: tasks.entityId,
+		})
+		.from(tasks)
+		.where(
+			and(
+				eq(tasks.organizationId, orgId),
+				eq(tasks.entityType, "management_review"),
+				inArray(tasks.entityId, reviewIds),
+			),
+		)
+		.orderBy(asc(tasks.createdAt));
+	for (const x of ts) {
+		if (x.entityId) get(x.entityId).tasks.push(x);
+	}
+	const ncs = await tx
+		.select({
+			id: nonconformities.id,
+			code: nonconformities.code,
+			title: nonconformities.title,
+			status: nonconformities.status,
+			ref: nonconformities.sourceRefId,
+		})
+		.from(nonconformities)
+		.where(
+			and(
+				eq(nonconformities.organizationId, orgId),
+				eq(nonconformities.source, "management_review"),
+				inArray(nonconformities.sourceRefId, reviewIds),
+			),
+		)
+		.orderBy(asc(nonconformities.code));
+	for (const x of ncs) {
+		if (x.ref) get(x.ref).nonconformities.push(x);
+	}
+	return out;
 }
 
 // ── Pflichten-Kalender ─────────────────────────────────────────────────────
@@ -882,17 +1020,27 @@ export async function accountabilityFor(
 	userId: string,
 	today = new Date().toISOString().slice(0, 10),
 ) {
-	const [controls, procs, docs, riskRows, taskRows, ncs, obls, auditRows] =
-		await Promise.all([
-			listControlRows(tx, orgId),
-			listProcesses(tx, orgId),
-			listDocuments(tx, orgId),
-			listRisks(tx, orgId),
-			listTasks(tx, orgId, { assigneeUserId: userId, openOnly: true }),
-			listNonconformities(tx, orgId),
-			listObligations(tx, orgId),
-			listAudits(tx, orgId),
-		]);
+	const [
+		controls,
+		procs,
+		docs,
+		riskRows,
+		taskRows,
+		ncs,
+		obls,
+		auditRows,
+		assetRows,
+	] = await Promise.all([
+		listControlRows(tx, orgId),
+		listProcesses(tx, orgId),
+		listDocuments(tx, orgId),
+		listRisks(tx, orgId),
+		listTasks(tx, orgId, { assigneeUserId: userId, openOnly: true }),
+		listNonconformities(tx, orgId),
+		listObligations(tx, orgId),
+		listAudits(tx, orgId),
+		listAssets(tx, orgId),
+	]);
 	const raciA = await tx
 		.select({ processId: processRaci.processId })
 		.from(processRaci)
@@ -932,6 +1080,10 @@ export async function accountabilityFor(
 			(r) => r.ownerUserId === userId && r.status !== "closed",
 		),
 		tasks: taskRows,
+		// Asset-Verantwortung (ISO 27001 A.5.9) — sichtbar machen, keine Rolle.
+		assets: assetRows.filter(
+			(a) => a.ownerUserId === userId && a.status !== "retired",
+		),
 		nonconformities: ncs.filter(
 			(n) =>
 				(n.ownerUserId === userId || n.assigneeUserId === userId) &&

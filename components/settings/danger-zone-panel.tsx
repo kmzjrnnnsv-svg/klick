@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { deleteOrganizationAction } from "@/app/actions/settings";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Card,
@@ -125,10 +126,12 @@ export function DangerZonePanel({
 										}
 										onClick={() =>
 											start(async () => {
-												const res = await deleteOrganizationAction({
-													confirmSlug: confirm.trim(),
-													exportConfirmed: exported,
-												});
+												const res = await withStepUp(() =>
+													deleteOrganizationAction({
+														confirmSlug: confirm.trim(),
+														exportConfirmed: exported,
+													}),
+												);
 												if (!res.ok) {
 													toast.error(
 														res.error === "step_up_required"

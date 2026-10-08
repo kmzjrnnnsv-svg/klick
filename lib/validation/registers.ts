@@ -3,6 +3,7 @@ import {
 	CLASSIFICATIONS,
 	CRITICALITY,
 	INCIDENT_REGIMES,
+	ROLE_FUNCTIONS,
 } from "@/db/schema/enums";
 import { DOCUMENT_TYPES, RISK_CATEGORIES } from "@/db/schema/grc";
 import { INCIDENT_STATUSES } from "@/lib/entities/incident";
@@ -280,6 +281,47 @@ export const trainingSchema = z.object({
 	audience: z.enum(["all", "management", "role_specific"]).default("all"),
 	requirementCode: z.string().max(60).optional(),
 	notes: longText.optional(),
+});
+
+// Pflichtschulung (Plan): Link nur http(s) — kein javascript:/data:.
+export const httpUrl = z
+	.string()
+	.trim()
+	.max(2000)
+	.url()
+	.refine((u) => /^https?:\/\//i.test(u), { message: "url_scheme" });
+
+export const TRAINING_ORG_ROLES = [
+	"all",
+	"owner",
+	"editor",
+	"viewer",
+	"auditor",
+] as const;
+
+export const trainingRequirementSchema = z.object({
+	id: uuid.optional(),
+	title: shortText,
+	description: z.string().trim().max(2000).nullable().optional(),
+	courseUrl: httpUrl
+		.nullable()
+		.optional()
+		.or(z.literal("").transform(() => null)),
+	frequencyMonths: z.coerce.number().int().min(1).max(60).default(12),
+	function: z.enum(ROLE_FUNCTIONS).nullable().optional(),
+	orgRole: z.enum(TRAINING_ORG_ROLES).nullable().optional(),
+	legalBasis: z.string().trim().max(300).nullable().optional(),
+});
+
+export const assignTrainingSchema = z.object({
+	requirementId: uuid,
+	userIds: z.array(uuid).min(1).max(500),
+	dueAt: isoDate,
+});
+
+export const completeTrainingSchema = z.object({
+	assignmentId: uuid,
+	note: z.string().trim().max(2000).optional(),
 });
 
 // ── Wirksamkeitstests ──────────────────────────────────────────────────────

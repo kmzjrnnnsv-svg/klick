@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updateRiskSettings } from "@/app/actions/settings";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,13 +49,15 @@ export function RiskSettingsPanel({
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {
-					const res = await updateRiskSettings({
-						likelihood: l,
-						impact: i,
-						acceptable: acc,
-						tolerable: tol,
-						allowSelfApproval: solo,
-					});
+					const res = await withStepUp(() =>
+						updateRiskSettings({
+							likelihood: l,
+							impact: i,
+							acceptable: acc,
+							tolerable: tol,
+							allowSelfApproval: solo,
+						}),
+					);
 					if (!res.ok)
 						toast.error(
 							res.error === "step_up_required"

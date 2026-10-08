@@ -20,6 +20,7 @@ export type NonconformityDraft = {
 	description: string | null;
 	rootCause: string | null;
 	ownerUserId: string | null;
+	assigneeUserId?: string | null;
 	dueAt: string; // ISO-Datum
 	effectivenessCheckAt: string;
 };

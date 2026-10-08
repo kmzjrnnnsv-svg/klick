@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { member } from "@/db/auth-schema";
 import {
@@ -12,7 +12,6 @@ import {
 	roleAssignments,
 	taskBundles,
 	tasks,
-	trainingAssignments,
 	trainingRequirements,
 	trainings,
 } from "@/db/schema";
@@ -25,7 +24,10 @@ import { nonconformityFromTest } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
-import { syncTrainingAssignments } from "@/lib/trainings/assignments";
+import {
+	completeAssignments,
+	syncTrainingAssignments,
+} from "@/lib/trainings/assignments";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	applyBundleSchema,
@@ -39,11 +41,6 @@ function addDays(base: Date, days: number): string {
 	return new Date(base.getTime() + days * 86_400_000)
 		.toISOString()
 		.slice(0, 10);
-}
-function addMonths(base: Date, months: number): string {
-	const d = new Date(base);
-	d.setMonth(d.getMonth() + months);
-	return d.toISOString().slice(0, 10);
 }
 
 // ── Dienstleister ──────────────────────────────────────────────────────────
@@ -233,42 +230,15 @@ async function createTrainingImpl(
 					),
 				)
 				.limit(1);
-			if (req) {
-				const open = await tx
-					.select({
-						id: trainingAssignments.id,
-						userId: trainingAssignments.userId,
-					})
-					.from(trainingAssignments)
-					.where(
-						and(
-							eq(trainingAssignments.requirementId, req.id),
-							inArray(trainingAssignments.userId, d.attendeeUserIds),
-							inArray(trainingAssignments.status, ["due", "overdue"]),
-						),
-					);
-				if (open.length > 0) {
-					await tx
-						.update(trainingAssignments)
-						.set({ status: "done", completedAt: d.heldAt, trainingId: row.id })
-						.where(
-							inArray(
-								trainingAssignments.id,
-								open.map((o) => o.id),
-							),
-						);
-				}
-				const held = new Date(d.heldAt);
-				await tx.insert(trainingAssignments).values(
-					d.attendeeUserIds.map((userId) => ({
-						organizationId: c.orgId,
-						requirementId: req.id,
-						userId,
-						dueAt: addMonths(held, req.frequencyMonths),
-						status: "due" as const,
-					})),
+			if (req)
+				await completeAssignments(
+					tx,
+					c.orgId,
+					req,
+					d.attendeeUserIds,
+					d.heldAt,
+					{ trainingId: row.id },
 				);
-			}
 		}
 		return {
 			result: row.id,
