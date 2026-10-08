@@ -270,7 +270,7 @@ export default async function TrainingsPage({
 								<TableRow>
 									<TableHead>{t("requirement")}</TableHead>
 									<TableHead className="w-36">{t("dueAt")}</TableHead>
-									<TableHead className="w-28">{t("progress")}</TableHead>
+									<TableHead className="w-28">{t("state")}</TableHead>
 									<TableHead className="w-44" />
 								</TableRow>
 							</TableHeader>

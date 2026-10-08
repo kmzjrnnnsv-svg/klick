@@ -1203,6 +1203,8 @@
 		"history": "Entscheidungen"
 	},
 	"Providers": {
+		"linked": "Prozesse · Assets",
+		"assetsCount": "{n} Asset(s)",
 		"title": "Dienstleister",
 		"lead": "IKT-Dienstleister, Auslagerungen und Geschäftspartner — mit Kritikalität, Vertrag, Datenstandort.",
 		"new": "Dienstleister",
@@ -1267,6 +1269,7 @@
 		"exportSupplierPackHint": "Was Banken von uns als IKT-Dienstleister verlangen: Registerdatenblatt, Art.-30-Anhang, Ausstiegs- und Notfallplan, Testate, Versicherungen, Subunternehmer, Vorfallmeldung. Step-up nötig."
 	},
 	"Assets": {
+		"processes": "Prozesse",
 		"title": "Assets",
 		"lead": "Systeme, Anwendungen, Daten, Dienste, Geräte, Standorte — und Schlüsselmaterial.",
 		"new": "Asset",
@@ -1362,6 +1365,7 @@
 		"completeNote": "Notiz (optional, z. B. Zertifikatsnummer)",
 		"completed": "Als abgeschlossen bestätigt.",
 		"completedNext": "Abgeschlossen — nächste Fälligkeit {date}.",
+		"state": "Stand",
 		"progress": "Erledigt",
 		"progressValue": "{done} von {total}",
 		"status_planned": "geplant",
@@ -1611,6 +1615,10 @@
 		"status": "Status",
 		"sodTitle": "Funktionstrennung verletzt",
 		"rolesFootnote": "Die Liste folgt aus deinen Rahmenwerken und der Lizenzstufe (Einstellungen → Rahmenwerke & Stufe). Externe Besetzungen zählen als besetzt; Nachweise (Bestellungsschreiben) über Nachweise verknüpfen.",
+		"assetOwnersTitle": "Asset-Verantwortliche",
+		"assetOwnersLead": "Jedes Asset braucht eine verantwortliche Person (ISO 27001 A.5.9) — das kann auch ein:e Bearbeiter:in sein. Gepflegt wird das am Asset.",
+		"assetOwnersGap": "{n} Asset(s) ohne Verantwortliche:n",
+		"assetOwnersCount": "{n} Asset(s)",
 		"objectivesLead": "Informationssicherheits- und Resilienzziele mit Kennzahl, Zielwert und Messreihe (ISO 27001 6.2/9.1, DORA Art. 6(8)).",
 		"objectivesEmpty": "Noch keine Ziele definiert.",
 		"newObjective": "Ziel",
@@ -1980,6 +1988,7 @@
 		"controls": "Controls (verantwortlich / bearbeitet)",
 		"overdueReviews": "Überfällige Reviews",
 		"processes": "Prozesse (Owner / A)",
+		"assets": "Assets (verantwortlich)",
 		"documents": "Dokumente (Eigner)",
 		"risks": "Risiken (Owner)",
 		"tasks": "Offene Aufgaben",

@@ -44,7 +44,11 @@ export default async function ManagementReviewPage() {
 			};
 		},
 	);
-	const sorted = [...reviews].sort((a, b) => b.heldAt.localeCompare(a.heldAt));
+	const sorted = [...reviews].sort(
+		(a, b) =>
+			b.heldAt.localeCompare(a.heldAt) ||
+			b.createdAt.getTime() - a.createdAt.getTime(),
+	);
 	const last = reviews
 		.filter((r) => r.status === "done")
 		.sort((a, b) => b.heldAt.localeCompare(a.heldAt))[0];

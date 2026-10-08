@@ -302,76 +302,81 @@ export function CompleteReviewForm({
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: editierbare Liste ohne natürliche ID
 						key={`${i}-${actions.length}`}
-						className="grid gap-2 rounded-md border border-dashed p-2 sm:grid-cols-[9rem_1fr_12rem_9rem_2rem]"
+						className="flex flex-col gap-2 rounded-md border border-dashed p-2"
 					>
-						<Select
-							value={a.kind}
-							onValueChange={(v) => {
-								const n = [...actions];
-								n[i] = { ...a, kind: v as ActionKind };
-								setActions(n);
-							}}
-						>
-							<SelectTrigger aria-label={t("actions")}>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{ACTION_KINDS.map((k) => (
-									<SelectItem key={k} value={k}>
-										{t(`kind_${k}`)}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<Input
-							placeholder={t("actionTitle")}
-							value={a.title}
-							onChange={(e) => {
-								const n = [...actions];
-								n[i] = { ...a, title: e.target.value };
-								setActions(n);
-							}}
-						/>
-						<Select
-							value={a.assigneeUserId ?? "none"}
-							onValueChange={(v) => {
-								const n = [...actions];
-								n[i] = { ...a, assigneeUserId: v === "none" ? null : v };
-								setActions(n);
-							}}
-						>
-							<SelectTrigger>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="none">—</SelectItem>
-								{members.map((m) => (
-									<SelectItem key={m.userId} value={m.userId}>
-										{m.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<Input
-							type="date"
-							value={a.dueAt}
-							onChange={(e) => {
-								const n = [...actions];
-								n[i] = { ...a, dueAt: e.target.value };
-								setActions(n);
-							}}
-						/>
-						<Button
-							size="icon"
-							variant="ghost"
-							aria-label={tc("delete")}
-							onClick={() => setActions(actions.filter((_, j) => j !== i))}
-						>
-							<Trash2 />
-						</Button>
+						{/* Zwei Zeilen: in der schmalen Spalte der Bewertungskarte
+						    bliebe für den Titel sonst keine Breite. */}
+						<div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
+							<Select
+								value={a.kind}
+								onValueChange={(v) => {
+									const n = [...actions];
+									n[i] = { ...a, kind: v as ActionKind };
+									setActions(n);
+								}}
+							>
+								<SelectTrigger aria-label={t("actions")}>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{ACTION_KINDS.map((k) => (
+										<SelectItem key={k} value={k}>
+											{t(`kind_${k}`)}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<Input
+								placeholder={t("actionTitle")}
+								value={a.title}
+								onChange={(e) => {
+									const n = [...actions];
+									n[i] = { ...a, title: e.target.value };
+									setActions(n);
+								}}
+							/>
+						</div>
+						<div className="grid grid-cols-[minmax(0,1fr)_9.5rem_2.25rem] gap-2">
+							<Select
+								value={a.assigneeUserId ?? "none"}
+								onValueChange={(v) => {
+									const n = [...actions];
+									n[i] = { ...a, assigneeUserId: v === "none" ? null : v };
+									setActions(n);
+								}}
+							>
+								<SelectTrigger aria-label={t("owner")}>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="none">—</SelectItem>
+									{members.map((m) => (
+										<SelectItem key={m.userId} value={m.userId}>
+											{m.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<Input
+								type="date"
+								value={a.dueAt}
+								onChange={(e) => {
+									const n = [...actions];
+									n[i] = { ...a, dueAt: e.target.value };
+									setActions(n);
+								}}
+							/>
+							<Button
+								size="icon"
+								variant="ghost"
+								aria-label={tc("delete")}
+								onClick={() => setActions(actions.filter((_, j) => j !== i))}
+							>
+								<Trash2 />
+							</Button>
+						</div>
 						<Textarea
 							rows={2}
-							className="sm:col-span-5"
 							placeholder={t(`actionText_${a.kind}`)}
 							value={a.text}
 							onChange={(e) => {

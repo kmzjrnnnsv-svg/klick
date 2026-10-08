@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { importAssetsCsv } from "@/app/actions/imports";
 import { CsvImport } from "@/components/entity/csv-import";
 import { EmptyState } from "@/components/entity/empty-state";
+import { LinkChips } from "@/components/entity/link-chips";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UserChip } from "@/components/entity/user-chip";
 import { AssetForm } from "@/components/registers/asset-form";
@@ -11,6 +12,7 @@ import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
+import { linkIndex } from "@/lib/compliance/queries-links";
 import { listAssets, listProviders } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 
@@ -27,10 +29,11 @@ export default async function AssetsPage({
 	const sp = await searchParams;
 	const t = await getTranslations("Assets");
 	const te = await getTranslations("Entity");
-	const { rows, members, providers } = await readOrg(
+	const { rows, members, providers, links } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
 			rows: await listAssets(tx, ctx.orgId),
+			links: await linkIndex(tx, ctx.orgId),
 			members: await listMembersForPicker(tx, ctx.orgId),
 			providers: (await listProviders(tx, ctx.orgId)).map((p) => ({
 				id: p.id,
@@ -97,6 +100,22 @@ export default async function AssetsPage({
 			className: "w-40",
 			mobile: false,
 			cell: (r) => r.providerName ?? "—",
+		},
+		{
+			key: "processes",
+			header: t("processes"),
+			className: "w-44",
+			mobile: false,
+			cell: (r) => (
+				<LinkChips
+					items={(links.processesByAsset.get(r.id) ?? []).map((p) => ({
+						key: p.code,
+						label: p.code,
+						title: p.name,
+						href: `/prozesse/${encodeURIComponent(p.code)}`,
+					}))}
+				/>
+			),
 		},
 		{
 			key: "owner",

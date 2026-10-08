@@ -45,7 +45,7 @@ import type { OrgTx } from "@/lib/db/with-org";
 import { requiredFunctions, roleCoverage } from "./catalog/required-functions";
 import { checkSod } from "./catalog/sod-rules";
 import { listControlRows, listTasks, userNames } from "./queries";
-import { listDocuments, listRisks } from "./queries-p2";
+import { listAssets, listDocuments, listRisks } from "./queries-p2";
 
 // Org-gescopte Lesezugriffe für die Managementsystem-Schicht (P3) — immer in
 // readOrg/withOrg.
@@ -1020,17 +1020,27 @@ export async function accountabilityFor(
 	userId: string,
 	today = new Date().toISOString().slice(0, 10),
 ) {
-	const [controls, procs, docs, riskRows, taskRows, ncs, obls, auditRows] =
-		await Promise.all([
-			listControlRows(tx, orgId),
-			listProcesses(tx, orgId),
-			listDocuments(tx, orgId),
-			listRisks(tx, orgId),
-			listTasks(tx, orgId, { assigneeUserId: userId, openOnly: true }),
-			listNonconformities(tx, orgId),
-			listObligations(tx, orgId),
-			listAudits(tx, orgId),
-		]);
+	const [
+		controls,
+		procs,
+		docs,
+		riskRows,
+		taskRows,
+		ncs,
+		obls,
+		auditRows,
+		assetRows,
+	] = await Promise.all([
+		listControlRows(tx, orgId),
+		listProcesses(tx, orgId),
+		listDocuments(tx, orgId),
+		listRisks(tx, orgId),
+		listTasks(tx, orgId, { assigneeUserId: userId, openOnly: true }),
+		listNonconformities(tx, orgId),
+		listObligations(tx, orgId),
+		listAudits(tx, orgId),
+		listAssets(tx, orgId),
+	]);
 	const raciA = await tx
 		.select({ processId: processRaci.processId })
 		.from(processRaci)
@@ -1070,6 +1080,10 @@ export async function accountabilityFor(
 			(r) => r.ownerUserId === userId && r.status !== "closed",
 		),
 		tasks: taskRows,
+		// Asset-Verantwortung (ISO 27001 A.5.9) — sichtbar machen, keine Rolle.
+		assets: assetRows.filter(
+			(a) => a.ownerUserId === userId && a.status !== "retired",
+		),
 		nonconformities: ncs.filter(
 			(n) =>
 				(n.ownerUserId === userId || n.assigneeUserId === userId) &&

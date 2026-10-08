@@ -38,6 +38,7 @@ export default async function MemberAccountabilityPage({
 			controls: t("controls"),
 			overdueReviews: t("overdueReviews"),
 			processes: t("processes"),
+			assets: t("assets"),
 			documents: t("documents"),
 			risks: t("risks"),
 			tasks: t("tasks"),
