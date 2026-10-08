@@ -19,13 +19,14 @@ import {
 } from "@/components/ui/table";
 import { listRequestsForUser } from "@/lib/approvals/service";
 import { historyFor } from "@/lib/audit";
-import { normalizeRole, requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { normalizeRole, toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
 import { listControlRows, listTasks } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
 
 export default async function TeamPage() {
-	const ctx = await requireOrg();
+	const ctx = await requireOrgPage();
 	const t = await getTranslations("Team");
 	const [members, invitations] = await Promise.all([
 		listOrgMembers(ctx.orgId),

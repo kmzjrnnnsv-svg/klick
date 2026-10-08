@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { safeAction } from "@/lib/actions/safe";
 import { auditPlatform } from "@/lib/audit";
 import { requirePlatformAdmin } from "@/lib/auth/guards";
 import * as g from "@/lib/db/global";
 import { type ActionResult, fromZod, slug } from "@/lib/validation/common";
 
-export async function getCmsPageBySlug(s: string) {
+async function getCmsPageBySlugImpl(s: string) {
 	return g.getCmsPageBySlug(s);
 }
 
@@ -17,7 +18,7 @@ const cmsSchema = z.object({
 	body: z.string().max(200_000),
 });
 
-export async function saveCmsPage(
+async function saveCmsPageImpl(
 	input: unknown,
 ): Promise<ActionResult<{ slug: string }>> {
 	const admin = await requirePlatformAdmin();
@@ -39,7 +40,7 @@ export async function saveCmsPage(
 	return { ok: true, data: { slug: row.slug } };
 }
 
-export async function deleteCmsPage(s: string): Promise<ActionResult> {
+async function deleteCmsPageImpl(s: string): Promise<ActionResult> {
 	const admin = await requirePlatformAdmin();
 	const before = await g.getCmsPageBySlug(s);
 	if (!before) return { ok: false, error: "Seite nicht gefunden" };
@@ -55,3 +56,12 @@ export async function deleteCmsPage(s: string): Promise<ActionResult> {
 	revalidatePath("/admin/cms");
 	return { ok: true, data: undefined };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const getCmsPageBySlug = safeAction(
+	"getCmsPageBySlug",
+	getCmsPageBySlugImpl,
+);
+export const saveCmsPage = safeAction("saveCmsPage", saveCmsPageImpl);
+export const deleteCmsPage = safeAction("deleteCmsPage", deleteCmsPageImpl);

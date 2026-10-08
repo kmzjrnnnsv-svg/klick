@@ -3,6 +3,7 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { obligationRuns, obligations, tasks } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
 import {
@@ -22,7 +23,7 @@ const PATH = "/kalender";
 
 // Pflichten aus dem Katalog übernehmen (Rahmenwerke + Stufe) und Läufe für
 // zwölf Monate planen. Idempotent.
-export async function applyObligationSeed(): Promise<
+async function applyObligationSeedImpl(): Promise<
 	ActionResult<{ created: number; runs: number; deactivated: number }>
 > {
 	const c = await requireOrg({ obligation: ["update"] });
@@ -70,7 +71,7 @@ export async function applyObligationSeed(): Promise<
 	return { ok: true, data };
 }
 
-export async function completeObligationRun(
+async function completeObligationRunImpl(
 	input: unknown,
 ): Promise<ActionResult> {
 	const c = await requireOrg({ obligation: ["complete"] });
@@ -130,9 +131,7 @@ export async function completeObligationRun(
 	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
 }
 
-export async function waiveObligationRun(
-	input: unknown,
-): Promise<ActionResult> {
+async function waiveObligationRunImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ obligation: ["complete"] });
 	const parsed = waiveRunSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -178,7 +177,7 @@ export async function waiveObligationRun(
 	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
 }
 
-export async function updateObligation(input: unknown): Promise<ActionResult> {
+async function updateObligationImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ obligation: ["update"] });
 	const parsed = updateObligationSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -221,3 +220,22 @@ export async function updateObligation(input: unknown): Promise<ActionResult> {
 	revalidatePath(PATH);
 	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const applyObligationSeed = safeAction(
+	"applyObligationSeed",
+	applyObligationSeedImpl,
+);
+export const completeObligationRun = safeAction(
+	"completeObligationRun",
+	completeObligationRunImpl,
+);
+export const waiveObligationRun = safeAction(
+	"waiveObligationRun",
+	waiveObligationRunImpl,
+);
+export const updateObligation = safeAction(
+	"updateObligation",
+	updateObligationImpl,
+);

@@ -22,7 +22,8 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { DOMAINS } from "@/db/schema/enums";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { programmeCoverage } from "@/lib/compliance/audit-programme";
 import { fmtDate, shortFrameworkName } from "@/lib/compliance/page-data";
@@ -59,7 +60,7 @@ export default async function AuditsPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ audit: ["read"] });
+	const ctx = await requireOrgPage({ audit: ["read"] });
 	const sp = await searchParams;
 	const tab = one(sp.tab) ?? "audits";
 	const t = await getTranslations("Audits");

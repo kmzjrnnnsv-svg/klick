@@ -14,7 +14,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listCryptoAssets } from "@/lib/compliance/queries-p4";
@@ -30,7 +31,7 @@ const eur = new Intl.NumberFormat("de-DE", {
 // Art. 62(2)(r)); Annahme nur mit zugelassenem EMT-Emittenten (Art. 48)
 // oder bei nativen Werten ohne Emittent.
 export default async function CryptoAssetsPage() {
-	const ctx = await requireOrg({ crypto_asset: ["read"] });
+	const ctx = await requireOrgPage({ crypto_asset: ["read"] });
 	const t = await getTranslations("CryptoAssets");
 	const canEdit = roleAllows(ctx.orgRole, { crypto_asset: ["update"] });
 	const rows = await readOrg(toOrgCtx(ctx), (tx) =>

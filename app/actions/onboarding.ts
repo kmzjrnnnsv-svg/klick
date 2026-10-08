@@ -5,6 +5,7 @@ import { inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { frameworks, orgFrameworks, orgSettings } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { audit } from "@/lib/audit";
 import {
 	AuthError,
@@ -23,7 +24,7 @@ import { createOrganizationSchema } from "@/lib/validation/org";
 // Onboarding: Organisation anlegen → Better Auth (organization + owner-member)
 // → Org-Settings mit frischem DEK → Rechtskataster (org_frameworks)
 // → initializeOrg (Anwendbarkeit, Control-Arbeitsvorrat, Baseline) → Audit.
-export async function createOrganizationAction(
+async function createOrganizationActionImpl(
 	input: unknown,
 ): Promise<ActionResult<{ orgId: string; slug: string }>> {
 	const ctx = await getSessionCtx();
@@ -131,7 +132,7 @@ export async function createOrganizationAction(
 	return { ok: true, data: { orgId: org.id, slug: org.slug } };
 }
 
-export async function checkSlugAvailable(slug: string): Promise<boolean> {
+async function checkSlugAvailableImpl(slug: string): Promise<boolean> {
 	const ctx = await getSessionCtx();
 	if (!ctx) return false;
 	const h = await headers();
@@ -146,8 +147,24 @@ export async function checkSlugAvailable(slug: string): Promise<boolean> {
 	}
 }
 
-export async function frameworkOptions() {
+async function frameworkOptionsImpl() {
 	const ctx = await getSessionCtx();
 	if (!ctx) throw new AuthError("unauthenticated");
 	return listFrameworkOptions();
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const createOrganizationAction = safeAction(
+	"createOrganizationAction",
+	createOrganizationActionImpl,
+);
+export const checkSlugAvailable = safeAction(
+	"checkSlugAvailable",
+	checkSlugAvailableImpl,
+	() => false,
+);
+export const frameworkOptions = safeAction(
+	"frameworkOptions",
+	frameworkOptionsImpl,
+);

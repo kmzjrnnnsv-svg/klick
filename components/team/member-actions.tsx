@@ -31,6 +31,7 @@ export function MemberActions({
 	isSelf: boolean;
 }) {
 	const t = useTranslations("Team");
+	const tc = useTranslations("Common");
 	const [pending, start] = useTransition();
 	if (isSelf) return null;
 	return (
@@ -53,7 +54,10 @@ export function MemberActions({
 						onSelect={() =>
 							start(async () => {
 								const res = await updateMemberRole({ memberId, role: r });
-								if (!res.ok) toast.error(res.error);
+								if (!res.ok)
+									toast.error(
+										res.error.includes(" ") ? res.error : tc("error"),
+									);
 							})
 						}
 					>
@@ -66,7 +70,8 @@ export function MemberActions({
 					onSelect={() =>
 						start(async () => {
 							const res = await removeMember(memberId);
-							if (!res.ok) toast.error(res.error);
+							if (!res.ok)
+								toast.error(res.error.includes(" ") ? res.error : tc("error"));
 						})
 					}
 				>
@@ -83,6 +88,7 @@ export function CancelInvitationButton({
 	invitationId: string;
 }) {
 	const t = useTranslations("Team");
+	const tc = useTranslations("Common");
 	const [pending, start] = useTransition();
 	return (
 		<Button
@@ -92,7 +98,8 @@ export function CancelInvitationButton({
 			onClick={() =>
 				start(async () => {
 					const res = await cancelInvitation(invitationId);
-					if (!res.ok) toast.error(res.error);
+					if (!res.ok)
+						toast.error(res.error.includes(" ") ? res.error : tc("error"));
 				})
 			}
 		>

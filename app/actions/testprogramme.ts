@@ -3,6 +3,7 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { controlImplementations, controls, controlTests } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { mutateOrg } from "@/lib/db/with-org";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
@@ -11,7 +12,7 @@ import { planTestSchema } from "@/lib/validation/governance";
 // Jahres-Testprogramm (ISO 27001 9.1, DORA Art. 24–26, NIS2 Art. 21(2)(f)):
 // Tests planen (plannedAt); das Ergebnis wird später über recordControlTest
 // am Control eingetragen.
-export async function planControlTest(
+async function planControlTestImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ control: ["update"] });
@@ -65,3 +66,10 @@ export async function planControlTest(
 		? { ok: true, data: { id: res } }
 		: { ok: false, error: "notFound" };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const planControlTest = safeAction(
+	"planControlTest",
+	planControlTestImpl,
+);

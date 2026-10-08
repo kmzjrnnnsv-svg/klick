@@ -15,7 +15,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { capaState } from "@/lib/compliance/nonconformity";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -36,7 +37,7 @@ export default async function NonconformitiesPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ nonconformity: ["read"] });
+	const ctx = await requireOrgPage({ nonconformity: ["read"] });
 	const sp = await searchParams;
 	const t = await getTranslations("Nonconformities");
 	const te = await getTranslations("Entity");

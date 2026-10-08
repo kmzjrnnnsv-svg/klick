@@ -24,7 +24,8 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { RISK_CATEGORIES } from "@/db/schema/grc";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { CONTROLS } from "@/lib/compliance/catalog";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -57,7 +58,7 @@ export default async function RisksPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ risk: ["read"] });
+	const ctx = await requireOrgPage({ risk: ["read"] });
 	const sp = await searchParams;
 	const tab = one(sp.tab) ?? "register";
 	const t = await getTranslations("Risks");

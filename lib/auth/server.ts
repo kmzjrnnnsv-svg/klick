@@ -283,8 +283,9 @@ export const auth = betterAuth({
 					);
 				},
 				async afterCreateInvitation({ invitation, inviter }) {
+					// Better Auth 1.7: `inviter` ist der User selbst (kein { user, member }).
 					await auditPlatform(
-						{ userId: inviter.user.id },
+						{ userId: inviter.id },
 						{
 							action: "org.invitation_created",
 							target: `invitation:${invitation.id}`,

@@ -4,7 +4,8 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import type { EntityKind } from "@/db/schema/enums";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { type SearchHit, searchOrg } from "@/lib/compliance/search";
 import { readOrg } from "@/lib/db/with-org";
 import { entityHref } from "@/lib/entities/links";
@@ -47,7 +48,7 @@ export default async function SearchPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg();
+	const ctx = await requireOrgPage();
 	const sp = await searchParams;
 	const q = (one(sp.q) ?? "").trim();
 	const t = await getTranslations("Search");

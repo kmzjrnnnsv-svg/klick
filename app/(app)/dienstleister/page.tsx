@@ -17,7 +17,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { TOOL_LANDSCAPE } from "@/lib/compliance/catalog/tool-landscape";
@@ -35,7 +36,7 @@ export default async function ProvidersPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ provider: ["read"] });
+	const ctx = await requireOrgPage({ provider: ["read"] });
 	const sp = await searchParams;
 	const t = await getTranslations("Providers");
 	const te = await getTranslations("Entity");

@@ -3,12 +3,13 @@
 import { APIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { z } from "zod";
+import { safeAction } from "@/lib/actions/safe";
 import { requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { auth } from "@/lib/auth/server";
 import { AuthError } from "@/lib/auth/session-rules";
 import { mutateOrg } from "@/lib/db/with-org";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
+import { registerSsoSchema, ssoProviderIdSchema } from "@/lib/validation/sso";
 
 // SSO je Organisation (OIDC über @better-auth/sso). Nur Owner mit Step-up;
 // Client-Secret geht direkt an Better Auth (verschlüsselt gespeichert) und
@@ -35,31 +36,9 @@ function mapError(e: unknown): { ok: false; error: string } {
 	throw e;
 }
 
-const providerIdSchema = z
-	.string()
-	.trim()
-	.regex(/^[a-z0-9][a-z0-9-]{2,39}$/, "Kleinbuchstaben, Ziffern, Bindestrich");
+const providerIdSchema = ssoProviderIdSchema;
 
-export const registerSsoSchema = z.object({
-	providerId: providerIdSchema,
-	domain: z
-		.string()
-		.trim()
-		.toLowerCase()
-		.regex(/^(?=.{4,253}$)([a-z0-9-]+\.)+[a-z]{2,}$/, "z. B. firma.de"),
-	issuer: z.url(),
-	clientId: z.string().trim().min(1).max(200),
-	clientSecret: z.string().min(1).max(500),
-	discoveryEndpoint: z
-		.url()
-		.optional()
-		.or(z.literal("").transform(() => undefined)),
-	scopes: z.string().trim().max(200).optional(),
-});
-
-export async function registerSsoProvider(
-	input: unknown,
-): Promise<ActionResult> {
+async function registerSsoProviderImpl(input: unknown): Promise<ActionResult> {
 	const g = await stepUp();
 	if (!g.ok) return g;
 	const c = g.ctx;
@@ -104,7 +83,7 @@ export async function registerSsoProvider(
 	return { ok: true, data: undefined };
 }
 
-export async function deleteSsoProvider(
+async function deleteSsoProviderImpl(
 	providerId: string,
 ): Promise<ActionResult> {
 	const g = await stepUp();
@@ -132,7 +111,7 @@ export async function deleteSsoProvider(
 }
 
 // DNS-TXT-Token anfordern (Wert für _klick-sso.<domain>).
-export async function requestSsoDomainVerification(
+async function requestSsoDomainVerificationImpl(
 	providerId: string,
 ): Promise<ActionResult<{ token: string }>> {
 	const g = await stepUp();
@@ -152,9 +131,7 @@ export async function requestSsoDomainVerification(
 	}
 }
 
-export async function verifySsoDomain(
-	providerId: string,
-): Promise<ActionResult> {
+async function verifySsoDomainImpl(providerId: string): Promise<ActionResult> {
 	const g = await stepUp();
 	if (!g.ok) return g;
 	const c = g.ctx;
@@ -178,3 +155,22 @@ export async function verifySsoDomain(
 	revalidatePath("/einstellungen");
 	return { ok: true, data: undefined };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const registerSsoProvider = safeAction(
+	"registerSsoProvider",
+	registerSsoProviderImpl,
+);
+export const deleteSsoProvider = safeAction(
+	"deleteSsoProvider",
+	deleteSsoProviderImpl,
+);
+export const requestSsoDomainVerification = safeAction(
+	"requestSsoDomainVerification",
+	requestSsoDomainVerificationImpl,
+);
+export const verifySsoDomain = safeAction(
+	"verifySsoDomain",
+	verifySsoDomainImpl,
+);

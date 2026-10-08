@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { type EntityProfile, evidence, orgSettings } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { auditPlatform } from "@/lib/audit";
 import { requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { getOrgSummary, revokeSessionsOfOrgMembers } from "@/lib/auth/org";
@@ -51,9 +52,7 @@ const riskSettingsSchema = z
 		path: ["tolerable"],
 	});
 
-export async function updateRiskSettings(
-	input: unknown,
-): Promise<ActionResult> {
+async function updateRiskSettingsImpl(input: unknown): Promise<ActionResult> {
 	const g = await stepUp();
 	if (!g.ok) return g;
 	const c = g.ctx;
@@ -106,7 +105,7 @@ const numberingSchema = z.object({
 	),
 });
 
-export async function updateNumbering(input: unknown): Promise<ActionResult> {
+async function updateNumberingImpl(input: unknown): Promise<ActionResult> {
 	const g = await stepUp();
 	if (!g.ok) return g;
 	const c = g.ctx;
@@ -142,9 +141,7 @@ export async function updateNumbering(input: unknown): Promise<ActionResult> {
 
 // Stammdaten für Meldungen: LEI, Sitzland, Behörde, Bilanzsumme, Rechtsform,
 // Registernummer — fließen in Informationsregister, Antrag, Lieferantenpaket.
-export async function updateEntityProfile(
-	input: unknown,
-): Promise<ActionResult> {
+async function updateEntityProfileImpl(input: unknown): Promise<ActionResult> {
 	const g = await stepUp();
 	if (!g.ok) return g;
 	const c = g.ctx;
@@ -188,7 +185,7 @@ const deleteOrgSchema = z.object({
 	exportConfirmed: z.literal(true),
 });
 
-export async function deleteOrganizationAction(
+async function deleteOrganizationActionImpl(
 	input: unknown,
 ): Promise<ActionResult<{ deletedAt: string }>> {
 	const g = await stepUp();
@@ -265,3 +262,22 @@ export async function deleteOrganizationAction(
 	await sendTransactionalMail({ to: c.email, ...mail }).catch(() => undefined);
 	return { ok: true, data: { deletedAt } };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const updateRiskSettings = safeAction(
+	"updateRiskSettings",
+	updateRiskSettingsImpl,
+);
+export const updateNumbering = safeAction(
+	"updateNumbering",
+	updateNumberingImpl,
+);
+export const updateEntityProfile = safeAction(
+	"updateEntityProfile",
+	updateEntityProfileImpl,
+);
+export const deleteOrganizationAction = safeAction(
+	"deleteOrganizationAction",
+	deleteOrganizationActionImpl,
+);

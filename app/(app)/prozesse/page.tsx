@@ -20,7 +20,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { dependencyMap, listProcesses } from "@/lib/compliance/queries-p3";
@@ -42,7 +43,7 @@ export default async function ProcessesPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ process: ["read"] });
+	const ctx = await requireOrgPage({ process: ["read"] });
 	const sp = await searchParams;
 	const tab = one(sp.tab) ?? "landkarte";
 	const t = await getTranslations("Processes");

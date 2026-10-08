@@ -8,7 +8,8 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listRequestsForUser } from "@/lib/approvals/service";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
 	listControlRows,
@@ -28,7 +29,7 @@ import { listNotifications } from "@/lib/notifications/query";
 // Startseite nach Login: gestapelte Abschnitte, je max. fünf Einträge —
 // Freigaben, Aufgaben, Fälliges, Kenntnisnahmen, Erwähnungen.
 export default async function TodayPage() {
-	const ctx = await requireOrg();
+	const ctx = await requireOrgPage();
 	const t = await getTranslations("Today");
 	const ts = await getTranslations("Status");
 	const today = new Date().toISOString().slice(0, 10);

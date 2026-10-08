@@ -25,7 +25,8 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import type { ImplStatus } from "@/db/schema/enums";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
 import { roleAllows } from "@/lib/auth/permissions";
 import { aggregateSuspicious, type RiskDimensions } from "@/lib/compliance/aml";
@@ -132,7 +133,7 @@ export default async function AmlPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ aml: ["read"] });
+	const ctx = await requireOrgPage({ aml: ["read"] });
 	const sp = await searchParams;
 	const tab: Tab = (TABS as readonly string[]).includes(one(sp.tab) ?? "")
 		? (one(sp.tab) as Tab)

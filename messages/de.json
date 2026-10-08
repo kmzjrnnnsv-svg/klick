@@ -555,7 +555,9 @@
 		"lead": "Der Fehler wurde protokolliert. Du kannst es noch einmal versuchen oder zur Startseite zurück.",
 		"forbidden": "Dafür fehlt dir die Berechtigung.",
 		"notFoundTitle": "Nicht gefunden",
-		"notFoundLead": "Diese Seite gibt es nicht — oder sie gehört zu einer anderen Organisation."
+		"notFoundLead": "Diese Seite gibt es nicht — oder sie gehört zu einer anderen Organisation.",
+		"reference": "Referenz für den Support: {ref}",
+		"home": "Zur Startseite"
 	},
 	"Status": {
 		"notStarted": "Offen",
@@ -616,7 +618,7 @@
 		"approvalRequired": "Freigabe nötig",
 		"approvalRequested": "Freigabe angefragt — der Status wechselt nach der Entscheidung.",
 		"rootCauseRequired": "Vor dem Schliessen braucht der Vorfall eine Ursache.",
-		"approvalError_no_approver": "Niemand erfüllt die Freigaberegel — Pflichtfunktion besetzen oder Workflow anpassen.",
+		"approvalError_no_approver": "Niemand erfüllt die Freigaberegel. Besetze die Pflichtfunktion unter Organisation → Rollen und Leitung oder passe den Workflow unter Einstellungen → Freigabe-Workflows an.",
 		"approvalError_solo_reason_required": "Solo-Modus: Begründung für die Selbstfreigabe nötig (Detailseite).",
 		"approvalError_solo_not_allowed": "Selbstfreigabe ist in dieser Organisation nicht erlaubt.",
 		"approvalError_workflow_disabled": "Der Workflow ist nicht aktiv.",
@@ -786,6 +788,8 @@
 		"open": "offen",
 		"notApplicable": "nicht anwendbar",
 		"notApplicableShort": "N/A",
+		"inactive": "nicht aktiviert",
+		"activate": "Rahmenwerk aktivieren",
 		"noIndex": "Für dieses Rahmenwerk liegt der Anforderungs-Index noch nicht vor (Phase 4/5).",
 		"section": "Abschnitt",
 		"requirement": "Anforderung",
@@ -1653,6 +1657,7 @@
 		"new": "Beschluss",
 		"recordFor": "Beschluss erfassen",
 		"created": "Beschluss {n} erfasst.",
+		"createdNoApproval": "Beschluss {n} erfasst, Freigabe nicht angefragt: {reason}",
 		"formLead": "Betreff, Beschlusstext, Gremium und Datum. Standardmäßig läuft der Beschluss durch die Genehmigung der Leitung (Vier-Augen).",
 		"subject": "Betreff",
 		"decisionText": "Beschlusstext",

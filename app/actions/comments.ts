@@ -3,6 +3,7 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { comments, watchers } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { listMembersForPicker, listWatcherIds } from "@/lib/compliance/queries";
 import { mutateOrg } from "@/lib/db/with-org";
@@ -13,7 +14,7 @@ import { addCommentSchema, entityRefSchema } from "@/lib/validation/grc";
 
 // Kommentar mit @Mentions: Erwähnte und Watcher werden benachrichtigt;
 // Kommentierende werden automatisch Watcher.
-export async function addComment(
+async function addCommentImpl(
 	input: unknown,
 	link: string,
 ): Promise<ActionResult<{ id: string; mentioned: number }>> {
@@ -88,7 +89,7 @@ export async function addComment(
 	return { ok: true, data: out };
 }
 
-export async function toggleWatch(
+async function toggleWatchImpl(
 	input: unknown,
 ): Promise<ActionResult<{ watching: boolean }>> {
 	const c = await requireOrg();
@@ -123,3 +124,8 @@ export async function toggleWatch(
 	});
 	return { ok: true, data: { watching } };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const addComment = safeAction("addComment", addCommentImpl);
+export const toggleWatch = safeAction("toggleWatch", toggleWatchImpl);

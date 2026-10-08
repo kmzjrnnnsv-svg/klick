@@ -7,6 +7,7 @@ import {
 	roleAssignments,
 	whistleblowingReports,
 } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import {
 	complaintDeadlines,
@@ -28,7 +29,7 @@ const PATH = "/beschwerden";
 
 // ── Beschwerden (MiCAR Art. 71, ZAG § 62) ──────────────────────────────────
 
-export async function upsertComplaint(
+async function upsertComplaintImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; code: string }>> {
 	const c = await requireOrg({ complaint: ["create", "update"] });
@@ -165,9 +166,7 @@ export async function upsertComplaint(
 	return res ? { ok: true, data: res } : { ok: false, error: "notFound" };
 }
 
-export async function transitionComplaint(
-	input: unknown,
-): Promise<ActionResult> {
+async function transitionComplaintImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ complaint: ["update"] });
 	const parsed = complaintTransitionSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -215,7 +214,7 @@ export async function transitionComplaint(
 
 // ── Hinweisgebermeldungen (HinSchG, MiCAR Art. 116, GwG § 6 Abs. 5) ────────
 
-export async function upsertWhistleblowingReport(
+async function upsertWhistleblowingReportImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; ref: string }>> {
 	const c = await requireOrg({ whistleblowing: ["create", "update"] });
@@ -345,7 +344,7 @@ export async function upsertWhistleblowingReport(
 	return res ? { ok: true, data: res } : { ok: false, error: "notFound" };
 }
 
-export async function transitionWhistleblowingReport(
+async function transitionWhistleblowingReportImpl(
 	input: unknown,
 ): Promise<ActionResult> {
 	const c = await requireOrg({ whistleblowing: ["update"] });
@@ -389,3 +388,22 @@ export async function transitionWhistleblowingReport(
 	revalidatePath(PATH);
 	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const upsertComplaint = safeAction(
+	"upsertComplaint",
+	upsertComplaintImpl,
+);
+export const transitionComplaint = safeAction(
+	"transitionComplaint",
+	transitionComplaintImpl,
+);
+export const upsertWhistleblowingReport = safeAction(
+	"upsertWhistleblowingReport",
+	upsertWhistleblowingReportImpl,
+);
+export const transitionWhistleblowingReport = safeAction(
+	"transitionWhistleblowingReport",
+	transitionWhistleblowingReportImpl,
+);

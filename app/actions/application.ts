@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { orgSettings } from "@/db/schema";
 import type { ApplicationItemState } from "@/db/schema/platform";
+import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { MICAR_APPLICATION } from "@/lib/compliance/catalog/micar-application";
 import { ZAG_APPLICATION } from "@/lib/compliance/catalog/zag-application";
@@ -23,9 +24,7 @@ const KNOWN = new Set(
 
 // Manuelle Bestandteile der Antragsmappen (Unterlagen, die außerhalb der
 // Plattform liegen) abhaken — mit Akteur und Zeit im Audit-Log.
-export async function setApplicationItem(
-	input: unknown,
-): Promise<ActionResult> {
+async function setApplicationItemImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ organisation: ["update"] });
 	const parsed = schema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -64,3 +63,10 @@ export async function setApplicationItem(
 	revalidatePath("/antrag");
 	return { ok: true, data: undefined };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const setApplicationItem = safeAction(
+	"setApplicationItem",
+	setApplicationItemImpl,
+);

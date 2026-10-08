@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { requirePlatformAdmin } from "@/lib/auth/guards";
+import { requirePlatformAdminPage } from "@/lib/auth/gates";
 import { platformCounts } from "@/lib/db/global";
 
 export default async function AdminHome() {
-	await requirePlatformAdmin();
+	await requirePlatformAdminPage();
 	const t = await getTranslations("Admin");
 	const counts = await platformCounts();
 	const tiles = [

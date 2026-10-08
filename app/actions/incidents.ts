@@ -8,6 +8,7 @@ import {
 	roleAssignments,
 	tasks,
 } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
@@ -68,7 +69,7 @@ async function incidentManager(tx: Tx, orgId: string): Promise<string | null> {
 }
 
 // Drei Felder: Was · Wann bemerkt · Betrifft Zahlungen/Kunden → Uhren laufen ab Kenntnis.
-export async function createIncident(
+async function createIncidentImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; code: string }>> {
 	const c = await requireOrg({ incident: ["create"] });
@@ -150,7 +151,7 @@ export async function createIncident(
 	return { ok: true, data: out };
 }
 
-export async function classifyIncident(
+async function classifyIncidentImpl(
 	input: unknown,
 ): Promise<ActionResult<{ classification: string; reasons: string[] }>> {
 	const c = await requireOrg({ incident: ["update"] });
@@ -256,9 +257,7 @@ export async function classifyIncident(
 	return res;
 }
 
-export async function markIncidentReported(
-	input: unknown,
-): Promise<ActionResult> {
+async function markIncidentReportedImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ incident: ["update"] });
 	const parsed = incidentReportSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -319,7 +318,7 @@ export async function markIncidentReported(
 	return { ok: true, data: undefined };
 }
 
-export async function addIncidentUpdate(input: unknown): Promise<ActionResult> {
+async function addIncidentUpdateImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ incident: ["update"] });
 	const parsed = incidentUpdateSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -365,7 +364,7 @@ export async function addIncidentUpdate(input: unknown): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
-export async function setIncidentStatus(
+async function setIncidentStatusImpl(
 	input: unknown,
 ): Promise<ActionResult<{ status: string; approvalRequested: boolean }>> {
 	const c = await requireOrg({ incident: ["update"] });
@@ -464,3 +463,23 @@ export async function setIncidentStatus(
 	revalidatePath("/vorfaelle", "layout");
 	return res;
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const createIncident = safeAction("createIncident", createIncidentImpl);
+export const classifyIncident = safeAction(
+	"classifyIncident",
+	classifyIncidentImpl,
+);
+export const markIncidentReported = safeAction(
+	"markIncidentReported",
+	markIncidentReportedImpl,
+);
+export const addIncidentUpdate = safeAction(
+	"addIncidentUpdate",
+	addIncidentUpdateImpl,
+);
+export const setIncidentStatus = safeAction(
+	"setIncidentStatus",
+	setIncidentStatusImpl,
+);

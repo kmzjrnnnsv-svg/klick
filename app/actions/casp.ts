@@ -8,6 +8,7 @@ import {
 	roleAssignments,
 	shareholders,
 } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
@@ -47,7 +48,7 @@ export type OwnFundsExtras = {
 
 // ── Eigenmittel (MiCAR Art. 67, ZAG §§ 12, 15; AT 4.1) ────────────────────
 
-export async function upsertOwnFunds(
+async function upsertOwnFundsImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; totalRequired: number }>> {
 	const c = await requireOrg({ own_funds: ["create", "update"] });
@@ -188,7 +189,7 @@ export async function upsertOwnFunds(
 }
 
 // Freigabe durch die Geschäftsleitung (Workflow own_funds: Finanzen → GL).
-export async function requestOwnFundsApproval(
+async function requestOwnFundsApprovalImpl(
 	input: unknown,
 ): Promise<ActionResult<{ status: string }>> {
 	const c = await requireOrg({ own_funds: ["update"] });
@@ -269,7 +270,7 @@ export async function requestOwnFundsApproval(
 // Regel: akzeptiert nur, wenn EMT/ART mit zugelassenem Emittenten (Whitepaper)
 // oder nativer Kryptowert ohne Emittent.
 
-export async function upsertCryptoAsset(
+async function upsertCryptoAssetImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ crypto_asset: ["create", "update"] });
@@ -370,7 +371,7 @@ export async function upsertCryptoAsset(
 	return res;
 }
 
-export async function applyCryptoAssetSeed(): Promise<
+async function applyCryptoAssetSeedImpl(): Promise<
 	ActionResult<{ created: number }>
 > {
 	const c = await requireOrg({ crypto_asset: ["create"] });
@@ -429,7 +430,7 @@ export async function applyCryptoAssetSeed(): Promise<
 
 // ── Gesellschafter (Art. 83–85 MiCAR, § 14 ZAG) ───────────────────────────
 
-export async function upsertShareholder(
+async function upsertShareholderImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; thresholdCrossed: number | null }>> {
 	const c = await requireOrg({ shareholder: ["create", "update"] });
@@ -545,7 +546,7 @@ export async function upsertShareholder(
 	return res;
 }
 
-export async function deleteShareholder(input: {
+async function deleteShareholderImpl(input: {
 	id: string;
 }): Promise<ActionResult> {
 	const c = await requireOrg({ shareholder: ["update"] });
@@ -575,3 +576,27 @@ export async function deleteShareholder(input: {
 	revalidatePath("/organisation");
 	return { ok: true, data: undefined };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const upsertOwnFunds = safeAction("upsertOwnFunds", upsertOwnFundsImpl);
+export const requestOwnFundsApproval = safeAction(
+	"requestOwnFundsApproval",
+	requestOwnFundsApprovalImpl,
+);
+export const upsertCryptoAsset = safeAction(
+	"upsertCryptoAsset",
+	upsertCryptoAssetImpl,
+);
+export const applyCryptoAssetSeed = safeAction(
+	"applyCryptoAssetSeed",
+	applyCryptoAssetSeedImpl,
+);
+export const upsertShareholder = safeAction(
+	"upsertShareholder",
+	upsertShareholderImpl,
+);
+export const deleteShareholder = safeAction(
+	"deleteShareholder",
+	deleteShareholderImpl,
+);

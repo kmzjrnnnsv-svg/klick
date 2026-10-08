@@ -11,7 +11,8 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { UserChip } from "@/components/entity/user-chip";
 import { Button } from "@/components/ui/button";
 import { DOMAINS, type ImplStatus } from "@/db/schema/enums";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
@@ -30,7 +31,7 @@ export default async function ControlsPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg();
+	const ctx = await requireOrgPage();
 	const sp = await searchParams;
 	const t = await getTranslations("Controls");
 	const te = await getTranslations("Entity");

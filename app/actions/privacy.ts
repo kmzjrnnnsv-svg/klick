@@ -8,6 +8,7 @@ import {
 	processingActivities,
 	roleAssignments,
 } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { applicableProcessingActivities } from "@/lib/compliance/catalog/processing-activities";
@@ -44,7 +45,7 @@ async function dpo(tx: OrgTx, orgId: string): Promise<string | null> {
 
 // ── Verarbeitungsverzeichnis (Art. 30) ─────────────────────────────────────
 
-export async function upsertProcessingActivity(
+async function upsertProcessingActivityImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ privacy: ["create", "update"] });
@@ -132,7 +133,7 @@ export async function upsertProcessingActivity(
 	return res;
 }
 
-export async function deleteProcessingActivity(input: {
+async function deleteProcessingActivityImpl(input: {
 	id: string;
 }): Promise<ActionResult> {
 	const c = await requireOrg({ privacy: ["update"] });
@@ -165,7 +166,7 @@ export async function deleteProcessingActivity(input: {
 	return { ok: true, data: undefined };
 }
 
-export async function applyProcessingActivitySeed(): Promise<
+async function applyProcessingActivitySeedImpl(): Promise<
 	ActionResult<{ created: number }>
 > {
 	const c = await requireOrg({ privacy: ["create"] });
@@ -217,7 +218,7 @@ export async function applyProcessingActivitySeed(): Promise<
 
 // ── Betroffenenanfragen (Art. 12–22) ───────────────────────────────────────
 
-export async function upsertDataSubjectRequest(
+async function upsertDataSubjectRequestImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ privacy: ["create", "update"] });
@@ -319,7 +320,7 @@ export async function upsertDataSubjectRequest(
 	return res;
 }
 
-export async function transitionDataSubjectRequest(
+async function transitionDataSubjectRequestImpl(
 	input: unknown,
 ): Promise<ActionResult> {
 	const c = await requireOrg({ privacy: ["update"] });
@@ -363,7 +364,7 @@ export async function transitionDataSubjectRequest(
 }
 
 // Art. 12 Abs. 3: Verlängerung um zwei Monate mit Begründung (Betroffene informieren).
-export async function extendDataSubjectRequest(
+async function extendDataSubjectRequestImpl(
 	input: unknown,
 ): Promise<ActionResult> {
 	const c = await requireOrg({ privacy: ["update"] });
@@ -404,7 +405,7 @@ export async function extendDataSubjectRequest(
 
 // ── Versicherungen (Organisation) ──────────────────────────────────────────
 
-export async function upsertInsurancePolicy(
+async function upsertInsurancePolicyImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ organisation: ["update"] });
@@ -492,7 +493,7 @@ export async function upsertInsurancePolicy(
 	return res;
 }
 
-export async function deleteInsurancePolicy(input: {
+async function deleteInsurancePolicyImpl(input: {
 	id: string;
 }): Promise<ActionResult> {
 	const c = await requireOrg({ organisation: ["update"] });
@@ -522,3 +523,38 @@ export async function deleteInsurancePolicy(input: {
 	revalidatePath("/organisation");
 	return { ok: true, data: undefined };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const upsertProcessingActivity = safeAction(
+	"upsertProcessingActivity",
+	upsertProcessingActivityImpl,
+);
+export const deleteProcessingActivity = safeAction(
+	"deleteProcessingActivity",
+	deleteProcessingActivityImpl,
+);
+export const applyProcessingActivitySeed = safeAction(
+	"applyProcessingActivitySeed",
+	applyProcessingActivitySeedImpl,
+);
+export const upsertDataSubjectRequest = safeAction(
+	"upsertDataSubjectRequest",
+	upsertDataSubjectRequestImpl,
+);
+export const transitionDataSubjectRequest = safeAction(
+	"transitionDataSubjectRequest",
+	transitionDataSubjectRequestImpl,
+);
+export const extendDataSubjectRequest = safeAction(
+	"extendDataSubjectRequest",
+	extendDataSubjectRequestImpl,
+);
+export const upsertInsurancePolicy = safeAction(
+	"upsertInsurancePolicy",
+	upsertInsurancePolicyImpl,
+);
+export const deleteInsurancePolicy = safeAction(
+	"deleteInsurancePolicy",
+	deleteInsurancePolicyImpl,
+);

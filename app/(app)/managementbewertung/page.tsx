@@ -8,7 +8,8 @@ import {
 } from "@/components/management-review/review-forms";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import {
 	applicableReviewInputs,
@@ -26,7 +27,7 @@ const STATUS_TONE = {
 } as const;
 
 export default async function ManagementReviewPage() {
-	const ctx = await requireOrg({ management_review: ["read"] });
+	const ctx = await requireOrgPage({ management_review: ["read"] });
 	const t = await getTranslations("ManagementReview");
 	const canEdit = roleAllows(ctx.orgRole, { management_review: ["update"] });
 	const { reviews, members, inputs } = await readOrg(

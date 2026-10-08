@@ -5,7 +5,8 @@ import { UrlTabs } from "@/components/entity/url-tabs";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import {
 	type ApplicationCheck as Check,
@@ -41,7 +42,7 @@ export default async function ApplicationPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ organisation: ["read"] });
+	const ctx = await requireOrgPage({ organisation: ["read"] });
 	const sp = await searchParams;
 	const tab = one(sp.tab) === "zag" ? "zag" : "micar";
 	const t = await getTranslations("Application");

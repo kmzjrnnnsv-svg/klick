@@ -13,6 +13,7 @@ import {
 	riskTreatments,
 	tasks,
 } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { assessRisk, nextRiskCode } from "@/lib/compliance/risk";
@@ -51,7 +52,7 @@ function plusMonths(months: number): string {
 	return d.toISOString().slice(0, 10);
 }
 
-export async function createRisk(
+async function createRiskImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; code: string }>> {
 	const c = await requireOrg({ risk: ["create"] });
@@ -113,7 +114,7 @@ export async function createRisk(
 	return { ok: true, data: out };
 }
 
-export async function updateRisk(input: unknown): Promise<ActionResult> {
+async function updateRiskImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ risk: ["update"] });
 	const parsed = updateRiskSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -219,7 +220,7 @@ function pick(obj: Record<string, unknown>, keys: string[]) {
 	return Object.fromEntries(keys.map((k) => [k, obj[k] ?? null]));
 }
 
-export async function setRiskStatus(
+async function setRiskStatusImpl(
 	input: unknown,
 ): Promise<ActionResult<{ status: string; approvalRequested: boolean }>> {
 	const c = await requireOrg({ risk: ["update"] });
@@ -328,7 +329,7 @@ export async function setRiskStatus(
 	return res;
 }
 
-export async function createTreatment(
+async function createTreatmentImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ risk: ["update"] });
@@ -399,7 +400,7 @@ export async function createTreatment(
 	return { ok: true, data: { id } };
 }
 
-export async function createException(
+async function createExceptionImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ risk: ["create"] });
@@ -480,7 +481,7 @@ export async function createException(
 	return res;
 }
 
-export async function createLossEvent(
+async function createLossEventImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ risk: ["create"] });
@@ -521,3 +522,21 @@ export async function createLossEvent(
 	revalidatePath("/risiken");
 	return { ok: true, data: { id } };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const createRisk = safeAction("createRisk", createRiskImpl);
+export const updateRisk = safeAction("updateRisk", updateRiskImpl);
+export const setRiskStatus = safeAction("setRiskStatus", setRiskStatusImpl);
+export const createTreatment = safeAction(
+	"createTreatment",
+	createTreatmentImpl,
+);
+export const createException = safeAction(
+	"createException",
+	createExceptionImpl,
+);
+export const createLossEvent = safeAction(
+	"createLossEvent",
+	createLossEventImpl,
+);

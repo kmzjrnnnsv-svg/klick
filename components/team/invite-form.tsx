@@ -26,6 +26,7 @@ const ROLES = ["editor", "viewer", "owner", "auditor"] as const;
 
 export function InviteForm() {
 	const t = useTranslations("Team");
+	const tc = useTranslations("Common");
 	const [open, setOpen] = useState(false);
 	const [email, setEmail] = useState("");
 	const [role, setRole] = useState<(typeof ROLES)[number]>("editor");
@@ -37,7 +38,9 @@ export function InviteForm() {
 		const res = await inviteMember({ email, role });
 		setBusy(false);
 		if (!res.ok) {
-			toast.error(res.error);
+			// Better Auth liefert lesbare Meldungen („already a member“), unser
+			// Sicherheitsnetz nur Codes — die zeigen wir nicht roh an.
+			toast.error(res.error.includes(" ") ? res.error : tc("error"));
 			return;
 		}
 		toast.success(t("inviteSent"));

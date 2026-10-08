@@ -4,6 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { controlImplementations, controls } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { REQUIREMENT_BY_KEY } from "@/lib/compliance/catalog";
@@ -22,7 +23,6 @@ import {
 	assignControlSchema,
 	setControlStatusSchema,
 } from "@/lib/validation/grc";
-
 export type StatusChangeResult = {
 	code: string;
 	status: string;
@@ -35,7 +35,7 @@ export type StatusChangeResult = {
 	}[];
 };
 
-export async function setControlStatus(
+async function setControlStatusImpl(
 	input: unknown,
 ): Promise<ActionResult<StatusChangeResult>> {
 	const c = await requireOrg({ control: ["update"] });
@@ -140,7 +140,7 @@ export async function setControlStatus(
 	return result;
 }
 
-export async function assignControl(input: unknown): Promise<ActionResult> {
+async function assignControlImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ control: ["assign"] });
 	const parsed = assignControlSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -213,7 +213,7 @@ const bulkSchema = z.object({
 // Bulk: Status (nur Übergänge ohne Begründungspflicht) und Zuweisung für
 // mehrere Controls. Jede Zeile einzeln geprüft (RLS, Statusmaschine) und
 // auditiert; nicht erlaubte Übergänge werden übersprungen.
-export async function bulkUpdateControls(
+async function bulkUpdateControlsImpl(
 	input: unknown,
 ): Promise<ActionResult<{ updated: number; skipped: number }>> {
 	const c = await requireOrg({ control: ["update", "assign"] });
@@ -295,3 +295,15 @@ export async function bulkUpdateControls(
 	revalidatePath("/ueberblick");
 	return { ok: true, data: out };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const setControlStatus = safeAction(
+	"setControlStatus",
+	setControlStatusImpl,
+);
+export const assignControl = safeAction("assignControl", assignControlImpl);
+export const bulkUpdateControls = safeAction(
+	"bulkUpdateControls",
+	bulkUpdateControlsImpl,
+);

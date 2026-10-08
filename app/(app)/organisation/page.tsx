@@ -46,7 +46,8 @@ import {
 	latestRequestFor,
 	loadCandidates,
 } from "@/lib/approvals/service";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate, shortFrameworkName } from "@/lib/compliance/page-data";
@@ -97,7 +98,7 @@ export default async function OrganisationPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ organisation: ["read"] });
+	const ctx = await requireOrgPage({ organisation: ["read"] });
 	const sp = await searchParams;
 	const tab = (TABS as readonly string[]).includes(one(sp.tab) ?? "")
 		? (one(sp.tab) as (typeof TABS)[number])

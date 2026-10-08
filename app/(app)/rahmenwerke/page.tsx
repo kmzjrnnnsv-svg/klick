@@ -12,7 +12,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import { fmtDate, getOrgCoverageCached, pct } from "@/lib/compliance/page-data";
 import { userNames } from "@/lib/compliance/queries";
@@ -20,7 +21,7 @@ import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
 
 export default async function FrameworksPage() {
-	const ctx = await requireOrg();
+	const ctx = await requireOrgPage();
 	const t = await getTranslations("Frameworks");
 	const [cov, fws] = await Promise.all([
 		getOrgCoverageCached(ctx),

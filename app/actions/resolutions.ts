@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { resolutions } from "@/db/schema";
 import type { EntityKind } from "@/db/schema/enums";
+import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nextResolutionNumber } from "@/lib/compliance/catalog/resolutions-required";
@@ -15,11 +16,12 @@ import { resolutionSchema } from "@/lib/validation/governance";
 // Jeder Beschluss ist ein Datensatz; standardmäßig läuft er durch den
 // Workflow management_approval (Genehmigung durch das Leitungsorgan). Ohne
 // aktiven Workflow gilt der Beschluss sofort — die Leitung dokumentiert selbst.
-export async function createResolution(input: unknown): Promise<
+async function createResolutionImpl(input: unknown): Promise<
 	ActionResult<{
 		id: string;
 		number: string;
 		approval: "none" | "pending" | "approved";
+		approvalSkipped?: "no_approver";
 	}>
 > {
 	const c = await requireOrg({ resolution: ["create"] });
@@ -58,6 +60,7 @@ export async function createResolution(input: unknown): Promise<
 			.returning({ id: resolutions.id });
 		if (!row) throw new Error("insert failed");
 		let approval: "none" | "pending" | "approved" = "none";
+		let approvalSkipped: "no_approver" | undefined;
 		if (d.requestApproval) {
 			const r = await requestApproval(
 				tx,
@@ -77,12 +80,20 @@ export async function createResolution(input: unknown): Promise<
 					.set({ approvalRequestId: r.requestId })
 					.where(eq(resolutions.id, row.id));
 				approval = r.status === "approved" ? "approved" : "pending";
+			} else if (r.error === "no_approver") {
+				// Niemand hält die Pflichtfunktion (z. B. frische Organisation):
+				// der Beschluss wird trotzdem erfasst — die Leitung dokumentiert
+				// selbst —, die Oberfläche weist auf die unbesetzte Funktion hin.
+				approvalSkipped = "no_approver";
 			} else if (r.error !== "workflow_disabled") {
 				return { result: { ok: false, error: r.error }, audit: [] };
 			}
 		}
 		return {
-			result: { ok: true, data: { id: row.id, number, approval } },
+			result: {
+				ok: true,
+				data: { id: row.id, number, approval, approvalSkipped },
+			},
 			audit: {
 				action: "resolution.create",
 				target: `resolution:${row.id}`,
@@ -101,3 +112,10 @@ export async function createResolution(input: unknown): Promise<
 	revalidatePath("/ueberblick");
 	return res;
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const createResolution = safeAction(
+	"createResolution",
+	createResolutionImpl,
+);

@@ -15,7 +15,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker, userNames } from "@/lib/compliance/queries";
@@ -32,7 +33,7 @@ export default async function TrainingsPage({
 	searchParams: Promise<{ tab?: string }>;
 }) {
 	const { tab = "plan" } = await searchParams;
-	const ctx = await requireOrg({ task: ["read"] });
+	const ctx = await requireOrgPage({ task: ["read"] });
 	const t = await getTranslations("Trainings");
 	const canEdit = roleAllows(ctx.orgRole, { task: ["create"] });
 	const canSettings = roleAllows(ctx.orgRole, { settings: ["update"] });

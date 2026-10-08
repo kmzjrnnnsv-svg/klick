@@ -27,7 +27,8 @@ import {
 	loadCandidates,
 } from "@/lib/approvals/service";
 import { historyFor } from "@/lib/audit";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { computeIncidentDeadlines } from "@/lib/compliance/incident";
 import {
@@ -59,7 +60,7 @@ export default async function IncidentDetailPage({
 }) {
 	const { id } = await params;
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-	const ctx = await requireOrg({ incident: ["read"] });
+	const ctx = await requireOrgPage({ incident: ["read"] });
 	const t = await getTranslations("Incidents");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");

@@ -21,7 +21,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { historyFor } from "@/lib/audit";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { CONTROLS } from "@/lib/compliance/catalog";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -75,7 +76,7 @@ export default async function ProcessDetailPage({
 	const { code: raw } = await params;
 	const code = decodeURIComponent(raw);
 	if (!/^P-\d{2,3}$/.test(code)) notFound();
-	const ctx = await requireOrg({ process: ["read"] });
+	const ctx = await requireOrgPage({ process: ["read"] });
 	const t = await getTranslations("Processes");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");

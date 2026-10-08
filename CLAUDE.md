@@ -47,7 +47,8 @@ UX, Härtung, Katalog-Abgleich). Authoring-Quelle der Anforderungen:
 
 - **Du-Form überall**, deutsche Slugs (`/heute`, `/ueberblick`, `/risiken`, `/nachweise` …), Begriffe: Rahmenwerk · Anforderung · Control · Nachweis · Dokument · Prozess · Dienstleister · Vorfall · Abweichung · Freigabe · Kenntnisnahme · Verantwortlich (Owner) · Bearbeitet von (Assignee).
 - **Server Components by default**; `"use client"` nur bei State/Browser-API.
-- **Guards zuerst:** jede Action/Query → `requireOrg(perm?)` / `requireStepUp()` / `requirePlatformAdmin()`; Layout-Gates (`lib/auth/gates.ts`) sind nur UX.
+- **Guards zuerst:** jede Action/Query → `requireOrg(perm?)` / `requireStepUp()` / `requirePlatformAdmin()`; Layout-Gates (`lib/auth/gates.ts`) sind nur UX. **Seiten** (`page.tsx`) nutzen `requireOrgPage(perm?)` / `requirePlatformAdminPage()` aus `gates.ts` — Layout und Seite rendern parallel, ein geworfener AuthError in der Seite landet sonst auf der Fehlerseite statt im Redirect.
+- **Keine Fehlerseiten:** jede exportierte Server-Action ist `export const x = safeAction("x", xImpl)` (`lib/actions/safe.ts`): unerwartete Ausnahmen → `{ ok: false, error: "error", ref }` + pino/GlitchTip, AuthError → Code, `redirect()`/`notFound()` laufen weiter. `"use server"`-Dateien exportieren nur async Funktionen (kein `export const schema = z.object(…)` — bricht zur Laufzeit das ganze Action-Modul); Test `use-server-exports` erzwingt beides.
 - **RLS immer:** Org-Queries in `readOrg`/`withOrg`/`mutateOrg`; Kontext transaktionslokal (`set_config(…, true)`); Plattform-Zugriff nur `withPlatform(ctx, reason)` (auditiert).
 - **Audit als letzte Anweisung** derselben Transaktion (`mutateOrg`), mit `before/after`; Hash-Kette je Org; Auth-Ereignisse über Better-Auth-Hooks (`lib/auth/audit-events.ts`).
 - **MFA für alle Rollen**, absolute Session 12 h, Idle 30 min, Step-up ≤ 10 min (`lib/auth/session-rules.ts` — pure, getestet).
@@ -95,6 +96,18 @@ UX, Härtung, Katalog-Abgleich). Authoring-Quelle der Anforderungen:
 - **P5** Kataloge `lib/compliance/catalog/{dsgvo,kwg,corridors,controls-privacy,processing-activities,art30-clauses,platform-supplier}.ts` · pure `lib/compliance/privacy.ts` · Queries `queries-p5.ts` · Actions `app/actions/{privacy,sso}.ts`, `settings.ts` (Stammdaten, Organisation löschen) · UI `components/privacy/*`, `components/settings/{entity-profile-panel,sso-panel,danger-zone-panel}.tsx` · **Exporte** `lib/export/{zip,builders,audit-package,information-register,supplier-pack,org-export,respond}.ts` + `app/api/export/{pruefungspaket,informationsregister,lieferantenpaket,organisation}.zip` · Marketing `app/(marketing)/{vertrauen,preise}` + `/vertrauen/paket.md` · **Härtung III** `lib/uploads/clamav.ts`, `lib/rate-limit.ts`, `lib/db/router.ts`, `lib/observability/glitchtip.ts`, `lib/crypto/rotate.ts`, `scripts/rotate-kek.ts`
 - `deploy/{systemd,nginx,postgres,firewall.nft,README.md}` (Runbooks: Release, KEK-Rotation, Org-Löschung, SSO, clamd/CrowdSec/GlitchTip/DB-Router) · `scripts/{db-migrate.ts,rotate-kek.ts,backup-db.sh,restore-db.sh,wrap-pivot-migration.sh}` · `playwright.config.ts` + `tests/e2e/*`
 
+## QA-Durchlauf (Klick-Crawler)
+
+`scripts/qa/crawl.ts` meldet sich über die echten Flows an (Magic-Link aus dem Server-Log, TOTP, Onboarding) und klickt alle Routen, Dialoge und Formulare durch; Report `/tmp/qa-report-<port>.json`.
+
+```bash
+AUTH_ALLOW_SIGNUP=true BETTER_AUTH_URL=http://localhost:3200 pnpm dev -p 3200 > /tmp/qa-dev.log 2>&1 &
+pnpm exec tsx scripts/qa/crawl.ts --login                     # einmal: QA-Konto + Org (alle Rahmenwerke, Stufe 2)
+pnpm exec tsx scripts/qa/crawl.ts                             # alle Seiten + Dialoge (~45 min)
+pnpm exec tsx scripts/qa/crawl.ts --no-follow --only /team,/beschluesse   # gezielt
+```
+Prod-Build testen: `QA_BASE=http://localhost:3300 QA_LOG=/tmp/qa-prod.log … --login` (Sitzung je Port, Magic-Link steht auch dort in der Konsolen-Mail, solange kein Mail-Provider konfiguriert ist). Stand 08.10.2026: 122 Seiten, 0 Fehlerseiten, 0 5xx; Funde behoben (siehe Commits `fix(auth)`, `fix(actions)`, `fix(team,beschluesse)`, `fix(nachweise,rahmenwerke)`).
+
 ## Quickstart
 
 ```bash
@@ -127,3 +140,4 @@ Lokal ohne Docker: Postgres 16 nativ, Rollen aus `deploy/postgres/init-dev.sql`.
 - `/preise` zeigt Richtwerte (290 €/890 €/auf Anfrage) ohne Abrechnung — vor Veröffentlichung festlegen. Juristische Person/Register für `/vertrauen` stehen nur im Impressum (CMS).
 - Rate-Limit je Org und DB-Router sind Single-Server-Lösungen (Prozessspeicher, Env-Mapping); clamd, CrowdSec, GlitchTip müssen auf dem Server installiert werden (Runbooks in `deploy/README.md`). SSO-Provisionierung legt Mitglieder als `viewer` an — Rollen danach im Team setzen.
 - Externer Pentest vor Go-Live steht aus (`/testprogramm`).
+- Prod-Meldung „Prozess anlegen → Fehlerseite“ (raza.work, 07.10.2026) ließ sich lokal weder im Dev- noch im Prod-Build reproduzieren (leeres und volles Formular, P-01 wie P-24). Seit `safeAction` landet ein solcher Fehler als Toast mit Referenz; die Referenz steht im Journal (`server action failed`, `ref`) — bei erneutem Auftreten diese Zeile prüfen.

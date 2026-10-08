@@ -14,7 +14,8 @@ import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { approvalWorkflows } from "@/db/schema";
 import { ensureOrgWorkflows } from "@/lib/approvals/service";
-import { getSessionCtx, requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { getSessionCtx, toOrgCtx } from "@/lib/auth/guards";
 import { getOrgSummary, listSsoProvidersForOrg } from "@/lib/auth/org";
 import { roleAllows } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
@@ -35,7 +36,7 @@ export default async function SettingsPage({
 	searchParams: Promise<{ tab?: string }>;
 }) {
 	const { tab } = await searchParams;
-	const ctx = await requireOrg();
+	const ctx = await requireOrgPage();
 	const cov = await getOrgCoverageCached(ctx);
 	// Workflows je Org sicherstellen (Seed) und laden.
 	const { settings, workflows } = await withOrg(toOrgCtx(ctx), async (tx) => {

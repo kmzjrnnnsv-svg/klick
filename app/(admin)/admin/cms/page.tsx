@@ -9,7 +9,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requirePlatformAdmin } from "@/lib/auth/guards";
+import { requirePlatformAdminPage } from "@/lib/auth/gates";
 import { getCmsPageBySlug, listCmsPages } from "@/lib/db/global";
 
 export default async function AdminCmsPage({
@@ -17,7 +17,7 @@ export default async function AdminCmsPage({
 }: {
 	searchParams: Promise<{ slug?: string }>;
 }) {
-	await requirePlatformAdmin();
+	await requirePlatformAdminPage();
 	const t = await getTranslations("Admin");
 	const { slug } = await searchParams;
 	const pages = await listCmsPages();

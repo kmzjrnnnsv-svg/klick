@@ -30,17 +30,21 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 			path === "/two-factor/verify-backup-code"
 		) {
 			const method = path.endsWith("totp") ? "totp" : "backup_code";
-			if (!failed && newSession) {
+			// Mit 2FA-Cookie (Passwort-Login) legt das Plugin eine neue Session an;
+			// bei bestehender Session (Magic-Link, Passkey, Enrolment) bestätigt es
+			// nur den Code und behält die aktuelle Session — beide Fälle zählen.
+			const verified = newSession ?? current;
+			if (!failed && verified) {
 				// MFA-Pflicht ist unsere Regel: erst jetzt gilt die Session als
 				// zweitfaktor-verifiziert (lib/auth/guards.ts prüft mfaVerifiedAt).
 				const now = new Date();
 				await globalDb
 					.update(sessionTable)
 					.set({ mfaVerifiedAt: now, lastActiveAt: now })
-					.where(eq(sessionTable.token, newSession.session.token));
+					.where(eq(sessionTable.token, verified.session.token));
 				await auditPlatform(actor, {
 					action: "auth.2fa_verified",
-					target: `session:${newSession.session.id}`,
+					target: `session:${verified.session.id}`,
 					after: { method },
 				});
 			} else {

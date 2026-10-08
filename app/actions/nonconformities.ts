@@ -3,6 +3,7 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { nonconformities, tasks } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import {
@@ -27,7 +28,7 @@ function plusDays(days: number): string {
 	return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
 }
 
-export async function upsertNonconformity(
+async function upsertNonconformityImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; code: string }>> {
 	const c = await requireOrg({ nonconformity: ["create", "update"] });
@@ -130,7 +131,7 @@ export async function upsertNonconformity(
 	return res ? { ok: true, data: res } : { ok: false, error: "notFound" };
 }
 
-export async function setNonconformityStatus(
+async function setNonconformityStatusImpl(
 	input: unknown,
 ): Promise<ActionResult<{ status: string; approvalRequested: boolean }>> {
 	const c = await requireOrg({ nonconformity: ["update"] });
@@ -205,9 +206,7 @@ export async function setNonconformityStatus(
 	return res;
 }
 
-export async function recordEffectiveness(
-	input: unknown,
-): Promise<ActionResult> {
+async function recordEffectivenessImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ nonconformity: ["update"] });
 	const parsed = effectivenessSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -261,3 +260,18 @@ export async function recordEffectiveness(
 	revalidatePath(PATH, "layout");
 	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const upsertNonconformity = safeAction(
+	"upsertNonconformity",
+	upsertNonconformityImpl,
+);
+export const setNonconformityStatus = safeAction(
+	"setNonconformityStatus",
+	setNonconformityStatusImpl,
+);
+export const recordEffectiveness = safeAction(
+	"recordEffectiveness",
+	recordEffectivenessImpl,
+);

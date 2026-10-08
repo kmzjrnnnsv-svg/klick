@@ -18,7 +18,8 @@ import { StatusButton } from "@/components/entity/status-button";
 import { WatchButton } from "@/components/entity/watch-button";
 import { Badge } from "@/components/ui/badge";
 import { historyFor } from "@/lib/audit";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import {
 	CONTROL_BY_CODE,
@@ -57,7 +58,7 @@ export default async function ControlDetailPage({
 	params: Promise<{ code: string }>;
 }) {
 	const { code } = await params;
-	const ctx = await requireOrg();
+	const ctx = await requireOrgPage();
 	const control = CONTROL_BY_CODE.get(code);
 	if (!control) notFound();
 	const t = await getTranslations("Controls");

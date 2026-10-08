@@ -9,11 +9,11 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requirePlatformAdmin } from "@/lib/auth/guards";
+import { requirePlatformAdminPage } from "@/lib/auth/gates";
 import { listUsers } from "@/lib/db/global";
 
 export default async function AdminUsersPage() {
-	const admin = await requirePlatformAdmin();
+	const admin = await requirePlatformAdminPage();
 	const t = await getTranslations("Admin");
 	const users = await listUsers();
 	const fmt = new Intl.DateTimeFormat("de-DE", {

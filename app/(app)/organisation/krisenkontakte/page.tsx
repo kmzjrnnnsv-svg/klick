@@ -3,7 +3,8 @@ import { getTranslations } from "next-intl/server";
 import { PrintButton } from "@/components/organisation/print-button";
 import { PageHeader } from "@/components/page-header";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { getOrgSummary } from "@/lib/auth/org";
 import {
 	listCommunications,
@@ -15,7 +16,7 @@ import { readOrg } from "@/lib/db/with-org";
 // Art. 14; ZAG-MaRisk AT 7.3). Enthält Krisen-/Vorfall-Kommunikationswege und
 // die Besetzung der Pflichtfunktionen. Keine Geheimnisse, keine Passwörter.
 export default async function CrisisContactsPage() {
-	const ctx = await requireOrg({ organisation: ["read"] });
+	const ctx = await requireOrgPage({ organisation: ["read"] });
 	const t = await getTranslations("Organisation");
 	const tf = await getTranslations("Functions");
 	const org = await getOrgSummary(ctx.orgId);
