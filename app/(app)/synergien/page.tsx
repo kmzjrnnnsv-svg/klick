@@ -219,7 +219,7 @@ export default async function SynergiesPage({
 											</TableCell>
 											<TableCell>
 												<Badge variant={KIND_TONE[row.kind]}>
-													{t(`kind_${row.kind}`)}
+													{t(`kind_${row.kind}`, { fw: fwLabel(a) })}
 												</Badge>
 											</TableCell>
 											<TableCell className="font-mono text-xs">
