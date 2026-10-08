@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { resolutions } from "@/db/schema";
 import type { EntityKind } from "@/db/schema/enums";
+import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nextResolutionNumber } from "@/lib/compliance/catalog/resolutions-required";
@@ -15,7 +16,7 @@ import { resolutionSchema } from "@/lib/validation/governance";
 // Jeder Beschluss ist ein Datensatz; standardmäßig läuft er durch den
 // Workflow management_approval (Genehmigung durch das Leitungsorgan). Ohne
 // aktiven Workflow gilt der Beschluss sofort — die Leitung dokumentiert selbst.
-export async function createResolution(input: unknown): Promise<
+async function createResolutionImpl(input: unknown): Promise<
 	ActionResult<{
 		id: string;
 		number: string;
@@ -101,3 +102,10 @@ export async function createResolution(input: unknown): Promise<
 	revalidatePath("/ueberblick");
 	return res;
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const createResolution = safeAction(
+	"createResolution",
+	createResolutionImpl,
+);

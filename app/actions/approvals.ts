@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { approvalWorkflows, delegations } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { applyApprovalOutcome } from "@/lib/approvals/outcomes";
 import { type DecideResult, decide, withdraw } from "@/lib/approvals/service";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
@@ -19,7 +20,7 @@ import {
 // Step-up (frische MFA) für die Entscheidung selbst. Jede Entscheidung ist ein
 // Audit-Eintrag; der Ausgang wird auf die Entität angewendet (outcomes.ts).
 
-export async function decideApproval(
+async function decideApprovalImpl(
 	input: unknown,
 ): Promise<ActionResult<{ status: string }>> {
 	let c: Awaited<ReturnType<typeof requireStepUp>>;
@@ -71,9 +72,7 @@ export async function decideApproval(
 	return { ok: true, data: { status: res.status } };
 }
 
-export async function withdrawApproval(
-	requestId: string,
-): Promise<ActionResult> {
+async function withdrawApprovalImpl(requestId: string): Promise<ActionResult> {
 	const c = await requireOrg({ approval: ["read"] });
 	const ok = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const done = await withdraw(
@@ -96,7 +95,7 @@ export async function withdrawApproval(
 	return { ok: true, data: undefined };
 }
 
-export async function createDelegation(input: unknown): Promise<ActionResult> {
+async function createDelegationImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ approval: ["decide"] });
 	const parsed = delegationSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -130,9 +129,7 @@ const toggleSchema = z.object({
 	enabled: z.boolean(),
 });
 
-export async function setWorkflowEnabled(
-	input: unknown,
-): Promise<ActionResult> {
+async function setWorkflowEnabledImpl(input: unknown): Promise<ActionResult> {
 	let c: Awaited<ReturnType<typeof requireStepUp>>;
 	try {
 		c = await requireStepUp({ settings: ["update"] });
@@ -176,3 +173,19 @@ export async function setWorkflowEnabled(
 	revalidatePath("/einstellungen");
 	return { ok: true, data: undefined };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const decideApproval = safeAction("decideApproval", decideApprovalImpl);
+export const withdrawApproval = safeAction(
+	"withdrawApproval",
+	withdrawApprovalImpl,
+);
+export const createDelegation = safeAction(
+	"createDelegation",
+	createDelegationImpl,
+);
+export const setWorkflowEnabled = safeAction(
+	"setWorkflowEnabled",
+	setWorkflowEnabledImpl,
+);

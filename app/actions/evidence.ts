@@ -8,6 +8,7 @@ import {
 	evidence,
 	orgSettings,
 } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import {
 	encryptBytes,
@@ -34,12 +35,12 @@ function s3Configured(): boolean {
 	return Boolean(e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY);
 }
 
-export async function s3Available(): Promise<boolean> {
+async function s3AvailableImpl(): Promise<boolean> {
 	await requireOrg();
 	return s3Configured();
 }
 
-export async function createEvidenceLink(
+async function createEvidenceLinkImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ evidence: ["create"] });
@@ -83,7 +84,7 @@ export async function createEvidenceLink(
 
 // Datei-Upload über FormData (Datei + Metadaten). Magic-Bytes-Prüfung,
 // 25 MB, Verschlüsselung mit Org-DEK, Hash über den Klartext.
-export async function uploadEvidence(
+async function uploadEvidenceImpl(
 	formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ evidence: ["create"] });
@@ -200,7 +201,7 @@ export async function uploadEvidence(
 	return { ok: true, data: { id } };
 }
 
-export async function linkEvidence(input: {
+async function linkEvidenceImpl(input: {
 	implementationId: string;
 	evidenceId: string;
 }): Promise<ActionResult> {
@@ -225,9 +226,7 @@ export async function linkEvidence(input: {
 	return { ok: true, data: undefined };
 }
 
-export async function deleteEvidence(
-	evidenceId: string,
-): Promise<ActionResult> {
+async function deleteEvidenceImpl(evidenceId: string): Promise<ActionResult> {
 	const c = await requireStepUp({ evidence: ["delete"] });
 	const removed = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const [row] = await tx
@@ -263,7 +262,7 @@ export async function deleteEvidence(
 }
 
 // „Nachweis anfordern": Aufgabe an eine Person für ein Control.
-export async function requestEvidence(input: {
+async function requestEvidenceImpl(input: {
 	implementationId: string;
 	assigneeUserId: string;
 	title: string;
@@ -340,3 +339,22 @@ async function linkToImplementation(
 		.values({ organizationId: orgId, implementationId, evidenceId })
 		.onConflictDoNothing();
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const s3Available = safeAction(
+	"s3Available",
+	s3AvailableImpl,
+	() => false,
+);
+export const createEvidenceLink = safeAction(
+	"createEvidenceLink",
+	createEvidenceLinkImpl,
+);
+export const uploadEvidence = safeAction("uploadEvidence", uploadEvidenceImpl);
+export const linkEvidence = safeAction("linkEvidence", linkEvidenceImpl);
+export const deleteEvidence = safeAction("deleteEvidence", deleteEvidenceImpl);
+export const requestEvidence = safeAction(
+	"requestEvidence",
+	requestEvidenceImpl,
+);

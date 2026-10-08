@@ -553,7 +553,9 @@
 		"lead": "Der Fehler wurde protokolliert. Du kannst es noch einmal versuchen oder zur Startseite zurück.",
 		"forbidden": "Dafür fehlt dir die Berechtigung.",
 		"notFoundTitle": "Nicht gefunden",
-		"notFoundLead": "Diese Seite gibt es nicht — oder sie gehört zu einer anderen Organisation."
+		"notFoundLead": "Diese Seite gibt es nicht — oder sie gehört zu einer anderen Organisation.",
+		"reference": "Referenz für den Support: {ref}",
+		"home": "Zur Startseite"
 	},
 	"Status": {
 		"notStarted": "Offen",

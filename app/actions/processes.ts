@@ -12,6 +12,7 @@ import {
 	processRaci,
 	processRisks,
 } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import {
 	applicableProcesses,
@@ -31,7 +32,7 @@ import {
 	setProcessStatusSchema,
 } from "@/lib/validation/governance";
 
-export async function upsertProcess(
+async function upsertProcessImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; code: string }>> {
 	const c = await requireOrg({ process: ["create", "update"] });
@@ -130,7 +131,7 @@ export async function upsertProcess(
 }
 
 // RACI ersetzen — genau ein A je Prozess (Regel aus dem Katalog).
-export async function setProcessRaci(input: unknown): Promise<ActionResult> {
+async function setProcessRaciImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ process: ["update"] });
 	const parsed = setProcessRaciSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -187,7 +188,7 @@ export async function setProcessRaci(input: unknown): Promise<ActionResult> {
 	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
 }
 
-export async function setProcessLinks(input: unknown): Promise<ActionResult> {
+async function setProcessLinksImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ process: ["update"] });
 	const parsed = setProcessLinksSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -298,7 +299,7 @@ export async function setProcessLinks(input: unknown): Promise<ActionResult> {
 	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
 }
 
-export async function setProcessStatus(
+async function setProcessStatusImpl(
 	input: unknown,
 ): Promise<ActionResult<{ status: string; approvalRequested: boolean }>> {
 	const c = await requireOrg({ process: ["update"] });
@@ -342,7 +343,7 @@ export async function setProcessStatus(
 
 // Prozesslandkarte aus dem Katalog übernehmen (nur fehlende Codes), mit
 // RACI-Funktionen und Control-Verknüpfungen.
-export async function applyProcessSeed(
+async function applyProcessSeedImpl(
 	input: unknown = {},
 ): Promise<ActionResult<{ created: string[] }>> {
 	const c = await requireOrg({ process: ["create"] });
@@ -424,3 +425,20 @@ export async function applyProcessSeed(
 	revalidatePath("/prozesse", "layout");
 	return { ok: true, data: { created } };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const upsertProcess = safeAction("upsertProcess", upsertProcessImpl);
+export const setProcessRaci = safeAction("setProcessRaci", setProcessRaciImpl);
+export const setProcessLinks = safeAction(
+	"setProcessLinks",
+	setProcessLinksImpl,
+);
+export const setProcessStatus = safeAction(
+	"setProcessStatus",
+	setProcessStatusImpl,
+);
+export const applyProcessSeed = safeAction(
+	"applyProcessSeed",
+	applyProcessSeedImpl,
+);

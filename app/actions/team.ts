@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { memberAccess } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import {
 	AuthError,
 	requireOrg,
@@ -29,7 +30,7 @@ function mapError(e: unknown): ActionResult<never> {
 	throw e;
 }
 
-export async function inviteMember(
+async function inviteMemberImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ member: ["create"] });
@@ -51,7 +52,7 @@ export async function inviteMember(
 	}
 }
 
-export async function cancelInvitation(
+async function cancelInvitationImpl(
 	invitationId: string,
 ): Promise<ActionResult> {
 	await requireOrg({ member: ["create"] });
@@ -67,7 +68,7 @@ export async function cancelInvitation(
 	}
 }
 
-export async function updateMemberRole(input: unknown): Promise<ActionResult> {
+async function updateMemberRoleImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ member: ["update"] });
 	const parsed = updateMemberRoleSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -87,7 +88,7 @@ export async function updateMemberRole(input: unknown): Promise<ActionResult> {
 	}
 }
 
-export async function removeMember(memberId: string): Promise<ActionResult> {
+async function removeMemberImpl(memberId: string): Promise<ActionResult> {
 	const c = await requireOrg({ member: ["delete"] });
 	try {
 		await auth.api.removeMember({
@@ -103,7 +104,7 @@ export async function removeMember(memberId: string): Promise<ActionResult> {
 
 // Zeitlich begrenzter Zugang (Prüfer:innen) und Grants für sensible Register.
 // Step-up-pflichtig; Ablauf setzt der Guard durch (access_expired).
-export async function setMemberAccess(input: unknown): Promise<ActionResult> {
+async function setMemberAccessImpl(input: unknown): Promise<ActionResult> {
 	let c: Awaited<ReturnType<typeof requireStepUp>>;
 	try {
 		c = await requireStepUp({ member: ["update"] });
@@ -150,3 +151,20 @@ export async function setMemberAccess(input: unknown): Promise<ActionResult> {
 	revalidatePath("/team");
 	return { ok: true, data: undefined };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const inviteMember = safeAction("inviteMember", inviteMemberImpl);
+export const cancelInvitation = safeAction(
+	"cancelInvitation",
+	cancelInvitationImpl,
+);
+export const updateMemberRole = safeAction(
+	"updateMemberRole",
+	updateMemberRoleImpl,
+);
+export const removeMember = safeAction("removeMember", removeMemberImpl);
+export const setMemberAccess = safeAction(
+	"setMemberAccess",
+	setMemberAccessImpl,
+);

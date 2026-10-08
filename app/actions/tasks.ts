@@ -3,6 +3,7 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { tasks } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { mutateOrg } from "@/lib/db/with-org";
 import { canTransition } from "@/lib/entities/status-machine";
@@ -11,7 +12,7 @@ import { notify } from "@/lib/notifications/notify";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { createTaskSchema, setTaskStatusSchema } from "@/lib/validation/grc";
 
-export async function createTask(
+async function createTaskImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ task: ["create"] });
@@ -61,7 +62,7 @@ export async function createTask(
 	return { ok: true, data: { id } };
 }
 
-export async function setTaskStatus(input: unknown): Promise<ActionResult> {
+async function setTaskStatusImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ task: ["update"] });
 	const parsed = setTaskStatusSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -110,3 +111,8 @@ export async function setTaskStatus(input: unknown): Promise<ActionResult> {
 	revalidatePath("/heute", "layout");
 	return { ok: true, data: undefined };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const createTask = safeAction("createTask", createTaskImpl);
+export const setTaskStatus = safeAction("setTaskStatus", setTaskStatusImpl);

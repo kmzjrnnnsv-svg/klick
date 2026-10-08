@@ -11,6 +11,7 @@ import {
 	evidence,
 	orgSettings,
 } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import {
@@ -98,7 +99,7 @@ async function linkControls(
 	}
 }
 
-export async function createDocument(
+async function createDocumentImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; docNumber: string }>> {
 	const c = await requireOrg({ document: ["create"] });
@@ -159,7 +160,7 @@ export async function createDocument(
 	return { ok: true, data: out };
 }
 
-export async function updateDocument(input: unknown): Promise<ActionResult> {
+async function updateDocumentImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ document: ["update"] });
 	const parsed = updateDocumentSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -214,7 +215,7 @@ export async function updateDocument(input: unknown): Promise<ActionResult> {
 
 // Neue Version: Snapshot des aktuellen Stands als Version mit Pflicht-
 // changeSummary; Dokument zurück in Entwurf mit erhöhter Versionsnummer.
-export async function newDocumentVersion(
+async function newDocumentVersionImpl(
 	input: unknown,
 ): Promise<ActionResult<{ version: string }>> {
 	const c = await requireOrg({ document: ["update"] });
@@ -278,7 +279,7 @@ export async function newDocumentVersion(
 
 // Statusübergang: in_review/approved laufen über den Workflow document_publish;
 // published verteilt (Kenntnisnahmen werden durch die neue Version-ID frisch).
-export async function transitionDocument(
+async function transitionDocumentImpl(
 	input: unknown,
 ): Promise<ActionResult<{ status: string; approvalRequested: boolean }>> {
 	const c = await requireOrg({ document: ["update"] });
@@ -455,9 +456,7 @@ export async function transitionDocument(
 	return res;
 }
 
-export async function acknowledgeDocument(
-	input: unknown,
-): Promise<ActionResult> {
+async function acknowledgeDocumentImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ document: ["read"] });
 	const parsed = acknowledgeSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -514,7 +513,7 @@ export async function acknowledgeDocument(
 	return { ok: true, data: undefined };
 }
 
-export async function applyDocumentTemplates(
+async function applyDocumentTemplatesImpl(
 	input: unknown,
 ): Promise<ActionResult<{ created: number }>> {
 	const c = await requireOrg({ document: ["create"] });
@@ -579,7 +578,7 @@ export async function applyDocumentTemplates(
 
 // Richtlinien-Import: mehrere bereits hochgeladene Nachweise → je Datei ein
 // Entwurf mit Nummer, Typ-Vorschlag aus dem Dateinamen, Owner = Importierende:r.
-export async function importDocumentsFromEvidence(
+async function importDocumentsFromEvidenceImpl(
 	evidenceIds: string[],
 ): Promise<ActionResult<{ created: number }>> {
 	const c = await requireOrg({ document: ["create"] });
@@ -637,7 +636,7 @@ export async function importDocumentsFromEvidence(
 	return { ok: true, data: { created } };
 }
 
-export async function listTemplateOptions() {
+async function listTemplateOptionsImpl() {
 	await requireOrg({ document: ["read"] });
 	return DOCUMENT_TEMPLATES.map((t) => ({
 		code: t.code,
@@ -648,3 +647,32 @@ export async function listTemplateOptions() {
 		controls: t.controls,
 	}));
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const createDocument = safeAction("createDocument", createDocumentImpl);
+export const updateDocument = safeAction("updateDocument", updateDocumentImpl);
+export const newDocumentVersion = safeAction(
+	"newDocumentVersion",
+	newDocumentVersionImpl,
+);
+export const transitionDocument = safeAction(
+	"transitionDocument",
+	transitionDocumentImpl,
+);
+export const acknowledgeDocument = safeAction(
+	"acknowledgeDocument",
+	acknowledgeDocumentImpl,
+);
+export const applyDocumentTemplates = safeAction(
+	"applyDocumentTemplates",
+	applyDocumentTemplatesImpl,
+);
+export const importDocumentsFromEvidence = safeAction(
+	"importDocumentsFromEvidence",
+	importDocumentsFromEvidenceImpl,
+);
+export const listTemplateOptions = safeAction(
+	"listTemplateOptions",
+	listTemplateOptionsImpl,
+);

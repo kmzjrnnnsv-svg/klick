@@ -13,6 +13,7 @@ import {
 	requirements,
 	tasks,
 } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nonconformityFromFinding } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
@@ -66,7 +67,7 @@ async function resolveRefs(
 
 // ── Auditprogramm ──────────────────────────────────────────────────────────
 
-export async function upsertProgramme(
+async function upsertProgrammeImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ audit: ["create", "update"] });
@@ -121,7 +122,7 @@ export async function upsertProgramme(
 		: { ok: false, error: "notFound" };
 }
 
-export async function addProgrammeItem(input: unknown): Promise<ActionResult> {
+async function addProgrammeItemImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ audit: ["update"] });
 	const parsed = auditProgrammeItemSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -160,9 +161,7 @@ export async function addProgrammeItem(input: unknown): Promise<ActionResult> {
 	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
 }
 
-export async function removeProgrammeItem(
-	input: unknown,
-): Promise<ActionResult> {
+async function removeProgrammeItemImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ audit: ["update"] });
 	const parsed = removeProgrammeItemSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -200,7 +199,7 @@ export async function removeProgrammeItem(
 
 // ── Audits ─────────────────────────────────────────────────────────────────
 
-export async function upsertAudit(
+async function upsertAuditImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ audit: ["create", "update"] });
@@ -293,7 +292,7 @@ export async function upsertAudit(
 		: { ok: false, error: "notFound" };
 }
 
-export async function setAuditStatus(input: unknown): Promise<ActionResult> {
+async function setAuditStatusImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ audit: ["update"] });
 	const parsed = setAuditStatusSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -331,7 +330,7 @@ export async function setAuditStatus(input: unknown): Promise<ActionResult> {
 
 // ── Findings ───────────────────────────────────────────────────────────────
 
-export async function createFinding(
+async function createFindingImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ audit_finding: ["create"] });
@@ -393,7 +392,7 @@ export async function createFinding(
 		: { ok: false, error: "notFound" };
 }
 
-export async function setFindingStatus(input: unknown): Promise<ActionResult> {
+async function setFindingStatusImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ audit_finding: ["update"] });
 	const parsed = findingStatusSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -429,7 +428,7 @@ export async function setFindingStatus(input: unknown): Promise<ActionResult> {
 }
 
 // „Als Abweichung übernehmen": Finding → CAPA-Regelkreis.
-export async function findingToNonconformity(
+async function findingToNonconformityImpl(
 	input: unknown,
 ): Promise<ActionResult<{ nonconformityId: string; code: string }>> {
 	const c = await requireOrg({ nonconformity: ["create"] });
@@ -491,7 +490,7 @@ export async function findingToNonconformity(
 
 // ── Nachweisanfragen (PBC) ─────────────────────────────────────────────────
 
-export async function createAuditRequest(
+async function createAuditRequestImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ audit_request: ["create"] });
@@ -573,9 +572,7 @@ export async function createAuditRequest(
 		: { ok: false, error: "notFound" };
 }
 
-export async function respondAuditRequest(
-	input: unknown,
-): Promise<ActionResult> {
+async function respondAuditRequestImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ audit_request: ["respond"] });
 	const parsed = respondAuditRequestSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -632,9 +629,7 @@ export async function respondAuditRequest(
 	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
 }
 
-export async function decideAuditRequest(
-	input: unknown,
-): Promise<ActionResult> {
+async function decideAuditRequestImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ audit_request: ["decide"] });
 	const parsed = decideAuditRequestSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -698,3 +693,41 @@ export async function decideAuditRequest(
 	revalidatePath(PATH, "layout");
 	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const upsertProgramme = safeAction(
+	"upsertProgramme",
+	upsertProgrammeImpl,
+);
+export const addProgrammeItem = safeAction(
+	"addProgrammeItem",
+	addProgrammeItemImpl,
+);
+export const removeProgrammeItem = safeAction(
+	"removeProgrammeItem",
+	removeProgrammeItemImpl,
+);
+export const upsertAudit = safeAction("upsertAudit", upsertAuditImpl);
+export const setAuditStatus = safeAction("setAuditStatus", setAuditStatusImpl);
+export const createFinding = safeAction("createFinding", createFindingImpl);
+export const setFindingStatus = safeAction(
+	"setFindingStatus",
+	setFindingStatusImpl,
+);
+export const findingToNonconformity = safeAction(
+	"findingToNonconformity",
+	findingToNonconformityImpl,
+);
+export const createAuditRequest = safeAction(
+	"createAuditRequest",
+	createAuditRequestImpl,
+);
+export const respondAuditRequest = safeAction(
+	"respondAuditRequest",
+	respondAuditRequestImpl,
+);
+export const decideAuditRequest = safeAction(
+	"decideAuditRequest",
+	decideAuditRequestImpl,
+);

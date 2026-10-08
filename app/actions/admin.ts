@@ -3,6 +3,7 @@
 import { APIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { safeAction } from "@/lib/actions/safe";
 import { requirePlatformAdmin } from "@/lib/auth/guards";
 import { auth } from "@/lib/auth/server";
 import { runVerifyAuditChain } from "@/lib/jobs/register";
@@ -17,7 +18,7 @@ function mapError(e: unknown): ActionResult<never> {
 	throw e;
 }
 
-export async function banUser(
+async function banUserImpl(
 	userId: string,
 	reason: string,
 ): Promise<ActionResult> {
@@ -34,7 +35,7 @@ export async function banUser(
 	}
 }
 
-export async function unbanUser(userId: string): Promise<ActionResult> {
+async function unbanUserImpl(userId: string): Promise<ActionResult> {
 	await requirePlatformAdmin();
 	try {
 		await auth.api.unbanUser({ body: { userId }, headers: await headers() });
@@ -45,7 +46,7 @@ export async function unbanUser(userId: string): Promise<ActionResult> {
 	}
 }
 
-export async function setPlatformRole(
+async function setPlatformRoleImpl(
 	userId: string,
 	role: "admin" | "user",
 ): Promise<ActionResult> {
@@ -62,7 +63,7 @@ export async function setPlatformRole(
 	}
 }
 
-export async function verifyAuditChainAction(): Promise<
+async function verifyAuditChainActionImpl(): Promise<
 	ActionResult<{ checked: number; broken: string[] }>
 > {
 	await requirePlatformAdmin();
@@ -70,3 +71,16 @@ export async function verifyAuditChainAction(): Promise<
 	revalidatePath("/admin/audit");
 	return { ok: true, data: result };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const banUser = safeAction("banUser", banUserImpl);
+export const unbanUser = safeAction("unbanUser", unbanUserImpl);
+export const setPlatformRole = safeAction(
+	"setPlatformRole",
+	setPlatformRoleImpl,
+);
+export const verifyAuditChainAction = safeAction(
+	"verifyAuditChainAction",
+	verifyAuditChainActionImpl,
+);

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { CASP_SERVICES, LICENCE_STAGES } from "@/db/schema/enums";
+import { safeAction } from "@/lib/actions/safe";
 import {
 	AuthError,
 	getSessionCtx,
@@ -47,7 +48,7 @@ export type SynergyPreview = {
 	whatIf: WhatIfResult[];
 };
 
-export async function previewSynergy(
+async function previewSynergyImpl(
 	input: unknown,
 ): Promise<ActionResult<SynergyPreview>> {
 	const ctx = await getSessionCtx();
@@ -80,7 +81,7 @@ const stageSchema = z.object({
 
 // Synergie-Report für Stufenwechsel/Dienste/Stichtag auf Basis der echten
 // Org (umgesetzte Controls, manuelle Anwendbarkeitsentscheidungen).
-export async function previewStageChange(
+async function previewStageChangeImpl(
 	input: unknown,
 ): Promise<ActionResult<StageReport>> {
 	const c = await requireOrg({ settings: ["read"] });
@@ -122,3 +123,11 @@ export async function previewStageChange(
 	if (!report) return { ok: false, error: "notFound" };
 	return { ok: true, data: report };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const previewSynergy = safeAction("previewSynergy", previewSynergyImpl);
+export const previewStageChange = safeAction(
+	"previewStageChange",
+	previewStageChangeImpl,
+);

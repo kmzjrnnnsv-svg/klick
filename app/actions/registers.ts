@@ -16,6 +16,7 @@ import {
 	trainingRequirements,
 	trainings,
 } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
@@ -46,7 +47,7 @@ function addMonths(base: Date, months: number): string {
 }
 
 // ── Dienstleister ──────────────────────────────────────────────────────────
-export async function upsertProvider(
+async function upsertProviderImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ provider: ["create", "update"] });
@@ -132,7 +133,7 @@ export async function upsertProvider(
 }
 
 // ── Assets ─────────────────────────────────────────────────────────────────
-export async function upsertAsset(
+async function upsertAssetImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ asset: ["create", "update"] });
@@ -198,7 +199,7 @@ export async function upsertAsset(
 }
 
 // ── Schulungen ─────────────────────────────────────────────────────────────
-export async function createTraining(
+async function createTrainingImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ task: ["create"] });
@@ -288,7 +289,7 @@ export async function createTraining(
 }
 
 // Standard-Pflichtschulungen übernehmen + Zuweisungen je Mitglied erzeugen.
-export async function applyTrainingRequirements(): Promise<
+async function applyTrainingRequirementsImpl(): Promise<
 	ActionResult<{ requirements: number; assignments: number }>
 > {
 	const c = await requireOrg({ settings: ["update"] });
@@ -331,7 +332,7 @@ export async function applyTrainingRequirements(): Promise<
 }
 
 // ── Wirksamkeitstests ──────────────────────────────────────────────────────
-export async function recordControlTest(
+async function recordControlTestImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ control: ["update"] });
@@ -413,7 +414,7 @@ export async function recordControlTest(
 }
 
 // ── Aufgabenpakete ─────────────────────────────────────────────────────────
-export async function applyTaskBundle(
+async function applyTaskBundleImpl(
 	input: unknown,
 ): Promise<ActionResult<{ created: number }>> {
 	const c = await requireOrg({ task: ["create"] });
@@ -506,7 +507,7 @@ export async function applyTaskBundle(
 }
 
 // ── Zugriffsreview (ISO A.5.18, DORA 9(4)) ─────────────────────────────────
-export async function recordAccessReview(note: string): Promise<ActionResult> {
+async function recordAccessReviewImpl(note: string): Promise<ActionResult> {
 	const c = await requireOrg({ member: ["update"] });
 	await mutateOrg(toOrgCtx(c), async (tx) => {
 		const members = await tx
@@ -528,3 +529,25 @@ export async function recordAccessReview(note: string): Promise<ActionResult> {
 	revalidatePath("/team");
 	return { ok: true, data: undefined };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const upsertProvider = safeAction("upsertProvider", upsertProviderImpl);
+export const upsertAsset = safeAction("upsertAsset", upsertAssetImpl);
+export const createTraining = safeAction("createTraining", createTrainingImpl);
+export const applyTrainingRequirements = safeAction(
+	"applyTrainingRequirements",
+	applyTrainingRequirementsImpl,
+);
+export const recordControlTest = safeAction(
+	"recordControlTest",
+	recordControlTestImpl,
+);
+export const applyTaskBundle = safeAction(
+	"applyTaskBundle",
+	applyTaskBundleImpl,
+);
+export const recordAccessReview = safeAction(
+	"recordAccessReview",
+	recordAccessReviewImpl,
+);

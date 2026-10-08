@@ -3,12 +3,13 @@
 import { APIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { safeAction } from "@/lib/actions/safe";
 import { AuthError, checkSessionRules, getSessionCtx } from "@/lib/auth/guards";
 import { auth } from "@/lib/auth/server";
 import { verifyStepUpCode } from "@/lib/auth/step-up";
 import type { ActionResult } from "@/lib/validation/common";
 
-export async function verifyStepUp(code: string): Promise<ActionResult> {
+async function verifyStepUpImpl(code: string): Promise<ActionResult> {
 	const ctx = await getSessionCtx();
 	if (!ctx) throw new AuthError("unauthenticated");
 	checkSessionRules(ctx);
@@ -24,7 +25,7 @@ export async function verifyStepUp(code: string): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
-export async function revokeSession(token: string): Promise<ActionResult> {
+async function revokeSessionImpl(token: string): Promise<ActionResult> {
 	const ctx = await getSessionCtx();
 	if (!ctx) throw new AuthError("unauthenticated");
 	checkSessionRules(ctx);
@@ -38,7 +39,7 @@ export async function revokeSession(token: string): Promise<ActionResult> {
 	}
 }
 
-export async function revokeOtherSessions(): Promise<ActionResult> {
+async function revokeOtherSessionsImpl(): Promise<ActionResult> {
 	const ctx = await getSessionCtx();
 	if (!ctx) throw new AuthError("unauthenticated");
 	checkSessionRules(ctx);
@@ -51,3 +52,12 @@ export async function revokeOtherSessions(): Promise<ActionResult> {
 		throw e;
 	}
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const verifyStepUp = safeAction("verifyStepUp", verifyStepUpImpl);
+export const revokeSession = safeAction("revokeSession", revokeSessionImpl);
+export const revokeOtherSessions = safeAction(
+	"revokeOtherSessions",
+	revokeOtherSessionsImpl,
+);

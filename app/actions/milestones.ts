@@ -3,6 +3,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { controls, milestoneControls, milestones, tasks } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { buildRoadmap } from "@/lib/compliance/catalog/roadmap";
@@ -31,7 +32,7 @@ async function controlIdsByCode(
 }
 
 // Roadmap-Vorlage (Stufe 0–4) als Meilensteine anlegen — fehlende Codes nur.
-export async function applyRoadmapTemplate(
+async function applyRoadmapTemplateImpl(
 	input: unknown,
 ): Promise<ActionResult<{ created: number }>> {
 	const c = await requireOrg({ milestone: ["create"] });
@@ -102,7 +103,7 @@ export async function applyRoadmapTemplate(
 	return { ok: true, data: { created } };
 }
 
-export async function upsertMilestone(
+async function upsertMilestoneImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ milestone: ["create", "update"] });
@@ -205,7 +206,7 @@ export async function upsertMilestone(
 }
 
 // Drag-and-drop: Status der Karte + Reihenfolge der Zielspalte.
-export async function moveMilestone(input: unknown): Promise<ActionResult> {
+async function moveMilestoneImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ milestone: ["update"] });
 	const parsed = moveMilestoneSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -246,7 +247,7 @@ export async function moveMilestone(input: unknown): Promise<ActionResult> {
 }
 
 // Aufgabe aus Meilenstein (an Bearbeiter:in oder Verantwortliche:n).
-export async function createTaskFromMilestone(
+async function createTaskFromMilestoneImpl(
 	input: unknown,
 ): Promise<ActionResult<{ taskId: string }>> {
 	const c = await requireOrg({ milestone: ["update"], task: ["create"] });
@@ -314,3 +315,19 @@ export async function createTaskFromMilestone(
 	revalidatePath("/heute");
 	return res;
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const applyRoadmapTemplate = safeAction(
+	"applyRoadmapTemplate",
+	applyRoadmapTemplateImpl,
+);
+export const upsertMilestone = safeAction(
+	"upsertMilestone",
+	upsertMilestoneImpl,
+);
+export const moveMilestone = safeAction("moveMilestone", moveMilestoneImpl);
+export const createTaskFromMilestone = safeAction(
+	"createTaskFromMilestone",
+	createTaskFromMilestoneImpl,
+);

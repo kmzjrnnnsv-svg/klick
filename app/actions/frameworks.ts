@@ -10,6 +10,7 @@ import {
 	requirements,
 } from "@/db/schema";
 import { CASP_SERVICES, LICENCE_STAGES } from "@/db/schema/enums";
+import { safeAction } from "@/lib/actions/safe";
 import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import {
 	AuthError,
@@ -33,7 +34,7 @@ import {
 
 // Rahmenwerk nachträglich hinzufügen: org_frameworks + Re-Initialisierung des
 // Arbeitsvorrats (Anwendbarkeit, Controls). Einstellungen → Step-up.
-export async function addFrameworks(
+async function addFrameworksImpl(
 	input: unknown,
 ): Promise<ActionResult<{ added: string[]; controlsCreated: number }>> {
 	const guarded = await stepUpOrFail();
@@ -76,7 +77,7 @@ export async function addFrameworks(
 }
 
 // Manuelle Anwendbarkeitsentscheidung (SoA-Begründung) je Anforderung.
-export async function setRequirementApplicability(
+async function setRequirementApplicabilityImpl(
 	input: unknown,
 ): Promise<ActionResult> {
 	const c = await requireOrg({ control: ["update"] });
@@ -167,9 +168,7 @@ const profileFlagsSchema = z.object({
 });
 
 // Profil-Schalter, die die Anwendbarkeit steuern (TLPT-Benennung, NIS2-Status).
-export async function updateProfileFlags(
-	input: unknown,
-): Promise<ActionResult> {
+async function updateProfileFlagsImpl(input: unknown): Promise<ActionResult> {
 	const guarded = await stepUpOrFail();
 	if (!guarded.ok) return guarded;
 	const c = guarded.ctx;
@@ -223,7 +222,7 @@ const licenceProfileSchema = z.object({
 
 // Lizenzstufe und Krypto-Dienste ändern: Anwendbarkeit und Arbeitsvorrat
 // werden neu abgeleitet, stufenabhängige Workflows angelegt. Step-up.
-export async function updateLicenceProfile(
+async function updateLicenceProfileImpl(
 	input: unknown,
 ): Promise<ActionResult<{ controlsCreated: number; notApplicable: number }>> {
 	const guarded = await stepUpOrFail();
@@ -281,7 +280,7 @@ const setupFlagSchema = z.object({
 });
 
 // Setup-Checkliste: eine Prüfung als erledigt bestätigen (Zeitstempel).
-export async function confirmSetupFlag(input: unknown): Promise<ActionResult> {
+async function confirmSetupFlagImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ settings: ["update"] });
 	const parsed = setupFlagSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -327,3 +326,23 @@ async function stepUpOrFail(): Promise<
 		throw e;
 	}
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const addFrameworks = safeAction("addFrameworks", addFrameworksImpl);
+export const setRequirementApplicability = safeAction(
+	"setRequirementApplicability",
+	setRequirementApplicabilityImpl,
+);
+export const updateProfileFlags = safeAction(
+	"updateProfileFlags",
+	updateProfileFlagsImpl,
+);
+export const updateLicenceProfile = safeAction(
+	"updateLicenceProfile",
+	updateLicenceProfileImpl,
+);
+export const confirmSetupFlag = safeAction(
+	"confirmSetupFlag",
+	confirmSetupFlagImpl,
+);

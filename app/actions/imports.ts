@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { assets, providers, risks } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nextRiskCode } from "@/lib/compliance/risk";
@@ -32,7 +33,7 @@ function rowErrors(i: number, err: z.ZodError): string {
 const num = (v: string | undefined) =>
 	v === undefined || v.trim() === "" ? undefined : v.trim();
 
-export async function importRisksCsv(
+async function importRisksCsvImpl(
 	input: unknown,
 ): Promise<ActionResult<Result>> {
 	const c = await requireOrg({ risk: ["create"] });
@@ -98,7 +99,7 @@ export async function importRisksCsv(
 	return { ok: true, data: { imported, errors } };
 }
 
-export async function importAssetsCsv(
+async function importAssetsCsvImpl(
 	input: unknown,
 ): Promise<ActionResult<Result>> {
 	const c = await requireOrg({ asset: ["create"] });
@@ -161,7 +162,7 @@ export async function importAssetsCsv(
 	return { ok: true, data: { imported, errors } };
 }
 
-export async function importProvidersCsv(
+async function importProvidersCsvImpl(
 	input: unknown,
 ): Promise<ActionResult<Result>> {
 	const c = await requireOrg({ provider: ["create"] });
@@ -239,3 +240,15 @@ export async function importProvidersCsv(
 	revalidatePath("/dienstleister");
 	return { ok: true, data: { imported, errors } };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const importRisksCsv = safeAction("importRisksCsv", importRisksCsvImpl);
+export const importAssetsCsv = safeAction(
+	"importAssetsCsv",
+	importAssetsCsvImpl,
+);
+export const importProvidersCsv = safeAction(
+	"importProvidersCsv",
+	importProvidersCsvImpl,
+);

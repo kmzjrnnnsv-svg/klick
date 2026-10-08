@@ -3,6 +3,7 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { managementReviews, tasks } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import {
 	applicableReviewInputs,
@@ -20,7 +21,7 @@ import {
 
 const PATH = "/managementbewertung";
 
-export async function upsertManagementReview(
+async function upsertManagementReviewImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ management_review: ["create", "update"] });
@@ -85,7 +86,7 @@ export async function upsertManagementReview(
 		: { ok: false, error: "notFound" };
 }
 
-export async function saveReviewInputs(input: unknown): Promise<ActionResult> {
+async function saveReviewInputsImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ management_review: ["update"] });
 	const parsed = reviewInputsSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -124,7 +125,7 @@ export async function saveReviewInputs(input: unknown): Promise<ActionResult> {
 
 // Status setzen; „done" nur mit allen anwendbaren Pflicht-Inputs. Beschlüsse
 // der Bewertung werden als Aufgaben vergeben.
-export async function completeReview(
+async function completeReviewImpl(
 	input: unknown,
 ): Promise<ActionResult<{ status: string; tasks: number }>> {
 	const c = await requireOrg({ management_review: ["update"] });
@@ -201,3 +202,15 @@ export async function completeReview(
 	revalidatePath(PATH);
 	return res;
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const upsertManagementReview = safeAction(
+	"upsertManagementReview",
+	upsertManagementReviewImpl,
+);
+export const saveReviewInputs = safeAction(
+	"saveReviewInputs",
+	saveReviewInputsImpl,
+);
+export const completeReview = safeAction("completeReview", completeReviewImpl);

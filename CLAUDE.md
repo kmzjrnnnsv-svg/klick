@@ -47,7 +47,8 @@ UX, Härtung, Katalog-Abgleich). Authoring-Quelle der Anforderungen:
 
 - **Du-Form überall**, deutsche Slugs (`/heute`, `/ueberblick`, `/risiken`, `/nachweise` …), Begriffe: Rahmenwerk · Anforderung · Control · Nachweis · Dokument · Prozess · Dienstleister · Vorfall · Abweichung · Freigabe · Kenntnisnahme · Verantwortlich (Owner) · Bearbeitet von (Assignee).
 - **Server Components by default**; `"use client"` nur bei State/Browser-API.
-- **Guards zuerst:** jede Action/Query → `requireOrg(perm?)` / `requireStepUp()` / `requirePlatformAdmin()`; Layout-Gates (`lib/auth/gates.ts`) sind nur UX.
+- **Guards zuerst:** jede Action/Query → `requireOrg(perm?)` / `requireStepUp()` / `requirePlatformAdmin()`; Layout-Gates (`lib/auth/gates.ts`) sind nur UX. **Seiten** (`page.tsx`) nutzen `requireOrgPage(perm?)` / `requirePlatformAdminPage()` aus `gates.ts` — Layout und Seite rendern parallel, ein geworfener AuthError in der Seite landet sonst auf der Fehlerseite statt im Redirect.
+- **Keine Fehlerseiten:** jede exportierte Server-Action ist `export const x = safeAction("x", xImpl)` (`lib/actions/safe.ts`): unerwartete Ausnahmen → `{ ok: false, error: "error", ref }` + pino/GlitchTip, AuthError → Code, `redirect()`/`notFound()` laufen weiter. `"use server"`-Dateien exportieren nur async Funktionen (kein `export const schema = z.object(…)` — bricht zur Laufzeit das ganze Action-Modul); Test `use-server-exports` erzwingt beides.
 - **RLS immer:** Org-Queries in `readOrg`/`withOrg`/`mutateOrg`; Kontext transaktionslokal (`set_config(…, true)`); Plattform-Zugriff nur `withPlatform(ctx, reason)` (auditiert).
 - **Audit als letzte Anweisung** derselben Transaktion (`mutateOrg`), mit `before/after`; Hash-Kette je Org; Auth-Ereignisse über Better-Auth-Hooks (`lib/auth/audit-events.ts`).
 - **MFA für alle Rollen**, absolute Session 12 h, Idle 30 min, Step-up ≤ 10 min (`lib/auth/session-rules.ts` — pure, getestet).

@@ -14,6 +14,7 @@ import {
 	roleAssignments,
 	scopes,
 } from "@/db/schema";
+import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import {
 	AuthError,
@@ -123,7 +124,7 @@ async function deleteRow(
 
 // ── Kontext & Parteien ─────────────────────────────────────────────────────
 
-export async function upsertContextIssue(
+async function upsertContextIssueImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ organisation: ["update"] });
@@ -156,9 +157,7 @@ export async function upsertContextIssue(
 		: { ok: false, error: "notFound" };
 }
 
-export async function deleteContextIssue(
-	input: unknown,
-): Promise<ActionResult> {
+async function deleteContextIssueImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ organisation: ["update"] });
 	const parsed = deleteByIdSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -177,7 +176,7 @@ export async function deleteContextIssue(
 	return { ok: true, data: undefined };
 }
 
-export async function upsertInterestedParty(
+async function upsertInterestedPartyImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ organisation: ["update"] });
@@ -212,7 +211,7 @@ export async function upsertInterestedParty(
 		: { ok: false, error: "notFound" };
 }
 
-export async function deleteInterestedParty(
+async function deleteInterestedPartyImpl(
 	input: unknown,
 ): Promise<ActionResult> {
 	const c = await requireOrg({ organisation: ["update"] });
@@ -234,7 +233,7 @@ export async function deleteInterestedParty(
 }
 
 // Parteien + Kommunikationsmatrix aus dem Katalog (nur fehlende Einträge).
-export async function applyGovernanceSeed(): Promise<
+async function applyGovernanceSeedImpl(): Promise<
 	ActionResult<{ parties: number; communications: number }>
 > {
 	const c = await requireOrg({ organisation: ["update"] });
@@ -319,7 +318,7 @@ export async function applyGovernanceSeed(): Promise<
 
 // ── Geltungsbereich ────────────────────────────────────────────────────────
 
-export async function upsertScope(
+async function upsertScopeImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ organisation: ["update"] });
@@ -418,7 +417,7 @@ function bumpMinor(v: string): string {
 }
 
 // Freigabe durch die Leitung (Workflow `scope`); Ergebnis über outcomes.ts.
-export async function requestScopeApproval(
+async function requestScopeApprovalImpl(
 	input: unknown,
 ): Promise<ActionResult<{ status: string }>> {
 	const c = await requireOrg({ organisation: ["update"] });
@@ -491,7 +490,7 @@ export async function requestScopeApproval(
 
 // ── Rollen & Leitung ───────────────────────────────────────────────────────
 
-export async function upsertRoleAssignment(
+async function upsertRoleAssignmentImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	let c: Awaited<ReturnType<typeof requireStepUp>>;
@@ -626,9 +625,7 @@ export async function upsertRoleAssignment(
 		: { ok: false, error: "notFound" };
 }
 
-export async function deleteRoleAssignment(
-	input: unknown,
-): Promise<ActionResult> {
+async function deleteRoleAssignmentImpl(input: unknown): Promise<ActionResult> {
 	let c: Awaited<ReturnType<typeof requireStepUp>>;
 	try {
 		c = await requireStepUp({ role_assignment: ["update"] });
@@ -661,7 +658,7 @@ export async function deleteRoleAssignment(
 
 // ── Ziele & KPIs ───────────────────────────────────────────────────────────
 
-export async function upsertObjective(
+async function upsertObjectiveImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ organisation: ["update"] });
@@ -695,7 +692,7 @@ export async function upsertObjective(
 		: { ok: false, error: "notFound" };
 }
 
-export async function addKpiMeasurement(input: unknown): Promise<ActionResult> {
+async function addKpiMeasurementImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ organisation: ["update"] });
 	const parsed = kpiMeasurementSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -735,7 +732,7 @@ export async function addKpiMeasurement(input: unknown): Promise<ActionResult> {
 
 // ── Kommunikation, Aufsicht, Interessenkonflikte ───────────────────────────
 
-export async function upsertCommunication(
+async function upsertCommunicationImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ organisation: ["update"] });
@@ -774,9 +771,7 @@ export async function upsertCommunication(
 		: { ok: false, error: "notFound" };
 }
 
-export async function deleteCommunication(
-	input: unknown,
-): Promise<ActionResult> {
+async function deleteCommunicationImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ organisation: ["update"] });
 	const parsed = deleteByIdSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -795,7 +790,7 @@ export async function deleteCommunication(
 	return { ok: true, data: undefined };
 }
 
-export async function upsertRegulatorInteraction(
+async function upsertRegulatorInteractionImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ organisation: ["update"] });
@@ -836,7 +831,7 @@ export async function upsertRegulatorInteraction(
 		: { ok: false, error: "notFound" };
 }
 
-export async function upsertConflict(
+async function upsertConflictImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ organisation: ["update"] });
@@ -870,3 +865,60 @@ export async function upsertConflict(
 		? { ok: true, data: { id: res } }
 		: { ok: false, error: "notFound" };
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const upsertContextIssue = safeAction(
+	"upsertContextIssue",
+	upsertContextIssueImpl,
+);
+export const deleteContextIssue = safeAction(
+	"deleteContextIssue",
+	deleteContextIssueImpl,
+);
+export const upsertInterestedParty = safeAction(
+	"upsertInterestedParty",
+	upsertInterestedPartyImpl,
+);
+export const deleteInterestedParty = safeAction(
+	"deleteInterestedParty",
+	deleteInterestedPartyImpl,
+);
+export const applyGovernanceSeed = safeAction(
+	"applyGovernanceSeed",
+	applyGovernanceSeedImpl,
+);
+export const upsertScope = safeAction("upsertScope", upsertScopeImpl);
+export const requestScopeApproval = safeAction(
+	"requestScopeApproval",
+	requestScopeApprovalImpl,
+);
+export const upsertRoleAssignment = safeAction(
+	"upsertRoleAssignment",
+	upsertRoleAssignmentImpl,
+);
+export const deleteRoleAssignment = safeAction(
+	"deleteRoleAssignment",
+	deleteRoleAssignmentImpl,
+);
+export const upsertObjective = safeAction(
+	"upsertObjective",
+	upsertObjectiveImpl,
+);
+export const addKpiMeasurement = safeAction(
+	"addKpiMeasurement",
+	addKpiMeasurementImpl,
+);
+export const upsertCommunication = safeAction(
+	"upsertCommunication",
+	upsertCommunicationImpl,
+);
+export const deleteCommunication = safeAction(
+	"deleteCommunication",
+	deleteCommunicationImpl,
+);
+export const upsertRegulatorInteraction = safeAction(
+	"upsertRegulatorInteraction",
+	upsertRegulatorInteractionImpl,
+);
+export const upsertConflict = safeAction("upsertConflict", upsertConflictImpl);

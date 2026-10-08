@@ -11,6 +11,7 @@ import {
 	tasks,
 } from "@/db/schema";
 import type { RoleFunction } from "@/db/schema/enums";
+import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
@@ -62,7 +63,7 @@ async function functionHolder(
 
 // ── Risikoanalyse (§ 5 GwG / AMLR Art. 10) ─────────────────────────────────
 
-export async function upsertAmlRiskAnalysis(
+async function upsertAmlRiskAnalysisImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; version: string }>> {
 	const c = await requireOrg({ aml: ["create", "update"] });
@@ -151,7 +152,7 @@ export async function upsertAmlRiskAnalysis(
 }
 
 // Freigabe durch die Geschäftsleitung (Workflow aml_risk_analysis: GWB → GL).
-export async function requestAmlRiskAnalysisApproval(
+async function requestAmlRiskAnalysisApprovalImpl(
 	input: unknown,
 ): Promise<ActionResult<{ status: string }>> {
 	const c = await requireOrg({ aml: ["update"] });
@@ -248,7 +249,7 @@ export async function requestAmlRiskAnalysisApproval(
 
 // ── Monitoring-Regelwerk ───────────────────────────────────────────────────
 
-export async function upsertMonitoringRule(
+async function upsertMonitoringRuleImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ aml: ["create", "update"] });
@@ -343,7 +344,7 @@ export async function upsertMonitoringRule(
 // Kein PII-Feld: goAML/BaFin sind System of Record. Die Entscheidungsnotiz
 // ist feldverschlüsselt (Org-DEK).
 
-export async function upsertSuspiciousReport(
+async function upsertSuspiciousReportImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; internalRef: string }>> {
 	const c = await requireOrg({ aml: ["create", "update"] });
@@ -465,7 +466,7 @@ export async function upsertSuspiciousReport(
 	return res;
 }
 
-export async function transitionSuspiciousReport(
+async function transitionSuspiciousReportImpl(
 	input: unknown,
 ): Promise<ActionResult> {
 	const c = await requireOrg({ aml: ["update"] });
@@ -615,9 +616,7 @@ async function upsertJurisdictionRow(
 	return { created: !before, audit: audits };
 }
 
-export async function upsertJurisdiction(
-	input: unknown,
-): Promise<ActionResult> {
+async function upsertJurisdictionImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ aml: ["create", "update"] });
 	const parsed = jurisdictionSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -646,7 +645,7 @@ export async function upsertJurisdiction(
 	return { ok: true, data: undefined };
 }
 
-export async function applyJurisdictionSeed(): Promise<
+async function applyJurisdictionSeedImpl(): Promise<
 	ActionResult<{ created: number; updated: number }>
 > {
 	const c = await requireOrg({ aml: ["create", "update"] });
@@ -690,7 +689,7 @@ export async function applyJurisdictionSeed(): Promise<
 	return { ok: true, data };
 }
 
-export async function importJurisdictionsCsv(
+async function importJurisdictionsCsvImpl(
 	input: unknown,
 ): Promise<ActionResult<{ imported: number; errors: string[] }>> {
 	const c = await requireOrg({ aml: ["create", "update"] });
@@ -731,7 +730,7 @@ export async function importJurisdictionsCsv(
 }
 
 // Korridor-Vorlage (8 Schritte) als Aufgaben für ein Zielland anlegen.
-export async function applyCorridorTemplate(
+async function applyCorridorTemplateImpl(
 	input: unknown,
 ): Promise<ActionResult<{ tasks: number }>> {
 	const c = await requireOrg({ aml: ["create", "update"] });
@@ -796,3 +795,42 @@ export async function applyCorridorTemplate(
 	revalidatePath("/heute");
 	return res;
 }
+
+// Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
+// statt Error-Boundary (lib/actions/safe.ts).
+export const upsertAmlRiskAnalysis = safeAction(
+	"upsertAmlRiskAnalysis",
+	upsertAmlRiskAnalysisImpl,
+);
+export const requestAmlRiskAnalysisApproval = safeAction(
+	"requestAmlRiskAnalysisApproval",
+	requestAmlRiskAnalysisApprovalImpl,
+);
+export const upsertMonitoringRule = safeAction(
+	"upsertMonitoringRule",
+	upsertMonitoringRuleImpl,
+);
+export const upsertSuspiciousReport = safeAction(
+	"upsertSuspiciousReport",
+	upsertSuspiciousReportImpl,
+);
+export const transitionSuspiciousReport = safeAction(
+	"transitionSuspiciousReport",
+	transitionSuspiciousReportImpl,
+);
+export const upsertJurisdiction = safeAction(
+	"upsertJurisdiction",
+	upsertJurisdictionImpl,
+);
+export const applyJurisdictionSeed = safeAction(
+	"applyJurisdictionSeed",
+	applyJurisdictionSeedImpl,
+);
+export const importJurisdictionsCsv = safeAction(
+	"importJurisdictionsCsv",
+	importJurisdictionsCsvImpl,
+);
+export const applyCorridorTemplate = safeAction(
+	"applyCorridorTemplate",
+	applyCorridorTemplateImpl,
+);
