@@ -33,18 +33,23 @@ export function redirectFor(code: AuthErrorCode): string {
 	}
 }
 
-// (app): eingeloggt + MFA + Org, sonst Redirect.
-export async function gateApp(): Promise<OrgContext> {
+// Seiten-Guards: Layout und Seite rendern in Next parallel. Wirft die Seite
+// einen AuthError, bevor der Layout-Redirect greift, landet der Nutzer auf
+// der Fehlerseite (z. B. direkt nach der MFA-Einrichtung ohne Organisation).
+// Deshalb leiten Seiten bei Auth-Fehlern selbst um; Actions und Route-Handler
+// nutzen weiterhin requireOrg()/requireStepUp() und geben Fehlercodes zurück.
+export async function requireOrgPage(
+	perm?: Parameters<typeof requireOrg>[0],
+): Promise<OrgContext> {
 	try {
-		return await requireOrg();
+		return await requireOrg(perm);
 	} catch (e) {
 		if (e instanceof AuthError) redirect(redirectFor(e.code));
 		throw e;
 	}
 }
 
-// (admin): Plattform-Admin.
-export async function gateAdmin(): Promise<PlatformAdminContext> {
+export async function requirePlatformAdminPage(): Promise<PlatformAdminContext> {
 	try {
 		return await requirePlatformAdmin();
 	} catch (e) {
@@ -52,6 +57,13 @@ export async function gateAdmin(): Promise<PlatformAdminContext> {
 		throw e;
 	}
 }
+
+// (app): eingeloggt + MFA + Org, sonst Redirect.
+export const gateApp = (): Promise<OrgContext> => requireOrgPage();
+
+// (admin): Plattform-Admin.
+export const gateAdmin = (): Promise<PlatformAdminContext> =>
+	requirePlatformAdminPage();
 
 // (auth): wer schon vollständig angemeldet ist, landet auf /heute; wer in
 // einem Zwischenschritt steckt (MFA, Onboarding), wird dorthin geführt —

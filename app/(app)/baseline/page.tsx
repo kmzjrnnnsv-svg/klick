@@ -4,13 +4,13 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { requireOrg } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
 import { BASELINE, CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { CONTROL_STATUS } from "@/lib/entities/control";
 
 // Mandant 0: was die Plattform selbst umgesetzt hat — der lebende Nachweis.
 export default async function BaselinePage() {
-	await requireOrg();
+	await requireOrgPage();
 	const t = await getTranslations("Baseline");
 	const tc = await getTranslations("Controls");
 	const ts = await getTranslations("Status");

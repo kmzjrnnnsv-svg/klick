@@ -13,7 +13,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requireOrg } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
 import {
 	ALL_REQUIREMENTS,
 	CONTROL_BY_CODE,
@@ -52,7 +52,7 @@ export default async function SynergiesPage({
 	}>;
 }) {
 	const { tab = "plan", a: qa, b: qb, stichtag } = await searchParams;
-	const ctx = await requireOrg();
+	const ctx = await requireOrgPage();
 	const t = await getTranslations("Synergies");
 	const tc = await getTranslations("Controls");
 	const cov = await getOrgCoverageCached(ctx);

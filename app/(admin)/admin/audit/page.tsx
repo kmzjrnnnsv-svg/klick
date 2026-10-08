@@ -12,11 +12,11 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { auditLog } from "@/db/schema";
-import { requirePlatformAdmin } from "@/lib/auth/guards";
+import { requirePlatformAdminPage } from "@/lib/auth/gates";
 import { withPlatform } from "@/lib/db/with-org";
 
 export default async function AdminAuditPage() {
-	const admin = await requirePlatformAdmin();
+	const admin = await requirePlatformAdminPage();
 	const t = await getTranslations("Admin");
 	// Jeder mandantenübergreifende Zugriff wird mit Begründung protokolliert.
 	const rows = await withPlatform(

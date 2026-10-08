@@ -6,7 +6,8 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { UserChip } from "@/components/entity/user-chip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { clockState } from "@/lib/compliance/incident";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -23,7 +24,7 @@ export default async function IncidentsPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ incident: ["read"] });
+	const ctx = await requireOrgPage({ incident: ["read"] });
 	const sp = await searchParams;
 	const t = await getTranslations("Incidents");
 	const te = await getTranslations("Entity");

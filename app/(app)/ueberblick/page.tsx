@@ -12,7 +12,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
 import { CONTROL_BY_CODE, FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import {
@@ -65,7 +66,7 @@ const STAGE_LABEL: Record<string, string> = {
 };
 
 export default async function OverviewPage() {
-	const ctx = await requireOrg();
+	const ctx = await requireOrgPage();
 	const t = await getTranslations("Overview");
 	const tc = await getTranslations("Controls");
 	const [members, invitations, cov] = await Promise.all([

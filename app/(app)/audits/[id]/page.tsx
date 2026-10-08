@@ -24,7 +24,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { independenceIssues } from "@/lib/compliance/audit-programme";
 import {
@@ -97,7 +98,7 @@ export default async function AuditCockpitPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const sp = await searchParams;
 	const tab = one(sp.tab) ?? "pruefpfad";
-	const ctx = await requireOrg({ audit: ["read"] });
+	const ctx = await requireOrgPage({ audit: ["read"] });
 	const t = await getTranslations("Audits");
 	const ts = await getTranslations("Status");
 	const canEdit = roleAllows(ctx.orgRole, { audit: ["update"] });

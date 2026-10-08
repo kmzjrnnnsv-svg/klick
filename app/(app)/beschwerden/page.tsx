@@ -18,7 +18,8 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { aggregateCases, clockState } from "@/lib/compliance/complaints";
 import { listMembersForPicker } from "@/lib/compliance/queries";
@@ -51,7 +52,7 @@ export default async function ComplaintsPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ complaint: ["read"] });
+	const ctx = await requireOrgPage({ complaint: ["read"] });
 	const sp = await searchParams;
 	const tab = one(sp.tab) === "hinweise" ? "hinweise" : "beschwerden";
 	const t = await getTranslations("Complaints");

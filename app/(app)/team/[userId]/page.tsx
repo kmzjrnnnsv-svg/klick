@@ -4,7 +4,8 @@ import { getTranslations } from "next-intl/server";
 import { AccountabilityView } from "@/components/accountability/accountability-view";
 import { PrintButton } from "@/components/organisation/print-button";
 import { PageHeader } from "@/components/page-header";
-import { normalizeRole, requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { normalizeRole, toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
 import { buildAccountabilitySections } from "@/lib/compliance/accountability";
 import { accountabilityFor } from "@/lib/compliance/queries-p3";
@@ -19,7 +20,7 @@ export default async function MemberAccountabilityPage({
 }) {
 	const { userId } = await params;
 	if (!/^[0-9a-f-]{36}$/i.test(userId)) notFound();
-	const ctx = await requireOrg({ member: ["read"] });
+	const ctx = await requireOrgPage({ member: ["read"] });
 	if (ctx.orgRole !== "owner" && ctx.userId !== userId) notFound();
 	const t = await getTranslations("Accountability");
 	const tt = await getTranslations("Team");

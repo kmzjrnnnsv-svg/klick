@@ -19,7 +19,8 @@ import {
 } from "@/components/nonconformities/nc-forms";
 import { Badge } from "@/components/ui/badge";
 import { historyFor } from "@/lib/audit";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { capaState } from "@/lib/compliance/nonconformity";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -56,7 +57,7 @@ export default async function NonconformityDetailPage({
 }) {
 	const { id } = await params;
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-	const ctx = await requireOrg({ nonconformity: ["read"] });
+	const ctx = await requireOrgPage({ nonconformity: ["read"] });
 	const t = await getTranslations("Nonconformities");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");

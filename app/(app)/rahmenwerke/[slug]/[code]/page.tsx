@@ -9,7 +9,7 @@ import {
 } from "@/components/entity/entity-layout";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { requireOrg } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
 import { roleAllows } from "@/lib/auth/permissions";
 import {
 	CONTROL_BY_CODE,
@@ -31,7 +31,7 @@ export default async function RequirementPage({
 }) {
 	const { slug, code: rawCode } = await params;
 	const code = decodeURIComponent(rawCode);
-	const ctx = await requireOrg();
+	const ctx = await requireOrgPage();
 	const fw = FRAMEWORK_BY_SLUG.get(slug);
 	const req = REQUIREMENT_BY_KEY.get(`${slug}:${code}`);
 	if (!fw || !req) notFound();

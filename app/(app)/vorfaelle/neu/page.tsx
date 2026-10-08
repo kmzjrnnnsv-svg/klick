@@ -1,11 +1,11 @@
 import { getTranslations } from "next-intl/server";
 import { IncidentCreateForm } from "@/components/incidents/incident-forms";
 import { PageHeader } from "@/components/page-header";
-import { requireOrg } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 
 export default async function NewIncidentPage() {
-	const ctx = await requireOrg({ incident: ["create"] });
+	const ctx = await requireOrgPage({ incident: ["create"] });
 	const t = await getTranslations("Incidents");
 	const cov = await getOrgCoverageCached(ctx);
 	const fws = cov?.frameworks ?? [];

@@ -13,7 +13,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
 import { roleAllows } from "@/lib/auth/permissions";
 import {
@@ -33,7 +34,7 @@ export default async function ResolutionsPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ resolution: ["read"] });
+	const ctx = await requireOrgPage({ resolution: ["read"] });
 	const sp = await searchParams;
 	const tab = one(sp.tab) === "pflicht" ? "pflicht" : "register";
 	const t = await getTranslations("Resolutions");

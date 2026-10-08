@@ -18,7 +18,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
 import { groupByMonth, runState } from "@/lib/compliance/obligations";
@@ -64,7 +65,7 @@ export default async function CalendarPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ obligation: ["read"] });
+	const ctx = await requireOrgPage({ obligation: ["read"] });
 	const sp = await searchParams;
 	const tab = one(sp.tab) ?? "jahr";
 	const now = new Date();

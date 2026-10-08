@@ -14,7 +14,8 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { CONTROL_TEST_METHODS } from "@/db/schema/enums";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { getOrgProfile, listControlRows } from "@/lib/compliance/queries";
@@ -40,7 +41,7 @@ export default async function TestProgrammePage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ control: ["read"] });
+	const ctx = await requireOrgPage({ control: ["read"] });
 	const sp = await searchParams;
 	const now = new Date();
 	const year = Number(one(sp.jahr)) || now.getFullYear();

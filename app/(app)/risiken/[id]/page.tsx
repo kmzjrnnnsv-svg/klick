@@ -23,7 +23,8 @@ import {
 	loadCandidates,
 } from "@/lib/approvals/service";
 import { historyFor } from "@/lib/audit";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { CONTROLS } from "@/lib/compliance/catalog";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -63,7 +64,7 @@ export default async function RiskDetailPage({
 }) {
 	const { id } = await params;
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-	const ctx = await requireOrg({ risk: ["read"] });
+	const ctx = await requireOrgPage({ risk: ["read"] });
 	const t = await getTranslations("Risks");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");

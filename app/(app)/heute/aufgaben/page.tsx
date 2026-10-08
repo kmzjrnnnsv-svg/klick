@@ -7,7 +7,8 @@ import { StatusButton } from "@/components/entity/status-button";
 import { UserChip } from "@/components/entity/user-chip";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker, listTasks } from "@/lib/compliance/queries";
@@ -22,7 +23,7 @@ export default async function TasksPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ task: ["read"] });
+	const ctx = await requireOrgPage({ task: ["read"] });
 	const sp = await searchParams;
 	const t = await getTranslations("Tasks");
 	const te = await getTranslations("Entity");

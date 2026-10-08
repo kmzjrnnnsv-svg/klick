@@ -5,7 +5,8 @@ import { EvidenceForm } from "@/components/entity/evidence-form";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UserChip } from "@/components/entity/user-chip";
 import { Badge } from "@/components/ui/badge";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listEvidenceWithControls } from "@/lib/compliance/queries";
@@ -21,7 +22,7 @@ export default async function EvidencePage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ evidence: ["read"] });
+	const ctx = await requireOrgPage({ evidence: ["read"] });
 	const sp = await searchParams;
 	const t = await getTranslations("Evidence");
 	const te = await getTranslations("Entity");

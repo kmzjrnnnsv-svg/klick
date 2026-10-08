@@ -11,7 +11,8 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { UserChip } from "@/components/entity/user-chip";
 import { Badge } from "@/components/ui/badge";
 import { DOCUMENT_STATUS, DOCUMENT_TYPES } from "@/db/schema/grc";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { DOCUMENT_TEMPLATES } from "@/lib/compliance/catalog/document-templates";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -29,7 +30,7 @@ export default async function DocumentsPage({
 }: {
 	searchParams: Promise<Search>;
 }) {
-	const ctx = await requireOrg({ document: ["read"] });
+	const ctx = await requireOrgPage({ document: ["read"] });
 	const sp = await searchParams;
 	const t = await getTranslations("Documents");
 	const te = await getTranslations("Entity");

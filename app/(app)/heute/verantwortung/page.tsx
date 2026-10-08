@@ -3,7 +3,8 @@ import { AccountabilityView } from "@/components/accountability/accountability-v
 import { PrintButton } from "@/components/organisation/print-button";
 import { PageHeader } from "@/components/page-header";
 import { listRequestsForUser } from "@/lib/approvals/service";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { buildAccountabilitySections } from "@/lib/compliance/accountability";
 import { pendingAcknowledgements } from "@/lib/compliance/queries-p2";
 import { accountabilityFor } from "@/lib/compliance/queries-p3";
@@ -11,7 +12,7 @@ import { readOrg } from "@/lib/db/with-org";
 
 // „Wofür bin ich verantwortlich?" — druckbare Rechenschaftssicht.
 export default async function MyAccountabilityPage() {
-	const ctx = await requireOrg();
+	const ctx = await requireOrgPage();
 	const t = await getTranslations("Accountability");
 	const today = new Date().toISOString().slice(0, 10);
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => ({

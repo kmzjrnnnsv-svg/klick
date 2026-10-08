@@ -10,7 +10,8 @@ import {
 	listRequestsForUser,
 	type PendingForUser,
 } from "@/lib/approvals/service";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
@@ -22,7 +23,7 @@ export default async function ApprovalsInboxPage({
 	searchParams: Promise<{ tab?: string; request?: string }>;
 }) {
 	const { tab = "waiting", request } = await searchParams;
-	const ctx = await requireOrg({ approval: ["read"] });
+	const ctx = await requireOrgPage({ approval: ["read"] });
 	const t = await getTranslations("Approvals");
 	const ts = await getTranslations("Status");
 	const { rows, members, entityTitles } = await readOrg(

@@ -7,7 +7,8 @@ import {
 	RoadmapBoard,
 } from "@/components/roadmap/roadmap-board";
 import { Badge } from "@/components/ui/badge";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { ROADMAP_PHASES } from "@/lib/compliance/catalog/roadmap";
 import { getOrgProfile, listMembersForPicker } from "@/lib/compliance/queries";
@@ -18,7 +19,7 @@ import { readOrg } from "@/lib/db/with-org";
 // Verfahren → Go-Live → E-Geld → Bank). Vorlage aus Businessplan 10/21.9;
 // Meilenstein → Aufgabe; Controls verknüpft.
 export default async function RoadmapPage() {
-	const ctx = await requireOrg({ milestone: ["read"] });
+	const ctx = await requireOrgPage({ milestone: ["read"] });
 	const t = await getTranslations("Roadmap");
 	const canEdit = roleAllows(ctx.orgRole, { milestone: ["update"] });
 	const { items, members, profile } = await readOrg(

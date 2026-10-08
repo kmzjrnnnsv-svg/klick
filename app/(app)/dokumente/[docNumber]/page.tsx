@@ -26,7 +26,8 @@ import {
 	loadCandidates,
 } from "@/lib/approvals/service";
 import { historyFor } from "@/lib/audit";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
@@ -52,7 +53,7 @@ export default async function DocumentDetailPage({
 }) {
 	const { docNumber: raw } = await params;
 	const docNumber = decodeURIComponent(raw);
-	const ctx = await requireOrg({ document: ["read"] });
+	const ctx = await requireOrgPage({ document: ["read"] });
 	const t = await getTranslations("Documents");
 	const te = await getTranslations("Entity");
 	const ta = await getTranslations("Approvals");

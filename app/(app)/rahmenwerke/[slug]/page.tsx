@@ -6,7 +6,8 @@ import { UrlTabs } from "@/components/entity/url-tabs";
 import { SoaTab } from "@/components/frameworks/soa-tab";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import {
 	CONTROL_BY_CODE,
 	EDGES_BY_REQUIREMENT,
@@ -38,7 +39,7 @@ export default async function FrameworkPage({
 }) {
 	const { slug } = await params;
 	const { tab = "anforderungen" } = await searchParams;
-	const ctx = await requireOrg();
+	const ctx = await requireOrgPage();
 	const fw = FRAMEWORK_BY_SLUG.get(slug);
 	if (!fw) notFound();
 	const t = await getTranslations("Frameworks");
