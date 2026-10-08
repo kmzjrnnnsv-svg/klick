@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { addFrameworks, updateProfileFlags } from "@/app/actions/frameworks";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import { SynergyPreviewPanel } from "@/components/auth/synergy-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -182,7 +183,9 @@ export function FrameworksPanel({
 										disabled={pending || picked.length === 0}
 										onClick={() =>
 											start(async () => {
-												const res = await addFrameworks({ frameworks: picked });
+												const res = await withStepUp(() =>
+													addFrameworks({ frameworks: picked }),
+												);
 												if (!res.ok) {
 													handleError(res.error);
 													return;
@@ -242,7 +245,9 @@ export function FrameworksPanel({
 							disabled={!canEdit || pending}
 							onCheckedChange={(v) =>
 								start(async () => {
-									const res = await updateProfileFlags({ tlptDesignated: v });
+									const res = await withStepUp(() =>
+										updateProfileFlags({ tlptDesignated: v }),
+									);
 									if (!res.ok) handleError(res.error);
 									else {
 										toast.success(t("saved"));
@@ -260,9 +265,11 @@ export function FrameworksPanel({
 								disabled={!canEdit || pending}
 								onValueChange={(v) =>
 									start(async () => {
-										const res = await updateProfileFlags({
-											nis2Status: v as (typeof NIS2)[number],
-										});
+										const res = await withStepUp(() =>
+											updateProfileFlags({
+												nis2Status: v as (typeof NIS2)[number],
+											}),
+										);
 										if (!res.ok) handleError(res.error);
 										else {
 											toast.success(t("saved"));

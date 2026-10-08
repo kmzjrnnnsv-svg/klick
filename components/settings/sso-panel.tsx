@@ -10,6 +10,7 @@ import {
 	requestSsoDomainVerification,
 	verifySsoDomain,
 } from "@/app/actions/sso";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -125,8 +126,8 @@ export function SsoPanel({
 												disabled={pending}
 												onClick={() =>
 													start(async () => {
-														const res = await requestSsoDomainVerification(
-															p.providerId,
+														const res = await withStepUp(() =>
+															requestSsoDomainVerification(p.providerId),
 														);
 														if (!res.ok) return fail(res.error);
 														setTokens({
@@ -144,7 +145,9 @@ export function SsoPanel({
 												disabled={pending}
 												onClick={() =>
 													start(async () => {
-														const res = await verifySsoDomain(p.providerId);
+														const res = await withStepUp(() =>
+															verifySsoDomain(p.providerId),
+														);
 														if (!res.ok) return fail(res.error);
 														toast.success(t("ssoVerifiedToast"));
 														router.refresh();
@@ -162,7 +165,9 @@ export function SsoPanel({
 										disabled={pending}
 										onClick={() =>
 											start(async () => {
-												const res = await deleteSsoProvider(p.providerId);
+												const res = await withStepUp(() =>
+													deleteSsoProvider(p.providerId),
+												);
 												if (!res.ok) return fail(res.error);
 												toast.success(t("ssoDeleted"));
 												router.refresh();
@@ -190,7 +195,7 @@ export function SsoPanel({
 							onSubmit={(e) => {
 								e.preventDefault();
 								start(async () => {
-									const res = await registerSsoProvider(form);
+									const res = await withStepUp(() => registerSsoProvider(form));
 									if (!res.ok) {
 										setErrors(
 											Object.fromEntries(

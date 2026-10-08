@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { setWorkflowEnabled } from "@/app/actions/approvals";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import type { ApprovalStep } from "@/db/schema/grc";
@@ -62,10 +63,12 @@ export function WorkflowsPanel({
 							aria-label={`${w.name} ${t("workflowEnabled")}`}
 							onCheckedChange={(v) =>
 								start(async () => {
-									const res = await setWorkflowEnabled({
-										kind: w.kind,
-										enabled: v,
-									});
+									const res = await withStepUp(() =>
+										setWorkflowEnabled({
+											kind: w.kind,
+											enabled: v,
+										}),
+									);
 									if (!res.ok)
 										toast.error(
 											res.error === "step_up_required"

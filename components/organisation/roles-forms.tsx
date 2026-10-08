@@ -12,6 +12,7 @@ import {
 	upsertRoleAssignment,
 	upsertScope,
 } from "@/app/actions/organisation";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -117,15 +118,17 @@ export function RoleAssignmentForm({
 			wide
 			onSubmit={() =>
 				start(async () => {
-					const res = await upsertRoleAssignment({
-						...d,
-						userId: mode === "person" ? d.userId : null,
-						externalName: mode === "external" ? d.externalName : null,
-						appointedAt: d.appointedAt || null,
-						documentsValidUntil: d.documentsValidUntil || null,
-						reviewAt: d.reviewAt || null,
-						fitProperChecklist: showFitProper ? checklist : null,
-					});
+					const res = await withStepUp(() =>
+						upsertRoleAssignment({
+							...d,
+							userId: mode === "person" ? d.userId : null,
+							externalName: mode === "external" ? d.externalName : null,
+							appointedAt: d.appointedAt || null,
+							documentsValidUntil: d.documentsValidUntil || null,
+							reviewAt: d.reviewAt || null,
+							fitProperChecklist: showFitProper ? checklist : null,
+						}),
+					);
 					if (!res.ok)
 						return void toast.error(
 							res.error === "step_up_required" ? t("stepUp") : tc("error"),

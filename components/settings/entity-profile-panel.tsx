@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updateEntityProfile } from "@/app/actions/settings";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,7 +63,7 @@ export function EntityProfilePanel({
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {
-					const res = await updateEntityProfile(state);
+					const res = await withStepUp(() => updateEntityProfile(state));
 					if (!res.ok) {
 						setErrors(
 							Object.fromEntries(

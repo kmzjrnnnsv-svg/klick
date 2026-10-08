@@ -13,6 +13,7 @@ import {
 	upsertInterestedParty,
 	upsertRegulatorInteraction,
 } from "@/app/actions/organisation";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
 import {
@@ -273,7 +274,7 @@ function useSave<T extends { ok: boolean }>(
 	const [pending, start] = useTransition();
 	const run = (fn: () => Promise<T & { error?: string }>) =>
 		start(async () => {
-			const res = await fn();
+			const res = await withStepUp(fn);
 			if (!res.ok) {
 				toast.error(
 					res.error === "step_up_required" ? t("stepUp") : tc("error"),

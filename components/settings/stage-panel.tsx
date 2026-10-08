@@ -9,6 +9,7 @@ import {
 	updateLicenceProfile,
 } from "@/app/actions/frameworks";
 import { previewStageChange } from "@/app/actions/synergy";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -191,10 +192,12 @@ export function StagePanel({
 							disabled={pending || !changed}
 							onClick={() =>
 								start(async () => {
-									const res = await updateLicenceProfile({
-										licenceStage: stage,
-										caspServices: services,
-									});
+									const res = await withStepUp(() =>
+										updateLicenceProfile({
+											licenceStage: stage,
+											caspServices: services,
+										}),
+									);
 									if (!res.ok) return void handleError(res.error);
 									toast.success(
 										t("stageChanged", {
@@ -230,9 +233,11 @@ export function StagePanel({
 							disabled={pending}
 							onClick={() =>
 								start(async () => {
-									const res = await confirmSetupFlag({
-										key: "tlptConfirmedAt",
-									});
+									const res = await withStepUp(() =>
+										confirmSetupFlag({
+											key: "tlptConfirmedAt",
+										}),
+									);
 									if (!res.ok) return void handleError(res.error);
 									toast.success(t("saved"));
 									router.refresh();

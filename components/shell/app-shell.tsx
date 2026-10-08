@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import type { OrgContext } from "@/lib/auth/guards";
 import type { NavGroup } from "@/lib/nav";
@@ -73,6 +74,7 @@ export async function AppShell({
 				<main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
 					{children}
 				</main>
+				<StepUpDialog />
 			</div>
 		</div>
 	);
