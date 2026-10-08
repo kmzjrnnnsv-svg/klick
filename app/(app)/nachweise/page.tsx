@@ -67,14 +67,14 @@ export default async function EvidencePage({
 			key: "controls",
 			header: t("linkedControls"),
 			className: "w-56",
+			// Server Component: kein onClick an <Link> (nicht serialisierbar — die
+			// Seite würde mit „Da ist etwas schiefgelaufen“ abbrechen, sobald ein
+			// Nachweis Controls hat). Mobil ist die ganze Karte ein Link, daher aus.
+			mobile: false,
 			cell: (r) => (
 				<span className="flex flex-wrap gap-1">
 					{r.controlCodes.map((c) => (
-						<Link
-							key={c}
-							href={`/controls/${c}`}
-							onClick={(ev) => ev.stopPropagation()}
-						>
+						<Link key={c} href={`/controls/${c}`}>
 							<Badge
 								variant="outline"
 								className="font-mono normal-case tracking-normal"

@@ -9,6 +9,7 @@ import {
 } from "@/components/entity/entity-layout";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { roleAllows } from "@/lib/auth/permissions";
 import {
@@ -39,10 +40,20 @@ export default async function RequirementPage({
 	const tc = await getTranslations("Controls");
 	const ts = await getTranslations("Status");
 	const cov = await getOrgCoverageCached(ctx);
-	if (!cov?.frameworks.includes(slug)) notFound();
+	// Querverweise („Siehe auch“, Vergleich) führen auch zu Rahmenwerken, die
+	// die Organisation nicht aktiviert hat: dann Katalogansicht ohne
+	// Abdeckungsstatus statt 404.
+	const activeFrameworks = cov?.frameworks ?? [];
+	const active = activeFrameworks.includes(slug);
+	const byRequirement =
+		cov?.result.byRequirement ?? new Map<string, ReqCoverage>();
+	const implStatus: NonNullable<typeof cov>["implStatus"] =
+		cov?.implStatus ?? new Map();
 	const key = `${slug}:${code}`;
-	const status: ReqCoverage = cov.result.byRequirement.get(key) ?? "open";
-	const applicability = cov.applicabilityDetail.get(key);
+	const status: ReqCoverage | "inactive" = active
+		? (byRequirement.get(key) ?? "open")
+		: "inactive";
+	const applicability = cov?.applicabilityDetail.get(key);
 	const applicable = status !== "not_applicable";
 	const section = fw.sections.find((s) => s.code === req.sectionCode);
 	const edges = EDGES_BY_REQUIREMENT.get(key) ?? [];
@@ -50,10 +61,10 @@ export default async function RequirementPage({
 		.map((k) => ({
 			key: k,
 			req: REQUIREMENT_BY_KEY.get(k),
-			status: cov.result.byRequirement.get(k),
+			status: byRequirement.get(k),
 		}))
 		.filter((x) => x.req);
-	const statusLabel = (s: ReqCoverage) =>
+	const statusLabel = (s: ReqCoverage | "inactive") =>
 		t(
 			s === "covered"
 				? "covered"
@@ -61,7 +72,9 @@ export default async function RequirementPage({
 					? "partial"
 					: s === "not_applicable"
 						? "notApplicableShort"
-						: "open",
+						: s === "inactive"
+							? "inactive"
+							: "open",
 		);
 
 	return (
@@ -76,7 +89,7 @@ export default async function RequirementPage({
 							? "success"
 							: status === "partial"
 								? "warning"
-								: status === "not_applicable"
+								: status === "not_applicable" || status === "inactive"
 									? "muted"
 									: "outline"
 					}
@@ -85,12 +98,18 @@ export default async function RequirementPage({
 				</Badge>
 			}
 			actions={
-				<ApplicabilityToggle
-					framework={slug}
-					code={code}
-					applicable={applicable}
-					canEdit={roleAllows(ctx.orgRole, { control: ["update"] })}
-				/>
+				active ? (
+					<ApplicabilityToggle
+						framework={slug}
+						code={code}
+						applicable={applicable}
+						canEdit={roleAllows(ctx.orgRole, { control: ["update"] })}
+					/>
+				) : (
+					<Button variant="outline" size="sm" asChild>
+						<Link href="/einstellungen?tab=frameworks">{t("activate")}</Link>
+					</Button>
+				)
 			}
 			meta={
 				<>
@@ -222,7 +241,7 @@ export default async function RequirementPage({
 					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
 						{edges.map((e) => {
 							const c = CONTROL_BY_CODE.get(e.control);
-							const s = cov.implStatus.get(e.control);
+							const s = implStatus.get(e.control);
 							return (
 								<li
 									key={e.control}
@@ -273,18 +292,16 @@ export default async function RequirementPage({
 								>
 									{shortFrameworkName(r?.framework ?? "")} {r?.code}
 								</Badge>
-								{cov.frameworks.includes(r?.framework ?? "") ? (
-									<Link
-										href={`/rahmenwerke/${r?.framework}/${encodeURIComponent(r?.code ?? "")}`}
-										className="min-w-0 flex-1 truncate hover:underline underline-offset-4"
-									>
-										{r?.title}
-									</Link>
-								) : (
-									<span className="min-w-0 flex-1 truncate text-muted-foreground">
-										{r?.title}
-									</span>
-								)}
+								<Link
+									href={`/rahmenwerke/${r?.framework}/${encodeURIComponent(r?.code ?? "")}`}
+									className={
+										activeFrameworks.includes(r?.framework ?? "")
+											? "min-w-0 flex-1 truncate hover:underline underline-offset-4"
+											: "min-w-0 flex-1 truncate text-muted-foreground hover:underline underline-offset-4"
+									}
+								>
+									{r?.title}
+								</Link>
 								{s && (
 									<Badge
 										variant={

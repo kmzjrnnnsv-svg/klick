@@ -577,7 +577,7 @@ async function crawl(ctx: BrowserContext, only?: string[]) {
 			.evaluateAll((as) =>
 				as.map((a) => (a as HTMLAnchorElement).getAttribute("href") ?? ""),
 			);
-		for (const h of hrefs) queue(`${BASE}${h}`);
+		if (!flag("--no-follow")) for (const h of hrefs) queue(`${BASE}${h}`);
 		if (!flag("--pages-only")) await exerciseDialogs(page, path);
 	}
 	const log = logSince(logPos);
