@@ -21,6 +21,7 @@ async function createResolutionImpl(input: unknown): Promise<
 		id: string;
 		number: string;
 		approval: "none" | "pending" | "approved";
+		approvalSkipped?: "no_approver";
 	}>
 > {
 	const c = await requireOrg({ resolution: ["create"] });
@@ -59,6 +60,7 @@ async function createResolutionImpl(input: unknown): Promise<
 			.returning({ id: resolutions.id });
 		if (!row) throw new Error("insert failed");
 		let approval: "none" | "pending" | "approved" = "none";
+		let approvalSkipped: "no_approver" | undefined;
 		if (d.requestApproval) {
 			const r = await requestApproval(
 				tx,
@@ -78,12 +80,20 @@ async function createResolutionImpl(input: unknown): Promise<
 					.set({ approvalRequestId: r.requestId })
 					.where(eq(resolutions.id, row.id));
 				approval = r.status === "approved" ? "approved" : "pending";
+			} else if (r.error === "no_approver") {
+				// Niemand hält die Pflichtfunktion (z. B. frische Organisation):
+				// der Beschluss wird trotzdem erfasst — die Leitung dokumentiert
+				// selbst —, die Oberfläche weist auf die unbesetzte Funktion hin.
+				approvalSkipped = "no_approver";
 			} else if (r.error !== "workflow_disabled") {
 				return { result: { ok: false, error: r.error }, audit: [] };
 			}
 		}
 		return {
-			result: { ok: true, data: { id: row.id, number, approval } },
+			result: {
+				ok: true,
+				data: { id: row.id, number, approval, approvalSkipped },
+			},
 			audit: {
 				action: "resolution.create",
 				target: `resolution:${row.id}`,

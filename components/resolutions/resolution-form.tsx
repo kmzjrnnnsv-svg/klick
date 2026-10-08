@@ -113,11 +113,20 @@ export function ResolutionForm({
 											)
 										: tc("error"),
 								);
-							toast.success(
-								res.data.approval === "pending"
-									? ts("approvalRequested")
-									: t("created", { n: res.data.number }),
-							);
+							if (res.data.approvalSkipped) {
+								toast.warning(
+									t("createdNoApproval", {
+										n: res.data.number,
+										reason: ts(`approvalError_${res.data.approvalSkipped}`),
+									}),
+								);
+							} else {
+								toast.success(
+									res.data.approval === "pending"
+										? ts("approvalRequested")
+										: t("created", { n: res.data.number }),
+								);
+							}
 							setOpen(false);
 							router.refresh();
 						});

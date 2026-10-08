@@ -1653,6 +1653,7 @@
 		"new": "Beschluss",
 		"recordFor": "Beschluss erfassen",
 		"created": "Beschluss {n} erfasst.",
+		"createdNoApproval": "Beschluss {n} erfasst, Freigabe nicht angefragt: {reason}",
 		"formLead": "Betreff, Beschlusstext, Gremium und Datum. Standardmäßig läuft der Beschluss durch die Genehmigung der Leitung (Vier-Augen).",
 		"subject": "Betreff",
 		"decisionText": "Beschlusstext",
