@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { TwoFactorForm } from "@/components/auth/two-factor-form";
 import { gateAuth } from "@/lib/auth/gates";
+import { getSessionCtx } from "@/lib/auth/guards";
 
 export default async function TwoFactorPage({
 	searchParams,
@@ -9,7 +11,11 @@ export default async function TwoFactorPage({
 }) {
 	const { stepup, zurueck } = await searchParams;
 	const stepUp = stepup === "1";
-	if (!stepUp) await gateAuth("/login/2fa");
+	if (!stepUp) {
+		await gateAuth("/login/2fa");
+		// Ohne Sitzung (abgelaufen, widerrufen) kann kein Code helfen.
+		if (!(await getSessionCtx())) redirect("/login?grund=sitzung-abgelaufen");
+	}
 	const t = await getTranslations("Auth");
 	const returnTo = zurueck?.startsWith("/") ? zurueck : "/heute";
 	return (

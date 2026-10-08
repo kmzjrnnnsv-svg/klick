@@ -43,6 +43,12 @@ export function TwoFactorForm({
 							trustDevice: false,
 						});
 				if (res.error) {
+					// Sitzung weg (abgelaufen/widerrufen): zurück zum Login statt
+					// „Code ungültig“ in einer Schleife.
+					if (res.error.code === "INVALID_TWO_FACTOR_COOKIE") {
+						router.replace("/login?grund=sitzung-abgelaufen");
+						return;
+					}
 					const msg = res.error.message ?? "";
 					toast.error(/lock/i.test(msg) ? t("locked") : t("invalidCode"));
 					return;
@@ -54,6 +60,12 @@ export function TwoFactorForm({
 			setBusy(false);
 			setCode("");
 		}
+	}
+
+	async function signOut() {
+		await authClient.signOut().catch(() => {});
+		router.replace("/login");
+		router.refresh();
 	}
 
 	return (
@@ -85,6 +97,15 @@ export function TwoFactorForm({
 					className="text-left text-primary text-xs hover:underline"
 				>
 					{useBackup ? t("useTotp") : t("useBackupCode")}
+				</button>
+			)}
+			{!stepUp && (
+				<button
+					type="button"
+					onClick={signOut}
+					className="text-left text-muted-foreground text-xs hover:underline"
+				>
+					{t("signOut")}
 				</button>
 			)}
 		</form>
