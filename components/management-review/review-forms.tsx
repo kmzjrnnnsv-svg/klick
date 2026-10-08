@@ -221,8 +221,13 @@ export function ReviewInputsChecklist({
 	);
 }
 
+type ActionKind = "task" | "resolution" | "nonconformity";
+const ACTION_KINDS: ActionKind[] = ["resolution", "task", "nonconformity"];
+
 type ActionDraft = {
+	kind: ActionKind;
 	title: string;
+	text: string;
 	assigneeUserId: string | null;
 	dueAt: string;
 };
@@ -265,8 +270,13 @@ export function CompleteReviewForm({
 				)}
 			</div>
 			<div className="flex flex-col gap-2">
-				<div className="flex items-center justify-between">
-					<Label>{t("actions")}</Label>
+				<div className="flex items-center justify-between gap-3">
+					<div>
+						<Label>{t("actions")}</Label>
+						<p className="mt-1 text-muted-foreground text-xs">
+							{t("actionsLead")}
+						</p>
+					</div>
 					<Button
 						type="button"
 						size="sm"
@@ -274,7 +284,13 @@ export function CompleteReviewForm({
 						onClick={() =>
 							setActions([
 								...actions,
-								{ title: "", assigneeUserId: null, dueAt: "" },
+								{
+									kind: "resolution",
+									title: "",
+									text: "",
+									assigneeUserId: null,
+									dueAt: "",
+								},
 							])
 						}
 					>
@@ -286,8 +302,27 @@ export function CompleteReviewForm({
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: editierbare Liste ohne natürliche ID
 						key={`${i}-${actions.length}`}
-						className="grid gap-2 sm:grid-cols-[1fr_12rem_9rem_2rem]"
+						className="grid gap-2 rounded-md border border-dashed p-2 sm:grid-cols-[9rem_1fr_12rem_9rem_2rem]"
 					>
+						<Select
+							value={a.kind}
+							onValueChange={(v) => {
+								const n = [...actions];
+								n[i] = { ...a, kind: v as ActionKind };
+								setActions(n);
+							}}
+						>
+							<SelectTrigger aria-label={t("actions")}>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{ACTION_KINDS.map((k) => (
+									<SelectItem key={k} value={k}>
+										{t(`kind_${k}`)}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 						<Input
 							placeholder={t("actionTitle")}
 							value={a.title}
@@ -334,10 +369,20 @@ export function CompleteReviewForm({
 						>
 							<Trash2 />
 						</Button>
+						<Textarea
+							rows={2}
+							className="sm:col-span-5"
+							placeholder={t(`actionText_${a.kind}`)}
+							value={a.text}
+							onChange={(e) => {
+								const n = [...actions];
+								n[i] = { ...a, text: e.target.value };
+								setActions(n);
+							}}
+						/>
 					</div>
 				))}
 			</div>
-			<Textarea rows={1} className="hidden" readOnly value="" />
 			<div>
 				<Button
 					size="sm"
@@ -350,7 +395,9 @@ export function CompleteReviewForm({
 								actions: actions
 									.filter((a) => a.title.trim())
 									.map((a) => ({
+										kind: a.kind,
 										title: a.title,
+										text: a.text.trim() || undefined,
 										assigneeUserId: a.assigneeUserId,
 										dueAt: a.dueAt || null,
 									})),
@@ -359,9 +406,17 @@ export function CompleteReviewForm({
 								return void toast.error(
 									res.error.startsWith("inputs_missing")
 										? t("inputsIncomplete")
-										: tc("error"),
+										: res.error === "forbidden"
+											? t("forbiddenKind")
+											: tc("error"),
 								);
-							toast.success(t("statusSaved", { n: res.data.tasks }));
+							toast.success(
+								t("statusSaved", {
+									tasks: res.data.tasks,
+									resolutions: res.data.resolutions,
+									nonconformities: res.data.nonconformities,
+								}),
+							);
 							setActions([]);
 							router.refresh();
 						})

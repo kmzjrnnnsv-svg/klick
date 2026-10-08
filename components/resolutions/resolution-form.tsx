@@ -45,12 +45,23 @@ export function ResolutionForm({
 	preset,
 	soloHint,
 	trigger,
+	triggerLabel,
+	linked,
 }: {
 	members: MemberOption[];
 	required: RequiredOption[];
 	preset?: RequiredOption;
 	soloHint?: boolean;
 	trigger?: "button" | "link";
+	triggerLabel?: string;
+	// Bezug, z. B. die Managementbewertung, in der der Beschluss gefasst wurde.
+	linked?: {
+		type: "management_review";
+		id: string;
+		label: string;
+		date?: string;
+		attendeeUserIds?: string[];
+	};
 }) {
 	const t = useTranslations("Resolutions");
 	const ts = useTranslations("Status");
@@ -61,12 +72,16 @@ export function ResolutionForm({
 	const [subject, setSubject] = useState(preset?.title ?? "");
 	const [decisionText, setDecisionText] = useState("");
 	const [body, setBody] = useState<(typeof BODIES)[number]>("management");
-	const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+	const [date, setDate] = useState(
+		linked?.date ?? new Date().toISOString().slice(0, 10),
+	);
 	const [legalBasis, setLegalBasis] = useState(preset?.legalBasis ?? "");
 	const [requiredCode, setRequiredCode] = useState<string>(
 		preset?.code ?? "none",
 	);
-	const [attendees, setAttendees] = useState<Set<string>>(new Set());
+	const [attendees, setAttendees] = useState<Set<string>>(
+		new Set(linked?.attendeeUserIds ?? []),
+	);
 	const [withApproval, setWithApproval] = useState(true);
 	const [reason, setReason] = useState("");
 
@@ -79,12 +94,12 @@ export function ResolutionForm({
 						variant="outline"
 						className="normal-case tracking-normal"
 					>
-						{t("recordFor")}
+						{triggerLabel ?? t("recordFor")}
 					</Button>
 				) : (
 					<Button size="sm" variant="brown">
 						<Plus />
-						{t("new")}
+						{triggerLabel ?? t("new")}
 					</Button>
 				)}
 			</DialogTrigger>
@@ -102,6 +117,8 @@ export function ResolutionForm({
 								legalBasis: legalBasis || undefined,
 								requiredCode: requiredCode === "none" ? null : requiredCode,
 								attendeeUserIds: [...attendees],
+								linkedEntityType: linked?.type ?? null,
+								linkedEntityId: linked?.id ?? null,
 								requestApproval: withApproval,
 								selfApprovalReason: reason || undefined,
 							});
@@ -135,6 +152,11 @@ export function ResolutionForm({
 					<DialogHeader>
 						<DialogTitle>{t("new")}</DialogTitle>
 						<DialogDescription>{t("formLead")}</DialogDescription>
+						{linked && (
+							<p className="text-muted-foreground text-xs">
+								{t("linkedTo", { label: linked.label })}
+							</p>
+						)}
 					</DialogHeader>
 					<div className="grid gap-4 sm:grid-cols-2">
 						<div className="flex flex-col gap-1.5 sm:col-span-2">

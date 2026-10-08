@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UserChip } from "@/components/entity/user-chip";
@@ -7,6 +8,7 @@ import {
 	ReviewInputsChecklist,
 } from "@/components/management-review/review-forms";
 import { PageHeader } from "@/components/page-header";
+import { ResolutionForm } from "@/components/resolutions/resolution-form";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -30,6 +32,7 @@ export default async function ManagementReviewPage() {
 	const ctx = await requireOrgPage({ management_review: ["read"] });
 	const t = await getTranslations("ManagementReview");
 	const canEdit = roleAllows(ctx.orgRole, { management_review: ["update"] });
+	const canResolve = roleAllows(ctx.orgRole, { resolution: ["create"] });
 	const { reviews, members, inputs } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => {
@@ -147,6 +150,107 @@ export default async function ManagementReviewPage() {
 												<p className="whitespace-pre-wrap">{r.decisions}</p>
 											</div>
 										)}
+										<div>
+											<div className="mb-1 flex items-center justify-between gap-2">
+												<h3 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+													{t("outcomes")}
+												</h3>
+												{canResolve && (
+													<ResolutionForm
+														members={members}
+														required={[]}
+														trigger="link"
+														triggerLabel={t("addResolution")}
+														soloHint={members.length <= 1}
+														linked={{
+															type: "management_review",
+															id: r.id,
+															label: `${t("title")} ${fmtDate.format(new Date(r.heldAt))}`,
+															date: r.heldAt,
+															attendeeUserIds: r.attendeeUserIds,
+														}}
+													/>
+												)}
+											</div>
+											{r.outcomes.resolutions.length +
+												r.outcomes.tasks.length +
+												r.outcomes.nonconformities.length ===
+											0 ? (
+												<p className="text-muted-foreground text-xs">
+													{t("noOutcomes")}
+												</p>
+											) : (
+												<ul className="flex flex-col gap-1.5">
+													{r.outcomes.resolutions.map((x) => (
+														<li
+															key={x.id}
+															className="flex flex-wrap items-center gap-2"
+														>
+															<Badge variant="outline">
+																{t("kind_resolution")}
+															</Badge>
+															<Link
+																href="/beschluesse"
+																className="hover:underline"
+															>
+																<span className="font-mono text-xs">
+																	{x.number}
+																</span>{" "}
+																{x.subject}
+															</Link>
+															<Badge
+																variant={
+																	x.effective
+																		? "success"
+																		: x.approvalStatus === "rejected"
+																			? "destructive"
+																			: "warning"
+																}
+															>
+																{x.effective
+																	? t("approvalApproved")
+																	: x.approvalStatus === "rejected"
+																		? t("approvalRejected")
+																		: t("approvalPending")}
+															</Badge>
+														</li>
+													))}
+													{r.outcomes.tasks.map((x) => (
+														<li
+															key={x.id}
+															className="flex flex-wrap items-center gap-2"
+														>
+															<Badge variant="outline">{t("kind_task")}</Badge>
+															<Link
+																href="/heute/aufgaben"
+																className="hover:underline"
+															>
+																{x.title}
+															</Link>
+														</li>
+													))}
+													{r.outcomes.nonconformities.map((x) => (
+														<li
+															key={x.id}
+															className="flex flex-wrap items-center gap-2"
+														>
+															<Badge variant="outline">
+																{t("kind_nonconformity")}
+															</Badge>
+															<Link
+																href={`/abweichungen/${x.id}`}
+																className="hover:underline"
+															>
+																<span className="font-mono text-xs">
+																	{x.code}
+																</span>{" "}
+																{x.title}
+															</Link>
+														</li>
+													))}
+												</ul>
+											)}
+										</div>
 										{canEdit && r.status !== "done" && (
 											<CompleteReviewForm
 												reviewId={r.id}
