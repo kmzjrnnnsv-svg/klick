@@ -261,7 +261,7 @@
 		"synergyControls": "{n} Controls",
 		"synergyShared": "{n} Controls erfüllen Anforderungen aus mindestens zwei Rahmenwerken · Überlappung {pct} %",
 		"synergyEffort": "Geschätzter Aufwand: {s} klein · {m} mittel · {l} groß",
-		"synergyNoIndex": "Für diese Rahmenwerke liegen die Anforderungs-Indizes noch nicht vor (Phase 4/5). Sie sind wählbar, zählen aber noch nicht.",
+		"synergyNoIndex": "Für diese Rahmenwerke liegen die Anforderungs-Indizes noch nicht vor (Phase 4/5). Du kannst sie schon wählen, sie zählen aber noch nicht.",
 		"synergyWhatIf": "{newControls} neue Controls, {shared} bereits im Arbeitsvorrat, {pct} % der Anforderungen schon abgedeckt",
 		"synergyError": "Vorschau gerade nicht verfügbar.",
 		"service_custody": "Verwahrung",
