@@ -124,6 +124,7 @@ async function settle(page: Page, ms = 1000) {
 	await sleep(ms);
 }
 
+let visibleToasts = new Set<string>();
 async function checkPage(page: Page, where: string, action?: string) {
 	const text =
 		(await page
@@ -144,8 +145,11 @@ async function checkPage(page: Page, where: string, action?: string) {
 			action,
 			detail: "Internal Server Error",
 		});
+	// Toasts bleiben einige Sekunden sichtbar — nur neue Texte zählen, sonst
+	// wird derselbe Fehler dem nächsten Klick zugeschrieben.
 	const toasts = page.locator("[data-sonner-toast][data-type=error]");
 	const n = await toasts.count().catch(() => 0);
+	const current = new Set<string>();
 	for (let i = 0; i < n; i++) {
 		const t = (
 			await toasts
@@ -153,8 +157,12 @@ async function checkPage(page: Page, where: string, action?: string) {
 				.innerText()
 				.catch(() => "")
 		).trim();
-		if (t) record({ kind: "toast_error", where, action, detail: t });
+		if (!t) continue;
+		current.add(t);
+		if (!visibleToasts.has(t))
+			record({ kind: "toast_error", where, action, detail: t });
 	}
+	visibleToasts = current;
 }
 
 function attach(page: Page, whereRef: { current: string }) {
