@@ -21,7 +21,9 @@ import {
 	transactionalEmail,
 } from "../mail/templates";
 import { syncTrainingAssignments } from "../trainings/assignments";
+import { mayReceiveMagicLink, pendingInvitationId } from "./allow-list";
 import { authAfterHook } from "./audit-events";
+import { confirmLinkUrl } from "./magic-link";
 import { ac, roles } from "./permissions";
 
 // Bewusst keine env()-Validierung beim Import: Better Auth liest
@@ -136,6 +138,17 @@ export const auth = betterAuth({
 		},
 		user: {
 			create: {
+				// Allow-List-Modus: per Magic-Link entsteht ein Konto nur mit
+				// offener Einladung (zweite Linie hinter sendMagicLink). Die
+				// Ablehnung landet als ?error=new_user_signup_disabled auf /login.
+				async before(newUser, ctx) {
+					if (allowSignup || ctx?.path !== "/magic-link/verify") return;
+					if (await pendingInvitationId(newUser.email)) return;
+					throw new APIError("FORBIDDEN", {
+						code: "new_user_signup_disabled",
+						message: "Kein Konto und keine offene Einladung.",
+					});
+				},
 				async after(user) {
 					await auditPlatform(
 						{ userId: user.id },
@@ -171,12 +184,26 @@ export const auth = betterAuth({
 	plugins: [
 		magicLink({
 			expiresIn: 15 * MINUTE,
-			// Allow-List-Modus: nur bekannte Nutzer:innen erhalten einen Link.
-			// Die Antwort ist in beiden Fällen identisch (kein User-Enumeration).
-			disableSignUp: !allowSignup,
+			// Allow-List-Modus erzwingen wir selbst: Better Auth 1.7 verschickt
+			// mit disableSignUp auch an unbekannte Adressen und scheitert erst
+			// beim Klick (new_user_signup_disabled) — Eingeladene hätten so nie
+			// ein Konto bekommen. Versand nur an Konten und offene Einladungen
+			// (sendMagicLink), Konto-Anlage nur mit Einladung
+			// (databaseHooks.user.create.before). Die Antwort ist in allen
+			// Fällen identisch (kein User-Enumeration).
+			disableSignUp: false,
 			rateLimit: { window: 15 * MINUTE, max: 3 },
 			storeToken: "hashed",
-			async sendMagicLink({ email, url }) {
+			async sendMagicLink({ email, url: verifyUrl }) {
+				if (!allowSignup && !(await mayReceiveMagicLink(email))) {
+					console.info(
+						"[auth] Anmelde-Link nicht versendet: kein Konto und keine offene Einladung (AUTH_ALLOW_SIGNUP ist aus)",
+					);
+					return;
+				}
+				// Mail-Link zeigt auf die Bestätigungsseite, nicht auf den
+				// Verify-Endpunkt (Link-Scanner verbrauchen sonst den Token).
+				const url = confirmLinkUrl(verifyUrl);
 				const host = new URL(url).host;
 				const tpl = magicLinkEmail({ url, host });
 				if (!isProd) {

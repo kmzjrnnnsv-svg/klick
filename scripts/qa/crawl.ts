@@ -99,15 +99,18 @@ function logSize() {
 function logSince(pos: number): string {
 	return existsSync(LOG) ? readFileSync(LOG, "utf8").slice(pos) : "";
 }
-// Der Link steht in der Konsolen-Mail (kein Mail-Provider konfiguriert) —
-// im Dev-Log als `url:`-Zeile und im Mail-Body, im Prod-Build nur im Body.
+// Der Link steht in der Konsolen-Mail (kein Mail-Provider konfiguriert),
+// im Dev-Log als `url:`-Zeile und im Mail-Body. Der Prod-Build loggt ihn nie —
+// dort QA_LOG auf die Datei eines SMTP-Sinks zeigen lassen (SMTP_HOST/-PORT).
 // Die Datenbank hilft nicht: Better Auth speichert den Token gehasht.
 async function magicLinkAfter(pos: number): Promise<string> {
 	for (let i = 0; i < 40; i++) {
 		const m = [
-			...logSince(pos).matchAll(
-				/(https?:\/\/\S+\/api\/auth\/magic-link\/verify\?\S+)/g,
-			),
+			...logSince(pos)
+				// Quoted-Printable aus SMTP-Mitschnitten
+				.replace(/=\r?\n/g, "")
+				.replace(/=3D/g, "=")
+				.matchAll(/(https?:\/\/[^\s"<>]+\/login\/link\?[^\s"<>]+)/g),
 		];
 		const last = m.at(-1)?.[1];
 		if (last) return last.replace(/[│\s]+$/, "");
@@ -205,7 +208,9 @@ async function login(ctx: BrowserContext): Promise<void> {
 	await page.click('form button[type="submit"]');
 	await page.waitForURL(/\/login\/verify/, { timeout: 30_000 });
 	const link = await magicLinkAfter(pos);
+	// Bestätigungsseite: erst der Klick löst den Einmal-Token ein.
 	await page.goto(link);
+	await page.getByRole("button", { name: /Jetzt anmelden/ }).click();
 	await settle(page);
 	// Erster Login: MFA-Enrolment
 	if (page.url().includes("/einrichtung/2fa")) {
