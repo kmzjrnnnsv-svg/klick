@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import QRCode from "qrcode";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,12 +21,20 @@ export function EnrolTwoFactor() {
 	const [backupCodes, setBackupCodes] = useState<string[]>([]);
 	const [code, setCode] = useState("");
 	const [busy, setBusy] = useState(false);
+	// enable() erzeugt bei jedem Aufruf einen neuen Schlüssel. Effekte laufen
+	// im Strict Mode doppelt; zwei parallele Aufrufe überholen sich am Server,
+	// und der angezeigte Schlüssel passt dann nicht zum gespeicherten (Code
+	// wird abgelehnt). Deshalb genau ein Aufruf je Mount.
+	const enabling = useRef<ReturnType<
+		typeof authClient.twoFactor.enable
+	> | null>(null);
 
 	useEffect(() => {
 		let cancelled = false;
 		(async () => {
 			// Passwortlose Konten: enable() ohne Passwort (allowPasswordless).
-			const res = await authClient.twoFactor.enable({ method: "totp" });
+			enabling.current ??= authClient.twoFactor.enable({ method: "totp" });
+			const res = await enabling.current;
 			if (cancelled) return;
 			if (res.error || !res.data || res.data.method !== "totp") {
 				setPhase("error");
