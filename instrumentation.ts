@@ -5,7 +5,15 @@ import type { Instrumentation } from "next";
 export async function register() {
 	if (process.env.NEXT_RUNTIME !== "nodejs") return;
 	const { validateEnv } = await import("@/lib/env");
-	validateEnv();
+	const env = validateEnv();
+	// Ohne Zustellweg kommt in Produktion kein Anmelde-Link an (der Inhalt wird
+	// bewusst nicht geloggt) — einmal laut beim Start statt still je Login.
+	if (env.NODE_ENV === "production" && !env.RESEND_API_KEY && !env.SMTP_HOST) {
+		const { logger } = await import("@/lib/log");
+		logger.error(
+			"Kein Mailversand konfiguriert (RESEND_API_KEY oder SMTP_HOST) — Anmelde-Links und Einladungen werden nicht zugestellt",
+		);
+	}
 	if (process.env.KLICK_DISABLE_JOBS === "true") return;
 	const { startScheduler } = await import("@/lib/jobs/boss");
 	await startScheduler();
