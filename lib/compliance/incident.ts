@@ -121,6 +121,22 @@ export function classifyNis2Incident(c: Nis2Criteria): ClassificationResult {
 	};
 }
 
+// Leitregime eines Vorfalls mit mehreren Meldepflichten: die strengste Uhr
+// führt (Rangfolge unten). Eine Quelle für Action, Detailseite und Tick.
+const LEAD_ORDER: readonly IncidentRegime[] = [
+	"dora",
+	"nis2",
+	"dsgvo",
+	"gwg_sar",
+];
+
+export function leadRegime(
+	regimes: readonly IncidentRegime[],
+): IncidentRegime | null {
+	for (const r of LEAD_ORDER) if (regimes.includes(r)) return r;
+	return regimes[0] ?? null;
+}
+
 export type DeadlineInput = {
 	awareAt: Date;
 	classifiedAt?: Date | null;

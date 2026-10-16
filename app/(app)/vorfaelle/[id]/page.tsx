@@ -30,7 +30,10 @@ import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
-import { computeIncidentDeadlines } from "@/lib/compliance/incident";
+import {
+	computeIncidentDeadlines,
+	leadRegime,
+} from "@/lib/compliance/incident";
 import {
 	listComments,
 	listMembersForPicker,
@@ -122,8 +125,8 @@ export default async function IncidentDetailPage({
 	} = data;
 	const canEdit = roleAllows(ctx.orgRole, { incident: ["update"] });
 	const regimes = incident.regimes as IncidentRegime[];
-	const leadRegime = regimes.includes("dora") ? "dora" : (regimes[0] ?? "dora");
-	const dl = computeIncidentDeadlines(leadRegime, {
+	const lead = leadRegime(regimes) ?? "dora";
+	const dl = computeIncidentDeadlines(lead, {
 		awareAt: incident.awareAt,
 		classifiedAt: incident.classifiedAt,
 		initialReportedAt: incident.initialReportedAt,

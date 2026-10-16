@@ -176,3 +176,49 @@ export function deriveApplicabilityMap(
 	}
 	return out;
 }
+
+// Gehört eine Anforderung in den Arbeitsvorrat? Anwendbar heute — oder nur
+// deshalb noch nicht, weil sie erst künftig gilt (AMLR, CRA): Controls dafür
+// sollen schon jetzt bearbeitbar sein, damit die Org zum Stichtag bereit ist.
+export function inWorkQueue(
+	req: RequirementForApplicability,
+	profile: OrgProfile,
+): boolean {
+	const now = deriveApplicability(req, profile);
+	if (now.applicable) return true;
+	const asOf = profile.asOf ?? new Date();
+	if (!req.effectiveFrom || new Date(req.effectiveFrom) <= asOf) return false;
+	return deriveApplicability(req, {
+		...profile,
+		asOf: new Date(req.effectiveFrom),
+	}).applicable;
+}
+
+export type ApplicabilityDetail = {
+	applicable: boolean;
+	source: string;
+	note: string | null;
+};
+
+// Abgeleitete Anwendbarkeit (frisch aus Profil + Stichtag) mit den
+// gespeicherten Zeilen zusammenführen. Nur manuelle Entscheidungen
+// überschreiben — abgeleitete Zeilen in requirement_applicability sind ein
+// Schnappschuss von initializeOrg und veralten (z. B. „Gilt ab …“ nach dem
+// Stichtag). Ein Stichtag in der Zukunft sieht so dieselbe Rechnung wie heute.
+export function mergeApplicability(
+	derived: ReadonlyMap<string, ApplicabilityDecision>,
+	stored: ReadonlyMap<string, ApplicabilityDetail>,
+): Map<string, ApplicabilityDetail> {
+	const out = new Map<string, ApplicabilityDetail>();
+	for (const [key, d] of derived) {
+		out.set(key, {
+			applicable: d.applicable,
+			source: d.source,
+			note: d.note ?? null,
+		});
+	}
+	for (const [key, row] of stored) {
+		if (row.source === "manual") out.set(key, row);
+	}
+	return out;
+}

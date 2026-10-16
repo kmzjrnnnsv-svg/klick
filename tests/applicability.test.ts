@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
 	deriveApplicability,
+	inWorkQueue,
+	mergeApplicability,
 	type OrgProfile,
 	orgRolesFor,
 } from "@/lib/compliance/applicability";
@@ -142,5 +144,75 @@ describe("deriveApplicability", () => {
 			"financial_entity",
 		);
 		expect(orgRolesFor({ ...base, issuesTokens: "emt" })).toContain("issuer");
+	});
+});
+
+describe("mergeApplicability", () => {
+	it("nur manuelle Zeilen überschreiben die frische Ableitung", () => {
+		const derived = new Map([
+			["amlr:Art.1", { applicable: true, source: "default" as const }],
+			["iso27001:A.5.1", { applicable: true, source: "default" as const }],
+			[
+				"dora:Art.26",
+				{ applicable: false, source: "rule" as const, note: "TLPT" },
+			],
+		]);
+		const stored = new Map([
+			// veralteter Schnappschuss aus initializeOrg
+			["amlr:Art.1", { applicable: false, source: "rule", note: "Gilt ab …" }],
+			[
+				"iso27001:A.5.1",
+				{ applicable: false, source: "manual", note: "Ausgelagert" },
+			],
+		]);
+		const out = mergeApplicability(derived, stored);
+		expect(out.get("amlr:Art.1")).toEqual({
+			applicable: true,
+			source: "default",
+			note: null,
+		});
+		expect(out.get("iso27001:A.5.1")).toEqual({
+			applicable: false,
+			source: "manual",
+			note: "Ausgelagert",
+		});
+		expect(out.get("dora:Art.26")?.note).toBe("TLPT");
+	});
+});
+
+describe("inWorkQueue", () => {
+	const future = {
+		framework: "cra",
+		code: "AnhI",
+		effectiveFrom: "2027-12-11",
+	};
+
+	it("künftig geltende Anforderung gehört schon heute in den Arbeitsvorrat", () => {
+		expect(deriveApplicability(future, base).applicable).toBe(false);
+		expect(inWorkQueue(future, base)).toBe(true);
+	});
+
+	it("aufgehoben, ausgelaufen oder aus anderem Grund N/A bleibt draußen", () => {
+		expect(
+			inWorkQueue({ ...future, legalStatus: "repealed" as const }, base),
+		).toBe(false);
+		expect(
+			inWorkQueue(
+				{ framework: "gwg", code: "§1", effectiveUntil: "2026-01-01" },
+				base,
+			),
+		).toBe(false);
+		expect(
+			inWorkQueue(
+				{ ...future, framework: "micar", services: ["custody" as const] },
+				base,
+			),
+		).toBe(false);
+	});
+
+	it("heute anwendbar → im Arbeitsvorrat", () => {
+		expect(inWorkQueue({ framework: "iso27001", code: "A.5.1" }, base)).toBe(
+			true,
+		);
 	});
 });

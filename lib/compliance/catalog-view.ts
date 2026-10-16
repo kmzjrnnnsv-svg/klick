@@ -1,5 +1,9 @@
 import type { CaspService, LicenceStage } from "@/db/schema/enums";
-import { deriveApplicabilityMap, type OrgProfile } from "./applicability";
+import {
+	type ApplicabilityDecision,
+	deriveApplicabilityMap,
+	type OrgProfile,
+} from "./applicability";
 import { ALL_REQUIREMENTS, CONTROLS, EDGES } from "./catalog";
 import type { Edge, ReqRef } from "./coverage";
 import type { ControlRef, SynergyCatalog } from "./synergy";
@@ -55,11 +59,17 @@ export function toProfile(input: ProfileInput): OrgProfile {
 export function profileApplicability(
 	input: ProfileInput,
 ): Map<string, boolean> {
-	const profile = toProfile(input);
-	const decisions = deriveApplicabilityMap(ALL_REQUIREMENTS, profile);
 	const out = new Map<string, boolean>();
-	for (const [key, d] of decisions) out.set(key, d.applicable);
+	for (const [key, d] of profileApplicabilityDetail(input))
+		out.set(key, d.applicable);
 	return out;
+}
+
+// Wie profileApplicability, aber mit Quelle und Begründung je Anforderung.
+export function profileApplicabilityDetail(
+	input: ProfileInput,
+): Map<string, ApplicabilityDecision> {
+	return deriveApplicabilityMap(ALL_REQUIREMENTS, toProfile(input));
 }
 
 export function synergyCatalogFor(input: ProfileInput): SynergyCatalog {

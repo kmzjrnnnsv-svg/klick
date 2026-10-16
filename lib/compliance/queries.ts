@@ -16,10 +16,12 @@ import {
 } from "@/db/schema";
 import type { EntityKind, ImplStatus } from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
+import { mergeApplicability } from "./applicability";
 import {
 	CATALOG_EDGES,
 	CATALOG_REQ_REFS,
-	profileApplicability,
+	type profileApplicability,
+	profileApplicabilityDetail,
 } from "./catalog-view";
 import {
 	type CoverageInput,
@@ -138,26 +140,32 @@ export type OrgCoverage = {
 };
 
 // Vollständige Abdeckungsrechnung einer Org — einmal je Request (React.cache
-// in den Seiten), nie gespeichert.
+// in den Seiten), nie gespeichert. `asOf` rechnet zu einem Stichtag (Fristen,
+// künftig gültige Anforderungen); manuelle Entscheidungen gelten immer.
 export async function orgCoverage(
 	tx: OrgTx,
 	orgId: string,
+	opts: { asOf?: Date } = {},
 ): Promise<OrgCoverage | null> {
 	const p = await getOrgProfile(tx, orgId);
 	if (!p) return null;
-	const [applicabilityDetail, implStatus] = await Promise.all([
+	const [stored, implStatus] = await Promise.all([
 		loadApplicability(tx, orgId),
 		loadImplStatus(tx, orgId),
 	]);
-	// Ableitung aus dem Profil als Basis, DB-Zeilen (inkl. manuell) darüber.
-	const applicability = profileApplicability({
-		sector: p.profile.sector,
-		licenceStage: p.profile.licenceStage,
-		caspServices: p.profile.caspServices,
-		frameworks: p.frameworks,
-		tlptDesignated: p.profile.tlptDesignated,
-		issuesTokens: p.profile.issuesTokens,
-	});
+	const applicabilityDetail = mergeApplicability(
+		profileApplicabilityDetail({
+			sector: p.profile.sector,
+			licenceStage: p.profile.licenceStage,
+			caspServices: p.profile.caspServices,
+			frameworks: p.frameworks,
+			tlptDesignated: p.profile.tlptDesignated,
+			issuesTokens: p.profile.issuesTokens,
+			asOf: opts.asOf,
+		}),
+		stored,
+	);
+	const applicability = new Map<string, boolean>();
 	for (const [key, d] of applicabilityDetail)
 		applicability.set(key, d.applicable);
 	const input: CoverageInput = {

@@ -4,6 +4,7 @@ import {
 	classifyNis2Incident,
 	clockState,
 	computeIncidentDeadlines,
+	leadRegime,
 	nextIncidentCode,
 } from "@/lib/compliance/incident";
 
@@ -129,5 +130,14 @@ describe("computeIncidentDeadlines", () => {
 		expect(nextIncidentCode(["INC-2026-004", "INC-2025-009"], 2026)).toBe(
 			"INC-2026-005",
 		);
+	});
+});
+
+describe("leadRegime", () => {
+	it("strengste Uhr führt, unabhängig von der Reihenfolge", () => {
+		expect(leadRegime(["dsgvo", "nis2"])).toBe("nis2");
+		expect(leadRegime(["nis2", "dora"])).toBe("dora");
+		expect(leadRegime(["gwg_sar"])).toBe("gwg_sar");
+		expect(leadRegime([])).toBeNull();
 	});
 });

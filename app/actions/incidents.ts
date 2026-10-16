@@ -8,6 +8,7 @@ import {
 	roleAssignments,
 	tasks,
 } from "@/db/schema";
+import type { IncidentRegime } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
@@ -16,6 +17,7 @@ import {
 	classifyDoraIncident,
 	classifyNis2Incident,
 	computeIncidentDeadlines,
+	leadRegime,
 	nextIncidentCode,
 } from "@/lib/compliance/incident";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
@@ -35,18 +37,15 @@ import {
 
 type Tx = Parameters<Parameters<typeof mutateOrg>[1]>[0];
 
-// Fristen aus Regimes + Zeitstempeln ableiten (DORA führend, sonst erstes Regime).
+// Fristen aus Regimes + Zeitstempeln ableiten (Leitregime, siehe leadRegime).
 function deadlinesFor(row: {
-	regimes: readonly string[];
+	regimes: readonly IncidentRegime[];
 	awareAt: Date;
 	classifiedAt: Date | null;
 	initialReportedAt: Date | null;
 	intermediateReportedAt: Date | null;
 }) {
-	const regime = (
-		row.regimes.includes("dora") ? "dora" : (row.regimes[0] ?? "dora")
-	) as "dora" | "nis2" | "dsgvo" | "gwg_sar";
-	return computeIncidentDeadlines(regime, {
+	return computeIncidentDeadlines(leadRegime(row.regimes) ?? "dora", {
 		awareAt: row.awareAt,
 		classifiedAt: row.classifiedAt,
 		initialReportedAt: row.initialReportedAt,

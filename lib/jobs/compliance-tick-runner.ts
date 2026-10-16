@@ -33,7 +33,10 @@ import { audit } from "@/lib/audit";
 import { normalizeRole } from "@/lib/auth/guards";
 import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
 import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
-import { computeIncidentDeadlines } from "@/lib/compliance/incident";
+import {
+	computeIncidentDeadlines,
+	leadRegime,
+} from "@/lib/compliance/incident";
 import { planObligationRuns } from "@/lib/compliance/obligations-service";
 import { getOrgProfile } from "@/lib/compliance/queries";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
@@ -254,7 +257,7 @@ async function loadDueRows(
 			and(eq(incidents.organizationId, orgId), ne(incidents.status, "closed")),
 		);
 	const incidentRows = openIncidents.map((inc) => {
-		const regime = inc.regimes[0];
+		const regime = leadRegime(inc.regimes);
 		const labels = regime
 			? computeIncidentDeadlines(regime, {
 					awareAt: inc.awareAt,
