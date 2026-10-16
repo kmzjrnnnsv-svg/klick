@@ -464,7 +464,26 @@
 		"tlptConfirmed": "Bestätigt am {date}: {status}",
 		"tlptYes": "benannt",
 		"tlptNo": "nicht benannt (Negativnachweis)",
-		"tlptConfirmButton": "Status bestätigen"
+		"tlptConfirmButton": "Status bestätigen",
+		"removeFramework": "Entfernen…",
+		"removeFrameworkTitle": "{name} entfernen?",
+		"removeFrameworkLead": "Das Rahmenwerk verschwindet aus Abdeckung, Navigation, Gap-Analyse und SoA. Controls, Nachweise, Status und Historie bleiben erhalten – beim Wieder-Aktivieren ist alles sofort zurück.",
+		"removeImpactRequirements": "{count, plural, one {# anwendbare Anforderung fällt weg} other {# anwendbare Anforderungen fallen weg}}",
+		"removeImpactControls": "{count, plural, =0 {Kein Control wird nur von diesem Rahmenwerk gefordert} one {# Control wird danach nicht mehr gefordert} other {# Controls werden danach nicht mehr gefordert}}",
+		"removeImpactImplemented": "{count, plural, one {davon # bereits umgesetzt – bleibt dokumentiert} other {davon # bereits umgesetzt – bleiben dokumentiert}}",
+		"removeImpactShared": "{count, plural, one {# Control bleibt über andere Rahmenwerke gefordert} other {# Controls bleiben über andere Rahmenwerke gefordert}}",
+		"removeImpactObligations": "Wegfallende Pflichten",
+		"removeImpactFunctions": "Nicht mehr geforderte Funktionen",
+		"removeImpactResolutions": "Wegfallende Pflichtbeschlüsse",
+		"removeImpactProcesses": "Prozesse, die nicht mehr vorgeschlagen werden",
+		"removeBlockedLast": "Das ist dein letztes aktives Rahmenwerk. Füge zuerst ein anderes hinzu.",
+		"removeBlockedAudit": "Ein geplantes oder laufendes Audit prüft dieses Rahmenwerk. Schließe oder ändere zuerst das Audit:",
+		"removeConfirmLabel": "Tippe {slug} zur Bestätigung",
+		"removeConfirmButton": "Rahmenwerk entfernen",
+		"removeDone": "Rahmenwerk entfernt. Du kannst es jederzeit wieder aktivieren.",
+		"removeConfirmMismatch": "Der Kurzname stimmt nicht. Tippe ihn genau so ab, wie er angezeigt wird.",
+		"frameworkRetired": "entfernt",
+		"frameworkRetiredHint": "Wähle es aus und füge es hinzu, um es mit allen bisherigen Daten wieder zu aktivieren."
 	},
 	"Team": {
 		"title": "Team",
@@ -769,7 +788,8 @@
 		"bulkAssignee": "Bearbeitet von",
 		"bulkApply": "Anwenden",
 		"bulkDone": "{n} Controls aktualisiert, {skipped} übersprungen.",
-		"selectRow": "{code} auswählen"
+		"selectRow": "{code} auswählen",
+		"chipOrphan": "Nicht mehr gefordert"
 	},
 	"Frameworks": {
 		"title": "Rahmenwerke",

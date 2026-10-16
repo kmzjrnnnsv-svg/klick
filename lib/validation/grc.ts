@@ -66,6 +66,12 @@ export const addFrameworksSchema = z.object({
 	frameworks: z.array(z.string().min(1)).min(1).max(20),
 });
 
+// Rahmenwerk entfernen: Kurzname (Slug) zur Bestätigung abtippen.
+export const removeFrameworkSchema = z.object({
+	slug: z.string().min(1).max(40),
+	confirm: z.string().max(80),
+});
+
 export const evidenceLinkSchema = z.object({
 	implementationId: uuid.optional(),
 	title: shortText,

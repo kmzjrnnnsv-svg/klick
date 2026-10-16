@@ -21,6 +21,8 @@ import { roleAllows } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
+import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
+import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import { userNames } from "@/lib/compliance/queries";
 import {
@@ -28,7 +30,12 @@ import {
 	DEFAULT_RISK_SCALES,
 } from "@/lib/compliance/risk";
 import { readOrg, withOrg } from "@/lib/db/with-org";
-import { getOrgSettings, listOrgFrameworks } from "@/lib/org/queries";
+import {
+	getOrgSettings,
+	listOpenAuditScopes,
+	listOrgFrameworks,
+	listRetiredFrameworkSlugs,
+} from "@/lib/org/queries";
 
 export default async function SettingsPage({
 	searchParams,
@@ -62,18 +69,42 @@ export default async function SettingsPage({
 		});
 		return { settings, workflows };
 	});
-	const orgFws = await readOrg(toOrgCtx(ctx), async (tx) => {
-		const rows = await listOrgFrameworks(tx, ctx.orgId);
-		const names = await userNames(
-			tx,
-			rows.map((r) => r.ownerUserId),
-		);
-		return rows.map((r) => ({
-			...r,
-			ownerName: r.ownerUserId ? (names.get(r.ownerUserId) ?? null) : null,
-		}));
-	});
+	const { orgFws, retiredSlugs, openAudits } = await readOrg(
+		toOrgCtx(ctx),
+		async (tx) => {
+			const rows = await listOrgFrameworks(tx, ctx.orgId);
+			const names = await userNames(
+				tx,
+				rows.map((r) => r.ownerUserId),
+			);
+			return {
+				orgFws: rows.map((r) => ({
+					...r,
+					ownerName: r.ownerUserId ? (names.get(r.ownerUserId) ?? null) : null,
+				})),
+				retiredSlugs: new Set(await listRetiredFrameworkSlugs(tx, ctx.orgId)),
+				openAudits: await listOpenAuditScopes(tx, ctx.orgId),
+			};
+		},
+	);
 	const activeSlugs = new Set(orgFws.map((f) => f.slug));
+	const applicability = new Map(
+		[...(cov?.applicabilityDetail ?? [])].map(([k, d]) => [k, d.applicable]),
+	);
+	const removalFor = (slug: string) =>
+		cov
+			? frameworkRemovalImpact({
+					slug,
+					activeSlugs: cov.frameworks,
+					licenceStage: cov.profile.licenceStage,
+					tlptDesignated: cov.profile.tlptDesignated,
+					requirements: CATALOG_REQ_REFS,
+					edges: CATALOG_EDGES,
+					applicability,
+					implStatus: cov.implStatus,
+					openAudits,
+				})
+			: undefined;
 	const toItem = (slug: string) => {
 		const meta = CATALOG_FRAMEWORKS.find((f) => f.slug === slug);
 		return {
@@ -87,10 +118,11 @@ export default async function SettingsPage({
 	const activeItems = orgFws.map((f) => ({
 		...toItem(f.slug),
 		ownerName: f.ownerName,
+		removal: removalFor(f.slug),
 	}));
 	const availableItems = CATALOG_FRAMEWORKS.filter(
 		(f) => !activeSlugs.has(f.slug),
-	).map((f) => toItem(f.slug));
+	).map((f) => ({ ...toItem(f.slug), retired: retiredSlugs.has(f.slug) }));
 	const canEditSettings = roleAllows(ctx.orgRole, { settings: ["update"] });
 	const orgSummary = await getOrgSummary(ctx.orgId);
 	const ssoProviders = await listSsoProvidersForOrg(ctx.orgId);

@@ -27,7 +27,9 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { CaspService, LicenceStage } from "@/db/schema/enums";
+import type { FrameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import { cn } from "@/lib/utils";
+import { RemoveFrameworkDialog } from "./remove-framework-dialog";
 
 export type FrameworkListItem = {
 	slug: string;
@@ -36,6 +38,9 @@ export type FrameworkListItem = {
 	hasIndex: boolean;
 	coveragePct: number | null;
 	ownerName?: string | null;
+	// aktiv: Vorschau für „Entfernen…“; verfügbar: früher aktiv (retired)
+	removal?: FrameworkRemovalImpact;
+	retired?: boolean;
 };
 
 const NIS2 = [
@@ -99,17 +104,22 @@ export function FrameworksPanel({
 										</span>
 									)}
 								</span>
-								{f.hasIndex ? (
-									<Badge
-										variant={f.coveragePct === 100 ? "success" : "outline"}
-									>
-										{f.coveragePct === null
-											? "—"
-											: `${Math.round(f.coveragePct)} %`}
-									</Badge>
-								) : (
-									<Badge variant="muted">P4/P5</Badge>
-								)}
+								<span className="flex items-center gap-2">
+									{f.hasIndex ? (
+										<Badge
+											variant={f.coveragePct === 100 ? "success" : "outline"}
+										>
+											{f.coveragePct === null
+												? "—"
+												: `${Math.round(f.coveragePct)}\u00a0%`}
+										</Badge>
+									) : (
+										<Badge variant="muted">P4/P5</Badge>
+									)}
+									{canEdit && f.removal && (
+										<RemoveFrameworkDialog name={f.name} impact={f.removal} />
+									)}
+								</span>
 							</li>
 						))}
 					</ul>
@@ -154,6 +164,15 @@ export function FrameworksPanel({
 											/>
 											<span>
 												<span className="font-medium">{f.name}</span>
+												{f.retired && (
+													<Badge
+														variant="muted"
+														className="ml-2"
+														title={t("frameworkRetiredHint")}
+													>
+														{t("frameworkRetired")}
+													</Badge>
+												)}
 												{f.description && (
 													<span className="mt-0.5 block line-clamp-2 text-muted-foreground text-xs">
 														{f.description}
