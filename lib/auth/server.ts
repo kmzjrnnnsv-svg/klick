@@ -36,6 +36,14 @@ const allowSignup = process.env.AUTH_ALLOW_SIGNUP === "true";
 const MINUTE = 60;
 const HOUR = 60 * MINUTE;
 
+// Notfall-Login (`pnpm auth:link`, scripts/login-link.ts): der Befehl fängt
+// den Link im eigenen Prozess ab und zeigt ihn im Terminal — keine Mail,
+// nichts im Journal. Über HTTP nicht erreichbar; der Server setzt das nie.
+let linkSink: ((url: string) => void) | null = null;
+export function captureMagicLink(sink: ((url: string) => void) | null): void {
+	linkSink = sink;
+}
+
 const microsoft =
 	process.env.MICROSOFT_CLIENT_ID &&
 	process.env.MICROSOFT_CLIENT_SECRET &&
@@ -204,6 +212,10 @@ export const auth = betterAuth({
 				// Mail-Link zeigt auf die Bestätigungsseite, nicht auf den
 				// Verify-Endpunkt (Link-Scanner verbrauchen sonst den Token).
 				const url = confirmLinkUrl(verifyUrl);
+				if (linkSink) {
+					linkSink(url);
+					return;
+				}
 				const host = new URL(url).host;
 				const tpl = magicLinkEmail({ url, host });
 				if (!isProd) {
