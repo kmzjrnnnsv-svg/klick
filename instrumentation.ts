@@ -6,13 +6,31 @@ export async function register() {
 	if (process.env.NEXT_RUNTIME !== "nodejs") return;
 	const { validateEnv } = await import("@/lib/env");
 	const env = validateEnv();
-	// Ohne Zustellweg kommt in Produktion kein Anmelde-Link an (der Inhalt wird
-	// bewusst nicht geloggt) — einmal laut beim Start statt still je Login.
-	if (env.NODE_ENV === "production" && !env.RESEND_API_KEY && !env.SMTP_HOST) {
+	// Zustellweg einmal beim Start nennen: ohne ihn kommt in Produktion kein
+	// Anmelde-Link an (der Inhalt wird bewusst nicht geloggt). Prüfen mit
+	// `pnpm mail:check`, Notfall-Login mit `pnpm auth:link` (deploy/README.md).
+	if (env.NODE_ENV === "production") {
 		const { logger } = await import("@/lib/log");
-		logger.error(
-			"Kein Mailversand konfiguriert (RESEND_API_KEY oder SMTP_HOST) — Anmelde-Links und Einladungen werden nicht zugestellt",
-		);
+		const { diagnoseMailConfig } = await import("@/lib/mail/send");
+		const mail = await diagnoseMailConfig();
+		if (mail.likelyPath === "console") {
+			logger.error(
+				"Kein Mailversand konfiguriert (RESEND_API_KEY oder SMTP_HOST) — Anmelde-Links und Einladungen werden nicht zugestellt",
+			);
+		} else {
+			logger.info(
+				{
+					path: mail.likelyPath,
+					smtp: mail.hasSmtpHost
+						? `${mail.smtpHost}:${mail.smtpPort ?? 587}`
+						: undefined,
+					from: mail.mailFrom,
+				},
+				"Mailversand",
+			);
+			if (mail.mailFromIsFallback)
+				logger.warn("MAIL_FROM fehlt — der Provider lehnt den Absender ab");
+		}
 	}
 	if (process.env.KLICK_DISABLE_JOBS === "true") return;
 	const { startScheduler } = await import("@/lib/jobs/boss");
