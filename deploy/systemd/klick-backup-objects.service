@@ -1,0 +1,34 @@
+# /etc/systemd/system/klick-backup-objects.service — Offsite-Spiegel der
+# Nachweis-Objekte (rclone sync mit Historie), siehe scripts/backup-objects.sh.
+[Unit]
+Description=Klick — Objektspeicher offsite spiegeln
+After=network-online.target
+Wants=network-online.target
+OnFailure=klick-alert@%n.service
+
+[Service]
+Type=oneshot
+User=klick-backup
+Group=klick-backup
+WorkingDirectory=/opt/klick/current
+EnvironmentFile=/etc/klick/backup.env
+# rclone-Konfiguration mit beiden Remotes (Zugangsdaten) als Credential
+LoadCredentialEncrypted=rclone_conf:/etc/credstore.encrypted/rclone_conf
+ExecStart=/bin/sh -c 'RCLONE_CONFIG="$CREDENTIALS_DIRECTORY/rclone_conf" exec scripts/backup-objects.sh'
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+UMask=0077
+ReadWritePaths=/var/lib/klick-backup
+Environment=XDG_CACHE_HOME=/var/lib/klick-backup/cache

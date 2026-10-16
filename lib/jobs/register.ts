@@ -9,6 +9,7 @@ import { runComplianceTick } from "./compliance-tick-runner";
 import { runDigest, runImmediateMails } from "./digest";
 import { runPostureSnapshot } from "./posture";
 import { runRetention } from "./retention";
+import { runStorageOrphans, runStoragePurge } from "./storage";
 
 // Job-Register (ADR-011). Zeitpläne in Europe/Berlin. Fachjobs laufen je Org
 // in eigenem RLS-Kontext (lib/db/with-org.ts#forEachOrg):
@@ -19,6 +20,8 @@ import { runRetention } from "./retention";
 //   verify-audit-chain 04:00       Hash-Kette je Org prüfen
 //   retention          03:00       Sitzungen, Tokens, gelesene Benachrichtigungen > 180 d
 //   posture-snapshot   02:00       Abdeckung je Org/Rahmenwerk → Verlauf auf /ueberblick
+//   storage-purge      03:30       gelöschte Nachweis-Objekte nach Backup-Frist entfernen
+//   storage-orphans    So 04:30    Objekte ohne Nachweis-Zeile in die Purge-Warteschlange
 
 export const JOBS = {
 	complianceTick: "compliance-tick",
@@ -27,6 +30,8 @@ export const JOBS = {
 	postureSnapshot: "posture-snapshot",
 	digest: "digest",
 	verifyAuditChain: "verify-audit-chain",
+	storagePurge: "storage-purge",
+	storageOrphans: "storage-orphans",
 } as const;
 
 const TZ = "Europe/Berlin";
@@ -42,6 +47,8 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.schedule(JOBS.postureSnapshot, "0 2 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.digest, "0 7 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.verifyAuditChain, "0 4 * * *", {}, { tz: TZ });
+	await boss.schedule(JOBS.storagePurge, "30 3 * * *", {}, { tz: TZ });
+	await boss.schedule(JOBS.storageOrphans, "30 4 * * 0", {}, { tz: TZ });
 
 	await boss.work(JOBS.complianceTick, async () => {
 		await runComplianceTick();
@@ -62,6 +69,12 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	});
 	await boss.work(JOBS.verifyAuditChain, async () => {
 		await runVerifyAuditChain();
+	});
+	await boss.work(JOBS.storagePurge, async () => {
+		await runStoragePurge();
+	});
+	await boss.work(JOBS.storageOrphans, async () => {
+		await runStorageOrphans();
 	});
 }
 

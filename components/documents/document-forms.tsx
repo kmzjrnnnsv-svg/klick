@@ -13,6 +13,7 @@ import {
 	updateDocument,
 } from "@/app/actions/documents";
 import { uploadEvidence } from "@/app/actions/evidence";
+import { useUploadFeedback } from "@/components/entity/upload-feedback";
 import { MarkdownView } from "@/components/markdown-view";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -274,6 +275,8 @@ export function ImportDialog({
 	const t = useTranslations("Documents");
 	const te = useTranslations("Evidence");
 	const tc = useTranslations("Common");
+	const td = useTranslations("Dlp");
+	const feedback = useUploadFeedback();
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
@@ -321,7 +324,18 @@ export function ImportDialog({
 									fd.set("classification", "internal");
 									const up = await uploadEvidence(fd);
 									if (up.ok) ids.push(up.data.id);
-									else toast.error(`${f.name}: ${up.error}`);
+									else {
+										const warn = feedback.dlpWarning(up);
+										toast.error(
+											`${f.name}: ${
+												warn
+													? td("warnLead", {
+															detectors: feedback.detectors(warn),
+														})
+													: feedback.errorText(up)
+											}`,
+										);
+									}
 								}
 								if (ids.length === 0) return;
 								const res = await importDocumentsFromEvidence(ids);

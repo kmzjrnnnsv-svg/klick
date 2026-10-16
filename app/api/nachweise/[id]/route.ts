@@ -4,6 +4,7 @@ import { evidence, orgSettings } from "@/db/schema";
 import { AuthError, requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { decryptBytes, unpackEnvelope, unwrapDek } from "@/lib/crypto/envelope";
 import { mutateOrg } from "@/lib/db/with-org";
+import { egressGuard } from "@/lib/dlp/egress";
 import { env } from "@/lib/env";
 import { evidenceAad } from "@/lib/evidence/aad";
 import { rateLimited } from "@/lib/export/respond";
@@ -27,7 +28,8 @@ export async function GET(
 	}
 	if (!/^[0-9a-f-]{36}$/i.test(id))
 		return new NextResponse(null, { status: 404 });
-	const limited = rateLimited(ctx.orgId);
+	const limited =
+		rateLimited(ctx.orgId) ?? (await egressGuard(ctx, "evidence_download"));
 	if (limited) return limited;
 
 	const e = env();
@@ -50,6 +52,22 @@ export async function GET(
 			.where(and(eq(evidence.id, id), eq(evidence.organizationId, ctx.orgId)))
 			.limit(1);
 		if (!row?.storageKey) return { result: { kind: "none" }, audit: [] };
+		// Streng geheim (z. B. von DLP angehoben): Prüfer:innen nur mit Grant.
+		if (
+			row.classification === "secret" &&
+			ctx.orgRole === "auditor" &&
+			!ctx.grants.includes("secret_evidence")
+		) {
+			return {
+				result: { kind: "denied" },
+				audit: {
+					action: "evidence.download",
+					target: `evidence:${id}`,
+					outcome: "denied",
+					after: { reason: "grant_required" },
+				},
+			};
+		}
 		const sensitive =
 			row.classification === "confidential" || row.classification === "secret";
 		if (sensitive && !ctx.stepUpFresh) {

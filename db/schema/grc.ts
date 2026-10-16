@@ -26,6 +26,8 @@ import {
 	CLASSIFICATIONS,
 	CONTROL_TEST_METHODS,
 	ENTITY_KINDS,
+	EVIDENCE_SOURCES,
+	type EvidenceDlp,
 	IMPL_STATUS,
 	type INCIDENT_REGIMES,
 	ROLE_FUNCTIONS,
@@ -124,12 +126,41 @@ export const evidence = pgTable(
 		supersedesId: uuid().references((): AnyPgColumn => evidence.id, {
 			onDelete: "set null",
 		}),
+		// Herkunft (manuell, Gap-Analyse, Scan-Import, API, Portal …)
+		source: text({ enum: EVIDENCE_SOURCES }).notNull().default("manual"),
+		// DLP-Ergebnis beim Upload: Treffer je Detektor (nur Zähler), Aktion,
+		// Engine-Version — nie Inhalt (lib/dlp).
+		dlp: json<EvidenceDlp>(),
 		createdByUserId: userRef(),
 		createdAt: ts().notNull().defaultNow(),
 	},
 	(t) => [
 		index("evidence_org_idx").on(t.organizationId),
 		orgPolicy("evidence"),
+	],
+).enableRLS();
+
+// Verzögertes Löschen von Objekten im Speicher: Nachweis-Zeilen verschwinden
+// sofort, die (verschlüsselten) Objekte erst nach Ablauf der Backup-
+// Aufbewahrung (Job storage-purge). So findet ein DB-Restore jede Datei, die
+// zum Backup-Zeitpunkt referenziert war.
+export const storagePurgeQueue = pgTable(
+	"storage_purge_queue",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		storageKey: text().notNull(),
+		reason: text({ enum: ["evidence_deleted", "orphan"] }).notNull(),
+		refId: uuid(),
+		requestedByUserId: userRef(),
+		requestedAt: ts().notNull().defaultNow(),
+		purgeAfter: ts().notNull(),
+		purgedAt: ts(),
+	},
+	(t) => [
+		unique().on(t.organizationId, t.storageKey),
+		index("storage_purge_due_idx").on(t.purgeAfter),
+		orgPolicy("storage_purge_queue"),
 	],
 ).enableRLS();
 

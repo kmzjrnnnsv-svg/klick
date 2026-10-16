@@ -14,10 +14,12 @@ import { AuthError } from "@/lib/auth/session-rules";
 import { mutateOrg } from "@/lib/db/with-org";
 import { DEFAULT_PREFIXES } from "@/lib/documents/numbering";
 import { env } from "@/lib/env";
+import { logger } from "@/lib/log";
 import { sendTransactionalMail } from "@/lib/mail/send";
 import { transactionalEmail } from "@/lib/mail/templates";
+import { writeTombstone } from "@/lib/storage/tombstones";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
-import { entityProfileSchema } from "@/lib/validation/org";
+import { dlpPolicySchema, entityProfileSchema } from "@/lib/validation/org";
 
 async function stepUp(): Promise<
 	| { ok: true; ctx: Awaited<ReturnType<typeof requireStepUp>> }
@@ -174,6 +176,37 @@ async function updateEntityProfileImpl(input: unknown): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
+// DLP-Regeln (Upload-Inhaltsprüfung, Abfluss-Überwachung) — Owner, Step-up.
+async function updateDlpPolicyImpl(input: unknown): Promise<ActionResult> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = dlpPolicySchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [before] = await tx
+			.select({ dlpPolicy: orgSettings.dlpPolicy })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		await tx
+			.update(orgSettings)
+			.set({ dlpPolicy: parsed.data })
+			.where(eq(orgSettings.organizationId, c.orgId));
+		return {
+			result: null,
+			audit: {
+				action: "settings.dlp_policy",
+				target: `organization:${c.orgId}`,
+				before: before?.dlpPolicy ?? null,
+				after: parsed.data,
+			},
+		};
+	});
+	revalidatePath("/einstellungen");
+	return { ok: true, data: undefined };
+}
+
 // Organisation löschen (Crypto-Shredding): Sitzungen der Mitglieder beenden,
 // Nachweis-Dateien im Objektspeicher löschen, Organisation über Better Auth
 // entfernen — die Kaskade löscht alle Org-Tabellen inklusive org_settings und
@@ -235,6 +268,17 @@ async function deleteOrganizationActionImpl(
 		headers: await headers(),
 	});
 	const deletedAt = new Date().toISOString();
+	// Tombstone außerhalb der DB: ein später eingespieltes Backup holt die
+	// Löschung nach (scripts/replay-deletions.ts).
+	if (e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY) {
+		await writeTombstone({
+			kind: "organization",
+			orgId: c.orgId,
+			deletedAt,
+		}).catch((err) =>
+			logger.error({ err, orgId: c.orgId }, "org tombstone failed"),
+		);
+	}
 
 	// 4) Plattform-Audit + Löschbestätigung.
 	await auditPlatform(
@@ -257,7 +301,7 @@ async function deleteOrganizationActionImpl(
 		subject: `Löschbestätigung: ${org.name}`,
 		eyebrow: "Löschbestätigung",
 		title: `Die Organisation „${org.name}“ wurde gelöscht`,
-		body: `Zeitpunkt: ${deletedAt}\nKurzname: ${org.slug}\nGelöschte Nachweis-Dateien: ${filesDeleted}\nBeendete Sitzungen anderer Mitglieder: ${sessionsRevoked}\n\nDer Mandantenschlüssel wurde mit den Organisationsdaten vernichtet (Crypto-Shredding); verschlüsselte Reste in Backups sind damit unlesbar und fallen nach der Backup-Aufbewahrung (30 Tage) weg. Das Audit-Log der Organisation bleibt als Nachweis der Löschung erhalten.\n\nAufbewahrungspflichten (z. B. GwG § 8, HGB § 257) liegen bei der Organisation — bitte bewahre den Export entsprechend auf.`,
+		body: `Zeitpunkt: ${deletedAt}\nKurzname: ${org.slug}\nGelöschte Nachweis-Dateien: ${filesDeleted}\nBeendete Sitzungen anderer Mitglieder: ${sessionsRevoked}\n\nDer Mandantenschlüssel wurde mit den Organisationsdaten vernichtet (Crypto-Shredding). Sicherungen enthalten die Daten noch höchstens bis zum Ende der Backup-Aufbewahrung (30 Tage); wird in dieser Zeit eine Sicherung eingespielt, wird die Löschung automatisch erneut ausgeführt. Das Audit-Log der Organisation bleibt als Nachweis der Löschung erhalten.\n\nAufbewahrungspflichten (z. B. GwG § 8, HGB § 257) liegen bei der Organisation — bitte bewahre den Export entsprechend auf.`,
 	});
 	await sendTransactionalMail({ to: c.email, ...mail }).catch(() => undefined);
 	return { ok: true, data: { deletedAt } };
@@ -276,6 +320,10 @@ export const updateNumbering = safeAction(
 export const updateEntityProfile = safeAction(
 	"updateEntityProfile",
 	updateEntityProfileImpl,
+);
+export const updateDlpPolicy = safeAction(
+	"updateDlpPolicy",
+	updateDlpPolicyImpl,
 );
 export const deleteOrganizationAction = safeAction(
 	"deleteOrganizationAction",

@@ -456,6 +456,7 @@ export const ACCESS_GRANTS = [
 	"hr_detail",
 	"whistleblowing_detail",
 	"complaints_detail",
+	"secret_evidence",
 ] as const;
 
 export const memberAccessSchema = z.object({

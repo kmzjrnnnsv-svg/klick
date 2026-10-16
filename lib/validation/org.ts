@@ -73,3 +73,17 @@ export const entityProfileSchema = z.object({
 	registerNumber: optionalText(40),
 });
 export type EntityProfileInput = z.input<typeof entityProfileSchema>;
+
+// DLP-Regeln je Org (Einstellungen → Sicherheit). Secrets lassen sich nur
+// zwischen block und warn umstellen — nie ganz abschalten.
+const dlpRule = z.enum(["block", "warn", "raise", "allow"]);
+export const dlpPolicySchema = z.object({
+	secret: z.enum(["block", "warn"]),
+	payment: dlpRule,
+	bank: dlpRule,
+	tax: dlpRule,
+	pii: dlpRule,
+	piiThreshold: z.coerce.number().int().min(5).max(10_000),
+	egressLimit: z.coerce.number().int().min(5).max(1_000),
+	egressWindowMinutes: z.coerce.number().int().min(1).max(240),
+});

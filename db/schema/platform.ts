@@ -65,6 +65,22 @@ export type EntityProfile = {
 	registerNumber?: string;
 };
 
+// DLP-Regeln je Org (lib/dlp/policy.ts wertet aus). Gespeichert wird nur,
+// was von den Defaults abweicht.
+export type DlpRuleAction = "block" | "warn" | "raise" | "allow";
+export type DlpPolicy = {
+	secret: "block" | "warn";
+	payment: DlpRuleAction;
+	bank: DlpRuleAction;
+	tax: DlpRuleAction;
+	// Massen-PII: ab so vielen eindeutigen E-Mail-Adressen oder Telefonnummern
+	pii: DlpRuleAction;
+	piiThreshold: number;
+	// Abfluss-Überwachung: Downloads/Exporte je Person im Fenster
+	egressLimit: number;
+	egressWindowMinutes: number;
+};
+
 export const orgSettings = pgTable(
 	"org_settings",
 	{
@@ -124,6 +140,7 @@ export const orgSettings = pgTable(
 		// Setup-Checkliste: bestätigte Prüfungen (z. B. tlptConfirmedAt).
 		setupFlags: json<Record<string, string>>().notNull().default({}),
 		entityProfile: json<EntityProfile>().notNull().default({}),
+		dlpPolicy: json<Partial<DlpPolicy>>().notNull().default({}),
 		onboardingCompletedAt: ts(),
 		plan: text().notNull().default("start"),
 		...timestamps(),

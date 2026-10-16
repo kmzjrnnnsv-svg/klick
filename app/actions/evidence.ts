@@ -2,7 +2,11 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { controlImplementations, evidence } from "@/db/schema";
+import {
+	controlImplementations,
+	evidence,
+	storagePurgeQueue,
+} from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { mutateOrg } from "@/lib/db/with-org";
@@ -12,8 +16,11 @@ import {
 	screenUpload,
 	storeEncryptedEvidence,
 } from "@/lib/evidence/store";
+import { purgeAfter } from "@/lib/jobs/storage";
+import { logger } from "@/lib/log";
 import { notify } from "@/lib/notifications/notify";
 import { getOrgLimiter } from "@/lib/rate-limit";
+import { writeTombstone } from "@/lib/storage/tombstones";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { evidenceLinkSchema } from "@/lib/validation/grc";
 
@@ -72,7 +79,9 @@ async function createEvidenceLinkImpl(
 // die gemeinsame Pipeline (lib/evidence/store.ts).
 async function uploadEvidenceImpl(
 	formData: FormData,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<
+	ActionResult<{ id: string; classification: string; dlpRaised: boolean }>
+> {
 	const c = await requireOrg({ evidence: ["create"] });
 	if (!s3Configured()) return { ok: false, error: "storageNotConfigured" };
 	const file = formData.get("file");
@@ -95,8 +104,15 @@ async function uploadEvidenceImpl(
 		name: file.name,
 		bytes,
 		declaredMime: file.type,
+		classification: d.classification,
+		dlpAcknowledged: formData.get("dlpAcknowledged") === "1",
 	});
-	if (!v.ok) return { ok: false, error: v.error };
+	if (!v.ok)
+		return {
+			ok: false,
+			error: v.error,
+			fieldErrors: v.detail ? { dlp: v.detail } : undefined,
+		};
 
 	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const stored = await storeEncryptedEvidence(tx, {
@@ -107,9 +123,10 @@ async function uploadEvidenceImpl(
 			title: d.title,
 			description: d.description,
 			type: d.type,
-			classification: d.classification,
+			classification: v.classification,
 			validUntil: d.validUntil,
 			createdByUserId: c.userId,
+			dlp: v.dlp,
 		});
 		if (d.implementationId)
 			await linkEvidenceToControl(tx, c.orgId, d.implementationId, stored.id);
@@ -124,13 +141,22 @@ async function uploadEvidenceImpl(
 					mime: v.mime,
 					size: bytes.byteLength,
 					implementationId: d.implementationId ?? null,
+					classification: v.classification,
+					dlp: { action: v.dlp.action, findings: v.dlp.findings },
 				},
 			},
 		};
 	});
 	revalidatePath("/nachweise");
 	revalidatePath("/controls", "layout");
-	return { ok: true, data: { id } };
+	return {
+		ok: true,
+		data: {
+			id,
+			classification: v.classification,
+			dlpRaised: v.classification !== d.classification,
+		},
+	};
 }
 
 async function linkEvidenceImpl(input: {
@@ -158,6 +184,9 @@ async function linkEvidenceImpl(input: {
 	return { ok: true, data: undefined };
 }
 
+// Löschen: Zeile sofort weg, Objekt erst nach der Backup-Aufbewahrung
+// (storage_purge_queue → Job storage-purge). Ein Tombstone im Objektspeicher
+// sorgt dafür, dass ein später eingespieltes DB-Backup die Löschung nachholt.
 async function deleteEvidenceImpl(evidenceId: string): Promise<ActionResult> {
 	const c = await requireStepUp({ evidence: ["delete"] });
 	const removed = await mutateOrg(toOrgCtx(c), async (tx) => {
@@ -168,14 +197,24 @@ async function deleteEvidenceImpl(evidenceId: string): Promise<ActionResult> {
 				and(eq(evidence.id, evidenceId), eq(evidence.organizationId, c.orgId)),
 			)
 			.limit(1);
-		if (!row) return { result: false, audit: [] };
+		if (!row) return { result: null, audit: [] };
 		await tx.delete(evidence).where(eq(evidence.id, evidenceId));
-		if (row.storageKey && s3Configured()) {
-			const { deleteObject } = await import("@/lib/storage/s3");
-			await deleteObject(row.storageKey).catch(() => undefined);
+		const after = row.storageKey ? purgeAfter(new Date()) : null;
+		if (row.storageKey && after) {
+			await tx
+				.insert(storagePurgeQueue)
+				.values({
+					organizationId: c.orgId,
+					storageKey: row.storageKey,
+					reason: "evidence_deleted",
+					refId: row.id,
+					requestedByUserId: c.userId,
+					purgeAfter: after,
+				})
+				.onConflictDoNothing();
 		}
 		return {
-			result: true,
+			result: { hadFile: Boolean(row.storageKey) },
 			audit: {
 				action: "evidence.delete",
 				target: `evidence:${evidenceId}`,
@@ -184,10 +223,21 @@ async function deleteEvidenceImpl(evidenceId: string): Promise<ActionResult> {
 					fileName: row.fileName,
 					sha256: row.sha256,
 				},
+				after: { objectPurgeAfter: after?.toISOString() ?? null },
 			},
 		};
 	});
 	if (!removed) return { ok: false, error: "notFound" };
+	if (removed.hadFile && s3Configured()) {
+		await writeTombstone({
+			kind: "evidence",
+			orgId: c.orgId,
+			id: evidenceId,
+			deletedAt: new Date().toISOString(),
+		}).catch((err) =>
+			logger.warn({ err, evidenceId }, "evidence tombstone failed"),
+		);
+	}
 	revalidatePath("/nachweise");
 	revalidatePath("/controls", "layout");
 	return { ok: true, data: undefined };

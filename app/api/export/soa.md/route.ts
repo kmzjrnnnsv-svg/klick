@@ -33,6 +33,6 @@ export async function GET() {
 	if (!data) return new NextResponse("ISO 27001 nicht aktiv", { status: 400 });
 	const body = buildSoaMarkdown(data.cov, data.evidenceByControl, stamp());
 	if (!body) return new NextResponse("ISO 27001 nicht aktiv", { status: 400 });
-	await auditExport(ctx, "soa_md", body.split("\n").length);
-	return markdownResponse(`soa-iso27001-${stamp()}.md`, body);
+	const mark = await auditExport(ctx, "soa_md", body.split("\n").length);
+	return markdownResponse(`soa-iso27001-${stamp()}.md`, body, mark);
 }

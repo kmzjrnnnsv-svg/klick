@@ -83,6 +83,31 @@ export const IMPL_STATUS = [
 ] as const;
 export type ImplStatus = (typeof IMPL_STATUS)[number];
 
+// Herkunft eines Nachweises (evidence.source).
+export const EVIDENCE_SOURCES = [
+	"manual",
+	"assessment",
+	"scan_import",
+	"api_ingest",
+	"quick_check",
+	"sbom",
+	"supplier_portal",
+	"engagement",
+] as const;
+export type EvidenceSource = (typeof EVIDENCE_SOURCES)[number];
+
+// DLP-Ergebnis am Nachweis — nur Zähler, nie Inhalt.
+export type EvidenceDlp = {
+	engine: string;
+	scannedAt: string;
+	extraction: "ok" | "unsupported" | "error";
+	truncated?: boolean;
+	findings: { detector: string; category: string; count: number }[];
+	action: "allow" | "raise" | "warn" | "block";
+	acknowledged?: boolean;
+	declaredClassification?: string;
+};
+
 export const CLASSIFICATIONS = [
 	"public",
 	"internal",

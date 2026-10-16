@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
 import { DangerZonePanel } from "@/components/settings/danger-zone-panel";
+import { DlpPanel } from "@/components/settings/dlp-panel";
 import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
@@ -30,6 +31,7 @@ import {
 	DEFAULT_RISK_SCALES,
 } from "@/lib/compliance/risk";
 import { readOrg, withOrg } from "@/lib/db/with-org";
+import { withDlpDefaults } from "@/lib/dlp/policy";
 import {
 	getOrgSettings,
 	listOpenAuditScopes,
@@ -165,7 +167,7 @@ export default async function SettingsPage({
 						{t("tabNotifications")}
 					</TabsTrigger>
 				</TabsList>
-				<TabsContent value="security">
+				<TabsContent value="security" className="flex flex-col gap-6">
 					<SecurityPanel
 						mfaEnabled={Boolean(sctx?.user.twoFactorEnabled)}
 						sessions={sessions.map((s) => ({
@@ -182,6 +184,10 @@ export default async function SettingsPage({
 							createdAt: p.createdAt ?? null,
 							deviceType: p.deviceType,
 						}))}
+					/>
+					<DlpPanel
+						policy={withDlpDefaults(settings?.dlpPolicy)}
+						canEdit={canEditSettings}
 					/>
 				</TabsContent>
 				<TabsContent value="frameworks" className="flex flex-col gap-6">
