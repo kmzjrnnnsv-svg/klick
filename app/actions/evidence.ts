@@ -2,38 +2,24 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import {
-	controlEvidence,
-	controlImplementations,
-	evidence,
-	orgSettings,
-} from "@/db/schema";
+import { controlImplementations, evidence } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
-import {
-	encryptBytes,
-	packEnvelope,
-	sha256Hex,
-	unwrapDek,
-} from "@/lib/crypto/envelope";
 import { mutateOrg } from "@/lib/db/with-org";
-import { env } from "@/lib/env";
-import { evidenceAad } from "@/lib/evidence/aad";
+import {
+	linkEvidenceToControl,
+	s3Configured,
+	screenUpload,
+	storeEncryptedEvidence,
+} from "@/lib/evidence/store";
 import { notify } from "@/lib/notifications/notify";
 import { getOrgLimiter } from "@/lib/rate-limit";
-import { clamdConfigured, scanBytes } from "@/lib/uploads/clamav";
-import { validateUpload } from "@/lib/uploads/validate";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { evidenceLinkSchema } from "@/lib/validation/grc";
 
 // Nachweise: Link/Attestierung ohne Datei oder Datei-Upload (verschlüsselt
 // mit dem Org-DEK, S3-Key org/<orgId>/nachweise/<uuid>). Download nur über
 // /api/nachweise/[id] (Guard → RLS → Entschlüsselung → Attachment, auditiert).
-
-function s3Configured(): boolean {
-	const e = env();
-	return Boolean(e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY);
-}
 
 async function s3AvailableImpl(): Promise<boolean> {
 	await requireOrg();
@@ -63,7 +49,7 @@ async function createEvidenceLinkImpl(
 			.returning({ id: evidence.id });
 		if (!row) throw new Error("insert failed");
 		if (d.implementationId)
-			await linkToImplementation(tx, c.orgId, d.implementationId, row.id);
+			await linkEvidenceToControl(tx, c.orgId, d.implementationId, row.id);
 		return {
 			result: row.id,
 			audit: {
@@ -82,8 +68,8 @@ async function createEvidenceLinkImpl(
 	return { ok: true, data: { id } };
 }
 
-// Datei-Upload über FormData (Datei + Metadaten). Magic-Bytes-Prüfung,
-// 25 MB, Verschlüsselung mit Org-DEK, Hash über den Klartext.
+// Datei-Upload über FormData (Datei + Metadaten). Prüfung und Ablage über
+// die gemeinsame Pipeline (lib/evidence/store.ts).
 async function uploadEvidenceImpl(
 	formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
@@ -105,87 +91,33 @@ async function uploadEvidenceImpl(
 	if (!getOrgLimiter().check(c.orgId).allowed)
 		return { ok: false, error: "rate_limited" };
 	const bytes = new Uint8Array(await file.arrayBuffer());
-	const v = await validateUpload({
+	const v = await screenUpload(toOrgCtx(c), {
 		name: file.name,
 		bytes,
 		declaredMime: file.type,
 	});
-	if (!v.ok) return { ok: false, error: `upload_${v.reason}` };
-
-	// Optionaler Malware-Scan (clamd). Fail closed: konfiguriert, aber nicht
-	// erreichbar → Upload abgelehnt. Treffer stehen als denied im Audit-Log.
-	if (clamdConfigured()) {
-		const scan = await scanBytes(bytes);
-		if (scan.status !== "clean") {
-			await mutateOrg(toOrgCtx(c), async () => ({
-				result: null,
-				audit: {
-					action: "evidence.upload_blocked",
-					target: `organization:${c.orgId}`,
-					outcome: "denied" as const,
-					after: {
-						reason: scan.status,
-						signature: scan.status === "infected" ? scan.signature : undefined,
-						fileName: v.safeName,
-					},
-				},
-			}));
-			return {
-				ok: false,
-				error:
-					scan.status === "infected"
-						? "upload_malware"
-						: "upload_scan_unavailable",
-			};
-		}
-	}
+	if (!v.ok) return { ok: false, error: v.error };
 
 	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const [s] = await tx
-			.select({
-				encryptedDek: orgSettings.encryptedDek,
-				keyVersion: orgSettings.keyVersion,
-			})
-			.from(orgSettings)
-			.where(eq(orgSettings.organizationId, c.orgId))
-			.limit(1);
-		if (!s) throw new Error("org settings missing");
-		const evidenceId = crypto.randomUUID();
-		const storageKey = `org/${c.orgId}/nachweise/${evidenceId}`;
-		const dek = await unwrapDek({
-			wrapped: s.encryptedDek,
-			keyVersion: s.keyVersion,
-		});
-		const sealed = await encryptBytes(bytes, dek, {
-			keyVersion: s.keyVersion,
-			aad: evidenceAad(evidenceId),
-		});
-		const packed = packEnvelope(sealed);
-		const { putBytes } = await import("@/lib/storage/s3");
-		await putBytes(storageKey, packed);
-		await tx.insert(evidence).values({
-			id: evidenceId,
-			organizationId: c.orgId,
+		const stored = await storeEncryptedEvidence(tx, {
+			orgId: c.orgId,
+			bytes,
+			safeName: v.safeName,
+			mime: v.mime,
 			title: d.title,
-			description: d.description ?? null,
+			description: d.description,
 			type: d.type,
 			classification: d.classification,
-			fileName: v.safeName,
-			mimeType: v.mime,
-			sizeBytes: bytes.byteLength,
-			storageKey,
-			keyVersion: s.keyVersion,
-			sha256: sha256Hex(bytes),
-			validUntil: d.validUntil ?? null,
+			validUntil: d.validUntil,
 			createdByUserId: c.userId,
 		});
 		if (d.implementationId)
-			await linkToImplementation(tx, c.orgId, d.implementationId, evidenceId);
+			await linkEvidenceToControl(tx, c.orgId, d.implementationId, stored.id);
 		return {
-			result: evidenceId,
+			result: stored.id,
 			audit: {
 				action: "evidence.upload",
-				target: `evidence:${evidenceId}`,
+				target: `evidence:${stored.id}`,
 				after: {
 					title: d.title,
 					fileName: v.safeName,
@@ -207,7 +139,7 @@ async function linkEvidenceImpl(input: {
 }): Promise<ActionResult> {
 	const c = await requireOrg({ evidence: ["create"] });
 	await mutateOrg(toOrgCtx(c), async (tx) => {
-		await linkToImplementation(
+		await linkEvidenceToControl(
 			tx,
 			c.orgId,
 			input.implementationId,
@@ -315,29 +247,6 @@ async function requestEvidenceImpl(input: {
 	});
 	revalidatePath("/controls", "layout");
 	return { ok: true, data: { taskId } };
-}
-
-async function linkToImplementation(
-	tx: Parameters<Parameters<typeof mutateOrg>[1]>[0],
-	orgId: string,
-	implementationId: string,
-	evidenceId: string,
-): Promise<void> {
-	const [impl] = await tx
-		.select({ id: controlImplementations.id })
-		.from(controlImplementations)
-		.where(
-			and(
-				eq(controlImplementations.id, implementationId),
-				eq(controlImplementations.organizationId, orgId),
-			),
-		)
-		.limit(1);
-	if (!impl) throw new Error("implementation not found");
-	await tx
-		.insert(controlEvidence)
-		.values({ organizationId: orgId, implementationId, evidenceId })
-		.onConflictDoNothing();
 }
 
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
