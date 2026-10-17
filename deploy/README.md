@@ -45,6 +45,31 @@ sudo systemctl restart klick && curl -f https://raza.work/api/ready
 - `curl -I https://raza.work` zeigt CSP, HSTS, COOP/CORP, Permissions-Policy
 - Mozilla Observatory A+, SSL Labs A+
 
+## Anmeldung: Mailversand prüfen, Notfall-Link
+Anmelde-Links und Einladungen gehen per Mail raus (Resend → SMTP). In Produktion landet der
+Link **nie** im Journal — ohne funktionierenden Zustellweg kommt niemand mehr rein. Beim Start
+steht im Journal `Mailversand` (Weg, Host, Absender) oder `Kein Mailversand konfiguriert`.
+
+Konfiguration: `MAIL_FROM` (Absender auf einer beim Provider verifizierten Domain) und
+`RESEND_API_KEY` **oder** `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER` in `/etc/klick/klick.env`,
+`SMTP_PASS` als Credential `smtp_pass`. Hetzner sperrt ausgehend Port 25 und 465 — SMTP über 587.
+
+```bash
+sudo bash -c '
+set -euo pipefail
+cd /opt/klick/current
+d() { systemd-creds decrypt "/etc/credstore.encrypted/$1" - 2>/dev/null; }
+set -a; . /etc/klick/klick.env; set +a
+export NODE_ENV=production HOME=/opt/klick COREPACK_ENABLE_DOWNLOAD_PROMPT=0 BETTER_AUTH_URL=https://raza.work
+export BETTER_AUTH_SECRET="$(d better_auth_secret)" DATABASE_URL="$(d database_url)" SMTP_PASS="$(d smtp_pass || true)"
+runuser -u klick -- pnpm mail:check <deine-adresse>   # Testmail + Fehlertext des Providers mit Hinweis
+runuser -u klick -- pnpm auth:link <deine-adresse>    # Notfall: Einmal-Link (15 min) im Terminal
+'
+```
+`pnpm auth:link` gibt den Link nur im Terminal aus (keine Mail, kein Journal), nur für bestehende
+Konten und offene Einladungen, und protokolliert `auth.login_link_cli` im Plattform-Audit. Danach
+gelten 2FA und alle Sitzungsregeln wie gewohnt. Link nicht weitergeben.
+
 ## KEK-Rotation (ISO A.8.24, MiCAR Art. 70)
 Die Org-DEKs bleiben; nur ihre Umhüllung wird neu geschrieben. Nachweise und
 Feldverschlüsselung hängen am DEK — kein Re-Encrypt der Nutzdaten.

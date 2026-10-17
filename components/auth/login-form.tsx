@@ -13,12 +13,16 @@ import { authClient } from "@/lib/auth/client";
 export function LoginForm({
 	microsoftEnabled,
 	signupAllowed,
+	next,
 }: {
 	microsoftEnabled: boolean;
 	signupAllowed: boolean;
+	// Ziel nach dem Login (?weiter=, z. B. /einladung/…), bereits geprüft.
+	next: string | null;
 }) {
 	const t = useTranslations("Auth");
 	const router = useRouter();
+	const target = next ?? "/heute";
 	const [email, setEmail] = useState("");
 	const [busy, setBusy] = useState<
 		"link" | "passkey" | "microsoft" | "sso" | null
@@ -31,9 +35,11 @@ export function LoginForm({
 		try {
 			const res = await authClient.signIn.magicLink({
 				email: email.trim().toLowerCase(),
-				callbackURL: "/heute",
-				newUserCallbackURL: "/onboarding",
-				errorCallbackURL: "/login?grund=link-ungueltig",
+				callbackURL: target,
+				newUserCallbackURL: next ?? "/onboarding",
+				errorCallbackURL: next
+					? `/login?grund=link-ungueltig&weiter=${encodeURIComponent(next)}`
+					: "/login?grund=link-ungueltig",
 			});
 			if (res?.error) {
 				setBusy(null);
@@ -58,7 +64,7 @@ export function LoginForm({
 			toast.error(t("genericError"));
 			return;
 		}
-		router.push("/heute");
+		router.push(target);
 		router.refresh();
 	}
 
@@ -66,7 +72,7 @@ export function LoginForm({
 		setBusy("microsoft");
 		await authClient.signIn.social({
 			provider: "microsoft",
-			callbackURL: "/heute",
+			callbackURL: target,
 		});
 	}
 
@@ -81,7 +87,7 @@ export function LoginForm({
 		setBusy("sso");
 		const res = await authClient.signIn.sso({
 			email: address,
-			callbackURL: "/heute",
+			callbackURL: target,
 			errorCallbackURL: "/login?grund=sso",
 		});
 		if (res?.error || !res?.data?.url) {
