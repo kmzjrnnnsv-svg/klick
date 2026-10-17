@@ -12,6 +12,7 @@ import {
 	createTreatment,
 	updateRisk,
 } from "@/app/actions/risks";
+import { useApprovalErrorToast } from "@/components/approvals/use-approval-error";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
 import {
@@ -558,6 +559,7 @@ export function ExceptionForm({
 	controlOptions: { code: string; title: string }[];
 }) {
 	const t = useTranslations("Risks");
+	const approvalError = useApprovalErrorToast();
 	const ta = useTranslations("Approvals");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -591,6 +593,7 @@ export function ExceptionForm({
 								validUntil,
 								selfApprovalReason: reason || undefined,
 							});
+							if (!res.ok && approvalError(res)) return;
 							if (!res.ok) {
 								toast.error(
 									res.error.startsWith("solo_") || res.error === "no_approver"

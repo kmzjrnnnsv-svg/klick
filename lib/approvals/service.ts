@@ -10,16 +10,20 @@ import {
 } from "@/db/schema";
 import type { EntityKind, RoleFunction } from "@/db/schema/enums";
 import type { ApprovalStep } from "@/db/schema/grc";
-import type { OrgRole } from "@/lib/auth/permissions";
+import { type OrgRole, roleAllows } from "@/lib/auth/permissions";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
 import type { OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
+import { entityOwner, entityOwners } from "./entity-owner";
 import {
 	type ApproverCandidate,
 	advance,
 	approverEligibility,
+	effectiveStep,
 	eligibleApprovers,
+	firstUnfillableStep,
+	type SkippedStep,
 	slaDueAt,
 	soloModeAllowed,
 } from "./rules";
@@ -105,6 +109,7 @@ export async function loadCandidates(
 	return members.map((m) => ({
 		userId: m.userId,
 		orgRole: normalizeRole(m.role) as OrgRole,
+		canDecide: roleAllows(normalizeRole(m.role), { approval: ["decide"] }),
 		functions: [...(byUser.get(m.userId) ?? [])],
 	}));
 }
@@ -134,13 +139,15 @@ export type RequestApprovalInput = {
 	kind: string;
 	entityType: EntityKind;
 	entityId: string;
-	entityOwnerUserId?: string | null;
 	entityVersionRef?: string | null;
 	title: string;
 	link: string;
 	// Solo-Modus: begründete Selbstfreigabe
 	selfApprovalReason?: string;
 };
+
+// Welche Stufe niemand entscheiden kann (für „fehlt: Compliance → besetzen“).
+export type MissingApprover = { step: number; rule: string };
 
 export type RequestApprovalResult =
 	| {
@@ -149,6 +156,8 @@ export type RequestApprovalResult =
 			status: "pending" | "approved";
 			selfApproved: boolean;
 			approverIds: string[];
+			// entfallene Eigner-Stufen (Audit)
+			skippedSteps: SkippedStep[];
 	  }
 	| {
 			ok: false;
@@ -157,6 +166,7 @@ export type RequestApprovalResult =
 				| "no_approver"
 				| "solo_reason_required"
 				| "solo_not_allowed";
+			missing?: MissingApprover;
 	  };
 
 export async function requestApproval(
@@ -167,31 +177,29 @@ export async function requestApproval(
 	const wf = await getWorkflow(tx, ctx.orgId, input.kind);
 	if (!wf?.enabled) return { ok: false, error: "workflow_disabled" };
 	const steps = wf.steps as ApprovalStep[];
-	const first = [...steps].sort((a, b) => a.order - b.order)[0];
-	if (!first) return { ok: false, error: "workflow_disabled" };
+	const minOrder = Math.min(...steps.map((s) => s.order));
+	if (!Number.isFinite(minOrder))
+		return { ok: false, error: "workflow_disabled" };
 
-	// Offene Anfrage derselben Entität zurückziehen (nur eine aktiv).
-	await tx
-		.update(approvalRequests)
-		.set({ status: "withdrawn", decidedAt: new Date() })
-		.where(
-			and(
-				eq(approvalRequests.organizationId, ctx.orgId),
-				eq(approvalRequests.entityType, input.entityType),
-				eq(approvalRequests.entityId, input.entityId),
-				eq(approvalRequests.status, "pending"),
-			),
-		);
-
+	const owner = await entityOwner(tx, ctx.orgId, input);
 	const candidates = await loadCandidates(tx, ctx.orgId);
 	const dels = await activeDelegations(tx, ctx.orgId);
-	const eligible = eligibleApprovers(first, candidates, {
+	const eligCtx = {
 		requesterUserId: ctx.userId,
-		entityOwnerUserId: input.entityOwnerUserId ?? null,
+		entityOwnerUserId: owner,
 		delegations: dels,
+	};
+	const start = effectiveStep(steps, minOrder, {
+		requesterUserId: ctx.userId,
+		entityOwnerUserId: owner,
+		memberIds: candidates.map((c) => c.userId),
 	});
+	const first =
+		start.order === null ? null : steps.find((s) => s.order === start.order);
+	const eligible = first ? eligibleApprovers(first, candidates, eligCtx) : [];
 
-	if (eligible.length === 0) {
+	// Solo-Modus: niemand außer der Antragsteller:in kann entscheiden.
+	if (first && eligible.length === 0) {
 		const [s] = await tx
 			.select({
 				allowSelfApproval: orgSettings.allowSelfApproval,
@@ -205,13 +213,19 @@ export async function requestApproval(
 			allowSelfApproval: s?.allowSelfApproval ?? false,
 			licenceStage: s?.licenceStage ?? "0_vorbereitung",
 		});
-		if (!solo) return { ok: false, error: "no_approver" };
+		if (!solo)
+			return {
+				ok: false,
+				error: "no_approver",
+				missing: { step: first.order, rule: first.approverRule },
+			};
 		if (
 			!input.selfApprovalReason ||
 			input.selfApprovalReason.trim().length < 10
 		) {
 			return { ok: false, error: "solo_reason_required" };
 		}
+		await withdrawOpenFor(tx, ctx.orgId, input);
 		const [req] = await tx
 			.insert(approvalRequests)
 			.values({
@@ -243,6 +257,50 @@ export async function requestApproval(
 			status: "approved",
 			selfApproved: true,
 			approverIds: [],
+			skippedSteps: start.skipped,
+		};
+	}
+
+	// Spätere Stufe ohne mögliche Entscheider:in → gleich sagen, nicht erst
+	// nach zwei Freigaben hängen bleiben.
+	if (first) {
+		const gap = firstUnfillableStep(steps, first.order, candidates, eligCtx);
+		if (gap)
+			return {
+				ok: false,
+				error: "no_approver",
+				missing: { step: gap.order, rule: gap.approverRule },
+			};
+	}
+
+	// Erst jetzt die alte offene Anfrage derselben Entität zurückziehen —
+	// scheitert die neue, bleibt die alte bestehen (und im Audit sichtbar).
+	await withdrawOpenFor(tx, ctx.orgId, input);
+
+	// Alle Stufen entfallen (nur Eigner-Stufe, Eigner:in reicht selbst ein).
+	if (!first) {
+		const [req] = await tx
+			.insert(approvalRequests)
+			.values({
+				organizationId: ctx.orgId,
+				workflowId: wf.id,
+				entityType: input.entityType,
+				entityId: input.entityId,
+				entityVersionRef: input.entityVersionRef ?? null,
+				requestedByUserId: ctx.userId,
+				currentStep: Math.max(...steps.map((x) => x.order)),
+				status: "approved",
+				decidedAt: new Date(),
+			})
+			.returning({ id: approvalRequests.id });
+		if (!req) throw new Error("insert failed");
+		return {
+			ok: true,
+			requestId: req.id,
+			status: "approved",
+			selfApproved: false,
+			approverIds: [],
+			skippedSteps: start.skipped,
 		};
 	}
 
@@ -278,7 +336,39 @@ export async function requestApproval(
 		status: "pending",
 		selfApproved: false,
 		approverIds,
+		skippedSteps: start.skipped,
 	};
+}
+
+// Für ActionResult: welche Stufe/Regel fehlt (Client zeigt „fehlt: Compliance
+// → besetzen“ statt eines allgemeinen Fehlers).
+export function approvalDetail(r: { missing?: MissingApprover }): {
+	detail?: Record<string, string>;
+} {
+	return r.missing
+		? { detail: { step: String(r.missing.step), rule: r.missing.rule } }
+		: {};
+}
+
+// Offene Anfrage derselben Entität zurückziehen (nur eine aktiv).
+export async function withdrawOpenFor(
+	tx: OrgTx,
+	orgId: string,
+	ref: { entityType: EntityKind; entityId: string },
+): Promise<number> {
+	const rows = await tx
+		.update(approvalRequests)
+		.set({ status: "withdrawn", decidedAt: new Date() })
+		.where(
+			and(
+				eq(approvalRequests.organizationId, orgId),
+				eq(approvalRequests.entityType, ref.entityType),
+				eq(approvalRequests.entityId, ref.entityId),
+				eq(approvalRequests.status, "pending"),
+			),
+		)
+		.returning({ id: approvalRequests.id });
+	return rows.length;
 }
 
 export type DecideResult =
@@ -288,11 +378,18 @@ export type DecideResult =
 			requesterUserId: string | null;
 			entityType: EntityKind;
 			entityId: string;
+			entityVersionRef: string | null;
 			onBehalfOf?: string;
+			skippedSteps: SkippedStep[];
 	  }
 	| {
 			ok: false;
-			error: "not_found" | "not_pending" | "four_eyes" | "rule_not_met";
+			error:
+				| "not_found"
+				| "not_pending"
+				| "four_eyes"
+				| "rule_not_met"
+				| "already_decided";
 	  };
 
 export async function decide(
@@ -302,9 +399,10 @@ export async function decide(
 		requestId: string;
 		decision: "approved" | "rejected" | "changes_requested";
 		note?: string;
-		entityOwnerUserId?: string | null;
 	},
 ): Promise<DecideResult> {
+	// Zeile sperren: zwei gleichzeitige Entscheidungen (Freigabe + Ablehnung)
+	// dürfen nicht beide durchlaufen.
 	const [req] = await tx
 		.select()
 		.from(approvalRequests)
@@ -314,7 +412,8 @@ export async function decide(
 				eq(approvalRequests.organizationId, ctx.orgId),
 			),
 		)
-		.limit(1);
+		.limit(1)
+		.for("update");
 	if (!req) return { ok: false, error: "not_found" };
 	if (req.status !== "pending") return { ok: false, error: "not_pending" };
 	const wf = await tx
@@ -328,21 +427,34 @@ export async function decide(
 	const step = steps.find((s) => s.order === req.currentStep);
 	if (!step) return { ok: false, error: "not_found" };
 
+	const owner = await entityOwner(tx, ctx.orgId, req);
 	const candidates = await loadCandidates(tx, ctx.orgId);
 	const me = candidates.find((c) => c.userId === ctx.userId);
 	if (!me) return { ok: false, error: "rule_not_met" };
 	const dels = await activeDelegations(tx, ctx.orgId);
-	const elig = approverEligibility(
-		step,
-		me,
-		{
-			requesterUserId: req.requestedByUserId,
-			entityOwnerUserId: input.entityOwnerUserId ?? null,
-			delegations: dels,
-		},
-		candidates,
-	);
+	const eligCtx = {
+		requesterUserId: req.requestedByUserId,
+		entityOwnerUserId: owner,
+		delegations: dels,
+	};
+	const elig = approverEligibility(step, me, eligCtx, candidates);
 	if (!elig.eligible) return { ok: false, error: elig.reason };
+
+	const decisionsOnStep = await tx
+		.select({
+			decision: approvalDecisions.decision,
+			approverUserId: approvalDecisions.approverUserId,
+		})
+		.from(approvalDecisions)
+		.where(
+			and(
+				eq(approvalDecisions.requestId, req.id),
+				eq(approvalDecisions.step, req.currentStep),
+			),
+		);
+	// Eine Person zählt je Stufe nur einmal (minApprovers > 1).
+	if (decisionsOnStep.some((d) => d.approverUserId === ctx.userId))
+		return { ok: false, error: "already_decided" };
 
 	await tx.insert(approvalDecisions).values({
 		organizationId: ctx.orgId,
@@ -360,16 +472,24 @@ export async function decide(
 				.filter(Boolean)
 				.join(" ") || null,
 	});
-	const decisionsOnStep = await tx
-		.select({ decision: approvalDecisions.decision })
-		.from(approvalDecisions)
-		.where(
-			and(
-				eq(approvalDecisions.requestId, req.id),
-				eq(approvalDecisions.step, req.currentStep),
-			),
-		);
-	const outcome = advance(steps, req.currentStep, decisionsOnStep);
+	let outcome = advance(steps, req.currentStep, [
+		...decisionsOnStep,
+		{ decision: input.decision, approverUserId: ctx.userId },
+	]);
+	let skippedSteps: SkippedStep[] = [];
+	// Nächste Stufe ggf. überspringen (Eigner-Stufe, die entfällt).
+	if (outcome.status === "pending" && outcome.nextStep !== req.currentStep) {
+		const eff = effectiveStep(steps, outcome.nextStep, {
+			requesterUserId: req.requestedByUserId,
+			entityOwnerUserId: owner,
+			memberIds: candidates.map((c) => c.userId),
+		});
+		skippedSteps = eff.skipped;
+		outcome =
+			eff.order === null
+				? { status: "approved" }
+				: { status: "pending", nextStep: eff.order };
+	}
 
 	if (outcome.status === "pending") {
 		const nextStep = steps.find((s) => s.order === outcome.nextStep) ?? step;
@@ -384,11 +504,7 @@ export async function decide(
 			})
 			.where(eq(approvalRequests.id, req.id));
 		if (outcome.nextStep !== req.currentStep) {
-			const nextEligible = eligibleApprovers(nextStep, candidates, {
-				requesterUserId: req.requestedByUserId,
-				entityOwnerUserId: input.entityOwnerUserId ?? null,
-				delegations: dels,
-			});
+			const nextEligible = eligibleApprovers(nextStep, candidates, eligCtx);
 			await notify(tx, {
 				orgId: ctx.orgId,
 				recipients: nextEligible.map((e) => e.userId),
@@ -419,7 +535,9 @@ export async function decide(
 		requesterUserId: req.requestedByUserId,
 		entityType: req.entityType,
 		entityId: req.entityId,
+		entityVersionRef: req.entityVersionRef,
 		onBehalfOf: elig.via === "delegation" ? elig.onBehalfOf : undefined,
+		skippedSteps,
 	};
 }
 
@@ -491,6 +609,14 @@ export async function listRequestsForUser(
 	const candidates = await loadCandidates(tx, orgId);
 	const me = candidates.find((c) => c.userId === userId);
 	const dels = await activeDelegations(tx, orgId);
+	// Eigner:innen serverseitig — sonst sah die Eigner-Stufe nie „wartet auf dich“.
+	const owners = await entityOwners(
+		tx,
+		orgId,
+		rows
+			.filter((r) => r.req.status === "pending")
+			.map((r) => ({ entityType: r.req.entityType, entityId: r.req.entityId })),
+	);
 	const requesterIds = [
 		...new Set(
 			rows
@@ -518,7 +644,12 @@ export async function listRequestsForUser(
 				? approverEligibility(
 						step,
 						me,
-						{ requesterUserId: req.requestedByUserId, delegations: dels },
+						{
+							requesterUserId: req.requestedByUserId,
+							entityOwnerUserId:
+								owners.get(`${req.entityType}:${req.entityId}`) ?? null,
+							delegations: dels,
+						},
 						candidates,
 					).eligible
 				: false;

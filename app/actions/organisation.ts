@@ -15,7 +15,7 @@ import {
 	scopes,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
-import { requestApproval } from "@/lib/approvals/service";
+import { approvalDetail, requestApproval } from "@/lib/approvals/service";
 import {
 	AuthError,
 	requireOrg,
@@ -443,7 +443,6 @@ async function requestScopeApprovalImpl(
 					kind: "scope",
 					entityType: "scope",
 					entityId: row.id,
-					entityOwnerUserId: row.ownerUserId,
 					entityVersionRef: row.version,
 					title: `Geltungsbereich ${row.version}`,
 					link: "/organisation?tab=geltungsbereich",
@@ -470,7 +469,10 @@ async function requestScopeApprovalImpl(
 						},
 					};
 				}
-				return { result: { ok: false, error: r.error }, audit: [] };
+				return {
+					result: { ok: false, error: r.error, ...approvalDetail(r) },
+					audit: [],
+				};
 			}
 			return {
 				result: {

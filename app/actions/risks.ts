@@ -14,7 +14,7 @@ import {
 	tasks,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
-import { requestApproval } from "@/lib/approvals/service";
+import { approvalDetail, requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { assessRisk, nextRiskCode } from "@/lib/compliance/risk";
 import { mutateOrg } from "@/lib/db/with-org";
@@ -257,13 +257,16 @@ async function setRiskStatusImpl(
 						kind: "risk_acceptance",
 						entityType: "risk",
 						entityId: riskId,
-						entityOwnerUserId: row.ownerUserId,
 						title: `${row.code} · ${row.title}`,
 						link: `/risiken/${riskId}`,
 						selfApprovalReason,
 					},
 				);
-				if (!r.ok) return { result: { ok: false, error: r.error }, audit: [] };
+				if (!r.ok)
+					return {
+						result: { ok: false, error: r.error, ...approvalDetail(r) },
+						audit: [],
+					};
 				if (r.status === "pending") {
 					return {
 						result: {
@@ -273,7 +276,13 @@ async function setRiskStatusImpl(
 						audit: {
 							action: "risk.acceptance_requested",
 							target: `risk:${riskId}`,
-							after: { requestId: r.requestId, note: note ?? null },
+							after: {
+								requestId: r.requestId,
+								note: note ?? null,
+								...(r.skippedSteps.length > 0
+									? { skippedSteps: r.skippedSteps }
+									: {}),
+							},
 						},
 					};
 				}
@@ -442,7 +451,6 @@ async function createExceptionImpl(
 					kind: "exception",
 					entityType: "exception",
 					entityId: row.id,
-					entityOwnerUserId: c.userId,
 					title: d.title,
 					link: "/risiken?tab=ausnahmen",
 					selfApprovalReason: d.selfApprovalReason,
@@ -454,7 +462,10 @@ async function createExceptionImpl(
 				approvalRequestId = r.requestId;
 				if (r.status === "approved") status = "approved";
 			} else if (r.error !== "workflow_disabled") {
-				return { result: { ok: false, error: r.error }, audit: [] };
+				return {
+					result: { ok: false, error: r.error, ...approvalDetail(r) },
+					audit: [],
+				};
 			} else {
 				status = "approved"; // Workflow aus → Ausnahme gilt mit Eigner-Verantwortung
 			}

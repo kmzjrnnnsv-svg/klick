@@ -12,7 +12,7 @@ import {
 } from "@/db/schema";
 import type { RoleFunction } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
-import { requestApproval } from "@/lib/approvals/service";
+import { approvalDetail, requestApproval } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
@@ -183,7 +183,6 @@ async function requestAmlRiskAnalysisApprovalImpl(
 					kind: "aml_risk_analysis",
 					entityType: "aml_risk_analysis",
 					entityId: row.id,
-					entityOwnerUserId: row.ownerUserId,
 					entityVersionRef: row.version,
 					title: `AML-Risikoanalyse ${row.version}`,
 					link: `${PATH}?tab=risikoanalyse`,
@@ -221,7 +220,10 @@ async function requestAmlRiskAnalysisApprovalImpl(
 						},
 					};
 				}
-				return { result: { ok: false, error: r.error }, audit: [] };
+				return {
+					result: { ok: false, error: r.error, ...approvalDetail(r) },
+					audit: [],
+				};
 			}
 			if (r.status === "pending") {
 				await tx

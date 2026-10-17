@@ -11,7 +11,7 @@ import {
 } from "@/db/schema";
 import type { IncidentRegime } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
-import { requestApproval } from "@/lib/approvals/service";
+import { approvalDetail, requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
 import {
@@ -535,7 +535,6 @@ async function setIncidentStatusImpl(
 					kind: "incident_closure",
 					entityType: "incident",
 					entityId: row.id,
-					entityOwnerUserId: row.ownerUserId,
 					title: `${row.code} · ${row.title}`,
 					link: `/vorfaelle/${row.id}`,
 					selfApprovalReason,
@@ -555,7 +554,10 @@ async function setIncidentStatusImpl(
 				};
 			}
 			if (!r.ok && r.error !== "workflow_disabled")
-				return { result: { ok: false, error: r.error }, audit: [] };
+				return {
+					result: { ok: false, error: r.error, ...approvalDetail(r) },
+					audit: [],
+				};
 		}
 		await tx.update(incidents).set({ status }).where(eq(incidents.id, row.id));
 		await tx.insert(incidentUpdates).values({

@@ -40,7 +40,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
-import { approverEligibility } from "@/lib/approvals/rules";
+import { approverEligibility, waitingApprovers } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
 	latestRequestFor,
@@ -106,7 +106,6 @@ export default async function OrganisationPage({
 		: "kontext";
 	const t = await getTranslations("Organisation");
 	const tf = await getTranslations("Functions");
-	const ta = await getTranslations("Approvals");
 	const canEdit = roleAllows(ctx.orgRole, { organisation: ["update"] });
 	const canRoles = roleAllows(ctx.orgRole, { role_assignment: ["update"] });
 	const canShareholders = roleAllows(ctx.orgRole, { shareholder: ["update"] });
@@ -515,15 +514,15 @@ export default async function OrganisationPage({
 											names={data.names}
 											eligible={eligible}
 											currentUserId={ctx.userId}
-											labels={{
-												title: ta("bar"),
-												step: (n) => ta("step", { n }),
-												dueAt: ta("dueAt"),
-												overdue: ta("overdue"),
-												selfApproved: ta("selfApproved"),
-												history: ta("history"),
-												status: (x) => x,
-											}}
+											waitingFor={
+												req?.status === "pending"
+													? waitingApprovers(req, data.candidates, {
+															requesterUserId: req.requestedByUserId,
+															entityOwnerUserId: s.ownerUserId,
+															delegations: data.dels,
+														}).map((c) => data.names.get(c.userId) ?? "—")
+													: []
+											}
 										/>
 									)}
 									{canEdit &&

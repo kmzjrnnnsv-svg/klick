@@ -12,7 +12,7 @@ import {
 	orgSettings,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
-import { requestApproval } from "@/lib/approvals/service";
+import { approvalDetail, requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import {
 	DOCUMENT_TEMPLATES,
@@ -332,7 +332,6 @@ async function transitionDocumentImpl(
 					kind: "document_publish",
 					entityType: "document",
 					entityId: doc.id,
-					entityOwnerUserId: doc.ownerUserId,
 					entityVersionRef: doc.version,
 					title: `${doc.docNumber} · ${doc.title} v${doc.version}`,
 					link: `/dokumente/${encodeURIComponent(doc.docNumber)}`,
@@ -358,7 +357,10 @@ async function transitionDocumentImpl(
 						},
 					};
 				}
-				return { result: { ok: false, error: r.error }, audit: [] };
+				return {
+					result: { ok: false, error: r.error, ...approvalDetail(r) },
+					audit: [],
+				};
 			}
 			const status = r.status === "approved" ? "approved" : "in_review";
 			await tx
@@ -391,6 +393,9 @@ async function transitionDocumentImpl(
 						status,
 						requestId: r.requestId,
 						reason: selfApprovalReason ?? null,
+						...(r.skippedSteps.length > 0
+							? { skippedSteps: r.skippedSteps }
+							: {}),
 					},
 				},
 			};

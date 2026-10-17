@@ -20,7 +20,9 @@ export default async function MemberAccountabilityPage({
 }) {
 	const { userId } = await params;
 	if (!/^[0-9a-f-]{36}$/i.test(userId)) notFound();
-	const ctx = await requireOrgPage({ member: ["read"] });
+	// Better Auth kennt kein member:read — mit dieser Prüfung leitete die Seite
+	// alle um. Sehen dürfen Inhaber:innen und die Person selbst.
+	const ctx = await requireOrgPage();
 	if (ctx.orgRole !== "owner" && ctx.userId !== userId) notFound();
 	const t = await getTranslations("Accountability");
 	const tt = await getTranslations("Team");

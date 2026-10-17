@@ -17,6 +17,9 @@ export type ApproverCandidate = {
 	userId: string;
 	orgRole: OrgRole;
 	functions: readonly RoleFunction[];
+	// Rolle darf Freigaben entscheiden (approval:decide) — Lesend/Prüfer:in
+	// nicht, auch wenn sie eine Funktion halten. Fehlt = ja (reine Tests).
+	canDecide?: boolean;
 };
 
 export type EligibilityContext = {
@@ -76,6 +79,8 @@ export function approverEligibility(
 	if (ctx.requesterUserId && candidate.userId === ctx.requesterUserId) {
 		return { eligible: false, reason: "four_eyes" };
 	}
+	if (candidate.canDecide === false)
+		return { eligible: false, reason: "rule_not_met" };
 	if (matchesRule(step.approverRule, candidate, ctx)) {
 		return { eligible: true, via: "direct" };
 	}
@@ -156,4 +161,95 @@ export function advance(
 		.sort((a, b) => a - b)[0];
 	if (next === undefined) return { status: "approved" };
 	return { status: "pending", nextStep: next };
+}
+
+// ── Eigner-Stufe und unbesetzbare Stufen ───────────────────────────────────
+
+export type SkippedStep = {
+	order: number;
+	reason: "no_owner" | "owner_left" | "owner_is_requester";
+};
+
+// Nächste Stufe ab `fromOrder` (inklusive), die wirklich entschieden werden
+// muss. owner_of_entity entfällt, wenn es keine Eigner:in gibt, sie nicht mehr
+// Mitglied ist oder selbst eingereicht hat — Einreichen ist ihre Zustimmung;
+// sonst bliebe die Stufe wegen Vier-Augen für immer unbesetzt.
+// order null = keine Stufe mehr offen (Anfrage ist damit freigegeben).
+export function effectiveStep(
+	steps: readonly ApprovalStep[],
+	fromOrder: number,
+	ctx: {
+		requesterUserId: string | null;
+		entityOwnerUserId: string | null;
+		memberIds: readonly string[];
+	},
+): { order: number | null; skipped: SkippedStep[] } {
+	const skipped: SkippedStep[] = [];
+	const ordered = [...steps]
+		.filter((s) => s.order >= fromOrder)
+		.sort((a, b) => a.order - b.order);
+	for (const s of ordered) {
+		if (s.approverRule === "owner_of_entity") {
+			const owner = ctx.entityOwnerUserId;
+			if (!owner) {
+				skipped.push({ order: s.order, reason: "no_owner" });
+				continue;
+			}
+			if (!ctx.memberIds.includes(owner)) {
+				skipped.push({ order: s.order, reason: "owner_left" });
+				continue;
+			}
+			if (owner === ctx.requesterUserId) {
+				skipped.push({ order: s.order, reason: "owner_is_requester" });
+				continue;
+			}
+		}
+		return { order: s.order, skipped };
+	}
+	return { order: null, skipped };
+}
+
+// Erste Stufe ab `fromOrder`, für die niemand entscheiden darf — z. B. weil
+// die Funktion „Compliance“ unbesetzt ist. Beim Einreichen geprüft, damit die
+// Anfrage nicht unbemerkt auf Stufe 3 hängen bleibt.
+export function firstUnfillableStep(
+	steps: readonly ApprovalStep[],
+	fromOrder: number,
+	members: readonly ApproverCandidate[],
+	ctx: EligibilityContext,
+): ApprovalStep | null {
+	let order: number | null = fromOrder;
+	while (order !== null) {
+		const eff = effectiveStep(steps, order, {
+			requesterUserId: ctx.requesterUserId,
+			entityOwnerUserId: ctx.entityOwnerUserId ?? null,
+			memberIds: members.map((m) => m.userId),
+		});
+		if (eff.order === null) return null;
+		const step = steps.find((s) => s.order === eff.order);
+		if (!step) return null;
+		if (eligibleApprovers(step, members, ctx).length === 0) return step;
+		const next = steps
+			.map((s) => s.order)
+			.filter((o) => o > step.order)
+			.sort((a, b) => a - b)[0];
+		order = next ?? null;
+	}
+	return null;
+}
+
+// Wer darf die aktuelle Stufe einer offenen Anfrage entscheiden? (für „wartet
+// auf Anna, Ben“ in der Freigabe-Leiste)
+export function waitingApprovers(
+	request: {
+		status: string;
+		currentStep: number;
+		steps: readonly ApprovalStep[];
+	},
+	members: readonly ApproverCandidate[],
+	ctx: EligibilityContext,
+): ApproverCandidate[] {
+	if (request.status !== "pending") return [];
+	const step = request.steps.find((s) => s.order === request.currentStep);
+	return step ? eligibleApprovers(step, members, ctx) : [];
 }

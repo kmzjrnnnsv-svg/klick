@@ -15,6 +15,7 @@ import { setProductStatus } from "@/app/actions/products";
 import { setRiskStatus } from "@/app/actions/risks";
 import { setFindingStatus } from "@/app/actions/security-checks";
 import { setTaskStatus } from "@/app/actions/tasks";
+import { useApprovalErrorToast } from "@/components/approvals/use-approval-error";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -113,6 +114,12 @@ export function StatusButton({
 	const [pending, start] = useTransition();
 	const [noteFor, setNoteFor] = useState<string | null>(null);
 	const [note, setNote] = useState("");
+	// Solo-Modus: Übergang wartet auf eine Begründung der Selbstfreigabe.
+	const [soloFor, setSoloFor] = useState<{ to: string; note?: string } | null>(
+		null,
+	);
+	const [soloReason, setSoloReason] = useState("");
+	const approvalError = useApprovalErrorToast();
 
 	const machine = MACHINES[target.kind] as StatusMachine<string>;
 	// Freigabepflichtige Übergänge bleiben wählbar — die Action startet den Workflow.
@@ -123,9 +130,18 @@ export function StatusButton({
 	const primary = options.find((o) => o.primary) ?? options[0];
 	const rest = options.filter((o) => o !== primary);
 
-	function run(to: string, withNote?: string) {
+	function run(to: string, withNote?: string, selfApprovalReason?: string) {
 		start(async () => {
-			const fail = (error: string): undefined => {
+			const fail = (
+				error: string,
+				detail?: Record<string, string>,
+			): undefined => {
+				if (error === "solo_reason_required") {
+					setNoteFor(null);
+					setSoloFor({ to, note: withNote });
+					return undefined;
+				}
+				if (approvalError({ error, detail })) return undefined;
 				toast.error(
 					error.startsWith("transition_")
 						? t("transitionBlocked")
@@ -153,7 +169,7 @@ export function StatusButton({
 					status: to,
 					note: withNote,
 				});
-				if (!res.ok) return fail(res.error);
+				if (!res.ok) return fail(res.error, res.detail);
 				const sat = res.data.satisfied;
 				const fw = res.data.frameworks.filter((f) => f.before !== f.after);
 				if (sat.length > 0 || fw.length > 0) {
@@ -183,15 +199,16 @@ export function StatusButton({
 					status: to,
 					note: withNote,
 				});
-				if (!res.ok) return fail(res.error);
+				if (!res.ok) return fail(res.error, res.detail);
 				toast.success(t("statusChanged"));
 			} else if (target.kind === "risk") {
 				const res = await setRiskStatus({
 					riskId: target.riskId,
 					status: to,
 					note: withNote,
+					selfApprovalReason,
 				});
-				if (!res.ok) return fail(res.error);
+				if (!res.ok) return fail(res.error, res.detail);
 				toast.success(
 					res.data.approvalRequested
 						? t("approvalRequested")
@@ -202,8 +219,9 @@ export function StatusButton({
 					incidentId: target.incidentId,
 					status: to,
 					note: withNote,
+					selfApprovalReason,
 				});
-				if (!res.ok) return fail(res.error);
+				if (!res.ok) return fail(res.error, res.detail);
 				toast.success(
 					res.data.approvalRequested
 						? t("approvalRequested")
@@ -215,7 +233,7 @@ export function StatusButton({
 					status: to,
 					note: withNote,
 				});
-				if (!res.ok) return fail(res.error);
+				if (!res.ok) return fail(res.error, res.detail);
 				toast.success(t("statusChanged"));
 			} else if (target.kind === "security_engagement") {
 				const res = await setEngagementStatus({
@@ -223,7 +241,7 @@ export function StatusButton({
 					status: to as EngagementStatus,
 					note: withNote,
 				});
-				if (!res.ok) return fail(res.error);
+				if (!res.ok) return fail(res.error, res.detail);
 				toast.success(t("statusChanged"));
 			} else if (target.kind === "security_finding") {
 				const res = await setFindingStatus({
@@ -231,7 +249,7 @@ export function StatusButton({
 					status: to as "open",
 					note: withNote,
 				});
-				if (!res.ok) return fail(res.error);
+				if (!res.ok) return fail(res.error, res.detail);
 				toast.success(t("statusChanged"));
 			} else if (target.kind === "product") {
 				const res = await setProductStatus({
@@ -239,7 +257,7 @@ export function StatusButton({
 					status: to,
 					note: withNote,
 				});
-				if (!res.ok) return fail(res.error);
+				if (!res.ok) return fail(res.error, res.detail);
 				toast.success(t("statusChanged"));
 			} else if (target.kind === "process") {
 				const res = await setProcessStatus({
@@ -247,7 +265,7 @@ export function StatusButton({
 					status: to,
 					note: withNote,
 				});
-				if (!res.ok) return fail(res.error);
+				if (!res.ok) return fail(res.error, res.detail);
 				toast.success(t("statusChanged"));
 			} else {
 				const res = await transitionDocument({
@@ -259,8 +277,9 @@ export function StatusButton({
 						| "retired"
 						| "draft",
 					note: withNote,
+					selfApprovalReason,
 				});
-				if (!res.ok) return fail(res.error);
+				if (!res.ok) return fail(res.error, res.detail);
 				toast.success(
 					res.data.approvalRequested
 						? t("approvalRequested")
@@ -269,6 +288,8 @@ export function StatusButton({
 			}
 			setNoteFor(null);
 			setNote("");
+			setSoloFor(null);
+			setSoloReason("");
 			router.refresh();
 		});
 	}
@@ -350,6 +371,37 @@ export function StatusButton({
 							onClick={() => noteFor && run(noteFor, note)}
 						>
 							{tc("save")}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+			<Dialog
+				open={soloFor !== null}
+				onOpenChange={(o) => !o && setSoloFor(null)}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{t("soloTitle")}</DialogTitle>
+						<DialogDescription>{t("soloLead")}</DialogDescription>
+					</DialogHeader>
+					<Textarea
+						value={soloReason}
+						onChange={(e) => setSoloReason(e.target.value)}
+						rows={3}
+						autoFocus
+						placeholder={t("soloPlaceholder")}
+					/>
+					<DialogFooter>
+						<Button variant="ghost" onClick={() => setSoloFor(null)}>
+							{tc("cancel")}
+						</Button>
+						<Button
+							disabled={pending || soloReason.trim().length < 10}
+							onClick={() =>
+								soloFor && run(soloFor.to, soloFor.note, soloReason.trim())
+							}
+						>
+							{t("soloSubmit")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

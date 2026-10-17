@@ -16,7 +16,7 @@ import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
 import { RiskEditForm, TreatmentForm } from "@/components/risks/risk-forms";
 import { Badge } from "@/components/ui/badge";
-import { approverEligibility } from "@/lib/approvals/rules";
+import { approverEligibility, waitingApprovers } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
 	latestRequestFor,
@@ -68,7 +68,6 @@ export default async function RiskDetailPage({
 	const t = await getTranslations("Risks");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const ta = await getTranslations("Approvals");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const r = await getRisk(tx, ctx.orgId, id);
 		if (!r) return null;
@@ -312,15 +311,15 @@ export default async function RiskDetailPage({
 				names={names}
 				eligible={eligible}
 				currentUserId={ctx.userId}
-				labels={{
-					title: ta("bar"),
-					step: (n) => ta("step", { n }),
-					dueAt: ta("dueAt"),
-					overdue: ta("overdue"),
-					selfApproved: ta("selfApproved"),
-					history: ta("history"),
-					status: (s) => s,
-				}}
+				waitingFor={
+					approval?.status === "pending"
+						? waitingApprovers(approval, candidates, {
+								requesterUserId: approval.requestedByUserId,
+								entityOwnerUserId: risk.ownerUserId,
+								delegations: dels,
+							}).map((c) => names.get(c.userId) ?? "—")
+						: []
+				}
 			/>
 
 			<Section

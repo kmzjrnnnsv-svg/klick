@@ -8,7 +8,12 @@ import { auditPlatform } from "@/lib/audit";
 import type { OrgCtx } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
 import { env } from "@/lib/env";
-import { type OrgRole, type Resource, roleAllows } from "./permissions";
+import {
+	type OrgRole,
+	type Resource,
+	roleAllows,
+	type statements,
+} from "./permissions";
 import { type AuthSession, auth } from "./server";
 import {
 	AuthError as AuthErr,
@@ -101,7 +106,12 @@ export type OrgContext = {
 	stepUpFresh: boolean;
 };
 
-export type Permission = Partial<Record<Resource, readonly string[]>>;
+// Nur Aktionen, die es im Statement-Modell gibt — ein Tippfehler oder eine
+// nicht existente Aktion (z. B. member:["read"]) fällt sonst erst zur Laufzeit
+// auf, wenn authorize() für alle Rollen false liefert.
+export type Permission = {
+	[R in Resource]?: readonly (typeof statements)[R][number][];
+};
 
 export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 	const ctx = await getSessionCtx();

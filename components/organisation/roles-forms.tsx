@@ -12,6 +12,7 @@ import {
 	upsertRoleAssignment,
 	upsertScope,
 } from "@/app/actions/organisation";
+import { useApprovalErrorToast } from "@/components/approvals/use-approval-error";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
@@ -449,6 +450,7 @@ export function ScopeApproveButton({
 	soloHint?: boolean;
 }) {
 	const t = useTranslations("Organisation");
+	const approvalError = useApprovalErrorToast();
 	const ts = useTranslations("Status");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -473,6 +475,7 @@ export function ScopeApproveButton({
 							scopeId,
 							selfApprovalReason: reason || undefined,
 						});
+						if (!res.ok && approvalError(res)) return;
 						if (!res.ok)
 							return void toast.error(
 								res.error.startsWith("solo_") ||

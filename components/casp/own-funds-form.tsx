@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { requestOwnFundsApproval, upsertOwnFunds } from "@/app/actions/casp";
+import { useApprovalErrorToast } from "@/components/approvals/use-approval-error";
 import {
 	EditTrigger,
 	Field,
@@ -364,6 +365,7 @@ export function OwnFundsApproveButton({
 	soloHint?: boolean;
 }) {
 	const t = useTranslations("OwnFunds");
+	const approvalError = useApprovalErrorToast();
 	const ts = useTranslations("Status");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -388,6 +390,7 @@ export function OwnFundsApproveButton({
 							id,
 							selfApprovalReason: reason || undefined,
 						});
+						if (!res.ok && approvalError(res)) return;
 						if (!res.ok)
 							return void toast.error(
 								res.error.startsWith("solo_") ||

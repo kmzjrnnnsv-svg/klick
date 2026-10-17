@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createResolution } from "@/app/actions/resolutions";
+import { useApprovalErrorToast } from "@/components/approvals/use-approval-error";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -64,6 +65,7 @@ export function ResolutionForm({
 	};
 }) {
 	const t = useTranslations("Resolutions");
+	const approvalError = useApprovalErrorToast();
 	const ts = useTranslations("Status");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -122,6 +124,7 @@ export function ResolutionForm({
 								requestApproval: withApproval,
 								selfApprovalReason: reason || undefined,
 							});
+							if (!res.ok && approvalError(res)) return;
 							if (!res.ok)
 								return void toast.error(
 									res.error.startsWith("solo_") || res.error === "no_approver"

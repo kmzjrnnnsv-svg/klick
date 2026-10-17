@@ -9,7 +9,7 @@ import {
 	shareholders,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
-import { requestApproval } from "@/lib/approvals/service";
+import { approvalDetail, requestApproval } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
@@ -220,7 +220,6 @@ async function requestOwnFundsApprovalImpl(
 					kind: "own_funds",
 					entityType: "own_funds_calculation",
 					entityId: row.id,
-					entityOwnerUserId: null,
 					entityVersionRef: row.periodLabel,
 					title: `Eigenmittel ${row.periodLabel}`,
 					link: "/eigenmittel",
@@ -246,7 +245,10 @@ async function requestOwnFundsApprovalImpl(
 						},
 					};
 				}
-				return { result: { ok: false, error: r.error }, audit: [] };
+				return {
+					result: { ok: false, error: r.error, ...approvalDetail(r) },
+					audit: [],
+				};
 			}
 			return {
 				result: {

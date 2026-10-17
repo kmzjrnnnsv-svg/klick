@@ -61,6 +61,9 @@ async function decideApprovalImpl(
 						note: d.note ?? null,
 						outcome: r.status,
 						onBehalfOf: r.onBehalfOf ?? null,
+						...(r.skippedSteps.length > 0
+							? { skippedSteps: r.skippedSteps }
+							: {}),
 					},
 				},
 				...extra,

@@ -22,7 +22,7 @@ import {
 } from "@/components/incidents/incident-forms";
 import { Badge } from "@/components/ui/badge";
 import type { IncidentRegime } from "@/db/schema/enums";
-import { approverEligibility } from "@/lib/approvals/rules";
+import { approverEligibility, waitingApprovers } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
 	latestRequestFor,
@@ -71,7 +71,6 @@ export default async function IncidentDetailPage({
 	const t = await getTranslations("Incidents");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const ta = await getTranslations("Approvals");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const r = await getIncident(tx, ctx.orgId, id);
 		if (!r) return null;
@@ -385,15 +384,15 @@ export default async function IncidentDetailPage({
 					names={names}
 					eligible={eligible}
 					currentUserId={ctx.userId}
-					labels={{
-						title: ta("bar"),
-						step: (n) => ta("step", { n }),
-						dueAt: ta("dueAt"),
-						overdue: ta("overdue"),
-						selfApproved: ta("selfApproved"),
-						history: ta("history"),
-						status: (s) => s,
-					}}
+					waitingFor={
+						approval?.status === "pending"
+							? waitingApprovers(approval, candidates, {
+									requesterUserId: approval.requestedByUserId,
+									entityOwnerUserId: incident.ownerUserId,
+									delegations: dels,
+								}).map((c) => names.get(c.userId) ?? "—")
+							: []
+					}
 				/>
 			)}
 

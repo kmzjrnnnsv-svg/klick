@@ -16,6 +16,7 @@ import {
 	upsertMonitoringRule,
 	upsertSuspiciousReport,
 } from "@/app/actions/aml";
+import { useApprovalErrorToast } from "@/components/approvals/use-approval-error";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import {
 	EditTrigger,
@@ -263,6 +264,7 @@ export function RiskAnalysisApproveButton({
 	soloHint?: boolean;
 }) {
 	const t = useTranslations("Aml");
+	const approvalError = useApprovalErrorToast();
 	const ts = useTranslations("Status");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -287,6 +289,7 @@ export function RiskAnalysisApproveButton({
 							id,
 							selfApprovalReason: reason || undefined,
 						});
+						if (!res.ok && approvalError(res)) return;
 						if (!res.ok)
 							return void toast.error(
 								res.error.startsWith("solo_") ||
