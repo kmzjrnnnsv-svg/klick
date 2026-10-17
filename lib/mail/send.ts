@@ -213,7 +213,7 @@ export function mailErrorHint(
 		e.includes("invalid login") ||
 		e.includes("authentication")
 	)
-		return "SMTP-Anmeldung abgelehnt — SMTP_USER/SMTP_PASS prüfen (Brevo: Login-Adresse + SMTP-Schlüssel, nicht das Konto-Passwort; SMTP_PASS kommt aus dem systemd-Credential smtp_pass).";
+		return "SMTP-Anmeldung abgelehnt — SMTP_USER (meist die volle Postfach-Adresse) und das Passwort im systemd-Credential smtp_pass prüfen. Aliasse und Weiterleitungen können sich nicht anmelden; Brevo verlangt den SMTP-Schlüssel statt des Konto-Passworts.";
 	if (e.includes("sender") || e.includes("550") || e.includes("553"))
 		return "Absender abgelehnt — MAIL_FROM muss beim Provider als Absender verifiziert sein.";
 	return null;
