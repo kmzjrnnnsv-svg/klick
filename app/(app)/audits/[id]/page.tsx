@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import {
+	AdoptFindingsButton,
 	AuditForm,
 	AuditRequestForm,
 	AuditStatusSelect,
@@ -40,6 +41,7 @@ import {
 	FRAMEWORK_BY_SLUG,
 } from "@/lib/compliance/catalog";
 import type { ReqCoverage } from "@/lib/compliance/coverage";
+import { findingNeedsNonconformity } from "@/lib/compliance/nonconformity";
 import {
 	fmtDate,
 	getOrgCoverageCached,
@@ -59,6 +61,7 @@ import {
 import { loadReadiness } from "@/lib/compliance/queries-readiness";
 import { newRiskHref } from "@/lib/compliance/risk-sources";
 import { readOrg } from "@/lib/db/with-org";
+import { NONCONFORMITY_STATUS } from "@/lib/entities/nonconformity";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import { cn } from "@/lib/utils";
 
@@ -182,6 +185,12 @@ export default async function AuditCockpitPage({
 		evidence,
 	} = data;
 
+	const adoptable = findings.filter(
+		(f) =>
+			!f.nonconformityId &&
+			f.status !== "closed" &&
+			findingNeedsNonconformity(f.severity),
+	).length;
 	const evidenceCount = new Map<string, number>();
 	for (const e of evidenceLinks)
 		for (const code of e.controlCodes)
@@ -597,15 +606,20 @@ export default async function AuditCockpitPage({
 				<section className="flex flex-col gap-4">
 					<div className="flex items-start justify-between gap-3">
 						<p className="text-muted-foreground text-sm">{t("findingsLead")}</p>
-						{canFinding && (
-							<FindingForm
-								auditId={audit.id}
-								controlOptions={CONTROLS.map((c) => ({
-									code: c.code,
-									title: c.title,
-								}))}
-							/>
-						)}
+						<div className="flex shrink-0 flex-wrap items-center gap-2">
+							{canNc && adoptable > 0 && (
+								<AdoptFindingsButton auditId={audit.id} count={adoptable} />
+							)}
+							{canFinding && (
+								<FindingForm
+									auditId={audit.id}
+									controlOptions={CONTROLS.map((c) => ({
+										code: c.code,
+										title: c.title,
+									}))}
+								/>
+							)}
+						</div>
 					</div>
 					{findings.length === 0 ? (
 						<p className="text-sm">{t("findingsEmpty")}</p>
@@ -672,7 +686,14 @@ export default async function AuditCockpitPage({
 													href={`/abweichungen/${f.nonconformityId}`}
 													className="font-mono text-xs hover:underline"
 												>
-													{f.ncCode} · {f.ncStatus}
+													{f.ncCode} ·{" "}
+													{f.ncStatus
+														? ts(
+																NONCONFORMITY_STATUS.labelKey[
+																	f.ncStatus
+																] as "ncOpen",
+															)
+														: ""}
 												</Link>
 											) : canNc ? (
 												<FindingToNcButton findingId={f.id} />

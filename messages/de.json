@@ -2212,10 +2212,10 @@
 		"rejectNote": "Grund der Ablehnung",
 		"accepted": "Akzeptiert.",
 		"rejected": "Abgelehnt — Aufgabe zur Nachbesserung erzeugt.",
-		"findingsLead": "Feststellungen mit Schweregrad; „Als Abweichung übernehmen“ startet den CAPA-Regelkreis.",
+		"findingsLead": "Feststellungen mit Schweregrad. Ab „leicht“ eröffnet Klick automatisch eine Abweichung (CAPA); Beobachtungen bleiben Hinweise und lassen sich bei Bedarf übernehmen.",
 		"findingsEmpty": "Noch keine Findings.",
 		"newFinding": "Finding",
-		"findingLead": "Feststellung mit Schweregrad und betroffenem Control.",
+		"findingLead": "Feststellung mit Schweregrad und betroffenem Control. Ab „leicht“ entsteht direkt eine Abweichung.",
 		"severity": "Schweregrad",
 		"severity_observation": "Beobachtung",
 		"severity_minor": "gering",
@@ -2229,7 +2229,10 @@
 		"nonconformity": "Abweichung",
 		"toNonconformity": "Als Abweichung übernehmen",
 		"ncCreated": "Abweichung {code} angelegt.",
-		"tabReadiness": "Prüfungsreife"
+		"tabReadiness": "Prüfungsreife",
+		"findingSavedNc": "Finding gespeichert – Abweichung {code} eröffnet.",
+		"adoptFindings": "Offene Findings übernehmen ({n})",
+		"adoptFindingsDone": "{n, plural, =0 {Keine offenen Findings ohne Abweichung.} one {Eine Abweichung eröffnet.} other {# Abweichungen eröffnet.}}"
 	},
 	"Nonconformities": {
 		"forbidden": "Dafür fehlen dir die Rechte (Prüfer:innen dürfen Abweichungen anlegen, aber nicht bearbeiten).",
@@ -2292,9 +2295,10 @@
 		"sourceLink": "Quelle",
 		"canClose": "Abschluss möglich.",
 		"empty": "Noch keine Abweichungen",
-		"emptyLead": "Abweichungen entstehen automatisch aus schwerwiegenden Vorfällen und nicht bestandenen Tests — oder du erfasst sie hier.",
+		"emptyLead": "Abweichungen entstehen automatisch aus Audit-Findings ab „leicht“, schwerwiegenden Vorfällen und nicht bestandenen Tests — oder du erfasst sie hier.",
 		"requiredBy": "Gefordert von CC-GOV-07 · ISO 27001 10.2 · DORA Art. 13 · ZAG-MaRisk AT 4.4.3",
-		"source_security_finding": "Sicherheitsbefund"
+		"source_security_finding": "Sicherheitsbefund",
+		"sourceAudit": "Audit · {title}"
 	},
 	"ManagementReview": {
 		"title": "Managementbewertung",

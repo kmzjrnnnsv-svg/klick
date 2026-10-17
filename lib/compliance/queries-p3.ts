@@ -715,6 +715,21 @@ export async function listAllFindings(tx: OrgTx, orgId: string) {
 
 // ── Abweichungen ───────────────────────────────────────────────────────────
 
+// Audit hinter einer Abweichung aus einem Finding (sourceRefId = Finding)
+async function auditsByFinding(
+	tx: OrgTx,
+	findingIds: (string | null)[],
+): Promise<Map<string, { id: string; title: string }>> {
+	const ids = [...new Set(findingIds.filter((x): x is string => Boolean(x)))];
+	if (ids.length === 0) return new Map();
+	const rows = await tx
+		.select({ findingId: auditFindings.id, id: audits.id, title: audits.title })
+		.from(auditFindings)
+		.innerJoin(audits, eq(audits.id, auditFindings.auditId))
+		.where(inArray(auditFindings.id, ids));
+	return new Map(rows.map((r) => [r.findingId, { id: r.id, title: r.title }]));
+}
+
 export async function listNonconformities(tx: OrgTx, orgId: string) {
 	const rows = await tx
 		.select()
@@ -725,12 +740,20 @@ export async function listNonconformities(tx: OrgTx, orgId: string) {
 		tx,
 		rows.flatMap((r) => [r.ownerUserId, r.assigneeUserId]),
 	);
+	const byFinding = await auditsByFinding(
+		tx,
+		rows.filter((r) => r.source === "audit").map((r) => r.sourceRefId),
+	);
 	return rows.map((r) => ({
 		...r,
 		ownerName: r.ownerUserId ? (names.get(r.ownerUserId) ?? null) : null,
 		assigneeName: r.assigneeUserId
 			? (names.get(r.assigneeUserId) ?? null)
 			: null,
+		sourceAudit:
+			r.source === "audit" && r.sourceRefId
+				? (byFinding.get(r.sourceRefId) ?? null)
+				: null,
 	}));
 }
 
@@ -747,7 +770,12 @@ export async function getNonconformity(tx: OrgTx, orgId: string, id: string) {
 		.limit(1);
 	if (!r) return null;
 	const names = await userNames(tx, [r.ownerUserId, r.assigneeUserId]);
-	return { nc: r, names };
+	const sourceAudit =
+		r.source === "audit" && r.sourceRefId
+			? ((await auditsByFinding(tx, [r.sourceRefId])).get(r.sourceRefId) ??
+				null)
+			: null;
+	return { nc: r, names, sourceAudit };
 }
 
 // ── Managementbewertung ────────────────────────────────────────────────────

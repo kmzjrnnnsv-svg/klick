@@ -130,6 +130,12 @@ export function nonconformityFromSecurityFindings(
 }
 
 // Audit-Finding übernehmen (major/critical als Abweichung).
+// Findings ab „leicht“ eröffnen automatisch eine Abweichung (CAPA);
+// Beobachtungen bleiben Hinweise ohne Abweichung.
+export function findingNeedsNonconformity(severity: string): boolean {
+	return severity !== "observation";
+}
+
 export function nonconformityFromFinding(
 	finding: {
 		id: string;

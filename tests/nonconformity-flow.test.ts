@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	capaState,
+	findingNeedsNonconformity,
 	nextNonconformityCode,
 	nonconformityFromFinding,
 	nonconformityFromIncident,
@@ -83,6 +84,15 @@ describe("Abweichung aus Quellen", () => {
 				now,
 			).dueAt,
 		).toBe("2026-11-06");
+	});
+});
+
+describe("Findings → Abweichung", () => {
+	it("ab „leicht“ automatisch, Beobachtung nicht", () => {
+		expect(findingNeedsNonconformity("minor")).toBe(true);
+		expect(findingNeedsNonconformity("major")).toBe(true);
+		expect(findingNeedsNonconformity("critical")).toBe(true);
+		expect(findingNeedsNonconformity("observation")).toBe(false);
 	});
 });
 

@@ -361,6 +361,8 @@ export const findingStatusSchema = z.object({
 	status: z.enum(FINDING_STATUSES),
 });
 
+export const adoptFindingsSchema = z.object({ auditId: z.uuid() });
+
 export const findingToNonconformitySchema = z.object({ findingId: uuid });
 
 export const auditRequestSchema = z.object({
