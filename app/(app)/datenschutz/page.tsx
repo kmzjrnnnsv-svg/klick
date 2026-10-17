@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { isExternal } from "@/lib/auth/memberships";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
@@ -70,7 +71,7 @@ export default async function PrivacyPage({
 	const t = await getTranslations("Privacy");
 	const now = new Date();
 	const canEdit = roleAllows(ctx.orgRole, { privacy: ["update"] });
-	const detail = ctx.orgRole !== "auditor" || ctx.grants.includes("hr_detail");
+	const detail = !isExternal(ctx.orgRole) || ctx.grants.includes("hr_detail");
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const [members, activities, requests, evidence] = await Promise.all([

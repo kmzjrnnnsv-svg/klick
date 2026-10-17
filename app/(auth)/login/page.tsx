@@ -2,15 +2,17 @@ import { getTranslations } from "next-intl/server";
 import { LoginForm } from "@/components/auth/login-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { gateAuth } from "@/lib/auth/gates";
+import { safeReturnPath } from "@/lib/auth/session-rules";
 
 export default async function LoginPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ grund?: string }>;
+	searchParams: Promise<{ grund?: string; weiter?: string }>;
 }) {
 	await gateAuth("/login");
 	const t = await getTranslations("Auth");
-	const { grund } = await searchParams;
+	const { grund, weiter } = await searchParams;
+	const next = safeReturnPath(weiter);
 	const reason =
 		grund === "sitzung-abgelaufen"
 			? t("reasonSessionExpired")
@@ -46,6 +48,7 @@ export default async function LoginPage({
 			<LoginForm
 				microsoftEnabled={microsoftEnabled}
 				signupAllowed={signupAllowed}
+				next={next}
 			/>
 		</div>
 	);

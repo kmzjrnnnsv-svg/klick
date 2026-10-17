@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CASP_SERVICES, LICENCE_STAGES } from "@/db/schema/enums";
+import { ORG_ROLES } from "@/lib/auth/session-rules";
 import { shortText, slug } from "./common";
 
 export const sectorSchema = z.enum(["casp", "bank", "payment", "emi", "other"]);
@@ -21,15 +22,15 @@ export type CreateOrganizationFormInput = z.input<
 
 export const inviteMemberSchema = z.object({
 	email: z.email(),
-	role: z.enum(["owner", "editor", "viewer", "auditor"]),
-	// nur für auditor: Zugang endet automatisch
+	role: z.enum(ORG_ROLES),
+	// nur für auditor/consultant: Zugang endet automatisch
 	accessUntil: z.coerce.date().optional(),
 });
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
 
 export const updateMemberRoleSchema = z.object({
 	memberId: z.uuid(),
-	role: z.enum(["owner", "editor", "viewer", "auditor"]),
+	role: z.enum(ORG_ROLES),
 });
 
 // Stammdaten für Meldungen (Informationsregister, Antrag, Lieferantenpaket).

@@ -1,6 +1,7 @@
 "use client";
 
 import { Menu } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,11 +18,14 @@ import { SidebarNav } from "./sidebar-nav";
 export function MobileNav({
 	groups,
 	orgName,
+	canSwitch = false,
 }: {
 	groups: NavGroup[];
 	orgName: string;
+	canSwitch?: boolean;
 }) {
 	const t = useTranslations("Common");
+	const to = useTranslations("Organisations");
 	const [open, setOpen] = useState(false);
 	return (
 		<Sheet open={open} onOpenChange={setOpen}>
@@ -40,6 +44,15 @@ export function MobileNav({
 					<SheetTitle className="lv-wordmark text-[0.8rem]">
 						{orgName}
 					</SheetTitle>
+					{canSwitch && (
+						<Link
+							href="/organisationen"
+							onClick={() => setOpen(false)}
+							className="text-muted-foreground text-xs underline-offset-4 hover:underline"
+						>
+							{to("switch")}
+						</Link>
+					)}
 				</SheetHeader>
 				<div className="overflow-y-auto px-3 py-3">
 					<SidebarNav groups={groups} onNavigate={() => setOpen(false)} />

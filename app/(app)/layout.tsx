@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { gateApp } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { getOrgSummary } from "@/lib/auth/org";
+import { roleLabel } from "@/lib/auth/memberships";
+import { getOrgSummary, listUserMemberships } from "@/lib/auth/org";
 import { readOrg } from "@/lib/db/with-org";
 import { buildNav } from "@/lib/nav";
 import { listNotifications, unreadCount } from "@/lib/notifications/query";
@@ -12,7 +13,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
 	const ctx = await gateApp();
-	const org = await getOrgSummary(ctx.orgId);
+	const [org, memberships] = await Promise.all([
+		getOrgSummary(ctx.orgId),
+		listUserMemberships(ctx.userId),
+	]);
 	const { settings, fws, bell } = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		settings: await getOrgSettings(tx, ctx.orgId),
 		fws: await listOrgFrameworks(tx, ctx.orgId),
@@ -31,6 +35,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 		<AppShell
 			ctx={ctx}
 			orgName={org?.name ?? "Organisation"}
+			orgs={memberships.map((m) => ({
+				organizationId: m.organizationId,
+				orgName: m.orgName,
+				roleLabel: roleLabel(m.role),
+				expired: m.expired,
+			}))}
 			groups={groups}
 			bell={bell}
 		>

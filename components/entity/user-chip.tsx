@@ -13,10 +13,13 @@ export function UserChip({
 	name,
 	fallback = "—",
 	size = "sm",
+	external = false,
 }: {
 	name: string | null | undefined;
 	fallback?: string;
 	size?: "sm" | "md";
+	// Prüfer:in/Berater:in (ADR-018): kleine Kennzeichnung „extern“
+	external?: boolean;
 }) {
 	if (!name) return <span className="text-muted-foreground">{fallback}</span>;
 	return (
@@ -27,6 +30,11 @@ export function UserChip({
 				</AvatarFallback>
 			</Avatar>
 			<span className="truncate">{name}</span>
+			{external && (
+				<span className="rounded-sm bg-warning/20 px-1 text-[0.6rem] text-foreground uppercase tracking-[0.1em]">
+					extern
+				</span>
+			)}
 		</span>
 	);
 }

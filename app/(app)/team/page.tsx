@@ -21,6 +21,7 @@ import { listRequestsForUser } from "@/lib/approvals/service";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { normalizeRole, toOrgCtx } from "@/lib/auth/guards";
+import { isExternal } from "@/lib/auth/memberships";
 import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
 import { listControlRows, listTasks } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
@@ -106,13 +107,18 @@ export default async function TeamPage() {
 											variant={
 												role === "owner"
 													? "default"
-													: role === "auditor"
+													: isExternal(role)
 														? "warning"
 														: "outline"
 											}
 										>
 											{roleLabel(role)}
 										</Badge>
+										{role === "auditor" && (
+											<Badge variant="muted" className="ml-1">
+												{t("external")}
+											</Badge>
+										)}
 										{m.accessUntil && (
 											<span
 												className={`ml-2 text-xs ${m.accessUntil.getTime() < Date.now() ? "text-destructive" : "text-muted-foreground"}`}
@@ -139,7 +145,7 @@ export default async function TeamPage() {
 									<TableCell className="text-right">
 										{canManage && (
 											<span className="inline-flex items-center gap-1">
-												{(role === "auditor" || m.accessUntil) && (
+												{(isExternal(role) || m.accessUntil) && (
 													<MemberAccessForm
 														memberId={m.memberId}
 														accessUntil={m.accessUntil}

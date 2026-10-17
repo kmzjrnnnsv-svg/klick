@@ -4,30 +4,28 @@ import type { ReactNode } from "react";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import type { OrgContext } from "@/lib/auth/guards";
+import { isExternal, ROLE_LABEL } from "@/lib/auth/memberships";
 import type { NavGroup } from "@/lib/nav";
 import { CommandPalette } from "./command-palette";
 import { MobileNav } from "./mobile-nav";
 import type { BellItem } from "./notification-bell";
 import { NotificationBell } from "./notification-bell";
+import { OrgSwitcher, type SwitcherOrg } from "./org-switcher";
 import { SidebarNav } from "./sidebar-nav";
 import { UserMenu } from "./user-menu";
-
-const ROLE_LABEL: Record<OrgContext["orgRole"], string> = {
-	owner: "Inhaber:in",
-	editor: "Bearbeiter:in",
-	viewer: "Lesend",
-	auditor: "Prüfer:in",
-};
 
 export async function AppShell({
 	ctx,
 	orgName,
+	orgs,
 	groups,
 	bell,
 	children,
 }: {
 	ctx: OrgContext;
 	orgName: string;
+	// alle Mitgliedschaften des Kontos (Umschalter ab zwei)
+	orgs: readonly SwitcherOrg[];
 	groups: NavGroup[];
 	bell: { items: BellItem[]; unread: number };
 	children: ReactNode;
@@ -45,9 +43,24 @@ export async function AppShell({
 					</Link>
 				</div>
 				<div className="px-4 pt-4 pb-2">
-					<p className="lv-eyebrow truncate text-[0.58rem] text-muted-foreground">
-						{orgName}
-					</p>
+					{orgs.length > 1 ? (
+						<div className="-mx-1">
+							<OrgSwitcher
+								currentOrgId={ctx.orgId}
+								currentName={orgName}
+								orgs={orgs}
+							/>
+						</div>
+					) : (
+						<p className="lv-eyebrow truncate text-[0.58rem] text-muted-foreground">
+							{orgName}
+						</p>
+					)}
+					{isExternal(ctx.orgRole) && (
+						<p className="mt-1 text-[0.68rem] text-muted-foreground">
+							{t("externalAccess", { role: ROLE_LABEL[ctx.orgRole] })}
+						</p>
+					)}
 				</div>
 				<div className="flex-1 overflow-y-auto px-3 pb-4">
 					<SidebarNav groups={groups} />
@@ -55,7 +68,11 @@ export async function AppShell({
 			</aside>
 			<div className="flex min-w-0 flex-1 flex-col">
 				<header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-border/60 border-b bg-background/85 px-3 backdrop-blur sm:px-6">
-					<MobileNav groups={groups} orgName={orgName} />
+					<MobileNav
+						groups={groups}
+						orgName={orgName}
+						canSwitch={orgs.length > 1}
+					/>
 					<Link href="/heute" className="lv-wordmark text-[0.8rem] lg:hidden">
 						{t("productName")}
 					</Link>

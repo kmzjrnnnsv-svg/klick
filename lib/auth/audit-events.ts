@@ -67,6 +67,18 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 			return;
 		}
 
+		// Org-Wechsel direkt über die Better-Auth-API (am Umschalter vorbei):
+		// Step-up verfällt auch hier (ADR-018), der Ablauf greift im Guard.
+		if (path === "/organization/set-active") {
+			if (!failed && current) {
+				await globalDb
+					.update(sessionTable)
+					.set({ stepUpAt: new Date(0) })
+					.where(eq(sessionTable.id, current.session.id));
+			}
+			return;
+		}
+
 		if (path === "/sign-in/magic-link") {
 			// Anfrage: kein Erfolg/Fehler nach außen unterscheidbar (Enumeration),
 			// intern aber protokolliert.

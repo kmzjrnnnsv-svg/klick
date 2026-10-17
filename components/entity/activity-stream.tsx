@@ -6,10 +6,13 @@ import { UserChip } from "./user-chip";
 export function ActivityStream({
 	entries,
 	names,
+	external,
 	labels,
 }: {
 	entries: ActivityEntry[];
 	names: Map<string, string>;
+	// User-IDs externer Mitglieder (Prüfer:innen, Berater:innen)
+	external?: ReadonlySet<string>;
 	labels: { empty: string; changed: string; commented: string; system: string };
 }) {
 	const fmt = new Intl.DateTimeFormat("de-DE", {
@@ -30,7 +33,13 @@ export function ActivityStream({
 					return (
 						<li key={`c-${e.comment.id}`} className="flex flex-col gap-1">
 							<div className="flex items-center justify-between gap-2 text-muted-foreground text-xs">
-								<UserChip name={name ?? labels.system} />
+								<UserChip
+									name={name ?? labels.system}
+									external={Boolean(
+										e.comment.authorUserId &&
+											external?.has(e.comment.authorUserId),
+									)}
+								/>
 								<time dateTime={e.at.toISOString()}>{fmt.format(e.at)}</time>
 							</div>
 							<div className="rounded-md bg-muted/50 px-3 py-2">
@@ -47,7 +56,12 @@ export function ActivityStream({
 					<li key={`h-${e.item.id}`} className="flex flex-col gap-1">
 						<div className="flex items-center justify-between gap-2 text-muted-foreground text-xs">
 							<span className="inline-flex items-center gap-1.5">
-								<UserChip name={name ?? labels.system} />
+								<UserChip
+									name={name ?? labels.system}
+									external={Boolean(
+										e.item.actorUserId && external?.has(e.item.actorUserId),
+									)}
+								/>
 								<span>· {labels.changed}</span>
 							</span>
 							<time dateTime={e.at.toISOString()}>{fmt.format(e.at)}</time>

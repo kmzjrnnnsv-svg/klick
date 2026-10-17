@@ -12,6 +12,8 @@ import {
 	requireStepUp,
 	toOrgCtx,
 } from "@/lib/auth/guards";
+import { membershipAllowed } from "@/lib/auth/memberships";
+import { rolesElsewhere } from "@/lib/auth/org";
 import { auth } from "@/lib/auth/server";
 import { mutateOrg } from "@/lib/db/with-org";
 import { syncTrainingAssignments } from "@/lib/trainings/assignments";
@@ -73,6 +75,16 @@ async function updateMemberRoleImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ member: ["update"] });
 	const parsed = updateMemberRoleSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
+	// Eine eigene Organisation je Konto (ADR-018): wer anderswo schon Mitglied
+	// ist, bleibt hier Berater:in.
+	const elsewhere = await rolesElsewhere(parsed.data.memberId, c.orgId);
+	if (!elsewhere) return { ok: false, error: "Mitglied nicht gefunden" };
+	if (!membershipAllowed(elsewhere, parsed.data.role).ok)
+		return {
+			ok: false,
+			error:
+				"Diese Person gehört schon zu einer anderen Organisation und kann hier nur Berater:in (extern) sein.",
+		};
 	try {
 		await auth.api.updateMemberRole({
 			body: {

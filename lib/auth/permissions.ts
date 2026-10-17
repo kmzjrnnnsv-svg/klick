@@ -1,12 +1,15 @@
 // Berechtigungsmodell (Better Auth Access Control).
 //
-// Vier Org-Rollen:
-//   viewer  — lesen + kommentieren
-//   auditor — viewer + Nachweisanfragen + Findings; zeitlich begrenzt über
-//             member_access.accessUntil (Prüfer-Sicht)
-//   editor  — alles außer Freigabe/Veröffentlichung von Dokumenten,
-//             Beschlüsse, Mitglieder, Einstellungen
-//   owner   — alles
+// Fünf Org-Rollen:
+//   viewer     — lesen + kommentieren
+//   auditor    — viewer + Nachweisanfragen + Findings; zeitlich begrenzt über
+//                member_access.accessUntil (Prüfer-Sicht)
+//   consultant — Berater:in (extern, ADR-018): wie editor, aber ohne Löschen,
+//                ohne Freigaben, Risikoakzeptanz und Hinweisgeber-Fälle;
+//                zeitlich begrenzt, darf in mehreren Organisationen sein
+//   editor     — alles außer Freigabe/Veröffentlichung von Dokumenten,
+//                Beschlüsse, Mitglieder, Einstellungen
+//   owner      — alles
 //
 // Freigabe-Entscheidungen hängen zusätzlich an der Funktion aus
 // role_assignments (Workflow-Schritt verlangt z. B. function:compliance) —
@@ -153,6 +156,48 @@ export const editor = ac.newRole({
 	integration: ["read"],
 });
 
+// Berater:in: arbeitet mit, entscheidet nicht. Kein delete, kein
+// approval:decide, kein security:accept, keine Hinweisgeber-Fälle
+// (whistleblowing), keine Integrationen anlegen; Team und Einstellungen
+// bleiben beim Owner. Vertrauliche Detailbereiche (AML, Personal,
+// Beschwerden, streng geheime Nachweise) nur mit Grant (isExternal).
+export const consultant = ac.newRole({
+	...memberAc.statements,
+	control: ["read", "update", "assign"],
+	document: ["read", "create", "update"],
+	process: ["read", "create", "update"],
+	risk: ["read", "create", "update"],
+	incident: ["read", "create", "update"],
+	provider: ["read", "create", "update"],
+	asset: ["read", "create", "update"],
+	evidence: ["read", "create"],
+	milestone: ["read", "create", "update"],
+	task: ["read", "create", "update", "complete"],
+	comment: ["read", "create"],
+	resolution: ["read"],
+	approval: ["read"],
+	audit_request: ["read", "respond"],
+	audit_finding: ["read"],
+	organisation: ["read", "update"],
+	role_assignment: ["read"],
+	audit: ["read", "create", "update"],
+	nonconformity: ["read", "create", "update"],
+	complaint: ["read", "create", "update"],
+	obligation: ["read", "update", "complete"],
+	management_review: ["read", "create", "update"],
+	settings: ["read"],
+	export: ["create"],
+	aml: ["read", "create", "update"],
+	own_funds: ["read", "create", "update"],
+	crypto_asset: ["read", "create", "update"],
+	shareholder: ["read", "create", "update"],
+	privacy: ["read", "create", "update"],
+	assessment: ["read", "create", "answer", "review", "apply"],
+	product: ["read", "create", "update"],
+	security: ["read", "create", "update"],
+	integration: ["read"],
+});
+
 export const owner = ac.newRole({
 	...ownerAc.statements,
 	control: ["read", "update", "assign"],
@@ -193,15 +238,16 @@ export const owner = ac.newRole({
 
 // Better Auth erwartet die Rolle "admin" in der Role-Map nicht zwingend;
 // wir mappen sie auf owner, damit Default-Checks des Plugins nicht brechen.
-export const roles = { owner, editor, viewer, auditor, admin: owner } as const;
+export const roles = {
+	owner,
+	editor,
+	consultant,
+	viewer,
+	auditor,
+	admin: owner,
+} as const;
 
-export type OrgRole = "owner" | "editor" | "viewer" | "auditor";
-export const ORG_ROLES: readonly OrgRole[] = [
-	"owner",
-	"editor",
-	"viewer",
-	"auditor",
-];
+export { ORG_ROLES, type OrgRole } from "./session-rules";
 
 export type Resource = keyof typeof statements;
 export type Permission<R extends Resource = Resource> = {

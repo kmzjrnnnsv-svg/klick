@@ -60,11 +60,19 @@ export function isStepUpFresh(
 	return !!at && now - at.getTime() <= STEP_UP_MS;
 }
 
-export type OrgRole = "owner" | "editor" | "viewer" | "auditor";
+export const ORG_ROLES = [
+	"owner",
+	"editor",
+	"consultant",
+	"viewer",
+	"auditor",
+] as const;
+export type OrgRole = (typeof ORG_ROLES)[number];
 
 const ROLE_RANK: Record<OrgRole, number> = {
-	owner: 4,
-	editor: 3,
+	owner: 5,
+	editor: 4,
+	consultant: 3,
 	auditor: 2,
 	viewer: 1,
 };
@@ -80,6 +88,14 @@ export function normalizeRole(raw: string | null | undefined): OrgRole {
 			best = p as OrgRole;
 	}
 	return best;
+}
+
+// Rücksprung nach dem Login (?weiter=): nur Einladungsseiten, damit der
+// Parameter kein offener Redirect wird.
+export function safeReturnPath(v: string | null | undefined): string | null {
+	return typeof v === "string" && /^\/einladung\/[0-9a-f-]{36}$/.test(v)
+		? v
+		: null;
 }
 
 // Client-IP aus Proxy-Headern (nginx setzt X-Real-IP).

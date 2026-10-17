@@ -1,15 +1,19 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { frameworkOptions } from "@/app/actions/onboarding";
 import { OnboardingWizard } from "@/components/auth/onboarding-wizard";
 import { gateAuth } from "@/lib/auth/gates";
-import { getSessionCtx, membershipCount } from "@/lib/auth/guards";
+import { getSessionCtx, primaryMembershipCount } from "@/lib/auth/guards";
+import { listUserMemberships } from "@/lib/auth/org";
 
 export default async function OnboardingPage() {
 	await gateAuth("/onboarding");
 	const ctx = await getSessionCtx();
 	if (!ctx) redirect("/login");
-	if ((await membershipCount(ctx.user.id)) > 0) redirect("/heute");
+	if ((await primaryMembershipCount(ctx.user.id)) > 0) redirect("/heute");
+	// Nur Berater-Zugänge: eigene Org anlegen geht, die Zugänge bleiben wählbar.
+	const consultantOnly = (await listUserMemberships(ctx.user.id)).length > 0;
 	const t = await getTranslations("Onboarding");
 	const frameworks = await frameworkOptions();
 	return (
@@ -20,6 +24,16 @@ export default async function OnboardingPage() {
 					{t("title")}
 				</h1>
 				<p className="mt-2 text-muted-foreground text-sm">{t("lead")}</p>
+				{consultantOnly && (
+					<p className="mt-2 text-sm">
+						<Link
+							href="/organisationen"
+							className="underline underline-offset-4"
+						>
+							{t("consultantAccess")}
+						</Link>
+					</p>
+				)}
 			</div>
 			<OnboardingWizard
 				frameworks={frameworks}

@@ -34,6 +34,36 @@ describe("permissions", () => {
 		expect(roleAllows("auditor", { control: ["update"] })).toBe(false);
 		expect(roleAllows("auditor", { document: ["create"] })).toBe(false);
 	});
+	it("consultant arbeitet wie editor, löscht und entscheidet nichts", () => {
+		expect(roleAllows("consultant", { control: ["update", "assign"] })).toBe(
+			true,
+		);
+		expect(roleAllows("consultant", { risk: ["create", "update"] })).toBe(true);
+		expect(
+			roleAllows("consultant", { assessment: ["answer", "review", "apply"] }),
+		).toBe(true);
+		expect(roleAllows("consultant", { export: ["create"] })).toBe(true);
+		// nie löschen
+		for (const r of [
+			"document",
+			"process",
+			"risk",
+			"provider",
+			"asset",
+			"evidence",
+			"product",
+		] as const)
+			expect(roleAllows("consultant", { [r]: ["delete"] })).toBe(false);
+		// keine Entscheidungen der Organisation
+		expect(roleAllows("consultant", { approval: ["decide"] })).toBe(false);
+		expect(roleAllows("consultant", { security: ["accept"] })).toBe(false);
+		expect(roleAllows("consultant", { document: ["approve"] })).toBe(false);
+		// Team, Einstellungen, Integrationen, Hinweisgeber bleiben intern
+		expect(roleAllows("consultant", { member: ["create"] })).toBe(false);
+		expect(roleAllows("consultant", { settings: ["update"] })).toBe(false);
+		expect(roleAllows("consultant", { integration: ["create"] })).toBe(false);
+		expect(roleAllows("consultant", { whistleblowing: ["read"] })).toBe(false);
+	});
 	it("unbekannte Rolle hat nichts", () => {
 		expect(roleAllows("hacker", { control: ["read"] })).toBe(false);
 	});

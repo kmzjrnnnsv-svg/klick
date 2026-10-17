@@ -20,6 +20,7 @@ import {
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { isExternal } from "@/lib/auth/memberships";
 import { roleAllows } from "@/lib/auth/permissions";
 import { aggregateCases, clockState } from "@/lib/compliance/complaints";
 import { listMembersForPicker } from "@/lib/compliance/queries";
@@ -64,7 +65,7 @@ export default async function ComplaintsPage({
 		ctx.grants.includes("whistleblowing_detail");
 	const canEditWb = roleAllows(ctx.orgRole, { whistleblowing: ["update"] });
 	const detailComplaints =
-		ctx.orgRole !== "auditor" || ctx.grants.includes("complaints_detail");
+		!isExternal(ctx.orgRole) || ctx.grants.includes("complaints_detail");
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const complaints = await listComplaints(tx, ctx.orgId);

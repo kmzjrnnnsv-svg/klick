@@ -8,7 +8,7 @@ import { admin } from "better-auth/plugins/admin";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { organization } from "better-auth/plugins/organization";
 import { twoFactor } from "better-auth/plugins/two-factor";
-import { count, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { globalDb, schema } from "../../db";
 import { member, session as sessionTable, user } from "../../db/auth-schema";
 import { memberAccess } from "../../db/schema";
@@ -22,6 +22,14 @@ import {
 } from "../mail/templates";
 import { syncTrainingAssignments } from "../trainings/assignments";
 import { authAfterHook } from "./audit-events";
+import {
+	accessDaysFor,
+	isConsultant,
+	membershipAllowed,
+	pickActiveMembership,
+	primaryMembershipCount,
+} from "./memberships";
+import { expireStepUp, listUserMemberships } from "./org";
 import { ac, roles } from "./permissions";
 
 // Bewusst keine env()-Validierung beim Import: Better Auth liest
@@ -49,6 +57,14 @@ const microsoft =
 				},
 			}
 		: undefined;
+
+async function rolesOfUser(userId: string): Promise<string[]> {
+	const rows = await globalDb
+		.select({ role: member.role })
+		.from(member)
+		.where(eq(member.userId, userId));
+	return rows.map((r) => r.role);
+}
 
 export const auth = betterAuth({
 	appName: "Klick",
@@ -107,15 +123,13 @@ export const auth = betterAuth({
 		session: {
 			create: {
 				async before(session) {
-					const [m] = await globalDb
-						.select({ organizationId: member.organizationId })
-						.from(member)
-						.where(eq(member.userId, session.userId))
-						.limit(1);
+					// Aktive Org: die eigene Mitgliedschaft, sonst der zuletzt
+					// begonnene gültige Berater-Zugang (ADR-018).
+					const memberships = await listUserMemberships(session.userId);
 					return {
 						data: {
 							...session,
-							activeOrganizationId: m?.organizationId ?? null,
+							activeOrganizationId: pickActiveMembership(memberships),
 						},
 					};
 				},
@@ -199,15 +213,14 @@ export const auth = betterAuth({
 		organization({
 			ac,
 			roles,
-			// Ein User gehört in v1 zu genau einer Org. organizationLimit begrenzt
-			// nur das Anlegen; die Mitgliedschafts-Grenze prüft lib/auth/guards.
-			organizationLimit: 1,
+			// Höchstens eine eigene Org je Konto; Berater-Zugänge (consultant)
+			// zählen nicht (ADR-018, lib/auth/memberships.ts). Die Grenze beim
+			// Beitritt prüft beforeAcceptInvitation.
+			async organizationLimit(user) {
+				return (await rolesOfUser(user.id)).some((r) => !isConsultant(r));
+			},
 			async allowUserToCreateOrganization(user) {
-				const [row] = await globalDb
-					.select({ n: count() })
-					.from(member)
-					.where(eq(member.userId, user.id));
-				return Number(row?.n ?? 0) === 0;
+				return primaryMembershipCount(await rolesOfUser(user.id)) === 0;
 			},
 			creatorRole: "owner",
 			membershipLimit: 250,
@@ -239,15 +252,28 @@ export const auth = betterAuth({
 						},
 					);
 				},
-				async beforeAcceptInvitation({ user }) {
-					// Ein User gehört zu genau einer Organisation (v1).
-					const [row] = await globalDb
-						.select({ n: count() })
+				async beforeAcceptInvitation({ invitation: inv, user }) {
+					// Eine eigene Organisation je Konto, Berater-Zugänge beliebig viele.
+					const rows = await globalDb
+						.select({
+							organizationId: member.organizationId,
+							role: member.role,
+						})
 						.from(member)
 						.where(eq(member.userId, user.id));
-					if (Number(row?.n ?? 0) > 0) {
+					if (rows.some((r) => r.organizationId === inv.organizationId)) {
 						throw new APIError("FORBIDDEN", {
-							message: "Dieses Konto gehört bereits zu einer Organisation.",
+							message: "Du bist bereits Mitglied dieser Organisation.",
+						});
+					}
+					const decision = membershipAllowed(
+						rows.map((r) => r.role),
+						inv.role,
+					);
+					if (!decision.ok) {
+						throw new APIError("FORBIDDEN", {
+							message:
+								"Dieses Konto gehört bereits zu einer Organisation. Als Berater:in (extern) kannst du trotzdem eingeladen werden.",
 						});
 					}
 				},
@@ -257,9 +283,10 @@ export const auth = betterAuth({
 						{ orgId: invitation.organizationId, userId: user.id },
 						(tx) => syncTrainingAssignments(tx, invitation.organizationId),
 					);
-					// Prüfer:innen bekommen zeitlich begrenzten Zugang (Standard 6 Wochen);
-					// Owner passt Ablauf und Grants auf /team an.
-					if (m.role === "auditor") {
+					// Externe (Prüfer:innen 6 Wochen, Berater:innen 90 Tage) bekommen
+					// befristeten Zugang; Owner passt Ablauf und Grants auf /team an.
+					const days = accessDaysFor(m.role);
+					if (days) {
 						await withOrg(
 							{ orgId: invitation.organizationId, userId: user.id },
 							(tx) =>
@@ -268,13 +295,16 @@ export const auth = betterAuth({
 									.values({
 										memberId: m.id,
 										organizationId: invitation.organizationId,
-										accessUntil: new Date(Date.now() + 42 * 86_400_000),
+										accessUntil: new Date(Date.now() + days * 86_400_000),
 										grants: [],
 										createdByUserId: invitation.inviterId,
 									})
 									.onConflictDoNothing(),
 						);
 					}
+					// Better Auth aktiviert die neue Org sofort — ein Step-up aus der
+					// bisherigen Org gilt dort nicht.
+					await expireStepUp({ userId: user.id });
 					await auditPlatform(
 						{ userId: user.id },
 						{
@@ -283,7 +313,7 @@ export const auth = betterAuth({
 							organizationId: invitation.organizationId,
 							after: {
 								role: m.role,
-								accessUntil: m.role === "auditor" ? "+42d" : null,
+								accessUntil: days ? `+${days}d` : null,
 							},
 						},
 					);

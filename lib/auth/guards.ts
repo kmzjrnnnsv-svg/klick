@@ -1,13 +1,14 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { after } from "next/server";
 import { globalDb } from "@/db";
 import { member, session as sessionTable } from "@/db/auth-schema";
-import { memberAccess } from "@/db/schema";
 import { auditPlatform } from "@/lib/audit";
 import type { OrgCtx } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
 import { env } from "@/lib/env";
+import { primaryMembershipCount as countPrimary } from "./memberships";
+import { memberAccessFor } from "./org";
 import { type OrgRole, type Resource, roleAllows } from "./permissions";
 import { type AuthSession, auth } from "./server";
 import {
@@ -111,21 +112,18 @@ export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 	const orgId = ctx.session.activeOrganizationId;
 	if (!orgId) throw new AuthErr("no_org");
 
-	const [m] = await globalDb
-		.select({
-			id: member.id,
-			role: member.role,
-			accessUntil: memberAccess.accessUntil,
-			grants: memberAccess.grants,
-		})
+	const [row] = await globalDb
+		.select({ id: member.id, role: member.role })
 		.from(member)
-		.leftJoin(memberAccess, eq(memberAccess.memberId, member.id))
 		.where(
 			and(eq(member.organizationId, orgId), eq(member.userId, ctx.user.id)),
 		)
 		.limit(1);
-	if (!m) throw new AuthErr("no_org");
-	if (m.accessUntil && m.accessUntil.getTime() < Date.now()) {
+	if (!row) throw new AuthErr("no_org");
+	// Ablauf und Grants im Org-Kontext lesen (member_access ist FORCE RLS).
+	const [access] = await memberAccessFor(orgId, [row.id]);
+	const m = { ...row, grants: access?.grants ?? null };
+	if (access?.accessUntil && access.accessUntil.getTime() < Date.now()) {
 		throw new AuthErr("access_expired");
 	}
 
@@ -193,13 +191,13 @@ export function toOrgCtx(c: OrgContext): OrgCtx {
 	return { orgId: c.orgId, userId: c.userId, ip: c.ip, userAgent: c.userAgent };
 }
 
-// Ein User gehört in v1 zu genau einer Organisation.
-export async function membershipCount(userId: string): Promise<number> {
-	const [row] = await globalDb
-		.select({ n: count() })
+// Eigene Mitgliedschaften (ohne Berater-Zugänge, ADR-018): höchstens eine.
+export async function primaryMembershipCount(userId: string): Promise<number> {
+	const rows = await globalDb
+		.select({ role: member.role })
 		.from(member)
 		.where(eq(member.userId, userId));
-	return Number(row?.n ?? 0);
+	return countPrimary(rows.map((r) => r.role));
 }
 
 // ── Lieferantenportal (ADR-017) ────────────────────────────────────────────

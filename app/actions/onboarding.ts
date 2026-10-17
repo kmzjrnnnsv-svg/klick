@@ -11,7 +11,7 @@ import {
 	AuthError,
 	checkSessionRules,
 	getSessionCtx,
-	membershipCount,
+	primaryMembershipCount,
 } from "@/lib/auth/guards";
 import { auth } from "@/lib/auth/server";
 import { initializeOrg } from "@/lib/compliance/initialize-org";
@@ -30,7 +30,7 @@ async function createOrganizationActionImpl(
 	const ctx = await getSessionCtx();
 	if (!ctx) throw new AuthError("unauthenticated");
 	checkSessionRules(ctx);
-	if ((await membershipCount(ctx.user.id)) > 0) {
+	if ((await primaryMembershipCount(ctx.user.id)) > 0) {
 		return { ok: false, error: "alreadyMember" };
 	}
 	const parsed = createOrganizationSchema.safeParse(input);

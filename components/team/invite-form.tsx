@@ -22,7 +22,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 
-const ROLES = ["editor", "viewer", "owner", "auditor"] as const;
+const ROLES = ["editor", "viewer", "consultant", "owner", "auditor"] as const;
 
 export function InviteForm() {
 	const t = useTranslations("Team");

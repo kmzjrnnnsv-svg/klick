@@ -18,8 +18,9 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ORG_ROLES } from "@/lib/auth/session-rules";
 
-const ROLES = ["owner", "editor", "viewer", "auditor"] as const;
+const ROLES = ORG_ROLES;
 
 export function MemberActions({
 	memberId,

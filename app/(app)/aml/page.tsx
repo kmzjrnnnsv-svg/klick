@@ -27,6 +27,7 @@ import {
 import type { ImplStatus } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { isExternal } from "@/lib/auth/memberships";
 import { listOrgMembers } from "@/lib/auth/org";
 import { roleAllows } from "@/lib/auth/permissions";
 import { aggregateSuspicious, type RiskDimensions } from "@/lib/compliance/aml";
@@ -143,7 +144,7 @@ export default async function AmlPage({
 	const tf = await getTranslations("Functions");
 	const now = new Date();
 	const canEdit = roleAllows(ctx.orgRole, { aml: ["update"] });
-	const detail = ctx.orgRole !== "auditor" || ctx.grants.includes("aml_detail");
+	const detail = !isExternal(ctx.orgRole) || ctx.grants.includes("aml_detail");
 	const memberCount = (await listOrgMembers(ctx.orgId)).length;
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {

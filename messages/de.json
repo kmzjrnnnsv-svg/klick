@@ -29,7 +29,8 @@
 		"closeMenu": "Menü schließen",
 		"login": "Anmelden",
 		"logout": "Abmelden",
-		"you": "du"
+		"you": "du",
+		"externalAccess": "Zugang als {role}"
 	},
 	"Nav": {
 		"today": "Heute",
@@ -277,7 +278,8 @@
 		"service_placing": "Platzierung",
 		"service_reception_transmission": "Annahme & Übermittlung",
 		"service_advice": "Beratung",
-		"service_portfolio": "Portfolioverwaltung"
+		"service_portfolio": "Portfolioverwaltung",
+		"consultantAccess": "Du bist Berater:in in anderen Organisationen — zur Auswahl"
 	},
 	"Today": {
 		"title": "Heute",
@@ -523,14 +525,16 @@
 		"inviteEmail": "E-Mail-Adresse",
 		"inviteRole": "Rolle",
 		"accessUntil": "Zugang bis",
-		"accessUntilHint": "Prüfer:innen bekommen zeitlich begrenzten Lesezugang.",
+		"accessUntilHint": "Prüfer:innen und Berater:innen bekommen zeitlich begrenzten Zugang.",
 		"roleOwner": "Inhaber:in",
 		"roleEditor": "Bearbeiter:in",
 		"roleViewer": "Lesend",
+		"roleConsultant": "Berater:in (extern)",
 		"roleAuditor": "Prüfer:in",
 		"roleOwnerHint": "alles, inkl. Einstellungen und Mitglieder",
 		"roleEditorHint": "arbeitet an allen Registern, gibt nichts frei",
 		"roleViewerHint": "liest und kommentiert",
+		"roleConsultantHint": "arbeitet mit, gibt nichts frei, löscht nichts; 90 Tage, verlängerbar",
 		"roleAuditorHint": "liest, stellt Nachweisanfragen, zeitlich begrenzt",
 		"members": "Mitglieder",
 		"pending": "Offene Einladungen",
@@ -560,16 +564,17 @@
 		"grant_hr_detail": "Fit-&-Proper-Details",
 		"grant_whistleblowing_detail": "Hinweisgeber-Meldungen",
 		"grant_complaints_detail": "Beschwerden im Detail",
-		"grant_secret_evidence": "Streng geheime Nachweise"
+		"grant_secret_evidence": "Streng geheime Nachweise",
+		"external": "extern"
 	},
 	"Invitation": {
 		"title": "Einladung",
 		"lead": "{inviter} lädt dich zu {organization} ein — als {role}.",
 		"accept": "Einladung annehmen",
 		"decline": "Ablehnen",
-		"loginFirst": "Melde dich zuerst mit der eingeladenen E-Mail-Adresse an.",
+		"loginFirst": "Melde dich zuerst mit der eingeladenen E-Mail-Adresse an. Danach kommst du hierher zurück; falls nicht, öffne den Link aus der Einladung noch einmal.",
 		"expired": "Diese Einladung ist abgelaufen oder wurde zurückgezogen.",
-		"accepted": "Willkommen. Als Nächstes richtest du deinen zweiten Faktor ein."
+		"accepted": "Einladung angenommen."
 	},
 	"Admin": {
 		"title": "Plattform-Admin",
@@ -3626,5 +3631,19 @@
 		"formSentLead": "Wir melden uns per E-Mail an {email} und schlagen einen Termin für das Erstgespräch vor.",
 		"formRateLimited": "Zu viele Anfragen in kurzer Zeit. Versuch es in ein paar Minuten noch einmal.",
 		"formFailed": "Das hat nicht geklappt. Versuch es gleich noch einmal."
+	},
+	"Organisations": {
+		"title": "Organisation wählen",
+		"lead": "Dein Konto hat Zugang zu mehreren Organisationen. Beim Wechsel bestätigst du sensible Aktionen neu.",
+		"expiredNotice": "Dein Zugang zur zuletzt geöffneten Organisation ist abgelaufen. Die Inhaber:in kann ihn unter Team verlängern.",
+		"current": "geöffnet",
+		"until": "bis",
+		"expiredOn": "abgelaufen am",
+		"open": "Öffnen",
+		"createOwn": "Eigene Organisation anlegen",
+		"signOut": "Abmelden",
+		"switch": "Organisation wechseln",
+		"all": "Alle Organisationen",
+		"expired": "abgelaufen"
 	}
 }
