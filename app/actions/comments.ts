@@ -9,6 +9,7 @@ import { listMembersForPicker, listWatcherIds } from "@/lib/compliance/queries";
 import { mutateOrg } from "@/lib/db/with-org";
 import { resolveMentions } from "@/lib/mentions";
 import { notify } from "@/lib/notifications/notify";
+import { safeInternalPath } from "@/lib/safe-path";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { addCommentSchema, entityRefSchema } from "@/lib/validation/grc";
 
@@ -22,7 +23,7 @@ async function addCommentImpl(
 	const parsed = addCommentSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
-	const safeLink = link.startsWith("/") ? link : "/heute";
+	const safeLink = safeInternalPath(link);
 
 	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const [row] = await tx

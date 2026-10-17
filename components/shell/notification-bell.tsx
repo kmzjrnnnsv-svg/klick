@@ -13,6 +13,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { safeInternalPath } from "@/lib/safe-path";
 import { cn } from "@/lib/utils";
 
 export type BellItem = {
@@ -104,7 +105,10 @@ export function NotificationBell({
 									className="border-border/50 border-b last:border-0"
 								>
 									{n.link ? (
-										<Link href={n.link} className="block hover:bg-muted">
+										<Link
+											href={safeInternalPath(n.link)}
+											className="block hover:bg-muted"
+										>
 											{content}
 										</Link>
 									) : (

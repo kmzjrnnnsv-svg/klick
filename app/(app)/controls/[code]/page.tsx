@@ -401,7 +401,7 @@ export default async function ControlDetailPage({
 								) : ev.url ? (
 									<a
 										href={ev.url}
-										rel="noopener nofollow"
+										rel="noopener noreferrer nofollow"
 										target="_blank"
 										className="text-primary text-xs hover:underline"
 									>

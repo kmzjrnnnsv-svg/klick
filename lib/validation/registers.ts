@@ -8,7 +8,7 @@ import {
 import { DOCUMENT_TYPES, RISK_CATEGORIES } from "@/db/schema/grc";
 import { INCIDENT_STATUSES } from "@/lib/entities/incident";
 import { RISK_STATUSES } from "@/lib/entities/risk";
-import { longText, shortText, uuid } from "./common";
+import { httpUrl, longText, shortText, uuid } from "./common";
 
 const scale = z.coerce.number().int().min(1).max(5);
 const isoDate = z.iso.date();
@@ -298,14 +298,6 @@ export const trainingSchema = z.object({
 	requirementCode: z.string().max(60).optional(),
 	notes: longText.optional(),
 });
-
-// Pflichtschulung (Plan): Link nur http(s) — kein javascript:/data:.
-export const httpUrl = z
-	.string()
-	.trim()
-	.max(2000)
-	.url()
-	.refine((u) => /^https?:\/\//i.test(u), { message: "url_scheme" });
 
 export const TRAINING_ORG_ROLES = [
 	"all",
