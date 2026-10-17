@@ -19,7 +19,10 @@ mkdir -p "$BACKUP_DIR"
 ts="$(date -u +%Y%m%dT%H%M%SZ)"
 out="$BACKUP_DIR/klick-$ts.sql"
 
-pg_dump --no-owner --no-privileges --format=plain "$DATABASE_URL_MIGRATE" > "$out"
+# Schema pgboss bleibt draußen: es gehört klick_app (roles.sql), die
+# Migrator-Rolle darf es nicht lesen, und es enthält nur die Job-Warteschlange.
+# pg-boss legt seine Tabellen beim Start selbst wieder an (lib/jobs/boss.ts).
+pg_dump --no-owner --no-privileges --exclude-schema=pgboss --format=plain "$DATABASE_URL_MIGRATE" > "$out"
 
 if [ -n "${BACKUP_AGE_RECIPIENT:-}" ]; then
   age -r "$BACKUP_AGE_RECIPIENT" -o "$out.age" "$out"
