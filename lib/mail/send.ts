@@ -178,3 +178,43 @@ export async function diagnoseMailConfig(): Promise<{
 		likelyPath: hasResend ? "resend" : hasSmtp ? "smtp" : "console",
 	};
 }
+
+// Klartext-Hinweis zu einem Zustellfehler (pnpm mail:check, Startlog). Pure.
+export function mailErrorHint(
+	error: string,
+	cfg: { smtpPort?: number; mailFromIsFallback: boolean },
+): string | null {
+	// sendTransactionalMail meldet Fehler als „resend_failed:…“/„smtp_failed:…“.
+	const e = error.toLowerCase().replace(/^(resend|smtp)_failed:/, "");
+	if (e === "no_provider")
+		return "Kein Zustellweg — RESEND_API_KEY oder SMTP_HOST setzen (/etc/klick/klick.env).";
+	if (cfg.mailFromIsFallback)
+		return "MAIL_FROM fehlt — Absender auf einer beim Provider verifizierten Domain setzen (z. B. „Klick <noreply@raza.work>“).";
+	if (e.startsWith("resend_401") || e.startsWith("resend_403")) {
+		return e.includes("domain") || e.includes("verif")
+			? "Resend: Absender-Domain ist nicht verifiziert — Domain in Resend verifizieren oder MAIL_FROM anpassen."
+			: "Resend: API-Schlüssel ungültig oder ohne Senderecht — RESEND_API_KEY prüfen.";
+	}
+	if (e.startsWith("resend_422"))
+		return "Resend: Anfrage abgelehnt — meist ein ungültiges MAIL_FROM (Format „Name <adresse@domain>“).";
+	if (
+		e.includes("timeout") ||
+		e.includes("etimedout") ||
+		e.includes("econnrefused")
+	) {
+		return cfg.smtpPort === 25 || cfg.smtpPort === 465
+			? `Port ${cfg.smtpPort} ist bei Hetzner ausgehend gesperrt — SMTP_PORT=587 (STARTTLS) nutzen oder Resend (HTTPS).`
+			: "Mailserver nicht erreichbar — Host/Port und ausgehende Verbindungen des Servers prüfen.";
+	}
+	if (e.includes("enotfound") || e.includes("eai_again"))
+		return "Hostname nicht auflösbar — SMTP_HOST prüfen.";
+	if (
+		e.includes("535") ||
+		e.includes("invalid login") ||
+		e.includes("authentication")
+	)
+		return "SMTP-Anmeldung abgelehnt — SMTP_USER/SMTP_PASS prüfen (Brevo: Login-Adresse + SMTP-Schlüssel, nicht das Konto-Passwort; SMTP_PASS kommt aus dem systemd-Credential smtp_pass).";
+	if (e.includes("sender") || e.includes("550") || e.includes("553"))
+		return "Absender abgelehnt — MAIL_FROM muss beim Provider als Absender verifiziert sein.";
+	return null;
+}

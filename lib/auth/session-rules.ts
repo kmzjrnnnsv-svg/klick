@@ -90,14 +90,6 @@ export function normalizeRole(raw: string | null | undefined): OrgRole {
 	return best;
 }
 
-// Rücksprung nach dem Login (?weiter=): nur Einladungsseiten, damit der
-// Parameter kein offener Redirect wird.
-export function safeReturnPath(v: string | null | undefined): string | null {
-	return typeof v === "string" && /^\/einladung\/[0-9a-f-]{36}$/.test(v)
-		? v
-		: null;
-}
-
 // Client-IP aus Proxy-Headern (nginx setzt X-Real-IP).
 export function ipFromHeaders(h: Headers | undefined | null): string | null {
 	if (!h) return null;

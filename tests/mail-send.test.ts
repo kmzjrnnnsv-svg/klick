@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { sendTransactionalMail } from "@/lib/mail/send";
+import { mailErrorHint, sendTransactionalMail } from "@/lib/mail/send";
 
 const mail = {
 	to: "a@example.org",
@@ -39,5 +39,43 @@ describe("sendTransactionalMail ohne Zustellweg", () => {
 		const all = [captured(log), captured(err), captured(warn)].join("\n");
 		expect(all).not.toContain("GEHEIM");
 		expect(all).toContain("a@example.org");
+	});
+});
+
+describe("mailErrorHint", () => {
+	const ok = { mailFromIsFallback: false };
+
+	it("benennt die üblichen Ursachen", () => {
+		expect(mailErrorHint("no_provider", ok)).toMatch(/Kein Zustellweg/);
+		expect(
+			mailErrorHint(
+				"smtp_failed:Invalid login: 535 5.7.8 Authentication failed",
+				ok,
+			),
+		).toMatch(/SMTP-Anmeldung abgelehnt/);
+		expect(
+			mailErrorHint("smtp_failed:connect ETIMEDOUT 1.2.3.4:465", {
+				...ok,
+				smtpPort: 465,
+			}),
+		).toMatch(/Port 465 .* gesperrt/);
+		expect(
+			mailErrorHint(
+				'resend_failed:resend_403:{"message":"The raza.work domain is not verified"}',
+				ok,
+			),
+		).toMatch(/nicht verifiziert/);
+		expect(
+			mailErrorHint("smtp_failed:getaddrinfo ENOTFOUND smtp.x", ok),
+		).toMatch(/nicht auflösbar/);
+	});
+
+	it("fehlendes MAIL_FROM geht vor, Unbekanntes bleibt ohne Hinweis", () => {
+		expect(
+			mailErrorHint("smtp_failed:550 sender rejected", {
+				mailFromIsFallback: true,
+			}),
+		).toMatch(/MAIL_FROM fehlt/);
+		expect(mailErrorHint("smtp_failed:etwas Neues", ok)).toBeNull();
 	});
 });

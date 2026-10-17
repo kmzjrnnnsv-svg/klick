@@ -8,7 +8,6 @@ import {
 	isStepUpFresh,
 	normalizeRole,
 	STEP_UP_MS,
-	safeReturnPath,
 } from "@/lib/auth/session-rules";
 
 const now = Date.parse("2026-10-06T12:00:00Z");
@@ -125,14 +124,6 @@ describe("normalizeRole", () => {
 		expect(normalizeRole("consultant")).toBe("consultant");
 		expect(normalizeRole("consultant,auditor")).toBe("consultant");
 		expect(normalizeRole("consultant,editor")).toBe("editor");
-	});
-	it("safeReturnPath lässt nur Einladungen zu", () => {
-		const id = "0b6c1f3e-1d2a-4c3b-9e8f-7a6b5c4d3e2f";
-		expect(safeReturnPath(`/einladung/${id}`)).toBe(`/einladung/${id}`);
-		expect(safeReturnPath("//evil.example/einladung")).toBeNull();
-		expect(safeReturnPath("https://evil.example")).toBeNull();
-		expect(safeReturnPath(`/einladung/${id}/../../admin`)).toBeNull();
-		expect(safeReturnPath(undefined)).toBeNull();
 	});
 });
 
