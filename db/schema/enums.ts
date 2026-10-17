@@ -396,6 +396,8 @@ export type EntityKind = (typeof ENTITY_KINDS)[number];
 
 export const ROLE_FUNCTIONS = [
 	"management_body",
+	// Zwischenstufe für Freigaben (B4), z. B. mittlere Risiken
+	"department_head",
 	"isb_ciso",
 	"ict_risk_function",
 	"compliance",

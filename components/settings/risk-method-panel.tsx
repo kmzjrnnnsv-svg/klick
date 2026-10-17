@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type {
 	Five,
+	RiskAcceptanceStep,
 	RiskClass,
 	RiskDimension,
 	RiskMethod,
@@ -38,6 +39,24 @@ type RiskPoint = {
 
 const ZONES: RiskZone[] = ["acceptable", "tolerable", "unacceptable"];
 const LEVELS = [1, 2, 3, 4, 5] as const;
+
+// Wer gibt eine Akzeptanz frei (B4): „legacy“ = wie bisher nur über dem
+// Appetit (Workflow risk_acceptance), sonst feste Stufen je Klasse.
+const ACCEPTANCE_OPTIONS = {
+	legacy: null,
+	owner: [],
+	department: ["department_head"],
+	management: ["management_body"],
+	both: ["department_head", "management_body"],
+} as const satisfies Record<string, readonly RiskAcceptanceStep[] | null>;
+type AcceptanceOption = keyof typeof ACCEPTANCE_OPTIONS;
+
+function acceptanceValue(a: RiskClass["acceptance"]): AcceptanceOption {
+	if (!a) return "legacy";
+	if (a.length === 0) return "owner";
+	if (a.length === 2) return "both";
+	return a[0] === "management_body" ? "management" : "department";
+}
 
 function clone(m: RiskMethod): RiskMethod {
 	return JSON.parse(JSON.stringify(m)) as RiskMethod;
@@ -505,6 +524,45 @@ export function RiskMethodPanel({
 										{ZONES.map((z) => (
 											<option key={z} value={z}>
 												{t(`zone_${z}`)}
+											</option>
+										))}
+									</select>
+								</div>
+								<div className="flex flex-col gap-1">
+									<Label htmlFor={`rm-ca-${c.key}`} className="text-xs">
+										{t("classAcceptance")}
+									</Label>
+									<select
+										id={`rm-ca-${c.key}`}
+										className="h-9 rounded-sm border border-input bg-background px-2 text-foreground"
+										value={acceptanceValue(c.acceptance)}
+										disabled={!canEdit}
+										onChange={(e) =>
+											setClasses(
+												draft.classes.map((x, k) =>
+													k === idx
+														? {
+																...x,
+																acceptance: ACCEPTANCE_OPTIONS[
+																	e.target.value as AcceptanceOption
+																]
+																	? [
+																			...(ACCEPTANCE_OPTIONS[
+																				e.target.value as AcceptanceOption
+																			] ?? []),
+																		]
+																	: undefined,
+															}
+														: x,
+												),
+											)
+										}
+									>
+										{(
+											Object.keys(ACCEPTANCE_OPTIONS) as AcceptanceOption[]
+										).map((o) => (
+											<option key={o} value={o}>
+												{t(`acceptance_${o}`)}
 											</option>
 										))}
 									</select>

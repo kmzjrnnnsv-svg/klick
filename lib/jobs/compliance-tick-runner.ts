@@ -42,9 +42,12 @@ import {
 	trainingAssignments,
 	trainingRequirements,
 } from "@/db/schema";
-import type { ApprovalStep } from "@/db/schema/grc";
 import { eligibleApprovers } from "@/lib/approvals/rules";
-import { activeDelegations, loadCandidates } from "@/lib/approvals/service";
+import {
+	activeDelegations,
+	loadCandidates,
+	requestSteps,
+} from "@/lib/approvals/service";
 import { audit } from "@/lib/audit";
 import { normalizeRole } from "@/lib/auth/guards";
 import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
@@ -183,6 +186,7 @@ async function loadDueRows(
 			id: approvalRequests.id,
 			kind: approvalWorkflows.kind,
 			steps: approvalWorkflows.steps,
+			ownSteps: approvalRequests.steps,
 			currentStep: approvalRequests.currentStep,
 			entityType: approvalRequests.entityType,
 			entityId: approvalRequests.entityId,
@@ -208,7 +212,7 @@ async function loadDueRows(
 		dels = await activeDelegations(tx, orgId, now);
 	}
 	const approvals = pendingApprovals.map((a) => {
-		const step = (a.steps as ApprovalStep[]).find(
+		const step = requestSteps({ steps: a.ownSteps }, a.steps).find(
 			(s) => s.order === a.currentStep,
 		);
 		const eligible = step

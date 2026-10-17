@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { RiskMethod } from "@/db/schema/platform";
 import {
+	acceptanceSteps,
 	appetiteFromMethod,
+	classify,
 	damageFrom,
 	decisiveDimensions,
 	defaultRiskMethod,
@@ -144,5 +146,27 @@ describe("risk-method", () => {
 		);
 		expect(p.changed).toBe(2);
 		expect(p.nowUnacceptable).toBe(0);
+	});
+});
+
+describe("acceptanceSteps (B4)", () => {
+	it("ohne Angabe: bisheriges Verhalten; leer: allein; sonst Stufen", () => {
+		expect(acceptanceSteps({})).toBeNull();
+		expect(acceptanceSteps({ acceptance: [] })).toEqual([]);
+		expect(
+			acceptanceSteps({ acceptance: ["department_head", "management_body"] }),
+		).toEqual([
+			{ order: 1, approverRule: "function:department_head", slaDays: 5 },
+			{ order: 2, approverRule: "function:management_body", slaDays: 5 },
+		]);
+	});
+	it("Vorlage: gering allein, mittel Bereichsleitung, hoch beide", () => {
+		const m = defaultRiskMethod(["iso27001"]);
+		expect(m.classes.map((c) => c.acceptance)).toEqual([
+			[],
+			["department_head"],
+			["department_head", "management_body"],
+		]);
+		expect(classify(6, m).acceptance).toEqual(["department_head"]);
 	});
 });

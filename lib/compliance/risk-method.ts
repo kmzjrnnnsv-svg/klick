@@ -1,5 +1,6 @@
 import type {
 	Five,
+	RiskAcceptanceStep,
 	RiskAppetite,
 	RiskClass,
 	RiskDimension,
@@ -182,6 +183,7 @@ export const CLASS_TEMPLATE: readonly RiskClass[] = [
 		zone: "acceptable",
 		meaning:
 			"Die umgesetzten Maßnahmen schützen ausreichend. Keine weiteren Maßnahmen nötig; das Risiko kann getragen und das Restrisiko akzeptiert werden.",
+		acceptance: [],
 	},
 	{
 		key: "rk2",
@@ -191,6 +193,7 @@ export const CLASS_TEMPLATE: readonly RiskClass[] = [
 		zone: "tolerable",
 		meaning:
 			"Die umgesetzten Maßnahmen reichen eventuell nicht. Prüfe immer, ob weitere Maßnahmen das Risiko angemessen senken. Ist das wirtschaftlich nicht sinnvoll, kann das Restrisiko begründet akzeptiert werden.",
+		acceptance: ["department_head"],
 	},
 	{
 		key: "rk3",
@@ -200,6 +203,7 @@ export const CLASS_TEMPLATE: readonly RiskClass[] = [
 		zone: "unacceptable",
 		meaning:
 			"Die umgesetzten Maßnahmen reichen nicht. Weitere Maßnahmen müssen das Risiko senken. Akzeptieren darf nur die Geschäftsleitung, in begründeten Ausnahmefällen und nur, wenn keine sinnvolle Maßnahme gefunden wird.",
+		acceptance: ["department_head", "management_body"],
 	},
 ];
 
@@ -224,7 +228,10 @@ export function defaultRiskMethod(frameworks: readonly string[]): RiskMethod {
 		})) as Five<RiskLevelText>,
 		impact: [...IMPACT_TEMPLATE] as Five<string>,
 		dimensions: templateDimensions(frameworks),
-		classes: CLASS_TEMPLATE.map((c) => ({ ...c })),
+		classes: CLASS_TEMPLATE.map((c) => ({
+			...c,
+			acceptance: c.acceptance ? [...c.acceptance] : undefined,
+		})),
 	};
 }
 
@@ -345,7 +352,23 @@ export type ClassResult = {
 	zone: RiskZone;
 	meaning: string;
 	index: number;
+	acceptance?: RiskAcceptanceStep[];
 };
+
+// Freigabestufen für die Akzeptanz eines Risikos dieser Klasse (B4):
+// null = bisheriges Verhalten (Workflow nur über dem Appetit), [] = die
+// verantwortliche Person akzeptiert allein, sonst Stufe für Stufe.
+export function acceptanceSteps(
+	cls: Pick<ClassResult, "acceptance">,
+	slaDays = 5,
+): { order: number; approverRule: string; slaDays: number }[] | null {
+	if (!cls.acceptance) return null;
+	return cls.acceptance.map((f, i) => ({
+		order: i + 1,
+		approverRule: `function:${f}`,
+		slaDays,
+	}));
+}
 
 export function classify(
 	score: number,
@@ -365,6 +388,7 @@ export function classify(
 		zone: c?.zone ?? "unacceptable",
 		meaning: c?.meaning ?? "",
 		index: Math.max(0, idx),
+		acceptance: c?.acceptance,
 	};
 }
 

@@ -49,6 +49,11 @@ export type RiskDimension = {
 	enabled: boolean;
 	anchors: Five<string>;
 };
+// Wer eine Akzeptanz in dieser Klasse freigibt (B4): leer = die
+// verantwortliche Person entscheidet allein; sonst Stufen nacheinander,
+// z. B. ["department_head", "management_body"]. Fehlt das Feld, gilt das
+// bisherige Verhalten (nur über dem Appetit: Workflow risk_acceptance).
+export type RiskAcceptanceStep = "department_head" | "management_body";
 export type RiskClass = {
 	key: string;
 	label: string;
@@ -56,6 +61,7 @@ export type RiskClass = {
 	max: number;
 	zone: RiskZone;
 	meaning: string;
+	acceptance?: RiskAcceptanceStep[];
 };
 export type RiskMethod = {
 	aggregation: "sum" | "product";

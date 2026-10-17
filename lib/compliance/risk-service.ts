@@ -5,6 +5,7 @@ import { requestApproval } from "@/lib/approvals/service";
 import type { OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { assessRisk, type RiskLike } from "./risk";
+import { acceptanceSteps } from "./risk-method";
 
 // Gemeinsame Schritte für Risiko-Actions (Schnellanlage, Assistent, Status):
 // Maßnahme = Aufgabe + risk_treatments-Zeile; Akzeptanz je Zone (akzeptabel
@@ -83,7 +84,11 @@ export async function acceptRisk(
 	opts: { selfApprovalReason?: string } = {},
 ): Promise<AcceptanceResult> {
 	const a = assessRisk(risk, method);
-	if (a.aboveAppetite) {
+	// Freigabestufen je Klasse (B4); ohne Angabe wie bisher: nur über dem
+	// Appetit über den Workflow risk_acceptance
+	const steps = acceptanceSteps(a.effective.cls);
+	const needsApproval = steps === null ? a.aboveAppetite : steps.length > 0;
+	if (needsApproval) {
 		const r = await requestApproval(tx, c, {
 			kind: "risk_acceptance",
 			entityType: "risk",
@@ -92,7 +97,11 @@ export async function acceptRisk(
 			title: `${risk.code} · ${risk.title}`,
 			link: `/risiken/${risk.id}`,
 			selfApprovalReason: opts.selfApprovalReason,
+			steps: steps ?? undefined,
 		});
+		// Workflow aus: unterhalb des Appetits entscheidet die Person selbst
+		if (!r.ok && r.error === "workflow_disabled" && !a.aboveAppetite)
+			return acceptDirectly(tx, c, risk.id);
 		if (!r.ok) return { status: "failed", error: r.error };
 		if (r.status === "pending")
 			return { status: "pending", requestId: r.requestId };
@@ -110,6 +119,14 @@ export async function acceptRisk(
 			requestId: r.requestId,
 		};
 	}
+	return acceptDirectly(tx, c, risk.id);
+}
+
+async function acceptDirectly(
+	tx: OrgTx,
+	c: Actor,
+	riskId: string,
+): Promise<AcceptanceResult> {
 	await tx
 		.update(risks)
 		.set({
@@ -117,7 +134,7 @@ export async function acceptRisk(
 			acceptedByUserId: c.userId,
 			acceptedAt: new Date(),
 		})
-		.where(eq(risks.id, risk.id));
+		.where(eq(risks.id, riskId));
 	return { status: "accepted", selfApproved: false };
 }
 

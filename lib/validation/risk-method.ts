@@ -50,6 +50,10 @@ export const riskMethodSchema = z
 					max: z.coerce.number().int().min(1).max(25),
 					zone: z.enum(["acceptable", "tolerable", "unacceptable"]),
 					meaning: z.string().trim().max(1000),
+					acceptance: z
+						.array(z.enum(["department_head", "management_body"]))
+						.max(2)
+						.optional(),
 				}),
 			)
 			.min(2)

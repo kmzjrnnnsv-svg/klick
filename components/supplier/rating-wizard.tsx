@@ -806,7 +806,10 @@ export function RatingWizard({
 						onClick={complete}
 						disabled={pending || sum.open.length > 0}
 					>
-						{t("complete")}
+						{sum.level?.traffic === "red" &&
+						(decision === "approved" || decision === "approved_with_conditions")
+							? t("completeToManagement")
+							: t("complete")}
 					</Button>
 				) : (
 					<Button
