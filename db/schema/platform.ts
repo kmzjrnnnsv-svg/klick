@@ -25,6 +25,7 @@ import {
 } from "./_shared";
 import { frameworks } from "./catalog";
 import { type CaspService, LICENCE_STAGES, NOTIFICATION_KINDS } from "./enums";
+import { priceGroups } from "./pricing";
 
 // Plattform-Tabellen: Org-Einstellungen (RLS), Rechtskataster (RLS),
 // Prüfer-Zugänge (RLS), Audit-Log (append-only, RLS), Notifications (RLS),
@@ -143,6 +144,10 @@ export const orgSettings = pgTable(
 		dlpPolicy: json<Partial<DlpPolicy>>().notNull().default({}),
 		onboardingCompletedAt: ts(),
 		plan: text().notNull().default("start"),
+		// Preisgruppe (Admin-CMS); leer = Standardgruppe
+		priceGroupId: uuid().references(() => priceGroups.id, {
+			onDelete: "set null",
+		}),
 		...timestamps(),
 	},
 	() => [orgPolicy("org_settings")],

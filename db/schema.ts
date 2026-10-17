@@ -7,6 +7,7 @@ export * from "./schema/enums";
 export * from "./schema/grc";
 export * from "./schema/management";
 export * from "./schema/platform";
+export * from "./schema/pricing";
 export * from "./schema/products";
 export * from "./schema/registers";
 export * from "./schema/security";

@@ -2,15 +2,26 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { SectionDivider } from "@/components/marketing/landing-decor";
 import { buttonVariants } from "@/components/ui/button";
+import { loadPriceTable } from "@/lib/db/pricing";
+import { PRICE_ITEM_BY_KEY } from "@/lib/pricing/items";
+import { formatPrice } from "@/lib/pricing/resolve";
 import { cn } from "@/lib/utils";
 
 const TIERS = ["start", "growth", "licence"] as const;
+const TIER_ITEM = {
+	start: "plan:start",
+	growth: "plan:growth",
+	licence: "plan:licence",
+} as const;
 const FEATURES = ["f1", "f2", "f3", "f4", "f5", "f6"] as const;
 const FAQ = ["q1", "q2", "q3", "q4"] as const;
 
-// /preise — Abo-Stufen nur dargestellt (kein Checkout in v1).
+// /preise — Abo-Stufen nur dargestellt (kein Checkout in v1). Beträge aus
+// der Standard-Preisgruppe (Admin → Preise); eine abweichende Einheit aus
+// dem CMS ersetzt den Preishinweis.
 export default async function PricingPage() {
 	const t = await getTranslations("Pricing");
+	const { prices } = await loadPriceTable();
 	return (
 		<main className="flex-1">
 			<section className="mx-auto max-w-5xl px-4 pt-16 pb-6 sm:px-6 sm:pt-24">
@@ -27,6 +38,8 @@ export default async function PricingPage() {
 				<div className="grid gap-6 lg:grid-cols-3">
 					{TIERS.map((tier) => {
 						const highlighted = tier === "growth";
+						const price = prices[TIER_ITEM[tier]];
+						const defaultUnit = PRICE_ITEM_BY_KEY.get(TIER_ITEM[tier])?.unit;
 						return (
 							<article
 								key={tier}
@@ -45,10 +58,12 @@ export default async function PricingPage() {
 									{t(`${tier}Blurb`)}
 								</p>
 								<p className="mt-6 font-serif-display text-3xl text-primary">
-									{t(`${tier}Price`)}
+									{formatPrice(price, { unit: false })}
 								</p>
 								<p className="text-muted-foreground text-xs">
-									{t(`${tier}PriceNote`)}
+									{price.unit && price.unit !== defaultUnit
+										? price.unit
+										: t(`${tier}PriceNote`)}
 								</p>
 								<ul className="mt-6 flex flex-col gap-2 text-sm">
 									{FEATURES.map((f) => (

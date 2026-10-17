@@ -1,7 +1,13 @@
+import {
+	formatPrice,
+	guidedFrom,
+	type PriceTable,
+} from "@/lib/pricing/resolve";
+
 // Beratungsleistungen für /leistungen — Inhalt (DE, Du-Form). Ablauf und
 // Ergebnisdateien entsprechen dem, was Klick tatsächlich erzeugt
-// (Exporte unter /api/export/*). Preise sind Richtwerte (Festpreis nach
-// Erstgespräch) und vor Veröffentlichung festzulegen.
+// (Exporte unter /api/export/*). Preise kommen aus dem Admin-CMS
+// (Standard-Preisgruppe, lib/pricing) — hier stehen keine Beträge.
 
 export type ServiceStep = {
 	when: string;
@@ -14,7 +20,6 @@ export type Service = {
 	key: "gap" | "ai-check" | "cra" | "suppliers" | "pentest";
 	name: string;
 	short: string;
-	priceFrom: string;
 	duration: string;
 	fits: string;
 	result: string;
@@ -26,7 +31,6 @@ export const SERVICES: readonly Service[] = [
 		key: "gap",
 		name: "Gap-Analyse & Prüfungsreife",
 		short: "Gap-Analyse",
-		priceFrom: "ab 3.900 €",
 		duration: "2–4 Wochen",
 		fits: "Du willst wissen, wie weit ihr von ISO 27001, NIS2, DORA oder CRA entfernt seid – und was zuerst kommt.",
 		result:
@@ -59,7 +63,6 @@ export const SERVICES: readonly Service[] = [
 		key: "ai-check",
 		name: "Security-Check für KI-gebaute Apps",
 		short: "KI-App-Check",
-		priceFrom: "ab 1.490 €",
 		duration: "3–5 Arbeitstage",
 		fits: "Eure App entstand schnell mit KI-Werkzeugen und soll jetzt echte Kundendaten sehen.",
 		result:
@@ -92,7 +95,6 @@ export const SERVICES: readonly Service[] = [
 		key: "cra",
 		name: "CRA-Readiness",
 		short: "CRA-Readiness",
-		priceFrom: "ab 4.900 € je Produkt",
 		duration: "2–3 Wochen",
 		fits: "Eure Software oder Geräte kommen in der EU auf den Markt. Meldepflichten gelten seit 11.09.2026, alles andere ab 11.12.2027.",
 		result:
@@ -125,7 +127,6 @@ export const SERVICES: readonly Service[] = [
 		key: "suppliers",
 		name: "Lieferantenprüfung für Software",
 		short: "Lieferanten",
-		priceFrom: "ab 290 € je Lieferant",
 		duration: "2–6 Wochen",
 		fits: "NIS2 oder DORA verlangen, dass ihr eure Software- und IKT-Lieferanten bewertet – nachweisbar.",
 		result:
@@ -158,7 +159,6 @@ export const SERVICES: readonly Service[] = [
 		key: "pentest",
 		name: "Penetrationstest",
 		short: "Pentest",
-		priceFrom: "ab 5.900 €",
 		duration: "5–8 Testtage + Nachtest",
 		fits: "Web-App oder API vor dem Go-live, jährlich oder weil Aufsicht und Kunden es verlangen.",
 		result:
@@ -190,26 +190,35 @@ export const SERVICES: readonly Service[] = [
 	},
 ];
 
+export const servicePrice = (key: Service["key"], prices: PriceTable) =>
+	formatPrice(prices[`svc:${key}`]);
+
 export const PLANS = [
-	{
-		key: "self",
-		name: "Selbst mit Klick",
-		price: "ab 290 €",
-		period: "im Monat",
-	},
-	{
-		key: "guided",
-		name: "Begleitet",
-		price: "ab 1.490 €",
-		period: "Festpreis je Leistung",
-	},
-	{
-		key: "done",
-		name: "Durchgeführt",
-		price: "auf Anfrage",
-		period: "nach Umfang",
-	},
+	{ key: "self", name: "Selbst mit Klick" },
+	{ key: "guided", name: "Begleitet" },
+	{ key: "done", name: "Durchgeführt" },
 ] as const;
+
+// Preiszeile je Weg: Selbst = Abo Start, Begleitet = günstigste Leistung,
+// Durchgeführt = nach Umfang.
+export function planPrice(
+	key: (typeof PLANS)[number]["key"],
+	prices: PriceTable,
+): { price: string; period: string } {
+	if (key === "self") {
+		const p = prices["plan:start"];
+		return {
+			price: formatPrice(p, { unit: false }),
+			period: p.mode === "on_request" ? "nach Umfang" : (p.unit ?? "im Monat"),
+		};
+	}
+	if (key === "guided")
+		return {
+			price: formatPrice(guidedFrom(prices)),
+			period: "Festpreis je Leistung",
+		};
+	return { price: "auf Anfrage", period: "nach Umfang" };
+}
 
 export const PLAN_ROWS: readonly {
 	label: string;

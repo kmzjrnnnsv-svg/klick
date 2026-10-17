@@ -3,7 +3,15 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { CSSProperties } from "react";
 import { RevealRoot } from "@/components/marketing/reveal";
-import { FAQ, PLAN_ROWS, PLANS, SERVICES } from "@/lib/marketing/services";
+import { loadPriceTable } from "@/lib/db/pricing";
+import {
+	FAQ,
+	PLAN_ROWS,
+	PLANS,
+	planPrice,
+	SERVICES,
+	servicePrice,
+} from "@/lib/marketing/services";
 import { cn } from "@/lib/utils";
 import s from "./leistungen.module.css";
 
@@ -119,6 +127,7 @@ function phonePieceStyle(i: number): CSSProperties {
 
 export default async function ServicesPage() {
 	const t = await getTranslations("Services");
+	const { prices } = await loadPriceTable();
 	const contact = process.env.CONTACT_EMAIL;
 	const contactHref = contact
 		? `mailto:${contact}?subject=${encodeURIComponent("Erstgespräch Klick")}`
@@ -278,7 +287,9 @@ export default async function ServicesPage() {
 								data-tab={svc.key}
 							>
 								<span className={s.tabName}>{svc.short}</span>
-								<span className={s.tabMeta}>{svc.priceFrom}</span>
+								<span className={s.tabMeta}>
+									{servicePrice(svc.key, prices)}
+								</span>
 							</label>
 						))}
 					</div>
@@ -317,7 +328,9 @@ export default async function ServicesPage() {
 								<div className={s.facts}>
 									<div className={cn(s.fact, s.factStrong)}>
 										<p className={s.factLabel}>{t("factPrice")}</p>
-										<p className={s.factValue}>{svc.priceFrom}</p>
+										<p className={s.factValue}>
+											{servicePrice(svc.key, prices)}
+										</p>
 									</div>
 									<div className={s.fact}>
 										<p className={s.factLabel}>{t("factDuration")}</p>
@@ -435,8 +448,12 @@ export default async function ServicesPage() {
 										className={p.key === "guided" ? s.rec : undefined}
 									>
 										<span className={s.planName}>{p.name}</span>
-										<span className={s.planPrice}>{p.price}</span>
-										<span className={s.planPeriod}>{p.period}</span>
+										<span className={s.planPrice}>
+											{planPrice(p.key, prices).price}
+										</span>
+										<span className={s.planPeriod}>
+											{planPrice(p.key, prices).period}
+										</span>
 									</th>
 								))}
 							</tr>
@@ -486,8 +503,12 @@ export default async function ServicesPage() {
 								)}
 							>
 								<span className={s.planName}>{p.name}</span>
-								<span className={s.planPrice}>{p.price}</span>
-								<span className={s.planPeriod}>{p.period}</span>
+								<span className={s.planPrice}>
+									{planPrice(p.key, prices).price}
+								</span>
+								<span className={s.planPeriod}>
+									{planPrice(p.key, prices).period}
+								</span>
 								<dl>
 									{PLAN_ROWS.map((row) => (
 										<div key={row.label}>

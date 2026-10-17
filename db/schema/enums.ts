@@ -245,6 +245,12 @@ export const SCAN_TOOLS = [
 ] as const;
 export type ScanTool = (typeof SCAN_TOOLS)[number];
 
+// Preise (Admin-CMS): Stufe je Preisgruppe, Art je Position.
+export const PRICE_LEVELS = ["entry", "market", "premium", "custom"] as const;
+export type PriceLevel = (typeof PRICE_LEVELS)[number];
+export const PRICE_MODES = ["from", "fixed", "on_request"] as const;
+export type PriceMode = (typeof PRICE_MODES)[number];
+
 // Sicherheitsaufträge (S7): Pentest, Security-Check, Schnellcheck-Auftrag,
 // CRA-Readiness — manuell durchgeführt, in Klick verwaltet.
 export const ENGAGEMENT_KINDS = [

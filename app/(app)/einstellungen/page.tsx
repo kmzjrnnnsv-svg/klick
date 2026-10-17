@@ -12,6 +12,7 @@ import { RiskSettingsPanel } from "@/components/settings/risk-settings-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
 import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
+import { SubscriptionPanel } from "@/components/settings/subscription-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { approvalWorkflows } from "@/db/schema";
@@ -33,6 +34,7 @@ import {
 	DEFAULT_RISK_APPETITE,
 	DEFAULT_RISK_SCALES,
 } from "@/lib/compliance/risk";
+import { loadPriceTable } from "@/lib/db/pricing";
 import { readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
 import {
@@ -138,6 +140,9 @@ export default async function SettingsPage({
 		(f) => !activeSlugs.has(f.slug),
 	).map((f) => ({ ...toItem(f.slug), retired: retiredSlugs.has(f.slug) }));
 	const canEditSettings = roleAllows(ctx.orgRole, { settings: ["update"] });
+	const { prices } = canEditSettings
+		? await loadPriceTable(settings?.priceGroupId)
+		: { prices: null };
 	const orgSummary = await getOrgSummary(ctx.orgId);
 	const ssoProviders = await listSsoProvidersForOrg(ctx.orgId);
 	const callbackBase = (process.env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
@@ -163,6 +168,7 @@ export default async function SettingsPage({
 						"sso",
 						"notifications",
 						...(canReadIntegrations ? ["integrationen"] : []),
+						...(canEditSettings ? ["abo"] : []),
 					].includes(tab)
 						? tab
 						: "security"
@@ -183,6 +189,9 @@ export default async function SettingsPage({
 						<TabsTrigger value="integrationen">
 							{t("tabIntegrations")}
 						</TabsTrigger>
+					)}
+					{prices && (
+						<TabsTrigger value="abo">{t("tabSubscription")}</TabsTrigger>
 					)}
 				</TabsList>
 				<TabsContent value="security" className="flex flex-col gap-6">
@@ -288,6 +297,14 @@ export default async function SettingsPage({
 							baseUrl={callbackBase}
 							canCreate={roleAllows(ctx.orgRole, { integration: ["create"] })}
 							canRevoke={roleAllows(ctx.orgRole, { integration: ["revoke"] })}
+						/>
+					</TabsContent>
+				)}
+				{prices && (
+					<TabsContent value="abo">
+						<SubscriptionPanel
+							plan={settings?.plan ?? "start"}
+							prices={prices}
 						/>
 					</TabsContent>
 				)}

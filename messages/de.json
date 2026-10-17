@@ -145,7 +145,6 @@
 		"startEyebrow": "ISO 27001, NIS2, DSGVO",
 		"startName": "Start",
 		"startBlurb": "Für Teams, die ein ISMS aufbauen und zertifizieren wollen.",
-		"startPrice": "ab 290 €",
 		"startPriceNote": "pro Monat, jährliche Abrechnung",
 		"start_f1": "bis zu 5 Nutzer, ein Mandant",
 		"start_f2": "Common Controls mit Synergie-Plan und Abdeckung je Rahmenwerk",
@@ -157,7 +156,6 @@
 		"growthEyebrow": "ISO 27001, DORA, NIS2, MaRisk",
 		"growthName": "Wachstum",
 		"growthBlurb": "Für Finanzunternehmen und ihre Dienstleister unter DORA.",
-		"growthPrice": "ab 890 €",
 		"growthPriceNote": "pro Monat, jährliche Abrechnung",
 		"growth_f1": "bis zu 25 Nutzer, Prüfer-Zugänge auf Zeit",
 		"growth_f2": "Alles aus Start plus Prozesse, Dienstleister, Vorfälle mit Melde-Uhren",
@@ -169,7 +167,6 @@
 		"licenceEyebrow": "MiCAR, ZAG, GwG, AMLR, TFR",
 		"licenceName": "Lizenz",
 		"licenceBlurb": "Für den Weg zur BaFin-Zulassung als CASP, Zahlungs- oder E-Geld-Institut.",
-		"licencePrice": "auf Anfrage",
 		"licencePriceNote": "nach Lizenzstufe und Nutzerzahl",
 		"licence_f1": "Unbegrenzte Nutzer, SSO je Organisation",
 		"licence_f2": "Alles aus Wachstum plus AML, Eigenmittel, Kryptowerte, Gesellschafter",
@@ -507,7 +504,16 @@
 		"dlpEgressLimit": "Downloads/Exporte je Person",
 		"dlpEgressWindow": "im Zeitfenster (Minuten)",
 		"dlpHint": "PDFs und Bilder werden nicht inhaltlich geprüft und so gekennzeichnet. Über der Download-Schwelle wird gedrosselt und die Owner bekommen einen Sicherheitshinweis.",
-		"tabIntegrations": "Integrationen"
+		"tabIntegrations": "Integrationen",
+		"tabSubscription": "Abo & Leistungen",
+		"subscriptionPlan": "Dein Abo",
+		"subscriptionLead": "Die Abrechnung läuft noch nicht im Produkt. Wechsel und Kündigung klären wir persönlich.",
+		"subscriptionServices": "Preise für deine Organisation",
+		"subscriptionServicesLead": "Beratungsleistungen und Abos zu den Konditionen deiner Organisation.",
+		"subscriptionColService": "Leistung",
+		"subscriptionColPrice": "Preis netto",
+		"subscriptionNote": "Richtwerte für typische Umfänge; den Festpreis bekommst du nach dem Erstgespräch.",
+		"subscriptionViewServices": "Leistungen ansehen"
 	},
 	"Team": {
 		"title": "Team",
@@ -592,7 +598,10 @@
 		"cmsBody": "Inhalt (Markdown)",
 		"cmsSave": "Speichern",
 		"exportCsv": "CSV exportieren",
-		"exportCsvHint": "Vollständiger Export (max. 50.000 Zeilen, Semikolon, UTF-8 mit BOM, inkl. Hash-Kette). Filter: ?org=&from=&to="
+		"exportCsvHint": "Vollständiger Export (max. 50.000 Zeilen, Semikolon, UTF-8 mit BOM, inkl. Hash-Kette). Filter: ?org=&from=&to=",
+		"prices": "Preise",
+		"pricesLead": "Preisgruppen nach Unternehmensgröße. Je Gruppe eine Stufe (Einstieg, Marktüblich, Premium) oder eigene Werte. Die Standardgruppe steht öffentlich auf /preise und /leistungen; Organisationen ordnest du unter Organisationen zu.",
+		"priceGroup": "Preisgruppe"
 	},
 	"Errors": {
 		"title": "Da ist etwas schiefgelaufen.",
