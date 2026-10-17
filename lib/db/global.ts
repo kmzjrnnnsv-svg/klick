@@ -1,4 +1,4 @@
-import { count, desc, eq } from "drizzle-orm";
+import { asc, count, desc, eq } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { member, organization, user } from "@/db/auth-schema";
 import { cmsPages, frameworks } from "@/db/schema";
@@ -88,6 +88,21 @@ export async function listUsers(limit = 200) {
 		.from(user)
 		.orderBy(desc(user.createdAt))
 		.limit(limit);
+}
+
+// Mitgliedschaften aller Konten für Admin → Nutzer:innen (Unternehmen und
+// Rolle je Konto). member und organization tragen keine RLS (ADR-009).
+export async function listUserMemberships() {
+	return globalDb
+		.select({
+			userId: member.userId,
+			role: member.role,
+			orgId: organization.id,
+			orgName: organization.name,
+		})
+		.from(member)
+		.innerJoin(organization, eq(organization.id, member.organizationId))
+		.orderBy(asc(organization.name));
 }
 
 export async function platformCounts() {
