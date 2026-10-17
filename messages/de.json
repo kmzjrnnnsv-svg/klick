@@ -2341,7 +2341,14 @@
 		"noneYet": "Noch keine Managementbewertung abgeschlossen.",
 		"empty": "Noch keine Managementbewertung",
 		"emptyLead": "Plane die erste Bewertung; die Checkliste der Pflicht-Inputs richtet sich nach deinen Rahmenwerken.",
-		"requiredBy": "Gefordert von CC-GOV-05 · ISO 27001 9.3 · DORA Art. 6(5)"
+		"requiredBy": "Gefordert von CC-GOV-05 · ISO 27001 9.3 · DORA Art. 6(5)",
+		"digestTitle": "Zusammenfassung aus Klick",
+		"digestLead": "Kennzahlen je Pflicht-Input seit der letzten Bewertung – automatisch aus Risiken, Zielen, Abweichungen, Audits, Dienstleistern, Vorfällen und Prüfungsreife. Beim Abhalten wird der Stand als Schnappschuss gespeichert.",
+		"digestPeriod": "Zeitraum:",
+		"digestOpen": "Öffnen",
+		"digestNothing": "Keine automatischen Daten – bitte den Bericht beifügen.",
+		"digestExport": "Als Bericht herunterladen",
+		"digestSnapshot": "Zusammenfassung zum Zeitpunkt der Bewertung"
 	},
 	"Accountability": {
 		"title": "Meine Verantwortung",
