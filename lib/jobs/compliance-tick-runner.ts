@@ -16,6 +16,7 @@ import {
 	approvalRequests,
 	approvalWorkflows,
 	assessments,
+	assets,
 	controlImplementations,
 	controls,
 	controlTests,
@@ -542,6 +543,28 @@ async function loadDueRows(
 				),
 			),
 		);
+	const assetRows = await tx
+		.select({
+			id: assets.id,
+			name: assets.name,
+			status: assets.status,
+			endOfLifeAt: assets.endOfLifeAt,
+			supportEndAt: assets.supportEndAt,
+			maintenanceUntil: assets.maintenanceUntil,
+			ownerUserId: assets.ownerUserId,
+		})
+		.from(assets)
+		.where(
+			and(
+				eq(assets.organizationId, orgId),
+				eq(assets.status, "active"),
+				or(
+					isNotNull(assets.endOfLifeAt),
+					isNotNull(assets.supportEndAt),
+					isNotNull(assets.maintenanceUntil),
+				),
+			),
+		);
 	const productRows = await tx
 		.select({
 			id: products.id,
@@ -648,6 +671,7 @@ async function loadDueRows(
 		dataSubjectRequests: dsrRows,
 		insurancePolicies: insuranceRows,
 		products: productRows,
+		assets: assetRows,
 		securityFindings: findingRows,
 		supplierAssessments: supplierRows,
 		engagements: engagementRows,

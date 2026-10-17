@@ -153,6 +153,16 @@ export type DueRows = {
 		status: string;
 		ownerUserId: string | null;
 	}[];
+	/** Assets (B2): Herstellerende, Ende der Sicherheitsupdates, Wartungsende. */
+	assets?: readonly {
+		id: string;
+		name: string;
+		status: string;
+		endOfLifeAt: string | null;
+		supportEndAt: string | null;
+		maintenanceUntil: string | null;
+		ownerUserId: string | null;
+	}[];
 	/** Sicherheitsbefunde (S5): SLA kritisch/hoch, Ablauf von Akzeptanzen. */
 	securityFindings?: readonly {
 		id: string;
@@ -226,6 +236,7 @@ export const LEGAL_CHANGE_MARKS = [180, 90, 30, 7] as const;
 // CRA Art. 13 Abs. 19 / Anhang II: Nutzer rechtzeitig über das Supportende
 // informieren — Hinweise an den Verantwortlichen 1 Jahr, 6/3/1 Monat vorher.
 export const SUPPORT_END_MARKS = [365, 180, 90, 30] as const;
+export const ASSET_LIFECYCLE_MARKS = [180, 90, 30] as const;
 export const TLPT_CYCLE_YEARS = 3;
 export const ACCESS_EXPIRY_WARN_DAYS = 7;
 
@@ -670,6 +681,37 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			link: `/produkte/${p.id}?tab=einstufung`,
 			dedupeKey: `product_support:${p.id}:${days < 0 ? "ended" : mark}`,
 		});
+	}
+
+	// Assets: Herstellerende, Supportende, Wartungsende — 180/90/30 Tage
+	// vorher und am Tag danach (abgelaufen)
+	for (const a of rows.assets ?? []) {
+		if (a.status === "retired") continue;
+		for (const [field, label] of [
+			["endOfLifeAt", "Herstellerende"],
+			["supportEndAt", "Ende der Sicherheitsupdates"],
+			["maintenanceUntil", "Wartungsende"],
+		] as const) {
+			const at = toDate(a[field]);
+			if (!at) continue;
+			const days = daysUntil(now, at);
+			const mark = ASSET_LIFECYCLE_MARKS.find((m) => days === m);
+			if (mark === undefined && days !== -1) continue;
+			notifications.push({
+				kind: "review_due",
+				recipients: recipientsOf(a.ownerUserId, rows.orgOwnerIds),
+				title:
+					days < 0
+						? `${label} überschritten: ${a.name}`
+						: `${label} in ${mark} Tagen: ${a.name}`,
+				body:
+					days < 0
+						? "Ersatz, Verlängerung oder Ausmusterung entscheiden — oder das Risiko erfassen."
+						: `${label} am ${fmtDay(at)}. Ersatz oder Verlängerung planen.`,
+				link: "/assets?lebenszyklus=1",
+				dedupeKey: `asset_lifecycle:${a.id}:${field}:${days < 0 ? "ended" : mark}`,
+			});
+		}
 	}
 
 	// Sicherheitsbefunde: Akzeptanz abgelaufen → wieder offen; kritisch/hoch

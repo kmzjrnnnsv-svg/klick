@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
+import { SourceRisks } from "@/components/risks/source-risks";
 import { RatingWizard } from "@/components/supplier/rating-wizard";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -106,12 +107,23 @@ export default async function RatingPage({
 					date: rating.completedAt ? fmtDate.format(rating.completedAt) : "—",
 				})}
 				actions={
-					<Link
-						href={`/dienstleister/${provider.id}?tab=bewertungen`}
-						className="text-primary text-sm hover:underline"
-					>
-						{t("backToProvider")}
-					</Link>
+					<span className="flex flex-wrap items-center gap-3">
+						{rating.traffic && rating.traffic !== "green" && (
+							<SourceRisks
+								kind="provider_rating"
+								id={rating.id}
+								risks={[]}
+								canCreate={roleAllows(ctx.orgRole, { risk: ["create"] })}
+								compact
+							/>
+						)}
+						<Link
+							href={`/dienstleister/${provider.id}?tab=bewertungen`}
+							className="text-primary text-sm hover:underline"
+						>
+							{t("backToProvider")}
+						</Link>
+					</span>
 				}
 			/>
 			<div className="flex flex-col gap-6">

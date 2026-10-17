@@ -1,12 +1,14 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import {
 	assets,
 	controls,
 	exceptions,
 	lossEvents,
+	orgSettings,
 	processes,
 	processRisks,
 	providers,
@@ -17,6 +19,7 @@ import {
 import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { loadRiskSource } from "@/lib/compliance/queries-risk-sources";
 import { assessRisk, nextRiskCode } from "@/lib/compliance/risk";
 import { damageFrom } from "@/lib/compliance/risk-method";
 import {
@@ -25,6 +28,7 @@ import {
 	notifyAboveAppetite,
 	plusMonths,
 } from "@/lib/compliance/risk-service";
+import { RISK_SOURCE_KINDS } from "@/lib/compliance/risk-sources";
 import { mutateOrg } from "@/lib/db/with-org";
 import { RISK_STATUS } from "@/lib/entities/risk";
 import { canTransition } from "@/lib/entities/status-machine";
@@ -483,6 +487,17 @@ async function saveGuided(
 				providerId = p?.id ?? null;
 			}
 
+			// Herkunft nur, wenn die Quelle zur Org gehört (RLS + Prüfung)
+			const source =
+				d.sourceEntityType && d.sourceEntityId
+					? await loadRiskSource(
+							tx,
+							c.orgId,
+							d.sourceEntityType,
+							d.sourceEntityId,
+						)
+					: null;
+
 			const fields = {
 				title: d.title,
 				category: d.category,
@@ -555,6 +570,8 @@ async function saveGuided(
 						organizationId: c.orgId,
 						code,
 						...fields,
+						sourceEntityType: source?.kind ?? null,
+						sourceEntityId: source?.id ?? null,
 						ownerUserId,
 						reviewAt:
 							d.reviewAt ?? plusMonths(settings.reviewDefaults?.risk ?? 3),
@@ -664,6 +681,9 @@ async function saveGuided(
 				measures: d.measures.length,
 				acceptance,
 				via: "wizard",
+				...(source && !d.riskId
+					? { source: `${source.kind}:${source.id}` }
+					: {}),
 			};
 			return {
 				result: {
@@ -681,6 +701,66 @@ async function saveGuided(
 	);
 	revalidatePath("/risiken", "layout");
 	return res;
+}
+
+// Risikovorschlag (B3) bewusst ablehnen — mit Begründung, auditiert;
+// „wieder vorschlagen“ hebt das auf.
+const proposalKey = z
+	.string()
+	.regex(
+		new RegExp(
+			`^(${RISK_SOURCE_KINDS.join("|")}):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`,
+		),
+	);
+const dismissSchema = z.object({
+	key: proposalKey,
+	reason: z.string().trim().min(3).max(500),
+});
+
+async function dismissRiskProposalImpl(input: unknown): Promise<ActionResult> {
+	const c = await requireOrg({ risk: ["update"] });
+	const parsed = dismissSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const { key, reason } = parsed.data;
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		const entry = { reason, byUserId: c.userId, at: new Date().toISOString() };
+		await tx
+			.update(orgSettings)
+			.set({
+				riskProposalDismissals: sql`${orgSettings.riskProposalDismissals} || ${JSON.stringify({ [key]: entry })}::jsonb`,
+			})
+			.where(eq(orgSettings.organizationId, c.orgId));
+		return {
+			result: null,
+			audit: {
+				action: "risk.proposal_dismissed",
+				target: key,
+				after: { reason },
+			},
+		};
+	});
+	revalidatePath("/risiken");
+	return { ok: true, data: undefined };
+}
+
+async function restoreRiskProposalImpl(key: unknown): Promise<ActionResult> {
+	const c = await requireOrg({ risk: ["update"] });
+	const parsed = proposalKey.safeParse(key);
+	if (!parsed.success) return { ok: false, error: "invalid" };
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		await tx
+			.update(orgSettings)
+			.set({
+				riskProposalDismissals: sql`${orgSettings.riskProposalDismissals} - ${parsed.data}::text`,
+			})
+			.where(eq(orgSettings.organizationId, c.orgId));
+		return {
+			result: null,
+			audit: { action: "risk.proposal_restored", target: parsed.data },
+		};
+	});
+	revalidatePath("/risiken");
+	return { ok: true, data: undefined };
 }
 
 async function createRiskGuidedImpl(
@@ -828,6 +908,14 @@ async function createLossEventImpl(
 
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
+export const dismissRiskProposal = safeAction(
+	"dismissRiskProposal",
+	dismissRiskProposalImpl,
+);
+export const restoreRiskProposal = safeAction(
+	"restoreRiskProposal",
+	restoreRiskProposalImpl,
+);
 export const createRiskGuided = safeAction(
 	"createRiskGuided",
 	createRiskGuidedImpl,

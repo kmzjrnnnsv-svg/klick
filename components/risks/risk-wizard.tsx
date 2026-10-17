@@ -72,6 +72,8 @@ export type RiskDraft = {
 	residualNote: string;
 	ownerUserId: string;
 	reviewAt: string;
+	// Herkunft (B1), nur beim Anlegen
+	source?: { kind: string; id: string; label: string; href: string } | null;
 };
 
 const STEPS = [
@@ -245,6 +247,8 @@ export function RiskWizard({
 				assetIds: d.assetIds,
 				processIds: d.processIds,
 				providerId: d.providerId || null,
+				sourceEntityType: d.source?.kind ?? null,
+				sourceEntityId: d.source?.id ?? null,
 				impactDetail: d.impactDetail,
 				likelihood: d.likelihood,
 				treatment: d.treatment,
@@ -325,6 +329,14 @@ export function RiskWizard({
 
 	return (
 		<div className="flex flex-col gap-6">
+			{d.source && (
+				<p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-sm">
+					{t("fromSource")}{" "}
+					<a href={d.source.href} className="text-primary hover:underline">
+						{d.source.label}
+					</a>
+				</p>
+			)}
 			<nav aria-label={t("stepsLabel")}>
 				<ol className="flex flex-wrap gap-1.5 text-xs">
 					{steps.map((s, i) => (

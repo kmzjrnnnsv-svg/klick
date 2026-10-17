@@ -53,7 +53,17 @@ export type AssetDraft = {
 	custodian?: string | null;
 	backupLocation?: string | null;
 	rotationDue?: string | null;
+	vendor?: string | null;
+	product?: string | null;
+	version?: string | null;
+	endOfLifeAt?: string | null;
+	supportEndAt?: string | null;
+	maintenance?: "contract" | "internal" | "none" | null;
+	maintenanceUntil?: string | null;
+	lastPatchedAt?: string | null;
 };
+
+const MAINTENANCE = ["contract", "internal", "none"] as const;
 
 export function AssetForm({
 	initial,
@@ -115,6 +125,14 @@ export function AssetForm({
 								custodian: d.custodian ?? undefined,
 								backupLocation: d.backupLocation ?? undefined,
 								rotationDue: d.rotationDue || null,
+								vendor: d.vendor ?? undefined,
+								product: d.product ?? undefined,
+								version: d.version ?? undefined,
+								endOfLifeAt: d.endOfLifeAt || null,
+								supportEndAt: d.supportEndAt || null,
+								maintenance: d.maintenance ?? null,
+								maintenanceUntil: d.maintenanceUntil || null,
+								lastPatchedAt: d.lastPatchedAt || null,
 							});
 							if (!res.ok) return void toast.error(tc("error"));
 							toast.success(initial ? t("saved") : t("created"));
@@ -262,6 +280,100 @@ export function AssetForm({
 							</>
 						)}
 					</div>
+					<fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<legend className="lv-eyebrow mb-1 text-[0.58rem] text-muted-foreground">
+							{t("lifecycle")}
+						</legend>
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="as-vendor">{t("vendor")}</Label>
+							<Input
+								id="as-vendor"
+								value={d.vendor ?? ""}
+								onChange={(e) => set("vendor", e.target.value)}
+							/>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="as-product">{t("productVersion")}</Label>
+							<div className="flex gap-2">
+								<Input
+									id="as-product"
+									value={d.product ?? ""}
+									onChange={(e) => set("product", e.target.value)}
+								/>
+								<Input
+									aria-label={t("version")}
+									placeholder={t("version")}
+									className="w-24"
+									value={d.version ?? ""}
+									onChange={(e) => set("version", e.target.value)}
+								/>
+							</div>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="as-eol">{t("endOfLifeAt")}</Label>
+							<Input
+								id="as-eol"
+								type="date"
+								value={d.endOfLifeAt ?? ""}
+								onChange={(e) => set("endOfLifeAt", e.target.value)}
+							/>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="as-support">{t("supportEndAt")}</Label>
+							<Input
+								id="as-support"
+								type="date"
+								value={d.supportEndAt ?? ""}
+								onChange={(e) => set("supportEndAt", e.target.value)}
+							/>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<Label>{t("maintenance")}</Label>
+							<Select
+								value={d.maintenance ?? "unknown"}
+								onValueChange={(v) =>
+									set(
+										"maintenance",
+										v === "unknown"
+											? null
+											: (v as (typeof MAINTENANCE)[number]),
+									)
+								}
+							>
+								<SelectTrigger className="w-full">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="unknown">—</SelectItem>
+									{MAINTENANCE.map((m) => (
+										<SelectItem key={m} value={m}>
+											{t(`maintenance_${m}`)}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+						{d.maintenance && d.maintenance !== "none" && (
+							<div className="flex flex-col gap-1.5">
+								<Label htmlFor="as-maint">{t("maintenanceUntil")}</Label>
+								<Input
+									id="as-maint"
+									type="date"
+									value={d.maintenanceUntil ?? ""}
+									onChange={(e) => set("maintenanceUntil", e.target.value)}
+								/>
+							</div>
+						)}
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="as-patch">{t("lastPatchedAt")}</Label>
+							<Input
+								id="as-patch"
+								type="date"
+								value={d.lastPatchedAt ?? ""}
+								onChange={(e) => set("lastPatchedAt", e.target.value)}
+							/>
+						</div>
+					</fieldset>
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="as-desc">{t("description")}</Label>
 						<Textarea

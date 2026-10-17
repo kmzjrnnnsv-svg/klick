@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { importAssetsCsv } from "@/app/actions/imports";
 import { CsvImport } from "@/components/entity/csv-import";
@@ -10,10 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
+import { assetLifecycle, lifecycleTone } from "@/lib/compliance/assets";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { linkIndex } from "@/lib/compliance/queries-links";
 import { listAssets, listProviders } from "@/lib/compliance/queries-p2";
+import { newRiskHref } from "@/lib/compliance/risk-sources";
 import { readOrg } from "@/lib/db/with-org";
 
 type Row = Awaited<ReturnType<typeof listAssets>>[number];
@@ -29,6 +32,7 @@ export default async function AssetsPage({
 	const sp = await searchParams;
 	const t = await getTranslations("Assets");
 	const te = await getTranslations("Entity");
+	const tr = await getTranslations("RiskSources");
 	const { rows, members, providers, links } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
@@ -47,7 +51,18 @@ export default async function AssetsPage({
 	const cls = one(sp.classification);
 	const keys = one(sp.keys) === "1";
 	const unowned = one(sp.unowned) === "1";
+	const critical = one(sp.lebenszyklus) === "1";
+	const today = new Date();
+	const lifecycle = new Map(rows.map((r) => [r.id, assetLifecycle(r, today)]));
+	const canRisk = roleAllows(ctx.orgRole, { risk: ["create"] });
 	const filtered = rows
+		.filter(
+			(r) =>
+				!critical ||
+				["expired", "no_maintenance", "stale_patch", "soon"].includes(
+					lifecycle.get(r.id)?.state ?? "",
+				),
+		)
 		.filter(
 			(r) => !q || `${r.name} ${r.description ?? ""}`.toLowerCase().includes(q),
 		)
@@ -138,6 +153,36 @@ export default async function AssetsPage({
 				),
 		},
 		{
+			key: "lifecycle",
+			header: t("lifecycle"),
+			className: "w-36",
+			cell: (r) => {
+				const lc = lifecycle.get(r.id);
+				if (!lc || lc.state === "unknown") return "—";
+				return (
+					<span className="flex flex-col items-start gap-1">
+						<Badge
+							variant={lifecycleTone(lc.state)}
+							title={lc.reasons.join(", ")}
+						>
+							{t(`lc_${lc.state}`)}
+						</Badge>
+						{canRisk &&
+							(lc.state === "expired" ||
+								lc.state === "no_maintenance" ||
+								lc.state === "stale_patch") && (
+								<Link
+									href={newRiskHref("asset", r.id)}
+									className="text-primary text-xs hover:underline"
+								>
+									{tr("create")}
+								</Link>
+							)}
+					</span>
+				);
+			},
+		},
+		{
 			key: "edit",
 			header: "",
 			className: "w-20",
@@ -161,6 +206,14 @@ export default async function AssetsPage({
 							custodian: r.custodian,
 							backupLocation: r.backupLocation,
 							rotationDue: r.rotationDue,
+							vendor: r.vendor,
+							product: r.product,
+							version: r.version,
+							endOfLifeAt: r.endOfLifeAt,
+							supportEndAt: r.supportEndAt,
+							maintenance: r.maintenance,
+							maintenanceUntil: r.maintenanceUntil,
+							lastPatchedAt: r.lastPatchedAt,
 						}}
 					/>
 				) : null,
@@ -175,7 +228,7 @@ export default async function AssetsPage({
 					<>
 						<CsvImport
 							title={t("importTitle")}
-							columns="name;type;classification;location;description;isLegacy"
+							columns="name;type;classification;location;description;isLegacy;vendor;product;version;endOfLifeAt;supportEndAt;maintenance;lastPatchedAt"
 							action={importAssetsCsv}
 						/>
 						<AssetForm members={members} providers={providers} />
@@ -210,6 +263,7 @@ export default async function AssetsPage({
 			chips={[
 				{ key: "keys", label: t("keys") },
 				{ key: "unowned", label: te("chipUnowned") },
+				{ key: "lebenszyklus", label: t("filterLifecycle") },
 			]}
 			columns={columns}
 			rows={filtered}

@@ -57,6 +57,7 @@ import {
 	listProcesses,
 } from "@/lib/compliance/queries-p3";
 import { loadReadiness } from "@/lib/compliance/queries-readiness";
+import { newRiskHref } from "@/lib/compliance/risk-sources";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import { cn } from "@/lib/utils";
@@ -113,6 +114,8 @@ export default async function AuditCockpitPage({
 	const canDecide = roleAllows(ctx.orgRole, { audit_request: ["decide"] });
 	const canFinding = roleAllows(ctx.orgRole, { audit_finding: ["create"] });
 	const canNc = roleAllows(ctx.orgRole, { nonconformity: ["create"] });
+	const canRisk = roleAllows(ctx.orgRole, { risk: ["create"] });
+	const trs = await getTranslations("RiskSources");
 	const canExport = roleAllows(ctx.orgRole, { export: ["create"] });
 
 	const cov = await getOrgCoverageCached(ctx);
@@ -675,6 +678,14 @@ export default async function AuditCockpitPage({
 												<FindingToNcButton findingId={f.id} />
 											) : (
 												"—"
+											)}
+											{canRisk && f.severity !== "observation" && (
+												<Link
+													href={newRiskHref("audit_finding", f.id)}
+													className="mt-1 block text-primary text-xs hover:underline"
+												>
+													{trs("create")}
+												</Link>
 											)}
 										</TableCell>
 									</TableRow>

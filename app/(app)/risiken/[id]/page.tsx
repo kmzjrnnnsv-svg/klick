@@ -40,8 +40,10 @@ import {
 	userNames,
 } from "@/lib/compliance/queries";
 import { getRisk, listAssets } from "@/lib/compliance/queries-p2";
+import { loadRiskSource } from "@/lib/compliance/queries-risk-sources";
 import { assessRisk } from "@/lib/compliance/risk";
 import { scaleLabels, ZONE_TONE } from "@/lib/compliance/risk-method";
+import { isRiskSourceKind } from "@/lib/compliance/risk-sources";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
 import {
@@ -64,6 +66,7 @@ export default async function RiskDetailPage({
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const ta = await getTranslations("Approvals");
+	const trs = await getTranslations("RiskSources");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const r = await getRisk(tx, ctx.orgId, id);
 		if (!r) return null;
@@ -97,6 +100,17 @@ export default async function RiskDetailPage({
 					.where(eq(providers.id, r.risk.providerId))
 					.limit(1)
 			: [];
+		const source =
+			r.risk.sourceEntityType &&
+			r.risk.sourceEntityId &&
+			isRiskSourceKind(r.risk.sourceEntityType)
+				? await loadRiskSource(
+						tx,
+						ctx.orgId,
+						r.risk.sourceEntityType,
+						r.risk.sourceEntityId,
+					)
+				: null;
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
@@ -106,6 +120,7 @@ export default async function RiskDetailPage({
 		return {
 			...r,
 			providerName: prov?.name ?? null,
+			source,
 			method,
 			comments,
 			history,
@@ -243,6 +258,13 @@ export default async function RiskDetailPage({
 					<MetaItem label={t("reviewAt")}>
 						{risk.reviewAt ? fmtDate.format(new Date(risk.reviewAt)) : "—"}
 					</MetaItem>
+					{data.source && (
+						<MetaItem label={trs("origin")}>
+							<Link href={data.source.href} className="hover:underline">
+								{data.source.label}
+							</Link>
+						</MetaItem>
+					)}
 				</>
 			}
 			aside={

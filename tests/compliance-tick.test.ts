@@ -718,3 +718,27 @@ describe("collectDueItems — Sicherheitsaufträge", () => {
 		]);
 	});
 });
+
+describe("Asset-Lebenszyklus", () => {
+	it("meldet Supportende 90 Tage vorher und am Tag danach, nicht dazwischen", () => {
+		const now = new Date("2026-10-17T06:00:00Z");
+		const asset = (supportEndAt: string) => ({
+			id: "a1",
+			name: "Fileserver",
+			status: "active",
+			endOfLifeAt: null,
+			supportEndAt,
+			maintenanceUntil: null,
+			ownerUserId: "u1",
+		});
+		const at = (iso: string) =>
+			collectDueItems(now, { ...empty, assets: [asset(iso)] }).notifications;
+		expect(at("2027-01-15")[0]?.title).toBe(
+			"Ende der Sicherheitsupdates in 90 Tagen: Fileserver",
+		);
+		expect(at("2026-10-16")[0]?.title).toBe(
+			"Ende der Sicherheitsupdates überschritten: Fileserver",
+		);
+		expect(at("2026-12-01")).toHaveLength(0);
+	});
+});

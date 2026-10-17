@@ -7,6 +7,7 @@ import {
 } from "@/db/schema/enums";
 import { DOCUMENT_TYPES, RISK_CATEGORIES } from "@/db/schema/grc";
 import { PROVIDER_CATEGORIES, PROVIDER_STATUSES } from "@/db/schema/registers";
+import { RISK_SOURCE_KINDS } from "@/lib/compliance/risk-sources";
 import { INCIDENT_STATUSES } from "@/lib/entities/incident";
 import { RISK_STATUSES } from "@/lib/entities/risk";
 import { httpUrl, longText, shortText, uuid } from "./common";
@@ -91,6 +92,9 @@ export const guidedRiskSchema = z
 		assetIds: z.array(uuid).max(50).default([]),
 		processIds: z.array(uuid).max(50).default([]),
 		providerId: uuid.nullable().optional(),
+		// Herkunft (B1): geprüft gegen die Org in saveGuided
+		sourceEntityType: z.enum(RISK_SOURCE_KINDS).nullable().optional(),
+		sourceEntityId: uuid.nullable().optional(),
 		impactDetail: z
 			.record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{0,31}$/), scale)
 			.refine((o) => Object.keys(o).length > 0 && Object.keys(o).length <= 15, {
@@ -361,6 +365,15 @@ export const assetSchema = z.object({
 	custodian: z.string().max(120).optional(),
 	backupLocation: z.string().max(120).optional(),
 	rotationDue: optionalDate,
+	// Lebenszyklus (B2)
+	vendor: z.string().trim().max(120).optional(),
+	product: z.string().trim().max(120).optional(),
+	version: z.string().trim().max(60).optional(),
+	endOfLifeAt: optionalDate,
+	supportEndAt: optionalDate,
+	maintenance: z.enum(["contract", "internal", "none"]).nullable().optional(),
+	maintenanceUntil: optionalDate,
+	lastPatchedAt: optionalDate,
 });
 
 // ── Schulungen ─────────────────────────────────────────────────────────────

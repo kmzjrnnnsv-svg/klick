@@ -105,6 +105,19 @@ async function importRisksCsvImpl(
 	return { ok: true, data: { imported, errors } };
 }
 
+// Wartung aus der CSV: englische Werte oder deutsche Kurzform
+const MAINTENANCE_ALIAS: Record<string, string> = {
+	vertrag: "contract",
+	wartungsvertrag: "contract",
+	intern: "internal",
+	keine: "none",
+};
+function maintenanceOf(v: string | undefined): string | null {
+	if (!v) return null;
+	const k = v.trim().toLowerCase();
+	return MAINTENANCE_ALIAS[k] ?? k;
+}
+
 async function importAssetsCsvImpl(
 	input: unknown,
 ): Promise<ActionResult<Result>> {
@@ -125,6 +138,13 @@ async function importAssetsCsvImpl(
 			isLegacy: toBool(r.isLegacy ?? r.altsystem),
 			custodian: num(r.custodian),
 			backupLocation: num(r.backupLocation),
+			vendor: num(r.vendor ?? r.hersteller),
+			product: num(r.product ?? r.produkt),
+			version: num(r.version),
+			endOfLifeAt: num(r.endOfLifeAt ?? r.eol),
+			supportEndAt: num(r.supportEndAt ?? r.supportende),
+			maintenance: maintenanceOf(num(r.maintenance ?? r.wartung)),
+			lastPatchedAt: num(r.lastPatchedAt ?? r.gepatcht),
 		});
 		if (res.success) valid.push(res.data);
 		else errors.push(rowErrors(i, res.error));
@@ -146,6 +166,13 @@ async function importAssetsCsvImpl(
 					isLegacy: d.isLegacy,
 					custodian: d.custodian ?? null,
 					backupLocation: d.backupLocation ?? null,
+					vendor: d.vendor || null,
+					product: d.product || null,
+					version: d.version || null,
+					endOfLifeAt: d.endOfLifeAt ?? null,
+					supportEndAt: d.supportEndAt ?? null,
+					maintenance: d.maintenance ?? null,
+					lastPatchedAt: d.lastPatchedAt ?? null,
 				})
 				.returning({ id: assets.id });
 			if (row) {

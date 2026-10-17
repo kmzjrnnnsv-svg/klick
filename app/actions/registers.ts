@@ -153,6 +153,14 @@ async function upsertAssetImpl(
 			custodian: d.custodian ?? null,
 			backupLocation: d.backupLocation ?? null,
 			rotationDue: d.rotationDue ?? null,
+			vendor: d.vendor || null,
+			product: d.product || null,
+			version: d.version || null,
+			endOfLifeAt: d.endOfLifeAt ?? null,
+			supportEndAt: d.supportEndAt ?? null,
+			maintenance: d.maintenance ?? null,
+			maintenanceUntil: d.maintenanceUntil ?? null,
+			lastPatchedAt: d.lastPatchedAt ?? null,
 		};
 		if (assetId) {
 			const [before] = await tx
@@ -171,11 +179,19 @@ async function upsertAssetImpl(
 						name: before.name,
 						type: before.type,
 						classification: before.classification,
+						endOfLifeAt: before.endOfLifeAt,
+						supportEndAt: before.supportEndAt,
+						maintenance: before.maintenance,
+						lastPatchedAt: before.lastPatchedAt,
 					},
 					after: {
 						name: d.name,
 						type: d.type,
 						classification: d.classification,
+						endOfLifeAt: values.endOfLifeAt,
+						supportEndAt: values.supportEndAt,
+						maintenance: values.maintenance,
+						lastPatchedAt: values.lastPatchedAt,
 					},
 				},
 			};

@@ -20,6 +20,7 @@ import {
 	IncidentUpdateForm,
 	MitigationButton,
 } from "@/components/incidents/incident-forms";
+import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import type { IncidentRegime } from "@/db/schema/enums";
 import { approverEligibility } from "@/lib/approvals/rules";
@@ -254,6 +255,7 @@ export default async function IncidentDetailPage({
 			}
 			aside={
 				<>
+					<SourceRisksBlock ctx={ctx} kind="incident" id={id} />
 					<Section title={te("activity")}>
 						<CommentForm
 							entityType="incident"

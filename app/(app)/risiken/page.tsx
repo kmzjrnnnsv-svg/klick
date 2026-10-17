@@ -15,6 +15,7 @@ import {
 	RiskQuickCreate,
 } from "@/components/risks/risk-forms";
 import { ClassLegend, RiskMatrix } from "@/components/risks/risk-matrix";
+import { RiskProposals } from "@/components/risks/risk-proposals";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,18 +31,19 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { CONTROLS } from "@/lib/compliance/catalog";
-import { fmtDate } from "@/lib/compliance/page-data";
+import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
 	listExceptions,
 	listLossEvents,
 	listRiskMeasures,
 	listRisks,
 } from "@/lib/compliance/queries-p2";
+import { loadRiskProposals } from "@/lib/compliance/queries-risk-sources";
 import { assessRisk, classDistribution } from "@/lib/compliance/risk";
 import { scaleLabels, ZONE_TONE } from "@/lib/compliance/risk-method";
 import { readOrg } from "@/lib/db/with-org";
 import { RISK_STATUS, RISK_STATUSES } from "@/lib/entities/risk";
-import { orgRiskMethod } from "@/lib/org/queries";
+import { getOrgSettings, orgRiskMethod } from "@/lib/org/queries";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -59,9 +61,9 @@ export default async function RisksPage({
 	const ts = await getTranslations("Status");
 	const canCreate = roleAllows(ctx.orgRole, { risk: ["create"] });
 
-	const { rows, method, exceptions, losses, measures } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => ({
+	const cov = await getOrgCoverageCached(ctx);
+	const { rows, method, exceptions, losses, measures, proposals, dismissed } =
+		await readOrg(toOrgCtx(ctx), async (tx) => ({
 			rows: await listRisks(tx, ctx.orgId),
 			method: await orgRiskMethod(tx, ctx.orgId),
 			exceptions:
@@ -70,8 +72,13 @@ export default async function RisksPage({
 				tab === "schadensfaelle" ? await listLossEvents(tx, ctx.orgId) : [],
 			measures:
 				tab === "massnahmen" ? await listRiskMeasures(tx, ctx.orgId) : [],
-		}),
-	);
+			proposals: await loadRiskProposals(tx, ctx.orgId, cov),
+			dismissed:
+				tab === "vorschlaege"
+					? ((await getOrgSettings(tx, ctx.orgId))?.riskProposalDismissals ??
+						{})
+					: {},
+		}));
 	const scales = scaleLabels(method);
 	const view = one(sp.view) === "residual" ? "residual" : "inherent";
 	const assessed = rows.map((r) => ({ r, a: assessRisk(r, method) }));
@@ -167,8 +174,27 @@ export default async function RisksPage({
 					{ value: "massnahmen", label: t("tabMeasures") },
 					{ value: "ausnahmen", label: t("tabExceptions") },
 					{ value: "schadensfaelle", label: t("tabLossEvents") },
+					{
+						value: "vorschlaege",
+						label: t("tabProposals"),
+						count: proposals.proposals.length,
+					},
 				]}
 			/>
+
+			{tab === "vorschlaege" && (
+				<RiskProposals
+					proposals={proposals.proposals}
+					moreGaps={proposals.moreGaps}
+					dismissed={Object.entries(dismissed).map(([key, d]) => ({
+						key,
+						reason: d.reason,
+						at: d.at,
+					}))}
+					canCreate={canCreate}
+					canDecide={roleAllows(ctx.orgRole, { risk: ["update"] })}
+				/>
+			)}
 
 			{tab === "matrix" && (
 				<>
