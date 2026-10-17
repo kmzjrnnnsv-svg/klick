@@ -10,6 +10,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/client";
 
+// Seite vor dem Export-Klick (Referrer bleibt über die 303-Weiterleitung
+// erhalten); nur eigene Herkunft, nie zurück auf Login-Seiten.
+function backPath(): string {
+	try {
+		const ref = new URL(document.referrer);
+		if (
+			ref.origin === window.location.origin &&
+			!ref.pathname.startsWith("/login")
+		)
+			return `${ref.pathname}${ref.search}`;
+	} catch {
+		// kein oder ungültiger Referrer
+	}
+	return "/heute";
+}
+
 // Zweiter Faktor beim Login (Better-Auth-Flow) oder als Step-up für eine
 // sensible Aktion (eigener Server-Pfad, setzt session.stepUpAt).
 export function TwoFactorForm({
@@ -24,6 +40,7 @@ export function TwoFactorForm({
 	const [code, setCode] = useState("");
 	const [useBackup, setUseBackup] = useState(false);
 	const [busy, setBusy] = useState(false);
+	const [downloading, setDownloading] = useState(false);
 
 	async function submit(e: React.FormEvent) {
 		e.preventDefault();
@@ -54,6 +71,13 @@ export function TwoFactorForm({
 					return;
 				}
 			}
+			// Rückweg auf eine Export-Route (ZIP): als echter Download laden —
+			// eine Client-Navigation lädt die API-Route als Seite ins Leere.
+			if (returnTo.startsWith("/api/")) {
+				window.location.assign(returnTo);
+				setDownloading(true);
+				return;
+			}
 			router.replace(returnTo);
 			router.refresh();
 		} finally {
@@ -66,6 +90,17 @@ export function TwoFactorForm({
 		await authClient.signOut().catch(() => {});
 		router.replace("/login");
 		router.refresh();
+	}
+
+	if (downloading) {
+		return (
+			<div className="flex flex-col gap-4" aria-live="polite">
+				<p className="text-sm">{t("downloadStarted")}</p>
+				<Button variant="brown" onClick={() => router.replace(backPath())}>
+					{t("downloadBack")}
+				</Button>
+			</div>
+		);
 	}
 
 	return (

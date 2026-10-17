@@ -9,6 +9,7 @@ import {
 	RemoveItemButton,
 } from "@/components/audits/audit-forms";
 import { EmptyState } from "@/components/entity/empty-state";
+import { ExportLink } from "@/components/entity/export-link";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -100,7 +101,7 @@ export default async function AuditsPage({
 					canEdit || canExport ? (
 						<div className="flex flex-wrap gap-2">
 							{canExport && (
-								<a
+								<ExportLink
 									href="/api/export/pruefungspaket.zip"
 									className={cn(
 										buttonVariants({ variant: "outline", size: "sm" }),
@@ -108,7 +109,7 @@ export default async function AuditsPage({
 									title={t("exportPackageHint")}
 								>
 									{t("exportPackage")}
-								</a>
+								</ExportLink>
 							)}
 							{canEdit &&
 								(tab === "programm" ? (

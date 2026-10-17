@@ -8,6 +8,7 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import { ExportLink } from "@/components/entity/export-link";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { UrlTabs } from "@/components/entity/url-tabs";
@@ -143,13 +144,13 @@ export default async function EngagementPage({
 						{t("toList")}
 					</Link>
 					{roleAllows(ctx.orgRole, { export: ["create"] }) && (
-						<a
+						<ExportLink
 							href={`/api/export/sicherheitsauftrag.zip?id=${e.id}`}
 							className={buttonVariants({ variant: "outline", size: "sm" })}
 							title={t("exportHint")}
 						>
 							{t("export")}
-						</a>
+						</ExportLink>
 					)}
 				</div>
 			}

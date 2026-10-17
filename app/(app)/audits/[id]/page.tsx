@@ -11,6 +11,7 @@ import {
 	FindingToNcButton,
 	RespondRequestForm,
 } from "@/components/audits/audit-forms";
+import { ExportLink } from "@/components/entity/export-link";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { PageHeader } from "@/components/page-header";
@@ -222,7 +223,7 @@ export default async function AuditCockpitPage({
 				actions={
 					<div className="flex flex-wrap items-center gap-2">
 						{canExport && (
-							<a
+							<ExportLink
 								href={`/api/export/pruefungspaket.zip?audit=${audit.id}`}
 								className={cn(
 									buttonVariants({ variant: "outline", size: "sm" }),
@@ -230,7 +231,7 @@ export default async function AuditCockpitPage({
 								title={t("exportPackageHint")}
 							>
 								{t("exportPackage")}
-							</a>
+							</ExportLink>
 						)}
 						{canEdit ? (
 							<AuditStatusSelect auditId={audit.id} status={audit.status} />

@@ -4,7 +4,12 @@ import { APIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { safeAction } from "@/lib/actions/safe";
-import { AuthError, checkSessionRules, getSessionCtx } from "@/lib/auth/guards";
+import {
+	AuthError,
+	checkSessionRules,
+	getSessionCtx,
+	requireStepUp,
+} from "@/lib/auth/guards";
 import { auth } from "@/lib/auth/server";
 import { verifyStepUpCode } from "@/lib/auth/step-up";
 import type { ActionResult } from "@/lib/validation/common";
@@ -22,6 +27,15 @@ async function verifyStepUpImpl(code: string): Promise<ActionResult> {
 	});
 	if (!res.ok) return { ok: false, error: res.error };
 	revalidatePath("/", "layout");
+	return { ok: true, data: undefined };
+}
+
+// Vor einem Export-Download: frischer Step-up? Sonst meldet die Action
+// step_up_required, ExportLink öffnet den Dialog und lädt danach herunter —
+// ohne Umweg über /login/2fa (dort endete der Rückweg auf die API-Route
+// als Seitennavigation im Leeren).
+async function ensureExportStepUpImpl(): Promise<ActionResult> {
+	await requireStepUp({ export: ["create"] });
 	return { ok: true, data: undefined };
 }
 
@@ -56,6 +70,10 @@ async function revokeOtherSessionsImpl(): Promise<ActionResult> {
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
 export const verifyStepUp = safeAction("verifyStepUp", verifyStepUpImpl);
+export const ensureExportStepUp = safeAction(
+	"ensureExportStepUp",
+	ensureExportStepUpImpl,
+);
 export const revokeSession = safeAction("revokeSession", revokeSessionImpl);
 export const revokeOtherSessions = safeAction(
 	"revokeOtherSessions",

@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { importProvidersCsv } from "@/app/actions/imports";
 import { CsvImport } from "@/components/entity/csv-import";
 import { EmptyState } from "@/components/entity/empty-state";
+import { ExportLink } from "@/components/entity/export-link";
 import { LinkChips } from "@/components/entity/link-chips";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UrlTabs } from "@/components/entity/url-tabs";
@@ -380,20 +381,20 @@ export default async function ProvidersPage({
 					</Link>
 					{canExport && (
 						<>
-							<a
+							<ExportLink
 								href="/api/export/informationsregister.zip"
 								className="text-primary text-sm underline-offset-4 hover:underline"
 								title={t("exportRegisterHint")}
 							>
 								{t("exportRegister")}
-							</a>
-							<a
+							</ExportLink>
+							<ExportLink
 								href="/api/export/lieferantenpaket.zip"
 								className="text-primary text-sm underline-offset-4 hover:underline"
 								title={t("exportSupplierPackHint")}
 							>
 								{t("exportSupplierPack")}
-							</a>
+							</ExportLink>
 						</>
 					)}
 					{canEdit && (

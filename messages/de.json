@@ -254,7 +254,9 @@
 		"ssoNoProvider": "Für diese Domain ist kein verifizierter SSO-Provider hinterlegt.",
 		"signupHint": "Neu hier? Mit deiner E-Mail-Adresse geht es direkt los — danach legst du deine Organisation an.",
 		"reasonOrgDeleted": "Die Organisation wurde gelöscht. Eine Löschbestätigung ist per E-Mail unterwegs.",
-		"signOut": "Abmelden"
+		"signOut": "Abmelden",
+		"downloadStarted": "Bestätigt – der Download startet. Du findest die Datei in deinem Download-Ordner.",
+		"downloadBack": "Zurück zur Seite"
 	},
 	"Onboarding": {
 		"title": "Organisation anlegen",
