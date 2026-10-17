@@ -201,6 +201,13 @@ export const orgSettings = pgTable(
 			.default({}),
 		// Setup-Checkliste: bestätigte Prüfungen (z. B. tlptConfirmedAt).
 		setupFlags: json<Record<string, string>>().notNull().default({}),
+		// Risikovorschläge (B3), die bewusst kein Risiko sind: „kind:id“ →
+		// Begründung, wer, wann
+		riskProposalDismissals: json<
+			Record<string, { reason: string; byUserId: string; at: string }>
+		>()
+			.notNull()
+			.default({}),
 		entityProfile: json<EntityProfile>().notNull().default({}),
 		dlpPolicy: json<Partial<DlpPolicy>>().notNull().default({}),
 		onboardingCompletedAt: ts(),

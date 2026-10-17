@@ -1,6 +1,7 @@
 import {
 	boolean,
 	date,
+	doublePrecision,
 	index,
 	integer,
 	pgTable,
@@ -156,6 +157,28 @@ export const objectives = pgTable(
 		})
 			.notNull()
 			.default("open"),
+		// Kennzahl (B5): Leistung (KPI), Risiko (KRI), Kontrolle (KCI) mit
+		// Zielwert, Frühwarn- und Alarmschwelle, Messintervall
+		indicatorType: text({ enum: ["kpi", "kri", "kci"] })
+			.notNull()
+			.default("kpi"),
+		direction: text({ enum: ["higher_better", "lower_better"] })
+			.notNull()
+			.default("higher_better"),
+		targetValue: doublePrecision(),
+		warnAt: doublePrecision(),
+		alertAt: doublePrecision(),
+		measureEveryMonths: integer(),
+		nextMeasureAt: date(),
+		// Vorschlag → Freigabe durch das Management (objective_release);
+		// Bestand gilt als freigegeben.
+		approvalStatus: text({
+			enum: ["draft", "proposed", "approved", "rejected"],
+		})
+			.notNull()
+			.default("approved"),
+		approvedByUserId: userRef(),
+		approvedAt: ts(),
 		...timestamps(),
 	},
 	(t) => [
@@ -174,6 +197,8 @@ export const kpiMeasurements = pgTable(
 			.references(() => objectives.id, { onDelete: "cascade" }),
 		measuredAt: date().notNull(),
 		value: text().notNull(),
+		// aus value geparst, wenn numerisch (Ampel, Verlauf)
+		numericValue: doublePrecision(),
 		note: text(),
 		createdByUserId: userRef(),
 	},
@@ -383,6 +408,8 @@ export const managementReviews = pgTable(
 			.default({}),
 		summary: text(),
 		decisions: text(),
+		// Zusammenfassung aus Klick (B6) als Schnappschuss beim Abhalten
+		digest: json<Record<string, unknown>>(),
 		status: text({ enum: ["planned", "held", "done"] })
 			.notNull()
 			.default("planned"),

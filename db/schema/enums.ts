@@ -389,6 +389,8 @@ export const ENTITY_KINDS = [
 	"security_finding",
 	"security_engagement",
 	"provider_rating",
+	// Katalog-Anforderung (requirements.id) — nur als Herkunft/Bezug
+	"requirement",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 

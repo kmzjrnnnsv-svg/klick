@@ -155,6 +155,16 @@ export const assets = pgTable(
 		backupLocation: text(),
 		rotationDue: date(),
 		ceremonyEvidenceId: uuid(),
+		// Lebenszyklus (B2): Hersteller/Produkt, Ende Herstellerunterstützung
+		// bzw. Sicherheitsupdates, Wartung, letzter Patch
+		vendor: text(),
+		product: text(),
+		version: text(),
+		endOfLifeAt: date(),
+		supportEndAt: date(),
+		maintenance: text({ enum: ["contract", "internal", "none"] }),
+		maintenanceUntil: date(),
+		lastPatchedAt: date(),
 		status: text({ enum: ["active", "retired"] })
 			.notNull()
 			.default("active"),

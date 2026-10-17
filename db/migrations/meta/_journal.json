@@ -99,6 +99,13 @@
       "when": 1792256492393,
       "tag": "0013_provider_ratings",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792277789244,
+      "tag": "0014_risk_sources_assets_objectives",
+      "breakpoints": true
     }
   ]
 }

@@ -496,6 +496,9 @@ export const approvalRequests = pgTable(
 		// Solo-Modus: Vier-Augen nicht erfüllbar → begründete Selbstfreigabe.
 		selfApproved: boolean().notNull().default(false),
 		selfApprovalReason: text(),
+		// Stufen-Schnappschuss je Antrag (B4: Freigabestufen je Risikoklasse);
+		// null = Stufen des Workflows.
+		steps: json<ApprovalStep[]>(),
 	},
 	(t) => [
 		index("approval_requests_entity_idx").on(t.entityType, t.entityId),
@@ -627,11 +630,21 @@ export const risks = pgTable(
 		residualNote: text(),
 		providerId: uuid().references(() => providers.id, { onDelete: "set null" }),
 		assessedAt: ts(),
+		// Herkunft (B1): woraus das Risiko erfasst wurde — Dienstleister, Asset,
+		// Vorfall, Lücke, Befund, Abweichung, Ziel … (allgemein; providerId,
+		// risk_assets und process_risks bleiben die fachlichen Bezüge).
+		sourceEntityType: text({ enum: ENTITY_KINDS }),
+		sourceEntityId: uuid(),
 		...timestamps(),
 	},
 	(t) => [
 		unique().on(t.organizationId, t.code),
 		index("risks_org_status_idx").on(t.organizationId, t.status),
+		index("risks_source_idx").on(
+			t.organizationId,
+			t.sourceEntityType,
+			t.sourceEntityId,
+		),
 		orgPolicy("risks"),
 	],
 ).enableRLS();
