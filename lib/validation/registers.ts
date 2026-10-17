@@ -56,7 +56,80 @@ export const createTreatmentSchema = z.object({
 	description: longText.optional(),
 	ownerUserId: uuid.nullable().optional(),
 	dueAt: optionalDate,
+	costEur: z.coerce
+		.number()
+		.int()
+		.min(0)
+		.max(1_000_000_000)
+		.nullable()
+		.optional(),
 });
+
+// Risiko-Assistent (/risiken/neu, /risiken/[id]/bewerten): eine Anlage bzw.
+// Neubewertung in einem Schritt. impact rechnet der Server aus impactDetail.
+export const guidedRiskSchema = z
+	.object({
+		riskId: uuid.optional(),
+		scenarioCode: z.string().trim().max(20).nullable().optional(),
+		title: shortText,
+		category: z.enum(RISK_CATEGORIES),
+		impactDescription: longText.optional(),
+		existingMeasures: longText.optional(),
+		protectionGoals: z
+			.array(
+				z.enum([
+					"confidentiality",
+					"integrity",
+					"availability",
+					"authenticity",
+				]),
+			)
+			.max(4)
+			.default([]),
+		controlCodes: z.array(z.string().min(1).max(20)).max(50).default([]),
+		assetIds: z.array(uuid).max(50).default([]),
+		processIds: z.array(uuid).max(50).default([]),
+		providerId: uuid.nullable().optional(),
+		impactDetail: z
+			.record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{0,31}$/), scale)
+			.refine((o) => Object.keys(o).length > 0 && Object.keys(o).length <= 15, {
+				message: "Mindestens eine Schadensart bewerten.",
+			}),
+		likelihood: scale,
+		treatment: z.enum(["mitigate", "accept", "transfer", "avoid"]),
+		treatmentNote: longText.optional(),
+		measures: z
+			.array(
+				z.object({
+					title: shortText,
+					ownerUserId: uuid.nullable().optional(),
+					dueAt: optionalDate,
+					costEur: z.coerce
+						.number()
+						.int()
+						.min(0)
+						.max(1_000_000_000)
+						.nullable()
+						.optional(),
+				}),
+			)
+			.max(20)
+			.default([]),
+		residualLikelihood: scale.nullable().optional(),
+		residualImpact: scale.nullable().optional(),
+		residualNote: longText.optional(),
+		ownerUserId: uuid.nullable().optional(),
+		reviewAt: optionalDate,
+		selfApprovalReason: z.string().trim().max(2000).optional(),
+	})
+	.refine(
+		(d) => (d.residualLikelihood == null) === (d.residualImpact == null),
+		{
+			message: "Restrisiko: Wahrscheinlichkeit und Schaden zusammen angeben.",
+			path: ["residualImpact"],
+		},
+	);
+export type GuidedRiskInput = z.output<typeof guidedRiskSchema>;
 
 export const createExceptionSchema = z.object({
 	title: shortText,

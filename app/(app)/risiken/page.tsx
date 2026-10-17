@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { importRisksCsv } from "@/app/actions/imports";
@@ -15,6 +16,7 @@ import {
 } from "@/components/risks/risk-forms";
 import { ClassLegend, RiskMatrix } from "@/components/risks/risk-matrix";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -32,6 +34,7 @@ import { fmtDate } from "@/lib/compliance/page-data";
 import {
 	listExceptions,
 	listLossEvents,
+	listRiskMeasures,
 	listRisks,
 } from "@/lib/compliance/queries-p2";
 import { assessRisk, classDistribution } from "@/lib/compliance/risk";
@@ -56,7 +59,7 @@ export default async function RisksPage({
 	const ts = await getTranslations("Status");
 	const canCreate = roleAllows(ctx.orgRole, { risk: ["create"] });
 
-	const { rows, method, exceptions, losses } = await readOrg(
+	const { rows, method, exceptions, losses, measures } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
 			rows: await listRisks(tx, ctx.orgId),
@@ -65,6 +68,8 @@ export default async function RisksPage({
 				tab === "ausnahmen" ? await listExceptions(tx, ctx.orgId) : [],
 			losses:
 				tab === "schadensfaelle" ? await listLossEvents(tx, ctx.orgId) : [],
+			measures:
+				tab === "massnahmen" ? await listRiskMeasures(tx, ctx.orgId) : [],
 		}),
 	);
 	const scales = scaleLabels(method);
@@ -118,6 +123,12 @@ export default async function RisksPage({
 				actions={
 					<span className="flex flex-wrap items-center gap-2">
 						<a
+							href="/api/export/risikoanalyse.md"
+							className="text-primary text-sm hover:underline underline-offset-4"
+						>
+							{t("exportReport")}
+						</a>
+						<a
 							href="/api/export/risiken.csv"
 							className="text-primary text-sm hover:underline underline-offset-4"
 						>
@@ -130,7 +141,20 @@ export default async function RisksPage({
 								action={importRisksCsv}
 							/>
 						)}
-						{canCreate && <RiskQuickCreate scales={scales} />}
+						{canCreate && (
+							<RiskQuickCreate
+								scales={scales}
+								triggerLabel={t("quickCreate")}
+							/>
+						)}
+						{canCreate && (
+							<Button asChild size="sm" variant="brown">
+								<Link href="/risiken/neu">
+									<Plus />
+									{t("analyze")}
+								</Link>
+							</Button>
+						)}
 					</span>
 				}
 			/>
@@ -140,6 +164,7 @@ export default async function RisksPage({
 				tabs={[
 					{ value: "register", label: t("tabRegister"), count: rows.length },
 					{ value: "matrix", label: t("tabMatrix"), count: above },
+					{ value: "massnahmen", label: t("tabMeasures") },
 					{ value: "ausnahmen", label: t("tabExceptions") },
 					{ value: "schadensfaelle", label: t("tabLossEvents") },
 				]}
@@ -197,6 +222,97 @@ export default async function RisksPage({
 							title: t("classDistribution"),
 						}}
 					/>
+				</>
+			)}
+
+			{tab === "massnahmen" && (
+				<>
+					<p className="mb-4 text-muted-foreground text-sm">
+						{t("measuresLead")}
+					</p>
+					{measures.length === 0 ? (
+						<p className="text-sm">{t("measuresEmpty")}</p>
+					) : (
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead className="w-48">{t("measureRisk")}</TableHead>
+									<TableHead>{t("measureTitle")}</TableHead>
+									<TableHead className="w-40">{te("owner")}</TableHead>
+									<TableHead className="w-28">{t("measureDue")}</TableHead>
+									<TableHead className="w-28 text-right">
+										{t("measureCost")}
+									</TableHead>
+									<TableHead className="w-28">{t("measureStatus")}</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{measures.map((m) => {
+									const a = assessRisk(
+										{
+											id: m.riskId,
+											likelihood: m.likelihood,
+											impact: m.impact,
+											residualLikelihood: m.residualLikelihood,
+											residualImpact: m.residualImpact,
+										},
+										method,
+									);
+									return (
+										<TableRow key={m.id}>
+											<TableCell>
+												<Link
+													href={`/risiken/${m.riskId}`}
+													className="font-mono text-xs hover:underline"
+												>
+													{m.riskCode}
+												</Link>{" "}
+												<Badge variant={ZONE_TONE[a.inherent.zone]}>
+													{a.inherent.cls.label}
+												</Badge>
+												<p className="truncate text-muted-foreground text-xs">
+													{m.riskTitle}
+												</p>
+											</TableCell>
+											<TableCell className="font-medium">{m.title}</TableCell>
+											<TableCell>
+												<UserChip name={m.ownerName} />
+											</TableCell>
+											<TableCell
+												className={
+													m.dueAt && m.dueAt < today && m.status !== "done"
+														? "text-destructive"
+														: "text-muted-foreground"
+												}
+											>
+												{m.dueAt ? fmtDate.format(new Date(m.dueAt)) : "—"}
+											</TableCell>
+											<TableCell className="text-right tabular-nums">
+												{m.costEur != null
+													? `${m.costEur.toLocaleString("de-DE")} €`
+													: "—"}
+											</TableCell>
+											<TableCell>
+												<Badge
+													variant={
+														m.status === "done"
+															? "success"
+															: m.status === "in_progress"
+																? "warning"
+																: "muted"
+													}
+												>
+													{t(
+														`treatmentStatus_${m.status}` as "treatmentStatus_planned",
+													)}
+												</Badge>
+											</TableCell>
+										</TableRow>
+									);
+								})}
+							</TableBody>
+						</Table>
+					)}
 				</>
 			)}
 
@@ -375,7 +491,20 @@ export default async function RisksPage({
 							lead={t("emptyLead")}
 							requiredBy={t("requiredBy")}
 							actions={
-								canCreate ? <RiskQuickCreate scales={scales} /> : undefined
+								canCreate ? (
+									<span className="flex flex-wrap gap-2">
+										<Button asChild size="sm" variant="brown">
+											<Link href="/risiken/neu">
+												<Plus />
+												{t("analyze")}
+											</Link>
+										</Button>
+										<RiskQuickCreate
+											scales={scales}
+											triggerLabel={t("quickCreate")}
+										/>
+									</span>
+								) : undefined
 							}
 						/>
 					) : (

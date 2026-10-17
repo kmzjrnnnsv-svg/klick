@@ -8,8 +8,10 @@ import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nextRiskCode } from "@/lib/compliance/risk";
+import { plusMonths } from "@/lib/compliance/risk-service";
 import { parseCsv, toBool } from "@/lib/csv";
 import { mutateOrg } from "@/lib/db/with-org";
+import { getOrgSettings } from "@/lib/org/queries";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	assetSchema,
@@ -49,12 +51,15 @@ async function importRisksCsvImpl(
 			description: r.description ?? r.beschreibung ?? undefined,
 			category: num(r.category ?? r.kategorie) ?? "operational",
 			likelihood: num(r.likelihood ?? r.eintrittswahrscheinlichkeit) ?? 3,
-			impact: num(r.impact ?? r.auswirkung) ?? 3,
+			impact: num(r.impact ?? r.auswirkung ?? r.schadenshoehe) ?? 3,
 		});
 		if (res.success) valid.push(res.data);
 		else errors.push(rowErrors(i, res.error));
 	});
 	const imported = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const settings = await getOrgSettings(tx, c.orgId);
+		// Wiedervorlage wie bei der Anlage im Formular
+		const reviewAt = plusMonths(settings?.reviewDefaults.risk ?? 3);
 		const existing = (
 			await tx
 				.select({ code: risks.code })
@@ -77,6 +82,7 @@ async function importRisksCsvImpl(
 					likelihood: d.likelihood,
 					impact: d.impact,
 					ownerUserId: c.userId,
+					reviewAt,
 				})
 				.returning({ id: risks.id });
 			if (row) {

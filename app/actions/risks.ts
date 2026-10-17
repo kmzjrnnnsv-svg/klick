@@ -3,30 +3,41 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
+	assets,
 	controls,
 	exceptions,
 	lossEvents,
+	processes,
+	processRisks,
+	providers,
 	riskAssets,
 	riskControls,
 	risks,
-	riskTreatments,
-	tasks,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { assessRisk, nextRiskCode } from "@/lib/compliance/risk";
+import { damageFrom } from "@/lib/compliance/risk-method";
+import {
+	acceptRisk,
+	insertTreatment,
+	notifyAboveAppetite,
+	plusMonths,
+} from "@/lib/compliance/risk-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { RISK_STATUS } from "@/lib/entities/risk";
 import { canTransition } from "@/lib/entities/status-machine";
 import { notify } from "@/lib/notifications/notify";
 import { getOrgSettings, orgRiskMethod } from "@/lib/org/queries";
-import { type ActionResult, fromZod } from "@/lib/validation/common";
+import { type ActionResult, fail, fromZod } from "@/lib/validation/common";
 import {
 	createExceptionSchema,
 	createLossEventSchema,
 	createRiskSchema,
 	createTreatmentSchema,
+	type GuidedRiskInput,
+	guidedRiskSchema,
 	setRiskStatusSchema,
 	updateRiskSchema,
 } from "@/lib/validation/registers";
@@ -40,12 +51,6 @@ async function riskSettingsFor(
 		method: await orgRiskMethod(tx, orgId, s),
 		reviewDefaults: s?.reviewDefaults ?? null,
 	};
-}
-
-function plusMonths(months: number): string {
-	const d = new Date();
-	d.setMonth(d.getMonth() + months);
-	return d.toISOString().slice(0, 10);
 }
 
 async function createRiskImpl(
@@ -125,6 +130,13 @@ async function updateRiskImpl(input: unknown): Promise<ActionResult> {
 		const set: Partial<typeof risks.$inferInsert> = {};
 		for (const [k, v] of Object.entries(patch))
 			if (v !== undefined) (set as Record<string, unknown>)[k] = v;
+		// Schadenshöhe von Hand geändert → Einzelwerte passen nicht mehr
+		if (
+			set.impact !== undefined &&
+			set.impact !== before.impact &&
+			before.impactDetail
+		)
+			set.impactDetail = null;
 		if (Object.keys(set).length > 0)
 			await tx.update(risks).set(set).where(eq(risks.id, riskId));
 		if (controlCodes) {
@@ -339,61 +351,356 @@ async function createTreatmentImpl(
 			.where(and(eq(risks.id, d.riskId), eq(risks.organizationId, c.orgId)))
 			.limit(1);
 		if (!risk) throw new Error("notFound");
-		const [task] = await tx
-			.insert(tasks)
-			.values({
-				organizationId: c.orgId,
-				title: `${risk.code}: ${d.title}`,
-				description: d.description ?? null,
-				assigneeUserId: d.ownerUserId ?? c.userId,
-				createdByUserId: c.userId,
-				dueAt: d.dueAt ?? null,
-				entityType: "risk",
-				entityId: d.riskId,
-				sourceKind: "treatment",
-			})
-			.returning({ id: tasks.id });
-		const [row] = await tx
-			.insert(riskTreatments)
-			.values({
-				organizationId: c.orgId,
-				riskId: d.riskId,
-				title: d.title,
-				description: d.description ?? null,
-				ownerUserId: d.ownerUserId ?? c.userId,
-				dueAt: d.dueAt ?? null,
-				taskId: task?.id ?? null,
-			})
-			.returning({ id: riskTreatments.id });
-		if (!row) throw new Error("insert failed");
+		const { treatmentId, taskId } = await insertTreatment(tx, c, {
+			riskId: d.riskId,
+			riskCode: risk.code,
+			title: d.title,
+			description: d.description ?? null,
+			ownerUserId: d.ownerUserId ?? null,
+			dueAt: d.dueAt ?? null,
+			costEur: d.costEur ?? null,
+		});
 		if (risk.status === "open")
 			await tx
 				.update(risks)
 				.set({ status: "in_treatment" })
 				.where(eq(risks.id, d.riskId));
-		await notify(tx, {
-			orgId: c.orgId,
-			recipients: [d.ownerUserId],
-			actorUserId: c.userId,
-			kind: "task_assigned",
-			title: `Massnahme: ${d.title}`,
-			link: `/risiken/${d.riskId}`,
-		});
 		return {
-			result: row.id,
+			result: treatmentId,
 			audit: {
 				action: "risk.treatment",
 				target: `risk:${d.riskId}`,
 				after: {
 					title: d.title,
 					dueAt: d.dueAt ?? null,
-					taskId: task?.id ?? null,
+					costEur: d.costEur ?? null,
+					taskId,
 				},
 			},
 		};
 	});
 	revalidatePath("/risiken", "layout");
 	return { ok: true, data: { id } };
+}
+
+// ── Risiko-Assistent ──────────────────────────────────────────────────────
+type GuidedResult = {
+	id: string;
+	code: string;
+	acceptance: "accepted" | "pending" | "failed" | null;
+	acceptanceError?: string;
+};
+
+async function saveGuided(
+	c: Awaited<ReturnType<typeof requireOrg>>,
+	d: GuidedRiskInput,
+): Promise<ActionResult<GuidedResult>> {
+	const res = await mutateOrg<ActionResult<GuidedResult>>(
+		toOrgCtx(c),
+		async (tx) => {
+			const settings = await riskSettingsFor(tx, c.orgId);
+			const method = settings.method;
+			// Nur Schadensarten der Methode zählen; impact rechnet der Server.
+			const known = new Set(method.dimensions.map((x) => x.key));
+			const impactDetail = Object.fromEntries(
+				Object.entries(d.impactDetail).filter(([k]) => known.has(k)),
+			);
+			const impact = damageFrom(impactDetail, method);
+			if (impact === null)
+				return {
+					result: fail("Eingaben prüfen", {
+						impactDetail: ["Mindestens eine aktive Schadensart bewerten."],
+					}),
+					audit: [],
+				};
+			const residual =
+				d.residualLikelihood != null && d.residualImpact != null
+					? {
+							residualLikelihood: d.residualLikelihood,
+							residualImpact: d.residualImpact,
+						}
+					: { residualLikelihood: null, residualImpact: null };
+			const a = assessRisk(
+				{ id: "x", likelihood: d.likelihood, impact, ...residual },
+				method,
+			);
+			if (
+				d.treatment === "accept" &&
+				a.effective.zone !== "acceptable" &&
+				(d.treatmentNote ?? "").trim().length < 10
+			)
+				return {
+					result: fail("Eingaben prüfen", {
+						treatmentNote: ["Begründe die Akzeptanz (mindestens 10 Zeichen)."],
+					}),
+					audit: [],
+				};
+
+			// Verknüpfungen nur innerhalb der Org (RLS) und des Katalogs.
+			const ctrlRows =
+				d.controlCodes.length > 0
+					? await tx
+							.select({ id: controls.id, code: controls.code })
+							.from(controls)
+							.where(inArray(controls.code, d.controlCodes))
+					: [];
+			const assetRows =
+				d.assetIds.length > 0
+					? await tx
+							.select({ id: assets.id })
+							.from(assets)
+							.where(
+								and(
+									eq(assets.organizationId, c.orgId),
+									inArray(assets.id, d.assetIds),
+								),
+							)
+					: [];
+			const processRows =
+				d.processIds.length > 0
+					? await tx
+							.select({ id: processes.id })
+							.from(processes)
+							.where(
+								and(
+									eq(processes.organizationId, c.orgId),
+									inArray(processes.id, d.processIds),
+								),
+							)
+					: [];
+			let providerId: string | null = null;
+			if (d.providerId) {
+				const [p] = await tx
+					.select({ id: providers.id })
+					.from(providers)
+					.where(
+						and(
+							eq(providers.id, d.providerId),
+							eq(providers.organizationId, c.orgId),
+						),
+					)
+					.limit(1);
+				providerId = p?.id ?? null;
+			}
+
+			const fields = {
+				title: d.title,
+				category: d.category,
+				scenarioCode: d.scenarioCode ?? null,
+				impactDetail,
+				impactDescription: d.impactDescription?.trim() || null,
+				existingMeasures: d.existingMeasures?.trim() || null,
+				protectionGoals: d.protectionGoals,
+				likelihood: d.likelihood,
+				impact,
+				treatment: d.treatment,
+				treatmentNote: d.treatmentNote?.trim() || null,
+				...residual,
+				residualNote: d.residualNote?.trim() || null,
+				providerId,
+				assessedAt: new Date(),
+			};
+
+			let id: string;
+			let code: string;
+			let ownerUserId: string | null;
+			let before: Record<string, unknown> | null = null;
+			let wasAbove = false;
+			let status: string;
+			if (d.riskId) {
+				const [row] = await tx
+					.select()
+					.from(risks)
+					.where(and(eq(risks.id, d.riskId), eq(risks.organizationId, c.orgId)))
+					.limit(1);
+				if (!row)
+					return { result: { ok: false, error: "notFound" }, audit: [] };
+				id = row.id;
+				code = row.code;
+				ownerUserId =
+					d.ownerUserId === undefined ? row.ownerUserId : d.ownerUserId;
+				wasAbove = assessRisk(row, method).aboveAppetite;
+				before = {
+					likelihood: row.likelihood,
+					impact: row.impact,
+					impactDetail: row.impactDetail,
+					residualLikelihood: row.residualLikelihood,
+					residualImpact: row.residualImpact,
+					treatment: row.treatment,
+					status: row.status,
+				};
+				status = row.status;
+				await tx
+					.update(risks)
+					.set({
+						...fields,
+						ownerUserId,
+						reviewAt:
+							d.reviewAt ?? plusMonths(settings.reviewDefaults?.risk ?? 3),
+					})
+					.where(eq(risks.id, id));
+				await tx.delete(riskControls).where(eq(riskControls.riskId, id));
+				await tx.delete(riskAssets).where(eq(riskAssets.riskId, id));
+				await tx.delete(processRisks).where(eq(processRisks.riskId, id));
+			} else {
+				const existing = await tx
+					.select({ code: risks.code })
+					.from(risks)
+					.where(eq(risks.organizationId, c.orgId));
+				code = nextRiskCode(existing.map((r) => r.code));
+				ownerUserId = d.ownerUserId ?? c.userId;
+				const [row] = await tx
+					.insert(risks)
+					.values({
+						organizationId: c.orgId,
+						code,
+						...fields,
+						ownerUserId,
+						reviewAt:
+							d.reviewAt ?? plusMonths(settings.reviewDefaults?.risk ?? 3),
+					})
+					.returning({ id: risks.id });
+				if (!row) throw new Error("insert failed");
+				id = row.id;
+				status = "open";
+			}
+			if (ctrlRows.length > 0)
+				await tx
+					.insert(riskControls)
+					.values(
+						ctrlRows.map((x) => ({
+							organizationId: c.orgId,
+							riskId: id,
+							controlId: x.id,
+						})),
+					)
+					.onConflictDoNothing();
+			if (assetRows.length > 0)
+				await tx
+					.insert(riskAssets)
+					.values(
+						assetRows.map((x) => ({
+							organizationId: c.orgId,
+							riskId: id,
+							assetId: x.id,
+						})),
+					)
+					.onConflictDoNothing();
+			if (processRows.length > 0)
+				await tx
+					.insert(processRisks)
+					.values(
+						processRows.map((x) => ({
+							organizationId: c.orgId,
+							processId: x.id,
+							riskId: id,
+						})),
+					)
+					.onConflictDoNothing();
+
+			const taskIds: (string | null)[] = [];
+			for (const m of d.measures) {
+				const r = await insertTreatment(tx, c, {
+					riskId: id,
+					riskCode: code,
+					title: m.title,
+					ownerUserId: m.ownerUserId ?? ownerUserId,
+					dueAt: m.dueAt ?? null,
+					costEur: m.costEur ?? null,
+				});
+				taskIds.push(r.taskId);
+			}
+			if (d.measures.length > 0 && status === "open") {
+				await tx
+					.update(risks)
+					.set({ status: "in_treatment" })
+					.where(eq(risks.id, id));
+				status = "in_treatment";
+			}
+
+			let acceptance: GuidedResult["acceptance"] = null;
+			let acceptanceError: string | undefined;
+			if (d.treatment === "accept" && status !== "accepted") {
+				const r = await acceptRisk(
+					tx,
+					c,
+					{
+						id,
+						code,
+						title: d.title,
+						ownerUserId,
+						likelihood: d.likelihood,
+						impact,
+						...residual,
+					},
+					method,
+					{ selfApprovalReason: d.selfApprovalReason },
+				);
+				acceptance = r.status;
+				if (r.status === "accepted") status = "accepted";
+				if (r.status === "failed") acceptanceError = r.error;
+			}
+			if (a.aboveAppetite && !wasAbove && status !== "accepted")
+				await notifyAboveAppetite(
+					tx,
+					c,
+					{ id, code, ownerUserId },
+					{ score: a.effective.score, label: a.effective.cls.label },
+					d.riskId ? c.userId : null,
+				);
+
+			const after = {
+				code,
+				title: d.title,
+				scenarioCode: d.scenarioCode ?? null,
+				likelihood: d.likelihood,
+				impact,
+				impactDetail,
+				...residual,
+				treatment: d.treatment,
+				status,
+				class: a.effective.cls.label,
+				controls: ctrlRows.map((x) => x.code),
+				measures: d.measures.length,
+				acceptance,
+				via: "wizard",
+			};
+			return {
+				result: {
+					ok: true,
+					data: { id, code, acceptance, acceptanceError },
+				},
+				audit: {
+					action: d.riskId ? "risk.reassess" : "risk.create",
+					target: `risk:${id}`,
+					before,
+					after,
+				},
+			};
+		},
+	);
+	revalidatePath("/risiken", "layout");
+	return res;
+}
+
+async function createRiskGuidedImpl(
+	input: unknown,
+): Promise<ActionResult<GuidedResult>> {
+	const c = await requireOrg({ risk: ["create"] });
+	const parsed = guidedRiskSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	if (parsed.data.riskId) return { ok: false, error: "notFound" };
+	return saveGuided(c, parsed.data);
+}
+
+async function reassessRiskImpl(
+	input: unknown,
+): Promise<ActionResult<GuidedResult>> {
+	const c = await requireOrg({ risk: ["update"] });
+	const parsed = guidedRiskSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	if (!parsed.data.riskId) return { ok: false, error: "notFound" };
+	return saveGuided(c, parsed.data);
 }
 
 async function createExceptionImpl(
@@ -521,6 +828,11 @@ async function createLossEventImpl(
 
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
+export const createRiskGuided = safeAction(
+	"createRiskGuided",
+	createRiskGuidedImpl,
+);
+export const reassessRisk = safeAction("reassessRisk", reassessRiskImpl);
 export const createRisk = safeAction("createRisk", createRiskImpl);
 export const updateRisk = safeAction("updateRisk", updateRiskImpl);
 export const setRiskStatus = safeAction("setRiskStatus", setRiskStatusImpl);

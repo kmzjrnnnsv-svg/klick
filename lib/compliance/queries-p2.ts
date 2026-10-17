@@ -19,6 +19,7 @@ import {
 	risks,
 	riskTreatments,
 	taskBundles,
+	tasks,
 	trainingAssignments,
 	trainingRequirements,
 	trainings,
@@ -374,4 +375,50 @@ export async function orgActivity(tx: OrgTx, orgId: string, limit = 100) {
 		...recentComments.map((c) => c.authorUserId),
 	]);
 	return { audit, comments: recentComments, names };
+}
+
+// Maßnahmenplan über alle Risiken (Reiter /risiken?tab=massnahmen, Bericht).
+// Der Status kommt aus der verknüpften Aufgabe, nicht aus risk_treatments.
+export async function listRiskMeasures(tx: OrgTx, orgId: string) {
+	const rows = await tx
+		.select({
+			id: riskTreatments.id,
+			title: riskTreatments.title,
+			ownerUserId: riskTreatments.ownerUserId,
+			dueAt: riskTreatments.dueAt,
+			costEur: riskTreatments.costEur,
+			treatmentStatus: riskTreatments.status,
+			taskId: riskTreatments.taskId,
+			taskStatus: tasks.status,
+			riskId: risks.id,
+			riskCode: risks.code,
+			riskTitle: risks.title,
+			likelihood: risks.likelihood,
+			impact: risks.impact,
+			residualLikelihood: risks.residualLikelihood,
+			residualImpact: risks.residualImpact,
+			treatment: risks.treatment,
+		})
+		.from(riskTreatments)
+		.innerJoin(risks, eq(risks.id, riskTreatments.riskId))
+		.leftJoin(tasks, eq(tasks.id, riskTreatments.taskId))
+		.where(eq(riskTreatments.organizationId, orgId))
+		.orderBy(asc(riskTreatments.dueAt), asc(risks.code));
+	const names = await userNames(
+		tx,
+		rows.map((r) => r.ownerUserId),
+	);
+	return rows.map((r) => ({
+		...r,
+		ownerName: r.ownerUserId ? (names.get(r.ownerUserId) ?? null) : null,
+		// Aufgabe führt; ohne Aufgabe der gespeicherte Stand
+		status:
+			r.taskStatus === "done"
+				? "done"
+				: r.taskStatus === "doing" || r.taskStatus === "blocked"
+					? "in_progress"
+					: r.taskStatus === "todo"
+						? "planned"
+						: r.treatmentStatus,
+	}));
 }
