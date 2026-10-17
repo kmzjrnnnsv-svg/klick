@@ -178,7 +178,7 @@ export default async function NonconformitiesPage({
 					<TableBody>
 						{filtered.map(({ r, s }) => (
 							<TableRow key={r.id}>
-								<TableCell className="font-mono text-xs">
+								<TableCell className="whitespace-nowrap font-mono text-xs">
 									<Link
 										href={`/abweichungen/${r.id}`}
 										className="hover:underline"

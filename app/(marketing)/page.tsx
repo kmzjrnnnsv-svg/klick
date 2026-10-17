@@ -106,7 +106,7 @@ export default async function LandingPage() {
 					{t("exampleLead", { count })}
 				</p>
 
-				<div className="mt-10 grid gap-4 md:grid-cols-[1fr_auto_1fr]">
+				<div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto_1fr]">
 					<article className="flex flex-col rounded-lg border border-border/60 bg-background/60 p-6">
 						<p className="lv-eyebrow text-[0.6rem] text-muted-foreground">
 							{t("withoutTitle")}
@@ -169,7 +169,7 @@ export default async function LandingPage() {
 					</article>
 				</div>
 
-				<div className="mt-16 grid items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
+				<div className="mt-16 grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
 					<div>
 						<p className="font-serif-display text-5xl text-muted-foreground sm:text-6xl">
 							{SYNERGY.requirementCount}
@@ -204,7 +204,7 @@ export default async function LandingPage() {
 					{t("howTitle")}
 				</h2>
 				<p className="mt-3 max-w-2xl text-muted-foreground">{t("howLead")}</p>
-				<ol className="mt-10 grid gap-10 sm:grid-cols-3">
+				<ol className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-3">
 					{STEPS.map((s, i) => (
 						<li key={s} className="flex flex-col gap-3">
 							<p className="font-serif-display text-3xl text-brown">{i + 1}</p>
@@ -236,7 +236,7 @@ export default async function LandingPage() {
 				<h2 className="font-serif-display text-2xl text-primary sm:text-3xl">
 					{t("pillarsTitle")}
 				</h2>
-				<div className="mt-10 grid gap-10 sm:grid-cols-3">
+				<div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-3">
 					{PILLARS.map((p) => (
 						<article key={p} className="flex flex-col gap-3">
 							<CheckIcon aria-hidden="true" className="size-5 text-brown" />

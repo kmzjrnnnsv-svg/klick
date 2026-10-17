@@ -207,7 +207,7 @@ export default async function SynergiesPage({
 								<TableBody>
 									{cmp.rows.map((row) => (
 										<TableRow key={row.key}>
-											<TableCell className="font-mono text-xs">
+											<TableCell className="whitespace-nowrap font-mono text-xs">
 												<Link
 													href={`/rahmenwerke/${a}/${encodeURIComponent(row.code)}`}
 													className="hover:underline underline-offset-4"
@@ -272,7 +272,7 @@ export default async function SynergiesPage({
 									</ul>
 								</div>
 							)}
-							<div className="mt-6 grid gap-4 text-sm sm:grid-cols-2">
+							<div className="mt-6 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
 								<div>
 									<h3 className="font-medium">
 										{t("onlyControls", { fw: fwLabel(a) })}
@@ -321,7 +321,7 @@ export default async function SynergiesPage({
 								const status = cov.implStatus.get(lev.control);
 								return (
 									<TableRow key={lev.control}>
-										<TableCell className="font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-xs">
 											<Link
 												href={`/controls/${lev.control}`}
 												className="hover:underline underline-offset-4"
@@ -400,7 +400,7 @@ export default async function SynergiesPage({
 						if (candidates.length === 0)
 							return <p className="text-sm">{t("whatIfAll")}</p>;
 						return (
-							<ul className="grid gap-4 md:grid-cols-2">
+							<ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
 								{candidates.map((f) => {
 									const w = whatIfAddFramework(
 										cov.frameworks,
@@ -496,7 +496,7 @@ export default async function SynergiesPage({
 											<TableCell className="text-muted-foreground">
 												{i + 1}
 											</TableCell>
-											<TableCell className="font-mono text-xs">
+											<TableCell className="whitespace-nowrap font-mono text-xs">
 												<Link
 													href={`/controls/${s.control}`}
 													className="hover:underline underline-offset-4"

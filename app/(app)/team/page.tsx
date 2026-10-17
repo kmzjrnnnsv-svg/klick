@@ -87,10 +87,10 @@ export default async function TeamPage() {
 												href={`/team/${m.userId}`}
 												className="hover:underline underline-offset-4"
 											>
-												{m.name}
+												{m.name || m.email}
 											</Link>
 										) : (
-											m.name
+											m.name || m.email
 										)}
 										{m.userId === ctx.userId && (
 											<span className="ml-2 text-muted-foreground text-xs">

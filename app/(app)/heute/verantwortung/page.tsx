@@ -40,14 +40,14 @@ export default async function MyAccountabilityPage() {
 		<>
 			<div className="print:hidden">
 				<PageHeader
-					eyebrow={ctx.name}
+					eyebrow={ctx.name || ctx.email}
 					title={t("title")}
 					lead={t("lead")}
 					actions={<PrintButton label={t("print")} />}
 				/>
 			</div>
 			<h1 className="mb-4 hidden font-serif-display text-2xl print:block">
-				{t("title")} — {ctx.name}
+				{t("title")} — {ctx.name || ctx.email}
 			</h1>
 			<AccountabilityView
 				sections={sections}

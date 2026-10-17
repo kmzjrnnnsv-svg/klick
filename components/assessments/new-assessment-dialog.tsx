@@ -82,7 +82,7 @@ export function NewAssessmentDialog({
 						<legend className="mb-1 font-medium text-sm">
 							{t("newFrameworks")}
 						</legend>
-						<div className="grid gap-2 sm:grid-cols-2">
+						<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 							{frameworks.map((f) => (
 								<label
 									key={f.slug}
@@ -105,7 +105,7 @@ export function NewAssessmentDialog({
 							))}
 						</div>
 					</fieldset>
-					<div className="grid gap-4 sm:grid-cols-2">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="ga-asof">{t("newAsOf")}</Label>
 							<Input

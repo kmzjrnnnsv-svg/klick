@@ -113,7 +113,7 @@ export function ProgrammeForm({
 				onChange={setTitle}
 				required
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="ap-start"
 					label={t("cycleStart")}
@@ -198,7 +198,7 @@ export function ProgrammeItemForm({
 					</SelectContent>
 				</Select>
 			</div>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("plannedYear")}</Label>
 					<Select value={year} onValueChange={setYear}>
@@ -323,7 +323,7 @@ export function AuditForm({
 				onChange={(v) => setD({ ...d, title: v })}
 				required
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("type")}</Label>
 					<Select
@@ -404,7 +404,7 @@ export function AuditForm({
 				onChange={(v) => setD({ ...d, scope: v })}
 				rows={2}
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<fieldset className="flex flex-col gap-1.5 text-sm">
 					<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
 						{t("frameworks")}
@@ -521,7 +521,7 @@ export function FindingForm({
 				onChange={setTitle}
 				required
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("severity")}</Label>
 					<Select
@@ -682,7 +682,7 @@ export function AuditRequestForm({
 				onChange={setDescription}
 				rows={2}
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<UserSelect
 					label={t("assignee")}
 					value={assignee}

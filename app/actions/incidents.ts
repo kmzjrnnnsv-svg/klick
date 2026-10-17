@@ -27,6 +27,7 @@ import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { INCIDENT_STATUS } from "@/lib/entities/incident";
 import { canTransition } from "@/lib/entities/status-machine";
+import { DATE_TIME } from "@/lib/history";
 import { notify } from "@/lib/notifications/notify";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
@@ -172,7 +173,7 @@ async function createIncidentImpl(
 			incidentId: row.id,
 			authorUserId: c.userId,
 			kind: "status_change",
-			body: `Vorfall erfasst. Kenntnis: ${d.awareAt.toISOString()}`,
+			body: `Vorfall erfasst. Kenntnis: ${DATE_TIME.format(d.awareAt)}`,
 		});
 		if (isCra(regimes))
 			await insertCraBundle(tx, c.orgId, c.userId, {

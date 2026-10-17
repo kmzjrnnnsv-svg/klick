@@ -255,7 +255,7 @@ export default async function AssessmentPage({
 						title: e.title,
 					}));
 					return (
-						<div className="grid gap-6 lg:grid-cols-[14rem_1fr]">
+						<div className="grid grid-cols-1 gap-6 lg:grid-cols-[14rem_1fr]">
 							<nav aria-label={t("chapters")}>
 								<ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
 									{sections.map((s) => {
@@ -364,7 +364,7 @@ export default async function AssessmentPage({
 			{step === "bewertung" && (
 				<div className="flex flex-col gap-6">
 					<p className="text-muted-foreground text-sm">{t("reviewLead")}</p>
-					<div className="grid gap-4 md:grid-cols-[auto_1fr]">
+					<div className="grid grid-cols-1 gap-4 md:grid-cols-[auto_1fr]">
 						<div className="flex flex-col gap-1 rounded-md border p-4">
 							<span className="lv-eyebrow text-[0.52rem] text-muted-foreground">
 								{t("score")}
@@ -594,7 +594,7 @@ export default async function AssessmentPage({
 					)}
 					<section>
 						<h2 className="mb-2 font-medium">{t("bySection")}</h2>
-						<ul className="grid gap-2 text-sm sm:grid-cols-2">
+						<ul className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
 							{score.bySection.map((s) => (
 								<li
 									key={s.code}

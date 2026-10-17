@@ -160,7 +160,7 @@ export default async function FrameworkPage({
 				}
 			/>
 			{bucket && (
-				<div className="mb-6 grid gap-4 md:grid-cols-[1fr_auto]">
+				<div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
 					<CoverageBar bucket={bucket} labels={labels} />
 					<div className="flex gap-4 text-sm">
 						<div>

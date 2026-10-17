@@ -36,7 +36,9 @@ export default async function AdminOrgsPage() {
 					{orgs.map((o) => (
 						<TableRow key={o.id}>
 							<TableCell className="font-medium">{o.name}</TableCell>
-							<TableCell className="font-mono text-xs">{o.slug}</TableCell>
+							<TableCell className="whitespace-nowrap font-mono text-xs">
+								{o.slug}
+							</TableCell>
 							<TableCell>{Number(o.members)}</TableCell>
 							<TableCell className="text-muted-foreground">
 								{fmt.format(o.createdAt)}

@@ -19,8 +19,10 @@ export function initialsOf(
 	name: string | null | undefined,
 	email: string,
 ): string {
-	const base = (name ?? email).trim();
-	const parts = base.split(/\s+|@/).filter(Boolean);
+	// Konten aus dem Magic-Link haben oft keinen Namen (leerer String):
+	// dann der erste Buchstabe der Adresse.
+	const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
+	if (parts.length === 0) return email.trim().charAt(0).toUpperCase();
 	return parts
 		.slice(0, 2)
 		.map((p) => p[0]?.toUpperCase() ?? "")
@@ -51,7 +53,7 @@ export function UserMenu({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
-				aria-label={name ?? email}
+				aria-label={name || email}
 				className="flex h-9 items-center gap-2 rounded-sm px-1.5 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			>
 				<Avatar className="size-7">
@@ -61,7 +63,7 @@ export function UserMenu({
 			<DropdownMenuContent align="end" className="w-64">
 				<DropdownMenuLabel className="normal-case tracking-normal">
 					<p className="truncate font-medium text-foreground text-sm">
-						{name ?? email}
+						{name || email}
 					</p>
 					<p className="truncate text-muted-foreground text-xs">{email}</p>
 					<p className="lv-eyebrow mt-1.5 text-[0.56rem] text-muted-foreground">

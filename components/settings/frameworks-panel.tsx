@@ -93,9 +93,9 @@ export function FrameworksPanel({
 						{active.map((f) => (
 							<li
 								key={f.slug}
-								className="flex items-center justify-between gap-3 py-2"
+								className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2"
 							>
-								<span>
+								<span className="min-w-0">
 									<span className="font-medium">{f.name}</span>
 									{f.ownerName && (
 										<span className="text-muted-foreground">
@@ -104,7 +104,7 @@ export function FrameworksPanel({
 										</span>
 									)}
 								</span>
-								<span className="flex items-center gap-2">
+								<span className="ml-auto flex shrink-0 items-center gap-2">
 									{f.hasIndex ? (
 										<Badge
 											variant={f.coveragePct === 100 ? "success" : "outline"}
@@ -138,7 +138,7 @@ export function FrameworksPanel({
 						<p className="text-muted-foreground text-sm">{t("noMore")}</p>
 					) : (
 						<>
-							<div className="grid gap-2 sm:grid-cols-2">
+							<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 								{available.map((f) => {
 									const checked = picked.includes(f.slug);
 									return (
@@ -229,7 +229,7 @@ export function FrameworksPanel({
 					<CardTitle className="text-base">{t("stage")}</CardTitle>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-5 text-sm">
-					<dl className="grid gap-2 sm:grid-cols-3">
+					<dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">
 						<div>
 							<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
 								{t("stage")}

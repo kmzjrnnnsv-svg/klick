@@ -228,6 +228,8 @@ async function answerQuestionImpl(input: unknown): Promise<ActionResult> {
 		};
 	});
 	if (!ok) return { ok: false, error: "notFound" };
+	// Fortschritt im Kopf und je Kapitel sofort nachziehen
+	revalidatePath(`${PATH}/${d.assessmentId}`);
 	return { ok: true, data: undefined };
 }
 

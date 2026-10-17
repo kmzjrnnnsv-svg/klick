@@ -46,7 +46,7 @@ export function AccountabilityView({
 					</span>
 				)}
 			</p>
-			<div className="grid gap-4 md:grid-cols-2 print:grid-cols-1">
+			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 print:grid-cols-1">
 				{sections.map((s) => (
 					<section
 						key={s.key}

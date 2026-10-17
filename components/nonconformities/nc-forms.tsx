@@ -104,7 +104,7 @@ export function NonconformityForm({
 				onChange={(v) => setD({ ...d, title: v })}
 				required
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				{!initial && (
 					<div className="flex flex-col gap-1.5">
 						<Label>{t("source")}</Label>
@@ -168,7 +168,7 @@ export function NonconformityForm({
 				onChange={(v) => setD({ ...d, rootCause: v })}
 				rows={2}
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="nc-corr"
 					label={t("correction")}

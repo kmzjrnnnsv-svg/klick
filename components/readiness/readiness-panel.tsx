@@ -160,7 +160,7 @@ export async function ReadinessPanel({
 	return (
 		<div className="flex flex-col gap-6">
 			<p className="text-muted-foreground text-sm">{t("lead")}</p>
-			<div className="grid gap-6 md:grid-cols-[auto_1fr]">
+			<div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr]">
 				<div className="flex flex-col gap-2 rounded-md border p-4">
 					<span className="lv-eyebrow text-[0.52rem] text-muted-foreground">
 						{t("score")}
@@ -249,7 +249,7 @@ export async function ReadinessPanel({
 			{result.bySection.length > 1 && (
 				<section>
 					<h2 className="mb-2 font-medium">{t("bySection")}</h2>
-					<ul className="grid gap-2 text-sm sm:grid-cols-2">
+					<ul className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
 						{result.bySection.map((s) => (
 							<li
 								key={s.sectionCode}

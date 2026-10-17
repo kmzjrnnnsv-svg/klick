@@ -53,7 +53,7 @@ export function entityHref(
 		case "exception":
 			return "/risiken?tab=ausnahmen";
 		case "provider":
-			return "/dienstleister";
+			return `/dienstleister/${id}`;
 		case "asset":
 			return "/assets";
 		case "task":
@@ -86,6 +86,37 @@ export function entityHref(
 			return `/produkte/${id}`;
 		case "security_finding":
 			return `/sicherheit/befunde/${id}`;
+		case "security_engagement":
+			return `/sicherheit/auftraege/${id}`;
+		case "evidence":
+			return "/nachweise";
+		case "loss_event":
+			return "/risiken?tab=schadensfaelle";
+		case "complaint":
+			return "/beschwerden";
+		case "whistleblowing_report":
+			return "/beschwerden?tab=hinweise";
+		case "audit_finding":
+			return "/audits?tab=findings";
+		case "obligation_run":
+			return "/kalender";
+		case "context_issue":
+		case "interested_party":
+			return "/organisation?tab=kontext";
+		case "scope":
+			return "/organisation?tab=geltungsbereich";
+		case "role_assignment":
+			return "/organisation?tab=rollen";
+		case "objective":
+			return "/organisation?tab=ziele";
+		case "communication":
+			return "/organisation?tab=kommunikation";
+		case "regulator_interaction":
+			return "/organisation?tab=aufsicht";
+		case "member":
+			return "/team";
+		case "organization":
+			return "/einstellungen";
 		default:
 			return "/heute";
 	}

@@ -94,12 +94,30 @@ export function mergeActivity(
 	return entries.sort((x, y) => y.at.getTime() - x.at.getTime());
 }
 
-// Zeigt Werte menschenlesbar (Timeline-Diff). Keine Rohobjekte im UI.
+const DATE = new Intl.DateTimeFormat("de-DE", {
+	dateStyle: "medium",
+	timeZone: "Europe/Berlin",
+});
+export const DATE_TIME = new Intl.DateTimeFormat("de-DE", {
+	dateStyle: "medium",
+	timeStyle: "short",
+	timeZone: "Europe/Berlin",
+});
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_DATE_TIME =
+	/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+
+// Zeigt Werte menschenlesbar (Timeline-Diff). Keine Rohobjekte im UI;
+// Zeitpunkte aus dem Audit-JSON (ISO, UTC) in Berliner Zeit wie im Rest der App.
 export function formatValue(v: unknown): string {
 	if (v === null || v === undefined || v === "") return "—";
-	if (v instanceof Date) return v.toISOString().slice(0, 10);
+	if (v instanceof Date) return DATE.format(v);
 	if (typeof v === "boolean") return v ? "ja" : "nein";
 	if (typeof v === "number") return String(v);
+	if (typeof v === "string" && ISO_DATE.test(v))
+		return DATE.format(new Date(`${v}T12:00:00Z`));
+	if (typeof v === "string" && ISO_DATE_TIME.test(v))
+		return DATE_TIME.format(new Date(v));
 	if (typeof v === "string") return v.length > 80 ? `${v.slice(0, 79)}…` : v;
 	if (Array.isArray(v))
 		return v.length === 0 ? "—" : v.map(formatValue).join(", ");

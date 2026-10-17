@@ -376,7 +376,7 @@ export default async function ProductPage({
 						<p className="text-muted-foreground text-xs">{cra.route.basis}</p>
 					</Section>
 					<Section title={t("conformity")}>
-						<dl className="mb-4 grid gap-2 text-sm sm:grid-cols-2">
+						<dl className="mb-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
 							<div>
 								<dt className="text-muted-foreground text-xs">
 									{t("riskDocument")}

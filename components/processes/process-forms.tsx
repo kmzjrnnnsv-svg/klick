@@ -171,7 +171,7 @@ export function ProcessForm({
 						<DialogTitle>{initial ? tc("edit") : t("new")}</DialogTitle>
 						<DialogDescription>{t("formLead")}</DialogDescription>
 					</DialogHeader>
-					<div className="grid gap-4 sm:grid-cols-2">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="flex flex-col gap-1.5 sm:col-span-2">
 							<Label htmlFor="pr-name">{t("name")}</Label>
 							<Input
@@ -261,7 +261,7 @@ export function ProcessForm({
 							onChange={(e) => set("description", e.target.value)}
 						/>
 					</div>
-					<div className="grid gap-4 sm:grid-cols-2">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="pr-in">{t("inputs")}</Label>
 							<Textarea
@@ -634,7 +634,7 @@ export function ProcessLinksEditor({
 					<DialogTitle>{t("links")}</DialogTitle>
 					<DialogDescription>{t("linksLead")}</DialogDescription>
 				</DialogHeader>
-				<div className="grid gap-4 sm:grid-cols-2">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<CheckList
 						title={t("controls")}
 						options={controls}

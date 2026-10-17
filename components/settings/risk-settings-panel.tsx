@@ -74,7 +74,7 @@ export function RiskSettingsPanel({
 			}}
 		>
 			<p className="text-muted-foreground">{t("riskScalesLead")}</p>
-			<div className="grid gap-6 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
 				<fieldset className="flex flex-col gap-2">
 					<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
 						{t("likelihoodLabels")}
@@ -108,7 +108,7 @@ export function RiskSettingsPanel({
 					))}
 				</fieldset>
 			</div>
-			<div className="grid gap-4 sm:grid-cols-3">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="rs-acc">{t("acceptable")}</Label>
 					<Input

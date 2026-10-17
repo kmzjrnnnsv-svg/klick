@@ -53,7 +53,7 @@ export function NumberingPanel({
 			}}
 		>
 			<p className="text-muted-foreground">{t("numberingLead")}</p>
-			<div className="grid gap-2 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 				{types.map((ty) => (
 					<div
 						key={ty}

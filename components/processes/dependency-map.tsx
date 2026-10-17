@@ -35,7 +35,7 @@ export function DependencyMap({
 				{nodes.map((n) => (
 					<li
 						key={n.id}
-						className="grid gap-3 rounded-md border p-3 text-sm md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]"
+						className="grid grid-cols-1 gap-3 rounded-md border p-3 text-sm md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]"
 					>
 						<div className="min-w-0">
 							<div className="flex flex-wrap items-center gap-2">
@@ -117,7 +117,7 @@ export function DependencyMap({
 					<p className="mt-1 mb-3 text-muted-foreground text-xs">
 						{labels.concentrationLead}
 					</p>
-					<ul className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+					<ul className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
 						{conc.map((c) => (
 							<li
 								key={c.id}

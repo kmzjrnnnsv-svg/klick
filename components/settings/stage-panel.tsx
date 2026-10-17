@@ -98,7 +98,7 @@ export function StagePanel({
 				<CardDescription>{t("stageLead")}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-5 text-sm">
-				<div className="grid gap-4 sm:grid-cols-2">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div className="flex flex-col gap-1.5">
 						<Label>{t("stage")}</Label>
 						<Select
@@ -149,7 +149,7 @@ export function StagePanel({
 							<Skeleton className="h-4 w-1/2" />
 						</div>
 					) : report ? (
-						<div className="mt-2 grid gap-3 sm:grid-cols-4">
+						<div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-4">
 							<Stat
 								label={t("reportApplicable")}
 								value={`${report.applicableBefore} → ${report.applicableAfter}`}

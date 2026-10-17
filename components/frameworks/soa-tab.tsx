@@ -140,7 +140,7 @@ export async function SoaTab({
 					</span>
 				</div>
 				<p className="text-muted-foreground text-xs">{t("isoMandatoryLead")}</p>
-				<ul className="grid gap-1.5 text-sm sm:grid-cols-2">
+				<ul className="grid grid-cols-1 gap-1.5 text-sm sm:grid-cols-2">
 					{docRows.map(({ tpl, present }) => (
 						<li
 							key={tpl.code}

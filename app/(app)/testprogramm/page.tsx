@@ -127,7 +127,7 @@ export default async function TestProgrammePage({
 					{year + 1} →
 				</Link>
 			</div>
-			<div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+			<div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 				<div className="rounded-md border p-3">
 					<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
 						{t("performed")}
@@ -196,7 +196,7 @@ export default async function TestProgrammePage({
 				{critical.length === 0 ? (
 					<p className="text-sm">{t("bcmNoProcesses")}</p>
 				) : (
-					<ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+					<ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
 						{critical.map((p) => {
 							const gap = status.bcmGaps.some((g) => g.id === p.id);
 							return (

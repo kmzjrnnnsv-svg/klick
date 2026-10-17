@@ -22,7 +22,7 @@ export default async function ExternLayout({
 					<ThemeSwitcher />
 				</div>
 			</header>
-			<main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8 sm:px-6">
+			<main className="mx-auto flex w-full max-w-3xl grow flex-col px-4 py-8 sm:px-6">
 				{children}
 			</main>
 		</>

@@ -264,7 +264,7 @@ export default async function AuditCockpitPage({
 					</div>
 				}
 			/>
-			<dl className="mb-6 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+			<dl className="mb-6 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
 				<div>
 					<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
 						{t("frameworks")}
@@ -638,7 +638,7 @@ export default async function AuditCockpitPage({
 												{f.requirementCode ? ` · ${f.requirementCode}` : ""}
 											</p>
 										</TableCell>
-										<TableCell className="font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-xs">
 											{f.controlCode ? (
 												<Link
 													href={`/controls/${f.controlCode}`}

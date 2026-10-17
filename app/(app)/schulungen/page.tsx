@@ -182,7 +182,7 @@ export default async function TrainingsPage({
 									const overdue = count("overdue");
 									return (
 										<TableRow key={r.id}>
-											<TableCell className="font-mono text-xs">
+											<TableCell className="whitespace-nowrap font-mono text-xs">
 												{r.code}
 											</TableCell>
 											<TableCell>

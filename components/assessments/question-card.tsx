@@ -211,7 +211,7 @@ export function QuestionCard({
 					{showMore && (
 						<div
 							id={`${id}-more`}
-							className="mt-2 grid gap-3 text-sm sm:grid-cols-2"
+							className="mt-2 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2"
 						>
 							{question.probes && question.probes.length > 0 && (
 								<div>

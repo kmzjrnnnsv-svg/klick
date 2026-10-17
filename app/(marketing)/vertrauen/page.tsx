@@ -62,7 +62,7 @@ export default async function TrustPage() {
 				<p className="mt-3 max-w-2xl text-muted-foreground">
 					{t("measuresLead")}
 				</p>
-				<div className="mt-10 grid gap-8 sm:grid-cols-2">
+				<div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2">
 					{BASELINE.narrative.map((n) => (
 						<article key={n.domain} className="flex flex-col gap-3">
 							<h3 className="font-serif-display text-xl leading-tight">
@@ -154,7 +154,7 @@ export default async function TrustPage() {
 					</table>
 				</div>
 
-				<div className="mt-10 grid gap-10 sm:grid-cols-2">
+				<div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-2">
 					<div>
 						<h3 className="font-serif-display text-xl">
 							{t("subcontractorsTitle")}

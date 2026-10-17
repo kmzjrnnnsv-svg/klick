@@ -149,7 +149,7 @@ export default async function ProcessesPage({
 							<TableBody>
 								{critical.map((r) => (
 									<TableRow key={r.id}>
-										<TableCell className="font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-xs">
 											<Link
 												href={`/prozesse/${encodeURIComponent(r.code)}`}
 												className="hover:underline"
@@ -301,7 +301,7 @@ export default async function ProcessesPage({
 											<TableBody>
 												{items.map((r) => (
 													<TableRow key={r.id}>
-														<TableCell className="font-mono text-xs">
+														<TableCell className="whitespace-nowrap font-mono text-xs">
 															<Link
 																href={`/prozesse/${encodeURIComponent(r.code)}`}
 																className="hover:underline"

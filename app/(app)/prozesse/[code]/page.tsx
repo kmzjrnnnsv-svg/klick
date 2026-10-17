@@ -300,7 +300,7 @@ export default async function ProcessDetailPage({
 			}
 		>
 			<Section title={t("bia")}>
-				<dl className="grid gap-4 text-sm sm:grid-cols-3">
+				<dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
 					<div>
 						<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
 							RTO
@@ -327,7 +327,7 @@ export default async function ProcessDetailPage({
 					</div>
 				</dl>
 				{(p.inputs || p.outputs || p.impactNotes) && (
-					<dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+					<dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
 						{p.inputs && (
 							<div>
 								<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
@@ -416,7 +416,7 @@ export default async function ProcessDetailPage({
 					) : null
 				}
 			>
-				<div className="grid gap-4 sm:grid-cols-2">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div>
 						<p className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
 							{t("controls")}

@@ -412,7 +412,7 @@ export default async function AmlPage({
 									const dims = a.dimensions as unknown as RiskDimensions;
 									return (
 										<TableRow key={a.id}>
-											<TableCell className="font-mono text-xs">
+											<TableCell className="whitespace-nowrap font-mono text-xs">
 												{a.version}
 											</TableCell>
 											<TableCell>
@@ -518,7 +518,7 @@ export default async function AmlPage({
 			)}
 
 			{tab === "sorgfalt" && "controls" in data && (
-				<section className="grid gap-6 lg:grid-cols-2">
+				<section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 					<div className="flex flex-col gap-3">
 						<p className="text-muted-foreground text-sm">{t("ddLead")}</p>
 						<h2 className="font-medium text-sm">{t("controls")}</h2>
@@ -594,7 +594,7 @@ export default async function AmlPage({
 							<TableBody>
 								{data.rules.map((r) => (
 									<TableRow key={r.id}>
-										<TableCell className="font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-xs">
 											{r.code}
 										</TableCell>
 										<TableCell>
@@ -667,7 +667,7 @@ export default async function AmlPage({
 			{tab === "verdacht" && "notes" in data && (
 				<section className="flex flex-col gap-3">
 					<p className="text-muted-foreground text-sm">{t("reportsLead")}</p>
-					<div className="grid gap-3 text-sm sm:grid-cols-5">
+					<div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-5">
 						{(
 							[
 								["statsOpen", data.stats.open, data.stats.open > 0],
@@ -832,7 +832,7 @@ export default async function AmlPage({
 							<TableBody>
 								{data.jurisdictions.map((j) => (
 									<TableRow key={j.id}>
-										<TableCell className="font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-xs">
 											{j.iso2}
 										</TableCell>
 										<TableCell>
@@ -958,7 +958,7 @@ export default async function AmlPage({
 			)}
 
 			{tab === "travel-rule" && "assets" in data && (
-				<section className="grid gap-6 lg:grid-cols-2">
+				<section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 					<div className="flex flex-col gap-3">
 						<p className="text-muted-foreground text-sm">{t("travelLead")}</p>
 						<h2 className="font-medium text-sm">{t("controls")}</h2>
@@ -1025,7 +1025,7 @@ export default async function AmlPage({
 			)}
 
 			{tab === "schulung" && "runs" in data && (
-				<section className="grid gap-6 lg:grid-cols-2">
+				<section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 					<div className="flex flex-col gap-3">
 						<p className="text-muted-foreground text-sm">{t("trainingLead")}</p>
 						<h2 className="font-medium text-sm">{t("gwgRequirements")}</h2>

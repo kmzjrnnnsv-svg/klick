@@ -83,7 +83,7 @@ export default async function OwnFundsPage({
 
 			{tab === "berechnung" && (
 				<section className="flex flex-col gap-4">
-					<div className="grid gap-3 text-sm sm:grid-cols-4">
+					<div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-4">
 						<div className="rounded-md border p-3">
 							<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
 								{t("suggestedClass")}
@@ -159,7 +159,7 @@ export default async function OwnFundsPage({
 									const x = extrasOf(r);
 									return (
 										<TableRow key={r.id}>
-											<TableCell className="font-mono text-xs">
+											<TableCell className="whitespace-nowrap font-mono text-xs">
 												{r.periodLabel}
 											</TableCell>
 											<TableCell className="text-xs">
@@ -288,7 +288,7 @@ export default async function OwnFundsPage({
 						const rbc = x.rbc;
 						return (
 							<>
-								<div className="grid gap-3 text-sm sm:grid-cols-4">
+								<div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-4">
 									<div className="rounded-md border p-3">
 										<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
 											{t("potential")}
