@@ -54,6 +54,7 @@ export const statements = {
 	// Gap-Analyse/Fragebögen: answer = Fragen beantworten, review = Antworten
 	// bewerten, apply = Ergebnis in den Control-Status übernehmen
 	assessment: ["read", "create", "answer", "review", "apply"],
+	product: ["read", "create", "update", "delete"],
 } as const;
 
 export const ac = createAccessControl(statements);
@@ -88,6 +89,7 @@ const readAll = {
 	shareholder: ["read"],
 	privacy: ["read"],
 	assessment: ["read"],
+	product: ["read"],
 } as const;
 
 export const viewer = ac.newRole({
@@ -105,6 +107,7 @@ export const auditor = ac.newRole({
 	nonconformity: ["read", "create"],
 	// Prüfer:innen/Berater:innen bewerten Antworten, übernehmen aber nichts.
 	assessment: ["read", "review"],
+	product: ["read"],
 });
 
 export const editor = ac.newRole({
@@ -140,6 +143,7 @@ export const editor = ac.newRole({
 	shareholder: ["read", "create", "update"],
 	privacy: ["read", "create", "update"],
 	assessment: ["read", "create", "answer", "review", "apply"],
+	product: ["read", "create", "update", "delete"],
 });
 
 export const owner = ac.newRole({
@@ -175,6 +179,7 @@ export const owner = ac.newRole({
 	shareholder: ["read", "create", "update"],
 	privacy: ["read", "create", "update"],
 	assessment: ["read", "create", "answer", "review", "apply"],
+	product: ["read", "create", "update", "delete"],
 });
 
 // Better Auth erwartet die Rolle "admin" in der Role-Map nicht zwingend;

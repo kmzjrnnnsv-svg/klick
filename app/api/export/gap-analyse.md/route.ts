@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { proposeMeasures } from "@/lib/assessments/measures";
+import { productMeasures, proposeMeasures } from "@/lib/assessments/measures";
 import { scoreAssessment } from "@/lib/assessments/score";
 import { answerStates } from "@/lib/assessments/state";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -55,6 +55,7 @@ export async function GET(req: Request) {
 			frameworks: a.frameworks,
 			tlptDesignated: p.tlptDesignated,
 			issuesTokens: p.issuesTokens,
+			productRoles: p.productRoles,
 		}),
 		d.implStatus,
 		300,
@@ -71,11 +72,10 @@ export async function GET(req: Request) {
 		questions: a.questions,
 		answers,
 		score,
-		measures: proposeMeasures({
-			questions: a.questions,
-			answers: states,
-			plan,
-		}),
+		measures:
+			a.kind === "product"
+				? productMeasures({ questions: a.questions, answers: states })
+				: proposeMeasures({ questions: a.questions, answers: states, plan }),
 	});
 	const mark = await auditExport(ctx, "assessment_md", a.questions.length, {
 		assessment: a.code,

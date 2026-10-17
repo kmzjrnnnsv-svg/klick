@@ -6,6 +6,7 @@ import { QuestionCard } from "@/components/assessments/question-card";
 import {
 	ApplyDialog,
 	CancelButton,
+	CompleteChecklistButton,
 	RepeatButton,
 	ReviewCell,
 	SubmitButton,
@@ -16,7 +17,7 @@ import { buttonVariants } from "@/components/ui/button";
 import type { ImplStatus } from "@/db/schema/enums";
 import { applyChanges, proposeControlStatus } from "@/lib/assessments/apply";
 import { sectionsOf } from "@/lib/assessments/catalog-template";
-import { proposeMeasures } from "@/lib/assessments/measures";
+import { productMeasures, proposeMeasures } from "@/lib/assessments/measures";
 import {
 	effectiveAnswer,
 	questionVerdict,
@@ -92,8 +93,15 @@ export default async function AssessmentPage({
 		if (!detail) return null;
 		return { ...detail, members: await listMembersForPicker(tx, ctx.orgId) };
 	});
-	if (!data || data.assessment.kind !== "self") notFound();
+	if (
+		!data ||
+		(data.assessment.kind !== "self" && data.assessment.kind !== "product")
+	)
+		notFound();
 	const a = data.assessment;
+	// Produktcheckliste (CRA): gleicher Ablauf, aber Antworten gelten nur für
+	// das Produkt — keine Übernahme in den Control-Status.
+	const productId = a.kind === "product" ? a.subjectId : null;
 	const closed = a.status === "completed" || a.status === "cancelled";
 	const step: Step = (STEPS as readonly string[]).includes(
 		one(sp.schritt) ?? "",
@@ -159,6 +167,14 @@ export default async function AssessmentPage({
 				})}
 				actions={
 					<div className="flex flex-wrap gap-2">
+						{productId && (
+							<Link
+								href={`/produkte/${productId}?tab=checkliste`}
+								className={buttonVariants({ variant: "outline", size: "sm" })}
+							>
+								{t("toProduct")}
+							</Link>
+						)}
 						{a.frameworks.map((s) => (
 							<Badge
 								key={s}
@@ -353,35 +369,45 @@ export default async function AssessmentPage({
 							<p className="text-muted-foreground text-xs">
 								{t("counts", score.counts)}
 							</p>
-							<table className="w-full text-sm">
-								<thead>
-									<tr className="text-left text-muted-foreground text-xs">
-										<th className="py-1 font-normal" />
-										<th className="py-1 font-normal">{t("coverageNow")}</th>
-										<th className="py-1 font-normal">{t("coverageAfter")}</th>
-									</tr>
-								</thead>
-								<tbody>
-									{a.frameworks.map((s) => (
-										<tr key={s} className="border-t">
-											<td className="py-1">{shortFrameworkName(s)}</td>
-											<td className="py-1 tabular-nums">
-												{Math.round(
-													covNow.byFramework.get(s)?.coveragePct ?? 0,
-												)}
-												{" %"}
-											</td>
-											<td className="py-1 font-medium tabular-nums">
-												{Math.round(
-													covAfter.byFramework.get(s)?.coveragePct ?? 0,
-												)}
-												{" %"}
-											</td>
+							{!productId && (
+								<table className="w-full text-sm">
+									<thead>
+										<tr className="text-left text-muted-foreground text-xs">
+											<th className="py-1 font-normal" />
+											<th className="py-1 font-normal">{t("coverageNow")}</th>
+											<th className="py-1 font-normal">{t("coverageAfter")}</th>
 										</tr>
-									))}
-								</tbody>
-							</table>
-							{canApply && (
+									</thead>
+									<tbody>
+										{a.frameworks.map((s) => (
+											<tr key={s} className="border-t">
+												<td className="py-1">{shortFrameworkName(s)}</td>
+												<td className="py-1 tabular-nums">
+													{Math.round(
+														covNow.byFramework.get(s)?.coveragePct ?? 0,
+													)}
+													{" %"}
+												</td>
+												<td className="py-1 font-medium tabular-nums">
+													{Math.round(
+														covAfter.byFramework.get(s)?.coveragePct ?? 0,
+													)}
+													{" %"}
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							)}
+							{canApply && productId && (
+								<div className="flex flex-wrap gap-2">
+									<CompleteChecklistButton
+										assessmentId={a.id}
+										productId={productId}
+									/>
+								</div>
+							)}
+							{canApply && !productId && (
 								<div className="flex flex-wrap gap-2">
 									<ApplyDialog
 										assessmentId={a.id}
@@ -456,31 +482,35 @@ export default async function AssessmentPage({
 
 			{step === "massnahmen" &&
 				(() => {
-					const plan = cov
-						? prioritizePlan(
-								a.frameworks,
-								synergyCatalogFor({
-									sector: cov.profile.sector,
-									licenceStage: cov.profile.licenceStage,
-									caspServices: cov.profile.caspServices,
-									frameworks: a.frameworks,
-									tlptDesignated: cov.profile.tlptDesignated,
-									issuesTokens: cov.profile.issuesTokens,
-								}),
-								a.appliedAt ? data.implStatus : after,
-								300,
-							)
-						: {
-								steps: [],
-								applicable: 0,
-								baselineCoveragePct: null,
-								baselineProgressPct: null,
-							};
-					const measures = proposeMeasures({
-						questions: a.questions,
-						answers: states,
-						plan,
-					});
+					const plan =
+						cov && !productId
+							? prioritizePlan(
+									a.frameworks,
+									synergyCatalogFor({
+										sector: cov.profile.sector,
+										licenceStage: cov.profile.licenceStage,
+										caspServices: cov.profile.caspServices,
+										frameworks: a.frameworks,
+										tlptDesignated: cov.profile.tlptDesignated,
+										issuesTokens: cov.profile.issuesTokens,
+										productRoles: cov.profile.productRoles,
+									}),
+									a.appliedAt ? data.implStatus : after,
+									300,
+								)
+							: {
+									steps: [],
+									applicable: 0,
+									baselineCoveragePct: null,
+									baselineProgressPct: null,
+								};
+					const measures = productId
+						? productMeasures({ questions: a.questions, answers: states })
+						: proposeMeasures({
+								questions: a.questions,
+								answers: states,
+								plan,
+							});
 					return (
 						<div className="flex flex-col gap-4">
 							<p className="text-muted-foreground text-sm">
@@ -553,9 +583,10 @@ export default async function AssessmentPage({
 								{t("toReadiness")}
 							</Link>
 						)}
-						{roleAllows(ctx.orgRole, { assessment: ["create"] }) && (
-							<RepeatButton assessmentId={a.id} />
-						)}
+						{!productId &&
+							roleAllows(ctx.orgRole, { assessment: ["create"] }) && (
+								<RepeatButton assessmentId={a.id} />
+							)}
 						{!closed && roleAllows(ctx.orgRole, { assessment: ["create"] }) && (
 							<CancelButton assessmentId={a.id} />
 						)}

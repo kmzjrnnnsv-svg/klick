@@ -486,6 +486,31 @@ Rund 20 Werkzeugkategorien decken alle sieben Regelwerke ab; das GRC-Tool ist de
 | Hinweisgeber | GwG § 6, HinSchG | EQS Integrity Line | dieselben |
 | Revision | ISO 9.2, DORA Art. 6, ZAG-MaRisk BT 2 | ausgelagerte Revision | Audimex, TeamMate+ |
 
+## 9. Cyber Resilience Act – Verordnung (EU) 2024/2847
+
+Gilt für Produkte mit digitalen Elementen (Software, Apps, SDKs, Firmware, Geräte samt Datenfernverarbeitung), die in der EU bereitgestellt werden. **Meldepflichten (Art. 14) seit 11.09.2026**, Regeln für Konformitätsbewertungsstellen seit 11.06.2026, alle übrigen Pflichten ab **11.12.2027** (Art. 71). Ein reiner Webdienst ohne Produktbezug fällt meist nicht unter den CRA, sondern unter NIS2 — die Plattform selbst (Mandant 0) ist SaaS; eigene Apps, Clients oder SDKs wären erfasst. Rollen: Hersteller, Einführer, Händler, Open-Source-Verwalter; Klick leitet sie aus dem Produktregister ab (`/produkte`), ohne Produkte gilt alles Gewählte als Arbeitsgegenstand.
+
+| Passage | Anforderung | Rolle | Gilt ab | Nachweis | Control |
+|---|---|---|---|---|---|
+| Art. 2–3 | Betroffenheit je Produkt, Rolle festlegen | alle | 11.12.2027 | Produktregister mit Begründung | CC-PRD-01 |
+| Art. 7–8, Anhang III/IV | Einstufung Standard / wichtig I/II / kritisch | alle | 11.12.2027 | Einstufung je Produkt | CC-PRD-01 |
+| Art. 13 Abs. 1–4 | Cybersicherheits-Risikobewertung je Produkt | Hersteller | 11.12.2027 | Risikobewertung, Bedrohungsmodell | CC-PRD-06 |
+| Art. 13 Abs. 5–6 | Sorgfalt bei Komponenten Dritter, Upstream-Meldung | Hersteller | 11.12.2027 | SBOM, Abhängigkeitsrichtlinie | CC-DEV-05, CC-PRD-03 |
+| Art. 13 Abs. 8–9 | Unterstützungszeitraum (i. d. R. ≥ 5 Jahre), Updates verfügbar halten | Hersteller | 11.12.2027 | Supportzeitraum-Richtlinie | CC-PRD-04, CC-PRD-05 |
+| Art. 14 Abs. 1–2 | Aktiv ausgenutzte Schwachstelle: 24 h Frühwarnung, 72 h Meldung, Abschluss ≤ 14 Tage nach Abhilfe | Hersteller | **11.09.2026** | Meldebelege (Regime `cra_vuln`) | CC-INC-03 |
+| Art. 14 Abs. 3–4 | Schwerwiegender Vorfall: 24 h / 72 h / 1 Monat nach Meldung | Hersteller | **11.09.2026** | Meldebelege (Regime `cra_incident`) | CC-INC-03 |
+| Art. 14 Abs. 8 | Nutzer informieren | Hersteller | **11.09.2026** | Advisories | CC-PRD-09 |
+| Anhang I Teil I | Sicherheitseigenschaften (keine bekannten Schwachstellen, Secure by Default, Updates, Zugriffsschutz, Vertraulichkeit/Integrität, Datenminimierung, Verfügbarkeit, Angriffsfläche, Protokollierung, Löschung) | Hersteller | 11.12.2027 | Härtungs-Checkliste, Pentest | CC-PRD-10, CC-DEV-*, CC-IAM-*, CC-CRY-* |
+| Anhang I Teil II | SBOM, Behebung, Tests, Advisories, CVD-Richtlinie, sichere Update-Verteilung | Hersteller | 11.12.2027 | SBOM je Release (TR-03183-2), CVD, security.txt | CC-PRD-02, CC-PRD-03, CC-PRD-05 |
+| Anhang II | Nutzerinformation | Hersteller | 11.12.2027 | Nutzerinformation | CC-PRD-09 |
+| Anhang VII, Art. 31 | Technische Dokumentation, 10 Jahre aufbewahren | Hersteller | 11.12.2027 | Technische Dokumentation | CC-PRD-07 |
+| Art. 28–32 | Konformitätsbewertung je Einstufung, EU-Konformitätserklärung, CE | Hersteller | 11.12.2027 | EU-KE, Bescheinigung benannte Stelle | CC-PRD-08 |
+| Art. 19–22 | Prüfpflichten Einführer/Händler; wesentliche Änderung macht zum Hersteller | Einführer, Händler | 11.12.2027 | Eingangsprüfung | CC-PRD-11 |
+
+**Konformitätsweg (Art. 32, abgeleitet in `lib/compliance/cra.ts`):** Standard → Modul A (interne Kontrolle). Wichtig Klasse I → Modul A nur mit vollständig angewandten harmonisierten Normen, sonst benannte Stelle (B + C oder H). Wichtig Klasse II → benannte Stelle oder EUCC. Kritisch → EUCC, sofern per delegiertem Rechtsakt verlangt. Freie Software (Art. 32 Abs. 5) darf bei wichtigen Produkten Modul A nutzen, wenn die technische Dokumentation öffentlich ist.
+
+**Werkzeuge:** SBOM-Erzeugung Syft, Trivy, cdxgen (CycloneDX ≥ 1.5 / SPDX 2.3); Advisories als CSAF 2.0; Meldungen über die ENISA Single Reporting Platform.
+
 ## Quellen
 
 - Bundesbank – BAIT / DORA
@@ -509,3 +534,5 @@ Rund 20 Werkzeugkategorien decken alle sieben Regelwerke ab; das GRC-Tool ist de
 - lxgesetze – AMLR Art. 40
 - paytechlaw – Finale RTS zu Art. 28 AMLR
 - paytechlaw – Nächste MiCA-Fassung
+- EUR-Lex – Verordnung (EU) 2024/2847 (Cyber Resilience Act)
+- BSI TR-03183-2 – Software Bill of Materials

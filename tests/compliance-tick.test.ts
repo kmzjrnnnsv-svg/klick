@@ -584,4 +584,34 @@ describe("collectDueItems — Pflichten, Rechtsänderungen, Abweichungen, TLPT, 
 		expect(ins[1]?.title).toContain("abgelaufen");
 		expect(ins[1]?.recipients).toEqual([...empty.orgOwnerIds]);
 	});
+
+	it("Produkt: Supportende 365/180/90/30 Tage vorher und am Tag danach", () => {
+		const now = new Date("2026-10-07T08:00:00Z");
+		const prod = (id: string, supportUntil: string, status = "on_market") => ({
+			id,
+			code: id.toUpperCase(),
+			name: "App",
+			supportUntil,
+			status,
+			ownerUserId: "u1",
+		});
+		const res = collectDueItems(now, {
+			...empty,
+			products: [
+				prod("p365", "2027-10-07"),
+				prod("p90", "2027-01-05"),
+				prod("p91", "2027-01-06"),
+				prod("pend", "2026-10-06"),
+				prod("pdone", "2027-01-05", "end_of_support"),
+			],
+		});
+		const keys = res.notifications
+			.filter((n) => n.dedupeKey.startsWith("product_support:"))
+			.map((n) => n.dedupeKey);
+		expect(keys).toEqual([
+			"product_support:p365:365",
+			"product_support:p90:90",
+			"product_support:pend:ended",
+		]);
+	});
 });

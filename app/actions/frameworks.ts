@@ -65,6 +65,7 @@ async function addFrameworksImpl(
 			applyBaseline: p.profile.applyBaseline,
 			tlptDesignated: p.profile.tlptDesignated,
 			issuesTokens: p.profile.issuesTokens,
+			productRoles: p.profile.productRoles,
 		});
 		return {
 			result: { added, controlsCreated: init.controlsCreated },
@@ -287,6 +288,7 @@ async function updateProfileFlagsImpl(input: unknown): Promise<ActionResult> {
 				applyBaseline: p.profile.applyBaseline,
 				tlptDesignated: d.tlptDesignated,
 				issuesTokens: p.profile.issuesTokens,
+				productRoles: p.profile.productRoles,
 			});
 		}
 		return {
@@ -339,6 +341,7 @@ async function updateLicenceProfileImpl(
 			applyBaseline: p.profile.applyBaseline,
 			tlptDesignated: p.profile.tlptDesignated,
 			issuesTokens: p.profile.issuesTokens,
+			productRoles: p.profile.productRoles,
 		});
 		await ensureOrgWorkflows(tx, c.orgId, d.licenceStage);
 		return {

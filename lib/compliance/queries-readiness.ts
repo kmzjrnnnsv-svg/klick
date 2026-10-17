@@ -4,6 +4,7 @@ import type { OrgTx } from "@/lib/db/with-org";
 import { ALL_REQUIREMENTS, CONTROL_BY_CODE } from "./catalog";
 import { mandatoryTemplatesFor } from "./catalog/document-templates";
 import { CATALOG_EDGES } from "./catalog-view";
+import { craBlockers } from "./cra";
 import {
 	listEvidenceWithControls,
 	type OrgCoverage,
@@ -15,6 +16,7 @@ import {
 	listAllFindings,
 	listNonconformities,
 } from "./queries-p3";
+import { listProductsForCra } from "./queries-products";
 import {
 	combineReadiness,
 	deriveReadiness,
@@ -54,13 +56,24 @@ export async function loadReadiness(
 		cov.frameworks.includes(s),
 	);
 
-	const [evidenceRows, tests, docs, ncs, findings] = await Promise.all([
-		listEvidenceWithControls(tx, orgId),
-		listAllControlTests(tx, orgId),
-		listDocuments(tx, orgId),
-		listNonconformities(tx, orgId),
-		listAllFindings(tx, orgId),
-	]);
+	const [evidenceRows, tests, docs, ncs, findings, productRows] =
+		await Promise.all([
+			listEvidenceWithControls(tx, orgId),
+			listAllControlTests(tx, orgId),
+			listDocuments(tx, orgId),
+			listNonconformities(tx, orgId),
+			listAllFindings(tx, orgId),
+			slugs.includes("cra")
+				? listProductsForCra(tx, orgId)
+				: Promise.resolve([]),
+		]);
+	// CRA: offene Produktpflichten als Blocker (abgeleitet aus dem Register)
+	const extra = new Map(opts.extraBlockers ?? []);
+	if (slugs.includes("cra"))
+		extra.set("cra", [
+			...(extra.get("cra") ?? []),
+			...craBlockers(productRows, opts.asOf),
+		]);
 
 	// Nachweise und Tests je Control-Code
 	const evidenceByControl = new Map<
@@ -198,7 +211,7 @@ export async function loadReadiness(
 				requirements: reqs,
 				edges,
 				controls,
-				mandatoryDocs: mandatoryTemplatesFor(slug).map((tpl) => {
+				mandatoryDocs: mandatoryTemplatesFor(slug, opts.asOf).map((tpl) => {
 					const d = docByTemplate.get(tpl.code);
 					return {
 						templateCode: tpl.code,
@@ -234,7 +247,7 @@ export async function loadReadiness(
 				})),
 				securityFindings: opts.securityFindings,
 				pbc,
-				extraBlockers: opts.extraBlockers?.get(slug),
+				extraBlockers: extra.get(slug),
 			}),
 		);
 	}

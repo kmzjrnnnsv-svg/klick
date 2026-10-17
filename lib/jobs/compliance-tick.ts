@@ -143,6 +143,15 @@ export type DueRows = {
 		validUntil: Date | string | null;
 		ownerUserId: string | null;
 	}[];
+	/** Produkte (CRA): Hinweis vor Ende des Unterstützungszeitraums. */
+	products?: readonly {
+		id: string;
+		code: string;
+		name: string;
+		supportUntil: Date | string | null;
+		status: string;
+		ownerUserId: string | null;
+	}[];
 	/** Offene Aufgaben (für Dedupe von Eskalationen/Ablauf-Aufgaben). */
 	openTasks: readonly {
 		entityType: string | null;
@@ -179,6 +188,9 @@ export type PendingAction =
 	| { type: "mark_run_overdue"; id: string };
 
 export const LEGAL_CHANGE_MARKS = [180, 90, 30, 7] as const;
+// CRA Art. 13 Abs. 19 / Anhang II: Nutzer rechtzeitig über das Supportende
+// informieren — Hinweise an den Verantwortlichen 1 Jahr, 6/3/1 Monat vorher.
+export const SUPPORT_END_MARKS = [365, 180, 90, 30] as const;
 export const TLPT_CYCLE_YEARS = 3;
 export const ACCESS_EXPIRY_WARN_DAYS = 7;
 
@@ -598,6 +610,30 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			body: dueWording(now, until),
 			link: "/organisation?tab=versicherungen",
 			dedupeKey: `insurance:${p.id}:${isoDay(until)}`,
+		});
+	}
+
+	// Produkte: Supportende ankündigen (Marken) und bei Ablauf
+	for (const p of rows.products ?? []) {
+		if (p.status === "withdrawn" || p.status === "end_of_support") continue;
+		const until = toDate(p.supportUntil);
+		if (!until) continue;
+		const days = daysUntil(now, until);
+		const mark = SUPPORT_END_MARKS.find((m) => days === m);
+		if (mark === undefined && days !== -1) continue;
+		notifications.push({
+			kind: "review_due",
+			recipients: recipientsOf(p.ownerUserId, rows.orgOwnerIds),
+			title:
+				days < 0
+					? `Support abgelaufen: ${p.code} ${p.name}`
+					: `Supportende in ${mark} Tagen: ${p.code} ${p.name}`,
+			body:
+				days < 0
+					? "Status auf „Supportende“ setzen oder den Zeitraum verlängern; Nutzer informieren."
+					: `Unterstützungszeitraum endet am ${fmtDay(until)}. Nutzer informieren, Verlängerung oder Nachfolger planen.`,
+			link: `/produkte/${p.id}?tab=einstufung`,
+			dedupeKey: `product_support:${p.id}:${days < 0 ? "ended" : mark}`,
 		});
 	}
 

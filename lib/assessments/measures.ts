@@ -1,5 +1,5 @@
 import type { AssessmentQuestion } from "@/db/schema/enums";
-import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
+import { CONTROL_BY_CODE, REQUIREMENT_BY_KEY } from "@/lib/compliance/catalog";
 import type { PrioritizedPlan } from "@/lib/compliance/synergy";
 import { type AnswerState, questionVerdict } from "./score";
 
@@ -84,4 +84,55 @@ export function proposeMeasures(input: {
 	}
 	for (const q of rest) if (verdictOf(q) === "unproven") push(q, "evidence");
 	return out;
+}
+
+// Produktcheckliste (CRA): Maßnahmen je Frage statt je Control — sie gelten
+// für dieses Produkt. Reihenfolge: K.-o.-Punkte zuerst, dann umsetzen,
+// klären, belegen. controlCode trägt hier den Fragen-Code.
+export function productMeasures(input: {
+	questions: readonly AssessmentQuestion[];
+	answers: ReadonlyMap<string, AnswerState>;
+}): Measure[] {
+	const rank: Record<MeasureKind, number> = {
+		implement: 0,
+		clarify: 1,
+		evidence: 2,
+	};
+	const out: (Measure & { critical: boolean })[] = [];
+	for (const q of input.questions) {
+		const v = questionVerdict(q, input.answers.get(q.code));
+		const kind: MeasureKind | null =
+			v === "not_fulfilled" || v === "partial"
+				? "implement"
+				: v === "open"
+					? "clarify"
+					: v === "unproven"
+						? "evidence"
+						: null;
+		if (!kind) continue;
+		const c = q.mapsTo?.control ? CONTROL_BY_CODE.get(q.mapsTo.control) : null;
+		const r = q.mapsTo?.requirement
+			? REQUIREMENT_BY_KEY.get(q.mapsTo.requirement)
+			: null;
+		out.push({
+			kind,
+			controlCode: q.code,
+			title: q.text,
+			effort: c?.effort ?? "M",
+			requirements: q.requirements?.length ?? 1,
+			frameworks: q.frameworks ?? [],
+			recommendation:
+				r?.recommendations?.find((x) => x.level === "must")?.text ??
+				c?.recommendations?.find((x) => x.level === "must")?.text,
+			templates: q.templates ?? [],
+			evidenceHints: q.evidenceHints ?? [],
+			critical: Boolean(q.critical),
+		});
+	}
+	return out
+		.sort(
+			(a, b) =>
+				Number(b.critical) - Number(a.critical) || rank[a.kind] - rank[b.kind],
+		)
+		.map(({ critical: _c, ...m }) => m);
 }

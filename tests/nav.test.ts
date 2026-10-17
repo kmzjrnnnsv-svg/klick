@@ -11,6 +11,17 @@ const casp = [
 ];
 
 describe("buildNav", () => {
+	it("Produkte nur mit aktivem CRA", () => {
+		const keys = (frameworks: { slug: string; name: string }[]) =>
+			buildNav({
+				frameworks,
+				licenceStage: "0_vorbereitung",
+				caspServices: [],
+				role: "owner",
+			}).flatMap((g) => g.items.map((i) => i.key));
+		expect(keys(iso)).not.toContain("products");
+		expect(keys([...iso, { slug: "cra", name: "CRA" }])).toContain("products");
+	});
 	it("ISO-only-Org: keine CASP-Gruppe, rund 20 Ziele", () => {
 		const groups = buildNav({
 			frameworks: iso,

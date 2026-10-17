@@ -20,6 +20,7 @@ import {
 	notifications,
 	obligationRuns,
 	obligations,
+	products,
 	providers,
 	regulatorInteractions,
 	tasks,
@@ -504,6 +505,19 @@ async function loadDueRows(
 				isNotNull(insurancePolicies.validUntil),
 			),
 		);
+	const productRows = await tx
+		.select({
+			id: products.id,
+			code: products.code,
+			name: products.name,
+			supportUntil: products.supportUntil,
+			status: products.status,
+			ownerUserId: products.ownerUserId,
+		})
+		.from(products)
+		.where(
+			and(eq(products.organizationId, orgId), isNotNull(products.supportUntil)),
+		);
 	const accessRows = await tx
 		.select({
 			memberId: memberAccess.memberId,
@@ -545,6 +559,7 @@ async function loadDueRows(
 		})),
 		dataSubjectRequests: dsrRows,
 		insurancePolicies: insuranceRows,
+		products: productRows,
 		openTasks,
 	};
 }

@@ -131,6 +131,47 @@ export const TASK_BUNDLES: TaskBundleTemplate[] = [
 		],
 	},
 	{
+		code: "INCIDENT_CRA",
+		name: "Meldung nach CRA Art. 14",
+		description:
+			"Aktiv ausgenutzte Schwachstelle oder schwerwiegender Vorfall an einem Produkt: Meldungen an CSIRT (BSI) und ENISA über die einheitliche Meldeplattform.",
+		triggerEntityType: "incident",
+		items: [
+			{
+				title: "Betroffene Produkte und Versionen festhalten",
+				assigneeRule: "function:incident_manager",
+				offsetDays: 0,
+			},
+			{
+				title: "Frühwarnung an CSIRT/ENISA (24 h)",
+				assigneeRule: "function:incident_manager",
+				offsetDays: 0,
+			},
+			{
+				title:
+					"Schwachstellen- bzw. Vorfallmeldung mit Bewertung und Abhilfe (72 h)",
+				assigneeRule: "function:incident_manager",
+				offsetDays: 2,
+			},
+			{
+				title: "Korrektur oder Abhilfe bereitstellen und Nutzer informieren",
+				assigneeRule: "function:isb_ciso",
+				offsetDays: 3,
+			},
+			{
+				title: "Advisory veröffentlichen (CSAF/CVE)",
+				assigneeRule: "function:isb_ciso",
+				offsetDays: 7,
+			},
+			{
+				title:
+					"Abschlussbericht (14 Tage nach Abhilfe bzw. 1 Monat nach Meldung)",
+				assigneeRule: "function:incident_manager",
+				offsetDays: 14,
+			},
+		],
+	},
+	{
 		code: "INCIDENT_DSGVO",
 		name: "Datenschutzverletzung (DSGVO Art. 33/34)",
 		description: "72-Stunden-Pfad.",

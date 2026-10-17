@@ -54,6 +54,12 @@ export const ORG_ROLES_LEGAL = [
 	"aml_obliged",
 	"issuer",
 	"any",
+	// CRA-Wirtschaftsakteure — aus dem Produktregister abgeleitet, unabhängig
+	// von der Lizenzstufe.
+	"manufacturer",
+	"importer",
+	"distributor",
+	"oss_steward",
 ] as const;
 export type OrgRoleLegal = (typeof ORG_ROLES_LEGAL)[number];
 
@@ -132,6 +138,65 @@ export type AssessmentQuestion = {
 	evidenceHints?: string[];
 	templates?: string[];
 	mapsTo?: { art30?: string[]; control?: string; requirement?: string };
+};
+
+// Produktregister (CRA): Art des Produkts, Rolle der Org, Einstufung nach
+// Anhang III/IV, Lebenszyklus.
+export const PRODUCT_KINDS = [
+	"software",
+	"mobile_app",
+	"library",
+	"firmware",
+	"hardware",
+	"saas",
+	"other",
+] as const;
+export type ProductKind = (typeof PRODUCT_KINDS)[number];
+
+export const PRODUCT_ROLES = [
+	"manufacturer",
+	"importer",
+	"distributor",
+	"oss_steward",
+] as const;
+export type ProductRole = (typeof PRODUCT_ROLES)[number];
+
+export const CRA_CLASSES = [
+	"default",
+	"important_1",
+	"important_2",
+	"critical",
+] as const;
+export type CraClass = (typeof CRA_CLASSES)[number];
+
+export const PRODUCT_STATUS = [
+	"development",
+	"on_market",
+	"end_of_support",
+	"withdrawn",
+] as const;
+export type ProductStatus = (typeof PRODUCT_STATUS)[number];
+
+// Zusammenfassung einer SBOM (products.sbomSummary) — nie die Komponenten
+// selbst, die liegen verschlüsselt im Nachweis.
+export type SbomSummary = {
+	format: "cyclonedx" | "spdx";
+	specVersion: string | null;
+	generatedAt: string | null;
+	primaryComponent: string | null;
+	components: number;
+	// Anteil der Komponenten mit Pflichtfeld nach BSI TR-03183-2 (0–100)
+	fields: {
+		version: number;
+		identifier: number;
+		license: number;
+		hash: number;
+		supplier: number;
+	};
+	dependencies: boolean;
+	issues: string[];
+	ok: boolean;
+	checkedAt: string;
 };
 
 // Herkunft eines Nachweises (evidence.source).
@@ -219,6 +284,7 @@ export const ENTITY_KINDS = [
 	"organization",
 	"member",
 	"assessment",
+	"product",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 
@@ -254,7 +320,14 @@ export const CONTROL_TEST_METHODS = [
 ] as const;
 export type ControlTestMethod = (typeof CONTROL_TEST_METHODS)[number];
 
-export const INCIDENT_REGIMES = ["dora", "nis2", "dsgvo", "gwg_sar"] as const;
+export const INCIDENT_REGIMES = [
+	"dora",
+	"nis2",
+	"cra_vuln",
+	"cra_incident",
+	"dsgvo",
+	"gwg_sar",
+] as const;
 export type IncidentRegime = (typeof INCIDENT_REGIMES)[number];
 
 export const NOTIFICATION_KINDS = [

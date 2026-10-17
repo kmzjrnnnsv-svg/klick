@@ -50,6 +50,13 @@
       "when": 1792195518466,
       "tag": "0006_assessments",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792197730522,
+      "tag": "0007_cra_products",
+      "breakpoints": true
     }
   ]
 }

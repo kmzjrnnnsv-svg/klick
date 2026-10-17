@@ -1326,6 +1326,188 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 			],
 		),
 	},
+	// ── CRA (S4) ───────────────────────────────────────────────────────────
+	{
+		code: "RL-CVD",
+		title: "Richtlinie koordinierte Offenlegung von Schwachstellen",
+		type: "policy",
+		domain: "development",
+		approverFunction: "isb_ciso",
+		reviewCycleMonths: 12,
+		isoMandatory: false,
+		controls: ["CC-PRD-02", "CC-OPS-03"],
+		legalBasisRefs: [
+			"CRA Art. 13 Abs. 8, Anhang I Teil II Nr. 5–6",
+			"ISO/IEC 29147",
+			"NIS2 Art. 12",
+		],
+		frameworks: ["cra", "nis2"],
+		body: skeleton(
+			"Richtlinie koordinierte Offenlegung von Schwachstellen",
+			"Wie Dritte uns Schwachstellen melden, wie wir reagieren und wann wir veröffentlichen.",
+			[
+				"Geltungsbereich (Produkte, Versionen)",
+				"Meldeweg und Kontakt (security.txt)",
+				"Eingangsbestätigung und Fristen",
+				"Bewertung (CVSS) und Behebung",
+				"Veröffentlichung (Advisory, CVE, CSAF)",
+				"Safe Harbor für Meldende",
+				"Meldung aktiv ausgenutzter Schwachstellen (Art. 14)",
+			],
+		),
+	},
+	{
+		code: "VL-SECURITY-TXT",
+		title: "security.txt (RFC 9116)",
+		type: "template",
+		domain: "development",
+		approverFunction: "isb_ciso",
+		reviewCycleMonths: 12,
+		isoMandatory: false,
+		controls: ["CC-PRD-02"],
+		legalBasisRefs: ["RFC 9116", "CRA Anhang II Nr. 2"],
+		frameworks: ["cra"],
+		body: [
+			"# security.txt",
+			"",
+			"Ablage unter `https://{{domain}}/.well-known/security.txt`, UTF-8, signiert empfohlen.",
+			"",
+			"```",
+			"Contact: mailto:security@{{domain}}",
+			"Expires: {{expires}}",
+			"Policy: https://{{domain}}/sicherheit/offenlegung",
+			"Preferred-Languages: de, en",
+			"Canonical: https://{{domain}}/.well-known/security.txt",
+			"```",
+			"",
+			"`Expires` höchstens ein Jahr in der Zukunft; Erinnerung vor Ablauf in Klick als Aufgabe anlegen.",
+			"",
+		].join("\n"),
+	},
+	{
+		code: "RL-SUPPORTZEITRAUM",
+		title: "Festlegung des Unterstützungszeitraums",
+		type: "policy",
+		domain: "development",
+		approverFunction: "management_body",
+		reviewCycleMonths: 12,
+		isoMandatory: false,
+		controls: ["CC-PRD-04", "CC-PRD-05"],
+		legalBasisRefs: ["CRA Art. 13 Abs. 8–9", "CRA Anhang II Nr. 7"],
+		frameworks: ["cra"],
+		body: skeleton(
+			"Festlegung des Unterstützungszeitraums",
+			"Wie lange wir Sicherheitsupdates je Produkt liefern und wie wir das begründen und angeben.",
+			[
+				"Erwartete Nutzungsdauer je Produktart",
+				"Unterstützungszeitraum (mind. fünf Jahre, Ausnahmen begründet)",
+				"Angabe beim Kauf (Monat/Jahr)",
+				"Verfügbarkeit älterer Updates (zehn Jahre)",
+				"Ankündigung des Supportendes",
+			],
+		),
+	},
+	{
+		code: "VL-EU-KE",
+		title: "EU-Konformitätserklärung (Anhang V)",
+		type: "form",
+		domain: "compliance",
+		approverFunction: "management_body",
+		reviewCycleMonths: 12,
+		isoMandatory: false,
+		controls: ["CC-PRD-08"],
+		legalBasisRefs: ["CRA Art. 28", "CRA Anhang V"],
+		frameworks: ["cra"],
+		body: [
+			"# EU-Konformitätserklärung",
+			"",
+			"1. Produkt mit digitalen Elementen: {{produkt}} (Typ, Charge, Version)",
+			"2. Name und Anschrift des Herstellers oder Bevollmächtigten: {{hersteller}}",
+			"3. Die alleinige Verantwortung für die Ausstellung dieser Erklärung trägt der Hersteller.",
+			"4. Gegenstand der Erklärung: {{beschreibung}} (ggf. mit Abbildung)",
+			"5. Der beschriebene Gegenstand erfüllt die Verordnung (EU) 2024/2847 und ggf. weitere Harmonisierungsrechtsvorschriften: {{weitere}}",
+			"6. Angewandte harmonisierte Normen, gemeinsame Spezifikationen oder Zertifizierungen: {{normen}}",
+			"7. Benannte Stelle (falls beteiligt): {{benannte_stelle}}, Verfahren {{modul}}, Bescheinigung {{nr}}",
+			"8. Zusatzangaben: {{zusatz}}",
+			"",
+			"Unterzeichnet für und im Namen von: {{firma}} — {{ort}}, {{datum}} — {{name, funktion}}",
+			"",
+		].join("\n"),
+	},
+	{
+		code: "VL-TECHDOK",
+		title: "Technische Dokumentation (Gliederung nach Anhang VII)",
+		type: "manual",
+		domain: "development",
+		approverFunction: "isb_ciso",
+		reviewCycleMonths: 12,
+		isoMandatory: false,
+		controls: ["CC-PRD-07", "CC-PRD-03", "CC-PRD-06"],
+		legalBasisRefs: ["CRA Art. 31", "CRA Anhang VII"],
+		frameworks: ["cra"],
+		body: skeleton(
+			"Technische Dokumentation",
+			"Nachweis, dass das Produkt die grundlegenden Anforderungen aus Anhang I erfüllt — zehn Jahre aufzubewahren.",
+			[
+				"Allgemeine Beschreibung (Zweck, Versionen, Abbildungen, Nutzerinformation)",
+				"Entwurf, Entwicklung, Herstellung (Architektur, Komponenten, Schwachstellenprozess, SBOM-Verweis)",
+				"Cybersicherheits-Risikobewertung",
+				"Unterstützungszeitraum und Begründung",
+				"Angewandte Normen und Spezifikationen",
+				"Prüf- und Testberichte",
+				"EU-Konformitätserklärung",
+			],
+		),
+	},
+	{
+		code: "VL-PRODUKT-RISIKO",
+		title: "Cybersicherheits-Risikobewertung je Produkt",
+		type: "record",
+		domain: "development",
+		approverFunction: "isb_ciso",
+		reviewCycleMonths: 12,
+		isoMandatory: false,
+		controls: ["CC-PRD-06", "CC-DEV-02"],
+		legalBasisRefs: ["CRA Art. 13 Abs. 2–4", "CRA Anhang I"],
+		frameworks: ["cra"],
+		body: skeleton(
+			"Cybersicherheits-Risikobewertung",
+			"Risiken über den Lebenszyklus des Produkts und wie jede Anforderung aus Anhang I umgesetzt (oder begründet nicht anwendbar) ist.",
+			[
+				"Zweckbestimmung und vorhersehbare Nutzung",
+				"Einsatzumgebung und Schnittstellen",
+				"Bedrohungsmodell",
+				"Anforderungen Anhang I Teil I — Umsetzung je Nummer",
+				"Anforderungen Anhang I Teil II — Schwachstellenprozess",
+				"Restrisiken und Fortschreibung",
+			],
+		),
+	},
+	{
+		code: "VL-NUTZERINFO",
+		title: "Nutzerinformation und Sicherheitshinweise (Anhang II)",
+		type: "manual",
+		domain: "development",
+		approverFunction: "isb_ciso",
+		reviewCycleMonths: 12,
+		isoMandatory: false,
+		controls: ["CC-PRD-09"],
+		legalBasisRefs: ["CRA Art. 13 Abs. 18", "CRA Anhang II"],
+		frameworks: ["cra"],
+		body: skeleton(
+			"Nutzerinformation",
+			"Was Nutzer:innen über die sichere Verwendung des Produkts wissen müssen.",
+			[
+				"Hersteller und Kontaktstelle für Schwachstellen",
+				"Produkt, Version und Zweckbestimmung",
+				"Bekannte Risiken bei Fehlgebrauch",
+				"Ende des Unterstützungszeitraums",
+				"Sichere Inbetriebnahme und Updates",
+				"Sichere Außerbetriebnahme und Datenlöschung",
+				"Ort der EU-Konformitätserklärung und SBOM-Zugang",
+			],
+		),
+	},
 ];
 
 export const TEMPLATE_BY_CODE: ReadonlyMap<string, DocumentTemplate> = new Map(
@@ -1335,8 +1517,10 @@ export const TEMPLATE_BY_CODE: ReadonlyMap<string, DocumentTemplate> = new Map(
 // Pflichtdokumente je Rahmenwerk (Prüfungsreife, lib/compliance/readiness.ts).
 // ISO 27001 aus `isoMandatory`; sonst die Dokumente, die das Regelwerk
 // ausdrücklich verlangt (Strategie/Leitlinie/Plan) — vor SaaS-Verkauf gegen
-// Primärquellen prüfen (wie der übrige Katalog).
-const MANDATORY_BY_FRAMEWORK: Record<string, readonly string[]> = {
+// Primärquellen prüfen (wie der übrige Katalog). Ein Eintrag mit Datum ist
+// erst ab diesem Stichtag Pflicht (CRA: 11.12.2027).
+type MandatoryEntry = string | { code: string; from: string };
+const MANDATORY_BY_FRAMEWORK: Record<string, readonly MandatoryEntry[]> = {
 	dora: [
 		"KZ-RESILIENZSTRATEGIE", // Art. 6 Abs. 8
 		"KZ-IKT-RISIKORAHMEN", // Art. 6
@@ -1355,12 +1539,23 @@ const MANDATORY_BY_FRAMEWORK: Record<string, readonly string[]> = {
 	],
 	gwg: ["KZ-AML-RISIKOANALYSE", "RL-AML-HANDBUCH"],
 	dsgvo: ["RL-DATENSCHUTZ", "KZ-LOESCHUNG"],
+	cra: [
+		{ code: "RL-CVD", from: "2027-12-11" }, // Anhang I Teil II Nr. 5
+		{ code: "RL-SUPPORTZEITRAUM", from: "2027-12-11" }, // Art. 13 Abs. 8
+		{ code: "VL-PRODUKT-RISIKO", from: "2027-12-11" }, // Art. 13 Abs. 2
+		{ code: "VL-TECHDOK", from: "2027-12-11" }, // Art. 31, Anhang VII
+		{ code: "VL-NUTZERINFO", from: "2027-12-11" }, // Anhang II
+	],
 };
 
-export function mandatoryTemplatesFor(slug: string): DocumentTemplate[] {
+export function mandatoryTemplatesFor(
+	slug: string,
+	asOf: Date = new Date(),
+): DocumentTemplate[] {
 	if (slug === "iso27001")
 		return DOCUMENT_TEMPLATES.filter((t) => t.isoMandatory);
 	return (MANDATORY_BY_FRAMEWORK[slug] ?? [])
-		.map((code) => TEMPLATE_BY_CODE.get(code))
+		.filter((e) => typeof e === "string" || new Date(e.from) <= asOf)
+		.map((e) => TEMPLATE_BY_CODE.get(typeof e === "string" ? e : e.code))
 		.filter((t): t is DocumentTemplate => Boolean(t));
 }

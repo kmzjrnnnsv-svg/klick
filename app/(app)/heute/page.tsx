@@ -135,6 +135,7 @@ export default async function TodayPage() {
 				frameworks: cov.frameworks,
 				tlptDesignated: cov.profile.tlptDesignated,
 				issuesTokens: cov.profile.issuesTokens,
+				productRoles: cov.profile.productRoles,
 			}).length;
 	}
 

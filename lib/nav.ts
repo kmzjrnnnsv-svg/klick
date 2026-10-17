@@ -10,6 +10,7 @@ export type NavLabelKey =
 	| "today"
 	| "overview"
 	| "gapAnalysis"
+	| "products"
 	| "controls"
 	| "synergies"
 	| "evidence"
@@ -53,6 +54,7 @@ export type NavIcon =
 	| "sun"
 	| "gauge"
 	| "list-checks"
+	| "package"
 	| "shield-check"
 	| "git-merge"
 	| "file-check"
@@ -235,6 +237,17 @@ export function buildNav(input: NavInput): NavGroup[] {
 					href: "/vorfaelle",
 					icon: "siren",
 				},
+				// CRA: Produktregister nur mit aktivem Rahmenwerk
+				...(slugs.has("cra")
+					? [
+							{
+								key: "products",
+								labelKey: "products" as const,
+								href: "/produkte",
+								icon: "package" as const,
+							},
+						]
+					: []),
 				{
 					key: "trainings",
 					labelKey: "trainings",
@@ -399,6 +412,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 			"processes",
 			"providers",
 			"incidents",
+			"products",
 			"audits",
 			"settings",
 			"activity",

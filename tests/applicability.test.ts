@@ -147,6 +147,53 @@ describe("deriveApplicability", () => {
 	});
 });
 
+describe("deriveApplicability — CRA-Rollen aus dem Produktregister", () => {
+	const mfr = {
+		framework: "cra",
+		code: "AnhI-2a",
+		appliesToRoles: ["manufacturer" as const],
+		effectiveFrom: "2027-12-11",
+	};
+	const imp = {
+		framework: "cra",
+		code: "Art.19",
+		appliesToRoles: ["importer" as const],
+		effectiveFrom: "2027-12-11",
+	};
+	const asOf = new Date("2028-01-01");
+
+	it("ohne Produkte: alles Arbeitsgegenstand, auch ab Lizenzstufe 2", () => {
+		const p = { ...base, licenceStage: "2_casp_zag" as const, asOf };
+		expect(deriveApplicability(mfr, p).applicable).toBe(true);
+		expect(deriveApplicability(imp, p).applicable).toBe(true);
+	});
+
+	it("mit Produkten: nur die eigenen Rollen, unabhängig von der Stufe", () => {
+		const p = {
+			...base,
+			licenceStage: "2_casp_zag" as const,
+			productRoles: ["manufacturer" as const],
+			asOf,
+		};
+		expect(deriveApplicability(mfr, p).applicable).toBe(true);
+		expect(deriveApplicability(imp, p)).toMatchObject({
+			applicable: false,
+			source: "stage",
+		});
+		// nur SaaS (nicht erfasst) → keine Herstellerpflichten
+		expect(
+			deriveApplicability(mfr, { ...base, productRoles: [], asOf }).applicable,
+		).toBe(false);
+		// künftige Pflicht bleibt im Arbeitsvorrat, solange die Rolle passt
+		expect(inWorkQueue(mfr, { ...base, productRoles: ["manufacturer"] })).toBe(
+			true,
+		);
+		expect(inWorkQueue(mfr, { ...base, productRoles: ["distributor"] })).toBe(
+			false,
+		);
+	});
+});
+
 describe("mergeApplicability", () => {
 	it("nur manuelle Zeilen überschreiben die frische Ableitung", () => {
 		const derived = new Map([

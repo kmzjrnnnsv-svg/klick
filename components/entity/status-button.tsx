@@ -10,6 +10,7 @@ import { transitionDocument } from "@/app/actions/documents";
 import { setIncidentStatus } from "@/app/actions/incidents";
 import { setNonconformityStatus } from "@/app/actions/nonconformities";
 import { setProcessStatus } from "@/app/actions/processes";
+import { setProductStatus } from "@/app/actions/products";
 import { setRiskStatus } from "@/app/actions/risks";
 import { setTaskStatus } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
-import type { ImplStatus } from "@/db/schema/enums";
+import type { ImplStatus, ProductStatus } from "@/db/schema/enums";
 import { CONTROL_STATUS } from "@/lib/entities/control";
 import {
 	DOCUMENT_STATUS_MACHINE,
@@ -40,6 +41,7 @@ import {
 	type NonconformityStatus,
 } from "@/lib/entities/nonconformity";
 import { PROCESS_STATUS, type ProcessStatus } from "@/lib/entities/process";
+import { PRODUCT_STATUS } from "@/lib/entities/product";
 import { RISK_STATUS, type RiskStatus } from "@/lib/entities/risk";
 import { nextTransitions } from "@/lib/entities/status-machine";
 import { TASK_STATUS, type TaskStatus } from "@/lib/entities/task";
@@ -62,7 +64,8 @@ type Target =
 			nonconformityId: string;
 			status: NonconformityStatus;
 	  }
-	| { kind: "document"; documentId: string; status: DocumentStatus };
+	| { kind: "document"; documentId: string; status: DocumentStatus }
+	| { kind: "product"; productId: string; status: ProductStatus };
 
 const MACHINES = {
 	control: CONTROL_STATUS,
@@ -72,6 +75,7 @@ const MACHINES = {
 	process: PROCESS_STATUS,
 	nonconformity: NONCONFORMITY_STATUS,
 	document: DOCUMENT_STATUS_MACHINE,
+	product: PRODUCT_STATUS,
 } as const;
 
 // Status wechselt per Button mit dem nächsten sinnvollen Übergang; weitere
@@ -187,6 +191,14 @@ export function StatusButton({
 			} else if (target.kind === "nonconformity") {
 				const res = await setNonconformityStatus({
 					nonconformityId: target.nonconformityId,
+					status: to,
+					note: withNote,
+				});
+				if (!res.ok) return fail(res.error);
+				toast.success(t("statusChanged"));
+			} else if (target.kind === "product") {
+				const res = await setProductStatus({
+					productId: target.productId,
 					status: to,
 					note: withNote,
 				});

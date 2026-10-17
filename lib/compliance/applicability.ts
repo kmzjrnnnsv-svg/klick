@@ -10,7 +10,9 @@ import type {
 //   rule          Rechtsstand (repealed / noch nicht in Kraft / ausser Kraft),
 //                 TLPT ohne Benennung
 //   services      MiCAR-Dienst wird nicht erbracht
-//   stage         Lizenzstufe zu niedrig oder Rolle passt nicht (ab Stufe 1)
+//   stage         Lizenzstufe zu niedrig oder Rolle passt nicht (ab Stufe 1);
+//                 CRA-Rollen (Hersteller, Einführer, Händler) kommen aus dem
+//                 Produktregister und gelten unabhängig von der Stufe
 //   lex_specialis DORA verdrängt NIS2 Art. 20/21/23 für Finanzunternehmen
 // Manuelle Entscheidungen (source "manual") überschreiben alles — die trifft
 // die Org in requirement_applicability, nicht diese Funktion.
@@ -46,7 +48,25 @@ export type OrgProfile = {
 	selectedFrameworks: readonly string[];
 	tlptDesignated?: boolean;
 	issuesTokens?: "none" | "art" | "emt" | "other";
+	// Rollen aus dem Produktregister (nur Produkte im CRA-Anwendungsbereich).
+	// undefined = noch kein Produkt erfasst → alles Gewählte ist
+	// Arbeitsgegenstand; [] = Produkte erfasst, aber keins im Anwendungsbereich.
+	productRoles?: readonly OrgRoleLegal[];
 	asOf?: Date;
+};
+
+export const PRODUCT_ROLE_SET: ReadonlySet<OrgRoleLegal> = new Set([
+	"manufacturer",
+	"importer",
+	"distributor",
+	"oss_steward",
+]);
+
+const PRODUCT_ROLE_LABEL: Partial<Record<OrgRoleLegal, string>> = {
+	manufacturer: "Hersteller",
+	importer: "Einführer",
+	distributor: "Händler",
+	oss_steward: "Open-Source-Verwalter",
 };
 
 export const STAGE_INDEX: Record<LicenceStage, number> = {
@@ -136,9 +156,28 @@ export function deriveApplicability(
 			note: `Gilt ab Lizenzstufe ${req.appliesFromStage}`,
 		};
 	}
-	// Rollen greifen erst ab Stufe 1 — in der Vorbereitung ist alles
-	// Gewählte Arbeitsgegenstand.
-	if (stage >= 1 && req.appliesToRoles && req.appliesToRoles.length > 0) {
+	// CRA-Rollen: aus dem Produktregister, unabhängig von der Lizenzstufe.
+	const productRoles = (req.appliesToRoles ?? []).filter((r) =>
+		PRODUCT_ROLE_SET.has(r),
+	);
+	if (productRoles.length > 0) {
+		if (
+			profile.productRoles &&
+			!productRoles.some((r) => profile.productRoles?.includes(r))
+		) {
+			return {
+				applicable: false,
+				source: "stage",
+				note: `Gilt für ${productRoles.map((r) => PRODUCT_ROLE_LABEL[r] ?? r).join("/")} — laut Produktregister nicht deine Rolle`,
+			};
+		}
+	} else if (
+		// Rollen greifen erst ab Stufe 1 — in der Vorbereitung ist alles
+		// Gewählte Arbeitsgegenstand.
+		stage >= 1 &&
+		req.appliesToRoles &&
+		req.appliesToRoles.length > 0
+	) {
 		const roles = new Set(orgRolesFor(profile));
 		if (!req.appliesToRoles.some((r) => roles.has(r))) {
 			return {

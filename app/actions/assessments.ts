@@ -122,6 +122,7 @@ async function createAssessmentImpl(
 				frameworks,
 				tlptDesignated: p.profile.tlptDesignated,
 				issuesTokens: p.profile.issuesTokens,
+				productRoles: p.profile.productRoles,
 				asOf: d.asOf ? new Date(`${d.asOf}T12:00:00Z`) : undefined,
 				manual,
 			});
@@ -136,6 +137,7 @@ async function createAssessmentImpl(
 			frameworks,
 			tlptDesignated: p.profile.tlptDesignated,
 			issuesTokens: p.profile.issuesTokens,
+			productRoles: p.profile.productRoles,
 			asOf: d.asOf ? new Date(`${d.asOf}T12:00:00Z`) : undefined,
 			manual,
 			onlyControls,
@@ -279,9 +281,11 @@ async function uploadAnswerEvidenceImpl(
 			source: "assessment",
 			dlp: v.dlp,
 		});
-		if (q.controlCode) {
-			const impl = (await implementationIds(tx, c.orgId, [q.controlCode])).get(
-				q.controlCode,
+		// Produktcheckliste: Nachweis zählt für das tragende Control (mapsTo)
+		const control = q.controlCode ?? q.mapsTo?.control;
+		if (control) {
+			const impl = (await implementationIds(tx, c.orgId, [control])).get(
+				control,
 			);
 			if (impl) await linkEvidenceToControl(tx, c.orgId, impl.id, stored.id);
 		}
@@ -368,9 +372,10 @@ async function linkAnswerEvidenceImpl(input: unknown): Promise<ActionResult> {
 			)
 			.limit(1);
 		if (!a || !q || !ev) return { result: false, audit: [] };
-		if (q.controlCode) {
-			const impl = (await implementationIds(tx, c.orgId, [q.controlCode])).get(
-				q.controlCode,
+		const control = q.controlCode ?? q.mapsTo?.control;
+		if (control) {
+			const impl = (await implementationIds(tx, c.orgId, [control])).get(
+				control,
 			);
 			if (impl) await linkEvidenceToControl(tx, c.orgId, impl.id, ev.id);
 		}
@@ -617,6 +622,63 @@ const MEASURE_TITLE = {
 	evidence: "Nachweis hinterlegen",
 } as const;
 
+// Produktcheckliste: Maßnahmen als Aufgaben am Produkt (nicht am Control),
+// je Frage; offene Aufgaben mit gleichem Titel werden nicht doppelt angelegt.
+async function productMeasureTasks(
+	tx: OrgTx,
+	c: { orgId: string; userId: string },
+	a: typeof assessments.$inferSelect,
+	d: {
+		items: { controlCode: string; kind: keyof typeof MEASURE_TITLE }[];
+		assigneeUserId?: string | null;
+		dueAt?: string | null;
+	},
+): Promise<number> {
+	const productId = a.subjectId as string;
+	const byCode = new Map(a.questions.map((q) => [q.code, q]));
+	const open = await tx
+		.select({ title: tasks.title })
+		.from(tasks)
+		.where(
+			and(
+				eq(tasks.organizationId, c.orgId),
+				eq(tasks.entityType, "product"),
+				eq(tasks.entityId, productId),
+				ne(tasks.status, "done"),
+			),
+		);
+	const openTitles = new Set(open.map((o) => o.title));
+	let created = 0;
+	for (const item of d.items) {
+		const q = byCode.get(item.controlCode);
+		if (!q) continue;
+		const title = `${MEASURE_TITLE[item.kind]}: ${q.text}`.slice(0, 200);
+		if (openTitles.has(title)) continue;
+		await tx.insert(tasks).values({
+			organizationId: c.orgId,
+			title,
+			description: [
+				`Aus CRA-Checkliste ${a.code} (${q.mapsTo?.requirement ?? q.code}).`,
+				q.evidenceHints?.length
+					? `Nachweise: ${q.evidenceHints.join(", ")}`
+					: null,
+			]
+				.filter(Boolean)
+				.join("\n"),
+			assigneeUserId: d.assigneeUserId ?? c.userId,
+			createdByUserId: c.userId,
+			dueAt: d.dueAt ?? null,
+			priority: q.critical || item.kind === "implement" ? "high" : "normal",
+			entityType: "product",
+			entityId: productId,
+			sourceKind: "assessment",
+		});
+		openTitles.add(title);
+		created += 1;
+	}
+	return created;
+}
+
 // Maßnahmen aus der Gap-Analyse als Aufgaben am Control (Herkunft
 // "assessment"), Empfehlung aus dem Katalog in der Beschreibung.
 async function createMeasuresImpl(
@@ -629,6 +691,20 @@ async function createMeasuresImpl(
 	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const a = await loadAssessment(tx, c.orgId, d.assessmentId);
 		if (!a) return { result: null, audit: [] };
+		if (a.kind === "product" && a.subjectId) {
+			const created = await productMeasureTasks(tx, c, a, d);
+			return {
+				result: { created },
+				audit: {
+					action: "assessment.measures",
+					target: `assessment:${a.id}`,
+					after: {
+						created,
+						items: d.items.map((i) => `${i.kind}:${i.controlCode}`),
+					},
+				},
+			};
+		}
 		const impls = await implementationIds(
 			tx,
 			c.orgId,
@@ -733,6 +809,7 @@ async function cloneAssessmentImpl(
 			frameworks: frameworks.length > 0 ? frameworks : p.frameworks,
 			tlptDesignated: p.profile.tlptDesignated,
 			issuesTokens: p.profile.issuesTokens,
+			productRoles: p.profile.productRoles,
 			manual,
 		});
 		const existing = await tx

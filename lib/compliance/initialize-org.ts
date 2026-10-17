@@ -9,7 +9,11 @@ import {
 	requirementApplicability,
 	requirements,
 } from "@/db/schema";
-import type { CaspService, LicenceStage } from "@/db/schema/enums";
+import type {
+	CaspService,
+	LicenceStage,
+	OrgRoleLegal,
+} from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
 import { deriveApplicability, inWorkQueue } from "./applicability";
 import { BASELINE, EDGES, splitRequirementKey } from "./catalog";
@@ -38,6 +42,7 @@ export type InitializeOrgInput = {
 	applyBaseline: boolean;
 	tlptDesignated?: boolean;
 	issuesTokens?: "none" | "art" | "emt" | "other";
+	productRoles?: readonly OrgRoleLegal[];
 };
 
 export type InitializeOrgSummary = {
@@ -61,6 +66,7 @@ export async function initializeOrg(
 		frameworks: input.frameworks,
 		tlptDesignated: input.tlptDesignated,
 		issuesTokens: input.issuesTokens,
+		productRoles: input.productRoles,
 	});
 
 	// Anforderungen der gewählten Rahmenwerke (DB-IDs).

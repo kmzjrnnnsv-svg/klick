@@ -103,6 +103,7 @@ async function previewStageChangeImpl(
 			frameworks: p.frameworks,
 			tlptDesignated: p.profile.tlptDesignated,
 			issuesTokens: p.profile.issuesTokens,
+			productRoles: p.profile.productRoles,
 		};
 		return stageChangeReport(
 			{

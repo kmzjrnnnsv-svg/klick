@@ -68,6 +68,7 @@ export default async function ControlsPage({
 					frameworks: cov.frameworks,
 					tlptDesignated: cov.profile.tlptDesignated,
 					issuesTokens: cov.profile.issuesTokens,
+					productRoles: cov.profile.productRoles,
 				},
 				new Map(
 					[...cov.applicabilityDetail]

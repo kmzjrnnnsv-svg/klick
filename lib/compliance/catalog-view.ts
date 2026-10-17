@@ -39,6 +39,7 @@ export type ProfileInput = {
 	frameworks: readonly string[];
 	tlptDesignated?: boolean;
 	issuesTokens?: OrgProfile["issuesTokens"];
+	productRoles?: OrgProfile["productRoles"];
 	asOf?: Date;
 };
 
@@ -50,6 +51,7 @@ export function toProfile(input: ProfileInput): OrgProfile {
 		selectedFrameworks: input.frameworks,
 		tlptDesignated: input.tlptDesignated,
 		issuesTokens: input.issuesTokens,
+		productRoles: input.productRoles,
 		asOf: input.asOf,
 	};
 }

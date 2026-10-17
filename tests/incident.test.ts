@@ -4,6 +4,7 @@ import {
 	classifyNis2Incident,
 	clockState,
 	computeIncidentDeadlines,
+	craReasons,
 	leadRegime,
 	nextIncidentCode,
 } from "@/lib/compliance/incident";
@@ -139,5 +140,50 @@ describe("leadRegime", () => {
 		expect(leadRegime(["nis2", "dora"])).toBe("dora");
 		expect(leadRegime(["gwg_sar"])).toBe("gwg_sar");
 		expect(leadRegime([])).toBeNull();
+		expect(leadRegime(["cra_vuln", "nis2"])).toBe("nis2");
+		expect(leadRegime(["dsgvo", "cra_incident"])).toBe("cra_incident");
+	});
+});
+
+describe("CRA-Uhren (Art. 14)", () => {
+	const aware = new Date("2026-10-01T10:00:00Z");
+	it("Schwachstelle: 24 h / 72 h, Abschluss 14 Tage nach Abhilfe", () => {
+		const open = computeIncidentDeadlines("cra_vuln", { awareAt: aware });
+		expect(open.initialDueAt.toISOString()).toBe("2026-10-02T10:00:00.000Z");
+		expect(open.intermediateDueAt?.toISOString()).toBe(
+			"2026-10-04T10:00:00.000Z",
+		);
+		expect(open.finalDueAt).toBeNull();
+		const fixed = computeIncidentDeadlines("cra_vuln", {
+			awareAt: aware,
+			mitigationAvailableAt: new Date("2026-10-05T12:00:00Z"),
+		});
+		expect(fixed.finalDueAt?.toISOString()).toBe("2026-10-19T12:00:00.000Z");
+	});
+
+	it("Vorfall: Abschluss 1 Monat nach der Vorfallmeldung, sonst projiziert", () => {
+		const projected = computeIncidentDeadlines("cra_incident", {
+			awareAt: aware,
+		});
+		expect(projected.projected).toBe(true);
+		expect(projected.finalDueAt?.toISOString()).toBe(
+			"2026-11-04T10:00:00.000Z",
+		);
+		const sent = computeIncidentDeadlines("cra_incident", {
+			awareAt: aware,
+			intermediateReportedAt: new Date("2026-10-03T09:00:00Z"),
+		});
+		expect(sent.projected).toBe(false);
+		expect(sent.finalDueAt?.toISOString()).toBe("2026-11-03T09:00:00.000Z");
+	});
+
+	it("craReasons nennt die erfüllten Kriterien", () => {
+		expect(
+			craReasons({ activelyExploited: true, maliciousCode: true }),
+		).toEqual([
+			"Aktiv ausgenutzte Schwachstelle",
+			"Schadcode eingeschleust oder ausgeführt",
+		]);
+		expect(craReasons({})).toEqual([]);
 	});
 });

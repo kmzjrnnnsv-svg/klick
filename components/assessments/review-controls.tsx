@@ -11,6 +11,7 @@ import {
 	reviewAnswer,
 	submitAssessment,
 } from "@/app/actions/assessments";
+import { completeProductChecklist } from "@/app/actions/products";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -128,6 +129,35 @@ export function SubmitButton({ assessmentId }: { assessmentId: string }) {
 			}
 		>
 			{t("submit")}
+		</Button>
+	);
+}
+
+// Produktcheckliste abschließen: Score festhalten, kein Control-Status.
+export function CompleteChecklistButton({
+	assessmentId,
+	productId,
+}: {
+	assessmentId: string;
+	productId: string;
+}) {
+	const t = useTranslations("Assessment");
+	const tc = useTranslations("Common");
+	const router = useRouter();
+	const [pending, start] = useTransition();
+	return (
+		<Button
+			disabled={pending}
+			onClick={() =>
+				start(async () => {
+					const res = await completeProductChecklist({ assessmentId });
+					if (!res.ok) return void toast.error(tc("error"));
+					toast.success(t("checklistDone"));
+					router.push(`/produkte/${productId}?tab=checkliste`);
+				})
+			}
+		>
+			{pending ? `${t("completeChecklist")}…` : t("completeChecklist")}
 		</Button>
 	);
 }

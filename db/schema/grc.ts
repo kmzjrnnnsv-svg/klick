@@ -32,6 +32,7 @@ import {
 	type INCIDENT_REGIMES,
 	ROLE_FUNCTIONS,
 } from "./enums";
+import { products } from "./products";
 import { assets, processes, providers } from "./registers";
 
 // GRC-Kern je Organisation: Control-Status, Anwendbarkeit, Nachweise,
@@ -853,6 +854,13 @@ export const incidents = pgTable(
 		doraCriteria: json<Record<string, unknown>>(),
 		nis2Criteria: json<Record<string, unknown>>(),
 		dsgvoCriteria: json<Record<string, unknown>>(),
+		// CRA (Art. 14): betroffenes Produkt, Kriterien, Abhilfe verfügbar
+		// (Uhr des Abschlussberichts bei aktiv ausgenutzten Schwachstellen)
+		productId: uuid().references((): AnyPgColumn => products.id, {
+			onDelete: "set null",
+		}),
+		craCriteria: json<Record<string, unknown>>(),
+		mitigationAvailableAt: ts(),
 		classification: text({
 			enum: ["major", "significant", "minor", "unclassified"],
 		})

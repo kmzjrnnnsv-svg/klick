@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
@@ -17,6 +18,7 @@ import { IncidentClocks } from "@/components/incidents/incident-clocks";
 import {
 	ClassifyForm,
 	IncidentUpdateForm,
+	MitigationButton,
 } from "@/components/incidents/incident-forms";
 import { Badge } from "@/components/ui/badge";
 import type { IncidentRegime } from "@/db/schema/enums";
@@ -34,6 +36,7 @@ import {
 	computeIncidentDeadlines,
 	leadRegime,
 } from "@/lib/compliance/incident";
+import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
 	listComments,
 	listMembersForPicker,
@@ -42,6 +45,7 @@ import {
 	userNames,
 } from "@/lib/compliance/queries";
 import { getIncident } from "@/lib/compliance/queries-p2";
+import { listProductOptions } from "@/lib/compliance/queries-products";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
 import {
@@ -131,7 +135,24 @@ export default async function IncidentDetailPage({
 		classifiedAt: incident.classifiedAt,
 		initialReportedAt: incident.initialReportedAt,
 		intermediateReportedAt: incident.intermediateReportedAt,
+		mitigationAvailableAt: incident.mitigationAvailableAt,
 	});
+	// CRA-Regime nur mit aktivem CRA (oder wenn schon gesetzt)
+	const cov = await getOrgCoverageCached(ctx);
+	const craActive =
+		Boolean(cov?.frameworks.includes("cra")) ||
+		regimes.some((r) => r.startsWith("cra_"));
+	const available: IncidentRegime[] = [
+		"dora",
+		"nis2",
+		...(craActive ? (["cra_vuln", "cra_incident"] as const) : []),
+		"dsgvo",
+		"gwg_sar",
+	];
+	const products = craActive
+		? await readOrg(toOrgCtx(ctx), (tx) => listProductOptions(tx, ctx.orgId))
+		: [];
+	const product = products.find((p) => p.id === incident.productId) ?? null;
 	const me = candidates.find((c) => c.userId === ctx.userId);
 	const step = approval?.steps.find((s) => s.order === approval.currentStep);
 	const eligible = Boolean(
@@ -219,6 +240,16 @@ export default async function IncidentDetailPage({
 					<MetaItem label={t("affectsPayments")}>
 						{incident.affectsPayments ? "ja" : "nein"}
 					</MetaItem>
+					{product && (
+						<MetaItem label={t("product")}>
+							<Link
+								href={`/produkte/${product.id}`}
+								className="hover:underline"
+							>
+								{product.code} {product.name}
+							</Link>
+						</MetaItem>
+					)}
 				</>
 			}
 			aside={
@@ -287,7 +318,7 @@ export default async function IncidentDetailPage({
 			<Section title={t("clocks")}>
 				<IncidentClocks
 					incidentId={incident.id}
-					regimes={regimes}
+					regimes={regimes.map((r) => t(`regime_${r}`))}
 					clocks={[
 						{
 							key: "initial",
@@ -319,6 +350,24 @@ export default async function IncidentDetailPage({
 					canEdit={canEdit}
 					projected={dl.projected}
 				/>
+				{regimes.includes("cra_vuln") && (
+					<div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+						{incident.mitigationAvailableAt ? (
+							<span className="text-muted-foreground">
+								{t("mitigationSince", {
+									at: fmt.format(incident.mitigationAvailableAt),
+								})}
+							</span>
+						) : (
+							<>
+								<span className="text-muted-foreground">
+									{t("mitigationHint")}
+								</span>
+								{canEdit && <MitigationButton incidentId={incident.id} />}
+							</>
+						)}
+					</div>
+				)}
 			</Section>
 
 			{approval && (
@@ -353,9 +402,13 @@ export default async function IncidentDetailPage({
 					<ClassifyForm
 						incidentId={incident.id}
 						regimes={regimes}
+						available={available}
 						affectsPayments={incident.affectsPayments}
 						initialDora={incident.doraCriteria}
 						initialNis2={incident.nis2Criteria}
+						initialCra={incident.craCriteria}
+						productId={incident.productId}
+						products={products}
 					/>
 				</Section>
 			)}
