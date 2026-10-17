@@ -17,6 +17,7 @@ export const INCIDENT_SOON_HOURS = 2;
 export const DEDUPE_HOURS = 24;
 export const ACK_GRACE_DAYS = 7;
 export const INSURANCE_WARN_DAYS = 60;
+export const SUPPLIER_REMIND_DAYS = 14;
 
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
@@ -160,6 +161,19 @@ export type DueRows = {
 		status: string;
 		dueAt: Date | string | null;
 		acceptedUntil: Date | string | null;
+		ownerUserId: string | null;
+	}[];
+	/** Lieferantenbewertungen (S6): Link verschickt, noch nicht eingereicht. */
+	supplierAssessments?: readonly {
+		id: string;
+		code: string;
+		title: string;
+		providerId: string | null;
+		status: string;
+		dueAt: Date | string | null;
+		// erster Portal-Link (Versand) bzw. letzter Zugriff des Lieferanten
+		sentAt: Date | string | null;
+		lastOpenedAt: Date | string | null;
 		ownerUserId: string | null;
 	}[];
 	/** Offene Aufgaben (für Dedupe von Eskalationen/Ablauf-Aufgaben). */
@@ -309,7 +323,7 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			recipients: recipientsOf(p.ownerUserId, rows.orgOwnerIds),
 			title: `Dienstleister-Bewertung fällig: ${p.name}`,
 			body: dueWording(now, due),
-			link: `/dienstleister?focus=${encodeURIComponent(p.id)}`,
+			link: `/dienstleister/${encodeURIComponent(p.id)}?tab=bewertungen`,
 			dedupeKey: `review:provider:${p.id}:${isoDay(due)}`,
 		});
 	}
@@ -678,6 +692,42 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			body: dueWording(now, due),
 			link: `/sicherheit/befunde/${f.id}`,
 			dedupeKey: `sec_sla:${f.id}:${d}`,
+		});
+	}
+
+	// Lieferantenbewertungen: 14 Tage nach Versand ohne Einreichung, danach
+	// wöchentlich; zur erbetenen Frist (überschritten) ebenfalls
+	for (const a of rows.supplierAssessments ?? []) {
+		if (a.status !== "in_progress" && a.status !== "draft") continue;
+		const sent = toDate(a.sentAt);
+		if (!sent) continue;
+		const since = -daysUntil(now, sent);
+		const due = toDate(a.dueAt);
+		const overdue = due ? daysUntil(now, due) : null;
+		const remind =
+			(since >= SUPPLIER_REMIND_DAYS &&
+				(since - SUPPLIER_REMIND_DAYS) % 7 === 0) ||
+			overdue === -1;
+		if (!remind) continue;
+		const opened = toDate(a.lastOpenedAt);
+		notifications.push({
+			kind: "review_due",
+			recipients: recipientsOf(a.ownerUserId, rows.orgOwnerIds),
+			title: `Lieferant hat noch nicht geantwortet: ${a.title}`,
+			body: [
+				`${a.code}: Link seit ${since} Tagen verschickt`,
+				opened ? `zuletzt geöffnet am ${fmtDay(opened)}` : "noch nie geöffnet",
+				overdue !== null && overdue < 0
+					? `Frist ${fmtDay(due as Date)} überschritten`
+					: null,
+			]
+				.filter(Boolean)
+				.join(", ")
+				.concat(". Nachfassen oder neuen Link schicken."),
+			link: a.providerId
+				? `/dienstleister/${encodeURIComponent(a.providerId)}?tab=bewertungen`
+				: `/gap-analyse/${a.id}`,
+			dedupeKey: `supplier_reminder:${a.id}:${since}`,
 		});
 	}
 

@@ -152,6 +152,18 @@ Datei.
   `security_scans`, `security_findings` an (FORCE RLS). Rechte für `klick_app` kommen über die
   Default-Privilegien von `klick_migrator`.
 
+## Lieferantenportal (S6, ADR-017)
+- **Ablauf:** Dienstleister → Bewertungen → „Bewertung starten“ → „Link erzeugen“ (optional per
+  Mail). Der Link `https://raza.work/lieferant#klk_portal_…` trägt den Token im Fragment; die Seite
+  tauscht ihn gegen das Cookie `klick_portal` (httpOnly, Secure, SameSite=Strict, Pfad `/lieferant`).
+- **nginx:** keine eigene Zone nötig — `/api/lieferant/sitzung` begrenzt die App je IP (20/min),
+  Antworten und Uploads je Token. Upload-Grenze wie überall 25 MB.
+- **Prüfen:** `curl -s -o /dev/null -w "%{http_code}" -X POST -H 'content-type: application/json' -d '{}' https://raza.work/api/lieferant/sitzung` → 401.
+- **Leck:** Link weitergeleitet oder verloren → am Dienstleister „Link zurückziehen“ (oder neuen
+  erzeugen, der alte wird ungültig). Abschluss der Bewertung widerruft alle Links.
+- Keine Migration: Spalten für Entscheidung/Kontakt (`assessments`) und Sorgfaltsprüfung
+  (`providers`) existieren seit 0006 bzw. P2.
+
 ## SSO je Organisation
 `@better-auth/sso` (OIDC). Owner registrieren den IdP unter Einstellungen → SSO; die E-Mail-Domain
 muss per DNS-TXT (`_klick-sso.<domain>`) verifiziert werden, bevor Logins möglich sind.

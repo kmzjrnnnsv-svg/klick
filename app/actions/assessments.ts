@@ -622,9 +622,10 @@ const MEASURE_TITLE = {
 	evidence: "Nachweis hinterlegen",
 } as const;
 
-// Produktcheckliste: Maßnahmen als Aufgaben am Produkt (nicht am Control),
-// je Frage; offene Aufgaben mit gleichem Titel werden nicht doppelt angelegt.
-async function productMeasureTasks(
+// Produktcheckliste und Lieferantenbewertung: Maßnahmen als Aufgaben am
+// Produkt bzw. Dienstleister (nicht am Control), je Frage; offene Aufgaben
+// mit gleichem Titel werden nicht doppelt angelegt.
+async function subjectMeasureTasks(
 	tx: OrgTx,
 	c: { orgId: string; userId: string },
 	a: typeof assessments.$inferSelect,
@@ -634,7 +635,10 @@ async function productMeasureTasks(
 		dueAt?: string | null;
 	},
 ): Promise<number> {
-	const productId = a.subjectId as string;
+	const subjectId = a.subjectId as string;
+	const entityType = a.kind === "supplier" ? "provider" : "product";
+	const source =
+		a.kind === "supplier" ? "Lieferantenbewertung" : "CRA-Checkliste";
 	const byCode = new Map(a.questions.map((q) => [q.code, q]));
 	const open = await tx
 		.select({ title: tasks.title })
@@ -642,8 +646,8 @@ async function productMeasureTasks(
 		.where(
 			and(
 				eq(tasks.organizationId, c.orgId),
-				eq(tasks.entityType, "product"),
-				eq(tasks.entityId, productId),
+				eq(tasks.entityType, entityType),
+				eq(tasks.entityId, subjectId),
 				ne(tasks.status, "done"),
 			),
 		);
@@ -658,7 +662,7 @@ async function productMeasureTasks(
 			organizationId: c.orgId,
 			title,
 			description: [
-				`Aus CRA-Checkliste ${a.code} (${q.mapsTo?.requirement ?? q.code}).`,
+				`Aus ${source} ${a.code} (${q.mapsTo?.requirement ?? q.code}).`,
 				q.evidenceHints?.length
 					? `Nachweise: ${q.evidenceHints.join(", ")}`
 					: null,
@@ -669,8 +673,8 @@ async function productMeasureTasks(
 			createdByUserId: c.userId,
 			dueAt: d.dueAt ?? null,
 			priority: q.critical || item.kind === "implement" ? "high" : "normal",
-			entityType: "product",
-			entityId: productId,
+			entityType,
+			entityId: subjectId,
 			sourceKind: "assessment",
 		});
 		openTitles.add(title);
@@ -691,8 +695,8 @@ async function createMeasuresImpl(
 	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const a = await loadAssessment(tx, c.orgId, d.assessmentId);
 		if (!a) return { result: null, audit: [] };
-		if (a.kind === "product" && a.subjectId) {
-			const created = await productMeasureTasks(tx, c, a, d);
+		if ((a.kind === "product" || a.kind === "supplier") && a.subjectId) {
+			const created = await subjectMeasureTasks(tx, c, a, d);
 			return {
 				result: { created },
 				audit: {

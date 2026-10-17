@@ -207,3 +207,43 @@ export function invitationEmail(input: {
 		footnote: "Wenn du diese Einladung nicht erwartest, ignoriere diese Mail.",
 	});
 }
+
+function escHtml(s: string): string {
+	return s
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;");
+}
+
+// Lieferantenportal: Einladung zum Fragebogen. Der Link trägt den Token im
+// Fragment (#klk_portal_…) — ohne Konto, gültig bis zum Ablaufdatum.
+export function supplierPortalEmail(input: {
+	url: string;
+	organization: string;
+	questionnaire: string;
+	contactName?: string | null;
+	expiresAt: Date;
+	dueAt?: string | null;
+}): { subject: string; text: string; html: string } {
+	const fmt = new Intl.DateTimeFormat("de-DE", {
+		dateStyle: "long",
+		timeZone: "Europe/Berlin",
+	});
+	const org = escHtml(input.organization);
+	const greeting = input.contactName
+		? `Hallo ${escHtml(input.contactName)},`
+		: "Hallo,";
+	const due = input.dueAt
+		? ` Bitte reiche ihn bis zum <strong>${fmt.format(new Date(input.dueAt))}</strong> ein.`
+		: "";
+	return transactionalEmail({
+		subject: `Fragebogen von ${input.organization}: ${input.questionnaire}`,
+		eyebrow: "Lieferantenbewertung",
+		title: `${org} bittet dich um Auskunft.`,
+		body: `${greeting}<br><br>im Rahmen der Lieferantenbewertung bitten wir dich, den Fragebogen <strong>${escHtml(input.questionnaire)}</strong> zu beantworten und passende Nachweise hochzuladen.${due} Ein Konto brauchst du dafür nicht. Der Link ist bis zum ${fmt.format(input.expiresAt)} gültig; leite ihn nur an Personen weiter, die für dein Unternehmen antworten dürfen.`,
+		cta: { label: "Fragebogen öffnen", url: input.url },
+		footnote:
+			"Wenn du diese Anfrage nicht erwartest, ignoriere diese Mail und melde dich bei deinem Ansprechpartner.",
+	});
+}

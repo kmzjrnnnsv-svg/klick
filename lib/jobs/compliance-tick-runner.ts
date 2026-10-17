@@ -1,9 +1,21 @@
-import { and, eq, gte, inArray, isNotNull, ne, or, sql } from "drizzle-orm";
+import {
+	and,
+	eq,
+	gte,
+	inArray,
+	isNotNull,
+	isNull,
+	ne,
+	or,
+	sql,
+} from "drizzle-orm";
 import { globalDb } from "@/db";
 import { member, organization, user } from "@/db/auth-schema";
 import {
+	accessTokens,
 	approvalRequests,
 	approvalWorkflows,
+	assessments,
 	controlImplementations,
 	controls,
 	controlTests,
@@ -542,6 +554,35 @@ async function loadDueRows(
 		.where(
 			and(eq(products.organizationId, orgId), isNotNull(products.supportUntil)),
 		);
+	const supplierRows = await tx
+		.select({
+			id: assessments.id,
+			code: assessments.code,
+			title: assessments.title,
+			providerId: assessments.subjectId,
+			status: assessments.status,
+			dueAt: assessments.dueAt,
+			ownerUserId: assessments.ownerUserId,
+			sentAt: sql<Date | null>`min(${accessTokens.createdAt})`,
+			lastOpenedAt: sql<Date | null>`max(${accessTokens.lastUsedAt})`,
+		})
+		.from(assessments)
+		.innerJoin(
+			accessTokens,
+			and(
+				eq(accessTokens.subjectId, assessments.id),
+				eq(accessTokens.kind, "supplier_portal"),
+				isNull(accessTokens.revokedAt),
+			),
+		)
+		.where(
+			and(
+				eq(assessments.organizationId, orgId),
+				eq(assessments.kind, "supplier"),
+				inArray(assessments.status, ["draft", "in_progress"]),
+			),
+		)
+		.groupBy(assessments.id);
 	const accessRows = await tx
 		.select({
 			memberId: memberAccess.memberId,
@@ -585,6 +626,7 @@ async function loadDueRows(
 		insurancePolicies: insuranceRows,
 		products: productRows,
 		securityFindings: findingRows,
+		supplierAssessments: supplierRows,
 		openTasks,
 	};
 }

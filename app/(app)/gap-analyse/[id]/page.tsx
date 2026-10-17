@@ -12,6 +12,10 @@ import {
 	SubmitButton,
 } from "@/components/assessments/review-controls";
 import { PageHeader } from "@/components/page-header";
+import {
+	CompleteSupplierDialog,
+	ReopenSupplierDialog,
+} from "@/components/supplier/supplier-forms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import type { ImplStatus } from "@/db/schema/enums";
@@ -93,15 +97,14 @@ export default async function AssessmentPage({
 		if (!detail) return null;
 		return { ...detail, members: await listMembersForPicker(tx, ctx.orgId) };
 	});
-	if (
-		!data ||
-		(data.assessment.kind !== "self" && data.assessment.kind !== "product")
-	)
-		notFound();
+	if (!data || data.assessment.kind === "engagement") notFound();
 	const a = data.assessment;
-	// Produktcheckliste (CRA): gleicher Ablauf, aber Antworten gelten nur für
-	// das Produkt — keine Übernahme in den Control-Status.
+	// Produktcheckliste (CRA) und Lieferantenbewertung: gleicher Ablauf, aber
+	// Antworten gelten nur für Produkt bzw. Dienstleister — keine Übernahme in
+	// den Control-Status.
 	const productId = a.kind === "product" ? a.subjectId : null;
+	const providerId = a.kind === "supplier" ? a.subjectId : null;
+	const subjectScoped = Boolean(productId || providerId);
 	const closed = a.status === "completed" || a.status === "cancelled";
 	const step: Step = (STEPS as readonly string[]).includes(
 		one(sp.schritt) ?? "",
@@ -173,6 +176,14 @@ export default async function AssessmentPage({
 								className={buttonVariants({ variant: "outline", size: "sm" })}
 							>
 								{t("toProduct")}
+							</Link>
+						)}
+						{providerId && (
+							<Link
+								href={`/dienstleister/${providerId}?tab=bewertungen`}
+								className={buttonVariants({ variant: "outline", size: "sm" })}
+							>
+								{t("toProvider")}
 							</Link>
 						)}
 						{a.frameworks.map((s) => (
@@ -369,7 +380,7 @@ export default async function AssessmentPage({
 							<p className="text-muted-foreground text-xs">
 								{t("counts", score.counts)}
 							</p>
-							{!productId && (
+							{!subjectScoped && (
 								<table className="w-full text-sm">
 									<thead>
 										<tr className="text-left text-muted-foreground text-xs">
@@ -407,7 +418,28 @@ export default async function AssessmentPage({
 									/>
 								</div>
 							)}
-							{canApply && !productId && (
+							{canApply &&
+								providerId &&
+								roleAllows(ctx.orgRole, { provider: ["update"] }) && (
+									<div className="flex flex-wrap gap-2">
+										<CompleteSupplierDialog
+											assessmentId={a.id}
+											providerId={providerId}
+											score={score.score}
+											rating={score.rating}
+											knockouts={score.knockouts}
+											unanswered={
+												score.progress.total - score.progress.answered
+											}
+										/>
+										{canReview &&
+											(a.status === "submitted" ||
+												a.status === "in_review") && (
+												<ReopenSupplierDialog assessmentId={a.id} />
+											)}
+									</div>
+								)}
+							{canApply && !subjectScoped && (
 								<div className="flex flex-wrap gap-2">
 									<ApplyDialog
 										assessmentId={a.id}
@@ -451,8 +483,10 @@ export default async function AssessmentPage({
 														{q.text}
 													</Link>
 													<span className="text-muted-foreground text-xs">
-														{t("selfAnswer")}:{" "}
-														{row?.answer ? t(`answer_${row.answer}`) : "—"} ·{" "}
+														{row?.answeredBy === "supplier"
+															? t("supplierAnswer")
+															: t("selfAnswer")}
+														: {row?.answer ? t(`answer_${row.answer}`) : "—"} ·{" "}
 														{t("documents")}: {st?.evidenceCount ?? 0}
 														{row?.comment ? ` · ${row.comment}` : ""}
 													</span>
@@ -483,7 +517,7 @@ export default async function AssessmentPage({
 			{step === "massnahmen" &&
 				(() => {
 					const plan =
-						cov && !productId
+						cov && !subjectScoped
 							? prioritizePlan(
 									a.frameworks,
 									synergyCatalogFor({
@@ -504,7 +538,7 @@ export default async function AssessmentPage({
 									baselineCoveragePct: null,
 									baselineProgressPct: null,
 								};
-					const measures = productId
+					const measures = subjectScoped
 						? productMeasures({ questions: a.questions, answers: states })
 						: proposeMeasures({
 								questions: a.questions,
@@ -546,7 +580,18 @@ export default async function AssessmentPage({
 						<p className="max-w-xl text-muted-foreground text-sm">
 							{t("counts", score.counts)}
 						</p>
+						{a.rating && (
+							<p className="text-sm">
+								{t("ratingLabel", { rating: a.rating })}
+								{a.decision && ` · ${t(`decision_${a.decision}`)}`}
+							</p>
+						)}
 					</div>
+					{a.decisionNote && (
+						<p className="max-w-2xl text-muted-foreground text-sm">
+							{a.decisionNote}
+						</p>
+					)}
 					<section>
 						<h2 className="mb-2 font-medium">{t("bySection")}</h2>
 						<ul className="grid gap-2 text-sm sm:grid-cols-2">
@@ -575,7 +620,7 @@ export default async function AssessmentPage({
 								{t("export")}
 							</a>
 						)}
-						{a.frameworks[0] && (
+						{a.frameworks[0] && !providerId && (
 							<Link
 								href={`/rahmenwerke/${a.frameworks[0]}?tab=pruefungsreife`}
 								className={buttonVariants({ variant: "outline" })}
@@ -583,7 +628,7 @@ export default async function AssessmentPage({
 								{t("toReadiness")}
 							</Link>
 						)}
-						{!productId &&
+						{!subjectScoped &&
 							roleAllows(ctx.orgRole, { assessment: ["create"] }) && (
 								<RepeatButton assessmentId={a.id} />
 							)}

@@ -615,3 +615,65 @@ describe("collectDueItems — Pflichten, Rechtsänderungen, Abweichungen, TLPT, 
 		]);
 	});
 });
+
+describe("collectDueItems — Lieferantenbewertungen", () => {
+	it("erinnert 14 Tage nach Versand, dann wöchentlich und bei überschrittener Frist", () => {
+		const sup = (
+			id: string,
+			sentDaysAgo: number,
+			opts: { status?: string; dueAt?: string | null } = {},
+		) => ({
+			id,
+			code: `LB-2026-${id}`,
+			title: `Fragebogen ${id}`,
+			providerId: `prov-${id}`,
+			status: opts.status ?? "in_progress",
+			dueAt: opts.dueAt ?? null,
+			sentAt: new Date(NOW.getTime() - sentDaysAgo * DAY - HOUR),
+			lastOpenedAt: null,
+			ownerUserId: "u1",
+		});
+		const res = collectDueItems(NOW, {
+			...empty,
+			supplierAssessments: [
+				sup("13", 13),
+				sup("14", 14),
+				sup("21", 21),
+				sup("20", 20),
+				sup("sub", 14, { status: "submitted" }),
+				sup("due", 3, { dueAt: "2026-10-06" }),
+			],
+		});
+		const hits = res.notifications.filter((n) =>
+			n.dedupeKey.startsWith("supplier_reminder:"),
+		);
+		expect(hits.map((n) => n.dedupeKey).sort()).toEqual([
+			"supplier_reminder:14:14",
+			"supplier_reminder:21:21",
+			"supplier_reminder:due:3",
+		]);
+		expect(hits.find((n) => n.dedupeKey.includes(":14:"))?.link).toBe(
+			"/dienstleister/prov-14?tab=bewertungen",
+		);
+		expect(hits.find((n) => n.dedupeKey.includes(":due:"))?.body).toContain(
+			"überschritten",
+		);
+	});
+
+	it("fällige Dienstleister-Bewertung verlinkt die Detailseite", () => {
+		const res = collectDueItems(NOW, {
+			...empty,
+			providerAssessments: [
+				{
+					id: "p1",
+					name: "Hoster",
+					nextAssessmentAt: "2026-10-09",
+					ownerUserId: "u1",
+				},
+			],
+		});
+		expect(res.notifications[0]?.link).toBe(
+			"/dienstleister/p1?tab=bewertungen",
+		);
+	});
+});

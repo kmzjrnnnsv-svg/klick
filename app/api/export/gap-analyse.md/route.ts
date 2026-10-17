@@ -73,7 +73,7 @@ export async function GET(req: Request) {
 		answers,
 		score,
 		measures:
-			a.kind === "product"
+			a.kind === "product" || a.kind === "supplier"
 				? productMeasures({ questions: a.questions, answers: states })
 				: proposeMeasures({ questions: a.questions, answers: states, plan }),
 	});
