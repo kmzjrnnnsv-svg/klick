@@ -49,3 +49,6 @@ sbom.cdx.json
 # Playwright
 test-results/
 playwright-report/
+
+# taste-skill Arbeitsdateien (.claude/skills/design-taste-frontend)
+.taste-skill/

@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { DlpWarning, useUploadFeedback } from "./upload-feedback";
 
 const TYPES = [
 	"document",
@@ -49,6 +50,10 @@ export function EvidenceForm({
 }) {
 	const t = useTranslations("Evidence");
 	const tc = useTranslations("Common");
+	const td = useTranslations("Dlp");
+	const feedback = useUploadFeedback();
+	const [dlpReasons, setDlpReasons] = useState<string[] | null>(null);
+	const [dlpAck, setDlpAck] = useState(false);
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
@@ -67,6 +72,8 @@ export function EvidenceForm({
 		setUrl("");
 		setValidUntil("");
 		setFile(null);
+		setDlpReasons(null);
+		setDlpAck(false);
 	}
 
 	function submit(mode: "upload" | "link") {
@@ -82,7 +89,28 @@ export function EvidenceForm({
 				fd.set("classification", classification);
 				if (validUntil) fd.set("validUntil", validUntil);
 				if (implementationId) fd.set("implementationId", implementationId);
-				res = await uploadEvidence(fd);
+				if (dlpAck) fd.set("dlpAcknowledged", "1");
+				const up = await uploadEvidence(fd);
+				if (!up.ok) {
+					const warn = feedback.dlpWarning(up);
+					if (warn) {
+						setDlpReasons(warn);
+						return;
+					}
+					toast.error(
+						up.error === "storageNotConfigured"
+							? t("storageNotConfigured")
+							: feedback.errorText(up),
+					);
+					return;
+				}
+				if (up.data.dlpRaised)
+					toast.info(
+						td("raised", {
+							level: t(`class_${up.data.classification}` as "class_secret"),
+						}),
+					);
+				res = { ok: true, data: { id: up.data.id } };
 			} else {
 				res = await createEvidenceLink({
 					implementationId,
@@ -212,15 +240,31 @@ export function EvidenceForm({
 									id="ev-file"
 									type="file"
 									required
-									onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+									onChange={(e) => {
+										setFile(e.target.files?.[0] ?? null);
+										setDlpReasons(null);
+										setDlpAck(false);
+									}}
 									accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.txt,.csv,.json"
 								/>
 								<p className="text-muted-foreground text-xs">{t("fileHint")}</p>
 							</div>
 							{common}
+							{dlpReasons && (
+								<DlpWarning
+									reasons={dlpReasons}
+									acknowledged={dlpAck}
+									onAcknowledge={setDlpAck}
+								/>
+							)}
 							<div className="flex justify-end">
-								<Button type="submit" disabled={pending || !file}>
-									{t("upload")}
+								<Button
+									type="submit"
+									disabled={
+										pending || !file || (dlpReasons !== null && !dlpAck)
+									}
+								>
+									{dlpReasons ? td("uploadAnyway") : t("upload")}
 								</Button>
 							</div>
 						</form>

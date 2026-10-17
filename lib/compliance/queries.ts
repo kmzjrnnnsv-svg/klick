@@ -9,23 +9,27 @@ import {
 	frameworks,
 	orgFrameworks,
 	orgSettings,
+	products,
 	requirementApplicability,
 	requirements,
 	tasks,
 	watchers,
 } from "@/db/schema";
-import type { EntityKind, ImplStatus } from "@/db/schema/enums";
+import type { EntityKind, ImplStatus, OrgRoleLegal } from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
+import { mergeApplicability } from "./applicability";
 import {
 	CATALOG_EDGES,
 	CATALOG_REQ_REFS,
-	profileApplicability,
+	type profileApplicability,
+	profileApplicabilityDetail,
 } from "./catalog-view";
 import {
 	type CoverageInput,
 	type CoverageResult,
 	deriveCoverage,
 } from "./coverage";
+import { productRolesFrom } from "./cra";
 
 // Org-gescopte Lesezugriffe für Controls, Abdeckung, Anforderungen, Aufgaben,
 // Kommentare — immer innerhalb von readOrg/withOrg (RLS). Der Katalog selbst
@@ -43,6 +47,8 @@ export type OrgProfileRow = {
 		| "not_affected"
 		| "affected_pending"
 		| "affected_registered";
+	// CRA-Rollen aus dem Produktregister (undefined = kein Produkt erfasst)
+	productRoles?: OrgRoleLegal[];
 };
 
 export async function getOrgProfile(
@@ -74,7 +80,18 @@ export async function getOrgProfile(
 			),
 		)
 		.orderBy(frameworks.sortOrder);
-	return { profile: s, frameworks: fws.map((f) => f.slug) };
+	const prods = await tx
+		.select({
+			role: products.role,
+			craInScope: products.craInScope,
+			status: products.status,
+		})
+		.from(products)
+		.where(eq(products.organizationId, orgId));
+	return {
+		profile: { ...s, productRoles: productRolesFrom(prods) },
+		frameworks: fws.map((f) => f.slug),
+	};
 }
 
 // Anwendbarkeit aus der DB (abgeleitet + manuell) — true/false je framework:code.
@@ -138,26 +155,33 @@ export type OrgCoverage = {
 };
 
 // Vollständige Abdeckungsrechnung einer Org — einmal je Request (React.cache
-// in den Seiten), nie gespeichert.
+// in den Seiten), nie gespeichert. `asOf` rechnet zu einem Stichtag (Fristen,
+// künftig gültige Anforderungen); manuelle Entscheidungen gelten immer.
 export async function orgCoverage(
 	tx: OrgTx,
 	orgId: string,
+	opts: { asOf?: Date } = {},
 ): Promise<OrgCoverage | null> {
 	const p = await getOrgProfile(tx, orgId);
 	if (!p) return null;
-	const [applicabilityDetail, implStatus] = await Promise.all([
+	const [stored, implStatus] = await Promise.all([
 		loadApplicability(tx, orgId),
 		loadImplStatus(tx, orgId),
 	]);
-	// Ableitung aus dem Profil als Basis, DB-Zeilen (inkl. manuell) darüber.
-	const applicability = profileApplicability({
-		sector: p.profile.sector,
-		licenceStage: p.profile.licenceStage,
-		caspServices: p.profile.caspServices,
-		frameworks: p.frameworks,
-		tlptDesignated: p.profile.tlptDesignated,
-		issuesTokens: p.profile.issuesTokens,
-	});
+	const applicabilityDetail = mergeApplicability(
+		profileApplicabilityDetail({
+			sector: p.profile.sector,
+			licenceStage: p.profile.licenceStage,
+			caspServices: p.profile.caspServices,
+			frameworks: p.frameworks,
+			tlptDesignated: p.profile.tlptDesignated,
+			issuesTokens: p.profile.issuesTokens,
+			productRoles: p.profile.productRoles,
+			asOf: opts.asOf,
+		}),
+		stored,
+	);
+	const applicability = new Map<string, boolean>();
 	for (const [key, d] of applicabilityDetail)
 		applicability.set(key, d.applicable);
 	const input: CoverageInput = {

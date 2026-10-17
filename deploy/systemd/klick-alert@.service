@@ -1,0 +1,11 @@
+# /etc/systemd/system/klick-alert@.service — Fehlermeldung für fehlgeschlagene
+# Backup-Units (OnFailure=klick-alert@%n.service). Schreibt mit Priorität crit
+# ins Journal (CrowdSec/GlitchTip/Monitoring greifen das ab) und mailt an
+# ALERT_MAIL, wenn sendmail vorhanden ist.
+[Unit]
+Description=Klick — Alarm für %i
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/klick/backup.env
+ExecStart=/bin/sh -c 'msg="Klick: Unit %i fehlgeschlagen auf $(hostname) — journalctl -u %i"; logger -p daemon.crit "$msg"; if [ -n "$ALERT_MAIL" ] && command -v sendmail >/dev/null; then printf "Subject: %%s\n\n%%s\n" "$msg" "$(journalctl -u %i -n 40 --no-pager)" | sendmail "$ALERT_MAIL"; fi'

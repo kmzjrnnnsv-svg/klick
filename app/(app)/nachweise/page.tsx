@@ -26,6 +26,7 @@ export default async function EvidencePage({
 	const sp = await searchParams;
 	const t = await getTranslations("Evidence");
 	const te = await getTranslations("Entity");
+	const td = await getTranslations("Dlp");
 	const rows = await readOrg(toOrgCtx(ctx), (tx) =>
 		listEvidenceWithControls(tx, ctx.orgId),
 	);
@@ -39,6 +40,12 @@ export default async function EvidencePage({
 	const type = one(sp.type);
 	const cls = one(sp.classification);
 	const mine = one(sp.mine) === "1";
+	const dlpOnly = one(sp.dlp) === "1";
+	// DLP-Treffer: Funde, die eine Regel ausgelöst haben (nicht nur Info).
+	const dlpHits = (r: Row) =>
+		r.dlp && r.dlp.action !== "allow"
+			? r.dlp.findings.reduce((s, f) => s + f.count, 0)
+			: 0;
 	const filtered = rows
 		.filter(
 			(r) =>
@@ -49,7 +56,8 @@ export default async function EvidencePage({
 		)
 		.filter((r) => !type || r.type === type)
 		.filter((r) => !cls || r.classification === cls)
-		.filter((r) => !mine || r.createdByUserId === ctx.userId);
+		.filter((r) => !mine || r.createdByUserId === ctx.userId)
+		.filter((r) => !dlpOnly || dlpHits(r) > 0);
 
 	const columns: Column<Row>[] = [
 		{
@@ -91,7 +99,21 @@ export default async function EvidencePage({
 			header: t("classification"),
 			className: "w-28",
 			mobile: false,
-			cell: (r) => t(`class_${r.classification}`),
+			cell: (r) => (
+				<span className="flex flex-col gap-0.5">
+					{t(`class_${r.classification}`)}
+					{dlpHits(r) > 0 && (
+						<Badge variant="outline" className="w-fit">
+							{td("badgeHits", { count: dlpHits(r) })}
+						</Badge>
+					)}
+					{r.dlp?.extraction === "unsupported" && (
+						<span className="text-muted-foreground text-xs">
+							{td("notScanned")}
+						</span>
+					)}
+				</span>
+			),
 		},
 		{
 			key: "by",
@@ -143,7 +165,10 @@ export default async function EvidencePage({
 					).map((x) => ({ value: x, label: t(`class_${x}`) })),
 				},
 			]}
-			chips={[{ key: "mine", label: te("chipMine") }]}
+			chips={[
+				{ key: "mine", label: te("chipMine") },
+				{ key: "dlp", label: td("filterHits") },
+			]}
 			columns={columns}
 			rows={filtered}
 			rowHref={(r) =>

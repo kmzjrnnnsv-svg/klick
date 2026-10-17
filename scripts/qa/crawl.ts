@@ -256,7 +256,9 @@ async function login(ctx: BrowserContext): Promise<void> {
 			.getByRole("button", { name: /anlegen|Organisation anlegen/i })
 			.last()
 			.click();
-		await page.waitForURL(/\/ueberblick|\/heute/, { timeout: 120_000 });
+		await page.waitForURL(/\/ueberblick|\/heute|\/gap-analyse/, {
+			timeout: 120_000,
+		});
 		await settle(page, 3000);
 	}
 	await ctx.storageState({ path: STATE });
@@ -423,13 +425,23 @@ const START = [
 	"/heute/freigaben",
 	"/heute/verantwortung",
 	"/ueberblick",
+	"/gap-analyse",
 	"/controls",
 	"/synergien",
 	"/synergien?tab=matrix",
 	"/synergien?tab=vergleich",
 	"/synergien?tab=was-waere-wenn",
 	"/rahmenwerke",
+	"/rahmenwerke/iso27001?tab=pruefungsreife",
+	"/rahmenwerke/iso27001?tab=pruefungsreife&stichtag=2027-12-11",
+	"/controls?orphan=1",
 	"/nachweise",
+	"/nachweise?dlp=1",
+	"/sicherheit",
+	"/sicherheit?tab=befunde",
+	"/sicherheit?tab=scans",
+	"/sicherheit?tab=schnellcheck",
+	"/sicherheit?tab=auftraege",
 	"/risiken",
 	"/risiken?tab=matrix",
 	"/risiken?tab=ausnahmen",
@@ -441,6 +453,9 @@ const START = [
 	"/assets",
 	"/vorfaelle",
 	"/vorfaelle/neu",
+	"/produkte",
+	"/produkte?gaps=1",
+	"/rahmenwerke/cra?tab=pruefungsreife",
 	"/schulungen",
 	"/datenschutz",
 	"/datenschutz?tab=dsfa",
@@ -490,6 +505,7 @@ const START = [
 	"/einstellungen?tab=organisation",
 	"/einstellungen?tab=sso",
 	"/einstellungen?tab=notifications",
+	"/einstellungen?tab=integrationen",
 	"/admin",
 	"/admin/orgs",
 	"/admin/users",

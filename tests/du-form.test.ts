@@ -17,6 +17,9 @@ const files = [
 	...readdirSync("lib/compliance/catalog")
 		.filter((f) => f.endsWith(".ts"))
 		.map((f) => join("lib/compliance/catalog", f)),
+	...readdirSync("lib/marketing")
+		.filter((f) => f.endsWith(".ts"))
+		.map((f) => join("lib/marketing", f)),
 ];
 
 describe("Du-Form", () => {

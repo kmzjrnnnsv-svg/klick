@@ -2,7 +2,10 @@ import { getTranslations } from "next-intl/server";
 import { IncidentCreateForm } from "@/components/incidents/incident-forms";
 import { PageHeader } from "@/components/page-header";
 import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
+import { listProductOptions } from "@/lib/compliance/queries-products";
+import { readOrg } from "@/lib/db/with-org";
 
 export default async function NewIncidentPage() {
 	const ctx = await requireOrgPage({ incident: ["create"] });
@@ -15,12 +18,13 @@ export default async function NewIncidentPage() {
 			? (["nis2"] as const)
 			: []),
 	];
+	const products = fws.includes("cra")
+		? await readOrg(toOrgCtx(ctx), (tx) => listProductOptions(tx, ctx.orgId))
+		: [];
 	return (
 		<>
 			<PageHeader title={t("new")} lead={t("lead")} />
-			<IncidentCreateForm
-				regimes={regimes.length > 0 ? [...regimes] : ["dora"]}
-			/>
+			<IncidentCreateForm regimes={[...regimes]} products={products} />
 		</>
 	);
 }

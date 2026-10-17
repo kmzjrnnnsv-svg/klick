@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
 	deriveApplicability,
+	inWorkQueue,
+	mergeApplicability,
 	type OrgProfile,
 	orgRolesFor,
 } from "@/lib/compliance/applicability";
@@ -142,5 +144,122 @@ describe("deriveApplicability", () => {
 			"financial_entity",
 		);
 		expect(orgRolesFor({ ...base, issuesTokens: "emt" })).toContain("issuer");
+	});
+});
+
+describe("deriveApplicability — CRA-Rollen aus dem Produktregister", () => {
+	const mfr = {
+		framework: "cra",
+		code: "AnhI-2a",
+		appliesToRoles: ["manufacturer" as const],
+		effectiveFrom: "2027-12-11",
+	};
+	const imp = {
+		framework: "cra",
+		code: "Art.19",
+		appliesToRoles: ["importer" as const],
+		effectiveFrom: "2027-12-11",
+	};
+	const asOf = new Date("2028-01-01");
+
+	it("ohne Produkte: alles Arbeitsgegenstand, auch ab Lizenzstufe 2", () => {
+		const p = { ...base, licenceStage: "2_casp_zag" as const, asOf };
+		expect(deriveApplicability(mfr, p).applicable).toBe(true);
+		expect(deriveApplicability(imp, p).applicable).toBe(true);
+	});
+
+	it("mit Produkten: nur die eigenen Rollen, unabhängig von der Stufe", () => {
+		const p = {
+			...base,
+			licenceStage: "2_casp_zag" as const,
+			productRoles: ["manufacturer" as const],
+			asOf,
+		};
+		expect(deriveApplicability(mfr, p).applicable).toBe(true);
+		expect(deriveApplicability(imp, p)).toMatchObject({
+			applicable: false,
+			source: "stage",
+		});
+		// nur SaaS (nicht erfasst) → keine Herstellerpflichten
+		expect(
+			deriveApplicability(mfr, { ...base, productRoles: [], asOf }).applicable,
+		).toBe(false);
+		// künftige Pflicht bleibt im Arbeitsvorrat, solange die Rolle passt
+		expect(inWorkQueue(mfr, { ...base, productRoles: ["manufacturer"] })).toBe(
+			true,
+		);
+		expect(inWorkQueue(mfr, { ...base, productRoles: ["distributor"] })).toBe(
+			false,
+		);
+	});
+});
+
+describe("mergeApplicability", () => {
+	it("nur manuelle Zeilen überschreiben die frische Ableitung", () => {
+		const derived = new Map([
+			["amlr:Art.1", { applicable: true, source: "default" as const }],
+			["iso27001:A.5.1", { applicable: true, source: "default" as const }],
+			[
+				"dora:Art.26",
+				{ applicable: false, source: "rule" as const, note: "TLPT" },
+			],
+		]);
+		const stored = new Map([
+			// veralteter Schnappschuss aus initializeOrg
+			["amlr:Art.1", { applicable: false, source: "rule", note: "Gilt ab …" }],
+			[
+				"iso27001:A.5.1",
+				{ applicable: false, source: "manual", note: "Ausgelagert" },
+			],
+		]);
+		const out = mergeApplicability(derived, stored);
+		expect(out.get("amlr:Art.1")).toEqual({
+			applicable: true,
+			source: "default",
+			note: null,
+		});
+		expect(out.get("iso27001:A.5.1")).toEqual({
+			applicable: false,
+			source: "manual",
+			note: "Ausgelagert",
+		});
+		expect(out.get("dora:Art.26")?.note).toBe("TLPT");
+	});
+});
+
+describe("inWorkQueue", () => {
+	const future = {
+		framework: "cra",
+		code: "AnhI",
+		effectiveFrom: "2027-12-11",
+	};
+
+	it("künftig geltende Anforderung gehört schon heute in den Arbeitsvorrat", () => {
+		expect(deriveApplicability(future, base).applicable).toBe(false);
+		expect(inWorkQueue(future, base)).toBe(true);
+	});
+
+	it("aufgehoben, ausgelaufen oder aus anderem Grund N/A bleibt draußen", () => {
+		expect(
+			inWorkQueue({ ...future, legalStatus: "repealed" as const }, base),
+		).toBe(false);
+		expect(
+			inWorkQueue(
+				{ framework: "gwg", code: "§1", effectiveUntil: "2026-01-01" },
+				base,
+			),
+		).toBe(false);
+		expect(
+			inWorkQueue(
+				{ ...future, framework: "micar", services: ["custody" as const] },
+				base,
+			),
+		).toBe(false);
+	});
+
+	it("heute anwendbar → im Arbeitsvorrat", () => {
+		expect(inWorkQueue({ framework: "iso27001", code: "A.5.1" }, base)).toBe(
+			true,
+		);
 	});
 });

@@ -25,6 +25,6 @@ export async function GET() {
 			DEFAULT_RISK_APPETITE,
 	}));
 	const out = buildRiskRows(rows, appetite);
-	await auditExport(ctx, "risks_csv", out.length);
-	return csvResponse(`risiken-${stamp()}.csv`, RISK_HEADER, out);
+	const mark = await auditExport(ctx, "risks_csv", out.length);
+	return csvResponse(`risiken-${stamp()}.csv`, RISK_HEADER, out, mark);
 }

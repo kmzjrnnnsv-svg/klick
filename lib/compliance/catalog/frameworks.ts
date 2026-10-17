@@ -215,6 +215,21 @@ export const FRAMEWORKS: CatalogFrameworkMeta[] = [
 		appliesFromStage: "4_bank",
 		phase: "P5",
 	},
+	{
+		slug: "cra",
+		name: "Cyber Resilience Act",
+		version: "VO (EU) 2024/2847",
+		authority: "EU / Marktüberwachung (BSI)",
+		jurisdiction: "eu",
+		legalBasis: "Verordnung (EU) 2024/2847",
+		description:
+			"Cybersicherheit von Produkten mit digitalen Elementen (Software, Apps, Geräte): Meldepflichten seit 11.09.2026, alle übrigen Pflichten ab 11.12.2027. Reine SaaS-Dienste fallen meist unter NIS2 statt CRA.",
+		recommendedApproach:
+			"Erst das Produktregister füllen (Rolle, Anwendungsbereich, Einstufung) — daraus leitet Klick ab, welche Pflichten gelten und welches Konformitätsverfahren nötig ist.",
+		sourceUrl: "https://eur-lex.europa.eu/eli/reg/2024/2847/oj",
+		sortOrder: 160,
+		phase: "P6",
+	},
 	...CORRIDOR_FRAMEWORK_METAS,
 ];
 

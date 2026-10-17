@@ -1,11 +1,12 @@
 import { and, count, eq } from "drizzle-orm";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { after } from "next/server";
 import { globalDb } from "@/db";
 import { member, session as sessionTable } from "@/db/auth-schema";
 import { memberAccess } from "@/db/schema";
 import { auditPlatform } from "@/lib/audit";
 import type { OrgCtx } from "@/lib/db/with-org";
+import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
 import { env } from "@/lib/env";
 import { type OrgRole, type Resource, roleAllows } from "./permissions";
 import { type AuthSession, auth } from "./server";
@@ -199,4 +200,42 @@ export async function membershipCount(userId: string): Promise<number> {
 		.from(member)
 		.where(eq(member.userId, userId));
 	return Number(row?.n ?? 0);
+}
+
+// ── Lieferantenportal (ADR-017) ────────────────────────────────────────────
+// Zugang ohne Konto: das httpOnly-Cookie trägt den Portal-Token (gesetzt von
+// /api/lieferant/sitzung). Der Token gilt für genau einen Fragebogen; jede
+// Portal-Action ruft zuerst diesen Guard und arbeitet danach im Org-Kontext
+// des Tokens (Audit mit via: supplier_portal, Akteur ohne User).
+
+export const PORTAL_COOKIE = "klick_portal";
+
+export type PortalContext = {
+	token: ResolvedToken;
+	assessmentId: string;
+	ctx: OrgCtx;
+};
+
+export async function requirePortal(): Promise<PortalContext> {
+	const jar = await cookies();
+	const raw = jar.get(PORTAL_COOKIE)?.value;
+	if (!raw) throw new AuthErr("unauthenticated");
+	const r = await resolveToken(raw, "supplier_portal");
+	if (!r.ok)
+		throw new AuthErr(
+			r.error === "invalid" ? "unauthenticated" : "access_expired",
+		);
+	if (r.token.subjectType !== "assessment" || !r.token.subjectId)
+		throw new AuthErr("forbidden");
+	const h = await headers();
+	return {
+		token: r.token,
+		assessmentId: r.token.subjectId,
+		ctx: {
+			orgId: r.token.organizationId,
+			userId: null,
+			ip: ipFromHeaders(h),
+			userAgent: h.get("user-agent"),
+		},
+	};
 }

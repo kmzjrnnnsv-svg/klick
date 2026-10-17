@@ -39,6 +39,7 @@ describe("catalog shape", () => {
 				"kassen",
 				"dsgvo",
 				"kwg",
+				"cra",
 				"uk-fca",
 				"ae-vara",
 				"bh-cbb",
@@ -76,6 +77,13 @@ describe("catalog shape", () => {
 			(r) => r.framework === "micar" && r.appliesToRoles?.includes("issuer"),
 		);
 		expect(issuer.length).toBeGreaterThanOrEqual(4);
+		// CRA: Meldepflichten seit 11.09.2026, Rest ab 11.12.2027
+		const cra = ALL_REQUIREMENTS.filter((r) => r.framework === "cra");
+		expect(cra.length).toBeGreaterThanOrEqual(30);
+		for (const r of cra)
+			expect(r.effectiveFrom).toBe(
+				r.sectionCode === "C" ? "2026-09-11" : "2027-12-11",
+			);
 		const custody = REQUIREMENT_BY_KEY.get("micar:Art.75");
 		expect(custody?.services).toEqual(["custody"]);
 	});

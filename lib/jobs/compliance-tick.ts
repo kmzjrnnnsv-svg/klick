@@ -17,6 +17,7 @@ export const INCIDENT_SOON_HOURS = 2;
 export const DEDUPE_HOURS = 24;
 export const ACK_GRACE_DAYS = 7;
 export const INSURANCE_WARN_DAYS = 60;
+export const SUPPLIER_REMIND_DAYS = 14;
 
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
@@ -143,6 +144,48 @@ export type DueRows = {
 		validUntil: Date | string | null;
 		ownerUserId: string | null;
 	}[];
+	/** Produkte (CRA): Hinweis vor Ende des Unterstützungszeitraums. */
+	products?: readonly {
+		id: string;
+		code: string;
+		name: string;
+		supportUntil: Date | string | null;
+		status: string;
+		ownerUserId: string | null;
+	}[];
+	/** Sicherheitsbefunde (S5): SLA kritisch/hoch, Ablauf von Akzeptanzen. */
+	securityFindings?: readonly {
+		id: string;
+		title: string;
+		severity: string;
+		status: string;
+		dueAt: Date | string | null;
+		acceptedUntil: Date | string | null;
+		ownerUserId: string | null;
+	}[];
+	/** Lieferantenbewertungen (S6): Link verschickt, noch nicht eingereicht. */
+	supplierAssessments?: readonly {
+		id: string;
+		code: string;
+		title: string;
+		providerId: string | null;
+		status: string;
+		dueAt: Date | string | null;
+		// erster Portal-Link (Versand) bzw. letzter Zugriff des Lieferanten
+		sentAt: Date | string | null;
+		lastOpenedAt: Date | string | null;
+		ownerUserId: string | null;
+	}[];
+	/** Sicherheitsaufträge (S7): Bericht nach Testende, Nachtest-Frist. */
+	engagements?: readonly {
+		id: string;
+		code: string;
+		title: string;
+		status: string;
+		endAt: Date | string | null;
+		retestDueAt: Date | string | null;
+		ownerUserId: string | null;
+	}[];
 	/** Offene Aufgaben (für Dedupe von Eskalationen/Ablauf-Aufgaben). */
 	openTasks: readonly {
 		entityType: string | null;
@@ -176,9 +219,13 @@ export type PendingAction =
 	| { type: "expire_exception"; id: string }
 	| { type: "mark_training_overdue"; id: string }
 	| { type: "mark_run_due"; id: string }
-	| { type: "mark_run_overdue"; id: string };
+	| { type: "mark_run_overdue"; id: string }
+	| { type: "reopen_finding"; id: string };
 
 export const LEGAL_CHANGE_MARKS = [180, 90, 30, 7] as const;
+// CRA Art. 13 Abs. 19 / Anhang II: Nutzer rechtzeitig über das Supportende
+// informieren — Hinweise an den Verantwortlichen 1 Jahr, 6/3/1 Monat vorher.
+export const SUPPORT_END_MARKS = [365, 180, 90, 30] as const;
 export const TLPT_CYCLE_YEARS = 3;
 export const ACCESS_EXPIRY_WARN_DAYS = 7;
 
@@ -286,7 +333,7 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			recipients: recipientsOf(p.ownerUserId, rows.orgOwnerIds),
 			title: `Dienstleister-Bewertung fällig: ${p.name}`,
 			body: dueWording(now, due),
-			link: `/dienstleister?focus=${encodeURIComponent(p.id)}`,
+			link: `/dienstleister/${encodeURIComponent(p.id)}?tab=bewertungen`,
 			dedupeKey: `review:provider:${p.id}:${isoDay(due)}`,
 		});
 	}
@@ -598,6 +645,133 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			body: dueWording(now, until),
 			link: "/organisation?tab=versicherungen",
 			dedupeKey: `insurance:${p.id}:${isoDay(until)}`,
+		});
+	}
+
+	// Produkte: Supportende ankündigen (Marken) und bei Ablauf
+	for (const p of rows.products ?? []) {
+		if (p.status === "withdrawn" || p.status === "end_of_support") continue;
+		const until = toDate(p.supportUntil);
+		if (!until) continue;
+		const days = daysUntil(now, until);
+		const mark = SUPPORT_END_MARKS.find((m) => days === m);
+		if (mark === undefined && days !== -1) continue;
+		notifications.push({
+			kind: "review_due",
+			recipients: recipientsOf(p.ownerUserId, rows.orgOwnerIds),
+			title:
+				days < 0
+					? `Support abgelaufen: ${p.code} ${p.name}`
+					: `Supportende in ${mark} Tagen: ${p.code} ${p.name}`,
+			body:
+				days < 0
+					? "Status auf „Supportende“ setzen oder den Zeitraum verlängern; Nutzer informieren."
+					: `Unterstützungszeitraum endet am ${fmtDay(until)}. Nutzer informieren, Verlängerung oder Nachfolger planen.`,
+			link: `/produkte/${p.id}?tab=einstufung`,
+			dedupeKey: `product_support:${p.id}:${days < 0 ? "ended" : mark}`,
+		});
+	}
+
+	// Sicherheitsbefunde: Akzeptanz abgelaufen → wieder offen; kritisch/hoch
+	// drei Tage vor der SLA-Frist und danach wöchentlich, solange offen
+	for (const f of rows.securityFindings ?? []) {
+		if (f.status === "accepted") {
+			const until = toDate(f.acceptedUntil);
+			if (!until || daysUntil(now, until) > 0) continue;
+			actions.push({ type: "reopen_finding", id: f.id });
+			notifications.push({
+				kind: "security_alert",
+				recipients: recipientsOf(f.ownerUserId, rows.orgOwnerIds),
+				title: `Akzeptanz abgelaufen: ${f.title}`,
+				body: "Der Befund ist wieder offen — beheben oder erneut mit Begründung akzeptieren.",
+				link: `/sicherheit/befunde/${f.id}`,
+				dedupeKey: `sec_accept:${f.id}:${isoDay(until)}`,
+			});
+			continue;
+		}
+		if (f.severity !== "critical" && f.severity !== "high") continue;
+		if (f.status !== "open" && f.status !== "in_progress") continue;
+		const due = toDate(f.dueAt);
+		if (!due) continue;
+		const d = daysUntil(now, due);
+		if (d !== 3 && !(d <= 0 && -d % 7 === 0)) continue;
+		notifications.push({
+			kind: f.severity === "critical" ? "security_alert" : "review_due",
+			recipients: recipientsOf(f.ownerUserId, rows.orgOwnerIds),
+			title: `${d > 0 ? "Frist läuft ab" : "Frist überschritten"}: ${f.title}`,
+			body: dueWording(now, due),
+			link: `/sicherheit/befunde/${f.id}`,
+			dedupeKey: `sec_sla:${f.id}:${d}`,
+		});
+	}
+
+	// Lieferantenbewertungen: 14 Tage nach Versand ohne Einreichung, danach
+	// wöchentlich; zur erbetenen Frist (überschritten) ebenfalls
+	for (const a of rows.supplierAssessments ?? []) {
+		if (a.status !== "in_progress" && a.status !== "draft") continue;
+		const sent = toDate(a.sentAt);
+		if (!sent) continue;
+		const since = -daysUntil(now, sent);
+		const due = toDate(a.dueAt);
+		const overdue = due ? daysUntil(now, due) : null;
+		const remind =
+			(since >= SUPPLIER_REMIND_DAYS &&
+				(since - SUPPLIER_REMIND_DAYS) % 7 === 0) ||
+			overdue === -1;
+		if (!remind) continue;
+		const opened = toDate(a.lastOpenedAt);
+		notifications.push({
+			kind: "review_due",
+			recipients: recipientsOf(a.ownerUserId, rows.orgOwnerIds),
+			title: `Lieferant hat noch nicht geantwortet: ${a.title}`,
+			body: [
+				`${a.code}: Link seit ${since} Tagen verschickt`,
+				opened ? `zuletzt geöffnet am ${fmtDay(opened)}` : "noch nie geöffnet",
+				overdue !== null && overdue < 0
+					? `Frist ${fmtDay(due as Date)} überschritten`
+					: null,
+			]
+				.filter(Boolean)
+				.join(", ")
+				.concat(". Nachfassen oder neuen Link schicken."),
+			link: a.providerId
+				? `/dienstleister/${encodeURIComponent(a.providerId)}?tab=bewertungen`
+				: `/gap-analyse/${a.id}`,
+			dedupeKey: `supplier_reminder:${a.id}:${since}`,
+		});
+	}
+
+	// Sicherheitsaufträge: Testzeitraum vorbei ohne Bericht (dann wöchentlich);
+	// Nachtest 7 Tage vorher und ab Fälligkeit wöchentlich
+	for (const e of rows.engagements ?? []) {
+		const link = `/sicherheit/auftraege/${e.id}`;
+		if (e.status === "authorized" || e.status === "in_progress") {
+			const end = toDate(e.endAt);
+			if (!end) continue;
+			const d = daysUntil(now, end);
+			if (d > 0 || -d % 7 !== 0) continue;
+			notifications.push({
+				kind: "review_due",
+				recipients: recipientsOf(e.ownerUserId, rows.orgOwnerIds),
+				title: `Testzeitraum vorbei: ${e.code} ${e.title}`,
+				body: `Ende war am ${fmtDay(end)}. Befunde erfassen, Management-Summary schreiben und den Bericht liefern — oder den Zeitraum verlängern.`,
+				link: `${link}?tab=bericht`,
+				dedupeKey: `engagement_report:${e.id}:${d}`,
+			});
+			continue;
+		}
+		if (e.status !== "delivered" && e.status !== "retest") continue;
+		const due = toDate(e.retestDueAt);
+		if (!due) continue;
+		const d = daysUntil(now, due);
+		if (d !== 7 && !(d <= 0 && -d % 7 === 0)) continue;
+		notifications.push({
+			kind: "review_due",
+			recipients: recipientsOf(e.ownerUserId, rows.orgOwnerIds),
+			title: `${d > 0 ? "Nachtest fällig" : "Nachtest überfällig"}: ${e.code} ${e.title}`,
+			body: dueWording(now, due),
+			link: `${link}?tab=nachtest`,
+			dedupeKey: `engagement_retest:${e.id}:${d}`,
 		});
 	}
 

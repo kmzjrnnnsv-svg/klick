@@ -5,9 +5,6 @@ import { revalidatePath } from "next/cache";
 import { member } from "@/db/auth-schema";
 import {
 	assets,
-	controlImplementations,
-	controls,
-	controlTests,
 	providers,
 	roleAssignments,
 	taskBundles,
@@ -20,8 +17,7 @@ import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
 import { TRAINING_REQUIREMENTS } from "@/lib/compliance/catalog/training-requirements";
-import { nonconformityFromTest } from "@/lib/compliance/nonconformity";
-import { createNonconformity } from "@/lib/compliance/nonconformity-service";
+import { insertControlTest } from "@/lib/compliance/control-test-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import {
@@ -310,74 +306,20 @@ async function recordControlTestImpl(
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
 	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const [impl] = await tx
-			.select({
-				id: controlImplementations.id,
-				code: controls.code,
-				title: controls.title,
-				ownerUserId: controlImplementations.ownerUserId,
-			})
-			.from(controlImplementations)
-			.innerJoin(controls, eq(controls.id, controlImplementations.controlId))
-			.where(
-				and(
-					eq(controlImplementations.id, d.implementationId),
-					eq(controlImplementations.organizationId, c.orgId),
-				),
-			)
-			.limit(1);
-		if (!impl) throw new Error("notFound");
-		const [row] = await tx
-			.insert(controlTests)
-			.values({
-				organizationId: c.orgId,
-				implementationId: impl.id,
+		const test = await insertControlTest(
+			tx,
+			{ orgId: c.orgId, userId: c.userId },
+			{
+				implementationId: d.implementationId,
 				method: d.method,
-				scope: d.scope ?? null,
-				testedAt: d.testedAt ?? new Date(),
-				testerUserId: c.userId,
-				result: d.result ?? null,
-				notes: d.notes ?? null,
-				nextTestAt: d.nextTestAt ?? null,
-			})
-			.returning({ id: controlTests.id });
-		if (!row) throw new Error("insert failed");
-		// ISO 9.1/10.2: nicht wirksam → Abweichung mit Aufgabe und Wirksamkeitsprüfung
-		const extra = [];
-		if (d.result === "fail") {
-			const draft = nonconformityFromTest({
-				id: row.id,
-				controlCode: impl.code,
-				controlTitle: impl.title,
-				method: d.method,
-				notes: d.notes ?? null,
-				ownerUserId: impl.ownerUserId ?? c.userId,
+				scope: d.scope,
+				testedAt: d.testedAt,
 				result: d.result,
-			});
-			if (draft) {
-				const nc = await createNonconformity(
-					tx,
-					{ orgId: c.orgId, userId: c.userId },
-					draft,
-				);
-				extra.push(nc.audit);
-			}
-		}
-		return {
-			result: row.id,
-			audit: [
-				{
-					action: "control.test",
-					target: `control:${impl.id}`,
-					after: {
-						method: d.method,
-						result: d.result ?? null,
-						nextTestAt: d.nextTestAt ?? null,
-					},
-				},
-				...extra,
-			],
-		};
+				notes: d.notes,
+				nextTestAt: d.nextTestAt,
+			},
+		);
+		return { result: test.id, audit: test.audits };
 	});
 	revalidatePath("/controls", "layout");
 	return { ok: true, data: { id } };

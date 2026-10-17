@@ -9,9 +9,13 @@ import {
 	requirementApplicability,
 	requirements,
 } from "@/db/schema";
-import type { CaspService, LicenceStage } from "@/db/schema/enums";
+import type {
+	CaspService,
+	LicenceStage,
+	OrgRoleLegal,
+} from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
-import { deriveApplicability } from "./applicability";
+import { deriveApplicability, inWorkQueue } from "./applicability";
 import { BASELINE, EDGES, splitRequirementKey } from "./catalog";
 import { toProfile } from "./catalog-view";
 
@@ -20,7 +24,8 @@ import { toProfile } from "./catalog-view";
 //   1. requirement_applicability: abgeleitete N/A-Entscheidungen (services,
 //      stage, rule, lex_specialis). Manuelle Entscheidungen bleiben.
 //   2. control_implementations: Vereinigung aller Controls mit ≥ 1 Kante zu
-//      einer anwendbaren Anforderung der gewählten Rahmenwerke. Bestehende
+//      einer anwendbaren — oder künftig geltenden (inWorkQueue) — Anforderung
+//      der gewählten Rahmenwerke. Bestehende
 //      Zeilen bleiben; mit applyBaseline übernehmen nicht-manuelle Zeilen den
 //      Baseline-Status.
 //   3. Baseline-Dienstleister und -Assets (nur applyBaseline, nur wenn fehlend).
@@ -28,7 +33,8 @@ import { toProfile } from "./catalog-view";
 
 export type InitializeOrgInput = {
 	orgId: string;
-	userId: string;
+	// null = System (Backfill-Skript): neue Zeilen ohne Verantwortliche.
+	userId: string | null;
 	frameworks: readonly string[];
 	sector: "casp" | "bank" | "payment" | "emi" | "other";
 	licenceStage: LicenceStage;
@@ -36,6 +42,7 @@ export type InitializeOrgInput = {
 	applyBaseline: boolean;
 	tlptDesignated?: boolean;
 	issuesTokens?: "none" | "art" | "emt" | "other";
+	productRoles?: readonly OrgRoleLegal[];
 };
 
 export type InitializeOrgSummary = {
@@ -59,6 +66,7 @@ export async function initializeOrg(
 		frameworks: input.frameworks,
 		tlptDesignated: input.tlptDesignated,
 		issuesTokens: input.issuesTokens,
+		productRoles: input.productRoles,
 	});
 
 	// Anforderungen der gewählten Rahmenwerke (DB-IDs).
@@ -82,7 +90,8 @@ export async function initializeOrg(
 					.where(inArray(frameworks.slug, [...input.frameworks]));
 
 	// 1) Anwendbarkeit
-	const applicableKeys = new Set<string>();
+	// Arbeitsvorrat: heute anwendbar oder ab eigenem Stichtag (Vorlauf).
+	const queueKeys = new Set<string>();
 	let notApplicable = 0;
 	const derivedNa: {
 		requirementId: string;
@@ -90,22 +99,19 @@ export async function initializeOrg(
 		note: string | null;
 	}[] = [];
 	for (const r of reqRows) {
-		const d = deriveApplicability(
-			{
-				framework: r.framework,
-				code: r.code,
-				services: r.services,
-				appliesFromStage: r.appliesFromStage,
-				appliesToRoles: r.appliesToRoles,
-				effectiveFrom: r.effectiveFrom,
-				effectiveUntil: r.effectiveUntil,
-				legalStatus: r.legalStatus,
-			},
-			profile,
-		);
-		if (d.applicable) {
-			applicableKeys.add(`${r.framework}:${r.code}`);
-		} else {
+		const req = {
+			framework: r.framework,
+			code: r.code,
+			services: r.services,
+			appliesFromStage: r.appliesFromStage,
+			appliesToRoles: r.appliesToRoles,
+			effectiveFrom: r.effectiveFrom,
+			effectiveUntil: r.effectiveUntil,
+			legalStatus: r.legalStatus,
+		};
+		const d = deriveApplicability(req, profile);
+		if (inWorkQueue(req, profile)) queueKeys.add(`${r.framework}:${r.code}`);
+		if (!d.applicable) {
 			notApplicable += 1;
 			derivedNa.push({
 				requirementId: r.id,
@@ -161,14 +167,14 @@ export async function initializeOrg(
 	for (const m of manual) {
 		const key = keyById.get(m.requirementId);
 		if (!key) continue;
-		if (m.applicable) applicableKeys.add(key);
-		else applicableKeys.delete(key);
+		if (m.applicable) queueKeys.add(key);
+		else queueKeys.delete(key);
 	}
 
-	// 2) Controls mit ≥ 1 Kante zu einer anwendbaren Anforderung
+	// 2) Controls mit ≥ 1 Kante zu einer Anforderung im Arbeitsvorrat
 	const neededCodes = new Set<string>();
 	for (const e of EDGES) {
-		if (applicableKeys.has(e.requirement)) neededCodes.add(e.control);
+		if (queueKeys.has(e.requirement)) neededCodes.add(e.control);
 	}
 	// Baseline-Controls gehören bei der Betreiber-Org immer dazu — auch wenn
 	// (noch) kein gewähltes Rahmenwerk sie fordert.
@@ -333,7 +339,7 @@ export async function addOrgFrameworks(
 	tx: OrgTx,
 	orgId: string,
 	slugs: readonly string[],
-	ownerUserId: string,
+	ownerUserId: string | null,
 ): Promise<string[]> {
 	if (slugs.length === 0) return [];
 	const fws = await tx

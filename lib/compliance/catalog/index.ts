@@ -3,6 +3,7 @@ import { BASELINE } from "./baseline";
 import { CONTROL_REQUIREMENTS } from "./control-requirements";
 import { CONTROL_BY_CODE, CONTROLS } from "./controls";
 import { CORRIDOR_INDICES } from "./corridors";
+import { CRA_REQUIREMENTS, CRA_SECTIONS } from "./cra";
 import { DORA_REQUIREMENTS, DORA_SECTIONS } from "./dora";
 import { DSGVO_REQUIREMENTS, DSGVO_SECTIONS } from "./dsgvo";
 import { FRAMEWORKS } from "./frameworks";
@@ -32,7 +33,8 @@ import { ZAG_REQUIREMENTS, ZAG_SECTIONS } from "./zag";
 import { ZAG_MARISK_REQUIREMENTS, ZAG_MARISK_SECTIONS } from "./zag-marisk";
 
 // Zusammengesetzter Katalog: jedes Rahmenwerk in frameworks.ts hat seinen
-// Anforderungs-Index (P1 ISO/DORA/NIS2, P4 Finanz, P5 DSGVO/KWG/Korridore).
+// Anforderungs-Index (P1 ISO/DORA/NIS2, P4 Finanz, P5 DSGVO/KWG/Korridore,
+// P6 CRA).
 
 const INDICES: Record<
 	string,
@@ -62,6 +64,7 @@ const INDICES: Record<
 	kassen: { sections: KASSEN_SECTIONS, requirements: KASSEN_REQUIREMENTS },
 	dsgvo: { sections: DSGVO_SECTIONS, requirements: DSGVO_REQUIREMENTS },
 	kwg: { sections: KWG_SECTIONS, requirements: KWG_REQUIREMENTS },
+	cra: { sections: CRA_SECTIONS, requirements: CRA_REQUIREMENTS },
 	...CORRIDOR_INDICES,
 };
 

@@ -340,7 +340,7 @@ export default async function ProvidersPage({
 			]}
 			columns={columns}
 			rows={filtered}
-			rowHref={() => "/dienstleister"}
+			rowHref={(r) => `/dienstleister/${r.id}`}
 			empty={
 				<EmptyState
 					title={t("empty")}

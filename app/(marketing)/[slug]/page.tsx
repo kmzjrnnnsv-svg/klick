@@ -45,6 +45,11 @@ const RESERVED = new Set([
 	"api",
 	"preise",
 	"vertrauen",
+	"gap-analyse",
+	"produkte",
+	"sicherheit",
+	"lieferant",
+	"leistungen",
 ]);
 
 export default async function CmsPage({

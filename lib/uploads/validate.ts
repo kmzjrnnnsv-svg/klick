@@ -25,9 +25,18 @@ export const ALLOWED_TYPES: Record<string, readonly string[]> = {
 	"text/plain": [".txt", ".md"],
 	"text/csv": [".csv"],
 	"application/json": [".json"],
+	// Scan-Berichte (S5): SARIF und Nuclei-JSONL
+	"application/sarif+json": [".sarif"],
+	"application/x-ndjson": [".jsonl"],
 };
 
-const TEXT_TYPES = new Set(["text/plain", "text/csv", "application/json"]);
+const TEXT_TYPES = new Set([
+	"text/plain",
+	"text/csv",
+	"application/json",
+	"application/sarif+json",
+	"application/x-ndjson",
+]);
 
 export type UploadValidation =
 	| { ok: true; mime: string; ext: string; safeName: string; size: number }

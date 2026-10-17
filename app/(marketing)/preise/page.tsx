@@ -81,6 +81,32 @@ export default async function PricingPage() {
 				<p className="mt-6 text-muted-foreground text-xs">{t("tiersNote")}</p>
 			</section>
 
+			<section
+				id="beratung"
+				className="mx-auto mt-16 max-w-5xl px-4 sm:px-6"
+				aria-labelledby="consulting-title"
+			>
+				<div className="flex flex-col gap-4 rounded-lg bg-muted p-6 sm:flex-row sm:items-center sm:justify-between">
+					<div>
+						<h2
+							id="consulting-title"
+							className="font-serif-display text-2xl text-primary"
+						>
+							{t("consultingTitle")}
+						</h2>
+						<p className="mt-2 max-w-2xl text-muted-foreground text-sm leading-relaxed">
+							{t("consultingLead")}
+						</p>
+					</div>
+					<Link
+						href="/leistungen"
+						className={cn(buttonVariants({ variant: "outline" }), "shrink-0")}
+					>
+						{t("consultingCta")}
+					</Link>
+				</div>
+			</section>
+
 			<SectionDivider />
 
 			<section className="mx-auto max-w-5xl px-4 pb-24 sm:px-6">
