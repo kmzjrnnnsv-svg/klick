@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { nonconformities, tasks } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
+import { lockOrgSequence } from "@/lib/db/org-sequence";
 import type { OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import {
@@ -18,6 +19,7 @@ export async function createNonconformity(
 	draft: NonconformityDraft,
 	now = new Date(),
 ): Promise<{ id: string; code: string; audit: AuditInput }> {
+	await lockOrgSequence(tx, ctx.orgId);
 	const existing = await tx
 		.select({ code: nonconformities.code })
 		.from(nonconformities)

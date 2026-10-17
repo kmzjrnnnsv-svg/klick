@@ -17,6 +17,7 @@ import { safeAction } from "@/lib/actions/safe";
 import { approvalDetail, requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { assessRisk, nextRiskCode } from "@/lib/compliance/risk";
+import { lockOrgSequence } from "@/lib/db/org-sequence";
 import { mutateOrg } from "@/lib/db/with-org";
 import { RISK_STATUS } from "@/lib/entities/risk";
 import { canTransition } from "@/lib/entities/status-machine";
@@ -61,6 +62,7 @@ async function createRiskImpl(
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
 	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
+		await lockOrgSequence(tx, c.orgId);
 		const existing = await tx
 			.select({ code: risks.code })
 			.from(risks)

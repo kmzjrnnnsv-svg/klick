@@ -19,6 +19,7 @@ import { answerStates, nextAssessmentCode } from "@/lib/assessments/state";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nextProductCode } from "@/lib/compliance/cra";
 import { storeSbom } from "@/lib/compliance/sbom-service";
+import { lockOrgSequence } from "@/lib/db/org-sequence";
 import type { OrgTx } from "@/lib/db/with-org";
 import { mutateOrg } from "@/lib/db/with-org";
 import { PRODUCT_STATUS } from "@/lib/entities/product";
@@ -59,6 +60,7 @@ async function createProductImpl(
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
 	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
+		await lockOrgSequence(tx, c.orgId);
 		const existing = await tx
 			.select({ code: products.code })
 			.from(products)

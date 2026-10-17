@@ -19,6 +19,7 @@ import {
 	TEMPLATE_BY_CODE,
 } from "@/lib/compliance/catalog/document-templates";
 import { listMembersForPicker } from "@/lib/compliance/queries";
+import { lockOrgSequence } from "@/lib/db/org-sequence";
 import { mutateOrg } from "@/lib/db/with-org";
 import {
 	bumpVersion,
@@ -54,6 +55,7 @@ async function allocateNumber(
 	orgId: string,
 	type: Parameters<typeof nextDocNumber>[1],
 ) {
+	await lockOrgSequence(tx, orgId);
 	const [s] = await tx
 		.select({ numbering: orgSettings.documentNumbering })
 		.from(orgSettings)

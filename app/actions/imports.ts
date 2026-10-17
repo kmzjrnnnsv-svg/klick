@@ -19,6 +19,7 @@ import {
 	toBool,
 	toIsoDate,
 } from "@/lib/csv";
+import { lockOrgSequence } from "@/lib/db/org-sequence";
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
@@ -209,6 +210,7 @@ async function importRisksCsvImpl(
 					.where(eq(risks.organizationId, orgId))
 			).map((x) => x.k),
 		insert: async (tx, ctx, rows) => {
+			await lockOrgSequence(tx, ctx.orgId);
 			const codes = (
 				await tx
 					.select({ code: risks.code })

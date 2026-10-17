@@ -3,6 +3,7 @@ import {
 	collectDueItems,
 	type DueRows,
 	dedupeNotifications,
+	legalChangeMark,
 } from "@/lib/jobs/compliance-tick";
 
 const NOW = new Date("2026-10-07T09:00:00Z");
@@ -716,5 +717,42 @@ describe("collectDueItems — Sicherheitsaufträge", () => {
 			"engagement_retest:rt7:7",
 			"engagement_retest:rtOver:-7",
 		]);
+	});
+});
+
+describe("Rechtsänderungen mit Nachholfenster", () => {
+	it("Marke gilt von ihrem Tag bis sechs Tage danach", () => {
+		expect(legalChangeMark(30)).toBe(30);
+		expect(legalChangeMark(27)).toBe(30);
+		expect(legalChangeMark(24)).toBe(30);
+		expect(legalChangeMark(23)).toBeNull();
+		expect(legalChangeMark(7)).toBe(7);
+		expect(legalChangeMark(1)).toBe(7);
+		expect(legalChangeMark(0)).toBeNull();
+		expect(legalChangeMark(185)).toBeNull();
+	});
+	it("Rechtsänderungs-Hinweise werden über das lange Fenster dedupliziert", () => {
+		const pending = [
+			{
+				kind: "system" as const,
+				recipients: ["u1"],
+				title: "x",
+				link: "/kalender",
+				dedupeKey: "legal:2027-07-10:30",
+			},
+			{
+				kind: "system" as const,
+				recipients: ["u1"],
+				title: "y",
+				link: "/kalender",
+				dedupeKey: "review:1",
+			},
+		];
+		const out = dedupeNotifications(
+			pending,
+			new Set(),
+			new Set(["u1:legal:2027-07-10:30"]),
+		);
+		expect(out.map((n) => n.dedupeKey)).toEqual(["review:1"]);
 	});
 });

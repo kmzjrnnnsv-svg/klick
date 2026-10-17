@@ -228,6 +228,17 @@ export type PendingAction =
 	| { type: "reopen_finding"; id: string };
 
 export const LEGAL_CHANGE_MARKS = [180, 90, 30, 7] as const;
+// Nachholfenster je Marke (Tage) und passende Dedupe-Dauer im Runner
+export const LEGAL_CATCH_UP_DAYS = 6;
+export const LEGAL_DEDUPE_DAYS = LEGAL_CATCH_UP_DAYS + 2;
+
+// Welche Vorlauf-Marke gilt heute? 30 bei 30…25 Tagen, 7 bei 7…1 Tag.
+export function legalChangeMark(days: number): number | null {
+	for (const m of [...LEGAL_CHANGE_MARKS].sort((a, b) => a - b)) {
+		if (days <= m && days > m - LEGAL_CATCH_UP_DAYS - 1 && days > 0) return m;
+	}
+	return null;
+}
 // CRA Art. 13 Abs. 19 / Anhang II: Nutzer rechtzeitig über das Supportende
 // informieren — Hinweise an den Verantwortlichen 1 Jahr, 6/3/1 Monat vorher.
 export const SUPPORT_END_MARKS = [365, 180, 90, 30] as const;
@@ -541,16 +552,18 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 	}
 
 	// Rechtsänderungen: Hinweis an Org-Owner bei 180/90/30/7 Tagen Vorlauf
+	// Mit Nachholfenster: lief der Tick am Stichtag nicht, kommt der Hinweis
+	// an einem der nächsten Tage (Dedupe über LEGAL_DEDUPE_DAYS, siehe Runner).
 	for (const lc of rows.legalChanges) {
 		const d = toDate(`${lc.date}T00:00:00Z`);
 		if (!d) continue;
 		const days = daysUntil(now, d);
-		const mark = LEGAL_CHANGE_MARKS.find((m) => days === m);
-		if (mark === undefined) continue;
+		const mark = legalChangeMark(days);
+		if (mark === null) continue;
 		notifications.push({
 			kind: "system",
 			recipients: [...rows.orgOwnerIds],
-			title: `Rechtsänderung in ${mark} Tagen: ${lc.title}`,
+			title: `Rechtsänderung in ${days} ${days === 1 ? "Tag" : "Tagen"}: ${lc.title}`,
 			body: `Gilt ab ${fmtDay(d)}. Rahmenwerke und Richtlinien prüfen.`,
 			link: "/kalender?tab=rechtsaenderungen",
 			dedupeKey: `legal:${lc.date}:${mark}`,
@@ -820,12 +833,15 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 // den letzten DEDUPE_HOURS für denselben Empfänger gesendet wurde.
 export function dedupeNotifications(
 	pending: readonly PendingNotification[],
-	recent: ReadonlySet<string>, // `${userId}:${dedupeKey}`
+	recent: ReadonlySet<string>, // `${userId}:${dedupeKey}` der letzten 24 h
+	// Rechtsänderungen: längeres Fenster (Nachholen ohne Wiederholung)
+	recentLong: ReadonlySet<string> = recent,
 ): PendingNotification[] {
 	const out: PendingNotification[] = [];
 	for (const n of pending) {
+		const seen = n.dedupeKey.startsWith("legal:") ? recentLong : recent;
 		const recipients = n.recipients.filter(
-			(u) => !recent.has(`${u}:${n.dedupeKey}`),
+			(u) => !seen.has(`${u}:${n.dedupeKey}`),
 		);
 		if (recipients.length > 0) out.push({ ...n, recipients });
 	}

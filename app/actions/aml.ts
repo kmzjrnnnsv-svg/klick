@@ -26,6 +26,7 @@ import {
 import { CORRIDOR_STEPS } from "@/lib/compliance/catalog/corridor-template";
 import { JURISDICTIONS } from "@/lib/compliance/catalog/jurisdictions";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
+import { lockOrgSequence } from "@/lib/db/org-sequence";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { orgLand } from "@/lib/org/land";
@@ -407,6 +408,7 @@ async function upsertSuspiciousReportImpl(
 				},
 			};
 		}
+		await lockOrgSequence(tx, c.orgId);
 		const existing = await tx
 			.select({ ref: suspiciousReports.internalRef })
 			.from(suspiciousReports)

@@ -162,11 +162,17 @@ type Pending = {
 	name: string;
 };
 
-async function pendingRows(
+// Zeilen beanspruchen statt nur lesen: FOR UPDATE SKIP LOCKED + emailedAt
+// sofort setzen, Commit, erst danach senden. Überlappende Läufe (5-min-Job
+// und Tick um :00) sehen die Zeilen nicht doppelt; ein Rollback nach dem
+// Versand kann keine Mail mehr wiederholen. Fehlversuche gibt releaseClaims
+// wieder frei.
+async function claimPending(
 	tx: OrgTx,
 	where: ReturnType<typeof and>,
+	now: Date,
 ): Promise<Pending[]> {
-	return tx
+	const rows = await tx
 		.select({
 			id: notifications.id,
 			userId: notifications.userId,
@@ -181,56 +187,112 @@ async function pendingRows(
 		.from(notifications)
 		.innerJoin(user, eq(user.id, notifications.userId))
 		.where(where)
-		.orderBy(notifications.createdAt);
+		.orderBy(notifications.createdAt)
+		.for("update", { of: notifications, skipLocked: true });
+	if (rows.length > 0)
+		await tx
+			.update(notifications)
+			.set({ emailedAt: now })
+			.where(
+				inArray(
+					notifications.id,
+					rows.map((r) => r.id),
+				),
+			);
+	return rows;
 }
 
-async function markEmailed(tx: OrgTx, ids: string[], now: Date) {
+async function releaseClaims(tx: OrgTx, ids: string[], claimedAt: Date) {
 	if (ids.length === 0) return;
 	await tx
 		.update(notifications)
-		.set({ emailedAt: now })
-		.where(inArray(notifications.id, ids));
+		.set({ emailedAt: null })
+		.where(
+			and(
+				inArray(notifications.id, ids),
+				eq(notifications.emailedAt, claimedAt),
+			),
+		);
+}
+
+type Claim = { orgId: string | null; rows: Pending[] };
+
+// Beansprucht je Org (RLS-Kontext) und im Plattform-Pass.
+async function claimAll(
+	where: (orgFilter: ReturnType<typeof eq>) => ReturnType<typeof and>,
+	now: Date,
+): Promise<Claim[]> {
+	const claims: Claim[] = [];
+	const orgs = await globalDb
+		.select({ id: organization.id })
+		.from(organization);
+	await forEachOrg(
+		orgs.map((o) => o.id),
+		async (tx, orgId) => {
+			const rows = await claimPending(
+				tx,
+				where(eq(notifications.organizationId, orgId)),
+				now,
+			);
+			if (rows.length > 0) claims.push({ orgId, rows });
+		},
+	);
+	await globalDb.transaction(async (tx) => {
+		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
+		const rows = await claimPending(
+			tx,
+			where(isNull(notifications.organizationId) as ReturnType<typeof eq>),
+			now,
+		);
+		if (rows.length > 0) claims.push({ orgId: null, rows });
+	});
+	return claims;
+}
+
+async function releaseAll(
+	failed: Map<string | null, string[]>,
+	claimedAt: Date,
+): Promise<void> {
+	for (const [orgId, ids] of failed) {
+		if (ids.length === 0) continue;
+		if (orgId)
+			await forEachOrg([orgId], (tx) => releaseClaims(tx, ids, claimedAt));
+		else
+			await globalDb.transaction(async (tx) => {
+				await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
+				await releaseClaims(tx, ids, claimedAt);
+			});
+	}
 }
 
 // Sofort-Mails je Org (und Plattform-Pass).
 export async function runImmediateMails(now = new Date()): Promise<number> {
 	const base = env().BETTER_AUTH_URL;
 	const since = new Date(now.getTime() - IMMEDIATE_MAX_AGE_DAYS * 86_400_000);
-	let sent = 0;
 	const kinds = [...IMMEDIATE_MAIL_KINDS];
-	const handle = async (tx: OrgTx, orgFilter: ReturnType<typeof eq>) => {
-		const rows = await pendingRows(
-			tx,
+	const claims = await claimAll(
+		(orgFilter) =>
 			and(
 				orgFilter,
 				isNull(notifications.emailedAt),
 				inArray(notifications.kind, kinds),
 				gte(notifications.createdAt, since),
 			),
-		);
-		const done: string[] = [];
-		for (const r of rows) {
-			const mail = buildImmediateMail(r, { baseUrl: base });
-			const out = await sendTransactionalMail({ to: r.email, ...mail });
-			if (out.ok) done.push(r.id);
-		}
-		await markEmailed(tx, done, now);
-		sent += done.length;
-	};
-	const orgs = await globalDb
-		.select({ id: organization.id })
-		.from(organization);
-	await forEachOrg(
-		orgs.map((o) => o.id),
-		(tx, orgId) => handle(tx, eq(notifications.organizationId, orgId)),
+		now,
 	);
-	await globalDb.transaction(async (tx) => {
-		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
-		await handle(
-			tx,
-			isNull(notifications.organizationId) as ReturnType<typeof eq>,
-		);
-	});
+	let sent = 0;
+	const failed = new Map<string | null, string[]>();
+	for (const c of claims) {
+		for (const r of c.rows) {
+			const mail = buildImmediateMail(r, { baseUrl: base });
+			const out = await sendTransactionalMail({ to: r.email, ...mail }).catch(
+				() => ({ ok: false }) as const,
+			);
+			if (out.ok) sent += 1;
+			else failed.set(c.orgId, [...(failed.get(c.orgId) ?? []), r.id]);
+		}
+	}
+	await releaseAll(failed, now);
 	if (sent > 0) logger.info({ sent }, "immediate notification mails sent");
 	return sent;
 }
@@ -238,14 +300,15 @@ export async function runImmediateMails(now = new Date()): Promise<number> {
 // Tages-Digest je Org und Person: alles, was noch nicht gemailt wurde.
 export async function runDigest(now = new Date()): Promise<number> {
 	const base = env().BETTER_AUTH_URL;
+	const claims = await claimAll(
+		(orgFilter) => and(orgFilter, isNull(notifications.emailedAt)),
+		now,
+	);
 	let mails = 0;
-	const handle = async (tx: OrgTx, orgFilter: ReturnType<typeof eq>) => {
-		const rows = await pendingRows(
-			tx,
-			and(orgFilter, isNull(notifications.emailedAt)),
-		);
+	const failed = new Map<string | null, string[]>();
+	for (const c of claims) {
 		const byUser = new Map<string, Pending[]>();
-		for (const r of rows) {
+		for (const r of c.rows) {
 			const list = byUser.get(r.userId) ?? [];
 			list.push(r);
 			byUser.set(r.userId, list);
@@ -259,31 +322,19 @@ export async function runDigest(now = new Date()): Promise<number> {
 				date: now,
 			});
 			if (!digest) continue;
-			const out = await sendTransactionalMail({ to: first.email, ...digest });
-			if (out.ok) {
-				await markEmailed(
-					tx,
-					list.map((r) => r.id),
-					now,
-				);
-				mails += 1;
-			}
+			const out = await sendTransactionalMail({
+				to: first.email,
+				...digest,
+			}).catch(() => ({ ok: false }) as const);
+			if (out.ok) mails += 1;
+			else
+				failed.set(c.orgId, [
+					...(failed.get(c.orgId) ?? []),
+					...list.map((r) => r.id),
+				]);
 		}
-	};
-	const orgs = await globalDb
-		.select({ id: organization.id })
-		.from(organization);
-	await forEachOrg(
-		orgs.map((o) => o.id),
-		(tx, orgId) => handle(tx, eq(notifications.organizationId, orgId)),
-	);
-	await globalDb.transaction(async (tx) => {
-		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
-		await handle(
-			tx,
-			isNull(notifications.organizationId) as ReturnType<typeof eq>,
-		);
-	});
+	}
+	await releaseAll(failed, now);
 	logger.info({ mails }, "digest done");
 	return mails;
 }

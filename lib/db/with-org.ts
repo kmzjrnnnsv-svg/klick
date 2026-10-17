@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { type DbTx, globalDb } from "@/db";
 import { type Actor, type AuditInput, audit } from "@/lib/audit";
+import { logger } from "@/lib/log";
 import { dbForOrg } from "./router";
 
 // Mandanten-Kontext für jede Datenbankarbeit.
@@ -101,12 +102,21 @@ export async function withPlatform<T>(
 	});
 }
 
-// Für Jobs: eine Org nach der anderen, jede in eigenem Kontext.
+// Für Jobs: eine Org nach der anderen, jede in eigenem Kontext. Eine Org,
+// die scheitert (kaputte Daten, Timeout), stoppt nicht alle folgenden —
+// Fehler werden gesammelt, protokolliert und am Ende gemeldet.
 export async function forEachOrg(
 	orgIds: readonly string[],
 	fn: (tx: OrgTx, orgId: string) => Promise<void>,
-): Promise<void> {
+): Promise<{ failed: string[] }> {
+	const failed: string[] = [];
 	for (const orgId of orgIds) {
-		await withOrg({ orgId, userId: null }, (tx) => fn(tx, orgId));
+		try {
+			await withOrg({ orgId, userId: null }, (tx) => fn(tx, orgId));
+		} catch (err) {
+			failed.push(orgId);
+			logger.error({ err, orgId }, "job step failed for org");
+		}
 	}
+	return { failed };
 }

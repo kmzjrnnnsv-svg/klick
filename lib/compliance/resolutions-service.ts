@@ -4,6 +4,7 @@ import type { EntityKind } from "@/db/schema/enums";
 import { requestApproval } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import { nextResolutionNumber } from "@/lib/compliance/catalog/resolutions-required";
+import { lockOrgSequence } from "@/lib/db/org-sequence";
 import type { OrgTx } from "@/lib/db/with-org";
 
 export type ResolutionDraft = {
@@ -39,6 +40,7 @@ export async function insertResolution(
 	| { ok: true; data: ResolutionCreated; audit: AuditInput }
 	| { ok: false; error: string }
 > {
+	await lockOrgSequence(tx, actor.orgId);
 	const existing = await tx
 		.select({ n: resolutions.resolutionNumber })
 		.from(resolutions)

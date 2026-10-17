@@ -61,6 +61,7 @@ import {
 	DEDUPE_HOURS,
 	type DueRows,
 	dedupeNotifications,
+	LEGAL_DEDUPE_DAYS,
 	type TickResult,
 } from "./compliance-tick";
 
@@ -663,10 +664,16 @@ async function applyTick(
 ): Promise<{ notifications: number; tasks: number; actions: number }> {
 	let written = { notifications: 0, tasks: 0, actions: 0 };
 
-	// Dedupe: gleiche dedupeKey je Empfänger innerhalb 24 h nur einmal.
-	const since = new Date(now.getTime() - DEDUPE_HOURS * 3_600_000);
+	// Dedupe: gleiche dedupeKey je Empfänger innerhalb 24 h nur einmal;
+	// Rechtsänderungen über LEGAL_DEDUPE_DAYS (Nachholfenster).
+	const since24 = new Date(now.getTime() - DEDUPE_HOURS * 3_600_000);
+	const since = new Date(now.getTime() - LEGAL_DEDUPE_DAYS * 86_400_000);
 	const recentRows = await tx
-		.select({ userId: notifications.userId, payload: notifications.payload })
+		.select({
+			userId: notifications.userId,
+			payload: notifications.payload,
+			createdAt: notifications.createdAt,
+		})
 		.from(notifications)
 		.where(
 			and(
@@ -675,15 +682,20 @@ async function applyTick(
 				sql`${notifications.payload}->>'dedupeKey' is not null`,
 			),
 		);
+	const keyOf = (r: (typeof recentRows)[number]) => {
+		const key = (r.payload as { dedupeKey?: unknown } | null)?.dedupeKey;
+		return typeof key === "string" ? `${r.userId}:${key}` : null;
+	};
+	const recentLong = new Set(
+		recentRows.map(keyOf).filter((x): x is string => x !== null),
+	);
 	const recent = new Set(
 		recentRows
-			.map((r) => {
-				const key = (r.payload as { dedupeKey?: unknown } | null)?.dedupeKey;
-				return typeof key === "string" ? `${r.userId}:${key}` : null;
-			})
+			.filter((r) => r.createdAt >= since24)
+			.map(keyOf)
 			.filter((x): x is string => x !== null),
 	);
-	const toSend = dedupeNotifications(result.notifications, recent);
+	const toSend = dedupeNotifications(result.notifications, recent, recentLong);
 	const values = toSend.flatMap((n) =>
 		n.recipients.map((userId) => ({
 			organizationId: orgId,
@@ -809,18 +821,32 @@ async function applyTick(
 			);
 			written = { ...written, actions: written.actions + 1 };
 		} else if (a.type === "mark_run_due" || a.type === "mark_run_overdue") {
-			await tx
+			const to = a.type === "mark_run_due" ? "due" : "overdue";
+			const changed = await tx
 				.update(obligationRuns)
-				.set({ status: a.type === "mark_run_due" ? "due" : "overdue" })
+				.set({ status: to })
 				.where(
 					and(
 						eq(obligationRuns.id, a.id),
 						eq(obligationRuns.organizationId, orgId),
 					),
-				);
+				)
+				.returning({ id: obligationRuns.id });
+			if (changed.length === 0) continue;
+			// Jeder Statuswechsel steht im Audit — auch der vom System.
+			await audit(
+				tx,
+				{ userId: null },
+				{
+					organizationId: orgId,
+					action: "obligation_run.status",
+					target: `obligation_run:${a.id}`,
+					after: { status: to, by: "compliance-tick" },
+				},
+			);
 			written = { ...written, actions: written.actions + 1 };
 		} else if (a.type === "mark_training_overdue") {
-			await tx
+			const changed = await tx
 				.update(trainingAssignments)
 				.set({ status: "overdue" })
 				.where(
@@ -829,7 +855,20 @@ async function applyTick(
 						eq(trainingAssignments.organizationId, orgId),
 						eq(trainingAssignments.status, "due"),
 					),
-				);
+				)
+				.returning({ id: trainingAssignments.id });
+			if (changed.length === 0) continue;
+			await audit(
+				tx,
+				{ userId: null },
+				{
+					organizationId: orgId,
+					action: "training_assignment.status",
+					target: `training_assignment:${a.id}`,
+					before: { status: "due" },
+					after: { status: "overdue", by: "compliance-tick" },
+				},
+			);
 			written = { ...written, actions: written.actions + 1 };
 		}
 	}

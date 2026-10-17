@@ -15,6 +15,7 @@ import {
 	whistleblowingDeadlines,
 } from "@/lib/compliance/complaints";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
+import { lockOrgSequence } from "@/lib/db/org-sequence";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
@@ -90,6 +91,7 @@ async function upsertComplaintImpl(
 					},
 				};
 			}
+			await lockOrgSequence(tx, c.orgId);
 			const existing = await tx
 				.select({ code: complaints.code })
 				.from(complaints)
@@ -271,6 +273,7 @@ async function upsertWhistleblowingReportImpl(
 					},
 				};
 			}
+			await lockOrgSequence(tx, c.orgId);
 			const existing = await tx
 				.select({ ref: whistleblowingReports.internalRef })
 				.from(whistleblowingReports)

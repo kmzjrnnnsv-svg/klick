@@ -19,6 +19,7 @@ import {
 	raciValid,
 } from "@/lib/compliance/catalog/processes";
 import { nextRiskCode } from "@/lib/compliance/risk";
+import { lockOrgSequence } from "@/lib/db/org-sequence";
 import { mutateOrg } from "@/lib/db/with-org";
 import { PROCESS_STATUS } from "@/lib/entities/process";
 import { canTransition } from "@/lib/entities/status-machine";
@@ -98,6 +99,7 @@ async function upsertProcessImpl(
 					},
 				};
 			}
+			await lockOrgSequence(tx, c.orgId);
 			const existing = await tx
 				.select({ code: processes.code })
 				.from(processes)

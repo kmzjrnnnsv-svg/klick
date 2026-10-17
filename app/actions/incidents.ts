@@ -24,6 +24,7 @@ import {
 } from "@/lib/compliance/incident";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
+import { lockOrgSequence } from "@/lib/db/org-sequence";
 import { mutateOrg } from "@/lib/db/with-org";
 import { INCIDENT_STATUS } from "@/lib/entities/incident";
 import { canTransition } from "@/lib/entities/status-machine";
@@ -136,6 +137,7 @@ async function createIncidentImpl(
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
 	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
+		await lockOrgSequence(tx, c.orgId);
 		const existing = await tx
 			.select({ code: incidents.code })
 			.from(incidents)
