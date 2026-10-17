@@ -8,6 +8,7 @@ import { globalDb } from "@/db";
 import { passkey } from "@/db/auth-schema";
 import { auditPlatform } from "@/lib/audit";
 import { authEndpointDecision, GUARDED_AUTH_PATHS } from "./endpoint-policy";
+import { REG_CONTEXT, REG_COOKIE } from "./registration-link";
 import { ipFromHeaders, isStepUpFresh } from "./session-rules";
 
 export async function userHasPasskey(userId: string): Promise<boolean> {
@@ -30,7 +31,6 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 		| { mfaVerifiedAt?: unknown; stepUpAt?: unknown }
 		| undefined;
 	const mfaVerifiedAt = asDate(s?.mfaVerifiedAt);
-	const context = ctx.query?.context;
 	const decision = authEndpointDecision(ctx.path, {
 		hasSession: Boolean(current),
 		mfaVerified: Boolean(mfaVerifiedAt),
@@ -39,7 +39,10 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 			: false,
 		hasTotp: Boolean(current?.user.twoFactorEnabled),
 		hasPasskey: current ? await userHasPasskey(current.user.id) : false,
-		hasRegistrationToken: typeof context === "string" && context.length > 0,
+		// Link-Registrierung: Merker im Query, Token im httpOnly-Cookie
+		// (geprüft in registration.resolveUser, lib/auth/passkey-link.ts)
+		hasRegistrationToken:
+			ctx.query?.context === REG_CONTEXT && Boolean(ctx.getCookie(REG_COOKIE)),
 	});
 	if (decision.allow) return;
 	await auditPlatform(

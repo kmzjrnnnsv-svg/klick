@@ -14,8 +14,9 @@ export type EndpointState = {
 	stepUpFresh: boolean;
 	hasTotp: boolean;
 	hasPasskey: boolean;
-	// ?context= bei der Passkey-Registrierung ohne Sitzung (Einladungs- bzw.
-	// Zurücksetz-Link); den Token selbst prüft registration.resolveUser
+	// Passkey-Registrierung ohne Sitzung über einen Einladungs- bzw.
+	// Zurücksetz-Link (Cookie aus /api/registrierung); den Token selbst prüft
+	// registration.resolveUser
 	hasRegistrationToken: boolean;
 };
 

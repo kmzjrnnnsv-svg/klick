@@ -6,6 +6,7 @@ import { InviteForm } from "@/components/team/invite-form";
 import { MemberAccessForm } from "@/components/team/member-access-form";
 import {
 	CancelInvitationButton,
+	InvitationLinkButton,
 	MemberActions,
 } from "@/components/team/member-actions";
 import { Badge } from "@/components/ui/badge";
@@ -195,7 +196,10 @@ export default async function TeamPage() {
 									</TableCell>
 									<TableCell className="text-right">
 										{canManage && (
-											<CancelInvitationButton invitationId={i.id} />
+											<span className="inline-flex items-center gap-1">
+												<InvitationLinkButton invitationId={i.id} />
+												<CancelInvitationButton invitationId={i.id} />
+											</span>
 										)}
 									</TableCell>
 								</TableRow>

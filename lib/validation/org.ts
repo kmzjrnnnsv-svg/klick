@@ -25,6 +25,8 @@ export const inviteMemberSchema = z.object({
 	role: z.enum(ORG_ROLES),
 	// nur für auditor/consultant: Zugang endet automatisch
 	accessUntil: z.coerce.date().optional(),
+	// Link gibt es immer (zum Kopieren); die Mail ist optional
+	sendMail: z.boolean().default(true),
 });
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
 

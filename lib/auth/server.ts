@@ -33,7 +33,14 @@ import {
 	primaryMembershipCount,
 } from "./memberships";
 import { expireStepUp, listUserMemberships } from "./org";
+import { completeLinkRegistration, linkRegistrationUser } from "./passkey-link";
 import { ac, roles } from "./permissions";
+import {
+	inviteDelivery,
+	issueRegistrationLink,
+	REG_COOKIE,
+	resolveRegistration,
+} from "./registration-link";
 
 // Bewusst keine env()-Validierung beim Import: Better Auth liest
 // BETTER_AUTH_SECRET/BETTER_AUTH_URL selbst aus der Umgebung, und die CLI
@@ -174,6 +181,21 @@ export const auth = betterAuth({
 				// offener Einladung (zweite Linie hinter sendMagicLink). Die
 				// Ablehnung landet als ?error=new_user_signup_disabled auf /login.
 				async before(newUser, ctx) {
+					// Passkey-Registrierung über einen Einladungslink: nur für genau
+					// die eingeladene Adresse (zweite Linie hinter passkey-link.ts).
+					if (ctx?.path === "/passkey/verify-registration") {
+						const r = await resolveRegistration(ctx.getCookie(REG_COOKIE));
+						if (
+							r.ok &&
+							r.info.kind === "invite" &&
+							r.info.email.toLowerCase() === newUser.email.toLowerCase()
+						)
+							return;
+						throw new APIError("FORBIDDEN", {
+							code: "new_user_signup_disabled",
+							message: "Kein gültiger Einladungslink.",
+						});
+					}
 					if (allowSignup || ctx?.path !== "/magic-link/verify") return;
 					if (await pendingInvitationId(newUser.email)) return;
 					throw new APIError("FORBIDDEN", {
@@ -277,19 +299,35 @@ export const auth = betterAuth({
 			membershipLimit: 250,
 			invitationExpiresIn: 48 * HOUR,
 			cancelPendingInvitationsOnReInvite: true,
+			// Jede Einladung bekommt einen Passkey-Link (Token im Fragment, ADR-019);
+			// das Team-Formular zeigt ihn zum Kopieren, die Mail ist optional
+			// (inviteDelivery aus app/actions/team.ts).
 			async sendInvitationEmail(data) {
+				const delivery = inviteDelivery.getStore();
+				const { url } = await issueRegistrationLink(
+					{
+						kind: "invite",
+						invitationId: data.id,
+						email: data.email,
+						organizationId: data.organization.id,
+					},
+					new Date(data.invitation.expiresAt),
+				);
+				if (delivery) delivery.url = url;
+				if (delivery && !delivery.mail) return;
 				const tpl = invitationEmail({
-					url: `${baseURL}/einladung/${data.id}`,
+					url,
 					organization: data.organization.name,
 					inviter: data.inviter.user.name || data.inviter.user.email,
 					role: data.role,
 				});
-				await sendTransactionalMail({
+				const sent = await sendTransactionalMail({
 					to: data.email,
 					subject: tpl.subject,
 					text: tpl.text,
 					html: tpl.html,
 				});
+				if (delivery) delivery.mailed = sent.ok;
 			},
 			organizationHooks: {
 				async afterCreateOrganization({ organization: org, user }) {
@@ -432,6 +470,25 @@ export const auth = betterAuth({
 			authenticatorSelection: {
 				residentKey: "required",
 				userVerification: "required",
+			},
+			// Registrierung ohne Sitzung nur über einen Einladungs- bzw.
+			// Zurücksetz-Link (Token im httpOnly-Cookie, lib/auth/passkey-link.ts);
+			// mit Sitzung gilt lib/auth/endpoint-policy.ts (MFA + Step-up).
+			registration: {
+				requireSession: false,
+				resolveUser: ({ ctx, context }) =>
+					linkRegistrationUser(ctx.getCookie(REG_COOKIE), context),
+				afterVerification: ({ ctx, verification, user: u, context }) =>
+					completeLinkRegistration({
+						raw: ctx.getCookie(REG_COOKIE),
+						context,
+						userVerified: Boolean(verification.registrationInfo?.userVerified),
+						user: u,
+						createUser: (data) =>
+							ctx.context.internalAdapter.createUser(data, {
+								method: "passkey-link",
+							}),
+					}),
 			},
 			authentication: {
 				async afterVerification({ verification }) {
