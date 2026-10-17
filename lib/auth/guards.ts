@@ -169,9 +169,11 @@ export async function requireStepUp(perm?: Permission): Promise<OrgContext> {
 export type PlatformAdminContext = {
 	userId: string;
 	email: string;
+	name: string;
 	ip: string | null;
 	userAgent: string | null;
 	sessionId: string;
+	stepUpFresh: boolean;
 };
 
 export async function requirePlatformAdmin(): Promise<PlatformAdminContext> {
@@ -192,10 +194,20 @@ export async function requirePlatformAdmin(): Promise<PlatformAdminContext> {
 	return {
 		userId: ctx.user.id,
 		email: ctx.user.email,
+		name: ctx.user.name,
 		ip: ctx.ip,
 		userAgent: ctx.userAgent,
 		sessionId: ctx.session.id,
+		stepUpFresh: stepUpFresh(ctx.session),
 	};
+}
+
+// Plattform-Eingriffe in fremde Konten (Zugang zurücksetzen): zusätzlich
+// frische MFA-Bestätigung.
+export async function requirePlatformStepUp(): Promise<PlatformAdminContext> {
+	const c = await requirePlatformAdmin();
+	if (!c.stepUpFresh) throw new AuthErr("step_up_required");
+	return c;
 }
 
 export function toOrgCtx(c: OrgContext): OrgCtx {

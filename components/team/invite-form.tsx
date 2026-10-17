@@ -32,11 +32,14 @@ const ROLES = ["editor", "viewer", "consultant", "owner", "auditor"] as const;
 export function InviteLinkPanel({
 	url,
 	mailed,
+	hint,
 	onDone,
 }: {
 	url: string;
 	// null = keine Mail gewollt
 	mailed: boolean | null;
+	// abweichender Hinweis (z. B. Zugang zurücksetzen)
+	hint?: string;
 	onDone: () => void;
 }) {
 	const t = useTranslations("Team");
@@ -46,11 +49,13 @@ export function InviteLinkPanel({
 			<Input
 				readOnly
 				value={url}
-				aria-label={t("inviteLink")}
+				aria-label={hint ? t("resetLinkTitle") : t("inviteLink")}
 				className="font-mono text-xs"
 				onFocus={(e) => e.currentTarget.select()}
 			/>
-			<p className="text-muted-foreground text-xs">{t("inviteLinkHint")}</p>
+			<p className="text-muted-foreground text-xs">
+				{hint ?? t("inviteLinkHint")}
+			</p>
 			{mailed !== null && (
 				<p
 					className={

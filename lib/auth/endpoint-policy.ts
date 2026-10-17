@@ -13,7 +13,8 @@ export type EndpointState = {
 	// Step-up frisch (≤ 10 min, isStepUpFresh)
 	stepUpFresh: boolean;
 	hasTotp: boolean;
-	hasPasskey: boolean;
+	// Anzahl eigener Passkeys (0 = keiner)
+	passkeys: number;
 	// Passkey-Registrierung ohne Sitzung über einen Einladungs- bzw.
 	// Zurücksetz-Link (Cookie aus /api/registrierung); den Token selbst prüft
 	// registration.resolveUser
@@ -28,6 +29,7 @@ export type EndpointDecision =
 				| "unauthenticated"
 				| "mfa_required"
 				| "step_up_required"
+				| "last_factor"
 				| "forbidden";
 	  };
 
@@ -38,6 +40,13 @@ const FACTOR_MANAGEMENT = new Set([
 	"/two-factor/disable",
 	"/passkey/delete-passkey",
 	"/passkey/update-passkey",
+]);
+
+// Faktor entfernen: nie den letzten (sonst wäre das Konto ohne zweiten
+// Faktor bzw. ausgesperrt — dafür gibt es „Zugang zurücksetzen“).
+const FACTOR_REMOVAL = new Set([
+	"/two-factor/disable",
+	"/passkey/delete-passkey",
 ]);
 
 // Faktor hinzufügen: die Ersteinrichtung (noch kein Faktor) ist frei, jeder
@@ -67,7 +76,8 @@ export function authEndpointDecision(
 	s: EndpointState,
 ): EndpointDecision {
 	if (NEVER.has(path)) return deny("forbidden");
-	const hasFactor = s.hasTotp || s.hasPasskey;
+	const factors = (s.hasTotp ? 1 : 0) + s.passkeys;
+	const hasFactor = factors > 0;
 	const verified = (): EndpointDecision =>
 		!s.mfaVerified
 			? deny("mfa_required")
@@ -77,7 +87,10 @@ export function authEndpointDecision(
 
 	if (FACTOR_MANAGEMENT.has(path)) {
 		if (!s.hasSession) return deny("unauthenticated");
-		return verified();
+		const v = verified();
+		if (v.allow && FACTOR_REMOVAL.has(path) && factors <= 1)
+			return deny("last_factor");
+		return v;
 	}
 	if (FACTOR_ENROL.has(path)) {
 		if (!s.hasSession) {

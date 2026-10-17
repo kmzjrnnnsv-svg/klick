@@ -4,7 +4,8 @@ import { APIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { safeAction } from "@/lib/actions/safe";
-import { requirePlatformAdmin } from "@/lib/auth/guards";
+import { requirePlatformAdmin, requirePlatformStepUp } from "@/lib/auth/guards";
+import { findResetTarget, resetUserAccess } from "@/lib/auth/recover";
 import { auth } from "@/lib/auth/server";
 import { runVerifyAuditChain } from "@/lib/jobs/register";
 import type { ActionResult } from "@/lib/validation/common";
@@ -33,6 +34,29 @@ async function banUserImpl(
 	} catch (e) {
 		return mapError(e);
 	}
+}
+
+// Zugang zurücksetzen (ADR-019): alle Faktoren und Sitzungen weg, Einmal-
+// Link für einen neuen Passkey. Nie das eigene Konto (dafür Einstellungen).
+async function resetUserAccessImpl(
+	userId: string,
+): Promise<ActionResult<{ url: string }>> {
+	const a = await requirePlatformStepUp();
+	if (userId === a.userId) return { ok: false, error: "forbidden" };
+	const target = await findResetTarget(userId);
+	if (!target) return { ok: false, error: "not_found" };
+	const { url } = await resetUserAccess({
+		target,
+		actor: {
+			userId: a.userId,
+			label: "Der Klick-Support",
+			ip: a.ip,
+			userAgent: a.userAgent,
+		},
+		via: "platform_admin",
+	});
+	revalidatePath("/admin/users");
+	return { ok: true, data: { url } };
 }
 
 async function unbanUserImpl(userId: string): Promise<ActionResult> {
@@ -75,6 +99,10 @@ async function verifyAuditChainActionImpl(): Promise<
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
 export const banUser = safeAction("banUser", banUserImpl);
+export const resetUserAccessAdmin = safeAction(
+	"resetUserAccessAdmin",
+	resetUserAccessImpl,
+);
 export const unbanUser = safeAction("unbanUser", unbanUserImpl);
 export const setPlatformRole = safeAction(
 	"setPlatformRole",

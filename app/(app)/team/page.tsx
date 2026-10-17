@@ -158,6 +158,8 @@ export default async function TeamPage() {
 												)}
 												<MemberActions
 													memberId={m.memberId}
+													userId={m.userId}
+													name={m.name || m.email}
 													currentRole={role}
 													isSelf={m.userId === ctx.userId}
 												/>

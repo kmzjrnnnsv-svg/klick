@@ -87,3 +87,27 @@ export function pickActiveMembership(
 }
 
 export type { OrgRole };
+
+// Owner dürfen nur Konten zurücksetzen, die ausschließlich zu ihrer Org
+// gehören — sonst übernähmen sie über den Link auch Zugänge zu anderen
+// Organisationen (Berater:innen) oder ein Plattform-Konto. Pure.
+export function ownerMayReset(input: {
+	actorUserId: string;
+	orgId: string;
+	target: { id: string; role: string | null; orgIds: readonly string[] };
+}):
+	| { ok: true }
+	| {
+			ok: false;
+			reason: "self" | "platform_admin" | "other_orgs" | "not_member";
+	  } {
+	if (input.target.id === input.actorUserId)
+		return { ok: false, reason: "self" };
+	if (input.target.role === "admin")
+		return { ok: false, reason: "platform_admin" };
+	if (!input.target.orgIds.includes(input.orgId))
+		return { ok: false, reason: "not_member" };
+	if (input.target.orgIds.some((o) => o !== input.orgId))
+		return { ok: false, reason: "other_orgs" };
+	return { ok: true };
+}

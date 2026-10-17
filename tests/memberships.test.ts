@@ -3,6 +3,7 @@ import {
 	accessDaysFor,
 	isExternal,
 	membershipAllowed,
+	ownerMayReset,
 	pickActiveMembership,
 	primaryMembershipCount,
 	roleLabel,
@@ -62,5 +63,42 @@ describe("Mehr-Org-Zugang (ADR-018)", () => {
 		// alles abgelaufen: trotzdem eine — der Guard meldet access_expired
 		expect(pickActiveMembership([old], now)).toBe("old");
 		expect(pickActiveMembership([], now)).toBeNull();
+	});
+});
+
+describe("ownerMayReset", () => {
+	const org = "o1";
+	it("nur Konten, die ausschließlich zu dieser Org gehören", () => {
+		const base = { actorUserId: "a", orgId: org };
+		expect(
+			ownerMayReset({
+				...base,
+				target: { id: "b", role: "user", orgIds: [org] },
+			}),
+		).toEqual({ ok: true });
+		expect(
+			ownerMayReset({
+				...base,
+				target: { id: "b", role: "user", orgIds: [org, "o2"] },
+			}),
+		).toEqual({ ok: false, reason: "other_orgs" });
+		expect(
+			ownerMayReset({
+				...base,
+				target: { id: "b", role: "admin", orgIds: [org] },
+			}),
+		).toEqual({ ok: false, reason: "platform_admin" });
+		expect(
+			ownerMayReset({
+				...base,
+				target: { id: "a", role: "user", orgIds: [org] },
+			}),
+		).toEqual({ ok: false, reason: "self" });
+		expect(
+			ownerMayReset({
+				...base,
+				target: { id: "b", role: null, orgIds: ["o2"] },
+			}),
+		).toEqual({ ok: false, reason: "not_member" });
 	});
 });

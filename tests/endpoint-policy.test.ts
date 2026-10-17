@@ -10,7 +10,7 @@ const base: EndpointState = {
 	mfaVerified: true,
 	stepUpFresh: true,
 	hasTotp: true,
-	hasPasskey: false,
+	passkeys: 0,
 	hasRegistrationToken: false,
 };
 
@@ -51,16 +51,16 @@ describe("authEndpointDecision", () => {
 			allow: false,
 			code: "step_up_required",
 		});
-		expect(authEndpointDecision("/two-factor/disable", base)).toEqual({
-			allow: true,
-		});
+		expect(
+			authEndpointDecision("/two-factor/disable", { ...base, passkeys: 1 }),
+		).toEqual({ allow: true });
 	});
 
 	it("lässt die Ersteinrichtung ohne Faktor zu", () => {
 		const fresh: EndpointState = {
 			...mailOnly,
 			hasTotp: false,
-			hasPasskey: false,
+			passkeys: 0,
 		};
 		expect(authEndpointDecision("/two-factor/enable", fresh).allow).toBe(true);
 		expect(
@@ -93,6 +93,34 @@ describe("authEndpointDecision", () => {
 			authEndpointDecision("/passkey/verify-registration", anon).allow,
 		).toBe(true);
 		expect(authEndpointDecision("/two-factor/enable", anon).allow).toBe(false);
+	});
+
+	it("der letzte Faktor lässt sich nicht entfernen", () => {
+		const passkeyOnly = { ...base, hasTotp: false, passkeys: 1 };
+		expect(
+			authEndpointDecision("/passkey/delete-passkey", passkeyOnly),
+		).toEqual({ allow: false, code: "last_factor" });
+		expect(authEndpointDecision("/two-factor/disable", base)).toEqual({
+			allow: false,
+			code: "last_factor",
+		});
+		expect(
+			authEndpointDecision("/passkey/delete-passkey", {
+				...passkeyOnly,
+				passkeys: 2,
+			}).allow,
+		).toBe(true);
+		expect(
+			authEndpointDecision("/two-factor/disable", { ...base, passkeys: 1 })
+				.allow,
+		).toBe(true);
+		// ohne Step-up bleibt es beim Step-up-Hinweis
+		expect(
+			authEndpointDecision("/passkey/delete-passkey", {
+				...passkeyOnly,
+				stepUpFresh: false,
+			}),
+		).toEqual({ allow: false, code: "step_up_required" });
 	});
 
 	it("E-Mail-/SMS-Codes sind nie erlaubt, alles andere bleibt unberührt", () => {

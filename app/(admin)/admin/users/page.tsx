@@ -107,6 +107,7 @@ export default async function AdminUsersPage() {
 							<TableCell className="text-right">
 								<UserActions
 									userId={u.id}
+									name={u.name || u.email}
 									banned={Boolean(u.banned)}
 									isAdmin={u.role === "admin"}
 									isSelf={u.id === admin.userId}

@@ -213,6 +213,7 @@ export default async function SettingsPage({
 						mfaEnabled={
 							Boolean(sctx?.user.twoFactorEnabled) || passkeys.length > 0
 						}
+						hasTotp={Boolean(sctx?.user.twoFactorEnabled)}
 						sessions={sessions.map((s) => ({
 							id: s.id,
 							token: s.token,

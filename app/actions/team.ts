@@ -13,8 +13,9 @@ import {
 	requireStepUp,
 	toOrgCtx,
 } from "@/lib/auth/guards";
-import { membershipAllowed } from "@/lib/auth/memberships";
+import { membershipAllowed, ownerMayReset } from "@/lib/auth/memberships";
 import { listPendingInvitations, rolesElsewhere } from "@/lib/auth/org";
+import { findResetTarget, resetUserAccess } from "@/lib/auth/recover";
 import {
 	type InviteDelivery,
 	inviteDelivery,
@@ -104,6 +105,31 @@ async function invitationLinkImpl(
 			organizationId: c.orgId,
 		},
 	);
+	return { ok: true, data: { url } };
+}
+
+// Zugang eines Mitglieds zurücksetzen (Passkey verloren; ADR-019): nur für
+// Konten, die ausschließlich zu dieser Org gehören (ownerMayReset).
+async function resetMemberAccessImpl(
+	userId: string,
+): Promise<ActionResult<{ url: string }>> {
+	const c = await requireStepUp({ member: ["update"] });
+	const target = await findResetTarget(userId);
+	if (!target) return { ok: false, error: "not_found" };
+	const may = ownerMayReset({ actorUserId: c.userId, orgId: c.orgId, target });
+	if (!may.ok) return { ok: false, error: `reset_${may.reason}` };
+	const { url } = await resetUserAccess({
+		target,
+		actor: {
+			userId: c.userId,
+			label: c.name || c.email,
+			ip: c.ip,
+			userAgent: c.userAgent,
+		},
+		organizationId: c.orgId,
+		via: "owner",
+	});
+	revalidatePath("/team");
 	return { ok: true, data: { url } };
 }
 
@@ -236,6 +262,10 @@ async function setMemberAccessImpl(input: unknown): Promise<ActionResult> {
 // statt Error-Boundary (lib/actions/safe.ts).
 export const inviteMember = safeAction("inviteMember", inviteMemberImpl);
 export const invitationLink = safeAction("invitationLink", invitationLinkImpl);
+export const resetMemberAccess = safeAction(
+	"resetMemberAccess",
+	resetMemberAccessImpl,
+);
 export const cancelInvitation = safeAction(
 	"cancelInvitation",
 	cancelInvitationImpl,
