@@ -46,13 +46,26 @@ sudo systemctl restart klick && curl -f https://raza.work/api/ready
 - Mozilla Observatory A+, SSL Labs A+
 
 ## Anmeldung: Mailversand prüfen, Notfall-Link
-Anmelde-Links und Einladungen gehen per Mail raus (Resend → SMTP). In Produktion landet der
+Anmelde-Links und Einladungen gehen per Mail raus (Resend → Brevo → SMTP; scheitert ein Weg, kommt
+der nächste konfigurierte dran). In Produktion landet der
 Link **nie** im Journal — ohne funktionierenden Zustellweg kommt niemand mehr rein. Beim Start
 steht im Journal `Mailversand` (Weg, Host, Absender) oder `Kein Mailversand konfiguriert`.
 
 Konfiguration: `MAIL_FROM` (Absender auf einer beim Provider verifizierten Domain) und
-`RESEND_API_KEY` **oder** `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER` in `/etc/klick/klick.env`,
-`SMTP_PASS` als Credential `smtp_pass`. Hetzner sperrt ausgehend Port 25 und 465 — SMTP über 587.
+`BREVO_API_KEY`, `RESEND_API_KEY` **oder** `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER` in
+`/etc/klick/klick.env`, `SMTP_PASS` als Credential `smtp_pass`. Hetzner sperrt ausgehend Port 25
+und 465 — SMTP über 587. Brevo und Resend laufen über HTTPS (443) ohne SMTP-Login.
+
+**Brevo (empfohlen, EU-Anbieter):**
+1. Konto bei brevo.com, unter *Absender, Domains & dedizierte IPs → Domains* die Domain
+   (`raza.work`) hinzufügen und die angezeigten DNS-Einträge (Brevo-Code, DKIM, DMARC) beim
+   DNS-Anbieter eintragen; MX bleibt unverändert (Empfang läuft weiter über das Postfach).
+2. *SMTP & API → API-Schlüssel* → neuen Schlüssel erzeugen (`xkeysib-…`).
+3. *Sicherheit → Autorisierte IPs*: die IP des Servers freigeben — sonst antwortet die API mit
+   401 „unrecognised IP address“ (`pnpm mail:check` nennt das).
+4. `BREVO_API_KEY=…` in `/etc/klick/klick.env` (0600), `systemctl restart klick`, dann
+   `pnpm mail:check <adresse>` wie unten. Brevo als Dienstleister mit AV-Vertrag im
+   Dienstleister-Register von Mandant 0 führen.
 
 ```bash
 sudo bash -c '

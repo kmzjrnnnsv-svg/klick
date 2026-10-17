@@ -1,13 +1,16 @@
-// Mail-Helper mit drei Zustellwegen. Nie wirft eine Exception nach außen —
-// Failures werden geloggt, der Aufrufer läuft weiter.
+// Mail-Helper mit mehreren Zustellwegen. Nie wirft eine Exception nach
+// außen — Failures werden geloggt, der Aufrufer läuft weiter.
 //
-// Reihenfolge:
-//   1. RESEND_API_KEY → HTTPS-POST an api.resend.com (umgeht SMTP-Blocks
-//      bei Hetzner/Cloudflare/etc., kein offener Port nötig).
-//   2. SMTP_HOST       → klassischer Nodemailer-Pfad.
-//   3. sonst           → Konsole-Log (Dev-Mock). In Produktion nur Metadaten:
+// Reihenfolge (scheitert ein Weg, kommt der nächste konfigurierte dran):
+//   1. RESEND_API_KEY → HTTPS-POST an api.resend.com
+//   2. BREVO_API_KEY  → HTTPS-POST an api.brevo.com (EU-Anbieter)
+//      Beide umgehen SMTP-Sperren und -Logins (nur ausgehend 443 nötig).
+//   3. SMTP_HOST       → klassischer Nodemailer-Pfad.
+//   4. sonst           → Konsole-Log (Dev-Mock). In Produktion nur Metadaten:
 //      Body (Magic-Links, Einladungen) landet nie im Log, der Versand zählt
 //      als fehlgeschlagen (Digest versucht es erneut).
+
+import { textToHtml } from "./templates";
 
 export type SendMailInput = {
 	to: string;
@@ -20,6 +23,13 @@ const FROM_FALLBACK = "Klick <noreply@klick.local>";
 
 function fromAddress(): string {
 	return process.env.MAIL_FROM ?? FROM_FALLBACK;
+}
+
+// „Klick <no-reply@raza.work>“ → { name, email } — Brevo will beides getrennt.
+export function parseFrom(from: string): { name?: string; email: string } {
+	const m = /^\s*"?([^"<]*?)"?\s*<([^<>\s]+)>\s*$/.exec(from);
+	if (!m?.[2]) return { email: from.trim() };
+	return m[1] ? { name: m[1].trim(), email: m[2] } : { email: m[2] };
 }
 
 const isProd = (): boolean => process.env.NODE_ENV === "production";
@@ -60,6 +70,31 @@ async function sendViaResend(input: SendMailInput): Promise<void> {
 	}
 }
 
+async function sendViaBrevo(input: SendMailInput): Promise<void> {
+	const apiKey = process.env.BREVO_API_KEY;
+	if (!apiKey) throw new Error("no_brevo");
+	const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+		method: "POST",
+		headers: {
+			"api-key": apiKey,
+			accept: "application/json",
+			"content-type": "application/json",
+		},
+		body: JSON.stringify({
+			sender: parseFrom(fromAddress()),
+			to: [{ email: input.to }],
+			subject: input.subject,
+			textContent: input.text,
+			htmlContent: input.html ?? textToHtml(input.text),
+		}),
+		signal: AbortSignal.timeout(8_000),
+	});
+	if (!res.ok) {
+		const body = await res.text().catch(() => "");
+		throw new Error(`brevo_${res.status}:${body.slice(0, 200)}`);
+	}
+}
+
 async function sendViaSmtp(input: SendMailInput): Promise<void> {
 	if (!process.env.SMTP_HOST) throw new Error("no_smtp");
 	const nodemailer = await import("nodemailer");
@@ -86,63 +121,71 @@ async function sendViaSmtp(input: SendMailInput): Promise<void> {
 }
 
 // Reports which path was actually used. Helpful for diagnosing why mail
-// "didn't arrive": you see in journalctl whether Resend was tried, whether
-// SMTP fell back, whether MAIL_FROM was missing.
+// "didn't arrive": you see in journalctl which path was tried, whether it
+// fell back, whether MAIL_FROM was missing.
+type MailPath = "resend" | "brevo" | "smtp";
+
 export type SendOutcome =
-	| { path: "resend"; ok: true }
-	| { path: "smtp"; ok: true }
+	| { path: MailPath; ok: true }
 	| { path: "console"; ok: true; reason: string }
-	| { path: "resend" | "smtp" | "console"; ok: false; error: string };
+	| { path: MailPath | "console"; ok: false; error: string };
+
+const PROVIDERS: {
+	path: MailPath;
+	enabled: () => boolean;
+	send: (input: SendMailInput) => Promise<void>;
+}[] = [
+	{
+		path: "resend",
+		enabled: () => !!process.env.RESEND_API_KEY,
+		send: sendViaResend,
+	},
+	{
+		path: "brevo",
+		enabled: () => !!process.env.BREVO_API_KEY,
+		send: sendViaBrevo,
+	},
+	{ path: "smtp", enabled: () => !!process.env.SMTP_HOST, send: sendViaSmtp },
+];
 
 export async function sendTransactionalMail(
 	input: SendMailInput,
 ): Promise<SendOutcome> {
 	const from = fromAddress();
-	const fromIsFallback = from === FROM_FALLBACK;
-
-	if (process.env.RESEND_API_KEY) {
-		if (fromIsFallback) {
-			console.warn(
-				"[mail] MAIL_FROM not set — Resend will likely reject sender. Set MAIL_FROM to a verified address.",
-			);
-		}
+	const active = PROVIDERS.filter((p) => p.enabled());
+	if (active.length > 0 && from === FROM_FALLBACK) {
+		console.warn(
+			"[mail] MAIL_FROM not set — the provider will likely reject the sender. Set MAIL_FROM to a verified address.",
+		);
+	}
+	let last: { path: MailPath; error: string } | null = null;
+	for (const [i, provider] of active.entries()) {
 		try {
-			await sendViaResend(input);
+			await provider.send(input);
+			const host =
+				provider.path === "smtp"
+					? ` host=${process.env.SMTP_HOST}:${process.env.SMTP_PORT ?? 587}`
+					: "";
 			console.log(
-				`[mail] ✓ resend ok · to=${input.to} subject="${input.subject}" from=${from}`,
+				`[mail] ✓ ${provider.path} ok · to=${input.to} subject="${input.subject}" from=${from}${host}`,
 			);
-			return { path: "resend", ok: true };
+			return { path: provider.path, ok: true };
 		} catch (e) {
 			const error = e instanceof Error ? e.message : String(e);
-			console.error(`[mail] ✗ resend failed (${error}), falling back…`);
-			if (!process.env.SMTP_HOST) {
-				logToConsole(input, `resend failed: ${error}`);
-				return consoleOutcome(`resend_failed:${error}`);
-			}
+			const next = active[i + 1];
+			console.error(
+				`[mail] ✗ ${provider.path} failed (${error}), ${next ? `falling back to ${next.path}…` : "logging to console…"}`,
+			);
+			last = { path: provider.path, error };
 		}
 	}
-	if (process.env.SMTP_HOST) {
-		if (fromIsFallback) {
-			console.warn(
-				"[mail] MAIL_FROM not set — SMTP server will likely reject sender. Set MAIL_FROM to match SMTP_USER's domain.",
-			);
-		}
-		try {
-			await sendViaSmtp(input);
-			console.log(
-				`[mail] ✓ smtp ok · to=${input.to} subject="${input.subject}" from=${from} host=${process.env.SMTP_HOST}:${process.env.SMTP_PORT ?? 587}`,
-			);
-			return { path: "smtp", ok: true };
-		} catch (e) {
-			const error = e instanceof Error ? e.message : String(e);
-			console.error(`[mail] ✗ smtp failed (${error}), logging to console…`);
-			logToConsole(input, `smtp failed: ${error}`);
-			return consoleOutcome(`smtp_failed:${error}`);
-		}
+	if (last) {
+		logToConsole(input, `${last.path} failed: ${last.error}`);
+		return consoleOutcome(`${last.path}_failed:${last.error}`);
 	}
 	logToConsole(
 		input,
-		"no provider configured (set RESEND_API_KEY or SMTP_HOST)",
+		"no provider configured (set RESEND_API_KEY, BREVO_API_KEY or SMTP_HOST)",
 	);
 	return consoleOutcome("no_provider");
 }
@@ -160,22 +203,22 @@ export async function diagnoseMailConfig(): Promise<{
 	mailFrom: string;
 	mailFromIsFallback: boolean;
 	hasResendKey: boolean;
+	hasBrevoKey: boolean;
 	hasSmtpHost: boolean;
 	smtpHost?: string;
 	smtpPort?: number;
-	likelyPath: "resend" | "smtp" | "console";
+	likelyPath: MailPath | "console";
 }> {
 	const from = fromAddress();
-	const hasResend = !!process.env.RESEND_API_KEY;
-	const hasSmtp = !!process.env.SMTP_HOST;
 	return {
 		mailFrom: from,
 		mailFromIsFallback: from === FROM_FALLBACK,
-		hasResendKey: hasResend,
-		hasSmtpHost: hasSmtp,
+		hasResendKey: !!process.env.RESEND_API_KEY,
+		hasBrevoKey: !!process.env.BREVO_API_KEY,
+		hasSmtpHost: !!process.env.SMTP_HOST,
 		smtpHost: process.env.SMTP_HOST,
 		smtpPort: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined,
-		likelyPath: hasResend ? "resend" : hasSmtp ? "smtp" : "console",
+		likelyPath: PROVIDERS.find((p) => p.enabled())?.path ?? "console",
 	};
 }
 
@@ -184,10 +227,10 @@ export function mailErrorHint(
 	error: string,
 	cfg: { smtpPort?: number; mailFromIsFallback: boolean },
 ): string | null {
-	// sendTransactionalMail meldet Fehler als „resend_failed:…“/„smtp_failed:…“.
-	const e = error.toLowerCase().replace(/^(resend|smtp)_failed:/, "");
+	// sendTransactionalMail meldet Fehler als „<weg>_failed:…“.
+	const e = error.toLowerCase().replace(/^(resend|brevo|smtp)_failed:/, "");
 	if (e === "no_provider")
-		return "Kein Zustellweg — RESEND_API_KEY oder SMTP_HOST setzen (/etc/klick/klick.env).";
+		return "Kein Zustellweg — BREVO_API_KEY, RESEND_API_KEY oder SMTP_HOST setzen (/etc/klick/klick.env).";
 	if (cfg.mailFromIsFallback)
 		return "MAIL_FROM fehlt — Absender auf einer beim Provider verifizierten Domain setzen (z. B. „Klick <noreply@raza.work>“).";
 	if (e.startsWith("resend_401") || e.startsWith("resend_403")) {
@@ -197,6 +240,22 @@ export function mailErrorHint(
 	}
 	if (e.startsWith("resend_422"))
 		return "Resend: Anfrage abgelehnt — meist ein ungültiges MAIL_FROM (Format „Name <adresse@domain>“).";
+	if (e.startsWith("brevo_401") || e.startsWith("brevo_403")) {
+		return e.includes("ip address") || e.includes("unrecognised ip")
+			? "Brevo: Die IP des Servers ist nicht freigegeben — in Brevo unter Sicherheit → Autorisierte IPs freigeben (oder die IP-Sperre abschalten)."
+			: "Brevo: API-Schlüssel ungültig oder Konto ohne Transaktionsversand — BREVO_API_KEY prüfen (Brevo → SMTP & API → API-Schlüssel).";
+	}
+	if (e.startsWith("brevo_400")) {
+		return e.includes("sender")
+			? "Brevo: Absender nicht freigegeben — Domain in Brevo unter Absender & Domains authentifizieren oder MAIL_FROM auf einen bestätigten Absender setzen."
+			: "Brevo: Anfrage abgelehnt — MAIL_FROM im Format „Name <adresse@domain>“ prüfen.";
+	}
+	// Netzfehler der HTTPS-Wege (fetch wirft ohne Statuscode)
+	if (
+		/^(resend|brevo)_failed:/i.test(error) &&
+		(e.includes("timeout") || e.includes("fetch failed"))
+	)
+		return "Mail-API nicht erreichbar — ausgehendes HTTPS (Port 443) des Servers prüfen.";
 	if (
 		e.includes("timeout") ||
 		e.includes("etimedout") ||

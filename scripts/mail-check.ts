@@ -8,7 +8,7 @@ import { transactionalEmail } from "../lib/mail/templates";
 
 // Mail-Diagnose: `pnpm mail:check [empfänger]`
 //
-// Zeigt den konfigurierten Zustellweg (Resend → SMTP → keiner). Mit Empfänger
+// Zeigt den konfigurierten Zustellweg (Resend → Brevo → SMTP → keiner). Mit Empfänger
 // geht eine Testmail raus; Ergebnis und Fehlertext des Providers stehen im
 // Terminal, dazu ein Hinweis zur üblichen Ursache. Läuft auf dem Server mit
 // derselben Umgebung wie der Dienst (deploy/README.md). Ohne funktionierenden
@@ -25,6 +25,7 @@ async function main() {
 	console.log(
 		`  Resend (RESEND_API_KEY): ${cfg.hasResendKey ? "gesetzt" : "—"}`,
 	);
+	console.log(`  Brevo (BREVO_API_KEY): ${cfg.hasBrevoKey ? "gesetzt" : "—"}`);
 	console.log(
 		`  SMTP: ${cfg.hasSmtpHost ? `${cfg.smtpHost}:${cfg.smtpPort ?? 587} · Benutzer ${process.env.SMTP_USER ? "gesetzt" : "—"} · Passwort ${process.env.SMTP_PASS ? "gesetzt" : "—"}` : "—"}`,
 	);

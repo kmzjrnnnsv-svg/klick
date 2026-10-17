@@ -40,7 +40,7 @@ UX, Härtung, Katalog-Abgleich). Authoring-Quelle der Anforderungen:
 | i18n | next-intl, **DE-only**, `timeZone: Europe/Berlin`, typisierte Keys (`global.d.ts`) |
 | Tests | Vitest (Unit + RLS-Integration mit `DATABASE_URL_TEST`); Playwright (`tests/e2e`, `pnpm test:e2e`, CI-Job `e2e` gegen gebauten Server) |
 | Lint/Format | Biome (Tabs, double quotes) |
-| Mail | Resend → SMTP (Brevo) → Konsole; Magic-Link nie im Prod-Log |
+| Mail | Resend (HTTPS) → Brevo (HTTPS-API, EU) → SMTP → Konsole, Rückfall auf den nächsten Weg; Magic-Link nie im Prod-Log |
 | Hosting | Hetzner, nginx + systemd (gehärtet), Postgres nativ; Dev: `docker-compose.yml` |
 
 ## Konventionen
