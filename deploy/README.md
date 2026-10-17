@@ -46,9 +46,10 @@ sudo systemctl restart klick && curl -f https://raza.work/api/ready
 - Mozilla Observatory A+, SSL Labs A+
 
 ## Anmeldung: Mailversand prüfen, Notfall-Link
-Anmelde-Links und Einladungen gehen per Mail raus (Resend → Brevo → SMTP; scheitert ein Weg, kommt
-der nächste konfigurierte dran). In Produktion landet der
-Link **nie** im Journal — ohne funktionierenden Zustellweg kommt niemand mehr rein. Beim Start
+Anmelde-Links (Notweg) und Einladungen gehen per Mail raus (Resend → Brevo → SMTP; scheitert ein
+Weg, kommt der nächste konfigurierte dran). Seit „Passkey zuerst“ (ADR-019) hängt der normale
+Login nicht mehr an der Mail — Einladungen gibt es zusätzlich als Link zum Kopieren. In Produktion
+landet ein Anmelde-Link **nie** im Journal. Beim Start
 steht im Journal `Mailversand` (Weg, Host, Absender) oder `Kein Mailversand konfiguriert`.
 
 Konfiguration: `MAIL_FROM` (Absender auf einer beim Provider verifizierten Domain) und
@@ -82,6 +83,26 @@ runuser -u klick -- pnpm auth:link <deine-adresse>    # Notfall: Einmal-Link (15
 `pnpm auth:link` gibt den Link nur im Terminal aus (keine Mail, kein Journal), nur für bestehende
 Konten und offene Einladungen, und protokolliert `auth.login_link_cli` im Plattform-Audit. Danach
 gelten 2FA und alle Sitzungsregeln wie gewohnt. Link nicht weitergeben.
+
+## Passkeys: Einrichtung, Einladungslinks, Zugang zurücksetzen (ADR-019)
+Anmeldung läuft über Passkeys, der Mail-Link ist nur der Notweg (`/login/notweg`).
+`PASSKEY_RP_ID` muss die Domain sein, unter der Klick läuft (`raza.work`; ohne Angabe der Host
+aus `BETTER_AUTH_URL`) — **nicht nachträglich ändern**: Passkeys sind an die RP-ID gebunden, eine
+neue RP-ID macht alle vorhandenen Passkeys unbrauchbar (dann hilft nur „Zugang zurücksetzen“).
+`PASSKEY_RP_NAME` ist der Name im Passkey-Dialog des Geräts.
+
+- **Einladen ohne Mail:** Team → Einladen zeigt den Link `/einladung#klk_invite_…` zum Kopieren
+  (48 h, einmalig; „Neuer Link“ ersetzt ihn). Die Person legt dort direkt einen Passkey an.
+- **Passkey verloren:** Owner unter Team → ⋯ → „Zugang zurücksetzen“ (nur für Konten, die
+  ausschließlich zu dieser Organisation gehören), Plattform-Admins unter Admin → Nutzer:innen. Alle
+  Passkeys, TOTP, Backup-Codes und Sitzungen werden entfernt; der Link `/zugang#klk_recover_…`
+  (24 h, einmalig) wird nur angezeigt — persönlich weitergeben. Die Person bekommt eine Hinweis-Mail
+  ohne Link. Audit `auth.access_reset`.
+- **Notfall, wenn niemand in der Organisation helfen kann** (z. B. die einzige Owner:in): mit dem
+  Block oben `runuser -u klick -- pnpm auth:recover <adresse>` — gleiche Wirkung, Link nur im
+  Terminal, Audit `auth.recover_link_cli`.
+- Prüfen nach einem Release: `pnpm exec tsx scripts/qa/passkey-smoke.ts` gegen eine Testinstanz
+  (virtueller Authenticator; setzt ein QA-Konto aus `scripts/qa/crawl.ts --login` voraus).
 
 ## KEK-Rotation (ISO A.8.24, MiCAR Art. 70)
 Die Org-DEKs bleiben; nur ihre Umhüllung wird neu geschrieben. Nachweise und
