@@ -6,6 +6,7 @@ import {
 	ROLE_FUNCTIONS,
 } from "@/db/schema/enums";
 import { DOCUMENT_TYPES, RISK_CATEGORIES } from "@/db/schema/grc";
+import { PROVIDER_CATEGORIES, PROVIDER_STATUSES } from "@/db/schema/registers";
 import { INCIDENT_STATUSES } from "@/lib/entities/incident";
 import { RISK_STATUSES } from "@/lib/entities/risk";
 import { httpUrl, longText, shortText, uuid } from "./common";
@@ -313,6 +314,8 @@ export const providerSchema = z.object({
 		])
 		.optional(),
 	serviceDescription: longText.optional(),
+	category: z.enum(PROVIDER_CATEGORIES).nullable().optional(),
+	status: z.enum(PROVIDER_STATUSES).optional(),
 	criticality: z.enum(CRITICALITY).default("standard"),
 	isIct: z.boolean().default(true),
 	isOutsourcing: z.boolean().default(false),

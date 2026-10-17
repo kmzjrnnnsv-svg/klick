@@ -22,6 +22,7 @@ import { writeTombstone } from "@/lib/storage/tombstones";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { dlpPolicySchema, entityProfileSchema } from "@/lib/validation/org";
 import { updateRiskMethodSchema } from "@/lib/validation/risk-method";
+import { supplierMethodSchema } from "@/lib/validation/supplier-method";
 
 async function stepUp(): Promise<
 	| { ok: true; ctx: Awaited<ReturnType<typeof requireStepUp>> }
@@ -89,6 +90,38 @@ async function updateRiskMethodImpl(input: unknown): Promise<ActionResult> {
 	});
 	revalidatePath("/einstellungen");
 	revalidatePath("/risiken", "layout");
+	return { ok: true, data: undefined };
+}
+
+async function updateSupplierMethodImpl(input: unknown): Promise<ActionResult> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = supplierMethodSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const method = parsed.data;
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [before] = await tx
+			.select({ supplierMethod: orgSettings.supplierMethod })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		await tx
+			.update(orgSettings)
+			.set({ supplierMethod: method })
+			.where(eq(orgSettings.organizationId, c.orgId));
+		return {
+			result: null,
+			audit: {
+				action: "settings.supplier_method",
+				target: `organization:${c.orgId}`,
+				before: before ?? null,
+				after: { supplierMethod: method },
+			},
+		};
+	});
+	revalidatePath("/einstellungen");
+	revalidatePath("/dienstleister", "layout");
 	return { ok: true, data: undefined };
 }
 
@@ -307,6 +340,10 @@ async function deleteOrganizationActionImpl(
 export const updateRiskMethod = safeAction(
 	"updateRiskMethod",
 	updateRiskMethodImpl,
+);
+export const updateSupplierMethod = safeAction(
+	"updateSupplierMethod",
+	updateSupplierMethodImpl,
 );
 export const updateNumbering = safeAction(
 	"updateNumbering",

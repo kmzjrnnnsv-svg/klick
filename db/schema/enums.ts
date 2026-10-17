@@ -388,6 +388,7 @@ export const ENTITY_KINDS = [
 	"product",
 	"security_finding",
 	"security_engagement",
+	"provider_rating",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 

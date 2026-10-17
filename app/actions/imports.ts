@@ -168,6 +168,23 @@ async function importAssetsCsvImpl(
 	return { ok: true, data: { imported, errors } };
 }
 
+// Kategorie als Schlüssel oder deutsches Label (wie in der Vorlage)
+const CATEGORY_LABELS: Record<string, string> = {
+	"it-dienstleister": "it_service",
+	"cloud-dienstleister": "cloud",
+	"facility management": "facility",
+	wartungsfirma: "maintenance",
+	beratungsunternehmen: "consulting",
+	unterauftragnehmer: "subcontractor",
+	unterauftragsnehmer: "subcontractor",
+	sonstige: "other",
+};
+function categoryOf(v: string | undefined): string | undefined {
+	if (!v) return undefined;
+	const k = v.trim().toLowerCase();
+	return CATEGORY_LABELS[k] ?? k;
+}
+
 async function importProvidersCsvImpl(
 	input: unknown,
 ): Promise<ActionResult<Result>> {
@@ -184,6 +201,7 @@ async function importProvidersCsvImpl(
 			partnerType: num(r.partnerType ?? r.art) ?? "ict",
 			serviceType: num(r.serviceType ?? r.leistung),
 			serviceDescription: num(r.serviceDescription ?? r.beschreibung),
+			category: categoryOf(num(r.category ?? r.kategorie)),
 			criticality: num(r.criticality ?? r.kritikalitaet) ?? "standard",
 			isIct: toBool(r.isIct, true),
 			isOutsourcing: toBool(r.isOutsourcing ?? r.auslagerung),
@@ -213,6 +231,7 @@ async function importProvidersCsvImpl(
 					partnerType: d.partnerType,
 					serviceType: d.serviceType ?? null,
 					serviceDescription: d.serviceDescription ?? null,
+					category: d.category ?? null,
 					criticality: d.criticality,
 					isIct: d.isIct,
 					isOutsourcing: d.isOutsourcing,

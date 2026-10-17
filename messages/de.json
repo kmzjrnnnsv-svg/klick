@@ -534,7 +534,8 @@
 		"subscriptionColService": "Leistung",
 		"subscriptionColPrice": "Preis netto",
 		"subscriptionNote": "Richtwerte für typische Umfänge; den Festpreis bekommst du nach dem Erstgespräch.",
-		"subscriptionViewServices": "Leistungen ansehen"
+		"subscriptionViewServices": "Leistungen ansehen",
+		"tabSupplierMethod": "Lieferantenbewertung"
 	},
 	"Team": {
 		"title": "Team",
@@ -1436,7 +1437,21 @@
 		"exportRegister": "Informationsregister (ITS 2024/2956)",
 		"exportRegisterHint": "ZIP mit den Meldebögen B_01–B_07 als CSV, Legende und offenen Punkten — Meldefenster jährlich im März. Step-up nötig.",
 		"exportSupplierPack": "DORA-Lieferantenpaket",
-		"exportSupplierPackHint": "Was Banken von uns als IKT-Dienstleister verlangen: Registerdatenblatt, Art.-30-Anhang, Ausstiegs- und Notfallplan, Testate, Versicherungen, Subunternehmer, Vorfallmeldung. Step-up nötig."
+		"exportSupplierPackHint": "Was Banken von uns als IKT-Dienstleister verlangen: Registerdatenblatt, Art.-30-Anhang, Ausstiegs- und Notfallplan, Testate, Versicherungen, Subunternehmer, Vorfallmeldung. Step-up nötig.",
+		"category": "Kategorie",
+		"category_it_service": "IT-Dienstleister",
+		"category_cloud": "Cloud-Dienstleister",
+		"category_facility": "Facility Management",
+		"category_maintenance": "Wartungsfirma",
+		"category_consulting": "Beratungsunternehmen",
+		"category_subcontractor": "Unterauftragnehmer",
+		"category_other": "Sonstige",
+		"status_active": "Aktiv",
+		"status_onboarding": "Im Aufbau",
+		"status_paused": "Pausiert",
+		"status_exiting": "Im Ausstieg",
+		"status_terminated": "Beendet",
+		"contractStart": "Vertragsbeginn"
 	},
 	"Assets": {
 		"processes": "Prozesse",
@@ -3879,5 +3894,34 @@
 		"errSave": "Speichern fehlgeschlagen.",
 		"groupFilter": "Nach Bereich filtern",
 		"groupAll": "Alle"
+	},
+	"SupplierMethod": {
+		"lead": "So bewertet deine Organisation Lieferanten intern: Bereiche und Kriterien mit Gewichten und Ankertexten (1 = sehr kritisch, 5 = unkritisch), Schwellen für Niveau, Ampel, Empfehlung und Wiedervorlage. Vorlage: 14 Kriterien, Allgemein 40 %, Sicherheit 60 %; Zusatzkriterien greifen je Rahmenwerk oder Partnerart.",
+		"areasTitle": "Bereiche und Gewichte",
+		"area_general": "Allgemein",
+		"area_security": "Sicherheit",
+		"criteriaTitle": "Kriterien",
+		"criteriaLead": "Bereichswert = gewichteter Mittelwert der bewerteten Kriterien. Zusatzkriterien zählen nur, wenn sie für den Lieferanten gelten.",
+		"baseSum": "Summe Grundkriterien {sum}",
+		"addon": "Zusatz: {scope}",
+		"weightShort": "Gewicht {w}",
+		"criterion": "Kriterium",
+		"weight": "Gewicht",
+		"enabled": "aktiv",
+		"thresholdsTitle": "Schwellen, Ampel und Wiedervorlage",
+		"thresholdsLead": "Das Gesamtergebnis (1–5) fällt in die höchste Schwelle, die es erreicht. Die Wiedervorlage setzt die nächste Bewertung.",
+		"from": "ab",
+		"level": "Niveau",
+		"traffic": "Ampel",
+		"traffic_red": "rot",
+		"traffic_amber": "gelb",
+		"traffic_green": "grün",
+		"recommendation": "Empfehlung",
+		"months": "Monate",
+		"criticalMax": "Kritische Dienstleister spätestens nach (Monaten)",
+		"loadTemplate": "Vorlage laden",
+		"save": "Bewertung speichern",
+		"saved": "Lieferantenbewertung gespeichert.",
+		"stepUp": "Bitte bestätige dich zuerst mit deinem zweiten Faktor."
 	}
 }

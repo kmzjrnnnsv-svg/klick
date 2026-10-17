@@ -64,6 +64,37 @@ export type RiskMethod = {
 	dimensions: RiskDimension[];
 	classes: RiskClass[];
 };
+// Lieferantenbewertung je Org (lib/compliance/supplier-rating.ts): Bereichs-
+// und Kriteriengewichte, Anker, Schwellen mit Wiedervorlage. Leer = Vorlage.
+export type SupplierArea = "general" | "security";
+export type SupplierCriterion = {
+	code: string;
+	area: SupplierArea;
+	title: string;
+	weight: number;
+	anchors: Five<string>;
+	enabled: boolean;
+	// Zusatzkriterium: nur wenn eines der Rahmenwerke aktiv ist …
+	frameworks?: string[];
+	// … bzw. nur für diese Partnerarten / nur bei Auslagerung
+	partnerTypes?: string[];
+	outsourcingOnly?: boolean;
+};
+export type SupplierThreshold = {
+	min: number;
+	level: string;
+	traffic: "red" | "amber" | "green";
+	status: string;
+	recommendation: string;
+	months: number;
+};
+export type SupplierMethod = {
+	areaWeights: Record<SupplierArea, number>;
+	criteria: SupplierCriterion[];
+	thresholds: SupplierThreshold[];
+	criticalMaxMonths: number;
+};
+
 export type ReviewDefaults = {
 	control: number;
 	document: number;
@@ -152,6 +183,7 @@ export const orgSettings = pgTable(
 			tolerable: 9,
 		}),
 		riskMethod: json<RiskMethod>(),
+		supplierMethod: json<SupplierMethod>(),
 		reviewDefaults: json<ReviewDefaults>().notNull().default({
 			control: 12,
 			document: 12,

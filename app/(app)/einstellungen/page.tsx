@@ -13,6 +13,7 @@ import { SecurityPanel } from "@/components/settings/security-panel";
 import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
 import { SubscriptionPanel } from "@/components/settings/subscription-panel";
+import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { approvalWorkflows } from "@/db/schema";
@@ -24,6 +25,7 @@ import { roleAllows } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
+import { defaultSupplierMethod } from "@/lib/compliance/catalog/supplier-criteria";
 import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
 import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
@@ -35,6 +37,7 @@ import {
 	defaultRiskMethod,
 	resolveRiskMethod,
 } from "@/lib/compliance/risk-method";
+import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
 import { loadPriceTable } from "@/lib/db/pricing";
 import { readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
@@ -170,6 +173,7 @@ export default async function SettingsPage({
 						"frameworks",
 						"workflows",
 						"risk",
+						"lieferanten",
 						"numbering",
 						"organisation",
 						"sso",
@@ -186,6 +190,9 @@ export default async function SettingsPage({
 					<TabsTrigger value="frameworks">{t("tabFrameworks")}</TabsTrigger>
 					<TabsTrigger value="workflows">{t("tabWorkflows")}</TabsTrigger>
 					<TabsTrigger value="risk">{t("tabRiskScales")}</TabsTrigger>
+					<TabsTrigger value="lieferanten">
+						{t("tabSupplierMethod")}
+					</TabsTrigger>
 					<TabsTrigger value="numbering">{t("tabNumbering")}</TabsTrigger>
 					<TabsTrigger value="organisation">{t("tabOrganisation")}</TabsTrigger>
 					<TabsTrigger value="sso">{t("tabSso")}</TabsTrigger>
@@ -259,6 +266,14 @@ export default async function SettingsPage({
 						template={defaultRiskMethod(cov?.frameworks ?? [])}
 						risks={riskPoints}
 						allowSelfApproval={settings?.allowSelfApproval ?? true}
+						canEdit={canEditSettings}
+					/>
+				</TabsContent>
+				<TabsContent value="lieferanten">
+					<SupplierMethodPanel
+						method={resolveSupplierMethod(settings)}
+						stored={Boolean(settings?.supplierMethod)}
+						template={defaultSupplierMethod()}
 						canEdit={canEditSettings}
 					/>
 				</TabsContent>

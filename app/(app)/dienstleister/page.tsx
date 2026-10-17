@@ -257,6 +257,8 @@ export default async function ProvidersPage({
 							partnerType: r.partnerType,
 							serviceType: r.serviceType,
 							serviceDescription: r.serviceDescription,
+							category: r.category,
+							status: r.status,
 							criticality: r.criticality,
 							isIct: r.isIct,
 							isOutsourcing: r.isOutsourcing,
@@ -264,7 +266,9 @@ export default async function ProvidersPage({
 							country: r.country,
 							processesPersonalData: r.processesPersonalData,
 							contractRef: r.contractRef,
+							contractStart: r.contractStart,
 							contractEnd: r.contractEnd,
+							dataLocations: r.dataLocations,
 							noticePeriodDays: r.noticePeriodDays,
 							ownerUserId: r.ownerUserId,
 							notes: r.notes,
@@ -306,7 +310,7 @@ export default async function ProvidersPage({
 					{canEdit && (
 						<CsvImport
 							title={t("importTitle")}
-							columns="name;partnerType;serviceType;criticality;country;isOutsourcing;isMaterial;processesPersonalData;serviceDescription;contractEnd"
+							columns="name;partnerType;category;serviceType;criticality;country;isOutsourcing;isMaterial;processesPersonalData;serviceDescription;contractEnd"
 							action={importProvidersCsv}
 						/>
 					)}

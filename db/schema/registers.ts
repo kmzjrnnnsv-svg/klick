@@ -23,6 +23,23 @@ import { CLASSIFICATIONS, CRITICALITY, ROLE_FUNCTIONS } from "./enums";
 
 // Register ohne Abhängigkeit auf grc.ts: Dienstleister, Assets, Prozesse.
 
+export const PROVIDER_CATEGORIES = [
+	"it_service",
+	"cloud",
+	"facility",
+	"maintenance",
+	"consulting",
+	"subcontractor",
+	"other",
+] as const;
+export const PROVIDER_STATUSES = [
+	"active",
+	"onboarding",
+	"paused",
+	"exiting",
+	"terminated",
+] as const;
+
 export type ContractClauses = Record<string, boolean | string>;
 export type DueDiligence = Record<string, boolean | string | null>;
 
@@ -51,6 +68,9 @@ export const providers = pgTable(
 		isOutsourcing: boolean().notNull().default(false),
 		isMaterial: boolean().notNull().default(false),
 		serviceDescription: text(),
+		// Lieferantenkategorie (Lieferantenbewertung); Banking/Krypto-Arten
+		// stehen in partnerType
+		category: text({ enum: PROVIDER_CATEGORIES }),
 		serviceType: text({
 			enum: [
 				"cloud_iaas",
@@ -90,9 +110,7 @@ export const providers = pgTable(
 		nextAssessmentAt: date(),
 		ownerUserId: userRef(),
 		assigneeUserId: userRef(),
-		status: text({ enum: ["active", "onboarding", "exiting", "terminated"] })
-			.notNull()
-			.default("active"),
+		status: text({ enum: PROVIDER_STATUSES }).notNull().default("active"),
 		notes: text(),
 		...timestamps(),
 	},
