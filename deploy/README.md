@@ -172,6 +172,24 @@ Datei.
 - Keine Migration: Spalten für Entscheidung/Kontakt (`assessments`) und Sorgfaltsprüfung
   (`providers`) existieren seit 0006 bzw. P2.
 
+## Preise, Anfragen, Berater-Zugang (T1–T3)
+- **Migrationen:** `0010_pricing` (`price_groups`, `price_overrides`, `org_settings.price_group_id`)
+  und `0011_inquiries` (`inquiries`) — Plattform-Tabellen ohne `organization_id`, daher ohne RLS;
+  Rechte für `klick_app` kommen über die Default-Privileges aus `roles.sql`.
+- **Seed:** `pnpm db:seed` legt die Preisgruppen „Standard“ (Marktüblich, Standard), „Kleine
+  Unternehmen“ (Einstieg) und „Große Unternehmen“ (Premium) an — nur, wenn noch keine Gruppe
+  existiert. Danach Preise unter Admin → Preise prüfen, bevor `/preise` und `/leistungen`
+  öffentlich sind.
+- **Anfragen:** `POST /api/anfrage` (5 je IP in 10 min in der App; nginx-Zone wie für `/api`).
+  Sofort-Mails an Plattform-Admins laufen über den Job `notification-mail` — Mail-Provider muss
+  konfiguriert sein. `CONTACT_EMAIL` wird nicht mehr gelesen und kann aus der Env.
+  Prüfen: `curl -s -o /dev/null -w "%{http_code}" -X POST -H 'content-type: application/json' -H 'origin: https://evil.example' -d '{}' https://raza.work/api/anfrage` → 403.
+- **Datenschutzerklärung** (Admin → Rechtstexte) um die Verarbeitung von Anfragen ergänzen.
+- **Berater-Zugang (ADR-018):** keine Migration (Rolle `consultant` ist ein Text-Wert in
+  `member.role`). Bestehende befristete Prüfer-Zugänge greifen ab diesem Release wirklich
+  (vorher las der Guard `member_access` ohne Org-Kontext) — vor dem Release unter Team prüfen,
+  ob Ablaufdaten stimmen.
+
 ## SSO je Organisation
 `@better-auth/sso` (OIDC). Owner registrieren den IdP unter Einstellungen → SSO; die E-Mail-Domain
 muss per DNS-TXT (`_klick-sso.<domain>`) verifiziert werden, bevor Logins möglich sind.
