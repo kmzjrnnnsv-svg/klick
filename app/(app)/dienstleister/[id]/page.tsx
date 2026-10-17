@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { ProviderForm } from "@/components/registers/provider-form";
+import { StartRatingButton } from "@/components/supplier/start-rating-button";
 import {
 	ContractClausesForm,
 	PortalLinkDialog,
@@ -34,8 +35,10 @@ import {
 	listTasks,
 	userNames,
 } from "@/lib/compliance/queries";
+import { listProviderRatings } from "@/lib/compliance/queries-ratings";
 import { getProviderDetail } from "@/lib/compliance/queries-suppliers";
 import { supplierQuestions } from "@/lib/compliance/supplier-assessment";
+import { TRAFFIC_TONE } from "@/lib/compliance/supplier-rating";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { mergeActivity, toHistoryItems } from "@/lib/history";
@@ -73,6 +76,7 @@ export default async function ProviderPage({
 	const sp = await searchParams;
 	const ctx = await requireOrgPage({ provider: ["read"] });
 	const t = await getTranslations("Suppliers");
+	const tr = await getTranslations("Rating");
 	const tp = await getTranslations("Providers");
 	const ta = await getTranslations("Assessment");
 	const te = await getTranslations("Entity");
@@ -81,18 +85,19 @@ export default async function ProviderPage({
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getProviderDetail(tx, ctx.orgId, id);
 		if (!d) return null;
-		const [comments, history, members, tasks] = await Promise.all([
+		const [comments, history, members, tasks, ratings] = await Promise.all([
 			listComments(tx, ctx.orgId, "provider", id),
 			historyFor(tx, `provider:${id}`),
 			listMembersForPicker(tx, ctx.orgId),
 			listTasks(tx, ctx.orgId, { entityType: "provider", entityId: id }),
+			listProviderRatings(tx, ctx.orgId, id),
 		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
 		]);
 		for (const [k, v] of d.names) names.set(k, v);
-		return { ...d, comments, history, members, tasks, names };
+		return { ...d, comments, history, members, tasks, ratings, names };
 	});
 	if (!data) notFound();
 	const p = data.provider;
@@ -192,7 +197,19 @@ export default async function ProviderPage({
 						{p.lastAssessmentAt ? (
 							<>
 								{fmtDate.format(new Date(p.lastAssessmentAt))}
-								{latest?.rating && (
+								{dd?.method === "rating" && dd.traffic ? (
+									<Badge
+										className="ml-2"
+										variant={
+											TRAFFIC_TONE[
+												String(dd.traffic) as keyof typeof TRAFFIC_TONE
+											]
+										}
+									>
+										{String(dd.level)}
+									</Badge>
+								) : null}
+								{dd?.method !== "rating" && latest?.rating && (
 									<Badge
 										className="ml-2"
 										variant={
@@ -360,7 +377,27 @@ export default async function ProviderPage({
 						)}
 					</Section>
 					<Section title={t("dueDiligence")}>
-						{dd ? (
+						{dd?.method === "rating" ? (
+							<p className="text-sm">
+								{tr("ddSummary", {
+									date: dd.assessedAt
+										? fmtDate.format(new Date(String(dd.assessedAt)))
+										: "—",
+									code: String(dd.ratingCode ?? "—"),
+									level: String(dd.level ?? "—"),
+									score: String(dd.score ?? "—").replace(".", ","),
+									recommendation: String(dd.recommendation ?? "—"),
+									decision: tr(
+										`decision_${String(dd.decision ?? "open")}` as "decision_open",
+									),
+								})}
+								{dd.decisionNote && (
+									<span className="mt-1 block text-muted-foreground">
+										{String(dd.decisionNote)}
+									</span>
+								)}
+							</p>
+						) : dd ? (
 							<p className="text-sm">
 								{t("ddSummary", {
 									date: dd.assessedAt
@@ -388,6 +425,63 @@ export default async function ProviderPage({
 				</>
 			)}
 
+			{tab === "bewertungen" && (
+				<Section
+					title={tr("internalTitle")}
+					actions={
+						canEdit ? (
+							<StartRatingButton
+								providerId={p.id}
+								draftId={data.ratings.find((r) => r.status === "draft")?.id}
+							/>
+						) : null
+					}
+				>
+					<p className="mb-3 text-muted-foreground text-sm">
+						{tr("internalLead")}
+					</p>
+					{data.ratings.length === 0 ? (
+						<p className="text-sm">{tr("internalEmpty")}</p>
+					) : (
+						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+							{data.ratings.map((r) => (
+								<li
+									key={r.id}
+									className="flex flex-wrap items-center gap-3 px-3 py-2"
+								>
+									<Link
+										href={`${base}/bewertung/${r.id}`}
+										className="font-mono text-xs hover:underline"
+									>
+										{r.code}
+									</Link>
+									{r.status === "draft" ? (
+										<Badge variant="muted">{tr("draft")}</Badge>
+									) : (
+										<>
+											{r.traffic && (
+												<Badge variant={TRAFFIC_TONE[r.traffic]}>
+													{r.level}
+												</Badge>
+											)}
+											<span className="tabular-nums">
+												{r.totalScore?.toFixed(2).replace(".", ",")} ·{" "}
+												{Math.round(((r.totalScore ?? 0) / 5) * 100)} %
+											</span>
+											<span>{tr(`decision_${r.decision}`)}</span>
+										</>
+									)}
+									<span className="ml-auto text-muted-foreground text-xs">
+										{r.completedAt
+											? fmtDate.format(r.completedAt)
+											: fmtDate.format(r.createdAt)}
+									</span>
+								</li>
+							))}
+						</ul>
+					)}
+				</Section>
+			)}
 			{tab === "bewertungen" && (
 				<Section
 					title={t("assessments")}

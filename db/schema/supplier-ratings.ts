@@ -9,8 +9,9 @@ import {
 } from "drizzle-orm/pg-core";
 import { orgPolicy } from "../rls";
 import { json, orgId, pk, timestamps, ts, userRef } from "./_shared";
+import type { CRITICALITY } from "./enums";
 import type { SupplierCriterion } from "./platform";
-import { providers } from "./registers";
+import { type PROVIDER_CATEGORIES, providers } from "./registers";
 
 // Interne Lieferantenbewertung (Kriterien 1–5 mit Gewichten je Bereich,
 // Schwellen → Niveau/Ampel/Empfehlung/Wiedervorlage, Maßnahmen, Freigabe).
@@ -27,14 +28,16 @@ export type RatingScore = {
 };
 
 export type RatingProfile = {
-	category?: string | null;
-	criticality?: string;
+	category?: (typeof PROVIDER_CATEGORIES)[number] | null;
+	criticality?: (typeof CRITICALITY)[number];
 	// Entscheidungsbaum Auslagerung (MaRisk AT 9 / ZAG § 26 / MiCAR Art. 73)
 	instituteTask?: boolean | null;
 	oneOff?: boolean | null;
 	material?: boolean | null;
 	// DORA: unterstützt eine kritische oder wichtige Funktion
 	criticalFunction?: boolean | null;
+	// beim Abschluss beantragte Entscheidung (Freigabe läuft ggf. noch)
+	requestedDecision?: "approved" | "approved_with_conditions" | "rejected";
 };
 
 export type RatingMeasure = {

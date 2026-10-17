@@ -18,6 +18,12 @@ import {
 // Gesamt; Wiedervorlage = Intervall der Schwelle, bei kritischen
 // Dienstleistern höchstens criticalMaxMonths.
 
+export const TRAFFIC_TONE = {
+	red: "destructive",
+	amber: "warning",
+	green: "success",
+} as const;
+
 export type RatingProvider = {
 	partnerType: string;
 	isOutsourcing: boolean;

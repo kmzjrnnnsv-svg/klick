@@ -9,6 +9,7 @@ import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { PageHeader } from "@/components/page-header";
 import { ProviderForm } from "@/components/registers/provider-form";
+import { RatingOverview } from "@/components/supplier/rating-overview";
 import { Badge } from "@/components/ui/badge";
 import {
 	Table,
@@ -27,6 +28,8 @@ import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { linkIndex } from "@/lib/compliance/queries-links";
 import { listProviders } from "@/lib/compliance/queries-p2";
+import { latestRatingsByProvider } from "@/lib/compliance/queries-ratings";
+import { TRAFFIC_TONE } from "@/lib/compliance/supplier-rating";
 import { readOrg } from "@/lib/db/with-org";
 
 type Row = Awaited<ReturnType<typeof listProviders>>[number];
@@ -42,26 +45,56 @@ export default async function ProvidersPage({
 	const sp = await searchParams;
 	const t = await getTranslations("Providers");
 	const te = await getTranslations("Entity");
-	const { rows, members, links } = await readOrg(toOrgCtx(ctx), async (tx) => ({
-		rows: await listProviders(tx, ctx.orgId),
-		members: await listMembersForPicker(tx, ctx.orgId),
-		links: await linkIndex(tx, ctx.orgId),
-	}));
+	const tr = await getTranslations("Rating");
+	const { rows, members, links, ratings } = await readOrg(
+		toOrgCtx(ctx),
+		async (tx) => ({
+			rows: await listProviders(tx, ctx.orgId),
+			members: await listMembersForPicker(tx, ctx.orgId),
+			links: await linkIndex(tx, ctx.orgId),
+			ratings: await latestRatingsByProvider(tx, ctx.orgId),
+		}),
+	);
+	const today = new Date().toISOString().slice(0, 10);
 	const canEdit = roleAllows(ctx.orgRole, { provider: ["create", "update"] });
 	const canExport = roleAllows(ctx.orgRole, { export: ["create"] });
-	const tab = one(sp.tab) === "werkzeuge" ? "werkzeuge" : "register";
+	const tabParam = one(sp.tab);
+	const tab =
+		tabParam === "werkzeuge" || tabParam === "uebersicht"
+			? tabParam
+			: "register";
+	const tabs = [
+		{ value: "register", label: t("tabRegister"), count: rows.length },
+		{ value: "uebersicht", label: t("tabOverview") },
+		{ value: "werkzeuge", label: t("tabTools") },
+	];
+	if (tab === "uebersicht") {
+		return (
+			<>
+				<PageHeader
+					title={t("title")}
+					lead={t("lead")}
+					actions={
+						canExport ? (
+							<a
+								href="/api/export/lieferantenbewertung.csv"
+								className="text-primary text-sm underline-offset-4 hover:underline"
+							>
+								{tr("exportCsv")}
+							</a>
+						) : undefined
+					}
+				/>
+				<UrlTabs base="/dienstleister" active={tab} tabs={tabs} />
+				<RatingOverview providers={rows} ratings={ratings} today={today} />
+			</>
+		);
+	}
 	if (tab === "werkzeuge") {
 		return (
 			<>
 				<PageHeader title={t("title")} lead={t("toolsLead")} />
-				<UrlTabs
-					base="/dienstleister"
-					active={tab}
-					tabs={[
-						{ value: "register", label: t("tabRegister"), count: rows.length },
-						{ value: "werkzeuge", label: t("tabTools") },
-					]}
-				/>
+				<UrlTabs base="/dienstleister" active={tab} tabs={tabs} />
 				<Table>
 					<TableHeader>
 						<TableRow>
@@ -158,7 +191,16 @@ export default async function ProvidersPage({
 			key: "type",
 			header: t("partnerType"),
 			className: "w-36",
-			cell: (r) => t(`partner_${r.partnerType}`),
+			cell: (r) => (
+				<span>
+					{t(`partner_${r.partnerType}`)}
+					{r.category && (
+						<span className="block text-muted-foreground text-xs">
+							{t(`category_${r.category}`)}
+						</span>
+					)}
+				</span>
+			),
 		},
 		{
 			key: "crit",
@@ -177,6 +219,50 @@ export default async function ProvidersPage({
 					{t(`crit_${r.criticality}`)}
 				</Badge>
 			),
+		},
+		{
+			key: "rating",
+			header: tr("colRating"),
+			className: "w-40",
+			cell: (r) => {
+				const x = ratings.get(r.id);
+				if (!x) return <span className="text-muted-foreground">—</span>;
+				if (x.totalScore === null)
+					return <Badge variant="muted">{tr("draft")}</Badge>;
+				return (
+					<span className="flex flex-col gap-0.5">
+						<span className="flex items-center gap-1.5">
+							{x.traffic && (
+								<Badge variant={TRAFFIC_TONE[x.traffic]}>{x.level}</Badge>
+							)}
+							<span className="tabular-nums text-xs">
+								{Math.round((x.totalScore / 5) * 100)} %
+							</span>
+						</span>
+						<span className="text-muted-foreground text-xs">
+							{tr(`decision_${x.decision}` as "decision_open")}
+						</span>
+					</span>
+				);
+			},
+		},
+		{
+			key: "next",
+			header: tr("colNext"),
+			className: "w-28",
+			mobile: false,
+			cell: (r) =>
+				r.nextAssessmentAt ? (
+					<span
+						className={
+							r.nextAssessmentAt < today ? "text-destructive" : undefined
+						}
+					>
+						{fmtDate.format(new Date(r.nextAssessmentAt))}
+					</span>
+				) : (
+					"—"
+				),
 		},
 		{
 			key: "flags",
@@ -283,6 +369,12 @@ export default async function ProvidersPage({
 			lead={t("lead")}
 			actions={
 				<span className="flex flex-wrap items-center gap-2">
+					<Link
+						href="/dienstleister?tab=uebersicht"
+						className="text-primary text-sm hover:underline underline-offset-4"
+					>
+						{t("tabOverview")}
+					</Link>
 					<Link
 						href="/dienstleister?tab=werkzeuge"
 						className="text-primary text-sm hover:underline underline-offset-4"

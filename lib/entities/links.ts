@@ -53,7 +53,9 @@ export function entityHref(
 		case "exception":
 			return "/risiken?tab=ausnahmen";
 		case "provider":
-			return "/dienstleister";
+			return `/dienstleister/${id}`;
+		case "provider_rating":
+			return "/dienstleister?tab=uebersicht";
 		case "asset":
 			return "/assets";
 		case "task":

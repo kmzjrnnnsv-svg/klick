@@ -6,6 +6,8 @@ import {
 	exceptions,
 	incidents,
 	ownFundsCalculations,
+	providerRatings,
+	providers,
 	risks,
 	scopes,
 } from "@/db/schema";
@@ -197,6 +199,49 @@ export async function applyApprovalOutcome(
 						eq(ownFundsCalculations.organizationId, ctx.orgId),
 					),
 				);
+			return extra;
+		}
+		case "provider_rating": {
+			// Freigabe eines Lieferanten mit rotem Bewertungsergebnis
+			const [rating] = await tx
+				.select()
+				.from(providerRatings)
+				.where(
+					and(
+						eq(providerRatings.id, r.entityId),
+						eq(providerRatings.organizationId, ctx.orgId),
+					),
+				)
+				.limit(1);
+			if (!rating) return extra;
+			const decision = approved
+				? (rating.profile.requestedDecision ?? "approved")
+				: "rejected";
+			await tx
+				.update(providerRatings)
+				.set({
+					decision,
+					decidedByUserId: ctx.userId,
+					decidedAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.where(eq(providerRatings.id, rating.id));
+			const [p] = await tx
+				.select({ id: providers.id, dueDiligence: providers.dueDiligence })
+				.from(providers)
+				.where(eq(providers.id, rating.providerId))
+				.limit(1);
+			if (p?.dueDiligence?.ratingId === rating.id)
+				await tx
+					.update(providers)
+					.set({ dueDiligence: { ...p.dueDiligence, decision } })
+					.where(eq(providers.id, p.id));
+			extra.push({
+				action: "provider_rating.decided",
+				target: `provider_rating:${rating.id}`,
+				before: { decision: rating.decision },
+				after: { decision, via: "approval" },
+			});
 			return extra;
 		}
 		default:

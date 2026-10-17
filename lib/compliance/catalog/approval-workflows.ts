@@ -100,7 +100,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		name: "Dienstleister aufnehmen",
 		entityType: "provider",
 		description:
-			"Auslagerungsbeauftragte:r → Geschäftsleitung bei wesentlicher Auslagerung.",
+			"Auslagerungsbeauftragte:r → Geschäftsleitung: Freigabe trotz kritischem Bewertungsergebnis bzw. bei wesentlicher Auslagerung.",
 		steps: [
 			{ order: 1, approverRule: "function:outsourcing_officer", slaDays: 10 },
 			{ order: 2, approverRule: "function:management_body", slaDays: 10 },
