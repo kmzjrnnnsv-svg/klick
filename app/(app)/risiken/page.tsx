@@ -180,6 +180,7 @@ export default async function RisksPage({
 							</span>
 							<Link
 								href="/risiken?tab=matrix&view=inherent"
+								scroll={false}
 								className={
 									view === "inherent"
 										? "font-medium"
@@ -191,6 +192,7 @@ export default async function RisksPage({
 							<span className="text-muted-foreground">·</span>
 							<Link
 								href="/risiken?tab=matrix&view=residual"
+								scroll={false}
 								className={
 									view === "residual"
 										? "font-medium"

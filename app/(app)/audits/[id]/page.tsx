@@ -321,6 +321,7 @@ export default async function AuditCockpitPage({
 						<dd className="flex items-center gap-2">
 							<Link
 								href={`/audits/${audit.id}?tab=pruefungsreife`}
+								scroll={false}
 								className="font-serif-display text-xl text-primary tabular-nums hover:underline"
 							>
 								{readiness.combined.score ?? "—"}

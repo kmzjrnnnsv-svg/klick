@@ -36,7 +36,7 @@ export function CompareControls({
 		});
 		const d = next.asOf === undefined ? asOf : next.asOf;
 		if (d) params.set("stichtag", d);
-		router.push(`/synergien?${params.toString()}`);
+		router.push(`/synergien?${params.toString()}`, { scroll: false });
 	};
 	const Picker = ({
 		label,

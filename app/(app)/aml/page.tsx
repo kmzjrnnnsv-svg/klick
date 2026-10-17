@@ -400,12 +400,12 @@ export default async function AmlPage({
 							<TableHeader>
 								<TableRow>
 									<TableHead className="w-20">{t("version")}</TableHead>
-									<TableHead className="w-28">{t("status")}</TableHead>
-									<TableHead className="w-28">{t("overall")}</TableHead>
+									<TableHead className="w-24">{t("status")}</TableHead>
+									<TableHead className="w-24">{t("overall")}</TableHead>
 									<TableHead>{t("dimensions")}</TableHead>
-									<TableHead className="w-36">{t("owner")}</TableHead>
-									<TableHead className="w-40">{t("approvedAt")}</TableHead>
-									<TableHead className="w-56">{t("actions")}</TableHead>
+									<TableHead className="w-32">{t("owner")}</TableHead>
+									<TableHead className="w-28">{t("approvedAt")}</TableHead>
+									<TableHead className="w-48">{t("actions")}</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>

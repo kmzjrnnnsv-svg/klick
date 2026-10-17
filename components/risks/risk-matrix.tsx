@@ -63,6 +63,7 @@ export function RiskMatrix({
 								>
 									<Link
 										href={`${base}?tab=register&l=${cell.likelihood}&i=${cell.impact}&view=${view}`}
+										scroll={false}
 										className={cn(
 											"flex h-full min-h-16 flex-col gap-1 rounded-sm border border-transparent p-1.5 transition-colors hover:border-foreground/30",
 											ZONE_BG[cell.zone],

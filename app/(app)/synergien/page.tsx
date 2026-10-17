@@ -302,14 +302,24 @@ export default async function SynergiesPage({
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead className="w-28">{t("control")}</TableHead>
-								<TableHead>{tc("title")}</TableHead>
-								<TableHead className="w-24 text-right">
+								<TableHead className="sticky left-0 z-10 w-24 bg-background align-bottom">
+									{t("control")}
+								</TableHead>
+								<TableHead className="min-w-48 align-bottom">
+									{tc("title")}
+								</TableHead>
+								<TableHead className="w-16 text-right align-bottom">
 									{tc("leverage")}
 								</TableHead>
 								{cov.frameworks.map((fw) => (
-									<TableHead key={fw} className="w-24 text-center">
-										{fwLabel(fw)}
+									<TableHead
+										key={fw}
+										className="h-auto w-9 px-1 py-2 align-bottom"
+										title={fwLabel(fw)}
+									>
+										<span className="mx-auto block max-h-36 rotate-180 overflow-hidden text-ellipsis [writing-mode:vertical-rl]">
+											{fwLabel(fw)}
+										</span>
 									</TableHead>
 								))}
 							</TableRow>
@@ -321,7 +331,7 @@ export default async function SynergiesPage({
 								const status = cov.implStatus.get(lev.control);
 								return (
 									<TableRow key={lev.control}>
-										<TableCell className="whitespace-nowrap font-mono text-xs">
+										<TableCell className="sticky left-0 z-10 whitespace-nowrap bg-background font-mono text-xs">
 											<Link
 												href={`/controls/${lev.control}`}
 												className="hover:underline underline-offset-4"
@@ -358,7 +368,7 @@ export default async function SynergiesPage({
 											return (
 												<TableCell
 													key={fw}
-													className="text-center"
+													className="whitespace-nowrap px-1 text-center"
 													title={fwEdges
 														.map((e) => e.requirement.slice(fw.length + 1))
 														.join(", ")}
@@ -373,7 +383,7 @@ export default async function SynergiesPage({
 														</span>
 													)}
 													{fwEdges.length > 0 && (
-														<span className="ml-1 text-muted-foreground text-xs">
+														<span className="ml-0.5 text-[0.65rem] text-muted-foreground">
 															{fwEdges.length}
 														</span>
 													)}

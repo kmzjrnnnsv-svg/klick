@@ -417,7 +417,7 @@ export function RiskAnalysisApproveButton({
 		<div className="flex flex-wrap items-center gap-2">
 			{soloHint && (
 				<Input
-					className="h-8 w-64"
+					className="h-8 w-full min-w-0 max-w-64"
 					placeholder={t("soloReason")}
 					value={reason}
 					onChange={(e) => setReason(e.target.value)}

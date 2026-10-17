@@ -2,14 +2,6 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { PriceGroupEditor } from "@/components/admin/price-group-editor";
 import { Badge } from "@/components/ui/badge";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
 import { requirePlatformAdminPage } from "@/lib/auth/gates";
 import {
 	listPriceGroups,
@@ -63,6 +55,7 @@ export default async function AdminPricesPage({
 				</h1>
 				<Link
 					href="/admin/preise?gruppe=neu"
+					scroll={false}
 					className="text-sm underline-offset-4 hover:underline"
 				>
 					Neue Gruppe
@@ -72,51 +65,54 @@ export default async function AdminPricesPage({
 				{t("pricesLead")}
 			</p>
 			<div className="grid grid-cols-1 gap-8 xl:grid-cols-[18rem_minmax(0,1fr)]">
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>Gruppe</TableHead>
-							<TableHead>Stufe</TableHead>
-							<TableHead className="text-right">Orgs</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{groups.map(({ group, overrides: n }) => (
-							<TableRow
-								key={group.id}
-								className={cn(selected?.group.id === group.id && "bg-muted/60")}
-							>
-								<TableCell>
-									<Link
-										href={`/admin/preise?gruppe=${group.id}`}
-										className="font-medium hover:underline"
-									>
-										{group.name}
-									</Link>
-									{group.isDefault && (
-										<Badge variant="secondary" className="ml-2">
-											Standard
-										</Badge>
-									)}
-								</TableCell>
-								<TableCell className="text-muted-foreground text-sm">
-									{LEVEL_LABEL[group.level]}
-									{n > 0 && ` · ${n} eigene`}
-								</TableCell>
-								<TableCell className="text-right tabular-nums">
-									{orgCount.get(group.id) ?? 0}
-								</TableCell>
-							</TableRow>
-						))}
-						{groups.length === 0 && (
-							<TableRow>
-								<TableCell colSpan={3} className="text-muted-foreground">
-									Noch keine Gruppe — öffentlich gilt „Marktüblich“.
-								</TableCell>
-							</TableRow>
-						)}
-					</TableBody>
-				</Table>
+				<nav
+					aria-label="Preisgruppen"
+					className="min-w-0 xl:sticky xl:top-20 xl:self-start"
+				>
+					{groups.length === 0 ? (
+						<p className="text-muted-foreground text-sm">
+							Noch keine Gruppe — öffentlich gilt „Marktüblich“.
+						</p>
+					) : (
+						<ul className="flex flex-col gap-1.5">
+							{groups.map(({ group, overrides: n }) => {
+								const on = selected?.group.id === group.id;
+								const orgs = orgCount.get(group.id) ?? 0;
+								return (
+									<li key={group.id}>
+										<Link
+											href={`/admin/preise?gruppe=${group.id}`}
+											scroll={false}
+											aria-current={on ? "page" : undefined}
+											className={cn(
+												"flex flex-col gap-0.5 rounded-md border px-3 py-2.5 text-sm transition-colors",
+												on
+													? "border-primary/50 bg-muted/60"
+													: "border-border/60 hover:bg-muted/40",
+											)}
+										>
+											<span className="flex min-w-0 items-center gap-2">
+												<span className="truncate font-medium">
+													{group.name}
+												</span>
+												{group.isDefault && (
+													<Badge variant="secondary">Standard</Badge>
+												)}
+											</span>
+											<span className="text-muted-foreground text-xs">
+												{LEVEL_LABEL[group.level]}
+												{n > 0 && ` · ${n} eigene`} ·{" "}
+												{orgs === 1
+													? "1 Organisation"
+													: `${orgs} Organisationen`}
+											</span>
+										</Link>
+									</li>
+								);
+							})}
+						</ul>
+					)}
+				</nav>
 				<section aria-labelledby="pg-editor" className="min-w-0">
 					<h2
 						id="pg-editor"

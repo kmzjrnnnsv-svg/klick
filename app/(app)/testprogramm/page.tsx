@@ -115,6 +115,7 @@ export default async function TestProgrammePage({
 			<div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
 				<Link
 					href={`/testprogramm?jahr=${year - 1}`}
+					scroll={false}
 					className="rounded-md border px-2 py-1 hover:bg-muted"
 				>
 					← {year - 1}
@@ -122,6 +123,7 @@ export default async function TestProgrammePage({
 				<span className="font-serif-display text-2xl text-primary">{year}</span>
 				<Link
 					href={`/testprogramm?jahr=${year + 1}`}
+					scroll={false}
 					className="rounded-md border px-2 py-1 hover:bg-muted"
 				>
 					{year + 1} →

@@ -210,6 +210,7 @@ export default async function ResolutionsPage({
 									/>
 									<Link
 										href="/beschluesse?tab=pflicht"
+										scroll={false}
 										className="inline-flex h-8 items-center rounded-md border px-3 text-xs hover:bg-muted"
 									>
 										{t("tabRequired")}

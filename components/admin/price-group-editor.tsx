@@ -163,7 +163,7 @@ export function PriceGroupEditor({
 						return;
 					}
 					toast.success("Gespeichert");
-					router.push(`/admin/preise?gruppe=${res.data.id}`);
+					router.push(`/admin/preise?gruppe=${res.data.id}`, { scroll: false });
 					router.refresh();
 				});
 			}}
@@ -376,7 +376,7 @@ export function PriceGroupEditor({
 													return;
 												}
 												toast.success("Gruppe gelöscht");
-												router.push("/admin/preise");
+												router.push("/admin/preise", { scroll: false });
 												router.refresh();
 											})
 										}

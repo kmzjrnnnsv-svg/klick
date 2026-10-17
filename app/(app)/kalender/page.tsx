@@ -127,6 +127,7 @@ export default async function CalendarPage({
 					<div className="flex flex-wrap items-center gap-3 text-sm">
 						<Link
 							href={`/kalender?tab=jahr&jahr=${year - 1}`}
+							scroll={false}
 							className="rounded-md border px-2 py-1 hover:bg-muted"
 						>
 							← {year - 1}
@@ -136,6 +137,7 @@ export default async function CalendarPage({
 						</span>
 						<Link
 							href={`/kalender?tab=jahr&jahr=${year + 1}`}
+							scroll={false}
 							className="rounded-md border px-2 py-1 hover:bg-muted"
 						>
 							{year + 1} →

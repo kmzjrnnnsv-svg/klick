@@ -31,6 +31,7 @@ import { listProviders } from "@/lib/compliance/queries-p2";
 import { latestRatingsByProvider } from "@/lib/compliance/queries-ratings";
 import { TRAFFIC_TONE } from "@/lib/compliance/supplier-rating";
 import { readOrg } from "@/lib/db/with-org";
+import { cn } from "@/lib/utils";
 
 type Row = Awaited<ReturnType<typeof listProviders>>[number];
 type Search = Record<string, string | string[] | undefined>;
@@ -205,7 +206,7 @@ export default async function ProvidersPage({
 		{
 			key: "crit",
 			header: t("criticality"),
-			className: "w-28",
+			className: "w-24",
 			cell: (r) => (
 				<Badge
 					variant={
@@ -242,32 +243,26 @@ export default async function ProvidersPage({
 						<span className="text-muted-foreground text-xs">
 							{tr(`decision_${x.decision}` as "decision_open")}
 						</span>
+						{r.nextAssessmentAt && (
+							<span
+								className={cn(
+									"text-xs tabular-nums",
+									r.nextAssessmentAt < today
+										? "text-destructive"
+										: "text-muted-foreground",
+								)}
+							>
+								{tr("colNext")}: {fmtDate.format(new Date(r.nextAssessmentAt))}
+							</span>
+						)}
 					</span>
 				);
 			},
 		},
 		{
-			key: "next",
-			header: tr("colNext"),
-			className: "w-28",
-			mobile: false,
-			cell: (r) =>
-				r.nextAssessmentAt ? (
-					<span
-						className={
-							r.nextAssessmentAt < today ? "text-destructive" : undefined
-						}
-					>
-						{fmtDate.format(new Date(r.nextAssessmentAt))}
-					</span>
-				) : (
-					"—"
-				),
-		},
-		{
 			key: "flags",
 			header: "DORA",
-			className: "w-40",
+			className: "hidden w-36 xl:table-cell",
 			mobile: false,
 			cell: (r) => (
 				<span className="flex flex-wrap gap-1 text-xs">
@@ -284,14 +279,14 @@ export default async function ProvidersPage({
 		{
 			key: "country",
 			header: t("country"),
-			className: "w-16",
+			className: "hidden w-16 2xl:table-cell",
 			mobile: false,
 			cell: (r) => r.country ?? "—",
 		},
 		{
 			key: "end",
 			header: t("contractEnd"),
-			className: "w-28",
+			className: "hidden w-28 2xl:table-cell",
 			mobile: false,
 			cell: (r) =>
 				r.contractEnd ? fmtDate.format(new Date(r.contractEnd)) : "—",
@@ -299,7 +294,7 @@ export default async function ProvidersPage({
 		{
 			key: "links",
 			header: t("linked"),
-			className: "w-48",
+			className: "hidden w-40 2xl:table-cell",
 			mobile: false,
 			cell: (r) => (
 				<span className="flex flex-col gap-1">
@@ -324,13 +319,13 @@ export default async function ProvidersPage({
 		{
 			key: "owner",
 			header: t("owner"),
-			className: "w-40",
+			className: "w-36",
 			cell: (r) => <UserChip name={r.names.ownerUserId} />,
 		},
 		{
 			key: "edit",
 			header: "",
-			className: "w-20",
+			className: "w-16",
 			mobile: false,
 			cell: (r) =>
 				canEdit ? (
@@ -371,12 +366,14 @@ export default async function ProvidersPage({
 				<span className="flex flex-wrap items-center gap-2">
 					<Link
 						href="/dienstleister?tab=uebersicht"
+						scroll={false}
 						className="text-primary text-sm hover:underline underline-offset-4"
 					>
 						{t("tabOverview")}
 					</Link>
 					<Link
 						href="/dienstleister?tab=werkzeuge"
+						scroll={false}
 						className="text-primary text-sm hover:underline underline-offset-4"
 					>
 						{t("tabTools")}
