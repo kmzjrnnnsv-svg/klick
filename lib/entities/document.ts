@@ -4,9 +4,11 @@ import type { EntityDef, StatusMachine } from "./types";
 
 export type DocumentStatus = (typeof DOCUMENT_STATUS)[number];
 
-// draft → in_review (Review-Workflow) → approved (Freigabe) → published
-// (Verteilung + Kenntnisnahme) → retired | superseded. Freigabe/
-// Veröffentlichung laufen über den Workflow document_publish.
+// Für Nutzer:innen vier Schritte: Entwurf → In Prüfung → Gültig →
+// Archiviert. Die letzte Freigabe (Workflow document_publish) macht das
+// Dokument direkt gültig (lib/documents/publish.ts); „Freigegeben“ gibt es nur
+// noch für Altbestand bzw. ohne Workflow und ohne Veröffentlichungsrecht.
+// Neue Version immer über den Dialog (Versionssprung), nie per Status.
 export const DOCUMENT_STATUS_MACHINE: StatusMachine<DocumentStatus> = {
 	states: DOCUMENT_STATUS,
 	initial: "draft",
@@ -29,12 +31,17 @@ export const DOCUMENT_STATUS_MACHINE: StatusMachine<DocumentStatus> = {
 	transitions: transitions<DocumentStatus>([
 		["draft", "in_review", "submitReview", "approval:document_publish", true],
 		["in_review", "draft", "backToDraft", "note"],
-		["in_review", "approved", "approveDoc", "approval:document_publish", true],
+		[
+			"in_review",
+			"published",
+			"approveDoc",
+			"approval:document_publish",
+			true,
+			"auto",
+		],
 		["approved", "published", "publishDoc", undefined, true],
 		["approved", "draft", "backToDraft", "note"],
 		["published", "retired", "retireDoc", "note", true],
-		["published", "draft", "newVersion"],
-		["retired", "draft", "newVersion", undefined, true],
 	]),
 	done: ["published", "retired", "superseded"],
 };

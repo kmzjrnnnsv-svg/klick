@@ -14,7 +14,7 @@ export function nextTransitions<S extends string>(
 	ctx: TransitionContext = {},
 ): AvailableTransition<S>[] {
 	return machine.transitions
-		.filter((t) => t.from === status)
+		.filter((t) => t.from === status && !t.auto)
 		.map((t) => {
 			if (t.requires === "note") {
 				return {
@@ -61,13 +61,14 @@ export function isDone<S extends string>(
 
 // Hilfsbau für Maschinen, deren Übergänge als Tupel notiert sind.
 export function transitions<S extends string>(
-	rows: [S, S, string, Transition<S>["requires"]?, boolean?][],
+	rows: [S, S, string, Transition<S>["requires"]?, boolean?, "auto"?][],
 ): Transition<S>[] {
-	return rows.map(([from, to, labelKey, requires, primary]) => ({
+	return rows.map(([from, to, labelKey, requires, primary, auto]) => ({
 		from,
 		to,
 		labelKey,
 		requires,
 		primary,
+		...(auto ? { auto: true } : {}),
 	}));
 }

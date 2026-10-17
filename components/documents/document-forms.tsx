@@ -538,7 +538,12 @@ export function NewVersionDialog({ documentId }: { documentId: string }) {
 									changeSummary: summary,
 									bump,
 								});
-								if (!res.ok) return void toast.error(tc("error"));
+								if (!res.ok)
+									return void toast.error(
+										res.error === "withdraw_first"
+											? t("withdrawFirst")
+											: tc("error"),
+									);
 								toast.success(`v${res.data.version}`);
 								setOpen(false);
 								setSummary("");

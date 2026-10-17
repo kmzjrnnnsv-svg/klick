@@ -127,7 +127,10 @@ export function StatusButton({
 		hasNote: true,
 		approvalsSatisfied: true,
 	});
-	const primary = options.find((o) => o.primary) ?? options[0];
+	// Ohne echten Primär-Übergang (z. B. „In Prüfung“: es wartet auf die
+	// Freigabe) erscheint der Ausweg dezent statt als Hauptknopf.
+	const flagged = options.find((o) => o.primary);
+	const primary = flagged ?? options[0];
 	const rest = options.filter((o) => o !== primary);
 
 	function run(to: string, withNote?: string, selfApprovalReason?: string) {
@@ -283,7 +286,9 @@ export function StatusButton({
 				toast.success(
 					res.data.approvalRequested
 						? t("approvalRequested")
-						: t("statusChanged"),
+						: res.data.status === "published"
+							? t("docNowValid")
+							: t("statusChanged"),
 				);
 			}
 			setNoteFor(null);
@@ -313,6 +318,7 @@ export function StatusButton({
 				<div className="flex">
 					<Button
 						size="sm"
+						variant={flagged ? "default" : "outline"}
 						disabled={pending}
 						onClick={() => choose(primary.to, primary.requires === "note")}
 						className={rest.length > 0 ? "rounded-r-none" : undefined}

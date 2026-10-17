@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CONTROL_STATUS } from "@/lib/entities/control";
+import { DOCUMENT_STATUS_MACHINE } from "@/lib/entities/document";
 import {
 	canTransition,
 	isDone,
@@ -76,5 +77,27 @@ describe("status machine", () => {
 			}
 			expect(states.has(m.initial)).toBe(true);
 		}
+	});
+	it("Dokument: Gültig kommt mit der Freigabe, nicht per Knopf", () => {
+		const m = DOCUMENT_STATUS_MACHINE;
+		// In Prüfung: nur der Ausweg zurück in den Entwurf, kein Primärknopf
+		const inReview = nextTransitions(m, "in_review", {
+			hasNote: true,
+			approvalsSatisfied: true,
+		});
+		expect(inReview.map((t) => t.to)).toEqual(["draft"]);
+		expect(inReview.some((t) => t.primary)).toBe(false);
+		// Der automatische Übergang ist nicht von Hand auslösbar
+		expect(
+			canTransition(m, "in_review", "published", { approvalsSatisfied: true }),
+		).toEqual({ ok: false, reason: "invalid" });
+		// Neue Version nur über den Dialog, nicht per Status
+		expect(nextTransitions(m, "published").map((t) => t.to)).toEqual([
+			"retired",
+		]);
+		expect(nextTransitions(m, "retired")).toEqual([]);
+		expect(m.transitions.some((t) => t.auto && t.from === "in_review")).toBe(
+			true,
+		);
 	});
 });

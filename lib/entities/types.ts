@@ -15,6 +15,9 @@ export type Transition<S extends string> = {
 	requires?: "note" | `approval:${string}`;
 	// Erster Übergang je Status ist der Primär-Button
 	primary?: boolean;
+	// Passiert von selbst (z. B. letzte Freigabe) — kein Button, nicht von
+	// Hand auslösbar; steht nur für Weg-Anzeige und Hinweise in der Maschine.
+	auto?: boolean;
 };
 
 export type StatusMachine<S extends string> = {

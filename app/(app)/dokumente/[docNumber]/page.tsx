@@ -42,6 +42,7 @@ import { processesForDocument } from "@/lib/compliance/queries-links";
 import { getDocumentByNumber } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { diffLines } from "@/lib/documents/diff";
+import { distributionAudience } from "@/lib/documents/publish";
 import { env } from "@/lib/env";
 import {
 	type ActivityEntry,
@@ -72,6 +73,7 @@ export default async function DocumentDetailPage({
 			dels,
 			linkedProcesses,
 			controlOptions,
+			audience,
 		] = await Promise.all([
 			listComments(tx, ctx.orgId, "document", d.doc.id),
 			historyFor(tx, `document:${d.doc.id}`),
@@ -84,6 +86,8 @@ export default async function DocumentDetailPage({
 			roleAllows(ctx.orgRole, { document: ["update"] })
 				? listControlRows(tx, ctx.orgId)
 				: Promise.resolve([]),
+			// Kenntnisnahme-Quote nur über den Verteiler, nicht über alle
+			distributionAudience(tx, ctx.orgId, d.doc.distribution),
 		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
@@ -103,6 +107,7 @@ export default async function DocumentDetailPage({
 			names,
 			linkedProcesses,
 			controlOptions,
+			audience,
 		};
 	});
 	if (!data) notFound();
@@ -121,8 +126,11 @@ export default async function DocumentDetailPage({
 		names,
 		linkedProcesses,
 		controlOptions,
+		audience,
 	} = data;
 	const canEdit = roleAllows(ctx.orgRole, { document: ["update"] });
+	const audienceSet = new Set(audience);
+	const audienceMembers = members.filter((m) => audienceSet.has(m.userId));
 	const e = env();
 	const storageAvailable = Boolean(
 		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,
@@ -187,7 +195,7 @@ export default async function DocumentDetailPage({
 					{doc.status === "published" && !myAck && (
 						<AckButton documentId={doc.id} />
 					)}
-					{canEdit && doc.status !== "draft" && (
+					{canEdit && doc.status !== "draft" && doc.status !== "in_review" && (
 						<NewVersionDialog documentId={doc.id} />
 					)}
 					<WatchButton
@@ -394,16 +402,17 @@ export default async function DocumentDetailPage({
 				<Section title={t("acknowledgements")}>
 					<p className="text-sm">
 						{t("ackQuota", {
-							done: acksForCurrent.length,
-							total: members.length,
+							done: acksForCurrent.filter((a) => audienceSet.has(a.userId))
+								.length,
+							total: audienceMembers.length,
 						})}
 					</p>
 					<ul className="flex flex-wrap gap-1.5 text-xs">
-						{members.map((m) => {
+						{audienceMembers.map((m) => {
 							const done = acksForCurrent.some((a) => a.userId === m.userId);
 							return (
 								<Badge key={m.userId} variant={done ? "success" : "muted"}>
-									{m.name}
+									{m.name || m.email}
 								</Badge>
 							);
 						})}

@@ -18,12 +18,14 @@ import {
 	riskControls,
 	risks,
 	riskTreatments,
+	roleAssignments,
 	taskBundles,
 	trainingAssignments,
 	trainingRequirements,
 	trainings,
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
+import { inDistribution } from "@/lib/documents/publish";
 import { userNames } from "./queries";
 
 // Org-gescopte Lesezugriffe für die P2-Register — immer in readOrg/withOrg.
@@ -192,11 +194,19 @@ export async function pendingAcknowledgements(
 				eq(documents.status, "published"),
 			),
 		);
-	const relevant = pubs.filter(
-		(d) =>
-			d.distribution.length === 0 ||
-			d.distribution.includes("all") ||
-			d.distribution.includes(orgRole),
+	const functions = (
+		await tx
+			.select({ fn: roleAssignments.function })
+			.from(roleAssignments)
+			.where(
+				and(
+					eq(roleAssignments.organizationId, orgId),
+					eq(roleAssignments.userId, userId),
+				),
+			)
+	).map((f) => f.fn);
+	const relevant = pubs.filter((d) =>
+		inDistribution(d.distribution, { orgRole, functions }),
 	);
 	if (relevant.length === 0) return [];
 	const versions = await tx

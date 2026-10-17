@@ -44,3 +44,24 @@ describe("documents", () => {
 		);
 	});
 });
+
+describe("Verteiler", () => {
+	it("leer oder all = alle; sonst Rolle oder Funktion", async () => {
+		const { inDistribution } = await import("@/lib/documents/publish");
+		expect(inDistribution([], { orgRole: "viewer" })).toBe(true);
+		expect(inDistribution(["all"], { orgRole: "viewer" })).toBe(true);
+		expect(inDistribution(["editor"], { orgRole: "editor" })).toBe(true);
+		expect(inDistribution(["editor"], { orgRole: "viewer" })).toBe(false);
+		// Better-Auth-Rolle „member“ zählt als Lesend (normalizeRole)
+		expect(inDistribution(["viewer"], { orgRole: "member" })).toBe(true);
+		expect(
+			inDistribution(["compliance"], {
+				orgRole: "viewer",
+				functions: ["compliance"],
+			}),
+		).toBe(true);
+		expect(
+			inDistribution(["compliance"], { orgRole: "owner", functions: [] }),
+		).toBe(false);
+	});
+});

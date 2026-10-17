@@ -10,7 +10,7 @@ import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UserChip } from "@/components/entity/user-chip";
 import { Badge } from "@/components/ui/badge";
-import { DOCUMENT_STATUS, DOCUMENT_TYPES } from "@/db/schema/grc";
+import { DOCUMENT_TYPES } from "@/db/schema/grc";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
@@ -62,7 +62,14 @@ export default async function DocumentsPage({
 	const overdue = one(sp.overdue) === "1";
 	const filtered = rows
 		.filter((r) => !q || `${r.docNumber} ${r.title}`.toLowerCase().includes(q))
-		.filter((r) => !status || r.status === status)
+		// „Archiviert“ fasst zurückgezogen und ersetzt zusammen
+		.filter((r) =>
+			!status
+				? true
+				: status === "archived"
+					? r.status === "retired" || r.status === "superseded"
+					: r.status === status,
+		)
 		.filter((r) => !type || r.type === type)
 		.filter(
 			(r) =>
@@ -166,10 +173,19 @@ export default async function DocumentsPage({
 				{
 					key: "status",
 					label: te("status"),
-					options: DOCUMENT_STATUS.map((s) => ({
-						value: s,
-						label: ts(DOCUMENT_STATUS_MACHINE.labelKey[s] as "docDraft"),
-					})),
+					// Vier Schritte; „Freigegeben“ nur, wenn es Altbestand gibt.
+					options: [
+						...(["draft", "in_review"] as const),
+						...(rows.some((r) => r.status === "approved")
+							? (["approved"] as const)
+							: []),
+						"published" as const,
+					]
+						.map((s) => ({
+							value: s as string,
+							label: ts(DOCUMENT_STATUS_MACHINE.labelKey[s] as "docDraft"),
+						}))
+						.concat({ value: "archived", label: ts("docArchived") }),
 				},
 				{
 					key: "type",

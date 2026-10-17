@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
 	controls,
@@ -12,13 +12,18 @@ import {
 	orgSettings,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
-import { approvalDetail, requestApproval } from "@/lib/approvals/service";
+import {
+	approvalDetail,
+	requestApproval,
+	withdrawOpenFor,
+} from "@/lib/approvals/service";
+import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { roleAllows } from "@/lib/auth/permissions";
 import {
 	DOCUMENT_TEMPLATES,
 	TEMPLATE_BY_CODE,
 } from "@/lib/compliance/catalog/document-templates";
-import { listMembersForPicker } from "@/lib/compliance/queries";
 import { lockOrgSequence } from "@/lib/db/org-sequence";
 import { mutateOrg } from "@/lib/db/with-org";
 import {
@@ -27,10 +32,9 @@ import {
 	nextDocNumber,
 	titleFromFileName,
 } from "@/lib/documents/numbering";
+import { nextReviewFrom, publishDocument } from "@/lib/documents/publish";
 import { DOCUMENT_STATUS_MACHINE } from "@/lib/entities/document";
 import { canTransition } from "@/lib/entities/status-machine";
-import { notify } from "@/lib/notifications/notify";
-import { addMonthsIso, todayBerlin } from "@/lib/time/berlin";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	acknowledgeSchema,
@@ -44,11 +48,7 @@ import {
 
 type Tx = Parameters<Parameters<typeof mutateOrg>[1]>[0];
 
-// Review-Termin: heute (Berlin) + n Monate, Monatsende geklemmt (31.01. + 1
-// = 28./29.02., nicht 03.03.).
-function plusMonths(months: number): string {
-	return addMonthsIso(todayBerlin(), months);
-}
+const plusMonths = (months: number) => nextReviewFrom(months);
 
 async function allocateNumber(
 	tx: Tx,
@@ -219,6 +219,22 @@ async function updateDocumentImpl(input: unknown): Promise<ActionResult> {
 
 // Neue Version: Snapshot des aktuellen Stands als Version mit Pflicht-
 // changeSummary; Dokument zurück in Entwurf mit erhöhter Versionsnummer.
+async function markVersionApproved(
+	tx: Tx,
+	doc: { id: string; version: string },
+	userId: string,
+) {
+	await tx
+		.update(documentVersions)
+		.set({ approvedByUserId: userId, approvedAt: new Date() })
+		.where(
+			and(
+				eq(documentVersions.documentId, doc.id),
+				eq(documentVersions.version, doc.version),
+			),
+		);
+}
+
 async function newDocumentVersionImpl(
 	input: unknown,
 ): Promise<ActionResult<{ version: string }>> {
@@ -240,6 +256,10 @@ async function newDocumentVersionImpl(
 				)
 				.limit(1);
 			if (!doc) return { result: { ok: false, error: "notFound" }, audit: [] };
+			// Während der Prüfung keine neue Version — sonst würde die Freigabe
+			// einen anderen Text gültig machen, als geprüft wurde.
+			if (doc.status === "in_review")
+				return { result: { ok: false, error: "withdraw_first" }, audit: [] };
 			const next = bumpVersion(doc.version, d.bump);
 			await tx
 				.update(documents)
@@ -315,7 +335,10 @@ async function transitionDocumentImpl(
 			};
 
 		if (to === "in_review") {
-			// Version-Snapshot sicherstellen, dann Workflow starten.
+			// Version-Snapshot = eingereichter Stand. Vorher blieb ein älterer
+			// Snapshot derselben Version stehen (onConflictDoNothing) — Diff und
+			// Prüfungspaket zeigten dann nicht den geprüften Text. Bereits
+			// freigegebene/veröffentlichte Snapshots bleiben unangetastet.
 			await tx
 				.insert(documentVersions)
 				.values({
@@ -327,7 +350,18 @@ async function transitionDocumentImpl(
 					changeSummary: note?.trim() || "Zur Prüfung eingereicht",
 					createdByUserId: c.userId,
 				})
-				.onConflictDoNothing();
+				.onConflictDoUpdate({
+					target: [documentVersions.documentId, documentVersions.version],
+					set: {
+						bodyMarkdown: doc.bodyMarkdown,
+						fileEvidenceId: doc.fileEvidenceId,
+						...(note?.trim() ? { changeSummary: note.trim() } : {}),
+					},
+					setWhere: and(
+						isNull(documentVersions.approvedAt),
+						isNull(documentVersions.publishedAt),
+					),
+				});
 			const r = await requestApproval(
 				tx,
 				{ orgId: c.orgId, userId: c.userId, name: c.name },
@@ -343,6 +377,25 @@ async function transitionDocumentImpl(
 			);
 			if (!r.ok) {
 				if (r.error === "workflow_disabled") {
+					// Ohne Freigabe-Workflow: wer veröffentlichen darf, macht das
+					// Dokument direkt gültig; sonst bleibt es „Freigegeben“, bis
+					// jemand mit Recht es veröffentlicht.
+					await markVersionApproved(tx, doc, c.userId);
+					if (roleAllows(c.orgRole, { document: ["publish"] })) {
+						const audit = await publishDocument(
+							tx,
+							{ orgId: c.orgId, userId: c.userId },
+							doc,
+							"direct",
+						);
+						return {
+							result: {
+								ok: true,
+								data: { status: "published", approvalRequested: false },
+							},
+							audit,
+						};
+					}
 					await tx
 						.update(documents)
 						.set({ status: "approved" })
@@ -365,87 +418,79 @@ async function transitionDocumentImpl(
 					audit: [],
 				};
 			}
-			const status = r.status === "approved" ? "approved" : "in_review";
-			await tx
-				.update(documents)
-				.set({ status })
-				.where(eq(documents.id, doc.id));
-			if (status === "approved") {
+			// Sofort durch (Solo-Modus oder alle Stufen übersprungen): gültig.
+			const published = r.status === "approved";
+			const status = published ? "published" : "in_review";
+			const extra: AuditInput[] = [];
+			if (published) {
+				await markVersionApproved(tx, doc, c.userId);
+				extra.push(
+					await publishDocument(
+						tx,
+						{ orgId: c.orgId, userId: c.userId },
+						doc,
+						"approval",
+					),
+				);
+			} else {
 				await tx
-					.update(documentVersions)
-					.set({ approvedByUserId: c.userId, approvedAt: new Date() })
-					.where(
-						and(
-							eq(documentVersions.documentId, doc.id),
-							eq(documentVersions.version, doc.version),
-						),
-					);
+					.update(documents)
+					.set({ status })
+					.where(eq(documents.id, doc.id));
 			}
 			return {
 				result: {
 					ok: true,
 					data: { status, approvalRequested: status === "in_review" },
 				},
-				audit: {
-					action: r.selfApproved
-						? "approval.self_approved"
-						: "document.review_requested",
-					target: `document:${doc.id}`,
-					before: { status: doc.status },
-					after: {
-						status,
-						requestId: r.requestId,
-						reason: selfApprovalReason ?? null,
-						...(r.skippedSteps.length > 0
-							? { skippedSteps: r.skippedSteps }
-							: {}),
+				audit: [
+					...extra,
+					{
+						action: r.selfApproved
+							? "approval.self_approved"
+							: "document.review_requested",
+						target: `document:${doc.id}`,
+						before: { status: doc.status },
+						after: {
+							status,
+							requestId: r.requestId,
+							reason: selfApprovalReason ?? null,
+							...(r.skippedSteps.length > 0
+								? { skippedSteps: r.skippedSteps }
+								: {}),
+						},
 					},
-				},
+				],
 			};
 		}
 		if (to === "approved") {
 			return { result: { ok: false, error: "transition_approval" }, audit: [] };
 		}
 		if (to === "published") {
-			await tx
-				.update(documents)
-				.set({
-					status: "published",
-					effectiveFrom: todayBerlin(),
-					nextReviewAt: plusMonths(doc.reviewCycleMonths),
-				})
-				.where(eq(documents.id, doc.id));
-			await tx
-				.update(documentVersions)
-				.set({ publishedAt: new Date() })
-				.where(
-					and(
-						eq(documentVersions.documentId, doc.id),
-						eq(documentVersions.version, doc.version),
-					),
-				);
-			const members = await listMembersForPicker(tx, c.orgId);
-			await notify(tx, {
-				orgId: c.orgId,
-				recipients: members.map((m) => m.userId),
-				actorUserId: c.userId,
-				kind: "acknowledgement_due",
-				title: `Zur Kenntnis nehmen: ${doc.docNumber} ${doc.title} v${doc.version}`,
-				link: `/dokumente/${encodeURIComponent(doc.docNumber)}`,
-			});
+			// Altbestand „Freigegeben“ → gültig
+			const audit = await publishDocument(
+				tx,
+				{ orgId: c.orgId, userId: c.userId },
+				doc,
+				"legacy",
+			);
 			return {
 				result: {
 					ok: true,
 					data: { status: "published", approvalRequested: false },
 				},
-				audit: {
-					action: "document.published",
-					target: `document:${doc.id}`,
-					before: { status: doc.status },
-					after: { status: "published", version: doc.version },
-				},
+				audit,
 			};
 		}
+		// Jeder Ausgang aus der Prüfung zieht die offene Freigabe zurück — sonst
+		// könnte eine späte Freigabe einen überarbeiteten Text gültig machen.
+		const withdrawn =
+			doc.status === "in_review"
+				? await withdrawOpenFor(tx, c.orgId, {
+						entityType: "document",
+						entityId: doc.id,
+					})
+				: 0;
 		await tx
 			.update(documents)
 			.set({ status: to })
@@ -456,7 +501,11 @@ async function transitionDocumentImpl(
 				action: "document.status",
 				target: `document:${doc.id}`,
 				before: { status: doc.status },
-				after: { status: to, note: note ?? null },
+				after: {
+					status: to,
+					note: note ?? null,
+					...(withdrawn > 0 ? { approvalsWithdrawn: withdrawn } : {}),
+				},
 			},
 		};
 	});

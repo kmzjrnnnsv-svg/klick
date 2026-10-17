@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { schema } from "@/db";
+import { applyApprovalOutcome } from "@/lib/approvals/outcomes";
 import {
 	decide,
 	listRequestsForUser,
@@ -208,5 +209,140 @@ d("Freigabe-Ablauf (Postgres)", () => {
 			),
 		);
 		expect(byOwner.ok && byOwner.status).toBe("pending");
+	});
+	// Rohabfrage im Org-Kontext (FORCE RLS: ohne Kontext keine Zeilen).
+	const raw = (
+		fn: (tx: postgres.TransactionSql) => postgres.PendingQuery<postgres.Row[]>,
+	): Promise<postgres.Row[]> =>
+		client.begin(async (tx) => {
+			await tx`select set_config('app.org_id', ${orgId}, true)`;
+			return fn(tx);
+		}) as unknown as Promise<postgres.Row[]>;
+
+	// Zwei Freigaben (Compliance Ben, Leitung Anna) für ein Dokument der Cara.
+	const approveFully = async (id: string, version: string) => {
+		const r = await inOrg((tx) =>
+			requestApproval(
+				tx,
+				{ orgId, userId: users.cara, name: "Cara" },
+				{
+					kind: "document_publish",
+					entityType: "document",
+					entityId: id,
+					entityVersionRef: version,
+					title: "RL",
+					link: "/dokumente/RL",
+				},
+			),
+		);
+		if (!r.ok) throw new Error(`submit failed: ${r.error}`);
+		for (const [who, name] of [
+			[users.ben, "Ben"],
+			[users.anna, "Anna"],
+		] as const) {
+			const d = await inOrg((tx) =>
+				decide(
+					tx,
+					{ orgId, userId: who, name },
+					{ requestId: r.requestId, decision: "approved" },
+				),
+			);
+			if (!d.ok) throw new Error(`decide failed: ${d.error}`);
+			if (d.status === "approved")
+				await inOrg((tx) =>
+					applyApprovalOutcome(tx, { orgId, userId: who }, d),
+				);
+		}
+	};
+
+	const newDoc = (n: number, distribution: string[]) =>
+		inOrg(async (tx) => {
+			const [doc] = await tx
+				.insert(schema.documents)
+				.values({
+					organizationId: orgId,
+					docNumber: `RL-${(stamp % 1000) + n}`,
+					title: `Richtlinie ${n}`,
+					ownerUserId: users.cara,
+					authorUserId: users.cara,
+					status: "in_review",
+					version: "1.0",
+					bodyMarkdown: "Eingereichter Text",
+					distribution,
+				})
+				.returning({ id: schema.documents.id });
+			await tx.insert(schema.documentVersions).values({
+				organizationId: orgId,
+				documentId: doc?.id ?? "",
+				version: "1.0",
+				bodyMarkdown: "Eingereichter Text",
+				changeSummary: "Zur Prüfung eingereicht",
+				createdByUserId: users.cara,
+			});
+			return doc?.id ?? "";
+		});
+
+	it("letzte Freigabe macht das Dokument gültig — Kenntnisnahme nur im Verteiler", async () => {
+		const id = await newDoc(1, ["compliance"]);
+		await approveFully(id, "1.0");
+		const [doc] = await raw(
+			(tx) => tx`select status, effective_from from documents where id = ${id}`,
+		);
+		expect(doc?.status).toBe("published");
+		expect(doc?.effective_from).not.toBeNull();
+		const [v] = await raw(
+			(tx) => tx`
+			select body_markdown, approved_at, published_at from document_versions
+			where document_id = ${id} and version = '1.0'`,
+		);
+		expect(v?.body_markdown).toBe("Eingereichter Text");
+		expect(v?.approved_at).not.toBeNull();
+		expect(v?.published_at).not.toBeNull();
+		const acks = await raw(
+			(tx) => tx`select user_id from notifications
+				where kind = 'acknowledgement_due' and title like ${"%Richtlinie 1 v1.0"}`,
+		);
+		expect(acks.map((a) => a.user_id)).toEqual([users.ben]);
+	});
+
+	it("Freigabe einer überholten Version macht nichts gültig", async () => {
+		const id = await newDoc(2, ["all"]);
+		// zwischen Einreichen und Freigabe zurück in den Entwurf + neue Version
+		const r = await inOrg((tx) =>
+			requestApproval(
+				tx,
+				{ orgId, userId: users.cara, name: "Cara" },
+				{
+					kind: "document_publish",
+					entityType: "document",
+					entityId: id,
+					entityVersionRef: "0.9",
+					title: "RL",
+					link: "/dokumente/RL",
+				},
+			),
+		);
+		expect(r.ok).toBe(true);
+		if (!r.ok) return;
+		for (const [who, name] of [
+			[users.ben, "Ben"],
+			[users.anna, "Anna"],
+		] as const) {
+			const d = await inOrg((tx) =>
+				decide(
+					tx,
+					{ orgId, userId: who, name },
+					{ requestId: r.requestId, decision: "approved" },
+				),
+			);
+			if (d.ok && d.status === "approved")
+				await inOrg((tx) =>
+					applyApprovalOutcome(tx, { orgId, userId: who }, d),
+				);
+		}
+		const [doc] = await raw(
+			(tx) => tx`select status from documents where id = ${id}`,
+		);
+		expect(doc?.status).toBe("in_review");
 	});
 });

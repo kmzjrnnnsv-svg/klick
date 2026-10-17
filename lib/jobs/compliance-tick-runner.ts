@@ -35,6 +35,7 @@ import {
 	products,
 	providers,
 	regulatorInteractions,
+	roleAssignments,
 	securityEngagements,
 	securityFindings,
 	tasks,
@@ -55,6 +56,7 @@ import {
 import { planObligationRuns } from "@/lib/compliance/obligations-service";
 import { getOrgProfile } from "@/lib/compliance/queries";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
+import { inDistribution } from "@/lib/documents/publish";
 import { logger } from "@/lib/log";
 import {
 	collectDueItems,
@@ -116,6 +118,17 @@ async function loadDueRows(
 	const orgOwnerIds = members
 		.filter((m) => normalizeRole(m.role) === "owner")
 		.map((m) => m.userId);
+	// Funktionen je Person (Verteiler von Dokumenten kann Funktionen nennen)
+	const fnsByUser = new Map<string, string[]>();
+	for (const f of await tx
+		.select({ userId: roleAssignments.userId, fn: roleAssignments.function })
+		.from(roleAssignments)
+		.where(eq(roleAssignments.organizationId, orgId))) {
+		if (!f.userId) continue;
+		const list = fnsByUser.get(f.userId) ?? [];
+		list.push(f.fn);
+		fnsByUser.set(f.userId, list);
+	}
 
 	const controlReviews = await tx
 		.select({
@@ -363,14 +376,12 @@ async function loadDueRows(
 			);
 			if (!v) return [];
 			const audience = members
-				.filter((m) => {
-					const role = normalizeRole(m.role);
-					return (
-						d.distribution.length === 0 ||
-						d.distribution.includes("all") ||
-						d.distribution.includes(role)
-					);
-				})
+				.filter((m) =>
+					inDistribution(d.distribution, {
+						orgRole: m.role,
+						functions: fnsByUser.get(m.userId),
+					}),
+				)
 				.map((m) => m.userId);
 			const done = new Set(
 				acks.filter((a) => a.versionId === v.id).map((a) => a.userId),

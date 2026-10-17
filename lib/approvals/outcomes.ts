@@ -13,6 +13,7 @@ import type { AuditInput } from "@/lib/audit";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import type { OrgTx } from "@/lib/db/with-org";
+import { publishDocument } from "@/lib/documents/publish";
 import type { DecideResult } from "./service";
 
 // Wendet den Ausgang einer Freigabe auf die Entität an. Wird vom Entscheiden
@@ -28,11 +29,7 @@ export async function applyApprovalOutcome(
 	switch (r.entityType) {
 		case "document": {
 			const [doc] = await tx
-				.select({
-					id: documents.id,
-					status: documents.status,
-					version: documents.version,
-				})
+				.select()
 				.from(documents)
 				.where(
 					and(
@@ -42,11 +39,13 @@ export async function applyApprovalOutcome(
 				)
 				.limit(1);
 			if (!doc) return extra;
+			// Nur wenn genau die geprüfte Version noch in Prüfung ist — sonst
+			// (zurück in Entwurf, neue Version) macht die Freigabe nichts gültig.
+			const current =
+				doc.status === "in_review" &&
+				(r.entityVersionRef === null || r.entityVersionRef === doc.version);
+			if (!current) return extra;
 			if (approved) {
-				await tx
-					.update(documents)
-					.set({ status: "approved" })
-					.where(eq(documents.id, doc.id));
 				await tx
 					.update(documentVersions)
 					.set({ approvedByUserId: ctx.userId, approvedAt: new Date() })
@@ -56,6 +55,8 @@ export async function applyApprovalOutcome(
 							eq(documentVersions.version, doc.version),
 						),
 					);
+				// Letzte Freigabe = gültig (kein zweiter Klick „Veröffentlichen“).
+				extra.push(await publishDocument(tx, ctx, doc, "approval"));
 			} else {
 				await tx
 					.update(documents)
