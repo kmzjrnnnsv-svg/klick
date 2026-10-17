@@ -218,6 +218,10 @@ export function Field({
 	type = "text",
 	rows,
 	required,
+	pattern,
+	maxLength,
+	placeholder,
+	title,
 }: {
 	id: string;
 	label: string;
@@ -226,6 +230,11 @@ export function Field({
 	type?: string;
 	rows?: number;
 	required?: boolean;
+	// Browser-Validierung vor dem Absenden (title = Hinweis bei Verstoß)
+	pattern?: string;
+	maxLength?: number;
+	placeholder?: string;
+	title?: string;
 }) {
 	return (
 		<div className="flex flex-col gap-1.5">
@@ -244,6 +253,10 @@ export function Field({
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
 					required={required}
+					pattern={pattern}
+					maxLength={maxLength}
+					placeholder={placeholder}
+					title={title}
 				/>
 			)}
 		</div>
