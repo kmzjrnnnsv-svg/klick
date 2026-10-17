@@ -6,7 +6,7 @@ import { getSessionCtx } from "@/lib/auth/guards";
 export default async function EnrolPage() {
 	const ctx = await getSessionCtx();
 	if (!ctx) redirect("/login");
-	if (ctx.user.twoFactorEnabled) redirect("/heute");
+	if (ctx.user.twoFactorEnabled || ctx.user.hasPasskey) redirect("/heute");
 	const t = await getTranslations("Auth");
 	return (
 		<div className="flex flex-col gap-6">

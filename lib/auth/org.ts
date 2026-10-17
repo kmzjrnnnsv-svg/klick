@@ -1,9 +1,10 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { globalDb } from "@/db";
 import {
 	invitation,
 	member,
 	organization,
+	passkey,
 	session,
 	ssoProvider,
 	user,
@@ -66,6 +67,7 @@ export async function listOrgMembers(orgId: string) {
 				email: user.email,
 				role: member.role,
 				twoFactorEnabled: user.twoFactorEnabled,
+				passkeys: sql<number>`(select count(*)::int from ${passkey} where ${passkey.userId} = ${user.id})`,
 				createdAt: member.createdAt,
 			})
 			.from(member)

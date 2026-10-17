@@ -31,10 +31,25 @@ export type SessionLike = {
 };
 export type UserLike = {
 	twoFactorEnabled?: boolean | null;
+	// Passkey mit Nutzerverifikation gilt als vollständiger zweiter Faktor
+	// (ADR-019): Besitz des Geräts + Biometrie/PIN.
+	hasPasskey?: boolean | null;
 	banned?: boolean | null;
 };
 
 // Wirft den passenden Code oder nichts.
+// Eingerichtete Faktoren für Anzeigen (Team, Admin, Einstellungen):
+// „Passkey“, „TOTP“ oder beides; leer = noch kein zweiter Faktor.
+export function mfaFactors(u: {
+	twoFactorEnabled?: boolean | null;
+	passkeys?: number | null;
+}): ("Passkey" | "TOTP")[] {
+	const out: ("Passkey" | "TOTP")[] = [];
+	if ((u.passkeys ?? 0) > 0) out.push("Passkey");
+	if (u.twoFactorEnabled) out.push("TOTP");
+	return out;
+}
+
 export function checkSessionRules(
 	ctx: { session: SessionLike; user: UserLike },
 	now: number = Date.now(),
@@ -48,7 +63,8 @@ export function checkSessionRules(
 		throw new AuthError("session_expired");
 	}
 	if (ctx.user.banned) throw new AuthError("forbidden");
-	if (!ctx.user.twoFactorEnabled) throw new AuthError("mfa_enrol");
+	if (!ctx.user.twoFactorEnabled && !ctx.user.hasPasskey)
+		throw new AuthError("mfa_enrol");
 	if (!s.mfaVerifiedAt) throw new AuthError("mfa_required");
 }
 

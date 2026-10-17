@@ -7,6 +7,7 @@ import { auditPlatform } from "@/lib/audit";
 import type { OrgCtx } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
 import { env } from "@/lib/env";
+import { userHasPasskey } from "./endpoint-guard";
 import { primaryMembershipCount as countPrimary } from "./memberships";
 import { memberAccessFor } from "./org";
 import { type OrgRole, type Resource, roleAllows } from "./permissions";
@@ -52,6 +53,7 @@ type SessionRow = AuthSession["session"] & {
 };
 type UserRow = AuthSession["user"] & {
 	twoFactorEnabled?: boolean | null;
+	hasPasskey?: boolean;
 	role?: string | null;
 	banned?: boolean | null;
 };
@@ -67,9 +69,13 @@ export async function getSessionCtx(): Promise<SessionCtx | null> {
 	const h = await headers();
 	const res = await auth.api.getSession({ headers: h });
 	if (!res) return null;
+	const u = res.user as UserRow;
+	// Passkeys nur zählen, wenn kein TOTP da ist — spart die Abfrage im
+	// Normalfall; die MFA-Regel braucht nur „irgendein Faktor“.
+	const hasPasskey = u.twoFactorEnabled ? false : await userHasPasskey(u.id);
 	return {
 		session: res.session as SessionRow,
-		user: res.user as UserRow,
+		user: { ...u, hasPasskey },
 		ip: ipFromHeaders(h),
 		userAgent: h.get("user-agent"),
 	};

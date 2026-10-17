@@ -23,6 +23,7 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { normalizeRole, toOrgCtx } from "@/lib/auth/guards";
 import { isExternal } from "@/lib/auth/memberships";
 import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
+import { mfaFactors } from "@/lib/auth/session-rules";
 import { listControlRows, listTasks } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
 
@@ -136,8 +137,10 @@ export default async function TeamPage() {
 										{workload(m.userId)}
 									</TableCell>
 									<TableCell>
-										{m.twoFactorEnabled ? (
-											<Badge variant="success">aktiv</Badge>
+										{mfaFactors(m).length > 0 ? (
+											<Badge variant="success">
+												{mfaFactors(m).join(" + ")}
+											</Badge>
 										) : (
 											<Badge variant="muted">offen</Badge>
 										)}

@@ -135,14 +135,21 @@ export const auth = betterAuth({
 	databaseHooks: {
 		session: {
 			create: {
-				async before(session) {
+				async before(session, ctx) {
 					// Aktive Org: die eigene Mitgliedschaft, sonst der zuletzt
 					// begonnene gültige Berater-Zugang (ADR-018).
 					const memberships = await listUserMemberships(session.userId);
+					// Passkey-Anmeldung (Nutzerverifikation geprüft in
+					// authentication.afterVerification) = zweiter Faktor erfüllt.
+					const viaPasskey =
+						ctx?.path === "/passkey/verify-authentication" ||
+						ctx?.path === "/passkey/verify-registration";
+					const now = new Date();
 					return {
 						data: {
 							...session,
 							activeOrganizationId: pickActiveMembership(memberships),
+							...(viaPasskey ? { mfaVerifiedAt: now, lastActiveAt: now } : {}),
 						},
 					};
 				},
@@ -419,9 +426,21 @@ export const auth = betterAuth({
 			rpID: process.env.PASSKEY_RP_ID ?? new URL(baseURL).hostname,
 			rpName: process.env.PASSKEY_RP_NAME ?? "Klick",
 			origin: baseURL,
+			// Passkey zuerst (ADR-019): auffindbar (Anmeldung ohne Adresse) und
+			// mit Nutzerverifikation (Biometrie/PIN) — nur dann zählt er als
+			// vollständiger zweiter Faktor.
 			authenticatorSelection: {
-				residentKey: "preferred",
-				userVerification: "preferred",
+				residentKey: "required",
+				userVerification: "required",
+			},
+			authentication: {
+				async afterVerification({ verification }) {
+					if (!verification.authenticationInfo.userVerified)
+						throw new APIError("UNAUTHORIZED", {
+							code: "USER_VERIFICATION_REQUIRED",
+							message: "user_verification_required",
+						});
+				},
 			},
 		}),
 

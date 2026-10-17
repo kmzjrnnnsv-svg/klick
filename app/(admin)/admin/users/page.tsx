@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { requirePlatformAdminPage } from "@/lib/auth/gates";
 import { isExternal, roleLabel } from "@/lib/auth/memberships";
-import { normalizeRole } from "@/lib/auth/session-rules";
+import { mfaFactors, normalizeRole } from "@/lib/auth/session-rules";
 import { listUserMemberships, listUsers } from "@/lib/db/global";
 
 export default async function AdminUsersPage() {
@@ -88,8 +88,8 @@ export default async function AdminUsersPage() {
 								)}
 							</TableCell>
 							<TableCell>
-								{u.twoFactorEnabled ? (
-									<Badge variant="success">aktiv</Badge>
+								{mfaFactors(u).length > 0 ? (
+									<Badge variant="success">{mfaFactors(u).join(" + ")}</Badge>
 								) : (
 									<Badge variant="muted">offen</Badge>
 								)}

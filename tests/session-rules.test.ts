@@ -6,6 +6,7 @@ import {
 	IDLE_SESSION_MS,
 	ipFromHeaders,
 	isStepUpFresh,
+	mfaFactors,
 	normalizeRole,
 	STEP_UP_MS,
 } from "@/lib/auth/session-rules";
@@ -79,6 +80,28 @@ describe("checkSessionRules", () => {
 			),
 		).toBe("mfa_required");
 	});
+	it("Passkey (mit Nutzerverifikation) erfüllt die MFA-Pflicht", () => {
+		expect(
+			code(() =>
+				checkSessionRules(
+					{ ...ok, user: { twoFactorEnabled: false, hasPasskey: true } },
+					now,
+				),
+			),
+		).toBeNull();
+		// Faktor vorhanden, aber in dieser Sitzung nicht bestätigt
+		expect(
+			code(() =>
+				checkSessionRules(
+					{
+						session: { ...ok.session, mfaVerifiedAt: null },
+						user: { twoFactorEnabled: false, hasPasskey: true },
+					},
+					now,
+				),
+			),
+		).toBe("mfa_required");
+	});
 	it("gesperrte Nutzer:innen sind forbidden", () => {
 		expect(
 			code(() =>
@@ -141,5 +164,16 @@ describe("ipFromHeaders", () => {
 			ipFromHeaders(new Headers({ "x-forwarded-for": "2.2.2.2, 3.3.3.3" })),
 		).toBe("2.2.2.2");
 		expect(ipFromHeaders(new Headers())).toBeNull();
+	});
+});
+
+describe("mfaFactors", () => {
+	it("nennt Passkey und TOTP, leer ohne Faktor", () => {
+		expect(mfaFactors({ twoFactorEnabled: false, passkeys: 0 })).toEqual([]);
+		expect(mfaFactors({ twoFactorEnabled: true })).toEqual(["TOTP"]);
+		expect(mfaFactors({ twoFactorEnabled: true, passkeys: 2 })).toEqual([
+			"Passkey",
+			"TOTP",
+		]);
 	});
 });

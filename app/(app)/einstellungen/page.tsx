@@ -210,7 +210,9 @@ export default async function SettingsPage({
 				</TabsList>
 				<TabsContent value="security" className="flex flex-col gap-6">
 					<SecurityPanel
-						mfaEnabled={Boolean(sctx?.user.twoFactorEnabled)}
+						mfaEnabled={
+							Boolean(sctx?.user.twoFactorEnabled) || passkeys.length > 0
+						}
 						sessions={sessions.map((s) => ({
 							id: s.id,
 							token: s.token,

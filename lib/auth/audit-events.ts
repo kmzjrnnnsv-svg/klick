@@ -88,6 +88,27 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 			return;
 		}
 
+		// Passkey-Anmeldung: neue Sitzung mit erfülltem zweitem Faktor
+		// (databaseHooks.session.create.before). Eine mitgeschickte ältere
+		// Sitzung — etwa vom Mail-Link — wird beendet, sonst bliebe sie ohne
+		// MFA bestehen.
+		if (path === "/passkey/verify-authentication" && !failed && newSession) {
+			const old = await ctx
+				.getSignedCookie(
+					ctx.context.authCookies.sessionToken.name,
+					ctx.context.secret,
+				)
+				.catch(() => null);
+			if (old && old !== newSession.session.token)
+				await ctx.context.internalAdapter.deleteSession(old);
+			await auditPlatform(actor, {
+				action: "auth.2fa_verified",
+				target: `session:${newSession.session.id}`,
+				after: { method: "passkey" },
+			});
+			return;
+		}
+
 		// Passkeys verwalten (die Anmeldung selbst protokolliert
 		// databaseHooks.session.create bzw. unten der Fehlschlag).
 		if (
