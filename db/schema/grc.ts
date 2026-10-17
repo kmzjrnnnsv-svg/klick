@@ -913,6 +913,65 @@ export const incidentUpdates = pgTable(
 	],
 ).enableRLS();
 
+// Betroffene Assets, Dienstleister (IKT-Drittanbieter) und Prozesse eines
+// Vorfalls — DORA Art. 19 / ITS-Meldevorlage verlangen sie im Bericht.
+export const incidentAssets = pgTable(
+	"incident_assets",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		incidentId: uuid()
+			.notNull()
+			.references(() => incidents.id, { onDelete: "cascade" }),
+		assetId: uuid()
+			.notNull()
+			.references(() => assets.id, { onDelete: "cascade" }),
+	},
+	(t) => [
+		unique().on(t.incidentId, t.assetId),
+		index("incident_assets_asset_idx").on(t.assetId),
+		orgPolicy("incident_assets"),
+	],
+).enableRLS();
+
+export const incidentProviders = pgTable(
+	"incident_providers",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		incidentId: uuid()
+			.notNull()
+			.references(() => incidents.id, { onDelete: "cascade" }),
+		providerId: uuid()
+			.notNull()
+			.references(() => providers.id, { onDelete: "cascade" }),
+	},
+	(t) => [
+		unique().on(t.incidentId, t.providerId),
+		index("incident_providers_provider_idx").on(t.providerId),
+		orgPolicy("incident_providers"),
+	],
+).enableRLS();
+
+export const incidentProcesses = pgTable(
+	"incident_processes",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		incidentId: uuid()
+			.notNull()
+			.references(() => incidents.id, { onDelete: "cascade" }),
+		processId: uuid()
+			.notNull()
+			.references(() => processes.id, { onDelete: "cascade" }),
+	},
+	(t) => [
+		unique().on(t.incidentId, t.processId),
+		index("incident_processes_process_idx").on(t.processId),
+		orgPolicy("incident_processes"),
+	],
+).enableRLS();
+
 export const lossEvents = pgTable(
 	"loss_events",
 	{

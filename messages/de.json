@@ -769,6 +769,9 @@
 		"soloSubmit": "Selbst freigeben"
 	},
 	"Entity": {
+		"linksFilter": "Filtern …",
+		"linksNone": "Noch nichts angelegt.",
+		"linksNoMatch": "Kein Treffer.",
 		"search": "Suchen …",
 		"all": "alle",
 		"clearFilters": "Filter zurücksetzen",
@@ -833,6 +836,14 @@
 		"linkedFallback": "verknüpftem Eintrag"
 	},
 	"Controls": {
+		"usedIn": "Verwendet in",
+		"usedInEmpty": "Noch nirgends verknüpft. Risiken, Dokumente und Prozesse verweisen über ihre Verknüpfungen hierher.",
+		"usedInRisks": "Risiken (Maßnahme)",
+		"usedInDocuments": "Dokumente",
+		"usedInProcesses": "Prozesse",
+		"usedInMilestones": "Roadmap",
+		"usedInExceptions": "Ausnahmen",
+		"usedInFindings": "Audit-Findings",
 		"outOfScope": "Nicht im Umfang deiner Organisation",
 		"outOfScopeLead": "Dieses Control gehört zu {frameworks}. Aktiviere eines dieser Rahmenwerke, dann legt Klick es in deinem Arbeitsvorrat an.",
 		"title": "Controls",
@@ -1029,6 +1040,12 @@
 		"onlyControls": "Controls nur für {fw}"
 	},
 	"Evidence": {
+		"assign": "Vorhandene zuordnen",
+		"assignTitle": "Nachweise zuordnen",
+		"assignLead": "Hak an, welche vorhandenen Nachweise dieses Control belegen. Abgewählte werden nur gelöst — die Datei bleibt erhalten.",
+		"assigned": "Zuordnung gespeichert.",
+		"deleteTitle": "„{title}“ löschen?",
+		"deleteLead": "Der Nachweis verschwindet bei allen Controls. Die Datei wird nach der Backup-Aufbewahrung endgültig gelöscht. Dafür bestätigst du kurz mit deinem zweiten Faktor.",
 		"title": "Nachweise",
 		"lead": "Jeder Nachweis gehört deiner Organisation, ist verschlüsselt gespeichert und wird nur auditiert ausgeliefert.",
 		"new": "Nachweis",
@@ -1088,6 +1105,9 @@
 		"assets": "Assets der Plattform"
 	},
 	"Risks": {
+		"links": "Verknüpfungen",
+		"linksEmpty": "Noch keine Controls, Assets oder Prozesse verknüpft.",
+		"processes": "Prozesse",
 		"title": "Risiken",
 		"lead": "Asset- und prozessbezogene Risiken, bewertet auf der 5×5-Matrix, gegen den Risikoappetit der Organisation.",
 		"tabRegister": "Register",
@@ -1174,6 +1194,11 @@
 		"importTitle": "Risiken importieren"
 	},
 	"Documents": {
+		"editControls": "Controls zuordnen",
+		"editControlsLead": "Welche Controls setzt dieses Dokument um oder belegt es? Die Zuordnung erscheint am Control unter „Verwendet in“.",
+		"linksSaved": "Zuordnung gespeichert.",
+		"processes": "Prozesse",
+		"processesHint": "Prozesse verknüpfst du am Prozess selbst.",
 		"title": "Dokumente",
 		"lead": "Richtlinien, Verfahren, Konzepte, Pläne — mit Nummer, Eigner:in, Version, Freigabe und Kenntnisnahme.",
 		"new": "Dokument",
@@ -1242,6 +1267,15 @@
 		"importHint": "PDF, Word, Excel, PowerPoint, Text oder Markdown — bis 25 MB je Datei. Text und Markdown werden direkt als Inhalt übernommen."
 	},
 	"Incidents": {
+		"affected": "Betroffen",
+		"affectedLead": "Welche Assets, IKT-Dienstleister und Prozesse betrifft der Vorfall? DORA Art. 19 fragt danach in der Meldung.",
+		"affectedEmpty": "Noch nichts zugeordnet — wähle die betroffenen Assets, Dienstleister und Prozesse.",
+		"affectedAssets": "Assets",
+		"affectedProviders": "Dienstleister",
+		"affectedProcesses": "Prozesse",
+		"affectedSaved": "Zuordnung gespeichert.",
+		"editAffected": "Betroffene zuordnen",
+		"nonconformities": "Abweichungen",
 		"title": "Vorfälle",
 		"lead": "Erfassen in drei Feldern, dann laufen die Uhren — je Regime (DORA, NIS2, DSGVO).",
 		"new": "Vorfall melden",
@@ -1438,6 +1472,7 @@
 		"exportSupplierPackHint": "Was Banken von uns als IKT-Dienstleister verlangen: Registerdatenblatt, Art.-30-Anhang, Ausstiegs- und Notfallplan, Testate, Versicherungen, Subunternehmer, Vorfallmeldung. Step-up nötig."
 	},
 	"Assets": {
+		"relatedRisksIncidents": "Risiken · Vorfälle",
 		"processes": "Prozesse",
 		"title": "Assets",
 		"lead": "Systeme, Anwendungen, Daten, Dienste, Geräte, Standorte — und Schlüsselmaterial.",
@@ -1601,6 +1636,7 @@
 		"other": "Sonstige Funktion"
 	},
 	"Processes": {
+		"incidents": "Vorfälle",
 		"title": "Prozesse",
 		"lead": "Prozesslandkarte mit Verantwortlichen (RACI), Business-Impact-Analyse und Verknüpfungen zu Controls, Systemen, Dienstleistern, Risiken und Dokumenten. Daraus entstehen die Liste kritischer Funktionen und die Abhängigkeitskarte.",
 		"new": "Prozess",
@@ -3411,6 +3447,8 @@
 		"submitted": "Eingereicht – danke!"
 	},
 	"Suppliers": {
+		"incidents": "Vorfälle",
+		"incidentsEmpty": "Kein Vorfall betrifft diesen Dienstleister.",
 		"toRegister": "Zum Register",
 		"tab_stammdaten": "Stammdaten",
 		"tab_bewertungen": "Bewertungen",

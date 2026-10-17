@@ -3,6 +3,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
+	assets,
 	controls,
 	exceptions,
 	lossEvents,
@@ -18,6 +19,7 @@ import { approvalDetail, requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { assessRisk, nextRiskCode } from "@/lib/compliance/risk";
 import { lockOrgSequence } from "@/lib/db/org-sequence";
+import { ownedIds } from "@/lib/db/owned";
 import { mutateOrg } from "@/lib/db/with-org";
 import { RISK_STATUS } from "@/lib/entities/risk";
 import { canTransition } from "@/lib/entities/status-machine";
@@ -156,11 +158,12 @@ async function updateRiskImpl(input: unknown): Promise<ActionResult> {
 		}
 		if (assetIds) {
 			await tx.delete(riskAssets).where(eq(riskAssets.riskId, riskId));
-			if (assetIds.length > 0)
+			const own = await ownedIds(tx, assets, c.orgId, assetIds);
+			if (own.length > 0)
 				await tx
 					.insert(riskAssets)
 					.values(
-						assetIds.map((assetId) => ({
+						own.map((assetId) => ({
 							organizationId: c.orgId,
 							riskId,
 							assetId,

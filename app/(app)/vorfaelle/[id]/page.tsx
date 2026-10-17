@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { ActivityStream } from "@/components/entity/activity-stream";
+import { BackLinks } from "@/components/entity/back-links";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
 	EntityLayout,
@@ -17,6 +18,7 @@ import { WatchButton } from "@/components/entity/watch-button";
 import { IncidentClocks } from "@/components/incidents/incident-clocks";
 import {
 	ClassifyForm,
+	IncidentLinksEditor,
 	IncidentUpdateForm,
 	MitigationButton,
 } from "@/components/incidents/incident-forms";
@@ -44,7 +46,13 @@ import {
 	listWatcherIds,
 	userNames,
 } from "@/lib/compliance/queries";
-import { getIncident } from "@/lib/compliance/queries-p2";
+import { incidentLinks } from "@/lib/compliance/queries-links";
+import {
+	getIncident,
+	listAssets,
+	listProviders,
+} from "@/lib/compliance/queries-p2";
+import { listProcesses } from "@/lib/compliance/queries-p3";
 import { listProductOptions } from "@/lib/compliance/queries-products";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
@@ -83,6 +91,8 @@ export default async function IncidentDetailPage({
 			approval,
 			candidates,
 			dels,
+			links,
+			options,
 		] = await Promise.all([
 			listComments(tx, ctx.orgId, "incident", id),
 			historyFor(tx, `incident:${id}`),
@@ -92,6 +102,14 @@ export default async function IncidentDetailPage({
 			latestRequestFor(tx, ctx.orgId, "incident", id),
 			loadCandidates(tx, ctx.orgId),
 			activeDelegations(tx, ctx.orgId),
+			incidentLinks(tx, ctx.orgId, id),
+			roleAllows(ctx.orgRole, { incident: ["update"] })
+				? Promise.all([
+						listAssets(tx, ctx.orgId),
+						listProviders(tx, ctx.orgId),
+						listProcesses(tx, ctx.orgId),
+					])
+				: Promise.resolve(null),
 		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
@@ -110,6 +128,8 @@ export default async function IncidentDetailPage({
 			candidates,
 			dels,
 			names,
+			links,
+			options,
 		};
 	});
 	if (!data) notFound();
@@ -125,6 +145,8 @@ export default async function IncidentDetailPage({
 		candidates,
 		dels,
 		names,
+		links,
+		options,
 	} = data;
 	const canEdit = roleAllows(ctx.orgRole, { incident: ["update"] });
 	const regimes = incident.regimes as IncidentRegime[];
@@ -446,6 +468,76 @@ export default async function IncidentDetailPage({
 					/>
 				</Section>
 			)}
+
+			<Section
+				id="betroffen"
+				title={t("affected")}
+				actions={
+					canEdit && options ? (
+						<IncidentLinksEditor
+							incidentId={incident.id}
+							assets={options[0].map((a) => ({
+								id: a.id,
+								label: a.name,
+								hint: a.type,
+							}))}
+							providers={options[1].map((p) => ({
+								id: p.id,
+								label: p.name,
+							}))}
+							processes={options[2].map((p) => ({
+								id: p.id,
+								label: `${p.code} ${p.name}`,
+							}))}
+							linked={{
+								assets: links.assets.map((a) => a.id),
+								providers: links.providers.map((p) => p.id),
+								processes: links.processes.map((p) => p.id),
+							}}
+						/>
+					) : undefined
+				}
+			>
+				<BackLinks
+					empty={t("affectedEmpty")}
+					groups={[
+						{
+							label: t("affectedAssets"),
+							items: links.assets.map((a) => ({
+								key: a.id,
+								label: a.name,
+								href: `/assets?q=${encodeURIComponent(a.name)}`,
+							})),
+						},
+						{
+							label: t("affectedProviders"),
+							items: links.providers.map((p) => ({
+								key: p.id,
+								label: p.name,
+								href: `/dienstleister/${p.id}`,
+							})),
+						},
+						{
+							label: t("affectedProcesses"),
+							items: links.processes.map((p) => ({
+								key: p.id,
+								label: p.code,
+								title: p.name,
+								href: `/prozesse/${encodeURIComponent(p.code)}`,
+							})),
+						},
+						{
+							label: t("nonconformities"),
+							items: links.nonconformities.map((n) => ({
+								key: n.id,
+								label: n.code,
+								title: n.title,
+								href: `/abweichungen/${n.id}`,
+							})),
+						},
+					]}
+				/>
+			</Section>
 
 			<Section title={t("updates")}>
 				{incident.rootCause && (

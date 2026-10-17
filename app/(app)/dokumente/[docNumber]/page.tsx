@@ -1,13 +1,14 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { AckButton } from "@/components/documents/ack-button";
 import {
+	DocumentControlsEditor,
 	DocumentEditor,
 	NewVersionDialog,
 } from "@/components/documents/document-forms";
 import { ActivityStream } from "@/components/entity/activity-stream";
+import { BackLinks } from "@/components/entity/back-links";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
 	EntityLayout,
@@ -32,10 +33,12 @@ import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
 	listComments,
+	listControlRows,
 	listMembersForPicker,
 	listWatcherIds,
 	userNames,
 } from "@/lib/compliance/queries";
+import { processesForDocument } from "@/lib/compliance/queries-links";
 import { getDocumentByNumber } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { diffLines } from "@/lib/documents/diff";
@@ -59,16 +62,29 @@ export default async function DocumentDetailPage({
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getDocumentByNumber(tx, ctx.orgId, docNumber);
 		if (!d) return null;
-		const [comments, history, watcherIds, members, approval, candidates, dels] =
-			await Promise.all([
-				listComments(tx, ctx.orgId, "document", d.doc.id),
-				historyFor(tx, `document:${d.doc.id}`),
-				listWatcherIds(tx, ctx.orgId, "document", d.doc.id),
-				listMembersForPicker(tx, ctx.orgId),
-				latestRequestFor(tx, ctx.orgId, "document", d.doc.id),
-				loadCandidates(tx, ctx.orgId),
-				activeDelegations(tx, ctx.orgId),
-			]);
+		const [
+			comments,
+			history,
+			watcherIds,
+			members,
+			approval,
+			candidates,
+			dels,
+			linkedProcesses,
+			controlOptions,
+		] = await Promise.all([
+			listComments(tx, ctx.orgId, "document", d.doc.id),
+			historyFor(tx, `document:${d.doc.id}`),
+			listWatcherIds(tx, ctx.orgId, "document", d.doc.id),
+			listMembersForPicker(tx, ctx.orgId),
+			latestRequestFor(tx, ctx.orgId, "document", d.doc.id),
+			loadCandidates(tx, ctx.orgId),
+			activeDelegations(tx, ctx.orgId),
+			processesForDocument(tx, ctx.orgId, d.doc.id),
+			roleAllows(ctx.orgRole, { document: ["update"] })
+				? listControlRows(tx, ctx.orgId)
+				: Promise.resolve([]),
+		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
@@ -85,6 +101,8 @@ export default async function DocumentDetailPage({
 			candidates,
 			dels,
 			names,
+			linkedProcesses,
+			controlOptions,
 		};
 	});
 	if (!data) notFound();
@@ -101,6 +119,8 @@ export default async function DocumentDetailPage({
 		candidates,
 		dels,
 		names,
+		linkedProcesses,
+		controlOptions,
 	} = data;
 	const canEdit = roleAllows(ctx.orgRole, { document: ["update"] });
 	const e = env();
@@ -212,27 +232,44 @@ export default async function DocumentDetailPage({
 							}}
 						/>
 					</Section>
-					<Section title={t("controls")}>
-						{controls.length === 0 ? (
-							<p className="text-muted-foreground text-sm">—</p>
-						) : (
-							<ul className="flex flex-wrap gap-1.5">
-								{controls.map((c) => (
-									<Link
-										key={c.code}
-										href={`/controls/${c.code}`}
-										title={c.title}
-									>
-										<Badge
-											variant="outline"
-											className="font-mono normal-case tracking-normal"
-										>
-											{c.code}
-										</Badge>
-									</Link>
-								))}
-							</ul>
-						)}
+					<Section
+						title={t("controls")}
+						actions={
+							canEdit ? (
+								<DocumentControlsEditor
+									documentId={doc.id}
+									controls={controlOptions.map((c) => ({
+										id: c.code,
+										label: `${c.code} ${c.title}`,
+									}))}
+									linked={controls.map((c) => c.code)}
+								/>
+							) : undefined
+						}
+					>
+						<BackLinks
+							empty="—"
+							groups={[
+								{
+									label: t("controls"),
+									items: controls.map((c) => ({
+										key: c.code,
+										label: c.code,
+										title: c.title,
+										href: `/controls/${c.code}`,
+									})),
+								},
+								{
+									label: t("processes"),
+									items: linkedProcesses.map((p) => ({
+										key: p.code,
+										label: p.code,
+										title: p.name,
+										href: `/prozesse/${encodeURIComponent(p.code)}`,
+									})),
+								},
+							]}
+						/>
 						{doc.legalBasisRefs.length > 0 && (
 							<p className="text-muted-foreground text-xs">
 								{t("requirements")}: {doc.legalBasisRefs.join(" · ")}

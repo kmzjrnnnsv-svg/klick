@@ -213,6 +213,14 @@ export const incidentUpdateSchema = z.object({
 	rootCause: z.string().trim().max(4000).optional(),
 });
 
+// Betroffene Assets, Dienstleister, Prozesse (DORA Art. 19) — ersetzt je Art.
+export const setIncidentLinksSchema = z.object({
+	incidentId: uuid,
+	assetIds: z.array(uuid).max(200),
+	providerIds: z.array(uuid).max(200),
+	processIds: z.array(uuid).max(200),
+});
+
 export const setIncidentStatusSchema = z.object({
 	incidentId: uuid,
 	status: z.enum(INCIDENT_STATUSES),

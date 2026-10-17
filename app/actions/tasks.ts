@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { tasks } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { isOrgMember } from "@/lib/db/owned";
 import { mutateOrg } from "@/lib/db/with-org";
 import { canTransition } from "@/lib/entities/status-machine";
 import { TASK_STATUS } from "@/lib/entities/task";
@@ -19,7 +20,9 @@ async function createTaskImpl(
 	const parsed = createTaskSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
-	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
+	const id = await mutateOrg<string | null>(toOrgCtx(c), async (tx) => {
+		if (d.assigneeUserId && !(await isOrgMember(tx, c.orgId, d.assigneeUserId)))
+			return { result: null, audit: [] };
 		const [row] = await tx
 			.insert(tasks)
 			.values({
@@ -58,6 +61,7 @@ async function createTaskImpl(
 			},
 		};
 	});
+	if (!id) return { ok: false, error: "notMember" };
 	revalidatePath("/heute", "layout");
 	return { ok: true, data: { id } };
 }

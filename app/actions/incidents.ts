@@ -3,9 +3,15 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
+	assets,
+	incidentAssets,
+	incidentProcesses,
+	incidentProviders,
 	incidents,
 	incidentUpdates,
+	processes,
 	products,
+	providers,
 	roleAssignments,
 	tasks,
 } from "@/db/schema";
@@ -25,6 +31,7 @@ import {
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import { lockOrgSequence } from "@/lib/db/org-sequence";
+import { ownedIds } from "@/lib/db/owned";
 import { mutateOrg } from "@/lib/db/with-org";
 import { INCIDENT_STATUS } from "@/lib/entities/incident";
 import { canTransition } from "@/lib/entities/status-machine";
@@ -36,6 +43,7 @@ import {
 	incidentMitigationSchema,
 	incidentReportSchema,
 	incidentUpdateSchema,
+	setIncidentLinksSchema,
 	setIncidentStatusSchema,
 } from "@/lib/validation/registers";
 
@@ -631,6 +639,87 @@ async function setIncidentStatusImpl(
 
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
+// Betroffene Assets, Dienstleister und Prozesse: je Art komplett ersetzen,
+// nur IDs der eigenen Org (FK-Prüfungen umgehen RLS).
+async function setIncidentLinksImpl(input: unknown): Promise<ActionResult> {
+	const c = await requireOrg({ incident: ["update"] });
+	const parsed = setIncidentLinksSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const ok = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select({ id: incidents.id })
+			.from(incidents)
+			.where(
+				and(
+					eq(incidents.id, d.incidentId),
+					eq(incidents.organizationId, c.orgId),
+				),
+			)
+			.limit(1);
+		if (!row) return { result: false, audit: [] };
+		const before = {
+			assets: (
+				await tx
+					.select({ id: incidentAssets.assetId })
+					.from(incidentAssets)
+					.where(eq(incidentAssets.incidentId, row.id))
+			).map((x) => x.id),
+			providers: (
+				await tx
+					.select({ id: incidentProviders.providerId })
+					.from(incidentProviders)
+					.where(eq(incidentProviders.incidentId, row.id))
+			).map((x) => x.id),
+			processes: (
+				await tx
+					.select({ id: incidentProcesses.processId })
+					.from(incidentProcesses)
+					.where(eq(incidentProcesses.incidentId, row.id))
+			).map((x) => x.id),
+		};
+		const after = {
+			assets: await ownedIds(tx, assets, c.orgId, d.assetIds),
+			providers: await ownedIds(tx, providers, c.orgId, d.providerIds),
+			processes: await ownedIds(tx, processes, c.orgId, d.processIds),
+		};
+		await tx
+			.delete(incidentAssets)
+			.where(eq(incidentAssets.incidentId, row.id));
+		await tx
+			.delete(incidentProviders)
+			.where(eq(incidentProviders.incidentId, row.id));
+		await tx
+			.delete(incidentProcesses)
+			.where(eq(incidentProcesses.incidentId, row.id));
+		const base = { organizationId: c.orgId, incidentId: row.id };
+		if (after.assets.length > 0)
+			await tx
+				.insert(incidentAssets)
+				.values(after.assets.map((assetId) => ({ ...base, assetId })));
+		if (after.providers.length > 0)
+			await tx
+				.insert(incidentProviders)
+				.values(after.providers.map((providerId) => ({ ...base, providerId })));
+		if (after.processes.length > 0)
+			await tx
+				.insert(incidentProcesses)
+				.values(after.processes.map((processId) => ({ ...base, processId })));
+		return {
+			result: true,
+			audit: {
+				action: "incident.links",
+				target: `incident:${row.id}`,
+				before,
+				after,
+			},
+		};
+	});
+	if (!ok) return { ok: false, error: "notFound" };
+	revalidatePath(`/vorfaelle/${d.incidentId}`);
+	return { ok: true, data: undefined };
+}
+
 export const createIncident = safeAction("createIncident", createIncidentImpl);
 export const classifyIncident = safeAction(
 	"classifyIncident",
@@ -647,6 +736,10 @@ export const markMitigationAvailable = safeAction(
 export const addIncidentUpdate = safeAction(
 	"addIncidentUpdate",
 	addIncidentUpdateImpl,
+);
+export const setIncidentLinks = safeAction(
+	"setIncidentLinks",
+	setIncidentLinksImpl,
 );
 export const setIncidentStatus = safeAction(
 	"setIncidentStatus",

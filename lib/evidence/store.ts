@@ -241,6 +241,12 @@ export async function linkEvidenceToControl(
 		)
 		.limit(1);
 	if (!impl) throw new Error("implementation not found");
+	const [ev] = await tx
+		.select({ id: evidence.id })
+		.from(evidence)
+		.where(and(eq(evidence.id, evidenceId), eq(evidence.organizationId, orgId)))
+		.limit(1);
+	if (!ev) throw new Error("evidence not found");
 	await tx
 		.insert(controlEvidence)
 		.values({ organizationId: orgId, implementationId, evidenceId })

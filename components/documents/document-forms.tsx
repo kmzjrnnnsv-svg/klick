@@ -13,6 +13,7 @@ import {
 	updateDocument,
 } from "@/app/actions/documents";
 import { uploadEvidence } from "@/app/actions/evidence";
+import { type LinkOption, LinksDialog } from "@/components/entity/links-dialog";
 import { useUploadFeedback } from "@/components/entity/upload-feedback";
 import { MarkdownView } from "@/components/markdown-view";
 import { Badge } from "@/components/ui/badge";
@@ -550,5 +551,44 @@ export function NewVersionDialog({ documentId }: { documentId: string }) {
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+// Dokument ↔ Control: welche Controls dieses Dokument umsetzt bzw. belegt.
+// Prozesse verknüpft der Prozess selbst (eine Stelle je Kante).
+export function DocumentControlsEditor({
+	documentId,
+	controls,
+	linked,
+}: {
+	documentId: string;
+	controls: LinkOption[];
+	linked: string[];
+}) {
+	const t = useTranslations("Documents");
+	const tc = useTranslations("Common");
+	const router = useRouter();
+	return (
+		<LinksDialog
+			triggerLabel={t("editControls")}
+			title={t("controls")}
+			lead={t("editControlsLead")}
+			groups={[
+				{ key: "controls", title: t("controls"), options: controls, linked },
+			]}
+			onSave={async (sel) => {
+				const res = await updateDocument({
+					documentId,
+					controlCodes: sel.controls ?? [],
+				});
+				if (!res.ok) {
+					toast.error(tc("error"));
+					return false;
+				}
+				toast.success(t("linksSaved"));
+				router.refresh();
+				return true;
+			}}
+		/>
 	);
 }

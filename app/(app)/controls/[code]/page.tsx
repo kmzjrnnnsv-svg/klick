@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ActivityStream } from "@/components/entity/activity-stream";
+import { BackLinks } from "@/components/entity/back-links";
 import { CommentForm } from "@/components/entity/comment-form";
 import { ControlTestForm } from "@/components/entity/control-test-form";
 import { EmptyState } from "@/components/entity/empty-state";
@@ -10,6 +11,10 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import {
+	ControlEvidencePicker,
+	DeleteEvidenceButton,
+} from "@/components/entity/evidence-actions";
 import { EvidenceForm } from "@/components/entity/evidence-form";
 import { OwnerAssignee } from "@/components/entity/owner-assignee";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
@@ -39,12 +44,14 @@ import {
 import {
 	getControlRowByCode,
 	listComments,
+	listEvidence,
 	listEvidenceForImplementation,
 	listMembersForPicker,
 	listTasks,
 	listWatcherIds,
 	userNames,
 } from "@/lib/compliance/queries";
+import { controlUsage } from "@/lib/compliance/queries-links";
 import { listControlTests } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
@@ -73,19 +80,32 @@ export default async function ControlDetailPage({
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const row = await getControlRowByCode(tx, ctx.orgId, code);
 		if (!row) return null;
-		const [evidence, tasks, comments, history, watcherIds, members, tests] =
-			await Promise.all([
-				listEvidenceForImplementation(tx, ctx.orgId, row.implementationId),
-				listTasks(tx, ctx.orgId, {
-					entityType: "control",
-					entityId: row.implementationId,
-				}),
-				listComments(tx, ctx.orgId, "control", row.implementationId),
-				historyFor(tx, `control:${row.implementationId}`),
-				listWatcherIds(tx, ctx.orgId, "control", row.implementationId),
-				listMembersForPicker(tx, ctx.orgId),
-				listControlTests(tx, ctx.orgId, row.implementationId),
-			]);
+		const [
+			evidence,
+			tasks,
+			comments,
+			history,
+			watcherIds,
+			members,
+			tests,
+			usage,
+			allEvidence,
+		] = await Promise.all([
+			listEvidenceForImplementation(tx, ctx.orgId, row.implementationId),
+			listTasks(tx, ctx.orgId, {
+				entityType: "control",
+				entityId: row.implementationId,
+			}),
+			listComments(tx, ctx.orgId, "control", row.implementationId),
+			historyFor(tx, `control:${row.implementationId}`),
+			listWatcherIds(tx, ctx.orgId, "control", row.implementationId),
+			listMembersForPicker(tx, ctx.orgId),
+			listControlTests(tx, ctx.orgId, row.implementationId),
+			controlUsage(tx, ctx.orgId, row.controlId),
+			roleAllows(ctx.orgRole, { evidence: ["create"] })
+				? listEvidence(tx, ctx.orgId)
+				: Promise.resolve([]),
+		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
@@ -100,6 +120,8 @@ export default async function ControlDetailPage({
 			members,
 			tests,
 			names,
+			usage,
+			allEvidence,
 		};
 	});
 	// Control nicht im Umfang der Org (Rahmenwerk nicht gewählt): Katalogansicht
@@ -155,10 +177,13 @@ export default async function ControlDetailPage({
 		members,
 		tests,
 		names,
+		usage,
+		allEvidence,
 	} = data;
 	const cov = await getOrgCoverageCached(ctx);
 	const fwNames = frameworkNameMap();
 	const canEdit = roleAllows(ctx.orgRole, { control: ["update"] });
+	const canDeleteEvidence = roleAllows(ctx.orgRole, { evidence: ["delete"] });
 	const e = env();
 	const storageAvailable = Boolean(
 		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,
@@ -351,6 +376,64 @@ export default async function ControlDetailPage({
 					</Link>
 				</Section>
 			)}
+			<Section id="verwendet-in" title={t("usedIn")}>
+				<BackLinks
+					empty={t("usedInEmpty")}
+					groups={[
+						{
+							label: t("usedInRisks"),
+							items: usage.risks.map((r) => ({
+								key: r.id,
+								label: r.code,
+								title: r.title,
+								href: `/risiken/${r.id}`,
+							})),
+						},
+						{
+							label: t("usedInDocuments"),
+							items: usage.documents.map((d) => ({
+								key: d.docNumber,
+								label: d.docNumber,
+								title: d.title,
+								href: `/dokumente/${encodeURIComponent(d.docNumber)}`,
+							})),
+						},
+						{
+							label: t("usedInProcesses"),
+							items: usage.processes.map((p) => ({
+								key: p.code,
+								label: p.code,
+								title: p.name,
+								href: `/prozesse/${encodeURIComponent(p.code)}`,
+							})),
+						},
+						{
+							label: t("usedInMilestones"),
+							items: usage.milestones.map((m) => ({
+								key: m.id,
+								label: m.title,
+								href: "/roadmap",
+							})),
+						},
+						{
+							label: t("usedInExceptions"),
+							items: usage.exceptions.map((x) => ({
+								key: x.id,
+								label: x.title,
+								href: "/risiken?tab=ausnahmen",
+							})),
+						},
+						{
+							label: t("usedInFindings"),
+							items: usage.findings.map((f) => ({
+								key: f.id,
+								label: f.title,
+								href: `/audits/${f.auditId}?tab=findings`,
+							})),
+						},
+					]}
+				/>
+			</Section>
 			<Section title={t("satisfies")}>
 				<p className="text-muted-foreground text-sm">{t("satisfiesLead")}</p>
 				<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
@@ -413,6 +496,17 @@ export default async function ControlDetailPage({
 								code={code}
 								members={members}
 							/>
+							{allEvidence.length > 0 && (
+								<ControlEvidencePicker
+									implementationId={row.implementationId}
+									options={allEvidence.map((ev) => ({
+										id: ev.id,
+										label: ev.title,
+										hint: ev.fileName ?? ev.url ?? undefined,
+									}))}
+									linked={evidence.map((ev) => ev.id)}
+								/>
+							)}
 							<EvidenceForm
 								implementationId={row.implementationId}
 								storageAvailable={storageAvailable}
@@ -454,6 +548,9 @@ export default async function ControlDetailPage({
 										{ev.url}
 									</a>
 								) : null}
+								{canDeleteEvidence && (
+									<DeleteEvidenceButton evidenceId={ev.id} title={ev.title} />
+								)}
 							</li>
 						))}
 					</ul>

@@ -1,8 +1,10 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import {
+	controlEvidence,
 	controlImplementations,
 	documents,
 	evidence,
@@ -10,6 +12,7 @@ import {
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
+import { isOrgMember, ownedIds } from "@/lib/db/owned";
 import { mutateOrg } from "@/lib/db/with-org";
 import {
 	linkEvidenceToControl,
@@ -213,6 +216,80 @@ async function linkEvidenceImpl(input: {
 	return { ok: true, data: undefined };
 }
 
+// Nachweise eines Controls setzen (vorhandene verknüpfen, falsche lösen) —
+// ein PDF kann mehrere Controls belegen, die Datei selbst bleibt erhalten.
+async function setControlEvidenceImpl(input: unknown): Promise<ActionResult> {
+	const c = await requireOrg({ evidence: ["create"] });
+	const parsed = z
+		.object({
+			implementationId: uuid,
+			evidenceIds: z.array(uuid).max(500),
+		})
+		.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const { implementationId, evidenceIds } = parsed.data;
+	const ok = await mutateOrg<boolean>(toOrgCtx(c), async (tx) => {
+		const [impl] = await tx
+			.select({ id: controlImplementations.id })
+			.from(controlImplementations)
+			.where(
+				and(
+					eq(controlImplementations.id, implementationId),
+					eq(controlImplementations.organizationId, c.orgId),
+				),
+			)
+			.limit(1);
+		if (!impl) return { result: false, audit: [] };
+		const before = (
+			await tx
+				.select({ id: controlEvidence.evidenceId })
+				.from(controlEvidence)
+				.where(eq(controlEvidence.implementationId, impl.id))
+		).map((x) => x.id);
+		const after = await ownedIds(tx, evidence, c.orgId, evidenceIds);
+		const keep = new Set(after);
+		const removed = before.filter((id) => !keep.has(id));
+		const had = new Set(before);
+		const added = after.filter((id) => !had.has(id));
+		if (removed.length > 0)
+			await tx
+				.delete(controlEvidence)
+				.where(
+					and(
+						eq(controlEvidence.implementationId, impl.id),
+						inArray(controlEvidence.evidenceId, removed),
+					),
+				);
+		if (added.length > 0)
+			await tx
+				.insert(controlEvidence)
+				.values(
+					added.map((evidenceId) => ({
+						organizationId: c.orgId,
+						implementationId: impl.id,
+						evidenceId,
+					})),
+				)
+				.onConflictDoNothing();
+		return {
+			result: true,
+			audit:
+				added.length + removed.length === 0
+					? []
+					: {
+							action: "evidence.links",
+							target: `control:${impl.id}`,
+							before: { evidenceIds: before },
+							after: { evidenceIds: after, added, removed },
+						},
+		};
+	});
+	if (!ok) return { ok: false, error: "notFound" };
+	revalidatePath("/controls", "layout");
+	revalidatePath("/nachweise");
+	return { ok: true, data: undefined };
+}
+
 // Löschen: Zeile sofort weg, Objekt erst nach der Backup-Aufbewahrung
 // (storage_purge_queue → Job storage-purge). Ein Tombstone im Objektspeicher
 // sorgt dafür, dass ein später eingespieltes DB-Backup die Löschung nachholt.
@@ -273,14 +350,23 @@ async function deleteEvidenceImpl(evidenceId: string): Promise<ActionResult> {
 }
 
 // „Nachweis anfordern": Aufgabe an eine Person für ein Control.
-async function requestEvidenceImpl(input: {
-	implementationId: string;
-	assigneeUserId: string;
-	title: string;
-}): Promise<ActionResult<{ taskId: string }>> {
+async function requestEvidenceImpl(
+	raw: unknown,
+): Promise<ActionResult<{ taskId: string }>> {
 	const c = await requireOrg({ task: ["create"] });
+	const parsed = z
+		.object({
+			implementationId: uuid,
+			assigneeUserId: z.string().min(1).max(64),
+			title: z.string().trim().min(1).max(200),
+		})
+		.safeParse(raw);
+	if (!parsed.success) return fromZod(parsed.error);
+	const input = parsed.data;
 	const { tasks, controls } = await import("@/db/schema");
-	const taskId = await mutateOrg(toOrgCtx(c), async (tx) => {
+	const taskId = await mutateOrg<string | null>(toOrgCtx(c), async (tx) => {
+		if (!(await isOrgMember(tx, c.orgId, input.assigneeUserId)))
+			return { result: null, audit: [] };
 		const [impl] = await tx
 			.select({ id: controlImplementations.id, code: controls.code })
 			.from(controlImplementations)
@@ -324,6 +410,7 @@ async function requestEvidenceImpl(input: {
 			},
 		};
 	});
+	if (!taskId) return { ok: false, error: "notMember" };
 	revalidatePath("/controls", "layout");
 	return { ok: true, data: { taskId } };
 }
@@ -341,6 +428,10 @@ export const createEvidenceLink = safeAction(
 );
 export const uploadEvidence = safeAction("uploadEvidence", uploadEvidenceImpl);
 export const linkEvidence = safeAction("linkEvidence", linkEvidenceImpl);
+export const setControlEvidence = safeAction(
+	"setControlEvidence",
+	setControlEvidenceImpl,
+);
 export const deleteEvidence = safeAction("deleteEvidence", deleteEvidenceImpl);
 export const requestEvidence = safeAction(
 	"requestEvidence",

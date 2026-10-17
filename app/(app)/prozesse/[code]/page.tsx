@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ActivityStream } from "@/components/entity/activity-stream";
+import { BackLinks } from "@/components/entity/back-links";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
 	EntityLayout,
@@ -33,6 +34,7 @@ import {
 	listWatcherIds,
 	userNames,
 } from "@/lib/compliance/queries";
+import { incidentsFor } from "@/lib/compliance/queries-links";
 import {
 	listAssets,
 	listDocuments,
@@ -41,6 +43,7 @@ import {
 } from "@/lib/compliance/queries-p2";
 import { getProcessByCode } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
+import { DOCUMENT_STATUS_MACHINE } from "@/lib/entities/document";
 import { TASK_STATUS } from "@/lib/entities/task";
 import {
 	type ActivityEntry,
@@ -97,6 +100,7 @@ export default async function ProcessDetailPage({
 			providers,
 			risks,
 			documents,
+			incidents,
 		] = await Promise.all([
 			listComments(tx, ctx.orgId, "process", id),
 			historyFor(tx, `process:${id}`),
@@ -107,6 +111,7 @@ export default async function ProcessDetailPage({
 			canEdit ? listProviders(tx, ctx.orgId) : [],
 			canEdit ? listRisks(tx, ctx.orgId) : [],
 			canEdit ? listDocuments(tx, ctx.orgId) : [],
+			incidentsFor(tx, ctx.orgId, { processId: id }),
 		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
@@ -125,6 +130,7 @@ export default async function ProcessDetailPage({
 			risks,
 			documents,
 			names,
+			incidents,
 		};
 	});
 	if (!data) notFound();
@@ -462,7 +468,10 @@ export default async function ProcessDetailPage({
 							<ul className="flex flex-col gap-1 text-sm">
 								{linkedAssets.map((a) => (
 									<li key={a.id}>
-										<Link href="/assets" className="hover:underline">
+										<Link
+											href={`/assets?q=${encodeURIComponent(a.name)}`}
+											className="hover:underline"
+										>
 											{a.name}
 										</Link>
 										<span className="text-muted-foreground text-xs">
@@ -484,7 +493,7 @@ export default async function ProcessDetailPage({
 							<ul className="flex flex-wrap gap-1.5">
 								{linkedProviders.map((x) => (
 									<li key={x.id}>
-										<Link href="/dienstleister">
+										<Link href={`/dienstleister/${x.id}`}>
 											<Badge
 												variant={CRIT_TONE[x.criticality]}
 												className="normal-case tracking-normal"
@@ -536,12 +545,35 @@ export default async function ProcessDetailPage({
 										<Badge
 											variant={d.status === "published" ? "success" : "outline"}
 										>
-											{d.status}
+											{ts(
+												DOCUMENT_STATUS_MACHINE.labelKey[
+													d.status
+												] as "docDraft",
+											)}
 										</Badge>
 									</li>
 								))}
 							</ul>
 						)}
+					</div>
+					<div className="sm:col-span-2">
+						<p className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+							{t("incidents")}
+						</p>
+						<BackLinks
+							empty="—"
+							groups={[
+								{
+									label: t("incidents"),
+									items: data.incidents.map((x) => ({
+										key: x.id,
+										label: x.code,
+										title: x.title,
+										href: `/vorfaelle/${x.id}`,
+									})),
+								},
+							]}
+						/>
 					</div>
 				</div>
 			</Section>

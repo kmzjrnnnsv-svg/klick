@@ -9,6 +9,7 @@ import {
 	auditRequests,
 	audits,
 	controls,
+	evidence,
 	frameworks,
 	requirements,
 	tasks,
@@ -17,6 +18,7 @@ import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nonconformityFromFinding } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
+import { ownedIds } from "@/lib/db/owned";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { todayBerlin } from "@/lib/time/berlin";
@@ -591,7 +593,12 @@ async function respondAuditRequestImpl(input: unknown): Promise<ActionResult> {
 			.update(auditRequests)
 			.set({
 				responseNote: d.responseNote,
-				responseEvidenceIds: d.responseEvidenceIds ?? [],
+				responseEvidenceIds: await ownedIds(
+					tx,
+					evidence,
+					c.orgId,
+					d.responseEvidenceIds,
+				),
 				status: "answered",
 				answeredAt: new Date(),
 			})

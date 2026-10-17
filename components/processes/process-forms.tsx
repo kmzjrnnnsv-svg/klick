@@ -3,7 +3,7 @@
 import { Plus, Sparkles, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
 	applyProcessSeed,
@@ -11,10 +11,10 @@ import {
 	setProcessRaci,
 	upsertProcess,
 } from "@/app/actions/processes";
+import { type LinkOption, LinksDialog } from "@/components/entity/links-dialog";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -525,69 +525,7 @@ export function RaciEditor({
 	);
 }
 
-export type LinkOption = { id: string; label: string; hint?: string };
-
-function CheckList({
-	title,
-	options,
-	selected,
-	onChange,
-}: {
-	title: string;
-	options: LinkOption[];
-	selected: Set<string>;
-	onChange: (next: Set<string>) => void;
-}) {
-	const [q, setQ] = useState("");
-	const visible = useMemo(() => {
-		const needle = q.trim().toLowerCase();
-		return needle
-			? options.filter((o) =>
-					`${o.label} ${o.hint ?? ""}`.toLowerCase().includes(needle),
-				)
-			: options;
-	}, [options, q]);
-	return (
-		<fieldset className="flex min-w-0 flex-col gap-2">
-			<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
-				{title} · {selected.size}
-			</legend>
-			<Input
-				value={q}
-				onChange={(e) => setQ(e.target.value)}
-				placeholder="Filter …"
-				className="h-8"
-			/>
-			<div className="max-h-44 overflow-y-auto rounded-md border p-2 text-sm">
-				{visible.length === 0 ? (
-					<p className="text-muted-foreground text-xs">—</p>
-				) : (
-					visible.map((o) => (
-						<label key={o.id} className="flex items-start gap-2 py-0.5">
-							<Checkbox
-								checked={selected.has(o.id)}
-								onCheckedChange={(v) => {
-									const next = new Set(selected);
-									if (v) next.add(o.id);
-									else next.delete(o.id);
-									onChange(next);
-								}}
-							/>
-							<span className="min-w-0">
-								<span className="block truncate">{o.label}</span>
-								{o.hint && (
-									<span className="block truncate text-muted-foreground text-xs">
-										{o.hint}
-									</span>
-								)}
-							</span>
-						</label>
-					))
-				)}
-			</div>
-		</fieldset>
-	);
-}
+export type { LinkOption };
 
 export function ProcessLinksEditor({
 	processId,
@@ -615,84 +553,60 @@ export function ProcessLinksEditor({
 	const t = useTranslations("Processes");
 	const tc = useTranslations("Common");
 	const router = useRouter();
-	const [open, setOpen] = useState(false);
-	const [pending, start] = useTransition();
-	const [c, setC] = useState(new Set(linked.controls));
-	const [a, setA] = useState(new Set(linked.assets));
-	const [p, setP] = useState(new Set(linked.providers));
-	const [r, setR] = useState(new Set(linked.risks));
-	const [dcs, setDcs] = useState(new Set(linked.documents));
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger asChild>
-				<Button size="sm" variant="outline">
-					{t("editLinks")}
-				</Button>
-			</DialogTrigger>
-			<DialogContent className="sm:max-w-3xl">
-				<DialogHeader>
-					<DialogTitle>{t("links")}</DialogTitle>
-					<DialogDescription>{t("linksLead")}</DialogDescription>
-				</DialogHeader>
-				<div className="grid gap-4 sm:grid-cols-2">
-					<CheckList
-						title={t("controls")}
-						options={controls}
-						selected={c}
-						onChange={setC}
-					/>
-					<CheckList
-						title={t("assets")}
-						options={assets}
-						selected={a}
-						onChange={setA}
-					/>
-					<CheckList
-						title={t("providers")}
-						options={providers}
-						selected={p}
-						onChange={setP}
-					/>
-					<CheckList
-						title={t("risks")}
-						options={risks}
-						selected={r}
-						onChange={setR}
-					/>
-					<CheckList
-						title={t("documents")}
-						options={documents}
-						selected={dcs}
-						onChange={setDcs}
-					/>
-				</div>
-				<DialogFooter>
-					<Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-						{tc("cancel")}
-					</Button>
-					<Button
-						disabled={pending}
-						onClick={() =>
-							start(async () => {
-								const res = await setProcessLinks({
-									processId,
-									controlCodes: [...c],
-									assetIds: [...a],
-									providerIds: [...p],
-									riskIds: [...r],
-									documentIds: [...dcs],
-								});
-								if (!res.ok) return void toast.error(tc("error"));
-								toast.success(t("saved"));
-								setOpen(false);
-								router.refresh();
-							})
-						}
-					>
-						{tc("save")}
-					</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
+		<LinksDialog
+			triggerLabel={t("editLinks")}
+			title={t("links")}
+			lead={t("linksLead")}
+			groups={[
+				{
+					key: "controls",
+					title: t("controls"),
+					options: controls,
+					linked: linked.controls,
+				},
+				{
+					key: "assets",
+					title: t("assets"),
+					options: assets,
+					linked: linked.assets,
+				},
+				{
+					key: "providers",
+					title: t("providers"),
+					options: providers,
+					linked: linked.providers,
+				},
+				{
+					key: "risks",
+					title: t("risks"),
+					options: risks,
+					linked: linked.risks,
+				},
+				{
+					key: "documents",
+					title: t("documents"),
+					options: documents,
+					linked: linked.documents,
+				},
+			]}
+			onSave={async (sel) => {
+				const res = await setProcessLinks({
+					processId,
+					controlCodes: sel.controls ?? [],
+					assetIds: sel.assets ?? [],
+					providerIds: sel.providers ?? [],
+					riskIds: sel.risks ?? [],
+					documentIds: sel.documents ?? [],
+				});
+				if (!res.ok) {
+					toast.error(tc("error"));
+					return false;
+				}
+				toast.success(t("saved"));
+				router.refresh();
+				return true;
+			}}
+		/>
 	);
 }

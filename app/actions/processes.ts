@@ -3,14 +3,18 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
+	assets,
 	controls,
 	documentProcesses,
+	documents,
 	processAssets,
 	processControls,
 	processes,
 	processProviders,
 	processRaci,
 	processRisks,
+	providers,
+	risks,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
@@ -20,6 +24,7 @@ import {
 } from "@/lib/compliance/catalog/processes";
 import { nextRiskCode } from "@/lib/compliance/risk";
 import { lockOrgSequence } from "@/lib/db/org-sequence";
+import { ownedIds } from "@/lib/db/owned";
 import { mutateOrg } from "@/lib/db/with-org";
 import { PROCESS_STATUS } from "@/lib/entities/process";
 import { canTransition } from "@/lib/entities/status-machine";
@@ -234,9 +239,10 @@ async function setProcessLinksImpl(input: unknown): Promise<ActionResult> {
 			await tx
 				.delete(processAssets)
 				.where(eq(processAssets.processId, processId));
-			if (assetIds.length > 0)
+			const own = await ownedIds(tx, assets, c.orgId, assetIds);
+			if (own.length > 0)
 				await tx.insert(processAssets).values(
-					assetIds.map((assetId) => ({
+					own.map((assetId) => ({
 						organizationId: c.orgId,
 						processId,
 						assetId,
@@ -247,9 +253,10 @@ async function setProcessLinksImpl(input: unknown): Promise<ActionResult> {
 			await tx
 				.delete(processProviders)
 				.where(eq(processProviders.processId, processId));
-			if (providerIds.length > 0)
+			const own = await ownedIds(tx, providers, c.orgId, providerIds);
+			if (own.length > 0)
 				await tx.insert(processProviders).values(
-					providerIds.map((providerId) => ({
+					own.map((providerId) => ({
 						organizationId: c.orgId,
 						processId,
 						providerId,
@@ -260,9 +267,10 @@ async function setProcessLinksImpl(input: unknown): Promise<ActionResult> {
 			await tx
 				.delete(processRisks)
 				.where(eq(processRisks.processId, processId));
-			if (riskIds.length > 0)
+			const own = await ownedIds(tx, risks, c.orgId, riskIds);
+			if (own.length > 0)
 				await tx.insert(processRisks).values(
-					riskIds.map((riskId) => ({
+					own.map((riskId) => ({
 						organizationId: c.orgId,
 						processId,
 						riskId,
@@ -273,9 +281,10 @@ async function setProcessLinksImpl(input: unknown): Promise<ActionResult> {
 			await tx
 				.delete(documentProcesses)
 				.where(eq(documentProcesses.processId, processId));
-			if (documentIds.length > 0)
+			const own = await ownedIds(tx, documents, c.orgId, documentIds);
+			if (own.length > 0)
 				await tx.insert(documentProcesses).values(
-					documentIds.map((documentId) => ({
+					own.map((documentId) => ({
 						organizationId: c.orgId,
 						processId,
 						documentId,

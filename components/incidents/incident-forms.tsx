@@ -10,7 +10,9 @@ import {
 	createIncident,
 	markIncidentReported,
 	markMitigationAvailable,
+	setIncidentLinks,
 } from "@/app/actions/incidents";
+import { type LinkOption, LinksDialog } from "@/components/entity/links-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -545,5 +547,66 @@ export function IncidentUpdateForm({
 				</Button>
 			</div>
 		</form>
+	);
+}
+
+// Betroffene Assets, Dienstleister (IKT-Drittanbieter) und Prozesse.
+export function IncidentLinksEditor({
+	incidentId,
+	assets,
+	providers,
+	processes,
+	linked,
+}: {
+	incidentId: string;
+	assets: LinkOption[];
+	providers: LinkOption[];
+	processes: LinkOption[];
+	linked: { assets: string[]; providers: string[]; processes: string[] };
+}) {
+	const t = useTranslations("Incidents");
+	const tc = useTranslations("Common");
+	const router = useRouter();
+	return (
+		<LinksDialog
+			triggerLabel={t("editAffected")}
+			title={t("affected")}
+			lead={t("affectedLead")}
+			groups={[
+				{
+					key: "assets",
+					title: t("affectedAssets"),
+					options: assets,
+					linked: linked.assets,
+				},
+				{
+					key: "providers",
+					title: t("affectedProviders"),
+					options: providers,
+					linked: linked.providers,
+				},
+				{
+					key: "processes",
+					title: t("affectedProcesses"),
+					options: processes,
+					linked: linked.processes,
+				},
+			]}
+			onSave={async (sel) => {
+				const res = await setIncidentLinks({
+					incidentId,
+					assetIds: sel.assets ?? [],
+					providerIds: sel.providers ?? [],
+					processIds: sel.processes ?? [],
+				});
+				if (!res.ok) {
+					toast.error(tc("error"));
+					return false;
+				}
+				toast.success(t("affectedSaved"));
+				router.refresh();
+				return true;
+			}}
+		/>
 	);
 }

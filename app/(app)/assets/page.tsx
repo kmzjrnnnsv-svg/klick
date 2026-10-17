@@ -12,7 +12,10 @@ import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
-import { linkIndex } from "@/lib/compliance/queries-links";
+import {
+	linkIndex,
+	riskAndIncidentIndex,
+} from "@/lib/compliance/queries-links";
 import { listAssets, listProviders } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 
@@ -29,11 +32,12 @@ export default async function AssetsPage({
 	const sp = await searchParams;
 	const t = await getTranslations("Assets");
 	const te = await getTranslations("Entity");
-	const { rows, members, providers, links } = await readOrg(
+	const { rows, members, providers, links, related } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
 			rows: await listAssets(tx, ctx.orgId),
 			links: await linkIndex(tx, ctx.orgId),
+			related: await riskAndIncidentIndex(tx, ctx.orgId),
 			members: await listMembersForPicker(tx, ctx.orgId),
 			providers: (await listProviders(tx, ctx.orgId)).map((p) => ({
 				id: p.id,
@@ -114,6 +118,30 @@ export default async function AssetsPage({
 						title: p.name,
 						href: `/prozesse/${encodeURIComponent(p.code)}`,
 					}))}
+				/>
+			),
+		},
+		{
+			key: "related",
+			header: t("relatedRisksIncidents"),
+			className: "w-44",
+			mobile: false,
+			cell: (r) => (
+				<LinkChips
+					items={[
+						...(related.risksByAsset.get(r.id) ?? []).map((x) => ({
+							key: `r-${x.id}`,
+							label: x.code,
+							title: x.title,
+							href: `/risiken/${x.id}`,
+						})),
+						...(related.incidentsByAsset.get(r.id) ?? []).map((x) => ({
+							key: `i-${x.id}`,
+							label: x.code,
+							title: x.title,
+							href: `/vorfaelle/${x.id}`,
+						})),
+					]}
 				/>
 			),
 		},

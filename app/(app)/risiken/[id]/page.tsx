@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { ActivityStream } from "@/components/entity/activity-stream";
+import { BackLinks } from "@/components/entity/back-links";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
 	EntityLayout,
@@ -35,6 +35,7 @@ import {
 	listWatcherIds,
 	userNames,
 } from "@/lib/compliance/queries";
+import { processesForRisk } from "@/lib/compliance/queries-links";
 import { getRisk, listAssets } from "@/lib/compliance/queries-p2";
 import {
 	assessRisk,
@@ -82,6 +83,7 @@ export default async function RiskDetailPage({
 			approval,
 			candidates,
 			dels,
+			linkedProcesses,
 		] = await Promise.all([
 			getOrgSettings(tx, ctx.orgId),
 			listComments(tx, ctx.orgId, "risk", id),
@@ -93,6 +95,7 @@ export default async function RiskDetailPage({
 			latestRequestFor(tx, ctx.orgId, "risk", id),
 			loadCandidates(tx, ctx.orgId),
 			activeDelegations(tx, ctx.orgId),
+			processesForRisk(tx, ctx.orgId, id),
 		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
@@ -113,6 +116,7 @@ export default async function RiskDetailPage({
 			candidates,
 			dels,
 			names,
+			linkedProcesses,
 		};
 	});
 	if (!data) notFound();
@@ -132,6 +136,7 @@ export default async function RiskDetailPage({
 		candidates,
 		dels,
 		names,
+		linkedProcesses,
 	} = data;
 	const appetite = settings?.riskAppetite ?? DEFAULT_RISK_APPETITE;
 	const scales = settings?.riskScales ?? DEFAULT_RISK_SCALES;
@@ -365,23 +370,38 @@ export default async function RiskDetailPage({
 				)}
 			</Section>
 
-			<Section title={t("controls")}>
-				{linkedControls.length === 0 ? (
-					<p className="text-muted-foreground text-sm">—</p>
-				) : (
-					<ul className="flex flex-wrap gap-1.5">
-						{linkedControls.map((c) => (
-							<Link key={c.code} href={`/controls/${c.code}`}>
-								<Badge
-									variant="outline"
-									className="font-mono normal-case tracking-normal"
-								>
-									{c.code}
-								</Badge>
-							</Link>
-						))}
-					</ul>
-				)}
+			<Section title={t("links")}>
+				<BackLinks
+					empty={t("linksEmpty")}
+					groups={[
+						{
+							label: t("controls"),
+							items: linkedControls.map((c) => ({
+								key: c.code,
+								label: c.code,
+								title: c.title,
+								href: `/controls/${c.code}`,
+							})),
+						},
+						{
+							label: t("assets"),
+							items: linkedAssets.map((x) => ({
+								key: x.id,
+								label: x.name,
+								href: `/assets?q=${encodeURIComponent(x.name)}`,
+							})),
+						},
+						{
+							label: t("processes"),
+							items: linkedProcesses.map((p) => ({
+								key: p.code,
+								label: p.code,
+								title: p.name,
+								href: `/prozesse/${encodeURIComponent(p.code)}`,
+							})),
+						},
+					]}
+				/>
 			</Section>
 
 			{canEdit && (

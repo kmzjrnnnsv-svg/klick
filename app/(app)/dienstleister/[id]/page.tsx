@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ActivityStream } from "@/components/entity/activity-stream";
+import { BackLinks } from "@/components/entity/back-links";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
 	EntityLayout,
@@ -34,6 +35,7 @@ import {
 	listTasks,
 	userNames,
 } from "@/lib/compliance/queries";
+import { incidentsFor } from "@/lib/compliance/queries-links";
 import { getProviderDetail } from "@/lib/compliance/queries-suppliers";
 import { supplierQuestions } from "@/lib/compliance/supplier-assessment";
 import { readOrg } from "@/lib/db/with-org";
@@ -81,18 +83,19 @@ export default async function ProviderPage({
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getProviderDetail(tx, ctx.orgId, id);
 		if (!d) return null;
-		const [comments, history, members, tasks] = await Promise.all([
+		const [comments, history, members, tasks, incidents] = await Promise.all([
 			listComments(tx, ctx.orgId, "provider", id),
 			historyFor(tx, `provider:${id}`),
 			listMembersForPicker(tx, ctx.orgId),
 			listTasks(tx, ctx.orgId, { entityType: "provider", entityId: id }),
+			incidentsFor(tx, ctx.orgId, { providerId: id }),
 		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
 		]);
 		for (const [k, v] of d.names) names.set(k, v);
-		return { ...d, comments, history, members, tasks, names };
+		return { ...d, comments, history, members, tasks, names, incidents };
 	});
 	if (!data) notFound();
 	const p = data.provider;
@@ -586,13 +589,32 @@ export default async function ProviderPage({
 							<ul className="flex flex-col gap-1 text-sm">
 								{data.assets.map((as) => (
 									<li key={as.id}>
-										<Link href="/assets" className="hover:underline">
+										<Link
+											href={`/assets?q=${encodeURIComponent(as.name)}`}
+											className="hover:underline"
+										>
 											{as.name}
 										</Link>
 									</li>
 								))}
 							</ul>
 						)}
+					</Section>
+					<Section title={t("incidents")}>
+						<BackLinks
+							empty={t("incidentsEmpty")}
+							groups={[
+								{
+									label: t("incidents"),
+									items: data.incidents.map((x) => ({
+										key: x.id,
+										label: x.code,
+										title: x.title,
+										href: `/vorfaelle/${x.id}`,
+									})),
+								},
+							]}
+						/>
 					</Section>
 				</>
 			)}

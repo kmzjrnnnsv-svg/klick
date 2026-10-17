@@ -25,7 +25,10 @@ import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { TOOL_LANDSCAPE } from "@/lib/compliance/catalog/tool-landscape";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
-import { linkIndex } from "@/lib/compliance/queries-links";
+import {
+	linkIndex,
+	riskAndIncidentIndex,
+} from "@/lib/compliance/queries-links";
 import { listProviders } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 
@@ -42,11 +45,15 @@ export default async function ProvidersPage({
 	const sp = await searchParams;
 	const t = await getTranslations("Providers");
 	const te = await getTranslations("Entity");
-	const { rows, members, links } = await readOrg(toOrgCtx(ctx), async (tx) => ({
-		rows: await listProviders(tx, ctx.orgId),
-		members: await listMembersForPicker(tx, ctx.orgId),
-		links: await linkIndex(tx, ctx.orgId),
-	}));
+	const { rows, members, links, related } = await readOrg(
+		toOrgCtx(ctx),
+		async (tx) => ({
+			rows: await listProviders(tx, ctx.orgId),
+			members: await listMembersForPicker(tx, ctx.orgId),
+			links: await linkIndex(tx, ctx.orgId),
+			related: await riskAndIncidentIndex(tx, ctx.orgId),
+		}),
+	);
 	const canEdit = roleAllows(ctx.orgRole, { provider: ["create", "update"] });
 	const canExport = roleAllows(ctx.orgRole, { export: ["create"] });
 	const tab = one(sp.tab) === "werkzeuge" ? "werkzeuge" : "register";
@@ -231,6 +238,16 @@ export default async function ProvidersPage({
 								n: links.assetsByProvider.get(r.id)?.length ?? 0,
 							})}
 						</span>
+					)}
+					{(related.incidentsByProvider.get(r.id)?.length ?? 0) > 0 && (
+						<LinkChips
+							items={(related.incidentsByProvider.get(r.id) ?? []).map((x) => ({
+								key: x.id,
+								label: x.code,
+								title: x.title,
+								href: `/vorfaelle/${x.id}`,
+							}))}
+						/>
 					)}
 				</span>
 			),
