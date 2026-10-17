@@ -94,6 +94,8 @@ export const envSchema = z.object({
 	S3_SECRET_ACCESS_KEY: z.string().optional(),
 
 	MAIL_FROM: z.string().default("Klick <noreply@klick.local>"),
+	// Kontakt für Beratungsanfragen auf /leistungen (mailto); leer → Login.
+	CONTACT_EMAIL: z.email().optional(),
 	RESEND_API_KEY: z.string().optional(),
 	SMTP_HOST: z.string().optional(),
 	SMTP_PORT: z.coerce.number().int().optional(),
