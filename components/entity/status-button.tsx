@@ -12,6 +12,7 @@ import { setNonconformityStatus } from "@/app/actions/nonconformities";
 import { setProcessStatus } from "@/app/actions/processes";
 import { setProductStatus } from "@/app/actions/products";
 import { setRiskStatus } from "@/app/actions/risks";
+import { setFindingStatus } from "@/app/actions/security-checks";
 import { setTaskStatus } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +30,11 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
-import type { ImplStatus, ProductStatus } from "@/db/schema/enums";
+import type {
+	FindingStatus,
+	ImplStatus,
+	ProductStatus,
+} from "@/db/schema/enums";
 import { CONTROL_STATUS } from "@/lib/entities/control";
 import {
 	DOCUMENT_STATUS_MACHINE,
@@ -43,6 +48,7 @@ import {
 import { PROCESS_STATUS, type ProcessStatus } from "@/lib/entities/process";
 import { PRODUCT_STATUS } from "@/lib/entities/product";
 import { RISK_STATUS, type RiskStatus } from "@/lib/entities/risk";
+import { FINDING_STATUS_MACHINE } from "@/lib/entities/security-finding";
 import { nextTransitions } from "@/lib/entities/status-machine";
 import { TASK_STATUS, type TaskStatus } from "@/lib/entities/task";
 import type { StatusMachine } from "@/lib/entities/types";
@@ -65,7 +71,8 @@ type Target =
 			status: NonconformityStatus;
 	  }
 	| { kind: "document"; documentId: string; status: DocumentStatus }
-	| { kind: "product"; productId: string; status: ProductStatus };
+	| { kind: "product"; productId: string; status: ProductStatus }
+	| { kind: "security_finding"; findingId: string; status: FindingStatus };
 
 const MACHINES = {
 	control: CONTROL_STATUS,
@@ -76,6 +83,7 @@ const MACHINES = {
 	nonconformity: NONCONFORMITY_STATUS,
 	document: DOCUMENT_STATUS_MACHINE,
 	product: PRODUCT_STATUS,
+	security_finding: FINDING_STATUS_MACHINE,
 } as const;
 
 // Status wechselt per Button mit dem nächsten sinnvollen Übergang; weitere
@@ -192,6 +200,14 @@ export function StatusButton({
 				const res = await setNonconformityStatus({
 					nonconformityId: target.nonconformityId,
 					status: to,
+					note: withNote,
+				});
+				if (!res.ok) return fail(res.error);
+				toast.success(t("statusChanged"));
+			} else if (target.kind === "security_finding") {
+				const res = await setFindingStatus({
+					findingId: target.findingId,
+					status: to as "open",
 					note: withNote,
 				});
 				if (!res.ok) return fail(res.error);

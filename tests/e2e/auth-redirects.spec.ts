@@ -18,6 +18,8 @@ const APP_ROUTES = [
 	"/roadmap",
 	"/suche?q=test",
 	"/kalender",
+	"/produkte",
+	"/sicherheit",
 	"/einstellungen",
 	"/admin",
 ];

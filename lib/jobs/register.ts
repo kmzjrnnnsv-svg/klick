@@ -5,6 +5,11 @@ import { organization, user } from "@/db/auth-schema";
 import { notifications } from "@/db/schema";
 import { verifyAuditChain } from "@/lib/audit";
 import { logger } from "@/lib/log";
+import {
+	executeQuickCheck,
+	QUICK_CHECK_JOB,
+	type QuickCheckJob,
+} from "@/lib/security/quick-check-service";
 import { runComplianceTick } from "./compliance-tick-runner";
 import { runDigest, runImmediateMails } from "./digest";
 import { runPostureSnapshot } from "./posture";
@@ -32,6 +37,7 @@ export const JOBS = {
 	verifyAuditChain: "verify-audit-chain",
 	storagePurge: "storage-purge",
 	storageOrphans: "storage-orphans",
+	quickCheck: QUICK_CHECK_JOB,
 } as const;
 
 const TZ = "Europe/Berlin";
@@ -76,6 +82,14 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.work(JOBS.storageOrphans, async () => {
 		await runStorageOrphans();
 	});
+	// Schnellcheck auf Anfrage: höchstens zwei gleichzeitig je Prozess
+	await boss.work<QuickCheckJob>(
+		JOBS.quickCheck,
+		{ localConcurrency: 2 },
+		async (jobs) => {
+			for (const job of jobs) await executeQuickCheck(job.data);
+		},
+	);
 }
 
 // Prüft die Plattform-Kette und jede Org-Kette. Ein Bruch ist ein

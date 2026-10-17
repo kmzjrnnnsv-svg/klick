@@ -152,6 +152,16 @@ export type DueRows = {
 		status: string;
 		ownerUserId: string | null;
 	}[];
+	/** Sicherheitsbefunde (S5): SLA kritisch/hoch, Ablauf von Akzeptanzen. */
+	securityFindings?: readonly {
+		id: string;
+		title: string;
+		severity: string;
+		status: string;
+		dueAt: Date | string | null;
+		acceptedUntil: Date | string | null;
+		ownerUserId: string | null;
+	}[];
 	/** Offene Aufgaben (für Dedupe von Eskalationen/Ablauf-Aufgaben). */
 	openTasks: readonly {
 		entityType: string | null;
@@ -185,7 +195,8 @@ export type PendingAction =
 	| { type: "expire_exception"; id: string }
 	| { type: "mark_training_overdue"; id: string }
 	| { type: "mark_run_due"; id: string }
-	| { type: "mark_run_overdue"; id: string };
+	| { type: "mark_run_overdue"; id: string }
+	| { type: "reopen_finding"; id: string };
 
 export const LEGAL_CHANGE_MARKS = [180, 90, 30, 7] as const;
 // CRA Art. 13 Abs. 19 / Anhang II: Nutzer rechtzeitig über das Supportende
@@ -634,6 +645,39 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 					: `Unterstützungszeitraum endet am ${fmtDay(until)}. Nutzer informieren, Verlängerung oder Nachfolger planen.`,
 			link: `/produkte/${p.id}?tab=einstufung`,
 			dedupeKey: `product_support:${p.id}:${days < 0 ? "ended" : mark}`,
+		});
+	}
+
+	// Sicherheitsbefunde: Akzeptanz abgelaufen → wieder offen; kritisch/hoch
+	// drei Tage vor der SLA-Frist und danach wöchentlich, solange offen
+	for (const f of rows.securityFindings ?? []) {
+		if (f.status === "accepted") {
+			const until = toDate(f.acceptedUntil);
+			if (!until || daysUntil(now, until) > 0) continue;
+			actions.push({ type: "reopen_finding", id: f.id });
+			notifications.push({
+				kind: "security_alert",
+				recipients: recipientsOf(f.ownerUserId, rows.orgOwnerIds),
+				title: `Akzeptanz abgelaufen: ${f.title}`,
+				body: "Der Befund ist wieder offen — beheben oder erneut mit Begründung akzeptieren.",
+				link: `/sicherheit/befunde/${f.id}`,
+				dedupeKey: `sec_accept:${f.id}:${isoDay(until)}`,
+			});
+			continue;
+		}
+		if (f.severity !== "critical" && f.severity !== "high") continue;
+		if (f.status !== "open" && f.status !== "in_progress") continue;
+		const due = toDate(f.dueAt);
+		if (!due) continue;
+		const d = daysUntil(now, due);
+		if (d !== 3 && !(d <= 0 && -d % 7 === 0)) continue;
+		notifications.push({
+			kind: f.severity === "critical" ? "security_alert" : "review_due",
+			recipients: recipientsOf(f.ownerUserId, rows.orgOwnerIds),
+			title: `${d > 0 ? "Frist läuft ab" : "Frist überschritten"}: ${f.title}`,
+			body: dueWording(now, due),
+			link: `/sicherheit/befunde/${f.id}`,
+			dedupeKey: `sec_sla:${f.id}:${d}`,
 		});
 	}
 

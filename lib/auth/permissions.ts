@@ -55,6 +55,10 @@ export const statements = {
 	// bewerten, apply = Ergebnis in den Control-Status übernehmen
 	assessment: ["read", "create", "answer", "review", "apply"],
 	product: ["read", "create", "update", "delete"],
+	// Security-Checks: accept = Befund mit Begründung und Ablauf akzeptieren
+	security: ["read", "create", "update", "accept"],
+	// Zugangstoken für CI/API (ADR-017)
+	integration: ["read", "create", "revoke"],
 } as const;
 
 export const ac = createAccessControl(statements);
@@ -90,6 +94,7 @@ const readAll = {
 	privacy: ["read"],
 	assessment: ["read"],
 	product: ["read"],
+	security: ["read"],
 } as const;
 
 export const viewer = ac.newRole({
@@ -144,6 +149,8 @@ export const editor = ac.newRole({
 	privacy: ["read", "create", "update"],
 	assessment: ["read", "create", "answer", "review", "apply"],
 	product: ["read", "create", "update", "delete"],
+	security: ["read", "create", "update", "accept"],
+	integration: ["read"],
 });
 
 export const owner = ac.newRole({
@@ -180,6 +187,8 @@ export const owner = ac.newRole({
 	privacy: ["read", "create", "update"],
 	assessment: ["read", "create", "answer", "review", "apply"],
 	product: ["read", "create", "update", "delete"],
+	security: ["read", "create", "update", "accept"],
+	integration: ["read", "create", "revoke"],
 });
 
 // Better Auth erwartet die Rolle "admin" in der Role-Map nicht zwingend;

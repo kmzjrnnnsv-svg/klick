@@ -136,6 +136,22 @@ Datei.
   routen dann je Org; Better Auth, Katalog und Plattform-Jobs bleiben auf der Haupt-DB — für
   Enterprise-DBs einen eigenen Job-Prozess mit gesetzter `DATABASE_URL` betreiben.
 
+## Security-Checks: CI-Ingest und Schnellcheck (S5, ADR-017)
+- **nginx:** Zone `klick_ingest` (30/min je IP) und `location /api/ingest/` (nur POST, 26 MB) aus
+  `deploy/nginx/raza.work.conf` übernehmen, `nginx -t && systemctl reload nginx`. Die App begrenzt
+  zusätzlich je Token (30/min) und je Org.
+- **Tokens:** Einstellungen → Integrationen (Owner, Step-up). Nur der SHA-256 liegt in der DB; ein
+  geleakter Token wird über das Präfix `klk_ingest_` von gitleaks/GitHub-Secret-Scanning erkannt →
+  sofort widerrufen. Prüfen:
+  `curl -s -o /dev/null -w "%{http_code}" -X POST https://raza.work/api/ingest/scan` → 401.
+- **Schnellcheck:** läuft als pg-boss-Job `quick-check` (höchstens zwei gleichzeitig); ohne Jobs
+  (`KLICK_DISABLE_JOBS=true`) direkt nach der Antwort. Braucht ausgehend DNS und TCP 80/443 (die
+  nftables-`output`-Kette ist offen). Ein Scan, der länger als 15 min „läuft“, gilt als abgebrochen.
+  Keine aktiven Tests aus Klick — Pentests laufen extern mit schriftlicher Beauftragung.
+- **Migration:** `0008_security` legt `access_tokens` (mit Policy `access_tokens_by_hash`),
+  `security_scans`, `security_findings` an (FORCE RLS). Rechte für `klick_app` kommen über die
+  Default-Privilegien von `klick_migrator`.
+
 ## SSO je Organisation
 `@better-auth/sso` (OIDC). Owner registrieren den IdP unter Einstellungen → SSO; die E-Mail-Domain
 muss per DNS-TXT (`_klick-sso.<domain>`) verifiziert werden, bevor Logins möglich sind.

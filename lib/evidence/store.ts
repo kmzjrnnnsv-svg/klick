@@ -67,6 +67,9 @@ export async function screenUpload(
 		classification: Classification;
 		// Person hat die DLP-Warnung gesehen und bestätigt
 		dlpAcknowledged?: boolean;
+		// Scan-Berichte (gitleaks u. a.) enthalten Secrets erwartungsgemäß —
+		// der Import redigiert sie; Secret-Treffer entscheiden dann nicht.
+		secretsExpected?: boolean;
 	},
 ): Promise<ScreenedUpload> {
 	const v = await validateUpload({
@@ -117,7 +120,13 @@ export async function screenUpload(
 	);
 	const extraction = extractText(input.bytes, v.mime);
 	const findings = extraction.status === "ok" ? scanText(extraction.text) : [];
-	const decision = evaluateDlp(findings, policy, input.classification);
+	const decision = evaluateDlp(
+		input.secretsExpected
+			? findings.filter((f) => f.category !== "secret")
+			: findings,
+		policy,
+		input.classification,
+	);
 	const dlp: EvidenceDlp = {
 		engine: DLP_ENGINE_VERSION,
 		scannedAt: new Date().toISOString(),

@@ -21,7 +21,13 @@ const OOXML_PARTS: Record<string, RegExp> = {
 		/^ppt\/(slides\/slide\d+|notesSlides\/notesSlide\d+)\.xml$/,
 };
 
-const TEXT_MIMES = new Set(["text/plain", "text/csv", "application/json"]);
+const TEXT_MIMES = new Set([
+	"text/plain",
+	"text/csv",
+	"application/json",
+	"application/sarif+json",
+	"application/x-ndjson",
+]);
 
 function decodeEntities(s: string): string {
 	return s

@@ -11,6 +11,7 @@ export type NavLabelKey =
 	| "overview"
 	| "gapAnalysis"
 	| "products"
+	| "security"
 	| "controls"
 	| "synergies"
 	| "evidence"
@@ -55,6 +56,7 @@ export type NavIcon =
 	| "gauge"
 	| "list-checks"
 	| "package"
+	| "shield-alert"
 	| "shield-check"
 	| "git-merge"
 	| "file-check"
@@ -194,6 +196,12 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "evidence",
 					href: "/nachweise",
 					icon: "file-check",
+				},
+				{
+					key: "security",
+					labelKey: "security",
+					href: "/sicherheit",
+					icon: "shield-alert",
 				},
 			],
 		},
@@ -407,6 +415,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 			"gapAnalysis",
 			"controls",
 			"evidence",
+			"security",
 			"documents",
 			"risks",
 			"processes",

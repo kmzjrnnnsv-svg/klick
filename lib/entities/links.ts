@@ -84,6 +84,8 @@ export function entityHref(
 			return `/gap-analyse/${id}`;
 		case "product":
 			return `/produkte/${id}`;
+		case "security_finding":
+			return `/sicherheit/befunde/${id}`;
 		default:
 			return "/heute";
 	}

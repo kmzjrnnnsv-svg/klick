@@ -6,6 +6,7 @@ import { DangerZonePanel } from "@/components/settings/danger-zone-panel";
 import { DlpPanel } from "@/components/settings/dlp-panel";
 import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
+import { IntegrationsPanel } from "@/components/settings/integrations-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
 import { RiskSettingsPanel } from "@/components/settings/risk-settings-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
@@ -26,6 +27,8 @@ import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
 import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import { userNames } from "@/lib/compliance/queries";
+import { listProductOptions } from "@/lib/compliance/queries-products";
+import { listAccessTokens } from "@/lib/compliance/queries-security";
 import {
 	DEFAULT_RISK_APPETITE,
 	DEFAULT_RISK_SCALES,
@@ -71,6 +74,15 @@ export default async function SettingsPage({
 		});
 		return { settings, workflows };
 	});
+	const canReadIntegrations = roleAllows(ctx.orgRole, {
+		integration: ["read"],
+	});
+	const { tokens, productOptions } = canReadIntegrations
+		? await readOrg(toOrgCtx(ctx), async (tx) => ({
+				tokens: await listAccessTokens(tx, ctx.orgId),
+				productOptions: await listProductOptions(tx, ctx.orgId),
+			}))
+		: { tokens: [], productOptions: [] };
 	const { orgFws, retiredSlugs, openAudits } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => {
@@ -150,6 +162,7 @@ export default async function SettingsPage({
 						"organisation",
 						"sso",
 						"notifications",
+						...(canReadIntegrations ? ["integrationen"] : []),
 					].includes(tab)
 						? tab
 						: "security"
@@ -166,6 +179,11 @@ export default async function SettingsPage({
 					<TabsTrigger value="notifications">
 						{t("tabNotifications")}
 					</TabsTrigger>
+					{canReadIntegrations && (
+						<TabsTrigger value="integrationen">
+							{t("tabIntegrations")}
+						</TabsTrigger>
+					)}
 				</TabsList>
 				<TabsContent value="security" className="flex flex-col gap-6">
 					<SecurityPanel
@@ -262,6 +280,17 @@ export default async function SettingsPage({
 						{t("notificationsLead")}
 					</p>
 				</TabsContent>
+				{canReadIntegrations && (
+					<TabsContent value="integrationen">
+						<IntegrationsPanel
+							tokens={tokens}
+							products={productOptions}
+							baseUrl={callbackBase}
+							canCreate={roleAllows(ctx.orgRole, { integration: ["create"] })}
+							canRevoke={roleAllows(ctx.orgRole, { integration: ["revoke"] })}
+						/>
+					</TabsContent>
+				)}
 			</Tabs>
 		</>
 	);

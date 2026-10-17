@@ -17,6 +17,7 @@ import {
 	listNonconformities,
 } from "./queries-p3";
 import { listProductsForCra } from "./queries-products";
+import { openFindingsForReadiness } from "./queries-security";
 import {
 	combineReadiness,
 	deriveReadiness,
@@ -56,7 +57,7 @@ export async function loadReadiness(
 		cov.frameworks.includes(s),
 	);
 
-	const [evidenceRows, tests, docs, ncs, findings, productRows] =
+	const [evidenceRows, tests, docs, ncs, findings, productRows, secFindings] =
 		await Promise.all([
 			listEvidenceWithControls(tx, orgId),
 			listAllControlTests(tx, orgId),
@@ -66,6 +67,9 @@ export async function loadReadiness(
 			slugs.includes("cra")
 				? listProductsForCra(tx, orgId)
 				: Promise.resolve([]),
+			opts.securityFindings
+				? Promise.resolve(opts.securityFindings)
+				: openFindingsForReadiness(tx, orgId),
 		]);
 	// CRA: offene Produktpflichten als Blocker (abgeleitet aus dem Register)
 	const extra = new Map(opts.extraBlockers ?? []);
@@ -245,7 +249,7 @@ export async function loadReadiness(
 						? (reqKeyById.get(f.requirementId) ?? null)
 						: null,
 				})),
-				securityFindings: opts.securityFindings,
+				securityFindings: secFindings,
 				pbc,
 				extraBlockers: extra.get(slug),
 			}),

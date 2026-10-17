@@ -199,6 +199,66 @@ export type SbomSummary = {
 	checkedAt: string;
 };
 
+// Security-Checks (S5): Befunde aus Scan-Import, API-Ingest, Schnellcheck
+// und Pentests. Schwere nach CVSS-Bändern, Kategorie steuert das Control.
+export const FINDING_SEVERITIES = [
+	"critical",
+	"high",
+	"medium",
+	"low",
+	"info",
+] as const;
+export type FindingSeverity = (typeof FINDING_SEVERITIES)[number];
+
+export const FINDING_CATEGORIES = [
+	"dependency",
+	"secret",
+	"code",
+	"config",
+	"web",
+	"tls",
+	"dns",
+	"exposure",
+	"other",
+] as const;
+export type FindingCategory = (typeof FINDING_CATEGORIES)[number];
+
+export const FINDING_STATUS = [
+	"open",
+	"in_progress",
+	"accepted",
+	"resolved",
+	"false_positive",
+] as const;
+export type FindingStatus = (typeof FINDING_STATUS)[number];
+
+export const SCAN_TOOLS = [
+	"sarif",
+	"trivy",
+	"zap",
+	"osv",
+	"nuclei",
+	"gitleaks",
+	"quick_check",
+] as const;
+export type ScanTool = (typeof SCAN_TOOLS)[number];
+
+export const SCAN_SOURCES = ["upload", "api", "quick_check"] as const;
+
+// Token ohne Sitzung (ADR-017): CI-Ingest und Lieferantenportal.
+export const ACCESS_TOKEN_KINDS = ["ingest", "supplier_portal"] as const;
+export type AccessTokenKind = (typeof ACCESS_TOKEN_KINDS)[number];
+export const INGEST_SCOPES = ["scan:write", "sbom:write"] as const;
+export type IngestScope = (typeof INGEST_SCOPES)[number];
+export type ScanSource = (typeof SCAN_SOURCES)[number];
+
+// Zähler je Scan (security_scans.counts).
+export type ScanCounts = Record<FindingSeverity, number> & {
+	new: number;
+	reopened: number;
+	resolved: number;
+};
+
 // Herkunft eines Nachweises (evidence.source).
 export const EVIDENCE_SOURCES = [
 	"manual",
@@ -285,6 +345,7 @@ export const ENTITY_KINDS = [
 	"member",
 	"assessment",
 	"product",
+	"security_finding",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 

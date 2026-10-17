@@ -5,8 +5,6 @@ import { revalidatePath } from "next/cache";
 import {
 	assessmentAnswers,
 	assessments,
-	controlImplementations,
-	controls,
 	documents,
 	products,
 } from "@/db/schema";
@@ -20,16 +18,12 @@ import { scoreAssessment } from "@/lib/assessments/score";
 import { answerStates, nextAssessmentCode } from "@/lib/assessments/state";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nextProductCode } from "@/lib/compliance/cra";
+import { storeSbom } from "@/lib/compliance/sbom-service";
 import type { OrgTx } from "@/lib/db/with-org";
 import { mutateOrg } from "@/lib/db/with-org";
 import { PRODUCT_STATUS } from "@/lib/entities/product";
 import { canTransition } from "@/lib/entities/status-machine";
-import {
-	linkEvidenceToControl,
-	s3Configured,
-	screenUpload,
-	storeEncryptedEvidence,
-} from "@/lib/evidence/store";
+import { s3Configured, screenUpload } from "@/lib/evidence/store";
 import { getOrgLimiter } from "@/lib/rate-limit";
 import { checkSbom, parseSbom } from "@/lib/security/sbom-check";
 import { assessmentIdSchema } from "@/lib/validation/assessments";
@@ -242,48 +236,21 @@ async function uploadSbomImpl(
 		async (tx) => {
 			const row = await loadProduct(tx, c.orgId, productId);
 			if (!row) return { result: { ok: false, error: "notFound" }, audit: [] };
-			const stored = await storeEncryptedEvidence(tx, {
-				orgId: c.orgId,
-				bytes,
-				safeName: v.safeName,
-				mime: v.mime,
-				title: `SBOM ${row.code} ${row.name}${row.version ? ` ${row.version}` : ""}`,
-				description: `${summary.format === "cyclonedx" ? "CycloneDX" : "SPDX"} ${summary.specVersion ?? ""} · ${summary.components} Komponenten`,
-				type: "config_export",
-				classification: v.classification,
-				createdByUserId: c.userId,
-				dlp: v.dlp,
-				source: "sbom",
+			const { audit } = await storeSbom(tx, c, {
+				product: row,
+				summary,
+				file: {
+					bytes,
+					safeName: v.safeName,
+					mime: v.mime,
+					classification: v.classification,
+					dlp: v.dlp,
+					source: "sbom",
+				},
 			});
-			const [impl] = await tx
-				.select({ id: controlImplementations.id })
-				.from(controlImplementations)
-				.innerJoin(controls, eq(controls.id, controlImplementations.controlId))
-				.where(
-					and(
-						eq(controlImplementations.organizationId, c.orgId),
-						eq(controls.code, "CC-PRD-03"),
-					),
-				)
-				.limit(1);
-			if (impl) await linkEvidenceToControl(tx, c.orgId, impl.id, stored.id);
-			await tx
-				.update(products)
-				.set({ sbomEvidenceId: stored.id, sbomSummary: summary })
-				.where(eq(products.id, row.id));
 			return {
 				result: { ok: true, data: { ok: summary.ok, issues: summary.issues } },
-				audit: {
-					action: "product.sbom_uploaded",
-					target: `product:${row.id}`,
-					before: { sbomEvidenceId: row.sbomEvidenceId },
-					after: {
-						sbomEvidenceId: stored.id,
-						format: summary.format,
-						components: summary.components,
-						ok: summary.ok,
-					},
-				},
+				audit,
 			};
 		},
 	);

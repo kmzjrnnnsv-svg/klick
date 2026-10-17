@@ -40,7 +40,12 @@ import {
 } from "@/lib/compliance/queries";
 import { listDocuments } from "@/lib/compliance/queries-p2";
 import { getProductDetail } from "@/lib/compliance/queries-products";
+import { listFindings } from "@/lib/compliance/queries-security";
 import { readOrg } from "@/lib/db/with-org";
+import {
+	FINDING_STATUS_MACHINE,
+	SEVERITY_TONE,
+} from "@/lib/entities/security-finding";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { s3Configured } from "@/lib/evidence/store";
 import { mergeActivity, toHistoryItems } from "@/lib/history";
@@ -51,6 +56,7 @@ const TABS = [
 	"einstufung",
 	"konformitaet",
 	"sbom",
+	"befunde",
 	"checkliste",
 	"vorfaelle",
 ] as const;
@@ -76,22 +82,25 @@ export default async function ProductPage({
 	const ts = await getTranslations("Status");
 	const ti = await getTranslations("Incidents");
 	const ta = await getTranslations("Assessment");
+	const ts2 = await getTranslations("Security");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getProductDetail(tx, ctx.orgId, id);
 		if (!d) return null;
-		const [comments, history, members, tasks, docs] = await Promise.all([
-			listComments(tx, ctx.orgId, "product", id),
-			historyFor(tx, `product:${id}`),
-			listMembersForPicker(tx, ctx.orgId),
-			listTasks(tx, ctx.orgId, { entityType: "product", entityId: id }),
-			listDocuments(tx, ctx.orgId),
-		]);
+		const [comments, history, members, tasks, docs, findings] =
+			await Promise.all([
+				listComments(tx, ctx.orgId, "product", id),
+				historyFor(tx, `product:${id}`),
+				listMembersForPicker(tx, ctx.orgId),
+				listTasks(tx, ctx.orgId, { entityType: "product", entityId: id }),
+				listDocuments(tx, ctx.orgId),
+				listFindings(tx, ctx.orgId, { productId: id }),
+			]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
 		]);
 		for (const [k, v] of d.names) names.set(k, v);
-		return { ...d, comments, history, members, tasks, docs, names };
+		return { ...d, comments, history, members, tasks, docs, findings, names };
 	});
 	if (!data) notFound();
 	const p = data.product;
@@ -133,6 +142,9 @@ export default async function ProductPage({
 		})),
 	);
 	const sbom = p.sbomSummary;
+	const openFindings = data.findings.filter(
+		(f) => f.status === "open" || f.status === "in_progress",
+	);
 	const running = data.checklists.find(
 		(c) => c.status !== "completed" && c.status !== "cancelled",
 	);
@@ -233,7 +245,9 @@ export default async function ProductPage({
 							? data.checklists.length
 							: x === "vorfaelle"
 								? data.incidents.length
-								: undefined,
+								: x === "befunde"
+									? openFindings.length
+									: undefined,
 				}))}
 			/>
 
@@ -474,6 +488,55 @@ export default async function ProductPage({
 							</p>
 						))}
 				</>
+			)}
+
+			{tab === "befunde" && (
+				<Section
+					title={t("findings")}
+					actions={
+						<Link
+							href="/sicherheit?tab=schnellcheck"
+							className={buttonVariants({ variant: "outline", size: "sm" })}
+						>
+							{t("toSecurity")}
+						</Link>
+					}
+				>
+					<p className="mb-3 text-muted-foreground text-sm">
+						{t("findingsLead")}
+					</p>
+					{data.findings.length === 0 ? (
+						<p className="text-muted-foreground text-sm">
+							{t("findingsEmpty")}
+						</p>
+					) : (
+						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+							{data.findings.slice(0, 100).map((f) => (
+								<li
+									key={f.id}
+									className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
+								>
+									<Link
+										href={`/sicherheit/befunde/${f.id}`}
+										className="min-w-0 truncate hover:underline"
+									>
+										{f.title}
+									</Link>
+									<span className="flex items-center gap-2 text-xs">
+										<Badge variant={SEVERITY_TONE[f.severity]}>
+											{ts2(`sev_${f.severity}`)}
+										</Badge>
+										<Badge variant="muted">
+											{ts(
+												FINDING_STATUS_MACHINE.labelKey[f.status] as "sfOpen",
+											)}
+										</Badge>
+									</span>
+								</li>
+							))}
+						</ul>
+					)}
+				</Section>
 			)}
 
 			{tab === "checkliste" && (

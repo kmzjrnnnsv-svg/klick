@@ -34,6 +34,11 @@ A6 böswilliger Plattform-Admin · A7 Netzwerk-Mittelsmann.
 | Elevation of Privilege | Prozess-Kompromittierung (A1 → RCE) | systemd-Sandbox (ProtectSystem=strict, SystemCallFilter, keine Capabilities), dedizierter User, read-only Code | `deploy/systemd/klick.service` |
 | Malicious upload | Schadcode in Nachweisen | MIME-Allowlist, Magic-Bytes, Auslieferung als Attachment, SVG nie inline, optional clamd-Scan fail closed (`CLAMD_HOST`), Treffer als `denied` im Audit | `lib/uploads/validate.ts`, `lib/uploads/clamav.ts` |
 | Information Disclosure | Fehler-Tracking leakt PII | GlitchTip über Store-API ohne SDK, Scrubbing von E-Mails, Tokens, Query-Strings, Cookies; nie Bodies | `lib/observability/glitchtip.ts` |
+| Spoofing | Gestohlener CI-Token (Ingest) | nur SHA-256 gespeichert, Präfix `klk_ingest_` für Secret-Scanning, Scopes je Token, Ablauf ≤ 365 Tage, Widerruf mit Step-up, Grenzen je IP/Token/Org, jede Übertragung im Audit (`via: api_token`) | `lib/security/tokens.ts`, `lib/security/ingest.ts`, `app/actions/integrations.ts` |
+| Information Disclosure | Token-Auflösung ohne Org-Kontext umgeht RLS (ADR-017) | eigene SELECT-Policy nur auf `access_tokens` und nur für die Zeile mit `app.token_hash`; kein Schreiben, keine anderen Tabellen; danach normaler Org-Kontext | `db/schema/security.ts`, `lib/db/with-token.ts`, `tests/security.integration.test.ts` |
+| Information Disclosure | Secrets aus Scan-Berichten (gitleaks, SARIF-Snippets) landen in Klick | Parser redigieren (Präfix + Länge), Autor/E-Mail verworfen; mit Secrets wird nur die redigierte Normalform als Nachweis gespeichert; Details feldverschlüsselt | `lib/security/parsers.ts`, `lib/security/import-service.ts` |
+| Server-Side Request Forgery | Schnellcheck greift interne Ziele/Metadaten an | nur http(s) auf 80/443, keine internen Namen; alle aufgelösten Adressen öffentlich (inkl. IPv4 in IPv6, NAT64, 6to4); Abruf an die geprüfte Adresse gepinnt, jeder Redirect neu geprüft; ≤ 40 Anfragen, 60 s, Größenlimits | `lib/security/quick-check/{ssrf,fetcher}.ts`, `tests/quick-check.test.ts` |
+| Abuse | Schnellcheck als Werkzeug gegen fremde Seiten | nur passiv (GET auf Seite, eigene Skripte, Source-Maps, security.txt), keine Pfad-Proben; Bestätigung der Berechtigung im Audit; 10 je Org und Tag; eindeutiger User-Agent | `app/actions/security-checks.ts`, `lib/security/quick-check/run.ts` |
 | Information Disclosure | Schlüsselkompromittierung (KEK) | KEK-Rotation ohne Re-Encrypt der Nutzdaten (`pnpm kek:rotate`), Versionen im Envelope; Org-Löschung = Crypto-Shredding des DEK | `lib/crypto/rotate.ts`, `scripts/rotate-kek.ts` |
 
 ## Bekannte Lücken (offen)
@@ -43,3 +48,5 @@ A6 böswilliger Plattform-Admin · A7 Netzwerk-Mittelsmann.
 - Rate-Limit je Org lebt im Prozessspeicher (ein Server); bei mehreren Instanzen auf nginx/Redis verlagern.
 - clamd, CrowdSec und GlitchTip sind optional konfiguriert (Env/Runbook) und müssen auf dem Server installiert werden.
 - Externer Pentest vor Go-Live steht aus (`/testprogramm`).
+- Ingest-Grenzen je Token leben im Prozessspeicher (ein Server), wie das Org-Rate-Limit.
+- Der Schnellcheck prüft DNSSEC nicht und erkennt registrierbare Domains nur näherungsweise (keine Public-Suffix-Liste).

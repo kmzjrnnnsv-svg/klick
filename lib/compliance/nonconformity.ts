@@ -11,7 +11,8 @@ export type NonconformitySource =
 	| "control_test"
 	| "complaint"
 	| "management_review"
-	| "self_identified";
+	| "self_identified"
+	| "security_finding";
 
 export type NonconformityDraft = {
 	source: NonconformitySource;
@@ -94,6 +95,36 @@ export function nonconformityFromTest(
 		rootCause: null,
 		ownerUserId: test.ownerUserId,
 		dueAt: plusDays(now, NC_DUE_DAYS),
+		effectivenessCheckAt: plusDays(now, NC_EFFECTIVENESS_DAYS),
+	};
+}
+
+// Kritische Sicherheitsbefunde eines Scans → eine Abweichung (gebündelt, damit
+// ein großer Import nicht Dutzende CAPA-Fälle erzeugt). Frist nach SLA
+// kritisch (7 Tage) statt der üblichen 30.
+export function nonconformityFromSecurityFindings(
+	findings: readonly { id: string; title: string; location: string | null }[],
+	scan: { tool: string; target: string | null },
+	ownerUserId: string | null,
+	now = new Date(),
+): NonconformityDraft | null {
+	const first = findings[0];
+	if (!first) return null;
+	const list = findings
+		.slice(0, 10)
+		.map((f) => `- ${f.title}${f.location ? ` (${f.location})` : ""}`)
+		.join("\n");
+	return {
+		source: "security_finding",
+		sourceRefId: first.id,
+		title:
+			findings.length === 1
+				? `Kritischer Sicherheitsbefund: ${first.title}`.slice(0, 200)
+				: `${findings.length} kritische Sicherheitsbefunde (${scan.tool})`,
+		description: `Aus ${scan.tool}${scan.target ? ` für ${scan.target}` : ""}:\n${list}${findings.length > 10 ? `\n… und ${findings.length - 10} weitere` : ""}`,
+		rootCause: null,
+		ownerUserId,
+		dueAt: plusDays(now, 7),
 		effectivenessCheckAt: plusDays(now, NC_EFFECTIVENESS_DAYS),
 	};
 }

@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, ne, or, sql } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { member, organization, user } from "@/db/auth-schema";
 import {
@@ -23,6 +23,7 @@ import {
 	products,
 	providers,
 	regulatorInteractions,
+	securityFindings,
 	tasks,
 	trainingAssignments,
 	trainingRequirements,
@@ -505,6 +506,29 @@ async function loadDueRows(
 				isNotNull(insurancePolicies.validUntil),
 			),
 		);
+	const findingRows = await tx
+		.select({
+			id: securityFindings.id,
+			title: securityFindings.title,
+			severity: securityFindings.severity,
+			status: securityFindings.status,
+			dueAt: securityFindings.dueAt,
+			acceptedUntil: securityFindings.acceptedUntil,
+			ownerUserId: securityFindings.ownerUserId,
+		})
+		.from(securityFindings)
+		.where(
+			and(
+				eq(securityFindings.organizationId, orgId),
+				or(
+					eq(securityFindings.status, "accepted"),
+					and(
+						inArray(securityFindings.status, ["open", "in_progress"]),
+						inArray(securityFindings.severity, ["critical", "high"]),
+					),
+				),
+			),
+		);
 	const productRows = await tx
 		.select({
 			id: products.id,
@@ -560,6 +584,7 @@ async function loadDueRows(
 		dataSubjectRequests: dsrRows,
 		insurancePolicies: insuranceRows,
 		products: productRows,
+		securityFindings: findingRows,
 		openTasks,
 	};
 }
@@ -679,6 +704,41 @@ async function applyTick(
 					target: `exception:${a.id}`,
 					before: { status: before.status },
 					after: { status: "expired" },
+				},
+			);
+			written = { ...written, actions: written.actions + 1 };
+		} else if (a.type === "reopen_finding") {
+			const [before] = await tx
+				.select({
+					status: securityFindings.status,
+					acceptedUntil: securityFindings.acceptedUntil,
+				})
+				.from(securityFindings)
+				.where(
+					and(
+						eq(securityFindings.id, a.id),
+						eq(securityFindings.organizationId, orgId),
+					),
+				)
+				.limit(1);
+			if (!before || before.status !== "accepted") continue;
+			await tx
+				.update(securityFindings)
+				.set({
+					status: "open",
+					acceptedUntil: null,
+					statusNote: "Akzeptanz abgelaufen",
+				})
+				.where(eq(securityFindings.id, a.id));
+			await audit(
+				tx,
+				{ userId: null },
+				{
+					organizationId: orgId,
+					action: "security.finding_acceptance_expired",
+					target: `security_finding:${a.id}`,
+					before,
+					after: { status: "open" },
 				},
 			);
 			written = { ...written, actions: written.actions + 1 };
