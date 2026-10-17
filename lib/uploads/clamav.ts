@@ -74,3 +74,31 @@ export async function scanBytes(
 		});
 	});
 }
+
+// Readiness: clamd antwortet auf PING mit PONG.
+export async function pingClamd(
+	opts: { host?: string; port?: number; timeoutMs?: number } = {},
+): Promise<boolean> {
+	const host = opts.host ?? process.env.CLAMD_HOST?.trim();
+	if (!host) return false;
+	const port = opts.port ?? Number(process.env.CLAMD_PORT ?? "3310");
+	return new Promise<boolean>((resolve) => {
+		let done = false;
+		let reply = "";
+		const finish = (ok: boolean) => {
+			if (done) return;
+			done = true;
+			socket.destroy();
+			resolve(ok);
+		};
+		const socket = connect({ host, port });
+		socket.setTimeout(opts.timeoutMs ?? 2_000, () => finish(false));
+		socket.on("error", () => finish(false));
+		socket.on("data", (d) => {
+			reply += d.toString("utf8");
+			if (reply.includes("PONG")) finish(true);
+		});
+		socket.on("end", () => finish(reply.includes("PONG")));
+		socket.on("connect", () => socket.write("zPING\0"));
+	});
+}

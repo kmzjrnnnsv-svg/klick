@@ -15,7 +15,11 @@ import { registerJobs } from "./register";
 
 const SCHEMA = "pgboss";
 
-type G = { __klickBoss?: PgBoss; __klickBossStarted?: Promise<PgBoss> };
+type G = {
+	__klickBoss?: PgBoss;
+	__klickBossStarted?: Promise<PgBoss>;
+	__klickBossRunning?: boolean;
+};
 const g = globalThis as unknown as G;
 
 export function getBoss(): PgBoss {
@@ -61,6 +65,7 @@ export async function startScheduler(): Promise<PgBoss> {
 			const boss = getBoss();
 			await boss.start();
 			await registerJobs(boss);
+			g.__klickBossRunning = true;
 			logger.info("scheduler started");
 			return boss;
 		})().catch((err) => {
@@ -76,7 +81,14 @@ export async function stopScheduler(): Promise<void> {
 		await g.__klickBoss.stop({ graceful: true, timeout: 10_000 });
 		g.__klickBoss = undefined;
 		g.__klickBossStarted = undefined;
+		g.__klickBossRunning = false;
 	}
+}
+
+// Readiness: läuft der Scheduler in diesem Prozess?
+export function schedulerState(): "disabled" | "running" | "not_running" {
+	if (process.env.KLICK_DISABLE_JOBS === "true") return "disabled";
+	return g.__klickBossRunning ? "running" : "not_running";
 }
 
 // Einzelauftrag in die Warteschlange (z. B. Schnellcheck). false, wenn Jobs

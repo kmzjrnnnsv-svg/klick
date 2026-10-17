@@ -88,7 +88,8 @@ export const envSchema = z.object({
 	VAULT_KEK_VERSION: z.coerce.number().int().min(1).default(1),
 
 	S3_ENDPOINT: z.url().optional(),
-	S3_REGION: z.string().default("eu-central-1"),
+	// Vorgabe wie lib/storage/s3.ts (MinIO-Standard); Hetzner: Region setzen.
+	S3_REGION: z.string().default("us-east-1"),
 	S3_BUCKET: z.string().default("klick"),
 	S3_ACCESS_KEY_ID: z.string().optional(),
 	S3_SECRET_ACCESS_KEY: z.string().optional(),
@@ -123,6 +124,10 @@ export const envSchema = z.object({
 	// Fehler-Tracking (GlitchTip/Sentry-Store-API), eigene DB je Enterprise-Org.
 	CLAMD_HOST: z.string().optional(),
 	CLAMD_PORT: z.coerce.number().int().min(1).max(65535).default(3310),
+	// Pool und Server-Timeouts (db/index.ts poolOptions)
+	DB_POOL_MAX: z.coerce.number().int().min(1).max(200).optional(),
+	DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(0).optional(),
+	DB_IDLE_TX_TIMEOUT_MS: z.coerce.number().int().min(0).optional(),
 	ORG_RATE_LIMIT_PER_MIN: z.coerce.number().int().min(0).default(600),
 	GLITCHTIP_DSN: z.url().optional(),
 	KLICK_RELEASE: z.string().optional(),
@@ -158,7 +163,15 @@ export function validateEnv(
 	source: Record<string, string | undefined> = process.env,
 ): Env {
 	ensureEnvLoaded();
-	const result = envSchema.safeParse(source);
+	// `FOO=` in einer Env-Datei heißt „nicht gesetzt“ — sonst scheiterte z. B.
+	// CONTACT_EMAIL= an der E-Mail-Prüfung und die App startete nicht.
+	const cleaned = Object.fromEntries(
+		Object.entries(source).map(([k, v]) => [
+			k,
+			v === undefined || v.trim() === "" ? undefined : v,
+		]),
+	);
+	const result = envSchema.safeParse(cleaned);
 	if (!result.success) {
 		const lines = result.error.issues.map(
 			(issue) => `  • ${issue.path.join(".") || "(root)"}: ${issue.message}`,

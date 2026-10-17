@@ -16,7 +16,7 @@
 
 ## Release
 CI grün → Wartungsfenster → `scripts/backup-db.sh` → `git pull && pnpm release`
-(migrate → seed → build) → `systemctl restart klick` → `curl -f https://raza.work/api/ready`.
+(migrate → seed → build) → `systemctl restart klick` → warten, bis `/api/ready` 200 liefert.
 
 `pnpm release` läuft als User `klick` und braucht dieselben Secrets wie der Dienst
 (`db:seed` validiert die Env: `BETTER_AUTH_SECRET`, `VAULT_KEK_BASE64`, `BETTER_AUTH_URL`).
@@ -35,8 +35,23 @@ export BETTER_AUTH_SECRET="$(d better_auth_secret)" VAULT_KEK_BASE64="$(d vault_
 export DATABASE_URL="$(d database_url)" DATABASE_URL_MIGRATE="$(d database_url_migrate)"
 runuser -u klick -- pnpm release
 '
-sudo systemctl restart klick && curl -f https://raza.work/api/ready
+sudo systemctl restart klick
+# Der Dienst braucht nach dem Neustart einige Sekunden (502 von nginx bis dahin):
+for i in $(seq 1 30); do curl -fsS https://raza.work/api/ready && break; sleep 2; done
 ```
+
+`/api/ready` antwortet mit `{"status":"ready","checks":{…}}` — je Abhängigkeit `ok`, `fail`,
+`warn` oder `skipped`: `database`, `orgDatabases` (ORG_DATABASE_URLS), `storage` (S3
+HeadBucket), `clamd` (PING), `jobs` (pg-boss läuft), `mail` (Resend/SMTP konfiguriert). Ein
+`fail` ergibt 503; `warn` bleibt 200 — `mail: warn` heißt: ohne Mail-Provider kommen in
+Produktion keine Magic-Links an. Bleibt es bei 502/503: `journalctl -u klick -n 100` (eine
+ungültige Env bricht den Start mit „Ungültige Umgebungskonfiguration“ ab; leere Werte wie
+`CONTACT_EMAIL=` gelten seit Okt. 2026 als nicht gesetzt).
+
+Timeouts: Postgres `statement_timeout` 60 s und `idle_in_transaction_session_timeout` 180 s
+je App-Verbindung (`DB_STATEMENT_TIMEOUT_MS`, `DB_IDLE_TX_TIMEOUT_MS`, Pool `DB_POOL_MAX`),
+S3 5 s Verbindungsaufbau / 60 s je Anfrage. nginx: `client_max_body_size 27m` und für
+Uploads ein `proxy_read_timeout` ≥ 120 s (Upload + Virenscan + Verschlüsselung).
 
 **Rollback:** `scripts/restore-db.sh <dump> <url>` + `git checkout recruiting-final` + `pnpm release`.
 

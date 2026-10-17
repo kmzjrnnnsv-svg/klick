@@ -2,6 +2,7 @@ import {
 	DeleteObjectCommand,
 	DeleteObjectsCommand,
 	GetObjectCommand,
+	HeadBucketCommand,
 	ListObjectsV2Command,
 	PutObjectCommand,
 	S3Client,
@@ -13,17 +14,33 @@ if (!process.env.S3_SECRET_ACCESS_KEY) {
 	throw new Error("S3_SECRET_ACCESS_KEY missing");
 }
 
-export const BUCKET = process.env.S3_BUCKET ?? "klick";
+export const BUCKET = process.env.S3_BUCKET || "klick";
 
+// Region: Vorgabe wie in lib/env.ts (us-east-1 = MinIO-Standard). Timeouts:
+// ohne sie hing ein nicht erreichbarer Objektspeicher den Request (und die
+// offene DB-Transaktion des Uploads) unbegrenzt auf.
 export const s3 = new S3Client({
 	endpoint: process.env.S3_ENDPOINT,
-	region: process.env.S3_REGION ?? "us-east-1",
+	region: process.env.S3_REGION || "us-east-1",
 	credentials: {
 		accessKeyId: process.env.S3_ACCESS_KEY_ID,
 		secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
 	},
 	forcePathStyle: true, // required for MinIO
+	maxAttempts: 3,
+	requestHandler: {
+		connectionTimeout: 5_000,
+		requestTimeout: 60_000,
+		throwOnRequestTimeout: true,
+	},
 });
+
+// Readiness: Bucket erreichbar und Zugangsdaten gültig (kurzes Zeitlimit).
+export async function headBucket(timeoutMs = 3_000): Promise<void> {
+	await s3.send(new HeadBucketCommand({ Bucket: BUCKET }), {
+		abortSignal: AbortSignal.timeout(timeoutMs),
+	});
+}
 
 export async function putBytes(
 	key: string,

@@ -20,6 +20,21 @@ describe("env", () => {
 		expect(env.VAULT_KEK_VERSION).toBe(1);
 	});
 
+	it("leere Werte gelten als nicht gesetzt (CONTACT_EMAIL= brach den Start)", () => {
+		const env = validateEnv({
+			...valid,
+			CONTACT_EMAIL: "",
+			S3_REGION: "  ",
+			SMTP_PORT: "",
+		});
+		expect(env.CONTACT_EMAIL).toBeUndefined();
+		expect(env.S3_REGION).toBe("us-east-1");
+		expect(env.SMTP_PORT).toBeUndefined();
+		expect(() => validateEnv({ ...valid, CONTACT_EMAIL: "kein-mail" })).toThrow(
+			/CONTACT_EMAIL/,
+		);
+	});
+
 	it("bricht ohne BETTER_AUTH_SECRET mit sprechender Meldung ab", () => {
 		const { BETTER_AUTH_SECRET: _omit, ...rest } = valid;
 		expect(() => validateEnv(rest)).toThrow(/BETTER_AUTH_SECRET/);

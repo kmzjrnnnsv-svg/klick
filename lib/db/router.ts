@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { type GlobalDb, globalDb, schema } from "@/db";
+import { type GlobalDb, globalDb, poolOptions, schema } from "@/db";
 
 // Option „eigene Datenbank je Enterprise-Mandant“: ORG_DATABASE_URLS ist ein
 // JSON-Objekt { "<orgId>": "postgres://…" }. withOrg/readOrg/mutateOrg wählen
@@ -44,10 +44,10 @@ export function dbForOrg(orgId: string): GlobalDb {
 	if (!url) return globalDb;
 	let client = clients.get(url);
 	if (!client) {
-		client = drizzle(
-			postgres(url, { max: 5, idle_timeout: 30, connect_timeout: 10 }),
-			{ schema, casing: "snake_case" },
-		) as unknown as GlobalDb;
+		client = drizzle(postgres(url, { ...poolOptions(5), max: 5 }), {
+			schema,
+			casing: "snake_case",
+		}) as unknown as GlobalDb;
 		clients.set(url, client);
 	}
 	return client;
