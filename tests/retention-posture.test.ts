@@ -10,6 +10,8 @@ describe("retention cutoffs", () => {
 		expect(c.sessions.toISOString().slice(0, 10)).toBe("2026-09-07");
 		expect(c.verifications.toISOString().slice(0, 10)).toBe("2026-10-06");
 		expect(RETENTION.readNotificationDays).toBe(180);
+		// Anfragen: 12 Monate nach der letzten Änderung
+		expect(c.inquiries.toISOString().slice(0, 10)).toBe("2025-10-07");
 		expect(Object.keys(c)).not.toContain("auditLog");
 	});
 });

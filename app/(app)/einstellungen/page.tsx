@@ -305,6 +305,7 @@ export default async function SettingsPage({
 						<SubscriptionPanel
 							plan={settings?.plan ?? "start"}
 							prices={prices}
+							email={ctx.email}
 						/>
 					</TabsContent>
 				)}

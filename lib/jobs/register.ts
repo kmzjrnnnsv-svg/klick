@@ -1,10 +1,10 @@
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import type { PgBoss } from "pg-boss";
 import { globalDb } from "@/db";
-import { organization, user } from "@/db/auth-schema";
-import { notifications } from "@/db/schema";
+import { organization } from "@/db/auth-schema";
 import { verifyAuditChain } from "@/lib/audit";
 import { logger } from "@/lib/log";
+import { notifyPlatformAdmins } from "@/lib/notifications/notify";
 import {
 	executeQuickCheck,
 	QUICK_CHECK_JOB,
@@ -115,21 +115,13 @@ export async function runVerifyAuditChain(): Promise<{
 				);
 			}
 		}
-		if (broken.length > 0) {
-			const admins = await tx
-				.select({ id: user.id })
-				.from(user)
-				.where(eq(user.role, "admin"));
-			for (const admin of admins) {
-				await tx.insert(notifications).values({
-					userId: admin.id,
-					kind: "security_alert",
-					title: "Audit-Kette gebrochen",
-					body: `Betroffen: ${broken.join(", ")}`,
-					link: "/admin/audit",
-				});
-			}
-		}
+		if (broken.length > 0)
+			await notifyPlatformAdmins(tx, {
+				kind: "security_alert",
+				title: "Audit-Kette gebrochen",
+				body: `Betroffen: ${broken.join(", ")}`,
+				link: "/admin/audit",
+			});
 	});
 	return { checked, broken };
 }

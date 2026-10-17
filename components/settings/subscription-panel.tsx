@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { RequestServiceDialog } from "@/components/settings/request-service-dialog";
 import { buttonVariants } from "@/components/ui/button";
 import {
 	Table,
@@ -21,9 +22,11 @@ const PLAN_ITEM: Record<string, "plan:start" | "plan:growth" | "plan:licence"> =
 export async function SubscriptionPanel({
 	plan,
 	prices,
+	email,
 }: {
 	plan: string;
 	prices: PriceTable;
+	email: string;
 }) {
 	const t = await getTranslations("Settings");
 	const planItem = PLAN_ITEM[plan];
@@ -80,7 +83,8 @@ export async function SubscriptionPanel({
 					</TableBody>
 				</Table>
 				<p className="text-muted-foreground text-xs">{t("subscriptionNote")}</p>
-				<div>
+				<div className="flex flex-wrap gap-2">
+					<RequestServiceDialog email={email} />
 					<Link
 						href="/leistungen"
 						className={cn(buttonVariants({ variant: "outline", size: "sm" }))}

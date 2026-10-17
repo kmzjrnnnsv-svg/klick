@@ -38,6 +38,7 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
 	risk_above_appetite: "Risiken über Appetit",
 	audit_request: "Nachweisanfragen",
 	security_alert: "Sicherheitshinweise",
+	inquiry: "Anfragen",
 	digest: "Digest",
 	system: "System",
 };

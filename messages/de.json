@@ -601,7 +601,9 @@
 		"exportCsvHint": "Vollständiger Export (max. 50.000 Zeilen, Semikolon, UTF-8 mit BOM, inkl. Hash-Kette). Filter: ?org=&from=&to=",
 		"prices": "Preise",
 		"pricesLead": "Preisgruppen nach Unternehmensgröße. Je Gruppe eine Stufe (Einstieg, Marktüblich, Premium) oder eigene Werte. Die Standardgruppe steht öffentlich auf /preise und /leistungen; Organisationen ordnest du unter Organisationen zu.",
-		"priceGroup": "Preisgruppe"
+		"priceGroup": "Preisgruppe",
+		"inquiries": "Anfragen",
+		"inquiriesLead": "Anfragen aus dem Formular auf /leistungen und aus der App (Einstellungen → Abo & Leistungen). Neue Anfragen gehen per Sofort-Mail an alle Plattform-Admins; gelöscht wird automatisch 12 Monate nach der letzten Änderung."
 	},
 	"Errors": {
 		"title": "Da ist etwas schiefgelaufen.",
@@ -3575,7 +3577,6 @@
 		"linkPrices": "Preise",
 		"linkTrust": "Vertrauen",
 		"ctaContact": "Erstgespräch anfragen",
-		"ctaStart": "Kostenlos starten",
 		"svcTitle1": "Fünf Leistungen,",
 		"svcTitle2": "fester Preis.",
 		"filesLabel": "Ergebnisdateien",
@@ -3610,6 +3611,20 @@
 		"ctaTitle": "Sag uns, was ansteht.",
 		"ctaLead": "Ein Erstgespräch dauert 30 Minuten. Danach bekommst du Umfang, Termin und Festpreis schriftlich.",
 		"ctaImageAlt": "Fragebogen im Lieferantenportal auf dem Telefon",
-		"credit": "Bilder: Bildschirmfotos aus Klick mit Beispieldaten."
+		"credit": "Bilder: Bildschirmfotos aus Klick mit Beispieldaten.",
+		"formName": "Name",
+		"formCompany": "Firma",
+		"formEmail": "E-Mail",
+		"formService": "Worum geht es?",
+		"formMessage": "Was steht an?",
+		"formMessagePlaceholder": "z. B. ISO 27001 bis Q3, zwei Web-Apps, rund 40 Lieferanten…",
+		"formConsent": "Meine Angaben dürfen gespeichert werden, um die Anfrage zu beantworten; gelöscht wird nach 12 Monaten. Mehr in der <link>Datenschutzerklärung</link>.",
+		"formSubmit": "Anfrage senden",
+		"formSending": "Wird gesendet…",
+		"formHint": "Wir antworten per E-Mail.",
+		"formSentTitle": "Danke, deine Anfrage ist da.",
+		"formSentLead": "Wir melden uns per E-Mail an {email} und schlagen einen Termin für das Erstgespräch vor.",
+		"formRateLimited": "Zu viele Anfragen in kurzer Zeit. Versuch es in ein paar Minuten noch einmal.",
+		"formFailed": "Das hat nicht geklappt. Versuch es gleich noch einmal."
 	}
 }

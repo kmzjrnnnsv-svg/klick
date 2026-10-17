@@ -5,6 +5,7 @@ export * from "./schema/assessments";
 export * from "./schema/catalog";
 export * from "./schema/enums";
 export * from "./schema/grc";
+export * from "./schema/inquiries";
 export * from "./schema/management";
 export * from "./schema/platform";
 export * from "./schema/pricing";

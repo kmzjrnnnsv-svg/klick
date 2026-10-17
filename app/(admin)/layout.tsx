@@ -20,6 +20,7 @@ export default async function AdminLayout({
 		{ href: "/admin/orgs", label: t("orgs") },
 		{ href: "/admin/users", label: t("users") },
 		{ href: "/admin/audit", label: t("audit") },
+		{ href: "/admin/anfragen", label: t("inquiries") },
 		{ href: "/admin/preise", label: t("prices") },
 		{ href: "/admin/cms", label: t("cms") },
 	];

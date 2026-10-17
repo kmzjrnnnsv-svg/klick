@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { CSSProperties } from "react";
+import { InquiryForm } from "@/components/marketing/inquiry-form";
 import { RevealRoot } from "@/components/marketing/reveal";
 import { loadPriceTable } from "@/lib/db/pricing";
 import {
@@ -125,14 +126,17 @@ function phonePieceStyle(i: number): CSSProperties {
 	} as CSSProperties;
 }
 
-export default async function ServicesPage() {
+export default async function ServicesPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ leistung?: string }>;
+}) {
 	const t = await getTranslations("Services");
 	const { prices } = await loadPriceTable();
-	const contact = process.env.CONTACT_EMAIL;
-	const contactHref = contact
-		? `mailto:${contact}?subject=${encodeURIComponent("Erstgespräch Klick")}`
-		: "/login";
-	const contactLabel = contact ? t("ctaContact") : t("ctaStart");
+	const { leistung } = await searchParams;
+	// Alle Aktionen führen zum Anfrageformular am Seitenende.
+	const contactHref = "#anfrage";
+	const contactLabel = t("ctaContact");
 	const imgVars = {
 		"--img": `url(${IMG.sicherheit.src})`,
 		"--img-phone": `url(${IMG.vertrag.src})`,
@@ -559,8 +563,8 @@ export default async function ServicesPage() {
 				</div>
 			</section>
 
-			{/* Abschluss: die Aktionskachel */}
-			<section className={s.section} aria-labelledby="cta-title">
+			{/* Abschluss: die Aktionskachel mit Anfrageformular */}
+			<section id="anfrage" className={s.section} aria-labelledby="cta-title">
 				<div className={s.ctaRow}>
 					<div className={cn(s.ctaSide, s.ctaLeft)} data-r="">
 						{/* biome-ignore lint/performance/noImgElement: statisches Bildschirmfoto */}
@@ -574,11 +578,14 @@ export default async function ServicesPage() {
 						/>
 					</div>
 					<div className={s.ctaMain} data-r="">
-						<h2 id="cta-title">{t("ctaTitle")}</h2>
-						<p>{t("ctaLead")}</p>
-						<a href={contactHref} className={cn(s.button, s.buttonInverse)}>
-							{contactLabel}
-						</a>
+						<div className={s.ctaText}>
+							<h2 id="cta-title">{t("ctaTitle")}</h2>
+							<p>{t("ctaLead")}</p>
+						</div>
+						<InquiryForm
+							defaultService={leistung ? `svc:${leistung}` : undefined}
+							buttonClassName={cn(s.button, s.buttonInverse)}
+						/>
 					</div>
 					<div className={cn(s.ctaSide, s.ctaRight)} data-r="" />
 				</div>

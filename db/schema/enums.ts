@@ -251,6 +251,12 @@ export type PriceLevel = (typeof PRICE_LEVELS)[number];
 export const PRICE_MODES = ["from", "fixed", "on_request"] as const;
 export type PriceMode = (typeof PRICE_MODES)[number];
 
+// Anfragen (Formular auf /leistungen, „Leistung anfragen“ in der App).
+export const INQUIRY_SOURCES = ["public", "app"] as const;
+export type InquirySource = (typeof INQUIRY_SOURCES)[number];
+export const INQUIRY_STATUS = ["new", "contacted", "closed", "spam"] as const;
+export type InquiryStatus = (typeof INQUIRY_STATUS)[number];
+
 // Sicherheitsaufträge (S7): Pentest, Security-Check, Schnellcheck-Auftrag,
 // CRA-Readiness — manuell durchgeführt, in Klick verwaltet.
 export const ENGAGEMENT_KINDS = [
@@ -442,6 +448,7 @@ export const NOTIFICATION_KINDS = [
 	"risk_above_appetite",
 	"audit_request",
 	"security_alert",
+	"inquiry",
 	"digest",
 	"system",
 ] as const;
