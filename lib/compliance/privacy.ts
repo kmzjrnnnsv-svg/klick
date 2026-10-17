@@ -48,6 +48,8 @@ export function canExtendDsr(
 }
 
 export type DsrLike = {
+	// Eingang — für die Bearbeitungsdauer (sonst aus der Frist zurückgerechnet)
+	receivedAt?: Date | null;
 	dueAt: Date;
 	extendedUntil: Date | null;
 	completedAt: Date | null;
@@ -81,11 +83,10 @@ export function dsrStats(rows: readonly DsrLike[], now: Date) {
 		if (c !== "done") open += 1;
 		if (r.completedAt) {
 			if (r.completedAt.getFullYear() === now.getFullYear()) doneThisYear += 1;
-			durations.push(
-				(r.completedAt.getTime() -
-					(r.dueAt.getTime() - DSR_MONTHS * 30 * 86_400_000)) /
-					86_400_000,
-			);
+			const start =
+				r.receivedAt?.getTime() ??
+				r.dueAt.getTime() - DSR_MONTHS * 30 * 86_400_000;
+			durations.push((r.completedAt.getTime() - start) / 86_400_000);
 		}
 	}
 	return {

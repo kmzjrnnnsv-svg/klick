@@ -71,7 +71,12 @@ export function buildDigest(
 ): { subject: string; text: string; html: string } | null {
 	if (items.length === 0) return null;
 	const groups = new Map<NotificationKind, DigestItem[]>();
-	for (const it of items.slice(0, DIGEST_MAX_ITEMS)) {
+	// die neuesten zuerst — bei mehr als 40 Punkten fällt das Älteste weg,
+	// nicht das, was heute dazugekommen ist
+	const newest = [...items].sort(
+		(a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+	);
+	for (const it of newest.slice(0, DIGEST_MAX_ITEMS)) {
 		const list = groups.get(it.kind) ?? [];
 		list.push(it);
 		groups.set(it.kind, list);

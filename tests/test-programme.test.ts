@@ -67,4 +67,29 @@ describe("programmeStatus", () => {
 		expect(s.bcmGaps).toHaveLength(2);
 		expect(s.pentestDone).toBe(false);
 	});
+	it("Durchführung zählt im Jahr von testedAt, nicht im Planjahr", () => {
+		const late = {
+			id: "t1",
+			method: "pentest",
+			plannedAt: "2026-12-01",
+			testedAt: new Date("2027-02-10T10:00:00Z"),
+			result: "pass",
+			processId: null,
+		};
+		const y26 = programmeStatus(
+			2026,
+			[late as never],
+			[],
+			new Date("2027-03-01"),
+		);
+		expect(y26.pentestDone).toBe(false);
+		expect(y26.performed).toBe(0);
+		const y27 = programmeStatus(
+			2027,
+			[late as never],
+			[],
+			new Date("2027-03-01"),
+		);
+		expect(y27.pentestDone).toBe(true);
+	});
 });

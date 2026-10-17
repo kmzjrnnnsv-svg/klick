@@ -1,3 +1,4 @@
+import { berlinDate } from "@/lib/time/berlin";
 // Jahres-Testprogramm (ISO 27001 9.1, DORA Art. 24–26, NIS2 Art. 21(2)(f),
 // ZAG-MaRisk AT 7.3): Abdeckung je Jahr — BCM-Übung je kritischem Prozess,
 // jährlicher Pentest, quartalsweise Rezertifizierung — und Zählwerk.
@@ -26,7 +27,8 @@ export type ProgrammeStatus = {
 
 function yearOf(d: string | Date | null): number | null {
 	if (!d) return null;
-	return new Date(d).getUTCFullYear();
+	const iso = typeof d === "string" ? d.slice(0, 10) : berlinDate(d);
+	return Number(iso.slice(0, 4));
 }
 
 export function programmeStatus(
@@ -35,12 +37,15 @@ export function programmeStatus(
 	criticalProcesses: readonly { id: string; code: string; name: string }[],
 	now = new Date(),
 ): ProgrammeStatus {
-	const inYear = tests.filter(
-		(t) => yearOf(t.testedAt) === year || yearOf(t.plannedAt) === year,
+	// Durchgeführt zählt im Jahr der Durchführung — ein für 2026 geplanter,
+	// erst 2027 gemachter Pentest erfüllt 2026 nicht.
+	const performed = tests.filter(
+		(t) => t.testedAt !== null && yearOf(t.testedAt) === year,
 	);
-	const performed = inYear.filter((t) => t.testedAt !== null);
-	const planned = inYear.filter((t) => t.testedAt === null && t.plannedAt);
-	const today = now.toISOString().slice(0, 10);
+	const planned = tests.filter(
+		(t) => t.testedAt === null && t.plannedAt && yearOf(t.plannedAt) === year,
+	);
+	const today = berlinDate(now);
 	const bcmDone = new Set(
 		performed
 			.filter((t) => t.method === "bcm_exercise" && t.processId)
@@ -49,7 +54,8 @@ export function programmeStatus(
 	const quarters = [false, false, false, false];
 	for (const t of performed) {
 		if (t.method !== "access_review" || !t.testedAt) continue;
-		const q = Math.floor(new Date(t.testedAt).getUTCMonth() / 3);
+		const month = Number(berlinDate(t.testedAt).slice(5, 7));
+		const q = Math.floor((month - 1) / 3);
 		quarters[q] = true;
 	}
 	return {

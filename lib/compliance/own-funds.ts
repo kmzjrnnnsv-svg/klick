@@ -5,9 +5,13 @@ import type { CaspService } from "@/db/schema/enums";
 //   MiCAR Art. 67 + Anhang IV: Mindestkapital je Dienstklasse
 //     (50 000 / 125 000 / 150 000 €) oder ¼ der fixen Gemeinkosten des
 //     Vorjahres — der höhere Wert.
-//   ZAG § 15 (PSD2 Art. 9): laufende Eigenmittel nach Methode A, B oder C,
-//     jeweils × Skalierungsfaktor k (0,5 nur Finanztransfer, sonst 1,0).
+//   ZAG § 15 (PSD2 Art. 9): laufende Eigenmittel nach Methode A, B oder C;
+//     Skalierungsfaktor k (0,5 nur Finanztransfer, sonst 1,0) nur bei B und C.
 //   ZAG § 12 (PSD2 Art. 7): Anfangskapital 20 000 / 50 000 / 125 000 €.
+//   PSD2 Art. 8 Abs. 1: Eigenmittel nie unter dem Anfangskapital — es gilt
+//     der höhere Wert. Reine Zahlungsauslösung: nur Anfangskapital (Art. 9
+//     gilt nicht). Methode C: 80-%-Untergrenze des Dreijahresmittels ist
+//     nicht modelliert.
 // Für ein Institut mit beiden Erlaubnissen gilt die Summe als Planungsgröße
 // (Businessplan 12.4); die Aufsicht kann im Einzelfall anders anrechnen.
 
@@ -20,11 +24,17 @@ export const MICAR_MIN_CAPITAL: Record<MicarClass, number> = {
 };
 
 // Anhang IV: Klasse 1 Ausführung/Platzierung/Transfer/Annahme-Übermittlung/
-// Beratung/Portfolio; Klasse 2 zusätzlich Verwahrung; Klasse 3 Tausch oder
-// Handelsplattform.
+// Beratung/Portfolio; Klasse 2 zusätzlich Verwahrung sowie Tausch gegen
+// Geldbeträge oder andere Kryptowerte (Fiat-Anbindung ist Tausch); Klasse 3
+// nur mit Betrieb einer Handelsplattform.
 export function micarClassFor(services: readonly CaspService[]): MicarClass {
-	if (services.includes("exchange") || services.includes("platform")) return 3;
-	if (services.includes("custody")) return 2;
+	if (services.includes("platform")) return 3;
+	if (
+		services.includes("custody") ||
+		services.includes("exchange") ||
+		services.includes("fiat_onramp")
+	)
+		return 2;
 	return 1;
 }
 
@@ -132,8 +142,9 @@ export type ZagOwnFunds = {
 	method: ZagMethod;
 	k: number;
 	initialCapital: number;
-	computed: number; // Methodenwert × k
-	required: number; // = computed (Anfangskapital ist Zulassungsvoraussetzung)
+	computed: number; // Methodenwert (B/C × k)
+	required: number; // max(computed, Anfangskapital) — PSD2 Art. 8 Abs. 1
+	basis: "method" | "initial_capital";
 };
 
 export function zagOwnFunds(input: ZagOwnFundsInput): ZagOwnFunds {
@@ -150,13 +161,20 @@ export function zagOwnFunds(input: ZagOwnFundsInput): ZagOwnFunds {
 			base = tiered(input.relevantIndicator ?? 0, METHOD_C_BANDS);
 			break;
 	}
-	const computed = round2(base * k);
+	// k nur für Methode B und C (PSD2 Art. 9 Abs. 1)
+	const computed = round2(input.method === "A" ? base : base * k);
+	const initialCapital = zagInitialCapital(input.serviceKind);
+	// Reine Zahlungsauslösung: Art. 9 gilt nicht, nur das Anfangskapital.
+	const methodValue =
+		input.serviceKind === "payment_initiation_only" ? 0 : computed;
+	const required = Math.max(methodValue, initialCapital);
 	return {
 		method: input.method,
 		k,
-		initialCapital: zagInitialCapital(input.serviceKind),
+		initialCapital,
 		computed,
-		required: computed,
+		required,
+		basis: methodValue >= initialCapital ? "method" : "initial_capital",
 	};
 }
 

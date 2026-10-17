@@ -159,9 +159,18 @@ export function deriveCoverage(input: CoverageInput): CoverageResult {
 			req.legalStatus !== "repealed" && get(input.applicability, key) !== false;
 
 		let status: ReqCoverage = "not_applicable";
-		if (applicable) {
+		const reqEdges = edgesByReq.get(key) ?? [];
+		// Sind alle zugeordneten Controls als „nicht anwendbar“ begründet, ist
+		// die Anforderung es auch — sonst bliebe sie ewig „offen“ im Nenner
+		// (und widerspräche der Antrags-Vollständigkeit, application.ts).
+		const allControlsNa =
+			reqEdges.length > 0 &&
+			reqEdges.every(
+				(e) => get(input.implStatus, e.control) === "not_applicable",
+			);
+		if (applicable && !allControlsNa) {
 			status = "open";
-			for (const e of edgesByReq.get(key) ?? []) {
+			for (const e of reqEdges) {
 				const implStatus = get(input.implStatus, e.control) ?? "not_started";
 				const s = edgeStatus(e.coverage, implStatus);
 				if (s && RANK[s] > RANK[status]) status = s;

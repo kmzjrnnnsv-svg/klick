@@ -9,10 +9,12 @@ import {
 } from "@/lib/compliance/own-funds";
 
 describe("own funds", () => {
-	it("MiCAR-Klasse aus Diensten (Anhang IV)", () => {
+	it("MiCAR-Klasse aus Diensten (Anhang IV): Tausch ist Klasse 2, nur Plattform Klasse 3", () => {
 		expect(micarClassFor(["transfer"])).toBe(1);
 		expect(micarClassFor(["transfer", "custody"])).toBe(2);
-		expect(micarClassFor(["custody", "exchange"])).toBe(3);
+		expect(micarClassFor(["exchange"])).toBe(2);
+		expect(micarClassFor(["fiat_onramp", "transfer"])).toBe(2);
+		expect(micarClassFor(["custody", "exchange"])).toBe(2);
 		expect(micarClassFor(["platform"])).toBe(3);
 	});
 
@@ -57,6 +59,34 @@ describe("own funds", () => {
 		expect(zagInitialCapital("other")).toBe(125_000);
 	});
 
+	it("Methode A ohne k, Untergrenze Anfangskapital (PSD2 Art. 8)", () => {
+		// Finanztransfer, Methode A, 1 Mio Fixkosten → 10 % = 100 000 (nicht × 0,5)
+		expect(
+			zagOwnFunds({
+				method: "A",
+				serviceKind: "money_remittance_only",
+				fixedOverheadsPrevYear: 1_000_000,
+			}).required,
+		).toBe(100_000);
+		// Methode B bei 100 000 €/Monat → 4 000 €, aber Anfangskapital 125 000
+		const small = zagOwnFunds({
+			method: "B",
+			serviceKind: "other",
+			monthlyPaymentVolume: 100_000,
+		});
+		expect(small.computed).toBe(4_000);
+		expect(small.required).toBe(125_000);
+		expect(small.basis).toBe("initial_capital");
+		// reine Zahlungsauslösung: nur Anfangskapital
+		expect(
+			zagOwnFunds({
+				method: "B",
+				serviceKind: "payment_initiation_only",
+				monthlyPaymentVolume: 50_000_000,
+			}).required,
+		).toBe(50_000);
+	});
+
 	it("Methode A und C", () => {
 		expect(
 			zagOwnFunds({
@@ -64,7 +94,7 @@ describe("own funds", () => {
 				serviceKind: "other",
 				fixedOverheadsPrevYear: 1_000_000,
 			}).required,
-		).toBe(100_000);
+		).toBe(125_000); // 100 000 < Anfangskapital 125 000
 		expect(
 			zagOwnFunds({
 				method: "C",

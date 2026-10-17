@@ -37,6 +37,21 @@ const input: CoverageInput = {
 describe("deriveCoverage", () => {
 	const r = deriveCoverage(input);
 
+	it("Anforderung, deren Controls alle nicht anwendbar sind, ist nicht anwendbar (nicht ewig offen)", () => {
+		const na = deriveCoverage({
+			...input,
+			implStatus: { ...input.implStatus, "CC-C": "not_applicable" },
+		});
+		expect(na.byRequirement.get("dora:2")).toBe("not_applicable");
+		expect(na.byFramework.get("dora")).toMatchObject({
+			applicable: 1,
+			covered: 1,
+			coveragePct: 100,
+		});
+		// ohne Kante bleibt die Lücke offen
+		expect(na.byRequirement.get("iso:4")).toBe("open");
+	});
+
 	it("Status je Anforderung aus bester Kante × Control-Status", () => {
 		expect(r.byRequirement.get("iso:1")).toBe("covered");
 		expect(r.byRequirement.get("dora:1")).toBe("covered");
