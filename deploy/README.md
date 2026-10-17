@@ -124,7 +124,11 @@ Datei.
    `BACKUP_OBJECTS_SOURCE=primary:klick`, `BACKUP_OBJECTS_REMOTE=offsite:klick-objects`,
    `BACKUP_S3_ENDPOINT/…_BUCKET/…_ACCESS_KEY_ID/…_PREFIX` (für die Stichprobe, Lesezugriff),
    `BACKUP_VERIFY_ORG_ID=<Mandant 0>`, `ALERT_MAIL=…`.
-3. Credentials: `rclone_conf` (beide Remotes), `backup_s3_secret` (`systemd-creds encrypt`).
+3. Credentials: `database_url_backup` (Rolle `klick_backup` aus `roles.sql`: BYPASSRLS, nur lesen —
+   die Org-Tabellen tragen FORCE RLS, als `klick_migrator` bricht `pg_dump` ab), `rclone_conf`
+   (beide Remotes), `backup_s3_secret` (`systemd-creds encrypt`). Bestehende Server: `roles.sql`
+   erneut ausführen (idempotent), dann `ALTER ROLE klick_backup PASSWORD '…'` und
+   `postgresql://klick_backup:…@127.0.0.1/klick` als `database_url_backup` ablegen.
 4. Ziel-Bucket: Versionierung + Object Lock (Governance, 30 Tage) aktivieren, falls der Anbieter es
    kann (Hetzner Object Storage: vorher prüfen); sonst genügt die rclone-Historie.
 5. Units `deploy/systemd/klick-backup-{db,objects,verify}.{service,timer}` und `klick-alert@.service`

@@ -3,6 +3,10 @@
 --   klick_migrator  DDL-Rolle: Tabellen-Owner, führt Migrationen aus.
 --   klick_app       Laufzeit-Rolle: DML auf allen Tabellen, KEIN DDL,
 --                   KEIN BYPASSRLS → RLS greift auch bei Programmierfehlern.
+--   klick_backup    Nur für scripts/backup-db.sh: liest alles, schreibt nichts.
+--                   BYPASSRLS, weil die Org-Tabellen FORCE RLS tragen und
+--                   pg_dump ohne Org-Kontext sonst abbricht (bzw. mit
+--                   --enable-row-security still leere Tabellen sichert).
 --
 -- Passwörter per systemd-Credential setzen (deploy/systemd/klick.service),
 -- nie in Dateien im Repo. Ausführen als postgres-Superuser:
@@ -15,7 +19,11 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'klick_app') THEN
     CREATE ROLE klick_app LOGIN NOBYPASSRLS NOCREATEDB NOCREATEROLE NOSUPERUSER;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'klick_backup') THEN
+    CREATE ROLE klick_backup LOGIN BYPASSRLS NOCREATEDB NOCREATEROLE NOSUPERUSER;
+  END IF;
 END $$;
+ALTER ROLE klick_backup SET default_transaction_read_only = on;
 
 -- \password klick_migrator   (interaktiv) oder ALTER ROLE ... PASSWORD '…'
 
@@ -43,3 +51,17 @@ ALTER DEFAULT PRIVILEGES FOR ROLE klick_migrator IN SCHEMA public
 SELECT 'CREATE SCHEMA pgboss AUTHORIZATION klick_app'
   WHERE NOT EXISTS (SELECT FROM pg_namespace WHERE nspname = 'pgboss')\gexec
 GRANT CONNECT ON DATABASE klick TO klick_migrator;
+
+-- Backup-Rolle: nur lesen, public + drizzle (pgboss bleibt draußen, siehe
+-- scripts/backup-db.sh). Künftige Tabellen der Migrator-Rolle ebenso.
+GRANT CONNECT ON DATABASE klick TO klick_backup;
+GRANT USAGE ON SCHEMA public TO klick_backup;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO klick_backup;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO klick_backup;
+ALTER DEFAULT PRIVILEGES FOR ROLE klick_migrator IN SCHEMA public
+  GRANT SELECT ON TABLES TO klick_backup;
+ALTER DEFAULT PRIVILEGES FOR ROLE klick_migrator IN SCHEMA public
+  GRANT SELECT ON SEQUENCES TO klick_backup;
+GRANT USAGE ON SCHEMA drizzle TO klick_backup;
+GRANT SELECT ON ALL TABLES IN SCHEMA drizzle TO klick_backup;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA drizzle TO klick_backup;

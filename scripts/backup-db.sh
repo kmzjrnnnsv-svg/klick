@@ -4,6 +4,12 @@
 #   scripts/backup-db.sh                 → ./backups/klick-<ts>.sql.age
 #   BACKUP_DIR=/var/backups/klick scripts/backup-db.sh
 #
+# Verbindung: DATABASE_URL_BACKUP (Rolle klick_backup aus
+# deploy/postgres/roles.sql, BYPASSRLS + nur lesen). Die Org-Tabellen tragen
+# FORCE RLS; klick_migrator und klick_app sehen ohne Org-Kontext keine Zeile,
+# pg_dump bricht mit ihnen ab. Fallback auf DATABASE_URL_MIGRATE nur für Dev
+# mit Superuser.
+#
 # Verschlüsselung mit `age` gegen den öffentlichen Schlüssel BACKUP_AGE_RECIPIENT
 # (der private Schlüssel liegt NICHT auf dem Server). Offsite-Kopie per
 # rclone, wenn BACKUP_RCLONE_REMOTE gesetzt ist (z. B. hetzner:klick-backups).
@@ -11,7 +17,7 @@
 # Pflichten-Lauf — siehe scripts/restore-db.sh.
 set -euo pipefail
 
-: "${DATABASE_URL_MIGRATE:=${DATABASE_URL:?DATABASE_URL fehlt}}"
+: "${DATABASE_URL_BACKUP:=${DATABASE_URL_MIGRATE:?DATABASE_URL_BACKUP fehlt}}"
 : "${BACKUP_DIR:=./backups}"
 : "${BACKUP_KEEP_DAYS:=30}"
 
@@ -19,10 +25,11 @@ mkdir -p "$BACKUP_DIR"
 ts="$(date -u +%Y%m%dT%H%M%SZ)"
 out="$BACKUP_DIR/klick-$ts.sql"
 
-# Schema pgboss bleibt draußen: es gehört klick_app (roles.sql), die
-# Migrator-Rolle darf es nicht lesen, und es enthält nur die Job-Warteschlange.
-# pg-boss legt seine Tabellen beim Start selbst wieder an (lib/jobs/boss.ts).
-pg_dump --no-owner --no-privileges --exclude-schema=pgboss --format=plain "$DATABASE_URL_MIGRATE" > "$out"
+# Schema pgboss bleibt draußen: es gehört klick_app (roles.sql) und enthält
+# nur die Job-Warteschlange; pg-boss legt seine Tabellen beim Start selbst
+# wieder an (lib/jobs/boss.ts). Ein Restore mit --no-owner gäbe sie sonst der
+# falschen Rolle.
+pg_dump --no-owner --no-privileges --exclude-schema=pgboss --format=plain "$DATABASE_URL_BACKUP" > "$out"
 
 if [ -n "${BACKUP_AGE_RECIPIENT:-}" ]; then
   age -r "$BACKUP_AGE_RECIPIENT" -o "$out.age" "$out"
