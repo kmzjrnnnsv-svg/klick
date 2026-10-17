@@ -414,7 +414,9 @@ export async function listMembersForPicker(
 		.innerJoin(user, eq(user.id, member.userId))
 		.where(eq(member.organizationId, orgId))
 		.orderBy(asc(user.name));
-	return rows;
+	// Ohne Namen (Magic-Link-Konto) die Adresse zeigen, sonst bleibt die
+	// Auswahl leer — wie userNames().
+	return rows.map((r) => ({ ...r, name: r.name.trim() || r.email }));
 }
 
 // Nachweise mit verknüpften Control-Codes (Register /nachweise).

@@ -55,7 +55,7 @@ export default async function MemberAccountabilityPage({
 			<div className="print:hidden">
 				<PageHeader
 					eyebrow={`${tt(`role${role[0]?.toUpperCase()}${role.slice(1)}` as "roleOwner")} · ${m.email}`}
-					title={m.name}
+					title={m.name || m.email}
 					lead={t("memberLead")}
 					actions={
 						<div className="flex gap-2">
@@ -71,7 +71,7 @@ export default async function MemberAccountabilityPage({
 				/>
 			</div>
 			<h1 className="mb-4 hidden font-serif-display text-2xl print:block">
-				{t("title")} — {m.name}
+				{t("title")} — {m.name || m.email}
 			</h1>
 			<AccountabilityView
 				sections={sections}
