@@ -178,6 +178,21 @@ export const objectiveSchema = z.object({
 	status: z
 		.enum(["open", "on_track", "at_risk", "achieved", "dropped"])
 		.default("open"),
+	// Kennzahl (B5)
+	indicatorType: z.enum(["kpi", "kri", "kci"]).default("kpi"),
+	direction: z.enum(["higher_better", "lower_better"]).default("higher_better"),
+	targetValue: z.coerce.number().finite().nullable().optional(),
+	warnAt: z.coerce.number().finite().nullable().optional(),
+	alertAt: z.coerce.number().finite().nullable().optional(),
+	measureEveryMonths: z.coerce
+		.number()
+		.int()
+		.min(1)
+		.max(12)
+		.nullable()
+		.optional(),
+	nextMeasureAt: optionalDate,
+	selfApprovalReason: z.string().trim().max(2000).optional(),
 });
 
 export const kpiMeasurementSchema = z.object({

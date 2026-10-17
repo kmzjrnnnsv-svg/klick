@@ -66,7 +66,6 @@ export default async function RiskDetailPage({
 	const tw = await getTranslations("RiskWizard");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const ta = await getTranslations("Approvals");
 	const trs = await getTranslations("RiskSources");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const r = await getRisk(tx, ctx.orgId, id);
@@ -363,15 +362,6 @@ export default async function RiskDetailPage({
 				names={names}
 				eligible={eligible}
 				currentUserId={ctx.userId}
-				labels={{
-					title: ta("bar"),
-					step: (n) => ta("step", { n }),
-					dueAt: ta("dueAt"),
-					overdue: ta("overdue"),
-					selfApproved: ta("selfApproved"),
-					history: ta("history"),
-					status: (s) => s,
-				}}
 			/>
 
 			<Section title={t("assessment")}>

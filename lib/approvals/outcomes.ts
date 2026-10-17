@@ -6,6 +6,7 @@ import {
 	documentVersions,
 	exceptions,
 	incidents,
+	objectives,
 	ownFundsCalculations,
 	providerRatings,
 	providers,
@@ -201,6 +202,35 @@ export async function applyApprovalOutcome(
 						eq(ownFundsCalculations.organizationId, ctx.orgId),
 					),
 				);
+			return extra;
+		}
+		case "objective": {
+			// Ziel freigegeben (B5): zählt erst ab jetzt
+			const approvalStatus =
+				r.status === "approved"
+					? ("approved" as const)
+					: r.status === "rejected"
+						? ("rejected" as const)
+						: ("draft" as const);
+			await tx
+				.update(objectives)
+				.set({
+					approvalStatus,
+					...(approvalStatus === "approved"
+						? { approvedByUserId: ctx.userId, approvedAt: new Date() }
+						: {}),
+				})
+				.where(
+					and(
+						eq(objectives.id, r.entityId),
+						eq(objectives.organizationId, ctx.orgId),
+					),
+				);
+			extra.push({
+				action: "objective.release",
+				target: `objective:${r.entityId}`,
+				after: { approvalStatus },
+			});
 			return extra;
 		}
 		case "decision_request": {

@@ -5,6 +5,7 @@ import {
 	controls,
 	frameworks,
 	incidents,
+	kpiMeasurements,
 	nonconformities,
 	objectives,
 	orgSettings,
@@ -20,6 +21,7 @@ import {
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
 import { assetLifecycle } from "./assets";
+import { valueState } from "./indicators";
 import { shortFrameworkName } from "./page-data";
 import { type RiskProposal, riskProposals } from "./risk-proposals";
 import type { RiskSourceData, RiskSourceKind } from "./risk-sources";
@@ -468,6 +470,36 @@ export async function loadRiskProposals(
 			.limit(1),
 	]);
 
+	// Risikokennzahlen (KRI) über der Alarmschwelle (B5)
+	const kriRows = await tx
+		.select({
+			id: objectives.id,
+			title: objectives.title,
+			direction: objectives.direction,
+			targetValue: objectives.targetValue,
+			warnAt: objectives.warnAt,
+			alertAt: objectives.alertAt,
+			value: kpiMeasurements.numericValue,
+			measuredAt: kpiMeasurements.measuredAt,
+		})
+		.from(objectives)
+		.innerJoin(kpiMeasurements, eq(kpiMeasurements.objectiveId, objectives.id))
+		.where(
+			and(
+				eq(objectives.organizationId, orgId),
+				eq(objectives.indicatorType, "kri"),
+				eq(objectives.approvalStatus, "approved"),
+			),
+		)
+		.orderBy(desc(kpiMeasurements.measuredAt));
+	const latestKri = new Map<string, (typeof kriRows)[number]>();
+	for (const k of kriRows) if (!latestKri.has(k.id)) latestKri.set(k.id, k);
+	const indicators = [...latestKri.values()].map((k) => ({
+		id: k.id,
+		title: k.title,
+		state: k.value === null ? "no_data" : valueState(k.value, k),
+	}));
+
 	const covered = new Set<string>();
 	for (const r of riskRows) {
 		if (r.type && r.id) covered.add(`${r.type}:${r.id}`);
@@ -538,6 +570,7 @@ export async function loadRiskProposals(
 		moreGaps: Math.max(0, openKeys.length - shown.length),
 		findings: findingRows.map((f) => ({ ...f, dueAt: f.dueAt ?? null })),
 		nonconformities: ncRows,
+		indicators,
 		covered,
 		dismissed: new Set(Object.keys(settingsRow[0]?.dismissed ?? {})),
 	});

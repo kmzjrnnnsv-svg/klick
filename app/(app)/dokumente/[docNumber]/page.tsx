@@ -57,7 +57,6 @@ export default async function DocumentDetailPage({
 	const ctx = await requireOrgPage({ document: ["read"] });
 	const t = await getTranslations("Documents");
 	const te = await getTranslations("Entity");
-	const ta = await getTranslations("Approvals");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getDocumentByNumber(tx, ctx.orgId, docNumber);
 		if (!d) return null;
@@ -268,15 +267,6 @@ export default async function DocumentDetailPage({
 				names={names}
 				eligible={eligible}
 				currentUserId={ctx.userId}
-				labels={{
-					title: ta("bar"),
-					step: (n) => ta("step", { n }),
-					dueAt: ta("dueAt"),
-					overdue: ta("overdue"),
-					selfApproved: ta("selfApproved"),
-					history: ta("history"),
-					status: (s) => s,
-				}}
 			/>
 
 			<Section

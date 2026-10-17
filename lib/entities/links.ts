@@ -8,6 +8,7 @@ import {
 	exceptions,
 	incidents,
 	nonconformities,
+	objectives,
 	processes,
 	products,
 	resolutions,
@@ -165,6 +166,13 @@ export async function resolveEntityTitles(
 			.where(inArray(decisionRequests.id, ids("decision_request")));
 		for (const r of rows)
 			out.set(`decision_request:${r.id}`, `${r.code} ${r.question}`);
+	}
+	if (ids("objective").length) {
+		const rows = await tx
+			.select({ id: objectives.id, title: objectives.title })
+			.from(objectives)
+			.where(inArray(objectives.id, ids("objective")));
+		for (const r of rows) out.set(`objective:${r.id}`, r.title);
 	}
 	if (ids("risk").length) {
 		const rows = await tx

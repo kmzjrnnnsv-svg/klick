@@ -11,6 +11,7 @@ import {
 	frameworks,
 	incidents,
 	objectives,
+	orgSettings,
 	providerRatings,
 	providers,
 	requirements,
@@ -19,14 +20,19 @@ import {
 	risks,
 } from "@/db/schema";
 import type { EntityKind } from "@/db/schema/enums";
-import { requestSteps } from "@/lib/approvals/service";
+import {
+	ensureOrgWorkflows,
+	requestApproval,
+	requestSteps,
+} from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import type { OrgTx } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
-import { EDGES_BY_CONTROL } from "./catalog";
+import { EDGES_BY_CONTROL, REQUIREMENT_BY_KEY } from "./catalog";
 import {
 	frameworkRefs,
 	isManagementDecision,
+	nextDecisionCode,
 	resolutionFromDecision,
 } from "./decision-resolutions";
 import { insertResolution } from "./resolutions-service";
@@ -396,4 +402,132 @@ export async function listDecisionRequests(
 			),
 		)
 		.orderBy(desc(decisionRequests.createdAt));
+}
+
+// Managementanfrage anlegen und an die Geschäftsleitung schicken (E2) —
+// aus dem Dialog und automatisch bei Zielverfehlung (B5). Solo-Modus:
+// sofort selbst entschieden, dann gleich ein Beschluss.
+export async function openDecisionRequest(
+	tx: OrgTx,
+	actor: { orgId: string; userId: string; name: string },
+	d: {
+		question: string;
+		context?: string | null;
+		recommendation?: string | null;
+		options?: string[];
+		dueAt?: string | null;
+		linkedEntityType?: EntityKind | null;
+		linkedEntityId?: string | null;
+		requirementKeys?: string[];
+		selfApprovalReason?: string;
+	},
+): Promise<
+	| { ok: true; id: string; code: string; status: string; audit: AuditInput[] }
+	| { ok: false; error: string }
+> {
+	const [settings] = await tx
+		.select({ stage: orgSettings.licenceStage })
+		.from(orgSettings)
+		.where(eq(orgSettings.organizationId, actor.orgId))
+		.limit(1);
+	await ensureOrgWorkflows(
+		tx,
+		actor.orgId,
+		settings?.stage ?? "0_vorbereitung",
+	);
+	const refs = await entityFrameworkRefs(
+		tx,
+		actor.orgId,
+		d.linkedEntityType,
+		d.linkedEntityId,
+	);
+	const chosen = (d.requirementKeys ?? []).filter((k) =>
+		REQUIREMENT_BY_KEY.has(k),
+	);
+	const keys = [...new Set([...chosen, ...refs.requirementKeys])].slice(0, 20);
+	const fws = [
+		...new Set([...refs.frameworks, ...keys.map((k) => k.split(":")[0] ?? "")]),
+	];
+	const existing = await tx
+		.select({ code: decisionRequests.code })
+		.from(decisionRequests)
+		.where(eq(decisionRequests.organizationId, actor.orgId));
+	const code = nextDecisionCode(
+		existing.map((e) => e.code),
+		new Date().getFullYear(),
+	);
+	const [row] = await tx
+		.insert(decisionRequests)
+		.values({
+			organizationId: actor.orgId,
+			code,
+			question: d.question,
+			context: d.context ?? null,
+			recommendation: d.recommendation ?? null,
+			options: d.options ?? [],
+			dueAt: d.dueAt ?? null,
+			linkedEntityType: d.linkedEntityType ?? null,
+			linkedEntityId: d.linkedEntityId ?? null,
+			frameworks: fws,
+			requirementKeys: keys,
+			requestedByUserId: actor.userId,
+		})
+		.returning({ id: decisionRequests.id });
+	if (!row) throw new Error("insert failed");
+	const r = await requestApproval(tx, actor, {
+		kind: "management_decision",
+		entityType: "decision_request",
+		entityId: row.id,
+		entityOwnerUserId: actor.userId,
+		title: `${code} · ${d.question}`,
+		link: "/beschluesse?tab=anfragen",
+		selfApprovalReason: d.selfApprovalReason,
+	});
+	if (!r.ok) {
+		// nichts halb Angelegtes zurücklassen
+		await tx.delete(decisionRequests).where(eq(decisionRequests.id, row.id));
+		return { ok: false, error: r.error };
+	}
+	await tx
+		.update(decisionRequests)
+		.set({ approvalRequestId: r.requestId })
+		.where(eq(decisionRequests.id, row.id));
+	const audit: AuditInput[] = [
+		{
+			action: "decision_request.create",
+			target: `decision_request:${row.id}`,
+			after: {
+				code,
+				question: d.question,
+				linked: d.linkedEntityType
+					? `${d.linkedEntityType}:${d.linkedEntityId}`
+					: null,
+				frameworks: fws,
+				requirementKeys: keys,
+			},
+		},
+	];
+	if (r.status === "approved") {
+		await tx
+			.update(decisionRequests)
+			.set({
+				status: "decided",
+				outcome: "approved",
+				decidedByUserId: actor.userId,
+				decidedAt: new Date(),
+			})
+			.where(eq(decisionRequests.id, row.id));
+		audit.push(
+			...(await createDecisionResolution(tx, actor, {
+				workflowKind: "management_decision",
+				workflowName: "Managemententscheidung",
+				entityType: "decision_request",
+				entityId: row.id,
+				outcome: "approved",
+				note: d.selfApprovalReason ?? null,
+				requestId: r.requestId,
+			})),
+		);
+	}
+	return { ok: true, id: row.id, code, status: r.status, audit };
 }

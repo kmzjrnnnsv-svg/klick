@@ -742,3 +742,28 @@ describe("Asset-Lebenszyklus", () => {
 		expect(at("2026-12-01")).toHaveLength(0);
 	});
 });
+
+describe("Ziele: Messintervall", () => {
+	it("7 Tage vorher, am Tag und wöchentlich danach — nur freigegeben", () => {
+		const now = new Date("2026-10-17T06:00:00Z");
+		const at = (nextMeasureAt: string, approvalStatus = "approved") =>
+			collectDueItems(now, {
+				...empty,
+				objectives: [
+					{
+						id: "o1",
+						title: "Schulungsquote",
+						nextMeasureAt,
+						approvalStatus,
+						status: "open",
+						ownerUserId: "u1",
+					},
+				],
+			}).notifications.map((n) => n.title);
+		expect(at("2026-10-24")).toEqual(["Messung in 7 Tagen: Schulungsquote"]);
+		expect(at("2026-10-17")).toEqual(["Messung heute fällig: Schulungsquote"]);
+		expect(at("2026-10-10")).toEqual(["Messung überfällig: Schulungsquote"]);
+		expect(at("2026-10-12")).toEqual([]);
+		expect(at("2026-10-17", "proposed")).toEqual([]);
+	});
+});

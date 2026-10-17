@@ -2,21 +2,11 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { decisionRequests, orgSettings } from "@/db/schema";
+import { decisionRequests } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
-import {
-	ensureOrgWorkflows,
-	requestApproval,
-	withdraw,
-} from "@/lib/approvals/service";
-import type { AuditInput } from "@/lib/audit";
+import { withdraw } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
-import { REQUIREMENT_BY_KEY } from "@/lib/compliance/catalog";
-import { nextDecisionCode } from "@/lib/compliance/decision-resolutions";
-import {
-	createDecisionResolution,
-	entityFrameworkRefs,
-} from "@/lib/compliance/decision-service";
+import { openDecisionRequest } from "@/lib/compliance/decision-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { decisionRequestSchema } from "@/lib/validation/governance";
@@ -36,116 +26,20 @@ async function createDecisionRequestImpl(
 	const res = await mutateOrg<
 		ActionResult<{ id: string; code: string; status: string }>
 	>(toOrgCtx(c), async (tx) => {
-		const [settings] = await tx
-			.select({ stage: orgSettings.licenceStage })
-			.from(orgSettings)
-			.where(eq(orgSettings.organizationId, c.orgId))
-			.limit(1);
-		await ensureOrgWorkflows(tx, c.orgId, settings?.stage ?? "0_vorbereitung");
-		const refs = await entityFrameworkRefs(
+		const r = await openDecisionRequest(
 			tx,
-			c.orgId,
-			d.linkedEntityType,
-			d.linkedEntityId,
+			{ orgId: c.orgId, userId: c.userId, name: c.name },
+			d,
 		);
-		const chosen = d.requirementKeys.filter((k) => REQUIREMENT_BY_KEY.has(k));
-		const keys = [...new Set([...chosen, ...refs.requirementKeys])].slice(
-			0,
-			20,
-		);
-		const fws = [
-			...new Set([
-				...refs.frameworks,
-				...keys.map((k) => k.split(":")[0] ?? ""),
-			]),
-		];
-		const existing = await tx
-			.select({ code: decisionRequests.code })
-			.from(decisionRequests)
-			.where(eq(decisionRequests.organizationId, c.orgId));
-		const code = nextDecisionCode(
-			existing.map((e) => e.code),
-			new Date().getFullYear(),
-		);
-		const [row] = await tx
-			.insert(decisionRequests)
-			.values({
-				organizationId: c.orgId,
-				code,
-				question: d.question,
-				context: d.context ?? null,
-				recommendation: d.recommendation ?? null,
-				options: d.options,
-				dueAt: d.dueAt ?? null,
-				linkedEntityType: d.linkedEntityType ?? null,
-				linkedEntityId: d.linkedEntityId ?? null,
-				frameworks: fws,
-				requirementKeys: keys,
-				requestedByUserId: c.userId,
-			})
-			.returning({ id: decisionRequests.id });
-		if (!row) throw new Error("insert failed");
-		const actor = { orgId: c.orgId, userId: c.userId, name: c.name };
-		const r = await requestApproval(tx, actor, {
-			kind: "management_decision",
-			entityType: "decision_request",
-			entityId: row.id,
-			entityOwnerUserId: c.userId,
-			title: `${code} · ${d.question}`,
-			link: "/beschluesse?tab=anfragen",
-			selfApprovalReason: d.selfApprovalReason,
-		});
-		if (!r.ok) {
-			// nichts halb Angelegtes zurücklassen
-			await tx.delete(decisionRequests).where(eq(decisionRequests.id, row.id));
-			return { result: { ok: false, error: r.error }, audit: [] };
-		}
-		await tx
-			.update(decisionRequests)
-			.set({ approvalRequestId: r.requestId })
-			.where(eq(decisionRequests.id, row.id));
-		const audit: AuditInput[] = [
-			{
-				action: "decision_request.create",
-				target: `decision_request:${row.id}`,
-				after: {
-					code,
-					question: d.question,
-					linked: d.linkedEntityType
-						? `${d.linkedEntityType}:${d.linkedEntityId}`
-						: null,
-					frameworks: fws,
-					requirementKeys: keys,
-				},
-			},
-		];
-		// Solo-Modus: sofort selbst entschieden → Beschluss
-		if (r.status === "approved") {
-			await tx
-				.update(decisionRequests)
-				.set({
-					status: "decided",
-					outcome: "approved",
-					decidedByUserId: c.userId,
-					decidedAt: new Date(),
-				})
-				.where(eq(decisionRequests.id, row.id));
-			audit.push(
-				...(await createDecisionResolution(tx, actor, {
-					workflowKind: "management_decision",
-					workflowName: "Managemententscheidung",
-					entityType: "decision_request",
-					entityId: row.id,
-					outcome: "approved",
-					note: d.selfApprovalReason ?? null,
-					requestId: r.requestId,
-				})),
-			);
-		}
-		return {
-			result: { ok: true, data: { id: row.id, code, status: r.status } },
-			audit,
-		};
+		return r.ok
+			? {
+					result: {
+						ok: true,
+						data: { id: r.id, code: r.code, status: r.status },
+					},
+					audit: r.audit,
+				}
+			: { result: { ok: false, error: r.error }, audit: [] };
 	});
 	revalidatePath("/beschluesse");
 	return res;

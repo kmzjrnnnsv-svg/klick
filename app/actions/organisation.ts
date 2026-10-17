@@ -6,16 +6,19 @@ import {
 	communications,
 	conflictsOfInterest,
 	contextIssues,
+	decisionRequests,
 	frameworks,
 	interestedParties,
 	kpiMeasurements,
 	objectives,
+	orgSettings,
 	regulatorInteractions,
 	roleAssignments,
 	scopes,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
-import { requestApproval } from "@/lib/approvals/service";
+import { ensureOrgWorkflows, requestApproval } from "@/lib/approvals/service";
+import type { AuditInput } from "@/lib/audit";
 import {
 	AuthError,
 	requireOrg,
@@ -26,6 +29,12 @@ import {
 	applicableCommunications,
 	applicableParties,
 } from "@/lib/compliance/catalog/interested-parties";
+import { openDecisionRequest } from "@/lib/compliance/decision-service";
+import {
+	addMonths,
+	parseNumeric,
+	valueState,
+} from "@/lib/compliance/indicators";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
@@ -662,48 +671,177 @@ async function deleteRoleAssignmentImpl(input: unknown): Promise<ActionResult> {
 
 // ── Ziele & KPIs ───────────────────────────────────────────────────────────
 
-async function upsertObjectiveImpl(
-	input: unknown,
-): Promise<ActionResult<{ id: string }>> {
+// Ziele mit Kennzahlen (B5): Vorschlag → Freigabe durch die
+// Geschäftsleitung (objective_release); erst freigegebene Ziele zählen.
+// Ändern sich Art, Richtung, Zielwert oder Schwellen eines freigegebenen
+// Ziels, braucht es eine neue Freigabe.
+const RELEASE_FIELDS = [
+	"indicatorType",
+	"direction",
+	"targetValue",
+	"warnAt",
+	"alertAt",
+] as const;
+
+async function upsertObjectiveImpl(input: unknown): Promise<
+	ActionResult<{
+		id: string;
+		approval: "approved" | "pending" | "failed";
+		approvalError?: string;
+	}>
+> {
 	const c = await requireOrg({ organisation: ["update"] });
 	const parsed = objectiveSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
-	const { id, ...d } = parsed.data;
-	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const r = await upsertRow(
-			tx,
-			c.orgId,
-			objectives,
-			id,
-			{
-				title: d.title,
-				frameworkIds: d.frameworkIds ?? [],
-				kpiName: d.kpiName ?? null,
-				unit: d.unit ?? null,
-				target: d.target ?? null,
-				dueAt: d.dueAt ?? null,
-				ownerUserId: d.ownerUserId ?? c.userId,
-				status: d.status,
+	const { id, selfApprovalReason, ...d } = parsed.data;
+	const res = await mutateOrg<{
+		id: string;
+		approval: "approved" | "pending" | "failed";
+		error?: string;
+	} | null>(toOrgCtx(c), async (tx) => {
+		const today = new Date().toISOString().slice(0, 10);
+		const values = {
+			title: d.title,
+			frameworkIds: d.frameworkIds ?? [],
+			kpiName: d.kpiName ?? null,
+			unit: d.unit ?? null,
+			target: d.target ?? null,
+			dueAt: d.dueAt ?? null,
+			ownerUserId: d.ownerUserId ?? c.userId,
+			status: d.status,
+			indicatorType: d.indicatorType,
+			direction: d.direction,
+			targetValue: d.targetValue ?? null,
+			warnAt: d.warnAt ?? null,
+			alertAt: d.alertAt ?? null,
+			measureEveryMonths: d.measureEveryMonths ?? null,
+			nextMeasureAt:
+				d.nextMeasureAt ??
+				(d.measureEveryMonths ? addMonths(today, d.measureEveryMonths) : null),
+		};
+		let before: typeof objectives.$inferSelect | undefined;
+		if (id) {
+			[before] = await tx
+				.select()
+				.from(objectives)
+				.where(
+					and(eq(objectives.id, id), eq(objectives.organizationId, c.orgId)),
+				)
+				.limit(1);
+			if (!before) return { result: null, audit: [] };
+		}
+		const needsRelease =
+			!before ||
+			before.approvalStatus !== "approved" ||
+			RELEASE_FIELDS.some((f) => before?.[f] !== values[f]);
+		let rowId: string;
+		if (before) {
+			rowId = before.id;
+			await tx
+				.update(objectives)
+				.set({
+					...values,
+					...(needsRelease ? { approvalStatus: "proposed" as const } : {}),
+				})
+				.where(eq(objectives.id, rowId));
+		} else {
+			const [row] = await tx
+				.insert(objectives)
+				.values({
+					organizationId: c.orgId,
+					...values,
+					approvalStatus: "proposed",
+				})
+				.returning({ id: objectives.id });
+			if (!row) throw new Error("insert failed");
+			rowId = row.id;
+		}
+		let approval: "approved" | "pending" | "failed" = "approved";
+		let error: string | undefined;
+		if (needsRelease) {
+			const [s] = await tx
+				.select({ stage: orgSettings.licenceStage })
+				.from(orgSettings)
+				.where(eq(orgSettings.organizationId, c.orgId))
+				.limit(1);
+			await ensureOrgWorkflows(tx, c.orgId, s?.stage ?? "0_vorbereitung");
+			const r = await requestApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					kind: "objective_release",
+					entityType: "objective",
+					entityId: rowId,
+					entityOwnerUserId: values.ownerUserId,
+					title: `Ziel: ${d.title}`,
+					link: "/organisation?tab=ziele",
+					selfApprovalReason,
+				},
+			);
+			const approve = async () =>
+				tx
+					.update(objectives)
+					.set({
+						approvalStatus: "approved",
+						approvedByUserId: c.userId,
+						approvedAt: new Date(),
+					})
+					.where(eq(objectives.id, rowId));
+			if (r.ok && r.status === "approved") await approve();
+			else if (r.ok) approval = "pending";
+			else if (r.error === "workflow_disabled") await approve();
+			else {
+				approval = "failed";
+				error = r.error;
+			}
+		}
+		return {
+			result: { id: rowId, approval, error },
+			audit: {
+				action: before ? "objective.update" : "objective.create",
+				target: `objective:${rowId}`,
+				before: before
+					? {
+							title: before.title,
+							indicatorType: before.indicatorType,
+							targetValue: before.targetValue,
+							warnAt: before.warnAt,
+							alertAt: before.alertAt,
+							approvalStatus: before.approvalStatus,
+						}
+					: null,
+				after: {
+					title: d.title,
+					indicatorType: values.indicatorType,
+					targetValue: values.targetValue,
+					warnAt: values.warnAt,
+					alertAt: values.alertAt,
+					approval,
+				},
 			},
-			"objective",
-			(r) => ({ title: r.title, status: r.status, target: r.target }),
-		);
-		return r ? { result: r.id, audit: r.audit } : { result: null, audit: [] };
+		};
 	});
 	revalidatePath(PATH);
-	return res
-		? { ok: true, data: { id: res } }
-		: { ok: false, error: "notFound" };
+	if (!res) return { ok: false, error: "notFound" };
+	return {
+		ok: true,
+		data: { id: res.id, approval: res.approval, approvalError: res.error },
+	};
 }
 
-async function addKpiMeasurementImpl(input: unknown): Promise<ActionResult> {
+async function addKpiMeasurementImpl(
+	input: unknown,
+): Promise<ActionResult<{ state: string; escalated: string | null }>> {
 	const c = await requireOrg({ organisation: ["update"] });
 	const parsed = kpiMeasurementSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
-	const ok = await mutateOrg<boolean>(toOrgCtx(c), async (tx) => {
+	const res = await mutateOrg<{
+		state: string;
+		escalated: string | null;
+	} | null>(toOrgCtx(c), async (tx) => {
 		const [o] = await tx
-			.select({ id: objectives.id })
+			.select()
 			.from(objectives)
 			.where(
 				and(
@@ -712,26 +850,81 @@ async function addKpiMeasurementImpl(input: unknown): Promise<ActionResult> {
 				),
 			)
 			.limit(1);
-		if (!o) return { result: false, audit: [] };
+		if (!o) return { result: null, audit: [] };
+		const numericValue = parseNumeric(d.value);
 		await tx.insert(kpiMeasurements).values({
 			organizationId: c.orgId,
 			objectiveId: d.objectiveId,
 			measuredAt: d.measuredAt,
 			value: d.value,
+			numericValue,
 			note: d.note ?? null,
 			createdByUserId: c.userId,
 		});
-		return {
-			result: true,
-			audit: {
+		// nächste Messung ab dieser Messung
+		if (o.measureEveryMonths)
+			await tx
+				.update(objectives)
+				.set({ nextMeasureAt: addMonths(d.measuredAt, o.measureEveryMonths) })
+				.where(eq(objectives.id, o.id));
+		const state =
+			numericValue === null ? "no_data" : valueState(numericValue, o);
+		const audit: AuditInput[] = [
+			{
 				action: "objective.measurement",
 				target: `objective:${d.objectiveId}`,
-				after: { measuredAt: d.measuredAt, value: d.value },
+				after: { measuredAt: d.measuredAt, value: d.value, state },
 			},
-		};
+		];
+		// Zielverfehlung (Alarmschwelle) bei freigegebenem Ziel →
+		// Entscheidung der Geschäftsleitung anfragen, einmal je offenem Fall
+		let escalated: string | null = null;
+		if (state === "alert" && o.approvalStatus === "approved") {
+			const [open] = await tx
+				.select({ id: decisionRequests.id })
+				.from(decisionRequests)
+				.where(
+					and(
+						eq(decisionRequests.organizationId, c.orgId),
+						eq(decisionRequests.linkedEntityType, "objective"),
+						eq(decisionRequests.linkedEntityId, o.id),
+						eq(decisionRequests.status, "open"),
+					),
+				)
+				.limit(1);
+			if (!open) {
+				const label =
+					o.indicatorType === "kri"
+						? "Risikokennzahl über Alarmschwelle"
+						: "Ziel verfehlt";
+				const r = await openDecisionRequest(
+					tx,
+					{ orgId: c.orgId, userId: c.userId, name: c.name },
+					{
+						question: `${label}: ${o.title} — wie geht es weiter?`.slice(
+							0,
+							300,
+						),
+						context: `Messung vom ${d.measuredAt.split("-").reverse().join(".")}: ${d.value}${o.unit ? ` ${o.unit}` : ""}. Zielwert ${o.targetValue ?? "—"}, Frühwarnung ${o.warnAt ?? "—"}, Alarm ${o.alertAt ?? "—"}.${d.note ? ` ${d.note}` : ""}`,
+						options: [
+							"Maßnahmen beschließen",
+							"Ziel oder Schwellen anpassen",
+							"Abweichung befristet tragen",
+						],
+						linkedEntityType: "objective",
+						linkedEntityId: o.id,
+					},
+				);
+				if (r.ok) {
+					escalated = r.code;
+					audit.push(...r.audit);
+				}
+			}
+		}
+		return { result: { state, escalated }, audit };
 	});
 	revalidatePath(PATH);
-	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
+	return res ? { ok: true, data: res } : { ok: false, error: "notFound" };
 }
 
 // ── Kommunikation, Aufsicht, Interessenkonflikte ───────────────────────────

@@ -31,6 +31,7 @@ import {
 	memberAccess,
 	nonconformities,
 	notifications,
+	objectives,
 	obligationRuns,
 	obligations,
 	products,
@@ -547,6 +548,22 @@ async function loadDueRows(
 				),
 			),
 		);
+	const objectiveRows = await tx
+		.select({
+			id: objectives.id,
+			title: objectives.title,
+			nextMeasureAt: objectives.nextMeasureAt,
+			approvalStatus: objectives.approvalStatus,
+			status: objectives.status,
+			ownerUserId: objectives.ownerUserId,
+		})
+		.from(objectives)
+		.where(
+			and(
+				eq(objectives.organizationId, orgId),
+				isNotNull(objectives.nextMeasureAt),
+			),
+		);
 	const assetRows = await tx
 		.select({
 			id: assets.id,
@@ -676,6 +693,7 @@ async function loadDueRows(
 		insurancePolicies: insuranceRows,
 		products: productRows,
 		assets: assetRows,
+		objectives: objectiveRows,
 		securityFindings: findingRows,
 		supplierAssessments: supplierRows,
 		engagements: engagementRows,

@@ -153,6 +153,15 @@ export type DueRows = {
 		status: string;
 		ownerUserId: string | null;
 	}[];
+	/** Ziele (B5): Messintervall — 7 Tage vorher, am Tag, danach wöchentlich. */
+	objectives?: readonly {
+		id: string;
+		title: string;
+		nextMeasureAt: string | null;
+		approvalStatus: string;
+		status: string;
+		ownerUserId: string | null;
+	}[];
 	/** Assets (B2): Herstellerende, Ende der Sicherheitsupdates, Wartungsende. */
 	assets?: readonly {
 		id: string;
@@ -680,6 +689,30 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 					: `Unterstützungszeitraum endet am ${fmtDay(until)}. Nutzer informieren, Verlängerung oder Nachfolger planen.`,
 			link: `/produkte/${p.id}?tab=einstufung`,
 			dedupeKey: `product_support:${p.id}:${days < 0 ? "ended" : mark}`,
+		});
+	}
+
+	// Ziele: Messung fällig (nur freigegebene, laufende Ziele)
+	for (const o of rows.objectives ?? []) {
+		if (o.approvalStatus !== "approved") continue;
+		if (o.status === "achieved" || o.status === "dropped") continue;
+		const at = toDate(o.nextMeasureAt);
+		if (!at) continue;
+		const days = daysUntil(now, at);
+		const due = days === 7 || days === 0 || (days < 0 && -days % 7 === 0);
+		if (!due) continue;
+		notifications.push({
+			kind: "review_due",
+			recipients: recipientsOf(o.ownerUserId, rows.orgOwnerIds),
+			title:
+				days < 0
+					? `Messung überfällig: ${o.title}`
+					: days === 0
+						? `Messung heute fällig: ${o.title}`
+						: `Messung in 7 Tagen: ${o.title}`,
+			body: `Nächste Messung am ${fmtDay(at)}. Wert unter Organisation → Ziele & KPIs eintragen.`,
+			link: "/organisation?tab=ziele",
+			dedupeKey: `objective_measure:${o.id}:${isoDay(now)}`,
 		});
 	}
 

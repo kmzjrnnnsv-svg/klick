@@ -65,6 +65,17 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		defaultEnabled: true,
 	},
 	{
+		kind: "objective_release",
+		name: "Ziel freigeben",
+		entityType: "objective",
+		description:
+			"Vorgeschlagene Ziele und Kennzahlen (KPI/KRI/KCI) gelten erst nach Freigabe durch die Geschäftsleitung.",
+		steps: [
+			{ order: 1, approverRule: "function:management_body", slaDays: 10 },
+		],
+		defaultEnabled: true,
+	},
+	{
 		kind: "control_signoff",
 		name: "Control abnehmen",
 		entityType: "control",
