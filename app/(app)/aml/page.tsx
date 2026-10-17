@@ -332,7 +332,7 @@ export default async function AmlPage({
 				actions={
 					canEdit ? (
 						tab === "risikoanalyse" ? (
-							<RiskAnalysisForm members={data.members} />
+							<RiskAnalysisForm members={data.members} frameworks={fws} />
 						) : tab === "monitoring" ? (
 							<MonitoringRuleForm members={data.members} />
 						) : tab === "verdacht" && detail ? (
@@ -391,7 +391,7 @@ export default async function AmlPage({
 							requiredBy={t("requiredByAnalysis")}
 							actions={
 								canEdit ? (
-									<RiskAnalysisForm members={data.members} />
+									<RiskAnalysisForm members={data.members} frameworks={fws} />
 								) : undefined
 							}
 						/>
@@ -484,6 +484,7 @@ export default async function AmlPage({
 														<>
 															<RiskAnalysisForm
 																members={data.members}
+																frameworks={fws}
 																initial={{
 																	id: a.id,
 																	version: a.version,

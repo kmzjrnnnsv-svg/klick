@@ -1,6 +1,7 @@
 "use client";
 
 import { Sparkles, Upload } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
@@ -16,6 +17,7 @@ import {
 	upsertMonitoringRule,
 	upsertSuspiciousReport,
 } from "@/app/actions/aml";
+import { LevelChoice } from "@/components/entity/level-choice";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import {
 	EditTrigger,
@@ -41,6 +43,12 @@ import {
 	overallAmlRisk,
 	type RiskDimensions,
 } from "@/lib/compliance/aml";
+import {
+	AML_SCORE_LABELS,
+	applicableAmlFactors,
+	suggestDimensionScore,
+} from "@/lib/compliance/catalog/aml-risk-factors";
+import { cn } from "@/lib/utils";
 import {
 	CORRIDOR_STATUSES,
 	FATF_STATUSES,
@@ -104,23 +112,43 @@ export type RiskAnalysisDraft = {
 };
 
 const DIMENSIONS = ["customer", "product", "country", "channel"] as const;
+const AML_STEPS = [...DIMENSIONS, "summary"] as const;
 
+// Geführte Geldwäsche-Risikoanalyse: je Dimension Faktoren aus dem Katalog
+// ankreuzen (erhöhend/mindernd), Vorschlag ansehen, Wert bestätigen oder
+// begründet abweichen; zum Schluss Zusammenfassung und Gesamtrisiko.
 export function RiskAnalysisForm({
 	initial,
 	members,
+	frameworks = [],
 }: {
 	initial?: RiskAnalysisDraft;
 	members: MemberOption[];
+	frameworks?: readonly string[];
 }) {
 	const t = useTranslations("Aml");
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
+	const [step, setStep] = useState<(typeof AML_STEPS)[number]>("customer");
 	const [d, setD] = useState<RiskAnalysisDraft>(
 		initial ?? { dimensions: EMPTY_DIMENSIONS },
 	);
+	const factors = applicableAmlFactors(frameworks);
 	const overall = overallAmlRisk(d.dimensions);
+	const setDim = (
+		key: (typeof DIMENSIONS)[number],
+		patch: Partial<RiskDimensions["customer"]>,
+	) =>
+		setD((x) => ({
+			...x,
+			dimensions: {
+				...x.dimensions,
+				[key]: { ...x.dimensions[key], ...patch },
+			},
+		}));
+	const idx = AML_STEPS.indexOf(step);
 	return (
 		<FormDialog
 			title={initial ? t("editAnalysis") : t("newAnalysis")}
@@ -152,105 +180,222 @@ export function RiskAnalysisForm({
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
-				{!initial && (
-					<Field
-						id="ra-version"
-						label={t("version")}
-						value={d.version ?? ""}
-						onChange={(v) => setD({ ...d, version: v })}
-					/>
-				)}
-				<UserSelect
-					label={t("owner")}
-					value={d.ownerUserId}
-					onChange={(v) => setD({ ...d, ownerUserId: v })}
-					members={members}
-				/>
-				<Field
-					id="ra-review"
-					label={t("nextReviewAt")}
-					type="date"
-					value={d.nextReviewAt ?? ""}
-					onChange={(v) => setD({ ...d, nextReviewAt: v })}
-				/>
-			</div>
-			<div className="flex flex-col gap-3">
-				{DIMENSIONS.map((key) => {
+			<nav aria-label={t("stepsLabel")}>
+				<ol className="flex flex-wrap gap-1.5 text-xs">
+					{AML_STEPS.map((s, i) => (
+						<li key={s}>
+							<button
+								type="button"
+								aria-current={s === step ? "step" : undefined}
+								onClick={() => setStep(s)}
+								className={cn(
+									"rounded-full border px-3 py-1",
+									s === step
+										? "border-primary bg-primary text-primary-foreground"
+										: "text-muted-foreground hover:bg-muted",
+								)}
+							>
+								{i + 1} · {s === "summary" ? t("stepSummary") : t(`dim_${s}`)}
+								{s !== "summary" && (
+									<span className="ml-1 tabular-nums">
+										{d.dimensions[s].score}
+									</span>
+								)}
+							</button>
+						</li>
+					))}
+				</ol>
+			</nav>
+			{step !== "summary" &&
+				(() => {
+					const key = step;
 					const dim = d.dimensions[key];
+					const codes = dim.factorCodes ?? [];
+					const sug = suggestDimensionScore(key, codes);
+					const list = factors.filter((f) => f.dimension === key);
 					return (
-						<div key={key} className="rounded-md border p-3">
-							<div className="mb-2 flex items-center justify-between gap-3">
-								<p className="font-medium text-sm">{t(`dim_${key}`)}</p>
-								<div className="flex items-center gap-2">
-									<Label htmlFor={`score-${key}`} className="text-xs">
-										{t("score")}
-									</Label>
-									<Input
-										id={`score-${key}`}
-										type="number"
-										min={1}
-										max={5}
-										className="h-8 w-16"
-										value={dim.score}
-										onChange={(e) =>
-											setD({
-												...d,
-												dimensions: {
-													...d.dimensions,
-													[key]: {
-														...dim,
-														score: Number(e.target.value) || 1,
-													},
-												},
-											})
-										}
-									/>
-								</div>
+						<div className="flex flex-col gap-4">
+							<p className="text-muted-foreground text-sm">
+								{t(`dimLead_${key}`)}
+							</p>
+							<div className="grid gap-3 sm:grid-cols-2">
+								{(["higher", "lower"] as const).map((dir) => (
+									<fieldset key={dir} className="flex min-w-0 flex-col gap-1.5">
+										<legend className="mb-1 font-medium text-sm">
+											{t(`factors_${dir}`)}
+										</legend>
+										{list
+											.filter((f) => f.direction === dir)
+											.map((f) => (
+												<label
+													key={f.code}
+													className="flex cursor-pointer items-start gap-2 rounded-md border p-2 text-xs has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+												>
+													<input
+														type="checkbox"
+														className="mt-0.5 accent-primary"
+														checked={codes.includes(f.code)}
+														onChange={(e) =>
+															setDim(key, {
+																factorCodes: e.target.checked
+																	? [...codes, f.code]
+																	: codes.filter((c) => c !== f.code),
+															})
+														}
+													/>
+													<span>
+														<span className="block">{f.text}</span>
+														<span className="text-muted-foreground">
+															{f.source}
+														</span>
+													</span>
+												</label>
+											))}
+									</fieldset>
+								))}
 							</div>
-							<Textarea
-								rows={2}
-								placeholder={t("factorsPlaceholder")}
-								value={dim.factors}
-								onChange={(e) =>
-									setD({
-										...d,
-										dimensions: {
-											...d.dimensions,
-											[key]: { ...dim, factors: e.target.value },
-										},
-									})
-								}
+							<div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/40 p-2 text-sm">
+								<span aria-live="polite">
+									{t("suggestion", {
+										score: sug.score,
+										label: AML_SCORE_LABELS[sug.score - 1] ?? "",
+									})}
+								</span>
+								{sug.score !== dim.score && (
+									<Button
+										type="button"
+										size="sm"
+										variant="outline"
+										onClick={() => setDim(key, { score: sug.score })}
+									>
+										{t("takeSuggestion")}
+									</Button>
+								)}
+							</div>
+							<LevelChoice
+								name={`aml-${key}`}
+								legend={t("dimScore")}
+								compact
+								options={AML_SCORE_LABELS.map((label, i) => ({
+									value: i + 1,
+									label,
+								}))}
+								value={dim.score}
+								onChange={(v) => setDim(key, { score: v })}
 							/>
-							<Textarea
-								rows={2}
-								className="mt-2"
-								placeholder={t("measuresPlaceholder")}
-								value={dim.measures ?? ""}
-								onChange={(e) =>
-									setD({
-										...d,
-										dimensions: {
-											...d.dimensions,
-											[key]: { ...dim, measures: e.target.value },
-										},
-									})
-								}
-							/>
+							<div className="flex flex-col gap-1">
+								<Label htmlFor={`ra-f-${key}`}>{t("factorsNote")}</Label>
+								<Textarea
+									id={`ra-f-${key}`}
+									rows={2}
+									placeholder={
+										sug.score !== dim.score
+											? t("deviationPlaceholder")
+											: t("factorsPlaceholder")
+									}
+									value={dim.factors}
+									onChange={(e) => setDim(key, { factors: e.target.value })}
+								/>
+							</div>
+							<div className="flex flex-col gap-1">
+								<Label htmlFor={`ra-m-${key}`}>{t("measuresLabel")}</Label>
+								<Textarea
+									id={`ra-m-${key}`}
+									rows={2}
+									placeholder={t("measuresPlaceholder")}
+									value={dim.measures ?? ""}
+									onChange={(e) => setDim(key, { measures: e.target.value })}
+								/>
+							</div>
+							{dim.score >= 4 && (
+								<p className="text-sm">
+									<Link
+										className="text-primary hover:underline"
+										href={`/risiken/neu?szenario=${key === "country" ? "RS-AML-08" : key === "channel" ? "RS-AML-07" : "RS-AML-01"}`}
+									>
+										{t("toRiskRegister")}
+									</Link>
+								</p>
+							)}
 						</div>
 					);
-				})}
+				})()}
+			{step === "summary" && (
+				<div className="flex flex-col gap-4">
+					<div className="grid gap-4 sm:grid-cols-2">
+						{!initial && (
+							<Field
+								id="ra-version"
+								label={t("version")}
+								value={d.version ?? ""}
+								onChange={(v) => setD({ ...d, version: v })}
+							/>
+						)}
+						<UserSelect
+							label={t("owner")}
+							value={d.ownerUserId}
+							onChange={(v) => setD({ ...d, ownerUserId: v })}
+							members={members}
+						/>
+						<Field
+							id="ra-review"
+							label={t("nextReviewAt")}
+							type="date"
+							value={d.nextReviewAt ?? ""}
+							onChange={(v) => setD({ ...d, nextReviewAt: v })}
+						/>
+					</div>
+					<ul className="grid gap-2 text-sm sm:grid-cols-4">
+						{DIMENSIONS.map((key) => (
+							<li key={key} className="rounded-md border p-2">
+								<p className="text-muted-foreground text-xs">
+									{t(`dim_${key}`)}
+								</p>
+								<p className="font-medium">
+									{d.dimensions[key].score} ·{" "}
+									{AML_SCORE_LABELS[d.dimensions[key].score - 1]}
+								</p>
+								<p className="text-muted-foreground text-xs">
+									{t("factorCount", {
+										n: (d.dimensions[key].factorCodes ?? []).length,
+									})}
+								</p>
+							</li>
+						))}
+					</ul>
+					<Field
+						id="ra-summary"
+						label={t("summary")}
+						value={d.summary ?? ""}
+						onChange={(v) => setD({ ...d, summary: v })}
+						rows={3}
+					/>
+					<p className="font-medium text-sm">
+						{t("overallPreview", { risk: t(`risk_${overall}`) })}
+					</p>
+				</div>
+			)}
+			<div className="flex justify-between gap-2">
+				<Button
+					type="button"
+					variant="ghost"
+					size="sm"
+					disabled={idx === 0}
+					onClick={() => setStep(AML_STEPS[idx - 1] ?? step)}
+				>
+					{tc("back")}
+				</Button>
+				{step !== "summary" && (
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => setStep(AML_STEPS[idx + 1] ?? step)}
+					>
+						{tc("next")}
+					</Button>
+				)}
 			</div>
-			<Field
-				id="ra-summary"
-				label={t("summary")}
-				value={d.summary ?? ""}
-				onChange={(v) => setD({ ...d, summary: v })}
-				rows={3}
-			/>
-			<p className="text-muted-foreground text-sm">
-				{t("overallPreview", { risk: t(`risk_${overall}`) })}
-			</p>
 		</FormDialog>
 	);
 }
