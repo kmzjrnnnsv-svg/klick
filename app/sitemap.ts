@@ -1,11 +1,9 @@
 import type { MetadataRoute } from "next";
+import { siteUrl } from "@/lib/routes";
 
 // Nur die öffentlichen Seiten; App-Routen sind per robots.txt ausgeschlossen.
 export default function sitemap(): MetadataRoute.Sitemap {
-	const base = (process.env.BETTER_AUTH_URL ?? "https://raza.work").replace(
-		/\/+$/,
-		"",
-	);
+	const base = siteUrl();
 	const now = new Date();
 	return [
 		{
@@ -32,5 +30,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			changeFrequency: "monthly",
 			priority: 0.8,
 		},
+		// Rechtstexte aus dem CMS
+		...["impressum", "datenschutz-erklaerung"].map((slug) => ({
+			url: `${base}/${slug}`,
+			lastModified: now,
+			changeFrequency: "yearly" as const,
+			priority: 0.3,
+		})),
 	];
 }

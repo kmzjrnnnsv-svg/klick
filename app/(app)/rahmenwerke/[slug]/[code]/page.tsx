@@ -105,10 +105,12 @@ export default async function RequirementPage({
 						applicable={applicable}
 						canEdit={roleAllows(ctx.orgRole, { control: ["update"] })}
 					/>
-				) : (
+				) : roleAllows(ctx.orgRole, { settings: ["update"] }) ? (
 					<Button variant="outline" size="sm" asChild>
 						<Link href="/einstellungen?tab=frameworks">{t("activate")}</Link>
 					</Button>
+				) : (
+					<Badge variant="muted">{t("inactive")}</Badge>
 				)
 			}
 			meta={

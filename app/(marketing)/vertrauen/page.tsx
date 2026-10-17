@@ -45,7 +45,7 @@ export default async function TrustPage() {
 						{t("download")}
 					</a>
 					<Link
-						href="/login"
+						href="/login?weiter=%2Fbaseline"
 						className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
 					>
 						{t("baselineLink")}

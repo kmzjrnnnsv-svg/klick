@@ -60,7 +60,7 @@ export const ENGAGEMENT_STATUS_MACHINE: StatusMachine<EngagementStatus> = {
 
 export const SECURITY_ENGAGEMENT_ENTITY: EntityDef<EngagementStatus> = {
 	kind: "security_engagement",
-	route: "/sicherheit/auftraege",
+	route: "/sicherheit?tab=auftraege",
 	i18nNamespace: "Engagements",
 	statusMachine: ENGAGEMENT_STATUS_MACHINE,
 };

@@ -27,6 +27,7 @@ import { listMembersForPicker } from "@/lib/compliance/queries";
 import { dependencyMap, listProcesses } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
 import { PROCESS_STATUS, PROCESS_STATUSES } from "@/lib/entities/process";
+import { pickTab } from "@/lib/tabs";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -45,7 +46,7 @@ export default async function ProcessesPage({
 }) {
 	const ctx = await requireOrgPage({ process: ["read"] });
 	const sp = await searchParams;
-	const tab = one(sp.tab) ?? "landkarte";
+	const tab = pickTab(sp.tab, ["landkarte", "kritisch", "abhaengigkeiten"]);
 	const t = await getTranslations("Processes");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");

@@ -9,7 +9,7 @@ import {
 	roleAssignments,
 } from "@/db/schema";
 import type { EntityKind, RoleFunction } from "@/db/schema/enums";
-import type { ApprovalStep } from "@/db/schema/grc";
+import type { ApprovalRequest, ApprovalStep } from "@/db/schema/grc";
 import { type OrgRole, roleAllows } from "@/lib/auth/permissions";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
@@ -343,7 +343,7 @@ export async function requestApproval(
 		kind: "approval_requested",
 		title: `Freigabe angefragt: ${input.title}`,
 		body: `${ctx.name} bittet um Freigabe (${wf.name}).`,
-		link: `/heute/freigaben?request=${req.id}`,
+		link: `/heute/freigaben?request=${req.id}#${req.id}`,
 		payload: { requestId: req.id, entityLink: input.link },
 	});
 	return {
@@ -527,7 +527,7 @@ export async function decide(
 				actorUserId: ctx.userId,
 				kind: "approval_requested",
 				title: `Freigabe angefragt (Stufe ${outcome.nextStep}): ${wf.name}`,
-				link: `/heute/freigaben?request=${req.id}`,
+				link: `/heute/freigaben?request=${req.id}#${req.id}`,
 			});
 		}
 	} else {
@@ -543,7 +543,7 @@ export async function decide(
 		kind: "approval_decided",
 		title: `${ctx.name}: ${input.decision === "approved" ? "freigegeben" : input.decision === "rejected" ? "abgelehnt" : "Änderungen angefragt"} — ${wf.name}`,
 		body: input.note?.trim() || undefined,
-		link: `/heute/freigaben?request=${req.id}`,
+		link: `/heute/freigaben?request=${req.id}#${req.id}`,
 	});
 	return {
 		ok: true,
@@ -583,6 +583,7 @@ export type PendingForUser = {
 	workflowName: string;
 	entityType: EntityKind;
 	entityId: string;
+	status: ApprovalRequest["status"];
 	requestedByUserId: string | null;
 	requestedByName: string | null;
 	requestedAt: Date;
@@ -675,6 +676,7 @@ export async function listRequestsForUser(
 			workflowName,
 			entityType: req.entityType,
 			entityId: req.entityId,
+			status: req.status,
 			requestedByUserId: req.requestedByUserId,
 			requestedByName: req.requestedByUserId
 				? (names.get(req.requestedByUserId) ?? null)

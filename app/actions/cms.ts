@@ -6,6 +6,7 @@ import { safeAction } from "@/lib/actions/safe";
 import { auditPlatform } from "@/lib/audit";
 import { requirePlatformAdmin } from "@/lib/auth/guards";
 import * as g from "@/lib/db/global";
+import { RESERVED_SLUGS } from "@/lib/routes";
 import { type ActionResult, fromZod, slug } from "@/lib/validation/common";
 
 async function getCmsPageBySlugImpl(s: string) {
@@ -13,7 +14,9 @@ async function getCmsPageBySlugImpl(s: string) {
 }
 
 const cmsSchema = z.object({
-	slug,
+	slug: slug.refine((s) => !RESERVED_SLUGS.has(s), {
+		message: "Pfad ist für die Anwendung reserviert",
+	}),
 	title: z.string().trim().min(1).max(200),
 	body: z.string().max(200_000),
 });

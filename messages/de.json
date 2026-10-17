@@ -223,6 +223,7 @@
 		"verifyTitle": "Schau in dein Postfach",
 		"verifyLead": "Wenn ein Konto oder eine offene Einladung zu dieser Adresse existiert, ist ein Anmelde-Link unterwegs. Er ist 15 Minuten gültig und einmalig nutzbar.",
 		"verifyHint": "Nichts angekommen? Prüfe den Spam-Ordner oder fordere in einer Minute einen neuen Link an.",
+		"verifyBack": "Neuen Link anfordern oder andere Adresse",
 		"reasonSessionExpired": "Deine Sitzung ist abgelaufen. Bitte melde dich neu an.",
 		"reasonAccessExpired": "Dein zeitlich begrenzter Zugang ist abgelaufen.",
 		"reasonLinkExpired": "Dieser Anmelde-Link ist abgelaufen oder wurde schon benutzt. Fordere hier einen neuen an — er ist 15 Minuten gültig.",
@@ -828,9 +829,12 @@
 		"source_evidence_request": "Nachweisanfrage",
 		"source_system": "System",
 		"source_other": "automatisch",
-		"linked": "zu {entity}"
+		"linked": "zu {entity}",
+		"linkedFallback": "verknüpftem Eintrag"
 	},
 	"Controls": {
+		"outOfScope": "Nicht im Umfang deiner Organisation",
+		"outOfScopeLead": "Dieses Control gehört zu {frameworks}. Aktiviere eines dieser Rahmenwerke, dann legt Klick es in deinem Arbeitsvorrat an.",
 		"title": "Controls",
 		"lead": "Ein Control einmal umsetzen — in allen gewählten Rahmenwerken gleichzeitig erfüllt. Sortiert nach Hebel.",
 		"leverage": "Hebel",
@@ -922,6 +926,7 @@
 		"notApplicable": "nicht anwendbar",
 		"notApplicableShort": "N/A",
 		"inactive": "nicht aktiviert",
+		"inactiveLead": "Dieses Rahmenwerk ist für deine Organisation nicht gewählt. Aktivierst du es, legt Klick Anwendbarkeit und Arbeitsvorrat an — deine umgesetzten Controls zählen sofort mit.",
 		"activate": "Rahmenwerk aktivieren",
 		"noIndex": "Für dieses Rahmenwerk liegt der Anforderungs-Index noch nicht vor (Phase 4/5).",
 		"section": "Abschnitt",

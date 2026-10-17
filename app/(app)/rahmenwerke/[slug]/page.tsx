@@ -2,11 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { CoverageBar } from "@/components/entity/coverage-bar";
+import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { SoaTab } from "@/components/frameworks/soa-tab";
 import { PageHeader } from "@/components/page-header";
 import { ReadinessPanel } from "@/components/readiness/readiness-panel";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
@@ -27,6 +29,7 @@ import { listAudits } from "@/lib/compliance/queries-p3";
 import { loadReadiness } from "@/lib/compliance/queries-readiness";
 import { parseStichtag, stichtagOptions } from "@/lib/compliance/readiness";
 import { readOrg } from "@/lib/db/with-org";
+import { pickTab } from "@/lib/tabs";
 
 const TONE: Record<ReqCoverage, "success" | "warning" | "outline" | "muted"> = {
 	covered: "success",
@@ -43,13 +46,45 @@ export default async function FrameworkPage({
 	searchParams: Promise<{ tab?: string; stichtag?: string }>;
 }) {
 	const { slug } = await params;
-	const { tab = "anforderungen", stichtag } = await searchParams;
+	const { tab: rawTab, stichtag } = await searchParams;
+	const tab = pickTab(rawTab, [
+		"anforderungen",
+		"luecken",
+		"pruefungsreife",
+		"soa",
+	]);
 	const ctx = await requireOrgPage();
 	const fw = FRAMEWORK_BY_SLUG.get(slug);
 	if (!fw) notFound();
 	const t = await getTranslations("Frameworks");
 	const cov = await getOrgCoverageCached(ctx);
-	if (!cov?.frameworks.includes(slug)) notFound();
+	if (!cov) notFound();
+	// Nicht aktiviert: kein 404 — Links aus Antrag, Dokumenten oder Synergien
+	// zeigen auf Rahmenwerke, die die Org (noch) nicht gewählt hat.
+	if (!cov.frameworks.includes(slug))
+		return (
+			<>
+				<PageHeader title={fw.name} lead={fw.legalBasis ?? undefined} />
+				<EmptyState
+					title={`${shortFrameworkName(slug)}: ${t("inactive")}`}
+					lead={t("inactiveLead")}
+					actions={
+						<>
+							{roleAllows(ctx.orgRole, { settings: ["update"] }) && (
+								<Button size="sm" asChild>
+									<Link href="/einstellungen?tab=frameworks">
+										{t("activate")}
+									</Link>
+								</Button>
+							)}
+							<Button variant="outline" size="sm" asChild>
+								<Link href="/rahmenwerke">{t("title")}</Link>
+							</Button>
+						</>
+					}
+				/>
+			</>
+		);
 	const bucket = cov.result.byFramework.get(slug);
 	const labels = {
 		covered: t("covered"),
@@ -197,6 +232,7 @@ export default async function FrameworkPage({
 					<UrlTabs
 						base={`/rahmenwerke/${slug}`}
 						active={tab}
+						keep={{ stichtag }}
 						tabs={[
 							{
 								value: "anforderungen",

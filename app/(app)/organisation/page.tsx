@@ -788,6 +788,7 @@ export default async function OrganisationPage({
 						lead={t("assetOwnersLead")}
 						gapLabel={(n) => t("assetOwnersGap", { n })}
 						countLabel={(n) => t("assetOwnersCount", { n })}
+						canOpen={(id) => ctx.orgRole === "owner" || id === ctx.userId}
 					/>
 				</section>
 			)}
@@ -1520,12 +1521,15 @@ function AssetOwners({
 	lead,
 	gapLabel,
 	countLabel,
+	canOpen,
 }: {
 	rows: { id: string; ownerUserId: string | null; ownerName: string | null }[];
 	title: string;
 	lead: string;
 	gapLabel: (n: number) => string;
 	countLabel: (n: number) => string;
+	// /team/[userId] öffnet nur für Inhaber:in und die Person selbst.
+	canOpen: (userId: string) => boolean;
 }) {
 	const byOwner = new Map<string, { name: string; n: number }>();
 	for (const a of rows) {
@@ -1552,15 +1556,24 @@ function AssetOwners({
 					.sort((a, b) => b[1].n - a[1].n)
 					.map(([userId, e]) => (
 						<li key={userId}>
-							<Link
-								href={`/team/${userId}`}
-								className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"
-							>
-								{e.name}
-								<span className="text-muted-foreground">
-									· {countLabel(e.n)}
+							{canOpen(userId) ? (
+								<Link
+									href={`/team/${userId}`}
+									className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"
+								>
+									{e.name}
+									<span className="text-muted-foreground">
+										· {countLabel(e.n)}
+									</span>
+								</Link>
+							) : (
+								<span className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs">
+									{e.name}
+									<span className="text-muted-foreground">
+										· {countLabel(e.n)}
+									</span>
 								</span>
-							</Link>
+							)}
 						</li>
 					))}
 			</ul>

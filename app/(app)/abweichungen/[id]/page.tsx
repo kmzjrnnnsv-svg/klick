@@ -35,7 +35,7 @@ import {
 import { getNonconformity } from "@/lib/compliance/queries-p3";
 import { topManagementOf } from "@/lib/compliance/top-management";
 import { readOrg } from "@/lib/db/with-org";
-import { entityHref } from "@/lib/entities/links";
+import { nonconformitySourceHref } from "@/lib/entities/links";
 import { NC_PRIORITY_TONE } from "@/lib/entities/nonconformity";
 import { TASK_STATUS } from "@/lib/entities/task";
 import {
@@ -43,16 +43,6 @@ import {
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
-
-const SOURCE_KIND = {
-	audit: "audit_finding",
-	incident: "incident",
-	control_test: "control",
-	complaint: "complaint",
-	management_review: "management_review",
-	self_identified: null,
-	security_finding: "security_finding",
-} as const;
 
 export default async function NonconformityDetailPage({
 	params,
@@ -78,16 +68,37 @@ export default async function NonconformityDetailPage({
 			listTasks(tx, ctx.orgId, { entityType: "nonconformity", entityId: id }),
 		]);
 		const tm = await topManagementOf(tx, ctx.orgId, ctx.userId);
+		const sourceHref = await nonconformitySourceHref(tx, r.nc);
 		const names = await userNames(tx, [
 			r.nc.prioritizedByUserId,
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
 		]);
 		for (const [k, v] of r.names) names.set(k, v);
-		return { ...r, comments, history, watcherIds, members, tasks, names, tm };
+		return {
+			...r,
+			comments,
+			history,
+			watcherIds,
+			members,
+			tasks,
+			names,
+			tm,
+			sourceHref,
+		};
 	});
 	if (!data) notFound();
-	const { nc, comments, history, watcherIds, members, tasks, names, tm } = data;
+	const {
+		nc,
+		comments,
+		history,
+		watcherIds,
+		members,
+		tasks,
+		names,
+		tm,
+		sourceHref,
+	} = data;
 	const state = capaState(nc);
 	const entries: ActivityEntry[] = mergeActivity(
 		toHistoryItems(history),
@@ -103,13 +114,6 @@ export default async function NonconformityDetailPage({
 			},
 		})),
 	);
-	const sourceKind = SOURCE_KIND[nc.source];
-	const sourceHref =
-		nc.sourceRefId && sourceKind && sourceKind !== "audit_finding"
-			? entityHref(sourceKind, nc.sourceRefId)
-			: nc.source === "audit"
-				? "/audits?tab=findings"
-				: null;
 
 	return (
 		<EntityLayout

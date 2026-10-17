@@ -226,7 +226,7 @@ export default async function ManagementReviewPage() {
 														>
 															<Badge variant="outline">{t("kind_task")}</Badge>
 															<Link
-																href="/heute/aufgaben"
+																href={`/heute/aufgaben?all=1&done=1&q=${encodeURIComponent(x.title)}`}
 																className="hover:underline"
 															>
 																{x.title}

@@ -119,7 +119,7 @@ function phonePieceStyle(i: number): CSSProperties {
 
 export default async function ServicesPage() {
 	const t = await getTranslations("Services");
-	const contact = process.env.CONTACT_EMAIL;
+	const contact = process.env.CONTACT_EMAIL?.trim();
 	const contactHref = contact
 		? `mailto:${contact}?subject=${encodeURIComponent("Erstgespräch Klick")}`
 		: "/login";

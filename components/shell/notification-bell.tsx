@@ -4,7 +4,10 @@ import { Bell } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { markAllNotificationsRead } from "@/app/actions/notifications";
+import {
+	markAllNotificationsRead,
+	markNotificationRead,
+} from "@/app/actions/notifications";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -107,6 +110,9 @@ export function NotificationBell({
 									{n.link ? (
 										<Link
 											href={safeInternalPath(n.link)}
+											onClick={() => {
+												if (!n.readAt) void markNotificationRead(n.id);
+											}}
 											className="block hover:bg-muted"
 										>
 											{content}

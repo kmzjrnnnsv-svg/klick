@@ -42,6 +42,7 @@ import {
 import { readOrg } from "@/lib/db/with-org";
 import { RISK_STATUS, RISK_STATUSES } from "@/lib/entities/risk";
 import { getOrgSettings } from "@/lib/org/queries";
+import { pickTab } from "@/lib/tabs";
 import { todayBerlin } from "@/lib/time/berlin";
 
 type Search = Record<string, string | string[] | undefined>;
@@ -61,7 +62,12 @@ export default async function RisksPage({
 }) {
 	const ctx = await requireOrgPage({ risk: ["read"] });
 	const sp = await searchParams;
-	const tab = one(sp.tab) ?? "register";
+	const tab = pickTab(sp.tab, [
+		"register",
+		"matrix",
+		"ausnahmen",
+		"schadensfaelle",
+	]);
 	const t = await getTranslations("Risks");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");

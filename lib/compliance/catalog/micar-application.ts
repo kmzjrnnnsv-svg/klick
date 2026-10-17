@@ -12,7 +12,7 @@ export const MICAR_APPLICATION: readonly ApplicationItem[] = [
 		legalBasis: "Art. 62(2)(a)–(b) MiCAR",
 		description:
 			"Firma, Rechtsform, LEI, Handelsregister, Website, Satzung/Gesellschaftsvertrag, Anschrift des Sitzes und der Hauptverwaltung in der EU (Art. 59(2)).",
-		route: "/einstellungen",
+		route: "/einstellungen?tab=organisation",
 		checks: [{ kind: "manual", hint: "Unterlagen im Dossier abgelegt" }],
 	},
 	{

@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Settings, ShieldCheck } from "lucide-react";
+import { FileText, LogOut, Settings, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -40,6 +40,7 @@ export function UserMenu({
 }) {
 	const t = useTranslations("Common");
 	const tNav = useTranslations("Nav");
+	const tFooter = useTranslations("Footer");
 	const router = useRouter();
 
 	async function signOut() {
@@ -81,6 +82,17 @@ export function UserMenu({
 						</Link>
 					</DropdownMenuItem>
 				)}
+				<DropdownMenuSeparator />
+				<DropdownMenuItem asChild>
+					<Link href="/impressum">
+						<FileText /> {tFooter("imprint")}
+					</Link>
+				</DropdownMenuItem>
+				<DropdownMenuItem asChild>
+					<Link href="/datenschutz-erklaerung">
+						<FileText /> {tFooter("privacy")}
+					</Link>
+				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem onSelect={() => void signOut()}>
 					<LogOut /> {t("logout")}

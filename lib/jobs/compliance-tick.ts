@@ -1,4 +1,5 @@
 import type { EntityKind, NotificationKind } from "@/db/schema/enums";
+import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
 import {
 	berlinDate,
 	calendarDaysBetween,
@@ -26,6 +27,9 @@ export const SUPPLIER_REMIND_DAYS = 14;
 
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
+
+const workflowLabel = (kind: string) =>
+	APPROVAL_WORKFLOW_TEMPLATES.find((w) => w.kind === kind)?.name ?? kind;
 
 export type DueRows = {
 	/** Org-Owner als Rückfall-Empfänger, wenn kein Owner gesetzt ist. */
@@ -391,8 +395,8 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			kind: "approval_overdue",
 			recipients,
 			title: `Freigabe überfällig: ${label}`,
-			body: `${a.kind} — SLA seit ${fmtTime(due)} überschritten.`,
-			link: "/heute/freigaben",
+			body: `${workflowLabel(a.kind)} — SLA seit ${fmtTime(due)} überschritten.`,
+			link: `/heute/freigaben?request=${a.id}#${a.id}`,
 			dedupeKey: `approval_overdue:${a.id}`,
 		});
 		// Eskalation hängt an der Entität der Freigabe (eine je Entität offen).

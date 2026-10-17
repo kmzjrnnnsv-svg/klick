@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
+import { UrlSyncedTabs } from "@/components/entity/url-synced-tabs";
 import { PageHeader } from "@/components/page-header";
 import { DangerZonePanel } from "@/components/settings/danger-zone-panel";
 import { DlpPanel } from "@/components/settings/dlp-panel";
@@ -13,7 +14,7 @@ import { SecurityPanel } from "@/components/settings/security-panel";
 import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { approvalWorkflows } from "@/db/schema";
 import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -151,8 +152,8 @@ export default async function SettingsPage({
 	return (
 		<>
 			<PageHeader title={t("title")} />
-			<Tabs
-				defaultValue={
+			<UrlSyncedTabs
+				value={
 					tab &&
 					[
 						"frameworks",
@@ -291,7 +292,7 @@ export default async function SettingsPage({
 						/>
 					</TabsContent>
 				)}
-			</Tabs>
+			</UrlSyncedTabs>
 		</>
 	);
 }

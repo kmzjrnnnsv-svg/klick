@@ -1,56 +1,10 @@
 import { notFound } from "next/navigation";
 import { getCmsPageBySlug } from "@/app/actions/cms";
 import { MarkdownView } from "@/components/markdown-view";
+import { RESERVED_SLUGS } from "@/lib/routes";
 
 // Öffentliche Rechtstexte aus cms_pages (Impressum, Datenschutzerklärung …).
 // Reservierte Pfade sind App-Routen und dürfen nicht als Slug auftauchen.
-const RESERVED = new Set([
-	"login",
-	"einrichtung",
-	"onboarding",
-	"einladung",
-	"heute",
-	"ueberblick",
-	"controls",
-	"synergien",
-	"nachweise",
-	"risiken",
-	"dokumente",
-	"prozesse",
-	"dienstleister",
-	"assets",
-	"vorfaelle",
-	"schulungen",
-	"datenschutz",
-	"organisation",
-	"beschluesse",
-	"audits",
-	"managementbewertung",
-	"abweichungen",
-	"testprogramm",
-	"kalender",
-	"roadmap",
-	"aml",
-	"eigenmittel",
-	"kryptowerte",
-	"beschwerden",
-	"antrag",
-	"rahmenwerke",
-	"baseline",
-	"team",
-	"aktivitaet",
-	"einstellungen",
-	"suche",
-	"admin",
-	"api",
-	"preise",
-	"vertrauen",
-	"gap-analyse",
-	"produkte",
-	"sicherheit",
-	"lieferant",
-	"leistungen",
-]);
 
 export default async function CmsPage({
 	params,
@@ -58,7 +12,7 @@ export default async function CmsPage({
 	params: Promise<{ slug: string }>;
 }) {
 	const { slug } = await params;
-	if (RESERVED.has(slug)) notFound();
+	if (RESERVED_SLUGS.has(slug)) notFound();
 	const page = await getCmsPageBySlug(slug);
 	if (!page) notFound();
 	return (

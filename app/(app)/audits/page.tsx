@@ -37,10 +37,10 @@ import {
 } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
+import { pickTab } from "@/lib/tabs";
 import { cn } from "@/lib/utils";
 
 type Search = Record<string, string | string[] | undefined>;
-const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 const SEV_TONE = {
 	observation: "muted",
@@ -62,7 +62,7 @@ export default async function AuditsPage({
 }) {
 	const ctx = await requireOrgPage({ audit: ["read"] });
 	const sp = await searchParams;
-	const tab = one(sp.tab) ?? "audits";
+	const tab = pickTab(sp.tab, ["audits", "programm", "findings"]);
 	const t = await getTranslations("Audits");
 	const canEdit = roleAllows(ctx.orgRole, { audit: ["create"] });
 	const canFinding = roleAllows(ctx.orgRole, { audit_finding: ["update"] });

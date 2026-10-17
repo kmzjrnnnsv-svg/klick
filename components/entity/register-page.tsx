@@ -34,6 +34,18 @@ function RowLink({
 				{children}
 			</a>
 		);
+	// Externe Ziele (Nachweis-URL): neues Fenster, ohne Referrer/Opener.
+	if (/^https?:\/\//i.test(href))
+		return (
+			<a
+				href={href}
+				target="_blank"
+				rel="noopener noreferrer nofollow"
+				className={className}
+			>
+				{children}
+			</a>
+		);
 	return (
 		<Link href={href} className={className}>
 			{children}

@@ -58,10 +58,10 @@ import {
 import { loadReadiness } from "@/lib/compliance/queries-readiness";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
+import { pickTab } from "@/lib/tabs";
 import { cn } from "@/lib/utils";
 
 type Search = Record<string, string | string[] | undefined>;
-const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 const TONE: Record<ReqCoverage, "success" | "warning" | "outline" | "muted"> = {
 	covered: "success",
@@ -102,7 +102,12 @@ export default async function AuditCockpitPage({
 	const { id } = await params;
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const sp = await searchParams;
-	const tab = one(sp.tab) ?? "pruefpfad";
+	const tab = pickTab(sp.tab, [
+		"pruefpfad",
+		"anfragen",
+		"findings",
+		"pruefungsreife",
+	]);
 	const ctx = await requireOrgPage({ audit: ["read"] });
 	const t = await getTranslations("Audits");
 	const ts = await getTranslations("Status");

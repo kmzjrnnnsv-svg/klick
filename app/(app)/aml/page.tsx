@@ -541,7 +541,7 @@ export default async function AmlPage({
 								))}
 							</ul>
 							<Link
-								href="/kalender?tab=legal"
+								href="/kalender?tab=rechtsaenderungen"
 								className="mt-2 inline-block text-primary text-xs hover:underline"
 							>
 								{t("toCalendar")}

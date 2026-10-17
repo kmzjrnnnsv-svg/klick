@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { CommentForm } from "@/components/entity/comment-form";
 import { ControlTestForm } from "@/components/entity/control-test-form";
+import { EmptyState } from "@/components/entity/empty-state";
 import {
 	EntityLayout,
 	MetaItem,
@@ -16,7 +17,9 @@ import { RequestEvidence } from "@/components/entity/request-evidence";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { WatchButton } from "@/components/entity/watch-button";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -99,7 +102,49 @@ export default async function ControlDetailPage({
 			names,
 		};
 	});
-	if (!data) notFound();
+	// Control nicht im Umfang der Org (Rahmenwerk nicht gewählt): Katalogansicht
+	// statt 404 — Links aus Antrag, Baseline oder Roadmap zeigen auch hierher.
+	if (!data) {
+		const fws = [
+			...new Set(
+				(EDGES_BY_CONTROL.get(code) ?? []).map(
+					(e) => e.requirement.split(":")[0],
+				),
+			),
+		].filter((x): x is string => Boolean(x));
+		return (
+			<>
+				<PageHeader
+					title={`${control.code} ${control.title}`}
+					lead={control.description}
+				/>
+				<EmptyState
+					title={t("outOfScope")}
+					lead={
+						fws.length > 0
+							? t("outOfScopeLead", {
+									frameworks: fws.map((f) => shortFrameworkName(f)).join(", "),
+								})
+							: undefined
+					}
+					actions={
+						<>
+							{roleAllows(ctx.orgRole, { settings: ["update"] }) && (
+								<Button size="sm" asChild>
+									<Link href="/einstellungen?tab=frameworks">
+										{tf("activate")}
+									</Link>
+								</Button>
+							)}
+							<Button variant="outline" size="sm" asChild>
+								<Link href="/controls">{t("title")}</Link>
+							</Button>
+						</>
+					}
+				/>
+			</>
+		);
+	}
 	const {
 		row,
 		evidence,
@@ -358,6 +403,7 @@ export default async function ControlDetailPage({
 			</Section>
 
 			<Section
+				id="nachweise"
 				title={t("evidence")}
 				actions={
 					canEdit ? (

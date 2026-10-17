@@ -34,6 +34,7 @@ import {
 	listObligations,
 } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
+import { pickTab } from "@/lib/tabs";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -67,7 +68,7 @@ export default async function CalendarPage({
 }) {
 	const ctx = await requireOrgPage({ obligation: ["read"] });
 	const sp = await searchParams;
-	const tab = one(sp.tab) ?? "jahr";
+	const tab = pickTab(sp.tab, ["jahr", "pflichten", "rechtsaenderungen"]);
 	const now = new Date();
 	const year = Number(one(sp.jahr)) || now.getFullYear();
 	const t = await getTranslations("Calendar");
@@ -111,6 +112,7 @@ export default async function CalendarPage({
 			<UrlTabs
 				base="/kalender"
 				active={tab}
+				keep={{ jahr: one(sp.jahr) }}
 				tabs={[
 					{ value: "jahr", label: t("tabYear"), count: openCount || undefined },
 					{ value: "pflichten", label: t("tabObligations") },

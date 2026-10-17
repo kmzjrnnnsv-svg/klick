@@ -34,6 +34,7 @@ import {
 	listTrainings,
 } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
+import { pickTab } from "@/lib/tabs";
 import { todayBerlin } from "@/lib/time/berlin";
 import { currentTrainings } from "@/lib/trainings/assignments";
 
@@ -42,7 +43,12 @@ export default async function TrainingsPage({
 }: {
 	searchParams: Promise<{ tab?: string }>;
 }) {
-	const { tab = "plan" } = await searchParams;
+	const tab = pickTab((await searchParams).tab, [
+		"plan",
+		"meine",
+		"durchgefuehrt",
+		"matrix",
+	]);
 	const ctx = await requireOrgPage({ task: ["read"] });
 	const t = await getTranslations("Trainings");
 	const tf = await getTranslations("Functions");

@@ -13,6 +13,7 @@ import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker, listTasks } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
+import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
 import { TASK_STATUSES } from "@/lib/entities/task";
 import { todayBerlin } from "@/lib/time/berlin";
 
@@ -36,13 +37,28 @@ export default async function TasksPage({
 	const today = todayBerlin();
 	const canEdit = roleAllows(ctx.orgRole, { task: ["update"] });
 
-	const { tasks, members } = await readOrg(toOrgCtx(ctx), async (tx) => ({
-		tasks: await listTasks(tx, ctx.orgId, {
-			assigneeUserId: all ? undefined : ctx.userId,
-			openOnly: !showDone && !status,
-		}),
-		members: await listMembersForPicker(tx, ctx.orgId),
-	}));
+	const { tasks, members, titles } = await readOrg(
+		toOrgCtx(ctx),
+		async (tx) => {
+			const tasks = await listTasks(tx, ctx.orgId, {
+				assigneeUserId: all ? undefined : ctx.userId,
+				openOnly: !showDone && !status,
+			});
+			return {
+				tasks,
+				members: await listMembersForPicker(tx, ctx.orgId),
+				titles: await resolveEntityTitles(
+					tx,
+					ctx.orgId,
+					tasks.flatMap((x) =>
+						x.entityType && x.entityId
+							? [{ entityType: x.entityType, entityId: x.entityId }]
+							: [],
+					),
+				),
+			};
+		},
+	);
 	const rows = tasks
 		.filter((x) => !status || x.status === status)
 		.filter((x) => !q || x.title.toLowerCase().includes(q))
@@ -128,12 +144,20 @@ export default async function TasksPage({
 													: "source_other",
 											)}
 										</Badge>
-										{task.entityType === "control" && task.entityId && (
+										{task.entityType && task.entityId && (
 											<Link
-												href={`/controls?q=${task.entityId}`}
-												className="hover:underline"
+												href={entityHref(
+													task.entityType,
+													task.entityId,
+													titles.get(`${task.entityType}:${task.entityId}`),
+												)}
+												className="min-w-0 truncate hover:underline"
 											>
-												{t("linked", { entity: "Control" })}
+												{t("linked", {
+													entity:
+														titles.get(`${task.entityType}:${task.entityId}`) ??
+														t("linkedFallback"),
+												})}
 											</Link>
 										)}
 									</p>

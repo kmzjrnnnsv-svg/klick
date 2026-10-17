@@ -1,17 +1,32 @@
+import Link from "next/link";
 import { MarkdownView } from "@/components/markdown-view";
 import { type ActivityEntry, formatValue } from "@/lib/history";
 import { UserChip } from "./user-chip";
 
 // Ein Strom: Kommentare und Feld-Historie gemischt (Linear/GitHub-Stil).
+// `links` (org-weiter Feed): Ziel je Eintrag, Schlüssel `h-<id>` / `c-<id>`.
 export function ActivityStream({
 	entries,
 	names,
 	labels,
+	links,
 }: {
 	entries: ActivityEntry[];
 	names: Map<string, string>;
 	labels: { empty: string; changed: string; commented: string; system: string };
+	links?: Map<string, { href: string; label: string }>;
 }) {
+	const target = (key: string) => {
+		const l = links?.get(key);
+		return l ? (
+			<Link
+				href={l.href}
+				className="w-fit max-w-full truncate pl-1 text-primary text-xs hover:underline"
+			>
+				→ {l.label}
+			</Link>
+		) : null;
+	};
 	const fmt = new Intl.DateTimeFormat("de-DE", {
 		dateStyle: "medium",
 		timeStyle: "short",
@@ -33,6 +48,7 @@ export function ActivityStream({
 								<UserChip name={name ?? labels.system} />
 								<time dateTime={e.at.toISOString()}>{fmt.format(e.at)}</time>
 							</div>
+							{target(`c-${e.comment.id}`)}
 							<div className="rounded-md bg-muted/50 px-3 py-2">
 								<MarkdownView
 									source={e.comment.bodyMarkdown}
@@ -52,6 +68,7 @@ export function ActivityStream({
 							</span>
 							<time dateTime={e.at.toISOString()}>{fmt.format(e.at)}</time>
 						</div>
+						{target(`h-${e.item.id}`)}
 						{e.item.changes.length > 0 ? (
 							<ul className="flex flex-col gap-0.5 pl-1 text-xs">
 								{e.item.changes.map((ch) => (

@@ -11,6 +11,15 @@ const FAQ = ["q1", "q2", "q3", "q4"] as const;
 // /preise — Abo-Stufen nur dargestellt (kein Checkout in v1).
 export default async function PricingPage() {
 	const t = await getTranslations("Pricing");
+	// „Gespräch anfragen“ ist kein Login: Kontaktadresse, sonst die Leistungsseite
+	// mit Kontaktformular.
+	const contact = process.env.CONTACT_EMAIL?.trim();
+	const ctaHref = (tier: (typeof TIERS)[number]) =>
+		tier !== "licence"
+			? "/login"
+			: contact
+				? `mailto:${contact}?subject=${encodeURIComponent("Lizenz-Stufe Klick")}`
+				: "/leistungen#cta-title";
 	return (
 		<main className="flex-1">
 			<section className="mx-auto max-w-5xl px-4 pt-16 pb-6 sm:px-6 sm:pt-24">
@@ -63,7 +72,7 @@ export default async function PricingPage() {
 								</ul>
 								<div className="mt-8 flex-1" />
 								<Link
-									href="/login"
+									href={ctaHref(tier)}
 									className={cn(
 										buttonVariants({
 											variant: highlighted ? "brown" : "outline",

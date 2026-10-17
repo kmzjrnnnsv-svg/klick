@@ -40,6 +40,7 @@ import {
 	type SynergyCatalog,
 	whatIfAddFramework,
 } from "@/lib/compliance/synergy";
+import { pickTab } from "@/lib/tabs";
 
 export default async function SynergiesPage({
 	searchParams,
@@ -51,7 +52,13 @@ export default async function SynergiesPage({
 		stichtag?: string;
 	}>;
 }) {
-	const { tab = "plan", a: qa, b: qb, stichtag } = await searchParams;
+	const { tab: rawTab, a: qa, b: qb, stichtag } = await searchParams;
+	const tab = pickTab(rawTab, [
+		"plan",
+		"matrix",
+		"vergleich",
+		"was-waere-wenn",
+	]);
 	const ctx = await requireOrgPage();
 	const t = await getTranslations("Synergies");
 	const tc = await getTranslations("Controls");
@@ -101,6 +108,7 @@ export default async function SynergiesPage({
 			<UrlTabs
 				base="/synergien"
 				active={tab}
+				keep={{ stichtag }}
 				tabs={[
 					{ value: "plan", label: t("tabPlan") },
 					{ value: "matrix", label: t("tabMatrix") },

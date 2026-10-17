@@ -122,7 +122,7 @@ export const ZAG_APPLICATION: readonly ApplicationItem[] = [
 		legalBasis: "§ 10 Abs. 2 Nr. 13–15 ZAG",
 		description:
 			"Bestellter Abschlussprüfer, Satzung, Nachweis von Sitz und Hauptverwaltung im Inland.",
-		route: "/einstellungen",
+		route: "/einstellungen?tab=organisation",
 		checks: [{ kind: "manual", hint: "Unterlagen im Dossier abgelegt" }],
 	},
 ];

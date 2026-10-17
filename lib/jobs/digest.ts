@@ -124,8 +124,7 @@ export function buildDigest(
 			label: "Heute öffnen",
 			url: `${opts.baseUrl.replace(/\/$/, "")}/heute`,
 		},
-		footnote:
-			"Du bekommst diesen Digest, weil du Mitglied einer Organisation auf Klick bist. Einstellungen → Benachrichtigungen.",
+		footnote: `Du bekommst diesen Digest, weil du Mitglied einer Organisation auf Klick bist. Abbestellen oder ändern: ${opts.baseUrl.replace(/\/$/, "")}/einstellungen?tab=notifications`,
 	});
 	return { subject, text: textParts.join("\n"), html: mail.html };
 }

@@ -9,6 +9,7 @@ import {
 import { toCsv } from "@/lib/csv";
 import { mutateOrg } from "@/lib/db/with-org";
 import { egressGuard } from "@/lib/dlp/egress";
+import { appUrl, plainPage } from "@/lib/http/responses";
 import { getOrgLimiter } from "@/lib/rate-limit";
 import { todayBerlin } from "@/lib/time/berlin";
 
@@ -20,14 +21,17 @@ import { todayBerlin } from "@/lib/time/berlin";
 export function rateLimited(orgId: string): NextResponse | null {
 	const d = getOrgLimiter().check(orgId);
 	if (d.allowed) return null;
-	return new NextResponse("Zu viele Anfragen für diese Organisation", {
-		status: 429,
-		headers: {
-			"Retry-After": String(Math.max(1, Math.ceil(d.retryAfterMs / 1000))),
-			"Cache-Control": "no-store",
-		},
-	});
+	const seconds = Math.max(1, Math.ceil(d.retryAfterMs / 1000));
+	return plainPage(
+		429,
+		"Kurz warten",
+		`Zu viele Exporte und Downloads in kurzer Zeit. Versuch es in ${seconds} s noch einmal.`,
+		{ "Retry-After": String(seconds) },
+	);
 }
+
+const DENIED =
+	"Für diesen Export fehlt deiner Rolle die Berechtigung. Frag die Inhaber:in deiner Organisation.";
 
 export async function exportGuard(): Promise<OrgContext | NextResponse> {
 	try {
@@ -35,9 +39,13 @@ export async function exportGuard(): Promise<OrgContext | NextResponse> {
 		return rateLimited(ctx.orgId) ?? (await egressGuard(ctx, "export")) ?? ctx;
 	} catch (e) {
 		if (e instanceof AuthError)
-			return new NextResponse(null, {
-				status: e.code === "unauthenticated" ? 401 : 403,
-			});
+			return e.code === "unauthenticated"
+				? plainPage(
+						401,
+						"Nicht angemeldet",
+						"Melde dich an und öffne den Link erneut.",
+					)
+				: plainPage(403, "Kein Zugriff", DENIED);
 		throw e;
 	}
 }
@@ -55,17 +63,20 @@ export async function exportStepUpGuard(
 			if (e.code === "step_up_required") {
 				const url = new URL(req.url);
 				const back = `${url.pathname}${url.search}`;
+				// Öffentliche Basis-URL: hinter nginx ist req.url ein interner Host.
 				return NextResponse.redirect(
-					new URL(
-						`/login/2fa?stepup=1&zurueck=${encodeURIComponent(back)}`,
-						url.origin,
-					),
+					appUrl(`/login/2fa?stepup=1&zurueck=${encodeURIComponent(back)}`),
 					303,
 				);
 			}
-			return new NextResponse(null, {
-				status: e.code === "unauthenticated" ? 401 : 403,
-			});
+			if (e.code === "unauthenticated")
+				return NextResponse.redirect(
+					appUrl(
+						`/login?weiter=${encodeURIComponent(new URL(req.url).pathname)}`,
+					),
+					303,
+				);
+			return plainPage(403, "Kein Zugriff", DENIED);
 		}
 		throw e;
 	}

@@ -53,7 +53,11 @@ export function LoginForm({
 			toast.error(t("genericError"));
 			return;
 		}
-		router.push("/login/verify");
+		router.push(
+			next
+				? `/login/verify?weiter=${encodeURIComponent(next)}`
+				: "/login/verify",
+		);
 	}
 
 	async function passkey() {

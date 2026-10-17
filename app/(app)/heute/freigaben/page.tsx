@@ -16,21 +16,28 @@ import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
 import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
+import { pickTab } from "@/lib/tabs";
+
+const TABS = ["waiting", "mine", "all", "decided"] as const;
+type Tab = (typeof TABS)[number];
 
 export default async function ApprovalsInboxPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ tab?: string; request?: string }>;
 }) {
-	const { tab = "waiting", request } = await searchParams;
+	const sp = await searchParams;
+	const request = sp.request;
 	const ctx = await requireOrgPage({ approval: ["read"] });
 	const t = await getTranslations("Approvals");
-	const ts = await getTranslations("Status");
+	const asked = sp.tab ? pickTab(sp.tab, TABS) : null;
 	const { rows, members, entityTitles } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => {
+			// Link auf eine bestimmte Anfrage (Mail, Mahnung): auch entschiedene
+			// laden, damit der passende Reiter gewählt werden kann.
 			const rows = await listRequestsForUser(tx, ctx.orgId, ctx.userId, {
-				includeDecided: tab === "decided",
+				includeDecided: asked === "decided" || (!asked && Boolean(request)),
 			});
 			return {
 				rows,
@@ -43,10 +50,29 @@ export default async function ApprovalsInboxPage({
 			};
 		},
 	);
-	const waiting = rows.filter((r) => r.eligible);
-	const mine = rows.filter((r) => r.mine);
-	const list: PendingForUser[] =
-		tab === "waiting" ? waiting : tab === "mine" ? mine : rows;
+	const open = rows.filter((r) => r.status === "pending");
+	const waiting = open.filter((r) => r.eligible);
+	const mine = open.filter((r) => r.mine);
+	const decided = rows.filter((r) => r.status !== "pending");
+	const target = request ? rows.find((r) => r.id === request) : undefined;
+	const tab: Tab =
+		asked ??
+		(!target
+			? "waiting"
+			: target.status !== "pending"
+				? "decided"
+				: target.eligible
+					? "waiting"
+					: target.mine
+						? "mine"
+						: "all");
+	const lists: Record<Tab, PendingForUser[]> = {
+		waiting,
+		mine,
+		all: open,
+		decided,
+	};
+	const list = lists[tab];
 	const highlight = request;
 
 	return (
@@ -58,7 +84,7 @@ export default async function ApprovalsInboxPage({
 				tabs={[
 					{ value: "waiting", label: t("waiting"), count: waiting.length },
 					{ value: "mine", label: t("mine"), count: mine.length },
-					{ value: "all", label: t("all"), count: rows.length },
+					{ value: "all", label: t("all"), count: open.length },
 					{ value: "decided", label: t("decided") },
 				]}
 			/>
@@ -69,12 +95,12 @@ export default async function ApprovalsInboxPage({
 					{list.map((r) => {
 						const title =
 							entityTitles.get(`${r.entityType}:${r.entityId}`) ??
-							`${r.entityType}`;
+							r.workflowName;
 						return (
 							<li
 								key={r.id}
 								id={r.id}
-								className={`flex flex-col gap-2 px-3 py-3 ${highlight === r.id ? "bg-primary/5" : ""}`}
+								className={`flex scroll-mt-24 flex-col gap-2 px-3 py-3 ${highlight === r.id ? "bg-primary/5" : ""}`}
 							>
 								<div className="flex flex-wrap items-center gap-2">
 									<Badge
@@ -100,8 +126,8 @@ export default async function ApprovalsInboxPage({
 												: `${t("dueAt")} ${fmtDate.format(r.dueAt)}`}
 										</Badge>
 									)}
-									{tab === "decided" && (
-										<Badge variant="muted">{ts("statusChanged")}</Badge>
+									{r.status !== "pending" && (
+										<Badge variant="muted">{t(`status_${r.status}`)}</Badge>
 									)}
 								</div>
 								<ApprovalActions
