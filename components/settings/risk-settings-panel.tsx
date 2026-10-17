@@ -9,7 +9,6 @@ import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 
 type Five = [string, string, string, string, string];
 
@@ -21,18 +20,15 @@ export function RiskSettingsPanel({
 	impact,
 	acceptable,
 	tolerable,
-	allowSelfApproval,
 	canEdit,
 }: {
 	likelihood: Five;
 	impact: Five;
 	acceptable: number;
 	tolerable: number;
-	allowSelfApproval: boolean;
 	canEdit: boolean;
 }) {
 	const t = useTranslations("Settings");
-	const ta = useTranslations("Approvals");
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
@@ -40,7 +36,6 @@ export function RiskSettingsPanel({
 	const [i, setI] = useState<Five>(impact);
 	const [acc, setAcc] = useState(acceptable);
 	const [tol, setTol] = useState(tolerable);
-	const [solo, setSolo] = useState(allowSelfApproval);
 	const upd = (arr: Five, idx: number, v: string): Five =>
 		arr.map((x, k) => (k === idx ? v : x)) as Five;
 	return (
@@ -55,7 +50,6 @@ export function RiskSettingsPanel({
 							impact: i,
 							acceptable: acc,
 							tolerable: tol,
-							allowSelfApproval: solo,
 						}),
 					);
 					if (!res.ok)
@@ -131,18 +125,6 @@ export function RiskSettingsPanel({
 						value={tol}
 						disabled={!canEdit}
 						onChange={(e) => setTol(Number(e.target.value))}
-					/>
-				</div>
-				<div className="flex items-end justify-between gap-3 rounded-md border p-3">
-					<div>
-						<Label htmlFor="rs-solo">{ta("selfApproved")}</Label>
-						<p className="text-muted-foreground text-xs">{ta("soloHint")}</p>
-					</div>
-					<Switch
-						id="rs-solo"
-						checked={solo}
-						disabled={!canEdit}
-						onCheckedChange={setSolo}
 					/>
 				</div>
 			</div>

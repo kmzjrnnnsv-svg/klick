@@ -253,3 +253,61 @@ export function waitingApprovers(
 	const step = request.steps.find((s) => s.order === request.currentStep);
 	return step ? eligibleApprovers(step, members, ctx) : [];
 }
+
+// Startklar? Je Stufe eines Workflows: wer könnte grundsätzlich entscheiden
+// (ohne konkrete Anfrage). Eigner-Stufen hängen am Gegenstand („dynamic“),
+// „andere Person“ braucht zwei Personen mit Freigaberecht.
+export type StepReadiness = {
+	order: number;
+	rule: string;
+	state: "ok" | "empty" | "dynamic";
+	approverIds: string[];
+};
+
+export function workflowReadiness(
+	steps: readonly ApprovalStep[],
+	members: readonly ApproverCandidate[],
+): StepReadiness[] {
+	const deciders = members.filter((m) => m.canDecide !== false);
+	return [...steps]
+		.sort((a, b) => a.order - b.order)
+		.map((step) => {
+			const { kind } = parseRule(step.approverRule);
+			if (kind === "owner_of_entity")
+				return {
+					order: step.order,
+					rule: step.approverRule,
+					state: "dynamic",
+					approverIds: [],
+				};
+			const ids =
+				kind === "not_requester"
+					? deciders.map((m) => m.userId)
+					: deciders
+							.filter((m) =>
+								matchesRule(step.approverRule, m, { requesterUserId: null }),
+							)
+							.map((m) => m.userId);
+			const enough =
+				kind === "not_requester" ? ids.length >= 2 : ids.length >= 1;
+			return {
+				order: step.order,
+				rule: step.approverRule,
+				state: enough ? "ok" : "empty",
+				approverIds: ids,
+			};
+		});
+}
+
+// Funktionen, nach denen die (aktiven) Workflows fragen.
+export function approvalFunctions(
+	workflows: readonly { steps: readonly ApprovalStep[] }[],
+): Set<string> {
+	const out = new Set<string>();
+	for (const w of workflows)
+		for (const s of w.steps) {
+			const { kind, value } = parseRule(s.approverRule);
+			if (kind === "function") out.add(value);
+		}
+	return out;
+}

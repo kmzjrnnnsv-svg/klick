@@ -16,7 +16,8 @@ import { StagePanel } from "@/components/settings/stage-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { approvalWorkflows } from "@/db/schema";
-import { ensureOrgWorkflows } from "@/lib/approvals/service";
+import { soloModeAllowed, workflowReadiness } from "@/lib/approvals/rules";
+import { ensureOrgWorkflows, loadCandidates } from "@/lib/approvals/service";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { getSessionCtx, toOrgCtx } from "@/lib/auth/guards";
 import { getOrgSummary, listSsoProvidersForOrg } from "@/lib/auth/org";
@@ -52,29 +53,47 @@ export default async function SettingsPage({
 	const ctx = await requireOrgPage();
 	const cov = await getOrgCoverageCached(ctx);
 	// Workflows je Org sicherstellen (Seed) und laden.
-	const { settings, workflows } = await withOrg(toOrgCtx(ctx), async (tx) => {
-		const settings = await getOrgSettings(tx, ctx.orgId);
-		await ensureOrgWorkflows(
-			tx,
-			ctx.orgId,
-			settings?.licenceStage ?? "0_vorbereitung",
-		);
-		const rows = await tx
-			.select()
-			.from(approvalWorkflows)
-			.where(eq(approvalWorkflows.organizationId, ctx.orgId));
-		const workflows = APPROVAL_WORKFLOW_TEMPLATES.map((tpl) => {
-			const row = rows.find((r) => r.kind === tpl.kind);
+	const { settings, workflows, memberCount } = await withOrg(
+		toOrgCtx(ctx),
+		async (tx) => {
+			const settings = await getOrgSettings(tx, ctx.orgId);
+			await ensureOrgWorkflows(
+				tx,
+				ctx.orgId,
+				settings?.licenceStage ?? "0_vorbereitung",
+			);
+			const rows = await tx
+				.select()
+				.from(approvalWorkflows)
+				.where(eq(approvalWorkflows.organizationId, ctx.orgId));
+			const candidates = await loadCandidates(tx, ctx.orgId);
+			const names = await userNames(
+				tx,
+				candidates.map((c) => c.userId),
+			);
+			const workflows = APPROVAL_WORKFLOW_TEMPLATES.map((tpl) => {
+				const row = rows.find((r) => r.kind === tpl.kind);
+				const steps = row?.steps ?? tpl.steps;
+				return {
+					kind: tpl.kind,
+					name: tpl.name,
+					description: tpl.description,
+					steps,
+					enabled: row?.enabled ?? tpl.defaultEnabled,
+					// Startklar? Je Stufe, wer entscheiden könnte (Namen für die Anzeige)
+					readiness: workflowReadiness(steps, candidates).map((r) => ({
+						...r,
+						approverNames: r.approverIds.map((id) => names.get(id) ?? "—"),
+					})),
+				};
+			});
 			return {
-				kind: tpl.kind,
-				name: tpl.name,
-				description: tpl.description,
-				steps: row?.steps ?? tpl.steps,
-				enabled: row?.enabled ?? tpl.defaultEnabled,
+				settings,
+				workflows,
+				memberCount: candidates.length,
 			};
-		});
-		return { settings, workflows };
-	});
+		},
+	);
 	const canReadIntegrations = roleAllows(ctx.orgRole, {
 		integration: ["read"],
 	});
@@ -235,7 +254,18 @@ export default async function SettingsPage({
 					)}
 				</TabsContent>
 				<TabsContent value="workflows">
-					<WorkflowsPanel workflows={workflows} canEdit={canEditSettings} />
+					<WorkflowsPanel
+						workflows={workflows}
+						canEdit={canEditSettings}
+						solo={{
+							allowed: settings?.allowSelfApproval ?? true,
+							effective: soloModeAllowed({
+								memberCount,
+								allowSelfApproval: settings?.allowSelfApproval ?? true,
+								licenceStage: settings?.licenceStage ?? "0_vorbereitung",
+							}),
+						}}
+					/>
 				</TabsContent>
 				<TabsContent value="risk">
 					<RiskSettingsPanel
@@ -249,7 +279,6 @@ export default async function SettingsPage({
 						tolerable={
 							(settings?.riskAppetite ?? DEFAULT_RISK_APPETITE).tolerable
 						}
-						allowSelfApproval={settings?.allowSelfApproval ?? true}
 						canEdit={canEditSettings}
 					/>
 				</TabsContent>

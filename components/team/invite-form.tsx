@@ -14,22 +14,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
-
-const ROLES = ["editor", "viewer", "owner", "auditor"] as const;
+import type { OrgRole } from "@/lib/auth/permissions";
+import { RolePicker } from "./role-picker";
 
 export function InviteForm() {
 	const t = useTranslations("Team");
 	const tc = useTranslations("Common");
 	const [open, setOpen] = useState(false);
 	const [email, setEmail] = useState("");
-	const [role, setRole] = useState<(typeof ROLES)[number]>("editor");
+	const [role, setRole] = useState<OrgRole>("editor");
 	const [busy, setBusy] = useState(false);
 
 	async function submit(e: React.FormEvent) {
@@ -55,7 +48,7 @@ export function InviteForm() {
 					{t("invite")}
 				</Button>
 			</DialogTrigger>
-			<DialogContent>
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>{t("inviteTitle")}</DialogTitle>
 				</DialogHeader>
@@ -72,25 +65,10 @@ export function InviteForm() {
 					</div>
 					<div className="grid gap-2">
 						<Label>{t("inviteRole")}</Label>
-						<Select
-							value={role}
-							onValueChange={(v) => setRole(v as (typeof ROLES)[number])}
-						>
-							<SelectTrigger className="w-full">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{ROLES.map((r) => (
-									<SelectItem key={r} value={r}>
-										{t(`role${r[0].toUpperCase()}${r.slice(1)}` as "roleOwner")}{" "}
-										—{" "}
-										{t(
-											`role${r[0].toUpperCase()}${r.slice(1)}Hint` as "roleOwnerHint",
-										)}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+						<RolePicker value={role} onChange={setRole} />
+						<p className="text-muted-foreground text-xs">
+							{t("roleVsFunction")}
+						</p>
 					</div>
 					<Button type="submit" variant="brown" disabled={busy || !email}>
 						{t("invite")}

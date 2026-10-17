@@ -79,12 +79,15 @@ export function RoleAssignmentForm({
 	functionLabels,
 	presetFunction,
 	triggerLabel,
+	decideHint,
 }: {
 	initial?: RoleAssignmentDraft;
 	members: MemberOption[];
 	functionLabels: Record<string, string>;
 	presetFunction?: RoleFunction;
 	triggerLabel?: string;
+	// Funktionen mit Freigabe + Personen, deren Rolle nicht freigeben kann
+	decideHint?: { approvalFunctions: string[]; cannotDecide: string[] };
 }) {
 	const t = useTranslations("Organisation");
 	const tc = useTranslations("Common");
@@ -164,12 +167,25 @@ export function RoleAssignmentForm({
 					</Select>
 				</div>
 				{mode === "person" ? (
-					<UserSelect
-						label={t("holder")}
-						value={d.userId}
-						onChange={(v) => setD({ ...d, userId: v })}
-						members={members}
-					/>
+					<div className="flex flex-col gap-1.5">
+						<UserSelect
+							label={t("holder")}
+							value={d.userId}
+							onChange={(v) => setD({ ...d, userId: v })}
+							members={members}
+						/>
+						{decideHint &&
+							[d.userId, d.deputyUserId].some(
+								(u) => u && decideHint.cannotDecide.includes(u),
+							) &&
+							decideHint.approvalFunctions.includes(d.function) && (
+								<p className="text-warning text-xs">
+									{t("holderCannotDecide", {
+										fn: functionLabels[d.function] ?? d.function,
+									})}
+								</p>
+							)}
+					</div>
 				) : (
 					<Field
 						id="ra-ext"

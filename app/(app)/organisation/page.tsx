@@ -1,3 +1,4 @@
+import { and, eq } from "drizzle-orm";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { deleteShareholder } from "@/app/actions/casp";
@@ -39,8 +40,13 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { approvalWorkflows } from "@/db/schema";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
-import { approverEligibility, waitingApprovers } from "@/lib/approvals/rules";
+import {
+	approvalFunctions,
+	approverEligibility,
+	waitingApprovers,
+} from "@/lib/approvals/rules";
 import {
 	activeDelegations,
 	latestRequestFor,
@@ -155,7 +161,25 @@ export default async function OrganisationPage({
 					})),
 				);
 				const assetRows = await listAssets(tx, ctx.orgId);
-				return { ...base, checklists, assetRows };
+				// Warnung im Funktions-Formular: Funktion mit Freigabe bei einer
+				// Rolle, die nicht freigeben kann (Lesend, Prüfer:in)
+				const candidates = await loadCandidates(tx, ctx.orgId);
+				const wfs = await tx
+					.select({ steps: approvalWorkflows.steps })
+					.from(approvalWorkflows)
+					.where(
+						and(
+							eq(approvalWorkflows.organizationId, ctx.orgId),
+							eq(approvalWorkflows.enabled, true),
+						),
+					);
+				const decideHint = {
+					approvalFunctions: [...approvalFunctions(wfs)],
+					cannotDecide: candidates
+						.filter((c) => c.canDecide === false)
+						.map((c) => c.userId),
+				};
+				return { ...base, checklists, assetRows, decideHint };
 			}
 			case "ziele":
 				return { ...base, objectives: await listObjectives(tx, ctx.orgId) };
@@ -551,6 +575,7 @@ export default async function OrganisationPage({
 							<RoleAssignmentForm
 								members={members}
 								functionLabels={functionLabels}
+								decideHint={data.decideHint}
 							/>
 						)}
 					</div>
@@ -686,6 +711,7 @@ export default async function OrganisationPage({
 													<RoleAssignmentForm
 														members={members}
 														functionLabels={functionLabels}
+														decideHint={data.decideHint}
 														presetFunction={it.required.function}
 														triggerLabel={a ? undefined : t("assign")}
 														initial={
@@ -755,6 +781,7 @@ export default async function OrganisationPage({
 														<RoleAssignmentForm
 															members={members}
 															functionLabels={functionLabels}
+															decideHint={data.decideHint}
 															initial={{
 																id: a.id,
 																function: a.function,

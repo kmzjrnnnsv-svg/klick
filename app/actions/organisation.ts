@@ -2,6 +2,7 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import {
 	communications,
 	conflictsOfInterest,
@@ -554,7 +555,7 @@ async function upsertRoleAssignmentImpl(
 					recipients: [d.userId],
 					actorUserId: c.userId,
 					kind: "entity_changed",
-					title: `Du wurdest als ${d.function} benannt`,
+					title: `Du wurdest als ${(await getTranslations("Functions"))(d.function)} benannt`,
 					link: "/organisation?tab=rollen",
 				});
 			}
@@ -605,7 +606,7 @@ async function upsertRoleAssignmentImpl(
 				recipients: [d.userId],
 				actorUserId: c.userId,
 				kind: "entity_changed",
-				title: `Du wurdest als ${d.function} benannt`,
+				title: `Du wurdest als ${(await getTranslations("Functions"))(d.function)} benannt`,
 				link: "/organisation?tab=rollen",
 			});
 		}

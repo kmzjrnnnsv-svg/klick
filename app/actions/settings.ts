@@ -47,7 +47,9 @@ const riskSettingsSchema = z
 		impact: label5,
 		acceptable: z.coerce.number().int().min(1).max(24),
 		tolerable: z.coerce.number().int().min(2).max(25),
-		allowSelfApproval: z.boolean(),
+		// Solo-Modus steht jetzt bei den Workflows (setSelfApproval); hier nur
+		// noch für ältere Clients.
+		allowSelfApproval: z.boolean().optional(),
 	})
 	.refine((v) => v.tolerable > v.acceptable, {
 		message: "tolerierbar muss grösser als akzeptabel sein",
@@ -76,7 +78,9 @@ async function updateRiskSettingsImpl(input: unknown): Promise<ActionResult> {
 			.set({
 				riskScales: { likelihood: d.likelihood, impact: d.impact },
 				riskAppetite: { acceptable: d.acceptable, tolerable: d.tolerable },
-				allowSelfApproval: d.allowSelfApproval,
+				...(d.allowSelfApproval === undefined
+					? {}
+					: { allowSelfApproval: d.allowSelfApproval }),
 			})
 			.where(eq(orgSettings.organizationId, c.orgId));
 		return {
@@ -94,6 +98,39 @@ async function updateRiskSettingsImpl(input: unknown): Promise<ActionResult> {
 	});
 	revalidatePath("/einstellungen");
 	revalidatePath("/risiken", "layout");
+	return { ok: true, data: undefined };
+}
+
+// Solo-Modus (begründete Selbstfreigabe, nur eine Person, Stufe < 2) — bei
+// den Freigabe-Workflows statt versteckt unter Risiko-Skalen.
+async function setSelfApprovalImpl(input: unknown): Promise<ActionResult> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = z.object({ enabled: z.boolean() }).safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const { enabled } = parsed.data;
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [before] = await tx
+			.select({ allowSelfApproval: orgSettings.allowSelfApproval })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		await tx
+			.update(orgSettings)
+			.set({ allowSelfApproval: enabled })
+			.where(eq(orgSettings.organizationId, c.orgId));
+		return {
+			result: null,
+			audit: {
+				action: "settings.self_approval",
+				target: `organization:${c.orgId}`,
+				before: before ?? null,
+				after: { allowSelfApproval: enabled },
+			},
+		};
+	});
+	revalidatePath("/einstellungen");
 	return { ok: true, data: undefined };
 }
 
@@ -312,6 +349,10 @@ async function deleteOrganizationActionImpl(
 export const updateRiskSettings = safeAction(
 	"updateRiskSettings",
 	updateRiskSettingsImpl,
+);
+export const setSelfApproval = safeAction(
+	"setSelfApproval",
+	setSelfApprovalImpl,
 );
 export const updateNumbering = safeAction(
 	"updateNumbering",

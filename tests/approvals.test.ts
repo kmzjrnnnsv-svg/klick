@@ -150,3 +150,66 @@ describe("soloModeAllowed / slaDueAt / advance", () => {
 		});
 	});
 });
+
+describe("workflowReadiness", () => {
+	it("leere Funktion, Eigner-Stufe dynamisch, Lesende zählen nicht", async () => {
+		const { workflowReadiness, approvalFunctions } = await import(
+			"@/lib/approvals/rules"
+		);
+		const steps = [
+			{ order: 1, approverRule: "owner_of_entity" },
+			{ order: 2, approverRule: "function:compliance" },
+			{ order: 3, approverRule: "function:management_body" },
+		];
+		const members = [
+			{
+				userId: "a",
+				orgRole: "owner" as const,
+				functions: ["management_body" as const],
+				canDecide: true,
+			},
+			{
+				userId: "v",
+				orgRole: "viewer" as const,
+				functions: ["compliance" as const],
+				canDecide: false,
+			},
+		];
+		expect(
+			workflowReadiness(steps, members).map((s) => [s.order, s.state]),
+		).toEqual([
+			[1, "dynamic"],
+			[2, "empty"],
+			[3, "ok"],
+		]);
+		expect([...approvalFunctions([{ steps }])].sort()).toEqual([
+			"compliance",
+			"management_body",
+		]);
+	});
+
+	it("„andere Person“ braucht zwei mit Freigaberecht", async () => {
+		const { workflowReadiness } = await import("@/lib/approvals/rules");
+		const one = [
+			{
+				userId: "a",
+				orgRole: "owner" as const,
+				functions: [],
+				canDecide: true,
+			},
+		];
+		const steps = [{ order: 1, approverRule: "not_requester" }];
+		expect(workflowReadiness(steps, one)[0]?.state).toBe("empty");
+		expect(
+			workflowReadiness(steps, [
+				...one,
+				{
+					userId: "b",
+					orgRole: "editor" as const,
+					functions: [],
+					canDecide: true,
+				},
+			])[0]?.state,
+		).toBe("ok");
+	});
+});

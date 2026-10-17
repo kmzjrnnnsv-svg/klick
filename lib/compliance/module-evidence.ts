@@ -84,7 +84,7 @@ export async function moduleEvidenceFor(
 			const filled = gov.coverage.items.filter((i) => i.filled).length;
 			const blocks = gov.sod.filter((v) => v.rule.severity === "block").length;
 			return {
-				module: "Organisation · Rollen & Leitung",
+				module: "Organisation · Funktionen & Leitung",
 				href: "/organisation?tab=rollen",
 				facts: [
 					{
