@@ -5,7 +5,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { schema } from "@/db";
 import {
 	decide,
-	ensureOrgWorkflows,
 	listRequestsForUser,
 	requestApproval,
 } from "@/lib/approvals/service";
@@ -64,8 +63,9 @@ d("Freigabe-Ablauf (Postgres)", () => {
 			await tx`insert into role_assignments (organization_id, function, user_id)
 				values (${orgId}, 'management_body', ${users.anna})`;
 		});
+		// bewusst ohne ensureOrgWorkflows: requestApproval muss die Standard-
+		// Workflows selbst anlegen, statt „Workflow inaktiv“ durchzuwinken
 		await inOrg(async (tx) => {
-			await ensureOrgWorkflows(tx, orgId, "0_vorbereitung");
 			const [doc] = await tx
 				.insert(schema.documents)
 				.values({
@@ -105,7 +105,7 @@ d("Freigabe-Ablauf (Postgres)", () => {
 			),
 		);
 
-	it("ohne Compliance-Funktion: Einreichen sagt, welche Stufe fehlt", async () => {
+	it("ohne Workflow-Zeilen und ohne Compliance: kein Durchwinken, Einreichen nennt die fehlende Stufe", async () => {
 		const r = await submit(users.cara);
 		expect(r).toEqual({
 			ok: false,

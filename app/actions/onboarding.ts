@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { frameworks, orgFrameworks, orgSettings } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import { audit } from "@/lib/audit";
 import {
 	AuthError,
@@ -107,6 +108,9 @@ async function createOrganizationActionImpl(
 				caspServices: data.caspServices,
 				applyBaseline,
 			});
+			// Freigabe-Workflows ab dem ersten Tag (sonst laufen Dokumente und
+			// Risikoakzeptanzen ohne Vier-Augen durch).
+			const workflows = await ensureOrgWorkflows(tx, org.id, data.licenceStage);
 			await audit(
 				tx,
 				{ userId: ctx.user.id, ip: ctx.ip, userAgent: ctx.userAgent },
@@ -122,6 +126,7 @@ async function createOrganizationActionImpl(
 						keyVersion: wrapped.keyVersion,
 						applyBaseline,
 						init,
+						workflows,
 					},
 				},
 			);

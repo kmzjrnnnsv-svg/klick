@@ -174,7 +174,23 @@ export async function requestApproval(
 	ctx: { orgId: string; userId: string; name: string },
 	input: RequestApprovalInput,
 ): Promise<RequestApprovalResult> {
-	const wf = await getWorkflow(tx, ctx.orgId, input.kind);
+	let wf = await getWorkflow(tx, ctx.orgId, input.kind);
+	if (!wf) {
+		// Workflows entstanden bisher erst beim Besuch der Einstellungen oder
+		// beim Stufenwechsel — ohne Zeile galt jede Freigabe als „inaktiv“
+		// und Dokumente/Risiken liefen ohne Vier-Augen durch. Selbstheilung:
+		const [s] = await tx
+			.select({ licenceStage: orgSettings.licenceStage })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, ctx.orgId))
+			.limit(1);
+		await ensureOrgWorkflows(
+			tx,
+			ctx.orgId,
+			s?.licenceStage ?? "0_vorbereitung",
+		);
+		wf = await getWorkflow(tx, ctx.orgId, input.kind);
+	}
 	if (!wf?.enabled) return { ok: false, error: "workflow_disabled" };
 	const steps = wf.steps as ApprovalStep[];
 	const minOrder = Math.min(...steps.map((s) => s.order));
