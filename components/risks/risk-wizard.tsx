@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createRiskGuided, reassessRisk } from "@/app/actions/risks";
 import { LevelChoice } from "@/components/entity/level-choice";
@@ -86,7 +86,7 @@ const STEPS = [
 type Step = (typeof STEPS)[number];
 const TREATMENTS: Treatment[] = ["mitigate", "transfer", "avoid", "accept"];
 const selectCls =
-	"h-9 w-full rounded-sm border border-input bg-background px-2 text-sm disabled:opacity-60";
+	"h-9 w-full rounded-sm border border-input bg-background px-2 text-foreground text-sm disabled:opacity-60";
 
 export function RiskWizard({
 	mode,
@@ -127,6 +127,14 @@ export function RiskWizard({
 	const [group, setGroup] = useState<string>("all");
 	const [ctrlQuery, setCtrlQuery] = useState("");
 	const [errors, setErrors] = useState<Record<string, string>>({});
+	// Warnung beim Verlassen mit ungespeicherten Eingaben
+	const dirty = JSON.stringify(d) !== JSON.stringify(initial);
+	useEffect(() => {
+		if (!dirty || pending) return;
+		const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+		window.addEventListener("beforeunload", warn);
+		return () => window.removeEventListener("beforeunload", warn);
+	}, [dirty, pending]);
 	const set = <K extends keyof RiskDraft>(k: K, v: RiskDraft[K]) =>
 		setD((x) => ({ ...x, [k]: v }));
 
@@ -602,7 +610,9 @@ export function RiskWizard({
 											key={code}
 											className="flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
 										>
-											<span className="font-mono text-xs">{code}</span>
+											<span className="font-mono text-xs" translate="no">
+												{code}
+											</span>
 											<span className="min-w-0 flex-1 truncate">
 												{c?.title ?? "—"}
 											</span>
@@ -674,7 +684,9 @@ export function RiskWizard({
 															setCtrlQuery("");
 														}}
 													>
-														<span className="font-mono text-xs">{c.code}</span>
+														<span className="font-mono text-xs" translate="no">
+															{c.code}
+														</span>
 														<span className="truncate">{c.title}</span>
 													</button>
 												</li>
@@ -860,7 +872,7 @@ export function RiskWizard({
 										>
 											<Input
 												aria-label={t("measureTitle")}
-												placeholder={t("measureTitle")}
+												placeholder={t("measurePlaceholder")}
 												value={m.title}
 												maxLength={200}
 												onChange={(e) =>
@@ -912,7 +924,7 @@ export function RiskWizard({
 												inputMode="numeric"
 												min={0}
 												aria-label={t("measureCost")}
-												placeholder={t("measureCost")}
+												placeholder={t("measureCostPlaceholder")}
 												value={m.costEur}
 												onChange={(e) =>
 													set(
@@ -1144,7 +1156,7 @@ export function RiskWizard({
 							</>
 						)}
 						<dt className="text-muted-foreground">{t("controls")}</dt>
-						<dd className="font-mono text-xs">
+						<dd className="font-mono text-xs" translate="no">
 							{d.controlCodes.join(", ") || "—"}
 						</dd>
 						<dt className="text-muted-foreground">{t("owner")}</dt>

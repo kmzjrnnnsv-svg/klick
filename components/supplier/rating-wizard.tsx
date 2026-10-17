@@ -13,8 +13,19 @@ import {
 } from "@/app/actions/provider-ratings";
 import { LevelChoice } from "@/components/entity/level-choice";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { CRITICALITY } from "@/db/schema/enums";
@@ -55,7 +66,7 @@ const TRAFFIC_BG = {
 	green: "bg-success/10 border-success/40",
 } as const;
 const selectCls =
-	"h-9 w-full rounded-sm border border-input bg-background px-2 text-sm";
+	"h-9 w-full rounded-sm border border-input bg-background px-2 text-foreground text-sm";
 const OUTSOURCING_FWS = ["kwg", "zag", "zag-marisk", "micar"];
 
 export function RatingWizard({
@@ -754,21 +765,40 @@ export function RatingWizard({
 					>
 						{t("back")}
 					</Button>
-					<Button
-						type="button"
-						variant="ghost"
-						disabled={pending}
-						onClick={() => {
-							if (!window.confirm(t("deleteConfirm"))) return;
-							start(async () => {
-								const res = await deleteRatingDraft({ ratingId: rating.id });
-								if (!res.ok) return void toast.error(t("saveFailed"));
-								router.push(`/dienstleister/${provider.id}?tab=bewertungen`);
-							});
-						}}
-					>
-						{t("deleteDraft")}
-					</Button>
+					<AlertDialog>
+						<AlertDialogTrigger asChild>
+							<Button type="button" variant="ghost" disabled={pending}>
+								{t("deleteDraft")}
+							</Button>
+						</AlertDialogTrigger>
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>{t("deleteDraft")}</AlertDialogTitle>
+								<AlertDialogDescription>
+									{t("deleteConfirm")}
+								</AlertDialogDescription>
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+								<AlertDialogAction
+									className={buttonVariants({ variant: "destructive" })}
+									onClick={() =>
+										start(async () => {
+											const res = await deleteRatingDraft({
+												ratingId: rating.id,
+											});
+											if (!res.ok) return void toast.error(t("saveFailed"));
+											router.push(
+												`/dienstleister/${provider.id}?tab=bewertungen`,
+											);
+										})
+									}
+								>
+									{t("deleteDraft")}
+								</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
 				</span>
 				{step === "freigabe" ? (
 					<Button

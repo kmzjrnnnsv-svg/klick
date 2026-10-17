@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updateSupplierMethod } from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
@@ -69,6 +69,13 @@ export function SupplierMethodPanel({
 			)
 			.reduce((s, c) => s + c.weight, 0);
 	const dirty = JSON.stringify(d) !== JSON.stringify(method) || !stored;
+	const changed = JSON.stringify(d) !== JSON.stringify(method);
+	useEffect(() => {
+		if (!changed || pending || !canEdit) return;
+		const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+		window.addEventListener("beforeunload", warn);
+		return () => window.removeEventListener("beforeunload", warn);
+	}, [changed, pending, canEdit]);
 
 	return (
 		<form
@@ -295,7 +302,7 @@ export function SupplierMethodPanel({
 								</Label>
 								<select
 									id={`sm-tr-${i}`}
-									className="h-9 rounded-sm border border-input bg-background px-2"
+									className="h-9 rounded-sm border border-input bg-background px-2 text-foreground"
 									value={th.traffic}
 									disabled={!canEdit}
 									onChange={(e) =>

@@ -3832,7 +3832,7 @@
 		"controlsHint": "Vorschläge aus dem Szenario mit ihrem Umsetzungsstand. Die Controls sind den Anforderungen (z. B. ISO 27001 Anhang A, DORA) zugeordnet.",
 		"removeControl": "{code} entfernen",
 		"addControl": "Control hinzufügen",
-		"addControlPlaceholder": "Code oder Titel, mindestens 2 Zeichen",
+		"addControlPlaceholder": "Code oder Titel, z. B. CC-BCM-03 …",
 		"notAffected": "Nicht betroffen (Bewertung entfernen)",
 		"moreDimensions": "Weitere Schadensarten ({n})",
 		"damageNone": "Noch keine Schadensart bewertet.",
@@ -3894,7 +3894,9 @@
 		"errResidual": "Gib beim Restrisiko Wahrscheinlichkeit und Schadenshöhe zusammen an.",
 		"errSave": "Speichern fehlgeschlagen.",
 		"groupFilter": "Nach Bereich filtern",
-		"groupAll": "Alle"
+		"groupAll": "Alle",
+		"measurePlaceholder": "z. B. Offline-Backup einrichten …",
+		"measureCostPlaceholder": "z. B. 5000 …"
 	},
 	"SupplierMethod": {
 		"lead": "So bewertet deine Organisation Lieferanten intern: Bereiche und Kriterien mit Gewichten und Ankertexten (1 = sehr kritisch, 5 = unkritisch), Schwellen für Niveau, Ampel, Empfehlung und Wiedervorlage. Vorlage: 14 Kriterien, Allgemein 40 %, Sicherheit 60 %; Zusatzkriterien greifen je Rahmenwerk oder Partnerart.",
@@ -3966,7 +3968,7 @@
 		"yes": "Ja",
 		"no": "Nein",
 		"weight": "Gewicht {w}",
-		"saving": "speichert …",
+		"saving": "speichert…",
 		"prefilled": "Vorbelegt aus den Stammdaten: {why}. Prüfe den Wert.",
 		"ratedBy": "Bewertet von {name}",
 		"scale_1": "sehr kritisch",
@@ -3975,8 +3977,8 @@
 		"scale_4": "weitgehend",
 		"scale_5": "vollständig",
 		"noteFor": "Begründung: {title}",
-		"notePlaceholder": "Begründung (optional)",
-		"noteRequired": "Begründung erforderlich",
+		"notePlaceholder": "Begründung (optional) …",
+		"noteRequired": "Begründung erforderlich …",
 		"selfDisclosure": "Selbstauskunft des Lieferanten",
 		"selfDisclosureLead": "Fragebögen aus dem Lieferantenportal mit Antworten und Nachweisen.",
 		"selfDisclosureNone": "Noch kein Fragebogen. Starte einen unter Bewertungen am Dienstleister.",
@@ -4049,6 +4051,7 @@
 		"barsEmpty": "Noch keine abgeschlossene interne Bewertung.",
 		"colRating": "Bewertung",
 		"colNext": "Nächste Bewertung",
-		"exportCsv": "Bewertungen (CSV)"
+		"exportCsv": "Bewertungen (CSV)",
+		"cancel": "Abbrechen"
 	}
 }
