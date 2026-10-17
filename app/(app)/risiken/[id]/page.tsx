@@ -36,11 +36,8 @@ import {
 	userNames,
 } from "@/lib/compliance/queries";
 import { getRisk, listAssets } from "@/lib/compliance/queries-p2";
-import {
-	assessRisk,
-	DEFAULT_RISK_APPETITE,
-	DEFAULT_RISK_SCALES,
-} from "@/lib/compliance/risk";
+import { assessRisk } from "@/lib/compliance/risk";
+import { scaleLabels, ZONE_TONE } from "@/lib/compliance/risk-method";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
 import {
@@ -48,14 +45,7 @@ import {
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
-import { getOrgSettings } from "@/lib/org/queries";
-
-const BAND_TONE = {
-	low: "muted",
-	medium: "outline",
-	high: "warning",
-	critical: "destructive",
-} as const;
+import { orgRiskMethod } from "@/lib/org/queries";
 
 export default async function RiskDetailPage({
 	params,
@@ -73,7 +63,7 @@ export default async function RiskDetailPage({
 		const r = await getRisk(tx, ctx.orgId, id);
 		if (!r) return null;
 		const [
-			settings,
+			method,
 			comments,
 			history,
 			watcherIds,
@@ -84,7 +74,7 @@ export default async function RiskDetailPage({
 			candidates,
 			dels,
 		] = await Promise.all([
-			getOrgSettings(tx, ctx.orgId),
+			orgRiskMethod(tx, ctx.orgId),
 			listComments(tx, ctx.orgId, "risk", id),
 			historyFor(tx, `risk:${id}`),
 			listWatcherIds(tx, ctx.orgId, "risk", id),
@@ -103,7 +93,7 @@ export default async function RiskDetailPage({
 		for (const [k, v] of r.names) names.set(k, v);
 		return {
 			...r,
-			settings,
+			method,
 			comments,
 			history,
 			watcherIds,
@@ -122,7 +112,7 @@ export default async function RiskDetailPage({
 		treatments,
 		controls: linkedControls,
 		assets: linkedAssets,
-		settings,
+		method,
 		comments,
 		history,
 		watcherIds,
@@ -134,9 +124,8 @@ export default async function RiskDetailPage({
 		dels,
 		names,
 	} = data;
-	const appetite = settings?.riskAppetite ?? DEFAULT_RISK_APPETITE;
-	const scales = settings?.riskScales ?? DEFAULT_RISK_SCALES;
-	const a = assessRisk(risk, appetite);
+	const scales = scaleLabels(method);
+	const a = assessRisk(risk, method);
 	const canEdit = roleAllows(ctx.orgRole, { risk: ["update"] });
 	const me = candidates.find((c) => c.userId === ctx.userId);
 	const step = approval?.steps.find((s) => s.order === approval.currentStep);
@@ -198,18 +187,18 @@ export default async function RiskDetailPage({
 			meta={
 				<>
 					<MetaItem label={t("inherent")}>
-						<Badge variant={BAND_TONE[a.inherent.band]}>
+						<Badge variant={ZONE_TONE[a.inherent.zone]}>
 							{a.inherent.score}
 						</Badge>{" "}
-						{t(`band_${a.inherent.band}`)} · {t(`zone_${a.inherent.zone}`)}
+						{a.inherent.cls.label} · {t(`zone_${a.inherent.zone}`)}
 					</MetaItem>
 					<MetaItem label={t("residual")}>
 						{a.residual ? (
 							<>
-								<Badge variant={BAND_TONE[a.residual.band]}>
+								<Badge variant={ZONE_TONE[a.residual.zone]}>
 									{a.residual.score}
 								</Badge>{" "}
-								{t(`band_${a.residual.band}`)} · {t(`zone_${a.residual.zone}`)}
+								{a.residual.cls.label} · {t(`zone_${a.residual.zone}`)}
 							</>
 						) : (
 							"—"

@@ -6,7 +6,6 @@ import {
 	controls,
 	exceptions,
 	lossEvents,
-	orgSettings,
 	riskAssets,
 	riskControls,
 	risks,
@@ -21,6 +20,7 @@ import { mutateOrg } from "@/lib/db/with-org";
 import { RISK_STATUS } from "@/lib/entities/risk";
 import { canTransition } from "@/lib/entities/status-machine";
 import { notify } from "@/lib/notifications/notify";
+import { getOrgSettings, orgRiskMethod } from "@/lib/org/queries";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	createExceptionSchema,
@@ -31,19 +31,15 @@ import {
 	updateRiskSchema,
 } from "@/lib/validation/registers";
 
-async function appetiteFor(
+async function riskSettingsFor(
 	tx: Parameters<Parameters<typeof mutateOrg>[1]>[0],
 	orgId: string,
 ) {
-	const [s] = await tx
-		.select({
-			riskAppetite: orgSettings.riskAppetite,
-			reviewDefaults: orgSettings.reviewDefaults,
-		})
-		.from(orgSettings)
-		.where(eq(orgSettings.organizationId, orgId))
-		.limit(1);
-	return s ?? null;
+	const s = await getOrgSettings(tx, orgId);
+	return {
+		method: await orgRiskMethod(tx, orgId, s),
+		reviewDefaults: s?.reviewDefaults ?? null,
+	};
 }
 
 function plusMonths(months: number): string {
@@ -65,7 +61,7 @@ async function createRiskImpl(
 			.from(risks)
 			.where(eq(risks.organizationId, c.orgId));
 		const code = nextRiskCode(existing.map((r) => r.code));
-		const settings = await appetiteFor(tx, c.orgId);
+		const settings = await riskSettingsFor(tx, c.orgId);
 		const [row] = await tx
 			.insert(risks)
 			.values({
@@ -77,13 +73,13 @@ async function createRiskImpl(
 				likelihood: d.likelihood,
 				impact: d.impact,
 				ownerUserId: d.ownerUserId ?? c.userId,
-				reviewAt: plusMonths(settings?.reviewDefaults.risk ?? 3),
+				reviewAt: plusMonths(settings.reviewDefaults?.risk ?? 3),
 			})
 			.returning({ id: risks.id });
 		if (!row) throw new Error("insert failed");
 		const a = assessRisk(
 			{ id: row.id, likelihood: d.likelihood, impact: d.impact },
-			settings?.riskAppetite ?? undefined,
+			settings.method,
 		);
 		if (a.aboveAppetite) {
 			await notify(tx, {
@@ -91,7 +87,7 @@ async function createRiskImpl(
 				recipients: [d.ownerUserId ?? c.userId],
 				actorUserId: null,
 				kind: "risk_above_appetite",
-				title: `${code} liegt über dem Risikoappetit (Score ${a.effective.score})`,
+				title: `${code} liegt über dem Risikoappetit (${a.effective.cls.label}, Wert ${a.effective.score})`,
 				link: `/risiken/${row.id}`,
 			});
 		}
@@ -165,7 +161,7 @@ async function updateRiskImpl(input: unknown): Promise<ActionResult> {
 					)
 					.onConflictDoNothing();
 		}
-		const settings = await appetiteFor(tx, c.orgId);
+		const settings = await riskSettingsFor(tx, c.orgId);
 		const merged = { ...before, ...set };
 		const a = assessRisk(
 			{
@@ -175,7 +171,7 @@ async function updateRiskImpl(input: unknown): Promise<ActionResult> {
 				residualLikelihood: merged.residualLikelihood,
 				residualImpact: merged.residualImpact,
 			},
-			settings?.riskAppetite ?? undefined,
+			settings.method,
 		);
 		const wasAbove = assessRisk(
 			{
@@ -185,7 +181,7 @@ async function updateRiskImpl(input: unknown): Promise<ActionResult> {
 				residualLikelihood: before.residualLikelihood,
 				residualImpact: before.residualImpact,
 			},
-			settings?.riskAppetite ?? undefined,
+			settings.method,
 		).aboveAppetite;
 		if (a.aboveAppetite && !wasAbove) {
 			await notify(tx, {
@@ -193,7 +189,7 @@ async function updateRiskImpl(input: unknown): Promise<ActionResult> {
 				recipients: [merged.ownerUserId],
 				actorUserId: c.userId,
 				kind: "risk_above_appetite",
-				title: `${before.code} liegt über dem Risikoappetit (Score ${a.effective.score})`,
+				title: `${before.code} liegt über dem Risikoappetit (${a.effective.cls.label}, Wert ${a.effective.score})`,
 				link: `/risiken/${riskId}`,
 			});
 		}
@@ -247,8 +243,8 @@ async function setRiskStatusImpl(
 
 		// Akzeptanz über dem tolerierbaren Appetit → Workflow risk_acceptance.
 		if (status === "accepted") {
-			const settings = await appetiteFor(tx, c.orgId);
-			const a = assessRisk(row, settings?.riskAppetite ?? undefined);
+			const settings = await riskSettingsFor(tx, c.orgId);
+			const a = assessRisk(row, settings.method);
 			if (a.aboveAppetite) {
 				const r = await requestApproval(
 					tx,

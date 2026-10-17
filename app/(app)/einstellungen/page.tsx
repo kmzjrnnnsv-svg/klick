@@ -8,7 +8,7 @@ import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { IntegrationsPanel } from "@/components/settings/integrations-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
-import { RiskSettingsPanel } from "@/components/settings/risk-settings-panel";
+import { RiskMethodPanel } from "@/components/settings/risk-method-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
 import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
@@ -28,12 +28,13 @@ import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
 import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import { userNames } from "@/lib/compliance/queries";
+import { listRisks } from "@/lib/compliance/queries-p2";
 import { listProductOptions } from "@/lib/compliance/queries-products";
 import { listAccessTokens } from "@/lib/compliance/queries-security";
 import {
-	DEFAULT_RISK_APPETITE,
-	DEFAULT_RISK_SCALES,
-} from "@/lib/compliance/risk";
+	defaultRiskMethod,
+	resolveRiskMethod,
+} from "@/lib/compliance/risk-method";
 import { loadPriceTable } from "@/lib/db/pricing";
 import { readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
@@ -85,7 +86,7 @@ export default async function SettingsPage({
 				productOptions: await listProductOptions(tx, ctx.orgId),
 			}))
 		: { tokens: [], productOptions: [] };
-	const { orgFws, retiredSlugs, openAudits } = await readOrg(
+	const { orgFws, retiredSlugs, openAudits, riskPoints } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => {
 			const rows = await listOrgFrameworks(tx, ctx.orgId);
@@ -100,6 +101,12 @@ export default async function SettingsPage({
 				})),
 				retiredSlugs: new Set(await listRetiredFrameworkSlugs(tx, ctx.orgId)),
 				openAudits: await listOpenAuditScopes(tx, ctx.orgId),
+				riskPoints: (await listRisks(tx, ctx.orgId)).map((r) => ({
+					likelihood: r.likelihood,
+					impact: r.impact,
+					residualLikelihood: r.residualLikelihood,
+					residualImpact: r.residualImpact,
+				})),
 			};
 		},
 	);
@@ -246,17 +253,11 @@ export default async function SettingsPage({
 					<WorkflowsPanel workflows={workflows} canEdit={canEditSettings} />
 				</TabsContent>
 				<TabsContent value="risk">
-					<RiskSettingsPanel
-						likelihood={
-							(settings?.riskScales ?? DEFAULT_RISK_SCALES).likelihood
-						}
-						impact={(settings?.riskScales ?? DEFAULT_RISK_SCALES).impact}
-						acceptable={
-							(settings?.riskAppetite ?? DEFAULT_RISK_APPETITE).acceptable
-						}
-						tolerable={
-							(settings?.riskAppetite ?? DEFAULT_RISK_APPETITE).tolerable
-						}
+					<RiskMethodPanel
+						method={resolveRiskMethod(settings, cov?.frameworks ?? [])}
+						stored={Boolean(settings?.riskMethod)}
+						template={defaultRiskMethod(cov?.frameworks ?? [])}
+						risks={riskPoints}
 						allowSelfApproval={settings?.allowSelfApproval ?? true}
 						canEdit={canEditSettings}
 					/>

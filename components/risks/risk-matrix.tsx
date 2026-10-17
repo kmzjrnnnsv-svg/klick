@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { RiskAppetite } from "@/db/schema/platform";
+import type { RiskMethod } from "@/db/schema/platform";
 import {
 	type MatrixCell,
 	type RiskLike,
@@ -17,14 +17,14 @@ const ZONE_BG: Record<MatrixCell["zone"], string> = {
 export function RiskMatrix({
 	risks,
 	view,
-	appetite,
+	method,
 	labels,
 	codes,
 	base = "/risiken",
 }: {
 	risks: RiskLike[];
 	view: "inherent" | "residual";
-	appetite: RiskAppetite;
+	method: RiskMethod;
 	labels: {
 		likelihood: string[];
 		impact: string[];
@@ -34,7 +34,7 @@ export function RiskMatrix({
 	codes: Map<string, string>;
 	base?: string;
 }) {
-	const grid = riskMatrix(risks, view, appetite);
+	const grid = riskMatrix(risks, view, method);
 	return (
 		<div className="overflow-x-auto">
 			<table className="w-full min-w-[40rem] border-separate border-spacing-1 text-xs">
@@ -67,9 +67,11 @@ export function RiskMatrix({
 											"flex h-full min-h-16 flex-col gap-1 rounded-sm border border-transparent p-1.5 transition-colors hover:border-foreground/30",
 											ZONE_BG[cell.zone],
 										)}
-										aria-label={`Eintrittswahrscheinlichkeit ${cell.likelihood}, Auswirkung ${cell.impact}, Score ${cell.score}, ${cell.riskIds.length} Risiken`}
+										aria-label={`Eintrittswahrscheinlichkeit ${cell.likelihood}, Schadenshöhe ${cell.impact}, Risikowert ${cell.score} (${cell.cls.label}), ${cell.riskIds.length} Risiken`}
 									>
-										<span className="text-muted-foreground">{cell.score}</span>
+										<span className="text-muted-foreground">
+											{cell.score} · {cell.cls.label}
+										</span>
 										<span className="flex flex-wrap gap-1">
 											{cell.riskIds.slice(0, 6).map((id) => (
 												<span
@@ -93,5 +95,85 @@ export function RiskMatrix({
 				</tbody>
 			</table>
 		</div>
+	);
+}
+
+// Legende + Verteilung je Klasse vorher/nachher (Excel-„Dashboard“).
+export function ClassLegend({
+	method,
+	dist,
+	labels,
+}: {
+	method: RiskMethod;
+	dist: {
+		key: string;
+		label: string;
+		zone: string;
+		inherent: number;
+		residual: number;
+	}[];
+	labels: { inherent: string; residual: string; title: string };
+}) {
+	const max = Math.max(1, ...dist.flatMap((d) => [d.inherent, d.residual]));
+	return (
+		<section className="mt-6 flex flex-col gap-3" aria-label={labels.title}>
+			<h3 className="font-medium text-sm">{labels.title}</h3>
+			<ul className="flex flex-col gap-3 text-xs">
+				{dist.map((d) => {
+					const cls = method.classes.find((c) => c.key === d.key);
+					return (
+						<li
+							key={d.key}
+							className="grid gap-2 sm:grid-cols-[minmax(10rem,16rem)_1fr]"
+						>
+							<div>
+								<p className="flex items-center gap-2 font-medium">
+									<span
+										aria-hidden
+										className={cn(
+											"inline-block size-3 rounded-sm",
+											ZONE_BG[d.zone as MatrixCell["zone"]],
+										)}
+									/>
+									{d.label}
+									<span className="font-normal text-muted-foreground tabular-nums">
+										{cls ? `${cls.min}–${cls.max}` : ""}
+									</span>
+								</p>
+								{cls?.meaning && (
+									<p className="mt-0.5 text-muted-foreground">{cls.meaning}</p>
+								)}
+							</div>
+							<div className="flex flex-col gap-1">
+								{(
+									[
+										["inherent", d.inherent],
+										["residual", d.residual],
+									] as const
+								).map(([k, n]) => (
+									<div key={k} className="flex items-center gap-2">
+										<span className="w-24 shrink-0 text-muted-foreground">
+											{labels[k]}
+										</span>
+										<span
+											className={cn(
+												"h-3 rounded-sm",
+												ZONE_BG[d.zone as MatrixCell["zone"]],
+												k === "residual" && "opacity-70",
+											)}
+											style={{
+												width: `${(n / max) * 100}%`,
+												minWidth: n ? "0.5rem" : 0,
+											}}
+										/>
+										<span className="tabular-nums">{n}</span>
+									</div>
+								))}
+							</div>
+						</li>
+					);
+				})}
+			</ul>
+		</section>
 	);
 }

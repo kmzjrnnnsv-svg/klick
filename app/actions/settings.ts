@@ -11,6 +11,7 @@ import { requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { getOrgSummary, revokeSessionsOfOrgMembers } from "@/lib/auth/org";
 import { auth } from "@/lib/auth/server";
 import { AuthError } from "@/lib/auth/session-rules";
+import { appetiteFromMethod } from "@/lib/compliance/risk-method";
 import { mutateOrg } from "@/lib/db/with-org";
 import { DEFAULT_PREFIXES } from "@/lib/documents/numbering";
 import { env } from "@/lib/env";
@@ -20,6 +21,7 @@ import { transactionalEmail } from "@/lib/mail/templates";
 import { writeTombstone } from "@/lib/storage/tombstones";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { dlpPolicySchema, entityProfileSchema } from "@/lib/validation/org";
+import { updateRiskMethodSchema } from "@/lib/validation/risk-method";
 
 async function stepUp(): Promise<
 	| { ok: true; ctx: Awaited<ReturnType<typeof requireStepUp>> }
@@ -34,39 +36,21 @@ async function stepUp(): Promise<
 	}
 }
 
-const label5 = z.tuple([
-	z.string().min(1).max(40),
-	z.string().min(1).max(40),
-	z.string().min(1).max(40),
-	z.string().min(1).max(40),
-	z.string().min(1).max(40),
-]);
-const riskSettingsSchema = z
-	.object({
-		likelihood: label5,
-		impact: label5,
-		acceptable: z.coerce.number().int().min(1).max(24),
-		tolerable: z.coerce.number().int().min(2).max(25),
-		allowSelfApproval: z.boolean(),
-	})
-	.refine((v) => v.tolerable > v.acceptable, {
-		message: "tolerierbar muss grösser als akzeptabel sein",
-		path: ["tolerable"],
-	});
-
-async function updateRiskSettingsImpl(input: unknown): Promise<ActionResult> {
+async function updateRiskMethodImpl(input: unknown): Promise<ActionResult> {
 	const g = await stepUp();
 	if (!g.ok) return g;
 	const c = g.ctx;
-	const parsed = riskSettingsSchema.safeParse(input);
+	const parsed = updateRiskMethodSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
-	const d = parsed.data;
+	const { method, allowSelfApproval } = parsed.data;
+	const appetite = appetiteFromMethod(method);
 	await mutateOrg(toOrgCtx(c), async (tx) => {
 		const [before] = await tx
 			.select({
-				riskScales: orgSettings.riskScales,
+				riskMethod: orgSettings.riskMethod,
 				riskAppetite: orgSettings.riskAppetite,
 				allowSelfApproval: orgSettings.allowSelfApproval,
+				setupFlags: orgSettings.setupFlags,
 			})
 			.from(orgSettings)
 			.where(eq(orgSettings.organizationId, c.orgId))
@@ -74,20 +58,31 @@ async function updateRiskSettingsImpl(input: unknown): Promise<ActionResult> {
 		await tx
 			.update(orgSettings)
 			.set({
-				riskScales: { likelihood: d.likelihood, impact: d.impact },
-				riskAppetite: { acceptable: d.acceptable, tolerable: d.tolerable },
-				allowSelfApproval: d.allowSelfApproval,
+				riskMethod: method,
+				riskAppetite: appetite,
+				allowSelfApproval,
+				setupFlags: {
+					...(before?.setupFlags ?? {}),
+					riskMethodConfirmedAt: new Date().toISOString(),
+				},
 			})
 			.where(eq(orgSettings.organizationId, c.orgId));
 		return {
 			result: null,
 			audit: {
-				action: "settings.risk",
+				action: "settings.risk_method",
 				target: `organization:${c.orgId}`,
-				before: before ?? null,
+				before: before
+					? {
+							riskMethod: before.riskMethod,
+							riskAppetite: before.riskAppetite,
+							allowSelfApproval: before.allowSelfApproval,
+						}
+					: null,
 				after: {
-					riskAppetite: { acceptable: d.acceptable, tolerable: d.tolerable },
-					allowSelfApproval: d.allowSelfApproval,
+					riskMethod: method,
+					riskAppetite: appetite,
+					allowSelfApproval,
 				},
 			},
 		};
@@ -309,9 +304,9 @@ async function deleteOrganizationActionImpl(
 
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
-export const updateRiskSettings = safeAction(
-	"updateRiskSettings",
-	updateRiskSettingsImpl,
+export const updateRiskMethod = safeAction(
+	"updateRiskMethod",
+	updateRiskMethodImpl,
 );
 export const updateNumbering = safeAction(
 	"updateNumbering",

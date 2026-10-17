@@ -1,14 +1,23 @@
-import type { RiskAppetite, RiskScales } from "@/db/schema/platform";
+import type { RiskMethod, RiskZone } from "@/db/schema/platform";
+import {
+	aggregate,
+	type ClassResult,
+	clampLevel,
+	classify,
+	legacyRiskMethod,
+} from "./risk-method";
 
-// Risikobewertung — reine Funktionen. Skala 1–5 × 1–5, Score = L × I,
-// Bänder: 1–4 niedrig, 5–9 mittel, 10–14 hoch, 15–25 kritisch.
-// Appetit: acceptable (≤ 4) → akzeptabel, tolerable (≤ 9) → tolerierbar,
-// darüber inakzeptabel → Behandlung Pflicht, Notification an Owner.
+// Risikobewertung — reine Funktionen. Skala 1–5 je Achse; Rechenweg,
+// Klassen und Zonen kommen aus der Risikomethodik der Org
+// (lib/compliance/risk-method.ts). Zone „unacceptable“ = über dem Appetit →
+// Behandlung Pflicht, Akzeptanz nur per Freigabe, Notification an Owner.
 
-export type RiskBand = "low" | "medium" | "high" | "critical";
-export type AppetiteZone = "acceptable" | "tolerable" | "unacceptable";
+export type AppetiteZone = RiskZone;
 
-export const DEFAULT_RISK_SCALES: RiskScales = {
+export { clampLevel as clampScale };
+
+// Altvorgaben (Bestand ohne gespeicherte Methode)
+export const DEFAULT_RISK_SCALES = {
 	likelihood: [
 		"selten",
 		"unwahrscheinlich",
@@ -17,37 +26,17 @@ export const DEFAULT_RISK_SCALES: RiskScales = {
 		"fast sicher",
 	],
 	impact: ["unwesentlich", "gering", "spürbar", "schwer", "existenzbedrohend"],
+} as const satisfies {
+	likelihood: readonly string[];
+	impact: readonly string[];
 };
 
-export const DEFAULT_RISK_APPETITE: RiskAppetite = {
-	acceptable: 4,
-	tolerable: 9,
-};
+export const DEFAULT_RISK_APPETITE = { acceptable: 4, tolerable: 9 };
 
-export function clampScale(n: number): 1 | 2 | 3 | 4 | 5 {
-	const v = Math.round(Number.isFinite(n) ? n : 3);
-	return Math.min(5, Math.max(1, v)) as 1 | 2 | 3 | 4 | 5;
-}
-
-export function riskScore(likelihood: number, impact: number): number {
-	return clampScale(likelihood) * clampScale(impact);
-}
-
-export function riskBand(score: number): RiskBand {
-	if (score >= 15) return "critical";
-	if (score >= 10) return "high";
-	if (score >= 5) return "medium";
-	return "low";
-}
-
-export function appetiteZone(
-	score: number,
-	appetite: RiskAppetite = DEFAULT_RISK_APPETITE,
-): AppetiteZone {
-	if (score <= appetite.acceptable) return "acceptable";
-	if (score <= appetite.tolerable) return "tolerable";
-	return "unacceptable";
-}
+export const LEGACY_METHOD: RiskMethod = legacyRiskMethod(
+	null,
+	DEFAULT_RISK_APPETITE,
+);
 
 export type RiskLike = {
 	id: string;
@@ -57,58 +46,44 @@ export type RiskLike = {
 	residualImpact?: number | null;
 };
 
+export type RiskPoint = {
+	likelihood: number;
+	impact: number;
+	score: number;
+	cls: ClassResult;
+	zone: AppetiteZone;
+};
+
 export type RiskAssessment = {
-	inherent: {
-		likelihood: number;
-		impact: number;
-		score: number;
-		band: RiskBand;
-		zone: AppetiteZone;
-	};
-	residual: {
-		likelihood: number;
-		impact: number;
-		score: number;
-		band: RiskBand;
-		zone: AppetiteZone;
-	} | null;
+	inherent: RiskPoint;
+	residual: RiskPoint | null;
 	// Zum Steuern: residual wenn vorhanden, sonst inherent
-	effective: { score: number; band: RiskBand; zone: AppetiteZone };
+	effective: { score: number; cls: ClassResult; zone: AppetiteZone };
 	aboveAppetite: boolean;
 };
 
+function point(l: number, i: number, method: RiskMethod): RiskPoint {
+	const likelihood = clampLevel(l);
+	const impact = clampLevel(i);
+	const score = aggregate(likelihood, impact, method);
+	const cls = classify(score, method);
+	return { likelihood, impact, score, cls, zone: cls.zone };
+}
+
 export function assessRisk(
 	risk: RiskLike,
-	appetite: RiskAppetite = DEFAULT_RISK_APPETITE,
+	method: RiskMethod = LEGACY_METHOD,
 ): RiskAssessment {
-	const il = clampScale(risk.likelihood);
-	const ii = clampScale(risk.impact);
-	const inherentScore = il * ii;
-	const inherent = {
-		likelihood: il,
-		impact: ii,
-		score: inherentScore,
-		band: riskBand(inherentScore),
-		zone: appetiteZone(inherentScore, appetite),
-	};
-	let residual: RiskAssessment["residual"] = null;
-	if (risk.residualLikelihood != null && risk.residualImpact != null) {
-		const rl = clampScale(risk.residualLikelihood);
-		const ri = clampScale(risk.residualImpact);
-		const s = rl * ri;
-		residual = {
-			likelihood: rl,
-			impact: ri,
-			score: s,
-			band: riskBand(s),
-			zone: appetiteZone(s, appetite),
-		};
-	}
+	const inherent = point(risk.likelihood, risk.impact, method);
+	const residual =
+		risk.residualLikelihood != null && risk.residualImpact != null
+			? point(risk.residualLikelihood, risk.residualImpact, method)
+			: null;
 	const eff = residual ?? inherent;
 	return {
 		inherent,
 		residual,
-		effective: { score: eff.score, band: eff.band, zone: eff.zone },
+		effective: { score: eff.score, cls: eff.cls, zone: eff.zone },
 		aboveAppetite: eff.zone === "unacceptable",
 	};
 }
@@ -117,41 +92,70 @@ export type MatrixCell = {
 	likelihood: 1 | 2 | 3 | 4 | 5;
 	impact: 1 | 2 | 3 | 4 | 5;
 	score: number;
-	band: RiskBand;
+	cls: ClassResult;
 	zone: AppetiteZone;
 	riskIds: string[];
 };
 
-// 5×5-Matrix (Zeilen: Eintrittswahrscheinlichkeit 5 → 1, Spalten: Auswirkung
-// 1 → 5), Chips je Zelle; Umschalter inhärent/residual.
+// 5×5-Matrix (Zeilen: Eintrittswahrscheinlichkeit 5 → 1, Spalten:
+// Schadenshöhe 1 → 5), Chips je Zelle; Umschalter inhärent/residual.
 export function riskMatrix(
 	risks: readonly RiskLike[],
 	view: "inherent" | "residual" = "inherent",
-	appetite: RiskAppetite = DEFAULT_RISK_APPETITE,
+	method: RiskMethod = LEGACY_METHOD,
 ): MatrixCell[][] {
 	const rows: MatrixCell[][] = [];
 	for (let l = 5; l >= 1; l--) {
 		const row: MatrixCell[] = [];
 		for (let i = 1; i <= 5; i++) {
-			const score = l * i;
+			const score = aggregate(l, i, method);
+			const cls = classify(score, method);
 			row.push({
 				likelihood: l as MatrixCell["likelihood"],
 				impact: i as MatrixCell["impact"],
 				score,
-				band: riskBand(score),
-				zone: appetiteZone(score, appetite),
+				cls,
+				zone: cls.zone,
 				riskIds: [],
 			});
 		}
 		rows.push(row);
 	}
 	for (const r of risks) {
-		const a = assessRisk(r, appetite);
+		const a = assessRisk(r, method);
 		const pos = view === "residual" ? (a.residual ?? a.inherent) : a.inherent;
 		const cell = rows[5 - pos.likelihood]?.[pos.impact - 1];
 		cell?.riskIds.push(r.id);
 	}
 	return rows;
+}
+
+// Verteilung je Klasse vorher/nachher (Übersicht auf dem Matrix-Reiter)
+export function classDistribution(
+	risks: readonly RiskLike[],
+	method: RiskMethod,
+): {
+	key: string;
+	label: string;
+	zone: AppetiteZone;
+	inherent: number;
+	residual: number;
+}[] {
+	const out = method.classes.map((c) => ({
+		key: c.key,
+		label: c.label,
+		zone: c.zone,
+		inherent: 0,
+		residual: 0,
+	}));
+	for (const r of risks) {
+		const a = assessRisk(r, method);
+		const bi = out[a.inherent.cls.index];
+		if (bi) bi.inherent++;
+		const br = out[a.effective.cls.index];
+		if (br) br.residual++;
+	}
+	return out;
 }
 
 export function nextRiskCode(

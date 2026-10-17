@@ -616,6 +616,17 @@ export const risks = pgTable(
 		reviewAt: date(),
 		acceptedByUserId: userRef(),
 		acceptedAt: ts(),
+		// Geführte Analyse (Risiko-Assistent): Szenario aus dem Katalog,
+		// Einzelwerte je Schadensart (impact = höchster Wert), Kontext.
+		scenarioCode: text(),
+		impactDetail: json<Record<string, number>>(),
+		impactDescription: text(),
+		existingMeasures: text(),
+		protectionGoals: stringList(),
+		treatmentNote: text(),
+		residualNote: text(),
+		providerId: uuid().references(() => providers.id, { onDelete: "set null" }),
+		assessedAt: ts(),
 		...timestamps(),
 	},
 	(t) => [
@@ -739,6 +750,7 @@ export const riskTreatments = pgTable(
 			.notNull()
 			.default("planned"),
 		taskId: uuid().references(() => tasks.id, { onDelete: "set null" }),
+		costEur: integer(),
 		createdAt: ts().notNull().defaultNow(),
 	},
 	(t) => [

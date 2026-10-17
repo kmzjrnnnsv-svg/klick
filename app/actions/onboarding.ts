@@ -15,6 +15,10 @@ import {
 } from "@/lib/auth/guards";
 import { auth } from "@/lib/auth/server";
 import { initializeOrg } from "@/lib/compliance/initialize-org";
+import {
+	appetiteFromMethod,
+	defaultRiskMethod,
+} from "@/lib/compliance/risk-method";
 import { generateDek, wrapDek } from "@/lib/crypto/envelope";
 import { listFrameworkOptions } from "@/lib/db/global";
 import { withOrg } from "@/lib/db/with-org";
@@ -81,6 +85,10 @@ async function createOrganizationActionImpl(
 				licenceStage: data.licenceStage,
 				caspServices: data.caspServices,
 				applyBaseline: data.applyBaseline && ctx.user.role === "admin",
+				// Neue Orgs starten mit der Vorlage (EW + SH, drei Klassen) samt
+				// Schadensarten der gewählten Rahmenwerke.
+				riskMethod: defaultRiskMethod(data.frameworks),
+				riskAppetite: appetiteFromMethod(defaultRiskMethod(data.frameworks)),
 				onboardingCompletedAt: new Date(),
 			});
 			const fws = await tx

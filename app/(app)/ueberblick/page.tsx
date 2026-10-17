@@ -135,6 +135,7 @@ export default async function OverviewPage() {
 	const { controls, evidence, openTasks } = g;
 	const appetiteConfirmed =
 		g.risks.length > 0 ||
+		Boolean(g.orgSettings?.setupFlags?.riskMethodConfirmedAt) ||
 		JSON.stringify(g.orgSettings?.riskAppetite ?? DEFAULT_RISK_APPETITE) !==
 			JSON.stringify(DEFAULT_RISK_APPETITE);
 	const resCov = resolutionCoverage(

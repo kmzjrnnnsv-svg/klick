@@ -13,7 +13,7 @@ import {
 	LossEventForm,
 	RiskQuickCreate,
 } from "@/components/risks/risk-forms";
-import { RiskMatrix } from "@/components/risks/risk-matrix";
+import { ClassLegend, RiskMatrix } from "@/components/risks/risk-matrix";
 import { Badge } from "@/components/ui/badge";
 import {
 	Table,
@@ -34,24 +34,14 @@ import {
 	listLossEvents,
 	listRisks,
 } from "@/lib/compliance/queries-p2";
-import {
-	assessRisk,
-	DEFAULT_RISK_APPETITE,
-	DEFAULT_RISK_SCALES,
-} from "@/lib/compliance/risk";
+import { assessRisk, classDistribution } from "@/lib/compliance/risk";
+import { scaleLabels, ZONE_TONE } from "@/lib/compliance/risk-method";
 import { readOrg } from "@/lib/db/with-org";
 import { RISK_STATUS, RISK_STATUSES } from "@/lib/entities/risk";
-import { getOrgSettings } from "@/lib/org/queries";
+import { orgRiskMethod } from "@/lib/org/queries";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
-
-const BAND_TONE = {
-	low: "muted",
-	medium: "outline",
-	high: "warning",
-	critical: "destructive",
-} as const;
 
 export default async function RisksPage({
 	searchParams,
@@ -66,21 +56,20 @@ export default async function RisksPage({
 	const ts = await getTranslations("Status");
 	const canCreate = roleAllows(ctx.orgRole, { risk: ["create"] });
 
-	const { rows, settings, exceptions, losses } = await readOrg(
+	const { rows, method, exceptions, losses } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
 			rows: await listRisks(tx, ctx.orgId),
-			settings: await getOrgSettings(tx, ctx.orgId),
+			method: await orgRiskMethod(tx, ctx.orgId),
 			exceptions:
 				tab === "ausnahmen" ? await listExceptions(tx, ctx.orgId) : [],
 			losses:
 				tab === "schadensfaelle" ? await listLossEvents(tx, ctx.orgId) : [],
 		}),
 	);
-	const appetite = settings?.riskAppetite ?? DEFAULT_RISK_APPETITE;
-	const scales = settings?.riskScales ?? DEFAULT_RISK_SCALES;
+	const scales = scaleLabels(method);
 	const view = one(sp.view) === "residual" ? "residual" : "inherent";
-	const assessed = rows.map((r) => ({ r, a: assessRisk(r, appetite) }));
+	const assessed = rows.map((r) => ({ r, a: assessRisk(r, method) }));
 	const above = assessed.filter(
 		(x) => x.a.aboveAppetite && x.r.status !== "closed",
 	).length;
@@ -190,7 +179,7 @@ export default async function RisksPage({
 					<RiskMatrix
 						risks={rows}
 						view={view}
-						appetite={appetite}
+						method={method}
 						labels={{
 							likelihood: scales.likelihood,
 							impact: scales.impact,
@@ -199,12 +188,15 @@ export default async function RisksPage({
 						}}
 						codes={new Map(rows.map((r) => [r.id, r.code]))}
 					/>
-					<p className="mt-3 text-muted-foreground text-xs">
-						{t("appetite", {
-							acceptable: appetite.acceptable,
-							tolerable: appetite.tolerable,
-						})}
-					</p>
+					<ClassLegend
+						method={method}
+						dist={classDistribution(rows, method)}
+						labels={{
+							inherent: t("inherent"),
+							residual: t("residual"),
+							title: t("classDistribution"),
+						}}
+					/>
 				</>
 			)}
 
@@ -393,10 +385,10 @@ export default async function RisksPage({
 									<TableHead className="w-20">{t("code")}</TableHead>
 									<TableHead>{t("titleField")}</TableHead>
 									<TableHead className="w-28">{te("status")}</TableHead>
-									<TableHead className="w-24 text-right">
+									<TableHead className="w-36 text-right">
 										{t("inherent")}
 									</TableHead>
-									<TableHead className="w-24 text-right">
+									<TableHead className="w-36 text-right">
 										{t("residual")}
 									</TableHead>
 									<TableHead className="w-40">{te("owner")}</TableHead>
@@ -433,14 +425,20 @@ export default async function RisksPage({
 											/>
 										</TableCell>
 										<TableCell className="text-right">
-											<Badge variant={BAND_TONE[a.inherent.band]}>
-												{a.inherent.score}
+											<Badge
+												variant={ZONE_TONE[a.inherent.zone]}
+												title={a.inherent.cls.label}
+											>
+												{a.inherent.score} · {a.inherent.cls.label}
 											</Badge>
 										</TableCell>
 										<TableCell className="text-right">
 											{a.residual ? (
-												<Badge variant={BAND_TONE[a.residual.band]}>
-													{a.residual.score}
+												<Badge
+													variant={ZONE_TONE[a.residual.zone]}
+													title={a.residual.cls.label}
+												>
+													{a.residual.score} · {a.residual.cls.label}
 												</Badge>
 											) : (
 												<span className="text-muted-foreground">—</span>

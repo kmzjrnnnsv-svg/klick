@@ -36,6 +36,34 @@ export type RiskScales = {
 	impact: [string, string, string, string, string];
 };
 export type RiskAppetite = { acceptable: number; tolerable: number };
+
+// Risikomethodik je Org (lib/compliance/risk-method.ts): Rechenweg, Anker je
+// Stufe, Schadensarten und Risikoklassen. Leer = aus riskScales/riskAppetite
+// abgeleitet (Bestand), neue Orgs bekommen die Vorlage.
+export type Five<T> = [T, T, T, T, T];
+export type RiskZone = "acceptable" | "tolerable" | "unacceptable";
+export type RiskLevelText = { label: string; anchor: string };
+export type RiskDimension = {
+	key: string;
+	label: string;
+	enabled: boolean;
+	anchors: Five<string>;
+};
+export type RiskClass = {
+	key: string;
+	label: string;
+	min: number;
+	max: number;
+	zone: RiskZone;
+	meaning: string;
+};
+export type RiskMethod = {
+	aggregation: "sum" | "product";
+	likelihood: Five<RiskLevelText>;
+	impact: Five<string>;
+	dimensions: RiskDimension[];
+	classes: RiskClass[];
+};
 export type ReviewDefaults = {
 	control: number;
 	document: number;
@@ -123,6 +151,7 @@ export const orgSettings = pgTable(
 			acceptable: 4,
 			tolerable: 9,
 		}),
+		riskMethod: json<RiskMethod>(),
 		reviewDefaults: json<ReviewDefaults>().notNull().default({
 			control: 12,
 			document: 12,
