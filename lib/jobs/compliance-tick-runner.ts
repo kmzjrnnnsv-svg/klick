@@ -35,6 +35,7 @@ import {
 	products,
 	providers,
 	regulatorInteractions,
+	securityEngagements,
 	securityFindings,
 	tasks,
 	trainingAssignments,
@@ -554,6 +555,28 @@ async function loadDueRows(
 		.where(
 			and(eq(products.organizationId, orgId), isNotNull(products.supportUntil)),
 		);
+	const engagementRows = await tx
+		.select({
+			id: securityEngagements.id,
+			code: securityEngagements.code,
+			title: securityEngagements.title,
+			status: securityEngagements.status,
+			endAt: securityEngagements.endAt,
+			retestDueAt: securityEngagements.retestDueAt,
+			ownerUserId: securityEngagements.ownerUserId,
+		})
+		.from(securityEngagements)
+		.where(
+			and(
+				eq(securityEngagements.organizationId, orgId),
+				inArray(securityEngagements.status, [
+					"authorized",
+					"in_progress",
+					"delivered",
+					"retest",
+				]),
+			),
+		);
 	const supplierRows = await tx
 		.select({
 			id: assessments.id,
@@ -627,6 +650,7 @@ async function loadDueRows(
 		products: productRows,
 		securityFindings: findingRows,
 		supplierAssessments: supplierRows,
+		engagements: engagementRows,
 		openTasks,
 	};
 }

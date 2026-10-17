@@ -176,6 +176,16 @@ export type DueRows = {
 		lastOpenedAt: Date | string | null;
 		ownerUserId: string | null;
 	}[];
+	/** Sicherheitsaufträge (S7): Bericht nach Testende, Nachtest-Frist. */
+	engagements?: readonly {
+		id: string;
+		code: string;
+		title: string;
+		status: string;
+		endAt: Date | string | null;
+		retestDueAt: Date | string | null;
+		ownerUserId: string | null;
+	}[];
 	/** Offene Aufgaben (für Dedupe von Eskalationen/Ablauf-Aufgaben). */
 	openTasks: readonly {
 		entityType: string | null;
@@ -728,6 +738,40 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 				? `/dienstleister/${encodeURIComponent(a.providerId)}?tab=bewertungen`
 				: `/gap-analyse/${a.id}`,
 			dedupeKey: `supplier_reminder:${a.id}:${since}`,
+		});
+	}
+
+	// Sicherheitsaufträge: Testzeitraum vorbei ohne Bericht (dann wöchentlich);
+	// Nachtest 7 Tage vorher und ab Fälligkeit wöchentlich
+	for (const e of rows.engagements ?? []) {
+		const link = `/sicherheit/auftraege/${e.id}`;
+		if (e.status === "authorized" || e.status === "in_progress") {
+			const end = toDate(e.endAt);
+			if (!end) continue;
+			const d = daysUntil(now, end);
+			if (d > 0 || -d % 7 !== 0) continue;
+			notifications.push({
+				kind: "review_due",
+				recipients: recipientsOf(e.ownerUserId, rows.orgOwnerIds),
+				title: `Testzeitraum vorbei: ${e.code} ${e.title}`,
+				body: `Ende war am ${fmtDay(end)}. Befunde erfassen, Management-Summary schreiben und den Bericht liefern — oder den Zeitraum verlängern.`,
+				link: `${link}?tab=bericht`,
+				dedupeKey: `engagement_report:${e.id}:${d}`,
+			});
+			continue;
+		}
+		if (e.status !== "delivered" && e.status !== "retest") continue;
+		const due = toDate(e.retestDueAt);
+		if (!due) continue;
+		const d = daysUntil(now, due);
+		if (d !== 7 && !(d <= 0 && -d % 7 === 0)) continue;
+		notifications.push({
+			kind: "review_due",
+			recipients: recipientsOf(e.ownerUserId, rows.orgOwnerIds),
+			title: `${d > 0 ? "Nachtest fällig" : "Nachtest überfällig"}: ${e.code} ${e.title}`,
+			body: dueWording(now, due),
+			link: `${link}?tab=nachtest`,
+			dedupeKey: `engagement_retest:${e.id}:${d}`,
 		});
 	}
 

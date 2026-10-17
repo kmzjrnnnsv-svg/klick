@@ -37,6 +37,7 @@ export default async function FindingPage({
 	const ctx = await requireOrgPage({ security: ["read"] });
 	const t = await getTranslations("Security");
 	const te = await getTranslations("Entity");
+	const tg = await getTranslations("Engagements");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getFindingDetail(tx, ctx.orgId, id);
 		if (!d) return null;
@@ -99,7 +100,10 @@ export default async function FindingPage({
 							{t(`sev_${f.severity}`)}
 						</Badge>
 						{f.cvss !== null && (
-							<span className="ml-2 text-muted-foreground text-xs tabular-nums">
+							<span
+								className="ml-2 text-muted-foreground text-xs tabular-nums"
+								title={f.cvssVector ?? undefined}
+							>
 								CVSS {f.cvss.toFixed(1)}
 							</span>
 						)}
@@ -118,6 +122,12 @@ export default async function FindingPage({
 					<MetaItem label={t("seen")}>
 						{fmtDate.format(f.firstSeenAt)} – {fmtDate.format(f.lastSeenAt)}
 					</MetaItem>
+					{f.retestStatus && (
+						<MetaItem label={tg("retestTitle")}>
+							{tg(`retest_${f.retestStatus}`)}
+							{f.retestedAt && ` · ${fmtDate.format(f.retestedAt)}`}
+						</MetaItem>
+					)}
 					<MetaItem label={t("ids")}>
 						{[...new Set([f.cve, f.cwe, f.ruleId].filter(Boolean))].join(
 							" · ",
@@ -173,10 +183,15 @@ export default async function FindingPage({
 				)}
 				{data.details?.evidence && (
 					<p
-						className="mt-2 font-mono text-muted-foreground text-xs"
+						className="mt-2 whitespace-pre-line font-mono text-muted-foreground text-xs"
 						translate="no"
 					>
 						{data.details.evidence}
+					</p>
+				)}
+				{f.retestNote && (
+					<p className="mt-2 text-sm">
+						{tg("retestNote")} {f.retestNote}
 					</p>
 				)}
 			</Section>
@@ -203,6 +218,17 @@ export default async function FindingPage({
 								className="hover:underline"
 							>
 								{control.code} {control.title}
+							</Link>
+						</li>
+					)}
+					{data.engagement && (
+						<li>
+							{tg("engagement")}:{" "}
+							<Link
+								href={`/sicherheit/auftraege/${data.engagement.id}?tab=befunde`}
+								className="hover:underline"
+							>
+								{data.engagement.code} {data.engagement.title}
 							</Link>
 						</li>
 					)}

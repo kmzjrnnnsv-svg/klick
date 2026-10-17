@@ -240,8 +240,35 @@ export const SCAN_TOOLS = [
 	"nuclei",
 	"gitleaks",
 	"quick_check",
+	// manuell erfasst (Pentest, Sicherheitsprüfung)
+	"manual",
 ] as const;
 export type ScanTool = (typeof SCAN_TOOLS)[number];
+
+// Sicherheitsaufträge (S7): Pentest, Security-Check, Schnellcheck-Auftrag,
+// CRA-Readiness — manuell durchgeführt, in Klick verwaltet.
+export const ENGAGEMENT_KINDS = [
+	"pentest",
+	"security_check",
+	"quick_check",
+	"cra_readiness",
+] as const;
+export type EngagementKind = (typeof ENGAGEMENT_KINDS)[number];
+
+export const ENGAGEMENT_STATUS = [
+	"planned",
+	"authorized",
+	"in_progress",
+	"reporting",
+	"delivered",
+	"retest",
+	"closed",
+	"cancelled",
+] as const;
+export type EngagementStatus = (typeof ENGAGEMENT_STATUS)[number];
+
+export const RETEST_STATUS = ["pending", "passed", "failed"] as const;
+export type RetestStatus = (typeof RETEST_STATUS)[number];
 
 export const SCAN_SOURCES = ["upload", "api", "quick_check"] as const;
 
@@ -348,6 +375,7 @@ export const ENTITY_KINDS = [
 	"assessment",
 	"product",
 	"security_finding",
+	"security_engagement",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 

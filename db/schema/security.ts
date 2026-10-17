@@ -24,9 +24,12 @@ import {
 } from "./_shared";
 import {
 	ACCESS_TOKEN_KINDS,
+	ENGAGEMENT_KINDS,
+	ENGAGEMENT_STATUS,
 	FINDING_CATEGORIES,
 	FINDING_SEVERITIES,
 	FINDING_STATUS,
+	RETEST_STATUS,
 	SCAN_SOURCES,
 	SCAN_TOOLS,
 	type ScanCounts,
@@ -103,6 +106,59 @@ export const securityScans = pgTable(
 	],
 ).enableRLS();
 
+// Sicherheitsaufträge (S7): manuelle Prüfungen (Pentest u. a.) mit Umfang,
+// Regeln, schriftlicher Beauftragung als Pflicht-Nachweis, Bericht, Retest.
+// Aktive Tests laufen nie aus Klick — hier stehen Planung, Freigabe,
+// Befunde und Ergebnis.
+export const securityEngagements = pgTable(
+	"security_engagements",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		code: text().notNull(),
+		kind: text({ enum: ENGAGEMENT_KINDS }).notNull().default("pentest"),
+		title: text().notNull(),
+		status: text({ enum: ENGAGEMENT_STATUS }).notNull().default("planned"),
+		productId: uuid().references(() => products.id, { onDelete: "set null" }),
+		scope: text(),
+		targets: stringList(),
+		outOfScope: text(),
+		rulesOfEngagement: text(),
+		methodology: text(),
+		testerExternal: boolean().notNull().default(true),
+		testerName: text(),
+		testerOrg: text(),
+		testerEmail: text(),
+		startAt: date(),
+		endAt: date(),
+		// schriftliche Beauftragung/Einverständnis (§ 202a/c StGB) — Pflicht
+		// vor „beauftragt“
+		authorizationEvidenceId: uuid().references(() => evidence.id, {
+			onDelete: "set null",
+		}),
+		authorizedByUserId: userRef(),
+		authorizedAt: ts(),
+		summary: text(),
+		reportEvidenceId: uuid().references(() => evidence.id, {
+			onDelete: "set null",
+		}),
+		deliveredAt: ts(),
+		result: text({ enum: ["pass", "partial", "fail"] }),
+		controlTestIds: stringList(),
+		retestDueAt: date(),
+		closedAt: ts(),
+		statusNote: text(),
+		ownerUserId: userRef(),
+		createdByUserId: userRef(),
+		...timestamps(),
+	},
+	(t) => [
+		unique().on(t.organizationId, t.code),
+		index("security_engagements_org_idx").on(t.organizationId, t.status),
+		orgPolicy("security_engagements"),
+	],
+).enableRLS();
+
 export const securityFindings = pgTable(
 	"security_findings",
 	{
@@ -142,6 +198,14 @@ export const securityFindings = pgTable(
 			onDelete: "set null",
 		}),
 		taskId: uuid().references(() => tasks.id, { onDelete: "set null" }),
+		// Sicherheitsauftrag (S7): Herkunft, CVSS-Vektor, Nachtest
+		engagementId: uuid().references(() => securityEngagements.id, {
+			onDelete: "set null",
+		}),
+		cvssVector: text(),
+		retestStatus: text({ enum: RETEST_STATUS }),
+		retestedAt: ts(),
+		retestNote: text(),
 		ownerUserId: userRef(),
 		...timestamps(),
 	},
@@ -155,3 +219,4 @@ export const securityFindings = pgTable(
 export type AccessToken = typeof accessTokens.$inferSelect;
 export type SecurityScan = typeof securityScans.$inferSelect;
 export type SecurityFinding = typeof securityFindings.$inferSelect;
+export type SecurityEngagement = typeof securityEngagements.$inferSelect;

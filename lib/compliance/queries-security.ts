@@ -3,6 +3,7 @@ import {
 	accessTokens,
 	nonconformities,
 	products,
+	securityEngagements,
 	securityFindings,
 	securityScans,
 	tasks,
@@ -85,51 +86,68 @@ export async function getFindingDetail(tx: OrgTx, orgId: string, id: string) {
 		)
 		.limit(1);
 	if (!row) return null;
-	const [details, scan, product, nc, task, names] = await Promise.all([
-		decryptJson<FindingDetails>(
-			tx,
-			orgId,
-			row.details,
-			fieldAad("security_findings", row.id, "details"),
-		),
-		row.lastScanId
-			? tx
-					.select({
-						id: securityScans.id,
-						toolName: securityScans.toolName,
-						startedAt: securityScans.startedAt,
-						source: securityScans.source,
-						evidenceId: securityScans.evidenceId,
-					})
-					.from(securityScans)
-					.where(eq(securityScans.id, row.lastScanId))
-					.limit(1)
-			: Promise.resolve([]),
-		row.productId
-			? tx
-					.select({ id: products.id, code: products.code, name: products.name })
-					.from(products)
-					.where(eq(products.id, row.productId))
-					.limit(1)
-			: Promise.resolve([]),
-		row.nonconformityId
-			? tx
-					.select({ id: nonconformities.id, code: nonconformities.code })
-					.from(nonconformities)
-					.where(eq(nonconformities.id, row.nonconformityId))
-					.limit(1)
-			: Promise.resolve([]),
-		row.taskId
-			? tx
-					.select({ id: tasks.id, title: tasks.title, status: tasks.status })
-					.from(tasks)
-					.where(eq(tasks.id, row.taskId))
-					.limit(1)
-			: Promise.resolve([]),
-		userNames(tx, [row.ownerUserId]),
-	]);
+	const [details, scan, product, nc, task, names, engagement] =
+		await Promise.all([
+			decryptJson<FindingDetails>(
+				tx,
+				orgId,
+				row.details,
+				fieldAad("security_findings", row.id, "details"),
+			),
+			row.lastScanId
+				? tx
+						.select({
+							id: securityScans.id,
+							toolName: securityScans.toolName,
+							startedAt: securityScans.startedAt,
+							source: securityScans.source,
+							evidenceId: securityScans.evidenceId,
+						})
+						.from(securityScans)
+						.where(eq(securityScans.id, row.lastScanId))
+						.limit(1)
+				: Promise.resolve([]),
+			row.productId
+				? tx
+						.select({
+							id: products.id,
+							code: products.code,
+							name: products.name,
+						})
+						.from(products)
+						.where(eq(products.id, row.productId))
+						.limit(1)
+				: Promise.resolve([]),
+			row.nonconformityId
+				? tx
+						.select({ id: nonconformities.id, code: nonconformities.code })
+						.from(nonconformities)
+						.where(eq(nonconformities.id, row.nonconformityId))
+						.limit(1)
+				: Promise.resolve([]),
+			row.taskId
+				? tx
+						.select({ id: tasks.id, title: tasks.title, status: tasks.status })
+						.from(tasks)
+						.where(eq(tasks.id, row.taskId))
+						.limit(1)
+				: Promise.resolve([]),
+			userNames(tx, [row.ownerUserId]),
+			row.engagementId
+				? tx
+						.select({
+							id: securityEngagements.id,
+							code: securityEngagements.code,
+							title: securityEngagements.title,
+						})
+						.from(securityEngagements)
+						.where(eq(securityEngagements.id, row.engagementId))
+						.limit(1)
+				: Promise.resolve([]),
+		]);
 	return {
 		finding: row,
+		engagement: engagement[0] ?? null,
 		details,
 		scan: scan[0] ?? null,
 		product: product[0] ?? null,

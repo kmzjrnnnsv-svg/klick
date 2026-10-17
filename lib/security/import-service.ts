@@ -67,6 +67,7 @@ const TOOL_CONTROLS: Record<ScanTool, string[]> = {
 	zap: ["CC-DEV-04"],
 	nuclei: ["CC-DEV-04"],
 	quick_check: ["CC-DEV-04", "CC-CRY-05"],
+	manual: [],
 };
 
 const EVIDENCE_SOURCE = {

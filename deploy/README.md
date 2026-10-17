@@ -152,6 +152,14 @@ Datei.
   `security_scans`, `security_findings` an (FORCE RLS). Rechte für `klick_app` kommen über die
   Default-Privilegien von `klick_migrator`.
 
+## Sicherheitsaufträge (S7)
+- **Migration:** `0009_security_engagements` legt `security_engagements` an (FORCE RLS) und ergänzt
+  `security_findings` um `engagement_id`, `cvss_vector`, `retest_status`, `retested_at`,
+  `retest_note` (additiv).
+- **Betrieb:** keine Jobs, keine Netzanfragen — aktive Tests laufen beim Tester. Erinnerungen
+  (Testende ohne Bericht, Nachtest) kommen aus dem `compliance-tick`.
+- **Bericht:** `/api/export/sicherheitsauftrag.zip?id=…` (Step-up, Export-ID im Audit-Log).
+
 ## Lieferantenportal (S6, ADR-017)
 - **Ablauf:** Dienstleister → Bewertungen → „Bewertung starten“ → „Link erzeugen“ (optional per
   Mail). Der Link `https://raza.work/lieferant#klk_portal_…` trägt den Token im Fragment; die Seite

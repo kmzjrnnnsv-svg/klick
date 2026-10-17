@@ -5,6 +5,7 @@ import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { PageHeader } from "@/components/page-header";
+import { NewEngagementDialog } from "@/components/security/engagement-forms";
 import {
 	QuickCheckForm,
 	RefreshWhileRunning,
@@ -30,6 +31,7 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
+import { listEngagements } from "@/lib/compliance/queries-engagements";
 import { listProductOptions } from "@/lib/compliance/queries-products";
 import {
 	findingStats,
@@ -37,6 +39,7 @@ import {
 	listScans,
 } from "@/lib/compliance/queries-security";
 import { readOrg } from "@/lib/db/with-org";
+import { ENGAGEMENT_STATUS_MACHINE } from "@/lib/entities/engagement";
 import {
 	FINDING_STATUS_MACHINE,
 	SEVERITY_TONE,
@@ -45,7 +48,13 @@ import { SCAN_TOOL_LABEL } from "@/lib/security/parsers";
 import { QUICK_CHECKS_PER_DAY } from "@/lib/security/quick-check-service";
 import { cn } from "@/lib/utils";
 
-const TABS = ["uebersicht", "befunde", "scans", "schnellcheck"] as const;
+const TABS = [
+	"uebersicht",
+	"befunde",
+	"scans",
+	"schnellcheck",
+	"auftraege",
+] as const;
 type Tab = (typeof TABS)[number];
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -66,14 +75,16 @@ export default async function SecurityPage({
 		? (one(sp.tab) as Tab)
 		: "uebersicht";
 	const canCreate = roleAllows(ctx.orgRole, { security: ["create"] });
-	const { findings, scans, products } = await readOrg(
+	const { findings, scans, products, engagements } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
 			findings: await listFindings(tx, ctx.orgId),
 			scans: await listScans(tx, ctx.orgId),
 			products: await listProductOptions(tx, ctx.orgId),
+			engagements: await listEngagements(tx, ctx.orgId),
 		}),
 	);
+	const tg = await getTranslations("Engagements");
 	const now = new Date();
 	const stats = findingStats(findings, now);
 	const quickToday = scans.filter(
@@ -146,7 +157,9 @@ export default async function SecurityPage({
 							? stats.open
 							: x === "scans"
 								? scans.length
-								: undefined,
+								: x === "auftraege"
+									? engagements.length
+									: undefined,
 				}))}
 			/>
 
@@ -519,6 +532,83 @@ export default async function SecurityPage({
 						<p className="text-muted-foreground">{t("quickNot")}</p>
 					</aside>
 				</div>
+			)}
+			{tab === "auftraege" && (
+				<section className="flex flex-col gap-4">
+					<div className="flex flex-wrap items-start justify-between gap-3">
+						<p className="max-w-2xl text-sm">{tg("lead")}</p>
+						{canCreate && <NewEngagementDialog products={products} />}
+					</div>
+					{engagements.length === 0 ? (
+						<EmptyState title={tg("empty")} lead={tg("emptyLead")} />
+					) : (
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>{tg("engagement")}</TableHead>
+									<TableHead className="w-36">{tg("kind")}</TableHead>
+									<TableHead className="w-40">{tg("period")}</TableHead>
+									<TableHead className="w-40">{tg("findings")}</TableHead>
+									<TableHead className="w-32">{tg("status")}</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{engagements.map((e) => (
+									<TableRow key={e.id}>
+										<TableCell>
+											<Link
+												href={`/sicherheit/auftraege/${e.id}`}
+												className="font-medium hover:underline"
+											>
+												<span className="font-mono text-xs" translate="no">
+													{e.code}
+												</span>{" "}
+												{e.title}
+											</Link>
+											{e.productCode && (
+												<span className="block text-muted-foreground text-xs">
+													{e.productCode} {e.productName}
+												</span>
+											)}
+										</TableCell>
+										<TableCell className="text-sm">
+											{tg(`kind_${e.kind}`)}
+										</TableCell>
+										<TableCell className="text-sm">
+											{e.startAt
+												? `${fmtDate.format(new Date(e.startAt))} – ${e.endAt ? fmtDate.format(new Date(e.endAt)) : "…"}`
+												: "—"}
+										</TableCell>
+										<TableCell className="text-sm">
+											{tg("findingsShort", {
+												total: e.findings.total,
+												open: e.findings.open,
+											})}
+											{e.findings.critical + e.findings.high > 0 && (
+												<Badge variant="destructive" className="ml-2">
+													{tg("criticalHigh", {
+														n: e.findings.critical + e.findings.high,
+													})}
+												</Badge>
+											)}
+										</TableCell>
+										<TableCell>
+											<StatusBadge
+												machine={ENGAGEMENT_STATUS_MACHINE}
+												status={e.status}
+												label={ts(
+													ENGAGEMENT_STATUS_MACHINE.labelKey[
+														e.status
+													] as "egPlanned",
+												)}
+											/>
+										</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					)}
+				</section>
 			)}
 		</>
 	);

@@ -677,3 +677,44 @@ describe("collectDueItems — Lieferantenbewertungen", () => {
 		);
 	});
 });
+
+describe("collectDueItems — Sicherheitsaufträge", () => {
+	it("Bericht nach Testende (wöchentlich), Nachtest 7 Tage vorher und überfällig", () => {
+		const eng = (
+			id: string,
+			status: string,
+			endAt: string | null,
+			retestDueAt: string | null,
+		) => ({
+			id,
+			code: `SA-${id}`,
+			title: "Pentest",
+			status,
+			endAt,
+			retestDueAt,
+			ownerUserId: "u1",
+		});
+		const res = collectDueItems(NOW, {
+			...empty,
+			engagements: [
+				eng("end0", "in_progress", "2026-10-07", null),
+				eng("end3", "in_progress", "2026-10-04", null),
+				eng("end7", "authorized", "2026-09-30", null),
+				eng("rt7", "delivered", null, "2026-10-14"),
+				eng("rt6", "delivered", null, "2026-10-13"),
+				eng("rtOver", "retest", null, "2026-09-30"),
+				eng("closed", "closed", "2026-10-07", "2026-09-30"),
+			],
+		});
+		const keys = res.notifications
+			.map((n) => n.dedupeKey)
+			.filter((k) => k.startsWith("engagement_"))
+			.sort();
+		expect(keys).toEqual([
+			"engagement_report:end0:0",
+			"engagement_report:end7:-7",
+			"engagement_retest:rt7:7",
+			"engagement_retest:rtOver:-7",
+		]);
+	});
+});

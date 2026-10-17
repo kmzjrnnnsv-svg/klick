@@ -436,6 +436,7 @@ const START = [
 	"/sicherheit?tab=befunde",
 	"/sicherheit?tab=scans",
 	"/sicherheit?tab=schnellcheck",
+	"/sicherheit?tab=auftraege",
 	"/risiken",
 	"/risiken?tab=matrix",
 	"/risiken?tab=ausnahmen",

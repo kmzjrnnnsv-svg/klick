@@ -1,9 +1,14 @@
 "use server";
 
-import { and, count, eq, gte } from "drizzle-orm";
+import { and, count, eq, gte, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { products, securityFindings, securityScans } from "@/db/schema";
+import {
+	products,
+	securityEngagements,
+	securityFindings,
+	securityScans,
+} from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { mutateOrg } from "@/lib/db/with-org";
@@ -63,8 +68,35 @@ async function importScanFileImpl(
 	const text = new TextDecoder().decode(bytes);
 	const parsed = parseScanFile(text, v.safeName);
 	if (!parsed.ok) return { ok: false, error: `scan_${parsed.error}` };
-	const productId = String(formData.get("productId") ?? "") || null;
+	let productId = String(formData.get("productId") ?? "") || null;
+	// Import in einen Sicherheitsauftrag: Befunde gehören zum Auftrag, kein
+	// Vollscan-Abgleich (der Auftrag sieht nur einen Ausschnitt).
+	const engagementId = String(formData.get("engagementId") ?? "") || null;
 	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
+		if (engagementId) {
+			const [e] = await tx
+				.select({
+					id: securityEngagements.id,
+					status: securityEngagements.status,
+					productId: securityEngagements.productId,
+				})
+				.from(securityEngagements)
+				.where(
+					and(
+						eq(securityEngagements.id, engagementId),
+						eq(securityEngagements.organizationId, c.orgId),
+					),
+				)
+				.limit(1);
+			if (
+				!e ||
+				e.status === "planned" ||
+				e.status === "closed" ||
+				e.status === "cancelled"
+			)
+				return { result: null, audit: [] };
+			productId = productId ?? e.productId;
+		}
 		if (productId) {
 			const [p] = await tx
 				.select({ id: products.id })
@@ -78,10 +110,21 @@ async function importScanFileImpl(
 		const r = await importScan(tx, c, {
 			parsed: parsed.scan,
 			source: "upload",
-			fullScan: formData.get("fullScan") === "1",
+			fullScan: !engagementId && formData.get("fullScan") === "1",
 			productId,
 			raw: { text, fileName: v.safeName },
 		});
+		if (engagementId)
+			await tx
+				.update(securityFindings)
+				.set({ engagementId })
+				.where(
+					and(
+						eq(securityFindings.organizationId, c.orgId),
+						eq(securityFindings.lastScanId, r.scanId),
+						isNull(securityFindings.engagementId),
+					),
+				);
 		return { result: r, audit: r.audits };
 	});
 	if (!res) return { ok: false, error: "notFound" };

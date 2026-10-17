@@ -79,8 +79,15 @@ const SCAN_ERRORS = new Set([
 	"scan_too_many",
 ]);
 
-// Scan-Datei importieren (SARIF, Trivy, ZAP, OSV, Nuclei, gitleaks).
-export function ScanImportDialog({ products }: { products: ProductOption[] }) {
+// Scan-Datei importieren (SARIF, Trivy, ZAP, OSV, Nuclei, gitleaks) — global
+// oder in einen Sicherheitsauftrag (dann ohne Vollscan-Abgleich).
+export function ScanImportDialog({
+	products,
+	engagementId,
+}: {
+	products: ProductOption[];
+	engagementId?: string;
+}) {
 	const t = useTranslations("Security");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -96,8 +103,8 @@ export function ScanImportDialog({ products }: { products: ProductOption[] }) {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button size="sm" variant="brown">
-					<Upload />
+				<Button size="sm" variant={engagementId ? "outline" : "brown"}>
+					<Upload aria-hidden="true" />
 					{t("import")}
 				</Button>
 			</DialogTrigger>
@@ -112,7 +119,8 @@ export function ScanImportDialog({ products }: { products: ProductOption[] }) {
 							const fd = new FormData();
 							fd.set("file", file);
 							if (productId) fd.set("productId", productId);
-							if (fullScan) fd.set("fullScan", "1");
+							if (engagementId) fd.set("engagementId", engagementId);
+							else if (fullScan) fd.set("fullScan", "1");
 							if (ack) fd.set("dlpAcknowledged", "1");
 							const res = await importScanFile(fd);
 							if (!res.ok) {
@@ -134,7 +142,8 @@ export function ScanImportDialog({ products }: { products: ProductOption[] }) {
 							setWarn(null);
 							setAck(false);
 							setMessage(null);
-							router.push("/sicherheit?tab=befunde");
+							if (engagementId) router.refresh();
+							else router.push("/sicherheit?tab=befunde");
 						});
 					}}
 				>
@@ -152,7 +161,7 @@ export function ScanImportDialog({ products }: { products: ProductOption[] }) {
 							required
 						/>
 					</div>
-					{products.length > 0 && (
+					{products.length > 0 && !engagementId && (
 						<ProductSelect
 							id="scan-product"
 							value={productId}
@@ -160,19 +169,21 @@ export function ScanImportDialog({ products }: { products: ProductOption[] }) {
 							products={products}
 						/>
 					)}
-					<label className="flex items-start gap-2 text-sm">
-						<Checkbox
-							checked={fullScan}
-							onCheckedChange={(v) => setFullScan(Boolean(v))}
-							className="mt-0.5"
-						/>
-						<span>
-							{t("fullScan")}
-							<span className="block text-muted-foreground text-xs">
-								{t("fullScanHint")}
+					{!engagementId && (
+						<label className="flex items-start gap-2 text-sm">
+							<Checkbox
+								checked={fullScan}
+								onCheckedChange={(v) => setFullScan(Boolean(v))}
+								className="mt-0.5"
+							/>
+							<span>
+								{t("fullScan")}
+								<span className="block text-muted-foreground text-xs">
+									{t("fullScanHint")}
+								</span>
 							</span>
-						</span>
-					</label>
+						</label>
+					)}
 					{warn && (
 						<DlpWarning
 							reasons={warn}

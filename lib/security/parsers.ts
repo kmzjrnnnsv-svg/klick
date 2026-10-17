@@ -459,4 +459,5 @@ export const SCAN_TOOL_LABEL: Record<ScanTool, string> = {
 	nuclei: "Nuclei",
 	gitleaks: "gitleaks",
 	quick_check: "Schnellcheck",
+	manual: "Manuell",
 };

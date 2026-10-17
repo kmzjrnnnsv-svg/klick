@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { setControlStatus } from "@/app/actions/controls";
 import { transitionDocument } from "@/app/actions/documents";
+import { setEngagementStatus } from "@/app/actions/engagements";
 import { setIncidentStatus } from "@/app/actions/incidents";
 import { setNonconformityStatus } from "@/app/actions/nonconformities";
 import { setProcessStatus } from "@/app/actions/processes";
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import type {
+	EngagementStatus,
 	FindingStatus,
 	ImplStatus,
 	ProductStatus,
@@ -40,6 +42,7 @@ import {
 	DOCUMENT_STATUS_MACHINE,
 	type DocumentStatus,
 } from "@/lib/entities/document";
+import { ENGAGEMENT_STATUS_MACHINE } from "@/lib/entities/engagement";
 import { INCIDENT_STATUS, type IncidentStatus } from "@/lib/entities/incident";
 import {
 	NONCONFORMITY_STATUS,
@@ -72,7 +75,12 @@ type Target =
 	  }
 	| { kind: "document"; documentId: string; status: DocumentStatus }
 	| { kind: "product"; productId: string; status: ProductStatus }
-	| { kind: "security_finding"; findingId: string; status: FindingStatus };
+	| { kind: "security_finding"; findingId: string; status: FindingStatus }
+	| {
+			kind: "security_engagement";
+			engagementId: string;
+			status: EngagementStatus;
+	  };
 
 const MACHINES = {
 	control: CONTROL_STATUS,
@@ -84,6 +92,7 @@ const MACHINES = {
 	document: DOCUMENT_STATUS_MACHINE,
 	product: PRODUCT_STATUS,
 	security_finding: FINDING_STATUS_MACHINE,
+	security_engagement: ENGAGEMENT_STATUS_MACHINE,
 } as const;
 
 // Status wechselt per Button mit dem nächsten sinnvollen Übergang; weitere
@@ -120,17 +129,21 @@ export function StatusButton({
 				toast.error(
 					error.startsWith("transition_")
 						? t("transitionBlocked")
-						: error === "rootCauseRequired"
-							? t("rootCauseRequired")
-							: error === "effectivenessRequired"
-								? t("effectivenessRequired")
-								: error === "correctiveActionRequired"
-									? t("correctiveActionRequired")
-									: error === "no_approver" ||
-											error.startsWith("solo_") ||
-											error === "workflow_disabled"
-										? t(`approvalError_${error}` as "approvalError_no_approver")
-										: tc("error"),
+						: error.startsWith("gate_")
+							? t(error as "gate_authorization_missing")
+							: error === "rootCauseRequired"
+								? t("rootCauseRequired")
+								: error === "effectivenessRequired"
+									? t("effectivenessRequired")
+									: error === "correctiveActionRequired"
+										? t("correctiveActionRequired")
+										: error === "no_approver" ||
+												error.startsWith("solo_") ||
+												error === "workflow_disabled"
+											? t(
+													`approvalError_${error}` as "approvalError_no_approver",
+												)
+											: tc("error"),
 				);
 				return undefined;
 			};
@@ -200,6 +213,14 @@ export function StatusButton({
 				const res = await setNonconformityStatus({
 					nonconformityId: target.nonconformityId,
 					status: to,
+					note: withNote,
+				});
+				if (!res.ok) return fail(res.error);
+				toast.success(t("statusChanged"));
+			} else if (target.kind === "security_engagement") {
+				const res = await setEngagementStatus({
+					engagementId: target.engagementId,
+					status: to as EngagementStatus,
 					note: withNote,
 				});
 				if (!res.ok) return fail(res.error);
