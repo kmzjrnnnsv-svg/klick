@@ -1546,7 +1546,7 @@
 		"selectAll": "Alle",
 		"alreadyAssigned": "offen zugewiesen",
 		"unassign": "Zuweisung entfernen",
-		"complete": "Abgeschlossen",
+		"complete": "Erledigt melden",
 		"completeTitle": "„{title}“ abgeschlossen",
 		"completeLead": "Du bestätigst, dass du die Schulung absolviert hast. Das wird mit Datum protokolliert; die nächste Fälligkeit ergibt sich aus dem Turnus.",
 		"completeNote": "Notiz (optional, z. B. Zertifikatsnummer)",
