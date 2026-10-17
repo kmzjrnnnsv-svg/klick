@@ -149,6 +149,7 @@ export default async function IncidentsPage({
 
 	return (
 		<RegisterPage
+			help="vorfaelle"
 			title={t("title")}
 			lead={t("lead")}
 			actions={

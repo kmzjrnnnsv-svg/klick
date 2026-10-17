@@ -233,7 +233,7 @@ export default async function OverviewPage() {
 	return (
 		<>
 			<PageHeader title={t("title")} />
-			<div className="grid gap-4 lg:grid-cols-3">
+			<div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
 				<Card className="lg:col-span-2">
 					<CardHeader>
 						<CardTitle>{t("coverageTitle")}</CardTitle>
@@ -306,7 +306,7 @@ export default async function OverviewPage() {
 						)}
 					</CardContent>
 				</Card>
-				<div className="flex flex-col gap-4">
+				<div className="flex min-w-0 flex-col gap-4">
 					<Card>
 						<CardHeader>
 							<CardTitle className="text-base">{t("setupTitle")}</CardTitle>
@@ -348,7 +348,7 @@ export default async function OverviewPage() {
 				</div>
 			</div>
 
-			<div className="mt-4 grid gap-4 lg:grid-cols-3">
+			<div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
 				<Card className="lg:col-span-2">
 					<CardHeader>
 						<CardTitle className="flex items-center justify-between text-base">
@@ -402,7 +402,7 @@ export default async function OverviewPage() {
 						)}
 					</CardContent>
 				</Card>
-				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
 					<Card>
 						<CardHeader>
 							<CardTitle className="text-base">

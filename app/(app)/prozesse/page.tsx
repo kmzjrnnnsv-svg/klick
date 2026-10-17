@@ -99,6 +99,7 @@ export default async function ProcessesPage({
 	return (
 		<>
 			<PageHeader
+				help="prozesse"
 				title={t("title")}
 				lead={t("lead")}
 				actions={

@@ -229,6 +229,8 @@ export default async function OrganisationPage({
 	return (
 		<>
 			<PageHeader
+				help="organisation"
+				tour={tab === "rollen" ? "rollen" : undefined}
 				title={t("title")}
 				lead={t("lead")}
 				actions={
@@ -572,11 +574,13 @@ export default async function OrganisationPage({
 					<div className="flex items-start justify-between gap-3">
 						<p className="text-muted-foreground text-sm">{t("rolesLead")}</p>
 						{canRoles && (
-							<RoleAssignmentForm
-								members={members}
-								functionLabels={functionLabels}
-								decideHint={data.decideHint}
-							/>
+							<div data-tour="new-assignment">
+								<RoleAssignmentForm
+									members={members}
+									functionLabels={functionLabels}
+									decideHint={data.decideHint}
+								/>
+							</div>
 						)}
 					</div>
 					{gov.sod.length > 0 && (
@@ -603,7 +607,7 @@ export default async function OrganisationPage({
 							</ul>
 						</div>
 					)}
-					<Table>
+					<Table data-tour="required-functions">
 						<TableHeader>
 							<TableRow>
 								<TableHead>{t("function")}</TableHead>

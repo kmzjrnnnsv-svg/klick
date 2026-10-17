@@ -47,6 +47,7 @@ export default async function FrameworksPage() {
 	return (
 		<>
 			<PageHeader
+				help="rahmenwerke"
 				title={t("title")}
 				lead={t("lead")}
 				actions={

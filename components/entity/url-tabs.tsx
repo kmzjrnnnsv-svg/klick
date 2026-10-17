@@ -26,6 +26,7 @@ export function UrlTabs({
 	return (
 		<nav
 			aria-label="Reiter"
+			data-tour="url-tabs"
 			className="mb-6 flex gap-1 overflow-x-auto border-border/60 border-b"
 		>
 			{tabs.map((tab) => {

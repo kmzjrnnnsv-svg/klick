@@ -89,11 +89,16 @@ export default async function TeamPage() {
 	return (
 		<>
 			<PageHeader
+				help="team"
+				tour="team"
 				title={t("title")}
 				lead={t("lead")}
 				actions={canManage ? <InviteForm /> : undefined}
 			/>
-			<details className="mb-6 rounded-md border bg-muted/30 p-4 text-sm [&[open]>summary]:mb-3">
+			<details
+				data-tour="rights"
+				className="mb-6 rounded-md border bg-muted/30 p-4 text-sm [&[open]>summary]:mb-3"
+			>
 				<summary className="cursor-pointer font-medium">
 					{t("rightsTitle")}
 				</summary>
@@ -112,7 +117,7 @@ export default async function TeamPage() {
 					<RightsMatrix />
 				</div>
 			</details>
-			<section className="flex flex-col gap-3">
+			<section className="flex flex-col gap-3" data-tour="members">
 				<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
 					{t("members")}
 				</h2>

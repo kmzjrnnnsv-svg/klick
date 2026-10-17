@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
+import { TourHost } from "@/components/guide/tour-host";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import type { OrgContext } from "@/lib/auth/guards";
 import type { NavGroup } from "@/lib/nav";
@@ -54,6 +55,7 @@ export async function AppShell({
 					{journey && (
 						<Link
 							href="/heute"
+							data-tour="journey-chip"
 							className="mt-2 flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs hover:bg-muted"
 						>
 							<span className="font-medium">
@@ -95,6 +97,7 @@ export async function AppShell({
 					{children}
 				</main>
 				<StepUpDialog />
+				<TourHost />
 			</div>
 		</div>
 	);

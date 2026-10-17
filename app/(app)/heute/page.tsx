@@ -209,6 +209,8 @@ export default async function TodayPage() {
 	return (
 		<>
 			<PageHeader
+				help="heute"
+				tour="heute"
 				eyebrow={new Intl.DateTimeFormat("de-DE", {
 					dateStyle: "full",
 					timeZone: "Europe/Berlin",
@@ -222,7 +224,7 @@ export default async function TodayPage() {
 					/>
 				}
 			/>
-			<div className="grid gap-4 md:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 				{journey && (
 					<NextStepCard
 						journey={journey}

@@ -36,6 +36,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 		licenceStage: settings?.licenceStage ?? "0_vorbereitung",
 		caspServices: settings?.caspServices ?? [],
 		role: ctx.orgRole,
+		isPlatformAdmin: ctx.isPlatformAdmin,
 		// „Heute“ zählt überfällige eigene Aufgaben
 		counts: { today: overdueTasks || undefined },
 	});

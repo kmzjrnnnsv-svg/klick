@@ -98,7 +98,7 @@ export default async function SynergiesPage({
 
 	return (
 		<>
-			<PageHeader title={t("title")} lead={t("lead")} />
+			<PageHeader help="synergien" title={t("title")} lead={t("lead")} />
 			<p className="mb-4 text-sm">
 				<span className="font-medium">
 					{cov.frameworks.map(fwLabel).join(" + ")}

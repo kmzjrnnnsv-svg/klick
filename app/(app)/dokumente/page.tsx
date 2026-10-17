@@ -166,6 +166,8 @@ export default async function DocumentsPage({
 
 	return (
 		<RegisterPage
+			help="dokumente"
+			tour="dokumente"
 			title={t("title")}
 			lead={t("lead")}
 			actions={actions}

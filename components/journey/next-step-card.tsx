@@ -4,8 +4,12 @@ import { getTranslations } from "next-intl/server";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Journey } from "@/lib/compliance/journey";
+import { TOUR_FOR_STEP } from "@/lib/guide/tours";
 import { cn } from "@/lib/utils";
 import { StageCelebration } from "./stage-celebration";
+
+const withParam = (href: string, key: string, value: string) =>
+	`${href}${href.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(value)}`;
 
 // Etappen-Karte oben auf /heute: Fortschrittsring, EIN großer nächster
 // Schritt mit „Warum?“, Häkchen der aktuellen Etappe, Abzeichen. Fortschritt
@@ -29,7 +33,7 @@ export async function NextStepCard({
 	const r = 26;
 	const circ = 2 * Math.PI * r;
 	return (
-		<Card className="border-primary/40 md:col-span-2">
+		<Card data-tour="next-step" className="border-primary/40 md:col-span-2">
 			<CardContent className="flex flex-col gap-5 pt-6 sm:flex-row sm:items-start">
 				<div className="flex items-center gap-4 sm:w-56 sm:flex-col sm:items-start">
 					<svg
@@ -118,15 +122,32 @@ export async function NextStepCard({
 										: t("askOwnerAnon")}
 								</p>
 							) : (
-								<Link
-									href={next.href}
-									className={cn(
-										buttonVariants({ variant: "brown" }),
-										"w-fit gap-2",
+								<div className="flex flex-wrap items-center gap-2">
+									<Link
+										href={next.href}
+										className={cn(
+											buttonVariants({ variant: "brown" }),
+											"w-fit gap-2",
+										)}
+									>
+										{t("go")} <ArrowRight className="size-4" />
+									</Link>
+									{TOUR_FOR_STEP[next.key] && (
+										<Link
+											href={withParam(
+												next.href,
+												"zeig",
+												TOUR_FOR_STEP[next.key] ?? "",
+											)}
+											className={cn(
+												buttonVariants({ variant: "ghost" }),
+												"w-fit",
+											)}
+										>
+											{t("showMe")}
+										</Link>
 									)}
-								>
-									{t("go")} <ArrowRight className="size-4" />
-								</Link>
+								</div>
 							)}
 						</div>
 					) : (

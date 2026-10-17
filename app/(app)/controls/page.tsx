@@ -192,6 +192,8 @@ export default async function ControlsPage({
 	return (
 		<BulkProvider>
 			<RegisterPage
+				help="controls"
+				tour="controls"
 				title={t("title")}
 				lead={t("lead")}
 				filters={[

@@ -292,6 +292,7 @@ export default async function ProvidersPage({
 	];
 	return (
 		<RegisterPage
+			help="dienstleister"
 			title={t("title")}
 			lead={t("lead")}
 			actions={

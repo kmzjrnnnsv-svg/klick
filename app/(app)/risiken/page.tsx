@@ -131,6 +131,8 @@ export default async function RisksPage({
 	return (
 		<>
 			<PageHeader
+				help="risiken"
+				tour="risiken"
 				title={t("title")}
 				lead={t("lead")}
 				actions={

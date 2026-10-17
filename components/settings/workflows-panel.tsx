@@ -93,7 +93,10 @@ export function WorkflowsPanel({
 												{t("workflowReady")}
 											</Badge>
 										) : (
-											<Badge variant="warning" className="gap-1">
+											<Badge
+												variant="warning"
+												className="h-auto gap-1 whitespace-normal text-left"
+											>
 												<CircleAlert className="size-3" />
 												{t("workflowGap", {
 													list: gaps.map((g) => ruleLabel(g.rule)).join(", "),

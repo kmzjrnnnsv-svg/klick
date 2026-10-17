@@ -114,6 +114,8 @@ export type NavInput = {
 	caspServices: string[];
 	role: OrgRole;
 	counts?: { today?: number };
+	// Plattform-Baseline (Mandant 0) ist für Kund:innen kein Arbeitsbereich
+	isPlatformAdmin?: boolean;
 };
 
 const FINANCE_SLUGS = new Set([
@@ -378,12 +380,16 @@ export function buildNav(input: NavInput): NavGroup[] {
 				href: `/rahmenwerke/${f.slug}`,
 				icon: "book-open" as const,
 			})),
-			{
-				key: "baseline",
-				labelKey: "baseline",
-				href: "/baseline",
-				icon: "shield-check",
-			},
+			...(input.isPlatformAdmin
+				? [
+						{
+							key: "baseline",
+							labelKey: "baseline" as const,
+							href: "/baseline",
+							icon: "shield-check" as const,
+						},
+					]
+				: []),
 		],
 	});
 

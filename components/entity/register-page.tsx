@@ -77,7 +77,11 @@ export function RegisterPage<T extends { id: string }>({
 	rowHref,
 	empty,
 	footer,
+	help,
+	tour,
 }: {
+	help?: string;
+	tour?: string;
 	title: string;
 	lead?: string;
 	eyebrow?: string;
@@ -98,8 +102,10 @@ export function RegisterPage<T extends { id: string }>({
 				lead={lead}
 				eyebrow={eyebrow}
 				actions={actions}
+				help={help}
+				tour={tour}
 			/>
-			<div className="mb-4">
+			<div className="mb-4" data-tour="register-filters">
 				<RegisterFilters
 					filters={filters}
 					chips={chips}
@@ -110,7 +116,7 @@ export function RegisterPage<T extends { id: string }>({
 				empty
 			) : (
 				<>
-					<div className="hidden sm:block">
+					<div className="hidden sm:block" data-tour="register-table">
 						<Table>
 							<TableHeader>
 								<TableRow>

@@ -132,6 +132,7 @@ export default async function EvidencePage({
 
 	return (
 		<RegisterPage
+			help="nachweise"
 			title={t("title")}
 			lead={t("lead")}
 			actions={

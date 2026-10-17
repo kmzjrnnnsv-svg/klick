@@ -91,4 +91,18 @@ describe("buildNav", () => {
 				?.items.some((i) => i.href === "/rahmenwerke/iso27001"),
 		).toBe(true);
 	});
+	it("Plattform-Baseline nur für Plattform-Admins", () => {
+		const input = {
+			frameworks: [{ slug: "iso27001", name: "ISO 27001" }],
+			licenceStage: "0_vorbereitung" as const,
+			caspServices: [],
+			role: "owner" as const,
+		};
+		const keys = (g: ReturnType<typeof buildNav>) =>
+			g.flatMap((x) => x.items.map((i) => i.key));
+		expect(keys(buildNav(input))).not.toContain("baseline");
+		expect(keys(buildNav({ ...input, isPlatformAdmin: true }))).toContain(
+			"baseline",
+		);
+	});
 });
