@@ -24,15 +24,18 @@ export async function AppShell({
 	orgName,
 	groups,
 	bell,
+	journey,
 	children,
 }: {
 	ctx: OrgContext;
 	orgName: string;
 	groups: NavGroup[];
 	bell: { items: BellItem[]; unread: number };
+	journey?: { stage: number; total: number; pct: number } | null;
 	children: ReactNode;
 }) {
 	const t = await getTranslations("Common");
+	const tj = await getTranslations("Journey");
 	return (
 		<div className="flex min-h-full">
 			<aside className="hidden w-60 shrink-0 flex-col border-border/60 border-r bg-sidebar text-sidebar-foreground lg:flex">
@@ -48,6 +51,23 @@ export async function AppShell({
 					<p className="lv-eyebrow truncate text-[0.58rem] text-muted-foreground">
 						{orgName}
 					</p>
+					{journey && (
+						<Link
+							href="/heute"
+							className="mt-2 flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs hover:bg-muted"
+						>
+							<span className="font-medium">
+								{tj("chip", { n: journey.stage, total: journey.total })}
+							</span>
+							<span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+								<span
+									className="block h-full rounded-full bg-primary"
+									style={{ width: `${journey.pct}%` }}
+								/>
+							</span>
+							<span className="text-muted-foreground">{journey.pct} %</span>
+						</Link>
+					)}
 				</div>
 				<div className="flex-1 overflow-y-auto px-3 pb-4">
 					<SidebarNav groups={groups} />

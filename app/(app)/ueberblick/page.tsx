@@ -1,8 +1,8 @@
-import { CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CoverageBar } from "@/components/entity/coverage-bar";
 import { Sparkline } from "@/components/entity/sparkline";
+import { JourneyStages } from "@/components/journey/journey-stages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -28,6 +28,7 @@ import {
 import { capaState } from "@/lib/compliance/nonconformity";
 import { runState } from "@/lib/compliance/obligations";
 import {
+	getJourneyCached,
 	getOrgCoverageCached,
 	pct,
 	shortFrameworkName,
@@ -54,7 +55,6 @@ import {
 } from "@/lib/compliance/queries-p3";
 import { listPostureSnapshots } from "@/lib/compliance/queries-p4";
 import { loadReadiness } from "@/lib/compliance/queries-readiness";
-import { DEFAULT_RISK_APPETITE } from "@/lib/compliance/risk";
 import { prioritizePlan } from "@/lib/compliance/synergy";
 import { readOrg } from "@/lib/db/with-org";
 import { getOrgSettings } from "@/lib/org/queries";
@@ -72,7 +72,7 @@ export default async function OverviewPage() {
 	const t = await getTranslations("Overview");
 	const tc = await getTranslations("Controls");
 	const tr = await getTranslations("Readiness");
-	const [members, invitations, cov] = await Promise.all([
+	const [members, _invitations, cov] = await Promise.all([
 		listOrgMembers(ctx.orgId),
 		listPendingInvitations(ctx.orgId),
 		getOrgCoverageCached(ctx),
@@ -133,10 +133,6 @@ export default async function OverviewPage() {
 		};
 	});
 	const { controls, evidence, openTasks } = g;
-	const appetiteConfirmed =
-		g.risks.length > 0 ||
-		JSON.stringify(g.orgSettings?.riskAppetite ?? DEFAULT_RISK_APPETITE) !==
-			JSON.stringify(DEFAULT_RISK_APPETITE);
 	const resCov = resolutionCoverage(
 		requiredResolutions(fws, stage),
 		g.resolutions
@@ -194,98 +190,13 @@ export default async function OverviewPage() {
 			href: "/kalender",
 		},
 	].filter((x) => x.count > 0);
-	const hasNis2 = fws.includes("nis2");
-	const hasDora = fws.includes("dora");
-	const accepted = controls.filter((c) => c.status !== "not_started").length;
 	const withEvidence = new Set(evidence.flatMap((e) => e.controlCodes));
 	const implementedWithoutEvidence = controls.filter(
 		(c) => c.status === "implemented" && !withEvidence.has(c.code),
 	);
 	const withoutOwner = controls.filter((c) => !c.ownerUserId);
 
-	const steps: {
-		key: string;
-		label: string;
-		done: boolean;
-		href: string;
-		phase?: string;
-	}[] = [
-		{ key: "mfa", label: t("setupMfa"), done: true, href: "/einstellungen" },
-		{
-			key: "gap",
-			label: t("setupGap"),
-			done: g.gapDone,
-			href: "/gap-analyse",
-		},
-		{
-			key: "team",
-			label: t("setupTeam"),
-			done: members.length > 1 || invitations.length > 0,
-			href: "/team",
-		},
-		...(hasNis2
-			? [
-					{
-						key: "nis2",
-						label: t("setupNis2"),
-						done: settings?.nis2Status !== "unchecked",
-						href: "/einstellungen?tab=frameworks",
-					},
-				]
-			: []),
-		...(hasDora
-			? [
-					{
-						key: "tlpt",
-						label: t("setupTlpt"),
-						done:
-							Boolean(g.orgSettings?.setupFlags?.tlptConfirmedAt) ||
-							Boolean(settings?.tlptDesignated),
-						href: "/einstellungen?tab=frameworks",
-					},
-				]
-			: []),
-		{
-			key: "roles",
-			label: t("setupRoles"),
-			done: g.gov.required.length > 0 && g.gov.coverage.gaps.length === 0,
-			href: "/organisation?tab=rollen",
-		},
-		{
-			key: "controls",
-			label:
-				accepted >= 10
-					? t("setupControlsDone", { n: accepted })
-					: t("setupControls"),
-			done: accepted >= 10,
-			href: "/controls",
-		},
-		{
-			key: "appetite",
-			label: t("setupAppetite"),
-			done: appetiteConfirmed,
-			href: "/einstellungen?tab=risk",
-		},
-		{
-			key: "templates",
-			label: t("setupTemplates"),
-			done: g.docs.length > 0,
-			href: "/dokumente",
-		},
-		{
-			key: "providers",
-			label: t("setupProviders"),
-			done: g.providers.length > 0,
-			href: "/dienstleister",
-		},
-		{
-			key: "process",
-			label: t("setupProcess"),
-			done: g.deps.some((d) => d.assets.length > 0 && d.providers.length > 0),
-			href: "/prozesse",
-		},
-	];
-	const open = steps.filter((s) => !s.done);
+	const journey = await getJourneyCached(ctx);
 	const labels = {
 		covered: t("covered"),
 		partial: t("partial"),
@@ -402,49 +313,11 @@ export default async function OverviewPage() {
 							<CardDescription>{t("setupLead")}</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<ul className="flex flex-col divide-y divide-border/60">
-								{steps.map((s) => (
-									<li
-										key={s.key}
-										className="flex items-center gap-3 py-2 text-sm"
-									>
-										{s.done ? (
-											<CheckCircle2
-												className="size-4 text-success"
-												strokeWidth={1.5}
-											/>
-										) : (
-											<Circle
-												className="size-4 text-muted-foreground"
-												strokeWidth={1.5}
-											/>
-										)}
-										{s.phase && !s.done ? (
-											<span className="text-muted-foreground">{s.label}</span>
-										) : (
-											<Link
-												href={s.href}
-												className={
-													s.done
-														? "text-muted-foreground line-through"
-														: "hover:underline"
-												}
-											>
-												{s.label}
-											</Link>
-										)}
-										{s.phase && !s.done && (
-											<span className="ml-auto text-[0.58rem] tracking-[0.12em] text-muted-foreground">
-												{s.phase}
-											</span>
-										)}
-									</li>
-								))}
-							</ul>
-							<p className="mt-3 text-muted-foreground text-xs">
-								{steps.length - open.length} {t("done")} · {open.length}{" "}
-								{t("open")}
-							</p>
+							{journey ? (
+								<JourneyStages journey={journey} />
+							) : (
+								<p className="text-muted-foreground text-sm">—</p>
+							)}
 						</CardContent>
 					</Card>
 					<Card>
@@ -576,7 +449,7 @@ export default async function OverviewPage() {
 								href="/heute/aufgaben?all=1"
 								className="text-primary text-xs hover:underline"
 							>
-								{t("toControls")}
+								{t("toTasks")}
 							</Link>
 						</CardContent>
 					</Card>

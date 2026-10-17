@@ -20,6 +20,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
 	Select,
 	SelectContent,
@@ -143,19 +144,30 @@ export function OnboardingWizard({
 				onSubmit={form.handleSubmit(submit)}
 				className="flex flex-col gap-8"
 			>
-				<ol className="flex gap-4">
-					{steps.map((label, i) => (
-						<li
-							key={label}
-							className={cn(
-								"lv-eyebrow text-[0.6rem]",
-								i === step ? "text-foreground" : "text-muted-foreground",
-							)}
-						>
-							{i + 1} · {label}
-						</li>
-					))}
-				</ol>
+				<div className="flex flex-col gap-2">
+					<Progress
+						value={((step + 1) / steps.length) * 100}
+						aria-label={t("progress", { n: step + 1, total: steps.length })}
+					/>
+					<ol className="flex gap-4">
+						{steps.map((label, i) => (
+							<li
+								key={label}
+								aria-current={i === step ? "step" : undefined}
+								className={cn(
+									"lv-eyebrow text-[0.6rem]",
+									i === step
+										? "text-foreground"
+										: i < step
+											? "text-primary"
+											: "text-muted-foreground",
+								)}
+							>
+								{i < step ? "✓" : i + 1} · {label}
+							</li>
+						))}
+					</ol>
+				</div>
 
 				{step === 0 && (
 					<div className="flex flex-col gap-5">

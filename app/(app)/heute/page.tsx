@@ -4,6 +4,7 @@ import { ApprovalActions } from "@/components/approvals/approval-actions";
 import { AckButton } from "@/components/documents/ack-button";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
+import { NextStepCard } from "@/components/journey/next-step-card";
 import { PageHeader } from "@/components/page-header";
 import {
 	CompleteTrainingButton,
@@ -14,9 +15,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listRequestsForUser } from "@/lib/approvals/service";
 import { catalogQuestions } from "@/lib/assessments/catalog-template";
 import { requireOrgPage } from "@/lib/auth/gates";
-import { toOrgCtx } from "@/lib/auth/guards";
+import { normalizeRole, toOrgCtx } from "@/lib/auth/guards";
+import { listOrgMembers } from "@/lib/auth/org";
 import { roleAllows } from "@/lib/auth/permissions";
-import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
+import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
+import {
+	CATALOG_CONTROL_REFS,
+	CATALOG_EDGES,
+	CATALOG_REQ_REFS,
+} from "@/lib/compliance/catalog-view";
+import {
+	fmtDate,
+	getJourneyCached,
+	getOrgCoverageCached,
+} from "@/lib/compliance/page-data";
 import {
 	listControlRows,
 	listMembersForPicker,
@@ -32,6 +44,7 @@ import {
 	listNonconformities,
 	listObligationRuns,
 } from "@/lib/compliance/queries-p3";
+import { prioritizePlan } from "@/lib/compliance/synergy";
 import { readOrg } from "@/lib/db/with-org";
 import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
 import { TASK_STATUS } from "@/lib/entities/task";
@@ -116,6 +129,7 @@ export default async function TodayPage() {
 
 	// Geführter Einstieg: offene Gap-Analyse fortsetzen oder die erste starten.
 	const ta = await getTranslations("Assessment");
+	const tj = await getTranslations("Journey");
 	const openGap = gapAnalyses.find(
 		(a) =>
 			a.status === "in_progress" ||
@@ -138,6 +152,43 @@ export default async function TodayPage() {
 				productRoles: cov.profile.productRoles,
 			}).length;
 	}
+
+	// Etappen + nächster Schritt: für alle, die etwas tun können (nicht Lesend
+	// oder Prüfer:in). Fertig → bester Synergie-Schritt als Rückfall.
+	const showJourney = roleAllows(ctx.orgRole, { task: ["create"] });
+	const journey = showJourney ? await getJourneyCached(ctx) : null;
+	let planHint: { code: string; title: string; gain: string } | null = null;
+	if (journey && !journey.next) {
+		const cov = await getOrgCoverageCached(ctx);
+		if (cov && cov.frameworks.length > 0) {
+			const applicability = new Map<string, boolean>();
+			if (cov.input.applicability instanceof Map)
+				for (const [k, v] of cov.input.applicability) applicability.set(k, v);
+			const step = prioritizePlan(
+				cov.frameworks,
+				{
+					requirements: CATALOG_REQ_REFS,
+					edges: CATALOG_EDGES,
+					controls: CATALOG_CONTROL_REFS,
+					applicability,
+				},
+				cov.implStatus,
+				1,
+			).steps[0];
+			if (step)
+				planHint = {
+					code: step.control,
+					title: CONTROL_BY_CODE.get(step.control)?.title ?? "",
+					gain: tj("planGain", { n: step.gainCovered + step.gainPartial }),
+				};
+		}
+	}
+	const ownerName =
+		journey && ctx.orgRole !== "owner"
+			? ((await listOrgMembers(ctx.orgId)).find(
+					(m) => normalizeRole(m.role) === "owner",
+				)?.name ?? null)
+			: null;
 
 	const dueTasks = tasks.filter((x) => x.dueAt && x.dueAt <= weekAhead);
 	const reqById = new Map(trainingReqs.map((r) => [r.id, r]));
@@ -172,6 +223,14 @@ export default async function TodayPage() {
 				}
 			/>
 			<div className="grid gap-4 md:grid-cols-2">
+				{journey && (
+					<NextStepCard
+						journey={journey}
+						isOwner={ctx.orgRole === "owner"}
+						ownerName={ownerName}
+						planHint={planHint}
+					/>
+				)}
 				{(openGap || gapStartCount > 0) && (
 					<Card className="border-primary/40 md:col-span-2">
 						<CardHeader>

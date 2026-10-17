@@ -3,7 +3,9 @@ import type { OrgContext } from "@/lib/auth/guards";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { readOrg } from "@/lib/db/with-org";
 import { CATALOG_FRAMEWORKS } from "./catalog";
+import { deriveJourney, type Journey } from "./journey";
 import { type OrgCoverage, orgCoverage } from "./queries";
+import { loadJourneyFacts } from "./queries-journey";
 
 // Request-weit gecachte Ableitungen für Server Components (React.cache ist
 // je Request — kein Cache über Mandanten).
@@ -11,6 +13,19 @@ import { type OrgCoverage, orgCoverage } from "./queries";
 export const getOrgCoverageCached = cache(
 	async (ctx: OrgContext): Promise<OrgCoverage | null> =>
 		readOrg(toOrgCtx(ctx), (tx) => orgCoverage(tx, ctx.orgId)),
+);
+
+// Etappen der Org (lib/compliance/journey.ts) — /heute, Sidebar-Chip und
+// Überblick teilen sich eine Berechnung je Request.
+export const getJourneyCached = cache(
+	async (ctx: OrgContext): Promise<Journey | null> => {
+		const cov = await getOrgCoverageCached(ctx);
+		if (!cov) return null;
+		const facts = await readOrg(toOrgCtx(ctx), (tx) =>
+			loadJourneyFacts(tx, ctx.orgId, cov),
+		);
+		return deriveJourney(facts);
+	},
 );
 
 export function frameworkNameMap(): Record<string, string> {

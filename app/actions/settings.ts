@@ -69,6 +69,7 @@ async function updateRiskSettingsImpl(input: unknown): Promise<ActionResult> {
 				riskScales: orgSettings.riskScales,
 				riskAppetite: orgSettings.riskAppetite,
 				allowSelfApproval: orgSettings.allowSelfApproval,
+				setupFlags: orgSettings.setupFlags,
 			})
 			.from(orgSettings)
 			.where(eq(orgSettings.organizationId, c.orgId))
@@ -78,6 +79,11 @@ async function updateRiskSettingsImpl(input: unknown): Promise<ActionResult> {
 			.set({
 				riskScales: { likelihood: d.likelihood, impact: d.impact },
 				riskAppetite: { acceptable: d.acceptable, tolerable: d.tolerable },
+				// Etappe „Startklar“: Appetit bewusst bestätigt (auch unverändert)
+				setupFlags: {
+					...(before?.setupFlags ?? {}),
+					appetiteConfirmedAt: new Date().toISOString(),
+				},
 				...(d.allowSelfApproval === undefined
 					? {}
 					: { allowSelfApproval: d.allowSelfApproval }),
