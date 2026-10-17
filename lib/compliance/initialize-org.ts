@@ -333,7 +333,7 @@ export async function addOrgFrameworks(
 	tx: OrgTx,
 	orgId: string,
 	slugs: readonly string[],
-	ownerUserId: string,
+	ownerUserId: string | null,
 ): Promise<string[]> {
 	if (slugs.length === 0) return [];
 	const fws = await tx

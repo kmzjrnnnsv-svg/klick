@@ -52,6 +52,7 @@ import {
 	listResolutions,
 } from "@/lib/compliance/queries-p3";
 import { listPostureSnapshots } from "@/lib/compliance/queries-p4";
+import { loadReadiness } from "@/lib/compliance/queries-readiness";
 import { DEFAULT_RISK_APPETITE } from "@/lib/compliance/risk";
 import { prioritizePlan } from "@/lib/compliance/synergy";
 import { readOrg } from "@/lib/db/with-org";
@@ -69,6 +70,7 @@ export default async function OverviewPage() {
 	const ctx = await requireOrgPage();
 	const t = await getTranslations("Overview");
 	const tc = await getTranslations("Controls");
+	const tr = await getTranslations("Readiness");
 	const [members, invitations, cov] = await Promise.all([
 		listOrgMembers(ctx.orgId),
 		listPendingInvitations(ctx.orgId),
@@ -300,6 +302,14 @@ export default async function OverviewPage() {
 		);
 	}
 
+	// Prüfungsreife heute je Rahmenwerk (Abdeckung + Belege + offene Punkte).
+	const readiness = await readOrg(toOrgCtx(ctx), (tx) =>
+		loadReadiness(tx, ctx.orgId, { asOf: now }),
+	);
+	const readinessBy = new Map(
+		(readiness?.results ?? []).map((r) => [r.framework, r]),
+	);
+
 	return (
 		<>
 			<PageHeader title={t("title")} />
@@ -329,8 +339,24 @@ export default async function OverviewPage() {
 											>
 												{shortFrameworkName(fw)}
 											</Link>
-											<span className="font-serif-display text-lg text-primary">
-												{pct(b.coveragePct)}
+											<span className="flex items-baseline gap-3">
+												{(() => {
+													const r = readinessBy.get(fw);
+													if (!r || r.score === null) return null;
+													return (
+														<Link
+															href={`/rahmenwerke/${fw}?tab=pruefungsreife`}
+															className="text-muted-foreground text-xs hover:underline underline-offset-4"
+															title={tr("overviewLead")}
+														>
+															{tr("auditBadge", { score: r.score })} ·{" "}
+															{tr(`verdict_${r.verdict}`)}
+														</Link>
+													);
+												})()}
+												<span className="font-serif-display text-lg text-primary">
+													{pct(b.coveragePct)}
+												</span>
 											</span>
 										</div>
 										<CoverageBar bucket={b} labels={labels} />

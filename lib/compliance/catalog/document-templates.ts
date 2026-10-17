@@ -1331,3 +1331,36 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 export const TEMPLATE_BY_CODE: ReadonlyMap<string, DocumentTemplate> = new Map(
 	DOCUMENT_TEMPLATES.map((t) => [t.code, t]),
 );
+
+// Pflichtdokumente je Rahmenwerk (Prüfungsreife, lib/compliance/readiness.ts).
+// ISO 27001 aus `isoMandatory`; sonst die Dokumente, die das Regelwerk
+// ausdrücklich verlangt (Strategie/Leitlinie/Plan) — vor SaaS-Verkauf gegen
+// Primärquellen prüfen (wie der übrige Katalog).
+const MANDATORY_BY_FRAMEWORK: Record<string, readonly string[]> = {
+	dora: [
+		"KZ-RESILIENZSTRATEGIE", // Art. 6 Abs. 8
+		"KZ-IKT-RISIKORAHMEN", // Art. 6
+		"RL-DIENSTLEISTER", // Art. 28 Abs. 2
+		"RL-VORFALL", // Art. 17
+		"RL-BCM", // Art. 11
+		"KZ-BACKUP", // Art. 12
+		"PL-KRISENKOMMUNIKATION", // Art. 14
+		"RL-TESTPROGRAMM", // Art. 24
+	],
+	nis2: [
+		"KZ-NIS2-BETROFFENHEIT", // Art. 2–3, § 28 BSIG
+		"RL-VORFALL", // Art. 21(2)(b), Art. 23
+		"RL-BCM", // Art. 21(2)(c)
+		"RL-DIENSTLEISTER", // Art. 21(2)(d)
+	],
+	gwg: ["KZ-AML-RISIKOANALYSE", "RL-AML-HANDBUCH"],
+	dsgvo: ["RL-DATENSCHUTZ", "KZ-LOESCHUNG"],
+};
+
+export function mandatoryTemplatesFor(slug: string): DocumentTemplate[] {
+	if (slug === "iso27001")
+		return DOCUMENT_TEMPLATES.filter((t) => t.isoMandatory);
+	return (MANDATORY_BY_FRAMEWORK[slug] ?? [])
+		.map((code) => TEMPLATE_BY_CODE.get(code))
+		.filter((t): t is DocumentTemplate => Boolean(t));
+}
