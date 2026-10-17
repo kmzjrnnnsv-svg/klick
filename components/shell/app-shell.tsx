@@ -95,7 +95,7 @@ export async function AppShell({
 				<main className="mx-auto w-full max-w-6xl grow px-4 py-6 sm:px-6 sm:py-8">
 					{children}
 				</main>
-				<StepUpDialog />
+				<StepUpDialog passkey={ctx.hasPasskey} totp={ctx.hasTotp} />
 			</div>
 		</div>
 	);

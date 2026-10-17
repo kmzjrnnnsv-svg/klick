@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/client";
+import { PasskeyConfirmButton } from "./passkey-confirm";
 
 // Seite vor dem Export-Klick (Referrer bleibt über die 303-Weiterleitung
 // erhalten); nur eigene Herkunft, nie zurück auf Login-Seiten.
@@ -26,14 +27,19 @@ function backPath(): string {
 	return "/heute";
 }
 
-// Zweiter Faktor beim Login (Better-Auth-Flow) oder als Step-up für eine
-// sensible Aktion (eigener Server-Pfad, setzt session.stepUpAt).
+// Zweiter Faktor beim Login oder als Step-up für eine sensible Aktion
+// (setzt session.mfaVerifiedAt bzw. stepUpAt). Passkey zuerst; der Code
+// (TOTP, beim Login auch Backup-Code) nur, wenn TOTP eingerichtet ist.
 export function TwoFactorForm({
 	stepUp,
 	returnTo,
+	passkey,
+	totp,
 }: {
 	stepUp: boolean;
 	returnTo: string;
+	passkey: boolean;
+	totp: boolean;
 }) {
 	const t = useTranslations("Auth");
 	const router = useRouter();
@@ -71,19 +77,23 @@ export function TwoFactorForm({
 					return;
 				}
 			}
-			// Rückweg auf eine Export-Route (ZIP): als echter Download laden —
-			// eine Client-Navigation lädt die API-Route als Seite ins Leere.
-			if (returnTo.startsWith("/api/")) {
-				window.location.assign(returnTo);
-				setDownloading(true);
-				return;
-			}
-			router.replace(returnTo);
-			router.refresh();
+			proceed();
 		} finally {
 			setBusy(false);
 			setCode("");
 		}
+	}
+
+	function proceed() {
+		// Rückweg auf eine Export-Route (ZIP): als echter Download laden —
+		// eine Client-Navigation lädt die API-Route als Seite ins Leere.
+		if (returnTo.startsWith("/api/")) {
+			window.location.assign(returnTo);
+			setDownloading(true);
+			return;
+		}
+		router.replace(returnTo);
+		router.refresh();
 	}
 
 	async function signOut() {
@@ -105,27 +115,43 @@ export function TwoFactorForm({
 
 	return (
 		<form onSubmit={submit} className="flex flex-col gap-4">
-			<div className="grid gap-2">
-				<Label htmlFor="code">{useBackup ? t("backupCode") : t("code")}</Label>
-				<Input
-					id="code"
-					inputMode={useBackup ? "text" : "numeric"}
-					autoComplete="one-time-code"
+			{passkey && (
+				<PasskeyConfirmButton
+					purpose={stepUp ? "stepup" : "mfa"}
 					autoFocus
-					required
-					value={code}
-					onChange={(e) => setCode(e.target.value)}
-					className="font-mono text-lg tracking-[0.3em]"
+					onConfirmed={proceed}
 				/>
-			</div>
-			<Button
-				type="submit"
-				variant="brown"
-				disabled={busy || code.trim().length < 6}
-			>
-				{t("verify")}
-			</Button>
-			{!stepUp && (
+			)}
+			{passkey && totp && (
+				<p className="text-muted-foreground text-xs">{t("orCode")}</p>
+			)}
+			{totp && (
+				<>
+					<div className="grid gap-2">
+						<Label htmlFor="code">
+							{useBackup ? t("backupCode") : t("code")}
+						</Label>
+						<Input
+							id="code"
+							inputMode={useBackup ? "text" : "numeric"}
+							autoComplete="one-time-code"
+							autoFocus={!passkey}
+							required
+							value={code}
+							onChange={(e) => setCode(e.target.value)}
+							className="font-mono text-lg tracking-[0.3em]"
+						/>
+					</div>
+					<Button
+						type="submit"
+						variant={passkey ? "outline" : "brown"}
+						disabled={busy || code.trim().length < 6}
+					>
+						{t("verify")}
+					</Button>
+				</>
+			)}
+			{!stepUp && totp && (
 				<button
 					type="button"
 					onClick={() => setUseBackup((v) => !v)}

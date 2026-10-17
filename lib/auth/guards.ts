@@ -70,9 +70,9 @@ export async function getSessionCtx(): Promise<SessionCtx | null> {
 	const res = await auth.api.getSession({ headers: h });
 	if (!res) return null;
 	const u = res.user as UserRow;
-	// Passkeys nur zählen, wenn kein TOTP da ist — spart die Abfrage im
-	// Normalfall; die MFA-Regel braucht nur „irgendein Faktor“.
-	const hasPasskey = u.twoFactorEnabled ? false : await userHasPasskey(u.id);
+	// Ein indexierter count je Request: MFA-Regel (TOTP oder Passkey) und
+	// Bestätigungsdialog (Passkey zuerst).
+	const hasPasskey = await userHasPasskey(u.id);
 	return {
 		session: res.session as SessionRow,
 		user: { ...u, hasPasskey },
@@ -106,6 +106,9 @@ export type OrgContext = {
 	ip: string | null;
 	userAgent: string | null;
 	stepUpFresh: boolean;
+	// eingerichtete Faktoren (Step-up-Dialog bietet Passkey zuerst an)
+	hasTotp: boolean;
+	hasPasskey: boolean;
 };
 
 export type Permission = Partial<Record<Resource, readonly string[]>>;
@@ -150,6 +153,8 @@ export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 		ip: ctx.ip,
 		userAgent: ctx.userAgent,
 		stepUpFresh: stepUpFresh(ctx.session),
+		hasTotp: Boolean(ctx.user.twoFactorEnabled),
+		hasPasskey: Boolean(ctx.user.hasPasskey),
 	};
 }
 
