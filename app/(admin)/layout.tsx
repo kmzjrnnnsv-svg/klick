@@ -24,7 +24,7 @@ export default async function AdminLayout({
 	];
 	return (
 		<>
-			<header className="sticky top-0 z-30 border-border/60 border-b bg-background/85 backdrop-blur">
+			<header className="sticky top-0 z-30 shrink-0 border-border/60 border-b bg-background/85 backdrop-blur">
 				<div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
 					<Link href="/heute" className="lv-wordmark text-[0.8rem]">
 						Klick
@@ -54,7 +54,7 @@ export default async function AdminLayout({
 					</div>
 				</div>
 			</header>
-			<main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+			<main className="mx-auto w-full max-w-6xl grow px-4 py-8 sm:px-6">
 				<p className="mb-6 text-muted-foreground text-sm">{t("lead")}</p>
 				{children}
 			</main>

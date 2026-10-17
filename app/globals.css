@@ -140,8 +140,10 @@
 		var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", monospace;
 }
 
-html,
-body {
+/* Nur html auf Fensterhöhe; body wächst mit dem Inhalt (min-h-full im Layout).
+   Ein festes body { height: 100% } klemmt die Shell auf Fensterhöhe — Header
+   und Sidebar verlieren dann nach einem Bildschirm ihren sticky-Halt. */
+html {
 	height: 100%;
 }
 
