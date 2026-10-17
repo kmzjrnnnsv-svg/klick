@@ -353,7 +353,7 @@ export default async function RisksPage({
 												{e.justification}
 											</p>
 										</TableCell>
-										<TableCell className="font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-xs">
 											{e.controlCode ? (
 												<Link
 													href={`/controls/${e.controlCode}`}
@@ -527,7 +527,7 @@ export default async function RisksPage({
 							<TableBody>
 								{filtered.map(({ r, a }) => (
 									<TableRow key={r.id}>
-										<TableCell className="font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-xs">
 											<Link
 												href={`/risiken/${r.id}`}
 												className="hover:underline"

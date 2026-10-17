@@ -133,7 +133,7 @@ export function RequirementForm({
 				value={d.courseUrl ?? ""}
 				onChange={(v) => set("courseUrl", v)}
 			/>
-			<div className="grid gap-4 sm:grid-cols-3">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<Field
 					id="req-freq"
 					label={t("frequencyMonths")}
@@ -253,7 +253,7 @@ export function AssignTrainingForm({
 						{t("selectAll")}
 					</Button>
 				</div>
-				<div className="grid max-h-64 gap-1.5 overflow-y-auto sm:grid-cols-2">
+				<div className="grid grid-cols-1 max-h-64 gap-1.5 overflow-y-auto sm:grid-cols-2">
 					{members.map((m) => (
 						<label
 							key={m.userId}

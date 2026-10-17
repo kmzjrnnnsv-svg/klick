@@ -361,7 +361,7 @@ export default async function ControlDetailPage({
 				title={t("evidence")}
 				actions={
 					canEdit ? (
-						<div className="flex items-center gap-1">
+						<div className="flex flex-wrap items-center gap-1">
 							<RequestEvidence
 								implementationId={row.implementationId}
 								code={code}

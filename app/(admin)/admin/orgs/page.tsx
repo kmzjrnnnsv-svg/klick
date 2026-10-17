@@ -57,7 +57,9 @@ export default async function AdminOrgsPage() {
 						return (
 							<TableRow key={o.id}>
 								<TableCell className="font-medium">{o.name}</TableCell>
-								<TableCell className="font-mono text-xs">{o.slug}</TableCell>
+								<TableCell className="whitespace-nowrap font-mono text-xs">
+									{o.slug}
+								</TableCell>
 								<TableCell>{Number(o.members)}</TableCell>
 								<TableCell>
 									{assigned ? (

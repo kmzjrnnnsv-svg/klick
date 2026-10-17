@@ -136,7 +136,7 @@ export function ProcessingActivityForm({
 				onChange={(v) => setD({ ...d, purpose: v })}
 				rows={2}
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="pa-legal"
 					label={t("legalBasis")}
@@ -287,7 +287,7 @@ export function DsrForm({
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				{!initial && (
 					<Field
 						id="dsr-received"
@@ -480,7 +480,7 @@ export function InsuranceForm({
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("type")}</Label>
 					<Select

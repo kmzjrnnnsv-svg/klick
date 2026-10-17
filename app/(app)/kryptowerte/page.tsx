@@ -88,7 +88,9 @@ export default async function CryptoAssetsPage() {
 					<TableBody>
 						{rows.map((r) => (
 							<TableRow key={r.id}>
-								<TableCell className="font-mono text-xs">{r.symbol}</TableCell>
+								<TableCell className="whitespace-nowrap font-mono text-xs">
+									{r.symbol}
+								</TableCell>
 								<TableCell>
 									<p className="font-medium">{r.name}</p>
 									{r.issuer && (

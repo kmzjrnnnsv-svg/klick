@@ -71,7 +71,7 @@ export default async function AdminPricesPage({
 			<p className="mb-6 max-w-3xl text-muted-foreground text-sm">
 				{t("pricesLead")}
 			</p>
-			<div className="grid gap-8 xl:grid-cols-[18rem_minmax(0,1fr)]">
+			<div className="grid grid-cols-1 gap-8 xl:grid-cols-[18rem_minmax(0,1fr)]">
 				<Table>
 					<TableHeader>
 						<TableRow>

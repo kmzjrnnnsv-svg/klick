@@ -172,7 +172,7 @@ export default async function TodayPage() {
 					/>
 				}
 			/>
-			<div className="grid gap-4 md:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 				{(openGap || gapStartCount > 0) && (
 					<Card className="border-primary/40 md:col-span-2">
 						<CardHeader>

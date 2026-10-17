@@ -303,7 +303,7 @@ export function RatingWizard({
 
 			{step === "steckbrief" && (
 				<div className="flex flex-col gap-6">
-					<dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[12rem_1fr]">
+					<dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-[12rem_1fr]">
 						<dt className="text-muted-foreground">{tp("name")}</dt>
 						<dd className="font-medium">{provider.name}</dd>
 						<dt className="text-muted-foreground">{tp("partnerType")}</dt>
@@ -340,7 +340,7 @@ export function RatingWizard({
 						<legend className="mb-1 font-medium text-sm">
 							{t("criticality")}
 						</legend>
-						<div className="grid gap-2 md:grid-cols-3">
+						<div className="grid grid-cols-1 gap-2 md:grid-cols-3">
 							{(["critical", "important", "standard"] as const).map((k) => (
 								<label
 									key={k}
@@ -522,7 +522,7 @@ export function RatingWizard({
 
 			{step === "ergebnis" && (
 				<div className="flex flex-col gap-4">
-					<div className="grid gap-3 sm:grid-cols-4">
+					<div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
 						{(
 							[
 								["general", sum.general],
@@ -691,7 +691,7 @@ export function RatingWizard({
 							})}
 						</p>
 					)}
-					<fieldset className="grid gap-2 sm:grid-cols-3">
+					<fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-3">
 						<legend className="mb-1 font-medium text-sm">
 							{t("decision")}
 						</legend>
@@ -882,7 +882,7 @@ function MeasureRow({
 	onChange: (v: { on?: boolean; owner?: string; due?: string }) => void;
 }) {
 	return (
-		<li className="grid gap-2 rounded-md border p-2 text-sm md:grid-cols-[1fr_12rem_10rem]">
+		<li className="grid grid-cols-1 gap-2 rounded-md border p-2 text-sm md:grid-cols-[1fr_12rem_10rem]">
 			<label className="flex cursor-pointer items-start gap-2">
 				<input
 					type="checkbox"

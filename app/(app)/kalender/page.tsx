@@ -156,7 +156,7 @@ export default async function CalendarPage({
 							}
 						/>
 					) : (
-						<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+						<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
 							{MONTHS.map((name, idx) => {
 								const items = byMonth.get(idx + 1) ?? [];
 								const isCurrent =

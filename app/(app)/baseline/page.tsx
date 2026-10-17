@@ -36,7 +36,7 @@ export default async function BaselinePage() {
 					open: counts.open,
 				})}
 			</p>
-			<div className="grid gap-4 md:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 				{BASELINE.narrative.map((n) => (
 					<Card key={n.domain}>
 						<CardHeader>
@@ -123,7 +123,7 @@ export default async function BaselinePage() {
 				})}
 			</ul>
 
-			<div className="mt-10 grid gap-4 md:grid-cols-2">
+			<div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-base">{t("providers")}</CardTitle>

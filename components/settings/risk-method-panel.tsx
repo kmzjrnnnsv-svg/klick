@@ -159,8 +159,8 @@ export function RiskMethodPanel({
 				<h3 id="rm-agg" className="font-medium">
 					1 · {t("aggregationTitle")}
 				</h3>
-				<div className="grid items-start gap-4 lg:grid-cols-[1fr_auto]">
-					<fieldset className="grid gap-2 sm:grid-cols-2">
+				<div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_auto]">
+					<fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 						<legend className="sr-only">{t("aggregationTitle")}</legend>
 						{(["sum", "product"] as const).map((agg) => (
 							<label
@@ -209,7 +209,7 @@ export function RiskMethodPanel({
 						return (
 							<li
 								key={level}
-								className="grid gap-2 sm:grid-cols-[2rem_12rem_1fr]"
+								className="grid grid-cols-1 gap-2 sm:grid-cols-[2rem_12rem_1fr]"
 							>
 								<span className="pt-2 text-muted-foreground tabular-nums">
 									{level}
@@ -255,7 +255,7 @@ export function RiskMethodPanel({
 					3 · {t("impactTitle")}
 				</h3>
 				<p className="text-muted-foreground text-xs">{t("impactLead")}</p>
-				<div className="grid gap-2 sm:grid-cols-5">
+				<div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
 					{LEVELS.map((level) => (
 						<div key={level} className="flex flex-col gap-1">
 							<Label
@@ -342,7 +342,7 @@ export function RiskMethodPanel({
 										{LEVELS.map((level) => (
 											<li
 												key={level}
-												className="grid gap-2 sm:grid-cols-[8rem_1fr]"
+												className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_1fr]"
 											>
 												<span className="pt-2 text-muted-foreground text-xs">
 													{level} · {draft.impact[level - 1]}

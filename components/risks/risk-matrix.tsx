@@ -124,7 +124,7 @@ export function ClassLegend({
 					return (
 						<li
 							key={d.key}
-							className="grid gap-2 sm:grid-cols-[minmax(10rem,16rem)_1fr]"
+							className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(10rem,16rem)_1fr]"
 						>
 							<div>
 								<p className="flex items-center gap-2 font-medium">

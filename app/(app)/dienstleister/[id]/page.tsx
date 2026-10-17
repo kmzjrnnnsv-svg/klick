@@ -320,7 +320,7 @@ export default async function ProviderPage({
 			{tab === "stammdaten" && (
 				<>
 					<Section title={t("profile")}>
-						<dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+						<dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
 							<div>
 								<dt className="text-muted-foreground text-xs">
 									{tp("serviceType")}

@@ -503,10 +503,10 @@ export async function listRequestsForUser(
 			? []
 			: (
 					await tx
-						.select({ id: user.id, name: user.name })
+						.select({ id: user.id, name: user.name, email: user.email })
 						.from(user)
 						.where(inArray(user.id, requesterIds))
-				).map((u) => [u.id, u.name] as const),
+				).map((u) => [u.id, u.name || u.email] as const),
 	);
 	const now = new Date();
 	return rows.map(({ req, kind, workflowName, steps }) => {

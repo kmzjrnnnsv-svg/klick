@@ -218,6 +218,10 @@ export function Field({
 	type = "text",
 	rows,
 	required,
+	pattern,
+	maxLength,
+	placeholder,
+	title,
 }: {
 	id: string;
 	label: string;
@@ -226,6 +230,11 @@ export function Field({
 	type?: string;
 	rows?: number;
 	required?: boolean;
+	// Browser-Validierung vor dem Absenden (title = Hinweis bei Verstoß)
+	pattern?: string;
+	maxLength?: number;
+	placeholder?: string;
+	title?: string;
 }) {
 	return (
 		<div className="flex flex-col gap-1.5">
@@ -244,6 +253,10 @@ export function Field({
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
 					required={required}
+					pattern={pattern}
+					maxLength={maxLength}
+					placeholder={placeholder}
+					title={title}
 				/>
 			)}
 		</div>
@@ -456,7 +469,7 @@ export function PartyForm({
 				)
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="pt-name"
 					label={t("name")}
@@ -504,7 +517,7 @@ export function PartyForm({
 				onChange={(v) => setD({ ...d, howAddressed: v })}
 				rows={2}
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="pt-contact"
 					label={t("contact")}
@@ -618,7 +631,7 @@ export function CommunicationForm({
 				onChange={(v) => setD({ ...d, topic: v })}
 				required
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("trigger")}</Label>
 					<Select
@@ -773,7 +786,7 @@ export function RegulatorInteractionForm({
 				)
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("authority")}</Label>
 					<Select
@@ -940,7 +953,7 @@ export function ConflictForm({
 				onChange={(v) => setD({ ...d, title: v })}
 				required
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="co-type"
 					label={t("conflictType")}

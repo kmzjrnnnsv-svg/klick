@@ -69,18 +69,18 @@ export default async function AdminAuditPage() {
 				<TableBody>
 					{rows.map((r) => (
 						<TableRow key={r.id}>
-							<TableCell className="font-mono text-xs">
+							<TableCell className="whitespace-nowrap font-mono text-xs">
 								{String(r.seq)}
 							</TableCell>
 							<TableCell className="whitespace-nowrap text-xs">
 								{fmt.format(r.at)}
 							</TableCell>
-							<TableCell className="font-mono text-xs">
+							<TableCell className="whitespace-nowrap font-mono text-xs">
 								{r.organizationId
 									? r.organizationId.slice(0, 8)
 									: t("platform")}
 							</TableCell>
-							<TableCell className="font-mono text-xs">
+							<TableCell className="whitespace-nowrap font-mono text-xs">
 								{r.actorUserId?.slice(0, 8) ?? "—"}
 							</TableCell>
 							<TableCell className="font-medium text-xs">{r.action}</TableCell>
@@ -100,7 +100,9 @@ export default async function AdminAuditPage() {
 									{r.outcome}
 								</Badge>
 							</TableCell>
-							<TableCell className="font-mono text-xs">{r.ip ?? "—"}</TableCell>
+							<TableCell className="whitespace-nowrap font-mono text-xs">
+								{r.ip ?? "—"}
+							</TableCell>
 						</TableRow>
 					))}
 				</TableBody>

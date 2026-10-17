@@ -35,7 +35,7 @@ export default async function PricingPage() {
 			</section>
 
 			<section className="mx-auto mt-12 max-w-5xl px-4 sm:px-6">
-				<div className="grid gap-6 lg:grid-cols-3">
+				<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 					{TIERS.map((tier) => {
 						const highlighted = tier === "growth";
 						const price = prices[TIER_ITEM[tier]];
@@ -128,7 +128,7 @@ export default async function PricingPage() {
 				<h2 className="font-serif-display text-2xl text-primary sm:text-3xl">
 					{t("faqTitle")}
 				</h2>
-				<dl className="mt-8 grid gap-8 sm:grid-cols-2">
+				<dl className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2">
 					{FAQ.map((q) => (
 						<div key={q}>
 							<dt className="font-medium">{t(`${q}Q`)}</dt>

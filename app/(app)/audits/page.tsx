@@ -227,7 +227,7 @@ export default async function AuditsPage({
 											</p>
 										</div>
 									)}
-									<div className="grid gap-3 md:grid-cols-3">
+									<div className="grid grid-cols-1 gap-3 md:grid-cols-3">
 										{years.map((y) => (
 											<div key={y} className="rounded-md border p-3">
 												<p className="lv-eyebrow mb-2 text-[0.52rem] text-muted-foreground">
@@ -412,7 +412,7 @@ export default async function AuditsPage({
 											{f.auditTitle}
 										</Link>
 									</TableCell>
-									<TableCell className="font-mono text-xs">
+									<TableCell className="whitespace-nowrap font-mono text-xs">
 										{f.controlCode ? (
 											<Link
 												href={`/controls/${f.controlCode}`}

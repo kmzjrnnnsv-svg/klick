@@ -6,6 +6,7 @@
  *   pnpm exec tsx scripts/qa/crawl.ts            # Login (falls nötig) + Crawl
  *   pnpm exec tsx scripts/qa/crawl.ts --login    # nur Login/Onboarding
  *   pnpm exec tsx scripts/qa/crawl.ts --only /prozesse,/risiken
+ *   pnpm exec tsx scripts/qa/crawl.ts --mobile --pages-only   # 390 px, Überlauf
  *
  * Nicht Teil der CI — braucht eine laufende Instanz mit Dev-Log.
  */
@@ -31,6 +32,9 @@ const EXEC = existsSync("/opt/pw-browsers/chromium")
 	: undefined;
 const args = process.argv.slice(2);
 const flag = (f: string) => args.includes(f);
+const VIEWPORT = flag("--mobile")
+	? { width: 390, height: 844 }
+	: { width: 1400, height: 1000 };
 const opt = (f: string) => {
 	const i = args.indexOf(f);
 	return i >= 0 ? args[i + 1] : undefined;
@@ -74,7 +78,8 @@ type Finding = {
 		| "console_error"
 		| "toast_error"
 		| "server_log"
-		| "timeout";
+		| "timeout"
+		| "overflow";
 	where: string;
 	action?: string;
 	detail: string;
@@ -134,7 +139,13 @@ async function checkPage(page: Page, where: string, action?: string) {
 			.locator("body")
 			.innerText()
 			.catch(() => "")) ?? "";
-	if (/Da ist etwas schiefgelaufen/.test(text))
+	// Die Fehlerseite (app/error.tsx) trägt den Text als h1; derselbe Text als
+	// Fehler-Toast zählt unten als toast_error.
+	const errorHeading = await page
+		.locator("h1", { hasText: /Da ist etwas schiefgelaufen/ })
+		.count()
+		.catch(() => 0);
+	if (errorHeading > 0)
 		record({
 			kind: "error_page",
 			where,
@@ -166,6 +177,27 @@ async function checkPage(page: Page, where: string, action?: string) {
 			record({ kind: "toast_error", where, action, detail: t });
 	}
 	visibleToasts = current;
+}
+
+// Seitlicher Überlauf: die Seite ist breiter als das Fenster (am Handy
+// typisch durch Raster ohne grid-cols-1, Fieldsets, nicht umbrechende Zeilen).
+async function checkOverflow(page: Page, where: string) {
+	const r = await page
+		.evaluate(() => {
+			const vw = document.documentElement.clientWidth;
+			const sw = document.documentElement.scrollWidth;
+			if (sw <= vw + 1) return null;
+			const els = [...document.querySelectorAll("main *")];
+			const el = els.find((e) => {
+				const right = e.getBoundingClientRect().right;
+				const parent = e.parentElement?.getBoundingClientRect().right ?? 0;
+				return right > vw + 1 && parent <= vw + 1;
+			});
+			const text = (el as HTMLElement | undefined)?.innerText ?? "";
+			return `${sw} > ${vw} px: <${el?.tagName.toLowerCase() ?? "?"}> ${text.slice(0, 60)}`;
+		})
+		.catch(() => null);
+	if (r) record({ kind: "overflow", where, detail: r });
 }
 
 function attach(page: Page, whereRef: { current: string }) {
@@ -468,7 +500,7 @@ const START = [
 	"/organisation?tab=aufsicht",
 	"/organisation?tab=gesellschafter",
 	"/organisation?tab=versicherungen",
-	"/organisation?tab=interessenkonflikte",
+	"/organisation?tab=konflikte",
 	"/organisation/krisenkontakte",
 	"/beschluesse",
 	"/audits",
@@ -592,6 +624,7 @@ async function crawl(ctx: BrowserContext, only?: string[]) {
 		if (/Diese Seite gibt es nicht/.test(text))
 			record({ kind: "not_found", where: path, detail: "404-Seite" });
 		await checkPage(page, path);
+		await checkOverflow(page, path);
 		// Links einsammeln
 		const hrefs = await page
 			.locator('a[href^="/"]')
@@ -627,7 +660,7 @@ async function main() {
 		if (flag("--login") || !existsSync(STATE)) {
 			ctx = await browser.newContext({
 				baseURL: BASE,
-				viewport: { width: 1400, height: 1000 },
+				viewport: VIEWPORT,
 			});
 			await login(ctx);
 			if (flag("--login")) return;
@@ -635,7 +668,7 @@ async function main() {
 			ctx = await browser.newContext({
 				storageState: STATE,
 				baseURL: BASE,
-				viewport: { width: 1400, height: 1000 },
+				viewport: VIEWPORT,
 			});
 		}
 		const only = opt("--only")

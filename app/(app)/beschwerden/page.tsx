@@ -112,7 +112,7 @@ export default async function ComplaintsPage({
 	);
 
 	const Stats = ({ a }: { a: typeof aggC }) => (
-		<div className="mb-4 grid gap-3 text-sm sm:grid-cols-4">
+		<div className="mb-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-4">
 			<div className="rounded-md border p-3">
 				<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
 					{t("open")}
@@ -245,7 +245,7 @@ export default async function ComplaintsPage({
 													: [{ to: "open", label: t("reopen") }];
 									return (
 										<TableRow key={c.id}>
-											<TableCell className="font-mono text-xs">
+											<TableCell className="whitespace-nowrap font-mono text-xs">
 												{c.code}
 											</TableCell>
 											<TableCell className="text-xs">

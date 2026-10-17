@@ -72,7 +72,7 @@ export async function RatingOverview({
 	];
 	return (
 		<div className="flex flex-col gap-8">
-			<dl className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+			<dl className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
 				{kpis.map(([label, value]) => (
 					<div key={label} className="rounded-md border p-3">
 						<dt className="text-muted-foreground text-xs">{label}</dt>
@@ -84,7 +84,7 @@ export async function RatingOverview({
 				<h2 id="ro-traffic" className="font-medium">
 					{t("trafficTitle")}
 				</h2>
-				<ul className="grid gap-3 sm:grid-cols-3">
+				<ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
 					{TRAFFIC_ORDER.map((k) => (
 						<li
 							key={k}
@@ -115,7 +115,7 @@ export async function RatingOverview({
 							return (
 								<li
 									key={p.id}
-									className="grid items-center gap-2 sm:grid-cols-[14rem_1fr_8rem]"
+									className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[14rem_1fr_8rem]"
 								>
 									<Link
 										href={`/dienstleister/${p.id}?tab=bewertungen`}

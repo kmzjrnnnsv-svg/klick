@@ -113,7 +113,7 @@ export default async function CrisisContactsPage() {
 											({t(`trigger_${c.trigger}`)})
 										</span>
 									</p>
-									<dl className="mt-1 grid gap-x-4 gap-y-0.5 text-xs sm:grid-cols-[8rem_1fr]">
+									<dl className="mt-1 grid grid-cols-1 gap-x-4 gap-y-0.5 text-xs sm:grid-cols-[8rem_1fr]">
 										<dt className="text-muted-foreground print:text-black">
 											{t("audience")}
 										</dt>

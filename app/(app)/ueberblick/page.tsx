@@ -323,7 +323,7 @@ export default async function OverviewPage() {
 	return (
 		<>
 			<PageHeader title={t("title")} />
-			<div className="grid gap-4 lg:grid-cols-3">
+			<div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
 				<Card className="lg:col-span-2">
 					<CardHeader>
 						<CardTitle>{t("coverageTitle")}</CardTitle>
@@ -476,7 +476,7 @@ export default async function OverviewPage() {
 				</div>
 			</div>
 
-			<div className="mt-4 grid gap-4 lg:grid-cols-3">
+			<div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
 				<Card className="lg:col-span-2">
 					<CardHeader>
 						<CardTitle className="flex items-center justify-between text-base">
@@ -499,7 +499,9 @@ export default async function OverviewPage() {
 							<ol className="flex flex-col divide-y divide-border/60 text-sm">
 								{plan.steps.map((s, i) => (
 									<li key={s.control} className="flex items-center gap-3 py-2">
-										<span className="w-5 text-muted-foreground">{i + 1}</span>
+										<span className="w-5 shrink-0 text-muted-foreground">
+											{i + 1}
+										</span>
 										<Link
 											href={`/controls/${s.control}`}
 											className="min-w-0 flex-1 truncate hover:underline underline-offset-4"
@@ -507,7 +509,7 @@ export default async function OverviewPage() {
 											<span className="font-mono text-xs">{s.control}</span> ·{" "}
 											{CONTROL_BY_CODE.get(s.control)?.title}
 										</Link>
-										<span className="hidden gap-1 sm:flex">
+										<span className="hidden min-w-0 max-w-[45%] flex-wrap justify-end gap-1 sm:flex">
 											{s.frameworks.map((fw) => (
 												<Badge
 													key={fw}
@@ -518,10 +520,10 @@ export default async function OverviewPage() {
 												</Badge>
 											))}
 										</span>
-										<span className="w-16 text-right text-muted-foreground text-xs">
+										<span className="w-16 shrink-0 text-right text-muted-foreground text-xs">
 											{tc(`effort_${s.effort}`)}
 										</span>
-										<span className="w-14 text-right font-medium">
+										<span className="w-14 shrink-0 text-right font-medium">
 											{pct(s.cumulativeCoveragePct)}
 										</span>
 									</li>
@@ -530,7 +532,7 @@ export default async function OverviewPage() {
 						)}
 					</CardContent>
 				</Card>
-				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
 					<Card>
 						<CardHeader>
 							<CardTitle className="text-base">

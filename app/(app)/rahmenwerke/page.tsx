@@ -58,7 +58,7 @@ export default async function FrameworksPage() {
 			{fws.length === 0 ? (
 				<EmptyState title={t("title")} lead={t("addLead")} />
 			) : (
-				<div className="grid gap-4 md:grid-cols-2">
+				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 					{fws.map((f) => {
 						const meta = FRAMEWORK_BY_SLUG.get(f.slug);
 						const bucket = cov?.result.byFramework.get(f.slug);

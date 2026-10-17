@@ -107,7 +107,7 @@ export function SupplierMethodPanel({
 				<h3 id="sm-area" className="font-medium">
 					1 · {t("areasTitle")}
 				</h3>
-				<div className="grid max-w-md gap-3 sm:grid-cols-2">
+				<div className="grid grid-cols-1 max-w-md gap-3 sm:grid-cols-2">
 					{(["general", "security"] as const).map((a) => (
 						<div key={a} className="flex flex-col gap-1">
 							<Label htmlFor={`sm-w-${a}`}>{t(`area_${a}`)}</Label>
@@ -222,7 +222,7 @@ export function SupplierMethodPanel({
 														{t("enabled")}
 													</label>
 												</div>
-												<ol className="grid gap-2 sm:grid-cols-5">
+												<ol className="grid grid-cols-1 gap-2 sm:grid-cols-5">
 													{[1, 2, 3, 4, 5].map((level) => (
 														<li key={level} className="flex flex-col gap-1">
 															<span className="text-muted-foreground text-xs">

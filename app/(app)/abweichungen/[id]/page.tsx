@@ -241,7 +241,7 @@ export default async function NonconformityDetailPage({
 			}
 		>
 			<Section title={t("capa")}>
-				<dl className="grid gap-4 text-sm sm:grid-cols-2">
+				<dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
 					<div className="sm:col-span-2">
 						<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
 							{t("rootCause")}

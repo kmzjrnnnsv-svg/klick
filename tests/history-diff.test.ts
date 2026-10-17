@@ -79,6 +79,10 @@ describe("history diff", () => {
 		expect(formatValue(true)).toBe("ja");
 		expect(formatValue(["a", "b"])).toBe("a, b");
 		expect(formatValue("x".repeat(100))).toHaveLength(80);
-		expect(formatValue(new Date("2026-03-04T10:00:00Z"))).toBe("2026-03-04");
+		expect(formatValue(new Date("2026-03-04T10:00:00Z"))).toBe("04.03.2026");
+		// Audit-JSON: ISO in UTC → Berliner Zeit wie im Kopf der Seite
+		expect(formatValue("2026-10-17T16:10:00.000Z")).toBe("17.10.2026, 18:10");
+		expect(formatValue("2026-10-17")).toBe("17.10.2026");
+		expect(formatValue("INC-2026-001")).toBe("INC-2026-001");
 	});
 });

@@ -24,7 +24,7 @@ function hrefFor(h: SearchHit): string {
 		case "process":
 			return `/prozesse/${encodeURIComponent(h.code ?? "")}`;
 		case "provider":
-			return "/dienstleister";
+			return `/dienstleister/${h.id}`;
 		case "asset":
 			return "/assets";
 		case "incident":

@@ -218,7 +218,7 @@ export function RiskAnalysisForm({
 							<p className="text-muted-foreground text-sm">
 								{t(`dimLead_${key}`)}
 							</p>
-							<div className="grid gap-3 sm:grid-cols-2">
+							<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 								{(["higher", "lower"] as const).map((dir) => (
 									<fieldset key={dir} className="flex min-w-0 flex-col gap-1.5">
 										<legend className="mb-1 font-medium text-sm">
@@ -322,7 +322,7 @@ export function RiskAnalysisForm({
 				})()}
 			{step === "summary" && (
 				<div className="flex flex-col gap-4">
-					<div className="grid gap-4 sm:grid-cols-2">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						{!initial && (
 							<Field
 								id="ra-version"
@@ -345,7 +345,7 @@ export function RiskAnalysisForm({
 							onChange={(v) => setD({ ...d, nextReviewAt: v })}
 						/>
 					</div>
-					<ul className="grid gap-2 text-sm sm:grid-cols-4">
+					<ul className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-4">
 						{DIMENSIONS.map((key) => (
 							<li key={key} className="rounded-md border p-2">
 								<p className="text-muted-foreground text-xs">
@@ -525,7 +525,7 @@ export function MonitoringRuleForm({
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="mr-code"
 					label={t("code")}
@@ -549,7 +549,7 @@ export function MonitoringRuleForm({
 				rows={2}
 				required
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="mr-threshold"
 					label={t("threshold")}
@@ -652,7 +652,7 @@ export function SuspiciousReportForm({
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				{!initial && (
 					<>
 						<EnumSelect
@@ -839,7 +839,7 @@ export function JurisdictionForm({ initial }: { initial?: JurisdictionDraft }) {
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-3">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<Field
 					id="j-iso"
 					label={t("iso2")}

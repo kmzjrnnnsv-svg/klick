@@ -92,7 +92,7 @@ export default async function AdminInquiriesPage({
 					</Link>
 				))}
 			</nav>
-			<div className="grid gap-8 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+			<div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
 				<Table>
 					<TableHeader>
 						<TableRow>

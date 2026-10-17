@@ -50,7 +50,7 @@ export function DlpPanel({
 				<CardDescription>{t("dlpLead")}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-5 text-sm">
-				<div className="grid gap-4 sm:grid-cols-2">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					{CATEGORIES.map((cat) => (
 						<div key={cat} className="flex flex-col gap-1.5">
 							<Label>{t(`dlpCat_${cat}`)}</Label>
@@ -77,7 +77,7 @@ export function DlpPanel({
 						</div>
 					))}
 				</div>
-				<div className="grid gap-4 sm:grid-cols-3">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="dlp-pii">{t("dlpPiiThreshold")}</Label>
 						<Input

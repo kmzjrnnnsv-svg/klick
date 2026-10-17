@@ -32,7 +32,7 @@ export default async function AdminCmsPage({
 			<h1 className="mb-6 font-serif-display text-3xl text-primary">
 				{t("cms")}
 			</h1>
-			<div className="grid gap-8 lg:grid-cols-[1fr_2fr]">
+			<div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_2fr]">
 				<Table>
 					<TableHeader>
 						<TableRow>
@@ -44,7 +44,7 @@ export default async function AdminCmsPage({
 					<TableBody>
 						{pages.map((p) => (
 							<TableRow key={p.id}>
-								<TableCell className="font-mono text-xs">
+								<TableCell className="whitespace-nowrap font-mono text-xs">
 									<Link
 										href={`/admin/cms?slug=${p.slug}`}
 										className="hover:underline"

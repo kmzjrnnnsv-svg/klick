@@ -127,7 +127,7 @@ export default async function ControlsPage({
 		{
 			key: "code",
 			header: te("code"),
-			className: "w-28 font-mono text-xs",
+			className: "w-28 whitespace-nowrap font-mono text-xs",
 			cell: (r) => r.code,
 		},
 		{

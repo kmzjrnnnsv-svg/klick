@@ -96,7 +96,11 @@ export function CryptoAssetForm({ initial }: { initial?: CryptoAssetDraft }) {
 								? t("notAuthorised")
 								: res.error === "duplicate"
 									? t("duplicate")
-									: tc("error"),
+									: res.fieldErrors?.symbol
+										? t("symbolHint")
+										: res.fieldErrors
+											? tc("invalid")
+											: tc("error"),
 						);
 					toast.success(t("saved"));
 					setOpen(false);
@@ -104,13 +108,17 @@ export function CryptoAssetForm({ initial }: { initial?: CryptoAssetDraft }) {
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-3">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<Field
 					id="ca-symbol"
 					label={t("symbol")}
 					value={d.symbol}
 					onChange={(v) => setD({ ...d, symbol: v.toUpperCase() })}
 					required
+					pattern="[A-Z0-9\-]{2,12}"
+					maxLength={12}
+					placeholder="EURC"
+					title={t("symbolHint")}
 				/>
 				<div className="sm:col-span-2">
 					<Field
@@ -195,6 +203,7 @@ export function CryptoAssetForm({ initial }: { initial?: CryptoAssetDraft }) {
 				<Field
 					id="ca-networks"
 					label={t("networks")}
+					placeholder={t("networksPlaceholder")}
 					value={d.networks}
 					onChange={(v) => setD({ ...d, networks: v })}
 				/>

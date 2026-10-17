@@ -236,7 +236,7 @@ export default async function OrganisationPage({
 			/>
 
 			{"issues" in data && (
-				<div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+				<div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
 					<section className="flex flex-col gap-3">
 						<div className="flex items-start justify-between gap-3">
 							<div>
@@ -801,7 +801,7 @@ export default async function OrganisationPage({
 					{data.objectives.length === 0 ? (
 						<p className="text-sm">{t("objectivesEmpty")}</p>
 					) : (
-						<ul className="grid gap-3 md:grid-cols-2">
+						<ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
 							{data.objectives.map((o) => (
 								<li
 									key={o.id}

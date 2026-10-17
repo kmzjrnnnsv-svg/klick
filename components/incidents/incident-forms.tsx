@@ -119,7 +119,7 @@ export function IncidentCreateForm({
 				</label>
 			</div>
 			{products.length > 0 && (
-				<fieldset className="grid gap-3 rounded-md border p-3 sm:grid-cols-2">
+				<fieldset className="grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-2">
 					<legend className="px-1 text-muted-foreground text-xs">
 						{t("craLegend")}
 					</legend>
@@ -295,7 +295,7 @@ export function ClassifyForm({
 				))}
 			</div>
 			{regs.includes("dora") && (
-				<fieldset className="grid gap-3 rounded-md border p-3 sm:grid-cols-2">
+				<fieldset className="grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-2">
 					<legend className="lv-eyebrow px-1 text-[0.52rem] text-muted-foreground">
 						DORA · RTS 2024/1772
 					</legend>
@@ -333,7 +333,7 @@ export function ClassifyForm({
 				</fieldset>
 			)}
 			{regs.includes("nis2") && (
-				<fieldset className="grid gap-3 rounded-md border p-3 sm:grid-cols-3">
+				<fieldset className="grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-3">
 					<legend className="lv-eyebrow px-1 text-[0.52rem] text-muted-foreground">
 						NIS2 · Art. 23(3)
 					</legend>
@@ -349,7 +349,7 @@ export function ClassifyForm({
 				</fieldset>
 			)}
 			{hasCra && (
-				<fieldset className="grid gap-3 rounded-md border p-3 sm:grid-cols-2">
+				<fieldset className="grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-2">
 					<legend className="lv-eyebrow px-1 text-[0.52rem] text-muted-foreground">
 						CRA · Art. 14
 					</legend>
@@ -385,7 +385,7 @@ export function ClassifyForm({
 					)}
 				</fieldset>
 			)}
-			<div className="grid gap-3 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<div className="flex flex-col gap-1">
 					<Label>{t("override")}</Label>
 					<Select

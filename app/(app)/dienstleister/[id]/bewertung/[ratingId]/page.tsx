@@ -115,7 +115,7 @@ export default async function RatingPage({
 				}
 			/>
 			<div className="flex flex-col gap-6">
-				<div className="grid gap-3 sm:grid-cols-4">
+				<div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
 					<Stat label={t("res_general")} value={fmt(rating.generalScore)} />
 					<Stat label={t("res_security")} value={fmt(rating.securityScore)} />
 					<Stat label={t("res_total")} value={fmt(rating.totalScore)} />
@@ -161,7 +161,7 @@ export default async function RatingPage({
 									return (
 										<li
 											key={c.code}
-											className="grid gap-1 px-3 py-2 md:grid-cols-[1fr_10rem_1fr]"
+											className="grid grid-cols-1 gap-1 px-3 py-2 md:grid-cols-[1fr_10rem_1fr]"
 										>
 											<span className="font-medium">
 												{c.title}

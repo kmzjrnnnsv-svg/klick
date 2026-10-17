@@ -362,7 +362,7 @@ export default async function RiskDetailPage({
 									return (
 										<li
 											key={dim.key}
-											className="grid gap-1 px-3 py-2 sm:grid-cols-[14rem_8rem_1fr]"
+											className="grid grid-cols-1 gap-1 px-3 py-2 sm:grid-cols-[14rem_8rem_1fr]"
 										>
 											<span className="font-medium">{dim.label}</span>
 											<span>
@@ -375,7 +375,7 @@ export default async function RiskDetailPage({
 									);
 								})}
 						</ul>
-						<dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[12rem_1fr]">
+						<dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-[12rem_1fr]">
 							{risk.scenarioCode && (
 								<>
 									<dt className="text-muted-foreground">{t("scenario")}</dt>

@@ -383,7 +383,7 @@ export function RiskWizard({
 								</label>
 							)}
 						</div>
-						<div className="grid gap-3 rounded-md border p-3 sm:grid-cols-[1fr_16rem]">
+						<div className="grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-[1fr_16rem]">
 							<div className="flex flex-col gap-1">
 								<Label htmlFor="rw-title">{t("title")}</Label>
 								<Input
@@ -466,7 +466,7 @@ export function RiskWizard({
 									<h3 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
 										{g.label}
 									</h3>
-									<div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+									<div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
 										{list.map((s) => (
 											<button
 												key={s.code}
@@ -508,7 +508,7 @@ export function RiskWizard({
 								/>
 							</div>
 						)}
-						<div className="grid gap-4 lg:grid-cols-3">
+						<div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
 							<CheckList
 								label={t("processes")}
 								empty={t("noneYet")}
@@ -782,7 +782,7 @@ export function RiskWizard({
 				)}
 
 				{step === "result" && assessed && impact !== null && (
-					<div className="grid gap-6 lg:grid-cols-[1fr_auto]">
+					<div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto]">
 						<div
 							className={cn(
 								"flex flex-col gap-3 rounded-md border p-4",
@@ -826,7 +826,7 @@ export function RiskWizard({
 							<legend className="mb-1 font-medium text-sm">
 								{t("treatmentLegend")}
 							</legend>
-							<div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+							<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
 								{TREATMENTS.map((o) => (
 									<label
 										key={o}
@@ -868,7 +868,7 @@ export function RiskWizard({
 									{d.measures.map((m, i) => (
 										<li
 											key={m.key}
-											className="grid gap-2 rounded-md border p-2 md:grid-cols-[1fr_12rem_10rem_8rem_auto]"
+											className="grid grid-cols-1 gap-2 rounded-md border p-2 md:grid-cols-[1fr_12rem_10rem_8rem_auto]"
 										>
 											<Input
 												aria-label={t("measureTitle")}
@@ -1000,7 +1000,7 @@ export function RiskWizard({
 								<p className="text-muted-foreground text-xs">
 									{t("residualHint")}
 								</p>
-								<div className="grid gap-3 sm:grid-cols-2">
+								<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 									<div className="flex flex-col gap-1">
 										<Label htmlFor="rw-rl">{t("residualLikelihood")}</Label>
 										<select
@@ -1069,7 +1069,7 @@ export function RiskWizard({
 							</div>
 						)}
 
-						<div className="grid gap-3 sm:grid-cols-2">
+						<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 							<div className="flex flex-col gap-1">
 								<Label htmlFor="rw-owner">{t("owner")}</Label>
 								<select
@@ -1099,7 +1099,7 @@ export function RiskWizard({
 				)}
 
 				{step === "summary" && assessed && impact !== null && (
-					<dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[14rem_1fr]">
+					<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-[14rem_1fr]">
 						<dt className="text-muted-foreground">{t("title")}</dt>
 						<dd className="font-medium">
 							{riskCode ? `${riskCode} · ` : ""}

@@ -274,7 +274,7 @@ export function EngagementScopeForm({
 					onChange={(e) => set("scope", e.target.value)}
 				/>
 			</div>
-			<div className="grid gap-4 md:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="eg-targets">{t("targets")}</Label>
 					<Textarea
@@ -321,7 +321,10 @@ export function EngagementScopeForm({
 					onChange={(e) => set("methodology", e.target.value)}
 				/>
 			</div>
-			<fieldset className="grid gap-3 md:grid-cols-3" disabled={disabled}>
+			<fieldset
+				className="grid grid-cols-1 gap-3 md:grid-cols-3"
+				disabled={disabled}
+			>
 				<legend className="mb-2 font-medium">{t("tester")}</legend>
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="eg-tname">{t("testerName")}</Label>
@@ -361,7 +364,7 @@ export function EngagementScopeForm({
 					<span>{t("testerExternal")}</span>
 				</label>
 			</fieldset>
-			<div className="grid gap-3 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="eg-start">{t("startAt")}</Label>
 					<Input
@@ -610,7 +613,7 @@ export function AddFindingDialog({
 							onChange={(e) => set("title", e.target.value)}
 						/>
 					</div>
-					<div className="grid gap-3 sm:grid-cols-2">
+					<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="ef-cat">{t("category")}</Label>
 							<Select
@@ -652,7 +655,7 @@ export function AddFindingDialog({
 							</Select>
 						</div>
 					</div>
-					<div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
+					<div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_8rem]">
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="ef-cvss">{t("cvssVector")}</Label>
 							<Input
@@ -697,7 +700,7 @@ export function AddFindingDialog({
 							</div>
 						)}
 					</div>
-					<div className="grid gap-3 sm:grid-cols-3">
+					<div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="ef-cwe">CWE</Label>
 							<Input
