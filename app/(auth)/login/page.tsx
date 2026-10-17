@@ -2,18 +2,22 @@ import { getTranslations } from "next-intl/server";
 import { LoginForm } from "@/components/auth/login-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { gateAuth } from "@/lib/auth/gates";
-import { safeInternalPath } from "@/lib/safe-path";
+import { linkFailure, safeNextPath } from "@/lib/auth/magic-link";
 
 export default async function LoginPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ grund?: string; weiter?: string }>;
+	searchParams: Promise<{
+		grund?: string;
+		error?: string;
+		weiter?: string | string[];
+	}>;
 }) {
 	await gateAuth("/login");
 	const t = await getTranslations("Auth");
-	const { grund, weiter } = await searchParams;
-	// Rücksprung nach dem Login (z. B. Einladung annehmen) — nur interne Pfade.
-	const next = safeInternalPath(weiter, "");
+	const { grund, error, weiter } = await searchParams;
+	// Better Auth hängt beim Klick auf einen ungültigen Link ?error=… an.
+	const failure = linkFailure(error);
 	const reason =
 		grund === "sitzung-abgelaufen"
 			? t("reasonSessionExpired")
@@ -24,7 +28,11 @@ export default async function LoginPage({
 					: grund === "sso"
 						? t("ssoNoProvider")
 						: grund === "link-ungueltig"
-							? t("genericError")
+							? failure === "expired"
+								? t("reasonLinkExpired")
+								: failure === "no_account"
+									? t("reasonNoAccount")
+									: t("genericError")
 							: null;
 	const microsoftEnabled = Boolean(
 		process.env.MICROSOFT_CLIENT_ID &&
@@ -49,7 +57,7 @@ export default async function LoginPage({
 			<LoginForm
 				microsoftEnabled={microsoftEnabled}
 				signupAllowed={signupAllowed}
-				next={next || undefined}
+				next={safeNextPath(weiter)}
 			/>
 		</div>
 	);

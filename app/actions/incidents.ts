@@ -5,9 +5,11 @@ import { revalidatePath } from "next/cache";
 import {
 	incidents,
 	incidentUpdates,
+	products,
 	roleAssignments,
 	tasks,
 } from "@/db/schema";
+import type { IncidentRegime } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
@@ -16,6 +18,8 @@ import {
 	classifyDoraIncident,
 	classifyNis2Incident,
 	computeIncidentDeadlines,
+	craReasons,
+	leadRegime,
 	nextIncidentCode,
 } from "@/lib/compliance/incident";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
@@ -28,6 +32,7 @@ import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	classifyIncidentSchema,
 	createIncidentSchema,
+	incidentMitigationSchema,
 	incidentReportSchema,
 	incidentUpdateSchema,
 	setIncidentStatusSchema,
@@ -35,23 +40,67 @@ import {
 
 type Tx = Parameters<Parameters<typeof mutateOrg>[1]>[0];
 
-// Fristen aus Regimes + Zeitstempeln ableiten (DORA führend, sonst erstes Regime).
+// Fristen aus Regimes + Zeitstempeln ableiten (Leitregime, siehe leadRegime).
 function deadlinesFor(row: {
-	regimes: readonly string[];
+	regimes: readonly IncidentRegime[];
 	awareAt: Date;
 	classifiedAt: Date | null;
 	initialReportedAt: Date | null;
 	intermediateReportedAt: Date | null;
+	mitigationAvailableAt?: Date | null;
 }) {
-	const regime = (
-		row.regimes.includes("dora") ? "dora" : (row.regimes[0] ?? "dora")
-	) as "dora" | "nis2" | "dsgvo" | "gwg_sar";
-	return computeIncidentDeadlines(regime, {
+	return computeIncidentDeadlines(leadRegime(row.regimes) ?? "dora", {
 		awareAt: row.awareAt,
 		classifiedAt: row.classifiedAt,
 		initialReportedAt: row.initialReportedAt,
 		intermediateReportedAt: row.intermediateReportedAt,
+		mitigationAvailableAt: row.mitigationAvailableAt,
 	});
+}
+
+const isCra = (r: readonly IncidentRegime[]) =>
+	r.includes("cra_vuln") || r.includes("cra_incident");
+
+// Produkt muss zur Org gehören (Fremdschlüssel prüfen nicht über RLS).
+async function ownProduct(
+	tx: Tx,
+	orgId: string,
+	productId: string | null | undefined,
+): Promise<string | null | undefined> {
+	if (!productId) return productId;
+	const [p] = await tx
+		.select({ id: products.id })
+		.from(products)
+		.where(and(eq(products.id, productId), eq(products.organizationId, orgId)))
+		.limit(1);
+	return p ? p.id : undefined;
+}
+
+// CRA-Meldepaket als Aufgaben (einmal je Vorfall).
+async function insertCraBundle(
+	tx: Tx,
+	orgId: string,
+	actorId: string,
+	incident: { id: string; code: string; ownerUserId: string | null },
+) {
+	const bundle = TASK_BUNDLES.find((b) => b.code === "INCIDENT_CRA");
+	if (!bundle) return;
+	await tx.insert(tasks).values(
+		bundle.items.map((it) => ({
+			organizationId: orgId,
+			title: `${incident.code}: ${it.title}`,
+			assigneeUserId: incident.ownerUserId ?? actorId,
+			createdByUserId: actorId,
+			dueAt: new Date(Date.now() + (it.offsetDays ?? 0) * 86_400_000)
+				.toISOString()
+				.slice(0, 10),
+			entityType: "incident" as const,
+			entityId: incident.id,
+			sourceKind: "incident_action" as const,
+			bundleCode: bundle.code,
+			priority: "critical" as const,
+		})),
+	);
 }
 
 async function incidentManager(tx: Tx, orgId: string): Promise<string | null> {
@@ -97,9 +146,11 @@ async function createIncidentImpl(
 			intermediateReportedAt: null,
 		});
 		const owner = (await incidentManager(tx, c.orgId)) ?? c.userId;
+		const productId = await ownProduct(tx, c.orgId, d.productId);
 		const [row] = await tx
 			.insert(incidents)
 			.values({
+				productId: productId ?? null,
 				organizationId: c.orgId,
 				code,
 				title: d.title,
@@ -123,6 +174,12 @@ async function createIncidentImpl(
 			kind: "status_change",
 			body: `Vorfall erfasst. Kenntnis: ${d.awareAt.toISOString()}`,
 		});
+		if (isCra(regimes))
+			await insertCraBundle(tx, c.orgId, c.userId, {
+				id: row.id,
+				code,
+				ownerUserId: owner,
+			});
 		await notify(tx, {
 			orgId: c.orgId,
 			recipients: [owner],
@@ -178,9 +235,24 @@ async function classifyIncidentImpl(
 		const nis2 = d.regimes.includes("nis2")
 			? classifyNis2Incident(d.nis2Criteria ?? {})
 			: null;
-		const derived = dora?.classification ?? nis2?.classification ?? "minor";
+		const cra = isCra(d.regimes) ? craReasons(d.craCriteria ?? {}) : [];
+		const derived =
+			dora?.classification ??
+			nis2?.classification ??
+			(cra.length > 0 ? "significant" : "minor");
 		const classification = d.classificationOverride ?? derived;
-		const reasons = [...(dora?.reasons ?? []), ...(nis2?.reasons ?? [])];
+		const reasons = [
+			...(dora?.reasons ?? []),
+			...(nis2?.reasons ?? []),
+			...cra,
+		];
+		// undefined = unverändert, null = Zuordnung entfernen
+		const productId =
+			d.productId === undefined
+				? row.productId
+				: d.productId === null
+					? null
+					: ((await ownProduct(tx, c.orgId, d.productId)) ?? row.productId);
 		const classifiedAt = row.classifiedAt ?? new Date();
 		const dl = deadlinesFor({
 			regimes: d.regimes,
@@ -188,6 +260,7 @@ async function classifyIncidentImpl(
 			classifiedAt,
 			initialReportedAt: row.initialReportedAt,
 			intermediateReportedAt: row.intermediateReportedAt,
+			mitigationAvailableAt: row.mitigationAvailableAt,
 		});
 		await tx
 			.update(incidents)
@@ -196,6 +269,8 @@ async function classifyIncidentImpl(
 				affectsPayments: d.affectsPayments,
 				doraCriteria: d.doraCriteria ?? null,
 				nis2Criteria: d.nis2Criteria ?? null,
+				craCriteria: isCra(d.regimes) ? (d.craCriteria ?? null) : null,
+				productId,
 				classification,
 				classificationOverrideNote: d.classificationOverride
 					? (d.classificationOverrideNote ?? null)
@@ -214,6 +289,8 @@ async function classifyIncidentImpl(
 			kind: "classification",
 			body: `Einstufung: ${classification}${reasons.length ? ` — ${reasons.join("; ")}` : ""}${d.classificationOverride ? ` (manuell: ${d.classificationOverrideNote ?? ""})` : ""}`,
 		});
+		if (isCra(d.regimes) && !isCra(row.regimes))
+			await insertCraBundle(tx, c.orgId, c.userId, row);
 		// Major → Erstreaktions-Paket als Aufgaben (einmal).
 		if (classification === "major" && row.classification !== "major") {
 			const bundle = TASK_BUNDLES.find((b) => b.code === "INCIDENT_DORA");
@@ -248,6 +325,7 @@ async function classifyIncidentImpl(
 					derived,
 					reasons,
 					regimes: d.regimes,
+					productId,
 					override: d.classificationOverride ?? null,
 				},
 			},
@@ -288,6 +366,7 @@ async function markIncidentReportedImpl(input: unknown): Promise<ActionResult> {
 			classifiedAt: merged.classifiedAt,
 			initialReportedAt: merged.initialReportedAt,
 			intermediateReportedAt: merged.intermediateReportedAt,
+			mitigationAvailableAt: merged.mitigationAvailableAt,
 		});
 		await tx
 			.update(incidents)
@@ -310,6 +389,58 @@ async function markIncidentReportedImpl(input: unknown): Promise<ActionResult> {
 				action: "incident.report_sent",
 				target: `incident:${row.id}`,
 				after: { report: d.report, at: now, note: d.note ?? null },
+			},
+		};
+	});
+	if (!ok) return { ok: false, error: "notFound" };
+	revalidatePath("/vorfaelle", "layout");
+	return { ok: true, data: undefined };
+}
+
+// CRA: Korrektur/Abhilfe verfügbar → Abschlussbericht binnen 14 Tagen
+// (aktiv ausgenutzte Schwachstelle). Frist wird hier berechnet, nie im Job.
+async function markMitigationAvailableImpl(
+	input: unknown,
+): Promise<ActionResult> {
+	const c = await requireOrg({ incident: ["update"] });
+	const parsed = incidentMitigationSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const ok = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select()
+			.from(incidents)
+			.where(
+				and(
+					eq(incidents.id, d.incidentId),
+					eq(incidents.organizationId, c.orgId),
+				),
+			)
+			.limit(1);
+		if (!row) return { result: false, audit: [] };
+		const at = d.at ?? new Date();
+		const dl = deadlinesFor({ ...row, mitigationAvailableAt: at });
+		await tx
+			.update(incidents)
+			.set({ mitigationAvailableAt: at, finalDueAt: dl.finalDueAt })
+			.where(eq(incidents.id, row.id));
+		await tx.insert(incidentUpdates).values({
+			organizationId: c.orgId,
+			incidentId: row.id,
+			authorUserId: c.userId,
+			kind: "update",
+			body: `Korrektur bzw. Abhilfe verfügbar seit ${at.toISOString()}.${dl.finalDueAt ? ` Abschlussbericht bis ${dl.finalDueAt.toISOString()}.` : ""}`,
+		});
+		return {
+			result: true,
+			audit: {
+				action: "incident.mitigation_available",
+				target: `incident:${row.id}`,
+				before: {
+					mitigationAvailableAt: row.mitigationAvailableAt,
+					finalDueAt: row.finalDueAt,
+				},
+				after: { mitigationAvailableAt: at, finalDueAt: dl.finalDueAt },
 			},
 		};
 	});
@@ -474,6 +605,10 @@ export const classifyIncident = safeAction(
 export const markIncidentReported = safeAction(
 	"markIncidentReported",
 	markIncidentReportedImpl,
+);
+export const markMitigationAvailable = safeAction(
+	"markMitigationAvailable",
+	markMitigationAvailableImpl,
 );
 export const addIncidentUpdate = safeAction(
 	"addIncidentUpdate",

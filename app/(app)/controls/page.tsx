@@ -14,6 +14,8 @@ import { DOMAINS, type ImplStatus } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
+import { BASELINE } from "@/lib/compliance/catalog";
+import { requiredControlCodes } from "@/lib/compliance/catalog-view";
 import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
 	type ControlRow,
@@ -54,6 +56,29 @@ export default async function ControlsPage({
 	const mine = one(sp.mine) === "1";
 	const overdue = one(sp.overdue) === "1";
 	const unowned = one(sp.unowned) === "1";
+	const orphan = one(sp.orphan) === "1";
+	// Nicht mehr gefordert: kein aktives Rahmenwerk braucht das Control (z. B.
+	// nach dem Entfernen eines Rahmenwerks) — abgeleitet, nie gespeichert.
+	const required = cov
+		? requiredControlCodes(
+				{
+					sector: cov.profile.sector,
+					licenceStage: cov.profile.licenceStage,
+					caspServices: cov.profile.caspServices,
+					frameworks: cov.frameworks,
+					tlptDesignated: cov.profile.tlptDesignated,
+					issuesTokens: cov.profile.issuesTokens,
+					productRoles: cov.profile.productRoles,
+				},
+				new Map(
+					[...cov.applicabilityDetail]
+						.filter(([, d]) => d.source === "manual")
+						.map(([k, d]) => [k, d.applicable]),
+				),
+			)
+		: null;
+	if (required && cov?.profile.applyBaseline)
+		for (const b of BASELINE.controls) required.add(b.code);
 
 	const filtered = rows
 		.filter((r) => !q || `${r.code} ${r.title}`.toLowerCase().includes(q))
@@ -70,6 +95,7 @@ export default async function ControlsPage({
 			(r) => !overdue || (r.nextReviewAt !== null && r.nextReviewAt < today),
 		)
 		.filter((r) => !unowned || !r.ownerUserId)
+		.filter((r) => !orphan || (required !== null && !required.has(r.code)))
 		.sort((a, b) => {
 			const la = leverage.get(a.code);
 			const lb = leverage.get(b.code);
@@ -197,6 +223,7 @@ export default async function ControlsPage({
 					{ key: "mine", label: te("chipMine") },
 					{ key: "overdue", label: te("chipOverdue") },
 					{ key: "unowned", label: te("chipUnowned") },
+					{ key: "orphan", label: t("chipOrphan") },
 				]}
 				columns={columns}
 				rows={filtered.map((r) => ({ ...r, id: r.implementationId }))}

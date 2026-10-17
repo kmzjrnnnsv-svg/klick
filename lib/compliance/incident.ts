@@ -14,6 +14,12 @@ import type { IncidentRegime } from "@/db/schema/enums";
 // DSGVO (Art. 33): Meldung ≤ 72 h nach Kenntnis; Abschluss/Nachreichung
 //   ohne feste Frist → kein finalDueAt.
 // ZAG § 54 läuft über affectsPayments auf der DORA-Uhr (Art. 23).
+// CRA Art. 14 (seit 11.09.2026), Meldung an CSIRT/BSI und ENISA:
+//   cra_vuln      aktiv ausgenutzte Schwachstelle: Frühwarnung aware + 24 h,
+//                 Meldung aware + 72 h, Abschlussbericht ≤ 14 Tage nach
+//                 Verfügbarkeit einer Abhilfe (ohne Abhilfe: noch offen)
+//   cra_incident  schwerwiegender Vorfall: 24 h / 72 h, Abschlussbericht
+//                 ≤ 1 Monat nach Abgabe der Vorfallmeldung (projiziert)
 
 const H = 60 * 60 * 1000;
 
@@ -121,11 +127,49 @@ export function classifyNis2Incident(c: Nis2Criteria): ClassificationResult {
 	};
 }
 
+// CRA Art. 14: meldepflichtig ist eine aktiv ausgenutzte Schwachstelle bzw.
+// ein Vorfall, der Verfügbarkeit/Integrität/Vertraulichkeit des Produkts
+// beeinträchtigt oder Schadcode einschleust. Gründe für das Vorfall-Protokoll.
+export type CraCriteria = {
+	activelyExploited?: boolean;
+	affectsAvailabilityOrIntegrity?: boolean;
+	maliciousCode?: boolean;
+};
+
+export function craReasons(c: CraCriteria): string[] {
+	const out: string[] = [];
+	if (c.activelyExploited) out.push("Aktiv ausgenutzte Schwachstelle");
+	if (c.affectsAvailabilityOrIntegrity)
+		out.push("Schutz von Daten oder Funktionen des Produkts beeinträchtigt");
+	if (c.maliciousCode) out.push("Schadcode eingeschleust oder ausgeführt");
+	return out;
+}
+
+// Leitregime eines Vorfalls mit mehreren Meldepflichten: die strengste Uhr
+// führt (Rangfolge unten). Eine Quelle für Action, Detailseite und Tick.
+const LEAD_ORDER: readonly IncidentRegime[] = [
+	"dora",
+	"nis2",
+	"cra_vuln",
+	"cra_incident",
+	"dsgvo",
+	"gwg_sar",
+];
+
+export function leadRegime(
+	regimes: readonly IncidentRegime[],
+): IncidentRegime | null {
+	for (const r of LEAD_ORDER) if (regimes.includes(r)) return r;
+	return regimes[0] ?? null;
+}
+
 export type DeadlineInput = {
 	awareAt: Date;
 	classifiedAt?: Date | null;
 	initialReportedAt?: Date | null;
 	intermediateReportedAt?: Date | null;
+	// CRA: Korrektur- oder Abhilfemaßnahme verfügbar (Uhr des Abschlussberichts)
+	mitigationAvailableAt?: Date | null;
 };
 
 export type Deadlines = {
@@ -142,6 +186,8 @@ export type Deadlines = {
 	// true, wenn Folgefristen von noch nicht abgegebenen Berichten projiziert sind
 	projected: boolean;
 };
+
+const D = 24 * H;
 
 function addMonth(d: Date): Date {
 	const out = new Date(d);
@@ -197,6 +243,38 @@ export function computeIncidentDeadlines(
 				finalDueAt: addMonth(aware),
 				projected: false,
 			};
+		case "cra_vuln":
+			return {
+				regime,
+				labels: {
+					initial: "Frühwarnung (CSIRT/ENISA)",
+					intermediate: "Schwachstellenmeldung",
+					final: "Abschlussbericht (14 Tage nach Abhilfe)",
+				},
+				earlyWarningAt: new Date(aware.getTime() + 24 * H),
+				initialDueAt: new Date(aware.getTime() + 24 * H),
+				intermediateDueAt: new Date(aware.getTime() + 72 * H),
+				finalDueAt: input.mitigationAvailableAt
+					? new Date(input.mitigationAvailableAt.getTime() + 14 * D)
+					: null,
+				projected: false,
+			};
+		case "cra_incident": {
+			const intermediateDueAt = new Date(aware.getTime() + 72 * H);
+			return {
+				regime,
+				labels: {
+					initial: "Frühwarnung (CSIRT/ENISA)",
+					intermediate: "Vorfallmeldung",
+					final: "Abschlussbericht",
+				},
+				earlyWarningAt: new Date(aware.getTime() + 24 * H),
+				initialDueAt: new Date(aware.getTime() + 24 * H),
+				intermediateDueAt,
+				finalDueAt: addMonth(input.intermediateReportedAt ?? intermediateDueAt),
+				projected: !input.intermediateReportedAt,
+			};
+		}
 		case "dsgvo":
 			return {
 				regime,

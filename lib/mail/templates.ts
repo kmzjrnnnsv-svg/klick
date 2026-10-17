@@ -235,3 +235,33 @@ export function invitationEmail(input: {
 		footnote: "Wenn du diese Einladung nicht erwartest, ignoriere diese Mail.",
 	});
 }
+
+// Lieferantenportal: Einladung zum Fragebogen. Der Link trägt den Token im
+// Fragment (#klk_portal_…) — ohne Konto, gültig bis zum Ablaufdatum.
+export function supplierPortalEmail(input: {
+	url: string;
+	organization: string;
+	questionnaire: string;
+	contactName?: string | null;
+	expiresAt: Date;
+	dueAt?: string | null;
+}): { subject: string; text: string; html: string } {
+	const fmt = new Intl.DateTimeFormat("de-DE", {
+		dateStyle: "long",
+		timeZone: "Europe/Berlin",
+	});
+	const greeting = input.contactName ? `Hallo ${input.contactName},` : "Hallo,";
+	const dueDate = input.dueAt ? fmt.format(new Date(input.dueAt)) : null;
+	const validUntil = fmt.format(input.expiresAt);
+	const rest = `Ein Konto brauchst du dafür nicht. Der Link ist bis zum ${validUntil} gültig; leite ihn nur an Personen weiter, die für dein Unternehmen antworten dürfen.`;
+	return transactionalEmail({
+		subject: `Fragebogen von ${input.organization}: ${input.questionnaire}`,
+		eyebrow: "Lieferantenbewertung",
+		title: `${input.organization} bittet dich um Auskunft.`,
+		body: `${greeting}\n\nim Rahmen der Lieferantenbewertung bitten wir dich, den Fragebogen „${input.questionnaire}“ zu beantworten und passende Nachweise hochzuladen.${dueDate ? ` Bitte reiche ihn bis zum ${dueDate} ein.` : ""} ${rest}`,
+		bodyHtml: `${escapeHtml(greeting)}<br><br>im Rahmen der Lieferantenbewertung bitten wir dich, den Fragebogen <strong>${escapeHtml(input.questionnaire)}</strong> zu beantworten und passende Nachweise hochzuladen.${dueDate ? ` Bitte reiche ihn bis zum <strong>${dueDate}</strong> ein.` : ""} ${escapeHtml(rest)}`,
+		cta: { label: "Fragebogen öffnen", url: input.url },
+		footnote:
+			"Wenn du diese Anfrage nicht erwartest, ignoriere diese Mail und melde dich bei deinem Ansprechpartner.",
+	});
+}

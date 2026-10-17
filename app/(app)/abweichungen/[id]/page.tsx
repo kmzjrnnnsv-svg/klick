@@ -51,6 +51,7 @@ const SOURCE_KIND = {
 	complaint: "complaint",
 	management_review: "management_review",
 	self_identified: null,
+	security_finding: "security_finding",
 } as const;
 
 export default async function NonconformityDetailPage({

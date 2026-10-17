@@ -142,6 +142,7 @@ export const createIncidentSchema = z.object({
 	affectsCustomers: z.boolean().default(false),
 	description: longText.optional(),
 	regimes: z.array(z.enum(INCIDENT_REGIMES)).min(1).default(["dora"]),
+	productId: uuid.nullable().optional(),
 });
 export type CreateIncidentInput = z.output<typeof createIncidentSchema>;
 
@@ -170,8 +171,23 @@ export const classifyIncidentSchema = z.object({
 			affectsOthers: z.boolean().optional(),
 		})
 		.optional(),
+	// CRA Art. 14: aktiv ausgenutzt (Schwachstelle) bzw. schwerwiegend (Vorfall)
+	craCriteria: z
+		.object({
+			activelyExploited: z.boolean().optional(),
+			affectsAvailabilityOrIntegrity: z.boolean().optional(),
+			maliciousCode: z.boolean().optional(),
+		})
+		.optional(),
+	productId: uuid.nullable().optional(),
 	classificationOverride: z.enum(["major", "significant", "minor"]).optional(),
 	classificationOverrideNote: z.string().trim().max(2000).optional(),
+});
+
+export const incidentMitigationSchema = z.object({
+	incidentId: uuid,
+	// Zeitpunkt, ab dem eine Korrektur oder Abhilfe verfügbar ist (Default jetzt)
+	at: z.coerce.date().optional(),
 });
 
 export const incidentReportSchema = z.object({

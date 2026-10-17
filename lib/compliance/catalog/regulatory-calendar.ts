@@ -13,6 +13,24 @@ export type RegulatoryChange = {
 
 export const REGULATORY_CALENDAR: readonly RegulatoryChange[] = [
 	{
+		date: "2026-06-11",
+		title: "CRA: Regeln für Konformitätsbewertungsstellen",
+		frameworks: ["cra"],
+		legalBasis: "VO (EU) 2024/2847 Art. 71 Abs. 2, Kapitel IV",
+		description:
+			"Notifizierung benannter Stellen läuft — wer wichtige Produkte der Klasse II oder kritische Produkte herstellt, sollte jetzt Termine bei einer benannten Stelle anfragen.",
+		status: "in_force_date",
+	},
+	{
+		date: "2026-09-11",
+		title: "CRA: Meldepflichten nach Art. 14",
+		frameworks: ["cra"],
+		legalBasis: "VO (EU) 2024/2847 Art. 14, Art. 71 Abs. 2",
+		description:
+			"Aktiv ausgenutzte Schwachstellen und schwerwiegende Vorfälle an Produkten binnen 24 h/72 h an CSIRT und ENISA melden — gilt auch für Produkte, die schon auf dem Markt sind.",
+		status: "in_force_date",
+	},
+	{
 		date: "2026-12-31",
 		title: "BAIT formell aufgehoben",
 		frameworks: ["zag-marisk", "dora"],
@@ -66,6 +84,15 @@ export const REGULATORY_CALENDAR: readonly RegulatoryChange[] = [
 		description:
 			"Für den UK-Korridor: Zulassung oder Partner mit FCA-Erlaubnis erforderlich.",
 		status: "expected",
+	},
+	{
+		date: "2027-12-11",
+		title: "CRA: alle übrigen Pflichten",
+		frameworks: ["cra"],
+		legalBasis: "VO (EU) 2024/2847 Art. 71 Abs. 2",
+		description:
+			"Sicherheitsanforderungen (Anhang I), technische Dokumentation, Konformitätsbewertung, EU-Konformitätserklärung und CE für neu in Verkehr gebrachte Produkte.",
+		status: "in_force_date",
 	},
 	{
 		date: "2028-01-01",

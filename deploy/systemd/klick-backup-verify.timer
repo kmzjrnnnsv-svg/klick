@@ -1,0 +1,9 @@
+[Unit]
+Description=Klick — Backup-Stichprobe sonntags 05:10
+
+[Timer]
+OnCalendar=Sun *-*-* 05:10:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

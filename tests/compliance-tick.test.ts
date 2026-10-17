@@ -584,4 +584,137 @@ describe("collectDueItems — Pflichten, Rechtsänderungen, Abweichungen, TLPT, 
 		expect(ins[1]?.title).toContain("abgelaufen");
 		expect(ins[1]?.recipients).toEqual([...empty.orgOwnerIds]);
 	});
+
+	it("Produkt: Supportende 365/180/90/30 Tage vorher und am Tag danach", () => {
+		const now = new Date("2026-10-07T08:00:00Z");
+		const prod = (id: string, supportUntil: string, status = "on_market") => ({
+			id,
+			code: id.toUpperCase(),
+			name: "App",
+			supportUntil,
+			status,
+			ownerUserId: "u1",
+		});
+		const res = collectDueItems(now, {
+			...empty,
+			products: [
+				prod("p365", "2027-10-07"),
+				prod("p90", "2027-01-05"),
+				prod("p91", "2027-01-06"),
+				prod("pend", "2026-10-06"),
+				prod("pdone", "2027-01-05", "end_of_support"),
+			],
+		});
+		const keys = res.notifications
+			.filter((n) => n.dedupeKey.startsWith("product_support:"))
+			.map((n) => n.dedupeKey);
+		expect(keys).toEqual([
+			"product_support:p365:365",
+			"product_support:p90:90",
+			"product_support:pend:ended",
+		]);
+	});
+});
+
+describe("collectDueItems — Lieferantenbewertungen", () => {
+	it("erinnert 14 Tage nach Versand, dann wöchentlich und bei überschrittener Frist", () => {
+		const sup = (
+			id: string,
+			sentDaysAgo: number,
+			opts: { status?: string; dueAt?: string | null } = {},
+		) => ({
+			id,
+			code: `LB-2026-${id}`,
+			title: `Fragebogen ${id}`,
+			providerId: `prov-${id}`,
+			status: opts.status ?? "in_progress",
+			dueAt: opts.dueAt ?? null,
+			sentAt: new Date(NOW.getTime() - sentDaysAgo * DAY - HOUR),
+			lastOpenedAt: null,
+			ownerUserId: "u1",
+		});
+		const res = collectDueItems(NOW, {
+			...empty,
+			supplierAssessments: [
+				sup("13", 13),
+				sup("14", 14),
+				sup("21", 21),
+				sup("20", 20),
+				sup("sub", 14, { status: "submitted" }),
+				sup("due", 3, { dueAt: "2026-10-06" }),
+			],
+		});
+		const hits = res.notifications.filter((n) =>
+			n.dedupeKey.startsWith("supplier_reminder:"),
+		);
+		expect(hits.map((n) => n.dedupeKey).sort()).toEqual([
+			"supplier_reminder:14:14",
+			"supplier_reminder:21:21",
+			"supplier_reminder:due:3",
+		]);
+		expect(hits.find((n) => n.dedupeKey.includes(":14:"))?.link).toBe(
+			"/dienstleister/prov-14?tab=bewertungen",
+		);
+		expect(hits.find((n) => n.dedupeKey.includes(":due:"))?.body).toContain(
+			"überschritten",
+		);
+	});
+
+	it("fällige Dienstleister-Bewertung verlinkt die Detailseite", () => {
+		const res = collectDueItems(NOW, {
+			...empty,
+			providerAssessments: [
+				{
+					id: "p1",
+					name: "Hoster",
+					nextAssessmentAt: "2026-10-09",
+					ownerUserId: "u1",
+				},
+			],
+		});
+		expect(res.notifications[0]?.link).toBe(
+			"/dienstleister/p1?tab=bewertungen",
+		);
+	});
+});
+
+describe("collectDueItems — Sicherheitsaufträge", () => {
+	it("Bericht nach Testende (wöchentlich), Nachtest 7 Tage vorher und überfällig", () => {
+		const eng = (
+			id: string,
+			status: string,
+			endAt: string | null,
+			retestDueAt: string | null,
+		) => ({
+			id,
+			code: `SA-${id}`,
+			title: "Pentest",
+			status,
+			endAt,
+			retestDueAt,
+			ownerUserId: "u1",
+		});
+		const res = collectDueItems(NOW, {
+			...empty,
+			engagements: [
+				eng("end0", "in_progress", "2026-10-07", null),
+				eng("end3", "in_progress", "2026-10-04", null),
+				eng("end7", "authorized", "2026-09-30", null),
+				eng("rt7", "delivered", null, "2026-10-14"),
+				eng("rt6", "delivered", null, "2026-10-13"),
+				eng("rtOver", "retest", null, "2026-09-30"),
+				eng("closed", "closed", "2026-10-07", "2026-09-30"),
+			],
+		});
+		const keys = res.notifications
+			.map((n) => n.dedupeKey)
+			.filter((k) => k.startsWith("engagement_"))
+			.sort();
+		expect(keys).toEqual([
+			"engagement_report:end0:0",
+			"engagement_report:end7:-7",
+			"engagement_retest:rt7:7",
+			"engagement_retest:rtOver:-7",
+		]);
+	});
 });

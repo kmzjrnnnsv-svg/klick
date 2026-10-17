@@ -28,6 +28,8 @@
 		"db:studio": "drizzle-kit studio",
 		"db:backup": "scripts/backup-db.sh",
 		"kek:rotate": "tsx scripts/rotate-kek.ts",
+		"auth:link": "tsx scripts/login-link.ts",
+		"mail:check": "tsx scripts/mail-check.ts",
 		"auth:generate": "pnpm dlx auth@latest generate --config lib/auth/server.ts --output db/auth-schema.ts -y",
 		"auth:check": "pnpm dlx auth@latest check schema --config lib/auth/server.ts"
 	},

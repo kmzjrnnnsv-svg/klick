@@ -1,5 +1,10 @@
 import type { CaspService, LicenceStage } from "@/db/schema/enums";
-import { deriveApplicabilityMap, type OrgProfile } from "./applicability";
+import {
+	type ApplicabilityDecision,
+	deriveApplicabilityMap,
+	inWorkQueue,
+	type OrgProfile,
+} from "./applicability";
 import { ALL_REQUIREMENTS, CONTROLS, EDGES } from "./catalog";
 import type { Edge, ReqRef } from "./coverage";
 import type { ControlRef, SynergyCatalog } from "./synergy";
@@ -34,6 +39,7 @@ export type ProfileInput = {
 	frameworks: readonly string[];
 	tlptDesignated?: boolean;
 	issuesTokens?: OrgProfile["issuesTokens"];
+	productRoles?: OrgProfile["productRoles"];
 	asOf?: Date;
 };
 
@@ -45,6 +51,7 @@ export function toProfile(input: ProfileInput): OrgProfile {
 		selectedFrameworks: input.frameworks,
 		tlptDesignated: input.tlptDesignated,
 		issuesTokens: input.issuesTokens,
+		productRoles: input.productRoles,
 		asOf: input.asOf,
 	};
 }
@@ -55,11 +62,17 @@ export function toProfile(input: ProfileInput): OrgProfile {
 export function profileApplicability(
 	input: ProfileInput,
 ): Map<string, boolean> {
-	const profile = toProfile(input);
-	const decisions = deriveApplicabilityMap(ALL_REQUIREMENTS, profile);
 	const out = new Map<string, boolean>();
-	for (const [key, d] of decisions) out.set(key, d.applicable);
+	for (const [key, d] of profileApplicabilityDetail(input))
+		out.set(key, d.applicable);
 	return out;
+}
+
+// Wie profileApplicability, aber mit Quelle und Begründung je Anforderung.
+export function profileApplicabilityDetail(
+	input: ProfileInput,
+): Map<string, ApplicabilityDecision> {
+	return deriveApplicabilityMap(ALL_REQUIREMENTS, toProfile(input));
 }
 
 export function synergyCatalogFor(input: ProfileInput): SynergyCatalog {
@@ -69,4 +82,27 @@ export function synergyCatalogFor(input: ProfileInput): SynergyCatalog {
 		controls: CATALOG_CONTROL_REFS,
 		applicability: profileApplicability(input),
 	};
+}
+
+// Controls, die die aktiven Rahmenwerke fordern (heute oder ab Stichtag,
+// manuelle Entscheidungen darübergelegt). Alles andere in
+// control_implementations ist „nicht mehr gefordert“ — etwa nach dem
+// Entfernen eines Rahmenwerks.
+export function requiredControlCodes(
+	input: ProfileInput,
+	manual: ReadonlyMap<string, boolean>,
+): Set<string> {
+	const profile = toProfile(input);
+	const selected = new Set(input.frameworks);
+	const keys = new Set<string>();
+	for (const r of ALL_REQUIREMENTS) {
+		if (!selected.has(r.framework)) continue;
+		const key = `${r.framework}:${r.code}`;
+		const m = manual.get(key);
+		if (m === true || (m === undefined && inWorkQueue(r, profile)))
+			keys.add(key);
+	}
+	const out = new Set<string>();
+	for (const e of EDGES) if (keys.has(e.requirement)) out.add(e.control);
+	return out;
 }

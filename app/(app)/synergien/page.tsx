@@ -138,6 +138,7 @@ export default async function SynergiesPage({
 							frameworks: cov.frameworks,
 							tlptDesignated: cov.profile.tlptDesignated,
 							issuesTokens: cov.profile.issuesTokens,
+							productRoles: cov.profile.productRoles,
 							asOf: new Date(`${asOf}T00:00:00Z`),
 						});
 						for (const [k, v] of cov.applicabilityDetail)

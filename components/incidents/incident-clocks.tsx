@@ -29,6 +29,7 @@ export function IncidentClocks({
 	projected,
 }: {
 	incidentId: string;
+	// Anzeigenamen der Regime (übersetzt)
 	regimes: string[];
 	clocks: {
 		key: "initial" | "intermediate" | "final";
@@ -50,9 +51,7 @@ export function IncidentClocks({
 	const now = new Date();
 	return (
 		<div className="flex flex-col gap-2">
-			<p className="text-muted-foreground text-xs">
-				{regimes.map((r) => r.toUpperCase()).join(" · ")}
-			</p>
+			<p className="text-muted-foreground text-xs">{regimes.join(" · ")}</p>
 			<ul className="grid gap-2 sm:grid-cols-3">
 				{clocks
 					.filter((c) => c.dueAt)

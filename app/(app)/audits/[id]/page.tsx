@@ -14,6 +14,10 @@ import {
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { PageHeader } from "@/components/page-header";
+import {
+	BlockerList,
+	VERDICT_TONE,
+} from "@/components/readiness/readiness-panel";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -51,6 +55,7 @@ import {
 	listAuditProgrammes,
 	listProcesses,
 } from "@/lib/compliance/queries-p3";
+import { loadReadiness } from "@/lib/compliance/queries-readiness";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import { cn } from "@/lib/utils";
@@ -142,6 +147,25 @@ export default async function AuditCockpitPage({
 		};
 	});
 	if (!data) notFound();
+	// Prüfungsreife zum Prüfungstermin (geplant, sonst Periodenende, sonst heute)
+	// über die Rahmenwerke des Audits, inklusive PBC-Stand.
+	const auditSlugs = data.audit.frameworkIds.filter((s) =>
+		FRAMEWORK_BY_SLUG.has(s),
+	);
+	const today = new Date();
+	const auditDate = data.audit.plannedAt ?? data.audit.periodEnd;
+	const readinessAsOf =
+		auditDate && new Date(auditDate) > today
+			? new Date(`${auditDate}T12:00:00Z`)
+			: today;
+	const readiness = await readOrg(toOrgCtx(ctx), (tx) =>
+		loadReadiness(tx, ctx.orgId, {
+			asOf: readinessAsOf,
+			frameworks: auditSlugs.length > 0 ? auditSlugs : undefined,
+			auditId: data.audit.id,
+		}),
+	);
+	const tr = await getTranslations("Readiness");
 	const {
 		audit,
 		findings,
@@ -289,6 +313,24 @@ export default async function AuditCockpitPage({
 						{answered}/{requests.length}
 					</dd>
 				</div>
+				{readiness && (
+					<div>
+						<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							{tr("title")} · {fmtDate.format(readinessAsOf)}
+						</dt>
+						<dd className="flex items-center gap-2">
+							<Link
+								href={`/audits/${audit.id}?tab=pruefungsreife`}
+								className="font-serif-display text-xl text-primary tabular-nums hover:underline"
+							>
+								{readiness.combined.score ?? "—"}
+							</Link>
+							<Badge variant={VERDICT_TONE[readiness.combined.verdict]}>
+								{tr(`verdict_${readiness.combined.verdict}`)}
+							</Badge>
+						</dd>
+					</div>
+				)}
 			</dl>
 			{independence.length > 0 && (
 				<div className="mb-6 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
@@ -319,8 +361,40 @@ export default async function AuditCockpitPage({
 						count:
 							findings.filter((f) => f.status !== "closed").length || undefined,
 					},
+					{
+						value: "pruefungsreife",
+						label: t("tabReadiness"),
+						count: readiness?.combined.criticalBlockers || undefined,
+					},
 				]}
 			/>
+
+			{tab === "pruefungsreife" && readiness && (
+				<section className="flex flex-col gap-4">
+					<p className="text-muted-foreground text-sm">{tr("lead")}</p>
+					<ul className="flex flex-wrap gap-2 text-sm">
+						{readiness.results.map((r) => (
+							<li key={r.framework}>
+								<Link
+									href={`/rahmenwerke/${r.framework}?tab=pruefungsreife&stichtag=${r.asOf}`}
+									className="flex items-center gap-2 rounded-md border px-3 py-1.5 hover:bg-muted"
+								>
+									<span>{shortFrameworkName(r.framework)}</span>
+									<span className="tabular-nums">{r.score ?? "—"}</span>
+									<Badge variant={VERDICT_TONE[r.verdict]}>
+										{tr(`verdict_${r.verdict}`)}
+									</Badge>
+								</Link>
+							</li>
+						))}
+					</ul>
+					<h2 className="font-medium">{tr("blockers")}</h2>
+					<BlockerList
+						blockers={readiness.combined.blockers}
+						canCreateTask={roleAllows(ctx.orgRole, { task: ["create"] })}
+					/>
+				</section>
+			)}
 
 			{tab === "pruefpfad" && (
 				<section className="flex flex-col gap-3">

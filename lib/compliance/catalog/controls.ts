@@ -1,5 +1,6 @@
 import { PART_C } from "./controls-finance";
 import { PART_D } from "./controls-privacy";
+import { PART_E } from "./controls-product";
 import type { CatalogControl } from "./types";
 
 // Common Controls — der harmonisierte Satz gemeinsamer Massnahmen (das Was).
@@ -2205,6 +2206,7 @@ export const CONTROLS: CatalogControl[] = [
 	...PART_B,
 	...PART_C,
 	...PART_D,
+	...PART_E,
 ];
 
 export const CONTROL_BY_CODE: ReadonlyMap<string, CatalogControl> = new Map(

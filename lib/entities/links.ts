@@ -8,6 +8,7 @@ import {
 	incidents,
 	nonconformities,
 	processes,
+	products,
 	resolutions,
 	risks,
 } from "@/db/schema";
@@ -79,6 +80,12 @@ export function entityHref(
 			return "/datenschutz?tab=anfragen";
 		case "insurance_policy":
 			return "/organisation?tab=versicherungen";
+		case "assessment":
+			return `/gap-analyse/${id}`;
+		case "product":
+			return `/produkte/${id}`;
+		case "security_finding":
+			return `/sicherheit/befunde/${id}`;
 		default:
 			return "/heute";
 	}
@@ -185,6 +192,13 @@ export async function resolveEntityTitles(
 			.where(inArray(resolutions.id, ids("resolution")));
 		for (const r of rows)
 			out.set(`resolution:${r.id}`, `${r.number} ${r.subject}`);
+	}
+	if (ids("product").length) {
+		const rows = await tx
+			.select({ id: products.id, code: products.code, name: products.name })
+			.from(products)
+			.where(inArray(products.id, ids("product")));
+		for (const r of rows) out.set(`product:${r.id}`, `${r.code} ${r.name}`);
 	}
 	return out;
 }

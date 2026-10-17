@@ -1,0 +1,35 @@
+# /etc/systemd/system/klick-backup-db.service — tägliches DB-Backup (age + rclone)
+# Backup-Konzept: deploy/README.md → „Backup & Restore“. Läuft als eigener
+# User ohne Zugriff auf den App-Code-Schreibpfad; Secrets als Credentials.
+[Unit]
+Description=Klick — DB-Backup (verschlüsselt, offsite)
+After=postgresql.service network-online.target
+Wants=network-online.target
+OnFailure=klick-alert@%n.service
+
+[Service]
+Type=oneshot
+User=klick-backup
+Group=klick-backup
+WorkingDirectory=/opt/klick/current
+EnvironmentFile=/etc/klick/backup.env
+LoadCredentialEncrypted=database_url_migrate:/etc/credstore.encrypted/database_url_migrate
+LoadCredentialEncrypted=rclone_conf:/etc/credstore.encrypted/rclone_conf
+# BACKUP_DIR=/var/backups/klick, BACKUP_AGE_RECIPIENT, BACKUP_RCLONE_REMOTE in backup.env
+ExecStart=/bin/sh -c 'DATABASE_URL_MIGRATE="$(cat "$CREDENTIALS_DIRECTORY/database_url_migrate")" RCLONE_CONFIG="$CREDENTIALS_DIRECTORY/rclone_conf" exec scripts/backup-db.sh'
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+UMask=0077
+ReadWritePaths=/var/backups/klick /var/lib/klick-backup

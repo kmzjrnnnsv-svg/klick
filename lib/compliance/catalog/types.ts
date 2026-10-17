@@ -47,7 +47,7 @@ export type CatalogFrameworkMeta = {
 	sortOrder: number;
 	// Für Nicht-Finanz-Kunden relevant (NIS2) oder nur ab Lizenzstufe (KWG).
 	appliesFromStage?: LicenceStage;
-	phase: "P1" | "P4" | "P5";
+	phase: "P1" | "P4" | "P5" | "P6";
 };
 
 export type CatalogSection = { code: string; title: string; sortOrder: number };

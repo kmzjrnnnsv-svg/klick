@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ENTITY_KINDS, IMPL_STATUS } from "@/db/schema/enums";
 import { TASK_STATUSES } from "@/lib/entities/task";
-import { httpUrl, longText, shortText, uuid } from "./common";
+import { frameworkSlugs, httpUrl, longText, shortText, uuid } from "./common";
 
 export const entityRefSchema = z.object({
 	entityType: z.enum(ENTITY_KINDS),
@@ -63,7 +63,13 @@ export const setApplicabilitySchema = z.object({
 });
 
 export const addFrameworksSchema = z.object({
-	frameworks: z.array(z.string().min(1)).min(1).max(20),
+	frameworks: frameworkSlugs.min(1),
+});
+
+// Rahmenwerk entfernen: Kurzname (Slug) zur Bestätigung abtippen.
+export const removeFrameworkSchema = z.object({
+	slug: z.string().min(1).max(40),
+	confirm: z.string().max(80),
 });
 
 export const evidenceLinkSchema = z.object({

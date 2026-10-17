@@ -275,6 +275,7 @@ export const nonconformities = pgTable(
 				"complaint",
 				"management_review",
 				"self_identified",
+				"security_finding",
 			],
 		})
 			.notNull()

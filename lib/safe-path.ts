@@ -1,7 +1,9 @@
 // Interne Ziele aus Query-Parametern oder Client-Eingaben (Rücksprung nach
-// 2FA, Einladung, Benachrichtigungs-Links). Erlaubt nur Pfade dieser App:
+// Step-up-2FA, Benachrichtigungs-Links). Erlaubt nur Pfade dieser App:
 // "/x" ja, "//host", "/\host", "https://…", "javascript:…" nein — sonst wird
-// aus einem Rücksprung eine offene Weiterleitung.
+// aus einem Rücksprung eine offene Weiterleitung. Anders als safeNextPath
+// (lib/auth/magic-link.ts, Login) sind /api-Ziele erlaubt: der Step-up vor
+// einem Export- oder Nachweis-Download springt dorthin zurück.
 export function safeInternalPath(
 	value: string | null | undefined,
 	fallback = "/heute",
