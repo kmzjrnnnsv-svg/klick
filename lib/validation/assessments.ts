@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { ASSESSMENT_ANSWERS } from "@/db/schema/enums";
-import { uuid } from "./common";
+import { frameworkSlugs, uuid } from "./common";
 
 const code = z.string().min(1).max(60);
 const isoDate = z.iso.date();
 
 export const createAssessmentSchema = z.object({
-	frameworks: z.array(z.string().min(1).max(40)).max(20).optional(),
+	frameworks: frameworkSlugs.optional(),
 	title: z.string().trim().max(200).optional(),
 	asOf: isoDate.nullable().optional(),
 	// nur Controls, die eine frühere Gap-Analyse noch nicht abgefragt hat
