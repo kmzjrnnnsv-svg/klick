@@ -48,7 +48,13 @@ test.describe("Anonym", () => {
 			"/api/nachweise/00000000-0000-4000-8000-000000000000",
 			{ maxRedirects: 0 },
 		);
-		expect([401, 302, 307, 404]).toContain(evidence.status());
+		// Downloads öffnet der Browser direkt → 303 zur Anmeldung statt leerer 401
+		expect([401, 302, 303, 307, 404]).toContain(evidence.status());
+		if (evidence.status() === 303)
+			expect(evidence.headers().location ?? "").toMatch(/\/login(\?|$)/);
+		expect(evidence.headers()["content-disposition"] ?? "").not.toContain(
+			"attachment",
+		);
 	});
 
 	test("Fremde IDs liefern kein Orakel (Admin-Audit-Export)", async ({
