@@ -1,9 +1,21 @@
-import { and, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
+import {
+	and,
+	eq,
+	gte,
+	inArray,
+	isNotNull,
+	isNull,
+	ne,
+	or,
+	sql,
+} from "drizzle-orm";
 import { globalDb } from "@/db";
 import { member, organization, user } from "@/db/auth-schema";
 import {
+	accessTokens,
 	approvalRequests,
 	approvalWorkflows,
+	assessments,
 	controlImplementations,
 	controls,
 	controlTests,
@@ -20,8 +32,11 @@ import {
 	notifications,
 	obligationRuns,
 	obligations,
+	products,
 	providers,
 	regulatorInteractions,
+	securityEngagements,
+	securityFindings,
 	tasks,
 	trainingAssignments,
 	trainingRequirements,
@@ -33,7 +48,10 @@ import { audit } from "@/lib/audit";
 import { normalizeRole } from "@/lib/auth/guards";
 import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
 import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
-import { computeIncidentDeadlines } from "@/lib/compliance/incident";
+import {
+	computeIncidentDeadlines,
+	leadRegime,
+} from "@/lib/compliance/incident";
 import { planObligationRuns } from "@/lib/compliance/obligations-service";
 import { getOrgProfile } from "@/lib/compliance/queries";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
@@ -254,7 +272,7 @@ async function loadDueRows(
 			and(eq(incidents.organizationId, orgId), ne(incidents.status, "closed")),
 		);
 	const incidentRows = openIncidents.map((inc) => {
-		const regime = inc.regimes[0];
+		const regime = leadRegime(inc.regimes);
 		const labels = regime
 			? computeIncidentDeadlines(regime, {
 					awareAt: inc.awareAt,
@@ -501,6 +519,93 @@ async function loadDueRows(
 				isNotNull(insurancePolicies.validUntil),
 			),
 		);
+	const findingRows = await tx
+		.select({
+			id: securityFindings.id,
+			title: securityFindings.title,
+			severity: securityFindings.severity,
+			status: securityFindings.status,
+			dueAt: securityFindings.dueAt,
+			acceptedUntil: securityFindings.acceptedUntil,
+			ownerUserId: securityFindings.ownerUserId,
+		})
+		.from(securityFindings)
+		.where(
+			and(
+				eq(securityFindings.organizationId, orgId),
+				or(
+					eq(securityFindings.status, "accepted"),
+					and(
+						inArray(securityFindings.status, ["open", "in_progress"]),
+						inArray(securityFindings.severity, ["critical", "high"]),
+					),
+				),
+			),
+		);
+	const productRows = await tx
+		.select({
+			id: products.id,
+			code: products.code,
+			name: products.name,
+			supportUntil: products.supportUntil,
+			status: products.status,
+			ownerUserId: products.ownerUserId,
+		})
+		.from(products)
+		.where(
+			and(eq(products.organizationId, orgId), isNotNull(products.supportUntil)),
+		);
+	const engagementRows = await tx
+		.select({
+			id: securityEngagements.id,
+			code: securityEngagements.code,
+			title: securityEngagements.title,
+			status: securityEngagements.status,
+			endAt: securityEngagements.endAt,
+			retestDueAt: securityEngagements.retestDueAt,
+			ownerUserId: securityEngagements.ownerUserId,
+		})
+		.from(securityEngagements)
+		.where(
+			and(
+				eq(securityEngagements.organizationId, orgId),
+				inArray(securityEngagements.status, [
+					"authorized",
+					"in_progress",
+					"delivered",
+					"retest",
+				]),
+			),
+		);
+	const supplierRows = await tx
+		.select({
+			id: assessments.id,
+			code: assessments.code,
+			title: assessments.title,
+			providerId: assessments.subjectId,
+			status: assessments.status,
+			dueAt: assessments.dueAt,
+			ownerUserId: assessments.ownerUserId,
+			sentAt: sql<Date | null>`min(${accessTokens.createdAt})`,
+			lastOpenedAt: sql<Date | null>`max(${accessTokens.lastUsedAt})`,
+		})
+		.from(assessments)
+		.innerJoin(
+			accessTokens,
+			and(
+				eq(accessTokens.subjectId, assessments.id),
+				eq(accessTokens.kind, "supplier_portal"),
+				isNull(accessTokens.revokedAt),
+			),
+		)
+		.where(
+			and(
+				eq(assessments.organizationId, orgId),
+				eq(assessments.kind, "supplier"),
+				inArray(assessments.status, ["draft", "in_progress"]),
+			),
+		)
+		.groupBy(assessments.id);
 	const accessRows = await tx
 		.select({
 			memberId: memberAccess.memberId,
@@ -542,6 +647,10 @@ async function loadDueRows(
 		})),
 		dataSubjectRequests: dsrRows,
 		insurancePolicies: insuranceRows,
+		products: productRows,
+		securityFindings: findingRows,
+		supplierAssessments: supplierRows,
+		engagements: engagementRows,
 		openTasks,
 	};
 }
@@ -661,6 +770,41 @@ async function applyTick(
 					target: `exception:${a.id}`,
 					before: { status: before.status },
 					after: { status: "expired" },
+				},
+			);
+			written = { ...written, actions: written.actions + 1 };
+		} else if (a.type === "reopen_finding") {
+			const [before] = await tx
+				.select({
+					status: securityFindings.status,
+					acceptedUntil: securityFindings.acceptedUntil,
+				})
+				.from(securityFindings)
+				.where(
+					and(
+						eq(securityFindings.id, a.id),
+						eq(securityFindings.organizationId, orgId),
+					),
+				)
+				.limit(1);
+			if (!before || before.status !== "accepted") continue;
+			await tx
+				.update(securityFindings)
+				.set({
+					status: "open",
+					acceptedUntil: null,
+					statusNote: "Akzeptanz abgelaufen",
+				})
+				.where(eq(securityFindings.id, a.id));
+			await audit(
+				tx,
+				{ userId: null },
+				{
+					organizationId: orgId,
+					action: "security.finding_acceptance_expired",
+					target: `security_finding:${a.id}`,
+					before,
+					after: { status: "open" },
 				},
 			);
 			written = { ...written, actions: written.actions + 1 };

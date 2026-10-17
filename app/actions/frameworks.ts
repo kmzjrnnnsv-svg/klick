@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
 	frameworks,
+	orgFrameworks,
 	orgSettings,
 	requirementApplicability,
 	requirements,
@@ -19,16 +20,20 @@ import {
 	toOrgCtx,
 } from "@/lib/auth/guards";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
+import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
+import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import {
 	activeFrameworkSlugs,
 	addOrgFrameworks,
 	initializeOrg,
 } from "@/lib/compliance/initialize-org";
-import { getOrgProfile } from "@/lib/compliance/queries";
+import { getOrgProfile, orgCoverage } from "@/lib/compliance/queries";
 import { mutateOrg } from "@/lib/db/with-org";
+import { listOpenAuditScopes } from "@/lib/org/queries";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	addFrameworksSchema,
+	removeFrameworkSchema,
 	setApplicabilitySchema,
 } from "@/lib/validation/grc";
 
@@ -60,6 +65,7 @@ async function addFrameworksImpl(
 			applyBaseline: p.profile.applyBaseline,
 			tlptDesignated: p.profile.tlptDesignated,
 			issuesTokens: p.profile.issuesTokens,
+			productRoles: p.profile.productRoles,
 		});
 		return {
 			result: { added, controlsCreated: init.controlsCreated },
@@ -74,6 +80,92 @@ async function addFrameworksImpl(
 	if (!out) return { ok: false, error: "notFound" };
 	revalidatePath("/", "layout");
 	return { ok: true, data: out };
+}
+
+// Rahmenwerk entfernen: nur der Status in org_frameworks wird "retired" —
+// Controls, Nachweise, Anwendbarkeitsentscheidungen und Historie bleiben, beim
+// Wieder-Aktivieren (addFrameworks) ist alles zurück. Nicht das letzte
+// Rahmenwerk, nicht während eines laufenden Audits darauf.
+async function removeFrameworkImpl(
+	input: unknown,
+): Promise<ActionResult<{ removed: string }>> {
+	const guarded = await stepUpOrFail();
+	if (!guarded.ok) return guarded;
+	const c = guarded.ctx;
+	const parsed = removeFrameworkSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const { slug, confirm } = parsed.data;
+	if (!FRAMEWORK_BY_SLUG.has(slug)) {
+		return { ok: false, error: "unknownFramework" };
+	}
+	if (confirm.trim() !== slug) return { ok: false, error: "confirmMismatch" };
+
+	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const cov = await orgCoverage(tx, c.orgId);
+		if (!cov?.frameworks.includes(slug)) {
+			return { result: "notActive" as const, audit: [] };
+		}
+		const openAudits = await listOpenAuditScopes(tx, c.orgId);
+		const impact = frameworkRemovalImpact({
+			slug,
+			activeSlugs: cov.frameworks,
+			licenceStage: cov.profile.licenceStage,
+			tlptDesignated: cov.profile.tlptDesignated,
+			requirements: CATALOG_REQ_REFS,
+			edges: CATALOG_EDGES,
+			applicability: new Map(
+				[...cov.applicabilityDetail].map(([k, d]) => [k, d.applicable]),
+			),
+			implStatus: cov.implStatus,
+			openAudits,
+		});
+		if (!impact.canRemove) {
+			return {
+				result: impact.lastFramework
+					? ("lastFramework" as const)
+					: ("auditRunning" as const),
+				audit: [],
+			};
+		}
+		const [fw] = await tx
+			.select({ id: frameworks.id })
+			.from(frameworks)
+			.where(eq(frameworks.slug, slug))
+			.limit(1);
+		if (!fw) return { result: "notActive" as const, audit: [] };
+		await tx
+			.update(orgFrameworks)
+			.set({ status: "retired" })
+			.where(
+				and(
+					eq(orgFrameworks.organizationId, c.orgId),
+					eq(orgFrameworks.frameworkId, fw.id),
+				),
+			);
+		return {
+			result: "ok" as const,
+			audit: {
+				action: "org.frameworks_removed",
+				target: `organization:${c.orgId}`,
+				before: { frameworks: cov.frameworks },
+				after: {
+					frameworks: cov.frameworks.filter((s) => s !== slug),
+					removed: slug,
+					impact: {
+						requirements: impact.requirements,
+						controlsOnlyHere: impact.controlsOnlyHere,
+						obligations: impact.obligations.map((o) => o.code),
+						functions: impact.functions.map((f) => f.code),
+						resolutions: impact.resolutions.map((r) => r.code),
+						processes: impact.processes.map((p) => p.code),
+					},
+				},
+			},
+		};
+	});
+	if (out !== "ok") return { ok: false, error: out };
+	revalidatePath("/", "layout");
+	return { ok: true, data: { removed: slug } };
 }
 
 // Manuelle Anwendbarkeitsentscheidung (SoA-Begründung) je Anforderung.
@@ -196,6 +288,7 @@ async function updateProfileFlagsImpl(input: unknown): Promise<ActionResult> {
 				applyBaseline: p.profile.applyBaseline,
 				tlptDesignated: d.tlptDesignated,
 				issuesTokens: p.profile.issuesTokens,
+				productRoles: p.profile.productRoles,
 			});
 		}
 		return {
@@ -248,6 +341,7 @@ async function updateLicenceProfileImpl(
 			applyBaseline: p.profile.applyBaseline,
 			tlptDesignated: p.profile.tlptDesignated,
 			issuesTokens: p.profile.issuesTokens,
+			productRoles: p.profile.productRoles,
 		});
 		await ensureOrgWorkflows(tx, c.orgId, d.licenceStage);
 		return {
@@ -330,6 +424,10 @@ async function stepUpOrFail(): Promise<
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
 export const addFrameworks = safeAction("addFrameworks", addFrameworksImpl);
+export const removeFramework = safeAction(
+	"removeFramework",
+	removeFrameworkImpl,
+);
 export const setRequirementApplicability = safeAction(
 	"setRequirementApplicability",
 	setRequirementApplicabilityImpl,

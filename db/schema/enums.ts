@@ -54,6 +54,12 @@ export const ORG_ROLES_LEGAL = [
 	"aml_obliged",
 	"issuer",
 	"any",
+	// CRA-Wirtschaftsakteure — aus dem Produktregister abgeleitet, unabhängig
+	// von der Lizenzstufe.
+	"manufacturer",
+	"importer",
+	"distributor",
+	"oss_steward",
 ] as const;
 export type OrgRoleLegal = (typeof ORG_ROLES_LEGAL)[number];
 
@@ -82,6 +88,230 @@ export const IMPL_STATUS = [
 	"not_applicable",
 ] as const;
 export type ImplStatus = (typeof IMPL_STATUS)[number];
+
+// Fragebögen (Gap-Analyse, Lieferantenbewertung, Produkt-Checklisten).
+export const ASSESSMENT_KINDS = [
+	"self",
+	"supplier",
+	"product",
+	"engagement",
+] as const;
+export type AssessmentKind = (typeof ASSESSMENT_KINDS)[number];
+
+export const ASSESSMENT_STATUS = [
+	"draft",
+	"in_progress",
+	"submitted",
+	"in_review",
+	"completed",
+	"cancelled",
+] as const;
+export type AssessmentStatus = (typeof ASSESSMENT_STATUS)[number];
+
+// Antwort je Frage. „unknown“ = weiß ich (noch) nicht → Klärungsbedarf.
+export const ASSESSMENT_ANSWERS = [
+	"yes",
+	"partial",
+	"no",
+	"unknown",
+	"na",
+] as const;
+export type AssessmentAnswer = (typeof ASSESSMENT_ANSWERS)[number];
+
+// Fragen-Schnappschuss am Fragebogen (Berichte bleiben reproduzierbar, auch
+// wenn sich der Katalog ändert).
+export type AssessmentQuestion = {
+	code: string;
+	sectionCode: string;
+	sectionTitle: string;
+	text: string;
+	help?: string;
+	// Prüffragen, wie sie Prüfer:innen stellen würden (Hilfe beim Antworten)
+	probes?: string[];
+	// Gap-Analyse aus dem Katalog: die Frage steht für ein Control
+	controlCode?: string;
+	requirements?: string[];
+	frameworks?: string[];
+	weight: number;
+	critical?: boolean;
+	evidenceRequired?: boolean;
+	evidenceHints?: string[];
+	templates?: string[];
+	mapsTo?: { art30?: string[]; control?: string; requirement?: string };
+};
+
+// Produktregister (CRA): Art des Produkts, Rolle der Org, Einstufung nach
+// Anhang III/IV, Lebenszyklus.
+export const PRODUCT_KINDS = [
+	"software",
+	"mobile_app",
+	"library",
+	"firmware",
+	"hardware",
+	"saas",
+	"other",
+] as const;
+export type ProductKind = (typeof PRODUCT_KINDS)[number];
+
+export const PRODUCT_ROLES = [
+	"manufacturer",
+	"importer",
+	"distributor",
+	"oss_steward",
+] as const;
+export type ProductRole = (typeof PRODUCT_ROLES)[number];
+
+export const CRA_CLASSES = [
+	"default",
+	"important_1",
+	"important_2",
+	"critical",
+] as const;
+export type CraClass = (typeof CRA_CLASSES)[number];
+
+export const PRODUCT_STATUS = [
+	"development",
+	"on_market",
+	"end_of_support",
+	"withdrawn",
+] as const;
+export type ProductStatus = (typeof PRODUCT_STATUS)[number];
+
+// Zusammenfassung einer SBOM (products.sbomSummary) — nie die Komponenten
+// selbst, die liegen verschlüsselt im Nachweis.
+export type SbomSummary = {
+	format: "cyclonedx" | "spdx";
+	specVersion: string | null;
+	generatedAt: string | null;
+	primaryComponent: string | null;
+	components: number;
+	// Anteil der Komponenten mit Pflichtfeld nach BSI TR-03183-2 (0–100)
+	fields: {
+		version: number;
+		identifier: number;
+		license: number;
+		hash: number;
+		supplier: number;
+	};
+	dependencies: boolean;
+	issues: string[];
+	ok: boolean;
+	checkedAt: string;
+};
+
+// Security-Checks (S5): Befunde aus Scan-Import, API-Ingest, Schnellcheck
+// und Pentests. Schwere nach CVSS-Bändern, Kategorie steuert das Control.
+export const FINDING_SEVERITIES = [
+	"critical",
+	"high",
+	"medium",
+	"low",
+	"info",
+] as const;
+export type FindingSeverity = (typeof FINDING_SEVERITIES)[number];
+
+export const FINDING_CATEGORIES = [
+	"dependency",
+	"secret",
+	"code",
+	"config",
+	"web",
+	"tls",
+	"dns",
+	"exposure",
+	"other",
+] as const;
+export type FindingCategory = (typeof FINDING_CATEGORIES)[number];
+
+export const FINDING_STATUS = [
+	"open",
+	"in_progress",
+	"accepted",
+	"resolved",
+	"false_positive",
+] as const;
+export type FindingStatus = (typeof FINDING_STATUS)[number];
+
+export const SCAN_TOOLS = [
+	"sarif",
+	"trivy",
+	"zap",
+	"osv",
+	"nuclei",
+	"gitleaks",
+	"quick_check",
+	// manuell erfasst (Pentest, Sicherheitsprüfung)
+	"manual",
+] as const;
+export type ScanTool = (typeof SCAN_TOOLS)[number];
+
+// Sicherheitsaufträge (S7): Pentest, Security-Check, Schnellcheck-Auftrag,
+// CRA-Readiness — manuell durchgeführt, in Klick verwaltet.
+export const ENGAGEMENT_KINDS = [
+	"pentest",
+	"security_check",
+	"quick_check",
+	"cra_readiness",
+] as const;
+export type EngagementKind = (typeof ENGAGEMENT_KINDS)[number];
+
+export const ENGAGEMENT_STATUS = [
+	"planned",
+	"authorized",
+	"in_progress",
+	"reporting",
+	"delivered",
+	"retest",
+	"closed",
+	"cancelled",
+] as const;
+export type EngagementStatus = (typeof ENGAGEMENT_STATUS)[number];
+
+export const RETEST_STATUS = ["pending", "passed", "failed"] as const;
+export type RetestStatus = (typeof RETEST_STATUS)[number];
+
+export const SCAN_SOURCES = ["upload", "api", "quick_check"] as const;
+
+// Token ohne Sitzung (ADR-017): CI-Ingest und Lieferantenportal.
+export const ACCESS_TOKEN_KINDS = ["ingest", "supplier_portal"] as const;
+export type AccessTokenKind = (typeof ACCESS_TOKEN_KINDS)[number];
+export const INGEST_SCOPES = ["scan:write", "sbom:write"] as const;
+export type IngestScope = (typeof INGEST_SCOPES)[number];
+// Lieferantenportal: Token gilt für genau einen Fragebogen (subject).
+export const PORTAL_SCOPES = ["assessment:answer"] as const;
+export type ScanSource = (typeof SCAN_SOURCES)[number];
+
+// Zähler je Scan (security_scans.counts).
+export type ScanCounts = Record<FindingSeverity, number> & {
+	new: number;
+	reopened: number;
+	resolved: number;
+};
+
+// Herkunft eines Nachweises (evidence.source).
+export const EVIDENCE_SOURCES = [
+	"manual",
+	"assessment",
+	"scan_import",
+	"api_ingest",
+	"quick_check",
+	"sbom",
+	"supplier_portal",
+	"engagement",
+] as const;
+export type EvidenceSource = (typeof EVIDENCE_SOURCES)[number];
+
+// DLP-Ergebnis am Nachweis — nur Zähler, nie Inhalt.
+export type EvidenceDlp = {
+	engine: string;
+	scannedAt: string;
+	extraction: "ok" | "unsupported" | "error";
+	truncated?: boolean;
+	findings: { detector: string; category: string; count: number }[];
+	action: "allow" | "raise" | "warn" | "block";
+	acknowledged?: boolean;
+	declaredClassification?: string;
+};
 
 export const CLASSIFICATIONS = [
 	"public",
@@ -142,6 +372,10 @@ export const ENTITY_KINDS = [
 	"processing_activity",
 	"organization",
 	"member",
+	"assessment",
+	"product",
+	"security_finding",
+	"security_engagement",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 
@@ -177,7 +411,14 @@ export const CONTROL_TEST_METHODS = [
 ] as const;
 export type ControlTestMethod = (typeof CONTROL_TEST_METHODS)[number];
 
-export const INCIDENT_REGIMES = ["dora", "nis2", "dsgvo", "gwg_sar"] as const;
+export const INCIDENT_REGIMES = [
+	"dora",
+	"nis2",
+	"cra_vuln",
+	"cra_incident",
+	"dsgvo",
+	"gwg_sar",
+] as const;
 export type IncidentRegime = (typeof INCIDENT_REGIMES)[number];
 
 export const NOTIFICATION_KINDS = [

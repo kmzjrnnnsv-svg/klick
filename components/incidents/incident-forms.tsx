@@ -9,6 +9,7 @@ import {
 	classifyIncident,
 	createIncident,
 	markIncidentReported,
+	markMitigationAvailable,
 } from "@/app/actions/incidents";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,8 +31,17 @@ function nowLocal(): string {
 	return d.toISOString().slice(0, 16);
 }
 
+type ProductOption = { id: string; code: string; name: string };
+
 // Drei Felder: Was · Wann bemerkt (Default jetzt) · Betrifft Zahlungen/Kunden.
-export function IncidentCreateForm({ regimes }: { regimes: IncidentRegime[] }) {
+// Mit CRA zusätzlich: betroffenes Produkt und Art der Meldung (Art. 14).
+export function IncidentCreateForm({
+	regimes,
+	products = [],
+}: {
+	regimes: IncidentRegime[];
+	products?: ProductOption[];
+}) {
 	const t = useTranslations("Incidents");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -41,6 +51,8 @@ export function IncidentCreateForm({ regimes }: { regimes: IncidentRegime[] }) {
 	const [payments, setPayments] = useState(false);
 	const [customers, setCustomers] = useState(false);
 	const [description, setDescription] = useState("");
+	const [productId, setProductId] = useState("");
+	const [craKind, setCraKind] = useState<"" | "cra_vuln" | "cra_incident">("");
 	return (
 		<form
 			className="flex max-w-xl flex-col gap-5"
@@ -53,7 +65,15 @@ export function IncidentCreateForm({ regimes }: { regimes: IncidentRegime[] }) {
 						affectsPayments: payments,
 						affectsCustomers: customers,
 						description: description || undefined,
-						regimes: regimes.length > 0 ? regimes : ["dora"],
+						// CRA-Meldung: die Produkt-Uhr führt (DORA/DSGVO kommen über
+						// Zahlungen/Kunden oder die Einstufung dazu); sonst die Regime der
+						// Rahmenwerke, ohne beides die DORA-Uhr als Default.
+						regimes: craKind
+							? [craKind]
+							: regimes.length > 0
+								? regimes
+								: ["dora"],
+						productId: productId || null,
 					});
 					if (!res.ok) return void toast.error(tc("error"));
 					toast.success(t("created"));
@@ -98,6 +118,52 @@ export function IncidentCreateForm({ regimes }: { regimes: IncidentRegime[] }) {
 					{t("affectsCustomers")}
 				</label>
 			</div>
+			{products.length > 0 && (
+				<fieldset className="grid gap-3 rounded-md border p-3 sm:grid-cols-2">
+					<legend className="px-1 text-muted-foreground text-xs">
+						{t("craLegend")}
+					</legend>
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="inc-product">{t("product")}</Label>
+						<Select
+							value={productId || "none"}
+							onValueChange={(v) => setProductId(v === "none" ? "" : v)}
+						>
+							<SelectTrigger id="inc-product" className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="none">—</SelectItem>
+								{products.map((p) => (
+									<SelectItem key={p.id} value={p.id}>
+										{p.code} {p.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="inc-cra">{t("craKind")}</Label>
+						<Select
+							value={craKind || "none"}
+							onValueChange={(v) =>
+								setCraKind(v === "none" ? "" : (v as typeof craKind))
+							}
+						>
+							<SelectTrigger id="inc-cra" className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="none">{t("craNone")}</SelectItem>
+								<SelectItem value="cra_vuln">{t("regime_cra_vuln")}</SelectItem>
+								<SelectItem value="cra_incident">
+									{t("regime_cra_incident")}
+								</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+				</fieldset>
+			)}
 			<div className="flex flex-col gap-1.5">
 				<Label htmlFor="inc-desc">
 					{t("description")} ({tc("optional")})
@@ -141,18 +207,33 @@ const NIS2_BOOL = [
 	"affectsOthers",
 ] as const;
 
+const CRA_BOOL = [
+	"activelyExploited",
+	"affectsAvailabilityOrIntegrity",
+	"maliciousCode",
+] as const;
+
 export function ClassifyForm({
 	incidentId,
 	regimes,
+	available,
 	affectsPayments,
 	initialDora,
 	initialNis2,
+	initialCra,
+	productId: initialProductId,
+	products = [],
 }: {
 	incidentId: string;
 	regimes: IncidentRegime[];
+	// wählbare Regime (aus den aktiven Rahmenwerken, plus die schon gesetzten)
+	available: IncidentRegime[];
 	affectsPayments: boolean;
 	initialDora: Record<string, unknown> | null;
 	initialNis2: Record<string, unknown> | null;
+	initialCra?: Record<string, unknown> | null;
+	productId?: string | null;
+	products?: ProductOption[];
 }) {
 	const t = useTranslations("Incidents");
 	const tc = useTranslations("Common");
@@ -165,6 +246,11 @@ export function ClassifyForm({
 	const [nis2, setNis2] = useState<Record<string, boolean | undefined>>(
 		(initialNis2 as Record<string, boolean>) ?? {},
 	);
+	const [cra, setCra] = useState<Record<string, boolean | undefined>>(
+		(initialCra as Record<string, boolean>) ?? {},
+	);
+	const [productId, setProductId] = useState(initialProductId ?? "");
+	const hasCra = regs.includes("cra_vuln") || regs.includes("cra_incident");
 	const [override, setOverride] = useState<
 		"" | "major" | "significant" | "minor"
 	>("");
@@ -181,6 +267,8 @@ export function ClassifyForm({
 						affectsPayments,
 						doraCriteria: regs.includes("dora") ? dora : undefined,
 						nis2Criteria: regs.includes("nis2") ? nis2 : undefined,
+						craCriteria: hasCra ? cra : undefined,
+						productId: products.length > 0 ? productId || null : undefined,
 						classificationOverride: override || undefined,
 						classificationOverrideNote: overrideNote || undefined,
 					});
@@ -194,7 +282,7 @@ export function ClassifyForm({
 		>
 			<p className="text-muted-foreground">{t("classifyLead")}</p>
 			<div className="flex flex-wrap gap-4">
-				{(["dora", "nis2", "dsgvo", "gwg_sar"] as const).map((r) => (
+				{available.map((r) => (
 					<label key={r} className="flex items-center gap-2">
 						<Checkbox
 							checked={regs.includes(r)}
@@ -258,6 +346,43 @@ export function ClassifyForm({
 							{t(`crit_${k}`)}
 						</label>
 					))}
+				</fieldset>
+			)}
+			{hasCra && (
+				<fieldset className="grid gap-3 rounded-md border p-3 sm:grid-cols-2">
+					<legend className="lv-eyebrow px-1 text-[0.52rem] text-muted-foreground">
+						CRA · Art. 14
+					</legend>
+					{CRA_BOOL.map((k) => (
+						<label key={k} className="flex items-center gap-2">
+							<Checkbox
+								checked={Boolean(cra[k])}
+								onCheckedChange={(v) => setCra({ ...cra, [k]: Boolean(v) })}
+							/>
+							{t(`crit_${k}`)}
+						</label>
+					))}
+					{products.length > 0 && (
+						<div className="flex flex-col gap-1">
+							<Label htmlFor="cls-product">{t("product")}</Label>
+							<Select
+								value={productId || "none"}
+								onValueChange={(v) => setProductId(v === "none" ? "" : v)}
+							>
+								<SelectTrigger id="cls-product" className="w-full">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="none">—</SelectItem>
+									{products.map((p) => (
+										<SelectItem key={p.id} value={p.id}>
+											{p.code} {p.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 				</fieldset>
 			)}
 			<div className="grid gap-3 sm:grid-cols-2">
@@ -333,6 +458,34 @@ export function ReportButton({
 			}
 		>
 			{label}
+		</Button>
+	);
+}
+
+// CRA: Korrektur/Abhilfe verfügbar — startet die 14-Tage-Uhr des
+// Abschlussberichts (aktiv ausgenutzte Schwachstelle).
+export function MitigationButton({ incidentId }: { incidentId: string }) {
+	const t = useTranslations("Incidents");
+	const tc = useTranslations("Common");
+	const router = useRouter();
+	const [pending, start] = useTransition();
+	return (
+		<Button
+			size="sm"
+			variant="outline"
+			disabled={pending}
+			onClick={() =>
+				start(async () => {
+					const res = await markMitigationAvailable({ incidentId });
+					if (!res.ok) toast.error(tc("error"));
+					else {
+						toast.success(t("mitigationSaved"));
+						router.refresh();
+					}
+				})
+			}
+		>
+			{pending ? `${t("mitigationAvailable")}…` : t("mitigationAvailable")}
 		</Button>
 	);
 }

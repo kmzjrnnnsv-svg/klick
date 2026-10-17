@@ -78,3 +78,19 @@ export async function stopScheduler(): Promise<void> {
 		g.__klickBossStarted = undefined;
 	}
 }
+
+// Einzelauftrag in die Warteschlange (z. B. Schnellcheck). false, wenn Jobs
+// abgeschaltet sind (Dev/CI: KLICK_DISABLE_JOBS) oder pg-boss nicht läuft —
+// der Aufrufer führt dann selbst nach der Antwort aus (after()).
+export async function enqueue(
+	name: string,
+	data: Record<string, unknown>,
+): Promise<boolean> {
+	if (process.env.KLICK_DISABLE_JOBS === "true") return false;
+	try {
+		return Boolean(await getBoss().send(name, data));
+	} catch (err) {
+		logger.warn({ err, job: name }, "enqueue fehlgeschlagen — Fallback");
+		return false;
+	}
+}

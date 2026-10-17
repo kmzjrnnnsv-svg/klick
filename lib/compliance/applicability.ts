@@ -10,7 +10,9 @@ import type {
 //   rule          Rechtsstand (repealed / noch nicht in Kraft / ausser Kraft),
 //                 TLPT ohne Benennung
 //   services      MiCAR-Dienst wird nicht erbracht
-//   stage         Lizenzstufe zu niedrig oder Rolle passt nicht (ab Stufe 1)
+//   stage         Lizenzstufe zu niedrig oder Rolle passt nicht (ab Stufe 1);
+//                 CRA-Rollen (Hersteller, Einführer, Händler) kommen aus dem
+//                 Produktregister und gelten unabhängig von der Stufe
 //   lex_specialis DORA verdrängt NIS2 Art. 20/21/23 für Finanzunternehmen
 // Manuelle Entscheidungen (source "manual") überschreiben alles — die trifft
 // die Org in requirement_applicability, nicht diese Funktion.
@@ -46,7 +48,25 @@ export type OrgProfile = {
 	selectedFrameworks: readonly string[];
 	tlptDesignated?: boolean;
 	issuesTokens?: "none" | "art" | "emt" | "other";
+	// Rollen aus dem Produktregister (nur Produkte im CRA-Anwendungsbereich).
+	// undefined = noch kein Produkt erfasst → alles Gewählte ist
+	// Arbeitsgegenstand; [] = Produkte erfasst, aber keins im Anwendungsbereich.
+	productRoles?: readonly OrgRoleLegal[];
 	asOf?: Date;
+};
+
+export const PRODUCT_ROLE_SET: ReadonlySet<OrgRoleLegal> = new Set([
+	"manufacturer",
+	"importer",
+	"distributor",
+	"oss_steward",
+]);
+
+const PRODUCT_ROLE_LABEL: Partial<Record<OrgRoleLegal, string>> = {
+	manufacturer: "Hersteller",
+	importer: "Einführer",
+	distributor: "Händler",
+	oss_steward: "Open-Source-Verwalter",
 };
 
 export const STAGE_INDEX: Record<LicenceStage, number> = {
@@ -136,9 +156,28 @@ export function deriveApplicability(
 			note: `Gilt ab Lizenzstufe ${req.appliesFromStage}`,
 		};
 	}
-	// Rollen greifen erst ab Stufe 1 — in der Vorbereitung ist alles
-	// Gewählte Arbeitsgegenstand.
-	if (stage >= 1 && req.appliesToRoles && req.appliesToRoles.length > 0) {
+	// CRA-Rollen: aus dem Produktregister, unabhängig von der Lizenzstufe.
+	const productRoles = (req.appliesToRoles ?? []).filter((r) =>
+		PRODUCT_ROLE_SET.has(r),
+	);
+	if (productRoles.length > 0) {
+		if (
+			profile.productRoles &&
+			!productRoles.some((r) => profile.productRoles?.includes(r))
+		) {
+			return {
+				applicable: false,
+				source: "stage",
+				note: `Gilt für ${productRoles.map((r) => PRODUCT_ROLE_LABEL[r] ?? r).join("/")} — laut Produktregister nicht deine Rolle`,
+			};
+		}
+	} else if (
+		// Rollen greifen erst ab Stufe 1 — in der Vorbereitung ist alles
+		// Gewählte Arbeitsgegenstand.
+		stage >= 1 &&
+		req.appliesToRoles &&
+		req.appliesToRoles.length > 0
+	) {
 		const roles = new Set(orgRolesFor(profile));
 		if (!req.appliesToRoles.some((r) => roles.has(r))) {
 			return {
@@ -173,6 +212,52 @@ export function deriveApplicabilityMap(
 	const out = new Map<string, ApplicabilityDecision>();
 	for (const r of requirements) {
 		out.set(`${r.framework}:${r.code}`, deriveApplicability(r, profile));
+	}
+	return out;
+}
+
+// Gehört eine Anforderung in den Arbeitsvorrat? Anwendbar heute — oder nur
+// deshalb noch nicht, weil sie erst künftig gilt (AMLR, CRA): Controls dafür
+// sollen schon jetzt bearbeitbar sein, damit die Org zum Stichtag bereit ist.
+export function inWorkQueue(
+	req: RequirementForApplicability,
+	profile: OrgProfile,
+): boolean {
+	const now = deriveApplicability(req, profile);
+	if (now.applicable) return true;
+	const asOf = profile.asOf ?? new Date();
+	if (!req.effectiveFrom || new Date(req.effectiveFrom) <= asOf) return false;
+	return deriveApplicability(req, {
+		...profile,
+		asOf: new Date(req.effectiveFrom),
+	}).applicable;
+}
+
+export type ApplicabilityDetail = {
+	applicable: boolean;
+	source: string;
+	note: string | null;
+};
+
+// Abgeleitete Anwendbarkeit (frisch aus Profil + Stichtag) mit den
+// gespeicherten Zeilen zusammenführen. Nur manuelle Entscheidungen
+// überschreiben — abgeleitete Zeilen in requirement_applicability sind ein
+// Schnappschuss von initializeOrg und veralten (z. B. „Gilt ab …“ nach dem
+// Stichtag). Ein Stichtag in der Zukunft sieht so dieselbe Rechnung wie heute.
+export function mergeApplicability(
+	derived: ReadonlyMap<string, ApplicabilityDecision>,
+	stored: ReadonlyMap<string, ApplicabilityDetail>,
+): Map<string, ApplicabilityDetail> {
+	const out = new Map<string, ApplicabilityDetail>();
+	for (const [key, d] of derived) {
+		out.set(key, {
+			applicable: d.applicable,
+			source: d.source,
+			note: d.note ?? null,
+		});
+	}
+	for (const [key, row] of stored) {
+		if (row.source === "manual") out.set(key, row);
 	}
 	return out;
 }

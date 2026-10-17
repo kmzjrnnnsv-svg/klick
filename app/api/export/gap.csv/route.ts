@@ -24,6 +24,13 @@ export async function GET(req: Request) {
 	if (slugs.length === 0)
 		return new NextResponse("unknown framework", { status: 400 });
 	const rows = buildGapRows(cov, slugs);
-	await auditExport(ctx, "gap_csv", rows.length, { frameworks: slugs });
-	return csvResponse(`gap-${fw ?? "alle"}-${stamp()}.csv`, GAP_HEADER, rows);
+	const mark = await auditExport(ctx, "gap_csv", rows.length, {
+		frameworks: slugs,
+	});
+	return csvResponse(
+		`gap-${fw ?? "alle"}-${stamp()}.csv`,
+		GAP_HEADER,
+		rows,
+		mark,
+	);
 }

@@ -86,9 +86,12 @@ export async function GET(req: Request) {
 	lines.push(
 		"_Orientierung nach Gesetzestext und RTS/ITS — kein Rechtsrat; das Dossier prüft eine Kanzlei._",
 	);
-	await auditExport(ctx, "application_md", result.items.length, { mappe });
+	const mark = await auditExport(ctx, "application_md", result.items.length, {
+		mappe,
+	});
 	return markdownResponse(
 		`antrag-${mappe}-${stamp()}.md`,
 		`${lines.join("\n")}\n`,
+		mark,
 	);
 }

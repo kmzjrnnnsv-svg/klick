@@ -5,9 +5,11 @@ import { CoverageBar } from "@/components/entity/coverage-bar";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { SoaTab } from "@/components/frameworks/soa-tab";
 import { PageHeader } from "@/components/page-header";
+import { ReadinessPanel } from "@/components/readiness/readiness-panel";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { roleAllows } from "@/lib/auth/permissions";
 import {
 	CONTROL_BY_CODE,
 	EDGES_BY_REQUIREMENT,
@@ -21,6 +23,9 @@ import {
 } from "@/lib/compliance/page-data";
 import { listEvidenceWithControls } from "@/lib/compliance/queries";
 import { listDocuments } from "@/lib/compliance/queries-p2";
+import { listAudits } from "@/lib/compliance/queries-p3";
+import { loadReadiness } from "@/lib/compliance/queries-readiness";
+import { parseStichtag, stichtagOptions } from "@/lib/compliance/readiness";
 import { readOrg } from "@/lib/db/with-org";
 
 const TONE: Record<ReqCoverage, "success" | "warning" | "outline" | "muted"> = {
@@ -35,10 +40,10 @@ export default async function FrameworkPage({
 	searchParams,
 }: {
 	params: Promise<{ slug: string }>;
-	searchParams: Promise<{ tab?: string }>;
+	searchParams: Promise<{ tab?: string; stichtag?: string }>;
 }) {
 	const { slug } = await params;
-	const { tab = "anforderungen" } = await searchParams;
+	const { tab = "anforderungen", stichtag } = await searchParams;
 	const ctx = await requireOrgPage();
 	const fw = FRAMEWORK_BY_SLUG.get(slug);
 	if (!fw) notFound();
@@ -96,6 +101,36 @@ export default async function FrameworkPage({
 						isoMandatory: d.isoMandatory,
 					}));
 					return { evidenceByControl, documents: docs };
+				})
+			: null;
+
+	// Prüfungsreife nur laden, wenn der Tab offen ist (eigene Stichtag-Rechnung).
+	const readiness =
+		tab === "pruefungsreife"
+			? await readOrg(toOrgCtx(ctx), async (tx) => {
+					const today = new Date();
+					const asOf = parseStichtag(stichtag, today);
+					const audits = await listAudits(tx, ctx.orgId);
+					const options = stichtagOptions(
+						fw.requirements.map((r) => r.effectiveFrom),
+						today,
+						audits
+							.filter(
+								(a) =>
+									a.status === "planned" &&
+									(a.frameworkIds.length === 0 ||
+										a.frameworkIds.includes(slug)),
+							)
+							.map((a) => a.plannedAt),
+					);
+					const loaded = await loadReadiness(tx, ctx.orgId, {
+						asOf,
+						frameworks: [slug],
+					});
+					const result = loaded?.results[0];
+					if (!result) return null;
+					if (!options.includes(result.asOf)) options.push(result.asOf);
+					return { result, options: options.sort() };
 				})
 			: null;
 
@@ -169,12 +204,31 @@ export default async function FrameworkPage({
 								count: reqs.length,
 							},
 							{ value: "luecken", label: t("gaps"), count: gaps.length },
+							{ value: "pruefungsreife", label: t("tabReadiness") },
 							...(soaEnabled
 								? [{ value: "soa", label: t("soa"), count: annexA.length }]
 								: []),
 						]}
 					/>
-					{tab === "soa" && soaData ? (
+					{tab === "pruefungsreife" && readiness ? (
+						<ReadinessPanel
+							result={readiness.result}
+							sectionTitles={Object.fromEntries(
+								fw.sections.map((s) => [s.code, s.title]),
+							)}
+							stichtage={readiness.options}
+							base={{
+								path: `/rahmenwerke/${slug}`,
+								params: { tab: "pruefungsreife" },
+							}}
+							canCreateTask={roleAllows(ctx.orgRole, { task: ["create"] })}
+							exportHref={
+								roleAllows(ctx.orgRole, { export: ["create"] })
+									? `/api/export/readiness.md?fw=${slug}&stichtag=${readiness.result.asOf}`
+									: undefined
+							}
+						/>
+					) : tab === "soa" && soaData ? (
 						<SoaTab
 							slug={slug}
 							requirements={annexA}

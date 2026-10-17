@@ -12,7 +12,7 @@
 3. `deploy/systemd/klick.service` installieren, `deploy/nginx/raza.work.conf` aktivieren,
    `nft -f deploy/firewall.nft` (macht `flush ruleset` — vorher SSH-Port und andere Dienste
    auf dem Host prüfen), fail2ban (sshd + nginx-limit-req), unattended-upgrades, chrony.
-4. Backups: `scripts/backup-db.sh` als Timer (täglich), `BACKUP_AGE_RECIPIENT` + `BACKUP_RCLONE_REMOTE` setzen.
+4. Backups: siehe „Backup & Restore“ unten (Timer für DB, Objekte, Stichprobe).
 
 ## Release
 CI grün → Wartungsfenster → `scripts/backup-db.sh` → `git pull && pnpm release`
@@ -61,8 +61,58 @@ Owner löschen ihre Organisation unter Einstellungen → Organisation (Step-up, 
 Export bestätigen). Ablauf: Audit `org.delete_requested` → Nachweis-Dateien im Objektspeicher
 löschen → Sitzungen der Mitglieder beenden → Organisation über Better Auth löschen (Kaskade löscht
 alle Org-Tabellen inkl. `org_settings` = einziger Ort des DEK) → Plattform-Audit `org.deleted` →
-Löschbestätigung per Mail. Reste in Backups sind ohne DEK Ciphertext und fallen nach 30 Tagen weg.
-Das Audit-Log der Org bleibt (append-only, ohne FK).
+Löschbestätigung per Mail. Ein **Tombstone** (`tombstones/organization/<id>.json`) im Objektspeicher
+hält die Löschung außerhalb der DB fest. DB-Backups enthalten den (KEK-umhüllten) DEK noch bis zum
+Ende ihrer Aufbewahrung (30 Tage) — wird in dieser Zeit ein Backup eingespielt, holt
+`scripts/replay-deletions.ts` die Löschung nach (siehe „Backup & Restore“). Danach ist nichts mehr
+lesbar. Das Audit-Log der Org bleibt (append-only, ohne FK).
+
+## Backup & Restore (ISO A.8.13, DORA Art. 12, CC-BCM-03)
+
+**Ziele:** RPO Datenbank 24 h (täglicher Dump; optional WAL-Archivierung für ≤ 15 min),
+RPO Dateien ≤ 1 h (stündlicher Spiegel) bzw. ≈ 0 mit Versionierung im Bucket, RTO 4 h.
+Aufbewahrung **30 Tage** (`BACKUP_KEEP_DAYS`) — überall gleich: DB-Dumps, Objekt-Historie,
+Purge-Frist der App. Nur so passen DB-Stand und Dateien bei jedem Restore zusammen.
+
+| Was | Wie | Wo | Wann |
+|---|---|---|---|
+| Datenbank | `scripts/backup-db.sh` (pg_dump → age, privater Schlüssel offline) | lokal `/var/backups/klick` + rclone offsite | `klick-backup-db.timer` täglich 02:15 |
+| Nachweis-Dateien + Tombstones | `scripts/backup-objects.sh` (rclone sync, `--backup-dir` Historie) | zweiter Standort/Anbieter, Bucket mit Versionierung + Object Lock (30 d) | `klick-backup-objects.timer` stündlich |
+| Stichprobe | `scripts/verify-backup.ts` (Offsite-Objekt entschlüsseln, SHA-256 vs. DB) | Audit `backup.verified`, Wirksamkeitstest CC-BCM-03 (Mandant 0) | `klick-backup-verify.timer` sonntags |
+| KEK | offline, Vier-Augen (zwei versiegelte Kopien, Tresor), Rotationslog | **nie** im Bucket oder Dump | bei jeder Rotation |
+
+**Warum keine zweite Verschlüsselung der Objekte:** sie sind bereits mit dem Org-DEK verschlüsselt
+(XChaCha20-Poly1305, AAD an die ID gebunden). Die DEKs liegen KEK-umhüllt in der DB (also im
+age-verschlüsselten Dump); der KEK nur in den systemd-Credentials und offline. Ohne KEK ist keine
+Sicherung lesbar — deshalb gehört der KEK-Ausdruck zum Notfallhandbuch.
+
+**Konsistenz DB ↔ Dateien:** Die App löscht Nachweis-Objekte nie sofort. `deleteEvidence` entfernt
+die Zeile, stellt das Objekt in `storage_purge_queue` (Frist = Aufbewahrung) und schreibt einen
+Tombstone; der Job `storage-purge` (03:30) löscht erst danach. `storage-orphans` (sonntags) stellt
+Objekte ohne Zeile ebenfalls mit Frist ein. Ein Dump von Tag X findet so jede damals referenzierte
+Datei.
+
+**Einrichten:**
+1. User `klick-backup` (ohne Login), Verzeichnisse `/var/backups/klick`, `/var/lib/klick-backup` (0700).
+2. `/etc/klick/backup.env`: `BACKUP_DIR=/var/backups/klick`, `BACKUP_KEEP_DAYS=30`,
+   `BACKUP_AGE_RECIPIENT=age1…`, `BACKUP_RCLONE_REMOTE=offsite:klick-db`,
+   `BACKUP_OBJECTS_SOURCE=primary:klick`, `BACKUP_OBJECTS_REMOTE=offsite:klick-objects`,
+   `BACKUP_S3_ENDPOINT/…_BUCKET/…_ACCESS_KEY_ID/…_PREFIX` (für die Stichprobe, Lesezugriff),
+   `BACKUP_VERIFY_ORG_ID=<Mandant 0>`, `ALERT_MAIL=…`.
+3. Credentials: `rclone_conf` (beide Remotes), `backup_s3_secret` (`systemd-creds encrypt`).
+4. Ziel-Bucket: Versionierung + Object Lock (Governance, 30 Tage) aktivieren, falls der Anbieter es
+   kann (Hetzner Object Storage: vorher prüfen); sonst genügt die rclone-Historie.
+5. Units `deploy/systemd/klick-backup-{db,objects,verify}.{service,timer}` und `klick-alert@.service`
+   installieren, `systemctl enable --now klick-backup-db.timer klick-backup-objects.timer klick-backup-verify.timer`.
+
+**Restore (auch quartalsweiser Test, Pflichten-Lauf):**
+1. Wartungsmodus, `systemctl stop klick`.
+2. `scripts/restore-db.sh <dump.sql.age> <ziel-url>` (für den Test: leere DB `klick_restore_test`).
+3. `scripts/restore-objects.sh <ziel-remote> <datum-des-dumps>` — Objektstand passend zum Dump.
+4. `pnpm exec tsx scripts/replay-deletions.ts --dry-run`, dann ohne `--dry-run`: Org- und
+   Nachweis-Löschungen seit dem Dump nachholen (Tombstones liegen im Objektspeicher).
+5. `pnpm exec tsx scripts/verify-backup.ts --sample 50` gegen das Ziel, Audit-Kette prüfen
+   (`/admin/audit`), `curl -f …/api/ready`. Ergebnis als Pflichten-Lauf dokumentieren.
 
 ## Härtung III (optional, per Env aktiv)
 - **clamd:** `apt install clamav-daemon`, `freshclam` als Timer, `TCPSocket 3310` + `TCPAddr 127.0.0.1`
@@ -85,6 +135,42 @@ Das Audit-Log der Org bleibt (append-only, ohne FK).
   `ORG_DATABASE_URLS={"<orgId>":"postgres://klick_app:…@host/klick"}`. withOrg/readOrg/mutateOrg
   routen dann je Org; Better Auth, Katalog und Plattform-Jobs bleiben auf der Haupt-DB — für
   Enterprise-DBs einen eigenen Job-Prozess mit gesetzter `DATABASE_URL` betreiben.
+
+## Security-Checks: CI-Ingest und Schnellcheck (S5, ADR-017)
+- **nginx:** Zone `klick_ingest` (30/min je IP) und `location /api/ingest/` (nur POST, 26 MB) aus
+  `deploy/nginx/raza.work.conf` übernehmen, `nginx -t && systemctl reload nginx`. Die App begrenzt
+  zusätzlich je Token (30/min) und je Org.
+- **Tokens:** Einstellungen → Integrationen (Owner, Step-up). Nur der SHA-256 liegt in der DB; ein
+  geleakter Token wird über das Präfix `klk_ingest_` von gitleaks/GitHub-Secret-Scanning erkannt →
+  sofort widerrufen. Prüfen:
+  `curl -s -o /dev/null -w "%{http_code}" -X POST https://raza.work/api/ingest/scan` → 401.
+- **Schnellcheck:** läuft als pg-boss-Job `quick-check` (höchstens zwei gleichzeitig); ohne Jobs
+  (`KLICK_DISABLE_JOBS=true`) direkt nach der Antwort. Braucht ausgehend DNS und TCP 80/443 (die
+  nftables-`output`-Kette ist offen). Ein Scan, der länger als 15 min „läuft“, gilt als abgebrochen.
+  Keine aktiven Tests aus Klick — Pentests laufen extern mit schriftlicher Beauftragung.
+- **Migration:** `0008_security` legt `access_tokens` (mit Policy `access_tokens_by_hash`),
+  `security_scans`, `security_findings` an (FORCE RLS). Rechte für `klick_app` kommen über die
+  Default-Privilegien von `klick_migrator`.
+
+## Sicherheitsaufträge (S7)
+- **Migration:** `0009_security_engagements` legt `security_engagements` an (FORCE RLS) und ergänzt
+  `security_findings` um `engagement_id`, `cvss_vector`, `retest_status`, `retested_at`,
+  `retest_note` (additiv).
+- **Betrieb:** keine Jobs, keine Netzanfragen — aktive Tests laufen beim Tester. Erinnerungen
+  (Testende ohne Bericht, Nachtest) kommen aus dem `compliance-tick`.
+- **Bericht:** `/api/export/sicherheitsauftrag.zip?id=…` (Step-up, Export-ID im Audit-Log).
+
+## Lieferantenportal (S6, ADR-017)
+- **Ablauf:** Dienstleister → Bewertungen → „Bewertung starten“ → „Link erzeugen“ (optional per
+  Mail). Der Link `https://raza.work/lieferant#klk_portal_…` trägt den Token im Fragment; die Seite
+  tauscht ihn gegen das Cookie `klick_portal` (httpOnly, Secure, SameSite=Strict, Pfad `/lieferant`).
+- **nginx:** keine eigene Zone nötig — `/api/lieferant/sitzung` begrenzt die App je IP (20/min),
+  Antworten und Uploads je Token. Upload-Grenze wie überall 25 MB.
+- **Prüfen:** `curl -s -o /dev/null -w "%{http_code}" -X POST -H 'content-type: application/json' -d '{}' https://raza.work/api/lieferant/sitzung` → 401.
+- **Leck:** Link weitergeleitet oder verloren → am Dienstleister „Link zurückziehen“ (oder neuen
+  erzeugen, der alte wird ungültig). Abschluss der Bewertung widerruft alle Links.
+- Keine Migration: Spalten für Entscheidung/Kontakt (`assessments`) und Sorgfaltsprüfung
+  (`providers`) existieren seit 0006 bzw. P2.
 
 ## SSO je Organisation
 `@better-auth/sso` (OIDC). Owner registrieren den IdP unter Einstellungen → SSO; die E-Mail-Domain

@@ -25,13 +25,17 @@ export const s3 = new S3Client({
 	forcePathStyle: true, // required for MinIO
 });
 
-export async function putBytes(key: string, body: Uint8Array): Promise<void> {
+export async function putBytes(
+	key: string,
+	body: Uint8Array,
+	contentType = "application/octet-stream",
+): Promise<void> {
 	await s3.send(
 		new PutObjectCommand({
 			Bucket: BUCKET,
 			Key: key,
 			Body: body,
-			ContentType: "application/octet-stream",
+			ContentType: contentType,
 		}),
 	);
 }
@@ -44,6 +48,27 @@ export async function getBytes(key: string): Promise<Uint8Array> {
 
 export async function deleteObject(key: string): Promise<void> {
 	await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}
+
+// Objekte unter einem Präfix mit Änderungszeit (Waisen-Suche, Tombstones).
+export async function listObjects(
+	prefix: string,
+): Promise<{ key: string; lastModified: Date | null }[]> {
+	const out: { key: string; lastModified: Date | null }[] = [];
+	let token: string | undefined;
+	do {
+		const res = await s3.send(
+			new ListObjectsV2Command({
+				Bucket: BUCKET,
+				Prefix: prefix,
+				ContinuationToken: token,
+			}),
+		);
+		for (const o of res.Contents ?? [])
+			if (o.Key) out.push({ key: o.Key, lastModified: o.LastModified ?? null });
+		token = res.IsTruncated ? res.NextContinuationToken : undefined;
+	} while (token);
+	return out;
 }
 
 // Alle Objekte unter einem Präfix (Org-Löschung: org/<orgId>/).

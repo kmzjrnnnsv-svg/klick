@@ -7,7 +7,7 @@ import {
 } from "@/db/schema/enums";
 import { NONCONFORMITY_STATUSES } from "@/lib/entities/nonconformity";
 import { PROCESS_STATUSES } from "@/lib/entities/process";
-import { longText, shortText, uuid } from "./common";
+import { frameworkSlugs, longText, shortText, uuid } from "./common";
 
 const isoDate = z.iso.date();
 const optionalDate = isoDate.nullable().optional();
@@ -104,7 +104,7 @@ export const interestedPartySchema = z.object({
 	type: z.enum(PARTY_TYPES).default("regulator"),
 	expectations: longText.optional(),
 	requirements: longText.optional(),
-	relevantFrameworks: z.array(z.string().max(40)).max(20).optional(),
+	relevantFrameworks: frameworkSlugs.optional(),
 	howAddressed: longText.optional(),
 	contact: z.string().max(400).optional(),
 	ownerUserId: uuid.nullable().optional(),
@@ -169,7 +169,7 @@ export const roleAssignmentSchema = z
 export const objectiveSchema = z.object({
 	id: uuid.optional(),
 	title: shortText,
-	frameworkIds: z.array(z.string().max(40)).max(20).optional(),
+	frameworkIds: frameworkSlugs.optional(),
 	kpiName: z.string().max(120).optional(),
 	unit: z.string().max(30).optional(),
 	target: z.string().max(60).optional(),
@@ -305,7 +305,7 @@ export const auditSchema = z.object({
 	scope: longText.optional(),
 	periodStart: optionalDate,
 	periodEnd: optionalDate,
-	frameworkIds: z.array(z.string().max(40)).max(20).optional(),
+	frameworkIds: frameworkSlugs.optional(),
 	auditorMemberIds: z.array(uuid).max(20).optional(),
 	externalAuditor: z.string().max(200).optional(),
 	plannedAt: optionalDate,
@@ -378,6 +378,7 @@ export const NC_SOURCES = [
 	"complaint",
 	"management_review",
 	"self_identified",
+	"security_finding",
 ] as const;
 
 export const nonconformitySchema = z.object({
@@ -456,6 +457,7 @@ export const ACCESS_GRANTS = [
 	"hr_detail",
 	"whistleblowing_detail",
 	"complaints_detail",
+	"secret_evidence",
 ] as const;
 
 export const memberAccessSchema = z.object({

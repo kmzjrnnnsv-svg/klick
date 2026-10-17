@@ -9,6 +9,9 @@ import type { OrgRole } from "@/lib/auth/permissions";
 export type NavLabelKey =
 	| "today"
 	| "overview"
+	| "gapAnalysis"
+	| "products"
+	| "security"
 	| "controls"
 	| "synergies"
 	| "evidence"
@@ -51,6 +54,9 @@ export type NavGroupKey =
 export type NavIcon =
 	| "sun"
 	| "gauge"
+	| "list-checks"
+	| "package"
+	| "shield-alert"
 	| "shield-check"
 	| "git-merge"
 	| "file-check"
@@ -168,6 +174,12 @@ export function buildNav(input: NavInput): NavGroup[] {
 			labelKey: "groupImplement",
 			items: [
 				{
+					key: "gapAnalysis",
+					labelKey: "gapAnalysis",
+					href: "/gap-analyse",
+					icon: "list-checks",
+				},
+				{
 					key: "controls",
 					labelKey: "controls",
 					href: "/controls",
@@ -184,6 +196,12 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "evidence",
 					href: "/nachweise",
 					icon: "file-check",
+				},
+				{
+					key: "security",
+					labelKey: "security",
+					href: "/sicherheit",
+					icon: "shield-alert",
 				},
 			],
 		},
@@ -227,6 +245,17 @@ export function buildNav(input: NavInput): NavGroup[] {
 					href: "/vorfaelle",
 					icon: "siren",
 				},
+				// CRA: Produktregister nur mit aktivem Rahmenwerk
+				...(slugs.has("cra")
+					? [
+							{
+								key: "products",
+								labelKey: "products" as const,
+								href: "/produkte",
+								icon: "package" as const,
+							},
+						]
+					: []),
 				{
 					key: "trainings",
 					labelKey: "trainings",
@@ -383,13 +412,16 @@ export function buildNav(input: NavInput): NavGroup[] {
 		const allowed = new Set([
 			"today",
 			"overview",
+			"gapAnalysis",
 			"controls",
 			"evidence",
+			"security",
 			"documents",
 			"risks",
 			"processes",
 			"providers",
 			"incidents",
+			"products",
 			"audits",
 			"settings",
 			"activity",

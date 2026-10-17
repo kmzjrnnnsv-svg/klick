@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth/guards";
 import { toCsv } from "@/lib/csv";
 import { mutateOrg } from "@/lib/db/with-org";
+import { egressGuard } from "@/lib/dlp/egress";
 import { getOrgLimiter } from "@/lib/rate-limit";
 
 // Exporte unter /api/export/*: Guard (export:create), Datei als Attachment,
@@ -30,7 +31,7 @@ export function rateLimited(orgId: string): NextResponse | null {
 export async function exportGuard(): Promise<OrgContext | NextResponse> {
 	try {
 		const ctx = await requireOrg({ export: ["create"] });
-		return rateLimited(ctx.orgId) ?? ctx;
+		return rateLimited(ctx.orgId) ?? (await egressGuard(ctx, "export")) ?? ctx;
 	} catch (e) {
 		if (e instanceof AuthError)
 			return new NextResponse(null, {
@@ -47,7 +48,7 @@ export async function exportStepUpGuard(
 ): Promise<OrgContext | NextResponse> {
 	try {
 		const ctx = await requireStepUp({ export: ["create"] });
-		return rateLimited(ctx.orgId) ?? ctx;
+		return rateLimited(ctx.orgId) ?? (await egressGuard(ctx, "export")) ?? ctx;
 	} catch (e) {
 		if (e instanceof AuthError) {
 			if (e.code === "step_up_required") {
@@ -81,21 +82,41 @@ export function zipResponse(filename: string, body: Uint8Array): NextResponse {
 	});
 }
 
+// Liefert die Export-ID: sie steht im Audit-Log und als Kennzeichnung in der
+// Datei (exportMark) — ein aufgetauchtes Dokument lässt sich so einer Person
+// und einem Zeitpunkt zuordnen (DLP).
 export async function auditExport(
 	ctx: OrgContext,
 	kind: string,
 	rows: number,
 	detail?: Record<string, unknown>,
-): Promise<void> {
+): Promise<ExportMark> {
+	const mark: ExportMark = {
+		exportId: crypto.randomUUID(),
+		by: ctx.name || ctx.email,
+		at: new Date(),
+	};
 	await mutateOrg(toOrgCtx(ctx), async () => ({
 		result: null,
 		audit: {
 			action: `export.${kind}`,
 			target: `organization:${ctx.orgId}`,
-			after: { rows, ...detail },
+			after: { rows, exportId: mark.exportId, ...detail },
 			...(rows > 1000 ? { outcome: "success" as const } : {}),
 		},
 	}));
+	return mark;
+}
+
+export type ExportMark = { exportId: string; by: string; at: Date };
+
+export function exportMarkLine(mark: ExportMark): string {
+	const at = new Intl.DateTimeFormat("de-DE", {
+		dateStyle: "medium",
+		timeStyle: "short",
+		timeZone: "Europe/Berlin",
+	}).format(mark.at);
+	return `> Vertraulich – exportiert von ${mark.by} am ${at} · Export-ID ${mark.exportId}`;
 }
 
 const COMMON = {
@@ -103,10 +124,13 @@ const COMMON = {
 	"X-Content-Type-Options": "nosniff",
 };
 
+// CSV bleibt maschinenlesbar (keine Kommentarzeile); die Export-ID steht im
+// Header und im Audit-Log.
 export function csvResponse(
 	filename: string,
 	header: readonly string[],
 	rows: readonly unknown[][],
+	mark?: ExportMark,
 ): NextResponse {
 	return new NextResponse(toCsv(header, rows), {
 		status: 200,
@@ -115,17 +139,23 @@ export function csvResponse(
 			"Content-Type": "text/csv; charset=utf-8",
 			"Content-Disposition": `attachment; filename="${filename}"`,
 			"X-Row-Count": String(rows.length),
+			...(mark ? { "X-Export-Id": mark.exportId } : {}),
 		},
 	});
 }
 
-export function markdownResponse(filename: string, body: string): NextResponse {
-	return new NextResponse(body, {
+export function markdownResponse(
+	filename: string,
+	body: string,
+	mark?: ExportMark,
+): NextResponse {
+	return new NextResponse(mark ? `${exportMarkLine(mark)}\n\n${body}` : body, {
 		status: 200,
 		headers: {
 			...COMMON,
 			"Content-Type": "text/markdown; charset=utf-8",
 			"Content-Disposition": `attachment; filename="${filename}"`,
+			...(mark ? { "X-Export-Id": mark.exportId } : {}),
 		},
 	});
 }
