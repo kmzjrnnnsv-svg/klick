@@ -6,6 +6,10 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { revokeOtherSessions, revokeSession } from "@/app/actions/security";
+import {
+	isStepUpError,
+	withAuthStepUp,
+} from "@/components/auth/step-up-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,11 +58,11 @@ export function SecurityPanel({
 	});
 
 	async function addPasskey() {
-		const res = await authClient.passkey.addPasskey({
-			name: passkeyName || undefined,
-		});
+		const res = await withAuthStepUp(() =>
+			authClient.passkey.addPasskey({ name: passkeyName || undefined }),
+		);
 		if (res?.error) {
-			toast.error(tc("error"));
+			toast.error(isStepUpError(res.error) ? t("stepUp") : tc("error"));
 			return;
 		}
 		setPasskeyName("");
@@ -66,8 +70,11 @@ export function SecurityPanel({
 	}
 
 	async function deletePasskey(id: string) {
-		const res = await authClient.passkey.deletePasskey({ id });
-		if (res?.error) toast.error(tc("error"));
+		const res = await withAuthStepUp(() =>
+			authClient.passkey.deletePasskey({ id }),
+		);
+		if (res?.error)
+			toast.error(isStepUpError(res.error) ? t("stepUp") : tc("error"));
 		router.refresh();
 	}
 

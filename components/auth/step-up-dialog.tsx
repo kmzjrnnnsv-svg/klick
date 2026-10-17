@@ -36,6 +36,23 @@ export async function withStepUp<T extends { ok: boolean; error?: string }>(
 	return (await requestStepUp()) ? fn() : res;
 }
 
+// Dasselbe für Better-Auth-Client-Aufrufe (Passkeys/2FA verwalten): der
+// Server-Hook (lib/auth/endpoint-guard.ts) antwortet mit Code
+// STEP_UP_REQUIRED bzw. Meldung step_up_required.
+export function isStepUpError(e: unknown): boolean {
+	if (!e || typeof e !== "object") return false;
+	const x = e as { code?: unknown; message?: unknown };
+	return x.code === "STEP_UP_REQUIRED" || x.message === "step_up_required";
+}
+
+export async function withAuthStepUp<
+	T extends { error?: unknown } | null | undefined,
+>(fn: () => Promise<T>): Promise<T> {
+	const res = await fn();
+	if (!isStepUpError(res?.error)) return res;
+	return (await requestStepUp()) ? fn() : res;
+}
+
 export function StepUpDialog() {
 	const t = useTranslations("Auth");
 	const tc = useTranslations("Common");

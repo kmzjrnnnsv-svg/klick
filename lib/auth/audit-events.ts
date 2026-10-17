@@ -76,6 +76,34 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 					.set({ stepUpAt: new Date(0) })
 					.where(eq(sessionTable.id, current.session.id));
 			}
+			const body = (ctx.body ?? {}) as Record<string, unknown>;
+			await auditPlatform(actor, {
+				action: "org.set_active",
+				target:
+					typeof body.organizationId === "string"
+						? `organization:${body.organizationId}`
+						: null,
+				outcome,
+			});
+			return;
+		}
+
+		// Passkeys verwalten (die Anmeldung selbst protokolliert
+		// databaseHooks.session.create bzw. unten der Fehlschlag).
+		if (
+			path === "/passkey/verify-registration" ||
+			path === "/passkey/delete-passkey" ||
+			path === "/passkey/update-passkey"
+		) {
+			await auditPlatform(actor, {
+				action:
+					path === "/passkey/verify-registration"
+						? "auth.passkey_added"
+						: path === "/passkey/delete-passkey"
+							? "auth.passkey_removed"
+							: "auth.passkey_renamed",
+				outcome,
+			});
 			return;
 		}
 
@@ -110,8 +138,7 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 				path === "/sign-in/sso" ||
 				path.startsWith("/sso/callback") ||
 				path.startsWith("/callback/") ||
-				path === "/passkey/verify-authentication" ||
-				path === "/sign-in/passkey")
+				path === "/passkey/verify-authentication")
 		) {
 			await auditPlatform(actor, {
 				action: "auth.signin_failed",
@@ -165,18 +192,6 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 				outcome,
 			});
 			return;
-		}
-
-		if (path === "/organization/set-active") {
-			const body = (ctx.body ?? {}) as Record<string, unknown>;
-			await auditPlatform(actor, {
-				action: "org.set_active",
-				target:
-					typeof body.organizationId === "string"
-						? `organization:${body.organizationId}`
-						: null,
-				outcome,
-			});
 		}
 	} catch (err) {
 		// Audit darf den Auth-Flow nie blockieren; der Fehler wird geloggt.

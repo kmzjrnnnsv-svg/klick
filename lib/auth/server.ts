@@ -23,6 +23,7 @@ import {
 import { syncTrainingAssignments } from "../trainings/assignments";
 import { mayReceiveMagicLink, pendingInvitationId } from "./allow-list";
 import { authAfterHook } from "./audit-events";
+import { authBeforeHook } from "./endpoint-guard";
 import { confirmLinkUrl } from "./magic-link";
 import {
 	accessDaysFor,
@@ -105,7 +106,9 @@ export const auth = betterAuth({
 			"/magic-link/verify": { window: 15 * MINUTE, max: 20 },
 			"/two-factor/verify-totp": { window: 15 * MINUTE, max: 10 },
 			"/two-factor/verify-backup-code": { window: 15 * MINUTE, max: 5 },
-			"/sign-in/passkey": { window: 15 * MINUTE, max: 20 },
+			"/passkey/verify-authentication": { window: 15 * MINUTE, max: 20 },
+			"/passkey/generate-register-options": { window: 15 * MINUTE, max: 20 },
+			"/passkey/verify-registration": { window: 15 * MINUTE, max: 10 },
 		},
 	},
 
@@ -201,7 +204,9 @@ export const auth = betterAuth({
 		},
 	},
 
-	hooks: { after: authAfterHook },
+	// before: Faktor-Endpunkte nur nach lib/auth/endpoint-policy.ts (sonst
+	// Umgehung des zweiten Faktors über eine Mail-Link-Sitzung möglich)
+	hooks: { before: authBeforeHook, after: authAfterHook },
 
 	plugins: [
 		magicLink({
