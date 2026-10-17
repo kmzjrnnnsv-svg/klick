@@ -223,6 +223,7 @@ export type ControlRow = {
 export async function listControlRows(
 	tx: OrgTx,
 	orgId: string,
+	filter: { code?: string } = {},
 ): Promise<ControlRow[]> {
 	const rows = await tx
 		.select({
@@ -243,7 +244,14 @@ export async function listControlRows(
 		})
 		.from(controlImplementations)
 		.innerJoin(controls, eq(controls.id, controlImplementations.controlId))
-		.where(eq(controlImplementations.organizationId, orgId))
+		.where(
+			filter.code
+				? and(
+						eq(controlImplementations.organizationId, orgId),
+						eq(controls.code, filter.code),
+					)
+				: eq(controlImplementations.organizationId, orgId),
+		)
 		.orderBy(asc(controls.sortOrder));
 	const names = await userNames(
 		tx,
@@ -263,8 +271,9 @@ export async function getControlRowByCode(
 	orgId: string,
 	code: string,
 ): Promise<ControlRow | null> {
-	const rows = await listControlRows(tx, orgId);
-	return rows.find((r) => r.code === code) ?? null;
+	// Ein Control je Seitenaufruf — nicht alle ~150 laden und filtern.
+	const [row] = await listControlRows(tx, orgId, { code });
+	return row ?? null;
 }
 
 // Namen für Owner/Assignee — die user-Tabelle ist global; nur IDs aus

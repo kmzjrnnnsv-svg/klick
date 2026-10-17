@@ -1,6 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { frameworks, obligationRuns, obligations } from "@/db/schema";
 import type { LicenceStage } from "@/db/schema/enums";
+import { lockOrgScope } from "@/lib/db/org-sequence";
 import type { OrgTx } from "@/lib/db/with-org";
 import {
 	applicableObligations,
@@ -98,6 +99,9 @@ export async function planObligationRuns(
 			and(eq(obligations.organizationId, orgId), eq(obligations.active, true)),
 		);
 	if (rows.length === 0) return 0;
+	// obligation_runs hat keinen Unique-Index (obligation, period): parallele
+	// Planung (Tick + Klick) legte sonst Läufe doppelt an.
+	await lockOrgScope(tx, orgId, "obligation_runs");
 	const existing = await tx
 		.select({
 			obligationId: obligationRuns.obligationId,
@@ -122,7 +126,7 @@ export async function planObligationRuns(
 		list.push(e.periodLabel);
 		labelsByObligation.set(e.obligationId, list);
 	}
-	let created = 0;
+	const fresh: (typeof obligationRuns.$inferInsert)[] = [];
 	for (const o of rows) {
 		const cat = catalogByCode.get(o.code);
 		const planned = scheduleRuns(
@@ -137,18 +141,17 @@ export async function planObligationRuns(
 			from,
 			to,
 		);
-		const fresh = planned.filter((p) => !have.has(`${o.id}:${p.periodLabel}`));
-		if (fresh.length === 0) continue;
-		await tx.insert(obligationRuns).values(
-			fresh.map((p) => ({
-				organizationId: orgId,
-				obligationId: o.id,
-				periodLabel: p.periodLabel,
-				dueAt: p.dueAt,
-				status: "upcoming" as const,
-			})),
-		);
-		created += fresh.length;
+		for (const p of planned)
+			if (!have.has(`${o.id}:${p.periodLabel}`))
+				fresh.push({
+					organizationId: orgId,
+					obligationId: o.id,
+					periodLabel: p.periodLabel,
+					dueAt: p.dueAt,
+					status: "upcoming",
+				});
 	}
-	return created;
+	// Ein Insert für alle Pflichten statt einer Runde je Pflicht.
+	if (fresh.length > 0) await tx.insert(obligationRuns).values(fresh);
+	return fresh.length;
 }

@@ -78,6 +78,13 @@
       "when": 1792240324784,
       "tag": "0010_incident_links",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792242079295,
+      "tag": "0011_perf_indexes",
+      "breakpoints": true
     }
   ]
 }

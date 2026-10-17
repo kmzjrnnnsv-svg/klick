@@ -384,6 +384,7 @@ export const documentAcknowledgements = pgTable(
 			foreignColumns: [documentVersions.id],
 		}).onDelete("cascade"),
 		unique().on(t.documentVersionId, t.userId),
+		index("document_acks_org_doc_idx").on(t.organizationId, t.documentId),
 		orgPolicy("document_acknowledgements"),
 	],
 ).enableRLS();
@@ -719,6 +720,7 @@ export const tasks = pgTable(
 	(t) => [
 		index("tasks_assignee_status_idx").on(t.assigneeUserId, t.status),
 		index("tasks_entity_idx").on(t.entityType, t.entityId),
+		index("tasks_org_status_idx").on(t.organizationId, t.status),
 		orgPolicy("tasks"),
 	],
 ).enableRLS();
@@ -765,6 +767,7 @@ export const comments = pgTable(
 	},
 	(t) => [
 		index("comments_entity_idx").on(t.entityType, t.entityId),
+		index("comments_org_created_idx").on(t.organizationId, t.createdAt),
 		orgPolicy("comments"),
 	],
 ).enableRLS();
@@ -1109,6 +1112,10 @@ export const trainingAssignments = pgTable(
 	},
 	(t) => [
 		index("training_assignments_user_idx").on(t.userId, t.status),
+		index("training_assignments_org_req_idx").on(
+			t.organizationId,
+			t.requirementId,
+		),
 		orgPolicy("training_assignments"),
 	],
 ).enableRLS();

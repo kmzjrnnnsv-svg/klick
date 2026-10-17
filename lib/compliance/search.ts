@@ -6,6 +6,9 @@ import type { OrgTx } from "@/lib/db/with-org";
 // Dokumente mit Klassifizierung „secret" werden nur über Titel/Nummer
 // gefunden, nie über den Inhalt. Sensible Register (Verdachtsmeldungen,
 // Hinweise, Beschwerden, Gesellschafter) sind bewusst nicht indexiert.
+// Kein GIN-Index auf die tsvector-Ausdrücke: unter RLS wertet Postgres den
+// nicht „leakproof“ @@-Operator erst nach der Policy aus und nutzt den Index
+// nicht (geprüft per EXPLAIN). Die Org-Indizes begrenzen die Menge.
 
 export type SearchHit = {
 	kind:

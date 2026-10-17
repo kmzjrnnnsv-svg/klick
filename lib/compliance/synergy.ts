@@ -209,6 +209,15 @@ export function prioritizePlan(
 		}),
 	);
 
+	// Kanten je Control einmal indizieren (vorher: alle Kanten je Kandidat
+	// und Schritt — ~150 × 650 × 30 Durchläufe).
+	const edgesByControl = new Map<string, (typeof catalog.edges)[number][]>();
+	for (const e of catalog.edges) {
+		const list = edgesByControl.get(e.control) ?? [];
+		list.push(e);
+		edgesByControl.set(e.control, list);
+	}
+
 	let current = start;
 	while (candidates.size > 0 && steps.length < limit) {
 		let best: {
@@ -220,8 +229,7 @@ export function prioritizePlan(
 		for (const control of candidates) {
 			let covered = 0;
 			let partial = 0;
-			for (const e of catalog.edges) {
-				if (e.control !== control) continue;
+			for (const e of edgesByControl.get(control) ?? []) {
 				const before = current.byRequirement.get(e.requirement);
 				if (!before || before === "not_applicable" || before === "covered")
 					continue;

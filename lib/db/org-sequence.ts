@@ -12,3 +12,15 @@ export async function lockOrgSequence(tx: OrgTx, orgId: string): Promise<void> {
 		sql`select pg_advisory_xact_lock(hashtext(${orgId}::text || ':seq'))`,
 	);
 }
+
+// Gleiche Idee für „vorhandene prüfen, fehlende anlegen“ ohne Unique-Index
+// (z. B. Pflichten-Läufe: Tick und „Aus Katalog übernehmen“ gleichzeitig).
+export async function lockOrgScope(
+	tx: OrgTx,
+	orgId: string,
+	scope: string,
+): Promise<void> {
+	await tx.execute(
+		sql`select pg_advisory_xact_lock(hashtext(${orgId}::text || ':' || ${scope}::text))`,
+	);
+}

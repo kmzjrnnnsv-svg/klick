@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
 	bigint,
 	boolean,
@@ -240,6 +241,11 @@ export const notifications = pgTable(
 	},
 	(t) => [
 		index("notifications_user_read_idx").on(t.userId, t.readAt),
+		// Mail-Versand (claimPending) und Dedupe im Tick: je Org nach Zeit
+		index("notifications_org_created_idx").on(t.organizationId, t.createdAt),
+		index("notifications_unsent_idx")
+			.on(t.organizationId, t.createdAt)
+			.where(sql`${t.emailedAt} is null`),
 		orgPolicy("notifications"),
 	],
 ).enableRLS();

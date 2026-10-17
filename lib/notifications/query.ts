@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, count, desc, eq, isNull } from "drizzle-orm";
 import { notifications } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
 
@@ -12,9 +12,10 @@ export async function listNotifications(tx: OrgTx, userId: string, limit = 8) {
 }
 
 export async function unreadCount(tx: OrgTx, userId: string): Promise<number> {
-	const rows = await tx
-		.select({ id: notifications.id })
+	// count(*) statt alle IDs zu laden — läuft in jedem App-Layout.
+	const [row] = await tx
+		.select({ n: count() })
 		.from(notifications)
 		.where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
-	return rows.length;
+	return row?.n ?? 0;
 }
