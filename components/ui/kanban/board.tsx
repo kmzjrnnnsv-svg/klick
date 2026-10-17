@@ -130,7 +130,7 @@ export function KanbanBoard<T extends KanbanItem>({
 			onDragEnd={onDragEnd}
 			onDragCancel={() => setActiveId(null)}
 		>
-			<div className="grid gap-4 md:grid-cols-3">
+			<div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 				{columns.map((col) => {
 					const list = byColumn(col.key);
 					return (

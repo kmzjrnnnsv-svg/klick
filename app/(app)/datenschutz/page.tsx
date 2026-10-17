@@ -322,7 +322,7 @@ export default async function PrivacyPage({
 			{tab === "anfragen" && (
 				<section className="flex flex-col gap-4">
 					<p className="text-muted-foreground text-sm">{t("dsrLead")}</p>
-					<div className="grid gap-3 text-sm sm:grid-cols-4">
+					<div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-4">
 						{(
 							[
 								["statOpen", stats.open, false],

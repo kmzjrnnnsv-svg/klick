@@ -44,12 +44,12 @@ export function EntityLayout({
 					</div>
 				</div>
 				{meta && (
-					<dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+					<dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
 						{meta}
 					</dl>
 				)}
 			</div>
-			<div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+			<div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
 				<div className="flex min-w-0 flex-col gap-8">{children}</div>
 				<aside className="flex min-w-0 flex-col gap-6">{aside}</aside>
 			</div>

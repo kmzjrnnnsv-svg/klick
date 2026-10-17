@@ -139,7 +139,7 @@ export function RoleAssignmentForm({
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<FunctionSelect
 					label={t("function")}
 					value={d.function}
@@ -238,7 +238,7 @@ export function RoleAssignmentForm({
 						{t("fitProperChecklist")}
 					</legend>
 					<p className="text-muted-foreground text-xs">{t("fitProperLead")}</p>
-					<div className="grid gap-2 sm:grid-cols-2">
+					<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 						{CHECKLIST_KEYS.map((k) => (
 							<label key={k} className="flex items-center gap-2 text-sm">
 								<Checkbox
@@ -335,7 +335,7 @@ export function ScopeForm({
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("framework")}</Label>
 					<Select
@@ -378,7 +378,7 @@ export function ScopeForm({
 				onChange={(v) => setD({ ...d, boundaries: v })}
 				rows={2}
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="sc-loc"
 					label={t("locations")}
@@ -414,7 +414,7 @@ export function ScopeForm({
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: editierbare Liste ohne natürliche ID
 						key={`${i}-${exclusions.length}`}
-						className="grid gap-2 sm:grid-cols-2"
+						className="grid grid-cols-1 gap-2 sm:grid-cols-2"
 					>
 						<Input
 							placeholder={t("exclusionWhat")}
@@ -564,7 +564,7 @@ export function ObjectiveForm({
 				onChange={(v) => setD({ ...d, title: v })}
 				required
 			/>
-			<div className="grid gap-4 sm:grid-cols-3">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<Field
 					id="ob-kpi"
 					label={t("kpiName")}

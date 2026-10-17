@@ -254,7 +254,7 @@ export function MilestoneForm({
 				onChange={(v) => setD({ ...d, description: v })}
 				rows={2}
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("phase")}</Label>
 					<Select
@@ -346,7 +346,7 @@ export function ApplyRoadmapForm({
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("targetStage")}</Label>
 					<Select

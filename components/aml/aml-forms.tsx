@@ -152,7 +152,7 @@ export function RiskAnalysisForm({
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				{!initial && (
 					<Field
 						id="ra-version"
@@ -380,7 +380,7 @@ export function MonitoringRuleForm({
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="mr-code"
 					label={t("code")}
@@ -404,7 +404,7 @@ export function MonitoringRuleForm({
 				rows={2}
 				required
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="mr-threshold"
 					label={t("threshold")}
@@ -507,7 +507,7 @@ export function SuspiciousReportForm({
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				{!initial && (
 					<>
 						<EnumSelect
@@ -694,7 +694,7 @@ export function JurisdictionForm({ initial }: { initial?: JurisdictionDraft }) {
 				})
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-3">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<Field
 					id="j-iso"
 					label={t("iso2")}

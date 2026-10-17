@@ -456,7 +456,7 @@ export function PartyForm({
 				)
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="pt-name"
 					label={t("name")}
@@ -504,7 +504,7 @@ export function PartyForm({
 				onChange={(v) => setD({ ...d, howAddressed: v })}
 				rows={2}
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="pt-contact"
 					label={t("contact")}
@@ -618,7 +618,7 @@ export function CommunicationForm({
 				onChange={(v) => setD({ ...d, topic: v })}
 				required
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("trigger")}</Label>
 					<Select
@@ -773,7 +773,7 @@ export function RegulatorInteractionForm({
 				)
 			}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("authority")}</Label>
 					<Select
@@ -940,7 +940,7 @@ export function ConflictForm({
 				onChange={(v) => setD({ ...d, title: v })}
 				required
 			/>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Field
 					id="co-type"
 					label={t("conflictType")}

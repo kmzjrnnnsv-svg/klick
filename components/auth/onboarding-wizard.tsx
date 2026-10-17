@@ -192,7 +192,7 @@ export function OnboardingWizard({
 								</FormItem>
 							)}
 						/>
-						<div className="grid gap-5 sm:grid-cols-2">
+						<div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
 							<FormField
 								control={form.control}
 								name="sector"
@@ -262,7 +262,7 @@ export function OnboardingWizard({
 								<FormItem>
 									<FormLabel>{t("frameworks")}</FormLabel>
 									<FormDescription>{t("frameworksHint")}</FormDescription>
-									<div className="mt-2 grid gap-2 sm:grid-cols-2">
+									<div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
 										{frameworks.map((f) => {
 											const checked = field.value.includes(f.slug);
 											return (
@@ -355,7 +355,7 @@ export function OnboardingWizard({
 						<p className="lv-eyebrow text-[0.58rem] text-muted-foreground">
 							{t("summary")}
 						</p>
-						<dl className="grid gap-2 text-sm sm:grid-cols-2">
+						<dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
 							<dt className="text-muted-foreground">{t("orgName")}</dt>
 							<dd>{form.getValues("name")}</dd>
 							<dt className="text-muted-foreground">{t("orgSlug")}</dt>

@@ -104,7 +104,7 @@ export function NewProductDialog() {
 							autoComplete="off"
 						/>
 					</div>
-					<div className="grid gap-3 sm:grid-cols-2">
+					<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="prd-kind">{t("kind")}</Label>
 							<Select
@@ -281,7 +281,7 @@ export function ScopeForm({
 					onChange={(e) => set("scopeReason", e.target.value)}
 				/>
 			</fieldset>
-			<div className="grid gap-3 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="prd-role-edit">{t("role")}</Label>
 					<Select
@@ -424,7 +424,10 @@ export function LifecycleForm({
 				});
 			}}
 		>
-			<fieldset className="grid gap-3 sm:grid-cols-3" disabled={disabled}>
+			<fieldset
+				className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+				disabled={disabled}
+			>
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="prd-ver">{t("version")}</Label>
 					<Input
@@ -557,14 +560,14 @@ export function ConformityForm({
 				});
 			}}
 		>
-			<div className="grid gap-3 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				{docSelect("prd-risk-doc", t("riskDocument"), "riskDocumentId")}
 				{docSelect("prd-tech-doc", t("techDocument"), "techDocDocumentId")}
 			</div>
 			{documents.length === 0 && (
 				<p className="text-muted-foreground text-xs">{t("noDocuments")}</p>
 			)}
-			<div className="grid gap-3 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="prd-doc-at">{t("declarationAt")}</Label>
 					<Input

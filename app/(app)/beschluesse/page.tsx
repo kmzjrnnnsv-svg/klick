@@ -233,7 +233,7 @@ export default async function ResolutionsPage({
 						<TableBody>
 							{sorted.map((r) => (
 								<TableRow key={r.id}>
-									<TableCell className="font-mono text-xs">
+									<TableCell className="whitespace-nowrap font-mono text-xs">
 										{r.resolutionNumber}
 									</TableCell>
 									<TableCell>{fmtDate.format(new Date(r.date))}</TableCell>

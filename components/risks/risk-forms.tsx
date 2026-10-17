@@ -141,7 +141,7 @@ export function RiskQuickCreate({
 							</SelectContent>
 						</Select>
 					</div>
-					<div className="grid gap-4 sm:grid-cols-2">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="flex flex-col gap-1.5">
 							<Label>{t("likelihood")}</Label>
 							<ScaleSelect
@@ -252,7 +252,7 @@ export function RiskEditForm({
 				});
 			}}
 		>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("likelihood")}</Label>
 					<ScaleSelect value={l} onChange={setL} labels={scales.likelihood} />
@@ -378,7 +378,7 @@ export function RiskEditForm({
 					onChange={(e) => setDescription(e.target.value)}
 				/>
 			</div>
-			<div className="grid gap-4 sm:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<fieldset className="flex flex-col gap-1.5">
 					<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
 						{t("controls")}
@@ -504,7 +504,7 @@ export function TreatmentForm({
 							autoFocus
 						/>
 					</div>
-					<div className="grid gap-4 sm:grid-cols-2">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="flex flex-col gap-1.5">
 							<Label>{t("owner")}</Label>
 							<Select
@@ -746,7 +746,7 @@ export function LossEventForm() {
 						<DialogTitle>{t("newLossEvent")}</DialogTitle>
 						<DialogDescription>{t("lossEventsLead")}</DialogDescription>
 					</DialogHeader>
-					<div className="grid gap-4 sm:grid-cols-2">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="le-date">{t("occurredAt")}</Label>
 							<Input

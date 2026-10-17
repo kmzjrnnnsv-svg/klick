@@ -131,7 +131,7 @@ export default async function ApplicationPage({
 					{ value: "zag", label: t("tabZag") },
 				]}
 			/>
-			<div className="mb-6 grid gap-4 md:grid-cols-[1fr_auto]">
+			<div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
 				<div className="flex flex-col gap-2">
 					<Progress value={result.completenessPct ?? 0} />
 					<p className="text-muted-foreground text-sm">
