@@ -125,8 +125,11 @@ AUTH_ALLOW_SIGNUP=true BETTER_AUTH_URL=http://localhost:3200 pnpm dev -p 3200 > 
 pnpm exec tsx scripts/qa/crawl.ts --login                     # einmal: QA-Konto + Org (alle Rahmenwerke, Stufe 2)
 pnpm exec tsx scripts/qa/crawl.ts                             # alle Seiten + Dialoge (~45 min)
 pnpm exec tsx scripts/qa/crawl.ts --no-follow --only /team,/beschluesse   # gezielt
+pnpm exec tsx scripts/qa/crawl.ts --mobile --pages-only                   # 390 px, seitlicher Überlauf
 ```
-Prod-Build testen: `QA_BASE=http://localhost:3300 … --login` (Sitzung je Port). Der Prod-Build loggt den Magic-Link nie — Server mit `SMTP_HOST=127.0.0.1 SMTP_PORT=<sink>` gegen einen lokalen SMTP-Sink starten und `QA_LOG` auf dessen Mitschnitt zeigen lassen. Stand 08.10.2026: 122 Seiten, 0 Fehlerseiten, 0 5xx; Funde behoben (siehe Commits `fix(auth)`, `fix(actions)`, `fix(team,beschluesse)`, `fix(nachweise,rahmenwerke)`).
+Prod-Build testen: `QA_BASE=http://localhost:3300 … --login` (Sitzung je Port). Der Prod-Build loggt den Magic-Link nie — Server mit `SMTP_HOST=127.0.0.1 SMTP_PORT=<sink>` gegen einen lokalen SMTP-Sink starten und `QA_LOG` auf dessen Mitschnitt zeigen lassen. Jede Seite wird auch auf seitlichen Überlauf geprüft (Fund `overflow`). Stand 17.10.2026: 139 Seiten + alle Dialoge, 0 Fehlerseiten, 0 5xx; Link-Check 965 Ziele ohne 404; Handy (390 px) 167 Seiten ohne Überlauf (Commits `fix(shell)`, `fix(layout)`, `fix(links)`).
+
+**Layout-Fallen:** `body` nie auf feste Höhe (`height: 100%` klemmt die Shell, sticky Header/Sidebar lösen sich); in Spalten ohne feste Höhe `grow` statt `flex-1`. Responsive Raster immer mit Basis `grid-cols-1` (`grid grid-cols-1 … md:grid-cols-2`), sonst wird die implizite Spalte so breit wie der längste nicht umbrechende Inhalt. Codes in Tabellen `whitespace-nowrap`.
 
 ## Quickstart
 
