@@ -38,6 +38,7 @@ import {
 	listEvidenceWithControls,
 	listTasks,
 } from "@/lib/compliance/queries";
+import { listAssessments } from "@/lib/compliance/queries-assessments";
 import {
 	listDocuments,
 	listProviders,
@@ -112,7 +113,9 @@ export default async function OverviewPage() {
 			listObligationRuns(tx, ctx.orgId),
 			listPostureSnapshots(tx, ctx.orgId, 35),
 		]);
+		const gaps = await listAssessments(tx, ctx.orgId, "self");
 		return {
+			gapDone: gaps.some((a) => a.status === "completed"),
 			controls,
 			evidence,
 			openTasks: tasks.length,
@@ -208,6 +211,12 @@ export default async function OverviewPage() {
 		phase?: string;
 	}[] = [
 		{ key: "mfa", label: t("setupMfa"), done: true, href: "/einstellungen" },
+		{
+			key: "gap",
+			label: t("setupGap"),
+			done: g.gapDone,
+			href: "/gap-analyse",
+		},
 		{
 			key: "team",
 			label: t("setupTeam"),

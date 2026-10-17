@@ -251,7 +251,9 @@ async function login(ctx: BrowserContext): Promise<void> {
 			.getByRole("button", { name: /anlegen|Organisation anlegen/i })
 			.last()
 			.click();
-		await page.waitForURL(/\/ueberblick|\/heute/, { timeout: 120_000 });
+		await page.waitForURL(/\/ueberblick|\/heute|\/gap-analyse/, {
+			timeout: 120_000,
+		});
 		await settle(page, 3000);
 	}
 	await ctx.storageState({ path: STATE });
@@ -418,13 +420,18 @@ const START = [
 	"/heute/freigaben",
 	"/heute/verantwortung",
 	"/ueberblick",
+	"/gap-analyse",
 	"/controls",
 	"/synergien",
 	"/synergien?tab=matrix",
 	"/synergien?tab=vergleich",
 	"/synergien?tab=was-waere-wenn",
 	"/rahmenwerke",
+	"/rahmenwerke/iso27001?tab=pruefungsreife",
+	"/rahmenwerke/iso27001?tab=pruefungsreife&stichtag=2027-12-11",
+	"/controls?orphan=1",
 	"/nachweise",
+	"/nachweise?dlp=1",
 	"/risiken",
 	"/risiken?tab=matrix",
 	"/risiken?tab=ausnahmen",

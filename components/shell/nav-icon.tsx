@@ -14,6 +14,7 @@ import {
 	GitMerge,
 	GraduationCap,
 	Landmark,
+	ListChecks,
 	Lock,
 	Map as MapIcon,
 	MessageSquare,
@@ -34,6 +35,7 @@ import type { NavIcon as NavIconName } from "@/lib/nav";
 const ICONS = {
 	sun: Sun,
 	gauge: Gauge,
+	"list-checks": ListChecks,
 	"shield-check": ShieldCheck,
 	"git-merge": GitMerge,
 	"file-check": FileCheck2,

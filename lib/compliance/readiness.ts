@@ -270,7 +270,6 @@ export function deriveReadiness(input: ReadinessInput): ReadinessResult {
 		n > 0 ? (100 * (required > 0 ? policy.weightCoverage : 1)) / n : 0;
 
 	let sumR = 0;
-	let carryingTotal = 0;
 	let carryingEvidence = 0;
 	let carryingTests = 0;
 	const sections = new Map<string, { sum: number; n: number }>();
@@ -299,7 +298,6 @@ export function deriveReadiness(input: ReadinessInput): ReadinessResult {
 		sections.set(sec, s);
 
 		if (c > 0 && carrying.length > 0) {
-			carryingTotal += 1;
 			if (carrying.some((e) => ev.get(e.control))) carryingEvidence += 1;
 			if (
 				carrying.some((e) => {
@@ -596,8 +594,11 @@ export function deriveReadiness(input: ReadinessInput): ReadinessResult {
 		counts,
 		dimensions: {
 			coverage: pct(counts.covered + 0.5 * counts.partial, n),
-			evidence: pct(carryingEvidence, carryingTotal),
-			tests: pct(carryingTests, carryingTotal),
+			// Anteil aller anwendbaren Anforderungen, die belegt bzw. wirksam
+			// getestet sind — nicht nur der umgesetzten (sonst 100 % bei 3 %
+			// Abdeckung).
+			evidence: pct(carryingEvidence, n),
+			tests: pct(carryingTests, n),
 			documents: pct(present, required),
 		},
 		penalty: {

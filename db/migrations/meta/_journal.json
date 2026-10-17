@@ -43,6 +43,13 @@
       "when": 1792194070196,
       "tag": "0005_upload_dlp",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792195518466,
+      "tag": "0006_assessments",
+      "breakpoints": true
     }
   ]
 }

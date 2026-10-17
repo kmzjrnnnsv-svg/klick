@@ -83,6 +83,57 @@ export const IMPL_STATUS = [
 ] as const;
 export type ImplStatus = (typeof IMPL_STATUS)[number];
 
+// Fragebögen (Gap-Analyse, Lieferantenbewertung, Produkt-Checklisten).
+export const ASSESSMENT_KINDS = [
+	"self",
+	"supplier",
+	"product",
+	"engagement",
+] as const;
+export type AssessmentKind = (typeof ASSESSMENT_KINDS)[number];
+
+export const ASSESSMENT_STATUS = [
+	"draft",
+	"in_progress",
+	"submitted",
+	"in_review",
+	"completed",
+	"cancelled",
+] as const;
+export type AssessmentStatus = (typeof ASSESSMENT_STATUS)[number];
+
+// Antwort je Frage. „unknown“ = weiß ich (noch) nicht → Klärungsbedarf.
+export const ASSESSMENT_ANSWERS = [
+	"yes",
+	"partial",
+	"no",
+	"unknown",
+	"na",
+] as const;
+export type AssessmentAnswer = (typeof ASSESSMENT_ANSWERS)[number];
+
+// Fragen-Schnappschuss am Fragebogen (Berichte bleiben reproduzierbar, auch
+// wenn sich der Katalog ändert).
+export type AssessmentQuestion = {
+	code: string;
+	sectionCode: string;
+	sectionTitle: string;
+	text: string;
+	help?: string;
+	// Prüffragen, wie sie Prüfer:innen stellen würden (Hilfe beim Antworten)
+	probes?: string[];
+	// Gap-Analyse aus dem Katalog: die Frage steht für ein Control
+	controlCode?: string;
+	requirements?: string[];
+	frameworks?: string[];
+	weight: number;
+	critical?: boolean;
+	evidenceRequired?: boolean;
+	evidenceHints?: string[];
+	templates?: string[];
+	mapsTo?: { art30?: string[]; control?: string; requirement?: string };
+};
+
 // Herkunft eines Nachweises (evidence.source).
 export const EVIDENCE_SOURCES = [
 	"manual",
@@ -167,6 +218,7 @@ export const ENTITY_KINDS = [
 	"processing_activity",
 	"organization",
 	"member",
+	"assessment",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 

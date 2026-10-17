@@ -9,6 +9,7 @@ import type { OrgRole } from "@/lib/auth/permissions";
 export type NavLabelKey =
 	| "today"
 	| "overview"
+	| "gapAnalysis"
 	| "controls"
 	| "synergies"
 	| "evidence"
@@ -51,6 +52,7 @@ export type NavGroupKey =
 export type NavIcon =
 	| "sun"
 	| "gauge"
+	| "list-checks"
 	| "shield-check"
 	| "git-merge"
 	| "file-check"
@@ -167,6 +169,12 @@ export function buildNav(input: NavInput): NavGroup[] {
 			key: "implement",
 			labelKey: "groupImplement",
 			items: [
+				{
+					key: "gapAnalysis",
+					labelKey: "gapAnalysis",
+					href: "/gap-analyse",
+					icon: "list-checks",
+				},
 				{
 					key: "controls",
 					labelKey: "controls",
@@ -383,6 +391,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 		const allowed = new Set([
 			"today",
 			"overview",
+			"gapAnalysis",
 			"controls",
 			"evidence",
 			"documents",

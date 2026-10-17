@@ -79,6 +79,8 @@ export function entityHref(
 			return "/datenschutz?tab=anfragen";
 		case "insurance_policy":
 			return "/organisation?tab=versicherungen";
+		case "assessment":
+			return `/gap-analyse/${id}`;
 		default:
 			return "/heute";
 	}

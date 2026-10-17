@@ -51,6 +51,9 @@ export const statements = {
 	crypto_asset: ["read", "create", "update"],
 	shareholder: ["read", "create", "update"],
 	privacy: ["read", "create", "update"],
+	// Gap-Analyse/Fragebögen: answer = Fragen beantworten, review = Antworten
+	// bewerten, apply = Ergebnis in den Control-Status übernehmen
+	assessment: ["read", "create", "answer", "review", "apply"],
 } as const;
 
 export const ac = createAccessControl(statements);
@@ -84,6 +87,7 @@ const readAll = {
 	crypto_asset: ["read"],
 	shareholder: ["read"],
 	privacy: ["read"],
+	assessment: ["read"],
 } as const;
 
 export const viewer = ac.newRole({
@@ -99,6 +103,8 @@ export const auditor = ac.newRole({
 	// Prüfer:innen dürfen Abweichungen anlegen (auch aus Findings), aber nicht
 	// bearbeiten oder schließen — die Umsetzung bleibt bei der Organisation.
 	nonconformity: ["read", "create"],
+	// Prüfer:innen/Berater:innen bewerten Antworten, übernehmen aber nichts.
+	assessment: ["read", "review"],
 });
 
 export const editor = ac.newRole({
@@ -133,6 +139,7 @@ export const editor = ac.newRole({
 	crypto_asset: ["read", "create", "update"],
 	shareholder: ["read", "create", "update"],
 	privacy: ["read", "create", "update"],
+	assessment: ["read", "create", "answer", "review", "apply"],
 });
 
 export const owner = ac.newRole({
@@ -167,6 +174,7 @@ export const owner = ac.newRole({
 	crypto_asset: ["read", "create", "update"],
 	shareholder: ["read", "create", "update"],
 	privacy: ["read", "create", "update"],
+	assessment: ["read", "create", "answer", "review", "apply"],
 });
 
 // Better Auth erwartet die Rolle "admin" in der Role-Map nicht zwingend;

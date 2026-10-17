@@ -12,14 +12,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listRequestsForUser } from "@/lib/approvals/service";
+import { catalogQuestions } from "@/lib/assessments/catalog-template";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { fmtDate } from "@/lib/compliance/page-data";
+import { roleAllows } from "@/lib/auth/permissions";
+import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
 	listControlRows,
 	listMembersForPicker,
 	listTasks,
 } from "@/lib/compliance/queries";
+import { listAssessments } from "@/lib/compliance/queries-assessments";
 import {
 	listTrainingAssignments,
 	listTrainingRequirements,
@@ -59,6 +62,7 @@ export default async function TodayPage() {
 		ncs,
 		trainingRows,
 		trainingReqs,
+		gapAnalyses,
 	} = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const requests = (
 			await listRequestsForUser(tx, ctx.orgId, ctx.userId)
@@ -99,6 +103,7 @@ export default async function TodayPage() {
 				(a) => a.userId === ctx.userId,
 			),
 			trainingReqs: await listTrainingRequirements(tx, ctx.orgId),
+			gapAnalyses: await listAssessments(tx, ctx.orgId, "self"),
 			ncs: (await listNonconformities(tx, ctx.orgId)).filter(
 				(n) =>
 					n.status !== "closed" &&
@@ -108,6 +113,30 @@ export default async function TodayPage() {
 			),
 		};
 	});
+
+	// Geführter Einstieg: offene Gap-Analyse fortsetzen oder die erste starten.
+	const ta = await getTranslations("Assessment");
+	const openGap = gapAnalyses.find(
+		(a) =>
+			a.status === "in_progress" ||
+			a.status === "submitted" ||
+			a.status === "in_review" ||
+			a.status === "draft",
+	);
+	const anyGap = gapAnalyses.some((a) => a.status !== "cancelled");
+	let gapStartCount = 0;
+	if (!anyGap && roleAllows(ctx.orgRole, { assessment: ["create"] })) {
+		const cov = await getOrgCoverageCached(ctx);
+		if (cov)
+			gapStartCount = catalogQuestions({
+				sector: cov.profile.sector,
+				licenceStage: cov.profile.licenceStage,
+				caspServices: cov.profile.caspServices,
+				frameworks: cov.frameworks,
+				tlptDesignated: cov.profile.tlptDesignated,
+				issuesTokens: cov.profile.issuesTokens,
+			}).length;
+	}
 
 	const dueTasks = tasks.filter((x) => x.dueAt && x.dueAt <= weekAhead);
 	const reqById = new Map(trainingReqs.map((r) => [r.id, r]));
@@ -142,6 +171,46 @@ export default async function TodayPage() {
 				}
 			/>
 			<div className="grid gap-4 md:grid-cols-2">
+				{(openGap || gapStartCount > 0) && (
+					<Card className="border-primary/40 md:col-span-2">
+						<CardHeader>
+							<CardTitle className="flex items-center justify-between text-base">
+								{ta("cardTitle")}
+								<Link
+									href={openGap ? `/gap-analyse/${openGap.id}` : "/gap-analyse"}
+									className="font-normal text-primary text-sm hover:underline underline-offset-4"
+								>
+									{openGap ? ta("continue") : ta("new")}
+								</Link>
+							</CardTitle>
+						</CardHeader>
+						<CardContent className="flex flex-col gap-2 text-sm">
+							{openGap ? (
+								<>
+									<p>
+										{openGap.title} ·{" "}
+										{ta("cardLead", {
+											answered: openGap.answered,
+											total: openGap.total,
+										})}
+									</p>
+									<div className="h-1.5 overflow-hidden rounded-full bg-muted">
+										<div
+											className="h-full rounded-full bg-primary"
+											style={{
+												width: `${openGap.total > 0 ? (100 * openGap.answered) / openGap.total : 0}%`,
+											}}
+										/>
+									</div>
+								</>
+							) : (
+								<p className="text-muted-foreground">
+									{ta("cardStart", { count: gapStartCount })}
+								</p>
+							)}
+						</CardContent>
+					</Card>
+				)}
 				{myTrainings.length > 0 && (
 					<Card className="md:col-span-2">
 						<CardHeader>

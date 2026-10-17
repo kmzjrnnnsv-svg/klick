@@ -705,6 +705,7 @@ export const tasks = pgTable(
 				"bundle",
 				"escalation",
 				"system",
+				"assessment",
 			],
 		})
 			.notNull()

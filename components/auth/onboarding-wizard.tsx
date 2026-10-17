@@ -129,8 +129,10 @@ export function OnboardingWizard({
 			return;
 		}
 		toast.success(t("created"));
-		router.replace("/ueberblick");
-		router.refresh();
+		// Geführter Einstieg: zuerst die Gap-Analyse (Fragebogen). Kein
+		// router.refresh() — das würde /onboarding neu rendern, und dessen
+		// Mitglieds-Redirect (/heute) überholt den Wechsel.
+		router.replace("/gap-analyse");
 	}
 
 	const steps = [t("step1"), t("step2"), t("step3")];
