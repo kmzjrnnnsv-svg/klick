@@ -3,6 +3,7 @@ import {
 	audits,
 	controlImplementations,
 	controls,
+	decisionRequests,
 	documents,
 	exceptions,
 	incidents,
@@ -119,6 +120,8 @@ export function entityHref(
 			return "/team";
 		case "organization":
 			return "/einstellungen";
+		case "decision_request":
+			return "/beschluesse?tab=anfragen";
 		default:
 			return "/heute";
 	}
@@ -150,6 +153,18 @@ export async function resolveEntityTitles(
 			.innerJoin(controls, eq(controls.id, controlImplementations.controlId))
 			.where(inArray(controlImplementations.id, ids("control")));
 		for (const r of rows) out.set(`control:${r.id}`, `${r.code} ${r.title}`);
+	}
+	if (ids("decision_request").length) {
+		const rows = await tx
+			.select({
+				id: decisionRequests.id,
+				code: decisionRequests.code,
+				question: decisionRequests.question,
+			})
+			.from(decisionRequests)
+			.where(inArray(decisionRequests.id, ids("decision_request")));
+		for (const r of rows)
+			out.set(`decision_request:${r.id}`, `${r.code} ${r.question}`);
 	}
 	if (ids("risk").length) {
 		const rows = await tx

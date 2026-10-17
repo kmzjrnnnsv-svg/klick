@@ -14,6 +14,7 @@ import { requestApproval } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { SUPPLIER_MEASURE_BY_CODE } from "@/lib/compliance/catalog/supplier-criteria";
+import { createDecisionResolution } from "@/lib/compliance/decision-service";
 import {
 	applicableCriteria,
 	decisionNeedsManagement,
@@ -312,6 +313,7 @@ async function completeProviderRatingImpl(
 			let decision: CompleteResult["decision"] = d.decision;
 			let approvalRequestId: string | null = null;
 			let approvalPending = false;
+			let directManagement = false;
 			if (decisionNeedsManagement(traffic, d.decision)) {
 				const r2 = await requestApproval(tx, c, {
 					kind: "provider_onboarding",
@@ -339,6 +341,8 @@ async function completeProviderRatingImpl(
 						.where(eq(roleAssignments.organizationId, c.orgId));
 					if (!holdsFunction(assignments, c.userId))
 						return { result: fail("needsManagement"), audit: [] };
+					// Geschäftsleitung entscheidet direkt → Beschluss (E1)
+					directManagement = true;
 				} else {
 					return { result: fail(r2.error), audit: [] };
 				}
@@ -463,6 +467,17 @@ async function completeProviderRatingImpl(
 					},
 				},
 			];
+			if (directManagement)
+				audits.push(
+					...(await createDecisionResolution(tx, c, {
+						workflowKind: "provider_onboarding",
+						workflowName: "Dienstleister freigeben",
+						entityType: "provider_rating",
+						entityId: r.id,
+						outcome: "approved",
+						note: d.decisionNote ?? null,
+					})),
+				);
 			return {
 				result: {
 					ok: true,

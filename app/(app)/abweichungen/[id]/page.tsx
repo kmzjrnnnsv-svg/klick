@@ -18,6 +18,7 @@ import {
 	NonconformityForm,
 	PriorityForm,
 } from "@/components/nonconformities/nc-forms";
+import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { historyFor } from "@/lib/audit";
@@ -179,6 +180,7 @@ export default async function NonconformityDetailPage({
 			aside={
 				<>
 					<SourceRisksBlock ctx={ctx} kind="nonconformity" id={id} />
+					<DecisionRequestsBlock ctx={ctx} kind="nonconformity" id={id} />
 					<Section title={te("activity")}>
 						<CommentForm
 							entityType="nonconformity"

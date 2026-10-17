@@ -9,6 +9,7 @@ import { applyApprovalOutcome } from "@/lib/approvals/outcomes";
 import { type DecideResult, decide, withdraw } from "@/lib/approvals/service";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { AuthError } from "@/lib/auth/session-rules";
+import { resolutionForApproval } from "@/lib/compliance/decision-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
@@ -43,11 +44,19 @@ async function decideApprovalImpl(
 		if (!r.ok) return { result: r, audit: [] };
 		const extra =
 			r.status !== "pending"
-				? await applyApprovalOutcome(
-						tx,
-						{ orgId: c.orgId, userId: c.userId },
-						r,
-					)
+				? [
+						...(await applyApprovalOutcome(
+							tx,
+							{ orgId: c.orgId, userId: c.userId },
+							r,
+						)),
+						// Entscheidung der Geschäftsleitung → Beschluss (E1)
+						...(await resolutionForApproval(
+							tx,
+							{ orgId: c.orgId, userId: c.userId, name: c.name },
+							d.requestId,
+						)),
+					]
 				: [];
 		return {
 			result: r,

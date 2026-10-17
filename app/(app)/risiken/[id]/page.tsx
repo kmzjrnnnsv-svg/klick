@@ -15,6 +15,7 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
+import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { RiskEditForm, TreatmentForm } from "@/components/risks/risk-forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -269,6 +270,12 @@ export default async function RiskDetailPage({
 			}
 			aside={
 				<>
+					<DecisionRequestsBlock
+						ctx={ctx}
+						kind="risk"
+						id={id}
+						title={`${risk.code} ${risk.title}`}
+					/>
 					<Section title={te("activity")}>
 						<CommentForm
 							entityType="risk"

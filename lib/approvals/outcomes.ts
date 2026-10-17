@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import {
 	amlRiskAnalyses,
+	decisionRequests,
 	documents,
 	documentVersions,
 	exceptions,
@@ -15,6 +16,7 @@ import type { AuditInput } from "@/lib/audit";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import type { OrgTx } from "@/lib/db/with-org";
+import { notify } from "@/lib/notifications/notify";
 import type { DecideResult } from "./service";
 
 // Wendet den Ausgang einer Freigabe auf die Entität an. Wird vom Entscheiden
@@ -199,6 +201,60 @@ export async function applyApprovalOutcome(
 						eq(ownFundsCalculations.organizationId, ctx.orgId),
 					),
 				);
+			return extra;
+		}
+		case "decision_request": {
+			// Managementanfrage entschieden (E2); den Beschluss legt
+			// resolutionForApproval an, die anfragende Person wird informiert.
+			const [q] = await tx
+				.select({
+					code: decisionRequests.code,
+					question: decisionRequests.question,
+					requestedByUserId: decisionRequests.requestedByUserId,
+				})
+				.from(decisionRequests)
+				.where(
+					and(
+						eq(decisionRequests.id, r.entityId),
+						eq(decisionRequests.organizationId, ctx.orgId),
+					),
+				)
+				.limit(1);
+			if (!q) return extra;
+			const outcome =
+				r.status === "approved"
+					? "approved"
+					: r.status === "rejected"
+						? "rejected"
+						: "changes_requested";
+			await tx
+				.update(decisionRequests)
+				.set({
+					status: outcome === "changes_requested" ? "open" : "decided",
+					outcome,
+					decidedByUserId: ctx.userId,
+					decidedAt: new Date(),
+				})
+				.where(eq(decisionRequests.id, r.entityId));
+			await notify(tx, {
+				orgId: ctx.orgId,
+				recipients: [q.requestedByUserId],
+				actorUserId: ctx.userId,
+				kind: "approval_decided",
+				title: `Entschieden: ${q.code} ${q.question}`.slice(0, 200),
+				body:
+					outcome === "approved"
+						? "Die Geschäftsleitung stimmt zu."
+						: outcome === "rejected"
+							? "Die Geschäftsleitung lehnt ab."
+							: "Die Geschäftsleitung bittet um Überarbeitung.",
+				link: "/beschluesse?tab=anfragen",
+			});
+			extra.push({
+				action: "decision_request.decided",
+				target: `decision_request:${r.entityId}`,
+				after: { outcome },
+			});
 			return extra;
 		}
 		case "provider_rating": {

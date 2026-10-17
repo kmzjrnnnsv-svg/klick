@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { ProviderForm } from "@/components/registers/provider-form";
+import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { StartRatingButton } from "@/components/supplier/start-rating-button";
 import {
@@ -246,6 +247,7 @@ export default async function ProviderPage({
 			aside={
 				<>
 					<SourceRisksBlock ctx={ctx} kind="provider" id={id} />
+					<DecisionRequestsBlock ctx={ctx} kind="provider" id={id} />
 					<Section
 						title={te("tasks")}
 						actions={

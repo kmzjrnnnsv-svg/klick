@@ -18,6 +18,7 @@ import { EvidenceForm } from "@/components/entity/evidence-form";
 import { StatusButton } from "@/components/entity/status-button";
 import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
+import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { Badge } from "@/components/ui/badge";
 import { approverEligibility } from "@/lib/approvals/rules";
 import {
@@ -196,6 +197,12 @@ export default async function DocumentDetailPage({
 			}
 			aside={
 				<>
+					<DecisionRequestsBlock
+						ctx={ctx}
+						kind="document"
+						id={doc.id}
+						title={`${doc.docNumber} ${doc.title}`}
+					/>
 					<Section title={te("activity")}>
 						<CommentForm
 							entityType="document"

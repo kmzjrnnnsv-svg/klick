@@ -19,6 +19,11 @@ export type ResolutionDraft = {
 	minutesEvidenceId?: string | null;
 	requestApproval: boolean;
 	selfApprovalReason?: string;
+	// Bezug zum Rahmenwerk (E1)
+	frameworks?: string[];
+	requirementKeys?: string[];
+	// schon entschiedene Freigabe, aus der dieser Beschluss entsteht (E1)
+	decidedRequestId?: string | null;
 };
 
 export type ResolutionCreated = {
@@ -59,6 +64,9 @@ export async function insertResolution(
 			linkedEntityId: d.linkedEntityId ?? null,
 			attendeeUserIds: d.attendeeUserIds ?? [],
 			minutesEvidenceId: d.minutesEvidenceId ?? null,
+			frameworks: d.frameworks ?? [],
+			requirementKeys: d.requirementKeys ?? [],
+			approvalRequestId: d.decidedRequestId ?? null,
 			createdByUserId: actor.userId,
 		})
 		.returning({ id: resolutions.id });
@@ -104,6 +112,8 @@ export async function insertResolution(
 				linked: d.linkedEntityType
 					? `${d.linkedEntityType}:${d.linkedEntityId}`
 					: null,
+				frameworks: d.frameworks ?? [],
+				fromRequest: d.decidedRequestId ?? null,
 				approval,
 			},
 		},

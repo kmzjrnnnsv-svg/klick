@@ -539,3 +539,19 @@ export const whistleblowingTransitionSchema = z.object({
 	id: uuid,
 	to: z.enum(["acknowledged", "in_review", "closed", "received"]),
 });
+
+// Entscheidung beim Management anfragen (E2)
+export const decisionRequestSchema = z.object({
+	question: z.string().trim().min(5).max(300),
+	context: longText.optional(),
+	recommendation: z.string().trim().max(2000).optional(),
+	options: z.array(z.string().trim().min(1).max(200)).max(6).default([]),
+	dueAt: optionalDate,
+	linkedEntityType: z.enum(ENTITY_KINDS).optional(),
+	linkedEntityId: uuid.optional(),
+	requirementKeys: z
+		.array(z.string().trim().min(3).max(80))
+		.max(20)
+		.default([]),
+	selfApprovalReason: z.string().trim().max(2000).optional(),
+});
