@@ -1,4 +1,4 @@
-import { transitions } from "./status-machine";
+import { hintKeys, transitions } from "./status-machine";
 import type { EntityDef, StatusMachine } from "./types";
 
 export type IncidentStatus = "open" | "contained" | "resolved" | "closed";
@@ -12,6 +12,7 @@ export const INCIDENT_STATUSES = [
 export const INCIDENT_STATUS: StatusMachine<IncidentStatus> = {
 	states: INCIDENT_STATUSES,
 	initial: "open",
+	hintKey: hintKeys("incident", INCIDENT_STATUSES),
 	labelKey: {
 		open: "incOpen",
 		contained: "incContained",

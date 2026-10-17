@@ -72,3 +72,30 @@ export function transitions<S extends string>(
 		...(auto ? { auto: true } : {}),
 	}));
 }
+
+// Weg der Schritt-Leiste: happyPath, sonst entlang der Primärübergänge
+// (auch automatischer) ab `initial` bis zu einem Endzustand; Schleifen enden.
+export function statusPath<S extends string>(machine: StatusMachine<S>): S[] {
+	if (machine.happyPath) return [...machine.happyPath];
+	const path: S[] = [machine.initial];
+	let current = machine.initial;
+	while (!machine.done.includes(current)) {
+		const next = machine.transitions.find(
+			(t) => t.from === current && t.primary,
+		)?.to;
+		if (!next || path.includes(next)) break;
+		path.push(next);
+		current = next;
+	}
+	return path;
+}
+
+// Hinweis-Keys nach Konvention hint_<art>_<status> (Status-Namespace).
+export function hintKeys<S extends string>(
+	kind: string,
+	states: readonly S[],
+): Record<S, string> {
+	return Object.fromEntries(
+		states.map((s) => [s, `hint_${kind}_${s}`]),
+	) as Record<S, string>;
+}

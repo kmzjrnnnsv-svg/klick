@@ -1,5 +1,5 @@
 import { IMPL_STATUS, type ImplStatus } from "@/db/schema/enums";
-import { transitions } from "./status-machine";
+import { hintKeys, transitions } from "./status-machine";
 import type { EntityDef, StatusMachine } from "./types";
 
 // Control-Umsetzungsstatus. „implemented" ≠ „wirksam" — Wirksamkeit messen
@@ -8,6 +8,7 @@ import type { EntityDef, StatusMachine } from "./types";
 export const CONTROL_STATUS: StatusMachine<ImplStatus> = {
 	states: IMPL_STATUS,
 	initial: "not_started",
+	hintKey: hintKeys("control", IMPL_STATUS),
 	labelKey: {
 		not_started: "notStarted",
 		planned: "planned",

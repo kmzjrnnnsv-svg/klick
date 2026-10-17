@@ -38,23 +38,14 @@ import type {
 	ImplStatus,
 	ProductStatus,
 } from "@/db/schema/enums";
-import { CONTROL_STATUS } from "@/lib/entities/control";
-import {
-	DOCUMENT_STATUS_MACHINE,
-	type DocumentStatus,
-} from "@/lib/entities/document";
-import { ENGAGEMENT_STATUS_MACHINE } from "@/lib/entities/engagement";
-import { INCIDENT_STATUS, type IncidentStatus } from "@/lib/entities/incident";
-import {
-	NONCONFORMITY_STATUS,
-	type NonconformityStatus,
-} from "@/lib/entities/nonconformity";
-import { PROCESS_STATUS, type ProcessStatus } from "@/lib/entities/process";
-import { PRODUCT_STATUS } from "@/lib/entities/product";
-import { RISK_STATUS, type RiskStatus } from "@/lib/entities/risk";
-import { FINDING_STATUS_MACHINE } from "@/lib/entities/security-finding";
+import type { DocumentStatus } from "@/lib/entities/document";
+import type { IncidentStatus } from "@/lib/entities/incident";
+import { MACHINES } from "@/lib/entities/machines";
+import type { NonconformityStatus } from "@/lib/entities/nonconformity";
+import type { ProcessStatus } from "@/lib/entities/process";
+import type { RiskStatus } from "@/lib/entities/risk";
 import { nextTransitions } from "@/lib/entities/status-machine";
-import { TASK_STATUS, type TaskStatus } from "@/lib/entities/task";
+import type { TaskStatus } from "@/lib/entities/task";
 import type { StatusMachine } from "@/lib/entities/types";
 import { StatusBadge } from "./status-badge";
 
@@ -82,19 +73,6 @@ type Target =
 			engagementId: string;
 			status: EngagementStatus;
 	  };
-
-const MACHINES = {
-	control: CONTROL_STATUS,
-	task: TASK_STATUS,
-	risk: RISK_STATUS,
-	incident: INCIDENT_STATUS,
-	process: PROCESS_STATUS,
-	nonconformity: NONCONFORMITY_STATUS,
-	document: DOCUMENT_STATUS_MACHINE,
-	product: PRODUCT_STATUS,
-	security_finding: FINDING_STATUS_MACHINE,
-	security_engagement: ENGAGEMENT_STATUS_MACHINE,
-} as const;
 
 // Status wechselt per Button mit dem nächsten sinnvollen Übergang; weitere
 // Übergänge im Menü. Begründungspflichtige Übergänge öffnen einen Dialog.

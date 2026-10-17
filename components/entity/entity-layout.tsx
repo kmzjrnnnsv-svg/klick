@@ -9,6 +9,7 @@ export function EntityLayout({
 	title,
 	subtitle,
 	status,
+	guide,
 	meta,
 	actions,
 	children,
@@ -18,6 +19,8 @@ export function EntityLayout({
 	title: string;
 	subtitle?: string;
 	status?: ReactNode;
+	// Schritt-Leiste + „Was jetzt?“ (components/entity/status-guide.tsx)
+	guide?: ReactNode;
 	meta?: ReactNode;
 	actions?: ReactNode;
 	children: ReactNode;
@@ -43,6 +46,7 @@ export function EntityLayout({
 						{actions}
 					</div>
 				</div>
+				{guide}
 				{meta && (
 					<dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
 						{meta}

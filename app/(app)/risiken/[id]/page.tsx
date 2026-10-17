@@ -12,6 +12,7 @@ import {
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
+import { StatusGuide } from "@/components/entity/status-guide";
 import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
 import { RiskEditForm, TreatmentForm } from "@/components/risks/risk-forms";
@@ -178,6 +179,7 @@ export default async function RiskDetailPage({
 
 	return (
 		<EntityLayout
+			guide={<StatusGuide kind="risk" status={risk.status} />}
 			eyebrow={`${risk.code} · ${t(`category_${risk.category}`)}`}
 			title={risk.title}
 			subtitle={risk.description ?? undefined}

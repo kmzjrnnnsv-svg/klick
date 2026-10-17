@@ -12,6 +12,7 @@ import {
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
+import { StatusGuide } from "@/components/entity/status-guide";
 import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
 import {
@@ -171,6 +172,7 @@ export default async function ProcessDetailPage({
 
 	return (
 		<EntityLayout
+			guide={<StatusGuide kind="process" status={p.status} />}
 			eyebrow={`${p.code} · ${t(`category_${p.category}`)}`}
 			title={p.name}
 			subtitle={p.description ?? undefined}

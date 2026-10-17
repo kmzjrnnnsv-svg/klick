@@ -1,4 +1,4 @@
-import { transitions } from "./status-machine";
+import { hintKeys, transitions } from "./status-machine";
 import type { EntityDef, StatusMachine } from "./types";
 
 export type NonconformityStatus =
@@ -18,6 +18,7 @@ export const NONCONFORMITY_STATUSES = [
 export const NONCONFORMITY_STATUS: StatusMachine<NonconformityStatus> = {
 	states: NONCONFORMITY_STATUSES,
 	initial: "open",
+	hintKey: hintKeys("nonconformity", NONCONFORMITY_STATUSES),
 	labelKey: {
 		open: "ncOpen",
 		in_progress: "ncInProgress",

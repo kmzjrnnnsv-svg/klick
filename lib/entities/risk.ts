@@ -1,4 +1,4 @@
-import { transitions } from "./status-machine";
+import { hintKeys, transitions } from "./status-machine";
 import type { EntityDef, StatusMachine } from "./types";
 
 export type RiskStatus = "open" | "in_treatment" | "accepted" | "closed";
@@ -14,6 +14,7 @@ export const RISK_STATUSES = [
 export const RISK_STATUS: StatusMachine<RiskStatus> = {
 	states: RISK_STATUSES,
 	initial: "open",
+	hintKey: hintKeys("risk", RISK_STATUSES),
 	labelKey: {
 		open: "riskOpen",
 		in_treatment: "riskInTreatment",

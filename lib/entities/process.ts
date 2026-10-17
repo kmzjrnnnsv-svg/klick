@@ -1,4 +1,4 @@
-import { transitions } from "./status-machine";
+import { hintKeys, transitions } from "./status-machine";
 import type { EntityDef, StatusMachine } from "./types";
 
 export type ProcessStatus = "draft" | "active" | "retired";
@@ -7,6 +7,9 @@ export const PROCESS_STATUSES = ["draft", "active", "retired"] as const;
 export const PROCESS_STATUS: StatusMachine<ProcessStatus> = {
 	states: PROCESS_STATUSES,
 	initial: "draft",
+	hintKey: hintKeys("process", PROCESS_STATUSES),
+	// „Außer Kraft“ ist kein Ziel, sondern ein Nebenzustand
+	happyPath: ["draft", "active"],
 	labelKey: {
 		draft: "procDraft",
 		active: "procActive",

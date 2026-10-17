@@ -21,6 +21,7 @@ import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { RequestEvidence } from "@/components/entity/request-evidence";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
+import { StatusGuide } from "@/components/entity/status-guide";
 import { WatchButton } from "@/components/entity/watch-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -229,6 +230,7 @@ export default async function ControlDetailPage({
 
 	return (
 		<EntityLayout
+			guide={<StatusGuide kind="control" status={row.status} />}
 			eyebrow={`${control.code} · ${t(`domain_${control.domain}`)}`}
 			title={control.title}
 			subtitle={control.description}

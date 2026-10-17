@@ -11,6 +11,7 @@ import {
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
+import { StatusGuide } from "@/components/entity/status-guide";
 import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
 import {
@@ -117,6 +118,7 @@ export default async function NonconformityDetailPage({
 
 	return (
 		<EntityLayout
+			guide={<StatusGuide kind="nonconformity" status={nc.status} />}
 			eyebrow={`${nc.code} · ${t(`source_${nc.source}`)}`}
 			title={nc.title}
 			subtitle={nc.description ?? undefined}

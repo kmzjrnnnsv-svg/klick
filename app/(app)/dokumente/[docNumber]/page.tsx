@@ -17,6 +17,7 @@ import {
 } from "@/components/entity/entity-layout";
 import { EvidenceForm } from "@/components/entity/evidence-form";
 import { StatusButton } from "@/components/entity/status-button";
+import { StatusGuide } from "@/components/entity/status-guide";
 import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
 import { Badge } from "@/components/ui/badge";
@@ -182,6 +183,7 @@ export default async function DocumentDetailPage({
 
 	return (
 		<EntityLayout
+			guide={<StatusGuide kind="document" status={doc.status} />}
 			eyebrow={`${doc.docNumber} · ${t(`type_${doc.type}`)} · v${doc.version}`}
 			title={doc.title}
 			status={

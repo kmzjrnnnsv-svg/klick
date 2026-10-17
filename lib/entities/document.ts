@@ -1,5 +1,5 @@
 import { DOCUMENT_STATUS } from "@/db/schema/grc";
-import { transitions } from "./status-machine";
+import { hintKeys, transitions } from "./status-machine";
 import type { EntityDef, StatusMachine } from "./types";
 
 export type DocumentStatus = (typeof DOCUMENT_STATUS)[number];
@@ -12,6 +12,7 @@ export type DocumentStatus = (typeof DOCUMENT_STATUS)[number];
 export const DOCUMENT_STATUS_MACHINE: StatusMachine<DocumentStatus> = {
 	states: DOCUMENT_STATUS,
 	initial: "draft",
+	hintKey: hintKeys("document", DOCUMENT_STATUS),
 	labelKey: {
 		draft: "docDraft",
 		in_review: "docInReview",

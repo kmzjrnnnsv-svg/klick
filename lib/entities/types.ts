@@ -29,6 +29,11 @@ export type StatusMachine<S extends string> = {
 	transitions: readonly Transition<S>[];
 	// Endzustände zählen als „erledigt"
 	done: readonly S[];
+	// „Was jetzt?“ je Status (i18n-Keys in "Status")
+	hintKey?: Partial<Record<S, string>>;
+	// Weg für die Schritt-Leiste; fehlt er, folgt die Leiste den
+	// Primärübergängen ab `initial` (lib/entities/status-machine.ts statusPath)
+	happyPath?: readonly S[];
 };
 
 export type EntityDef<S extends string> = {

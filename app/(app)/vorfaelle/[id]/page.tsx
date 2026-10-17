@@ -13,6 +13,7 @@ import {
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
+import { StatusGuide } from "@/components/entity/status-guide";
 import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
 import { IncidentClocks } from "@/components/incidents/incident-clocks";
@@ -233,6 +234,7 @@ export default async function IncidentDetailPage({
 
 	return (
 		<EntityLayout
+			guide={<StatusGuide kind="incident" status={incident.status} />}
 			eyebrow={`${incident.code} · ${regimes.map((r) => t(`regime_${r}`)).join(" · ")}`}
 			title={incident.title}
 			subtitle={incident.description ?? undefined}

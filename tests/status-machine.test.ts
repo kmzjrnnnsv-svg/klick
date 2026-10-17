@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { CONTROL_STATUS } from "@/lib/entities/control";
 import { DOCUMENT_STATUS_MACHINE } from "@/lib/entities/document";
+import { MACHINES } from "@/lib/entities/machines";
 import {
 	canTransition,
 	isDone,
 	nextTransitions,
 	primaryTransition,
+	statusPath,
 } from "@/lib/entities/status-machine";
 import { TASK_STATUS } from "@/lib/entities/task";
+import messages from "@/messages/de.json";
 
 describe("status machine", () => {
 	it("Control: not_started → planned ist der Primärübergang", () => {
@@ -99,5 +102,47 @@ describe("status machine", () => {
 		expect(m.transitions.some((t) => t.auto && t.from === "in_review")).toBe(
 			true,
 		);
+	});
+	it("„Was jetzt?“: Hinweise für alle Zustände, Texte vorhanden", () => {
+		const status = messages.Status as Record<string, string>;
+		const withHints = Object.entries(MACHINES).filter(([, m]) => m.hintKey);
+		expect(withHints.map(([k]) => k).sort()).toEqual(
+			[
+				"control",
+				"document",
+				"incident",
+				"nonconformity",
+				"process",
+				"risk",
+				"task",
+			].sort(),
+		);
+		for (const [kind, m] of withHints)
+			for (const s of m.states) {
+				const key = (m.hintKey as Record<string, string>)[s];
+				expect(key, `${kind}.${s}`).toBeTruthy();
+				expect(status[key as string], `${kind}.${s}`).toBeTruthy();
+			}
+	});
+
+	it("Schritt-Leiste: Wege beginnen am Start, enden ohne Schleife", () => {
+		for (const [kind, m] of Object.entries(MACHINES)) {
+			const path = statusPath(m as never) as string[];
+			expect(path[0], kind).toBe(m.initial);
+			expect(new Set(path).size, kind).toBe(path.length);
+		}
+		// Ziel ist „Gültig“; „Archiviert“ ist Nebenzustand
+		expect(statusPath(DOCUMENT_STATUS_MACHINE)).toEqual([
+			"draft",
+			"in_review",
+			"published",
+		]);
+		expect(statusPath(MACHINES.process)).toEqual(["draft", "active"]);
+		expect(statusPath(MACHINES.control)).toEqual([
+			"not_started",
+			"planned",
+			"in_progress",
+			"implemented",
+		]);
 	});
 });

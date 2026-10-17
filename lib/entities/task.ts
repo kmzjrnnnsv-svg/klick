@@ -1,4 +1,4 @@
-import { transitions } from "./status-machine";
+import { hintKeys, transitions } from "./status-machine";
 import type { EntityDef, StatusMachine } from "./types";
 
 export type TaskStatus = "todo" | "doing" | "blocked" | "done";
@@ -7,6 +7,7 @@ export const TASK_STATUSES = ["todo", "doing", "blocked", "done"] as const;
 export const TASK_STATUS: StatusMachine<TaskStatus> = {
 	states: TASK_STATUSES,
 	initial: "todo",
+	hintKey: hintKeys("task", TASK_STATUSES),
 	labelKey: { todo: "todo", doing: "doing", blocked: "blocked", done: "done" },
 	tone: {
 		todo: "muted",
