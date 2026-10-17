@@ -21,6 +21,7 @@ import { mutateOrg } from "@/lib/db/with-org";
 import { RISK_STATUS } from "@/lib/entities/risk";
 import { canTransition } from "@/lib/entities/status-machine";
 import { notify } from "@/lib/notifications/notify";
+import { addMonthsIso, todayBerlin } from "@/lib/time/berlin";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	createExceptionSchema,
@@ -46,10 +47,10 @@ async function appetiteFor(
 	return s ?? null;
 }
 
+// Review-Termin: heute (Berlin) + n Monate, Monatsende geklemmt (31.01. + 1
+// = 28./29.02., nicht 03.03.).
 function plusMonths(months: number): string {
-	const d = new Date();
-	d.setMonth(d.getMonth() + months);
-	return d.toISOString().slice(0, 10);
+	return addMonthsIso(todayBerlin(), months);
 }
 
 async function createRiskImpl(

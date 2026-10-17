@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-	addBusinessDays,
 	aggregateSuspicious,
 	listRelevantChanges,
 	nextSuspiciousRef,
@@ -28,14 +27,31 @@ describe("aml helpers", () => {
 		);
 	});
 
-	it("§ 46 GwG: drei Werktage nach Meldung, Wochenende übersprungen", () => {
-		// Donnerstag 08.10.2026 → Di 13.10.2026
+	it("§ 46 GwG: erst nach Ablauf des dritten Werktags (ohne Samstag, Feiertage)", () => {
+		// Do 08.10.2026 → Werktage Fr 9., Mo 12., Di 13. → frühestens Mi 14.10. 00:00
 		const thu = new Date("2026-10-08T15:00:00Z");
-		expect(sarHoldUntil(thu).toISOString().slice(0, 10)).toBe("2026-10-13");
-		// Freitag → Mittwoch
-		expect(
-			addBusinessDays(new Date("2026-10-09T09:00:00Z"), 3).getUTCDay(),
-		).toBe(3);
+		expect(sarHoldUntil(thu)).toEqual(new Date("2026-10-13T22:00:00.000Z"));
+		// Mo 12.10. 10:00 → Di, Mi, Do → frühestens Fr 16.10. 00:00 (nicht Do 10:00)
+		expect(sarHoldUntil(new Date("2026-10-12T08:00:00Z"))).toEqual(
+			new Date("2026-10-15T22:00:00.000Z"),
+		);
+		// Mi 23.12.2026: 24., 28., 29. zählen (25./26. Feiertag, Sa/So nicht)
+		// → frühestens Mi 30.12. 00:00 (vorher ~38 h zu früh)
+		expect(sarHoldUntil(new Date("2026-12-23T11:00:00Z"))).toEqual(
+			new Date("2026-12-29T23:00:00.000Z"),
+		);
+		// 00:30 Berliner Zeit am Dienstag ist in UTC noch Montag — zählt als Di
+		expect(sarHoldUntil(new Date("2026-10-12T22:30:00Z"))).toEqual(
+			new Date("2026-10-16T22:00:00.000Z"),
+		);
+		// Fronleichnam 04.06.2026 ist in Hessen Feiertag, in Berlin nicht
+		const wed = new Date("2026-06-03T10:00:00Z");
+		expect(sarHoldUntil(wed, "HE")).toEqual(
+			new Date("2026-06-09T22:00:00.000Z"),
+		);
+		expect(sarHoldUntil(wed, "BE")).toEqual(
+			new Date("2026-06-08T22:00:00.000Z"),
+		);
 	});
 
 	it("Kennzahlen für den GWB-Jahresbericht", () => {

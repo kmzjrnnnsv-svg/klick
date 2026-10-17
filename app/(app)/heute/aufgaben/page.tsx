@@ -14,6 +14,7 @@ import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker, listTasks } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUSES } from "@/lib/entities/task";
+import { todayBerlin } from "@/lib/time/berlin";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -32,7 +33,7 @@ export default async function TasksPage({
 	const showDone = one(sp.done) === "1";
 	const status = one(sp.status);
 	const q = one(sp.q)?.toLowerCase();
-	const today = new Date().toISOString().slice(0, 10);
+	const today = todayBerlin();
 	const canEdit = roleAllows(ctx.orgRole, { task: ["update"] });
 
 	const { tasks, members } = await readOrg(toOrgCtx(ctx), async (tx) => ({

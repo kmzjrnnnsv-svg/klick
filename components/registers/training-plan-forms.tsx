@@ -30,6 +30,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import type { RoleFunction } from "@/db/schema/enums";
+import { addDaysIso, todayBerlin } from "@/lib/time/berlin";
 import { TRAINING_ORG_ROLES } from "@/lib/validation/registers";
 
 type OrgRoleOption = (typeof TRAINING_ORG_ROLES)[number];
@@ -46,7 +47,7 @@ export type RequirementDraft = {
 };
 
 function inDays(days: number): string {
-	return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+	return addDaysIso(todayBerlin(), days);
 }
 
 // Link zur Schulung — öffnet in neuem Tab, ohne Referrer/Opener.

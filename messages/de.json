@@ -531,7 +531,25 @@
 		"dlpEgressLimit": "Downloads/Exporte je Person",
 		"dlpEgressWindow": "im Zeitfenster (Minuten)",
 		"dlpHint": "PDFs und Bilder werden nicht inhaltlich geprüft und so gekennzeichnet. Über der Download-Schwelle wird gedrosselt und die Owner bekommen einen Sicherheitshinweis.",
-		"tabIntegrations": "Integrationen"
+		"tabIntegrations": "Integrationen",
+		"land": "Bundesland (Sitz)",
+		"landHint": "Bestimmt die Feiertage für Fristen in Werk- und Arbeitstagen (z. B. § 46 GwG, § 2c KWG).",
+		"land_BW": "Baden-Württemberg",
+		"land_BY": "Bayern",
+		"land_BE": "Berlin",
+		"land_BB": "Brandenburg",
+		"land_HB": "Bremen",
+		"land_HH": "Hamburg",
+		"land_HE": "Hessen",
+		"land_MV": "Mecklenburg-Vorpommern",
+		"land_NI": "Niedersachsen",
+		"land_NW": "Nordrhein-Westfalen",
+		"land_RP": "Rheinland-Pfalz",
+		"land_SL": "Saarland",
+		"land_SN": "Sachsen",
+		"land_ST": "Sachsen-Anhalt",
+		"land_SH": "Schleswig-Holstein",
+		"land_TH": "Thüringen"
 	},
 	"Team": {
 		"title": "Team",
@@ -1291,7 +1309,9 @@
 		"mitigationAvailable": "Abhilfe verfügbar",
 		"mitigationSaved": "Abhilfe vermerkt — der Abschlussbericht ist in 14 Tagen fällig.",
 		"mitigationSince": "Abhilfe verfügbar seit {at} — der Abschlussbericht ist 14 Tage danach fällig.",
-		"mitigationHint": "Sobald ein Fix oder eine Abhilfe bereitsteht, vermerke es hier: Dann läuft die 14-Tage-Frist für den Abschlussbericht."
+		"mitigationHint": "Sobald ein Fix oder eine Abhilfe bereitsteht, vermerke es hier: Dann läuft die 14-Tage-Frist für den Abschlussbericht.",
+		"noReportingDuty": "Keine Meldepflicht: nach der Einstufung ist der Vorfall weder schwerwiegend (DORA) noch erheblich (NIS2). Ändert sich die Lage, stuf ihn neu ein — die Uhren laufen dann ab der Hochstufung.",
+		"secondaryClock": "{label} bis {at}"
 	},
 	"Approvals": {
 		"title": "Freigaben",
@@ -2806,7 +2826,8 @@
 		"reopen": "Wieder öffnen",
 		"extend": "+2 Monate",
 		"extendReason": "Grund der Verlängerung",
-		"extended": "Frist verlängert — Betroffene informieren."
+		"extended": "Frist verlängert — Betroffene informieren.",
+		"extendTooLate": "Die Monatsfrist ist schon abgelaufen — verlängern geht nur innerhalb der ersten Frist (Art. 12 Abs. 3 DSGVO). Beantworte die Anfrage jetzt und dokumentiere die Verspätung."
 	},
 	"Insurance": {
 		"lead": "Versicherungen als Nachweis zu MiCAR Art. 67/75(8), DORA und Bankanforderungen (Businessplan 15.3): Deckung, Sublimits (Hot Wallet, Social Engineering), Ausschlüsse (staatliche Akteure), Laufzeit. Ablauf 60 Tage vorher als Erinnerung.",

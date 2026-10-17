@@ -16,10 +16,10 @@ describe("shareholders / Inhaberkontrolle", () => {
 		expect(thresholdCrossed(null, null)).toBeNull();
 	});
 
-	it("Beurteilungszeitraum 60 Arbeitstage", () => {
-		// Mo 05.10.2026 + 60 Arbeitstage = Mo 28.12.2026
-		const due = inhaberkontrolleDeadline(new Date("2026-10-05T00:00:00Z"));
-		expect(due.toISOString().slice(0, 10)).toBe("2026-12-28");
+	it("Beurteilungszeitraum 60 Arbeitstage (Feiertage zählen nicht, Tagesende)", () => {
+		// Mo 05.10.2026 + 60 Arbeitstage: 25.12. ist Feiertag → Di 29.12.2026
+		const due = inhaberkontrolleDeadline("2026-10-05");
+		expect(due).toEqual(new Date("2026-12-29T22:59:59.999Z"));
 	});
 
 	it("Gaps: Schwelle ohne Anzeige, überfällige Beurteilung, Sanktionsabgleich", () => {

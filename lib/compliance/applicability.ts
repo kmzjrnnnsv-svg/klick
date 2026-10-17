@@ -4,6 +4,7 @@ import type {
 	LicenceStage,
 	OrgRoleLegal,
 } from "@/db/schema/enums";
+import { berlinDate, startOfBerlinDay } from "@/lib/time/berlin";
 
 // Anwendbarkeit einer Anforderung für eine Organisation — reine Funktion.
 // Quellen (in dieser Reihenfolge, die erste greift):
@@ -99,21 +100,24 @@ export function deriveApplicability(
 	req: RequirementForApplicability,
 	profile: OrgProfile,
 ): ApplicabilityDecision {
-	const asOf = profile.asOf ?? new Date();
+	// Stichtage sind Kalendertage (inklusive): GwG gilt bis einschließlich
+	// 09.07.2027, AMLR ab 10.07.2027 — als Berliner Datum verglichen, nicht als
+	// UTC-Mitternacht (sonst ~24 h Lücke, in der keins von beiden gilt).
+	const asOfDay = berlinDate(profile.asOf ?? new Date());
 	const stage = STAGE_INDEX[profile.licenceStage];
 
 	// Rechtsstand
 	if (req.legalStatus === "repealed") {
 		return { applicable: false, source: "rule", note: "Aufgehoben" };
 	}
-	if (req.effectiveFrom && new Date(req.effectiveFrom) > asOf) {
+	if (req.effectiveFrom && req.effectiveFrom.slice(0, 10) > asOfDay) {
 		return {
 			applicable: false,
 			source: "rule",
 			note: `Gilt ab ${req.effectiveFrom}`,
 		};
 	}
-	if (req.effectiveUntil && new Date(req.effectiveUntil) < asOf) {
+	if (req.effectiveUntil && req.effectiveUntil.slice(0, 10) < asOfDay) {
 		return {
 			applicable: false,
 			source: "rule",
@@ -225,11 +229,12 @@ export function inWorkQueue(
 ): boolean {
 	const now = deriveApplicability(req, profile);
 	if (now.applicable) return true;
-	const asOf = profile.asOf ?? new Date();
-	if (!req.effectiveFrom || new Date(req.effectiveFrom) <= asOf) return false;
+	const asOfDay = berlinDate(profile.asOf ?? new Date());
+	if (!req.effectiveFrom || req.effectiveFrom.slice(0, 10) <= asOfDay)
+		return false;
 	return deriveApplicability(req, {
 		...profile,
-		asOf: new Date(req.effectiveFrom),
+		asOf: startOfBerlinDay(req.effectiveFrom.slice(0, 10)),
 	}).applicable;
 }
 

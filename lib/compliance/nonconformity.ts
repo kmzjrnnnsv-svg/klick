@@ -1,3 +1,9 @@
+import {
+	addDaysIso,
+	berlinDate,
+	endOfBerlinDay,
+	startOfBerlinDay,
+} from "@/lib/time/berlin";
 // Abweichungen / Korrekturmaßnahmen (CAPA): ISO 27001 10.1/10.2, DORA Art. 13
 // (Lessons Learned), ZAG-MaRisk AT 4.4.3 (Follow-up). Reine Ableitungen —
 // Schreiben erledigen die Actions.
@@ -26,12 +32,8 @@ export type NonconformityDraft = {
 	effectivenessCheckAt: string;
 };
 
-function isoDay(d: Date): string {
-	return d.toISOString().slice(0, 10);
-}
-
 function plusDays(d: Date, days: number): string {
-	return isoDay(new Date(d.getTime() + days * 86_400_000));
+	return addDaysIso(berlinDate(d), days);
 }
 
 // Code NC-<Jahr>-<lfd>.
@@ -169,9 +171,12 @@ export function capaState(
 	now = new Date(),
 ): CapaState {
 	const open = nc.status === "open" || nc.status === "in_progress";
-	const due = nc.dueAt ? new Date(nc.dueAt) : null;
+	// Frist = Ende des Berliner Tages; Wirksamkeitsprüfung ab Tagesbeginn fällig
+	const day = (v: string | Date) =>
+		typeof v === "string" ? v.slice(0, 10) : berlinDate(v);
+	const due = nc.dueAt ? endOfBerlinDay(day(nc.dueAt)) : null;
 	const eff = nc.effectivenessCheckAt
-		? new Date(nc.effectivenessCheckAt)
+		? startOfBerlinDay(day(nc.effectivenessCheckAt))
 		: null;
 	return {
 		overdue: Boolean(open && due && due.getTime() < now.getTime()),

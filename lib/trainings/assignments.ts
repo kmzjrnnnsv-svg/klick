@@ -7,17 +7,17 @@ import {
 } from "@/db/schema";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import type { OrgTx } from "@/lib/db/with-org";
+import {
+	addDaysIso,
+	addMonthsIso as addMonthsToIso,
+	berlinDate,
+	todayBerlin,
+} from "@/lib/time/berlin";
 
-function addDays(base: Date, days: number): string {
-	return new Date(base.getTime() + days * 86_400_000)
-		.toISOString()
-		.slice(0, 10);
-}
-
+// Folgezyklus ab einem Abschluss: Berliner Kalendertag + n Monate, geklemmt
+// (Ortszeit-Rechnung ergab in Prod (UTC) und Dev (Berlin) andere Tage).
 export function addMonthsIso(base: Date, months: number): string {
-	const d = new Date(base);
-	d.setMonth(d.getMonth() + months);
-	return d.toISOString().slice(0, 10);
+	return addMonthsToIso(berlinDate(base), months);
 }
 
 // „Fällig“ heißt: innerhalb der nächsten 30 Tage. Später liegende Termine
@@ -31,9 +31,7 @@ export function trainingState(
 ): TrainingState {
 	if (a.status === "done") return "done";
 	if (a.dueAt < today) return "overdue";
-	return a.dueAt <= addDays(new Date(`${today}T00:00:00Z`), DUE_SOON_DAYS)
-		? "due"
-		: "planned";
+	return a.dueAt <= addDaysIso(today, DUE_SOON_DAYS) ? "due" : "planned";
 }
 
 // Pflichtschulung für Personen erledigt: offene Zuweisungen schließen und den
@@ -123,7 +121,7 @@ export async function syncTrainingAssignments(
 		.where(eq(trainingAssignments.organizationId, orgId));
 	const have = new Set(existing.map((e) => `${e.requirementId}|${e.userId}`));
 	let n = 0;
-	const due = addDays(new Date(), 30);
+	const due = addDaysIso(todayBerlin(), 30);
 	for (const r of reqs) {
 		for (const m of members) {
 			const role = normalizeRole(m.role);

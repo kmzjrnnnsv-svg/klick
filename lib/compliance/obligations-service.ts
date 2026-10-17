@@ -6,7 +6,7 @@ import {
 	applicableObligations,
 	type CatalogObligation,
 } from "./catalog/obligations";
-import { scheduleRuns } from "./obligations";
+import { firstPeriodYear, scheduleRuns } from "./obligations";
 
 // Pflichten-Kalender je Org: Katalog → obligations-Zeilen (idempotent, nur
 // fehlende Codes), Läufe für ein Zeitfenster planen (idempotent über
@@ -113,6 +113,15 @@ export async function planObligationRuns(
 	const have = new Set(
 		existing.map((e) => `${e.obligationId}:${e.periodLabel}`),
 	);
+	// Anker für Mehrjahres-Pflichten (TLPT alle drei Jahre): das Jahr des
+	// ersten vorhandenen Laufs. Vorher war es das Jahr des Ticks — damit war
+	// jedes Jahr „dran“ und TLPT wurde jährlich geplant.
+	const labelsByObligation = new Map<string, string[]>();
+	for (const e of existing) {
+		const list = labelsByObligation.get(e.obligationId) ?? [];
+		list.push(e.periodLabel);
+		labelsByObligation.set(e.obligationId, list);
+	}
 	let created = 0;
 	for (const o of rows) {
 		const cat = catalogByCode.get(o.code);
@@ -121,7 +130,9 @@ export async function planObligationRuns(
 				frequency: o.frequency,
 				dueRule: o.dueRule,
 				secondMonth: cat?.secondMonth ?? null,
-				anchorYear: from.getUTCFullYear(),
+				anchorYear:
+					firstPeriodYear(labelsByObligation.get(o.id) ?? []) ??
+					from.getUTCFullYear(),
 			},
 			from,
 			to,

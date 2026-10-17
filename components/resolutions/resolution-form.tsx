@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { todayBerlin } from "@/lib/time/berlin";
 
 export type RequiredOption = {
 	code: string;
@@ -74,9 +75,7 @@ export function ResolutionForm({
 	const [subject, setSubject] = useState(preset?.title ?? "");
 	const [decisionText, setDecisionText] = useState("");
 	const [body, setBody] = useState<(typeof BODIES)[number]>("management");
-	const [date, setDate] = useState(
-		linked?.date ?? new Date().toISOString().slice(0, 10),
-	);
+	const [date, setDate] = useState(linked?.date ?? todayBerlin());
 	const [legalBasis, setLegalBasis] = useState(preset?.legalBasis ?? "");
 	const [requiredCode, setRequiredCode] = useState<string>(
 		preset?.code ?? "none",

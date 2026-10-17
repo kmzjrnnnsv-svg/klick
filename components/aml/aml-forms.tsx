@@ -42,6 +42,7 @@ import {
 	overallAmlRisk,
 	type RiskDimensions,
 } from "@/lib/compliance/aml";
+import { todayBerlin } from "@/lib/time/berlin";
 import {
 	CORRIDOR_STATUSES,
 	FATF_STATUSES,
@@ -51,7 +52,7 @@ import {
 } from "@/lib/validation/casp";
 
 function today(): string {
-	return new Date().toISOString().slice(0, 10);
+	return todayBerlin();
 }
 function nowLocal(): string {
 	const d = new Date();

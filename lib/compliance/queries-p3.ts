@@ -42,6 +42,7 @@ import {
 } from "@/db/schema";
 import type { LicenceStage } from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
+import { todayBerlin } from "@/lib/time/berlin";
 import { requiredFunctions, roleCoverage } from "./catalog/required-functions";
 import { checkSod } from "./catalog/sod-rules";
 import { listControlRows, listTasks, userNames } from "./queries";
@@ -1018,7 +1019,7 @@ export async function accountabilityFor(
 	tx: OrgTx,
 	orgId: string,
 	userId: string,
-	today = new Date().toISOString().slice(0, 10),
+	today = todayBerlin(),
 ) {
 	const [
 		controls,

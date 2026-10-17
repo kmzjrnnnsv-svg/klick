@@ -8,6 +8,7 @@ import {
 	leadRegime,
 	nextIncidentCode,
 } from "@/lib/compliance/incident";
+import { monthsDeadline } from "@/lib/time/berlin";
 
 const H = 3_600_000;
 const aware = new Date("2026-10-07T10:00:00Z");
@@ -91,15 +92,37 @@ describe("computeIncidentDeadlines", () => {
 			initialReportedAt: reported,
 			intermediateReportedAt: intermediate,
 		});
-		const expectedFinal = new Date(intermediate);
-		expectedFinal.setMonth(expectedFinal.getMonth() + 1);
-		expect(d3.finalDueAt).toEqual(expectedFinal);
+		// ein Monat nach dem Zwischenbericht, Ende des Berliner Tages
+		expect(d3.finalDueAt).toEqual(monthsDeadline(intermediate, 1));
 		expect(d3.projected).toBe(false);
 		expect(d3.labels).toEqual({
 			initial: "Erstmeldung",
 			intermediate: "Zwischenbericht",
 			final: "Abschlussbericht",
 		});
+	});
+
+	it("DORA-Abschlussbericht: 31.01. + 1 Monat = 28.02. (kein Überlauf in den März)", () => {
+		const d = computeIncidentDeadlines("dora", {
+			awareAt: new Date("2027-01-27T10:00:00Z"),
+			initialReportedAt: new Date("2027-01-28T10:00:00Z"),
+			intermediateReportedAt: new Date("2027-01-31T10:00:00Z"),
+		});
+		expect(d.finalDueAt).toEqual(new Date("2027-02-28T22:59:59.999Z"));
+	});
+
+	it("NIS2: Abschlussbericht einen Monat nach der Meldung, nicht nach Kenntnis", () => {
+		const aw = new Date("2026-10-01T08:00:00Z");
+		const sent = new Date("2026-10-03T08:00:00Z");
+		const d = computeIncidentDeadlines("nis2", {
+			awareAt: aw,
+			intermediateReportedAt: sent,
+		});
+		expect(d.finalDueAt).toEqual(new Date("2026-11-03T22:59:59.999Z"));
+		expect(d.projected).toBe(false);
+		expect(computeIncidentDeadlines("nis2", { awareAt: aw }).projected).toBe(
+			true,
+		);
 	});
 
 	it("NIS2: 24 h / 72 h / 1 Monat ab Kenntnis", () => {
@@ -167,14 +190,14 @@ describe("CRA-Uhren (Art. 14)", () => {
 		});
 		expect(projected.projected).toBe(true);
 		expect(projected.finalDueAt?.toISOString()).toBe(
-			"2026-11-04T10:00:00.000Z",
+			"2026-11-04T22:59:59.999Z",
 		);
 		const sent = computeIncidentDeadlines("cra_incident", {
 			awareAt: aware,
 			intermediateReportedAt: new Date("2026-10-03T09:00:00Z"),
 		});
 		expect(sent.projected).toBe(false);
-		expect(sent.finalDueAt?.toISOString()).toBe("2026-11-03T09:00:00.000Z");
+		expect(sent.finalDueAt?.toISOString()).toBe("2026-11-03T22:59:59.999Z");
 	});
 
 	it("craReasons nennt die erfüllten Kriterien", () => {

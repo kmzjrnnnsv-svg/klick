@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	addMonths,
+	canExtendDsr,
 	dsrClock,
 	dsrDueAt,
 	dsrExtendedUntil,
@@ -14,12 +15,30 @@ describe("privacy helpers", () => {
 		expect(addMonths(new Date("2026-01-31T10:00:00Z"), 1).toISOString()).toBe(
 			"2026-02-28T10:00:00.000Z",
 		);
+		// Ende des entsprechenden Berliner Tages
 		expect(dsrDueAt(new Date("2026-10-07T09:00:00Z")).toISOString()).toBe(
-			"2026-11-07T09:00:00.000Z",
+			"2026-11-07T22:59:59.999Z",
 		);
 		expect(
-			dsrExtendedUntil(new Date("2026-11-07T09:00:00Z")).toISOString(),
-		).toBe("2027-01-07T09:00:00.000Z");
+			dsrExtendedUntil(new Date("2026-11-07T22:59:59.999Z")).toISOString(),
+		).toBe("2027-01-07T22:59:59.999Z");
+		// Eingang 31.10. 00:30 Berlin (= 30.10. UTC) → 30.11. 24:00, nicht 01.12.
+		expect(dsrDueAt(new Date("2026-10-30T23:30:00Z")).toISOString()).toBe(
+			"2026-11-30T22:59:59.999Z",
+		);
+	});
+
+	it("Verlängerung nur innerhalb der ersten Frist", () => {
+		const dueAt = new Date("2026-11-07T22:59:59.999Z");
+		expect(
+			canExtendDsr({ dueAt, extendedUntil: null }, new Date("2026-11-01")),
+		).toBe(true);
+		expect(
+			canExtendDsr({ dueAt, extendedUntil: null }, new Date("2026-11-10")),
+		).toBe(false);
+		expect(
+			canExtendDsr({ dueAt, extendedUntil: dueAt }, new Date("2026-11-01")),
+		).toBe(false);
 	});
 
 	it("Uhr: offen → bald → überfällig → erledigt; Verlängerung zählt", () => {

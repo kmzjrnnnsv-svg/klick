@@ -1,4 +1,9 @@
 import type { EntityKind, NotificationKind } from "@/db/schema/enums";
+import {
+	berlinDate,
+	calendarDaysBetween,
+	endOfBerlinDay,
+} from "@/lib/time/berlin";
 
 // Stündlicher Fachjob (ADR-011): sammelt fällige Dinge je Org und leitet
 // daraus Benachrichtigungen, Eskalations-Aufgaben und Status-Übergänge ab.
@@ -235,18 +240,25 @@ export type TickResult = {
 	actions: PendingAction[];
 };
 
+// Datumswerte ohne Uhrzeit ("2026-10-31") gelten bis zum Ende des Berliner
+// Tages — eine Ausnahme „gültig bis 31.10.“ läuft nicht um 01:00 ab, eine
+// Schulung ist am Fälligkeitstag noch nicht überfällig.
 function toDate(v: Date | string | null | undefined): Date | null {
 	if (!v) return null;
+	if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v))
+		return endOfBerlinDay(v);
 	const d = v instanceof Date ? v : new Date(v);
 	return Number.isNaN(d.getTime()) ? null : d;
 }
 
 function isoDay(d: Date): string {
-	return d.toISOString().slice(0, 10);
+	return berlinDate(d);
 }
 
+// Kalendertage bis zum Termin (Berlin) — Erinnerungen „in 30 Tagen“ treffen
+// den Kalendertag, egal ob der Termin 00:00 oder Tagesende ist.
 function daysUntil(now: Date, d: Date): number {
-	return Math.ceil((d.getTime() - now.getTime()) / DAY);
+	return calendarDaysBetween(berlinDate(now), berlinDate(d));
 }
 
 function fmtDay(d: Date): string {

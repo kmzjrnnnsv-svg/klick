@@ -20,6 +20,7 @@ import { getOrgProfile } from "@/lib/compliance/queries";
 import { insertResolution } from "@/lib/compliance/resolutions-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
+import { addDaysIso, todayBerlin } from "@/lib/time/berlin";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	completeReviewSchema,
@@ -139,7 +140,7 @@ type ReviewOutcome = {
 };
 
 function plusDays(days: number): string {
-	return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+	return addDaysIso(todayBerlin(), days);
 }
 
 // Status setzen; „done" nur mit allen anwendbaren Pflicht-Inputs. Ergebnisse

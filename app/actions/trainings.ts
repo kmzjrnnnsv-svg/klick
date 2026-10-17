@@ -8,6 +8,7 @@ import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
+import { todayBerlin } from "@/lib/time/berlin";
 import { completeAssignments } from "@/lib/trainings/assignments";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { deleteByIdSchema } from "@/lib/validation/governance";
@@ -25,7 +26,7 @@ import {
 const PATH = "/schulungen";
 
 function today(): string {
-	return new Date().toISOString().slice(0, 10);
+	return todayBerlin();
 }
 
 function codeFrom(title: string): string {

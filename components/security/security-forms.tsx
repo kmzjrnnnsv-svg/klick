@@ -35,6 +35,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { addDaysIso, todayBerlin } from "@/lib/time/berlin";
 
 type ProductOption = { id: string; code: string; name: string };
 
@@ -341,9 +342,7 @@ export function AcceptFindingDialog({ findingId }: { findingId: string }) {
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [note, setNote] = useState("");
-	const inThreeMonths = new Date(Date.now() + 90 * 86_400_000)
-		.toISOString()
-		.slice(0, 10);
+	const inThreeMonths = addDaysIso(todayBerlin(), 90);
 	const [until, setUntil] = useState(inThreeMonths);
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>

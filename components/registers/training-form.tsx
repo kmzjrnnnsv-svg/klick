@@ -30,6 +30,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { todayBerlin } from "@/lib/time/berlin";
 
 export function TrainingForm({
 	members,
@@ -44,7 +45,7 @@ export function TrainingForm({
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [title, setTitle] = useState("");
-	const [heldAt, setHeldAt] = useState(new Date().toISOString().slice(0, 10));
+	const [heldAt, setHeldAt] = useState(todayBerlin());
 	const [requirementCode, setRequirementCode] = useState("");
 	const [attendees, setAttendees] = useState<string[]>([]);
 	const [audience, setAudience] = useState<

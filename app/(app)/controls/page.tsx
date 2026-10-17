@@ -24,6 +24,7 @@ import {
 } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
 import { CONTROL_STATUS } from "@/lib/entities/control";
+import { todayBerlin } from "@/lib/time/berlin";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -47,7 +48,7 @@ export default async function ControlsPage({
 	]);
 	const canBulk = roleAllows(ctx.orgRole, { control: ["update", "assign"] });
 	const leverage = cov?.result.leverage ?? new Map();
-	const today = new Date().toISOString().slice(0, 10);
+	const today = todayBerlin();
 
 	const q = one(sp.q)?.toLowerCase();
 	const status = one(sp.status);

@@ -25,6 +25,7 @@ import { thresholdCrossed } from "@/lib/compliance/shareholders";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
+import { todayBerlin } from "@/lib/time/berlin";
 import {
 	cryptoAssetSchema,
 	ownFundsSchema,
@@ -296,11 +297,9 @@ async function upsertCryptoAssetImpl(
 		micarStatus: d.micarStatus,
 		networks: d.networks,
 		accepted: d.accepted,
-		acceptedFrom: d.accepted
-			? (d.acceptedFrom ?? new Date().toISOString().slice(0, 10))
-			: null,
+		acceptedFrom: d.accepted ? (d.acceptedFrom ?? todayBerlin()) : null,
 		perTxLimit: num(d.perTxLimit),
-		reviewedAt: d.reviewedAt ?? new Date().toISOString().slice(0, 10),
+		reviewedAt: d.reviewedAt ?? todayBerlin(),
 		notes: d.notes ?? null,
 	};
 	const res = await mutateOrg<ActionResult<{ id: string }>>(
@@ -403,10 +402,8 @@ async function applyCryptoAssetSeedImpl(): Promise<
 					micarStatus: a.micarStatus,
 					networks: [...a.networks],
 					accepted: a.accepted,
-					acceptedFrom: a.accepted
-						? new Date().toISOString().slice(0, 10)
-						: null,
-					reviewedAt: new Date().toISOString().slice(0, 10),
+					acceptedFrom: a.accepted ? todayBerlin() : null,
+					reviewedAt: todayBerlin(),
 					notes: a.notes ?? null,
 				})
 				.returning({ id: cryptoAssets.id });

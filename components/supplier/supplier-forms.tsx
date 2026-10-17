@@ -34,6 +34,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { addDaysIso, todayBerlin } from "@/lib/time/berlin";
 import { cn } from "@/lib/utils";
 
 type TemplateOption = {
@@ -63,9 +64,7 @@ export function StartSupplierAssessmentDialog({
 	const [template, setTemplate] = useState(defaultTemplate);
 	const [name, setName] = useState(contact.name ?? "");
 	const [email, setEmail] = useState(contact.email ?? "");
-	const inFourWeeks = new Date(Date.now() + 28 * 86_400_000)
-		.toISOString()
-		.slice(0, 10);
+	const inFourWeeks = addDaysIso(todayBerlin(), 28);
 	const [dueAt, setDueAt] = useState(inFourWeeks);
 	const chosen = templates.find((x) => x.code === template);
 	return (

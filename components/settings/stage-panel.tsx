@@ -220,7 +220,12 @@ export function StagePanel({
 						<p className="text-muted-foreground text-xs">
 							{tlptConfirmedAt
 								? t("tlptConfirmed", {
-										date: new Date(tlptConfirmedAt).toLocaleDateString("de-DE"),
+										date: new Date(tlptConfirmedAt).toLocaleDateString(
+											"de-DE",
+											{
+												timeZone: "Europe/Berlin",
+											},
+										),
 										status: tlptDesignated ? t("tlptYes") : t("tlptNo"),
 									})
 								: t("tlptUnconfirmed")}

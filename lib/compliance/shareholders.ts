@@ -1,4 +1,5 @@
-import { addBusinessDays } from "./aml";
+import { berlinDate, endOfBerlinDay } from "@/lib/time/berlin";
+import { DEFAULT_LAND, type Land, nthWorkdayAfter } from "@/lib/time/holidays";
 
 // Gesellschafter und Inhaberkontrolle (MiCAR Art. 83–85, § 14 ZAG,
 // InhKontrollV): Schwellen 10 / 20 / 30 / 50 % (Anteile oder Stimmrechte),
@@ -18,11 +19,21 @@ export function thresholdCrossed(
 	return hit;
 }
 
-// 60 Arbeitstage ab Anzeige (§ 2c KWG analog; § 14 ZAG verweist darauf).
+// 60 Arbeitstage (§ 2c Abs. 1a KWG; § 14 ZAG und Art. 84 MiCAR verweisen
+// darauf). Die Frist beginnt mit der schriftlichen Eingangsbestätigung der
+// vollständigen Anzeige durch die Aufsicht; Informationsanforderungen hemmen
+// sie (nicht modelliert). Arbeitstage = Mo–Fr ohne Feiertage, Ende des Tages.
 export const ASSESSMENT_BUSINESS_DAYS = 60;
 
-export function inhaberkontrolleDeadline(notifiedAt: Date): Date {
-	return addBusinessDays(notifiedAt, ASSESSMENT_BUSINESS_DAYS);
+export function inhaberkontrolleDeadline(
+	confirmedAt: Date | string,
+	land: Land = DEFAULT_LAND,
+): Date {
+	const start =
+		typeof confirmedAt === "string" ? confirmedAt : berlinDate(confirmedAt);
+	return endOfBerlinDay(
+		nthWorkdayAfter(start, ASSESSMENT_BUSINESS_DAYS, { land }),
+	);
 }
 
 export type ShareholderLike = {
@@ -48,6 +59,7 @@ export type ShareholderGap = {
 export function shareholderGaps(
 	rows: readonly ShareholderLike[],
 	now = new Date(),
+	land: Land = DEFAULT_LAND,
 ): ShareholderGap[] {
 	const gaps: ShareholderGap[] = [];
 	for (const s of rows) {
@@ -60,14 +72,12 @@ export function shareholderGaps(
 			});
 		}
 		if (s.inhaberkontrolleStatus === "pending" && s.notifiedAt) {
-			const due = inhaberkontrolleDeadline(
-				new Date(`${s.notifiedAt}T00:00:00Z`),
-			);
+			const due = inhaberkontrolleDeadline(s.notifiedAt, land);
 			if (due < now)
 				gaps.push({
 					name: s.name,
 					kind: "assessment_overdue",
-					detail: `Beurteilungszeitraum seit ${due.toISOString().slice(0, 10)} abgelaufen — Stand bei der Aufsicht erfragen`,
+					detail: `Beurteilungszeitraum seit ${berlinDate(due)} abgelaufen — Stand bei der Aufsicht erfragen`,
 				});
 		}
 		if (threshold) {

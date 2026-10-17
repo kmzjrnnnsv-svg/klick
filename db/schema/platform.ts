@@ -63,6 +63,8 @@ export type EntityProfile = {
 	totalAssetsEur?: number;
 	legalForm?: string;
 	registerNumber?: string;
+	// Bundesland des Sitzes — Feiertage für Fristen in Werk-/Arbeitstagen
+	land?: string;
 };
 
 // DLP-Regeln je Org (lib/dlp/policy.ts wertet aus). Gespeichert wird nur,

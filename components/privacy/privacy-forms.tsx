@@ -403,7 +403,12 @@ export function DsrButtons({
 						onClick={() =>
 							start(async () => {
 								const res = await extendDataSubjectRequest({ id, reason });
-								if (!res.ok) return void toast.error(tc("error"));
+								if (!res.ok)
+									return void toast.error(
+										res.error === "extendTooLate"
+											? t("extendTooLate")
+											: tc("error"),
+									);
 								toast.success(t("extended"));
 								router.refresh();
 							})

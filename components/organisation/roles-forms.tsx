@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { RoleFunction } from "@/db/schema/enums";
+import { todayBerlin } from "@/lib/time/berlin";
 import type { FitProperChecklist } from "@/lib/validation/governance";
 import {
 	EditTrigger,
@@ -657,7 +658,7 @@ export function MeasurementForm({
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const [value, setValue] = useState("");
-	const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+	const [date, setDate] = useState(todayBerlin());
 	return (
 		<form
 			className="flex flex-wrap items-center gap-2"

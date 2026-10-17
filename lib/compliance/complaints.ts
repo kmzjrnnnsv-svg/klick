@@ -1,3 +1,11 @@
+import {
+	addDaysIso,
+	berlinDate,
+	endOfBerlinDay,
+	monthsDeadline,
+} from "@/lib/time/berlin";
+import { nthWorkdayAfter } from "@/lib/time/holidays";
+
 // Beschwerden (MiCAR Art. 71, DelVO 2025/1141; ZAG § 62) und Hinweisgeber-
 // meldungen (HinSchG § 17; MiCAR Art. 116; GwG § 6 Abs. 5): Fristen, Codes,
 // Uhrenstatus. Pure, getestet. Keine Identitätsdaten — Pseudonyme werden
@@ -5,23 +13,23 @@
 
 const DAY = 86_400_000;
 
-export const COMPLAINT_ACK_DAYS = 5; // unverzüglich — Arbeitstage-Näherung
+export const COMPLAINT_ACK_DAYS = 5; // unverzüglich — fünf Arbeitstage
 export const COMPLAINT_RESPONSE_MONTHS = 2; // DelVO 2025/1141 Art. 7
 export const WB_ACK_DAYS = 7; // HinSchG § 17 Abs. 1 Nr. 1
 export const WB_FEEDBACK_MONTHS = 3; // HinSchG § 17 Abs. 2
 
-function addMonths(d: Date, months: number): Date {
-	const out = new Date(d);
-	out.setMonth(out.getMonth() + months);
-	return out;
-}
+// Monatsfristen nach BGB (Monatsende geklemmt, Ende des Berliner Tages):
+// 30.11. + 3 Monate = 28./29.02., nicht 02.03.
+const addMonths = monthsDeadline;
 
 export function complaintDeadlines(receivedAt: Date): {
 	ackDueAt: Date;
 	responseDueAt: Date;
 } {
 	return {
-		ackDueAt: new Date(receivedAt.getTime() + COMPLAINT_ACK_DAYS * DAY),
+		ackDueAt: endOfBerlinDay(
+			nthWorkdayAfter(berlinDate(receivedAt), COMPLAINT_ACK_DAYS),
+		),
 		responseDueAt: addMonths(receivedAt, COMPLAINT_RESPONSE_MONTHS),
 	};
 }
@@ -31,7 +39,8 @@ export function whistleblowingDeadlines(receivedAt: Date): {
 	feedbackDueAt: Date;
 } {
 	return {
-		ackDueAt: new Date(receivedAt.getTime() + WB_ACK_DAYS * DAY),
+		// HinSchG § 17 Abs. 1 Nr. 1: spätestens nach sieben Tagen
+		ackDueAt: endOfBerlinDay(addDaysIso(berlinDate(receivedAt), WB_ACK_DAYS)),
 		feedbackDueAt: addMonths(receivedAt, WB_FEEDBACK_MONTHS),
 	};
 }

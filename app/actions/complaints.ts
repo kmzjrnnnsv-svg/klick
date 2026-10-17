@@ -144,7 +144,7 @@ async function upsertComplaintImpl(
 				actorUserId: c.userId,
 				kind: "task_assigned",
 				title: `Beschwerde ${code} eingegangen`,
-				body: `Eingangsbestätigung bis ${dl.ackDueAt.toLocaleDateString("de-DE")}, Antwort bis ${dl.responseDueAt.toLocaleDateString("de-DE")}.`,
+				body: `Eingangsbestätigung bis ${dl.ackDueAt.toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" })}, Antwort bis ${dl.responseDueAt.toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" })}.`,
 				link: PATH,
 			});
 			return {
@@ -322,7 +322,7 @@ async function upsertWhistleblowingReportImpl(
 				actorUserId: c.userId,
 				kind: "task_assigned",
 				title: `Hinweis ${ref} eingegangen`,
-				body: `Bestätigung bis ${dl.ackDueAt.toLocaleDateString("de-DE")}, Rückmeldung bis ${dl.feedbackDueAt.toLocaleDateString("de-DE")}.`,
+				body: `Bestätigung bis ${dl.ackDueAt.toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" })}, Rückmeldung bis ${dl.feedbackDueAt.toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" })}.`,
 				link: `${PATH}?tab=hinweise`,
 			});
 			return {

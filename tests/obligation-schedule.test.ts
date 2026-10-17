@@ -6,6 +6,7 @@ import {
 } from "@/lib/compliance/catalog/obligations";
 import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
 import {
+	firstPeriodYear,
 	groupByMonth,
 	runState,
 	scheduleRuns,
@@ -75,6 +76,23 @@ describe("scheduleRuns", () => {
 		expect(tri.map((r) => r.periodLabel)).toEqual(["2026", "2029", "2032"]);
 		expect(scheduleRuns({ frequency: "daily" }, FROM, TO)).toEqual([]);
 		expect(scheduleRuns({ frequency: "per_event" }, FROM, TO)).toEqual([]);
+	});
+	it("triennial über mehrere Ticks: Anker = erster Lauf, nicht das Tick-Jahr", () => {
+		// Tick 2026 plant 2026; Tick 2027 sieht den Lauf 2026 als Anker
+		const anchor = firstPeriodYear(["2026"]);
+		expect(anchor).toBe(2026);
+		const tick2027 = scheduleRuns(
+			{
+				frequency: "triennial",
+				dueRule: { kind: "fixed", month: 12, day: 31 },
+				anchorYear: anchor ?? 2027,
+			},
+			new Date("2027-01-01T00:00:00Z"),
+			new Date("2028-12-31T00:00:00Z"),
+		);
+		expect(tick2027).toEqual([]);
+		expect(firstPeriodYear(["2027-H2", "2026-H1"])).toBe(2026);
+		expect(firstPeriodYear([])).toBeNull();
 	});
 	it("ist idempotent: gleiche Eingabe → gleiche Labels", () => {
 		const a = scheduleRuns(

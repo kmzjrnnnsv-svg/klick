@@ -19,6 +19,7 @@ import { nonconformityFromFinding } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
+import { todayBerlin } from "@/lib/time/berlin";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	auditFindingSchema,
@@ -308,10 +309,7 @@ async function setAuditStatusImpl(input: unknown): Promise<ActionResult> {
 			.update(audits)
 			.set({
 				status,
-				performedAt:
-					status === "in_progress"
-						? new Date().toISOString().slice(0, 10)
-						: undefined,
+				performedAt: status === "in_progress" ? todayBerlin() : undefined,
 			})
 			.where(eq(audits.id, auditId));
 		return {

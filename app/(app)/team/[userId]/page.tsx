@@ -10,6 +10,7 @@ import { listOrgMembers } from "@/lib/auth/org";
 import { buildAccountabilitySections } from "@/lib/compliance/accountability";
 import { accountabilityFor } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
+import { todayBerlin } from "@/lib/time/berlin";
 
 // Rechenschaftssicht eines Teammitglieds (für Owner) — ohne persönliche
 // Freigaben/Kenntnisnahmen, die nur die Person selbst sieht.
@@ -29,7 +30,7 @@ export default async function MemberAccountabilityPage({
 	const members = await listOrgMembers(ctx.orgId);
 	const m = members.find((x) => x.userId === userId);
 	if (!m) notFound();
-	const today = new Date().toISOString().slice(0, 10);
+	const today = todayBerlin();
 	const acc = await readOrg(toOrgCtx(ctx), (tx) =>
 		accountabilityFor(tx, ctx.orgId, userId, today),
 	);

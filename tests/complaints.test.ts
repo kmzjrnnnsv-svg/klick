@@ -10,15 +10,24 @@ import {
 const received = new Date("2026-10-07T10:00:00Z");
 
 describe("Fristen", () => {
-	it("Beschwerde: Eingangsbestätigung 5 Tage, Antwort 2 Monate (MiCAR Art. 71)", () => {
+	it("Beschwerde: Eingangsbestätigung 5 Arbeitstage, Antwort 2 Monate (MiCAR Art. 71)", () => {
 		const d = complaintDeadlines(received);
-		expect(d.ackDueAt.toISOString().slice(0, 10)).toBe("2026-10-12");
+		// Mi 07.10. → Do, Fr, Mo, Di, Mi → 14.10.
+		expect(d.ackDueAt.toISOString().slice(0, 10)).toBe("2026-10-14");
 		expect(d.responseDueAt.toISOString().slice(0, 10)).toBe("2026-12-07");
 	});
 	it("Hinweis: Bestätigung 7 Tage, Rückmeldung 3 Monate (HinSchG § 17)", () => {
 		const d = whistleblowingDeadlines(received);
 		expect(d.ackDueAt.toISOString().slice(0, 10)).toBe("2026-10-14");
 		expect(d.feedbackDueAt.toISOString().slice(0, 10)).toBe("2027-01-07");
+	});
+	it("Monatsende wird geklemmt (BGB § 188 Abs. 3)", () => {
+		// 30.11.2026 + 3 Monate = 28.02.2027 (nicht 02.03.)
+		const wb = whistleblowingDeadlines(new Date("2026-11-30T10:00:00Z"));
+		expect(wb.feedbackDueAt).toEqual(new Date("2027-02-28T22:59:59.999Z"));
+		// 31.12.2026 + 2 Monate = 28.02.2027 (nicht 03.03.)
+		const c = complaintDeadlines(new Date("2026-12-31T10:00:00Z"));
+		expect(c.responseDueAt).toEqual(new Date("2027-02-28T22:59:59.999Z"));
 	});
 });
 

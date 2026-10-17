@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CASP_SERVICES, LICENCE_STAGES } from "@/db/schema/enums";
+import { LAENDER } from "@/lib/time/holidays";
 import { shortText, slug } from "./common";
 
 export const sectorSchema = z.enum(["casp", "bank", "payment", "emi", "other"]);
@@ -71,6 +72,10 @@ export const entityProfileSchema = z.object({
 		.optional(),
 	legalForm: optionalText(40),
 	registerNumber: optionalText(40),
+	land: z
+		.union([z.enum(LAENDER), z.literal("")])
+		.transform((v) => (v === "" ? undefined : v))
+		.optional(),
 });
 export type EntityProfileInput = z.input<typeof entityProfileSchema>;
 

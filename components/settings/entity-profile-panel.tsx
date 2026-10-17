@@ -9,7 +9,15 @@ import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import type { EntityProfile } from "@/db/schema/platform";
+import { DEFAULT_LAND, LAENDER } from "@/lib/time/holidays";
 
 // Stammdaten der Organisation für Meldungen — LEI, Sitzland, Behörde,
 // Bilanzsumme, Rechtsform, Registernummer. Pflicht fürs Informationsregister
@@ -37,6 +45,7 @@ export function EntityProfilePanel({
 				: String(profile.totalAssetsEur),
 		legalForm: profile.legalForm ?? "",
 		registerNumber: profile.registerNumber ?? "",
+		land: profile.land ?? "",
 	});
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const field = (
@@ -107,6 +116,26 @@ export function EntityProfilePanel({
 				{field("registerNumber", t("registerNumber"), {
 					placeholder: "HRB 12345 (Frankfurt am Main)",
 				})}
+				<div className="flex flex-col gap-1">
+					<Label htmlFor="ep-land">{t("land")}</Label>
+					<Select
+						value={state.land || DEFAULT_LAND}
+						onValueChange={(v) => setState({ ...state, land: v })}
+						disabled={!canEdit}
+					>
+						<SelectTrigger id="ep-land" className="w-full">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{LAENDER.map((l) => (
+								<SelectItem key={l} value={l}>
+									{t(`land_${l}`)}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<p className="text-muted-foreground text-xs">{t("landHint")}</p>
+				</div>
 			</div>
 			{canEdit && (
 				<div className="flex justify-end">

@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ReviewInput } from "@/lib/compliance/catalog/management-review-inputs";
+import { todayBerlin } from "@/lib/time/berlin";
 
 export type ReviewDraft = {
 	id?: string;
@@ -56,7 +57,7 @@ export function ReviewForm({
 	const [pending, start] = useTransition();
 	const [d, setD] = useState<ReviewDraft>(
 		initial ?? {
-			heldAt: new Date().toISOString().slice(0, 10),
+			heldAt: todayBerlin(),
 			attendeeUserIds: [],
 		},
 	);

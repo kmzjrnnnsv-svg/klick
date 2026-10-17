@@ -17,6 +17,7 @@ import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { NONCONFORMITY_STATUS } from "@/lib/entities/nonconformity";
 import { canTransition } from "@/lib/entities/status-machine";
 import { notify } from "@/lib/notifications/notify";
+import { addDaysIso, todayBerlin } from "@/lib/time/berlin";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	effectivenessSchema,
@@ -28,7 +29,7 @@ import {
 const PATH = "/abweichungen";
 
 function plusDays(days: number): string {
-	return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+	return addDaysIso(todayBerlin(), days);
 }
 
 async function firstOwner(tx: OrgTx, orgId: string): Promise<string | null> {
@@ -251,7 +252,7 @@ async function recordEffectivenessImpl(input: unknown): Promise<ActionResult> {
 			.update(nonconformities)
 			.set({
 				effectivenessResult: result,
-				effectivenessCheckAt: new Date().toISOString().slice(0, 10),
+				effectivenessCheckAt: todayBerlin(),
 				// nicht wirksam → zurück in Bearbeitung mit neuer Frist
 				status: result === "ineffective" ? "in_progress" : row.status,
 				dueAt: result === "ineffective" ? plusDays(NC_DUE_DAYS) : row.dueAt,

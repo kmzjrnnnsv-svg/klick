@@ -15,6 +15,26 @@ const base: OrgProfile = {
 	asOf: new Date("2026-10-07"),
 };
 
+describe("Stichtage als Berliner Kalendertage", () => {
+	const gwg = { framework: "gwg", code: "§ 10", effectiveUntil: "2027-07-09" };
+	const amlr = {
+		framework: "amlr",
+		code: "Art. 20",
+		effectiveFrom: "2027-07-10",
+	};
+	const at = (iso: string) => ({ ...base, asOf: new Date(iso) });
+	it("09.07.2027 mittags: GwG gilt noch (inklusive), AMLR noch nicht", () => {
+		const noon = at("2027-07-09T10:00:00Z");
+		expect(deriveApplicability(gwg, noon).applicable).toBe(true);
+		expect(deriveApplicability(amlr, noon).applicable).toBe(false);
+	});
+	it("10.07.2027 00:30 Berlin (= 09.07. UTC): AMLR gilt, GwG nicht mehr — keine Lücke", () => {
+		const justAfter = at("2027-07-09T22:30:00Z");
+		expect(deriveApplicability(gwg, justAfter).applicable).toBe(false);
+		expect(deriveApplicability(amlr, justAfter).applicable).toBe(true);
+	});
+});
+
 describe("deriveApplicability", () => {
 	it("Standard: anwendbar", () => {
 		expect(

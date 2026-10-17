@@ -42,6 +42,7 @@ import {
 import { readOrg } from "@/lib/db/with-org";
 import { RISK_STATUS, RISK_STATUSES } from "@/lib/entities/risk";
 import { getOrgSettings } from "@/lib/org/queries";
+import { todayBerlin } from "@/lib/time/berlin";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -93,7 +94,7 @@ export default async function RisksPage({
 	const unowned = one(sp.unowned) === "1";
 	const l = one(sp.l) ? Number(one(sp.l)) : null;
 	const i = one(sp.i) ? Number(one(sp.i)) : null;
-	const today = new Date().toISOString().slice(0, 10);
+	const today = todayBerlin();
 	const filtered = assessed
 		.filter(({ r }) => !q || `${r.code} ${r.title}`.toLowerCase().includes(q))
 		.filter(({ r }) => !status || r.status === status)

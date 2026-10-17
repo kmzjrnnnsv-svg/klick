@@ -1,3 +1,5 @@
+import { addDaysIso, berlinDate, startOfBerlinDay } from "@/lib/time/berlin";
+import { DEFAULT_LAND, type Land, nthWorkdayAfter } from "@/lib/time/holidays";
 import type {
 	CatalogJurisdiction,
 	CorridorStatus,
@@ -35,23 +37,18 @@ export function nextSuspiciousRef(
 	return `${prefix}${String(max + 1).padStart(3, "0")}`;
 }
 
-// Werktage Mo–Fr (Feiertage bewusst nicht berücksichtigt — konservativ).
-export function addBusinessDays(from: Date, days: number): Date {
-	const d = new Date(from);
-	let left = days;
-	while (left > 0) {
-		d.setUTCDate(d.getUTCDate() + 1);
-		const wd = d.getUTCDay();
-		if (wd !== 0 && wd !== 6) left -= 1;
-	}
-	return d;
-}
-
-// § 46 GwG: Die Transaktion darf frühestens durchgeführt werden, wenn die
-// FIU zugestimmt hat oder drei Werktage nach Abgang der Meldung verstrichen
-// sind, ohne dass die FIU untersagt hat.
-export function sarHoldUntil(reportedAt: Date): Date {
-	return addBusinessDays(reportedAt, 3);
+// § 46 Abs. 1 GwG: Die Transaktion darf frühestens durchgeführt werden, wenn
+// die FIU zugestimmt hat oder der dritte Werktag nach dem Abgangstag der
+// Meldung verstrichen ist, ohne dass die FIU untersagt hat. Samstag gilt für
+// diese Frist nicht als Werktag (S. 2), Feiertage des Landes zählen nicht.
+// Ergebnis: 00:00 Berliner Zeit am Tag nach dem dritten Werktag — vorher
+// nicht ausführen (eine zu kurze Sperre hieße: zu früh auszahlen).
+export function sarHoldUntil(
+	reportedAt: Date,
+	land: Land = DEFAULT_LAND,
+): Date {
+	const third = nthWorkdayAfter(berlinDate(reportedAt), 3, { land });
+	return startOfBerlinDay(addDaysIso(third, 1));
 }
 
 export type SuspiciousRow = {

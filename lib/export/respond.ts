@@ -10,6 +10,7 @@ import { toCsv } from "@/lib/csv";
 import { mutateOrg } from "@/lib/db/with-org";
 import { egressGuard } from "@/lib/dlp/egress";
 import { getOrgLimiter } from "@/lib/rate-limit";
+import { todayBerlin } from "@/lib/time/berlin";
 
 // Exporte unter /api/export/*: Guard (export:create), Datei als Attachment,
 // jeder Export als Audit-Eintrag mit Zeilenzahl (Alarmierung > 1 000 Zeilen
@@ -161,7 +162,7 @@ export function markdownResponse(
 }
 
 export function stamp(): string {
-	return new Date().toISOString().slice(0, 10);
+	return todayBerlin();
 }
 
 // Markdown-Tabellenzelle: Pipes und Zeilenumbrüche entschärfen.

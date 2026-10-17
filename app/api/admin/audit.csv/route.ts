@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auditLog } from "@/db/schema";
 import { AuthError, requirePlatformAdmin } from "@/lib/auth/guards";
 import { withPlatform } from "@/lib/db/with-org";
+import { todayBerlin } from "@/lib/time/berlin";
 
 export const dynamic = "force-dynamic";
 
@@ -113,7 +114,7 @@ export async function GET(req: Request) {
 	}
 	// BOM, damit Excel UTF-8 erkennt; Semikolon als Trenner für DE-Locale.
 	const body = `﻿${lines.join("\r\n")}\r\n`;
-	const stamp = new Date().toISOString().slice(0, 10);
+	const stamp = todayBerlin();
 	return new NextResponse(body, {
 		status: 200,
 		headers: {

@@ -9,12 +9,13 @@ import { buildAccountabilitySections } from "@/lib/compliance/accountability";
 import { pendingAcknowledgements } from "@/lib/compliance/queries-p2";
 import { accountabilityFor } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
+import { todayBerlin } from "@/lib/time/berlin";
 
 // „Wofür bin ich verantwortlich?" — druckbare Rechenschaftssicht.
 export default async function MyAccountabilityPage() {
 	const ctx = await requireOrgPage();
 	const t = await getTranslations("Accountability");
-	const today = new Date().toISOString().slice(0, 10);
+	const today = todayBerlin();
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		acc: await accountabilityFor(tx, ctx.orgId, ctx.userId, today),
 		approvals: (await listRequestsForUser(tx, ctx.orgId, ctx.userId)).filter(

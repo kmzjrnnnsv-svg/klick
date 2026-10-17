@@ -136,6 +136,20 @@ export default async function IncidentDetailPage({
 		intermediateReportedAt: incident.intermediateReportedAt,
 		mitigationAvailableAt: incident.mitigationAvailableAt,
 	});
+	// Ohne Meldepflicht (DORA nicht schwerwiegend, NIS2 nicht erheblich) keine Uhr
+	const noDuty =
+		(lead === "dora" || lead === "nis2") && incident.classification === "minor";
+	// Weitere Meldepflichten neben dem Leitregime (z. B. DSGVO Art. 33 72 h):
+	// eigene Uhr je Regime, damit keine Frist hinter der DORA-Uhr verschwindet.
+	const secondary = regimes
+		.filter((r) => r !== lead)
+		.map((r) => ({
+			regime: r,
+			d: computeIncidentDeadlines(r, {
+				awareAt: incident.awareAt,
+				classifiedAt: incident.classifiedAt,
+			}),
+		}));
 	// CRA-Regime nur mit aktivem CRA (oder wenn schon gesetzt)
 	const cov = await getOrgCoverageCached(ctx);
 	const craActive =
@@ -315,40 +329,61 @@ export default async function IncidentDetailPage({
 			}
 		>
 			<Section title={t("clocks")}>
-				<IncidentClocks
-					incidentId={incident.id}
-					regimes={regimes.map((r) => t(`regime_${r}`))}
-					clocks={[
-						{
-							key: "initial",
-							label: dl.labels.initial,
-							dueAt: incident.initialDueAt ?? dl.initialDueAt,
-							reportedAt: incident.initialReportedAt,
-						},
-						{
-							key: "intermediate",
-							label: dl.labels.intermediate ?? "",
-							dueAt: incident.intermediateDueAt ?? dl.intermediateDueAt,
-							reportedAt: incident.intermediateReportedAt,
-						},
-						{
-							key: "final",
-							label: dl.labels.final ?? "",
-							dueAt: incident.finalDueAt ?? dl.finalDueAt,
-							reportedAt: incident.finalReportedAt,
-						},
-					]}
-					labels={{
-						done: t("clockDone"),
-						overdue: t("clockOverdue"),
-						soon: t("clockSoon"),
-						due: t("clockDue"),
-						markReported: t("markReported"),
-						projected: t("projected"),
-					}}
-					canEdit={canEdit}
-					projected={dl.projected}
-				/>
+				{noDuty && (
+					<p className="mb-3 text-muted-foreground text-sm">
+						{t("noReportingDuty")}
+					</p>
+				)}
+				{!noDuty && (
+					<IncidentClocks
+						incidentId={incident.id}
+						regimes={regimes.map((r) => t(`regime_${r}`))}
+						clocks={[
+							{
+								key: "initial",
+								label: dl.labels.initial,
+								dueAt: incident.initialDueAt ?? dl.initialDueAt,
+								reportedAt: incident.initialReportedAt,
+							},
+							{
+								key: "intermediate",
+								label: dl.labels.intermediate ?? "",
+								dueAt: incident.intermediateDueAt ?? dl.intermediateDueAt,
+								reportedAt: incident.intermediateReportedAt,
+							},
+							{
+								key: "final",
+								label: dl.labels.final ?? "",
+								dueAt: incident.finalDueAt ?? dl.finalDueAt,
+								reportedAt: incident.finalReportedAt,
+							},
+						]}
+						labels={{
+							done: t("clockDone"),
+							overdue: t("clockOverdue"),
+							soon: t("clockSoon"),
+							due: t("clockDue"),
+							markReported: t("markReported"),
+							projected: t("projected"),
+						}}
+						canEdit={canEdit}
+						projected={dl.projected}
+					/>
+				)}
+				{secondary.length > 0 && (
+					<ul className="mt-3 flex flex-col gap-1 text-sm">
+						{secondary.map(({ regime, d }) => (
+							<li key={regime} className="text-muted-foreground">
+								<span className="text-foreground">{t(`regime_${regime}`)}</span>
+								{" · "}
+								{t("secondaryClock", {
+									label: d.labels.initial,
+									at: fmt.format(d.initialDueAt),
+								})}
+							</li>
+						))}
+					</ul>
+				)}
 				{regimes.includes("cra_vuln") && (
 					<div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
 						{incident.mitigationAvailableAt ? (

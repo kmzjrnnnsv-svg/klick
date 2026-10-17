@@ -29,6 +29,7 @@ import {
 import { DOCUMENT_STATUS_MACHINE } from "@/lib/entities/document";
 import { canTransition } from "@/lib/entities/status-machine";
 import { notify } from "@/lib/notifications/notify";
+import { addMonthsIso, todayBerlin } from "@/lib/time/berlin";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	acknowledgeSchema,
@@ -42,10 +43,10 @@ import {
 
 type Tx = Parameters<Parameters<typeof mutateOrg>[1]>[0];
 
+// Review-Termin: heute (Berlin) + n Monate, Monatsende geklemmt (31.01. + 1
+// = 28./29.02., nicht 03.03.).
 function plusMonths(months: number): string {
-	const d = new Date();
-	d.setMonth(d.getMonth() + months);
-	return d.toISOString().slice(0, 10);
+	return addMonthsIso(todayBerlin(), months);
 }
 
 async function allocateNumber(
@@ -408,7 +409,7 @@ async function transitionDocumentImpl(
 				.update(documents)
 				.set({
 					status: "published",
-					effectiveFrom: new Date().toISOString().slice(0, 10),
+					effectiveFrom: todayBerlin(),
 					nextReviewAt: plusMonths(doc.reviewCycleMonths),
 				})
 				.where(eq(documents.id, doc.id));

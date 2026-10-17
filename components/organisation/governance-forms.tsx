@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
+import { todayBerlin } from "@/lib/time/berlin";
 import type { ActionResult } from "@/lib/validation/common";
 import { AUTHORITIES, PARTY_TYPES } from "@/lib/validation/governance";
 
@@ -743,7 +744,7 @@ export function RegulatorInteractionForm({
 	const [d, setD] = useState<RegulatorDraft>(
 		initial ?? {
 			authority: "bafin",
-			date: new Date().toISOString().slice(0, 10),
+			date: todayBerlin(),
 			subject: "",
 			direction: "inbound",
 			status: "open",

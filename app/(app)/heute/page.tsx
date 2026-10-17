@@ -37,6 +37,7 @@ import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { listNotifications } from "@/lib/notifications/query";
 import { safeInternalPath } from "@/lib/safe-path";
+import { addDaysIso, todayBerlin } from "@/lib/time/berlin";
 import { currentTrainings } from "@/lib/trainings/assignments";
 
 // Startseite nach Login: gestapelte Abschnitte, je max. fünf Einträge —
@@ -46,10 +47,8 @@ export default async function TodayPage() {
 	const t = await getTranslations("Today");
 	const tt = await getTranslations("Trainings");
 	const ts = await getTranslations("Status");
-	const today = new Date().toISOString().slice(0, 10);
-	const weekAhead = new Date(Date.now() + 7 * 86_400_000)
-		.toISOString()
-		.slice(0, 10);
+	const today = todayBerlin();
+	const weekAhead = addDaysIso(todayBerlin(), 7);
 
 	const {
 		tasks,

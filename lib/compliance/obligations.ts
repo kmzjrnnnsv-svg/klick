@@ -29,6 +29,17 @@ function isoDate(year: number, month: number, day: number): string {
 	return `${year}-${pad(month)}-${pad(Math.min(day, last))}`;
 }
 
+// Ankerjahr einer Mehrjahres-Pflicht: Jahr des ersten geplanten Laufs
+// (periodLabel "2026", "2026-H1", "2026-Q3" …), null ohne Läufe.
+export function firstPeriodYear(labels: readonly string[]): number | null {
+	let min: number | null = null;
+	for (const l of labels) {
+		const y = Number.parseInt(l.slice(0, 4), 10);
+		if (Number.isFinite(y) && (min === null || y < min)) min = y;
+	}
+	return min;
+}
+
 export function scheduleRuns(
 	input: ScheduleInput,
 	from: Date,

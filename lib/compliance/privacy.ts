@@ -1,3 +1,4 @@
+import { monthsDeadline } from "@/lib/time/berlin";
 import type { ClockState } from "./complaints";
 
 // Datenschutz — reine Helfer: Betroffenenanfragen (Art. 12 Abs. 3 DSGVO:
@@ -27,12 +28,23 @@ export function addMonths(d: Date, months: number): Date {
 	);
 }
 
+// Art. 12 Abs. 3 DSGVO: ein Monat ab Eingang — Ende des entsprechenden
+// Berliner Kalendertags (VO 1182/71 Art. 3; 31.10. → 30.11., 24:00).
 export function dsrDueAt(receivedAt: Date): Date {
-	return addMonths(receivedAt, DSR_MONTHS);
+	return monthsDeadline(receivedAt, DSR_MONTHS);
 }
 
+// Verlängerung um zwei weitere Monate — nur innerhalb der ersten Frist
+// (die betroffene Person ist binnen eines Monats zu unterrichten).
 export function dsrExtendedUntil(dueAt: Date): Date {
-	return addMonths(dueAt, DSR_EXTENSION_MONTHS);
+	return monthsDeadline(dueAt, DSR_EXTENSION_MONTHS);
+}
+
+export function canExtendDsr(
+	row: { dueAt: Date; extendedUntil: Date | null },
+	now: Date = new Date(),
+): boolean {
+	return !row.extendedUntil && now <= row.dueAt;
 }
 
 export type DsrLike = {

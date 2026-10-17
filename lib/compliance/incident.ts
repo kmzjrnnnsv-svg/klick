@@ -1,4 +1,5 @@
 import type { IncidentRegime } from "@/db/schema/enums";
+import { monthsDeadline } from "@/lib/time/berlin";
 
 // Vorfall-Klassifizierung und Meldefristen — reine Funktionen, in der Action
 // berechnet (nie im Job).
@@ -189,10 +190,11 @@ export type Deadlines = {
 
 const D = 24 * H;
 
+// „Binnen eines Monats“ (VO 1182/71 Art. 3 Abs. 2 c): gleicher Tag im
+// Folgemonat, sonst Monatsletzter, jeweils Ende des Tages (Berlin) —
+// 31.01. → 28./29.02., nicht 03.03.
 function addMonth(d: Date): Date {
-	const out = new Date(d);
-	out.setMonth(out.getMonth() + 1);
-	return out;
+	return monthsDeadline(d, 1);
 }
 
 export function computeIncidentDeadlines(
@@ -229,7 +231,10 @@ export function computeIncidentDeadlines(
 				projected: !input.initialReportedAt || !input.intermediateReportedAt,
 			};
 		}
-		case "nis2":
+		case "nis2": {
+			// BSIG § 32 / NIS2 Art. 23(4)(d): Abschlussbericht spätestens einen
+			// Monat nach Übermittlung der Meldung (72 h), nicht nach Kenntnis.
+			const intermediateDueAt = new Date(aware.getTime() + 72 * H);
 			return {
 				regime,
 				labels: {
@@ -239,10 +244,11 @@ export function computeIncidentDeadlines(
 				},
 				earlyWarningAt: new Date(aware.getTime() + 24 * H),
 				initialDueAt: new Date(aware.getTime() + 24 * H),
-				intermediateDueAt: new Date(aware.getTime() + 72 * H),
-				finalDueAt: addMonth(aware),
-				projected: false,
+				intermediateDueAt,
+				finalDueAt: addMonth(input.intermediateReportedAt ?? intermediateDueAt),
+				projected: !input.intermediateReportedAt,
 			};
+		}
 		case "cra_vuln":
 			return {
 				regime,

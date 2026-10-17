@@ -77,7 +77,9 @@ import {
 } from "@/lib/compliance/shareholders";
 import { decryptMany, fieldAad } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
+import { orgLand } from "@/lib/org/land";
 import { listOrgFrameworks } from "@/lib/org/queries";
+import { todayBerlin } from "@/lib/time/berlin";
 import type { FitProperChecklist } from "@/lib/validation/governance";
 
 type Search = Record<string, string | string[] | undefined>;
@@ -182,7 +184,8 @@ export default async function OrganisationPage({
 							})),
 						)
 					: shareholders.map(() => null);
-				return { ...base, shareholders, ubo };
+				const land = await orgLand(tx, ctx.orgId);
+				return { ...base, shareholders, ubo, land };
 			}
 			case "versicherungen":
 				return {
@@ -195,7 +198,7 @@ export default async function OrganisationPage({
 	const functionLabels = Object.fromEntries(
 		ROLE_FUNCTIONS.map((f) => [f, tf(f)]),
 	) as Record<string, string>;
-	const today = new Date().toISOString().slice(0, 10);
+	const today = todayBerlin();
 	const gapCount = gov.coverage.gaps.length;
 	const blockSod = gov.sod.filter((v) => v.rule.severity === "block").length;
 
@@ -1210,6 +1213,8 @@ export default async function OrganisationPage({
 								approvedAt: x.approvedAt,
 								sanctionsCheckedAt: x.sanctionsCheckedAt,
 							})),
+							new Date(),
+							data.land,
 						);
 						const total = totalSharePct(
 							rows.map((x) => ({ sharePct: x.sharePctN })),
@@ -1264,9 +1269,7 @@ export default async function OrganisationPage({
 											{rows.map((x, i) => {
 												const due =
 													x.inhaberkontrolleStatus === "pending" && x.notifiedAt
-														? inhaberkontrolleDeadline(
-																new Date(`${x.notifiedAt}T00:00:00Z`),
-															)
+														? inhaberkontrolleDeadline(x.notifiedAt, data.land)
 														: null;
 												return (
 													<TableRow key={x.id}>

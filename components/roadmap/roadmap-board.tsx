@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { LICENCE_STAGES, type LicenceStage } from "@/db/schema/enums";
 import { ROADMAP_PHASES } from "@/lib/compliance/catalog/roadmap";
+import { todayBerlin } from "@/lib/time/berlin";
 
 export type MilestoneCard = {
 	id: string;
@@ -68,7 +69,7 @@ export function RoadmapBoard({
 	const t = useTranslations("Roadmap");
 	const tc = useTranslations("Common");
 	const router = useRouter();
-	const today = new Date().toISOString().slice(0, 10);
+	const today = todayBerlin();
 	const phaseTitle = (p: string | null) =>
 		ROADMAP_PHASES.find((x) => x.key === p)?.title ?? p ?? "";
 	return (
@@ -317,9 +318,7 @@ export function ApplyRoadmapForm({
 	const [stage, setStage] = useState<LicenceStage>(
 		defaultStage === "0_vorbereitung" ? "2_casp_zag" : defaultStage,
 	);
-	const [startDate, setStartDate] = useState(
-		new Date().toISOString().slice(0, 10),
-	);
+	const [startDate, setStartDate] = useState(todayBerlin());
 	return (
 		<FormDialog
 			title={t("applyTemplate")}

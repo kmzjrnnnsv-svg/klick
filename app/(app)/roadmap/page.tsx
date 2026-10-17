@@ -14,6 +14,7 @@ import { ROADMAP_PHASES } from "@/lib/compliance/catalog/roadmap";
 import { getOrgProfile, listMembersForPicker } from "@/lib/compliance/queries";
 import { listMilestones } from "@/lib/compliance/queries-p4";
 import { readOrg } from "@/lib/db/with-org";
+import { todayBerlin } from "@/lib/time/berlin";
 
 // /roadmap — Kanban der Meilensteine (Vorbereitung → Agent → Antrag →
 // Verfahren → Go-Live → E-Geld → Bank). Vorlage aus Businessplan 10/21.9;
@@ -30,7 +31,7 @@ export default async function RoadmapPage() {
 			profile: await getOrgProfile(tx, ctx.orgId),
 		}),
 	);
-	const today = new Date().toISOString().slice(0, 10);
+	const today = todayBerlin();
 	const overdue = items.filter(
 		(m) => m.status !== "done" && m.dueAt && m.dueAt < today,
 	).length;

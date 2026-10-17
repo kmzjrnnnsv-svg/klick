@@ -34,6 +34,7 @@ import {
 	listTrainings,
 } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
+import { todayBerlin } from "@/lib/time/berlin";
 import { currentTrainings } from "@/lib/trainings/assignments";
 
 export default async function TrainingsPage({
@@ -64,7 +65,7 @@ export default async function TrainingsPage({
 			]);
 			return { trainings, requirements, assignments, members, names };
 		});
-	const today = new Date().toISOString().slice(0, 10);
+	const today = todayBerlin();
 	const current = currentTrainings(assignments, today);
 	const memberIds = new Set(members.map((m) => m.userId));
 	const TONE = {

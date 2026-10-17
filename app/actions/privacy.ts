@@ -12,7 +12,11 @@ import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { applicableProcessingActivities } from "@/lib/compliance/catalog/processing-activities";
-import { dsrDueAt, dsrExtendedUntil } from "@/lib/compliance/privacy";
+import {
+	canExtendDsr,
+	dsrDueAt,
+	dsrExtendedUntil,
+} from "@/lib/compliance/privacy";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
@@ -303,7 +307,7 @@ async function upsertDataSubjectRequestImpl(
 				actorUserId: c.userId,
 				kind: "task_assigned",
 				title: `Betroffenenanfrage (${d.type}) eingegangen`,
-				body: `Antwort bis ${dueAt.toLocaleDateString("de-DE")} (Art. 12 Abs. 3 DSGVO).`,
+				body: `Antwort bis ${dueAt.toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" })} (Art. 12 Abs. 3 DSGVO).`,
 				link: `${PATH}?tab=anfragen`,
 			});
 			return {
@@ -371,7 +375,7 @@ async function extendDataSubjectRequestImpl(
 	const parsed = dsrExtendSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { id, reason } = parsed.data;
-	const ok = await mutateOrg<boolean>(toOrgCtx(c), async (tx) => {
+	const ok = await mutateOrg<boolean | "too_late">(toOrgCtx(c), async (tx) => {
 		const [row] = await tx
 			.select()
 			.from(dataSubjectRequests)
@@ -382,7 +386,10 @@ async function extendDataSubjectRequestImpl(
 				),
 			)
 			.limit(1);
-		if (!row || row.extendedUntil) return { result: false, audit: [] };
+		// Art. 12(3): verlängern nur innerhalb der ersten Frist — eine schon
+		// überfällige Anfrage wird nicht nachträglich „ok“.
+		if (!row) return { result: false, audit: [] };
+		if (!canExtendDsr(row)) return { result: "too_late", audit: [] };
 		const until = dsrExtendedUntil(row.dueAt);
 		await tx
 			.update(dataSubjectRequests)
@@ -398,6 +405,7 @@ async function extendDataSubjectRequestImpl(
 			},
 		};
 	});
+	if (ok === "too_late") return { ok: false, error: "extendTooLate" };
 	if (!ok) return { ok: false, error: "notFound" };
 	revalidatePath(PATH);
 	return { ok: true, data: undefined };

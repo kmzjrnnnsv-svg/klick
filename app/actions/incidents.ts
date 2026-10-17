@@ -40,6 +40,16 @@ import {
 
 type Tx = Parameters<Parameters<typeof mutateOrg>[1]>[0];
 
+const fmtBerlin = new Intl.DateTimeFormat("de-DE", {
+	dateStyle: "medium",
+	timeStyle: "short",
+	timeZone: "Europe/Berlin",
+});
+
+// Meldepflichtig nach DORA (major) bzw. NIS2/CRA (significant).
+const isReportable = (c: string | null | undefined) =>
+	c === "major" || c === "significant";
+
 // Fristen aus Regimes + Zeitstempeln ableiten (Leitregime, siehe leadRegime).
 function deadlinesFor(row: {
 	regimes: readonly IncidentRegime[];
@@ -185,7 +195,7 @@ async function createIncidentImpl(
 			recipients: [owner],
 			actorUserId: c.userId,
 			kind: "incident_deadline",
-			title: `Neuer Vorfall ${code}: Erstmeldung bis ${dl.initialDueAt.toISOString()}`,
+			title: `Neuer Vorfall ${code}: Erstmeldung bis ${fmtBerlin.format(dl.initialDueAt)}`,
 			link: `/vorfaelle/${row.id}`,
 		});
 		return {
@@ -253,8 +263,14 @@ async function classifyIncidentImpl(
 				: d.productId === null
 					? null
 					: ((await ownProduct(tx, c.orgId, d.productId)) ?? row.productId);
-		const classifiedAt = row.classifiedAt ?? new Date();
-		const dl = deadlinesFor({
+		// DORA: 4 h ab Einstufung als schwerwiegend — bei späterer Hochstufung
+		// (minor → major) zählt der Zeitpunkt der Hochstufung, nicht der erste.
+		const upgraded =
+			isReportable(classification) && !isReportable(row.classification);
+		const classifiedAt = upgraded
+			? new Date()
+			: (row.classifiedAt ?? new Date());
+		const computed = deadlinesFor({
 			regimes: d.regimes,
 			awareAt: row.awareAt,
 			classifiedAt,
@@ -262,6 +278,20 @@ async function classifyIncidentImpl(
 			intermediateReportedAt: row.intermediateReportedAt,
 			mitigationAvailableAt: row.mitigationAvailableAt,
 		});
+		// Ohne Meldepflicht (DORA/NIS2 nicht schwerwiegend bzw. erheblich) keine
+		// Uhren — sonst mahnt der Tick „Meldefrist überschritten“ für nichts.
+		const needsClocks =
+			isReportable(classification) ||
+			!["dora", "nis2"].includes(leadRegime(d.regimes) ?? "dora");
+		const dl = needsClocks
+			? computed
+			: {
+					...computed,
+					earlyWarningAt: null,
+					initialDueAt: null,
+					intermediateDueAt: null,
+					finalDueAt: null,
+				};
 		await tx
 			.update(incidents)
 			.set({

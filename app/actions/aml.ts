@@ -28,6 +28,8 @@ import { JURISDICTIONS } from "@/lib/compliance/catalog/jurisdictions";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
+import { orgLand } from "@/lib/org/land";
+import { todayBerlin } from "@/lib/time/berlin";
 import {
 	amlRiskAnalysisSchema,
 	corridorTemplateSchema,
@@ -496,7 +498,8 @@ async function transitionSuspiciousReportImpl(
 			patch.reportedAt = now;
 			patch.externalRef = externalRef ?? row.externalRef;
 			// § 46 GwG: Durchführungsverbot bis FIU-Freigabe oder drei Werktage
-			if (row.kind === "gwg_sar") patch.holdUntil = sarHoldUntil(now);
+			if (row.kind === "gwg_sar")
+				patch.holdUntil = sarHoldUntil(now, await orgLand(tx, c.orgId));
 		} else if (to === "dismissed") {
 			patch.decidedAt = row.decidedAt ?? now;
 			patch.holdUntil = null;
@@ -638,7 +641,7 @@ async function upsertJurisdictionImpl(input: unknown): Promise<ActionResult> {
 				corridorStatus: d.corridorStatus,
 				corridorNotes: d.corridorNotes ?? null,
 				legalNotes: d.legalNotes ?? null,
-				reviewedAt: d.reviewedAt ?? new Date().toISOString().slice(0, 10),
+				reviewedAt: d.reviewedAt ?? todayBerlin(),
 			},
 		);
 		return { result: null, audit: r.audit };
@@ -679,7 +682,7 @@ async function applyJurisdictionSeedImpl(): Promise<
 					corridorStatus: j.corridorStatus,
 					corridorNotes: j.corridorNotes ?? null,
 					legalNotes: j.legalNotes ?? null,
-					reviewedAt: new Date().toISOString().slice(0, 10),
+					reviewedAt: todayBerlin(),
 				},
 			);
 			created += r.created ? 1 : 0;
@@ -715,7 +718,7 @@ async function importJurisdictionsCsvImpl(
 					orgStance: j.orgStance,
 					corridorStatus: j.corridorStatus,
 					legalNotes: j.legalNotes ?? null,
-					reviewedAt: new Date().toISOString().slice(0, 10),
+					reviewedAt: todayBerlin(),
 				},
 			);
 			audits.push(...r.audit);

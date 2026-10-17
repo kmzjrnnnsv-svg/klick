@@ -20,6 +20,7 @@ import { listDocuments } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { DOCUMENT_STATUS_MACHINE } from "@/lib/entities/document";
 import { env } from "@/lib/env";
+import { todayBerlin } from "@/lib/time/berlin";
 
 type Row = Awaited<ReturnType<typeof listDocuments>>[number];
 type Search = Record<string, string | string[] | undefined>;
@@ -52,7 +53,7 @@ export default async function DocumentsPage({
 		frameworks: x.frameworks,
 		present: present.has(x.code),
 	}));
-	const today = new Date().toISOString().slice(0, 10);
+	const today = todayBerlin();
 
 	const q = one(sp.q)?.toLowerCase();
 	const status = one(sp.status);

@@ -26,6 +26,7 @@ import { canTransition } from "@/lib/entities/status-machine";
 import { s3Configured, screenUpload } from "@/lib/evidence/store";
 import { getOrgLimiter } from "@/lib/rate-limit";
 import { checkSbom, parseSbom } from "@/lib/security/sbom-check";
+import { todayBerlin } from "@/lib/time/berlin";
 import { assessmentIdSchema } from "@/lib/validation/assessments";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
@@ -168,7 +169,7 @@ async function setProductStatusImpl(
 				result: { ok: false, error: `transition_${check.reason}` },
 				audit: [],
 			};
-		const today = new Date().toISOString().slice(0, 10);
+		const today = todayBerlin();
 		await tx
 			.update(products)
 			.set({
