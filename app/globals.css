@@ -204,6 +204,11 @@ h1 {
 	* {
 		@apply border-border outline-ring/50;
 	}
+	/* Browser-Standard ist min-inline-size: min-content — ein Fieldset mit
+	   abgeschnittenen Einträgen schob Dialoge am Handy über den Rand. */
+	fieldset {
+		min-inline-size: 0;
+	}
 }
 
 /* Dichte Tabellen und Register */

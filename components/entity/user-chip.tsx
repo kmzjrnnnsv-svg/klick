@@ -20,8 +20,8 @@ export function UserChip({
 }) {
 	if (!name) return <span className="text-muted-foreground">{fallback}</span>;
 	return (
-		<span className="inline-flex items-center gap-1.5">
-			<Avatar className={size === "sm" ? "size-5" : "size-7"}>
+		<span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
+			<Avatar className={size === "sm" ? "size-5 shrink-0" : "size-7 shrink-0"}>
 				<AvatarFallback className="text-[0.55rem]">
 					{initials(name)}
 				</AvatarFallback>

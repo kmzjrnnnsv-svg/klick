@@ -29,7 +29,7 @@ export function EntityLayout({
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0">
 						<p className="lv-eyebrow text-[0.6rem] text-brown">{eyebrow}</p>
-						<h1 className="mt-2 font-serif-display text-2xl text-primary sm:text-3xl">
+						<h1 className="mt-2 hyphens-auto break-words font-serif-display text-2xl text-primary sm:text-3xl">
 							{title}
 						</h1>
 						{subtitle && (
@@ -38,7 +38,7 @@ export function EntityLayout({
 							</p>
 						)}
 					</div>
-					<div className="flex shrink-0 flex-wrap items-center gap-2">
+					<div className="flex min-w-0 flex-wrap items-center gap-2 sm:max-w-[60%] sm:shrink-0 sm:justify-end">
 						{status}
 						{actions}
 					</div>
@@ -87,7 +87,7 @@ export function Section({
 }) {
 	return (
 		<section id={id} className="flex flex-col gap-3">
-			<div className="flex items-center justify-between gap-3">
+			<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
 				<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
 					{title}
 				</h2>

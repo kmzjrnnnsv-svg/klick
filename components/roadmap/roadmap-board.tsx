@@ -141,7 +141,7 @@ export function RoadmapBoard({
 					>
 						<UserChip name={m.assigneeName ?? m.ownerName} />
 						{canEdit && (
-							<span className="flex items-center gap-1">
+							<span className="flex shrink-0 items-center gap-1">
 								<TaskFromMilestoneButton id={m.id} openTasks={m.openTasks} />
 								<MilestoneForm members={members} initial={m} />
 							</span>
