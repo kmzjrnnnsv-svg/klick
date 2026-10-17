@@ -11,6 +11,14 @@ export const slug = z
 	);
 export const shortText = z.string().trim().min(1).max(200);
 export const longText = z.string().trim().max(20_000);
+
+// Links von Nutzer:innen (Kurs, Nachweis): nur http(s) — kein javascript:/data:.
+export const httpUrl = z
+	.string()
+	.trim()
+	.max(2000)
+	.url()
+	.refine((u) => /^https?:\/\//i.test(u), { message: "url_scheme" });
 export const email = z.email().transform((v) => v.trim().toLowerCase());
 
 export type ActionResult<T = undefined> =

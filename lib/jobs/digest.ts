@@ -7,8 +7,9 @@ import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/log";
 import { sendTransactionalMail } from "@/lib/mail/send";
-import { transactionalEmail } from "@/lib/mail/templates";
+import { escapeHtml, transactionalEmail } from "@/lib/mail/templates";
 import { IMMEDIATE_MAIL_KINDS } from "@/lib/notifications/notify";
+import { safeInternalPath } from "@/lib/safe-path";
 
 // Mailversand für Benachrichtigungen (Plan „Benachrichtigungen"):
 //   • sofort (alle 5 min): nur IMMEDIATE_MAIL_KINDS, je Benachrichtigung eine Mail
@@ -50,18 +51,17 @@ export type DigestItem = {
 	createdAt: Date;
 };
 
-function esc(s: string): string {
-	return s
-		.replaceAll("&", "&amp;")
-		.replaceAll("<", "&lt;")
-		.replaceAll(">", "&gt;")
-		.replaceAll('"', "&quot;");
-}
+const esc = escapeHtml;
 
+// Links aus Benachrichtigungen: nur interne Pfade oder Links auf die eigene
+// Instanz werden zu absoluten URLs; alles andere fällt weg.
 function absolute(base: string, link: string | null): string | null {
 	if (!link) return null;
-	if (/^https?:\/\//.test(link)) return link;
-	return `${base.replace(/\/$/, "")}${link.startsWith("/") ? "" : "/"}${link}`;
+	const root = base.replace(/\/$/, "");
+	if (/^https?:\/\//i.test(link))
+		return link.startsWith(`${root}/`) ? link : null;
+	const path = safeInternalPath(link, "");
+	return path ? `${root}${path}` : null;
 }
 
 // Pure: baut Betreff + Text + HTML eines Tages-Digests aus Benachrichtigungen.
@@ -113,7 +113,8 @@ export function buildDigest(
 		preheader: `${items.length} offene Punkte in deiner Organisation`,
 		eyebrow: "Tages-Digest",
 		title: `Guten Morgen, ${opts.recipientName}`,
-		body: htmlParts.join(""),
+		body: textParts.join("\n"),
+		bodyHtml: htmlParts.join(""),
 		cta: {
 			label: "Heute öffnen",
 			url: `${opts.baseUrl.replace(/\/$/, "")}/heute`,
@@ -136,7 +137,7 @@ export function buildImmediateMail(
 		subject: item.title,
 		eyebrow: KIND_LABELS[item.kind],
 		title: item.title,
-		body: esc(item.body ?? "Öffne Klick, um die Details zu sehen."),
+		body: item.body ?? "Öffne Klick, um die Details zu sehen.",
 		cta: { label: "In Klick öffnen", url },
 		footnote:
 			"Sofort-Benachrichtigung von Klick. Alles andere kommt im Tages-Digest.",

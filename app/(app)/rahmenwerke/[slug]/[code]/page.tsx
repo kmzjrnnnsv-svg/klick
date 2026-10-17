@@ -128,7 +128,7 @@ export default async function RequirementPage({
 						<MetaItem label={t("sourceLink")}>
 							<a
 								href={fw.sourceUrl}
-								rel="noopener nofollow"
+								rel="noopener noreferrer nofollow"
 								target="_blank"
 								className="text-primary hover:underline"
 							>

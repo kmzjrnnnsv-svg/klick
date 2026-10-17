@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ENTITY_KINDS, IMPL_STATUS } from "@/db/schema/enums";
 import { TASK_STATUSES } from "@/lib/entities/task";
-import { longText, shortText, uuid } from "./common";
+import { httpUrl, longText, shortText, uuid } from "./common";
 
 export const entityRefSchema = z.object({
 	entityType: z.enum(ENTITY_KINDS),
@@ -83,7 +83,7 @@ export const evidenceLinkSchema = z.object({
 	classification: z
 		.enum(["public", "internal", "confidential", "secret"])
 		.default("internal"),
-	url: z.url().optional(),
+	url: httpUrl.optional(),
 	validUntil: z.iso.date().nullable().optional(),
 });
 export type EvidenceLinkInput = z.output<typeof evidenceLinkSchema>;

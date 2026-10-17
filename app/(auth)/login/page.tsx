@@ -2,15 +2,18 @@ import { getTranslations } from "next-intl/server";
 import { LoginForm } from "@/components/auth/login-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { gateAuth } from "@/lib/auth/gates";
+import { safeInternalPath } from "@/lib/safe-path";
 
 export default async function LoginPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ grund?: string }>;
+	searchParams: Promise<{ grund?: string; weiter?: string }>;
 }) {
 	await gateAuth("/login");
 	const t = await getTranslations("Auth");
-	const { grund } = await searchParams;
+	const { grund, weiter } = await searchParams;
+	// Rücksprung nach dem Login (z. B. Einladung annehmen) — nur interne Pfade.
+	const next = safeInternalPath(weiter, "");
 	const reason =
 		grund === "sitzung-abgelaufen"
 			? t("reasonSessionExpired")
@@ -46,6 +49,7 @@ export default async function LoginPage({
 			<LoginForm
 				microsoftEnabled={microsoftEnabled}
 				signupAllowed={signupAllowed}
+				next={next || undefined}
 			/>
 		</div>
 	);

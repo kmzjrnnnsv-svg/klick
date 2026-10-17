@@ -33,6 +33,7 @@ import { readOrg } from "@/lib/db/with-org";
 import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { listNotifications } from "@/lib/notifications/query";
+import { safeInternalPath } from "@/lib/safe-path";
 import { currentTrainings } from "@/lib/trainings/assignments";
 
 // Startseite nach Login: gestapelte Abschnitte, je max. fünf Einträge —
@@ -445,7 +446,7 @@ export default async function TodayPage() {
 										className="flex items-center justify-between gap-2 py-2"
 									>
 										<Link
-											href={n.link ?? "/heute"}
+											href={safeInternalPath(n.link)}
 											className="min-w-0 truncate hover:underline"
 										>
 											{n.title}

@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { TwoFactorForm } from "@/components/auth/two-factor-form";
 import { gateAuth } from "@/lib/auth/gates";
 import { getSessionCtx } from "@/lib/auth/guards";
+import { safeInternalPath } from "@/lib/safe-path";
 
 export default async function TwoFactorPage({
 	searchParams,
@@ -17,7 +18,7 @@ export default async function TwoFactorPage({
 		if (!(await getSessionCtx())) redirect("/login?grund=sitzung-abgelaufen");
 	}
 	const t = await getTranslations("Auth");
-	const returnTo = zurueck?.startsWith("/") ? zurueck : "/heute";
+	const returnTo = safeInternalPath(zurueck);
 	return (
 		<div className="flex flex-col gap-6">
 			<div>

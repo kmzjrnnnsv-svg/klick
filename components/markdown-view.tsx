@@ -24,7 +24,7 @@ export function MarkdownView({
 					a: ({ href, children }) => (
 						<a
 							href={href}
-							rel="noopener nofollow"
+							rel="noopener noreferrer nofollow"
 							target={href?.startsWith("http") ? "_blank" : undefined}
 						>
 							{children}

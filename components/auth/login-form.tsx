@@ -13,9 +13,12 @@ import { authClient } from "@/lib/auth/client";
 export function LoginForm({
 	microsoftEnabled,
 	signupAllowed,
+	next,
 }: {
 	microsoftEnabled: boolean;
 	signupAllowed: boolean;
+	// Internes Ziel nach dem Login (serverseitig geprüft, z. B. /einladung/…)
+	next?: string;
 }) {
 	const t = useTranslations("Auth");
 	const router = useRouter();
@@ -31,8 +34,8 @@ export function LoginForm({
 		try {
 			const res = await authClient.signIn.magicLink({
 				email: email.trim().toLowerCase(),
-				callbackURL: "/heute",
-				newUserCallbackURL: "/onboarding",
+				callbackURL: next ?? "/heute",
+				newUserCallbackURL: next ?? "/onboarding",
 				errorCallbackURL: "/login?grund=link-ungueltig",
 			});
 			if (res?.error) {
@@ -58,7 +61,7 @@ export function LoginForm({
 			toast.error(t("genericError"));
 			return;
 		}
-		router.push("/heute");
+		router.push(next ?? "/heute");
 		router.refresh();
 	}
 
@@ -66,7 +69,7 @@ export function LoginForm({
 		setBusy("microsoft");
 		await authClient.signIn.social({
 			provider: "microsoft",
-			callbackURL: "/heute",
+			callbackURL: next ?? "/heute",
 		});
 	}
 
@@ -81,7 +84,7 @@ export function LoginForm({
 		setBusy("sso");
 		const res = await authClient.signIn.sso({
 			email: address,
-			callbackURL: "/heute",
+			callbackURL: next ?? "/heute",
 			errorCallbackURL: "/login?grund=sso",
 		});
 		if (res?.error || !res?.data?.url) {
