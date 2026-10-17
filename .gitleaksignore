@@ -1,0 +1,7 @@
+# Falsch-Positive (generic-api-key): Objekt-Schlüssel im Speichertest
+# ({ key: "org/a/nachweise/1", … }), keine Geheimnisse. Taucht auf, wenn ein
+# Push-Lauf über einen Merge mit main bis zu diesem Commit zurückreicht.
+28fbb49cf7c5bfc37306d891bce3bc02f5129702:tests/storage-backup.test.ts:generic-api-key:20
+28fbb49cf7c5bfc37306d891bce3bc02f5129702:tests/storage-backup.test.ts:generic-api-key:21
+28fbb49cf7c5bfc37306d891bce3bc02f5129702:tests/storage-backup.test.ts:generic-api-key:22
+28fbb49cf7c5bfc37306d891bce3bc02f5129702:tests/storage-backup.test.ts:generic-api-key:23
