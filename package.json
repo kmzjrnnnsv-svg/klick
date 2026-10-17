@@ -21,7 +21,7 @@
 		"test:watch": "vitest",
 		"test:e2e": "playwright test",
 		"audit": "pnpm audit --audit-level=high",
-		"sbom": "cyclonedx-npm --output-file sbom.cdx.json --output-format JSON",
+		"sbom": "npm_execpath= cyclonedx-npm --ignore-npm-errors --output-file sbom.cdx.json --output-format JSON",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "tsx scripts/db-migrate.ts",
 		"db:seed": "tsx db/seed.ts",
