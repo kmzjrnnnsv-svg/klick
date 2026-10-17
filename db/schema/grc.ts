@@ -572,12 +572,58 @@ export const resolutions = pgTable(
 		approvalRequestId: uuid().references(() => approvalRequests.id, {
 			onDelete: "set null",
 		}),
+		// Bezug zum Rahmenwerk (E1): Slugs und Anforderungs-Schlüssel
+		// („dora:Art. 28“), abgeleitet aus der Entität oder gewählt
+		frameworks: stringList(),
+		requirementKeys: stringList(),
 		createdByUserId: userRef(),
 		createdAt: ts().notNull().defaultNow(),
 	},
 	(t) => [
 		unique().on(t.organizationId, t.resolutionNumber),
 		orgPolicy("resolutions"),
+	],
+).enableRLS();
+
+// Entscheidung beim Management anfragen (E2): Frage, Ausgangslage,
+// Optionen, Frist, Bezug zu Entität und Anforderungen. Entschieden wird
+// über den Workflow management_decision; das Ergebnis wird ein Beschluss.
+export const decisionRequests = pgTable(
+	"decision_requests",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		code: text().notNull(),
+		question: text().notNull(),
+		context: text(),
+		recommendation: text(),
+		options: json<string[]>().notNull().default([]),
+		dueAt: date(),
+		linkedEntityType: text({ enum: ENTITY_KINDS }),
+		linkedEntityId: uuid(),
+		frameworks: stringList(),
+		requirementKeys: stringList(),
+		status: text({ enum: ["open", "decided", "withdrawn"] })
+			.notNull()
+			.default("open"),
+		outcome: text({ enum: ["approved", "rejected", "changes_requested"] }),
+		chosenOption: text(),
+		decisionNote: text(),
+		approvalRequestId: uuid().references(() => approvalRequests.id, {
+			onDelete: "set null",
+		}),
+		resolutionId: uuid().references(() => resolutions.id, {
+			onDelete: "set null",
+		}),
+		requestedByUserId: userRef(),
+		decidedByUserId: userRef(),
+		decidedAt: ts(),
+		...timestamps(),
+	},
+	(t) => [
+		unique().on(t.organizationId, t.code),
+		index("decision_requests_org_status_idx").on(t.organizationId, t.status),
+		orgPolicy("decision_requests"),
 	],
 ).enableRLS();
 
