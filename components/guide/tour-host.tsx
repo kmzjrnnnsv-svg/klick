@@ -130,7 +130,7 @@ export function TourHost() {
 	const visible = Boolean(rect);
 	useEffect(() => {
 		if (visible) nextRef.current?.focus();
-	}, [visible, step]);
+	}, [visible]);
 	useEffect(() => {
 		if (!step) return;
 		const onKey = (e: KeyboardEvent) => {
