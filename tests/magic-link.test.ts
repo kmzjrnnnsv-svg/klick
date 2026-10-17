@@ -24,7 +24,7 @@ describe("safeNextPath", () => {
 			"https://evil.example/heute",
 			"//evil.example",
 			"/\\evil.example",
-			"/%0d%0aSet-Cookie:x".replace("%0d%0a", "\r\n"),
+			"/\r\nSet-Cookie:x",
 			"/api/auth/sign-out",
 			"/api",
 			`/${"a".repeat(600)}`,
