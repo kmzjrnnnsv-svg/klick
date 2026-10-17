@@ -235,7 +235,8 @@ async function login(ctx: BrowserContext): Promise<void> {
 	const email = process.env.QA_EMAIL ?? `qa+${Date.now()}@example.com`;
 	console.log(`→ Login als ${email}`);
 	const pos = logSize();
-	await page.goto(`${BASE}/login`);
+	// Mail-Link ist der Notweg (ADR-019); Passkeys prüft scripts/qa/passkey-smoke.ts.
+	await page.goto(`${BASE}/login/notweg`);
 	await page.fill("#email", email);
 	await page.click('form button[type="submit"]');
 	await page.waitForURL(/\/login\/verify/, { timeout: 30_000 });
@@ -246,6 +247,10 @@ async function login(ctx: BrowserContext): Promise<void> {
 	await settle(page);
 	// Erster Login: MFA-Enrolment
 	if (page.url().includes("/einrichtung/2fa")) {
+		// Passkey ist der Standard; der Crawler nimmt TOTP (Step-up per Code).
+		await page
+			.getByRole("button", { name: /Authenticator-App einrichten/ })
+			.click();
 		const secretEl = page.locator("code");
 		await secretEl.first().waitFor({ timeout: 30_000 });
 		const secret = (await secretEl.first().innerText()).trim();

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { EnrolTwoFactor } from "@/components/auth/enrol-two-factor";
+import { EnrolFactor } from "@/components/auth/enrol-factor";
 import { getSessionCtx } from "@/lib/auth/guards";
 
 export default async function EnrolPage() {
@@ -17,7 +17,7 @@ export default async function EnrolPage() {
 				</h1>
 				<p className="mt-2 text-muted-foreground text-sm">{t("enrolLead")}</p>
 			</div>
-			<EnrolTwoFactor />
+			<EnrolFactor />
 		</div>
 	);
 }

@@ -241,7 +241,7 @@ export function LinkRegistration({
 				<p className="text-muted-foreground text-xs">
 					{t("noPasskeyDevice")}{" "}
 					<Link
-						href={`/login?weiter=/einladung/${info.invitationId}`}
+						href={`/login/notweg?weiter=/einladung/${info.invitationId}`}
 						className="text-primary hover:underline"
 					>
 						{t("noPasskeyLink")}

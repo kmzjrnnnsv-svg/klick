@@ -1,4 +1,8 @@
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import {
+	APIError,
+	createAuthMiddleware,
+	getSessionFromCtx,
+} from "better-auth/api";
 import { eq } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { session as sessionTable } from "@/db/auth-schema";
@@ -107,6 +111,23 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 				after: { method: "passkey" },
 			});
 			return;
+		}
+
+		// Erster Passkey einer Sitzung ohne bestätigten zweiten Faktor
+		// (Ersteinrichtung nach Mail-Link, /einrichtung/2fa): die Registrierung
+		// mit Nutzerverifikation bestätigt diese Sitzung — wie das erste
+		// TOTP-Verify. Weitere Faktoren verlangen ohnehin MFA + Step-up
+		// (endpoint-policy), Link-Registrierungen bekommen eine neue Sitzung.
+		if (path === "/passkey/verify-registration" && !failed && !newSession) {
+			const s = current ?? (await getSessionFromCtx(ctx).catch(() => null));
+			const pending = s?.session as { mfaVerifiedAt?: unknown } | undefined;
+			if (s && !pending?.mfaVerifiedAt) {
+				const now = new Date();
+				await globalDb
+					.update(sessionTable)
+					.set({ mfaVerifiedAt: now, lastActiveAt: now })
+					.where(eq(sessionTable.id, s.session.id));
+			}
 		}
 
 		// Passkeys verwalten (die Anmeldung selbst protokolliert

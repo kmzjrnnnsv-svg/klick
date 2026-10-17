@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-// Login-Seite: Magic-Link-Formular, Passkey-Option, kein horizontales
-// Scrollen auf dem Telefon (UX-Leitlinie), identische Antwort für bekannte
-// und unbekannte E-Mail (kein User-Enumeration).
+// Login-Seite: Passkey zuerst (ADR-019), E-Mail-Feld für SSO/Autofill, kein
+// horizontales Scrollen auf dem Telefon (UX-Leitlinie); Notweg mit
+// Mail-Link antwortet für bekannte und unbekannte E-Mail identisch (kein
+// User-Enumeration).
 test.describe("Login", () => {
 	test("zeigt E-Mail-Feld und Passkey", async ({ page }) => {
 		await page.goto("/login");
@@ -12,22 +13,31 @@ test.describe("Login", () => {
 			"email",
 		);
 		await expect(page.getByRole("button", { name: /passkey/i })).toBeVisible();
+		await expect(page.locator('input[name="email"]')).toHaveAttribute(
+			"autocomplete",
+			"username webauthn",
+		);
+		await expect(
+			page.getByRole("link", { name: /anmelde-link per mail/i }),
+		).toHaveAttribute("href", "/login/notweg");
 	});
 
 	test("kein horizontales Scrollen bei 375 px", async ({ page }) => {
 		await page.setViewportSize({ width: 375, height: 740 });
-		await page.goto("/login");
-		const widths = await page.evaluate(() => ({
-			scroll: document.documentElement.scrollWidth,
-			client: document.documentElement.clientWidth,
-		}));
-		expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+		for (const path of ["/login", "/login/notweg"]) {
+			await page.goto(path);
+			const widths = await page.evaluate(() => ({
+				scroll: document.documentElement.scrollWidth,
+				client: document.documentElement.clientWidth,
+			}));
+			expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+		}
 	});
 
 	test("unbekannte E-Mail erzeugt keine Fehlermeldung mit Hinweis auf Existenz", async ({
 		page,
 	}) => {
-		await page.goto("/login");
+		await page.goto("/login/notweg");
 		await page.locator('input[name="email"]').fill("niemand@example.invalid");
 		await page.getByRole("button", { name: /link/i }).first().click();
 		// Entweder neutrale Bestätigung oder Weiterleitung auf /login/verify —

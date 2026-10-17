@@ -113,7 +113,10 @@ export const auth = betterAuth({
 			"/magic-link/verify": { window: 15 * MINUTE, max: 20 },
 			"/two-factor/verify-totp": { window: 15 * MINUTE, max: 10 },
 			"/two-factor/verify-backup-code": { window: 15 * MINUTE, max: 5 },
-			"/passkey/verify-authentication": { window: 15 * MINUTE, max: 20 },
+			// Passkey-Prüfung ist nicht zu erraten (Signatur); die Grenze bremst
+			// nur Missbrauch. Großzügig, weil ein Büro hinter einer NAT-Adresse
+			// morgens viele Anmeldungen hat.
+			"/passkey/verify-authentication": { window: 15 * MINUTE, max: 100 },
 			"/passkey/generate-register-options": { window: 15 * MINUTE, max: 20 },
 			"/passkey/verify-registration": { window: 15 * MINUTE, max: 10 },
 		},
