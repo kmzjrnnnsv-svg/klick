@@ -16,6 +16,31 @@ import {
 	RegisterFilters,
 } from "./register-filters";
 
+// Zeilen-Link: API-Ziele (Downloads) als normales <a> — next/link würde sie
+// prefetchen und damit Downloads (und Audit-Einträge) auslösen, die keiner
+// angeklickt hat.
+function RowLink({
+	href,
+	className,
+	children,
+}: {
+	href: string;
+	className?: string;
+	children: ReactNode;
+}) {
+	if (href.startsWith("/api/"))
+		return (
+			<a href={href} className={className}>
+				{children}
+			</a>
+		);
+	return (
+		<Link href={href} className={className}>
+			{children}
+		</Link>
+	);
+}
+
 export type Column<T> = {
 	key: string;
 	header: string;
@@ -93,12 +118,12 @@ export function RegisterPage<T extends { id: string }>({
 												className={cn(c.className, "align-top")}
 											>
 												{i === 0 ? (
-													<Link
+													<RowLink
 														href={rowHref(row)}
 														className="block hover:underline underline-offset-4"
 													>
 														{c.cell(row)}
-													</Link>
+													</RowLink>
 												) : (
 													c.cell(row)
 												)}
@@ -112,7 +137,7 @@ export function RegisterPage<T extends { id: string }>({
 					<ul className="flex flex-col gap-2 sm:hidden">
 						{rows.map((row) => (
 							<li key={row.id}>
-								<Link
+								<RowLink
 									href={rowHref(row)}
 									className="flex flex-col gap-1.5 rounded-md border p-3 text-sm"
 								>
@@ -129,7 +154,7 @@ export function RegisterPage<T extends { id: string }>({
 												<span className="text-right">{c.cell(row)}</span>
 											</div>
 										))}
-								</Link>
+								</RowLink>
 							</li>
 						))}
 					</ul>

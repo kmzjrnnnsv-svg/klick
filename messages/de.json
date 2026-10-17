@@ -1011,7 +1011,7 @@
 		"validUntil": "Gültig bis",
 		"description": "Beschreibung",
 		"file": "Datei",
-		"fileHint": "PDF, Office, Bilder, CSV/JSON — bis 25 MB. Die Datei wird mit dem Schlüssel deiner Organisation verschlüsselt.",
+		"fileHint": "PDF, Office, Bilder, Text, CSV/JSON — bis 25 MB. Die Datei wird mit dem Schlüssel deiner Organisation verschlüsselt.",
 		"type_document": "Dokument",
 		"type_screenshot": "Screenshot",
 		"type_link": "Link",
@@ -1208,7 +1208,8 @@
 		"published": "Veröffentlicht — Kenntnisnahmen laufen.",
 		"empty": "Noch keine Dokumente.",
 		"emptyLead": "Firmen haben ihre Richtlinien schon: importiere sie oder starte aus den Vorlagen.",
-		"requiredBy": "Gefordert von CC-GOV-08 · ISO 27001 7.5 · MaRisk AT 5/6"
+		"requiredBy": "Gefordert von CC-GOV-08 · ISO 27001 7.5 · MaRisk AT 5/6",
+		"importHint": "PDF, Word, Excel, PowerPoint, Text oder Markdown — bis 25 MB je Datei. Text und Markdown werden direkt als Inhalt übernommen."
 	},
 	"Incidents": {
 		"title": "Vorfälle",
@@ -2693,10 +2694,17 @@
 		"kind_comment": "Kommentare"
 	},
 	"Import": {
-		"lead": "Kopfzeile mit Spaltennamen ({columns}); Trenner ; oder ,; jede Zeile wird wie das Formular validiert. Spalte organization_id wird ignoriert.",
+		"lead": "Erste Zeile = Spaltennamen ({columns}). Trenner ; , oder Tab, Datum als TT.MM.JJJJ. Werte als Kürzel oder deutsche Bezeichnung (z. B. „kritisch“). Du siehst vor dem Import, was übernommen wird.",
 		"button": "CSV importieren",
-		"done": "{n} Zeilen importiert, {e} Fehler.",
-		"tooLarge": "Datei zu groß (max. 2 MB)."
+		"pasteInstead": "Oder Tabelle als Text einfügen",
+		"check": "Prüfen",
+		"previewSummary": "{rows} Zeilen gelesen · {valid} werden übernommen · {d} schon vorhanden · {e} mit Fehlern",
+		"duplicatesSkipped": "Schon vorhanden, wird übersprungen: {names}",
+		"importN": "{n, plural, one {# Eintrag importieren} other {# Einträge importieren}}",
+		"done": "{n} importiert, {d} übersprungen (schon vorhanden), {e} mit Fehlern.",
+		"tooLarge": "Datei zu groß (max. 2 MB).",
+		"tooManyRows": "Zu viele Zeilen (max. {max}). Teile die Datei auf.",
+		"unreadable": "Die Datei ist keine lesbare Tabelle. Speichere sie in Excel als „CSV (Trennzeichen-getrennt)“."
 	},
 	"Privacy": {
 		"title": "Datenschutz",
@@ -2840,11 +2848,12 @@
 		"upload_empty": "Die Datei ist leer. Wähle die richtige Datei aus.",
 		"upload_type_not_allowed": "Dieses Format ist nicht erlaubt. Erlaubt sind PDF, Word, Excel, PowerPoint, PNG, JPEG, TXT, Markdown, CSV und JSON.",
 		"upload_signature_mismatch": "Inhalt und Dateiendung passen nicht zusammen. Speichere die Datei im richtigen Format neu.",
-		"upload_invalid_text": "Die Textdatei ist nicht UTF-8-kodiert. Speichere sie als UTF-8 neu.",
+		"upload_invalid_text": "Die Textdatei ist nicht lesbar (unbekannte Kodierung oder Binärdaten). Speichere sie als UTF-8 oder „CSV (Trennzeichen-getrennt)“ neu.",
 		"upload_malware": "Der Virenscanner hat die Datei abgelehnt. Prüfe die Datei lokal.",
 		"upload_scan_unavailable": "Der Virenscanner ist gerade nicht erreichbar. Versuche es in ein paar Minuten erneut.",
 		"rate_limited": "Zu viele Uploads in kurzer Zeit. Warte eine Minute und versuche es erneut.",
-		"egressLimited": "Zu viele Downloads in kurzer Zeit. Die Organisation wurde informiert; versuche es in ein paar Minuten erneut."
+		"egressLimited": "Zu viele Downloads in kurzer Zeit. Die Organisation wurde informiert; versuche es in ein paar Minuten erneut.",
+		"upload_locked": "Die Datei lässt sich nur im Entwurf ändern. Leg zuerst eine neue Version an."
 	},
 	"Readiness": {
 		"tab": "Prüfungsreife",
@@ -3626,5 +3635,16 @@
 		"ctaLead": "Ein Erstgespräch dauert 30 Minuten. Danach bekommst du Umfang, Termin und Festpreis schriftlich.",
 		"ctaImageAlt": "Fragebogen im Lieferantenportal auf dem Telefon",
 		"credit": "Bilder: Bildschirmfotos aus Klick mit Beispieldaten."
+	},
+	"Upload": {
+		"dropHint": "Datei hierher ziehen oder klicken zum Auswählen",
+		"dropHintMany": "Dateien hierher ziehen oder klicken zum Auswählen",
+		"dropActive": "Loslassen zum Hinzufügen",
+		"selected": "{name} · {size}",
+		"selectedMany": "{count} Dateien ausgewählt",
+		"remove": "Entfernen",
+		"busy": "Wird hochgeladen, geprüft und verschlüsselt …",
+		"busyClose": "Upload läuft — bitte kurz warten.",
+		"progressMany": "{done} von {total} Dateien"
 	}
 }

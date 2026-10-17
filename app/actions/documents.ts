@@ -35,6 +35,7 @@ import {
 	applyTemplatesSchema,
 	createDocumentSchema,
 	documentTransitionSchema,
+	importDocumentsSchema,
 	newDocumentVersionSchema,
 	updateDocumentSchema,
 } from "@/lib/validation/registers";
@@ -578,12 +579,18 @@ async function applyDocumentTemplatesImpl(
 
 // Richtlinien-Import: mehrere bereits hochgeladene Nachweise → je Datei ein
 // Entwurf mit Nummer, Typ-Vorschlag aus dem Dateinamen, Owner = Importierende:r.
+// Text-/Markdown-Dateien bringen ihren Inhalt mit (im Browser dekodiert),
+// damit der Entwurf nicht leer ist.
 async function importDocumentsFromEvidenceImpl(
-	evidenceIds: string[],
+	input: unknown,
 ): Promise<ActionResult<{ created: number }>> {
 	const c = await requireOrg({ document: ["create"] });
-	if (!Array.isArray(evidenceIds) || evidenceIds.length === 0)
-		return { ok: false, error: "empty" };
+	const parsed = importDocumentsSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const evidenceIds = parsed.data.map((i) => i.evidenceId);
+	const bodyById = new Map(
+		parsed.data.map((i) => [i.evidenceId, i.bodyMarkdown]),
+	);
 	const created = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const files = await tx
 			.select()
@@ -591,7 +598,7 @@ async function importDocumentsFromEvidenceImpl(
 			.where(
 				and(
 					eq(evidence.organizationId, c.orgId),
-					inArray(evidence.id, evidenceIds.slice(0, 50)),
+					inArray(evidence.id, evidenceIds),
 				),
 			);
 		let n = 0;
@@ -610,6 +617,7 @@ async function importDocumentsFromEvidenceImpl(
 					ownerUserId: c.userId,
 					authorUserId: c.userId,
 					fileEvidenceId: f.id,
+					bodyMarkdown: bodyById.get(f.id) ?? null,
 					reviewCycleMonths: 12,
 					nextReviewAt: plusMonths(12),
 					distribution: ["all"],

@@ -45,7 +45,12 @@ const nextConfig: NextConfig = {
 	images: { remotePatterns: [] },
 	experimental: {
 		// Server Actions akzeptieren nur Aufrufe vom eigenen Origin (CSRF).
-		serverActions: { allowedOrigins: [appOrigin] },
+		// Uploads (Nachweise, Gap-Analyse, Scan-Import) laufen als Server-Action
+		// mit FormData: 25 MB (lib/uploads/types.ts) + Multipart-Overhead. Ohne
+		// das greift Nexts 1-MB-Default und der Upload endet auf der Fehlerseite.
+		serverActions: { allowedOrigins: [appOrigin], bodySizeLimit: "27mb" },
+		// proxy.ts puffert Request-Bodies (Default 10 MB, darüber abgeschnitten).
+		proxyClientMaxBodySize: "27mb",
 	},
 	async headers() {
 		return [{ source: "/(.*)", headers: securityHeaders }];

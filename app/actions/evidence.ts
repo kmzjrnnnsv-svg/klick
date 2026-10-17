@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
 	controlImplementations,
+	documents,
 	evidence,
 	storagePurgeQueue,
 } from "@/db/schema";
@@ -21,7 +22,7 @@ import { logger } from "@/lib/log";
 import { notify } from "@/lib/notifications/notify";
 import { getOrgLimiter } from "@/lib/rate-limit";
 import { writeTombstone } from "@/lib/storage/tombstones";
-import { type ActionResult, fromZod } from "@/lib/validation/common";
+import { type ActionResult, fromZod, uuid } from "@/lib/validation/common";
 import { evidenceLinkSchema } from "@/lib/validation/grc";
 
 // Nachweise: Link/Attestierung ohne Datei oder Datei-Upload (verschlüsselt
@@ -114,7 +115,28 @@ async function uploadEvidenceImpl(
 			fieldErrors: v.detail ? { dlp: v.detail } : undefined,
 		};
 
-	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
+	const rawDocId = formData.get("documentId");
+	const documentId =
+		typeof rawDocId === "string" && uuid.safeParse(rawDocId).success
+			? rawDocId
+			: null;
+
+	const id = await mutateOrg<string | "locked">(toOrgCtx(c), async (tx) => {
+		// Datei eines Dokument-Entwurfs: nur im Entwurf, freigegebene Stände
+		// bleiben unverändert.
+		if (documentId) {
+			const [doc] = await tx
+				.select({ status: documents.status })
+				.from(documents)
+				.where(
+					and(
+						eq(documents.id, documentId),
+						eq(documents.organizationId, c.orgId),
+					),
+				)
+				.limit(1);
+			if (doc?.status !== "draft") return { result: "locked", audit: [] };
+		}
 		const stored = await storeEncryptedEvidence(tx, {
 			orgId: c.orgId,
 			bytes,
@@ -130,6 +152,11 @@ async function uploadEvidenceImpl(
 		});
 		if (d.implementationId)
 			await linkEvidenceToControl(tx, c.orgId, d.implementationId, stored.id);
+		if (documentId)
+			await tx
+				.update(documents)
+				.set({ fileEvidenceId: stored.id })
+				.where(eq(documents.id, documentId));
 		return {
 			result: stored.id,
 			audit: {
@@ -147,8 +174,10 @@ async function uploadEvidenceImpl(
 			},
 		};
 	});
+	if (id === "locked") return { ok: false, error: "upload_locked" };
 	revalidatePath("/nachweise");
 	revalidatePath("/controls", "layout");
+	if (documentId) revalidatePath("/dokumente", "layout");
 	return {
 		ok: true,
 		data: {

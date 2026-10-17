@@ -113,6 +113,17 @@ export const updateDocumentSchema = z.object({
 	retentionYears: z.coerce.number().int().min(0).max(30).nullable().optional(),
 });
 
+// Richtlinien-Import: bis 50 Dateien je Aufruf (der Dialog teilt größere Mengen).
+export const importDocumentsSchema = z
+	.array(
+		z.object({
+			evidenceId: uuid,
+			bodyMarkdown: z.string().max(200_000).optional(),
+		}),
+	)
+	.min(1)
+	.max(50);
+
 export const newDocumentVersionSchema = z.object({
 	documentId: uuid,
 	changeSummary: z.string().trim().min(3).max(2000),

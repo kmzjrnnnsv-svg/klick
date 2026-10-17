@@ -327,7 +327,9 @@ export function QuestionCard({
 										disabled={pending}
 										onClick={() =>
 											start(async () => {
-												const res = await importDocumentsFromEvidence([d.id]);
+												const res = await importDocumentsFromEvidence([
+													{ evidenceId: d.id },
+												]);
 												if (!res.ok) toast.error(tc("error"));
 												else toast.success(t("asDocumentDone"));
 											})

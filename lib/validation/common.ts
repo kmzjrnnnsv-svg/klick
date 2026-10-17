@@ -26,7 +26,14 @@ export const email = z.email().transform((v) => v.trim().toLowerCase());
 
 export type ActionResult<T = undefined> =
 	| { ok: true; data: T }
-	| { ok: false; error: string; fieldErrors?: Record<string, string[]> };
+	| {
+			ok: false;
+			error: string;
+			fieldErrors?: Record<string, string[]>;
+			// Zusatzangaben für eine verständliche Meldung (z. B. fehlende
+			// Funktion bei Freigaben, Höchstzahl beim Import)
+			detail?: Record<string, string>;
+	  };
 
 export function fail(
 	error: string,

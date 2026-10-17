@@ -1,3 +1,4 @@
+import { decodeText } from "@/lib/uploads/text";
 import { readZipEntries } from "@/lib/uploads/zip-read";
 
 // Text aus einem Upload für die Inhaltsprüfung (DLP). Textformate direkt,
@@ -62,9 +63,11 @@ function cap(text: string): { text: string; truncated: boolean } {
 
 export function extractText(bytes: Uint8Array, mime: string): Extraction {
 	if (TEXT_MIMES.has(mime)) {
+		// Windows-1252/UTF-16 aus Excel & Co. richtig lesen (sonst Umlaut-Salat)
+		const decoded = decodeText(bytes);
 		return {
 			status: "ok",
-			...cap(new TextDecoder("utf-8").decode(bytes)),
+			...cap(decoded?.text ?? new TextDecoder("utf-8").decode(bytes)),
 		};
 	}
 	const parts = OOXML_PARTS[mime];

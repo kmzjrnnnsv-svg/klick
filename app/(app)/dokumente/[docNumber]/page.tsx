@@ -278,6 +278,7 @@ export default async function DocumentDetailPage({
 					canEdit && doc.status === "draft" ? (
 						<EvidenceForm
 							storageAvailable={storageAvailable}
+							documentId={doc.id}
 							label={t("file")}
 						/>
 					) : null

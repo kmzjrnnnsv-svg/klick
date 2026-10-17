@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
 	Select,
 	SelectContent,
@@ -38,7 +39,10 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { FileDrop } from "@/components/uploads/file-drop";
 import { DOCUMENT_TYPES } from "@/db/schema/grc";
+import { decodeText } from "@/lib/uploads/text";
+import { precheckFile, titleFromFileName } from "@/lib/uploads/types";
 
 export type TemplateOption = {
 	code: string;
@@ -267,6 +271,9 @@ export function TemplatesDialog({
 }
 
 // Richtlinien-Import: Mehrfach-Upload → Nachweise (verschlüsselt) → Entwürfe.
+const IMPORT_EXTS = [".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".md"];
+const IMPORT_BATCH = 50;
+
 export function ImportDialog({
 	storageAvailable,
 }: {
@@ -274,6 +281,7 @@ export function ImportDialog({
 }) {
 	const t = useTranslations("Documents");
 	const te = useTranslations("Evidence");
+	const tu = useTranslations("Upload");
 	const tc = useTranslations("Common");
 	const td = useTranslations("Dlp");
 	const feedback = useUploadFeedback();
@@ -281,8 +289,81 @@ export function ImportDialog({
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [files, setFiles] = useState<File[]>([]);
+	const [done, setDone] = useState<number | null>(null);
+
+	// Vorab im Browser aussortieren, was der Server ohnehin ablehnt.
+	function pick(list: File[]) {
+		const ok: File[] = [];
+		for (const f of list) {
+			const problem = precheckFile(f, IMPORT_EXTS);
+			if (problem)
+				toast.error(
+					`${f.name}: ${feedback.errorText({ ok: false, error: `upload_${problem}` })}`,
+				);
+			else ok.push(f);
+		}
+		setFiles(ok);
+	}
+
+	function run() {
+		start(async () => {
+			const items: { evidenceId: string; bodyMarkdown?: string }[] = [];
+			setDone(0);
+			for (const [i, f] of files.entries()) {
+				const fd = new FormData();
+				fd.set("file", f);
+				fd.set("title", titleFromFileName(f.name));
+				fd.set("type", "document");
+				fd.set("classification", "internal");
+				const up = await uploadEvidence(fd);
+				setDone(i + 1);
+				if (!up.ok) {
+					const warn = feedback.dlpWarning(up);
+					toast.error(
+						`${f.name}: ${
+							warn
+								? td("warnLead", { detectors: feedback.detectors(warn) })
+								: feedback.errorText(up)
+						}`,
+					);
+					continue;
+				}
+				// Text/Markdown: Inhalt gleich in den Entwurf (sonst leere Seite).
+				let bodyMarkdown: string | undefined;
+				if (/\.(md|txt)$/i.test(f.name)) {
+					const decoded = decodeText(new Uint8Array(await f.arrayBuffer()));
+					bodyMarkdown = decoded?.text.slice(0, 200_000);
+				}
+				items.push({ evidenceId: up.data.id, bodyMarkdown });
+			}
+			setDone(null);
+			if (items.length === 0) return;
+			let created = 0;
+			for (let i = 0; i < items.length; i += IMPORT_BATCH) {
+				const res = await importDocumentsFromEvidence(
+					items.slice(i, i + IMPORT_BATCH),
+				);
+				if (!res.ok) return void toast.error(tc("error"));
+				created += res.data.created;
+			}
+			toast.success(t("imported", { n: created }));
+			setOpen(false);
+			setFiles([]);
+			router.refresh();
+		});
+	}
+
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
+		<Dialog
+			open={open}
+			onOpenChange={(next) => {
+				if (!next && pending) {
+					toast.message(tu("busyClose"));
+					return;
+				}
+				setOpen(next);
+			}}
+		>
 			<DialogTrigger asChild>
 				<Button
 					size="sm"
@@ -299,53 +380,34 @@ export function ImportDialog({
 					<DialogTitle>{t("import")}</DialogTitle>
 					<DialogDescription>{t("importLead")}</DialogDescription>
 				</DialogHeader>
-				<Input
-					type="file"
+				<FileDrop
+					files={files}
+					onFiles={pick}
 					multiple
-					accept=".pdf,.docx,.xlsx,.pptx,.txt"
-					onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+					accept={IMPORT_EXTS.join(",")}
+					disabled={pending}
 				/>
-				<p className="text-muted-foreground text-xs">{te("fileHint")}</p>
+				<p className="text-muted-foreground text-xs">{t("importHint")}</p>
+				{done !== null && (
+					<div className="flex flex-col gap-1.5" aria-live="polite">
+						<Progress value={(done / Math.max(1, files.length)) * 100} />
+						<p className="text-muted-foreground text-xs">
+							{tu("progressMany", { done, total: files.length })}
+						</p>
+					</div>
+				)}
 				<DialogFooter>
-					<Button variant="ghost" onClick={() => setOpen(false)}>
+					<Button
+						variant="ghost"
+						onClick={() => setOpen(false)}
+						disabled={pending}
+					>
 						{tc("cancel")}
 					</Button>
 					<Button
 						variant="brown"
 						disabled={pending || files.length === 0}
-						onClick={() =>
-							start(async () => {
-								const ids: string[] = [];
-								for (const f of files.slice(0, 50)) {
-									const fd = new FormData();
-									fd.set("file", f);
-									fd.set("title", f.name);
-									fd.set("type", "document");
-									fd.set("classification", "internal");
-									const up = await uploadEvidence(fd);
-									if (up.ok) ids.push(up.data.id);
-									else {
-										const warn = feedback.dlpWarning(up);
-										toast.error(
-											`${f.name}: ${
-												warn
-													? td("warnLead", {
-															detectors: feedback.detectors(warn),
-														})
-													: feedback.errorText(up)
-											}`,
-										);
-									}
-								}
-								if (ids.length === 0) return;
-								const res = await importDocumentsFromEvidence(ids);
-								if (!res.ok) return void toast.error(tc("error"));
-								toast.success(t("imported", { n: res.data.created }));
-								setOpen(false);
-								setFiles([]);
-								router.refresh();
-							})
-						}
+						onClick={run}
 					>
 						{t("import")}
 					</Button>

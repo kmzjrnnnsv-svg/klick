@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { FileDrop } from "@/components/uploads/file-drop";
+import { precheckFile, titleFromFileName } from "@/lib/uploads/types";
 import { DlpWarning, useUploadFeedback } from "./upload-feedback";
 
 const TYPES = [
@@ -38,17 +40,21 @@ const TYPES = [
 ] as const;
 const CLASSES = ["public", "internal", "confidential", "secret"] as const;
 
-// Nachweis hinzufügen: Datei (verschlüsselt) oder Link/Attestierung.
+// Nachweis hinzufügen: Datei (verschlüsselt) oder Link/Attestierung. Mit
+// `documentId` wird die Datei die Datei dieses Dokument-Entwurfs.
 export function EvidenceForm({
 	implementationId,
+	documentId,
 	storageAvailable,
 	label,
 }: {
 	implementationId?: string;
+	documentId?: string;
 	storageAvailable: boolean;
 	label?: string;
 }) {
 	const t = useTranslations("Evidence");
+	const tu = useTranslations("Upload");
 	const tc = useTranslations("Common");
 	const td = useTranslations("Dlp");
 	const feedback = useUploadFeedback();
@@ -76,6 +82,24 @@ export function EvidenceForm({
 		setDlpAck(false);
 	}
 
+	// Größe/Typ schon im Browser prüfen — spart 25 MB Upload für eine Absage.
+	function pickFile(files: File[]) {
+		const f = files[0] ?? null;
+		setDlpReasons(null);
+		setDlpAck(false);
+		if (f) {
+			const problem = precheckFile(f);
+			if (problem) {
+				toast.error(
+					feedback.errorText({ ok: false, error: `upload_${problem}` }),
+				);
+				return;
+			}
+			if (!title) setTitle(titleFromFileName(f.name));
+		}
+		setFile(f);
+	}
+
 	function submit(mode: "upload" | "link") {
 		start(async () => {
 			let res: Awaited<ReturnType<typeof createEvidenceLink>>;
@@ -83,12 +107,13 @@ export function EvidenceForm({
 				if (!file) return;
 				const fd = new FormData();
 				fd.set("file", file);
-				fd.set("title", title || file.name);
+				fd.set("title", title || titleFromFileName(file.name));
 				fd.set("description", description);
 				fd.set("type", type);
 				fd.set("classification", classification);
 				if (validUntil) fd.set("validUntil", validUntil);
 				if (implementationId) fd.set("implementationId", implementationId);
+				if (documentId) fd.set("documentId", documentId);
 				if (dlpAck) fd.set("dlpAcknowledged", "1");
 				const up = await uploadEvidence(fd);
 				if (!up.ok) {
@@ -207,7 +232,18 @@ export function EvidenceForm({
 	);
 
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
+		<Dialog
+			open={open}
+			onOpenChange={(next) => {
+				// Während des Uploads nicht schließen — sonst bricht er unsichtbar
+				// ab und ein zweiter Versuch legt eine Dublette an.
+				if (!next && pending) {
+					toast.message(tu("busyClose"));
+					return;
+				}
+				setOpen(next);
+			}}
+		>
 			<DialogTrigger asChild>
 				<Button size="sm" variant="outline">
 					<Plus />
@@ -236,16 +272,11 @@ export function EvidenceForm({
 						>
 							<div className="flex flex-col gap-1.5">
 								<Label htmlFor="ev-file">{t("file")}</Label>
-								<Input
+								<FileDrop
 									id="ev-file"
-									type="file"
-									required
-									onChange={(e) => {
-										setFile(e.target.files?.[0] ?? null);
-										setDlpReasons(null);
-										setDlpAck(false);
-									}}
-									accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.txt,.csv,.json"
+									files={file ? [file] : []}
+									onFiles={pickFile}
+									disabled={pending}
 								/>
 								<p className="text-muted-foreground text-xs">{t("fileHint")}</p>
 							</div>
@@ -256,6 +287,11 @@ export function EvidenceForm({
 									acknowledged={dlpAck}
 									onAcknowledge={setDlpAck}
 								/>
+							)}
+							{pending && file && (
+								<p className="text-muted-foreground text-xs" aria-live="polite">
+									{tu("busy")}
+								</p>
 							)}
 							<div className="flex justify-end">
 								<Button

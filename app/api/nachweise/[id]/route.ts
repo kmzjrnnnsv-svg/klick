@@ -8,8 +8,19 @@ import { egressGuard } from "@/lib/dlp/egress";
 import { env } from "@/lib/env";
 import { evidenceAad } from "@/lib/evidence/aad";
 import { rateLimited } from "@/lib/export/respond";
+import { appUrl, attachmentDisposition, plainPage } from "@/lib/http/responses";
+import { logger } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
+
+// Downloads öffnet der Browser direkt — Fehler als kurze Seite mit Weg zurück
+// statt leerer 401/403/404.
+const notFound = () =>
+	plainPage(
+		404,
+		"Nachweis nicht gefunden",
+		"Diesen Nachweis gibt es nicht (mehr) oder er gehört nicht zu deiner Organisation.",
+	);
 
 // Auth-gated Download: Guard → RLS-Lookup → Entschlüsselung mit Org-DEK →
 // Attachment. Vertrauliche Nachweise verlangen Step-up. Jeder Download steht
@@ -23,23 +34,33 @@ export async function GET(
 	try {
 		ctx = await requireOrg({ evidence: ["read"] });
 	} catch (e) {
-		if (e instanceof AuthError) return new NextResponse(null, { status: 401 });
+		if (e instanceof AuthError) {
+			if (e.code === "unauthenticated" || e.code === "session_expired")
+				return NextResponse.redirect(
+					appUrl("/login?grund=sitzung-abgelaufen"),
+					303,
+				);
+			return plainPage(
+				403,
+				"Kein Zugriff",
+				"Für diesen Nachweis fehlen dir die Rechte. Frag die Inhaber:in deiner Organisation.",
+			);
+		}
 		throw e;
 	}
-	if (!/^[0-9a-f-]{36}$/i.test(id))
-		return new NextResponse(null, { status: 404 });
+	if (!/^[0-9a-f-]{36}$/i.test(id)) return notFound();
 	const limited =
 		rateLimited(ctx.orgId) ?? (await egressGuard(ctx, "evidence_download"));
 	if (limited) return limited;
 
 	const e = env();
 	if (!(e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY)) {
-		return new NextResponse(null, { status: 404 });
+		return notFound();
 	}
 
 	type Payload =
 		| { kind: "none" }
-		| { kind: "denied" }
+		| { kind: "denied"; reason: "grant_required" | "step_up_required" }
 		| {
 				kind: "ok";
 				row: typeof evidence.$inferSelect;
@@ -59,7 +80,7 @@ export async function GET(
 			!ctx.grants.includes("secret_evidence")
 		) {
 			return {
-				result: { kind: "denied" },
+				result: { kind: "denied", reason: "grant_required" },
 				audit: {
 					action: "evidence.download",
 					target: `evidence:${id}`,
@@ -72,7 +93,7 @@ export async function GET(
 			row.classification === "confidential" || row.classification === "secret";
 		if (sensitive && !ctx.stepUpFresh) {
 			return {
-				result: { kind: "denied" },
+				result: { kind: "denied", reason: "step_up_required" },
 				audit: {
 					action: "evidence.download",
 					target: `evidence:${id}`,
@@ -104,24 +125,46 @@ export async function GET(
 		};
 	});
 
-	if (payload.kind === "none") return new NextResponse(null, { status: 404 });
-	if (payload.kind === "denied") return new NextResponse(null, { status: 403 });
+	if (payload.kind === "none") return notFound();
+	if (payload.kind === "denied") {
+		// Vertraulich ohne frische MFA: zur Bestätigung und danach zurück.
+		if (payload.reason === "step_up_required")
+			return NextResponse.redirect(
+				appUrl(
+					`/login/2fa?stepup=1&zurueck=${encodeURIComponent(`/api/nachweise/${id}`)}`,
+				),
+				303,
+			);
+		return plainPage(
+			403,
+			"Streng geheim",
+			"Dieser Nachweis ist als geheim eingestuft. Prüfer:innen brauchen dafür eine eigene Freigabe der Organisation.",
+		);
+	}
 
-	const { getBytes } = await import("@/lib/storage/s3");
-	const packed = await getBytes(payload.row.storageKey as string);
-	const dek = await unwrapDek(payload.dek);
-	const plain = await decryptBytes(
-		unpackEnvelope(packed),
-		dek,
-		evidenceAad(id),
-	);
+	let plain: Uint8Array;
+	try {
+		const { getBytes } = await import("@/lib/storage/s3");
+		const packed = await getBytes(payload.row.storageKey as string);
+		const dek = await unwrapDek(payload.dek);
+		plain = await decryptBytes(unpackEnvelope(packed), dek, evidenceAad(id));
+	} catch (err) {
+		const ref = crypto.randomUUID().slice(0, 8);
+		logger.error({ err, ref, evidenceId: id }, "evidence download failed");
+		return plainPage(
+			502,
+			"Datei gerade nicht lesbar",
+			`Der Speicher hat die Datei nicht geliefert. Versuch es gleich noch einmal; bleibt es so, nenne die Referenz ${ref}.`,
+		);
+	}
 
-	const fileName = (payload.row.fileName ?? "nachweis").replace(/["\r\n]/g, "");
 	return new NextResponse(new Uint8Array(plain), {
 		status: 200,
 		headers: {
 			"Content-Type": payload.row.mimeType ?? "application/octet-stream",
-			"Content-Disposition": `attachment; filename="${fileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+			"Content-Disposition": attachmentDisposition(
+				payload.row.fileName ?? "nachweis",
+			),
 			"Content-Length": String(plain.byteLength),
 			"Cache-Control": "private, no-store",
 			"X-Content-Type-Options": "nosniff",

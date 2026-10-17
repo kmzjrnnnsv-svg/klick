@@ -1,83 +1,65 @@
 import { fileTypeFromBuffer } from "file-type";
+import { decodeText } from "./text";
+import {
+	ALLOWED_TYPES,
+	extensionOf,
+	MAX_UPLOAD_BYTES,
+	TEXT_TYPES,
+	type UploadRejectReason,
+} from "./types";
 
 // Upload-Härtung: MIME-Allowlist + Magic-Bytes-Prüfung (`file-type`), harte
 // Größengrenze, normalisierter Dateiname. Was hier durchfällt, wird nie in
 // S3 geschrieben. Auslieferung erfolgt immer als Attachment (außer der
 // sandboxed PDF-Vorschau in P2).
 
-export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+export { ALLOWED_TYPES, MAX_UPLOAD_BYTES } from "./types";
 
-// MIME → erlaubte Endungen. Binärformate werden per Magic Bytes verifiziert,
-// Textformate per UTF-8-Validität (haben keine Signatur).
-export const ALLOWED_TYPES: Record<string, readonly string[]> = {
-	"application/pdf": [".pdf"],
-	"application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
-		".docx",
-	],
-	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
-		".xlsx",
-	],
-	"application/vnd.openxmlformats-officedocument.presentationml.presentation": [
-		".pptx",
-	],
-	"image/png": [".png"],
-	"image/jpeg": [".jpg", ".jpeg"],
-	"text/plain": [".txt", ".md"],
-	"text/csv": [".csv"],
-	"application/json": [".json"],
-	// Scan-Berichte (S5): SARIF und Nuclei-JSONL
-	"application/sarif+json": [".sarif"],
-	"application/x-ndjson": [".jsonl"],
+// OOXML ist ein ZIP — Signatur allein sagt nichts. Ein echtes Office-Dokument
+// hat [Content_Types].xml und den Hauptteil des jeweiligen Formats; Dateinamen
+// stehen unkomprimiert in den ZIP-Headern.
+const OOXML_MAIN_PART: Record<string, string> = {
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+		"word/document.xml",
+	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+		"xl/workbook.xml",
+	"application/vnd.openxmlformats-officedocument.presentationml.presentation":
+		"ppt/presentation.xml",
 };
 
-const TEXT_TYPES = new Set([
-	"text/plain",
-	"text/csv",
-	"application/json",
-	"application/sarif+json",
-	"application/x-ndjson",
-]);
+function containsAscii(bytes: Uint8Array, needle: string): boolean {
+	return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).includes(
+		needle,
+		0,
+		"latin1",
+	);
+}
 
 export type UploadValidation =
 	| { ok: true; mime: string; ext: string; safeName: string; size: number }
 	| {
 			ok: false;
-			reason:
-				| "too_large"
-				| "empty"
-				| "type_not_allowed"
-				| "signature_mismatch"
-				| "invalid_text";
+			reason: UploadRejectReason;
 			detail?: string;
 	  };
 
 export function safeFileName(name: string): string {
 	const base = name.split(/[\\/]/).pop() ?? "datei";
 	const normalized = Array.from(base.normalize("NFC"))
-		// Steuerzeichen und Nullbytes raus
+		// Steuerzeichen, Nullbytes und Bidi-Steuerzeichen raus (sonst zeigt
+		// „rechnung‮fdp.exe“ in der Liste „rechnungexe.pdf“)
 		.filter((ch) => {
 			const c = ch.charCodeAt(0);
-			return c > 0x1f && c !== 0x7f;
+			if (c <= 0x1f || c === 0x7f) return false;
+			if (c >= 0x202a && c <= 0x202e) return false;
+			if (c >= 0x2066 && c <= 0x2069) return false;
+			return c !== 0x200e && c !== 0x200f && c !== 0x061c;
 		})
 		.join("")
 		.replace(/^\.+/, "")
 		.trim();
 	const trimmed = normalized.length > 120 ? normalized.slice(-120) : normalized;
 	return trimmed || "datei";
-}
-
-function extensionOf(name: string): string {
-	const i = name.lastIndexOf(".");
-	return i >= 0 ? name.slice(i).toLowerCase() : "";
-}
-
-function isValidUtf8(bytes: Uint8Array): boolean {
-	try {
-		new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-		return true;
-	} catch {
-		return false;
-	}
 }
 
 export async function validateUpload(input: {
@@ -101,7 +83,8 @@ export async function validateUpload(input: {
 	}
 
 	if (TEXT_TYPES.has(mimeByExt)) {
-		if (!isValidUtf8(input.bytes)) {
+		// UTF-8, UTF-16 mit BOM oder Windows-1252 — Hauptsache lesbarer Text.
+		if (!decodeText(input.bytes)) {
 			return { ok: false, reason: "invalid_text" };
 		}
 		// Textdateien dürfen keine bekannte Binärsignatur tragen (z. B. .txt
@@ -135,11 +118,15 @@ export async function validateUpload(input: {
 			detail: `${ext} ist tatsächlich ${sniffed.mime}`,
 		};
 	}
-	if (
-		sniffed.mime === "application/zip" &&
-		!mimeByExt.startsWith("application/vnd.openxmlformats")
-	) {
-		return { ok: false, reason: "signature_mismatch", detail: "zip" };
+	if (sniffed.mime === "application/zip") {
+		const mainPart = OOXML_MAIN_PART[mimeByExt];
+		if (
+			!mainPart ||
+			!containsAscii(input.bytes, "[Content_Types].xml") ||
+			!containsAscii(input.bytes, mainPart)
+		) {
+			return { ok: false, reason: "signature_mismatch", detail: "zip" };
+		}
 	}
 	return { ok: true, mime: mimeByExt, ext, safeName, size };
 }
