@@ -2071,7 +2071,10 @@
 		"colStatus": "Stand",
 		"colResolution": "Beschluss",
 		"overdue": "überfällig",
-		"empty": "Noch keine Anfragen an die Geschäftsleitung."
+		"empty": "Noch keine Anfragen an die Geschäftsleitung.",
+		"hintNone": "Noch niemand ist als Geschäftsleitung eingetragen — die Anfrage hätte keine Entscheider:in.",
+		"hintOnlyYou": "Die Geschäftsleitung bist nur du. Nach dem Vier-Augen-Prinzip entscheidet eine zweite Person — trag eine Vertretung oder ein weiteres Mitglied der Leitung ein.",
+		"hintLink": "Zu Rollen & Leitung"
 	},
 	"Resolutions": {
 		"linked": "Bezug öffnen",

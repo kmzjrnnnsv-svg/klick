@@ -1,6 +1,7 @@
 "use client";
 
 import { Gavel } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
@@ -32,6 +33,7 @@ export function DecisionRequestButton({
 	defaultQuestion,
 	refs,
 	soloHint,
+	approverHint,
 	variant = "outline",
 }: {
 	linkedEntityType?: EntityKind;
@@ -40,6 +42,8 @@ export function DecisionRequestButton({
 	// vorbelegte Anforderungen (Anzeige; der Server leitet sie erneut ab)
 	refs?: { frameworks: string[]; requirementKeys: string[] };
 	soloHint?: boolean;
+	// niemand (außer dir) in der Geschäftsleitung → Hinweis vor dem Absenden
+	approverHint?: "none" | "only_you" | null;
 	variant?: "outline" | "brown";
 }) {
 	const t = useTranslations("Decisions");
@@ -112,6 +116,20 @@ export function DecisionRequestButton({
 						<DialogTitle>{t("title")}</DialogTitle>
 						<DialogDescription>{t("lead")}</DialogDescription>
 					</DialogHeader>
+					{approverHint && (
+						<p
+							role="note"
+							className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm"
+						>
+							{t(approverHint === "none" ? "hintNone" : "hintOnlyYou")}{" "}
+							<Link
+								href="/organisation?tab=rollen"
+								className="text-primary underline-offset-4 hover:underline"
+							>
+								{t("hintLink")}
+							</Link>
+						</p>
+					)}
 					<div className="grid gap-2">
 						<Label htmlFor="dr-q">{t("question")}</Label>
 						<Input

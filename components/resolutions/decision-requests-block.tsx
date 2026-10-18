@@ -9,6 +9,7 @@ import {
 	entityFrameworkRefs,
 	listDecisionRequests,
 	listResolutionsFor,
+	managementApproverHint,
 } from "@/lib/compliance/decision-service";
 import { readOrg } from "@/lib/db/with-org";
 import { DecisionRequestButton } from "./decision-request-button";
@@ -34,6 +35,7 @@ export async function DecisionRequestsBlock({
 			? await listResolutionsFor(tx, ctx.orgId, kind, [id])
 			: [],
 		refs: await entityFrameworkRefs(tx, ctx.orgId, kind, id),
+		approverHint: await managementApproverHint(tx, ctx.orgId, ctx.userId),
 	}));
 	const canAsk = roleAllows(ctx.orgRole, { task: ["create"] });
 	const empty = data.requests.length === 0 && data.resolutions.length === 0;
@@ -47,6 +49,7 @@ export async function DecisionRequestsBlock({
 						linkedEntityId={id}
 						defaultQuestion={title}
 						refs={data.refs}
+						approverHint={data.approverHint}
 					/>
 				) : null
 			}

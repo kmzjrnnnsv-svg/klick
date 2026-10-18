@@ -22,7 +22,10 @@ import {
 	requiredResolutions,
 	resolutionCoverage,
 } from "@/lib/compliance/catalog/resolutions-required";
-import { listDecisionRequests } from "@/lib/compliance/decision-service";
+import {
+	listDecisionRequests,
+	managementApproverHint,
+} from "@/lib/compliance/decision-service";
 import { fmtDate, shortFrameworkName } from "@/lib/compliance/page-data";
 import { getOrgProfile, listMembersForPicker } from "@/lib/compliance/queries";
 import { listResolutions } from "@/lib/compliance/queries-p3";
@@ -49,13 +52,14 @@ export default async function ResolutionsPage({
 	const canCreate = roleAllows(ctx.orgRole, { resolution: ["create"] });
 	const memberCount = (await listOrgMembers(ctx.orgId)).length;
 
-	const { rows, members, required, requests } = await readOrg(
+	const { rows, members, required, requests, approverHint } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => {
 			const profile = await getOrgProfile(tx, ctx.orgId);
 			return {
 				rows: await listResolutions(tx, ctx.orgId),
 				requests: await listDecisionRequests(tx, ctx.orgId),
+				approverHint: await managementApproverHint(tx, ctx.orgId, ctx.userId),
 				members: await listMembersForPicker(tx, ctx.orgId),
 				required: requiredResolutions(
 					profile?.frameworks ?? [],
@@ -93,7 +97,12 @@ export default async function ResolutionsPage({
 				lead={t("lead")}
 				actions={
 					<span className="flex flex-wrap items-center gap-2">
-						{canAsk && <DecisionRequestButton soloHint={memberCount <= 1} />}
+						{canAsk && (
+							<DecisionRequestButton
+								soloHint={memberCount <= 1}
+								approverHint={approverHint}
+							/>
+						)}
 						{canCreate && (
 							<ResolutionForm
 								members={members}

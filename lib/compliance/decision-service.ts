@@ -20,8 +20,10 @@ import {
 	risks,
 } from "@/db/schema";
 import type { EntityKind } from "@/db/schema/enums";
+import { soloModeAllowed } from "@/lib/approvals/rules";
 import {
 	ensureOrgWorkflows,
+	loadCandidates,
 	requestApproval,
 	requestSteps,
 } from "@/lib/approvals/service";
@@ -530,4 +532,39 @@ export async function openDecisionRequest(
 		);
 	}
 	return { ok: true, id: row.id, code, status: r.status, audit };
+}
+
+// Hinweis vor dem Absenden (B4/E2): Gibt es jemanden außer der anfragenden
+// Person in der Geschäftsleitung (inkl. Vertretung)? Sonst scheitert die
+// Freigabe am Vier-Augen-Prinzip — das sagt der Dialog vorher.
+export async function managementApproverHint(
+	tx: OrgTx,
+	orgId: string,
+	requesterUserId: string,
+): Promise<"none" | "only_you" | null> {
+	const candidates = await loadCandidates(tx, orgId);
+	// Solo-Modus (eine Person, Stufe < 2) gibt mit Begründung selbst frei
+	const [s] = await tx
+		.select({
+			stage: orgSettings.licenceStage,
+			self: orgSettings.allowSelfApproval,
+		})
+		.from(orgSettings)
+		.where(eq(orgSettings.organizationId, orgId))
+		.limit(1);
+	if (
+		s &&
+		soloModeAllowed({
+			memberCount: candidates.length,
+			allowSelfApproval: s.self,
+			licenceStage: s.stage,
+		})
+	)
+		return null;
+	const mgmt = candidates.filter((c) =>
+		c.functions.includes("management_body"),
+	);
+	if (mgmt.length === 0) return "none";
+	if (mgmt.every((c) => c.userId === requesterUserId)) return "only_you";
+	return null;
 }
