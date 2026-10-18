@@ -5,6 +5,12 @@ import {
 	ObligationSettings,
 	RunActions,
 } from "@/components/calendar/calendar-actions";
+import {
+	DateEntryList,
+	DateGroupChips,
+	type DateLabels,
+	groupCounts,
+} from "@/components/calendar/date-entries";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
@@ -20,15 +26,27 @@ import {
 } from "@/components/ui/table";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { isExternal } from "@/lib/auth/memberships";
+import { listOrgMembers } from "@/lib/auth/org";
 import { roleAllows } from "@/lib/auth/permissions";
 import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
+import {
+	collectDates,
+	DATE_GROUPS,
+	type DateKind,
+	type DateSource,
+	datesByMonth,
+	datesByWeek,
+} from "@/lib/compliance/dates";
 import { groupByMonth, runState } from "@/lib/compliance/obligations";
 import { fmtDate, shortFrameworkName } from "@/lib/compliance/page-data";
 import {
 	getOrgProfile,
 	listEvidence,
 	listMembersForPicker,
+	userNames,
 } from "@/lib/compliance/queries";
+import { loadDateSources } from "@/lib/compliance/queries-dates";
 import {
 	listObligationRuns,
 	listObligations,
@@ -74,9 +92,46 @@ export default async function CalendarPage({
 	const canEdit = roleAllows(ctx.orgRole, { obligation: ["update"] });
 	const canComplete = roleAllows(ctx.orgRole, { obligation: ["complete"] });
 
+	const today = now.toISOString().slice(0, 10);
+	const in90 = new Date(now.getTime() + 90 * 86_400_000)
+		.toISOString()
+		.slice(0, 10);
+	const range =
+		tab === "liste"
+			? { from: today, to: in90 }
+			: { from: `${year}-01-01`, to: `${year}-12-31` };
+	const art = one(sp.art);
+	const artKinds: readonly DateKind[] | undefined =
+		art && art in DATE_GROUPS ? DATE_GROUPS[art] : undefined;
+	const members = await listOrgMembers(ctx.orgId);
+	const accessSources: DateSource[] = members
+		.filter((m) => isExternal(m.role) && m.accessUntil)
+		.map((m) => ({
+			date: m.accessUntil?.toISOString().slice(0, 10) ?? null,
+			kind: "access_expiry",
+			title: t("accessExpiry", { name: m.name || m.email }),
+			href: "/team",
+		}));
+
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const profile = await getOrgProfile(tx, ctx.orgId);
+		const sources =
+			tab === "jahr" || tab === "liste"
+				? await loadDateSources(
+						tx,
+						ctx.orgId,
+						range,
+						profile?.frameworks ?? [],
+						now,
+					)
+				: [];
+		const allSources = [...sources, ...accessSources];
 		return {
+			sources: allSources,
+			names: await userNames(
+				tx,
+				allSources.map((x) => x.ownerUserId ?? null),
+			),
 			frameworks: profile?.frameworks ?? [],
 			runs: await listObligationRuns(tx, ctx.orgId, {
 				from: `${year}-01-01`,
@@ -89,6 +144,34 @@ export default async function CalendarPage({
 		};
 	});
 	const byMonth = groupByMonth(data.runs, year);
+	// Jahr: Pflicht-Läufe eigen (mit Aktionen), alle anderen Termine dazu
+	const allEntries = collectDates(data.sources, range, today, {
+		includeOverdue: tab === "liste",
+	});
+	const entries = artKinds
+		? allEntries.filter((e) => artKinds.includes(e.kind))
+		: allEntries;
+	const otherByMonth = datesByMonth(
+		entries.filter((e) => e.kind !== "obligation"),
+		year,
+	);
+	const showRuns = !artKinds || artKinds.includes("obligation");
+	const counts = groupCounts(allEntries);
+	const dateLabels: DateLabels = {
+		kind: (k) => t(`kind_${k}`),
+		state: (st) => t(`dstate_${st}`),
+	};
+	const chipLabels = {
+		all: t("filterAll"),
+		group: (g: string) => t(`group_${g}` as "group_ziele"),
+		aria: t("filterLabel"),
+	};
+	const otherOpen = entries.filter(
+		(e) => e.kind !== "obligation" && e.state !== "done",
+	).length;
+	const otherOverdue = entries.filter(
+		(e) => e.kind !== "obligation" && e.state === "overdue",
+	).length;
 	const openCount = data.runs.filter(
 		(r) => r.status !== "done" && r.status !== "waived",
 	).length;
@@ -113,6 +196,7 @@ export default async function CalendarPage({
 				active={tab}
 				tabs={[
 					{ value: "jahr", label: t("tabYear"), count: openCount || undefined },
+					{ value: "liste", label: t("tabList") },
 					{ value: "pflichten", label: t("tabObligations") },
 					{
 						value: "rechtsaenderungen",
@@ -143,10 +227,19 @@ export default async function CalendarPage({
 							{year + 1} →
 						</Link>
 						<span className="ml-auto text-muted-foreground text-xs">
-							{t("yearStats", { open: openCount, overdue })}
+							{t("yearStats", {
+								open: (showRuns ? openCount : 0) + otherOpen,
+								overdue: (showRuns ? overdue : 0) + otherOverdue,
+							})}
 						</span>
 					</div>
-					{data.runs.length === 0 ? (
+					<DateGroupChips
+						base={`/kalender?tab=jahr&jahr=${year}`}
+						active={art}
+						counts={counts}
+						labels={chipLabels}
+					/>
+					{data.runs.length === 0 && allEntries.length === 0 ? (
 						<EmptyState
 							title={t("empty")}
 							lead={t("emptyLead")}
@@ -160,7 +253,8 @@ export default async function CalendarPage({
 					) : (
 						<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
 							{MONTHS.map((name, idx) => {
-								const items = byMonth.get(idx + 1) ?? [];
+								const items = showRuns ? (byMonth.get(idx + 1) ?? []) : [];
+								const others = otherByMonth.get(idx + 1) ?? [];
 								const isCurrent =
 									year === now.getFullYear() && idx === now.getMonth();
 								return (
@@ -170,9 +264,9 @@ export default async function CalendarPage({
 									>
 										<h2 className="lv-eyebrow mb-2 flex items-center justify-between text-[0.6rem] text-muted-foreground">
 											{name}
-											<span>{items.length}</span>
+											<span>{items.length + others.length}</span>
 										</h2>
-										{items.length === 0 ? (
+										{items.length + others.length === 0 ? (
 											<p className="text-muted-foreground text-xs">—</p>
 										) : (
 											<ul className="flex flex-col divide-y divide-border/60">
@@ -222,9 +316,47 @@ export default async function CalendarPage({
 												})}
 											</ul>
 										)}
+										{others.length > 0 && (
+											<DateEntryList
+												entries={others}
+												labels={dateLabels}
+												names={data.names}
+											/>
+										)}
 									</section>
 								);
 							})}
+						</div>
+					)}
+				</section>
+			)}
+
+			{tab === "liste" && (
+				<section className="flex flex-col gap-4">
+					<p className="text-muted-foreground text-sm">{t("listLead")}</p>
+					<DateGroupChips
+						base="/kalender?tab=liste"
+						active={art}
+						counts={counts}
+						labels={chipLabels}
+					/>
+					{entries.length === 0 ? (
+						<p className="text-sm">{t("listEmpty")}</p>
+					) : (
+						<div className="flex flex-col gap-4">
+							{datesByWeek(entries).map((w) => (
+								<section key={w.week} className="rounded-md border p-3">
+									<h2 className="lv-eyebrow mb-1 flex items-center justify-between text-[0.6rem] text-muted-foreground">
+										{t("weekOf", { date: fmtDate.format(new Date(w.week)) })}
+										<span>{w.entries.length}</span>
+									</h2>
+									<DateEntryList
+										entries={w.entries}
+										labels={dateLabels}
+										names={data.names}
+									/>
+								</section>
+							))}
 						</div>
 					)}
 				</section>

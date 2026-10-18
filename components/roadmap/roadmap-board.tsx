@@ -377,3 +377,38 @@ export function ApplyRoadmapForm({
 		</FormDialog>
 	);
 }
+
+// Termin aus der Zeitachse als Meilenstein übernehmen (C2)
+export function AdoptDateButton({
+	title,
+	dueAt,
+}: {
+	title: string;
+	dueAt: string;
+}) {
+	const t = useTranslations("Roadmap");
+	const tc = useTranslations("Common");
+	const router = useRouter();
+	const [pending, start] = useTransition();
+	return (
+		<button
+			type="button"
+			className="text-primary text-xs underline-offset-4 hover:underline disabled:opacity-50"
+			disabled={pending}
+			onClick={() =>
+				start(async () => {
+					const res = await upsertMilestone({
+						title: title.slice(0, 200),
+						dueAt,
+						phase: null,
+					});
+					if (!res.ok) return void toast.error(tc("error"));
+					toast.success(t("adopted"));
+					router.refresh();
+				})
+			}
+		>
+			{t("adoptAsMilestone")}
+		</button>
+	);
+}
