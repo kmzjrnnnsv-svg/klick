@@ -164,8 +164,12 @@ export function stamp(): string {
 	return new Date().toISOString().slice(0, 10);
 }
 
-// Markdown-Tabellenzelle: Pipes und Zeilenumbrüche entschärfen.
+// Markdown-Tabellenzelle: Backslashes zuerst, dann Pipes und Zeilenumbrüche
+// entschärfen (ein „\“ vor „|“ höbe das Escaping sonst wieder auf).
 export function md(v: unknown): string {
 	if (v === null || v === undefined) return "";
-	return String(v).replaceAll("|", "\\|").replaceAll(/\r?\n/g, " ");
+	return String(v)
+		.replaceAll("\\", "\\\\")
+		.replaceAll("|", "\\|")
+		.replaceAll(/\r?\n/g, " ");
 }

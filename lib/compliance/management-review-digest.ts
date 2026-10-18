@@ -116,8 +116,13 @@ const pct = (a: number, b: number) =>
 const tone = (bad: number, alertFrom = 1, warnFrom = 1): DigestTone =>
 	bad >= alertFrom ? "alert" : bad >= warnFrom ? "warn" : "ok";
 const de = (iso: string) => iso.slice(0, 10).split("-").reverse().join(".");
-// Markdown: Pipes und Zeilenumbrüche aus Freitext entschärfen
-const cell = (v: string) => v.replace(/\|/g, "\\|").replace(/\s*\n\s*/g, " ");
+// Markdown: Backslashes zuerst, dann Pipes und Zeilenumbrüche aus Freitext
+// entschärfen — sonst hebt ein „\“ vor einem „|“ das Escaping wieder auf
+const cell = (v: string) =>
+	v
+		.replace(/\\/g, "\\\\")
+		.replace(/\|/g, "\\|")
+		.replace(/\s*\n\s*/g, " ");
 
 const STATE_LABEL: Record<IndicatorState, string> = {
 	ok: "im Ziel",

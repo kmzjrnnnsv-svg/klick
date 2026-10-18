@@ -161,6 +161,25 @@ describe("reviewDigest", () => {
 		expect(md).toContain("| Alarm | 1 ✖ |");
 		expect(md).toContain("## Erreichung der Informationssicherheitsziele");
 	});
+	it("Markdown entschärft Backslash vor Pipe", () => {
+		const md = digestMarkdown(
+			{
+				...d,
+				sections: [
+					{
+						key: "x",
+						title: "T",
+						facts: [{ label: "a\\|b", value: "1", tone: "ok" }],
+						items: [{ title: "c|d\nfolgt" }],
+					},
+				],
+			},
+			{ orgName: "Muster | GmbH" },
+		);
+		expect(md).toContain("| a\\\\\\|b | 1 |");
+		expect(md).toContain("- c\\|d folgt");
+		expect(md).toContain("**Organisation:** Muster \\| GmbH");
+	});
 	it("Schnappschuss wird erkannt", () => {
 		expect(asDigest(JSON.parse(JSON.stringify(d)))?.sections.length).toBe(
 			d.sections.length,
