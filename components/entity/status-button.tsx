@@ -102,10 +102,13 @@ export function StatusButton({
 	target,
 	frameworkNames,
 	disabled,
+	hideTo,
 }: {
 	target: Target;
 	frameworkNames?: Record<string, string>;
 	disabled?: boolean;
+	// Zielstatus, für die das Recht fehlt (z. B. „accepted“ ohne risk:accept)
+	hideTo?: readonly string[];
 }) {
 	const t = useTranslations("Status");
 	const tc = useTranslations("Common");
@@ -119,7 +122,7 @@ export function StatusButton({
 	const options = nextTransitions(machine, target.status, {
 		hasNote: true,
 		approvalsSatisfied: true,
-	});
+	}).filter((o) => !hideTo?.includes(o.to));
 	const primary = options.find((o) => o.primary) ?? options[0];
 	const rest = options.filter((o) => o !== primary);
 

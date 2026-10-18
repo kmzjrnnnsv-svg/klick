@@ -53,7 +53,7 @@ import {
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	type IndicatorState,
 	indicatorState,
@@ -126,9 +126,9 @@ export default async function OrganisationPage({
 		: "kontext";
 	const t = await getTranslations("Organisation");
 	const tf = await getTranslations("Functions");
-	const canEdit = roleAllows(ctx.orgRole, { organisation: ["update"] });
-	const canRoles = roleAllows(ctx.orgRole, { role_assignment: ["update"] });
-	const canShareholders = roleAllows(ctx.orgRole, { shareholder: ["update"] });
+	const canEdit = allows(ctx, { organisation: ["update"] });
+	const canRoles = allows(ctx, { role_assignment: ["update"] });
+	const canShareholders = allows(ctx, { shareholder: ["update"] });
 	const tsh = await getTranslations("Shareholders");
 	const tin = await getTranslations("Insurance");
 	const memberCount = (await listOrgMembers(ctx.orgId)).length;
@@ -1586,8 +1586,8 @@ export default async function OrganisationPage({
 							critical: x.critical,
 						}))}
 						defaultCountry="DE"
-						canEdit={roleAllows(ctx.orgRole, { asset: ["create", "delete"] })}
-						canRisk={roleAllows(ctx.orgRole, { risk: ["create"] })}
+						canEdit={allows(ctx, { asset: ["create", "delete"] })}
+						canRisk={allows(ctx, { risk: ["create"] })}
 					/>
 				</section>
 			)}

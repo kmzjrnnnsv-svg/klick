@@ -7,7 +7,7 @@ import { UserChip } from "@/components/entity/user-chip";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listEvidenceWithControls } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
@@ -34,7 +34,7 @@ export default async function EvidencePage({
 	const storageAvailable = Boolean(
 		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,
 	);
-	const canCreate = roleAllows(ctx.orgRole, { evidence: ["create"] });
+	const canCreate = allows(ctx, { evidence: ["create"] });
 
 	const q = one(sp.q)?.toLowerCase();
 	const type = one(sp.type);

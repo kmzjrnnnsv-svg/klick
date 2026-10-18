@@ -18,7 +18,7 @@ import {
 import { NC_PRIORITIES } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { capaState } from "@/lib/compliance/nonconformity";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
@@ -52,7 +52,7 @@ export default async function NonconformitiesPage({
 	const t = await getTranslations("Nonconformities");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const canCreate = roleAllows(ctx.orgRole, { nonconformity: ["create"] });
+	const canCreate = allows(ctx, { nonconformity: ["create"] });
 	const { rows, members } = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		rows: await listNonconformities(tx, ctx.orgId),
 		members: await listMembersForPicker(tx, ctx.orgId),

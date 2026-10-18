@@ -12,7 +12,7 @@ import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	CONTROL_BY_CODE,
 	EDGES_BY_REQUIREMENT,
@@ -104,7 +104,7 @@ export default async function RequirementPage({
 						framework={slug}
 						code={code}
 						applicable={applicable}
-						canEdit={roleAllows(ctx.orgRole, { control: ["update"] })}
+						canEdit={allows(ctx, { control: ["update"] })}
 					/>
 				) : (
 					<Button variant="outline" size="sm" asChild>

@@ -29,7 +29,7 @@ import {
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { CONTROLS } from "@/lib/compliance/catalog";
 import { SCENARIO_BY_CODE } from "@/lib/compliance/catalog/risk-scenarios";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -155,7 +155,7 @@ export default async function RiskDetailPage({
 	} = data;
 	const scales = scaleLabels(method);
 	const a = assessRisk(risk, method);
-	const canEdit = roleAllows(ctx.orgRole, { risk: ["update"] });
+	const canEdit = allows(ctx, { risk: ["update"] });
 	// Status einer Maßnahme folgt ihrer Aufgabe
 	const taskStatus = new Map(tasks.map((x) => [x.id, x.status]));
 	const treatmentStatus = (tr: {
@@ -216,6 +216,7 @@ export default async function RiskDetailPage({
 						aboveAppetite: a.aboveAppetite,
 					}}
 					disabled={!canEdit}
+					hideTo={allows(ctx, { risk: ["accept"] }) ? [] : ["accepted"]}
 				/>
 			}
 			actions={

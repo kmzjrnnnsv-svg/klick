@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { dependencyMap, listProcesses } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
@@ -50,7 +50,7 @@ export default async function ProcessesPage({
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const tf = await getTranslations("Functions");
-	const canCreate = roleAllows(ctx.orgRole, { process: ["create"] });
+	const canCreate = allows(ctx, { process: ["create"] });
 
 	const { rows, members, nodes } = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		rows: await listProcesses(tx, ctx.orgId),

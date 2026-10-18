@@ -31,7 +31,7 @@ import {
 import { answerStates } from "@/lib/assessments/state";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import {
 	CATALOG_EDGES,
@@ -113,13 +113,10 @@ export default async function AssessmentPage({
 		: closed
 			? "ergebnis"
 			: "fragen";
-	const canAnswer =
-		!closed && roleAllows(ctx.orgRole, { assessment: ["answer"] });
-	const canReview =
-		!closed && roleAllows(ctx.orgRole, { assessment: ["review"] });
-	const canApply =
-		!closed && roleAllows(ctx.orgRole, { assessment: ["apply"] });
-	const canTasks = roleAllows(ctx.orgRole, { task: ["create"] });
+	const canAnswer = !closed && allows(ctx, { assessment: ["answer"] });
+	const canReview = !closed && allows(ctx, { assessment: ["review"] });
+	const canApply = !closed && allows(ctx, { assessment: ["apply"] });
+	const canTasks = allows(ctx, { task: ["create"] });
 	const fwNames = Object.fromEntries(
 		a.frameworks.map((s) => [s, shortFrameworkName(s)]),
 	);
@@ -327,7 +324,7 @@ export default async function AssessmentPage({
 											)}
 											canAnswer={canAnswer}
 											canDelegate={canAnswer && canTasks}
-											canImportDocument={roleAllows(ctx.orgRole, {
+											canImportDocument={allows(ctx, {
 												document: ["create"],
 											})}
 											storageAvailable={s3Configured()}
@@ -420,7 +417,7 @@ export default async function AssessmentPage({
 							)}
 							{canApply &&
 								providerId &&
-								roleAllows(ctx.orgRole, { provider: ["update"] }) && (
+								allows(ctx, { provider: ["update"] }) && (
 									<div className="flex flex-wrap gap-2">
 										<CompleteSupplierDialog
 											assessmentId={a.id}
@@ -612,7 +609,7 @@ export default async function AssessmentPage({
 						</ul>
 					</section>
 					<div className="flex flex-wrap gap-2">
-						{roleAllows(ctx.orgRole, { export: ["create"] }) && (
+						{allows(ctx, { export: ["create"] }) && (
 							<a
 								href={`/api/export/gap-analyse.md?id=${a.id}`}
 								className={buttonVariants({ variant: "outline" })}
@@ -628,11 +625,10 @@ export default async function AssessmentPage({
 								{t("toReadiness")}
 							</Link>
 						)}
-						{!subjectScoped &&
-							roleAllows(ctx.orgRole, { assessment: ["create"] }) && (
-								<RepeatButton assessmentId={a.id} />
-							)}
-						{!closed && roleAllows(ctx.orgRole, { assessment: ["create"] }) && (
+						{!subjectScoped && allows(ctx, { assessment: ["create"] }) && (
+							<RepeatButton assessmentId={a.id} />
+						)}
+						{!closed && allows(ctx, { assessment: ["create"] }) && (
 							<CancelButton assessmentId={a.id} />
 						)}
 					</div>

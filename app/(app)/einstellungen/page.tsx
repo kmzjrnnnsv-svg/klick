@@ -21,7 +21,7 @@ import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { getSessionCtx, toOrgCtx } from "@/lib/auth/guards";
 import { getOrgSummary, listSsoProvidersForOrg } from "@/lib/auth/org";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
@@ -80,7 +80,7 @@ export default async function SettingsPage({
 		});
 		return { settings, workflows };
 	});
-	const canReadIntegrations = roleAllows(ctx.orgRole, {
+	const canReadIntegrations = allows(ctx, {
 		integration: ["read"],
 	});
 	const { tokens, productOptions } = canReadIntegrations
@@ -149,7 +149,7 @@ export default async function SettingsPage({
 	const availableItems = CATALOG_FRAMEWORKS.filter(
 		(f) => !activeSlugs.has(f.slug),
 	).map((f) => ({ ...toItem(f.slug), retired: retiredSlugs.has(f.slug) }));
-	const canEditSettings = roleAllows(ctx.orgRole, { settings: ["update"] });
+	const canEditSettings = allows(ctx, { settings: ["update"] });
 	const { prices } = canEditSettings
 		? await loadPriceTable(settings?.priceGroupId)
 		: { prices: null };
@@ -314,8 +314,8 @@ export default async function SettingsPage({
 							tokens={tokens}
 							products={productOptions}
 							baseUrl={callbackBase}
-							canCreate={roleAllows(ctx.orgRole, { integration: ["create"] })}
-							canRevoke={roleAllows(ctx.orgRole, { integration: ["revoke"] })}
+							canCreate={allows(ctx, { integration: ["create"] })}
+							canRevoke={allows(ctx, { integration: ["revoke"] })}
 						/>
 					</TabsContent>
 				)}

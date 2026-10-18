@@ -29,7 +29,7 @@ import {
 } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listEngagements } from "@/lib/compliance/queries-engagements";
 import { listProductOptions } from "@/lib/compliance/queries-products";
@@ -74,7 +74,7 @@ export default async function SecurityPage({
 	const tab: Tab = (TABS as readonly string[]).includes(one(sp.tab) ?? "")
 		? (one(sp.tab) as Tab)
 		: "uebersicht";
-	const canCreate = roleAllows(ctx.orgRole, { security: ["create"] });
+	const canCreate = allows(ctx, { security: ["create"] });
 	const { findings, scans, products, engagements } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
@@ -133,7 +133,7 @@ export default async function SecurityPage({
 				lead={t("lead")}
 				actions={
 					<div className="flex flex-wrap gap-2">
-						{roleAllows(ctx.orgRole, { export: ["create"] }) && (
+						{allows(ctx, { export: ["create"] }) && (
 							<a
 								href="/api/export/sicherheitsbericht.md"
 								className={buttonVariants({ variant: "outline", size: "sm" })}

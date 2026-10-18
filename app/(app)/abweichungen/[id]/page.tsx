@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { capaState } from "@/lib/compliance/nonconformity";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
@@ -67,7 +67,7 @@ export default async function NonconformityDetailPage({
 	const t = await getTranslations("Nonconformities");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const canEdit = roleAllows(ctx.orgRole, { nonconformity: ["update"] });
+	const canEdit = allows(ctx, { nonconformity: ["update"] });
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const r = await getNonconformity(tx, ctx.orgId, id);

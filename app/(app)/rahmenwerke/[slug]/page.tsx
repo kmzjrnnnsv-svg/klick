@@ -9,7 +9,7 @@ import { ReadinessPanel } from "@/components/readiness/readiness-panel";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	CONTROL_BY_CODE,
 	EDGES_BY_REQUIREMENT,
@@ -221,9 +221,9 @@ export default async function FrameworkPage({
 								path: `/rahmenwerke/${slug}`,
 								params: { tab: "pruefungsreife" },
 							}}
-							canCreateTask={roleAllows(ctx.orgRole, { task: ["create"] })}
+							canCreateTask={allows(ctx, { task: ["create"] })}
 							exportHref={
-								roleAllows(ctx.orgRole, { export: ["create"] })
+								allows(ctx, { export: ["create"] })
 									? `/api/export/readiness.md?fw=${slug}&stichtag=${readiness.result.asOf}`
 									: undefined
 							}

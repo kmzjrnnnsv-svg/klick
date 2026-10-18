@@ -9,7 +9,7 @@ import {
 	ssoProvider,
 	user,
 } from "@/db/auth-schema";
-import { memberAccess } from "@/db/schema";
+import { memberAccess, memberRoles, orgRoles } from "@/db/schema";
 import { readOrg } from "@/lib/db/with-org";
 import { membershipExpired } from "./memberships";
 import { normalizeRole } from "./session-rules";
@@ -55,6 +55,42 @@ export async function memberAccessFor(
 				),
 			),
 	);
+}
+
+// Ablauf, Grants und eigene Rollen (ADR-020) eines Mitglieds in EINER
+// Org-Transaktion — für requireOrg je Request.
+export async function memberContextFor(orgId: string, memberId: string) {
+	return readOrg({ orgId, userId: null }, async (tx) => {
+		const [access] = await tx
+			.select({
+				accessUntil: memberAccess.accessUntil,
+				grants: memberAccess.grants,
+			})
+			.from(memberAccess)
+			.where(
+				and(
+					eq(memberAccess.organizationId, orgId),
+					eq(memberAccess.memberId, memberId),
+				),
+			)
+			.limit(1);
+		const roles = await tx
+			.select({
+				id: orgRoles.id,
+				name: orgRoles.name,
+				permissions: orgRoles.permissions,
+			})
+			.from(memberRoles)
+			.innerJoin(orgRoles, eq(orgRoles.id, memberRoles.roleId))
+			.where(
+				and(
+					eq(memberRoles.organizationId, orgId),
+					eq(memberRoles.memberId, memberId),
+				),
+			)
+			.orderBy(orgRoles.name);
+		return { access: access ?? null, roles };
+	});
 }
 
 export async function listOrgMembers(orgId: string) {

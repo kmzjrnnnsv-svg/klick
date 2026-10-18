@@ -19,7 +19,7 @@ import { decisionRequestSchema } from "@/lib/validation/governance";
 async function createDecisionRequestImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; code: string; status: string }>> {
-	const c = await requireOrg({ task: ["create"] });
+	const c = await requireOrg({ decision: ["create"] });
 	const parsed = decisionRequestSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
@@ -46,7 +46,7 @@ async function createDecisionRequestImpl(
 }
 
 async function withdrawDecisionRequestImpl(id: string): Promise<ActionResult> {
-	const c = await requireOrg({ task: ["create"] });
+	const c = await requireOrg({ decision: ["create"] });
 	const done = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const [q] = await tx
 			.select({

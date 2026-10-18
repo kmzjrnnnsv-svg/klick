@@ -16,7 +16,7 @@ import {
 import { CONTROL_TEST_METHODS } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { getOrgProfile, listControlRows } from "@/lib/compliance/queries";
 import {
@@ -48,7 +48,7 @@ export default async function TestProgrammePage({
 	const method = one(sp.method);
 	const t = await getTranslations("TestProgramme");
 	const tt = await getTranslations("Tests");
-	const canPlan = roleAllows(ctx.orgRole, { control: ["update"] });
+	const canPlan = allows(ctx, { control: ["update"] });
 
 	const { tests, controls, processes, profile } = await readOrg(
 		toOrgCtx(ctx),

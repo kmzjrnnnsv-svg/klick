@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listCryptoAssets } from "@/lib/compliance/queries-p4";
 import { readOrg } from "@/lib/db/with-org";
@@ -33,7 +33,7 @@ const eur = new Intl.NumberFormat("de-DE", {
 export default async function CryptoAssetsPage() {
 	const ctx = await requireOrgPage({ crypto_asset: ["read"] });
 	const t = await getTranslations("CryptoAssets");
-	const canEdit = roleAllows(ctx.orgRole, { crypto_asset: ["update"] });
+	const canEdit = allows(ctx, { crypto_asset: ["update"] });
 	const rows = await readOrg(toOrgCtx(ctx), (tx) =>
 		listCryptoAssets(tx, ctx.orgId),
 	);

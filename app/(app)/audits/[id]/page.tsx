@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/table";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { independenceIssues } from "@/lib/compliance/audit-programme";
 import {
 	CONTROL_BY_CODE,
@@ -111,15 +111,15 @@ export default async function AuditCockpitPage({
 	const ctx = await requireOrgPage({ audit: ["read"] });
 	const t = await getTranslations("Audits");
 	const ts = await getTranslations("Status");
-	const canEdit = roleAllows(ctx.orgRole, { audit: ["update"] });
-	const canRequest = roleAllows(ctx.orgRole, { audit_request: ["create"] });
-	const canRespond = roleAllows(ctx.orgRole, { audit_request: ["respond"] });
-	const canDecide = roleAllows(ctx.orgRole, { audit_request: ["decide"] });
-	const canFinding = roleAllows(ctx.orgRole, { audit_finding: ["create"] });
-	const canNc = roleAllows(ctx.orgRole, { nonconformity: ["create"] });
-	const canRisk = roleAllows(ctx.orgRole, { risk: ["create"] });
+	const canEdit = allows(ctx, { audit: ["update"] });
+	const canRequest = allows(ctx, { audit_request: ["create"] });
+	const canRespond = allows(ctx, { audit_request: ["respond"] });
+	const canDecide = allows(ctx, { audit_request: ["decide"] });
+	const canFinding = allows(ctx, { audit_finding: ["create"] });
+	const canNc = allows(ctx, { nonconformity: ["create"] });
+	const canRisk = allows(ctx, { risk: ["create"] });
 	const trs = await getTranslations("RiskSources");
-	const canExport = roleAllows(ctx.orgRole, { export: ["create"] });
+	const canExport = allows(ctx, { export: ["create"] });
 
 	const cov = await getOrgCoverageCached(ctx);
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
@@ -405,7 +405,7 @@ export default async function AuditCockpitPage({
 					<h2 className="font-medium">{tr("blockers")}</h2>
 					<BlockerList
 						blockers={readiness.combined.blockers}
-						canCreateTask={roleAllows(ctx.orgRole, { task: ["create"] })}
+						canCreateTask={allows(ctx, { task: ["create"] })}
 					/>
 				</section>
 			)}
@@ -674,7 +674,7 @@ export default async function AuditCockpitPage({
 												findingId={f.id}
 												status={f.status}
 												disabled={
-													!roleAllows(ctx.orgRole, {
+													!allows(ctx, {
 														audit_finding: ["update"],
 													})
 												}

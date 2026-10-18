@@ -10,7 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { PRODUCT_ROLES } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { productCraStatus } from "@/lib/compliance/cra";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listProducts } from "@/lib/compliance/queries-products";
@@ -42,7 +42,7 @@ export default async function ProductsPage({
 	const t = await getTranslations("Products");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const canCreate = roleAllows(ctx.orgRole, { product: ["create"] });
+	const canCreate = allows(ctx, { product: ["create"] });
 	const products = await readOrg(toOrgCtx(ctx), (tx) =>
 		listProducts(tx, ctx.orgId),
 	);

@@ -5,12 +5,15 @@ import {
 	approvalRequests,
 	approvalWorkflows,
 	delegations,
+	memberRoles,
+	orgRoles,
 	orgSettings,
 	roleAssignments,
 } from "@/db/schema";
 import type { EntityKind, RoleFunction } from "@/db/schema/enums";
 import type { ApprovalStep } from "@/db/schema/grc";
-import { type OrgRole, roleAllows } from "@/lib/auth/permissions";
+import { effectivePermissions } from "@/lib/auth/permission-catalog";
+import { type OrgRole, permissionsAllow } from "@/lib/auth/permissions";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -84,9 +87,29 @@ export async function loadCandidates(
 	orgId: string,
 ): Promise<ApproverCandidate[]> {
 	const members = await tx
-		.select({ userId: member.userId, role: member.role })
+		.select({ memberId: member.id, userId: member.userId, role: member.role })
 		.from(member)
 		.where(eq(member.organizationId, orgId));
+	// eigene Rollen (ADR-020): Rechte + Zugehörigkeit für Stufen role:<id>
+	const custom = await tx
+		.select({
+			memberId: memberRoles.memberId,
+			roleId: orgRoles.id,
+			permissions: orgRoles.permissions,
+		})
+		.from(memberRoles)
+		.innerJoin(orgRoles, eq(orgRoles.id, memberRoles.roleId))
+		.where(eq(memberRoles.organizationId, orgId));
+	const customByMember = new Map<
+		string,
+		{ roleId: string; permissions: unknown }[]
+	>();
+	for (const c of custom) {
+		if (!c.memberId) continue;
+		const list = customByMember.get(c.memberId) ?? [];
+		list.push(c);
+		customByMember.set(c.memberId, list);
+	}
 	const fns = await tx
 		.select({
 			function: roleAssignments.function,
@@ -106,12 +129,18 @@ export async function loadCandidates(
 	}
 	return members.map((m) => {
 		const orgRole = normalizeRole(m.role) as OrgRole;
+		const own = customByMember.get(m.memberId) ?? [];
+		const perms = effectivePermissions(
+			orgRole,
+			own.map((c) => c.permissions),
+		);
 		return {
 			userId: m.userId,
 			orgRole,
 			functions: [...(byUser.get(m.userId) ?? [])],
+			customRoleIds: own.map((c) => c.roleId),
 			// Berater:innen u. a. ohne approval:decide bekommen keine Anfragen
-			canDecide: roleAllows(orgRole, { approval: ["decide"] }),
+			canDecide: permissionsAllow(perms, { approval: ["decide"] }),
 		};
 	});
 }

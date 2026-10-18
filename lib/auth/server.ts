@@ -11,7 +11,7 @@ import { twoFactor } from "better-auth/plugins/two-factor";
 import { and, eq } from "drizzle-orm";
 import { globalDb, schema } from "../../db";
 import { member, session as sessionTable, user } from "../../db/auth-schema";
-import { memberAccess, roleAssignments } from "../../db/schema";
+import { memberAccess, memberRoles, roleAssignments } from "../../db/schema";
 import { auditPlatform } from "../audit";
 import { withOrg } from "../db/with-org";
 import { sendTransactionalMail } from "../mail/send";
@@ -34,6 +34,7 @@ import {
 } from "./memberships";
 import { expireStepUp, listUserMemberships } from "./org";
 import { completeLinkRegistration, linkRegistrationUser } from "./passkey-link";
+import { canHoldCustomRoles } from "./permission-catalog";
 import { ac, roles } from "./permissions";
 import {
 	inviteDelivery,
@@ -41,6 +42,7 @@ import {
 	REG_COOKIE,
 	resolveRegistration,
 } from "./registration-link";
+import { normalizeRole } from "./session-rules";
 
 // Bewusst keine env()-Validierung beim Import: Better Auth liest
 // BETTER_AUTH_SECRET/BETTER_AUTH_URL selbst aus der Umgebung, und die CLI
@@ -392,6 +394,40 @@ export const auth = betterAuth({
 										eq(roleAssignments.pendingEmail, user.email.toLowerCase()),
 									),
 								),
+					);
+					// Beim Einladen gewählte eigene Rollen (ADR-020) verknüpfen —
+					// nur für interne Grundrollen, Externe bekommen keine.
+					await withOrg(
+						{ orgId: invitation.organizationId, userId: user.id },
+						(tx) =>
+							canHoldCustomRoles(normalizeRole(m.role))
+								? tx
+										.update(memberRoles)
+										.set({
+											memberId: m.id,
+											userId: user.id,
+											pendingEmail: null,
+										})
+										.where(
+											and(
+												eq(
+													memberRoles.organizationId,
+													invitation.organizationId,
+												),
+												eq(memberRoles.pendingEmail, user.email.toLowerCase()),
+											),
+										)
+								: tx
+										.delete(memberRoles)
+										.where(
+											and(
+												eq(
+													memberRoles.organizationId,
+													invitation.organizationId,
+												),
+												eq(memberRoles.pendingEmail, user.email.toLowerCase()),
+											),
+										),
 					);
 					// Externe (Prüfer:innen 6 Wochen, Berater:innen 90 Tage) bekommen
 					// befristeten Zugang; Owner passt Ablauf und Grants auf /team an.

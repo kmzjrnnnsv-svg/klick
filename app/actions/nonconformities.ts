@@ -6,7 +6,7 @@ import { member } from "@/db/auth-schema";
 import { nonconformities, tasks } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	NC_DUE_DAYS,
 	NC_EFFECTIVENESS_DAYS,
@@ -49,7 +49,7 @@ async function upsertNonconformityImpl(
 	const parsed = nonconformitySchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { id, ...d } = parsed.data;
-	if (id && !roleAllows(c.orgRole, { nonconformity: ["update"] }))
+	if (id && !allows(c, { nonconformity: ["update"] }))
 		return { ok: false, error: "forbidden" };
 	const byAuditor = c.orgRole === "auditor";
 	const res = await mutateOrg<{ id: string; code: string } | null>(
@@ -162,10 +162,7 @@ async function setNonconformityStatusImpl(
 	const parsed = setNonconformityStatusSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { nonconformityId, status, note } = parsed.data;
-	if (
-		status === "closed" &&
-		!roleAllows(c.orgRole, { nonconformity: ["close"] })
-	)
+	if (status === "closed" && !allows(c, { nonconformity: ["close"] }))
 		return { ok: false, error: "forbidden" };
 	const res = await mutateOrg<
 		ActionResult<{ status: string; approvalRequested: boolean }>

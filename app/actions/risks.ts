@@ -19,6 +19,7 @@ import {
 import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { allows } from "@/lib/auth/permissions";
 import { loadRiskSource } from "@/lib/compliance/queries-risk-sources";
 import { assessRisk, nextRiskCode } from "@/lib/compliance/risk";
 import { damageFrom } from "@/lib/compliance/risk-method";
@@ -239,6 +240,9 @@ async function setRiskStatusImpl(
 	const parsed = setRiskStatusSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { riskId, status, note, selfApprovalReason } = parsed.data;
+	// Akzeptieren ist ein eigenes Recht (eigene Rollen können es getrennt haben)
+	if (status === "accepted" && !allows(c, { risk: ["accept"] }))
+		return { ok: false, error: "forbidden" };
 	const res = await mutateOrg<
 		ActionResult<{ status: string; approvalRequested: boolean }>
 	>(toOrgCtx(c), async (tx) => {
@@ -637,7 +641,13 @@ async function saveGuided(
 
 			let acceptance: GuidedResult["acceptance"] = null;
 			let acceptanceError: string | undefined;
-			if (d.treatment === "accept" && status !== "accepted") {
+			if (
+				d.treatment === "accept" &&
+				status !== "accepted" &&
+				!allows(c, { risk: ["accept"] })
+			) {
+				acceptanceError = "forbidden";
+			} else if (d.treatment === "accept" && status !== "accepted") {
 				const r = await acceptRisk(
 					tx,
 					c,

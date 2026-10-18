@@ -21,7 +21,7 @@ import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { isExternal } from "@/lib/auth/memberships";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { aggregateCases, clockState } from "@/lib/compliance/complaints";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import {
@@ -59,11 +59,11 @@ export default async function ComplaintsPage({
 	const t = await getTranslations("Complaints");
 	const tf = await getTranslations("Functions");
 	const now = new Date();
-	const canEditComplaints = roleAllows(ctx.orgRole, { complaint: ["update"] });
+	const canEditComplaints = allows(ctx, { complaint: ["update"] });
 	const canSeeWb =
-		roleAllows(ctx.orgRole, { whistleblowing: ["read"] }) ||
+		allows(ctx, { whistleblowing: ["read"] }) ||
 		ctx.grants.includes("whistleblowing_detail");
-	const canEditWb = roleAllows(ctx.orgRole, { whistleblowing: ["update"] });
+	const canEditWb = allows(ctx, { whistleblowing: ["update"] });
 	const detailComplaints =
 		!isExternal(ctx.orgRole) || ctx.grants.includes("complaints_detail");
 

@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	CONTROL_BY_CODE,
 	EDGES_BY_CONTROL,
@@ -114,7 +114,7 @@ export default async function ControlDetailPage({
 	} = data;
 	const cov = await getOrgCoverageCached(ctx);
 	const fwNames = frameworkNameMap();
-	const canEdit = roleAllows(ctx.orgRole, { control: ["update"] });
+	const canEdit = allows(ctx, { control: ["update"] });
 	const e = env();
 	const storageAvailable = Boolean(
 		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,
@@ -190,7 +190,7 @@ export default async function ControlDetailPage({
 						ownerUserId={row.ownerUserId}
 						assigneeUserId={row.assigneeUserId}
 						members={members}
-						canAssign={roleAllows(ctx.orgRole, { control: ["assign"] })}
+						canAssign={allows(ctx, { control: ["assign"] })}
 					/>
 					<MetaItem label={t("effort")}>
 						{t(`effort_${control.effort}`)} · {t(`kind_${control.kind}`)}
@@ -210,7 +210,7 @@ export default async function ControlDetailPage({
 						catalogKey={{ controlCode: code }}
 					/>
 					<Section title={te("activity")}>
-						{canEdit || roleAllows(ctx.orgRole, { comment: ["create"] }) ? (
+						{canEdit || allows(ctx, { comment: ["create"] }) ? (
 							<CommentForm
 								entityType="control"
 								entityId={row.implementationId}

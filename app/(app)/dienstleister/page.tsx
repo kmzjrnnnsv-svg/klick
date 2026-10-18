@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { TOOL_LANDSCAPE } from "@/lib/compliance/catalog/tool-landscape";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -58,8 +58,8 @@ export default async function ProvidersPage({
 		}),
 	);
 	const today = new Date().toISOString().slice(0, 10);
-	const canEdit = roleAllows(ctx.orgRole, { provider: ["create", "update"] });
-	const canExport = roleAllows(ctx.orgRole, { export: ["create"] });
+	const canEdit = allows(ctx, { provider: ["create", "update"] });
+	const canExport = allows(ctx, { export: ["create"] });
 	const tabParam = one(sp.tab);
 	const tab =
 		tabParam === "werkzeuge" || tabParam === "uebersicht"

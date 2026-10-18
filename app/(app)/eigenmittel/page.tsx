@@ -21,7 +21,7 @@ import {
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { micarClassFor } from "@/lib/compliance/own-funds";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { getOrgProfile } from "@/lib/compliance/queries";
@@ -53,7 +53,7 @@ export default async function OwnFundsPage({
 			: "berechnung";
 	const t = await getTranslations("OwnFunds");
 	const ts = await getTranslations("Status");
-	const canEdit = roleAllows(ctx.orgRole, { own_funds: ["update"] });
+	const canEdit = allows(ctx, { own_funds: ["update"] });
 	const memberCount = (await listOrgMembers(ctx.orgId)).length;
 	const { rows, profile } = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		rows: await listOwnFundsCalculations(tx, ctx.orgId),

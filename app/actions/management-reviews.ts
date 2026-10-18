@@ -6,7 +6,7 @@ import { managementReviews, tasks } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	applicableReviewInputs,
 	reviewComplete,
@@ -180,8 +180,8 @@ async function completeReviewImpl(
 						audit: [],
 					};
 			}
-			const canResolve = roleAllows(c.orgRole, { resolution: ["create"] });
-			const canNc = roleAllows(c.orgRole, { nonconformity: ["create"] });
+			const canResolve = allows(c, { resolution: ["create"] });
+			const canNc = allows(c, { nonconformity: ["create"] });
 			if (
 				(actions ?? []).some(
 					(a) =>

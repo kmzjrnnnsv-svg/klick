@@ -29,7 +29,7 @@ import {
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
 	listComments,
@@ -103,7 +103,7 @@ export default async function DocumentDetailPage({
 		dels,
 		names,
 	} = data;
-	const canEdit = roleAllows(ctx.orgRole, { document: ["update"] });
+	const canEdit = allows(ctx, { document: ["update"] });
 	const e = env();
 	const storageAvailable = Boolean(
 		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,

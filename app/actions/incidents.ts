@@ -13,6 +13,7 @@ import type { IncidentRegime } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { allows } from "@/lib/auth/permissions";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
 import {
 	classifyDoraIncident,
@@ -503,6 +504,8 @@ async function setIncidentStatusImpl(
 	const parsed = setIncidentStatusSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { incidentId, status, note, selfApprovalReason } = parsed.data;
+	if (status === "closed" && !allows(c, { incident: ["close"] }))
+		return { ok: false, error: "forbidden" };
 	const res = await mutateOrg<
 		ActionResult<{ status: string; approvalRequested: boolean }>
 	>(toOrgCtx(c), async (tx) => {

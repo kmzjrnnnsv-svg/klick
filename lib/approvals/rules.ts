@@ -7,7 +7,7 @@ import type { OrgRole } from "@/lib/auth/permissions";
 //
 // approverRule je Stufe:
 //   function:<role_function>  Person hält die Funktion (role_assignments, inkl. Vertretung)
-//   role:<orgRole>            Org-Rolle (owner/editor/…)
+//   role:<orgRole|roleId>     Grundrolle (owner/editor/…) oder eigene Rolle (ADR-020)
 //   user:<id>                 konkrete Person
 //   owner_of_entity           Owner der Entität
 //   not_requester             jede Person ausser Antragsteller:in
@@ -17,6 +17,8 @@ export type ApproverCandidate = {
 	userId: string;
 	orgRole: OrgRole;
 	functions: readonly RoleFunction[];
+	// eigene Rollen (ADR-020); Stufe role:<id> trifft sie
+	customRoleIds?: readonly string[];
 	// Recht „Freigaben entscheiden“ (approval:decide); fehlt es, zählt die
 	// Person nie als Freigeber:in — auch nicht über Funktion oder Vertretung
 	canDecide?: boolean;
@@ -52,7 +54,8 @@ function matchesRule(
 		case "role":
 			return (
 				candidate.orgRole === value ||
-				(value === "editor" && candidate.orgRole === "owner")
+				(value === "editor" && candidate.orgRole === "owner") ||
+				(candidate.customRoleIds ?? []).includes(value)
 			);
 		case "user":
 			return candidate.userId === value;

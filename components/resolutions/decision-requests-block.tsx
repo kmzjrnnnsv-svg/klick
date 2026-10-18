@@ -4,7 +4,7 @@ import { Section } from "@/components/entity/entity-layout";
 import { Badge } from "@/components/ui/badge";
 import type { EntityKind } from "@/db/schema/enums";
 import { type OrgContext, toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	entityFrameworkRefs,
 	listDecisionRequests,
@@ -31,13 +31,13 @@ export async function DecisionRequestsBlock({
 	const t = await getTranslations("Decisions");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		requests: await listDecisionRequests(tx, ctx.orgId, { type: kind, id }),
-		resolutions: roleAllows(ctx.orgRole, { resolution: ["read"] })
+		resolutions: allows(ctx, { resolution: ["read"] })
 			? await listResolutionsFor(tx, ctx.orgId, kind, [id])
 			: [],
 		refs: await entityFrameworkRefs(tx, ctx.orgId, kind, id),
 		approverHint: await managementApproverHint(tx, ctx.orgId, ctx.userId),
 	}));
-	const canAsk = roleAllows(ctx.orgRole, { task: ["create"] });
+	const canAsk = allows(ctx, { decision: ["create"] });
 	const empty = data.requests.length === 0 && data.resolutions.length === 0;
 	return (
 		<Section

@@ -24,7 +24,7 @@ import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { CONTROLS } from "@/lib/compliance/catalog";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
@@ -82,7 +82,7 @@ export default async function ProcessDetailPage({
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const tf = await getTranslations("Functions");
-	const canEdit = roleAllows(ctx.orgRole, { process: ["update"] });
+	const canEdit = allows(ctx, { process: ["update"] });
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const p = await getProcessByCode(tx, ctx.orgId, code);
@@ -507,7 +507,7 @@ export default async function ProcessDetailPage({
 								kind="process"
 								id={data.process.id}
 								risks={[]}
-								canCreate={roleAllows(ctx.orgRole, { risk: ["create"] })}
+								canCreate={allows(ctx, { risk: ["create"] })}
 								compact
 							/>
 						</div>

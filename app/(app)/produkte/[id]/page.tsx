@@ -27,7 +27,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	CRA_CHECK_LABEL,
 	CRA_REPORTING_FROM,
@@ -109,8 +109,8 @@ export default async function ProductPage({
 	const tab: Tab = (TABS as readonly string[]).includes(one(sp.tab) ?? "")
 		? (one(sp.tab) as Tab)
 		: "ueberblick";
-	const canEdit = roleAllows(ctx.orgRole, { product: ["update"] });
-	const canChecklist = roleAllows(ctx.orgRole, { assessment: ["create"] });
+	const canEdit = allows(ctx, { product: ["update"] });
+	const canChecklist = allows(ctx, { assessment: ["create"] });
 	const now = new Date();
 	const cra = productCraStatus(p, now);
 	const base = `/produkte/${p.id}`;
@@ -600,7 +600,7 @@ export default async function ProductPage({
 				<Section
 					title={t("incidents")}
 					actions={
-						roleAllows(ctx.orgRole, { incident: ["create"] }) ? (
+						allows(ctx, { incident: ["create"] }) ? (
 							<Link
 								href="/vorfaelle/neu"
 								className={buttonVariants({ variant: "outline", size: "sm" })}

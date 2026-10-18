@@ -5,7 +5,7 @@ import { Section } from "@/components/entity/entity-layout";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { type OrgContext, toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	catalogId,
 	listRisksBySource,
@@ -87,7 +87,7 @@ export async function SourceRisksBlock({
 	id?: string;
 	catalogKey?: { controlCode: string } | { slug: string; code: string };
 }) {
-	if (!roleAllows(ctx.orgRole, { risk: ["read"] })) return null;
+	if (!allows(ctx, { risk: ["read"] })) return null;
 	const loaded = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const sourceId =
 			id ?? (catalogKey ? await catalogId(tx, catalogKey) : null);
@@ -103,7 +103,7 @@ export async function SourceRisksBlock({
 			kind={kind}
 			id={loaded.sourceId}
 			risks={loaded.risks}
-			canCreate={roleAllows(ctx.orgRole, { risk: ["create"] })}
+			canCreate={allows(ctx, { risk: ["create"] })}
 		/>
 	);
 }

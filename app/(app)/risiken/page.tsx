@@ -29,7 +29,7 @@ import {
 import { RISK_CATEGORIES } from "@/db/schema/grc";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { CONTROLS } from "@/lib/compliance/catalog";
 import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
@@ -59,7 +59,7 @@ export default async function RisksPage({
 	const t = await getTranslations("Risks");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const canCreate = roleAllows(ctx.orgRole, { risk: ["create"] });
+	const canCreate = allows(ctx, { risk: ["create"] });
 
 	const cov = await getOrgCoverageCached(ctx);
 	const { rows, method, exceptions, losses, measures, proposals, dismissed } =
@@ -192,7 +192,7 @@ export default async function RisksPage({
 						at: d.at,
 					}))}
 					canCreate={canCreate}
-					canDecide={roleAllows(ctx.orgRole, { risk: ["update"] })}
+					canDecide={allows(ctx, { risk: ["update"] })}
 				/>
 			)}
 

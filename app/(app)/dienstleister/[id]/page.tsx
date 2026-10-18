@@ -27,7 +27,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { ART30_CLAUSES } from "@/lib/compliance/catalog/art30-clauses";
 import { SUPPLIER_TEMPLATES } from "@/lib/compliance/catalog/questionnaires";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -106,9 +106,8 @@ export default async function ProviderPage({
 	const tab: Tab = (TABS as readonly string[]).includes(one(sp.tab) ?? "")
 		? (one(sp.tab) as Tab)
 		: "stammdaten";
-	const canEdit = roleAllows(ctx.orgRole, { provider: ["update"] });
-	const canAssess =
-		canEdit && roleAllows(ctx.orgRole, { assessment: ["create"] });
+	const canEdit = allows(ctx, { provider: ["update"] });
+	const canAssess = canEdit && allows(ctx, { assessment: ["create"] });
 	const base = `/dienstleister/${p.id}`;
 	const critical = p.criticality === "critical" || p.isMaterial;
 	const latest = data.assessments.find((a) => a.status === "completed");

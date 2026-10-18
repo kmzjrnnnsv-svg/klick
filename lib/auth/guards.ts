@@ -9,8 +9,14 @@ import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
 import { env } from "@/lib/env";
 import { userHasPasskey } from "./endpoint-guard";
 import { primaryMembershipCount as countPrimary } from "./memberships";
-import { memberAccessFor } from "./org";
-import { type OrgRole, type Resource, roleAllows } from "./permissions";
+import { memberContextFor } from "./org";
+import { effectivePermissions } from "./permission-catalog";
+import {
+	type OrgRole,
+	permissionsAllow,
+	type Resource,
+	type RolePermissions,
+} from "./permissions";
 import { type AuthSession, auth } from "./server";
 import {
 	AuthError as AuthErr,
@@ -109,6 +115,10 @@ export type OrgContext = {
 	// eingerichtete Faktoren (Step-up-Dialog bietet Passkey zuerst an)
 	hasTotp: boolean;
 	hasPasskey: boolean;
+	// effektive Rechte: Grundrolle ∪ eigene Rollen (ADR-020) — prüfen mit
+	// allows(ctx, …) aus lib/auth/permissions.ts
+	permissions: RolePermissions;
+	customRoles: { id: string; name: string }[];
 };
 
 export type Permission = Partial<Record<Resource, readonly string[]>>;
@@ -129,15 +139,21 @@ export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 		)
 		.limit(1);
 	if (!row) throw new AuthErr("no_org");
-	// Ablauf und Grants im Org-Kontext lesen (member_access ist FORCE RLS).
-	const [access] = await memberAccessFor(orgId, [row.id]);
+	// Ablauf, Grants und eigene Rollen im Org-Kontext lesen (member_access,
+	// member_roles und org_roles sind FORCE RLS).
+	const { access, roles } = await memberContextFor(orgId, row.id);
 	const m = { ...row, grants: access?.grants ?? null };
 	if (access?.accessUntil && access.accessUntil.getTime() < Date.now()) {
 		throw new AuthErr("access_expired");
 	}
 
 	const orgRole = normRole(m.role);
-	if (perm && !roleAllows(orgRole, perm)) throw new AuthErr("forbidden");
+	const permissions = effectivePermissions(
+		orgRole,
+		roles.map((r) => r.permissions),
+	);
+	if (perm && !permissionsAllow(permissions, perm))
+		throw new AuthErr("forbidden");
 
 	touchSession(ctx);
 	return {
@@ -155,6 +171,8 @@ export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 		stepUpFresh: stepUpFresh(ctx.session),
 		hasTotp: Boolean(ctx.user.twoFactorEnabled),
 		hasPasskey: Boolean(ctx.user.hasPasskey),
+		permissions,
+		customRoles: roles.map((r) => ({ id: r.id, name: r.name })),
 	};
 }
 

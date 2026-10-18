@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { sites } from "@/db/schema";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { assetLifecycle, lifecycleTone } from "@/lib/compliance/assets";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
@@ -52,7 +52,7 @@ export default async function AssetsPage({
 				.orderBy(sites.name),
 		}),
 	);
-	const canEdit = roleAllows(ctx.orgRole, { asset: ["create", "update"] });
+	const canEdit = allows(ctx, { asset: ["create", "update"] });
 	const q = one(sp.q)?.toLowerCase();
 	const type = one(sp.type);
 	const cls = one(sp.classification);
@@ -61,7 +61,7 @@ export default async function AssetsPage({
 	const critical = one(sp.lebenszyklus) === "1";
 	const today = new Date();
 	const lifecycle = new Map(rows.map((r) => [r.id, assetLifecycle(r, today)]));
-	const canRisk = roleAllows(ctx.orgRole, { risk: ["create"] });
+	const canRisk = allows(ctx, { risk: ["create"] });
 	const filtered = rows
 		.filter(
 			(r) =>

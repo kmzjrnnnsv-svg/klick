@@ -42,7 +42,7 @@ function codeFrom(title: string): string {
 async function upsertTrainingRequirementImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
-	const c = await requireOrg({ task: ["create"] });
+	const c = await requireOrg({ training: ["create"] });
 	const parsed = trainingRequirementSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { id, ...d } = parsed.data;
@@ -124,7 +124,7 @@ async function upsertTrainingRequirementImpl(
 async function assignTrainingImpl(
 	input: unknown,
 ): Promise<ActionResult<{ assigned: number }>> {
-	const c = await requireOrg({ task: ["create"] });
+	const c = await requireOrg({ training: ["update"] });
 	const parsed = assignTrainingSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
@@ -281,7 +281,7 @@ async function completeMyTrainingImpl(
 }
 
 async function unassignTrainingImpl(input: unknown): Promise<ActionResult> {
-	const c = await requireOrg({ task: ["create"] });
+	const c = await requireOrg({ training: ["update"] });
 	const parsed = deleteByIdSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const ok = await mutateOrg<boolean>(toOrgCtx(c), async (tx) => {

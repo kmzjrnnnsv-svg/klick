@@ -25,7 +25,7 @@ import {
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker, userNames } from "@/lib/compliance/queries";
 import {
@@ -45,8 +45,8 @@ export default async function TrainingsPage({
 	const ctx = await requireOrgPage({ task: ["read"] });
 	const t = await getTranslations("Trainings");
 	const tf = await getTranslations("Functions");
-	const canEdit = roleAllows(ctx.orgRole, { task: ["create"] });
-	const canSettings = roleAllows(ctx.orgRole, { settings: ["update"] });
+	const canEdit = allows(ctx, { training: ["create"] });
+	const canSettings = allows(ctx, { settings: ["update"] });
 	const { trainings, requirements, assignments, members, names } =
 		await readOrg(toOrgCtx(ctx), async (tx) => {
 			const [trainings, requirements, assignments, members] = await Promise.all(

@@ -17,7 +17,7 @@ import {
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	requiredResolutions,
 	resolutionCoverage,
@@ -48,8 +48,8 @@ export default async function ResolutionsPage({
 	const fwFilter = one(sp.rahmenwerk);
 	const t = await getTranslations("Resolutions");
 	const td = await getTranslations("Decisions");
-	const canAsk = roleAllows(ctx.orgRole, { task: ["create"] });
-	const canCreate = roleAllows(ctx.orgRole, { resolution: ["create"] });
+	const canAsk = allows(ctx, { decision: ["create"] });
+	const canCreate = allows(ctx, { resolution: ["create"] });
 	const memberCount = (await listOrgMembers(ctx.orgId)).length;
 
 	const { rows, members, required, requests, approverHint } = await readOrg(

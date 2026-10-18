@@ -7,7 +7,7 @@ import { RatingWizard } from "@/components/supplier/rating-wizard";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { getRatingDetail } from "@/lib/compliance/queries-ratings";
@@ -51,7 +51,7 @@ export default async function RatingPage({
 	if (!data) notFound();
 	const { rating, provider } = data;
 	const method = resolveSupplierMethod(data.settings);
-	const canEdit = roleAllows(ctx.orgRole, { provider: ["update"] });
+	const canEdit = allows(ctx, { provider: ["update"] });
 	const names = Object.fromEntries(data.names);
 
 	if (rating.status === "draft" && canEdit)
@@ -113,7 +113,7 @@ export default async function RatingPage({
 								kind="provider_rating"
 								id={rating.id}
 								risks={[]}
-								canCreate={roleAllows(ctx.orgRole, { risk: ["create"] })}
+								canCreate={allows(ctx, { risk: ["create"] })}
 								compact
 							/>
 						)}
