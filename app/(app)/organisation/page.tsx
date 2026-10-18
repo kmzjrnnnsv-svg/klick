@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/table";
 import { sites } from "@/db/schema";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
-import { approverEligibility } from "@/lib/approvals/rules";
+import { canDecideNow } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
 	latestRequestFor,
@@ -457,7 +457,7 @@ export default async function OrganisationPage({
 									req.status === "pending" &&
 									step &&
 									me &&
-									approverEligibility(
+									canDecideNow(
 										step,
 										me,
 										{
@@ -466,7 +466,8 @@ export default async function OrganisationPage({
 											delegations: data.dels,
 										},
 										data.candidates,
-									).eligible,
+										req.decisions.filter((d) => d.step === req.currentStep),
+									),
 							);
 							return (
 								<article
@@ -881,7 +882,7 @@ export default async function OrganisationPage({
 										req.status === "pending" &&
 										step &&
 										me &&
-										approverEligibility(
+										canDecideNow(
 											step,
 											me,
 											{
@@ -890,7 +891,8 @@ export default async function OrganisationPage({
 												delegations: data.dels,
 											},
 											data.candidates,
-										).eligible,
+											req.decisions.filter((d) => d.step === req.currentStep),
+										),
 								);
 								return (
 									<li

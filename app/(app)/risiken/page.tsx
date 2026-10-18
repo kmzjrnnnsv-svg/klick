@@ -27,6 +27,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { RISK_CATEGORIES } from "@/db/schema/grc";
+import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
@@ -62,23 +63,29 @@ export default async function RisksPage({
 	const canCreate = allows(ctx, { risk: ["create"] });
 
 	const cov = await getOrgCoverageCached(ctx);
-	const { rows, method, exceptions, losses, measures, proposals, dismissed } =
-		await readOrg(toOrgCtx(ctx), async (tx) => ({
-			rows: await listRisks(tx, ctx.orgId),
-			method: await orgRiskMethod(tx, ctx.orgId),
-			exceptions:
-				tab === "ausnahmen" ? await listExceptions(tx, ctx.orgId) : [],
-			losses:
-				tab === "schadensfaelle" ? await listLossEvents(tx, ctx.orgId) : [],
-			measures:
-				tab === "massnahmen" ? await listRiskMeasures(tx, ctx.orgId) : [],
-			proposals: await loadRiskProposals(tx, ctx.orgId, cov),
-			dismissed:
-				tab === "vorschlaege"
-					? ((await getOrgSettings(tx, ctx.orgId))?.riskProposalDismissals ??
-						{})
-					: {},
-		}));
+	const ta = await getTranslations("Approvals");
+	const {
+		rows,
+		method,
+		exceptions,
+		losses,
+		measures,
+		proposals,
+		dismissed,
+		pending,
+	} = await readOrg(toOrgCtx(ctx), async (tx) => ({
+		pending: await pendingApprovalIds(tx, ctx.orgId, "risk"),
+		rows: await listRisks(tx, ctx.orgId),
+		method: await orgRiskMethod(tx, ctx.orgId),
+		exceptions: tab === "ausnahmen" ? await listExceptions(tx, ctx.orgId) : [],
+		losses: tab === "schadensfaelle" ? await listLossEvents(tx, ctx.orgId) : [],
+		measures: tab === "massnahmen" ? await listRiskMeasures(tx, ctx.orgId) : [],
+		proposals: await loadRiskProposals(tx, ctx.orgId, cov),
+		dismissed:
+			tab === "vorschlaege"
+				? ((await getOrgSettings(tx, ctx.orgId))?.riskProposalDismissals ?? {})
+				: {},
+	}));
 	const scales = scaleLabels(method);
 	const view = one(sp.view) === "residual" ? "residual" : "inherent";
 	const assessed = rows.map((r) => ({ r, a: assessRisk(r, method) }));
@@ -579,6 +586,9 @@ export default async function RisksPage({
 												machine={RISK_STATUS}
 												status={r.status}
 												label={ts(RISK_STATUS.labelKey[r.status] as "riskOpen")}
+												waitingLabel={
+													pending.has(r.id) ? ta("waitingBadge") : undefined
+												}
 											/>
 										</TableCell>
 										<TableCell className="text-right">

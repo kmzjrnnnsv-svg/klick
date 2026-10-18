@@ -42,7 +42,8 @@ export function ApprovalActions({
 				else if (
 					res.error.startsWith("four_eyes") ||
 					res.error.startsWith("rule_not_met") ||
-					res.error.startsWith("not_pending")
+					res.error.startsWith("not_pending") ||
+					res.error === "already_decided"
 				)
 					toast.error(t(`errors_${res.error}` as "errors_four_eyes"));
 				else toast.error(tc("error"));

@@ -10,6 +10,7 @@ import { UserChip } from "@/components/entity/user-chip";
 import { AssetForm } from "@/components/registers/asset-form";
 import { Badge } from "@/components/ui/badge";
 import { sites } from "@/db/schema";
+import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
@@ -35,9 +36,8 @@ export default async function AssetsPage({
 	const t = await getTranslations("Assets");
 	const te = await getTranslations("Entity");
 	const tr = await getTranslations("RiskSources");
-	const { rows, members, providers, links, siteOptions } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => ({
+	const { rows, members, providers, links, siteOptions, pending } =
+		await readOrg(toOrgCtx(ctx), async (tx) => ({
 			rows: await listAssets(tx, ctx.orgId),
 			links: await linkIndex(tx, ctx.orgId),
 			members: await listMembersForPicker(tx, ctx.orgId),
@@ -50,8 +50,9 @@ export default async function AssetsPage({
 				.from(sites)
 				.where(eq(sites.organizationId, ctx.orgId))
 				.orderBy(sites.name),
-		}),
-	);
+			pending: await pendingApprovalIds(tx, ctx.orgId, "asset"),
+		}));
+	const ta = await getTranslations("Approvals");
 	const canEdit = allows(ctx, { asset: ["create", "update"] });
 	const q = one(sp.q)?.toLowerCase();
 	const type = one(sp.type);
@@ -86,13 +87,20 @@ export default async function AssetsPage({
 			cell: (r) => (
 				<span>
 					<span className="font-medium">{r.name}</span>
-					{r.status !== "active" && (
+					{r.status !== "active" ? (
 						<Badge
 							variant={r.status === "pending" ? "warning" : "muted"}
 							className="ml-2"
 						>
 							{t(`status_${r.status}` as "status_pending")}
 						</Badge>
+					) : (
+						// z. B. Außerbetriebnahme beantragt
+						pending.has(r.id) && (
+							<Badge variant="warning" className="ml-2">
+								{ta("waitingBadge")}
+							</Badge>
+						)
 					)}
 					{r.description && (
 						<span className="block text-muted-foreground text-xs">

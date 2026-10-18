@@ -2,10 +2,12 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { ApprovalActions } from "@/components/approvals/approval-actions";
 import { DelegationForm } from "@/components/approvals/delegation-form";
+import { RouteProgress } from "@/components/approvals/route-progress";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
+import { orgRuleNamesCached } from "@/lib/approvals/designer-labels";
 import {
 	listRequestsForUser,
 	type PendingForUser,
@@ -43,6 +45,7 @@ export default async function ApprovalsInboxPage({
 			};
 		},
 	);
+	const ruleNames = await orgRuleNamesCached(ctx.orgId, ctx.userId);
 	const waiting = rows.filter((r) => r.eligible);
 	const mine = rows.filter((r) => r.mine);
 	const list: PendingForUser[] =
@@ -90,8 +93,8 @@ export default async function ApprovalsInboxPage({
 										{title}
 									</Link>
 									<span className="text-muted-foreground text-xs">
-										{t("step", { n: r.currentStep })} · {t("requestedBy")}{" "}
-										{r.requestedByName ?? "—"} · {fmtDate.format(r.requestedAt)}
+										{t("requestedBy")} {r.requestedByName ?? "—"} ·{" "}
+										{fmtDate.format(r.requestedAt)}
 									</span>
 									{r.dueAt && (
 										<Badge variant={r.overdue ? "destructive" : "muted"}>
@@ -104,6 +107,15 @@ export default async function ApprovalsInboxPage({
 										<Badge variant="muted">{ts("statusChanged")}</Badge>
 									)}
 								</div>
+								{r.steps.length > 0 && (
+									<RouteProgress
+										steps={r.steps}
+										currentStep={r.currentStep}
+										status={r.status}
+										decisions={r.decisions}
+										names={ruleNames}
+									/>
+								)}
 								<ApprovalActions
 									requestId={r.id}
 									eligible={r.eligible}

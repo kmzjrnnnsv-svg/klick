@@ -20,6 +20,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { PROVIDER_STATUSES } from "@/db/schema/registers";
+import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
@@ -48,15 +50,17 @@ export default async function ProvidersPage({
 	const t = await getTranslations("Providers");
 	const te = await getTranslations("Entity");
 	const tr = await getTranslations("Rating");
-	const { rows, members, links, ratings } = await readOrg(
+	const { rows, members, links, ratings, pending } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
 			rows: await listProviders(tx, ctx.orgId),
 			members: await listMembersForPicker(tx, ctx.orgId),
 			links: await linkIndex(tx, ctx.orgId),
 			ratings: await latestRatingsByProvider(tx, ctx.orgId),
+			pending: await pendingApprovalIds(tx, ctx.orgId, "provider"),
 		}),
 	);
+	const ta = await getTranslations("Approvals");
 	const today = new Date().toISOString().slice(0, 10);
 	const canEdit = allows(ctx, { provider: ["create", "update"] });
 	const canExport = allows(ctx, { export: ["create"] });
@@ -166,6 +170,7 @@ export default async function ProvidersPage({
 	const q = one(sp.q)?.toLowerCase();
 	const crit = one(sp.criticality);
 	const pt = one(sp.partnerType);
+	const st = one(sp.status);
 	const filtered = rows
 		.filter(
 			(r) =>
@@ -173,7 +178,9 @@ export default async function ProvidersPage({
 				`${r.name} ${r.serviceDescription ?? ""}`.toLowerCase().includes(q),
 		)
 		.filter((r) => !crit || r.criticality === crit)
-		.filter((r) => !pt || r.partnerType === pt);
+		.filter((r) => !pt || r.partnerType === pt)
+		// abgelehnte Aufnahmen nur auf Wunsch (?status=declined)
+		.filter((r) => (st ? r.status === st : r.status !== "declined"));
 	const columns: Column<Row>[] = [
 		{
 			key: "name",
@@ -181,6 +188,17 @@ export default async function ProvidersPage({
 			cell: (r) => (
 				<span>
 					<span className="font-medium">{r.name}</span>
+					{pending.has(r.id) ? (
+						<Badge variant="warning" className="ml-2 align-middle">
+							{ta("waitingBadge")}
+						</Badge>
+					) : (
+						r.status === "declined" && (
+							<Badge variant="muted" className="ml-2 align-middle">
+								{t("status_declined")}
+							</Badge>
+						)
+					)}
 					{r.serviceDescription && (
 						<span className="block text-muted-foreground text-xs">
 							{r.serviceDescription}
@@ -408,6 +426,14 @@ export default async function ProvidersPage({
 				</span>
 			}
 			filters={[
+				{
+					key: "status",
+					label: t("status"),
+					options: PROVIDER_STATUSES.map((x) => ({
+						value: x,
+						label: t(`status_${x}`),
+					})),
+				},
 				{
 					key: "criticality",
 					label: t("criticality"),

@@ -29,12 +29,13 @@ import {
 	type ApproverCandidate,
 	advance,
 	approverEligibility,
+	canDecideNow,
 	eligibleApprovers,
 	openRules,
 	slaDueAt,
 	soloModeAllowed,
 } from "./rules";
-import { TRIGGER_BY_KEY, triggerForKind, triggerOf } from "./triggers";
+import { triggerForKind, triggerOf } from "./triggers";
 
 // Freigabe-Service (DB, innerhalb einer Org-Transaktion). Die reinen Regeln
 // liegen in rules.ts; hier: Workflows je Org sicherstellen, Kandidaten aus
@@ -493,10 +494,6 @@ export async function approvalState(
 	return "missing";
 }
 
-export function triggerLabelKey(trigger: string): string {
-	return TRIGGER_BY_KEY.has(trigger) ? `t_${trigger.replace(".", "_")}` : "";
-}
-
 export type DecideResult =
 	| {
 			ok: true;
@@ -591,8 +588,11 @@ export async function decide(
 	if (before.some((d) => d.approverUserId === ctx.userId))
 		return { ok: false, error: "already_decided" };
 	// Stelle, für die die Zustimmung zählt: erste noch offene, die die
-	// Person (oder die vertretene Person) erfüllt
+	// Person (oder die vertretene Person) erfüllt. Bei „alle“ zählt eine
+	// schon erfüllte Stelle nicht noch einmal.
 	const open = openRules(step, before);
+	if (step.mode === "all" && !elig.rules.some((r) => open.includes(r)))
+		return { ok: false, error: "already_decided" };
 	const rule = elig.rules.find((r) => open.includes(r)) ?? elig.rules[0];
 
 	await tx.insert(approvalDecisions).values({
@@ -714,6 +714,15 @@ export type PendingForUser = {
 	overdue: boolean;
 	eligible: boolean;
 	mine: boolean;
+	status: string;
+	// Schnappschuss der Stufen und Entscheidungen (Anzeige des Ablaufs)
+	steps: ApprovalStep[];
+	decisions: {
+		step: number;
+		decision: "approved" | "rejected" | "changes_requested";
+		rule: string | null;
+		approverUserId: string | null;
+	}[];
 };
 
 // Posteingang: wartet auf mich · von mir angefragt · überfällig.
@@ -772,14 +781,38 @@ export async function listRequestsForUser(
 			.filter((r) => r.req.status === "pending")
 			.map((r) => ({ entityType: r.req.entityType, entityId: r.req.entityId })),
 	);
+	const decisions =
+		rows.length === 0
+			? []
+			: await tx
+					.select({
+						requestId: approvalDecisions.requestId,
+						step: approvalDecisions.step,
+						decision: approvalDecisions.decision,
+						rule: approvalDecisions.rule,
+						approverUserId: approvalDecisions.approverUserId,
+					})
+					.from(approvalDecisions)
+					.where(
+						and(
+							eq(approvalDecisions.organizationId, orgId),
+							inArray(
+								approvalDecisions.requestId,
+								rows.map((r) => r.req.id),
+							),
+						),
+					)
+					.orderBy(approvalDecisions.decidedAt);
 	const now = new Date();
-	return rows.map(({ req, kind, workflowName, steps }) => {
-		const step = requestSteps(req, steps).find(
-			(s) => s.order === req.currentStep,
-		);
+	return rows.map(({ req, kind, workflowName, steps: wfSteps }) => {
+		const steps = requestSteps(req, wfSteps);
+		const step = steps.find((s) => s.order === req.currentStep);
+		const own = decisions
+			.filter((d) => d.requestId === req.id)
+			.map(({ requestId: _r, ...d }) => d);
 		const eligible =
 			req.status === "pending" && step && me
-				? approverEligibility(
+				? canDecideNow(
 						step,
 						me,
 						{
@@ -789,9 +822,13 @@ export async function listRequestsForUser(
 							delegations: dels,
 						},
 						candidates,
-					).eligible
+						own.filter((d) => d.step === req.currentStep),
+					)
 				: false;
 		return {
+			status: req.status,
+			steps,
+			decisions: own,
 			id: req.id,
 			kind,
 			workflowName,

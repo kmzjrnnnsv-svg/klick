@@ -157,7 +157,9 @@ export function ProviderForm({
 							});
 							if (!res.ok)
 								return void toast.error(
-									gate.errorText(res.error) ?? tc("error"),
+									res.error === "statusLocked"
+										? t("statusLocked")
+										: (gate.errorText(res.error) ?? tc("error")),
 								);
 							if (res.data.approvalPending) toast.info(gate.pendingText());
 							else toast.success(isEdit ? t("saved") : t("created"));

@@ -20,7 +20,7 @@ import { RiskEditForm, TreatmentForm } from "@/components/risks/risk-forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { providers } from "@/db/schema";
-import { approverEligibility } from "@/lib/approvals/rules";
+import { canDecideNow } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
 	latestRequestFor,
@@ -175,7 +175,7 @@ export default async function RiskDetailPage({
 			approval.status === "pending" &&
 			step &&
 			me &&
-			approverEligibility(
+			canDecideNow(
 				step,
 				me,
 				{
@@ -184,7 +184,8 @@ export default async function RiskDetailPage({
 					delegations: dels,
 				},
 				candidates,
-			).eligible,
+				approval.decisions.filter((d) => d.step === approval.currentStep),
+			),
 	);
 
 	const entries: ActivityEntry[] = mergeActivity(

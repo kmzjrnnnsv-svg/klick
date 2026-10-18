@@ -6,7 +6,12 @@ import {
 	planRoute,
 	selectWorkflow,
 } from "@/lib/approvals/route";
-import { advance, approverEligibility } from "@/lib/approvals/rules";
+import {
+	advance,
+	approverEligibility,
+	canDecideNow,
+	ruleStates,
+} from "@/lib/approvals/rules";
 
 // Beispiel aus der Anforderung: Einkauf legt an → Finanzen (entfällt, wenn
 // die anfragende Person selbst Finanzen ist) → Recht UND Informationssicherheit
@@ -228,5 +233,52 @@ describe("Ablauf je Auslöser", () => {
 			{ order: 1, approverRule: FIN },
 			{ order: 2, approverRule: LEGAL, approvers: [LEGAL, ISB], mode: "all" },
 		]);
+	});
+});
+
+describe("canDecideNow / ruleStates (Modus „alle“)", () => {
+	const step: ApprovalStep = {
+		order: 2,
+		approverRule: LEGAL,
+		approvers: [LEGAL, ISB],
+		mode: "all",
+	};
+	const legal1 = {
+		userId: "u-law1",
+		orgRole: "viewer" as const,
+		functions: [],
+		customRoleIds: ["r-legal"],
+		canDecide: true,
+	};
+	const legal2 = { ...legal1, userId: "u-law2" };
+	const isb = {
+		userId: "u-isb",
+		orgRole: "viewer" as const,
+		functions: ["isb_ciso" as const],
+		canDecide: true,
+	};
+	const ctx = { requesterUserId: "u-buy" };
+	const members = [legal1, legal2, isb];
+	const afterLegal = [
+		{ decision: "approved" as const, rule: LEGAL, approverUserId: "u-law1" },
+	];
+
+	it("vor jeder Entscheidung dürfen Recht und ISB", () => {
+		expect(canDecideNow(step, legal1, ctx, members, [])).toBe(true);
+		expect(canDecideNow(step, isb, ctx, members, [])).toBe(true);
+	});
+
+	it("nach Zustimmung von Recht: zweite Person aus Recht nicht mehr, ISB schon", () => {
+		expect(canDecideNow(step, legal1, ctx, members, afterLegal)).toBe(false);
+		expect(canDecideNow(step, legal2, ctx, members, afterLegal)).toBe(false);
+		expect(canDecideNow(step, isb, ctx, members, afterLegal)).toBe(true);
+	});
+
+	it("Stand je Stelle", () => {
+		expect(ruleStates(step, afterLegal)).toEqual([
+			{ rule: LEGAL, done: true },
+			{ rule: ISB, done: false },
+		]);
+		expect(ruleStates({ order: 1, approverRule: FIN }, [])).toEqual([]);
 	});
 });

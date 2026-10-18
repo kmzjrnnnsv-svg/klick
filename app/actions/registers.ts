@@ -13,6 +13,7 @@ import {
 	trainings,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { GateBlocked } from "@/lib/approvals/gate-error";
 import { gateApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
@@ -43,6 +44,9 @@ function addDays(base: Date, days: number): string {
 }
 
 // ── Dienstleister ──────────────────────────────────────────────────────────
+// Status während einer offenen Freigabe ändern → nichts speichern
+class StatusLocked extends Error {}
+
 async function upsertProviderImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; approvalPending?: boolean }>> {
@@ -95,13 +99,50 @@ async function upsertProviderImpl(
 					)
 					.limit(1);
 				if (!before) throw new Error("notFound");
+				// Status nur über den Ablauf „Dienstleister aufnehmen“: gesperrt,
+				// solange eine Freigabe offen ist; aus „Abgelehnt“ wird neu beantragt
+				let approvalPending = false;
+				if (patch.status && patch.status !== before.status) {
+					const waiting = await pendingApprovalIds(tx, c.orgId, "provider", [
+						providerId,
+					]);
+					if (waiting.size > 0) throw new StatusLocked();
+					if (before.status === "declined") {
+						const merged = { ...before, ...patch };
+						const gate = await gateApproval(
+							tx,
+							{ orgId: c.orgId, userId: c.userId, name: c.name },
+							{
+								trigger: "provider.create",
+								entityType: "provider",
+								entityId: providerId,
+								entityOwnerUserId: merged.ownerUserId,
+								title: `Dienstleister aufnehmen: ${merged.name}`,
+								link: `/dienstleister/${providerId}`,
+								facts: {
+									criticality: merged.criticality,
+									category: merged.category,
+									isIct: merged.isIct,
+									isOutsourcing: merged.isOutsourcing,
+									isMaterial: merged.isMaterial,
+								},
+							},
+						);
+						if (gate.status === "error")
+							throw new GateBlocked(gate.error, gate.warnings);
+						if (gate.status === "pending") {
+							patch.status = "onboarding";
+							approvalPending = true;
+						}
+					}
+				}
 				if (Object.keys(patch).length > 0)
 					await tx
 						.update(providers)
 						.set(patch)
 						.where(eq(providers.id, providerId));
 				return {
-					result: { id: providerId, approvalPending: false },
+					result: { id: providerId, approvalPending },
 					audit: {
 						action: "provider.update",
 						target: `provider:${providerId}`,
@@ -167,6 +208,7 @@ async function upsertProviderImpl(
 		});
 	} catch (e) {
 		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		if (e instanceof StatusLocked) return { ok: false, error: "statusLocked" };
 		throw e;
 	}
 	revalidatePath("/dienstleister");
