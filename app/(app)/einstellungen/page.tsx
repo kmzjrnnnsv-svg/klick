@@ -49,6 +49,7 @@ import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import { userNames } from "@/lib/compliance/queries";
 import { listRisks } from "@/lib/compliance/queries-p2";
 import { listProductOptions } from "@/lib/compliance/queries-products";
+import { loadRecommendInput } from "@/lib/compliance/queries-recommend";
 import { listAccessTokens } from "@/lib/compliance/queries-security";
 import {
 	defaultRiskMethod,
@@ -58,6 +59,7 @@ import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
 import { loadPriceTable } from "@/lib/db/pricing";
 import { readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
+import { recommendServices } from "@/lib/marketing/recommend";
 import {
 	getOrgSettings,
 	listOpenAuditScopes,
@@ -200,6 +202,14 @@ export default async function SettingsPage({
 	const { prices } = canEditSettings
 		? await loadPriceTable(settings?.priceGroupId)
 		: { prices: null };
+	// „Für dich empfohlen“ unter Abo & Leistungen (nur Inhaber:innen)
+	const recommendations = prices
+		? recommendServices(
+				await readOrg(toOrgCtx(ctx), (tx) =>
+					loadRecommendInput(tx, ctx.orgId, cov?.frameworks ?? []),
+				),
+			)
+		: [];
 	// Rollen & Rechte (ADR-020): nur für Inhaber:innen
 	const rolesData = canEditSettings
 		? await (async () => {
@@ -454,6 +464,7 @@ export default async function SettingsPage({
 							plan={settings?.plan ?? "start"}
 							prices={prices}
 							email={ctx.email}
+							recommendations={recommendations}
 						/>
 					</TabsContent>
 				)}

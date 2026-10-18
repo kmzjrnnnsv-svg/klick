@@ -573,7 +573,17 @@
 		"subscriptionNote": "Richtwerte für typische Umfänge; den Festpreis bekommst du nach dem Erstgespräch.",
 		"subscriptionViewServices": "Leistungen ansehen",
 		"tabSupplierMethod": "Lieferantenbewertung",
-		"tabRoles": "Rollen & Rechte"
+		"tabRoles": "Rollen & Rechte",
+		"recommendedTitle": "Für dich empfohlen",
+		"recommendedLead": "Aus dem Stand deiner Organisation in Klick — höchstens drei Vorschläge, jeweils mit Anlass.",
+		"recoRequest": "Anfragen",
+		"reco_noGap": "Noch keine abgeschlossene Gap-Analyse: Sie zeigt, wo ihr steht und was zuerst kommt.",
+		"reco_noPentest": "Für eure Rahmenwerke steht noch kein Penetrationstest im Testprogramm.",
+		"reco_pentestOld": "Der letzte Penetrationstest liegt {months} Monate zurück.",
+		"reco_craSbom": "{n, plural, one {Ein Produkt hat} other {# Produkte haben}} noch keine SBOM.",
+		"reco_craNoProducts": "Der CRA ist aktiv, aber noch kein Produkt erfasst.",
+		"reco_suppliersDue": "{n, plural, one {Ein kritischer oder wichtiger Dienstleister ist} other {# kritische oder wichtige Dienstleister sind}} nicht oder nicht mehr gültig bewertet.",
+		"reco_quickCheck": "Der Schnellcheck meldet {n, plural, one {einen offenen Befund} other {# offene Befunde}}."
 	},
 	"Team": {
 		"title": "Team",
