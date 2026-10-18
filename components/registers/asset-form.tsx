@@ -435,7 +435,7 @@ export function AssetForm({
 											);
 										toast.success(
 											res.data.approvalPending
-												? gate.pendingText()
+												? t("retireRequested")
 												: t("retired"),
 										);
 										setOpen(false);

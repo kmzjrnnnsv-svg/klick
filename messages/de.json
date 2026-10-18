@@ -1630,7 +1630,8 @@
 		"retired": "Außer Betrieb genommen",
 		"status_pending": "Wartet auf Freigabe",
 		"status_declined": "Abgelehnt",
-		"status_retired": "Außer Betrieb"
+		"status_retired": "Außer Betrieb",
+		"retireRequested": "Außerbetriebnahme beantragt — wartet auf Freigabe."
 	},
 	"Trainings": {
 		"title": "Schulungen",
@@ -1840,7 +1841,8 @@
 		"crit_critical": "kritisch",
 		"crit_important": "wichtig",
 		"crit_standard": "standard",
-		"changeApprovalRequested": "Gespeichert — die Änderung am aktiven Prozess wartet auf Freigabe."
+		"changeApprovalRequested": "Gespeichert — die Änderung am aktiven Prozess wartet auf Freigabe.",
+		"activationRequested": "Angelegt — der Prozess bleibt Entwurf, bis die Aktivierung freigegeben ist."
 	},
 	"Organisation": {
 		"title": "Organisation",

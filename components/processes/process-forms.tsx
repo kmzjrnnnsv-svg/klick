@@ -166,7 +166,9 @@ export function ProcessForm({
 								);
 							toast.success(
 								res.data.approvalPending
-									? t("changeApprovalRequested")
+									? initial
+										? t("changeApprovalRequested")
+										: t("activationRequested")
 									: initial
 										? t("saved")
 										: t("created"),

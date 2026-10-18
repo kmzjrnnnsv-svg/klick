@@ -145,12 +145,39 @@ async function upsertProcessImpl(input: unknown): Promise<UpsertProcessResult> {
 				})
 				.returning({ id: processes.id });
 			if (!row) throw new Error("insert failed");
+			// Freigabe-Designer: mit Ablauf „Prozess aktivieren“ startet ein
+			// neuer Prozess als Entwurf und wird erst nach Freigabe aktiv
+			const gate = await gateApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					trigger: "process.activate",
+					entityType: "process",
+					entityId: row.id,
+					entityOwnerUserId: values.ownerUserId ?? c.userId,
+					title: `Prozess aktivieren: ${code} · ${d.name}`,
+					link: `/prozesse/${code}`,
+					facts: { criticality: d.criticality },
+				},
+			);
+			if (gate.status === "error") throw new GateBlocked(gate.error);
+			const approvalPending = gate.status === "pending";
+			if (approvalPending)
+				await tx
+					.update(processes)
+					.set({ status: "draft" })
+					.where(eq(processes.id, row.id));
 			return {
-				result: { ok: true, data: { id: row.id, code } },
+				result: { ok: true, data: { id: row.id, code, approvalPending } },
 				audit: {
 					action: "process.create",
 					target: `process:${row.id}`,
-					after: { code, name: d.name, criticality: d.criticality },
+					after: {
+						code,
+						name: d.name,
+						criticality: d.criticality,
+						status: approvalPending ? "draft" : "active",
+					},
 				},
 			};
 		});
