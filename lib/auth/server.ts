@@ -21,7 +21,11 @@ import {
 	transactionalEmail,
 } from "../mail/templates";
 import { syncTrainingAssignments } from "../trainings/assignments";
-import { mayReceiveMagicLink, pendingInvitationId } from "./allow-list";
+import {
+	hasPendingActivation,
+	mayReceiveMagicLink,
+	pendingInvitationId,
+} from "./allow-list";
 import { authAfterHook } from "./audit-events";
 import { authBeforeHook } from "./endpoint-guard";
 import { confirmLinkUrl } from "./magic-link";
@@ -156,6 +160,17 @@ export const auth = betterAuth({
 					const viaPasskey =
 						ctx?.path === "/passkey/verify-authentication" ||
 						ctx?.path === "/passkey/verify-registration";
+					// Vom Admin angelegte Konten werden nur über den Passkey-
+					// Link aktiviert — SSO, Mail-Link oder Impersonation geben
+					// vorher keine Sitzung.
+					if (
+						ctx?.path !== "/passkey/verify-registration" &&
+						(await hasPendingActivation(session.userId))
+					)
+						throw new APIError("FORBIDDEN", {
+							code: "ACCOUNT_NOT_ACTIVATED",
+							message: "Konto noch nicht aktiviert.",
+						});
 					const now = new Date();
 					return {
 						data: {
@@ -256,9 +271,9 @@ export const auth = betterAuth({
 			rateLimit: { window: 15 * MINUTE, max: 3 },
 			storeToken: "hashed",
 			async sendMagicLink({ email, url: verifyUrl }) {
-				if (!allowSignup && !(await mayReceiveMagicLink(email))) {
+				if (!(await mayReceiveMagicLink(email, allowSignup))) {
 					console.info(
-						"[auth] Anmelde-Link nicht versendet: kein Konto und keine offene Einladung (AUTH_ALLOW_SIGNUP ist aus)",
+						"[auth] Anmelde-Link nicht versendet: kein aktives Konto und keine offene Einladung",
 					);
 					return;
 				}

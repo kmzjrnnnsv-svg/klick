@@ -280,7 +280,8 @@
 		"reasonOrgDeleted": "Die Organisation wurde gelöscht. Eine Löschbestätigung ist per E-Mail unterwegs.",
 		"signOut": "Abmelden",
 		"downloadStarted": "Bestätigt – der Download startet. Du findest die Datei in deinem Download-Ordner.",
-		"downloadBack": "Zurück zur Seite"
+		"downloadBack": "Zurück zur Seite",
+		"accountBlocked": "Dein Konto ist gesperrt. Wende dich an die Person, die dir Zugang gegeben hat."
 	},
 	"Onboarding": {
 		"title": "Organisation anlegen",
@@ -4850,5 +4851,15 @@
 		"stepLabelPlaceholder": "z. B. Finanzen…",
 		"leaveConfirm": "Ungespeicherte Änderungen verwerfen?",
 		"previewNoApprovers": "noch keine Stelle gewählt"
+	},
+	"Activate": {
+		"title": "Konto aktivieren",
+		"checking": "Link wird geprüft …",
+		"lead": "Willkommen bei Klick, {name}. Lege jetzt deinen Passkey an — er ist ab sofort deine Anmeldung, ein Passwort gibt es nicht.",
+		"forEmail": "Konto: {email}",
+		"forEmailOrg": "Konto: {email} · danach trittst du {organization} als {role} bei.",
+		"create": "Passkey anlegen und loslegen",
+		"noDevice": "Kein Gerät mit Passkey am Computer? Wähle im Dialog „Anderes Gerät“ und scanne den QR-Code mit deinem Smartphone — oder öffne diesen Link direkt dort.",
+		"invalid": "Dieser Aktivierungslink ist ungültig, abgelaufen oder wurde schon benutzt. Bitte lass dir einen neuen schicken."
 	}
 }

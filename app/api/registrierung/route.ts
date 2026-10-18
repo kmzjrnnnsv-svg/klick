@@ -12,7 +12,7 @@ import { clientIp, ingestJson, ingestRoute } from "@/lib/security/ingest";
 
 export const dynamic = "force-dynamic";
 
-// Passkey-Links (Einladung, Zugang zurücksetzen; ADR-019): Die Seite liest
+// Passkey-Links (Einladung, Zugang zurücksetzen, Aktivieren; ADR-019): Die Seite liest
 // den Token aus dem URL-Fragment — Fragmente erreichen nie den Server, also
 // auch keine Zugriffs-Logs — und tauscht ihn hier gegen ein httpOnly-Cookie,
 // das nur die Passkey-Endpunkte sehen (Pfad /api/auth/passkey). Antwort:
@@ -36,7 +36,8 @@ export const POST = ingestRoute("registration.link", async (req: Request) => {
 	} | null;
 	const raw = typeof body?.token === "string" ? body.token.trim() : "";
 	const r = await resolveRegistration(raw);
-	if (!r.ok) return ingestJson(401, { error: r.error });
+	if (!r.ok)
+		return ingestJson(r.error === "blocked" ? 403 : 401, { error: r.error });
 	const name =
 		typeof body?.name === "string" ? body.name.trim().slice(0, 80) : "";
 	if (name) await setRegistrationName(raw, name);
@@ -54,12 +55,22 @@ export const POST = ingestRoute("registration.link", async (req: Request) => {
 					accountExists: info.accountExists,
 					expiresAt: info.expiresAt,
 				}
-			: {
-					kind: info.kind,
-					email: info.email,
-					name: info.name,
-					expiresAt: info.expiresAt,
-				},
+			: info.kind === "activate"
+				? {
+						kind: info.kind,
+						email: info.email,
+						name: info.name,
+						invitationId: info.invitationId,
+						organization: info.organization,
+						role: info.role ? roleLabel(info.role) : null,
+						expiresAt: info.expiresAt,
+					}
+				: {
+						kind: info.kind,
+						email: info.email,
+						name: info.name,
+						expiresAt: info.expiresAt,
+					},
 		{ headers: { "cache-control": "no-store" } },
 	);
 	res.cookies.set(REG_COOKIE, raw, {

@@ -1,19 +1,26 @@
 import { APIError } from "better-auth/api";
+import { auditPlatform } from "@/lib/audit";
 import {
 	consumeRegistrationToken,
 	REG_CONTEXT,
 	resolveRegistration,
 } from "./registration-link";
 
-// Passkey-Registrierung über einen Einladungs- bzw. Zurücksetz-Link
-// (passkey-Plugin, registration.resolveUser/afterVerification in
-// lib/auth/server.ts). Ohne Sitzung zählt nur der Token aus dem Cookie;
-// mit Sitzung registriert das Plugin für die Sitzung (context ungenutzt).
+// Passkey-Registrierung über einen Einladungs-, Zurücksetz- oder
+// Aktivierungslink (passkey-Plugin, registration.resolveUser/
+// afterVerification in lib/auth/server.ts). Ohne Sitzung zählt nur der
+// Token aus dem Cookie; mit Sitzung registriert das Plugin für die Sitzung
+// (context ungenutzt).
 
 const invalid = () =>
 	new APIError("FORBIDDEN", {
 		code: "REGISTRATION_LINK_INVALID",
 		message: "registration_link_invalid",
+	});
+const blocked = () =>
+	new APIError("FORBIDDEN", {
+		code: "BANNED_USER",
+		message: "account_blocked",
 	});
 const accountExists = () =>
 	new APIError("FORBIDDEN", {
@@ -31,7 +38,7 @@ export async function linkRegistrationUser(
 ): Promise<{ id: string; name: string; displayName: string }> {
 	if (context !== REG_CONTEXT) throw invalid();
 	const r = await resolveRegistration(raw);
-	if (!r.ok) throw invalid();
+	if (!r.ok) throw r.error === "blocked" ? blocked() : invalid();
 	if (r.info.kind === "invite") {
 		// Nie einen Passkey an ein bestehendes Konto hängen — sonst wäre die
 		// Einladung ein Übernahme-Link für fremde Konten.
@@ -42,7 +49,7 @@ export async function linkRegistrationUser(
 			displayName: r.payload.name?.trim() || r.info.email,
 		};
 	}
-	if (r.payload.kind !== "recover") throw invalid();
+	if (r.payload.kind === "invite") throw invalid();
 	return {
 		id: r.payload.userId,
 		name: r.info.email,
@@ -71,6 +78,7 @@ export async function completeLinkRegistration(input: {
 	// Passkey zur eigenen Sitzung: sonst nichts zu tun
 	if (input.context !== REG_CONTEXT) return undefined;
 	const r = await resolveRegistration(input.raw);
+	if (!r.ok && r.error === "blocked") throw blocked();
 	if (!r.ok || !input.raw) throw invalid();
 	let userId: string;
 	if (r.info.kind === "invite") {
@@ -85,10 +93,15 @@ export async function completeLinkRegistration(input: {
 		});
 		userId = created.id;
 	} else {
-		if (r.payload.kind !== "recover" || input.user.id !== r.payload.userId)
+		if (r.payload.kind === "invite" || input.user.id !== r.payload.userId)
 			throw invalid();
 		userId = r.payload.userId;
 	}
 	await consumeRegistrationToken(input.raw);
+	if (r.info.kind === "activate")
+		await auditPlatform(
+			{ userId },
+			{ action: "auth.account_activated", target: `user:${userId}` },
+		);
 	return { userId };
 }
