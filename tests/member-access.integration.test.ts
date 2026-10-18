@@ -62,4 +62,15 @@ d("member_access im Org-Kontext (Postgres)", () => {
 		expect(m).toMatchObject({ organizationId: orgId, role: "consultant" });
 		expect(m?.expired).toBe(true);
 	});
+
+	it("Passkeys werden je Mitglied gezählt (Team, Admin → Nutzer:innen)", async () => {
+		await client`insert into passkey (public_key, user_id, credential_id, counter, device_type, backed_up)
+			values ('pk', ${userId}, ${`cred-${Date.now()}`}, 0, 'singleDevice', false)`;
+		const { listOrgMembers } = await import("@/lib/auth/org");
+		const [row] = await listOrgMembers(orgId);
+		expect(row?.passkeys).toBe(1);
+		const { listUsers } = await import("@/lib/db/global");
+		const u = (await listUsers(1000)).find((x) => x.id === userId);
+		expect(u?.passkeys).toBe(1);
+	});
 });
