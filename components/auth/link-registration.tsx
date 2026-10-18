@@ -78,23 +78,36 @@ export function LinkRegistration({
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
+	// Auch bei reinem Fragment-Wechsel (vollständigen Link in denselben Tab
+	// eingefügt) neu prüfen — der Browser lädt die Seite dann nicht neu.
 	useEffect(() => {
-		const token = window.location.hash.slice(1).trim();
-		if (!token) {
-			setState({ s: "incomplete" });
-			return;
+		let current = true;
+		function check() {
+			const token = window.location.hash.slice(1).trim();
+			if (!token) {
+				setState({ s: "incomplete" });
+				return;
+			}
+			setState({ s: "loading" });
+			exchange(token)
+				.then((info) => {
+					if (!current) return;
+					setState(
+						info === "blocked"
+							? { s: "blocked" }
+							: info && info.kind === expected
+								? { s: "ready", token, info }
+								: { s: "invalid" },
+					);
+				})
+				.catch(() => current && setState({ s: "invalid" }));
 		}
-		exchange(token)
-			.then((info) =>
-				setState(
-					info === "blocked"
-						? { s: "blocked" }
-						: info && info.kind === expected
-							? { s: "ready", token, info }
-							: { s: "invalid" },
-				),
-			)
-			.catch(() => setState({ s: "invalid" }));
+		check();
+		window.addEventListener("hashchange", check);
+		return () => {
+			current = false;
+			window.removeEventListener("hashchange", check);
+		};
 	}, [expected]);
 
 	const invalidText =
