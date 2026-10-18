@@ -889,11 +889,15 @@ export function MeasurementForm({
 			>
 				<Input
 					type="date"
+					aria-label={t("measuredAt")}
 					className="h-8 w-36"
 					value={date}
 					onChange={(e) => setDate(e.target.value)}
 				/>
 				<Input
+					aria-label={unit ? `${t("value")} (${unit})` : t("value")}
+					inputMode="decimal"
+					autoComplete="off"
 					className="h-8 w-28"
 					placeholder={unit ? `${t("value")} (${unit})` : t("value")}
 					value={value}

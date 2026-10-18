@@ -2092,7 +2092,8 @@
 		"basis_training": "{done} von {total} fälligen Schulungen erledigt",
 		"basis_mfa": "{withMfa} von {total} Konten mit Inhaber- oder Bearbeitungsrechten mit Passkey oder TOTP",
 		"basis_findings": "{n, plural, =0 {kein kritischer Befund} one {ein kritischer Befund} other {# kritische Befunde}} über der Frist",
-		"basis_accessReviews": "Access-Reviews in {quarters} von 4 abgeschlossenen Quartalen"
+		"basis_accessReviews": "Access-Reviews in {quarters} von 4 abgeschlossenen Quartalen",
+		"measuredAt": "Messdatum"
 	},
 	"Decisions": {
 		"ask": "Entscheidung anfragen",

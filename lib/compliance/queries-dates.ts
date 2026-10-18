@@ -149,6 +149,7 @@ export async function loadDateSources(
 			),
 		tx
 			.select({
+				id: approvalRequests.id,
 				dueAt: approvalRequests.dueAt,
 				workflow: approvalWorkflows.name,
 				entityType: approvalRequests.entityType,
@@ -484,7 +485,8 @@ export async function loadDateSources(
 			date: iso(a.dueAt),
 			kind: "approval",
 			title: a.workflow,
-			href: "/heute/freigaben",
+			// je Antrag verlinkt (mehrere Anträge desselben Ablaufs)
+			href: `/heute/freigaben?request=${a.id}`,
 			note: "SLA der Freigabe",
 		});
 	for (const d of decisions)
