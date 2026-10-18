@@ -54,6 +54,12 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
 import { allows } from "@/lib/auth/permissions";
+import { loadIndicatorData } from "@/lib/compliance/indicator-data";
+import {
+	objectiveTemplateKey,
+	SOURCED_TEMPLATES,
+	suggestMeasurement,
+} from "@/lib/compliance/indicator-sources";
 import {
 	type IndicatorState,
 	indicatorState,
@@ -131,7 +137,8 @@ export default async function OrganisationPage({
 	const canShareholders = allows(ctx, { shareholder: ["update"] });
 	const tsh = await getTranslations("Shareholders");
 	const tin = await getTranslations("Insurance");
-	const memberCount = (await listOrgMembers(ctx.orgId)).length;
+	const orgMembers = await listOrgMembers(ctx.orgId);
+	const memberCount = orgMembers.length;
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const profile = await getOrgProfile(tx, ctx.orgId);
@@ -199,6 +206,15 @@ export default async function OrganisationPage({
 						(r) => r?.decisions.map((d) => d.approverUserId) ?? [],
 					),
 				);
+				// Messvorschläge aus Klick (C2) für Ziele aus Vorlagen
+				const sourced = objectives.some((o) =>
+					(SOURCED_TEMPLATES as readonly string[]).includes(
+						objectiveTemplateKey(o) ?? "",
+					),
+				);
+				const indicatorData = sourced
+					? await loadIndicatorData(tx, ctx.orgId, orgMembers)
+					: null;
 				return {
 					...base,
 					objectives,
@@ -206,6 +222,7 @@ export default async function OrganisationPage({
 					candidates,
 					dels,
 					names,
+					indicatorData,
 				};
 			}
 			case "kommunikation":
@@ -962,6 +979,7 @@ export default async function OrganisationPage({
 															alertAt: o.alertAt,
 															measureEveryMonths: o.measureEveryMonths,
 															nextMeasureAt: o.nextMeasureAt,
+															templateKey: o.templateKey,
 														}}
 													/>
 												)}
@@ -1065,7 +1083,18 @@ export default async function OrganisationPage({
 										<div className="flex flex-wrap items-center justify-between gap-2">
 											<UserChip name={o.ownerName} />
 											{canEdit && (
-												<MeasurementForm objectiveId={o.id} unit={o.unit} />
+												<MeasurementForm
+													objectiveId={o.id}
+													unit={o.unit}
+													suggestion={
+														data.indicatorData
+															? suggestMeasurement(
+																	objectiveTemplateKey(o),
+																	data.indicatorData,
+																)
+															: null
+													}
+												/>
 											)}
 										</div>
 									</li>

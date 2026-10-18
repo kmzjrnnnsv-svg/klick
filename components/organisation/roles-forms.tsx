@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { RoleFunction } from "@/db/schema/enums";
+import type { MeasurementSuggestion } from "@/lib/compliance/indicator-sources";
 import {
 	INDICATOR_TEMPLATES,
 	type IndicatorDirection,
@@ -521,6 +522,7 @@ export type ObjectiveDraft = {
 	alertAt?: number | null;
 	measureEveryMonths?: number | null;
 	nextMeasureAt?: string | null;
+	templateKey?: string | null;
 };
 
 const num = (v: string): number | null => {
@@ -562,6 +564,7 @@ export function ObjectiveForm({
 		if (!tpl) return;
 		setD({
 			...d,
+			templateKey: tpl.key,
 			title: tpl.title,
 			kpiName: tpl.kpiName,
 			unit: tpl.unit,
@@ -819,12 +822,16 @@ export function ObjectiveForm({
 	);
 }
 
+// Messung erfassen; mit Vorschlag aus Klick (C2) — übernehmen und speichern
+// bestätigt den Wert, Klick trägt ihn nie selbst ein.
 export function MeasurementForm({
 	objectiveId,
 	unit,
+	suggestion,
 }: {
 	objectiveId: string;
 	unit: string | null;
+	suggestion?: MeasurementSuggestion | null;
 }) {
 	const t = useTranslations("Organisation");
 	const tc = useTranslations("Common");
@@ -832,54 +839,76 @@ export function MeasurementForm({
 	const [pending, start] = useTransition();
 	const [value, setValue] = useState("");
 	const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+	const fmt = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
 	return (
-		<form
-			className="flex flex-wrap items-center gap-2"
-			onSubmit={(e) => {
-				e.preventDefault();
-				start(async () => {
-					const res = await addKpiMeasurement({
-						objectiveId,
-						measuredAt: date,
-						value,
+		<div className="flex flex-col items-end gap-1">
+			{suggestion && (
+				<p className="flex flex-wrap items-center justify-end gap-2 text-muted-foreground text-xs">
+					<span>
+						{t("suggestion", {
+							value: `${fmt.format(suggestion.value)}${unit ? ` ${unit}` : ""}`,
+						})}{" "}
+						({t(`basis_${suggestion.basis.key}`, suggestion.basis)})
+					</span>
+					<Button
+						type="button"
+						size="sm"
+						variant="ghost"
+						className="h-7 normal-case tracking-normal"
+						onClick={() => setValue(fmt.format(suggestion.value))}
+					>
+						{t("suggestionApply")}
+					</Button>
+				</p>
+			)}
+			<form
+				className="flex flex-wrap items-center gap-2"
+				onSubmit={(e) => {
+					e.preventDefault();
+					start(async () => {
+						const res = await addKpiMeasurement({
+							objectiveId,
+							measuredAt: date,
+							value,
+						});
+						if (!res.ok) return void toast.error(tc("error"));
+						if (res.data.escalated)
+							toast.warning(
+								t("measurementEscalated", { code: res.data.escalated }),
+								{ duration: 12000 },
+							);
+						else if (res.data.state === "alert")
+							toast.warning(t("measurementAlert"));
+						else if (res.data.state === "warn")
+							toast.warning(t("measurementWarn"));
+						else toast.success(t("saved"));
+						setValue("");
+						router.refresh();
 					});
-					if (!res.ok) return void toast.error(tc("error"));
-					if (res.data.escalated)
-						toast.warning(
-							t("measurementEscalated", { code: res.data.escalated }),
-							{ duration: 12000 },
-						);
-					else if (res.data.state === "alert")
-						toast.warning(t("measurementAlert"));
-					else if (res.data.state === "warn")
-						toast.warning(t("measurementWarn"));
-					else toast.success(t("saved"));
-					setValue("");
-					router.refresh();
-				});
-			}}
-		>
-			<Input
-				type="date"
-				className="h-8 w-36"
-				value={date}
-				onChange={(e) => setDate(e.target.value)}
-			/>
-			<Input
-				className="h-8 w-28"
-				placeholder={unit ? `${t("value")} (${unit})` : t("value")}
-				value={value}
-				onChange={(e) => setValue(e.target.value)}
-			/>
-			<Button
-				size="sm"
-				variant="outline"
-				type="submit"
-				disabled={pending || !value.trim()}
+				}}
 			>
-				<Plus />
-				{t("addMeasurement")}
-			</Button>
-		</form>
+				<Input
+					type="date"
+					className="h-8 w-36"
+					value={date}
+					onChange={(e) => setDate(e.target.value)}
+				/>
+				<Input
+					className="h-8 w-28"
+					placeholder={unit ? `${t("value")} (${unit})` : t("value")}
+					value={value}
+					onChange={(e) => setValue(e.target.value)}
+				/>
+				<Button
+					size="sm"
+					variant="outline"
+					type="submit"
+					disabled={pending || !value.trim()}
+				>
+					<Plus />
+					{t("addMeasurement")}
+				</Button>
+			</form>
+		</div>
 	);
 }

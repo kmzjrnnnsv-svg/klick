@@ -32,6 +32,7 @@ import {
 import { openDecisionRequest } from "@/lib/compliance/decision-service";
 import {
 	addMonths,
+	INDICATOR_TEMPLATES,
 	parseNumeric,
 	valueState,
 } from "@/lib/compliance/indicators";
@@ -718,6 +719,13 @@ async function upsertObjectiveImpl(input: unknown): Promise<
 			nextMeasureAt:
 				d.nextMeasureAt ??
 				(d.measureEveryMonths ? addMonths(today, d.measureEveryMonths) : null),
+			// ohne Angabe bleibt die Vorlage beim Bearbeiten erhalten
+			templateKey:
+				d.templateKey === undefined
+					? undefined
+					: INDICATOR_TEMPLATES.some((x) => x.key === d.templateKey)
+						? d.templateKey
+						: null,
 		};
 		let before: typeof objectives.$inferSelect | undefined;
 		if (id) {

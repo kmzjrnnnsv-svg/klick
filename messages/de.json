@@ -2076,7 +2076,13 @@
 		"tabShareholders": "Gesellschafter",
 		"tabInsurance": "Versicherungen",
 		"tabSites": "Standorte",
-		"sitesLead": "Standorte mit Art, Ort und Beschäftigten; kritische Standorte fließen in Risiken, Notfallplanung und Inventar ein. Assets ordnest du unter Assets einem Standort zu."
+		"sitesLead": "Standorte mit Art, Ort und Beschäftigten; kritische Standorte fließen in Risiken, Notfallplanung und Inventar ein. Assets ordnest du unter Assets einem Standort zu.",
+		"suggestion": "Vorschlag aus Klick: {value}",
+		"suggestionApply": "Übernehmen",
+		"basis_training": "{done} von {total} fälligen Schulungen erledigt",
+		"basis_mfa": "{withMfa} von {total} Konten mit Inhaber- oder Bearbeitungsrechten mit Passkey oder TOTP",
+		"basis_findings": "{n, plural, =0 {kein kritischer Befund} one {ein kritischer Befund} other {# kritische Befunde}} über der Frist",
+		"basis_accessReviews": "Access-Reviews in {quarters} von 4 abgeschlossenen Quartalen"
 	},
 	"Decisions": {
 		"ask": "Entscheidung anfragen",
