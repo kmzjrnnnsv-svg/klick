@@ -91,7 +91,7 @@ export function ScanImportDialog({
 	const t = useTranslations("Security");
 	const tc = useTranslations("Common");
 	const router = useRouter();
-	const { errorText, dlpWarning } = useUploadFeedback();
+	const { errorText, dlpWarning, tooLarge } = useUploadFeedback();
 	const input = useRef<HTMLInputElement>(null);
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
@@ -115,6 +115,8 @@ export function ScanImportDialog({
 						e.preventDefault();
 						const file = input.current?.files?.[0];
 						if (!file) return;
+						const big = tooLarge(file);
+						if (big) return void toast.error(big);
 						start(async () => {
 							const fd = new FormData();
 							fd.set("file", file);

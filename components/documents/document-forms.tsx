@@ -317,6 +317,11 @@ export function ImportDialog({
 							start(async () => {
 								const ids: string[] = [];
 								for (const f of files.slice(0, 50)) {
+									const big = feedback.tooLarge(f);
+									if (big) {
+										toast.error(`${f.name}: ${big}`);
+										continue;
+									}
 									const fd = new FormData();
 									fd.set("file", f);
 									fd.set("title", f.name);

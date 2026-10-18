@@ -121,6 +121,11 @@ export function QuestionCard({
 	function upload(files: readonly File[], acknowledged = false) {
 		start(async () => {
 			for (const file of files) {
+				const big = feedback.tooLarge(file);
+				if (big) {
+					toast.error(big);
+					continue;
+				}
 				const fd = new FormData();
 				fd.set("assessmentId", assessmentId);
 				fd.set("questionCode", question.code);

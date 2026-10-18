@@ -1,11 +1,12 @@
 import { fileTypeFromBuffer } from "file-type";
+import { MAX_UPLOAD_BYTES } from "./limits";
 
 // Upload-Härtung: MIME-Allowlist + Magic-Bytes-Prüfung (`file-type`), harte
 // Größengrenze, normalisierter Dateiname. Was hier durchfällt, wird nie in
 // S3 geschrieben. Auslieferung erfolgt immer als Attachment (außer der
 // sandboxed PDF-Vorschau in P2).
 
-export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+export { MAX_UPLOAD_BYTES };
 
 // MIME → erlaubte Endungen. Binärformate werden per Magic Bytes verifiziert,
 // Textformate per UTF-8-Validität (haben keine Signatur).
