@@ -1,5 +1,6 @@
 import type { EntityKind } from "@/db/schema/enums";
 import type { ApprovalStep } from "@/db/schema/grc";
+import { NEW_TRIGGER_STEPS } from "@/lib/approvals/triggers";
 
 // Standard-Freigabe-Workflows (Seed je Org, in /einstellungen anpassbar).
 // Standardmässig aktiv: document_publish, risk_acceptance, management_approval.
@@ -179,6 +180,85 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		],
 		defaultEnabled: false,
 		enabledFromStage: 2,
+	},
+	// Freigabe-Designer: neue Auslöser, standardmäßig aus — der Owner baut
+	// die Abläufe unter Einstellungen → Freigaben (lib/approvals/triggers.ts)
+	{
+		kind: "provider_intake",
+		name: "Dienstleister aufnehmen",
+		entityType: "provider",
+		description:
+			"Neuer Dienstleister steht auf „Im Aufbau“, bis die Freigabe durch ist.",
+		steps: NEW_TRIGGER_STEPS.provider_intake ?? [],
+		defaultEnabled: false,
+	},
+	{
+		kind: "asset_intake",
+		name: "Asset aufnehmen",
+		entityType: "asset",
+		description: "Neues Asset gilt erst nach Freigabe als aktiv.",
+		steps: NEW_TRIGGER_STEPS.asset_intake ?? [],
+		defaultEnabled: false,
+	},
+	{
+		kind: "asset_retirement",
+		name: "Asset außer Betrieb nehmen",
+		entityType: "asset",
+		description: "Außerbetriebnahme wird erst nach Freigabe wirksam.",
+		steps: NEW_TRIGGER_STEPS.asset_retirement ?? [],
+		defaultEnabled: false,
+	},
+	{
+		kind: "risk_intake",
+		name: "Risiko aufnehmen",
+		entityType: "risk",
+		description:
+			"Neu erfasste Risiken stehen auf „Vorgeschlagen“, bis sie freigegeben sind.",
+		steps: NEW_TRIGGER_STEPS.risk_intake ?? [],
+		defaultEnabled: false,
+	},
+	{
+		kind: "process_activation",
+		name: "Prozess aktivieren",
+		entityType: "process",
+		description: "Ein Prozess-Entwurf wird erst nach Freigabe aktiv.",
+		steps: NEW_TRIGGER_STEPS.process_activation ?? [],
+		defaultEnabled: false,
+	},
+	{
+		kind: "incident_report",
+		name: "Meldung an die Aufsicht freigeben",
+		entityType: "incident",
+		description:
+			"„Als gemeldet markieren“ ist erst nach Freigabe möglich — die Meldefrist läuft weiter.",
+		steps: NEW_TRIGGER_STEPS.incident_report ?? [],
+		defaultEnabled: false,
+	},
+	{
+		kind: "nc_plan",
+		name: "Maßnahmenplan einer Abweichung freigeben",
+		entityType: "nonconformity",
+		description:
+			"Die Abweichung geht erst nach Freigabe des Maßnahmenplans in Bearbeitung.",
+		steps: NEW_TRIGGER_STEPS.nc_plan ?? [],
+		defaultEnabled: false,
+	},
+	{
+		kind: "nc_close",
+		name: "Abweichung abschließen",
+		entityType: "nonconformity",
+		description: "Abschluss nach Wirksamkeitsprüfung erst mit Freigabe.",
+		steps: NEW_TRIGGER_STEPS.nc_close ?? [],
+		defaultEnabled: false,
+	},
+	{
+		kind: "training_proposal",
+		name: "Schulung vorschlagen",
+		entityType: "training",
+		description:
+			"Vorgeschlagene Schulungen werden erst nach Freigabe zugewiesen.",
+		steps: NEW_TRIGGER_STEPS.training_proposal ?? [],
+		defaultEnabled: false,
 	},
 ];
 

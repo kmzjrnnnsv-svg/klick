@@ -20,7 +20,7 @@ import {
 	risks,
 } from "@/db/schema";
 import type { EntityKind } from "@/db/schema/enums";
-import { soloModeAllowed } from "@/lib/approvals/rules";
+import { soloModeAllowed, stepRules } from "@/lib/approvals/rules";
 import {
 	ensureOrgWorkflows,
 	loadCandidates,
@@ -263,7 +263,10 @@ export async function resolutionForApproval(
 	const top = await topManagementOf(tx, actor.orgId, actor.userId);
 	if (
 		!isManagementDecision({
-			approverRule: step?.approverRule,
+			approverRule: step
+				? (stepRules(step).find((r) => r === "function:management_body") ??
+					step.approverRule)
+				: undefined,
 			deciderIsTopManagement: top.isTopManagement,
 			entityType: req.entityType,
 		})

@@ -440,11 +440,31 @@ export const processProviders = pgTable(
 
 // ── Freigabe-Workflows ─────────────────────────────────────────────────────
 
+// Bedingung auf Fakten des Auslösers (lib/approvals/triggers.ts), z. B.
+// { field: "criticality", op: "in", value: ["critical", "important"] }
+export type ApprovalCondition = {
+	field: string;
+	op: "eq" | "neq" | "in" | "gte" | "lte" | "is_true" | "is_false";
+	value?: string | number | readonly string[];
+};
+
 export type ApprovalStep = {
 	order: number;
-	approverRule: string; // function:<role_function> | role:<orgRole> | user:<id> | owner_of_entity | not_requester
+	// erste Stelle (Altbestand und Kurzanzeige); maßgeblich ist approvers
+	approverRule: string; // function:<role_function> | role:<orgRole|roleId> | user:<id> | owner_of_entity | not_requester
+	// alle Stellen der Stufe (Freigabe-Designer)
+	approvers?: string[];
+	// any: eine Person aus irgendeiner Stelle · all: jede Stelle stimmt zu
+	mode?: "any" | "all";
 	minApprovers?: number;
 	slaDays?: number;
+	label?: string;
+	// Stufe entfällt, wenn die anfragende Person eine dieser Regeln erfüllt
+	skipIf?: string[];
+	// Stufe gilt nur, wenn alle Bedingungen auf die Fakten zutreffen
+	onlyIf?: ApprovalCondition[];
+	// im Schnappschuss am Antrag: warum die Stufe entfällt
+	skipped?: { by: "requester"; rule: string } | { by: "condition" };
 };
 
 export const approvalWorkflows = pgTable(
@@ -456,6 +476,14 @@ export const approvalWorkflows = pgTable(
 		kind: text().notNull(),
 		name: text().notNull(),
 		steps: json<ApprovalStep[]>().notNull().default([]),
+		// Auslöser aus lib/approvals/triggers.ts (Backfill aus kind)
+		trigger: text(),
+		// wann dieser Ablauf gilt (Varianten mit Bedingung vor dem Standard)
+		conditions: json<ApprovalCondition[]>().notNull().default([]),
+		priority: integer().notNull().default(0),
+		// vom Owner angelegte Variante (kind = custom_…)
+		custom: boolean().notNull().default(false),
+		description: text(),
 		enabled: boolean().notNull().default(false),
 		...timestamps(),
 	},
@@ -521,6 +549,8 @@ export const approvalDecisions = pgTable(
 			enum: ["approved", "rejected", "changes_requested"],
 		}).notNull(),
 		note: text(),
+		// Stelle, für die die Zustimmung zählt (Stufen im Modus „alle“)
+		rule: text(),
 		decidedAt: ts().notNull().defaultNow(),
 	},
 	(t) => [
@@ -1090,6 +1120,11 @@ export const trainingRequirements = pgTable(
 		legalBasis: text(),
 		// Link zum Kurs (LMS, Video, Dokument) — „Zur Schulung“ im Plan.
 		courseUrl: text(),
+		// Vorschlag → Freigabe (Auslöser training.propose); nur approved
+		// erzeugt Zuweisungen
+		approvalStatus: text({ enum: ["proposed", "approved", "rejected"] })
+			.notNull()
+			.default("approved"),
 		createdAt: ts().notNull().defaultNow(),
 	},
 	(t) => [

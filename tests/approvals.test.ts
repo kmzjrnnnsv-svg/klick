@@ -31,7 +31,7 @@ describe("approverEligibility", () => {
 	it("Funktionsregel: nur Compliance", () => {
 		const step = { order: 2, approverRule: "function:compliance" };
 		expect(approverEligibility(step, ben, { requesterUserId: "anna" })).toEqual(
-			{ eligible: true, via: "direct" },
+			{ eligible: true, via: "direct", rules: ["function:compliance"] },
 		);
 		expect(
 			approverEligibility(step, cara, { requesterUserId: "anna" }),
@@ -92,6 +92,7 @@ describe("approverEligibility", () => {
 			eligible: true,
 			via: "delegation",
 			onBehalfOf: "ben",
+			rules: ["function:compliance"],
 		});
 		const ctx2 = {
 			requesterUserId: "ben",

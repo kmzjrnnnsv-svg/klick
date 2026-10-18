@@ -20,13 +20,21 @@ import type { OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { entityOwnerOf, entityOwnersOf, ownerKey } from "./entity-owner";
 import {
+	type Facts,
+	planRoute,
+	type RouteWarning,
+	selectWorkflow,
+} from "./route";
+import {
 	type ApproverCandidate,
 	advance,
 	approverEligibility,
 	eligibleApprovers,
+	openRules,
 	slaDueAt,
 	soloModeAllowed,
 } from "./rules";
+import { TRIGGER_BY_KEY, triggerForKind, triggerOf } from "./triggers";
 
 // Freigabe-Service (DB, innerhalb einer Org-Transaktion). Die reinen Regeln
 // liegen in rules.ts; hier: Workflows je Org sicherstellen, Kandidaten aus
@@ -55,6 +63,8 @@ export async function ensureOrgWorkflows(
 			entityType: t.entityType,
 			kind: t.kind,
 			name: t.name,
+			trigger: triggerForKind(t.kind)?.key ?? null,
+			description: t.description,
 			steps: t.steps,
 			enabled:
 				t.defaultEnabled ||
@@ -167,7 +177,11 @@ export async function activeDelegations(
 }
 
 export type RequestApprovalInput = {
-	kind: string;
+	// Auslöser (lib/approvals/triggers.ts); alternativ das bisherige kind
+	trigger?: string;
+	kind?: string;
+	// Fakten für Bedingungen (Varianten und „Nur wenn …“)
+	facts?: Facts;
 	entityType: EntityKind;
 	entityId: string;
 	entityOwnerUserId?: string | null;
@@ -198,6 +212,9 @@ export type RequestApprovalResult =
 			status: "pending" | "approved";
 			selfApproved: boolean;
 			approverIds: string[];
+			workflowName: string;
+			// alle Stufen entfallen (z. B. anfragende Person ist selbst Stelle)
+			autoApproved?: boolean;
 	  }
 	| {
 			ok: false;
@@ -206,19 +223,35 @@ export type RequestApprovalResult =
 				| "no_approver"
 				| "solo_reason_required"
 				| "solo_not_allowed";
+			warnings?: RouteWarning[];
 	  };
+
+// Aktiver Ablauf für einen Auslöser bzw. ein kind (Varianten zuerst)
+async function resolveWorkflow(
+	tx: OrgTx,
+	orgId: string,
+	input: { trigger?: string; kind?: string; facts?: Facts },
+) {
+	const rows = await tx
+		.select()
+		.from(approvalWorkflows)
+		.where(eq(approvalWorkflows.organizationId, orgId));
+	const trigger =
+		input.trigger ?? (input.kind ? triggerForKind(input.kind)?.key : undefined);
+	if (trigger) return selectWorkflow(rows, trigger, input.facts ?? {});
+	return rows.find((w) => w.kind === input.kind && w.enabled) ?? null;
+}
 
 export async function requestApproval(
 	tx: OrgTx,
 	ctx: { orgId: string; userId: string; name: string },
 	input: RequestApprovalInput,
 ): Promise<RequestApprovalResult> {
-	const wf = await getWorkflow(tx, ctx.orgId, input.kind);
+	const wf = await resolveWorkflow(tx, ctx.orgId, input);
 	if (!wf?.enabled) return { ok: false, error: "workflow_disabled" };
 	const own = input.steps && input.steps.length > 0 ? input.steps : null;
-	const steps = own ?? (wf.steps as ApprovalStep[]);
-	const first = [...steps].sort((a, b) => a.order - b.order)[0];
-	if (!first) return { ok: false, error: "workflow_disabled" };
+	const baseSteps = own ?? (wf.steps as ApprovalStep[]);
+	if (baseSteps.length === 0) return { ok: false, error: "workflow_disabled" };
 
 	// Offene Anfrage derselben Entität zurückziehen (nur eine aktiv).
 	await tx
@@ -235,11 +268,52 @@ export async function requestApproval(
 
 	const candidates = await loadCandidates(tx, ctx.orgId);
 	const dels = await activeDelegations(tx, ctx.orgId);
-	const eligible = eligibleApprovers(first, candidates, {
+	const eligCtx = {
 		requesterUserId: ctx.userId,
-		entityOwnerUserId: input.entityOwnerUserId ?? null,
+		entityOwnerUserId:
+			input.entityOwnerUserId ??
+			(await entityOwnerOf(tx, ctx.orgId, input.entityType, input.entityId)),
 		delegations: dels,
+	};
+	// Schnappschuss: entfallende Stufen (anfragende Person, Bedingungen)
+	const route = planRoute(baseSteps, {
+		requester: candidates.find((c) => c.userId === ctx.userId) ?? null,
+		facts: input.facts ?? {},
+		candidates,
+		ctx: eligCtx,
 	});
+	const steps = route.steps;
+	const first = steps.find((s) => s.order === route.firstOrder);
+	if (!first) {
+		// Alle Stufen entfallen → ohne Entscheidung freigegeben, nachvollziehbar
+		// am Antrag (Schnappschuss mit Gründen)
+		const [req] = await tx
+			.insert(approvalRequests)
+			.values({
+				organizationId: ctx.orgId,
+				workflowId: wf.id,
+				entityType: input.entityType,
+				entityId: input.entityId,
+				entityVersionRef: input.entityVersionRef ?? null,
+				requestedByUserId: ctx.userId,
+				currentStep: steps[0]?.order ?? 1,
+				steps,
+				status: "approved",
+				decidedAt: new Date(),
+			})
+			.returning({ id: approvalRequests.id });
+		if (!req) throw new Error("insert failed");
+		return {
+			ok: true,
+			requestId: req.id,
+			status: "approved",
+			selfApproved: false,
+			approverIds: [],
+			workflowName: wf.name,
+			autoApproved: true,
+		};
+	}
+	const eligible = eligibleApprovers(first, candidates, eligCtx);
 
 	if (eligible.length === 0) {
 		const [s] = await tx
@@ -255,7 +329,8 @@ export async function requestApproval(
 			allowSelfApproval: s?.allowSelfApproval ?? false,
 			licenceStage: s?.licenceStage ?? "0_vorbereitung",
 		});
-		if (!solo) return { ok: false, error: "no_approver" };
+		if (!solo)
+			return { ok: false, error: "no_approver", warnings: route.warnings };
 		if (
 			!input.selfApprovalReason ||
 			input.selfApprovalReason.trim().length < 10
@@ -272,7 +347,7 @@ export async function requestApproval(
 				entityVersionRef: input.entityVersionRef ?? null,
 				requestedByUserId: ctx.userId,
 				currentStep: first.order,
-				steps: own,
+				steps,
 				status: "approved",
 				decidedAt: new Date(),
 				selfApproved: true,
@@ -294,6 +369,7 @@ export async function requestApproval(
 			status: "approved",
 			selfApproved: true,
 			approverIds: [],
+			workflowName: wf.name,
 		};
 	}
 
@@ -307,7 +383,7 @@ export async function requestApproval(
 			entityVersionRef: input.entityVersionRef ?? null,
 			requestedByUserId: ctx.userId,
 			currentStep: first.order,
-			steps: own,
+			steps,
 			status: "pending",
 			dueAt: slaDueAt(first, new Date()),
 		})
@@ -330,7 +406,95 @@ export async function requestApproval(
 		status: "pending",
 		selfApproved: false,
 		approverIds,
+		workflowName: wf.name,
 	};
+}
+
+export type GateResult =
+	| { status: "none" }
+	| { status: "pending"; requestId: string; approverIds: string[] }
+	| {
+			status: "approved";
+			requestId: string;
+			selfApproved: boolean;
+			autoApproved: boolean;
+	  }
+	| {
+			status: "error";
+			error: "no_approver" | "solo_reason_required" | "solo_not_allowed";
+			warnings: RouteWarning[];
+	  };
+
+// Einheitlicher Einstieg für Auslöser (Freigabe-Designer): kein aktiver
+// Ablauf → „none“ (die Aktion läuft wie ohne Freigabe weiter).
+export async function gateApproval(
+	tx: OrgTx,
+	ctx: { orgId: string; userId: string; name: string },
+	input: Omit<RequestApprovalInput, "kind"> & { trigger: string },
+): Promise<GateResult> {
+	const r = await requestApproval(tx, ctx, input);
+	if (!r.ok)
+		return r.error === "workflow_disabled"
+			? { status: "none" }
+			: { status: "error", error: r.error, warnings: r.warnings ?? [] };
+	return r.status === "pending"
+		? { status: "pending", requestId: r.requestId, approverIds: r.approverIds }
+		: {
+				status: "approved",
+				requestId: r.requestId,
+				selfApproved: r.selfApproved,
+				autoApproved: Boolean(r.autoApproved),
+			};
+}
+
+// „Vorab“-Auslöser: darf die Aktion laufen? not_required = kein aktiver
+// Ablauf; approved = letzter passender Antrag freigegeben.
+export async function approvalState(
+	tx: OrgTx,
+	orgId: string,
+	input: {
+		trigger: string;
+		entityType: EntityKind;
+		entityId: string;
+		entityVersionRef?: string | null;
+		facts?: Facts;
+	},
+): Promise<"not_required" | "approved" | "pending" | "missing"> {
+	const wf = await resolveWorkflow(tx, orgId, input);
+	if (!wf) return "not_required";
+	const rows = await tx
+		.select({
+			status: approvalRequests.status,
+			versionRef: approvalRequests.entityVersionRef,
+			trigger: approvalWorkflows.trigger,
+			kind: approvalWorkflows.kind,
+		})
+		.from(approvalRequests)
+		.innerJoin(
+			approvalWorkflows,
+			eq(approvalWorkflows.id, approvalRequests.workflowId),
+		)
+		.where(
+			and(
+				eq(approvalRequests.organizationId, orgId),
+				eq(approvalRequests.entityType, input.entityType),
+				eq(approvalRequests.entityId, input.entityId),
+			),
+		)
+		.orderBy(desc(approvalRequests.requestedAt));
+	const hit = rows.find(
+		(r) =>
+			triggerOf(r) === input.trigger &&
+			(input.entityVersionRef === undefined ||
+				r.versionRef === (input.entityVersionRef ?? null)),
+	);
+	if (hit?.status === "approved") return "approved";
+	if (hit?.status === "pending") return "pending";
+	return "missing";
+}
+
+export function triggerLabelKey(trigger: string): string {
+	return TRIGGER_BY_KEY.has(trigger) ? `t_${trigger.replace(".", "_")}` : "";
 }
 
 export type DecideResult =
@@ -344,7 +508,12 @@ export type DecideResult =
 	  }
 	| {
 			ok: false;
-			error: "not_found" | "not_pending" | "four_eyes" | "rule_not_met";
+			error:
+				| "not_found"
+				| "not_pending"
+				| "four_eyes"
+				| "rule_not_met"
+				| "already_decided";
 	  };
 
 export async function decide(
@@ -402,11 +571,33 @@ export async function decide(
 	);
 	if (!elig.eligible) return { ok: false, error: elig.reason };
 
+	const before = await tx
+		.select({
+			decision: approvalDecisions.decision,
+			rule: approvalDecisions.rule,
+			approverUserId: approvalDecisions.approverUserId,
+		})
+		.from(approvalDecisions)
+		.where(
+			and(
+				eq(approvalDecisions.requestId, req.id),
+				eq(approvalDecisions.step, req.currentStep),
+			),
+		);
+	// Je Stufe entscheidet eine Person nur einmal (auch bei „alle“)
+	if (before.some((d) => d.approverUserId === ctx.userId))
+		return { ok: false, error: "already_decided" };
+	// Stelle, für die die Zustimmung zählt: erste noch offene, die die
+	// Person (oder die vertretene Person) erfüllt
+	const open = openRules(step, before);
+	const rule = elig.rules.find((r) => open.includes(r)) ?? elig.rules[0];
+
 	await tx.insert(approvalDecisions).values({
 		organizationId: ctx.orgId,
 		requestId: req.id,
 		step: req.currentStep,
 		approverUserId: ctx.userId,
+		rule: rule ?? null,
 		decision: input.decision,
 		note:
 			[
@@ -419,7 +610,11 @@ export async function decide(
 				.join(" ") || null,
 	});
 	const decisionsOnStep = await tx
-		.select({ decision: approvalDecisions.decision })
+		.select({
+			decision: approvalDecisions.decision,
+			rule: approvalDecisions.rule,
+			approverUserId: approvalDecisions.approverUserId,
+		})
 		.from(approvalDecisions)
 		.where(
 			and(
