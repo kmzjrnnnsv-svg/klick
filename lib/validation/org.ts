@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { CASP_SERVICES, LICENCE_STAGES } from "@/db/schema/enums";
+import {
+	CASP_SERVICES,
+	LICENCE_STAGES,
+	ROLE_FUNCTIONS,
+} from "@/db/schema/enums";
 import { ORG_ROLES } from "@/lib/auth/session-rules";
 import { shortText, slug } from "./common";
 
@@ -11,8 +15,11 @@ export const createOrganizationSchema = z.object({
 	sector: sectorSchema.default("other"),
 	licenceStage: z.enum(LICENCE_STAGES).default("0_vorbereitung"),
 	caspServices: z.array(z.enum(CASP_SERVICES)).default([]),
-	frameworks: z.array(z.string().min(1)).min(1, "mindestens ein Rahmenwerk"),
+	// leer = Rahmenwerke folgen in der geführten Einrichtung (D4)
+	frameworks: z.array(z.string().min(1)).default([]),
 	applyBaseline: z.boolean().default(false),
+	// eigene Funktion im Unternehmen (D0), wird direkt zugewiesen
+	ownFunction: z.enum(ROLE_FUNCTIONS).optional(),
 });
 export type CreateOrganizationInput = z.output<typeof createOrganizationSchema>;
 // Formular-Eingabetyp: Felder mit .default() sind hier optional.

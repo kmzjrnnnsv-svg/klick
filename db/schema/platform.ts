@@ -134,6 +134,8 @@ export type EntityProfile = {
 	revenueEur?: number;
 	nis2Sector?: string;
 	customerTypes?: string[];
+	// stellt Produkte mit digitalen Elementen her oder bringt sie in Verkehr
+	digitalProducts?: boolean;
 	// IT und Daten (D3)
 	itOperation?: "cloud" | "hybrid" | "own_dc";
 	personalData?: string[];

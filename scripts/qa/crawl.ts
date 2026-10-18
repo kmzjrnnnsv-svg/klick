@@ -267,40 +267,67 @@ async function login(ctx: BrowserContext): Promise<void> {
 		await page.click('form button[type="submit"]');
 		await settle(page);
 	}
-	// Onboarding
+	// Onboarding (D0) + geführte Einrichtung (D1–D5)
 	if (page.url().includes("/onboarding")) {
-		console.log("→ Onboarding (CASP, Stufe 2, alle Rahmenwerke)");
-		await page.fill('input[name="name"]', `QA Org ${Date.now() % 100000}`);
-		// Sektor + Stufe über Radix-Select
-		const triggers = page.locator('button[role="combobox"]');
-		await triggers.nth(0).click();
-		await page.getByRole("option", { name: /Krypto-Dienstleister/ }).click();
-		await triggers.nth(1).click();
-		await page.getByRole("option").nth(2).click();
-		await page.getByRole("button", { name: /^Weiter$/ }).click();
-		await sleep(500);
-		const boxes = page.locator('button[role="checkbox"]');
-		const n = await boxes.count();
-		for (let i = 0; i < n; i++) {
-			const b = boxes.nth(i);
-			if ((await b.getAttribute("data-state")) !== "checked") await b.click();
-		}
-		await page.getByRole("button", { name: /^Weiter$/ }).click();
-		await sleep(500);
+		console.log("→ Onboarding + Einrichtung (CASP, Stufe 2, alle Rahmenwerke)");
+		await page.fill("#ob-name", `QA Org ${Date.now() % 100000}`);
 		const baseline = page.locator('button[role="checkbox"]');
 		if ((await baseline.count()) > 0) await baseline.first().click();
-		await page
-			.getByRole("button", { name: /anlegen|Organisation anlegen/i })
-			.last()
-			.click();
-		await page.waitForURL(/\/ueberblick|\/heute|\/gap-analyse/, {
-			timeout: 120_000,
-		});
+		await page.getByRole("button", { name: /Anlegen und weiter/ }).click();
+		await page.waitForURL(/\/einrichtung\/rollen/, { timeout: 60_000 });
+		await settle(page);
+		await setupWizard(page);
+		await page.waitForURL(/\/gap-analyse\//, { timeout: 120_000 });
 		await settle(page, 3000);
 	}
 	await ctx.storageState({ path: STATE });
 	console.log(`✔ Sitzung gespeichert (${page.url()})`);
 	await page.close();
+}
+
+// Geführte Einrichtung durchklicken: Profil, Standort, CASP Stufe 2,
+// ein Dienstleister, alle Rahmenwerke, Gap-Analyse
+async function setupWizard(page: Page) {
+	const next = (name: RegExp) =>
+		page.getByRole("button", { name }).last().click();
+	await next(/^Weiter$/);
+	await page.waitForURL(/\/einrichtung\/unternehmen/);
+	await page.fill("#co-employees", "25");
+	await page.fill("#co-revenueEur", "5000000");
+	await next(/Speichern und weiter/);
+	await page.waitForURL(/\/einrichtung\/standorte/);
+	await page.fill("#si-name", "Hauptsitz Frankfurt");
+	await page.fill("#si-city", "Frankfurt am Main");
+	await page
+		.getByRole("button", { name: "Standort hinzufügen" })
+		.last()
+		.click();
+	await settle(page, 1500);
+	await next(/^Weiter$/);
+	await page.waitForURL(/\/einrichtung\/taetigkeit/);
+	await page.locator("#ac-sector").click();
+	await page.getByRole("option", { name: /Krypto-Dienstleister/ }).click();
+	await page.locator("#ac-stage").click();
+	await page.getByRole("option").nth(2).click();
+	await next(/Speichern und weiter/);
+	await page.waitForURL(/\/einrichtung\/it-daten/);
+	await page.locator('[id^="pv-name-"]').first().fill("QA Cloud GmbH");
+	await next(/Speichern und weiter/);
+	await page.waitForURL(/\/einrichtung\/rahmenwerke/, { timeout: 60_000 });
+	await page.locator("summary").first().click();
+	const boxes = page.locator('button[role="checkbox"]');
+	const n = await boxes.count();
+	for (let i = 0; i < n; i++) {
+		const b = boxes.nth(i);
+		if (
+			(await b.getAttribute("data-state")) !== "checked" &&
+			!(await b.isDisabled())
+		)
+			await b.click();
+	}
+	await next(/Speichern und weiter/);
+	await page.waitForURL(/\/einrichtung\/gap-analyse/, { timeout: 120_000 });
+	await next(/Gap-Analyse starten/);
 }
 
 async function stepUp(page: Page) {

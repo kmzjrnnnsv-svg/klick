@@ -8,10 +8,10 @@ import { admin } from "better-auth/plugins/admin";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { organization } from "better-auth/plugins/organization";
 import { twoFactor } from "better-auth/plugins/two-factor";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { globalDb, schema } from "../../db";
 import { member, session as sessionTable, user } from "../../db/auth-schema";
-import { memberAccess } from "../../db/schema";
+import { memberAccess, roleAssignments } from "../../db/schema";
 import { auditPlatform } from "../audit";
 import { withOrg } from "../db/with-org";
 import { sendTransactionalMail } from "../mail/send";
@@ -374,6 +374,24 @@ export const auth = betterAuth({
 					await withOrg(
 						{ orgId: invitation.organizationId, userId: user.id },
 						(tx) => syncTrainingAssignments(tx, invitation.organizationId),
+					);
+					// In der Einrichtung vorgemerkte Funktionen (pendingEmail) mit dem
+					// neuen Konto verknüpfen (D1).
+					await withOrg(
+						{ orgId: invitation.organizationId, userId: user.id },
+						(tx) =>
+							tx
+								.update(roleAssignments)
+								.set({ userId: user.id, pendingEmail: null })
+								.where(
+									and(
+										eq(
+											roleAssignments.organizationId,
+											invitation.organizationId,
+										),
+										eq(roleAssignments.pendingEmail, user.email.toLowerCase()),
+									),
+								),
 					);
 					// Externe (Prüfer:innen 6 Wochen, Berater:innen 90 Tage) bekommen
 					// befristeten Zugang; Owner passt Ablauf und Grants auf /team an.

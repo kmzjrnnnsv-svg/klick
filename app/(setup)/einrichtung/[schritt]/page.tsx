@@ -1,0 +1,289 @@
+import { eq } from "drizzle-orm";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
+import { ActivityStep } from "@/components/setup/activity-step";
+import { CompanyStep } from "@/components/setup/company-step";
+import { FrameworksStep } from "@/components/setup/frameworks-step";
+import { GapStep } from "@/components/setup/gap-step";
+import { ItDataStep } from "@/components/setup/it-data-step";
+import { RolesStep } from "@/components/setup/roles-step";
+import { SitesStep } from "@/components/setup/sites-step";
+import { StepFooter } from "@/components/setup/step-footer";
+import { orgSettings, providers, roleAssignments, sites } from "@/db/schema";
+import type { RoleFunction } from "@/db/schema/enums";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
+import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
+import { requiredFunctions } from "@/lib/compliance/catalog/required-functions";
+import { checkSod } from "@/lib/compliance/catalog/sod-rules";
+import { suggestFrameworks } from "@/lib/compliance/company-profile";
+import {
+	getOrgProfile,
+	listMembersForPicker,
+	userNames,
+} from "@/lib/compliance/queries";
+import { readOrg } from "@/lib/db/with-org";
+import {
+	isSetupStep,
+	neighbours,
+	SETUP_STEPS,
+	setupState,
+	stepHref,
+} from "@/lib/setup/steps";
+
+// Grundausstattung an Funktionen, solange noch keine Rahmenwerke feststehen
+const BASE_FUNCTIONS: readonly RoleFunction[] = [
+	"management_body",
+	"department_head",
+	"isb_ciso",
+	"dpo",
+	"compliance",
+	"risk_control",
+	"outsourcing_officer",
+	"incident_manager",
+	"bcm_manager",
+	"internal_audit",
+];
+
+export default async function SetupStepPage({
+	params,
+}: {
+	params: Promise<{ schritt: string }>;
+}) {
+	const { schritt } = await params;
+	if (!isSetupStep(schritt)) notFound();
+	const ctx = await requireOrgPage({ settings: ["update"] });
+	const t = await getTranslations("Setup");
+	const tf = await getTranslations("Functions");
+
+	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
+		const profile = await getOrgProfile(tx, ctx.orgId);
+		const [s] = await tx
+			.select({
+				flags: orgSettings.setupFlags,
+				entity: orgSettings.entityProfile,
+			})
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, ctx.orgId))
+			.limit(1);
+		const base = { profile, flags: s?.flags ?? {}, entity: s?.entity ?? {} };
+		switch (schritt) {
+			case "rollen": {
+				const rows = await tx
+					.select({
+						id: roleAssignments.id,
+						function: roleAssignments.function,
+						userId: roleAssignments.userId,
+						externalName: roleAssignments.externalName,
+						pendingEmail: roleAssignments.pendingEmail,
+						deputyUserId: roleAssignments.deputyUserId,
+					})
+					.from(roleAssignments)
+					.where(eq(roleAssignments.organizationId, ctx.orgId));
+				const names = await userNames(
+					tx,
+					rows.flatMap((r) => [r.userId, r.deputyUserId]),
+				);
+				return {
+					...base,
+					assignments: rows,
+					names,
+					members: await listMembersForPicker(tx, ctx.orgId),
+				};
+			}
+			case "standorte":
+				return {
+					...base,
+					sites: await tx
+						.select()
+						.from(sites)
+						.where(eq(sites.organizationId, ctx.orgId))
+						.orderBy(sites.createdAt),
+				};
+			case "it-daten":
+				return {
+					...base,
+					providerNames: (
+						await tx
+							.select({ name: providers.name })
+							.from(providers)
+							.where(eq(providers.organizationId, ctx.orgId))
+					).map((p) => p.name),
+				};
+			default:
+				return base;
+		}
+	});
+	if (!data.profile) notFound();
+	const { profile, entity } = data;
+	const state = setupState(data.flags);
+	const done = new Set(state.done);
+	const idx = SETUP_STEPS.indexOf(schritt);
+	const nav = neighbours(schritt);
+	const nextHref = nav.next ? stepHref(nav.next) : "/heute";
+	const fwNames = Object.fromEntries(
+		CATALOG_FRAMEWORKS.map((f) => [f.slug, f.name]),
+	);
+
+	return (
+		<div className="flex flex-col gap-8">
+			<nav aria-label={t("title")} className="flex flex-col gap-3">
+				<p className="lv-eyebrow text-[0.6rem] text-brown">
+					{t("eyebrow")} ·{" "}
+					{t("stepOf", { n: idx + 1, total: SETUP_STEPS.length })}
+				</p>
+				<ol className="flex flex-wrap gap-1.5">
+					{SETUP_STEPS.map((s, i) => (
+						<li key={s}>
+							<Link
+								href={stepHref(s)}
+								aria-current={s === schritt ? "step" : undefined}
+								className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs ${
+									s === schritt
+										? "border-primary bg-primary text-primary-foreground"
+										: done.has(s)
+											? "border-success/40 text-foreground hover:bg-muted"
+											: "text-muted-foreground hover:bg-muted"
+								}`}
+							>
+								<span className="tabular-nums">
+									{done.has(s) ? "✓" : i + 1}
+								</span>
+								{t(`step_${s}`)}
+							</Link>
+						</li>
+					))}
+				</ol>
+			</nav>
+			<header className="flex flex-col gap-2">
+				<h1 className="font-serif-display text-3xl text-primary">
+					{t(`step_${schritt}`)}
+				</h1>
+				<p className="max-w-2xl text-muted-foreground text-sm">
+					{t(`lead_${schritt}`)}
+				</p>
+			</header>
+
+			{schritt === "rollen" && "assignments" in data && (
+				<RolesStep
+					functions={(() => {
+						const req = requiredFunctions(
+							profile.frameworks,
+							profile.profile.licenceStage,
+						);
+						const keys = new Set<RoleFunction>([
+							...req.map((r) => r.function),
+							...(req.length === 0 ? BASE_FUNCTIONS : []),
+						]);
+						return [...keys].map((f) => {
+							const r = req.find((x) => x.function === f);
+							return {
+								function: f,
+								title: tf(f),
+								hint: r?.hint ?? null,
+								legalBasis: r?.legalBasis ?? null,
+								required: Boolean(r),
+							};
+						});
+					})()}
+					assignments={data.assignments.map((a) => ({
+						...a,
+						userName: a.userId ? (data.names.get(a.userId) ?? null) : null,
+						deputyName: a.deputyUserId
+							? (data.names.get(a.deputyUserId) ?? null)
+							: null,
+					}))}
+					members={data.members}
+					currentUserId={ctx.userId}
+					sod={checkSod(data.assignments).map((v) => ({
+						code: v.rule.code,
+						text: v.rule.text,
+						severity: v.rule.severity,
+						who: data.names.get(v.userId) ?? "—",
+					}))}
+					nextHref={nextHref}
+				/>
+			)}
+			{schritt === "unternehmen" && (
+				<CompanyStep
+					initial={entity}
+					sector={profile.profile.sector}
+					nextHref={nextHref}
+				/>
+			)}
+			{schritt === "standorte" && "sites" in data && (
+				<SitesStep
+					sites={data.sites.map((s) => ({
+						id: s.id,
+						name: s.name,
+						kind: s.kind,
+						country: s.country,
+						city: s.city,
+						employees: s.employees,
+						critical: s.critical,
+					}))}
+					defaultCountry={entity.country ?? "DE"}
+					nextHref={nextHref}
+				/>
+			)}
+			{schritt === "taetigkeit" && (
+				<ActivityStep
+					initial={{
+						sector: profile.profile.sector,
+						licenceStage: profile.profile.licenceStage,
+						caspServices: [...profile.profile.caspServices],
+						issuesTokens: profile.profile.issuesTokens,
+						digitalProducts: entity.digitalProducts ?? false,
+					}}
+					nextHref={nextHref}
+				/>
+			)}
+			{schritt === "it-daten" && "providerNames" in data && (
+				<ItDataStep
+					initial={entity}
+					existingProviders={data.providerNames}
+					nextHref={nextHref}
+				/>
+			)}
+			{schritt === "rahmenwerke" && (
+				<FrameworksStep
+					suggestions={suggestFrameworks({
+						sector: profile.profile.sector,
+						licenceStage: profile.profile.licenceStage,
+						caspServices: [...profile.profile.caspServices],
+						issuesTokens: profile.profile.issuesTokens,
+						hasProducts: entity.digitalProducts ?? false,
+						entity,
+					})}
+					all={CATALOG_FRAMEWORKS.map((f) => ({
+						slug: f.slug,
+						name: f.name,
+						description: f.description,
+					}))}
+					active={profile.frameworks}
+					profile={{
+						sector: profile.profile.sector,
+						licenceStage: profile.profile.licenceStage,
+						caspServices: [...profile.profile.caspServices],
+					}}
+					names={fwNames}
+					nextHref={nextHref}
+				/>
+			)}
+			{schritt === "gap-analyse" && (
+				<GapStep
+					frameworks={profile.frameworks.map((slug) => ({
+						slug,
+						name: fwNames[slug] ?? slug,
+					}))}
+				/>
+			)}
+
+			<StepFooter
+				prevHref={nav.prev ? stepHref(nav.prev) : null}
+				showLater={!state.completed}
+			/>
+		</div>
+	);
+}

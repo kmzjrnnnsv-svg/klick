@@ -60,6 +60,10 @@ describe("classifyCompany", () => {
 		expect(c.size).toBe("small");
 		expect(c.priceGroup).toBe("small");
 		expect(c.reasons.join(" ")).toContain("Art. 4 NIS2");
+		// Branche Bankwesen ohne Finanz-Tätigkeit: ebenfalls DORA
+		expect(
+			classifyCompany({ employees: 300, nis2Sector: "banking" }, "other").nis2,
+		).toBe("dora");
 	});
 });
 
@@ -69,7 +73,7 @@ describe("suggestFrameworks", () => {
 			sector: "payment",
 			licenceStage: "2_casp_zag",
 			caspServices: [],
-			issuesTokens: false,
+			issuesTokens: "none",
 			hasProducts: false,
 			entity: { employees: 15, personalData: ["kunden"] },
 		});
@@ -92,7 +96,7 @@ describe("suggestFrameworks", () => {
 			sector: "other",
 			licenceStage: "0_vorbereitung",
 			caspServices: [],
-			issuesTokens: false,
+			issuesTokens: "none",
 			hasProducts: true,
 			entity: { employees: 120, nis2Sector: "manufacturing" },
 		});
@@ -104,7 +108,7 @@ describe("suggestFrameworks", () => {
 			sector: "other",
 			licenceStage: "0_vorbereitung",
 			caspServices: [],
-			issuesTokens: false,
+			issuesTokens: "none",
 			hasProducts: false,
 			entity: {},
 		});

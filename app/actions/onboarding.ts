@@ -4,7 +4,12 @@ import { APIError } from "better-auth/api";
 import { inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { frameworks, orgFrameworks, orgSettings } from "@/db/schema";
+import {
+	frameworks,
+	orgFrameworks,
+	orgSettings,
+	roleAssignments,
+} from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { audit } from "@/lib/audit";
 import {
@@ -22,6 +27,7 @@ import {
 import { generateDek, wrapDek } from "@/lib/crypto/envelope";
 import { listFrameworkOptions } from "@/lib/db/global";
 import { withOrg } from "@/lib/db/with-org";
+import { SETUP_FLAG } from "@/lib/setup/steps";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { createOrganizationSchema } from "@/lib/validation/org";
 
@@ -90,7 +96,19 @@ async function createOrganizationActionImpl(
 				riskMethod: defaultRiskMethod(data.frameworks),
 				riskAppetite: appetiteFromMethod(defaultRiskMethod(data.frameworks)),
 				onboardingCompletedAt: new Date(),
+				// ohne Rahmenwerke geht es in die geführte Einrichtung (D0)
+				setupFlags:
+					data.frameworks.length === 0
+						? { [SETUP_FLAG.started]: new Date().toISOString() }
+						: {},
 			});
+			if (data.ownFunction)
+				await tx.insert(roleAssignments).values({
+					organizationId: org.id,
+					function: data.ownFunction,
+					userId: ctx.user.id,
+					appointedAt: new Date().toISOString().slice(0, 10),
+				});
 			const fws = await tx
 				.select({ id: frameworks.id, slug: frameworks.slug })
 				.from(frameworks)
@@ -127,6 +145,7 @@ async function createOrganizationActionImpl(
 						licenceStage: data.licenceStage,
 						caspServices: data.caspServices,
 						frameworks: fws.map((f) => f.slug),
+						ownFunction: data.ownFunction ?? null,
 						keyVersion: wrapped.keyVersion,
 						applyBaseline,
 						init,

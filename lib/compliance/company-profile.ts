@@ -114,7 +114,11 @@ export function classifyCompany(
 			`${sizeLabel[size]} nach EU-Empfehlung 2003/361 (Beschäftigte, Umsatz oder Bilanzsumme)`,
 		);
 	let nis2: Nis2Class = "none";
-	if (FINANCIAL_SECTORS.includes(sector)) {
+	// Banken und Finanzmarktinfrastrukturen (NIS2 Anhang I) sind
+	// Finanzunternehmen im Sinne von DORA — wie die Finanz-Tätigkeiten
+	const financialNis2 =
+		entity.nis2Sector === "banking" || entity.nis2Sector === "fmi";
+	if (FINANCIAL_SECTORS.includes(sector) || financialNis2) {
 		nis2 = "dora";
 		reasons.push(
 			"Finanzunternehmen: DORA geht für die IKT-Sicherheit als spezielleres Recht vor (Art. 4 NIS2)",
@@ -168,7 +172,7 @@ export type SetupProfile = {
 	sector: Sector;
 	licenceStage: LicenceStage;
 	caspServices: readonly CaspService[];
-	issuesTokens: boolean;
+	issuesTokens: "none" | "art" | "emt" | "other";
 	hasProducts: boolean;
 	entity: EntityProfile;
 };
@@ -180,7 +184,7 @@ export function suggestFrameworks(p: SetupProfile): FrameworkSuggestion[] {
 			out.push({ slug, reason, recommended });
 	};
 	const cls = classifyCompany(p.entity, p.sector);
-	const financial = FINANCIAL_SECTORS.includes(p.sector);
+	const financial = FINANCIAL_SECTORS.includes(p.sector) || cls.nis2 === "dora";
 	if (financial)
 		add(
 			"dora",
@@ -193,10 +197,14 @@ export function suggestFrameworks(p: SetupProfile): FrameworkSuggestion[] {
 				? "besonders wichtige Einrichtung nach NIS2/BSIG"
 				: "wichtige Einrichtung nach NIS2/BSIG",
 		);
-	if (p.sector === "casp" || p.caspServices.length > 0 || p.issuesTokens)
+	if (
+		p.sector === "casp" ||
+		p.caspServices.length > 0 ||
+		p.issuesTokens !== "none"
+	)
 		add(
 			"micar",
-			p.issuesTokens
+			p.issuesTokens !== "none"
 				? "Ausgabe von Kryptowerten bzw. E-Geld-Token"
 				: "Kryptowerte-Dienstleistungen (Zulassung nach MiCAR + KMAG)",
 		);

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { frameworkOptions } from "@/app/actions/onboarding";
 import { OnboardingWizard } from "@/components/auth/onboarding-wizard";
 import { pendingInvitationId } from "@/lib/auth/allow-list";
 import { gateAuth } from "@/lib/auth/gates";
@@ -20,7 +19,6 @@ export default async function OnboardingPage() {
 	// Nur Berater-Zugänge: eigene Org anlegen geht, die Zugänge bleiben wählbar.
 	const consultantOnly = (await listUserMemberships(ctx.user.id)).length > 0;
 	const t = await getTranslations("Onboarding");
-	const frameworks = await frameworkOptions();
 	return (
 		<div className="flex flex-col gap-8">
 			<div>
@@ -40,10 +38,7 @@ export default async function OnboardingPage() {
 					</p>
 				)}
 			</div>
-			<OnboardingWizard
-				frameworks={frameworks}
-				canApplyBaseline={ctx.user.role === "admin"}
-			/>
+			<OnboardingWizard canApplyBaseline={ctx.user.role === "admin"} />
 		</div>
 	);
 }

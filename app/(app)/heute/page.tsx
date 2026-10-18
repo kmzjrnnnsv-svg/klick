@@ -1,3 +1,5 @@
+import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ApprovalActions } from "@/components/approvals/approval-actions";
 import { AckButton } from "@/components/documents/ack-button";
@@ -16,6 +18,7 @@ import {
 	TodayMeta,
 	TodayRow,
 } from "@/components/today/today-list";
+import { orgSettings } from "@/db/schema";
 import { listRequestsForUser } from "@/lib/approvals/service";
 import { catalogQuestions } from "@/lib/assessments/catalog-template";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -42,6 +45,12 @@ import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { listNotifications } from "@/lib/notifications/query";
 import { safeInternalPath } from "@/lib/safe-path";
+import {
+	SETUP_STEPS,
+	setupState,
+	shouldRedirectToSetup,
+	stepHref,
+} from "@/lib/setup/steps";
 import { currentTrainings } from "@/lib/trainings/assignments";
 
 // Startseite nach Login: gestapelte Abschnitte, je max. fünf Einträge —
@@ -69,6 +78,7 @@ export default async function TodayPage() {
 		trainingRows,
 		trainingReqs,
 		gapAnalyses,
+		setupFlags,
 	} = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const requests = (
 			await listRequestsForUser(tx, ctx.orgId, ctx.userId)
@@ -110,6 +120,14 @@ export default async function TodayPage() {
 			),
 			trainingReqs: await listTrainingRequirements(tx, ctx.orgId),
 			gapAnalyses: await listAssessments(tx, ctx.orgId, "self"),
+			setupFlags:
+				(
+					await tx
+						.select({ flags: orgSettings.setupFlags })
+						.from(orgSettings)
+						.where(eq(orgSettings.organizationId, ctx.orgId))
+						.limit(1)
+				)[0]?.flags ?? {},
 			ncs: (await listNonconformities(tx, ctx.orgId)).filter(
 				(n) =>
 					n.status !== "closed" &&
@@ -119,6 +137,14 @@ export default async function TodayPage() {
 			),
 		};
 	});
+
+	// Geführte Einrichtung (D0): neue Orgs landen dort, bis die Rahmenwerke
+	// stehen; danach (und für Bestands-Orgs) eine Karte, bis alles erledigt ist.
+	const canSetup = roleAllows(ctx.orgRole, { settings: ["update"] });
+	const setup = setupState(setupFlags);
+	if (canSetup && shouldRedirectToSetup(setup))
+		redirect(stepHref(setup.next ?? "rollen"));
+	const tsu = await getTranslations("Setup");
 
 	// Geführter Einstieg: offene Gap-Analyse fortsetzen oder die erste starten.
 	const ta = await getTranslations("Assessment");
@@ -178,6 +204,23 @@ export default async function TodayPage() {
 				}
 			/>
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+				{canSetup && !setup.completed && setup.next && (
+					<TodayCard
+						title={tsu("cardTitle")}
+						link={{
+							href: stepHref(setup.next),
+							label: tsu("cardContinue", { step: tsu(`step_${setup.next}`) }),
+						}}
+						className="border-primary/40 md:col-span-2"
+					>
+						<p className="text-sm">
+							{tsu("cardLead", {
+								done: setup.done.length,
+								total: SETUP_STEPS.length,
+							})}
+						</p>
+					</TodayCard>
+				)}
 				{(openGap || gapStartCount > 0) && (
 					<TodayCard
 						title={ta("cardTitle")}

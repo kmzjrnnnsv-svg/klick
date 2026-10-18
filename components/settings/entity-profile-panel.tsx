@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
@@ -24,6 +25,7 @@ export function EntityProfilePanel({
 	canEdit: boolean;
 }) {
 	const t = useTranslations("Settings");
+	const tsu = useTranslations("Setup");
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
@@ -87,6 +89,12 @@ export function EntityProfilePanel({
 			<div>
 				<p className="font-serif-display text-xl text-primary">{orgName}</p>
 				<p className="mt-1 text-muted-foreground">{t("entityProfileLead")}</p>
+				<Link
+					href="/einrichtung/unternehmen"
+					className="mt-2 inline-block text-primary underline-offset-4 hover:underline"
+				>
+					{tsu("openSetup")} →
+				</Link>
 			</div>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				{field("lei", t("lei"), {
