@@ -17,6 +17,9 @@ export type ApproverCandidate = {
 	userId: string;
 	orgRole: OrgRole;
 	functions: readonly RoleFunction[];
+	// Recht „Freigaben entscheiden“ (approval:decide); fehlt es, zählt die
+	// Person nie als Freigeber:in — auch nicht über Funktion oder Vertretung
+	canDecide?: boolean;
 };
 
 export type EligibilityContext = {
@@ -75,6 +78,9 @@ export function approverEligibility(
 ): Eligibility {
 	if (ctx.requesterUserId && candidate.userId === ctx.requesterUserId) {
 		return { eligible: false, reason: "four_eyes" };
+	}
+	if (candidate.canDecide === false) {
+		return { eligible: false, reason: "rule_not_met" };
 	}
 	if (matchesRule(step.approverRule, candidate, ctx)) {
 		return { eligible: true, via: "direct" };

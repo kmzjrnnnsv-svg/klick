@@ -10,11 +10,12 @@ import {
 } from "@/db/schema";
 import type { EntityKind, RoleFunction } from "@/db/schema/enums";
 import type { ApprovalStep } from "@/db/schema/grc";
-import type { OrgRole } from "@/lib/auth/permissions";
+import { type OrgRole, roleAllows } from "@/lib/auth/permissions";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
 import type { OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
+import { entityOwnerOf, entityOwnersOf, ownerKey } from "./entity-owner";
 import {
 	type ApproverCandidate,
 	advance,
@@ -76,7 +77,8 @@ export async function getWorkflow(tx: OrgTx, orgId: string, kind: string) {
 }
 
 // Alle Mitglieder als Kandidaten mit Org-Rolle und Funktionen (inkl. Vertretung
-// einer Funktion über deputyUserId).
+// einer Funktion über deputyUserId). Alle zählen für den Solo-Modus; freigeben
+// darf nur, wer `approval:decide` hat (canDecide).
 export async function loadCandidates(
 	tx: OrgTx,
 	orgId: string,
@@ -102,11 +104,16 @@ export async function loadCandidates(
 			byUser.set(uid, set);
 		}
 	}
-	return members.map((m) => ({
-		userId: m.userId,
-		orgRole: normalizeRole(m.role) as OrgRole,
-		functions: [...(byUser.get(m.userId) ?? [])],
-	}));
+	return members.map((m) => {
+		const orgRole = normalizeRole(m.role) as OrgRole;
+		return {
+			userId: m.userId,
+			orgRole,
+			functions: [...(byUser.get(m.userId) ?? [])],
+			// Berater:innen u. a. ohne approval:decide bekommen keine Anfragen
+			canDecide: roleAllows(orgRole, { approval: ["decide"] }),
+		};
+	});
 }
 
 export async function activeDelegations(
@@ -318,7 +325,6 @@ export async function decide(
 		requestId: string;
 		decision: "approved" | "rejected" | "changes_requested";
 		note?: string;
-		entityOwnerUserId?: string | null;
 	},
 ): Promise<DecideResult> {
 	const [req] = await tx
@@ -348,12 +354,19 @@ export async function decide(
 	const me = candidates.find((c) => c.userId === ctx.userId);
 	if (!me) return { ok: false, error: "rule_not_met" };
 	const dels = await activeDelegations(tx, ctx.orgId);
+	// Verantwortliche:r frisch aus der Entität (Stufe `owner_of_entity`)
+	const entityOwnerUserId = await entityOwnerOf(
+		tx,
+		ctx.orgId,
+		req.entityType,
+		req.entityId,
+	);
 	const elig = approverEligibility(
 		step,
 		me,
 		{
 			requesterUserId: req.requestedByUserId,
-			entityOwnerUserId: input.entityOwnerUserId ?? null,
+			entityOwnerUserId,
 			delegations: dels,
 		},
 		candidates,
@@ -402,7 +415,7 @@ export async function decide(
 		if (outcome.nextStep !== req.currentStep) {
 			const nextEligible = eligibleApprovers(nextStep, candidates, {
 				requesterUserId: req.requestedByUserId,
-				entityOwnerUserId: input.entityOwnerUserId ?? null,
+				entityOwnerUserId,
 				delegations: dels,
 			});
 			await notify(tx, {
@@ -524,6 +537,13 @@ export async function listRequestsForUser(
 						.where(inArray(user.id, requesterIds))
 				).map((u) => [u.id, u.name || u.email] as const),
 	);
+	const owners = await entityOwnersOf(
+		tx,
+		orgId,
+		rows
+			.filter((r) => r.req.status === "pending")
+			.map((r) => ({ entityType: r.req.entityType, entityId: r.req.entityId })),
+	);
 	const now = new Date();
 	return rows.map(({ req, kind, workflowName, steps }) => {
 		const step = requestSteps(req, steps).find(
@@ -534,7 +554,12 @@ export async function listRequestsForUser(
 				? approverEligibility(
 						step,
 						me,
-						{ requesterUserId: req.requestedByUserId, delegations: dels },
+						{
+							requesterUserId: req.requestedByUserId,
+							entityOwnerUserId:
+								owners.get(ownerKey(req.entityType, req.entityId)) ?? null,
+							delegations: dels,
+						},
 						candidates,
 					).eligible
 				: false;
