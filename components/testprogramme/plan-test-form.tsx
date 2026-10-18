@@ -23,14 +23,19 @@ import { CONTROL_TEST_METHODS } from "@/db/schema/enums";
 export function PlanTestForm({
 	controls,
 	processes,
+	sites = [],
 	defaultMethod,
 	defaultProcessId,
+	defaultSiteId,
 	triggerLabel,
 }: {
 	controls: { implementationId: string; code: string; title: string }[];
 	processes: { id: string; code: string; name: string }[];
+	// Standorte (Notfallübung je kritischem Standort)
+	sites?: { id: string; name: string }[];
 	defaultMethod?: (typeof CONTROL_TEST_METHODS)[number];
 	defaultProcessId?: string | null;
+	defaultSiteId?: string | null;
 	triggerLabel?: string;
 }) {
 	const t = useTranslations("TestProgramme");
@@ -46,6 +51,7 @@ export function PlanTestForm({
 	const [plannedAt, setPlannedAt] = useState("");
 	const [scope, setScope] = useState("");
 	const [processId, setProcessId] = useState(defaultProcessId ?? "none");
+	const [siteId, setSiteId] = useState(defaultSiteId ?? "none");
 	return (
 		<FormDialog
 			title={t("planTest")}
@@ -63,6 +69,7 @@ export function PlanTestForm({
 						plannedAt,
 						scope: scope || undefined,
 						processId: processId === "none" ? null : processId,
+						siteId: siteId === "none" ? null : siteId,
 					});
 					if (!res.ok) return void toast.error(tc("error"));
 					toast.success(t("planned"));
@@ -113,6 +120,24 @@ export function PlanTestForm({
 					onChange={setPlannedAt}
 					required
 				/>
+				{sites.length > 0 && (
+					<div className="flex flex-col gap-1.5 sm:col-span-2">
+						<Label htmlFor="pt-site">{t("site")}</Label>
+						<Select value={siteId} onValueChange={setSiteId}>
+							<SelectTrigger id="pt-site" className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="none">—</SelectItem>
+								{sites.map((x) => (
+									<SelectItem key={x.id} value={x.id}>
+										{x.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+				)}
 				<div className="flex flex-col gap-1.5 sm:col-span-2">
 					<Label>{t("process")}</Label>
 					<Select value={processId} onValueChange={setProcessId}>

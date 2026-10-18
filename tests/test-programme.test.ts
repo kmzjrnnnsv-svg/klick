@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { programmeStatus } from "@/lib/compliance/test-programme";
+import {
+	programmeStatus,
+	siteExerciseDue,
+	type TestRow,
+} from "@/lib/compliance/test-programme";
 
 const now = new Date("2026-10-07T12:00:00Z");
 const procs = [
@@ -66,5 +70,52 @@ describe("programmeStatus", () => {
 		expect(s.performed).toBe(0);
 		expect(s.bcmGaps).toHaveLength(2);
 		expect(s.pentestDone).toBe(false);
+	});
+});
+
+describe("Notfallübung je kritischem Standort (C3)", () => {
+	const sites = [
+		{ id: "s1", name: "Frankfurt" },
+		{ id: "s2", name: "Rechenzentrum" },
+		{ id: "s3", name: "Berlin" },
+	];
+	const row = (x: Partial<TestRow>): TestRow => ({
+		id: "x",
+		method: "bcm_exercise",
+		plannedAt: null,
+		testedAt: null,
+		result: null,
+		processId: null,
+		siteId: null,
+		nextTestAt: null,
+		...x,
+	});
+	const tests = [
+		row({ id: "a", siteId: "s1", testedAt: new Date("2026-03-10T00:00:00Z") }),
+		row({ id: "b", siteId: "s2", plannedAt: "2026-11-15" }),
+		row({ id: "c", siteId: "s3", testedAt: new Date("2025-05-02T00:00:00Z") }),
+	];
+
+	it("Lücken im Jahr: nur Standorte ohne durchgeführte Übung", () => {
+		const s = programmeStatus(2026, tests, [], now, sites);
+		expect(s.siteGaps.map((x) => x.name)).toEqual(["Rechenzentrum", "Berlin"]);
+	});
+
+	it("Fälligkeit: zwölf Monate nach der letzten Übung, geplante entfallen", () => {
+		expect(siteExerciseDue(sites, tests, now)).toEqual([
+			{
+				id: "s1",
+				name: "Frankfurt",
+				dueAt: "2027-03-10",
+				lastAt: "2026-03-10",
+			},
+			{ id: "s3", name: "Berlin", dueAt: "2026-05-02", lastAt: "2025-05-02" },
+		]);
+	});
+
+	it("ohne Übung fällig bis Jahresende", () => {
+		expect(siteExerciseDue([{ id: "n", name: "Neu" }], [], now)).toEqual([
+			{ id: "n", name: "Neu", dueAt: "2026-12-31", lastAt: null },
+		]);
 	});
 });

@@ -23,6 +23,7 @@ export const DATE_KINDS = [
 	"audit",
 	"management_review",
 	"test",
+	"site_exercise",
 	"training",
 	"nonconformity",
 	"security_finding",
@@ -52,7 +53,7 @@ export const DATE_GROUPS: Record<string, readonly DateKind[]> = {
 	],
 	freigaben: ["approval", "decision_request"],
 	ziele: ["objective_due", "objective_measure"],
-	pruefungen: ["audit", "management_review", "test"],
+	pruefungen: ["audit", "management_review", "test", "site_exercise"],
 	massnahmen: [
 		"nonconformity",
 		"security_finding",
@@ -75,6 +76,7 @@ export const ROADMAP_DATE_KINDS: readonly DateKind[] = [
 	"product_support",
 	"decision_request",
 	"test",
+	"site_exercise",
 ];
 
 export type DateSource = {

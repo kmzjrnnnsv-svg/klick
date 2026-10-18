@@ -22,6 +22,7 @@ import {
 	risks,
 	roleAssignments,
 	securityFindings,
+	sites,
 	trainingAssignments,
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -29,6 +30,7 @@ import { upcomingLegalChanges } from "./catalog/regulatory-calendar";
 import { REQUIRED_FUNCTIONS } from "./catalog/required-functions";
 import { type DateSource, noticeDate } from "./dates";
 import { listObligationRuns } from "./queries-p3";
+import { siteExerciseDue } from "./test-programme";
 
 const ROLE_FALLBACK: Record<string, string> = {
 	department_head: "Bereichsleitung",
@@ -247,6 +249,7 @@ export async function loadDateSources(
 				testedAt: controlTests.testedAt,
 				nextTestAt: controlTests.nextTestAt,
 				testerUserId: controlTests.testerUserId,
+				siteId: controlTests.siteId,
 			})
 			.from(controlTests)
 			.leftJoin(
@@ -563,6 +566,33 @@ export async function loadDateSources(
 			note: "nächster Test",
 		});
 	}
+	// Notfallübung je kritischem Standort (C3): fällig zwölf Monate nach der
+	// letzten Übung; geplante Übungen stehen schon als Test im Kalender
+	const criticalSites = await tx
+		.select({ id: sites.id, name: sites.name })
+		.from(sites)
+		.where(and(eq(sites.organizationId, orgId), eq(sites.critical, true)));
+	for (const x of siteExerciseDue(
+		criticalSites,
+		tests.map((t) => ({
+			id: "",
+			method: t.method,
+			plannedAt: t.plannedAt,
+			testedAt: t.testedAt,
+			result: null,
+			processId: null,
+			siteId: t.siteId,
+			nextTestAt: t.nextTestAt,
+		})),
+		now,
+	))
+		push({
+			date: x.dueAt,
+			kind: "site_exercise",
+			title: `Notfallübung: ${x.name}`,
+			href: "/testprogramm",
+			note: x.lastAt ? `letzte Übung ${x.lastAt}` : undefined,
+		});
 	// Schulungen je Fälligkeitstag gebündelt
 	const trainingByDay = new Map<string, number>();
 	for (const a of trainings) {

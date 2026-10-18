@@ -527,6 +527,7 @@ export const planTestSchema = z.object({
 	scope: z.string().max(400).optional(),
 	processId: uuid.nullable().optional(),
 	assetId: uuid.nullable().optional(),
+	siteId: uuid.nullable().optional(),
 });
 
 // ── Beschwerden & Hinweise ─────────────────────────────────────────────────

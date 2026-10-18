@@ -2546,7 +2546,8 @@
 		"dstate_due": "geplant",
 		"dstate_done": "erledigt",
 		"accessExpiry": "Zugang endet: {name}",
-		"kind_role_review": "Funktion"
+		"kind_role_review": "Funktion",
+		"kind_site_exercise": "Notfallübung Standort"
 	},
 	"TestProgramme": {
 		"title": "Testprogramm",
@@ -2584,7 +2585,12 @@
 		"bcmDone": "geübt",
 		"accessReview": "Rezertifizierung Zugriffe",
 		"tests": "Tests {year}",
-		"testsEmpty": "Keine Tests in diesem Jahr."
+		"testsEmpty": "Keine Tests in diesem Jahr.",
+		"site": "Standort",
+		"sitesTitle": "Notfallübung je kritischem Standort",
+		"sitesLead": "Jeder als kritisch markierte Standort braucht mindestens eine Notfallübung im Jahr (BCM, DORA Art. 11/12, ISO 22301). Standorte pflegst du unter Organisation → Standorte.",
+		"sitesNone": "Noch kein Standort ist als kritisch markiert.",
+		"sitesLink": "Standorte pflegen"
 	},
 	"Complaints": {
 		"title": "Beschwerden & Hinweise",

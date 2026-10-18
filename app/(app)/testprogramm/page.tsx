@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { RegisterFilters } from "@/components/entity/register-filters";
@@ -13,6 +14,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { sites } from "@/db/schema";
 import { CONTROL_TEST_METHODS } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -50,19 +52,26 @@ export default async function TestProgrammePage({
 	const tt = await getTranslations("Tests");
 	const canPlan = allows(ctx, { control: ["update"] });
 
-	const { tests, controls, processes, profile } = await readOrg(
+	const { tests, controls, processes, profile, siteRows } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
 			tests: await listAllControlTests(tx, ctx.orgId),
 			controls: await listControlRows(tx, ctx.orgId),
 			processes: await listProcesses(tx, ctx.orgId),
 			profile: await getOrgProfile(tx, ctx.orgId),
+			siteRows: await tx
+				.select({ id: sites.id, name: sites.name, critical: sites.critical })
+				.from(sites)
+				.where(eq(sites.organizationId, ctx.orgId))
+				.orderBy(sites.name),
 		}),
 	);
 	const critical = processes.filter(
 		(p) => p.status !== "retired" && p.criticality !== "standard",
 	);
-	const status = programmeStatus(year, tests, critical, now);
+	const criticalSites = siteRows.filter((x) => x.critical);
+	const siteOptions = siteRows.map((x) => ({ id: x.id, name: x.name }));
+	const status = programmeStatus(year, tests, critical, now, criticalSites);
 	const lastTlpt = tests
 		.filter((x) => x.method === "tlpt" && x.testedAt)
 		.map((x) => x.testedAt as Date)
@@ -108,6 +117,7 @@ export default async function TestProgrammePage({
 						<PlanTestForm
 							controls={controlOptions}
 							processes={processOptions}
+							sites={siteOptions}
 						/>
 					) : undefined
 				}
@@ -220,8 +230,53 @@ export default async function TestProgrammePage({
 											<PlanTestForm
 												controls={controlOptions}
 												processes={processOptions}
+												sites={siteOptions}
 												defaultMethod="bcm_exercise"
 												defaultProcessId={p.id}
+												triggerLabel={t("planShort")}
+											/>
+										)}
+									</span>
+								</li>
+							);
+						})}
+					</ul>
+				)}
+				<h3 className="lv-eyebrow mt-6 mb-2 text-[0.6rem] text-muted-foreground">
+					{t("sitesTitle")}
+				</h3>
+				<p className="mb-3 text-muted-foreground text-xs">
+					{t("sitesLead")}{" "}
+					<Link
+						href="/organisation?tab=standorte"
+						className="text-primary underline-offset-4 hover:underline"
+					>
+						{t("sitesLink")}
+					</Link>
+				</p>
+				{criticalSites.length === 0 ? (
+					<p className="text-sm">{t("sitesNone")}</p>
+				) : (
+					<ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+						{criticalSites.map((x) => {
+							const gap = status.siteGaps.some((g) => g.id === x.id);
+							return (
+								<li
+									key={x.id}
+									className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+								>
+									<span className="min-w-0 truncate">{x.name}</span>
+									<span className="flex shrink-0 items-center gap-2">
+										<Badge variant={gap ? "warning" : "success"}>
+											{gap ? t("bcmOpen") : t("bcmDone")}
+										</Badge>
+										{gap && canPlan && (
+											<PlanTestForm
+												controls={controlOptions}
+												processes={processOptions}
+												sites={siteOptions}
+												defaultMethod="bcm_exercise"
+												defaultSiteId={x.id}
 												triggerLabel={t("planShort")}
 											/>
 										)}

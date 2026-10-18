@@ -9,6 +9,8 @@ export type TestRow = {
 	testedAt: Date | null;
 	result: string | null;
 	processId: string | null;
+	// Notfallübung je kritischem Standort (C3)
+	siteId?: string | null;
 	nextTestAt: string | null;
 };
 
@@ -21,6 +23,8 @@ export type ProgrammeStatus = {
 	overduePlanned: number;
 	pentestDone: boolean;
 	bcmGaps: { id: string; code: string; name: string }[];
+	// kritische Standorte ohne Notfallübung im Jahr
+	siteGaps: { id: string; name: string }[];
 	accessReviewQuarters: boolean[]; // Q1–Q4
 };
 
@@ -34,6 +38,7 @@ export function programmeStatus(
 	tests: readonly TestRow[],
 	criticalProcesses: readonly { id: string; code: string; name: string }[],
 	now = new Date(),
+	criticalSites: readonly { id: string; name: string }[] = [],
 ): ProgrammeStatus {
 	const inYear = tests.filter(
 		(t) => yearOf(t.testedAt) === year || yearOf(t.plannedAt) === year,
@@ -45,6 +50,11 @@ export function programmeStatus(
 		performed
 			.filter((t) => t.method === "bcm_exercise" && t.processId)
 			.map((t) => t.processId as string),
+	);
+	const sitesDone = new Set(
+		performed
+			.filter((t) => t.method === "bcm_exercise" && t.siteId)
+			.map((t) => t.siteId as string),
 	);
 	const quarters = [false, false, false, false];
 	for (const t of performed) {
@@ -61,6 +71,49 @@ export function programmeStatus(
 		overduePlanned: planned.filter((t) => (t.plannedAt ?? "") < today).length,
 		pentestDone: performed.some((t) => t.method === "pentest"),
 		bcmGaps: criticalProcesses.filter((p) => !bcmDone.has(p.id)),
+		siteGaps: criticalSites.filter((x) => !sitesDone.has(x.id)),
 		accessReviewQuarters: quarters,
 	};
+}
+
+// Fälligkeit der Notfallübung je kritischem Standort (Kalender, C3):
+// zwölf Monate nach der letzten Übung, ohne Übung bis Jahresende. Standorte
+// mit geplanter Übung erscheinen schon über den geplanten Test.
+export function siteExerciseDue(
+	criticalSites: readonly { id: string; name: string }[],
+	tests: readonly TestRow[],
+	now = new Date(),
+): { id: string; name: string; dueAt: string; lastAt: string | null }[] {
+	const out: {
+		id: string;
+		name: string;
+		dueAt: string;
+		lastAt: string | null;
+	}[] = [];
+	for (const site of criticalSites) {
+		const exercises = tests.filter(
+			(t) => t.method === "bcm_exercise" && t.siteId === site.id,
+		);
+		if (exercises.some((t) => !t.testedAt && t.plannedAt)) continue;
+		const last = exercises
+			.map((t) => t.testedAt)
+			.filter((d): d is Date => d !== null)
+			.sort((a, b) => b.getTime() - a.getTime())[0];
+		const due = last
+			? new Date(
+					Date.UTC(
+						last.getUTCFullYear() + 1,
+						last.getUTCMonth(),
+						last.getUTCDate(),
+					),
+				)
+			: new Date(Date.UTC(now.getUTCFullYear(), 11, 31));
+		out.push({
+			id: site.id,
+			name: site.name,
+			dueAt: due.toISOString().slice(0, 10),
+			lastAt: last ? last.toISOString().slice(0, 10) : null,
+		});
+	}
+	return out;
 }
