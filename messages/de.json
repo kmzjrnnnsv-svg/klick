@@ -4912,6 +4912,7 @@
 		"errorBanAdmin": "Plattform-Admins kannst du erst sperren, wenn du ihnen die Admin-Rolle entzogen hast.",
 		"errorBanUntil": "Das Ende der Sperre muss in der Zukunft liegen.",
 		"errorNotActivated": "Das Konto ist noch nicht aktiviert — erzeuge stattdessen einen neuen Aktivierungslink.",
-		"statusBlockedReason": "Grund: {reason}"
+		"statusBlockedReason": "Grund: {reason}",
+		"actionsFor": "Aktionen für {name}"
 	}
 }

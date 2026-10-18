@@ -95,7 +95,7 @@ export function UserActions({
 						variant="ghost"
 						size="icon-sm"
 						disabled={pending}
-						aria-label={`Aktionen für ${name}`}
+						aria-label={ta("actionsFor", { name })}
 					>
 						<MoreHorizontal />
 					</Button>
