@@ -198,7 +198,11 @@ const PATTERNS: PatternDetector[] = [
 	},
 ];
 
-const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+// Lokaler Teil nur ab Wortanfang und höchstens 64 Zeichen (RFC 5321): ohne
+// die Grenze probiert die Regex lange Zeichenketten ohne „@“ von jeder
+// Position aus neu — quadratisch, ein 2-MB-Upload blockierte den Server.
+const EMAIL =
+	/(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,24}/g;
 const PHONE =
 	/(?<![\d+])(?:\+\d{1,3}|00\d{1,3}|0)[ /-]?\(?\d{2,5}\)?(?:[ /-]?\d{2,}){1,4}(?!\d)/g;
 
