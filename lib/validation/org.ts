@@ -34,6 +34,8 @@ export const inviteMemberSchema = z.object({
 	accessUntil: z.coerce.date().optional(),
 	// Link gibt es immer (zum Kopieren); die Mail ist optional
 	sendMail: z.boolean().default(true),
+	// eigene Rollen (ADR-020), nur für interne Grundrollen
+	roleIds: z.array(z.uuid()).max(20).optional().default([]),
 });
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
 
@@ -96,4 +98,22 @@ export const dlpPolicySchema = z.object({
 	piiThreshold: z.coerce.number().int().min(5).max(10_000),
 	egressLimit: z.coerce.number().int().min(5).max(1_000),
 	egressWindowMinutes: z.coerce.number().int().min(1).max(240),
+});
+
+// Eigene Rollen (ADR-020) — Rechte werden serverseitig über
+// sanitizePermissions auf den Katalog beschränkt
+export const orgRoleSchema = z.object({
+	id: z.uuid().optional(),
+	name: z.string().trim().min(2).max(60),
+	description: z.string().trim().max(300).optional().default(""),
+	permissions: z.record(z.string(), z.array(z.string()).max(10)),
+	// Mitglieder der Rolle (memberIds); fehlt das Feld, bleibt die Zuordnung
+	memberIds: z.array(z.uuid()).max(250).optional(),
+});
+
+export const deleteOrgRoleSchema = z.object({ id: z.uuid() });
+
+export const memberRolesSchema = z.object({
+	memberId: z.uuid(),
+	roleIds: z.array(z.uuid()).max(20),
 });

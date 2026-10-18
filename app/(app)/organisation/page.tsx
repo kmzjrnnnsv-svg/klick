@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/table";
 import { sites } from "@/db/schema";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
-import { approverEligibility } from "@/lib/approvals/rules";
+import { canDecideNow } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
 	latestRequestFor,
@@ -53,7 +53,13 @@ import {
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
+import { loadIndicatorData } from "@/lib/compliance/indicator-data";
+import {
+	objectiveTemplateKey,
+	SOURCED_TEMPLATES,
+	suggestMeasurement,
+} from "@/lib/compliance/indicator-sources";
 import {
 	type IndicatorState,
 	indicatorState,
@@ -126,12 +132,13 @@ export default async function OrganisationPage({
 		: "kontext";
 	const t = await getTranslations("Organisation");
 	const tf = await getTranslations("Functions");
-	const canEdit = roleAllows(ctx.orgRole, { organisation: ["update"] });
-	const canRoles = roleAllows(ctx.orgRole, { role_assignment: ["update"] });
-	const canShareholders = roleAllows(ctx.orgRole, { shareholder: ["update"] });
+	const canEdit = allows(ctx, { organisation: ["update"] });
+	const canRoles = allows(ctx, { role_assignment: ["update"] });
+	const canShareholders = allows(ctx, { shareholder: ["update"] });
 	const tsh = await getTranslations("Shareholders");
 	const tin = await getTranslations("Insurance");
-	const memberCount = (await listOrgMembers(ctx.orgId)).length;
+	const orgMembers = await listOrgMembers(ctx.orgId);
+	const memberCount = orgMembers.length;
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const profile = await getOrgProfile(tx, ctx.orgId);
@@ -199,6 +206,15 @@ export default async function OrganisationPage({
 						(r) => r?.decisions.map((d) => d.approverUserId) ?? [],
 					),
 				);
+				// Messvorschläge aus Klick (C2) für Ziele aus Vorlagen
+				const sourced = objectives.some((o) =>
+					(SOURCED_TEMPLATES as readonly string[]).includes(
+						objectiveTemplateKey(o) ?? "",
+					),
+				);
+				const indicatorData = sourced
+					? await loadIndicatorData(tx, ctx.orgId, orgMembers)
+					: null;
 				return {
 					...base,
 					objectives,
@@ -206,6 +222,7 @@ export default async function OrganisationPage({
 					candidates,
 					dels,
 					names,
+					indicatorData,
 				};
 			}
 			case "kommunikation":
@@ -457,7 +474,7 @@ export default async function OrganisationPage({
 									req.status === "pending" &&
 									step &&
 									me &&
-									approverEligibility(
+									canDecideNow(
 										step,
 										me,
 										{
@@ -466,7 +483,8 @@ export default async function OrganisationPage({
 											delegations: data.dels,
 										},
 										data.candidates,
-									).eligible,
+										req.decisions.filter((d) => d.step === req.currentStep),
+									),
 							);
 							return (
 								<article
@@ -881,7 +899,7 @@ export default async function OrganisationPage({
 										req.status === "pending" &&
 										step &&
 										me &&
-										approverEligibility(
+										canDecideNow(
 											step,
 											me,
 											{
@@ -890,7 +908,8 @@ export default async function OrganisationPage({
 												delegations: data.dels,
 											},
 											data.candidates,
-										).eligible,
+											req.decisions.filter((d) => d.step === req.currentStep),
+										),
 								);
 								return (
 									<li
@@ -960,6 +979,7 @@ export default async function OrganisationPage({
 															alertAt: o.alertAt,
 															measureEveryMonths: o.measureEveryMonths,
 															nextMeasureAt: o.nextMeasureAt,
+															templateKey: o.templateKey,
 														}}
 													/>
 												)}
@@ -1063,7 +1083,18 @@ export default async function OrganisationPage({
 										<div className="flex flex-wrap items-center justify-between gap-2">
 											<UserChip name={o.ownerName} />
 											{canEdit && (
-												<MeasurementForm objectiveId={o.id} unit={o.unit} />
+												<MeasurementForm
+													objectiveId={o.id}
+													unit={o.unit}
+													suggestion={
+														data.indicatorData
+															? suggestMeasurement(
+																	objectiveTemplateKey(o),
+																	data.indicatorData,
+																)
+															: null
+													}
+												/>
 											)}
 										</div>
 									</li>
@@ -1586,8 +1617,8 @@ export default async function OrganisationPage({
 							critical: x.critical,
 						}))}
 						defaultCountry="DE"
-						canEdit={roleAllows(ctx.orgRole, { asset: ["create", "delete"] })}
-						canRisk={roleAllows(ctx.orgRole, { risk: ["create"] })}
+						canEdit={allows(ctx, { asset: ["create", "delete"] })}
+						canRisk={allows(ctx, { risk: ["create"] })}
 					/>
 				</section>
 			)}

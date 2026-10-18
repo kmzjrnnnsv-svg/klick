@@ -7,13 +7,15 @@
 //   consultant — Berater:in (extern, ADR-018): wie editor, aber ohne Löschen,
 //                ohne Freigaben, Risikoakzeptanz und Hinweisgeber-Fälle;
 //                zeitlich begrenzt, darf in mehreren Organisationen sein
-//   editor     — alles außer Freigabe/Veröffentlichung von Dokumenten,
-//                Beschlüsse, Mitglieder, Einstellungen
+//   editor     — alles außer Beschlüssen, Mitgliedern, Einstellungen
 //   owner      — alles
 //
-// Freigabe-Entscheidungen hängen zusätzlich an der Funktion aus
-// role_assignments (Workflow-Schritt verlangt z. B. function:compliance) —
-// das prüft lib/approvals, nicht dieses Statement-Modell.
+// Dazu eigene Rollen je Organisation (org_roles, ADR-020): sie geben Rechte
+// aus dem Katalog (lib/auth/permission-catalog.ts) ZUSÄTZLICH zur Grundrolle.
+// Geprüft wird über die effektiven Rechte am Kontext (`allows(ctx, …)`).
+//
+// Freigabe-Entscheidungen hängen zusätzlich an der Freigabestufe (Funktion,
+// Rolle, Person …) — das prüft lib/approvals, nicht dieses Statement-Modell.
 import { createAccessControl } from "better-auth/plugins/access";
 import {
 	adminAc,
@@ -34,8 +36,12 @@ export const statements = {
 	evidence: ["read", "create", "delete"],
 	milestone: ["read", "create", "update"],
 	task: ["read", "create", "update", "complete"],
+	// Pflichtschulungen und Schulungsplan; propose = vorschlagen (Freigabe)
+	training: ["read", "create", "update", "propose"],
 	comment: ["read", "create"],
 	resolution: ["read", "create"],
+	// Entscheidung beim Management anfragen (decision_requests)
+	decision: ["read", "create"],
 	approval: ["read", "decide"],
 	audit_request: ["read", "create", "respond", "decide"],
 	audit_finding: ["read", "create", "update"],
@@ -77,8 +83,10 @@ const readAll = {
 	evidence: ["read"],
 	milestone: ["read"],
 	task: ["read"],
+	training: ["read"],
 	comment: ["read", "create"],
 	resolution: ["read"],
+	decision: ["read"],
 	approval: ["read"],
 	audit_request: ["read"],
 	audit_finding: ["read"],
@@ -123,15 +131,19 @@ export const editor = ac.newRole({
 	control: ["read", "update", "assign"],
 	document: ["read", "create", "update", "delete"],
 	process: ["read", "create", "update", "delete"],
-	risk: ["read", "create", "update", "delete"],
+	// Akzeptieren lief bisher über update und bleibt erlaubt — jetzt als
+	// eigenes Recht geprüft (Berater:innen haben es nicht, ADR-018)
+	risk: ["read", "create", "update", "accept", "delete"],
 	incident: ["read", "create", "update", "close"],
 	provider: ["read", "create", "update", "delete"],
 	asset: ["read", "create", "update", "delete"],
 	evidence: ["read", "create", "delete"],
 	milestone: ["read", "create", "update"],
 	task: ["read", "create", "update", "complete"],
+	training: ["read", "create", "update", "propose"],
 	comment: ["read", "create"],
 	resolution: ["read"],
+	decision: ["read", "create"],
 	approval: ["read", "decide"],
 	audit_request: ["read", "respond"],
 	audit_finding: ["read"],
@@ -166,6 +178,9 @@ export const consultant = ac.newRole({
 	control: ["read", "update", "assign"],
 	document: ["read", "create", "update"],
 	process: ["read", "create", "update"],
+	// Risiken akzeptieren und Vorfälle schließen sind Entscheidungen der
+	// Organisation — seit sie als eigene Rechte geprüft werden, gilt das auch
+	// tatsächlich (vorher reichte update)
 	risk: ["read", "create", "update"],
 	incident: ["read", "create", "update"],
 	provider: ["read", "create", "update"],
@@ -173,8 +188,10 @@ export const consultant = ac.newRole({
 	evidence: ["read", "create"],
 	milestone: ["read", "create", "update"],
 	task: ["read", "create", "update", "complete"],
+	training: ["read", "create", "update", "propose"],
 	comment: ["read", "create"],
 	resolution: ["read"],
+	decision: ["read", "create"],
 	approval: ["read"],
 	audit_request: ["read", "respond"],
 	audit_finding: ["read"],
@@ -210,8 +227,10 @@ export const owner = ac.newRole({
 	evidence: ["read", "create", "delete"],
 	milestone: ["read", "create", "update"],
 	task: ["read", "create", "update", "complete"],
+	training: ["read", "create", "update", "propose"],
 	comment: ["read", "create"],
 	resolution: ["read", "create"],
+	decision: ["read", "create"],
 	approval: ["read", "decide"],
 	audit_request: ["read", "create", "respond", "decide"],
 	audit_finding: ["read", "create", "update"],
@@ -264,6 +283,42 @@ export function roleAllows(
 	// biome-ignore lint/suspicious/noExplicitAny: Better-Auth-Role-API ist generisch
 	const res = r.authorize(permission as any);
 	return res.success;
+}
+
+// Rechte einer Grundrolle als einfache Map (für eigene Rollen und Anzeige)
+export function roleStatements(role: string): RolePermissions {
+	const r = roles[role as keyof typeof roles];
+	if (!r) return {};
+	const out: RolePermissions = {};
+	for (const [res, acts] of Object.entries(
+		r.statements as Record<string, readonly string[]>,
+	)) {
+		if (acts.length > 0) out[res as Resource] = [...acts];
+	}
+	return out;
+}
+
+export type RolePermissions = Partial<Record<Resource, string[]>>;
+
+// Prüfung gegen effektive Rechte (Grundrolle ∪ eigene Rollen)
+export function permissionsAllow(
+	perms: RolePermissions,
+	required: Partial<Record<Resource, readonly string[]>>,
+): boolean {
+	for (const [res, acts] of Object.entries(required)) {
+		const have = perms[res as Resource] ?? [];
+		for (const a of acts ?? []) if (!have.includes(a)) return false;
+	}
+	return true;
+}
+
+// Seiten und Actions: `allows(ctx, { risk: ["create"] })` statt
+// roleAllows(ctx.orgRole, …) — berücksichtigt eigene Rollen.
+export function allows(
+	ctx: { permissions: RolePermissions },
+	required: Partial<Record<Resource, readonly string[]>>,
+): boolean {
+	return permissionsAllow(ctx.permissions, required);
 }
 
 export { adminAc };

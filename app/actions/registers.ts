@@ -13,6 +13,9 @@ import {
 	trainings,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import { pendingApprovalIds } from "@/lib/approvals/bar";
+import { GateBlocked } from "@/lib/approvals/gate-error";
+import { gateApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
@@ -30,6 +33,7 @@ import {
 	assetSchema,
 	controlTestSchema,
 	providerSchema,
+	retireAssetSchema,
 	trainingSchema,
 } from "@/lib/validation/registers";
 
@@ -40,9 +44,12 @@ function addDays(base: Date, days: number): string {
 }
 
 // ── Dienstleister ──────────────────────────────────────────────────────────
+// Status während einer offenen Freigabe ändern → nichts speichern
+class StatusLocked extends Error {}
+
 async function upsertProviderImpl(
 	input: unknown,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<{ id: string; approvalPending?: boolean }>> {
 	const c = await requireOrg({ provider: ["create", "update"] });
 	const parsed = providerSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -53,173 +60,346 @@ async function upsertProviderImpl(
 	const sent = new Set(
 		input && typeof input === "object" ? Object.keys(input) : [],
 	);
-	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const values = {
-			name: d.name,
-			partnerType: d.partnerType,
-			serviceType: d.serviceType ?? null,
-			serviceDescription: d.serviceDescription ?? null,
-			category: d.category ?? null,
-			status: d.status ?? "active",
-			criticality: d.criticality,
-			isIct: d.isIct,
-			isOutsourcing: d.isOutsourcing,
-			isMaterial: d.isMaterial,
-			country: d.country ?? null,
-			dataLocations: d.dataLocations ?? [],
-			processesPersonalData: d.processesPersonalData,
-			contractRef: d.contractRef ?? null,
-			contractStart: d.contractStart ?? null,
-			contractEnd: d.contractEnd ?? null,
-			noticePeriodDays: d.noticePeriodDays ?? null,
-			ownerUserId: d.ownerUserId === undefined ? c.userId : d.ownerUserId,
-			notes: d.notes ?? null,
-		};
-		const patch = Object.fromEntries(
-			Object.entries(values).filter(([k]) => sent.has(k)),
-		) as Partial<typeof values>;
-		if (providerId) {
-			const [before] = await tx
-				.select()
-				.from(providers)
-				.where(
-					and(
-						eq(providers.id, providerId),
-						eq(providers.organizationId, c.orgId),
-					),
-				)
-				.limit(1);
-			if (!before) throw new Error("notFound");
-			if (Object.keys(patch).length > 0)
+	let res: { id: string; approvalPending: boolean };
+	try {
+		res = await mutateOrg(toOrgCtx(c), async (tx) => {
+			const values = {
+				name: d.name,
+				partnerType: d.partnerType,
+				serviceType: d.serviceType ?? null,
+				serviceDescription: d.serviceDescription ?? null,
+				category: d.category ?? null,
+				status: d.status ?? "active",
+				criticality: d.criticality,
+				isIct: d.isIct,
+				isOutsourcing: d.isOutsourcing,
+				isMaterial: d.isMaterial,
+				country: d.country ?? null,
+				dataLocations: d.dataLocations ?? [],
+				processesPersonalData: d.processesPersonalData,
+				contractRef: d.contractRef ?? null,
+				contractStart: d.contractStart ?? null,
+				contractEnd: d.contractEnd ?? null,
+				noticePeriodDays: d.noticePeriodDays ?? null,
+				ownerUserId: d.ownerUserId === undefined ? c.userId : d.ownerUserId,
+				notes: d.notes ?? null,
+			};
+			const patch = Object.fromEntries(
+				Object.entries(values).filter(([k]) => sent.has(k)),
+			) as Partial<typeof values>;
+			if (providerId) {
+				const [before] = await tx
+					.select()
+					.from(providers)
+					.where(
+						and(
+							eq(providers.id, providerId),
+							eq(providers.organizationId, c.orgId),
+						),
+					)
+					.limit(1);
+				if (!before) throw new Error("notFound");
+				// Status nur über den Ablauf „Dienstleister aufnehmen“: gesperrt,
+				// solange eine Freigabe offen ist; aus „Abgelehnt“ wird neu beantragt
+				let approvalPending = false;
+				if (patch.status && patch.status !== before.status) {
+					const waiting = await pendingApprovalIds(tx, c.orgId, "provider", [
+						providerId,
+					]);
+					if (waiting.size > 0) throw new StatusLocked();
+					if (before.status === "declined") {
+						const merged = { ...before, ...patch };
+						const gate = await gateApproval(
+							tx,
+							{ orgId: c.orgId, userId: c.userId, name: c.name },
+							{
+								trigger: "provider.create",
+								entityType: "provider",
+								entityId: providerId,
+								entityOwnerUserId: merged.ownerUserId,
+								title: `Dienstleister aufnehmen: ${merged.name}`,
+								link: `/dienstleister/${providerId}`,
+								facts: {
+									criticality: merged.criticality,
+									category: merged.category,
+									isIct: merged.isIct,
+									isOutsourcing: merged.isOutsourcing,
+									isMaterial: merged.isMaterial,
+								},
+							},
+						);
+						if (gate.status === "error")
+							throw new GateBlocked(gate.error, gate.warnings);
+						if (gate.status === "pending") {
+							patch.status = "onboarding";
+							approvalPending = true;
+						}
+					}
+				}
+				if (Object.keys(patch).length > 0)
+					await tx
+						.update(providers)
+						.set(patch)
+						.where(eq(providers.id, providerId));
+				return {
+					result: { id: providerId, approvalPending },
+					audit: {
+						action: "provider.update",
+						target: `provider:${providerId}`,
+						before: Object.fromEntries(
+							Object.keys(patch).map((k) => [
+								k,
+								(before as Record<string, unknown>)[k] ?? null,
+							]),
+						),
+						after: patch,
+					},
+				};
+			}
+			const [row] = await tx
+				.insert(providers)
+				.values({ organizationId: c.orgId, ...values })
+				.returning({ id: providers.id });
+			if (!row) throw new Error("insert failed");
+			// Freigabe-Designer: Aufnahme kann eine Freigabe verlangen — bis dahin
+			// steht der Dienstleister auf „Im Aufbau“
+			const gate = await gateApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					trigger: "provider.create",
+					entityType: "provider",
+					entityId: row.id,
+					entityOwnerUserId: values.ownerUserId,
+					title: `Dienstleister aufnehmen: ${d.name}`,
+					link: `/dienstleister/${row.id}`,
+					facts: {
+						criticality: d.criticality,
+						category: d.category ?? null,
+						isIct: d.isIct,
+						isOutsourcing: d.isOutsourcing,
+						isMaterial: d.isMaterial,
+					},
+				},
+			);
+			if (gate.status === "error")
+				throw new GateBlocked(gate.error, gate.warnings);
+			if (gate.status === "pending")
 				await tx
 					.update(providers)
-					.set(patch)
-					.where(eq(providers.id, providerId));
+					.set({ status: "onboarding" })
+					.where(eq(providers.id, row.id));
 			return {
-				result: providerId,
+				result: { id: row.id, approvalPending: gate.status === "pending" },
 				audit: {
-					action: "provider.update",
-					target: `provider:${providerId}`,
-					before: Object.fromEntries(
-						Object.keys(patch).map((k) => [
-							k,
-							(before as Record<string, unknown>)[k] ?? null,
-						]),
-					),
-					after: patch,
+					action: "provider.create",
+					target: `provider:${row.id}`,
+					after: {
+						name: d.name,
+						partnerType: d.partnerType,
+						criticality: d.criticality,
+						approvalRequestId:
+							gate.status === "pending" || gate.status === "approved"
+								? gate.requestId
+								: null,
+					},
 				},
 			};
-		}
-		const [row] = await tx
-			.insert(providers)
-			.values({ organizationId: c.orgId, ...values })
-			.returning({ id: providers.id });
-		if (!row) throw new Error("insert failed");
-		return {
-			result: row.id,
-			audit: {
-				action: "provider.create",
-				target: `provider:${row.id}`,
-				after: {
-					name: d.name,
-					partnerType: d.partnerType,
-					criticality: d.criticality,
-				},
-			},
-		};
-	});
+		});
+	} catch (e) {
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		if (e instanceof StatusLocked) return { ok: false, error: "statusLocked" };
+		throw e;
+	}
 	revalidatePath("/dienstleister");
-	return { ok: true, data: { id } };
+	return { ok: true, data: res };
 }
 
 // ── Assets ─────────────────────────────────────────────────────────────────
 async function upsertAssetImpl(
 	input: unknown,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<{ id: string; approvalPending?: boolean }>> {
 	const c = await requireOrg({ asset: ["create", "update"] });
 	const parsed = assetSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { assetId, ...d } = parsed.data;
-	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const values = {
-			name: d.name,
-			type: d.type,
-			classification: d.classification,
-			providerId: d.providerId ?? null,
-			siteId: d.siteId ?? null,
-			ownerUserId: d.ownerUserId ?? c.userId,
-			location: d.location ?? null,
-			description: d.description ?? null,
-			isLegacy: d.isLegacy,
-			custodian: d.custodian ?? null,
-			backupLocation: d.backupLocation ?? null,
-			rotationDue: d.rotationDue ?? null,
-			vendor: d.vendor || null,
-			product: d.product || null,
-			version: d.version || null,
-			endOfLifeAt: d.endOfLifeAt ?? null,
-			supportEndAt: d.supportEndAt ?? null,
-			maintenance: d.maintenance ?? null,
-			maintenanceUntil: d.maintenanceUntil ?? null,
-			lastPatchedAt: d.lastPatchedAt ?? null,
-		};
-		if (assetId) {
-			const [before] = await tx
-				.select()
-				.from(assets)
-				.where(and(eq(assets.id, assetId), eq(assets.organizationId, c.orgId)))
-				.limit(1);
-			if (!before) throw new Error("notFound");
-			await tx.update(assets).set(values).where(eq(assets.id, assetId));
-			return {
-				result: assetId,
-				audit: {
-					action: "asset.update",
-					target: `asset:${assetId}`,
-					before: {
-						name: before.name,
-						type: before.type,
-						classification: before.classification,
-						endOfLifeAt: before.endOfLifeAt,
-						supportEndAt: before.supportEndAt,
-						maintenance: before.maintenance,
-						lastPatchedAt: before.lastPatchedAt,
+	let res: { id: string; approvalPending: boolean };
+	try {
+		res = await mutateOrg(toOrgCtx(c), async (tx) => {
+			const values = {
+				name: d.name,
+				type: d.type,
+				classification: d.classification,
+				providerId: d.providerId ?? null,
+				siteId: d.siteId ?? null,
+				ownerUserId: d.ownerUserId ?? c.userId,
+				location: d.location ?? null,
+				description: d.description ?? null,
+				isLegacy: d.isLegacy,
+				custodian: d.custodian ?? null,
+				backupLocation: d.backupLocation ?? null,
+				rotationDue: d.rotationDue ?? null,
+				vendor: d.vendor || null,
+				product: d.product || null,
+				version: d.version || null,
+				endOfLifeAt: d.endOfLifeAt ?? null,
+				supportEndAt: d.supportEndAt ?? null,
+				maintenance: d.maintenance ?? null,
+				maintenanceUntil: d.maintenanceUntil ?? null,
+				lastPatchedAt: d.lastPatchedAt ?? null,
+			};
+			if (assetId) {
+				const [before] = await tx
+					.select()
+					.from(assets)
+					.where(
+						and(eq(assets.id, assetId), eq(assets.organizationId, c.orgId)),
+					)
+					.limit(1);
+				if (!before) throw new Error("notFound");
+				await tx.update(assets).set(values).where(eq(assets.id, assetId));
+				return {
+					result: { id: assetId, approvalPending: false },
+					audit: {
+						action: "asset.update",
+						target: `asset:${assetId}`,
+						before: {
+							name: before.name,
+							type: before.type,
+							classification: before.classification,
+							endOfLifeAt: before.endOfLifeAt,
+							supportEndAt: before.supportEndAt,
+							maintenance: before.maintenance,
+							lastPatchedAt: before.lastPatchedAt,
+						},
+						after: {
+							name: d.name,
+							type: d.type,
+							classification: d.classification,
+							endOfLifeAt: values.endOfLifeAt,
+							supportEndAt: values.supportEndAt,
+							maintenance: values.maintenance,
+							lastPatchedAt: values.lastPatchedAt,
+						},
 					},
+				};
+			}
+			const [row] = await tx
+				.insert(assets)
+				.values({ organizationId: c.orgId, ...values })
+				.returning({ id: assets.id });
+			if (!row) throw new Error("insert failed");
+			// Freigabe-Designer: Aufnahme kann eine Freigabe verlangen
+			const gate = await gateApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					trigger: "asset.create",
+					entityType: "asset",
+					entityId: row.id,
+					entityOwnerUserId: values.ownerUserId,
+					title: `Asset aufnehmen: ${d.name}`,
+					link: "/assets",
+					facts: { assetType: d.type, classification: d.classification },
+				},
+			);
+			if (gate.status === "error")
+				throw new GateBlocked(gate.error, gate.warnings);
+			if (gate.status === "pending")
+				await tx
+					.update(assets)
+					.set({ status: "pending" })
+					.where(eq(assets.id, row.id));
+			return {
+				result: { id: row.id, approvalPending: gate.status === "pending" },
+				audit: {
+					action: "asset.create",
+					target: `asset:${row.id}`,
 					after: {
 						name: d.name,
 						type: d.type,
 						classification: d.classification,
-						endOfLifeAt: values.endOfLifeAt,
-						supportEndAt: values.supportEndAt,
-						maintenance: values.maintenance,
-						lastPatchedAt: values.lastPatchedAt,
+						approvalPending: gate.status === "pending",
 					},
 				},
 			};
-		}
-		const [row] = await tx
-			.insert(assets)
-			.values({ organizationId: c.orgId, ...values })
-			.returning({ id: assets.id });
-		if (!row) throw new Error("insert failed");
-		return {
-			result: row.id,
-			audit: {
-				action: "asset.create",
-				target: `asset:${row.id}`,
-				after: { name: d.name, type: d.type, classification: d.classification },
-			},
-		};
-	});
+		});
+	} catch (e) {
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		throw e;
+	}
 	revalidatePath("/assets");
-	return { ok: true, data: { id } };
+	return { ok: true, data: res };
+}
+
+// Außer Betrieb nehmen (Auslöser asset.retire): mit aktivem Ablauf erst nach
+// Freigabe wirksam (outcomes.ts), sonst sofort.
+async function retireAssetImpl(
+	input: unknown,
+): Promise<ActionResult<{ approvalPending: boolean }>> {
+	const c = await requireOrg({ asset: ["update"] });
+	const parsed = retireAssetSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	try {
+		const res = await mutateOrg<ActionResult<{ approvalPending: boolean }>>(
+			toOrgCtx(c),
+			async (tx) => {
+				const [a] = await tx
+					.select()
+					.from(assets)
+					.where(
+						and(eq(assets.id, d.assetId), eq(assets.organizationId, c.orgId)),
+					)
+					.limit(1);
+				if (!a) return { result: { ok: false, error: "notFound" }, audit: [] };
+				if (a.status !== "active")
+					return { result: { ok: false, error: "notActive" }, audit: [] };
+				const gate = await gateApproval(
+					tx,
+					{ orgId: c.orgId, userId: c.userId, name: c.name },
+					{
+						trigger: "asset.retire",
+						entityType: "asset",
+						entityId: a.id,
+						entityOwnerUserId: a.ownerUserId,
+						title: `Asset außer Betrieb nehmen: ${a.name}`,
+						link: "/assets",
+						facts: { assetType: a.type, classification: a.classification },
+					},
+				);
+				if (gate.status === "error")
+					throw new GateBlocked(gate.error, gate.warnings);
+				const pending = gate.status === "pending";
+				if (!pending)
+					await tx
+						.update(assets)
+						.set({ status: "retired" })
+						.where(eq(assets.id, a.id));
+				return {
+					result: { ok: true, data: { approvalPending: pending } },
+					audit: {
+						action: pending ? "asset.retire_requested" : "asset.retired",
+						target: `asset:${a.id}`,
+						before: { status: a.status },
+						after: { status: pending ? a.status : "retired", note: d.note },
+					},
+				};
+			},
+		);
+		revalidatePath("/assets");
+		return res;
+	} catch (e) {
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		throw e;
+	}
 }
 
 // ── Schulungen ─────────────────────────────────────────────────────────────
 async function createTrainingImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
-	const c = await requireOrg({ task: ["create"] });
+	const c = await requireOrg({ training: ["create"] });
 	const parsed = trainingSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
@@ -470,6 +650,7 @@ async function recordAccessReviewImpl(note: string): Promise<ActionResult> {
 // statt Error-Boundary (lib/actions/safe.ts).
 export const upsertProvider = safeAction("upsertProvider", upsertProviderImpl);
 export const upsertAsset = safeAction("upsertAsset", upsertAssetImpl);
+export const retireAsset = safeAction("retireAsset", retireAssetImpl);
 export const createTraining = safeAction("createTraining", createTrainingImpl);
 export const applyTrainingRequirements = safeAction(
 	"applyTrainingRequirements",

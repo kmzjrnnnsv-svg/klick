@@ -45,7 +45,11 @@ const nextConfig: NextConfig = {
 	images: { remotePatterns: [] },
 	experimental: {
 		// Server Actions akzeptieren nur Aufrufe vom eigenen Origin (CSRF).
-		serverActions: { allowedOrigins: [appOrigin] },
+		// Uploads laufen als Action mit FormData: Grenze = 25 MB Datei
+		// (MAX_UPLOAD_BYTES) + Multipart-Overhead, passend zu nginx
+		// client_max_body_size 26m. Ohne den Wert gilt 1 MB — größere Dateien
+		// scheiterten vor jedem Guard mit 500.
+		serverActions: { allowedOrigins: [appOrigin], bodySizeLimit: "26mb" },
 	},
 	async headers() {
 		return [{ source: "/(.*)", headers: securityHeaders }];

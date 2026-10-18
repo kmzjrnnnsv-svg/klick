@@ -6,7 +6,14 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { createDecisionRequest } from "@/app/actions/decisions";
+import {
+	createDecisionRequest,
+	uploadDecisionAttachment,
+} from "@/app/actions/decisions";
+import {
+	DlpWarning,
+	useUploadFeedback,
+} from "@/components/entity/upload-feedback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +41,7 @@ export function DecisionRequestButton({
 	refs,
 	soloHint,
 	approverHint,
+	canAttach = false,
 	variant = "outline",
 }: {
 	linkedEntityType?: EntityKind;
@@ -44,6 +52,8 @@ export function DecisionRequestButton({
 	soloHint?: boolean;
 	// niemand (außer dir) in der Geschäftsleitung → Hinweis vor dem Absenden
 	approverHint?: "none" | "only_you" | null;
+	// Unterlagen anhängen (nur mit Objektspeicher)
+	canAttach?: boolean;
 	variant?: "outline" | "brown";
 }) {
 	const t = useTranslations("Decisions");
@@ -59,10 +69,68 @@ export function DecisionRequestButton({
 	const [options, setOptions] = useState("");
 	const [dueAt, setDueAt] = useState("");
 	const [solo, setSolo] = useState("");
+	const [files, setFiles] = useState<File[]>([]);
+	// angelegt, Unterlagen stehen noch aus (z. B. nach DLP-Warnung)
+	const [createdId, setCreatedId] = useState<string | null>(null);
+	const [dlpReasons, setDlpReasons] = useState<string[] | null>(null);
+	const [dlpAck, setDlpAck] = useState(false);
+	const up = useUploadFeedback();
+
+	function reset() {
+		setOpen(false);
+		setQuestion(defaultQuestion ?? "");
+		setContext("");
+		setRecommendation("");
+		setOptions("");
+		setDueAt("");
+		setFiles([]);
+		setCreatedId(null);
+		setDlpReasons(null);
+		setDlpAck(false);
+		router.refresh();
+	}
+
+	// Unterlagen nacheinander über die Pipeline; DLP-Warnung → Rückfrage
+	async function uploadAll(id: string): Promise<boolean> {
+		const remaining: File[] = [];
+		const reasons: string[] = [];
+		let done = 0;
+		for (const f of files) {
+			const fd = new FormData();
+			fd.set("decisionRequestId", id);
+			fd.set("file", f);
+			if (dlpAck) fd.set("dlpAcknowledged", "1");
+			const res = await uploadDecisionAttachment(fd);
+			if (res.ok) {
+				done += 1;
+				continue;
+			}
+			const warn = up.dlpWarning(res);
+			if (warn) {
+				remaining.push(f);
+				reasons.push(...warn);
+			} else
+				toast.error(
+					`${t("attachmentFailed", { name: f.name })} ${up.errorText(res)}`,
+				);
+		}
+		if (done > 0) toast.success(t("attachmentsUploaded", { n: done }));
+		if (remaining.length > 0) {
+			setFiles(remaining);
+			setDlpReasons(reasons);
+			setDlpAck(false);
+			return false;
+		}
+		return true;
+	}
 
 	function submit(e: React.FormEvent) {
 		e.preventDefault();
 		start(async () => {
+			if (createdId) {
+				if (await uploadAll(createdId)) reset();
+				return;
+			}
 			const res = await createDecisionRequest({
 				question,
 				context: context || undefined,
@@ -92,13 +160,11 @@ export function DecisionRequestButton({
 					? t("createdSolo", { code: res.data.code })
 					: t("created", { code: res.data.code }),
 			);
-			setOpen(false);
-			setQuestion(defaultQuestion ?? "");
-			setContext("");
-			setRecommendation("");
-			setOptions("");
-			setDueAt("");
-			router.refresh();
+			if (files.length > 0) {
+				setCreatedId(res.data.id);
+				if (!(await uploadAll(res.data.id))) return;
+			}
+			reset();
 		});
 	}
 
@@ -192,6 +258,47 @@ export function DecisionRequestButton({
 							</div>
 						</div>
 					)}
+					{canAttach && (
+						<div className="grid gap-2">
+							<Label htmlFor="dr-files">{t("attachments")}</Label>
+							<Input
+								id="dr-files"
+								type="file"
+								multiple
+								disabled={Boolean(createdId)}
+								accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.txt,.csv"
+								onChange={(e) => {
+									const picked = [...(e.target.files ?? [])];
+									const big = picked.filter((f) => up.tooLarge(f));
+									for (const f of big)
+										toast.error(
+											`${t("attachmentFailed", { name: f.name })} ${up.tooLarge(f)}`,
+										);
+									setFiles(picked.filter((f) => !up.tooLarge(f)).slice(0, 10));
+								}}
+							/>
+							<p className="text-muted-foreground text-xs">
+								{t("attachmentsHint")}
+							</p>
+							{files.length > 0 && (
+								<ul className="flex flex-col gap-0.5 text-xs">
+									{files.map((f) => (
+										<li key={`${f.name}-${f.size}`} className="truncate">
+											{f.name}
+										</li>
+									))}
+								</ul>
+							)}
+							{dlpReasons && (
+								<DlpWarning
+									id="dr-dlp"
+									reasons={dlpReasons}
+									acknowledged={dlpAck}
+									onAcknowledge={setDlpAck}
+								/>
+							)}
+						</div>
+					)}
 					{soloHint && (
 						<div className="grid gap-2">
 							<Label htmlFor="dr-solo">{tr("soloReason")}</Label>
@@ -207,15 +314,19 @@ export function DecisionRequestButton({
 						<Button
 							type="button"
 							variant="ghost"
-							onClick={() => setOpen(false)}
+							onClick={() => (createdId ? reset() : setOpen(false))}
 						>
 							{tc("cancel")}
 						</Button>
 						<Button
 							type="submit"
-							disabled={pending || question.trim().length < 5}
+							disabled={
+								pending ||
+								question.trim().length < 5 ||
+								(Boolean(dlpReasons) && !dlpAck)
+							}
 						>
-							{t("submit")}
+							{createdId ? t("uploadRest") : t("submit")}
 						</Button>
 					</DialogFooter>
 				</form>

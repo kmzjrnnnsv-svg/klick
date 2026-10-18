@@ -1,10 +1,10 @@
 "use server";
 
 import { APIError } from "better-auth/api";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { memberAccess } from "@/db/schema";
+import { memberAccess, memberRoles, orgRoles } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { auditPlatform } from "@/lib/audit";
 import {
@@ -15,6 +15,7 @@ import {
 } from "@/lib/auth/guards";
 import { membershipAllowed, ownerMayReset } from "@/lib/auth/memberships";
 import { listPendingInvitations, rolesElsewhere } from "@/lib/auth/org";
+import { canHoldCustomRoles } from "@/lib/auth/permission-catalog";
 import { findResetTarget, resetUserAccess } from "@/lib/auth/recover";
 import {
 	type InviteDelivery,
@@ -62,6 +63,47 @@ async function inviteMemberImpl(
 				headers: await headers(),
 			}),
 		);
+		// Eigene Rollen vormerken (ADR-020) — verknüpft beim Annehmen
+		const roleIds = canHoldCustomRoles(parsed.data.role)
+			? parsed.data.roleIds
+			: [];
+		if (roleIds.length > 0) {
+			const email = parsed.data.email.toLowerCase();
+			await mutateOrg(toOrgCtx(c), async (tx) => {
+				const valid = await tx
+					.select({ id: orgRoles.id })
+					.from(orgRoles)
+					.where(
+						and(
+							eq(orgRoles.organizationId, c.orgId),
+							inArray(orgRoles.id, roleIds),
+						),
+					);
+				await tx
+					.delete(memberRoles)
+					.where(
+						and(
+							eq(memberRoles.organizationId, c.orgId),
+							eq(memberRoles.pendingEmail, email),
+						),
+					);
+				for (const r of valid)
+					await tx.insert(memberRoles).values({
+						organizationId: c.orgId,
+						roleId: r.id,
+						pendingEmail: email,
+						createdByUserId: c.userId,
+					});
+				return {
+					result: valid.length,
+					audit: {
+						action: "member.roles_pending",
+						target: `invitation:${inv.id}`,
+						after: { roleIds: valid.map((r) => r.id) },
+					},
+				};
+			});
+		}
 		revalidatePath("/team");
 		if (!delivery.url) return { ok: false, error: "error" };
 		return {
@@ -136,13 +178,39 @@ async function resetMemberAccessImpl(
 async function cancelInvitationImpl(
 	invitationId: string,
 ): Promise<ActionResult> {
-	await requireOrg({ member: ["create"] });
+	const c = await requireOrg({ member: ["create"] });
 	try {
+		const inv = (await listPendingInvitations(c.orgId)).find(
+			(i) => i.id === invitationId,
+		);
 		await auth.api.cancelInvitation({
 			body: { invitationId },
 			headers: await headers(),
 		});
 		await revokeRegistrationLinks({ invitationId });
+		// vorgemerkte eigene Rollen der Einladung verwerfen (ADR-020)
+		if (inv)
+			await mutateOrg(toOrgCtx(c), async (tx) => {
+				const gone = await tx
+					.delete(memberRoles)
+					.where(
+						and(
+							eq(memberRoles.organizationId, c.orgId),
+							eq(memberRoles.pendingEmail, inv.email.toLowerCase()),
+						),
+					)
+					.returning({ id: memberRoles.id });
+				return {
+					result: gone.length,
+					audit: gone.length
+						? {
+								action: "member.roles_pending_cleared",
+								target: `invitation:${invitationId}`,
+								after: { removed: gone.length },
+							}
+						: [],
+				};
+			});
 		revalidatePath("/team");
 		return { ok: true, data: undefined };
 	} catch (e) {
@@ -175,6 +243,16 @@ async function updateMemberRoleImpl(input: unknown): Promise<ActionResult> {
 		});
 		// Neue Rolle → Pflichtschulungen dieser Rolle zuweisen.
 		await mutateOrg(toOrgCtx(c), async (tx) => {
+			// Externe und Inhaber:innen tragen keine eigenen Rollen (ADR-020)
+			if (!canHoldCustomRoles(parsed.data.role))
+				await tx
+					.delete(memberRoles)
+					.where(
+						and(
+							eq(memberRoles.organizationId, c.orgId),
+							eq(memberRoles.memberId, parsed.data.memberId),
+						),
+					);
 			const n = await syncTrainingAssignments(tx, c.orgId);
 			return {
 				result: n,

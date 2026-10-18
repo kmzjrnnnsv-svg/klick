@@ -43,6 +43,7 @@ import {
 	trainingAssignments,
 	trainingRequirements,
 } from "@/db/schema";
+import { entityOwnersOf, ownerKey } from "@/lib/approvals/entity-owner";
 import { eligibleApprovers } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
@@ -208,9 +209,11 @@ async function loadDueRows(
 		);
 	let candidates: Awaited<ReturnType<typeof loadCandidates>> = [];
 	let dels: Awaited<ReturnType<typeof activeDelegations>> = [];
+	let owners = new Map<string, string | null>();
 	if (pendingApprovals.length > 0) {
 		candidates = await loadCandidates(tx, orgId);
 		dels = await activeDelegations(tx, orgId, now);
+		owners = await entityOwnersOf(tx, orgId, pendingApprovals);
 	}
 	const approvals = pendingApprovals.map((a) => {
 		const step = requestSteps({ steps: a.ownSteps }, a.steps).find(
@@ -219,6 +222,8 @@ async function loadDueRows(
 		const eligible = step
 			? eligibleApprovers(step, candidates, {
 					requesterUserId: a.requestedByUserId,
+					entityOwnerUserId:
+						owners.get(ownerKey(a.entityType, a.entityId)) ?? null,
 					delegations: dels,
 					now,
 				}).map((c) => c.userId)

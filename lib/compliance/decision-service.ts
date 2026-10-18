@@ -8,6 +8,7 @@ import {
 	decisionRequests,
 	documentRequirements,
 	documents,
+	evidence,
 	frameworks,
 	incidents,
 	objectives,
@@ -20,7 +21,7 @@ import {
 	risks,
 } from "@/db/schema";
 import type { EntityKind } from "@/db/schema/enums";
-import { soloModeAllowed } from "@/lib/approvals/rules";
+import { soloModeAllowed, stepRules } from "@/lib/approvals/rules";
 import {
 	ensureOrgWorkflows,
 	loadCandidates,
@@ -263,7 +264,10 @@ export async function resolutionForApproval(
 	const top = await topManagementOf(tx, actor.orgId, actor.userId);
 	if (
 		!isManagementDecision({
-			approverRule: step?.approverRule,
+			approverRule: step
+				? (stepRules(step).find((r) => r === "function:management_body") ??
+					step.approverRule)
+				: undefined,
 			deciderIsTopManagement: top.isTopManagement,
 			entityType: req.entityType,
 		})
@@ -392,6 +396,8 @@ export async function listDecisionRequests(
 			requestedByUserId: decisionRequests.requestedByUserId,
 			decidedAt: decisionRequests.decidedAt,
 			createdAt: decisionRequests.createdAt,
+			chosenOption: decisionRequests.chosenOption,
+			attachmentEvidenceIds: decisionRequests.attachmentEvidenceIds,
 			resolutionNumber: resolutions.resolutionNumber,
 		})
 		.from(decisionRequests)
@@ -567,4 +573,69 @@ export async function managementApproverHint(
 	if (mgmt.length === 0) return "none";
 	if (mgmt.every((c) => c.userId === requesterUserId)) return "only_you";
 	return null;
+}
+
+// Details offener Managementanfragen für den Posteingang (Optionen,
+// Ausgangslage, Unterlagen) — je Anfrage-ID
+export async function decisionRequestDetails(
+	tx: OrgTx,
+	orgId: string,
+	ids: readonly string[],
+) {
+	const out = new Map<
+		string,
+		{
+			options: string[];
+			context: string | null;
+			recommendation: string | null;
+			attachments: { id: string; title: string }[];
+		}
+	>();
+	if (ids.length === 0) return out;
+	const rows = await tx
+		.select({
+			id: decisionRequests.id,
+			options: decisionRequests.options,
+			context: decisionRequests.context,
+			recommendation: decisionRequests.recommendation,
+			attachmentEvidenceIds: decisionRequests.attachmentEvidenceIds,
+		})
+		.from(decisionRequests)
+		.where(
+			and(
+				eq(decisionRequests.organizationId, orgId),
+				inArray(decisionRequests.id, [...ids]),
+			),
+		);
+	const titles = await evidenceTitles(
+		tx,
+		orgId,
+		rows.flatMap((r) => r.attachmentEvidenceIds),
+	);
+	for (const r of rows)
+		out.set(r.id, {
+			options: r.options,
+			context: r.context,
+			recommendation: r.recommendation,
+			attachments: r.attachmentEvidenceIds
+				.filter((e) => titles.has(e))
+				.map((e) => ({ id: e, title: titles.get(e) ?? "" })),
+		});
+	return out;
+}
+
+// Titel von Nachweisen (Unterlagen an Anfragen); gelöschte fallen weg
+export async function evidenceTitles(
+	tx: OrgTx,
+	orgId: string,
+	ids: readonly string[],
+): Promise<Map<string, string>> {
+	if (ids.length === 0) return new Map();
+	const rows = await tx
+		.select({ id: evidence.id, title: evidence.title })
+		.from(evidence)
+		.where(
+			and(eq(evidence.organizationId, orgId), inArray(evidence.id, [...ids])),
+		);
+	return new Map(rows.map((r) => [r.id, r.title]));
 }

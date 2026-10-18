@@ -279,6 +279,53 @@ export const memberAccess = pgTable(
 	() => [orgPolicy("member_access")],
 ).enableRLS();
 
+// Eigene Rollen je Organisation (ADR-020): Rechte aus dem Katalog
+// (lib/auth/permission-catalog.ts) zusätzlich zur Grundrolle in
+// member.role. Abteilungen wie „Einkauf“ oder „Recht“ sind solche Rollen und
+// dienen zugleich als Freigabestufe (role:<id>).
+export const orgRoles = pgTable(
+	"org_roles",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		name: text().notNull(),
+		description: text(),
+		// Record<Ressource, Aktion[]>; beim Lesen über sanitizePermissions
+		permissions: json<Record<string, string[]>>().notNull().default({}),
+		createdByUserId: userRef(),
+		...timestamps(),
+	},
+	(t) => [
+		index("org_roles_org_idx").on(t.organizationId),
+		unique("org_roles_org_name_uq").on(t.organizationId, t.name),
+		orgPolicy("org_roles"),
+	],
+).enableRLS();
+
+// Zuordnung Person ↔ eigene Rolle. Eingeladene Personen stehen mit
+// pendingEmail und werden beim Annehmen verknüpft (afterAcceptInvitation).
+export const memberRoles = pgTable(
+	"member_roles",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		roleId: uuid()
+			.notNull()
+			.references(() => orgRoles.id, { onDelete: "cascade" }),
+		memberId: uuid().references(() => member.id, { onDelete: "cascade" }),
+		userId: userRef(),
+		pendingEmail: text(),
+		createdByUserId: userRef(),
+		createdAt: createdAt(),
+	},
+	(t) => [
+		index("member_roles_org_idx").on(t.organizationId),
+		index("member_roles_member_idx").on(t.memberId),
+		unique("member_roles_role_member_uq").on(t.roleId, t.memberId),
+		orgPolicy("member_roles"),
+	],
+).enableRLS();
+
 // Append-only, Hash-Kette pro Org (lib/audit-hash.ts). Keine FKs auf
 // organization/user: Einträge überleben Org-Löschung und User-Löschung.
 export const auditLog = pgTable(

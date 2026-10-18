@@ -31,7 +31,7 @@ describe("approverEligibility", () => {
 	it("Funktionsregel: nur Compliance", () => {
 		const step = { order: 2, approverRule: "function:compliance" };
 		expect(approverEligibility(step, ben, { requesterUserId: "anna" })).toEqual(
-			{ eligible: true, via: "direct" },
+			{ eligible: true, via: "direct", rules: ["function:compliance"] },
 		);
 		expect(
 			approverEligibility(step, cara, { requesterUserId: "anna" }),
@@ -51,6 +51,23 @@ describe("approverEligibility", () => {
 				requesterUserId: "anna",
 			}).eligible,
 		).toBe(false);
+	});
+	it("ohne approval:decide nie Freigeber:in — auch nicht über Funktion", () => {
+		const dora = {
+			userId: "dora",
+			orgRole: "consultant" as const,
+			functions: ["compliance" as const],
+			canDecide: false,
+		};
+		const step = { order: 1, approverRule: "function:compliance" };
+		expect(
+			approverEligibility(step, dora, { requesterUserId: "anna" }),
+		).toEqual({ eligible: false, reason: "rule_not_met" });
+		expect(
+			eligibleApprovers(step, [ben, dora], { requesterUserId: "anna" }).map(
+				(m) => m.userId,
+			),
+		).toEqual(["ben"]);
 	});
 	it("owner_of_entity und not_requester", () => {
 		expect(
@@ -75,6 +92,7 @@ describe("approverEligibility", () => {
 			eligible: true,
 			via: "delegation",
 			onBehalfOf: "ben",
+			rules: ["function:compliance"],
 		});
 		const ctx2 = {
 			requesterUserId: "ben",

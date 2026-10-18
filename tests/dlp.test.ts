@@ -77,6 +77,18 @@ describe("scanText", () => {
 		expect(f.find((x) => x.detector === "email")?.count).toBe(60);
 	});
 
+	it("lange Zeichenketten ohne Treffer bleiben linear (kein Backtracking)", () => {
+		// vorher: 200 000 Zeichen ≈ 50 s in der E-Mail-Regex
+		for (const unit of ["y", "1", "a.", "1-", "+4", "AB", "eyJ"]) {
+			const t = performance.now();
+			expect(scanText(unit.repeat(200_000))).toEqual([]);
+			expect(performance.now() - t).toBeLessThan(1500);
+		}
+		// Adressen werden weiter erkannt, auch direkt nach Satzzeichen
+		const f = scanText("mailto:max.muster@firma.de, (info@beispiel.org)");
+		expect(f.find((x) => x.detector === "email")?.count).toBe(2);
+	});
+
 	it("normale Richtlinie ohne Funde", () => {
 		expect(
 			scanText(

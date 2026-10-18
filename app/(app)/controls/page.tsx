@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { DOMAINS, type ImplStatus } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { BASELINE } from "@/lib/compliance/catalog";
 import { requiredControlCodes } from "@/lib/compliance/catalog-view";
 import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
@@ -45,7 +45,7 @@ export default async function ControlsPage({
 		})),
 		getOrgCoverageCached(ctx),
 	]);
-	const canBulk = roleAllows(ctx.orgRole, { control: ["update", "assign"] });
+	const canBulk = allows(ctx, { control: ["update", "assign"] });
 	const leverage = cov?.result.leverage ?? new Map();
 	const today = new Date().toISOString().slice(0, 10);
 

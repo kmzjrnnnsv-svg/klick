@@ -419,6 +419,8 @@ export function EngagementFileUpload({
 	);
 	const [ack, setAck] = useState(false);
 	function upload(file: File, acknowledged = false) {
+		const big = feedback.tooLarge(file);
+		if (big) return void toast.error(big);
 		start(async () => {
 			const fd = new FormData();
 			fd.set("engagementId", engagementId);

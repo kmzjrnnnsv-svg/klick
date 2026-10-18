@@ -20,9 +20,10 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { dependencyMap, listProcesses } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
@@ -50,13 +51,19 @@ export default async function ProcessesPage({
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const tf = await getTranslations("Functions");
-	const canCreate = roleAllows(ctx.orgRole, { process: ["create"] });
+	const canCreate = allows(ctx, { process: ["create"] });
 
-	const { rows, members, nodes } = await readOrg(toOrgCtx(ctx), async (tx) => ({
-		rows: await listProcesses(tx, ctx.orgId),
-		members: await listMembersForPicker(tx, ctx.orgId),
-		nodes: tab === "abhaengigkeiten" ? await dependencyMap(tx, ctx.orgId) : [],
-	}));
+	const ta = await getTranslations("Approvals");
+	const { rows, members, nodes, pending } = await readOrg(
+		toOrgCtx(ctx),
+		async (tx) => ({
+			pending: await pendingApprovalIds(tx, ctx.orgId, "process"),
+			rows: await listProcesses(tx, ctx.orgId),
+			members: await listMembersForPicker(tx, ctx.orgId),
+			nodes:
+				tab === "abhaengigkeiten" ? await dependencyMap(tx, ctx.orgId) : [],
+		}),
+	);
 
 	const q = one(sp.q)?.toLowerCase();
 	const status = one(sp.status);
@@ -343,6 +350,11 @@ export default async function ProcessesPage({
 																		r.status
 																	] as "procDraft",
 																)}
+																waitingLabel={
+																	pending.has(r.id)
+																		? ta("waitingBadge")
+																		: undefined
+																}
 															/>
 														</TableCell>
 														<TableCell className="text-right text-muted-foreground text-xs">

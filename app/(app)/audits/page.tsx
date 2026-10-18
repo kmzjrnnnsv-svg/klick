@@ -25,7 +25,7 @@ import {
 import { DOMAINS } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { programmeCoverage } from "@/lib/compliance/audit-programme";
 import { fmtDate, shortFrameworkName } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
@@ -65,10 +65,10 @@ export default async function AuditsPage({
 	const sp = await searchParams;
 	const tab = one(sp.tab) ?? "audits";
 	const t = await getTranslations("Audits");
-	const canEdit = roleAllows(ctx.orgRole, { audit: ["create"] });
-	const canFinding = roleAllows(ctx.orgRole, { audit_finding: ["update"] });
-	const canNc = roleAllows(ctx.orgRole, { nonconformity: ["create"] });
-	const canExport = roleAllows(ctx.orgRole, { export: ["create"] });
+	const canEdit = allows(ctx, { audit: ["create"] });
+	const canFinding = allows(ctx, { audit_finding: ["update"] });
+	const canNc = allows(ctx, { nonconformity: ["create"] });
+	const canExport = allows(ctx, { export: ["create"] });
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		audits: await listAudits(tx, ctx.orgId),

@@ -29,7 +29,7 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { isExternal } from "@/lib/auth/memberships";
 import { listOrgMembers } from "@/lib/auth/org";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { aggregateSuspicious, type RiskDimensions } from "@/lib/compliance/aml";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import {
@@ -143,7 +143,7 @@ export default async function AmlPage({
 	const ts = await getTranslations("Status");
 	const tf = await getTranslations("Functions");
 	const now = new Date();
-	const canEdit = roleAllows(ctx.orgRole, { aml: ["update"] });
+	const canEdit = allows(ctx, { aml: ["update"] });
 	const detail = !isExternal(ctx.orgRole) || ctx.grants.includes("aml_detail");
 	const memberCount = (await listOrgMembers(ctx.orgId)).length;
 

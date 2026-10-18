@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker, listTasks } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
@@ -33,7 +33,7 @@ export default async function TasksPage({
 	const status = one(sp.status);
 	const q = one(sp.q)?.toLowerCase();
 	const today = new Date().toISOString().slice(0, 10);
-	const canEdit = roleAllows(ctx.orgRole, { task: ["update"] });
+	const canEdit = allows(ctx, { task: ["update"] });
 
 	const { tasks, members } = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		tasks: await listTasks(tx, ctx.orgId, {

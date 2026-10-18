@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import { fmtDate, shortFrameworkName } from "@/lib/compliance/page-data";
 import { listAssessments } from "@/lib/compliance/queries-assessments";
@@ -30,7 +30,7 @@ export default async function GapAnalysisPage() {
 		rows: await listAssessments(tx, ctx.orgId, "self"),
 		frameworks: await listOrgFrameworks(tx, ctx.orgId),
 	}));
-	const canCreate = roleAllows(ctx.orgRole, { assessment: ["create"] });
+	const canCreate = allows(ctx, { assessment: ["create"] });
 	const fwOptions = frameworks
 		.filter(
 			(f) => (FRAMEWORK_BY_SLUG.get(f.slug)?.requirements.length ?? 0) > 0,

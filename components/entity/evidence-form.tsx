@@ -81,6 +81,8 @@ export function EvidenceForm({
 			let res: Awaited<ReturnType<typeof createEvidenceLink>>;
 			if (mode === "upload") {
 				if (!file) return;
+				const big = feedback.tooLarge(file);
+				if (big) return void toast.error(big);
 				const fd = new FormData();
 				fd.set("file", file);
 				fd.set("title", title || file.name);

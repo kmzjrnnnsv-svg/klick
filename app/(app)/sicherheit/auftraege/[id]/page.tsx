@@ -26,7 +26,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listComments, userNames } from "@/lib/compliance/queries";
 import { getEngagementDetail } from "@/lib/compliance/queries-engagements";
@@ -89,8 +89,8 @@ export default async function EngagementPage({
 	const tab: Tab = (TABS as readonly string[]).includes(one(sp.tab) ?? "")
 		? (one(sp.tab) as Tab)
 		: "umfang";
-	const canEdit = roleAllows(ctx.orgRole, { security: ["update"] });
-	const canCreate = roleAllows(ctx.orgRole, { security: ["create"] });
+	const canEdit = allows(ctx, { security: ["update"] });
+	const canCreate = allows(ctx, { security: ["create"] });
 	const closed = e.status === "closed" || e.status === "cancelled";
 	const scopeLocked = !(e.status === "planned" || e.status === "authorized");
 	const findingsOpen = data.findings.filter(
@@ -143,7 +143,7 @@ export default async function EngagementPage({
 					>
 						{t("toList")}
 					</Link>
-					{roleAllows(ctx.orgRole, { export: ["create"] }) && (
+					{allows(ctx, { export: ["create"] }) && (
 						<ExportLink
 							href={`/api/export/sicherheitsauftrag.zip?id=${e.id}`}
 							className={buttonVariants({ variant: "outline", size: "sm" })}

@@ -25,7 +25,7 @@ import {
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker, userNames } from "@/lib/compliance/queries";
 import {
@@ -45,8 +45,11 @@ export default async function TrainingsPage({
 	const ctx = await requireOrgPage({ task: ["read"] });
 	const t = await getTranslations("Trainings");
 	const tf = await getTranslations("Functions");
-	const canEdit = roleAllows(ctx.orgRole, { task: ["create"] });
-	const canSettings = roleAllows(ctx.orgRole, { settings: ["update"] });
+	const canCreate = allows(ctx, { training: ["create"] });
+	// Vorschlagen wartet auf den Ablauf „Schulung vorschlagen“
+	const canPropose = canCreate || allows(ctx, { training: ["propose"] });
+	const canEdit = allows(ctx, { training: ["update"] });
+	const canSettings = allows(ctx, { settings: ["update"] });
 	const { trainings, requirements, assignments, members, names } =
 		await readOrg(toOrgCtx(ctx), async (tx) => {
 			const [trainings, requirements, assignments, members] = await Promise.all(
@@ -85,6 +88,10 @@ export default async function TrainingsPage({
 			.filter(Boolean)
 			.join(" · ") || "—";
 	const reqById = new Map(requirements.map((r) => [r.id, r]));
+	// Matrix, Zuweisung und Erfassung nur mit freigegebenen Schulungen
+	const approvedReqs = requirements.filter(
+		(r) => r.approvalStatus === "approved",
+	);
 	const mine = [...current.entries()]
 		.filter(([k]) => k.endsWith(`|${ctx.userId}`))
 		.map(([k, v]) => ({ req: reqById.get(k.split("|")[0] ?? ""), ...v }))
@@ -99,10 +106,10 @@ export default async function TrainingsPage({
 				title={t("title")}
 				lead={t("lead")}
 				actions={
-					canEdit ? (
+					canCreate ? (
 						<TrainingForm
 							members={members}
-							requirements={requirements.map((r) => ({
+							requirements={approvedReqs.map((r) => ({
 								code: r.code,
 								title: r.title,
 							}))}
@@ -139,7 +146,7 @@ export default async function TrainingsPage({
 							canSettings || canEdit ? (
 								<>
 									{canSettings && <ApplyRequirementsButton />}
-									{canEdit && (
+									{canPropose && (
 										<RequirementForm functionLabels={functionLabels} />
 									)}
 								</>
@@ -150,7 +157,9 @@ export default async function TrainingsPage({
 					<>
 						<div className="mb-3 flex justify-end gap-2">
 							{canSettings && <ApplyRequirementsButton />}
-							{canEdit && <RequirementForm functionLabels={functionLabels} />}
+							{canPropose && (
+								<RequirementForm functionLabels={functionLabels} />
+							)}
 						</div>
 						<Table>
 							<TableHeader>
@@ -186,7 +195,23 @@ export default async function TrainingsPage({
 												{r.code}
 											</TableCell>
 											<TableCell>
-												<p className="font-medium">{r.title}</p>
+												<p className="font-medium">
+													{r.title}
+													{r.approvalStatus !== "approved" && (
+														<Badge
+															variant={
+																r.approvalStatus === "rejected"
+																	? "muted"
+																	: "warning"
+															}
+															className="ml-2 align-middle"
+														>
+															{r.approvalStatus === "rejected"
+																? t("approvalRejected")
+																: t("approvalPending")}
+														</Badge>
+													)}
+												</p>
 												<p className="text-muted-foreground text-xs">
 													{r.description}
 												</p>
@@ -227,14 +252,18 @@ export default async function TrainingsPage({
 											{canEdit && (
 												<TableCell className="text-right">
 													<div className="flex justify-end gap-1">
-														<AssignTrainingForm
-															requirementId={r.id}
-															title={r.title}
-															members={members}
-															assignedUserIds={people
-																.filter(([, v]) => v.open && v.state !== "done")
-																.map(([k]) => k.split("|")[1] ?? "")}
-														/>
+														{r.approvalStatus === "approved" && (
+															<AssignTrainingForm
+																requirementId={r.id}
+																title={r.title}
+																members={members}
+																assignedUserIds={people
+																	.filter(
+																		([, v]) => v.open && v.state !== "done",
+																	)
+																	.map(([k]) => k.split("|")[1] ?? "")}
+															/>
+														)}
 														<RequirementForm
 															functionLabels={functionLabels}
 															initial={{
@@ -357,7 +386,7 @@ export default async function TrainingsPage({
 					<p className="mb-3 text-muted-foreground text-sm">
 						{t("matrixLead")}
 					</p>
-					{requirements.length === 0 ? (
+					{approvedReqs.length === 0 ? (
 						<p className="text-sm">{t("empty")}</p>
 					) : (
 						<div className="overflow-x-auto">
@@ -365,7 +394,7 @@ export default async function TrainingsPage({
 								<TableHeader>
 									<TableRow>
 										<TableHead>Person</TableHead>
-										{requirements.map((r) => (
+										{approvedReqs.map((r) => (
 											<TableHead
 												key={r.id}
 												className="text-center text-xs"
@@ -380,7 +409,7 @@ export default async function TrainingsPage({
 									{members.map((m) => (
 										<TableRow key={m.userId}>
 											<TableCell className="font-medium">{m.name}</TableCell>
-											{requirements.map((r) => {
+											{approvedReqs.map((r) => {
 												const cur = current.get(`${r.id}|${m.userId}`);
 												const state = cur?.state ?? "none";
 												return (

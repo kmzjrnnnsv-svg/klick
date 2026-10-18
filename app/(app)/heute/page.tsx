@@ -23,7 +23,7 @@ import { listRequestsForUser } from "@/lib/approvals/service";
 import { catalogQuestions } from "@/lib/assessments/catalog-template";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
 	listControlRows,
@@ -140,7 +140,7 @@ export default async function TodayPage() {
 
 	// Geführte Einrichtung (D0): neue Orgs landen dort, bis die Rahmenwerke
 	// stehen; danach (und für Bestands-Orgs) eine Karte, bis alles erledigt ist.
-	const canSetup = roleAllows(ctx.orgRole, { settings: ["update"] });
+	const canSetup = allows(ctx, { settings: ["update"] });
 	const setup = setupState(setupFlags);
 	if (canSetup && shouldRedirectToSetup(setup))
 		redirect(stepHref(setup.next ?? "rollen"));
@@ -157,7 +157,7 @@ export default async function TodayPage() {
 	);
 	const anyGap = gapAnalyses.some((a) => a.status !== "cancelled");
 	let gapStartCount = 0;
-	if (!anyGap && roleAllows(ctx.orgRole, { assessment: ["create"] })) {
+	if (!anyGap && allows(ctx, { assessment: ["create"] })) {
 		const cov = await getOrgCoverageCached(ctx);
 		if (cov)
 			gapStartCount = catalogQuestions({

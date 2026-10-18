@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { upsertProvider } from "@/app/actions/registers";
+import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -94,6 +95,7 @@ export function ProviderForm({
 	const isEdit = Boolean(initial?.providerId);
 	const t = useTranslations("Providers");
 	const tc = useTranslations("Common");
+	const gate = useGateFeedback();
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
@@ -153,8 +155,14 @@ export function ProviderForm({
 								ownerUserId: d.ownerUserId ?? null,
 								notes: d.notes ?? undefined,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
-							toast.success(isEdit ? t("saved") : t("created"));
+							if (!res.ok)
+								return void toast.error(
+									res.error === "statusLocked"
+										? t("statusLocked")
+										: (gate.errorText(res.error) ?? tc("error")),
+								);
+							if (res.data.approvalPending) toast.info(gate.pendingText());
+							else toast.success(isEdit ? t("saved") : t("created"));
 							setOpen(false);
 							router.refresh();
 						});

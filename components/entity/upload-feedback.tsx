@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { MAX_UPLOAD_BYTES } from "@/lib/uploads/limits";
 
 // Rückmeldungen der Upload-Pipeline (lib/evidence/store.ts) als Klartext mit
 // nächstem Schritt — für Nachweis-Dialog, Gap-Analyse und Portal gleich.
@@ -42,6 +43,11 @@ export function useUploadFeedback() {
 		return tc("error");
 	}
 
+	// Vor dem Senden: zu große Dateien gar nicht erst übertragen
+	function tooLarge(file: File): string | null {
+		return file.size > MAX_UPLOAD_BYTES ? t("upload_too_large") : null;
+	}
+
 	// Warnung, die erst nach Bestätigung hochlädt (Regel „warn“).
 	function dlpWarning(res: Failed): string[] | null {
 		return res.error === "upload_dlp_warn"
@@ -49,7 +55,7 @@ export function useUploadFeedback() {
 			: null;
 	}
 
-	return { errorText, dlpWarning, detectors };
+	return { errorText, dlpWarning, detectors, tooLarge };
 }
 
 export function DlpWarning({

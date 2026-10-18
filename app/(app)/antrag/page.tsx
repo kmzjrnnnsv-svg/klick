@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	type ApplicationCheck as Check,
 	type CheckStatus,
@@ -47,7 +47,7 @@ export default async function ApplicationPage({
 	const tab = one(sp.tab) === "zag" ? "zag" : "micar";
 	const t = await getTranslations("Application");
 	const tf = await getTranslations("Functions");
-	const canEdit = roleAllows(ctx.orgRole, { organisation: ["update"] });
+	const canEdit = allows(ctx, { organisation: ["update"] });
 
 	const { facts, services, state } = await readOrg(toOrgCtx(ctx), (tx) =>
 		loadApplicationFacts(tx, ctx.orgId),

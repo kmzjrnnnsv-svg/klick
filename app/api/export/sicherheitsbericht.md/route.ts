@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { getOrgSummary } from "@/lib/auth/org";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { listFindings, listScans } from "@/lib/compliance/queries-security";
 import { readOrg } from "@/lib/db/with-org";
 import {
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
 	const ctx = await exportGuard();
 	if (ctx instanceof NextResponse) return ctx;
-	if (!roleAllows(ctx.orgRole, { security: ["read"] }))
+	if (!allows(ctx, { security: ["read"] }))
 		return new NextResponse(null, { status: 403 });
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		findings: await listFindings(tx, ctx.orgId),

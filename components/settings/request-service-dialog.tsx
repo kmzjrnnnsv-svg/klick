@@ -28,19 +28,41 @@ import { INQUIRY_SERVICES } from "@/lib/inquiries/rules";
 // „Leistung anfragen“ aus Einstellungen → Abo & Leistungen. Name, E-Mail und
 // Organisation kommen aus der Sitzung; die Anfrage trägt Preisgruppe und
 // Preis zum Zeitpunkt der Anfrage (Admin → Anfragen).
-export function RequestServiceDialog({ email }: { email: string }) {
+export function RequestServiceDialog({
+	email,
+	defaultService = "svc:gap",
+	defaultMessage = "",
+	triggerLabel = "Leistung anfragen",
+	triggerVariant = "brown",
+}: {
+	email: string;
+	// Vorbelegung aus „Für dich empfohlen“
+	defaultService?: string;
+	defaultMessage?: string;
+	triggerLabel?: string;
+	triggerVariant?: "brown" | "outline";
+}) {
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
-	const [service, setService] = useState<string>("svc:gap");
-	const [message, setMessage] = useState("");
+	const [service, setService] = useState<string>(defaultService);
+	const [message, setMessage] = useState(defaultMessage);
 	const [phone, setPhone] = useState("");
 	const [errors, setErrors] = useState<Record<string, string>>({});
 
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
+		<Dialog
+			open={open}
+			onOpenChange={(o) => {
+				setOpen(o);
+				if (o) {
+					setService(defaultService);
+					setMessage(defaultMessage);
+				}
+			}}
+		>
 			<DialogTrigger asChild>
-				<Button type="button" variant="brown" size="sm">
-					Leistung anfragen
+				<Button type="button" variant={triggerVariant} size="sm">
+					{triggerLabel}
 				</Button>
 			</DialogTrigger>
 			<DialogContent>

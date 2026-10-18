@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
@@ -24,10 +25,11 @@ import {
 } from "@/components/supplier/supplier-forms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { approvalBarFor } from "@/lib/approvals/bar";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { ART30_CLAUSES } from "@/lib/compliance/catalog/art30-clauses";
 import { SUPPLIER_TEMPLATES } from "@/lib/compliance/catalog/questionnaires";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -99,16 +101,20 @@ export default async function ProviderPage({
 			...comments.map((c) => c.authorUserId),
 		]);
 		for (const [k, v] of d.names) names.set(k, v);
-		return { ...d, comments, history, members, tasks, ratings, names };
+		const bar = await approvalBarFor(tx, ctx.orgId, ctx.userId, {
+			type: "provider",
+			id,
+			ownerUserId: d.provider.ownerUserId,
+		});
+		return { ...d, comments, history, members, tasks, ratings, names, bar };
 	});
 	if (!data) notFound();
 	const p = data.provider;
 	const tab: Tab = (TABS as readonly string[]).includes(one(sp.tab) ?? "")
 		? (one(sp.tab) as Tab)
 		: "stammdaten";
-	const canEdit = roleAllows(ctx.orgRole, { provider: ["update"] });
-	const canAssess =
-		canEdit && roleAllows(ctx.orgRole, { assessment: ["create"] });
+	const canEdit = allows(ctx, { provider: ["update"] });
+	const canAssess = canEdit && allows(ctx, { assessment: ["create"] });
 	const base = `/dienstleister/${p.id}`;
 	const critical = p.criticality === "critical" || p.isMaterial;
 	const latest = data.assessments.find((a) => a.status === "completed");
@@ -304,6 +310,12 @@ export default async function ProviderPage({
 				</>
 			}
 		>
+			<ApprovalBar
+				data={data.bar.data}
+				names={data.bar.names}
+				eligible={data.bar.eligible}
+				currentUserId={ctx.userId}
+			/>
 			<UrlTabs
 				base={base}
 				active={tab}

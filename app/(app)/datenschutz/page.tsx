@@ -24,7 +24,7 @@ import {
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { isExternal } from "@/lib/auth/memberships";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
 	dsrClock,
@@ -70,7 +70,7 @@ export default async function PrivacyPage({
 		: "vvt";
 	const t = await getTranslations("Privacy");
 	const now = new Date();
-	const canEdit = roleAllows(ctx.orgRole, { privacy: ["update"] });
+	const canEdit = allows(ctx, { privacy: ["update"] });
 	const detail = !isExternal(ctx.orgRole) || ctx.grants.includes("hr_detail");
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {

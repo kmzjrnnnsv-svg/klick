@@ -1,12 +1,14 @@
 import { getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
 import type { ApprovalStep } from "@/db/schema/grc";
-import { ROLE_LABEL } from "@/lib/auth/memberships";
+import { orgRuleNamesCached } from "@/lib/approvals/designer-labels";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { ApprovalActions } from "./approval-actions";
+import { RouteProgress } from "./route-progress";
 
 export type ApprovalBarData = {
 	id: string;
+	organizationId: string;
 	status:
 		| "pending"
 		| "approved"
@@ -26,6 +28,7 @@ export type ApprovalBarData = {
 		step: number;
 		approverUserId: string | null;
 		decision: string;
+		rule?: string | null;
 		note: string | null;
 		decidedAt: Date;
 	}[];
@@ -58,23 +61,12 @@ export async function ApprovalBar({
 }) {
 	if (!data) return null;
 	const ta = await getTranslations("Approvals");
-	const tf = await getTranslations("Functions");
+	const ruleNames = await orgRuleNamesCached(
+		data.organizationId,
+		currentUserId,
+	);
 	const status = (x: string) =>
 		x in TONE ? ta(`state_${x as ApprovalBarData["status"]}`) : x;
-	const rule = (r: string | undefined) => {
-		if (!r) return "";
-		const [kind, arg] = r.split(":");
-		if (kind === "function" && arg) return tf(arg as never);
-		if (kind === "role" && arg)
-			return ta("rule_role", {
-				role: ROLE_LABEL[arg as keyof typeof ROLE_LABEL] ?? arg,
-			});
-		if (kind === "owner_of_entity") return ta("rule_owner_of_entity");
-		if (kind === "not_requester") return ta("rule_not_requester");
-		if (kind === "user") return ta("rule_user");
-		return r;
-	};
-	const stepDef = data.steps.find((s) => s.order === data.currentStep);
 	const overdue =
 		data.status === "pending" && data.dueAt !== null && data.dueAt < new Date();
 	return (
@@ -85,12 +77,6 @@ export async function ApprovalBar({
 				</span>
 				<span className="font-medium">{data.workflowName}</span>
 				<Badge variant={TONE[data.status]}>{status(data.status)}</Badge>
-				{data.status === "pending" && (
-					<span className="text-muted-foreground text-xs">
-						{ta("step", { n: data.currentStep })} ·{" "}
-						{rule(stepDef?.approverRule)}
-					</span>
-				)}
 				{data.dueAt && data.status === "pending" && (
 					<span
 						className={
@@ -108,6 +94,13 @@ export async function ApprovalBar({
 					<Badge variant="muted">{ta("selfApproved")}</Badge>
 				)}
 			</div>
+			<RouteProgress
+				steps={data.steps}
+				currentStep={data.currentStep}
+				status={data.status}
+				decisions={data.decisions}
+				names={ruleNames}
+			/>
 			{data.decisions.length > 0 && (
 				<ul className="flex flex-col gap-0.5 text-muted-foreground text-xs">
 					{data.decisions.map((d) => (

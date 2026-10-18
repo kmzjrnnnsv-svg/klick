@@ -15,7 +15,7 @@ import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	listRelevantChanges,
 	nextSuspiciousRef,
@@ -159,7 +159,7 @@ async function requestAmlRiskAnalysisApprovalImpl(
 	const parsed = requestAmlApprovalSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { id, selfApprovalReason } = parsed.data;
-	const canApproveDirect = roleAllows(c.orgRole, { aml: ["approve"] });
+	const canApproveDirect = allows(c, { aml: ["approve"] });
 	const res = await mutateOrg<ActionResult<{ status: string }>>(
 		toOrgCtx(c),
 		async (tx) => {

@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { ROADMAP_PHASES } from "@/lib/compliance/catalog/roadmap";
 import {
 	collectDates,
@@ -47,7 +47,7 @@ export default async function RoadmapPage({
 	const view = one(sp.ansicht) === "zeitachse" ? "zeitachse" : "kanban";
 	const t = await getTranslations("Roadmap");
 	const tk = await getTranslations("Calendar");
-	const canEdit = roleAllows(ctx.orgRole, { milestone: ["update"] });
+	const canEdit = allows(ctx, { milestone: ["update"] });
 	const now = new Date();
 	const today = now.toISOString().slice(0, 10);
 	const quarters = nextQuarters(today, QUARTERS);

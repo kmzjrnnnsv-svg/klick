@@ -1,23 +1,29 @@
 import { and, eq } from "drizzle-orm";
 import {
 	amlRiskAnalyses,
+	assets,
 	decisionRequests,
 	documents,
 	documentVersions,
 	exceptions,
 	incidents,
+	nonconformities,
 	objectives,
 	ownFundsCalculations,
+	processes,
 	providerRatings,
 	providers,
 	risks,
 	scopes,
+	tasks,
+	trainingRequirements,
 } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import type { OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
+import { syncTrainingAssignments } from "@/lib/trainings/assignments";
 import type { DecideResult } from "./service";
 
 // Wendet den Ausgang einer Freigabe auf die Entität an. Wird vom Entscheiden
@@ -29,7 +35,140 @@ export async function applyApprovalOutcome(
 	r: Extract<DecideResult, { ok: true }>,
 ): Promise<AuditInput[]> {
 	const approved = r.status === "approved";
+	const rejected = r.status === "rejected";
 	const extra: AuditInput[] = [];
+	// Auslöser des Freigabe-Designers zuerst (gleiche Entität, andere
+	// Wirkung: Aufnahme vs. Akzeptanz, Maßnahmenplan vs. Abschluss …)
+	switch (r.trigger) {
+		case "provider.create": {
+			if (approved || rejected)
+				await tx
+					.update(providers)
+					.set({ status: approved ? "active" : "declined" })
+					.where(
+						and(
+							eq(providers.id, r.entityId),
+							eq(providers.organizationId, ctx.orgId),
+							eq(providers.status, "onboarding"),
+						),
+					);
+			return extra;
+		}
+		case "asset.create": {
+			if (approved || rejected)
+				await tx
+					.update(assets)
+					.set({ status: approved ? "active" : "declined" })
+					.where(
+						and(
+							eq(assets.id, r.entityId),
+							eq(assets.organizationId, ctx.orgId),
+							eq(assets.status, "pending"),
+						),
+					);
+			return extra;
+		}
+		case "asset.retire": {
+			if (approved)
+				await tx
+					.update(assets)
+					.set({ status: "retired" })
+					.where(
+						and(
+							eq(assets.id, r.entityId),
+							eq(assets.organizationId, ctx.orgId),
+						),
+					);
+			return extra;
+		}
+		case "risk.create": {
+			if (approved || rejected)
+				await tx
+					.update(risks)
+					.set({ status: approved ? "open" : "closed" })
+					.where(
+						and(
+							eq(risks.id, r.entityId),
+							eq(risks.organizationId, ctx.orgId),
+							eq(risks.status, "proposed"),
+						),
+					);
+			return extra;
+		}
+		case "nonconformity.plan":
+		case "nonconformity.close": {
+			if (!approved) return extra;
+			const closing = r.trigger === "nonconformity.close";
+			await tx
+				.update(nonconformities)
+				.set({ status: closing ? "closed" : "in_progress" })
+				.where(
+					and(
+						eq(nonconformities.id, r.entityId),
+						eq(nonconformities.organizationId, ctx.orgId),
+					),
+				);
+			// wie der direkte Abschluss: offene Aufgaben der Abweichung erledigt
+			if (closing)
+				await tx
+					.update(tasks)
+					.set({ status: "done", completedAt: new Date() })
+					.where(
+						and(
+							eq(tasks.organizationId, ctx.orgId),
+							eq(tasks.entityType, "nonconformity"),
+							eq(tasks.entityId, r.entityId),
+						),
+					);
+			return extra;
+		}
+		case "training.propose": {
+			if (approved || rejected) {
+				await tx
+					.update(trainingRequirements)
+					.set({ approvalStatus: approved ? "approved" : "rejected" })
+					.where(
+						and(
+							eq(trainingRequirements.id, r.entityId),
+							eq(trainingRequirements.organizationId, ctx.orgId),
+						),
+					);
+				// erst freigegebene Schulungen werden zugewiesen
+				if (approved) await syncTrainingAssignments(tx, ctx.orgId);
+			}
+			return extra;
+		}
+		case "process.activate":
+		case "process.change": {
+			// Aktivieren: erst nach Freigabe aktiv. Änderung abgelehnt → Entwurf.
+			if (approved && r.trigger === "process.activate")
+				await tx
+					.update(processes)
+					.set({ status: "active" })
+					.where(
+						and(
+							eq(processes.id, r.entityId),
+							eq(processes.organizationId, ctx.orgId),
+						),
+					);
+			if (rejected && r.trigger === "process.change")
+				await tx
+					.update(processes)
+					.set({ status: "draft" })
+					.where(
+						and(
+							eq(processes.id, r.entityId),
+							eq(processes.organizationId, ctx.orgId),
+						),
+					);
+			return extra;
+		}
+		case "incident.report":
+			// „vorab“: die Aktion prüft den Stand selbst (approvalState)
+			return extra;
+		default:
+			break;
+	}
 	switch (r.entityType) {
 		case "document": {
 			const [doc] = await tx

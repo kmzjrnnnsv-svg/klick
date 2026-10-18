@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { upsertAsset } from "@/app/actions/registers";
+import { retireAsset, upsertAsset } from "@/app/actions/registers";
+import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -42,6 +43,7 @@ const CLASSES = ["public", "internal", "confidential", "secret"] as const;
 
 export type AssetDraft = {
 	assetId?: string;
+	status?: "active" | "retired" | "pending" | "declined";
 	name: string;
 	type: (typeof TYPES)[number];
 	classification: (typeof CLASSES)[number];
@@ -81,6 +83,7 @@ export function AssetForm({
 }) {
 	const t = useTranslations("Assets");
 	const tc = useTranslations("Common");
+	const gate = useGateFeedback();
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
@@ -138,8 +141,12 @@ export function AssetForm({
 								maintenanceUntil: d.maintenanceUntil || null,
 								lastPatchedAt: d.lastPatchedAt || null,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
-							toast.success(initial ? t("saved") : t("created"));
+							if (!res.ok)
+								return void toast.error(
+									gate.errorText(res.error) ?? tc("error"),
+								);
+							if (res.data.approvalPending) toast.info(gate.pendingText());
+							else toast.success(initial ? t("saved") : t("created"));
 							setOpen(false);
 							router.refresh();
 						});
@@ -409,6 +416,36 @@ export function AssetForm({
 						/>
 					</div>
 					<DialogFooter>
+						{d.assetId && d.status === "active" && (
+							<Button
+								type="button"
+								variant="outline"
+								className="sm:mr-auto"
+								disabled={pending}
+								onClick={() => {
+									if (!window.confirm(t("retireConfirm", { name: d.name })))
+										return;
+									start(async () => {
+										const res = await retireAsset({
+											assetId: d.assetId as string,
+										});
+										if (!res.ok)
+											return void toast.error(
+												gate.errorText(res.error) ?? tc("error"),
+											);
+										toast.success(
+											res.data.approvalPending
+												? t("retireRequested")
+												: t("retired"),
+										);
+										setOpen(false);
+										router.refresh();
+									});
+								}}
+							>
+								{t("retire")}
+							</Button>
+						)}
 						<Button
 							type="button"
 							variant="ghost"

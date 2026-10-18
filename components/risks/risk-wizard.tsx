@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createRiskGuided, reassessRisk } from "@/app/actions/risks";
+import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import { LevelChoice } from "@/components/entity/level-choice";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { MethodMatrix, ZONE_CELL } from "@/components/risks/method-matrix";
@@ -118,6 +119,7 @@ export function RiskWizard({
 	const t = useTranslations("RiskWizard");
 	const tr = useTranslations("Risks");
 	const ts = useTranslations("Status");
+	const gate = useGateFeedback();
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const steps: Step[] =
@@ -280,17 +282,22 @@ export function RiskWizard({
 				for (const [k, v] of Object.entries(fe))
 					mapped[k.split(".")[0] ?? k] = v.join(" ");
 				setErrors(mapped);
-				toast.error(Object.values(mapped)[0] ?? (res.error || t("errSave")));
+				toast.error(
+					Object.values(mapped)[0] ??
+						gate.errorText(res.error) ??
+						(res.error || t("errSave")),
+				);
 				if (mapped.treatmentNote || mapped.measures) setStep("treatment");
 				else if (mapped.impactDetail) setStep("damage");
 				return;
 			}
-			const { id, code, acceptance, acceptanceError } = res.data;
+			const { id, code, acceptance, acceptanceError, intakePending } = res.data;
 			toast.success(
 				mode === "reassess"
 					? t("savedReassess", { code })
 					: t("saved", { code }),
 			);
+			if (intakePending) toast.info(gate.pendingText());
 			if (acceptance === "pending") toast.info(t("acceptPending"));
 			if (acceptance === "failed")
 				toast.warning(

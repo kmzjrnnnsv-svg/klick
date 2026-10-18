@@ -323,6 +323,13 @@ async function completeProviderRatingImpl(
 					title: `${p.name} · ${r.code} (${sum.level.level})`,
 					link: `${PATH}/${p.id}/bewertung/${r.id}`,
 					selfApprovalReason: d.selfApprovalReason,
+					facts: {
+						criticality: p.criticality,
+						category: p.category,
+						isIct: p.isIct,
+						isOutsourcing: p.isOutsourcing,
+						isMaterial: p.isMaterial,
+					},
 				});
 				if (r2.ok) {
 					approvalRequestId = r2.requestId;

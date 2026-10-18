@@ -11,6 +11,7 @@ import {
 	unassignTraining,
 	upsertTrainingRequirement,
 } from "@/app/actions/trainings";
+import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import {
 	EditTrigger,
@@ -75,6 +76,7 @@ export function RequirementForm({
 }) {
 	const t = useTranslations("Trainings");
 	const tc = useTranslations("Common");
+	const gate = useGateFeedback();
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
@@ -104,9 +106,13 @@ export function RequirementForm({
 					});
 					if (!res.ok)
 						return void toast.error(
-							res.fieldErrors?.courseUrl ? t("invalidUrl") : tc("error"),
+							res.fieldErrors?.courseUrl
+								? t("invalidUrl")
+								: res.error === "proposalNeedsWorkflow"
+									? t("proposalNeedsWorkflow")
+									: (gate.errorText(res.error) ?? tc("error")),
 						);
-					toast.success(t("saved"));
+					toast.success(res.data.approvalPending ? t("proposed") : t("saved"));
 					setOpen(false);
 					router.refresh();
 				})

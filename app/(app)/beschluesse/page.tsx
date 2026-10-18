@@ -3,8 +3,10 @@ import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { PageHeader } from "@/components/page-header";
+import { DecisionAttachments } from "@/components/resolutions/decision-attachments";
 import { DecisionRequestButton } from "@/components/resolutions/decision-request-button";
 import { ResolutionForm } from "@/components/resolutions/resolution-form";
+import { WithdrawDecisionButton } from "@/components/resolutions/withdraw-decision-button";
 import { Badge } from "@/components/ui/badge";
 import {
 	Table,
@@ -17,12 +19,13 @@ import {
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	requiredResolutions,
 	resolutionCoverage,
 } from "@/lib/compliance/catalog/resolutions-required";
 import {
+	evidenceTitles,
 	listDecisionRequests,
 	managementApproverHint,
 } from "@/lib/compliance/decision-service";
@@ -31,6 +34,7 @@ import { getOrgProfile, listMembersForPicker } from "@/lib/compliance/queries";
 import { listResolutions } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
 import { entityHref } from "@/lib/entities/links";
+import { s3Configured } from "@/lib/evidence/store";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -48,17 +52,22 @@ export default async function ResolutionsPage({
 	const fwFilter = one(sp.rahmenwerk);
 	const t = await getTranslations("Resolutions");
 	const td = await getTranslations("Decisions");
-	const canAsk = roleAllows(ctx.orgRole, { task: ["create"] });
-	const canCreate = roleAllows(ctx.orgRole, { resolution: ["create"] });
+	const canAsk = allows(ctx, { decision: ["create"] });
+	const canCreate = allows(ctx, { resolution: ["create"] });
 	const memberCount = (await listOrgMembers(ctx.orgId)).length;
 
-	const { rows, members, required, requests, approverHint } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => {
+	const { rows, members, required, requests, approverHint, attachments } =
+		await readOrg(toOrgCtx(ctx), async (tx) => {
 			const profile = await getOrgProfile(tx, ctx.orgId);
+			const requests = await listDecisionRequests(tx, ctx.orgId);
 			return {
 				rows: await listResolutions(tx, ctx.orgId),
-				requests: await listDecisionRequests(tx, ctx.orgId),
+				requests,
+				attachments: await evidenceTitles(
+					tx,
+					ctx.orgId,
+					requests.flatMap((q) => q.attachmentEvidenceIds),
+				),
 				approverHint: await managementApproverHint(tx, ctx.orgId, ctx.userId),
 				members: await listMembersForPicker(tx, ctx.orgId),
 				required: requiredResolutions(
@@ -66,8 +75,8 @@ export default async function ResolutionsPage({
 					profile?.profile.licenceStage ?? "0_vorbereitung",
 				),
 			};
-		},
-	);
+		});
+	const canAttach = s3Configured();
 	const coverage = resolutionCoverage(
 		required,
 		rows
@@ -101,6 +110,7 @@ export default async function ResolutionsPage({
 							<DecisionRequestButton
 								soloHint={memberCount <= 1}
 								approverHint={approverHint}
+								canAttach={canAttach}
 							/>
 						)}
 						{canCreate && (
@@ -167,6 +177,20 @@ export default async function ResolutionsPage({
 													{q.options.join(" · ")}
 												</p>
 											)}
+											{q.chosenOption && (
+												<p className="text-xs">
+													{td("chosen", { option: q.chosenOption })}
+												</p>
+											)}
+											<DecisionAttachments
+												label={td("attachments")}
+												items={q.attachmentEvidenceIds
+													.filter((e) => attachments.has(e))
+													.map((e) => ({
+														id: e,
+														title: attachments.get(e) ?? "",
+													}))}
+											/>
 											<div className="mt-1 flex flex-wrap gap-1">
 												{q.linkedEntityType && q.linkedEntityId && (
 													<Link
@@ -208,6 +232,10 @@ export default async function ResolutionsPage({
 													? td(`outcome_${q.outcome}`)
 													: td(`status_${q.status}`)}
 											</Badge>
+											{q.status === "open" &&
+												q.requestedByUserId === ctx.userId && (
+													<WithdrawDecisionButton id={q.id} code={q.code} />
+												)}
 										</TableCell>
 										<TableCell className="whitespace-nowrap font-mono text-xs">
 											{q.resolutionNumber ?? "—"}

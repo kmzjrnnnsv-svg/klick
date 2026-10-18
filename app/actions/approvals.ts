@@ -3,7 +3,12 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { approvalWorkflows, delegations } from "@/db/schema";
+import {
+	approvalRequests,
+	approvalWorkflows,
+	decisionRequests,
+	delegations,
+} from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { applyApprovalOutcome } from "@/lib/approvals/outcomes";
 import { type DecideResult, decide, withdraw } from "@/lib/approvals/service";
@@ -16,6 +21,39 @@ import {
 	decideApprovalSchema,
 	delegationSchema,
 } from "@/lib/validation/registers";
+
+// Offene Managementanfrage hinter einem Antrag (Optionen prüfen)
+async function decisionRequestFor(
+	tx: Parameters<Parameters<typeof mutateOrg>[1]>[0],
+	orgId: string,
+	requestId: string,
+) {
+	const [req] = await tx
+		.select({
+			entityType: approvalRequests.entityType,
+			entityId: approvalRequests.entityId,
+		})
+		.from(approvalRequests)
+		.where(
+			and(
+				eq(approvalRequests.id, requestId),
+				eq(approvalRequests.organizationId, orgId),
+			),
+		)
+		.limit(1);
+	if (req?.entityType !== "decision_request") return null;
+	const [q] = await tx
+		.select({ id: decisionRequests.id, options: decisionRequests.options })
+		.from(decisionRequests)
+		.where(
+			and(
+				eq(decisionRequests.id, req.entityId),
+				eq(decisionRequests.organizationId, orgId),
+			),
+		)
+		.limit(1);
+	return q ?? null;
+}
 
 // Freigabe-Entscheidungen: Vier-Augen und Funktionsprüfung in lib/approvals,
 // Step-up (frische MFA) für die Entscheidung selbst. Jede Entscheidung ist ein
@@ -35,13 +73,32 @@ async function decideApprovalImpl(
 	const parsed = decideApprovalSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
-	const res = await mutateOrg<DecideResult>(toOrgCtx(c), async (tx) => {
+	const res = await mutateOrg<
+		DecideResult | { ok: false; error: "optionRequired" | "invalidOption" }
+	>(toOrgCtx(c), async (tx) => {
+		// Managementanfrage: Zustimmung nennt die gewählte Option; sie steht
+		// in der Entscheidung und damit im Beschluss (E2)
+		const question = await decisionRequestFor(tx, c.orgId, d.requestId);
+		let note = d.note;
+		if (question && d.decision === "approved") {
+			if (question.options.length > 0 && !d.chosenOption)
+				return { result: { ok: false, error: "optionRequired" }, audit: [] };
+			if (d.chosenOption && !question.options.includes(d.chosenOption))
+				return { result: { ok: false, error: "invalidOption" }, audit: [] };
+			if (d.chosenOption)
+				note = `Gewählt: ${d.chosenOption}${d.note ? ` — ${d.note}` : ""}`;
+		}
 		const r = await decide(
 			tx,
 			{ orgId: c.orgId, userId: c.userId, name: c.name },
-			d,
+			{ requestId: d.requestId, decision: d.decision, note },
 		);
 		if (!r.ok) return { result: r, audit: [] };
+		if (question && d.decision === "approved" && d.chosenOption)
+			await tx
+				.update(decisionRequests)
+				.set({ chosenOption: d.chosenOption, decisionNote: d.note ?? null })
+				.where(eq(decisionRequests.id, question.id));
 		const extra =
 			r.status !== "pending"
 				? [
@@ -68,6 +125,7 @@ async function decideApprovalImpl(
 						requestId: d.requestId,
 						decision: d.decision,
 						note: d.note ?? null,
+						chosenOption: d.chosenOption ?? null,
 						outcome: r.status,
 						onBehalfOf: r.onBehalfOf ?? null,
 					},

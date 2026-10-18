@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { member } from "@/db/auth-schema";
 import { trainingAssignments, trainingRequirements } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import { GateBlocked } from "@/lib/approvals/gate-error";
+import { gateApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { allows } from "@/lib/auth/permissions";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { completeAssignments } from "@/lib/trainings/assignments";
@@ -19,7 +22,8 @@ import {
 
 // Schulungen (ISO 27001 7.2/7.3, DORA Art. 13(6), GwG § 6 Abs. 2 Nr. 6):
 // Pflichtschulungen pflegen (inkl. Kurs-Link), Personen gezielt zuweisen,
-// Abschluss selbst bestätigen. Rechte wie „Schulung erfassen“ (task:create);
+// Abschluss selbst bestätigen. Anlegen mit training:create, Vorschlagen mit
+// training:propose (wartet immer auf den Ablauf „Schulung vorschlagen“);
 // den eigenen Abschluss darf jedes Mitglied bestätigen.
 
 const PATH = "/schulungen";
@@ -39,13 +43,28 @@ function codeFrom(title: string): string {
 	return base || "SCHULUNG";
 }
 
+// Nur-Vorschlagen ohne aktiven Ablauf: nichts anlegen (niemand gäbe frei)
+class ProposalNeedsWorkflow extends Error {}
+
+type UpsertRequirementResult = ActionResult<{
+	id: string;
+	approvalPending?: boolean;
+}>;
+
 async function upsertTrainingRequirementImpl(
 	input: unknown,
-): Promise<ActionResult<{ id: string }>> {
-	const c = await requireOrg({ task: ["create"] });
+): Promise<UpsertRequirementResult> {
+	const c = await requireOrg({ training: ["read"] });
 	const parsed = trainingRequirementSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { id, ...d } = parsed.data;
+	const canCreate = allows(c, { training: ["create"] });
+	if (
+		id
+			? !allows(c, { training: ["update"] })
+			: !canCreate && !allows(c, { training: ["propose"] })
+	)
+		return { ok: false, error: "forbidden" };
 	const values = {
 		title: d.title,
 		description: d.description ?? null,
@@ -55,68 +74,104 @@ async function upsertTrainingRequirementImpl(
 		orgRole: d.orgRole ?? null,
 		legalBasis: d.legalBasis ?? null,
 	};
-	const res = await mutateOrg<string | null>(toOrgCtx(c), async (tx) => {
-		if (id) {
-			const [before] = await tx
-				.select()
-				.from(trainingRequirements)
-				.where(
-					and(
-						eq(trainingRequirements.id, id),
-						eq(trainingRequirements.organizationId, c.orgId),
-					),
-				)
-				.limit(1);
-			if (!before) return { result: null, audit: [] };
-			await tx
-				.update(trainingRequirements)
-				.set(values)
-				.where(eq(trainingRequirements.id, id));
-			return {
-				result: id,
-				audit: {
-					action: "training.requirement_update",
-					target: `training_requirement:${id}`,
-					before: {
-						title: before.title,
-						courseUrl: before.courseUrl,
-						frequencyMonths: before.frequencyMonths,
-						function: before.function,
-						orgRole: before.orgRole,
+	let res: { id: string; approvalPending: boolean } | null;
+	try {
+		res = await mutateOrg(toOrgCtx(c), async (tx) => {
+			if (id) {
+				const [before] = await tx
+					.select()
+					.from(trainingRequirements)
+					.where(
+						and(
+							eq(trainingRequirements.id, id),
+							eq(trainingRequirements.organizationId, c.orgId),
+						),
+					)
+					.limit(1);
+				if (!before) return { result: null, audit: [] };
+				await tx
+					.update(trainingRequirements)
+					.set(values)
+					.where(eq(trainingRequirements.id, id));
+				return {
+					result: { id, approvalPending: false },
+					audit: {
+						action: "training.requirement_update",
+						target: `training_requirement:${id}`,
+						before: {
+							title: before.title,
+							courseUrl: before.courseUrl,
+							frequencyMonths: before.frequencyMonths,
+							function: before.function,
+							orgRole: before.orgRole,
+						},
+						after: values,
 					},
-					after: values,
+				};
+			}
+			const taken = new Set(
+				(
+					await tx
+						.select({ code: trainingRequirements.code })
+						.from(trainingRequirements)
+						.where(eq(trainingRequirements.organizationId, c.orgId))
+				).map((r) => r.code),
+			);
+			const base = codeFrom(d.title);
+			let code = base;
+			for (let i = 2; taken.has(code); i++) code = `${base}-${i}`;
+			const [row] = await tx
+				.insert(trainingRequirements)
+				.values({ organizationId: c.orgId, code, ...values })
+				.returning({ id: trainingRequirements.id });
+			if (!row) throw new Error("insert failed");
+			// Freigabe-Designer: Vorschlag wartet auf Freigabe; erst freigegebene
+			// Schulungen werden zugewiesen (syncTrainingAssignments)
+			const gate = await gateApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					trigger: "training.propose",
+					entityType: "training",
+					entityId: row.id,
+					title: `Schulung vorschlagen: ${d.title}`,
+					link: PATH,
+					facts: {},
+				},
+			);
+			if (gate.status === "error")
+				throw new GateBlocked(gate.error, gate.warnings);
+			if (gate.status === "none" && !canCreate)
+				throw new ProposalNeedsWorkflow();
+			const pending = gate.status === "pending";
+			if (pending)
+				await tx
+					.update(trainingRequirements)
+					.set({ approvalStatus: "proposed" })
+					.where(eq(trainingRequirements.id, row.id));
+			return {
+				result: { id: row.id, approvalPending: pending },
+				audit: {
+					action: pending
+						? "training.requirement_proposed"
+						: "training.requirement_create",
+					target: `training_requirement:${row.id}`,
+					after: {
+						code,
+						...values,
+						approvalRequestId: pending ? gate.requestId : null,
+					},
 				},
 			};
-		}
-		const taken = new Set(
-			(
-				await tx
-					.select({ code: trainingRequirements.code })
-					.from(trainingRequirements)
-					.where(eq(trainingRequirements.organizationId, c.orgId))
-			).map((r) => r.code),
-		);
-		const base = codeFrom(d.title);
-		let code = base;
-		for (let i = 2; taken.has(code); i++) code = `${base}-${i}`;
-		const [row] = await tx
-			.insert(trainingRequirements)
-			.values({ organizationId: c.orgId, code, ...values })
-			.returning({ id: trainingRequirements.id });
-		if (!row) throw new Error("insert failed");
-		return {
-			result: row.id,
-			audit: {
-				action: "training.requirement_create",
-				target: `training_requirement:${row.id}`,
-				after: { code, ...values },
-			},
-		};
-	});
+		});
+	} catch (e) {
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		if (e instanceof ProposalNeedsWorkflow)
+			return { ok: false, error: "proposalNeedsWorkflow" };
+		throw e;
+	}
 	revalidatePath(PATH);
-	return res
-		? { ok: true, data: { id: res } }
-		: { ok: false, error: "notFound" };
+	return res ? { ok: true, data: res } : { ok: false, error: "notFound" };
 }
 
 // Gezielt zuweisen: je Person eine offene Zuweisung (vorhandene offene
@@ -124,7 +179,7 @@ async function upsertTrainingRequirementImpl(
 async function assignTrainingImpl(
 	input: unknown,
 ): Promise<ActionResult<{ assigned: number }>> {
-	const c = await requireOrg({ task: ["create"] });
+	const c = await requireOrg({ training: ["update"] });
 	const parsed = assignTrainingSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
@@ -139,7 +194,9 @@ async function assignTrainingImpl(
 				),
 			)
 			.limit(1);
-		if (!req) return { result: null, audit: [] };
+		// erst freigegebene Schulungen lassen sich zuweisen
+		if (!req || req.approvalStatus !== "approved")
+			return { result: null, audit: [] };
 		// Nur Mitglieder dieser Organisation (member hat kein RLS → explizit filtern).
 		const members = new Set(
 			(
@@ -281,7 +338,7 @@ async function completeMyTrainingImpl(
 }
 
 async function unassignTrainingImpl(input: unknown): Promise<ActionResult> {
-	const c = await requireOrg({ task: ["create"] });
+	const c = await requireOrg({ training: ["update"] });
 	const parsed = deleteByIdSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const ok = await mutateOrg<boolean>(toOrgCtx(c), async (tx) => {

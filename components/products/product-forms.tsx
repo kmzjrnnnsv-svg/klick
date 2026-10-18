@@ -620,7 +620,7 @@ const SBOM_ERRORS = new Set([
 export function SbomUpload({ productId }: { productId: string }) {
 	const t = useTranslations("Products");
 	const router = useRouter();
-	const { errorText, dlpWarning } = useUploadFeedback();
+	const { errorText, dlpWarning, tooLarge } = useUploadFeedback();
 	const input = useRef<HTMLInputElement>(null);
 	const [pending, start] = useTransition();
 	const [warn, setWarn] = useState<string[] | null>(null);
@@ -629,6 +629,8 @@ export function SbomUpload({ productId }: { productId: string }) {
 	function send(acknowledged: boolean) {
 		const file = input.current?.files?.[0];
 		if (!file) return;
+		const big = tooLarge(file);
+		if (big) return void setMessage(big);
 		start(async () => {
 			const fd = new FormData();
 			fd.set("productId", productId);

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
@@ -21,10 +22,11 @@ import {
 import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
+import { approvalBarFor } from "@/lib/approvals/bar";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { capaState } from "@/lib/compliance/nonconformity";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
@@ -67,7 +69,7 @@ export default async function NonconformityDetailPage({
 	const t = await getTranslations("Nonconformities");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const canEdit = roleAllows(ctx.orgRole, { nonconformity: ["update"] });
+	const canEdit = allows(ctx, { nonconformity: ["update"] });
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const r = await getNonconformity(tx, ctx.orgId, id);
@@ -86,7 +88,22 @@ export default async function NonconformityDetailPage({
 			...comments.map((c) => c.authorUserId),
 		]);
 		for (const [k, v] of r.names) names.set(k, v);
-		return { ...r, comments, history, watcherIds, members, tasks, names, tm };
+		const bar = await approvalBarFor(tx, ctx.orgId, ctx.userId, {
+			type: "nonconformity",
+			id,
+			ownerUserId: r.nc.ownerUserId,
+		});
+		return {
+			...r,
+			comments,
+			history,
+			watcherIds,
+			members,
+			tasks,
+			names,
+			tm,
+			bar,
+		};
 	});
 	if (!data) notFound();
 	const { nc, comments, history, watcherIds, members, tasks, names, tm } = data;
@@ -246,6 +263,12 @@ export default async function NonconformityDetailPage({
 				</>
 			}
 		>
+			<ApprovalBar
+				data={data.bar.data}
+				names={data.bar.names}
+				eligible={data.bar.eligible}
+				currentUserId={ctx.userId}
+			/>
 			<Section title={t("capa")}>
 				<dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
 					<div className="sm:col-span-2">

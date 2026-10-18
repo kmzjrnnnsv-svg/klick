@@ -28,7 +28,7 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { isExternal } from "@/lib/auth/memberships";
 import { listOrgMembers } from "@/lib/auth/org";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
 import {
 	collectDates,
@@ -89,8 +89,8 @@ export default async function CalendarPage({
 	const now = new Date();
 	const year = Number(one(sp.jahr)) || now.getFullYear();
 	const t = await getTranslations("Calendar");
-	const canEdit = roleAllows(ctx.orgRole, { obligation: ["update"] });
-	const canComplete = roleAllows(ctx.orgRole, { obligation: ["complete"] });
+	const canEdit = allows(ctx, { obligation: ["update"] });
+	const canComplete = allows(ctx, { obligation: ["complete"] });
 
 	const today = now.toISOString().slice(0, 10);
 	const in90 = new Date(now.getTime() + 90 * 86_400_000)

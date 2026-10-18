@@ -2,7 +2,12 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { controlImplementations, controls, controlTests } from "@/db/schema";
+import {
+	controlImplementations,
+	controls,
+	controlTests,
+	sites,
+} from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { mutateOrg } from "@/lib/db/with-org";
@@ -32,6 +37,15 @@ async function planControlTestImpl(
 			)
 			.limit(1);
 		if (!impl) return { result: null, audit: [] };
+		// Standort nur aus dieser Organisation (Notfallübung je Standort)
+		if (d.siteId) {
+			const [site] = await tx
+				.select({ id: sites.id })
+				.from(sites)
+				.where(and(eq(sites.id, d.siteId), eq(sites.organizationId, c.orgId)))
+				.limit(1);
+			if (!site) return { result: null, audit: [] };
+		}
 		const [row] = await tx
 			.insert(controlTests)
 			.values({
@@ -42,6 +56,7 @@ async function planControlTestImpl(
 				plannedAt: d.plannedAt,
 				processId: d.processId ?? null,
 				assetId: d.assetId ?? null,
+				siteId: d.siteId ?? null,
 				testerUserId: c.userId,
 			})
 			.returning({ id: controlTests.id });
@@ -56,6 +71,7 @@ async function planControlTestImpl(
 					method: d.method,
 					plannedAt: d.plannedAt,
 					scope: d.scope ?? null,
+					siteId: d.siteId ?? null,
 				},
 			},
 		};

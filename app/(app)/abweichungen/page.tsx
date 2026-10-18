@@ -16,9 +16,10 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { NC_PRIORITIES } from "@/db/schema/enums";
+import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { capaState } from "@/lib/compliance/nonconformity";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
@@ -52,11 +53,16 @@ export default async function NonconformitiesPage({
 	const t = await getTranslations("Nonconformities");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const canCreate = roleAllows(ctx.orgRole, { nonconformity: ["create"] });
-	const { rows, members } = await readOrg(toOrgCtx(ctx), async (tx) => ({
-		rows: await listNonconformities(tx, ctx.orgId),
-		members: await listMembersForPicker(tx, ctx.orgId),
-	}));
+	const canCreate = allows(ctx, { nonconformity: ["create"] });
+	const ta = await getTranslations("Approvals");
+	const { rows, members, pending } = await readOrg(
+		toOrgCtx(ctx),
+		async (tx) => ({
+			pending: await pendingApprovalIds(tx, ctx.orgId, "nonconformity"),
+			rows: await listNonconformities(tx, ctx.orgId),
+			members: await listMembersForPicker(tx, ctx.orgId),
+		}),
+	);
 	const now = new Date();
 	const q = one(sp.q)?.toLowerCase();
 	const status = one(sp.status);
@@ -256,6 +262,9 @@ export default async function NonconformitiesPage({
 										label={ts(
 											NONCONFORMITY_STATUS.labelKey[r.status] as "ncOpen",
 										)}
+										waitingLabel={
+											pending.has(r.id) ? ta("waitingBadge") : undefined
+										}
 									/>
 								</TableCell>
 							</TableRow>

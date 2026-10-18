@@ -7,7 +7,7 @@ import type { OrgRole } from "@/lib/auth/permissions";
 //
 // approverRule je Stufe:
 //   function:<role_function>  Person hält die Funktion (role_assignments, inkl. Vertretung)
-//   role:<orgRole>            Org-Rolle (owner/editor/…)
+//   role:<orgRole|roleId>     Grundrolle (owner/editor/…) oder eigene Rolle (ADR-020)
 //   user:<id>                 konkrete Person
 //   owner_of_entity           Owner der Entität
 //   not_requester             jede Person ausser Antragsteller:in
@@ -17,6 +17,11 @@ export type ApproverCandidate = {
 	userId: string;
 	orgRole: OrgRole;
 	functions: readonly RoleFunction[];
+	// eigene Rollen (ADR-020); Stufe role:<id> trifft sie
+	customRoleIds?: readonly string[];
+	// Recht „Freigaben entscheiden“ (approval:decide); fehlt es, zählt die
+	// Person nie als Freigeber:in — auch nicht über Funktion oder Vertretung
+	canDecide?: boolean;
 };
 
 export type EligibilityContext = {
@@ -28,8 +33,23 @@ export type EligibilityContext = {
 };
 
 export type Eligibility =
-	| { eligible: true; via: "direct" | "delegation"; onBehalfOf?: string }
+	| {
+			eligible: true;
+			via: "direct" | "delegation";
+			onBehalfOf?: string;
+			// Stellen der Stufe, für die die Person entscheiden kann
+			rules: string[];
+	  }
 	| { eligible: false; reason: "four_eyes" | "rule_not_met" };
+
+// Stellen einer Stufe: approvers (Designer) oder die eine Regel (Altbestand)
+export function stepRules(
+	step: Pick<ApprovalStep, "approverRule" | "approvers">,
+): string[] {
+	return step.approvers && step.approvers.length > 0
+		? step.approvers
+		: [step.approverRule];
+}
 
 export function parseRule(rule: string): { kind: string; value: string } {
 	const idx = rule.indexOf(":");
@@ -37,7 +57,7 @@ export function parseRule(rule: string): { kind: string; value: string } {
 	return { kind: rule.slice(0, idx), value: rule.slice(idx + 1) };
 }
 
-function matchesRule(
+export function matchesRule(
 	rule: string,
 	candidate: ApproverCandidate,
 	ctx: EligibilityContext,
@@ -49,7 +69,8 @@ function matchesRule(
 		case "role":
 			return (
 				candidate.orgRole === value ||
-				(value === "editor" && candidate.orgRole === "owner")
+				(value === "editor" && candidate.orgRole === "owner") ||
+				(candidate.customRoleIds ?? []).includes(value)
 			);
 		case "user":
 			return candidate.userId === value;
@@ -76,15 +97,28 @@ export function approverEligibility(
 	if (ctx.requesterUserId && candidate.userId === ctx.requesterUserId) {
 		return { eligible: false, reason: "four_eyes" };
 	}
-	if (matchesRule(step.approverRule, candidate, ctx)) {
-		return { eligible: true, via: "direct" };
+	if (candidate.canDecide === false) {
+		return { eligible: false, reason: "rule_not_met" };
+	}
+	const rules = stepRules(step);
+	const direct = rules.filter((r) => matchesRule(r, candidate, ctx));
+	if (direct.length > 0) {
+		return { eligible: true, via: "direct", rules: direct };
 	}
 	for (const d of ctx.delegations ?? []) {
 		if (d.toUserId !== candidate.userId) continue;
 		if (d.fromUserId === ctx.requesterUserId) continue; // Vertretung des Antragstellers hilft nicht
 		const principal = allMembers.find((m) => m.userId === d.fromUserId);
-		if (principal && matchesRule(step.approverRule, principal, ctx)) {
-			return { eligible: true, via: "delegation", onBehalfOf: d.fromUserId };
+		const via = principal
+			? rules.filter((r) => matchesRule(r, principal, ctx))
+			: [];
+		if (via.length > 0) {
+			return {
+				eligible: true,
+				via: "delegation",
+				onBehalfOf: d.fromUserId,
+				rules: via,
+			};
 		}
 	}
 	return { eligible: false, reason: "rule_not_met" };
@@ -131,12 +165,70 @@ export type RequestOutcome =
 	| { status: "rejected" }
 	| { status: "changes_requested" };
 
+// Erste bzw. nächste Stufe, die nicht entfällt (Schnappschuss mit skipped)
+export function firstActiveStep(steps: readonly ApprovalStep[]): number | null {
+	return nextActiveStep(steps, Number.NEGATIVE_INFINITY);
+}
+
+export function nextActiveStep(
+	steps: readonly ApprovalStep[],
+	after: number,
+): number | null {
+	const next = steps
+		.filter((s) => !s.skipped && s.order > after)
+		.map((s) => s.order)
+		.sort((a, b) => a - b)[0];
+	return next ?? null;
+}
+
+// Ist die Stufe erfüllt? „any“: genug verschiedene Personen; „all“: jede
+// Stelle hat genug verschiedene Zustimmungen.
+export function stepSatisfied(
+	step: ApprovalStep,
+	decisionsOnStep: readonly {
+		decision: "approved" | "rejected" | "changes_requested";
+		rule?: string | null;
+		approverUserId?: string | null;
+	}[],
+): boolean {
+	const required = step.minApprovers ?? 1;
+	const approvals = decisionsOnStep.filter((d) => d.decision === "approved");
+	const distinct = (list: typeof approvals) =>
+		new Set(list.map((d, i) => d.approverUserId ?? `#${i}`)).size;
+	if (step.mode === "all" && stepRules(step).length > 1) {
+		return stepRules(step).every(
+			(rule) => distinct(approvals.filter((d) => d.rule === rule)) >= required,
+		);
+	}
+	return distinct(approvals) >= required;
+}
+
+// Offene Stellen einer Stufe im Modus „alle“ (für Anzeige und Zuordnung)
+export function openRules(
+	step: ApprovalStep,
+	decisionsOnStep: readonly {
+		decision: "approved" | "rejected" | "changes_requested";
+		rule?: string | null;
+	}[],
+): string[] {
+	if (step.mode !== "all") return [];
+	const required = step.minApprovers ?? 1;
+	return stepRules(step).filter(
+		(rule) =>
+			decisionsOnStep.filter(
+				(d) => d.decision === "approved" && d.rule === rule,
+			).length < required,
+	);
+}
+
 // Nächster Zustand nach einer Entscheidung auf der aktuellen Stufe.
 export function advance(
 	steps: readonly ApprovalStep[],
 	currentStep: number,
 	decisionsOnStep: readonly {
 		decision: "approved" | "rejected" | "changes_requested";
+		rule?: string | null;
+		approverUserId?: string | null;
 	}[],
 ): RequestOutcome {
 	if (decisionsOnStep.some((d) => d.decision === "rejected"))
@@ -145,15 +237,45 @@ export function advance(
 		return { status: "changes_requested" };
 	}
 	const step = steps.find((s) => s.order === currentStep);
-	const required = step?.minApprovers ?? 1;
-	const approvals = decisionsOnStep.filter(
-		(d) => d.decision === "approved",
-	).length;
-	if (approvals < required) return { status: "pending", nextStep: currentStep };
-	const next = steps
-		.map((s) => s.order)
-		.filter((o) => o > currentStep)
-		.sort((a, b) => a - b)[0];
-	if (next === undefined) return { status: "approved" };
+	if (step && !stepSatisfied(step, decisionsOnStep))
+		return { status: "pending", nextStep: currentStep };
+	const next = nextActiveStep(steps, currentStep);
+	if (next === null) return { status: "approved" };
 	return { status: "pending", nextStep: next };
+}
+
+type DecisionOnStep = {
+	decision: "approved" | "rejected" | "changes_requested";
+	rule?: string | null;
+	approverUserId?: string | null;
+};
+
+// Darf die Person jetzt auf dieser Stufe entscheiden? Wie approverEligibility,
+// dazu: je Stufe nur einmal, und bei „alle“ nur für eine noch offene Stelle.
+export function canDecideNow(
+	step: ApprovalStep,
+	candidate: ApproverCandidate,
+	ctx: EligibilityContext,
+	members: readonly ApproverCandidate[],
+	decisionsOnStep: readonly DecisionOnStep[],
+): boolean {
+	const e = approverEligibility(step, candidate, ctx, members);
+	if (!e.eligible) return false;
+	if (decisionsOnStep.some((d) => d.approverUserId === candidate.userId))
+		return false;
+	if (step.mode === "all" && stepRules(step).length > 1) {
+		const open = openRules(step, decisionsOnStep);
+		return e.rules.some((r) => open.includes(r));
+	}
+	return true;
+}
+
+// Stand je Stelle einer Stufe (Anzeige „Recht ✓ · Informationssicherheit offen“)
+export function ruleStates(
+	step: ApprovalStep,
+	decisionsOnStep: readonly DecisionOnStep[],
+): { rule: string; done: boolean }[] {
+	if (step.mode !== "all" || stepRules(step).length < 2) return [];
+	const open = openRules(step, decisionsOnStep);
+	return stepRules(step).map((rule) => ({ rule, done: !open.includes(rule) }));
 }

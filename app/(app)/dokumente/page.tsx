@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { DOCUMENT_STATUS, DOCUMENT_TYPES } from "@/db/schema/grc";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { DOCUMENT_TEMPLATES } from "@/lib/compliance/catalog/document-templates";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listDocuments } from "@/lib/compliance/queries-p2";
@@ -38,7 +38,7 @@ export default async function DocumentsPage({
 	const rows = await readOrg(toOrgCtx(ctx), (tx) =>
 		listDocuments(tx, ctx.orgId),
 	);
-	const canCreate = roleAllows(ctx.orgRole, { document: ["create"] });
+	const canCreate = allows(ctx, { document: ["create"] });
 	const e = env();
 	const storageAvailable = Boolean(
 		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,

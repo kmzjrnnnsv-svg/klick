@@ -9,6 +9,7 @@ import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { IntegrationsPanel } from "@/components/settings/integrations-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
 import { RiskMethodPanel } from "@/components/settings/risk-method-panel";
+import { RolesPanel } from "@/components/settings/roles-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
 import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
@@ -17,14 +18,30 @@ import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { approvalWorkflows } from "@/db/schema";
+import {
+	factInfos,
+	ruleNames,
+	triggerTexts,
+} from "@/lib/approvals/designer-labels";
+import { WORKFLOW_PRESETS } from "@/lib/approvals/presets";
 import { ensureOrgWorkflows } from "@/lib/approvals/service";
+import { TRIGGER_BY_KEY, TRIGGERS, triggerOf } from "@/lib/approvals/triggers";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { getSessionCtx, toOrgCtx } from "@/lib/auth/guards";
-import { getOrgSummary, listSsoProvidersForOrg } from "@/lib/auth/org";
-import { roleAllows } from "@/lib/auth/permissions";
+import {
+	getOrgSummary,
+	listOrgMembers,
+	listSsoProvidersForOrg,
+} from "@/lib/auth/org";
+import {
+	canHoldCustomRoles,
+	grantablePresetOf,
+	permissionCatalog,
+} from "@/lib/auth/permission-catalog";
+import { allows, roleStatements } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
+import { normalizeRole } from "@/lib/auth/session-rules";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
-import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
 import { defaultSupplierMethod } from "@/lib/compliance/catalog/supplier-criteria";
 import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
 import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
@@ -32,6 +49,7 @@ import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import { userNames } from "@/lib/compliance/queries";
 import { listRisks } from "@/lib/compliance/queries-p2";
 import { listProductOptions } from "@/lib/compliance/queries-products";
+import { loadRecommendInput } from "@/lib/compliance/queries-recommend";
 import { listAccessTokens } from "@/lib/compliance/queries-security";
 import {
 	defaultRiskMethod,
@@ -41,12 +59,14 @@ import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
 import { loadPriceTable } from "@/lib/db/pricing";
 import { readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
+import { recommendServices } from "@/lib/marketing/recommend";
 import {
 	getOrgSettings,
 	listOpenAuditScopes,
 	listOrgFrameworks,
 	listRetiredFrameworkSlugs,
 } from "@/lib/org/queries";
+import { listOrgRoles } from "@/lib/org/roles";
 
 export default async function SettingsPage({
 	searchParams,
@@ -57,30 +77,59 @@ export default async function SettingsPage({
 	const ctx = await requireOrgPage();
 	const cov = await getOrgCoverageCached(ctx);
 	// Workflows je Org sicherstellen (Seed) und laden.
-	const { settings, workflows } = await withOrg(toOrgCtx(ctx), async (tx) => {
-		const settings = await getOrgSettings(tx, ctx.orgId);
-		await ensureOrgWorkflows(
-			tx,
-			ctx.orgId,
-			settings?.licenceStage ?? "0_vorbereitung",
-		);
-		const rows = await tx
-			.select()
-			.from(approvalWorkflows)
-			.where(eq(approvalWorkflows.organizationId, ctx.orgId));
-		const workflows = APPROVAL_WORKFLOW_TEMPLATES.map((tpl) => {
-			const row = rows.find((r) => r.kind === tpl.kind);
+	const { settings, workflows, workflowNames } = await withOrg(
+		toOrgCtx(ctx),
+		async (tx) => {
+			const settings = await getOrgSettings(tx, ctx.orgId);
+			await ensureOrgWorkflows(
+				tx,
+				ctx.orgId,
+				settings?.licenceStage ?? "0_vorbereitung",
+			);
+			const rows = await tx
+				.select()
+				.from(approvalWorkflows)
+				.where(eq(approvalWorkflows.organizationId, ctx.orgId));
+			// nur angeschlossene Auslöser (Designer, lib/approvals/triggers.ts)
+			const workflows = rows.flatMap((r) => {
+				const trigger = triggerOf(r);
+				if (!trigger || !TRIGGER_BY_KEY.get(trigger)?.wired) return [];
+				return [
+					{
+						id: r.id,
+						kind: r.kind,
+						name: r.name,
+						description: r.description,
+						trigger,
+						custom: r.custom,
+						enabled: r.enabled,
+						priority: r.priority,
+						conditions: r.conditions,
+						steps: r.steps,
+					},
+				];
+			});
+			const [roles, members] = await Promise.all([
+				listOrgRoles(tx, ctx.orgId),
+				userNames(
+					tx,
+					rows.flatMap((r) =>
+						r.steps.flatMap((s) =>
+							[...(s.approvers ?? [s.approverRule]), ...(s.skipIf ?? [])]
+								.filter((x) => x.startsWith("user:"))
+								.map((x) => x.slice(5)),
+						),
+					),
+				),
+			]);
 			return {
-				kind: tpl.kind,
-				name: tpl.name,
-				description: tpl.description,
-				steps: row?.steps ?? tpl.steps,
-				enabled: row?.enabled ?? tpl.defaultEnabled,
+				settings,
+				workflows,
+				workflowNames: await ruleNames({ roles, users: members }),
 			};
-		});
-		return { settings, workflows };
-	});
-	const canReadIntegrations = roleAllows(ctx.orgRole, {
+		},
+	);
+	const canReadIntegrations = allows(ctx, {
 		integration: ["read"],
 	});
 	const { tokens, productOptions } = canReadIntegrations
@@ -149,10 +198,66 @@ export default async function SettingsPage({
 	const availableItems = CATALOG_FRAMEWORKS.filter(
 		(f) => !activeSlugs.has(f.slug),
 	).map((f) => ({ ...toItem(f.slug), retired: retiredSlugs.has(f.slug) }));
-	const canEditSettings = roleAllows(ctx.orgRole, { settings: ["update"] });
+	const canEditSettings = allows(ctx, { settings: ["update"] });
 	const { prices } = canEditSettings
 		? await loadPriceTable(settings?.priceGroupId)
 		: { prices: null };
+	// „Für dich empfohlen“ unter Abo & Leistungen (nur Inhaber:innen)
+	const recommendations = prices
+		? recommendServices(
+				await readOrg(toOrgCtx(ctx), (tx) =>
+					loadRecommendInput(tx, ctx.orgId, cov?.frameworks ?? []),
+				),
+			)
+		: [];
+	// Rollen & Rechte (ADR-020): nur für Inhaber:innen
+	const rolesData = canEditSettings
+		? await (async () => {
+				const tt = await getTranslations("Team");
+				const [roles, members] = await Promise.all([
+					readOrg(toOrgCtx(ctx), (tx) => listOrgRoles(tx, ctx.orgId)),
+					listOrgMembers(ctx.orgId),
+				]);
+				const cap = (r: string) => `${r[0]?.toUpperCase()}${r.slice(1)}`;
+				return {
+					roles: roles.map((r) => ({
+						id: r.id,
+						name: r.name,
+						description: r.description,
+						permissions: r.permissions,
+						memberIds: r.members
+							.map((m) => m.memberId)
+							.filter((x): x is string => Boolean(x)),
+						pendingEmails: r.members
+							.map((m) => m.pendingEmail)
+							.filter((x): x is string => Boolean(x)),
+					})),
+					members: members
+						.filter((m) => canHoldCustomRoles(normalizeRole(m.role)))
+						.map((m) => ({ memberId: m.memberId, name: m.name || m.email })),
+					baseRoles: (
+						["owner", "editor", "viewer", "auditor", "consultant"] as const
+					).map((role) => ({
+						role,
+						label: tt(`role${cap(role)}` as "roleOwner"),
+						hint: tt(`role${cap(role)}Hint` as "roleOwnerHint"),
+						// Better-Auth-interne Ressourcen (Team, Einladungen, …) ausblenden
+						permissions: Object.fromEntries(
+							Object.entries(roleStatements(role)).filter(
+								([res]) =>
+									![
+										"organization",
+										"member",
+										"invitation",
+										"team",
+										"ac",
+									].includes(res),
+							),
+						),
+					})),
+				};
+			})()
+		: null;
 	const orgSummary = await getOrgSummary(ctx.orgId);
 	const ssoProviders = await listSsoProvidersForOrg(ctx.orgId);
 	const callbackBase = (process.env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
@@ -179,7 +284,7 @@ export default async function SettingsPage({
 						"sso",
 						"notifications",
 						...(canReadIntegrations ? ["integrationen"] : []),
-						...(canEditSettings ? ["abo"] : []),
+						...(canEditSettings ? ["abo", "rollen"] : []),
 					].includes(tab)
 						? tab
 						: "security"
@@ -188,6 +293,9 @@ export default async function SettingsPage({
 				<TabsList>
 					<TabsTrigger value="security">{t("tabSecurity")}</TabsTrigger>
 					<TabsTrigger value="frameworks">{t("tabFrameworks")}</TabsTrigger>
+					{rolesData && (
+						<TabsTrigger value="rollen">{t("tabRoles")}</TabsTrigger>
+					)}
 					<TabsTrigger value="workflows">{t("tabWorkflows")}</TabsTrigger>
 					<TabsTrigger value="risk">{t("tabRiskScales")}</TabsTrigger>
 					<TabsTrigger value="lieferanten">
@@ -259,8 +367,39 @@ export default async function SettingsPage({
 						/>
 					)}
 				</TabsContent>
+				{rolesData && (
+					<TabsContent value="rollen">
+						<RolesPanel
+							roles={rolesData.roles}
+							members={rolesData.members}
+							catalog={permissionCatalog()}
+							editorPreset={grantablePresetOf("editor")}
+							baseRoles={rolesData.baseRoles}
+							canEdit={canEditSettings}
+						/>
+					</TabsContent>
+				)}
 				<TabsContent value="workflows">
-					<WorkflowsPanel workflows={workflows} canEdit={canEditSettings} />
+					<WorkflowsPanel
+						triggers={TRIGGERS.filter((x) => x.wired).map((x) => ({
+							key: x.key,
+							area: x.area,
+							mode: x.mode,
+						}))}
+						texts={await triggerTexts()}
+						facts={await factInfos()}
+						workflows={workflows}
+						names={workflowNames}
+						presets={WORKFLOW_PRESETS.map((p) => ({
+							key: p.key,
+							trigger: p.trigger,
+							name: p.name,
+							description: p.description,
+							variant: Boolean(p.variant),
+							roles: p.roles.map((r) => r.name),
+						}))}
+						canEdit={canEditSettings}
+					/>
 				</TabsContent>
 				<TabsContent value="risk">
 					<RiskMethodPanel
@@ -314,8 +453,8 @@ export default async function SettingsPage({
 							tokens={tokens}
 							products={productOptions}
 							baseUrl={callbackBase}
-							canCreate={roleAllows(ctx.orgRole, { integration: ["create"] })}
-							canRevoke={roleAllows(ctx.orgRole, { integration: ["revoke"] })}
+							canCreate={allows(ctx, { integration: ["create"] })}
+							canRevoke={allows(ctx, { integration: ["revoke"] })}
 						/>
 					</TabsContent>
 				)}
@@ -325,6 +464,7 @@ export default async function SettingsPage({
 							plan={settings?.plan ?? "start"}
 							prices={prices}
 							email={ctx.email}
+							recommendations={recommendations}
 						/>
 					</TabsContent>
 				)}

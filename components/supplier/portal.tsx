@@ -214,6 +214,11 @@ export function PortalQuestion({
 	function upload(list: readonly File[], acknowledged = false) {
 		start(async () => {
 			for (const file of list) {
+				const big = feedback.tooLarge(file);
+				if (big) {
+					toast.error(big);
+					continue;
+				}
 				const fd = new FormData();
 				fd.set("questionCode", question.code);
 				fd.set("file", file);

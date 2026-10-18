@@ -4,7 +4,7 @@ import { Section } from "@/components/entity/entity-layout";
 import { Badge } from "@/components/ui/badge";
 import type { EntityKind } from "@/db/schema/enums";
 import { type OrgContext, toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	entityFrameworkRefs,
 	listDecisionRequests,
@@ -12,6 +12,7 @@ import {
 	managementApproverHint,
 } from "@/lib/compliance/decision-service";
 import { readOrg } from "@/lib/db/with-org";
+import { s3Configured } from "@/lib/evidence/store";
 import { DecisionRequestButton } from "./decision-request-button";
 
 // Entscheidungen zu einer Entität (E1/E2): Beschlüsse der Geschäftsleitung
@@ -31,13 +32,13 @@ export async function DecisionRequestsBlock({
 	const t = await getTranslations("Decisions");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		requests: await listDecisionRequests(tx, ctx.orgId, { type: kind, id }),
-		resolutions: roleAllows(ctx.orgRole, { resolution: ["read"] })
+		resolutions: allows(ctx, { resolution: ["read"] })
 			? await listResolutionsFor(tx, ctx.orgId, kind, [id])
 			: [],
 		refs: await entityFrameworkRefs(tx, ctx.orgId, kind, id),
 		approverHint: await managementApproverHint(tx, ctx.orgId, ctx.userId),
 	}));
-	const canAsk = roleAllows(ctx.orgRole, { task: ["create"] });
+	const canAsk = allows(ctx, { decision: ["create"] });
 	const empty = data.requests.length === 0 && data.resolutions.length === 0;
 	return (
 		<Section
@@ -50,6 +51,7 @@ export async function DecisionRequestsBlock({
 						defaultQuestion={title}
 						refs={data.refs}
 						approverHint={data.approverHint}
+						canAttach={s3Configured()}
 					/>
 				) : null
 			}

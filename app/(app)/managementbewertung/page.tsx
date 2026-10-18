@@ -13,7 +13,7 @@ import { ResolutionForm } from "@/components/resolutions/resolution-form";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	applicableReviewInputs,
 	reviewComplete,
@@ -34,8 +34,8 @@ const STATUS_TONE = {
 export default async function ManagementReviewPage() {
 	const ctx = await requireOrgPage({ management_review: ["read"] });
 	const t = await getTranslations("ManagementReview");
-	const canEdit = roleAllows(ctx.orgRole, { management_review: ["update"] });
-	const canResolve = roleAllows(ctx.orgRole, { resolution: ["create"] });
+	const canEdit = allows(ctx, { management_review: ["update"] });
+	const canResolve = allows(ctx, { resolution: ["create"] });
 	const { reviews, members, inputs, live } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => {

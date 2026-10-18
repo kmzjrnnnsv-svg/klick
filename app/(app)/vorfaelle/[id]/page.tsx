@@ -24,7 +24,7 @@ import { DecisionRequestsBlock } from "@/components/resolutions/decision-request
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import type { IncidentRegime } from "@/db/schema/enums";
-import { approverEligibility } from "@/lib/approvals/rules";
+import { canDecideNow } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
 	latestRequestFor,
@@ -33,7 +33,7 @@ import {
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import {
 	computeIncidentDeadlines,
 	leadRegime,
@@ -128,7 +128,7 @@ export default async function IncidentDetailPage({
 		dels,
 		names,
 	} = data;
-	const canEdit = roleAllows(ctx.orgRole, { incident: ["update"] });
+	const canEdit = allows(ctx, { incident: ["update"] });
 	const regimes = incident.regimes as IncidentRegime[];
 	const lead = leadRegime(regimes) ?? "dora";
 	const dl = computeIncidentDeadlines(lead, {
@@ -161,7 +161,7 @@ export default async function IncidentDetailPage({
 			approval.status === "pending" &&
 			step &&
 			me &&
-			approverEligibility(
+			canDecideNow(
 				step,
 				me,
 				{
@@ -170,7 +170,8 @@ export default async function IncidentDetailPage({
 					delegations: dels,
 				},
 				candidates,
-			).eligible,
+				approval.decisions.filter((d) => d.step === approval.currentStep),
+			),
 	);
 
 	const entries: ActivityEntry[] = mergeActivity(
@@ -210,6 +211,7 @@ export default async function IncidentDetailPage({
 						status: incident.status,
 					}}
 					disabled={!canEdit}
+					hideTo={allows(ctx, { incident: ["close"] }) ? [] : ["closed"]}
 				/>
 			}
 			actions={

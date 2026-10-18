@@ -12,6 +12,7 @@ import {
 	createTreatment,
 	updateRisk,
 } from "@/app/actions/risks";
+import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,6 +75,7 @@ export function RiskQuickCreate({
 }) {
 	const t = useTranslations("Risks");
 	const tc = useTranslations("Common");
+	const gate = useGateFeedback();
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
@@ -102,8 +104,12 @@ export function RiskQuickCreate({
 								likelihood: l,
 								impact: i,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
-							toast.success(t("created"));
+							if (!res.ok)
+								return void toast.error(
+									gate.errorText(res.error) ?? tc("error"),
+								);
+							if (res.data.approvalPending) toast.info(gate.pendingText());
+							else toast.success(t("created"));
 							setOpen(false);
 							setTitle("");
 							router.push(`/risiken/${res.data.id}`);

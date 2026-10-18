@@ -64,6 +64,28 @@ describe("permissions", () => {
 		expect(roleAllows("consultant", { integration: ["create"] })).toBe(false);
 		expect(roleAllows("consultant", { whistleblowing: ["read"] })).toBe(false);
 	});
+	it("Akzeptieren und Schließen sind eigene Rechte (Berater:innen nicht)", () => {
+		expect(roleAllows("editor", { risk: ["accept"] })).toBe(true);
+		expect(roleAllows("editor", { incident: ["close"] })).toBe(true);
+		expect(roleAllows("consultant", { risk: ["accept"] })).toBe(false);
+		expect(roleAllows("consultant", { incident: ["close"] })).toBe(false);
+	});
+	it("Schulungen und Managementanfragen wie bisher Aufgaben", () => {
+		for (const r of ["owner", "editor", "consultant"])
+			expect(
+				roleAllows(r, {
+					training: ["create", "update", "propose"],
+					decision: ["create"],
+				}),
+			).toBe(true);
+		for (const r of ["viewer", "auditor"]) {
+			expect(roleAllows(r, { training: ["read"], decision: ["read"] })).toBe(
+				true,
+			);
+			expect(roleAllows(r, { training: ["create"] })).toBe(false);
+			expect(roleAllows(r, { decision: ["create"] })).toBe(false);
+		}
+	});
 	it("unbekannte Rolle hat nichts", () => {
 		expect(roleAllows("hacker", { control: ["read"] })).toBe(false);
 	});

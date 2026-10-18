@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
@@ -21,10 +22,11 @@ import {
 import { SourceRisks } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
+import { approvalBarFor } from "@/lib/approvals/bar";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { CONTROLS } from "@/lib/compliance/catalog";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
@@ -82,7 +84,7 @@ export default async function ProcessDetailPage({
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const tf = await getTranslations("Functions");
-	const canEdit = roleAllows(ctx.orgRole, { process: ["update"] });
+	const canEdit = allows(ctx, { process: ["update"] });
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const p = await getProcessByCode(tx, ctx.orgId, code);
@@ -114,8 +116,14 @@ export default async function ProcessDetailPage({
 			...comments.map((c) => c.authorUserId),
 		]);
 		for (const [k, v] of p.names) names.set(k, v);
+		const bar = await approvalBarFor(tx, ctx.orgId, ctx.userId, {
+			type: "process",
+			id,
+			ownerUserId: p.process.ownerUserId,
+		});
 		return {
 			...p,
+			bar,
 			comments,
 			history,
 			watcherIds,
@@ -300,6 +308,12 @@ export default async function ProcessDetailPage({
 				</>
 			}
 		>
+			<ApprovalBar
+				data={data.bar.data}
+				names={data.bar.names}
+				eligible={data.bar.eligible}
+				currentUserId={ctx.userId}
+			/>
 			<Section title={t("bia")}>
 				<dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
 					<div>
@@ -507,7 +521,7 @@ export default async function ProcessDetailPage({
 								kind="process"
 								id={data.process.id}
 								risks={[]}
-								canCreate={roleAllows(ctx.orgRole, { risk: ["create"] })}
+								canCreate={allows(ctx, { risk: ["create"] })}
 								compact
 							/>
 						</div>

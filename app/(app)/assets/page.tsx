@@ -10,9 +10,10 @@ import { UserChip } from "@/components/entity/user-chip";
 import { AssetForm } from "@/components/registers/asset-form";
 import { Badge } from "@/components/ui/badge";
 import { sites } from "@/db/schema";
+import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { assetLifecycle, lifecycleTone } from "@/lib/compliance/assets";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
@@ -35,9 +36,8 @@ export default async function AssetsPage({
 	const t = await getTranslations("Assets");
 	const te = await getTranslations("Entity");
 	const tr = await getTranslations("RiskSources");
-	const { rows, members, providers, links, siteOptions } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => ({
+	const { rows, members, providers, links, siteOptions, pending } =
+		await readOrg(toOrgCtx(ctx), async (tx) => ({
 			rows: await listAssets(tx, ctx.orgId),
 			links: await linkIndex(tx, ctx.orgId),
 			members: await listMembersForPicker(tx, ctx.orgId),
@@ -50,9 +50,10 @@ export default async function AssetsPage({
 				.from(sites)
 				.where(eq(sites.organizationId, ctx.orgId))
 				.orderBy(sites.name),
-		}),
-	);
-	const canEdit = roleAllows(ctx.orgRole, { asset: ["create", "update"] });
+			pending: await pendingApprovalIds(tx, ctx.orgId, "asset"),
+		}));
+	const ta = await getTranslations("Approvals");
+	const canEdit = allows(ctx, { asset: ["create", "update"] });
 	const q = one(sp.q)?.toLowerCase();
 	const type = one(sp.type);
 	const cls = one(sp.classification);
@@ -61,7 +62,7 @@ export default async function AssetsPage({
 	const critical = one(sp.lebenszyklus) === "1";
 	const today = new Date();
 	const lifecycle = new Map(rows.map((r) => [r.id, assetLifecycle(r, today)]));
-	const canRisk = roleAllows(ctx.orgRole, { risk: ["create"] });
+	const canRisk = allows(ctx, { risk: ["create"] });
 	const filtered = rows
 		.filter(
 			(r) =>
@@ -76,7 +77,9 @@ export default async function AssetsPage({
 		.filter((r) => !type || r.type === type)
 		.filter((r) => !cls || r.classification === cls)
 		.filter((r) => !keys || r.type === "key_material" || r.type === "hsm")
-		.filter((r) => !unowned || !r.ownerUserId);
+		.filter((r) => !unowned || !r.ownerUserId)
+		// abgelehnte Aufnahmen nur auf Wunsch (?status=declined)
+		.filter((r) => r.status !== "declined" || one(sp.status) === "declined");
 	const columns: Column<Row>[] = [
 		{
 			key: "name",
@@ -84,6 +87,21 @@ export default async function AssetsPage({
 			cell: (r) => (
 				<span>
 					<span className="font-medium">{r.name}</span>
+					{r.status !== "active" ? (
+						<Badge
+							variant={r.status === "pending" ? "warning" : "muted"}
+							className="ml-2"
+						>
+							{t(`status_${r.status}` as "status_pending")}
+						</Badge>
+					) : (
+						// z. B. Außerbetriebnahme beantragt
+						pending.has(r.id) && (
+							<Badge variant="warning" className="ml-2">
+								{ta("waitingBadge")}
+							</Badge>
+						)
+					)}
 					{r.description && (
 						<span className="block text-muted-foreground text-xs">
 							{r.description}
@@ -203,6 +221,7 @@ export default async function AssetsPage({
 						sites={siteOptions}
 						initial={{
 							assetId: r.id,
+							status: r.status,
 							name: r.name,
 							type: r.type,
 							classification: r.classification,

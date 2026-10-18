@@ -20,7 +20,7 @@ import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
 import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { Badge } from "@/components/ui/badge";
-import { approverEligibility } from "@/lib/approvals/rules";
+import { canDecideNow } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
 	latestRequestFor,
@@ -29,7 +29,7 @@ import {
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
 	listComments,
@@ -103,7 +103,7 @@ export default async function DocumentDetailPage({
 		dels,
 		names,
 	} = data;
-	const canEdit = roleAllows(ctx.orgRole, { document: ["update"] });
+	const canEdit = allows(ctx, { document: ["update"] });
 	const e = env();
 	const storageAvailable = Boolean(
 		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,
@@ -115,7 +115,7 @@ export default async function DocumentDetailPage({
 			approval.status === "pending" &&
 			step &&
 			me &&
-			approverEligibility(
+			canDecideNow(
 				step,
 				me,
 				{
@@ -124,7 +124,8 @@ export default async function DocumentDetailPage({
 					delegations: dels,
 				},
 				candidates,
-			).eligible,
+				approval.decisions.filter((d) => d.step === approval.currentStep),
+			),
 	);
 	const currentVersion = versions.find((v) => v.version === doc.version);
 	const acksForCurrent = currentVersion

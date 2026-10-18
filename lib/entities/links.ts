@@ -1,5 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
 import {
+	assets,
 	audits,
 	controlImplementations,
 	controls,
@@ -11,8 +12,11 @@ import {
 	objectives,
 	processes,
 	products,
+	providerRatings,
+	providers,
 	resolutions,
 	risks,
+	trainingRequirements,
 } from "@/db/schema";
 import type { EntityKind } from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -250,6 +254,45 @@ export async function resolveEntityTitles(
 			.where(inArray(resolutions.id, ids("resolution")));
 		for (const r of rows)
 			out.set(`resolution:${r.id}`, `${r.number} ${r.subject}`);
+	}
+	if (ids("provider").length) {
+		const rows = await tx
+			.select({ id: providers.id, name: providers.name })
+			.from(providers)
+			.where(inArray(providers.id, ids("provider")));
+		for (const r of rows) out.set(`provider:${r.id}`, r.name);
+	}
+	if (ids("provider_rating").length) {
+		const rows = await tx
+			.select({
+				id: providerRatings.id,
+				code: providerRatings.code,
+				name: providers.name,
+			})
+			.from(providerRatings)
+			.innerJoin(providers, eq(providers.id, providerRatings.providerId))
+			.where(inArray(providerRatings.id, ids("provider_rating")));
+		for (const r of rows)
+			out.set(`provider_rating:${r.id}`, `${r.name} · ${r.code}`);
+	}
+	if (ids("asset").length) {
+		const rows = await tx
+			.select({ id: assets.id, name: assets.name })
+			.from(assets)
+			.where(inArray(assets.id, ids("asset")));
+		for (const r of rows) out.set(`asset:${r.id}`, r.name);
+	}
+	// Freigabe „Schulung vorschlagen“ hängt an der Pflichtschulung
+	if (ids("training").length) {
+		const rows = await tx
+			.select({
+				id: trainingRequirements.id,
+				code: trainingRequirements.code,
+				title: trainingRequirements.title,
+			})
+			.from(trainingRequirements)
+			.where(inArray(trainingRequirements.id, ids("training")));
+		for (const r of rows) out.set(`training:${r.id}`, `${r.code} ${r.title}`);
 	}
 	if (ids("product").length) {
 		const rows = await tx

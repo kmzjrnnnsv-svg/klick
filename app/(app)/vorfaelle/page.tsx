@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { roleAllows } from "@/lib/auth/permissions";
+import { allows } from "@/lib/auth/permissions";
 import { clockState } from "@/lib/compliance/incident";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listIncidents } from "@/lib/compliance/queries-p2";
@@ -32,7 +32,7 @@ export default async function IncidentsPage({
 	const rows = await readOrg(toOrgCtx(ctx), (tx) =>
 		listIncidents(tx, ctx.orgId),
 	);
-	const canCreate = roleAllows(ctx.orgRole, { incident: ["create"] });
+	const canCreate = allows(ctx, { incident: ["create"] });
 	const now = new Date();
 	const q = one(sp.q)?.toLowerCase();
 	const status = one(sp.status);

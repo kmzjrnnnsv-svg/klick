@@ -1,8 +1,15 @@
 import { transitions } from "./status-machine";
 import type { EntityDef, StatusMachine } from "./types";
 
-export type RiskStatus = "open" | "in_treatment" | "accepted" | "closed";
+export type RiskStatus =
+	| "proposed"
+	| "open"
+	| "in_treatment"
+	| "accepted"
+	| "closed";
+// proposed: wartet auf Freigabe (Auslöser risk.create) — offen erst danach
 export const RISK_STATUSES = [
+	"proposed",
 	"open",
 	"in_treatment",
 	"accepted",
@@ -15,18 +22,22 @@ export const RISK_STATUS: StatusMachine<RiskStatus> = {
 	states: RISK_STATUSES,
 	initial: "open",
 	labelKey: {
+		proposed: "riskProposed",
 		open: "riskOpen",
 		in_treatment: "riskInTreatment",
 		accepted: "riskAccepted",
 		closed: "riskClosed",
 	},
 	tone: {
+		proposed: "muted",
 		open: "warning",
 		in_treatment: "default",
 		accepted: "success",
 		closed: "muted",
 	},
 	transitions: transitions<RiskStatus>([
+		// Vorschlag zurückziehen; „offen“ setzt nur die Freigabe (outcomes.ts)
+		["proposed", "closed", "closeRisk", "note"],
 		["open", "in_treatment", "startTreatment", undefined, true],
 		["open", "accepted", "acceptRisk", "note"],
 		["in_treatment", "accepted", "acceptRisk", "note", true],

@@ -192,6 +192,13 @@ export const objectiveSchema = z.object({
 		.nullable()
 		.optional(),
 	nextMeasureAt: optionalDate,
+	// Vorlage (INDICATOR_TEMPLATES) für Messvorschläge aus Klick
+	templateKey: z
+		.string()
+		.max(60)
+		.regex(/^[a-z_]+$/)
+		.nullable()
+		.optional(),
 	selfApprovalReason: z.string().trim().max(2000).optional(),
 });
 
@@ -520,6 +527,7 @@ export const planTestSchema = z.object({
 	scope: z.string().max(400).optional(),
 	processId: uuid.nullable().optional(),
 	assetId: uuid.nullable().optional(),
+	siteId: uuid.nullable().optional(),
 });
 
 // ── Beschwerden & Hinweise ─────────────────────────────────────────────────
