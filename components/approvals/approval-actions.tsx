@@ -7,16 +7,27 @@ import { toast } from "sonner";
 import { decideApproval, withdrawApproval } from "@/app/actions/approvals";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 // Entscheidung mit einem Klick (auch mobil, Deep-Link aus der Mail).
+// Managementanfragen mit Optionen: Zustimmung nennt die gewählte Option.
 export function ApprovalActions({
 	requestId,
 	eligible,
 	mine,
 	compact,
+	options = [],
 }: {
 	requestId: string;
+	options?: string[];
 	eligible: boolean;
 	mine: boolean;
 	compact?: boolean;
@@ -26,7 +37,9 @@ export function ApprovalActions({
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [note, setNote] = useState("");
+	const [chosen, setChosen] = useState("");
 	const [pending, start] = useTransition();
+	const withOptions = options.length > 0;
 
 	function run(decision: "approved" | "rejected" | "changes_requested") {
 		start(async () => {
@@ -35,6 +48,10 @@ export function ApprovalActions({
 					requestId,
 					decision,
 					note: note || undefined,
+					chosenOption:
+						withOptions && decision === "approved" && chosen
+							? chosen
+							: undefined,
 				}),
 			);
 			if (!res.ok) {
@@ -43,7 +60,9 @@ export function ApprovalActions({
 					res.error.startsWith("four_eyes") ||
 					res.error.startsWith("rule_not_met") ||
 					res.error.startsWith("not_pending") ||
-					res.error === "already_decided"
+					res.error === "already_decided" ||
+					res.error === "optionRequired" ||
+					res.error === "invalidOption"
 				)
 					toast.error(t(`errors_${res.error}` as "errors_four_eyes"));
 				else toast.error(tc("error"));
@@ -51,6 +70,7 @@ export function ApprovalActions({
 			}
 			toast.success(t(`decided_${decision}`));
 			setNote("");
+			setChosen("");
 			router.refresh();
 		});
 	}
@@ -64,7 +84,27 @@ export function ApprovalActions({
 		>
 			{eligible && (
 				<>
-					{!compact && (
+					{withOptions && (
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor={`opt-${requestId}`}>{t("chooseOption")}</Label>
+							<Select value={chosen} onValueChange={setChosen}>
+								<SelectTrigger
+									id={`opt-${requestId}`}
+									className="w-full sm:w-96"
+								>
+									<SelectValue placeholder={t("chooseOptionPlaceholder")} />
+								</SelectTrigger>
+								<SelectContent>
+									{options.map((o) => (
+										<SelectItem key={o} value={o}>
+											{o}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
+					{(!compact || withOptions) && (
 						<Textarea
 							value={note}
 							onChange={(e) => setNote(e.target.value)}
@@ -77,7 +117,7 @@ export function ApprovalActions({
 						<Button
 							size="sm"
 							variant="brown"
-							disabled={pending}
+							disabled={pending || (withOptions && !chosen)}
 							onClick={() => run("approved")}
 						>
 							{t("approve")}

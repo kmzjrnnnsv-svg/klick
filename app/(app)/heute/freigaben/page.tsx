@@ -6,6 +6,7 @@ import { RouteProgress } from "@/components/approvals/route-progress";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { PageHeader } from "@/components/page-header";
+import { DecisionAttachments } from "@/components/resolutions/decision-attachments";
 import { Badge } from "@/components/ui/badge";
 import { orgRuleNamesCached } from "@/lib/approvals/designer-labels";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/lib/approvals/service";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { decisionRequestDetails } from "@/lib/compliance/decision-service";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
@@ -28,7 +30,8 @@ export default async function ApprovalsInboxPage({
 	const ctx = await requireOrgPage({ approval: ["read"] });
 	const t = await getTranslations("Approvals");
 	const ts = await getTranslations("Status");
-	const { rows, members, entityTitles } = await readOrg(
+	const td = await getTranslations("Decisions");
+	const { rows, members, entityTitles, questions } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => {
 			const rows = await listRequestsForUser(tx, ctx.orgId, ctx.userId, {
@@ -36,6 +39,14 @@ export default async function ApprovalsInboxPage({
 			});
 			return {
 				rows,
+				// Managementanfragen: Optionen, Ausgangslage, Unterlagen
+				questions: await decisionRequestDetails(
+					tx,
+					ctx.orgId,
+					rows
+						.filter((r) => r.entityType === "decision_request")
+						.map((r) => r.entityId),
+				),
 				members: await listMembersForPicker(tx, ctx.orgId),
 				entityTitles: await resolveEntityTitles(
 					tx,
@@ -116,11 +127,41 @@ export default async function ApprovalsInboxPage({
 										names={ruleNames}
 									/>
 								)}
+								{(() => {
+									const q = questions.get(r.entityId);
+									if (r.entityType !== "decision_request" || !q) return null;
+									return (
+										<div className="flex flex-col gap-1 text-xs">
+											{q.context && (
+												<p className="line-clamp-3 text-muted-foreground">
+													{q.context}
+												</p>
+											)}
+											{q.recommendation && (
+												<p>
+													<span className="text-muted-foreground">
+														{td("recommendation")}:
+													</span>{" "}
+													{q.recommendation}
+												</p>
+											)}
+											<DecisionAttachments
+												label={td("attachments")}
+												items={q.attachments}
+											/>
+										</div>
+									);
+								})()}
 								<ApprovalActions
 									requestId={r.id}
 									eligible={r.eligible}
 									mine={r.mine}
 									compact
+									options={
+										r.entityType === "decision_request"
+											? (questions.get(r.entityId)?.options ?? [])
+											: []
+									}
 								/>
 							</li>
 						);

@@ -310,6 +310,7 @@ export const EVIDENCE_SOURCES = [
 	"sbom",
 	"supplier_portal",
 	"engagement",
+	"decision_request",
 ] as const;
 export type EvidenceSource = (typeof EVIDENCE_SOURCES)[number];
 

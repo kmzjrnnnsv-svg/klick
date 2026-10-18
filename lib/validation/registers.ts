@@ -453,6 +453,8 @@ export const decideApprovalSchema = z.object({
 	requestId: uuid,
 	decision: z.enum(["approved", "rejected", "changes_requested"]),
 	note: z.string().trim().max(2000).optional(),
+	// Managementanfrage: gewählte Option (eine der Optionen der Anfrage)
+	chosenOption: z.string().trim().min(1).max(300).optional(),
 });
 
 export const delegationSchema = z.object({

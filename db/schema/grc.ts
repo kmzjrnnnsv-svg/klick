@@ -33,7 +33,7 @@ import {
 	ROLE_FUNCTIONS,
 } from "./enums";
 import { products } from "./products";
-import { assets, processes, providers } from "./registers";
+import { assets, processes, providers, sites } from "./registers";
 
 // GRC-Kern je Organisation: Control-Status, Anwendbarkeit, Nachweise,
 // Dokumentenlenkung, Freigaben, Beschlüsse, Risiken, Vorfälle, Aufgaben,
@@ -197,6 +197,8 @@ export const controlTests = pgTable(
 		}),
 		assetId: uuid().references(() => assets.id, { onDelete: "set null" }),
 		processId: uuid().references(() => processes.id, { onDelete: "set null" }),
+		// Notfallübung je kritischem Standort (Testprogramm, Kalender)
+		siteId: uuid().references(() => sites.id, { onDelete: "set null" }),
 		method: text({ enum: CONTROL_TEST_METHODS }).notNull(),
 		scope: text(),
 		plannedAt: date(),
@@ -639,6 +641,8 @@ export const decisionRequests = pgTable(
 		outcome: text({ enum: ["approved", "rejected", "changes_requested"] }),
 		chosenOption: text(),
 		decisionNote: text(),
+		// Unterlagen zur Anfrage (Nachweise über die Upload-Pipeline)
+		attachmentEvidenceIds: stringList(),
 		approvalRequestId: uuid().references(() => approvalRequests.id, {
 			onDelete: "set null",
 		}),

@@ -151,6 +151,8 @@ export const objectives = pgTable(
 		title: text().notNull(),
 		frameworkIds: stringList(),
 		kpiName: text(),
+		// Messvorschlag aus Klick (lib/compliance/indicator-sources.ts)
+		templateKey: text(),
 		unit: text(),
 		target: text(),
 		dueAt: date(),

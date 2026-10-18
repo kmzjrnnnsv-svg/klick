@@ -1488,7 +1488,11 @@
 		"stepLater": "noch nicht dran",
 		"ruleDone": "stimmt zu",
 		"ruleOpen": "offen",
-		"errors_already_decided": "Für diese Stufe liegt deine Entscheidung bzw. die Zustimmung deiner Stelle schon vor."
+		"errors_already_decided": "Für diese Stufe liegt deine Entscheidung bzw. die Zustimmung deiner Stelle schon vor.",
+		"chooseOption": "Entscheidung für",
+		"chooseOptionPlaceholder": "Option wählen …",
+		"errors_optionRequired": "Wähle eine Option, bevor du freigibst.",
+		"errors_invalidOption": "Diese Option gehört nicht zur Anfrage — lade die Seite neu."
 	},
 	"Providers": {
 		"linked": "Prozesse · Assets",
@@ -2108,7 +2112,17 @@
 		"empty": "Noch keine Anfragen an die Geschäftsleitung.",
 		"hintNone": "Noch niemand ist als Geschäftsleitung eingetragen — die Anfrage hätte keine Entscheider:in.",
 		"hintOnlyYou": "Die Geschäftsleitung bist nur du. Nach dem Vier-Augen-Prinzip entscheidet eine zweite Person — trag eine Vertretung oder ein weiteres Mitglied der Leitung ein.",
-		"hintLink": "Zu Rollen & Leitung"
+		"hintLink": "Zu Rollen & Leitung",
+		"attachments": "Unterlagen",
+		"attachmentsHint": "PDF, Office-Dateien oder Bilder, höchstens 25 MB je Datei. Sie liegen verschlüsselt bei den Nachweisen.",
+		"attachmentFailed": "„{name}“ konnte nicht hochgeladen werden.",
+		"attachmentsUploaded": "{n, plural, one {Eine Unterlage} other {# Unterlagen}} angehängt.",
+		"withdrawConfirm": "Anfrage „{code}“ zurückziehen?",
+		"withdrawLead": "Die Geschäftsleitung muss dann nicht mehr entscheiden. Du kannst jederzeit neu anfragen.",
+		"withdrawDone": "Anfrage zurückgezogen.",
+		"chosen": "Gewählt: {option}",
+		"cancel": "Abbrechen",
+		"uploadRest": "Unterlagen hochladen"
 	},
 	"Resolutions": {
 		"linked": "Bezug öffnen",
