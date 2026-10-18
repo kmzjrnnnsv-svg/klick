@@ -9,6 +9,7 @@ import {
 	InvitationLinkButton,
 	MemberActions,
 } from "@/components/team/member-actions";
+import { MemberRolesForm } from "@/components/team/member-roles-form";
 import { Badge } from "@/components/ui/badge";
 import {
 	Table,
@@ -24,9 +25,11 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { normalizeRole, toOrgCtx } from "@/lib/auth/guards";
 import { isExternal } from "@/lib/auth/memberships";
 import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
+import { canHoldCustomRoles } from "@/lib/auth/permission-catalog";
 import { mfaFactors } from "@/lib/auth/session-rules";
 import { listControlRows, listTasks } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
+import { listOrgRoles, rolesByMember } from "@/lib/org/roles";
 
 export default async function TeamPage() {
 	const ctx = await requireOrgPage();
@@ -36,9 +39,16 @@ export default async function TeamPage() {
 		listPendingInvitations(ctx.orgId),
 	]);
 	const canManage = ctx.orgRole === "owner";
-	const { tasks, controls, approvals, lastReview } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => ({
+	const { tasks, controls, approvals, lastReview, customRoles, roleMap } =
+		await readOrg(toOrgCtx(ctx), async (tx) => ({
+			customRoles: (await listOrgRoles(tx, ctx.orgId)).map((r) => ({
+				id: r.id,
+				name: r.name,
+				pending: r.members
+					.map((m) => m.pendingEmail)
+					.filter((e): e is string => Boolean(e)),
+			})),
+			roleMap: await rolesByMember(tx, ctx.orgId),
 			tasks: await listTasks(tx, ctx.orgId, { openOnly: true }),
 			controls: await listControlRows(tx, ctx.orgId),
 			approvals: await listRequestsForUser(tx, ctx.orgId, ctx.userId),
@@ -46,8 +56,7 @@ export default async function TeamPage() {
 				(await historyFor(tx, `organization:${ctx.orgId}`, 50)).find(
 					(h) => h.action === "access.review",
 				)?.at ?? null,
-		}),
-	);
+		}));
 	const workload = (userId: string) =>
 		`${tasks.filter((x) => x.assigneeUserId === userId).length} ${t("openTasks")} · ${controls.filter((x) => x.ownerUserId === userId).length} ${t("ownedControls")} · ${approvals.filter((x) => x.requestedByUserId === userId).length} ${t("pendingApprovals")}`;
 	const fmt = new Intl.DateTimeFormat("de-DE", {
@@ -62,7 +71,7 @@ export default async function TeamPage() {
 			<PageHeader
 				title={t("title")}
 				lead={t("lead")}
-				actions={canManage ? <InviteForm /> : undefined}
+				actions={canManage ? <InviteForm roles={customRoles} /> : undefined}
 			/>
 			<section className="flex flex-col gap-3">
 				<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
@@ -121,6 +130,15 @@ export default async function TeamPage() {
 												{t("external")}
 											</Badge>
 										)}
+										{(roleMap.get(m.memberId) ?? []).map((r) => (
+											<Badge
+												key={r.id}
+												variant="muted"
+												className="ml-1 normal-case tracking-normal"
+											>
+												{r.name}
+											</Badge>
+										))}
 										{m.accessUntil && (
 											<span
 												className={`ml-2 text-xs ${m.accessUntil.getTime() < Date.now() ? "text-destructive" : "text-muted-foreground"}`}
@@ -154,6 +172,16 @@ export default async function TeamPage() {
 														memberId={m.memberId}
 														accessUntil={m.accessUntil}
 														grants={m.grants ?? []}
+													/>
+												)}
+												{canHoldCustomRoles(role) && (
+													<MemberRolesForm
+														memberId={m.memberId}
+														name={m.name || m.email}
+														roles={customRoles}
+														current={(roleMap.get(m.memberId) ?? []).map(
+															(r) => r.id,
+														)}
 													/>
 												)}
 												<MemberActions
@@ -192,7 +220,20 @@ export default async function TeamPage() {
 							{invitations.map((i) => (
 								<TableRow key={i.id}>
 									<TableCell>{i.email}</TableCell>
-									<TableCell>{i.role ? roleLabel(i.role) : "—"}</TableCell>
+									<TableCell>
+										{i.role ? roleLabel(i.role) : "—"}
+										{customRoles
+											.filter((r) => r.pending.includes(i.email.toLowerCase()))
+											.map((r) => (
+												<Badge
+													key={r.id}
+													variant="muted"
+													className="ml-1 normal-case tracking-normal"
+												>
+													{r.name}
+												</Badge>
+											))}
+									</TableCell>
 									<TableCell className="text-muted-foreground">
 										{fmt.format(i.expiresAt)}
 									</TableCell>

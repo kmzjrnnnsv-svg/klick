@@ -137,3 +137,23 @@ export function effectivePermissions(
 		...customRolePermissions.map((p) => sanitizePermissions(p)),
 	);
 }
+
+// Für die Oberfläche: Bereiche → Ressourcen → vergebbare Aktionen
+export type CatalogArea = {
+	key: string;
+	resources: { resource: Resource; actions: string[] }[];
+};
+
+export function permissionCatalog(): CatalogArea[] {
+	return PERMISSION_AREAS.map((a) => ({
+		key: a.key,
+		resources: a.resources
+			.map((resource) => ({ resource, actions: grantableActions(resource) }))
+			.filter((r) => r.actions.length > 0),
+	}));
+}
+
+// Vorlage „wie Grundrolle X“: deren Rechte, soweit vergebbar
+export function grantablePresetOf(orgRole: string): RolePermissions {
+	return sanitizePermissions(roleStatements(orgRole));
+}

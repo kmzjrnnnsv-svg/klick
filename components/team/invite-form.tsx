@@ -87,12 +87,21 @@ export function InviteLinkPanel({
 	);
 }
 
-export function InviteForm() {
+export function InviteForm({
+	roles = [],
+}: {
+	// eigene Rollen der Org (ADR-020), optional beim Einladen
+	roles?: { id: string; name: string }[];
+}) {
 	const t = useTranslations("Team");
+	const tr = useTranslations("Roles");
 	const tc = useTranslations("Common");
 	const [open, setOpen] = useState(false);
 	const [email, setEmail] = useState("");
 	const [role, setRole] = useState<(typeof ROLES)[number]>("editor");
+	const [roleIds, setRoleIds] = useState<string[]>([]);
+	// eigene Rollen nur für interne Grundrollen (bearbeitend/lesend)
+	const customAllowed = role === "editor" || role === "viewer";
 	const [sendMail, setSendMail] = useState(true);
 	const [busy, setBusy] = useState(false);
 	const [result, setResult] = useState<{
@@ -103,7 +112,12 @@ export function InviteForm() {
 	async function submit(e: React.FormEvent) {
 		e.preventDefault();
 		setBusy(true);
-		const res = await inviteMember({ email, role, sendMail });
+		const res = await inviteMember({
+			email,
+			role,
+			sendMail,
+			roleIds: customAllowed ? roleIds : [],
+		});
 		setBusy(false);
 		if (!res.ok) {
 			// Better Auth liefert lesbare Meldungen („already a member“), unser
@@ -113,6 +127,7 @@ export function InviteForm() {
 		}
 		setResult({ url: res.data.url, mailed: res.data.mailed });
 		setEmail("");
+		setRoleIds([]);
 	}
 
 	return (
@@ -182,6 +197,38 @@ export function InviteForm() {
 								</SelectContent>
 							</Select>
 						</div>
+						{customAllowed && roles.length > 0 && (
+							<fieldset className="flex flex-col gap-2">
+								<legend className="mb-1 font-medium text-sm">
+									{tr("inviteRoles")}
+								</legend>
+								<div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+									{roles.map((r) => {
+										const id = `invite-role-${r.id}`;
+										return (
+											<label
+												key={r.id}
+												htmlFor={id}
+												className="flex items-center gap-2 text-sm"
+											>
+												<Checkbox
+													id={id}
+													checked={roleIds.includes(r.id)}
+													onCheckedChange={(v) =>
+														setRoleIds(
+															v === true
+																? [...roleIds, r.id]
+																: roleIds.filter((x) => x !== r.id),
+														)
+													}
+												/>
+												{r.name}
+											</label>
+										);
+									})}
+								</div>
+							</fieldset>
+						)}
 						<label className="flex items-center gap-2 text-sm">
 							<Checkbox
 								checked={sendMail}
