@@ -13,6 +13,8 @@ import {
 	processRisks,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import { GateBlocked } from "@/lib/approvals/gate-error";
+import { gateApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import {
 	applicableProcesses,
@@ -32,16 +34,20 @@ import {
 	setProcessStatusSchema,
 } from "@/lib/validation/governance";
 
-async function upsertProcessImpl(
-	input: unknown,
-): Promise<ActionResult<{ id: string; code: string }>> {
+type UpsertProcessResult = ActionResult<{
+	id: string;
+	code: string;
+	approvalPending?: boolean;
+}>;
+
+async function upsertProcessImpl(input: unknown): Promise<UpsertProcessResult> {
 	const c = await requireOrg({ process: ["create", "update"] });
 	const parsed = processSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { processId, code: wantedCode, ...d } = parsed.data;
-	const out = await mutateOrg<ActionResult<{ id: string; code: string }>>(
-		toOrgCtx(c),
-		async (tx) => {
+	let out: UpsertProcessResult;
+	try {
+		out = await mutateOrg<UpsertProcessResult>(toOrgCtx(c), async (tx) => {
 			const values = {
 				name: d.name,
 				description: d.description ?? null,
@@ -76,8 +82,31 @@ async function upsertProcessImpl(
 					.update(processes)
 					.set(values)
 					.where(eq(processes.id, processId));
+				// Freigabe-Designer: Änderungen an einem aktiven Prozess können
+				// eine Freigabe verlangen (Ablehnung setzt ihn auf Entwurf)
+				let approvalPending = false;
+				if (before.status === "active") {
+					const gate = await gateApproval(
+						tx,
+						{ orgId: c.orgId, userId: c.userId, name: c.name },
+						{
+							trigger: "process.change",
+							entityType: "process",
+							entityId: processId,
+							entityOwnerUserId: values.ownerUserId ?? before.ownerUserId,
+							title: `Prozess geändert: ${before.code} · ${d.name}`,
+							link: `/prozesse/${before.code}`,
+							facts: { criticality: d.criticality },
+						},
+					);
+					if (gate.status === "error") throw new GateBlocked(gate.error);
+					approvalPending = gate.status === "pending";
+				}
 				return {
-					result: { ok: true, data: { id: processId, code: before.code } },
+					result: {
+						ok: true,
+						data: { id: processId, code: before.code, approvalPending },
+					},
 					audit: {
 						action: "process.update",
 						target: `process:${processId}`,
@@ -124,8 +153,12 @@ async function upsertProcessImpl(
 					after: { code, name: d.name, criticality: d.criticality },
 				},
 			};
-		},
-	);
+		});
+	} catch (e) {
+		// niemand könnte die Änderung freigeben → nichts gespeichert
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		throw e;
+	}
 	revalidatePath("/prozesse", "layout");
 	return out;
 }
@@ -310,7 +343,14 @@ async function setProcessStatusImpl(
 		ActionResult<{ status: string; approvalRequested: boolean }>
 	>(toOrgCtx(c), async (tx) => {
 		const [row] = await tx
-			.select({ id: processes.id, status: processes.status })
+			.select({
+				id: processes.id,
+				code: processes.code,
+				name: processes.name,
+				status: processes.status,
+				criticality: processes.criticality,
+				ownerUserId: processes.ownerUserId,
+			})
 			.from(processes)
 			.where(
 				and(eq(processes.id, processId), eq(processes.organizationId, c.orgId)),
@@ -326,6 +366,36 @@ async function setProcessStatusImpl(
 				result: { ok: false, error: `transition_${check.reason}` },
 				audit: [],
 			};
+		// Freigabe-Designer: Aktivieren kann eine Freigabe verlangen
+		if (status === "active") {
+			const gate = await gateApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					trigger: "process.activate",
+					entityType: "process",
+					entityId: row.id,
+					entityOwnerUserId: row.ownerUserId,
+					title: `Prozess aktivieren: ${row.code} · ${row.name}`,
+					link: `/prozesse/${row.code}`,
+					facts: { criticality: row.criticality },
+				},
+			);
+			if (gate.status === "error")
+				return { result: { ok: false, error: gate.error }, audit: [] };
+			if (gate.status === "pending")
+				return {
+					result: {
+						ok: true,
+						data: { status: row.status, approvalRequested: true },
+					},
+					audit: {
+						action: "process.activate_requested",
+						target: `process:${row.id}`,
+						after: { requestId: gate.requestId, note: note ?? null },
+					},
+				};
+		}
 		await tx.update(processes).set({ status }).where(eq(processes.id, row.id));
 		return {
 			result: { ok: true, data: { status, approvalRequested: false } },

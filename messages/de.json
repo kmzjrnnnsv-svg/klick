@@ -840,7 +840,8 @@
 		"gate_targets_missing": "Erst die Ziele eintragen (eine URL oder ein System je Zeile).",
 		"gate_period_missing": "Erst den Testzeitraum (Beginn und Ende) eintragen.",
 		"gate_summary_missing": "Erst die Management-Summary im Reiter „Bericht“ schreiben.",
-		"gate_retest_open": "Noch offene Befunde ohne Nachtest – erst nachtesten oder bewusst akzeptieren."
+		"gate_retest_open": "Noch offene Befunde ohne Nachtest – erst nachtesten oder bewusst akzeptieren.",
+		"riskProposed": "Vorgeschlagen"
 	},
 	"Entity": {
 		"search": "Suchen …",
@@ -1421,7 +1422,9 @@
 		"mitigationAvailable": "Abhilfe verfügbar",
 		"mitigationSaved": "Abhilfe vermerkt — der Abschlussbericht ist in 14 Tagen fällig.",
 		"mitigationSince": "Abhilfe verfügbar seit {at} — der Abschlussbericht ist 14 Tage danach fällig.",
-		"mitigationHint": "Sobald ein Fix oder eine Abhilfe bereitsteht, vermerke es hier: Dann läuft die 14-Tage-Frist für den Abschlussbericht."
+		"mitigationHint": "Sobald ein Fix oder eine Abhilfe bereitsteht, vermerke es hier: Dann läuft die 14-Tage-Frist für den Abschlussbericht.",
+		"reportApprovalRequested": "Freigabe der Meldung angefragt — die Frist läuft weiter. Nach der Freigabe vermerkst du hier die Abgabe.",
+		"reportApprovalPending": "Die Meldung wartet noch auf Freigabe — die Frist läuft weiter."
 	},
 	"Approvals": {
 		"title": "Freigaben",
@@ -1470,7 +1473,12 @@
 		"rule_owner_of_entity": "Verantwortliche:r",
 		"rule_not_requester": "jemand außer der antragstellenden Person",
 		"rule_user": "benannte Person",
-		"rule_role": "Rolle {role}"
+		"rule_role": "Rolle {role}",
+		"gatePending": "Angelegt — wartet auf Freigabe.",
+		"gateError_no_approver": "Für diesen Ablauf kann gerade niemand freigeben. Prüfe die Stufen unter Einstellungen → Freigaben oder besetze die Rolle bzw. Funktion.",
+		"gateError_solo_reason_required": "Du bist allein in der Organisation — schalte den Ablauf aus oder lade eine zweite Person ein.",
+		"gateError_solo_not_allowed": "Selbstfreigabe ist hier nicht erlaubt. Lade eine zweite Person ein.",
+		"waitingBadge": "Wartet auf Freigabe"
 	},
 	"Providers": {
 		"linked": "Prozesse · Assets",
@@ -1551,7 +1559,8 @@
 		"status_exiting": "Im Ausstieg",
 		"status_terminated": "Beendet",
 		"contractStart": "Vertragsbeginn",
-		"tabOverview": "Übersicht"
+		"tabOverview": "Übersicht",
+		"status_declined": "Abgelehnt"
 	},
 	"Assets": {
 		"lifecycle": "Lebenszyklus",
@@ -1604,7 +1613,13 @@
 		"emptyLead": "Kein Asset ohne Verantwortliche:n — starte mit den Systemen, die Kundendaten tragen.",
 		"requiredBy": "Gefordert von CC-AST-01 · ISO 27001 A.5.9 · DORA Art. 8",
 		"importTitle": "Assets importieren",
-		"site": "Standort"
+		"site": "Standort",
+		"retire": "Außer Betrieb nehmen",
+		"retireConfirm": "„{name}“ außer Betrieb nehmen?",
+		"retired": "Außer Betrieb genommen",
+		"status_pending": "Wartet auf Freigabe",
+		"status_declined": "Abgelehnt",
+		"status_retired": "Außer Betrieb"
 	},
 	"Trainings": {
 		"title": "Schulungen",
@@ -1678,7 +1693,11 @@
 		"mineLead": "Deine Pflichtschulungen und Zuweisungen. Öffne den Kurs, absolviere ihn und bestätige den Abschluss.",
 		"assignees": "Zugewiesen",
 		"heuteTitle": "Deine Schulungen",
-		"completedAt": "abgeschlossen am {date}"
+		"completedAt": "abgeschlossen am {date}",
+		"proposed": "Vorgeschlagen — die Schulung wartet auf Freigabe.",
+		"proposalNeedsWorkflow": "Vorschläge brauchen den Ablauf „Schulung vorschlagen“. Bitte eine Inhaberin oder einen Inhaber, ihn unter Einstellungen → Freigaben einzuschalten.",
+		"approvalPending": "Wartet auf Freigabe",
+		"approvalRejected": "Abgelehnt"
 	},
 	"Tests": {
 		"title": "Wirksamkeitstests",
@@ -1809,7 +1828,8 @@
 		"category_control": "Kontrollprozesse",
 		"crit_critical": "kritisch",
 		"crit_important": "wichtig",
-		"crit_standard": "standard"
+		"crit_standard": "standard",
+		"changeApprovalRequested": "Gespeichert — die Änderung am aktiven Prozess wartet auf Freigabe."
 	},
 	"Organisation": {
 		"title": "Organisation",
@@ -3034,7 +3054,8 @@
 		"lead": "Kopfzeile mit Spaltennamen ({columns}); Trenner ; oder ,; jede Zeile wird wie das Formular validiert. Spalte organization_id wird ignoriert.",
 		"button": "CSV importieren",
 		"done": "{n} Zeilen importiert, {e} Fehler.",
-		"tooLarge": "Datei zu groß (max. 2 MB)."
+		"tooLarge": "Datei zu groß (max. 2 MB).",
+		"tooManyRows": "Höchstens 2000 Zeilen je Import — teile die Datei auf."
 	},
 	"Privacy": {
 		"title": "Datenschutz",

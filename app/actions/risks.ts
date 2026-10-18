@@ -17,7 +17,8 @@ import {
 	risks,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
-import { requestApproval } from "@/lib/approvals/service";
+import { GateBlocked } from "@/lib/approvals/gate-error";
+import { gateApproval, requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { loadRiskSource } from "@/lib/compliance/queries-risk-sources";
@@ -60,62 +61,96 @@ async function riskSettingsFor(
 
 async function createRiskImpl(
 	input: unknown,
-): Promise<ActionResult<{ id: string; code: string }>> {
+): Promise<
+	ActionResult<{ id: string; code: string; approvalPending: boolean }>
+> {
 	const c = await requireOrg({ risk: ["create"] });
 	const parsed = createRiskSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
-	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const existing = await tx
-			.select({ code: risks.code })
-			.from(risks)
-			.where(eq(risks.organizationId, c.orgId));
-		const code = nextRiskCode(existing.map((r) => r.code));
-		const settings = await riskSettingsFor(tx, c.orgId);
-		const [row] = await tx
-			.insert(risks)
-			.values({
-				organizationId: c.orgId,
-				code,
-				title: d.title,
-				description: d.description ?? null,
-				category: d.category,
-				likelihood: d.likelihood,
-				impact: d.impact,
-				ownerUserId: d.ownerUserId ?? c.userId,
-				reviewAt: plusMonths(settings.reviewDefaults?.risk ?? 3),
-			})
-			.returning({ id: risks.id });
-		if (!row) throw new Error("insert failed");
-		const a = assessRisk(
-			{ id: row.id, likelihood: d.likelihood, impact: d.impact },
-			settings.method,
-		);
-		if (a.aboveAppetite) {
-			await notify(tx, {
-				orgId: c.orgId,
-				recipients: [d.ownerUserId ?? c.userId],
-				actorUserId: null,
-				kind: "risk_above_appetite",
-				title: `${code} liegt über dem Risikoappetit (${a.effective.cls.label}, Wert ${a.effective.score})`,
-				link: `/risiken/${row.id}`,
-			});
-		}
-		return {
-			result: { id: row.id, code },
-			audit: {
-				action: "risk.create",
-				target: `risk:${row.id}`,
-				after: {
+	let out: { id: string; code: string; approvalPending: boolean };
+	try {
+		out = await mutateOrg(toOrgCtx(c), async (tx) => {
+			const existing = await tx
+				.select({ code: risks.code })
+				.from(risks)
+				.where(eq(risks.organizationId, c.orgId));
+			const code = nextRiskCode(existing.map((r) => r.code));
+			const settings = await riskSettingsFor(tx, c.orgId);
+			const [row] = await tx
+				.insert(risks)
+				.values({
+					organizationId: c.orgId,
 					code,
 					title: d.title,
+					description: d.description ?? null,
+					category: d.category,
 					likelihood: d.likelihood,
 					impact: d.impact,
-					category: d.category,
+					ownerUserId: d.ownerUserId ?? c.userId,
+					reviewAt: plusMonths(settings.reviewDefaults?.risk ?? 3),
+				})
+				.returning({ id: risks.id });
+			if (!row) throw new Error("insert failed");
+			const a = assessRisk(
+				{ id: row.id, likelihood: d.likelihood, impact: d.impact },
+				settings.method,
+			);
+			// Freigabe-Designer: Aufnahme kann eine Freigabe verlangen
+			const gate = await gateApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					trigger: "risk.create",
+					entityType: "risk",
+					entityId: row.id,
+					entityOwnerUserId: d.ownerUserId ?? c.userId,
+					title: `Risiko aufnehmen: ${code} · ${d.title}`,
+					link: `/risiken/${row.id}`,
+					facts: { riskCategory: d.category, score: a.effective.score },
 				},
-			},
-		};
-	});
+			);
+			if (gate.status === "error")
+				throw new GateBlocked(gate.error, gate.warnings);
+			if (gate.status === "pending")
+				await tx
+					.update(risks)
+					.set({ status: "proposed" })
+					.where(eq(risks.id, row.id));
+			if (a.aboveAppetite && gate.status !== "pending") {
+				await notify(tx, {
+					orgId: c.orgId,
+					recipients: [d.ownerUserId ?? c.userId],
+					actorUserId: null,
+					kind: "risk_above_appetite",
+					title: `${code} liegt über dem Risikoappetit (${a.effective.cls.label}, Wert ${a.effective.score})`,
+					link: `/risiken/${row.id}`,
+				});
+			}
+			return {
+				result: {
+					id: row.id,
+					code,
+					approvalPending: gate.status === "pending",
+				},
+				audit: {
+					action: "risk.create",
+					target: `risk:${row.id}`,
+					after: {
+						code,
+						title: d.title,
+						likelihood: d.likelihood,
+						impact: d.impact,
+						category: d.category,
+						approvalPending: gate.status === "pending",
+					},
+				},
+			};
+		});
+	} catch (e) {
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		throw e;
+	}
 	revalidatePath("/risiken");
 	return { ok: true, data: out };
 }
@@ -261,71 +296,60 @@ async function setRiskStatusImpl(
 				audit: [],
 			};
 
-		// Akzeptanz über dem tolerierbaren Appetit → Workflow risk_acceptance.
+		// Akzeptieren: gleiche Regeln wie im Assistenten (Stufen je
+		// Risikoklasse, sonst Workflow über dem Appetit) — acceptRisk
 		if (status === "accepted") {
 			const settings = await riskSettingsFor(tx, c.orgId);
-			const a = assessRisk(row, settings.method);
-			if (a.aboveAppetite) {
-				const r = await requestApproval(
-					tx,
-					{ orgId: c.orgId, userId: c.userId, name: c.name },
-					{
-						kind: "risk_acceptance",
-						entityType: "risk",
-						entityId: riskId,
-						entityOwnerUserId: row.ownerUserId,
-						title: `${row.code} · ${row.title}`,
-						link: `/risiken/${riskId}`,
-						selfApprovalReason,
-					},
-				);
-				if (!r.ok) return { result: { ok: false, error: r.error }, audit: [] };
-				if (r.status === "pending") {
-					return {
-						result: {
-							ok: true,
-							data: { status: row.status, approvalRequested: true },
-						},
-						audit: {
-							action: "risk.acceptance_requested",
-							target: `risk:${riskId}`,
-							after: { requestId: r.requestId, note: note ?? null },
-						},
-					};
-				}
-				await tx
-					.update(risks)
-					.set({
-						status: "accepted",
-						acceptedByUserId: c.userId,
-						acceptedAt: new Date(),
-					})
-					.where(eq(risks.id, riskId));
+			const r = await acceptRisk(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				row,
+				settings.method,
+				{ selfApprovalReason },
+			);
+			if (r.status === "failed")
+				return { result: { ok: false, error: r.error }, audit: [] };
+			if (r.status === "pending")
 				return {
 					result: {
 						ok: true,
-						data: { status: "accepted", approvalRequested: false },
+						data: { status: row.status, approvalRequested: true },
 					},
 					audit: {
-						action: r.selfApproved ? "approval.self_approved" : "risk.status",
+						action: "risk.acceptance_requested",
 						target: `risk:${riskId}`,
-						before: { status: row.status },
-						after: {
-							status: "accepted",
-							reason: selfApprovalReason ?? null,
-							requestId: r.requestId,
-						},
+						after: { requestId: r.requestId, note: note ?? null },
 					},
 				};
-			}
+			if (note?.trim())
+				await tx
+					.update(risks)
+					.set({
+						description: `${row.description ?? ""}\n\n${note.trim()}`.trim(),
+					})
+					.where(eq(risks.id, riskId));
+			return {
+				result: {
+					ok: true,
+					data: { status: "accepted", approvalRequested: false },
+				},
+				audit: {
+					action: r.selfApproved ? "approval.self_approved" : "risk.status",
+					target: `risk:${riskId}`,
+					before: { status: row.status },
+					after: {
+						status: "accepted",
+						note: note ?? null,
+						reason: selfApprovalReason ?? null,
+						requestId: r.requestId ?? null,
+					},
+				},
+			};
 		}
 		await tx
 			.update(risks)
 			.set({
 				status,
-				...(status === "accepted"
-					? { acceptedByUserId: c.userId, acceptedAt: new Date() }
-					: {}),
 				description: note?.trim()
 					? `${row.description ?? ""}\n\n${note.trim()}`.trim()
 					: row.description,
@@ -397,6 +421,8 @@ type GuidedResult = {
 	code: string;
 	acceptance: "accepted" | "pending" | "failed" | null;
 	acceptanceError?: string;
+	// Aufnahme wartet auf Freigabe (Auslöser risk.create)
+	intakePending?: boolean;
 };
 
 async function saveGuided(
@@ -584,6 +610,35 @@ async function saveGuided(
 				if (!row) throw new Error("insert failed");
 				id = row.id;
 				status = "open";
+				// Freigabe-Designer: Aufnahme kann eine Freigabe verlangen
+				const gate = await gateApproval(
+					tx,
+					{ orgId: c.orgId, userId: c.userId, name: c.name },
+					{
+						trigger: "risk.create",
+						entityType: "risk",
+						entityId: id,
+						entityOwnerUserId: ownerUserId,
+						title: `Risiko aufnehmen: ${code} · ${d.title}`,
+						link: `/risiken/${id}`,
+						facts: {
+							riskCategory: d.category,
+							score: assessRisk(
+								{ id, likelihood: d.likelihood, impact },
+								method,
+							).effective.score,
+						},
+					},
+				);
+				if (gate.status === "error")
+					throw new GateBlocked(gate.error, gate.warnings);
+				if (gate.status === "pending") {
+					await tx
+						.update(risks)
+						.set({ status: "proposed" })
+						.where(eq(risks.id, id));
+					status = "proposed";
+				}
 			}
 			if (ctrlRows.length > 0)
 				await tx
@@ -641,7 +696,10 @@ async function saveGuided(
 
 			let acceptance: GuidedResult["acceptance"] = null;
 			let acceptanceError: string | undefined;
-			if (
+			if (d.treatment === "accept" && status === "proposed") {
+				// erst nach der Aufnahme-Freigabe akzeptierbar
+				acceptanceError = "intake_pending";
+			} else if (
 				d.treatment === "accept" &&
 				status !== "accepted" &&
 				!allows(c, { risk: ["accept"] })
@@ -698,7 +756,13 @@ async function saveGuided(
 			return {
 				result: {
 					ok: true,
-					data: { id, code, acceptance, acceptanceError },
+					data: {
+						id,
+						code,
+						acceptance,
+						acceptanceError,
+						intakePending: status === "proposed",
+					},
 				},
 				audit: {
 					action: d.riskId ? "risk.reassess" : "risk.create",
@@ -780,7 +844,13 @@ async function createRiskGuidedImpl(
 	const parsed = guidedRiskSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	if (parsed.data.riskId) return { ok: false, error: "notFound" };
-	return saveGuided(c, parsed.data);
+	try {
+		return await saveGuided(c, parsed.data);
+	} catch (e) {
+		// Aufnahme-Freigabe ohne mögliche Freigebende → nichts anlegen
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		throw e;
+	}
 }
 
 async function reassessRiskImpl(

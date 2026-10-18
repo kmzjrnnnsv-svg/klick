@@ -98,10 +98,13 @@ export async function syncTrainingAssignments(
 	tx: OrgTx,
 	orgId: string,
 ): Promise<number> {
-	const reqs = await tx
-		.select()
-		.from(trainingRequirements)
-		.where(eq(trainingRequirements.organizationId, orgId));
+	// nur freigegebene Schulungen (Vorschläge warten auf training.propose)
+	const reqs = (
+		await tx
+			.select()
+			.from(trainingRequirements)
+			.where(eq(trainingRequirements.organizationId, orgId))
+	).filter((r) => r.approvalStatus === "approved");
 	if (reqs.length === 0) return 0;
 	const members = await tx
 		.select({ userId: member.userId, role: member.role })

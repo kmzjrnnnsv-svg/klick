@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { assets, providers, risks } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import { GateBlocked } from "@/lib/approvals/gate-error";
+import { gateApproval } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nextRiskCode } from "@/lib/compliance/risk";
@@ -56,51 +58,87 @@ async function importRisksCsvImpl(
 		if (res.success) valid.push(res.data);
 		else errors.push(rowErrors(i, res.error));
 	});
-	const imported = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const settings = await getOrgSettings(tx, c.orgId);
-		// Wiedervorlage wie bei der Anlage im Formular
-		const reviewAt = plusMonths(settings?.reviewDefaults.risk ?? 3);
-		const existing = (
-			await tx
-				.select({ code: risks.code })
-				.from(risks)
-				.where(eq(risks.organizationId, c.orgId))
-		).map((x) => x.code);
-		const audits: AuditInput[] = [];
-		let n = 0;
-		for (const d of valid) {
-			const code = nextRiskCode(existing);
-			existing.push(code);
-			const [row] = await tx
-				.insert(risks)
-				.values({
-					organizationId: c.orgId,
-					code,
-					title: d.title,
-					description: d.description ?? null,
-					category: d.category,
-					likelihood: d.likelihood,
-					impact: d.impact,
-					ownerUserId: c.userId,
-					reviewAt,
-				})
-				.returning({ id: risks.id });
-			if (row) {
-				n += 1;
-				audits.push({
-					action: "risk.create",
-					target: `risk:${row.id}`,
-					after: { code, title: d.title, via: "csv" },
-				});
+	let imported: number;
+	try {
+		imported = await mutateOrg(toOrgCtx(c), async (tx) => {
+			const settings = await getOrgSettings(tx, c.orgId);
+			// Wiedervorlage wie bei der Anlage im Formular
+			const reviewAt = plusMonths(settings?.reviewDefaults.risk ?? 3);
+			const existing = (
+				await tx
+					.select({ code: risks.code })
+					.from(risks)
+					.where(eq(risks.organizationId, c.orgId))
+			).map((x) => x.code);
+			const audits: AuditInput[] = [];
+			let n = 0;
+			for (const d of valid) {
+				const code = nextRiskCode(existing);
+				existing.push(code);
+				const [row] = await tx
+					.insert(risks)
+					.values({
+						organizationId: c.orgId,
+						code,
+						title: d.title,
+						description: d.description ?? null,
+						category: d.category,
+						likelihood: d.likelihood,
+						impact: d.impact,
+						ownerUserId: c.userId,
+						reviewAt,
+					})
+					.returning({ id: risks.id });
+				if (row) {
+					n += 1;
+					// Freigabe-Designer: je Zeile ein Antrag (Score nach Altmethode
+					// L × I, die Methode der Org kennt der Import nicht)
+					const gate = await gateApproval(
+						tx,
+						{ orgId: c.orgId, userId: c.userId, name: c.name },
+						{
+							trigger: "risk.create",
+							entityType: "risk",
+							entityId: row.id,
+							entityOwnerUserId: c.userId,
+							title: `Risiko aufnehmen: ${code} · ${d.title}`,
+							link: `/risiken/${row.id}`,
+							facts: {
+								riskCategory: d.category,
+								score: d.likelihood * d.impact,
+							},
+						},
+					);
+					if (gate.status === "error")
+						throw new GateBlocked(gate.error, gate.warnings);
+					if (gate.status === "pending")
+						await tx
+							.update(risks)
+							.set({ status: "proposed" })
+							.where(eq(risks.id, row.id));
+					audits.push({
+						action: "risk.create",
+						target: `risk:${row.id}`,
+						after: {
+							code,
+							title: d.title,
+							via: "csv",
+							approvalPending: gate.status === "pending",
+						},
+					});
+				}
 			}
-		}
-		audits.push({
-			action: "import.risks",
-			target: `organization:${c.orgId}`,
-			after: { rows: table.rows.length, imported: n, errors: errors.length },
+			audits.push({
+				action: "import.risks",
+				target: `organization:${c.orgId}`,
+				after: { rows: table.rows.length, imported: n, errors: errors.length },
+			});
+			return { result: n, audit: audits };
 		});
-		return { result: n, audit: audits };
-	});
+	} catch (e) {
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		throw e;
+	}
 	revalidatePath("/risiken");
 	return { ok: true, data: { imported, errors } };
 }
@@ -149,48 +187,80 @@ async function importAssetsCsvImpl(
 		if (res.success) valid.push(res.data);
 		else errors.push(rowErrors(i, res.error));
 	});
-	const imported = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const audits: AuditInput[] = [];
-		let n = 0;
-		for (const d of valid) {
-			const [row] = await tx
-				.insert(assets)
-				.values({
-					organizationId: c.orgId,
-					name: d.name,
-					type: d.type,
-					classification: d.classification,
-					ownerUserId: c.userId,
-					location: d.location ?? null,
-					description: d.description ?? null,
-					isLegacy: d.isLegacy,
-					custodian: d.custodian ?? null,
-					backupLocation: d.backupLocation ?? null,
-					vendor: d.vendor || null,
-					product: d.product || null,
-					version: d.version || null,
-					endOfLifeAt: d.endOfLifeAt ?? null,
-					supportEndAt: d.supportEndAt ?? null,
-					maintenance: d.maintenance ?? null,
-					lastPatchedAt: d.lastPatchedAt ?? null,
-				})
-				.returning({ id: assets.id });
-			if (row) {
-				n += 1;
-				audits.push({
-					action: "asset.create",
-					target: `asset:${row.id}`,
-					after: { name: d.name, type: d.type, via: "csv" },
-				});
+	let imported: number;
+	try {
+		imported = await mutateOrg(toOrgCtx(c), async (tx) => {
+			const audits: AuditInput[] = [];
+			let n = 0;
+			for (const d of valid) {
+				const [row] = await tx
+					.insert(assets)
+					.values({
+						organizationId: c.orgId,
+						name: d.name,
+						type: d.type,
+						classification: d.classification,
+						ownerUserId: c.userId,
+						location: d.location ?? null,
+						description: d.description ?? null,
+						isLegacy: d.isLegacy,
+						custodian: d.custodian ?? null,
+						backupLocation: d.backupLocation ?? null,
+						vendor: d.vendor || null,
+						product: d.product || null,
+						version: d.version || null,
+						endOfLifeAt: d.endOfLifeAt ?? null,
+						supportEndAt: d.supportEndAt ?? null,
+						maintenance: d.maintenance ?? null,
+						lastPatchedAt: d.lastPatchedAt ?? null,
+					})
+					.returning({ id: assets.id });
+				if (row) {
+					n += 1;
+					// Freigabe-Designer: je Zeile ein Antrag, sonst sofort aktiv
+					const gate = await gateApproval(
+						tx,
+						{ orgId: c.orgId, userId: c.userId, name: c.name },
+						{
+							trigger: "asset.create",
+							entityType: "asset",
+							entityId: row.id,
+							entityOwnerUserId: c.userId,
+							title: `Asset aufnehmen: ${d.name}`,
+							link: "/assets",
+							facts: { assetType: d.type, classification: d.classification },
+						},
+					);
+					if (gate.status === "error")
+						throw new GateBlocked(gate.error, gate.warnings);
+					if (gate.status === "pending")
+						await tx
+							.update(assets)
+							.set({ status: "pending" })
+							.where(eq(assets.id, row.id));
+					audits.push({
+						action: "asset.create",
+						target: `asset:${row.id}`,
+						after: {
+							name: d.name,
+							type: d.type,
+							via: "csv",
+							approvalPending: gate.status === "pending",
+						},
+					});
+				}
 			}
-		}
-		audits.push({
-			action: "import.assets",
-			target: `organization:${c.orgId}`,
-			after: { rows: table.rows.length, imported: n, errors: errors.length },
+			audits.push({
+				action: "import.assets",
+				target: `organization:${c.orgId}`,
+				after: { rows: table.rows.length, imported: n, errors: errors.length },
+			});
+			return { result: n, audit: audits };
 		});
-		return { result: n, audit: audits };
-	});
+	} catch (e) {
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		throw e;
+	}
 	revalidatePath("/assets");
 	return { ok: true, data: { imported, errors } };
 }
@@ -246,49 +316,87 @@ async function importProvidersCsvImpl(
 		if (res.success) valid.push(res.data);
 		else errors.push(rowErrors(i, res.error));
 	});
-	const imported = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const audits: AuditInput[] = [];
-		let n = 0;
-		for (const d of valid) {
-			const [row] = await tx
-				.insert(providers)
-				.values({
-					organizationId: c.orgId,
-					name: d.name,
-					partnerType: d.partnerType,
-					serviceType: d.serviceType ?? null,
-					serviceDescription: d.serviceDescription ?? null,
-					category: d.category ?? null,
-					criticality: d.criticality,
-					isIct: d.isIct,
-					isOutsourcing: d.isOutsourcing,
-					isMaterial: d.isMaterial,
-					country: d.country ?? null,
-					dataLocations: [],
-					processesPersonalData: d.processesPersonalData,
-					contractRef: d.contractRef ?? null,
-					contractEnd: d.contractEnd ?? null,
-					noticePeriodDays: d.noticePeriodDays ?? null,
-					ownerUserId: c.userId,
-					notes: d.notes ?? null,
-				})
-				.returning({ id: providers.id });
-			if (row) {
-				n += 1;
-				audits.push({
-					action: "provider.create",
-					target: `provider:${row.id}`,
-					after: { name: d.name, partnerType: d.partnerType, via: "csv" },
-				});
+	let imported: number;
+	try {
+		imported = await mutateOrg(toOrgCtx(c), async (tx) => {
+			const audits: AuditInput[] = [];
+			let n = 0;
+			for (const d of valid) {
+				const [row] = await tx
+					.insert(providers)
+					.values({
+						organizationId: c.orgId,
+						name: d.name,
+						partnerType: d.partnerType,
+						serviceType: d.serviceType ?? null,
+						serviceDescription: d.serviceDescription ?? null,
+						category: d.category ?? null,
+						criticality: d.criticality,
+						isIct: d.isIct,
+						isOutsourcing: d.isOutsourcing,
+						isMaterial: d.isMaterial,
+						country: d.country ?? null,
+						dataLocations: [],
+						processesPersonalData: d.processesPersonalData,
+						contractRef: d.contractRef ?? null,
+						contractEnd: d.contractEnd ?? null,
+						noticePeriodDays: d.noticePeriodDays ?? null,
+						ownerUserId: c.userId,
+						notes: d.notes ?? null,
+					})
+					.returning({ id: providers.id });
+				if (row) {
+					n += 1;
+					// Freigabe-Designer: je Zeile ein Antrag, sonst sofort aktiv
+					const gate = await gateApproval(
+						tx,
+						{ orgId: c.orgId, userId: c.userId, name: c.name },
+						{
+							trigger: "provider.create",
+							entityType: "provider",
+							entityId: row.id,
+							entityOwnerUserId: c.userId,
+							title: `Dienstleister aufnehmen: ${d.name}`,
+							link: `/dienstleister/${row.id}`,
+							facts: {
+								criticality: d.criticality,
+								category: d.category ?? null,
+								isIct: d.isIct,
+								isOutsourcing: d.isOutsourcing,
+								isMaterial: d.isMaterial,
+							},
+						},
+					);
+					if (gate.status === "error")
+						throw new GateBlocked(gate.error, gate.warnings);
+					if (gate.status === "pending")
+						await tx
+							.update(providers)
+							.set({ status: "onboarding" })
+							.where(eq(providers.id, row.id));
+					audits.push({
+						action: "provider.create",
+						target: `provider:${row.id}`,
+						after: {
+							name: d.name,
+							partnerType: d.partnerType,
+							via: "csv",
+							approvalPending: gate.status === "pending",
+						},
+					});
+				}
 			}
-		}
-		audits.push({
-			action: "import.providers",
-			target: `organization:${c.orgId}`,
-			after: { rows: table.rows.length, imported: n, errors: errors.length },
+			audits.push({
+				action: "import.providers",
+				target: `organization:${c.orgId}`,
+				after: { rows: table.rows.length, imported: n, errors: errors.length },
+			});
+			return { result: n, audit: audits };
 		});
-		return { result: n, audit: audits };
-	});
+	} catch (e) {
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		throw e;
+	}
 	revalidatePath("/dienstleister");
 	return { ok: true, data: { imported, errors } };
 }

@@ -76,7 +76,9 @@ export default async function AssetsPage({
 		.filter((r) => !type || r.type === type)
 		.filter((r) => !cls || r.classification === cls)
 		.filter((r) => !keys || r.type === "key_material" || r.type === "hsm")
-		.filter((r) => !unowned || !r.ownerUserId);
+		.filter((r) => !unowned || !r.ownerUserId)
+		// abgelehnte Aufnahmen nur auf Wunsch (?status=declined)
+		.filter((r) => r.status !== "declined" || one(sp.status) === "declined");
 	const columns: Column<Row>[] = [
 		{
 			key: "name",
@@ -84,6 +86,14 @@ export default async function AssetsPage({
 			cell: (r) => (
 				<span>
 					<span className="font-medium">{r.name}</span>
+					{r.status !== "active" && (
+						<Badge
+							variant={r.status === "pending" ? "warning" : "muted"}
+							className="ml-2"
+						>
+							{t(`status_${r.status}` as "status_pending")}
+						</Badge>
+					)}
 					{r.description && (
 						<span className="block text-muted-foreground text-xs">
 							{r.description}
@@ -203,6 +213,7 @@ export default async function AssetsPage({
 						sites={siteOptions}
 						initial={{
 							assetId: r.id,
+							status: r.status,
 							name: r.name,
 							type: r.type,
 							classification: r.classification,

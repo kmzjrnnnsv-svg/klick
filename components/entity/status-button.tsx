@@ -219,7 +219,11 @@ export function StatusButton({
 					note: withNote,
 				});
 				if (!res.ok) return fail(res.error);
-				toast.success(t("statusChanged"));
+				toast.success(
+					res.data.approvalRequested
+						? t("approvalRequested")
+						: t("statusChanged"),
+				);
 			} else if (target.kind === "security_engagement") {
 				const res = await setEngagementStatus({
 					engagementId: target.engagementId,
@@ -251,7 +255,11 @@ export function StatusButton({
 					note: withNote,
 				});
 				if (!res.ok) return fail(res.error);
-				toast.success(t("statusChanged"));
+				toast.success(
+					res.data.approvalRequested
+						? t("approvalRequested")
+						: t("statusChanged"),
+				);
 			} else {
 				const res = await transitionDocument({
 					documentId: target.documentId,

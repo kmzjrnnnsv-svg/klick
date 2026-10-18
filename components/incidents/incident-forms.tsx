@@ -11,6 +11,7 @@ import {
 	markIncidentReported,
 	markMitigationAvailable,
 } from "@/app/actions/incidents";
+import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -439,6 +440,7 @@ export function ReportButton({
 }) {
 	const t = useTranslations("Incidents");
 	const tc = useTranslations("Common");
+	const gate = useGateFeedback();
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	return (
@@ -449,11 +451,20 @@ export function ReportButton({
 			onClick={() =>
 				start(async () => {
 					const res = await markIncidentReported({ incidentId, report });
-					if (!res.ok) toast.error(tc("error"));
-					else {
-						toast.success(t("reported"));
-						router.refresh();
+					if (!res.ok) {
+						toast.error(
+							res.error === "approval_pending"
+								? t("reportApprovalPending")
+								: (gate.errorText(res.error) ?? tc("error")),
+						);
+						return;
 					}
+					toast.success(
+						res.data.approvalRequested
+							? t("reportApprovalRequested")
+							: t("reported"),
+					);
+					router.refresh();
 				})
 			}
 		>

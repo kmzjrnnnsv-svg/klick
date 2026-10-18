@@ -11,6 +11,7 @@ import {
 	setProcessRaci,
 	upsertProcess,
 } from "@/app/actions/processes";
+import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -95,6 +96,7 @@ export function ProcessForm({
 }) {
 	const t = useTranslations("Processes");
 	const tc = useTranslations("Common");
+	const gate = useGateFeedback();
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
@@ -158,9 +160,17 @@ export function ProcessForm({
 							});
 							if (!res.ok)
 								return void toast.error(
-									res.error === "codeTaken" ? t("codeTaken") : tc("error"),
+									res.error === "codeTaken"
+										? t("codeTaken")
+										: (gate.errorText(res.error) ?? tc("error")),
 								);
-							toast.success(initial ? t("saved") : t("created"));
+							toast.success(
+								res.data.approvalPending
+									? t("changeApprovalRequested")
+									: initial
+										? t("saved")
+										: t("created"),
+							);
 							setOpen(false);
 							if (!initial) router.push(`/prozesse/${res.data.code}`);
 							else router.refresh();

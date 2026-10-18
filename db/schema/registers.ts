@@ -38,6 +38,8 @@ export const PROVIDER_STATUSES = [
 	"paused",
 	"exiting",
 	"terminated",
+	// Aufnahme abgelehnt (Auslöser provider.create)
+	"declined",
 ] as const;
 
 export type ContractClauses = Record<string, boolean | string>;
@@ -197,7 +199,8 @@ export const assets = pgTable(
 		maintenanceUntil: date(),
 		lastPatchedAt: date(),
 		siteId: uuid().references(() => sites.id, { onDelete: "set null" }),
-		status: text({ enum: ["active", "retired"] })
+		// pending/declined: Aufnahme wartet bzw. abgelehnt (asset.create)
+		status: text({ enum: ["active", "retired", "pending", "declined"] })
 			.notNull()
 			.default("active"),
 		...timestamps(),

@@ -336,6 +336,7 @@ async function transitionDocumentImpl(
 					title: `${doc.docNumber} · ${doc.title} v${doc.version}`,
 					link: `/dokumente/${encodeURIComponent(doc.docNumber)}`,
 					selfApprovalReason,
+					facts: { classification: doc.classification },
 				},
 			);
 			if (!r.ok) {

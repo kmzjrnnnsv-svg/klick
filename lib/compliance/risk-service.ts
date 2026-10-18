@@ -98,6 +98,11 @@ export async function acceptRisk(
 			link: `/risiken/${risk.id}`,
 			selfApprovalReason: opts.selfApprovalReason,
 			steps: steps ?? undefined,
+			// Bedingungen im Freigabe-Designer (Kategorie, Wert)
+			facts: {
+				score: a.effective.score,
+				riskCategory: (risk as { category?: string }).category ?? null,
+			},
 		});
 		// Workflow aus: unterhalb des Appetits entscheidet die Person selbst
 		if (!r.ok && r.error === "workflow_disabled" && !a.aboveAppetite)

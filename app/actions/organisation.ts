@@ -776,6 +776,7 @@ async function upsertObjectiveImpl(input: unknown): Promise<
 					title: `Ziel: ${d.title}`,
 					link: "/organisation?tab=ziele",
 					selfApprovalReason,
+					facts: { indicatorType: d.indicatorType },
 				},
 			);
 			const approve = async () =>

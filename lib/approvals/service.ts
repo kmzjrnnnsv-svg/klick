@@ -505,6 +505,9 @@ export type DecideResult =
 			entityType: EntityKind;
 			entityId: string;
 			onBehalfOf?: string;
+			// Auslöser des Ablaufs (outcomes.ts unterscheidet z. B.
+			// risk.create von risk.accept)
+			trigger: string | null;
 	  }
 	| {
 			ok: false;
@@ -673,6 +676,7 @@ export async function decide(
 		entityType: req.entityType,
 		entityId: req.entityId,
 		onBehalfOf: elig.via === "delegation" ? elig.onBehalfOf : undefined,
+		trigger: triggerOf(wf),
 	};
 }
 

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { member } from "@/db/auth-schema";
 import { nonconformities, tasks } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import { gateApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import {
@@ -198,6 +199,46 @@ async function setNonconformityStatusImpl(
 				result: { ok: false, error: "correctiveActionRequired" },
 				audit: [],
 			};
+		// Freigabe-Designer: Maßnahmenplan (offen → in Bearbeitung) und
+		// Abschluss können eine Freigabe verlangen; bis dahin bleibt der Status
+		const trigger =
+			status === "in_progress" && row.status === "open"
+				? "nonconformity.plan"
+				: status === "closed"
+					? "nonconformity.close"
+					: null;
+		if (trigger) {
+			const gate = await gateApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					trigger,
+					entityType: "nonconformity",
+					entityId: row.id,
+					entityOwnerUserId: row.ownerUserId,
+					title: `${row.code} · ${row.title}`,
+					link: `${PATH}/${row.id}`,
+					facts: { ncPriority: row.priority, ncSource: row.source },
+				},
+			);
+			if (gate.status === "error")
+				return { result: { ok: false, error: gate.error }, audit: [] };
+			if (gate.status === "pending")
+				return {
+					result: {
+						ok: true,
+						data: { status: row.status, approvalRequested: true },
+					},
+					audit: {
+						action:
+							trigger === "nonconformity.plan"
+								? "nonconformity.plan_requested"
+								: "nonconformity.close_requested",
+						target: `nonconformity:${row.id}`,
+						after: { requestId: gate.requestId, note: note ?? null },
+					},
+				};
+		}
 		await tx
 			.update(nonconformities)
 			.set({ status })

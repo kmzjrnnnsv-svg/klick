@@ -341,6 +341,11 @@ export const providerSchema = z.object({
 	notes: longText.optional(),
 });
 
+export const retireAssetSchema = z.object({
+	assetId: z.uuid(),
+	note: z.string().trim().max(500).optional(),
+});
+
 export const assetSchema = z.object({
 	assetId: uuid.optional(),
 	name: shortText,

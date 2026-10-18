@@ -689,7 +689,10 @@ export const risks = pgTable(
 		residualImpact: integer(),
 		ownerUserId: userRef(),
 		assigneeUserId: userRef(),
-		status: text({ enum: ["open", "in_treatment", "accepted", "closed"] })
+		// proposed: wartet auf Freigabe (Auslöser risk.create)
+		status: text({
+			enum: ["proposed", "open", "in_treatment", "accepted", "closed"],
+		})
 			.notNull()
 			.default("open"),
 		reviewAt: date(),

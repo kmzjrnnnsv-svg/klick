@@ -11,7 +11,11 @@ import {
 } from "@/db/schema";
 import type { IncidentRegime } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
-import { requestApproval } from "@/lib/approvals/service";
+import {
+	approvalState,
+	gateApproval,
+	requestApproval,
+} from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
@@ -337,12 +341,20 @@ async function classifyIncidentImpl(
 	return res;
 }
 
-async function markIncidentReportedImpl(input: unknown): Promise<ActionResult> {
+const REPORT_LABEL = {
+	initial: "Erstmeldung",
+	intermediate: "Zwischenbericht",
+	final: "Abschlussbericht",
+} as const;
+
+type ReportResult = ActionResult<{ approvalRequested: boolean }>;
+
+async function markIncidentReportedImpl(input: unknown): Promise<ReportResult> {
 	const c = await requireOrg({ incident: ["update"] });
 	const parsed = incidentReportSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
-	const ok = await mutateOrg(toOrgCtx(c), async (tx) => {
+	const res = await mutateOrg<ReportResult>(toOrgCtx(c), async (tx) => {
 		const [row] = await tx
 			.select()
 			.from(incidents)
@@ -353,7 +365,43 @@ async function markIncidentReportedImpl(input: unknown): Promise<ActionResult> {
 				),
 			)
 			.limit(1);
-		if (!row) return { result: false, audit: [] };
+		if (!row) return { result: { ok: false, error: "notFound" }, audit: [] };
+		// Freigabe-Designer („vorab“): die Meldung an die Aufsicht erst nach
+		// Freigabe als abgegeben markieren — je Meldung ein Antrag. Fehlt er,
+		// wird er hier gestellt; die Meldefrist läuft weiter.
+		const gateInput = {
+			trigger: "incident.report",
+			entityType: "incident" as const,
+			entityId: row.id,
+			entityVersionRef: d.report,
+			facts: { incidentClass: row.classification },
+		};
+		const state = await approvalState(tx, c.orgId, gateInput);
+		if (state === "pending")
+			return { result: { ok: false, error: "approval_pending" }, audit: [] };
+		if (state === "missing") {
+			const gate = await gateApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					...gateInput,
+					entityOwnerUserId: row.ownerUserId,
+					title: `${REPORT_LABEL[d.report]} freigeben: ${row.code} · ${row.title}`,
+					link: `/vorfaelle/${row.id}`,
+				},
+			);
+			if (gate.status === "error")
+				return { result: { ok: false, error: gate.error }, audit: [] };
+			if (gate.status === "pending")
+				return {
+					result: { ok: true, data: { approvalRequested: true } },
+					audit: {
+						action: "incident.report_requested",
+						target: `incident:${row.id}`,
+						after: { report: d.report, requestId: gate.requestId },
+					},
+				};
+		}
 		const now = new Date();
 		const patch =
 			d.report === "initial"
@@ -383,10 +431,10 @@ async function markIncidentReportedImpl(input: unknown): Promise<ActionResult> {
 			incidentId: row.id,
 			authorUserId: c.userId,
 			kind: "report_sent",
-			body: `${d.report === "initial" ? "Erstmeldung" : d.report === "intermediate" ? "Zwischenbericht" : "Abschlussbericht"} abgegeben.${d.note ? ` ${d.note}` : ""}`,
+			body: `${REPORT_LABEL[d.report]} abgegeben.${d.note ? ` ${d.note}` : ""}`,
 		});
 		return {
-			result: true,
+			result: { ok: true, data: { approvalRequested: false } },
 			audit: {
 				action: "incident.report_sent",
 				target: `incident:${row.id}`,
@@ -394,9 +442,8 @@ async function markIncidentReportedImpl(input: unknown): Promise<ActionResult> {
 			},
 		};
 	});
-	if (!ok) return { ok: false, error: "notFound" };
 	revalidatePath("/vorfaelle", "layout");
-	return { ok: true, data: undefined };
+	return res;
 }
 
 // CRA: Korrektur/Abhilfe verfügbar → Abschlussbericht binnen 14 Tagen
@@ -543,6 +590,7 @@ async function setIncidentStatusImpl(
 					title: `${row.code} · ${row.title}`,
 					link: `/vorfaelle/${row.id}`,
 					selfApprovalReason,
+					facts: { incidentClass: row.classification },
 				},
 			);
 			if (r.ok && r.status === "pending") {

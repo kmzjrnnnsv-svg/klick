@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import { FormDialog } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ export function CsvImport({
 }) {
 	const t = useTranslations("Import");
 	const tc = useTranslations("Common");
+	const gate = useGateFeedback();
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
@@ -49,7 +51,12 @@ export function CsvImport({
 			onSubmit={() =>
 				start(async () => {
 					const res = await action({ csv });
-					if (!res.ok) return void toast.error(res.error || tc("error"));
+					if (!res.ok)
+						return void toast.error(
+							res.error === "tooManyRows"
+								? t("tooManyRows")
+								: (gate.errorText(res.error) ?? tc("error")),
+						);
 					setErrors(res.data.errors);
 					toast.success(
 						t("done", { n: res.data.imported, e: res.data.errors.length }),
