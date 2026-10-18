@@ -460,7 +460,7 @@ export default async function CalendarPage({
 										>
 											{t(`legalStatus_${c.status}`)}
 										</Badge>
-										<span className="ml-auto flex gap-1">
+										<span className="ml-auto flex min-w-0 flex-wrap gap-1">
 											{c.frameworks.map((f) => (
 												<Badge
 													key={f}
