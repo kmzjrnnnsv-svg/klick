@@ -281,6 +281,26 @@ export async function resolveRegistration(
 	};
 }
 
+// Offener Aktivierungslink eines Kontos (auch abgelaufen) — für „Link neu
+// erzeugen“ und „Anlage zurücknehmen“.
+export async function activationPayload(
+	userId: string,
+): Promise<Extract<RegistrationPayload, { kind: "activate" }> | null> {
+	const [row] = await globalDb
+		.select({ value: verification.value })
+		.from(verification)
+		.where(
+			and(
+				like(verification.identifier, "passkey-activate:%"),
+				sql`${verification.value}::jsonb->>'userId' = ${userId}`,
+			),
+		)
+		.limit(1);
+	if (!row) return null;
+	const p = JSON.parse(row.value) as RegistrationPayload;
+	return p.kind === "activate" ? p : null;
+}
+
 // Konten mit offenem Aktivierungslink (auch abgelaufen — der Marker fällt
 // erst beim Einlösen oder beim Zurücknehmen der Anlage weg).
 export async function pendingActivations(

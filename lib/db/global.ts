@@ -82,6 +82,7 @@ export async function listUsers(limit = 200) {
 			role: user.role,
 			banned: user.banned,
 			banReason: user.banReason,
+			banExpires: user.banExpires,
 			twoFactorEnabled: user.twoFactorEnabled,
 			// Spalten in sql`` stehen unqualifiziert — ohne Tabellennamen hieße
 			// das passkey.user_id = passkey.id (immer 0)
