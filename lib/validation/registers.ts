@@ -358,6 +358,7 @@ export const assetSchema = z.object({
 		.default("system"),
 	classification: z.enum(CLASSIFICATIONS).default("internal"),
 	providerId: uuid.nullable().optional(),
+	siteId: uuid.nullable().optional(),
 	ownerUserId: uuid.nullable().optional(),
 	location: z.string().max(120).optional(),
 	description: longText.optional(),

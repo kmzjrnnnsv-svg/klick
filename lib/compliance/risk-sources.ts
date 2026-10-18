@@ -21,6 +21,7 @@ export const RISK_SOURCE_KINDS = [
 	"audit_finding",
 	"product",
 	"objective",
+	"site",
 ] as const satisfies readonly EntityKind[];
 export type RiskSourceKind = (typeof RISK_SOURCE_KINDS)[number];
 
@@ -38,6 +39,7 @@ export const RISK_SOURCE_PARAM: Record<RiskSourceKind, string> = {
 	audit_finding: "finding",
 	product: "produkt",
 	objective: "ziel",
+	site: "standort",
 };
 
 export const isRiskSourceKind = (
@@ -86,6 +88,7 @@ export type RiskSourceData = {
 	findingProduct?: boolean;
 	frameworkSlug?: string;
 	indicatorType?: "kpi" | "kri" | "kci";
+	siteKind?: string;
 	detail?: string;
 	// Bezüge, die der Assistent übernimmt
 	providerId?: string;
@@ -116,6 +119,9 @@ export function scenarioForSource(src: RiskSourceData): string | null {
 			return src.assetType === "facility" ? "RS-BCM-05" : "RS-BCM-01";
 		case "process":
 			return "RS-BCM-03";
+		case "site":
+			// Rechenzentrum/Serverraum: Ausfall der Technik; sonst Standortereignis
+			return src.siteKind === "datacenter" ? "RS-BCM-01" : "RS-BCM-05";
 		case "incident":
 			if (src.incidentPersonalData) return "RS-PRV-01";
 			if (src.incidentPayments) return "RS-PAY-03";

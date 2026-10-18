@@ -712,7 +712,10 @@
 		"pricesLead": "Preisgruppen nach Unternehmensgröße. Je Gruppe eine Stufe (Einstieg, Marktüblich, Premium) oder eigene Werte. Die Standardgruppe steht öffentlich auf /preise und /leistungen; Organisationen ordnest du unter Organisationen zu.",
 		"priceGroup": "Preisgruppe",
 		"inquiries": "Anfragen",
-		"inquiriesLead": "Anfragen aus dem Formular auf /leistungen und aus der App (Einstellungen → Abo & Leistungen). Neue Anfragen gehen per Sofort-Mail an alle Plattform-Admins; gelöscht wird automatisch 12 Monate nach der letzten Änderung."
+		"inquiriesLead": "Anfragen aus dem Formular auf /leistungen und aus der App (Einstellungen → Abo & Leistungen). Neue Anfragen gehen per Sofort-Mail an alle Plattform-Admins; gelöscht wird automatisch 12 Monate nach der letzten Änderung.",
+		"orgProfile": "Profil",
+		"orgSites": "{n, plural, =0 {keine Standorte} one {ein Standort} other {# Standorte}}",
+		"priceGroupSuggested": "Vorschlag nach Größe: {name}"
 	},
 	"Errors": {
 		"title": "Da ist etwas schiefgelaufen.",
@@ -1599,7 +1602,8 @@
 		"empty": "Noch keine Assets.",
 		"emptyLead": "Kein Asset ohne Verantwortliche:n — starte mit den Systemen, die Kundendaten tragen.",
 		"requiredBy": "Gefordert von CC-AST-01 · ISO 27001 A.5.9 · DORA Art. 8",
-		"importTitle": "Assets importieren"
+		"importTitle": "Assets importieren",
+		"site": "Standort"
 	},
 	"Trainings": {
 		"title": "Schulungen",
@@ -2032,7 +2036,9 @@
 		"coistatus_mitigated": "mitigiert",
 		"coistatus_closed": "geschlossen",
 		"tabShareholders": "Gesellschafter",
-		"tabInsurance": "Versicherungen"
+		"tabInsurance": "Versicherungen",
+		"tabSites": "Standorte",
+		"sitesLead": "Standorte mit Art, Ort und Beschäftigten; kritische Standorte fließen in Risiken, Notfallplanung und Inventar ein. Assets ordnest du unter Assets einem Standort zu."
 	},
 	"Decisions": {
 		"ask": "Entscheidung anfragen",
@@ -2482,7 +2488,8 @@
 		"dstate_soon": "bald",
 		"dstate_due": "geplant",
 		"dstate_done": "erledigt",
-		"accessExpiry": "Zugang endet: {name}"
+		"accessExpiry": "Zugang endet: {name}",
+		"kind_role_review": "Funktion"
 	},
 	"TestProgramme": {
 		"title": "Testprogramm",
@@ -4063,7 +4070,8 @@
 		"kind_nonconformity": "Abweichung",
 		"kind_audit_finding": "Audit-Finding",
 		"kind_product": "Produkt",
-		"kind_objective": "Kennzahl"
+		"kind_objective": "Kennzahl",
+		"kind_site": "Standort"
 	},
 	"RiskWizard": {
 		"fromSource": "Erfasst aus",

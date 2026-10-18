@@ -123,6 +123,8 @@ export function entityHref(
 			return "/einstellungen";
 		case "decision_request":
 			return "/beschluesse?tab=anfragen";
+		case "site":
+			return "/organisation?tab=standorte";
 		default:
 			return "/heute";
 	}

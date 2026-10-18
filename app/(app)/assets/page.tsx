@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { importAssetsCsv } from "@/app/actions/imports";
@@ -8,6 +9,7 @@ import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UserChip } from "@/components/entity/user-chip";
 import { AssetForm } from "@/components/registers/asset-form";
 import { Badge } from "@/components/ui/badge";
+import { sites } from "@/db/schema";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
@@ -33,7 +35,7 @@ export default async function AssetsPage({
 	const t = await getTranslations("Assets");
 	const te = await getTranslations("Entity");
 	const tr = await getTranslations("RiskSources");
-	const { rows, members, providers, links } = await readOrg(
+	const { rows, members, providers, links, siteOptions } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
 			rows: await listAssets(tx, ctx.orgId),
@@ -43,6 +45,11 @@ export default async function AssetsPage({
 				id: p.id,
 				name: p.name,
 			})),
+			siteOptions: await tx
+				.select({ id: sites.id, name: sites.name })
+				.from(sites)
+				.where(eq(sites.organizationId, ctx.orgId))
+				.orderBy(sites.name),
 		}),
 	);
 	const canEdit = roleAllows(ctx.orgRole, { asset: ["create", "update"] });
@@ -193,12 +200,14 @@ export default async function AssetsPage({
 						trigger="link"
 						members={members}
 						providers={providers}
+						sites={siteOptions}
 						initial={{
 							assetId: r.id,
 							name: r.name,
 							type: r.type,
 							classification: r.classification,
 							providerId: r.providerId,
+							siteId: r.siteId,
 							ownerUserId: r.ownerUserId,
 							location: r.location,
 							description: r.description,
@@ -231,7 +240,11 @@ export default async function AssetsPage({
 							columns="name;type;classification;location;description;isLegacy;vendor;product;version;endOfLifeAt;supportEndAt;maintenance;lastPatchedAt"
 							action={importAssetsCsv}
 						/>
-						<AssetForm members={members} providers={providers} />
+						<AssetForm
+							members={members}
+							providers={providers}
+							sites={siteOptions}
+						/>
 					</>
 				) : undefined
 			}
@@ -275,7 +288,11 @@ export default async function AssetsPage({
 					requiredBy={t("requiredBy")}
 					actions={
 						canEdit ? (
-							<AssetForm members={members} providers={providers} />
+							<AssetForm
+								members={members}
+								providers={providers}
+								sites={siteOptions}
+							/>
 						) : undefined
 					}
 				/>

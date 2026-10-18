@@ -146,6 +146,7 @@ async function upsertAssetImpl(
 			type: d.type,
 			classification: d.classification,
 			providerId: d.providerId ?? null,
+			siteId: d.siteId ?? null,
 			ownerUserId: d.ownerUserId ?? c.userId,
 			location: d.location ?? null,
 			description: d.description ?? null,

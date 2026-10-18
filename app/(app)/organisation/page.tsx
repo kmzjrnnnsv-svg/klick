@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { deleteShareholder } from "@/app/actions/casp";
@@ -31,6 +32,7 @@ import {
 } from "@/components/organisation/roles-forms";
 import { PageHeader } from "@/components/page-header";
 import { InsuranceForm } from "@/components/privacy/privacy-forms";
+import { SitesStep } from "@/components/setup/sites-step";
 import { Badge } from "@/components/ui/badge";
 import {
 	Table,
@@ -40,6 +42,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { sites } from "@/db/schema";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { approverEligibility } from "@/lib/approvals/rules";
 import {
@@ -108,6 +111,7 @@ const TABS = [
 	"konflikte",
 	"gesellschafter",
 	"versicherungen",
+	"standorte",
 ] as const;
 
 export default async function OrganisationPage({
@@ -171,6 +175,15 @@ export default async function OrganisationPage({
 				const assetRows = await listAssets(tx, ctx.orgId);
 				return { ...base, checklists, assetRows };
 			}
+			case "standorte":
+				return {
+					...base,
+					siteRows: await tx
+						.select()
+						.from(sites)
+						.where(eq(sites.organizationId, ctx.orgId))
+						.orderBy(sites.createdAt),
+				};
 			case "ziele": {
 				const objectives = await listObjectives(tx, ctx.orgId);
 				const objRequests = await Promise.all(
@@ -260,6 +273,7 @@ export default async function OrganisationPage({
 						count: gapCount + blockSod || undefined,
 					},
 					{ value: "ziele", label: t("tabObjectives") },
+					{ value: "standorte", label: t("tabSites") },
 					{ value: "kommunikation", label: t("tabCommunication") },
 					{ value: "aufsicht", label: t("tabRegulators") },
 					{ value: "konflikte", label: t("tabConflicts") },
@@ -1555,6 +1569,26 @@ export default async function OrganisationPage({
 							</>
 						);
 					})()}
+				</section>
+			)}
+
+			{"siteRows" in data && (
+				<section className="flex flex-col gap-4">
+					<p className="text-muted-foreground text-sm">{t("sitesLead")}</p>
+					<SitesStep
+						sites={data.siteRows.map((x) => ({
+							id: x.id,
+							name: x.name,
+							kind: x.kind,
+							country: x.country,
+							city: x.city,
+							employees: x.employees,
+							critical: x.critical,
+						}))}
+						defaultCountry="DE"
+						canEdit={roleAllows(ctx.orgRole, { asset: ["create", "delete"] })}
+						canRisk={roleAllows(ctx.orgRole, { risk: ["create"] })}
+					/>
 				</section>
 			)}
 

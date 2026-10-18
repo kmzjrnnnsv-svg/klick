@@ -46,6 +46,7 @@ export type AssetDraft = {
 	type: (typeof TYPES)[number];
 	classification: (typeof CLASSES)[number];
 	providerId?: string | null;
+	siteId?: string | null;
 	ownerUserId?: string | null;
 	location?: string | null;
 	description?: string | null;
@@ -69,11 +70,13 @@ export function AssetForm({
 	initial,
 	members,
 	providers,
+	sites = [],
 	trigger,
 }: {
 	initial?: AssetDraft;
 	members: MemberOption[];
 	providers: { id: string; name: string }[];
+	sites?: { id: string; name: string }[];
 	trigger?: "button" | "link";
 }) {
 	const t = useTranslations("Assets");
@@ -119,6 +122,7 @@ export function AssetForm({
 							const res = await upsertAsset({
 								...d,
 								providerId: d.providerId ?? null,
+								siteId: d.siteId ?? null,
 								ownerUserId: d.ownerUserId ?? null,
 								location: d.location ?? undefined,
 								description: d.description ?? undefined,
@@ -214,6 +218,27 @@ export function AssetForm({
 								</SelectContent>
 							</Select>
 						</div>
+						{sites.length > 0 && (
+							<div className="flex flex-col gap-1.5">
+								<Label>{t("site")}</Label>
+								<Select
+									value={d.siteId ?? "none"}
+									onValueChange={(v) => set("siteId", v === "none" ? null : v)}
+								>
+									<SelectTrigger className="w-full">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="none">—</SelectItem>
+										{sites.map((x) => (
+											<SelectItem key={x.id} value={x.id}>
+												{x.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						)}
 						<div className="flex flex-col gap-1.5">
 							<Label>{t("owner")}</Label>
 							<Select

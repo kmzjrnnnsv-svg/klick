@@ -393,6 +393,8 @@ export const ENTITY_KINDS = [
 	"requirement",
 	// Entscheidung beim Management angefragt (E2)
 	"decision_request",
+	// Standort (D2)
+	"site",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 

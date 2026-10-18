@@ -20,13 +20,24 @@ import {
 	products,
 	providers,
 	risks,
+	roleAssignments,
 	securityFindings,
 	trainingAssignments,
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
 import { upcomingLegalChanges } from "./catalog/regulatory-calendar";
+import { REQUIRED_FUNCTIONS } from "./catalog/required-functions";
 import { type DateSource, noticeDate } from "./dates";
 import { listObligationRuns } from "./queries-p3";
+
+const ROLE_FALLBACK: Record<string, string> = {
+	department_head: "Bereichsleitung",
+	other: "Weitere Funktion",
+};
+const roleLabel = (f: string) =>
+	REQUIRED_FUNCTIONS.find((x) => x.function === f)?.title ??
+	ROLE_FALLBACK[f] ??
+	f;
 
 const iso = (v: Date | string | null | undefined): string | null =>
 	v
@@ -69,6 +80,7 @@ export async function loadDateSources(
 		incs,
 		prods,
 		mss,
+		roles,
 	] = await Promise.all([
 		listObligationRuns(tx, orgId, { from, to }),
 		tx
@@ -375,6 +387,16 @@ export async function loadDateSources(
 			.where(
 				and(eq(milestones.organizationId, orgId), isNotNull(milestones.dueAt)),
 			),
+		tx
+			.select({
+				function: roleAssignments.function,
+				reviewAt: roleAssignments.reviewAt,
+				documentsValidUntil: roleAssignments.documentsValidUntil,
+				userId: roleAssignments.userId,
+				externalName: roleAssignments.externalName,
+			})
+			.from(roleAssignments)
+			.where(eq(roleAssignments.organizationId, orgId)),
 	]);
 
 	const out: DateSource[] = [];
@@ -643,6 +665,24 @@ export async function loadDateSources(
 			ownerUserId: m.ownerUserId,
 			done: m.status === "done",
 		});
+	for (const r of roles) {
+		push({
+			date: r.reviewAt,
+			kind: "role_review",
+			title: `${roleLabel(r.function)}${r.externalName ? ` · ${r.externalName}` : ""}`,
+			href: "/organisation?tab=rollen",
+			ownerUserId: r.userId,
+			note: "Wiedervorlage",
+		});
+		push({
+			date: r.documentsValidUntil,
+			kind: "role_review",
+			title: `${roleLabel(r.function)}${r.externalName ? ` · ${r.externalName}` : ""}`,
+			href: "/organisation?tab=rollen",
+			ownerUserId: r.userId,
+			note: "Unterlagen (Fit & Proper) laufen ab",
+		});
+	}
 	// alles bis `to`; collectDates filtert `from` und trägt Überfälliges mit
 	return out;
 }

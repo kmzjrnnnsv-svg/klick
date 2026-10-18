@@ -18,6 +18,7 @@ import {
 	riskAssets,
 	risks,
 	securityFindings,
+	sites,
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
 import { assetLifecycle } from "./assets";
@@ -81,6 +82,28 @@ export async function loadRiskSource(
 				providerCritical: r.criticality !== "standard",
 				providerId: r.providerId,
 				detail: r.traffic ? `Ergebnis ${traffic}` : undefined,
+			};
+		}
+		case "site": {
+			const [x] = await tx
+				.select()
+				.from(sites)
+				.where(and(eq(sites.id, id), eq(sites.organizationId, orgId)));
+			if (!x) return null;
+			return {
+				...base,
+				name: x.name,
+				label: `Standort „${x.name}“`,
+				href: "/organisation?tab=standorte",
+				siteKind: x.kind,
+				detail:
+					[
+						x.city,
+						x.critical ? "kritisch für den Betrieb" : null,
+						x.employees != null ? `${x.employees} Beschäftigte` : null,
+					]
+						.filter(Boolean)
+						.join(", ") || undefined,
 			};
 		}
 		case "asset": {
