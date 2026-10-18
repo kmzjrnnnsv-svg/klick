@@ -103,7 +103,8 @@ export async function listOrgMembers(orgId: string) {
 				email: user.email,
 				role: member.role,
 				twoFactorEnabled: user.twoFactorEnabled,
-				passkeys: sql<number>`(select count(*)::int from ${passkey} where ${passkey.userId} = ${user.id})`,
+				// qualifiziert — unqualifiziert zählte die Unterabfrage nie etwas
+				passkeys: sql<number>`(select count(*)::int from ${passkey} p where p.user_id = ${user}.id)`,
 				createdAt: member.createdAt,
 			})
 			.from(member)

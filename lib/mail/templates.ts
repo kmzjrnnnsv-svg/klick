@@ -232,6 +232,29 @@ export function invitationEmail(input: {
 	});
 }
 
+// Konto aktivieren: ein Plattform-Admin hat ein Konto angelegt. Der Link
+// (/aktivieren#klk_activate_…) legt den ersten Passkey an.
+export function activationEmail(input: {
+	url: string;
+	name: string;
+	organization: string | null;
+	role: string | null;
+	days: number;
+}): { subject: string; text: string; html: string } {
+	const join = input.organization
+		? ` Danach bist du Mitglied von ${input.organization} (${roleLabel(input.role)}).`
+		: " Danach legst du deine Organisation an.";
+	return transactionalEmail({
+		subject: "Dein Konto bei Klick",
+		eyebrow: "Konto aktivieren",
+		title: `Willkommen bei Klick, ${input.name}.`,
+		body: `Für dich wurde ein Konto angelegt. Öffne den Link und lege einen Passkey an — Fingerabdruck, Gesicht oder Geräte-PIN, kein Passwort, keine App. Der Passkey ist ab dann deine Anmeldung.${join} Der Link ist ${input.days} Tage gültig und nur einmal nutzbar.`,
+		cta: { label: "Passkey anlegen und loslegen", url: input.url },
+		footnote:
+			"Wenn du kein Konto bei Klick erwartest, ignoriere diese Mail — ohne Passkey entsteht kein Zugang.",
+	});
+}
+
 // Lieferantenportal: Einladung zum Fragebogen. Der Link trägt den Token im
 // Fragment (#klk_portal_…) — ohne Konto, gültig bis zum Ablaufdatum.
 export function supplierPortalEmail(input: {

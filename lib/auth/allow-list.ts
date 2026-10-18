@@ -1,6 +1,7 @@
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt, like, sql } from "drizzle-orm";
 import { globalDb } from "../../db";
-import { invitation, user } from "../../db/auth-schema";
+import { invitation, passkey, user, verification } from "../../db/auth-schema";
+import { isBanActive, magicLinkAllowed } from "./account-status";
 
 // Allow-List-Modus (AUTH_ALLOW_SIGNUP ≠ true): Anmelde-Links bekommen nur
 // bestehende Konten und Adressen mit offener Einladung — sonst könnten
@@ -27,12 +28,58 @@ export async function pendingInvitationId(
 	return row?.id ?? null;
 }
 
-export async function mayReceiveMagicLink(email: string): Promise<boolean> {
+// Vom Plattform-Admin angelegt und noch nicht über den Passkey-Link
+// aktiviert (Zeile passkey-activate:… mit dieser userId, auch abgelaufen).
+export async function hasPendingActivation(userId: string): Promise<boolean> {
+	const [row] = await globalDb
+		.select({ id: verification.id })
+		.from(verification)
+		.where(
+			and(
+				like(verification.identifier, "passkey-activate:%"),
+				sql`${verification.value}::jsonb->>'userId' = ${userId}`,
+			),
+		)
+		.limit(1);
+	return Boolean(row);
+}
+
+// Gehört der Passkey (credential id) zu einem gesperrten Konto?
+export async function passkeyOwnerBlocked(
+	credentialId: string,
+): Promise<boolean> {
+	const [row] = await globalDb
+		.select({ banned: user.banned, banExpires: user.banExpires })
+		.from(passkey)
+		.innerJoin(user, eq(user.id, passkey.userId))
+		.where(eq(passkey.credentialID, credentialId))
+		.limit(1);
+	return row ? isBanActive(row) : false;
+}
+
+// Mail-Notweg: bestehende Konten nur, wenn aktiv (nicht gesperrt, nicht
+// „nicht aktiviert“) — auch mit AUTH_ALLOW_SIGNUP. Neue Adressen nur mit
+// offener Einladung oder offener Registrierung.
+export async function mayReceiveMagicLink(
+	email: string,
+	allowSignup = false,
+): Promise<boolean> {
 	const [known] = await globalDb
-		.select({ id: user.id })
+		.select({
+			id: user.id,
+			banned: user.banned,
+			banExpires: user.banExpires,
+		})
 		.from(user)
 		.where(eq(user.email, email.toLowerCase()))
 		.limit(1);
-	if (known) return true;
-	return (await pendingInvitationId(email)) !== null;
+	if (known)
+		return magicLinkAllowed({
+			account: {
+				...known,
+				pendingActivation: await hasPendingActivation(known.id),
+			},
+			openInvitation: false,
+		});
+	return allowSignup || (await pendingInvitationId(email)) !== null;
 }

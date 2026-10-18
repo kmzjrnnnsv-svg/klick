@@ -48,4 +48,15 @@ test.describe("Login", () => {
 			/nicht gefunden|unbekannt|existiert nicht|not found/,
 		);
 	});
+
+	test("Aktivierungslink: ohne Token Hinweis, falscher Token ungültig", async ({
+		page,
+	}) => {
+		await page.goto("/aktivieren");
+		await expect(page.getByText(/Link ist unvollständig/)).toBeVisible();
+		await page.goto("/aktivieren#klk_activate_ungueltig");
+		await expect(page.getByText(/Aktivierungslink ist ungültig/)).toBeVisible();
+		// kein Mail-Notweg als Ausweg — angelegte Konten nur per Passkey
+		await expect(page.getByText("Per Mail-Link anmelden")).toHaveCount(0);
+	});
 });

@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { memberAccess, memberRoles, orgRoles } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { auditPlatform } from "@/lib/audit";
+import { isBanActive } from "@/lib/auth/account-status";
 import {
 	AuthError,
 	requireOrg,
@@ -160,6 +161,8 @@ async function resetMemberAccessImpl(
 	if (!target) return { ok: false, error: "not_found" };
 	const may = ownerMayReset({ actorUserId: c.userId, orgId: c.orgId, target });
 	if (!may.ok) return { ok: false, error: `reset_${may.reason}` };
+	// Gesperrt: der Link ginge ins Leere (keine Sitzung) — erst entsperren
+	if (isBanActive(target)) return { ok: false, error: "account_blocked" };
 	const { url } = await resetUserAccess({
 		target,
 		actor: {

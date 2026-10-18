@@ -98,6 +98,15 @@ neue RP-ID macht alle vorhandenen Passkeys unbrauchbar (dann hilft nur „Zugang
   Passkeys, TOTP, Backup-Codes und Sitzungen werden entfernt; der Link `/zugang#klk_recover_…`
   (24 h, einmalig) wird nur angezeigt — persönlich weitergeben. Die Person bekommt eine Hinweis-Mail
   ohne Link. Audit `auth.access_reset`.
+- **Konto anlegen (Plattform-Admin):** Admin → Nutzer:innen → „Konto anlegen“ (E-Mail, Name,
+  optional Organisation + Rolle). Der Aktivierungslink `/aktivieren#klk_activate_…` (7 Tage,
+  einmalig) wird angezeigt und auf Wunsch per Mail geschickt; bis zur Aktivierung gibt es keinen
+  Mail-Link und keine Sitzung — nur der Passkey öffnet das Konto. Abgelaufen: ⋯ → „Aktivierungslink
+  neu erzeugen“; Tippfehler: ⋯ → „Anlage zurücknehmen“. Audit `admin.create_user`,
+  `admin.activation_link`, `auth.account_activated`.
+- **Sperren:** ⋯ → „Sperren“ mit Grund und Dauer — beendet alle Sitzungen, Links und Mail-Links
+  greifen nicht mehr, Daten und Mitgliedschaften bleiben. Plattform-Admins erst nach Entzug der
+  Admin-Rolle. Entsperren verlangt Step-up. Audit `admin.ban_user`/`admin.unban_user`.
 - **Notfall, wenn niemand in der Organisation helfen kann** (z. B. die einzige Owner:in): mit dem
   Block oben `runuser -u klick -- pnpm auth:recover <adresse>` — gleiche Wirkung, Link nur im
   Terminal, Audit `auth.recover_link_cli`.

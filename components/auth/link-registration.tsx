@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/client";
 
-// Passkey über einen Einmal-Link anlegen (ADR-019): Einladung (neues Konto)
-// oder Zugang zurücksetzen (bestehendes Konto). Der Token steht im
+// Passkey über einen Einmal-Link anlegen (ADR-019): Einladung (neues Konto),
+// Zugang zurücksetzen (bestehendes Konto) oder Aktivieren (vom Plattform-
+// Admin angelegtes Konto — nur mit Passkey, kein Mail-Notweg). Der Token steht im
 // URL-Fragment und geht nur per POST an /api/registrierung, das ein
 // httpOnly-Cookie für die Passkey-Endpunkte setzt.
 
@@ -25,31 +26,51 @@ type InviteInfo = {
 	accountExists: boolean;
 };
 type RecoverInfo = { kind: "recover"; email: string; name: string };
+type ActivateInfo = {
+	kind: "activate";
+	email: string;
+	name: string;
+	invitationId: string | null;
+	organization: string | null;
+	role: string | null;
+};
+type Info = InviteInfo | RecoverInfo | ActivateInfo;
 type State =
 	| { s: "loading" }
 	| { s: "incomplete" }
 	| { s: "invalid" }
-	| { s: "ready"; token: string; info: InviteInfo | RecoverInfo };
+	| { s: "blocked" }
+	| { s: "ready"; token: string; info: Info };
 
-async function exchange(token: string, name?: string) {
+async function exchange(
+	token: string,
+	name?: string,
+): Promise<Info | "blocked" | null> {
 	const res = await fetch("/api/registrierung", {
 		method: "POST",
 		headers: { "content-type": "application/json" },
 		body: JSON.stringify({ token, name }),
 	});
+	if (res.status === 403) {
+		const body = (await res.json().catch(() => null)) as {
+			error?: string;
+		} | null;
+		return body?.error === "blocked" ? "blocked" : null;
+	}
 	if (!res.ok) return null;
-	return (await res.json()) as InviteInfo | RecoverInfo;
+	return (await res.json()) as Info;
 }
 
 export function LinkRegistration({
 	expected,
 	sessionEmail,
 }: {
-	expected: "invite" | "recover";
+	expected: Info["kind"];
 	sessionEmail: string | null;
 }) {
 	const t = useTranslations("Invitation");
 	const tr = useTranslations("Recover");
+	const tv = useTranslations("Activate");
 	const ta = useTranslations("Auth");
 	const router = useRouter();
 	const [state, setState] = useState<State>({ s: "loading" });
@@ -57,33 +78,64 @@ export function LinkRegistration({
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
+	// Auch bei reinem Fragment-Wechsel (vollständigen Link in denselben Tab
+	// eingefügt) neu prüfen — der Browser lädt die Seite dann nicht neu.
 	useEffect(() => {
-		const token = window.location.hash.slice(1).trim();
-		if (!token) {
-			setState({ s: "incomplete" });
-			return;
+		let current = true;
+		function check() {
+			const token = window.location.hash.slice(1).trim();
+			if (!token) {
+				setState({ s: "incomplete" });
+				return;
+			}
+			setState({ s: "loading" });
+			exchange(token)
+				.then((info) => {
+					if (!current) return;
+					setState(
+						info === "blocked"
+							? { s: "blocked" }
+							: info && info.kind === expected
+								? { s: "ready", token, info }
+								: { s: "invalid" },
+					);
+				})
+				.catch(() => current && setState({ s: "invalid" }));
 		}
-		exchange(token)
-			.then((info) =>
-				setState(
-					info && info.kind === expected
-						? { s: "ready", token, info }
-						: { s: "invalid" },
-				),
-			)
-			.catch(() => setState({ s: "invalid" }));
+		check();
+		window.addEventListener("hashchange", check);
+		return () => {
+			current = false;
+			window.removeEventListener("hashchange", check);
+		};
 	}, [expected]);
 
+	const invalidText =
+		expected === "invite"
+			? t("linkInvalid")
+			: expected === "recover"
+				? tr("invalid")
+				: tv("invalid");
+
 	if (state.s === "loading")
-		return <p className="text-muted-foreground text-sm">{t("linkChecking")}</p>;
+		return (
+			<p className="text-muted-foreground text-sm" aria-live="polite">
+				{expected === "invite" ? t("linkChecking") : tv("checking")}
+			</p>
+		);
 	if (state.s !== "ready")
 		return (
-			<p className="text-muted-foreground">
+			<p
+				className={
+					state.s === "blocked" ? "text-destructive" : "text-muted-foreground"
+				}
+				role={state.s === "blocked" ? "alert" : undefined}
+			>
 				{state.s === "incomplete"
 					? t("linkIncomplete")
-					: expected === "invite"
-						? t("linkInvalid")
-						: tr("invalid")}
+					: state.s === "blocked"
+						? ta("accountBlocked")
+						: invalidText}
 			</p>
 		);
 
@@ -98,9 +150,12 @@ export function LinkRegistration({
 		setBusy(true);
 		setError(null);
 		try {
-			if (info.kind === "invite" && !(await exchange(token, name))) {
-				setState({ s: "invalid" });
-				return;
+			if (info.kind === "invite") {
+				const again = await exchange(token, name);
+				if (!again || again === "blocked") {
+					setState({ s: again === "blocked" ? "blocked" : "invalid" });
+					return;
+				}
 			}
 			const res = await authClient.passkey.addPasskey({
 				context: "link",
@@ -115,22 +170,25 @@ export function LinkRegistration({
 							? t("errorUv")
 							: code === "ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED"
 								? t("errorRegistered")
-								: code === "REGISTRATION_LINK_INVALID" ||
-										code === "ACCOUNT_EXISTS"
-									? expected === "invite"
-										? t("linkInvalid")
-										: tr("invalid")
-									: t("errorGeneric"),
+								: code === "BANNED_USER"
+									? ta("accountBlocked")
+									: code === "REGISTRATION_LINK_INVALID" ||
+											code === "ACCOUNT_EXISTS"
+										? invalidText
+										: t("errorGeneric"),
 				);
 				return;
 			}
 			await fetch("/api/registrierung", { method: "DELETE" }).catch(() => {});
-			if (info.kind === "invite") {
+			// Einladung (bzw. Org aus der Anlage) gleich annehmen; ohne Org
+			// leitet /heute auf /onboarding weiter.
+			const invitationId = info.kind === "recover" ? null : info.invitationId;
+			if (invitationId) {
 				const acc = await authClient.organization.acceptInvitation({
-					invitationId: info.invitationId,
+					invitationId,
 				});
 				if (acc.error) {
-					router.replace(`/einladung/${info.invitationId}`);
+					router.replace(`/einladung/${invitationId}`);
 					return;
 				}
 			}
@@ -199,8 +257,21 @@ export function LinkRegistration({
 							organization: info.organization,
 							role: info.role,
 						})
-					: tr("lead", { email: info.email })}
+					: info.kind === "activate"
+						? tv("lead", { name: info.name || info.email })
+						: tr("lead", { email: info.email })}
 			</p>
+			{info.kind === "activate" && (
+				<p className="text-sm">
+					{info.organization
+						? tv("forEmailOrg", {
+								email: info.email,
+								organization: info.organization,
+								role: info.role ?? "",
+							})
+						: tv("forEmail", { email: info.email })}
+				</p>
+			)}
 			{info.kind === "invite" && (
 				<>
 					<p className="text-sm">{t("forEmail", { email: info.email })}</p>
@@ -229,7 +300,9 @@ export function LinkRegistration({
 					? t("creating")
 					: info.kind === "invite"
 						? t("createPasskey")
-						: tr("create")}
+						: info.kind === "activate"
+							? tv("create")
+							: tr("create")}
 			</Button>
 			{error && (
 				<p role="alert" className="text-destructive text-sm">
@@ -237,6 +310,9 @@ export function LinkRegistration({
 				</p>
 			)}
 			<p className="text-muted-foreground text-xs">{t("passkeyHint")}</p>
+			{info.kind === "activate" && (
+				<p className="text-muted-foreground text-xs">{tv("noDevice")}</p>
+			)}
 			{info.kind === "invite" && (
 				<p className="text-muted-foreground text-xs">
 					{t("noPasskeyDevice")}{" "}

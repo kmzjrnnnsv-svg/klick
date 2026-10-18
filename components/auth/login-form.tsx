@@ -9,7 +9,20 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { BLOCKED_HINT_COOKIE } from "@/lib/auth/account-status";
 import { authClient } from "@/lib/auth/client";
+
+// Hinweis-Cookie nach Passkey-Anmeldung eines gesperrten Kontos lesen und
+// sofort löschen (lib/auth/account-status.ts).
+function takeBlockedHint(): boolean {
+	const hit = document.cookie
+		.split("; ")
+		.some((c) => c === `${BLOCKED_HINT_COOKIE}=1`);
+	if (hit)
+		// biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API fehlt in Firefox
+		document.cookie = `${BLOCKED_HINT_COOKIE}=; Max-Age=0; Path=/; SameSite=Strict`;
+	return hit;
+}
 
 // Anmeldung „Passkey zuerst“ (ADR-019): Passkey als Hauptweg — per Knopf
 // oder über das Autofill des E-Mail-Felds (Conditional UI) —, dazu SSO und
@@ -35,6 +48,8 @@ export function LoginForm({
 		? `/login/notweg?weiter=${encodeURIComponent(next)}`
 		: "/login/notweg";
 
+	const blockedText = t("accountBlocked");
+
 	// Conditional UI: der Browser bietet gespeicherte Passkeys direkt im
 	// E-Mail-Feld an. Bricht still ab, sobald der Knopf benutzt wird.
 	useEffect(() => {
@@ -48,6 +63,7 @@ export function LoginForm({
 			if (!(await pkc?.isConditionalMediationAvailable?.().catch(() => false)))
 				return;
 			const res = await authClient.signIn.passkey({ autoFill: true });
+			if (active && res?.error && takeBlockedHint()) toast.error(blockedText);
 			if (active && res && !res.error) {
 				router.push(target);
 				router.refresh();
@@ -56,7 +72,7 @@ export function LoginForm({
 		return () => {
 			active = false;
 		};
-	}, [router, target]);
+	}, [router, target, blockedText]);
 
 	async function passkey() {
 		setBusy("passkey");
@@ -67,7 +83,11 @@ export function LoginForm({
 			// Abbrechen im Browser-Dialog ist kein Fehler.
 			if (code === "AUTH_CANCELLED" || code === "ERROR_CEREMONY_ABORTED")
 				return;
-			toast.error(t("passkeySignInFailed"));
+			toast.error(
+				code === "BANNED_USER" || takeBlockedHint()
+					? t("accountBlocked")
+					: t("passkeySignInFailed"),
+			);
 			return;
 		}
 		router.push(target);

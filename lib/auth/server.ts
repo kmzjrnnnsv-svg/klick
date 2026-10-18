@@ -21,7 +21,13 @@ import {
 	transactionalEmail,
 } from "../mail/templates";
 import { syncTrainingAssignments } from "../trainings/assignments";
-import { mayReceiveMagicLink, pendingInvitationId } from "./allow-list";
+import { BLOCKED_HINT_COOKIE } from "./account-status";
+import {
+	hasPendingActivation,
+	mayReceiveMagicLink,
+	passkeyOwnerBlocked,
+	pendingInvitationId,
+} from "./allow-list";
 import { authAfterHook } from "./audit-events";
 import { authBeforeHook } from "./endpoint-guard";
 import { confirmLinkUrl } from "./magic-link";
@@ -156,6 +162,17 @@ export const auth = betterAuth({
 					const viaPasskey =
 						ctx?.path === "/passkey/verify-authentication" ||
 						ctx?.path === "/passkey/verify-registration";
+					// Vom Admin angelegte Konten werden nur über den Passkey-
+					// Link aktiviert — SSO, Mail-Link oder Impersonation geben
+					// vorher keine Sitzung.
+					if (
+						ctx?.path !== "/passkey/verify-registration" &&
+						(await hasPendingActivation(session.userId))
+					)
+						throw new APIError("FORBIDDEN", {
+							code: "ACCOUNT_NOT_ACTIVATED",
+							message: "Konto noch nicht aktiviert.",
+						});
 					const now = new Date();
 					return {
 						data: {
@@ -256,9 +273,9 @@ export const auth = betterAuth({
 			rateLimit: { window: 15 * MINUTE, max: 3 },
 			storeToken: "hashed",
 			async sendMagicLink({ email, url: verifyUrl }) {
-				if (!allowSignup && !(await mayReceiveMagicLink(email))) {
+				if (!(await mayReceiveMagicLink(email, allowSignup))) {
 					console.info(
-						"[auth] Anmelde-Link nicht versendet: kein Konto und keine offene Einladung (AUTH_ALLOW_SIGNUP ist aus)",
+						"[auth] Anmelde-Link nicht versendet: kein aktives Konto und keine offene Einladung",
 					);
 					return;
 				}
@@ -548,12 +565,27 @@ export const auth = betterAuth({
 					}),
 			},
 			authentication: {
-				async afterVerification({ verification }) {
+				async afterVerification({ ctx, verification, clientData }) {
 					if (!verification.authenticationInfo.userVerified)
 						throw new APIError("UNAUTHORIZED", {
 							code: "USER_VERIFICATION_REQUIRED",
 							message: "user_verification_required",
 						});
+					// Gesperrt: vor der Sitzung ablehnen und /login einen Hinweis
+					// geben (der Fehlercode selbst kommt nur als
+					// AUTHENTICATION_FAILED beim Client an).
+					if (await passkeyOwnerBlocked(clientData.id)) {
+						ctx.setCookie(BLOCKED_HINT_COOKIE, "1", {
+							maxAge: 60,
+							path: "/",
+							sameSite: "strict",
+							secure: process.env.NODE_ENV === "production",
+						});
+						throw new APIError("FORBIDDEN", {
+							code: "BANNED_USER",
+							message: "account_blocked",
+						});
+					}
 				},
 			},
 		}),
