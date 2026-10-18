@@ -120,6 +120,37 @@ export const providers = pgTable(
 	],
 ).enableRLS();
 
+// Standorte (D2): Hauptsitz, Büros, Rechenzentren, Lager, Filialen — für
+// Risiken, BCM und Inventar; Assets und Prozesse können auf einen Standort
+// verweisen.
+export const SITE_KINDS = [
+	"headquarters",
+	"office",
+	"datacenter",
+	"warehouse",
+	"branch",
+	"other",
+] as const;
+export type SiteKind = (typeof SITE_KINDS)[number];
+
+export const sites = pgTable(
+	"sites",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		name: text().notNull(),
+		kind: text({ enum: SITE_KINDS }).notNull().default("office"),
+		country: text(),
+		city: text(),
+		employees: integer(),
+		critical: boolean().notNull().default(false),
+		ownerUserId: userRef(),
+		notes: text(),
+		...timestamps(),
+	},
+	(t) => [index("sites_org_idx").on(t.organizationId), orgPolicy("sites")],
+).enableRLS();
+
 export const assets = pgTable(
 	"assets",
 	{
@@ -165,6 +196,7 @@ export const assets = pgTable(
 		maintenance: text({ enum: ["contract", "internal", "none"] }),
 		maintenanceUntil: date(),
 		lastPatchedAt: date(),
+		siteId: uuid().references(() => sites.id, { onDelete: "set null" }),
 		status: text({ enum: ["active", "retired"] })
 			.notNull()
 			.default("active"),
@@ -199,6 +231,7 @@ export const processes = pgTable(
 			onDelete: "set null",
 		}),
 		reviewAt: date(),
+		siteId: uuid().references(() => sites.id, { onDelete: "set null" }),
 		status: text({ enum: ["draft", "active", "retired"] })
 			.notNull()
 			.default("active"),

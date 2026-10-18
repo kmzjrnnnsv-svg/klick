@@ -120,6 +120,9 @@ export const roleAssignments = pgTable(
 		function: text({ enum: ROLE_FUNCTIONS }).notNull(),
 		userId: userRef(),
 		externalName: text(),
+		// eingeladen, Konto noch nicht angelegt (D1): wird bei der Annahme der
+		// Einladung über die Adresse mit dem Konto verknüpft
+		pendingEmail: text(),
 		appointedAt: date(),
 		deputyUserId: userRef(),
 		evidenceId: uuid().references(() => evidence.id, { onDelete: "set null" }),

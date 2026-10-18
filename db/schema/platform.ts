@@ -129,6 +129,17 @@ export type EntityProfile = {
 	totalAssetsEur?: number;
 	legalForm?: string;
 	registerNumber?: string;
+	// Größe und Einstufung (D2, lib/compliance/company-profile.ts)
+	employees?: number;
+	revenueEur?: number;
+	nis2Sector?: string;
+	customerTypes?: string[];
+	// IT und Daten (D3)
+	itOperation?: "cloud" | "hybrid" | "own_dc";
+	personalData?: string[];
+	specialCategories?: boolean;
+	dataSubjects?: "lt1k" | "1k_100k" | "gt100k";
+	customerCountries?: string[];
 };
 
 // DLP-Regeln je Org (lib/dlp/policy.ts wertet aus). Gespeichert wird nur,
