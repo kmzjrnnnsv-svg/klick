@@ -16,6 +16,7 @@ import { RequestEvidence } from "@/components/entity/request-evidence";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { WatchButton } from "@/components/entity/watch-button";
+import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -203,6 +204,11 @@ export default async function ControlDetailPage({
 			}
 			aside={
 				<>
+					<SourceRisksBlock
+						ctx={ctx}
+						kind="control"
+						catalogKey={{ controlCode: code }}
+					/>
 					<Section title={te("activity")}>
 						{canEdit || roleAllows(ctx.orgRole, { comment: ["create"] }) ? (
 							<CommentForm

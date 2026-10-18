@@ -12,11 +12,12 @@ export default async function TwoFactorPage({
 }) {
 	const { stepup, zurueck } = await searchParams;
 	const stepUp = stepup === "1";
-	if (!stepUp) {
-		await gateAuth("/login/2fa");
-		// Ohne Sitzung (abgelaufen, widerrufen) kann kein Code helfen.
-		if (!(await getSessionCtx())) redirect("/login?grund=sitzung-abgelaufen");
-	}
+	if (!stepUp) await gateAuth("/login/2fa");
+	// Ohne Sitzung (abgelaufen, widerrufen) kann kein Code helfen.
+	const sctx = await getSessionCtx();
+	if (!sctx) redirect("/login?grund=sitzung-abgelaufen");
+	const passkey = Boolean(sctx.user.hasPasskey);
+	const totp = Boolean(sctx.user.twoFactorEnabled);
 	const t = await getTranslations("Auth");
 	const returnTo = safeInternalPath(zurueck);
 	return (
@@ -27,10 +28,19 @@ export default async function TwoFactorPage({
 					{t("twoFactorTitle")}
 				</h1>
 				<p className="mt-2 text-muted-foreground text-sm">
-					{stepUp ? t("twoFactorStepUp") : t("twoFactorLead")}
+					{stepUp
+						? t("twoFactorStepUp")
+						: passkey
+							? t("twoFactorLeadPasskey")
+							: t("twoFactorLead")}
 				</p>
 			</div>
-			<TwoFactorForm stepUp={stepUp} returnTo={returnTo} />
+			<TwoFactorForm
+				stepUp={stepUp}
+				returnTo={returnTo}
+				passkey={passkey}
+				totp={totp || !passkey}
+			/>
 		</div>
 	);
 }

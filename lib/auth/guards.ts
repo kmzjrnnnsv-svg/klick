@@ -1,13 +1,15 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { after } from "next/server";
 import { globalDb } from "@/db";
 import { member, session as sessionTable } from "@/db/auth-schema";
-import { memberAccess } from "@/db/schema";
 import { auditPlatform } from "@/lib/audit";
 import type { OrgCtx } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
 import { env } from "@/lib/env";
+import { userHasPasskey } from "./endpoint-guard";
+import { primaryMembershipCount as countPrimary } from "./memberships";
+import { memberAccessFor } from "./org";
 import { type OrgRole, type Resource, roleAllows } from "./permissions";
 import { type AuthSession, auth } from "./server";
 import {
@@ -51,6 +53,7 @@ type SessionRow = AuthSession["session"] & {
 };
 type UserRow = AuthSession["user"] & {
 	twoFactorEnabled?: boolean | null;
+	hasPasskey?: boolean;
 	role?: string | null;
 	banned?: boolean | null;
 };
@@ -66,9 +69,13 @@ export async function getSessionCtx(): Promise<SessionCtx | null> {
 	const h = await headers();
 	const res = await auth.api.getSession({ headers: h });
 	if (!res) return null;
+	const u = res.user as UserRow;
+	// Ein indexierter count je Request: MFA-Regel (TOTP oder Passkey) und
+	// Bestätigungsdialog (Passkey zuerst).
+	const hasPasskey = await userHasPasskey(u.id);
 	return {
 		session: res.session as SessionRow,
-		user: res.user as UserRow,
+		user: { ...u, hasPasskey },
 		ip: ipFromHeaders(h),
 		userAgent: h.get("user-agent"),
 	};
@@ -99,6 +106,9 @@ export type OrgContext = {
 	ip: string | null;
 	userAgent: string | null;
 	stepUpFresh: boolean;
+	// eingerichtete Faktoren (Step-up-Dialog bietet Passkey zuerst an)
+	hasTotp: boolean;
+	hasPasskey: boolean;
 };
 
 export type Permission = Partial<Record<Resource, readonly string[]>>;
@@ -111,21 +121,18 @@ export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 	const orgId = ctx.session.activeOrganizationId;
 	if (!orgId) throw new AuthErr("no_org");
 
-	const [m] = await globalDb
-		.select({
-			id: member.id,
-			role: member.role,
-			accessUntil: memberAccess.accessUntil,
-			grants: memberAccess.grants,
-		})
+	const [row] = await globalDb
+		.select({ id: member.id, role: member.role })
 		.from(member)
-		.leftJoin(memberAccess, eq(memberAccess.memberId, member.id))
 		.where(
 			and(eq(member.organizationId, orgId), eq(member.userId, ctx.user.id)),
 		)
 		.limit(1);
-	if (!m) throw new AuthErr("no_org");
-	if (m.accessUntil && m.accessUntil.getTime() < Date.now()) {
+	if (!row) throw new AuthErr("no_org");
+	// Ablauf und Grants im Org-Kontext lesen (member_access ist FORCE RLS).
+	const [access] = await memberAccessFor(orgId, [row.id]);
+	const m = { ...row, grants: access?.grants ?? null };
+	if (access?.accessUntil && access.accessUntil.getTime() < Date.now()) {
 		throw new AuthErr("access_expired");
 	}
 
@@ -146,6 +153,8 @@ export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 		ip: ctx.ip,
 		userAgent: ctx.userAgent,
 		stepUpFresh: stepUpFresh(ctx.session),
+		hasTotp: Boolean(ctx.user.twoFactorEnabled),
+		hasPasskey: Boolean(ctx.user.hasPasskey),
 	};
 }
 
@@ -160,9 +169,11 @@ export async function requireStepUp(perm?: Permission): Promise<OrgContext> {
 export type PlatformAdminContext = {
 	userId: string;
 	email: string;
+	name: string;
 	ip: string | null;
 	userAgent: string | null;
 	sessionId: string;
+	stepUpFresh: boolean;
 };
 
 export async function requirePlatformAdmin(): Promise<PlatformAdminContext> {
@@ -183,23 +194,33 @@ export async function requirePlatformAdmin(): Promise<PlatformAdminContext> {
 	return {
 		userId: ctx.user.id,
 		email: ctx.user.email,
+		name: ctx.user.name,
 		ip: ctx.ip,
 		userAgent: ctx.userAgent,
 		sessionId: ctx.session.id,
+		stepUpFresh: stepUpFresh(ctx.session),
 	};
+}
+
+// Plattform-Eingriffe in fremde Konten (Zugang zurücksetzen): zusätzlich
+// frische MFA-Bestätigung.
+export async function requirePlatformStepUp(): Promise<PlatformAdminContext> {
+	const c = await requirePlatformAdmin();
+	if (!c.stepUpFresh) throw new AuthErr("step_up_required");
+	return c;
 }
 
 export function toOrgCtx(c: OrgContext): OrgCtx {
 	return { orgId: c.orgId, userId: c.userId, ip: c.ip, userAgent: c.userAgent };
 }
 
-// Ein User gehört in v1 zu genau einer Organisation.
-export async function membershipCount(userId: string): Promise<number> {
-	const [row] = await globalDb
-		.select({ n: count() })
+// Eigene Mitgliedschaften (ohne Berater-Zugänge, ADR-018): höchstens eine.
+export async function primaryMembershipCount(userId: string): Promise<number> {
+	const rows = await globalDb
+		.select({ role: member.role })
 		.from(member)
 		.where(eq(member.userId, userId));
-	return Number(row?.n ?? 0);
+	return countPrimary(rows.map((r) => r.role));
 }
 
 // ── Lieferantenportal (ADR-017) ────────────────────────────────────────────

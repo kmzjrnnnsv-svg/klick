@@ -23,6 +23,23 @@ import { CLASSIFICATIONS, CRITICALITY, ROLE_FUNCTIONS } from "./enums";
 
 // Register ohne Abhängigkeit auf grc.ts: Dienstleister, Assets, Prozesse.
 
+export const PROVIDER_CATEGORIES = [
+	"it_service",
+	"cloud",
+	"facility",
+	"maintenance",
+	"consulting",
+	"subcontractor",
+	"other",
+] as const;
+export const PROVIDER_STATUSES = [
+	"active",
+	"onboarding",
+	"paused",
+	"exiting",
+	"terminated",
+] as const;
+
 export type ContractClauses = Record<string, boolean | string>;
 export type DueDiligence = Record<string, boolean | string | null>;
 
@@ -51,6 +68,9 @@ export const providers = pgTable(
 		isOutsourcing: boolean().notNull().default(false),
 		isMaterial: boolean().notNull().default(false),
 		serviceDescription: text(),
+		// Lieferantenkategorie (Lieferantenbewertung); Banking/Krypto-Arten
+		// stehen in partnerType
+		category: text({ enum: PROVIDER_CATEGORIES }),
 		serviceType: text({
 			enum: [
 				"cloud_iaas",
@@ -90,9 +110,7 @@ export const providers = pgTable(
 		nextAssessmentAt: date(),
 		ownerUserId: userRef(),
 		assigneeUserId: userRef(),
-		status: text({ enum: ["active", "onboarding", "exiting", "terminated"] })
-			.notNull()
-			.default("active"),
+		status: text({ enum: PROVIDER_STATUSES }).notNull().default("active"),
 		notes: text(),
 		...timestamps(),
 	},
@@ -100,6 +118,37 @@ export const providers = pgTable(
 		index("providers_org_idx").on(t.organizationId),
 		orgPolicy("providers"),
 	],
+).enableRLS();
+
+// Standorte (D2): Hauptsitz, Büros, Rechenzentren, Lager, Filialen — für
+// Risiken, BCM und Inventar; Assets und Prozesse können auf einen Standort
+// verweisen.
+export const SITE_KINDS = [
+	"headquarters",
+	"office",
+	"datacenter",
+	"warehouse",
+	"branch",
+	"other",
+] as const;
+export type SiteKind = (typeof SITE_KINDS)[number];
+
+export const sites = pgTable(
+	"sites",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		name: text().notNull(),
+		kind: text({ enum: SITE_KINDS }).notNull().default("office"),
+		country: text(),
+		city: text(),
+		employees: integer(),
+		critical: boolean().notNull().default(false),
+		ownerUserId: userRef(),
+		notes: text(),
+		...timestamps(),
+	},
+	(t) => [index("sites_org_idx").on(t.organizationId), orgPolicy("sites")],
 ).enableRLS();
 
 export const assets = pgTable(
@@ -137,6 +186,17 @@ export const assets = pgTable(
 		backupLocation: text(),
 		rotationDue: date(),
 		ceremonyEvidenceId: uuid(),
+		// Lebenszyklus (B2): Hersteller/Produkt, Ende Herstellerunterstützung
+		// bzw. Sicherheitsupdates, Wartung, letzter Patch
+		vendor: text(),
+		product: text(),
+		version: text(),
+		endOfLifeAt: date(),
+		supportEndAt: date(),
+		maintenance: text({ enum: ["contract", "internal", "none"] }),
+		maintenanceUntil: date(),
+		lastPatchedAt: date(),
+		siteId: uuid().references(() => sites.id, { onDelete: "set null" }),
 		status: text({ enum: ["active", "retired"] })
 			.notNull()
 			.default("active"),
@@ -171,6 +231,7 @@ export const processes = pgTable(
 			onDelete: "set null",
 		}),
 		reviewAt: date(),
+		siteId: uuid().references(() => sites.id, { onDelete: "set null" }),
 		status: text({ enum: ["draft", "active", "retired"] })
 			.notNull()
 			.default("active"),

@@ -18,6 +18,7 @@ import {
 	ProcessLinksEditor,
 	RaciEditor,
 } from "@/components/processes/process-forms";
+import { SourceRisks } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { historyFor } from "@/lib/audit";
@@ -498,9 +499,18 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div>
-						<p className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
-							{t("risks")}
-						</p>
+						<div className="mb-1 flex items-center justify-between gap-2">
+							<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+								{t("risks")}
+							</p>
+							<SourceRisks
+								kind="process"
+								id={data.process.id}
+								risks={[]}
+								canCreate={roleAllows(ctx.orgRole, { risk: ["create"] })}
+								compact
+							/>
+						</div>
 						{linkedRisks.length === 0 ? (
 							<p className="text-muted-foreground text-sm">—</p>
 						) : (

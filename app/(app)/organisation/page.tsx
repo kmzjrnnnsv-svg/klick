@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { deleteShareholder } from "@/app/actions/casp";
@@ -10,6 +11,7 @@ import {
 import { deleteInsurancePolicy } from "@/app/actions/privacy";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { ShareholderForm } from "@/components/casp/shareholder-form";
+import { Sparkline } from "@/components/entity/sparkline";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import {
@@ -30,6 +32,7 @@ import {
 } from "@/components/organisation/roles-forms";
 import { PageHeader } from "@/components/page-header";
 import { InsuranceForm } from "@/components/privacy/privacy-forms";
+import { SitesStep } from "@/components/setup/sites-step";
 import { Badge } from "@/components/ui/badge";
 import {
 	Table,
@@ -39,6 +42,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { sites } from "@/db/schema";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { approverEligibility } from "@/lib/approvals/rules";
 import {
@@ -50,6 +54,10 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
 import { roleAllows } from "@/lib/auth/permissions";
+import {
+	type IndicatorState,
+	indicatorState,
+} from "@/lib/compliance/indicators";
 import { fmtDate, shortFrameworkName } from "@/lib/compliance/page-data";
 import { insuranceState } from "@/lib/compliance/privacy";
 import {
@@ -82,6 +90,17 @@ import type { FitProperChecklist } from "@/lib/validation/governance";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+const fmtNum = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 2 });
+const INDICATOR_TONE: Record<
+	IndicatorState,
+	"success" | "warning" | "destructive" | "muted"
+> = {
+	ok: "success",
+	warn: "warning",
+	alert: "destructive",
+	overdue_measurement: "warning",
+	no_data: "muted",
+};
 const TABS = [
 	"kontext",
 	"geltungsbereich",
@@ -92,6 +111,7 @@ const TABS = [
 	"konflikte",
 	"gesellschafter",
 	"versicherungen",
+	"standorte",
 ] as const;
 
 export default async function OrganisationPage({
@@ -106,7 +126,6 @@ export default async function OrganisationPage({
 		: "kontext";
 	const t = await getTranslations("Organisation");
 	const tf = await getTranslations("Functions");
-	const ta = await getTranslations("Approvals");
 	const canEdit = roleAllows(ctx.orgRole, { organisation: ["update"] });
 	const canRoles = roleAllows(ctx.orgRole, { role_assignment: ["update"] });
 	const canShareholders = roleAllows(ctx.orgRole, { shareholder: ["update"] });
@@ -156,8 +175,39 @@ export default async function OrganisationPage({
 				const assetRows = await listAssets(tx, ctx.orgId);
 				return { ...base, checklists, assetRows };
 			}
-			case "ziele":
-				return { ...base, objectives: await listObjectives(tx, ctx.orgId) };
+			case "standorte":
+				return {
+					...base,
+					siteRows: await tx
+						.select()
+						.from(sites)
+						.where(eq(sites.organizationId, ctx.orgId))
+						.orderBy(sites.createdAt),
+				};
+			case "ziele": {
+				const objectives = await listObjectives(tx, ctx.orgId);
+				const objRequests = await Promise.all(
+					objectives.map((o) =>
+						latestRequestFor(tx, ctx.orgId, "objective", o.id),
+					),
+				);
+				const candidates = await loadCandidates(tx, ctx.orgId);
+				const dels = await activeDelegations(tx, ctx.orgId);
+				const names = await userNames(
+					tx,
+					objRequests.flatMap(
+						(r) => r?.decisions.map((d) => d.approverUserId) ?? [],
+					),
+				);
+				return {
+					...base,
+					objectives,
+					objRequests,
+					candidates,
+					dels,
+					names,
+				};
+			}
 			case "kommunikation":
 				return {
 					...base,
@@ -223,6 +273,7 @@ export default async function OrganisationPage({
 						count: gapCount + blockSod || undefined,
 					},
 					{ value: "ziele", label: t("tabObjectives") },
+					{ value: "standorte", label: t("tabSites") },
 					{ value: "kommunikation", label: t("tabCommunication") },
 					{ value: "aufsicht", label: t("tabRegulators") },
 					{ value: "konflikte", label: t("tabConflicts") },
@@ -515,15 +566,6 @@ export default async function OrganisationPage({
 											names={data.names}
 											eligible={eligible}
 											currentUserId={ctx.userId}
-											labels={{
-												title: ta("bar"),
-												step: (n) => ta("step", { n }),
-												dueAt: ta("dueAt"),
-												overdue: ta("overdue"),
-												selfApproved: ta("selfApproved"),
-												history: ta("history"),
-												status: (x) => x,
-											}}
 										/>
 									)}
 									{canEdit &&
@@ -796,88 +838,237 @@ export default async function OrganisationPage({
 						<p className="text-muted-foreground text-sm">
 							{t("objectivesLead")}
 						</p>
-						{canEdit && <ObjectiveForm members={members} frameworks={orgFws} />}
+						{canEdit && (
+							<ObjectiveForm
+								members={members}
+								frameworks={orgFws}
+								soloHint={memberCount <= 1}
+							/>
+						)}
 					</div>
 					{data.objectives.length === 0 ? (
 						<p className="text-sm">{t("objectivesEmpty")}</p>
 					) : (
 						<ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
-							{data.objectives.map((o) => (
-								<li
-									key={o.id}
-									className="flex flex-col gap-2 rounded-md border p-3 text-sm"
-								>
-									<div className="flex items-start justify-between gap-2">
-										<div className="min-w-0">
-											<p className="font-medium">{o.title}</p>
-											<p className="text-muted-foreground text-xs">
-												{o.kpiName ?? "—"}
-												{o.target
-													? ` · ${t("target")}: ${o.target}${o.unit ? ` ${o.unit}` : ""}`
-													: ""}
-												{o.dueAt
-													? ` · ${t("dueAt")}: ${fmtDate.format(new Date(o.dueAt))}`
+							{data.objectives.map((o, idx) => {
+								const ind = indicatorState(
+									{
+										direction: o.direction,
+										targetValue: o.targetValue,
+										warnAt: o.warnAt,
+										alertAt: o.alertAt,
+										nextMeasureAt:
+											o.approvalStatus === "approved" ? o.nextMeasureAt : null,
+									},
+									o.measurements,
+									today,
+								);
+								const hasNumbers =
+									o.targetValue !== null ||
+									o.warnAt !== null ||
+									o.alertAt !== null;
+								const fmtN = (v: number | null) =>
+									v === null
+										? "—"
+										: `${fmtNum.format(v)}${o.unit ? ` ${o.unit}` : ""}`;
+								const req = data.objRequests[idx] ?? null;
+								const me = data.candidates.find((c) => c.userId === ctx.userId);
+								const step = req?.steps.find(
+									(x) => x.order === req.currentStep,
+								);
+								const eligible = Boolean(
+									req &&
+										req.status === "pending" &&
+										step &&
+										me &&
+										approverEligibility(
+											step,
+											me,
+											{
+												requesterUserId: req.requestedByUserId,
+												entityOwnerUserId: o.ownerUserId,
+												delegations: data.dels,
+											},
+											data.candidates,
+										).eligible,
+								);
+								return (
+									<li
+										key={o.id}
+										className="flex flex-col gap-2 rounded-md border p-3 text-sm"
+									>
+										<div className="flex items-start justify-between gap-2">
+											<div className="min-w-0">
+												<p className="font-medium">{o.title}</p>
+												<p className="text-muted-foreground text-xs">
+													{o.kpiName ?? "—"}
+													{o.target ? ` · ${t("target")}: ${o.target}` : ""}
+													{o.dueAt
+														? ` · ${t("dueAt")}: ${fmtDate.format(new Date(o.dueAt))}`
+														: ""}
+												</p>
+											</div>
+											<div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+												{o.indicatorType && (
+													<Badge variant="outline">
+														{o.indicatorType.toUpperCase()}
+													</Badge>
+												)}
+												{o.approvalStatus !== "approved" && (
+													<Badge
+														variant={
+															o.approvalStatus === "rejected"
+																? "destructive"
+																: "warning"
+														}
+													>
+														{t(`approval_${o.approvalStatus}`)}
+													</Badge>
+												)}
+												<Badge
+													variant={
+														o.status === "achieved"
+															? "success"
+															: o.status === "at_risk"
+																? "destructive"
+																: o.status === "on_track"
+																	? "default"
+																	: "muted"
+													}
+												>
+													{t(`obj_${o.status}`)}
+												</Badge>
+												{canEdit && (
+													<ObjectiveForm
+														members={members}
+														frameworks={orgFws}
+														soloHint={memberCount <= 1}
+														initial={{
+															id: o.id,
+															title: o.title,
+															frameworkIds: o.frameworkIds,
+															kpiName: o.kpiName,
+															unit: o.unit,
+															target: o.target,
+															dueAt: o.dueAt,
+															ownerUserId: o.ownerUserId,
+															status: o.status,
+															indicatorType: o.indicatorType,
+															direction: o.direction,
+															targetValue: o.targetValue,
+															warnAt: o.warnAt,
+															alertAt: o.alertAt,
+															measureEveryMonths: o.measureEveryMonths,
+															nextMeasureAt: o.nextMeasureAt,
+														}}
+													/>
+												)}
+											</div>
+										</div>
+										{hasNumbers && (
+											<div className="flex flex-wrap items-center gap-2">
+												<Badge variant={INDICATOR_TONE[ind.state]}>
+													{t(`ind_${ind.state}`)}
+												</Badge>
+												{ind.latest !== null && (
+													<span className="font-medium tabular-nums">
+														{fmtN(ind.latest)}
+													</span>
+												)}
+												{ind.trend && (
+													<span className="text-muted-foreground text-xs">
+														{t(`trend_${ind.trend}`)}
+													</span>
+												)}
+												<Sparkline
+													points={ind.series}
+													max={Math.max(
+														...ind.series,
+														o.targetValue ?? 0,
+														o.warnAt ?? 0,
+														o.alertAt ?? 0,
+														1,
+													)}
+													title={o.kpiName ?? o.title}
+												/>
+											</div>
+										)}
+										{hasNumbers && (
+											<p className="text-muted-foreground text-xs tabular-nums">
+												{t("thresholds", {
+													target: fmtN(o.targetValue),
+													warn: fmtN(o.warnAt),
+													alert: fmtN(o.alertAt),
+												})}
+												{o.measureEveryMonths
+													? ` · ${t("measureEveryMonths", { n: o.measureEveryMonths })}`
 													: ""}
 											</p>
-										</div>
-										<div className="flex shrink-0 items-center gap-1">
-											<Badge
-												variant={
-													o.status === "achieved"
-														? "success"
-														: o.status === "at_risk"
-															? "destructive"
-															: o.status === "on_track"
-																? "default"
-																: "muted"
+										)}
+										{o.approvalStatus === "approved" && o.nextMeasureAt && (
+											<p
+												className={
+													o.nextMeasureAt < today
+														? "text-destructive text-xs"
+														: "text-muted-foreground text-xs"
 												}
 											>
-												{t(`obj_${o.status}`)}
-											</Badge>
-											{canEdit && (
-												<ObjectiveForm
-													members={members}
-													frameworks={orgFws}
-													initial={{
-														id: o.id,
-														title: o.title,
-														frameworkIds: o.frameworkIds,
-														kpiName: o.kpiName,
-														unit: o.unit,
-														target: o.target,
-														dueAt: o.dueAt,
-														ownerUserId: o.ownerUserId,
-														status: o.status,
-													}}
-												/>
+												{t(
+													o.nextMeasureAt < today
+														? "nextMeasureOverdue"
+														: "nextMeasure",
+													{ date: fmtDate.format(new Date(o.nextMeasureAt)) },
+												)}
+											</p>
+										)}
+										{o.approvalStatus !== "approved" && (
+											<p className="text-muted-foreground text-xs">
+												{t("objectiveNotApproved")}
+											</p>
+										)}
+										<div className="flex flex-wrap items-end gap-1">
+											{o.measurements.slice(-8).map((m) => (
+												<span
+													key={m.id}
+													className="rounded-sm border px-1.5 py-0.5 text-xs"
+													title={m.note ?? ""}
+												>
+													{fmtDate.format(new Date(m.measuredAt))}:{" "}
+													<span className="font-medium">{m.value}</span>
+												</span>
+											))}
+											{o.measurements.length === 0 && (
+												<span className="text-muted-foreground text-xs">
+													{t("noMeasurements")}
+												</span>
 											)}
 										</div>
-									</div>
-									<div className="flex flex-wrap items-end gap-1">
-										{o.measurements.slice(-8).map((m) => (
-											<span
-												key={m.id}
-												className="rounded-sm border px-1.5 py-0.5 text-xs"
-												title={m.note ?? ""}
-											>
-												{fmtDate.format(new Date(m.measuredAt))}:{" "}
-												<span className="font-medium">{m.value}</span>
-											</span>
-										))}
-										{o.measurements.length === 0 && (
-											<span className="text-muted-foreground text-xs">
-												{t("noMeasurements")}
-											</span>
+										{req && (
+											<ApprovalBar
+												data={{
+													...req,
+													decisions: req.decisions.map((d) => ({
+														step: d.step,
+														approverUserId: d.approverUserId,
+														decision: d.decision,
+														note: d.note,
+														decidedAt: d.decidedAt,
+													})),
+												}}
+												names={data.names}
+												eligible={eligible}
+												currentUserId={ctx.userId}
+											/>
 										)}
-									</div>
-									<div className="flex items-center justify-between gap-2">
-										<UserChip name={o.ownerName} />
-										{canEdit && (
-											<MeasurementForm objectiveId={o.id} unit={o.unit} />
-										)}
-									</div>
-								</li>
-							))}
+										<div className="flex flex-wrap items-center justify-between gap-2">
+											<UserChip name={o.ownerName} />
+											{canEdit && (
+												<MeasurementForm objectiveId={o.id} unit={o.unit} />
+											)}
+										</div>
+									</li>
+								);
+							})}
 						</ul>
 					)}
 				</section>
@@ -1378,6 +1569,26 @@ export default async function OrganisationPage({
 							</>
 						);
 					})()}
+				</section>
+			)}
+
+			{"siteRows" in data && (
+				<section className="flex flex-col gap-4">
+					<p className="text-muted-foreground text-sm">{t("sitesLead")}</p>
+					<SitesStep
+						sites={data.siteRows.map((x) => ({
+							id: x.id,
+							name: x.name,
+							kind: x.kind,
+							country: x.country,
+							city: x.city,
+							employees: x.employees,
+							critical: x.critical,
+						}))}
+						defaultCountry="DE"
+						canEdit={roleAllows(ctx.orgRole, { asset: ["create", "delete"] })}
+						canRisk={roleAllows(ctx.orgRole, { risk: ["create"] })}
+					/>
 				</section>
 			)}
 

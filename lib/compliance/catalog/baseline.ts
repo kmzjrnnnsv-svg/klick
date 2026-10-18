@@ -14,7 +14,7 @@ export const BASELINE: CatalogBaseline = {
 			present: [
 				"MFA-Pflicht für alle Rollen (TOTP, Passkeys/FIDO2), Enrolment beim ersten Login erzwungen",
 				"Sitzungsregeln: Idle 30 min, absolut 12 h, Step-up ≤ 10 min für sensible Aktionen",
-				"Rollenmodell owner/editor/viewer/auditor; Prüfer-Zugänge laufen über accessUntil ab",
+				"Rollenmodell owner/editor/consultant/viewer/auditor; Prüfer- und Berater-Zugänge laufen über accessUntil ab",
 				"Plattform-Admin mit IP-Allowlist, jeder Plattform-Zugriff mit Begründung im Audit-Log",
 				"Mandantentrennung in Postgres (RLS + FORCE auf jeder Org-Tabelle), App-Rolle ohne BYPASSRLS",
 			],

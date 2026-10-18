@@ -8,10 +8,10 @@ import { admin } from "better-auth/plugins/admin";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { organization } from "better-auth/plugins/organization";
 import { twoFactor } from "better-auth/plugins/two-factor";
-import { count, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { globalDb, schema } from "../../db";
 import { member, session as sessionTable, user } from "../../db/auth-schema";
-import { memberAccess } from "../../db/schema";
+import { memberAccess, roleAssignments } from "../../db/schema";
 import { auditPlatform } from "../audit";
 import { withOrg } from "../db/with-org";
 import { sendTransactionalMail } from "../mail/send";
@@ -23,8 +23,24 @@ import {
 import { syncTrainingAssignments } from "../trainings/assignments";
 import { mayReceiveMagicLink, pendingInvitationId } from "./allow-list";
 import { authAfterHook } from "./audit-events";
+import { authBeforeHook } from "./endpoint-guard";
 import { confirmLinkUrl } from "./magic-link";
+import {
+	accessDaysFor,
+	isConsultant,
+	membershipAllowed,
+	pickActiveMembership,
+	primaryMembershipCount,
+} from "./memberships";
+import { expireStepUp, listUserMemberships } from "./org";
+import { completeLinkRegistration, linkRegistrationUser } from "./passkey-link";
 import { ac, roles } from "./permissions";
+import {
+	inviteDelivery,
+	issueRegistrationLink,
+	REG_COOKIE,
+	resolveRegistration,
+} from "./registration-link";
 
 // Bewusst keine env()-Validierung beim Import: Better Auth liest
 // BETTER_AUTH_SECRET/BETTER_AUTH_URL selbst aus der Umgebung, und die CLI
@@ -60,6 +76,14 @@ const microsoft =
 			}
 		: undefined;
 
+async function rolesOfUser(userId: string): Promise<string[]> {
+	const rows = await globalDb
+		.select({ role: member.role })
+		.from(member)
+		.where(eq(member.userId, userId));
+	return rows.map((r) => r.role);
+}
+
 export const auth = betterAuth({
 	appName: "Klick",
 	baseURL,
@@ -89,7 +113,12 @@ export const auth = betterAuth({
 			"/magic-link/verify": { window: 15 * MINUTE, max: 20 },
 			"/two-factor/verify-totp": { window: 15 * MINUTE, max: 10 },
 			"/two-factor/verify-backup-code": { window: 15 * MINUTE, max: 5 },
-			"/sign-in/passkey": { window: 15 * MINUTE, max: 20 },
+			// Passkey-Prüfung ist nicht zu erraten (Signatur); die Grenze bremst
+			// nur Missbrauch. Großzügig, weil ein Büro hinter einer NAT-Adresse
+			// morgens viele Anmeldungen hat.
+			"/passkey/verify-authentication": { window: 15 * MINUTE, max: 100 },
+			"/passkey/generate-register-options": { window: 15 * MINUTE, max: 20 },
+			"/passkey/verify-registration": { window: 15 * MINUTE, max: 10 },
 		},
 	},
 
@@ -116,16 +145,21 @@ export const auth = betterAuth({
 	databaseHooks: {
 		session: {
 			create: {
-				async before(session) {
-					const [m] = await globalDb
-						.select({ organizationId: member.organizationId })
-						.from(member)
-						.where(eq(member.userId, session.userId))
-						.limit(1);
+				async before(session, ctx) {
+					// Aktive Org: die eigene Mitgliedschaft, sonst der zuletzt
+					// begonnene gültige Berater-Zugang (ADR-018).
+					const memberships = await listUserMemberships(session.userId);
+					// Passkey-Anmeldung (Nutzerverifikation geprüft in
+					// authentication.afterVerification) = zweiter Faktor erfüllt.
+					const viaPasskey =
+						ctx?.path === "/passkey/verify-authentication" ||
+						ctx?.path === "/passkey/verify-registration";
+					const now = new Date();
 					return {
 						data: {
 							...session,
-							activeOrganizationId: m?.organizationId ?? null,
+							activeOrganizationId: pickActiveMembership(memberships),
+							...(viaPasskey ? { mfaVerifiedAt: now, lastActiveAt: now } : {}),
 						},
 					};
 				},
@@ -150,6 +184,21 @@ export const auth = betterAuth({
 				// offener Einladung (zweite Linie hinter sendMagicLink). Die
 				// Ablehnung landet als ?error=new_user_signup_disabled auf /login.
 				async before(newUser, ctx) {
+					// Passkey-Registrierung über einen Einladungslink: nur für genau
+					// die eingeladene Adresse (zweite Linie hinter passkey-link.ts).
+					if (ctx?.path === "/passkey/verify-registration") {
+						const r = await resolveRegistration(ctx.getCookie(REG_COOKIE));
+						if (
+							r.ok &&
+							r.info.kind === "invite" &&
+							r.info.email.toLowerCase() === newUser.email.toLowerCase()
+						)
+							return;
+						throw new APIError("FORBIDDEN", {
+							code: "new_user_signup_disabled",
+							message: "Kein gültiger Einladungslink.",
+						});
+					}
 					if (allowSignup || ctx?.path !== "/magic-link/verify") return;
 					if (await pendingInvitationId(newUser.email)) return;
 					throw new APIError("FORBIDDEN", {
@@ -187,7 +236,9 @@ export const auth = betterAuth({
 		},
 	},
 
-	hooks: { after: authAfterHook },
+	// before: Faktor-Endpunkte nur nach lib/auth/endpoint-policy.ts (sonst
+	// Umgehung des zweiten Faktors über eine Mail-Link-Sitzung möglich)
+	hooks: { before: authBeforeHook, after: authAfterHook },
 
 	plugins: [
 		magicLink({
@@ -238,33 +289,48 @@ export const auth = betterAuth({
 		organization({
 			ac,
 			roles,
-			// Ein User gehört in v1 zu genau einer Org. organizationLimit begrenzt
-			// nur das Anlegen; die Mitgliedschafts-Grenze prüft lib/auth/guards.
-			organizationLimit: 1,
+			// Höchstens eine eigene Org je Konto; Berater-Zugänge (consultant)
+			// zählen nicht (ADR-018, lib/auth/memberships.ts). Die Grenze beim
+			// Beitritt prüft beforeAcceptInvitation.
+			async organizationLimit(user) {
+				return (await rolesOfUser(user.id)).some((r) => !isConsultant(r));
+			},
 			async allowUserToCreateOrganization(user) {
-				const [row] = await globalDb
-					.select({ n: count() })
-					.from(member)
-					.where(eq(member.userId, user.id));
-				return Number(row?.n ?? 0) === 0;
+				return primaryMembershipCount(await rolesOfUser(user.id)) === 0;
 			},
 			creatorRole: "owner",
 			membershipLimit: 250,
 			invitationExpiresIn: 48 * HOUR,
 			cancelPendingInvitationsOnReInvite: true,
+			// Jede Einladung bekommt einen Passkey-Link (Token im Fragment, ADR-019);
+			// das Team-Formular zeigt ihn zum Kopieren, die Mail ist optional
+			// (inviteDelivery aus app/actions/team.ts).
 			async sendInvitationEmail(data) {
+				const delivery = inviteDelivery.getStore();
+				const { url } = await issueRegistrationLink(
+					{
+						kind: "invite",
+						invitationId: data.id,
+						email: data.email,
+						organizationId: data.organization.id,
+					},
+					new Date(data.invitation.expiresAt),
+				);
+				if (delivery) delivery.url = url;
+				if (delivery && !delivery.mail) return;
 				const tpl = invitationEmail({
-					url: `${baseURL}/einladung/${data.id}`,
+					url,
 					organization: data.organization.name,
 					inviter: data.inviter.user.name || data.inviter.user.email,
 					role: data.role,
 				});
-				await sendTransactionalMail({
+				const sent = await sendTransactionalMail({
 					to: data.email,
 					subject: tpl.subject,
 					text: tpl.text,
 					html: tpl.html,
 				});
+				if (delivery) delivery.mailed = sent.ok;
 			},
 			organizationHooks: {
 				async afterCreateOrganization({ organization: org, user }) {
@@ -278,15 +344,28 @@ export const auth = betterAuth({
 						},
 					);
 				},
-				async beforeAcceptInvitation({ user }) {
-					// Ein User gehört zu genau einer Organisation (v1).
-					const [row] = await globalDb
-						.select({ n: count() })
+				async beforeAcceptInvitation({ invitation: inv, user }) {
+					// Eine eigene Organisation je Konto, Berater-Zugänge beliebig viele.
+					const rows = await globalDb
+						.select({
+							organizationId: member.organizationId,
+							role: member.role,
+						})
 						.from(member)
 						.where(eq(member.userId, user.id));
-					if (Number(row?.n ?? 0) > 0) {
+					if (rows.some((r) => r.organizationId === inv.organizationId)) {
 						throw new APIError("FORBIDDEN", {
-							message: "Dieses Konto gehört bereits zu einer Organisation.",
+							message: "Du bist bereits Mitglied dieser Organisation.",
+						});
+					}
+					const decision = membershipAllowed(
+						rows.map((r) => r.role),
+						inv.role,
+					);
+					if (!decision.ok) {
+						throw new APIError("FORBIDDEN", {
+							message:
+								"Dieses Konto gehört bereits zu einer Organisation. Als Berater:in (extern) kannst du trotzdem eingeladen werden.",
 						});
 					}
 				},
@@ -296,9 +375,28 @@ export const auth = betterAuth({
 						{ orgId: invitation.organizationId, userId: user.id },
 						(tx) => syncTrainingAssignments(tx, invitation.organizationId),
 					);
-					// Prüfer:innen bekommen zeitlich begrenzten Zugang (Standard 6 Wochen);
-					// Owner passt Ablauf und Grants auf /team an.
-					if (m.role === "auditor") {
+					// In der Einrichtung vorgemerkte Funktionen (pendingEmail) mit dem
+					// neuen Konto verknüpfen (D1).
+					await withOrg(
+						{ orgId: invitation.organizationId, userId: user.id },
+						(tx) =>
+							tx
+								.update(roleAssignments)
+								.set({ userId: user.id, pendingEmail: null })
+								.where(
+									and(
+										eq(
+											roleAssignments.organizationId,
+											invitation.organizationId,
+										),
+										eq(roleAssignments.pendingEmail, user.email.toLowerCase()),
+									),
+								),
+					);
+					// Externe (Prüfer:innen 6 Wochen, Berater:innen 90 Tage) bekommen
+					// befristeten Zugang; Owner passt Ablauf und Grants auf /team an.
+					const days = accessDaysFor(m.role);
+					if (days) {
 						await withOrg(
 							{ orgId: invitation.organizationId, userId: user.id },
 							(tx) =>
@@ -307,13 +405,16 @@ export const auth = betterAuth({
 									.values({
 										memberId: m.id,
 										organizationId: invitation.organizationId,
-										accessUntil: new Date(Date.now() + 42 * 86_400_000),
+										accessUntil: new Date(Date.now() + days * 86_400_000),
 										grants: [],
 										createdByUserId: invitation.inviterId,
 									})
 									.onConflictDoNothing(),
 						);
 					}
+					// Better Auth aktiviert die neue Org sofort — ein Step-up aus der
+					// bisherigen Org gilt dort nicht.
+					await expireStepUp({ userId: user.id });
 					await auditPlatform(
 						{ userId: user.id },
 						{
@@ -322,7 +423,7 @@ export const auth = betterAuth({
 							organizationId: invitation.organizationId,
 							after: {
 								role: m.role,
-								accessUntil: m.role === "auditor" ? "+42d" : null,
+								accessUntil: days ? `+${days}d` : null,
 							},
 						},
 					);
@@ -384,9 +485,40 @@ export const auth = betterAuth({
 			rpID: process.env.PASSKEY_RP_ID ?? new URL(baseURL).hostname,
 			rpName: process.env.PASSKEY_RP_NAME ?? "Klick",
 			origin: baseURL,
+			// Passkey zuerst (ADR-019): auffindbar (Anmeldung ohne Adresse) und
+			// mit Nutzerverifikation (Biometrie/PIN) — nur dann zählt er als
+			// vollständiger zweiter Faktor.
 			authenticatorSelection: {
-				residentKey: "preferred",
-				userVerification: "preferred",
+				residentKey: "required",
+				userVerification: "required",
+			},
+			// Registrierung ohne Sitzung nur über einen Einladungs- bzw.
+			// Zurücksetz-Link (Token im httpOnly-Cookie, lib/auth/passkey-link.ts);
+			// mit Sitzung gilt lib/auth/endpoint-policy.ts (MFA + Step-up).
+			registration: {
+				requireSession: false,
+				resolveUser: ({ ctx, context }) =>
+					linkRegistrationUser(ctx.getCookie(REG_COOKIE), context),
+				afterVerification: ({ ctx, verification, user: u, context }) =>
+					completeLinkRegistration({
+						raw: ctx.getCookie(REG_COOKIE),
+						context,
+						userVerified: Boolean(verification.registrationInfo?.userVerified),
+						user: u,
+						createUser: (data) =>
+							ctx.context.internalAdapter.createUser(data, {
+								method: "passkey-link",
+							}),
+					}),
+			},
+			authentication: {
+				async afterVerification({ verification }) {
+					if (!verification.authenticationInfo.userVerified)
+						throw new APIError("UNAUTHORIZED", {
+							code: "USER_VERIFICATION_REQUIRED",
+							message: "user_verification_required",
+						});
+				},
 			},
 		}),
 

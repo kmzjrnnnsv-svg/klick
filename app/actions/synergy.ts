@@ -27,7 +27,7 @@ import {
 } from "@/lib/compliance/synergy";
 import { readOrg } from "@/lib/db/with-org";
 import type { ActionResult } from "@/lib/validation/common";
-import { fromZod } from "@/lib/validation/common";
+import { frameworkSlugs, fromZod } from "@/lib/validation/common";
 import { sectorSchema } from "@/lib/validation/org";
 
 // Synergie-Vorschau für Onboarding und Einstellungen. Rechnet rein auf dem
@@ -35,12 +35,12 @@ import { sectorSchema } from "@/lib/validation/org";
 // läuft, bevor es eine Organisation gibt).
 
 const previewSchema = z.object({
-	frameworks: z.array(z.string().min(1)).max(20),
+	frameworks: frameworkSlugs,
 	sector: sectorSchema.default("other"),
 	licenceStage: z.enum(LICENCE_STAGES).default("0_vorbereitung"),
 	caspServices: z.array(z.enum(CASP_SERVICES)).default([]),
 	// Für Was-wäre-wenn: Rahmenwerke, die bereits aktiv sind.
-	current: z.array(z.string().min(1)).max(20).optional(),
+	current: frameworkSlugs.optional(),
 });
 
 export type SynergyPreview = {

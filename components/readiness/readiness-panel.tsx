@@ -1,3 +1,4 @@
+import Form from "next/form";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
@@ -171,9 +172,9 @@ export async function ReadinessPanel({
 					<Badge variant={VERDICT_TONE[result.verdict]} className="w-fit">
 						{t(`verdict_${result.verdict}`)}
 					</Badge>
-					<form
-						method="get"
+					<Form
 						action={base.path}
+						scroll={false}
 						className="mt-2 flex items-end gap-2"
 					>
 						{Object.entries(base.params).map(([k, v]) => (
@@ -201,7 +202,7 @@ export async function ReadinessPanel({
 						>
 							{t("apply")}
 						</button>
-					</form>
+					</Form>
 					{result.asOf !== today && (
 						<p className="max-w-56 text-muted-foreground text-xs">
 							{t("asOfFuture", { date: fmtDate.format(new Date(result.asOf)) })}

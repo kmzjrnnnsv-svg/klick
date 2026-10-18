@@ -9,6 +9,7 @@ import {
 	Section,
 } from "@/components/entity/entity-layout";
 import { StatusButton } from "@/components/entity/status-button";
+import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { AcceptFindingDialog } from "@/components/security/security-forms";
 import { Badge } from "@/components/ui/badge";
 import { historyFor } from "@/lib/audit";
@@ -136,23 +137,26 @@ export default async function FindingPage({
 				</>
 			}
 			aside={
-				<Section title={te("activity")}>
-					<CommentForm
-						entityType="security_finding"
-						entityId={f.id}
-						link={`/sicherheit/befunde/${f.id}`}
-					/>
-					<ActivityStream
-						entries={entries}
-						names={data.names}
-						labels={{
-							empty: te("activityEmpty"),
-							changed: te("changed"),
-							commented: te("commented"),
-							system: te("system"),
-						}}
-					/>
-				</Section>
+				<>
+					<SourceRisksBlock ctx={ctx} kind="security_finding" id={id} />
+					<Section title={te("activity")}>
+						<CommentForm
+							entityType="security_finding"
+							entityId={f.id}
+							link={`/sicherheit/befunde/${f.id}`}
+						/>
+						<ActivityStream
+							entries={entries}
+							names={data.names}
+							labels={{
+								empty: te("activityEmpty"),
+								changed: te("changed"),
+								commented: te("commented"),
+								system: te("system"),
+							}}
+						/>
+					</Section>
+				</>
 			}
 		>
 			{f.status === "accepted" && (

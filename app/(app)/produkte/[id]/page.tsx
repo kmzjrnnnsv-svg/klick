@@ -20,6 +20,8 @@ import {
 	ScopeForm,
 	StartChecklistButton,
 } from "@/components/products/product-forms";
+import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
+import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { historyFor } from "@/lib/audit";
@@ -178,6 +180,8 @@ export default async function ProductPage({
 			}
 			aside={
 				<>
+					<SourceRisksBlock ctx={ctx} kind="product" id={id} />
+					<DecisionRequestsBlock ctx={ctx} kind="product" id={id} />
 					<Section
 						title={te("tasks")}
 						actions={

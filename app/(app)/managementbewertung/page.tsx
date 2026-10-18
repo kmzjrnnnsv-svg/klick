@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UserChip } from "@/components/entity/user-chip";
+import { ReviewDigestView } from "@/components/management-review/review-digest";
 import {
 	CompleteReviewForm,
 	ReviewForm,
@@ -17,9 +18,11 @@ import {
 	applicableReviewInputs,
 	reviewComplete,
 } from "@/lib/compliance/catalog/management-review-inputs";
+import { asDigest } from "@/lib/compliance/management-review-digest";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { getOrgProfile, listMembersForPicker } from "@/lib/compliance/queries";
 import { listManagementReviews } from "@/lib/compliance/queries-p3";
+import { buildReviewDigest } from "@/lib/compliance/queries-review-digest";
 import { readOrg } from "@/lib/db/with-org";
 
 const STATUS_TONE = {
@@ -33,7 +36,7 @@ export default async function ManagementReviewPage() {
 	const t = await getTranslations("ManagementReview");
 	const canEdit = roleAllows(ctx.orgRole, { management_review: ["update"] });
 	const canResolve = roleAllows(ctx.orgRole, { resolution: ["create"] });
-	const { reviews, members, inputs } = await readOrg(
+	const { reviews, members, inputs, live } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => {
 			const profile = await getOrgProfile(tx, ctx.orgId);
@@ -41,6 +44,7 @@ export default async function ManagementReviewPage() {
 				reviews: await listManagementReviews(tx, ctx.orgId),
 				members: await listMembersForPicker(tx, ctx.orgId),
 				inputs: applicableReviewInputs(profile?.frameworks ?? []),
+				live: await buildReviewDigest(tx, ctx.orgId),
 			};
 		},
 	);
@@ -55,6 +59,11 @@ export default async function ManagementReviewPage() {
 	const yearAgo = new Date();
 	yearAgo.setFullYear(yearAgo.getFullYear() - 1);
 	const stale = !last || new Date(last.heldAt) < yearAgo;
+	const digestLabels = {
+		period: t("digestPeriod"),
+		open: t("digestOpen"),
+		nothing: t("digestNothing"),
+	};
 
 	return (
 		<>
@@ -78,6 +87,26 @@ export default async function ManagementReviewPage() {
 					<span className="text-warning">{t("noneYet")}</span>
 				)}
 			</div>
+			<details
+				open
+				className="group mb-6 flex flex-col gap-3 rounded-md border p-4"
+			>
+				<summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2">
+					<span className="font-serif-display text-lg text-primary">
+						{t("digestTitle")}
+					</span>
+					<a
+						href="/api/export/managementbewertung.md"
+						className="text-primary text-sm underline-offset-4 hover:underline"
+					>
+						{t("digestExport")}
+					</a>
+				</summary>
+				<p className="mt-1 mb-3 text-muted-foreground text-sm">
+					{t("digestLead")}
+				</p>
+				<ReviewDigestView digest={live} labels={digestLabels} />
+			</details>
 			{reviews.length === 0 ? (
 				<EmptyState
 					title={t("empty")}
@@ -89,6 +118,7 @@ export default async function ManagementReviewPage() {
 				<div className="flex flex-col gap-6">
 					{sorted.map((r) => {
 						const check = reviewComplete(r.inputs, inputs);
+						const snapshot = asDigest(r.digest);
 						return (
 							<article
 								key={r.id}
@@ -270,6 +300,27 @@ export default async function ManagementReviewPage() {
 										)}
 									</div>
 								</div>
+								{snapshot && (
+									<details className="flex flex-col gap-3 border-t pt-3">
+										<summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2">
+											<span className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+												{t("digestSnapshot")}
+											</span>
+											<a
+												href={`/api/export/managementbewertung.md?id=${r.id}`}
+												className="text-primary text-xs underline-offset-4 hover:underline"
+											>
+												{t("digestExport")}
+											</a>
+										</summary>
+										<div className="mt-3">
+											<ReviewDigestView
+												digest={snapshot}
+												labels={digestLabels}
+											/>
+										</div>
+									</details>
+								)}
 							</article>
 						);
 					})}

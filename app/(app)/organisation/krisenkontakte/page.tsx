@@ -68,31 +68,33 @@ export default async function CrisisContactsPage() {
 					<h2 className="lv-eyebrow mb-2 text-[0.6rem] text-muted-foreground print:text-black">
 						{t("crisisTeamSheet")}
 					</h2>
-					<table className="w-full border-collapse text-left">
-						<thead>
-							<tr className="border-b">
-								<th className="py-1 pr-3">{t("function")}</th>
-								<th className="py-1 pr-3">{t("holder")}</th>
-								<th className="py-1">{t("deputy")}</th>
-							</tr>
-						</thead>
-						<tbody>
-							{roles.map((r) => (
-								<tr key={r.id} className="border-border/60 border-b">
-									<td className="py-1 pr-3">{functionLabels[r.function]}</td>
-									<td className="py-1 pr-3">{r.holderName ?? "—"}</td>
-									<td className="py-1">{r.deputyName ?? "—"}</td>
+					<div className="overflow-x-auto print:overflow-visible">
+						<table className="w-full border-collapse text-left">
+							<thead>
+								<tr className="border-b">
+									<th className="py-1 pr-3">{t("function")}</th>
+									<th className="py-1 pr-3">{t("holder")}</th>
+									<th className="py-1">{t("deputy")}</th>
 								</tr>
-							))}
-							{roles.length === 0 && (
-								<tr>
-									<td colSpan={3} className="py-2 text-muted-foreground">
-										{t("unfilled")}
-									</td>
-								</tr>
-							)}
-						</tbody>
-					</table>
+							</thead>
+							<tbody>
+								{roles.map((r) => (
+									<tr key={r.id} className="border-border/60 border-b">
+										<td className="py-1 pr-3">{functionLabels[r.function]}</td>
+										<td className="py-1 pr-3">{r.holderName ?? "—"}</td>
+										<td className="py-1">{r.deputyName ?? "—"}</td>
+									</tr>
+								))}
+								{roles.length === 0 && (
+									<tr>
+										<td colSpan={3} className="py-2 text-muted-foreground">
+											{t("unfilled")}
+										</td>
+									</tr>
+								)}
+							</tbody>
+						</table>
+					</div>
 				</section>
 				<section>
 					<h2 className="lv-eyebrow mb-2 text-[0.6rem] text-muted-foreground print:text-black">

@@ -1,4 +1,5 @@
 import { syncCatalog } from "../lib/compliance/catalog/seed-catalog";
+import { seedPriceGroups } from "../lib/db/pricing";
 import { validateEnv } from "../lib/env";
 import { globalDb, sqlClient } from "./index";
 import { cmsPages } from "./schema";
@@ -37,6 +38,9 @@ async function main() {
 	const cms = await ensureCmsPlaceholders();
 	if (cms > 0)
 		console.log(`✔ ${cms} CMS-Platzhalter angelegt (Impressum/Datenschutz).`);
+	const groups = await seedPriceGroups();
+	if (groups > 0)
+		console.log(`✔ ${groups} Preisgruppen angelegt (Admin → Preise).`);
 	const s = await syncCatalog(globalDb);
 	console.log(
 		`✔ Katalog synchronisiert: ${s.frameworks} Rahmenwerke, ${s.sections} Sections, ${s.requirements} Anforderungen, ${s.controls} Controls, ${s.edges} Kanten.`,

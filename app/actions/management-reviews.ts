@@ -17,6 +17,7 @@ import {
 } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import { getOrgProfile } from "@/lib/compliance/queries";
+import { buildReviewDigest } from "@/lib/compliance/queries-review-digest";
 import { insertResolution } from "@/lib/compliance/resolutions-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
@@ -257,9 +258,15 @@ async function completeReviewImpl(
 					link: "/heute/aufgaben",
 				});
 			}
+			// Schnappschuss der Zusammenfassung aus Klick: beim Abhalten und beim
+			// Abschluss (bleibt danach prüfbar, auch wenn sich Daten ändern)
+			const digest = await buildReviewDigest(tx, c.orgId, {
+				to: row.heldAt,
+				excludeReviewId: row.id,
+			});
 			await tx
 				.update(managementReviews)
-				.set({ status })
+				.set({ status, digest })
 				.where(eq(managementReviews.id, row.id));
 			return {
 				result: { ok: true, data: { status, ...counts } },

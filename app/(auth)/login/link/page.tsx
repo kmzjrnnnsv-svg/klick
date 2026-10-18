@@ -39,7 +39,10 @@ export default async function MagicLinkConfirmPage({
 					</Button>
 				</form>
 			) : (
-				<Link href="/login" className={buttonVariants({ variant: "brown" })}>
+				<Link
+					href="/login/notweg"
+					className={buttonVariants({ variant: "brown" })}
+				>
 					{t("linkNew")}
 				</Link>
 			)}

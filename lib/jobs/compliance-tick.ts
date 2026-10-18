@@ -153,6 +153,25 @@ export type DueRows = {
 		status: string;
 		ownerUserId: string | null;
 	}[];
+	/** Ziele (B5): Messintervall — 7 Tage vorher, am Tag, danach wöchentlich. */
+	objectives?: readonly {
+		id: string;
+		title: string;
+		nextMeasureAt: string | null;
+		approvalStatus: string;
+		status: string;
+		ownerUserId: string | null;
+	}[];
+	/** Assets (B2): Herstellerende, Ende der Sicherheitsupdates, Wartungsende. */
+	assets?: readonly {
+		id: string;
+		name: string;
+		status: string;
+		endOfLifeAt: string | null;
+		supportEndAt: string | null;
+		maintenanceUntil: string | null;
+		ownerUserId: string | null;
+	}[];
 	/** Sicherheitsbefunde (S5): SLA kritisch/hoch, Ablauf von Akzeptanzen. */
 	securityFindings?: readonly {
 		id: string;
@@ -226,6 +245,7 @@ export const LEGAL_CHANGE_MARKS = [180, 90, 30, 7] as const;
 // CRA Art. 13 Abs. 19 / Anhang II: Nutzer rechtzeitig über das Supportende
 // informieren — Hinweise an den Verantwortlichen 1 Jahr, 6/3/1 Monat vorher.
 export const SUPPORT_END_MARKS = [365, 180, 90, 30] as const;
+export const ASSET_LIFECYCLE_MARKS = [180, 90, 30] as const;
 export const TLPT_CYCLE_YEARS = 3;
 export const ACCESS_EXPIRY_WARN_DAYS = 7;
 
@@ -670,6 +690,61 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			link: `/produkte/${p.id}?tab=einstufung`,
 			dedupeKey: `product_support:${p.id}:${days < 0 ? "ended" : mark}`,
 		});
+	}
+
+	// Ziele: Messung fällig (nur freigegebene, laufende Ziele)
+	for (const o of rows.objectives ?? []) {
+		if (o.approvalStatus !== "approved") continue;
+		if (o.status === "achieved" || o.status === "dropped") continue;
+		const at = toDate(o.nextMeasureAt);
+		if (!at) continue;
+		const days = daysUntil(now, at);
+		const due = days === 7 || days === 0 || (days < 0 && -days % 7 === 0);
+		if (!due) continue;
+		notifications.push({
+			kind: "review_due",
+			recipients: recipientsOf(o.ownerUserId, rows.orgOwnerIds),
+			title:
+				days < 0
+					? `Messung überfällig: ${o.title}`
+					: days === 0
+						? `Messung heute fällig: ${o.title}`
+						: `Messung in 7 Tagen: ${o.title}`,
+			body: `Nächste Messung am ${fmtDay(at)}. Wert unter Organisation → Ziele & KPIs eintragen.`,
+			link: "/organisation?tab=ziele",
+			dedupeKey: `objective_measure:${o.id}:${isoDay(now)}`,
+		});
+	}
+
+	// Assets: Herstellerende, Supportende, Wartungsende — 180/90/30 Tage
+	// vorher und am Tag danach (abgelaufen)
+	for (const a of rows.assets ?? []) {
+		if (a.status === "retired") continue;
+		for (const [field, label] of [
+			["endOfLifeAt", "Herstellerende"],
+			["supportEndAt", "Ende der Sicherheitsupdates"],
+			["maintenanceUntil", "Wartungsende"],
+		] as const) {
+			const at = toDate(a[field]);
+			if (!at) continue;
+			const days = daysUntil(now, at);
+			const mark = ASSET_LIFECYCLE_MARKS.find((m) => days === m);
+			if (mark === undefined && days !== -1) continue;
+			notifications.push({
+				kind: "review_due",
+				recipients: recipientsOf(a.ownerUserId, rows.orgOwnerIds),
+				title:
+					days < 0
+						? `${label} überschritten: ${a.name}`
+						: `${label} in ${mark} Tagen: ${a.name}`,
+				body:
+					days < 0
+						? "Ersatz, Verlängerung oder Ausmusterung entscheiden — oder das Risiko erfassen."
+						: `${label} am ${fmtDay(at)}. Ersatz oder Verlängerung planen.`,
+				link: "/assets?lebenszyklus=1",
+				dedupeKey: `asset_lifecycle:${a.id}:${field}:${days < 0 ? "ended" : mark}`,
+			});
+		}
 	}
 
 	// Sicherheitsbefunde: Akzeptanz abgelaufen → wieder offen; kritisch/hoch

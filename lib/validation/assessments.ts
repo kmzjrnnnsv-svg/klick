@@ -64,3 +64,4 @@ export const createMeasuresSchema = z.object({
 	// Fristvorschlag: Tage ab heute je Aufwand (S/M/L) oder feste Frist
 	dueAt: isoDate.nullable().optional(),
 });
+export type CreateAssessmentInput = z.infer<typeof createAssessmentSchema>;

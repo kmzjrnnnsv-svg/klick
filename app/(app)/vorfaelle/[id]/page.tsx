@@ -20,6 +20,8 @@ import {
 	IncidentUpdateForm,
 	MitigationButton,
 } from "@/components/incidents/incident-forms";
+import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
+import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import type { IncidentRegime } from "@/db/schema/enums";
 import { approverEligibility } from "@/lib/approvals/rules";
@@ -71,7 +73,6 @@ export default async function IncidentDetailPage({
 	const t = await getTranslations("Incidents");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const ta = await getTranslations("Approvals");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const r = await getIncident(tx, ctx.orgId, id);
 		if (!r) return null;
@@ -254,6 +255,8 @@ export default async function IncidentDetailPage({
 			}
 			aside={
 				<>
+					<SourceRisksBlock ctx={ctx} kind="incident" id={id} />
+					<DecisionRequestsBlock ctx={ctx} kind="incident" id={id} />
 					<Section title={te("activity")}>
 						<CommentForm
 							entityType="incident"
@@ -385,15 +388,6 @@ export default async function IncidentDetailPage({
 					names={names}
 					eligible={eligible}
 					currentUserId={ctx.userId}
-					labels={{
-						title: ta("bar"),
-						step: (n) => ta("step", { n }),
-						dueAt: ta("dueAt"),
-						overdue: ta("overdue"),
-						selfApproved: ta("selfApproved"),
-						history: ta("history"),
-						status: (s) => s,
-					}}
 				/>
 			)}
 

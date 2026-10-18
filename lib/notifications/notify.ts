@@ -1,3 +1,5 @@
+import { eq } from "drizzle-orm";
+import { user } from "@/db/auth-schema";
 import { notifications } from "@/db/schema";
 import type { NotificationKind } from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -15,7 +17,39 @@ export const IMMEDIATE_MAIL_KINDS: ReadonlySet<NotificationKind> = new Set([
 	"incident_deadline",
 	"risk_above_appetite",
 	"security_alert",
+	"inquiry",
 ]);
+
+// Plattform-Benachrichtigung (ohne Org) an alle Plattform-Admins. Nur in
+// einer Transaktion mit app.scope = platform aufrufen; die Sofort-Mail
+// verschickt der Plattform-Pass in lib/jobs/digest.ts.
+export async function notifyPlatformAdmins(
+	tx: OrgTx,
+	input: {
+		kind: NotificationKind;
+		title: string;
+		body?: string;
+		link?: string;
+		payload?: Record<string, unknown>;
+	},
+): Promise<number> {
+	const admins = await tx
+		.select({ id: user.id })
+		.from(user)
+		.where(eq(user.role, "admin"));
+	if (admins.length === 0) return 0;
+	await tx.insert(notifications).values(
+		admins.map((a) => ({
+			userId: a.id,
+			kind: input.kind,
+			title: input.title,
+			body: input.body ?? null,
+			link: input.link ?? null,
+			payload: input.payload ?? null,
+		})),
+	);
+	return admins.length;
+}
 
 export async function notify(
 	tx: OrgTx,

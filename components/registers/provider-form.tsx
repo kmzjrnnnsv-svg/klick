@@ -28,6 +28,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { PROVIDER_CATEGORIES, PROVIDER_STATUSES } from "@/db/schema/registers";
 
 const PARTNER = [
 	"ict",
@@ -52,6 +53,8 @@ const SERVICE = [
 	"other",
 ] as const;
 const CRIT = ["critical", "important", "standard"] as const;
+const CATEGORY = PROVIDER_CATEGORIES;
+const STATUS = PROVIDER_STATUSES;
 
 export type ProviderDraft = {
 	providerId?: string;
@@ -59,6 +62,8 @@ export type ProviderDraft = {
 	partnerType: (typeof PARTNER)[number];
 	serviceType?: (typeof SERVICE)[number] | null;
 	serviceDescription?: string | null;
+	category?: (typeof CATEGORY)[number] | null;
+	status?: (typeof STATUS)[number];
 	criticality: (typeof CRIT)[number];
 	isIct: boolean;
 	isOutsourcing: boolean;
@@ -66,7 +71,9 @@ export type ProviderDraft = {
 	country?: string | null;
 	processesPersonalData: boolean;
 	contractRef?: string | null;
+	contractStart?: string | null;
 	contractEnd?: string | null;
+	dataLocations?: string[] | null;
 	noticePeriodDays?: number | null;
 	ownerUserId?: string | null;
 	notes?: string | null;
@@ -135,7 +142,13 @@ export function ProviderForm({
 									? d.country.toUpperCase().slice(0, 2)
 									: undefined,
 								contractRef: d.contractRef ?? undefined,
+								category: d.category ?? null,
+								status: d.status ?? "active",
+								contractStart: d.contractStart || null,
 								contractEnd: d.contractEnd || null,
+								dataLocations: (d.dataLocations ?? [])
+									.map((x) => x.trim())
+									.filter(Boolean),
 								noticePeriodDays: d.noticePeriodDays ?? null,
 								ownerUserId: d.ownerUserId ?? null,
 								notes: d.notes ?? undefined,
@@ -177,6 +190,50 @@ export function ProviderForm({
 									{PARTNER.map((x) => (
 										<SelectItem key={x} value={x}>
 											{t(`partner_${x}`)}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<Label>{t("category")}</Label>
+							<Select
+								value={d.category ?? "none"}
+								onValueChange={(v) =>
+									set(
+										"category",
+										v === "none" ? null : (v as ProviderDraft["category"]),
+									)
+								}
+							>
+								<SelectTrigger className="w-full">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="none">—</SelectItem>
+									{CATEGORY.map((x) => (
+										<SelectItem key={x} value={x}>
+											{t(`category_${x}`)}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<Label>{t("status")}</Label>
+							<Select
+								value={d.status ?? "active"}
+								onValueChange={(v) =>
+									set("status", v as ProviderDraft["status"])
+								}
+							>
+								<SelectTrigger className="w-full">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{STATUS.map((x) => (
+										<SelectItem key={x} value={x}>
+											{t(`status_${x}`)}
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -236,11 +293,34 @@ export function ProviderForm({
 							/>
 						</div>
 						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="pv-locs">{t("dataLocations")}</Label>
+							<Input
+								id="pv-locs"
+								value={(d.dataLocations ?? []).join(", ")}
+								placeholder="DE, IE"
+								onChange={(e) =>
+									set(
+										"dataLocations",
+										e.target.value.split(",").map((x) => x.trimStart()),
+									)
+								}
+							/>
+						</div>
+						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="pv-contract">{t("contract")}</Label>
 							<Input
 								id="pv-contract"
 								value={d.contractRef ?? ""}
 								onChange={(e) => set("contractRef", e.target.value)}
+							/>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="pv-start">{t("contractStart")}</Label>
+							<Input
+								id="pv-start"
+								type="date"
+								value={d.contractStart ?? ""}
+								onChange={(e) => set("contractStart", e.target.value)}
 							/>
 						</div>
 						<div className="flex flex-col gap-1.5">
@@ -282,7 +362,7 @@ export function ProviderForm({
 									<SelectItem value="none">—</SelectItem>
 									{members.map((m) => (
 										<SelectItem key={m.userId} value={m.userId}>
-											{m.name}
+											{m.name || m.email}
 										</SelectItem>
 									))}
 								</SelectContent>

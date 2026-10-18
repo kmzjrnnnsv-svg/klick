@@ -209,7 +209,16 @@ export default async function NonconformitiesPage({
 									)}
 								</TableCell>
 								<TableCell className="text-xs">
-									{t(`source_${r.source}`)}
+									{r.sourceAudit ? (
+										<Link
+											href={`/audits/${r.sourceAudit.id}?tab=findings`}
+											className="hover:underline"
+										>
+											{t("sourceAudit", { title: r.sourceAudit.title })}
+										</Link>
+									) : (
+										t(`source_${r.source}`)
+									)}
 								</TableCell>
 								<TableCell>
 									<UserChip name={r.ownerName} />

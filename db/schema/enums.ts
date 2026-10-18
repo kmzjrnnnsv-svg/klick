@@ -245,6 +245,18 @@ export const SCAN_TOOLS = [
 ] as const;
 export type ScanTool = (typeof SCAN_TOOLS)[number];
 
+// Preise (Admin-CMS): Stufe je Preisgruppe, Art je Position.
+export const PRICE_LEVELS = ["entry", "market", "premium", "custom"] as const;
+export type PriceLevel = (typeof PRICE_LEVELS)[number];
+export const PRICE_MODES = ["from", "fixed", "on_request"] as const;
+export type PriceMode = (typeof PRICE_MODES)[number];
+
+// Anfragen (Formular auf /leistungen, „Leistung anfragen“ in der App).
+export const INQUIRY_SOURCES = ["public", "app"] as const;
+export type InquirySource = (typeof INQUIRY_SOURCES)[number];
+export const INQUIRY_STATUS = ["new", "contacted", "closed", "spam"] as const;
+export type InquiryStatus = (typeof INQUIRY_STATUS)[number];
+
 // Sicherheitsaufträge (S7): Pentest, Security-Check, Schnellcheck-Auftrag,
 // CRA-Readiness — manuell durchgeführt, in Klick verwaltet.
 export const ENGAGEMENT_KINDS = [
@@ -376,11 +388,20 @@ export const ENTITY_KINDS = [
 	"product",
 	"security_finding",
 	"security_engagement",
+	"provider_rating",
+	// Katalog-Anforderung (requirements.id) — nur als Herkunft/Bezug
+	"requirement",
+	// Entscheidung beim Management angefragt (E2)
+	"decision_request",
+	// Standort (D2)
+	"site",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 
 export const ROLE_FUNCTIONS = [
 	"management_body",
+	// Zwischenstufe für Freigaben (B4), z. B. mittlere Risiken
+	"department_head",
 	"isb_ciso",
 	"ict_risk_function",
 	"compliance",
@@ -436,6 +457,7 @@ export const NOTIFICATION_KINDS = [
 	"risk_above_appetite",
 	"audit_request",
 	"security_alert",
+	"inquiry",
 	"digest",
 	"system",
 ] as const;

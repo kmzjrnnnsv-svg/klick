@@ -47,12 +47,20 @@ async function upsertProviderImpl(
 	const parsed = providerSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { providerId, ...d } = parsed.data;
+	// Bei Änderungen nur Felder schreiben, die der Aufrufer mitschickt — sonst
+	// setzen Schema-Defaults nicht gesendete Felder (Datenstandorte,
+	// Vertragsbeginn …) zurück.
+	const sent = new Set(
+		input && typeof input === "object" ? Object.keys(input) : [],
+	);
 	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const values = {
 			name: d.name,
 			partnerType: d.partnerType,
 			serviceType: d.serviceType ?? null,
 			serviceDescription: d.serviceDescription ?? null,
+			category: d.category ?? null,
+			status: d.status ?? "active",
 			criticality: d.criticality,
 			isIct: d.isIct,
 			isOutsourcing: d.isOutsourcing,
@@ -64,9 +72,12 @@ async function upsertProviderImpl(
 			contractStart: d.contractStart ?? null,
 			contractEnd: d.contractEnd ?? null,
 			noticePeriodDays: d.noticePeriodDays ?? null,
-			ownerUserId: d.ownerUserId ?? c.userId,
+			ownerUserId: d.ownerUserId === undefined ? c.userId : d.ownerUserId,
 			notes: d.notes ?? null,
 		};
+		const patch = Object.fromEntries(
+			Object.entries(values).filter(([k]) => sent.has(k)),
+		) as Partial<typeof values>;
 		if (providerId) {
 			const [before] = await tx
 				.select()
@@ -79,27 +90,23 @@ async function upsertProviderImpl(
 				)
 				.limit(1);
 			if (!before) throw new Error("notFound");
-			await tx
-				.update(providers)
-				.set(values)
-				.where(eq(providers.id, providerId));
+			if (Object.keys(patch).length > 0)
+				await tx
+					.update(providers)
+					.set(patch)
+					.where(eq(providers.id, providerId));
 			return {
 				result: providerId,
 				audit: {
 					action: "provider.update",
 					target: `provider:${providerId}`,
-					before: {
-						name: before.name,
-						criticality: before.criticality,
-						isMaterial: before.isMaterial,
-						contractEnd: before.contractEnd,
-					},
-					after: {
-						name: d.name,
-						criticality: d.criticality,
-						isMaterial: d.isMaterial,
-						contractEnd: d.contractEnd ?? null,
-					},
+					before: Object.fromEntries(
+						Object.keys(patch).map((k) => [
+							k,
+							(before as Record<string, unknown>)[k] ?? null,
+						]),
+					),
+					after: patch,
 				},
 			};
 		}
@@ -139,6 +146,7 @@ async function upsertAssetImpl(
 			type: d.type,
 			classification: d.classification,
 			providerId: d.providerId ?? null,
+			siteId: d.siteId ?? null,
 			ownerUserId: d.ownerUserId ?? c.userId,
 			location: d.location ?? null,
 			description: d.description ?? null,
@@ -146,6 +154,14 @@ async function upsertAssetImpl(
 			custodian: d.custodian ?? null,
 			backupLocation: d.backupLocation ?? null,
 			rotationDue: d.rotationDue ?? null,
+			vendor: d.vendor || null,
+			product: d.product || null,
+			version: d.version || null,
+			endOfLifeAt: d.endOfLifeAt ?? null,
+			supportEndAt: d.supportEndAt ?? null,
+			maintenance: d.maintenance ?? null,
+			maintenanceUntil: d.maintenanceUntil ?? null,
+			lastPatchedAt: d.lastPatchedAt ?? null,
 		};
 		if (assetId) {
 			const [before] = await tx
@@ -164,11 +180,19 @@ async function upsertAssetImpl(
 						name: before.name,
 						type: before.type,
 						classification: before.classification,
+						endOfLifeAt: before.endOfLifeAt,
+						supportEndAt: before.supportEndAt,
+						maintenance: before.maintenance,
+						lastPatchedAt: before.lastPatchedAt,
 					},
 					after: {
 						name: d.name,
 						type: d.type,
 						classification: d.classification,
+						endOfLifeAt: values.endOfLifeAt,
+						supportEndAt: values.supportEndAt,
+						maintenance: values.maintenance,
+						lastPatchedAt: values.lastPatchedAt,
 					},
 				},
 			};

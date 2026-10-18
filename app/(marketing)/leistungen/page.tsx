@@ -2,8 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { CSSProperties } from "react";
+import { InquiryForm } from "@/components/marketing/inquiry-form";
 import { RevealRoot } from "@/components/marketing/reveal";
-import { FAQ, PLAN_ROWS, PLANS, SERVICES } from "@/lib/marketing/services";
+import { loadPriceTable } from "@/lib/db/pricing";
+import {
+	FAQ,
+	PLAN_ROWS,
+	PLANS,
+	planPrice,
+	SERVICES,
+	servicePrice,
+} from "@/lib/marketing/services";
 import { cn } from "@/lib/utils";
 import s from "./leistungen.module.css";
 
@@ -117,13 +126,17 @@ function phonePieceStyle(i: number): CSSProperties {
 	} as CSSProperties;
 }
 
-export default async function ServicesPage() {
+export default async function ServicesPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ leistung?: string }>;
+}) {
 	const t = await getTranslations("Services");
-	const contact = process.env.CONTACT_EMAIL;
-	const contactHref = contact
-		? `mailto:${contact}?subject=${encodeURIComponent("Erstgespräch Klick")}`
-		: "/login";
-	const contactLabel = contact ? t("ctaContact") : t("ctaStart");
+	const { prices } = await loadPriceTable();
+	const { leistung } = await searchParams;
+	// Alle Aktionen führen zum Anfrageformular am Seitenende.
+	const contactHref = "#anfrage";
+	const contactLabel = t("ctaContact");
 	const imgVars = {
 		"--img": `url(${IMG.sicherheit.src})`,
 		"--img-phone": `url(${IMG.vertrag.src})`,
@@ -278,7 +291,9 @@ export default async function ServicesPage() {
 								data-tab={svc.key}
 							>
 								<span className={s.tabName}>{svc.short}</span>
-								<span className={s.tabMeta}>{svc.priceFrom}</span>
+								<span className={s.tabMeta}>
+									{servicePrice(svc.key, prices)}
+								</span>
 							</label>
 						))}
 					</div>
@@ -317,7 +332,9 @@ export default async function ServicesPage() {
 								<div className={s.facts}>
 									<div className={cn(s.fact, s.factStrong)}>
 										<p className={s.factLabel}>{t("factPrice")}</p>
-										<p className={s.factValue}>{svc.priceFrom}</p>
+										<p className={s.factValue}>
+											{servicePrice(svc.key, prices)}
+										</p>
 									</div>
 									<div className={s.fact}>
 										<p className={s.factLabel}>{t("factDuration")}</p>
@@ -435,8 +452,12 @@ export default async function ServicesPage() {
 										className={p.key === "guided" ? s.rec : undefined}
 									>
 										<span className={s.planName}>{p.name}</span>
-										<span className={s.planPrice}>{p.price}</span>
-										<span className={s.planPeriod}>{p.period}</span>
+										<span className={s.planPrice}>
+											{planPrice(p.key, prices).price}
+										</span>
+										<span className={s.planPeriod}>
+											{planPrice(p.key, prices).period}
+										</span>
 									</th>
 								))}
 							</tr>
@@ -486,8 +507,12 @@ export default async function ServicesPage() {
 								)}
 							>
 								<span className={s.planName}>{p.name}</span>
-								<span className={s.planPrice}>{p.price}</span>
-								<span className={s.planPeriod}>{p.period}</span>
+								<span className={s.planPrice}>
+									{planPrice(p.key, prices).price}
+								</span>
+								<span className={s.planPeriod}>
+									{planPrice(p.key, prices).period}
+								</span>
 								<dl>
 									{PLAN_ROWS.map((row) => (
 										<div key={row.label}>
@@ -538,8 +563,8 @@ export default async function ServicesPage() {
 				</div>
 			</section>
 
-			{/* Abschluss: die Aktionskachel */}
-			<section className={s.section} aria-labelledby="cta-title">
+			{/* Abschluss: die Aktionskachel mit Anfrageformular */}
+			<section id="anfrage" className={s.section} aria-labelledby="cta-title">
 				<div className={s.ctaRow}>
 					<div className={cn(s.ctaSide, s.ctaLeft)} data-r="">
 						{/* biome-ignore lint/performance/noImgElement: statisches Bildschirmfoto */}
@@ -553,11 +578,14 @@ export default async function ServicesPage() {
 						/>
 					</div>
 					<div className={s.ctaMain} data-r="">
-						<h2 id="cta-title">{t("ctaTitle")}</h2>
-						<p>{t("ctaLead")}</p>
-						<a href={contactHref} className={cn(s.button, s.buttonInverse)}>
-							{contactLabel}
-						</a>
+						<div className={s.ctaText}>
+							<h2 id="cta-title">{t("ctaTitle")}</h2>
+							<p>{t("ctaLead")}</p>
+						</div>
+						<InquiryForm
+							defaultService={leistung ? `svc:${leistung}` : undefined}
+							buttonClassName={cn(s.button, s.buttonInverse)}
+						/>
 					</div>
 					<div className={cn(s.ctaSide, s.ctaRight)} data-r="" />
 				</div>

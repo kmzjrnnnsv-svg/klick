@@ -27,6 +27,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { RoleFunction } from "@/db/schema/enums";
+import {
+	INDICATOR_TEMPLATES,
+	type IndicatorDirection,
+	type IndicatorType,
+} from "@/lib/compliance/indicators";
 import type { FitProperChecklist } from "@/lib/validation/governance";
 import {
 	EditTrigger,
@@ -509,26 +514,68 @@ export type ObjectiveDraft = {
 	dueAt?: string | null;
 	ownerUserId?: string | null;
 	status: "open" | "on_track" | "at_risk" | "achieved" | "dropped";
+	indicatorType?: IndicatorType;
+	direction?: IndicatorDirection;
+	targetValue?: number | null;
+	warnAt?: number | null;
+	alertAt?: number | null;
+	measureEveryMonths?: number | null;
+	nextMeasureAt?: string | null;
+};
+
+const num = (v: string): number | null => {
+	if (!v.trim()) return null;
+	const n = Number(v.replace(",", "."));
+	return Number.isFinite(n) ? n : null;
 };
 
 export function ObjectiveForm({
 	initial,
 	members,
 	frameworks,
+	soloHint,
 }: {
 	initial?: ObjectiveDraft;
 	members: MemberOption[];
 	frameworks: { slug: string; name: string }[];
+	soloHint?: boolean;
 }) {
 	const t = useTranslations("Organisation");
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
+	const ts = useTranslations("Status");
 	const [d, setD] = useState<ObjectiveDraft>(
-		initial ?? { title: "", status: "open", frameworkIds: [] },
+		initial ?? {
+			title: "",
+			status: "open",
+			frameworkIds: [],
+			indicatorType: "kpi",
+			direction: "higher_better",
+		},
 	);
+	const [solo, setSolo] = useState("");
 	const fws = new Set(d.frameworkIds ?? []);
+	const applyTemplate = (key: string) => {
+		const tpl = INDICATOR_TEMPLATES.find((x) => x.key === key);
+		if (!tpl) return;
+		setD({
+			...d,
+			title: tpl.title,
+			kpiName: tpl.kpiName,
+			unit: tpl.unit,
+			indicatorType: tpl.indicatorType,
+			direction: tpl.direction,
+			targetValue: tpl.targetValue,
+			warnAt: tpl.warnAt,
+			alertAt: tpl.alertAt,
+			measureEveryMonths: tpl.measureEveryMonths,
+			frameworkIds: tpl.frameworks.filter((f) =>
+				frameworks.some((x) => x.slug === f),
+			),
+		});
+	};
 	return (
 		<FormDialog
 			title={initial ? t("editObjective") : t("newObjective")}
@@ -549,14 +596,42 @@ export function ObjectiveForm({
 						unit: d.unit ?? undefined,
 						target: d.target ?? undefined,
 						dueAt: d.dueAt || null,
+						nextMeasureAt: d.nextMeasureAt || null,
+						selfApprovalReason: solo || undefined,
 					});
 					if (!res.ok) return void toast.error(tc("error"));
-					toast.success(t("saved"));
+					if (res.data.approval === "pending")
+						toast.success(t("objectiveProposed"));
+					else if (res.data.approval === "failed")
+						toast.warning(
+							ts(
+								`approvalError_${res.data.approvalError ?? "no_approver"}` as "approvalError_no_approver",
+							),
+							{ duration: 12000 },
+						);
+					else toast.success(t("saved"));
 					setOpen(false);
 					router.refresh();
 				})
 			}
 		>
+			{!initial && (
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor="ob-tpl">{t("indicatorTemplate")}</Label>
+					<Select onValueChange={applyTemplate}>
+						<SelectTrigger id="ob-tpl" className="w-full">
+							<SelectValue placeholder="—" />
+						</SelectTrigger>
+						<SelectContent>
+							{INDICATOR_TEMPLATES.map((x) => (
+								<SelectItem key={x.key} value={x.key}>
+									{x.indicatorType.toUpperCase()} · {x.title}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+			)}
 			<Field
 				id="ob-title"
 				label={t("titleField")}
@@ -564,6 +639,99 @@ export function ObjectiveForm({
 				onChange={(v) => setD({ ...d, title: v })}
 				required
 			/>
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor="ob-type">{t("indicatorType")}</Label>
+					<Select
+						value={d.indicatorType ?? "kpi"}
+						onValueChange={(v) =>
+							setD({
+								...d,
+								indicatorType: v as IndicatorType,
+								direction: v === "kri" ? "lower_better" : "higher_better",
+							})
+						}
+					>
+						<SelectTrigger id="ob-type" className="w-full">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{(["kpi", "kri", "kci"] as const).map((x) => (
+								<SelectItem key={x} value={x}>
+									{t(`indicator_${x}`)}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor="ob-dir">{t("direction")}</Label>
+					<Select
+						value={d.direction ?? "higher_better"}
+						onValueChange={(v) =>
+							setD({ ...d, direction: v as IndicatorDirection })
+						}
+					>
+						<SelectTrigger id="ob-dir" className="w-full">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="higher_better">
+								{t("direction_higher_better")}
+							</SelectItem>
+							<SelectItem value="lower_better">
+								{t("direction_lower_better")}
+							</SelectItem>
+						</SelectContent>
+					</Select>
+				</div>
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor="ob-int">{t("measureEvery")}</Label>
+					<Select
+						value={d.measureEveryMonths ? String(d.measureEveryMonths) : "none"}
+						onValueChange={(v) =>
+							setD({
+								...d,
+								measureEveryMonths: v === "none" ? null : Number(v),
+							})
+						}
+					>
+						<SelectTrigger id="ob-int" className="w-full">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="none">—</SelectItem>
+							{[1, 3, 6, 12].map((m) => (
+								<SelectItem key={m} value={String(m)}>
+									{t("measureEveryMonths", { n: m })}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+				<Field
+					id="ob-tv"
+					label={t("targetValue")}
+					type="number"
+					value={d.targetValue?.toString() ?? ""}
+					onChange={(v) => setD({ ...d, targetValue: num(v) })}
+				/>
+				<Field
+					id="ob-warn"
+					label={t("warnAt")}
+					type="number"
+					value={d.warnAt?.toString() ?? ""}
+					onChange={(v) => setD({ ...d, warnAt: num(v) })}
+				/>
+				<Field
+					id="ob-alert"
+					label={t("alertAt")}
+					type="number"
+					value={d.alertAt?.toString() ?? ""}
+					onChange={(v) => setD({ ...d, alertAt: num(v) })}
+				/>
+			</div>
+			<p className="text-muted-foreground text-xs">{t("indicatorHint")}</p>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<Field
 					id="ob-kpi"
@@ -573,7 +741,7 @@ export function ObjectiveForm({
 				/>
 				<Field
 					id="ob-target"
-					label={t("target")}
+					label={t("targetText")}
 					value={d.target ?? ""}
 					onChange={(v) => setD({ ...d, target: v })}
 				/>
@@ -638,6 +806,15 @@ export function ObjectiveForm({
 					</label>
 				))}
 			</fieldset>
+			{soloHint && (
+				<Field
+					id="ob-solo"
+					label={t("soloReason")}
+					value={solo}
+					onChange={setSolo}
+					rows={2}
+				/>
+			)}
 		</FormDialog>
 	);
 }
@@ -667,7 +844,16 @@ export function MeasurementForm({
 						value,
 					});
 					if (!res.ok) return void toast.error(tc("error"));
-					toast.success(t("saved"));
+					if (res.data.escalated)
+						toast.warning(
+							t("measurementEscalated", { code: res.data.escalated }),
+							{ duration: 12000 },
+						);
+					else if (res.data.state === "alert")
+						toast.warning(t("measurementAlert"));
+					else if (res.data.state === "warn")
+						toast.warning(t("measurementWarn"));
+					else toast.success(t("saved"));
 					setValue("");
 					router.refresh();
 				});

@@ -17,6 +17,7 @@ import {
 	CATALOG_TEMPLATE,
 	catalogQuestions,
 } from "@/lib/assessments/catalog-template";
+import { insertSelfAssessment } from "@/lib/assessments/create-service";
 import { scoreAssessment } from "@/lib/assessments/score";
 import { answerStates, nextAssessmentCode } from "@/lib/assessments/state";
 import type { AuditInput } from "@/lib/audit";
@@ -89,89 +90,17 @@ async function createAssessmentImpl(
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
 	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const p = await getOrgProfile(tx, c.orgId);
-		if (!p) return { result: null, audit: [] };
-		const frameworks = (d.frameworks ?? p.frameworks).filter((s) =>
-			p.frameworks.includes(s),
+		const r = await insertSelfAssessment(
+			tx,
+			{ orgId: c.orgId, userId: c.userId },
+			d,
 		);
-		if (frameworks.length === 0) return { result: null, audit: [] };
-		const manual = new Map<string, boolean>();
-		for (const [k, v] of await loadApplicability(tx, c.orgId))
-			if (v.source === "manual") manual.set(k, v.applicable);
-		const existing = await tx
-			.select({
-				code: assessments.code,
-				kind: assessments.kind,
-				status: assessments.status,
-				questions: assessments.questions,
-			})
-			.from(assessments)
-			.where(eq(assessments.organizationId, c.orgId));
-		// Nur Neues: Controls, die keine frühere Gap-Analyse abgefragt hat.
-		let onlyControls: Set<string> | undefined;
-		if (d.onlyNew) {
-			const asked = new Set(
-				existing
-					.filter((x) => x.kind === "self" && x.status !== "cancelled")
-					.flatMap((x) => x.questions.map((q) => q.code)),
-			);
-			const all = catalogQuestions({
-				sector: p.profile.sector,
-				licenceStage: p.profile.licenceStage,
-				caspServices: p.profile.caspServices,
-				frameworks,
-				tlptDesignated: p.profile.tlptDesignated,
-				issuesTokens: p.profile.issuesTokens,
-				productRoles: p.profile.productRoles,
-				asOf: d.asOf ? new Date(`${d.asOf}T12:00:00Z`) : undefined,
-				manual,
-			});
-			onlyControls = new Set(
-				all.map((q) => q.code).filter((code) => !asked.has(code)),
-			);
-		}
-		const questions = catalogQuestions({
-			sector: p.profile.sector,
-			licenceStage: p.profile.licenceStage,
-			caspServices: p.profile.caspServices,
-			frameworks,
-			tlptDesignated: p.profile.tlptDesignated,
-			issuesTokens: p.profile.issuesTokens,
-			productRoles: p.profile.productRoles,
-			asOf: d.asOf ? new Date(`${d.asOf}T12:00:00Z`) : undefined,
-			manual,
-			onlyControls,
-		});
-		if (questions.length === 0) return { result: null, audit: [] };
-		const code = nextAssessmentCode(
-			existing.map((x) => x.code),
-			"GA",
-			new Date(),
-		);
-		const [row] = await tx
-			.insert(assessments)
-			.values({
-				organizationId: c.orgId,
-				code,
-				kind: "self",
-				templateCode: CATALOG_TEMPLATE,
-				title: d.title || `Gap-Analyse ${code}`,
-				frameworks,
-				asOf: d.asOf ?? null,
-				questions,
-				status: "in_progress",
-				ownerUserId: c.userId,
-			})
-			.returning({ id: assessments.id });
-		if (!row) throw new Error("insert failed");
-		return {
-			result: { id: row.id, questions: questions.length },
-			audit: {
-				action: "assessment.create",
-				target: `assessment:${row.id}`,
-				after: { code, frameworks, questions: questions.length },
-			},
-		};
+		return r
+			? {
+					result: { id: r.id, questions: r.questions },
+					audit: r.audit,
+				}
+			: { result: null, audit: [] };
 	});
 	if (!out) return { ok: false, error: "noQuestions" };
 	revalidatePath(PATH);

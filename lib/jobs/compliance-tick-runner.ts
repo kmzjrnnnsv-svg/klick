@@ -16,6 +16,7 @@ import {
 	approvalRequests,
 	approvalWorkflows,
 	assessments,
+	assets,
 	controlImplementations,
 	controls,
 	controlTests,
@@ -30,6 +31,7 @@ import {
 	memberAccess,
 	nonconformities,
 	notifications,
+	objectives,
 	obligationRuns,
 	obligations,
 	products,
@@ -41,9 +43,12 @@ import {
 	trainingAssignments,
 	trainingRequirements,
 } from "@/db/schema";
-import type { ApprovalStep } from "@/db/schema/grc";
 import { eligibleApprovers } from "@/lib/approvals/rules";
-import { activeDelegations, loadCandidates } from "@/lib/approvals/service";
+import {
+	activeDelegations,
+	loadCandidates,
+	requestSteps,
+} from "@/lib/approvals/service";
 import { audit } from "@/lib/audit";
 import { normalizeRole } from "@/lib/auth/guards";
 import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
@@ -182,6 +187,7 @@ async function loadDueRows(
 			id: approvalRequests.id,
 			kind: approvalWorkflows.kind,
 			steps: approvalWorkflows.steps,
+			ownSteps: approvalRequests.steps,
 			currentStep: approvalRequests.currentStep,
 			entityType: approvalRequests.entityType,
 			entityId: approvalRequests.entityId,
@@ -207,7 +213,7 @@ async function loadDueRows(
 		dels = await activeDelegations(tx, orgId, now);
 	}
 	const approvals = pendingApprovals.map((a) => {
-		const step = (a.steps as ApprovalStep[]).find(
+		const step = requestSteps({ steps: a.ownSteps }, a.steps).find(
 			(s) => s.order === a.currentStep,
 		);
 		const eligible = step
@@ -542,6 +548,44 @@ async function loadDueRows(
 				),
 			),
 		);
+	const objectiveRows = await tx
+		.select({
+			id: objectives.id,
+			title: objectives.title,
+			nextMeasureAt: objectives.nextMeasureAt,
+			approvalStatus: objectives.approvalStatus,
+			status: objectives.status,
+			ownerUserId: objectives.ownerUserId,
+		})
+		.from(objectives)
+		.where(
+			and(
+				eq(objectives.organizationId, orgId),
+				isNotNull(objectives.nextMeasureAt),
+			),
+		);
+	const assetRows = await tx
+		.select({
+			id: assets.id,
+			name: assets.name,
+			status: assets.status,
+			endOfLifeAt: assets.endOfLifeAt,
+			supportEndAt: assets.supportEndAt,
+			maintenanceUntil: assets.maintenanceUntil,
+			ownerUserId: assets.ownerUserId,
+		})
+		.from(assets)
+		.where(
+			and(
+				eq(assets.organizationId, orgId),
+				eq(assets.status, "active"),
+				or(
+					isNotNull(assets.endOfLifeAt),
+					isNotNull(assets.supportEndAt),
+					isNotNull(assets.maintenanceUntil),
+				),
+			),
+		);
 	const productRows = await tx
 		.select({
 			id: products.id,
@@ -648,6 +692,8 @@ async function loadDueRows(
 		dataSubjectRequests: dsrRows,
 		insurancePolicies: insuranceRows,
 		products: productRows,
+		assets: assetRows,
+		objectives: objectiveRows,
 		securityFindings: findingRows,
 		supplierAssessments: supplierRows,
 		engagements: engagementRows,

@@ -161,10 +161,14 @@ export async function moduleEvidenceFor(
 			};
 		}
 		case "CC-GOV-05": {
-			const [reviews, objectives] = await Promise.all([
+			const [reviews, allObjectives] = await Promise.all([
 				listManagementReviews(tx, orgId),
 				listObjectives(tx, orgId),
 			]);
+			// Zielvorschläge zählen erst nach Freigabe durch die Geschäftsleitung
+			const objectives = allObjectives.filter(
+				(o) => o.approvalStatus === "approved",
+			);
 			const done = reviews
 				.filter((r) => r.status === "done")
 				.sort((a, b) => b.heldAt.localeCompare(a.heldAt));
@@ -181,7 +185,7 @@ export async function moduleEvidenceFor(
 						ok: Boolean(last && new Date(last.heldAt) >= yearAgo),
 					},
 					{
-						label: "Ziele mit Messung",
+						label: "Freigegebene Ziele mit Messung",
 						value: `${objectives.filter((o) => o.measurements.length > 0).length}/${objectives.length}`,
 						ok: objectives.length > 0,
 					},

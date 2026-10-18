@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { importRisksCsv } from "@/app/actions/imports";
@@ -13,8 +14,10 @@ import {
 	LossEventForm,
 	RiskQuickCreate,
 } from "@/components/risks/risk-forms";
-import { RiskMatrix } from "@/components/risks/risk-matrix";
+import { ClassLegend, RiskMatrix } from "@/components/risks/risk-matrix";
+import { RiskProposals } from "@/components/risks/risk-proposals";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -28,30 +31,22 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { roleAllows } from "@/lib/auth/permissions";
 import { CONTROLS } from "@/lib/compliance/catalog";
-import { fmtDate } from "@/lib/compliance/page-data";
+import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
 	listExceptions,
 	listLossEvents,
+	listRiskMeasures,
 	listRisks,
 } from "@/lib/compliance/queries-p2";
-import {
-	assessRisk,
-	DEFAULT_RISK_APPETITE,
-	DEFAULT_RISK_SCALES,
-} from "@/lib/compliance/risk";
+import { loadRiskProposals } from "@/lib/compliance/queries-risk-sources";
+import { assessRisk, classDistribution } from "@/lib/compliance/risk";
+import { scaleLabels, ZONE_TONE } from "@/lib/compliance/risk-method";
 import { readOrg } from "@/lib/db/with-org";
 import { RISK_STATUS, RISK_STATUSES } from "@/lib/entities/risk";
-import { getOrgSettings } from "@/lib/org/queries";
+import { getOrgSettings, orgRiskMethod } from "@/lib/org/queries";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
-
-const BAND_TONE = {
-	low: "muted",
-	medium: "outline",
-	high: "warning",
-	critical: "destructive",
-} as const;
 
 export default async function RisksPage({
 	searchParams,
@@ -66,21 +61,27 @@ export default async function RisksPage({
 	const ts = await getTranslations("Status");
 	const canCreate = roleAllows(ctx.orgRole, { risk: ["create"] });
 
-	const { rows, settings, exceptions, losses } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => ({
+	const cov = await getOrgCoverageCached(ctx);
+	const { rows, method, exceptions, losses, measures, proposals, dismissed } =
+		await readOrg(toOrgCtx(ctx), async (tx) => ({
 			rows: await listRisks(tx, ctx.orgId),
-			settings: await getOrgSettings(tx, ctx.orgId),
+			method: await orgRiskMethod(tx, ctx.orgId),
 			exceptions:
 				tab === "ausnahmen" ? await listExceptions(tx, ctx.orgId) : [],
 			losses:
 				tab === "schadensfaelle" ? await listLossEvents(tx, ctx.orgId) : [],
-		}),
-	);
-	const appetite = settings?.riskAppetite ?? DEFAULT_RISK_APPETITE;
-	const scales = settings?.riskScales ?? DEFAULT_RISK_SCALES;
+			measures:
+				tab === "massnahmen" ? await listRiskMeasures(tx, ctx.orgId) : [],
+			proposals: await loadRiskProposals(tx, ctx.orgId, cov),
+			dismissed:
+				tab === "vorschlaege"
+					? ((await getOrgSettings(tx, ctx.orgId))?.riskProposalDismissals ??
+						{})
+					: {},
+		}));
+	const scales = scaleLabels(method);
 	const view = one(sp.view) === "residual" ? "residual" : "inherent";
-	const assessed = rows.map((r) => ({ r, a: assessRisk(r, appetite) }));
+	const assessed = rows.map((r) => ({ r, a: assessRisk(r, method) }));
 	const above = assessed.filter(
 		(x) => x.a.aboveAppetite && x.r.status !== "closed",
 	).length;
@@ -129,6 +130,12 @@ export default async function RisksPage({
 				actions={
 					<span className="flex flex-wrap items-center gap-2">
 						<a
+							href="/api/export/risikoanalyse.md"
+							className="text-primary text-sm hover:underline underline-offset-4"
+						>
+							{t("exportReport")}
+						</a>
+						<a
 							href="/api/export/risiken.csv"
 							className="text-primary text-sm hover:underline underline-offset-4"
 						>
@@ -141,7 +148,20 @@ export default async function RisksPage({
 								action={importRisksCsv}
 							/>
 						)}
-						{canCreate && <RiskQuickCreate scales={scales} />}
+						{canCreate && (
+							<RiskQuickCreate
+								scales={scales}
+								triggerLabel={t("quickCreate")}
+							/>
+						)}
+						{canCreate && (
+							<Button asChild size="sm" variant="brown">
+								<Link href="/risiken/neu">
+									<Plus />
+									{t("analyze")}
+								</Link>
+							</Button>
+						)}
 					</span>
 				}
 			/>
@@ -151,10 +171,30 @@ export default async function RisksPage({
 				tabs={[
 					{ value: "register", label: t("tabRegister"), count: rows.length },
 					{ value: "matrix", label: t("tabMatrix"), count: above },
+					{ value: "massnahmen", label: t("tabMeasures") },
 					{ value: "ausnahmen", label: t("tabExceptions") },
 					{ value: "schadensfaelle", label: t("tabLossEvents") },
+					{
+						value: "vorschlaege",
+						label: t("tabProposals"),
+						count: proposals.proposals.length,
+					},
 				]}
 			/>
+
+			{tab === "vorschlaege" && (
+				<RiskProposals
+					proposals={proposals.proposals}
+					moreGaps={proposals.moreGaps}
+					dismissed={Object.entries(dismissed).map(([key, d]) => ({
+						key,
+						reason: d.reason,
+						at: d.at,
+					}))}
+					canCreate={canCreate}
+					canDecide={roleAllows(ctx.orgRole, { risk: ["update"] })}
+				/>
+			)}
 
 			{tab === "matrix" && (
 				<>
@@ -166,6 +206,7 @@ export default async function RisksPage({
 							</span>
 							<Link
 								href="/risiken?tab=matrix&view=inherent"
+								scroll={false}
 								className={
 									view === "inherent"
 										? "font-medium"
@@ -177,6 +218,7 @@ export default async function RisksPage({
 							<span className="text-muted-foreground">·</span>
 							<Link
 								href="/risiken?tab=matrix&view=residual"
+								scroll={false}
 								className={
 									view === "residual"
 										? "font-medium"
@@ -190,7 +232,7 @@ export default async function RisksPage({
 					<RiskMatrix
 						risks={rows}
 						view={view}
-						appetite={appetite}
+						method={method}
 						labels={{
 							likelihood: scales.likelihood,
 							impact: scales.impact,
@@ -199,12 +241,106 @@ export default async function RisksPage({
 						}}
 						codes={new Map(rows.map((r) => [r.id, r.code]))}
 					/>
-					<p className="mt-3 text-muted-foreground text-xs">
-						{t("appetite", {
-							acceptable: appetite.acceptable,
-							tolerable: appetite.tolerable,
-						})}
+					<ClassLegend
+						method={method}
+						dist={classDistribution(rows, method)}
+						labels={{
+							inherent: t("inherent"),
+							residual: t("residual"),
+							title: t("classDistribution"),
+						}}
+					/>
+				</>
+			)}
+
+			{tab === "massnahmen" && (
+				<>
+					<p className="mb-4 text-muted-foreground text-sm">
+						{t("measuresLead")}
 					</p>
+					{measures.length === 0 ? (
+						<p className="text-sm">{t("measuresEmpty")}</p>
+					) : (
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead className="w-48">{t("measureRisk")}</TableHead>
+									<TableHead>{t("measureTitle")}</TableHead>
+									<TableHead className="w-40">{te("owner")}</TableHead>
+									<TableHead className="w-28">{t("measureDue")}</TableHead>
+									<TableHead className="w-28 text-right">
+										{t("measureCost")}
+									</TableHead>
+									<TableHead className="w-28">{t("measureStatus")}</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{measures.map((m) => {
+									const a = assessRisk(
+										{
+											id: m.riskId,
+											likelihood: m.likelihood,
+											impact: m.impact,
+											residualLikelihood: m.residualLikelihood,
+											residualImpact: m.residualImpact,
+										},
+										method,
+									);
+									return (
+										<TableRow key={m.id}>
+											<TableCell>
+												<Link
+													href={`/risiken/${m.riskId}`}
+													className="font-mono text-xs hover:underline"
+												>
+													{m.riskCode}
+												</Link>{" "}
+												<Badge variant={ZONE_TONE[a.inherent.zone]}>
+													{a.inherent.cls.label}
+												</Badge>
+												<p className="truncate text-muted-foreground text-xs">
+													{m.riskTitle}
+												</p>
+											</TableCell>
+											<TableCell className="font-medium">{m.title}</TableCell>
+											<TableCell>
+												<UserChip name={m.ownerName} />
+											</TableCell>
+											<TableCell
+												className={
+													m.dueAt && m.dueAt < today && m.status !== "done"
+														? "text-destructive"
+														: "text-muted-foreground"
+												}
+											>
+												{m.dueAt ? fmtDate.format(new Date(m.dueAt)) : "—"}
+											</TableCell>
+											<TableCell className="text-right tabular-nums">
+												{m.costEur != null
+													? `${m.costEur.toLocaleString("de-DE")} €`
+													: "—"}
+											</TableCell>
+											<TableCell>
+												<Badge
+													variant={
+														m.status === "done"
+															? "success"
+															: m.status === "in_progress"
+																? "warning"
+																: "muted"
+													}
+												>
+													{t(
+														`treatmentStatus_${m.status}` as "treatmentStatus_planned",
+													)}
+												</Badge>
+											</TableCell>
+										</TableRow>
+									);
+								})}
+							</TableBody>
+						</Table>
+					)}
 				</>
 			)}
 
@@ -383,7 +519,20 @@ export default async function RisksPage({
 							lead={t("emptyLead")}
 							requiredBy={t("requiredBy")}
 							actions={
-								canCreate ? <RiskQuickCreate scales={scales} /> : undefined
+								canCreate ? (
+									<span className="flex flex-wrap gap-2">
+										<Button asChild size="sm" variant="brown">
+											<Link href="/risiken/neu">
+												<Plus />
+												{t("analyze")}
+											</Link>
+										</Button>
+										<RiskQuickCreate
+											scales={scales}
+											triggerLabel={t("quickCreate")}
+										/>
+									</span>
+								) : undefined
 							}
 						/>
 					) : (
@@ -393,10 +542,10 @@ export default async function RisksPage({
 									<TableHead className="w-20">{t("code")}</TableHead>
 									<TableHead>{t("titleField")}</TableHead>
 									<TableHead className="w-28">{te("status")}</TableHead>
-									<TableHead className="w-24 text-right">
+									<TableHead className="w-36 text-right">
 										{t("inherent")}
 									</TableHead>
-									<TableHead className="w-24 text-right">
+									<TableHead className="w-36 text-right">
 										{t("residual")}
 									</TableHead>
 									<TableHead className="w-40">{te("owner")}</TableHead>
@@ -433,14 +582,20 @@ export default async function RisksPage({
 											/>
 										</TableCell>
 										<TableCell className="text-right">
-											<Badge variant={BAND_TONE[a.inherent.band]}>
-												{a.inherent.score}
+											<Badge
+												variant={ZONE_TONE[a.inherent.zone]}
+												title={a.inherent.cls.label}
+											>
+												{a.inherent.score} · {a.inherent.cls.label}
 											</Badge>
 										</TableCell>
 										<TableCell className="text-right">
 											{a.residual ? (
-												<Badge variant={BAND_TONE[a.residual.band]}>
-													{a.residual.score}
+												<Badge
+													variant={ZONE_TONE[a.residual.zone]}
+													title={a.residual.cls.label}
+												>
+													{a.residual.score} · {a.residual.cls.label}
 												</Badge>
 											) : (
 												<span className="text-muted-foreground">—</span>

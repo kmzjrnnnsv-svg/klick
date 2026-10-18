@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
 	addProgrammeItem,
+	adoptOpenFindings,
 	createAuditRequest,
 	createFinding,
 	decideAuditRequest,
@@ -49,14 +50,16 @@ function useRun(setOpen?: (o: boolean) => void) {
 	const t = useTranslations("Audits");
 	const router = useRouter();
 	const [pending, start] = useTransition();
-	const run = (
-		fn: () => Promise<{ ok: boolean; error?: string }>,
-		okMessage = t("saved"),
+	const run = <R extends { ok: boolean; error?: string }>(
+		fn: () => Promise<R>,
+		okMessage: string | ((res: R) => string) = t("saved"),
 	) =>
 		start(async () => {
 			const res = await fn();
 			if (!res.ok) return void toast.error(tc("error"));
-			toast.success(okMessage);
+			toast.success(
+				typeof okMessage === "function" ? okMessage(res) : okMessage,
+			);
 			setOpen?.(false);
 			router.refresh();
 		});
@@ -503,14 +506,19 @@ export function FindingForm({
 			pending={pending}
 			disabled={!title.trim()}
 			onSubmit={() =>
-				run(() =>
-					createFinding({
-						auditId,
-						title,
-						description: description || undefined,
-						severity,
-						controlCode: control === "none" ? null : control,
-					}),
+				run(
+					() =>
+						createFinding({
+							auditId,
+							title,
+							description: description || undefined,
+							severity,
+							controlCode: control === "none" ? null : control,
+						}),
+					(res) =>
+						res.ok && res.data.ncCode
+							? t("findingSavedNc", { code: res.data.ncCode })
+							: t("saved"),
 				)
 			}
 		>
@@ -622,6 +630,38 @@ export function FindingToNcButton({ findingId }: { findingId: string }) {
 		>
 			<Wrench />
 			{t("toNonconformity")}
+		</Button>
+	);
+}
+
+// Bestand: offene Findings ohne Abweichung gesammelt übernehmen
+export function AdoptFindingsButton({
+	auditId,
+	count,
+}: {
+	auditId: string;
+	count: number;
+}) {
+	const t = useTranslations("Audits");
+	const tc = useTranslations("Common");
+	const router = useRouter();
+	const [pending, start] = useTransition();
+	return (
+		<Button
+			size="sm"
+			variant="outline"
+			disabled={pending}
+			onClick={() =>
+				start(async () => {
+					const res = await adoptOpenFindings({ auditId });
+					if (!res.ok) return void toast.error(tc("error"));
+					toast.success(t("adoptFindingsDone", { n: res.data.count }));
+					router.refresh();
+				})
+			}
+		>
+			<Wrench />
+			{t("adoptFindings", { n: count })}
 		</Button>
 	);
 }

@@ -54,6 +54,7 @@ import {
 } from "@/lib/compliance/queries-p3";
 import { listPostureSnapshots } from "@/lib/compliance/queries-p4";
 import { loadReadiness } from "@/lib/compliance/queries-readiness";
+import { loadRiskProposals } from "@/lib/compliance/queries-risk-sources";
 import { DEFAULT_RISK_APPETITE } from "@/lib/compliance/risk";
 import { prioritizePlan } from "@/lib/compliance/synergy";
 import { readOrg } from "@/lib/db/with-org";
@@ -113,6 +114,9 @@ export default async function OverviewPage() {
 			listObligationRuns(tx, ctx.orgId),
 			listPostureSnapshots(tx, ctx.orgId, 35),
 		]);
+		// Risikovorschläge ohne Lücken (die stehen schon in der Abdeckung)
+		const proposals = (await loadRiskProposals(tx, ctx.orgId, null)).proposals
+			.length;
 		const gaps = await listAssessments(tx, ctx.orgId, "self");
 		return {
 			gapDone: gaps.some((a) => a.status === "completed"),
@@ -130,11 +134,13 @@ export default async function OverviewPage() {
 			ncs,
 			runs,
 			snapshots,
+			proposals,
 		};
 	});
 	const { controls, evidence, openTasks } = g;
 	const appetiteConfirmed =
 		g.risks.length > 0 ||
+		Boolean(g.orgSettings?.setupFlags?.riskMethodConfirmedAt) ||
 		JSON.stringify(g.orgSettings?.riskAppetite ?? DEFAULT_RISK_APPETITE) !==
 			JSON.stringify(DEFAULT_RISK_APPETITE);
 	const resCov = resolutionCoverage(
@@ -192,6 +198,12 @@ export default async function OverviewPage() {
 			label: t("gapRuns"),
 			count: overdueRuns.length,
 			href: "/kalender",
+		},
+		{
+			key: "riskProposals",
+			label: t("gapRiskProposals"),
+			count: g.proposals,
+			href: "/risiken?tab=vorschlaege",
 		},
 	].filter((x) => x.count > 0);
 	const hasNis2 = fws.includes("nis2");

@@ -25,6 +25,7 @@ import {
 } from "./_shared";
 import { frameworks } from "./catalog";
 import { type CaspService, LICENCE_STAGES, NOTIFICATION_KINDS } from "./enums";
+import { priceGroups } from "./pricing";
 
 // Plattform-Tabellen: Org-Einstellungen (RLS), Rechtskataster (RLS),
 // Prüfer-Zugänge (RLS), Audit-Log (append-only, RLS), Notifications (RLS),
@@ -35,6 +36,71 @@ export type RiskScales = {
 	impact: [string, string, string, string, string];
 };
 export type RiskAppetite = { acceptable: number; tolerable: number };
+
+// Risikomethodik je Org (lib/compliance/risk-method.ts): Rechenweg, Anker je
+// Stufe, Schadensarten und Risikoklassen. Leer = aus riskScales/riskAppetite
+// abgeleitet (Bestand), neue Orgs bekommen die Vorlage.
+export type Five<T> = [T, T, T, T, T];
+export type RiskZone = "acceptable" | "tolerable" | "unacceptable";
+export type RiskLevelText = { label: string; anchor: string };
+export type RiskDimension = {
+	key: string;
+	label: string;
+	enabled: boolean;
+	anchors: Five<string>;
+};
+// Wer eine Akzeptanz in dieser Klasse freigibt (B4): leer = die
+// verantwortliche Person entscheidet allein; sonst Stufen nacheinander,
+// z. B. ["department_head", "management_body"]. Fehlt das Feld, gilt das
+// bisherige Verhalten (nur über dem Appetit: Workflow risk_acceptance).
+export type RiskAcceptanceStep = "department_head" | "management_body";
+export type RiskClass = {
+	key: string;
+	label: string;
+	min: number;
+	max: number;
+	zone: RiskZone;
+	meaning: string;
+	acceptance?: RiskAcceptanceStep[];
+};
+export type RiskMethod = {
+	aggregation: "sum" | "product";
+	likelihood: Five<RiskLevelText>;
+	impact: Five<string>;
+	dimensions: RiskDimension[];
+	classes: RiskClass[];
+};
+// Lieferantenbewertung je Org (lib/compliance/supplier-rating.ts): Bereichs-
+// und Kriteriengewichte, Anker, Schwellen mit Wiedervorlage. Leer = Vorlage.
+export type SupplierArea = "general" | "security";
+export type SupplierCriterion = {
+	code: string;
+	area: SupplierArea;
+	title: string;
+	weight: number;
+	anchors: Five<string>;
+	enabled: boolean;
+	// Zusatzkriterium: nur wenn eines der Rahmenwerke aktiv ist …
+	frameworks?: string[];
+	// … bzw. nur für diese Partnerarten / nur bei Auslagerung
+	partnerTypes?: string[];
+	outsourcingOnly?: boolean;
+};
+export type SupplierThreshold = {
+	min: number;
+	level: string;
+	traffic: "red" | "amber" | "green";
+	status: string;
+	recommendation: string;
+	months: number;
+};
+export type SupplierMethod = {
+	areaWeights: Record<SupplierArea, number>;
+	criteria: SupplierCriterion[];
+	thresholds: SupplierThreshold[];
+	criticalMaxMonths: number;
+};
+
 export type ReviewDefaults = {
 	control: number;
 	document: number;
@@ -63,6 +129,19 @@ export type EntityProfile = {
 	totalAssetsEur?: number;
 	legalForm?: string;
 	registerNumber?: string;
+	// Größe und Einstufung (D2, lib/compliance/company-profile.ts)
+	employees?: number;
+	revenueEur?: number;
+	nis2Sector?: string;
+	customerTypes?: string[];
+	// stellt Produkte mit digitalen Elementen her oder bringt sie in Verkehr
+	digitalProducts?: boolean;
+	// IT und Daten (D3)
+	itOperation?: "cloud" | "hybrid" | "own_dc";
+	personalData?: string[];
+	specialCategories?: boolean;
+	dataSubjects?: "lt1k" | "1k_100k" | "gt100k";
+	customerCountries?: string[];
 };
 
 // DLP-Regeln je Org (lib/dlp/policy.ts wertet aus). Gespeichert wird nur,
@@ -122,6 +201,8 @@ export const orgSettings = pgTable(
 			acceptable: 4,
 			tolerable: 9,
 		}),
+		riskMethod: json<RiskMethod>(),
+		supplierMethod: json<SupplierMethod>(),
 		reviewDefaults: json<ReviewDefaults>().notNull().default({
 			control: 12,
 			document: 12,
@@ -139,10 +220,21 @@ export const orgSettings = pgTable(
 			.default({}),
 		// Setup-Checkliste: bestätigte Prüfungen (z. B. tlptConfirmedAt).
 		setupFlags: json<Record<string, string>>().notNull().default({}),
+		// Risikovorschläge (B3), die bewusst kein Risiko sind: „kind:id“ →
+		// Begründung, wer, wann
+		riskProposalDismissals: json<
+			Record<string, { reason: string; byUserId: string; at: string }>
+		>()
+			.notNull()
+			.default({}),
 		entityProfile: json<EntityProfile>().notNull().default({}),
 		dlpPolicy: json<Partial<DlpPolicy>>().notNull().default({}),
 		onboardingCompletedAt: ts(),
 		plan: text().notNull().default("start"),
+		// Preisgruppe (Admin-CMS); leer = Standardgruppe
+		priceGroupId: uuid().references(() => priceGroups.id, {
+			onDelete: "set null",
+		}),
 		...timestamps(),
 	},
 	() => [orgPolicy("org_settings")],

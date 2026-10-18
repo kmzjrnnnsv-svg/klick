@@ -1,15 +1,19 @@
 "use client";
 
 import { Building2, Fingerprint } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/client";
 
+// Anmeldung „Passkey zuerst“ (ADR-019): Passkey als Hauptweg — per Knopf
+// oder über das Autofill des E-Mail-Felds (Conditional UI) —, dazu SSO und
+// Microsoft. Der Mail-Link ist der Notweg unter /login/notweg.
 export function LoginForm({
 	microsoftEnabled,
 	signupAllowed,
@@ -24,44 +28,46 @@ export function LoginForm({
 	const router = useRouter();
 	const target = next ?? "/heute";
 	const [email, setEmail] = useState("");
-	const [busy, setBusy] = useState<
-		"link" | "passkey" | "microsoft" | "sso" | null
-	>(null);
+	const [busy, setBusy] = useState<"passkey" | "microsoft" | "sso" | null>(
+		null,
+	);
+	const notweg = next
+		? `/login/notweg?weiter=${encodeURIComponent(next)}`
+		: "/login/notweg";
 
-	async function sendLink(e: React.FormEvent) {
-		e.preventDefault();
-		setBusy("link");
-		// Antwort ist absichtlich identisch für bekannte und unbekannte Adressen.
-		try {
-			const res = await authClient.signIn.magicLink({
-				email: email.trim().toLowerCase(),
-				callbackURL: target,
-				newUserCallbackURL: next ?? "/onboarding",
-				errorCallbackURL: next
-					? `/login?grund=link-ungueltig&weiter=${encodeURIComponent(next)}`
-					: "/login?grund=link-ungueltig",
-			});
-			if (res?.error) {
-				setBusy(null);
-				toast.error(
-					res.error.status === 429 ? t("tooManyLinks") : t("genericError"),
-				);
+	// Conditional UI: der Browser bietet gespeicherte Passkeys direkt im
+	// E-Mail-Feld an. Bricht still ab, sobald der Knopf benutzt wird.
+	useEffect(() => {
+		let active = true;
+		(async () => {
+			const pkc = window.PublicKeyCredential as
+				| (typeof PublicKeyCredential & {
+						isConditionalMediationAvailable?: () => Promise<boolean>;
+				  })
+				| undefined;
+			if (!(await pkc?.isConditionalMediationAvailable?.().catch(() => false)))
 				return;
+			const res = await authClient.signIn.passkey({ autoFill: true });
+			if (active && res && !res.error) {
+				router.push(target);
+				router.refresh();
 			}
-		} catch {
-			setBusy(null);
-			toast.error(t("genericError"));
-			return;
-		}
-		router.push("/login/verify");
-	}
+		})();
+		return () => {
+			active = false;
+		};
+	}, [router, target]);
 
 	async function passkey() {
 		setBusy("passkey");
 		const res = await authClient.signIn.passkey();
 		setBusy(null);
 		if (res?.error) {
-			toast.error(t("genericError"));
+			const code = "code" in res.error ? String(res.error.code ?? "") : "";
+			// Abbrechen im Browser-Dialog ist kein Fehler.
+			if (code === "AUTH_CANCELLED" || code === "ERROR_CEREMONY_ABORTED")
+				return;
+			toast.error(t("passkeySignInFailed"));
 			return;
 		}
 		router.push(target);
@@ -100,49 +106,32 @@ export function LoginForm({
 
 	return (
 		<div className="flex flex-col gap-6">
-			<form
-				onSubmit={sendLink}
-				method="post"
-				action="/login"
-				className="flex flex-col gap-4"
+			<Button
+				type="button"
+				variant="brown"
+				size="lg"
+				onClick={passkey}
+				disabled={busy !== null}
 			>
+				<Fingerprint /> {busy === "passkey" ? t("passkeyBusy") : t("passkey")}
+			</Button>
+			<div className="flex items-center gap-3 text-muted-foreground text-xs">
+				<span className="h-px flex-1 bg-border" />
+				{t("orPasskey")}
+				<span className="h-px flex-1 bg-border" />
+			</div>
+			<div className="flex flex-col gap-3">
 				<div className="grid gap-2">
 					<Label htmlFor="email">{t("email")}</Label>
 					<Input
 						id="email"
 						type="email"
 						name="email"
-						autoComplete="email webauthn"
-						required
+						autoComplete="username webauthn"
 						value={email}
 						onChange={(e) => setEmail(e.target.value)}
 					/>
 				</div>
-				<Button
-					type="submit"
-					variant="brown"
-					disabled={busy !== null || email.length < 3}
-				>
-					{busy === "link" ? t("sendingLink") : t("sendLink")}
-				</Button>
-				{signupAllowed && (
-					<p className="text-muted-foreground text-xs">{t("signupHint")}</p>
-				)}
-			</form>
-			<div className="flex items-center gap-3 text-muted-foreground text-xs">
-				<span className="h-px flex-1 bg-border" />
-				{t("orPasskey")}
-				<span className="h-px flex-1 bg-border" />
-			</div>
-			<div className="flex flex-col gap-2">
-				<Button
-					type="button"
-					variant="outline"
-					onClick={passkey}
-					disabled={busy !== null}
-				>
-					<Fingerprint /> {t("passkey")}
-				</Button>
 				<Button
 					type="button"
 					variant="outline"
@@ -163,6 +152,12 @@ export function LoginForm({
 					</Button>
 				)}
 			</div>
+			<p className="text-muted-foreground text-sm">
+				{t("lostPasskey")}{" "}
+				<Link href={notweg} className="text-primary hover:underline">
+					{signupAllowed ? t("mailLinkOrSignup") : t("mailLink")}
+				</Link>
+			</p>
 		</div>
 	);
 }

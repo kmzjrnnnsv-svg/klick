@@ -27,6 +27,7 @@ import {
 import type { ImplStatus } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { isExternal } from "@/lib/auth/memberships";
 import { listOrgMembers } from "@/lib/auth/org";
 import { roleAllows } from "@/lib/auth/permissions";
 import { aggregateSuspicious, type RiskDimensions } from "@/lib/compliance/aml";
@@ -143,7 +144,7 @@ export default async function AmlPage({
 	const tf = await getTranslations("Functions");
 	const now = new Date();
 	const canEdit = roleAllows(ctx.orgRole, { aml: ["update"] });
-	const detail = ctx.orgRole !== "auditor" || ctx.grants.includes("aml_detail");
+	const detail = !isExternal(ctx.orgRole) || ctx.grants.includes("aml_detail");
 	const memberCount = (await listOrgMembers(ctx.orgId)).length;
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
@@ -331,7 +332,7 @@ export default async function AmlPage({
 				actions={
 					canEdit ? (
 						tab === "risikoanalyse" ? (
-							<RiskAnalysisForm members={data.members} />
+							<RiskAnalysisForm members={data.members} frameworks={fws} />
 						) : tab === "monitoring" ? (
 							<MonitoringRuleForm members={data.members} />
 						) : tab === "verdacht" && detail ? (
@@ -390,7 +391,7 @@ export default async function AmlPage({
 							requiredBy={t("requiredByAnalysis")}
 							actions={
 								canEdit ? (
-									<RiskAnalysisForm members={data.members} />
+									<RiskAnalysisForm members={data.members} frameworks={fws} />
 								) : undefined
 							}
 						/>
@@ -399,12 +400,12 @@ export default async function AmlPage({
 							<TableHeader>
 								<TableRow>
 									<TableHead className="w-20">{t("version")}</TableHead>
-									<TableHead className="w-28">{t("status")}</TableHead>
-									<TableHead className="w-28">{t("overall")}</TableHead>
+									<TableHead className="w-24">{t("status")}</TableHead>
+									<TableHead className="w-24">{t("overall")}</TableHead>
 									<TableHead>{t("dimensions")}</TableHead>
-									<TableHead className="w-36">{t("owner")}</TableHead>
-									<TableHead className="w-40">{t("approvedAt")}</TableHead>
-									<TableHead className="w-56">{t("actions")}</TableHead>
+									<TableHead className="w-32">{t("owner")}</TableHead>
+									<TableHead className="w-28">{t("approvedAt")}</TableHead>
+									<TableHead className="w-48">{t("actions")}</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -483,6 +484,7 @@ export default async function AmlPage({
 														<>
 															<RiskAnalysisForm
 																members={data.members}
+																frameworks={fws}
 																initial={{
 																	id: a.id,
 																	version: a.version,

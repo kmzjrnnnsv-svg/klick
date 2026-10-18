@@ -1,14 +1,18 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { globalDb } from "@/db";
 import {
 	invitation,
 	member,
 	organization,
+	passkey,
 	session,
 	ssoProvider,
 	user,
 } from "@/db/auth-schema";
 import { memberAccess } from "@/db/schema";
+import { readOrg } from "@/lib/db/with-org";
+import { membershipExpired } from "./memberships";
+import { normalizeRole } from "./session-rules";
 
 // Org-Stammdaten aus den Better-Auth-Tabellen (kein RLS, daher immer explizit
 // nach organizationId gefiltert). Nur aus lib/auth/* heraus benutzen.
@@ -26,24 +30,127 @@ export async function getOrgSummary(orgId: string) {
 	return org ?? null;
 }
 
+// member_access ist RLS-geschützt (FORCE): ohne Org-Kontext sieht die
+// App-Rolle keine Zeile — Ablauf und Grants wären dann stillschweigend leer.
+// Deshalb immer im Kontext der jeweiligen Org lesen.
+export async function memberAccessFor(
+	orgId: string,
+	memberIds?: readonly string[],
+) {
+	if (memberIds && memberIds.length === 0) return [];
+	return readOrg({ orgId, userId: null }, (tx) =>
+		tx
+			.select({
+				memberId: memberAccess.memberId,
+				accessUntil: memberAccess.accessUntil,
+				grants: memberAccess.grants,
+			})
+			.from(memberAccess)
+			.where(
+				and(
+					eq(memberAccess.organizationId, orgId),
+					memberIds
+						? inArray(memberAccess.memberId, [...memberIds])
+						: undefined,
+				),
+			),
+	);
+}
+
 export async function listOrgMembers(orgId: string) {
-	return globalDb
+	const [rows, access] = await Promise.all([
+		globalDb
+			.select({
+				memberId: member.id,
+				userId: user.id,
+				name: user.name,
+				email: user.email,
+				role: member.role,
+				twoFactorEnabled: user.twoFactorEnabled,
+				passkeys: sql<number>`(select count(*)::int from ${passkey} where ${passkey.userId} = ${user.id})`,
+				createdAt: member.createdAt,
+			})
+			.from(member)
+			.innerJoin(user, eq(user.id, member.userId))
+			.where(eq(member.organizationId, orgId))
+			.orderBy(member.createdAt),
+		memberAccessFor(orgId),
+	]);
+	const byMember = new Map(access.map((a) => [a.memberId, a]));
+	return rows.map((r) => ({
+		...r,
+		accessUntil: byMember.get(r.memberId)?.accessUntil ?? null,
+		grants: byMember.get(r.memberId)?.grants ?? null,
+	}));
+}
+
+// Alle Mitgliedschaften eines Kontos (Org-Umschalter, Auswahlseite,
+// aktive Org beim Sitzungsstart) — mit Ablauf aus member_access.
+export async function listUserMemberships(userId: string) {
+	const rows = await globalDb
 		.select({
 			memberId: member.id,
-			userId: user.id,
-			name: user.name,
-			email: user.email,
+			organizationId: member.organizationId,
 			role: member.role,
-			twoFactorEnabled: user.twoFactorEnabled,
 			createdAt: member.createdAt,
-			accessUntil: memberAccess.accessUntil,
-			grants: memberAccess.grants,
+			orgName: organization.name,
+			orgSlug: organization.slug,
 		})
 		.from(member)
-		.innerJoin(user, eq(user.id, member.userId))
-		.leftJoin(memberAccess, eq(memberAccess.memberId, member.id))
-		.where(eq(member.organizationId, orgId))
-		.orderBy(member.createdAt);
+		.innerJoin(organization, eq(organization.id, member.organizationId))
+		.where(eq(member.userId, userId))
+		.orderBy(desc(member.createdAt));
+	const now = Date.now();
+	return Promise.all(
+		rows.map(async (r) => {
+			const [a] = await memberAccessFor(r.organizationId, [r.memberId]);
+			const accessUntil = a?.accessUntil ?? null;
+			return {
+				...r,
+				role: normalizeRole(r.role),
+				accessUntil,
+				expired: membershipExpired({ accessUntil }, now),
+			};
+		}),
+	);
+}
+
+export type UserMembership = Awaited<
+	ReturnType<typeof listUserMemberships>
+>[number];
+
+// Rollen desselben Kontos in anderen Organisationen (Rollenwechsel prüfen,
+// ADR-018). null, wenn das Mitglied nicht zu orgId gehört.
+export async function rolesElsewhere(memberId: string, orgId: string) {
+	const [m] = await globalDb
+		.select({ userId: member.userId })
+		.from(member)
+		.where(and(eq(member.id, memberId), eq(member.organizationId, orgId)))
+		.limit(1);
+	if (!m) return null;
+	const rows = await globalDb
+		.select({ organizationId: member.organizationId, role: member.role })
+		.from(member)
+		.where(eq(member.userId, m.userId));
+	return rows.filter((r) => r.organizationId !== orgId).map((r) => r.role);
+}
+
+// Step-up gilt nur für die Org, in der er bestätigt wurde: beim Wechsel
+// oder Beitritt verfällt er (Epoche statt null, sonst zählt mfaVerifiedAt).
+export async function expireStepUp(where: {
+	sessionId?: string;
+	userId?: string;
+}) {
+	const cond = where.sessionId
+		? eq(session.id, where.sessionId)
+		: where.userId
+			? eq(session.userId, where.userId)
+			: undefined;
+	if (!cond) return;
+	await globalDb
+		.update(session)
+		.set({ stepUpAt: new Date(0) })
+		.where(cond);
 }
 
 export async function listPendingInvitations(orgId: string) {

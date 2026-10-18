@@ -18,6 +18,7 @@ import { EvidenceForm } from "@/components/entity/evidence-form";
 import { StatusButton } from "@/components/entity/status-button";
 import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
+import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { Badge } from "@/components/ui/badge";
 import { approverEligibility } from "@/lib/approvals/rules";
 import {
@@ -56,7 +57,6 @@ export default async function DocumentDetailPage({
 	const ctx = await requireOrgPage({ document: ["read"] });
 	const t = await getTranslations("Documents");
 	const te = await getTranslations("Entity");
-	const ta = await getTranslations("Approvals");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getDocumentByNumber(tx, ctx.orgId, docNumber);
 		if (!d) return null;
@@ -196,6 +196,12 @@ export default async function DocumentDetailPage({
 			}
 			aside={
 				<>
+					<DecisionRequestsBlock
+						ctx={ctx}
+						kind="document"
+						id={doc.id}
+						title={`${doc.docNumber} ${doc.title}`}
+					/>
 					<Section title={te("activity")}>
 						<CommentForm
 							entityType="document"
@@ -261,15 +267,6 @@ export default async function DocumentDetailPage({
 				names={names}
 				eligible={eligible}
 				currentUserId={ctx.userId}
-				labels={{
-					title: ta("bar"),
-					step: (n) => ta("step", { n }),
-					dueAt: ta("dueAt"),
-					overdue: ta("overdue"),
-					selfApproved: ta("selfApproved"),
-					history: ta("history"),
-					status: (s) => s,
-				}}
 			/>
 
 			<Section

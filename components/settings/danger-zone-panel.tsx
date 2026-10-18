@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { deleteOrganizationAction } from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
+import { ExportLink } from "@/components/entity/export-link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Card,
@@ -58,12 +59,12 @@ export function DangerZonePanel({
 							{t("exportOrgHint")}
 						</p>
 					</div>
-					<a
+					<ExportLink
 						href="/api/export/organisation.zip"
 						className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
 					>
 						{t("exportOrg")}
-					</a>
+					</ExportLink>
 				</div>
 				{canDelete && (
 					<div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-start sm:justify-between">

@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ApprovalActions } from "@/components/approvals/approval-actions";
 import { AckButton } from "@/components/documents/ack-button";
@@ -9,8 +10,15 @@ import {
 	CompleteTrainingButton,
 	CourseLink,
 } from "@/components/registers/training-plan-forms";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	DueBadge,
+	TodayCard,
+	TodayEmpty,
+	TodayList,
+	TodayMeta,
+	TodayRow,
+} from "@/components/today/today-list";
+import { orgSettings } from "@/db/schema";
 import { listRequestsForUser } from "@/lib/approvals/service";
 import { catalogQuestions } from "@/lib/assessments/catalog-template";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -37,6 +45,12 @@ import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { listNotifications } from "@/lib/notifications/query";
 import { safeInternalPath } from "@/lib/safe-path";
+import {
+	SETUP_STEPS,
+	setupState,
+	shouldRedirectToSetup,
+	stepHref,
+} from "@/lib/setup/steps";
 import { currentTrainings } from "@/lib/trainings/assignments";
 
 // Startseite nach Login: gestapelte Abschnitte, je max. fünf Einträge —
@@ -64,6 +78,7 @@ export default async function TodayPage() {
 		trainingRows,
 		trainingReqs,
 		gapAnalyses,
+		setupFlags,
 	} = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const requests = (
 			await listRequestsForUser(tx, ctx.orgId, ctx.userId)
@@ -105,6 +120,14 @@ export default async function TodayPage() {
 			),
 			trainingReqs: await listTrainingRequirements(tx, ctx.orgId),
 			gapAnalyses: await listAssessments(tx, ctx.orgId, "self"),
+			setupFlags:
+				(
+					await tx
+						.select({ flags: orgSettings.setupFlags })
+						.from(orgSettings)
+						.where(eq(orgSettings.organizationId, ctx.orgId))
+						.limit(1)
+				)[0]?.flags ?? {},
 			ncs: (await listNonconformities(tx, ctx.orgId)).filter(
 				(n) =>
 					n.status !== "closed" &&
@@ -114,6 +137,14 @@ export default async function TodayPage() {
 			),
 		};
 	});
+
+	// Geführte Einrichtung (D0): neue Orgs landen dort, bis die Rahmenwerke
+	// stehen; danach (und für Bestands-Orgs) eine Karte, bis alles erledigt ist.
+	const canSetup = roleAllows(ctx.orgRole, { settings: ["update"] });
+	const setup = setupState(setupFlags);
+	if (canSetup && shouldRedirectToSetup(setup))
+		redirect(stepHref(setup.next ?? "rollen"));
+	const tsu = await getTranslations("Setup");
 
 	// Geführter Einstieg: offene Gap-Analyse fortsetzen oder die erste starten.
 	const ta = await getTranslations("Assessment");
@@ -173,352 +204,281 @@ export default async function TodayPage() {
 				}
 			/>
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+				{canSetup && !setup.completed && setup.next && (
+					<TodayCard
+						title={tsu("cardTitle")}
+						link={{
+							href: stepHref(setup.next),
+							label: tsu("cardContinue", { step: tsu(`step_${setup.next}`) }),
+						}}
+						className="border-primary/40 md:col-span-2"
+					>
+						<p className="text-sm">
+							{tsu("cardLead", {
+								done: setup.done.length,
+								total: SETUP_STEPS.length,
+							})}
+						</p>
+					</TodayCard>
+				)}
 				{(openGap || gapStartCount > 0) && (
-					<Card className="border-primary/40 md:col-span-2">
-						<CardHeader>
-							<CardTitle className="flex items-center justify-between text-base">
-								{ta("cardTitle")}
-								<Link
-									href={openGap ? `/gap-analyse/${openGap.id}` : "/gap-analyse"}
-									className="font-normal text-primary text-sm hover:underline underline-offset-4"
-								>
-									{openGap ? ta("continue") : ta("new")}
-								</Link>
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="flex flex-col gap-2 text-sm">
-							{openGap ? (
-								<>
-									<p>
-										{openGap.title} ·{" "}
-										{ta("cardLead", {
-											answered: openGap.answered,
-											total: openGap.total,
-										})}
-									</p>
-									<div className="h-1.5 overflow-hidden rounded-full bg-muted">
-										<div
-											className="h-full rounded-full bg-primary"
-											style={{
-												width: `${openGap.total > 0 ? (100 * openGap.answered) / openGap.total : 0}%`,
-											}}
-										/>
-									</div>
-								</>
-							) : (
-								<p className="text-muted-foreground">
-									{ta("cardStart", { count: gapStartCount })}
+					<TodayCard
+						title={ta("cardTitle")}
+						link={{
+							href: openGap ? `/gap-analyse/${openGap.id}` : "/gap-analyse",
+							label: openGap ? ta("continue") : ta("new"),
+						}}
+						className="border-primary/40 md:col-span-2"
+					>
+						{openGap ? (
+							<div className="flex flex-col gap-2 text-sm">
+								<p>
+									{openGap.title} ·{" "}
+									{ta("cardLead", {
+										answered: openGap.answered,
+										total: openGap.total,
+									})}
 								</p>
-							)}
-						</CardContent>
-					</Card>
+								<div className="h-1.5 overflow-hidden rounded-full bg-muted">
+									<div
+										className="h-full rounded-full bg-primary"
+										style={{
+											width: `${openGap.total > 0 ? (100 * openGap.answered) / openGap.total : 0}%`,
+										}}
+									/>
+								</div>
+							</div>
+						) : (
+							<TodayEmpty>
+								{ta("cardStart", { count: gapStartCount })}
+							</TodayEmpty>
+						)}
+					</TodayCard>
 				)}
 				{myTrainings.length > 0 && (
-					<Card className="md:col-span-2">
-						<CardHeader>
-							<CardTitle className="flex items-center justify-between text-base">
-								{tt("heuteTitle")}
-								<Link
-									href="/schulungen?tab=meine"
-									className="text-primary text-xs font-normal normal-case hover:underline"
-								>
-									{t("showAll")}
-								</Link>
-							</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<ul className="flex flex-col divide-y divide-border/60 text-sm">
-								{myTrainings.slice(0, 5).map((x) => (
-									<li
-										key={x.open?.id}
-										className="flex flex-wrap items-center justify-between gap-2 py-2"
-									>
-										<div className="min-w-0">
-											<p className="truncate">{x.req?.title}</p>
-											<CourseLink url={x.req?.courseUrl} />
-										</div>
-										<div className="flex shrink-0 items-center gap-2">
-											<Badge
-												variant={
-													x.state === "overdue" ? "destructive" : "warning"
-												}
-											>
-												{x.open ? fmtDate.format(new Date(x.open.dueAt)) : ""}
-											</Badge>
-											{x.open && (
-												<CompleteTrainingButton
-													assignmentId={x.open.id}
-													title={x.req?.title ?? ""}
-												/>
-											)}
-										</div>
-									</li>
-								))}
-							</ul>
-						</CardContent>
-					</Card>
+					<TodayCard
+						title={tt("heuteTitle")}
+						link={{ href: "/schulungen?tab=meine", label: t("showAll") }}
+						className="md:col-span-2"
+					>
+						<TodayList>
+							{myTrainings.slice(0, 5).map((x) => (
+								<TodayRow
+									key={x.open?.id}
+									title={x.req?.title}
+									sub={<CourseLink url={x.req?.courseUrl} />}
+									date={
+										x.open && (
+											<DueBadge
+												date={x.open.dueAt}
+												today={today}
+												soonDays={30}
+												overdueLabel={t("overdue")}
+											/>
+										)
+									}
+									action={
+										x.open && (
+											<CompleteTrainingButton
+												assignmentId={x.open.id}
+												title={x.req?.title ?? ""}
+											/>
+										)
+									}
+								/>
+							))}
+						</TodayList>
+					</TodayCard>
 				)}
-				<Card>
-					<CardHeader>
-						<CardTitle className="flex items-center justify-between text-base">
-							{t("approvals")}
-							<Link
-								href="/heute/freigaben"
-								className="text-primary text-xs font-normal normal-case hover:underline"
-							>
-								{t("showAll")}
-							</Link>
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						{approvals.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
-								{t("approvalsEmpty")}
-							</p>
-						) : (
-							<ul className="flex flex-col divide-y divide-border/60 text-sm">
-								{approvals.slice(0, 5).map((r) => {
-									const title =
-										approvalTitles.get(`${r.entityType}:${r.entityId}`) ??
-										r.workflowName;
-									return (
-										<li key={r.id} className="flex flex-col gap-2 py-2">
-											<Link
-												href={entityHref(r.entityType, r.entityId, title)}
-												className="min-w-0 truncate hover:underline"
-											>
+				<TodayCard
+					title={t("approvals")}
+					link={{ href: "/heute/freigaben", label: t("showAll") }}
+				>
+					{approvals.length === 0 ? (
+						<TodayEmpty>{t("approvalsEmpty")}</TodayEmpty>
+					) : (
+						<TodayList>
+							{approvals.slice(0, 5).map((r) => {
+								const title =
+									approvalTitles.get(`${r.entityType}:${r.entityId}`) ??
+									r.workflowName;
+								return (
+									<TodayRow
+										key={r.id}
+										href={entityHref(r.entityType, r.entityId, title)}
+										title={
+											<>
 												<span className="text-muted-foreground">
 													{r.workflowName} ·{" "}
 												</span>
 												{title}
-											</Link>
+											</>
+										}
+										below={
 											<ApprovalActions
 												requestId={r.id}
 												eligible={r.eligible}
 												mine={false}
 												compact
 											/>
-										</li>
-									);
-								})}
-							</ul>
-						)}
-					</CardContent>
-				</Card>
+										}
+									/>
+								);
+							})}
+						</TodayList>
+					)}
+				</TodayCard>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="flex items-center justify-between text-base">
-							{t("tasks")}
-							<Link
-								href="/heute/aufgaben"
-								className="text-primary text-xs font-normal normal-case hover:underline"
-							>
-								{t("showAll")}
-							</Link>
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						{tasks.length === 0 ? (
-							<p className="text-muted-foreground text-sm">{t("tasksEmpty")}</p>
-						) : (
-							<ul className="flex flex-col divide-y divide-border/60 text-sm">
-								{tasks.slice(0, 5).map((task) => {
-									const overdue = task.dueAt !== null && task.dueAt < today;
-									return (
-										<li
-											key={task.id}
-											className="flex items-center justify-between gap-2 py-2"
-										>
-											<span className="min-w-0 truncate">{task.title}</span>
-											<span className="flex shrink-0 items-center gap-2">
-												{task.dueAt && (
-													<span
-														className={
-															overdue
-																? "text-destructive text-xs"
-																: "text-muted-foreground text-xs"
-														}
-													>
-														{overdue
-															? t("overdue")
-															: fmtDate.format(new Date(task.dueAt))}
-													</span>
-												)}
-												<StatusBadge
-													machine={TASK_STATUS}
-													status={task.status}
-													label={ts(
-														TASK_STATUS.labelKey[task.status] as "todo",
-													)}
-												/>
-											</span>
-										</li>
-									);
-								})}
-							</ul>
-						)}
-					</CardContent>
-				</Card>
+				<TodayCard
+					title={t("tasks")}
+					link={{ href: "/heute/aufgaben", label: t("showAll") }}
+				>
+					{tasks.length === 0 ? (
+						<TodayEmpty>{t("tasksEmpty")}</TodayEmpty>
+					) : (
+						<TodayList>
+							{tasks.slice(0, 5).map((task) => (
+								<TodayRow
+									key={task.id}
+									title={task.title}
+									date={
+										task.dueAt && (
+											<DueBadge
+												date={task.dueAt}
+												today={today}
+												overdueLabel={t("overdue")}
+											/>
+										)
+									}
+									action={
+										<StatusBadge
+											machine={TASK_STATUS}
+											status={task.status}
+											label={ts(TASK_STATUS.labelKey[task.status] as "todo")}
+											className="min-w-20"
+										/>
+									}
+								/>
+							))}
+						</TodayList>
+					)}
+				</TodayCard>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="flex items-center justify-between text-base">
-							{t("due")}
-							<Link
-								href="/heute/verantwortung"
-								className="text-primary text-xs font-normal normal-case hover:underline"
-							>
-								{t("accountability")}
-							</Link>
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						{dueTasks.length === 0 &&
-						dueReviews.length === 0 &&
-						runs.length === 0 &&
-						ncs.length === 0 ? (
-							<p className="text-muted-foreground text-sm">{t("dueEmpty")}</p>
-						) : (
-							<ul className="flex flex-col divide-y divide-border/60 text-sm">
-								{dueReviews.slice(0, 5).map((c) => (
-									<li
-										key={c.implementationId}
-										className="flex items-center justify-between gap-2 py-2"
-									>
-										<Link
-											href={`/controls/${c.code}`}
-											className="min-w-0 truncate hover:underline"
-										>
-											{t("reviewDue", { code: c.code })} · {c.title}
-										</Link>
-										<Badge
-											variant={
-												c.nextReviewAt && c.nextReviewAt < today
-													? "destructive"
-													: "outline"
-											}
-										>
-											{c.nextReviewAt
-												? fmtDate.format(new Date(c.nextReviewAt))
-												: ""}
-										</Badge>
-									</li>
-								))}
-								{runs.slice(0, 5).map((r) => (
-									<li
-										key={r.id}
-										className="flex items-center justify-between gap-2 py-2"
-									>
-										<Link
-											href="/kalender"
-											className="min-w-0 truncate hover:underline"
-										>
-											{t("obligationDue")} · {r.title}
-										</Link>
-										<Badge
-											variant={r.dueAt < today ? "destructive" : "outline"}
-										>
-											{fmtDate.format(new Date(r.dueAt))}
-										</Badge>
-									</li>
-								))}
-								{ncs.slice(0, 5).map((n) => (
-									<li
-										key={n.id}
-										className="flex items-center justify-between gap-2 py-2"
-									>
-										<Link
-											href={`/abweichungen/${n.id}`}
-											className="min-w-0 truncate hover:underline"
-										>
-											{n.code} · {n.title}
-										</Link>
-										<Badge
-											variant={
-												n.dueAt && n.dueAt < today ? "destructive" : "outline"
-											}
-										>
-											{n.dueAt ? fmtDate.format(new Date(n.dueAt)) : ""}
-										</Badge>
-									</li>
-								))}
-								{dueTasks.slice(0, 5).map((task) => (
-									<li
-										key={task.id}
-										className="flex items-center justify-between gap-2 py-2"
-									>
-										<span className="min-w-0 truncate">{task.title}</span>
-										<Badge
-											variant={
-												task.dueAt && task.dueAt < today
-													? "destructive"
-													: "outline"
-											}
-										>
-											{task.dueAt ? fmtDate.format(new Date(task.dueAt)) : ""}
-										</Badge>
-									</li>
-								))}
-							</ul>
-						)}
-					</CardContent>
-				</Card>
+				<TodayCard
+					title={t("due")}
+					link={{ href: "/heute/verantwortung", label: t("accountability") }}
+				>
+					{dueTasks.length === 0 &&
+					dueReviews.length === 0 &&
+					runs.length === 0 &&
+					ncs.length === 0 ? (
+						<TodayEmpty>{t("dueEmpty")}</TodayEmpty>
+					) : (
+						<TodayList>
+							{dueReviews.slice(0, 5).map((c) => (
+								<TodayRow
+									key={c.implementationId}
+									href={`/controls/${c.code}`}
+									title={`${t("reviewDue", { code: c.code })} · ${c.title}`}
+									date={
+										c.nextReviewAt && (
+											<DueBadge
+												date={c.nextReviewAt}
+												today={today}
+												overdueLabel={t("overdue")}
+											/>
+										)
+									}
+								/>
+							))}
+							{runs.slice(0, 5).map((r) => (
+								<TodayRow
+									key={r.id}
+									href="/kalender"
+									title={`${t("obligationDue")} · ${r.title}`}
+									date={
+										<DueBadge
+											date={r.dueAt}
+											today={today}
+											overdueLabel={t("overdue")}
+										/>
+									}
+								/>
+							))}
+							{ncs.slice(0, 5).map((n) => (
+								<TodayRow
+									key={n.id}
+									href={`/abweichungen/${n.id}`}
+									title={`${n.code} · ${n.title}`}
+									date={
+										n.dueAt && (
+											<DueBadge
+												date={n.dueAt}
+												today={today}
+												overdueLabel={t("overdue")}
+											/>
+										)
+									}
+								/>
+							))}
+							{dueTasks.slice(0, 5).map((task) => (
+								<TodayRow
+									key={task.id}
+									href="/heute/aufgaben"
+									title={task.title}
+									date={
+										task.dueAt && (
+											<DueBadge
+												date={task.dueAt}
+												today={today}
+												overdueLabel={t("overdue")}
+											/>
+										)
+									}
+								/>
+							))}
+						</TodayList>
+					)}
+				</TodayCard>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="text-base">{t("acknowledgements")}</CardTitle>
-					</CardHeader>
-					<CardContent>
-						{acks.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
-								{t("acknowledgementsEmpty")}
-							</p>
-						) : (
-							<ul className="flex flex-col divide-y divide-border/60 text-sm">
-								{acks.slice(0, 5).map((d) => (
-									<li
-										key={d.id}
-										className="flex items-center justify-between gap-2 py-2"
-									>
-										<Link
-											href={`/dokumente/${encodeURIComponent(d.docNumber)}`}
-											className="min-w-0 truncate hover:underline"
-										>
-											<span className="font-mono text-xs">{d.docNumber}</span>{" "}
+				<TodayCard title={t("acknowledgements")}>
+					{acks.length === 0 ? (
+						<TodayEmpty>{t("acknowledgementsEmpty")}</TodayEmpty>
+					) : (
+						<TodayList>
+							{acks.slice(0, 5).map((d) => (
+								<TodayRow
+									key={d.id}
+									href={`/dokumente/${encodeURIComponent(d.docNumber)}`}
+									title={
+										<>
+											<span className="font-mono text-xs" translate="no">
+												{d.docNumber}
+											</span>{" "}
 											{d.title}{" "}
 											<span className="text-muted-foreground">
 												v{d.version}
 											</span>
-										</Link>
-										<AckButton documentId={d.id} label={t("ackNow")} />
-									</li>
-								))}
-							</ul>
-						)}
-					</CardContent>
-				</Card>
+										</>
+									}
+									action={<AckButton documentId={d.id} label={t("ackNow")} />}
+								/>
+							))}
+						</TodayList>
+					)}
+				</TodayCard>
 
-				<Card className="md:col-span-2">
-					<CardHeader>
-						<CardTitle className="text-base">{t("mentions")}</CardTitle>
-					</CardHeader>
-					<CardContent>
-						{mentions.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
-								{t("mentionsEmpty")}
-							</p>
-						) : (
-							<ul className="flex flex-col divide-y divide-border/60 text-sm">
-								{mentions.slice(0, 5).map((n) => (
-									<li
-										key={n.id}
-										className="flex items-center justify-between gap-2 py-2"
-									>
-										<Link
-											href={safeInternalPath(n.link)}
-											className="min-w-0 truncate hover:underline"
-										>
+				<TodayCard title={t("mentions")} className="md:col-span-2">
+					{mentions.length === 0 ? (
+						<TodayEmpty>{t("mentionsEmpty")}</TodayEmpty>
+					) : (
+						<TodayList>
+							{mentions.slice(0, 5).map((n) => (
+								<TodayRow
+									key={n.id}
+									href={safeInternalPath(n.link)}
+									title={
+										<>
 											{n.title}
 											{n.body ? (
 												<span className="text-muted-foreground">
@@ -526,16 +486,14 @@ export default async function TodayPage() {
 													— {n.body}
 												</span>
 											) : null}
-										</Link>
-										<span className="shrink-0 text-muted-foreground text-xs">
-											{fmtDate.format(n.createdAt)}
-										</span>
-									</li>
-								))}
-							</ul>
-						)}
-					</CardContent>
-				</Card>
+										</>
+									}
+									date={<TodayMeta>{fmtDate.format(n.createdAt)}</TodayMeta>}
+								/>
+							))}
+						</TodayList>
+					)}
+				</TodayCard>
 			</div>
 		</>
 	);

@@ -33,7 +33,7 @@ async function main() {
 			email,
 			callbackURL: "/heute",
 			newUserCallbackURL: "/onboarding",
-			errorCallbackURL: "/login?grund=link-ungueltig",
+			errorCallbackURL: "/login/notweg?grund=link-ungueltig",
 		},
 		headers: new Headers(),
 	});

@@ -3,6 +3,8 @@ import { ActivityStream } from "@/components/entity/activity-stream";
 import { PageHeader } from "@/components/page-header";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { isExternal } from "@/lib/auth/memberships";
+import { listOrgMembers } from "@/lib/auth/org";
 import { orgActivity } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { mergeActivity, toHistoryItems } from "@/lib/history";
@@ -12,8 +14,12 @@ export default async function ActivityPage() {
 	const ctx = await requireOrgPage();
 	const t = await getTranslations("Activity");
 	const te = await getTranslations("Entity");
-	const { audit, comments, names } = await readOrg(toOrgCtx(ctx), (tx) =>
-		orgActivity(tx, ctx.orgId, 150),
+	const [{ audit, comments, names }, members] = await Promise.all([
+		readOrg(toOrgCtx(ctx), (tx) => orgActivity(tx, ctx.orgId, 150)),
+		listOrgMembers(ctx.orgId),
+	]);
+	const external = new Set(
+		members.filter((m) => isExternal(m.role)).map((m) => m.userId),
 	);
 	const entries = mergeActivity(
 		toHistoryItems(
@@ -41,6 +47,7 @@ export default async function ActivityPage() {
 				<ActivityStream
 					entries={entries}
 					names={names}
+					external={external}
 					labels={{
 						empty: t("empty"),
 						changed: te("changed"),

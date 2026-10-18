@@ -1,5 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { audits, frameworks, orgFrameworks, orgSettings } from "@/db/schema";
+import type { RiskMethod } from "@/db/schema/platform";
+import { resolveRiskMethod } from "@/lib/compliance/risk-method";
 import type { OrgTx } from "@/lib/db/with-org";
 
 // Org-gescopte Lesezugriffe (RLS) — immer innerhalb von readOrg/withOrg.
@@ -32,6 +34,22 @@ export async function listOrgFrameworks(tx: OrgTx, orgId: string) {
 			),
 		)
 		.orderBy(frameworks.sortOrder);
+}
+
+// Risikomethodik der Org (gespeichert oder aus Skalen/Appetit abgeleitet);
+// Schadensarten der Altmethode richten sich nach den aktiven Rahmenwerken.
+export async function orgRiskMethod(
+	tx: OrgTx,
+	orgId: string,
+	settings?: Awaited<ReturnType<typeof getOrgSettings>>,
+): Promise<RiskMethod> {
+	const s = settings === undefined ? await getOrgSettings(tx, orgId) : settings;
+	if (s?.riskMethod) return s.riskMethod;
+	const fw = await listOrgFrameworks(tx, orgId);
+	return resolveRiskMethod(
+		s,
+		fw.map((f) => f.slug),
+	);
 }
 
 // Früher aktive, entfernte Rahmenwerke (status "retired") — zum Reaktivieren.

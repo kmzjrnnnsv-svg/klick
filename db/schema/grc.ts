@@ -496,6 +496,9 @@ export const approvalRequests = pgTable(
 		// Solo-Modus: Vier-Augen nicht erfüllbar → begründete Selbstfreigabe.
 		selfApproved: boolean().notNull().default(false),
 		selfApprovalReason: text(),
+		// Stufen-Schnappschuss je Antrag (B4: Freigabestufen je Risikoklasse);
+		// null = Stufen des Workflows.
+		steps: json<ApprovalStep[]>(),
 	},
 	(t) => [
 		index("approval_requests_entity_idx").on(t.entityType, t.entityId),
@@ -569,12 +572,58 @@ export const resolutions = pgTable(
 		approvalRequestId: uuid().references(() => approvalRequests.id, {
 			onDelete: "set null",
 		}),
+		// Bezug zum Rahmenwerk (E1): Slugs und Anforderungs-Schlüssel
+		// („dora:Art. 28“), abgeleitet aus der Entität oder gewählt
+		frameworks: stringList(),
+		requirementKeys: stringList(),
 		createdByUserId: userRef(),
 		createdAt: ts().notNull().defaultNow(),
 	},
 	(t) => [
 		unique().on(t.organizationId, t.resolutionNumber),
 		orgPolicy("resolutions"),
+	],
+).enableRLS();
+
+// Entscheidung beim Management anfragen (E2): Frage, Ausgangslage,
+// Optionen, Frist, Bezug zu Entität und Anforderungen. Entschieden wird
+// über den Workflow management_decision; das Ergebnis wird ein Beschluss.
+export const decisionRequests = pgTable(
+	"decision_requests",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		code: text().notNull(),
+		question: text().notNull(),
+		context: text(),
+		recommendation: text(),
+		options: json<string[]>().notNull().default([]),
+		dueAt: date(),
+		linkedEntityType: text({ enum: ENTITY_KINDS }),
+		linkedEntityId: uuid(),
+		frameworks: stringList(),
+		requirementKeys: stringList(),
+		status: text({ enum: ["open", "decided", "withdrawn"] })
+			.notNull()
+			.default("open"),
+		outcome: text({ enum: ["approved", "rejected", "changes_requested"] }),
+		chosenOption: text(),
+		decisionNote: text(),
+		approvalRequestId: uuid().references(() => approvalRequests.id, {
+			onDelete: "set null",
+		}),
+		resolutionId: uuid().references(() => resolutions.id, {
+			onDelete: "set null",
+		}),
+		requestedByUserId: userRef(),
+		decidedByUserId: userRef(),
+		decidedAt: ts(),
+		...timestamps(),
+	},
+	(t) => [
+		unique().on(t.organizationId, t.code),
+		index("decision_requests_org_status_idx").on(t.organizationId, t.status),
+		orgPolicy("decision_requests"),
 	],
 ).enableRLS();
 
@@ -616,11 +665,32 @@ export const risks = pgTable(
 		reviewAt: date(),
 		acceptedByUserId: userRef(),
 		acceptedAt: ts(),
+		// Geführte Analyse (Risiko-Assistent): Szenario aus dem Katalog,
+		// Einzelwerte je Schadensart (impact = höchster Wert), Kontext.
+		scenarioCode: text(),
+		impactDetail: json<Record<string, number>>(),
+		impactDescription: text(),
+		existingMeasures: text(),
+		protectionGoals: stringList(),
+		treatmentNote: text(),
+		residualNote: text(),
+		providerId: uuid().references(() => providers.id, { onDelete: "set null" }),
+		assessedAt: ts(),
+		// Herkunft (B1): woraus das Risiko erfasst wurde — Dienstleister, Asset,
+		// Vorfall, Lücke, Befund, Abweichung, Ziel … (allgemein; providerId,
+		// risk_assets und process_risks bleiben die fachlichen Bezüge).
+		sourceEntityType: text({ enum: ENTITY_KINDS }),
+		sourceEntityId: uuid(),
 		...timestamps(),
 	},
 	(t) => [
 		unique().on(t.organizationId, t.code),
 		index("risks_org_status_idx").on(t.organizationId, t.status),
+		index("risks_source_idx").on(
+			t.organizationId,
+			t.sourceEntityType,
+			t.sourceEntityId,
+		),
 		orgPolicy("risks"),
 	],
 ).enableRLS();
@@ -739,6 +809,7 @@ export const riskTreatments = pgTable(
 			.notNull()
 			.default("planned"),
 		taskId: uuid().references(() => tasks.id, { onDelete: "set null" }),
+		costEur: integer(),
 		createdAt: ts().notNull().defaultNow(),
 	},
 	(t) => [

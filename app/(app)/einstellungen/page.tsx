@@ -8,10 +8,12 @@ import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { IntegrationsPanel } from "@/components/settings/integrations-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
-import { RiskSettingsPanel } from "@/components/settings/risk-settings-panel";
+import { RiskMethodPanel } from "@/components/settings/risk-method-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
 import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
+import { SubscriptionPanel } from "@/components/settings/subscription-panel";
+import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { approvalWorkflows } from "@/db/schema";
@@ -23,16 +25,20 @@ import { roleAllows } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
+import { defaultSupplierMethod } from "@/lib/compliance/catalog/supplier-criteria";
 import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
 import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import { userNames } from "@/lib/compliance/queries";
+import { listRisks } from "@/lib/compliance/queries-p2";
 import { listProductOptions } from "@/lib/compliance/queries-products";
 import { listAccessTokens } from "@/lib/compliance/queries-security";
 import {
-	DEFAULT_RISK_APPETITE,
-	DEFAULT_RISK_SCALES,
-} from "@/lib/compliance/risk";
+	defaultRiskMethod,
+	resolveRiskMethod,
+} from "@/lib/compliance/risk-method";
+import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
+import { loadPriceTable } from "@/lib/db/pricing";
 import { readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
 import {
@@ -83,7 +89,7 @@ export default async function SettingsPage({
 				productOptions: await listProductOptions(tx, ctx.orgId),
 			}))
 		: { tokens: [], productOptions: [] };
-	const { orgFws, retiredSlugs, openAudits } = await readOrg(
+	const { orgFws, retiredSlugs, openAudits, riskPoints } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => {
 			const rows = await listOrgFrameworks(tx, ctx.orgId);
@@ -98,6 +104,12 @@ export default async function SettingsPage({
 				})),
 				retiredSlugs: new Set(await listRetiredFrameworkSlugs(tx, ctx.orgId)),
 				openAudits: await listOpenAuditScopes(tx, ctx.orgId),
+				riskPoints: (await listRisks(tx, ctx.orgId)).map((r) => ({
+					likelihood: r.likelihood,
+					impact: r.impact,
+					residualLikelihood: r.residualLikelihood,
+					residualImpact: r.residualImpact,
+				})),
 			};
 		},
 	);
@@ -138,6 +150,9 @@ export default async function SettingsPage({
 		(f) => !activeSlugs.has(f.slug),
 	).map((f) => ({ ...toItem(f.slug), retired: retiredSlugs.has(f.slug) }));
 	const canEditSettings = roleAllows(ctx.orgRole, { settings: ["update"] });
+	const { prices } = canEditSettings
+		? await loadPriceTable(settings?.priceGroupId)
+		: { prices: null };
 	const orgSummary = await getOrgSummary(ctx.orgId);
 	const ssoProviders = await listSsoProvidersForOrg(ctx.orgId);
 	const callbackBase = (process.env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
@@ -158,11 +173,13 @@ export default async function SettingsPage({
 						"frameworks",
 						"workflows",
 						"risk",
+						"lieferanten",
 						"numbering",
 						"organisation",
 						"sso",
 						"notifications",
 						...(canReadIntegrations ? ["integrationen"] : []),
+						...(canEditSettings ? ["abo"] : []),
 					].includes(tab)
 						? tab
 						: "security"
@@ -173,6 +190,9 @@ export default async function SettingsPage({
 					<TabsTrigger value="frameworks">{t("tabFrameworks")}</TabsTrigger>
 					<TabsTrigger value="workflows">{t("tabWorkflows")}</TabsTrigger>
 					<TabsTrigger value="risk">{t("tabRiskScales")}</TabsTrigger>
+					<TabsTrigger value="lieferanten">
+						{t("tabSupplierMethod")}
+					</TabsTrigger>
 					<TabsTrigger value="numbering">{t("tabNumbering")}</TabsTrigger>
 					<TabsTrigger value="organisation">{t("tabOrganisation")}</TabsTrigger>
 					<TabsTrigger value="sso">{t("tabSso")}</TabsTrigger>
@@ -184,10 +204,16 @@ export default async function SettingsPage({
 							{t("tabIntegrations")}
 						</TabsTrigger>
 					)}
+					{prices && (
+						<TabsTrigger value="abo">{t("tabSubscription")}</TabsTrigger>
+					)}
 				</TabsList>
 				<TabsContent value="security" className="flex flex-col gap-6">
 					<SecurityPanel
-						mfaEnabled={Boolean(sctx?.user.twoFactorEnabled)}
+						mfaEnabled={
+							Boolean(sctx?.user.twoFactorEnabled) || passkeys.length > 0
+						}
+						hasTotp={Boolean(sctx?.user.twoFactorEnabled)}
 						sessions={sessions.map((s) => ({
 							id: s.id,
 							token: s.token,
@@ -237,18 +263,20 @@ export default async function SettingsPage({
 					<WorkflowsPanel workflows={workflows} canEdit={canEditSettings} />
 				</TabsContent>
 				<TabsContent value="risk">
-					<RiskSettingsPanel
-						likelihood={
-							(settings?.riskScales ?? DEFAULT_RISK_SCALES).likelihood
-						}
-						impact={(settings?.riskScales ?? DEFAULT_RISK_SCALES).impact}
-						acceptable={
-							(settings?.riskAppetite ?? DEFAULT_RISK_APPETITE).acceptable
-						}
-						tolerable={
-							(settings?.riskAppetite ?? DEFAULT_RISK_APPETITE).tolerable
-						}
+					<RiskMethodPanel
+						method={resolveRiskMethod(settings, cov?.frameworks ?? [])}
+						stored={Boolean(settings?.riskMethod)}
+						template={defaultRiskMethod(cov?.frameworks ?? [])}
+						risks={riskPoints}
 						allowSelfApproval={settings?.allowSelfApproval ?? true}
+						canEdit={canEditSettings}
+					/>
+				</TabsContent>
+				<TabsContent value="lieferanten">
+					<SupplierMethodPanel
+						method={resolveSupplierMethod(settings)}
+						stored={Boolean(settings?.supplierMethod)}
+						template={defaultSupplierMethod()}
 						canEdit={canEditSettings}
 					/>
 				</TabsContent>
@@ -288,6 +316,15 @@ export default async function SettingsPage({
 							baseUrl={callbackBase}
 							canCreate={roleAllows(ctx.orgRole, { integration: ["create"] })}
 							canRevoke={roleAllows(ctx.orgRole, { integration: ["revoke"] })}
+						/>
+					</TabsContent>
+				)}
+				{prices && (
+					<TabsContent value="abo">
+						<SubscriptionPanel
+							plan={settings?.plan ?? "start"}
+							prices={prices}
+							email={ctx.email}
 						/>
 					</TabsContent>
 				)}

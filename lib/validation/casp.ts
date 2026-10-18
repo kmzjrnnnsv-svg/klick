@@ -16,6 +16,10 @@ const dimensionSchema = z.object({
 	factors: z.string().trim().max(4000).default(""),
 	score: score.default(3),
 	measures: z.string().trim().max(4000).optional(),
+	factorCodes: z
+		.array(z.string().regex(/^AF-[A-Z]-\d{2}$/))
+		.max(40)
+		.optional(),
 });
 
 export const amlRiskAnalysisSchema = z.object({

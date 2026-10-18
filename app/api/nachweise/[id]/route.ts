@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { evidence, orgSettings } from "@/db/schema";
 import { AuthError, requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { isExternal } from "@/lib/auth/memberships";
 import { decryptBytes, unpackEnvelope, unwrapDek } from "@/lib/crypto/envelope";
 import { mutateOrg } from "@/lib/db/with-org";
 import { egressGuard } from "@/lib/dlp/egress";
@@ -55,7 +56,7 @@ export async function GET(
 		// Streng geheim (z. B. von DLP angehoben): Prüfer:innen nur mit Grant.
 		if (
 			row.classification === "secret" &&
-			ctx.orgRole === "auditor" &&
+			isExternal(ctx.orgRole) &&
 			!ctx.grants.includes("secret_evidence")
 		) {
 			return {

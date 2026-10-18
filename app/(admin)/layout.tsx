@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { buttonVariants } from "@/components/ui/button";
 import { gateAdmin } from "@/lib/auth/gates";
+import { getSessionCtx } from "@/lib/auth/guards";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -14,12 +16,17 @@ export default async function AdminLayout({
 	children: ReactNode;
 }) {
 	await gateAdmin();
-	const t = await getTranslations("Admin");
+	const [t, sctx] = await Promise.all([
+		getTranslations("Admin"),
+		getSessionCtx(),
+	]);
 	const tabs = [
 		{ href: "/admin", label: t("title") },
 		{ href: "/admin/orgs", label: t("orgs") },
 		{ href: "/admin/users", label: t("users") },
 		{ href: "/admin/audit", label: t("audit") },
+		{ href: "/admin/anfragen", label: t("inquiries") },
+		{ href: "/admin/preise", label: t("prices") },
 		{ href: "/admin/cms", label: t("cms") },
 	];
 	return (
@@ -58,6 +65,10 @@ export default async function AdminLayout({
 				<p className="mb-6 text-muted-foreground text-sm">{t("lead")}</p>
 				{children}
 			</main>
+			<StepUpDialog
+				passkey={Boolean(sctx?.user.hasPasskey)}
+				totp={Boolean(sctx?.user.twoFactorEnabled)}
+			/>
 		</>
 	);
 }

@@ -54,6 +54,28 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		defaultEnabled: true,
 	},
 	{
+		kind: "management_decision",
+		name: "Managemententscheidung",
+		entityType: "decision_request",
+		description:
+			"Entscheidung beim Management angefragt (Frage, Optionen, Frist); das Ergebnis wird ein Beschluss.",
+		steps: [
+			{ order: 1, approverRule: "function:management_body", slaDays: 10 },
+		],
+		defaultEnabled: true,
+	},
+	{
+		kind: "objective_release",
+		name: "Ziel freigeben",
+		entityType: "objective",
+		description:
+			"Vorgeschlagene Ziele und Kennzahlen (KPI/KRI/KCI) gelten erst nach Freigabe durch die Geschäftsleitung.",
+		steps: [
+			{ order: 1, approverRule: "function:management_body", slaDays: 10 },
+		],
+		defaultEnabled: true,
+	},
+	{
 		kind: "control_signoff",
 		name: "Control abnehmen",
 		entityType: "control",
@@ -100,7 +122,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		name: "Dienstleister aufnehmen",
 		entityType: "provider",
 		description:
-			"Auslagerungsbeauftragte:r → Geschäftsleitung bei wesentlicher Auslagerung.",
+			"Auslagerungsbeauftragte:r → Geschäftsleitung: Freigabe trotz kritischem Bewertungsergebnis bzw. bei wesentlicher Auslagerung.",
 		steps: [
 			{ order: 1, approverRule: "function:outsourcing_officer", slaDays: 10 },
 			{ order: 2, approverRule: "function:management_body", slaDays: 10 },

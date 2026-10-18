@@ -140,7 +140,20 @@ export type RequestApprovalInput = {
 	link: string;
 	// Solo-Modus: begründete Selbstfreigabe
 	selfApprovalReason?: string;
+	// Stufen nur für diesen Antrag (z. B. je Risikoklasse, B4); sonst die
+	// Stufen des Workflows
+	steps?: ApprovalStep[];
 };
+
+// Stufen eines Antrags: Schnappschuss am Antrag, sonst Workflow
+export function requestSteps(
+	req: { steps?: ApprovalStep[] | null },
+	workflowSteps: unknown,
+): ApprovalStep[] {
+	return req.steps && req.steps.length > 0
+		? req.steps
+		: (workflowSteps as ApprovalStep[]);
+}
 
 export type RequestApprovalResult =
 	| {
@@ -166,7 +179,8 @@ export async function requestApproval(
 ): Promise<RequestApprovalResult> {
 	const wf = await getWorkflow(tx, ctx.orgId, input.kind);
 	if (!wf?.enabled) return { ok: false, error: "workflow_disabled" };
-	const steps = wf.steps as ApprovalStep[];
+	const own = input.steps && input.steps.length > 0 ? input.steps : null;
+	const steps = own ?? (wf.steps as ApprovalStep[]);
 	const first = [...steps].sort((a, b) => a.order - b.order)[0];
 	if (!first) return { ok: false, error: "workflow_disabled" };
 
@@ -222,6 +236,7 @@ export async function requestApproval(
 				entityVersionRef: input.entityVersionRef ?? null,
 				requestedByUserId: ctx.userId,
 				currentStep: first.order,
+				steps: own,
 				status: "approved",
 				decidedAt: new Date(),
 				selfApproved: true,
@@ -256,6 +271,7 @@ export async function requestApproval(
 			entityVersionRef: input.entityVersionRef ?? null,
 			requestedByUserId: ctx.userId,
 			currentStep: first.order,
+			steps: own,
 			status: "pending",
 			dueAt: slaDueAt(first, new Date()),
 		})
@@ -324,7 +340,7 @@ export async function decide(
 		.limit(1)
 		.then((r) => r[0]);
 	if (!wf) return { ok: false, error: "not_found" };
-	const steps = wf.steps as ApprovalStep[];
+	const steps = requestSteps(req, wf.steps);
 	const step = steps.find((s) => s.order === req.currentStep);
 	if (!step) return { ok: false, error: "not_found" };
 
@@ -510,7 +526,7 @@ export async function listRequestsForUser(
 	);
 	const now = new Date();
 	return rows.map(({ req, kind, workflowName, steps }) => {
-		const step = (steps as ApprovalStep[]).find(
+		const step = requestSteps(req, steps).find(
 			(s) => s.order === req.currentStep,
 		);
 		const eligible =
@@ -578,7 +594,7 @@ export async function latestRequestFor(
 	return {
 		...row.req,
 		workflowName: row.workflowName,
-		steps: row.steps as ApprovalStep[],
+		steps: requestSteps(row.req, row.steps),
 		decisions,
 	};
 }

@@ -8,6 +8,7 @@ import {
 	requireOrg,
 	requirePlatformAdmin,
 } from "./guards";
+import { listUserMemberships } from "./org";
 
 // Layout-Gates: reine UX (Redirects auf den richtigen nächsten Schritt).
 // Autorisierung passiert in jeder Action/Query erneut über die Guards.
@@ -33,6 +34,18 @@ export function redirectFor(code: AuthErrorCode): string {
 	}
 }
 
+// Abgelaufener Zugang (ADR-018): gibt es andere gültige Mitgliedschaften,
+// geht es zur Auswahl statt zum Login.
+async function expiredTarget(): Promise<string> {
+	const ctx = await getSessionCtx();
+	if (ctx) {
+		const list = await listUserMemberships(ctx.user.id);
+		if (list.some((m) => !m.expired))
+			return "/organisationen?grund=zugang-abgelaufen";
+	}
+	return redirectFor("access_expired");
+}
+
 // Seiten-Guards: Layout und Seite rendern in Next parallel. Wirft die Seite
 // einen AuthError, bevor der Layout-Redirect greift, landet der Nutzer auf
 // der Fehlerseite (z. B. direkt nach der MFA-Einrichtung ohne Organisation).
@@ -44,7 +57,12 @@ export async function requireOrgPage(
 	try {
 		return await requireOrg(perm);
 	} catch (e) {
-		if (e instanceof AuthError) redirect(redirectFor(e.code));
+		if (e instanceof AuthError)
+			redirect(
+				e.code === "access_expired"
+					? await expiredTarget()
+					: redirectFor(e.code),
+			);
 		throw e;
 	}
 }
@@ -77,7 +95,8 @@ export async function gateAuth(currentPath: string): Promise<void> {
 	} catch (e) {
 		if (!(e instanceof AuthError)) throw e;
 		if (e.code === "unauthenticated" || e.code === "session_expired") return;
-		const target = redirectFor(e.code);
+		const target =
+			e.code === "access_expired" ? await expiredTarget() : redirectFor(e.code);
 		if (target.split("?")[0] !== currentPath) redirect(target);
 	}
 }

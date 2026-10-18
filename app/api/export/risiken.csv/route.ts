@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { listRisks } from "@/lib/compliance/queries-p2";
-import { DEFAULT_RISK_APPETITE } from "@/lib/compliance/risk";
 import { readOrg } from "@/lib/db/with-org";
 import { buildRiskRows, RISK_HEADER } from "@/lib/export/builders";
 import {
@@ -10,7 +9,7 @@ import {
 	exportGuard,
 	stamp,
 } from "@/lib/export/respond";
-import { getOrgSettings } from "@/lib/org/queries";
+import { orgRiskMethod } from "@/lib/org/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -18,13 +17,11 @@ export const dynamic = "force-dynamic";
 export async function GET() {
 	const ctx = await exportGuard();
 	if (ctx instanceof NextResponse) return ctx;
-	const { rows, appetite } = await readOrg(toOrgCtx(ctx), async (tx) => ({
+	const { rows, method } = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		rows: await listRisks(tx, ctx.orgId),
-		appetite:
-			(await getOrgSettings(tx, ctx.orgId))?.riskAppetite ??
-			DEFAULT_RISK_APPETITE,
+		method: await orgRiskMethod(tx, ctx.orgId),
 	}));
-	const out = buildRiskRows(rows, appetite);
+	const out = buildRiskRows(rows, method);
 	const mark = await auditExport(ctx, "risks_csv", out.length);
 	return csvResponse(`risiken-${stamp()}.csv`, RISK_HEADER, out, mark);
 }

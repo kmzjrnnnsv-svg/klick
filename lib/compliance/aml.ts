@@ -236,6 +236,8 @@ export type RiskDimension = {
 	factors: string;
 	score: number;
 	measures?: string;
+	// angekreuzte Katalogfaktoren (lib/compliance/catalog/aml-risk-factors.ts)
+	factorCodes?: string[];
 };
 export type RiskDimensions = {
 	customer: RiskDimension;

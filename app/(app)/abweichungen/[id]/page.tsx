@@ -18,6 +18,8 @@ import {
 	NonconformityForm,
 	PriorityForm,
 } from "@/components/nonconformities/nc-forms";
+import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
+import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -108,7 +110,9 @@ export default async function NonconformityDetailPage({
 		nc.sourceRefId && sourceKind && sourceKind !== "audit_finding"
 			? entityHref(sourceKind, nc.sourceRefId)
 			: nc.source === "audit"
-				? "/audits?tab=findings"
+				? data.sourceAudit
+					? `/audits/${data.sourceAudit.id}?tab=findings`
+					: "/audits"
 				: null;
 
 	return (
@@ -177,6 +181,8 @@ export default async function NonconformityDetailPage({
 			}
 			aside={
 				<>
+					<SourceRisksBlock ctx={ctx} kind="nonconformity" id={id} />
+					<DecisionRequestsBlock ctx={ctx} kind="nonconformity" id={id} />
 					<Section title={te("activity")}>
 						<CommentForm
 							entityType="nonconformity"
@@ -269,7 +275,9 @@ export default async function NonconformityDetailPage({
 					<p className="mt-3 text-xs">
 						<span className="text-muted-foreground">{t("sourceLink")}: </span>
 						<Link href={sourceHref} className="text-primary hover:underline">
-							{t(`source_${nc.source}`)}
+							{data.sourceAudit
+								? t("sourceAudit", { title: data.sourceAudit.title })
+								: t(`source_${nc.source}`)}
 						</Link>
 					</p>
 				)}

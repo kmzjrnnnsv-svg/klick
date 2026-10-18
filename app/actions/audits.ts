@@ -14,13 +14,18 @@ import {
 	tasks,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
-import { nonconformityFromFinding } from "@/lib/compliance/nonconformity";
-import { createNonconformity } from "@/lib/compliance/nonconformity-service";
+import { findingNeedsNonconformity } from "@/lib/compliance/nonconformity";
+import {
+	nonconformityForFinding,
+	openFindingsWithoutNc,
+} from "@/lib/compliance/nonconformity-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
+	adoptFindingsSchema,
 	auditFindingSchema,
 	auditProgrammeItemSchema,
 	auditProgrammeSchema,
@@ -332,64 +337,77 @@ async function setAuditStatusImpl(input: unknown): Promise<ActionResult> {
 
 async function createFindingImpl(
 	input: unknown,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<{ id: string; ncCode: string | null }>> {
 	const c = await requireOrg({ audit_finding: ["create"] });
 	const parsed = auditFindingSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
-	const res = await mutateOrg<string | null>(toOrgCtx(c), async (tx) => {
-		const [a] = await tx
-			.select({
-				id: audits.id,
-				ownerUserId: audits.ownerUserId,
-				title: audits.title,
-			})
-			.from(audits)
-			.where(and(eq(audits.id, d.auditId), eq(audits.organizationId, c.orgId)))
-			.limit(1);
-		if (!a) return { result: null, audit: [] };
-		const refs = await resolveRefs(tx, d.controlCode, d.requirementKey);
-		const [row] = await tx
-			.insert(auditFindings)
-			.values({
-				organizationId: c.orgId,
-				auditId: a.id,
-				severity: d.severity,
-				title: d.title,
-				description: d.description ?? null,
-				controlId: refs.controlId,
-				requirementId: refs.requirementId,
-				createdByUserId: c.userId,
-			})
-			.returning({ id: auditFindings.id });
-		if (!row) throw new Error("insert failed");
-		await notify(tx, {
-			orgId: c.orgId,
-			recipients: [a.ownerUserId],
-			actorUserId: c.userId,
-			kind: "entity_changed",
-			title: `Finding (${d.severity}): ${d.title}`,
-			body: a.title,
-			link: `/audits/${a.id}?tab=findings`,
-		});
-		return {
-			result: row.id,
-			audit: {
-				action: "audit_finding.create",
-				target: `audit_finding:${row.id}`,
-				after: {
+	const res = await mutateOrg<{ id: string; ncCode: string | null } | null>(
+		toOrgCtx(c),
+		async (tx) => {
+			const [a] = await tx
+				.select({
+					id: audits.id,
+					ownerUserId: audits.ownerUserId,
+					title: audits.title,
+				})
+				.from(audits)
+				.where(
+					and(eq(audits.id, d.auditId), eq(audits.organizationId, c.orgId)),
+				)
+				.limit(1);
+			if (!a) return { result: null, audit: [] };
+			const refs = await resolveRefs(tx, d.controlCode, d.requirementKey);
+			const [row] = await tx
+				.insert(auditFindings)
+				.values({
+					organizationId: c.orgId,
 					auditId: a.id,
 					severity: d.severity,
 					title: d.title,
-					controlCode: d.controlCode ?? null,
+					description: d.description ?? null,
+					controlId: refs.controlId,
+					requirementId: refs.requirementId,
+					createdByUserId: c.userId,
+				})
+				.returning({ id: auditFindings.id });
+			if (!row) throw new Error("insert failed");
+			await notify(tx, {
+				orgId: c.orgId,
+				recipients: [a.ownerUserId],
+				actorUserId: c.userId,
+				kind: "entity_changed",
+				title: `Finding (${d.severity}): ${d.title}`,
+				body: a.title,
+				link: `/audits/${a.id}?tab=findings`,
+			});
+			const audit: AuditInput[] = [
+				{
+					action: "audit_finding.create",
+					target: `audit_finding:${row.id}`,
+					after: {
+						auditId: a.id,
+						severity: d.severity,
+						title: d.title,
+						controlCode: d.controlCode ?? null,
+					},
 				},
-			},
-		};
-	});
+			];
+			// ab „leicht“ direkt in den CAPA-Regelkreis
+			const nc = findingNeedsNonconformity(d.severity)
+				? await nonconformityForFinding(
+						tx,
+						{ orgId: c.orgId, userId: c.userId },
+						row.id,
+					)
+				: null;
+			if (nc) audit.push(...nc.audit);
+			return { result: { id: row.id, ncCode: nc?.code ?? null }, audit };
+		},
+	);
 	revalidatePath(PATH, "layout");
-	return res
-		? { ok: true, data: { id: res } }
-		: { ok: false, error: "notFound" };
+	revalidatePath("/abweichungen");
+	return res ? { ok: true, data: res } : { ok: false, error: "notFound" };
 }
 
 async function setFindingStatusImpl(input: unknown): Promise<ActionResult> {
@@ -437,55 +455,47 @@ async function findingToNonconformityImpl(
 	const res = await mutateOrg<{ nonconformityId: string; code: string } | null>(
 		toOrgCtx(c),
 		async (tx) => {
-			const [f] = await tx
-				.select({
-					f: auditFindings,
-					auditOwner: audits.ownerUserId,
-					controlCode: controls.code,
-				})
-				.from(auditFindings)
-				.innerJoin(audits, eq(audits.id, auditFindings.auditId))
-				.leftJoin(controls, eq(controls.id, auditFindings.controlId))
-				.where(
-					and(
-						eq(auditFindings.id, parsed.data.findingId),
-						eq(auditFindings.organizationId, c.orgId),
-					),
-				)
-				.limit(1);
-			if (!f) return { result: null, audit: [] };
-			if (f.f.nonconformityId) return { result: null, audit: [] };
-			const nc = await createNonconformity(
+			const nc = await nonconformityForFinding(
 				tx,
 				{ orgId: c.orgId, userId: c.userId },
-				nonconformityFromFinding({
-					id: f.f.id,
-					title: f.controlCode ? `${f.controlCode}: ${f.f.title}` : f.f.title,
-					description: f.f.description,
-					severity: f.f.severity,
-					ownerUserId: f.auditOwner,
-				}),
+				parsed.data.findingId,
 			);
-			await tx
-				.update(auditFindings)
-				.set({ nonconformityId: nc.id, status: "in_remediation" })
-				.where(eq(auditFindings.id, f.f.id));
-			return {
-				result: { nonconformityId: nc.id, code: nc.code },
-				audit: [
-					nc.audit,
-					{
-						action: "audit_finding.to_nonconformity",
-						target: `audit_finding:${f.f.id}`,
-						after: { nonconformityId: nc.id, code: nc.code },
-					},
-				],
-			};
+			return nc
+				? {
+						result: { nonconformityId: nc.id, code: nc.code },
+						audit: nc.audit,
+					}
+				: { result: null, audit: [] };
 		},
 	);
 	revalidatePath(PATH, "layout");
 	revalidatePath("/abweichungen");
 	return res ? { ok: true, data: res } : { ok: false, error: "notFound" };
+}
+
+// „Offene Findings übernehmen“: Bestand ohne Abweichung in einem Zug.
+async function adoptOpenFindingsImpl(
+	input: unknown,
+): Promise<ActionResult<{ count: number }>> {
+	const c = await requireOrg({ nonconformity: ["create"] });
+	const parsed = adoptFindingsSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const count = await mutateOrg<number>(toOrgCtx(c), async (tx) => {
+		const open = await openFindingsWithoutNc(tx, c.orgId, parsed.data.auditId);
+		const audit: AuditInput[] = [];
+		for (const f of open) {
+			const nc = await nonconformityForFinding(
+				tx,
+				{ orgId: c.orgId, userId: c.userId },
+				f.id,
+			);
+			if (nc) audit.push(...nc.audit);
+		}
+		return { result: open.length, audit };
+	});
+	revalidatePath(PATH, "layout");
+	revalidatePath("/abweichungen");
+	return { ok: true, data: { count } };
 }
 
 // ── Nachweisanfragen (PBC) ─────────────────────────────────────────────────
@@ -718,6 +728,10 @@ export const setFindingStatus = safeAction(
 export const findingToNonconformity = safeAction(
 	"findingToNonconformity",
 	findingToNonconformityImpl,
+);
+export const adoptOpenFindings = safeAction(
+	"adoptOpenFindings",
+	adoptOpenFindingsImpl,
 );
 export const createAuditRequest = safeAction(
 	"createAuditRequest",

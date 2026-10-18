@@ -14,10 +14,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasskeyConfirmButton } from "./passkey-confirm";
 
 // Step-up im Dialog statt Fehler-Toast: Eine Action meldet
 // `step_up_required`, withStepUp() öffnet den (einmal im AppShell
-// gemounteten) Dialog, bestätigt per TOTP und wiederholt die Action.
+// gemounteten) Dialog, bestätigt per Passkey (zuerst) oder TOTP und
+// wiederholt die Action.
 // Abbrechen liefert das ursprüngliche Ergebnis zurück — der Aufrufer
 // zeigt dann wie bisher seinen Hinweis.
 
@@ -36,7 +38,30 @@ export async function withStepUp<T extends { ok: boolean; error?: string }>(
 	return (await requestStepUp()) ? fn() : res;
 }
 
-export function StepUpDialog() {
+// Dasselbe für Better-Auth-Client-Aufrufe (Passkeys/2FA verwalten): der
+// Server-Hook (lib/auth/endpoint-guard.ts) antwortet mit Code
+// STEP_UP_REQUIRED bzw. Meldung step_up_required.
+export function isStepUpError(e: unknown): boolean {
+	if (!e || typeof e !== "object") return false;
+	const x = e as { code?: unknown; message?: unknown };
+	return x.code === "STEP_UP_REQUIRED" || x.message === "step_up_required";
+}
+
+export async function withAuthStepUp<
+	T extends { error?: unknown } | null | undefined,
+>(fn: () => Promise<T>): Promise<T> {
+	const res = await fn();
+	if (!isStepUpError(res?.error)) return res;
+	return (await requestStepUp()) ? fn() : res;
+}
+
+export function StepUpDialog({
+	passkey,
+	totp,
+}: {
+	passkey: boolean;
+	totp: boolean;
+}) {
 	const t = useTranslations("Auth");
 	const tc = useTranslations("Common");
 	const [open, setOpen] = useState(false);
@@ -83,20 +108,32 @@ export function StepUpDialog() {
 						<DialogTitle>{t("twoFactorTitle")}</DialogTitle>
 						<DialogDescription>{t("twoFactorStepUp")}</DialogDescription>
 					</DialogHeader>
-					<div className="grid gap-2">
-						<Label htmlFor="step-up-code">{t("code")}</Label>
-						<Input
-							id="step-up-code"
-							inputMode="numeric"
-							autoComplete="one-time-code"
+					{passkey && (
+						<PasskeyConfirmButton
+							purpose="stepup"
 							autoFocus
-							required
-							value={code}
-							onChange={(e) => setCode(e.target.value)}
-							className="font-mono text-lg tracking-[0.3em]"
+							onConfirmed={() => finish(true)}
 						/>
-						{error && <p className="text-destructive text-xs">{error}</p>}
-					</div>
+					)}
+					{passkey && totp && (
+						<p className="text-muted-foreground text-xs">{t("orCode")}</p>
+					)}
+					{(totp || !passkey) && (
+						<div className="grid gap-2">
+							<Label htmlFor="step-up-code">{t("code")}</Label>
+							<Input
+								id="step-up-code"
+								inputMode="numeric"
+								autoComplete="one-time-code"
+								autoFocus={!passkey}
+								required
+								value={code}
+								onChange={(e) => setCode(e.target.value)}
+								className="font-mono text-lg tracking-[0.3em]"
+							/>
+							{error && <p className="text-destructive text-xs">{error}</p>}
+						</div>
+					)}
 					<DialogFooter>
 						<Button
 							type="button"
@@ -105,13 +142,15 @@ export function StepUpDialog() {
 						>
 							{tc("cancel")}
 						</Button>
-						<Button
-							type="submit"
-							variant="brown"
-							disabled={busy || code.trim().length < 6}
-						>
-							{t("verify")}
-						</Button>
+						{(totp || !passkey) && (
+							<Button
+								type="submit"
+								variant={passkey ? "outline" : "brown"}
+								disabled={busy || code.trim().length < 6}
+							>
+								{t("verify")}
+							</Button>
+						)}
 					</DialogFooter>
 				</form>
 			</DialogContent>

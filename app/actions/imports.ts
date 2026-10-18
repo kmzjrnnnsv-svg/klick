@@ -8,8 +8,10 @@ import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nextRiskCode } from "@/lib/compliance/risk";
+import { plusMonths } from "@/lib/compliance/risk-service";
 import { parseCsv, toBool } from "@/lib/csv";
 import { mutateOrg } from "@/lib/db/with-org";
+import { getOrgSettings } from "@/lib/org/queries";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	assetSchema,
@@ -49,12 +51,15 @@ async function importRisksCsvImpl(
 			description: r.description ?? r.beschreibung ?? undefined,
 			category: num(r.category ?? r.kategorie) ?? "operational",
 			likelihood: num(r.likelihood ?? r.eintrittswahrscheinlichkeit) ?? 3,
-			impact: num(r.impact ?? r.auswirkung) ?? 3,
+			impact: num(r.impact ?? r.auswirkung ?? r.schadenshoehe) ?? 3,
 		});
 		if (res.success) valid.push(res.data);
 		else errors.push(rowErrors(i, res.error));
 	});
 	const imported = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const settings = await getOrgSettings(tx, c.orgId);
+		// Wiedervorlage wie bei der Anlage im Formular
+		const reviewAt = plusMonths(settings?.reviewDefaults.risk ?? 3);
 		const existing = (
 			await tx
 				.select({ code: risks.code })
@@ -77,6 +82,7 @@ async function importRisksCsvImpl(
 					likelihood: d.likelihood,
 					impact: d.impact,
 					ownerUserId: c.userId,
+					reviewAt,
 				})
 				.returning({ id: risks.id });
 			if (row) {
@@ -99,6 +105,19 @@ async function importRisksCsvImpl(
 	return { ok: true, data: { imported, errors } };
 }
 
+// Wartung aus der CSV: englische Werte oder deutsche Kurzform
+const MAINTENANCE_ALIAS: Record<string, string> = {
+	vertrag: "contract",
+	wartungsvertrag: "contract",
+	intern: "internal",
+	keine: "none",
+};
+function maintenanceOf(v: string | undefined): string | null {
+	if (!v) return null;
+	const k = v.trim().toLowerCase();
+	return MAINTENANCE_ALIAS[k] ?? k;
+}
+
 async function importAssetsCsvImpl(
 	input: unknown,
 ): Promise<ActionResult<Result>> {
@@ -119,6 +138,13 @@ async function importAssetsCsvImpl(
 			isLegacy: toBool(r.isLegacy ?? r.altsystem),
 			custodian: num(r.custodian),
 			backupLocation: num(r.backupLocation),
+			vendor: num(r.vendor ?? r.hersteller),
+			product: num(r.product ?? r.produkt),
+			version: num(r.version),
+			endOfLifeAt: num(r.endOfLifeAt ?? r.eol),
+			supportEndAt: num(r.supportEndAt ?? r.supportende),
+			maintenance: maintenanceOf(num(r.maintenance ?? r.wartung)),
+			lastPatchedAt: num(r.lastPatchedAt ?? r.gepatcht),
 		});
 		if (res.success) valid.push(res.data);
 		else errors.push(rowErrors(i, res.error));
@@ -140,6 +166,13 @@ async function importAssetsCsvImpl(
 					isLegacy: d.isLegacy,
 					custodian: d.custodian ?? null,
 					backupLocation: d.backupLocation ?? null,
+					vendor: d.vendor || null,
+					product: d.product || null,
+					version: d.version || null,
+					endOfLifeAt: d.endOfLifeAt ?? null,
+					supportEndAt: d.supportEndAt ?? null,
+					maintenance: d.maintenance ?? null,
+					lastPatchedAt: d.lastPatchedAt ?? null,
 				})
 				.returning({ id: assets.id });
 			if (row) {
@@ -162,6 +195,23 @@ async function importAssetsCsvImpl(
 	return { ok: true, data: { imported, errors } };
 }
 
+// Kategorie als Schlüssel oder deutsches Label (wie in der Vorlage)
+const CATEGORY_LABELS: Record<string, string> = {
+	"it-dienstleister": "it_service",
+	"cloud-dienstleister": "cloud",
+	"facility management": "facility",
+	wartungsfirma: "maintenance",
+	beratungsunternehmen: "consulting",
+	unterauftragnehmer: "subcontractor",
+	unterauftragsnehmer: "subcontractor",
+	sonstige: "other",
+};
+function categoryOf(v: string | undefined): string | undefined {
+	if (!v) return undefined;
+	const k = v.trim().toLowerCase();
+	return CATEGORY_LABELS[k] ?? k;
+}
+
 async function importProvidersCsvImpl(
 	input: unknown,
 ): Promise<ActionResult<Result>> {
@@ -178,6 +228,7 @@ async function importProvidersCsvImpl(
 			partnerType: num(r.partnerType ?? r.art) ?? "ict",
 			serviceType: num(r.serviceType ?? r.leistung),
 			serviceDescription: num(r.serviceDescription ?? r.beschreibung),
+			category: categoryOf(num(r.category ?? r.kategorie)),
 			criticality: num(r.criticality ?? r.kritikalitaet) ?? "standard",
 			isIct: toBool(r.isIct, true),
 			isOutsourcing: toBool(r.isOutsourcing ?? r.auslagerung),
@@ -207,6 +258,7 @@ async function importProvidersCsvImpl(
 					partnerType: d.partnerType,
 					serviceType: d.serviceType ?? null,
 					serviceDescription: d.serviceDescription ?? null,
+					category: d.category ?? null,
 					criticality: d.criticality,
 					isIct: d.isIct,
 					isOutsourcing: d.isOutsourcing,

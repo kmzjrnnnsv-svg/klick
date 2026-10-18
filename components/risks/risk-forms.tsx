@@ -67,8 +67,10 @@ function ScaleSelect({
 // „+ Risiko": Titel, Kategorie, Eintrittswahrscheinlichkeit, Auswirkung.
 export function RiskQuickCreate({
 	scales,
+	triggerLabel,
 }: {
 	scales: { likelihood: string[]; impact: string[] };
+	triggerLabel?: string;
 }) {
 	const t = useTranslations("Risks");
 	const tc = useTranslations("Common");
@@ -83,9 +85,9 @@ export function RiskQuickCreate({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button size="sm" variant="brown">
+				<Button size="sm" variant={triggerLabel ? "outline" : "brown"}>
 					<Plus />
-					{t("new")}
+					{triggerLabel ?? t("new")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent>
@@ -186,7 +188,9 @@ export function RiskEditForm({
 	linkedControls,
 	linkedAssets,
 	canEdit,
+	guided = false,
 }: {
+	guided?: boolean;
 	risk: {
 		id: string;
 		likelihood: number;
@@ -233,7 +237,7 @@ export function RiskEditForm({
 					const res = await updateRisk({
 						riskId: risk.id,
 						likelihood: l,
-						impact: i,
+						...(guided ? {} : { impact: i }),
 						treatment,
 						residualLikelihood: rl,
 						residualImpact: ri,
@@ -259,7 +263,13 @@ export function RiskEditForm({
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("impact")}</Label>
-					<ScaleSelect value={i} onChange={setI} labels={scales.impact} />
+					{guided ? (
+						<p className="text-muted-foreground text-xs">
+							{i} · {scales.impact[i - 1]} — {t("guidedImpactHint")}
+						</p>
+					) : (
+						<ScaleSelect value={i} onChange={setI} labels={scales.impact} />
+					)}
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("treatment")}</Label>
@@ -341,7 +351,7 @@ export function RiskEditForm({
 							<SelectItem value="none">—</SelectItem>
 							{members.map((m) => (
 								<SelectItem key={m.userId} value={m.userId}>
-									{m.name}
+									{m.name || m.email}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -360,7 +370,7 @@ export function RiskEditForm({
 							<SelectItem value="none">—</SelectItem>
 							{members.map((m) => (
 								<SelectItem key={m.userId} value={m.userId}>
-									{m.name}
+									{m.name || m.email}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -368,9 +378,7 @@ export function RiskEditForm({
 				</div>
 			</div>
 			<div className="flex flex-col gap-1.5">
-				<Label htmlFor="risk-desc">
-					{te("title")}: {t("titleField")} / Beschreibung
-				</Label>
+				<Label htmlFor="risk-desc">{t("descriptionField")}</Label>
 				<Textarea
 					id="risk-desc"
 					rows={3}
@@ -379,7 +387,7 @@ export function RiskEditForm({
 				/>
 			</div>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				<fieldset className="flex flex-col gap-1.5">
+				<fieldset className="flex min-w-0 flex-col gap-1.5">
 					<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
 						{t("controls")}
 					</legend>
@@ -400,15 +408,15 @@ export function RiskEditForm({
 										)
 									}
 								/>
-								<span className="font-mono">{c.code}</span>
-								<span className="truncate text-muted-foreground">
+								<span className="shrink-0 font-mono">{c.code}</span>
+								<span className="min-w-0 truncate text-muted-foreground">
 									{c.title}
 								</span>
 							</label>
 						))}
 					</div>
 				</fieldset>
-				<fieldset className="flex flex-col gap-1.5">
+				<fieldset className="flex min-w-0 flex-col gap-1.5">
 					<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
 						{t("assets")}
 					</legend>

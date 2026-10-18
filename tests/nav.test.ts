@@ -76,6 +76,16 @@ describe("buildNav", () => {
 		expect(keys).toContain("audits");
 		expect(keys).toContain("evidence");
 	});
+	it("Berater:in sieht die Navigation wie Bearbeiter:in", () => {
+		const input = {
+			frameworks: casp,
+			licenceStage: "2_casp_zag" as const,
+			caspServices: [],
+		};
+		const keys = (role: "editor" | "consultant") =>
+			buildNav({ ...input, role }).flatMap((g) => g.items.map((i) => i.key));
+		expect(keys("consultant")).toEqual(keys("editor"));
+	});
 	it("Heute trägt den Zähler, Rahmenwerke werden als Einträge geführt", () => {
 		const groups = buildNav({
 			frameworks: iso,

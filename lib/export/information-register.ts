@@ -5,6 +5,8 @@
 // bleiben leer und erscheinen als Hinweis in `warnings` — vor Abgabe über das
 // BaFin-Excel/xBRL-CSV ergänzen. Kein Rechtsrat.
 
+import type { PROVIDER_STATUSES } from "@/db/schema/registers";
+
 export type RegisterEntity = {
 	name: string;
 	lei: string | null;
@@ -23,7 +25,7 @@ export type RegisterProvider = {
 	country: string | null;
 	isIct: boolean;
 	isIntraGroup: boolean;
-	status: "active" | "onboarding" | "exiting" | "terminated";
+	status: (typeof PROVIDER_STATUSES)[number];
 	serviceType: string | null;
 	serviceDescription: string | null;
 	criticality: "critical" | "important" | "standard";

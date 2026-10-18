@@ -22,7 +22,7 @@ import {
 	listRisks,
 } from "@/lib/compliance/queries-p2";
 import { getAudit } from "@/lib/compliance/queries-p3";
-import { DEFAULT_RISK_APPETITE } from "@/lib/compliance/risk";
+import { resolveRiskMethod } from "@/lib/compliance/risk-method";
 import { readOrg } from "@/lib/db/with-org";
 import {
 	type AuditPackageInput,
@@ -160,7 +160,7 @@ export async function GET(req: Request) {
 			cov,
 			period,
 			frameworks,
-			appetite: settings?.riskAppetite ?? DEFAULT_RISK_APPETITE,
+			method: resolveRiskMethod(settings, cov.frameworks),
 			evidenceLinks,
 			controls,
 			risks,
@@ -229,7 +229,7 @@ export async function GET(req: Request) {
 		})),
 		risks: {
 			header: RISK_HEADER,
-			rows: buildRiskRows(data.risks, data.appetite),
+			rows: buildRiskRows(data.risks, data.method),
 		},
 		documents: data.documents.map((d) => ({
 			docNumber: d.docNumber,

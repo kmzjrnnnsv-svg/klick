@@ -682,7 +682,7 @@
 	margin: 0 calc(-1 * var(--edge));
 }
 .ctaSide {
-	height: 360px;
+	min-height: 360px;
 	border-radius: var(--r);
 	overflow: hidden;
 	background: var(--brown);
@@ -703,11 +703,11 @@
 	border-bottom-right-radius: 0;
 }
 .ctaMain {
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	gap: 16px;
-	height: 360px;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+	align-items: start;
+	gap: 40px;
+	min-height: 360px;
 	padding: 40px;
 	border-radius: var(--r);
 	background: var(--primary);
@@ -716,12 +716,24 @@
 .ctaMain h2 {
 	font-size: var(--s-head);
 }
-.ctaMain p {
+.ctaText {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.ctaText p {
 	margin: 0;
 	max-width: 56ch;
 }
+.ctaMain p {
+	margin: 0;
+}
 .ctaMain .button {
 	align-self: flex-start;
+}
+.ctaMain .button:disabled {
+	opacity: 0.7;
+	transform: none;
 }
 
 /* ── Wortzeichen aus Blöcken ────────────────────────────────────────── */
@@ -791,6 +803,10 @@
 
 /* ── Tablet: vier Felder als 2 × 2 ─────────────────────────────────── */
 @media (min-width: 768px) and (max-width: 1180px) {
+	.ctaMain {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 28px;
+	}
 	.strip4 {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
@@ -985,8 +1001,9 @@
 	}
 	.ctaMain {
 		grid-column: 1 / -1;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 24px;
 		order: -1;
-		height: auto;
 		min-height: 300px;
 		padding: 28px 20px;
 	}
@@ -1001,6 +1018,7 @@
 		align-self: stretch;
 	}
 	.ctaSide {
+		min-height: 120px;
 		height: 120px;
 		border-radius: var(--r);
 	}

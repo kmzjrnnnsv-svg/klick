@@ -1,0 +1,149 @@
+/* Anfrageformular auf farbiger Fläche (/leistungen#anfrage): Felder in
+   Hintergrundfarbe, ein Radius, keine Linien — wie die Kacheln der Seite. */
+
+.form {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+	align-content: start;
+}
+
+.full {
+	grid-column: 1 / -1;
+}
+
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+
+.label {
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.control {
+	width: 100%;
+	min-height: 48px;
+	padding: 10px 14px;
+	border: 0;
+	border-radius: 8px;
+	background: var(--background);
+	color: var(--foreground);
+	font: inherit;
+	font-size: 16px;
+}
+
+.control::placeholder {
+	color: var(--muted-foreground);
+}
+
+.control:focus-visible,
+.check input:focus-visible {
+	outline: 2px solid var(--background);
+	outline-offset: 2px;
+}
+
+textarea.control {
+	min-height: 132px;
+	resize: vertical;
+}
+
+select.control {
+	appearance: none;
+	padding-right: 44px;
+}
+
+/* Pfeil aus zwei Kanten statt Verlauf/Bild */
+.select {
+	position: relative;
+}
+
+.select::after {
+	content: "";
+	position: absolute;
+	right: 20px;
+	top: 50%;
+	width: 8px;
+	height: 8px;
+	border-right: 2px solid var(--foreground);
+	border-bottom: 2px solid var(--foreground);
+	transform: translateY(-70%) rotate(45deg);
+	pointer-events: none;
+}
+
+.error {
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.error::before {
+	content: "↳ ";
+}
+
+.check {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	font-size: 14px;
+	line-height: 1.45;
+}
+
+.check input {
+	width: 20px;
+	height: 20px;
+	margin: 1px 0 0;
+	flex-shrink: 0;
+	accent-color: var(--background);
+}
+
+.check a {
+	color: inherit;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+}
+
+.hint {
+	font-size: 13px;
+	opacity: 0.85;
+}
+
+/* Honeypot: für Menschen unsichtbar, nicht fokussierbar */
+.trap {
+	position: absolute;
+	left: -10000px;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+
+.done {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	align-self: center;
+}
+
+.doneTitle {
+	font-size: 22px;
+	font-weight: 500;
+	margin: 0;
+}
+
+@media (max-width: 767px) {
+	.form {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.actions > * {
+		width: 100%;
+	}
+}

@@ -16,7 +16,7 @@ export function UrlTabs({
 	return (
 		<nav
 			aria-label="Reiter"
-			className="mb-6 flex gap-1 overflow-x-auto border-border/60 border-b"
+			className="mb-6 flex flex-wrap gap-x-1 border-border/60 border-b"
 		>
 			{tabs.map((tab) => {
 				const on = tab.value === active;
@@ -24,6 +24,7 @@ export function UrlTabs({
 					<Link
 						key={tab.value}
 						href={`${base}?${param}=${tab.value}`}
+						scroll={false}
 						aria-current={on ? "page" : undefined}
 						className={cn(
 							"-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm transition-colors",

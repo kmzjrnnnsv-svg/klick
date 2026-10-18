@@ -178,6 +178,21 @@ export const objectiveSchema = z.object({
 	status: z
 		.enum(["open", "on_track", "at_risk", "achieved", "dropped"])
 		.default("open"),
+	// Kennzahl (B5)
+	indicatorType: z.enum(["kpi", "kri", "kci"]).default("kpi"),
+	direction: z.enum(["higher_better", "lower_better"]).default("higher_better"),
+	targetValue: z.coerce.number().finite().nullable().optional(),
+	warnAt: z.coerce.number().finite().nullable().optional(),
+	alertAt: z.coerce.number().finite().nullable().optional(),
+	measureEveryMonths: z.coerce
+		.number()
+		.int()
+		.min(1)
+		.max(12)
+		.nullable()
+		.optional(),
+	nextMeasureAt: optionalDate,
+	selfApprovalReason: z.string().trim().max(2000).optional(),
 });
 
 export const kpiMeasurementSchema = z.object({
@@ -345,6 +360,8 @@ export const findingStatusSchema = z.object({
 	findingId: uuid,
 	status: z.enum(FINDING_STATUSES),
 });
+
+export const adoptFindingsSchema = z.object({ auditId: z.uuid() });
 
 export const findingToNonconformitySchema = z.object({ findingId: uuid });
 
@@ -538,4 +555,20 @@ export const whistleblowingSchema = z.object({
 export const whistleblowingTransitionSchema = z.object({
 	id: uuid,
 	to: z.enum(["acknowledged", "in_review", "closed", "received"]),
+});
+
+// Entscheidung beim Management anfragen (E2)
+export const decisionRequestSchema = z.object({
+	question: z.string().trim().min(5).max(300),
+	context: longText.optional(),
+	recommendation: z.string().trim().max(2000).optional(),
+	options: z.array(z.string().trim().min(1).max(200)).max(6).default([]),
+	dueAt: optionalDate,
+	linkedEntityType: z.enum(ENTITY_KINDS).optional(),
+	linkedEntityId: uuid.optional(),
+	requirementKeys: z
+		.array(z.string().trim().min(3).max(80))
+		.max(20)
+		.default([]),
+	selfApprovalReason: z.string().trim().max(2000).optional(),
 });

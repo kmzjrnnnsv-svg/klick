@@ -1,4 +1,4 @@
-import type { RiskAppetite } from "@/db/schema/platform";
+import type { RiskMethod } from "@/db/schema/platform";
 import {
 	CONTROL_BY_CODE,
 	EDGES_BY_REQUIREMENT,
@@ -121,12 +121,13 @@ export const RISK_HEADER = [
 	"status",
 	"eintrittswahrscheinlichkeit",
 	"auswirkung",
-	"score",
-	"band",
+	"risikowert",
+	"risikoklasse",
 	"behandlung",
 	"rest_eintrittswahrscheinlichkeit",
 	"rest_auswirkung",
-	"rest_score",
+	"rest_risikowert",
+	"rest_risikoklasse",
 	"ueber_appetit",
 	"verantwortlich",
 	"review",
@@ -151,10 +152,10 @@ export type RiskExportRow = {
 
 export function buildRiskRows(
 	rows: readonly RiskExportRow[],
-	appetite: RiskAppetite,
+	method: RiskMethod,
 ): unknown[][] {
 	return rows.map((r) => {
-		const a = assessRisk(r, appetite);
+		const a = assessRisk(r, method);
 		return [
 			r.code,
 			r.title,
@@ -163,11 +164,12 @@ export function buildRiskRows(
 			r.likelihood,
 			r.impact,
 			a.inherent.score,
-			a.inherent.band,
+			a.inherent.cls.label,
 			r.treatment ?? "",
 			r.residualLikelihood ?? "",
 			r.residualImpact ?? "",
 			a.residual?.score ?? "",
+			a.residual?.cls.label ?? "",
 			a.aboveAppetite ? "ja" : "nein",
 			r.names.ownerUserId ?? "",
 			r.reviewAt ?? "",

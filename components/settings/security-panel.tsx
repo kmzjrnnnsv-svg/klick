@@ -6,6 +6,10 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { revokeOtherSessions, revokeSession } from "@/app/actions/security";
+import {
+	isStepUpError,
+	withAuthStepUp,
+} from "@/components/auth/step-up-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,10 +39,12 @@ export type PasskeyRow = {
 
 export function SecurityPanel({
 	mfaEnabled,
+	hasTotp,
 	sessions,
 	passkeys,
 }: {
 	mfaEnabled: boolean;
+	hasTotp: boolean;
 	sessions: SessionRow[];
 	passkeys: PasskeyRow[];
 }) {
@@ -53,12 +59,15 @@ export function SecurityPanel({
 		timeZone: "Europe/Berlin",
 	});
 
+	// letzter Faktor: nicht löschbar (Server sperrt ebenfalls, endpoint-policy)
+	const lastFactor = passkeys.length <= 1 && !hasTotp;
+
 	async function addPasskey() {
-		const res = await authClient.passkey.addPasskey({
-			name: passkeyName || undefined,
-		});
+		const res = await withAuthStepUp(() =>
+			authClient.passkey.addPasskey({ name: passkeyName || undefined }),
+		);
 		if (res?.error) {
-			toast.error(tc("error"));
+			toast.error(isStepUpError(res.error) ? t("stepUp") : tc("error"));
 			return;
 		}
 		setPasskeyName("");
@@ -66,8 +75,17 @@ export function SecurityPanel({
 	}
 
 	async function deletePasskey(id: string) {
-		const res = await authClient.passkey.deletePasskey({ id });
-		if (res?.error) toast.error(tc("error"));
+		const res = await withAuthStepUp(() =>
+			authClient.passkey.deletePasskey({ id }),
+		);
+		if (res?.error)
+			toast.error(
+				isStepUpError(res.error)
+					? t("stepUp")
+					: res.error.message === "last_factor"
+						? t("lastFactor")
+						: tc("error"),
+			);
 		router.refresh();
 	}
 
@@ -88,6 +106,11 @@ export function SecurityPanel({
 					<CardDescription>{t("passkeysLead")}</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
+					{passkeys.length === 1 && !hasTotp && (
+						<p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-sm">
+							{t("secondPasskeyHint")}
+						</p>
+					)}
 					{passkeys.length === 0 ? (
 						<p className="text-muted-foreground text-sm">{t("noPasskeys")}</p>
 					) : (
@@ -108,6 +131,8 @@ export function SecurityPanel({
 										size="icon-sm"
 										className="ml-auto"
 										aria-label={t("removePasskey")}
+										title={lastFactor ? t("lastFactor") : undefined}
+										disabled={lastFactor}
 										onClick={() => deletePasskey(p.id)}
 									>
 										<Trash2 />

@@ -4,14 +4,8 @@ import { getTranslations } from "next-intl/server";
 import { AcceptInvitation } from "@/components/auth/accept-invitation";
 import { buttonVariants } from "@/components/ui/button";
 import { getSessionCtx } from "@/lib/auth/guards";
+import { roleLabel } from "@/lib/auth/memberships";
 import { auth } from "@/lib/auth/server";
-
-const ROLE_LABEL: Record<string, string> = {
-	owner: "Inhaber:in",
-	editor: "Bearbeiter:in",
-	viewer: "Lesend",
-	auditor: "Prüfer:in",
-};
 
 export default async function InvitationPage({
 	params,
@@ -73,7 +67,7 @@ export default async function InvitationPage({
 				{t("lead", {
 					inviter: invitation.inviterEmail,
 					organization: invitation.organizationName,
-					role: ROLE_LABEL[invitation.role ?? ""] ?? invitation.role ?? "",
+					role: roleLabel(invitation.role),
 				})}
 			</p>
 			<AcceptInvitation invitationId={id} />

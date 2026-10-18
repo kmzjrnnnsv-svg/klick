@@ -718,3 +718,52 @@ describe("collectDueItems — Sicherheitsaufträge", () => {
 		]);
 	});
 });
+
+describe("Asset-Lebenszyklus", () => {
+	it("meldet Supportende 90 Tage vorher und am Tag danach, nicht dazwischen", () => {
+		const now = new Date("2026-10-17T06:00:00Z");
+		const asset = (supportEndAt: string) => ({
+			id: "a1",
+			name: "Fileserver",
+			status: "active",
+			endOfLifeAt: null,
+			supportEndAt,
+			maintenanceUntil: null,
+			ownerUserId: "u1",
+		});
+		const at = (iso: string) =>
+			collectDueItems(now, { ...empty, assets: [asset(iso)] }).notifications;
+		expect(at("2027-01-15")[0]?.title).toBe(
+			"Ende der Sicherheitsupdates in 90 Tagen: Fileserver",
+		);
+		expect(at("2026-10-16")[0]?.title).toBe(
+			"Ende der Sicherheitsupdates überschritten: Fileserver",
+		);
+		expect(at("2026-12-01")).toHaveLength(0);
+	});
+});
+
+describe("Ziele: Messintervall", () => {
+	it("7 Tage vorher, am Tag und wöchentlich danach — nur freigegeben", () => {
+		const now = new Date("2026-10-17T06:00:00Z");
+		const at = (nextMeasureAt: string, approvalStatus = "approved") =>
+			collectDueItems(now, {
+				...empty,
+				objectives: [
+					{
+						id: "o1",
+						title: "Schulungsquote",
+						nextMeasureAt,
+						approvalStatus,
+						status: "open",
+						ownerUserId: "u1",
+					},
+				],
+			}).notifications.map((n) => n.title);
+		expect(at("2026-10-24")).toEqual(["Messung in 7 Tagen: Schulungsquote"]);
+		expect(at("2026-10-17")).toEqual(["Messung heute fällig: Schulungsquote"]);
+		expect(at("2026-10-10")).toEqual(["Messung überfällig: Schulungsquote"]);
+		expect(at("2026-10-12")).toEqual([]);
+		expect(at("2026-10-17", "proposed")).toEqual([]);
+	});
+});

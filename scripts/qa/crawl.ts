@@ -2,31 +2,35 @@
  * TOTP, Onboarding), klickt dann alle Seiten, Dialoge und Formulare durch und
  * sammelt Fehlerseiten, 5xx, Page-Errors, Fehler-Toasts und Server-Log-Fehler.
  *
- *   AUTH_ALLOW_SIGNUP=true pnpm dev -p 3200 > /tmp/qa-dev.log 2>&1 &
+ *   AUTH_ALLOW_SIGNUP=true pnpm dev -p 3200 > ~/.cache/klick-qa/dev.log 2>&1 &
  *   pnpm exec tsx scripts/qa/crawl.ts            # Login (falls nötig) + Crawl
  *   pnpm exec tsx scripts/qa/crawl.ts --login    # nur Login/Onboarding
  *   pnpm exec tsx scripts/qa/crawl.ts --only /prozesse,/risiken
  *   pnpm exec tsx scripts/qa/crawl.ts --mobile --pages-only   # 390 px, Überlauf
  *
- * Nicht Teil der CI — braucht eine laufende Instanz mit Dev-Log.
+ * Sitzung, TOTP-Schlüssel und Report liegen in QA_DIR (Standard
+ * ~/.cache/klick-qa, siehe paths.ts). Nicht Teil der CI — braucht eine
+ * laufende Instanz mit Dev-Log.
  */
 import { createHmac } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
 	type Browser,
 	type BrowserContext,
 	chromium,
 	type Page,
 } from "@playwright/test";
+import {
+	QA_BASE as BASE,
+	QA_DIR,
+	QA_REPORT as REPORT,
+	QA_SECRET as SECRET_FILE,
+	QA_STATE as STATE,
+	writePrivate,
+} from "./paths";
 
-const BASE = process.env.QA_BASE ?? "http://localhost:3200";
-const PORT = new URL(BASE).port || "80";
-const LOG = process.env.QA_LOG ?? "/tmp/qa-dev.log";
-// Cookies unterscheiden sich zwischen Dev- und Prod-Build (Prefix), daher
-// Sitzung je Port; der TOTP-Schlüssel gehört zum QA-Konto und ist geteilt.
-const STATE = `/tmp/qa-state-${PORT}.json`;
-const SECRET_FILE = "/tmp/qa-totp.txt";
-const REPORT = `/tmp/qa-report-${PORT}.json`;
+const LOG = process.env.QA_LOG ?? join(QA_DIR, "dev.log");
 const EXEC = existsSync("/opt/pw-browsers/chromium")
 	? "/opt/pw-browsers/chromium"
 	: undefined;
@@ -235,7 +239,8 @@ async function login(ctx: BrowserContext): Promise<void> {
 	const email = process.env.QA_EMAIL ?? `qa+${Date.now()}@example.com`;
 	console.log(`→ Login als ${email}`);
 	const pos = logSize();
-	await page.goto(`${BASE}/login`);
+	// Mail-Link ist der Notweg (ADR-019); Passkeys prüft scripts/qa/passkey-smoke.ts.
+	await page.goto(`${BASE}/login/notweg`);
 	await page.fill("#email", email);
 	await page.click('form button[type="submit"]');
 	await page.waitForURL(/\/login\/verify/, { timeout: 30_000 });
@@ -246,10 +251,14 @@ async function login(ctx: BrowserContext): Promise<void> {
 	await settle(page);
 	// Erster Login: MFA-Enrolment
 	if (page.url().includes("/einrichtung/2fa")) {
+		// Passkey ist der Standard; der Crawler nimmt TOTP (Step-up per Code).
+		await page
+			.getByRole("button", { name: /Authenticator-App einrichten/ })
+			.click();
 		const secretEl = page.locator("code");
 		await secretEl.first().waitFor({ timeout: 30_000 });
 		const secret = (await secretEl.first().innerText()).trim();
-		writeFileSync(SECRET_FILE, secret);
+		writePrivate(SECRET_FILE, secret);
 		await page.fill("#code", totp(secret));
 		await page.click('form button[type="submit"]');
 		await page
@@ -262,40 +271,67 @@ async function login(ctx: BrowserContext): Promise<void> {
 		await page.click('form button[type="submit"]');
 		await settle(page);
 	}
-	// Onboarding
+	// Onboarding (D0) + geführte Einrichtung (D1–D5)
 	if (page.url().includes("/onboarding")) {
-		console.log("→ Onboarding (CASP, Stufe 2, alle Rahmenwerke)");
-		await page.fill('input[name="name"]', `QA Org ${Date.now() % 100000}`);
-		// Sektor + Stufe über Radix-Select
-		const triggers = page.locator('button[role="combobox"]');
-		await triggers.nth(0).click();
-		await page.getByRole("option", { name: /Krypto-Dienstleister/ }).click();
-		await triggers.nth(1).click();
-		await page.getByRole("option").nth(2).click();
-		await page.getByRole("button", { name: /^Weiter$/ }).click();
-		await sleep(500);
-		const boxes = page.locator('button[role="checkbox"]');
-		const n = await boxes.count();
-		for (let i = 0; i < n; i++) {
-			const b = boxes.nth(i);
-			if ((await b.getAttribute("data-state")) !== "checked") await b.click();
-		}
-		await page.getByRole("button", { name: /^Weiter$/ }).click();
-		await sleep(500);
+		console.log("→ Onboarding + Einrichtung (CASP, Stufe 2, alle Rahmenwerke)");
+		await page.fill("#ob-name", `QA Org ${Date.now() % 100000}`);
 		const baseline = page.locator('button[role="checkbox"]');
 		if ((await baseline.count()) > 0) await baseline.first().click();
-		await page
-			.getByRole("button", { name: /anlegen|Organisation anlegen/i })
-			.last()
-			.click();
-		await page.waitForURL(/\/ueberblick|\/heute|\/gap-analyse/, {
-			timeout: 120_000,
-		});
+		await page.getByRole("button", { name: /Anlegen und weiter/ }).click();
+		await page.waitForURL(/\/einrichtung\/rollen/, { timeout: 60_000 });
+		await settle(page);
+		await setupWizard(page);
+		await page.waitForURL(/\/gap-analyse\//, { timeout: 120_000 });
 		await settle(page, 3000);
 	}
 	await ctx.storageState({ path: STATE });
 	console.log(`✔ Sitzung gespeichert (${page.url()})`);
 	await page.close();
+}
+
+// Geführte Einrichtung durchklicken: Profil, Standort, CASP Stufe 2,
+// ein Dienstleister, alle Rahmenwerke, Gap-Analyse
+async function setupWizard(page: Page) {
+	const next = (name: RegExp) =>
+		page.getByRole("button", { name }).last().click();
+	await next(/^Weiter$/);
+	await page.waitForURL(/\/einrichtung\/unternehmen/);
+	await page.fill("#co-employees", "25");
+	await page.fill("#co-revenueEur", "5000000");
+	await next(/Speichern und weiter/);
+	await page.waitForURL(/\/einrichtung\/standorte/);
+	await page.fill("#si-name", "Hauptsitz Frankfurt");
+	await page.fill("#si-city", "Frankfurt am Main");
+	await page
+		.getByRole("button", { name: "Standort hinzufügen" })
+		.last()
+		.click();
+	await settle(page, 1500);
+	await next(/^Weiter$/);
+	await page.waitForURL(/\/einrichtung\/taetigkeit/);
+	await page.locator("#ac-sector").click();
+	await page.getByRole("option", { name: /Krypto-Dienstleister/ }).click();
+	await page.locator("#ac-stage").click();
+	await page.getByRole("option").nth(2).click();
+	await next(/Speichern und weiter/);
+	await page.waitForURL(/\/einrichtung\/it-daten/);
+	await page.locator('[id^="pv-name-"]').first().fill("QA Cloud GmbH");
+	await next(/Speichern und weiter/);
+	await page.waitForURL(/\/einrichtung\/rahmenwerke/, { timeout: 60_000 });
+	await page.locator("summary").first().click();
+	const boxes = page.locator('button[role="checkbox"]');
+	const n = await boxes.count();
+	for (let i = 0; i < n; i++) {
+		const b = boxes.nth(i);
+		if (
+			(await b.getAttribute("data-state")) !== "checked" &&
+			!(await b.isDisabled())
+		)
+			await b.click();
+	}
+	await next(/Speichern und weiter/);
+	await page.waitForURL(/\/einrichtung\/gap-analyse/, { timeout: 120_000 });
+	await next(/Gap-Analyse starten/);
 }
 
 async function stepUp(page: Page) {
@@ -676,7 +712,7 @@ async function main() {
 			.map((s) => s.trim())
 			.filter(Boolean);
 		await crawl(ctx, only);
-		writeFileSync(
+		writePrivate(
 			REPORT,
 			JSON.stringify(
 				{ at: new Date().toISOString(), visited: [...visited], findings },

@@ -4,10 +4,11 @@ import {
 	mailErrorHint,
 	sendTransactionalMail,
 } from "../lib/mail/send";
+import { transactionalEmail } from "../lib/mail/templates";
 
 // Mail-Diagnose: `pnpm mail:check [empfänger]`
 //
-// Zeigt den konfigurierten Zustellweg (Resend → SMTP → keiner). Mit Empfänger
+// Zeigt den konfigurierten Zustellweg (Resend → Brevo → SMTP → keiner). Mit Empfänger
 // geht eine Testmail raus; Ergebnis und Fehlertext des Providers stehen im
 // Terminal, dazu ein Hinweis zur üblichen Ursache. Läuft auf dem Server mit
 // derselben Umgebung wie der Dienst (deploy/README.md). Ohne funktionierenden
@@ -24,6 +25,7 @@ async function main() {
 	console.log(
 		`  Resend (RESEND_API_KEY): ${cfg.hasResendKey ? "gesetzt" : "—"}`,
 	);
+	console.log(`  Brevo (BREVO_API_KEY): ${cfg.hasBrevoKey ? "gesetzt" : "—"}`);
 	console.log(
 		`  SMTP: ${cfg.hasSmtpHost ? `${cfg.smtpHost}:${cfg.smtpPort ?? 587} · Benutzer ${process.env.SMTP_USER ? "gesetzt" : "—"} · Passwort ${process.env.SMTP_PASS ? "gesetzt" : "—"}` : "—"}`,
 	);
@@ -41,11 +43,17 @@ async function main() {
 		return;
 	}
 
-	const out = await sendTransactionalMail({
-		to,
+	// Gleiche HTML-Gestaltung wie alle App-Mails (mit Klartext-Teil), damit
+	// der Test zeigt, wie Anmelde-Links und Benachrichtigungen ankommen.
+	const base = process.env.BETTER_AUTH_URL;
+	const mail = transactionalEmail({
 		subject: "Klick: Testmail",
-		text: "Diese Testmail kommt von `pnpm mail:check`. Wenn sie ankommt, erreichen auch Anmelde-Links und Einladungen dein Postfach.",
+		eyebrow: "Mailversand",
+		title: "Die Testmail ist angekommen.",
+		body: "Diese Mail kommt von `pnpm mail:check`. Wenn sie in deinem Posteingang liegt, erreichen dich auch Anmelde-Links, Einladungen und Benachrichtigungen.",
+		cta: base ? { label: "Klick öffnen", url: `${base}/heute` } : undefined,
 	});
+	const out = await sendTransactionalMail({ to, ...mail });
 	if (out.ok && out.path !== "console") {
 		console.log(
 			`\n✔ Zugestellt über ${out.path} an ${to} — Spam-Ordner prüfen, falls sie nicht im Posteingang liegt.`,

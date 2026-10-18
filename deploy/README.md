@@ -46,13 +46,27 @@ sudo systemctl restart klick && curl -f https://raza.work/api/ready
 - Mozilla Observatory A+, SSL Labs A+
 
 ## Anmeldung: Mailversand prüfen, Notfall-Link
-Anmelde-Links und Einladungen gehen per Mail raus (Resend → SMTP). In Produktion landet der
-Link **nie** im Journal — ohne funktionierenden Zustellweg kommt niemand mehr rein. Beim Start
+Anmelde-Links (Notweg) und Einladungen gehen per Mail raus (Resend → Brevo → SMTP; scheitert ein
+Weg, kommt der nächste konfigurierte dran). Seit „Passkey zuerst“ (ADR-019) hängt der normale
+Login nicht mehr an der Mail — Einladungen gibt es zusätzlich als Link zum Kopieren. In Produktion
+landet ein Anmelde-Link **nie** im Journal. Beim Start
 steht im Journal `Mailversand` (Weg, Host, Absender) oder `Kein Mailversand konfiguriert`.
 
 Konfiguration: `MAIL_FROM` (Absender auf einer beim Provider verifizierten Domain) und
-`RESEND_API_KEY` **oder** `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER` in `/etc/klick/klick.env`,
-`SMTP_PASS` als Credential `smtp_pass`. Hetzner sperrt ausgehend Port 25 und 465 — SMTP über 587.
+`BREVO_API_KEY`, `RESEND_API_KEY` **oder** `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER` in
+`/etc/klick/klick.env`, `SMTP_PASS` als Credential `smtp_pass`. Hetzner sperrt ausgehend Port 25
+und 465 — SMTP über 587. Brevo und Resend laufen über HTTPS (443) ohne SMTP-Login.
+
+**Brevo (empfohlen, EU-Anbieter):**
+1. Konto bei brevo.com, unter *Absender, Domains & dedizierte IPs → Domains* die Domain
+   (`raza.work`) hinzufügen und die angezeigten DNS-Einträge (Brevo-Code, DKIM, DMARC) beim
+   DNS-Anbieter eintragen; MX bleibt unverändert (Empfang läuft weiter über das Postfach).
+2. *SMTP & API → API-Schlüssel* → neuen Schlüssel erzeugen (`xkeysib-…`).
+3. *Sicherheit → Autorisierte IPs*: die IP des Servers freigeben — sonst antwortet die API mit
+   401 „unrecognised IP address“ (`pnpm mail:check` nennt das).
+4. `BREVO_API_KEY=…` in `/etc/klick/klick.env` (0600), `systemctl restart klick`, dann
+   `pnpm mail:check <adresse>` wie unten. Brevo als Dienstleister mit AV-Vertrag im
+   Dienstleister-Register von Mandant 0 führen.
 
 ```bash
 sudo bash -c '
@@ -69,6 +83,26 @@ runuser -u klick -- pnpm auth:link <deine-adresse>    # Notfall: Einmal-Link (15
 `pnpm auth:link` gibt den Link nur im Terminal aus (keine Mail, kein Journal), nur für bestehende
 Konten und offene Einladungen, und protokolliert `auth.login_link_cli` im Plattform-Audit. Danach
 gelten 2FA und alle Sitzungsregeln wie gewohnt. Link nicht weitergeben.
+
+## Passkeys: Einrichtung, Einladungslinks, Zugang zurücksetzen (ADR-019)
+Anmeldung läuft über Passkeys, der Mail-Link ist nur der Notweg (`/login/notweg`).
+`PASSKEY_RP_ID` muss die Domain sein, unter der Klick läuft (`raza.work`; ohne Angabe der Host
+aus `BETTER_AUTH_URL`) — **nicht nachträglich ändern**: Passkeys sind an die RP-ID gebunden, eine
+neue RP-ID macht alle vorhandenen Passkeys unbrauchbar (dann hilft nur „Zugang zurücksetzen“).
+`PASSKEY_RP_NAME` ist der Name im Passkey-Dialog des Geräts.
+
+- **Einladen ohne Mail:** Team → Einladen zeigt den Link `/einladung#klk_invite_…` zum Kopieren
+  (48 h, einmalig; „Neuer Link“ ersetzt ihn). Die Person legt dort direkt einen Passkey an.
+- **Passkey verloren:** Owner unter Team → ⋯ → „Zugang zurücksetzen“ (nur für Konten, die
+  ausschließlich zu dieser Organisation gehören), Plattform-Admins unter Admin → Nutzer:innen. Alle
+  Passkeys, TOTP, Backup-Codes und Sitzungen werden entfernt; der Link `/zugang#klk_recover_…`
+  (24 h, einmalig) wird nur angezeigt — persönlich weitergeben. Die Person bekommt eine Hinweis-Mail
+  ohne Link. Audit `auth.access_reset`.
+- **Notfall, wenn niemand in der Organisation helfen kann** (z. B. die einzige Owner:in): mit dem
+  Block oben `runuser -u klick -- pnpm auth:recover <adresse>` — gleiche Wirkung, Link nur im
+  Terminal, Audit `auth.recover_link_cli`.
+- Prüfen nach einem Release: `pnpm exec tsx scripts/qa/passkey-smoke.ts` gegen eine Testinstanz
+  (virtueller Authenticator; setzt ein QA-Konto aus `scripts/qa/crawl.ts --login` voraus).
 
 ## KEK-Rotation (ISO A.8.24, MiCAR Art. 70)
 Die Org-DEKs bleiben; nur ihre Umhüllung wird neu geschrieben. Nachweise und
@@ -101,7 +135,7 @@ Purge-Frist der App. Nur so passen DB-Stand und Dateien bei jedem Restore zusamm
 
 | Was | Wie | Wo | Wann |
 |---|---|---|---|
-| Datenbank | `scripts/backup-db.sh` (pg_dump → age, privater Schlüssel offline) | lokal `/var/backups/klick` + rclone offsite | `klick-backup-db.timer` täglich 02:15 |
+| Datenbank | `scripts/backup-db.sh` (pg_dump ohne Job-Schema `pgboss` → age, privater Schlüssel offline) | lokal `/var/backups/klick` + rclone offsite | `klick-backup-db.timer` täglich 02:15 |
 | Nachweis-Dateien + Tombstones | `scripts/backup-objects.sh` (rclone sync, `--backup-dir` Historie) | zweiter Standort/Anbieter, Bucket mit Versionierung + Object Lock (30 d) | `klick-backup-objects.timer` stündlich |
 | Stichprobe | `scripts/verify-backup.ts` (Offsite-Objekt entschlüsseln, SHA-256 vs. DB) | Audit `backup.verified`, Wirksamkeitstest CC-BCM-03 (Mandant 0) | `klick-backup-verify.timer` sonntags |
 | KEK | offline, Vier-Augen (zwei versiegelte Kopien, Tresor), Rotationslog | **nie** im Bucket oder Dump | bei jeder Rotation |
@@ -124,7 +158,11 @@ Datei.
    `BACKUP_OBJECTS_SOURCE=primary:klick`, `BACKUP_OBJECTS_REMOTE=offsite:klick-objects`,
    `BACKUP_S3_ENDPOINT/…_BUCKET/…_ACCESS_KEY_ID/…_PREFIX` (für die Stichprobe, Lesezugriff),
    `BACKUP_VERIFY_ORG_ID=<Mandant 0>`, `ALERT_MAIL=…`.
-3. Credentials: `rclone_conf` (beide Remotes), `backup_s3_secret` (`systemd-creds encrypt`).
+3. Credentials: `database_url_backup` (Rolle `klick_backup` aus `roles.sql`: BYPASSRLS, nur lesen —
+   die Org-Tabellen tragen FORCE RLS, als `klick_migrator` bricht `pg_dump` ab), `rclone_conf`
+   (beide Remotes), `backup_s3_secret` (`systemd-creds encrypt`). Bestehende Server: `roles.sql`
+   erneut ausführen (idempotent), dann `ALTER ROLE klick_backup PASSWORD '…'` und
+   `postgresql://klick_backup:…@127.0.0.1/klick` als `database_url_backup` ablegen.
 4. Ziel-Bucket: Versionierung + Object Lock (Governance, 30 Tage) aktivieren, falls der Anbieter es
    kann (Hetzner Object Storage: vorher prüfen); sonst genügt die rclone-Historie.
 5. Units `deploy/systemd/klick-backup-{db,objects,verify}.{service,timer}` und `klick-alert@.service`
@@ -196,6 +234,38 @@ Datei.
   erzeugen, der alte wird ungültig). Abschluss der Bewertung widerruft alle Links.
 - Keine Migration: Spalten für Entscheidung/Kontakt (`assessments`) und Sorgfaltsprüfung
   (`providers`) existieren seit 0006 bzw. P2.
+
+## Risikoanalyse und Lieferantenbewertung (R1–L2)
+- **Migrationen:** `0012_risk_method` (`org_settings.risk_method`, Felder des Risiko-Assistenten an
+  `risks`, `risk_treatments.cost_eur`) und `0013_provider_ratings` (`providers.category`,
+  `org_settings.supplier_method`, Org-Tabelle `provider_ratings` mit RLS + FORCE) — additiv. Rechte für
+  `klick_app` über die Default-Privileges aus `roles.sql`; wer lokal als `postgres` migriert, gibt sie
+  danach selbst (`GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO …`).
+- **Bestand:** Orgs ohne gespeicherte Risikomethodik rechnen wie bisher (EW × SH, Klassen aus dem
+  Appetit). Umstellen unter Einstellungen → Risikomethodik („Vorlage laden“ → speichern, Step-up);
+  die Vorschau zeigt, wie viele Risiken die Klasse wechseln. Neue Orgs bekommen die Vorlage beim
+  Onboarding.
+- **Freigabe roter Lieferanten:** Workflow „Dienstleister aufnehmen“ (`provider_onboarding`,
+  Auslagerungsbeauftragte:r → Geschäftsleitung) ist ab Stufe 2 aktiv; ohne besetzte Funktionen
+  meldet der Abschluss „Niemand erfüllt die Freigaberegel“.
+
+## Preise, Anfragen, Berater-Zugang (T1–T3)
+- **Migrationen:** `0010_pricing` (`price_groups`, `price_overrides`, `org_settings.price_group_id`)
+  und `0011_inquiries` (`inquiries`) — Plattform-Tabellen ohne `organization_id`, daher ohne RLS;
+  Rechte für `klick_app` kommen über die Default-Privileges aus `roles.sql`.
+- **Seed:** `pnpm db:seed` legt die Preisgruppen „Standard“ (Marktüblich, Standard), „Kleine
+  Unternehmen“ (Einstieg) und „Große Unternehmen“ (Premium) an — nur, wenn noch keine Gruppe
+  existiert. Danach Preise unter Admin → Preise prüfen, bevor `/preise` und `/leistungen`
+  öffentlich sind.
+- **Anfragen:** `POST /api/anfrage` (5 je IP in 10 min in der App; nginx-Zone wie für `/api`).
+  Sofort-Mails an Plattform-Admins laufen über den Job `notification-mail` — Mail-Provider muss
+  konfiguriert sein. `CONTACT_EMAIL` wird nicht mehr gelesen und kann aus der Env.
+  Prüfen: `curl -s -o /dev/null -w "%{http_code}" -X POST -H 'content-type: application/json' -H 'origin: https://evil.example' -d '{}' https://raza.work/api/anfrage` → 403.
+- **Datenschutzerklärung** (Admin → Rechtstexte) um die Verarbeitung von Anfragen ergänzen.
+- **Berater-Zugang (ADR-018):** keine Migration (Rolle `consultant` ist ein Text-Wert in
+  `member.role`). Bestehende befristete Prüfer-Zugänge greifen ab diesem Release wirklich
+  (vorher las der Guard `member_access` ohne Org-Kontext) — vor dem Release unter Team prüfen,
+  ob Ablaufdaten stimmen.
 
 ## SSO je Organisation
 `@better-auth/sso` (OIDC). Owner registrieren den IdP unter Einstellungen → SSO; die E-Mail-Domain

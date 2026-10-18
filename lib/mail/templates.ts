@@ -7,6 +7,8 @@
 // uppercase-Eyebrow-Labels. Wirkt auf Apple Mail / Outlook / Gmail
 // gleichermaßen.
 
+import { roleLabel } from "@/lib/auth/memberships";
+
 const CREAM = "#f7f3ec";
 const COCOA = "#211c14";
 const STONE = "#6b5e4a";
@@ -220,18 +222,12 @@ export function invitationEmail(input: {
 	inviter: string;
 	role: string;
 }): { subject: string; text: string; html: string } {
-	const roleLabel: Record<string, string> = {
-		owner: "Inhaber:in",
-		editor: "Bearbeiter:in",
-		viewer: "Lesend",
-		auditor: "Prüfer:in",
-	};
 	return transactionalEmail({
 		subject: `Einladung zu ${input.organization}`,
 		eyebrow: "Einladung",
 		title: `${input.inviter} lädt dich zu ${input.organization} ein.`,
-		body: `Du wirst als ${roleLabel[input.role] ?? input.role} aufgenommen. Die Einladung ist 48 Stunden gültig. Beim ersten Login richtest du einen zweiten Faktor ein.`,
-		cta: { label: "Einladung annehmen", url: input.url },
+		body: `Du wirst als ${roleLabel(input.role)} aufgenommen. Öffne den Link und lege einen Passkey an — Fingerabdruck, Gesicht oder Geräte-PIN, kein Passwort, keine App. Der Link ist 48 Stunden gültig und nur einmal nutzbar.`,
+		cta: { label: "Passkey anlegen und beitreten", url: input.url },
 		footnote: "Wenn du diese Einladung nicht erwartest, ignoriere diese Mail.",
 	});
 }

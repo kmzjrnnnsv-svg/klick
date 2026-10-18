@@ -8,6 +8,7 @@ import {
 	Section,
 } from "@/components/entity/entity-layout";
 import { StatusBadge } from "@/components/entity/status-badge";
+import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -140,6 +141,11 @@ export default async function RequirementPage({
 			}
 			aside={
 				<>
+					<SourceRisksBlock
+						ctx={ctx}
+						kind="requirement"
+						catalogKey={{ slug, code }}
+					/>
 					{req.evidenceHints && req.evidenceHints.length > 0 && (
 						<Section title={t("evidenceHints")}>
 							<ul className="list-disc pl-5 text-sm">

@@ -172,6 +172,7 @@ export default async function SecurityPage({
 							<>
 								<Link
 									href="/sicherheit?tab=schnellcheck"
+									scroll={false}
 									className={buttonVariants({ size: "sm" })}
 								>
 									{t("tab_schnellcheck")}
@@ -250,6 +251,7 @@ export default async function SecurityPage({
 								<Link
 									key={s}
 									href={`/sicherheit?tab=befunde&open=1&severity=${s}`}
+									scroll={false}
 									className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
 								>
 									{severityBadge(s)}

@@ -1,6 +1,6 @@
-import { count, desc, eq, sql } from "drizzle-orm";
+import { asc, count, desc, eq, sql } from "drizzle-orm";
 import { globalDb } from "@/db";
-import { member, organization, user } from "@/db/auth-schema";
+import { member, organization, passkey, user } from "@/db/auth-schema";
 import { cmsPages, frameworks } from "@/db/schema";
 
 // Globale (nicht mandantenbezogene) Lesezugriffe: CMS-Rechtstexte,
@@ -50,17 +50,27 @@ export async function deleteCmsPage(slug: string) {
 	await globalDb.delete(cmsPages).where(eq(cmsPages.slug, slug));
 }
 
+// Mitglieder je Org getrennt zählen: in einer korrelierten Unterabfrage
+// rendert Drizzle `${organization.id}` unqualifiziert („id“) — das trifft
+// dann member.id und zählte immer 0.
 export async function listOrganizationsWithCounts() {
-	return globalDb
-		.select({
-			id: organization.id,
-			name: organization.name,
-			slug: organization.slug,
-			createdAt: organization.createdAt,
-			members: sql<number>`(select count(*) from ${member} m where m.organization_id = ${organization.id})`,
-		})
-		.from(organization)
-		.orderBy(desc(organization.createdAt));
+	const [orgs, counts] = await Promise.all([
+		globalDb
+			.select({
+				id: organization.id,
+				name: organization.name,
+				slug: organization.slug,
+				createdAt: organization.createdAt,
+			})
+			.from(organization)
+			.orderBy(desc(organization.createdAt)),
+		globalDb
+			.select({ orgId: member.organizationId, n: count() })
+			.from(member)
+			.groupBy(member.organizationId),
+	]);
+	const byOrg = new Map(counts.map((c) => [c.orgId, Number(c.n)]));
+	return orgs.map((o) => ({ ...o, members: byOrg.get(o.id) ?? 0 }));
 }
 
 export async function listUsers(limit = 200) {
@@ -73,11 +83,27 @@ export async function listUsers(limit = 200) {
 			banned: user.banned,
 			banReason: user.banReason,
 			twoFactorEnabled: user.twoFactorEnabled,
+			passkeys: sql<number>`(select count(*)::int from ${passkey} where ${passkey.userId} = ${user.id})`,
 			createdAt: user.createdAt,
 		})
 		.from(user)
 		.orderBy(desc(user.createdAt))
 		.limit(limit);
+}
+
+// Mitgliedschaften aller Konten für Admin → Nutzer:innen (Unternehmen und
+// Rolle je Konto). member und organization tragen keine RLS (ADR-009).
+export async function listUserMemberships() {
+	return globalDb
+		.select({
+			userId: member.userId,
+			role: member.role,
+			orgId: organization.id,
+			orgName: organization.name,
+		})
+		.from(member)
+		.innerJoin(organization, eq(organization.id, member.organizationId))
+		.orderBy(asc(organization.name));
 }
 
 export async function platformCounts() {

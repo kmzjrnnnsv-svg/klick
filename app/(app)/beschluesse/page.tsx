@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { PageHeader } from "@/components/page-header";
+import { DecisionRequestButton } from "@/components/resolutions/decision-request-button";
 import { ResolutionForm } from "@/components/resolutions/resolution-form";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,10 +22,15 @@ import {
 	requiredResolutions,
 	resolutionCoverage,
 } from "@/lib/compliance/catalog/resolutions-required";
+import {
+	listDecisionRequests,
+	managementApproverHint,
+} from "@/lib/compliance/decision-service";
 import { fmtDate, shortFrameworkName } from "@/lib/compliance/page-data";
 import { getOrgProfile, listMembersForPicker } from "@/lib/compliance/queries";
 import { listResolutions } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
+import { entityHref } from "@/lib/entities/links";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -36,17 +42,24 @@ export default async function ResolutionsPage({
 }) {
 	const ctx = await requireOrgPage({ resolution: ["read"] });
 	const sp = await searchParams;
-	const tab = one(sp.tab) === "pflicht" ? "pflicht" : "register";
+	const rawTab = one(sp.tab);
+	const tab =
+		rawTab === "pflicht" || rawTab === "anfragen" ? rawTab : "register";
+	const fwFilter = one(sp.rahmenwerk);
 	const t = await getTranslations("Resolutions");
+	const td = await getTranslations("Decisions");
+	const canAsk = roleAllows(ctx.orgRole, { task: ["create"] });
 	const canCreate = roleAllows(ctx.orgRole, { resolution: ["create"] });
 	const memberCount = (await listOrgMembers(ctx.orgId)).length;
 
-	const { rows, members, required } = await readOrg(
+	const { rows, members, required, requests, approverHint } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => {
 			const profile = await getOrgProfile(tx, ctx.orgId);
 			return {
 				rows: await listResolutions(tx, ctx.orgId),
+				requests: await listDecisionRequests(tx, ctx.orgId),
+				approverHint: await managementApproverHint(tx, ctx.orgId, ctx.userId),
 				members: await listMembersForPicker(tx, ctx.orgId),
 				required: requiredResolutions(
 					profile?.frameworks ?? [],
@@ -70,7 +83,12 @@ export default async function ResolutionsPage({
 		title: r.title,
 		legalBasis: r.legalBasis,
 	}));
-	const sorted = [...rows].sort((a, b) => b.date.localeCompare(a.date));
+	const sorted = [...rows]
+		.filter((r) => !fwFilter || r.frameworks.includes(fwFilter))
+		.sort((a, b) => b.date.localeCompare(a.date));
+	const usedFrameworks = [...new Set(rows.flatMap((r) => r.frameworks))];
+	const openRequests = requests.filter((q) => q.status === "open").length;
+	const today = new Date().toISOString().slice(0, 10);
 
 	return (
 		<>
@@ -78,13 +96,21 @@ export default async function ResolutionsPage({
 				title={t("title")}
 				lead={t("lead")}
 				actions={
-					canCreate ? (
-						<ResolutionForm
-							members={members}
-							required={requiredOptions}
-							soloHint={memberCount <= 1}
-						/>
-					) : undefined
+					<span className="flex flex-wrap items-center gap-2">
+						{canAsk && (
+							<DecisionRequestButton
+								soloHint={memberCount <= 1}
+								approverHint={approverHint}
+							/>
+						)}
+						{canCreate && (
+							<ResolutionForm
+								members={members}
+								required={requiredOptions}
+								soloHint={memberCount <= 1}
+							/>
+						)}
+					</span>
 				}
 			/>
 			<UrlTabs
@@ -97,8 +123,132 @@ export default async function ResolutionsPage({
 						label: t("tabRequired"),
 						count: coverage.gaps.length || undefined,
 					},
+					{
+						value: "anfragen",
+						label: td("tabTitle"),
+						count: openRequests || undefined,
+					},
 				]}
 			/>
+
+			{tab === "anfragen" && (
+				<section className="flex flex-col gap-3">
+					<p className="max-w-3xl text-muted-foreground text-sm">
+						{td("tabLead")}
+					</p>
+					{requests.length === 0 ? (
+						<p className="text-sm">{td("empty")}</p>
+					) : (
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead className="w-28">{td("colCode")}</TableHead>
+									<TableHead>{td("colQuestion")}</TableHead>
+									<TableHead className="w-28">{td("colDue")}</TableHead>
+									<TableHead className="w-32">{td("colStatus")}</TableHead>
+									<TableHead className="w-28">{td("colResolution")}</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{requests.map((q) => (
+									<TableRow key={q.id} id={q.code}>
+										<TableCell className="whitespace-nowrap font-mono text-xs">
+											{q.code}
+										</TableCell>
+										<TableCell>
+											<p className="font-medium">{q.question}</p>
+											{q.context && (
+												<p className="line-clamp-2 text-muted-foreground text-xs">
+													{q.context}
+												</p>
+											)}
+											{q.options.length > 0 && (
+												<p className="text-muted-foreground text-xs">
+													{q.options.join(" · ")}
+												</p>
+											)}
+											<div className="mt-1 flex flex-wrap gap-1">
+												{q.linkedEntityType && q.linkedEntityId && (
+													<Link
+														href={entityHref(
+															q.linkedEntityType,
+															q.linkedEntityId,
+														)}
+														className="text-primary text-xs hover:underline"
+													>
+														{t("linked")}
+													</Link>
+												)}
+												{q.frameworks.map((f) => (
+													<Badge key={f} variant="muted">
+														{shortFrameworkName(f)}
+													</Badge>
+												))}
+											</div>
+										</TableCell>
+										<TableCell className="text-xs">
+											{q.dueAt ? fmtDate.format(new Date(q.dueAt)) : "—"}
+											{q.status === "open" && q.dueAt && q.dueAt < today && (
+												<Badge variant="destructive" className="mt-1">
+													{td("overdue")}
+												</Badge>
+											)}
+										</TableCell>
+										<TableCell>
+											<Badge
+												variant={
+													q.status === "open"
+														? "warning"
+														: q.status === "decided"
+															? "success"
+															: "muted"
+												}
+											>
+												{q.status === "decided" && q.outcome
+													? td(`outcome_${q.outcome}`)
+													: td(`status_${q.status}`)}
+											</Badge>
+										</TableCell>
+										<TableCell className="whitespace-nowrap font-mono text-xs">
+											{q.resolutionNumber ?? "—"}
+										</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					)}
+				</section>
+			)}
+
+			{tab === "register" && usedFrameworks.length > 0 && (
+				<div className="mb-3 flex flex-wrap items-center gap-1.5 text-xs">
+					<Link
+						href="/beschluesse"
+						scroll={false}
+						className={
+							fwFilter
+								? "rounded-full border px-2.5 py-0.5 hover:bg-muted"
+								: "rounded-full border border-primary bg-primary px-2.5 py-0.5 text-primary-foreground"
+						}
+					>
+						{t("allFrameworks")}
+					</Link>
+					{usedFrameworks.map((f) => (
+						<Link
+							key={f}
+							href={`/beschluesse?rahmenwerk=${f}`}
+							scroll={false}
+							className={
+								fwFilter === f
+									? "rounded-full border border-primary bg-primary px-2.5 py-0.5 text-primary-foreground"
+									: "rounded-full border px-2.5 py-0.5 hover:bg-muted"
+							}
+						>
+							{shortFrameworkName(f)}
+						</Link>
+					))}
+				</div>
+			)}
 
 			{tab === "pflicht" && (
 				<section className="flex flex-col gap-3">
@@ -210,6 +360,7 @@ export default async function ResolutionsPage({
 									/>
 									<Link
 										href="/beschluesse?tab=pflicht"
+										scroll={false}
 										className="inline-flex h-8 items-center rounded-md border px-3 text-xs hover:bg-muted"
 									>
 										{t("tabRequired")}
@@ -254,6 +405,26 @@ export default async function ResolutionsPage({
 													date: fmtDate.format(new Date(r.reviewHeldAt)),
 												})}
 											</Link>
+										)}
+										{(r.frameworks.length > 0 || r.linkedEntityType) && (
+											<div className="mt-1 flex flex-wrap items-center gap-1">
+												{r.linkedEntityType && r.linkedEntityId && (
+													<Link
+														href={entityHref(
+															r.linkedEntityType,
+															r.linkedEntityId,
+														)}
+														className="text-primary text-[0.65rem] hover:underline"
+													>
+														{t("linked")}
+													</Link>
+												)}
+												{r.frameworks.map((f) => (
+													<Badge key={f} variant="muted">
+														{shortFrameworkName(f)}
+													</Badge>
+												))}
+											</div>
 										)}
 										{r.attendeeNames.length > 0 && (
 											<p className="mt-0.5 text-muted-foreground text-[0.65rem]">

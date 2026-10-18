@@ -13,10 +13,13 @@ export function UserChip({
 	name,
 	fallback = "—",
 	size = "sm",
+	external = false,
 }: {
 	name: string | null | undefined;
 	fallback?: string;
 	size?: "sm" | "md";
+	// Prüfer:in/Berater:in (ADR-018): kleine Kennzeichnung „extern“
+	external?: boolean;
 }) {
 	if (!name) return <span className="text-muted-foreground">{fallback}</span>;
 	return (
@@ -26,7 +29,16 @@ export function UserChip({
 					{initials(name)}
 				</AvatarFallback>
 			</Avatar>
-			<span className="truncate">{name}</span>
+			{/* Lange Namen (oft die E-Mail bei Magic-Link-Konten) kürzen ab, sonst
+			    schiebt die Zelle Tabellen zur Seite; voller Name im Tooltip. */}
+			<span className="max-w-40 truncate" title={name}>
+				{name}
+			</span>
+			{external && (
+				<span className="rounded-sm bg-warning/20 px-1 text-[0.6rem] text-foreground uppercase tracking-[0.1em]">
+					extern
+				</span>
+			)}
 		</span>
 	);
 }

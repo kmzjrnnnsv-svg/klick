@@ -1,4 +1,8 @@
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import {
+	APIError,
+	createAuthMiddleware,
+	getSessionFromCtx,
+} from "better-auth/api";
 import { eq } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { session as sessionTable } from "@/db/auth-schema";
@@ -67,6 +71,84 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 			return;
 		}
 
+		// Org-Wechsel direkt über die Better-Auth-API (am Umschalter vorbei):
+		// Step-up verfällt auch hier (ADR-018), der Ablauf greift im Guard.
+		if (path === "/organization/set-active") {
+			if (!failed && current) {
+				await globalDb
+					.update(sessionTable)
+					.set({ stepUpAt: new Date(0) })
+					.where(eq(sessionTable.id, current.session.id));
+			}
+			const body = (ctx.body ?? {}) as Record<string, unknown>;
+			await auditPlatform(actor, {
+				action: "org.set_active",
+				target:
+					typeof body.organizationId === "string"
+						? `organization:${body.organizationId}`
+						: null,
+				outcome,
+			});
+			return;
+		}
+
+		// Passkey-Anmeldung: neue Sitzung mit erfülltem zweitem Faktor
+		// (databaseHooks.session.create.before). Eine mitgeschickte ältere
+		// Sitzung — etwa vom Mail-Link — wird beendet, sonst bliebe sie ohne
+		// MFA bestehen.
+		if (path === "/passkey/verify-authentication" && !failed && newSession) {
+			const old = await ctx
+				.getSignedCookie(
+					ctx.context.authCookies.sessionToken.name,
+					ctx.context.secret,
+				)
+				.catch(() => null);
+			if (old && old !== newSession.session.token)
+				await ctx.context.internalAdapter.deleteSession(old);
+			await auditPlatform(actor, {
+				action: "auth.2fa_verified",
+				target: `session:${newSession.session.id}`,
+				after: { method: "passkey" },
+			});
+			return;
+		}
+
+		// Erster Passkey einer Sitzung ohne bestätigten zweiten Faktor
+		// (Ersteinrichtung nach Mail-Link, /einrichtung/2fa): die Registrierung
+		// mit Nutzerverifikation bestätigt diese Sitzung — wie das erste
+		// TOTP-Verify. Weitere Faktoren verlangen ohnehin MFA + Step-up
+		// (endpoint-policy), Link-Registrierungen bekommen eine neue Sitzung.
+		if (path === "/passkey/verify-registration" && !failed && !newSession) {
+			const s = current ?? (await getSessionFromCtx(ctx).catch(() => null));
+			const pending = s?.session as { mfaVerifiedAt?: unknown } | undefined;
+			if (s && !pending?.mfaVerifiedAt) {
+				const now = new Date();
+				await globalDb
+					.update(sessionTable)
+					.set({ mfaVerifiedAt: now, lastActiveAt: now })
+					.where(eq(sessionTable.id, s.session.id));
+			}
+		}
+
+		// Passkeys verwalten (die Anmeldung selbst protokolliert
+		// databaseHooks.session.create bzw. unten der Fehlschlag).
+		if (
+			path === "/passkey/verify-registration" ||
+			path === "/passkey/delete-passkey" ||
+			path === "/passkey/update-passkey"
+		) {
+			await auditPlatform(actor, {
+				action:
+					path === "/passkey/verify-registration"
+						? "auth.passkey_added"
+						: path === "/passkey/delete-passkey"
+							? "auth.passkey_removed"
+							: "auth.passkey_renamed",
+				outcome,
+			});
+			return;
+		}
+
 		if (path === "/sign-in/magic-link") {
 			// Anfrage: kein Erfolg/Fehler nach außen unterscheidbar (Enumeration),
 			// intern aber protokolliert.
@@ -98,8 +180,7 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 				path === "/sign-in/sso" ||
 				path.startsWith("/sso/callback") ||
 				path.startsWith("/callback/") ||
-				path === "/passkey/verify-authentication" ||
-				path === "/sign-in/passkey")
+				path === "/passkey/verify-authentication")
 		) {
 			await auditPlatform(actor, {
 				action: "auth.signin_failed",
@@ -153,18 +234,6 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 				outcome,
 			});
 			return;
-		}
-
-		if (path === "/organization/set-active") {
-			const body = (ctx.body ?? {}) as Record<string, unknown>;
-			await auditPlatform(actor, {
-				action: "org.set_active",
-				target:
-					typeof body.organizationId === "string"
-						? `organization:${body.organizationId}`
-						: null,
-				outcome,
-			});
 		}
 	} catch (err) {
 		// Audit darf den Auth-Flow nie blockieren; der Fehler wird geloggt.

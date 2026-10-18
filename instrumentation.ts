@@ -15,7 +15,7 @@ export async function register() {
 		const mail = await diagnoseMailConfig();
 		if (mail.likelyPath === "console") {
 			logger.error(
-				"Kein Mailversand konfiguriert (RESEND_API_KEY oder SMTP_HOST) — Anmelde-Links und Einladungen werden nicht zugestellt",
+				"Kein Mailversand konfiguriert (BREVO_API_KEY, RESEND_API_KEY oder SMTP_HOST) — Anmelde-Links und Einladungen werden nicht zugestellt",
 			);
 		} else {
 			logger.info(

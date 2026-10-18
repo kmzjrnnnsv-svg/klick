@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { CASP_SERVICES, LICENCE_STAGES } from "@/db/schema/enums";
+import {
+	CASP_SERVICES,
+	LICENCE_STAGES,
+	ROLE_FUNCTIONS,
+} from "@/db/schema/enums";
+import { ORG_ROLES } from "@/lib/auth/session-rules";
 import { shortText, slug } from "./common";
 
 export const sectorSchema = z.enum(["casp", "bank", "payment", "emi", "other"]);
@@ -10,8 +15,11 @@ export const createOrganizationSchema = z.object({
 	sector: sectorSchema.default("other"),
 	licenceStage: z.enum(LICENCE_STAGES).default("0_vorbereitung"),
 	caspServices: z.array(z.enum(CASP_SERVICES)).default([]),
-	frameworks: z.array(z.string().min(1)).min(1, "mindestens ein Rahmenwerk"),
+	// leer = Rahmenwerke folgen in der geführten Einrichtung (D4)
+	frameworks: z.array(z.string().min(1)).default([]),
 	applyBaseline: z.boolean().default(false),
+	// eigene Funktion im Unternehmen (D0), wird direkt zugewiesen
+	ownFunction: z.enum(ROLE_FUNCTIONS).optional(),
 });
 export type CreateOrganizationInput = z.output<typeof createOrganizationSchema>;
 // Formular-Eingabetyp: Felder mit .default() sind hier optional.
@@ -21,15 +29,17 @@ export type CreateOrganizationFormInput = z.input<
 
 export const inviteMemberSchema = z.object({
 	email: z.email(),
-	role: z.enum(["owner", "editor", "viewer", "auditor"]),
-	// nur für auditor: Zugang endet automatisch
+	role: z.enum(ORG_ROLES),
+	// nur für auditor/consultant: Zugang endet automatisch
 	accessUntil: z.coerce.date().optional(),
+	// Link gibt es immer (zum Kopieren); die Mail ist optional
+	sendMail: z.boolean().default(true),
 });
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
 
 export const updateMemberRoleSchema = z.object({
 	memberId: z.uuid(),
-	role: z.enum(["owner", "editor", "viewer", "auditor"]),
+	role: z.enum(ORG_ROLES),
 });
 
 // Stammdaten für Meldungen (Informationsregister, Antrag, Lieferantenpaket).

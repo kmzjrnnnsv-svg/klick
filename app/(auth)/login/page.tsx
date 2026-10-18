@@ -2,7 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { LoginForm } from "@/components/auth/login-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { gateAuth } from "@/lib/auth/gates";
-import { linkFailure, safeNextPath } from "@/lib/auth/magic-link";
+import { loginReason } from "@/lib/auth/login-reason";
+import { safeNextPath } from "@/lib/auth/magic-link";
 
 export default async function LoginPage({
 	searchParams,
@@ -16,24 +17,7 @@ export default async function LoginPage({
 	await gateAuth("/login");
 	const t = await getTranslations("Auth");
 	const { grund, error, weiter } = await searchParams;
-	// Better Auth hängt beim Klick auf einen ungültigen Link ?error=… an.
-	const failure = linkFailure(error);
-	const reason =
-		grund === "sitzung-abgelaufen"
-			? t("reasonSessionExpired")
-			: grund === "zugang-abgelaufen"
-				? t("reasonAccessExpired")
-				: grund === "org-geloescht"
-					? t("reasonOrgDeleted")
-					: grund === "sso"
-						? t("ssoNoProvider")
-						: grund === "link-ungueltig"
-							? failure === "expired"
-								? t("reasonLinkExpired")
-								: failure === "no_account"
-									? t("reasonNoAccount")
-									: t("genericError")
-							: null;
+	const reason = await loginReason(grund, error);
 	const microsoftEnabled = Boolean(
 		process.env.MICROSOFT_CLIENT_ID &&
 			process.env.MICROSOFT_CLIENT_SECRET &&

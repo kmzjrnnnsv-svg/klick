@@ -1,11 +1,15 @@
 import { and, eq } from "drizzle-orm";
 import {
 	amlRiskAnalyses,
+	decisionRequests,
 	documents,
 	documentVersions,
 	exceptions,
 	incidents,
+	objectives,
 	ownFundsCalculations,
+	providerRatings,
+	providers,
 	risks,
 	scopes,
 } from "@/db/schema";
@@ -13,6 +17,7 @@ import type { AuditInput } from "@/lib/audit";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import type { OrgTx } from "@/lib/db/with-org";
+import { notify } from "@/lib/notifications/notify";
 import type { DecideResult } from "./service";
 
 // Wendet den Ausgang einer Freigabe auf die Entität an. Wird vom Entscheiden
@@ -197,6 +202,132 @@ export async function applyApprovalOutcome(
 						eq(ownFundsCalculations.organizationId, ctx.orgId),
 					),
 				);
+			return extra;
+		}
+		case "objective": {
+			// Ziel freigegeben (B5): zählt erst ab jetzt
+			const approvalStatus =
+				r.status === "approved"
+					? ("approved" as const)
+					: r.status === "rejected"
+						? ("rejected" as const)
+						: ("draft" as const);
+			await tx
+				.update(objectives)
+				.set({
+					approvalStatus,
+					...(approvalStatus === "approved"
+						? { approvedByUserId: ctx.userId, approvedAt: new Date() }
+						: {}),
+				})
+				.where(
+					and(
+						eq(objectives.id, r.entityId),
+						eq(objectives.organizationId, ctx.orgId),
+					),
+				);
+			extra.push({
+				action: "objective.release",
+				target: `objective:${r.entityId}`,
+				after: { approvalStatus },
+			});
+			return extra;
+		}
+		case "decision_request": {
+			// Managementanfrage entschieden (E2); den Beschluss legt
+			// resolutionForApproval an, die anfragende Person wird informiert.
+			const [q] = await tx
+				.select({
+					code: decisionRequests.code,
+					question: decisionRequests.question,
+					requestedByUserId: decisionRequests.requestedByUserId,
+				})
+				.from(decisionRequests)
+				.where(
+					and(
+						eq(decisionRequests.id, r.entityId),
+						eq(decisionRequests.organizationId, ctx.orgId),
+					),
+				)
+				.limit(1);
+			if (!q) return extra;
+			const outcome =
+				r.status === "approved"
+					? "approved"
+					: r.status === "rejected"
+						? "rejected"
+						: "changes_requested";
+			await tx
+				.update(decisionRequests)
+				.set({
+					status: outcome === "changes_requested" ? "open" : "decided",
+					outcome,
+					decidedByUserId: ctx.userId,
+					decidedAt: new Date(),
+				})
+				.where(eq(decisionRequests.id, r.entityId));
+			await notify(tx, {
+				orgId: ctx.orgId,
+				recipients: [q.requestedByUserId],
+				actorUserId: ctx.userId,
+				kind: "approval_decided",
+				title: `Entschieden: ${q.code} ${q.question}`.slice(0, 200),
+				body:
+					outcome === "approved"
+						? "Die Geschäftsleitung stimmt zu."
+						: outcome === "rejected"
+							? "Die Geschäftsleitung lehnt ab."
+							: "Die Geschäftsleitung bittet um Überarbeitung.",
+				link: "/beschluesse?tab=anfragen",
+			});
+			extra.push({
+				action: "decision_request.decided",
+				target: `decision_request:${r.entityId}`,
+				after: { outcome },
+			});
+			return extra;
+		}
+		case "provider_rating": {
+			// Freigabe eines Lieferanten mit rotem Bewertungsergebnis
+			const [rating] = await tx
+				.select()
+				.from(providerRatings)
+				.where(
+					and(
+						eq(providerRatings.id, r.entityId),
+						eq(providerRatings.organizationId, ctx.orgId),
+					),
+				)
+				.limit(1);
+			if (!rating) return extra;
+			const decision = approved
+				? (rating.profile.requestedDecision ?? "approved")
+				: "rejected";
+			await tx
+				.update(providerRatings)
+				.set({
+					decision,
+					decidedByUserId: ctx.userId,
+					decidedAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.where(eq(providerRatings.id, rating.id));
+			const [p] = await tx
+				.select({ id: providers.id, dueDiligence: providers.dueDiligence })
+				.from(providers)
+				.where(eq(providers.id, rating.providerId))
+				.limit(1);
+			if (p?.dueDiligence?.ratingId === rating.id)
+				await tx
+					.update(providers)
+					.set({ dueDiligence: { ...p.dueDiligence, decision } })
+					.where(eq(providers.id, p.id));
+			extra.push({
+				action: "provider_rating.decided",
+				target: `provider_rating:${rating.id}`,
+				before: { decision: rating.decision },
+				after: { decision, via: "approval" },
+			});
 			return extra;
 		}
 		default:
