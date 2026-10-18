@@ -38,7 +38,7 @@ export function useRouteText(names: RuleNames, facts: readonly FactInfo[]) {
 		cs.map(condition).join(` ${t("and")} `);
 
 	const approvers = (s: ApprovalStep) =>
-		stepApproversText(s, names, words) || t("unknownStelle");
+		stepApproversText(s, names, words) || t("previewNoApprovers");
 
 	function extras(s: ApprovalStep): string[] {
 		const out: string[] = [];

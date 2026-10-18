@@ -27,7 +27,8 @@ export const conditionSchema = z.object({
 
 export const workflowStepSchema = z.object({
 	label: z.string().trim().max(80).optional(),
-	approvers: z.array(rule).min(1).max(8),
+	// leer erlaubt: checkWorkflowDraft meldet „no_approvers“ am Feld
+	approvers: z.array(rule).max(8),
 	mode: z.enum(["any", "all"]).default("any"),
 	minApprovers: z.number().int().min(1).max(5).optional(),
 	slaDays: z.number().int().min(0).max(90).optional(),
@@ -43,7 +44,7 @@ export const workflowSchema = z.object({
 	enabled: z.boolean(),
 	conditions: z.array(conditionSchema).max(8).default([]),
 	priority: z.number().int().min(0).max(100).default(0),
-	steps: z.array(workflowStepSchema).min(1).max(8),
+	steps: z.array(workflowStepSchema).max(8),
 });
 
 export const deleteWorkflowSchema = z.object({ id: uuid });

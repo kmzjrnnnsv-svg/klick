@@ -3,7 +3,14 @@
 import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useId, useMemo, useState, useTransition } from "react";
+import {
+	useEffect,
+	useId,
+	useMemo,
+	useRef,
+	useState,
+	useTransition,
+} from "react";
 import { toast } from "sonner";
 import {
 	type DryRunStep,
@@ -73,6 +80,16 @@ type Initial = {
 	conditions: ApprovalCondition[];
 	steps: ApprovalStep[];
 };
+
+const ISSUE_CODES = new Set([
+	"unknown_field",
+	"bad_op",
+	"bad_value",
+	"no_steps",
+	"no_approvers",
+	"unknown_rule",
+	"unknown_trigger",
+]);
 
 let seq = 0;
 const nextKey = () => `s${++seq}`;
@@ -160,6 +177,31 @@ export function WorkflowEditor({
 			: [toDraft({ order: 1, approverRule: "" })],
 	);
 	const [issues, setIssues] = useState<Record<string, string[]>>({});
+	const rootRef = useRef<HTMLDivElement>(null);
+	// ungespeicherte Änderungen: Vergleich mit dem zuletzt gespeicherten Stand
+	const snapshot = JSON.stringify([
+		name,
+		description,
+		enabled,
+		priority,
+		conditions,
+		steps.map(({ key: _k, ...rest }) => rest),
+	]);
+	const [saved, setSaved] = useState(snapshot);
+	const dirty = snapshot !== saved;
+	useEffect(() => {
+		if (!dirty) return;
+		const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+		window.addEventListener("beforeunload", warn);
+		return () => window.removeEventListener("beforeunload", warn);
+	}, [dirty]);
+	// nach „Bitte prüfe …“ zum ersten markierten Fehler springen
+	useEffect(() => {
+		if (Object.keys(issues).length === 0) return;
+		const first = rootRef.current?.querySelector<HTMLElement>('[role="alert"]');
+		first?.scrollIntoView({ block: "center" });
+		first?.focus();
+	}, [issues]);
 
 	const approverGroups: Group[] = [
 		{
@@ -204,7 +246,11 @@ export function WorkflowEditor({
 		Object.entries(issues)
 			.filter(([k]) => k === prefix || k.startsWith(`${prefix}.`))
 			.flatMap(([, codes]) => codes)
-			.map((c) => t(`issue_${c}` as "issue_bad_op"));
+			.map((c) =>
+				ISSUE_CODES.has(c)
+					? t(`issue_${c}` as "issue_bad_op")
+					: t("issue_bad_value"),
+			);
 
 	function save() {
 		start(async () => {
@@ -225,13 +271,14 @@ export function WorkflowEditor({
 				toast.error(
 					res.error === "step_up_required"
 						? t("stepUp")
-						: res.error === "invalid"
+						: res.fieldErrors
 							? t("error_invalid")
 							: tc("error"),
 				);
 				return;
 			}
 			setIssues({});
+			setSaved(snapshot);
 			toast.success(t("saved"));
 			if (!initial.id)
 				router.replace(`/einstellungen/freigaben/${res.data.id}`);
@@ -240,12 +287,13 @@ export function WorkflowEditor({
 	}
 
 	return (
-		<div className="flex flex-col gap-8">
+		<div ref={rootRef} className="flex flex-col gap-8">
 			<section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor={`${uid}-name`}>{t("name")}</Label>
 					<Input
 						id={`${uid}-name`}
+						name="name"
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 						autoComplete="off"
@@ -266,6 +314,7 @@ export function WorkflowEditor({
 							<Label htmlFor={`${uid}-prio`}>{t("priority")}</Label>
 							<Input
 								id={`${uid}-prio`}
+								name="priority"
 								type="number"
 								inputMode="numeric"
 								min={0}
@@ -281,6 +330,7 @@ export function WorkflowEditor({
 					<Label htmlFor={`${uid}-desc`}>{t("description")}</Label>
 					<Textarea
 						id={`${uid}-desc`}
+						name="description"
 						rows={2}
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
@@ -323,7 +373,7 @@ export function WorkflowEditor({
 								<Badge variant="outline">{t("step", { n: i + 1 })}</Badge>
 								<Input
 									aria-label={t("stepLabel")}
-									placeholder={t("stepLabel")}
+									placeholder={t("stepLabelPlaceholder")}
 									value={s.label}
 									onChange={(e) => update(i, { label: e.target.value })}
 									className="h-8 min-w-0 flex-1 basis-48"
@@ -454,7 +504,11 @@ export function WorkflowEditor({
 								</div>
 							)}
 							{issuesAt(`steps.${i}`).length > 0 && (
-								<p className="text-destructive text-sm" role="alert">
+								<p
+									className="text-destructive text-sm"
+									role="alert"
+									tabIndex={-1}
+								>
 									{[...new Set(issuesAt(`steps.${i}`))].join(" ")}
 								</p>
 							)}
@@ -532,7 +586,10 @@ export function WorkflowEditor({
 					<Button
 						variant="outline"
 						type="button"
-						onClick={() => router.push("/einstellungen?tab=workflows")}
+						onClick={() => {
+							if (dirty && !window.confirm(t("leaveConfirm"))) return;
+							router.push("/einstellungen?tab=workflows");
+						}}
 					>
 						{t("cancel")}
 					</Button>
@@ -767,7 +824,11 @@ function ConditionsEditor({
 							</div>
 						)}
 						{errs.length > 0 && (
-							<p className="text-destructive text-xs" role="alert">
+							<p
+								className="text-destructive text-xs"
+								role="alert"
+								tabIndex={-1}
+							>
 								{errs.join(" ")}
 							</p>
 						)}
@@ -853,7 +914,7 @@ function DryRun({
 				facts: factValues,
 			});
 			if (!res.ok) {
-				toast.error(res.error === "invalid" ? t("error_invalid") : tc("error"));
+				toast.error(res.fieldErrors ? t("error_invalid") : tc("error"));
 				return;
 			}
 			setResult(res.data);

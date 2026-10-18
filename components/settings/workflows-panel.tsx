@@ -145,6 +145,12 @@ function TriggerCard({
 							}
 						>
 							{trigger.mode === "before" ? t("modeBefore") : t("modePending")}
+							<span className="sr-only">
+								:{" "}
+								{trigger.mode === "before"
+									? t("modeBeforeHint")
+									: t("modePendingHint")}
+							</span>
 						</Badge>
 					</p>
 					<p className="text-muted-foreground text-xs">{text?.hint}</p>
@@ -226,6 +232,12 @@ function WorkflowRow({
 								{s.mode === "all" && (s.approvers?.length ?? 0) > 1
 									? ` (${t("previewAll")})`
 									: ""}
+								{text.extras(s).length > 0 && (
+									<span className="sr-only">
+										{" "}
+										({text.extras(s).join(" · ")})
+									</span>
+								)}
 							</Badge>
 						</li>
 					))}

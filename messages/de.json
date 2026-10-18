@@ -4734,8 +4734,8 @@
 		"previewAll": "alle stimmen zu",
 		"previewSkip": "entfällt, wenn die anfragende Person {list} hat oder ist",
 		"previewOnly": "nur wenn {conditions}",
-		"previewSla": "{n} Tage",
-		"previewMin": "mindestens {n} Personen",
+		"previewSla": "{n} Tage",
+		"previewMin": "mindestens {n} Personen",
 		"dryRunTitle": "Probelauf",
 		"dryRunLead": "Wähle eine anfragende Person und Beispielwerte — Klick zeigt, wer mit dem aktuellen Entwurf freigeben würde.",
 		"requester": "Anfragende Person",
@@ -4809,6 +4809,9 @@
 		"fact_incidentClass": "Einstufung",
 		"fact_ncPriority": "Priorität",
 		"fact_ncSource": "Herkunft",
-		"fact_indicatorType": "Art der Kennzahl"
+		"fact_indicatorType": "Art der Kennzahl",
+		"stepLabelPlaceholder": "z. B. Finanzen…",
+		"leaveConfirm": "Ungespeicherte Änderungen verwerfen?",
+		"previewNoApprovers": "noch keine Stelle gewählt"
 	}
 }
