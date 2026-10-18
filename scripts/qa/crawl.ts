@@ -2,31 +2,35 @@
  * TOTP, Onboarding), klickt dann alle Seiten, Dialoge und Formulare durch und
  * sammelt Fehlerseiten, 5xx, Page-Errors, Fehler-Toasts und Server-Log-Fehler.
  *
- *   AUTH_ALLOW_SIGNUP=true pnpm dev -p 3200 > /tmp/qa-dev.log 2>&1 &
+ *   AUTH_ALLOW_SIGNUP=true pnpm dev -p 3200 > ~/.cache/klick-qa/dev.log 2>&1 &
  *   pnpm exec tsx scripts/qa/crawl.ts            # Login (falls nötig) + Crawl
  *   pnpm exec tsx scripts/qa/crawl.ts --login    # nur Login/Onboarding
  *   pnpm exec tsx scripts/qa/crawl.ts --only /prozesse,/risiken
  *   pnpm exec tsx scripts/qa/crawl.ts --mobile --pages-only   # 390 px, Überlauf
  *
- * Nicht Teil der CI — braucht eine laufende Instanz mit Dev-Log.
+ * Sitzung, TOTP-Schlüssel und Report liegen in QA_DIR (Standard
+ * ~/.cache/klick-qa, siehe paths.ts). Nicht Teil der CI — braucht eine
+ * laufende Instanz mit Dev-Log.
  */
 import { createHmac } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
 	type Browser,
 	type BrowserContext,
 	chromium,
 	type Page,
 } from "@playwright/test";
+import {
+	QA_BASE as BASE,
+	QA_DIR,
+	QA_REPORT as REPORT,
+	QA_SECRET as SECRET_FILE,
+	QA_STATE as STATE,
+	writePrivate,
+} from "./paths";
 
-const BASE = process.env.QA_BASE ?? "http://localhost:3200";
-const PORT = new URL(BASE).port || "80";
-const LOG = process.env.QA_LOG ?? "/tmp/qa-dev.log";
-// Cookies unterscheiden sich zwischen Dev- und Prod-Build (Prefix), daher
-// Sitzung je Port; der TOTP-Schlüssel gehört zum QA-Konto und ist geteilt.
-const STATE = `/tmp/qa-state-${PORT}.json`;
-const SECRET_FILE = "/tmp/qa-totp.txt";
-const REPORT = `/tmp/qa-report-${PORT}.json`;
+const LOG = process.env.QA_LOG ?? join(QA_DIR, "dev.log");
 const EXEC = existsSync("/opt/pw-browsers/chromium")
 	? "/opt/pw-browsers/chromium"
 	: undefined;
@@ -254,7 +258,7 @@ async function login(ctx: BrowserContext): Promise<void> {
 		const secretEl = page.locator("code");
 		await secretEl.first().waitFor({ timeout: 30_000 });
 		const secret = (await secretEl.first().innerText()).trim();
-		writeFileSync(SECRET_FILE, secret);
+		writePrivate(SECRET_FILE, secret);
 		await page.fill("#code", totp(secret));
 		await page.click('form button[type="submit"]');
 		await page
@@ -708,7 +712,7 @@ async function main() {
 			.map((s) => s.trim())
 			.filter(Boolean);
 		await crawl(ctx, only);
-		writeFileSync(
+		writePrivate(
 			REPORT,
 			JSON.stringify(
 				{ at: new Date().toISOString(), visited: [...visited], findings },

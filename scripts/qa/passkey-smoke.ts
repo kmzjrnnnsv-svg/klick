@@ -4,18 +4,19 @@
  * Einladungslink ohne Mail → Zugang zurücksetzen → letzter Faktor gesperrt.
  *
  * Voraussetzung: QA-Konto aus `pnpm exec tsx scripts/qa/crawl.ts --login`
- * (Sitzung /tmp/qa-state-<port>.json, TOTP /tmp/qa-totp.txt).
+ * (Sitzung und TOTP-Schlüssel in QA_DIR, siehe paths.ts).
  *
  *   pnpm exec tsx scripts/qa/passkey-smoke.ts
  */
 import { createHmac } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { type BrowserContext, chromium, type Page } from "@playwright/test";
+import {
+	QA_BASE as BASE,
+	QA_SECRET as SECRET_FILE,
+	QA_STATE as STATE,
+} from "./paths";
 
-const BASE = process.env.QA_BASE ?? "http://localhost:3200";
-const PORT = new URL(BASE).port || "80";
-const STATE = `/tmp/qa-state-${PORT}.json`;
-const SECRET_FILE = "/tmp/qa-totp.txt";
 const EXEC = existsSync("/opt/pw-browsers/chromium")
 	? "/opt/pw-browsers/chromium"
 	: undefined;

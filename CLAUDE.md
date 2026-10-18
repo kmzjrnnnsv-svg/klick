@@ -144,10 +144,10 @@ UX, Härtung, Katalog-Abgleich). Authoring-Quelle der Anforderungen:
 
 ## QA-Durchlauf (Klick-Crawler)
 
-`scripts/qa/crawl.ts` meldet sich über die echten Flows an (Magic-Link aus dem Server-Log, TOTP, Onboarding) und klickt alle Routen, Dialoge und Formulare durch; Report `/tmp/qa-report-<port>.json`.
+`scripts/qa/crawl.ts` meldet sich über die echten Flows an (Magic-Link aus dem Server-Log, TOTP, Onboarding) und klickt alle Routen, Dialoge und Formulare durch. Sitzung, TOTP-Schlüssel und Report (`report-<port>.json`) liegen in `QA_DIR` (Standard `~/.cache/klick-qa`, 0700 — nie in `/tmp`, CodeQL `js/insecure-temporary-file`); Pfade in `scripts/qa/paths.ts`.
 
 ```bash
-AUTH_ALLOW_SIGNUP=true BETTER_AUTH_URL=http://localhost:3200 pnpm dev -p 3200 > /tmp/qa-dev.log 2>&1 &
+AUTH_ALLOW_SIGNUP=true BETTER_AUTH_URL=http://localhost:3200 pnpm dev -p 3200 > ~/.cache/klick-qa/dev.log 2>&1 &
 pnpm exec tsx scripts/qa/crawl.ts --login                     # einmal: QA-Konto + Org über Onboarding + Einrichtung (Notweg-Link + TOTP, CASP Stufe 2, alle Rahmenwerke)
 pnpm exec tsx scripts/qa/passkey-smoke.ts                     # Passkey: anlegen, anmelden, Step-up, Einladungslink, Zurücksetzen
 pnpm exec tsx scripts/qa/crawl.ts                             # alle Seiten + Dialoge (~45 min)
