@@ -281,7 +281,8 @@
 		"signOut": "Abmelden",
 		"downloadStarted": "Bestätigt – der Download startet. Du findest die Datei in deinem Download-Ordner.",
 		"downloadBack": "Zurück zur Seite",
-		"accountBlocked": "Dein Konto ist gesperrt. Wende dich an die Person, die dir Zugang gegeben hat."
+		"accountBlocked": "Dein Konto ist gesperrt. Wende dich an die Person, die dir Zugang gegeben hat.",
+		"accountNotActivated": "Dieses Konto ist noch nicht aktiviert. Öffne den Aktivierungslink, den du bekommen hast, und lege deinen Passkey an."
 	},
 	"Onboarding": {
 		"title": "Organisation anlegen",
@@ -655,7 +656,8 @@
 		"grant_whistleblowing_detail": "Hinweisgeber-Meldungen",
 		"grant_complaints_detail": "Beschwerden im Detail",
 		"grant_secret_evidence": "Streng geheime Nachweise",
-		"external": "extern"
+		"external": "extern",
+		"resetErrorBlocked": "Das Konto ist gesperrt — erst entsperren, dann zurücksetzen."
 	},
 	"Invitation": {
 		"title": "Einladung",
@@ -4893,6 +4895,23 @@
 		"withdrawTitle": "Anlage zurücknehmen?",
 		"withdrawLead": "Das Konto {email} wird gelöscht, Aktivierungslink und offene Einladung verfallen. Das geht nur, solange das Konto nicht aktiviert ist.",
 		"withdrawConfirm": "Konto löschen",
-		"withdrawn": "Anlage zurückgenommen."
+		"withdrawn": "Anlage zurückgenommen.",
+		"banTitle": "{name} sperren",
+		"banLead": "Alle Sitzungen enden sofort, Anmeldung, Links und Einladungen funktionieren nicht mehr. Daten und Mitgliedschaften bleiben erhalten.",
+		"banReason": "Grund",
+		"banReasonHint": "Steht im Audit-Log und in der Liste — nicht für die Person sichtbar.",
+		"banDuration": "Dauer",
+		"banForever": "Unbefristet",
+		"ban7": "7 Tage",
+		"ban30": "30 Tage",
+		"banUntil": "Bis Datum",
+		"banUntilDate": "Gesperrt bis",
+		"banConfirm": "Sperren",
+		"banned": "Konto gesperrt.",
+		"unbanned": "Konto entsperrt.",
+		"errorBanAdmin": "Plattform-Admins kannst du erst sperren, wenn du ihnen die Admin-Rolle entzogen hast.",
+		"errorBanUntil": "Das Ende der Sperre muss in der Zukunft liegen.",
+		"errorNotActivated": "Das Konto ist noch nicht aktiviert — erzeuge stattdessen einen neuen Aktivierungslink.",
+		"statusBlockedReason": "Grund: {reason}"
 	}
 }

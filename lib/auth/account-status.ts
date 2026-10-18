@@ -4,6 +4,12 @@
 
 export type AccountStatus = "active" | "pending" | "blocked";
 
+// Kurzer Hinweis-Cookie nach einer Passkey-Anmeldung eines gesperrten
+// Kontos (server.ts, authentication.afterVerification): Das Passkey-Plugin
+// meldet jeden Fehler dort nur als AUTHENTICATION_FAILED; /login zeigt
+// damit „gesperrt“. Erfährt nur, wer den Passkey hält.
+export const BLOCKED_HINT_COOKIE = "klick_blocked";
+
 export type AccountFacts = {
 	banned: boolean | null;
 	banExpires: Date | null;
@@ -13,7 +19,7 @@ export type AccountFacts = {
 // Better Auth hebt abgelaufene Sperren erst beim nächsten Anmelden auf —
 // bis dahin steht banned noch auf true.
 export function isBanActive(
-	u: Pick<AccountFacts, "banned" | "banExpires">,
+	u: { banned?: boolean | null; banExpires?: Date | null },
 	now = new Date(),
 ): boolean {
 	if (!u.banned) return false;

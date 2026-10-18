@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
-	banUser,
 	resetUserAccessAdmin,
 	setPlatformRole,
 	unbanUser,
@@ -14,7 +13,9 @@ import {
 	RenewLinkDialog,
 	WithdrawAccountDialog,
 } from "@/components/admin/account-dialogs";
+import { BanDialog } from "@/components/admin/ban-dialog";
 import { ResetAccessDialog } from "@/components/auth/reset-access-dialog";
+import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -45,14 +46,18 @@ export function UserActions({
 	const ta = useTranslations("AdminAccounts");
 	const tt = useTranslations("Team");
 	const [pending, start] = useTransition();
-	const [dialog, setDialog] = useState<"reset" | "renew" | "withdraw" | null>(
-		null,
-	);
+	const [dialog, setDialog] = useState<
+		"reset" | "renew" | "withdraw" | "ban" | null
+	>(null);
 	if (isSelf) return null;
-	const run = (fn: () => Promise<{ ok: boolean; error?: string }>) =>
+	const run = (
+		fn: () => Promise<{ ok: boolean; error?: string }>,
+		success?: string,
+	) =>
 		start(async () => {
 			const res = await fn();
 			if (!res.ok) toast.error(res.error ?? "Fehler");
+			else if (success) toast.success(success);
 		});
 	const openChange = (o: boolean) => {
 		if (!o) setDialog(null);
@@ -71,6 +76,12 @@ export function UserActions({
 				userId={userId}
 				name={name}
 				days={activationDays}
+			/>
+			<BanDialog
+				open={dialog === "ban"}
+				onOpenChange={openChange}
+				userId={userId}
+				name={name}
 			/>
 			<WithdrawAccountDialog
 				open={dialog === "withdraw"}
@@ -104,18 +115,22 @@ export function UserActions({
 						</>
 					)}
 					{status === "blocked" ? (
-						<DropdownMenuItem onSelect={() => run(() => unbanUser(userId))}>
+						<DropdownMenuItem
+							onSelect={() =>
+								run(() => withStepUp(() => unbanUser(userId)), ta("unbanned"))
+							}
+						>
 							{t("unban")}
 						</DropdownMenuItem>
 					) : (
-						<DropdownMenuItem
-							variant="destructive"
-							onSelect={() =>
-								run(() => banUser(userId, "Gesperrt durch Plattform-Admin"))
-							}
-						>
-							{t("ban")}
-						</DropdownMenuItem>
+						!isAdmin && (
+							<DropdownMenuItem
+								variant="destructive"
+								onSelect={() => setDialog("ban")}
+							>
+								{t("ban")}
+							</DropdownMenuItem>
+						)
 					)}
 					{status !== "pending" &&
 						(isAdmin ? (

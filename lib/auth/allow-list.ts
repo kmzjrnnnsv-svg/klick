@@ -1,7 +1,7 @@
 import { and, desc, eq, gt, like, sql } from "drizzle-orm";
 import { globalDb } from "../../db";
-import { invitation, user, verification } from "../../db/auth-schema";
-import { magicLinkAllowed } from "./account-status";
+import { invitation, passkey, user, verification } from "../../db/auth-schema";
+import { isBanActive, magicLinkAllowed } from "./account-status";
 
 // Allow-List-Modus (AUTH_ALLOW_SIGNUP ≠ true): Anmelde-Links bekommen nur
 // bestehende Konten und Adressen mit offener Einladung — sonst könnten
@@ -42,6 +42,19 @@ export async function hasPendingActivation(userId: string): Promise<boolean> {
 		)
 		.limit(1);
 	return Boolean(row);
+}
+
+// Gehört der Passkey (credential id) zu einem gesperrten Konto?
+export async function passkeyOwnerBlocked(
+	credentialId: string,
+): Promise<boolean> {
+	const [row] = await globalDb
+		.select({ banned: user.banned, banExpires: user.banExpires })
+		.from(passkey)
+		.innerJoin(user, eq(user.id, passkey.userId))
+		.where(eq(passkey.credentialID, credentialId))
+		.limit(1);
+	return row ? isBanActive(row) : false;
 }
 
 // Mail-Notweg: bestehende Konten nur, wenn aktiv (nicht gesperrt, nicht

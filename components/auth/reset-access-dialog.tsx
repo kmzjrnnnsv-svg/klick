@@ -53,9 +53,11 @@ export function ResetAccessDialog({
 					? t("resetErrorOtherOrgs")
 					: res.error === "reset_platform_admin"
 						? t("resetErrorPlatform")
-						: res.error === "step_up_required"
-							? ta("twoFactorStepUp")
-							: tc("error"),
+						: res.error === "account_blocked"
+							? t("resetErrorBlocked")
+							: res.error === "step_up_required"
+								? ta("twoFactorStepUp")
+								: tc("error"),
 			);
 		} finally {
 			setBusy(false);

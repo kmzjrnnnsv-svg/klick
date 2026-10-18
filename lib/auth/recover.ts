@@ -25,6 +25,8 @@ export type ResetTarget = {
 	email: string;
 	name: string;
 	role: string | null;
+	banned?: boolean | null;
+	banExpires?: Date | null;
 };
 
 export async function findResetTarget(
@@ -36,6 +38,8 @@ export async function findResetTarget(
 			email: user.email,
 			name: user.name,
 			role: user.role,
+			banned: user.banned,
+			banExpires: user.banExpires,
 		})
 		.from(user)
 		.where(eq(user.id, userId))

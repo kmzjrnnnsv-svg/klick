@@ -62,10 +62,17 @@ export function verifyFormFields(
 
 // Fehlercode, den Better Auth beim Klick auf den Link an errorCallbackURL
 // hängt (?error=…), → Hinweis auf der Login-Seite.
-export type LinkFailure = "expired" | "no_account" | "other";
+export type LinkFailure =
+	| "expired"
+	| "no_account"
+	| "blocked"
+	| "not_activated"
+	| "other";
 
 export function linkFailure(error: string | null | undefined): LinkFailure {
 	if (error === "INVALID_TOKEN") return "expired";
 	if (error === "new_user_signup_disabled") return "no_account";
+	if (error === "BANNED_USER" || error === "banned") return "blocked";
+	if (error === "ACCOUNT_NOT_ACTIVATED") return "not_activated";
 	return "other";
 }

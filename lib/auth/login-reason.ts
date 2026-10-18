@@ -23,7 +23,11 @@ export async function loginReason(
 				? t("reasonLinkExpired")
 				: failure === "no_account"
 					? t("reasonNoAccount")
-					: t("genericError");
+					: failure === "blocked"
+						? t("accountBlocked")
+						: failure === "not_activated"
+							? t("accountNotActivated")
+							: t("genericError");
 		default:
 			return null;
 	}

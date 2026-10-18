@@ -123,12 +123,12 @@ export default async function AdminUsersPage() {
 								<TableCell>
 									{status === "blocked" ? (
 										<span className="flex flex-col items-start gap-0.5">
-											<Badge
-												variant="destructive"
-												title={u.banReason ?? undefined}
-											>
-												{ta("statusBlocked")}
-											</Badge>
+											<Badge variant="destructive">{ta("statusBlocked")}</Badge>
+											{u.banReason && (
+												<span className="max-w-48 break-words text-muted-foreground text-xs">
+													{ta("statusBlockedReason", { reason: u.banReason })}
+												</span>
+											)}
 											{u.banExpires && (
 												<span className="text-muted-foreground text-xs">
 													{ta("statusBlockedUntil", {

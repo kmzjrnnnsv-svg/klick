@@ -21,9 +21,11 @@ import {
 	transactionalEmail,
 } from "../mail/templates";
 import { syncTrainingAssignments } from "../trainings/assignments";
+import { BLOCKED_HINT_COOKIE } from "./account-status";
 import {
 	hasPendingActivation,
 	mayReceiveMagicLink,
+	passkeyOwnerBlocked,
 	pendingInvitationId,
 } from "./allow-list";
 import { authAfterHook } from "./audit-events";
@@ -563,12 +565,27 @@ export const auth = betterAuth({
 					}),
 			},
 			authentication: {
-				async afterVerification({ verification }) {
+				async afterVerification({ ctx, verification, clientData }) {
 					if (!verification.authenticationInfo.userVerified)
 						throw new APIError("UNAUTHORIZED", {
 							code: "USER_VERIFICATION_REQUIRED",
 							message: "user_verification_required",
 						});
+					// Gesperrt: vor der Sitzung ablehnen und /login einen Hinweis
+					// geben (der Fehlercode selbst kommt nur als
+					// AUTHENTICATION_FAILED beim Client an).
+					if (await passkeyOwnerBlocked(clientData.id)) {
+						ctx.setCookie(BLOCKED_HINT_COOKIE, "1", {
+							maxAge: 60,
+							path: "/",
+							sameSite: "strict",
+							secure: process.env.NODE_ENV === "production",
+						});
+						throw new APIError("FORBIDDEN", {
+							code: "BANNED_USER",
+							message: "account_blocked",
+						});
+					}
 				},
 			},
 		}),

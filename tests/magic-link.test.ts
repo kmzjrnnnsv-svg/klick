@@ -90,6 +90,8 @@ describe("linkFailure", () => {
 		expect(linkFailure("INVALID_TOKEN")).toBe("expired");
 		expect(linkFailure("new_user_signup_disabled")).toBe("no_account");
 		expect(linkFailure("failed_to_create_session")).toBe("other");
+		expect(linkFailure("BANNED_USER")).toBe("blocked");
+		expect(linkFailure("ACCOUNT_NOT_ACTIVATED")).toBe("not_activated");
 		expect(linkFailure(undefined)).toBe("other");
 	});
 });

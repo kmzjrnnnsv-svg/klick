@@ -4,17 +4,19 @@ import { APIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { safeAction } from "@/lib/actions/safe";
+import { isBanActive } from "@/lib/auth/account-status";
 import {
 	type ActivationLink,
 	createAccount as createAccountService,
 	renewActivationLink as renewActivationLinkService,
 	withdrawAccount as withdrawAccountService,
 } from "@/lib/auth/admin-accounts";
+import { hasPendingActivation } from "@/lib/auth/allow-list";
 import { requirePlatformAdmin, requirePlatformStepUp } from "@/lib/auth/guards";
 import { findResetTarget, resetUserAccess } from "@/lib/auth/recover";
 import { auth } from "@/lib/auth/server";
 import { runVerifyAuditChain } from "@/lib/jobs/register";
-import { createAccountSchema } from "@/lib/validation/admin";
+import { banAccountSchema, createAccountSchema } from "@/lib/validation/admin";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 
 // Plattform-Admin: Konten anlegen (Aktivierungslink mit Pflicht-Passkey),
@@ -26,14 +28,27 @@ function mapError(e: unknown): ActionResult<never> {
 	throw e;
 }
 
-async function banUserImpl(
-	userId: string,
-	reason: string,
-): Promise<ActionResult> {
-	await requirePlatformAdmin();
+// Sperren mit Grund und optionalem Ende. Better Auth beendet alle Sitzungen
+// und lehnt jede neue ab (BANNED_USER); Links lösen sich nicht mehr auf.
+// Ohne Step-up: Sperren schützt und muss schnell gehen. Plattform-Admins
+// erst nach Entzug der Rolle — keine Aussperrung durch Verwechslung.
+async function banUserImpl(input: unknown): Promise<ActionResult> {
+	const a = await requirePlatformAdmin();
+	const parsed = banAccountSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const { userId, reason, until } = parsed.data;
+	if (userId === a.userId) return { ok: false, error: "forbidden" };
+	const target = await findResetTarget(userId);
+	if (!target) return { ok: false, error: "not_found" };
+	if (target.role === "admin") return { ok: false, error: "ban_admin" };
+	const seconds = until
+		? Math.floor((until.getTime() - Date.now()) / 1000)
+		: undefined;
+	if (seconds !== undefined && seconds < 60)
+		return { ok: false, error: "ban_until_past" };
 	try {
 		await auth.api.banUser({
-			body: { userId, banReason: reason || "Gesperrt durch Plattform-Admin" },
+			body: { userId, banReason: reason, banExpiresIn: seconds },
 			headers: await headers(),
 		});
 		revalidatePath("/admin/users");
@@ -52,6 +67,11 @@ async function resetUserAccessImpl(
 	if (userId === a.userId) return { ok: false, error: "forbidden" };
 	const target = await findResetTarget(userId);
 	if (!target) return { ok: false, error: "not_found" };
+	if (isBanActive(target)) return { ok: false, error: "account_blocked" };
+	// Nicht aktiviert: dafür gibt es den Aktivierungslink (der Marker bliebe
+	// sonst stehen und sperrte die Sitzung nach dem Zurücksetzen)
+	if (await hasPendingActivation(userId))
+		return { ok: false, error: "not_activated" };
 	const { url } = await resetUserAccess({
 		target,
 		actor: {
@@ -104,8 +124,9 @@ async function withdrawAccountImpl(userId: string): Promise<ActionResult> {
 	}
 }
 
+// Entsperren gibt Zugang zurück → Step-up
 async function unbanUserImpl(userId: string): Promise<ActionResult> {
-	await requirePlatformAdmin();
+	await requirePlatformStepUp();
 	try {
 		await auth.api.unbanUser({ body: { userId }, headers: await headers() });
 		revalidatePath("/admin/users");
