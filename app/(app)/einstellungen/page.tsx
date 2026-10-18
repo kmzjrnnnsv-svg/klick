@@ -18,7 +18,14 @@ import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { approvalWorkflows } from "@/db/schema";
+import {
+	factInfos,
+	ruleNames,
+	triggerTexts,
+} from "@/lib/approvals/designer-labels";
+import { WORKFLOW_PRESETS } from "@/lib/approvals/presets";
 import { ensureOrgWorkflows } from "@/lib/approvals/service";
+import { TRIGGER_BY_KEY, TRIGGERS, triggerOf } from "@/lib/approvals/triggers";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { getSessionCtx, toOrgCtx } from "@/lib/auth/guards";
 import {
@@ -35,7 +42,6 @@ import { allows, roleStatements } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
-import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
 import { defaultSupplierMethod } from "@/lib/compliance/catalog/supplier-criteria";
 import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
 import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
@@ -69,29 +75,58 @@ export default async function SettingsPage({
 	const ctx = await requireOrgPage();
 	const cov = await getOrgCoverageCached(ctx);
 	// Workflows je Org sicherstellen (Seed) und laden.
-	const { settings, workflows } = await withOrg(toOrgCtx(ctx), async (tx) => {
-		const settings = await getOrgSettings(tx, ctx.orgId);
-		await ensureOrgWorkflows(
-			tx,
-			ctx.orgId,
-			settings?.licenceStage ?? "0_vorbereitung",
-		);
-		const rows = await tx
-			.select()
-			.from(approvalWorkflows)
-			.where(eq(approvalWorkflows.organizationId, ctx.orgId));
-		const workflows = APPROVAL_WORKFLOW_TEMPLATES.map((tpl) => {
-			const row = rows.find((r) => r.kind === tpl.kind);
+	const { settings, workflows, workflowNames } = await withOrg(
+		toOrgCtx(ctx),
+		async (tx) => {
+			const settings = await getOrgSettings(tx, ctx.orgId);
+			await ensureOrgWorkflows(
+				tx,
+				ctx.orgId,
+				settings?.licenceStage ?? "0_vorbereitung",
+			);
+			const rows = await tx
+				.select()
+				.from(approvalWorkflows)
+				.where(eq(approvalWorkflows.organizationId, ctx.orgId));
+			// nur angeschlossene Auslöser (Designer, lib/approvals/triggers.ts)
+			const workflows = rows.flatMap((r) => {
+				const trigger = triggerOf(r);
+				if (!trigger || !TRIGGER_BY_KEY.get(trigger)?.wired) return [];
+				return [
+					{
+						id: r.id,
+						kind: r.kind,
+						name: r.name,
+						description: r.description,
+						trigger,
+						custom: r.custom,
+						enabled: r.enabled,
+						priority: r.priority,
+						conditions: r.conditions,
+						steps: r.steps,
+					},
+				];
+			});
+			const [roles, members] = await Promise.all([
+				listOrgRoles(tx, ctx.orgId),
+				userNames(
+					tx,
+					rows.flatMap((r) =>
+						r.steps.flatMap((s) =>
+							[...(s.approvers ?? [s.approverRule]), ...(s.skipIf ?? [])]
+								.filter((x) => x.startsWith("user:"))
+								.map((x) => x.slice(5)),
+						),
+					),
+				),
+			]);
 			return {
-				kind: tpl.kind,
-				name: tpl.name,
-				description: tpl.description,
-				steps: row?.steps ?? tpl.steps,
-				enabled: row?.enabled ?? tpl.defaultEnabled,
+				settings,
+				workflows,
+				workflowNames: await ruleNames({ roles, users: members }),
 			};
-		});
-		return { settings, workflows };
-	});
+		},
+	);
 	const canReadIntegrations = allows(ctx, {
 		integration: ["read"],
 	});
@@ -335,7 +370,26 @@ export default async function SettingsPage({
 					</TabsContent>
 				)}
 				<TabsContent value="workflows">
-					<WorkflowsPanel workflows={workflows} canEdit={canEditSettings} />
+					<WorkflowsPanel
+						triggers={TRIGGERS.filter((x) => x.wired).map((x) => ({
+							key: x.key,
+							area: x.area,
+							mode: x.mode,
+						}))}
+						texts={await triggerTexts()}
+						facts={await factInfos()}
+						workflows={workflows}
+						names={workflowNames}
+						presets={WORKFLOW_PRESETS.map((p) => ({
+							key: p.key,
+							trigger: p.trigger,
+							name: p.name,
+							description: p.description,
+							variant: Boolean(p.variant),
+							roles: p.roles.map((r) => r.name),
+						}))}
+						canEdit={canEditSettings}
+					/>
 				</TabsContent>
 				<TabsContent value="risk">
 					<RiskMethodPanel

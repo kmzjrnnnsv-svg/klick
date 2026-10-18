@@ -120,7 +120,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 	},
 	{
 		kind: "provider_onboarding",
-		name: "Dienstleister aufnehmen",
+		name: "Rote Lieferantenbewertung freigeben",
 		entityType: "provider",
 		description:
 			"Auslagerungsbeauftragte:r → Geschäftsleitung: Freigabe trotz kritischem Bewertungsergebnis bzw. bei wesentlicher Auslagerung.",

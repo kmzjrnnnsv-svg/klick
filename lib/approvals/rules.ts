@@ -43,7 +43,9 @@ export type Eligibility =
 	| { eligible: false; reason: "four_eyes" | "rule_not_met" };
 
 // Stellen einer Stufe: approvers (Designer) oder die eine Regel (Altbestand)
-export function stepRules(step: ApprovalStep): string[] {
+export function stepRules(
+	step: Pick<ApprovalStep, "approverRule" | "approvers">,
+): string[] {
 	return step.approvers && step.approvers.length > 0
 		? step.approvers
 		: [step.approverRule];
@@ -240,4 +242,40 @@ export function advance(
 	const next = nextActiveStep(steps, currentStep);
 	if (next === null) return { status: "approved" };
 	return { status: "pending", nextStep: next };
+}
+
+type DecisionOnStep = {
+	decision: "approved" | "rejected" | "changes_requested";
+	rule?: string | null;
+	approverUserId?: string | null;
+};
+
+// Darf die Person jetzt auf dieser Stufe entscheiden? Wie approverEligibility,
+// dazu: je Stufe nur einmal, und bei „alle“ nur für eine noch offene Stelle.
+export function canDecideNow(
+	step: ApprovalStep,
+	candidate: ApproverCandidate,
+	ctx: EligibilityContext,
+	members: readonly ApproverCandidate[],
+	decisionsOnStep: readonly DecisionOnStep[],
+): boolean {
+	const e = approverEligibility(step, candidate, ctx, members);
+	if (!e.eligible) return false;
+	if (decisionsOnStep.some((d) => d.approverUserId === candidate.userId))
+		return false;
+	if (step.mode === "all" && stepRules(step).length > 1) {
+		const open = openRules(step, decisionsOnStep);
+		return e.rules.some((r) => open.includes(r));
+	}
+	return true;
+}
+
+// Stand je Stelle einer Stufe (Anzeige „Recht ✓ · Informationssicherheit offen“)
+export function ruleStates(
+	step: ApprovalStep,
+	decisionsOnStep: readonly DecisionOnStep[],
+): { rule: string; done: boolean }[] {
+	if (step.mode !== "all" || stepRules(step).length < 2) return [];
+	const open = openRules(step, decisionsOnStep);
+	return stepRules(step).map((rule) => ({ rule, done: !open.includes(rule) }));
 }

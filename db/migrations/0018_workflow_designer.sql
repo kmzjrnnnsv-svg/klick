@@ -23,4 +23,8 @@ UPDATE "approval_workflows" SET "trigger" = CASE "kind"
 	WHEN 'aml_risk_analysis' THEN 'aml.risk_analysis'
 	WHEN 'own_funds' THEN 'own_funds.approve'
 	ELSE "trigger" END
-WHERE "trigger" IS NULL;
+WHERE "trigger" IS NULL;--> statement-breakpoint
+-- Name der Freigabe bei roter Lieferantenbewertung von „Dienstleister
+-- aufnehmen“ (jetzt Auslöser provider.create) unterscheiden
+UPDATE "approval_workflows" SET "name" = 'Rote Lieferantenbewertung freigeben'
+WHERE "kind" = 'provider_onboarding' AND "name" = 'Dienstleister aufnehmen';
