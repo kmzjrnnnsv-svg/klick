@@ -1,7 +1,7 @@
 # Sicherheitshinweise melden
 
 Wenn du eine Schwachstelle in Klick (raza.work) findest, melde sie bitte vertraulich an
-**security@raza.work**. Wir bestätigen den Eingang innerhalb von 2 Werktagen, halten dich
+**no-reply@raza.work**. Wir bestätigen den Eingang innerhalb von 2 Werktagen, halten dich
 über den Fortschritt auf dem Laufenden und nennen dich — wenn gewünscht — nach der Behebung.
 
 Bitte keine öffentlichen Issues für Sicherheitsthemen, keine Tests gegen Produktionsdaten

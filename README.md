@@ -42,4 +42,4 @@ Details: `CLAUDE.md`, Bedrohungsmodell: `docs/security/threat-model.md`, Deploy:
 
 ## Sicherheit
 
-Meldungen an security@raza.work — siehe `SECURITY.md`.
+Meldungen an no-reply@raza.work — siehe `SECURITY.md`.

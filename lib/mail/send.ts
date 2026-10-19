@@ -10,6 +10,7 @@
 //      Body (Magic-Links, Einladungen) landet nie im Log, der Versand zählt
 //      als fehlgeschlagen (Digest versucht es erneut).
 
+import { MAIL_FROM_DEFAULT, PLATFORM_MAIL } from "./address";
 import { textToHtml } from "./templates";
 
 export type SendMailInput = {
@@ -19,10 +20,9 @@ export type SendMailInput = {
 	html?: string;
 };
 
-const FROM_FALLBACK = "Klick <noreply@klick.local>";
-
+// Ohne MAIL_FROM gilt die Plattform-Adresse (lib/mail/address.ts).
 function fromAddress(): string {
-	return process.env.MAIL_FROM ?? FROM_FALLBACK;
+	return process.env.MAIL_FROM || MAIL_FROM_DEFAULT;
 }
 
 // „Klick <no-reply@raza.work>“ → { name, email } — Brevo will beides getrennt.
@@ -153,11 +153,6 @@ export async function sendTransactionalMail(
 ): Promise<SendOutcome> {
 	const from = fromAddress();
 	const active = PROVIDERS.filter((p) => p.enabled());
-	if (active.length > 0 && from === FROM_FALLBACK) {
-		console.warn(
-			"[mail] MAIL_FROM not set — the provider will likely reject the sender. Set MAIL_FROM to a verified address.",
-		);
-	}
 	let last: { path: MailPath; error: string } | null = null;
 	for (const [i, provider] of active.entries()) {
 		try {
@@ -201,7 +196,6 @@ function consoleOutcome(reason: string): SendOutcome {
 // configured mail path without actually triggering an auth flow.
 export async function diagnoseMailConfig(): Promise<{
 	mailFrom: string;
-	mailFromIsFallback: boolean;
 	hasResendKey: boolean;
 	hasBrevoKey: boolean;
 	hasSmtpHost: boolean;
@@ -212,7 +206,6 @@ export async function diagnoseMailConfig(): Promise<{
 	const from = fromAddress();
 	return {
 		mailFrom: from,
-		mailFromIsFallback: from === FROM_FALLBACK,
 		hasResendKey: !!process.env.RESEND_API_KEY,
 		hasBrevoKey: !!process.env.BREVO_API_KEY,
 		hasSmtpHost: !!process.env.SMTP_HOST,
@@ -225,14 +218,12 @@ export async function diagnoseMailConfig(): Promise<{
 // Klartext-Hinweis zu einem Zustellfehler (pnpm mail:check, Startlog). Pure.
 export function mailErrorHint(
 	error: string,
-	cfg: { smtpPort?: number; mailFromIsFallback: boolean },
+	cfg: { smtpPort?: number },
 ): string | null {
 	// sendTransactionalMail meldet Fehler als „<weg>_failed:…“.
 	const e = error.toLowerCase().replace(/^(resend|brevo|smtp)_failed:/, "");
 	if (e === "no_provider")
 		return "Kein Zustellweg — BREVO_API_KEY, RESEND_API_KEY oder SMTP_HOST setzen (/etc/klick/klick.env).";
-	if (cfg.mailFromIsFallback)
-		return "MAIL_FROM fehlt — Absender auf einer beim Provider verifizierten Domain setzen (z. B. „Klick <noreply@raza.work>“).";
 	if (e.startsWith("resend_401") || e.startsWith("resend_403")) {
 		return e.includes("domain") || e.includes("verif")
 			? "Resend: Absender-Domain ist nicht verifiziert — Domain in Resend verifizieren oder MAIL_FROM anpassen."
@@ -247,7 +238,7 @@ export function mailErrorHint(
 	}
 	if (e.startsWith("brevo_400")) {
 		return e.includes("sender")
-			? "Brevo: Absender nicht freigegeben — Domain in Brevo unter Absender & Domains authentifizieren oder MAIL_FROM auf einen bestätigten Absender setzen."
+			? `Brevo: Absender nicht freigegeben — Domain in Brevo unter Absender & Domains authentifizieren und ${PLATFORM_MAIL} als Absender bestätigen (MAIL_FROM leer lassen oder „${MAIL_FROM_DEFAULT}“).`
 			: "Brevo: Anfrage abgelehnt — MAIL_FROM im Format „Name <adresse@domain>“ prüfen.";
 	}
 	// Netzfehler der HTTPS-Wege (fetch wirft ohne Statuscode)
@@ -274,6 +265,6 @@ export function mailErrorHint(
 	)
 		return "SMTP-Anmeldung abgelehnt — SMTP_USER (meist die volle Postfach-Adresse) und das Passwort im systemd-Credential smtp_pass prüfen. Aliasse und Weiterleitungen können sich nicht anmelden; Brevo verlangt den SMTP-Schlüssel statt des Konto-Passworts.";
 	if (e.includes("sender") || e.includes("550") || e.includes("553"))
-		return "Absender abgelehnt — MAIL_FROM muss beim Provider als Absender verifiziert sein.";
+		return `Absender abgelehnt — ${PLATFORM_MAIL} (bzw. MAIL_FROM) muss beim Provider als Absender verifiziert sein.`;
 	return null;
 }

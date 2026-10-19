@@ -52,7 +52,13 @@ Login nicht mehr an der Mail — Einladungen gibt es zusätzlich als Link zum Ko
 landet ein Anmelde-Link **nie** im Journal. Beim Start
 steht im Journal `Mailversand` (Weg, Host, Absender) oder `Kein Mailversand konfiguriert`.
 
-Konfiguration: `MAIL_FROM` (Absender auf einer beim Provider verifizierten Domain) und
+**Absender:** Klick hat genau eine Adresse, `no-reply@raza.work` (`lib/mail/address.ts`) — Absender
+aller Mails und Kontakt in `security.txt`. `MAIL_FROM` in `/etc/klick/klick.env` weglassen (dann gilt
+`Klick <no-reply@raza.work>`) oder genau so setzen; beim Provider genau diese Adresse als Absender
+bestätigen. Eine andere Adresse in `MAIL_FROM` gewinnt und wird vom Provider abgelehnt, wenn es sie
+nicht gibt.
+
+Konfiguration: `MAIL_FROM` (optional, siehe oben) und
 `BREVO_API_KEY`, `RESEND_API_KEY` **oder** `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER` in
 `/etc/klick/klick.env`, `SMTP_PASS` als Credential `smtp_pass`. Hetzner sperrt ausgehend Port 25
 und 465 — SMTP über 587. Brevo und Resend laufen über HTTPS (443) ohne SMTP-Login.
