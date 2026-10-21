@@ -28,8 +28,6 @@ export async function register() {
 				},
 				"Mailversand",
 			);
-			if (mail.mailFromIsFallback)
-				logger.warn("MAIL_FROM fehlt — der Provider lehnt den Absender ab");
 		}
 	}
 	if (process.env.KLICK_DISABLE_JOBS === "true") return;

@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { config } from "dotenv";
 import { z } from "zod";
+import { MAIL_FROM_DEFAULT } from "./mail/address";
 
 // Env-Dateien werden in Prioritätsreihenfolge geladen. dotenv ist idempotent —
 // die erste Datei, die eine Variable definiert, gewinnt. Production exportiert
@@ -93,7 +94,7 @@ export const envSchema = z.object({
 	S3_ACCESS_KEY_ID: z.string().optional(),
 	S3_SECRET_ACCESS_KEY: z.string().optional(),
 
-	MAIL_FROM: z.string().default("Klick <noreply@klick.local>"),
+	MAIL_FROM: z.string().default(MAIL_FROM_DEFAULT),
 	RESEND_API_KEY: z.string().optional(),
 	BREVO_API_KEY: z.string().optional(),
 	SMTP_HOST: z.string().optional(),

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+	diagnoseMailConfig,
 	mailErrorHint,
 	parseFrom,
 	sendTransactionalMail,
@@ -127,7 +128,7 @@ describe("Brevo über HTTPS", () => {
 });
 
 describe("mailErrorHint", () => {
-	const ok = { mailFromIsFallback: false };
+	const ok = {};
 
 	it("benennt die üblichen Ursachen", () => {
 		expect(mailErrorHint("no_provider", ok)).toMatch(/Kein Zustellweg/);
@@ -181,12 +182,25 @@ describe("mailErrorHint", () => {
 		).toMatch(/Port 443/);
 	});
 
-	it("fehlendes MAIL_FROM geht vor, Unbekanntes bleibt ohne Hinweis", () => {
-		expect(
-			mailErrorHint("smtp_failed:550 sender rejected", {
-				mailFromIsFallback: true,
-			}),
-		).toMatch(/MAIL_FROM fehlt/);
+	it("abgelehnter Absender nennt die Plattform-Adresse, Unbekanntes bleibt ohne Hinweis", () => {
+		expect(mailErrorHint("smtp_failed:550 sender rejected", ok)).toMatch(
+			/no-reply@raza\.work/,
+		);
 		expect(mailErrorHint("smtp_failed:etwas Neues", ok)).toBeNull();
+	});
+});
+
+describe("Absender", () => {
+	afterEach(() => vi.unstubAllEnvs());
+
+	it("ohne MAIL_FROM gilt no-reply@raza.work", async () => {
+		vi.stubEnv("MAIL_FROM", "");
+		expect((await diagnoseMailConfig()).mailFrom).toBe(
+			"Klick <no-reply@raza.work>",
+		);
+		vi.stubEnv("MAIL_FROM", "Klick <no-reply@raza.work>");
+		expect((await diagnoseMailConfig()).mailFrom).toBe(
+			"Klick <no-reply@raza.work>",
+		);
 	});
 });

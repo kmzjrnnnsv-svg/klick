@@ -20,7 +20,7 @@ async function main() {
 
 	console.log("Mailversand");
 	console.log(
-		`  Absender (MAIL_FROM): ${cfg.mailFrom}${cfg.mailFromIsFallback ? "  ✗ Platzhalter" : ""}`,
+		`  Absender: ${cfg.mailFrom}${process.env.MAIL_FROM ? " (MAIL_FROM)" : " (Standard)"}`,
 	);
 	console.log(
 		`  Resend (RESEND_API_KEY): ${cfg.hasResendKey ? "gesetzt" : "—"}`,
