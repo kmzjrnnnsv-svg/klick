@@ -1,0 +1,86 @@
+import {
+	ALL_REQUIREMENTS,
+	CATALOG_FRAMEWORKS,
+	EDGES,
+	splitRequirementKey,
+} from "@/lib/compliance/catalog";
+import { CONTROLS } from "@/lib/compliance/catalog/controls";
+import type { PickerFramework } from "./synergy";
+import { PICKER_FRAMEWORKS } from "./workflows";
+
+// Zahlen für /funktionen aus dem echten Katalog — rein, getestet
+// (tests/marketing-workflows.test.ts). Nie von Hand nachtragen.
+
+export function catalogTotals() {
+	return {
+		frameworks: CATALOG_FRAMEWORKS.length,
+		requirements: ALL_REQUIREMENTS.length,
+		controls: CONTROLS.length,
+		edges: EDGES.length,
+	};
+}
+
+function controlsByFramework(): Map<string, Set<string>> {
+	const by = new Map<string, Set<string>>();
+	for (const e of EDGES) {
+		const { framework } = splitRequirementKey(e.requirement);
+		const set = by.get(framework) ?? new Set<string>();
+		set.add(e.control);
+		by.set(framework, set);
+	}
+	return by;
+}
+
+export function pickerFrameworks(): PickerFramework[] {
+	const by = controlsByFramework();
+	return PICKER_FRAMEWORKS.flatMap(({ slug, label }) => {
+		const f = CATALOG_FRAMEWORKS.find((x) => x.slug === slug);
+		if (!f) return [];
+		return [
+			{
+				slug,
+				label,
+				requirements: f.requirements.length,
+				controls: [...(by.get(slug) ?? [])].sort(),
+			},
+		];
+	});
+}
+
+// Das Control mit den meisten Anforderungen in den gegebenen Rahmenwerken —
+// Beispiel für „ein Control, viele Anforderungen“.
+export function busiestControl(slugs: readonly string[]): {
+	code: string;
+	title: string;
+	requirements: number;
+	frameworks: string[];
+} | null {
+	const set = new Set(slugs);
+	const reqs = new Map<string, Set<string>>();
+	const fws = new Map<string, Set<string>>();
+	for (const e of EDGES) {
+		const { framework } = splitRequirementKey(e.requirement);
+		if (!set.has(framework)) continue;
+		(reqs.get(e.control) ?? reqs.set(e.control, new Set()).get(e.control))?.add(
+			e.requirement,
+		);
+		(fws.get(e.control) ?? fws.set(e.control, new Set()).get(e.control))?.add(
+			framework,
+		);
+	}
+	let best: string | null = null;
+	for (const [code, r] of reqs) {
+		const cur = best ? (reqs.get(best)?.size ?? 0) : -1;
+		const curFw = best ? (fws.get(best)?.size ?? 0) : -1;
+		const f = fws.get(code)?.size ?? 0;
+		if (f > curFw || (f === curFw && r.size > cur)) best = code;
+	}
+	if (!best) return null;
+	const control = CONTROLS.find((c) => c.code === best);
+	return {
+		code: best,
+		title: control?.title ?? best,
+		requirements: reqs.get(best)?.size ?? 0,
+		frameworks: [...(fws.get(best) ?? [])],
+	};
+}

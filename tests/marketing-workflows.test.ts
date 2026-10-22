@@ -1,0 +1,128 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import {
+	busiestControl,
+	catalogTotals,
+	pickerFrameworks,
+} from "@/lib/marketing/catalog-facts";
+import { synergyOf } from "@/lib/marketing/synergy";
+import {
+	FEATURE_FAQ,
+	PICKER_DEFAULT,
+	PICKER_FRAMEWORKS,
+	WORKFLOW_COUNT,
+	WORKFLOW_GROUPS,
+} from "@/lib/marketing/workflows";
+
+// /funktionen: Inhalt vollständig, Zahlen aus dem Katalog, Bilder vorhanden.
+// Du-Form prüft tests/du-form.test.ts für alle Dateien in lib/marketing.
+
+const all = WORKFLOW_GROUPS.flatMap((g) => g.workflows);
+
+describe("Abläufe auf /funktionen", () => {
+	it("hat eindeutige Schlüssel für Bereiche und Abläufe", () => {
+		const groups = WORKFLOW_GROUPS.map((g) => g.key);
+		expect(new Set(groups).size).toBe(groups.length);
+		const keys = all.map((w) => w.key);
+		expect(new Set(keys).size).toBe(keys.length);
+	});
+
+	it("beschreibt jeden Ablauf mit Auslöser, Schritten und Ergebnis", () => {
+		for (const w of all) {
+			expect(w.name, w.key).not.toBe("");
+			expect(w.summary, w.key).not.toBe("");
+			expect(w.where, w.key).not.toBe("");
+			expect(w.trigger, w.key).not.toBe("");
+			expect(w.result, w.key).not.toBe("");
+			expect(w.steps.length, w.key).toBeGreaterThanOrEqual(2);
+			for (const s of w.steps) expect(s.trim(), w.key).not.toBe("");
+		}
+	});
+
+	it("zählt die Abläufe richtig und bleibt überschaubar", () => {
+		expect(WORKFLOW_COUNT).toBe(all.length);
+		expect(all.length).toBeLessThanOrEqual(40);
+		for (const g of WORKFLOW_GROUPS)
+			expect(g.workflows.length).toBeGreaterThan(0);
+	});
+
+	it("verweist nur auf Bilder, die unter public/ liegen", () => {
+		for (const g of WORKFLOW_GROUPS) {
+			expect(g.image.src.startsWith("/"), g.key).toBe(true);
+			expect(existsSync(join("public", g.image.src)), g.image.src).toBe(true);
+			expect(g.image.alt, g.key).not.toBe("");
+		}
+	});
+
+	it("nutzt keinen Gedankenstrich als Satzzeichen", () => {
+		const texts = [
+			...WORKFLOW_GROUPS.flatMap((g) => [g.title, g.lead]),
+			...all.flatMap((w) => [w.summary, w.trigger, w.result, ...w.steps]),
+			...FEATURE_FAQ.flatMap((f) => [f.q, f.a]),
+		];
+		expect(texts.filter((t) => t.includes(" — "))).toEqual([]);
+	});
+});
+
+describe("Zahlen aus dem Katalog", () => {
+	it("stimmen mit dem Katalog überein", () => {
+		const t = catalogTotals();
+		expect(t.frameworks).toBe(23);
+		expect(t.requirements).toBe(499);
+		expect(t.controls).toBe(172);
+		expect(t.edges).toBe(863);
+	});
+
+	it("kennt jedes Rahmenwerk der Auswahl", () => {
+		const fws = pickerFrameworks();
+		expect(fws.map((f) => f.slug)).toEqual(
+			PICKER_FRAMEWORKS.map((f) => f.slug),
+		);
+		for (const f of fws) {
+			expect(f.requirements, f.slug).toBeGreaterThan(0);
+			expect(f.controls.length, f.slug).toBeGreaterThan(0);
+		}
+		for (const s of PICKER_DEFAULT)
+			expect(fws.some((f) => f.slug === s)).toBe(true);
+	});
+
+	it("findet ein Control, das mehrere Rahmenwerke abdeckt", () => {
+		const c = busiestControl(["iso27001", "dora", "micar"]);
+		expect(c).not.toBeNull();
+		expect(c?.frameworks.length).toBeGreaterThan(1);
+		expect(c?.requirements).toBeGreaterThan(1);
+	});
+});
+
+describe("synergyOf", () => {
+	const fws = [
+		{ slug: "a", label: "A", requirements: 10, controls: ["C1", "C2", "C3"] },
+		{ slug: "b", label: "B", requirements: 5, controls: ["C2", "C3", "C4"] },
+		{ slug: "c", label: "C", requirements: 2, controls: ["C5"] },
+	];
+
+	it("rechnet gemeinsame Controls nur einmal", () => {
+		expect(synergyOf(fws, ["a", "b"])).toEqual({
+			requirements: 15,
+			controls: 4,
+			shared: 2,
+			separate: 6,
+		});
+	});
+
+	it("ist leer ohne Auswahl und ignoriert Unbekanntes", () => {
+		expect(synergyOf(fws, [])).toEqual({
+			requirements: 0,
+			controls: 0,
+			shared: 0,
+			separate: 0,
+		});
+		expect(synergyOf(fws, ["c", "x"])).toEqual({
+			requirements: 2,
+			controls: 1,
+			shared: 0,
+			separate: 1,
+		});
+	});
+});

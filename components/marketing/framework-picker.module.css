@@ -1,0 +1,106 @@
+/* Rahmenwerk-Ausschnitt (data-ui): Klicks eigene Oberfläche in echter Größe —
+   innerhalb gelten die Konventionen der App (1px-Rahmen, kleine Radien). */
+
+.panel {
+	width: 620px;
+	max-width: 100%;
+	padding: 20px 22px 18px;
+	border: 1px solid var(--border); /* taste-skill-ignore: data-ui */
+	border-radius: 8px;
+	background: var(--card);
+	color: var(--card-foreground);
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+.title {
+	font-weight: 500;
+	font-size: 15px;
+}
+.hint {
+	color: var(--muted-foreground);
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+}
+
+.chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0 0 16px;
+	padding: 0;
+	list-style: none;
+}
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 32px;
+	padding: 0 10px;
+	border: 1px solid var(--border); /* taste-skill-ignore: data-ui */
+	border-radius: 999px;
+	background: var(--background);
+	color: var(--foreground);
+	font: inherit;
+	font-size: 13px;
+	cursor: pointer;
+	transition:
+		background-color 140ms ease,
+		color 140ms ease,
+		transform 140ms ease;
+	touch-action: manipulation;
+}
+.chip:hover {
+	background: var(--muted);
+}
+.chip:active {
+	transform: scale(0.97);
+}
+.chip:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
+.chip[aria-pressed="true"] {
+	border-color: var(--primary);
+	background: var(--primary);
+	color: var(--primary-foreground);
+}
+.chipCount {
+	font-variant-numeric: tabular-nums;
+	opacity: 0.75;
+}
+
+.result {
+	margin: 0;
+	border-top: 1px solid var(--border); /* taste-skill-ignore: data-ui */
+}
+.row {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 8px 0;
+	border-bottom: 1px solid var(--border); /* taste-skill-ignore: data-ui */
+}
+.row dt {
+	color: var(--muted-foreground);
+}
+.row dd {
+	margin: 0;
+	font-variant-numeric: tabular-nums;
+}
+.strong {
+	font-weight: 600;
+	color: var(--primary);
+}
+.note {
+	margin: 12px 0 0;
+	font-size: 13px;
+	color: var(--foreground);
+}
