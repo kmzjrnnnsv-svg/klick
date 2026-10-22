@@ -27,6 +27,7 @@ export type NavLabelKey =
 	| "resolutions"
 	| "audits"
 	| "managementReview"
+	| "trustCenter"
 	| "nonconformities"
 	| "testProgramme"
 	| "calendar"
@@ -84,7 +85,8 @@ export type NavIcon =
 	| "book-open"
 	| "users"
 	| "settings"
-	| "activity";
+	| "activity"
+	| "badge-check";
 
 export type NavItem = {
 	key: string;
@@ -297,6 +299,12 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "managementReview",
 					href: "/managementbewertung",
 					icon: "presentation",
+				},
+				{
+					key: "trustCenter",
+					labelKey: "trustCenter",
+					href: "/trust-center",
+					icon: "badge-check",
 				},
 				{
 					key: "nonconformities",

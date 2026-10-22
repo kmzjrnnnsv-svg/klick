@@ -32,7 +32,7 @@ describe("buildNav", () => {
 		expect(groups.find((g) => g.key === "casp")).toBeUndefined();
 		const n = countNavTargets(groups);
 		expect(n).toBeGreaterThanOrEqual(18);
-		expect(n).toBeLessThanOrEqual(28);
+		expect(n).toBeLessThanOrEqual(30);
 	});
 	it("CASP-Org: CASP-Gruppe mit AML, Eigenmittel, Kryptowerte, Beschwerden, Antrag", () => {
 		const groups = buildNav({

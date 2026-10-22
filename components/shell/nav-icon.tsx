@@ -1,5 +1,6 @@
 import {
 	Activity,
+	BadgeCheck,
 	BookOpen,
 	Building2,
 	Calendar,
@@ -68,6 +69,7 @@ const ICONS = {
 	users: Users,
 	settings: Settings,
 	activity: Activity,
+	"badge-check": BadgeCheck,
 } as const;
 
 export function NavIcon({
