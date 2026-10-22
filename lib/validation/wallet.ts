@@ -3,6 +3,7 @@ import {
 	WALLET_ACCOUNT_PURPOSES,
 	type WalletAccountPurpose,
 } from "@/db/schema/wallet";
+import { PAIRS } from "@/lib/wallet/core/feeds";
 import { WALLET_NETWORKS } from "@/lib/wallet/core/networks";
 
 // Wallet-Bereich: Konto aus einem öffentlichen Kontoschlüssel anlegen,
@@ -59,3 +60,11 @@ export const receiveAddressSchema = z.object({
 });
 
 export const accountIdSchema = z.object({ id: z.uuid() });
+
+export const watchlistSchema = z.object({
+	pairs: z
+		.array(z.enum(PAIRS))
+		.min(1, "Mindestens ein Kurs")
+		.max(PAIRS.length)
+		.transform((a) => [...new Set(a)]),
+});

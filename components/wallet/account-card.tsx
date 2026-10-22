@@ -61,10 +61,7 @@ export async function AccountCard({
 						key={a.code}
 						className="flex items-baseline justify-between gap-2"
 					>
-						<span
-							className="font-serif-display text-xl lining-nums tabular-nums"
-							translate="no"
-						>
+						<span className="font-semibold text-lg lining-nums" translate="no">
 							{amountText(account.network, a.code, a.available)}
 						</span>
 						<span className="text-right text-muted-foreground text-xs">

@@ -88,7 +88,8 @@
 		"walletAccounts": "Konten",
 		"areaLabel": "Bereich",
 		"areaCompliance": "Compliance",
-		"areaWallet": "Wallet"
+		"areaWallet": "Wallet",
+		"walletQuotes": "Kurse"
 	},
 	"Footer": {
 		"tagline": "Maison Klick — Compliance, die zusammenpasst.",
@@ -5436,6 +5437,36 @@
 		"pageOf": "Seite {page} von {pages}",
 		"prev": "Zurück",
 		"next": "Weiter",
-		"copyTx": "Transaktions-ID kopieren"
+		"copyTx": "Transaktions-ID kopieren",
+		"quotesTitle": "Kurse",
+		"quotesLead": "Deine Watchlist — aus Chainlink-Preisfeeds, gelesen über den eigenen Ethereum-Knoten. Euro als Kreuzkurs über EUR/USD.",
+		"quotesSource": "Quelle: Chainlink über den eigenen Knoten · letzte Runde {time}. Chainlink aktualisiert bei 0,5 % Bewegung oder spätestens stündlich (EUR/USD seltener).",
+		"quotesEmptyTitle": "Noch keine Kurse",
+		"quotesEmpty": "Kurse kommen, sobald ein Ethereum-Knoten eingerichtet ist und der Job price-tick läuft.",
+		"watchlistTitle": "Watchlist",
+		"watchlistLead": "Welche Kurse willst du sehen? Die Auswahl gilt nur für dich.",
+		"watchlistEdit": "Watchlist bearbeiten",
+		"chartEmpty": "Für diesen Zeitraum gibt es noch keine Kurse.",
+		"chartRange": "im Zeitraum {range}",
+		"chartRangeLabel": "Zeitraum",
+		"chartLegend": "Punkte im Verlauf",
+		"chartLabel": "Kursverlauf {pair}, Zeitraum {range}. Pfeiltasten bewegen die Markierung.",
+		"chartSource": "Kurse: Chainlink über den eigenen Ethereum-Knoten. Punkte zeigen deine bestätigten Ein- und Ausgänge zum Kurs ihres Zeitpunkts.",
+		"chartPriceAt": "Kurs {price}",
+		"chartValueAt": "Wert damals {value}",
+		"chartStats": "Kennzahlen",
+		"statAvgIn": "Durchschnittskurs deiner Eingänge",
+		"statSinceAvg": "Entwicklung seitdem",
+		"statHolding": "Wert deines Bestands heute",
+		"chartTestnet": "Testnetz-Zahlungen, bewertet zu echten Kursen — nur zur Ansicht.",
+		"chartTable": "Als Tabelle",
+		"chartPriceCol": "Kurs",
+		"chartValueCol": "Wert damals",
+		"homeValueLabel": "Gesamtwert",
+		"homeValueTestnet": "Testnetz-Bestände zu echten Kursen — nur zur Ansicht.",
+		"homeValueAssumption": "EURC zum Nennwert (1 EURC = 1 €).",
+		"homeValueNone": "Noch keine Kurse — Wert in Euro folgt mit dem Ethereum-Knoten.",
+		"homeQuotesTitle": "Kurse",
+		"homeAllQuotes": "Alle Kurse"
 	}
 }

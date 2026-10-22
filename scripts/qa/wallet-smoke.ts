@@ -173,6 +173,27 @@ async function receiveFlow(o: Page) {
 	);
 	await o.goto(`${BASE}/wallet/bewegungen?konto=${accountId}`);
 	check("Bewegung bestätigt", (await o.getByText("Bestätigt").count()) > 0);
+
+	// Kurse: Watchlist und Kursverlauf mit dem Eingang als Punkt (braucht
+	// Kurse aus price-tick gegen die Testkette)
+	await o.goto(`${BASE}/wallet/kurse`);
+	check(
+		"Kurse: Watchlist",
+		(await o.getByRole("link", { name: /BTC\/EUR/ }).count()) > 0,
+	);
+	await o.goto(`${BASE}/wallet/kurs/btc-eur?zeitraum=1t`);
+	const slider = o.getByRole("slider");
+	await slider.waitFor({ timeout: 10_000 });
+	await slider.focus();
+	await o.keyboard.press("Home");
+	check(
+		"Kursverlauf mit Tastatur bedienbar",
+		(await slider.getAttribute("aria-valuenow")) === "0",
+	);
+	check(
+		"Eingang als Punkt im Kursverlauf",
+		(await o.getByRole("button", { name: /^Eingang/ }).count()) > 0,
+	);
 	// WALLET_SHOTS=<ordner>: Bildschirmfotos der Wallet-Seiten (Desktop, 390 px)
 	const shots = process.env.WALLET_SHOTS;
 	if (shots)
@@ -187,6 +208,8 @@ async function receiveFlow(o: Page) {
 				`/wallet/konten/${accountId}`,
 				`/wallet/empfangen?konto=${accountId}`,
 				"/wallet/bewegungen",
+				"/wallet/kurse",
+				"/wallet/kurs/btc-eur",
 			]) {
 				await o.goto(`${BASE}${path}`);
 				await o.waitForTimeout(800);

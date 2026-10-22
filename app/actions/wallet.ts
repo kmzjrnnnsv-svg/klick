@@ -12,6 +12,7 @@ import {
 	receiveAddressSchema,
 	walletAccountSchema,
 	walletAccountUpdateSchema,
+	watchlistSchema,
 } from "@/lib/validation/wallet";
 import {
 	deriveAddress,
@@ -25,6 +26,7 @@ import {
 	networkAllowed,
 } from "@/lib/wallet/core/networks";
 import { configuredNetworks } from "@/lib/wallet/node-clients";
+import { upsertWalletPreferences } from "@/lib/wallet/preferences";
 
 // Wallet-Bereich (Plan Wallet, Phase 1). Jede Action verlangt den
 // entsperrten Bereich (requireWallet: Passkey ≤ 15 min, nur diese Org).
@@ -340,6 +342,28 @@ async function issueReceiveAddressImpl(
 	return res;
 }
 
+// Watchlist der Person (nur Paare aus dem Katalog, Reihenfolge wie gewählt)
+async function saveWatchlistImpl(input: unknown): Promise<ActionResult> {
+	const parsed = watchlistSchema.safeParse(input);
+	const c = await requireWallet();
+	if (!parsed.success) return fromZod(parsed.error);
+	await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+		await upsertWalletPreferences(tx, c.orgId, c.userId, {
+			pairs: parsed.data.pairs,
+		});
+		return {
+			result: { ok: true, data: undefined },
+			audit: {
+				action: "wallet.watchlist_updated",
+				target: `user:${c.userId}`,
+				after: { pairs: parsed.data.pairs },
+			},
+		};
+	});
+	revalidatePath(PATH, "layout");
+	return { ok: true, data: undefined };
+}
+
 export const createWalletAccount = safeAction(
 	"createWalletAccount",
 	createWalletAccountImpl,
@@ -356,3 +380,4 @@ export const issueReceiveAddress = safeAction(
 	"issueReceiveAddress",
 	issueReceiveAddressImpl,
 );
+export const saveWatchlist = safeAction("saveWatchlist", saveWatchlistImpl);

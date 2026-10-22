@@ -29,6 +29,7 @@ import {
 	ShieldCheck,
 	Siren,
 	Sun,
+	TrendingUp,
 	TriangleAlert,
 	Truck,
 	Users,
@@ -78,6 +79,7 @@ const ICONS = {
 	wallet: Wallet,
 	"arrow-down": ArrowDownToLine,
 	history: History,
+	"trending-up": TrendingUp,
 } as const;
 
 export function NavIcon({

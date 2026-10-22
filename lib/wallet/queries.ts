@@ -187,3 +187,34 @@ export async function custodyWalletOptions(tx: OrgTx, orgId: string) {
 		.orderBy(asc(wallets.code));
 	return rows.map((r) => ({ id: r.id, name: `${r.code} · ${r.name}` }));
 }
+
+// Bestätigte Zahlungen eines Assets (ohne Gebühren) für den Kursverlauf
+export async function transfersForAsset(
+	tx: OrgTx,
+	orgId: string,
+	asset: AssetCode,
+) {
+	return tx
+		.select({
+			id: walletTransfers.id,
+			direction: walletTransfers.direction,
+			amount: walletTransfers.amount,
+			network: walletAccounts.network,
+			at: sql<Date>`coalesce(${walletTransfers.blockTime}, ${walletTransfers.firstSeenAt})`.mapWith(
+				(v: string | Date) => new Date(v),
+			),
+			accountName: walletAccounts.name,
+		})
+		.from(walletTransfers)
+		.innerJoin(walletAccounts, eq(walletAccounts.id, walletTransfers.accountId))
+		.where(
+			and(
+				eq(walletTransfers.organizationId, orgId),
+				eq(walletTransfers.asset, asset),
+				eq(walletTransfers.status, "confirmed"),
+				ne(walletTransfers.outputRef, "out:fee"),
+			),
+		)
+		.orderBy(asc(walletTransfers.firstSeenAt))
+		.limit(2000);
+}

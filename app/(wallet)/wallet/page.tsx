@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/entity/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { AccountCard, accountAssets } from "@/components/wallet/account-card";
+import { QuoteRow } from "@/components/wallet/quote-row";
 import { TransferList } from "@/components/wallet/transfer-list";
 import { requireWalletPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -14,6 +15,10 @@ import { readOrg } from "@/lib/db/with-org";
 import { ASSETS, type AssetCode } from "@/lib/wallet/core/assets";
 import { NETWORKS, type WalletNetwork } from "@/lib/wallet/core/networks";
 import { amountText } from "@/lib/wallet/display";
+import { euroPrices, euroValue, watchlistQuotes } from "@/lib/wallet/market";
+import { PAIR_NAMES } from "@/lib/wallet/pair-names";
+import { getWalletPreferences } from "@/lib/wallet/preferences";
+import { formatScaled } from "@/lib/wallet/prices";
 import {
 	frozenByAccount,
 	listTransfers,
@@ -22,20 +27,25 @@ import {
 
 export const metadata: Metadata = { title: "Wallet" };
 
-// /wallet — Startseite: Bestand je Netz und Asset, drei Handlungen, Konten,
-// letzte Bewegungen. Euro-Werte folgen mit den Kursen (eigener Knoten).
+// /wallet — Startseite: Gesamtwert in Euro, Bestand je Netz und Asset, drei
+// Handlungen, Kurse der Watchlist, Konten, letzte Bewegungen.
 export default async function WalletHomePage() {
 	const ctx = await requireWalletPage("/wallet");
 	const t = await getTranslations("Wallet");
 	const canManage = allows(ctx, { wallet: ["manage"] });
-	const { accounts, frozen, recent } = await readOrg(
+	const { accounts, frozen, recent, prefs } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
 			accounts: await listWalletAccounts(tx, ctx.orgId),
 			frozen: await frozenByAccount(tx, ctx.orgId),
 			recent: await listTransfers(tx, ctx.orgId, { limit: 6 }),
+			prefs: await getWalletPreferences(tx, ctx.orgId, ctx.userId),
 		}),
 	);
+	const [euro, quotes] = await Promise.all([
+		euroPrices(),
+		watchlistQuotes(prefs.pairs.slice(0, 3)),
+	]);
 
 	// Summen je Netz und Asset — Testnetz und echtes Netz nie zusammen; je
 	// Netz die Assets mit Bestand, sonst das Netz-eigene mit 0
@@ -53,6 +63,16 @@ export default async function WalletHomePage() {
 			: [[ASSETS[network][0]?.code ?? "BTC", 0n]];
 		return list.map(([code, sum]) => ({ network, code, sum }));
 	});
+	// Gesamtwert in Euro über alle Netze; ohne Kurs (oder ohne Bestand mit
+	// Kurs) kein Wert statt einer falschen Null
+	const values = totals.map((x) =>
+		euroValue(x.network, x.code, x.sum, euro.prices),
+	);
+	const euroTotal = values.some((v) => v !== null)
+		? values.reduce<bigint>((s, v) => s + (v ?? 0n), 0n)
+		: null;
+	const anyTestnet = totals.some((x) => !NETWORKS[x.network].live);
+	const holdsEurc = totals.some((x) => x.code === "EURC" && x.sum !== 0n);
 
 	if (accounts.length === 0)
 		return (
@@ -86,15 +106,29 @@ export default async function WalletHomePage() {
 					id="wallet-total"
 					className="lv-eyebrow text-[0.6rem] text-muted-foreground"
 				>
-					{t("homeTotalLabel")}
+					{t("homeValueLabel")}
 				</h2>
-				<ul className="mt-3 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+				<p
+					className="mt-2 font-semibold text-4xl lining-nums sm:text-5xl"
+					translate="no"
+				>
+					{euroTotal !== null ? `${formatScaled(euroTotal)} €` : "—"}
+				</p>
+				<p className="mt-1 text-muted-foreground text-xs">
+					{euroTotal === null
+						? t("homeValueNone")
+						: [
+								anyTestnet && t("homeValueTestnet"),
+								holdsEurc && t("homeValueAssumption"),
+							]
+								.filter(Boolean)
+								.join(" ")}
+				</p>
+				<h3 className="sr-only">{t("homeTotalLabel")}</h3>
+				<ul className="mt-5 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
 					{totals.map((x) => (
 						<li key={`${x.network}:${x.code}`} className="min-w-0">
-							<p
-								className="font-serif-display text-3xl text-primary lining-nums tabular-nums sm:text-4xl"
-								translate="no"
-							>
+							<p className="font-semibold text-lg lining-nums" translate="no">
 								{amountText(x.network, x.code, x.sum)}
 							</p>
 							<p className="text-muted-foreground text-xs">
@@ -103,9 +137,6 @@ export default async function WalletHomePage() {
 						</li>
 					))}
 				</ul>
-				<p className="mt-4 text-muted-foreground text-xs">
-					{t("homeTotalHint")}
-				</p>
 				<ul className="mt-6 flex gap-6 sm:gap-8">
 					<li>
 						<Link
@@ -140,6 +171,34 @@ export default async function WalletHomePage() {
 						</li>
 					))}
 				</ul>
+			</section>
+
+			<section aria-labelledby="wallet-quotes" className="mt-10">
+				<div className="mb-2 flex items-center justify-between gap-2">
+					<h2
+						id="wallet-quotes"
+						className="font-serif-display text-xl text-primary"
+					>
+						{t("homeQuotesTitle")}
+					</h2>
+					<Link
+						href="/wallet/kurse"
+						className="text-primary text-sm underline-offset-4 hover:underline"
+					>
+						{t("homeAllQuotes")}
+					</Link>
+				</div>
+				{quotes.some((q) => q.price !== null) ? (
+					<ul className="divide-y divide-border/60 rounded-xl border border-border/60 bg-card px-2">
+						{quotes.map((q) => (
+							<li key={q.pair}>
+								<QuoteRow quote={q} name={PAIR_NAMES[q.pair]} />
+							</li>
+						))}
+					</ul>
+				) : (
+					<p className="text-muted-foreground text-sm">{t("quotesEmpty")}</p>
+				)}
 			</section>
 
 			<section aria-labelledby="wallet-accounts" className="mt-10">
