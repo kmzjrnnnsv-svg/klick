@@ -285,7 +285,11 @@ export type RetestStatus = (typeof RETEST_STATUS)[number];
 export const SCAN_SOURCES = ["upload", "api", "quick_check"] as const;
 
 // Token ohne Sitzung (ADR-017): CI-Ingest und Lieferantenportal.
-export const ACCESS_TOKEN_KINDS = ["ingest", "supplier_portal"] as const;
+export const ACCESS_TOKEN_KINDS = [
+	"ingest",
+	"supplier_portal",
+	"trust_center",
+] as const;
 export type AccessTokenKind = (typeof ACCESS_TOKEN_KINDS)[number];
 export const INGEST_SCOPES = ["scan:write", "sbom:write"] as const;
 export type IngestScope = (typeof INGEST_SCOPES)[number];
@@ -463,3 +467,22 @@ export const NOTIFICATION_KINDS = [
 	"system",
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
+
+// Trust Center je Org: Status eines Rahmenwerks auf der öffentlichen Seite,
+// Zugriff je Dokument und Stand einer Anfrage nach vertraulichen Unterlagen.
+export const TRUST_FRAMEWORK_STATUS = [
+	"certified",
+	"in_progress",
+	"planned",
+	"aligned",
+] as const;
+export type TrustFrameworkStatus = (typeof TRUST_FRAMEWORK_STATUS)[number];
+export const TRUST_DOCUMENT_ACCESS = ["public", "nda"] as const;
+export type TrustDocumentAccess = (typeof TRUST_DOCUMENT_ACCESS)[number];
+export const TRUST_REQUEST_STATUS = [
+	"pending",
+	"approved",
+	"rejected",
+	"revoked",
+] as const;
+export type TrustRequestStatus = (typeof TRUST_REQUEST_STATUS)[number];

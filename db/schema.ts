@@ -13,3 +13,4 @@ export * from "./schema/products";
 export * from "./schema/registers";
 export * from "./schema/security";
 export * from "./schema/supplier-ratings";
+export * from "./schema/trust";
