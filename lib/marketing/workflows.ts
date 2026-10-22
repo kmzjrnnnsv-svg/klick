@@ -737,6 +737,6 @@ export const FEATURE_FAQ: { q: string; a: string }[] = [
 	},
 	{
 		q: "Was kostet Klick?",
-		a: "Das hängt von Größe und Rahmenwerken ab. Die Stufen stehen unter Preise; eine Anfrage beantworten wir persönlich.",
+		a: "Die Software kostet eine Jahresgebühr, fällig erst nach dem bestandenen Audit; eine Monatszahlung gibt es nicht. Berater-Zugänge kosten ab dem ersten Tag, unsere Beratung besprechen wir im Gespräch. Die Stufen stehen unter Preise.",
 	},
 ];

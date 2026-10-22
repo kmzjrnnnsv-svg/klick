@@ -219,7 +219,14 @@ export default async function SettingsPage({
 					listOrgMembers(ctx.orgId),
 				]);
 				const cap = (r: string) => `${r[0]?.toUpperCase()}${r.slice(1)}`;
+				const now = Date.now();
 				return {
+					// Berater-Zugänge (ADR-018) kosten ab Start — nur gültige zählen
+					consultantSeats: members.filter(
+						(m) =>
+							normalizeRole(m.role) === "consultant" &&
+							(!m.accessUntil || m.accessUntil.getTime() > now),
+					).length,
 					roles: roles.map((r) => ({
 						id: r.id,
 						name: r.name,
@@ -463,6 +470,7 @@ export default async function SettingsPage({
 						<SubscriptionPanel
 							plan={settings?.plan ?? "start"}
 							prices={prices}
+							consultantSeats={rolesData?.consultantSeats ?? 0}
 							email={ctx.email}
 							recommendations={recommendations}
 						/>

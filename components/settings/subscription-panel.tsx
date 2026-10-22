@@ -13,23 +13,28 @@ import {
 import type { Recommendation } from "@/lib/marketing/recommend";
 import { SERVICES } from "@/lib/marketing/services";
 import { PRICE_ITEMS } from "@/lib/pricing/items";
-import { formatPrice, type PriceTable } from "@/lib/pricing/resolve";
+import { euro, formatPrice, type PriceTable } from "@/lib/pricing/resolve";
 import { cn } from "@/lib/utils";
 
 const PLAN_ITEM: Record<string, "plan:start" | "plan:growth" | "plan:licence"> =
 	{ start: "plan:start", growth: "plan:growth", licence: "plan:licence" };
 
-// Einstellungen → Abo & Leistungen (nur Owner): aktuelles Abo und die
-// Preise der eigenen Preisgruppe. Der Gruppenname bleibt intern.
+// Einstellungen → Abo & Leistungen (nur Owner): Software, Berater-Zugänge
+// und die Preise der eigenen Preisgruppe. Der Gruppenname bleibt intern.
+// Zahlungsmodell: Software jährlich nach bestandenem Audit, Berater-Zugänge
+// ab Start, Beratung nach Gespräch (`due` in lib/pricing/items.ts).
 export async function SubscriptionPanel({
 	plan,
 	prices,
 	email,
+	consultantSeats = 0,
 	recommendations = [],
 }: {
 	plan: string;
 	prices: PriceTable;
 	email: string;
+	// aktive Berater-Zugänge (Rolle consultant, ADR-018)
+	consultantSeats?: number;
 	// „Für dich empfohlen“ (lib/marketing/recommend.ts)
 	recommendations?: Recommendation[];
 }) {
@@ -40,6 +45,7 @@ export async function SubscriptionPanel({
 	const planLabel = planItem
 		? (PRICE_ITEMS.find((i) => i.key === planItem)?.label ?? plan)
 		: plan;
+	const seat = prices["seat:consultant"];
 	return (
 		<div className="flex flex-col gap-8">
 			<section aria-labelledby="sub-plan" className="flex flex-col gap-2">
@@ -57,6 +63,24 @@ export async function SubscriptionPanel({
 				</p>
 				<p className="max-w-2xl text-muted-foreground text-sm">
 					{t("subscriptionLead")}
+				</p>
+			</section>
+			<section aria-labelledby="sub-seats" className="flex flex-col gap-2">
+				<h2 id="sub-seats" className="font-serif-display text-xl text-primary">
+					{t("subscriptionSeats")}
+				</h2>
+				<p className="text-sm tabular-nums">
+					{t("subscriptionSeatsCount", { n: consultantSeats })}
+					<span className="text-muted-foreground">
+						{" "}
+						· {formatPrice(seat)}
+						{seat.amount !== null && consultantSeats > 0
+							? ` · ${t("subscriptionSeatsTotal", { total: euro(seat.amount * consultantSeats) })}`
+							: ""}
+					</span>
+				</p>
+				<p className="max-w-2xl text-muted-foreground text-sm">
+					{t("subscriptionSeatsLead")}
 				</p>
 			</section>
 			{recommendations.length > 0 && (
@@ -82,7 +106,11 @@ export async function SubscriptionPanel({
 										<p className="text-muted-foreground text-xs">
 											{svc.duration}
 											{prices[priceKey]
-												? ` · ${formatPrice(prices[priceKey])}`
+												? ` · ${
+														prices[priceKey].mode === "on_request"
+															? t("subscriptionAgreed")
+															: formatPrice(prices[priceKey])
+													}`
 												: ""}
 										</p>
 									)}
@@ -115,6 +143,7 @@ export async function SubscriptionPanel({
 					<TableHeader>
 						<TableRow>
 							<TableHead>{t("subscriptionColService")}</TableHead>
+							<TableHead>{t("subscriptionColDue")}</TableHead>
 							<TableHead className="text-right">
 								{t("subscriptionColPrice")}
 							</TableHead>
@@ -124,8 +153,14 @@ export async function SubscriptionPanel({
 						{PRICE_ITEMS.map((item) => (
 							<TableRow key={item.key}>
 								<TableCell>{item.label}</TableCell>
+								<TableCell className="text-muted-foreground">
+									{t(`subscriptionDue_${item.due}`)}
+								</TableCell>
 								<TableCell className="text-right tabular-nums">
-									{formatPrice(prices[item.key])}
+									{item.due === "agreed" &&
+									prices[item.key].mode === "on_request"
+										? t("subscriptionAgreed")
+										: formatPrice(prices[item.key])}
 								</TableCell>
 							</TableRow>
 						))}

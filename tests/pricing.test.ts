@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { PRICE_ITEMS } from "@/lib/pricing/items";
+import {
+	BILLING_FAQ,
+	BILLING_TERMS,
+	withSeatPrice,
+} from "@/lib/marketing/billing";
+import { PRICE_ITEM_BY_KEY, PRICE_ITEMS } from "@/lib/pricing/items";
 import { PRESETS } from "@/lib/pricing/presets";
-import { formatPrice, guidedFrom, resolvePrices } from "@/lib/pricing/resolve";
+import { formatPrice, resolvePrices } from "@/lib/pricing/resolve";
 
 const NB = " ";
 
 describe("Preise", () => {
-	it("Stufen decken jede Position außer Lizenz ab und steigen", () => {
+	it("Stufen decken Software und Berater-Zugang ab und steigen", () => {
 		for (const item of PRICE_ITEMS) {
-			if (item.key === "plan:licence") continue;
+			if (item.kind === "service" || item.key === "plan:licence") continue;
 			const e = PRESETS.entry[item.key] as number;
 			const m = PRESETS.market[item.key] as number;
 			const p = PRESETS.premium[item.key] as number;
@@ -17,14 +22,34 @@ describe("Preise", () => {
 		}
 	});
 
-	it("Stufenwert ohne Override, Lizenz auf Anfrage", () => {
+	it("Zahlungsmodell: Software nach Audit, Berater-Zugang ab Start, Beratung im Gespräch", () => {
+		for (const item of PRICE_ITEMS) {
+			if (item.kind === "plan") expect(item.due, item.key).toBe("after_audit");
+			if (item.kind === "seat") expect(item.due, item.key).toBe("from_start");
+			if (item.kind === "service") expect(item.due, item.key).toBe("agreed");
+			// keine Monatspreise mehr
+			expect(item.unit ?? "", item.key).not.toMatch(/Monat/);
+		}
+	});
+
+	it("Stufenwert ohne Override; Lizenz und Beratung auf Anfrage", () => {
 		const t = resolvePrices("market", []);
-		expect(t["svc:gap"]).toMatchObject({
+		expect(t["plan:start"]).toMatchObject({
 			mode: "from",
-			amount: 4900,
+			amount: 2900,
+			unit: "im Jahr",
 			source: "level",
 		});
-		expect(t["svc:cra"].unit).toBe("je Produkt");
+		expect(t["seat:consultant"]).toMatchObject({
+			mode: "fixed",
+			amount: 590,
+			unit: "je Zugang und Jahr",
+		});
+		expect(t["svc:cra"]).toMatchObject({
+			mode: "on_request",
+			amount: null,
+			unit: "je Produkt",
+		});
 		expect(t["plan:licence"]).toMatchObject({
 			mode: "on_request",
 			amount: null,
@@ -35,10 +60,10 @@ describe("Preise", () => {
 		const t = resolvePrices("entry", [
 			{ itemKey: "svc:gap", mode: "fixed", amount: 3500, unit: null },
 			{
-				itemKey: "svc:pentest",
+				itemKey: "plan:start",
 				mode: "fixed",
 				amount: null,
-				unit: " pauschal ",
+				unit: " im Jahr, pauschal ",
 			},
 			{ itemKey: "plan:growth", mode: "on_request", amount: 999, unit: null },
 			{ itemKey: "unbekannt", mode: "fixed", amount: 1, unit: null },
@@ -48,10 +73,10 @@ describe("Preise", () => {
 			amount: 3500,
 			source: "override",
 		});
-		expect(t["svc:pentest"]).toMatchObject({
+		expect(t["plan:start"]).toMatchObject({
 			mode: "fixed",
-			amount: 4900,
-			unit: "pauschal",
+			amount: 1900,
+			unit: "im Jahr, pauschal",
 		});
 		expect(t["plan:growth"]).toMatchObject({
 			mode: "on_request",
@@ -77,15 +102,15 @@ describe("Preise", () => {
 		expect(formatPrice({ mode: "from", amount: 4900, unit: null })).toBe(
 			`ab 4.900${NB}€`,
 		);
-		expect(formatPrice({ mode: "fixed", amount: 290, unit: "im Monat" })).toBe(
-			`290${NB}€ im Monat`,
+		expect(formatPrice({ mode: "fixed", amount: 590, unit: "im Jahr" })).toBe(
+			`590${NB}€ im Jahr`,
 		);
 		expect(
 			formatPrice(
-				{ mode: "from", amount: 290, unit: "im Monat" },
+				{ mode: "from", amount: 2900, unit: "im Jahr" },
 				{ unit: false },
 			),
-		).toBe(`ab 290${NB}€`);
+		).toBe(`ab 2.900${NB}€`);
 		expect(formatPrice({ mode: "on_request", amount: 5, unit: null })).toBe(
 			"auf Anfrage",
 		);
@@ -94,15 +119,12 @@ describe("Preise", () => {
 		);
 	});
 
-	it("Begleitet ab: günstigste ganze Leistung, sonst je Einheit", () => {
-		expect(guidedFrom(resolvePrices("market", []))).toMatchObject({
-			mode: "from",
-			amount: 1900,
-		});
-		const onlyUnit = resolvePrices("custom", [
-			{ itemKey: "svc:suppliers", mode: "from", amount: 300, unit: null },
-		]);
-		expect(guidedFrom(onlyUnit).amount).toBe(300);
-		expect(guidedFrom(resolvePrices("custom", [])).mode).toBe("on_request");
+	it("Abrechnungs-Texte zeigen nur bekannte Positionen und den Zugangspreis", () => {
+		for (const term of BILLING_TERMS)
+			if (term.price) expect(PRICE_ITEM_BY_KEY.has(term.price)).toBe(true);
+		const seat = BILLING_FAQ.find((f) => f.a.includes("{seat}"));
+		expect(seat).toBeDefined();
+		expect(withSeatPrice(seat?.a ?? "", "590 €")).toContain("590 € je Zugang");
+		expect(withSeatPrice(seat?.a ?? "", "590 €")).not.toContain("{seat}");
 	});
 });

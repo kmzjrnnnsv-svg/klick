@@ -3,7 +3,9 @@ import type { PriceItemKey } from "./items";
 
 // Stufenwerte in ganzen Euro netto. Vorschlag zum Start; im Admin-CMS je
 // Preisgruppe über eine andere Stufe oder eigene Werte änderbar. Fehlt eine
-// Position (Abo Lizenz), steht sie „auf Anfrage“.
+// Position (Software Lizenz, Beratung), steht sie „auf Anfrage“ — Beratung
+// wird im Gespräch vereinbart. Software = Jahresgebühr (fällig nach
+// bestandenem Audit), Berater-Zugang = je Zugang und Jahr ab Start.
 
 export type PresetLevel = Exclude<PriceLevel, "custom">;
 
@@ -12,31 +14,19 @@ export const PRESETS: Record<
 	Partial<Record<PriceItemKey, number>>
 > = {
 	entry: {
-		"svc:gap": 2900,
-		"svc:ai-check": 990,
-		"svc:cra": 3900,
-		"svc:suppliers": 190,
-		"svc:pentest": 4900,
-		"plan:start": 190,
-		"plan:growth": 590,
+		"plan:start": 1900,
+		"plan:growth": 5900,
+		"seat:consultant": 390,
 	},
 	market: {
-		"svc:gap": 4900,
-		"svc:ai-check": 1900,
-		"svc:cra": 6900,
-		"svc:suppliers": 390,
-		"svc:pentest": 7900,
-		"plan:start": 290,
-		"plan:growth": 890,
+		"plan:start": 2900,
+		"plan:growth": 8900,
+		"seat:consultant": 590,
 	},
 	premium: {
-		"svc:gap": 7900,
-		"svc:ai-check": 2900,
-		"svc:cra": 9900,
-		"svc:suppliers": 590,
-		"svc:pentest": 12900,
-		"plan:start": 490,
-		"plan:growth": 1490,
+		"plan:start": 4900,
+		"plan:growth": 14900,
+		"seat:consultant": 890,
 	},
 };
 

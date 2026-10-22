@@ -61,8 +61,8 @@ export function resolvePrices(
 const NUMBER = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 });
 export const euro = (amount: number) => `${NUMBER.format(amount)} €`;
 
-// „ab 4.900 €“, „290 € im Monat“, „auf Anfrage“. Ohne Einheit für Stellen,
-// die die Einheit selbst setzen (Abo-Karten auf /preise).
+// „ab 2.900 € im Jahr“, „590 € je Zugang und Jahr“, „auf Anfrage“. Ohne
+// Einheit für Stellen, die die Einheit selbst setzen (Karten auf /preise).
 export function formatPrice(
 	p: Pick<ResolvedPrice, "mode" | "amount" | "unit">,
 	opts: { unit?: boolean } = {},
@@ -70,26 +70,4 @@ export function formatPrice(
 	if (p.mode === "on_request" || p.amount === null) return "auf Anfrage";
 	const value = p.mode === "from" ? `ab ${euro(p.amount)}` : euro(p.amount);
 	return opts.unit !== false && p.unit ? `${value} ${p.unit}` : value;
-}
-
-// „Begleitet“ auf /leistungen: günstigste Leistung mit Preis — Positionen
-// je Einheit (je Lieferant, je Produkt) nur, wenn es keine anderen gibt.
-export function guidedFrom(prices: PriceTable): ResolvedPrice {
-	const priced = PRICE_ITEMS.filter((i) => i.kind === "service")
-		.map((i) => prices[i.key])
-		.filter((p) => p.mode !== "on_request" && p.amount !== null);
-	const whole = priced.filter((p) => !p.unit);
-	const amounts = whole.length > 0 ? whole : priced;
-	if (amounts.length === 0)
-		return {
-			key: "svc:gap",
-			mode: "on_request",
-			amount: null,
-			unit: null,
-			source: "missing",
-		};
-	const min = amounts.reduce((a, b) =>
-		(b.amount as number) < (a.amount as number) ? b : a,
-	);
-	return { ...min, mode: "from", unit: null };
 }
