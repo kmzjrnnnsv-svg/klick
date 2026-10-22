@@ -767,3 +767,87 @@ describe("Ziele: Messintervall", () => {
 		expect(at("2026-10-17", "proposed")).toEqual([]);
 	});
 });
+
+describe("Verwahrung: Abstimmung, Backup-Test, Inhaberschaft", () => {
+	const wallet = {
+		id: "w1",
+		code: "W-01",
+		name: "Kunden Cold",
+		purpose: "client",
+		technology: "multisig",
+		status: "active",
+		nextBackupTestDue: null as string | null,
+		ownerUserId: "u1",
+	};
+	const run = (now: Date, custody: NonNullable<DueRows["custody"]>) =>
+		collectDueItems(now, { ...empty, orgOwnerIds: ["o1"], custody })
+			.notifications;
+
+	it("fehlende Abstimmung des letzten Geschäftstags erst ab 10 Uhr Berlin", () => {
+		// Montag 26.10.2026 — Stichtag Freitag 23.10.
+		const morning = new Date("2026-10-26T07:30:00Z"); // 08:30 Berlin
+		const late = new Date("2026-10-26T10:30:00Z"); // 11:30 Berlin
+		const c = {
+			wallets: [wallet],
+			holders: [],
+			lastReconciliationDay: "2026-10-22",
+		};
+		expect(run(morning, c)).toHaveLength(0);
+		const n = run(late, c);
+		expect(n).toHaveLength(1);
+		expect(n[0]?.dedupeKey).toBe("custody_recon:2026-10-23");
+		expect(n[0]?.recipients.sort()).toEqual(["o1", "u1"]);
+		expect(
+			run(late, { ...c, lastReconciliationDay: "2026-10-23" }),
+		).toHaveLength(0);
+		// ohne Kundenwallet keine Erinnerung
+		expect(
+			run(late, { ...c, wallets: [{ ...wallet, purpose: "own" }] }),
+		).toHaveLength(0);
+	});
+
+	it("Backup-Test 30 Tage vorher, am Tag, danach wöchentlich", () => {
+		const now = new Date("2026-10-22T06:00:00Z");
+		const at = (due: string) =>
+			run(now, {
+				wallets: [{ ...wallet, nextBackupTestDue: due }],
+				holders: [],
+				lastReconciliationDay: "2026-10-21",
+			}).map((n) => n.title);
+		expect(at("2026-11-21")).toEqual([
+			"Backup-Test in 30 Tagen fällig: W-01 Kunden Cold",
+		]);
+		expect(at("2026-10-15")).toEqual([
+			"Backup-Test überfällig: W-01 Kunden Cold",
+		]);
+		expect(at("2026-11-01")).toEqual([]);
+	});
+
+	it("befristete Inhaberschaft 14 Tage vorher und nach Ablauf", () => {
+		const now = new Date("2026-10-22T06:00:00Z");
+		const n = run(now, {
+			wallets: [wallet],
+			holders: [
+				{
+					id: "h1",
+					walletId: "w1",
+					name: "Max",
+					until: "2026-11-05",
+					status: "active",
+				},
+				{
+					id: "h2",
+					walletId: "w1",
+					name: "Eva",
+					until: "2026-10-15",
+					status: "active",
+				},
+			],
+			lastReconciliationDay: "2026-10-21",
+		}).map((x) => x.title);
+		expect(n).toEqual([
+			"Inhaberschaft endet in 14 Tagen: Max (W-01)",
+			"Inhaberschaft abgelaufen: Eva (W-01)",
+		]);
+	});
+});

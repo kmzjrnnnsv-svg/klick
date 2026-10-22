@@ -284,3 +284,28 @@ export function supplierPortalEmail(input: {
 			"Wenn du diese Anfrage nicht erwartest, ignoriere diese Mail und melde dich bei deinem Ansprechpartner.",
 	});
 }
+
+// Trust Center: Zugang zu vertraulichen Unterlagen nach Freigabe. Der Link
+// trägt den Token im Fragment (#klk_trust_…) — ohne Konto, befristet.
+export function trustAccessEmail(input: {
+	url: string;
+	organization: string;
+	name: string;
+	expiresAt: Date;
+}): { subject: string; text: string; html: string } {
+	const validUntil = new Intl.DateTimeFormat("de-DE", {
+		dateStyle: "long",
+		timeZone: "Europe/Berlin",
+	}).format(input.expiresAt);
+	const body = `Hallo ${input.name},\n\n${input.organization} hat deine Anfrage freigegeben. Über den Link siehst du die vertraulichen Unterlagen und kannst sie herunterladen. Ein Konto brauchst du dafür nicht. Der Link ist bis zum ${validUntil} gültig und nur für dich bestimmt — es gilt die Vertraulichkeitserklärung, der du zugestimmt hast.`;
+	return transactionalEmail({
+		subject: `Unterlagen von ${input.organization} freigegeben`,
+		eyebrow: "Trust Center",
+		title: "Deine Anfrage ist freigegeben.",
+		body,
+		bodyHtml: escapeHtml(body).replace(/\n/g, "<br>"),
+		cta: { label: "Unterlagen öffnen", url: input.url },
+		footnote:
+			"Wenn du diese Unterlagen nicht angefragt hast, ignoriere diese Mail.",
+	});
+}

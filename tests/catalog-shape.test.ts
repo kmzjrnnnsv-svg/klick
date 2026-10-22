@@ -40,6 +40,8 @@ describe("catalog shape", () => {
 				"dsgvo",
 				"kwg",
 				"cra",
+				"soc2",
+				"ccss",
 				"uk-fca",
 				"ae-vara",
 				"bh-cbb",

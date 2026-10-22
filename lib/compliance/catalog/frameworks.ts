@@ -230,6 +230,35 @@ export const FRAMEWORKS: CatalogFrameworkMeta[] = [
 		sortOrder: 160,
 		phase: "P6",
 	},
+	{
+		slug: "soc2",
+		name: "SOC 2 (Trust Services Criteria)",
+		version: "AICPA TSC",
+		authority: "AICPA",
+		jurisdiction: "global",
+		description:
+			"Prüfungsbericht über Kontrollen zu Sicherheit, Verfügbarkeit, Vertraulichkeit, Verarbeitungsintegrität und Datenschutz — von Banken, institutionellen Kunden und Partnern häufig verlangt. Freiwillig.",
+		recommendedApproach:
+			"Mit Typ I (Ausgestaltung zum Stichtag) beginnen, dann Typ II über 6–12 Monate. Die Common Criteria decken sich weitgehend mit ISO 27001; optionale Kategorien nur wählen, wenn Kunden sie verlangen.",
+		sourceUrl:
+			"https://www.aicpa-cima.com/topic/audit-assurance/audit-and-assurance-greater-than-soc-2",
+		sortOrder: 170,
+		phase: "P6",
+	},
+	{
+		slug: "ccss",
+		name: "CCSS (CryptoCurrency Security Standard)",
+		version: "C4",
+		authority: "CryptoCurrency Certification Consortium",
+		jurisdiction: "global",
+		description:
+			"Sicherheitsstandard für Systeme, die Kryptowerte verwahren oder Schlüssel verwalten: Schlüsselerzeugung, Wallets, Aufbewahrung, Nutzung, Kompromittierung, Schlüsselinhaber:innen, Prüfungen, Proof of Reserves, Logs. Drei Stufen, freiwillig.",
+		recommendedApproach:
+			"Für Verwahrung mindestens Stufe II anstreben; Wallet-Register und Schlüsselzeremonien sind die zentralen Nachweise und decken zugleich MiCAR Art. 75 ab.",
+		sourceUrl: "https://cryptoconsortium.org/",
+		sortOrder: 180,
+		phase: "P6",
+	},
 	...CORRIDOR_FRAMEWORK_METAS,
 ];
 

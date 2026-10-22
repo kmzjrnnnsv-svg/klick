@@ -256,6 +256,17 @@ export function suggestFrameworks(p: SetupProfile): FrameworkSuggestion[] {
 		"Zertifizierbarer Rahmen für das ISMS — sinnvoll als gemeinsame Basis, freiwillig",
 		financial || cls.nis2 !== "none",
 	);
+	if (p.caspServices.includes("custody"))
+		add(
+			"ccss",
+			"Verwahrung von Kryptowerten: Sicherheitsstandard für Wallets und Schlüssel (CCSS), freiwillig",
+		);
+	if (financial || p.sector === "casp")
+		add(
+			"soc2",
+			"Prüfbericht, den Banken und institutionelle Kunden häufig verlangen (SOC 2), freiwillig",
+			false,
+		);
 	return out;
 }
 

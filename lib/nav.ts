@@ -27,6 +27,7 @@ export type NavLabelKey =
 	| "resolutions"
 	| "audits"
 	| "managementReview"
+	| "trustCenter"
 	| "nonconformities"
 	| "testProgramme"
 	| "calendar"
@@ -34,6 +35,7 @@ export type NavLabelKey =
 	| "aml"
 	| "ownFunds"
 	| "cryptoAssets"
+	| "custody"
 	| "complaints"
 	| "application"
 	| "baseline"
@@ -84,7 +86,9 @@ export type NavIcon =
 	| "book-open"
 	| "users"
 	| "settings"
-	| "activity";
+	| "activity"
+	| "badge-check"
+	| "vault";
 
 export type NavItem = {
 	key: string;
@@ -144,6 +148,9 @@ export function buildNav(input: NavInput): NavGroup[] {
 	const hasAml = [...slugs].some((s) => AML_SLUGS.has(s));
 	const stage = STAGE_INDEX[input.licenceStage];
 	const isAuditor = input.role === "auditor";
+	// Verwahrung: Wallet-Register und Abstimmung bei Verwahrdienst oder CCSS
+	const hasCustody =
+		input.caspServices.includes("custody") || slugs.has("ccss");
 
 	const groups: NavGroup[] = [
 		{
@@ -299,6 +306,12 @@ export function buildNav(input: NavInput): NavGroup[] {
 					icon: "presentation",
 				},
 				{
+					key: "trustCenter",
+					labelKey: "trustCenter",
+					href: "/trust-center",
+					icon: "badge-check",
+				},
+				{
 					key: "nonconformities",
 					labelKey: "nonconformities",
 					href: "/abweichungen",
@@ -326,7 +339,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 		},
 	];
 
-	if ((hasFinance || hasAml || stage >= 1) && !isAuditor) {
+	if ((hasFinance || hasAml || hasCustody || stage >= 1) && !isAuditor) {
 		const items: NavItem[] = [];
 		if (hasAml || hasFinance) {
 			items.push({
@@ -350,6 +363,16 @@ export function buildNav(input: NavInput): NavGroup[] {
 					href: "/kryptowerte",
 					icon: "bitcoin",
 				},
+				...(hasCustody
+					? [
+							{
+								key: "custody",
+								labelKey: "custody" as const,
+								href: "/verwahrung",
+								icon: "vault" as const,
+							},
+						]
+					: []),
 				{
 					key: "complaints",
 					labelKey: "complaints",
@@ -364,6 +387,13 @@ export function buildNav(input: NavInput): NavGroup[] {
 				},
 			);
 		}
+		if (hasCustody && !hasFinance)
+			items.push({
+				key: "custody",
+				labelKey: "custody",
+				href: "/verwahrung",
+				icon: "vault",
+			});
 		if (items.length > 0)
 			groups.push({ key: "casp", labelKey: "groupCasp", items });
 	}

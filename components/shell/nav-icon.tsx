@@ -1,5 +1,6 @@
 import {
 	Activity,
+	BadgeCheck,
 	BookOpen,
 	Building2,
 	Calendar,
@@ -29,6 +30,7 @@ import {
 	TriangleAlert,
 	Truck,
 	Users,
+	Vault,
 	Workflow,
 	Wrench,
 } from "lucide-react";
@@ -68,6 +70,8 @@ const ICONS = {
 	users: Users,
 	settings: Settings,
 	activity: Activity,
+	"badge-check": BadgeCheck,
+	vault: Vault,
 } as const;
 
 export function NavIcon({

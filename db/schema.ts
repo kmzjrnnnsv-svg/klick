@@ -3,6 +3,7 @@
 export * from "./schema/aml";
 export * from "./schema/assessments";
 export * from "./schema/catalog";
+export * from "./schema/custody";
 export * from "./schema/enums";
 export * from "./schema/grc";
 export * from "./schema/inquiries";
@@ -13,3 +14,4 @@ export * from "./schema/products";
 export * from "./schema/registers";
 export * from "./schema/security";
 export * from "./schema/supplier-ratings";
+export * from "./schema/trust";

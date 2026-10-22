@@ -32,7 +32,7 @@ describe("buildNav", () => {
 		expect(groups.find((g) => g.key === "casp")).toBeUndefined();
 		const n = countNavTargets(groups);
 		expect(n).toBeGreaterThanOrEqual(18);
-		expect(n).toBeLessThanOrEqual(28);
+		expect(n).toBeLessThanOrEqual(30);
 	});
 	it("CASP-Org: CASP-Gruppe mit AML, Eigenmittel, Kryptowerte, Beschwerden, Antrag", () => {
 		const groups = buildNav({
@@ -100,5 +100,23 @@ describe("buildNav", () => {
 				.find((g) => g.key === "frameworks")
 				?.items.some((i) => i.href === "/rahmenwerke/iso27001"),
 		).toBe(true);
+	});
+});
+
+describe("buildNav: Verwahrung", () => {
+	it("nur mit Verwahrdienst oder CCSS", () => {
+		const keys = (
+			caspServices: string[],
+			fws: { slug: string; name: string }[],
+		) =>
+			buildNav({
+				frameworks: fws,
+				licenceStage: "0_vorbereitung",
+				caspServices,
+				role: "owner",
+			}).flatMap((g) => g.items.map((i) => i.key));
+		expect(keys(["custody"], [])).toContain("custody");
+		expect(keys([], [{ slug: "ccss", name: "CCSS" }])).toContain("custody");
+		expect(keys(["transfer"], [])).not.toContain("custody");
 	});
 });

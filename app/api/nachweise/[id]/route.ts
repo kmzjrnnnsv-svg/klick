@@ -3,11 +3,10 @@ import { NextResponse } from "next/server";
 import { evidence, orgSettings } from "@/db/schema";
 import { AuthError, requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { isExternal } from "@/lib/auth/memberships";
-import { decryptBytes, unpackEnvelope, unwrapDek } from "@/lib/crypto/envelope";
 import { mutateOrg } from "@/lib/db/with-org";
 import { egressGuard } from "@/lib/dlp/egress";
 import { env } from "@/lib/env";
-import { evidenceAad } from "@/lib/evidence/aad";
+import { attachmentHeaders, decryptEvidenceObject } from "@/lib/evidence/read";
 import { rateLimited } from "@/lib/export/respond";
 
 export const dynamic = "force-dynamic";
@@ -108,25 +107,17 @@ export async function GET(
 	if (payload.kind === "none") return new NextResponse(null, { status: 404 });
 	if (payload.kind === "denied") return new NextResponse(null, { status: 403 });
 
-	const { getBytes } = await import("@/lib/storage/s3");
-	const packed = await getBytes(payload.row.storageKey as string);
-	const dek = await unwrapDek(payload.dek);
-	const plain = await decryptBytes(
-		unpackEnvelope(packed),
-		dek,
-		evidenceAad(id),
-	);
-
-	const fileName = (payload.row.fileName ?? "nachweis").replace(/["\r\n]/g, "");
+	const plain = await decryptEvidenceObject({
+		evidenceId: id,
+		storageKey: payload.row.storageKey as string,
+		dek: payload.dek,
+	});
 	return new NextResponse(new Uint8Array(plain), {
 		status: 200,
-		headers: {
-			"Content-Type": payload.row.mimeType ?? "application/octet-stream",
-			"Content-Disposition": `attachment; filename="${fileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
-			"Content-Length": String(plain.byteLength),
-			"Cache-Control": "private, no-store",
-			"X-Content-Type-Options": "nosniff",
-			"Content-Security-Policy": "sandbox",
-		},
+		headers: attachmentHeaders(
+			payload.row.fileName ?? "nachweis",
+			payload.row.mimeType ?? "application/octet-stream",
+			plain.byteLength,
+		),
 	});
 }

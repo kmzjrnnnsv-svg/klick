@@ -403,6 +403,7 @@ export const NC_SOURCES = [
 	"management_review",
 	"self_identified",
 	"security_finding",
+	"custody_reconciliation",
 ] as const;
 
 export const nonconformitySchema = z.object({

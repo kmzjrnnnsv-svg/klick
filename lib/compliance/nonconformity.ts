@@ -12,7 +12,8 @@ export type NonconformitySource =
 	| "complaint"
 	| "management_review"
 	| "self_identified"
-	| "security_finding";
+	| "security_finding"
+	| "custody_reconciliation";
 
 export type NonconformityDraft = {
 	source: NonconformitySource;

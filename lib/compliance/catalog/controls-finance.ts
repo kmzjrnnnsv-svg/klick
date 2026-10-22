@@ -494,6 +494,97 @@ export const PART_C: CatalogControl[] = [
 		testMethodHint: "inspection",
 		sortOrder: next(),
 	},
+	{
+		code: "CC-KEY-02",
+		title: "Wallet-Architektur: Quorum, Multisig/MPC und verteilte Schlüssel",
+		description:
+			"Jede Wallet hat eine dokumentierte Architektur: Signaturverfahren (Multisig oder MPC), Quorum (m von n), Schlüsselanteile auf mehrere Personen und Standorte verteilt, deterministische Ableitung und ein Wiederherstellungsschlüssel. Kein einzelner Mensch und kein einzelner Ort kann allein über Kundenwerte verfügen.",
+		implementationGuidance:
+			"Wallet-Register mit Typ (hot/warm/cold), Quorum, Schlüsselinhaber:innen und Standorten; Limits je Wallet; Architektur-Entscheidung als gelenktes Dokument.",
+		domain: "crypto",
+		effort: "L",
+		kind: "technical",
+		evidenceHints: [
+			"Wallet-Register",
+			"Quorum- und Limit-Konzept",
+			"Standortverteilung der Schlüsselanteile",
+		],
+		tools: {
+			startup: ["Fireblocks (MPC)", "Safe (Multisig)"],
+			scale: ["Taurus", "Copper", "BitGo"],
+		},
+		recommendations: [
+			{
+				level: "must",
+				text: "Quorum so wählen, dass Ausfall einer Person oder eines Standorts den Zugriff nicht verhindert und keine einzelne Person signieren kann.",
+				source: "intern",
+			},
+		],
+		testMethodHint: "inspection",
+		sortOrder: next(),
+	},
+	{
+		code: "CC-KEY-03",
+		title: "Schlüssel-Backups und Wiederherstellungstests",
+		description:
+			"Für jede Wallet existiert ein verschlüsseltes, zugriffsgeschütztes Backup an einem getrennten Ort, geschützt gegen Umwelteinflüsse; die Wiederherstellung wird regelmäßig geübt und protokolliert.",
+		implementationGuidance:
+			"Backup-Standorte im Wallet-Register, Wiederherstellungstest mindestens jährlich (Testprogramm), Protokoll mit Ergebnis und Beteiligten.",
+		domain: "crypto",
+		effort: "M",
+		kind: "process",
+		evidenceHints: [
+			"Backup-Inventar",
+			"Protokolle der Wiederherstellungstests",
+		],
+		testMethodHint: "reperformance",
+		sortOrder: next(),
+	},
+	{
+		code: "CC-KEY-04",
+		title: "Protokoll bei Schlüsselkompromittierung",
+		description:
+			"Ein Protokoll legt fest, wie bei Verdacht auf kompromittierte Schlüssel gehandelt wird: Sperren, Umbuchen auf neue Wallets, Benachrichtigung, Beweissicherung. Die Beteiligten sind geschult, das Protokoll wird geübt.",
+		implementationGuidance:
+			"Playbook im Vorfallmanagement, Rollen und Erreichbarkeit, Übung mindestens jährlich mit Nachbereitung.",
+		domain: "crypto",
+		effort: "M",
+		kind: "process",
+		evidenceHints: ["Kompromittierungs-Playbook", "Übungsprotokolle"],
+		testMethodHint: "bcm_exercise",
+		sortOrder: next(),
+	},
+	{
+		code: "CC-KEY-05",
+		title: "Vergabe und Entzug von Schlüsselinhaberschaften",
+		description:
+			"Wer einen Schlüssel oder Schlüsselanteil hält, ist dokumentiert; Vergabe und Entzug laufen nach festem Verfahren mit Vier-Augen-Prinzip, beim Austritt oder Rollenwechsel wird der Anteil unverzüglich ersetzt.",
+		implementationGuidance:
+			"Schlüsselinhaber:innen im Wallet-Register, Verknüpfung mit dem Austrittsprozess (Joiner-Mover-Leaver), Hintergrundprüfung für Inhaber:innen.",
+		domain: "crypto",
+		effort: "S",
+		kind: "process",
+		evidenceHints: [
+			"Liste der Schlüsselinhaber:innen",
+			"Protokolle zu Vergabe und Entzug",
+		],
+		testMethodHint: "inspection",
+		sortOrder: next(),
+	},
+	{
+		code: "CC-CUS-04",
+		title: "Proof of Reserves durch unabhängige Dritte",
+		description:
+			"Bestände an Kundenkryptowerten werden regelmäßig durch eine unabhängige Stelle nachgewiesen (On-Chain-Kontrolle der Adressen gegen die Kundenverbindlichkeiten); das Ergebnis wird dokumentiert und kann Kunden gezeigt werden.",
+		implementationGuidance:
+			"Prüfungsauftrag, Adressnachweis per Signatur, Abgleich mit dem Kundenregister zum Stichtag, Veröffentlichung im Trust Center.",
+		domain: "custody",
+		effort: "M",
+		kind: "process",
+		evidenceHints: ["Proof-of-Reserves-Bericht", "Adressnachweise"],
+		testMethodHint: "inspection",
+		sortOrder: next(),
+	},
 
 	// ── Kapital / Meldewesen / Antrag ────────────────────────────────────────
 	{
