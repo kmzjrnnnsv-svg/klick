@@ -162,6 +162,13 @@
       "when": 1792707061949,
       "tag": "0022_wallet_unlock",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792708710341,
+      "tag": "0023_wallet_accounts",
+      "breakpoints": true
     }
   ]
 }

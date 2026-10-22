@@ -40,6 +40,7 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
 	audit_request: "Nachweisanfragen",
 	security_alert: "Sicherheitshinweise",
 	inquiry: "Anfragen",
+	wallet_transfer: "Wallet",
 	digest: "Digest",
 	system: "System",
 };
