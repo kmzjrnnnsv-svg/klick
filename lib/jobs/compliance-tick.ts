@@ -1,4 +1,5 @@
 import type { EntityKind, NotificationKind } from "@/db/schema/enums";
+import { previousBusinessDay } from "@/lib/custody/reconcile";
 
 // Stündlicher Fachjob (ADR-011): sammelt fällige Dinge je Org und leitet
 // daraus Benachrichtigungen, Eskalations-Aufgaben und Status-Übergänge ab.
@@ -205,6 +206,27 @@ export type DueRows = {
 		retestDueAt: Date | string | null;
 		ownerUserId: string | null;
 	}[];
+	/** Verwahrung: Abstimmung, Backup-Tests, befristete Inhaberschaften. */
+	custody?: {
+		wallets: readonly {
+			id: string;
+			code: string;
+			name: string;
+			purpose: string;
+			technology: string;
+			status: string;
+			nextBackupTestDue: string | null;
+			ownerUserId: string | null;
+		}[];
+		holders: readonly {
+			id: string;
+			walletId: string;
+			name: string;
+			until: string | null;
+			status: string;
+		}[];
+		lastReconciliationDay: string | null;
+	};
 	/** Offene Aufgaben (für Dedupe von Eskalationen/Ablauf-Aufgaben). */
 	openTasks: readonly {
 		entityType: string | null;
@@ -290,6 +312,17 @@ function dueWording(now: Date, due: Date): string {
 		return `seit ${Math.abs(days)} Tag${Math.abs(days) === 1 ? "" : "en"} überfällig`;
 	if (days === 0) return "heute fällig";
 	return `fällig in ${days} Tag${days === 1 ? "" : "en"} (${fmtDay(due)})`;
+}
+
+function berlinHour(d: Date): number {
+	const hour = new Intl.DateTimeFormat("de-DE", {
+		hour: "numeric",
+		hourCycle: "h23",
+		timeZone: "Europe/Berlin",
+	})
+		.formatToParts(d)
+		.find((p) => p.type === "hour")?.value;
+	return Number(hour ?? 0);
 }
 
 function recipientsOf(
@@ -743,6 +776,70 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 						: `${label} am ${fmtDay(at)}. Ersatz oder Verlängerung planen.`,
 				link: "/assets?lebenszyklus=1",
 				dedupeKey: `asset_lifecycle:${a.id}:${field}:${days < 0 ? "ended" : mark}`,
+			});
+		}
+	}
+
+	// Verwahrung: fehlende Abstimmung des letzten Geschäftstags (ab 10 Uhr
+	// Berlin), Backup-Test 30 Tage vorher, am Tag und danach wöchentlich,
+	// befristete Inhaberschaft 14 Tage vorher, am Tag und danach wöchentlich.
+	if (rows.custody) {
+		const c = rows.custody;
+		const active = c.wallets.filter((w) => w.status === "active");
+		const clientOwners = active
+			.filter((w) => w.purpose === "client")
+			.map((w) => w.ownerUserId)
+			.filter((u): u is string => Boolean(u));
+		const stichtag = previousBusinessDay(now);
+		if (
+			active.some((w) => w.purpose === "client") &&
+			berlinHour(now) >= 10 &&
+			(!c.lastReconciliationDay || c.lastReconciliationDay < stichtag)
+		)
+			notifications.push({
+				kind: "review_due",
+				recipients: [...new Set([...clientOwners, ...rows.orgOwnerIds])],
+				title: `Abstimmung Kundenvermögen fehlt: ${fmtDay(new Date(`${stichtag}T12:00:00Z`))}`,
+				body: "Bestand on-chain gegen Kundenbuch je Kryptowert erfassen (MiCAR Art. 70, 75).",
+				link: "/verwahrung?tab=abstimmung",
+				dedupeKey: `custody_recon:${stichtag}`,
+			});
+		for (const w of active) {
+			if (w.technology === "sub_custodian") continue;
+			const at = toDate(w.nextBackupTestDue);
+			if (!at) continue;
+			const d = daysUntil(now, at);
+			if (d !== 30 && d !== 0 && !(d < 0 && -d % 7 === 0)) continue;
+			notifications.push({
+				kind: "review_due",
+				recipients: recipientsOf(w.ownerUserId, rows.orgOwnerIds),
+				title:
+					d < 0
+						? `Backup-Test überfällig: ${w.code} ${w.name}`
+						: `Backup-Test ${d === 0 ? "heute" : "in 30 Tagen"} fällig: ${w.code} ${w.name}`,
+				body: "Wiederherstellung aus dem Backup testen und als Zeremonie erfassen (CC-KEY-03).",
+				link: `/verwahrung/${w.id}`,
+				dedupeKey: `wallet_backup:${w.id}:${d}`,
+			});
+		}
+		const byWallet = new Map(active.map((w) => [w.id, w]));
+		for (const h of c.holders) {
+			const w = byWallet.get(h.walletId);
+			if (!w || h.status !== "active") continue;
+			const at = toDate(h.until);
+			if (!at) continue;
+			const d = daysUntil(now, at);
+			if (d !== 14 && d !== 0 && !(d < 0 && -d % 7 === 0)) continue;
+			notifications.push({
+				kind: "review_due",
+				recipients: recipientsOf(w.ownerUserId, rows.orgOwnerIds),
+				title:
+					d < 0
+						? `Inhaberschaft abgelaufen: ${h.name} (${w.code})`
+						: `Inhaberschaft endet ${d === 0 ? "heute" : "in 14 Tagen"}: ${h.name} (${w.code})`,
+				body: "Verlängern oder entziehen und den Schlüssel austauschen (CCSS 1.06).",
+				link: `/verwahrung/${w.id}`,
+				dedupeKey: `key_holder:${h.id}:${d}`,
 			});
 		}
 	}

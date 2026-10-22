@@ -42,6 +42,8 @@ import {
 	tasks,
 	trainingAssignments,
 	trainingRequirements,
+	walletKeyHolders,
+	wallets,
 } from "@/db/schema";
 import { entityOwnersOf, ownerKey } from "@/lib/approvals/entity-owner";
 import { eligibleApprovers } from "@/lib/approvals/rules";
@@ -60,6 +62,7 @@ import {
 } from "@/lib/compliance/incident";
 import { planObligationRuns } from "@/lib/compliance/obligations-service";
 import { getOrgProfile } from "@/lib/compliance/queries";
+import { lastReconciliationDay } from "@/lib/custody/queries";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
 import { logger } from "@/lib/log";
 import {
@@ -591,6 +594,54 @@ async function loadDueRows(
 				),
 			),
 		);
+	const walletRows = await tx
+		.select({
+			id: wallets.id,
+			code: wallets.code,
+			name: wallets.name,
+			purpose: wallets.purpose,
+			technology: wallets.technology,
+			status: wallets.status,
+			nextBackupTestDue: wallets.nextBackupTestDue,
+			ownerUserId: wallets.ownerUserId,
+		})
+		.from(wallets)
+		.where(
+			and(eq(wallets.organizationId, orgId), eq(wallets.status, "active")),
+		);
+	const custody =
+		walletRows.length > 0
+			? {
+					wallets: walletRows,
+					holders: (
+						await tx
+							.select({
+								id: walletKeyHolders.id,
+								walletId: walletKeyHolders.walletId,
+								userName: user.name,
+								externalName: walletKeyHolders.externalName,
+								until: walletKeyHolders.until,
+								status: walletKeyHolders.status,
+							})
+							.from(walletKeyHolders)
+							.leftJoin(user, eq(user.id, walletKeyHolders.userId))
+							.where(
+								and(
+									eq(walletKeyHolders.organizationId, orgId),
+									eq(walletKeyHolders.status, "active"),
+									isNotNull(walletKeyHolders.until),
+								),
+							)
+					).map((h) => ({
+						id: h.id,
+						walletId: h.walletId,
+						name: h.userName || h.externalName || "—",
+						until: h.until,
+						status: h.status,
+					})),
+					lastReconciliationDay: await lastReconciliationDay(tx, orgId),
+				}
+			: undefined;
 	const productRows = await tx
 		.select({
 			id: products.id,
@@ -698,6 +749,7 @@ async function loadDueRows(
 		insurancePolicies: insuranceRows,
 		products: productRows,
 		assets: assetRows,
+		custody,
 		objectives: objectiveRows,
 		securityFindings: findingRows,
 		supplierAssessments: supplierRows,

@@ -19,6 +19,7 @@ import {
 	risks,
 	securityFindings,
 	sites,
+	wallets,
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
 import { assetLifecycle } from "./assets";
@@ -82,6 +83,24 @@ export async function loadRiskSource(
 				providerCritical: r.criticality !== "standard",
 				providerId: r.providerId,
 				detail: r.traffic ? `Ergebnis ${traffic}` : undefined,
+			};
+		}
+		case "wallet": {
+			const [w] = await tx
+				.select()
+				.from(wallets)
+				.where(and(eq(wallets.id, id), eq(wallets.organizationId, orgId)));
+			if (!w) return null;
+			return {
+				...base,
+				name: `${w.code} ${w.name}`,
+				label: `Wallet „${w.code} ${w.name}“`,
+				href: `/verwahrung/${w.id}`,
+				walletKind: w.kind,
+				assetId: w.hsmAssetId ?? undefined,
+				providerId: w.providerId ?? undefined,
+				controlCodes: ["CC-KEY-02", "CC-KEY-03"],
+				detail: `${w.kind}, Quorum ${w.quorumRequired} von ${w.quorumTotal}`,
 			};
 		}
 		case "site": {

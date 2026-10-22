@@ -24,6 +24,7 @@ import {
 	securityFindings,
 	sites,
 	trainingAssignments,
+	wallets,
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
 import { upcomingLegalChanges } from "./catalog/regulatory-calendar";
@@ -594,6 +595,31 @@ export async function loadDateSources(
 			title: `Notfallübung: ${x.name}`,
 			href: "/testprogramm",
 			note: x.lastAt ? `letzte Übung ${x.lastAt}` : undefined,
+		});
+	// Backup-/Wiederherstellungstest je Wallet (CC-KEY-03)
+	const walletRows = await tx
+		.select({
+			id: wallets.id,
+			code: wallets.code,
+			name: wallets.name,
+			nextBackupTestDue: wallets.nextBackupTestDue,
+			ownerUserId: wallets.ownerUserId,
+		})
+		.from(wallets)
+		.where(
+			and(
+				eq(wallets.organizationId, orgId),
+				eq(wallets.status, "active"),
+				isNotNull(wallets.nextBackupTestDue),
+			),
+		);
+	for (const w of walletRows)
+		push({
+			date: w.nextBackupTestDue,
+			kind: "wallet_backup_test",
+			title: `Backup-Test ${w.code} ${w.name}`,
+			href: `/verwahrung/${w.id}`,
+			ownerUserId: w.ownerUserId,
 		});
 	// Schulungen je Fälligkeitstag gebündelt
 	const trainingByDay = new Map<string, number>();
