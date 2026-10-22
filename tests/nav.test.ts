@@ -102,3 +102,21 @@ describe("buildNav", () => {
 		).toBe(true);
 	});
 });
+
+describe("buildNav: Verwahrung", () => {
+	it("nur mit Verwahrdienst oder CCSS", () => {
+		const keys = (
+			caspServices: string[],
+			fws: { slug: string; name: string }[],
+		) =>
+			buildNav({
+				frameworks: fws,
+				licenceStage: "0_vorbereitung",
+				caspServices,
+				role: "owner",
+			}).flatMap((g) => g.items.map((i) => i.key));
+		expect(keys(["custody"], [])).toContain("custody");
+		expect(keys([], [{ slug: "ccss", name: "CCSS" }])).toContain("custody");
+		expect(keys(["transfer"], [])).not.toContain("custody");
+	});
+});

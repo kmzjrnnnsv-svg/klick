@@ -1,6 +1,8 @@
 import { and, eq, inArray } from "drizzle-orm";
+import { member } from "@/db/auth-schema";
 import { audits, frameworks, orgFrameworks, orgSettings } from "@/db/schema";
 import type { RiskMethod } from "@/db/schema/platform";
+import { normalizeRole } from "@/lib/auth/session-rules";
 import { resolveRiskMethod } from "@/lib/compliance/risk-method";
 import type { OrgTx } from "@/lib/db/with-org";
 
@@ -85,4 +87,16 @@ export async function listOpenAuditScopes(tx: OrgTx, orgId: string) {
 				inArray(audits.status, ["planned", "in_progress"]),
 			),
 		);
+}
+
+// Inhaber:innen der Org (Empfänger von Hinweisen ohne eigene Zuständigkeit).
+// member hat kein RLS (ADR-009) — explizit auf die Org filtern.
+export async function orgOwnerIds(tx: OrgTx, orgId: string): Promise<string[]> {
+	const rows = await tx
+		.select({ userId: member.userId, role: member.role })
+		.from(member)
+		.where(eq(member.organizationId, orgId));
+	return rows
+		.filter((m) => normalizeRole(m.role) === "owner")
+		.map((m) => m.userId);
 }

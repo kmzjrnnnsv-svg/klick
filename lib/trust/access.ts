@@ -6,8 +6,8 @@ import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
 import { env } from "@/lib/env";
 import { notify } from "@/lib/notifications/notify";
+import { orgOwnerIds } from "@/lib/org/queries";
 import { requestState } from "./rules";
-import { orgOwnerIds } from "./service";
 
 // Zugang zu NDA-Unterlagen ohne Konto (ADR-017): Token aus dem Link
 // (Fragment → POST) bzw. aus dem Cookie, passend zur Org des Trust Centers

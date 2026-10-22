@@ -75,6 +75,7 @@ const ncFacts: readonly FactDef[] = [
 			"management_review",
 			"self_identified",
 			"security_finding",
+			"custody_reconciliation",
 		],
 	},
 ];

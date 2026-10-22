@@ -30,6 +30,7 @@ import {
 	TriangleAlert,
 	Truck,
 	Users,
+	Vault,
 	Workflow,
 	Wrench,
 } from "lucide-react";
@@ -70,6 +71,7 @@ const ICONS = {
 	settings: Settings,
 	activity: Activity,
 	"badge-check": BadgeCheck,
+	vault: Vault,
 } as const;
 
 export function NavIcon({

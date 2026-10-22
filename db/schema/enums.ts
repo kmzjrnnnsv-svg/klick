@@ -400,6 +400,9 @@ export const ENTITY_KINDS = [
 	"decision_request",
 	// Standort (D2)
 	"site",
+	// Verwahrung: Wallet, tägliche Abstimmung des Kundenvermögens
+	"wallet",
+	"custody_reconciliation",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 

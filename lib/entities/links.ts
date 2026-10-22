@@ -129,6 +129,10 @@ export function entityHref(
 			return "/beschluesse?tab=anfragen";
 		case "site":
 			return "/organisation?tab=standorte";
+		case "wallet":
+			return `/verwahrung/${id}`;
+		case "custody_reconciliation":
+			return "/verwahrung?tab=abstimmung";
 		default:
 			return "/heute";
 	}

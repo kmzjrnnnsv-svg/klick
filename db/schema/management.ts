@@ -306,6 +306,7 @@ export const nonconformities = pgTable(
 				"management_review",
 				"self_identified",
 				"security_finding",
+				"custody_reconciliation",
 			],
 		})
 			.notNull()

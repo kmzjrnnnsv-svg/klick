@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
-import { member, organization } from "@/db/auth-schema";
+import { organization } from "@/db/auth-schema";
 import {
 	documents,
 	documentVersions,
@@ -8,7 +8,6 @@ import {
 	type TrustCenterSettings,
 	trustCenters,
 } from "@/db/schema";
-import { normalizeRole } from "@/lib/auth/session-rules";
 import { controlsForFrameworks } from "@/lib/compliance/catalog";
 import { frameworkNameMap } from "@/lib/compliance/page-data";
 import { orgCoverage } from "@/lib/compliance/queries";
@@ -53,17 +52,6 @@ export async function orgName(tx: OrgTx, orgId: string): Promise<string> {
 		.where(eq(organization.id, orgId))
 		.limit(1);
 	return o?.name ?? "";
-}
-
-// member hat kein RLS (ADR-009) — explizit auf die Org filtern.
-export async function orgOwnerIds(tx: OrgTx, orgId: string): Promise<string[]> {
-	const rows = await tx
-		.select({ userId: member.userId, role: member.role })
-		.from(member)
-		.where(eq(member.organizationId, orgId));
-	return rows
-		.filter((m) => normalizeRole(m.role) === "owner")
-		.map((m) => m.userId);
 }
 
 // Unterauftragnehmer = aktive Dienstleister, die personenbezogene Daten

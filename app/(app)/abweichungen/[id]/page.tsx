@@ -56,6 +56,7 @@ const SOURCE_KIND = {
 	management_review: "management_review",
 	self_identified: null,
 	security_finding: "security_finding",
+	custody_reconciliation: "custody_reconciliation",
 } as const;
 
 export default async function NonconformityDetailPage({
