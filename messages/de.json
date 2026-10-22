@@ -80,7 +80,15 @@
 		"products": "Produkte",
 		"security": "Sicherheit",
 		"trustCenter": "Trust Center",
-		"custody": "Verwahrung"
+		"custody": "Verwahrung",
+		"groupWallet": "Wallet",
+		"walletHome": "Übersicht",
+		"walletReceive": "Empfangen",
+		"walletActivity": "Bewegungen",
+		"walletAccounts": "Konten",
+		"areaLabel": "Bereich",
+		"areaCompliance": "Compliance",
+		"areaWallet": "Wallet"
 	},
 	"Footer": {
 		"tagline": "Maison Klick — Compliance, die zusammenpasst.",
@@ -300,7 +308,8 @@
 		"downloadStarted": "Bestätigt – der Download startet. Du findest die Datei in deinem Download-Ordner.",
 		"downloadBack": "Zurück zur Seite",
 		"accountBlocked": "Dein Konto ist gesperrt. Wende dich an die Person, die dir Zugang gegeben hat.",
-		"accountNotActivated": "Dieses Konto ist noch nicht aktiviert. Öffne den Aktivierungslink, den du bekommen hast, und lege deinen Passkey an."
+		"accountNotActivated": "Dieses Konto ist noch nicht aktiviert. Öffne den Aktivierungslink, den du bekommen hast, und lege deinen Passkey an.",
+		"passkeyTooNew": "Dieser Passkey ist jünger als 72 Stunden. Für die Wallet zählt er erst danach – nimm einen älteren."
 	},
 	"Onboarding": {
 		"title": "Organisation anlegen",
@@ -4617,6 +4626,7 @@
 		"res_aml": "Geldwäsche",
 		"res_own_funds": "Eigenmittel",
 		"res_crypto_asset": "Kryptowerte",
+		"res_wallet": "Wallet",
 		"res_shareholder": "Gesellschafter",
 		"res_export": "Exporte",
 		"res_settings": "Einstellungen",
@@ -4640,7 +4650,9 @@
 		"act_revoke": "widerrufen",
 		"act_assign": "zuweisen",
 		"act_propose": "vorschlagen",
-		"act_export_create": "herunterladen"
+		"act_export_create": "herunterladen",
+		"act_initiate": "Auszahlung anstoßen",
+		"act_manage": "verwalten"
 	},
 	"Roles": {
 		"title": "Rollen & Rechte",
@@ -5284,5 +5296,29 @@
 		"ctaAction": "Zugang anfragen",
 		"ctaLogin": "Schon dabei? Anmelden",
 		"ctaImage": "Abstimmung des Kundenvermögens in Klick"
+	},
+	"Wallet": {
+		"unlockTitle": "Wallet öffnen",
+		"unlockLead": "Der Wallet-Bereich öffnet sich nur mit deinem Passkey. Er bleibt 15 Minuten offen und schließt sich dann von selbst.",
+		"unlockButton": "Mit Passkey öffnen",
+		"unlockBusy": "Warte auf deinen Passkey…",
+		"unlockCancelled": "Abgebrochen. Versuch es noch einmal, wenn du so weit bist.",
+		"unlockFailed": "Das hat nicht geklappt. Versuch es noch einmal.",
+		"unlockNoPasskey": "Du hast noch keinen Passkey. Lege unter Einstellungen → Sicherheit einen an – TOTP oder Mail-Link öffnen die Wallet nicht.",
+		"unlockNoPasskeyLink": "Passkey anlegen",
+		"unlockForbidden": "Diese Sitzung darf die Wallet nicht öffnen.",
+		"unlockNetworkTest": "Testnetz: Signet (Bitcoin) und Sepolia (Ethereum). Hier liegt kein echtes Geld.",
+		"unlockNetworkLive": "Echtes Netz für eigene Bestände ist für diese Organisation freigeschaltet.",
+		"unlockWhy": "Warum der Passkey?",
+		"unlockWhyBody": "Ein Passkey lässt sich nicht abfangen oder auf einer falschen Seite eingeben. TOTP-Codes und Mail-Links zählen hier deshalb nicht.",
+		"unlockBack": "Zurück zu Compliance",
+		"lockedBadge": "Gesperrt",
+		"openFor": "Noch {minutes} Min. offen",
+		"lockNow": "Jetzt sperren",
+		"homeTitle": "Wallet",
+		"homeLead": "Halten und empfangen – Bitcoin, Ether, USDC und EURC. Schlüssel liegen nie in Klick.",
+		"homeTestnet": "Testnetz",
+		"homeEmptyTitle": "Noch kein Konto",
+		"homeEmptyBody": "Sobald ein Konto angelegt ist, siehst du hier Gesamtwert, Konten und die letzten Bewegungen."
 	}
 }

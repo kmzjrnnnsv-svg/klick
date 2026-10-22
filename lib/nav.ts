@@ -41,7 +41,11 @@ export type NavLabelKey =
 	| "baseline"
 	| "team"
 	| "settings"
-	| "activity";
+	| "activity"
+	| "walletHome"
+	| "walletReceive"
+	| "walletAccounts"
+	| "walletActivity";
 
 export type NavGroupKey =
 	| "today"
@@ -51,7 +55,8 @@ export type NavGroupKey =
 	| "governance"
 	| "casp"
 	| "frameworks"
-	| "bottom";
+	| "bottom"
+	| "wallet";
 
 export type NavIcon =
 	| "sun"
@@ -88,7 +93,10 @@ export type NavIcon =
 	| "settings"
 	| "activity"
 	| "badge-check"
-	| "vault";
+	| "vault"
+	| "wallet"
+	| "arrow-down"
+	| "history";
 
 export type NavItem = {
 	key: string;
@@ -108,7 +116,8 @@ export type NavGroup = {
 		| "groupRegisters"
 		| "groupGovernance"
 		| "groupCasp"
-		| "groupFrameworks";
+		| "groupFrameworks"
+		| "groupWallet";
 	items: NavItem[];
 };
 
@@ -473,4 +482,24 @@ export function buildNav(input: NavInput): NavGroup[] {
 
 export function countNavTargets(groups: NavGroup[]): number {
 	return groups.reduce((n, g) => n + g.items.length, 0);
+}
+
+// Wallet-Bereich: eigene, kurze Navigation (Umschalter im Kopf wechselt
+// zwischen Compliance und Wallet). Einträge nur für vorhandene Seiten —
+// Empfangen, Bewegungen und Konten kommen mit wallet_accounts.
+export function buildWalletNav(): NavGroup[] {
+	return [
+		{
+			key: "wallet",
+			labelKey: "groupWallet",
+			items: [
+				{
+					key: "wallet-home",
+					labelKey: "walletHome",
+					href: "/wallet",
+					icon: "wallet",
+				},
+			],
+		},
+	];
 }

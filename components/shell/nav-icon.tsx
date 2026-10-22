@@ -1,5 +1,6 @@
 import {
 	Activity,
+	ArrowDownToLine,
 	BadgeCheck,
 	BookOpen,
 	Building2,
@@ -14,6 +15,7 @@ import {
 	Gavel,
 	GitMerge,
 	GraduationCap,
+	History,
 	Landmark,
 	ListChecks,
 	Lock,
@@ -31,6 +33,7 @@ import {
 	Truck,
 	Users,
 	Vault,
+	Wallet,
 	Workflow,
 	Wrench,
 } from "lucide-react";
@@ -72,6 +75,9 @@ const ICONS = {
 	activity: Activity,
 	"badge-check": BadgeCheck,
 	vault: Vault,
+	wallet: Wallet,
+	"arrow-down": ArrowDownToLine,
+	history: History,
 } as const;
 
 export function NavIcon({

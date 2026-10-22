@@ -108,6 +108,9 @@ export const auth = betterAuth({
 			mfaVerifiedAt: { type: "date", required: false, input: false },
 			lastActiveAt: { type: "date", required: false, input: false },
 			stepUpAt: { type: "date", required: false, input: false },
+			// Wallet-Bereich entsperrt (Passkey, 15 min, je Org)
+			walletUnlockedAt: { type: "date", required: false, input: false },
+			walletUnlockOrgId: { type: "string", required: false, input: false },
 		},
 	},
 

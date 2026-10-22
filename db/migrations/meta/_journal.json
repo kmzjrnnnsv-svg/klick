@@ -155,6 +155,13 @@
       "when": 1792697738425,
       "tag": "0021_custody",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792707061949,
+      "tag": "0022_wallet_unlock",
+      "breakpoints": true
     }
   ]
 }
