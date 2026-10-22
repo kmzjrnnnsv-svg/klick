@@ -1,4 +1,10 @@
-import { type RpcEndpoint, type RpcOptions, rpcBatch, rpcCall } from "./http";
+import {
+	type RpcEndpoint,
+	type RpcOptions,
+	rpcBatch,
+	rpcBatchSettled,
+	rpcCall,
+} from "./http";
 
 // Ethereum-Knoten (Reth mit `trace`-API) über JSON-RPC. ETH-Eingänge kommen
 // aus `trace_filter` (auch Zahlungen aus Verträgen, nicht nur direkte
@@ -78,6 +84,10 @@ export class EthereumRpc {
 
 	batch<T>(calls: { method: string; params: unknown[] }[]): Promise<T[]> {
 		return rpcBatch<T>(this.ep, calls, this.opts);
+	}
+
+	batchSettled<T>(calls: { method: string; params: unknown[] }[]) {
+		return rpcBatchSettled<T>(this.ep, calls, this.opts);
 	}
 
 	async chainId(): Promise<number> {

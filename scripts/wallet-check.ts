@@ -1,16 +1,19 @@
 import { loadEnvFiles } from "../lib/env";
 import { ASSETS } from "../lib/wallet/core/assets";
+import { FEED_CALLS, FEEDS } from "../lib/wallet/core/feeds";
 import { NETWORKS, WALLET_NETWORKS } from "../lib/wallet/core/networks";
 import {
 	EXPECTED_BTC_CHAIN,
 	nodeClientsFromEnv,
 } from "../lib/wallet/node-clients";
+import { decodeAbiString, decodeRoundData } from "../lib/wallet/prices";
 import { hexToNumber } from "../lib/wallet/rpc/ethereum";
 import { RpcError } from "../lib/wallet/rpc/http";
 
 // Prüft die eigenen Knoten des Wallet-Bereichs (Runbook „Wallet: Knoten“):
 // erreichbar, richtige Kette, synchron, nötige APIs, gesperrte Methoden und
-// — bei Ethereum — die fest hinterlegten Token-Verträge (decimals/symbol).
+// — bei Ethereum — die fest hinterlegten Token-Verträge (decimals/symbol)
+// sowie die Chainlink-Kursfeeds (description, 8 Stellen, frische Runde).
 //
 //   pnpm wallet:check
 //
@@ -23,14 +26,6 @@ const bad = (label: string, detail = "") => {
 	failures += 1;
 	console.log(`  ✘ ${label}${detail ? ` — ${detail}` : ""}`);
 };
-
-// ABI-kodierter String (symbol()) → Text
-function abiString(hex: string): string {
-	const data = hex.replace(/^0x/, "");
-	if (data.length < 128) return "";
-	const len = Number.parseInt(data.slice(64, 128), 16);
-	return Buffer.from(data.slice(128, 128 + len * 2), "hex").toString("utf8");
-}
 
 async function main() {
 	loadEnvFiles();
@@ -96,6 +91,39 @@ async function main() {
 					});
 					ok("trace-API verfügbar");
 				}
+				// Chainlink-Feeds: Beschreibung, 8 Stellen, frische Runde
+				for (const feed of FEEDS[network] ?? []) {
+					const desc = decodeAbiString(
+						await rpc.callContract(feed.address, FEED_CALLS.description),
+					);
+					const dec = Number.parseInt(
+						(await rpc.callContract(feed.address, FEED_CALLS.decimals)).slice(
+							2,
+						) || "0",
+						16,
+					);
+					const round = decodeRoundData(
+						await rpc.callContract(feed.address, FEED_CALLS.latestRoundData),
+					);
+					const ageH = round
+						? (Date.now() / 1000 - round.updatedAt) / 3600
+						: null;
+					if (
+						desc === feed.description &&
+						dec === 8 &&
+						ageH !== null &&
+						ageH < 26
+					)
+						ok(
+							`Kurs ${feed.key}`,
+							`${feed.address} · Runde ${Math.round(ageH * 10) / 10} h alt`,
+						);
+					else
+						bad(
+							`Kurs ${feed.key}`,
+							`${feed.address}: „${desc}“, ${dec} Stellen, ${ageH === null ? "keine Runde" : `${Math.round(ageH)} h alt`}`,
+						);
+				}
 				for (const asset of ASSETS[network]) {
 					if (!asset.contract) continue;
 					const call = (data: string) =>
@@ -104,7 +132,7 @@ async function main() {
 						(await call("0x313ce567")).slice(2) || "0",
 						16,
 					);
-					const symbol = abiString(await call("0x95d89b41"));
+					const symbol = decodeAbiString(await call("0x95d89b41"));
 					if (decimals === asset.decimals && symbol === asset.code)
 						ok(
 							`${asset.code}-Vertrag`,

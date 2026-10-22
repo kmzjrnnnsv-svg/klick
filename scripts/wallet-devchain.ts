@@ -15,6 +15,8 @@
  *   :18443/dev/reorg {depth, conflict?}              letzte Blöcke verwerfen
  *   :18545/dev/faucet {address, asset, amount, viaContract?}  amount in Basiseinheiten
  *   :18545/dev/mine {n}
+ * Chainlink-Feeds (Sepolia-Adressen aus lib/wallet/core/feeds.ts) liefern
+ * synthetische Kurse mit Runden alle 3 h — rückwärts abfragbar.
  * Zustand liegt in QA_DIR/devchain.json (überlebt Neustarts).
  *
  *   pnpm wallet:devchain [--auto]
@@ -31,6 +33,7 @@ import {
 import { join } from "node:path";
 import { assetOf } from "../lib/wallet/core/assets";
 import { deriveAddress, parseAccountKey } from "../lib/wallet/core/derive";
+import { FEEDS, type FeedKey } from "../lib/wallet/core/feeds";
 import { QA_DIR } from "./qa/paths";
 
 const BTC_PORT = Number(process.env.DEVCHAIN_BTC_PORT ?? 18443);
@@ -411,6 +414,54 @@ function ethBalance(address: string, asset: string, upTo: number): bigint {
 	return sum;
 }
 
+// Chainlink-Nachbau: Runden alle 3 h seit Juli 2025, Kurs als ruhige
+// Wellen um einen Grundwert (deterministisch, damit Verläufe stabil bleiben)
+const FEED_T0 = Date.UTC(2025, 6, 1) / 1000;
+const FEED_STEP = 3 * 3600;
+const FEED_SHAPE: Record<FeedKey, { base: number; amp: number }> = {
+	"BTC/USD": { base: 64_000, amp: 0.18 },
+	"ETH/USD": { base: 2_600, amp: 0.22 },
+	"USDC/USD": { base: 1, amp: 0.0006 },
+	"EUR/USD": { base: 1.085, amp: 0.025 },
+};
+const FEED_BY_ADDRESS = new Map(
+	(FEEDS.ethereum_sepolia ?? []).map((f) => [lc(f.address), f] as const),
+);
+const word = (v: bigint) =>
+	(v < 0n ? (1n << 256n) + v : v).toString(16).padStart(64, "0");
+function feedAnswer(key: FeedKey, t: number): bigint {
+	const { base, amp } = FEED_SHAPE[key];
+	const d = 86_400;
+	const x =
+		1 +
+		amp * Math.sin((2 * Math.PI * t) / (90 * d)) +
+		(amp / 3) * Math.sin((2 * Math.PI * t) / (11 * d)) +
+		(amp / 12) * Math.sin((2 * Math.PI * t) / (17 * 3600));
+	return BigInt(Math.round(base * x * 1e8));
+}
+function feedRound(key: FeedKey, n: number): string {
+	const t = FEED_T0 + n * FEED_STEP;
+	const id = (1n << 64n) | BigInt(n);
+	return `0x${word(id)}${word(feedAnswer(key, t))}${word(BigInt(t))}${word(BigInt(t))}${word(id)}`;
+}
+function feedCall(key: FeedKey, description: string, data: string): string {
+	const latest = Math.floor((nowSec() - FEED_T0) / FEED_STEP);
+	if (data === "0x313ce567") return `0x${word(8n)}`;
+	if (data === "0x7284e416") {
+		const hex = Buffer.from(description, "utf8").toString("hex");
+		return `0x${word(32n)}${word(BigInt(description.length))}${hex.padEnd(64, "0")}`;
+	}
+	if (data === "0xfeaf968c") return feedRound(key, latest);
+	if (data.startsWith("0x9a6fc8f5")) {
+		const id = BigInt(`0x${data.slice(10)}`);
+		const n = Number(id & ((1n << 64n) - 1n));
+		if (id >> 64n !== 1n || n < 1 || n > latest)
+			throw new RpcFault(-32000, "execution reverted: No data present");
+		return feedRound(key, n);
+	}
+	throw new RpcFault(-32000, "execution reverted");
+}
+
 function ethCall(method: string, params: unknown[]): unknown {
 	const e = state.eth;
 	switch (method) {
@@ -523,6 +574,8 @@ function ethCall(method: string, params: unknown[]): unknown {
 			);
 		case "eth_call": {
 			const call = params[0] as { to: string; data: string };
+			const feed = FEED_BY_ADDRESS.get(lc(call.to));
+			if (feed) return feedCall(feed.key, feed.description, call.data);
 			const code = TOKEN_OF[lc(call.to)];
 			if (!code) throw new RpcFault(-32000, "execution reverted");
 			// decimals() und symbol() wie bei Circle (6 Stellen)

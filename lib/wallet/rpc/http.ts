@@ -192,3 +192,38 @@ export async function rpcBatch<T>(
 		return unwrap<T>(r, c.method, ep.label);
 	});
 }
+
+// Wie rpcBatch, aber Fehler je Aufruf statt Abbruch (z. B. Runden, die ein
+// Vertrag nicht kennt)
+export async function rpcBatchSettled<T>(
+	ep: RpcEndpoint,
+	calls: readonly { method: string; params: unknown[] }[],
+	opts: RpcOptions = {},
+): Promise<({ ok: true; result: T } | { ok: false; error: RpcError })[]> {
+	if (calls.length === 0) return [];
+	const ids = calls.map(() => nextId++);
+	const parsed = await post(
+		ep,
+		calls.map((c, i) => ({
+			jsonrpc: opts.version ?? "2.0",
+			id: ids[i],
+			method: c.method,
+			params: c.params,
+		})),
+		opts,
+	);
+	if (!Array.isArray(parsed))
+		throw new RpcError("parse", `${ep.label}: Batch-Antwort ist keine Liste`);
+	const byId = new Map(
+		(parsed as RpcResponse[]).map((r) => [Number(r.id), r] as const),
+	);
+	return calls.map((c, i) => {
+		const r = byId.get(ids[i] as number);
+		try {
+			if (!r) throw new RpcError("parse", `${ep.label} ${c.method}: fehlt`);
+			return { ok: true as const, result: unwrap<T>(r, c.method, ep.label) };
+		} catch (e) {
+			return { ok: false as const, error: e as RpcError };
+		}
+	});
+}

@@ -9,8 +9,18 @@ import {
 } from "drizzle-orm/pg-core";
 import type { AssetCode } from "../../lib/wallet/core/assets";
 import { WALLET_NETWORKS } from "../../lib/wallet/core/networks";
+import { user } from "../auth-schema";
 import { orgPolicy } from "../rls";
-import { createdAt, json, orgId, pk, timestamps, ts, userRef } from "./_shared";
+import {
+	createdAt,
+	json,
+	orgId,
+	pk,
+	stringList,
+	timestamps,
+	ts,
+	userRef,
+} from "./_shared";
 import { wallets } from "./custody";
 
 // Wallet-Bereich (Plan Wallet, Phase 1): Konten je Netz aus einem
@@ -175,7 +185,55 @@ export const sanctionedAddresses = pgTable(
 	(t) => [unique().on(t.chain, t.address, t.source)],
 );
 
+// Kurse aus Chainlink-Feeds über den eigenen Knoten (Plattform, ohne
+// Org-Bezug, kein RLS — Zugriff über lib/db/prices.ts). Eine Zeile je Runde.
+export const priceTicks = pgTable(
+	"price_ticks",
+	{
+		id: pk(),
+		feed: text().notNull(),
+		network: text({ enum: WALLET_NETWORKS }).notNull(),
+		roundId: text().notNull(),
+		// Antwort des Feeds (ganzzahlig) und seine Nachkommastellen
+		answer: text().notNull(),
+		decimals: integer().notNull(),
+		updatedAt: ts().notNull(),
+		createdAt: createdAt(),
+	},
+	(t) => [
+		unique().on(t.feed, t.network, t.roundId),
+		index("price_ticks_feed_time_idx").on(t.feed, t.updatedAt),
+	],
+);
+
+// Persönliche Einstellungen im Wallet-Bereich: Watchlist und Stand der
+// geführten Einführung (je Person und Org).
+export const walletPreferences = pgTable(
+	"wallet_preferences",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		userId: uuid()
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		pairs: stringList(),
+		introStep: text(),
+		introCompletedAt: ts(),
+		introDeferredAt: ts(),
+		updatedAt: ts()
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(t) => [
+		unique().on(t.organizationId, t.userId),
+		orgPolicy("wallet_preferences"),
+	],
+).enableRLS();
+
 export type WalletAccount = typeof walletAccounts.$inferSelect;
 export type WalletAddress = typeof walletAddresses.$inferSelect;
 export type WalletTransfer = typeof walletTransfers.$inferSelect;
 export type SanctionedAddress = typeof sanctionedAddresses.$inferSelect;
+export type PriceTick = typeof priceTicks.$inferSelect;
+export type WalletPreferences = typeof walletPreferences.$inferSelect;

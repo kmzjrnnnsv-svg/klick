@@ -14,6 +14,7 @@ import { configuredNetworks } from "@/lib/wallet/node-clients";
 import { runComplianceTick } from "./compliance-tick-runner";
 import { runDigest, runImmediateMails } from "./digest";
 import { runPostureSnapshot } from "./posture";
+import { runPriceTick } from "./price-tick";
 import { runRetention } from "./retention";
 import { runStorageOrphans, runStoragePurge } from "./storage";
 import { runWalletSync } from "./wallet-sync";
@@ -31,6 +32,8 @@ import { runWalletSync } from "./wallet-sync";
 //   storage-orphans    So 04:30    Objekte ohne Nachweis-Zeile in die Purge-Warteschlange
 //   wallet-sync        jede Minute Bewegungen und Stand der Wallet-Konten von den
 //                                  eigenen Knoten (nur mit WALLET_RPC_*, eine Instanz)
+//   price-tick         jede Minute Chainlink-Kurse über den eigenen Ethereum-Knoten
+//                                  (+ Verlauf rückwärts auffüllen, eine Instanz)
 
 export const JOBS = {
 	complianceTick: "compliance-tick",
@@ -43,6 +46,7 @@ export const JOBS = {
 	storageOrphans: "storage-orphans",
 	quickCheck: QUICK_CHECK_JOB,
 	walletSync: "wallet-sync",
+	priceTick: "price-tick",
 } as const;
 
 const TZ = "Europe/Berlin";
@@ -52,7 +56,9 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 		// wallet-sync: nie zwei Läufe gleichzeitig (Knoten-Abfragen dauern)
 		await boss.createQueue(
 			name,
-			name === JOBS.walletSync ? { policy: "singleton" } : undefined,
+			name === JOBS.walletSync || name === JOBS.priceTick
+				? { policy: "singleton" }
+				: undefined,
 		);
 	}
 
@@ -64,9 +70,13 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.schedule(JOBS.verifyAuditChain, "0 4 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.storagePurge, "30 3 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.storageOrphans, "30 4 * * 0", {}, { tz: TZ });
-	if (configuredNetworks().length > 0)
+	const networks = configuredNetworks();
+	if (networks.length > 0)
 		await boss.schedule(JOBS.walletSync, "* * * * *", {}, { tz: TZ });
 	else await boss.unschedule(JOBS.walletSync).catch(() => {});
+	if (networks.some((n) => n.startsWith("ethereum")))
+		await boss.schedule(JOBS.priceTick, "* * * * *", {}, { tz: TZ });
+	else await boss.unschedule(JOBS.priceTick).catch(() => {});
 
 	await boss.work(JOBS.complianceTick, async () => {
 		await runComplianceTick();
@@ -96,6 +106,9 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	});
 	await boss.work(JOBS.walletSync, async () => {
 		await runWalletSync();
+	});
+	await boss.work(JOBS.priceTick, async () => {
+		await runPriceTick();
 	});
 	// Schnellcheck auf Anfrage: höchstens zwei gleichzeitig je Prozess
 	await boss.work<QuickCheckJob>(
