@@ -20,3 +20,9 @@ ignoredBuiltDependencies:
 auditConfig:
   ignoreGhsas:
     - GHSA-ch52-4w7c-c8xp
+
+# Transitive Dev-Abhängigkeiten auf gepatchte Versionen heben (Cooldown gilt).
+# ip-address via @cyclonedx/cyclonedx-npm → libxmljs2 → node-gyp → socks:
+# GHSA-rxp7-6hxx-x8q5, behoben in 10.7.4.
+overrides:
+  ip-address: ^10.7.4
