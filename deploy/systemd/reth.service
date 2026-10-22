@@ -1,0 +1,41 @@
+# /etc/systemd/system/reth.service — Ethereum-Ausführungsknoten (Reth) für
+# den Wallet-Bereich. JSON-RPC (eth, net, web3, trace) nur auf WireGuard.
+[Unit]
+Description=Reth (Klick Wallet-Knoten)
+After=network-online.target wg-quick@wg0.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=reth
+Group=reth
+SupplementaryGroups=ethjwt
+EnvironmentFile=/etc/ethereum/node.env
+ExecStart=/usr/local/bin/reth node --chain ${ETH_NETWORK} --datadir /var/lib/reth \
+  --http --http.addr ${NODE_WG_IP} --http.port ${RPC_PORT} --http.api eth,net,web3,trace \
+  --authrpc.addr 127.0.0.1 --authrpc.port 8551 --authrpc.jwtsecret /etc/ethereum/jwt.hex
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=600
+OnFailure=klick-alert@%n.service
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+SystemCallFilter=@system-service
+UMask=0077
+ReadWritePaths=/var/lib/reth
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

@@ -76,6 +76,12 @@ export class BitcoinRpc {
 		});
 	}
 
+	// Beliebige Methode ohne Wallet-Pfad (nur für Prüfungen, z. B. ob die
+	// rpcwhitelist nicht erlaubte Methoden abweist)
+	probe(method: string): Promise<unknown> {
+		return this.call(method, []);
+	}
+
 	blockchainInfo() {
 		return this.call<{
 			chain: BtcChain;

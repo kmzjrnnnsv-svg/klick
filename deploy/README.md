@@ -287,3 +287,64 @@ Datei.
 muss per DNS-TXT (`_klick-sso.<domain>`) verifiziert werden, bevor Logins möglich sind.
 Redirect-URI im IdP: `https://raza.work/api/auth/sso/callback/<providerId>`. Nutzer:innen der
 Domain werden als Mitglied (viewer) provisioniert; MFA-Pflicht und Sitzungsregeln gelten.
+
+## Wallet: Knoten, Sync, Sanktionsliste (Plan Wallet, Phase 0/1)
+Der Wallet-Bereich liest nur eigene Knoten (kein Infura, kein Explorer). Klick kennt nie private
+Schlüssel — Konten entstehen aus dem öffentlichen Kontoschlüssel (xpub/zpub/tpub/vpub). Erst
+Testnetz (Signet, Sepolia); das echte Netz bleibt gesperrt, bis Phase 3 die signierte Richtlinie
+bringt.
+
+1. **Knoten-Server** (eigene Maschine, nicht der App-Server): Signet unter 20 GB, Sepolia-Archiv
+   einige hundert GB SSD (PRÜFEN beim Bestellen), später echtes Netz rund 2 TB + 1 TB.
+2. **WireGuard** auf beiden Servern: `deploy/wireguard/wg0-app.conf.example` (App, 10.8.0.1) und
+   `wg0-nodes.conf.example` (Knoten, 10.8.0.2); `systemctl enable --now wg-quick@wg0`. Firewall
+   des Knoten-Servers: `deploy/wireguard/firewall-nodes.nft` (`<APP_PUBLIC_IP>` ersetzen) — RPC
+   nur aus dem Tunnel vom App-Server, P2P offen.
+3. **Bitcoin Core:** `BITCOIN_VERSION=<aktuell> NODE_WG_IP=10.8.0.2 APP_WG_IP=10.8.0.1
+   CHAIN=signet deploy/nodes/setup-bitcoind.sh` — prüft SHA256SUMS mit mindestens drei
+   Builder-Signaturen (guix.sigs), setzt `txindex`, `rpcauth` und `rpcwhitelist` (nur die
+   Methoden, die Klick nutzt; alles andere → HTTP 403) und gibt die `WALLET_RPC_BITCOIN_SIGNET`-
+   URL aus. Fortschritt im Log: `grep UpdateTip /var/lib/bitcoind/signet/debug.log | tail -1`
+   (RPC nimmt nur den App-Server über den Tunnel an; `pnpm wallet:check` dort zeigt den Stand).
+4. **Ethereum (Sepolia):** Versionen und Signatur-Fingerabdrücke von den Release-Seiten von Reth
+   und Lighthouse übernehmen, dann `RETH_VERSION=… LIGHTHOUSE_VERSION=… RETH_GPG_FPR=…
+   LIGHTHOUSE_GPG_FPR=… NODE_WG_IP=10.8.0.2 deploy/nodes/setup-ethereum.sh`. Nach dem Sync den
+   finalisierten Checkpoint gegen zwei unabhängige Quellen prüfen:
+   `SOURCES="https://… https://…" deploy/nodes/verify-checkpoint.sh` (muss „stimmt überein“
+   melden, sonst Knoten nicht verwenden).
+5. **App anbinden:** je Netz die URL als Credential ablegen
+   (`printf %s '<url>' | systemd-creds encrypt --name=wallet_rpc_bitcoin_signet -
+   /etc/credstore.encrypted/wallet_rpc_bitcoin_signet`, ebenso `wallet_rpc_ethereum_sepolia`),
+   `deploy/systemd/klick.service.d/wallet.conf.example` nach
+   `/etc/systemd/system/klick.service.d/wallet.conf`, `systemctl daemon-reload && systemctl
+   restart klick`. Der Job `wallet-sync` läuft dann jede Minute (nur mit gesetzten URLs).
+6. **Prüfen:** `WALLET_RPC_BITCOIN_SIGNET="$(systemd-creds decrypt
+   /etc/credstore.encrypted/wallet_rpc_bitcoin_signet -)" WALLET_RPC_ETHEREUM_SEPOLIA="…" pnpm
+   wallet:check` — Kette, Sync, Finalität, trace-API, rpcwhitelist (403) und die hinterlegten
+   USDC-/EURC-Verträge (`decimals`/`symbol`). Vertragsadressen zusätzlich gegen die offizielle
+   Liste von Circle prüfen, bevor das echte Netz freigeschaltet wird.
+7. **Sanktionsliste:** `pnpm wallet:sanctions --fetch` einmal von Hand, dann
+   `deploy/systemd/klick-sanctions.{service,timer}` installieren und `systemctl enable --now
+   klick-sanctions.timer` (täglich 05:20). Jeder Import steht als `sanctions.list_imported` im
+   Plattform-Audit; eine leere oder kaputte Datei bricht ab, ohne die Liste zu leeren. Treffer
+   bei einem Eingang: Betrag eingefroren, `security_alert` an alle mit Wallet-Zugriff.
+8. **Abnahme im Testnetz** (Plan „Ziel: eine funktionierende Wallet“): Konto unter Wallet →
+   Konten aus der xpub der Hardware-Wallet/Sparrow anlegen, erste Adresse auf dem Gerät
+   vergleichen, Signet-/Sepolia-Coins und Test-USDC/EURC aus den Faucets empfangen, Bestand und
+   Bewegungen prüfen, Kundenkonto (Zweck „Kundengelder“) in der täglichen Abstimmung unter
+   `/verwahrung` mit vorbelegtem On-Chain-Bestand (Blockhöhe/Hash) speichern.
+9. **Knoten neu aufgesetzt:** Beobachtungs-Wallets entstehen neu, wenn Klick sie für nicht
+   eingerichtet hält: `update wallet_accounts set node_ready = false, sync_cursor = null where
+   network = 'bitcoin_signet';` (als `klick_migrator`, danach rescannt der Knoten ab
+   `history_from`). Ethereum braucht nichts — der Job liest ab `sync_height` weiter.
+10. **Störungen:** Abgleichsfehler stehen am Konto („Abgleich gestört: …“) und im Journal
+    (`wallet sync failed`). Leitet der Knoten andere Adressen ab als Klick, hält das Konto an
+    (`wallet.node_mismatch`, `security_alert`) — Kontoschlüssel und Knoten-Konfiguration prüfen,
+    nicht einfach zurücksetzen.
+
+**Lokal ohne Knoten:** `pnpm wallet:devchain` (Nachbau von Bitcoin Core und Reth mit Faucet,
+Blöcken, Reorg; Steuerung über `POST :18443/dev/…` bzw. `:18545/dev/…`) und in `.env.local`
+`WALLET_RPC_BITCOIN_SIGNET=http://dev:dev@127.0.0.1:18443`,
+`WALLET_RPC_ETHEREUM_SEPOLIA=http://127.0.0.1:18545`. `scripts/qa/wallet-smoke.ts` spielt damit
+Entsperren und Empfangen komplett durch. Die Testkette ersetzt nicht die Abnahme mit echten
+Knoten.

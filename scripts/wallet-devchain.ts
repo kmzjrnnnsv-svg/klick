@@ -175,6 +175,22 @@ function parseDesc(desc: string): { tpub: string; branch: number } {
 	return { tpub: m[1] as string, branch: Number(m[2]) };
 }
 
+// Methoden, die Klick braucht (= rpcwhitelist in deploy/nodes)
+const BTC_METHODS = new Set([
+	"getblockchaininfo",
+	"listwallets",
+	"loadwallet",
+	"createwallet",
+	"getdescriptorinfo",
+	"importdescriptors",
+	"deriveaddresses",
+	"listsinceblock",
+	"gettransaction",
+	"getrawtransaction",
+	"getbalance",
+	"getbalances",
+]);
+
 function btcCall(
 	method: string,
 	params: unknown[],
@@ -315,9 +331,12 @@ function btcCall(
 			};
 		}
 		default:
-			throw new RpcFault(-32601, `Method not found: ${method}`);
+			// wie rpcwhitelist in Bitcoin Core: HTTP 403 ohne Inhalt
+			throw new Forbidden();
 	}
 }
+
+class Forbidden extends Error {}
 
 function mineBtc(n: number) {
 	for (let i = 0; i < n; i += 1) {
@@ -505,7 +524,14 @@ function ethCall(method: string, params: unknown[]): unknown {
 		case "eth_call": {
 			const call = params[0] as { to: string; data: string };
 			const code = TOKEN_OF[lc(call.to)];
-			if (!code || !call.data.startsWith("0x70a08231"))
+			if (!code) throw new RpcFault(-32000, "execution reverted");
+			// decimals() und symbol() wie bei Circle (6 Stellen)
+			if (call.data === "0x313ce567") return pad(h(6));
+			if (call.data === "0x95d89b41") {
+				const hex = Buffer.from(code, "utf8").toString("hex");
+				return `0x${"20".padStart(64, "0")}${h(code.length).slice(2).padStart(64, "0")}${hex.padEnd(64, "0")}`;
+			}
+			if (!call.data.startsWith("0x70a08231"))
 				throw new RpcFault(-32000, "execution reverted");
 			const addr = `0x${call.data.slice(-40)}`;
 			return pad(h(ethBalance(addr, code, resolveTag(params[1] as string))));
@@ -637,6 +663,21 @@ const btcServer = createServer(async (req, res) => {
 		return send(res, 404, "{}");
 	}
 	const wallet = /^\/wallet\/([^/]+)/.exec(url)?.[1];
+	// rpcwhitelist-Nachbau: nicht erlaubte Methode → 403 ohne Inhalt
+	try {
+		const probe = JSON.parse(text) as { method?: string };
+		if (
+			!Array.isArray(probe) &&
+			probe.method &&
+			!BTC_METHODS.has(probe.method)
+		) {
+			res.writeHead(403);
+			res.end();
+			return;
+		}
+	} catch {
+		// ungültiges JSON beantwortet handleRpc
+	}
 	const out = handleRpc(
 		text,
 		(m, p) => btcCall(m, p, wallet ? decodeURIComponent(wallet) : null),

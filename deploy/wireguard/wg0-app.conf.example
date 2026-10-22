@@ -1,0 +1,14 @@
+# /etc/wireguard/wg0.conf auf dem App-Server (Klick). Nur Tunnel zum
+# Knoten-Server; kein Standard-Routing über den Tunnel.
+#   wg genkey | tee /etc/wireguard/app.key | wg pubkey > /etc/wireguard/app.pub
+#   chmod 600 /etc/wireguard/app.key; systemctl enable --now wg-quick@wg0
+[Interface]
+Address = 10.8.0.1/32
+PrivateKey = <inhalt von /etc/wireguard/app.key>
+
+[Peer]
+# Knoten-Server
+PublicKey = <inhalt von nodes.pub>
+Endpoint = <öffentliche IP des Knoten-Servers>:51820
+AllowedIPs = 10.8.0.2/32
+PersistentKeepalive = 25

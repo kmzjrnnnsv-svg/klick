@@ -1,0 +1,9 @@
+# /etc/systemd/system/klick.service.d/wallet.conf — nur wenn der Wallet-Bereich
+# eigene Knoten nutzt. Je Netz eine Zeile; die URL enthält die RPC-Zugangsdaten
+# und liegt deshalb verschlüsselt als Credential vor:
+#   printf %s 'http://klick:…@10.8.0.2:38332' | systemd-creds encrypt \
+#     --name=wallet_rpc_bitcoin_signet - /etc/credstore.encrypted/wallet_rpc_bitcoin_signet
+# klick-start.sh exportiert sie als WALLET_RPC_BITCOIN_SIGNET usw.
+[Service]
+LoadCredentialEncrypted=wallet_rpc_bitcoin_signet:/etc/credstore.encrypted/wallet_rpc_bitcoin_signet
+LoadCredentialEncrypted=wallet_rpc_ethereum_sepolia:/etc/credstore.encrypted/wallet_rpc_ethereum_sepolia

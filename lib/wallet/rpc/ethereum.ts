@@ -140,6 +140,15 @@ export class EthereumRpc {
 		return this.call<Hex>("eth_getBalance", [address, tag]).then(hexToBigInt);
 	}
 
+	// Lesender Vertragsaufruf (eth_call) mit fertiger Aufrufkodierung
+	callContract(
+		contract: string,
+		data: string,
+		tag: "latest" | "finalized" = "latest",
+	): Promise<Hex> {
+		return this.call<Hex>("eth_call", [{ to: contract, data }, tag]);
+	}
+
 	// ERC-20 balanceOf(address)
 	tokenBalance(
 		contract: string,
