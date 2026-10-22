@@ -17,7 +17,7 @@
  *   :18545/dev/mine {n}
  * Zustand liegt in QA_DIR/devchain.json (überlebt Neustarts).
  *
- *   pnpm exec tsx scripts/wallet-devchain.ts [--auto]
+ *   pnpm wallet:devchain [--auto]
  *   WALLET_RPC_BITCOIN_SIGNET=http://dev:dev@127.0.0.1:18443
  *   WALLET_RPC_ETHEREUM_SEPOLIA=http://127.0.0.1:18545
  */

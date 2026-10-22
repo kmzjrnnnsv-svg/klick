@@ -162,6 +162,12 @@ export type ReconciliationLine = {
 	onChain: string;
 	ledger: string;
 	tolerance: string;
+	// gesetzt vom Server, wenn der Bestand on-chain genau dem Stand der
+	// eigenen Knoten entspricht (Blockhöhe/Hash je Netz)
+	source?: {
+		kind: "node";
+		refs: { network: string; height: number; hash: string; at: string }[];
+	} | null;
 };
 
 // Tägliche Abstimmung des Kundenvermögens (MiCAR Art. 70 Abs. 1, Art. 75

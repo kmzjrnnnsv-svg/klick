@@ -20,6 +20,7 @@ import {
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { encryptJson } from "@/lib/crypto/org-dek";
+import { parseDecimal } from "@/lib/custody/decimal";
 import { holderLocationAad, implementationIdFor } from "@/lib/custody/queries";
 import { reconcile, reviewerAllowed } from "@/lib/custody/reconcile";
 import { nextBackupTestDue, nextWalletCode } from "@/lib/custody/wallet-rules";
@@ -35,6 +36,8 @@ import {
 	revokeKeyHolderSchema,
 	walletSchema,
 } from "@/lib/validation/custody";
+import { listWalletAccounts } from "@/lib/wallet/queries";
+import { nodeHoldings } from "@/lib/wallet/reconcile-source";
 
 // Verwahrung (MiCAR Art. 70/75, CCSS): Wallet-Register, Schlüssel-
 // inhaber:innen, Zeremonien und die tägliche Abstimmung des
@@ -315,8 +318,17 @@ async function saveReconciliationImpl(
 			.limit(1);
 		if (before?.status === "reviewed")
 			return { result: { ok: false, error: "already_reviewed" }, audit: [] };
+		// Bestand on-chain = Stand der eigenen Knoten? Dann mit Blockhöhe/Hash
+		// als Quelle speichern (vom Server, nie aus der Eingabe)
+		const holdings = nodeHoldings(await listWalletAccounts(tx, c.orgId));
+		const lines = d.lines.map((l) => {
+			const h = holdings.find((x) => x.symbol === l.symbol);
+			return h && parseDecimal(h.onChain) === parseDecimal(l.onChain)
+				? { ...l, source: { kind: "node" as const, refs: h.sources } }
+				: { ...l, source: null };
+		});
 		const values = {
-			lines: d.lines,
+			lines,
 			status: result.status,
 			shortfall: result.shortfall,
 			explanation: d.explanation,

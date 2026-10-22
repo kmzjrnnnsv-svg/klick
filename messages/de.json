@@ -5247,7 +5247,8 @@
 		"errorFourEyes": "Prüfen muss eine andere Person als die, die erfasst hat.",
 		"errorExplanation": "Bitte die Differenz erklären.",
 		"controlsTitle": "Belegte Controls",
-		"controlNotInScope": "nicht im Umfang"
+		"controlNotInScope": "nicht im Umfang",
+		"nodePrefill": "On-Chain vorbelegt aus den eigenen Knoten (Kundenkonten im Wallet-Bereich): {list}. Änderst du den Wert, zählt er als Handeingabe."
 	},
 	"Features": {
 		"metaTitle": "Funktionen und Abläufe",
