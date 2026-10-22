@@ -22,6 +22,12 @@ export async function MarketingHeader({
 				</Link>
 				<nav className="hidden items-center gap-6 sm:flex">
 					<Link
+						href="/funktionen"
+						className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
+					>
+						{tf("features")}
+					</Link>
+					<Link
 						href="/leistungen"
 						className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
 					>
