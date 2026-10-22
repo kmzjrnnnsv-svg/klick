@@ -1,0 +1,456 @@
+/* /preise — eine Regel, groß gesagt: „Du zahlst, wenn du bestanden hast.“
+   Gleiche Tokens wie /funktionen und /leistungen; Flächen statt Linien. */
+
+.page {
+	--edge: 32px;
+	--s1: clamp(52px, 5.2vw, 80px);
+	--s2: clamp(34px, 3.6vw, 56px);
+	--s3: clamp(24px, 2.2vw, 30px);
+	--s4: 17px;
+	--s5: 13px;
+	--soft: var(--muted-foreground);
+	--field: var(--muted);
+	background: var(--background);
+	color: var(--foreground);
+	font-size: var(--s4);
+	line-height: 1.5;
+	overflow-x: clip;
+}
+.page h1,
+.page h2,
+.page h3 {
+	margin: 0;
+	font-weight: 500;
+	text-wrap: balance;
+}
+.page p {
+	margin: 0;
+}
+.h2 {
+	font-family: var(--font-serif);
+	font-size: var(--s2);
+	line-height: 1.05;
+	letter-spacing: -0.01em;
+}
+
+.button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 48px;
+	padding: 0 22px;
+	border-radius: 6px;
+	background: var(--primary);
+	color: var(--primary-foreground);
+	font-weight: 500;
+	text-decoration: none;
+	transition:
+		transform 160ms ease,
+		opacity 160ms ease;
+	touch-action: manipulation;
+}
+.button:hover {
+	transform: translateY(-2px);
+}
+.button:active {
+	transform: translateY(0) scale(0.98);
+}
+.buttonQuiet {
+	background: var(--foreground);
+	color: var(--background);
+}
+.buttonInverse {
+	background: var(--background);
+	color: var(--foreground);
+}
+.button:focus-visible,
+.textLink:focus-visible,
+.faqQ:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 3px;
+}
+.textLink {
+	color: var(--foreground);
+	font-weight: 500;
+	text-decoration: underline;
+	text-underline-offset: 5px;
+	text-decoration-thickness: 1px;
+	transition: opacity 160ms ease;
+}
+.textLink:hover {
+	opacity: 0.65;
+}
+
+/* ── Einstieg mit Zeitleiste ──────────────────────────────────────────── */
+.hero {
+	display: grid;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	column-gap: 24px;
+	align-items: center;
+	min-height: calc(100svh - 56px);
+	padding: 48px var(--edge) 72px;
+}
+.heroText {
+	grid-column: 1 / 7;
+}
+.heroTitle {
+	font-family: var(--font-serif);
+	font-size: var(--s1);
+	line-height: 0.98;
+	letter-spacing: -0.02em;
+}
+.heroLead {
+	max-width: 44ch;
+	margin-top: 24px !important;
+}
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px 28px;
+	margin-top: 32px;
+}
+.timeline {
+	grid-column: 8 / 13;
+	display: grid;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.stop {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 20px 28px;
+}
+.stopDue {
+	padding: 40px 28px;
+	border-radius: 6px;
+	background: var(--brown);
+	color: var(--brown-foreground);
+	transform-origin: 0 50%;
+	animation: lift 900ms 400ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes lift {
+	from {
+		transform: scale(0.96);
+	}
+}
+.stopAt {
+	font-family: var(--font-serif);
+	font-size: var(--s3);
+	line-height: 1.15;
+}
+.stopDue .stopAt {
+	font-size: var(--s2);
+	line-height: 1.05;
+}
+
+/* ── Drei Regeln ──────────────────────────────────────────────────────── */
+.terms {
+	padding: 120px var(--edge) 0;
+}
+.termList {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+	margin: 32px 0 0;
+	padding: 0;
+	list-style: none;
+}
+.term {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-height: 340px;
+	padding: 28px;
+	border-radius: 6px;
+	color: var(--primary-foreground);
+}
+.toneBlue {
+	background: var(--primary);
+}
+.toneBrown {
+	background: var(--brown);
+	color: var(--brown-foreground);
+}
+.toneSky {
+	background: var(--accent);
+	color: var(--accent-foreground);
+}
+.termTitle {
+	font-family: var(--font-serif);
+	font-size: var(--s3);
+	line-height: 1.15;
+}
+.termPrice {
+	margin-top: auto !important;
+	padding-top: 24px;
+	font-family: var(--font-serif);
+	font-size: var(--s2);
+	line-height: 1.05;
+	font-variant-numeric: tabular-nums;
+}
+.termWhen {
+	font-weight: 500;
+}
+
+/* ── Prüfungsreife ────────────────────────────────────────────────────── */
+.readiness {
+	display: grid;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	column-gap: 24px;
+	align-items: center;
+	padding: 160px var(--edge) 0;
+}
+.readinessText {
+	grid-column: 1 / 5;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.readinessPic {
+	grid-column: 6 / 13;
+	margin: 0 calc(var(--edge) * -1) 0 0;
+	padding: 40px 0 40px 40px;
+	background: var(--brown);
+	clip-path: polygon(0 56px, 56px 0, 100% 0, 100% 100%, 0 100%);
+}
+.readinessPic img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: 6px 0 0 6px;
+}
+
+/* ── Software-Stufen ──────────────────────────────────────────────────── */
+.tiers {
+	padding: 160px var(--edge) 0;
+}
+.tiersLead {
+	max-width: 60ch;
+	margin-top: 16px !important;
+}
+.tierGrid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+	margin-top: 40px;
+}
+.tier {
+	display: flex;
+	flex-direction: column;
+	padding: 0 28px 40px;
+	border-radius: 6px;
+	background: var(--field);
+	overflow: hidden;
+}
+.tierPic {
+	display: block;
+	width: calc(100% + 56px);
+	max-width: none;
+	height: 220px;
+	margin: 0 -28px 28px;
+	object-fit: cover;
+	object-position: top left;
+}
+.tierMain {
+	background: var(--accent);
+	color: var(--accent-foreground);
+}
+.tierName {
+	font-family: var(--font-serif);
+	font-size: var(--s2);
+	line-height: 1.05;
+}
+.tierFrameworks {
+	margin-top: 8px !important;
+	font-weight: 500;
+}
+.tierBlurb {
+	margin-top: 12px !important;
+}
+.tierPrice {
+	margin-top: 28px !important;
+	font-family: var(--font-serif);
+	font-size: var(--s2);
+	line-height: 1.05;
+	font-variant-numeric: tabular-nums;
+}
+.tierNote {
+	margin-top: 4px !important;
+}
+.features {
+	display: grid;
+	gap: 8px;
+	margin: 28px 0 0;
+	padding: 0 0 0 18px;
+}
+.tierCta {
+	margin-top: auto;
+	align-self: flex-start;
+}
+.features + .tierCta {
+	margin-top: 32px;
+}
+.note {
+	max-width: 70ch;
+	margin-top: 20px !important;
+	color: var(--soft);
+}
+
+/* ── Fragen ───────────────────────────────────────────────────────────── */
+.faq {
+	display: grid;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	column-gap: 24px;
+	padding: 160px var(--edge) 0;
+}
+.faq .h2 {
+	grid-column: 1 / 5;
+}
+.faqList {
+	grid-column: 6 / 13;
+}
+.faqItem + .faqItem {
+	margin-top: 4px;
+}
+.faqQ {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	min-height: 56px;
+	padding: 12px 0;
+	font-weight: 500;
+	cursor: pointer;
+	list-style: none;
+}
+.faqQ::-webkit-details-marker {
+	display: none;
+}
+.faqQ::after {
+	content: "+";
+	font-family: var(--font-serif);
+	font-size: 26px;
+	line-height: 1;
+	transition: transform 160ms ease;
+}
+.faqItem[open] .faqQ::after {
+	transform: rotate(45deg);
+}
+.faqA {
+	max-width: 60ch;
+	padding: 0 0 20px;
+}
+
+/* ── Beratung ─────────────────────────────────────────────────────────── */
+.consulting {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 24px;
+	margin: 160px var(--edge) 0;
+	padding: 48px;
+	border-radius: 6px;
+	background: var(--primary);
+	color: var(--primary-foreground);
+}
+.consultingLead {
+	max-width: 56ch;
+	margin-top: 16px !important;
+}
+.footnote {
+	max-width: 80ch;
+	padding: 24px var(--edge) 64px;
+	color: var(--soft);
+	font-size: var(--s5);
+}
+
+/* ── Auftritt der Teile ───────────────────────────────────────────────── */
+.page[data-js] [data-r] {
+	transition:
+		opacity 600ms ease,
+		transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.page[data-js] [data-r]:not([data-in]) {
+	opacity: 0;
+	transform: translateY(24px);
+}
+
+@media (max-width: 900px) {
+	.page {
+		--edge: 16px;
+	}
+	.hero,
+	.faq,
+	.readiness {
+		grid-template-columns: minmax(0, 1fr);
+		row-gap: 28px;
+	}
+	.readinessText,
+	.readinessPic {
+		grid-column: 1;
+	}
+	.readinessPic {
+		margin: 0 calc(var(--edge) * -1);
+		padding: 24px 0 24px 24px;
+	}
+	.readiness {
+		padding-top: 120px;
+	}
+	.tierGrid {
+		gap: 16px;
+	}
+	.hero {
+		min-height: 0;
+		padding-top: 40px;
+		row-gap: 40px;
+	}
+	.heroText,
+	.timeline,
+	.faq .h2,
+	.faqList {
+		grid-column: 1;
+	}
+	.termList,
+	.tierGrid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.term {
+		min-height: 0;
+	}
+	.termPrice {
+		padding-top: 12px;
+	}
+	.terms {
+		padding-top: 96px;
+	}
+	.tiers,
+	.faq {
+		padding-top: 120px;
+	}
+	.faq .h2 {
+		margin-bottom: 16px;
+	}
+	.consulting {
+		margin-top: 120px;
+		padding: 32px 20px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.stopDue {
+		animation: none;
+	}
+	.page[data-js] [data-r]:not([data-in]) {
+		transform: none;
+	}
+	.button,
+	.textLink,
+	.faqQ::after {
+		transition: none;
+	}
+}

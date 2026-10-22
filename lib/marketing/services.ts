@@ -1,13 +1,7 @@
-import {
-	formatPrice,
-	guidedFrom,
-	type PriceTable,
-} from "@/lib/pricing/resolve";
-
 // Beratungsleistungen für /leistungen — Inhalt (DE, Du-Form). Ablauf und
 // Ergebnisdateien entsprechen dem, was Klick tatsächlich erzeugt
-// (Exporte unter /api/export/*). Preise kommen aus dem Admin-CMS
-// (Standard-Preisgruppe, lib/pricing) — hier stehen keine Beträge.
+// (Exporte unter /api/export/*). Beratung hat keinen öffentlichen Preis:
+// Umfang und Preis vereinbaren wir im Gespräch (lib/pricing, `due: agreed`).
 
 export type ServiceStep = {
 	when: string;
@@ -16,9 +10,13 @@ export type ServiceStep = {
 	files?: string[];
 };
 
+export type ServiceImage = { src: string; w: number; h: number; alt: string };
+
 export type Service = {
 	key: "gap" | "ai-check" | "cra" | "suppliers" | "pentest";
 	name: string;
+	// ein Bildschirmfoto aus Klick (Beispieldaten), lesbar groß gezeigt
+	image: ServiceImage;
 	short: string;
 	duration: string;
 	fits: string;
@@ -30,6 +28,12 @@ export const SERVICES: readonly Service[] = [
 	{
 		key: "gap",
 		name: "Gap-Analyse & Prüfungsreife",
+		image: {
+			src: "/leistungen/frage.jpg",
+			w: 1648,
+			h: 1054,
+			alt: "Gap-Analyse in Klick: eine Frage je Control mit Antwort, Erläuterung und Nachweis",
+		},
 		short: "Gap-Analyse",
 		duration: "2–4 Wochen",
 		fits: "Du willst wissen, wie weit ihr von ISO 27001, NIS2, DORA oder CRA entfernt seid – und was zuerst kommt.",
@@ -62,6 +66,12 @@ export const SERVICES: readonly Service[] = [
 	{
 		key: "ai-check",
 		name: "Security-Check für KI-gebaute Apps",
+		image: {
+			src: "/leistungen/sicherheit.jpg",
+			w: 2200,
+			h: 1400,
+			alt: "Security-Checks in Klick: Ampel, offene Befunde nach Schwere und was zuerst dran ist",
+		},
 		short: "KI-App-Check",
 		duration: "3–5 Arbeitstage",
 		fits: "Eure App entstand schnell mit KI-Werkzeugen und soll jetzt echte Kundendaten sehen.",
@@ -94,6 +104,12 @@ export const SERVICES: readonly Service[] = [
 	{
 		key: "cra",
 		name: "CRA-Readiness",
+		image: {
+			src: "/leistungen/produkt.jpg",
+			w: 1408,
+			h: 730,
+			alt: "Produkt in Klick: offene CRA-Punkte bis zur Marktreife mit Stichtag",
+		},
 		short: "CRA-Readiness",
 		duration: "2–3 Wochen",
 		fits: "Eure Software oder Geräte kommen in der EU auf den Markt. Meldepflichten gelten seit 11.09.2026, alles andere ab 11.12.2027.",
@@ -126,6 +142,12 @@ export const SERVICES: readonly Service[] = [
 	{
 		key: "suppliers",
 		name: "Lieferantenprüfung für Software",
+		image: {
+			src: "/leistungen/vertrag.jpg",
+			w: 1376,
+			h: 2154,
+			alt: "Vertragsprüfung nach DORA Art. 30 in Klick: Klausel für Klausel erfüllt oder offen",
+		},
 		short: "Lieferanten",
 		duration: "2–6 Wochen",
 		fits: "NIS2 oder DORA verlangen, dass ihr eure Software- und IKT-Lieferanten bewertet – nachweisbar.",
@@ -158,6 +180,12 @@ export const SERVICES: readonly Service[] = [
 	{
 		key: "pentest",
 		name: "Penetrationstest",
+		image: {
+			src: "/leistungen/cvss.jpg",
+			w: 1344,
+			h: 1620,
+			alt: "Befund erfassen in Klick: Schwere aus dem CVSS-Vektor, Reproduktion und Empfehlung",
+		},
 		short: "Pentest",
 		duration: "5–8 Testtage + Nachtest",
 		fits: "Web-App oder API vor dem Go-live, jährlich oder weil Aufsicht und Kunden es verlangen.",
@@ -190,74 +218,14 @@ export const SERVICES: readonly Service[] = [
 	},
 ];
 
-export const servicePrice = (key: Service["key"], prices: PriceTable) =>
-	formatPrice(prices[`svc:${key}`]);
-
-export const PLANS = [
-	{ key: "self", name: "Selbst mit Klick" },
-	{ key: "guided", name: "Begleitet" },
-	{ key: "done", name: "Durchgeführt" },
-] as const;
-
-// Preiszeile je Weg: Selbst = Abo Start, Begleitet = günstigste Leistung,
-// Durchgeführt = nach Umfang.
-export function planPrice(
-	key: (typeof PLANS)[number]["key"],
-	prices: PriceTable,
-): { price: string; period: string } {
-	if (key === "self") {
-		const p = prices["plan:start"];
-		return {
-			price: formatPrice(p, { unit: false }),
-			period: p.mode === "on_request" ? "nach Umfang" : (p.unit ?? "im Monat"),
-		};
-	}
-	if (key === "guided")
-		return {
-			price: formatPrice(guidedFrom(prices)),
-			period: "Festpreis je Leistung",
-		};
-	return { price: "auf Anfrage", period: "nach Umfang" };
-}
-
-export const PLAN_ROWS: readonly {
-	label: string;
-	values: readonly [string, string, string];
-}[] = [
-	{
-		label: "Gap-Analyse",
-		values: ["Fragebogen selbst", "wir bewerten mit", "wir führen durch"],
-	},
-	{
-		label: "Maßnahmenplan",
-		values: ["abgeleitet", "besprochen", "mit Umsetzung"],
-	},
-	{
-		label: "Security-Check",
-		values: ["Schnellcheck, Scans", "plus Review", "plus Review"],
-	},
-	{
-		label: "Pentest",
-		values: ["Auftrag verwalten", "nicht enthalten", "durch Tester"],
-	},
-	{
-		label: "Lieferanten",
-		values: ["Portal und Rating", "Bewertung mit uns", "komplett"],
-	},
-	{
-		label: "Ergebnis",
-		values: ["Exporte", "Paket mit Manifest", "Paket mit Manifest"],
-	},
-	{
-		label: "Ansprechpartner",
-		values: ["Hilfe-Center", "feste Person", "feste Person"],
-	},
-];
-
 export const FAQ: readonly { q: string; a: string }[] = [
 	{
-		q: "Brauchen wir dafür ein Klick-Abo?",
-		a: "Nein. Du bekommst das Ergebnis als Paket mit Manifest, lesbar ohne Klick. Wer danach selbst weiterarbeitet, übernimmt alles in den eigenen Klick-Mandanten.",
+		q: "Was kostet die Beratung?",
+		a: "Das besprechen wir, wenn du dich meldest. Nach dem Erstgespräch bekommst du Umfang, Termin und einen Festpreis schriftlich. Einen Preis von der Stange gibt es nicht, weil Umfang und Rahmenwerke zu verschieden sind.",
+	},
+	{
+		q: "Brauchen wir dafür die Klick-Software?",
+		a: "Nein. Du bekommst das Ergebnis als Paket mit Manifest, lesbar ohne Klick. Wer danach selbst weiterarbeitet, übernimmt alles in den eigenen Klick-Mandanten; die Software-Gebühr fällt erst nach dem bestandenen Audit an.",
 	},
 	{
 		q: "Ist ein Pentest überhaupt erlaubt?",
@@ -278,9 +246,5 @@ export const FAQ: readonly { q: string; a: string }[] = [
 	{
 		q: "Ersetzt das eine Zertifizierung?",
 		a: "Nein. Gap-Analyse und Prüfungsreife bereiten auf das Audit vor. Das Testat stellt die Zertifizierungsstelle oder Prüfer:in aus.",
-	},
-	{
-		q: "Sind die Preise fest?",
-		a: "Nach dem Erstgespräch bekommst du einen Festpreis für den vereinbarten Umfang. Die Werte hier sind Richtwerte für typische Umfänge.",
 	},
 ];
