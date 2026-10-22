@@ -36,7 +36,7 @@ export function WalletLockStrip({ closesAt }: { closesAt: string }) {
 	}, [closesAt, router]);
 
 	return (
-		<div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs">
+		<div className="mb-6 flex items-center gap-x-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs">
 			<Badge variant="warning">{t("homeTestnet")}</Badge>
 			<span className="text-muted-foreground" aria-live="polite">
 				{minutes !== null ? t("openFor", { minutes }) : " "}
@@ -55,7 +55,7 @@ export function WalletLockStrip({ closesAt }: { closesAt: string }) {
 				}
 			>
 				<Lock className="size-3.5" aria-hidden />
-				{t("lockNow")}
+				<span className="sr-only sm:not-sr-only">{t("lockNow")}</span>
 			</Button>
 		</div>
 	);

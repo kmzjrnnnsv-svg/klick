@@ -485,8 +485,7 @@ export function countNavTargets(groups: NavGroup[]): number {
 }
 
 // Wallet-Bereich: eigene, kurze Navigation (Umschalter im Kopf wechselt
-// zwischen Compliance und Wallet). Einträge nur für vorhandene Seiten —
-// Empfangen, Bewegungen und Konten kommen mit wallet_accounts.
+// zwischen Compliance und Wallet).
 export function buildWalletNav(): NavGroup[] {
 	return [
 		{
@@ -498,6 +497,24 @@ export function buildWalletNav(): NavGroup[] {
 					labelKey: "walletHome",
 					href: "/wallet",
 					icon: "wallet",
+				},
+				{
+					key: "wallet-receive",
+					labelKey: "walletReceive",
+					href: "/wallet/empfangen",
+					icon: "arrow-down",
+				},
+				{
+					key: "wallet-activity",
+					labelKey: "walletActivity",
+					href: "/wallet/bewegungen",
+					icon: "history",
+				},
+				{
+					key: "wallet-accounts",
+					labelKey: "walletAccounts",
+					href: "/wallet/konten",
+					icon: "vault",
 				},
 			],
 		},

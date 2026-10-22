@@ -2,13 +2,22 @@
  * Wallet-Bereich mit virtuellem Authenticator: Passkey anlegen → /wallet
  * ist gesperrt → Entsperren per Passkey → Leiste mit Restzeit → „Jetzt
  * sperren“ → Rückweg nur auf Wallet-Seiten → Umschalter Compliance/Wallet.
+ * Mit lokaler Testkette (scripts/wallet-devchain.ts, Dev-Server mit
+ * WALLET_RPC_BITCOIN_SIGNET=http://dev:dev@127.0.0.1:18443) zusätzlich:
+ * Konto aus tpub anlegen → Adresse + QR → neue Adresse → Zahlung aus dem
+ * Faucet → wallet-sync → Bestand, Bewegungen, CSV.
  *
  * Voraussetzung: QA-Konto aus `pnpm exec tsx scripts/qa/crawl.ts --login`.
  *
  *   pnpm exec tsx scripts/qa/wallet-smoke.ts
  */
 import { existsSync, readFileSync } from "node:fs";
-import { type Browser, chromium } from "@playwright/test";
+import { type Browser, chromium, type Page } from "@playwright/test";
+import { HDKey } from "@scure/bip32";
+import { generateMnemonic, mnemonicToSeedSync } from "@scure/bip39";
+import { wordlist } from "@scure/bip39/wordlists/english.js";
+import { loadEnvFiles } from "../../lib/env";
+import { runWalletSync } from "../../lib/jobs/wallet-sync";
 import {
 	QA_BASE as BASE,
 	QA_SECRET as SECRET_FILE,
@@ -94,8 +103,111 @@ async function run(browser: Browser) {
 		o.url() === `${BASE}/wallet`,
 		o.url(),
 	);
+	if (process.env.WALLET_RPC_BITCOIN_SIGNET?.includes("127.0.0.1:18443"))
+		await receiveFlow(o);
 	await o.getByRole("button", { name: "Jetzt sperren" }).click();
 	await o.waitForURL(/\/wallet\/entsperren/);
+}
+
+// Empfangen gegen die lokale Testkette (entsperrter Bereich vorausgesetzt)
+async function receiveFlow(o: Page) {
+	const DEV = "http://127.0.0.1:18443";
+	const tpub = HDKey.fromMasterSeed(
+		mnemonicToSeedSync(generateMnemonic(wordlist, 256)),
+		{ private: 0x04358394, public: 0x043587cf },
+	).derive("m/84'/1'/0'").publicExtendedKey;
+	const name = `QA Signet ${Date.now()}`;
+	await o.goto(`${BASE}/wallet/konten?neu=1`);
+	await o.getByLabel("Name").fill(name);
+	await o.getByLabel("Öffentlicher Kontoschlüssel").fill(tpub);
+	await o.getByRole("button", { name: "Konto anlegen" }).last().click();
+	const first = o.locator("p.font-mono").first();
+	await first.waitFor({ timeout: 15_000 });
+	const firstAddress = (await first.textContent())?.trim() ?? "";
+	check(
+		"Konto angelegt, erste Adresse",
+		firstAddress.startsWith("tb1q"),
+		firstAddress,
+	);
+	await o.getByRole("button", { name: "Stimmt überein" }).click();
+
+	const card = o.getByRole("link", { name: new RegExp(name) });
+	const accountId = (await card.getAttribute("href"))?.split("/").pop() ?? "";
+	await o.goto(`${BASE}/wallet/empfangen?konto=${accountId}`);
+	await o.getByRole("img", { name: /QR-Code/ }).waitFor({ timeout: 10_000 });
+	check("Empfangen: QR-Code", true);
+	const shown = (await o.locator("p.break-all").first().textContent())?.trim();
+	check(
+		"Empfangen zeigt die erste Adresse",
+		shown === firstAddress,
+		shown ?? "",
+	);
+	await o.getByRole("button", { name: "Neue Adresse" }).click();
+	await o.waitForFunction(
+		(a) => document.querySelector("p.break-all")?.textContent?.trim() !== a,
+		firstAddress,
+		{ timeout: 15_000 },
+	);
+	const second =
+		(await o.locator("p.break-all").first().textContent())?.trim() ?? "";
+	check(
+		"Neue Adresse je Zahlung",
+		second.startsWith("tb1q") && second !== firstAddress,
+		second,
+	);
+
+	// Zahlung aus dem Faucet, ein Block, Abgleich
+	await fetch(`${DEV}/dev/faucet`, {
+		method: "POST",
+		body: JSON.stringify({ address: second, amount: "0.01" }),
+	});
+	await fetch(`${DEV}/dev/mine`, { method: "POST", body: '{"n":1}' });
+	loadEnvFiles();
+	await runWalletSync(); // Beobachtungs-Wallet + Rescan
+	await runWalletSync();
+	await o.goto(`${BASE}/wallet/konten/${accountId}`);
+	check(
+		"Bestand nach Eingang",
+		(await o.getByText("0,01 BTC").count()) > 0,
+		accountId,
+	);
+	await o.goto(`${BASE}/wallet/bewegungen?konto=${accountId}`);
+	check("Bewegung bestätigt", (await o.getByText("Bestätigt").count()) > 0);
+	// WALLET_SHOTS=<ordner>: Bildschirmfotos der Wallet-Seiten (Desktop, 390 px)
+	const shots = process.env.WALLET_SHOTS;
+	if (shots)
+		for (const [w, h, tag] of [
+			[1280, 900, "d"],
+			[390, 844, "m"],
+		] as const) {
+			await o.setViewportSize({ width: w, height: h });
+			for (const path of [
+				"/wallet",
+				"/wallet/konten",
+				`/wallet/konten/${accountId}`,
+				`/wallet/empfangen?konto=${accountId}`,
+				"/wallet/bewegungen",
+			]) {
+				await o.goto(`${BASE}${path}`);
+				await o.waitForTimeout(800);
+				const file = path.replace(/[/?=]/g, "_").replace(/-/g, "");
+				await o.screenshot({
+					path: `${shots}/w${file.slice(0, 40)}-${tag}.png`,
+					fullPage: true,
+				});
+				const overflow = await o.evaluate(
+					() => document.documentElement.scrollWidth > window.innerWidth,
+				);
+				check(`kein seitlicher Überlauf ${path} (${w} px)`, !overflow);
+			}
+		}
+	const csv = await o.request.get(`${BASE}/api/export/wallet-bewegungen.csv`);
+	const body = await csv.text();
+	check(
+		"CSV-Export",
+		csv.status() === 200 && body.includes("0.01"),
+		String(csv.status()),
+	);
 }
 
 main().catch((err) => {
