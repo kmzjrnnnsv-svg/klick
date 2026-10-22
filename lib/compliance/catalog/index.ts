@@ -1,5 +1,6 @@
 import { AMLR_REQUIREMENTS, AMLR_SECTIONS } from "./amlr";
 import { BASELINE } from "./baseline";
+import { CCSS_REQUIREMENTS, CCSS_SECTIONS } from "./ccss";
 import { CONTROL_REQUIREMENTS } from "./control-requirements";
 import { CONTROL_BY_CODE, CONTROLS } from "./controls";
 import { CORRIDOR_INDICES } from "./corridors";
@@ -21,6 +22,7 @@ import {
 } from "./misc-finance";
 import { NIS2_REQUIREMENTS, NIS2_SECTIONS } from "./nis2";
 import { SANCTIONS_REQUIREMENTS, SANCTIONS_SECTIONS } from "./sanctions";
+import { SOC2_REQUIREMENTS, SOC2_SECTIONS } from "./soc2";
 import { TFR_REQUIREMENTS, TFR_SECTIONS } from "./tfr";
 import type {
 	CatalogControl,
@@ -34,7 +36,7 @@ import { ZAG_MARISK_REQUIREMENTS, ZAG_MARISK_SECTIONS } from "./zag-marisk";
 
 // Zusammengesetzter Katalog: jedes Rahmenwerk in frameworks.ts hat seinen
 // Anforderungs-Index (P1 ISO/DORA/NIS2, P4 Finanz, P5 DSGVO/KWG/Korridore,
-// P6 CRA).
+// P6 CRA, SOC 2, CCSS).
 
 const INDICES: Record<
 	string,
@@ -65,6 +67,8 @@ const INDICES: Record<
 	dsgvo: { sections: DSGVO_SECTIONS, requirements: DSGVO_REQUIREMENTS },
 	kwg: { sections: KWG_SECTIONS, requirements: KWG_REQUIREMENTS },
 	cra: { sections: CRA_SECTIONS, requirements: CRA_REQUIREMENTS },
+	soc2: { sections: SOC2_SECTIONS, requirements: SOC2_REQUIREMENTS },
+	ccss: { sections: CCSS_SECTIONS, requirements: CCSS_REQUIREMENTS },
 	...CORRIDOR_INDICES,
 };
 

@@ -31,7 +31,7 @@ export type Recommendation = {
 		| { key: "quickCheck"; n: number };
 };
 
-const PENTEST_FRAMEWORKS = ["iso27001", "nis2", "dora", "cra"];
+const PENTEST_FRAMEWORKS = ["iso27001", "nis2", "dora", "cra", "soc2", "ccss"];
 const SUPPLIER_FRAMEWORKS = ["nis2", "dora"];
 
 function monthsBetween(a: Date, b: Date): number {
