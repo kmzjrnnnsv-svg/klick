@@ -850,6 +850,8 @@ export class Signer {
 			person: en.person,
 			credId: out.credId,
 			activeKeys: activeKeysByPerson(this.state).get(en.person) ?? 0,
+			// für den Hinweis auf der Seite: so viele braucht Freigabe allein
+			soloMinKeys: this.state.policy?.soloMinKeys ?? 2,
 		};
 	}
 

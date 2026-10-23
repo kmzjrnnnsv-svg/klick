@@ -117,6 +117,8 @@ h1 {
 .address,
 pre {
 	font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+	/* keine Ligaturen: der Text muss Zeichen für Zeichen stimmen */
+	font-variant-ligatures: none;
 }
 
 .address {

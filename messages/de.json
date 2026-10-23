@@ -5406,6 +5406,7 @@
 		"lockNow": "Jetzt sperren",
 		"homeTitle": "Wallet",
 		"homeLead": "Halten und empfangen – Bitcoin, Ether, USDC und EURC. Schlüssel liegen nie in Klick.",
+		"homeLeadSend": "Halten, empfangen und senden – Bitcoin, Ether, USDC und EURC. Signiert wird im eigenen Signer, nie in Klick.",
 		"homeTestnet": "Testnetz",
 		"homeEmptyTitle": "Noch kein Konto",
 		"homeEmptyBody": "Sobald ein Konto angelegt ist, siehst du hier Gesamtwert, Konten und die letzten Bewegungen.",

@@ -613,6 +613,24 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				result: "Lückenlose Abstimmung nach MiCAR Art. 70 und 75.",
 			},
 			{
+				key: "wallet-send",
+				name: "Wallet: senden mit Sicherheitsschlüssel",
+				summary:
+					"Eigene Bestände im Testnetz halten, empfangen und senden; jede Auszahlung bestätigt ein Sicherheitsschlüssel.",
+				where: "Wallet",
+				trigger:
+					"Auszahlung aus einem Hot-Konto an eine Adresse im Adressbuch.",
+				steps: [
+					"Zieladresse vorschlagen: Prüfung gegen die Sperrliste, aktiv erst nach 24 Stunden, Veto jederzeit.",
+					"Auszahlung anlegen; Betrag, Ziel und höchste Gebühr stehen danach fest.",
+					"Auf einer eigenen Bestätigungsseite mit dem Sicherheitsschlüssel bestätigen; ein Klick-Passkey zählt dafür nicht.",
+					"Ein eigener Signer ohne Netzzugang prüft Grenzen und Freigaben und signiert; Klick sendet über den eigenen Knoten.",
+					"Eine Ausgabe ohne Auszahlung in Klick friert den Signer sofort ein; „Alles stoppen“ kann jede:r im Wallet-Bereich.",
+				],
+				result:
+					"Ein übernommener Webserver allein kann kein Geld bewegen. Kundengelder erst mit Erlaubnis nach MiCAR.",
+			},
+			{
 				key: "aml",
 				name: "Geldwäsche-Prävention",
 				summary:

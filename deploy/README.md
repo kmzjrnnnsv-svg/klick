@@ -473,3 +473,34 @@ Die App kann über `app.sock` bremsen, einrichten und lockern geht nur als root 
 `QA_DIR/signer`), `pnpm signer:admin --dev init --org <qaOrg> --rp localhost --origin http://localhost:3201 --networks bitcoin_signet,ethereum_sepolia --auto-confirm`,
 `pnpm confirm:dev` (Seite auf :3201 mit denselben Headern),
 `SIGNER_SOCKET=$QA_DIR/signer/app.sock CONFIRM_ORIGIN=http://localhost:3201 pnpm dev`.
+Durchspielen im Browser (virtuelle Sicherheitsschlüssel, Jobs ruft das Skript selbst auf):
+`pnpm wallet:devchain`, `pnpm signer:dev`, `pnpm confirm:dev`, Dev-Server wie oben, dann
+`SIGNER_SOCKET=$QA_DIR/signer/app.sock pnpm exec tsx scripts/qa/wallet-send-smoke.ts`
+(`WALLET_SHOTS=<ordner>` für Bildschirmfotos). Ein Dev-Signer gehört genau einer Org: nach einem
+neuen QA-Konto `QA_DIR/signer` beiseitelegen und `pnpm signer:dev` neu starten.
+
+### Auszahlungen im Betrieb
+
+12. **Prüfen:** `pnpm wallet:check` prüft jetzt auch den Signer (erreichbar, eingerichtet, nicht
+    eingefroren, Herkunft = `CONFIRM_ORIGIN`, Knoten je Netz, genug Schlüssel laut Richtlinie).
+13. **Abnahme im Testnetz** (eigene Org, Wallet-Bereich unter Einstellungen → Organisation an):
+    Konten → „Hot-Konto anlegen“ (Bitcoin Signet, Ethereum Sepolia) → erste Adresse mit dem
+    Faucet füllen → Adressbuch → Zieladresse vorschlagen, auf der Bestätigungsseite freigeben,
+    24 h Wartezeit (Veto-Probe mit einer zweiten Adresse) → Senden → auf der Bestätigungsseite
+    bestätigen → nach der Solo-Pause signiert und sendet der Job `wallet-payouts` (jede Minute) →
+    Stand „Gesendet“, dann „Bestätigt im Netz“; Bestand und Bewegungen stimmen (Betrag + Gebühr).
+    Danach ETH und USDC (Gas-Guthaben auf dem Konto nötig), „Beschleunigen“ bei langsamer
+    Gebühr, „Abbrechen“ einer gesendeten Auszahlung, „Alles stoppen“ mit Banner und Auftauen.
+14. **Hängt eine Auszahlung:** Detailseite zeigt den letzten Fehler (z. B. Gebühr über dem Deckel,
+    zu wenig Gas). „Beschleunigen“ erhöht die Gebühr mit denselben Eingängen bzw. derselben Nonce
+    bis zum Deckel der Absicht; „Abbrechen“ ersetzt sie durch eine Zahlung an das eigene Konto.
+    Ohne Bestätigung im Fenster der Richtlinie läuft die Absicht ab (neu anlegen).
+15. **Signer nicht erreichbar:** nach 5 min Sicherheitsmeldung (einmal am Tag) und Banner im
+    Wallet-Bereich; Auszahlungen pausieren. `systemctl status klick-signer klick-signer-app.socket`.
+16. **„Unbekannte Ausgabe aus Hot-Konto“:** der Sync hat eine Ausgabe gesehen, die zu keiner
+    Auszahlung in Klick gehört — der Signer wurde automatisch eingefroren. Ernstfall nach Punkt 11:
+    Transaktion im Knoten prüfen (`bitcoin-cli … gettransaction <txid>`), Journal prüfen
+    (`klick-signer-admin verify`), erst nach Klärung auftauen.
+17. **„Signer-Journal zurückgesetzt“:** Klick kennt einen neueren Journal-Stand als der Signer
+    meldet (Backup eingespielt oder Journal ersetzt). Der Job arbeitet nicht weiter; nicht auftauen,
+    sondern klären, welches Journal echt ist (`/var/backups/klick-signer`).

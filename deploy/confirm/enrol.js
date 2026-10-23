@@ -104,10 +104,13 @@ async function enrol(p, info, button) {
 			return;
 		}
 		const n = out.result?.activeKeys ?? 1;
+		const need = out.result?.soloMinKeys ?? 2;
 		$("status").textContent =
-			n >= 2
-				? `Eingerichtet. Diese Person hat jetzt ${n} aktive Schlüssel.`
-				: "Eingerichtet. Für Auszahlungen allein fehlt noch ein zweiter Schlüssel (eigener Link).";
+			n >= need
+				? n === 1
+					? "Eingerichtet. Diese Person hat jetzt einen aktiven Schlüssel."
+					: `Eingerichtet. Diese Person hat jetzt ${n} aktive Schlüssel.`
+				: `Eingerichtet. Für Auszahlungen allein fehlen noch ${need - n} weitere Schlüssel (je ein eigener Link).`;
 		button.remove();
 	} catch {
 		$("status").textContent =

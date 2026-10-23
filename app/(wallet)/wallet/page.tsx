@@ -94,7 +94,14 @@ export default async function WalletHomePage() {
 	if (accounts.length === 0)
 		return (
 			<>
-				<PageHeader title={t("homeTitle")} lead={t("homeLead")} />
+				<PageHeader
+					title={t("homeTitle")}
+					lead={
+						isOwnSigner(signer.state, anchor)
+							? t("homeLeadSend")
+							: t("homeLead")
+					}
+				/>
 				<EmptyState
 					title={t("homeEmptyTitle")}
 					lead={canManage ? t("accountsEmpty") : t("homeEmptyBody")}
@@ -116,7 +123,9 @@ export default async function WalletHomePage() {
 		<>
 			<PageHeader
 				title={t("homeTitle")}
-				lead={t("homeLead")}
+				lead={
+					isOwnSigner(signer.state, anchor) ? t("homeLeadSend") : t("homeLead")
+				}
 				actions={
 					<Button asChild variant="ghost" size="sm">
 						<Link href={introHref("willkommen")}>

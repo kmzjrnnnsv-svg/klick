@@ -209,6 +209,15 @@ h1 {
 	fieldset {
 		min-inline-size: 0;
 	}
+	/* JetBrains Mono setzt „||“, „->“, „!=“ als Ligatur — Hashes, Adressen
+	   und der Absichtstext des Signers müssen Zeichen für Zeichen stimmen */
+	code,
+	pre,
+	kbd,
+	samp,
+	.font-mono {
+		font-variant-ligatures: none;
+	}
 }
 
 /* Dichte Tabellen und Register */

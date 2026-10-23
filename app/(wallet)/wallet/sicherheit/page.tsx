@@ -317,7 +317,10 @@ export default async function WalletSecurityPage() {
 											const l = policy.limits[a];
 											return (
 												<tr key={a}>
-													<th scope="row" className="px-4 py-2 font-medium">
+													<th
+														scope="row"
+														className="px-4 py-2 text-left font-medium"
+													>
 														{a}
 													</th>
 													<td className="whitespace-nowrap px-4 py-2 text-right font-mono tabular-nums">
