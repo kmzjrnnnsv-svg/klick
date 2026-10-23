@@ -25,6 +25,7 @@ import { controls, requirements } from "./catalog";
 import {
 	CLASSIFICATIONS,
 	CONTROL_TEST_METHODS,
+	type ControlSheetState,
 	ENTITY_KINDS,
 	EVIDENCE_SOURCES,
 	type EvidenceDlp,
@@ -59,6 +60,8 @@ export const controlImplementations = pgTable(
 		implementedAt: ts(),
 		lastReviewedAt: ts(),
 		nextReviewAt: date(),
+		// Nachweisbogen (Antworten, Belege, eigene Fristen) — Migration 0026
+		sheet: json<ControlSheetState>(),
 		...timestamps(),
 	},
 	(t) => [
@@ -132,6 +135,11 @@ export const evidence = pgTable(
 		// DLP-Ergebnis beim Upload: Treffer je Detektor (nur Zähler), Aktion,
 		// Engine-Version — nie Inhalt (lib/dlp).
 		dlp: json<EvidenceDlp>(),
+		// Nachweis-Werkstatt: Nachweisart, Hash des erzeugten Inhalts und
+		// Schnappschuss der Registerdaten (Migration 0026)
+		kindCode: text(),
+		contentSha256: text(),
+		snapshot: json<Record<string, unknown>>(),
 		createdByUserId: userRef(),
 		createdAt: ts().notNull().defaultNow(),
 	},

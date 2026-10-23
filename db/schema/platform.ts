@@ -193,6 +193,9 @@ export const orgSettings = pgTable(
 		tlptDesignated: boolean().notNull().default(false),
 		// Wallet-Bereich je Org (Inhaber:in schaltet ein, Step-up)
 		walletEnabled: boolean().notNull().default(false),
+		// Audits und Nacharbeitsfristen je Rahmenwerk (OrgAuditSettings in
+		// lib/compliance/audit-follow-up.ts); leer = Katalogwerte
+		auditRegimes: json<Record<string, unknown>>().notNull().default({}),
 		issuesTokens: text({ enum: ["none", "art", "emt", "other"] })
 			.notNull()
 			.default("none"),

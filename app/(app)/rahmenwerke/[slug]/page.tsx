@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { CoverageBar } from "@/components/entity/coverage-bar";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { FrameworkEvidence } from "@/components/evidence-studio/framework-evidence";
 import { SoaTab } from "@/components/frameworks/soa-tab";
 import { PageHeader } from "@/components/page-header";
 import { ReadinessPanel } from "@/components/readiness/readiness-panel";
@@ -27,6 +28,11 @@ import { listAudits } from "@/lib/compliance/queries-p3";
 import { loadReadiness } from "@/lib/compliance/queries-readiness";
 import { parseStichtag, stichtagOptions } from "@/lib/compliance/readiness";
 import { readOrg } from "@/lib/db/with-org";
+import {
+	type RequirementProgress,
+	requirementProgress,
+} from "@/lib/evidence-studio/progress";
+import { loadSheetData, sheetFor } from "@/lib/evidence-studio/queries";
 
 const TONE: Record<ReqCoverage, "success" | "warning" | "outline" | "muted"> = {
 	covered: "success",
@@ -48,6 +54,7 @@ export default async function FrameworkPage({
 	const fw = FRAMEWORK_BY_SLUG.get(slug);
 	if (!fw) notFound();
 	const t = await getTranslations("Frameworks");
+	const tes = await getTranslations("EvidenceStudio");
 	const cov = await getOrgCoverageCached(ctx);
 	if (!cov?.frameworks.includes(slug)) notFound();
 	const bucket = cov.result.byFramework.get(slug);
@@ -101,6 +108,37 @@ export default async function FrameworkPage({
 						isoMandatory: d.isoMandatory,
 					}));
 					return { evidenceByControl, documents: docs };
+				})
+			: null;
+
+	// Nachweise je Normpunkt: Bögen der Controls dieses Rahmenwerks (nur im Reiter)
+	const evidenceTab =
+		tab === "nachweise"
+			? await readOrg(toOrgCtx(ctx), async (tx) => {
+					const data = await loadSheetData(tx, ctx.orgId, cov);
+					const codes = new Set(
+						fw.requirements.flatMap((r) =>
+							(EDGES_BY_REQUIREMENT.get(`${slug}:${r.code}`) ?? []).map(
+								(e) => e.control,
+							),
+						),
+					);
+					const sheets = [...codes].flatMap((c) => {
+						const s = sheetFor(data, c);
+						return s ? [s] : [];
+					});
+					const progress = new Map<string, RequirementProgress>();
+					for (const r of fw.requirements) {
+						const key = `${slug}:${r.code}`;
+						progress.set(
+							key,
+							requirementProgress(
+								sheets.filter((s) => s.requirements.some((x) => x.key === key)),
+								key,
+							),
+						);
+					}
+					return { progress, notApplicable: data.notApplicable };
 				})
 			: null;
 
@@ -204,13 +242,20 @@ export default async function FrameworkPage({
 								count: reqs.length,
 							},
 							{ value: "luecken", label: t("gaps"), count: gaps.length },
+							{ value: "nachweise", label: tes("tabEvidence") },
 							{ value: "pruefungsreife", label: t("tabReadiness") },
 							...(soaEnabled
 								? [{ value: "soa", label: t("soa"), count: annexA.length }]
 								: []),
 						]}
 					/>
-					{tab === "pruefungsreife" && readiness ? (
+					{tab === "nachweise" && evidenceTab ? (
+						<FrameworkEvidence
+							framework={fw}
+							progress={evidenceTab.progress}
+							notApplicable={evidenceTab.notApplicable}
+						/>
+					) : tab === "pruefungsreife" && readiness ? (
 						<ReadinessPanel
 							result={readiness.result}
 							sectionTitles={Object.fromEntries(

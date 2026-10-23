@@ -16,6 +16,7 @@ import { RequestEvidence } from "@/components/entity/request-evidence";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { WatchButton } from "@/components/entity/watch-button";
+import { SheetView } from "@/components/evidence-studio/sheet-view";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { historyFor } from "@/lib/audit";
@@ -47,6 +48,7 @@ import { listControlTests } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { env } from "@/lib/env";
+import { loadSheetData, sheetFor } from "@/lib/evidence-studio/queries";
 import {
 	type ActivityEntry,
 	mergeActivity,
@@ -157,6 +159,13 @@ export default async function ControlDetailPage({
 	const moduleEv = await readOrg(toOrgCtx(ctx), (tx) =>
 		moduleEvidenceFor(tx, ctx.orgId, control.code),
 	);
+	const tes = await getTranslations("EvidenceStudio");
+	const sheet = cov
+		? sheetFor(
+				await readOrg(toOrgCtx(ctx), (tx) => loadSheetData(tx, ctx.orgId, cov)),
+				control.code,
+			)
+		: null;
 
 	return (
 		<EntityLayout
@@ -310,6 +319,18 @@ export default async function ControlDetailPage({
 					>
 						{t("moduleOpen")}: {moduleEv.module} →
 					</Link>
+				</Section>
+			)}
+			{sheet && (
+				<Section id="nachweisbogen" title={tes("title")}>
+					<SheetView
+						sheet={sheet}
+						canEdit={canEdit}
+						evidenceOptions={evidence.map((e) => ({
+							id: e.id,
+							title: e.title,
+						}))}
+					/>
 				</Section>
 			)}
 			<Section title={t("satisfies")}>
