@@ -267,9 +267,7 @@ describe("buildEthSpend", () => {
 		const tx = EthTx.fromHex(s.raw);
 		expect(addr.addChecksum(tx.raw.to)).toBe(usdc?.contract);
 		expect(tx.raw.value).toBe(0n);
-		expect(tx.raw.data).toBe(
-			transferCalldata(ETH_DEST, 1_500_000n),
-		);
+		expect(tx.raw.data).toBe(transferCalldata(ETH_DEST, 1_500_000n));
 	});
 	it("Deckel und Netz", () => {
 		expect(() =>
@@ -457,8 +455,8 @@ describe("Richtlinie", () => {
 		).toBe(true);
 	});
 	it("Hash unabhängig von der Schlüsselreihenfolge", () => {
-		const reordered = JSON.parse(
-			JSON.stringify({ liveFunds: false, ...policy }),
+		const reordered = Object.fromEntries(
+			Object.entries(policy).reverse(),
 		) as Policy;
 		expect(policyHash(reordered)).toBe(policyHash(policy));
 		expect(policyHash({ ...policy, version: 2 })).not.toBe(policyHash(policy));
