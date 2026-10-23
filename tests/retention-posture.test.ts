@@ -12,6 +12,8 @@ describe("retention cutoffs", () => {
 		expect(RETENTION.readNotificationDays).toBe(180);
 		// Anfragen: 12 Monate nach der letzten Änderung
 		expect(c.inquiries.toISOString().slice(0, 10)).toBe("2025-10-07");
+		// NDA-Anfragen an Trust Center: 12 Monate nach Ablauf/Entscheidung
+		expect(c.trustRequests.toISOString().slice(0, 10)).toBe("2025-10-07");
 		expect(Object.keys(c)).not.toContain("auditLog");
 	});
 });

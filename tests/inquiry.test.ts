@@ -41,10 +41,11 @@ describe("Anfragen", () => {
 		expect(looksAutomated({ renderedAt: null }, now)).toBe(true);
 	});
 
-	it("Leistungen = Preispositionen + allgemein", () => {
+	it("Leistungen = Preispositionen + allgemein + Meldung (DSA)", () => {
 		expect(INQUIRY_SERVICE_KEYS).toEqual([
 			...PRICE_ITEMS.map((i) => i.key),
 			"general",
+			"notice:content",
 		]);
 		expect(inquiryServiceLabel("svc:cra")).toBe("CRA-Readiness");
 		expect(inquiryServiceLabel("unbekannt")).toBe("unbekannt");

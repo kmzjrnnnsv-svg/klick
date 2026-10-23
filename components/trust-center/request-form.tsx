@@ -16,10 +16,12 @@ export function TrustRequestForm({
 	slug,
 	ndaText,
 	ndaVersion,
+	orgName,
 }: {
 	slug: string;
 	ndaText: string;
 	ndaVersion: string;
+	orgName: string;
 }) {
 	const t = useTranslations("TrustCenter");
 	const [renderedAt] = useState(() => Date.now());
@@ -189,6 +191,19 @@ export function TrustRequestForm({
 					{failure ?? t("requestHint")}
 				</p>
 			</div>
+			<p className="text-muted-foreground text-xs sm:col-span-2">
+				{t.rich("requestPrivacy", {
+					org: orgName,
+					link: (chunks) => (
+						<a
+							href="/datenschutz-erklaerung"
+							className="underline underline-offset-4"
+						>
+							{chunks}
+						</a>
+					),
+				})}
+			</p>
 		</form>
 	);
 }

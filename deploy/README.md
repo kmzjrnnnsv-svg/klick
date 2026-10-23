@@ -101,7 +101,7 @@ gelten 2FA und alle Sitzungsregeln wie gewohnt. Link nicht weitergeben.
   `impressum`, `datenschutz-erklaerung`, `nutzungsbedingungen` übernehmen. `pnpm db:seed` legt nur
   fehlende Seiten als Platzhalter an und überschreibt nie.
 - **Server-Logs:** nginx-Zugriffslogs (volle IP für CrowdSec) 14 Tage, dann gelöscht
-  (`/etc/logrotate.d/nginx`: `daily`, `rotate 14`). CrowdSec-Community-Signale teilen nur, wenn das in
+  (`deploy/logrotate/nginx` nach `/etc/logrotate.d/nginx`: `daily`, `rotate 14`). CrowdSec-Community-Signale teilen nur, wenn das in
   der Datenschutzerklärung steht (sonst `cscli capi unregister`).
 
 ## Passkeys: Einrichtung, Einladungslinks, Zugang zurücksetzen (ADR-019)

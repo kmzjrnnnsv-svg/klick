@@ -5101,7 +5101,9 @@
 		"gateLogout": "Zugang in diesem Browser schließen",
 		"unpublishTitle": "Trust Center zurückziehen?",
 		"unpublishLead": "Die öffentliche Seite und alle Download-Links sind sofort nicht mehr erreichbar. Freigegebene Zugänge bleiben bestehen und gelten wieder, wenn du erneut veröffentlichst.",
-		"unpublishConfirm": "Zurückziehen"
+		"unpublishConfirm": "Zurückziehen",
+		"reportContent": "Inhalt melden",
+		"requestPrivacy": "Verantwortlich für deine Angaben ist {org}; Klick verarbeitet sie im Auftrag und löscht sie 12 Monate nach Ablauf der Freigabe. Mehr in der <link>Datenschutzerklärung</link>."
 	},
 	"Custody": {
 		"title": "Verwahrung",

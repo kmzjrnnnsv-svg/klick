@@ -3,7 +3,7 @@ import { globalDb } from "@/db";
 import { inquiries } from "@/db/schema";
 import type { InquiryStatus } from "@/db/schema/enums";
 import type { Inquiry } from "@/db/schema/inquiries";
-import { inquiryServiceLabel } from "@/lib/inquiries/rules";
+import { inquiryServiceLabel, NOTICE_SERVICE } from "@/lib/inquiries/rules";
 import { notifyPlatformAdmins } from "@/lib/notifications/notify";
 
 // Anfragen (Plattform-Tabelle ohne RLS). Speichern + Benachrichtigung der
@@ -44,12 +44,18 @@ export async function insertInquiry(input: NewInquiry) {
 }
 
 export async function listInquiries(status?: InquiryStatus) {
-	return globalDb
-		.select()
-		.from(inquiries)
-		.where(status ? eq(inquiries.status, status) : undefined)
-		.orderBy(desc(inquiries.createdAt))
-		.limit(500);
+	return (
+		globalDb
+			.select()
+			.from(inquiries)
+			.where(status ? eq(inquiries.status, status) : undefined)
+			// Meldungen rechtswidriger Inhalte zuerst (Art. 16 DSA)
+			.orderBy(
+				desc(sql`${inquiries.serviceKey} = ${NOTICE_SERVICE}`),
+				desc(inquiries.createdAt),
+			)
+			.limit(500)
+	);
 }
 
 export async function inquiryCounts() {

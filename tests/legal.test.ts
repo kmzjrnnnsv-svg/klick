@@ -285,3 +285,38 @@ describe("Werbeaussagen und Rechtsdienstleistung (§ 5 UWG, § 3 RDG)", () => {
 		expect(missing, "pnpm legal:licenses ausführen").toEqual([]);
 	});
 });
+
+describe("Meldeweg für Inhalte (Art. 16 DSA)", () => {
+	it("belegt die Meldung nur mit eigenen, schlichten Pfaden vor", async () => {
+		const {
+			noticeMessage,
+			inquiryPriority,
+			NOTICE_SERVICE,
+			INQUIRY_SERVICE_KEYS,
+		} = await import("@/lib/inquiries/rules");
+		expect(INQUIRY_SERVICE_KEYS).toContain(NOTICE_SERVICE);
+		const text = noticeMessage("/vertrauen/muster", "https://raza.work/");
+		expect(text).toContain("Seite: https://raza.work/vertrauen/muster");
+		expect(text).toMatch(/in gutem Glauben/);
+		for (const bad of [
+			undefined,
+			"https://evil.example/x",
+			"//evil.example",
+			"/vertrauen/<script>",
+			"/a\nb",
+		])
+			expect(noticeMessage(bad, "https://raza.work")).toBeUndefined();
+		expect(inquiryPriority(NOTICE_SERVICE)).toBeLessThan(
+			inquiryPriority("general"),
+		);
+	});
+
+	it("öffentliches Trust Center verlinkt „Inhalt melden“ und die Datenschutzerklärung", () => {
+		expect(read("app/(extern)/vertrauen/[slug]/page.tsx")).toContain(
+			"/leistungen?meldung=",
+		);
+		expect(read("components/trust-center/request-form.tsx")).toContain(
+			'href="/datenschutz-erklaerung"',
+		);
+	});
+});

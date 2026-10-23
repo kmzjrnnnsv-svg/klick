@@ -14,9 +14,11 @@ type Errors = Partial<Record<string, string>>;
 // Bots still.
 export function InquiryForm({
 	defaultService = "general",
+	defaultMessage,
 	buttonClassName,
 }: {
 	defaultService?: string;
+	defaultMessage?: string;
 	buttonClassName?: string;
 }) {
 	const t = useTranslations("Services");
@@ -181,6 +183,7 @@ export function InquiryForm({
 					name="message"
 					className={st.control}
 					placeholder={t("formMessagePlaceholder")}
+					defaultValue={defaultMessage}
 					required
 					{...a11y("message")}
 				/>,
