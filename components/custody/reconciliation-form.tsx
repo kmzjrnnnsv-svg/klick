@@ -21,6 +21,8 @@ import { Textarea } from "@/components/ui/textarea";
 import type { ReconciliationLine } from "@/db/schema/custody";
 import { isDecimal } from "@/lib/custody/decimal";
 import { reconcile } from "@/lib/custody/reconcile";
+import { shortHash } from "@/lib/wallet/display";
+import type { NodeHolding } from "@/lib/wallet/reconcile-source";
 
 type Line = Omit<ReconciliationLine, "walletId">;
 
@@ -39,18 +41,26 @@ export function ReconciliationForm({
 	defaultDay,
 	symbols,
 	canEdit,
+	nodeHoldings = [],
 }: {
 	defaultDay: string;
 	symbols: string[];
 	canEdit: boolean;
+	// Bestand der Kundenkonten laut eigenen Knoten (Wallet-Bereich) — füllt
+	// „on-chain“ vor; der Server hängt Blockhöhe/Hash an, wenn er stimmt
+	nodeHoldings?: NodeHolding[];
 }) {
 	const t = useTranslations("Custody");
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const [day, setDay] = useState(defaultDay);
+	const fromNode = (symbol: string) =>
+		nodeHoldings.find((h) => h.symbol === symbol)?.onChain ?? "";
 	const [lines, setLines] = useState<Line[]>(
-		symbols.length > 0 ? symbols.map((s) => blank(s)) : [blank()],
+		symbols.length > 0
+			? symbols.map((s) => ({ ...blank(s), onChain: fromNode(s) }))
+			: [blank()],
 	);
 	const [explanation, setExplanation] = useState("");
 	const complete = lines.every(
@@ -187,6 +197,23 @@ export function ReconciliationForm({
 							</div>
 						);
 					})}
+					{nodeHoldings.length > 0 && (
+						<p className="text-muted-foreground text-xs">
+							{t("nodePrefill", {
+								list: nodeHoldings
+									.map(
+										(h) =>
+											`${h.symbol} ${h.sources
+												.map(
+													(src) =>
+														`Block ${src.height} (${shortHash(src.hash, 6, 4)})`,
+												)
+												.join(", ")}`,
+									)
+									.join(" · "),
+							})}
+						</p>
+					)}
 					<div>
 						<Button
 							type="button"

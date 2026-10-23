@@ -74,7 +74,7 @@
 	--ring: var(--primary);
 	--success: oklch(0.7 0.13 150);
 	--warning: oklch(0.8 0.14 75);
-	--chart-1: var(--primary);
+	--chart-1: #6a8ee6; /* Linien-Blau im Dataviz-Band (L 0.48–0.67) auf Dunkel */
 	--chart-2: var(--brown);
 	--chart-3: oklch(0.7 0.13 150);
 	--chart-4: oklch(0.8 0.14 75);

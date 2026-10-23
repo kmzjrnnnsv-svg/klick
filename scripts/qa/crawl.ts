@@ -29,6 +29,7 @@ import {
 	QA_STATE as STATE,
 	writePrivate,
 } from "./paths";
+import { quietHmr } from "./webauthn";
 
 const LOG = process.env.QA_LOG ?? join(QA_DIR, "dev.log");
 const EXEC = existsSync("/opt/pw-browsers/chromium")
@@ -267,8 +268,18 @@ async function login(ctx: BrowserContext): Promise<void> {
 		await settle(page);
 	} else if (page.url().includes("/login/2fa")) {
 		const secret = readFileSync(SECRET_FILE, "utf8").trim();
-		await page.fill("#code", totp(secret));
-		await page.click('form button[type="submit"]');
+		// erst nach der Hydration greift „Bestätigen“ (Knopf bis dahin aus)
+		const submit = page.locator('form button[type="submit"]');
+		for (let i = 0; i < 40 && !(await submit.isEnabled()); i += 1) {
+			await page.fill("#code", totp(secret));
+			await page.waitForTimeout(500);
+		}
+		await submit.click();
+		await page
+			.waitForURL((u) => !u.pathname.startsWith("/login/2fa"), {
+				timeout: 30_000,
+			})
+			.catch(() => {});
 		await settle(page);
 	}
 	// Onboarding (D0) + geführte Einrichtung (D1–D5)
@@ -698,6 +709,7 @@ async function main() {
 				baseURL: BASE,
 				viewport: VIEWPORT,
 			});
+			await quietHmr(ctx);
 			await login(ctx);
 			if (flag("--login")) return;
 		} else {
@@ -706,6 +718,7 @@ async function main() {
 				baseURL: BASE,
 				viewport: VIEWPORT,
 			});
+			await quietHmr(ctx);
 		}
 		const only = opt("--only")
 			?.split(",")

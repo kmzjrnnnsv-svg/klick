@@ -9,7 +9,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { NavGroup } from "@/lib/nav";
+import { activeNavKey, type NavGroup } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { NavIcon } from "./nav-icon";
 
@@ -22,6 +22,7 @@ export function SidebarNav({
 }) {
 	const t = useTranslations("Nav");
 	const pathname = usePathname();
+	const activeKey = activeNavKey(groups, pathname);
 
 	return (
 		<nav aria-label="Hauptnavigation" className="flex flex-col gap-5 text-sm">
@@ -35,9 +36,7 @@ export function SidebarNav({
 					{group.items.map((item) => {
 						const label =
 							item.label ?? (item.labelKey ? t(item.labelKey) : item.key);
-						const active =
-							pathname === item.href ||
-							(item.href !== "/" && pathname.startsWith(`${item.href}/`));
+						const active = item.key === activeKey;
 						if (item.phase) {
 							return (
 								<Tooltip key={item.key}>

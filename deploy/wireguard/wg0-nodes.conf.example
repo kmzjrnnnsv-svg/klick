@@ -1,0 +1,11 @@
+# /etc/wireguard/wg0.conf auf dem Knoten-Server (Bitcoin Core, Reth).
+#   wg genkey | tee /etc/wireguard/nodes.key | wg pubkey > /etc/wireguard/nodes.pub
+[Interface]
+Address = 10.8.0.2/32
+ListenPort = 51820
+PrivateKey = <inhalt von /etc/wireguard/nodes.key>
+
+[Peer]
+# App-Server — nur er darf in den Tunnel
+PublicKey = <inhalt von app.pub>
+AllowedIPs = 10.8.0.1/32

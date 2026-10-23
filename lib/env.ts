@@ -125,6 +125,15 @@ export const envSchema = z.object({
 	CLAMD_PORT: z.coerce.number().int().min(1).max(65535).default(3310),
 	ORG_RATE_LIMIT_PER_MIN: z.coerce.number().int().min(0).default(600),
 	GLITCHTIP_DSN: z.url().optional(),
+
+	// Wallet (Plan Wallet, Phase 0/1): eigene Knoten, nur über WireGuard
+	// erreichbar. Zugangsdaten stehen in der URL (http://user:pass@host:port)
+	// und gehen als Basic-Auth-Header raus, nie in Logs. Ohne URL ist das
+	// Netz im Wallet-Bereich nicht verfügbar.
+	WALLET_RPC_BITCOIN_SIGNET: z.url().optional(),
+	WALLET_RPC_BITCOIN_MAINNET: z.url().optional(),
+	WALLET_RPC_ETHEREUM_SEPOLIA: z.url().optional(),
+	WALLET_RPC_ETHEREUM_MAINNET: z.url().optional(),
 	KLICK_RELEASE: z.string().optional(),
 	ORG_DATABASE_URLS: z
 		.string()

@@ -186,8 +186,18 @@ export async function expireStepUp(where: {
 	if (!cond) return;
 	await globalDb
 		.update(session)
-		.set({ stepUpAt: new Date(0) })
+		// Wallet-Entsperrung verfällt mit (gilt nur für die Org, in der sie
+		// bestätigt wurde)
+		.set({ stepUpAt: new Date(0), walletUnlockedAt: null })
 		.where(cond);
+}
+
+// Wallet sofort sperren („Jetzt sperren“): nur die eigene Sitzung
+export async function lockWalletSession(sessionId: string) {
+	await globalDb
+		.update(session)
+		.set({ walletUnlockedAt: null, walletUnlockOrgId: null })
+		.where(eq(session.id, sessionId));
 }
 
 export async function listPendingInvitations(orgId: string) {

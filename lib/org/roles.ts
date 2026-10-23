@@ -1,7 +1,16 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
+import { member } from "@/db/auth-schema";
 import { approvalWorkflows, memberRoles, orgRoles } from "@/db/schema";
-import { sanitizePermissions } from "@/lib/auth/permission-catalog";
-import type { RolePermissions } from "@/lib/auth/permissions";
+import {
+	effectivePermissions,
+	sanitizePermissions,
+} from "@/lib/auth/permission-catalog";
+import {
+	type OrgRole,
+	permissionsAllow,
+	type RolePermissions,
+} from "@/lib/auth/permissions";
+import { normalizeRole } from "@/lib/auth/session-rules";
 import type { OrgTx } from "@/lib/db/with-org";
 
 // Eigene Rollen (ADR-020) — Lesen im Org-Kontext. Rechte immer bereinigt
@@ -59,6 +68,40 @@ export async function listOrgRoles(
 				pendingEmail,
 			})),
 	}));
+}
+
+// Mitglieder, deren effektive Rechte (Grundrolle ∪ eigene Rollen) die
+// verlangten Rechte enthalten — z. B. Empfänger:innen von Wallet-Meldungen
+export async function membersAllowed(
+	tx: OrgTx,
+	orgId: string,
+	required: Parameters<typeof permissionsAllow>[1],
+): Promise<string[]> {
+	const members = await tx
+		.select({ memberId: member.id, userId: member.userId, role: member.role })
+		.from(member)
+		.where(eq(member.organizationId, orgId));
+	const custom = await tx
+		.select({
+			memberId: memberRoles.memberId,
+			permissions: orgRoles.permissions,
+		})
+		.from(memberRoles)
+		.innerJoin(orgRoles, eq(orgRoles.id, memberRoles.roleId))
+		.where(eq(memberRoles.organizationId, orgId));
+	return members
+		.filter((m) =>
+			permissionsAllow(
+				effectivePermissions(
+					normalizeRole(m.role) as OrgRole,
+					custom
+						.filter((c) => c.memberId === m.memberId)
+						.map((c) => c.permissions),
+				),
+				required,
+			),
+		)
+		.map((m) => m.userId);
 }
 
 // Eigene Rollen je Mitglied (für Team-Badges)

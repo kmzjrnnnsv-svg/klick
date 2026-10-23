@@ -15,3 +15,4 @@ export * from "./schema/registers";
 export * from "./schema/security";
 export * from "./schema/supplier-ratings";
 export * from "./schema/trust";
+export * from "./schema/wallet";

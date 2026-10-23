@@ -1,0 +1,40 @@
+# /etc/systemd/system/lighthouse.service — Konsens-Client für Reth. Beacon-API
+# nur lokal (verify-checkpoint.sh), Checkpoint-Sync aus /etc/ethereum/node.env.
+[Unit]
+Description=Lighthouse (Klick Wallet-Knoten)
+After=network-online.target reth.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lighthouse
+Group=lighthouse
+SupplementaryGroups=ethjwt
+EnvironmentFile=/etc/ethereum/node.env
+ExecStart=/usr/local/bin/lighthouse bn --network ${ETH_NETWORK} --datadir /var/lib/lighthouse \
+  --execution-endpoint http://127.0.0.1:8551 --execution-jwt /etc/ethereum/jwt.hex \
+  --checkpoint-sync-url ${CHECKPOINT_URL} --http --http-address 127.0.0.1 --http-port 5052
+Restart=on-failure
+RestartSec=10
+OnFailure=klick-alert@%n.service
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+SystemCallFilter=@system-service
+UMask=0077
+ReadWritePaths=/var/lib/lighthouse
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

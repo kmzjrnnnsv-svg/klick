@@ -5,7 +5,9 @@ import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import type { OrgContext } from "@/lib/auth/guards";
 import { isExternal, ROLE_LABEL } from "@/lib/auth/memberships";
+import { allows } from "@/lib/auth/permissions";
 import type { NavGroup } from "@/lib/nav";
+import { AreaSwitcher, type ShellArea } from "./area-switcher";
 import { CommandPalette } from "./command-palette";
 import { MobileNav } from "./mobile-nav";
 import type { BellItem } from "./notification-bell";
@@ -20,6 +22,7 @@ export async function AppShell({
 	orgs,
 	groups,
 	bell,
+	area = "compliance",
 	children,
 }: {
 	ctx: OrgContext;
@@ -28,9 +31,13 @@ export async function AppShell({
 	orgs: readonly SwitcherOrg[];
 	groups: NavGroup[];
 	bell: { items: BellItem[]; unread: number };
+	// Compliance oder Wallet: bestimmt Startseite und Umschalter
+	area?: ShellArea;
 	children: ReactNode;
 }) {
 	const t = await getTranslations("Common");
+	const home = area === "wallet" ? "/wallet" : "/heute";
+	const walletAccess = allows(ctx, { wallet: ["read"] });
 	return (
 		<div className="flex min-h-dvh">
 			{/* Sidebar klebt in Fensterhöhe; nur die Navigation scrollt. Flex-Kinder
@@ -40,7 +47,7 @@ export async function AppShell({
 			<aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col self-start border-border/60 border-r bg-sidebar text-sidebar-foreground lg:flex">
 				<div className="flex h-14 shrink-0 items-center gap-2 border-border/60 border-b px-4">
 					<Link
-						href="/heute"
+						href={home}
 						className="lv-wordmark truncate text-[0.8rem] hover:opacity-70"
 					>
 						{t("productName")}
@@ -77,9 +84,14 @@ export async function AppShell({
 						orgName={orgName}
 						canSwitch={orgs.length > 1}
 					/>
-					<Link href="/heute" className="lv-wordmark text-[0.8rem] lg:hidden">
+					<Link href={home} className="lv-wordmark text-[0.8rem] lg:hidden">
 						{t("productName")}
 					</Link>
+					{walletAccess && (
+						<div className="ml-1 sm:ml-2 lg:ml-0">
+							<AreaSwitcher area={area} />
+						</div>
+					)}
 					<div className="ml-auto flex items-center gap-1">
 						<CommandPalette groups={groups} />
 						<NotificationBell items={bell.items} unread={bell.unread} />

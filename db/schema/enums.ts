@@ -466,6 +466,9 @@ export const NOTIFICATION_KINDS = [
 	"audit_request",
 	"security_alert",
 	"inquiry",
+	// Wallet: Eingang bestätigt bzw. Ausgang gesehen (Treffer der
+	// Sanktionsprüfung laufen als security_alert)
+	"wallet_transfer",
 	"digest",
 	"system",
 ] as const;

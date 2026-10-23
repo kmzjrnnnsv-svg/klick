@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildNav, countNavTargets } from "@/lib/nav";
+import {
+	activeNavKey,
+	buildNav,
+	buildWalletNav,
+	countNavTargets,
+} from "@/lib/nav";
 
 const iso = [{ slug: "iso27001", name: "ISO 27001" }];
 const casp = [
@@ -118,5 +123,21 @@ describe("buildNav: Verwahrung", () => {
 		expect(keys(["custody"], [])).toContain("custody");
 		expect(keys([], [{ slug: "ccss", name: "CCSS" }])).toContain("custody");
 		expect(keys(["transfer"], [])).not.toContain("custody");
+	});
+});
+
+describe("activeNavKey", () => {
+	const wallet = buildWalletNav();
+	it("der spezifischste Pfad gewinnt", () => {
+		expect(activeNavKey(wallet, "/wallet")).toBe("wallet-home");
+		expect(activeNavKey(wallet, "/wallet/kurse")).toBe("wallet-quotes");
+		expect(activeNavKey(wallet, "/wallet/konten/abc")).toBe("wallet-accounts");
+	});
+	it("Zusatzpfade (Detailseiten) markieren ihren Eintrag", () => {
+		expect(activeNavKey(wallet, "/wallet/kurs/btc-eur")).toBe("wallet-quotes");
+		expect(activeNavKey(wallet, "/wallet/kursx")).toBe("wallet-home");
+	});
+	it("fremde Pfade markieren nichts", () => {
+		expect(activeNavKey(wallet, "/heute")).toBeNull();
 	});
 });

@@ -41,7 +41,12 @@ export type NavLabelKey =
 	| "baseline"
 	| "team"
 	| "settings"
-	| "activity";
+	| "activity"
+	| "walletHome"
+	| "walletReceive"
+	| "walletAccounts"
+	| "walletActivity"
+	| "walletQuotes";
 
 export type NavGroupKey =
 	| "today"
@@ -51,7 +56,8 @@ export type NavGroupKey =
 	| "governance"
 	| "casp"
 	| "frameworks"
-	| "bottom";
+	| "bottom"
+	| "wallet";
 
 export type NavIcon =
 	| "sun"
@@ -88,7 +94,11 @@ export type NavIcon =
 	| "settings"
 	| "activity"
 	| "badge-check"
-	| "vault";
+	| "vault"
+	| "wallet"
+	| "arrow-down"
+	| "history"
+	| "trending-up";
 
 export type NavItem = {
 	key: string;
@@ -96,6 +106,8 @@ export type NavItem = {
 	// Direktes Label (z. B. Rahmenwerk-Name) statt i18n-Key.
 	label?: string;
 	href: string;
+	// weitere Pfade, unter denen der Eintrag aktiv ist (z. B. Detailseiten)
+	match?: string[];
 	icon: NavIcon;
 	phase?: "P2" | "P3" | "P4" | "P5";
 	count?: number;
@@ -108,7 +120,8 @@ export type NavGroup = {
 		| "groupRegisters"
 		| "groupGovernance"
 		| "groupCasp"
-		| "groupFrameworks";
+		| "groupFrameworks"
+		| "groupWallet";
 	items: NavItem[];
 };
 
@@ -471,6 +484,67 @@ export function buildNav(input: NavInput): NavGroup[] {
 	return groups;
 }
 
+// Aktiver Eintrag: der spezifischste Pfad gewinnt — /wallet/kurse markiert
+// „Kurse“, nicht zusätzlich „Übersicht“ (/wallet)
+export function activeNavKey(
+	groups: NavGroup[],
+	pathname: string,
+): string | null {
+	let best: { key: string; len: number } | null = null;
+	for (const item of groups.flatMap((g) => g.items))
+		for (const href of [item.href, ...(item.match ?? [])]) {
+			const hit =
+				pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+			if (hit && (!best || href.length > best.len))
+				best = { key: item.key, len: href.length };
+		}
+	return best?.key ?? null;
+}
+
 export function countNavTargets(groups: NavGroup[]): number {
 	return groups.reduce((n, g) => n + g.items.length, 0);
+}
+
+// Wallet-Bereich: eigene, kurze Navigation (Umschalter im Kopf wechselt
+// zwischen Compliance und Wallet).
+export function buildWalletNav(): NavGroup[] {
+	return [
+		{
+			key: "wallet",
+			labelKey: "groupWallet",
+			items: [
+				{
+					key: "wallet-home",
+					labelKey: "walletHome",
+					href: "/wallet",
+					icon: "wallet",
+				},
+				{
+					key: "wallet-receive",
+					labelKey: "walletReceive",
+					href: "/wallet/empfangen",
+					icon: "arrow-down",
+				},
+				{
+					key: "wallet-quotes",
+					labelKey: "walletQuotes",
+					href: "/wallet/kurse",
+					match: ["/wallet/kurs"],
+					icon: "trending-up",
+				},
+				{
+					key: "wallet-activity",
+					labelKey: "walletActivity",
+					href: "/wallet/bewegungen",
+					icon: "history",
+				},
+				{
+					key: "wallet-accounts",
+					labelKey: "walletAccounts",
+					href: "/wallet/konten",
+					icon: "vault",
+				},
+			],
+		},
+	];
 }

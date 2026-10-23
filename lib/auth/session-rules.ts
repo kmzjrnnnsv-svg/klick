@@ -10,7 +10,9 @@ export type AuthErrorCode =
 	| "no_org"
 	| "access_expired"
 	| "forbidden"
-	| "ip_blocked";
+	| "ip_blocked"
+	// Wallet-Bereich nicht entsperrt (Passkey-Bestätigung fehlt/abgelaufen)
+	| "wallet_locked";
 
 export class AuthError extends Error {
 	constructor(public readonly code: AuthErrorCode) {
@@ -74,6 +76,53 @@ export function isStepUpFresh(
 ): boolean {
 	const at = session.stepUpAt ?? session.mfaVerifiedAt;
 	return !!at && now - at.getTime() <= STEP_UP_MS;
+}
+
+// Wallet-Bereich (Plan Wallet, H9): Entsperren nur per Passkey-Bestätigung
+// mit Zweck „wallet“, gilt 15 Minuten ab Bestätigung — Aktivität verlängert
+// nicht. Nur in der Org, in der entsperrt wurde; nie in einer
+// Impersonation-Sitzung.
+export const WALLET_UNLOCK_MS = 15 * 60 * 1000;
+// Mit Echtgeld entsperren nur Passkeys, die mindestens 72 h alt sind (ein
+// frisch registrierter Schlüssel nach Zugang-Zurücksetzen öffnet nichts).
+export const WALLET_MIN_PASSKEY_AGE_MS = 72 * 60 * 60 * 1000;
+
+export type WalletSessionLike = {
+	walletUnlockedAt?: Date | null;
+	walletUnlockOrgId?: string | null;
+	impersonatedBy?: string | null;
+};
+
+export function isWalletUnlocked(
+	session: WalletSessionLike,
+	orgId: string,
+	now: number = Date.now(),
+): boolean {
+	if (session.impersonatedBy) return false;
+	const at = session.walletUnlockedAt;
+	if (!at || session.walletUnlockOrgId !== orgId) return false;
+	const age = now - at.getTime();
+	return age >= 0 && age <= WALLET_UNLOCK_MS;
+}
+
+export function walletUnlockRemainingMs(
+	session: WalletSessionLike,
+	orgId: string,
+	now: number = Date.now(),
+): number {
+	if (!isWalletUnlocked(session, orgId, now)) return 0;
+	return (
+		WALLET_UNLOCK_MS - (now - (session.walletUnlockedAt as Date).getTime())
+	);
+}
+
+export function passkeyOldEnough(
+	createdAt: Date | null | undefined,
+	opts: { liveEnabled: boolean },
+	now: number = Date.now(),
+): boolean {
+	if (!opts.liveEnabled) return true;
+	return !!createdAt && now - createdAt.getTime() >= WALLET_MIN_PASSKEY_AGE_MS;
 }
 
 export const ORG_ROLES = [

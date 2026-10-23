@@ -8,64 +8,14 @@
  *
  *   pnpm exec tsx scripts/qa/passkey-smoke.ts
  */
-import { createHmac } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { type BrowserContext, chromium, type Page } from "@playwright/test";
+import { chromium } from "@playwright/test";
 import {
 	QA_BASE as BASE,
 	QA_SECRET as SECRET_FILE,
 	QA_STATE as STATE,
 } from "./paths";
-
-const EXEC = existsSync("/opt/pw-browsers/chromium")
-	? "/opt/pw-browsers/chromium"
-	: undefined;
-
-function totp(secret: string, now = Date.now()): string {
-	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-	let bits = "";
-	for (const ch of secret.toUpperCase().replace(/=+$/, "")) {
-		const v = alphabet.indexOf(ch);
-		if (v >= 0) bits += v.toString(2).padStart(5, "0");
-	}
-	const key: number[] = [];
-	for (let i = 0; i + 8 <= bits.length; i += 8)
-		key.push(Number.parseInt(bits.slice(i, i + 8), 2));
-	const msg = Buffer.alloc(8);
-	msg.writeBigUInt64BE(BigInt(Math.floor(now / 30_000)));
-	const h = createHmac("sha1", Buffer.from(key)).update(msg).digest();
-	const off = (h[h.length - 1] ?? 0) & 0xf;
-	const code =
-		(((h[off] ?? 0) & 0x7f) << 24) |
-		((h[off + 1] ?? 0) << 16) |
-		((h[off + 2] ?? 0) << 8) |
-		(h[off + 3] ?? 0);
-	return String(code % 1_000_000).padStart(6, "0");
-}
-
-let failures = 0;
-function check(label: string, ok: boolean, detail = "") {
-	console.log(`${ok ? "✔" : "✘"} ${label}${detail ? ` — ${detail}` : ""}`);
-	if (!ok) failures += 1;
-}
-
-// Virtueller Plattform-Authenticator mit Nutzerverifikation (Biometrie/PIN)
-async function withAuthenticator(ctx: BrowserContext): Promise<Page> {
-	const page = await ctx.newPage();
-	const cdp = await ctx.newCDPSession(page);
-	await cdp.send("WebAuthn.enable");
-	await cdp.send("WebAuthn.addVirtualAuthenticator", {
-		options: {
-			protocol: "ctap2",
-			transport: "internal",
-			hasResidentKey: true,
-			hasUserVerification: true,
-			isUserVerified: true,
-			automaticPresenceSimulation: true,
-		},
-	});
-	return page;
-}
+import { check, EXEC, failureCount, totp, withAuthenticator } from "./webauthn";
 
 async function main() {
 	if (!existsSync(STATE) || !existsSync(SECRET_FILE))
@@ -168,6 +118,7 @@ async function main() {
 	check("Letzter Passkey nicht löschbar (API)", res.status() === 403);
 
 	await browser.close();
+	const failures = failureCount();
 	console.log(failures ? `\n${failures} Fehler` : "\nAlles grün.");
 	process.exitCode = failures ? 1 : 0;
 }

@@ -32,6 +32,8 @@ import {
 import { previousBusinessDay, reconcile } from "@/lib/custody/reconcile";
 import { readOrg } from "@/lib/db/with-org";
 import { CONTROL_STATUS } from "@/lib/entities/control";
+import { listWalletAccounts } from "@/lib/wallet/queries";
+import { nodeHoldings } from "@/lib/wallet/reconcile-source";
 
 const TABS = ["wallets", "abstimmung", "zeremonien"] as const;
 
@@ -96,6 +98,8 @@ export default async function CustodyPage({
 			tx,
 			recs.flatMap((r) => [r.preparedByUserId, r.reviewedByUserId]),
 		);
+		// Bestand der Kundenkonten laut eigenen Knoten (Wallet-Bereich)
+		const holdings = nodeHoldings(await listWalletAccounts(tx, ctx.orgId));
 		return {
 			walletRows,
 			recs,
@@ -105,6 +109,7 @@ export default async function CustodyPage({
 			hsms,
 			ceremonies,
 			names,
+			holdings,
 		};
 	});
 	const { walletRows, recs, members, controlStatus, provs, hsms, ceremonies } =
@@ -115,11 +120,12 @@ export default async function CustodyPage({
 	const lastDay = recs[0]?.day ?? null;
 	const overdue = clientWallets.length > 0 && (!lastDay || lastDay < stichtag);
 	const symbols = [
-		...new Set(
-			recs[0]
+		...new Set([
+			...(recs[0]
 				? recs[0].lines.map((l) => l.symbol)
-				: clientWallets.flatMap((w) => w.wallet.assetSymbols),
-		),
+				: clientWallets.flatMap((w) => w.wallet.assetSymbols)),
+			...data.holdings.map((h) => h.symbol),
+		]),
 	];
 
 	return (
@@ -242,6 +248,7 @@ export default async function CustodyPage({
 						defaultDay={stichtag}
 						symbols={symbols}
 						canEdit={canEdit}
+						nodeHoldings={data.holdings}
 					/>
 					{recs.length > 0 && (
 						<Table>

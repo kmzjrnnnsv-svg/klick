@@ -1,0 +1,29 @@
+#!/usr/sbin/nft -f
+# nftables auf dem Knoten-Server: SSH, WireGuard nur vom App-Server, P2P der
+# Knoten offen, RPC ausschließlich über wg0 vom App-Server.
+# <APP_PUBLIC_IP> vor dem Einspielen ersetzen.
+flush ruleset
+
+table inet filter {
+  chain input {
+    type filter hook input priority 0; policy drop;
+    ct state established,related accept
+    ct state invalid drop
+    iif lo accept
+    ip protocol icmp accept
+    ip6 nexthdr icmpv6 accept
+    tcp dport 22 ct state new limit rate 10/minute accept
+    udp dport 51820 ip saddr <APP_PUBLIC_IP> accept
+    # P2P: Bitcoin (Signet 38333, Mainnet 8333), Reth 30303, Lighthouse 9000
+    tcp dport { 8333, 38333, 30303, 9000 } accept
+    udp dport { 30303, 9000, 9001 } accept
+    # JSON-RPC nur aus dem Tunnel vom App-Server
+    iifname "wg0" ip saddr 10.8.0.1 tcp dport { 8332, 38332, 8545, 8546 } accept
+  }
+  chain forward {
+    type filter hook forward priority 0; policy drop;
+  }
+  chain output {
+    type filter hook output priority 0; policy accept;
+  }
+}

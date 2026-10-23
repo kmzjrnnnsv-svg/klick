@@ -24,6 +24,7 @@ import {
 	ipFromHeaders,
 	normalizeRole as normRole,
 	isStepUpFresh as stepUpFresh,
+	isWalletUnlocked as walletUnlocked,
 } from "./session-rules";
 
 // Guards sind die EINZIGE Autorisierungsstelle. Jede exportierte Funktion in
@@ -45,8 +46,10 @@ export {
 	checkSessionRules,
 	IDLE_SESSION_MS,
 	isStepUpFresh,
+	isWalletUnlocked,
 	normalizeRole,
 	STEP_UP_MS,
+	WALLET_UNLOCK_MS,
 } from "./session-rules";
 
 const TOUCH_THROTTLE_MS = 60 * 1000;
@@ -56,6 +59,9 @@ type SessionRow = AuthSession["session"] & {
 	lastActiveAt?: Date | null;
 	stepUpAt?: Date | null;
 	activeOrganizationId?: string | null;
+	impersonatedBy?: string | null;
+	walletUnlockedAt?: Date | null;
+	walletUnlockOrgId?: string | null;
 };
 type UserRow = AuthSession["user"] & {
 	twoFactorEnabled?: boolean | null;
@@ -112,6 +118,10 @@ export type OrgContext = {
 	ip: string | null;
 	userAgent: string | null;
 	stepUpFresh: boolean;
+	// Wallet-Bereich entsperrt (Passkey, 15 min, diese Org, keine
+	// Impersonation) — Seiten und Actions im Bereich prüfen requireWallet()
+	walletUnlocked: boolean;
+	walletUnlockedAt: Date | null;
 	// eingerichtete Faktoren (Step-up-Dialog bietet Passkey zuerst an)
 	hasTotp: boolean;
 	hasPasskey: boolean;
@@ -169,6 +179,8 @@ export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 		ip: ctx.ip,
 		userAgent: ctx.userAgent,
 		stepUpFresh: stepUpFresh(ctx.session),
+		walletUnlocked: walletUnlocked(ctx.session, orgId),
+		walletUnlockedAt: ctx.session.walletUnlockedAt ?? null,
 		hasTotp: Boolean(ctx.user.twoFactorEnabled),
 		hasPasskey: Boolean(ctx.user.hasPasskey),
 		permissions,
@@ -181,6 +193,15 @@ export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 export async function requireStepUp(perm?: Permission): Promise<OrgContext> {
 	const c = await requireOrg(perm);
 	if (!c.stepUpFresh) throw new AuthErr("step_up_required");
+	return c;
+}
+
+// Wallet-Bereich: zusätzlich entsperrt per Passkey (Plan Wallet, H9). Geld
+// bewegt erst der Signer nach eigener Prüfung — dieser Guard schützt Ansicht
+// und Anstoßen, nicht die Signatur.
+export async function requireWallet(perm?: Permission): Promise<OrgContext> {
+	const c = await requireOrg({ ...perm, wallet: perm?.wallet ?? ["read"] });
+	if (!c.walletUnlocked) throw new AuthErr("wallet_locked");
 	return c;
 }
 

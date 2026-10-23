@@ -51,6 +51,7 @@ export const PERMISSION_AREAS: readonly PermissionArea[] = [
 			"aml",
 			"own_funds",
 			"crypto_asset",
+			"wallet",
 			"shareholder",
 			"export",
 		],
@@ -62,6 +63,8 @@ export const RESERVED: Partial<Record<Resource, readonly string[]>> = {
 	settings: ["update"],
 	role_assignment: ["update"],
 	integration: ["create", "revoke"],
+	// Konten, Richtlinie und Echtgeld bleiben Inhaber:innen vorbehalten
+	wallet: ["manage"],
 };
 
 // Rechte, die keine Aktion prüft (z. B. kein Löschen von Risiken) — im
@@ -73,6 +76,8 @@ const NOT_ENFORCED: Partial<Record<Resource, readonly string[]>> = {
 	process: ["delete"],
 	product: ["delete"],
 	task: ["complete"],
+	// Auszahlungen kommen mit Phase 2 (Signer) — bis dahin prüft sie keine Aktion
+	wallet: ["initiate", "approve"],
 };
 
 const GRANTABLE_RESOURCES = new Set<Resource>(
