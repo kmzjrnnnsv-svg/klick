@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import {
 	controlImplementations,
 	evidence,
+	evidenceSignatures,
 	storagePurgeQueue,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
@@ -189,45 +190,64 @@ async function linkEvidenceImpl(input: {
 // sorgt dafür, dass ein später eingespieltes DB-Backup die Löschung nachholt.
 async function deleteEvidenceImpl(evidenceId: string): Promise<ActionResult> {
 	const c = await requireStepUp({ evidence: ["delete"] });
-	const removed = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const [row] = await tx
-			.select()
-			.from(evidence)
-			.where(
-				and(eq(evidence.id, evidenceId), eq(evidence.organizationId, c.orgId)),
-			)
-			.limit(1);
-		if (!row) return { result: null, audit: [] };
-		await tx.delete(evidence).where(eq(evidence.id, evidenceId));
-		const after = row.storageKey ? purgeAfter(new Date()) : null;
-		if (row.storageKey && after) {
-			await tx
-				.insert(storagePurgeQueue)
-				.values({
-					organizationId: c.orgId,
-					storageKey: row.storageKey,
-					reason: "evidence_deleted",
-					refId: row.id,
-					requestedByUserId: c.userId,
-					purgeAfter: after,
-				})
-				.onConflictDoNothing();
-		}
-		return {
-			result: { hadFile: Boolean(row.storageKey) },
-			audit: {
-				action: "evidence.delete",
-				target: `evidence:${evidenceId}`,
-				before: {
-					title: row.title,
-					fileName: row.fileName,
-					sha256: row.sha256,
+	const removed = await mutateOrg<{ hadFile: boolean } | "signed" | null>(
+		toOrgCtx(c),
+		async (tx) => {
+			const [row] = await tx
+				.select()
+				.from(evidence)
+				.where(
+					and(
+						eq(evidence.id, evidenceId),
+						eq(evidence.organizationId, c.orgId),
+					),
+				)
+				.limit(1);
+			if (!row) return { result: null, audit: [] };
+			// unterschriebene Nachweise bleiben (Unterschriften sind nur anhängend)
+			const [signed] = await tx
+				.select({ id: evidenceSignatures.id })
+				.from(evidenceSignatures)
+				.where(
+					and(
+						eq(evidenceSignatures.organizationId, c.orgId),
+						eq(evidenceSignatures.evidenceId, evidenceId),
+					),
+				)
+				.limit(1);
+			if (signed) return { result: "signed" as const, audit: [] };
+			await tx.delete(evidence).where(eq(evidence.id, evidenceId));
+			const after = row.storageKey ? purgeAfter(new Date()) : null;
+			if (row.storageKey && after) {
+				await tx
+					.insert(storagePurgeQueue)
+					.values({
+						organizationId: c.orgId,
+						storageKey: row.storageKey,
+						reason: "evidence_deleted",
+						refId: row.id,
+						requestedByUserId: c.userId,
+						purgeAfter: after,
+					})
+					.onConflictDoNothing();
+			}
+			return {
+				result: { hadFile: Boolean(row.storageKey) },
+				audit: {
+					action: "evidence.delete",
+					target: `evidence:${evidenceId}`,
+					before: {
+						title: row.title,
+						fileName: row.fileName,
+						sha256: row.sha256,
+					},
+					after: { objectPurgeAfter: after?.toISOString() ?? null },
 				},
-				after: { objectPurgeAfter: after?.toISOString() ?? null },
-			},
-		};
-	});
+			};
+		},
+	);
 	if (!removed) return { ok: false, error: "notFound" };
+	if (removed === "signed") return { ok: false, error: "signed" };
 	if (removed.hadFile && s3Configured()) {
 		await writeTombstone({
 			kind: "evidence",
@@ -301,6 +321,16 @@ async function requestEvidenceImpl(input: {
 
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
+// Step-up vor dem Herunterladen vertraulicher Nachweise (ExportLink)
+async function ensureEvidenceStepUpImpl(): Promise<ActionResult> {
+	await requireStepUp({ evidence: ["read"] });
+	return { ok: true, data: undefined };
+}
+
+export const ensureEvidenceStepUp = safeAction(
+	"ensureEvidenceStepUp",
+	ensureEvidenceStepUpImpl,
+);
 export const s3Available = safeAction(
 	"s3Available",
 	s3AvailableImpl,

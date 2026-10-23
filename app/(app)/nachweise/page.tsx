@@ -171,9 +171,7 @@ export default async function EvidencePage({
 			]}
 			columns={columns}
 			rows={filtered}
-			rowHref={(r) =>
-				r.storageKey ? `/api/nachweise/${r.id}` : r.url ? r.url : "/nachweise"
-			}
+			rowHref={(r) => `/nachweise/${r.id}`}
 			empty={
 				<EmptyState
 					title={t("empty")}
