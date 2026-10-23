@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UserChip } from "@/components/entity/user-chip";
+import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
 import { ReviewDigestView } from "@/components/management-review/review-digest";
 import {
 	CompleteReviewForm,
@@ -155,6 +156,11 @@ export default async function ManagementReviewPage() {
 										</div>
 									)}
 								</div>
+								<EntityEvidence
+									ctx={ctx}
+									code="NW-MANAGEMENTBEWERTUNG"
+									entityId={r.id}
+								/>
 								<div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
 									<div>
 										<h3 className="lv-eyebrow mb-2 text-[0.6rem] text-muted-foreground">

@@ -3,6 +3,7 @@ import { products } from "@/db/schema";
 import { storeSbom } from "@/lib/compliance/sbom-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { s3Configured, screenUpload } from "@/lib/evidence/store";
+import { parseIsolated, sbomResultSchema } from "@/lib/parse/client";
 import {
 	ingestAuth,
 	ingestJson,
@@ -10,7 +11,7 @@ import {
 	readTextBody,
 	touchToken,
 } from "@/lib/security/ingest";
-import { checkSbom, parseSbom } from "@/lib/security/sbom-check";
+import { checkSbom } from "@/lib/security/sbom-check";
 
 export const dynamic = "force-dynamic";
 
@@ -25,25 +26,31 @@ export const POST = ingestRoute("ingest.sbom", async (req: Request) => {
 	const body = await readTextBody(req);
 	if (body instanceof Response) return body;
 	const q = new URL(req.url).searchParams;
-	const parsed = parseSbom(body.text);
-	if (!parsed.ok) return ingestJson(400, { error: `sbom_${parsed.error}` });
-	const summary = checkSbom(parsed.sbom, new Date());
 	const name = (q.get("name") ?? "sbom.json")
 		.replace(/[^\w.-]/g, "_")
 		.slice(0, 120);
 	const code = q.get("product");
-	// Datei durch die Upload-Pipeline (Typ, clamd, DLP) — wie jeder Upload
-	const screened = s3Configured()
-		? await screenUpload(ctx, {
-				name: name.endsWith(".json") ? name : `${name}.json`,
-				bytes: body.bytes,
-				declaredMime: "application/json",
-				classification: "internal",
-				dlpAcknowledged: q.get("dlp_ack") === "1",
-			})
-		: null;
-	if (screened && !screened.ok)
+	// Datei durch die Upload-Pipeline (Typ, clamd, DLP) — wie jeder Upload,
+	// auch ohne Ablage; geparst wird erst danach und im Parser-Prozess
+	const screened = await screenUpload(ctx, {
+		name: name.endsWith(".json") ? name : `${name}.json`,
+		bytes: body.bytes,
+		declaredMime: "application/json",
+		classification: "internal",
+		dlpAcknowledged: q.get("dlp_ack") === "1",
+	});
+	if (!screened.ok)
 		return ingestJson(422, { error: screened.error, detail: screened.detail });
+	const parsed = await parseIsolated(
+		{ op: "sbom" },
+		body.bytes,
+		sbomResultSchema,
+	);
+	if (!parsed.ok)
+		return ingestJson(503, { error: "upload_parser_unavailable" });
+	if (!parsed.data.ok)
+		return ingestJson(400, { error: `sbom_${parsed.data.error}` });
+	const summary = checkSbom(parsed.data.sbom, new Date());
 
 	const res = await mutateOrg(ctx, async (tx) => {
 		const [p] = await tx
@@ -62,7 +69,7 @@ export const POST = ingestRoute("ingest.sbom", async (req: Request) => {
 		const { audit } = await storeSbom(tx, ctx, {
 			product: p,
 			summary,
-			file: screened?.ok
+			file: s3Configured()
 				? {
 						bytes: body.bytes,
 						safeName: screened.safeName,

@@ -23,6 +23,7 @@ import { controls, frameworks, requirements } from "./catalog";
 import {
 	ENTITY_KINDS,
 	FOLLOW_UP_CLASSES,
+	MANAGEMENT_REPORT_KINDS,
 	NC_PRIORITIES,
 	ROLE_FUNCTIONS,
 } from "./enums";
@@ -130,6 +131,11 @@ export const roleAssignments = pgTable(
 		pendingEmail: text(),
 		appointedAt: date(),
 		deputyUserId: userRef(),
+		// Organigramm (N3): Funktion, an die diese Funktion berichtet; leer =
+		// direkt an die Geschäftsleitung (bei management_body: oberste Ebene)
+		reportsToFunction: text({ enum: ROLE_FUNCTIONS }),
+		// Ergänzungen zum Bestellungsschreiben (Aufgaben, Befugnisse, Budget)
+		appointmentNotes: text(),
 		evidenceId: uuid().references(() => evidence.id, { onDelete: "set null" }),
 		fitProperStatus: text({
 			enum: ["not_required", "pending", "confirmed", "rejected"],
@@ -446,6 +452,37 @@ export const managementReviews = pgTable(
 	(t) => [
 		index("management_reviews_org_idx").on(t.organizationId),
 		orgPolicy("management_reviews"),
+	],
+).enableRLS();
+
+// Berichte an die Geschäftsleitung (N3): ISB, IKT-Risikokontrolle, GWB,
+// Compliance, DSB, Auslagerung. Kennzahlen aus Klick werden beim Vorlegen
+// als Schnappschuss gespeichert (figures); die Kenntnisnahme der
+// Geschäftsleitung ist eine Unterschrift unter NW-GL-BERICHT.
+export const managementReports = pgTable(
+	"management_reports",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		kind: text({ enum: MANAGEMENT_REPORT_KINDS }).notNull(),
+		title: text().notNull(),
+		periodFrom: date().notNull(),
+		periodTo: date().notNull(),
+		authorFunction: text({ enum: ROLE_FUNCTIONS }),
+		authorUserId: userRef(),
+		// Einschätzung und vorgeschlagene Maßnahmen der berichtenden Funktion
+		summary: text(),
+		measures: text(),
+		figures: json<Record<string, unknown>>(),
+		status: text({ enum: ["draft", "submitted"] })
+			.notNull()
+			.default("draft"),
+		submittedAt: ts(),
+		...timestamps(),
+	},
+	(t) => [
+		index("management_reports_org_idx").on(t.organizationId, t.periodTo),
+		orgPolicy("management_reports"),
 	],
 ).enableRLS();
 

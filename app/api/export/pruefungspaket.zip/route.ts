@@ -37,12 +37,17 @@ import {
 	RISK_HEADER,
 } from "@/lib/export/builders";
 import {
+	generatedEvidenceEntries,
+	loadGeneratedEvidence,
+} from "@/lib/export/generated-evidence";
+import {
 	auditExport,
 	exportStepUpGuard,
 	stamp,
 	zipResponse,
 } from "@/lib/export/respond";
 import { buildZip, withManifest } from "@/lib/export/zip";
+import { logger } from "@/lib/log";
 import { getOrgSettings } from "@/lib/org/queries";
 
 export const dynamic = "force-dynamic";
@@ -344,14 +349,25 @@ export async function GET(req: Request) {
 			: null,
 	};
 
-	const { entries, manifest } = withManifest(buildAuditPackage(input), {
-		title: "Prüfungspaket",
-		generatedAt,
-		organization: { id: org.id, name: org.name },
-		period: data.period,
-		frameworks: data.frameworks,
-		extra: auditId ? { auditId } : undefined,
+	// Nachweise aus Klick (PDF + signaturen.json); ohne Ablage nur der Index
+	const generated = await readOrg(toOrgCtx(ctx), (tx) =>
+		loadGeneratedEvidence(tx, ctx.orgId),
+	);
+	const extra = await generatedEvidenceEntries(generated).catch((err) => {
+		logger.warn({ err }, "pruefungspaket: Nachweise aus Klick nicht lesbar");
+		return [];
 	});
+	const { entries, manifest } = withManifest(
+		[...buildAuditPackage(input), ...extra],
+		{
+			title: "Prüfungspaket",
+			generatedAt,
+			organization: { id: org.id, name: org.name },
+			period: data.period,
+			frameworks: data.frameworks,
+			extra: auditId ? { auditId } : undefined,
+		},
+	);
 	const zip = buildZip(entries);
 	await auditExport(ctx, "audit_package_zip", manifest.files.length, {
 		auditId,

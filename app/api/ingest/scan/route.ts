@@ -3,6 +3,7 @@ import { products } from "@/db/schema";
 import { FINDING_SEVERITIES, type FindingSeverity } from "@/db/schema/enums";
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { screenUpload } from "@/lib/evidence/store";
+import { parseIsolated, scanResultSchema } from "@/lib/parse/client";
 import { gateFails } from "@/lib/security/finding-rules";
 import { importScan } from "@/lib/security/import-service";
 import {
@@ -12,7 +13,6 @@ import {
 	readTextBody,
 	touchToken,
 } from "@/lib/security/ingest";
-import { parseScanFile } from "@/lib/security/parsers";
 
 export const dynamic = "force-dynamic";
 
@@ -49,8 +49,15 @@ export const POST = ingestRoute("ingest.scan", async (req: Request) => {
 	});
 	if (!screened.ok)
 		return ingestJson(422, { error: screened.error, detail: screened.detail });
-	const parsed = parseScanFile(body.text, name);
-	if (!parsed.ok) return ingestJson(400, { error: parsed.error });
+	const parsed = await parseIsolated(
+		{ op: "scan", name },
+		body.bytes,
+		scanResultSchema,
+	);
+	if (!parsed.ok)
+		return ingestJson(503, { error: "upload_parser_unavailable" });
+	if (!parsed.data.ok) return ingestJson(400, { error: parsed.data.error });
+	const scan = parsed.data.scan;
 
 	// Produkt: Token-Bindung gewinnt, sonst ?product=<Code>
 	let productId: string | null =
@@ -72,7 +79,7 @@ export const POST = ingestRoute("ingest.scan", async (req: Request) => {
 
 	const r = await mutateOrg(ctx, async (tx) => {
 		const res = await importScan(tx, ctx, {
-			parsed: parsed.scan,
+			parsed: scan,
 			source: "api",
 			fullScan: q.get("full") === "1",
 			productId,
@@ -85,8 +92,8 @@ export const POST = ingestRoute("ingest.scan", async (req: Request) => {
 	const failed = gateFails(r.openSeverities, failOn);
 	return ingestJson(failed ? 422 : 200, {
 		scanId: r.scanId,
-		tool: parsed.scan.tool,
-		findings: parsed.scan.findings.length,
+		tool: scan.tool,
+		findings: scan.findings.length,
 		counts: r.counts,
 		gate: failOn ? (failed ? "fail" : "pass") : null,
 	});

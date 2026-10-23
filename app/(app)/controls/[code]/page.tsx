@@ -48,6 +48,7 @@ import { listControlTests } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { env } from "@/lib/env";
+import { kindHashesFor } from "@/lib/evidence-studio/generate/service";
 import { loadSheetData, sheetFor } from "@/lib/evidence-studio/queries";
 import {
 	type ActivityEntry,
@@ -166,6 +167,11 @@ export default async function ControlDetailPage({
 				control.code,
 			)
 		: null;
+	const kindHashes = sheet
+		? await readOrg(toOrgCtx(ctx), (tx) =>
+				kindHashesFor(tx, ctx.orgId, [sheet]),
+			)
+		: undefined;
 
 	return (
 		<EntityLayout
@@ -326,6 +332,8 @@ export default async function ControlDetailPage({
 					<SheetView
 						sheet={sheet}
 						canEdit={canEdit}
+						canCreateEvidence={allows(ctx, { evidence: ["create"] })}
+						currentHashes={kindHashes}
 						evidenceOptions={evidence.map((e) => ({
 							id: e.id,
 							title: e.title,

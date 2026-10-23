@@ -15,6 +15,7 @@ import {
 import { ExportLink } from "@/components/entity/export-link";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
+import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
 import { PageHeader } from "@/components/page-header";
 import {
 	BlockerList,
@@ -277,6 +278,9 @@ export default async function AuditCockpitPage({
 					</div>
 				}
 			/>
+			<div className="-mt-2 mb-6">
+				<EntityEvidence ctx={ctx} code="NW-AUDITBERICHT" entityId={audit.id} />
+			</div>
 			<dl className="mb-6 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
 				<div>
 					<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">

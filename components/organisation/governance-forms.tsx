@@ -178,12 +178,16 @@ export function FunctionSelect({
 	onChange,
 	labels,
 	allowNone,
+	noneLabel = "—",
+	exclude,
 }: {
 	label: string;
 	value: RoleFunction | null | undefined;
 	onChange: (v: RoleFunction | null) => void;
 	labels: Record<string, string>;
 	allowNone?: boolean;
+	noneLabel?: string;
+	exclude?: RoleFunction;
 }) {
 	return (
 		<div className="flex flex-col gap-1.5">
@@ -198,8 +202,8 @@ export function FunctionSelect({
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
-					{allowNone && <SelectItem value="none">—</SelectItem>}
-					{ROLE_FUNCTIONS.map((f) => (
+					{allowNone && <SelectItem value="none">{noneLabel}</SelectItem>}
+					{ROLE_FUNCTIONS.filter((f) => f !== exclude).map((f) => (
 						<SelectItem key={f} value={f}>
 							{labels[f] ?? f}
 						</SelectItem>

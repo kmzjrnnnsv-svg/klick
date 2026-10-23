@@ -28,3 +28,15 @@ export const sheetParamSchema = z.object({
 	// Monate, Stunden bzw. Jahre; null = eigene Festlegung entfernen
 	value: z.number().positive().max(100_000).nullable(),
 });
+
+export const generateEvidenceSchema = z.object({
+	kindCode: z.string().regex(/^NW-[A-Z-]{2,40}$/),
+	entityId: z.uuid().optional(),
+});
+
+export const generateFrameworkEvidenceSchema = z.object({
+	framework: z
+		.string()
+		.regex(/^[a-z0-9-]+$/)
+		.max(40),
+});

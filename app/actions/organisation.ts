@@ -526,6 +526,9 @@ async function upsertRoleAssignmentImpl(
 			fitProperStatus: d.fitProperStatus,
 			documentsValidUntil: d.documentsValidUntil ?? null,
 			reviewAt: d.reviewAt ?? null,
+			reportsToFunction:
+				d.function === "management_body" ? null : (d.reportsToFunction ?? null),
+			appointmentNotes: d.appointmentNotes?.trim() || null,
 		};
 		if (id) {
 			const [before] = await tx

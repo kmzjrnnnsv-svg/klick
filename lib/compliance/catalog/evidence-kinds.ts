@@ -22,7 +22,11 @@ export type EvidenceKind = {
 	// org = ein Nachweis je Organisation; je Datensatz z. B. ein Auditbericht
 	// je Audit oder ein Bestellungsschreiben je Funktion
 	scope: "org" | "per_entity";
-	entityType?: "audit" | "management_review" | "role_assignment";
+	entityType?:
+		| "audit"
+		| "management_review"
+		| "role_assignment"
+		| "management_report";
 	edit: { href: string; label: string };
 	// Dokumentvorlage, deren Textbausteine einfließen (document-templates.ts)
 	template?: string;
@@ -30,6 +34,8 @@ export type EvidenceKind = {
 	controls: readonly string[];
 	covers: readonly string[];
 	signers: readonly EvidenceSigner[];
+	// approve (Standard) = Freigabe, acknowledge = Kenntnisnahme
+	signPurpose?: "approve" | "acknowledge";
 	reviewMonths: number;
 	// Pflichtdokument der Norm („(P)“)
 	mandatory: boolean;
@@ -145,6 +151,47 @@ export const EVIDENCE_KINDS: readonly EvidenceKind[] = [
 		covers: ["Rollenbeschreibungen ISB", "Rollenregister"],
 		signers: GL_ANY,
 		reviewMonths: 12,
+		mandatory: false,
+	},
+	{
+		code: "NW-ORGANIGRAMM",
+		title: "Organigramm",
+		purpose:
+			"Aufbau der Funktionen mit Berichtswegen, Besetzung und Vertretung; Unabhängigkeitsfunktionen berichten direkt an die Leitung.",
+		scope: "org",
+		edit: { href: "/organisation?tab=rollen", label: "Berichtswege pflegen" },
+		requirements: [
+			"iso27001:5.3",
+			"dora:Art.6(1-4)",
+			"zag-marisk:AT4.3.1",
+			"zag-marisk:AT4.4.1",
+		],
+		controls: ["CC-GOV-02", "CC-GOV-19"],
+		covers: ["Organigramm", "Organigramm mit drei Linien"],
+		signers: GL_ANY,
+		reviewMonths: 12,
+		mandatory: false,
+	},
+	{
+		code: "NW-BESTELLUNG",
+		title: "Bestellungsschreiben",
+		purpose:
+			"Bestellung je Funktion mit Aufgaben, Befugnissen, Berichtsweg und Ressourcen, unterschrieben von Geschäftsleitung und bestellter Person.",
+		scope: "per_entity",
+		entityType: "role_assignment",
+		edit: { href: "/organisation?tab=rollen", label: "Funktion öffnen" },
+		requirements: [
+			"iso27001:5.3",
+			"zag-marisk:AT4.4.1",
+			"gwg:§7",
+			"amlr:Art.11",
+			"dsgvo:Art.37-39",
+		],
+		controls: ["CC-GOV-02", "CC-AML-03", "CC-PRV-06"],
+		covers: ["Bestellungsschreiben", "Bestellung", "Bestellung DSB"],
+		// dazu die bestellte Person (Generator: extraSigners)
+		signers: GL_ANY,
+		reviewMonths: 24,
 		mandatory: false,
 	},
 	{
@@ -407,6 +454,34 @@ export const EVIDENCE_KINDS: readonly EvidenceKind[] = [
 		covers: ["Findings-Tracking"],
 		signers: [],
 		reviewMonths: 6,
+		mandatory: false,
+	},
+	{
+		code: "NW-GL-BERICHT",
+		title: "Bericht an die Geschäftsleitung",
+		purpose:
+			"Bericht einer Funktion (ISB, IKT-Risiko, GWB, Compliance, DSB, Auslagerung) mit Kennzahlen aus Klick, von der Geschäftsleitung zur Kenntnis genommen.",
+		scope: "per_entity",
+		entityType: "management_report",
+		edit: { href: "/berichte", label: "Berichte öffnen" },
+		requirements: [
+			"nis2:Art.20(1)",
+			"dora:Art.5(2)",
+			"gwg:§7",
+			"zag-marisk:AT4.4.2",
+			"dsgvo:Art.37-39",
+		],
+		controls: ["CC-GOV-03", "CC-AML-03", "CC-GOV-13", "CC-PRV-06"],
+		covers: [
+			"Berichtsprotokolle",
+			"Jahresbericht",
+			"Berichte der DSB",
+			"Bericht der Geldwäschebeauftragten",
+			"Bericht der Compliance-Funktion",
+		],
+		signers: GL_ANY,
+		signPurpose: "acknowledge",
+		reviewMonths: 12,
 		mandatory: false,
 	},
 	{

@@ -56,6 +56,9 @@ export type SheetEvidence = {
 	title: string;
 	sha256: string | null;
 	kindCode: string | null;
+	// Prüfsumme des Schnappschusses (erzeugte Nachweise) — „veraltet“, wenn
+	// die Register heute eine andere ergeben
+	contentSha256?: string | null;
 	createdAt: string;
 	validUntil: string | null;
 	// Controls, an denen der Nachweis hängt

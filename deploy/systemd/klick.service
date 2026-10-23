@@ -10,8 +10,8 @@
 # ($CREDENTIALS_DIRECTORY → Env). Ziel: systemd-analyze security klick ≤ 2.0.
 [Unit]
 Description=Klick — Compliance-Plattform (Next.js)
-After=network-online.target postgresql.service
-Wants=network-online.target
+After=network-online.target postgresql.service klick-parse.socket
+Wants=network-online.target klick-parse.socket
 
 [Service]
 Type=simple
@@ -30,6 +30,8 @@ Environment=HOSTNAME=127.0.0.1
 Environment=BETTER_AUTH_URL=https://raza.work
 Environment=LOG_LEVEL=info
 Environment=TRUSTED_PROXIES=127.0.0.1,::1
+# Uploads parst der Dienst klick-parse (eigener Prozess je Upload, N6)
+Environment=PARSER_SOCKET=/run/klick-parse.sock
 EnvironmentFile=-/etc/klick/klick.env
 LoadCredentialEncrypted=better_auth_secret:/etc/credstore.encrypted/better_auth_secret
 LoadCredentialEncrypted=vault_kek_base64:/etc/credstore.encrypted/vault_kek_base64
@@ -68,6 +70,11 @@ UMask=0077
 # natives Binding ab (Lifecycle-Skripte sind blockiert).
 ReadWritePaths=/opt/klick/current/.next/cache /opt/klick/.cache /var/log/klick
 LimitNOFILE=65536
+# Grenzen: ein Speicherleck oder eine Last-Spitze nimmt nicht den ganzen Host
+MemoryHigh=1536M
+MemoryMax=2G
+TasksMax=512
+CPUQuota=200%
 
 [Install]
 WantedBy=multi-user.target

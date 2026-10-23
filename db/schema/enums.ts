@@ -460,6 +460,18 @@ export const ROLE_FUNCTIONS = [
 ] as const;
 export type RoleFunction = (typeof ROLE_FUNCTIONS)[number];
 
+// Berichte an die Geschäftsleitung (N3, management_reports)
+export const MANAGEMENT_REPORT_KINDS = [
+	"isms",
+	"ict_risk",
+	"aml",
+	"compliance",
+	"privacy",
+	"outsourcing",
+	"other",
+] as const;
+export type ManagementReportKind = (typeof MANAGEMENT_REPORT_KINDS)[number];
+
 export const CONTROL_TEST_METHODS = [
 	"interview",
 	"inspection",

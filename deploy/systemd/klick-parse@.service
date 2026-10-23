@@ -1,0 +1,69 @@
+# /etc/systemd/system/klick-parse@.service — ein Parser-Prozess je Upload (N6)
+#
+# Gestartet von klick-parse.socket je Verbindung. Der Prozess sieht nur die
+# Bytes eines Uploads auf stdin und schreibt das Ergebnis auf stdout:
+# kein Netz, keine Zugangsdaten, keine Schreibrechte, kein JIT, harte Grenzen
+# für Speicher, Zeit und Prozesse. Die App prüft die Antwort mit zod und lehnt
+# den Upload ab, wenn der Parser abstürzt, hängt oder Unsinn liefert.
+#
+# Code: dist/parse-worker.mjs (pnpm build:parser) wird beim Release als root
+# nach /usr/local/lib/klick-parse/ kopiert — der Dienst-User der App kann ihn
+# nicht verändern (deploy/README.md, „Uploads isoliert parsen“).
+# Ziel: systemd-analyze security klick-parse@x ≤ 1.0.
+[Unit]
+Description=Klick — Parser für einen Upload
+CollectMode=inactive-or-failed
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/node --jitless --max-old-space-size=384 --disallow-code-generation-from-strings --disable-proto=delete /usr/local/lib/klick-parse/parse-worker.mjs
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+Slice=klick-parse.slice
+Environment=NODE_ENV=production
+
+# Grenzen je Upload
+RuntimeMaxSec=20
+MemoryMax=512M
+MemorySwapMax=0
+TasksMax=32
+CPUQuota=100%
+LimitCORE=0
+LimitNOFILE=64
+
+# Kein Netz, keine Zugangsdaten
+PrivateNetwork=yes
+IPAddressDeny=any
+RestrictAddressFamilies=AF_UNIX
+InaccessiblePaths=-/etc/credstore -/etc/credstore.encrypted -/etc/klick -/opt/klick -/var/lib/postgresql -/var/log -/root
+
+# Sandbox
+DynamicUser=yes
+PrivateUsers=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateIPC=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+KeyringMode=private
+NoNewPrivileges=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @mount @debug @cpu-emulation @obsolete @raw-io @reboot @swap @clock @module
+SystemCallArchitectures=native
+UMask=0077

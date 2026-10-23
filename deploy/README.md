@@ -34,6 +34,9 @@ export HOME=/opt/klick COREPACK_ENABLE_DOWNLOAD_PROMPT=0 BETTER_AUTH_URL=https:/
 export BETTER_AUTH_SECRET="$(d better_auth_secret)" VAULT_KEK_BASE64="$(d vault_kek_base64)"
 export DATABASE_URL="$(d database_url)" DATABASE_URL_MIGRATE="$(d database_url_migrate)"
 runuser -u klick -- pnpm release
+# Parser-Bündel root-eigen ablegen (klick-parse@.service liest nur von dort)
+install -D -o root -g root -m 0644 dist/parse-worker.mjs /usr/local/lib/klick-parse/parse-worker.mjs
+sha256sum /usr/local/lib/klick-parse/parse-worker.mjs
 '
 sudo systemctl restart klick && curl -f https://raza.work/api/ready
 ```
@@ -227,6 +230,39 @@ Datei.
   `ORG_DATABASE_URLS={"<orgId>":"postgres://klick_app:…@host/klick"}`. withOrg/readOrg/mutateOrg
   routen dann je Org; Better Auth, Katalog und Plattform-Jobs bleiben auf der Haupt-DB — für
   Enterprise-DBs einen eigenen Job-Prozess mit gesetzter `DATABASE_URL` betreiben.
+
+## Uploads isoliert parsen (N6)
+Hochgeladene Dateien (Nachweise, Gap-Analyse, Lieferantenportal, SBOM, Scan-Berichte, CI-Ingest)
+parst nie der App-Prozess: Typprüfung (Magic Bytes), Text aus PDF/Office/ZIP, DLP-Erkennung, SBOM-
+und Scan-Parser laufen je Upload in einem eigenen Prozess `klick-parse@` — ohne Netz
+(`PrivateNetwork`, `IPAddressDeny=any`), ohne Zugangsdaten (kein Credential, `/etc/klick`,
+`/opt/klick` unsichtbar), ohne Schreibrechte, ohne JIT (`node --jitless`,
+`MemoryDenyWriteExecute`), mit 512 MB / 20 s / 32 Tasks je Upload und höchstens vier gleichzeitig
+(`klick-parse.slice`: 1,5 GB). Die App prüft jede Antwort mit zod; Absturz, Zeitüberschreitung oder
+Unsinn → Upload abgelehnt (`upload_parser_unavailable`, fail closed wie clamd). clamd, DLP-Bewertung,
+Verschlüsselung und Ablage bleiben in der App. Hochgeladenes wird nie ausgeführt oder inline
+angezeigt (`Content-Disposition: attachment`, `nosniff`, `CSP sandbox`).
+
+Einmalig:
+```bash
+sudo install -m 0644 deploy/systemd/klick-parse.socket deploy/systemd/klick-parse@.service \
+  deploy/systemd/klick-parse.slice deploy/systemd/klick.service /etc/systemd/system/
+sudo install -D -o root -g root -m 0644 dist/parse-worker.mjs /usr/local/lib/klick-parse/parse-worker.mjs
+sudo systemctl daemon-reload && sudo systemctl enable --now klick-parse.socket
+sudo systemctl restart klick
+```
+Prüfen:
+- `ls -l /run/klick-parse.sock` → `srw-rw---- root klick`
+- `systemd-analyze security klick-parse@probe.service` ≤ 1.0
+- CSV mit einer IBAN als Nachweis hochladen → DLP-Hinweis „IBANs“; `journalctl -u 'klick-parse@*' -n 20`
+  zeigt den Lauf (nur die Warnung `--expose_wasm` von `--jitless`, sonst nichts).
+- Startet die App ohne `PARSER_SOCKET`, warnt das Log beim Start; der Parser läuft dann als
+  Kindprozess mit den Rechten der App (Entwicklung, CI).
+
+Fehlerbild „Prüfdienst nicht erreichbar“: `systemctl status klick-parse.socket`, Bündel vorhanden
+(`/usr/local/lib/klick-parse/parse-worker.mjs`), `journalctl -u 'klick-parse@*'` (OOM →
+`MemoryMax`, Abbruch nach 20 s → `RuntimeMaxSec`). Später als Container (gVisor/Podman) — Protokoll
+und App bleiben gleich, nur der Socket zeigt woanders hin.
 
 ## Security-Checks: CI-Ingest und Schnellcheck (S5, ADR-017)
 - **nginx:** Zone `klick_ingest` (30/min je IP) und `location /api/ingest/` (nur POST, 26 MB) aus

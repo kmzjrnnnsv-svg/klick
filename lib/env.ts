@@ -136,6 +136,9 @@ export const envSchema = z.object({
 	// Härtung III (optional): Malware-Scan über clamd, Rate-Limit je Org,
 	// Fehler-Tracking (GlitchTip/Sentry-Store-API), eigene DB je Enterprise-Org.
 	CLAMD_HOST: z.string().optional(),
+	// Parser-Dienst (N6): Unix-Socket von klick-parse.socket; ohne Angabe
+	// startet die App den Parser als Kindprozess mit Speicher-/Zeitgrenze
+	PARSER_SOCKET: z.string().startsWith("/").optional(),
 	CLAMD_PORT: z.coerce.number().int().min(1).max(65535).default(3310),
 	ORG_RATE_LIMIT_PER_MIN: z.coerce.number().int().min(0).default(600),
 	GLITCHTIP_DSN: z.url().optional(),

@@ -160,10 +160,16 @@ export const roleAssignmentSchema = z
 		fitProperChecklist: fitProperChecklistSchema.nullable().optional(),
 		documentsValidUntil: optionalDate,
 		reviewAt: optionalDate,
+		reportsToFunction: z.enum(ROLE_FUNCTIONS).nullable().optional(),
+		appointmentNotes: z.string().trim().max(4000).nullable().optional(),
 	})
 	.refine((r) => Boolean(r.userId) || Boolean(r.externalName?.trim()), {
 		message: "Person oder externer Name erforderlich",
 		path: ["userId"],
+	})
+	.refine((r) => r.reportsToFunction !== r.function, {
+		message: "Eine Funktion kann nicht an sich selbst berichten",
+		path: ["reportsToFunction"],
 	});
 
 // ── Ziele & KPIs ───────────────────────────────────────────────────────────

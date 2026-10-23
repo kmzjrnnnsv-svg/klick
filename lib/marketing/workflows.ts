@@ -139,13 +139,46 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				trigger:
 					"Upload an einem Control, einer Frage, einem Dokument oder einer Anfrage.",
 				steps: [
-					"Dateityp und Inhalt prüfen; mit Virenscanner, wo er eingerichtet ist.",
+					"Dateityp und Inhalt prüft ein eigener Prozess ohne Netz und ohne Zugangsdaten; dazu der Virenscanner, wo er eingerichtet ist.",
 					"Datenschutz-Prüfung: Geheimnisse blockieren den Upload, Zahlungs- und Steuerdaten heben die Einstufung an.",
 					"Mit dem Schlüssel deiner Organisation verschlüsseln und mit dem Control verknüpfen.",
 					"Ablaufdatum setzen; Klick erinnert vorher.",
 				],
 				result:
 					"Ein Nachweis, der überall zählt, wo das Control gilt; jeder Download steht im Protokoll.",
+			},
+			{
+				key: "evidence-studio",
+				name: "Nachweise aus Klick erzeugen",
+				summary:
+					"Kontextanalyse, Rollenregister, Organigramm, Erklärung zur Anwendbarkeit, Auditprogramm und gut zwei Dutzend weitere Nachweise entstehen aus dem, was du ohnehin in Klick pflegst.",
+				where: "Rahmenwerke → Nachweise",
+				trigger:
+					"Ein Register ist gepflegt oder ein Nachweis ist fällig, veraltet oder abgelaufen.",
+				steps: [
+					"Je Normpunkt zeigt der Nachweisbogen, was verlangt ist; jede Prüffrage beantwortest du einmal für alle Rahmenwerke.",
+					"„Fällige Nachweise erzeugen“: Klick baut aus den Registern ein PDF mit Schnappschuss und Prüfsumme.",
+					"Ändert sich ein Register, steht der Nachweis auf „veraltet“; neu erzeugen legt eine neue Fassung an, die alte bleibt.",
+					"Fristen je Rahmenwerk legst du selbst fest; Klick meldet, wenn eine Festlegung laxer ist als die Vorgabe.",
+				],
+				result:
+					"Prüfbare PDFs an den passenden Controls; sie zählen sofort in der Prüfungsreife und liegen im Prüfungspaket.",
+			},
+			{
+				key: "signatures",
+				name: "Unterschrift per Passkey",
+				summary:
+					"Die richtige Person unterschreibt mit ihrem Passkey statt mit einem Häkchen.",
+				where: "Rahmenwerke → Nachweise, Organisation, Berichte an die GL",
+				trigger:
+					"Ein Nachweis wartet auf die Unterschrift einer Funktion, etwa der Geschäftsleitung.",
+				steps: [
+					"Unterschreiben kann nur, wer die Funktion innehat; der Browser fragt Fingerabdruck, Gesicht oder PIN ab.",
+					"Die Unterschrift bindet genau diesen Inhalt über seine Prüfsumme; viele Nachweise gehen in einer Sammelunterschrift.",
+					"Bestellungsschreiben unterschreiben Geschäftsleitung und bestellte Person, Berichte nimmt die Geschäftsleitung zur Kenntnis.",
+				],
+				result:
+					"Unterschriften, die sich ohne Klick prüfen lassen: Schlüssel, Zeitpunkt und Prüfsumme stehen in einer Datei im Prüfungspaket.",
 			},
 			{
 				key: "documents",
@@ -474,6 +507,37 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				result: "Bericht der Managementbewertung mit Folgemaßnahmen.",
 			},
 			{
+				key: "gl-reports",
+				name: "Berichte an die Geschäftsleitung",
+				summary:
+					"ISB, Geldwäschebeauftragte, Compliance, Datenschutz und Auslagerung berichten mit Kennzahlen aus Klick.",
+				where: "Berichte an die GL",
+				trigger:
+					"Der Jahresbericht einer Funktion ist fällig, oder es gibt einen Anlass.",
+				steps: [
+					"Art wählen; Zeitraum und Kennzahlen schlägt Klick vor.",
+					"Einschätzung und Maßnahmen schreiben und vorlegen; die Kennzahlen werden dabei festgehalten.",
+					"Die Geschäftsleitung nimmt den Bericht per Passkey zur Kenntnis.",
+				],
+				result:
+					"Berichtsprotokoll als PDF mit Kenntnisnahme und dem Termin für den nächsten Bericht.",
+			},
+			{
+				key: "org-chart",
+				name: "Organigramm und Bestellungen",
+				summary:
+					"Berichtswege und Bestellungsschreiben je Funktion, mit Hinweis, wenn die Unabhängigkeit fehlt.",
+				where: "Organisation → Rollen & Leitung",
+				trigger: "Eine Pflichtfunktion wird besetzt oder ändert sich.",
+				steps: [
+					"Funktion besetzen und eintragen, an wen sie berichtet.",
+					"Klick zeichnet das Organigramm und warnt, wenn etwa ISB oder Geldwäschebeauftragte nicht direkt an die Geschäftsleitung berichten.",
+					"Bestellungsschreiben aus der Vorlage je Funktion erzeugen und von beiden Seiten unterschreiben lassen.",
+				],
+				result:
+					"Organigramm und Bestellungen als Nachweis für Prüfung und Aufsicht.",
+			},
+			{
 				key: "audits",
 				name: "Audits",
 				summary:
@@ -483,7 +547,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				steps: [
 					"Programm planen; Klick prüft, ob alle Bereiche abgedeckt sind.",
 					"Im Cockpit dem Prüfpfad folgen: Anforderung → Control → Nachweis.",
-					"Anfragen der Prüfer:innen werden Aufgaben; Feststellungen werden Abweichungen.",
+					"Anfragen der Prüfer:innen werden Aufgaben; Feststellungen werden Abweichungen mit den Fristen des jeweiligen Rahmenwerks (Haupt- und Nebenabweichung).",
 				],
 				result: "Prüfungspaket als ZIP mit Prüfsummen.",
 			},

@@ -64,6 +64,9 @@ describe("Brevo über HTTPS", () => {
 		vi.stubEnv("MAIL_ALLOW_RESEND", keys.allowResend ? "true" : "");
 		vi.stubEnv("BREVO_API_KEY", keys.brevo ?? "");
 		vi.stubEnv("SMTP_HOST", "");
+		// Pflichtangaben-Fußzeile prüft ein eigener Test; hier ohne (CI setzt
+		// BETTER_AUTH_URL, lokal fehlt sie)
+		vi.stubEnv("BETTER_AUTH_URL", "");
 		vi.spyOn(console, "log").mockImplementation(() => {});
 		vi.spyOn(console, "warn").mockImplementation(() => {});
 	}
