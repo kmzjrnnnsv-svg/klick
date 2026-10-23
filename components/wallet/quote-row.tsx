@@ -1,32 +1,11 @@
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import type { Quote } from "@/lib/wallet/market";
 import { pairSlug } from "@/lib/wallet/market";
 import { formatScaled } from "@/lib/wallet/prices";
+import { ChangeBadge } from "./change-badge";
 import { Sparkline } from "./sparkline";
 
 const symbol = (pair: string) => (pair.endsWith("/EUR") ? "€" : "$");
-
-// Veränderung mit Zeichen und Pfeil — nie Farbe allein
-export function ChangeBadge({ bp }: { bp: number | null }) {
-	if (bp === null)
-		return <span className="text-muted-foreground text-xs">—</span>;
-	const up = bp >= 0;
-	const Icon = up ? ArrowUpRight : ArrowDownRight;
-	return (
-		<span
-			className={`inline-flex items-center gap-0.5 text-xs tabular-nums ${up ? "text-success" : "text-destructive"}`}
-		>
-			<Icon className="size-3" aria-hidden />
-			{up ? "+" : "−"}
-			{(Math.abs(bp) / 100).toLocaleString("de-DE", {
-				minimumFractionDigits: 2,
-				maximumFractionDigits: 2,
-			})}
-			&nbsp;%
-		</span>
-	);
-}
 
 export function QuoteRow({ quote, name }: { quote: Quote; name: string }) {
 	const fraction =
