@@ -7,6 +7,7 @@ import { auditPlatform } from "@/lib/audit";
 import type { OrgCtx } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
 import { env } from "@/lib/env";
+import { walletAreaEnabled } from "@/lib/wallet/area";
 import { userHasPasskey } from "./endpoint-guard";
 import { primaryMembershipCount as countPrimary } from "./memberships";
 import { memberContextFor } from "./org";
@@ -201,6 +202,7 @@ export async function requireStepUp(perm?: Permission): Promise<OrgContext> {
 // und Anstoßen, nicht die Signatur.
 export async function requireWallet(perm?: Permission): Promise<OrgContext> {
 	const c = await requireOrg({ ...perm, wallet: perm?.wallet ?? ["read"] });
+	if (!(await walletAreaEnabled(c.orgId))) throw new AuthErr("wallet_disabled");
 	if (!c.walletUnlocked) throw new AuthErr("wallet_locked");
 	return c;
 }

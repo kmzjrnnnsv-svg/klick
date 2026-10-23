@@ -23,6 +23,7 @@ export async function AppShell({
 	groups,
 	bell,
 	area = "compliance",
+	walletEnabled = false,
 	children,
 }: {
 	ctx: OrgContext;
@@ -33,11 +34,13 @@ export async function AppShell({
 	bell: { items: BellItem[]; unread: number };
 	// Compliance oder Wallet: bestimmt Startseite und Umschalter
 	area?: ShellArea;
+	// Wallet-Bereich für die Org eingeschaltet (org_settings.wallet_enabled)
+	walletEnabled?: boolean;
 	children: ReactNode;
 }) {
 	const t = await getTranslations("Common");
 	const home = area === "wallet" ? "/wallet" : "/heute";
-	const walletAccess = allows(ctx, { wallet: ["read"] });
+	const walletAccess = walletEnabled && allows(ctx, { wallet: ["read"] });
 	return (
 		<div className="flex min-h-dvh">
 			{/* Sidebar klebt in Fensterhöhe; nur die Navigation scrollt. Flex-Kinder

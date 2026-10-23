@@ -176,6 +176,13 @@
       "when": 1792711721941,
       "tag": "0024_wallet_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792744541584,
+      "tag": "0025_wallet_switch",
+      "breakpoints": true
     }
   ]
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { WalletUnlock } from "@/components/wallet/unlock";
-import { requireOrgPage } from "@/lib/auth/gates";
+import { requireWalletAreaPage } from "@/lib/auth/gates";
 import { walletReturnPath } from "@/lib/wallet/return-path";
 
 export const metadata: Metadata = { title: "Wallet öffnen" };
@@ -16,7 +16,7 @@ export default async function WalletUnlockPage({
 }: {
 	searchParams: Promise<{ zurueck?: string }>;
 }) {
-	const ctx = await requireOrgPage({ wallet: ["read"] });
+	const ctx = await requireWalletAreaPage();
 	const back = walletReturnPath((await searchParams).zurueck);
 	if (ctx.walletUnlocked) redirect(back);
 	const t = await getTranslations("Wallet");

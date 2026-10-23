@@ -622,7 +622,13 @@
 		"subscriptionDue_after_audit": "nach bestandenem Audit, jährlich",
 		"subscriptionDue_from_start": "ab Start, jährlich",
 		"subscriptionDue_agreed": "nach Vereinbarung",
-		"subscriptionAgreed": "im Gespräch"
+		"subscriptionAgreed": "im Gespräch",
+		"walletAreaTitle": "Wallet-Bereich",
+		"walletAreaLead": "Zweiter Bereich neben Compliance: Krypto halten, empfangen und – mit Signier-Dienst – senden. Aus heißt: kein Umschalter, keine Wallet-Seiten. Konten und Bewegungen bleiben erhalten.",
+		"walletAreaStateOn": "Eingeschaltet",
+		"walletAreaStateOff": "Ausgeschaltet",
+		"walletAreaOn": "Wallet-Bereich eingeschaltet.",
+		"walletAreaOff": "Wallet-Bereich ausgeschaltet."
 	},
 	"Team": {
 		"title": "Team",
