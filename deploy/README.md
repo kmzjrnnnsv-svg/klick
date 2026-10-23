@@ -37,6 +37,10 @@ runuser -u klick -- pnpm release
 # Parser-Bündel root-eigen ablegen (klick-parse@.service liest nur von dort)
 install -D -o root -g root -m 0644 dist/parse-worker.mjs /usr/local/lib/klick-parse/parse-worker.mjs
 sha256sum /usr/local/lib/klick-parse/parse-worker.mjs
+# Backup-Skript ebenso (klick-backup-db.service liest nur von dort)
+if [ -d /usr/local/lib/klick-backup ]; then
+  install -D -o root -g root -m 0755 scripts/backup-db.sh /usr/local/lib/klick-backup/scripts/backup-db.sh
+fi
 '
 sudo systemctl restart klick && curl -f https://raza.work/api/ready
 ```
@@ -197,8 +201,12 @@ Datei.
    `postgresql://klick_backup:…@127.0.0.1/klick` als `database_url_backup` ablegen.
 4. Ziel-Bucket: Versionierung + Object Lock (Governance, 30 Tage) aktivieren, falls der Anbieter es
    kann (Hetzner Object Storage: vorher prüfen); sonst genügt die rclone-Historie.
-5. Units `deploy/systemd/klick-backup-{db,objects,verify}.{service,timer}` und `klick-alert@.service`
+5. Skript root-eigen ablegen (`install -D -o root -g root -m 0755 scripts/backup-db.sh
+   /usr/local/lib/klick-backup/scripts/backup-db.sh`, bei jedem Release erneut — siehe „Release“),
+   Units `deploy/systemd/klick-backup-{db,objects,verify}.{service,timer}` und `klick-alert@.service`
    installieren, `systemctl enable --now klick-backup-db.timer klick-backup-objects.timer klick-backup-verify.timer`.
+   **Ohne S3** (Dateien in `evidence_blobs`) genügt `klick-backup-db.timer` — Objekte und Stichprobe entfallen.
+   Lokal und offsite löscht das Skript Dumps älter als `BACKUP_KEEP_DAYS`.
 
 **Restore (auch quartalsweiser Test, Pflichten-Lauf):**
 1. Wartungsmodus, `systemctl stop klick`.
