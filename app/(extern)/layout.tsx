@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { LegalLinks } from "@/components/shell/legal-links";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 
 // Externe Zugänge ohne Konto (Lieferantenportal, ADR-017): kein AppShell,
@@ -22,9 +23,13 @@ export default async function ExternLayout({
 					<ThemeSwitcher />
 				</div>
 			</header>
-			<main className="mx-auto flex w-full max-w-3xl grow flex-col px-4 py-8 sm:px-6">
+			<main
+				id="inhalt"
+				className="mx-auto flex w-full max-w-3xl grow flex-col px-4 py-8 sm:px-6"
+			>
 				{children}
 			</main>
+			<LegalLinks />
 		</>
 	);
 }

@@ -263,12 +263,19 @@ export default async function PublicTrustCenterPage({
 						slug={center.slug}
 						ndaText={s.ndaText}
 						ndaVersion={s.ndaVersion}
+						orgName={s.orgName}
 					/>
 				</section>
 			)}
 
 			<p className="border-t pt-6 text-muted-foreground text-xs">
-				{t("publicFooter", { org: s.orgName })}
+				{t("publicFooter", { org: s.orgName })}{" "}
+				<a
+					href={`/leistungen?meldung=${encodeURIComponent(`/vertrauen/${center.slug}`)}#anfrage`}
+					className="underline underline-offset-4 hover:text-foreground"
+				>
+					{t("reportContent")}
+				</a>
 			</p>
 		</div>
 	);

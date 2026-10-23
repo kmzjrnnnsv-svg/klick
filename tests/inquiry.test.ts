@@ -18,7 +18,7 @@ const valid = {
 	company: "Beispiel GmbH",
 	email: " Erika@Example.org ",
 	message: "Pentest der Kunden-App vor dem Go-live.",
-	consent: true,
+	business: true,
 	website: "",
 	renderedAt: now - 10_000,
 };
@@ -41,10 +41,11 @@ describe("Anfragen", () => {
 		expect(looksAutomated({ renderedAt: null }, now)).toBe(true);
 	});
 
-	it("Leistungen = Preispositionen + allgemein", () => {
+	it("Leistungen = Preispositionen + allgemein + Meldung (DSA)", () => {
 		expect(INQUIRY_SERVICE_KEYS).toEqual([
 			...PRICE_ITEMS.map((i) => i.key),
 			"general",
+			"notice:content",
 		]);
 		expect(inquiryServiceLabel("svc:cra")).toBe("CRA-Readiness");
 		expect(inquiryServiceLabel("unbekannt")).toBe("unbekannt");
@@ -57,11 +58,14 @@ describe("Anfragen", () => {
 			expect(ok.data.email).toBe("erika@example.org");
 			expect(ok.data.phone).toBeNull();
 		}
-		const noConsent = publicInquirySchema.safeParse({
+		// nur für Unternehmen (§ 14 BGB): ohne Bestätigung keine Anfrage
+		const noBusiness = publicInquirySchema.safeParse({
 			...valid,
-			consent: false,
+			business: false,
 		});
-		expect(noConsent.success).toBe(false);
+		expect(noBusiness.success).toBe(false);
+		const { business: _, ...withoutBusiness } = valid;
+		expect(publicInquirySchema.safeParse(withoutBusiness).success).toBe(false);
 		expect(
 			publicInquirySchema.safeParse({ ...valid, service: "svc:x" }).success,
 		).toBe(false);

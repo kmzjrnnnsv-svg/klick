@@ -4,7 +4,8 @@ import { getTranslations } from "next-intl/server";
 import { InquiryForm } from "@/components/marketing/inquiry-form";
 import { RevealRoot } from "@/components/marketing/reveal";
 import { loadPriceTable } from "@/lib/db/pricing";
-import { BILLING_TERMS } from "@/lib/marketing/billing";
+import { NOTICE_SERVICE, noticeMessage } from "@/lib/inquiries/rules";
+import { BILLING_NOTE, BILLING_TERMS } from "@/lib/marketing/billing";
 import { FAQ, SERVICES } from "@/lib/marketing/services";
 import { formatPrice } from "@/lib/pricing/resolve";
 import { cn } from "@/lib/utils";
@@ -25,16 +26,23 @@ const TONES = [s.toneBlue, s.toneBrown, s.toneSky] as const;
 export default async function ServicesPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ leistung?: string }>;
+	searchParams: Promise<{ leistung?: string; meldung?: string }>;
 }) {
 	const t = await getTranslations("Services");
 	const { prices } = await loadPriceTable();
-	const { leistung } = await searchParams;
-	const preset = SERVICES.some((x) => x.key === leistung)
-		? `svc:${leistung}`
-		: undefined;
+	const { leistung, meldung } = await searchParams;
+	// ?meldung=<pfad>: „Inhalt melden“ aus einem öffentlichen Trust Center
+	const notice = noticeMessage(
+		meldung,
+		process.env.BETTER_AUTH_URL ?? "https://raza.work",
+	);
+	const preset = notice
+		? NOTICE_SERVICE
+		: SERVICES.some((x) => x.key === leistung)
+			? `svc:${leistung}`
+			: undefined;
 	return (
-		<RevealRoot className={s.page}>
+		<RevealRoot as="main" id="inhalt" className={s.page}>
 			{/* Einstieg: Aussage links, ein lesbares Bild rechts */}
 			<section className={s.hero} aria-labelledby="leistungen-title">
 				<div className={s.heroText}>
@@ -186,6 +194,9 @@ export default async function ServicesPage({
 						</li>
 					))}
 				</ul>
+				<p className={s.billingNote} data-r="">
+					{BILLING_NOTE}
+				</p>
 			</section>
 
 			{/* Häufige Fragen */}
@@ -214,6 +225,7 @@ export default async function ServicesPage({
 				<div data-r="">
 					<InquiryForm
 						defaultService={preset}
+						defaultMessage={notice}
 						buttonClassName={cn(s.button, s.buttonInverse)}
 					/>
 				</div>

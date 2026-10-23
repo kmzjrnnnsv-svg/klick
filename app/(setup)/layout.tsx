@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { LegalLinks } from "@/components/shell/legal-links";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 
 // Geführte Einrichtung (D0): ruhiges Layout ohne Sidebar, breiter als die
@@ -26,9 +27,13 @@ export default async function SetupLayout({
 					<ThemeSwitcher />
 				</div>
 			</header>
-			<main className="mx-auto flex w-full max-w-4xl grow flex-col px-4 py-8 sm:px-6 sm:py-10">
+			<main
+				id="inhalt"
+				className="mx-auto flex w-full max-w-4xl grow flex-col px-4 py-8 sm:px-6 sm:py-10"
+			>
 				{children}
 			</main>
+			<LegalLinks />
 		</>
 	);
 }

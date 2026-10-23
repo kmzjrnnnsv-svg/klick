@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getCmsPageBySlug } from "@/app/actions/cms";
+import { ImprintFacts } from "@/components/legal/imprint-facts";
 import { MarkdownView } from "@/components/markdown-view";
 
 // Öffentliche Rechtstexte aus cms_pages (Impressum, Datenschutzerklärung …).
@@ -50,6 +51,14 @@ const RESERVED = new Set([
 	"sicherheit",
 	"lieferant",
 	"leistungen",
+	"funktionen",
+	"wallet",
+	"trust-center",
+	"verwahrung",
+	"organisationen",
+	"aktivieren",
+	"zugang",
+	"lizenzen",
 ]);
 
 export default async function CmsPage({
@@ -62,10 +71,14 @@ export default async function CmsPage({
 	const page = await getCmsPageBySlug(slug);
 	if (!page) notFound();
 	return (
-		<main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-10 pb-20 sm:px-6 sm:pt-16">
+		<main
+			id="inhalt"
+			className="mx-auto w-full max-w-3xl flex-1 px-4 pt-10 pb-20 sm:px-6 sm:pt-16"
+		>
 			<h1 className="font-serif-display text-3xl text-primary sm:text-4xl">
 				{page.title}
 			</h1>
+			{slug === "impressum" && <ImprintFacts />}
 			<MarkdownView source={page.body} className="mt-8" />
 		</main>
 	);

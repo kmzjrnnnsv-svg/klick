@@ -14,9 +14,11 @@ type Errors = Partial<Record<string, string>>;
 // Bots still.
 export function InquiryForm({
 	defaultService = "general",
+	defaultMessage,
 	buttonClassName,
 }: {
 	defaultService?: string;
+	defaultMessage?: string;
 	buttonClassName?: string;
 }) {
 	const t = useTranslations("Services");
@@ -75,7 +77,7 @@ export function InquiryForm({
 					company: String(fd.get("company") ?? ""),
 					email: String(fd.get("email") ?? ""),
 					message: String(fd.get("message") ?? ""),
-					consent: fd.get("consent") === "on",
+					business: fd.get("business") === "on",
 					website: String(fd.get("website") ?? ""),
 					renderedAt,
 				};
@@ -181,6 +183,7 @@ export function InquiryForm({
 					name="message"
 					className={st.control}
 					placeholder={t("formMessagePlaceholder")}
+					defaultValue={defaultMessage}
 					required
 					{...a11y("message")}
 				/>,
@@ -196,25 +199,25 @@ export function InquiryForm({
 				/>
 			</div>
 			<div className={cn(st.field, st.full)}>
-				<label className={st.check} htmlFor="inq-consent">
+				<label className={st.check} htmlFor="inq-business">
 					<input
-						id="inq-consent"
-						name="consent"
+						id="inq-business"
+						name="business"
 						type="checkbox"
 						required
-						{...a11y("consent")}
+						{...a11y("business")}
 					/>
 					<span>
-						{t.rich("formConsent", {
+						{t.rich("formBusiness", {
 							link: (chunks) => (
 								<Link href="/datenschutz-erklaerung">{chunks}</Link>
 							),
 						})}
 					</span>
 				</label>
-				{errors.consent && (
-					<p className={st.error} id="inq-consent-error">
-						{errors.consent}
+				{errors.business && (
+					<p className={st.error} id="inq-business-error">
+						{errors.business}
 					</p>
 				)}
 			</div>

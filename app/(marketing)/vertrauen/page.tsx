@@ -20,7 +20,7 @@ export default async function TrustPage() {
 		{} as Record<string, number>,
 	);
 	return (
-		<main className="flex-1">
+		<main id="inhalt" className="flex-1">
 			<section className="mx-auto max-w-5xl px-4 pt-16 pb-6 sm:px-6 sm:pt-24">
 				<p className="lv-eyebrow text-[0.62rem] text-brown">{t("eyebrow")}</p>
 				<h1 className="mt-5 max-w-3xl font-serif-display text-4xl text-primary leading-[1.05] sm:text-5xl">

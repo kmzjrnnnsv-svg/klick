@@ -46,7 +46,7 @@ sudo systemctl restart klick && curl -f https://raza.work/api/ready
 - Mozilla Observatory A+, SSL Labs A+
 
 ## Anmeldung: Mailversand prüfen, Notfall-Link
-Anmelde-Links (Notweg) und Einladungen gehen per Mail raus (Resend → Brevo → SMTP; scheitert ein
+Anmelde-Links (Notweg) und Einladungen gehen per Mail raus (Brevo → SMTP → Resend nur mit `MAIL_ALLOW_RESEND=true`; scheitert ein
 Weg, kommt der nächste konfigurierte dran). Seit „Passkey zuerst“ (ADR-019) hängt der normale
 Login nicht mehr an der Mail — Einladungen gibt es zusätzlich als Link zum Kopieren. In Produktion
 landet ein Anmelde-Link **nie** im Journal. Beim Start
@@ -59,9 +59,9 @@ bestätigen. Eine andere Adresse in `MAIL_FROM` gewinnt und wird vom Provider ab
 nicht gibt.
 
 Konfiguration: `MAIL_FROM` (optional, siehe oben) und
-`BREVO_API_KEY`, `RESEND_API_KEY` **oder** `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER` in
+`BREVO_API_KEY` **oder** `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER` in
 `/etc/klick/klick.env`, `SMTP_PASS` als Credential `smtp_pass`. Hetzner sperrt ausgehend Port 25
-und 465 — SMTP über 587. Brevo und Resend laufen über HTTPS (443) ohne SMTP-Login.
+und 465 — SMTP über 587. Brevo läuft über HTTPS (443) ohne SMTP-Login. Resend (USA) nur mit `MAIL_ALLOW_RESEND=true` und nach Ergänzung der Datenschutzerklärung.
 
 **Brevo (empfohlen, EU-Anbieter):**
 1. Konto bei brevo.com, unter *Absender, Domains & dedizierte IPs → Domains* die Domain
@@ -89,6 +89,20 @@ runuser -u klick -- pnpm auth:link <deine-adresse>    # Notfall: Einmal-Link (15
 `pnpm auth:link` gibt den Link nur im Terminal aus (keine Mail, kein Journal), nur für bestehende
 Konten und offene Einladungen, und protokolliert `auth.login_link_cli` im Plattform-Audit. Danach
 gelten 2FA und alle Sitzungsregeln wie gewohnt. Link nicht weitergeben.
+
+## Rechtsangaben: Impressum, Datenschutz, Nutzungsbedingungen
+- **Pflichtangaben (§ 5 DDG)** als Env setzen (`LEGAL_NAME`, `LEGAL_FORM`, `LEGAL_ADDRESS` mit „;“
+  zwischen den Zeilen, `LEGAL_REPRESENTATIVES`, `LEGAL_REGISTER`, `LEGAL_VAT_ID`, optional
+  `LEGAL_PHONE`, `LEGAL_CONTACT_MAIL`). `/impressum` zeigt sie oben an, Mails tragen sie in der
+  Fußzeile. Fehlt etwas, steht beim Start „Impressum unvollständig“ im Journal.
+- **Kontaktadresse muss Mails annehmen:** `LEGAL_CONTACT_MAIL` (Standard `no-reply@raza.work`) muss
+  zustellbar sein und gelesen werden — sonst fehlt der Kontaktweg im Impressum.
+- **Texte:** Vorlagen in `docs/legal/` (Entwürfe, anwaltlich prüfen) unter Admin → CMS als
+  `impressum`, `datenschutz-erklaerung`, `nutzungsbedingungen` übernehmen. `pnpm db:seed` legt nur
+  fehlende Seiten als Platzhalter an und überschreibt nie.
+- **Server-Logs:** nginx-Zugriffslogs (volle IP für CrowdSec) 14 Tage, dann gelöscht
+  (`deploy/logrotate/nginx` nach `/etc/logrotate.d/nginx`: `daily`, `rotate 14`). CrowdSec-Community-Signale teilen nur, wenn das in
+  der Datenschutzerklärung steht (sonst `cscli capi unregister`).
 
 ## Passkeys: Einrichtung, Einladungslinks, Zugang zurücksetzen (ADR-019)
 Anmeldung läuft über Passkeys, der Mail-Link ist nur der Notweg (`/login/notweg`).

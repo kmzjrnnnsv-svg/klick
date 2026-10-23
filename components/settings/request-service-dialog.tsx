@@ -23,7 +23,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { INQUIRY_SERVICES } from "@/lib/inquiries/rules";
+import { INQUIRY_SERVICES, NOTICE_SERVICE } from "@/lib/inquiries/rules";
 
 // „Leistung anfragen“ aus Einstellungen → Abo & Leistungen. Name, E-Mail und
 // Organisation kommen aus der Sitzung; die Anfrage trägt Preisgruppe und
@@ -107,11 +107,13 @@ export function RequestServiceDialog({
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								{INQUIRY_SERVICES.map((s) => (
-									<SelectItem key={s.key} value={s.key}>
-										{s.label}
-									</SelectItem>
-								))}
+								{INQUIRY_SERVICES.filter((s) => s.key !== NOTICE_SERVICE).map(
+									(s) => (
+										<SelectItem key={s.key} value={s.key}>
+											{s.label}
+										</SelectItem>
+									),
+								)}
 							</SelectContent>
 						</Select>
 					</div>

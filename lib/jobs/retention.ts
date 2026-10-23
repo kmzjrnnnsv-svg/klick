@@ -1,12 +1,14 @@
 import { and, isNotNull, lt, sql } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { rateLimit, session, verification } from "@/db/auth-schema";
-import { inquiries, notifications } from "@/db/schema";
+import { inquiries, notifications, trustAccessRequests } from "@/db/schema";
 import { logger } from "@/lib/log";
 
 // Retention (täglich 03:00): abgelaufene Sitzungen, Verifikations-Tokens,
 // gelesene Benachrichtigungen > 180 Tage, alte Rate-Limit-Zähler, Anfragen
-// 12 Monate nach der letzten Änderung (Kontaktdaten, Art. 5 Abs. 1 lit. e).
+// 12 Monate nach der letzten Änderung (Kontaktdaten, Art. 5 Abs. 1 lit. e),
+// NDA-Anfragen an Trust Center 12 Monate nach Ablauf bzw. Entscheidung
+// (docs/legal/datenschutzerklaerung.md, Abschnitt 9).
 // Nie: audit_log (Hash-Kette, GwG § 8), fachliche Register, Nachweise —
 // deren Aufbewahrung regelt das Löschkonzept (CC-AST-10), nicht dieser Job.
 
@@ -16,6 +18,7 @@ export const RETENTION = {
 	readNotificationDays: 180,
 	rateLimitDays: 7,
 	inquiryDays: 365,
+	trustRequestDays: 365,
 } as const;
 
 export function retentionCutoffs(now = new Date()) {
@@ -26,6 +29,7 @@ export function retentionCutoffs(now = new Date()) {
 		notifications: minus(RETENTION.readNotificationDays),
 		rateLimit: minus(RETENTION.rateLimitDays),
 		inquiries: minus(RETENTION.inquiryDays),
+		trustRequests: minus(RETENTION.trustRequestDays),
 	};
 }
 
@@ -35,6 +39,7 @@ export type RetentionSummary = {
 	notifications: number;
 	rateLimit: number;
 	inquiries: number;
+	trustRequests: number;
 };
 
 export async function runRetention(
@@ -69,12 +74,23 @@ export async function runRetention(
 			.delete(inquiries)
 			.where(lt(inquiries.updatedAt, cut.inquiries))
 			.returning({ id: inquiries.id });
+		// Stichtag: Ablauf der Freigabe, sonst Entscheidung, sonst Eingang
+		const tr = await tx
+			.delete(trustAccessRequests)
+			.where(
+				lt(
+					sql`coalesce(${trustAccessRequests.expiresAt}, ${trustAccessRequests.decidedAt}, ${trustAccessRequests.createdAt})`,
+					cut.trustRequests,
+				),
+			)
+			.returning({ id: trustAccessRequests.id });
 		return {
 			sessions: s.length,
 			verifications: v.length,
 			notifications: n.length,
 			rateLimit: r.length,
 			inquiries: q.length,
+			trustRequests: tr.length,
 		};
 	});
 	logger.info({ job: "retention", ...summary }, "retention done");

@@ -29,7 +29,12 @@ export const publicInquirySchema = z.object({
 		.trim()
 		.min(10, "Ein, zwei Sätze zum Anliegen helfen uns")
 		.max(4_000),
-	consent: z.literal(true, "Bitte die Datenschutzhinweise bestätigen"),
+	// Nur für Unternehmen (§ 14 BGB) — keine Einwilligung: verarbeitet wird
+	// nach Art. 6 Abs. 1 lit. b DSGVO, die Hinweise stehen daneben.
+	business: z.literal(
+		true,
+		"Bitte bestätigen, dass du für ein Unternehmen anfragst",
+	),
 	// Honeypot + Zeitstempel (looksAutomated)
 	website: z.string().max(500).optional(),
 	renderedAt: z.number().optional(),

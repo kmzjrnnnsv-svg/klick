@@ -1,3 +1,4 @@
+import { Menu } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -11,6 +12,12 @@ export async function MarketingHeader({
 }) {
 	const t = await getTranslations("Common");
 	const tf = await getTranslations("Footer");
+	const links = [
+		{ href: "/funktionen", label: tf("features") },
+		{ href: "/leistungen", label: tf("services") },
+		{ href: "/preise", label: tf("pricing") },
+		{ href: "/vertrauen", label: tf("trust") },
+	];
 	return (
 		<header className="sticky top-0 z-30 w-full bg-background/90 backdrop-blur">
 			<div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
@@ -21,32 +28,37 @@ export async function MarketingHeader({
 					{t("productName")}
 				</Link>
 				<nav className="hidden items-center gap-6 sm:flex">
-					<Link
-						href="/funktionen"
-						className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
-					>
-						{tf("features")}
-					</Link>
-					<Link
-						href="/leistungen"
-						className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
-					>
-						{tf("services")}
-					</Link>
-					<Link
-						href="/preise"
-						className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
-					>
-						{tf("pricing")}
-					</Link>
-					<Link
-						href="/vertrauen"
-						className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
-					>
-						{tf("trust")}
-					</Link>
+					{links.map((l) => (
+						<Link
+							key={l.href}
+							href={l.href}
+							className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
+						>
+							{l.label}
+						</Link>
+					))}
 				</nav>
 				<div className="flex items-center gap-1">
+					{/* Telefon: Menü ohne Skript; volle Navigation (a statt Link), damit es sich schließt */}
+					<details className="group relative sm:hidden">
+						<summary
+							aria-label={tf("menu")}
+							className="flex size-9 cursor-pointer list-none items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
+						>
+							<Menu className="size-5" aria-hidden="true" />
+						</summary>
+						<nav className="absolute right-0 z-40 mt-2 flex w-56 flex-col rounded-md border bg-background p-2 shadow-lg">
+							{links.map((l) => (
+								<a
+									key={l.href}
+									href={l.href}
+									className="rounded-sm px-3 py-2.5 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								>
+									{l.label}
+								</a>
+							))}
+						</nav>
+					</details>
 					<ThemeSwitcher />
 					{showLogin && (
 						<Link

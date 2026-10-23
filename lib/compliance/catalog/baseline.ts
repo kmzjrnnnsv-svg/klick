@@ -15,7 +15,7 @@ export const BASELINE: CatalogBaseline = {
 				"MFA-Pflicht für alle Rollen (TOTP, Passkeys/FIDO2), Enrolment beim ersten Login erzwungen",
 				"Sitzungsregeln: Idle 30 min, absolut 12 h, Step-up ≤ 10 min für sensible Aktionen",
 				"Rollenmodell owner/editor/consultant/viewer/auditor; Prüfer- und Berater-Zugänge laufen über accessUntil ab",
-				"Plattform-Admin mit IP-Allowlist, jeder Plattform-Zugriff mit Begründung im Audit-Log",
+				"Plattform-Admin mit einstellbarer IP-Allowlist (ADMIN_IP_ALLOWLIST), jeder Plattform-Zugriff mit Begründung im Audit-Log",
 				"Mandantentrennung in Postgres (RLS + FORCE auf jeder Org-Tabelle), App-Rolle ohne BYPASSRLS",
 			],
 			gaps: ["Kein dediziertes PAM für Server-Zugänge (SSH nur Key-basiert)"],
@@ -152,7 +152,7 @@ export const BASELINE: CatalogBaseline = {
 		{
 			code: "CC-IAM-04",
 			status: "in_progress",
-			note: "Plattform-Admin: Passkey, IP-Allowlist, Audit. Server-PAM fehlt.",
+			note: "Plattform-Admin: Passkey, IP-Allowlist einstellbar (ADMIN_IP_ALLOWLIST), Audit. Server-PAM fehlt.",
 			evidence: ["lib/auth/guards.ts#requirePlatformAdmin"],
 		},
 		{
@@ -399,7 +399,7 @@ export const BASELINE: CatalogBaseline = {
 			partnerType: "ict",
 			serviceType: "cloud_saas",
 			serviceDescription:
-				"Transaktionale E-Mail (Magic Links, Benachrichtigungen) via SMTP-Relay",
+				"Transaktionale E-Mail (Anmelde-Links, Benachrichtigungen) über die HTTPS-API",
 			criticality: "important",
 			country: "FR",
 			dataLocations: ["EU"],

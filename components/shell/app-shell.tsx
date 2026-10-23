@@ -9,6 +9,7 @@ import { allows } from "@/lib/auth/permissions";
 import type { NavGroup } from "@/lib/nav";
 import { AreaSwitcher, type ShellArea } from "./area-switcher";
 import { CommandPalette } from "./command-palette";
+import { LegalLinks } from "./legal-links";
 import { MobileNav } from "./mobile-nav";
 import type { BellItem } from "./notification-bell";
 import { NotificationBell } from "./notification-bell";
@@ -107,9 +108,13 @@ export async function AppShell({
 						/>
 					</div>
 				</header>
-				<main className="mx-auto w-full max-w-6xl grow px-4 py-6 sm:px-6 sm:py-8">
+				<main
+					id="inhalt"
+					className="mx-auto w-full max-w-6xl grow px-4 py-6 sm:px-6 sm:py-8"
+				>
 					{children}
 				</main>
+				<LegalLinks />
 				<StepUpDialog passkey={ctx.hasPasskey} totp={ctx.hasTotp} />
 			</div>
 		</div>

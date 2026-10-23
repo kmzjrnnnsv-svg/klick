@@ -68,7 +68,7 @@ export default async function LandingPage() {
 	const t = await getTranslations("Landing");
 	const count = EXAMPLE.frameworks.length;
 	return (
-		<main className="relative flex-1 overflow-hidden">
+		<main id="inhalt" className="relative flex-1 overflow-hidden">
 			<MonogramPattern className="-z-10 pointer-events-none absolute inset-0 h-full w-full text-foreground/[0.04]" />
 
 			<section className="mx-auto max-w-5xl px-4 pt-20 pb-12 sm:px-6 sm:pt-28">

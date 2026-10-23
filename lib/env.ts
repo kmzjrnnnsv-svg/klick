@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { config } from "dotenv";
 import { z } from "zod";
-import { MAIL_FROM_DEFAULT } from "./mail/address";
+import { MAIL_FROM_DEFAULT, PLATFORM_MAIL } from "./mail/address";
 
 // Env-Dateien werden in Prioritätsreihenfolge geladen. dotenv ist idempotent —
 // die erste Datei, die eine Variable definiert, gewinnt. Production exportiert
@@ -101,6 +101,20 @@ export const envSchema = z.object({
 	SMTP_PORT: z.coerce.number().int().optional(),
 	SMTP_USER: z.string().optional(),
 	SMTP_PASS: z.string().optional(),
+	// Resend (USA) nur auf ausdrücklichen Wunsch: Standard ist Brevo (EU).
+	MAIL_ALLOW_RESEND: flag,
+
+	// Anbieterkennzeichnung (§ 5 DDG) und Pflichtangaben in Mails
+	// (§ 35a GmbHG, § 37a HGB) — eine Quelle: lib/legal/entity.ts.
+	// Adresse in Zeilen mit „;“ getrennt. Kontakt später ohne Code änderbar.
+	LEGAL_NAME: z.string().optional(),
+	LEGAL_FORM: z.string().optional(),
+	LEGAL_ADDRESS: z.string().optional(),
+	LEGAL_REPRESENTATIVES: z.string().optional(),
+	LEGAL_REGISTER: z.string().optional(),
+	LEGAL_VAT_ID: z.string().optional(),
+	LEGAL_PHONE: z.string().optional(),
+	LEGAL_CONTACT_MAIL: z.email().default(PLATFORM_MAIL),
 
 	// Allow-List-Modus: nur bekannte Nutzer:innen bekommen Magic-Links.
 	AUTH_ALLOW_SIGNUP: flag,

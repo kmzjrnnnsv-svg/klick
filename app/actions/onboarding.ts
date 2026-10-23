@@ -27,6 +27,7 @@ import {
 import { generateDek, wrapDek } from "@/lib/crypto/envelope";
 import { listFrameworkOptions } from "@/lib/db/global";
 import { withOrg } from "@/lib/db/with-org";
+import { TERMS_FLAG, TERMS_VERSION } from "@/lib/legal/terms";
 import { SETUP_FLAG } from "@/lib/setup/steps";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { createOrganizationSchema } from "@/lib/validation/org";
@@ -96,11 +97,15 @@ async function createOrganizationActionImpl(
 				riskMethod: defaultRiskMethod(data.frameworks),
 				riskAppetite: appetiteFromMethod(defaultRiskMethod(data.frameworks)),
 				onboardingCompletedAt: new Date(),
-				// ohne Rahmenwerke geht es in die geführte Einrichtung (D0)
-				setupFlags:
-					data.frameworks.length === 0
+				setupFlags: {
+					// ohne Rahmenwerke geht es in die geführte Einrichtung (D0)
+					...(data.frameworks.length === 0
 						? { [SETUP_FLAG.started]: new Date().toISOString() }
-						: {},
+						: {}),
+					// Bestätigung „Unternehmen, volljährig, Nutzungsbedingungen“
+					[TERMS_FLAG.acceptedAt]: new Date().toISOString(),
+					[TERMS_FLAG.version]: TERMS_VERSION,
+				},
 			});
 			if (data.ownFunction)
 				await tx.insert(roleAssignments).values({
@@ -146,6 +151,7 @@ async function createOrganizationActionImpl(
 						caspServices: data.caspServices,
 						frameworks: fws.map((f) => f.slug),
 						ownFunction: data.ownFunction ?? null,
+						termsVersion: TERMS_VERSION,
 						keyVersion: wrapped.keyVersion,
 						applyBaseline,
 						init,

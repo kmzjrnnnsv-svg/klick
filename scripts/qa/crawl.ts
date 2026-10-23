@@ -286,8 +286,9 @@ async function login(ctx: BrowserContext): Promise<void> {
 	if (page.url().includes("/onboarding")) {
 		console.log("→ Onboarding + Einrichtung (CASP, Stufe 2, alle Rahmenwerke)");
 		await page.fill("#ob-name", `QA Org ${Date.now() % 100000}`);
-		const baseline = page.locator('button[role="checkbox"]');
-		if ((await baseline.count()) > 0) await baseline.first().click();
+		const baseline = page.locator("#ob-baseline");
+		if ((await baseline.count()) > 0) await baseline.click();
+		await page.locator("#ob-terms").click();
 		await page.getByRole("button", { name: /Anlegen und weiter/ }).click();
 		await page.waitForURL(/\/einrichtung\/rollen/, { timeout: 60_000 });
 		await settle(page);

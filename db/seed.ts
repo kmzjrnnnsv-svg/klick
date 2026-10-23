@@ -11,12 +11,17 @@ const CMS_PLACEHOLDERS = [
 	{
 		slug: "impressum",
 		title: "Impressum",
-		body: "Dieses Impressum ist noch nicht ausgefüllt. Der Plattform-Admin trägt die Angaben nach § 5 DDG unter Admin → CMS ein.",
+		body: "Dieses Impressum ist noch nicht ausgefüllt. Die Pflichtangaben nach § 5 DDG kommen aus der Server-Konfiguration (`LEGAL_*`, deploy/README.md); ergänzende Angaben trägt der Plattform-Admin unter Admin → CMS ein. Vorlage: docs/legal/impressum.md.",
 	},
 	{
 		slug: "datenschutz-erklaerung",
 		title: "Datenschutzerklärung",
-		body: "Diese Datenschutzerklärung ist noch nicht ausgefüllt. Der Plattform-Admin trägt die Angaben nach Art. 13 DSGVO unter Admin → CMS ein.",
+		body: "Diese Datenschutzerklärung ist noch nicht ausgefüllt. Der Plattform-Admin trägt die Angaben nach Art. 13 DSGVO unter Admin → CMS ein. Vorlage: docs/legal/datenschutzerklaerung.md.",
+	},
+	{
+		slug: "nutzungsbedingungen",
+		title: "Nutzungsbedingungen",
+		body: "Die Nutzungsbedingungen sind noch nicht veröffentlicht. Klick richtet sich ausschließlich an Unternehmen (§ 14 BGB). Der Plattform-Admin trägt die Bedingungen unter Admin → CMS ein. Vorlage: docs/legal/nutzungsbedingungen.md.",
 	},
 ];
 
@@ -37,7 +42,9 @@ async function main() {
 	validateEnv();
 	const cms = await ensureCmsPlaceholders();
 	if (cms > 0)
-		console.log(`✔ ${cms} CMS-Platzhalter angelegt (Impressum/Datenschutz).`);
+		console.log(
+			`✔ ${cms} CMS-Platzhalter angelegt (Impressum/Datenschutz/Nutzungsbedingungen).`,
+		);
 	const groups = await seedPriceGroups();
 	if (groups > 0)
 		console.log(`✔ ${groups} Preisgruppen angelegt (Admin → Preise).`);

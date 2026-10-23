@@ -19,7 +19,8 @@ Disallow: /dienstleister
 Disallow: /assets
 Disallow: /vorfaelle
 Disallow: /schulungen
-Disallow: /datenschutz
+# $ = genau dieser Pfad: /datenschutz-erklaerung bleibt erreichbar
+Disallow: /datenschutz$
 Disallow: /organisation
 Disallow: /beschluesse
 Disallow: /audits
@@ -38,4 +39,14 @@ Disallow: /team
 Disallow: /aktivitaet
 Disallow: /einstellungen
 Disallow: /suche
+Disallow: /wallet
+Disallow: /trust-center
+Disallow: /verwahrung
+Disallow: /sicherheit
+Disallow: /produkte
+Disallow: /gap-analyse
+Disallow: /lieferant
+Disallow: /organisationen
+Disallow: /aktivieren
+Disallow: /zugang
 Sitemap: https://raza.work/sitemap.xml

@@ -5,6 +5,7 @@ import { RevealRoot } from "@/components/marketing/reveal";
 import { loadPriceTable } from "@/lib/db/pricing";
 import {
 	BILLING_FAQ,
+	BILLING_NOTE,
 	BILLING_TERMS,
 	BILLING_TIMELINE,
 	withSeatPrice,
@@ -44,7 +45,7 @@ export default async function PricingPage() {
 	const { prices } = await loadPriceTable();
 	const seat = formatPrice(prices["seat:consultant"]);
 	return (
-		<RevealRoot className={s.page}>
+		<RevealRoot as="main" id="inhalt" className={s.page}>
 			{/* Einstieg: die Regel als Satz, daneben der Weg in drei Stationen */}
 			<section className={s.hero} aria-labelledby="preise-title">
 				<div className={s.heroText}>
@@ -98,6 +99,9 @@ export default async function PricingPage() {
 						</li>
 					))}
 				</ul>
+				<p className={s.note} data-r="">
+					{BILLING_NOTE}
+				</p>
 			</section>
 
 			{/* Woran du vorher siehst, ob es reicht */}

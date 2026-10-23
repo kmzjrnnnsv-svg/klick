@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { LegalLinks } from "@/components/shell/legal-links";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { WalletLockStrip } from "@/components/wallet/lock-strip";
 import { requireWalletAreaPage } from "@/lib/auth/gates";
@@ -40,10 +41,14 @@ export default async function WalletIntroLayout({
 					<ThemeSwitcher />
 				</div>
 			</header>
-			<main className="mx-auto flex w-full max-w-3xl grow flex-col px-4 py-6 sm:px-6 sm:py-10">
+			<main
+				id="inhalt"
+				className="mx-auto flex w-full max-w-3xl grow flex-col px-4 py-6 sm:px-6 sm:py-10"
+			>
 				{closesAt && <WalletLockStrip closesAt={closesAt.toISOString()} />}
 				{children}
 			</main>
+			<LegalLinks />
 		</>
 	);
 }

@@ -53,10 +53,15 @@ describe("Brevo über HTTPS", () => {
 		vi.restoreAllMocks();
 	});
 
-	function prodWith(keys: { resend?: string; brevo?: string }) {
+	function prodWith(keys: {
+		resend?: string;
+		brevo?: string;
+		allowResend?: boolean;
+	}) {
 		vi.stubEnv("NODE_ENV", "production");
 		vi.stubEnv("MAIL_FROM", "Klick <no-reply@raza.work>");
 		vi.stubEnv("RESEND_API_KEY", keys.resend ?? "");
+		vi.stubEnv("MAIL_ALLOW_RESEND", keys.allowResend ? "true" : "");
 		vi.stubEnv("BREVO_API_KEY", keys.brevo ?? "");
 		vi.stubEnv("SMTP_HOST", "");
 		vi.spyOn(console, "log").mockImplementation(() => {});
@@ -84,19 +89,44 @@ describe("Brevo über HTTPS", () => {
 		});
 	});
 
-	it("fällt von Resend auf Brevo zurück", async () => {
+	it("Brevo zuerst; Resend (USA) bleibt ohne Schalter aus", async () => {
 		prodWith({ resend: "re_test", brevo: "xkeysib-test" });
+		const err = vi.spyOn(console, "error").mockImplementation(() => {});
+		const fetchSpy = vi
+			.spyOn(globalThis, "fetch")
+			.mockResolvedValue(new Response("down", { status: 500 }));
+		const out = await sendTransactionalMail(mail);
+		expect(out.ok).toBe(false);
+		expect(fetchSpy.mock.calls.map((c) => String(c[0]))).toEqual([
+			"https://api.brevo.com/v3/smtp/email",
+		]);
+		expect(captured(err)).not.toContain("GEHEIM");
+		const cfg = await diagnoseMailConfig();
+		expect(cfg).toMatchObject({ likelyPath: "brevo", resendAllowed: false });
+	});
+
+	it("fällt mit MAIL_ALLOW_RESEND von Brevo auf Resend zurück", async () => {
+		prodWith({ resend: "re_test", brevo: "xkeysib-test", allowResend: true });
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		const fetchSpy = vi
 			.spyOn(globalThis, "fetch")
 			.mockResolvedValueOnce(new Response("down", { status: 500 }))
-			.mockResolvedValueOnce(new Response("{}", { status: 201 }));
+			.mockResolvedValueOnce(new Response("{}", { status: 200 }));
 		const out = await sendTransactionalMail(mail);
-		expect(out).toEqual({ path: "brevo", ok: true });
+		expect(out).toEqual({ path: "resend", ok: true });
 		expect(fetchSpy.mock.calls.map((c) => String(c[0]))).toEqual([
-			"https://api.resend.com/emails",
 			"https://api.brevo.com/v3/smtp/email",
+			"https://api.resend.com/emails",
 		]);
+	});
+
+	it("nur Resend ohne Schalter: kein Zustellweg", async () => {
+		prodWith({ resend: "re_test" });
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		const fetchSpy = vi.spyOn(globalThis, "fetch");
+		const out = await sendTransactionalMail(mail);
+		expect(out).toMatchObject({ path: "console", ok: false });
+		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 
 	it("Fehler: zählt als nicht zugestellt, Inhalt nie im Log", async () => {
@@ -202,5 +232,43 @@ describe("Absender", () => {
 		expect((await diagnoseMailConfig()).mailFrom).toBe(
 			"Klick <no-reply@raza.work>",
 		);
+	});
+});
+
+describe("Pflichtangaben in Mails", () => {
+	const env = {
+		BETTER_AUTH_URL: "https://raza.work/",
+		LEGAL_NAME: "Raza",
+		LEGAL_FORM: "GmbH",
+		LEGAL_ADDRESS: "Musterstraße 1;60311 Frankfurt am Main",
+		LEGAL_REPRESENTATIVES: "Erika Muster",
+		LEGAL_REGISTER: "Amtsgericht Frankfurt am Main, HRB 1",
+	};
+
+	it("hängt Firma, Vertretung, Register und Impressum an Text und HTML", async () => {
+		const { withLegalFooter } = await import("@/lib/mail/send");
+		const out = withLegalFooter(
+			{ ...mail, html: "<html><body><p>Hallo</p></body></html>" },
+			env,
+		);
+		expect(out.text).toContain(
+			"Raza GmbH, Musterstraße 1, 60311 Frankfurt am Main",
+		);
+		expect(out.text).toContain("Vertreten durch Erika Muster");
+		expect(out.text).toContain("Impressum: https://raza.work/impressum");
+		expect(out.html).toMatch(/Amtsgericht Frankfurt am Main, HRB 1<br>/);
+		expect(out.html?.indexOf("HRB 1")).toBeLessThan(
+			out.html?.indexOf("</body>") ?? 0,
+		);
+	});
+
+	it("escaped die Angaben im HTML und lässt ohne Angaben alles unverändert", async () => {
+		const { withLegalFooter } = await import("@/lib/mail/send");
+		const out = withLegalFooter(
+			{ ...mail, html: "<p>x</p>" },
+			{ ...env, LEGAL_NAME: "<b>Raza</b>" },
+		);
+		expect(out.html).toContain("&lt;b&gt;Raza&lt;/b&gt;");
+		expect(withLegalFooter(mail, {})).toEqual(mail);
 	});
 });
