@@ -1,0 +1,11 @@
+# /etc/systemd/system/klick-signer-backup.timer
+[Unit]
+Description=Klick — Journal des Signers täglich sichern
+
+[Timer]
+OnCalendar=*-*-* 03:40:00
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

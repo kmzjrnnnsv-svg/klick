@@ -8,6 +8,9 @@ import { NextResponse } from "next/server";
 //      setzt ihn auf Framework-Skripte; next-themes bekommt ihn als Prop.
 // Die übrigen Security-Header kommen weiterhin aus next.config.ts.
 
+// Subdomains, die nie ein Mandant sind (eigene Dienste auf eigener Herkunft)
+const RESERVED_SUBDOMAINS = new Set(["www", "freigabe"]);
+
 export function resolveTenantSlug(host: string): string {
 	const hostname = host.split(":")[0] ?? "";
 	const fallback = process.env.DEFAULT_TENANT_SLUG ?? "default";
@@ -17,7 +20,8 @@ export function resolveTenantSlug(host: string): string {
 		hostname.endsWith(".localhost");
 	if (isLocal) return fallback;
 	const parts = hostname.split(".");
-	return parts.length > 2 ? (parts[0] ?? fallback) : fallback;
+	const sub = parts.length > 2 ? parts[0] : undefined;
+	return sub && !RESERVED_SUBDOMAINS.has(sub) ? sub : fallback;
 }
 
 export function buildCsp(nonce: string, isDev: boolean): string {

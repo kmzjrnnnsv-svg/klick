@@ -1,0 +1,20 @@
+# /etc/systemd/system/klick-signer-app.socket — Signer, Socket für Klick
+#
+# Die App (Gruppe klick) reicht hier Absichten, Bestätigungen und
+# Ausgabepläne weiter und darf bremsen (einfrieren, Veto, abbrechen,
+# verschärfen) — einrichten und lockern geht nur über admin.sock.
+[Unit]
+Description=Klick — Signer (app.sock)
+
+[Socket]
+ListenStream=/run/klick-signer/app.sock
+FileDescriptorName=app
+Service=klick-signer.service
+SocketUser=root
+SocketGroup=klick
+SocketMode=0660
+DirectoryMode=0755
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target

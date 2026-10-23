@@ -52,7 +52,7 @@ export async function startSignerServer(
 
 // systemd: Datei-Deskriptoren ab 3 mit Namen aus LISTEN_FDNAMES
 export function systemdSockets(
-	env: NodeJS.ProcessEnv,
+	env: Record<string, string | undefined>,
 	pid: number,
 ): { app: Listen; admin: Listen } | null {
 	if (Number(env.LISTEN_PID) !== pid) return null;

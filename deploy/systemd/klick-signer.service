@@ -1,0 +1,71 @@
+# /etc/systemd/system/klick-signer.service — Signier-Dienst (Plan Wallet, Phase 2)
+#
+# Einzige Vertrauensinstanz für Hot-Auszahlungen. Kein Netz, keine
+# Zugangsdaten außer dem KEK (systemd-Credential), kein JIT. Code nur aus
+# /usr/local/lib/klick-signer/signer.mjs (root, 0444; deploy/signer/install.sh);
+# der Dienst startet nicht, wenn die Datei nicht root gehört oder beschreibbar ist.
+# Zustand: /var/lib/klick-signer (journal.log, seeds.json), 0700.
+# Ziel: systemd-analyze security klick-signer ≤ 1.5.
+[Unit]
+Description=Klick — Signier-Dienst (Wallet)
+Requires=klick-signer-app.socket klick-signer-admin.socket
+After=klick-signer-app.socket klick-signer-admin.socket
+OnFailure=klick-alert@%n.service
+
+[Service]
+Type=simple
+User=klick-signer
+Group=klick-signer
+Sockets=klick-signer-app.socket klick-signer-admin.socket
+# node direkt, damit LISTEN_PID stimmt
+ExecStart=/usr/local/bin/node --jitless --max-old-space-size=256 --disallow-code-generation-from-strings --disable-proto=delete /usr/local/lib/klick-signer/signer.mjs
+Environment=NODE_ENV=production
+StateDirectory=klick-signer
+StateDirectoryMode=0700
+LoadCredentialEncrypted=signer_kek:/etc/credstore.encrypted/signer_kek
+# nur für `signer:admin rekey`: neuen KEK zusätzlich laden, danach tauschen
+#LoadCredentialEncrypted=signer_kek_next:/etc/credstore.encrypted/signer_kek_next
+Restart=on-failure
+RestartSec=5
+
+# Grenzen
+MemoryMax=512M
+MemorySwapMax=0
+TasksMax=32
+LimitCORE=0
+LimitNOFILE=256
+
+# Kein Netz
+PrivateNetwork=yes
+IPAddressDeny=any
+RestrictAddressFamilies=AF_UNIX
+InaccessiblePaths=-/etc/credstore -/etc/klick -/opt/klick -/var/lib/postgresql -/var/www -/root -/home
+
+# Sandbox
+PrivateUsers=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateIPC=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+KeyringMode=private
+NoNewPrivileges=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @mount @debug @cpu-emulation @obsolete @raw-io @reboot @swap @clock @module
+SystemCallArchitectures=native
+UMask=0077

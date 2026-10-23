@@ -1,0 +1,17 @@
+# /etc/systemd/system/klick-signer-backup.service — Journal des Signers sichern
+#
+# Kopiert journal.log täglich nach /var/backups/klick-signer (0600, 30 Tage).
+# Die Seeds sichert nur das Papier/Stahl mit den 24 Wörtern — seeds.json
+# kommt nie ins Backup (ohne KEK nutzlos, mit KEK ein Generalschlüssel).
+[Unit]
+Description=Klick — Journal des Signers sichern
+OnFailure=klick-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'install -d -m 0700 /var/backups/klick-signer && install -m 0600 /var/lib/klick-signer/journal.log "/var/backups/klick-signer/journal-$(date +%%Y%%m%%d-%%H%%M).log" && find /var/backups/klick-signer -name "journal-*.log" -mtime +30 -delete'
+PrivateNetwork=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/backups
+ReadOnlyPaths=/var/lib/klick-signer

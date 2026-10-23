@@ -38,6 +38,7 @@
 		"wallet:sanctions": "tsx scripts/import-ofac-addresses.ts",
 		"wallet:devchain": "tsx scripts/wallet-devchain.ts",
 		"signer:dev": "tsx scripts/signer-dev.ts",
+		"confirm:dev": "tsx scripts/confirm-dev.ts",
 		"signer:admin": "tsx scripts/signer-admin.ts",
 		"signer:recover-check": "tsx scripts/signer-recover-check.ts",
 		"auth:generate": "pnpm dlx auth@latest generate --config lib/auth/server.ts --output db/auth-schema.ts -y",

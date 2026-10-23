@@ -1,6 +1,8 @@
 /**
  * Verwaltung des Signers am Terminal (root, admin.sock). Nur hier lässt sich
- * einrichten und lockern — die App kann nur bremsen.
+ * einrichten und lockern — die App kann nur bremsen. Auf dem Server als
+ * `klick-signer-admin …` (deploy/signer/install.sh: läuft aus dem root-eigenen
+ * Checkout, nie aus dem Arbeitsordner der App); lokal `pnpm signer:admin --dev …`.
  *
  *   pnpm signer:admin status
  *   pnpm signer:admin init --org <uuid> --rp freigabe.raza.work --networks bitcoin_signet,ethereum_sepolia [--dice]

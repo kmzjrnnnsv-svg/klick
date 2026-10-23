@@ -11,6 +11,12 @@ describe("resolveTenantSlug", () => {
 		expect(resolveTenantSlug("acme.klick.app")).toBe("acme");
 	});
 
+	it("reserved subdomains (Bestätigungsseite, www) are never a tenant", () => {
+		process.env.DEFAULT_TENANT_SLUG = "default";
+		expect(resolveTenantSlug("freigabe.raza.work")).toBe("default");
+		expect(resolveTenantSlug("www.raza.work")).toBe("default");
+	});
+
 	it("falls back when no subdomain is present in production host", () => {
 		process.env.DEFAULT_TENANT_SLUG = "default";
 		expect(resolveTenantSlug("klick.app")).toBe("default");

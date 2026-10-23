@@ -413,3 +413,63 @@ Circle-Sperre; Steuerung über `POST :18443/dev/{faucet,mine,reorg,fee}` bzw.
 `WALLET_RPC_ETHEREUM_SEPOLIA=http://127.0.0.1:18545`. `scripts/qa/wallet-smoke.ts` spielt damit
 Entsperren und Empfangen komplett durch. Die Testkette ersetzt nicht die Abnahme mit echten
 Knoten.
+
+## Wallet: Signer und Bestätigungsseite (Plan Wallet, Phase 2)
+
+Der Signer ist die einzige Instanz, die Hot-Auszahlungen signiert: eigener Prozess ohne Netz
+(`klick-signer.service`, nur AF_UNIX), Zustand im Journal `/var/lib/klick-signer/journal.log`,
+Seeds je Netz verschlüsselt unter dem KEK (`seeds.json`). Bestätigt wird nur mit einem
+gerätegebundenen Sicherheitsschlüssel auf `https://freigabe.raza.work` (statisch, eigene Herkunft).
+Die App kann über `app.sock` bremsen, einrichten und lockern geht nur als root über `admin.sock`.
+
+1. **DNS und Zertifikat:** A/AAAA-Eintrag `freigabe.raza.work` (kein Wildcard), dann
+   `deploy/nginx/freigabe.raza.work.conf` nach `sites-available`, verlinken, zuerst nur Port 80
+   für certbot: `certbot certonly --webroot -w /var/www/letsencrypt -d freigabe.raza.work`,
+   `nginx -t && systemctl reload nginx`. Prüfen: `curl -sI https://freigabe.raza.work | grep -i content-security`.
+2. **Installieren** aus einem Tag (nie aus dem Arbeitsordner der App): in CI unter
+   „Signer bündeln“ steht der SHA-256 von `dist/signer.mjs`; dann als root
+   `deploy/signer/install.sh <tag> <sha256>` — klont den Tag root-eigen, baut ohne
+   Lifecycle-Skripte, vergleicht die Prüfsumme, installiert `signer.mjs` (0444), die Seite nach
+   `/var/www/freigabe`, die Units, den Befehl `klick-signer-admin` und beim ersten Mal den KEK
+   (`systemd-creds encrypt` → `/etc/credstore.encrypted/signer_kek`).
+   Prüfen: `systemctl status klick-signer-app.socket`, `systemd-analyze security klick-signer`.
+3. **Einrichten (Zeremonie, zwei Personen anwesend):**
+   `klick-signer-admin init --org <Org-ID> --rp freigabe.raza.work --networks bitcoin_signet,ethereum_sepolia --dice`
+   (Org-ID unter Admin → Organisationen). Je Netz 24 Wörter auf Stahl/Papier, zwei getrennte Orte;
+   danach fragt das Skript drei Wörter je Netz ab — erst dann wird gespeichert. In Klick unter
+   Verwahrung die Zeremonie eintragen (CC-KEY-01). Die Seeds kommen nie in ein Backup.
+4. **Sicherheitsschlüssel:** je Schlüssel `klick-signer-admin enrol --person <User-ID>` → Link
+   (1 h gültig) an die Person; sie richtet den Schlüssel auf der Seite ein. Allein (Solo) braucht
+   eine Person zwei aktive Schlüssel, getrennt verwahrt. Synchronisierte Passkeys (iCloud, Google,
+   Passwort-Manager) lehnt der Signer ab. Sperren: `klick-signer-admin revoke <credId>`
+   (`klick-signer-admin status` zeigt die Schlüssel).
+5. **App anbinden:** `deploy/systemd/klick.service.d/signer.conf.example` nach
+   `/etc/systemd/system/klick.service.d/signer.conf`, `systemctl daemon-reload && systemctl restart klick`.
+   Die App (Gruppe klick) erreicht nur `app.sock`.
+6. **Richtlinie:** Start = Solo, zwei Schlüssel, 30 min Pause vor dem Signieren, 24 h Wartezeit für
+   neue Zieladressen, kleine Testnetz-Grenzen, kein Echtgeld. Ändern:
+   `klick-signer-admin status > p.json`, `policy`-Teil anpassen und als eigene Datei speichern,
+   `klick-signer-admin policy richtlinie.json` (Version und Vorgänger setzt das Skript; Mindestwerte
+   prüft der Signer). Die App kann nur verschärfen.
+7. **Einfrieren / Auftauen:** in Klick „Alles stoppen“ oder `klick-signer-admin freeze "<Grund>"`;
+   auftauen nur `klick-signer-admin unfreeze`, nachdem die Ursache geklärt ist.
+8. **KEK wechseln:** neuen KEK als `/etc/credstore.encrypted/signer_kek_next` anlegen, die
+   auskommentierte Zeile in `klick-signer.service` aktivieren, neu starten,
+   `klick-signer-admin rekey`, dann `signer_kek_next` → `signer_kek` umbenennen, Zeile wieder
+   auskommentieren, neu starten.
+9. **Wiederherstellungstest (CC-KEY-03, jährlich):** `klick-signer-admin xpubs > xpubs.json`,
+   auf einem zweiten Rechner ohne Netz `pnpm signer:recover-check --network <netz> --xpubs xpubs.json`
+   und die Wörter eingeben; „übereinstimmend“ in Klick als Wiederherstellungstest eintragen.
+10. **Backup und Prüfung:** `klick-signer-backup.timer` sichert das Journal täglich nach
+    `/var/backups/klick-signer` (30 Tage). `klick-signer-admin verify` prüft die Hash-Kette.
+    Startet der Dienst mit „journal_hash“ o. ä. nicht, wurde das Journal verändert: nicht
+    reparieren, sondern Ernstfall.
+11. **Ernstfall (Server kompromittiert):** sofort einfrieren, alle Schlüssel sperren lassen, Bestände
+    auf neue Seeds (neue Zeremonie, anderer Rechner) bzw. Cold umschichten, sobald geklärt.
+    Grenze: root auf diesem Server kann den KEK lesen — die eigentliche Absicherung sind die
+    kleinen Grenzen der Richtlinie; eigener Signer-Server mit HSM folgt in Phase 4.
+
+**Lokal:** `pnpm signer:dev` (Dev-Bundle: Wartezeiten 0, ein Schlüssel genügt; Zustand in
+`QA_DIR/signer`), `pnpm signer:admin --dev init --org <qaOrg> --rp localhost --origin http://localhost:3201 --networks bitcoin_signet,ethereum_sepolia --auto-confirm`,
+`pnpm confirm:dev` (Seite auf :3201 mit denselben Headern),
+`SIGNER_SOCKET=$QA_DIR/signer/app.sock CONFIRM_ORIGIN=http://localhost:3201 pnpm dev`.

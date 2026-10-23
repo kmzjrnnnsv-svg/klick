@@ -68,6 +68,13 @@ jobs:
         run: pnpm db:seed
       - name: Tests (Unit + RLS-Integration)
         run: pnpm test
+      - name: Signer bündeln (SHA-256 für deploy/signer/install.sh)
+        run: |
+          pnpm build:signer
+          echo "### Signer" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat dist/signer.mjs.sha256 >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
   supply-chain:
     name: pnpm audit · OSV · SBOM
