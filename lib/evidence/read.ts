@@ -1,4 +1,5 @@
 import { decryptBytes, unpackEnvelope, unwrapDek } from "@/lib/crypto/envelope";
+import { contentDisposition } from "@/lib/http/disposition";
 import { evidenceAad } from "./aad";
 
 // Gegenstück zu storeEncryptedEvidence: Objekt holen, mit der Org-DEK
@@ -25,10 +26,9 @@ export function attachmentHeaders(
 	contentType: string,
 	length: number,
 ): Record<string, string> {
-	const safe = fileName.replace(/["\r\n]/g, "") || "download";
 	return {
 		"Content-Type": contentType,
-		"Content-Disposition": `attachment; filename="${safe}"; filename*=UTF-8''${encodeURIComponent(safe)}`,
+		"Content-Disposition": contentDisposition(fileName),
 		"Content-Length": String(length),
 		"Cache-Control": "private, no-store",
 		"X-Content-Type-Options": "nosniff",

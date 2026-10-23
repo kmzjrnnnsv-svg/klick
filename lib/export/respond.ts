@@ -9,6 +9,7 @@ import {
 import { toCsv } from "@/lib/csv";
 import { mutateOrg } from "@/lib/db/with-org";
 import { egressGuard } from "@/lib/dlp/egress";
+import { contentDisposition } from "@/lib/http/disposition";
 import { getOrgLimiter } from "@/lib/rate-limit";
 
 // Exporte unter /api/export/*: Guard (export:create), Datei als Attachment,
@@ -76,7 +77,7 @@ export function zipResponse(filename: string, body: Uint8Array): NextResponse {
 		headers: {
 			...COMMON,
 			"Content-Type": "application/zip",
-			"Content-Disposition": `attachment; filename="${filename}"`,
+			"Content-Disposition": contentDisposition(filename),
 			"Content-Length": String(body.byteLength),
 		},
 	});
@@ -122,6 +123,7 @@ export function exportMarkLine(mark: ExportMark): string {
 const COMMON = {
 	"Cache-Control": "no-store",
 	"X-Content-Type-Options": "nosniff",
+	"Content-Security-Policy": "sandbox",
 };
 
 // CSV bleibt maschinenlesbar (keine Kommentarzeile); die Export-ID steht im
@@ -137,7 +139,7 @@ export function csvResponse(
 		headers: {
 			...COMMON,
 			"Content-Type": "text/csv; charset=utf-8",
-			"Content-Disposition": `attachment; filename="${filename}"`,
+			"Content-Disposition": contentDisposition(filename),
 			"X-Row-Count": String(rows.length),
 			...(mark ? { "X-Export-Id": mark.exportId } : {}),
 		},
@@ -154,7 +156,7 @@ export function markdownResponse(
 		headers: {
 			...COMMON,
 			"Content-Type": "text/markdown; charset=utf-8",
-			"Content-Disposition": `attachment; filename="${filename}"`,
+			"Content-Disposition": contentDisposition(filename),
 			...(mark ? { "X-Export-Id": mark.exportId } : {}),
 		},
 	});
