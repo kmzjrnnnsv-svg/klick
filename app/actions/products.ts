@@ -24,8 +24,9 @@ import { mutateOrg } from "@/lib/db/with-org";
 import { PRODUCT_STATUS } from "@/lib/entities/product";
 import { canTransition } from "@/lib/entities/status-machine";
 import { s3Configured, screenUpload } from "@/lib/evidence/store";
+import { parseIsolated, sbomResultSchema } from "@/lib/parse/client";
 import { getOrgLimiter } from "@/lib/rate-limit";
-import { checkSbom, parseSbom } from "@/lib/security/sbom-check";
+import { checkSbom } from "@/lib/security/sbom-check";
 import { assessmentIdSchema } from "@/lib/validation/assessments";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
@@ -195,7 +196,8 @@ async function setProductStatusImpl(
 
 // SBOM hochladen: Datei verschlüsselt als Nachweis (Herkunft sbom, am Control
 // CC-PRD-03), Zusammenfassung mit Pflichtfeld-Prüfung am Produkt. Ungültige
-// Formate werden vor dem Speichern abgewiesen.
+// Formate werden vor dem Speichern abgewiesen, geparst wird erst nach dem
+// Screening.
 async function uploadSbomImpl(
 	formData: FormData,
 ): Promise<ActionResult<{ ok: boolean; issues: string[] }>> {
@@ -209,14 +211,8 @@ async function uploadSbomImpl(
 	if (!getOrgLimiter().check(c.orgId).allowed)
 		return { ok: false, error: "rate_limited" };
 	const bytes = new Uint8Array(await file.arrayBuffer());
-	let text: string;
-	try {
-		text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-	} catch {
-		return { ok: false, error: "sbom_invalid_json" };
-	}
-	const parsed = parseSbom(text);
-	if (!parsed.ok) return { ok: false, error: `sbom_${parsed.error}` };
+	// Erst die Pipeline (Typ, clamd, DLP), dann das Format — beides im
+	// Parser-Prozess, nie im App-Prozess
 	const v = await screenUpload(toOrgCtx(c), {
 		name: file.name,
 		bytes,
@@ -230,7 +226,10 @@ async function uploadSbomImpl(
 			error: v.error,
 			fieldErrors: v.detail ? { dlp: v.detail } : undefined,
 		};
-	const summary = checkSbom(parsed.sbom, new Date());
+	const parsed = await parseIsolated({ op: "sbom" }, bytes, sbomResultSchema);
+	if (!parsed.ok) return { ok: false, error: "upload_parser_unavailable" };
+	if (!parsed.data.ok) return { ok: false, error: `sbom_${parsed.data.error}` };
+	const summary = checkSbom(parsed.data.sbom, new Date());
 	const res = await mutateOrg<ActionResult<{ ok: boolean; issues: string[] }>>(
 		toOrgCtx(c),
 		async (tx) => {

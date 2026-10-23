@@ -22,6 +22,7 @@ const KNOWN = new Set([
 	"upload_invalid_text",
 	"upload_malware",
 	"upload_scan_unavailable",
+	"upload_parser_unavailable",
 	"rate_limited",
 ]);
 

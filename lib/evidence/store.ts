@@ -17,18 +17,18 @@ import {
 	unwrapDek,
 } from "@/lib/crypto/envelope";
 import { mutateOrg, type OrgCtx, type OrgTx, readOrg } from "@/lib/db/with-org";
-import { DLP_ENGINE_VERSION, scanText } from "@/lib/dlp/detectors";
-import { extractText } from "@/lib/dlp/extract";
+import { DLP_ENGINE_VERSION, type DlpFinding } from "@/lib/dlp/detectors";
 import { evaluateDlp, withDlpDefaults } from "@/lib/dlp/policy";
 import { env } from "@/lib/env";
+import { parseIsolated, screenResultSchema } from "@/lib/parse/client";
 import { clamdConfigured, scanBytes } from "@/lib/uploads/clamav";
-import { validateUpload } from "@/lib/uploads/validate";
 import { evidenceAad } from "./aad";
 
 // Gemeinsame Upload-Pipeline für Nachweise — Nachweis-Dialog, Gap-Analyse,
 // Scan-Import, Lieferantenportal nutzen dieselben Schritte:
-//   1. screenUpload: Größe/Typ/Magic-Bytes (validateUpload), optional clamd
-//      (fail closed, Treffer als denied im Audit), DLP-Inhaltsprüfung nach
+//   1. screenUpload: Größe/Typ/Magic-Bytes, Textauszug und DLP-Erkennung im
+//      eigenen Parser-Prozess (lib/parse, fail closed), optional clamd
+//      (fail closed, Treffer als denied im Audit), DLP-Bewertung nach
 //      Org-Regeln (blockieren / Warnung bestätigen / Klassifizierung anheben)
 //   2. storeEncryptedEvidence: Org-DEK, AAD an die ID gebunden, S3-Key
 //      org/<orgId>/nachweise/<uuid>, SHA-256 über den Klartext, DB-Zeile
@@ -72,11 +72,14 @@ export async function screenUpload(
 		secretsExpected?: boolean;
 	},
 ): Promise<ScreenedUpload> {
-	const v = await validateUpload({
-		name: input.name,
-		bytes: input.bytes,
-		declaredMime: input.declaredMime,
-	});
+	// Typprüfung, Textauszug und DLP-Erkennung nie im App-Prozess (N6)
+	const parsed = await parseIsolated(
+		{ op: "screen", name: input.name, declaredMime: input.declaredMime },
+		input.bytes,
+		screenResultSchema,
+	);
+	if (!parsed.ok) return { ok: false, error: "upload_parser_unavailable" };
+	const v = parsed.data.validation;
 	if (!v.ok) return { ok: false, error: `upload_${v.reason}` };
 
 	// Optionaler Malware-Scan (clamd). Fail closed: konfiguriert, aber nicht
@@ -118,8 +121,10 @@ export async function screenUpload(
 			return s?.dlpPolicy ?? null;
 		}),
 	);
-	const extraction = extractText(input.bytes, v.mime);
-	const findings = extraction.status === "ok" ? scanText(extraction.text) : [];
+	const extraction = parsed.data.extraction ?? {
+		status: "unsupported" as const,
+	};
+	const findings: DlpFinding[] = parsed.data.findings ?? [];
 	const decision = evaluateDlp(
 		input.secretsExpected
 			? findings.filter((f) => f.category !== "secret")

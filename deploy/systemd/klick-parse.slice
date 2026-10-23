@@ -1,0 +1,9 @@
+# /etc/systemd/system/klick-parse.slice — gemeinsame Grenze aller Parser (N6)
+[Unit]
+Description=Klick — Parser für Uploads (alle Instanzen)
+
+[Slice]
+MemoryMax=1536M
+MemorySwapMax=0
+TasksMax=128
+CPUQuota=200%

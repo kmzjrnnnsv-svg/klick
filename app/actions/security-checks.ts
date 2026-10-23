@@ -16,9 +16,9 @@ import { FINDING_STATUS_MACHINE } from "@/lib/entities/security-finding";
 import { canTransition } from "@/lib/entities/status-machine";
 import { screenUpload } from "@/lib/evidence/store";
 import { enqueue } from "@/lib/jobs/boss";
+import { parseIsolated, scanResultSchema } from "@/lib/parse/client";
 import { getOrgLimiter } from "@/lib/rate-limit";
 import { importScan } from "@/lib/security/import-service";
-import { parseScanFile } from "@/lib/security/parsers";
 import { validateTargetUrl } from "@/lib/security/quick-check/ssrf";
 import {
 	executeQuickCheck,
@@ -65,9 +65,15 @@ async function importScanFileImpl(
 			error: v.error,
 			fieldErrors: v.detail ? { dlp: v.detail } : undefined,
 		};
+	const parsed = await parseIsolated(
+		{ op: "scan", name: v.safeName },
+		bytes,
+		scanResultSchema,
+	);
+	if (!parsed.ok) return { ok: false, error: "upload_parser_unavailable" };
+	if (!parsed.data.ok) return { ok: false, error: `scan_${parsed.data.error}` };
+	const scan = parsed.data.scan;
 	const text = new TextDecoder().decode(bytes);
-	const parsed = parseScanFile(text, v.safeName);
-	if (!parsed.ok) return { ok: false, error: `scan_${parsed.error}` };
 	let productId = String(formData.get("productId") ?? "") || null;
 	// Import in einen Sicherheitsauftrag: Befunde gehören zum Auftrag, kein
 	// Vollscan-Abgleich (der Auftrag sieht nur einen Ausschnitt).
@@ -108,7 +114,7 @@ async function importScanFileImpl(
 			if (!p) return { result: null, audit: [] };
 		}
 		const r = await importScan(tx, c, {
-			parsed: parsed.scan,
+			parsed: scan,
 			source: "upload",
 			fullScan: !engagementId && formData.get("fullScan") === "1",
 			productId,
@@ -133,7 +139,7 @@ async function importScanFileImpl(
 		ok: true,
 		data: {
 			scanId: res.scanId,
-			findings: parsed.scan.findings.length,
+			findings: scan.findings.length,
 			created: res.counts.new,
 		},
 	};

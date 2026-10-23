@@ -19,6 +19,8 @@
 
 # production
 /build
+# gebündelter Parser-Prozess (pnpm build:parser)
+/dist/
 
 # misc
 .DS_Store

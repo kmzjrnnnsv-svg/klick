@@ -3325,6 +3325,7 @@
 		"upload_invalid_text": "Die Textdatei ist nicht UTF-8-kodiert. Speichere sie als UTF-8 neu.",
 		"upload_malware": "Der Virenscanner hat die Datei abgelehnt. Prüfe die Datei lokal.",
 		"upload_scan_unavailable": "Der Virenscanner ist gerade nicht erreichbar. Versuche es in ein paar Minuten erneut.",
+		"upload_parser_unavailable": "Die Datei konnte nicht geprüft werden – der Prüfdienst ist nicht erreichbar oder hat zu lange gebraucht. Versuche es in ein paar Minuten erneut; bei sehr großen Dateien hilft ein Auszug.",
 		"rate_limited": "Zu viele Uploads in kurzer Zeit. Warte eine Minute und versuche es erneut.",
 		"egressLimited": "Zu viele Downloads in kurzer Zeit. Die Organisation wurde informiert; versuche es in ein paar Minuten erneut."
 	},

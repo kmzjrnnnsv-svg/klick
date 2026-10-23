@@ -1,0 +1,21 @@
+# /etc/systemd/system/klick-parse.socket — Parser für Uploads (N6)
+#
+# Jede Verbindung startet einen eigenen Parser-Prozess (Accept=yes →
+# klick-parse@.service): Typprüfung, Text aus PDF/Office/ZIP, DLP-Erkennung,
+# SBOM- und Scan-Parser laufen nie im App-Prozess. Nur die App (Gruppe klick)
+# darf verbinden; sie findet den Socket über PARSER_SOCKET in klick.service.
+[Unit]
+Description=Klick — Parser für Uploads (Socket)
+
+[Socket]
+ListenStream=/run/klick-parse.sock
+Accept=yes
+SocketUser=root
+SocketGroup=klick
+SocketMode=0660
+# höchstens vier Parser gleichzeitig (Speicher: klick-parse.slice)
+MaxConnections=4
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target
