@@ -114,12 +114,12 @@ export const SERVICES: readonly Service[] = [
 		duration: "2–3 Wochen",
 		fits: "Eure Software oder Geräte kommen in der EU auf den Markt. Meldepflichten gelten seit 11.09.2026, alles andere ab 11.12.2027.",
 		result:
-			"Einstufung und Konformitätsweg je Produkt, geprüfte SBOM, Produktcheckliste und ein Meldeprozess, der in 24 Stunden trägt.",
+			"Technische Einschätzung von Anwendungsbereich, Klasse und Konformitätsweg je Produkt, geprüfte SBOM, Produktcheckliste und ein Meldeprozess, der in 24 Stunden trägt.",
 		steps: [
 			{
 				when: "Woche 1",
-				title: "Einstufung je Produkt",
-				note: "Anwendungsbereich, Klasse, Konformitätsweg nach Art. 32.",
+				title: "Technische Einstufung je Produkt",
+				note: "Anwendungsbereich, Klasse, Konformitätsweg nach Art. 32 – die rechtliche Prüfung übernimmt eure Kanzlei.",
 			},
 			{
 				when: "Woche 1–2",
@@ -146,13 +146,13 @@ export const SERVICES: readonly Service[] = [
 			src: "/leistungen/vertrag.jpg",
 			w: 1376,
 			h: 2154,
-			alt: "Vertragsprüfung nach DORA Art. 30 in Klick: Klausel für Klausel erfüllt oder offen",
+			alt: "Klausel-Checkliste nach DORA Art. 30 in Klick: Klausel für Klausel erfüllt oder offen",
 		},
 		short: "Lieferanten",
 		duration: "2–6 Wochen",
 		fits: "NIS2 oder DORA verlangen, dass ihr eure Software- und IKT-Lieferanten bewertet – nachweisbar.",
 		result:
-			"Rating A–D je Lieferant, Sorgfaltsprüfung mit Entscheidung, Vertragsprüfung nach DORA Art. 30 und Wiedervorlage.",
+			"Rating A–D je Lieferant, Sorgfaltsprüfung mit Entscheidung, Abgleich eurer Verträge mit der Klausel-Checkliste nach DORA Art. 30 und Wiedervorlage.",
 		steps: [
 			{
 				when: "Woche 1",
@@ -167,7 +167,7 @@ export const SERVICES: readonly Service[] = [
 			{
 				when: "laufend",
 				title: "Bewertung",
-				note: "K.-o.-Fragen, Rating, Klauseln nach Art. 30.",
+				note: "K.-o.-Fragen, Rating, Klausel-Checkliste nach Art. 30.",
 			},
 			{
 				when: "Ende",
@@ -237,11 +237,15 @@ export const FAQ: readonly { q: string; a: string }[] = [
 	},
 	{
 		q: "Wer sieht unsere Daten?",
-		a: "Nur berechtigte Personen. Nachweise liegen verschlüsselt mit einem eigenen Schlüssel je Organisation auf Servern in Deutschland und werden beim Hochladen auf Schadsoftware und Geheimnisse geprüft.",
+		a: "Nur berechtigte Personen. Nachweise liegen verschlüsselt mit einem eigenen Schlüssel je Organisation auf Servern in Deutschland. Beim Hochladen prüft Klick Dateityp und Inhalt, etwa auf Zugangsschlüssel, die nicht hineingehören.",
 	},
 	{
 		q: "Wie aufwendig ist es für unsere Lieferanten?",
 		a: "Ein Link per Mail, kein Konto, je nach Fragebogen 9 bis 19 Fragen. Nachweise laden sie direkt hoch; nach 14 Tagen erinnern wir.",
+	},
+	{
+		q: "Prüft ihr unsere Verträge rechtlich?",
+		a: "Nein. Wir gleichen eure Verträge mit der Klausel-Checkliste nach DORA Art. 30 ab und zeigen, welche Punkte fehlen, und schätzen beim CRA Klasse und Konformitätsweg technisch ein. Die rechtliche Prüfung und Formulierung im Einzelfall übernimmt eure Kanzlei; Rechtsberatung bieten wir nicht an.",
 	},
 	{
 		q: "Ersetzt das eine Zertifizierung?",

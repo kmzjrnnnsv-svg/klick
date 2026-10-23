@@ -239,3 +239,49 @@ describe("Preise und Laufzeit (PAngV, § 5 UWG)", () => {
 		);
 	});
 });
+
+describe("Werbeaussagen und Rechtsdienstleistung (§ 5 UWG, § 3 RDG)", () => {
+	const marketing = [
+		"lib/marketing/services.ts",
+		"lib/marketing/workflows.ts",
+		"lib/marketing/billing.ts",
+	]
+		.map(read)
+		.join("\n");
+
+	it("keine Vertrags- oder Rechtsprüfung als Leistung", () => {
+		expect(marketing).not.toMatch(/Vertragsprüfung|rechtssicher/i);
+		expect(read("lib/marketing/services.ts")).toMatch(
+			/Rechtsberatung bieten wir nicht an/,
+		);
+		expect(read("messages/de.json")).not.toMatch(/Vertragsprüfung/);
+	});
+
+	it("kein Virenscan-Versprechen, das an der Server-Konfiguration hängt", () => {
+		expect(marketing).not.toMatch(/auf Schadsoftware[^"]*geprüft/);
+		expect(read("messages/de.json")).not.toMatch(
+			/auf Schadsoftware[^"]*geprüft/,
+		);
+	});
+
+	it("Standortaussage nennt den Mailversand in der EU", async () => {
+		const { PLATFORM_SUPPLIER } = await import(
+			"@/lib/compliance/catalog/platform-supplier"
+		);
+		expect(PLATFORM_SUPPLIER.commitments["30(2)(b)"]).toMatch(/Brevo/);
+		expect(
+			PLATFORM_SUPPLIER.subcontractors.some((s) => s.name.includes("Brevo")),
+		).toBe(true);
+		expect(marketing).not.toMatch(/ausschließlich in Deutschland/);
+	});
+
+	it("Lizenzhinweise decken jede direkte Abhängigkeit ab", async () => {
+		const pkg = JSON.parse(read("package.json")) as {
+			dependencies: Record<string, string>;
+		};
+		const { default: rows } = await import("@/lib/legal/licenses.json");
+		const names = new Set((rows as { name: string }[]).map((r) => r.name));
+		const missing = Object.keys(pkg.dependencies).filter((n) => !names.has(n));
+		expect(missing, "pnpm legal:licenses ausführen").toEqual([]);
+	});
+});

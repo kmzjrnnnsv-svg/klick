@@ -22,7 +22,10 @@ export const PLATFORM_SUPPLIER = {
 	service:
 		"Compliance-/GRC-Plattform: Common Controls, Nachweise, Register, Freigaben, Prüfungspakete für ISO 27001, DORA, NIS2, MaRisk, MiCAR, GwG.",
 	country: "DE",
-	dataLocations: ["Deutschland (Hetzner: Falkenstein, Nürnberg)"],
+	dataLocations: [
+		"Deutschland (Hetzner: Falkenstein, Nürnberg) — Server, Datenbank, Speicher",
+		"EU (Brevo, Frankreich) — nur Versand von Service-Mails",
+	],
 	registerSheet: [
 		{ field: "B_05.01 c0050 Rechtlicher Name", value: "siehe Impressum" },
 		{
@@ -87,7 +90,7 @@ export const PLATFORM_SUPPLIER = {
 		"30(2)(a)":
 			"Leistungsbeschreibung oben; Unterauftrag nur an die genannten Subunternehmer, Änderungen mit mindestens 30 Tagen Vorabmitteilung.",
 		"30(2)(b)":
-			"Leistungserbringung und Datenverarbeitung ausschließlich in Deutschland; Standortwechsel nur nach vorheriger Mitteilung.",
+			"Server, Datenbank, Speicher und Backups ausschließlich in Deutschland (Hetzner); Versand von Service-Mails (Adresse, Name, Mailtext) über Brevo in der EU (Frankreich); Standortwechsel und neue Unterauftragnehmer nur nach vorheriger Mitteilung.",
 		"30(2)(c)":
 			"Verschlüsselung je Mandant (XChaCha20-Poly1305, eigener Schlüssel), Mandantentrennung in der Datenbank (Row-Level-Security mit FORCE), MFA für alle Rollen, append-only Audit-Log mit Hash-Kette.",
 		"30(2)(d)":

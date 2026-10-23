@@ -5,13 +5,14 @@ import type { ReactNode } from "react";
 // Rechtliche Links unten in jedem Layout ohne Marketing-Fußzeile (App,
 // Einrichtung, Wallet, Admin, externe Seiten, 404): Impressum und
 // Datenschutz müssen von jeder Seite aus erreichbar sein (§ 5 DDG,
-// Art. 13 DSGVO). Test `legal-links` prüft die Layouts.
+// Art. 13 DSGVO). Test `legal` prüft die Layouts.
 export async function LegalLinks({ children }: { children?: ReactNode }) {
 	const t = await getTranslations("Footer");
 	const links = [
 		{ href: "/impressum", label: t("imprint") },
 		{ href: "/datenschutz-erklaerung", label: t("privacy") },
 		{ href: "/nutzungsbedingungen", label: t("terms") },
+		{ href: "/lizenzen", label: t("licenses") },
 	];
 	return (
 		<footer className="mt-auto border-border/60 border-t">

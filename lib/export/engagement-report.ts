@@ -176,7 +176,7 @@ export function buildEngagementReport(input: ReportInput): ZipEntry[] {
 	summary.push(
 		"## Einordnung",
 		"",
-		"Das Ergebnis beschreibt den Stand der geprüften Ziele im Prüfzeitraum mit der angegebenen Methodik. Es ist kein Nachweis, dass keine weiteren Schwachstellen bestehen, und kein Testat.",
+		"Das Ergebnis beschreibt den Stand der geprüften Ziele im Prüfzeitraum mit der angegebenen Methodik. Es ist kein Nachweis, dass keine weiteren Schwachstellen bestehen, kein Testat und keine Rechtsberatung (Einstufungen sind technische Einschätzungen).",
 		"",
 	);
 

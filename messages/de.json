@@ -102,7 +102,8 @@
 		"features": "Funktionen",
 		"terms": "Nutzungsbedingungen",
 		"legalNav": "Rechtliches",
-		"menu": "Menü"
+		"menu": "Menü",
+		"licenses": "Lizenzen"
 	},
 	"Landing": {
 		"eyebrow": "Compliance für regulierte Unternehmen",
@@ -212,7 +213,7 @@
 		"q1Q": "Ersetzt Klick unsere Kanzlei oder den Prüfer?",
 		"q1A": "Nein. Klick strukturiert Anforderungen, Controls und Nachweise und erzeugt die Unterlagen. Rechtsrat, Zertifizierung und Abschlussprüfung bleiben bei den Fachleuten — die Unterlagen bringen sie schneller ans Ziel.",
 		"q2Q": "Wo liegen unsere Daten?",
-		"q2A": "In Deutschland. Jede Organisation hat ihren eigenen Verschlüsselungsschlüssel, die Datenbank trennt Mandanten per Row-Level-Security, Nachweise liegen verschlüsselt im Objektspeicher. Details unter Vertrauen & Sicherheit.",
+		"q2A": "Server, Datenbank und Speicher stehen in Deutschland (Hetzner). Service-Mails versenden wir über Brevo in der EU. Jede Organisation hat ihren eigenen Verschlüsselungsschlüssel, die Datenbank trennt Mandanten per Row-Level-Security, Nachweise liegen verschlüsselt im Objektspeicher. Details unter Vertrauen & Sicherheit.",
 		"q3Q": "Wie kommen wir wieder raus?",
 		"q3A": "Kündigen könnt ihr jederzeit zum Ende des Vertragsjahres, vor dem ersten bestandenen Audit sogar sofort. Den vollständigen Export (ZIP mit SHA-256-Manifest, offene Formate) gibt es jederzeit. Beim Ausstieg bekommt ihr eine Löschbestätigung und auf Wunsch Hilfe beim Übergang.",
 		"q4Q": "Steuert ihr auch KYC oder Transaktionsmonitoring?",
@@ -3791,7 +3792,7 @@
 		"due": "bitte bis {date}",
 		"progress": "{answered} von {total} beantwortet",
 		"intro": "{organization} bittet dich, die folgenden Fragen zu beantworten und passende Nachweise hochzuladen. Deine Antworten werden automatisch gespeichert; du kannst jederzeit unterbrechen und mit demselben Link weitermachen. Am Ende reichst du den Fragebogen ein.",
-		"privacy": "Antworten und Dateien sehen nur berechtigte Personen bei {organization}. Dateien werden verschlüsselt gespeichert und vorab auf Schadsoftware und sensible Inhalte (z. B. Schlüssel, Kartennummern) geprüft – lade bitte keine Zugangsdaten hoch.",
+		"privacy": "Antworten und Dateien sehen nur berechtigte Personen bei {organization}. Dateien werden verschlüsselt gespeichert und vorab auf Dateityp und sensible Inhalte (z. B. Schlüssel, Kartennummern) geprüft – lade bitte keine Zugangsdaten hoch.",
 		"reopened": "Rückfrage von {organization}: {note}",
 		"submittedInfo": "Danke! Eingereicht am {date}. {organization} meldet sich, falls etwas offen ist.",
 		"closedInfo": "Dieser Fragebogen ist abgeschlossen und kann nicht mehr bearbeitet werden.",
@@ -3896,7 +3897,7 @@
 		"reopenLead": "Der Lieferant kann wieder antworten, solange sein Link gilt. Deine Notiz sieht er im Portal.",
 		"reopenNote": "Was soll der Lieferant ergänzen?",
 		"reopened": "Zurückgegeben – der Lieferant sieht deine Notiz im Portal.",
-		"contractTitle": "Vertragsprüfung nach DORA Art. 30",
+		"contractTitle": "Klausel-Checkliste nach DORA Art. 30",
 		"contractLead": "Mindestinhalte für IKT-Verträge (Abs. 2). Die Klauseln nach Abs. 3 sind nur bei kritischen oder wichtigen Funktionen Pflicht und hier ausgegraut. Ein DORA-Fragebogen füllt die Liste beim Abschluss vor.",
 		"contractLeadCritical": "Dieser Dienstleister unterstützt kritische oder wichtige Funktionen: Abs. 2 und Abs. 3 sind Pflicht. Ein DORA-Fragebogen füllt die Liste beim Abschluss vor.",
 		"criticalOnly": "nur bei kritischen/wichtigen Funktionen",
@@ -5572,5 +5573,15 @@
 		"email": "E-Mail",
 		"phone": "Telefon",
 		"contactForm": "Oder schreib uns über das Anfrageformular."
+	},
+	"Licenses": {
+		"title": "Lizenzen",
+		"lead": "Klick nutzt Open-Source-Software und freie Schriften. Hier stehen die Lizenzen und die Urheber:innen. Die vollständigen Lizenztexte liegen den Paketen bei; die Links führen zu den Projekten.",
+		"fontsTitle": "Schriften",
+		"fontsLicense": "SIL Open Font License 1.1, auf unserem Server gehostet",
+		"imagesTitle": "Bilder",
+		"images": "Die Bilder auf den Seiten „Leistungen“ und „Funktionen“ sind Bildschirmfotos aus Klick mit erfundenen Beispieldaten. Das Logo ist eine eigene Gestaltung.",
+		"packagesTitle": "Software-Pakete",
+		"packagesLead": "{count} Pakete, gruppiert nach Lizenz."
 	}
 }

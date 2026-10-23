@@ -717,7 +717,7 @@ export const FEATURE_FAQ: { q: string; a: string }[] = [
 	},
 	{
 		q: "Wer sieht meine Daten?",
-		a: "Nur deine Organisation. Die Datenbank trennt jede Zeile nach Organisation, Dateien und sensible Felder sind mit eurem eigenen Schlüssel verschlüsselt. Prüfer:innen und Berater:innen sehen nur, was ihre Rolle erlaubt, und nur befristet.",
+		a: "Deine Organisation. Die Datenbank trennt jede Zeile nach Organisation, Dateien und sensible Felder sind mit eurem eigenen Schlüssel verschlüsselt. Prüfer:innen und Berater:innen sehen nur, was ihre Rolle erlaubt, und nur befristet. Wir als Betreiber greifen nur im Support- oder Störungsfall zu, mit Begründung, und jeder Zugriff steht im Audit-Log.",
 	},
 	{
 		q: "Ersetzt Klick die Prüfung?",

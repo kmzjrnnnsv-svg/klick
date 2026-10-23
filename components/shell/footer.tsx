@@ -11,6 +11,7 @@ export async function Footer() {
 		{ href: "/datenschutz-erklaerung", label: t("privacy") },
 		{ href: "/impressum", label: t("imprint") },
 		{ href: "/nutzungsbedingungen", label: t("terms") },
+		{ href: "/lizenzen", label: t("licenses") },
 	];
 	return (
 		<footer className="mt-auto bg-muted">

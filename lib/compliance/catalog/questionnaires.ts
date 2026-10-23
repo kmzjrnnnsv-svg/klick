@@ -280,7 +280,7 @@ const CRA_SW: AssessmentQuestion[] = [
 const ART30: [string, string] = ["art30", "Vertrag (DORA Art. 30)"];
 const DD: [string, string] = ["dd", "Sorgfaltsprüfung (DORA Art. 28)"];
 
-// DORA-IKT: eine Frage je Art.-30-Klausel (Vertragsprüfung) plus Kernpunkte
+// DORA-IKT: eine Frage je Art.-30-Klausel (Klausel-Checkliste) plus Kernpunkte
 // der Sorgfaltsprüfung. Antworten auf Klauselfragen schreiben die
 // Klausel-Checkliste des Dienstleisters (contractClauses).
 const DORA_IKT: AssessmentQuestion[] = [
@@ -357,7 +357,7 @@ export const SUPPLIER_TEMPLATES: readonly SupplierTemplate[] = [
 		title: "IKT-Drittdienstleister (DORA)",
 		frameworks: ["dora"],
 		description:
-			"Sorgfaltsprüfung nach DORA Art. 28 und Vertragsprüfung je Klausel nach Art. 30 — die Antworten füllen die Klausel-Checkliste.",
+			"Sorgfaltsprüfung nach DORA Art. 28 und Abgleich je Klausel nach Art. 30 — die Antworten füllen die Klausel-Checkliste.",
 		questions: DORA_IKT,
 	},
 ];

@@ -45,3 +45,19 @@ Verantwortlichen lässt sich der Auftrag nicht auf „beauftragt“ setzen (§ 2
 **Grenzen:** Über SSO provisionierte Konten prüft Klick nicht auf die Ein-Org-Regel. Löscht ein
 Kunde seine Organisation, beendet Klick alle Sitzungen der Mitglieder — auch deine; nach dem
 neuen Login sind deine anderen Zugänge unverändert da.
+
+## Grenze: keine Rechtsdienstleistung (§ 3 RDG)
+
+Wir liefern Abgleiche mit Checklisten, technische Einschätzungen, Vorlagen und Nachweise — keine
+rechtliche Prüfung im Einzelfall. Konkret:
+
+- **Verträge (DORA Art. 30):** Abgleich mit der Klausel-Checkliste („vorhanden / teilweise / offen“),
+  keine Auslegung und keine Formulierung von Vertragsklauseln für die Kundin.
+- **CRA:** technische Einschätzung von Anwendungsbereich, Klasse und Konformitätsweg; die verbindliche
+  Einstufung trifft die Kundin mit ihrer Kanzlei.
+- **Gap-Analyse, Prüfungsreife:** Bewertung von Umsetzung und Nachweisen, keine Aussage, ob eine
+  Norm im Einzelfall erfüllt ist.
+
+Berichte und Pakete aus Klick tragen den Hinweis „kein Rechtsrat“ bzw. „keine Rechtsberatung“
+(`lib/export/*`); Angebote und Texte auf `/leistungen` nennen keine Rechtsprüfung (Test `legal`).
+
