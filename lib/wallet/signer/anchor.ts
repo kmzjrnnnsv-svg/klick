@@ -10,8 +10,16 @@ import type { SignerMeta } from "./client";
 // Signer-Journals. Läuft seq zurück oder ändert sich der Hash bei gleicher
 // seq, wurde das Journal ersetzt (z. B. ein altes Backup eingespielt, um
 // Freigaben oder Ausgaben „vergessen“ zu lassen) → Alarm, Anker bleibt.
+// Eine kleinere seq kann auch eine überholte Antwort sein (Job und Aktion
+// fragen gleichzeitig; der Signer arbeitet der Reihe nach, gespeichert wird
+// in anderer Reihenfolge): ohne `detect` gilt sie als „stale“ und ändert
+// nichts. Erkennen ist Sache des Jobs, der dafür frisch nachfragt.
+// Gleiche seq mit anderem Hash ist nie ein Wettlauf → immer Alarm.
 
 export type AnchorCheck = "ok" | "regressed" | "forked";
+export type AnchorResult = AnchorCheck | "stale";
+
+export const anchorOk = (r: AnchorResult) => r === "ok" || r === "stale";
 
 export function compareAnchor(
 	stored: SignerMeta | null,
@@ -34,13 +42,15 @@ export async function recordAnchor(
 		frozen?: { reason: string } | null;
 	},
 	now = new Date(),
-): Promise<AnchorCheck> {
+	opts: { detect?: boolean } = {},
+): Promise<AnchorResult> {
 	const [stored] = await tx
 		.select()
 		.from(walletSignerAnchor)
 		.where(eq(walletSignerAnchor.organizationId, orgId))
 		.limit(1);
 	const check = compareAnchor(stored ?? null, seen);
+	if (check === "regressed" && !opts.detect) return "stale";
 	const extra = {
 		...(seen.bundleHash !== undefined ? { bundleHash: seen.bundleHash } : {}),
 		...(seen.policyHash !== undefined ? { policyHash: seen.policyHash } : {}),

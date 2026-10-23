@@ -1,7 +1,12 @@
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { organization } from "@/db/auth-schema";
-import { walletAccounts, walletAddresses, walletTransfers } from "@/db/schema";
+import {
+	walletAccounts,
+	walletAddresses,
+	walletPayouts,
+	walletTransfers,
+} from "@/db/schema";
 import type { AccountBalances, WalletAccount } from "@/db/schema/wallet";
 import { audit } from "@/lib/audit";
 import { loadSanctionSet } from "@/lib/db/sanctions";
@@ -40,6 +45,7 @@ import {
 	type ScreeningOutcome,
 	screenSources,
 } from "@/lib/wallet/screening";
+import { signerCall, signerConfigured } from "@/lib/wallet/signer/client";
 import { btcObservations, btcWindow } from "@/lib/wallet/sync/bitcoin";
 import {
 	chunks,
@@ -750,6 +756,15 @@ async function apply(
 		rescanned: r.rescanned,
 	});
 
+	// Ausgänge gehören zu Auszahlungen (alle Fassungen: Erhöhung, Abbruch)
+	const payoutByTxid = new Map<string, string>();
+	for (const p of await tx
+		.select({ id: walletPayouts.id, txids: walletPayouts.txids })
+		.from(walletPayouts)
+		.where(eq(walletPayouts.accountId, account.id)))
+		for (const t of p.txids) payoutByTxid.set(t.toLowerCase(), p.id);
+	const unknownSpends = new Set<string>();
+
 	let recipientsCache: string[] | null = null;
 	const recipients = async () =>
 		(recipientsCache ??= await membersAllowed(tx, orgId, { wallet: ["read"] }));
@@ -783,11 +798,22 @@ async function apply(
 					o.direction === "in" ? (outcome?.result ?? "unchecked") : "clear",
 				screeningRef: outcome?.ref ?? null,
 				frozen: hit,
+				payoutId: payoutByTxid.get(o.txid.toLowerCase()) ?? null,
 				confirmedAt: o.status === "confirmed" ? now : null,
 			})
 			.onConflictDoNothing()
 			.returning({ id: walletTransfers.id });
 		if (!row) continue;
+		// Ausgang eines Hot-Kontos ohne Auszahlung: Schlüssel woanders benutzt
+		if (
+			o.direction === "out" &&
+			account.kind === "hot" &&
+			!payoutByTxid.has(o.txid.toLowerCase()) &&
+			!unknownSpends.has(o.txid)
+		) {
+			unknownSpends.add(o.txid);
+			await unknownSpend(tx, orgId, account, o.txid);
+		}
 		const seenId =
 			o.direction === "in" && o.address ? addressId.get(o.address) : undefined;
 		if (seenId)
@@ -948,5 +974,47 @@ async function alert(
 		title: `Wallet-Konto „${account.name}“ angehalten`,
 		body: message,
 		link: "/wallet/konten",
+	});
+}
+
+// Unbekannte Ausgabe aus einem Hot-Konto: Alarm an alle im Wallet-Bereich
+// und den Signer sofort einfrieren (bremsen darf die App ohne Schlüssel)
+async function unknownSpend(
+	tx: OrgTx,
+	orgId: string,
+	account: WalletAccount,
+	txid: string,
+) {
+	let frozen = false;
+	if (signerConfigured())
+		try {
+			await signerCall("freeze", {
+				reason: `Unbekannte Ausgabe ${txid.slice(0, 16)}`,
+			});
+			frozen = true;
+		} catch (e) {
+			logger.error({ orgId, txid, err: e }, "signer freeze failed");
+		}
+	await audit(
+		tx,
+		{ userId: null },
+		{
+			organizationId: orgId,
+			action: "wallet.unknown_spend",
+			target: `wallet_account:${account.id}`,
+			after: { txid, signerFrozen: frozen },
+		},
+	);
+	await notify(tx, {
+		orgId,
+		recipients: await membersAllowed(tx, orgId, { wallet: ["read"] }),
+		actorUserId: null,
+		kind: "security_alert",
+		title: `Unbekannte Ausgabe aus Hot-Konto „${account.name}“`,
+		body: frozen
+			? `Transaktion ${txid} gehört zu keiner Auszahlung in Klick. Der Signer wurde eingefroren.`
+			: `Transaktion ${txid} gehört zu keiner Auszahlung in Klick. Den Signer sofort einfrieren (Sicherheit).`,
+		link: "/wallet/sicherheit",
+		payload: { txid },
 	});
 }

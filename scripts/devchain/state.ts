@@ -43,7 +43,8 @@ export type BtcBlock = {
 };
 export type EthTransfer = {
 	hash: string;
-	kind: "eth" | "internal" | "token";
+	// call = oberster Aufruf ohne Wert (nur für trace_filter)
+	kind: "eth" | "internal" | "token" | "call";
 	asset: "ETH" | "USDC" | "EURC";
 	from: string;
 	to: string;

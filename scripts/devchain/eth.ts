@@ -184,6 +184,19 @@ export function ethChain(state: State) {
 				logIndex: 0,
 			});
 		}
+		// oberster Aufruf ohne Wert (Token, Zurückgerolltes): trace_filter
+		// zeigt ihn wie Reth — daran erkennt der Sync die eigene Gebühr
+		if (!e.transfers.some((t) => t.hash === tx.hash && t.kind === "eth"))
+			e.transfers.push({
+				hash: tx.hash,
+				kind: "call",
+				asset: "ETH",
+				from: tx.from,
+				to: tx.to,
+				value: "0",
+				block,
+				logIndex: 0,
+			});
 		if (gasUsed > gasLimit) gasUsed = gasLimit;
 		tx.block = block;
 		tx.status = status;

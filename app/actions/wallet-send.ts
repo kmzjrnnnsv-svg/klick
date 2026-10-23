@@ -7,6 +7,7 @@ import {
 	walletAccounts,
 	walletAddressBook,
 	walletAddresses,
+	walletPayouts,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { AuthError, requireWallet, toOrgCtx } from "@/lib/auth/guards";
@@ -17,16 +18,34 @@ import { membersAllowed } from "@/lib/org/roles";
 import { type ActionResult, fail, fromZod } from "@/lib/validation/common";
 import {
 	hotAccountSchema,
+	payoutIdSchema,
+	payoutSchema,
 	proposeDestinationSchema,
 	vetoDestinationSchema,
 } from "@/lib/validation/wallet";
+import { effectiveStatus } from "@/lib/wallet/address-book";
 import { checkAddress } from "@/lib/wallet/core/address";
+import { AmountError, parseAmount } from "@/lib/wallet/core/amount";
+import { assetOf } from "@/lib/wallet/core/assets";
 import { deriveAddress, parseAccountKey } from "@/lib/wallet/core/derive";
 import { NETWORKS } from "@/lib/wallet/core/networks";
-import { configuredNetworks } from "@/lib/wallet/node-clients";
-import { screenSources } from "@/lib/wallet/screening";
-import { recordAnchor } from "@/lib/wallet/signer/anchor";
+import { type Policy, spendAllowed } from "@/lib/wallet/core/policy";
+import { amountText } from "@/lib/wallet/display";
 import {
+	configuredNetworks,
+	nodeClientsFromEnv,
+} from "@/lib/wallet/node-clients";
+import {
+	addressIndex,
+	btcCapForPayout,
+	ethCapForPayout,
+	excludedOutpoints,
+} from "@/lib/wallet/payouts/build";
+import { OPEN_PAYOUT_STATUS } from "@/lib/wallet/payouts/plan";
+import { screenSources } from "@/lib/wallet/screening";
+import { anchorOk, recordAnchor } from "@/lib/wallet/signer/anchor";
+import {
+	SignerCallError,
 	type SignerHello,
 	type SignerIntentView,
 	signerCall,
@@ -102,7 +121,8 @@ async function createHotWalletAccountImpl(
 		toOrgCtx(c),
 		async (tx) => {
 			const anchor = await recordAnchor(tx, c.orgId, created);
-			if (anchor !== "ok") return { result: fail("signer_journal"), audit: [] };
+			if (!anchorOk(anchor))
+				return { result: fail("signer_journal"), audit: [] };
 			const now = new Date();
 			await tx.insert(walletAccounts).values({
 				id: accountId,
@@ -217,7 +237,7 @@ async function proposeDestinationImpl(
 	const res = await mutateOrg<ActionResult<{ id: string; intentId: string }>>(
 		toOrgCtx(c),
 		async (tx) => {
-			if ((await recordAnchor(tx, c.orgId, created)) !== "ok")
+			if (!anchorOk(await recordAnchor(tx, c.orgId, created)))
 				return { result: fail("signer_journal"), audit: [] };
 			const [row] = await tx
 				.insert(walletAddressBook)
@@ -325,6 +345,316 @@ async function vetoDestinationImpl(input: unknown): Promise<ActionResult> {
 	return res;
 }
 
+// Auszahlung anlegen: Absicht im Signer (Ziel und Betrag stehen darin fest),
+// Freigabe per Sicherheitsschlüssel auf der Bestätigungsseite. Signieren und
+// senden übernimmt der Job wallet-payouts.
+async function createPayoutImpl(
+	input: unknown,
+): Promise<ActionResult<{ id: string }>> {
+	const parsed = payoutSchema.safeParse(input);
+	const c = await requireWallet({ wallet: ["initiate"] });
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const s = await helloForOrg(c.orgId);
+	if ("error" in s) return fail(s.error as string);
+	if (s.hello.frozen) return fail("signer_frozen");
+	const loaded = await readOrg(toOrgCtx(c), async (tx) => {
+		const [account] = await tx
+			.select()
+			.from(walletAccounts)
+			.where(
+				and(
+					eq(walletAccounts.id, d.accountId),
+					eq(walletAccounts.organizationId, c.orgId),
+					eq(walletAccounts.status, "active"),
+				),
+			)
+			.limit(1);
+		const [dest] = await tx
+			.select()
+			.from(walletAddressBook)
+			.where(
+				and(
+					eq(walletAddressBook.id, d.addressBookId),
+					eq(walletAddressBook.organizationId, c.orgId),
+				),
+			)
+			.limit(1);
+		const open = account
+			? await tx
+					.select({ amount: walletPayouts.amount })
+					.from(walletPayouts)
+					.where(
+						and(
+							eq(walletPayouts.accountId, account.id),
+							eq(walletPayouts.asset, d.asset),
+							inArray(walletPayouts.status, [...OPEN_PAYOUT_STATUS]),
+						),
+					)
+			: [];
+		return { account, dest, open };
+	});
+	const { account, dest } = loaded;
+	if (!account) return fail("notFound");
+	if (account.kind !== "hot") return fail("not_hot");
+	if (
+		!dest ||
+		dest.network !== account.network ||
+		effectiveStatus(dest, new Date()) !== "active"
+	)
+		return fail("destination_inactive");
+	const info = assetOf(account.network, d.asset);
+	if (!info) return fail("asset");
+	let amount: bigint;
+	try {
+		amount = parseAmount(d.amount, info.decimals);
+	} catch (e) {
+		if (e instanceof AmountError)
+			return fail(`amount_${e.code}`, { amount: [`amount_${e.code}`] });
+		throw e;
+	}
+	// verfügbar = bestätigt laut Knoten minus offene Auszahlungen
+	const reserved = loaded.open.reduce((sum, p) => sum + BigInt(p.amount), 0n);
+	const confirmed = BigInt(account.balances?.[d.asset]?.confirmed ?? "0");
+	if (confirmed - reserved < amount) return fail("insufficient");
+	let policy: Policy;
+	try {
+		policy = (await signerCall<{ policy: Policy }>("status")).result.policy;
+	} catch (e) {
+		return fail(signerErrorCode(e));
+	}
+	const allowed = spendAllowed(policy, d.asset, amount, 0n);
+	if (allowed !== "ok") return fail(allowed);
+	const client = nodeClientsFromEnv()[account.network];
+	if (!client) return fail("network_unavailable");
+	let feeCap: bigint;
+	if (client.chain === "bitcoin") {
+		const { index, exclude } = await readOrg(toOrgCtx(c), async (tx) => ({
+			index: await addressIndex(tx, account.id),
+			exclude: await excludedOutpoints(tx, c.orgId, account.id),
+		}));
+		const cap = await btcCapForPayout(
+			client.btc,
+			account.id,
+			index,
+			amount,
+			d.speed,
+			policy,
+			exclude,
+		);
+		if ("error" in cap) return fail(`plan_${cap.error}`);
+		feeCap = cap.feeCap;
+	} else {
+		const [from] = await readOrg(toOrgCtx(c), (tx) =>
+			tx
+				.select({ address: walletAddresses.address })
+				.from(walletAddresses)
+				.where(
+					and(
+						eq(walletAddresses.accountId, account.id),
+						eq(walletAddresses.branch, 0),
+						eq(walletAddresses.index, 0),
+					),
+				)
+				.limit(1),
+		);
+		if (!from) return fail("notFound");
+		const cap = await ethCapForPayout(
+			client.eth,
+			{
+				network: account.network,
+				asset: d.asset,
+				from: from.address,
+				destination: dest.address,
+				amount,
+				speed: d.speed,
+			},
+			policy,
+		);
+		if ("error" in cap) return fail(`plan_${cap.error}`);
+		feeCap = cap.feeCap;
+	}
+	let created: {
+		result: { intentId: string; text: string; expiresAt: number };
+		seq: number;
+		head: string;
+	};
+	try {
+		created = await signerCall("intent.create", {
+			kind: "payout",
+			accountId: account.id,
+			asset: d.asset,
+			amount: amount.toString(),
+			destination: dest.address,
+			feeCap: feeCap.toString(),
+			initiator: c.userId,
+		});
+	} catch (e) {
+		return fail(signerErrorCode(e));
+	}
+	const text = amountText(account.network, d.asset, amount);
+	const res = await mutateOrg<ActionResult<{ id: string }>>(
+		toOrgCtx(c),
+		async (tx) => {
+			if (!anchorOk(await recordAnchor(tx, c.orgId, created)))
+				return { result: fail("signer_journal"), audit: [] };
+			const [row] = await tx
+				.insert(walletPayouts)
+				.values({
+					organizationId: c.orgId,
+					accountId: account.id,
+					addressBookId: dest.id,
+					asset: d.asset,
+					amount: amount.toString(),
+					destination: dest.address,
+					destinationLabel: dest.label,
+					feeCap: feeCap.toString(),
+					speed: d.speed,
+					intentId: created.result.intentId,
+					intentText: created.result.text,
+					expiresAt: new Date(created.result.expiresAt * 1000),
+					createdByUserId: c.userId,
+				})
+				.returning({ id: walletPayouts.id });
+			if (!row) throw new Error("insert failed");
+			await notify(tx, {
+				orgId: c.orgId,
+				recipients: await membersAllowed(tx, c.orgId, { wallet: ["approve"] }),
+				actorUserId: c.userId,
+				kind: "approval_requested",
+				title: `Auszahlung wartet auf Freigabe: ${text}`,
+				body: `An „${dest.label}“. Bestätigen nur mit Sicherheitsschlüssel auf der Bestätigungsseite.`,
+				link: `/wallet/auszahlungen/${row.id}`,
+				payload: { payoutId: row.id },
+			});
+			return {
+				result: { ok: true, data: { id: row.id } },
+				audit: {
+					action: "wallet.payout_created",
+					target: `wallet_payout:${row.id}`,
+					after: {
+						accountId: account.id,
+						asset: d.asset,
+						amount: amount.toString(),
+						destination: dest.address,
+						feeCap: feeCap.toString(),
+						speed: d.speed,
+						intentId: created.result.intentId,
+					},
+				},
+			};
+		},
+	);
+	if (res.ok) revalidatePath(`${PATH}/auszahlungen`);
+	return res;
+}
+
+async function loadPayout(
+	orgId: string,
+	c: Parameters<typeof toOrgCtx>[0],
+	id: string,
+) {
+	const [row] = await readOrg(toOrgCtx(c), (tx) =>
+		tx
+			.select()
+			.from(walletPayouts)
+			.where(
+				and(eq(walletPayouts.id, id), eq(walletPayouts.organizationId, orgId)),
+			)
+			.limit(1),
+	);
+	return row ?? null;
+}
+
+// Abbrechen: vor dem Signieren im Signer, danach als Abbruch-Transaktion
+// (gleiche Eingänge/Nonce an das eigene Konto) über den Job. Bremst nur.
+async function cancelPayoutImpl(input: unknown): Promise<ActionResult> {
+	const parsed = payoutIdSchema.safeParse(input);
+	const c = await requireWallet();
+	if (!parsed.success) return fromZod(parsed.error);
+	const p = await loadPayout(c.orgId, c, parsed.data.id);
+	if (!p) return fail("notFound");
+	if (p.status === "awaiting_approval" || p.status === "approved") {
+		let meta: { seq: number; head: string };
+		try {
+			const r = await signerCall("intent.cancel", { intentId: p.intentId });
+			meta = { seq: r.seq, head: r.head };
+		} catch (e) {
+			// schon signiert (Job war schneller): als Abbruch-Transaktion
+			if (!(e instanceof SignerCallError && e.signerCode === "already_signed"))
+				return fail(signerErrorCode(e));
+			meta = { seq: -1, head: "" };
+		}
+		const res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+			if (meta.seq >= 0) await recordAnchor(tx, c.orgId, meta);
+			const set =
+				meta.seq >= 0
+					? { status: "cancelled" as const }
+					: { cancelRequested: true };
+			await tx.update(walletPayouts).set(set).where(eq(walletPayouts.id, p.id));
+			return {
+				result: { ok: true, data: undefined },
+				audit: {
+					action:
+						meta.seq >= 0
+							? "wallet.payout_cancelled"
+							: "wallet.payout_cancel_requested",
+					target: `wallet_payout:${p.id}`,
+					before: { status: p.status },
+				},
+			};
+		});
+		revalidatePath(`${PATH}/auszahlungen`, "layout");
+		return res;
+	}
+	if (p.status === "signed" || p.status === "broadcast") {
+		const res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+			await tx
+				.update(walletPayouts)
+				.set({ cancelRequested: true })
+				.where(eq(walletPayouts.id, p.id));
+			return {
+				result: { ok: true, data: undefined },
+				audit: {
+					action: "wallet.payout_cancel_requested",
+					target: `wallet_payout:${p.id}`,
+					before: { status: p.status },
+				},
+			};
+		});
+		revalidatePath(`${PATH}/auszahlungen`, "layout");
+		return res;
+	}
+	return fail("not_open");
+}
+
+// Beschleunigen: höhere Gebühr mit denselben Eingängen bzw. derselben Nonce
+// (Job), höchstens bis zum Gebühren-Deckel der Absicht
+async function bumpPayoutImpl(input: unknown): Promise<ActionResult> {
+	const parsed = payoutIdSchema.safeParse(input);
+	const c = await requireWallet({ wallet: ["initiate"] });
+	if (!parsed.success) return fromZod(parsed.error);
+	const p = await loadPayout(c.orgId, c, parsed.data.id);
+	if (!p) return fail("notFound");
+	if (p.status !== "broadcast" || p.cancelRequested) return fail("not_open");
+	const res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+		await tx
+			.update(walletPayouts)
+			.set({ bumpRequested: true })
+			.where(eq(walletPayouts.id, p.id));
+		return {
+			result: { ok: true, data: undefined },
+			audit: {
+				action: "wallet.payout_bump_requested",
+				target: `wallet_payout:${p.id}`,
+				after: { fee: p.fee, feeCap: p.feeCap },
+			},
+		};
+	});
+	revalidatePath(`${PATH}/auszahlungen`, "layout");
+	return res;
+}
+
 export const createHotWalletAccount = safeAction(
 	"createHotWalletAccount",
 	createHotWalletAccountImpl,
@@ -337,3 +667,6 @@ export const vetoDestination = safeAction(
 	"vetoDestination",
 	vetoDestinationImpl,
 );
+export const createPayout = safeAction("createPayout", createPayoutImpl);
+export const cancelPayout = safeAction("cancelPayout", cancelPayoutImpl);
+export const bumpPayout = safeAction("bumpPayout", bumpPayoutImpl);

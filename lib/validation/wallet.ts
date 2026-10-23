@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+	PAYOUT_SPEEDS,
 	WALLET_ACCOUNT_PURPOSES,
 	type WalletAccountPurpose,
 } from "@/db/schema/wallet";
@@ -62,6 +63,21 @@ export const vetoDestinationSchema = z.object({
 	id: z.uuid(),
 	reason: z.string().trim().min(3, "Grund fehlt").max(300),
 });
+
+// Auszahlung anlegen: Betrag als Dezimaltext (Punkt oder Komma), Ziel nur
+// aus dem Adressbuch (aktiv), Gebühren-Tempo
+export const payoutSchema = z.object({
+	accountId: z.uuid(),
+	asset: z.enum(["BTC", "ETH", "USDC", "EURC"]),
+	amount: z
+		.string()
+		.trim()
+		.regex(/^\d{1,30}([.,]\d{1,36})?$/, "amount_format"),
+	addressBookId: z.uuid(),
+	speed: z.enum(PAYOUT_SPEEDS).default("normal"),
+});
+
+export const payoutIdSchema = z.object({ id: z.uuid() });
 
 export const walletAccountUpdateSchema = z.object({
 	id: z.uuid(),
