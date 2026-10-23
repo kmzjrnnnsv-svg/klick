@@ -8,11 +8,13 @@ import { safeAction } from "@/lib/actions/safe";
 import { gateApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { followUpForNonconformity } from "@/lib/compliance/audit-follow-up";
 import {
 	NC_DUE_DAYS,
 	NC_EFFECTIVENESS_DAYS,
 } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
+import { loadAuditRegimeContext } from "@/lib/compliance/queries-audit-regimes";
 import { topManagementOf } from "@/lib/compliance/top-management";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { NONCONFORMITY_STATUS } from "@/lib/entities/nonconformity";
@@ -68,7 +70,38 @@ async function upsertNonconformityImpl(
 					)
 					.limit(1);
 				if (!before) return { result: null, audit: [] };
+				// Klasse oder Rahmenwerke geändert → Fristen neu ab der Feststellung
+				const prevFws = (before.followUp ?? [])
+					.map((f) => f.framework)
+					.filter((f) => f !== "_default");
+				const fws = d.followUpFrameworks ?? prevFws;
+				const reclass =
+					d.followUpClass !== undefined &&
+					(d.followUpClass !== before.followUpClass ||
+						fws.join() !== prevFws.join());
+				const fu =
+					reclass && d.followUpClass
+						? followUpForNonconformity({
+								cls: d.followUpClass,
+								frameworks: fws,
+								...(await loadAuditRegimeContext(tx, c.orgId)),
+								now: before.createdAt,
+							})
+						: null;
+				const followUpSet = reclass
+					? {
+							followUpClass: fu?.followUp.cls ?? null,
+							planDueAt: fu?.followUp.planDue ?? null,
+							followUp: fu?.followUp.perFramework ?? null,
+						}
+					: {};
+				// eigenes Datum hat Vorrang; unverändertes folgt der neuen Frist
+				const dueAt =
+					fu?.dueAt && (!d.dueAt || d.dueAt === before.dueAt)
+						? fu.dueAt
+						: (d.dueAt ?? before.dueAt);
 				const set = {
+					...followUpSet,
 					title: d.title,
 					description: d.description ?? null,
 					rootCause: d.rootCause ?? null,
@@ -76,7 +109,7 @@ async function upsertNonconformityImpl(
 					correctiveAction: d.correctiveAction ?? null,
 					ownerUserId: d.ownerUserId ?? before.ownerUserId,
 					assigneeUserId: d.assigneeUserId ?? before.assigneeUserId,
-					dueAt: d.dueAt ?? before.dueAt,
+					dueAt,
 					effectivenessCheckAt:
 						d.effectivenessCheckAt ?? before.effectivenessCheckAt,
 				};
@@ -108,6 +141,12 @@ async function upsertNonconformityImpl(
 							correctiveAction: before.correctiveAction,
 							dueAt: before.dueAt,
 							ownerUserId: before.ownerUserId,
+							...(reclass
+								? {
+										followUpClass: before.followUpClass,
+										planDueAt: before.planDueAt,
+									}
+								: {}),
 						},
 						after: {
 							title: set.title,
@@ -115,6 +154,12 @@ async function upsertNonconformityImpl(
 							correctiveAction: set.correctiveAction,
 							dueAt: set.dueAt,
 							ownerUserId: set.ownerUserId,
+							...(reclass
+								? {
+										followUpClass: followUpSet.followUpClass,
+										planDueAt: followUpSet.planDueAt,
+									}
+								: {}),
 						},
 					},
 				};
@@ -125,6 +170,13 @@ async function upsertNonconformityImpl(
 				d.ownerUserId ??
 				(byAuditor ? await firstOwner(tx, c.orgId) : c.userId) ??
 				c.userId;
+			const fu = d.followUpClass
+				? followUpForNonconformity({
+						cls: d.followUpClass,
+						frameworks: d.followUpFrameworks ?? [],
+						...(await loadAuditRegimeContext(tx, c.orgId)),
+					})
+				: null;
 			const nc = await createNonconformity(
 				tx,
 				{ orgId: c.orgId, userId: c.userId },
@@ -136,9 +188,10 @@ async function upsertNonconformityImpl(
 					rootCause: d.rootCause ?? null,
 					ownerUserId: owner,
 					assigneeUserId: d.assigneeUserId ?? null,
-					dueAt: d.dueAt ?? plusDays(NC_DUE_DAYS),
+					dueAt: d.dueAt ?? fu?.dueAt ?? plusDays(NC_DUE_DAYS),
 					effectivenessCheckAt:
 						d.effectivenessCheckAt ?? plusDays(NC_EFFECTIVENESS_DAYS),
+					...(fu ? { followUp: fu.followUp } : {}),
 				},
 			);
 			if (d.correction || d.correctiveAction)

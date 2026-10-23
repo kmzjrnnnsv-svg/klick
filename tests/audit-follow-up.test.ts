@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+	cycleDates,
 	effectiveRegime,
+	findingFrameworks,
 	followUpDue,
+	nextAuditFor,
 	upcomingAudits,
 } from "@/lib/compliance/audit-follow-up";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
@@ -120,5 +123,94 @@ describe("Audittermine je Rahmenwerk", () => {
 			12,
 		);
 		expect(planned.map((p) => p.date)).toEqual(["2027-03-01", "2027-09-01"]);
+	});
+});
+
+describe("Turnus und nächstes Audit", () => {
+	const settings = {
+		iso27001: {
+			anchors: { certification: "2026-01-15", internal: "2026-06-01" },
+		},
+	};
+
+	it("Turnus-Termine ohne die, die im Register schon geplant sind", () => {
+		const { planned, missing } = cycleDates(
+			["iso27001", "dora"],
+			settings,
+			"2026-10-23",
+			[
+				{
+					frameworkIds: ["iso27001"],
+					date: "2027-01-20",
+					type: "certification",
+					status: "planned",
+				},
+			],
+			15,
+		);
+		expect(planned.map((p) => [p.framework, p.kind, p.date])).toEqual([
+			["iso27001", "internal", "2027-06-01"],
+			["iso27001", "surveillance", "2028-01-15"],
+		]);
+		expect(missing).toEqual([{ framework: "dora", kind: "internal" }]);
+	});
+
+	it("internes Audit im Register deckt keinen externen Termin", () => {
+		const { planned } = cycleDates(
+			["iso27001"],
+			settings,
+			"2026-10-23",
+			[
+				{
+					frameworkIds: ["iso27001"],
+					date: "2027-01-10",
+					type: "internal",
+					status: "planned",
+				},
+			],
+			4,
+		);
+		expect(planned.map((p) => p.kind)).toEqual(["surveillance"]);
+	});
+
+	it("nächstes Audit: extern vor intern, Register vor Turnus", () => {
+		expect(
+			nextAuditFor(["iso27001"], settings, "2026-10-23", [
+				{
+					frameworkIds: ["iso27001"],
+					date: "2026-12-01",
+					type: "external",
+					status: "planned",
+				},
+			]),
+		).toEqual({ iso27001: "2026-12-01" });
+		expect(nextAuditFor(["iso27001"], settings, "2026-10-23")).toEqual({
+			iso27001: "2027-01-15",
+		});
+		// nur intern geplant → das interne
+		expect(
+			nextAuditFor(
+				["dora"],
+				{ dora: { anchors: { internal: "2026-03-01" } } },
+				"2026-10-23",
+			),
+		).toEqual({ dora: "2027-03-01" });
+		expect(nextAuditFor(["nis2"], {}, "2026-10-23")).toEqual({
+			nis2: undefined,
+		});
+	});
+
+	it("Klasse direkt statt Schwere (manuelle Abweichung)", () => {
+		const d = followUpDue({ cls: "minor", frameworks: ["dora"], now });
+		expect(d.cls).toBe("minor");
+		expect(d.perFramework[0]?.planDue).toBe("2026-12-22");
+	});
+
+	it("Rahmenwerke eines Findings: Audit plus Anforderung, ohne Doppelte", () => {
+		expect(findingFrameworks(["iso27001", "dora"], "dora")).toEqual([
+			"iso27001",
+			"dora",
+		]);
+		expect(findingFrameworks([], "nis2")).toEqual(["nis2"]);
 	});
 });

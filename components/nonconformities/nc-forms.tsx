@@ -18,6 +18,7 @@ import {
 	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { NC_PRIORITIES, type NcPriority } from "@/db/schema/enums";
+import type { FollowUpClass } from "@/lib/compliance/catalog/audit-regimes";
 import { NC_SOURCES } from "@/lib/validation/governance";
 
 export type NcDraft = {
@@ -42,14 +44,25 @@ export type NcDraft = {
 	assigneeUserId?: string | null;
 	dueAt?: string | null;
 	effectivenessCheckAt?: string | null;
+	followUpClass?: FollowUpClass | null;
+	followUpFrameworks?: string[];
 };
+
+const FOLLOW_UP_CLASSES: readonly FollowUpClass[] = [
+	"major",
+	"minor",
+	"observation",
+];
 
 export function NonconformityForm({
 	initial,
 	members,
+	frameworks = [],
 }: {
 	initial?: NcDraft;
 	members: MemberOption[];
+	// aktive Rahmenwerke für die Nacharbeitsfristen
+	frameworks?: { slug: string; name: string }[];
 }) {
 	const t = useTranslations("Nonconformities");
 	const tc = useTranslations("Common");
@@ -79,6 +92,8 @@ export function NonconformityForm({
 						correctiveAction: d.correctiveAction ?? undefined,
 						dueAt: d.dueAt || null,
 						effectivenessCheckAt: d.effectivenessCheckAt || null,
+						followUpClass: d.followUpClass ?? null,
+						followUpFrameworks: d.followUpFrameworks ?? [],
 					});
 					if (!res.ok)
 						return void toast.error(
@@ -154,6 +169,65 @@ export function NonconformityForm({
 					onChange={(v) => setD({ ...d, effectivenessCheckAt: v })}
 				/>
 			</div>
+			<fieldset className="flex flex-col gap-2 rounded-md border p-3">
+				<legend className="px-1 text-sm">{t("followUpTitle")}</legend>
+				<div className="flex flex-col gap-1.5 sm:max-w-xs">
+					<Label htmlFor="nc-class">{t("followUpClass")}</Label>
+					<Select
+						value={d.followUpClass ?? "none"}
+						onValueChange={(v) =>
+							setD({
+								...d,
+								followUpClass: v === "none" ? null : (v as FollowUpClass),
+							})
+						}
+					>
+						<SelectTrigger id="nc-class" className="w-full">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="none">{t("followUpNone")}</SelectItem>
+							{FOLLOW_UP_CLASSES.map((k) => (
+								<SelectItem key={k} value={k}>
+									{t(`followUp_${k}`)}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+				{d.followUpClass && frameworks.length > 0 && (
+					<div className="flex flex-col gap-1.5">
+						<span className="text-sm">{t("followUpFrameworks")}</span>
+						<div className="flex flex-wrap gap-x-4 gap-y-1.5">
+							{frameworks.map((f) => {
+								const on = (d.followUpFrameworks ?? []).includes(f.slug);
+								return (
+									<label
+										key={f.slug}
+										className="flex items-center gap-2 text-sm"
+									>
+										<Checkbox
+											checked={on}
+											onCheckedChange={(v) =>
+												setD({
+													...d,
+													followUpFrameworks: v
+														? [...(d.followUpFrameworks ?? []), f.slug]
+														: (d.followUpFrameworks ?? []).filter(
+																(x) => x !== f.slug,
+															),
+												})
+											}
+										/>
+										{f.name}
+									</label>
+								);
+							})}
+						</div>
+					</div>
+				)}
+				<p className="text-muted-foreground text-xs">{t("followUpLead")}</p>
+			</fieldset>
 			<Field
 				id="nc-desc"
 				label={t("description")}

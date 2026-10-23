@@ -26,9 +26,11 @@ import { DOMAINS } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { cycleDates } from "@/lib/compliance/audit-follow-up";
 import { programmeCoverage } from "@/lib/compliance/audit-programme";
 import { fmtDate, shortFrameworkName } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
+import { loadAuditRegimeContext } from "@/lib/compliance/queries-audit-regimes";
 import { listProviders } from "@/lib/compliance/queries-p2";
 import {
 	listAllFindings,
@@ -37,6 +39,7 @@ import {
 	listProcesses,
 } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
+import { berlinToday } from "@/lib/evidence-studio/queries";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import { cn } from "@/lib/utils";
 
@@ -78,7 +81,22 @@ export default async function AuditsPage({
 		processes: tab === "programm" ? await listProcesses(tx, ctx.orgId) : [],
 		providers: tab === "programm" ? await listProviders(tx, ctx.orgId) : [],
 		findings: tab === "findings" ? await listAllFindings(tx, ctx.orgId) : [],
+		auditCtx:
+			tab === "programm" ? await loadAuditRegimeContext(tx, ctx.orgId) : null,
 	}));
+	// nächster Termin je Rahmenwerk aus dem Turnus (Einstellungen → Audits &
+	// Fristen); ohne Anker „Termin festlegen“
+	const cycles = data.auditCtx
+		? data.frameworks.map((f) => {
+				const r = cycleDates(
+					[f.slug],
+					data.auditCtx?.settings ?? {},
+					berlinToday(),
+					data.auditCtx?.registered ?? [],
+				);
+				return { slug: f.slug, next: r.planned[0], missing: r.missing.length };
+			})
+		: [];
 	const expected = {
 		domains: [...DOMAINS],
 		processes: data.processes
@@ -145,6 +163,50 @@ export default async function AuditsPage({
 			{tab === "programm" && (
 				<section className="flex flex-col gap-6">
 					<p className="text-muted-foreground text-sm">{t("programmeLead")}</p>
+					{cycles.length > 0 && (
+						<div className="flex flex-col gap-2">
+							<div className="flex flex-wrap items-baseline justify-between gap-2">
+								<h2 className="font-medium text-sm">{t("cyclesTitle")}</h2>
+								<Link
+									href="/einstellungen?tab=audits"
+									className="text-primary text-xs hover:underline"
+								>
+									{t("cyclesSettings")} →
+								</Link>
+							</div>
+							{cycles.some((c) => c.next) && (
+								<ul className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+									{cycles
+										.flatMap((c) => (c.next ? [{ ...c, next: c.next }] : []))
+										.sort((a, b) => a.next.date.localeCompare(b.next.date))
+										.map((c) => (
+											<li
+												key={c.slug}
+												className="flex flex-col gap-0.5 rounded-md border px-3 py-2"
+											>
+												<span className="font-medium">
+													{shortFrameworkName(c.slug)}
+												</span>
+												<span className="text-muted-foreground text-xs tabular-nums">
+													{c.next.label} ·{" "}
+													{fmtDate.format(new Date(`${c.next.date}T12:00:00Z`))}
+												</span>
+											</li>
+										))}
+								</ul>
+							)}
+							{cycles.some((c) => !c.next) && (
+								<p className="text-muted-foreground text-xs">
+									{t("cyclesNoDate", {
+										list: cycles
+											.filter((c) => !c.next)
+											.map((c) => shortFrameworkName(c.slug))
+											.join(", "),
+									})}
+								</p>
+							)}
+						</div>
+					)}
 					{data.programmes.length === 0 ? (
 						<EmptyState
 							title={t("programmeEmpty")}

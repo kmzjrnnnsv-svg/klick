@@ -5,6 +5,7 @@ import {
 	NC_PRIORITIES,
 	ROLE_FUNCTIONS,
 } from "@/db/schema/enums";
+import { FOLLOW_UP_CLASS_KEYS } from "@/lib/compliance/catalog/audit-regimes";
 import { NONCONFORMITY_STATUSES } from "@/lib/entities/nonconformity";
 import { PROCESS_STATUSES } from "@/lib/entities/process";
 import { frameworkSlugs, longText, shortText, uuid } from "./common";
@@ -418,6 +419,9 @@ export const nonconformitySchema = z.object({
 	assigneeUserId: uuid.nullable().optional(),
 	dueAt: optionalDate,
 	effectivenessCheckAt: optionalDate,
+	// Nacharbeit je Rahmenwerk (Einstellungen → Audits & Fristen)
+	followUpClass: z.enum(FOLLOW_UP_CLASS_KEYS).nullable().optional(),
+	followUpFrameworks: frameworkSlugs.optional(),
 });
 
 export const nonconformityPrioritySchema = z.object({

@@ -27,9 +27,12 @@ import {
 	wallets,
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
+import { cycleDates } from "./audit-follow-up";
 import { upcomingLegalChanges } from "./catalog/regulatory-calendar";
 import { REQUIRED_FUNCTIONS } from "./catalog/required-functions";
 import { type DateSource, noticeDate } from "./dates";
+import { shortFrameworkName } from "./page-data";
+import { loadAuditRegimeContext } from "./queries-audit-regimes";
 import { listObligationRuns } from "./queries-p3";
 import { siteExerciseDue } from "./test-programme";
 
@@ -280,6 +283,8 @@ export async function loadDateSources(
 				title: nonconformities.title,
 				dueAt: nonconformities.dueAt,
 				effectivenessCheckAt: nonconformities.effectivenessCheckAt,
+				planDueAt: nonconformities.planDueAt,
+				correctiveAction: nonconformities.correctiveAction,
 				status: nonconformities.status,
 				ownerUserId: nonconformities.ownerUserId,
 			})
@@ -540,6 +545,27 @@ export async function loadDateSources(
 			ownerUserId: a.ownerUserId,
 			done: a.status === "reported" || a.status === "closed",
 		});
+	// Audittermine je Rahmenwerk aus dem Turnus (Einstellungen → Audits &
+	// Fristen), soweit kein Audit im Register sie schon abdeckt
+	const auditCtx = await loadAuditRegimeContext(tx, orgId);
+	const months = Math.max(
+		1,
+		Math.ceil((toTs.getTime() - now.getTime()) / (30 * 86_400_000)) + 1,
+	);
+	for (const p of cycleDates(
+		frameworks,
+		auditCtx.settings,
+		iso(now) as string,
+		auditCtx.registered,
+		months,
+	).planned)
+		push({
+			date: p.date,
+			kind: "audit",
+			title: `${p.label} · ${shortFrameworkName(p.framework)}`,
+			href: "/einstellungen?tab=audits",
+			note: "Turnus",
+		});
 	for (const r of reviews)
 		push({
 			date: r.heldAt,
@@ -636,6 +662,15 @@ export async function loadDateSources(
 			href: "/schulungen",
 		});
 	for (const n of ncs) {
+		if (!n.correctiveAction && n.status === "open")
+			push({
+				date: n.planDueAt,
+				kind: "nonconformity",
+				title: `${n.code} ${n.title}`,
+				href: `/abweichungen/${n.id}`,
+				ownerUserId: n.ownerUserId,
+				note: "Maßnahmenplan",
+			});
 		push({
 			date: n.dueAt,
 			kind: "nonconformity",

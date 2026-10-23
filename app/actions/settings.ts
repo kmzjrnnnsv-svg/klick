@@ -11,6 +11,8 @@ import { requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { getOrgSummary, revokeSessionsOfOrgMembers } from "@/lib/auth/org";
 import { auth } from "@/lib/auth/server";
 import { AuthError } from "@/lib/auth/session-rules";
+import type { OrgAuditSettings } from "@/lib/compliance/audit-follow-up";
+import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import { appetiteFromMethod } from "@/lib/compliance/risk-method";
 import { mutateOrg } from "@/lib/db/with-org";
 import { DEFAULT_PREFIXES } from "@/lib/documents/numbering";
@@ -19,6 +21,7 @@ import { logger } from "@/lib/log";
 import { sendTransactionalMail } from "@/lib/mail/send";
 import { transactionalEmail } from "@/lib/mail/templates";
 import { writeTombstone } from "@/lib/storage/tombstones";
+import { auditRegimeSchema } from "@/lib/validation/audit-regimes";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { dlpPolicySchema, entityProfileSchema } from "@/lib/validation/org";
 import { updateRiskMethodSchema } from "@/lib/validation/risk-method";
@@ -134,6 +137,45 @@ const numberingSchema = z.object({
 		}),
 	),
 });
+
+// Audits und Nacharbeitsfristen je Rahmenwerk; null = Katalogwerte
+async function updateAuditRegimeImpl(input: unknown): Promise<ActionResult> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = auditRegimeSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const { framework, setting } = parsed.data;
+	if (!FRAMEWORK_BY_SLUG.has(framework)) return { ok: false, error: "invalid" };
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select({ auditRegimes: orgSettings.auditRegimes })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		const all = { ...((row?.auditRegimes ?? {}) as OrgAuditSettings) };
+		const before = all[framework] ?? null;
+		if (setting) all[framework] = setting;
+		else delete all[framework];
+		await tx
+			.update(orgSettings)
+			.set({ auditRegimes: all })
+			.where(eq(orgSettings.organizationId, c.orgId));
+		return {
+			result: null,
+			audit: {
+				action: "settings.audit_regime",
+				target: `organization:${c.orgId}`,
+				before: { framework, setting: before },
+				after: { framework, setting },
+			},
+		};
+	});
+	revalidatePath("/einstellungen");
+	revalidatePath("/kalender");
+	revalidatePath("/audits", "layout");
+	return { ok: true, data: undefined };
+}
 
 async function updateNumberingImpl(input: unknown): Promise<ActionResult> {
 	const g = await stepUp();
@@ -378,6 +420,10 @@ export const updateRiskMethod = safeAction(
 export const updateSupplierMethod = safeAction(
 	"updateSupplierMethod",
 	updateSupplierMethodImpl,
+);
+export const updateAuditRegime = safeAction(
+	"updateAuditRegime",
+	updateAuditRegimeImpl,
 );
 export const updateNumbering = safeAction(
 	"updateNumbering",

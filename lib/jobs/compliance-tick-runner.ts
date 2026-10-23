@@ -54,6 +54,7 @@ import {
 } from "@/lib/approvals/service";
 import { audit } from "@/lib/audit";
 import { normalizeRole } from "@/lib/auth/guards";
+import { cycleDates } from "@/lib/compliance/audit-follow-up";
 import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
 import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
 import {
@@ -61,7 +62,9 @@ import {
 	leadRegime,
 } from "@/lib/compliance/incident";
 import { planObligationRuns } from "@/lib/compliance/obligations-service";
+import { shortFrameworkName } from "@/lib/compliance/page-data";
 import { getOrgProfile } from "@/lib/compliance/queries";
+import { loadAuditRegimeContext } from "@/lib/compliance/queries-audit-regimes";
 import { lastReconciliationDay } from "@/lib/custody/queries";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
 import { logger } from "@/lib/log";
@@ -460,6 +463,8 @@ async function loadDueRows(
 			effectivenessCheckAt: nonconformities.effectivenessCheckAt,
 			effectivenessResult: nonconformities.effectivenessResult,
 			ownerUserId: nonconformities.ownerUserId,
+			planDueAt: nonconformities.planDueAt,
+			correctiveAction: nonconformities.correctiveAction,
 		})
 		.from(nonconformities)
 		.where(
@@ -468,6 +473,20 @@ async function loadDueRows(
 				ne(nonconformities.status, "closed"),
 			),
 		);
+	// Audittermine je Rahmenwerk aus dem Turnus (ohne die im Register)
+	const auditCtx = await loadAuditRegimeContext(tx, orgId);
+	const auditCycles = cycleDates(
+		profile?.frameworks ?? [],
+		auditCtx.settings,
+		now.toISOString().slice(0, 10),
+		auditCtx.registered,
+		4,
+	).planned.map((p) => ({
+		framework: shortFrameworkName(p.framework),
+		kind: p.kind,
+		label: p.label,
+		date: p.date,
+	}));
 	let tlpt: DueRows["tlpt"] = null;
 	if (profile?.profile.tlptDesignated) {
 		const tests = await tx
@@ -736,7 +755,11 @@ async function loadDueRows(
 		acknowledgements,
 		obligationRuns: runRows,
 		legalChanges,
-		nonconformities: ncRows,
+		auditCycles,
+		nonconformities: ncRows.map(({ correctiveAction, ...n }) => ({
+			...n,
+			hasPlan: Boolean(correctiveAction),
+		})),
 		tlpt,
 		regulatorDeadlines,
 		accessExpiring: accessRows.map((a) => ({

@@ -7,15 +7,18 @@
 // Fristen nach gängiger Praxis — je Zertifizierungsstelle bzw. Prüfer:in
 // abstimmen (prüfen).
 
-export type AuditCycleKind =
-	| "certification"
-	| "surveillance"
-	| "recertification"
-	| "internal"
-	| "regulator"
-	| "attestation";
+export const AUDIT_CYCLE_KINDS = [
+	"certification",
+	"surveillance",
+	"recertification",
+	"internal",
+	"regulator",
+	"attestation",
+] as const;
+export type AuditCycleKind = (typeof AUDIT_CYCLE_KINDS)[number];
 
-export type FollowUpClass = "major" | "minor" | "observation";
+export const FOLLOW_UP_CLASS_KEYS = ["major", "minor", "observation"] as const;
+export type FollowUpClass = (typeof FOLLOW_UP_CLASS_KEYS)[number];
 
 export type FollowUpRule = {
 	// Tage bis zum Maßnahmenplan (Ursache, Korrektur, Korrekturmaßnahme)
