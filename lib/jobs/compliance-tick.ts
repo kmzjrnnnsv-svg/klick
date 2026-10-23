@@ -104,12 +104,23 @@ export type DueRows = {
 	}[];
 	/** Kommende Rechtsänderungen (vom Runner nach Rahmenwerken gefiltert). */
 	legalChanges: readonly { date: string; title: string }[];
+	/** Audittermine aus dem Turnus je Rahmenwerk (ohne die im Register). */
+	auditCycles?: readonly {
+		framework: string;
+		kind: string;
+		label: string;
+		date: string;
+	}[];
 	nonconformities: readonly {
 		id: string;
 		code: string;
 		title: string;
 		status: string;
 		dueAt: Date | string | null;
+		// Frist für den Maßnahmenplan (Audits & Fristen); erfüllt, sobald die
+		// Korrekturmaßnahme steht
+		planDueAt?: Date | string | null;
+		hasPlan?: boolean;
 		effectivenessCheckAt: Date | string | null;
 		effectivenessResult: string | null;
 		ownerUserId: string | null;
@@ -264,6 +275,8 @@ export type PendingAction =
 	| { type: "reopen_finding"; id: string };
 
 export const LEGAL_CHANGE_MARKS = [180, 90, 30, 7] as const;
+// Vorlauf für Audittermine aus dem Turnus (Planung, Unterlagen, Einladung)
+export const AUDIT_CYCLE_MARKS = [90, 30, 7] as const;
 // CRA Art. 13 Abs. 19 / Anhang II: Nutzer rechtzeitig über das Supportende
 // informieren — Hinweise an den Verantwortlichen 1 Jahr, 6/3/1 Monat vorher.
 export const SUPPORT_END_MARKS = [365, 180, 90, 30] as const;
@@ -598,9 +611,37 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 		});
 	}
 
-	// Abweichungen: Frist und Wirksamkeitsprüfung
+	// Audittermine aus dem Turnus: Hinweis an Org-Owner bei 90/30/7 Tagen
+	for (const a of rows.auditCycles ?? []) {
+		const d = toDate(`${a.date}T00:00:00Z`);
+		if (!d) continue;
+		const days = daysUntil(now, d);
+		const mark = AUDIT_CYCLE_MARKS.find((m) => days === m);
+		if (mark === undefined) continue;
+		notifications.push({
+			kind: "review_due",
+			recipients: [...rows.orgOwnerIds],
+			title: `${a.label} in ${mark} Tagen (${a.framework})`,
+			body: `Termin laut Turnus: ${fmtDay(d)}. Audit im Register planen und offene Abweichungen prüfen.`,
+			link: "/audits",
+			dedupeKey: `audit_cycle:${a.framework}:${a.kind}:${a.date}:${mark}`,
+		});
+	}
+
+	// Abweichungen: Maßnahmenplan, Frist und Wirksamkeitsprüfung
 	for (const nc of rows.nonconformities) {
 		if (nc.status === "closed") continue;
+		const plan = toDate(nc.planDueAt ?? null);
+		if (plan && !nc.hasPlan && nc.status === "open" && plan <= horizon) {
+			notifications.push({
+				kind: "review_due",
+				recipients: recipientsOf(nc.ownerUserId, rows.orgOwnerIds),
+				title: `Maßnahmenplan ${nc.code}: ${nc.title}`,
+				body: `Ursache, Korrektur und Korrekturmaßnahme festlegen — ${dueWording(now, plan)}.`,
+				link: `/abweichungen/${nc.id}`,
+				dedupeKey: `nc_plan:${nc.id}:${isoDay(plan)}`,
+			});
+		}
 		const due = toDate(nc.dueAt);
 		if (due && due <= horizon) {
 			notifications.push({

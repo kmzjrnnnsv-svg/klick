@@ -2,6 +2,9 @@
 // (Lessons Learned), ZAG-MaRisk AT 4.4.3 (Follow-up). Reine Ableitungen —
 // Schreiben erledigen die Actions.
 
+import type { FollowUpDue } from "./audit-follow-up";
+import type { FollowUpClass } from "./catalog/audit-regimes";
+
 export const NC_DUE_DAYS = 30;
 export const NC_EFFECTIVENESS_DAYS = 90;
 
@@ -25,6 +28,13 @@ export type NonconformityDraft = {
 	assigneeUserId?: string | null;
 	dueAt: string; // ISO-Datum
 	effectivenessCheckAt: string;
+	// Nacharbeit je Rahmenwerk (audit-follow-up.ts): Klasse, Frist für den
+	// Maßnahmenplan, Fristen je Rahmenwerk
+	followUp?: {
+		cls: FollowUpClass;
+		planDue: string | null;
+		perFramework: FollowUpDue[];
+	};
 };
 
 function isoDay(d: Date): string {

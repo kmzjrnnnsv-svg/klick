@@ -315,8 +315,41 @@ export const EVIDENCE_SOURCES = [
 	"supplier_portal",
 	"engagement",
 	"decision_request",
+	// Nachweis-Werkstatt: von Klick aus Registern erzeugt
+	"klick",
 ] as const;
 export type EvidenceSource = (typeof EVIDENCE_SOURCES)[number];
+
+// Nachweisbogen je Control (lib/evidence-studio/sheet.ts): Antworten auf
+// Prüffragen und Belege je Position, an stabilen IDs; eigene Fristen je
+// Rahmenwerk. Einmal je Control — gilt für jedes Rahmenwerk.
+export type ControlSheetState = {
+	answers?: Record<
+		string,
+		{
+			answer: "yes" | "partial" | "no" | "na";
+			note?: string;
+			evidenceIds?: string[];
+			updatedAt?: string;
+			byUserId?: string;
+		}
+	>;
+	items?: Record<
+		string,
+		{
+			mode: "kind" | "document" | "evidence" | "text";
+			note?: string;
+			evidenceIds?: string[];
+			documentId?: string;
+			updatedAt?: string;
+			byUserId?: string;
+		}
+	>;
+	ownParams?: { framework: string; topic: string; value: number }[];
+};
+
+export const FOLLOW_UP_CLASSES = ["major", "minor", "observation"] as const;
+export type FollowUpClassDb = (typeof FOLLOW_UP_CLASSES)[number];
 
 // DLP-Ergebnis am Nachweis — nur Zähler, nie Inhalt.
 export type EvidenceDlp = {

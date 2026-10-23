@@ -851,3 +851,61 @@ describe("Verwahrung: Abstimmung, Backup-Test, Inhaberschaft", () => {
 		]);
 	});
 });
+
+describe("collectDueItems — Audits & Fristen je Rahmenwerk", () => {
+	const inDays = (n: number) =>
+		new Date(NOW.getTime() + n * DAY).toISOString().slice(0, 10);
+
+	it("Turnus-Audit genau 90/30/7 Tage vorher an die Inhaber:innen", () => {
+		const r = collectDueItems(NOW, {
+			...empty,
+			auditCycles: [
+				{
+					framework: "ISO 27001",
+					kind: "surveillance",
+					label: "Überwachungsaudit",
+					date: inDays(30),
+				},
+				{
+					framework: "DORA",
+					kind: "internal",
+					label: "Interne Revision",
+					date: inDays(45),
+				},
+			],
+		});
+		expect(r.notifications.map((n) => n.title)).toEqual([
+			"Überwachungsaudit in 30 Tagen (ISO 27001)",
+		]);
+		expect(r.notifications[0]?.dedupeKey).toBe(
+			`audit_cycle:ISO 27001:surveillance:${inDays(30)}:30`,
+		);
+		expect(r.notifications[0]?.recipients).toEqual(["owner-1"]);
+	});
+
+	it("Maßnahmenplan fällig, solange keine Korrekturmaßnahme steht", () => {
+		const nc = {
+			id: "nc9",
+			code: "NC-2026-009",
+			title: "Backups",
+			status: "open",
+			dueAt: new Date(NOW.getTime() + 60 * DAY),
+			effectivenessCheckAt: null,
+			effectivenessResult: null,
+			ownerUserId: "o",
+			planDueAt: inDays(3),
+		};
+		const open = collectDueItems(NOW, {
+			...empty,
+			nonconformities: [{ ...nc, hasPlan: false }],
+		});
+		expect(open.notifications.map((n) => n.dedupeKey)).toEqual([
+			`nc_plan:nc9:${inDays(3)}`,
+		]);
+		const planned = collectDueItems(NOW, {
+			...empty,
+			nonconformities: [{ ...nc, hasPlan: true }],
+		});
+		expect(planned.notifications).toHaveLength(0);
+	});
+});

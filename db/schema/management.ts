@@ -20,7 +20,12 @@ import {
 	userRef,
 } from "./_shared";
 import { controls, frameworks, requirements } from "./catalog";
-import { ENTITY_KINDS, NC_PRIORITIES, ROLE_FUNCTIONS } from "./enums";
+import {
+	ENTITY_KINDS,
+	FOLLOW_UP_CLASSES,
+	NC_PRIORITIES,
+	ROLE_FUNCTIONS,
+} from "./enums";
 import { documents, evidence, risks } from "./grc";
 
 // Managementsystem-Schicht (ISO 27001 Klauseln 4–10 und Pendants in DORA,
@@ -332,6 +337,19 @@ export const nonconformities = pgTable(
 		priorityNote: text(),
 		prioritizedByUserId: userRef(),
 		prioritizedAt: ts(),
+		// Nacharbeit je Rahmenwerk (lib/compliance/audit-follow-up.ts):
+		// Klasse, Frist für den Maßnahmenplan, Fristen je Rahmenwerk
+		followUpClass: text({ enum: FOLLOW_UP_CLASSES }),
+		planDueAt: date(),
+		followUp:
+			json<
+				{
+					framework: string;
+					classLabel: string;
+					planDue: string | null;
+					closeDue: string | null;
+				}[]
+			>(),
 		...timestamps(),
 	},
 	(t) => [unique().on(t.organizationId, t.code), orgPolicy("nonconformities")],

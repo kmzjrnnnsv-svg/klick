@@ -68,7 +68,9 @@ export type FollowUpDue = {
 // Frist, nach der die eine Abweichung geführt wird (die früheste, damit sie
 // alle Rahmenwerke erfüllt) — die Einzelwerte bleiben sichtbar.
 export function followUpDue(input: {
-	severity: string;
+	// Schwere eines Findings oder direkt die Klasse (manuelle Abweichung)
+	severity?: string;
+	cls?: FollowUpClass;
 	frameworks: readonly string[];
 	settings?: OrgAuditSettings;
 	// nächstes Audit je Rahmenwerk (für „bis zum nächsten Audit“)
@@ -80,7 +82,7 @@ export function followUpDue(input: {
 	earliest: { planDue: string | null; closeDue: string | null };
 } {
 	const now = input.now ?? new Date();
-	const cls = followUpClass(input.severity);
+	const cls = input.cls ?? followUpClass(input.severity ?? "");
 	const fws = input.frameworks.length > 0 ? input.frameworks : ["_default"];
 	const perFramework = fws.map((fw) => {
 		const regime = effectiveRegime(fw, input.settings);
@@ -161,4 +163,146 @@ export function upcomingAudits(
 	}
 	planned.sort((a, b) => a.date.localeCompare(b.date));
 	return { planned, missingAnchors };
+}
+
+// Geplantes oder durchgeführtes Audit aus dem Register (`audits`)
+export type RegisteredAudit = {
+	frameworkIds: readonly string[];
+	date: string | null;
+	type: string;
+	status: string;
+};
+
+const EXTERNAL_KINDS: ReadonlySet<AuditCycle["kind"]> = new Set([
+	"certification",
+	"surveillance",
+	"recertification",
+	"regulator",
+	"attestation",
+]);
+
+const daysBetween = (a: string, b: string) =>
+	Math.abs(
+		(new Date(`${a}T00:00:00Z`).getTime() -
+			new Date(`${b}T00:00:00Z`).getTime()) /
+			86_400_000,
+	);
+
+// Turnus-Termine aller Rahmenwerke, ohne die, für die schon ein Audit im
+// Register geplant ist (gleiches Rahmenwerk, höchstens 60 Tage daneben)
+export function cycleDates(
+	frameworks: readonly string[],
+	settings: OrgAuditSettings,
+	today: string,
+	registered: readonly RegisteredAudit[] = [],
+	horizonMonths = 36,
+): {
+	planned: PlannedAudit[];
+	missing: { framework: string; kind: AuditCycle["kind"] }[];
+} {
+	const planned: PlannedAudit[] = [];
+	const missing: { framework: string; kind: AuditCycle["kind"] }[] = [];
+	for (const fw of frameworks) {
+		const r = upcomingAudits(fw, settings, today, horizonMonths);
+		for (const kind of r.missingAnchors) missing.push({ framework: fw, kind });
+		for (const p of r.planned) {
+			const covered = registered.some(
+				(a) =>
+					a.date &&
+					a.frameworkIds.includes(fw) &&
+					(a.type === "internal") === (p.kind === "internal") &&
+					daysBetween(a.date, p.date) <= 60,
+			);
+			if (!covered) planned.push(p);
+		}
+	}
+	planned.sort((a, b) => a.date.localeCompare(b.date));
+	return { planned, missing };
+}
+
+// Nächstes externes Audit je Rahmenwerk („bis zum nächsten Audit“): aus dem
+// Register (extern, Zertifizierung, Aufsicht) oder dem Turnus; ohne externes
+// das nächste interne
+export function nextAuditFor(
+	frameworks: readonly string[],
+	settings: OrgAuditSettings,
+	today: string,
+	registered: readonly RegisteredAudit[] = [],
+): Record<string, string | undefined> {
+	const out: Record<string, string | undefined> = {};
+	for (const fw of frameworks) {
+		const open = registered.filter(
+			(a) =>
+				a.date &&
+				a.date >= today &&
+				a.frameworkIds.includes(fw) &&
+				(a.status === "planned" || a.status === "in_progress"),
+		);
+		const cycles = upcomingAudits(fw, settings, today).planned;
+		const pick = (external: boolean) =>
+			[
+				...open
+					.filter((a) => (a.type !== "internal") === external)
+					.map((a) => a.date as string),
+				...cycles
+					.filter((c) => EXTERNAL_KINDS.has(c.kind) === external)
+					.map((c) => c.date),
+			].sort()[0];
+		out[fw] = pick(true) ?? pick(false);
+	}
+	return out;
+}
+
+// Rahmenwerke einer Feststellung: die des Audits plus das der Anforderung
+export function findingFrameworks(
+	auditFrameworks: readonly string[],
+	requirementFramework: string | null,
+): string[] {
+	return [
+		...new Set([
+			...auditFrameworks,
+			...(requirementFramework ? [requirementFramework] : []),
+		]),
+	];
+}
+
+// Nacharbeit einer neuen Abweichung: Fristen je Rahmenwerk mit dem nächsten
+// Audit aus Register und Turnus; `dueAt` ist die früheste Umsetzungsfrist
+export function followUpForNonconformity(input: {
+	severity?: string;
+	cls?: FollowUpClass;
+	frameworks: readonly string[];
+	settings: OrgAuditSettings;
+	registered?: readonly RegisteredAudit[];
+	now?: Date;
+}): {
+	followUp: {
+		cls: FollowUpClass;
+		planDue: string | null;
+		perFramework: FollowUpDue[];
+	};
+	dueAt: string | null;
+} {
+	const now = input.now ?? new Date();
+	const d = followUpDue({
+		severity: input.severity,
+		cls: input.cls,
+		frameworks: input.frameworks,
+		settings: input.settings,
+		nextAudit: nextAuditFor(
+			input.frameworks,
+			input.settings,
+			isoDay(now),
+			input.registered,
+		),
+		now,
+	});
+	return {
+		followUp: {
+			cls: d.cls,
+			planDue: d.earliest.planDue,
+			perFramework: d.perFramework,
+		},
+		dueAt: d.earliest.closeDue,
+	};
 }

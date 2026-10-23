@@ -3,18 +3,22 @@ import {
 	auditFindings,
 	audits,
 	controls,
+	frameworks,
 	nonconformities,
+	requirements,
 	tasks,
 } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
 import type { OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
+import { findingFrameworks, followUpForNonconformity } from "./audit-follow-up";
 import {
 	findingNeedsNonconformity,
 	type NonconformityDraft,
 	nextNonconformityCode,
 	nonconformityFromFinding,
 } from "./nonconformity";
+import { loadAuditRegimeContext } from "./queries-audit-regimes";
 
 // Abweichung anlegen (aus Vorfall, Test, Finding oder manuell) inklusive
 // Bearbeitungsaufgabe und Benachrichtigung. Wird innerhalb einer
@@ -50,6 +54,9 @@ export async function createNonconformity(
 			assigneeUserId: assignee,
 			dueAt: draft.dueAt,
 			effectivenessCheckAt: draft.effectivenessCheckAt,
+			followUpClass: draft.followUp?.cls ?? null,
+			planDueAt: draft.followUp?.planDue ?? null,
+			followUp: draft.followUp?.perFramework ?? null,
 			status: "open",
 		})
 		.returning({ id: nonconformities.id });
@@ -59,8 +66,7 @@ export async function createNonconformity(
 		.values({
 			organizationId: ctx.orgId,
 			title: `${code}: Abweichung bearbeiten — ${draft.title}`,
-			description:
-				"Ursache analysieren, Korrektur und Korrekturmaßnahme festlegen, Wirksamkeitsprüfung terminieren.",
+			description: `Ursache analysieren, Korrektur und Korrekturmaßnahme festlegen${draft.followUp?.planDue ? ` (Maßnahmenplan bis ${draft.followUp.planDue})` : ""}, Wirksamkeitsprüfung terminieren.`,
 			assigneeUserId: assignee,
 			createdByUserId: ctx.userId,
 			dueAt: draft.dueAt,
@@ -93,6 +99,12 @@ export async function createNonconformity(
 				sourceRefId: draft.sourceRefId,
 				title: draft.title,
 				dueAt: draft.dueAt,
+				...(draft.followUp
+					? {
+							followUpClass: draft.followUp.cls,
+							planDueAt: draft.followUp.planDue,
+						}
+					: {}),
 			},
 		},
 	};
@@ -110,11 +122,15 @@ export async function nonconformityForFinding(
 		.select({
 			f: auditFindings,
 			auditOwner: audits.ownerUserId,
+			auditFrameworks: audits.frameworkIds,
 			controlCode: controls.code,
+			requirementFramework: frameworks.slug,
 		})
 		.from(auditFindings)
 		.innerJoin(audits, eq(audits.id, auditFindings.auditId))
 		.leftJoin(controls, eq(controls.id, auditFindings.controlId))
+		.leftJoin(requirements, eq(requirements.id, auditFindings.requirementId))
+		.leftJoin(frameworks, eq(frameworks.id, requirements.frameworkId))
 		.where(
 			and(
 				eq(auditFindings.id, findingId),
@@ -123,17 +139,30 @@ export async function nonconformityForFinding(
 		)
 		.limit(1);
 	if (!f || f.f.nonconformityId) return null;
-	const nc = await createNonconformity(
-		tx,
-		ctx,
-		nonconformityFromFinding({
-			id: f.f.id,
-			title: f.controlCode ? `${f.controlCode}: ${f.f.title}` : f.f.title,
-			description: f.f.description,
-			severity: f.f.severity,
-			ownerUserId: f.auditOwner,
-		}),
-	);
+	// Fristen je Rahmenwerk (Einstellungen → Audits & Fristen); die
+	// Abweichung führt die früheste Umsetzungsfrist
+	const { settings, registered } = await loadAuditRegimeContext(tx, ctx.orgId);
+	const fu = followUpForNonconformity({
+		severity: f.f.severity,
+		frameworks: findingFrameworks(
+			f.auditFrameworks ?? [],
+			f.requirementFramework,
+		),
+		settings,
+		registered,
+	});
+	const draft = nonconformityFromFinding({
+		id: f.f.id,
+		title: f.controlCode ? `${f.controlCode}: ${f.f.title}` : f.f.title,
+		description: f.f.description,
+		severity: f.f.severity,
+		ownerUserId: f.auditOwner,
+	});
+	const nc = await createNonconformity(tx, ctx, {
+		...draft,
+		dueAt: fu.dueAt ?? draft.dueAt,
+		followUp: fu.followUp,
+	});
 	await tx
 		.update(auditFindings)
 		.set({

@@ -28,7 +28,11 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { capaState } from "@/lib/compliance/nonconformity";
-import { fmtDate } from "@/lib/compliance/page-data";
+import {
+	fmtDate,
+	getOrgCoverageCached,
+	shortFrameworkName,
+} from "@/lib/compliance/page-data";
 import {
 	listComments,
 	listMembersForPicker,
@@ -71,6 +75,9 @@ export default async function NonconformityDetailPage({
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const canEdit = allows(ctx, { nonconformity: ["update"] });
+	const fwOptions = ((await getOrgCoverageCached(ctx))?.frameworks ?? []).map(
+		(slug) => ({ slug, name: shortFrameworkName(slug) }),
+	);
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const r = await getNonconformity(tx, ctx.orgId, id);
@@ -158,6 +165,7 @@ export default async function NonconformityDetailPage({
 					{canEdit && (
 						<NonconformityForm
 							members={members}
+							frameworks={fwOptions}
 							initial={{
 								id: nc.id,
 								source: nc.source,
@@ -170,6 +178,10 @@ export default async function NonconformityDetailPage({
 								assigneeUserId: nc.assigneeUserId,
 								dueAt: nc.dueAt,
 								effectivenessCheckAt: nc.effectivenessCheckAt,
+								followUpClass: nc.followUpClass,
+								followUpFrameworks: (nc.followUp ?? [])
+									.map((f) => f.framework)
+									.filter((f) => f !== "_default"),
 							}}
 						/>
 					)}
@@ -188,6 +200,20 @@ export default async function NonconformityDetailPage({
 							{nc.dueAt ? fmtDate.format(new Date(nc.dueAt)) : "—"}
 						</span>
 					</MetaItem>
+					{nc.planDueAt && (
+						<MetaItem label={t("planDueAt")}>
+							<span
+								className={
+									!nc.correctiveAction &&
+									nc.planDueAt < new Date().toISOString().slice(0, 10)
+										? "text-destructive"
+										: ""
+								}
+							>
+								{fmtDate.format(new Date(nc.planDueAt))}
+							</span>
+						</MetaItem>
+					)}
 					<MetaItem label={t("effectivenessCheckAt")}>
 						<span className={state.effectivenessDue ? "text-warning" : ""}>
 							{nc.effectivenessCheckAt
@@ -306,6 +332,64 @@ export default async function NonconformityDetailPage({
 					</p>
 				)}
 			</Section>
+			{nc.followUpClass && (
+				<Section title={t("followUpTitle")}>
+					<p className="text-sm">
+						{t(`followUp_${nc.followUpClass}`)}
+						{nc.planDueAt &&
+							` · ${t("planDueAt")} ${fmtDate.format(new Date(nc.planDueAt))}`}
+						{nc.dueAt &&
+							` · ${t("closeDueAt")} ${fmtDate.format(new Date(nc.dueAt))}`}
+					</p>
+					{(nc.followUp ?? []).length > 0 && (
+						<div className="mt-3 overflow-x-auto">
+							<table className="w-full min-w-[28rem] text-left text-sm">
+								<thead className="text-muted-foreground text-xs">
+									<tr>
+										<th className="py-1 pr-3 font-normal">
+											{t("followUpFramework")}
+										</th>
+										<th className="py-1 pr-3 font-normal">
+											{t("followUpClass")}
+										</th>
+										<th className="py-1 pr-3 font-normal">{t("planDueAt")}</th>
+										<th className="py-1 font-normal">{t("closeDueAt")}</th>
+									</tr>
+								</thead>
+								<tbody className="tabular-nums">
+									{(nc.followUp ?? []).map((f) => (
+										<tr key={f.framework} className="border-border/60 border-t">
+											<td className="py-1.5 pr-3">
+												{f.framework === "_default"
+													? t("followUpDefault")
+													: shortFrameworkName(f.framework)}
+											</td>
+											<td className="py-1.5 pr-3">{f.classLabel}</td>
+											<td className="py-1.5 pr-3">
+												{f.planDue ? fmtDate.format(new Date(f.planDue)) : "—"}
+											</td>
+											<td className="py-1.5">
+												{f.closeDue
+													? fmtDate.format(new Date(f.closeDue))
+													: "—"}
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					)}
+					<p className="mt-2 text-muted-foreground text-xs">
+						{t("followUpSettings")}{" "}
+						<Link
+							href="/einstellungen?tab=audits"
+							className="text-primary hover:underline"
+						>
+							{t("followUpSettingsLink")}
+						</Link>
+					</p>
+				</Section>
+			)}
 			<Section title={t("effectiveness")}>
 				<div className="flex flex-wrap items-center gap-3 text-sm">
 					{nc.effectivenessResult ? (

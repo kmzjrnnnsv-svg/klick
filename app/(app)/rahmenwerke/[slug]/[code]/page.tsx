@@ -8,10 +8,12 @@ import {
 	Section,
 } from "@/components/entity/entity-layout";
 import { StatusBadge } from "@/components/entity/status-badge";
+import { SheetView } from "@/components/evidence-studio/sheet-view";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
+import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import {
 	CONTROL_BY_CODE,
@@ -24,7 +26,9 @@ import {
 	getOrgCoverageCached,
 	shortFrameworkName,
 } from "@/lib/compliance/page-data";
+import { readOrg } from "@/lib/db/with-org";
 import { CONTROL_STATUS } from "@/lib/entities/control";
+import { loadSheetData, sheetFor } from "@/lib/evidence-studio/queries";
 
 export default async function RequirementPage({
 	params,
@@ -65,6 +69,28 @@ export default async function RequirementPage({
 			status: byRequirement.get(k),
 		}))
 		.filter((x) => x.req);
+	// Nachweisbögen der tragenden Controls, gefiltert auf diesen Normpunkt
+	const tes = await getTranslations("EvidenceStudio");
+	const sheetData =
+		active && cov
+			? await readOrg(toOrgCtx(ctx), (tx) => loadSheetData(tx, ctx.orgId, cov))
+			: null;
+	const sheets = sheetData
+		? edges.flatMap((e) => {
+				const s = sheetFor(sheetData, e.control);
+				return s
+					? [
+							{
+								sheet: s,
+								evidenceOptions: sheetData.evidence
+									.filter((x) => x.controls.includes(e.control))
+									.map((x) => ({ id: x.id, title: x.title })),
+							},
+						]
+					: [];
+			})
+		: [];
+	const canEditSheet = allows(ctx, { control: ["update"] });
 	const statusLabel = (s: ReqCoverage | "inactive") =>
 		t(
 			s === "covered"
@@ -283,6 +309,32 @@ export default async function RequirementPage({
 					</ul>
 				)}
 			</Section>
+
+			{sheets.length > 0 && applicable && (
+				<Section id="nachweise" title={tes("title")}>
+					<div className="flex flex-col gap-8">
+						{sheets.map(({ sheet, evidenceOptions }) => (
+							<div key={sheet.control.code} className="flex flex-col gap-3">
+								<h3 className="flex flex-wrap items-center gap-2 font-medium text-sm">
+									<Badge
+										variant="outline"
+										className="font-mono normal-case tracking-normal"
+									>
+										{sheet.control.code}
+									</Badge>
+									{sheet.control.title}
+								</h3>
+								<SheetView
+									sheet={sheet}
+									focus={key}
+									canEdit={canEditSheet}
+									evidenceOptions={evidenceOptions}
+								/>
+							</div>
+						))}
+					</div>
+				</Section>
+			)}
 
 			{related.length > 0 && (
 				<Section title={t("seeAlso")}>

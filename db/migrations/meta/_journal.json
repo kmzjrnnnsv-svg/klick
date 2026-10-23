@@ -183,6 +183,13 @@
       "when": 1792744541584,
       "tag": "0025_wallet_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792751764103,
+      "tag": "0026_evidence_studio",
+      "breakpoints": true
     }
   ]
 }

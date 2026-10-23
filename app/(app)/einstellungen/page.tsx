@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
+import { AuditRegimesPanel } from "@/components/settings/audit-regimes-panel";
 import { DangerZonePanel } from "@/components/settings/danger-zone-panel";
 import { DlpPanel } from "@/components/settings/dlp-panel";
 import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
@@ -48,6 +49,10 @@ import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
 import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import { userNames } from "@/lib/compliance/queries";
+import {
+	loadAuditRegimeContext,
+	regimeViews,
+} from "@/lib/compliance/queries-audit-regimes";
 import { listRisks } from "@/lib/compliance/queries-p2";
 import { listProductOptions } from "@/lib/compliance/queries-products";
 import { loadRecommendInput } from "@/lib/compliance/queries-recommend";
@@ -60,6 +65,7 @@ import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
 import { loadPriceTable } from "@/lib/db/pricing";
 import { readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
+import { berlinToday } from "@/lib/evidence-studio/queries";
 import { recommendServices } from "@/lib/marketing/recommend";
 import {
 	getOrgSettings,
@@ -139,9 +145,8 @@ export default async function SettingsPage({
 				productOptions: await listProductOptions(tx, ctx.orgId),
 			}))
 		: { tokens: [], productOptions: [] };
-	const { orgFws, retiredSlugs, openAudits, riskPoints } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => {
+	const { orgFws, retiredSlugs, openAudits, riskPoints, auditCtx } =
+		await readOrg(toOrgCtx(ctx), async (tx) => {
 			const rows = await listOrgFrameworks(tx, ctx.orgId);
 			const names = await userNames(
 				tx,
@@ -154,6 +159,7 @@ export default async function SettingsPage({
 				})),
 				retiredSlugs: new Set(await listRetiredFrameworkSlugs(tx, ctx.orgId)),
 				openAudits: await listOpenAuditScopes(tx, ctx.orgId),
+				auditCtx: await loadAuditRegimeContext(tx, ctx.orgId),
 				riskPoints: (await listRisks(tx, ctx.orgId)).map((r) => ({
 					likelihood: r.likelihood,
 					impact: r.impact,
@@ -161,8 +167,7 @@ export default async function SettingsPage({
 					residualImpact: r.residualImpact,
 				})),
 			};
-		},
-	);
+		});
 	const activeSlugs = new Set(orgFws.map((f) => f.slug));
 	const applicability = new Map(
 		[...(cov?.applicabilityDetail ?? [])].map(([k, d]) => [k, d.applicable]),
@@ -285,6 +290,7 @@ export default async function SettingsPage({
 					[
 						"frameworks",
 						"workflows",
+						"audits",
 						"risk",
 						"lieferanten",
 						"numbering",
@@ -305,6 +311,7 @@ export default async function SettingsPage({
 						<TabsTrigger value="rollen">{t("tabRoles")}</TabsTrigger>
 					)}
 					<TabsTrigger value="workflows">{t("tabWorkflows")}</TabsTrigger>
+					<TabsTrigger value="audits">{t("tabAudits")}</TabsTrigger>
 					<TabsTrigger value="risk">{t("tabRiskScales")}</TabsTrigger>
 					<TabsTrigger value="lieferanten">
 						{t("tabSupplierMethod")}
@@ -406,6 +413,17 @@ export default async function SettingsPage({
 							variant: Boolean(p.variant),
 							roles: p.roles.map((r) => r.name),
 						}))}
+						canEdit={canEditSettings}
+					/>
+				</TabsContent>
+				<TabsContent value="audits">
+					<AuditRegimesPanel
+						regimes={regimeViews(
+							cov?.frameworks ?? [],
+							auditCtx.settings,
+							auditCtx.registered,
+							berlinToday(),
+						)}
 						canEdit={canEditSettings}
 					/>
 				</TabsContent>

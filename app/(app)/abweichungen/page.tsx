@@ -21,7 +21,11 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { capaState } from "@/lib/compliance/nonconformity";
-import { fmtDate } from "@/lib/compliance/page-data";
+import {
+	fmtDate,
+	getOrgCoverageCached,
+	shortFrameworkName,
+} from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { listNonconformities } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
@@ -49,6 +53,9 @@ export default async function NonconformitiesPage({
 	searchParams: Promise<Search>;
 }) {
 	const ctx = await requireOrgPage({ nonconformity: ["read"] });
+	const fwOptions = ((await getOrgCoverageCached(ctx))?.frameworks ?? []).map(
+		(slug) => ({ slug, name: shortFrameworkName(slug) }),
+	);
 	const sp = await searchParams;
 	const t = await getTranslations("Nonconformities");
 	const te = await getTranslations("Entity");
@@ -102,7 +109,9 @@ export default async function NonconformitiesPage({
 				title={t("title")}
 				lead={t("lead")}
 				actions={
-					canCreate ? <NonconformityForm members={members} /> : undefined
+					canCreate ? (
+						<NonconformityForm members={members} frameworks={fwOptions} />
+					) : undefined
 				}
 			/>
 			<div className="mb-4 flex flex-wrap gap-4 text-sm">
@@ -164,7 +173,9 @@ export default async function NonconformitiesPage({
 					lead={t("emptyLead")}
 					requiredBy={t("requiredBy")}
 					actions={
-						canCreate ? <NonconformityForm members={members} /> : undefined
+						canCreate ? (
+							<NonconformityForm members={members} frameworks={fwOptions} />
+						) : undefined
 					}
 				/>
 			) : (

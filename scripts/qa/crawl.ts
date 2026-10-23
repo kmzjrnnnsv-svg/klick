@@ -282,7 +282,11 @@ async function login(ctx: BrowserContext): Promise<void> {
 			.catch(() => {});
 		await settle(page);
 	}
-	// Onboarding (D0) + geführte Einrichtung (D1–D5)
+	// Onboarding (D0) + geführte Einrichtung (D1–D5). Nach „Weiter zur App“
+	// leitet /heute erst serverseitig um — einmal frisch laden, sonst steht
+	// die URL noch auf /heute.
+	await page.goto(`${BASE}/heute`, { waitUntil: "load" });
+	await settle(page);
 	if (page.url().includes("/onboarding")) {
 		console.log("→ Onboarding + Einrichtung (CASP, Stufe 2, alle Rahmenwerke)");
 		await page.fill("#ob-name", `QA Org ${Date.now() % 100000}`);

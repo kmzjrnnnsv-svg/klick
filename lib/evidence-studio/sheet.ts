@@ -160,6 +160,8 @@ export type NachweisBogen = {
 	questions: SheetQuestion[];
 	items: SheetItem[];
 	params: ParamRow[];
+	// eigene Festlegungen je Rahmenwerk und Thema
+	ownParams: OwnSetting[];
 	findings: SheetFinding[];
 	recommendations: SheetRecommendation[];
 	progress: {
@@ -493,6 +495,7 @@ export function buildSheet(input: SheetInput): NachweisBogen | null {
 		questions,
 		items,
 		params,
+		ownParams: [...(input.ownParams ?? [])],
 		findings,
 		recommendations,
 		progress: {
