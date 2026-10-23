@@ -2,16 +2,18 @@
 // außen — Failures werden geloggt, der Aufrufer läuft weiter.
 //
 // Reihenfolge (scheitert ein Weg, kommt der nächste konfigurierte dran):
-//   1. RESEND_API_KEY → HTTPS-POST an api.resend.com
-//   2. BREVO_API_KEY  → HTTPS-POST an api.brevo.com (EU-Anbieter)
-//      Beide umgehen SMTP-Sperren und -Logins (nur ausgehend 443 nötig).
-//   3. SMTP_HOST       → klassischer Nodemailer-Pfad.
+//   1. BREVO_API_KEY  → HTTPS-POST an api.brevo.com (EU-Anbieter, Frankreich)
+//      Umgeht SMTP-Sperren und -Logins (nur ausgehend 443 nötig).
+//   2. SMTP_HOST       → klassischer Nodemailer-Pfad (z. B. Brevo-Relay).
+//   3. RESEND_API_KEY → api.resend.com (USA) — nur mit MAIL_ALLOW_RESEND=true,
+//      weil die Datenschutzerklärung sonst keinen US-Empfänger nennt.
 //   4. sonst           → Konsole-Log (Dev-Mock). In Produktion nur Metadaten:
 //      Body (Magic-Links, Einladungen) landet nie im Log, der Versand zählt
 //      als fehlgeschlagen (Digest versucht es erneut).
 
+import { legalEntityFrom, legalMailLines } from "@/lib/legal/entity";
 import { MAIL_FROM_DEFAULT, PLATFORM_MAIL } from "./address";
-import { textToHtml } from "./templates";
+import { escapeHtml, textToHtml } from "./templates";
 
 export type SendMailInput = {
 	to: string;
@@ -130,27 +132,51 @@ export type SendOutcome =
 	| { path: "console"; ok: true; reason: string }
 	| { path: MailPath | "console"; ok: false; error: string };
 
+const resendAllowed = (): boolean =>
+	process.env.MAIL_ALLOW_RESEND === "true" && !!process.env.RESEND_API_KEY;
+
 const PROVIDERS: {
 	path: MailPath;
 	enabled: () => boolean;
 	send: (input: SendMailInput) => Promise<void>;
 }[] = [
 	{
-		path: "resend",
-		enabled: () => !!process.env.RESEND_API_KEY,
-		send: sendViaResend,
-	},
-	{
 		path: "brevo",
 		enabled: () => !!process.env.BREVO_API_KEY,
 		send: sendViaBrevo,
 	},
 	{ path: "smtp", enabled: () => !!process.env.SMTP_HOST, send: sendViaSmtp },
+	{ path: "resend", enabled: resendAllowed, send: sendViaResend },
 ];
 
-export async function sendTransactionalMail(
+// Pflichtangaben der Gesellschaft (§ 35a GmbHG, § 37a HGB) und Link zum
+// Impressum unter jeder Mail — einmal hier statt in jeder Vorlage. Pure.
+export function withLegalFooter(
 	input: SendMailInput,
+	env: Record<string, string | undefined> = process.env,
+): SendMailInput {
+	const lines = legalMailLines(
+		legalEntityFrom({
+			...env,
+			LEGAL_CONTACT_MAIL: env.LEGAL_CONTACT_MAIL || PLATFORM_MAIL,
+		}),
+	);
+	const base = (env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
+	if (/^https?:\/\//.test(base)) lines.push(`Impressum: ${base}/impressum`);
+	if (lines.length === 0) return input;
+	const text = `${input.text}\n\n—\n${lines.join("\n")}`;
+	if (!input.html) return { ...input, text };
+	const block = `<p style="margin:32px auto 0;max-width:560px;padding:16px 8px 0;border-top:1px solid #d8cfbd;font-size:11px;line-height:1.6;color:#6b5e4a;text-align:center">${lines.map(escapeHtml).join("<br>")}</p>`;
+	const html = input.html.includes("</body>")
+		? input.html.replace("</body>", `${block}\n</body>`)
+		: `${input.html}\n${block}`;
+	return { ...input, text, html };
+}
+
+export async function sendTransactionalMail(
+	raw: SendMailInput,
 ): Promise<SendOutcome> {
+	const input = withLegalFooter(raw);
 	const from = fromAddress();
 	const active = PROVIDERS.filter((p) => p.enabled());
 	let last: { path: MailPath; error: string } | null = null;
@@ -180,7 +206,7 @@ export async function sendTransactionalMail(
 	}
 	logToConsole(
 		input,
-		"no provider configured (set RESEND_API_KEY, BREVO_API_KEY or SMTP_HOST)",
+		"no provider configured (set BREVO_API_KEY or SMTP_HOST)",
 	);
 	return consoleOutcome("no_provider");
 }
@@ -197,6 +223,7 @@ function consoleOutcome(reason: string): SendOutcome {
 export async function diagnoseMailConfig(): Promise<{
 	mailFrom: string;
 	hasResendKey: boolean;
+	resendAllowed: boolean;
 	hasBrevoKey: boolean;
 	hasSmtpHost: boolean;
 	smtpHost?: string;
@@ -207,6 +234,7 @@ export async function diagnoseMailConfig(): Promise<{
 	return {
 		mailFrom: from,
 		hasResendKey: !!process.env.RESEND_API_KEY,
+		resendAllowed: resendAllowed(),
 		hasBrevoKey: !!process.env.BREVO_API_KEY,
 		hasSmtpHost: !!process.env.SMTP_HOST,
 		smtpHost: process.env.SMTP_HOST,
@@ -253,7 +281,7 @@ export function mailErrorHint(
 		e.includes("econnrefused")
 	) {
 		return cfg.smtpPort === 25 || cfg.smtpPort === 465
-			? `Port ${cfg.smtpPort} ist bei Hetzner ausgehend gesperrt — SMTP_PORT=587 (STARTTLS) nutzen oder Resend (HTTPS).`
+			? `Port ${cfg.smtpPort} ist bei Hetzner ausgehend gesperrt — SMTP_PORT=587 (STARTTLS) nutzen oder Brevo über HTTPS (BREVO_API_KEY).`
 			: "Mailserver nicht erreichbar — Host/Port und ausgehende Verbindungen des Servers prüfen.";
 	}
 	if (e.includes("enotfound") || e.includes("eai_again"))

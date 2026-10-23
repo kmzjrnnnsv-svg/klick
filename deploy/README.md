@@ -46,7 +46,7 @@ sudo systemctl restart klick && curl -f https://raza.work/api/ready
 - Mozilla Observatory A+, SSL Labs A+
 
 ## Anmeldung: Mailversand prüfen, Notfall-Link
-Anmelde-Links (Notweg) und Einladungen gehen per Mail raus (Resend → Brevo → SMTP; scheitert ein
+Anmelde-Links (Notweg) und Einladungen gehen per Mail raus (Brevo → SMTP → Resend nur mit `MAIL_ALLOW_RESEND=true`; scheitert ein
 Weg, kommt der nächste konfigurierte dran). Seit „Passkey zuerst“ (ADR-019) hängt der normale
 Login nicht mehr an der Mail — Einladungen gibt es zusätzlich als Link zum Kopieren. In Produktion
 landet ein Anmelde-Link **nie** im Journal. Beim Start
@@ -59,9 +59,9 @@ bestätigen. Eine andere Adresse in `MAIL_FROM` gewinnt und wird vom Provider ab
 nicht gibt.
 
 Konfiguration: `MAIL_FROM` (optional, siehe oben) und
-`BREVO_API_KEY`, `RESEND_API_KEY` **oder** `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER` in
+`BREVO_API_KEY` **oder** `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER` in
 `/etc/klick/klick.env`, `SMTP_PASS` als Credential `smtp_pass`. Hetzner sperrt ausgehend Port 25
-und 465 — SMTP über 587. Brevo und Resend laufen über HTTPS (443) ohne SMTP-Login.
+und 465 — SMTP über 587. Brevo läuft über HTTPS (443) ohne SMTP-Login. Resend (USA) nur mit `MAIL_ALLOW_RESEND=true` und nach Ergänzung der Datenschutzerklärung.
 
 **Brevo (empfohlen, EU-Anbieter):**
 1. Konto bei brevo.com, unter *Absender, Domains & dedizierte IPs → Domains* die Domain
