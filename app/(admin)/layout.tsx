@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
+import { LegalLinks } from "@/components/shell/legal-links";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { buttonVariants } from "@/components/ui/button";
 import { gateAdmin } from "@/lib/auth/gates";
@@ -61,10 +62,14 @@ export default async function AdminLayout({
 					</div>
 				</div>
 			</header>
-			<main className="mx-auto w-full max-w-6xl grow px-4 py-8 sm:px-6">
+			<main
+				id="inhalt"
+				className="mx-auto w-full max-w-6xl grow px-4 py-8 sm:px-6"
+			>
 				<p className="mb-6 text-muted-foreground text-sm">{t("lead")}</p>
 				{children}
 			</main>
+			<LegalLinks />
 			<StepUpDialog
 				passkey={Boolean(sctx?.user.hasPasskey)}
 				totp={Boolean(sctx?.user.twoFactorEnabled)}

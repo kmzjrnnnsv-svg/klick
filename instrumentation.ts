@@ -29,6 +29,15 @@ export async function register() {
 				"Mailversand",
 			);
 		}
+		// Impressum (§ 5 DDG) und Mail-Pflichtangaben kommen aus LEGAL_*
+		// (docs/legal/impressum.md) — fehlt etwas, ist das abmahnbar.
+		const { legalEntityFrom } = await import("@/lib/legal/entity");
+		const legal = legalEntityFrom(env);
+		if (legal.missing.length > 0)
+			logger.warn(
+				{ missing: legal.missing },
+				"Impressum unvollständig — LEGAL_* setzen (docs/legal/impressum.md)",
+			);
 	}
 	if (process.env.KLICK_DISABLE_JOBS === "true") return;
 	const { startScheduler } = await import("@/lib/jobs/boss");

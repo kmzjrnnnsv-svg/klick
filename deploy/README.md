@@ -90,6 +90,20 @@ runuser -u klick -- pnpm auth:link <deine-adresse>    # Notfall: Einmal-Link (15
 Konten und offene Einladungen, und protokolliert `auth.login_link_cli` im Plattform-Audit. Danach
 gelten 2FA und alle Sitzungsregeln wie gewohnt. Link nicht weitergeben.
 
+## Rechtsangaben: Impressum, Datenschutz, Nutzungsbedingungen
+- **Pflichtangaben (§ 5 DDG)** als Env setzen (`LEGAL_NAME`, `LEGAL_FORM`, `LEGAL_ADDRESS` mit „;“
+  zwischen den Zeilen, `LEGAL_REPRESENTATIVES`, `LEGAL_REGISTER`, `LEGAL_VAT_ID`, optional
+  `LEGAL_PHONE`, `LEGAL_CONTACT_MAIL`). `/impressum` zeigt sie oben an, Mails tragen sie in der
+  Fußzeile. Fehlt etwas, steht beim Start „Impressum unvollständig“ im Journal.
+- **Kontaktadresse muss Mails annehmen:** `LEGAL_CONTACT_MAIL` (Standard `no-reply@raza.work`) muss
+  zustellbar sein und gelesen werden — sonst fehlt der Kontaktweg im Impressum.
+- **Texte:** Vorlagen in `docs/legal/` (Entwürfe, anwaltlich prüfen) unter Admin → CMS als
+  `impressum`, `datenschutz-erklaerung`, `nutzungsbedingungen` übernehmen. `pnpm db:seed` legt nur
+  fehlende Seiten als Platzhalter an und überschreibt nie.
+- **Server-Logs:** nginx-Zugriffslogs (volle IP für CrowdSec) 14 Tage, dann gelöscht
+  (`/etc/logrotate.d/nginx`: `daily`, `rotate 14`). CrowdSec-Community-Signale teilen nur, wenn das in
+  der Datenschutzerklärung steht (sonst `cscli capi unregister`).
+
 ## Passkeys: Einrichtung, Einladungslinks, Zugang zurücksetzen (ADR-019)
 Anmeldung läuft über Passkeys, der Mail-Link ist nur der Notweg (`/login/notweg`).
 `PASSKEY_RP_ID` muss die Domain sein, unter der Klick läuft (`raza.work`; ohne Angabe der Host

@@ -10,6 +10,7 @@ export async function Footer() {
 		{ href: "/vertrauen", label: t("trust") },
 		{ href: "/datenschutz-erklaerung", label: t("privacy") },
 		{ href: "/impressum", label: t("imprint") },
+		{ href: "/nutzungsbedingungen", label: t("terms") },
 	];
 	return (
 		<footer className="mt-auto bg-muted">

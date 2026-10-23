@@ -66,7 +66,7 @@ export default async function FeaturesPage() {
 	const fwBy = new Map(frameworks.map((f) => [f.slug, f]));
 
 	return (
-		<RevealRoot className={s.page}>
+		<RevealRoot as="main" id="inhalt" className={s.page}>
 			{/* Hero: Überschrift und der Rahmenwerk-Ausschnitt auf der Bühne */}
 			<section className={s.hero} aria-labelledby="fn-title">
 				<div className={s.heroText}>

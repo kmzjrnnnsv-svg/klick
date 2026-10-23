@@ -34,7 +34,7 @@ export default async function ServicesPage({
 		? `svc:${leistung}`
 		: undefined;
 	return (
-		<RevealRoot className={s.page}>
+		<RevealRoot as="main" id="inhalt" className={s.page}>
 			{/* Einstieg: Aussage links, ein lesbares Bild rechts */}
 			<section className={s.hero} aria-labelledby="leistungen-title">
 				<div className={s.heroText}>

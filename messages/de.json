@@ -31,7 +31,8 @@
 		"login": "Anmelden",
 		"logout": "Abmelden",
 		"you": "du",
-		"externalAccess": "Zugang als {role}"
+		"externalAccess": "Zugang als {role}",
+		"skipToContent": "Zum Inhalt springen"
 	},
 	"Nav": {
 		"today": "Heute",
@@ -98,7 +99,10 @@
 		"trust": "Vertrauen & Sicherheit",
 		"pricing": "Preise",
 		"services": "Leistungen",
-		"features": "Funktionen"
+		"features": "Funktionen",
+		"terms": "Nutzungsbedingungen",
+		"legalNav": "Rechtliches",
+		"menu": "Menü"
 	},
 	"Landing": {
 		"eyebrow": "Compliance für regulierte Unternehmen",
@@ -5556,5 +5560,15 @@
 		"showAddress": "Adresse für {name}",
 		"faucetsTitle": "Faucets",
 		"depositNoAccount": "Sobald es ein Konto gibt, findest du die Adresse unter „Empfangen“."
+	},
+	"Legal": {
+		"imprintFacts": "Angaben nach § 5 DDG",
+		"representedBy": "Vertreten durch",
+		"register": "Registereintrag",
+		"vatId": "Umsatzsteuer-Identifikationsnummer nach § 27a UStG",
+		"contact": "Kontakt",
+		"email": "E-Mail",
+		"phone": "Telefon",
+		"contactForm": "Oder schreib uns über das Anfrageformular."
 	}
 }

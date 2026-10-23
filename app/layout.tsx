@@ -57,6 +57,7 @@ export default async function RootLayout({
 }) {
 	const locale = await getLocale();
 	const messages = await getMessages();
+	const t = await getTranslations("Common");
 	// Nonce aus proxy.ts für das next-themes-Inline-Script (CSP ohne unsafe-inline).
 	const nonce = (await headers()).get("x-nonce") ?? undefined;
 	return (
@@ -66,6 +67,13 @@ export default async function RootLayout({
 			className={`${jost.variable} ${cormorant.variable} ${jetbrainsMono.variable} h-full antialiased`}
 		>
 			<body className="flex min-h-full flex-col bg-background text-foreground">
+				{/* Jedes Layout setzt id="inhalt" auf seinen Hauptbereich */}
+				<a
+					href="#inhalt"
+					className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
+				>
+					{t("skipToContent")}
+				</a>
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="system"

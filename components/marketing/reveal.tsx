@@ -1,19 +1,24 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef } from "react";
 
 // Auftritt beim Scrollen für Marketingseiten: Elemente mit data-r (Teile
 // eines Abschnitts) und data-block (ganze Kompositionen) bekommen data-in,
 // sobald sie ins Bild kommen. Ohne Skript bleibt alles sichtbar; was beim
 // Laden schon im Bild ist, erscheint ohne Verzögerung (kein Flackern).
 export function RevealRoot({
+	as: Tag = "div",
+	id,
 	className,
 	children,
 }: {
+	// Seiten ohne eigenes <main> setzen as="main" (Sprunglink „Zum Inhalt“)
+	as?: "div" | "main";
+	id?: string;
 	className?: string;
 	children: ReactNode;
 }) {
-	const ref = useRef<HTMLDivElement>(null);
+	const ref = useRef<HTMLElement>(null);
 	useEffect(() => {
 		const root = ref.current;
 		if (!root || !("IntersectionObserver" in window)) return;
@@ -53,8 +58,8 @@ export function RevealRoot({
 		};
 	}, []);
 	return (
-		<div ref={ref} className={className}>
+		<Tag ref={ref as RefObject<HTMLDivElement>} id={id} className={className}>
 			{children}
-		</div>
+		</Tag>
 	);
 }
