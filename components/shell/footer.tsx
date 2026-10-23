@@ -16,7 +16,7 @@ export async function Footer() {
 	return (
 		<footer className="mt-auto bg-muted">
 			<div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-4 py-8 sm:flex-row sm:px-6">
-				<p className="lv-eyebrow text-[0.62rem] text-muted-foreground">
+				<p className="lv-eyebrow text-xs text-muted-foreground">
 					{t("tagline")}
 				</p>
 				<nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
@@ -24,7 +24,7 @@ export async function Footer() {
 						<Link
 							key={l.href}
 							href={l.href}
-							className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
+							className="lv-eyebrow text-xs text-muted-foreground transition-colors hover:text-foreground"
 						>
 							{l.label}
 						</Link>

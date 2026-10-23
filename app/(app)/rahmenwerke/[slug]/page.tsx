@@ -215,7 +215,7 @@ export default async function FrameworkPage({
 					<CoverageBar bucket={bucket} labels={labels} />
 					<div className="flex gap-4 text-sm">
 						<div>
-							<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 								{t("coverage")}
 							</p>
 							<p className="font-serif-display text-2xl text-primary">
@@ -223,7 +223,7 @@ export default async function FrameworkPage({
 							</p>
 						</div>
 						<div>
-							<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 								{t("progress")}
 							</p>
 							<p className="font-serif-display text-2xl text-primary">
@@ -235,7 +235,7 @@ export default async function FrameworkPage({
 			)}
 			{fw.recommendedApproach && (
 				<p className="mb-6 rounded-md border border-dashed p-3 text-sm">
-					<span className="lv-eyebrow mr-2 text-[0.52rem] text-muted-foreground">
+					<span className="lv-eyebrow mr-2 text-[0.7rem] text-muted-foreground">
 						{t("approach")}
 					</span>
 					{fw.recommendedApproach}
@@ -364,7 +364,7 @@ export default async function FrameworkPage({
 								return (
 									<section key={section.code}>
 										<div className="mb-2 flex items-baseline justify-between gap-3">
-											<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+											<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 												{section.code} · {section.title}
 											</h2>
 											{sb && (

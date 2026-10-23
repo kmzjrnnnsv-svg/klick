@@ -37,7 +37,7 @@ export default async function AdminLayout({
 					<Link href="/heute" className="lv-wordmark text-[0.8rem]">
 						Klick
 					</Link>
-					<span className="lv-eyebrow text-[0.56rem] text-brown">
+					<span className="lv-eyebrow text-[0.7rem] text-brown">
 						{t("title")}
 					</span>
 					<nav className="ml-4 hidden gap-4 md:flex">
@@ -45,7 +45,7 @@ export default async function AdminLayout({
 							<Link
 								key={tab.href}
 								href={tab.href}
-								className="lv-nav text-[0.66rem] text-muted-foreground hover:text-foreground"
+								className="lv-nav text-[0.7rem] text-muted-foreground hover:text-foreground"
 							>
 								{tab.label}
 							</Link>

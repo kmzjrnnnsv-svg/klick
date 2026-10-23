@@ -561,7 +561,7 @@ function CheckList({
 	}, [options, q]);
 	return (
 		<fieldset className="flex min-w-0 flex-col gap-2">
-			<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+			<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 				{title} · {selected.size}
 			</legend>
 			<Input

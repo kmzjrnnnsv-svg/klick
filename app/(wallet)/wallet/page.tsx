@@ -141,7 +141,7 @@ export default async function WalletHomePage() {
 			>
 				<h2
 					id="wallet-total"
-					className="lv-eyebrow text-[0.6rem] text-muted-foreground"
+					className="lv-eyebrow text-[0.7rem] text-muted-foreground"
 				>
 					{t("homeValueLabel")}
 				</h2>

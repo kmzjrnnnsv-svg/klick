@@ -231,19 +231,19 @@ export function FrameworksPanel({
 				<CardContent className="flex flex-col gap-5 text-sm">
 					<dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">
 						<div>
-							<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 								{t("stage")}
 							</dt>
 							<dd>{profile.licenceStage}</dd>
 						</div>
 						<div>
-							<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 								{t("sector")}
 							</dt>
 							<dd>{profile.sector}</dd>
 						</div>
 						<div>
-							<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 								{t("caspServices")}
 							</dt>
 							<dd>

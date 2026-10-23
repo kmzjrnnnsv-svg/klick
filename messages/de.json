@@ -112,14 +112,12 @@
 		"licenses": "Lizenzen"
 	},
 	"Landing": {
-		"eyebrow": "Compliance für regulierte Unternehmen",
 		"title": "Einmal machen. Überall erfüllt.",
 		"lead": "ISO 27001, DORA, NIS2, MaRisk und MiCAR verlangen vieles doppelt. Klick findet die Überschneidungen – du setzt jede Maßnahme einmal um, und sie zählt für jedes Rahmenwerk.",
 		"ctaLogin": "Anmelden",
 		"ctaHow": "So geht’s",
 		"ctaPricing": "Preise",
 		"ctaTrust": "Was wir selbst umgesetzt haben",
-		"exampleEyebrow": "Ein Beispiel",
 		"exampleTitle": "Mitarbeitende schulen",
 		"exampleLead": "{count} Rahmenwerke verlangen eine Schulung. Ohne Klick planst und belegst du sie {count}-mal. Mit Klick einmal.",
 		"withoutTitle": "Ohne Klick",
@@ -155,7 +153,6 @@
 		"footnote": "Kein Rechtsrat. Die Kataloge sind Orientierung – die Verantwortung bleibt bei deiner Organisation."
 	},
 	"Trust": {
-		"eyebrow": "Vertrauen & Sicherheit",
 		"title": "Was wir selbst umgesetzt haben.",
 		"lead": "Die Plattform ist ihr eigener erster Mandant. Hier steht, welche Maßnahmen technisch stehen — und was Finanzkunden von uns als IKT-Dienstleister nach DORA Art. 28–30 bekommen.",
 		"asOf": "Stand {date} · {implemented} Controls umgesetzt · {inProgress} in Arbeit · {planned} geplant",
@@ -163,7 +160,6 @@
 		"baselineLink": "Baseline im Produkt ansehen",
 		"measuresTitle": "Technische und organisatorische Maßnahmen",
 		"measuresLead": "Auszug aus der Plattform-Baseline — dieselbe Quelle, die im Produkt unter /baseline den Status je Control zeigt.",
-		"supplierEyebrow": "Für Banken und Finanzkunden",
 		"supplierTitle": "Lieferantenpaket nach DORA Art. 28–30",
 		"supplierLead": "Wer uns als IKT-Drittdienstleister steuert, braucht Registerdaten, Vertragszusagen, Subunternehmer, Vorfallmeldung und Exit. Alles hier, als Markdown herunterladbar.",
 		"registerTitle": "Registerdatenblatt (ITS 2024/2956)",

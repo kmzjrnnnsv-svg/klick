@@ -77,13 +77,13 @@ export function RiskMatrix({
 											{cell.riskIds.slice(0, 6).map((id) => (
 												<span
 													key={id}
-													className="rounded-sm bg-background/80 px-1 font-mono text-[0.6rem]"
+													className="rounded-sm bg-background/80 px-1 font-mono text-[0.7rem]"
 												>
 													{codes.get(id) ?? "?"}
 												</span>
 											))}
 											{cell.riskIds.length > 6 && (
-												<span className="text-[0.6rem] text-muted-foreground">
+												<span className="text-[0.7rem] text-muted-foreground">
 													+{cell.riskIds.length - 6}
 												</span>
 											)}

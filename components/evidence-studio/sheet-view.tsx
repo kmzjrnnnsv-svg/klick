@@ -459,7 +459,7 @@ function SourceChips({
 				<Badge
 					key={s.key}
 					variant="outline"
-					className="font-normal text-[0.68rem] normal-case tracking-normal"
+					className="font-normal text-[0.7rem] normal-case tracking-normal"
 				>
 					{s.label}
 				</Badge>

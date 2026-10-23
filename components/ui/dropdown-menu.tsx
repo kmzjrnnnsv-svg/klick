@@ -127,7 +127,7 @@ function DropdownMenuLabel({
 		<DropdownMenuPrimitive.Label
 			data-slot="dropdown-menu-label"
 			data-inset={inset}
-			className={cn("lv-eyebrow px-2 py-1.5 text-[0.6rem] text-muted-foreground data-[inset]:pl-8", className)}
+			className={cn("lv-eyebrow px-2 py-1.5 text-[0.7rem] text-muted-foreground data-[inset]:pl-8", className)}
 			{...props}
 		/>
 	);

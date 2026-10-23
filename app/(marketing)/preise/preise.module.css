@@ -295,7 +295,7 @@
 	margin-top: 32px;
 }
 .note {
-	max-width: 70ch;
+	max-width: 58ch;
 	margin-top: 20px !important;
 	color: var(--soft);
 }
@@ -363,7 +363,7 @@
 	margin-top: 16px !important;
 }
 .footnote {
-	max-width: 80ch;
+	max-width: 60ch;
 	padding: 24px var(--edge) 64px;
 	color: var(--soft);
 	font-size: var(--s5);

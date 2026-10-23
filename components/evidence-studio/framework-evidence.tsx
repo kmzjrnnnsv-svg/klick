@@ -189,7 +189,7 @@ export async function FrameworkEvidence({
 				if (reqs.length === 0) return null;
 				return (
 					<section key={section.code} className="flex flex-col gap-2">
-						<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+						<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 							{section.code} · {section.title}
 						</h2>
 						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">

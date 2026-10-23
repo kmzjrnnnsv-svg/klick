@@ -426,7 +426,7 @@ export default async function WalletIntroPage({
 	return (
 		<div className="flex flex-col">
 			<nav aria-label={t("progressLabel")}>
-				<p className="lv-eyebrow text-[0.6rem] text-brown">
+				<p className="lv-eyebrow text-[0.7rem] text-brown">
 					{t("eyebrow")} ·{" "}
 					{t("stepOf", { n: idx + 1, total: INTRO_STEPS.length })}
 				</p>

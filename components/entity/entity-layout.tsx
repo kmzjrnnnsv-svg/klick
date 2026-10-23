@@ -28,7 +28,7 @@ export function EntityLayout({
 			<div className="mb-6 flex flex-col gap-4 border-border/60 border-b pb-6">
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0">
-						<p className="lv-eyebrow text-[0.6rem] text-brown">{eyebrow}</p>
+						<p className="lv-eyebrow text-[0.7rem] text-brown">{eyebrow}</p>
 						<h1 className="mt-2 hyphens-auto break-words font-serif-display text-2xl text-primary sm:text-3xl">
 							{title}
 						</h1>
@@ -66,7 +66,7 @@ export function MetaItem({
 }) {
 	return (
 		<div className="flex flex-col gap-0.5">
-			<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+			<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 				{label}
 			</dt>
 			<dd className="min-w-0 truncate">{children}</dd>
@@ -88,7 +88,7 @@ export function Section({
 	return (
 		<section id={id} className="flex flex-col gap-3">
 			<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-				<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+				<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 					{title}
 				</h2>
 				{actions}

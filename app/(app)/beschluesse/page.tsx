@@ -424,7 +424,7 @@ export default async function ResolutionsPage({
 										{r.reviewHeldAt && (
 											<Link
 												href="/managementbewertung"
-												className="mt-0.5 block text-primary text-[0.65rem] hover:underline"
+												className="mt-0.5 block text-primary text-[0.7rem] hover:underline"
 											>
 												{t("fromReview", {
 													date: fmtDate.format(new Date(r.reviewHeldAt)),
@@ -439,7 +439,7 @@ export default async function ResolutionsPage({
 															r.linkedEntityType,
 															r.linkedEntityId,
 														)}
-														className="text-primary text-[0.65rem] hover:underline"
+														className="text-primary text-[0.7rem] hover:underline"
 													>
 														{t("linked")}
 													</Link>
@@ -452,7 +452,7 @@ export default async function ResolutionsPage({
 											</div>
 										)}
 										{r.attendeeNames.length > 0 && (
-											<p className="mt-0.5 text-muted-foreground text-[0.65rem]">
+											<p className="mt-0.5 text-muted-foreground text-[0.7rem]">
 												{t("attendees")}: {r.attendeeNames.join(", ")}
 											</p>
 										)}
@@ -460,7 +460,7 @@ export default async function ResolutionsPage({
 									<TableCell className="text-xs">
 										{r.legalBasis ?? "—"}
 										{r.requiredCode && (
-											<p className="font-mono text-[0.65rem] text-muted-foreground">
+											<p className="font-mono text-[0.7rem] text-muted-foreground">
 												{r.requiredCode}
 											</p>
 										)}

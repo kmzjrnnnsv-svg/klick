@@ -22,8 +22,7 @@ export default async function OnboardingPage() {
 	return (
 		<div className="flex flex-col gap-8">
 			<div>
-				<p className="lv-eyebrow text-[0.6rem] text-brown">Klick</p>
-				<h1 className="mt-2 font-serif-display text-3xl text-primary">
+				<h1 className="font-serif-display text-3xl text-primary">
 					{t("title")}
 				</h1>
 				<p className="mt-2 text-muted-foreground text-sm">{t("lead")}</p>

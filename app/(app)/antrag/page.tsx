@@ -157,7 +157,7 @@ export default async function ApplicationPage({
 					<li key={r.item.code} className="rounded-md border p-4">
 						<div className="flex flex-wrap items-start justify-between gap-3">
 							<div className="min-w-0 flex-1">
-								<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+								<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 									#{idx + 1} · {r.item.code} · {r.item.legalBasis}
 								</p>
 								<h2 className="font-medium">{r.item.title}</h2>

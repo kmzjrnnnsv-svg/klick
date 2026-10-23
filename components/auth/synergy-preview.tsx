@@ -73,7 +73,7 @@ export function SynergyPreviewPanel({
 
 	return (
 		<div className="rounded-md border border-dashed p-4 text-sm">
-			<p className="lv-eyebrow text-[0.58rem] text-muted-foreground">
+			<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 				{t("synergyPreview")}
 			</p>
 			{frameworks.length === 0 ? (

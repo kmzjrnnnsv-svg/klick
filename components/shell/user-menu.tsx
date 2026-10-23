@@ -66,7 +66,7 @@ export function UserMenu({
 						{name || email}
 					</p>
 					<p className="truncate text-muted-foreground text-xs">{email}</p>
-					<p className="lv-eyebrow mt-1.5 text-[0.56rem] text-muted-foreground">
+					<p className="lv-eyebrow mt-1.5 text-[0.7rem] text-muted-foreground">
 						{roleLabel}
 					</p>
 				</DropdownMenuLabel>

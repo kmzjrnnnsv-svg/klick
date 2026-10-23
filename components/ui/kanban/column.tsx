@@ -31,7 +31,7 @@ export function KanbanColumn({
 			)}
 		>
 			<header className="flex items-baseline justify-between gap-2">
-				<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+				<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 					{title}
 				</h2>
 				<span className="text-muted-foreground text-xs">{count}</span>

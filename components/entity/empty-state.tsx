@@ -19,7 +19,7 @@ export function EmptyState({
 			{lead && <p className="max-w-xl text-muted-foreground text-sm">{lead}</p>}
 			{actions && <div className="flex flex-wrap gap-2">{actions}</div>}
 			{requiredBy && (
-				<p className="lv-eyebrow text-[0.58rem] text-muted-foreground">
+				<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 					{requiredBy}
 				</p>
 			)}

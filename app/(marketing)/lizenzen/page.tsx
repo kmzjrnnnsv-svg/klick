@@ -42,7 +42,7 @@ export default async function LicensesPage() {
 			<h1 className="font-serif-display text-3xl text-primary sm:text-4xl">
 				{t("title")}
 			</h1>
-			<p className="mt-6 leading-relaxed">{t("lead")}</p>
+			<p className="mt-6 max-w-[56ch] leading-relaxed">{t("lead")}</p>
 
 			<h2 className="mt-10 font-medium text-lg">{t("fontsTitle")}</h2>
 			<ul className="mt-3 space-y-1">
@@ -54,7 +54,7 @@ export default async function LicensesPage() {
 			</ul>
 
 			<h2 className="mt-10 font-medium text-lg">{t("imagesTitle")}</h2>
-			<p className="mt-3 leading-relaxed">{t("images")}</p>
+			<p className="mt-3 max-w-[56ch] leading-relaxed">{t("images")}</p>
 
 			<h2 className="mt-10 font-medium text-lg">{t("packagesTitle")}</h2>
 			<p className="mt-3 text-muted-foreground text-sm">

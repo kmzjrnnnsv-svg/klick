@@ -53,7 +53,7 @@ export function NotificationBell({
 				>
 					<Bell />
 					{unread > 0 && (
-						<span className="-top-0.5 -right-0.5 absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 font-medium text-[0.55rem] text-primary-foreground">
+						<span className="-top-0.5 -right-0.5 absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 font-medium text-[0.7rem] text-primary-foreground">
 							{unread > 9 ? "9+" : unread}
 						</span>
 					)}
@@ -94,7 +94,7 @@ export function NotificationBell({
 											{n.body}
 										</p>
 									)}
-									<p className="text-[0.62rem] text-muted-foreground">
+									<p className="text-[0.7rem] text-muted-foreground">
 										{fmt.format(n.createdAt)}
 									</p>
 								</div>

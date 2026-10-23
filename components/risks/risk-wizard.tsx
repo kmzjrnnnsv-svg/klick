@@ -482,7 +482,7 @@ export function RiskWizard({
 							if (list.length === 0) return null;
 							return (
 								<div key={g.key} className="flex flex-col gap-2">
-									<h3 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+									<h3 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 										{g.label}
 									</h3>
 									<div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">

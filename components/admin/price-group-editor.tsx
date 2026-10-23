@@ -275,7 +275,7 @@ export function PriceGroupEditor({
 							<TableRow key={item.key}>
 								<TableCell className="min-w-48">
 									<span className="font-medium">{item.label}</span>
-									<span className="block font-mono text-[0.68rem] text-muted-foreground">
+									<span className="block font-mono text-[0.7rem] text-muted-foreground">
 										{item.key}
 									</span>
 								</TableCell>

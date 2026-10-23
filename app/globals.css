@@ -171,7 +171,8 @@ body {
 	font-family: var(--font-sans);
 	font-weight: 500;
 	text-transform: uppercase;
-	letter-spacing: 0.22em;
+	/* ab 11 px (Impeccable-Untergrenze) reicht weniger Sperrung */
+	letter-spacing: 0.16em;
 }
 
 .lv-wordmark {

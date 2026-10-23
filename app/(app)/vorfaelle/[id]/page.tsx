@@ -412,7 +412,7 @@ export default async function IncidentDetailPage({
 			<Section title={t("updates")}>
 				{incident.rootCause && (
 					<p className="text-sm">
-						<span className="lv-eyebrow mr-2 text-[0.52rem] text-muted-foreground">
+						<span className="lv-eyebrow mr-2 text-[0.7rem] text-muted-foreground">
 							{t("rootCause")}
 						</span>
 						{incident.rootCause}

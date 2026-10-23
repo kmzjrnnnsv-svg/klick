@@ -262,7 +262,7 @@ export default async function CalendarPage({
 										key={name}
 										className={`rounded-md border p-3 text-sm ${isCurrent ? "border-primary/50" : ""}`}
 									>
-										<h2 className="lv-eyebrow mb-2 flex items-center justify-between text-[0.6rem] text-muted-foreground">
+										<h2 className="lv-eyebrow mb-2 flex items-center justify-between text-[0.7rem] text-muted-foreground">
 											{name}
 											<span>{items.length + others.length}</span>
 										</h2>
@@ -304,7 +304,7 @@ export default async function CalendarPage({
 																	/>
 																)}
 															{r.status === "done" && r.completedByName && (
-																<p className="text-muted-foreground text-[0.65rem]">
+																<p className="text-muted-foreground text-[0.7rem]">
 																	{t("doneBy", { name: r.completedByName })}
 																	{r.evidenceId
 																		? ` · ${t("withEvidence")}`
@@ -346,7 +346,7 @@ export default async function CalendarPage({
 						<div className="flex flex-col gap-4">
 							{datesByWeek(entries).map((w) => (
 								<section key={w.week} className="rounded-md border p-3">
-									<h2 className="lv-eyebrow mb-1 flex items-center justify-between text-[0.6rem] text-muted-foreground">
+									<h2 className="lv-eyebrow mb-1 flex items-center justify-between text-[0.7rem] text-muted-foreground">
 										{t("weekOf", { date: fmtDate.format(new Date(w.week)) })}
 										<span>{w.entries.length}</span>
 									</h2>
@@ -475,7 +475,7 @@ export default async function CalendarPage({
 									<p className="text-muted-foreground text-xs">
 										{c.description}
 									</p>
-									<p className="text-muted-foreground text-[0.65rem]">
+									<p className="text-muted-foreground text-[0.7rem]">
 										{c.legalBasis}
 									</p>
 								</li>

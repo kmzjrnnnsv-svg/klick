@@ -237,7 +237,7 @@ export default async function SynergiesPage({
 															</Link>
 														))}
 											</TableCell>
-											<TableCell className="font-mono text-[0.65rem] text-muted-foreground">
+											<TableCell className="font-mono text-[0.7rem] text-muted-foreground">
 												{row.sharedControls.join(", ") || "—"}
 											</TableCell>
 											<TableCell>
@@ -383,7 +383,7 @@ export default async function SynergiesPage({
 														</span>
 													)}
 													{fwEdges.length > 0 && (
-														<span className="ml-0.5 text-[0.65rem] text-muted-foreground">
+														<span className="ml-0.5 text-[0.7rem] text-muted-foreground">
 															{fwEdges.length}
 														</span>
 													)}
@@ -427,7 +427,7 @@ export default async function SynergiesPage({
 											<p className="text-muted-foreground">{f.description}</p>
 											<dl className="grid grid-cols-3 gap-2 text-center">
 												<div>
-													<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+													<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 														{t("newControls")}
 													</dt>
 													<dd className="font-serif-display text-2xl text-primary">
@@ -435,7 +435,7 @@ export default async function SynergiesPage({
 													</dd>
 												</div>
 												<div>
-													<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+													<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 														{t("alreadyNeeded")}
 													</dt>
 													<dd className="font-serif-display text-2xl text-primary">
@@ -443,7 +443,7 @@ export default async function SynergiesPage({
 													</dd>
 												</div>
 												<div>
-													<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+													<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 														{t("alreadyCovered")}
 													</dt>
 													<dd className="font-serif-display text-2xl text-primary">

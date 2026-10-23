@@ -140,7 +140,7 @@ export function StagePanel({
 				</div>
 
 				<div className="rounded-md border border-dashed p-4">
-					<p className="lv-eyebrow text-[0.58rem] text-muted-foreground">
+					<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("stageReport")}
 					</p>
 					{loading && !report ? (
@@ -256,7 +256,7 @@ export function StagePanel({
 function Stat({ label, value }: { label: string; value: string }) {
 	return (
 		<div>
-			<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+			<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 				{label}
 			</dt>
 			<dd className="font-serif-display text-xl text-primary">{value}</dd>

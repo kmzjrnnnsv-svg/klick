@@ -43,7 +43,7 @@ export function OrgSwitcher({
 				aria-label={`${t("switch")}: ${currentName}`}
 				disabled={pending}
 			>
-				<span className="lv-eyebrow min-w-0 flex-1 truncate text-[0.58rem] text-muted-foreground">
+				<span className="lv-eyebrow min-w-0 flex-1 truncate text-[0.7rem] text-muted-foreground">
 					{currentName}
 				</span>
 				<ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />

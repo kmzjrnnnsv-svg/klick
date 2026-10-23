@@ -274,7 +274,7 @@ export function RoleAssignmentForm({
 			)}
 			{showFitProper && (
 				<fieldset className="flex flex-col gap-2 rounded-md border p-3">
-					<legend className="lv-eyebrow px-1 text-[0.52rem] text-muted-foreground">
+					<legend className="lv-eyebrow px-1 text-[0.7rem] text-muted-foreground">
 						{t("fitProperChecklist")}
 					</legend>
 					<p className="text-muted-foreground text-xs">{t("fitProperLead")}</p>
@@ -825,7 +825,7 @@ export function ObjectiveForm({
 				/>
 			</div>
 			<fieldset className="flex flex-wrap gap-3 text-sm">
-				<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+				<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 					{t("frameworks")}
 				</legend>
 				{frameworks.map((f) => (

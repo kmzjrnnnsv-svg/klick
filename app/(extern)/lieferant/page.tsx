@@ -82,7 +82,7 @@ export default async function SupplierPortalPage() {
 			<PortalSession state="session" />
 			<header className="flex flex-col gap-2">
 				<div className="flex items-start justify-between gap-2">
-					<p className="lv-eyebrow text-[0.62rem] text-muted-foreground">
+					<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("eyebrow", { organization })}
 					</p>
 					<PortalLogout />

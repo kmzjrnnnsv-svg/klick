@@ -293,7 +293,7 @@ export default async function AuditsPage({
 									<div className="grid grid-cols-1 gap-3 md:grid-cols-3">
 										{years.map((y) => (
 											<div key={y} className="rounded-md border p-3">
-												<p className="lv-eyebrow mb-2 text-[0.52rem] text-muted-foreground">
+												<p className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground">
 													{y}
 												</p>
 												<ul className="flex flex-col gap-1">

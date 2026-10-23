@@ -680,7 +680,7 @@ export default async function AmlPage({
 							] as const
 						).map(([key, value, warn]) => (
 							<div key={key} className="rounded-md border p-3">
-								<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+								<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 									{t(key)}
 								</p>
 								<p

@@ -142,7 +142,7 @@ export function SupplierMethodPanel({
 				<p className="text-muted-foreground text-xs">{t("criteriaLead")}</p>
 				{(["general", "security"] as const).map((area) => (
 					<div key={area} className="flex flex-col gap-2">
-						<h4 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+						<h4 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 							{t(`area_${area}`)} ·{" "}
 							{t("baseSum", { sum: sumOf(area).toFixed(2) })}
 						</h4>

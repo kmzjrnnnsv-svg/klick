@@ -244,7 +244,7 @@ export function ResolutionForm({
 						/>
 					</div>
 					<fieldset className="flex flex-wrap gap-3 text-sm">
-						<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+						<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 							{t("attendees")}
 						</legend>
 						{members.map((m) => (

@@ -122,7 +122,7 @@ export default async function ProvidersPage({
 											<Link
 												key={c}
 												href={`/controls/${c}`}
-												className="font-mono text-[0.65rem] text-primary hover:underline"
+												className="font-mono text-[0.7rem] text-primary hover:underline"
 												title={CONTROL_BY_CODE.get(c)?.title}
 											>
 												{c}

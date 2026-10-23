@@ -44,7 +44,7 @@ export default async function BaselinePage() {
 						</CardHeader>
 						<CardContent className="flex flex-col gap-3 text-sm">
 							<div>
-								<p className="lv-eyebrow mb-1 text-[0.52rem] text-success">
+								<p className="lv-eyebrow mb-1 text-[0.7rem] text-success">
 									{t("present")}
 								</p>
 								<ul className="list-disc pl-5">
@@ -54,7 +54,7 @@ export default async function BaselinePage() {
 								</ul>
 							</div>
 							<div>
-								<p className="lv-eyebrow mb-1 text-[0.52rem] text-destructive">
+								<p className="lv-eyebrow mb-1 text-[0.7rem] text-destructive">
 									{t("gaps")}
 								</p>
 								<ul className="list-disc pl-5 text-muted-foreground">
@@ -64,7 +64,7 @@ export default async function BaselinePage() {
 								</ul>
 							</div>
 							<div>
-								<p className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+								<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 									{t("next")}
 								</p>
 								<ul className="list-disc pl-5 text-muted-foreground">
@@ -78,7 +78,7 @@ export default async function BaselinePage() {
 				))}
 			</div>
 
-			<h2 className="lv-eyebrow mt-10 mb-3 text-[0.6rem] text-muted-foreground">
+			<h2 className="lv-eyebrow mt-10 mb-3 text-[0.7rem] text-muted-foreground">
 				{t("controlsTitle")}
 			</h2>
 			<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">

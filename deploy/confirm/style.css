@@ -1,11 +1,11 @@
 /* Klick · Bestätigungsseite — ohne Schriften von außen, ohne Skript-Stile */
 
 :root {
-	--bg: #f6f4ef;
+	--bg: #eef1f4;
 	--card: #ffffff;
 	--ink: #1d1c1a;
 	--muted: #5c5a55;
-	--line: #dcd8cf;
+	--line: #d5dbe2;
 	--primary: #1f3a5f;
 	--primary-ink: #ffffff;
 	--warn-bg: #fff4d6;

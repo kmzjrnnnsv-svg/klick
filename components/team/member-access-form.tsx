@@ -88,7 +88,7 @@ export function MemberAccessForm({
 						/>
 					</div>
 					<fieldset className="flex flex-col gap-2 text-sm">
-						<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+						<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 							{t("grants")}
 						</legend>
 						{ACCESS_GRANTS.map((g) => (

@@ -123,7 +123,7 @@ export default async function CryptoAssetsPage() {
 										{t(`status_${r.micarStatus}`)}
 									</Badge>
 									{r.whitepaperRef && (
-										<p className="text-[0.65rem] text-muted-foreground">
+										<p className="text-[0.7rem] text-muted-foreground">
 											{r.whitepaperRef}
 										</p>
 									)}

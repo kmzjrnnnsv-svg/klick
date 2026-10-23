@@ -74,7 +74,7 @@ export default async function TeamPage() {
 				actions={canManage ? <InviteForm roles={customRoles} /> : undefined}
 			/>
 			<section className="flex flex-col gap-3">
-				<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+				<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 					{t("members")}
 				</h2>
 				<Table>
@@ -201,7 +201,7 @@ export default async function TeamPage() {
 				</Table>
 			</section>
 			<section className="mt-10 flex flex-col gap-3">
-				<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+				<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 					{t("pending")}
 				</h2>
 				{invitations.length === 0 ? (

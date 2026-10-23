@@ -199,7 +199,7 @@ export default async function PrivacyPage({
 												</p>
 											)}
 											{a.thirdCountryTransfer && (
-												<p className="text-[0.65rem] text-muted-foreground">
+												<p className="text-[0.7rem] text-muted-foreground">
 													{t("thirdCountry")}: {a.thirdCountryTransfer}
 												</p>
 											)}
@@ -333,7 +333,7 @@ export default async function PrivacyPage({
 							] as const
 						).map(([k, v, warn]) => (
 							<div key={k} className="rounded-md border p-3">
-								<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+								<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 									{t(k)}
 								</p>
 								<p
@@ -393,7 +393,7 @@ export default async function PrivacyPage({
 												<Badge variant={CLOCK_TONE[clock]}>
 													{t(`clock_${clock}`)}
 												</Badge>
-												<p className="text-[0.65rem] text-muted-foreground">
+												<p className="text-[0.7rem] text-muted-foreground">
 													{fmtDate.format(due)}
 													{r.extendedUntil ? ` · ${t("extendedShort")}` : ""}
 												</p>
