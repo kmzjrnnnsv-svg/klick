@@ -144,7 +144,6 @@ export function PortalQuestion({
 	question,
 	initial,
 	readOnly,
-	storageAvailable,
 }: {
 	question: AssessmentQuestion;
 	initial: {
@@ -155,7 +154,6 @@ export function PortalQuestion({
 		clarify: boolean;
 	};
 	readOnly: boolean;
-	storageAvailable: boolean;
 }) {
 	const t = useTranslations("Portal");
 	const ta = useTranslations("Assessment");
@@ -378,7 +376,7 @@ export function PortalQuestion({
 						))}
 					</ul>
 				)}
-				{!readOnly && storageAvailable && (
+				{!readOnly && (
 					<div className="flex flex-col items-start gap-2">
 						<Button
 							type="button"

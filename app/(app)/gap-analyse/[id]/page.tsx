@@ -48,7 +48,6 @@ import { listMembersForPicker } from "@/lib/compliance/queries";
 import { getAssessmentDetail } from "@/lib/compliance/queries-assessments";
 import { prioritizePlan } from "@/lib/compliance/synergy";
 import { readOrg } from "@/lib/db/with-org";
-import { s3Configured } from "@/lib/evidence/store";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["fragen", "bewertung", "massnahmen", "ergebnis"] as const;
@@ -327,7 +326,6 @@ export default async function AssessmentPage({
 											canImportDocument={allows(ctx, {
 												document: ["create"],
 											})}
-											storageAvailable={s3Configured()}
 										/>
 									);
 								})}
@@ -363,7 +361,7 @@ export default async function AssessmentPage({
 					<p className="text-muted-foreground text-sm">{t("reviewLead")}</p>
 					<div className="grid grid-cols-1 gap-4 md:grid-cols-[auto_1fr]">
 						<div className="flex flex-col gap-1 rounded-md border p-4">
-							<span className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 								{t("score")}
 							</span>
 							<span className="font-serif-display text-4xl text-primary tabular-nums">
@@ -567,7 +565,7 @@ export default async function AssessmentPage({
 					<p className="text-muted-foreground text-sm">{t("resultLead")}</p>
 					<div className="flex flex-wrap items-end gap-6">
 						<div>
-							<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 								{t("score")}
 							</p>
 							<p className="font-serif-display text-5xl text-primary tabular-nums">

@@ -68,12 +68,12 @@ export async function AppShell({
 								/>
 							</div>
 						) : (
-							<p className="lv-eyebrow truncate text-[0.58rem] text-muted-foreground">
+							<p className="lv-eyebrow truncate text-[0.7rem] text-muted-foreground">
 								{orgName}
 							</p>
 						)}
 						{isExternal(ctx.orgRole) && (
-							<p className="mt-1 text-[0.68rem] text-muted-foreground">
+							<p className="mt-1 text-[0.7rem] text-muted-foreground">
 								{t("externalAccess", { role: ROLE_LABEL[ctx.orgRole] })}
 							</p>
 						)}

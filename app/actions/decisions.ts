@@ -8,11 +8,7 @@ import { withdraw } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { openDecisionRequest } from "@/lib/compliance/decision-service";
 import { mutateOrg } from "@/lib/db/with-org";
-import {
-	s3Configured,
-	screenUpload,
-	storeEncryptedEvidence,
-} from "@/lib/evidence/store";
+import { screenUpload, storeEncryptedEvidence } from "@/lib/evidence/store";
 import { getOrgLimiter } from "@/lib/rate-limit";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { decisionRequestSchema } from "@/lib/validation/governance";
@@ -101,7 +97,6 @@ async function uploadDecisionAttachmentImpl(
 	formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ decision: ["create"] });
-	if (!s3Configured()) return { ok: false, error: "storageNotConfigured" };
 	const id = String(formData.get("decisionRequestId") ?? "");
 	const file = formData.get("file");
 	if (!(file instanceof File)) return { ok: false, error: "fileMissing" };

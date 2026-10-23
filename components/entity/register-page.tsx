@@ -123,7 +123,7 @@ export function RegisterPage<T extends { id: string }>({
 												key={c.key}
 												className="flex items-baseline justify-between gap-3"
 											>
-												<span className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+												<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 													{c.header}
 												</span>
 												<span className="text-right">{c.cell(row)}</span>

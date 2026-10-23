@@ -71,7 +71,7 @@ async function latestOf(
 	return { latest: latest ?? null, versions: n?.n ?? 0 };
 }
 
-async function signerSlots(
+export async function signerSlots(
 	tx: OrgTx,
 	orgId: string,
 	signers: readonly { function: RoleFunction; mode: "all" | "any" }[],

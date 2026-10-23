@@ -210,6 +210,33 @@ describe("Bitcoin: listsinceblock → Bewegungen", () => {
 		expect(observations).toHaveLength(0);
 		expect([...goneTxids].sort()).toEqual(["conflict", "reorged"]);
 	});
+
+	it("Gebührenerhöhung (RBF): ersetzte Auszahlung zählt nicht doppelt", () => {
+		const send = {
+			...base,
+			category: "send" as const,
+			address: "tb1qziel",
+			amount: "-0.001",
+			fee: "-0.00001",
+			confirmations: 0,
+		};
+		const { observations, goneTxids } = btcObservations(
+			{
+				lastblock: "bh0",
+				transactions: [
+					{ ...send, txid: "old", replaced_by_txid: "new" },
+					{ ...send, txid: "older", mempoolconflicts: ["new"] },
+					{ ...send, txid: "new", fee: "-0.00002" },
+				],
+			},
+			{ ours: new Set([OURS_BTC]), finality: 1 },
+		);
+		expect([...goneTxids].sort()).toEqual(["old", "older"]);
+		expect(observations.map((o) => [o.txid, o.amount])).toEqual([
+			["new", 100_000n],
+			["new", 2_000n],
+		]);
+	});
 });
 
 describe("Abgleich mit gespeicherten Bewegungen", () => {

@@ -409,7 +409,7 @@ export function AuditForm({
 			/>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<fieldset className="flex flex-col gap-1.5 text-sm">
-					<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+					<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 						{t("frameworks")}
 					</legend>
 					{frameworks.map((f) => (
@@ -428,7 +428,7 @@ export function AuditForm({
 					))}
 				</fieldset>
 				<fieldset className="flex flex-col gap-1.5 text-sm">
-					<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+					<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 						{t("auditors")}
 					</legend>
 					{members.map((m) => (
@@ -804,7 +804,7 @@ export function RespondRequestForm({
 				/>
 			</div>
 			<fieldset className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-md border p-2 text-sm">
-				<legend className="lv-eyebrow px-1 text-[0.52rem] text-muted-foreground">
+				<legend className="lv-eyebrow px-1 text-[0.7rem] text-muted-foreground">
 					{t("attachEvidence")}
 				</legend>
 				{evidence.length === 0 ? (

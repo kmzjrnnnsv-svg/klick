@@ -85,7 +85,7 @@ export default async function SearchPage({
 					</p>
 					{[...groups.entries()].map(([kind, list]) => (
 						<section key={kind}>
-							<h2 className="lv-eyebrow mb-2 text-[0.6rem] text-muted-foreground">
+							<h2 className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground">
 								{t(`kind_${kind}`)} · {list.length}
 							</h2>
 							<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">

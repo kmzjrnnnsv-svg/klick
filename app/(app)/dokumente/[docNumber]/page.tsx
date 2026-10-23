@@ -40,7 +40,6 @@ import {
 import { getDocumentByNumber } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { diffLines } from "@/lib/documents/diff";
-import { env } from "@/lib/env";
 import {
 	type ActivityEntry,
 	mergeActivity,
@@ -104,10 +103,6 @@ export default async function DocumentDetailPage({
 		names,
 	} = data;
 	const canEdit = allows(ctx, { document: ["update"] });
-	const e = env();
-	const storageAvailable = Boolean(
-		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,
-	);
 	const me = candidates.find((c) => c.userId === ctx.userId);
 	const step = approval?.steps.find((s) => s.order === approval.currentStep);
 	const eligible = Boolean(
@@ -274,10 +269,7 @@ export default async function DocumentDetailPage({
 				title={t("content")}
 				actions={
 					canEdit && doc.status === "draft" ? (
-						<EvidenceForm
-							storageAvailable={storageAvailable}
-							label={t("file")}
-						/>
+						<EvidenceForm label={t("file")} />
 					) : null
 				}
 			>

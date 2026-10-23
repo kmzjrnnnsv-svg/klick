@@ -72,7 +72,7 @@ export async function ApprovalBar({
 	return (
 		<div className="flex flex-col gap-2 rounded-md border bg-muted/30 p-3 text-sm">
 			<div className="flex flex-wrap items-center gap-2">
-				<span className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+				<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 					{ta("bar")}
 				</span>
 				<span className="font-medium">{data.workflowName}</span>

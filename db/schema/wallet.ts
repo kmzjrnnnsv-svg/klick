@@ -1,4 +1,5 @@
 import {
+	type AnyPgColumn,
 	boolean,
 	index,
 	integer,
@@ -152,6 +153,11 @@ export const walletTransfers = pgTable(
 		screening: text({ enum: SCREENING_RESULTS }).notNull().default("unchecked"),
 		screeningRef: text(),
 		frozen: boolean().notNull().default(false),
+		// Ausgang aus einer Auszahlung in Klick (Phase 2); ein Ausgang eines
+		// Hot-Kontos ohne Auszahlung ist ein Alarm (Signer wird eingefroren)
+		payoutId: uuid().references((): AnyPgColumn => walletPayouts.id, {
+			onDelete: "set null",
+		}),
 		firstSeenAt: ts().notNull().defaultNow(),
 		confirmedAt: ts(),
 		updatedAt: ts()
@@ -164,6 +170,144 @@ export const walletTransfers = pgTable(
 		index("wallet_transfers_org_idx").on(t.organizationId, t.firstSeenAt),
 		orgPolicy("wallet_transfers"),
 	],
+).enableRLS();
+
+// ── Senden (Plan Wallet, Phase 2) ──────────────────────────────────────
+// Zieladressen und Auszahlungen spiegeln Absichten im Signer: freigegeben
+// wird nur dort (Sicherheitsschlüssel auf freigabe.raza.work); Klick führt
+// Stand, Anzeige und Verlauf. Status kommt aus dem Signer (Job
+// wallet-payouts), nie aus einer Eingabe.
+
+export const ADDRESS_BOOK_STATUS = [
+	"proposed",
+	"cooling",
+	"active",
+	"vetoed",
+	"expired",
+] as const;
+export type AddressBookStatus = (typeof ADDRESS_BOOK_STATUS)[number];
+
+export const walletAddressBook = pgTable(
+	"wallet_address_book",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		network: text({ enum: WALLET_NETWORKS }).notNull(),
+		address: text().notNull(),
+		label: text().notNull(),
+		// Absicht im Signer (kind whitelist)
+		intentId: text().notNull(),
+		status: text({ enum: ADDRESS_BOOK_STATUS }).notNull().default("proposed"),
+		expiresAt: ts().notNull(),
+		approvedAt: ts(),
+		activeFrom: ts(),
+		screening: text({ enum: SCREENING_RESULTS }).notNull().default("unchecked"),
+		screeningRef: text(),
+		proposedByUserId: userRef(),
+		vetoedByUserId: userRef(),
+		vetoedAt: ts(),
+		vetoReason: text(),
+		...timestamps(),
+	},
+	(t) => [
+		unique().on(t.organizationId, t.intentId),
+		index("wallet_address_book_org_idx").on(
+			t.organizationId,
+			t.network,
+			t.address,
+		),
+		orgPolicy("wallet_address_book"),
+	],
+).enableRLS();
+
+export const PAYOUT_STATUS = [
+	"awaiting_approval",
+	"approved",
+	"signed",
+	"broadcast",
+	"confirmed",
+	"dropped",
+	"failed",
+	"cancelled",
+	"expired",
+] as const;
+export type PayoutStatus = (typeof PAYOUT_STATUS)[number];
+export const PAYOUT_SPEEDS = ["slow", "normal", "fast"] as const;
+export type PayoutSpeed = (typeof PAYOUT_SPEEDS)[number];
+
+export const walletPayouts = pgTable(
+	"wallet_payouts",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		accountId: uuid()
+			.notNull()
+			.references(() => walletAccounts.id, { onDelete: "restrict" }),
+		addressBookId: uuid().references(() => walletAddressBook.id, {
+			onDelete: "set null",
+		}),
+		asset: text().$type<AssetCode>().notNull(),
+		amount: text().notNull(),
+		destination: text().notNull(),
+		destinationLabel: text().notNull(),
+		// höchste Gebühr in Basiseinheiten der Gebührenwährung (Teil der Absicht)
+		feeCap: text().notNull(),
+		speed: text({ enum: PAYOUT_SPEEDS }).notNull().default("normal"),
+		status: text({ enum: PAYOUT_STATUS })
+			.notNull()
+			.default("awaiting_approval"),
+		intentId: text().notNull(),
+		intentText: text().notNull(),
+		expiresAt: ts().notNull(),
+		approvedAt: ts(),
+		signableAt: ts(),
+		// zuletzt an den Signer gegebener Ausgabeplan (Eingänge bzw. Nonce/Gas)
+		plan: json<Record<string, unknown>>(),
+		rawTx: text(),
+		txid: text(),
+		// frühere Fassungen (Gebührenerhöhung, Abbruch) — alle gehören hierher
+		txids: stringList(),
+		fee: text(),
+		nonce: text(),
+		signedAt: ts(),
+		broadcastAt: ts(),
+		confirmedAt: ts(),
+		bumpRequested: boolean().notNull().default(false),
+		cancelRequested: boolean().notNull().default(false),
+		attempts: integer().notNull().default(0),
+		error: text(),
+		createdByUserId: userRef(),
+		...timestamps(),
+	},
+	(t) => [
+		unique().on(t.organizationId, t.intentId),
+		index("wallet_payouts_org_status_idx").on(t.organizationId, t.status),
+		orgPolicy("wallet_payouts"),
+	],
+).enableRLS();
+
+// Letzter bekannter Journal-Kopf des Signers (seq, Hash). Läuft er zurück
+// oder verzweigt er, ist das Journal ersetzt worden → Alarm.
+export const walletSignerAnchor = pgTable(
+	"wallet_signer_anchor",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		seq: integer().notNull(),
+		head: text().notNull(),
+		bundleHash: text(),
+		policyHash: text(),
+		frozen: boolean().notNull().default(false),
+		frozenReason: text(),
+		checkedAt: ts(),
+		unreachableSince: ts(),
+		alertedAt: ts(),
+		updatedAt: ts()
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(t) => [unique().on(t.organizationId), orgPolicy("wallet_signer_anchor")],
 ).enableRLS();
 
 // Sperrliste für Adressen (Plattform, ohne Org-Bezug, kein RLS — Zugriff
@@ -237,3 +381,6 @@ export type WalletTransfer = typeof walletTransfers.$inferSelect;
 export type SanctionedAddress = typeof sanctionedAddresses.$inferSelect;
 export type PriceTick = typeof priceTicks.$inferSelect;
 export type WalletPreferences = typeof walletPreferences.$inferSelect;
+export type WalletAddressBookEntry = typeof walletAddressBook.$inferSelect;
+export type WalletPayout = typeof walletPayouts.$inferSelect;
+export type WalletSignerAnchor = typeof walletSignerAnchor.$inferSelect;

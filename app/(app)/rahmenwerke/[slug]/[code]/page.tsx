@@ -216,7 +216,7 @@ export default async function RequirementPage({
 								<dl className="text-sm">
 									{req.tools.startup.length > 0 && (
 										<>
-											<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+											<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 												{t("toolsStartup")}
 											</dt>
 											<dd className="mb-2">{req.tools.startup.join(", ")}</dd>
@@ -224,7 +224,7 @@ export default async function RequirementPage({
 									)}
 									{req.tools.scale.length > 0 && (
 										<>
-											<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+											<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 												{t("toolsScale")}
 											</dt>
 											<dd>{req.tools.scale.join(", ")}</dd>

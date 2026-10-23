@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+	PAYOUT_SPEEDS,
 	WALLET_ACCOUNT_PURPOSES,
 	type WalletAccountPurpose,
 } from "@/db/schema/wallet";
@@ -43,6 +44,45 @@ export const walletAccountSchema = z.object({
 	historyFrom: optionalDate,
 	custodyWalletId: optionalUuid,
 });
+
+// Hot-Konto: Schlüssel erzeugt der Signer, Klick bekommt nur die xpub
+export const hotAccountSchema = z.object({
+	name: z.string().trim().min(2, "Name fehlt").max(80),
+	network: z.enum(WALLET_NETWORKS),
+});
+
+// Zieladresse vorschlagen (Freigabe per Sicherheitsschlüssel, 24 h Wartezeit)
+export const proposeDestinationSchema = z.object({
+	network: z.enum(WALLET_NETWORKS),
+	address: z.string().trim().min(10, "Adresse fehlt").max(120),
+	label: z.string().trim().min(2, "Bezeichnung fehlt").max(80),
+});
+
+// Veto: jederzeit, nur mit Grund (bremst nur)
+export const vetoDestinationSchema = z.object({
+	id: z.uuid(),
+	reason: z.string().trim().min(3, "Grund fehlt").max(300),
+});
+
+// Alles stoppen: Signer einfrieren (bremst nur, jede:r im Bereich), mit Grund
+export const freezeSignerSchema = z.object({
+	reason: z.string().trim().min(3, "Grund fehlt").max(160),
+});
+
+// Auszahlung anlegen: Betrag als Dezimaltext (Punkt oder Komma), Ziel nur
+// aus dem Adressbuch (aktiv), Gebühren-Tempo
+export const payoutSchema = z.object({
+	accountId: z.uuid(),
+	asset: z.enum(["BTC", "ETH", "USDC", "EURC"]),
+	amount: z
+		.string()
+		.trim()
+		.regex(/^\d{1,30}([.,]\d{1,36})?$/, "amount_format"),
+	addressBookId: z.uuid(),
+	speed: z.enum(PAYOUT_SPEEDS).default("normal"),
+});
+
+export const payoutIdSchema = z.object({ id: z.uuid() });
 
 export const walletAccountUpdateSchema = z.object({
 	id: z.uuid(),

@@ -69,7 +69,7 @@ PASS="$(openssl rand -hex 32)"
 SALT="$(openssl rand -hex 16)"
 HASH="$(printf %s "$PASS" | openssl dgst -sha256 -hmac "$SALT" | awk '{print $NF}')"
 
-METHODS="getblockchaininfo,listwallets,loadwallet,createwallet,getdescriptorinfo,importdescriptors,deriveaddresses,listsinceblock,gettransaction,getrawtransaction,getbalance,getbalances"
+METHODS="getblockchaininfo,listwallets,loadwallet,createwallet,getdescriptorinfo,importdescriptors,deriveaddresses,listsinceblock,gettransaction,getrawtransaction,getbalance,getbalances,listunspent,estimatesmartfee,testmempoolaccept,sendrawtransaction"
 
 cat > /etc/bitcoin/bitcoin.conf <<CONF
 # Klick Wallet-Knoten (deploy/nodes/setup-bitcoind.sh) — ${CHAIN}

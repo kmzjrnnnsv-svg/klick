@@ -20,11 +20,7 @@ import { fieldAad, loadOrgDek } from "@/lib/crypto/org-dek";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { ENGAGEMENT_STATUS_MACHINE } from "@/lib/entities/engagement";
 import { canTransition } from "@/lib/entities/status-machine";
-import {
-	s3Configured,
-	screenUpload,
-	storeEncryptedEvidence,
-} from "@/lib/evidence/store";
+import { screenUpload, storeEncryptedEvidence } from "@/lib/evidence/store";
 import { notify } from "@/lib/notifications/notify";
 import { getOrgLimiter } from "@/lib/rate-limit";
 import { parseCvss, severityFromScore } from "@/lib/security/cvss";
@@ -190,7 +186,6 @@ async function uploadEngagementFileImpl(
 	formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ security: ["update"], evidence: ["create"] });
-	if (!s3Configured()) return { ok: false, error: "storageNotConfigured" };
 	const engagementId = String(formData.get("engagementId") ?? "");
 	const role = String(formData.get("role") ?? "");
 	const file = formData.get("file");

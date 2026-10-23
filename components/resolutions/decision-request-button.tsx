@@ -41,7 +41,6 @@ export function DecisionRequestButton({
 	refs,
 	soloHint,
 	approverHint,
-	canAttach = false,
 	variant = "outline",
 }: {
 	linkedEntityType?: EntityKind;
@@ -53,7 +52,6 @@ export function DecisionRequestButton({
 	// niemand (außer dir) in der Geschäftsleitung → Hinweis vor dem Absenden
 	approverHint?: "none" | "only_you" | null;
 	// Unterlagen anhängen (nur mit Objektspeicher)
-	canAttach?: boolean;
 	variant?: "outline" | "brown";
 }) {
 	const t = useTranslations("Decisions");
@@ -258,47 +256,45 @@ export function DecisionRequestButton({
 							</div>
 						</div>
 					)}
-					{canAttach && (
-						<div className="grid gap-2">
-							<Label htmlFor="dr-files">{t("attachments")}</Label>
-							<Input
-								id="dr-files"
-								type="file"
-								multiple
-								disabled={Boolean(createdId)}
-								accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.txt,.csv"
-								onChange={(e) => {
-									const picked = [...(e.target.files ?? [])];
-									const big = picked.filter((f) => up.tooLarge(f));
-									for (const f of big)
-										toast.error(
-											`${t("attachmentFailed", { name: f.name })} ${up.tooLarge(f)}`,
-										);
-									setFiles(picked.filter((f) => !up.tooLarge(f)).slice(0, 10));
-								}}
+					<div className="grid gap-2">
+						<Label htmlFor="dr-files">{t("attachments")}</Label>
+						<Input
+							id="dr-files"
+							type="file"
+							multiple
+							disabled={Boolean(createdId)}
+							accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.txt,.csv"
+							onChange={(e) => {
+								const picked = [...(e.target.files ?? [])];
+								const big = picked.filter((f) => up.tooLarge(f));
+								for (const f of big)
+									toast.error(
+										`${t("attachmentFailed", { name: f.name })} ${up.tooLarge(f)}`,
+									);
+								setFiles(picked.filter((f) => !up.tooLarge(f)).slice(0, 10));
+							}}
+						/>
+						<p className="text-muted-foreground text-xs">
+							{t("attachmentsHint")}
+						</p>
+						{files.length > 0 && (
+							<ul className="flex flex-col gap-0.5 text-xs">
+								{files.map((f) => (
+									<li key={`${f.name}-${f.size}`} className="truncate">
+										{f.name}
+									</li>
+								))}
+							</ul>
+						)}
+						{dlpReasons && (
+							<DlpWarning
+								id="dr-dlp"
+								reasons={dlpReasons}
+								acknowledged={dlpAck}
+								onAcknowledge={setDlpAck}
 							/>
-							<p className="text-muted-foreground text-xs">
-								{t("attachmentsHint")}
-							</p>
-							{files.length > 0 && (
-								<ul className="flex flex-col gap-0.5 text-xs">
-									{files.map((f) => (
-										<li key={`${f.name}-${f.size}`} className="truncate">
-											{f.name}
-										</li>
-									))}
-								</ul>
-							)}
-							{dlpReasons && (
-								<DlpWarning
-									id="dr-dlp"
-									reasons={dlpReasons}
-									acknowledged={dlpAck}
-									onAcknowledge={setDlpAck}
-								/>
-							)}
-						</div>
-					)}
+						)}
+					</div>
 					{soloHint && (
 						<div className="grid gap-2">
 							<Label htmlFor="dr-solo">{tr("soloReason")}</Label>

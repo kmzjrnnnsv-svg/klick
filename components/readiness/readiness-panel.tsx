@@ -163,7 +163,7 @@ export async function ReadinessPanel({
 			<p className="text-muted-foreground text-sm">{t("lead")}</p>
 			<div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr]">
 				<div className="flex flex-col gap-2 rounded-md border p-4">
-					<span className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+					<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("score")}
 					</span>
 					<span className="font-serif-display text-4xl text-primary tabular-nums">

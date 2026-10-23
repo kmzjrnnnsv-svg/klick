@@ -169,7 +169,7 @@ export default async function ApprovalsInboxPage({
 				</ul>
 			)}
 			<div className="mt-8">
-				<h2 className="lv-eyebrow mb-2 text-[0.6rem] text-muted-foreground">
+				<h2 className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground">
 					{t("delegation")}
 				</h2>
 				<DelegationForm members={members} selfId={ctx.userId} />

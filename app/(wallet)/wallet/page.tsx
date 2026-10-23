@@ -32,6 +32,8 @@ import {
 	listTransfers,
 	listWalletAccounts,
 } from "@/lib/wallet/queries";
+import { isOwnSigner, loadSignerAnchor } from "@/lib/wallet/signer/context";
+import { signerState } from "@/lib/wallet/signer/status";
 
 export const metadata: Metadata = { title: "Wallet" };
 
@@ -41,21 +43,26 @@ export default async function WalletHomePage() {
 	const ctx = await requireWalletPage("/wallet");
 	const t = await getTranslations("Wallet");
 	const canManage = allows(ctx, { wallet: ["manage"] });
-	const { accounts, frozen, recent, prefs } = await readOrg(
+	const { accounts, frozen, recent, prefs, anchor } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
 			accounts: await listWalletAccounts(tx, ctx.orgId),
 			frozen: await frozenByAccount(tx, ctx.orgId),
 			recent: await listTransfers(tx, ctx.orgId, { limit: 6 }),
 			prefs: await getWalletPreferences(tx, ctx.orgId, ctx.userId),
+			anchor: await loadSignerAnchor(tx, ctx.orgId),
 		}),
 	);
 	// Beim ersten Öffnen führt die Einführung (bis abgeschlossen oder „Später“)
 	if (shouldShowIntro(prefs)) redirect(introHref(resumeStep(prefs.introStep)));
-	const [euro, quotes] = await Promise.all([
+	const [euro, quotes, signer] = await Promise.all([
 		euroPrices(),
 		watchlistQuotes(prefs.pairs.slice(0, 3)),
+		signerState(ctx.orgId),
 	]);
+	// Senden nur mit eigenem Signer (Hot-Konten); Umschichten folgt mit Cold
+	const canSend =
+		isOwnSigner(signer.state, anchor) && allows(ctx, { wallet: ["initiate"] });
 
 	// Summen je Netz und Asset — Testnetz und echtes Netz nie zusammen; je
 	// Netz die Assets mit Bestand, sonst das Netz-eigene mit 0
@@ -87,7 +94,14 @@ export default async function WalletHomePage() {
 	if (accounts.length === 0)
 		return (
 			<>
-				<PageHeader title={t("homeTitle")} lead={t("homeLead")} />
+				<PageHeader
+					title={t("homeTitle")}
+					lead={
+						isOwnSigner(signer.state, anchor)
+							? t("homeLeadSend")
+							: t("homeLead")
+					}
+				/>
 				<EmptyState
 					title={t("homeEmptyTitle")}
 					lead={canManage ? t("accountsEmpty") : t("homeEmptyBody")}
@@ -109,7 +123,9 @@ export default async function WalletHomePage() {
 		<>
 			<PageHeader
 				title={t("homeTitle")}
-				lead={t("homeLead")}
+				lead={
+					isOwnSigner(signer.state, anchor) ? t("homeLeadSend") : t("homeLead")
+				}
 				actions={
 					<Button asChild variant="ghost" size="sm">
 						<Link href={introHref("willkommen")}>
@@ -125,7 +141,7 @@ export default async function WalletHomePage() {
 			>
 				<h2
 					id="wallet-total"
-					className="lv-eyebrow text-[0.6rem] text-muted-foreground"
+					className="lv-eyebrow text-[0.7rem] text-muted-foreground"
 				>
 					{t("homeValueLabel")}
 				</h2>
@@ -170,8 +186,21 @@ export default async function WalletHomePage() {
 							{t("actionReceive")}
 						</Link>
 					</li>
+					{canSend && (
+						<li>
+							<Link
+								href="/wallet/senden"
+								className="group flex flex-col items-center gap-1.5 text-xs focus-visible:outline-none"
+							>
+								<span className="flex size-12 items-center justify-center rounded-full bg-brown text-brown-foreground transition-opacity group-hover:opacity-90 group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2">
+									<Send className="size-5" aria-hidden />
+								</span>
+								{t("actionSend")}
+							</Link>
+						</li>
+					)}
 					{[
-						{ Icon: Send, label: t("actionSend") },
+						...(canSend ? [] : [{ Icon: Send, label: t("actionSend") }]),
 						{ Icon: ArrowLeftRight, label: t("actionMove") },
 					].map(({ Icon, label }) => (
 						<li

@@ -19,7 +19,6 @@ import { fmtDate } from "@/lib/compliance/page-data";
 import { listDocuments } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { DOCUMENT_STATUS_MACHINE } from "@/lib/entities/document";
-import { env } from "@/lib/env";
 
 type Row = Awaited<ReturnType<typeof listDocuments>>[number];
 type Search = Record<string, string | string[] | undefined>;
@@ -39,10 +38,6 @@ export default async function DocumentsPage({
 		listDocuments(tx, ctx.orgId),
 	);
 	const canCreate = allows(ctx, { document: ["create"] });
-	const e = env();
-	const storageAvailable = Boolean(
-		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,
-	);
 	const present = new Set(rows.map((r) => r.templateCode));
 	const templates = DOCUMENT_TEMPLATES.map((x) => ({
 		code: x.code,
@@ -150,7 +145,7 @@ export default async function DocumentsPage({
 
 	const actions = canCreate ? (
 		<>
-			<ImportDialog storageAvailable={storageAvailable} />
+			<ImportDialog />
 			<TemplatesDialog templates={templates} />
 			<DocumentCreate templates={templates.filter((x) => !x.present)} />
 		</>

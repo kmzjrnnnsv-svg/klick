@@ -22,8 +22,7 @@ export default async function TrustPage() {
 	return (
 		<main id="inhalt" className="flex-1">
 			<section className="mx-auto max-w-5xl px-4 pt-16 pb-6 sm:px-6 sm:pt-24">
-				<p className="lv-eyebrow text-[0.62rem] text-brown">{t("eyebrow")}</p>
-				<h1 className="mt-5 max-w-3xl font-serif-display text-4xl text-primary leading-[1.05] sm:text-5xl">
+				<h1 className="max-w-3xl font-serif-display text-4xl text-primary leading-[1.05] sm:text-5xl">
 					{t("title")}
 				</h1>
 				<p className="mt-6 max-w-2xl text-lg text-muted-foreground leading-relaxed">
@@ -87,10 +86,7 @@ export default async function TrustPage() {
 			<SectionDivider />
 
 			<section className="mx-auto max-w-5xl px-4 sm:px-6">
-				<p className="lv-eyebrow text-[0.62rem] text-brown">
-					{t("supplierEyebrow")}
-				</p>
-				<h2 className="mt-3 font-serif-display text-2xl text-primary sm:text-3xl">
+				<h2 className="font-serif-display text-2xl text-primary sm:text-3xl">
 					{t("supplierTitle")}
 				</h2>
 				<p className="mt-3 max-w-2xl text-muted-foreground">

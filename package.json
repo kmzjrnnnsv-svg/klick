@@ -11,6 +11,7 @@
 		"dev": "next dev",
 		"build": "pnpm build:parser && next build",
 		"build:parser": "tsx scripts/build-parse-worker.ts",
+		"build:signer": "tsx scripts/build-signer.ts",
 		"start": "next start",
 		"release": "pnpm install --frozen-lockfile --prefer-offline && pnpm db:migrate && pnpm db:seed && pnpm build:parser && next build",
 		"lint": "biome check",
@@ -36,6 +37,10 @@
 		"legal:licenses": "tsx scripts/gen-licenses.ts",
 		"wallet:sanctions": "tsx scripts/import-ofac-addresses.ts",
 		"wallet:devchain": "tsx scripts/wallet-devchain.ts",
+		"signer:dev": "tsx scripts/signer-dev.ts",
+		"confirm:dev": "tsx scripts/confirm-dev.ts",
+		"signer:admin": "tsx scripts/signer-admin.ts",
+		"signer:recover-check": "tsx scripts/signer-recover-check.ts",
 		"auth:generate": "pnpm dlx auth@latest generate --config lib/auth/server.ts --output db/auth-schema.ts -y",
 		"auth:check": "pnpm dlx auth@latest check schema --config lib/auth/server.ts"
 	},

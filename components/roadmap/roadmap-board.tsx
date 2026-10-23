@@ -123,14 +123,14 @@ export function RoadmapBoard({
 							<Link
 								key={code}
 								href={`/controls/${code}`}
-								className="font-mono text-[0.65rem] text-primary hover:underline"
+								className="font-mono text-[0.7rem] text-primary hover:underline"
 								onPointerDown={(e) => e.stopPropagation()}
 							>
 								{code}
 							</Link>
 						))}
 						{m.controlCodes.length > 4 && (
-							<span className="text-[0.65rem] text-muted-foreground">
+							<span className="text-[0.7rem] text-muted-foreground">
 								+{m.controlCodes.length - 4}
 							</span>
 						)}
@@ -181,7 +181,7 @@ function TaskFromMilestoneButton({
 			}
 		>
 			<ListTodo />
-			{openTasks > 0 && <span className="text-[0.65rem]">{openTasks}</span>}
+			{openTasks > 0 && <span className="text-[0.7rem]">{openTasks}</span>}
 		</Button>
 	);
 }

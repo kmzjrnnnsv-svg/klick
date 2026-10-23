@@ -49,7 +49,6 @@ import {
 	SEVERITY_TONE,
 } from "@/lib/entities/security-finding";
 import { TASK_STATUS } from "@/lib/entities/task";
-import { s3Configured } from "@/lib/evidence/store";
 import { mergeActivity, toHistoryItems } from "@/lib/history";
 import { cn } from "@/lib/utils";
 
@@ -481,16 +480,11 @@ export default async function ProductPage({
 							<p className="text-muted-foreground text-sm">{t("sbomEmpty")}</p>
 						)}
 					</Section>
-					{canEdit &&
-						(s3Configured() ? (
-							<Section title={t("sbomUpload")}>
-								<SbomUpload productId={p.id} />
-							</Section>
-						) : (
-							<p className="text-muted-foreground text-sm">
-								{t("storageNotConfigured")}
-							</p>
-						))}
+					{canEdit && (
+						<Section title={t("sbomUpload")}>
+							<SbomUpload productId={p.id} />
+						</Section>
+					)}
 				</>
 			)}
 

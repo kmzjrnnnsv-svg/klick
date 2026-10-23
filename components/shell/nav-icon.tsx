@@ -3,6 +3,7 @@ import {
 	ArrowDownToLine,
 	BadgeCheck,
 	BookOpen,
+	BookUser,
 	Building2,
 	Calendar,
 	ClipboardCheck,
@@ -17,12 +18,14 @@ import {
 	GraduationCap,
 	History,
 	Landmark,
+	List,
 	ListChecks,
 	Lock,
 	Map as MapIcon,
 	MessageSquare,
 	Package,
 	Presentation,
+	Send,
 	Server,
 	Settings,
 	ShieldAlert,
@@ -80,6 +83,9 @@ const ICONS = {
 	"arrow-down": ArrowDownToLine,
 	history: History,
 	"trending-up": TrendingUp,
+	send: Send,
+	list: List,
+	"book-user": BookUser,
 } as const;
 
 export function NavIcon({

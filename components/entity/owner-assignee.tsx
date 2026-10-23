@@ -53,13 +53,13 @@ export function OwnerAssignee({
 		return (
 			<>
 				<div className="flex flex-col gap-0.5">
-					<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+					<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("owner")}
 					</dt>
 					<dd>{label(ownerUserId)}</dd>
 				</div>
 				<div className="flex flex-col gap-0.5">
-					<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+					<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("assignee")}
 					</dt>
 					<dd>{label(assigneeUserId)}</dd>
@@ -78,7 +78,7 @@ export function OwnerAssignee({
 		title: string;
 	}) => (
 		<div className="flex flex-col gap-0.5">
-			<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+			<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 				{title}
 			</dt>
 			<dd>

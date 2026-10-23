@@ -129,7 +129,7 @@ export async function SoaTab({
 
 			<section className="flex flex-col gap-3">
 				<div className="flex flex-wrap items-baseline justify-between gap-3">
-					<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+					<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("isoMandatoryDocs")}
 					</h2>
 					<span className="text-muted-foreground text-xs">
@@ -188,7 +188,7 @@ export async function SoaTab({
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+				<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 					Annex A
 				</h2>
 				<div className="overflow-x-auto rounded-md border">

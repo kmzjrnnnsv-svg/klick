@@ -171,7 +171,8 @@ body {
 	font-family: var(--font-sans);
 	font-weight: 500;
 	text-transform: uppercase;
-	letter-spacing: 0.22em;
+	/* ab 11 px (Impeccable-Untergrenze) reicht weniger Sperrung */
+	letter-spacing: 0.16em;
 }
 
 .lv-wordmark {
@@ -208,6 +209,15 @@ h1 {
 	   abgeschnittenen Einträgen schob Dialoge am Handy über den Rand. */
 	fieldset {
 		min-inline-size: 0;
+	}
+	/* JetBrains Mono setzt „||“, „->“, „!=“ als Ligatur — Hashes, Adressen
+	   und der Absichtstext des Signers müssen Zeichen für Zeichen stimmen */
+	code,
+	pre,
+	kbd,
+	samp,
+	.font-mono {
+		font-variant-ligatures: none;
 	}
 }
 

@@ -85,7 +85,7 @@ export default async function OwnFundsPage({
 				<section className="flex flex-col gap-4">
 					<div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-4">
 						<div className="rounded-md border p-3">
-							<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 								{t("suggestedClass")}
 							</p>
 							<p className="font-serif-display text-2xl text-primary">
@@ -96,7 +96,7 @@ export default async function OwnFundsPage({
 							</p>
 						</div>
 						<div className="rounded-md border p-3">
-							<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 								{t("latestRequired")}
 							</p>
 							<p className="font-serif-display text-2xl text-primary">
@@ -107,7 +107,7 @@ export default async function OwnFundsPage({
 							</p>
 						</div>
 						<div className="rounded-md border p-3">
-							<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 								{t("latestBuffer")}
 							</p>
 							<p
@@ -117,7 +117,7 @@ export default async function OwnFundsPage({
 							</p>
 						</div>
 						<div className="rounded-md border p-3">
-							<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 								{t("approvedRun")}
 							</p>
 							<p className="font-serif-display text-2xl text-primary">
@@ -208,7 +208,7 @@ export default async function OwnFundsPage({
 													{t(`ostatus_${r.status}`)}
 												</Badge>
 												{r.approvedAt && (
-													<p className="text-[0.65rem] text-muted-foreground">
+													<p className="text-[0.7rem] text-muted-foreground">
 														{fmtDate.format(r.approvedAt)}
 													</p>
 												)}
@@ -290,7 +290,7 @@ export default async function OwnFundsPage({
 							<>
 								<div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-4">
 									<div className="rounded-md border p-3">
-										<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+										<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 											{t("potential")}
 										</p>
 										<p className="font-serif-display text-2xl text-primary">
@@ -301,7 +301,7 @@ export default async function OwnFundsPage({
 										</p>
 									</div>
 									<div className="rounded-md border p-3">
-										<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+										<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 											{t("totalRisk")}
 										</p>
 										<p className="font-serif-display text-2xl text-primary">
@@ -309,7 +309,7 @@ export default async function OwnFundsPage({
 										</p>
 									</div>
 									<div className="rounded-md border p-3">
-										<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+										<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 											{t("utilisation")}
 										</p>
 										<p
@@ -325,7 +325,7 @@ export default async function OwnFundsPage({
 										/>
 									</div>
 									<div className="rounded-md border p-3">
-										<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+										<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 											{t("headroom")}
 										</p>
 										<p

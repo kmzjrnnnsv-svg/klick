@@ -313,7 +313,7 @@ export function AssetForm({
 						)}
 					</div>
 					<fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-						<legend className="lv-eyebrow mb-1 text-[0.58rem] text-muted-foreground">
+						<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 							{t("lifecycle")}
 						</legend>
 						<div className="flex flex-col gap-1.5">

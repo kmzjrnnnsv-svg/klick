@@ -312,7 +312,7 @@ export default async function OrganisationPage({
 					<section className="flex flex-col gap-3">
 						<div className="flex items-start justify-between gap-3">
 							<div>
-								<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+								<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 									{t("issues")}
 								</h2>
 								<p className="mt-1 text-muted-foreground text-xs">
@@ -377,7 +377,7 @@ export default async function OrganisationPage({
 					<section className="flex flex-col gap-3">
 						<div className="flex items-start justify-between gap-3">
 							<div>
-								<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+								<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 									{t("parties")}
 								</h2>
 								<p className="mt-1 text-muted-foreground text-xs">
@@ -560,7 +560,7 @@ export default async function OrganisationPage({
 									</div>
 									{s.exclusions.length > 0 && (
 										<div>
-											<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+											<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 												{t("exclusions")}
 											</p>
 											<ul className="mt-1 list-disc pl-5 text-xs">
@@ -1231,7 +1231,7 @@ export default async function OrganisationPage({
 												</p>
 											)}
 											{c.legalBasis && (
-												<p className="text-muted-foreground text-[0.65rem]">
+												<p className="text-muted-foreground text-[0.7rem]">
 													{c.legalBasis}
 												</p>
 											)}
@@ -1325,7 +1325,7 @@ export default async function OrganisationPage({
 											<Badge variant="outline">
 												{t(`authority_${r.authority}`)}
 											</Badge>
-											<p className="text-muted-foreground text-[0.65rem]">
+											<p className="text-muted-foreground text-[0.7rem]">
 												{t(`direction_${r.direction}`)}
 											</p>
 										</TableCell>
@@ -1761,7 +1761,7 @@ export default async function OrganisationPage({
 													{tin(`state_${state}`)}
 												</Badge>
 												{p.validUntil && (
-													<p className="text-[0.65rem] text-muted-foreground">
+													<p className="text-[0.7rem] text-muted-foreground">
 														{tin("until")}{" "}
 														{fmtDate.format(
 															new Date(`${p.validUntil}T00:00:00Z`),

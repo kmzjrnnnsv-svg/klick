@@ -394,7 +394,7 @@ export function RiskEditForm({
 			</div>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<fieldset className="flex min-w-0 flex-col gap-1.5">
-					<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+					<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 						{t("controls")}
 					</legend>
 					<div className="max-h-48 overflow-y-auto rounded-md border p-2">
@@ -423,7 +423,7 @@ export function RiskEditForm({
 					</div>
 				</fieldset>
 				<fieldset className="flex min-w-0 flex-col gap-1.5">
-					<legend className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+					<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 						{t("assets")}
 					</legend>
 					<div className="max-h-48 overflow-y-auto rounded-md border p-2">

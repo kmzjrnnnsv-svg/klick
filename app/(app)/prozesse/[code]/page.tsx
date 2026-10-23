@@ -317,7 +317,7 @@ export default async function ProcessDetailPage({
 			<Section title={t("bia")}>
 				<dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
 					<div>
-						<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 							RTO
 						</dt>
 						<dd className="font-serif-display text-2xl text-primary">
@@ -325,7 +325,7 @@ export default async function ProcessDetailPage({
 						</dd>
 					</div>
 					<div>
-						<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 							RPO
 						</dt>
 						<dd className="font-serif-display text-2xl text-primary">
@@ -333,7 +333,7 @@ export default async function ProcessDetailPage({
 						</dd>
 					</div>
 					<div>
-						<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 							MTPD
 						</dt>
 						<dd className="font-serif-display text-2xl text-primary">
@@ -345,7 +345,7 @@ export default async function ProcessDetailPage({
 					<dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
 						{p.inputs && (
 							<div>
-								<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+								<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 									{t("inputs")}
 								</dt>
 								<dd>{p.inputs}</dd>
@@ -353,7 +353,7 @@ export default async function ProcessDetailPage({
 						)}
 						{p.outputs && (
 							<div>
-								<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+								<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 									{t("outputs")}
 								</dt>
 								<dd>{p.outputs}</dd>
@@ -361,7 +361,7 @@ export default async function ProcessDetailPage({
 						)}
 						{p.impactNotes && (
 							<div className="sm:col-span-2">
-								<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+								<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 									{t("impactNotes")}
 								</dt>
 								<dd>{p.impactNotes}</dd>
@@ -433,7 +433,7 @@ export default async function ProcessDetailPage({
 			>
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div>
-						<p className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+						<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 							{t("controls")}
 						</p>
 						{controls.length === 0 ? (
@@ -468,7 +468,7 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div>
-						<p className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+						<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 							{t("assets")}
 						</p>
 						{linkedAssets.length === 0 ? (
@@ -490,7 +490,7 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div>
-						<p className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+						<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 							{t("providers")}
 						</p>
 						{linkedProviders.length === 0 ? (
@@ -514,7 +514,7 @@ export default async function ProcessDetailPage({
 					</div>
 					<div>
 						<div className="mb-1 flex items-center justify-between gap-2">
-							<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 								{t("risks")}
 							</p>
 							<SourceRisks
@@ -541,7 +541,7 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div className="sm:col-span-2">
-						<p className="lv-eyebrow mb-1 text-[0.52rem] text-muted-foreground">
+						<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 							{t("documents")}
 						</p>
 						{linkedDocs.length === 0 ? (

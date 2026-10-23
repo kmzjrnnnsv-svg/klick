@@ -6,6 +6,7 @@ import {
 	controlImplementations,
 	controls,
 	evidence,
+	evidenceSignatures,
 	frameworks,
 	orgFrameworks,
 	orgSettings,
@@ -312,6 +313,72 @@ export async function listEvidence(
 		.from(evidence)
 		.where(eq(evidence.organizationId, orgId))
 		.orderBy(desc(evidence.createdAt));
+}
+
+// Ein Nachweis mit Controls, Versionen und Zahl der Unterschriften
+export async function evidenceDetail(tx: OrgTx, orgId: string, id: string) {
+	const [row] = await tx
+		.select()
+		.from(evidence)
+		.where(and(eq(evidence.id, id), eq(evidence.organizationId, orgId)))
+		.limit(1);
+	if (!row) return null;
+	const [linked, newer, older, signatures, names] = await Promise.all([
+		tx
+			.select({ code: controls.code, title: controls.title })
+			.from(controlEvidence)
+			.innerJoin(
+				controlImplementations,
+				eq(controlImplementations.id, controlEvidence.implementationId),
+			)
+			.innerJoin(controls, eq(controls.id, controlImplementations.controlId))
+			.where(
+				and(
+					eq(controlEvidence.organizationId, orgId),
+					eq(controlEvidence.evidenceId, id),
+				),
+			)
+			.orderBy(asc(controls.code)),
+		tx
+			.select({ id: evidence.id, title: evidence.title })
+			.from(evidence)
+			.where(
+				and(eq(evidence.organizationId, orgId), eq(evidence.supersedesId, id)),
+			)
+			.limit(1),
+		row.supersedesId
+			? tx
+					.select({ id: evidence.id, title: evidence.title })
+					.from(evidence)
+					.where(
+						and(
+							eq(evidence.organizationId, orgId),
+							eq(evidence.id, row.supersedesId),
+						),
+					)
+					.limit(1)
+			: Promise.resolve([]),
+		tx
+			.select({ id: evidenceSignatures.id })
+			.from(evidenceSignatures)
+			.where(
+				and(
+					eq(evidenceSignatures.organizationId, orgId),
+					eq(evidenceSignatures.evidenceId, id),
+				),
+			),
+		userNames(tx, [row.createdByUserId]),
+	]);
+	return {
+		row,
+		controls: linked,
+		supersededBy: newer[0] ?? null,
+		supersedes: older[0] ?? null,
+		signatureCount: signatures.length,
+		createdByName: row.createdByUserId
+			? (names.get(row.createdByUserId) ?? null)
+			: null,
+	};
 }
 
 export type TaskRow = typeof tasks.$inferSelect & {

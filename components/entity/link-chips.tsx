@@ -19,7 +19,7 @@ export function LinkChips({
 					key={i.key}
 					href={i.href}
 					title={i.title}
-					className="rounded border px-1.5 py-0.5 font-mono text-[0.65rem] hover:bg-muted"
+					className="rounded border px-1.5 py-0.5 font-mono text-[0.7rem] hover:bg-muted"
 				>
 					{i.label}
 				</Link>

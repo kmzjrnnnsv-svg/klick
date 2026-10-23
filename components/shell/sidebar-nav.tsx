@@ -29,7 +29,7 @@ export function SidebarNav({
 			{groups.map((group) => (
 				<div key={group.key} className="flex flex-col gap-0.5">
 					{group.labelKey && (
-						<p className="lv-eyebrow mb-1 px-2 text-[0.58rem] text-muted-foreground">
+						<p className="lv-eyebrow mb-1 px-2 text-[0.7rem] text-muted-foreground">
 							{t(group.labelKey)}
 						</p>
 					)}
@@ -47,7 +47,7 @@ export function SidebarNav({
 										>
 											<NavIcon name={item.icon} className="size-4 shrink-0" />
 											<span className="truncate">{label}</span>
-											<span className="ml-auto text-[0.58rem] tracking-[0.12em]">
+											<span className="ml-auto text-[0.7rem] tracking-[0.12em]">
 												{item.phase}
 											</span>
 										</span>
@@ -74,7 +74,7 @@ export function SidebarNav({
 								{item.count ? (
 									<Badge
 										variant="default"
-										className="ml-auto px-1.5 py-0 text-[0.58rem]"
+										className="ml-auto px-1.5 py-0 text-[0.7rem]"
 									>
 										{item.count}
 									</Badge>

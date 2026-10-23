@@ -114,13 +114,13 @@ export default async function ComplaintsPage({
 	const Stats = ({ a }: { a: typeof aggC }) => (
 		<div className="mb-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-4">
 			<div className="rounded-md border p-3">
-				<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+				<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 					{t("open")}
 				</p>
 				<p className="font-serif-display text-2xl text-primary">{a.open}</p>
 			</div>
 			<div className="rounded-md border p-3">
-				<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+				<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 					{t("ackOverdue")}
 				</p>
 				<p
@@ -130,7 +130,7 @@ export default async function ComplaintsPage({
 				</p>
 			</div>
 			<div className="rounded-md border p-3">
-				<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+				<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 					{t("responseOverdue")}
 				</p>
 				<p
@@ -140,7 +140,7 @@ export default async function ComplaintsPage({
 				</p>
 			</div>
 			<div className="rounded-md border p-3">
-				<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+				<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 					{t("last90")}
 				</p>
 				<p className="font-serif-display text-2xl text-primary">
@@ -263,7 +263,7 @@ export default async function ComplaintsPage({
 													</p>
 												)}
 												{data.refs[i] && (
-													<p className="text-[0.65rem] text-muted-foreground">
+													<p className="text-[0.7rem] text-muted-foreground">
 														{t("complainantRef")}: {data.refs[i]}
 													</p>
 												)}
@@ -278,7 +278,7 @@ export default async function ComplaintsPage({
 													{t(`clock_${ack}`)}
 												</Badge>
 												{c.ackDueAt && (
-													<p className="text-[0.65rem] text-muted-foreground">
+													<p className="text-[0.7rem] text-muted-foreground">
 														{fmt.format(c.ackDueAt)}
 													</p>
 												)}
@@ -288,7 +288,7 @@ export default async function ComplaintsPage({
 													{t(`clock_${resp}`)}
 												</Badge>
 												{c.responseDueAt && (
-													<p className="text-[0.65rem] text-muted-foreground">
+													<p className="text-[0.7rem] text-muted-foreground">
 														{fmt.format(c.responseDueAt)}
 													</p>
 												)}
@@ -436,7 +436,7 @@ export default async function ComplaintsPage({
 															{t(`clock_${ack}`)}
 														</Badge>
 														{r.ackDueAt && (
-															<p className="text-[0.65rem] text-muted-foreground">
+															<p className="text-[0.7rem] text-muted-foreground">
 																{fmt.format(r.ackDueAt)}
 															</p>
 														)}
@@ -446,7 +446,7 @@ export default async function ComplaintsPage({
 															{t(`clock_${fb}`)}
 														</Badge>
 														{r.feedbackDueAt && (
-															<p className="text-[0.65rem] text-muted-foreground">
+															<p className="text-[0.7rem] text-muted-foreground">
 																{fmt.format(r.feedbackDueAt)}
 															</p>
 														)}

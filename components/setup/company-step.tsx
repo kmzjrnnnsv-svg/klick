@@ -186,7 +186,7 @@ export function CompanyStep({
 						<li key={r}>{r}</li>
 					))}
 				</ul>
-				<p className="text-[0.65rem] text-muted-foreground">
+				<p className="text-[0.7rem] text-muted-foreground">
 					{t("noLegalAdvice")}
 				</p>
 			</section>

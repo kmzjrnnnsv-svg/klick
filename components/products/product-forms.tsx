@@ -614,7 +614,6 @@ const SBOM_ERRORS = new Set([
 	"sbom_invalid_json",
 	"sbom_unknown_format",
 	"sbom_unsupported_version",
-	"storageNotConfigured",
 ]);
 
 export function SbomUpload({ productId }: { productId: string }) {

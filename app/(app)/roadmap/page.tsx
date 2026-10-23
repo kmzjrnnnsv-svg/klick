@@ -235,7 +235,7 @@ function Timeline({
 					const list = byQuarter.get(q) ?? [];
 					return (
 						<section key={q} className="rounded-md border p-3">
-							<h2 className="lv-eyebrow mb-1 flex items-center justify-between text-[0.6rem] text-muted-foreground">
+							<h2 className="lv-eyebrow mb-1 flex items-center justify-between text-[0.7rem] text-muted-foreground">
 								{q.replace("-", " ")}
 								<span>{list.length}</span>
 							</h2>
@@ -262,7 +262,7 @@ function Timeline({
 			</div>
 			{undated.length > 0 && (
 				<section className="rounded-md border p-3 text-sm">
-					<h2 className="lv-eyebrow mb-1 text-[0.6rem] text-muted-foreground">
+					<h2 className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 						{labels.noDate}
 					</h2>
 					<ul className="flex flex-col gap-1">

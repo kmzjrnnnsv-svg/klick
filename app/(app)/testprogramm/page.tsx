@@ -141,7 +141,7 @@ export default async function TestProgrammePage({
 			</div>
 			<div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 				<div className="rounded-md border p-3">
-					<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+					<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("performed")}
 					</p>
 					<p className="font-serif-display text-3xl text-primary">
@@ -152,7 +152,7 @@ export default async function TestProgrammePage({
 					</p>
 				</div>
 				<div className="rounded-md border p-3">
-					<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+					<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("plannedOpen")}
 					</p>
 					<p className="font-serif-display text-3xl text-primary">
@@ -165,7 +165,7 @@ export default async function TestProgrammePage({
 					</p>
 				</div>
 				<div className="rounded-md border p-3">
-					<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+					<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("pentest")}
 					</p>
 					<Badge variant={status.pentestDone ? "success" : "warning"}>
@@ -176,7 +176,7 @@ export default async function TestProgrammePage({
 					</p>
 				</div>
 				<div className="rounded-md border p-3">
-					<p className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+					<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						TLPT (DORA Art. 26)
 					</p>
 					<Badge
@@ -201,7 +201,7 @@ export default async function TestProgrammePage({
 			</div>
 
 			<section className="mb-8">
-				<h2 className="lv-eyebrow mb-2 text-[0.6rem] text-muted-foreground">
+				<h2 className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground">
 					{t("bcmTitle")}
 				</h2>
 				<p className="mb-3 text-muted-foreground text-xs">{t("bcmLead")}</p>
@@ -242,7 +242,7 @@ export default async function TestProgrammePage({
 						})}
 					</ul>
 				)}
-				<h3 className="lv-eyebrow mt-6 mb-2 text-[0.6rem] text-muted-foreground">
+				<h3 className="lv-eyebrow mt-6 mb-2 text-[0.7rem] text-muted-foreground">
 					{t("sitesTitle")}
 				</h3>
 				<p className="mb-3 text-muted-foreground text-xs">
@@ -296,7 +296,7 @@ export default async function TestProgrammePage({
 
 			<section className="flex flex-col gap-3">
 				<div className="flex flex-wrap items-center justify-between gap-3">
-					<h2 className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+					<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("tests", { year })}
 					</h2>
 				</div>

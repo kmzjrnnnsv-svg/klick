@@ -1,3 +1,4 @@
+import type { PayoutStatus } from "@/db/schema/wallet";
 import { formatAmountDe } from "./core/amount";
 import { type AssetCode, assetOf } from "./core/assets";
 import type { WalletNetwork } from "./core/networks";
@@ -36,4 +37,26 @@ export const FAUCETS: Partial<
 		},
 		{ key: "faucetCircle", href: "https://faucet.circle.com" },
 	],
+};
+
+export const fmtDateTime = new Intl.DateTimeFormat("de-DE", {
+	dateStyle: "medium",
+	timeStyle: "short",
+	timeZone: "Europe/Berlin",
+});
+
+// Farbe je Stand einer Auszahlung (Badge-Varianten)
+export const PAYOUT_BADGE: Record<
+	PayoutStatus,
+	"warning" | "secondary" | "success" | "destructive" | "muted"
+> = {
+	awaiting_approval: "warning",
+	approved: "secondary",
+	signed: "secondary",
+	broadcast: "secondary",
+	confirmed: "success",
+	dropped: "destructive",
+	failed: "destructive",
+	cancelled: "muted",
+	expired: "muted",
 };

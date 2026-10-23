@@ -32,7 +32,7 @@ export async function MarketingHeader({
 						<Link
 							key={l.href}
 							href={l.href}
-							className="lv-eyebrow text-[0.62rem] text-muted-foreground transition-colors hover:text-foreground"
+							className="lv-eyebrow text-xs text-muted-foreground transition-colors hover:text-foreground"
 						>
 							{l.label}
 						</Link>

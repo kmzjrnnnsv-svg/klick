@@ -1,3 +1,4 @@
+import { PenLine } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -19,6 +20,7 @@ import { WatchButton } from "@/components/entity/watch-button";
 import { SheetView } from "@/components/evidence-studio/sheet-view";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -47,7 +49,6 @@ import {
 import { listControlTests } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
-import { env } from "@/lib/env";
 import { kindHashesFor } from "@/lib/evidence-studio/generate/service";
 import { loadSheetData, sheetFor } from "@/lib/evidence-studio/queries";
 import {
@@ -66,6 +67,7 @@ export default async function ControlDetailPage({
 	const control = CONTROL_BY_CODE.get(code);
 	if (!control) notFound();
 	const t = await getTranslations("Controls");
+	const ta = await getTranslations("Authoring");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const tf = await getTranslations("Frameworks");
@@ -118,10 +120,6 @@ export default async function ControlDetailPage({
 	const cov = await getOrgCoverageCached(ctx);
 	const fwNames = frameworkNameMap();
 	const canEdit = allows(ctx, { control: ["update"] });
-	const e = env();
-	const storageAvailable = Boolean(
-		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,
-	);
 
 	const orgFrameworks = new Set(cov?.frameworks ?? []);
 	const edges = (EDGES_BY_CONTROL.get(code) ?? [])
@@ -404,9 +402,14 @@ export default async function ControlDetailPage({
 							/>
 							<EvidenceForm
 								implementationId={row.implementationId}
-								storageAvailable={storageAvailable}
 								label={t("addEvidence")}
 							/>
+							<Button asChild variant="outline" size="sm">
+								<Link href={`/nachweise/verfassen?control=${code}`}>
+									<PenLine aria-hidden="true" />
+									{ta("galleryLink")}
+								</Link>
+							</Button>
 						</div>
 					) : null
 				}

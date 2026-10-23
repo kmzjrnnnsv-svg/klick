@@ -72,8 +72,7 @@ export default async function LandingPage() {
 			<MonogramPattern className="-z-10 pointer-events-none absolute inset-0 h-full w-full text-foreground/[0.04]" />
 
 			<section className="mx-auto max-w-5xl px-4 pt-20 pb-12 sm:px-6 sm:pt-28">
-				<p className="lv-eyebrow text-[0.62rem] text-brown">{t("eyebrow")}</p>
-				<h1 className="mt-5 max-w-3xl font-serif-display text-5xl text-primary leading-[1.02] sm:text-7xl">
+				<h1 className="max-w-3xl font-serif-display text-5xl text-primary leading-[1.02] sm:text-7xl">
 					{t("title")}
 				</h1>
 				<p className="mt-6 max-w-2xl text-lg text-muted-foreground leading-relaxed">
@@ -96,10 +95,7 @@ export default async function LandingPage() {
 			</section>
 
 			<section className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 sm:pt-12">
-				<p className="lv-eyebrow text-[0.6rem] text-muted-foreground">
-					{t("exampleEyebrow")}
-				</p>
-				<h2 className="mt-3 font-serif-display text-2xl text-primary sm:text-3xl">
+				<h2 className="font-serif-display text-2xl text-primary sm:text-3xl">
 					{t("exampleTitle")}
 				</h2>
 				<p className="mt-3 max-w-2xl text-muted-foreground">
@@ -108,7 +104,7 @@ export default async function LandingPage() {
 
 				<div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto_1fr]">
 					<article className="flex flex-col rounded-lg border border-border/60 bg-background/60 p-6">
-						<p className="lv-eyebrow text-[0.6rem] text-muted-foreground">
+						<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 							{t("withoutTitle")}
 						</p>
 						<ul className="mt-4 flex flex-col gap-2">
@@ -139,7 +135,7 @@ export default async function LandingPage() {
 					</div>
 
 					<article className="flex flex-col rounded-lg border border-brown bg-brown/5 p-6">
-						<p className="lv-eyebrow text-[0.6rem] text-brown">
+						<p className="lv-eyebrow text-[0.7rem] text-brown">
 							{t("withTitle")}
 						</p>
 						<p className="mt-4 text-muted-foreground text-xs">
@@ -222,7 +218,7 @@ export default async function LandingPage() {
 			<SectionDivider />
 
 			<section className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-				<p className="lv-eyebrow text-[0.62rem] text-brown">
+				<p className="lv-eyebrow text-[0.7rem] text-brown">
 					{t("sentenceEyebrow")}
 				</p>
 				<p className="mt-6 font-serif-display text-3xl text-primary leading-snug sm:text-4xl">

@@ -76,8 +76,6 @@ const NOT_ENFORCED: Partial<Record<Resource, readonly string[]>> = {
 	process: ["delete"],
 	product: ["delete"],
 	task: ["complete"],
-	// Auszahlungen kommen mit Phase 2 (Signer) — bis dahin prüft sie keine Aktion
-	wallet: ["initiate", "approve"],
 };
 
 const GRANTABLE_RESOURCES = new Set<Resource>(

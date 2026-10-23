@@ -299,7 +299,7 @@ export default async function NonconformityDetailPage({
 			<Section title={t("capa")}>
 				<dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
 					<div className="sm:col-span-2">
-						<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 							{t("rootCause")}
 						</dt>
 						<dd className={nc.rootCause ? "" : "text-destructive"}>
@@ -307,13 +307,13 @@ export default async function NonconformityDetailPage({
 						</dd>
 					</div>
 					<div>
-						<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 							{t("correction")}
 						</dt>
 						<dd>{nc.correction ?? "—"}</dd>
 					</div>
 					<div>
-						<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 							{t("correctiveAction")}
 						</dt>
 						<dd className={nc.correctiveAction ? "" : "text-warning"}>

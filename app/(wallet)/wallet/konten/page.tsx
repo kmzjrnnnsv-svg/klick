@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { AccountCard } from "@/components/wallet/account-card";
 import { NewAccountDialog } from "@/components/wallet/account-form";
+import { NewHotAccountDialog } from "@/components/wallet/hot-account-form";
 import { requireWalletPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
@@ -16,6 +17,7 @@ import {
 	frozenByAccount,
 	listWalletAccounts,
 } from "@/lib/wallet/queries";
+import { signerState } from "@/lib/wallet/signer/status";
 
 export const metadata: Metadata = { title: "Konten" };
 
@@ -44,12 +46,21 @@ export default async function WalletAccountsPage({
 	const networks = configuredNetworks()
 		.filter((n) => !NETWORKS[n].live)
 		.map((n) => ({ key: n, label: NETWORKS[n].label }));
+	// Hot-Konten nur, wenn der Signer dieser Org gehört und bereit ist
+	const signer = canManage ? await signerState(ctx.orgId) : null;
+	const hotNetworks =
+		signer?.state === "ready"
+			? networks.filter((n) => signer.hello?.networks.includes(n.key))
+			: [];
 	const create = canManage && (
-		<NewAccountDialog
-			networks={networks}
-			custodyWallets={custody}
-			defaultOpen={sp.neu === "1"}
-		/>
+		<div className="flex flex-wrap gap-2">
+			{hotNetworks.length > 0 && <NewHotAccountDialog networks={hotNetworks} />}
+			<NewAccountDialog
+				networks={networks}
+				custodyWallets={custody}
+				defaultOpen={sp.neu === "1"}
+			/>
+		</div>
 	);
 	return (
 		<>

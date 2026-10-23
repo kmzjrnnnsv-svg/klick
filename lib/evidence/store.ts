@@ -3,6 +3,7 @@ import {
 	controlEvidence,
 	controlImplementations,
 	evidence,
+	evidenceBlobs,
 	orgSettings,
 } from "@/db/schema";
 import type {
@@ -22,7 +23,7 @@ import { evaluateDlp, withDlpDefaults } from "@/lib/dlp/policy";
 import { env } from "@/lib/env";
 import { parseIsolated, screenResultSchema } from "@/lib/parse/client";
 import { clamdConfigured, scanBytes } from "@/lib/uploads/clamav";
-import { evidenceAad } from "./aad";
+import { DB_STORAGE_PREFIX, evidenceAad } from "./aad";
 
 // Gemeinsame Upload-Pipeline für Nachweise — Nachweis-Dialog, Gap-Analyse,
 // Scan-Import, Lieferantenportal nutzen dieselben Schritte:
@@ -31,7 +32,8 @@ import { evidenceAad } from "./aad";
 //      (fail closed, Treffer als denied im Audit), DLP-Bewertung nach
 //      Org-Regeln (blockieren / Warnung bestätigen / Klassifizierung anheben)
 //   2. storeEncryptedEvidence: Org-DEK, AAD an die ID gebunden, S3-Key
-//      org/<orgId>/nachweise/<uuid>, SHA-256 über den Klartext, DB-Zeile
+//      org/<orgId>/nachweise/<uuid> — ohne Objektspeicher derselbe Umschlag
+//      in evidence_blobs ("db:<uuid>") —, SHA-256 über den Klartext, DB-Zeile
 //   3. linkEvidenceToControl: Verknüpfung mit einer Control-Umsetzung
 
 export type EvidenceType =
@@ -198,7 +200,10 @@ export async function storeEncryptedEvidence(
 		.limit(1);
 	if (!s) throw new Error("org settings missing");
 	const id = input.id ?? crypto.randomUUID();
-	const storageKey = `org/${input.orgId}/nachweise/${id}`;
+	const inS3 = s3Configured();
+	const storageKey = inS3
+		? `org/${input.orgId}/nachweise/${id}`
+		: `${DB_STORAGE_PREFIX}${id}`;
 	const dek = await unwrapDek({
 		wrapped: s.encryptedDek,
 		keyVersion: s.keyVersion,
@@ -207,8 +212,11 @@ export async function storeEncryptedEvidence(
 		keyVersion: s.keyVersion,
 		aad: evidenceAad(id),
 	});
-	const { putBytes } = await import("@/lib/storage/s3");
-	await putBytes(storageKey, packEnvelope(sealed));
+	const packed = packEnvelope(sealed);
+	if (inS3) {
+		const { putBytes } = await import("@/lib/storage/s3");
+		await putBytes(storageKey, packed);
+	}
 	const sha256 = sha256Hex(input.bytes);
 	await tx.insert(evidence).values({
 		id,
@@ -228,6 +236,12 @@ export async function storeEncryptedEvidence(
 		source: input.source ?? "manual",
 		dlp: input.dlp ?? null,
 	});
+	if (!inS3)
+		await tx.insert(evidenceBlobs).values({
+			evidenceId: id,
+			organizationId: input.orgId,
+			envelope: packed,
+		});
 	return { id, storageKey, sha256 };
 }
 

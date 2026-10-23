@@ -62,7 +62,7 @@ export function IncidentClocks({
 								key={c.key}
 								className="flex flex-col gap-1 rounded-md border p-3 text-sm"
 							>
-								<span className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+								<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 									{c.label}
 								</span>
 								<span className="font-medium">

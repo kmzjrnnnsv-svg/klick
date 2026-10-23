@@ -43,8 +43,15 @@ export function renderMarkdown(doc: DocModel): string {
 	out.push(`**Organisation:** ${mdEscape(doc.org)}  `);
 	for (const [k, v] of doc.meta)
 		out.push(`**${mdEscape(k)}:** ${mdEscape(v)}  `);
-	out.push("");
-	for (const b of doc.blocks) {
+	out.push("", renderBlocksMarkdown(doc.blocks));
+	if (doc.footer) out.push("---", "", `_${mdEscape(doc.footer)}_`, "");
+	return out.join("\n");
+}
+
+// Nur die Abschnitte (z. B. Inhalt eines verfassten Nachweises in der App)
+export function renderBlocksMarkdown(blocks: readonly DocBlock[]): string {
+	const out: string[] = [];
+	for (const b of blocks) {
 		switch (b.type) {
 			case "heading":
 				out.push(`${"#".repeat(b.level + 1)} ${mdEscape(b.text)}`, "");
@@ -88,6 +95,5 @@ export function renderMarkdown(doc: DocModel): string {
 				break;
 		}
 	}
-	if (doc.footer) out.push("---", "", `_${mdEscape(doc.footer)}_`, "");
 	return out.join("\n");
 }

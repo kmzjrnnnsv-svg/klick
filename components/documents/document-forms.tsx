@@ -267,11 +267,7 @@ export function TemplatesDialog({
 }
 
 // Richtlinien-Import: Mehrfach-Upload → Nachweise (verschlüsselt) → Entwürfe.
-export function ImportDialog({
-	storageAvailable,
-}: {
-	storageAvailable: boolean;
-}) {
+export function ImportDialog() {
 	const t = useTranslations("Documents");
 	const te = useTranslations("Evidence");
 	const tc = useTranslations("Common");
@@ -284,12 +280,7 @@ export function ImportDialog({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button
-					size="sm"
-					variant="outline"
-					disabled={!storageAvailable}
-					title={storageAvailable ? undefined : te("storageNotConfigured")}
-				>
+				<Button size="sm" variant="outline">
 					<FileUp />
 					{t("import")}
 				</Button>

@@ -129,7 +129,7 @@ export default async function SetupStepPage({
 	return (
 		<div className="flex flex-col gap-8">
 			<nav aria-label={t("title")} className="flex flex-col gap-3">
-				<p className="lv-eyebrow text-[0.6rem] text-brown">
+				<p className="lv-eyebrow text-[0.7rem] text-brown">
 					{t("eyebrow")} ·{" "}
 					{t("stepOf", { n: idx + 1, total: SETUP_STEPS.length })}
 				</p>

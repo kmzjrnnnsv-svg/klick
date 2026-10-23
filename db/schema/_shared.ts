@@ -1,4 +1,10 @@
-import { type AnyPgColumn, jsonb, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+	type AnyPgColumn,
+	customType,
+	jsonb,
+	timestamp,
+	uuid,
+} from "drizzle-orm/pg-core";
 import { organization, user } from "../auth-schema";
 
 // Gemeinsame Spaltenbausteine. Spaltennamen entstehen über
@@ -36,3 +42,10 @@ export const timestamps = () => ({
 
 export const stringList = () => jsonb().$type<string[]>().notNull().default([]);
 export const json = <T>() => jsonb().$type<T>();
+
+// Binärdaten (bytea) als Uint8Array — postgres-js liefert Buffer
+export const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
+	dataType: () => "bytea",
+	toDriver: (v) => Buffer.from(v),
+	fromDriver: (v) => new Uint8Array(v),
+});

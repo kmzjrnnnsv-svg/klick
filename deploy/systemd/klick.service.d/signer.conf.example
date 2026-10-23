@@ -1,0 +1,6 @@
+# /etc/systemd/system/klick.service.d/signer.conf — App an den Signer anbinden
+# (Plan Wallet, Phase 2). Die App läuft als User/Gruppe klick und darf damit
+# app.sock (0660, Gruppe klick) benutzen, admin.sock nie.
+[Service]
+Environment=SIGNER_SOCKET=/run/klick-signer/app.sock
+Environment=CONFIRM_ORIGIN=https://freigabe.raza.work

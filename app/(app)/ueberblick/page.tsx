@@ -446,7 +446,7 @@ export default async function OverviewPage() {
 											</Link>
 										)}
 										{s.phase && !s.done && (
-											<span className="ml-auto text-[0.58rem] tracking-[0.12em] text-muted-foreground">
+											<span className="ml-auto text-[0.7rem] tracking-[0.12em] text-muted-foreground">
 												{s.phase}
 											</span>
 										)}

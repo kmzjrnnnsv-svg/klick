@@ -283,7 +283,7 @@ export default async function AuditCockpitPage({
 			</div>
 			<dl className="mb-6 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
 				<div>
-					<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+					<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("frameworks")}
 					</dt>
 					<dd className="flex flex-wrap gap-1">
@@ -301,7 +301,7 @@ export default async function AuditCockpitPage({
 					</dd>
 				</div>
 				<div>
-					<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+					<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("auditors")}
 					</dt>
 					<dd className="flex flex-wrap gap-2">
@@ -315,7 +315,7 @@ export default async function AuditCockpitPage({
 					</dd>
 				</div>
 				<div>
-					<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+					<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("owner")}
 					</dt>
 					<dd>
@@ -323,7 +323,7 @@ export default async function AuditCockpitPage({
 					</dd>
 				</div>
 				<div>
-					<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+					<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 						{t("requests")}
 					</dt>
 					<dd className="font-serif-display text-xl text-primary">
@@ -332,7 +332,7 @@ export default async function AuditCockpitPage({
 				</div>
 				{readiness && (
 					<div>
-						<dt className="lv-eyebrow text-[0.52rem] text-muted-foreground">
+						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
 							{tr("title")} · {fmtDate.format(readinessAsOf)}
 						</dt>
 						<dd className="flex items-center gap-2">
@@ -562,7 +562,7 @@ export default async function AuditCockpitPage({
 									)}
 									{r.responseNote && (
 										<div className="rounded-md bg-muted/40 p-2 text-xs">
-											<p className="lv-eyebrow mb-1 text-[0.5rem] text-muted-foreground">
+											<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
 												{t("response")}
 											</p>
 											<p className="whitespace-pre-wrap">{r.responseNote}</p>
@@ -655,7 +655,7 @@ export default async function AuditCockpitPage({
 													{f.description}
 												</p>
 											)}
-											<p className="text-muted-foreground text-[0.65rem]">
+											<p className="text-muted-foreground text-[0.7rem]">
 												{names.get(f.createdByUserId ?? "") ?? "—"} ·{" "}
 												{fmtDate.format(f.createdAt)}
 												{f.requirementCode ? ` · ${f.requirementCode}` : ""}

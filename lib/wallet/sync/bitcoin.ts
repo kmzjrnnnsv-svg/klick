@@ -5,7 +5,8 @@ import type { TransferObservation } from "./types";
 // listsinceblock → Bewegungen. Eingänge nur an eigene Adressen; Ausgänge
 // (z. B. von der Hardware-Wallet aus gesendet) mit Ziel als Gegenpartei und
 // der Gebühr als eigener Position, damit die Summe dem Bestand entspricht.
-// Reorg: `removed` und Konflikte (Bestätigungen < 0) fallen heraus.
+// Reorg: `removed` und Konflikte (Bestätigungen < 0) fallen heraus, ebenso
+// unbestätigte Transaktionen, die eine Gebührenerhöhung (RBF) ersetzt hat.
 
 export function btcObservations(
 	since: BtcSinceBlock,
@@ -16,7 +17,10 @@ export function btcObservations(
 	const seen = new Set<string>();
 	const feeDone = new Set<string>();
 	for (const e of since.transactions) {
-		if (e.confirmations < 0 || e.abandoned) {
+		const replaced =
+			e.confirmations === 0 &&
+			(Boolean(e.replaced_by_txid) || (e.mempoolconflicts?.length ?? 0) > 0);
+		if (e.confirmations < 0 || e.abandoned || replaced) {
 			gone.add(e.txid);
 			continue;
 		}

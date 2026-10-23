@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="klick-api" content="https://raza.work">
+<title>Freigabe bestätigen · Klick</title>
+<link rel="stylesheet" href="/style.css">
+<script type="module" src="/confirm.js"></script>
+</head>
+<body>
+<main class="card" aria-labelledby="title">
+	<p class="brand">Klick · Freigabe</p>
+	<h1 id="title">Absicht wird geladen …</h1>
+	<p id="lead" class="lead"></p>
+	<p id="banner" class="banner" role="alert" hidden></p>
+	<dl id="facts" class="facts"></dl>
+	<div id="actions" class="actions"></div>
+	<p id="status" class="status" role="status" aria-live="polite"></p>
+	<details id="raw" hidden>
+		<summary>Text, den dein Schlüssel unterschreibt</summary>
+		<pre id="rawtext"></pre>
+	</details>
+</main>
+<footer class="note">
+	Prüfe Betrag und Ziel auf dieser Seite, nicht in Klick. Sie liest den Text
+	der Absicht selbst und zeigt genau das, was dein Sicherheitsschlüssel
+	unterschreibt. Stimmt etwas nicht: nicht bestätigen und in Klick „Alles stoppen“.
+</footer>
+</body>
+</html>

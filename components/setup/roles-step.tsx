@@ -216,7 +216,7 @@ function FunctionRow({
 						<p className="text-muted-foreground text-xs">{fn.hint}</p>
 					)}
 					{fn.legalBasis && (
-						<p className="text-[0.65rem] text-muted-foreground">
+						<p className="text-[0.7rem] text-muted-foreground">
 							{fn.legalBasis}
 						</p>
 					)}

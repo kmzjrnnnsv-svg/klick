@@ -52,7 +52,7 @@ export function AccountabilityView({
 						key={s.key}
 						className="break-inside-avoid rounded-md border p-3 print:rounded-none"
 					>
-						<h2 className="lv-eyebrow mb-1 flex items-center justify-between text-[0.6rem] text-muted-foreground print:text-black">
+						<h2 className="lv-eyebrow mb-1 flex items-center justify-between text-[0.7rem] text-muted-foreground print:text-black">
 							{s.title}
 							<span>{s.items.length}</span>
 						</h2>

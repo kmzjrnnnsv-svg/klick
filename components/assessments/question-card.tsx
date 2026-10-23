@@ -48,7 +48,6 @@ export function QuestionCard({
 	canAnswer,
 	canDelegate,
 	canImportDocument,
-	storageAvailable,
 }: {
 	assessmentId: string;
 	question: AssessmentQuestion;
@@ -65,7 +64,6 @@ export function QuestionCard({
 	canAnswer: boolean;
 	canDelegate: boolean;
 	canImportDocument: boolean;
-	storageAvailable: boolean;
 }) {
 	const t = useTranslations("Assessment");
 	const td = useTranslations("Dlp");
@@ -345,7 +343,7 @@ export function QuestionCard({
 						))}
 					</ul>
 				)}
-				{!readOnly && storageAvailable && (
+				{!readOnly && (
 					<section
 						aria-label={t("dropHere")}
 						className={cn(

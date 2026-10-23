@@ -41,11 +41,9 @@ const CLASSES = ["public", "internal", "confidential", "secret"] as const;
 // Nachweis hinzufügen: Datei (verschlüsselt) oder Link/Attestierung.
 export function EvidenceForm({
 	implementationId,
-	storageAvailable,
 	label,
 }: {
 	implementationId?: string;
-	storageAvailable: boolean;
 	label?: string;
 }) {
 	const t = useTranslations("Evidence");
@@ -99,11 +97,7 @@ export function EvidenceForm({
 						setDlpReasons(warn);
 						return;
 					}
-					toast.error(
-						up.error === "storageNotConfigured"
-							? t("storageNotConfigured")
-							: feedback.errorText(up),
-					);
+					toast.error(feedback.errorText(up));
 					return;
 				}
 				if (up.data.dlpRaised)
@@ -126,11 +120,9 @@ export function EvidenceForm({
 			}
 			if (!res.ok) {
 				toast.error(
-					res.error === "storageNotConfigured"
-						? t("storageNotConfigured")
-						: res.error.startsWith("upload_")
-							? `${tc("error")} (${res.error.slice(7)})`
-							: tc("error"),
+					res.error.startsWith("upload_")
+						? `${tc("error")} (${res.error.slice(7)})`
+						: tc("error"),
 				);
 				return;
 			}
@@ -221,11 +213,9 @@ export function EvidenceForm({
 					<DialogTitle>{t("new")}</DialogTitle>
 					<DialogDescription>{t("lead")}</DialogDescription>
 				</DialogHeader>
-				<Tabs defaultValue={storageAvailable ? "upload" : "link"}>
+				<Tabs defaultValue="upload">
 					<TabsList>
-						<TabsTrigger value="upload" disabled={!storageAvailable}>
-							{t("upload")}
-						</TabsTrigger>
+						<TabsTrigger value="upload">{t("upload")}</TabsTrigger>
 						<TabsTrigger value="link">{t("link")}</TabsTrigger>
 					</TabsList>
 					<TabsContent value="upload">
