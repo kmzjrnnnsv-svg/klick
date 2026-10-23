@@ -63,6 +63,19 @@ async function main() {
 				}
 				await client.btc.listWallets();
 				ok("Wallet-RPC erreichbar");
+				// Senden (Phase 2): Gebührenschätzung muss auf der Whitelist stehen
+				try {
+					const rate = await client.btc.estimateSmartFee(2);
+					ok(
+						"Senden: Gebührenschätzung",
+						rate ? `${rate} BTC/kvB` : "noch keine",
+					);
+				} catch (e) {
+					bad(
+						"Senden: estimatesmartfee",
+						e instanceof Error ? e.message : String(e),
+					);
+				}
 			} else {
 				const rpc = client.eth;
 				const chainId = await rpc.chainId();
@@ -90,6 +103,19 @@ async function main() {
 						toAddress: ["0x0000000000000000000000000000000000000000"],
 					});
 					ok("trace-API verfügbar");
+				}
+				// Senden (Phase 2): Gebühren für Typ-2-Transaktionen
+				try {
+					const fees = await rpc.feeHistory();
+					ok(
+						"Senden: Gebühren",
+						`Basis ${fees.nextBaseFee / 1_000_000_000n} gwei, Trinkgeld ${fees.priorityFee} wei`,
+					);
+				} catch (e) {
+					bad(
+						"Senden: eth_feeHistory",
+						e instanceof Error ? e.message : String(e),
+					);
 				}
 				// Chainlink-Feeds: Beschreibung, 8 Stellen, frische Runde
 				for (const feed of FEEDS[network] ?? []) {

@@ -170,4 +170,55 @@ export class EthereumRpc {
 			hexToBigInt,
 		);
 	}
+
+	// ── Senden ────────────────────────────────────────────────────────────
+
+	transactionCount(
+		address: string,
+		tag: "latest" | "pending",
+	): Promise<bigint> {
+		return this.call<Hex>("eth_getTransactionCount", [address, tag]).then(
+			hexToBigInt,
+		);
+	}
+
+	// Basisgebühr des nächsten Blocks und Median-Trinkgeld der letzten Blöcke
+	async feeHistory(
+		blocks = 5,
+	): Promise<{ nextBaseFee: bigint; priorityFee: bigint }> {
+		const r = await this.call<{ baseFeePerGas: Hex[]; reward?: Hex[][] }>(
+			"eth_feeHistory",
+			[toHex(blocks), "latest", [50]],
+		);
+		const base = r.baseFeePerGas[r.baseFeePerGas.length - 1] ?? "0x0";
+		const rewards = (r.reward ?? [])
+			.map((x) => hexToBigInt(x[0] ?? "0x0"))
+			.sort((a, b) => (a === b ? 0 : a < b ? -1 : 1));
+		const median = rewards[Math.floor(rewards.length / 2)] ?? 0n;
+		return { nextBaseFee: hexToBigInt(base), priorityFee: median };
+	}
+
+	estimateGas(tx: {
+		from: string;
+		to: string;
+		value?: bigint;
+		data?: string;
+	}): Promise<bigint> {
+		return this.call<Hex>("eth_estimateGas", [
+			{
+				from: tx.from,
+				to: tx.to,
+				value: toHex(tx.value ?? 0n),
+				...(tx.data ? { data: tx.data } : {}),
+			},
+		]).then(hexToBigInt);
+	}
+
+	code(address: string): Promise<Hex> {
+		return this.call<Hex>("eth_getCode", [address, "latest"]);
+	}
+
+	sendRawTransaction(raw: string): Promise<Hex> {
+		return this.call<Hex>("eth_sendRawTransaction", [raw]);
+	}
 }

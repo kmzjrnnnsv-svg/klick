@@ -406,7 +406,9 @@ bringt.
     nicht einfach zurücksetzen.
 
 **Lokal ohne Knoten:** `pnpm wallet:devchain` (Nachbau von Bitcoin Core und Reth mit Faucet,
-Blöcken, Reorg; Steuerung über `POST :18443/dev/…` bzw. `:18545/dev/…`) und in `.env.local`
+Blöcken, Reorg und Senden wie ein Knoten — Signaturen, Doppelausgabe, RBF, Nonces, Gas,
+Circle-Sperre; Steuerung über `POST :18443/dev/{faucet,mine,reorg,fee}` bzw.
+`:18545/dev/{faucet,mine,basefee,blacklist}`) und in `.env.local`
 `WALLET_RPC_BITCOIN_SIGNET=http://dev:dev@127.0.0.1:18443`,
 `WALLET_RPC_ETHEREUM_SEPOLIA=http://127.0.0.1:18545`. `scripts/qa/wallet-smoke.ts` spielt damit
 Entsperren und Empfangen komplett durch. Die Testkette ersetzt nicht die Abnahme mit echten

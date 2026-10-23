@@ -9,6 +9,7 @@ const EXACT = new Set([
 	// getbalance liefert den Betrag direkt als Ergebnis
 	"result",
 	"amount",
+	"feerate",
 	"fee",
 	"balance",
 	"trusted",
@@ -32,6 +33,10 @@ export type BtcSinceBlockEntry = {
 	txid: string;
 	time: number;
 	abandoned?: boolean;
+	// durch eine Transaktion mit höherer Gebühr ersetzt (RBF; Bitcoin Core ≥ 28
+	// meldet Konflikte im Mempool, prüfen gegen den echten Knoten)
+	replaced_by_txid?: string;
+	mempoolconflicts?: string[];
 };
 
 export type BtcSinceBlock = {
@@ -146,12 +151,45 @@ export class BitcoinRpc {
 		);
 	}
 
+	// Mit `hex` (vollständige Transaktion) — Vorgänger-Transaktion fürs Senden
 	getTransaction(wallet: string, txid: string) {
-		return this.call<{ confirmations: number; txid: string }>(
+		return this.call<{ confirmations: number; txid: string; hex: string }>(
 			"gettransaction",
 			[txid, true],
 			{ wallet },
 		);
+	}
+
+	// Unverbrauchte Ausgänge der Beobachtungs-Wallet (Beträge exakt als Text)
+	listUnspent(wallet: string, minconf: number) {
+		return this.call<
+			{
+				txid: string;
+				vout: number;
+				address?: string;
+				amount: string;
+				confirmations: number;
+			}[]
+		>("listunspent", [minconf, 9_999_999, [], true], { wallet });
+	}
+
+	// Gebührensatz in BTC/kvB (exakt) oder null ohne Schätzung
+	async estimateSmartFee(blocks: number): Promise<string | null> {
+		const r = await this.call<{ feerate?: string; errors?: string[] }>(
+			"estimatesmartfee",
+			[blocks, "conservative"],
+		);
+		return r.feerate ?? null;
+	}
+
+	testMempoolAccept(rawHex: string) {
+		return this.call<
+			{ txid: string; allowed: boolean; "reject-reason"?: string }[]
+		>("testmempoolaccept", [[rawHex]]);
+	}
+
+	sendRawTransaction(rawHex: string) {
+		return this.call<string>("sendrawtransaction", [rawHex]);
 	}
 
 	// Mit Vorgänger-Ausgaben (Verbosity 2) — für die Sanktionsprüfung der
