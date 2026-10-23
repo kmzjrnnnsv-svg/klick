@@ -37,3 +37,9 @@ export const FAUCETS: Partial<
 		{ key: "faucetCircle", href: "https://faucet.circle.com" },
 	],
 };
+
+export const fmtDateTime = new Intl.DateTimeFormat("de-DE", {
+	dateStyle: "medium",
+	timeStyle: "short",
+	timeZone: "Europe/Berlin",
+});

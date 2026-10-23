@@ -50,6 +50,19 @@ export const hotAccountSchema = z.object({
 	network: z.enum(WALLET_NETWORKS),
 });
 
+// Zieladresse vorschlagen (Freigabe per Sicherheitsschlüssel, 24 h Wartezeit)
+export const proposeDestinationSchema = z.object({
+	network: z.enum(WALLET_NETWORKS),
+	address: z.string().trim().min(10, "Adresse fehlt").max(120),
+	label: z.string().trim().min(2, "Bezeichnung fehlt").max(80),
+});
+
+// Veto: jederzeit, nur mit Grund (bremst nur)
+export const vetoDestinationSchema = z.object({
+	id: z.uuid(),
+	reason: z.string().trim().min(3, "Grund fehlt").max(300),
+});
+
 export const walletAccountUpdateSchema = z.object({
 	id: z.uuid(),
 	name: z.string().trim().min(2, "Name fehlt").max(80),
