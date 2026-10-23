@@ -1,5 +1,5 @@
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
-import { evidence, roleAssignments } from "@/db/schema";
+import { evidence, evidenceSignatures, roleAssignments } from "@/db/schema";
 import type { RoleFunction } from "@/db/schema/enums";
 import type { AuditInput } from "@/lib/audit";
 import { getOrgSummary } from "@/lib/auth/org";
@@ -285,6 +285,12 @@ export type KindOverviewRow = {
 	editLabel: string;
 	generatable: boolean;
 	latest: { id: string; createdAt: string; validUntil: string | null } | null;
+	// Unterschriften unter dem letzten Nachweis
+	signatures: { name: string; function: string | null; signedAt: string }[];
+	// Funktion, in der ich unterschreiben soll (noch offen), sonst null
+	signAs: string | null;
+	// offene Unterschriften (Funktionen ohne Unterschrift)
+	openSigners: number;
 	state:
 		| "missing"
 		| "current"
@@ -301,8 +307,22 @@ export async function kindOverview(
 	orgId: string,
 	codes: readonly string[],
 	today: string,
+	me?: { userId: string },
 ): Promise<KindOverviewRow[]> {
 	const rows: KindOverviewRow[] = [];
+	const myFunctions = me
+		? (
+				await tx
+					.select({ function: roleAssignments.function })
+					.from(roleAssignments)
+					.where(
+						and(
+							eq(roleAssignments.organizationId, orgId),
+							eq(roleAssignments.userId, me.userId),
+						),
+					)
+			).map((r) => r.function as string)
+		: [];
 	for (const code of codes) {
 		const kind = EVIDENCE_KIND_BY_CODE.get(code);
 		if (!kind) continue;
@@ -341,6 +361,25 @@ export async function kindOverview(
 								: current && latest.contentSha256 !== current
 									? "stale"
 									: "current";
+		const sigs = latest
+			? await tx
+					.select({
+						signerUserId: evidenceSignatures.signerUserId,
+						name: evidenceSignatures.signerName,
+						function: evidenceSignatures.function,
+						signedAt: evidenceSignatures.signedAt,
+					})
+					.from(evidenceSignatures)
+					.where(
+						and(
+							eq(evidenceSignatures.organizationId, orgId),
+							eq(evidenceSignatures.evidenceId, latest.id),
+						),
+					)
+			: [];
+		const signedFns = new Set(sigs.map((x) => x.function));
+		const iSigned = sigs.some((x) => x.signerUserId === me?.userId);
+		const mine = kind.signers.find((sg) => myFunctions.includes(sg.function));
 		rows.push({
 			code,
 			title: kind.title,
@@ -357,6 +396,18 @@ export async function kindOverview(
 						validUntil: latest.validUntil,
 					}
 				: null,
+			signatures: sigs.map((x) => ({
+				name: x.name,
+				function: x.function,
+				signedAt: x.signedAt.toISOString(),
+			})),
+			signAs:
+				latest && mine && !iSigned && state !== "expired"
+					? mine.function
+					: null,
+			openSigners: latest
+				? kind.signers.filter((sg) => !signedFns.has(sg.function)).length
+				: 0,
 			state,
 		});
 	}

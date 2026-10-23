@@ -211,6 +211,13 @@ export async function SheetView({
 																{produced.validUntil
 																	? ` · ${t("kindValidUntil", { date: date(produced.validUntil) })}`
 																	: ""}
+																{" · "}
+																<Link
+																	href={`/nachweise/${produced.id}/unterschriften`}
+																	className="text-primary hover:underline"
+																>
+																	{t("signatures")}
+																</Link>
 															</>
 														) : (
 															t("kindNotProduced")

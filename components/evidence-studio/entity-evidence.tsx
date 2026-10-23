@@ -35,12 +35,21 @@ export async function EntityEvidence({
 			)}
 			<span className="text-muted-foreground text-xs">
 				{latest ? (
-					<a
-						href={`/api/nachweise/${latest.id}`}
-						className="text-primary hover:underline"
-					>
-						{t("kindProduced", { date: fmtDate.format(latest.createdAt) })}
-					</a>
+					<>
+						<a
+							href={`/api/nachweise/${latest.id}`}
+							className="text-primary hover:underline"
+						>
+							{t("kindProduced", { date: fmtDate.format(latest.createdAt) })}
+						</a>
+						{" · "}
+						<a
+							href={`/nachweise/${latest.id}/unterschriften`}
+							className="text-primary hover:underline"
+						>
+							{t("signatures")}
+						</a>
+					</>
 				) : (
 					t("kindNotProduced")
 				)}

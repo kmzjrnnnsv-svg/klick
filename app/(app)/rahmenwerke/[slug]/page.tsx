@@ -149,6 +149,7 @@ export default async function FrameworkPage({
 						ctx.orgId,
 						evidenceKindsForFrameworks([slug]).map((k) => k.code),
 						berlinToday(),
+						{ userId: ctx.userId },
 					);
 					return { progress, notApplicable: data.notApplicable, kinds };
 				})

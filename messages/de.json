@@ -5701,7 +5701,8 @@
 		"kindState_per_entity": "je Datensatz",
 		"generatePdf": "Als PDF-Nachweis erzeugen",
 		"kindState_no_data": "noch keine Daten",
-		"noData": "Im Register steht noch nichts dafür – erst ausfüllen, dann erzeugen."
+		"noData": "Im Register steht noch nichts dafür – erst ausfüllen, dann erzeugen.",
+		"signatures": "Unterschriften"
 	},
 	"AuditRegimes": {
 		"lead": "Jedes Rahmenwerk hat eigene Audittermine und eigene Fristen für die Nacharbeit. Ohne eigene Festlegung gelten die Werte aus dem Katalog; ohne Regime im Katalog: Hauptabweichung Maßnahmenplan 30 Tage, Umsetzung 90 Tage – Nebenabweichung Maßnahmenplan 90 Tage, Umsetzung bis zum nächsten Audit, höchstens 365 Tage.",
@@ -5730,5 +5731,42 @@
 		"resetDone": "Katalogwerte gelten wieder; deine Daten bleiben.",
 		"stepUp": "Bitte bestätige erst mit deinem Passkey.",
 		"invalid": "Bitte prüf die Werte: Monate 0–120, Tage 1–1095."
+	},
+	"Signatures": {
+		"sign": "Unterschreiben",
+		"signAll": "{count, plural, one {# Nachweis unterschreiben} other {# Nachweise gesammelt unterschreiben}}",
+		"signing": "Bestätige mit deinem Passkey…",
+		"signed": "{count, plural, one {Unterschrieben.} other {# Nachweise unterschrieben.}}",
+		"noPasskey": "Zum Unterschreiben brauchst du einen Passkey – lege ihn unter Einstellungen → Sicherheit an.",
+		"prepareFailed": "Unterschrift nicht möglich: Nachweis geändert oder du hast die Funktion nicht inne.",
+		"cancelled": "Bestätigung abgebrochen.",
+		"expired": "Die Anfrage ist abgelaufen – bitte noch einmal unterschreiben.",
+		"invalid": "Unterschrift nicht gültig: Passkey, Inhalt oder Einmalwert passen nicht.",
+		"signedBy": "Unterschrieben von {names}",
+		"check": "Unterschriften prüfen",
+		"open": "{count, plural, one {wartet auf # Unterschrift} other {wartet auf # Unterschriften}}"
+	},
+	"SignatureCheck": {
+		"eyebrow": "Nachweis",
+		"lead": "Jede Unterschrift wird hier mit dem gespeicherten öffentlichen Schlüssel neu geprüft. Mit signaturen.json geht das auch ohne Klick.",
+		"download": "Nachweis herunterladen",
+		"json": "signaturen.json",
+		"file": "Datei",
+		"sha256": "SHA-256",
+		"created": "Erzeugt am",
+		"none": "Noch keine Unterschriften.",
+		"valid": "gültig",
+		"invalid": "ungültig",
+		"batch": "Sammelunterschrift",
+		"checkText": "Text passt zum Nachweis",
+		"checkAssertion": "Passkey-Signatur gültig",
+		"checkAssertionFailed": "Passkey-Signatur ungültig ({reason})",
+		"checkUv": "Nutzerverifikation",
+		"checkMerkle": "Pfad zur Sammel-Wurzel",
+		"synced": "Passkey synchronisiert",
+		"deviceBound": "Passkey gerätegebunden",
+		"details": "Unterschriebener Text",
+		"credential": "Passkey-ID",
+		"legal": "Unterschrift per Passkey mit Nutzerverifikation: fortgeschrittene elektronische Signatur im Sinne von Art. 26 eIDAS (prüfen), keine qualifizierte elektronische Signatur. Wo das Gesetz Schriftform verlangt, reicht sie nicht."
 	}
 }

@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { SignButton } from "@/components/signatures/sign-button";
 import { Badge } from "@/components/ui/badge";
 import type { CatalogFramework } from "@/lib/compliance/catalog/types";
 import { fmtDate } from "@/lib/compliance/page-data";
+import { functionLabel } from "@/lib/evidence-studio/generate/doc";
 import type { KindOverviewRow } from "@/lib/evidence-studio/generate/service";
 import type { RequirementProgress } from "@/lib/evidence-studio/progress";
 import { GenerateAllButton } from "./generate-all-button";
@@ -41,6 +43,16 @@ export async function FrameworkEvidence({
 			k.generatable &&
 			(k.state === "missing" || k.state === "stale" || k.state === "expired"),
 	).length;
+	const ts = await getTranslations("Signatures");
+	// Sammelunterschrift: alles, was in derselben Funktion auf mich wartet
+	const toSign = kinds.filter((k) => k.signAs && k.latest);
+	const fnCounts = new Map<string, number>();
+	for (const k of toSign)
+		if (k.signAs) fnCounts.set(k.signAs, (fnCounts.get(k.signAs) ?? 0) + 1);
+	const batchFn = [...fnCounts].sort((a, b) => b[1] - a[1])[0]?.[0];
+	const batchIds = toSign
+		.filter((k) => k.signAs === batchFn)
+		.flatMap((k) => (k.latest ? [k.latest.id] : []));
 	const stateTone = {
 		current: "success",
 		stale: "warning",
@@ -61,9 +73,19 @@ export async function FrameworkEvidence({
 							</h2>
 							<p className="text-muted-foreground text-sm">{t("kindsLead")}</p>
 						</div>
-						{canCreate && (
-							<GenerateAllButton framework={framework.slug} due={due} />
-						)}
+						<div className="flex flex-wrap gap-2">
+							{batchFn && batchIds.length > 1 && (
+								<SignButton
+									evidenceIds={batchIds}
+									fn={batchFn}
+									size="default"
+									label={ts("signAll", { count: batchIds.length })}
+								/>
+							)}
+							{canCreate && (
+								<GenerateAllButton framework={framework.slug} due={due} />
+							)}
+						</div>
 					</div>
 					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
 						{kinds.map((k) => (
@@ -97,6 +119,34 @@ export async function FrameworkEvidence({
 											k.purpose
 										)}
 									</span>
+									{k.signatures.length > 0 && (
+										<span className="text-muted-foreground text-xs">
+											{ts("signedBy", {
+												names: k.signatures
+													.map(
+														(x) =>
+															`${x.name}${x.function ? ` (${functionLabel(x.function)})` : ""}`,
+													)
+													.join(", "),
+											})}
+											{k.latest && (
+												<>
+													{" · "}
+													<Link
+														href={`/nachweise/${k.latest.id}/unterschriften`}
+														className="text-primary hover:underline"
+													>
+														{ts("check")}
+													</Link>
+												</>
+											)}
+										</span>
+									)}
+									{k.latest && k.openSigners > 0 && (
+										<span className="text-warning text-xs">
+											{ts("open", { count: k.openSigners })}
+										</span>
+									)}
 								</div>
 								<Badge
 									variant={stateTone[k.state]}
@@ -110,6 +160,13 @@ export async function FrameworkEvidence({
 								>
 									{k.editLabel} →
 								</Link>
+								{k.signAs && k.latest && (
+									<SignButton
+										evidenceIds={[k.latest.id]}
+										fn={k.signAs}
+										label={ts("sign")}
+									/>
+								)}
 								{canCreate && k.generatable && k.state !== "no_data" && (
 									<GenerateButton
 										kindCode={k.code}
