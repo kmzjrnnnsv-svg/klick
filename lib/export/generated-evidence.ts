@@ -67,11 +67,15 @@ export async function generatedEvidenceEntries(
 			storageKey: item.storageKey,
 			dek: data.dek,
 		});
-		out.push({ name: `${DIR}/${item.fileName}`, data: bytes });
+		// je Datensatz eigener Name (gleiche Version am selben Tag sonst doppelt)
+		const fileName = item.entityId
+			? item.fileName.replace(/\.pdf$/, `-${item.entityId.slice(0, 8)}.pdf`)
+			: item.fileName;
+		out.push({ name: `${DIR}/${fileName}`, data: bytes });
 		const sigs = data.signatures.filter((x) => x.evidenceId === item.id);
 		if (sigs.length > 0)
 			out.push({
-				name: `${DIR}/${item.fileName.replace(/\.pdf$/, "")}.signaturen.json`,
+				name: `${DIR}/${fileName.replace(/\.pdf$/, "")}.signaturen.json`,
 				data: JSON.stringify(
 					signaturesJson({
 						evidence: {
@@ -88,7 +92,7 @@ export async function generatedEvidenceEntries(
 				),
 			});
 		lines.push(
-			`| ${item.kindCode} | ${item.title.replace(/\|/g, "/")} | ${item.fileName} | ${sigs.length} |`,
+			`| ${item.kindCode} | ${item.title.replace(/\|/g, "/")} | ${fileName} | ${sigs.length} |`,
 		);
 	}
 	out.unshift({

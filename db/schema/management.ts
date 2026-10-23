@@ -130,6 +130,11 @@ export const roleAssignments = pgTable(
 		pendingEmail: text(),
 		appointedAt: date(),
 		deputyUserId: userRef(),
+		// Organigramm (N3): Funktion, an die diese Funktion berichtet; leer =
+		// direkt an die Geschäftsleitung (bei management_body: oberste Ebene)
+		reportsToFunction: text({ enum: ROLE_FUNCTIONS }),
+		// Ergänzungen zum Bestellungsschreiben (Aufgaben, Befugnisse, Budget)
+		appointmentNotes: text(),
 		evidenceId: uuid().references(() => evidence.id, { onDelete: "set null" }),
 		fitProperStatus: text({
 			enum: ["not_required", "pending", "confirmed", "rejected"],

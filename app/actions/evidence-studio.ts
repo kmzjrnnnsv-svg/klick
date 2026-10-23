@@ -165,6 +165,7 @@ async function generateEvidenceImpl(
 	revalidatePath("/controls", "layout");
 	revalidatePath("/rahmenwerke", "layout");
 	revalidatePath("/nachweise");
+	revalidatePath("/organisation");
 	return { ok: true, data: { id: res.id, reused: res.reused } };
 }
 

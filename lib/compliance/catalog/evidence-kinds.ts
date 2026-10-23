@@ -30,6 +30,8 @@ export type EvidenceKind = {
 	controls: readonly string[];
 	covers: readonly string[];
 	signers: readonly EvidenceSigner[];
+	// approve (Standard) = Freigabe, acknowledge = Kenntnisnahme
+	signPurpose?: "approve" | "acknowledge";
 	reviewMonths: number;
 	// Pflichtdokument der Norm („(P)“)
 	mandatory: boolean;
@@ -145,6 +147,47 @@ export const EVIDENCE_KINDS: readonly EvidenceKind[] = [
 		covers: ["Rollenbeschreibungen ISB", "Rollenregister"],
 		signers: GL_ANY,
 		reviewMonths: 12,
+		mandatory: false,
+	},
+	{
+		code: "NW-ORGANIGRAMM",
+		title: "Organigramm",
+		purpose:
+			"Aufbau der Funktionen mit Berichtswegen, Besetzung und Vertretung; Unabhängigkeitsfunktionen berichten direkt an die Leitung.",
+		scope: "org",
+		edit: { href: "/organisation?tab=rollen", label: "Berichtswege pflegen" },
+		requirements: [
+			"iso27001:5.3",
+			"dora:Art.6(1-4)",
+			"zag-marisk:AT4.3.1",
+			"zag-marisk:AT4.4.1",
+		],
+		controls: ["CC-GOV-02", "CC-GOV-19"],
+		covers: ["Organigramm", "Organigramm mit drei Linien"],
+		signers: GL_ANY,
+		reviewMonths: 12,
+		mandatory: false,
+	},
+	{
+		code: "NW-BESTELLUNG",
+		title: "Bestellungsschreiben",
+		purpose:
+			"Bestellung je Funktion mit Aufgaben, Befugnissen, Berichtsweg und Ressourcen, unterschrieben von Geschäftsleitung und bestellter Person.",
+		scope: "per_entity",
+		entityType: "role_assignment",
+		edit: { href: "/organisation?tab=rollen", label: "Funktion öffnen" },
+		requirements: [
+			"iso27001:5.3",
+			"zag-marisk:AT4.4.1",
+			"gwg:§7",
+			"amlr:Art.11",
+			"dsgvo:Art.37-39",
+		],
+		controls: ["CC-GOV-02", "CC-AML-03", "CC-PRV-06"],
+		covers: ["Bestellungsschreiben", "Bestellung", "Bestellung DSB"],
+		// dazu die bestellte Person (Generator: extraSigners)
+		signers: GL_ANY,
+		reviewMonths: 24,
 		mandatory: false,
 	},
 	{

@@ -1,5 +1,6 @@
 import type { OrgTx } from "@/lib/db/with-org";
 import type { DocBlock } from "@/lib/export/doc-model";
+import type { SignerSlot } from "./doc";
 
 // Ein Generator je Nachweisart: `load` liest die Registerdaten der Org
 // (Namen schon aufgelöst, keine feldverschlüsselten Inhalte — der
@@ -20,6 +21,11 @@ export type Generator<F = unknown> = {
 	dependsOnEvidence?: boolean;
 	// je Datensatz (scope per_entity): wählbare Datensätze
 	entities?(tx: OrgTx, orgId: string): Promise<{ id: string; label: string }[]>;
+	// zusätzliche Unterzeichnende aus den Fakten (z. B. die bestellte Person
+	// beim Bestellungsschreiben) — neben kind.signers
+	extraSigners?(facts: F): SignerSlot[];
+	// Controls je Datensatz (Teilmenge von kind.controls), z. B. GWB → AML
+	controls?(facts: F): readonly string[];
 };
 
 // Typ-Hilfe: Generator mit eigenen Fakten in die Registry legen

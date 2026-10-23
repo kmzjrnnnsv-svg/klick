@@ -136,6 +136,9 @@ export async function generateKindEvidence(
 	const kind = EVIDENCE_KIND_BY_CODE.get(code);
 	const gen = GENERATORS.get(code);
 	if (!kind || !gen) return { ok: false, error: "unknown_kind" };
+	// je Org genau ein Strang, je Datensatz nur mit Datensatz
+	if ((kind.scope === "org") === Boolean(entityId))
+		return { ok: false, error: "not_found" };
 	const facts = await gen.load(tx, ctx.orgId, entityId);
 	if (facts === null) return { ok: false, error: "not_found" };
 	const snapshot: Snapshot = {
@@ -169,7 +172,10 @@ export async function generateKindEvidence(
 		title: built.title,
 		subtitle: built.subtitle,
 		blocks: built.blocks,
-		signers: await signerSlots(tx, ctx.orgId, kind.signers),
+		signers: [
+			...(await signerSlots(tx, ctx.orgId, kind.signers)),
+			...(gen.extraSigners?.(facts) ?? []),
+		],
 	});
 	const pdf = renderPdf(doc, {
 		attachments: [
@@ -209,7 +215,10 @@ export async function generateKindEvidence(
 			supersedesId: latest?.id ?? null,
 		})
 		.where(eq(evidence.id, id));
-	for (const c of kind.controls) {
+	const controls = gen.controls
+		? kind.controls.filter((c) => gen.controls?.(facts).includes(c))
+		: kind.controls;
+	for (const c of controls) {
 		const impl = await implementationFor(tx, ctx.orgId, c);
 		if (impl) await linkEvidenceToControl(tx, ctx.orgId, impl.id, id);
 	}
@@ -227,7 +236,7 @@ export async function generateKindEvidence(
 					version,
 					contentSha256: hash,
 					supersedesId: latest?.id ?? null,
-					controls: kind.controls,
+					controls,
 				},
 			},
 		],
@@ -273,6 +282,77 @@ export async function generatedFor(
 	contentSha256: string | null;
 } | null> {
 	return (await latestOf(tx, orgId, code, entityId ?? null)).latest;
+}
+
+// Unterschriften unter einem erzeugten Nachweis: wer schon unterschrieben
+// hat, welche Funktionen noch fehlen und in welcher ich jetzt unterschreiben
+// kann (je Funktion eine Unterschrift; zusätzliche Unterzeichnende wie die
+// bestellte Person kommen aus dem gespeicherten Schnappschuss)
+export async function evidenceSignState(
+	tx: OrgTx,
+	orgId: string,
+	code: string,
+	evidenceId: string,
+	userId: string,
+): Promise<{
+	signatures: { name: string; function: string | null; signedAt: string }[];
+	signAs: string | null;
+	open: string[];
+}> {
+	const kind = EVIDENCE_KIND_BY_CODE.get(code);
+	const gen = GENERATORS.get(code);
+	const [row] = await tx
+		.select({ snapshot: evidence.snapshot })
+		.from(evidence)
+		.where(and(eq(evidence.organizationId, orgId), eq(evidence.id, evidenceId)))
+		.limit(1);
+	const facts = (row?.snapshot as { facts?: unknown } | null)?.facts;
+	const required = [
+		...new Set([
+			...(kind?.signers ?? []).map((sg) => sg.function as string),
+			...(facts !== undefined && gen?.extraSigners
+				? gen.extraSigners(facts).map((sg) => sg.function)
+				: []),
+		]),
+	];
+	const [sigs, mine] = await Promise.all([
+		tx
+			.select({
+				signerUserId: evidenceSignatures.signerUserId,
+				name: evidenceSignatures.signerName,
+				function: evidenceSignatures.function,
+				signedAt: evidenceSignatures.signedAt,
+			})
+			.from(evidenceSignatures)
+			.where(
+				and(
+					eq(evidenceSignatures.organizationId, orgId),
+					eq(evidenceSignatures.evidenceId, evidenceId),
+				),
+			)
+			.orderBy(evidenceSignatures.signedAt),
+		tx
+			.select({ function: roleAssignments.function })
+			.from(roleAssignments)
+			.where(
+				and(
+					eq(roleAssignments.organizationId, orgId),
+					eq(roleAssignments.userId, userId),
+				),
+			),
+	]);
+	const signed = new Set(sigs.map((x) => x.function));
+	const open = required.filter((f) => !signed.has(f));
+	const myFns = new Set(mine.map((m) => m.function as string));
+	return {
+		signatures: sigs.map((x) => ({
+			name: x.name,
+			function: x.function,
+			signedAt: x.signedAt.toISOString(),
+		})),
+		signAs: open.find((f) => myFns.has(f)) ?? null,
+		open,
+	};
 }
 
 export type KindOverviewRow = {

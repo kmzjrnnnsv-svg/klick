@@ -2147,7 +2147,24 @@
 		"basis_mfa": "{withMfa} von {total} Konten mit Inhaber- oder Bearbeitungsrechten mit Passkey oder TOTP",
 		"basis_findings": "{n, plural, =0 {kein kritischer Befund} one {ein kritischer Befund} other {# kritische Befunde}} über der Frist",
 		"basis_accessReviews": "Access-Reviews in {quarters} von 4 abgeschlossenen Quartalen",
-		"measuredAt": "Messdatum"
+		"measuredAt": "Messdatum",
+		"reportsTo": "Berichtet an",
+		"reportsToTop": "Geschäftsleitung (direkt)",
+		"appointmentNotes": "Ergänzungen zur Bestellung",
+		"appointmentNotesPlaceholder": "z. B. Budget, Zeitanteil, zusätzliche Aufgaben…",
+		"appointmentNotesHint": "Aufgaben, Befugnisse und Berichtsweg kommen aus der Vorlage je Funktion; hier steht, was bei euch dazukommt.",
+		"orgChartTitle": "Organigramm",
+		"orgChartLead": "Aufbau der Funktionen über „Berichtet an“. Ohne Angabe berichtet eine Funktion direkt an die Geschäftsleitung.",
+		"orgChartEmpty": "Noch keine Funktionen eingetragen.",
+		"orgChartVacant": "nicht besetzt",
+		"orgChartGenerate": "Organigramm als PDF erzeugen",
+		"orgChartDeputy": "Vertretung: {name}",
+		"orgChartAria": "Organigramm mit {count, plural, one {# Funktion} other {# Funktionen}}",
+		"appointmentLetter": "Bestellungsschreiben",
+		"appointmentGenerate": "Bestellungsschreiben erzeugen",
+		"warnNotDirect": "{fn} berichtet an {parent} statt unmittelbar an die Geschäftsleitung ({basis}).",
+		"warnCycle": "{fn}: Berichtsweg im Kreis – vorläufig unter der Geschäftsleitung eingeordnet.",
+		"warnNoManagement": "Keine Geschäftsleitung eingetragen – das Organigramm hat keine Spitze."
 	},
 	"Decisions": {
 		"ask": "Entscheidung anfragen",
@@ -5745,7 +5762,13 @@
 		"invalid": "Unterschrift nicht gültig: Passkey, Inhalt oder Einmalwert passen nicht.",
 		"signedBy": "Unterschrieben von {names}",
 		"check": "Unterschriften prüfen",
-		"open": "{count, plural, one {wartet auf # Unterschrift} other {wartet auf # Unterschriften}}"
+		"open": "{count, plural, one {wartet auf # Unterschrift} other {wartet auf # Unterschriften}}",
+		"signAs": "Als {fn} unterschreiben",
+		"acknowledgeAs": "Als {fn} zur Kenntnis nehmen",
+		"signedPrefix": "Unterschrieben:",
+		"signedLine": "{name} ({fn}), {date}",
+		"openFor": "wartet auf {fns}",
+		"acknowledge": "Zur Kenntnis nehmen"
 	},
 	"SignatureCheck": {
 		"eyebrow": "Nachweis",

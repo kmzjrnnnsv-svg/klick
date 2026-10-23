@@ -14,6 +14,7 @@ import { ShareholderForm } from "@/components/casp/shareholder-form";
 import { Sparkline } from "@/components/entity/sparkline";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
+import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
 import {
 	ApplyGovernanceSeedButton,
 	CommunicationForm,
@@ -23,6 +24,7 @@ import {
 	PartyForm,
 	RegulatorInteractionForm,
 } from "@/components/organisation/governance-forms";
+import { OrgChart } from "@/components/organisation/org-chart";
 import {
 	MeasurementForm,
 	ObjectiveForm,
@@ -54,6 +56,7 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
 import { allows } from "@/lib/auth/permissions";
+import { appointable } from "@/lib/compliance/catalog/appointment-templates";
 import { loadIndicatorData } from "@/lib/compliance/indicator-data";
 import {
 	objectiveTemplateKey,
@@ -64,6 +67,7 @@ import {
 	type IndicatorState,
 	indicatorState,
 } from "@/lib/compliance/indicators";
+import { buildOrgChart } from "@/lib/compliance/org-chart";
 import { fmtDate, shortFrameworkName } from "@/lib/compliance/page-data";
 import { insuranceState } from "@/lib/compliance/privacy";
 import {
@@ -603,6 +607,38 @@ export default async function OrganisationPage({
 
 			{"checklists" in data && (
 				<section className="flex flex-col gap-6">
+					<section aria-labelledby="org-chart" className="flex flex-col gap-3">
+						<div className="flex flex-wrap items-start justify-between gap-3">
+							<div className="flex flex-col gap-1">
+								<h2
+									id="org-chart"
+									className="font-serif-display text-lg text-primary"
+								>
+									{t("orgChartTitle")}
+								</h2>
+								<p className="text-muted-foreground text-sm">
+									{t("orgChartLead")}
+								</p>
+							</div>
+							<EntityEvidence
+								ctx={ctx}
+								code="NW-ORGANIGRAMM"
+								generateLabel={t("orgChartGenerate")}
+							/>
+						</div>
+						<OrgChart
+							{...buildOrgChart(
+								gov.assignments.map((a) => ({
+									function: a.function,
+									reportsToFunction: a.reportsToFunction,
+									holder: a.holderName ?? a.pendingEmail,
+									deputy: a.deputyName,
+								})),
+								gov.required.map((r) => r.function),
+							)}
+							functionLabels={functionLabels}
+						/>
+					</section>
 					<div className="flex items-start justify-between gap-3">
 						<p className="text-muted-foreground text-sm">{t("rolesLead")}</p>
 						{canRoles && (
@@ -668,6 +704,16 @@ export default async function OrganisationPage({
 												<p className="text-muted-foreground text-xs">
 													{it.required.hint}
 												</p>
+											)}
+											{a && appointable(a.function) && (
+												<div className="mt-2">
+													<EntityEvidence
+														ctx={ctx}
+														code="NW-BESTELLUNG"
+														entityId={a.id}
+														generateLabel={t("appointmentGenerate")}
+													/>
+												</div>
 											)}
 										</TableCell>
 										<TableCell>
@@ -759,6 +805,8 @@ export default async function OrganisationPage({
 																		fitProperChecklist: cl,
 																		documentsValidUntil: a.documentsValidUntil,
 																		reviewAt: a.reviewAt,
+																		reportsToFunction: a.reportsToFunction,
+																		appointmentNotes: a.appointmentNotes,
 																	}
 																: undefined
 														}
@@ -785,7 +833,19 @@ export default async function OrganisationPage({
 									const cl = data.checklists[idx];
 									return (
 										<TableRow key={a.id} className="text-muted-foreground">
-											<TableCell>{functionLabels[a.function]}</TableCell>
+											<TableCell>
+												{functionLabels[a.function]}
+												{appointable(a.function) && (
+													<div className="mt-2">
+														<EntityEvidence
+															ctx={ctx}
+															code="NW-BESTELLUNG"
+															entityId={a.id}
+															generateLabel={t("appointmentGenerate")}
+														/>
+													</div>
+												)}
+											</TableCell>
 											<TableCell>
 												{a.userId ? (
 													<UserChip name={a.holderName} />
@@ -824,6 +884,8 @@ export default async function OrganisationPage({
 																fitProperChecklist: cl,
 																documentsValidUntil: a.documentsValidUntil,
 																reviewAt: a.reviewAt,
+																reportsToFunction: a.reportsToFunction,
+																appointmentNotes: a.appointmentNotes,
 															}}
 														/>
 														<DeleteRowButton

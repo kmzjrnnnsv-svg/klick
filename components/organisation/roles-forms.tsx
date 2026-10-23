@@ -55,6 +55,8 @@ export type RoleAssignmentDraft = {
 	fitProperChecklist?: FitProperChecklist | null;
 	documentsValidUntil?: string | null;
 	reviewAt?: string | null;
+	reportsToFunction?: RoleFunction | null;
+	appointmentNotes?: string | null;
 };
 
 const CHECKLIST_KEYS = [
@@ -132,6 +134,11 @@ export function RoleAssignmentForm({
 							appointedAt: d.appointedAt || null,
 							documentsValidUntil: d.documentsValidUntil || null,
 							reviewAt: d.reviewAt || null,
+							reportsToFunction:
+								d.function === "management_body"
+									? null
+									: (d.reportsToFunction ?? null),
+							appointmentNotes: d.appointmentNotes?.trim() || null,
 							fitProperChecklist: showFitProper ? checklist : null,
 						}),
 					);
@@ -203,6 +210,17 @@ export function RoleAssignmentForm({
 					value={d.reviewAt ?? ""}
 					onChange={(v) => setD({ ...d, reviewAt: v })}
 				/>
+				{d.function !== "management_body" && (
+					<FunctionSelect
+						label={t("reportsTo")}
+						value={d.reportsToFunction}
+						onChange={(v) => setD({ ...d, reportsToFunction: v })}
+						labels={functionLabels}
+						allowNone
+						noneLabel={t("reportsToTop")}
+						exclude={d.function}
+					/>
+				)}
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("fitProper")}</Label>
 					<Select
@@ -238,6 +256,22 @@ export function RoleAssignmentForm({
 					/>
 				)}
 			</div>
+			{d.function !== "management_body" && (
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor="ra-notes">{t("appointmentNotes")}</Label>
+					<Textarea
+						id="ra-notes"
+						rows={3}
+						maxLength={4000}
+						placeholder={t("appointmentNotesPlaceholder")}
+						value={d.appointmentNotes ?? ""}
+						onChange={(e) => setD({ ...d, appointmentNotes: e.target.value })}
+					/>
+					<p className="text-muted-foreground text-xs">
+						{t("appointmentNotesHint")}
+					</p>
+				</div>
+			)}
 			{showFitProper && (
 				<fieldset className="flex flex-col gap-2 rounded-md border p-3">
 					<legend className="lv-eyebrow px-1 text-[0.52rem] text-muted-foreground">

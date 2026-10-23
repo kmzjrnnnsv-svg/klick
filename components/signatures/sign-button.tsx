@@ -18,13 +18,19 @@ import { Button } from "@/components/ui/button";
 export function SignButton({
 	evidenceIds,
 	fn = "-",
+	purpose = "approve",
 	label,
+	fullLabel,
 	size = "sm",
 	variant = "outline",
 }: {
 	evidenceIds: string[];
 	fn?: string;
+	// approve = Freigabe, acknowledge = Kenntnisnahme (z. B. Bericht an die GL)
+	purpose?: "approve" | "acknowledge" | "review";
 	label: string;
+	// ausführlicher Name für Screenreader/Tooltip (enthält `label`)
+	fullLabel?: string;
 	size?: "sm" | "default";
 	variant?: "outline" | "default";
 }) {
@@ -37,7 +43,7 @@ export function SignButton({
 			const prep = await prepareEvidenceSignature({
 				evidenceIds,
 				function: fn,
-				purpose: "approve",
+				purpose,
 			});
 			if (!prep.ok)
 				return void toast.error(
@@ -76,6 +82,8 @@ export function SignButton({
 			className={size === "sm" ? "h-7 gap-1.5 px-2.5 text-xs" : "gap-1.5"}
 			disabled={pending || evidenceIds.length === 0}
 			onClick={run}
+			title={fullLabel}
+			aria-label={fullLabel}
 		>
 			<PenLine className="size-3.5" aria-hidden="true" />
 			{pending ? t("signing") : label}

@@ -3,6 +3,7 @@ import { auditbericht } from "../kinds/auditbericht";
 import { auditprogramm } from "../kinds/auditprogramm";
 import { behandlungsplan } from "../kinds/behandlungsplan";
 import { beschluesse } from "../kinds/beschluesse";
+import { bestellung } from "../kinds/bestellung";
 import { dokumentenlenkung } from "../kinds/dokumentenlenkung";
 import { findings } from "../kinds/findings";
 import { kenntnisnahme } from "../kinds/kenntnisnahme";
@@ -12,6 +13,7 @@ import { kontext } from "../kinds/kontext";
 import { leitlinie } from "../kinds/leitlinie";
 import { managementbewertung } from "../kinds/managementbewertung";
 import { messung } from "../kinds/messung";
+import { organigramm } from "../kinds/organigramm";
 import { parteien } from "../kinds/parteien";
 import { prozesslandkarte } from "../kinds/prozesslandkarte";
 import { raci } from "../kinds/raci";
@@ -34,6 +36,8 @@ const ALL: readonly Generator[] = [
 	prozesslandkarte,
 	raci,
 	rollen,
+	organigramm,
+	bestellung,
 	beschluesse,
 	kommunikation,
 	leitlinie,
