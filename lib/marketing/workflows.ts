@@ -1,3 +1,6 @@
+import { DOCUMENT_TEMPLATES } from "@/lib/compliance/catalog/document-templates";
+import { RISK_SCENARIOS } from "@/lib/compliance/catalog/risk-scenarios";
+import { EVIDENCE_TEMPLATES } from "@/lib/evidence-authoring/templates";
 // /funktionen — alle Abläufe in Klick, öffentlich erklärt. Jeder Ablauf:
 // was ihn auslöst, welche Schritte folgen, was am Ende prüfbar vorliegt und
 // wo er in der App liegt. Inhalt in Du-Form (Test tests/marketing-workflows),
@@ -165,6 +168,22 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 					"Prüfbare PDFs an den passenden Controls; sie zählen sofort in der Prüfungsreife und liegen im Prüfungspaket.",
 			},
 			{
+				key: "evidence-authoring",
+				name: "Nachweise in Klick verfassen",
+				summary: `Kein Link, kein Screenshot? Aus ${EVIDENCE_TEMPLATES.length} Rohlingen (Protokolle, Listen, Checklisten, Bestätigungen) wird ein prüfbarer Nachweis.`,
+				where: "Nachweise → In Klick verfassen",
+				trigger:
+					"Eine Position im Nachweisbogen ist offen, und es gibt keine Datei dafür.",
+				steps: [
+					"Klick schlägt den passenden Rohling vor, etwa Übungsprotokoll, Rezertifizierung oder Liste der Schlüsselinhaber:innen.",
+					"Gemeinsam ausfüllen: Teilnehmende, Ablauf, Prüfpunkte, Ergebnis; Tabellen fügst du aus Excel ein.",
+					"Abschließen: ein PDF mit Prüfsumme, verknüpft mit den Controls; Maßnahmen werden Aufgaben, das Ergebnis ein Wirksamkeitstest.",
+					"Unterschreiben per Passkey; Änderungen gehen als neue Fassung, die alte bleibt.",
+				],
+				result:
+					"Aufzeichnungen, die Prüfer:innen anerkennen: mit Datum, Personen, Ergebnis und Unterschrift.",
+			},
+			{
 				key: "signatures",
 				name: "Unterschrift per Passkey",
 				summary:
@@ -188,7 +207,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				where: "Dokumente",
 				trigger: "Neues Dokument, Vorlage oder Import.",
 				steps: [
-					"Entwurf schreiben oder Datei hochladen; 39 Vorlagen stehen bereit.",
+					`Entwurf schreiben oder Datei hochladen; ${DOCUMENT_TEMPLATES.length} Vorlagen stehen bereit.`,
 					"Zur Prüfung geben und freigeben lassen (Vier-Augen-Prinzip).",
 					"Veröffentlichen: der Verteiler bekommt die Kenntnisnahme auf „Heute“.",
 					"Nach dem Prüfzyklus erinnert Klick an die Überarbeitung.",
@@ -246,7 +265,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				where: "Risiken",
 				trigger: "Neues Risiko, leer oder aus einer Quelle.",
 				steps: [
-					"Szenario aus 67 Vorlagen wählen, gefiltert nach deinen Rahmenwerken.",
+					`Szenario aus ${RISK_SCENARIOS.length} Vorlagen wählen, gefiltert nach deinen Rahmenwerken.`,
 					"Eintritt und Schaden je Schadensart einschätzen; die Höhe rechnet Klick.",
 					"Maßnahmen anlegen; jede wird eine Aufgabe mit Frist.",
 					"Über dem Risikoappetit: Akzeptanz nur mit Freigabe.",

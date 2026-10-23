@@ -43,7 +43,7 @@ describe("Abläufe auf /funktionen", () => {
 
 	it("zählt die Abläufe richtig und bleibt überschaubar", () => {
 		expect(WORKFLOW_COUNT).toBe(all.length);
-		expect(all.length).toBeLessThanOrEqual(40);
+		expect(all.length).toBeLessThanOrEqual(45);
 		for (const g of WORKFLOW_GROUPS)
 			expect(g.workflows.length).toBeGreaterThan(0);
 	});
