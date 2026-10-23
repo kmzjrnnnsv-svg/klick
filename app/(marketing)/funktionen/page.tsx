@@ -90,6 +90,35 @@ export default async function FeaturesPage() {
 				</div>
 			</section>
 
+			{/* Rundgang: kurzes Video (Beispieldaten), startet nur auf Klick */}
+			<section className={s.tour} aria-labelledby="fn-tour">
+				<div className={s.tourHead}>
+					<h2 id="fn-tour" className={s.h2} data-r="">
+						{t("tourTitle")}
+					</h2>
+					<p className={s.atlasLead} data-r="">
+						{t("tourLead")}
+					</p>
+				</div>
+				<video
+					className={s.tourVideo}
+					controls
+					muted
+					playsInline
+					preload="none"
+					poster="/funktionen/rundgang.jpg"
+					width={1280}
+					height={720}
+					aria-describedby="fn-tour-text"
+				>
+					<source src="/funktionen/rundgang.mp4" type="video/mp4" />
+					<source src="/funktionen/rundgang.webm" type="video/webm" />
+				</video>
+				<p id="fn-tour-text" className={s.tourText}>
+					{t("tourText")}
+				</p>
+			</section>
+
 			{/* Ergebnisse: Namen links, das Blatt rechts (ohne Skript umschaltbar) */}
 			<section className={s.outputs} aria-labelledby="fn-outputs">
 				<h2 id="fn-outputs" className="sr-only">

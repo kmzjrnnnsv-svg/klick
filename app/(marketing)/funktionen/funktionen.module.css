@@ -354,6 +354,33 @@
 }
 
 /* ── Nachweise je Normpunkt: ISO 27001 Kapitel 4–10 ─────────────────── */
+/* ── Rundgang (Video) ─────────────────────────────────────────────── */
+.tour {
+	margin-top: 160px;
+	padding: 0 var(--edge);
+}
+.tourHead {
+	max-width: 620px;
+	margin-bottom: 32px;
+}
+.tourVideo {
+	display: block;
+	width: 100%;
+	max-width: 1120px;
+	height: auto;
+	aspect-ratio: 16 / 9;
+	border-radius: 6px;
+	background: var(--card);
+	box-shadow: 0 24px 64px rgb(7 7 7 / 0.12);
+}
+.tourText {
+	max-width: 62ch;
+	margin-top: 16px;
+	font-size: 15px;
+	line-height: 1.5;
+	color: var(--muted-foreground);
+}
+
 .clauses {
 	margin-top: 160px;
 	padding: 0 var(--edge);

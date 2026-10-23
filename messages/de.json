@@ -5381,7 +5381,10 @@
 		"clausesTitle": "Zu jedem Normpunkt der passende Nachweis",
 		"clausesLead": "Klick erzeugt die Nachweise aus dem, was du ohnehin pflegst, als PDF mit Prüfsumme und Unterschrift per Passkey. Hier für ISO 27001, Kapitel 4 bis 10; derselbe Nachweis zählt für jedes Rahmenwerk, das den Punkt kennt.",
 		"clausesNo": "Kapitel {n}:",
-		"clausesAlso": "Zählt auch für {list}"
+		"clausesAlso": "Zählt auch für {list}",
+		"tourTitle": "Klick in 24 Sekunden",
+		"tourLead": "Ein kurzer Rundgang: diese Seite und drei Ansichten aus Klick mit Beispieldaten.",
+		"tourText": "Ohne Ton. Zu sehen: der Titel „Einmal machen. Überall erfüllt.“, ein Lauf über diese Seite, dann der Risiko-Assistent, ein Freigabe-Ablauf und die Prüfungsreife je Rahmenwerk (Beispieldaten), am Ende raza.work."
 	},
 	"Wallet": {
 		"unlockTitle": "Wallet öffnen",
