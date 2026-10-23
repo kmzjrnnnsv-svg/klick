@@ -20,6 +20,8 @@ export const createOrganizationSchema = z.object({
 	applyBaseline: z.boolean().default(false),
 	// eigene Funktion im Unternehmen (D0), wird direkt zugewiesen
 	ownFunction: z.enum(ROLE_FUNCTIONS).optional(),
+	// Nur für Unternehmen, volljährig, Nutzungsbedingungen (docs/legal)
+	termsAccepted: z.literal(true, { error: "termsRequired" }),
 });
 export type CreateOrganizationInput = z.output<typeof createOrganizationSchema>;
 // Formular-Eingabetyp: Felder mit .default() sind hier optional.

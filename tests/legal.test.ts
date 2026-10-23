@@ -181,3 +181,61 @@ describe("robots.txt", () => {
 			expect(blocked(p), p).toBe(true);
 	});
 });
+
+describe("Preise und Laufzeit (PAngV, § 5 UWG)", () => {
+	it("Netto- und B2B-Hinweis steht an jeder öffentlichen Preisliste", async () => {
+		const { BILLING_NOTE } = await import("@/lib/marketing/billing");
+		expect(BILLING_NOTE).toMatch(/netto zuzüglich gesetzlicher Umsatzsteuer/);
+		expect(BILLING_NOTE).toMatch(/nur für Unternehmen \(§ 14 BGB\)/);
+		for (const f of [
+			"app/(marketing)/preise/page.tsx",
+			"app/(marketing)/leistungen/page.tsx",
+		]) {
+			const s = read(f);
+			if (s.includes("formatPrice("))
+				expect(s, `${f} ohne BILLING_NOTE`).toContain("{BILLING_NOTE}");
+		}
+	});
+
+	it("Kündigung überall gleich: zum Ende des Vertragsjahres, keine „Bindungsfreiheit“", async () => {
+		const { PLATFORM_SUPPLIER } = await import(
+			"@/lib/compliance/catalog/platform-supplier"
+		);
+		expect(PLATFORM_SUPPLIER.commitments["30(2)(h)"]).toMatch(
+			/zum Ende des Vertragsjahres/,
+		);
+		const { BILLING_CANCEL, BILLING_FAQ } = await import(
+			"@/lib/marketing/billing"
+		);
+		expect(BILLING_CANCEL).toMatch(/zum Ende des Vertragsjahres/);
+		expect(BILLING_FAQ.some((f) => /Vertragsjahres/.test(f.a))).toBe(true);
+		expect(read("docs/legal/nutzungsbedingungen.md")).toMatch(
+			/jederzeit zum Ende des laufenden Vertragsjahres kündigen/,
+		);
+		const texts = [
+			read("messages/de.json"),
+			read("lib/marketing/billing.ts"),
+			read("lib/marketing/services.ts"),
+			read("lib/marketing/workflows.ts"),
+		].join("\n");
+		expect(texts).not.toMatch(/keine Bindung|jederzeit raus/i);
+		expect(texts).not.toMatch(/Mindestfrist/);
+	});
+
+	it("Organisation nur mit Bestätigung „Unternehmen, volljährig, Nutzungsbedingungen“", async () => {
+		const { createOrganizationSchema } = await import("@/lib/validation/org");
+		const base = { name: "Muster GmbH", slug: "muster" };
+		expect(createOrganizationSchema.safeParse(base).success).toBe(false);
+		expect(
+			createOrganizationSchema.safeParse({ ...base, termsAccepted: false })
+				.success,
+		).toBe(false);
+		expect(
+			createOrganizationSchema.safeParse({ ...base, termsAccepted: true })
+				.success,
+		).toBe(true);
+		expect(read("app/actions/onboarding.ts")).toContain(
+			"TERMS_FLAG.acceptedAt",
+		);
+	});
+});

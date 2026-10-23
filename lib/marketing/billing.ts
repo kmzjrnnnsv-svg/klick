@@ -53,6 +53,16 @@ export const BILLING_TIMELINE: readonly { at: string; what: string }[] = [
 	},
 ];
 
+// Steht direkt an jeder Preisliste (PAngV; BGH I ZR 99/08: Beschränkung auf
+// Unternehmen muss klar erkennbar sein, „zzgl. USt.“ allein reicht nicht).
+export const BILLING_NOTE =
+	"Alle Preise netto zuzüglich gesetzlicher Umsatzsteuer. Klick und unsere Beratung gibt es nur für Unternehmen (§ 14 BGB), nicht für Verbraucher:innen.";
+
+// Laufzeit und Kündigung — gleichlautend in Nutzungsbedingungen
+// (docs/legal/nutzungsbedingungen.md) und Lieferantenpaket (platform-supplier.ts).
+export const BILLING_CANCEL =
+	"Kündigen könnt ihr jederzeit zum Ende des Vertragsjahres, vor dem ersten bestandenen Audit sogar sofort. Den vollständigen Export gibt es jederzeit; auf Wunsch helfen wir beim Übergang.";
+
 export const BILLING_FAQ: readonly { q: string; a: string }[] = [
 	{
 		q: "Was heißt „Audit bestanden“?",
@@ -65,6 +75,10 @@ export const BILLING_FAQ: readonly { q: string; a: string }[] = [
 	{
 		q: "Gibt es eine Monatszahlung?",
 		a: "Nein. Abgerechnet wird jährlich: die Software nach dem bestandenen Audit, Berater-Zugänge ab dem ersten Tag.",
+	},
+	{
+		q: "Wie lange sind wir gebunden?",
+		a: "Ein Vertragsjahr beginnt mit dem bestandenen Audit (bei Berater-Zugängen mit der Freischaltung) und verlängert sich jeweils um ein Jahr. Kündigen könnt ihr jederzeit zum Ende des Vertragsjahres, vor dem ersten bestandenen Audit sogar sofort, etwa indem ihr die Organisation löscht.",
 	},
 	{
 		q: "Was kostet ein Berater-Zugang?",

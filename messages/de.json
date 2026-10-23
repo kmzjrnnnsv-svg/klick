@@ -213,8 +213,8 @@
 		"q1A": "Nein. Klick strukturiert Anforderungen, Controls und Nachweise und erzeugt die Unterlagen. Rechtsrat, Zertifizierung und Abschlussprüfung bleiben bei den Fachleuten — die Unterlagen bringen sie schneller ans Ziel.",
 		"q2Q": "Wo liegen unsere Daten?",
 		"q2A": "In Deutschland. Jede Organisation hat ihren eigenen Verschlüsselungsschlüssel, die Datenbank trennt Mandanten per Row-Level-Security, Nachweise liegen verschlüsselt im Objektspeicher. Details unter Vertrauen & Sicherheit.",
-		"q3Q": "Können wir jederzeit raus?",
-		"q3A": "Ja. Der vollständige Export (ZIP mit SHA-256-Manifest) steht jederzeit zur Verfügung, offene Formate, keine Bindung. Beim Exit gibt es eine Löschbestätigung.",
+		"q3Q": "Wie kommen wir wieder raus?",
+		"q3A": "Kündigen könnt ihr jederzeit zum Ende des Vertragsjahres, vor dem ersten bestandenen Audit sogar sofort. Den vollständigen Export (ZIP mit SHA-256-Manifest, offene Formate) gibt es jederzeit. Beim Ausstieg bekommt ihr eine Löschbestätigung und auf Wunsch Hilfe beim Übergang.",
 		"q4Q": "Steuert ihr auch KYC oder Transaktionsmonitoring?",
 		"q4A": "Wir führen die Fachsysteme nicht aus, sondern steuern und belegen sie: als Dienstleister im Register, mit Controls, Tests, Regelwerk und Verdachtsmeldungs-Statistik — so wie Aufsicht und Prüfer es erwarten.",
 		"footnote": "Alle Stufen: Du-Form, deutsch, keine KI im Hintergrund. Abrechnung und Vertrag laufen bis zum Start des Self-Service über ein persönliches Gespräch.",
@@ -370,7 +370,9 @@
 		"ownFunctionHint": "Wird direkt unter Organisation → Rollen & Leitung eingetragen. Weitere Personen besetzt du im nächsten Schritt.",
 		"createAndContinue": "Anlegen und weiter",
 		"nextSteps": "Alles Weitere speichert Klick sofort; du kannst jederzeit unterbrechen und später weitermachen.",
-		"slugInvalid": "Nur Kleinbuchstaben, Ziffern und Bindestriche."
+		"slugInvalid": "Nur Kleinbuchstaben, Ziffern und Bindestriche.",
+		"termsLabel": "Ich lege die Organisation für ein Unternehmen an, bin dazu berechtigt und volljährig und akzeptiere die <terms>Nutzungsbedingungen</terms>.",
+		"privacyHint": "Wie wir Daten verarbeiten, steht in der <privacy>Datenschutzerklärung</privacy>."
 	},
 	"Today": {
 		"title": "Heute",
@@ -4068,7 +4070,7 @@
 		"formService": "Worum geht es?",
 		"formMessage": "Was steht an?",
 		"formMessagePlaceholder": "z. B. ISO 27001 bis Q3, zwei Web-Apps, rund 40 Lieferanten…",
-		"formConsent": "Meine Angaben dürfen gespeichert werden, um die Anfrage zu beantworten; gelöscht wird nach 12 Monaten. Mehr in der <link>Datenschutzerklärung</link>.",
+		"formBusiness": "Ich frage für ein Unternehmen an (unser Angebot richtet sich nicht an Verbraucher:innen). Wie wir deine Angaben verarbeiten und dass wir sie 12 Monate nach der letzten Bearbeitung löschen, steht in der <link>Datenschutzerklärung</link>.",
 		"formSubmit": "Anfrage senden",
 		"formSending": "Wird gesendet…",
 		"formHint": "Wir antworten per E-Mail.",

@@ -5,6 +5,7 @@ import { RevealRoot } from "@/components/marketing/reveal";
 import { loadPriceTable } from "@/lib/db/pricing";
 import {
 	BILLING_FAQ,
+	BILLING_NOTE,
 	BILLING_TERMS,
 	BILLING_TIMELINE,
 	withSeatPrice,
@@ -98,6 +99,9 @@ export default async function PricingPage() {
 						</li>
 					))}
 				</ul>
+				<p className={s.note} data-r="">
+					{BILLING_NOTE}
+				</p>
 			</section>
 
 			{/* Woran du vorher siehst, ob es reicht */}

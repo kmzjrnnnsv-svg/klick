@@ -362,6 +362,12 @@
 	font-size: var(--s3);
 	line-height: 1.15;
 }
+.billingNote {
+	grid-column: 1 / -1;
+	max-width: 70ch;
+	margin-top: 20px !important;
+	color: var(--soft);
+}
 .termWhen {
 	font-weight: 500;
 }

@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { InquiryForm } from "@/components/marketing/inquiry-form";
 import { RevealRoot } from "@/components/marketing/reveal";
 import { loadPriceTable } from "@/lib/db/pricing";
-import { BILLING_TERMS } from "@/lib/marketing/billing";
+import { BILLING_NOTE, BILLING_TERMS } from "@/lib/marketing/billing";
 import { FAQ, SERVICES } from "@/lib/marketing/services";
 import { formatPrice } from "@/lib/pricing/resolve";
 import { cn } from "@/lib/utils";
@@ -186,6 +186,9 @@ export default async function ServicesPage({
 						</li>
 					))}
 				</ul>
+				<p className={s.billingNote} data-r="">
+					{BILLING_NOTE}
+				</p>
 			</section>
 
 			{/* Häufige Fragen */}

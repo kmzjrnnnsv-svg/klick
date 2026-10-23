@@ -95,8 +95,11 @@ Version [2026-10] · Stand [TT.MM.JJJJ]
 2. Nach Vertragsende habt ihr 30 Tage Zeit für den Export. Danach löschen wir eure Organisation
    vollständig und bestätigen die Löschung in Textform; Sicherungen werden nach höchstens 30 weiteren
    Tagen überschrieben. Gesetzliche Aufbewahrungspflichten bleiben unberührt.
-3. **Übergang:** Auf Wunsch unterstützen wir euch beim Wechsel zu einem anderen Anbieter oder zurück in
-   den eigenen Betrieb (Art. 30 Abs. 3 lit. f DORA), zu einem angemessenen Preis nach Vereinbarung.
+3. **Übergang:** Auf Wunsch betreiben wir Klick nach Vertragsende bis zu sechs Monate weiter
+   (Übergangsfrist, Art. 30 Abs. 3 lit. f DORA), anteilig zu den bisherigen Konditionen, und
+   unterstützen euch beim Wechsel zu einem anderen Anbieter oder zurück in den eigenen Betrieb
+   (Migrationshilfe zu einem angemessenen Preis nach Vereinbarung). Die 30-Tage-Frist nach Abs. 2
+   beginnt dann mit dem Ende der Übergangsfrist.
 
 ## § 8 Mängel
 

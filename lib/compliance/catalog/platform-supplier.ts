@@ -99,7 +99,7 @@ export const PLATFORM_SUPPLIER = {
 		"30(2)(g)":
 			"Zusammenarbeit mit BaFin, Bundesbank, BSI und Abwicklungsbehörden; Auskünfte innerhalb der gesetzten Frist.",
 		"30(2)(h)":
-			"Kündigung mit angemessener Mindestfrist laut Vertrag; außerordentliche Kündigungsrechte nach Art. 28(7) ausdrücklich eingeräumt.",
+			"Ordentliche Kündigung jederzeit zum Ende des Vertragsjahres (vor dem ersten bestandenen Audit sofort); außerordentliche Kündigungsrechte nach Art. 28(7) ausdrücklich eingeräumt.",
 		"30(2)(i)":
 			"Teilnahme an Sensibilisierungsmaßnahmen des Kunden auf Anfrage.",
 		"30(3)(a)":
@@ -113,7 +113,7 @@ export const PLATFORM_SUPPLIER = {
 		"30(3)(e)":
 			"Zugangs-, Inspektions- und Auditrechte für Kunde, Prüfer und Behörden; Prüfungspaket mit Manifest auf Anfrage, Vor-Ort-Prüfung nach Terminabstimmung; /baseline als laufender Nachweis.",
 		"30(3)(f)":
-			"Ausstiegsstrategie: Weiterbetrieb während einer Übergangsfrist von mindestens sechs Monaten, Migrationsunterstützung, vollständiger Export, Löschbestätigung.",
+			"Ausstiegsstrategie: auf Wunsch Weiterbetrieb während einer Übergangsfrist von bis zu sechs Monaten nach Vertragsende (anteilig vergütet), Migrationsunterstützung, vollständiger Export, Löschbestätigung.",
 	} as Record<string, string>,
 	incident: {
 		customerNotificationHours: 24,
@@ -121,7 +121,7 @@ export const PLATFORM_SUPPLIER = {
 	},
 	exit: [
 		"Vollständiger Export jederzeit durch den Kunden selbst — ZIP mit SHA-256-Manifest, offene Formate (CSV, Markdown), Nachweise im Original.",
-		"Übergangsfrist von mindestens sechs Monaten mit Weiterbetrieb nach Kündigung.",
+		"Auf Wunsch Weiterbetrieb während einer Übergangsfrist von bis zu sechs Monaten nach Vertragsende, anteilig zu den bisherigen Konditionen.",
 		"Löschung durch Vernichtung des Mandantenschlüssels (Crypto-Shredding) und Löschung der Objekte; schriftliche Löschbestätigung mit Datum.",
 	],
 	dpa: "Auftragsverarbeitungsvertrag nach Art. 28 DSGVO ist Vertragsbestandteil; technische und organisatorische Maßnahmen entsprechen dem Stand auf /baseline; Subunternehmer wie oben, Änderungen mit Widerspruchsrecht.",

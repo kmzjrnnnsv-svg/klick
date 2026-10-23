@@ -38,6 +38,7 @@ export function OnboardingWizard({
 	const [slugError, setSlugError] = useState<string | null>(null);
 	const [fn, setFn] = useState<RoleFunction | "none">("management_body");
 	const [baseline, setBaseline] = useState(false);
+	const [terms, setTerms] = useState(false);
 
 	async function submit(e: React.FormEvent) {
 		e.preventDefault();
@@ -48,6 +49,7 @@ export function OnboardingWizard({
 			slug,
 			ownFunction: fn === "none" ? undefined : fn,
 			applyBaseline: canApplyBaseline && baseline,
+			termsAccepted: terms,
 		});
 		setBusy(false);
 		if (!res.ok) {
@@ -124,6 +126,7 @@ export function OnboardingWizard({
 			{canApplyBaseline && (
 				<label className="flex items-start gap-2 text-sm">
 					<Checkbox
+						id="ob-baseline"
 						checked={baseline}
 						onCheckedChange={(v) => setBaseline(Boolean(v))}
 						className="mt-0.5"
@@ -131,10 +134,45 @@ export function OnboardingWizard({
 					{t("applyBaseline")}
 				</label>
 			)}
+			<div className="flex items-start gap-2 text-sm">
+				<Checkbox
+					id="ob-terms"
+					required
+					checked={terms}
+					onCheckedChange={(v) => setTerms(Boolean(v))}
+					className="mt-0.5"
+				/>
+				<label htmlFor="ob-terms" className="text-sm leading-snug">
+					{t.rich("termsLabel", {
+						terms: (chunks) => (
+							<a
+								href="/nutzungsbedingungen"
+								target="_blank"
+								rel="noopener"
+								className="underline underline-offset-4"
+							>
+								{chunks}
+							</a>
+						),
+					})}{" "}
+					{t.rich("privacyHint", {
+						privacy: (chunks) => (
+							<a
+								href="/datenschutz-erklaerung"
+								target="_blank"
+								rel="noopener"
+								className="underline underline-offset-4"
+							>
+								{chunks}
+							</a>
+						),
+					})}
+				</label>
+			</div>
 			<Button
 				type="submit"
 				variant="brown"
-				disabled={busy || !name.trim() || slug.length < 2}
+				disabled={busy || !name.trim() || slug.length < 2 || !terms}
 			>
 				{t("createAndContinue")}
 			</Button>
