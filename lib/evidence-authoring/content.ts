@@ -129,9 +129,11 @@ function emptyBlock(
 			return { kind: "list", items: [] };
 		case "table": {
 			const cols = tableColumns(template, block, ctx.preset ?? null);
+			// ohne vorbelegte Zeilen eine leere zum Losschreiben
+			const rows = block.rows?.length ? block.rows : [cols.map(() => "")];
 			return {
 				kind: "table",
-				rows: (block.rows ?? []).map((r) => cols.map((_, i) => r[i] ?? "")),
+				rows: rows.map((r) => cols.map((_, i) => r[i] ?? "")),
 			};
 		}
 		case "checklist": {

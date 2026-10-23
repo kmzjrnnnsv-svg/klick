@@ -317,6 +317,8 @@ export const EVIDENCE_SOURCES = [
 	"decision_request",
 	// Nachweis-Werkstatt: von Klick aus Registern erzeugt
 	"klick",
+	// in Klick verfasst (Rohling)
+	"authored",
 ] as const;
 export type EvidenceSource = (typeof EVIDENCE_SOURCES)[number];
 

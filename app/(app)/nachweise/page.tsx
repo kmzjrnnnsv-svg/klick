@@ -1,3 +1,4 @@
+import { PenLine } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
@@ -5,6 +6,7 @@ import { EvidenceForm } from "@/components/entity/evidence-form";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UserChip } from "@/components/entity/user-chip";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
@@ -24,6 +26,7 @@ export default async function EvidencePage({
 	const ctx = await requireOrgPage({ evidence: ["read"] });
 	const sp = await searchParams;
 	const t = await getTranslations("Evidence");
+	const ta = await getTranslations("Authoring");
 	const te = await getTranslations("Entity");
 	const td = await getTranslations("Dlp");
 	const rows = await readOrg(toOrgCtx(ctx), (tx) =>
@@ -129,7 +132,19 @@ export default async function EvidencePage({
 		<RegisterPage
 			title={t("title")}
 			lead={t("lead")}
-			actions={canCreate ? <EvidenceForm /> : undefined}
+			actions={
+				canCreate ? (
+					<div className="flex flex-wrap items-center gap-2">
+						<Button asChild variant="outline" size="sm">
+							<Link href="/nachweise/verfassen">
+								<PenLine aria-hidden="true" />
+								{ta("galleryLink")}
+							</Link>
+						</Button>
+						<EvidenceForm />
+					</div>
+				) : undefined
+			}
 			filters={[
 				{
 					key: "type",
@@ -168,7 +183,19 @@ export default async function EvidencePage({
 					title={t("empty")}
 					lead={t("emptyLead")}
 					requiredBy={t("requiredBy")}
-					actions={canCreate ? <EvidenceForm /> : undefined}
+					actions={
+						canCreate ? (
+							<div className="flex flex-wrap items-center gap-2">
+								<Button asChild variant="outline" size="sm">
+									<Link href="/nachweise/verfassen">
+										<PenLine aria-hidden="true" />
+										{ta("galleryLink")}
+									</Link>
+								</Button>
+								<EvidenceForm />
+							</div>
+						) : undefined
+					}
 				/>
 			}
 		/>

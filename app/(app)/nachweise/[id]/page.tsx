@@ -6,7 +6,10 @@ import { ensureEvidenceStepUp } from "@/app/actions/evidence";
 import { DeleteEvidenceButton } from "@/components/entity/evidence-delete";
 import { ExportLink } from "@/components/entity/export-link";
 import { UserChip } from "@/components/entity/user-chip";
+import { NewVersionButton } from "@/components/evidence-authoring/start-draft";
+import { MarkdownView } from "@/components/markdown-view";
 import { PageHeader } from "@/components/page-header";
+import { SignButton } from "@/components/signatures/sign-button";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -17,7 +20,16 @@ import { evidenceDetail } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
 import { isDbStorageKey } from "@/lib/evidence/aad";
 import { s3Configured } from "@/lib/evidence/store";
+import { authoredBlocks } from "@/lib/evidence-authoring/render";
+import {
+	authoredContentOf,
+	authoredSignState,
+} from "@/lib/evidence-authoring/service";
+import { presetOf } from "@/lib/evidence-authoring/templates";
+import { functionLabel } from "@/lib/evidence-studio/generate/doc";
+import { evidenceSignState } from "@/lib/evidence-studio/generate/service";
 import { berlinToday } from "@/lib/evidence-studio/queries";
+import { renderBlocksMarkdown } from "@/lib/export/doc-model";
 
 const fmtSize = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
 const size = (bytes: number) =>
@@ -38,11 +50,40 @@ export default async function EvidenceDetailPage({
 	const ctx = await requireOrgPage({ evidence: ["read"] });
 	const t = await getTranslations("Evidence");
 	const td = await getTranslations("Dlp");
-	const data = await readOrg(toOrgCtx(ctx), (tx) =>
-		evidenceDetail(tx, ctx.orgId, id),
-	);
+	const ta = await getTranslations("Authoring");
+	const ts = await getTranslations("Signatures");
+	const tf = await getTranslations("Functions");
+	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
+		const detail = await evidenceDetail(tx, ctx.orgId, id);
+		if (!detail) return null;
+		const { row } = detail;
+		return {
+			...detail,
+			authored: row.templateKey
+				? await authoredContentOf(tx, ctx.orgId, row.id)
+				: null,
+			sign: row.templateKey
+				? await authoredSignState(tx, ctx.orgId, row.id, ctx.userId)
+				: row.kindCode
+					? await evidenceSignState(
+							tx,
+							ctx.orgId,
+							row.kindCode,
+							row.id,
+							ctx.userId,
+						)
+					: null,
+		};
+	});
 	if (!data) notFound();
-	const { row } = data;
+	const { row, authored, sign } = data;
+	const fnLabel = (f: string) =>
+		f === "-"
+			? ta("authorSlot")
+			: tf.has(f as "other")
+				? tf(f as "other")
+				: functionLabel(f);
+	const canCreate = allows(ctx, { evidence: ["create"] });
 	// S3-Objekt ohne eingerichteten Objektspeicher ist nicht abrufbar
 	const fileReadable =
 		row.storageKey !== null &&
@@ -70,7 +111,13 @@ export default async function EvidenceDetailPage({
 				{t("back")}
 			</Link>
 			<PageHeader
-				eyebrow={kind ? `${kind.code} · ${kind.title}` : t(`type_${row.type}`)}
+				eyebrow={
+					authored
+						? `${authored.template.code} · ${presetOf(authored.template, authored.preset)?.title ?? authored.template.title}`
+						: kind
+							? `${kind.code} · ${kind.title}`
+							: t(`type_${row.type}`)
+				}
 				title={row.title}
 				lead={row.description ?? undefined}
 				actions={
@@ -95,6 +142,9 @@ export default async function EvidenceDetailPage({
 								<ExternalLink className="size-4" aria-hidden="true" />
 								{t("openLink")}
 							</a>
+						)}
+						{authored && canCreate && !data.supersededBy && (
+							<NewVersionButton evidenceId={row.id} />
 						)}
 						{canDelete && data.signatureCount === 0 && (
 							<DeleteEvidenceButton id={row.id} />
@@ -255,6 +305,44 @@ export default async function EvidenceDetailPage({
 						<p className="text-muted-foreground text-sm">
 							{t("signaturesCount", { count: data.signatureCount })}
 						</p>
+						{sign && sign.signatures.length > 0 && (
+							<ul className="flex flex-col gap-1 text-sm">
+								{sign.signatures.map((s) => (
+									<li key={`${s.name}-${s.signedAt}`}>
+										{ts("signedLine", {
+											name: s.name,
+											fn: s.function ? fnLabel(s.function) : "—",
+											date: fmtDate.format(new Date(s.signedAt)),
+										})}
+									</li>
+								))}
+							</ul>
+						)}
+						{sign && sign.open.length > 0 && (
+							<p className="text-sm text-warning">
+								{ts("openFor", { fns: sign.open.map(fnLabel).join(", ") })}
+							</p>
+						)}
+						{sign?.signAs && (
+							<div>
+								<SignButton
+									evidenceIds={[row.id]}
+									fn={sign.signAs}
+									purpose={kind?.signPurpose ?? "approve"}
+									label={
+										kind?.signPurpose === "acknowledge"
+											? ts("acknowledge")
+											: ts("sign")
+									}
+									fullLabel={
+										kind?.signPurpose === "acknowledge"
+											? ts("acknowledgeAs", { fn: fnLabel(sign.signAs) })
+											: ts("signAs", { fn: fnLabel(sign.signAs) })
+									}
+									variant="default"
+								/>
+							</div>
+						)}
 						{data.signatureCount > 0 && (
 							<Link
 								href={`/nachweise/${row.id}/unterschriften`}
@@ -267,6 +355,28 @@ export default async function EvidenceDetailPage({
 					</section>
 				</div>
 			</div>
+			{authored && (
+				<section
+					aria-labelledby="ev-content"
+					className="mt-10 flex flex-col gap-3 rounded-md border p-4"
+				>
+					<h2
+						id="ev-content"
+						className="font-serif-display text-lg text-primary"
+					>
+						{ta("contentTitle")}
+					</h2>
+					<MarkdownView
+						source={renderBlocksMarkdown(
+							authoredBlocks(
+								authored.template,
+								authored.content,
+								authored.preset,
+							),
+						)}
+					/>
+				</section>
+			)}
 		</>
 	);
 }

@@ -141,12 +141,51 @@ export const evidence = pgTable(
 		kindCode: text(),
 		contentSha256: text(),
 		snapshot: json<Record<string, unknown>>(),
+		// In Klick verfasst (Rohling): Vorlage und Inhalt feldverschlüsselt
+		// (enc1, AAD evidence:<id>:content_enc) — Migration 0031
+		templateKey: text(),
+		contentEnc: text(),
 		createdByUserId: userRef(),
 		createdAt: ts().notNull().defaultNow(),
 	},
 	(t) => [
 		index("evidence_org_idx").on(t.organizationId),
 		orgPolicy("evidence"),
+	],
+).enableRLS();
+
+// Entwürfe verfasster Nachweise (Rohlinge): gemeinsam bearbeitbar, bis sie
+// abgeschlossen werden — erst dann entsteht der Nachweis (unveränderlich,
+// Änderung = neue Fassung über supersedesId).
+export const evidenceDrafts = pgTable(
+	"evidence_drafts",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		templateKey: text().notNull(),
+		preset: text(),
+		title: text().notNull(),
+		classification: text({ enum: CLASSIFICATIONS })
+			.notNull()
+			.default("internal"),
+		controlCodes: stringList(),
+		// Funktionen, die unterschreiben; "-" = verfassende Person
+		signers: stringList(),
+		// enc1, AAD evidence_drafts:<id>:content_enc
+		contentEnc: text(),
+		// Position im Nachweisbogen, die der Nachweis schließt
+		sheetControl: text(),
+		sheetItem: text(),
+		supersedesId: uuid().references(() => evidence.id, {
+			onDelete: "set null",
+		}),
+		createdByUserId: userRef(),
+		updatedByUserId: userRef(),
+		...timestamps(),
+	},
+	(t) => [
+		index("evidence_drafts_org_idx").on(t.organizationId),
+		orgPolicy("evidence_drafts"),
 	],
 ).enableRLS();
 

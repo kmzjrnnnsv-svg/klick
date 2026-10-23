@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, or, sql } from "drizzle-orm";
 import { evidence, orgSettings } from "@/db/schema";
 import { SIGN_ORIGIN, SIGN_RP_ID } from "@/lib/auth/passkey-sign";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -24,15 +24,28 @@ export async function loadGeneratedEvidence(tx: OrgTx, orgId: string) {
 			sha256: evidence.sha256,
 			storageKey: evidence.storageKey,
 			kindCode: evidence.kindCode,
+			templateKey: evidence.templateKey,
+			supersededBy: sql<
+				string | null
+			>`(select n.id from evidence n where n.supersedes_id = ${evidence.id} limit 1)`,
 			entityId: sql<string | null>`${evidence.snapshot}->>'entityId'`,
 		})
 		.from(evidence)
 		.where(
-			and(eq(evidence.organizationId, orgId), isNotNull(evidence.kindCode)),
+			and(
+				eq(evidence.organizationId, orgId),
+				or(isNotNull(evidence.kindCode), isNotNull(evidence.templateKey)),
+			),
 		)
 		.orderBy(desc(evidence.createdAt));
+	// aus Registern: die neueste je Art (und Datensatz); verfasst: jede
+	// aktuelle Fassung (ohne Nachfolger)
 	const latest = new Map<string, (typeof rows)[number]>();
 	for (const r of rows) {
+		if (r.templateKey) {
+			if (!r.supersededBy) latest.set(`authored:${r.id}`, r);
+			continue;
+		}
 		const key = `${r.kindCode}:${r.entityId ?? ""}`;
 		if (!latest.has(key)) latest.set(key, r);
 	}
@@ -80,8 +93,9 @@ export async function generatedEvidenceEntries(
 			packed: data.packed.get(item.id),
 		});
 		// je Datensatz eigener Name (gleiche Version am selben Tag sonst doppelt)
-		const fileName = item.entityId
-			? item.fileName.replace(/\.pdf$/, `-${item.entityId.slice(0, 8)}.pdf`)
+		const suffix = item.entityId ?? (item.templateKey ? item.id : null);
+		const fileName = suffix
+			? item.fileName.replace(/\.pdf$/, `-${suffix.slice(0, 8)}.pdf`)
 			: item.fileName;
 		out.push({ name: `${DIR}/${fileName}`, data: bytes });
 		const sigs = data.signatures.filter((x) => x.evidenceId === item.id);
@@ -104,7 +118,7 @@ export async function generatedEvidenceEntries(
 				),
 			});
 		lines.push(
-			`| ${item.kindCode} | ${item.title.replace(/\|/g, "/")} | ${fileName} | ${sigs.length} |`,
+			`| ${item.kindCode ?? "verfasst"} | ${item.title.replace(/\|/g, "/")} | ${fileName} | ${sigs.length} |`,
 		);
 	}
 	out.unshift({
@@ -112,7 +126,7 @@ export async function generatedEvidenceEntries(
 		data: [
 			"# Nachweise aus Klick",
 			"",
-			"Je Nachweisart der neueste aus den Registern erzeugte Nachweis (PDF). Im PDF hängen der Schnappschuss der Registerdaten (nachweis.json) und eine Markdown-Fassung; die Prüfsumme im Kopf ist SHA-256 über den kanonischen Schnappschuss.",
+			"Je Nachweisart der neueste aus den Registern erzeugte Nachweis (PDF) und jeder in Klick verfasste Nachweis in der aktuellen Fassung. Im PDF hängen der Inhalt bzw. Schnappschuss der Registerdaten (nachweis.json) und eine Markdown-Fassung; die Prüfsumme im Kopf ist SHA-256 über das kanonische JSON.",
 			"",
 			"Unterschriften per Passkey stehen je Nachweis in <datei>.signaturen.json mit allen Prüfschritten (WebAuthn-Assertion, öffentlicher Schlüssel, bei Sammelunterschriften der Pfad zur Merkle-Wurzel).",
 			"",

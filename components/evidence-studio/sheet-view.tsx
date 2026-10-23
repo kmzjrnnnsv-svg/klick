@@ -1,16 +1,50 @@
-import { CheckCircle2, Circle, TriangleAlert } from "lucide-react";
+import { CheckCircle2, Circle, PenLine, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { formatParam, type ParamTopic } from "@/lib/compliance/params";
+import { suggestTemplate } from "@/lib/evidence-authoring/suggest";
+import { TEMPLATE_BY_KEY } from "@/lib/evidence-authoring/templates";
 import { canGenerate } from "@/lib/evidence-studio/generate/registry";
 import type { NachweisBogen, SheetFinding } from "@/lib/evidence-studio/sheet";
 import { AnswerControl } from "./answer-control";
 import { GenerateButton } from "./generate-button";
 import { ItemControl } from "./item-control";
 import { ParamInput } from "./param-input";
+
+// Freie Position: Nachweis in Klick verfassen (mit Vorschlag des Rohlings)
+function AuthorLink({
+	controlCode,
+	itemId,
+	text,
+	label,
+	suggestedLabel,
+}: {
+	controlCode: string;
+	itemId: string;
+	text: string;
+	label: string;
+	suggestedLabel: (template: string) => string;
+}) {
+	const s = suggestTemplate(text);
+	const template = s ? TEMPLATE_BY_KEY.get(s.key) : null;
+	const q = new URLSearchParams({
+		control: controlCode,
+		position: itemId,
+		titel: text,
+	});
+	return (
+		<Link
+			href={`/nachweise/verfassen?${q.toString()}`}
+			className="mt-1 inline-flex items-center gap-1 text-primary text-xs hover:underline"
+		>
+			<PenLine className="size-3.5" aria-hidden="true" />
+			{template ? suggestedLabel(template.title) : label}
+		</Link>
+	);
+}
 
 // Nachweisbogen eines Controls. `focus` (Anforderungsschlüssel) zeigt nur
 // Fragen und Nachweise dieses Normpunkts — beantwortet wird trotzdem am
@@ -258,6 +292,17 @@ export async function SheetView({
 												</Link>
 											)}
 										</p>
+									)}
+									{i.resolution.type === "free" && canEdit && !i.done && (
+										<AuthorLink
+											controlCode={code}
+											itemId={i.id}
+											text={i.text}
+											label={t("authorHere")}
+											suggestedLabel={(title) =>
+												t("authorSuggested", { template: title })
+											}
+										/>
 									)}
 									{i.resolution.type === "free" && (
 										<ItemControl

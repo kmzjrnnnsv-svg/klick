@@ -1,3 +1,4 @@
+import { PenLine } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -19,6 +20,7 @@ import { WatchButton } from "@/components/entity/watch-button";
 import { SheetView } from "@/components/evidence-studio/sheet-view";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -65,6 +67,7 @@ export default async function ControlDetailPage({
 	const control = CONTROL_BY_CODE.get(code);
 	if (!control) notFound();
 	const t = await getTranslations("Controls");
+	const ta = await getTranslations("Authoring");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const tf = await getTranslations("Frameworks");
@@ -401,6 +404,12 @@ export default async function ControlDetailPage({
 								implementationId={row.implementationId}
 								label={t("addEvidence")}
 							/>
+							<Button asChild variant="outline" size="sm">
+								<Link href={`/nachweise/verfassen?control=${code}`}>
+									<PenLine aria-hidden="true" />
+									{ta("galleryLink")}
+								</Link>
+							</Button>
 						</div>
 					) : null
 				}

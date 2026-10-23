@@ -218,6 +218,13 @@
       "when": 1792766741819,
       "tag": "0030_evidence_blobs",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792768423690,
+      "tag": "0031_evidence_authoring",
+      "breakpoints": true
     }
   ]
 }
