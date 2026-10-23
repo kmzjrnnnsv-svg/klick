@@ -9,6 +9,7 @@ import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { type ActionResult, fail, fromZod } from "@/lib/validation/common";
 import {
 	accountIdSchema,
+	introStepSchema,
 	receiveAddressSchema,
 	walletAccountSchema,
 	walletAccountUpdateSchema,
@@ -25,8 +26,12 @@ import {
 	NETWORKS,
 	networkAllowed,
 } from "@/lib/wallet/core/networks";
+import { INTRO_STEPS, laterStep } from "@/lib/wallet/intro";
 import { configuredNetworks } from "@/lib/wallet/node-clients";
-import { upsertWalletPreferences } from "@/lib/wallet/preferences";
+import {
+	getWalletPreferences,
+	upsertWalletPreferences,
+} from "@/lib/wallet/preferences";
 
 // Wallet-Bereich (Plan Wallet, Phase 1). Jede Action verlangt den
 // entsperrten Bereich (requireWallet: Passkey ≤ 15 min, nur diese Org).
@@ -364,6 +369,50 @@ async function saveWatchlistImpl(input: unknown): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
+// Einführung: Schritt abgeschlossen (Stand läuft nie rückwärts); der letzte
+// Schritt schließt die Einführung ab
+async function advanceWalletIntroImpl(input: unknown): Promise<ActionResult> {
+	const parsed = introStepSchema.safeParse(input);
+	const c = await requireWallet();
+	if (!parsed.success) return fromZod(parsed.error);
+	const { step } = parsed.data;
+	const last = step === INTRO_STEPS[INTRO_STEPS.length - 1];
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		const prefs = await getWalletPreferences(tx, c.orgId, c.userId);
+		await upsertWalletPreferences(tx, c.orgId, c.userId, {
+			introStep: laterStep(prefs.introStep, step),
+			...(last && !prefs.introCompletedAt
+				? { introCompletedAt: new Date() }
+				: {}),
+		});
+		return {
+			result: null,
+			audit:
+				last && !prefs.introCompletedAt
+					? { action: "wallet.intro_completed", target: `user:${c.userId}` }
+					: [],
+		};
+	});
+	revalidatePath(PATH, "layout");
+	return { ok: true, data: undefined };
+}
+
+// „Später“: Startseite ohne Umleitung; die Einführung bleibt erreichbar
+async function deferWalletIntroImpl(): Promise<ActionResult> {
+	const c = await requireWallet();
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		await upsertWalletPreferences(tx, c.orgId, c.userId, {
+			introDeferredAt: new Date(),
+		});
+		return {
+			result: null,
+			audit: { action: "wallet.intro_deferred", target: `user:${c.userId}` },
+		};
+	});
+	revalidatePath(PATH, "layout");
+	return { ok: true, data: undefined };
+}
+
 export const createWalletAccount = safeAction(
 	"createWalletAccount",
 	createWalletAccountImpl,
@@ -381,3 +430,11 @@ export const issueReceiveAddress = safeAction(
 	issueReceiveAddressImpl,
 );
 export const saveWatchlist = safeAction("saveWatchlist", saveWatchlistImpl);
+export const advanceWalletIntro = safeAction(
+	"advanceWalletIntro",
+	advanceWalletIntroImpl,
+);
+export const deferWalletIntro = safeAction(
+	"deferWalletIntro",
+	deferWalletIntroImpl,
+);

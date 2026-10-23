@@ -5,6 +5,7 @@ import {
 } from "@/db/schema/wallet";
 import { PAIRS } from "@/lib/wallet/core/feeds";
 import { WALLET_NETWORKS } from "@/lib/wallet/core/networks";
+import { INTRO_STEPS } from "@/lib/wallet/intro";
 
 // Wallet-Bereich: Konto aus einem öffentlichen Kontoschlüssel anlegen,
 // Empfangsadressen ausgeben. Private Schlüssel lehnt schon das Format ab
@@ -68,3 +69,5 @@ export const watchlistSchema = z.object({
 		.max(PAIRS.length)
 		.transform((a) => [...new Set(a)]),
 });
+
+export const introStepSchema = z.object({ step: z.enum(INTRO_STEPS) });

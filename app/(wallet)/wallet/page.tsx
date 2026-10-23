@@ -1,6 +1,13 @@
-import { ArrowDownToLine, ArrowLeftRight, Plus, Send } from "lucide-react";
+import {
+	ArrowDownToLine,
+	ArrowLeftRight,
+	Compass,
+	Plus,
+	Send,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { PageHeader } from "@/components/page-header";
@@ -15,6 +22,7 @@ import { readOrg } from "@/lib/db/with-org";
 import { ASSETS, type AssetCode } from "@/lib/wallet/core/assets";
 import { NETWORKS, type WalletNetwork } from "@/lib/wallet/core/networks";
 import { amountText } from "@/lib/wallet/display";
+import { introHref, resumeStep, shouldShowIntro } from "@/lib/wallet/intro";
 import { euroPrices, euroValue, watchlistQuotes } from "@/lib/wallet/market";
 import { PAIR_NAMES } from "@/lib/wallet/pair-names";
 import { getWalletPreferences } from "@/lib/wallet/preferences";
@@ -42,6 +50,8 @@ export default async function WalletHomePage() {
 			prefs: await getWalletPreferences(tx, ctx.orgId, ctx.userId),
 		}),
 	);
+	// Beim ersten Öffnen führt die Einführung (bis abgeschlossen oder „Später“)
+	if (shouldShowIntro(prefs)) redirect(introHref(resumeStep(prefs.introStep)));
 	const [euro, quotes] = await Promise.all([
 		euroPrices(),
 		watchlistQuotes(prefs.pairs.slice(0, 3)),
@@ -97,7 +107,18 @@ export default async function WalletHomePage() {
 
 	return (
 		<>
-			<PageHeader title={t("homeTitle")} lead={t("homeLead")} />
+			<PageHeader
+				title={t("homeTitle")}
+				lead={t("homeLead")}
+				actions={
+					<Button asChild variant="ghost" size="sm">
+						<Link href={introHref("willkommen")}>
+							<Compass aria-hidden />
+							{t("homeIntro")}
+						</Link>
+					</Button>
+				}
+			/>
 			<section
 				aria-labelledby="wallet-total"
 				className="rounded-xl border border-border/60 bg-card p-5 sm:p-6"

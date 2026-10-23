@@ -1,6 +1,7 @@
 /**
  * Wallet-Bereich mit virtuellem Authenticator: Passkey anlegen → /wallet
- * ist gesperrt → Entsperren per Passkey → Leiste mit Restzeit → „Jetzt
+ * ist gesperrt → Entsperren per Passkey → Leiste mit Restzeit → Einführung
+ * (sechs Schritte, Watchlist, „Später“) → „Jetzt
  * sperren“ → Rückweg nur auf Wallet-Seiten → Umschalter Compliance/Wallet.
  * Mit lokaler Testkette (scripts/wallet-devchain.ts, Dev-Server mit
  * WALLET_RPC_BITCOIN_SIGNET=http://dev:dev@127.0.0.1:18443) zusätzlich:
@@ -46,6 +47,12 @@ async function run(browser: Browser) {
 
 	// Gesperrt: ohne Passkey-Bestätigung führt /wallet zur Eingangstür
 	await o.goto(`${BASE}/wallet`);
+	// Nach einem abgebrochenen Lauf ist die Sitzung evtl. noch entsperrt
+	if (path() !== "/wallet/entsperren") {
+		await o.getByRole("button", { name: "Jetzt sperren" }).click();
+		await o.waitForURL(/\/wallet\/entsperren/);
+		await o.goto(`${BASE}/wallet`);
+	}
 	check("Gesperrt → Entsperren", path() === "/wallet/entsperren", o.url());
 
 	// Passkey anlegen (Step-up per TOTP; der Authenticator hält den Schlüssel)
@@ -70,12 +77,21 @@ async function run(browser: Browser) {
 	// Entsperren per Passkey
 	await o.goto(`${BASE}/wallet/entsperren?zurueck=%2Fwallet`);
 	await o.getByRole("button", { name: "Mit Passkey öffnen" }).click();
+	// Beim ersten Öffnen führt /wallet in die Einführung
 	await o
-		.waitForURL((u) => u.pathname === "/wallet", { timeout: 30_000 })
+		.waitForURL(
+			(u) => u.pathname === "/wallet" || u.pathname.startsWith("/wallet/einf"),
+			{ timeout: 30_000 },
+		)
 		.catch(() => {});
-	check("Entsperrt per Passkey", path() === "/wallet", o.url());
+	check(
+		"Entsperrt per Passkey",
+		path() === "/wallet" || path().startsWith("/wallet/einfuehrung/"),
+		o.url(),
+	);
 	await o.getByText(/Noch \d+ Min\. offen/).waitFor({ timeout: 10_000 });
 	check("Restzeit sichtbar", true);
+	await introFlow(o);
 
 	// Umschalter: Compliance und zurück, Entsperrung bleibt (15 min fest)
 	await o.getByRole("link", { name: "Compliance" }).first().click();
@@ -107,6 +123,55 @@ async function run(browser: Browser) {
 		await receiveFlow(o);
 	await o.getByRole("button", { name: "Jetzt sperren" }).click();
 	await o.waitForURL(/\/wallet\/entsperren/);
+}
+
+// Einführung: alle sechs Schritte mit „Weiter“, Watchlist im Schritt
+// „Kurse“ umschalten und speichern, „Fertig“ → Startseite; „Später“ führt
+// ebenfalls zur Startseite
+async function introFlow(o: Page) {
+	const titles = [
+		"Willkommen im Wallet-Bereich",
+		"Drei Schlüssel, drei Aufgaben",
+		"Testnetz zuerst",
+		"Dein erstes Konto",
+		"Deine Kurse",
+		"Deine erste Einzahlung",
+	];
+	await o.goto(`${BASE}/wallet/einfuehrung/willkommen`);
+	let ethUsd = false;
+	for (const [i, title] of titles.entries()) {
+		const ok = await o
+			.getByRole("heading", { level: 1, name: title })
+			.waitFor({ timeout: 15_000 })
+			.then(() => true)
+			.catch(() => false);
+		check(`Einführung ${i + 1}/6: ${title}`, ok, o.url());
+		if (!ok) return;
+		if (title === "Deine Kurse") {
+			const box = o.getByRole("checkbox", { name: /^ETH\/USD/ });
+			const before = await box.isChecked();
+			await o.locator("label", { hasText: "ETH/USD" }).click();
+			ethUsd = !before;
+			await o.getByRole("button", { name: "Speichern und weiter" }).click();
+		} else if (i === titles.length - 1)
+			await o.getByRole("button", { name: "Fertig – zur Übersicht" }).click();
+		else await o.getByRole("button", { name: "Weiter" }).click();
+	}
+	await o
+		.waitForURL((u) => u.pathname === "/wallet", { timeout: 15_000 })
+		.catch(() => {});
+	check("Einführung abgeschlossen → Startseite", o.url() === `${BASE}/wallet`);
+	await o.goto(`${BASE}/wallet/kurse`);
+	check(
+		"Watchlist aus der Einführung gespeichert",
+		(await o.getByRole("link", { name: /ETH\/USD/ }).count()) > 0 === ethUsd,
+	);
+	await o.goto(`${BASE}/wallet/einfuehrung/netz`);
+	await o.getByRole("button", { name: "Später" }).click();
+	await o
+		.waitForURL((u) => u.pathname === "/wallet", { timeout: 15_000 })
+		.catch(() => {});
+	check("„Später“ → Startseite", o.url() === `${BASE}/wallet`);
 }
 
 // Empfangen gegen die lokale Testkette (entsperrter Bereich vorausgesetzt)
@@ -210,6 +275,14 @@ async function receiveFlow(o: Page) {
 				"/wallet/bewegungen",
 				"/wallet/kurse",
 				"/wallet/kurs/btc-eur",
+				...[
+					"willkommen",
+					"sicherheit",
+					"netz",
+					"konto",
+					"kurse",
+					"einzahlung",
+				].map((s) => `/wallet/einfuehrung/${s}`),
 			]) {
 				await o.goto(`${BASE}${path}`);
 				await o.waitForTimeout(800);
