@@ -170,12 +170,14 @@
 	color: var(--soft);
 }
 .outputs:has([id="out-soa"]:checked) label[for="out-soa"],
+.outputs:has([id="out-evidence"]:checked) label[for="out-evidence"],
 .outputs:has([id="out-package"]:checked) label[for="out-package"],
 .outputs:has([id="out-incident"]:checked) label[for="out-incident"],
 .outputs:has([id="out-recon"]:checked) label[for="out-recon"] {
 	color: var(--foreground);
 }
 .outputs:has([id="out-soa"]:focus-visible) label[for="out-soa"],
+.outputs:has([id="out-evidence"]:focus-visible) label[for="out-evidence"],
 .outputs:has([id="out-package"]:focus-visible) label[for="out-package"],
 .outputs:has([id="out-incident"]:focus-visible) label[for="out-incident"],
 .outputs:has([id="out-recon"]:focus-visible) label[for="out-recon"] {
@@ -203,6 +205,7 @@
 		visibility 0ms linear 200ms;
 }
 .outputs:has([id="out-soa"]:checked) [data-sheet="soa"],
+.outputs:has([id="out-evidence"]:checked) [data-sheet="evidence"],
 .outputs:has([id="out-package"]:checked) [data-sheet="package"],
 .outputs:has([id="out-incident"]:checked) [data-sheet="incident"],
 .outputs:has([id="out-recon"]:checked) [data-sheet="recon"] {
@@ -285,6 +288,35 @@
 	color: var(--muted-foreground);
 	font-size: 13px;
 }
+.sheetLabel {
+	margin-top: 14px !important;
+	color: var(--muted-foreground);
+	font-size: 13px;
+}
+.sheetList {
+	margin: 2px 0 0;
+	padding-left: 18px;
+	list-style: disc;
+}
+.sigs {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+	margin-top: 18px;
+}
+.sig {
+	padding: 10px 12px;
+	border-radius: 4px;
+	background: var(--muted);
+}
+.sigName {
+	font-weight: 600;
+}
+.sigMeta {
+	color: var(--primary);
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+}
 .sheetAlert {
 	margin-top: 16px !important;
 	padding: 10px 12px;
@@ -319,6 +351,65 @@
 }
 .clock[data-done] .clockState {
 	color: var(--primary);
+}
+
+/* ── Nachweise je Normpunkt: ISO 27001 Kapitel 4–10 ─────────────────── */
+.clauses {
+	margin-top: 160px;
+	padding: 0 var(--edge);
+}
+.clausesHead {
+	max-width: 620px;
+	margin-bottom: 40px;
+}
+.clauseRail {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.clause {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 22px 22px 24px;
+	border-radius: 6px;
+	background: var(--field);
+}
+.clauseNo {
+	font-family: var(--font-serif);
+	font-size: var(--s2);
+	line-height: 1;
+	color: var(--primary);
+	font-variant-numeric: tabular-nums;
+}
+.clauseTitle {
+	font-weight: 600;
+	hyphens: auto;
+}
+.clauseKinds {
+	margin: 0;
+	padding-left: 18px;
+	list-style: disc;
+	font-size: 14px;
+	hyphens: auto;
+	overflow-wrap: break-word;
+}
+@media (min-width: 1360px) {
+	.clauseRail {
+		grid-template-columns: repeat(7, minmax(0, 1fr));
+	}
+	.clause {
+		padding: 20px 16px 22px;
+	}
+}
+.clauseAlso {
+	margin-top: auto !important;
+	padding-top: 8px;
+	color: var(--soft);
+	font-size: var(--s5);
 }
 
 /* ── Grundablauf: Aussagen links, angehefteter Ausschnitt rechts ─────── */

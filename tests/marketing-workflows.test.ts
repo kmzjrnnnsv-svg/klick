@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
 	busiestControl,
 	catalogTotals,
+	evidenceByIsoClause,
 	pickerFrameworks,
 } from "@/lib/marketing/catalog-facts";
 import { synergyOf } from "@/lib/marketing/synergy";
@@ -124,5 +125,25 @@ describe("synergyOf", () => {
 			shared: 0,
 			separate: 1,
 		});
+	});
+});
+
+describe("Nachweise je Normpunkt", () => {
+	it("jedes Kapitel 4–10 der ISO 27001 hat mindestens einen Nachweis aus Klick", () => {
+		const clauses = evidenceByIsoClause();
+		expect(clauses.map((c) => c.clause)).toEqual([
+			"4",
+			"5",
+			"6",
+			"7",
+			"8",
+			"9",
+			"10",
+		]);
+		for (const c of clauses) {
+			expect(c.kinds.length, c.clause).toBeGreaterThan(0);
+			expect(new Set(c.kinds).size, c.clause).toBe(c.kinds.length);
+			expect(c.alsoFor, c.clause).not.toContain("ISO 27001");
+		}
 	});
 });

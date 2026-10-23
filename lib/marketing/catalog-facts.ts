@@ -5,6 +5,8 @@ import {
 	splitRequirementKey,
 } from "@/lib/compliance/catalog";
 import { CONTROLS } from "@/lib/compliance/catalog/controls";
+import { EVIDENCE_KINDS } from "@/lib/compliance/catalog/evidence-kinds";
+import { shortFrameworkName } from "@/lib/compliance/framework-names";
 import type { PickerFramework } from "./synergy";
 import { PICKER_FRAMEWORKS } from "./workflows";
 
@@ -83,4 +85,49 @@ export function busiestControl(slugs: readonly string[]): {
 		requirements: reqs.get(best)?.size ?? 0,
 		frameworks: [...(fws.get(best) ?? [])],
 	};
+}
+
+const ISO_CLAUSES = [
+	["4", "Kontext der Organisation"],
+	["5", "Führung"],
+	["6", "Planung"],
+	["7", "Unterstützung"],
+	["8", "Betrieb"],
+	["9", "Bewertung der Leistung"],
+	["10", "Verbesserung"],
+] as const;
+
+// Nachweise je Normpunkt der ISO 27001 (Kapitel 4–10) aus dem Katalog der
+// Nachweisarten, dazu die übrigen Rahmenwerke, für die dieselben Nachweise
+// zählen (Reihenfolge wie im Katalog).
+export function evidenceByIsoClause(): {
+	clause: string;
+	title: string;
+	kinds: string[];
+	alsoFor: string[];
+}[] {
+	const order = CATALOG_FRAMEWORKS.map((f) => f.slug);
+	return ISO_CLAUSES.map(([clause, title]) => {
+		const kinds = EVIDENCE_KINDS.filter((k) =>
+			k.requirements.some((r) => {
+				const { framework, code } = splitRequirementKey(r);
+				return framework === "iso27001" && code.split(".")[0] === clause;
+			}),
+		);
+		const others = new Set(
+			kinds.flatMap((k) =>
+				k.requirements
+					.map((r) => splitRequirementKey(r).framework)
+					.filter((f) => f !== "iso27001"),
+			),
+		);
+		return {
+			clause,
+			title,
+			kinds: [...new Set(kinds.map((k) => k.title))],
+			alsoFor: [...others]
+				.sort((a, b) => order.indexOf(a) - order.indexOf(b))
+				.map(shortFrameworkName),
+		};
+	});
 }

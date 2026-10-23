@@ -137,3 +137,32 @@ export const RECON_SAMPLE = {
 	followUp: "Abweichung NC-2026-004 angelegt, Inhaber:innen benachrichtigt",
 	people: "Erfasst: M. Beispiel 09:05 · Geprüft: J. Weber 10:12",
 } as const;
+
+// Nachweis aus Klick: Bestellungsschreiben der Geldwäschebeauftragten mit
+// zwei Unterschriften per Passkey (Aufgaben aus der Vorlage der App).
+export const APPOINTMENT_SAMPLE = {
+	title: "Bestellung: Geldwäschebeauftragte:r (GWB)",
+	person: "J. Weber",
+	from: "01.11.2026",
+	code: "NW-BESTELLUNG v1",
+	hash: "3f9a71c2 0b6e 44d1 …",
+	tasks: [
+		"interne Sicherungsmaßnahmen entwickeln und überwachen",
+		"Risikoanalyse aktuell halten",
+		"Verdachtsfälle prüfen und an die FIU melden",
+	],
+	reportsTo: "unmittelbar an die Geschäftsleitung (§ 7 Abs. 5 GwG)",
+	counts: ["GwG § 7", "AMLR Art. 11", "ISO 27001 5.3", "ZAG-MaRisk AT 4.4.1"],
+	signatures: [
+		{
+			role: "Geschäftsleitung",
+			name: "M. Beispiel",
+			at: "23.10.2026, 09:14",
+		},
+		{
+			role: "Geldwäschebeauftragte:r",
+			name: "J. Weber",
+			at: "23.10.2026, 09:31",
+		},
+	],
+} as const;

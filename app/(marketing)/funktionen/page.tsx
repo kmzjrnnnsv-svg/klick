@@ -8,9 +8,11 @@ import { RevealRoot } from "@/components/marketing/reveal";
 import {
 	busiestControl,
 	catalogTotals,
+	evidenceByIsoClause,
 	pickerFrameworks,
 } from "@/lib/marketing/catalog-facts";
 import {
+	APPOINTMENT_SAMPLE,
 	INCIDENT_SAMPLE,
 	PACKAGE_SAMPLE,
 	RECON_SAMPLE,
@@ -33,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
 	return { title: t("metaTitle"), description: t("metaDescription") };
 }
 
-const OUTPUTS = ["soa", "package", "incident", "recon"] as const;
+const OUTPUTS = ["soa", "evidence", "package", "incident", "recon"] as const;
 const TONE: Record<WorkflowGroup["tone"], string> = {
 	blue: s.toneBlue,
 	brown: s.toneBrown,
@@ -64,6 +66,7 @@ export default async function FeaturesPage() {
 	const totals = catalogTotals();
 	const busiest = busiestControl(["iso27001", "dora", "micar"]);
 	const fwBy = new Map(frameworks.map((f) => [f.slug, f]));
+	const clauses = evidenceByIsoClause();
 
 	return (
 		<RevealRoot as="main" id="inhalt" className={s.page}>
@@ -114,6 +117,9 @@ export default async function FeaturesPage() {
 					<div className={s.sheetSlot} data-sheet="soa">
 						<SoaSheet />
 					</div>
+					<div className={s.sheetSlot} data-sheet="evidence">
+						<AppointmentSheet />
+					</div>
 					<div className={s.sheetSlot} data-sheet="package">
 						<PackageSheet />
 					</div>
@@ -124,6 +130,43 @@ export default async function FeaturesPage() {
 						<ReconSheet />
 					</div>
 				</div>
+			</section>
+
+			{/* Nachweise je Normpunkt: ISO 27001 Kapitel 4–10 als Leiste */}
+			<section className={s.clauses} aria-labelledby="fn-clauses">
+				<div className={s.clausesHead}>
+					<h2 id="fn-clauses" className={s.h2} data-r="">
+						{t("clausesTitle")}
+					</h2>
+					<p className={s.atlasLead} data-r="">
+						{t("clausesLead")}
+					</p>
+				</div>
+				<ol className={s.clauseRail}>
+					{clauses.map((c) => (
+						<li key={c.clause} className={s.clause} data-r="">
+							<p className={s.clauseNo} aria-hidden="true">
+								{c.clause}
+							</p>
+							<p className={s.clauseTitle}>
+								<span className="sr-only">
+									{t("clausesNo", { n: c.clause })}{" "}
+								</span>
+								{c.title}
+							</p>
+							<ul className={s.clauseKinds}>
+								{c.kinds.map((k) => (
+									<li key={k}>{k}</li>
+								))}
+							</ul>
+							{c.alsoFor.length > 0 && (
+								<p className={s.clauseAlso}>
+									{t("clausesAlso", { list: c.alsoFor.join(", ") })}
+								</p>
+							)}
+						</li>
+					))}
+				</ol>
 			</section>
 
 			{/* Grundablauf: drei Aussagen, ein angehefteter Ausschnitt */}
@@ -491,6 +534,41 @@ function ReconSheet() {
 			</table>
 			<p className={s.sheetAlert}>{RECON_SAMPLE.followUp}</p>
 			<p className={s.sheetSub}>{RECON_SAMPLE.people}</p>
+		</div>
+	);
+}
+
+function AppointmentSheet() {
+	const a = APPOINTMENT_SAMPLE;
+	return (
+		<div className={s.sheet} data-ui="">
+			<SheetHead
+				title={a.title}
+				sub={`${SAMPLE_ORG} · ${a.code} · Prüfsumme ${a.hash}`}
+			/>
+			<p>
+				Die Geschäftsleitung bestellt {a.person} mit Wirkung zum {a.from} zur
+				Funktion „Geldwäschebeauftragte:r“.
+			</p>
+			<p className={s.sheetLabel}>Aufgaben</p>
+			<ul className={s.sheetList}>
+				{a.tasks.map((x) => (
+					<li key={x}>{x}</li>
+				))}
+			</ul>
+			<p className={s.sheetLabel}>Berichtsweg</p>
+			<p>{a.reportsTo}</p>
+			<p className={s.sheetLabel}>Belegt</p>
+			<p className={s.sheetSub}>{a.counts.join(" · ")}</p>
+			<div className={s.sigs}>
+				{a.signatures.map((x) => (
+					<div key={x.role} className={s.sig}>
+						<p className={s.cellNote}>{x.role}</p>
+						<p className={s.sigName}>{x.name}</p>
+						<p className={s.sigMeta}>Passkey · {x.at}</p>
+					</div>
+				))}
+			</div>
 		</div>
 	);
 }

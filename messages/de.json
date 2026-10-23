@@ -5322,6 +5322,7 @@
 		"pickerSingle": "Ein Rahmenwerk allein. Jedes weitere teilt sich Controls mit ihm.",
 		"outputsTitle": "Was am Ende vorliegt",
 		"out_soa": "Erklärung zur Anwendbarkeit",
+		"out_evidence": "Bestellungsschreiben mit Unterschrift",
 		"out_package": "Prüfungspaket",
 		"out_incident": "Meldeuhr eines Vorfalls",
 		"out_recon": "Abstimmung Kundenvermögen",
@@ -5349,7 +5350,11 @@
 		"ctaLead": "Wir richten dir einen Zugang ein oder führen dich durch die Abläufe, die du brauchst.",
 		"ctaAction": "Zugang anfragen",
 		"ctaLogin": "Schon dabei? Anmelden",
-		"ctaImage": "Abstimmung des Kundenvermögens in Klick"
+		"ctaImage": "Abstimmung des Kundenvermögens in Klick",
+		"clausesTitle": "Zu jedem Normpunkt der passende Nachweis",
+		"clausesLead": "Klick erzeugt die Nachweise aus dem, was du ohnehin pflegst, als PDF mit Prüfsumme und Unterschrift per Passkey. Hier für ISO 27001, Kapitel 4 bis 10; derselbe Nachweis zählt für jedes Rahmenwerk, das den Punkt kennt.",
+		"clausesNo": "Kapitel {n}:",
+		"clausesAlso": "Zählt auch für {list}"
 	},
 	"Wallet": {
 		"unlockTitle": "Wallet öffnen",
