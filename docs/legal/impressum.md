@@ -23,6 +23,9 @@ erfüllt das nicht und ist ein typischer Abmahngrund. Solange `no-reply@raza.wor
 das Postfach Mails annehmen und regelmäßig gelesen werden (oder eine Weiterleitung haben). Das
 Anfrageformular (`/leistungen#anfrage`) ist ein zusätzlicher Kontaktweg (EuGH C-298/07).
 
+**Einzelunternehmen:** `LEGAL_NAME` = Vor- und Nachname, `LEGAL_FORM` und `LEGAL_REGISTER` weglassen,
+`LEGAL_REPRESENTATIVES` = derselbe Name — die Zeile „Vertreten durch“ entfällt dann in Impressum und Mails.
+
 Fehlen `LEGAL_NAME`, `LEGAL_ADDRESS` oder `LEGAL_REPRESENTATIVES`, warnt der Server beim Start im
 Journal (`Impressum unvollständig`).
 

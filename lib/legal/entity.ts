@@ -68,13 +68,22 @@ export function legalDisplayName(e: LegalEntity): string | null {
 	return `${e.name} ${e.form}`;
 }
 
+// „Vertreten durch“ nur, wenn eine andere Person vertritt — beim
+// Einzelunternehmen steht dort derselbe Name wie die Firma (Pflichtfeld bleibt)
+export function legalRepresentatives(e: LegalEntity): string | null {
+	if (!e.representatives) return null;
+	if (e.name?.toLowerCase() === e.representatives.toLowerCase()) return null;
+	return e.representatives;
+}
+
 // Pflichtangaben für Mail-Fußzeilen: eine Zeile je Angabe, leer ohne Firma
 export function legalMailLines(e: LegalEntity): string[] {
 	const name = legalDisplayName(e);
 	if (!name) return [];
+	const reps = legalRepresentatives(e);
 	return [
 		[name, ...e.address].join(", "),
-		e.representatives ? `Vertreten durch ${e.representatives}` : null,
+		reps ? `Vertreten durch ${reps}` : null,
 		e.register,
 		e.vatId ? `USt-IdNr. ${e.vatId}` : null,
 	].filter((l): l is string => Boolean(l));

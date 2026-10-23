@@ -74,6 +74,21 @@ describe("Anbieterkennzeichnung", () => {
 		]);
 	});
 
+	it("Einzelunternehmen: kein „Vertreten durch“ mit dem eigenen Namen", () => {
+		const e = legalEntityFrom({
+			LEGAL_NAME: "Erika Muster",
+			LEGAL_ADDRESS: "Musterstraße 1;60311 Frankfurt am Main",
+			LEGAL_REPRESENTATIVES: "erika muster",
+			LEGAL_VAT_ID: "DE123456789",
+			LEGAL_CONTACT_MAIL: PLATFORM_MAIL,
+		});
+		expect(e.missing).toEqual([]);
+		expect(legalMailLines(e)).toEqual([
+			"Erika Muster, Musterstraße 1, 60311 Frankfurt am Main",
+			"USt-IdNr. DE123456789",
+		]);
+	});
+
 	it("Kontaktadresse ist ohne Env die Plattform-Adresse", async () => {
 		const { envSchema } = await import("@/lib/env");
 		const shape = envSchema.shape.LEGAL_CONTACT_MAIL;
