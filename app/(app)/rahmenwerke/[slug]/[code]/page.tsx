@@ -28,6 +28,7 @@ import {
 } from "@/lib/compliance/page-data";
 import { readOrg } from "@/lib/db/with-org";
 import { CONTROL_STATUS } from "@/lib/entities/control";
+import { kindHashesFor } from "@/lib/evidence-studio/generate/service";
 import { loadSheetData, sheetFor } from "@/lib/evidence-studio/queries";
 
 export default async function RequirementPage({
@@ -91,6 +92,16 @@ export default async function RequirementPage({
 			})
 		: [];
 	const canEditSheet = allows(ctx, { control: ["update"] });
+	const kindHashes =
+		sheets.length > 0
+			? await readOrg(toOrgCtx(ctx), (tx) =>
+					kindHashesFor(
+						tx,
+						ctx.orgId,
+						sheets.map((x) => x.sheet),
+					),
+				)
+			: undefined;
 	const statusLabel = (s: ReqCoverage | "inactive") =>
 		t(
 			s === "covered"
@@ -328,6 +339,8 @@ export default async function RequirementPage({
 									sheet={sheet}
 									focus={key}
 									canEdit={canEditSheet}
+									canCreateEvidence={allows(ctx, { evidence: ["create"] })}
+									currentHashes={kindHashes}
 									evidenceOptions={evidenceOptions}
 								/>
 							</div>

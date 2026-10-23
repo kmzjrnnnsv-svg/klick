@@ -5682,7 +5682,13 @@
 		"statusComplete": "vollständig",
 		"statusPartial": "teilweise",
 		"statusOpen": "offen",
-		"answerLegend": "Antwort"
+		"answerLegend": "Antwort",
+		"generate": "In Klick erzeugen",
+		"regenerate": "Neu erzeugen",
+		"generating": "Wird erzeugt…",
+		"generated": "Nachweis erzeugt und an die Controls gehängt.",
+		"generateReused": "Unverändert – der vorhandene Nachweis gilt weiter.",
+		"stale": "veraltet – Register geändert"
 	},
 	"AuditRegimes": {
 		"lead": "Jedes Rahmenwerk hat eigene Audittermine und eigene Fristen für die Nacharbeit. Ohne eigene Festlegung gelten die Werte aus dem Katalog; ohne Regime im Katalog: Hauptabweichung Maßnahmenplan 30 Tage, Umsetzung 90 Tage – Nebenabweichung Maßnahmenplan 90 Tage, Umsetzung bis zum nächsten Audit, höchstens 365 Tage.",

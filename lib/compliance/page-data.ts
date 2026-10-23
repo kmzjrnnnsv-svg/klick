@@ -17,15 +17,7 @@ export function frameworkNameMap(): Record<string, string> {
 	return Object.fromEntries(CATALOG_FRAMEWORKS.map((f) => [f.slug, f.name]));
 }
 
-export function shortFrameworkName(slug: string): string {
-	const f = CATALOG_FRAMEWORKS.find((x) => x.slug === slug);
-	if (!f) return slug;
-	// „ISO/IEC 27001:2022" → „ISO 27001", „DORA — …" → „DORA"
-	return (
-		f.name.split(" — ")[0]?.replace("ISO/IEC ", "ISO ").replace(":2022", "") ??
-		f.name
-	);
-}
+export { shortFrameworkName } from "./framework-names";
 
 export const fmtDate = new Intl.DateTimeFormat("de-DE", {
 	dateStyle: "medium",

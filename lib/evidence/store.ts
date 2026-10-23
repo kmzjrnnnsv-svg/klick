@@ -175,6 +175,8 @@ export type StoreEvidenceInput = {
 	createdByUserId: string | null;
 	source?: EvidenceSource;
 	dlp?: EvidenceDlp | null;
+	// vorab vergebene ID (erzeugte Nachweise drucken sie ins Dokument)
+	id?: string;
 };
 
 export async function storeEncryptedEvidence(
@@ -190,7 +192,7 @@ export async function storeEncryptedEvidence(
 		.where(eq(orgSettings.organizationId, input.orgId))
 		.limit(1);
 	if (!s) throw new Error("org settings missing");
-	const id = crypto.randomUUID();
+	const id = input.id ?? crypto.randomUUID();
 	const storageKey = `org/${input.orgId}/nachweise/${id}`;
 	const dek = await unwrapDek({
 		wrapped: s.encryptedDek,

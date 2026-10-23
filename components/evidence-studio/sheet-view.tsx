@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { formatParam, type ParamTopic } from "@/lib/compliance/params";
+import { canGenerate } from "@/lib/evidence-studio/generate/registry";
 import type { NachweisBogen, SheetFinding } from "@/lib/evidence-studio/sheet";
 import { AnswerControl } from "./answer-control";
+import { GenerateButton } from "./generate-button";
 import { ItemControl } from "./item-control";
 import { ParamInput } from "./param-input";
 
@@ -21,11 +23,17 @@ export async function SheetView({
 	sheet,
 	focus,
 	canEdit,
+	canCreateEvidence = false,
+	currentHashes,
 	evidenceOptions,
 }: {
 	sheet: NachweisBogen;
 	focus?: string;
 	canEdit: boolean;
+	// darf Nachweise erzeugen (evidence:create)
+	canCreateEvidence?: boolean;
+	// heutige Prüfsumme je Nachweisart (für „veraltet“)
+	currentHashes?: ReadonlyMap<string, string | null>;
 	evidenceOptions: { id: string; title: string }[];
 }) {
 	const t = await getTranslations("EvidenceStudio");
@@ -164,21 +172,61 @@ export async function SheetView({
 									</div>
 								</div>
 								<div className="pl-6">
-									{i.resolution.type === "kind" && (
-										<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-											<Link
-												href={i.resolution.kind.edit.href}
-												className="text-primary hover:underline"
-											>
-												{i.resolution.kind.edit.label} →
-											</Link>
-											<span className="text-muted-foreground text-xs">
-												{i.resolution.produced
-													? `${t("kindProduced", { date: date(i.resolution.produced.createdAt) })}${i.resolution.produced.validUntil ? ` · ${t("kindValidUntil", { date: date(i.resolution.produced.validUntil) })}` : ""}`
-													: t("kindNotProduced")}
-											</span>
-										</div>
-									)}
+									{i.resolution.type === "kind" &&
+										(() => {
+											const { kind, produced } = i.resolution;
+											const now = currentHashes?.get(kind.code);
+											const stale = Boolean(
+												produced?.contentSha256 &&
+													now &&
+													produced.contentSha256 !== now,
+											);
+											const generatable =
+												canGenerate(kind.code) && kind.scope === "org";
+											return (
+												<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+													<Link
+														href={kind.edit.href}
+														className="text-primary hover:underline"
+													>
+														{kind.edit.label} →
+													</Link>
+													{generatable && canCreateEvidence && (
+														<GenerateButton
+															kindCode={kind.code}
+															label={produced ? t("regenerate") : t("generate")}
+														/>
+													)}
+													<span className="text-muted-foreground text-xs">
+														{produced ? (
+															<>
+																<a
+																	href={`/api/nachweise/${produced.id}`}
+																	className="text-primary hover:underline"
+																>
+																	{t("kindProduced", {
+																		date: date(produced.createdAt),
+																	})}
+																</a>
+																{produced.validUntil
+																	? ` · ${t("kindValidUntil", { date: date(produced.validUntil) })}`
+																	: ""}
+															</>
+														) : (
+															t("kindNotProduced")
+														)}
+													</span>
+													{stale && (
+														<Badge
+															variant="warning"
+															className="normal-case tracking-normal"
+														>
+															{t("stale")}
+														</Badge>
+													)}
+												</div>
+											);
+										})()}
 									{i.resolution.type === "template" && (
 										<p className="text-sm">
 											{i.resolution.document ? (

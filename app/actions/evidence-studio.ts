@@ -1,15 +1,18 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { controlImplementations, controls } from "@/db/schema";
+import { controlImplementations } from "@/db/schema";
 import type { ControlSheetState } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
-import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
+import { mutateOrg } from "@/lib/db/with-org";
+import { generateKindEvidence } from "@/lib/evidence-studio/generate/service";
+import { implementationFor } from "@/lib/evidence-studio/implementation";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
+	generateEvidenceSchema,
 	sheetAnswerSchema,
 	sheetItemSchema,
 	sheetParamSchema,
@@ -17,39 +20,6 @@ import {
 
 // Nachweisbogen je Control (Nachweis-Werkstatt): Antworten, Belege und
 // eigene Fristen hängen am Control und gelten für jedes Rahmenwerk.
-
-async function implementationFor(
-	tx: OrgTx,
-	orgId: string,
-	code: string,
-): Promise<{ id: string; sheet: ControlSheetState } | null> {
-	const [ctl] = await tx
-		.select({ id: controls.id })
-		.from(controls)
-		.where(eq(controls.code, code))
-		.limit(1);
-	if (!ctl) return null;
-	const [row] = await tx
-		.select({
-			id: controlImplementations.id,
-			sheet: controlImplementations.sheet,
-		})
-		.from(controlImplementations)
-		.where(
-			and(
-				eq(controlImplementations.organizationId, orgId),
-				eq(controlImplementations.controlId, ctl.id),
-			),
-		)
-		.limit(1);
-	if (row) return { id: row.id, sheet: row.sheet ?? {} };
-	// Controls außerhalb des Arbeitsvorrats bekommen beim ersten Eintrag eine Zeile
-	const [created] = await tx
-		.insert(controlImplementations)
-		.values({ organizationId: orgId, controlId: ctl.id, source: "manual" })
-		.returning({ id: controlImplementations.id });
-	return created ? { id: created.id, sheet: {} } : null;
-}
 
 type OrgCtx = Awaited<ReturnType<typeof requireOrg>>;
 
@@ -170,9 +140,38 @@ async function saveSheetParamImpl(input: unknown): Promise<ActionResult> {
 	});
 }
 
+// Nachweis aus den Registern erzeugen (PDF mit Schnappschuss); gleicher
+// Inhalt wie zuletzt → der vorhandene Nachweis, kein neuer
+async function generateEvidenceImpl(
+	input: unknown,
+): Promise<ActionResult<{ id: string; reused: boolean }>> {
+	const c = await requireOrg({ evidence: ["create"] });
+	const parsed = generateEvidenceSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const { kindCode, entityId } = parsed.data;
+	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const r = await generateKindEvidence(
+			tx,
+			{ orgId: c.orgId, userId: c.userId },
+			kindCode,
+			entityId,
+		);
+		return { result: r, audit: r.ok ? r.audit : [] };
+	});
+	if (!res.ok) return { ok: false, error: res.error };
+	revalidatePath("/controls", "layout");
+	revalidatePath("/rahmenwerke", "layout");
+	revalidatePath("/nachweise");
+	return { ok: true, data: { id: res.id, reused: res.reused } };
+}
+
 export const saveSheetAnswer = safeAction(
 	"saveSheetAnswer",
 	saveSheetAnswerImpl,
 );
 export const saveSheetItem = safeAction("saveSheetItem", saveSheetItemImpl);
 export const saveSheetParam = safeAction("saveSheetParam", saveSheetParamImpl);
+export const generateEvidence = safeAction(
+	"generateEvidence",
+	generateEvidenceImpl,
+);

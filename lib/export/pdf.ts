@@ -210,7 +210,44 @@ function table(lay: Layout, b: Extract<DocBlock, { type: "table" }>) {
 		return Math.min(42, Math.max(6, avg * 0.7 + Math.max(...lens) * 0.3));
 	});
 	const total = weights.reduce((a, w) => a + w, 0);
-	const widths = weights.map((w) => (w / total) * CONTENT_W);
+	const sum = (xs: number[]) => xs.reduce((a, x) => a + x, 0);
+	// Mindestbreite = längstes Wort der Spalte, damit nichts mitten im Wort
+	// bricht; Rest nach Gewicht, zu breite Spalten geben zuerst ab
+	const mins = b.columns.map((c, i) => {
+		const word = (s: string, font: PdfFontKey) =>
+			Math.max(
+				0,
+				...s.split(/\s+/).map((w) => textWidth(toWinAnsi(w), font, size)),
+			);
+		const longest = Math.max(
+			word(c.label, "bold"),
+			...b.rows.map((r) => word(r[i] ?? "", "regular")),
+		);
+		return Math.min(longest + 2 * pad + 1, CONTENT_W * 0.4);
+	});
+	// passen die Mindestbreiten nicht, werden nur die breitesten gekappt
+	// (ein langes Wort bricht, alle anderen Spalten bleiben ganz)
+	if (sum(mins) > CONTENT_W) {
+		let lo = 0;
+		let hi = Math.max(...mins);
+		for (let k = 0; k < 40; k += 1) {
+			const cap = (lo + hi) / 2;
+			if (sum(mins.map((m) => Math.min(m, cap))) > CONTENT_W) hi = cap;
+			else lo = cap;
+		}
+		for (const [i, m] of mins.entries()) mins[i] = Math.min(m, lo);
+	}
+	let widths = weights.map((w, i) =>
+		Math.max((w / total) * CONTENT_W, mins[i] ?? 0),
+	);
+	const over = sum(widths) - CONTENT_W;
+	if (over > 0) {
+		const excess = widths.map((w, i) => w - (mins[i] ?? 0));
+		const spare = sum(excess);
+		widths = widths.map((w, i) =>
+			spare > 0 ? w - ((excess[i] ?? 0) * over) / spare : w,
+		);
+	}
 	const xs = widths.map((_, i) =>
 		widths.slice(0, i).reduce((a, w) => a + w, M.left),
 	);
