@@ -235,6 +235,40 @@ async function updateDlpPolicyImpl(input: unknown): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
+// Wallet-Bereich je Org ein- oder ausschalten (Inhaber:in, Step-up). Beim
+// Ausschalten bleiben Konten und Bewegungen erhalten; nur Bereich, Umschalter
+// und Wallet-Actions sind gesperrt.
+async function setWalletAreaImpl(input: unknown): Promise<ActionResult> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = z.object({ enabled: z.boolean() }).safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const { enabled } = parsed.data;
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [before] = await tx
+			.select({ on: orgSettings.walletEnabled })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		await tx
+			.update(orgSettings)
+			.set({ walletEnabled: enabled })
+			.where(eq(orgSettings.organizationId, c.orgId));
+		return {
+			result: null,
+			audit: {
+				action: "wallet.area_toggled",
+				target: `organization:${c.orgId}`,
+				before: { enabled: before?.on ?? false },
+				after: { enabled },
+			},
+		};
+	});
+	revalidatePath("/", "layout");
+	return { ok: true, data: undefined };
+}
+
 // Organisation löschen (Crypto-Shredding): Sitzungen der Mitglieder beenden,
 // Nachweis-Dateien im Objektspeicher löschen, Organisation über Better Auth
 // entfernen — die Kaskade löscht alle Org-Tabellen inklusive org_settings und
@@ -353,6 +387,7 @@ export const updateEntityProfile = safeAction(
 	"updateEntityProfile",
 	updateEntityProfileImpl,
 );
+export const setWalletArea = safeAction("setWalletArea", setWalletAreaImpl);
 export const updateDlpPolicy = safeAction(
 	"updateDlpPolicy",
 	updateDlpPolicyImpl,

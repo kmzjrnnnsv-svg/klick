@@ -12,7 +12,8 @@ export type AuthErrorCode =
 	| "forbidden"
 	| "ip_blocked"
 	// Wallet-Bereich nicht entsperrt (Passkey-Bestätigung fehlt/abgelaufen)
-	| "wallet_locked";
+	| "wallet_locked"
+	| "wallet_disabled";
 
 export class AuthError extends Error {
 	constructor(public readonly code: AuthErrorCode) {

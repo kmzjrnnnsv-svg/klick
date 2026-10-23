@@ -191,6 +191,8 @@ export const orgSettings = pgTable(
 			.notNull()
 			.default("unchecked"),
 		tlptDesignated: boolean().notNull().default(false),
+		// Wallet-Bereich je Org (Inhaber:in schaltet ein, Step-up)
+		walletEnabled: boolean().notNull().default(false),
 		issuesTokens: text({ enum: ["none", "art", "emt", "other"] })
 			.notNull()
 			.default("none"),

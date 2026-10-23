@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { WalletLockStrip } from "@/components/wallet/lock-strip";
-import { requireOrgPage } from "@/lib/auth/gates";
+import { requireWalletAreaPage } from "@/lib/auth/gates";
 import { WALLET_UNLOCK_MS } from "@/lib/auth/session-rules";
 
 // Einführung in den Wallet-Bereich: ruhiges Layout ohne Sidebar (wie die
@@ -15,7 +15,7 @@ export default async function WalletIntroLayout({
 }: {
 	children: ReactNode;
 }) {
-	const ctx = await requireOrgPage({ wallet: ["read"] });
+	const ctx = await requireWalletAreaPage();
 	const t = await getTranslations("Common");
 	const tn = await getTranslations("Nav");
 	const closesAt =

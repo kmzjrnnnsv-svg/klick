@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { walletAreaEnabled } from "@/lib/wallet/area";
 import {
 	AuthError,
 	type AuthErrorCode,
@@ -32,6 +33,8 @@ export function redirectFor(code: AuthErrorCode): string {
 			return "/login/2fa?stepup=1";
 		case "wallet_locked":
 			return "/wallet/entsperren";
+		case "wallet_disabled":
+			return "/heute";
 		default:
 			return "/login";
 	}
@@ -68,6 +71,15 @@ export async function requireOrgPage(
 			);
 		throw e;
 	}
+}
+
+// Wallet-Bereich (Layouts, Entsperr-Seite): wallet:read und für die Org
+// eingeschaltet (org_settings.wallet_enabled), sonst zurück nach /heute.
+export async function requireWalletAreaPage(): Promise<OrgContext> {
+	const ctx = await requireOrgPage({ wallet: ["read"] });
+	if (!(await walletAreaEnabled(ctx.orgId)))
+		redirect(redirectFor("wallet_disabled"));
+	return ctx;
 }
 
 // Wallet-Seiten: gesperrt → Entsperr-Seite mit Rückweg.

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { WalletLockStrip } from "@/components/wallet/lock-strip";
-import { requireOrgPage } from "@/lib/auth/gates";
+import { requireWalletAreaPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { roleLabel } from "@/lib/auth/memberships";
 import { getOrgSummary, listUserMemberships } from "@/lib/auth/org";
@@ -20,7 +20,7 @@ export default async function WalletLayout({
 }: {
 	children: ReactNode;
 }) {
-	const ctx = await requireOrgPage({ wallet: ["read"] });
+	const ctx = await requireWalletAreaPage();
 	const [org, memberships] = await Promise.all([
 		getOrgSummary(ctx.orgId),
 		listUserMemberships(ctx.userId),
@@ -46,6 +46,7 @@ export default async function WalletLayout({
 			groups={buildWalletNav()}
 			bell={bell}
 			area="wallet"
+			walletEnabled
 		>
 			{closesAt && <WalletLockStrip closesAt={closesAt.toISOString()} />}
 			{children}

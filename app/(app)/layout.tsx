@@ -43,6 +43,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 			}))}
 			groups={groups}
 			bell={bell}
+			walletEnabled={settings?.walletEnabled ?? false}
 		>
 			{children}
 		</AppShell>
