@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { legalDisplayName } from "@/lib/legal/entity";
+import { legalDisplayName, legalRepresentatives } from "@/lib/legal/entity";
 import { legalEntity } from "@/lib/legal/entity-env";
 
 // Pflichtangaben nach § 5 DDG aus der Env (LEGAL_*), über dem CMS-Text des
@@ -10,6 +10,7 @@ export async function ImprintFacts() {
 	const t = await getTranslations("Legal");
 	const e = legalEntity();
 	const name = legalDisplayName(e);
+	const reps = legalRepresentatives(e);
 	return (
 		<section aria-label={t("imprintFacts")} className="mt-8 space-y-5">
 			{name && (
@@ -26,9 +27,9 @@ export async function ImprintFacts() {
 							))}
 						</p>
 					</div>
-					{e.representatives && (
+					{reps && (
 						<p>
-							{t("representedBy")}: {e.representatives}
+							{t("representedBy")}: {reps}
 						</p>
 					)}
 					{e.register && (

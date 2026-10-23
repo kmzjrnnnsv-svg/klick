@@ -45,6 +45,8 @@ echo "✔ Backup: $out ($(du -h "$out" | cut -f1))"
 if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
   rclone copy "$out" "$BACKUP_RCLONE_REMOTE/" && rclone copy "$out.sha256" "$BACKUP_RCLONE_REMOTE/"
   echo "✔ Offsite: $BACKUP_RCLONE_REMOTE"
+  # Offsite gilt dieselbe Aufbewahrung wie lokal (Löschkonzept, Art. 17 DSGVO)
+  rclone delete --min-age "${BACKUP_KEEP_DAYS}d" --include 'klick-*.sql*' "$BACKUP_RCLONE_REMOTE/"
 fi
 
 find "$BACKUP_DIR" -name 'klick-*.sql*' -mtime "+$BACKUP_KEEP_DAYS" -delete
