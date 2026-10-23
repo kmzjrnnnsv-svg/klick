@@ -225,6 +225,13 @@
       "when": 1792768423690,
       "tag": "0031_evidence_authoring",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792772308282,
+      "tag": "0032_wallet_send",
+      "breakpoints": true
     }
   ]
 }

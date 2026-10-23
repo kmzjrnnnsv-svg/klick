@@ -44,6 +44,12 @@ export const walletAccountSchema = z.object({
 	custodyWalletId: optionalUuid,
 });
 
+// Hot-Konto: Schlüssel erzeugt der Signer, Klick bekommt nur die xpub
+export const hotAccountSchema = z.object({
+	name: z.string().trim().min(2, "Name fehlt").max(80),
+	network: z.enum(WALLET_NETWORKS),
+});
+
 export const walletAccountUpdateSchema = z.object({
 	id: z.uuid(),
 	name: z.string().trim().min(2, "Name fehlt").max(80),

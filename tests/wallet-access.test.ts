@@ -82,13 +82,14 @@ describe("Wallet-Rechte", () => {
 			expect(roleAllows(r, { wallet: ["read"] }), r).toBe(false);
 	});
 
-	it("eigene Rollen dürfen nur lesen vergeben (verwalten bleibt Inhaber:innen)", () => {
-		expect(grantableActions("wallet")).toEqual(["read"]);
+	it("eigene Rollen: lesen, Auszahlung anlegen, Freigaben sehen — verwalten bleibt Inhaber:innen", () => {
+		// seit Phase 2 prüfen Actions initiate/approve (Senden, Adressbuch)
+		expect(grantableActions("wallet")).toEqual(["read", "initiate", "approve"]);
 		expect(
 			sanitizePermissions({
 				wallet: ["read", "manage", "approve", "initiate"],
 			}),
-		).toEqual({ wallet: ["read"] });
+		).toEqual({ wallet: ["read", "initiate", "approve"] });
 	});
 });
 
