@@ -2,7 +2,8 @@
  * Nachweis-Werkstatt-Durchlauf mit virtuellem Authenticator (CDP WebAuthn):
  * Passkey anlegen → ISO 27001 → Reiter „Nachweise“ → fällige Nachweise
  * erzeugen → einen Nachweis unterschreiben → Sammelunterschrift → Prüfseite
- * → signaturen.json offline prüfen (ohne Klick, nur node:crypto).
+ * → signaturen.json offline prüfen (ohne Klick, nur node:crypto) → Bericht
+ * an die Geschäftsleitung anlegen, vorlegen, erzeugen, zur Kenntnis nehmen.
  *
  * Voraussetzung: QA-Konto aus `pnpm exec tsx scripts/qa/crawl.ts --login`
  * mit Funktion Geschäftsleitung (Einrichtung) und laufender Ablage (S3).
@@ -136,6 +137,39 @@ async function main() {
 		});
 		check("offline geprüft", r.ok && s.check.valid, JSON.stringify(r));
 	}
+
+	step("Bericht an die Geschäftsleitung");
+	// 6) Bericht anlegen, vorlegen, als Nachweis erzeugen, zur Kenntnis nehmen
+	const toastWith = (re: RegExp) =>
+		page
+			.locator("[data-sonner-toast]", { hasText: re })
+			.first()
+			.waitFor({ timeout: 120_000 })
+			.then(() => true)
+			.catch(() => false);
+	page.on("dialog", (d) => void d.accept());
+	await page.goto(`${BASE}/berichte`, { waitUntil: "load" });
+	await page.waitForTimeout(2500);
+	await page.getByRole("button", { name: "Neuer Bericht" }).first().click();
+	await page.fill("#rp-summary", "Smoke: Lage stabil.");
+	await page.locator('[role="dialog"] button[type="submit"]').click();
+	check("Bericht gespeichert", await toastWith(/Bericht gespeichert/));
+	await page.waitForTimeout(1500);
+	await page.getByRole("button", { name: "Vorlegen" }).first().click();
+	check("Bericht vorgelegt", await toastWith(/vorgelegt/));
+	await page.waitForTimeout(1500);
+	await page
+		.getByRole("button", { name: "Als PDF-Nachweis erzeugen" })
+		.first()
+		.click();
+	check("Bericht als Nachweis", await toastWith(/erzeugt/));
+	await page.reload({ waitUntil: "load" });
+	await page.waitForTimeout(2500);
+	await page
+		.getByRole("button", { name: /zur Kenntnis nehmen/i })
+		.first()
+		.click();
+	check("zur Kenntnis genommen", await toastWith(/Unterschrieben/));
 
 	await browser.close();
 	const failures = failureCount();

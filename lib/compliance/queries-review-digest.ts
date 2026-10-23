@@ -1,5 +1,7 @@
 import { and, desc, eq, gte, inArray, lt, lte, ne } from "drizzle-orm";
 import {
+	amlMonitoringRules,
+	amlRiskAnalyses,
 	auditFindings,
 	audits,
 	complaints,
@@ -19,6 +21,7 @@ import {
 	risks,
 	riskTreatments,
 	securityFindings,
+	suspiciousReports,
 	tasks,
 	trainingAssignments,
 } from "@/db/schema";
@@ -351,6 +354,56 @@ export async function loadReviewDigest(
 			});
 	}
 
+	// Geldwäsche nur mit GwG/AMLR — Zähler, keine Fälle
+	const aml = frameworks.some((f) => f === "gwg" || f === "amlr")
+		? await (async () => {
+				const [analysis] = await tx
+					.select({
+						approvedAt: amlRiskAnalyses.approvedAt,
+						nextReviewAt: amlRiskAnalyses.nextReviewAt,
+					})
+					.from(amlRiskAnalyses)
+					.where(
+						and(
+							eq(amlRiskAnalyses.organizationId, orgId),
+							eq(amlRiskAnalyses.status, "approved"),
+						),
+					)
+					.orderBy(desc(amlRiskAnalyses.approvedAt))
+					.limit(1);
+				const cases = await tx
+					.select({
+						detectedAt: suspiciousReports.detectedAt,
+						reportedAt: suspiciousReports.reportedAt,
+						status: suspiciousReports.status,
+					})
+					.from(suspiciousReports)
+					.where(eq(suspiciousReports.organizationId, orgId));
+				const rules = await tx
+					.select({ id: amlMonitoringRules.id })
+					.from(amlMonitoringRules)
+					.where(
+						and(
+							eq(amlMonitoringRules.organizationId, orgId),
+							eq(amlMonitoringRules.status, "active"),
+						),
+					);
+				return {
+					asOf: to,
+					analysis: analysis
+						? {
+								approvedAt: analysis.approvedAt?.toISOString() ?? null,
+								nextReviewAt: analysis.nextReviewAt,
+							}
+						: null,
+					casesInPeriod: cases.filter((c) => inPeriod(c.detectedAt)).length,
+					reportedInPeriod: cases.filter((c) => inPeriod(c.reportedAt)).length,
+					inReview: cases.filter((c) => c.status === "review").length,
+					rulesActive: rules.length,
+				};
+			})()
+		: undefined;
+
 	const openFindings = { critical: 0, major: 0, minor: 0, observation: 0 };
 	for (const f of findings)
 		if (f.status !== "closed") openFindings[f.severity] += 1;
@@ -505,6 +558,7 @@ export async function loadReviewDigest(
 			framework: r.framework,
 			score: r.score,
 		})),
+		aml,
 	};
 }
 

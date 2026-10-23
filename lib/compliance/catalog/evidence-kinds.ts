@@ -22,7 +22,11 @@ export type EvidenceKind = {
 	// org = ein Nachweis je Organisation; je Datensatz z. B. ein Auditbericht
 	// je Audit oder ein Bestellungsschreiben je Funktion
 	scope: "org" | "per_entity";
-	entityType?: "audit" | "management_review" | "role_assignment";
+	entityType?:
+		| "audit"
+		| "management_review"
+		| "role_assignment"
+		| "management_report";
 	edit: { href: string; label: string };
 	// Dokumentvorlage, deren Textbausteine einfließen (document-templates.ts)
 	template?: string;
@@ -450,6 +454,34 @@ export const EVIDENCE_KINDS: readonly EvidenceKind[] = [
 		covers: ["Findings-Tracking"],
 		signers: [],
 		reviewMonths: 6,
+		mandatory: false,
+	},
+	{
+		code: "NW-GL-BERICHT",
+		title: "Bericht an die Geschäftsleitung",
+		purpose:
+			"Bericht einer Funktion (ISB, IKT-Risiko, GWB, Compliance, DSB, Auslagerung) mit Kennzahlen aus Klick, von der Geschäftsleitung zur Kenntnis genommen.",
+		scope: "per_entity",
+		entityType: "management_report",
+		edit: { href: "/berichte", label: "Berichte öffnen" },
+		requirements: [
+			"nis2:Art.20(1)",
+			"dora:Art.5(2)",
+			"gwg:§7",
+			"zag-marisk:AT4.4.2",
+			"dsgvo:Art.37-39",
+		],
+		controls: ["CC-GOV-03", "CC-AML-03", "CC-GOV-13", "CC-PRV-06"],
+		covers: [
+			"Berichtsprotokolle",
+			"Jahresbericht",
+			"Berichte der DSB",
+			"Bericht der Geldwäschebeauftragten",
+			"Bericht der Compliance-Funktion",
+		],
+		signers: GL_ANY,
+		signPurpose: "acknowledge",
+		reviewMonths: 12,
 		mandatory: false,
 	},
 	{

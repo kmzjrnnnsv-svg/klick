@@ -204,6 +204,13 @@
       "when": 1792758401205,
       "tag": "0028_org_chart_appointments",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792759910627,
+      "tag": "0029_management_reports",
+      "breakpoints": true
     }
   ]
 }

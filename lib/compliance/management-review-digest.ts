@@ -108,6 +108,16 @@ export type DigestData = {
 	trainings: { assigned: number; done: number; overdue: number };
 	obligations: { done: number; overdue: number };
 	readiness: { framework: string; score: number | null }[];
+	// Geldwäsche (§ 7 Abs. 5 GwG): nur Zähler, keine Fälle
+	aml?: {
+		// Stichtag (Ende des Zeitraums)
+		asOf: string;
+		analysis: { approvedAt: string | null; nextReviewAt: string | null } | null;
+		casesInPeriod: number;
+		reportedInPeriod: number;
+		inReview: number;
+		rulesActive: number;
+	};
 };
 
 const n = (v: number) => String(v);
@@ -468,6 +478,57 @@ function sectionFor(
 					note: `${de(r.date)} · ${r.legalBasis}`,
 				})),
 			};
+		case "aml_report": {
+			const a = d.aml;
+			if (!a) return null;
+			const review = a.analysis?.nextReviewAt ?? null;
+			return {
+				facts: [
+					{
+						label: "Risikoanalyse",
+						value: a.analysis?.approvedAt
+							? `freigegeben am ${de(a.analysis.approvedAt)}`
+							: "nicht freigegeben",
+						tone: a.analysis?.approvedAt ? "ok" : "alert",
+					},
+					...(review
+						? [
+								{
+									label: "Überprüfung der Risikoanalyse",
+									value: de(review),
+									tone: (review < a.asOf ? "warn" : "ok") as DigestTone,
+								},
+							]
+						: []),
+					{
+						label: "Verdachtsfälle im Zeitraum",
+						value: n(a.casesInPeriod),
+						tone: "info",
+					},
+					{
+						label: "davon gemeldet",
+						value: n(a.reportedInPeriod),
+						tone: "info",
+					},
+					{
+						label: "in Prüfung",
+						value: n(a.inReview),
+						tone: tone(a.inReview, 99, 1),
+					},
+					{
+						label: "aktive Monitoring-Regeln",
+						value: n(a.rulesActive),
+						tone: a.rulesActive === 0 ? "warn" : "ok",
+					},
+					{
+						label: "Schulungen überfällig",
+						value: n(d.trainings.overdue),
+						tone: tone(d.trainings.overdue),
+					},
+				],
+				items: [],
+			};
+		}
 		default:
 			return null;
 	}

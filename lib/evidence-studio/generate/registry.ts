@@ -6,6 +6,7 @@ import { beschluesse } from "../kinds/beschluesse";
 import { bestellung } from "../kinds/bestellung";
 import { dokumentenlenkung } from "../kinds/dokumentenlenkung";
 import { findings } from "../kinds/findings";
+import { glBericht } from "../kinds/gl-bericht";
 import { kenntnisnahme } from "../kinds/kenntnisnahme";
 import { kommunikation } from "../kinds/kommunikation";
 import { kompetenz } from "../kinds/kompetenz";
@@ -55,6 +56,7 @@ const ALL: readonly Generator[] = [
 	auditbericht,
 	findings,
 	managementbewertung,
+	glBericht,
 	testprogramm,
 	abweichungen,
 	wirksamkeit,
