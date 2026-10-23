@@ -260,3 +260,105 @@ export async function kindHashesFor(
 	for (const code of codes) out.set(code, await currentHash(tx, orgId, code));
 	return out;
 }
+
+// Letzter erzeugter Nachweis einer Art (je Datensatz über entityId)
+export async function generatedFor(
+	tx: OrgTx,
+	orgId: string,
+	code: string,
+	entityId?: string,
+): Promise<{
+	id: string;
+	createdAt: Date;
+	contentSha256: string | null;
+} | null> {
+	return (await latestOf(tx, orgId, code, entityId ?? null)).latest;
+}
+
+export type KindOverviewRow = {
+	code: string;
+	title: string;
+	purpose: string;
+	mandatory: boolean;
+	scope: "org" | "per_entity";
+	editHref: string;
+	editLabel: string;
+	generatable: boolean;
+	latest: { id: string; createdAt: string; validUntil: string | null } | null;
+	state:
+		| "missing"
+		| "current"
+		| "stale"
+		| "expired"
+		| "manual"
+		| "per_entity"
+		| "no_data";
+};
+
+// Stand aller Nachweisarten (Reiter „Nachweise“ eines Rahmenwerks)
+export async function kindOverview(
+	tx: OrgTx,
+	orgId: string,
+	codes: readonly string[],
+	today: string,
+): Promise<KindOverviewRow[]> {
+	const rows: KindOverviewRow[] = [];
+	for (const code of codes) {
+		const kind = EVIDENCE_KIND_BY_CODE.get(code);
+		if (!kind) continue;
+		const generatable = GENERATORS.has(code) && kind.scope === "org";
+		const [latest] =
+			kind.scope === "org"
+				? await tx
+						.select({
+							id: evidence.id,
+							createdAt: evidence.createdAt,
+							validUntil: evidence.validUntil,
+							contentSha256: evidence.contentSha256,
+						})
+						.from(evidence)
+						.where(
+							and(
+								eq(evidence.organizationId, orgId),
+								eq(evidence.kindCode, code),
+							),
+						)
+						.orderBy(desc(evidence.createdAt))
+						.limit(1)
+				: [];
+		const current = generatable ? await currentHash(tx, orgId, code) : null;
+		const state: KindOverviewRow["state"] =
+			kind.scope === "per_entity"
+				? "per_entity"
+				: !GENERATORS.has(code)
+					? "manual"
+					: current === null
+						? "no_data"
+						: !latest
+							? "missing"
+							: latest.validUntil && latest.validUntil < today
+								? "expired"
+								: current && latest.contentSha256 !== current
+									? "stale"
+									: "current";
+		rows.push({
+			code,
+			title: kind.title,
+			purpose: kind.purpose,
+			mandatory: kind.mandatory,
+			scope: kind.scope,
+			editHref: kind.edit.href,
+			editLabel: kind.edit.label,
+			generatable,
+			latest: latest
+				? {
+						id: latest.id,
+						createdAt: latest.createdAt.toISOString(),
+						validUntil: latest.validUntil,
+					}
+				: null,
+			state,
+		});
+	}
+	return rows;
+}

@@ -16,6 +16,7 @@ import {
 	EDGES_BY_REQUIREMENT,
 	FRAMEWORK_BY_SLUG,
 } from "@/lib/compliance/catalog";
+import { evidenceKindsForFrameworks } from "@/lib/compliance/catalog/evidence-kinds";
 import type { ReqCoverage } from "@/lib/compliance/coverage";
 import {
 	getOrgCoverageCached,
@@ -28,11 +29,16 @@ import { listAudits } from "@/lib/compliance/queries-p3";
 import { loadReadiness } from "@/lib/compliance/queries-readiness";
 import { parseStichtag, stichtagOptions } from "@/lib/compliance/readiness";
 import { readOrg } from "@/lib/db/with-org";
+import { kindOverview } from "@/lib/evidence-studio/generate/service";
 import {
 	type RequirementProgress,
 	requirementProgress,
 } from "@/lib/evidence-studio/progress";
-import { loadSheetData, sheetFor } from "@/lib/evidence-studio/queries";
+import {
+	berlinToday,
+	loadSheetData,
+	sheetFor,
+} from "@/lib/evidence-studio/queries";
 
 const TONE: Record<ReqCoverage, "success" | "warning" | "outline" | "muted"> = {
 	covered: "success",
@@ -138,7 +144,13 @@ export default async function FrameworkPage({
 							),
 						);
 					}
-					return { progress, notApplicable: data.notApplicable };
+					const kinds = await kindOverview(
+						tx,
+						ctx.orgId,
+						evidenceKindsForFrameworks([slug]).map((k) => k.code),
+						berlinToday(),
+					);
+					return { progress, notApplicable: data.notApplicable, kinds };
 				})
 			: null;
 
@@ -254,6 +266,8 @@ export default async function FrameworkPage({
 							framework={fw}
 							progress={evidenceTab.progress}
 							notApplicable={evidenceTab.notApplicable}
+							kinds={evidenceTab.kinds}
+							canCreate={allows(ctx, { evidence: ["create"] })}
 						/>
 					) : tab === "pruefungsreife" && readiness ? (
 						<ReadinessPanel

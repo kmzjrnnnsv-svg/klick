@@ -32,7 +32,10 @@ export function GenerateButton({
 			onClick={() =>
 				start(async () => {
 					const res = await generateEvidence({ kindCode, entityId });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok)
+						return void toast.error(
+							res.error === "not_found" ? t("noData") : tc("error"),
+						);
 					toast.success(res.data.reused ? t("generateReused") : t("generated"));
 					router.refresh();
 				})

@@ -33,3 +33,10 @@ export const generateEvidenceSchema = z.object({
 	kindCode: z.string().regex(/^NW-[A-Z-]{2,40}$/),
 	entityId: z.uuid().optional(),
 });
+
+export const generateFrameworkEvidenceSchema = z.object({
+	framework: z
+		.string()
+		.regex(/^[a-z0-9-]+$/)
+		.max(40),
+});

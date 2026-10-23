@@ -15,6 +15,9 @@ export type Generator<F = unknown> = {
 		facts: F,
 		ctx: { today: string },
 	): { title?: string; subtitle?: string; blocks: DocBlock[] };
+	// zählt Nachweise anderer Arten (z. B. SoA) → beim Sammelerzeugen zuletzt,
+	// sonst wäre sie sofort wieder veraltet
+	dependsOnEvidence?: boolean;
 	// je Datensatz (scope per_entity): wählbare Datensätze
 	entities?(tx: OrgTx, orgId: string): Promise<{ id: string; label: string }[]>;
 };

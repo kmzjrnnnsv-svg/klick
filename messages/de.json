@@ -5688,7 +5688,20 @@
 		"generating": "Wird erzeugt…",
 		"generated": "Nachweis erzeugt und an die Controls gehängt.",
 		"generateReused": "Unverändert – der vorhandene Nachweis gilt weiter.",
-		"stale": "veraltet – Register geändert"
+		"stale": "veraltet – Register geändert",
+		"kindsTitle": "Nachweise aus Klick",
+		"kindsLead": "Diese Nachweise entstehen aus deinen Registern – als PDF mit Prüfsumme, gültig für jedes Rahmenwerk, das sie verlangt. Ändert sich ein Register, wird der Nachweis als veraltet markiert.",
+		"generateAll": "{count, plural, =0 {Alles aktuell} one {# fälligen Nachweis erzeugen} other {# fällige Nachweise erzeugen}}",
+		"generatedAll": "{created, plural, =0 {Nichts Neues} one {# Nachweis erzeugt} other {# Nachweise erzeugt}} · {unchanged} unverändert.",
+		"kindState_current": "aktuell",
+		"kindState_stale": "veraltet",
+		"kindState_expired": "abgelaufen",
+		"kindState_missing": "fehlt",
+		"kindState_manual": "Datei hochladen",
+		"kindState_per_entity": "je Datensatz",
+		"generatePdf": "Als PDF-Nachweis erzeugen",
+		"kindState_no_data": "noch keine Daten",
+		"noData": "Im Register steht noch nichts dafür – erst ausfüllen, dann erzeugen."
 	},
 	"AuditRegimes": {
 		"lead": "Jedes Rahmenwerk hat eigene Audittermine und eigene Fristen für die Nacharbeit. Ohne eigene Festlegung gelten die Werte aus dem Katalog; ohne Regime im Katalog: Hauptabweichung Maßnahmenplan 30 Tage, Umsetzung 90 Tage – Nebenabweichung Maßnahmenplan 90 Tage, Umsetzung bis zum nächsten Audit, höchstens 365 Tage.",
