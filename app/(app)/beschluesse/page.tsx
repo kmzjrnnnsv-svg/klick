@@ -34,7 +34,6 @@ import { getOrgProfile, listMembersForPicker } from "@/lib/compliance/queries";
 import { listResolutions } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
 import { entityHref } from "@/lib/entities/links";
-import { s3Configured } from "@/lib/evidence/store";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -76,7 +75,6 @@ export default async function ResolutionsPage({
 				),
 			};
 		});
-	const canAttach = s3Configured();
 	const coverage = resolutionCoverage(
 		required,
 		rows
@@ -110,7 +108,6 @@ export default async function ResolutionsPage({
 							<DecisionRequestButton
 								soloHint={memberCount <= 1}
 								approverHint={approverHint}
-								canAttach={canAttach}
 							/>
 						)}
 						{canCreate && (

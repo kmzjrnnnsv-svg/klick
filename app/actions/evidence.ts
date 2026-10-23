@@ -11,6 +11,7 @@ import {
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { mutateOrg } from "@/lib/db/with-org";
+import { isDbStorageKey } from "@/lib/evidence/aad";
 import {
 	linkEvidenceToControl,
 	s3Configured,
@@ -28,11 +29,6 @@ import { evidenceLinkSchema } from "@/lib/validation/grc";
 // Nachweise: Link/Attestierung ohne Datei oder Datei-Upload (verschlüsselt
 // mit dem Org-DEK, S3-Key org/<orgId>/nachweise/<uuid>). Download nur über
 // /api/nachweise/[id] (Guard → RLS → Entschlüsselung → Attachment, auditiert).
-
-async function s3AvailableImpl(): Promise<boolean> {
-	await requireOrg();
-	return s3Configured();
-}
 
 async function createEvidenceLinkImpl(
 	input: unknown,
@@ -84,7 +80,6 @@ async function uploadEvidenceImpl(
 	ActionResult<{ id: string; classification: string; dlpRaised: boolean }>
 > {
 	const c = await requireOrg({ evidence: ["create"] });
-	if (!s3Configured()) return { ok: false, error: "storageNotConfigured" };
 	const file = formData.get("file");
 	if (!(file instanceof File)) return { ok: false, error: "fileMissing" };
 	const meta = evidenceLinkSchema.safeParse({
@@ -216,8 +211,11 @@ async function deleteEvidenceImpl(evidenceId: string): Promise<ActionResult> {
 				)
 				.limit(1);
 			if (signed) return { result: "signed" as const, audit: [] };
+			// Objekt in der Datenbank (db:) geht mit der Zeile (Kaskade, gleiches
+			// Backup); S3-Objekte erst nach der Backup-Aufbewahrung
 			await tx.delete(evidence).where(eq(evidence.id, evidenceId));
-			const after = row.storageKey ? purgeAfter(new Date()) : null;
+			const inS3 = Boolean(row.storageKey && !isDbStorageKey(row.storageKey));
+			const after = inS3 ? purgeAfter(new Date()) : null;
 			if (row.storageKey && after) {
 				await tx
 					.insert(storagePurgeQueue)
@@ -232,7 +230,7 @@ async function deleteEvidenceImpl(evidenceId: string): Promise<ActionResult> {
 					.onConflictDoNothing();
 			}
 			return {
-				result: { hadFile: Boolean(row.storageKey) },
+				result: { hadFile: inS3 },
 				audit: {
 					action: "evidence.delete",
 					target: `evidence:${evidenceId}`,
@@ -330,11 +328,6 @@ async function ensureEvidenceStepUpImpl(): Promise<ActionResult> {
 export const ensureEvidenceStepUp = safeAction(
 	"ensureEvidenceStepUp",
 	ensureEvidenceStepUpImpl,
-);
-export const s3Available = safeAction(
-	"s3Available",
-	s3AvailableImpl,
-	() => false,
 );
 export const createEvidenceLink = safeAction(
 	"createEvidenceLink",

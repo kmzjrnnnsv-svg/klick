@@ -27,7 +27,6 @@ import { getOrgProfile, loadApplicability } from "@/lib/compliance/queries";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import {
 	linkEvidenceToControl,
-	s3Configured,
 	screenUpload,
 	storeEncryptedEvidence,
 } from "@/lib/evidence/store";
@@ -170,7 +169,6 @@ async function uploadAnswerEvidenceImpl(
 	ActionResult<{ id: string; classification: string; dlpRaised: boolean }>
 > {
 	const c = await requireOrg({ assessment: ["answer"], evidence: ["create"] });
-	if (!s3Configured()) return { ok: false, error: "storageNotConfigured" };
 	const assessmentId = String(formData.get("assessmentId") ?? "");
 	const questionCode = String(formData.get("questionCode") ?? "");
 	const file = formData.get("file");

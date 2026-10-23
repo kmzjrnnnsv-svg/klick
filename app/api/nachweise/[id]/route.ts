@@ -5,8 +5,13 @@ import { AuthError, requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { isExternal } from "@/lib/auth/memberships";
 import { mutateOrg } from "@/lib/db/with-org";
 import { egressGuard } from "@/lib/dlp/egress";
-import { env } from "@/lib/env";
-import { attachmentHeaders, decryptEvidenceObject } from "@/lib/evidence/read";
+import { isDbStorageKey } from "@/lib/evidence/aad";
+import {
+	attachmentHeaders,
+	dbEnvelope,
+	decryptEvidenceObject,
+} from "@/lib/evidence/read";
+import { s3Configured } from "@/lib/evidence/store";
 import { rateLimited } from "@/lib/export/respond";
 
 export const dynamic = "force-dynamic";
@@ -32,11 +37,6 @@ export async function GET(
 		rateLimited(ctx.orgId) ?? (await egressGuard(ctx, "evidence_download"));
 	if (limited) return limited;
 
-	const e = env();
-	if (!(e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY)) {
-		return new NextResponse(null, { status: 404 });
-	}
-
 	type Payload =
 		| { kind: "none" }
 		| { kind: "denied" }
@@ -44,6 +44,7 @@ export async function GET(
 				kind: "ok";
 				row: typeof evidence.$inferSelect;
 				dek: { wrapped: string; keyVersion: number };
+				packed?: Uint8Array;
 		  };
 	const payload = await mutateOrg<Payload>(toOrgCtx(ctx), async (tx) => {
 		const [row] = await tx
@@ -52,6 +53,9 @@ export async function GET(
 			.where(and(eq(evidence.id, id), eq(evidence.organizationId, ctx.orgId)))
 			.limit(1);
 		if (!row?.storageKey) return { result: { kind: "none" }, audit: [] };
+		// S3-Objekt, aber kein Objektspeicher eingerichtet
+		if (!isDbStorageKey(row.storageKey) && !s3Configured())
+			return { result: { kind: "none" }, audit: [] };
 		// Streng geheim (z. B. von DLP angehoben): Prüfer:innen nur mit Grant.
 		if (
 			row.classification === "secret" &&
@@ -95,6 +99,7 @@ export async function GET(
 				kind: "ok",
 				row,
 				dek: { wrapped: s.encryptedDek, keyVersion: s.keyVersion },
+				packed: await dbEnvelope(tx, ctx.orgId, id, row.storageKey),
 			},
 			audit: {
 				action: "evidence.download",
@@ -111,6 +116,7 @@ export async function GET(
 		evidenceId: id,
 		storageKey: payload.row.storageKey as string,
 		dek: payload.dek,
+		packed: payload.packed,
 	});
 	return new NextResponse(new Uint8Array(plain), {
 		status: 200,

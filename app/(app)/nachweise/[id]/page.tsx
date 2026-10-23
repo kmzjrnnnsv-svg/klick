@@ -15,7 +15,8 @@ import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { evidenceDetail } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
-import { env } from "@/lib/env";
+import { isDbStorageKey } from "@/lib/evidence/aad";
+import { s3Configured } from "@/lib/evidence/store";
 import { berlinToday } from "@/lib/evidence-studio/queries";
 
 const fmtSize = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
@@ -42,10 +43,10 @@ export default async function EvidenceDetailPage({
 	);
 	if (!data) notFound();
 	const { row } = data;
-	const e = env();
-	const storageAvailable = Boolean(
-		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,
-	);
+	// S3-Objekt ohne eingerichteten Objektspeicher ist nicht abrufbar
+	const fileReadable =
+		row.storageKey !== null &&
+		(isDbStorageKey(row.storageKey) || s3Configured());
 	const canDelete = allows(ctx, { evidence: ["delete"] });
 	const kind = row.kindCode ? EVIDENCE_KIND_BY_CODE.get(row.kindCode) : null;
 	const expired = row.validUntil !== null && row.validUntil < berlinToday();
@@ -74,7 +75,7 @@ export default async function EvidenceDetailPage({
 				lead={row.description ?? undefined}
 				actions={
 					<div className="flex flex-wrap items-center gap-2">
-						{row.storageKey && storageAvailable && (
+						{fileReadable && (
 							<ExportLink
 								href={download}
 								className={btn}
@@ -152,7 +153,7 @@ export default async function EvidenceDetailPage({
 											· {size(row.sizeBytes)}
 										</span>
 									)}
-									{row.storageKey && !storageAvailable && (
+									{row.storageKey && !fileReadable && (
 										<span className="block text-muted-foreground text-xs">
 											{t("storageMissing")}
 										</span>

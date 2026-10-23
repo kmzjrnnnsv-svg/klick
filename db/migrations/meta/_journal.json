@@ -211,6 +211,13 @@
       "when": 1792759910627,
       "tag": "0029_management_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792766741819,
+      "tag": "0030_evidence_blobs",
+      "breakpoints": true
     }
   ]
 }

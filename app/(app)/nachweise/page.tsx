@@ -11,7 +11,6 @@ import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listEvidenceWithControls } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
-import { env } from "@/lib/env";
 
 type Row = Awaited<ReturnType<typeof listEvidenceWithControls>>[number];
 type Search = Record<string, string | string[] | undefined>;
@@ -29,10 +28,6 @@ export default async function EvidencePage({
 	const td = await getTranslations("Dlp");
 	const rows = await readOrg(toOrgCtx(ctx), (tx) =>
 		listEvidenceWithControls(tx, ctx.orgId),
-	);
-	const e = env();
-	const storageAvailable = Boolean(
-		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,
 	);
 	const canCreate = allows(ctx, { evidence: ["create"] });
 
@@ -134,11 +129,7 @@ export default async function EvidencePage({
 		<RegisterPage
 			title={t("title")}
 			lead={t("lead")}
-			actions={
-				canCreate ? (
-					<EvidenceForm storageAvailable={storageAvailable} />
-				) : undefined
-			}
+			actions={canCreate ? <EvidenceForm /> : undefined}
 			filters={[
 				{
 					key: "type",
@@ -177,14 +168,9 @@ export default async function EvidencePage({
 					title={t("empty")}
 					lead={t("emptyLead")}
 					requiredBy={t("requiredBy")}
-					actions={
-						canCreate ? (
-							<EvidenceForm storageAvailable={storageAvailable} />
-						) : undefined
-					}
+					actions={canCreate ? <EvidenceForm /> : undefined}
 				/>
 			}
-			footer={storageAvailable ? undefined : t("storageNotConfigured")}
 		/>
 	);
 }

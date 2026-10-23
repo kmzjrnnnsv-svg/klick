@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { orgPolicy } from "../rls";
 import {
+	bytea,
 	json,
 	orgId,
 	pk,
@@ -146,6 +147,26 @@ export const evidence = pgTable(
 	(t) => [
 		index("evidence_org_idx").on(t.organizationId),
 		orgPolicy("evidence"),
+	],
+).enableRLS();
+
+// Datei-Speicher ohne S3: verschlüsselte Nachweis-Objekte (Umschlag wie im
+// Objektspeicher, Org-DEK, AAD an die Nachweis-ID gebunden) liegen hier;
+// evidence.storageKey ist dann "db:<id>". Löschen kaskadiert mit dem
+// Nachweis — Zeile und Objekt liegen im selben Backup.
+export const evidenceBlobs = pgTable(
+	"evidence_blobs",
+	{
+		evidenceId: uuid()
+			.primaryKey()
+			.references(() => evidence.id, { onDelete: "cascade" }),
+		organizationId: orgId(),
+		envelope: bytea().notNull(),
+		createdAt: ts().notNull().defaultNow(),
+	},
+	(t) => [
+		index("evidence_blobs_org_idx").on(t.organizationId),
+		orgPolicy("evidence_blobs"),
 	],
 ).enableRLS();
 

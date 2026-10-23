@@ -8,6 +8,7 @@ import { loadOrgDek } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { evidenceAad } from "@/lib/evidence/aad";
+import { dbEnvelope } from "@/lib/evidence/read";
 import {
 	decryptRows,
 	type ExportRow,
@@ -40,7 +41,8 @@ export async function GET(req: Request) {
 	const org = await getOrgSummary(ctx.orgId);
 	if (!org) return new NextResponse(null, { status: 404 });
 	const members = await listOrgMembers(ctx.orgId);
-	const tables = orgTablesFromSchema(appSchema);
+	// Datei-Umschläge (ohne S3) stehen entschlüsselt unter nachweise/
+	const tables = orgTablesFromSchema(appSchema, new Set(["evidence_blobs"]));
 	const e = env();
 	const s3Ready = Boolean(
 		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,
@@ -90,22 +92,36 @@ export async function GET(req: Request) {
 			sha256: string | null;
 			size_bytes: number | null;
 		}[];
-		return { dek, files, summary, evidenceRows: [...evidenceRows] };
+		const packed = new Map<string, Uint8Array>();
+		for (const ev of evidenceRows) {
+			const env = await dbEnvelope(tx, ctx.orgId, ev.id, ev.storage_key);
+			if (env) packed.set(ev.id, env);
+		}
+		return { dek, files, summary, evidenceRows: [...evidenceRows], packed };
 	});
 
 	const skipped: string[] = [];
 	let bytes = 0;
 	let included = 0;
-	if (s3Ready) {
-		const { getBytes } = await import("@/lib/storage/s3");
+	{
+		const s3 = s3Ready ? await import("@/lib/storage/s3") : null;
 		for (const ev of data.evidenceRows) {
 			if (!ev.storage_key) continue;
+			const inDb = data.packed.get(ev.id);
+			if (!inDb && !s3) {
+				skipped.push(
+					`${ev.id} (${ev.file_name ?? "—"}, Objektspeicher nicht konfiguriert)`,
+				);
+				continue;
+			}
 			if (bytes + (ev.size_bytes ?? 0) > MAX_FILE_BYTES) {
 				skipped.push(`${ev.id} (${ev.file_name ?? "—"}, Größenlimit)`);
 				continue;
 			}
 			try {
-				const packed = await getBytes(ev.storage_key);
+				const packed =
+					inDb ??
+					(await (s3 as NonNullable<typeof s3>).getBytes(ev.storage_key));
 				const plain = await decryptBytes(
 					unpackEnvelope(packed),
 					data.dek,
@@ -122,11 +138,6 @@ export async function GET(req: Request) {
 				skipped.push(`${ev.id} (${ev.file_name ?? "—"}, nicht lesbar)`);
 			}
 		}
-	} else {
-		for (const ev of data.evidenceRows)
-			skipped.push(
-				`${ev.id} (${ev.file_name ?? "—"}, Objektspeicher nicht konfiguriert)`,
-			);
 	}
 
 	data.files.unshift(

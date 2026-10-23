@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import { documentVersions, evidence, orgSettings } from "@/db/schema";
 import { publicTrustCenter } from "@/lib/db/trust";
 import { mutateOrg } from "@/lib/db/with-org";
-import { attachmentHeaders, decryptEvidenceObject } from "@/lib/evidence/read";
+import { isDbStorageKey } from "@/lib/evidence/aad";
+import {
+	attachmentHeaders,
+	dbEnvelope,
+	decryptEvidenceObject,
+} from "@/lib/evidence/read";
 import { s3Configured } from "@/lib/evidence/store";
 import { getOrgLimiter, SlidingWindowLimiter } from "@/lib/rate-limit";
 import { clientIp, ingestRoute } from "@/lib/security/ingest";
@@ -52,7 +57,6 @@ export const GET = ingestRoute("trust.document", async (req: Request) => {
 		if (!r.ok) return status(403);
 		requestId = r.access.request.id;
 	}
-	if (doc.kind === "file" && !s3Configured()) return status(404);
 
 	type Payload =
 		| null
@@ -64,6 +68,7 @@ export const GET = ingestRoute("trust.document", async (req: Request) => {
 				fileName: string | null;
 				mimeType: string | null;
 				dek: { wrapped: string; keyVersion: number };
+				packed?: Uint8Array;
 		  };
 	const payload = await mutateOrg<Payload>(
 		{ orgId, userId: null, ip: null, userAgent: req.headers.get("user-agent") },
@@ -123,6 +128,8 @@ export const GET = ingestRoute("trust.document", async (req: Request) => {
 				.where(eq(orgSettings.organizationId, orgId))
 				.limit(1);
 			if (!e?.storageKey || !s) return { result: null, audit: [] };
+			if (!isDbStorageKey(e.storageKey) && !s3Configured())
+				return { result: null, audit: [] };
 			return {
 				result: {
 					kind: "file",
@@ -131,6 +138,7 @@ export const GET = ingestRoute("trust.document", async (req: Request) => {
 					fileName: e.fileName,
 					mimeType: e.mimeType,
 					dek: { wrapped: s.encryptedDek, keyVersion: s.keyVersion },
+					packed: await dbEnvelope(tx, orgId, v.fileEvidenceId, e.storageKey),
 				},
 				audit,
 			};
@@ -154,6 +162,7 @@ export const GET = ingestRoute("trust.document", async (req: Request) => {
 		evidenceId: payload.evidenceId,
 		storageKey: payload.storageKey,
 		dek: payload.dek,
+		packed: payload.packed,
 	});
 	const ext = payload.fileName?.match(/\.[A-Za-z0-9]{1,8}$/)?.[0] ?? "";
 	return new NextResponse(new Uint8Array(plain), {

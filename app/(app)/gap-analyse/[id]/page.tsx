@@ -48,7 +48,6 @@ import { listMembersForPicker } from "@/lib/compliance/queries";
 import { getAssessmentDetail } from "@/lib/compliance/queries-assessments";
 import { prioritizePlan } from "@/lib/compliance/synergy";
 import { readOrg } from "@/lib/db/with-org";
-import { s3Configured } from "@/lib/evidence/store";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["fragen", "bewertung", "massnahmen", "ergebnis"] as const;
@@ -327,7 +326,6 @@ export default async function AssessmentPage({
 											canImportDocument={allows(ctx, {
 												document: ["create"],
 											})}
-											storageAvailable={s3Configured()}
 										/>
 									);
 								})}

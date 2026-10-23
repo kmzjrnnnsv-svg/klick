@@ -15,7 +15,6 @@ import { getOrgSummary } from "@/lib/auth/org";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { getPortalAssessment } from "@/lib/compliance/queries-suppliers";
 import { readOrg } from "@/lib/db/with-org";
-import { s3Configured } from "@/lib/evidence/store";
 
 export const metadata: Metadata = {
 	title: "Lieferantenportal",
@@ -141,7 +140,6 @@ export default async function SupplierPortalPage() {
 									key={code}
 									question={q}
 									readOnly={readOnly}
-									storageAvailable={s3Configured()}
 									initial={{
 										answer: ans?.answer ?? null,
 										comment: ans?.comment ?? null,

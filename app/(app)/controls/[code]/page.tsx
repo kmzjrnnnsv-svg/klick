@@ -47,7 +47,6 @@ import {
 import { listControlTests } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
-import { env } from "@/lib/env";
 import { kindHashesFor } from "@/lib/evidence-studio/generate/service";
 import { loadSheetData, sheetFor } from "@/lib/evidence-studio/queries";
 import {
@@ -118,10 +117,6 @@ export default async function ControlDetailPage({
 	const cov = await getOrgCoverageCached(ctx);
 	const fwNames = frameworkNameMap();
 	const canEdit = allows(ctx, { control: ["update"] });
-	const e = env();
-	const storageAvailable = Boolean(
-		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,
-	);
 
 	const orgFrameworks = new Set(cov?.frameworks ?? []);
 	const edges = (EDGES_BY_CONTROL.get(code) ?? [])
@@ -404,7 +399,6 @@ export default async function ControlDetailPage({
 							/>
 							<EvidenceForm
 								implementationId={row.implementationId}
-								storageAvailable={storageAvailable}
 								label={t("addEvidence")}
 							/>
 						</div>

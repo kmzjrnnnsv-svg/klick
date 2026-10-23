@@ -2,7 +2,9 @@ import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { evidence, orgSettings } from "@/db/schema";
 import { SIGN_ORIGIN, SIGN_RP_ID } from "@/lib/auth/passkey-sign";
 import type { OrgTx } from "@/lib/db/with-org";
-import { decryptEvidenceObject } from "@/lib/evidence/read";
+import { isDbStorageKey } from "@/lib/evidence/aad";
+import { dbEnvelope, decryptEvidenceObject } from "@/lib/evidence/read";
+import { s3Configured } from "@/lib/evidence/store";
 import { signaturesJson } from "@/lib/signatures/report";
 import { signaturesFor } from "@/lib/signatures/service";
 import type { ZipEntry } from "./zip";
@@ -34,7 +36,15 @@ export async function loadGeneratedEvidence(tx: OrgTx, orgId: string) {
 		const key = `${r.kindCode}:${r.entityId ?? ""}`;
 		if (!latest.has(key)) latest.set(key, r);
 	}
-	const picked = [...latest.values()];
+	// ohne Objektspeicher nur, was in der Datenbank liegt
+	const picked = [...latest.values()].filter(
+		(r) => !r.storageKey || isDbStorageKey(r.storageKey) || s3Configured(),
+	);
+	const packed = new Map<string, Uint8Array>();
+	for (const r of picked) {
+		const env = await dbEnvelope(tx, orgId, r.id, r.storageKey);
+		if (env) packed.set(r.id, env);
+	}
 	const [s] = await tx
 		.select({
 			wrapped: orgSettings.encryptedDek,
@@ -51,6 +61,7 @@ export async function loadGeneratedEvidence(tx: OrgTx, orgId: string) {
 			picked.map((p) => p.id),
 		),
 		dek: s ?? null,
+		packed,
 	};
 }
 
@@ -66,6 +77,7 @@ export async function generatedEvidenceEntries(
 			evidenceId: item.id,
 			storageKey: item.storageKey,
 			dek: data.dek,
+			packed: data.packed.get(item.id),
 		});
 		// je Datensatz eigener Name (gleiche Version am selben Tag sonst doppelt)
 		const fileName = item.entityId

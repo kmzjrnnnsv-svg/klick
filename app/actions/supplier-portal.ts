@@ -11,11 +11,7 @@ import {
 	requirePortal,
 } from "@/lib/auth/guards";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
-import {
-	s3Configured,
-	screenUpload,
-	storeEncryptedEvidence,
-} from "@/lib/evidence/store";
+import { screenUpload, storeEncryptedEvidence } from "@/lib/evidence/store";
 import { notify } from "@/lib/notifications/notify";
 import { getOrgLimiter, SlidingWindowLimiter } from "@/lib/rate-limit";
 import { hasScopes } from "@/lib/security/tokens";
@@ -121,7 +117,6 @@ async function uploadAsSupplierImpl(
 	formData: FormData,
 ): Promise<ActionResult<{ id: string; name: string }>> {
 	const p = await portal();
-	if (!s3Configured()) return { ok: false, error: "storageNotConfigured" };
 	if (
 		!perTokenUploads.check(p.token.id).allowed ||
 		!getOrgLimiter().check(p.ctx.orgId).allowed

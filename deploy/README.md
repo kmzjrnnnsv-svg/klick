@@ -231,6 +231,19 @@ Datei.
   routen dann je Org; Better Auth, Katalog und Plattform-Jobs bleiben auf der Haupt-DB — für
   Enterprise-DBs einen eigenen Job-Prozess mit gesetzter `DATABASE_URL` betreiben.
 
+## Datei-Speicher: Objektspeicher oder Datenbank
+Mit `S3_ENDPOINT`/`S3_ACCESS_KEY_ID`/`S3_SECRET_ACCESS_KEY` liegen Nachweis-Dateien im
+Objektspeicher (`org/<orgId>/nachweise/<id>`). **Ohne** diese Werte speichert Klick denselben
+verschlüsselten Umschlag (Org-DEK, AAD an die Nachweis-ID) in der Tabelle `evidence_blobs`
+(`storage_key = db:<id>`, RLS + FORCE, Migration 0030). Uploads, Nachweis-Werkstatt, Anhänge und
+Prüfungspaket funktionieren damit auch ohne S3; das DB-Backup (`klick-backup-db`) sichert die
+Dateien mit, Löschen geht mit dem Nachweis (keine Purge-Queue, keine Tombstones).
+- Größe beobachten: `psql -c "select pg_size_pretty(pg_total_relation_size('evidence_blobs'))"`.
+- Später auf S3 umstellen: Werte setzen, `systemctl restart klick` — neue Dateien gehen in den
+  Objektspeicher, vorhandene `db:`-Dateien bleiben lesbar (kein Umzug nötig).
+- Umgekehrt (S3 entfernen) sind ältere S3-Dateien nicht mehr abrufbar (Download 404) — nur tun,
+  wenn der Bucket leer ist.
+
 ## Uploads isoliert parsen (N6)
 Hochgeladene Dateien (Nachweise, Gap-Analyse, Lieferantenportal, SBOM, Scan-Berichte, CI-Ingest)
 parst nie der App-Prozess: Typprüfung (Magic Bytes), Text aus PDF/Office/ZIP, DLP-Erkennung, SBOM-

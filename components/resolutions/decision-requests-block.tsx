@@ -12,7 +12,6 @@ import {
 	managementApproverHint,
 } from "@/lib/compliance/decision-service";
 import { readOrg } from "@/lib/db/with-org";
-import { s3Configured } from "@/lib/evidence/store";
 import { DecisionRequestButton } from "./decision-request-button";
 
 // Entscheidungen zu einer Entität (E1/E2): Beschlüsse der Geschäftsleitung
@@ -51,7 +50,6 @@ export async function DecisionRequestsBlock({
 						defaultQuestion={title}
 						refs={data.refs}
 						approverHint={data.approverHint}
-						canAttach={s3Configured()}
 					/>
 				) : null
 			}

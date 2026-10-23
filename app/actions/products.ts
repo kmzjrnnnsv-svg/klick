@@ -23,7 +23,7 @@ import type { OrgTx } from "@/lib/db/with-org";
 import { mutateOrg } from "@/lib/db/with-org";
 import { PRODUCT_STATUS } from "@/lib/entities/product";
 import { canTransition } from "@/lib/entities/status-machine";
-import { s3Configured, screenUpload } from "@/lib/evidence/store";
+import { screenUpload } from "@/lib/evidence/store";
 import { parseIsolated, sbomResultSchema } from "@/lib/parse/client";
 import { getOrgLimiter } from "@/lib/rate-limit";
 import { checkSbom } from "@/lib/security/sbom-check";
@@ -202,7 +202,6 @@ async function uploadSbomImpl(
 	formData: FormData,
 ): Promise<ActionResult<{ ok: boolean; issues: string[] }>> {
 	const c = await requireOrg({ product: ["update"], evidence: ["create"] });
-	if (!s3Configured()) return { ok: false, error: "storageNotConfigured" };
 	const productId = String(formData.get("productId") ?? "");
 	const idCheck = productIdSchema.safeParse({ productId });
 	if (!idCheck.success) return fromZod(idCheck.error);
