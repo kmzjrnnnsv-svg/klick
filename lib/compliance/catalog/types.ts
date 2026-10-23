@@ -7,6 +7,7 @@ import type {
 	LicenceStage,
 	OrgRoleLegal,
 } from "@/db/schema/enums";
+import type { Param } from "@/lib/compliance/params";
 
 // Katalog-Typen (Authoring-Quelle: docs/regulatory/anforderungskatalog-2026-10.md).
 // Anforderungen = das Warum (je Rahmenwerk), Controls = das Was (harmonisiert),
@@ -73,6 +74,9 @@ export type CatalogRequirement = {
 	auditQuestions?: string[];
 	pitfalls?: string[];
 	tools?: Tools;
+	// Fristen, Intervalle, Aufbewahrung — kuratiert; ohne Angabe liest
+	// extractParams sie aus Text, Hinweisen und Umsetzungshilfe
+	params?: Param[];
 	sortOrder: number;
 };
 
