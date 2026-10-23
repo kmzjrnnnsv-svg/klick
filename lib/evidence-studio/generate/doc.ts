@@ -31,9 +31,12 @@ export function canonicalJson(value: unknown): string {
 export const contentHash = (snapshot: Snapshot): string =>
 	createHash("sha256").update(canonicalJson(snapshot)).digest("hex");
 
+// "-" = ohne Funktion: die Person, die den Nachweis verfasst hat
 export const functionLabel = (f: string): string =>
-	REQUIRED_FUNCTIONS.find((x) => x.function === f)?.title ??
-	(f === "department_head" ? "Bereichsleitung" : f);
+	f === "-"
+		? "Erstellt von"
+		: (REQUIRED_FUNCTIONS.find((x) => x.function === f)?.title ??
+			(f === "department_head" ? "Bereichsleitung" : f));
 
 export function requirementLabel(key: string): string {
 	const r = REQUIREMENT_BY_KEY.get(key);
