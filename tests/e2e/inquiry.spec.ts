@@ -43,7 +43,7 @@ test.describe("Anfrage", () => {
 				name: "Bot",
 				email: "bot@example.org",
 				message: "Kaufen Sie jetzt unsere Produkte!",
-				consent: true,
+				business: true,
 				website: "https://spam.example",
 				renderedAt: Date.now() - 60_000,
 			},
@@ -56,14 +56,14 @@ test.describe("Anfrage", () => {
 				name: "Erika",
 				email: "keine-adresse",
 				message: "Bitte um Rückruf zur Gap-Analyse.",
-				consent: false,
+				business: false,
 				renderedAt: Date.now() - 60_000,
 			},
 		});
 		expect(invalid.status()).toBe(400);
 		const body = await invalid.json();
 		expect(Object.keys(body.fieldErrors)).toEqual(
-			expect.arrayContaining(["email", "consent"]),
+			expect.arrayContaining(["email", "business"]),
 		);
 	});
 });
