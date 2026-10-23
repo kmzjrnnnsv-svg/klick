@@ -190,6 +190,8 @@ Prod-Build testen: `QA_BASE=http://localhost:3300 … --login` (Sitzung je Port)
 
 **Dev-Server-Falle (Next 16.4):** Turbopack schickt nach jedem Chunk-Abo „restart“/„reloadPage“ (HMR hash mismatch) — offene Seiten laden in einer Schleife neu und hydratisieren nie („Execution context was destroyed“, Knöpfe bleiben `disabled`). Playwright-Skripte gegen den Dev-Server nutzen `quietHmr(ctx)` aus `scripts/qa/webauthn.ts` (reicht den HMR-Websocket durch, verwirft nur diese zwei Nachrichten); nach einem Container-Neustart `.next/dev` löschen.
 
+**Schriftgröße:** UI-Text nie unter `text-[0.7rem]` (11 px, Untergrenze von Impeccable) — auch Labels, Badges und Versalien (`lv-eyebrow`, Sperrung 0,16 em). Auf der Website keine Kicker/Eyebrows über Überschriften. Prüfen: Impeccable-Engine `detect --json <url>` gegen den Produktions-Build (Browser als root mit `--no-sandbox`-Wrapper).
+
 **Layout-Fallen:** `body` nie auf feste Höhe (`height: 100%` klemmt die Shell, sticky Header/Sidebar lösen sich); in Spalten ohne feste Höhe `grow` statt `flex-1`. Responsive Raster immer mit Basis `grid-cols-1` (`grid grid-cols-1 … md:grid-cols-2`), sonst wird die implizite Spalte so breit wie der längste nicht umbrechende Inhalt. Codes in Tabellen `whitespace-nowrap`.
 
 ## Quickstart
@@ -243,6 +245,8 @@ Lokal ohne Docker: Postgres 16 nativ, Rollen aus `deploy/postgres/init-dev.sql`.
 - ✅ **Wallet Phase 0+1 (Okt 2026, Plan Wallet)** — Bereich mit Umschalter und Passkey-Entsperrung (15 min, Migration 0022), Konten aus xpub, Empfangen mit QR, Sync über eigene Knoten mit Reorg-Behandlung und Sanktionsprüfung vor der Gutschrift (Migration 0023), OFAC-Import, Abstimmung aus dem Knotenstand, Knoten-Skripte + WireGuard + `wallet:check`, Kurse aus Chainlink über den eigenen Knoten mit Watchlist und Kursverlauf mit Ein-/Ausgängen (Migration 0024), geführte Einführung in sechs Schritten. Senden (Signer, Bestätigungsseite) folgt in Phase 2.
 
 - ✅ **Wallet Phase 2 (Okt 2026, ADR-022)** — Testkette sendet (Bitcoin-Core-/Reth-Nachbau mit Mempool, RBF, Nonces, Reverts), RPC fürs Senden; Signer mit Journal, Seeds je Netz, eigenem WebAuthn-Prüfer, Richtlinie (Solo/Vier-Augen, Grenzen, Gebühren-Deckel), CLI und Wiederherstellungstest; Bestätigungsseite `freigabe.raza.work` mit Betrieb (Units, install.sh, Backup, Runbook); Hot-Konten, Adressbuch mit Wartezeit und Veto, Auszahlungen mit Job (signieren, senden, bestätigen, beschleunigen, abbrechen), Sicherheitsseite mit „Alles stoppen“, Banner, `wallet:check`-Probe, Sende-Smoke im Browser (Migration 0032). Abnahme auf dem Server steht aus (zweiter Sicherheitsschlüssel).
+
+- ◐ **Phase D (Okt 2026)** — Impeccable 4.5.2: 135 Funde auf Website/Anmeldung/Bestätigungsseite → 2 Hinweise (Schrift ab 11 px app-weit, Kicker weg, Zeilenlängen, neutraler Grund der Bestätigungsseite). HyperFrames 0.8.158: Rundgang-Video auf `/funktionen` (`public/funktionen/rundgang.*`, Quelle `docs/video/rundgang`). **Mobbin offen** — Plugin in der Sitzung nicht aktiv.
 
 ## Offene Punkte / Risiken
 
