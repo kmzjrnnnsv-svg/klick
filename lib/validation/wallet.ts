@@ -64,6 +64,11 @@ export const vetoDestinationSchema = z.object({
 	reason: z.string().trim().min(3, "Grund fehlt").max(300),
 });
 
+// Alles stoppen: Signer einfrieren (bremst nur, jede:r im Bereich), mit Grund
+export const freezeSignerSchema = z.object({
+	reason: z.string().trim().min(3, "Grund fehlt").max(160),
+});
+
 // Auszahlung anlegen: Betrag als Dezimaltext (Punkt oder Komma), Ziel nur
 // aus dem Adressbuch (aktiv), Gebühren-Tempo
 export const payoutSchema = z.object({

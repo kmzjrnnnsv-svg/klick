@@ -20,6 +20,7 @@ import { NETWORKS } from "@/lib/wallet/core/networks";
 import { fmtDateTime } from "@/lib/wallet/display";
 import { configuredNetworks } from "@/lib/wallet/node-clients";
 import { confirmUrl } from "@/lib/wallet/signer/client";
+import { isOwnSigner, loadSignerAnchor } from "@/lib/wallet/signer/context";
 import { signerState } from "@/lib/wallet/signer/status";
 
 export const metadata: Metadata = { title: "Adressbuch" };
@@ -43,10 +44,11 @@ export default async function AddressBookPage() {
 	const canInitiate = allows(ctx, { wallet: ["initiate"] });
 	const canApprove = allows(ctx, { wallet: ["approve"] });
 	const { state, hello } = await signerState(ctx.orgId);
-	const { rows, names } = await readOrg(toOrgCtx(ctx), async (tx) => {
+	const { rows, names, anchor } = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const rows = await listAddressBook(tx, ctx.orgId);
 		return {
 			rows,
+			anchor: await loadSignerAnchor(tx, ctx.orgId),
 			names: await userNames(
 				tx,
 				rows.map((r) => r.proposedByUserId),
@@ -139,7 +141,7 @@ export default async function AddressBookPage() {
 					)
 				}
 			/>
-			<SignerNotice state={state} />
+			<SignerNotice state={state} own={isOwnSigner(state, anchor)} />
 			{rows.length === 0 ? (
 				<EmptyState title={t("abEmpty")} lead={t("abEmptyLead")} />
 			) : (

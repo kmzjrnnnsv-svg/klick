@@ -46,6 +46,10 @@ export type NavLabelKey =
 	| "walletHome"
 	| "walletReceive"
 	| "walletAccounts"
+	| "walletSend"
+	| "walletPayouts"
+	| "walletAddressBook"
+	| "walletSecurity"
 	| "walletActivity"
 	| "walletQuotes";
 
@@ -58,7 +62,8 @@ export type NavGroupKey =
 	| "casp"
 	| "frameworks"
 	| "bottom"
-	| "wallet";
+	| "wallet"
+	| "wallet-send";
 
 export type NavIcon =
 	| "sun"
@@ -99,7 +104,10 @@ export type NavIcon =
 	| "wallet"
 	| "arrow-down"
 	| "history"
-	| "trending-up";
+	| "trending-up"
+	| "send"
+	| "list"
+	| "book-user";
 
 export type NavItem = {
 	key: string;
@@ -122,7 +130,8 @@ export type NavGroup = {
 		| "groupGovernance"
 		| "groupCasp"
 		| "groupFrameworks"
-		| "groupWallet";
+		| "groupWallet"
+		| "groupWalletSend";
 	items: NavItem[];
 };
 
@@ -514,7 +523,43 @@ export function countNavTargets(groups: NavGroup[]): number {
 
 // Wallet-Bereich: eigene, kurze Navigation (Umschalter im Kopf wechselt
 // zwischen Compliance und Wallet).
-export function buildWalletNav(): NavGroup[] {
+// Senden, Auszahlungen, Adressbuch und Sicherheit nur mit eigenem Signer
+// (`isOwnSigner`) — Kund:innen ohne Hot-Konten sehen sie nicht.
+export function buildWalletNav(opts: { send?: boolean } = {}): NavGroup[] {
+	const send: NavGroup[] = opts.send
+		? [
+				{
+					key: "wallet-send",
+					labelKey: "groupWalletSend",
+					items: [
+						{
+							key: "wallet-send",
+							labelKey: "walletSend",
+							href: "/wallet/senden",
+							icon: "send",
+						},
+						{
+							key: "wallet-payouts",
+							labelKey: "walletPayouts",
+							href: "/wallet/auszahlungen",
+							icon: "list",
+						},
+						{
+							key: "wallet-address-book",
+							labelKey: "walletAddressBook",
+							href: "/wallet/adressbuch",
+							icon: "book-user",
+						},
+						{
+							key: "wallet-security",
+							labelKey: "walletSecurity",
+							href: "/wallet/sicherheit",
+							icon: "shield-check",
+						},
+					],
+				},
+			]
+		: [];
 	return [
 		{
 			key: "wallet",
@@ -553,5 +598,6 @@ export function buildWalletNav(): NavGroup[] {
 				},
 			],
 		},
+		...send,
 	];
 }

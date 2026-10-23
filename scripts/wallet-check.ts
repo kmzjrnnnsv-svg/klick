@@ -9,11 +9,20 @@ import {
 import { decodeAbiString, decodeRoundData } from "../lib/wallet/prices";
 import { hexToNumber } from "../lib/wallet/rpc/ethereum";
 import { RpcError } from "../lib/wallet/rpc/http";
+import {
+	confirmOrigin,
+	type SignerHello,
+	signerCall,
+	signerSocket,
+} from "../lib/wallet/signer/client";
 
 // Prüft die eigenen Knoten des Wallet-Bereichs (Runbook „Wallet: Knoten“):
 // erreichbar, richtige Kette, synchron, nötige APIs, gesperrte Methoden und
 // — bei Ethereum — die fest hinterlegten Token-Verträge (decimals/symbol)
 // sowie die Chainlink-Kursfeeds (description, 8 Stellen, frische Runde).
+// Mit SIGNER_SOCKET zusätzlich der Signer: erreichbar, eingerichtet, nicht
+// eingefroren, Herkunft = CONFIRM_ORIGIN, Knoten für seine Netze, genug
+// Sicherheitsschlüssel für die Freigabe laut Richtlinie.
 //
 //   pnpm wallet:check
 //
@@ -178,12 +187,77 @@ async function main() {
 			);
 		}
 	}
+	await checkSigner(Object.keys(clients));
 	console.log(
 		failures
 			? `\n${failures} Prüfung(en) fehlgeschlagen`
 			: "\nAlles in Ordnung.",
 	);
 	process.exit(failures ? 1 : 0);
+}
+
+type SignerStatus = SignerHello & {
+	policy: {
+		version: number;
+		mode: "solo" | "four_eyes";
+		soloMinKeys: number;
+	} | null;
+	keys: { person: string; active: boolean }[];
+};
+
+async function checkSigner(nodeNetworks: string[]) {
+	if (!signerSocket()) return;
+	console.log("\nSigner");
+	let st: SignerStatus;
+	try {
+		st = (await signerCall<SignerStatus>("status", {}, { timeoutMs: 5000 }))
+			.result;
+		ok("erreichbar", signerSocket() ?? "");
+	} catch (e) {
+		bad("nicht erreichbar", e instanceof Error ? e.message : String(e));
+		return;
+	}
+	if (!st.initialized || !st.policy) {
+		bad("nicht eingerichtet", "sudo klick-signer-admin init");
+		return;
+	}
+	ok("eingerichtet", `Org ${st.orgId}, Journal #${st.seq}`);
+	if (st.frozen) bad("eingefroren", st.frozen.reason);
+	else ok("nicht eingefroren");
+	if (st.dev)
+		bad("Entwicklungs-Signer", "kurze Wartezeiten, nur für die Testkette");
+	if (st.bundleHash) ok("Programm", st.bundleHash);
+	const origin = confirmOrigin();
+	if (origin && origin === st.origin) ok("Bestätigungsseite", origin);
+	else
+		bad(
+			"Bestätigungsseite",
+			`CONFIRM_ORIGIN ${origin ?? "fehlt"}, Signer ${st.origin}`,
+		);
+	for (const n of st.networks)
+		if (nodeNetworks.includes(n)) ok(`Knoten für ${n}`);
+		else bad(`Knoten für ${n}`, "WALLET_RPC_* fehlt");
+	const active = new Map<string, number>();
+	for (const k of st.keys)
+		if (k.active) active.set(k.person, (active.get(k.person) ?? 0) + 1);
+	const persons = [...active.values()];
+	const policy = st.policy;
+	const enough =
+		policy.mode === "solo"
+			? persons.some((n) => n >= policy.soloMinKeys)
+			: persons.length >= 2;
+	if (enough)
+		ok(
+			"Sicherheitsschlüssel",
+			`${persons.reduce((a, b) => a + b, 0)} aktiv, ${persons.length} Person(en), Richtlinie v${st.policy.version} (${st.policy.mode})`,
+		);
+	else
+		bad(
+			"Sicherheitsschlüssel",
+			st.policy.mode === "solo"
+				? `Solo braucht ${st.policy.soloMinKeys} aktive Schlüssel einer Person`
+				: "Vier Augen braucht zwei Personen mit Schlüssel",
+		);
 }
 
 main();

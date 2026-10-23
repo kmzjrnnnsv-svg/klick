@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
 	grantableActions,
@@ -117,8 +119,30 @@ describe("Wallet-Bereich", () => {
 	});
 
 	it("Navigation zeigt nur vorhandene Seiten im Wallet-Pfad", () => {
-		const hrefs = buildWalletNav().flatMap((g) => g.items.map((i) => i.href));
+		const hrefs = buildWalletNav({ send: true }).flatMap((g) =>
+			g.items.map((i) => i.href),
+		);
 		expect(hrefs.length).toBeGreaterThan(0);
-		for (const h of hrefs) expect(h.startsWith("/wallet")).toBe(true);
+		for (const h of hrefs) {
+			expect(h.startsWith("/wallet")).toBe(true);
+			const dir = h === "/wallet" ? "" : h.slice("/wallet".length);
+			expect(existsSync(join("app/(wallet)/wallet", dir, "page.tsx")), h).toBe(
+				true,
+			);
+		}
+	});
+
+	it("Senden, Auszahlungen, Adressbuch, Sicherheit nur mit eigenem Signer", () => {
+		const hrefs = (send: boolean) =>
+			buildWalletNav({ send }).flatMap((g) => g.items.map((i) => i.href));
+		expect(hrefs(false)).not.toContain("/wallet/senden");
+		expect(hrefs(true)).toEqual(
+			expect.arrayContaining([
+				"/wallet/senden",
+				"/wallet/auszahlungen",
+				"/wallet/adressbuch",
+				"/wallet/sicherheit",
+			]),
+		);
 	});
 });

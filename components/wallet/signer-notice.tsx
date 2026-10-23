@@ -3,9 +3,17 @@ import { getTranslations } from "next-intl/server";
 import type { SignerState } from "@/lib/wallet/signer/status";
 
 // Hinweis, wenn Senden gerade nicht geht (kein Signer, nicht erreichbar,
-// andere Org, eingefroren). Bereit → nichts.
-export async function SignerNotice({ state }: { state: SignerState }) {
+// andere Org, eingefroren). Bereit → nichts; „eingefroren“ und „nicht
+// erreichbar“ beim eigenen Signer zeigt schon das Banner im Layout.
+export async function SignerNotice({
+	state,
+	own = false,
+}: {
+	state: SignerState;
+	own?: boolean;
+}) {
 	if (state === "ready") return null;
+	if (own && (state === "frozen" || state === "unreachable")) return null;
 	const t = await getTranslations("Wallet");
 	const danger = state === "frozen" || state === "unreachable";
 	return (

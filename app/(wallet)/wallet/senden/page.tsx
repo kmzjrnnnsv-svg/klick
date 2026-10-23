@@ -11,6 +11,7 @@ import { allows } from "@/lib/auth/permissions";
 import { readOrg } from "@/lib/db/with-org";
 import { NETWORKS } from "@/lib/wallet/core/networks";
 import { sendOptions } from "@/lib/wallet/payouts/queries";
+import { isOwnSigner, loadSignerAnchor } from "@/lib/wallet/signer/context";
 import { signerState } from "@/lib/wallet/signer/status";
 
 export const metadata: Metadata = { title: "Senden" };
@@ -22,15 +23,19 @@ export default async function SendPage() {
 	const t = await getTranslations("Wallet");
 	const { state } = await signerState(ctx.orgId);
 	const canInitiate = allows(ctx, { wallet: ["initiate"] });
-	const { accounts, destinations } = await readOrg(toOrgCtx(ctx), (tx) =>
-		sendOptions(tx, ctx.orgId),
+	const { accounts, destinations, anchor } = await readOrg(
+		toOrgCtx(ctx),
+		async (tx) => ({
+			...(await sendOptions(tx, ctx.orgId)),
+			anchor: await loadSignerAnchor(tx, ctx.orgId),
+		}),
 	);
 	const usable = accounts.filter((a) => !NETWORKS[a.network].live);
 
 	return (
 		<>
 			<PageHeader title={t("sendTitle")} lead={t("sendLead")} />
-			<SignerNotice state={state} />
+			<SignerNotice state={state} own={isOwnSigner(state, anchor)} />
 			{!canInitiate ? (
 				<EmptyState title={t("sendNoRight")} lead={t("sendNoRightLead")} />
 			) : usable.length === 0 ? (

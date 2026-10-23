@@ -17,6 +17,7 @@ import { notify } from "@/lib/notifications/notify";
 import { membersAllowed } from "@/lib/org/roles";
 import { type ActionResult, fail, fromZod } from "@/lib/validation/common";
 import {
+	freezeSignerSchema,
 	hotAccountSchema,
 	payoutIdSchema,
 	payoutSchema,
@@ -655,6 +656,51 @@ async function bumpPayoutImpl(input: unknown): Promise<ActionResult> {
 	return res;
 }
 
+// Alles stoppen: Signer einfrieren. Bremsen darf jede:r im entsperrten
+// Bereich ohne Sicherheitsschlüssel; auftauen nur root am Server-Terminal.
+async function freezeSignerImpl(input: unknown): Promise<ActionResult> {
+	const parsed = freezeSignerSchema.safeParse(input);
+	const c = await requireWallet();
+	if (!parsed.success) return fromZod(parsed.error);
+	const s = await helloForOrg(c.orgId);
+	if ("error" in s) return fail(s.error as string);
+	// der Signer nimmt nur druckbaren Text (Buchstaben, Ziffern, Satzzeichen)
+	const reason = parsed.data.reason
+		.replace(/[^\p{L}\p{N}\p{P}\p{Zs}]+/gu, " ")
+		.trim();
+	let r: {
+		result: { frozen: SignerHello["frozen"] };
+		seq: number;
+		head: string;
+	};
+	try {
+		r = await signerCall("freeze", { reason: reason || "Gestoppt in Klick" });
+	} catch (e) {
+		return fail(signerErrorCode(e));
+	}
+	resetSignerCache();
+	return mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+		await recordAnchor(tx, c.orgId, { ...r, frozen: r.result.frozen });
+		await notify(tx, {
+			orgId: c.orgId,
+			recipients: await membersAllowed(tx, c.orgId, { wallet: ["read"] }),
+			actorUserId: c.userId,
+			kind: "security_alert",
+			title: "Signer eingefroren",
+			body: `Alle Auszahlungen gestoppt. Grund: ${reason}. Auftauen nur am Server-Terminal.`,
+			link: "/wallet/sicherheit",
+		});
+		return {
+			result: { ok: true, data: undefined },
+			audit: {
+				action: "wallet.signer_frozen",
+				target: `wallet_signer:${c.orgId}`,
+				after: { reason, by: "app" },
+			},
+		};
+	});
+}
+
 export const createHotWalletAccount = safeAction(
 	"createHotWalletAccount",
 	createHotWalletAccountImpl,
@@ -670,3 +716,4 @@ export const vetoDestination = safeAction(
 export const createPayout = safeAction("createPayout", createPayoutImpl);
 export const cancelPayout = safeAction("cancelPayout", cancelPayoutImpl);
 export const bumpPayout = safeAction("bumpPayout", bumpPayoutImpl);
+export const freezeSigner = safeAction("freezeSigner", freezeSignerImpl);

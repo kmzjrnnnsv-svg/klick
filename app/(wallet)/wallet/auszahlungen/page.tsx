@@ -13,6 +13,7 @@ import { allows } from "@/lib/auth/permissions";
 import { readOrg } from "@/lib/db/with-org";
 import { amountText, fmtDateTime, PAYOUT_BADGE } from "@/lib/wallet/display";
 import { listPayouts } from "@/lib/wallet/payouts/queries";
+import { isOwnSigner, loadSignerAnchor } from "@/lib/wallet/signer/context";
 import { signerState } from "@/lib/wallet/signer/status";
 
 export const metadata: Metadata = { title: "Auszahlungen" };
@@ -22,7 +23,10 @@ export default async function PayoutsPage() {
 	const ctx = await requireWalletPage("/wallet/auszahlungen");
 	const t = await getTranslations("Wallet");
 	const { state } = await signerState(ctx.orgId);
-	const rows = await readOrg(toOrgCtx(ctx), (tx) => listPayouts(tx, ctx.orgId));
+	const { rows, anchor } = await readOrg(toOrgCtx(ctx), async (tx) => ({
+		rows: await listPayouts(tx, ctx.orgId),
+		anchor: await loadSignerAnchor(tx, ctx.orgId),
+	}));
 
 	return (
 		<>
@@ -40,7 +44,7 @@ export default async function PayoutsPage() {
 					)
 				}
 			/>
-			<SignerNotice state={state} />
+			<SignerNotice state={state} own={isOwnSigner(state, anchor)} />
 			{rows.length === 0 ? (
 				<EmptyState title={t("payoutsEmpty")} lead={t("payoutsEmptyLead")} />
 			) : (

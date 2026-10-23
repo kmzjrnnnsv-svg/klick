@@ -18,6 +18,7 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useWalletError } from "./use-wallet-error";
 
 // Abbrechen (bremst — alle im Bereich) und Beschleunigen (wallet:initiate)
 export function PayoutActions({
@@ -30,7 +31,7 @@ export function PayoutActions({
 	canBump: boolean;
 }) {
 	const t = useTranslations("Wallet");
-	const tc = useTranslations("Common");
+	const onError = useWalletError();
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const run = (
@@ -39,11 +40,7 @@ export function PayoutActions({
 	) =>
 		start(async () => {
 			const res = await fn();
-			if (!res.ok) {
-				const key = `error_${res.error ?? ""}`;
-				toast.error(t.has(key as never) ? t(key as never) : tc("error"));
-				return;
-			}
+			if (!res.ok) return onError(res);
 			toast.success(done);
 			router.refresh();
 		});

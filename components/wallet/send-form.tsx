@@ -20,6 +20,7 @@ import type { PayoutSpeed } from "@/db/schema/wallet";
 import { formatAmountDe } from "@/lib/wallet/core/amount";
 import { ASSETS, type AssetCode } from "@/lib/wallet/core/assets";
 import type { WalletNetwork } from "@/lib/wallet/core/networks";
+import { useWalletError } from "./use-wallet-error";
 
 type Account = {
 	id: string;
@@ -47,7 +48,7 @@ export function SendForm({
 	destinations: Destination[];
 }) {
 	const t = useTranslations("Wallet");
-	const tc = useTranslations("Common");
+	const onError = useWalletError();
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
@@ -77,18 +78,7 @@ export function SendForm({
 				addressBookId: destId,
 				speed,
 			});
-			if (!res.ok) {
-				const key = `error_${res.error ?? ""}`;
-				const first = Object.values(res.fieldErrors ?? {})[0]?.[0];
-				toast.error(
-					t.has(key as never)
-						? t(key as never)
-						: first && t.has(`error_${first}` as never)
-							? t(`error_${first}` as never)
-							: tc("error"),
-				);
-				return;
-			}
+			if (!res.ok) return onError(res);
 			toast.success(t("sendCreated"));
 			router.push(`/wallet/auszahlungen/${res.data.id}`);
 		});

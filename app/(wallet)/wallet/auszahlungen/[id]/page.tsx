@@ -15,6 +15,7 @@ import { NETWORKS } from "@/lib/wallet/core/networks";
 import { amountText, fmtDateTime, PAYOUT_BADGE } from "@/lib/wallet/display";
 import { payoutDetail } from "@/lib/wallet/payouts/queries";
 import { confirmUrl } from "@/lib/wallet/signer/client";
+import { isOwnSigner, loadSignerAnchor } from "@/lib/wallet/signer/context";
 import { signerState } from "@/lib/wallet/signer/status";
 
 export const metadata: Metadata = { title: "Auszahlung" };
@@ -36,10 +37,10 @@ export default async function PayoutPage({
 		const row = await payoutDetail(tx, ctx.orgId, id);
 		if (!row) return null;
 		const names = await userNames(tx, [row.payout.createdByUserId]);
-		return { ...row, names };
+		return { ...row, names, anchor: await loadSignerAnchor(tx, ctx.orgId) };
 	});
 	if (!data) notFound();
-	const { payout: p, account, names } = data;
+	const { payout: p, account, names, anchor } = data;
 	const { state } = await signerState(ctx.orgId);
 	const net = NETWORKS[account.network];
 	const feeAsset = net.chain === "bitcoin" ? "BTC" : "ETH";
@@ -121,7 +122,7 @@ export default async function PayoutPage({
 					</Badge>
 				}
 			/>
-			<SignerNotice state={state} />
+			<SignerNotice state={state} own={isOwnSigner(state, anchor)} />
 			<div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
 				<div className="flex flex-col gap-6">
 					{link && (

@@ -27,19 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { WalletNetwork } from "@/lib/wallet/core/networks";
-
-function useError() {
-	const t = useTranslations("Wallet");
-	const tc = useTranslations("Common");
-	return (res: { error?: string; fieldErrors?: Record<string, string[]> }) => {
-		const key = `error_${res.error ?? ""}`;
-		const first = Object.values(res.fieldErrors ?? {})[0]?.[0];
-		if (t.has(key as never)) toast.error(t(key as never));
-		else if (first && t.has(`error_${first}` as never))
-			toast.error(t(`error_${first}` as never));
-		else toast.error(first ?? tc("error"));
-	};
-}
+import { useWalletError } from "./use-wallet-error";
 
 // Zieladresse vorschlagen → Absicht im Signer, Freigabe per Sicherheitsschlüssel
 export function ProposeDestinationDialog({
@@ -49,7 +37,7 @@ export function ProposeDestinationDialog({
 }) {
 	const t = useTranslations("Wallet");
 	const router = useRouter();
-	const onError = useError();
+	const onError = useWalletError();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [network, setNetwork] = useState<WalletNetwork | "">(
@@ -156,7 +144,7 @@ export function VetoDestinationButton({
 }) {
 	const t = useTranslations("Wallet");
 	const router = useRouter();
-	const onError = useError();
+	const onError = useWalletError();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [reason, setReason] = useState("");
