@@ -49,7 +49,7 @@ export function Bell({ items, unread }: { items: BellItem[]; unread: number }) {
 			</PopoverTrigger>
 			<PopoverContent align="end" className="w-80 p-0">
 				<div className="flex items-center justify-between border-b p-3">
-					<p className="font-medium text-sm">{t("notifications")}</p>
+					<p className="font-medium text-subhead">{t("notifications")}</p>
 					{unread > 0 && (
 						<Button
 							variant="link"
@@ -64,7 +64,7 @@ export function Bell({ items, unread }: { items: BellItem[]; unread: number }) {
 					)}
 				</div>
 				{items.length === 0 ? (
-					<p className="p-4 text-muted-foreground text-sm">
+					<p className="p-4 text-muted-foreground text-subhead">
 						{t("noNotifications")}
 					</p>
 				) : (
@@ -75,13 +75,13 @@ export function Bell({ items, unread }: { items: BellItem[]; unread: number }) {
 									href={n.link ?? "/"}
 									className="block p-3 hover:bg-muted focus-visible:bg-muted"
 								>
-									<p className="font-medium text-sm">{n.title}</p>
+									<p className="font-medium text-subhead">{n.title}</p>
 									{n.body && (
-										<p className="line-clamp-2 text-muted-foreground text-xs">
+										<p className="line-clamp-2 text-muted-foreground text-footnote">
 											{n.body}
 										</p>
 									)}
-									<p className="mt-1 text-muted-foreground text-xs tabular-nums">
+									<p className="mt-1 text-muted-foreground text-footnote tabular-nums">
 										{fmt.format(new Date(n.at))}
 									</p>
 								</Link>

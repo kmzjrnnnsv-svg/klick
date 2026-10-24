@@ -71,7 +71,7 @@ export function PasskeyConfirmButton({
 			<p
 				role="alert"
 				aria-live="polite"
-				className="min-h-4 text-destructive text-xs"
+				className="min-h-4 text-destructive text-footnote"
 			>
 				{error}
 			</p>

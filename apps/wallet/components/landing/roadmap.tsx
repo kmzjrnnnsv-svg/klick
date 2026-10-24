@@ -26,20 +26,22 @@ import { PublicHeader } from "./public-header";
 // Druckbar (Kopf und Rücksprung fallen weg).
 const section = "mx-auto w-full max-w-6xl px-4 py-14 sm:py-20";
 const heading =
-	"scroll-mt-6 text-balance font-serif-display text-4xl leading-tight sm:text-5xl";
+	"scroll-mt-6 text-balance font-bold text-title-1 leading-tight sm:text-5xl";
 
+// Status-Label wie components/ui/badge.tsx: Punkt in der Statusfarbe, Text in
+// der Vordergrundfarbe (AA trotz Tönung)
 const STATUS_STYLE: Record<RoadmapStatus, string> = {
-	live: "border-success/40 bg-success/10 text-success",
-	ready: "border-primary/40 bg-primary/10 text-primary",
-	next: "border-primary/40 bg-primary/10 text-primary",
-	planned: "border-border bg-muted text-muted-foreground",
-	locked: "border-warning/50 bg-warning/10 text-foreground",
+	live: "bg-success/12 before:bg-success dark:bg-success/20",
+	ready: "bg-primary/12 before:bg-primary dark:bg-primary/20",
+	next: "bg-primary/12 before:bg-primary dark:bg-primary/20",
+	planned: "bg-muted before:bg-muted-foreground",
+	locked: "bg-warning/14 before:bg-warning dark:bg-warning/20",
 };
 
 function StatusBadge({ status }: { status: RoadmapStatus }) {
 	return (
 		<span
-			className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 font-medium text-xs ${STATUS_STYLE[status]}`}
+			className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 font-medium text-footnote text-foreground before:size-1.5 before:rounded-full before:content-[''] ${STATUS_STYLE[status]}`}
 		>
 			{STATUS_LABEL[status]}
 		</span>
@@ -52,7 +54,7 @@ function Anchors({ item }: { item: RoadmapItem }) {
 			{item.anchors.map((a) => (
 				<li
 					key={`${a.framework}-${a.point}`}
-					className="rounded-md border bg-background px-2 py-1 text-xs"
+					className="rounded-lg bg-muted px-2 py-1 text-footnote"
 				>
 					<span className="font-medium">{a.framework}</span>
 					<span className="text-muted-foreground"> · {a.point}</span>
@@ -72,7 +74,7 @@ function ItemCard({
 	const Tag = as;
 	return (
 		<Tag
-			className={`flex flex-col gap-3 break-inside-avoid rounded-lg border bg-card p-5 ${s.reveal}`}
+			className={`flex flex-col gap-3 break-inside-avoid rounded-2xl bg-card p-5 ${s.reveal}`}
 		>
 			<div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
 				<h3 className="font-medium text-lg leading-snug">{item.title}</h3>
@@ -82,7 +84,7 @@ function ItemCard({
 				{item.text}
 			</p>
 			{item.requires && (
-				<p className="text-sm">
+				<p className="text-subhead">
 					<span className="font-medium">Voraussetzung:</span> {item.requires}
 				</p>
 			)}
@@ -100,7 +102,7 @@ export function Roadmap() {
 					<div className={`${section} flex flex-col gap-6`}>
 						<h1
 							id="rm-title"
-							className={`font-serif-display text-5xl sm:text-7xl ${s.rise}`}
+							className={`font-semibold text-5xl sm:text-7xl ${s.rise}`}
 						>
 							{INTRO.title}
 						</h1>
@@ -109,14 +111,14 @@ export function Roadmap() {
 						>
 							{INTRO.lead}
 						</p>
-						<p className="font-medium text-sm">{INTRO.status}</p>
+						<p className="font-medium text-subhead">{INTRO.status}</p>
 						<nav aria-label="Abschnitte" className={s.noPrint}>
 							<ul className="flex flex-wrap gap-2">
 								{SECTIONS.map((x) => (
 									<li key={x.id}>
 										<a
 											href={`#${x.id}`}
-											className="inline-flex min-h-9 items-center rounded-full border px-3.5 text-sm hover:border-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+											className="inline-flex min-h-9 items-center rounded-full border px-3.5 text-subhead hover:border-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
 										>
 											{x.label}
 										</a>
@@ -124,7 +126,7 @@ export function Roadmap() {
 								))}
 							</ul>
 						</nav>
-						<p className="max-w-3xl text-muted-foreground text-sm">
+						<p className="max-w-3xl text-muted-foreground text-subhead">
 							{INTRO.note}
 						</p>
 					</div>
@@ -161,7 +163,7 @@ export function Roadmap() {
 									className="grid grid-cols-[2.5rem_1fr] gap-x-4 sm:grid-cols-[3.5rem_1fr]"
 								>
 									<span
-										className="pt-4 font-serif-display text-3xl text-primary tabular-nums sm:text-4xl"
+										className="pt-4 font-bold text-title-1 tabular-nums sm:text-4xl"
 										aria-hidden
 									>
 										{i + 1}
@@ -198,9 +200,7 @@ export function Roadmap() {
 
 						<div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1.2fr]">
 							<div className="flex flex-col gap-4">
-								<h3 className="font-serif-display text-3xl">
-									{NODE_BASICS.title}
-								</h3>
+								<h3 className="font-bold text-title-1">{NODE_BASICS.title}</h3>
 								{NODE_BASICS.paragraphs.map((p) => (
 									<p key={p} className="text-pretty leading-relaxed">
 										{p}
@@ -210,20 +210,20 @@ export function Roadmap() {
 							<Flow />
 						</div>
 
-						<h3 className="mt-16 font-serif-display text-3xl">
+						<h3 className="mt-16 font-bold text-title-1">
 							Warum eigene Knoten
 						</h3>
 						<ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 							{WHY_OWN.map((r) => (
 								<li
 									key={r.title}
-									className={`flex flex-col gap-2 rounded-lg border bg-background p-5 ${s.reveal}`}
+									className={`flex flex-col gap-2 rounded-2xl bg-card p-5 ${s.reveal}`}
 								>
 									<p className="font-medium">{r.title}</p>
-									<p className="text-pretty text-muted-foreground text-sm leading-relaxed">
+									<p className="text-pretty text-muted-foreground text-subhead leading-relaxed">
 										{r.text}
 									</p>
-									<p className="mt-auto pt-2 text-primary text-xs">
+									<p className="mt-auto pt-2 text-primary text-footnote">
 										{r.anchor}
 									</p>
 								</li>
@@ -232,9 +232,9 @@ export function Roadmap() {
 
 						<div className="mt-16 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1.4fr]">
 							<div>
-								<h3 className="font-serif-display text-3xl">{SPLIT.title}</h3>
+								<h3 className="font-bold text-title-1">{SPLIT.title}</h3>
 								<p className="mt-4 text-pretty leading-relaxed">{SPLIT.lead}</p>
-								<p className="mt-4 font-medium text-sm">{SPLIT.note}</p>
+								<p className="mt-4 font-medium text-subhead">{SPLIT.note}</p>
 							</div>
 							<ul className="flex flex-col divide-y border-y">
 								{SPLIT.points.map((p) => (
@@ -248,14 +248,14 @@ export function Roadmap() {
 							</ul>
 						</div>
 
-						<h3 className="mt-16 font-serif-display text-3xl">
+						<h3 className="mt-16 font-bold text-title-1">
 							Was die Knoten brauchen
 						</h3>
-						<p className="mt-3 max-w-3xl text-muted-foreground text-sm">
+						<p className="mt-3 max-w-3xl text-muted-foreground text-subhead">
 							{SPEC_DISCLAIMER}
 						</p>
-						<div className="mt-6 overflow-x-auto rounded-lg border bg-background">
-							<table className="w-full min-w-[44rem] text-left text-sm">
+						<div className="mt-6 overflow-x-auto rounded-2xl bg-card">
+							<table className="w-full min-w-[44rem] text-left text-subhead">
 								<caption className="sr-only">
 									Hardware-Richtwerte je Knoten
 								</caption>
@@ -320,22 +320,20 @@ export function Roadmap() {
 							))}
 						</dl>
 
-						<h3 className="mt-16 font-serif-display text-3xl">
-							Ausbau in Stufen
-						</h3>
+						<h3 className="mt-16 font-bold text-title-1">Ausbau in Stufen</h3>
 						<ol className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
 							{TIERS.map((t) => (
 								<li
 									key={t.key}
-									className={`flex flex-col gap-3 break-inside-avoid rounded-lg border bg-background p-5 ${s.reveal}`}
+									className={`flex flex-col gap-3 break-inside-avoid rounded-2xl bg-card p-5 ${s.reveal}`}
 								>
 									<div className="flex flex-wrap items-start justify-between gap-2">
 										<p className="font-medium text-lg">{t.title}</p>
-										<span className="rounded-full border px-2.5 py-0.5 text-muted-foreground text-xs">
+										<span className="rounded-full border px-2.5 py-0.5 text-muted-foreground text-footnote">
 											{t.when}
 										</span>
 									</div>
-									<dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+									<dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-subhead">
 										<dt className="text-muted-foreground">Ausstattung</dt>
 										<dd>{t.spec}</dd>
 										<dt className="text-muted-foreground">Darauf läuft</dt>
@@ -347,8 +345,8 @@ export function Roadmap() {
 							))}
 						</ol>
 
-						<div className="mt-16 rounded-lg border bg-background p-6">
-							<h3 className="font-serif-display text-3xl">{LIMITS.title}</h3>
+						<div className="mt-16 rounded-2xl bg-card p-6">
+							<h3 className="font-bold text-title-1">{LIMITS.title}</h3>
 							<ul className="mt-4 flex flex-col gap-3">
 								{LIMITS.points.map((p) => (
 									<li key={p} className="flex gap-3 leading-relaxed">
@@ -396,14 +394,14 @@ function Flow() {
 			<ol className="flex flex-col gap-2">
 				{steps.map((st, i) => (
 					<li key={st.title} className="flex flex-col items-stretch gap-2">
-						<div className="flex items-baseline justify-between gap-4 rounded-lg border bg-background px-4 py-3">
+						<div className="flex items-baseline justify-between gap-4 rounded-2xl bg-card px-4 py-3">
 							<span
 								className="font-medium"
 								translate={st.title === "both.money" ? "no" : undefined}
 							>
 								{st.title}
 							</span>
-							<span className="text-right text-muted-foreground text-sm">
+							<span className="text-right text-muted-foreground text-subhead">
 								{st.text}
 							</span>
 						</div>
@@ -415,14 +413,14 @@ function Flow() {
 					</li>
 				))}
 			</ol>
-			<div className="rounded-lg border border-primary/40 border-dashed bg-background px-4 py-3 text-sm">
+			<div className="rounded-xl bg-primary/8 px-4 py-3 text-subhead dark:bg-primary/15">
 				<span className="font-medium">Signer, getrennt:</span>{" "}
 				<span className="text-muted-foreground">
 					unterschreibt Auszahlungen erst nach Freigabe mit Sicherheitsschlüssel
 					auf approve.both.money. Ohne Netz, hält die Schlüssel.
 				</span>
 			</div>
-			<figcaption className="text-muted-foreground text-xs">
+			<figcaption className="text-muted-foreground text-footnote">
 				Weg einer Zahlung und Ort der Schlüssel
 			</figcaption>
 		</figure>

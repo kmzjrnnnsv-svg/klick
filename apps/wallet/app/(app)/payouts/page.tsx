@@ -51,12 +51,12 @@ export default async function PayoutsPage() {
 			{rows.length === 0 ? (
 				<EmptyState title={t("payoutsEmpty")} lead={t("payoutsEmptyLead")} />
 			) : (
-				<ul className="flex flex-col divide-y rounded-md border">
+				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 					{rows.map(({ payout: p, account }) => (
 						<li key={p.id}>
 							<Link
 								href={`/payouts/${p.id}`}
-								className="flex flex-col gap-1 px-4 py-3 text-sm hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-row sm:items-center sm:gap-4"
+								className="flex flex-col gap-1 px-4 py-3 text-subhead hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-row sm:items-center sm:gap-4"
 							>
 								<span className="font-medium font-mono tabular-nums sm:w-44 sm:shrink-0">
 									{amountText(account.network, p.asset, p.amount)}

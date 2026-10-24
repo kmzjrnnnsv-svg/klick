@@ -64,7 +64,7 @@ export function IntroFooter({
 			{prevHref ? (
 				<Link
 					href={prevHref}
-					className="text-muted-foreground text-sm underline-offset-4 hover:text-foreground hover:underline"
+					className="text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline"
 				>
 					← {t("back")}
 				</Link>
@@ -72,7 +72,7 @@ export function IntroFooter({
 			<button
 				type="button"
 				disabled={pending}
-				className="text-muted-foreground text-sm underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+				className="text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
 				onClick={() => run([() => deferWalletIntro()], "/", t("laterDone"))}
 			>
 				{t("later")}
@@ -132,7 +132,9 @@ export function IntroWatchlist({
 			}}
 		>
 			<fieldset>
-				<legend className="mb-3 font-medium text-sm">{t("quotesPick")}</legend>
+				<legend className="mb-3 font-medium text-subhead">
+					{t("quotesPick")}
+				</legend>
 				<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 					{quotes.map((q) => {
 						const on = picked.includes(q.pair);
@@ -140,10 +142,10 @@ export function IntroWatchlist({
 							<label
 								key={q.pair}
 								className={cn(
-									"flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-[border-color,background-color] focus-within:ring-2 focus-within:ring-ring",
+									"flex cursor-pointer items-center gap-3 rounded-2xl p-3 transition-[background-color,box-shadow] focus-within:ring-2 focus-within:ring-ring",
 									on
-										? "border-foreground bg-muted/40"
-										: "border-border/60 hover:bg-muted/30",
+										? "bg-primary/10 ring-2 ring-primary/60 dark:bg-primary/20"
+										: "bg-card hover:bg-muted",
 								)}
 							>
 								<input
@@ -157,24 +159,27 @@ export function IntroWatchlist({
 								<span
 									aria-hidden
 									className={cn(
-										"flex size-5 shrink-0 items-center justify-center rounded-full border",
+										"flex size-[1.375rem] shrink-0 items-center justify-center rounded-full border-2",
 										on
-											? "border-foreground bg-foreground text-background"
-											: "border-border",
+											? "border-primary-fill bg-primary-fill text-white"
+											: "border-input",
 									)}
 								>
-									{on && <Check className="size-3" />}
+									{on && <Check className="size-3.5" strokeWidth={3} />}
 								</span>
 								<span className="min-w-0 grow">
-									<span className="block font-medium text-sm" translate="no">
+									<span
+										className="block font-medium text-subhead"
+										translate="no"
+									>
 										{q.pair}
 									</span>
-									<span className="block truncate text-muted-foreground text-xs">
+									<span className="block truncate text-muted-foreground text-footnote">
 										{q.name}
 									</span>
 								</span>
 								<span className="flex shrink-0 flex-col items-end">
-									<span className="text-sm tabular-nums" translate="no">
+									<span className="text-subhead tabular-nums" translate="no">
 										{q.price ?? "—"}
 									</span>
 									<ChangeBadge bp={q.changeBp} />
@@ -187,14 +192,14 @@ export function IntroWatchlist({
 			<div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-t pt-5">
 				<Link
 					href={prevHref}
-					className="text-muted-foreground text-sm underline-offset-4 hover:text-foreground hover:underline"
+					className="text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline"
 				>
 					← {t("back")}
 				</Link>
 				<button
 					type="button"
 					disabled={pending}
-					className="text-muted-foreground text-sm underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+					className="text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
 					onClick={() => run([() => deferWalletIntro()], "/", t("laterDone"))}
 				>
 					{t("later")}

@@ -18,7 +18,7 @@ export async function SignerBanner({
 	return (
 		<div
 			role="alert"
-			className="mb-6 flex flex-col gap-1 rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+			className="mb-6 flex flex-col gap-1 rounded-xl bg-destructive/10 px-4 py-3 text-subhead sm:flex-row sm:items-center sm:justify-between sm:gap-4"
 		>
 			<p className="flex items-start gap-2">
 				<ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden />

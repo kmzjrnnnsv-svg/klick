@@ -64,10 +64,10 @@ export function WatchlistForm({
 										setPick(v ? [...pick, p] : pick.filter((x) => x !== p))
 									}
 								/>
-								<span className="font-medium text-sm" translate="no">
+								<span className="font-medium text-subhead" translate="no">
 									{p}
 								</span>
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{names[p]}
 								</span>
 							</label>

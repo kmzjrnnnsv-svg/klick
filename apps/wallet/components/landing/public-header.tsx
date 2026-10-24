@@ -4,12 +4,12 @@ import s from "./landing.module.css";
 // Kopf der öffentlichen Seiten (Startseite abgemeldet, Fahrplan)
 export function PublicHeader({ current }: { current: "home" | "roadmap" }) {
 	const link =
-		"rounded-sm px-1 py-1 text-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2";
+		"rounded-sm px-1 py-1 text-subhead underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2";
 	return (
 		<header className={`border-b ${s.noPrint}`}>
 			<a
 				href="#inhalt"
-				className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm"
+				className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-subhead"
 			>
 				Zum Inhalt
 			</a>
@@ -17,7 +17,7 @@ export function PublicHeader({ current }: { current: "home" | "roadmap" }) {
 				<Link
 					href="/"
 					aria-current={current === "home" ? "page" : undefined}
-					className="font-serif-display text-2xl text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-4"
+					className="font-bold text-title-2 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-4"
 					translate="no"
 				>
 					both.money
@@ -36,7 +36,7 @@ export function PublicHeader({ current }: { current: "home" | "roadmap" }) {
 						<li>
 							<Link
 								href="/login"
-								className="inline-flex min-h-9 items-center rounded-md bg-primary px-3.5 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+								className="inline-flex min-h-9 items-center rounded-full bg-primary-fill px-4 font-semibold text-subhead text-white transition-[filter] hover:brightness-110 active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 pointer-coarse:min-h-11"
 							>
 								Anmelden
 							</Link>

@@ -75,9 +75,11 @@ export default async function WalletAccountPage({
 			/>
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
 				<AccountCard account={account} frozen={data.frozen} link={false} />
-				<dl className="grid grid-cols-1 gap-3 rounded-lg border border-border/60 p-4 text-sm">
+				<dl className="grid grid-cols-1 gap-3 rounded-2xl bg-card p-4 text-subhead">
 					<div>
-						<dt className="text-muted-foreground text-xs">{t("colKind")}</dt>
+						<dt className="text-muted-foreground text-footnote">
+							{t("colKind")}
+						</dt>
 						<dd className="flex flex-wrap gap-1.5">
 							<Badge variant="outline">{t(`kind_${account.kind}`)}</Badge>
 							<Badge variant="outline">{t(`purpose_${account.purpose}`)}</Badge>
@@ -87,7 +89,7 @@ export default async function WalletAccountPage({
 						</dd>
 					</div>
 					<div>
-						<dt className="text-muted-foreground text-xs">
+						<dt className="text-muted-foreground text-footnote">
 							{t("detailFingerprint")}
 						</dt>
 						<dd className="font-mono" translate="no">
@@ -95,10 +97,12 @@ export default async function WalletAccountPage({
 						</dd>
 					</div>
 					<div className="min-w-0">
-						<dt className="text-muted-foreground text-xs">{t("detailKey")}</dt>
+						<dt className="text-muted-foreground text-footnote">
+							{t("detailKey")}
+						</dt>
 						<dd className="flex items-center gap-2">
 							<span
-								className="truncate font-mono text-xs"
+								className="truncate font-mono text-footnote"
 								title={account.accountKey}
 								translate="no"
 							>
@@ -114,7 +118,9 @@ export default async function WalletAccountPage({
 					</div>
 					{account.balanceHeight !== null && (
 						<div>
-							<dt className="text-muted-foreground text-xs">{t("colSync")}</dt>
+							<dt className="text-muted-foreground text-footnote">
+								{t("colSync")}
+							</dt>
 							<dd>{t("detailHeight", { height: account.balanceHeight })}</dd>
 						</div>
 					)}
@@ -122,13 +128,10 @@ export default async function WalletAccountPage({
 			</div>
 
 			<section className="mt-10" aria-labelledby="acc-addresses">
-				<h2
-					id="acc-addresses"
-					className="mb-3 font-serif-display text-xl text-primary"
-				>
+				<h2 id="acc-addresses" className="mb-3 font-semibold text-title-3">
 					{t("detailAddresses")}
 				</h2>
-				<ul className="divide-y divide-border/60 text-sm">
+				<ul className="divide-y divide-border/60 text-subhead">
 					{data.addresses.map((a) => (
 						<li
 							key={a.id}
@@ -138,20 +141,22 @@ export default async function WalletAccountPage({
 								#{a.index}
 							</span>
 							<span
-								className="min-w-0 grow truncate font-mono text-xs"
+								className="min-w-0 grow truncate font-mono text-footnote"
 								title={a.address}
 								translate="no"
 							>
 								{a.address}
 							</span>
 							{a.label && (
-								<span className="text-muted-foreground text-xs">{a.label}</span>
+								<span className="text-muted-foreground text-footnote">
+									{a.label}
+								</span>
 							)}
 							<Badge variant={a.firstSeenAt ? "success" : "muted"}>
 								{a.firstSeenAt ? t("detailUsed") : t("detailUnused")}
 							</Badge>
 							{a.issuedAt && (
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{fmtTime.format(a.issuedAt)}
 								</span>
 							)}
@@ -161,10 +166,7 @@ export default async function WalletAccountPage({
 			</section>
 
 			<section className="mt-10" aria-labelledby="acc-moves">
-				<h2
-					id="acc-moves"
-					className="mb-1 font-serif-display text-xl text-primary"
-				>
+				<h2 id="acc-moves" className="mb-1 font-semibold text-title-3">
 					{t("detailMovements")}
 				</h2>
 				<TransferList rows={data.transfers.rows} showAccount={false} />

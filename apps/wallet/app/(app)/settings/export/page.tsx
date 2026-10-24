@@ -53,7 +53,9 @@ export default async function ExportSettingsPage() {
 					/>
 				}
 			/>
-			<p className="mb-8 max-w-2xl text-muted-foreground text-sm">{t("how")}</p>
+			<p className="mb-8 max-w-2xl text-muted-foreground text-subhead">
+				{t("how")}
+			</p>
 			{links.length === 0 ? (
 				<EmptyState title={t("emptyTitle")} lead={t("emptyBody")} />
 			) : (
@@ -114,12 +116,12 @@ export default async function ExportSettingsPage() {
 							<section
 								key={l.id}
 								aria-labelledby={`link-${l.id}`}
-								className="flex flex-col gap-4 rounded-md border p-4 sm:p-5"
+								className="flex flex-col gap-4 rounded-2xl bg-card p-4 sm:p-5"
 							>
 								<div className="flex flex-wrap items-center justify-between gap-3">
 									<h2
 										id={`link-${l.id}`}
-										className="flex min-w-0 items-center gap-3 font-serif-display text-lg text-primary"
+										className="flex min-w-0 items-center gap-3 font-semibold text-headline"
 									>
 										<span className="truncate">{org}</span>
 										<Badge
@@ -141,7 +143,7 @@ export default async function ExportSettingsPage() {
 								{l.status === "paused" && (
 									<p
 										role="status"
-										className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
+										className="rounded-xl bg-warning/12 px-3 py-2 text-subhead"
 									>
 										{isPauseReason(l.pausedReason)
 											? t(`paused_${l.pausedReason}`)
@@ -151,7 +153,7 @@ export default async function ExportSettingsPage() {
 								{l.status === "active" && l.nextAttemptAt && l.lastError && (
 									<p
 										role="status"
-										className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
+										className="rounded-xl bg-warning/12 px-3 py-2 text-subhead"
 									>
 										{t("retryAt", {
 											time: fmtDateTime.format(l.nextAttemptAt),
@@ -160,7 +162,7 @@ export default async function ExportSettingsPage() {
 										})}
 									</p>
 								)}
-								<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-[12rem_minmax(0,1fr)]">
+								<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-subhead sm:grid-cols-[12rem_minmax(0,1fr)]">
 									{facts.map(([k, v]) => (
 										<div key={k} className="contents">
 											<dt className="text-muted-foreground">{k}</dt>
@@ -170,14 +172,14 @@ export default async function ExportSettingsPage() {
 								</dl>
 								{l.rejected.length > 0 && (
 									<div className="flex flex-col gap-2">
-										<h3 className="font-medium text-sm">
+										<h3 className="font-medium text-subhead">
 											{t("rejectedTitle")}
 										</h3>
-										<p className="max-w-2xl text-muted-foreground text-sm">
+										<p className="max-w-2xl text-muted-foreground text-subhead">
 											{t("rejectedLead")}
 										</p>
-										<div className="overflow-x-auto rounded-md border">
-											<table className="w-full text-sm">
+										<div className="overflow-x-auto rounded-2xl bg-card">
+											<table className="w-full text-subhead">
 												<thead className="bg-muted/40 text-left text-muted-foreground">
 													<tr>
 														<th className="px-3 py-2 font-normal">
@@ -202,7 +204,7 @@ export default async function ExportSettingsPage() {
 															</td>
 															<td className="whitespace-nowrap px-3 py-2">
 																<code
-																	className="font-mono text-xs"
+																	className="font-mono text-footnote"
 																	translate="no"
 																>
 																	{r.type}
@@ -210,7 +212,7 @@ export default async function ExportSettingsPage() {
 															</td>
 															<td className="whitespace-nowrap px-3 py-2">
 																<code
-																	className="font-mono text-xs"
+																	className="font-mono text-footnote"
 																	translate="no"
 																>
 																	{r.code ?? "—"}
@@ -236,10 +238,10 @@ export default async function ExportSettingsPage() {
 					aria-labelledby="revoked"
 					className="mt-10 flex flex-col gap-3"
 				>
-					<h2 id="revoked" className="font-serif-display text-lg text-primary">
+					<h2 id="revoked" className="font-semibold text-headline">
 						{t("revokedTitle")}
 					</h2>
-					<ul className="flex flex-col divide-y rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{revoked.map((r) => (
 							<li
 								key={r.id}

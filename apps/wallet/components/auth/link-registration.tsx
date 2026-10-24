@@ -105,7 +105,7 @@ export function LinkRegistration({
 
 	if (state.s === "loading")
 		return (
-			<p className="text-muted-foreground text-sm" aria-live="polite">
+			<p className="text-muted-foreground text-subhead" aria-live="polite">
 				{t("checking")}
 			</p>
 		);
@@ -210,7 +210,7 @@ export function LinkRegistration({
 				<p
 					role="alert"
 					aria-live="polite"
-					className="min-h-4 text-destructive text-sm"
+					className="min-h-4 text-destructive text-subhead"
 				>
 					{error}
 				</p>
@@ -279,7 +279,7 @@ export function LinkRegistration({
 			<p
 				role="alert"
 				aria-live="polite"
-				className="min-h-4 text-destructive text-sm"
+				className="min-h-4 text-destructive text-subhead"
 			>
 				{error}
 			</p>

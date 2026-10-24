@@ -23,11 +23,13 @@ export function OrgMenu({
 	const router = useRouter();
 	if (orgs.length < 2)
 		return (
-			<span className="block truncate font-medium text-sm">{current.name}</span>
+			<span className="block truncate font-medium text-subhead">
+				{current.name}
+			</span>
 		);
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger className="flex min-w-0 max-w-full items-center gap-1 rounded-md px-2 py-1 font-medium text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary">
+			<DropdownMenuTrigger className="flex min-w-0 max-w-full items-center gap-1 rounded-md px-2 py-1 font-medium text-subhead hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary">
 				<span className="truncate">{current.name}</span>
 				<ChevronsUpDown className="size-3.5 shrink-0" aria-hidden />
 				<span className="sr-only">{t("orgSwitch")}</span>

@@ -79,7 +79,7 @@ export default async function AddressBookPage() {
 		return (
 			<li
 				key={r.id}
-				className="flex flex-col gap-2 rounded-md border p-4 text-sm"
+				className="flex flex-col gap-2 rounded-2xl bg-card p-4 text-subhead"
 			>
 				<div className="flex flex-wrap items-center gap-2">
 					<span className="font-medium">{r.label}</span>
@@ -122,7 +122,7 @@ export default async function AddressBookPage() {
 								href={link}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground text-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground text-subhead hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							>
 								<ExternalLink className="size-4" aria-hidden />
 								{t("abConfirm")}
@@ -157,9 +157,7 @@ export default async function AddressBookPage() {
 					)}
 					{closed.length > 0 && (
 						<section className="flex flex-col gap-3">
-							<h2 className="font-serif-display text-lg text-primary">
-								{t("abClosed")}
-							</h2>
+							<h2 className="font-semibold text-headline">{t("abClosed")}</h2>
 							<ul className="flex flex-col gap-3">{closed.map(entry)}</ul>
 						</section>
 					)}

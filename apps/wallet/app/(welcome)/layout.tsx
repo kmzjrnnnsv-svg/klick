@@ -21,7 +21,7 @@ export default async function WelcomeLayout({
 				<div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4 sm:px-6">
 					<Link
 						href="/"
-						className="font-serif-display text-lg text-primary sm:text-xl focus-visible:outline-2 focus-visible:outline-primary"
+						className="font-semibold text-headline sm:text-xl focus-visible:outline-2 focus-visible:outline-primary"
 					>
 						both.money
 					</Link>

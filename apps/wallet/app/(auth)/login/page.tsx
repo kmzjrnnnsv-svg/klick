@@ -23,11 +23,11 @@ export default async function LoginPage({
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-2">
-				<h1 className="font-serif-display text-2xl">{t("loginTitle")}</h1>
+				<h1 className="font-bold text-title-2">{t("loginTitle")}</h1>
 				<p className="text-muted-foreground">{t("loginLead")}</p>
 			</div>
 			<LoginForm next={next} />
-			<div className="flex flex-col gap-2 text-muted-foreground text-sm">
+			<div className="flex flex-col gap-2 text-muted-foreground text-subhead">
 				<p>{t("noAccount")}</p>
 				<p>{t("lost")}</p>
 			</div>

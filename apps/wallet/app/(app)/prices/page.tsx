@@ -48,14 +48,14 @@ export default async function WalletQuotesPage() {
 			/>
 			{latest ? (
 				<>
-					<ul className="divide-y divide-border/60 rounded-xl border border-border/60 bg-card px-2">
+					<ul className="divide-y divide-border/60 rounded-2xl bg-card px-2">
 						{quotes.map((q) => (
 							<li key={q.pair}>
 								<QuoteRow quote={q} name={PAIR_NAMES[q.pair]} />
 							</li>
 						))}
 					</ul>
-					<p className="mt-3 text-muted-foreground text-xs">
+					<p className="mt-3 text-muted-foreground text-footnote">
 						{t("quotesSource", { time: fmtTime.format(latest) })}
 					</p>
 				</>

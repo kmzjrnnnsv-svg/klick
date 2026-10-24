@@ -129,14 +129,14 @@ export default async function PayoutPage({
 			<div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
 				<div className="flex flex-col gap-6">
 					{link && (
-						<section className="flex flex-col gap-3 rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
+						<section className="flex flex-col gap-3 rounded-xl bg-primary/8 p-4 text-subhead">
 							<p>{t("payoutConfirmHint")}</p>
 							<div>
 								<a
 									href={link}
 									target="_blank"
 									rel="noopener noreferrer"
-									className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground text-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground text-subhead hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								>
 									<ExternalLink className="size-4" aria-hidden />
 									{t("payoutConfirm")}
@@ -145,18 +145,18 @@ export default async function PayoutPage({
 						</section>
 					)}
 					{p.signableAt && p.status === "approved" && (
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("payoutSignableAt", { at: fmtDateTime.format(p.signableAt) })}
 						</p>
 					)}
 					{p.error && open && (
-						<p className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
+						<p className="rounded-xl bg-warning/12 px-3 py-2 text-subhead">
 							{t.has(`error_${p.error}` as never)
 								? t(`error_${p.error}` as never)
 								: t("payoutRetrying")}
 						</p>
 					)}
-					<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-[10rem_minmax(0,1fr)]">
+					<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-subhead sm:grid-cols-[10rem_minmax(0,1fr)]">
 						{facts.map(([k, v]) => (
 							<div key={k} className="contents">
 								<dt className="text-muted-foreground">{k}</dt>
@@ -165,7 +165,7 @@ export default async function PayoutPage({
 						))}
 					</dl>
 					{earlier.length > 0 && (
-						<section className="flex flex-col gap-2 text-sm">
+						<section className="flex flex-col gap-2 text-subhead">
 							<h2 className="font-medium">{t("payoutEarlier")}</h2>
 							<ul className="flex flex-col gap-1">
 								{earlier.map((x) => (
@@ -182,9 +182,9 @@ export default async function PayoutPage({
 						</section>
 					)}
 					<section className="flex flex-col gap-2">
-						<h2 className="font-medium text-sm">{t("payoutIntent")}</h2>
+						<h2 className="font-medium text-subhead">{t("payoutIntent")}</h2>
 						<pre
-							className="overflow-x-auto whitespace-pre-wrap break-all rounded-md border bg-muted/40 p-3 font-mono text-xs"
+							className="overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-muted p-3 font-mono text-footnote"
 							translate="no"
 						>
 							{p.intentText}
@@ -203,14 +203,14 @@ export default async function PayoutPage({
 						/>
 					)}
 					{(p.bumpRequested || p.cancelRequested) && open && (
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{p.cancelRequested
 								? t("payoutCancelPending")
 								: t("payoutBumpPending")}
 						</p>
 					)}
 				</div>
-				<ol className="flex flex-col gap-3 text-sm">
+				<ol className="flex flex-col gap-3 text-subhead">
 					{steps.map((s) => (
 						<li key={s.key} className="flex items-start gap-3">
 							<span
@@ -222,7 +222,7 @@ export default async function PayoutPage({
 									{t(`payoutStep_${s.key}`)}
 								</span>
 								{s.at && (
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{fmtDateTime.format(s.at)}
 									</span>
 								)}

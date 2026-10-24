@@ -48,8 +48,8 @@ export async function AccountCard({
 		<>
 			<div className="flex items-start justify-between gap-2">
 				<div className="min-w-0">
-					<p className="truncate font-medium">{account.name}</p>
-					<p className="truncate text-muted-foreground text-xs">
+					<p className="truncate font-semibold text-headline">{account.name}</p>
+					<p className="truncate text-footnote text-muted-foreground">
 						{NETWORKS[account.network].label}
 					</p>
 				</div>
@@ -61,10 +61,10 @@ export async function AccountCard({
 						key={a.code}
 						className="flex items-baseline justify-between gap-2"
 					>
-						<span className="font-semibold text-lg lining-nums" translate="no">
+						<span className="font-semibold text-title-3 tabular" translate="no">
 							{amountText(account.network, a.code, a.available)}
 						</span>
-						<span className="text-right text-muted-foreground text-xs">
+						<span className="text-right text-footnote text-muted-foreground">
 							{a.pending !== 0n &&
 								t("pendingAmount", {
 									amount: amountText(account.network, a.code, a.pending),
@@ -80,7 +80,7 @@ export async function AccountCard({
 					</li>
 				))}
 			</ul>
-			<p className="flex items-center gap-1.5 text-muted-foreground text-xs">
+			<p className="flex items-center gap-1.5 text-footnote text-muted-foreground">
 				{account.syncError ? (
 					<>
 						<AlertTriangle className="size-3.5 text-destructive" aria-hidden />
@@ -96,12 +96,11 @@ export async function AccountCard({
 			</p>
 		</>
 	);
-	const box =
-		"flex flex-col gap-3 rounded-lg border border-border/60 bg-card p-4";
+	const box = "flex flex-col gap-3 rounded-2xl bg-card p-4";
 	return link ? (
 		<Link
 			href={`/accounts/${account.id}`}
-			className={`${box} transition-[border-color,background-color] hover:border-foreground/30 focus-visible:outline-2 focus-visible:outline-primary`}
+			className={`${box} transition-[background-color] hover:bg-muted active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
 		>
 			{body}
 		</Link>

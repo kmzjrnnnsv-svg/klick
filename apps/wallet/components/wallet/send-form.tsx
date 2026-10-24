@@ -147,7 +147,7 @@ export function SendForm({
 						placeholder="0,001"
 						required
 					/>
-					<p className="text-muted-foreground text-xs">
+					<p className="text-muted-foreground text-footnote">
 						{t("sendAvailable", { amount: `${available} ${asset}` })}
 					</p>
 				</div>
@@ -155,7 +155,7 @@ export function SendForm({
 			<div className="flex flex-col gap-1.5">
 				<Label htmlFor="send-dest">{t("sendDestination")}</Label>
 				{dests.length === 0 ? (
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{t("sendNoDestination")}
 					</p>
 				) : (
@@ -174,7 +174,7 @@ export function SendForm({
 				)}
 				{dest && (
 					<code
-						className="break-all font-mono text-muted-foreground text-xs"
+						className="break-all font-mono text-muted-foreground text-footnote"
 						translate="no"
 					>
 						{dest.address}
@@ -182,12 +182,14 @@ export function SendForm({
 				)}
 			</div>
 			<fieldset className="flex flex-col gap-2">
-				<legend className="mb-1.5 font-medium text-sm">{t("sendSpeed")}</legend>
+				<legend className="mb-1.5 font-medium text-subhead">
+					{t("sendSpeed")}
+				</legend>
 				<div className="flex flex-wrap gap-2">
 					{SPEEDS.map((s) => (
 						<label
 							key={s}
-							className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+							className="inline-flex min-h-(--control-h-sm) cursor-pointer items-center rounded-full bg-muted px-3.5 py-1 font-medium text-footnote transition-colors hover:bg-foreground/12 has-[:checked]:bg-primary-fill has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
 						>
 							<input
 								type="radio"
@@ -195,14 +197,14 @@ export function SendForm({
 								value={s}
 								checked={speed === s}
 								onChange={() => setSpeed(s)}
-								className="accent-primary"
+								className="sr-only"
 							/>
 							{t(`speed_${s}`)}
 						</label>
 					))}
 				</div>
 			</fieldset>
-			<p className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+			<p className="rounded-xl bg-muted px-3 py-2 text-subhead">
 				{t("sendHint")}
 			</p>
 			<div>

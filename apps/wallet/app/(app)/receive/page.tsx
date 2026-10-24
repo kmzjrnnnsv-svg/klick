@@ -81,14 +81,14 @@ export default async function WalletReceivePage({
 							href={`/receive?account=${a.id}`}
 							aria-current={a.id === account.id ? "page" : undefined}
 							className={cn(
-								"rounded-md border px-3 py-1.5 text-sm transition-[background-color,border-color] focus-visible:outline-2 focus-visible:outline-primary",
+								"inline-flex min-h-(--control-h-sm) items-center rounded-full px-3 py-1 font-medium text-footnote transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 								a.id === account.id
-									? "border-foreground/40 bg-muted font-medium"
-									: "border-border/60 hover:bg-muted/60",
+									? "bg-primary-fill text-white"
+									: "bg-muted hover:bg-foreground/12",
 							)}
 						>
 							{a.name}
-							<span className="ml-1.5 text-muted-foreground text-xs">
+							<span className="ml-1.5 font-normal opacity-75">
 								{NETWORKS[a.network].label}
 							</span>
 						</Link>
@@ -96,7 +96,7 @@ export default async function WalletReceivePage({
 				</nav>
 			)}
 
-			<section className="rounded-xl border border-border/60 bg-card p-5 sm:p-6">
+			<section className="rounded-2xl bg-card p-5 sm:p-6">
 				{current ? (
 					<ReceivePanel
 						key={current.address}
@@ -107,17 +107,17 @@ export default async function WalletReceivePage({
 						reused={!!current.firstSeenAt && net.chain === "bitcoin"}
 					/>
 				) : (
-					<p className="text-muted-foreground text-sm">{t("syncNever")}</p>
+					<p className="text-muted-foreground text-subhead">{t("syncNever")}</p>
 				)}
 				{net.chain === "ethereum" && (
-					<p className="mt-4 text-muted-foreground text-xs">
+					<p className="mt-4 text-muted-foreground text-footnote">
 						{t("receiveTokens", { network: net.label })}
 					</p>
 				)}
 			</section>
 
 			{!net.live && (
-				<div className="mt-4 rounded-md border border-border/60 bg-muted/30 p-4 text-sm">
+				<div className="mt-4 rounded-xl bg-muted p-4 text-subhead">
 					<p>{t("receiveTestnet")}</p>
 					<ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
 						{faucets.map((f) => (
@@ -139,27 +139,24 @@ export default async function WalletReceivePage({
 
 			{net.chain === "bitcoin" && data.addresses.length > 0 && (
 				<section className="mt-10" aria-labelledby="rc-recent">
-					<h2
-						id="rc-recent"
-						className="mb-3 font-serif-display text-xl text-primary"
-					>
+					<h2 id="rc-recent" className="mb-3 font-semibold text-title-3">
 						{t("receiveRecent")}
 					</h2>
-					<ul className="divide-y divide-border/60 text-sm">
+					<ul className="divide-y divide-border/60 text-subhead">
 						{data.addresses.slice(0, 10).map((a) => (
 							<li
 								key={a.id}
 								className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2"
 							>
 								<span
-									className="min-w-0 grow truncate font-mono text-xs"
+									className="min-w-0 grow truncate font-mono text-footnote"
 									title={a.address}
 									translate="no"
 								>
 									{a.address}
 								</span>
 								{a.label && (
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{a.label}
 									</span>
 								)}
@@ -167,7 +164,7 @@ export default async function WalletReceivePage({
 									{a.firstSeenAt ? t("receivePaid") : t("receiveWaiting")}
 								</Badge>
 								{a.issuedAt && (
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{fmtTime.format(a.issuedAt)}
 									</span>
 								)}

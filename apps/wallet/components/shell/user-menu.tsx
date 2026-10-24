@@ -34,12 +34,12 @@ export function UserMenu({
 				<CircleUser className="size-5" aria-hidden />
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="min-w-56">
-				<DropdownMenuLabel className="normal-case tracking-normal">
+				<DropdownMenuLabel className="">
 					<span className="block truncate font-medium">{name}</span>
-					<span className="block truncate font-normal text-muted-foreground text-xs">
+					<span className="block truncate font-normal text-muted-foreground text-footnote">
 						{email}
 					</span>
-					<span className="block font-normal text-muted-foreground text-xs">
+					<span className="block font-normal text-muted-foreground text-footnote">
 						{role}
 					</span>
 				</DropdownMenuLabel>
