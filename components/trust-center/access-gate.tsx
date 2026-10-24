@@ -85,7 +85,7 @@ export function TrustAccessGate({ slug, docs }: { slug: string; docs: Doc[] }) {
 
 	if (state.phase === "loading")
 		return (
-			<p aria-live="polite" className="text-muted-foreground text-sm">
+			<p aria-live="polite" className="text-muted-foreground text-subhead">
 				{t("gateLoading")}
 			</p>
 		);
@@ -96,12 +96,12 @@ export function TrustAccessGate({ slug, docs }: { slug: string; docs: Doc[] }) {
 			? (state.reason as "expired" | "revoked" | "rate_limited" | "none")
 			: "invalid";
 		return (
-			<div role="alert" className="flex flex-col gap-2 rounded-md border p-4">
+			<div role="alert" className="flex flex-col gap-2 rounded-2xl bg-card p-4">
 				<h2 className="font-medium">{t(`gate_${reason}`)}</h2>
-				<p className="text-muted-foreground text-sm">{t("gateLead")}</p>
+				<p className="text-muted-foreground text-subhead">{t("gateLead")}</p>
 				<p>
 					<a
-						className="text-sm underline underline-offset-4"
+						className="text-subhead underline underline-offset-4"
 						href={`/vertrauen/${slug}#zugang`}
 					>
 						{t("gateBack")}
@@ -112,7 +112,7 @@ export function TrustAccessGate({ slug, docs }: { slug: string; docs: Doc[] }) {
 	}
 	return (
 		<div className="flex flex-col gap-4">
-			<p className="text-muted-foreground text-sm">
+			<p className="text-muted-foreground text-subhead">
 				{t("gateActive", {
 					name: state.name,
 					company: state.company,
@@ -120,9 +120,9 @@ export function TrustAccessGate({ slug, docs }: { slug: string; docs: Doc[] }) {
 				})}
 			</p>
 			{docs.length === 0 ? (
-				<p className="text-muted-foreground text-sm">{t("gateNoDocs")}</p>
+				<p className="text-muted-foreground text-subhead">{t("gateNoDocs")}</p>
 			) : (
-				<ul className="flex flex-col divide-y rounded-md border">
+				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 					{docs.map((d) => (
 						<li
 							key={d.versionId}
@@ -130,7 +130,7 @@ export function TrustAccessGate({ slug, docs }: { slug: string; docs: Doc[] }) {
 						>
 							<div className="min-w-0">
 								<p className="font-medium">{d.title}</p>
-								<p className="text-muted-foreground text-xs">
+								<p className="text-muted-foreground text-footnote">
 									<span className="whitespace-nowrap font-mono" translate="no">
 										{d.docNumber}
 									</span>{" "}
@@ -139,7 +139,7 @@ export function TrustAccessGate({ slug, docs }: { slug: string; docs: Doc[] }) {
 							</div>
 							<a
 								href={trustDocumentHref(slug, d.versionId)}
-								className="inline-flex items-center gap-1.5 text-sm underline underline-offset-4"
+								className="inline-flex items-center gap-1.5 text-subhead underline underline-offset-4"
 							>
 								<Download className="size-4" aria-hidden="true" />
 								{t("download")}

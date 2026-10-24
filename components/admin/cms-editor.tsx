@@ -67,7 +67,7 @@ export function CmsEditor({
 					id="body"
 					value={body}
 					onChange={(e) => setBody(e.target.value)}
-					className="min-h-96 font-mono text-xs"
+					className="min-h-96 font-mono text-footnote"
 				/>
 			</div>
 			<div className="flex gap-2">

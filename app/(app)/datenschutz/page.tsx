@@ -146,9 +146,9 @@ export default async function PrivacyPage({
 
 			{tab === "vvt" && (
 				<section className="flex flex-col gap-4">
-					<p className="text-muted-foreground text-sm">{t("vvtLead")}</p>
+					<p className="text-muted-foreground text-subhead">{t("vvtLead")}</p>
 					{gaps.length > 0 && (
-						<ul className="list-disc rounded-md border border-dashed p-3 pl-7 text-sm">
+						<ul className="list-disc rounded-2xl bg-card p-3 pl-7 text-subhead">
 							{gaps.map((g) => (
 								<li key={`${g.id}-${g.kind}`}>
 									<span className="font-medium">{g.name}</span>:{" "}
@@ -194,28 +194,28 @@ export default async function PrivacyPage({
 										<TableCell>
 											<p className="font-medium">{a.name}</p>
 											{a.purpose && (
-												<p className="line-clamp-2 text-muted-foreground text-xs">
+												<p className="line-clamp-2 text-muted-foreground text-footnote">
 													{a.purpose}
 												</p>
 											)}
 											{a.thirdCountryTransfer && (
-												<p className="text-[0.7rem] text-muted-foreground">
+												<p className="text-footnote text-muted-foreground">
 													{t("thirdCountry")}: {a.thirdCountryTransfer}
 												</p>
 											)}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{a.legalBasis ?? (
 												<Badge variant="destructive">{t("missing")}</Badge>
 											)}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{(a.dataCategories ?? []).join(", ") || "—"}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{(a.recipients ?? []).join(", ") || "—"}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{a.retention ?? (
 												<Badge variant="destructive">{t("missing")}</Badge>
 											)}
@@ -228,7 +228,9 @@ export default async function PrivacyPage({
 													{a.dsfaEvidenceId ? t("dsfaDone") : t("dsfaOpen")}
 												</Badge>
 											) : (
-												<span className="text-muted-foreground text-xs">—</span>
+												<span className="text-muted-foreground text-footnote">
+													—
+												</span>
 											)}
 										</TableCell>
 										<TableCell>
@@ -275,7 +277,7 @@ export default async function PrivacyPage({
 
 			{tab === "dsfa" && (
 				<section className="flex flex-col gap-4">
-					<p className="text-muted-foreground text-sm">{t("dsfaLead")}</p>
+					<p className="text-muted-foreground text-subhead">{t("dsfaLead")}</p>
 					{dsfa.length === 0 ? (
 						<EmptyState
 							title={t("dsfaEmpty")}
@@ -283,7 +285,7 @@ export default async function PrivacyPage({
 							requiredBy={t("requiredByDsfa")}
 						/>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{dsfa.map((a) => (
 								<li
 									key={a.id}
@@ -291,11 +293,11 @@ export default async function PrivacyPage({
 								>
 									<span>
 										<span className="font-medium">{a.name}</span>
-										<span className="block text-muted-foreground text-xs">
+										<span className="block text-muted-foreground text-footnote">
 											{a.legalBasis ?? "—"}
 										</span>
 									</span>
-									<span className="flex items-center gap-2 text-xs">
+									<span className="flex items-center gap-2 text-footnote">
 										{a.dsfaEvidenceId ? (
 											<Link
 												href="/nachweise"
@@ -311,7 +313,7 @@ export default async function PrivacyPage({
 							))}
 						</ul>
 					)}
-					<p className="text-muted-foreground text-xs">
+					<p className="text-muted-foreground text-footnote">
 						{t("dsfaHint")}{" "}
 						<Link href="/nachweise" className="text-primary hover:underline">
 							/nachweise
@@ -322,8 +324,8 @@ export default async function PrivacyPage({
 
 			{tab === "anfragen" && (
 				<section className="flex flex-col gap-4">
-					<p className="text-muted-foreground text-sm">{t("dsrLead")}</p>
-					<div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-4">
+					<p className="text-muted-foreground text-subhead">{t("dsrLead")}</p>
+					<div className="grid grid-cols-1 gap-3 text-subhead sm:grid-cols-4">
 						{(
 							[
 								["statOpen", stats.open, false],
@@ -332,12 +334,12 @@ export default async function PrivacyPage({
 								["statTotal", stats.total, false],
 							] as const
 						).map(([k, v, warn]) => (
-							<div key={k} className="rounded-md border p-3">
-								<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+							<div key={k} className="rounded-2xl bg-card p-3">
+								<p className="font-medium text-footnote text-muted-foreground">
 									{t(k)}
 								</p>
 								<p
-									className={`font-serif-display text-2xl ${warn ? "text-destructive" : "text-primary"}`}
+									className={`font-bold text-title-2 ${warn ? "text-destructive" : "text-primary"}`}
 								>
 									{v}
 								</p>
@@ -345,7 +347,7 @@ export default async function PrivacyPage({
 						))}
 					</div>
 					{!detail ? (
-						<p className="rounded-md border border-dashed p-3 text-sm">
+						<p className="rounded-2xl bg-card p-3 text-subhead">
 							{t("aggregatedOnly")}
 						</p>
 					) : data.requests.length === 0 ? (
@@ -373,13 +375,13 @@ export default async function PrivacyPage({
 									const due = dsrEffectiveDue(r);
 									return (
 										<TableRow key={r.id}>
-											<TableCell className="text-xs">
+											<TableCell className="text-footnote">
 												{fmtTs.format(r.receivedAt)}
 											</TableCell>
 											<TableCell>
 												<Badge variant="outline">{t(`type_${r.type}`)}</Badge>
 											</TableCell>
-											<TableCell className="text-xs">
+											<TableCell className="text-footnote">
 												{data.refs[i] ?? (
 													<span className="text-muted-foreground">—</span>
 												)}
@@ -393,7 +395,7 @@ export default async function PrivacyPage({
 												<Badge variant={CLOCK_TONE[clock]}>
 													{t(`clock_${clock}`)}
 												</Badge>
-												<p className="text-[0.7rem] text-muted-foreground">
+												<p className="text-footnote text-muted-foreground">
 													{fmtDate.format(due)}
 													{r.extendedUntil ? ` · ${t("extendedShort")}` : ""}
 												</p>

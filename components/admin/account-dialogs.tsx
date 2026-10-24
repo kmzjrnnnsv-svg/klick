@@ -216,7 +216,7 @@ export function CreateAccountDialog({
 								</Select>
 							</div>
 						)}
-						<label className="flex items-center gap-2 text-sm">
+						<label className="flex items-center gap-2 text-subhead">
 							<Checkbox
 								checked={sendMail}
 								onCheckedChange={(v) => setSendMail(v === true)}
@@ -296,7 +296,7 @@ export function RenewLinkDialog({
 					/>
 				) : (
 					<>
-						<label className="flex items-center gap-2 text-sm">
+						<label className="flex items-center gap-2 text-subhead">
 							<Checkbox
 								checked={sendMail}
 								onCheckedChange={(v) => setSendMail(v === true)}

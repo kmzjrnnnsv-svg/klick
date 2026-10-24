@@ -162,32 +162,34 @@ export default async function AuditsPage({
 
 			{tab === "programm" && (
 				<section className="flex flex-col gap-6">
-					<p className="text-muted-foreground text-sm">{t("programmeLead")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("programmeLead")}
+					</p>
 					{cycles.length > 0 && (
 						<div className="flex flex-col gap-2">
 							<div className="flex flex-wrap items-baseline justify-between gap-2">
-								<h2 className="font-medium text-sm">{t("cyclesTitle")}</h2>
+								<h2 className="font-medium text-subhead">{t("cyclesTitle")}</h2>
 								<Link
 									href="/einstellungen?tab=audits"
-									className="text-primary text-xs hover:underline"
+									className="text-primary text-footnote hover:underline"
 								>
 									{t("cyclesSettings")} →
 								</Link>
 							</div>
 							{cycles.some((c) => c.next) && (
-								<ul className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+								<ul className="grid grid-cols-1 gap-2 text-subhead sm:grid-cols-2 lg:grid-cols-3">
 									{cycles
 										.flatMap((c) => (c.next ? [{ ...c, next: c.next }] : []))
 										.sort((a, b) => a.next.date.localeCompare(b.next.date))
 										.map((c) => (
 											<li
 												key={c.slug}
-												className="flex flex-col gap-0.5 rounded-md border px-3 py-2"
+												className="flex flex-col gap-0.5 rounded-xl bg-card px-3 py-2"
 											>
 												<span className="font-medium">
 													{shortFrameworkName(c.slug)}
 												</span>
-												<span className="text-muted-foreground text-xs tabular-nums">
+												<span className="text-muted-foreground text-footnote tabular-nums">
 													{c.next.label} ·{" "}
 													{fmtDate.format(new Date(`${c.next.date}T12:00:00Z`))}
 												</span>
@@ -196,7 +198,7 @@ export default async function AuditsPage({
 								</ul>
 							)}
 							{cycles.some((c) => !c.next) && (
-								<p className="text-muted-foreground text-xs">
+								<p className="text-muted-foreground text-footnote">
 									{t("cyclesNoDate", {
 										list: cycles
 											.filter((c) => !c.next)
@@ -246,13 +248,11 @@ export default async function AuditsPage({
 							return (
 								<article
 									key={p.id}
-									className="flex flex-col gap-4 rounded-md border p-4 text-sm"
+									className="flex flex-col gap-4 rounded-2xl bg-card p-4 text-subhead"
 								>
 									<div className="flex flex-wrap items-center gap-3">
-										<h2 className="font-serif-display text-xl text-primary">
-											{p.title}
-										</h2>
-										<span className="text-muted-foreground text-xs">
+										<h2 className="font-semibold text-title-3">{p.title}</h2>
+										<span className="text-muted-foreground text-footnote">
 											{cov.cycleStartYear}–{cov.cycleEndYear} ·{" "}
 											{t("cycleYearsShort", { n: p.cycleYears })}
 										</span>
@@ -283,7 +283,7 @@ export default async function AuditsPage({
 										)}
 									</div>
 									{cov.gaps.length > 0 && (
-										<div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-xs">
+										<div className="rounded-xl bg-warning/12 p-3 text-footnote">
 											<p className="font-medium">{t("gapsTitle")}</p>
 											<p className="mt-1 text-muted-foreground">
 												{cov.gaps.map((g) => g.label).join(" · ")}
@@ -292,8 +292,8 @@ export default async function AuditsPage({
 									)}
 									<div className="grid grid-cols-1 gap-3 md:grid-cols-3">
 										{years.map((y) => (
-											<div key={y} className="rounded-md border p-3">
-												<p className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground">
+											<div key={y} className="rounded-2xl bg-card p-3">
+												<p className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
 													{y}
 												</p>
 												<ul className="flex flex-col gap-1">
@@ -302,12 +302,9 @@ export default async function AuditsPage({
 														.map((i) => (
 															<li
 																key={i.id}
-																className="flex items-center gap-2 text-xs"
+																className="flex items-center gap-2 text-footnote"
 															>
-																<Badge
-																	variant="outline"
-																	className="normal-case tracking-normal"
-																>
+																<Badge variant="outline" className="">
 																	{t(`scope_${i.scopeType}`)}
 																</Badge>
 																<span className="min-w-0 flex-1 truncate">
@@ -333,7 +330,9 @@ export default async function AuditsPage({
 														))}
 													{p.items.filter((i) => i.plannedYear === y).length ===
 														0 && (
-														<li className="text-muted-foreground text-xs">—</li>
+														<li className="text-muted-foreground text-footnote">
+															—
+														</li>
 													)}
 												</ul>
 											</div>
@@ -388,7 +387,7 @@ export default async function AuditsPage({
 											{a.title}
 										</Link>
 										{a.periodStart && (
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{fmtDate.format(new Date(a.periodStart))}
 												{a.periodEnd
 													? ` – ${fmtDate.format(new Date(a.periodEnd))}`
@@ -396,23 +395,19 @@ export default async function AuditsPage({
 											</p>
 										)}
 									</TableCell>
-									<TableCell className="text-xs">
+									<TableCell className="text-footnote">
 										{t(`type_${a.type}`)}
 									</TableCell>
 									<TableCell>
 										<span className="flex flex-wrap gap-1">
 											{a.frameworkIds.map((f) => (
-												<Badge
-													key={f}
-													variant="muted"
-													className="normal-case tracking-normal"
-												>
+												<Badge key={f} variant="muted" className="">
 													{shortFrameworkName(f)}
 												</Badge>
 											))}
 										</span>
 									</TableCell>
-									<TableCell className="text-xs">
+									<TableCell className="text-footnote">
 										{a.auditorNames.join(", ") || "—"}
 									</TableCell>
 									<TableCell>
@@ -423,7 +418,7 @@ export default async function AuditsPage({
 											{t(`status_${a.status}`)}
 										</Badge>
 									</TableCell>
-									<TableCell className="text-right text-muted-foreground text-xs">
+									<TableCell className="text-right text-muted-foreground text-footnote">
 										{a.requestsTotal - a.requestsOpen}/{a.requestsTotal}{" "}
 										{t("requestsShort")} · {a.findingsOpen}{" "}
 										{t("findingsOpenShort")}
@@ -436,7 +431,7 @@ export default async function AuditsPage({
 
 			{tab === "findings" &&
 				(data.findings.length === 0 ? (
-					<p className="text-sm">{t("findingsEmpty")}</p>
+					<p className="text-subhead">{t("findingsEmpty")}</p>
 				) : (
 					<Table>
 						<TableHeader>
@@ -462,12 +457,12 @@ export default async function AuditsPage({
 									<TableCell>
 										<p className="font-medium">{f.title}</p>
 										{f.description && (
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{f.description}
 											</p>
 										)}
 									</TableCell>
-									<TableCell className="text-xs">
+									<TableCell className="text-footnote">
 										<Link
 											href={`/audits/${f.auditId}?tab=findings`}
 											className="hover:underline"
@@ -475,7 +470,7 @@ export default async function AuditsPage({
 											{f.auditTitle}
 										</Link>
 									</TableCell>
-									<TableCell className="whitespace-nowrap font-mono text-xs">
+									<TableCell className="whitespace-nowrap font-mono text-footnote">
 										{f.controlCode ? (
 											<Link
 												href={`/controls/${f.controlCode}`}
@@ -498,7 +493,7 @@ export default async function AuditsPage({
 										{f.nonconformityId ? (
 											<Link
 												href={`/abweichungen/${f.nonconformityId}`}
-												className="font-mono text-xs hover:underline"
+												className="font-mono text-footnote hover:underline"
 											>
 												{f.ncCode}
 											</Link>

@@ -46,7 +46,7 @@ export default async function MyAccountabilityPage() {
 					actions={<PrintButton label={t("print")} />}
 				/>
 			</div>
-			<h1 className="mb-4 hidden font-serif-display text-2xl print:block">
+			<h1 className="mb-4 hidden font-bold text-title-2 print:block">
 				{t("title")} — {ctx.name || ctx.email}
 			</h1>
 			<AccountabilityView

@@ -42,7 +42,7 @@ export async function RouteProgress({
 	return (
 		<ol
 			aria-label={t("route")}
-			className="flex flex-wrap items-center gap-x-1 gap-y-1 text-xs"
+			className="flex flex-wrap items-center gap-x-1 gap-y-1 text-footnote"
 		>
 			{[...steps]
 				.sort((a, b) => a.order - b.order)

@@ -35,13 +35,13 @@ export function DependencyMap({
 				{nodes.map((n) => (
 					<li
 						key={n.id}
-						className="grid grid-cols-1 gap-3 rounded-md border p-3 text-sm md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]"
+						className="grid grid-cols-1 gap-3 rounded-2xl bg-card p-3 text-subhead md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]"
 					>
 						<div className="min-w-0">
 							<div className="flex flex-wrap items-center gap-2">
 								<Link
 									href={`/prozesse/${encodeURIComponent(n.code)}`}
-									className="font-mono text-xs hover:underline"
+									className="font-mono text-footnote hover:underline"
 								>
 									{n.code}
 								</Link>
@@ -54,7 +54,7 @@ export function DependencyMap({
 									{labels.crit[n.criticality] ?? n.criticality}
 								</Badge>
 								{n.rtoHours !== null && (
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{labels.rto} {n.rtoHours} h
 									</span>
 								)}
@@ -62,13 +62,15 @@ export function DependencyMap({
 							<p className="mt-1 font-medium">{n.name}</p>
 						</div>
 						<div className="min-w-0 border-border/60 md:border-l md:pl-3">
-							<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+							<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 								{labels.assets}
 							</p>
 							{n.assets.length === 0 ? (
-								<p className="text-muted-foreground text-xs">{labels.none}</p>
+								<p className="text-muted-foreground text-footnote">
+									{labels.none}
+								</p>
 							) : (
-								<ul className="flex flex-col gap-0.5 text-xs">
+								<ul className="flex flex-col gap-0.5 text-footnote">
 									{n.assets.map((a) => (
 										<li key={a.id} className="truncate">
 											{a.name}
@@ -83,11 +85,13 @@ export function DependencyMap({
 							)}
 						</div>
 						<div className="min-w-0 border-border/60 md:border-l md:pl-3">
-							<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+							<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 								{labels.providers}
 							</p>
 							{n.providers.length === 0 ? (
-								<p className="text-muted-foreground text-xs">{labels.none}</p>
+								<p className="text-muted-foreground text-footnote">
+									{labels.none}
+								</p>
 							) : (
 								<ul className="flex flex-wrap gap-1">
 									{n.providers.map((p) => (
@@ -97,7 +101,7 @@ export function DependencyMap({
 													CRIT_TONE[p.criticality as keyof typeof CRIT_TONE] ??
 													"outline"
 												}
-												className="normal-case tracking-normal"
+												className=""
 											>
 												{p.name}
 											</Badge>
@@ -111,17 +115,17 @@ export function DependencyMap({
 			</ol>
 			{conc.length > 0 && (
 				<section>
-					<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+					<h2 className="font-medium text-footnote text-muted-foreground">
 						{labels.concentration}
 					</h2>
-					<p className="mt-1 mb-3 text-muted-foreground text-xs">
+					<p className="mt-1 mb-3 text-muted-foreground text-footnote">
 						{labels.concentrationLead}
 					</p>
-					<ul className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+					<ul className="grid grid-cols-1 gap-2 text-subhead sm:grid-cols-2 lg:grid-cols-3">
 						{conc.map((c) => (
 							<li
 								key={c.id}
-								className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+								className="flex items-center justify-between gap-3 rounded-xl bg-card px-3 py-2"
 							>
 								<Link
 									href="/dienstleister"
@@ -129,7 +133,7 @@ export function DependencyMap({
 								>
 									{c.name}
 								</Link>
-								<span className="shrink-0 text-xs">
+								<span className="shrink-0 text-footnote">
 									<span
 										className={
 											c.critical > 0 ? "font-medium text-destructive" : ""

@@ -26,10 +26,8 @@ export default async function LoginFallbackPage({
 	return (
 		<div className="flex flex-col gap-8">
 			<div>
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("fallbackTitle")}
-				</h1>
-				<p className="mt-2 text-muted-foreground text-sm">
+				<h1 className="font-bold text-title-1">{t("fallbackTitle")}</h1>
+				<p className="mt-2 text-muted-foreground text-subhead">
 					{t("fallbackLead")}
 				</p>
 			</div>
@@ -38,7 +36,7 @@ export default async function LoginFallbackPage({
 					<AlertDescription>{reason}</AlertDescription>
 				</Alert>
 			)}
-			<ul className="flex list-disc flex-col gap-2 pl-5 text-sm">
+			<ul className="flex list-disc flex-col gap-2 pl-5 text-subhead">
 				<li>{t("fallbackReset")}</li>
 				<li>{t("fallbackTotp")}</li>
 				<li>{t("fallbackInvite")}</li>
@@ -49,7 +47,7 @@ export default async function LoginFallbackPage({
 			/>
 			<Link
 				href={next ? `/login?weiter=${encodeURIComponent(next)}` : "/login"}
-				className="text-primary text-sm hover:underline"
+				className="text-primary text-subhead hover:underline"
 			>
 				{t("backToPasskey")}
 			</Link>

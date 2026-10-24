@@ -140,8 +140,8 @@ export function CompanyStep({
 					</SelectContent>
 				</Select>
 			</div>
-			<fieldset className="flex flex-wrap gap-4 text-sm">
-				<legend className="mb-1.5 font-medium text-sm">
+			<fieldset className="flex flex-wrap gap-4 text-subhead">
+				<legend className="mb-1.5 font-medium text-subhead">
 					{t("customerTypes")}
 				</legend>
 				{CUSTOMER_TYPES.map((c) => (
@@ -164,7 +164,7 @@ export function CompanyStep({
 
 			<section
 				aria-live="polite"
-				className="flex flex-col gap-2 rounded-md border bg-muted/30 p-4 text-sm"
+				className="flex flex-col gap-2 rounded-xl bg-muted p-4 text-subhead"
 			>
 				<h2 className="font-medium">{t("classification")}</h2>
 				<div className="flex flex-wrap gap-2">
@@ -181,12 +181,12 @@ export function CompanyStep({
 						{t(`nis2_${cls.nis2}`)}
 					</Badge>
 				</div>
-				<ul className="list-disc pl-5 text-muted-foreground text-xs">
+				<ul className="list-disc pl-5 text-muted-foreground text-footnote">
 					{cls.reasons.map((r) => (
 						<li key={r}>{r}</li>
 					))}
 				</ul>
-				<p className="text-[0.7rem] text-muted-foreground">
+				<p className="text-footnote text-muted-foreground">
 					{t("noLegalAdvice")}
 				</p>
 			</section>

@@ -256,19 +256,19 @@ export default async function ControlDetailPage({
 						}
 					>
 						{tasks.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{te("tasksEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col gap-2 text-sm">
+							<ul className="flex flex-col gap-2 text-subhead">
 								{tasks.map((task) => (
 									<li
 										key={task.id}
-										className="flex items-start justify-between gap-2 rounded-md border p-2"
+										className="flex items-start justify-between gap-2 rounded-2xl bg-card p-2"
 									>
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{task.assigneeName ?? "—"}
 												{task.dueAt
 													? ` · ${fmtDate.format(new Date(task.dueAt))}`
@@ -290,16 +290,16 @@ export default async function ControlDetailPage({
 		>
 			{row.note && (
 				<Section title={t("note")}>
-					<p className="whitespace-pre-wrap text-sm">{row.note}</p>
+					<p className="whitespace-pre-wrap text-subhead">{row.note}</p>
 				</Section>
 			)}
 
 			{moduleEv && (
 				<Section title={t("moduleEvidence")}>
-					<p className="mb-2 text-muted-foreground text-xs">
+					<p className="mb-2 text-muted-foreground text-footnote">
 						{t("moduleEvidenceLead")}
 					</p>
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{moduleEv.facts.map((f) => (
 							<li
 								key={f.label}
@@ -310,7 +310,7 @@ export default async function ControlDetailPage({
 									variant={
 										f.ok === null ? "outline" : f.ok ? "success" : "warning"
 									}
-									className="normal-case tracking-normal"
+									className=""
 								>
 									{f.value}
 								</Badge>
@@ -319,7 +319,7 @@ export default async function ControlDetailPage({
 					</ul>
 					<Link
 						href={moduleEv.href}
-						className="mt-2 inline-block text-primary text-xs hover:underline"
+						className="mt-2 inline-block text-primary text-footnote hover:underline"
 					>
 						{t("moduleOpen")}: {moduleEv.module} →
 					</Link>
@@ -340,17 +340,16 @@ export default async function ControlDetailPage({
 				</Section>
 			)}
 			<Section title={t("satisfies")}>
-				<p className="text-muted-foreground text-sm">{t("satisfiesLead")}</p>
-				<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+				<p className="text-muted-foreground text-subhead">
+					{t("satisfiesLead")}
+				</p>
+				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 					{edges.map(({ edge, req, status, active }) => (
 						<li
 							key={edge.requirement}
 							className={`flex flex-wrap items-center gap-2 px-3 py-2 ${active ? "" : "opacity-60"}`}
 						>
-							<Badge
-								variant="outline"
-								className="font-mono normal-case tracking-normal"
-							>
+							<Badge variant="outline" className="font-mono">
 								{shortFrameworkName(req?.framework ?? "")} {req?.code}
 							</Badge>
 							<Link
@@ -359,7 +358,7 @@ export default async function ControlDetailPage({
 							>
 								{req?.title}
 							</Link>
-							<span className="text-muted-foreground text-xs">
+							<span className="text-muted-foreground text-footnote">
 								{edge.coverage === "full" ? t("full") : t("partial")}
 							</span>
 							{active && status && (
@@ -415,9 +414,11 @@ export default async function ControlDetailPage({
 				}
 			>
 				{evidence.length === 0 ? (
-					<p className="text-muted-foreground text-sm">{t("evidenceEmpty")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("evidenceEmpty")}
+					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{evidence.map((ev) => (
 							<li
 								key={ev.id}
@@ -426,13 +427,13 @@ export default async function ControlDetailPage({
 								<span className="min-w-0 flex-1 truncate font-medium">
 									{ev.title}
 								</span>
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{fmtDate.format(ev.createdAt)}
 								</span>
 								{ev.storageKey ? (
 									<a
 										href={`/api/nachweise/${ev.id}`}
-										className="text-primary text-xs hover:underline"
+										className="text-primary text-footnote hover:underline"
 									>
 										{ev.fileName}
 									</a>
@@ -441,7 +442,7 @@ export default async function ControlDetailPage({
 										href={ev.url}
 										rel="noopener noreferrer nofollow"
 										target="_blank"
-										className="text-primary text-xs hover:underline"
+										className="text-primary text-footnote hover:underline"
 									>
 										{ev.url}
 									</a>
@@ -451,7 +452,7 @@ export default async function ControlDetailPage({
 					</ul>
 				)}
 				{control.evidenceHints && control.evidenceHints.length > 0 && (
-					<p className="text-muted-foreground text-xs">
+					<p className="text-muted-foreground text-footnote">
 						{t("evidenceHints")}: {control.evidenceHints.join(" · ")}
 					</p>
 				)}
@@ -469,24 +470,21 @@ export default async function ControlDetailPage({
 				}
 			>
 				{tests.length === 0 ? (
-					<p className="text-muted-foreground text-sm">{tt("empty")}</p>
+					<p className="text-muted-foreground text-subhead">{tt("empty")}</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{tests.map((x) => (
 							<li
 								key={x.id}
 								className="flex flex-wrap items-center gap-2 px-3 py-2"
 							>
-								<Badge
-									variant="outline"
-									className="normal-case tracking-normal"
-								>
+								<Badge variant="outline" className="">
 									{tt(`method_${x.method}`)}
 								</Badge>
 								<span className="min-w-0 flex-1 truncate">
 									{x.scope ?? x.notes ?? ""}
 								</span>
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{x.testedAt ? fmtDate.format(x.testedAt) : ""} ·{" "}
 									{x.names.testerUserId ?? "—"}
 								</span>
@@ -511,13 +509,13 @@ export default async function ControlDetailPage({
 
 			{control.implementationGuidance && (
 				<Section title={t("guidance")}>
-					<p className="text-sm">{control.implementationGuidance}</p>
+					<p className="text-subhead">{control.implementationGuidance}</p>
 				</Section>
 			)}
 
 			{control.recommendations && control.recommendations.length > 0 && (
 				<Section title={t("recommendations")}>
-					<ul className="flex flex-col gap-2 text-sm">
+					<ul className="flex flex-col gap-2 text-subhead">
 						{control.recommendations.map((r) => (
 							<li key={r.text} className="flex gap-2">
 								<Badge
@@ -549,7 +547,7 @@ export default async function ControlDetailPage({
 
 			{control.auditQuestions && control.auditQuestions.length > 0 && (
 				<Section title={t("auditQuestions")}>
-					<ul className="list-disc pl-5 text-sm">
+					<ul className="list-disc pl-5 text-subhead">
 						{control.auditQuestions.map((q) => (
 							<li key={q}>{q}</li>
 						))}

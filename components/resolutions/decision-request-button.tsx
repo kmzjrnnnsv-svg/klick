@@ -183,7 +183,7 @@ export function DecisionRequestButton({
 					{approverHint && (
 						<p
 							role="note"
-							className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm"
+							className="rounded-xl bg-warning/12 p-3 text-subhead"
 						>
 							{t(approverHint === "none" ? "hintNone" : "hintOnlyYou")}{" "}
 							<Link
@@ -246,7 +246,7 @@ export function DecisionRequestButton({
 					</div>
 					{refs && refs.requirementKeys.length > 0 && (
 						<div className="flex flex-col gap-1">
-							<p className="text-muted-foreground text-xs">{t("refs")}</p>
+							<p className="text-muted-foreground text-footnote">{t("refs")}</p>
 							<div className="flex flex-wrap gap-1">
 								{refs.requirementKeys.map((k) => (
 									<Badge key={k} variant="muted" className="font-mono">
@@ -274,11 +274,11 @@ export function DecisionRequestButton({
 								setFiles(picked.filter((f) => !up.tooLarge(f)).slice(0, 10));
 							}}
 						/>
-						<p className="text-muted-foreground text-xs">
+						<p className="text-muted-foreground text-footnote">
 							{t("attachmentsHint")}
 						</p>
 						{files.length > 0 && (
-							<ul className="flex flex-col gap-0.5 text-xs">
+							<ul className="flex flex-col gap-0.5 text-footnote">
 								{files.map((f) => (
 									<li key={`${f.name}-${f.size}`} className="truncate">
 										{f.name}

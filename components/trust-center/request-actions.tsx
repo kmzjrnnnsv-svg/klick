@@ -147,7 +147,7 @@ export function RequestActions({
 									</SelectContent>
 								</Select>
 							</div>
-							<label className="flex items-center gap-2 text-sm">
+							<label className="flex items-center gap-2 text-subhead">
 								<Checkbox
 									checked={sendMail}
 									onCheckedChange={(v) => setSendMail(v === true)}

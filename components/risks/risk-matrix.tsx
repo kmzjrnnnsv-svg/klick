@@ -37,7 +37,7 @@ export function RiskMatrix({
 	const grid = riskMatrix(risks, view, method);
 	return (
 		<div className="overflow-x-auto">
-			<table className="w-full min-w-[40rem] border-separate border-spacing-1 text-xs">
+			<table className="w-full min-w-[40rem] border-separate border-spacing-1 text-footnote">
 				<thead>
 					<tr>
 						<th className="w-28 text-left align-bottom font-normal text-muted-foreground">
@@ -77,13 +77,13 @@ export function RiskMatrix({
 											{cell.riskIds.slice(0, 6).map((id) => (
 												<span
 													key={id}
-													className="rounded-sm bg-background/80 px-1 font-mono text-[0.7rem]"
+													className="rounded-sm bg-background/80 px-1 font-mono text-footnote"
 												>
 													{codes.get(id) ?? "?"}
 												</span>
 											))}
 											{cell.riskIds.length > 6 && (
-												<span className="text-[0.7rem] text-muted-foreground">
+												<span className="text-footnote text-muted-foreground">
 													+{cell.riskIds.length - 6}
 												</span>
 											)}
@@ -118,8 +118,8 @@ export function ClassLegend({
 	const max = Math.max(1, ...dist.flatMap((d) => [d.inherent, d.residual]));
 	return (
 		<section className="mt-6 flex flex-col gap-3" aria-label={labels.title}>
-			<h3 className="font-medium text-sm">{labels.title}</h3>
-			<ul className="flex flex-col gap-3 text-xs">
+			<h3 className="font-medium text-subhead">{labels.title}</h3>
+			<ul className="flex flex-col gap-3 text-footnote">
 				{dist.map((d) => {
 					const cls = method.classes.find((c) => c.key === d.key);
 					return (

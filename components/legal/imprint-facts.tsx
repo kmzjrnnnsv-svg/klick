@@ -62,7 +62,7 @@ export async function ImprintFacts() {
 						</>
 					)}
 				</p>
-				<p className="mt-2 text-muted-foreground text-sm">
+				<p className="mt-2 text-muted-foreground text-subhead">
 					<Link
 						href="/leistungen#anfrage"
 						className="underline underline-offset-4"

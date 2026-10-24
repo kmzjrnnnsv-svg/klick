@@ -75,20 +75,20 @@ export default async function SearchPage({
 				/>
 			</form>
 			{q.length < 2 ? (
-				<p className="text-muted-foreground text-sm">{t("hint")}</p>
+				<p className="text-muted-foreground text-subhead">{t("hint")}</p>
 			) : hits.length === 0 ? (
-				<p className="text-sm">{t("none", { q })}</p>
+				<p className="text-subhead">{t("none", { q })}</p>
 			) : (
 				<div className="flex flex-col gap-6">
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{t("count", { n: hits.length, q })}
 					</p>
 					{[...groups.entries()].map(([kind, list]) => (
 						<section key={kind}>
-							<h2 className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground">
+							<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
 								{t(`kind_${kind}`)} · {list.length}
 							</h2>
-							<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 								{list.map((h) => (
 									<li key={`${h.kind}-${h.id}`} className="px-3 py-2">
 										<Link
@@ -96,17 +96,14 @@ export default async function SearchPage({
 											className="flex flex-wrap items-baseline gap-2 hover:underline underline-offset-4"
 										>
 											{h.code && (
-												<Badge
-													variant="outline"
-													className="font-mono normal-case tracking-normal"
-												>
+												<Badge variant="outline" className="font-mono">
 													{h.code}
 												</Badge>
 											)}
 											<span className="font-medium">{h.title}</span>
 										</Link>
 										{h.snippet && (
-											<p className="mt-0.5 line-clamp-2 text-muted-foreground text-xs">
+											<p className="mt-0.5 line-clamp-2 text-muted-foreground text-footnote">
 												{h.snippet}
 											</p>
 										)}

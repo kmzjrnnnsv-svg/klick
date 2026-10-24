@@ -71,7 +71,7 @@ export function PasskeyConfirmButton({
 				{busy ? t("confirmPasskeyBusy") : t("confirmPasskey")}
 			</Button>
 			{error && (
-				<p role="alert" className="text-destructive text-xs">
+				<p role="alert" className="text-destructive text-footnote">
 					{error}
 				</p>
 			)}

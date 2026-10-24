@@ -53,7 +53,7 @@ export function NotificationBell({
 				>
 					<Bell />
 					{unread > 0 && (
-						<span className="-top-0.5 -right-0.5 absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 font-medium text-[0.7rem] text-primary-foreground">
+						<span className="-top-0.5 -right-0.5 absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 font-medium text-footnote text-primary-foreground">
 							{unread > 9 ? "9+" : unread}
 						</span>
 					)}
@@ -67,7 +67,7 @@ export function NotificationBell({
 							type="button"
 							disabled={pending}
 							onClick={() => start(() => markAllNotificationsRead())}
-							className="normal-case tracking-normal text-primary text-xs hover:underline"
+							className="text-primary text-footnote hover:underline"
 						>
 							alle gelesen
 						</button>
@@ -75,7 +75,7 @@ export function NotificationBell({
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				{items.length === 0 ? (
-					<p className="px-2 py-6 text-center text-muted-foreground text-sm">
+					<p className="px-2 py-6 text-center text-muted-foreground text-subhead">
 						Keine Benachrichtigungen.
 					</p>
 				) : (
@@ -88,13 +88,13 @@ export function NotificationBell({
 										!n.readAt && "bg-primary/5",
 									)}
 								>
-									<p className="text-sm leading-snug">{n.title}</p>
+									<p className="text-subhead leading-snug">{n.title}</p>
 									{n.body && (
-										<p className="line-clamp-2 text-muted-foreground text-xs">
+										<p className="line-clamp-2 text-muted-foreground text-footnote">
 											{n.body}
 										</p>
 									)}
-									<p className="text-[0.7rem] text-muted-foreground">
+									<p className="text-footnote text-muted-foreground">
 										{fmt.format(n.createdAt)}
 									</p>
 								</div>

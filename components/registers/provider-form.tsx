@@ -116,11 +116,7 @@ export function ProviderForm({
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				{trigger === "link" ? (
-					<Button
-						size="sm"
-						variant="ghost"
-						className="normal-case tracking-normal"
-					>
+					<Button size="sm" variant="ghost" className="">
 						{triggerLabel ?? tc("edit")}
 					</Button>
 				) : (
@@ -377,7 +373,7 @@ export function ProviderForm({
 							</Select>
 						</div>
 					</div>
-					<div className="flex flex-wrap gap-5 text-sm">
+					<div className="flex flex-wrap gap-5 text-subhead">
 						<label className="flex items-center gap-2">
 							<Checkbox
 								checked={d.isIct}

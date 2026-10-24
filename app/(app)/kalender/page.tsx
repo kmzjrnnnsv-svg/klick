@@ -208,25 +208,23 @@ export default async function CalendarPage({
 
 			{tab === "jahr" && (
 				<section className="flex flex-col gap-6">
-					<div className="flex flex-wrap items-center gap-3 text-sm">
+					<div className="flex flex-wrap items-center gap-3 text-subhead">
 						<Link
 							href={`/kalender?tab=jahr&jahr=${year - 1}`}
 							scroll={false}
-							className="rounded-md border px-2 py-1 hover:bg-muted"
+							className="rounded-xl bg-card px-2 py-1 hover:bg-muted"
 						>
 							← {year - 1}
 						</Link>
-						<span className="font-serif-display text-2xl text-primary">
-							{year}
-						</span>
+						<span className="font-bold text-title-2">{year}</span>
 						<Link
 							href={`/kalender?tab=jahr&jahr=${year + 1}`}
 							scroll={false}
-							className="rounded-md border px-2 py-1 hover:bg-muted"
+							className="rounded-xl bg-card px-2 py-1 hover:bg-muted"
 						>
 							{year + 1} →
 						</Link>
-						<span className="ml-auto text-muted-foreground text-xs">
+						<span className="ml-auto text-muted-foreground text-footnote">
 							{t("yearStats", {
 								open: (showRuns ? openCount : 0) + otherOpen,
 								overdue: (showRuns ? overdue : 0) + otherOverdue,
@@ -256,14 +254,14 @@ export default async function CalendarPage({
 								return (
 									<section
 										key={name}
-										className={`rounded-md border p-3 text-sm ${isCurrent ? "border-primary/50" : ""}`}
+										className={`rounded-2xl bg-card p-3 text-subhead ${isCurrent ? "border-primary/50" : ""}`}
 									>
-										<h2 className="lv-eyebrow mb-2 flex items-center justify-between text-[0.7rem] text-muted-foreground">
+										<h2 className="font-medium text-footnote mb-2 flex items-center justify-between text-footnote text-muted-foreground">
 											{name}
 											<span>{items.length + others.length}</span>
 										</h2>
 										{items.length + others.length === 0 ? (
-											<p className="text-muted-foreground text-xs">—</p>
+											<p className="text-muted-foreground text-footnote">—</p>
 										) : (
 											<ul className="flex flex-col divide-y divide-border/60">
 												{items.map((r) => {
@@ -271,7 +269,7 @@ export default async function CalendarPage({
 													return (
 														<li key={r.id} className="flex flex-col gap-1 py-2">
 															<div className="flex items-start gap-2">
-																<span className="w-10 shrink-0 font-mono text-xs text-muted-foreground">
+																<span className="w-10 shrink-0 font-mono text-footnote text-muted-foreground">
 																	{r.dueAt.slice(8, 10)}.{r.dueAt.slice(5, 7)}.
 																</span>
 																<div className="min-w-0 flex-1">
@@ -281,7 +279,7 @@ export default async function CalendarPage({
 																	>
 																		{r.title}
 																	</p>
-																	<p className="text-muted-foreground text-xs">
+																	<p className="text-muted-foreground text-footnote">
 																		{t(`recipient_${r.recipient}`)} ·{" "}
 																		{r.periodLabel}
 																		{r.ownerName ? ` · ${r.ownerName}` : ""}
@@ -300,7 +298,7 @@ export default async function CalendarPage({
 																	/>
 																)}
 															{r.status === "done" && r.completedByName && (
-																<p className="text-muted-foreground text-[0.7rem]">
+																<p className="text-muted-foreground text-footnote">
 																	{t("doneBy", { name: r.completedByName })}
 																	{r.evidenceId
 																		? ` · ${t("withEvidence")}`
@@ -329,7 +327,7 @@ export default async function CalendarPage({
 
 			{tab === "liste" && (
 				<section className="flex flex-col gap-4">
-					<p className="text-muted-foreground text-sm">{t("listLead")}</p>
+					<p className="text-muted-foreground text-subhead">{t("listLead")}</p>
 					<DateGroupChips
 						base="/kalender?tab=liste"
 						active={art}
@@ -337,12 +335,12 @@ export default async function CalendarPage({
 						labels={chipLabels}
 					/>
 					{entries.length === 0 ? (
-						<p className="text-sm">{t("listEmpty")}</p>
+						<p className="text-subhead">{t("listEmpty")}</p>
 					) : (
 						<div className="flex flex-col gap-4">
 							{datesByWeek(entries).map((w) => (
-								<section key={w.week} className="rounded-md border p-3">
-									<h2 className="lv-eyebrow mb-1 flex items-center justify-between text-[0.7rem] text-muted-foreground">
+								<section key={w.week} className="rounded-2xl bg-card p-3">
+									<h2 className="font-medium text-footnote mb-1 flex items-center justify-between text-footnote text-muted-foreground">
 										{t("weekOf", { date: fmtDate.format(new Date(w.week)) })}
 										<span>{w.entries.length}</span>
 									</h2>
@@ -360,7 +358,7 @@ export default async function CalendarPage({
 
 			{tab === "pflichten" && (
 				<section className="flex flex-col gap-3">
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{t("obligationsLead")}
 					</p>
 					{data.obligations.length === 0 ? (
@@ -385,17 +383,17 @@ export default async function CalendarPage({
 									<TableRow key={o.id} className={o.active ? "" : "opacity-60"}>
 										<TableCell>
 											<p className="font-medium">{o.title}</p>
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{o.code} · {o.legalBasis}
 											</p>
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{t(`freq_${o.frequency}`)}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{t(`recipient_${o.recipient}`)}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{o.frameworkSlug
 												? shortFrameworkName(o.frameworkSlug)
 												: "—"}
@@ -410,7 +408,7 @@ export default async function CalendarPage({
 													members={data.members}
 												/>
 											) : (
-												<span className="flex items-center gap-2 text-xs">
+												<span className="flex items-center gap-2 text-footnote">
 													<UserChip name={o.ownerName} /> · {o.leadDays}{" "}
 													{t("daysLead")}
 												</span>
@@ -426,18 +424,18 @@ export default async function CalendarPage({
 
 			{tab === "rechtsaenderungen" && (
 				<section className="flex flex-col gap-3">
-					<p className="text-muted-foreground text-sm">{t("legalLead")}</p>
+					<p className="text-muted-foreground text-subhead">{t("legalLead")}</p>
 					{legal.length === 0 ? (
-						<p className="text-sm">{t("legalEmpty")}</p>
+						<p className="text-subhead">{t("legalEmpty")}</p>
 					) : (
 						<ol className="flex flex-col gap-3">
 							{legal.map((c) => (
 								<li
 									key={`${c.date}-${c.title}`}
-									className="flex flex-col gap-1 rounded-md border p-3 text-sm"
+									className="flex flex-col gap-1 rounded-2xl bg-card p-3 text-subhead"
 								>
 									<div className="flex flex-wrap items-center gap-2">
-										<span className="font-mono text-xs">
+										<span className="font-mono text-footnote">
 											{fmtDate.format(new Date(c.date))}
 										</span>
 										<span className="font-medium">{c.title}</span>
@@ -454,20 +452,16 @@ export default async function CalendarPage({
 										</Badge>
 										<span className="ml-auto flex min-w-0 flex-wrap gap-1">
 											{c.frameworks.map((f) => (
-												<Badge
-													key={f}
-													variant="muted"
-													className="normal-case tracking-normal"
-												>
+												<Badge key={f} variant="muted" className="">
 													{shortFrameworkName(f)}
 												</Badge>
 											))}
 										</span>
 									</div>
-									<p className="text-muted-foreground text-xs">
+									<p className="text-muted-foreground text-footnote">
 										{c.description}
 									</p>
-									<p className="text-muted-foreground text-[0.7rem]">
+									<p className="text-muted-foreground text-footnote">
 										{c.legalBasis}
 									</p>
 								</li>

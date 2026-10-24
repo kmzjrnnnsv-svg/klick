@@ -217,7 +217,7 @@ export default async function DocumentDetailPage({
 					</Section>
 					<Section title={t("controls")}>
 						{controls.length === 0 ? (
-							<p className="text-muted-foreground text-sm">—</p>
+							<p className="text-muted-foreground text-subhead">—</p>
 						) : (
 							<ul className="flex flex-wrap gap-1.5">
 								{controls.map((c) => (
@@ -226,10 +226,7 @@ export default async function DocumentDetailPage({
 										href={`/controls/${c.code}`}
 										title={c.title}
 									>
-										<Badge
-											variant="outline"
-											className="font-mono normal-case tracking-normal"
-										>
+										<Badge variant="outline" className="font-mono">
 											{c.code}
 										</Badge>
 									</Link>
@@ -237,7 +234,7 @@ export default async function DocumentDetailPage({
 							</ul>
 						)}
 						{doc.legalBasisRefs.length > 0 && (
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{t("requirements")}: {doc.legalBasisRefs.join(" · ")}
 							</p>
 						)}
@@ -274,7 +271,7 @@ export default async function DocumentDetailPage({
 				}
 			>
 				{doc.fileEvidenceId && (
-					<p className="text-sm">
+					<p className="text-subhead">
 						<a
 							href={`/api/nachweise/${doc.fileEvidenceId}`}
 							className="text-primary hover:underline"
@@ -292,7 +289,7 @@ export default async function DocumentDetailPage({
 
 			{diff && (
 				<Section title={t("diff")}>
-					<pre className="max-h-96 overflow-auto rounded-md border bg-muted/30 p-3 font-mono text-xs">
+					<pre className="max-h-96 overflow-auto rounded-xl bg-muted p-3 font-mono text-footnote">
 						{diff.map((l, i) => (
 							<div
 								// biome-ignore lint/suspicious/noArrayIndexKey: Diff-Zeilen haben keine eigene Identität
@@ -315,9 +312,11 @@ export default async function DocumentDetailPage({
 
 			<Section title={t("versions")}>
 				{versions.length === 0 ? (
-					<p className="text-muted-foreground text-sm">{t("versionsEmpty")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("versionsEmpty")}
+					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{versions.map((v) => (
 							<li
 								key={v.id}
@@ -331,7 +330,7 @@ export default async function DocumentDetailPage({
 								<span className="min-w-0 flex-1 truncate">
 									{v.changeSummary}
 								</span>
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{v.approvedAt
 										? `✓ ${names.get(v.approvedByUserId ?? "") ?? ""} ${fmtDate.format(v.approvedAt)}`
 										: ""}
@@ -345,13 +344,13 @@ export default async function DocumentDetailPage({
 
 			{doc.status === "published" && (
 				<Section title={t("acknowledgements")}>
-					<p className="text-sm">
+					<p className="text-subhead">
 						{t("ackQuota", {
 							done: acksForCurrent.length,
 							total: members.length,
 						})}
 					</p>
-					<ul className="flex flex-wrap gap-1.5 text-xs">
+					<ul className="flex flex-wrap gap-1.5 text-footnote">
 						{members.map((m) => {
 							const done = acksForCurrent.some((a) => a.userId === m.userId);
 							return (

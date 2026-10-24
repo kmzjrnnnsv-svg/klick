@@ -274,7 +274,7 @@ export function WalletForm({
 						onChange={(v) => setD({ ...d, addressLabel: v || null })}
 						placeholder={t("addressPlaceholder")}
 					/>
-					<p className="mt-1 text-muted-foreground text-xs">
+					<p className="mt-1 text-muted-foreground text-footnote">
 						{t("noKeyMaterial")}
 					</p>
 				</div>
@@ -397,7 +397,7 @@ export function KeyHolderForm({
 						onChange={(v) => setD({ ...d, location: v })}
 						placeholder={t("locationPlaceholder")}
 					/>
-					<p className="mt-1 text-muted-foreground text-xs">
+					<p className="mt-1 text-muted-foreground text-footnote">
 						{t("locationHint")}
 					</p>
 				</div>
@@ -539,12 +539,15 @@ export function CeremonyForm({
 					text={(v) => t(`result_${v}`)}
 				/>
 				<fieldset className="flex flex-col gap-2 sm:col-span-3">
-					<legend className="mb-1 font-medium text-sm">
+					<legend className="mb-1 font-medium text-subhead">
 						{t("participants")}
 					</legend>
 					<div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
 						{members.map((m) => (
-							<label key={m.userId} className="flex items-center gap-2 text-sm">
+							<label
+								key={m.userId}
+								className="flex items-center gap-2 text-subhead"
+							>
 								<Checkbox
 									checked={d.participantUserIds.includes(m.userId)}
 									onCheckedChange={(v) => toggle(m.userId, v === true)}
@@ -572,7 +575,7 @@ export function CeremonyForm({
 					/>
 				</div>
 				{(d.kind === "backup_test" || d.kind === "recovery_test") && (
-					<p className="text-muted-foreground text-xs sm:col-span-3">
+					<p className="text-muted-foreground text-footnote sm:col-span-3">
 						{t("testHint")}
 					</p>
 				)}

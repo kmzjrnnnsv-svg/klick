@@ -138,13 +138,13 @@ export default async function RisksPage({
 					<span className="flex flex-wrap items-center gap-2">
 						<a
 							href="/api/export/risikoanalyse.md"
-							className="text-primary text-sm hover:underline underline-offset-4"
+							className="text-primary text-subhead hover:underline underline-offset-4"
 						>
 							{t("exportReport")}
 						</a>
 						<a
 							href="/api/export/risiken.csv"
-							className="text-primary text-sm hover:underline underline-offset-4"
+							className="text-primary text-subhead hover:underline underline-offset-4"
 						>
 							{t("exportCsv")}
 						</a>
@@ -205,10 +205,10 @@ export default async function RisksPage({
 
 			{tab === "matrix" && (
 				<>
-					<div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm">
+					<div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-subhead">
 						<p className="text-muted-foreground">{t("matrixLead")}</p>
 						<div className="flex items-center gap-2">
-							<span className="text-muted-foreground text-xs">
+							<span className="text-muted-foreground text-footnote">
 								{t("matrixView")}:
 							</span>
 							<Link
@@ -262,11 +262,11 @@ export default async function RisksPage({
 
 			{tab === "massnahmen" && (
 				<>
-					<p className="mb-4 text-muted-foreground text-sm">
+					<p className="mb-4 text-muted-foreground text-subhead">
 						{t("measuresLead")}
 					</p>
 					{measures.length === 0 ? (
-						<p className="text-sm">{t("measuresEmpty")}</p>
+						<p className="text-subhead">{t("measuresEmpty")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -298,14 +298,14 @@ export default async function RisksPage({
 											<TableCell>
 												<Link
 													href={`/risiken/${m.riskId}`}
-													className="font-mono text-xs hover:underline"
+													className="font-mono text-footnote hover:underline"
 												>
 													{m.riskCode}
 												</Link>{" "}
 												<Badge variant={ZONE_TONE[a.inherent.zone]}>
 													{a.inherent.cls.label}
 												</Badge>
-												<p className="truncate text-muted-foreground text-xs">
+												<p className="truncate text-muted-foreground text-footnote">
 													{m.riskTitle}
 												</p>
 											</TableCell>
@@ -354,7 +354,7 @@ export default async function RisksPage({
 			{tab === "ausnahmen" && (
 				<>
 					<div className="mb-4 flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("exceptionsLead")}
 						</p>
 						{canCreate && (
@@ -367,7 +367,7 @@ export default async function RisksPage({
 						)}
 					</div>
 					{exceptions.length === 0 ? (
-						<p className="text-sm">{t("exceptionsEmpty")}</p>
+						<p className="text-subhead">{t("exceptionsEmpty")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -384,11 +384,11 @@ export default async function RisksPage({
 									<TableRow key={e.id}>
 										<TableCell>
 											<p className="font-medium">{e.title}</p>
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{e.justification}
 											</p>
 										</TableCell>
-										<TableCell className="whitespace-nowrap font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-footnote">
 											{e.controlCode ? (
 												<Link
 													href={`/controls/${e.controlCode}`}
@@ -432,13 +432,13 @@ export default async function RisksPage({
 			{tab === "schadensfaelle" && (
 				<>
 					<div className="mb-4 flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("lossEventsLead")}
 						</p>
 						{canCreate && <LossEventForm />}
 					</div>
 					{losses.length === 0 ? (
-						<p className="text-sm">{t("lossEventsEmpty")}</p>
+						<p className="text-subhead">{t("lossEventsEmpty")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -512,7 +512,7 @@ export default async function RisksPage({
 						/>
 					</div>
 					{l !== null && i !== null && (
-						<p className="mb-3 text-muted-foreground text-xs">
+						<p className="mb-3 text-muted-foreground text-footnote">
 							{t("likelihood")} {l} · {t("impact")} {i} (
 							{view === "residual" ? t("residual") : t("inherent")}) ·{" "}
 							<Link href="/risiken" className="text-primary hover:underline">
@@ -562,7 +562,7 @@ export default async function RisksPage({
 							<TableBody>
 								{filtered.map(({ r, a }) => (
 									<TableRow key={r.id}>
-										<TableCell className="whitespace-nowrap font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-footnote">
 											<Link
 												href={`/risiken/${r.id}`}
 												className="hover:underline"
@@ -577,7 +577,7 @@ export default async function RisksPage({
 											>
 												{r.title}
 											</Link>
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{t(`category_${r.category}`)}
 											</p>
 										</TableCell>

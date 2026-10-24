@@ -148,7 +148,7 @@ export function RiskMethodPanel({
 
 	return (
 		<form
-			className="flex flex-col gap-8 text-sm"
+			className="flex flex-col gap-8 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				save();
@@ -157,7 +157,7 @@ export function RiskMethodPanel({
 			<div className="flex flex-col gap-2">
 				<p className="text-muted-foreground">{t("lead")}</p>
 				{!stored && (
-					<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-warning/50 bg-warning/10 p-3">
+					<div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-warning/12 p-3">
 						<p>{t("legacyHint")}</p>
 						{canEdit && (
 							<Button
@@ -185,7 +185,7 @@ export function RiskMethodPanel({
 							<label
 								key={agg}
 								className={cn(
-									"flex cursor-pointer flex-col gap-1 rounded-md border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
+									"flex cursor-pointer flex-col gap-1 rounded-2xl bg-card p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
 									!canEdit && "cursor-default opacity-80",
 								)}
 							>
@@ -206,7 +206,7 @@ export function RiskMethodPanel({
 									/>
 									{t(`agg_${agg}`)}
 								</span>
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{t(`agg_${agg}_hint`)}
 								</span>
 							</label>
@@ -221,7 +221,9 @@ export function RiskMethodPanel({
 				<h3 id="rm-ew" className="font-medium">
 					2 · {t("likelihoodTitle")}
 				</h3>
-				<p className="text-muted-foreground text-xs">{t("likelihoodLead")}</p>
+				<p className="text-muted-foreground text-footnote">
+					{t("likelihoodLead")}
+				</p>
 				<ol className="flex flex-col gap-3">
 					{LEVELS.map((level) => {
 						const row = draft.likelihood[level - 1];
@@ -273,13 +275,13 @@ export function RiskMethodPanel({
 				<h3 id="rm-sh" className="font-medium">
 					3 · {t("impactTitle")}
 				</h3>
-				<p className="text-muted-foreground text-xs">{t("impactLead")}</p>
+				<p className="text-muted-foreground text-footnote">{t("impactLead")}</p>
 				<div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
 					{LEVELS.map((level) => (
 						<div key={level} className="flex flex-col gap-1">
 							<Label
 								htmlFor={`rm-imp-${level}`}
-								className="text-muted-foreground text-xs"
+								className="text-muted-foreground text-footnote"
 							>
 								{t("level", { level })}
 							</Label>
@@ -302,7 +304,7 @@ export function RiskMethodPanel({
 				</div>
 				<ul className="flex flex-col gap-2">
 					{draft.dimensions.map((dim, idx) => (
-						<li key={dim.key} className="rounded-md border">
+						<li key={dim.key} className="rounded-xl bg-muted/50">
 							<details>
 								<summary className="flex cursor-pointer items-center gap-3 px-3 py-2">
 									<span
@@ -313,7 +315,7 @@ export function RiskMethodPanel({
 									>
 										{dim.label || t("dimensionUnnamed")}
 									</span>
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{dim.enabled ? t("active") : t("inactive")}
 									</span>
 								</summary>
@@ -363,7 +365,7 @@ export function RiskMethodPanel({
 												key={level}
 												className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_1fr]"
 											>
-												<span className="pt-2 text-muted-foreground text-xs">
+												<span className="pt-2 text-muted-foreground text-footnote">
 													{level} · {draft.impact[level - 1]}
 												</span>
 												<Textarea
@@ -443,7 +445,7 @@ export function RiskMethodPanel({
 				<h3 id="rm-rk" className="font-medium">
 					4 · {t("classesTitle")}
 				</h3>
-				<p className="text-muted-foreground text-xs">
+				<p className="text-muted-foreground text-footnote">
 					{t("classesLead", { min: range.min, max: range.max })}
 				</p>
 				<ol className="flex flex-col gap-3">
@@ -453,12 +455,12 @@ export function RiskMethodPanel({
 							<li
 								key={c.key}
 								className={cn(
-									"grid gap-3 rounded-md border p-3 lg:grid-cols-[10rem_9rem_12rem_1fr_auto]",
+									"grid gap-3 rounded-2xl bg-card p-3 lg:grid-cols-[10rem_9rem_12rem_1fr_auto]",
 									ZONE_CELL[c.zone],
 								)}
 							>
 								<div className="flex flex-col gap-1">
-									<Label htmlFor={`rm-cl-${c.key}`} className="text-xs">
+									<Label htmlFor={`rm-cl-${c.key}`} className="text-footnote">
 										{t("className")}
 									</Label>
 									<Input
@@ -476,7 +478,7 @@ export function RiskMethodPanel({
 									/>
 								</div>
 								<div className="flex flex-col gap-1">
-									<Label htmlFor={`rm-cmax-${c.key}`} className="text-xs">
+									<Label htmlFor={`rm-cmax-${c.key}`} className="text-footnote">
 										{t("classRange")}
 									</Label>
 									<span className="flex items-center gap-1.5 tabular-nums">
@@ -503,12 +505,12 @@ export function RiskMethodPanel({
 									</span>
 								</div>
 								<div className="flex flex-col gap-1">
-									<Label htmlFor={`rm-cz-${c.key}`} className="text-xs">
+									<Label htmlFor={`rm-cz-${c.key}`} className="text-footnote">
 										{t("classZone")}
 									</Label>
 									<select
 										id={`rm-cz-${c.key}`}
-										className="h-9 rounded-sm border border-input bg-background px-2 text-foreground"
+										className="h-9 rounded-md bg-muted px-2 text-foreground"
 										value={c.zone}
 										disabled={!canEdit}
 										onChange={(e) =>
@@ -529,12 +531,12 @@ export function RiskMethodPanel({
 									</select>
 								</div>
 								<div className="flex flex-col gap-1">
-									<Label htmlFor={`rm-ca-${c.key}`} className="text-xs">
+									<Label htmlFor={`rm-ca-${c.key}`} className="text-footnote">
 										{t("classAcceptance")}
 									</Label>
 									<select
 										id={`rm-ca-${c.key}`}
-										className="h-9 rounded-sm border border-input bg-background px-2 text-foreground"
+										className="h-9 rounded-md bg-muted px-2 text-foreground"
 										value={acceptanceValue(c.acceptance)}
 										disabled={!canEdit}
 										onChange={(e) =>
@@ -568,7 +570,7 @@ export function RiskMethodPanel({
 									</select>
 								</div>
 								<div className="flex flex-col gap-1">
-									<Label htmlFor={`rm-cm-${c.key}`} className="text-xs">
+									<Label htmlFor={`rm-cm-${c.key}`} className="text-footnote">
 										{t("classMeaning")}
 									</Label>
 									<Textarea
@@ -638,7 +640,7 @@ export function RiskMethodPanel({
 				)}
 				{issues.length > 0 && (
 					<ul
-						className="list-disc pl-5 text-destructive text-xs"
+						className="list-disc pl-5 text-destructive text-footnote"
 						aria-live="polite"
 					>
 						{issues.map((i) => (
@@ -653,16 +655,18 @@ export function RiskMethodPanel({
 				<h3 id="rm-fg" className="font-medium">
 					5 · {t("approvalTitle")}
 				</h3>
-				<p className="text-muted-foreground text-xs">
+				<p className="text-muted-foreground text-footnote">
 					{t("approvalLead")}{" "}
 					<Link href="/beschluesse" className="text-primary hover:underline">
 						{t("resolutionLink")}
 					</Link>
 				</p>
-				<div className="flex items-center justify-between gap-3 rounded-md border p-3">
+				<div className="flex items-center justify-between gap-3 rounded-2xl bg-card p-3">
 					<div>
 						<Label htmlFor="rm-solo">{ta("selfApproved")}</Label>
-						<p className="text-muted-foreground text-xs">{ta("soloHint")}</p>
+						<p className="text-muted-foreground text-footnote">
+							{ta("soloHint")}
+						</p>
 					</div>
 					<Switch
 						id="rm-solo"
@@ -675,7 +679,7 @@ export function RiskMethodPanel({
 
 			{canEdit && (
 				<div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t bg-background py-3">
-					<p className="text-muted-foreground text-xs" aria-live="polite">
+					<p className="text-muted-foreground text-footnote" aria-live="polite">
 						{risks.length > 0 && stored
 							? t("preview", {
 									changed: preview.changed,

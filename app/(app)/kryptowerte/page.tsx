@@ -52,7 +52,7 @@ export default async function CryptoAssetsPage() {
 					) : undefined
 				}
 			/>
-			<p className="mb-4 text-sm">
+			<p className="mb-4 text-subhead">
 				<Badge variant="outline">
 					{t("acceptedCount", { n: accepted, total: rows.length })}
 				</Badge>
@@ -88,13 +88,13 @@ export default async function CryptoAssetsPage() {
 					<TableBody>
 						{rows.map((r) => (
 							<TableRow key={r.id}>
-								<TableCell className="whitespace-nowrap font-mono text-xs">
+								<TableCell className="whitespace-nowrap font-mono text-footnote">
 									{r.symbol}
 								</TableCell>
 								<TableCell>
 									<p className="font-medium">{r.name}</p>
 									{r.issuer && (
-										<p className="text-muted-foreground text-xs">
+										<p className="text-muted-foreground text-footnote">
 											{r.issuer}
 											{r.issuerAuthorisation
 												? ` · ${r.issuerAuthorisation}`
@@ -102,7 +102,7 @@ export default async function CryptoAssetsPage() {
 										</p>
 									)}
 									{r.notes && (
-										<p className="line-clamp-2 text-muted-foreground text-xs">
+										<p className="line-clamp-2 text-muted-foreground text-footnote">
 											{r.notes}
 										</p>
 									)}
@@ -123,18 +123,18 @@ export default async function CryptoAssetsPage() {
 										{t(`status_${r.micarStatus}`)}
 									</Badge>
 									{r.whitepaperRef && (
-										<p className="text-[0.7rem] text-muted-foreground">
+										<p className="text-footnote text-muted-foreground">
 											{r.whitepaperRef}
 										</p>
 									)}
 								</TableCell>
-								<TableCell className="text-xs">
+								<TableCell className="text-footnote">
 									{(r.networks ?? []).join(", ") || "—"}
 								</TableCell>
-								<TableCell className="text-xs">
+								<TableCell className="text-footnote">
 									{r.perTxLimit ? eur.format(Number(r.perTxLimit)) : "—"}
 								</TableCell>
-								<TableCell className="text-xs">
+								<TableCell className="text-footnote">
 									{r.reviewedAt
 										? fmtDate.format(new Date(`${r.reviewedAt}T00:00:00Z`))
 										: "—"}
@@ -171,7 +171,9 @@ export default async function CryptoAssetsPage() {
 					</TableBody>
 				</Table>
 			)}
-			<p className="mt-4 text-muted-foreground text-xs">{t("disclaimer")}</p>
+			<p className="mt-4 text-muted-foreground text-footnote">
+				{t("disclaimer")}
+			</p>
 		</>
 	);
 }

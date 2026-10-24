@@ -29,7 +29,7 @@ export function CoverageBar({
 				<div className="bg-warning" style={{ width: `${partial}%` }} />
 			</div>
 			{!compact && (
-				<p className="text-muted-foreground text-xs">
+				<p className="text-muted-foreground text-footnote">
 					{bucket.covered} {labels.covered} · {bucket.partial} {labels.partial}{" "}
 					· {bucket.open} {labels.open} · {bucket.applicable}{" "}
 					{labels.applicable}

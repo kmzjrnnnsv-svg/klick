@@ -471,7 +471,7 @@ export default async function SettingsPage({
 					/>
 				</TabsContent>
 				<TabsContent value="notifications">
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{t("notificationsLead")}
 					</p>
 				</TabsContent>

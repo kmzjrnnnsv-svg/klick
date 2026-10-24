@@ -54,7 +54,7 @@ export function CommentForm({
 				aria-label={t("comment")}
 			/>
 			<div className="flex items-center justify-between gap-2">
-				<span className="text-muted-foreground text-xs">
+				<span className="text-muted-foreground text-footnote">
 					{t("mentionHint")}
 				</span>
 				<Button

@@ -129,7 +129,7 @@ export default async function SetupStepPage({
 	return (
 		<div className="flex flex-col gap-8">
 			<nav aria-label={t("title")} className="flex flex-col gap-3">
-				<p className="lv-eyebrow text-[0.7rem] text-brown">
+				<p className="font-medium text-footnote text-muted-foreground">
 					{t("eyebrow")} ·{" "}
 					{t("stepOf", { n: idx + 1, total: SETUP_STEPS.length })}
 				</p>
@@ -139,7 +139,7 @@ export default async function SetupStepPage({
 							<Link
 								href={stepHref(s)}
 								aria-current={s === schritt ? "step" : undefined}
-								className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs ${
+								className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-footnote ${
 									s === schritt
 										? "border-primary bg-primary text-primary-foreground"
 										: done.has(s)
@@ -157,10 +157,8 @@ export default async function SetupStepPage({
 				</ol>
 			</nav>
 			<header className="flex flex-col gap-2">
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t(`step_${schritt}`)}
-				</h1>
-				<p className="max-w-2xl text-muted-foreground text-sm">
+				<h1 className="font-bold text-title-1">{t(`step_${schritt}`)}</h1>
+				<p className="max-w-2xl text-muted-foreground text-subhead">
 					{t(`lead_${schritt}`)}
 				</p>
 			</header>

@@ -162,10 +162,10 @@ export function QuestionCard({
 		<article
 			id={id}
 			aria-labelledby={`${id}-title`}
-			className="scroll-mt-24 rounded-md border p-4"
+			className="scroll-mt-24 rounded-2xl bg-card p-4"
 		>
 			<header className="flex flex-col gap-1">
-				<div className="flex flex-wrap items-center gap-2 text-xs">
+				<div className="flex flex-wrap items-center gap-2 text-footnote">
 					<span className="font-mono text-muted-foreground" translate="no">
 						{question.code}
 					</span>
@@ -179,7 +179,7 @@ export function QuestionCard({
 					{question.text}
 				</h3>
 				{question.requirements && question.requirements.length > 0 && (
-					<p className="text-muted-foreground text-xs">
+					<p className="text-muted-foreground text-footnote">
 						{t("covers", {
 							count: question.requirements.length,
 							frameworks: coversFrameworks,
@@ -189,7 +189,9 @@ export function QuestionCard({
 			</header>
 
 			{question.help && (
-				<p className="mt-2 text-muted-foreground text-sm">{question.help}</p>
+				<p className="mt-2 text-muted-foreground text-subhead">
+					{question.help}
+				</p>
 			)}
 
 			{((question.probes?.length ?? 0) > 0 ||
@@ -197,7 +199,7 @@ export function QuestionCard({
 				<div className="mt-2">
 					<button
 						type="button"
-						className="flex items-center gap-1 text-primary text-xs hover:underline"
+						className="flex items-center gap-1 text-primary text-footnote hover:underline"
 						aria-expanded={showMore}
 						aria-controls={`${id}-more`}
 						onClick={() => setShowMore((v) => !v)}
@@ -214,11 +216,11 @@ export function QuestionCard({
 					{showMore && (
 						<div
 							id={`${id}-more`}
-							className="mt-2 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2"
+							className="mt-2 grid grid-cols-1 gap-3 text-subhead sm:grid-cols-2"
 						>
 							{question.probes && question.probes.length > 0 && (
 								<div>
-									<p className="font-medium text-xs">{t("probes")}</p>
+									<p className="font-medium text-footnote">{t("probes")}</p>
 									<ul className="mt-1 list-disc pl-5 text-muted-foreground">
 										{question.probes.map((p) => (
 											<li key={p}>{p}</li>
@@ -228,7 +230,9 @@ export function QuestionCard({
 							)}
 							{question.evidenceHints && question.evidenceHints.length > 0 && (
 								<div>
-									<p className="font-medium text-xs">{t("evidenceHints")}</p>
+									<p className="font-medium text-footnote">
+										{t("evidenceHints")}
+									</p>
 									<ul className="mt-1 list-disc pl-5 text-muted-foreground">
 										{question.evidenceHints.map((h) => (
 											<li key={h}>{h}</li>
@@ -242,13 +246,15 @@ export function QuestionCard({
 			)}
 
 			<fieldset className="mt-4" disabled={readOnly}>
-				<legend className="mb-2 font-medium text-sm">{t("question")}</legend>
+				<legend className="mb-2 font-medium text-subhead">
+					{t("question")}
+				</legend>
 				<div className="flex flex-wrap gap-2">
 					{ANSWERS.map((a) => (
 						<label
 							key={a}
 							className={cn(
-								"cursor-pointer rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
+								"cursor-pointer rounded-xl bg-card px-3 py-1.5 text-subhead transition-colors hover:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
 								answer === a && ANSWER_TONE[a],
 								answer === a && "font-medium",
 							)}
@@ -304,9 +310,9 @@ export function QuestionCard({
 			</fieldset>
 
 			<section className="mt-4 flex flex-col gap-2" aria-label={t("documents")}>
-				<p className="font-medium text-sm">{t("documents")}</p>
+				<p className="font-medium text-subhead">{t("documents")}</p>
 				{docs.length > 0 && (
-					<ul className="flex flex-col gap-1 text-sm">
+					<ul className="flex flex-col gap-1 text-subhead">
 						{docs.map((d) => (
 							<li key={d.id} className="flex flex-wrap items-center gap-2">
 								<FileText
@@ -347,7 +353,7 @@ export function QuestionCard({
 					<section
 						aria-label={t("dropHere")}
 						className={cn(
-							"flex flex-col items-start gap-2 rounded-md border border-dashed p-3 text-sm",
+							"flex flex-col items-start gap-2 rounded-2xl bg-card p-3 text-subhead",
 							dragOver && "border-primary bg-primary/5",
 						)}
 						onDragOver={(e) => {
@@ -373,7 +379,7 @@ export function QuestionCard({
 								<Upload aria-hidden="true" />
 								{pending ? t("uploading") : t("upload")}
 							</Button>
-							<span className="text-muted-foreground text-xs">
+							<span className="text-muted-foreground text-footnote">
 								{t("dropHere")}
 							</span>
 						</div>
@@ -390,7 +396,9 @@ export function QuestionCard({
 								if (files.length > 0) upload(files);
 							}}
 						/>
-						<p className="text-muted-foreground text-xs">{t("uploadHint")}</p>
+						<p className="text-muted-foreground text-footnote">
+							{t("uploadHint")}
+						</p>
 						{dlp && (
 							<div className="flex w-full flex-col gap-2">
 								<DlpWarning
@@ -422,10 +430,10 @@ export function QuestionCard({
 					</section>
 				)}
 				{!readOnly && existingEvidence.length > 0 && (
-					<label className="flex flex-col gap-1 text-xs sm:flex-row sm:items-center sm:gap-2">
+					<label className="flex flex-col gap-1 text-footnote sm:flex-row sm:items-center sm:gap-2">
 						<span className="text-muted-foreground">{t("linkExisting")}</span>
 						<select
-							className="rounded-md border bg-background px-2 py-1 text-foreground text-sm"
+							className="rounded-2xl bg-card px-2 py-1 text-foreground text-subhead"
 							value=""
 							disabled={pending}
 							onChange={(e) => {
@@ -458,7 +466,7 @@ export function QuestionCard({
 				{question.templates &&
 					question.templates.length > 0 &&
 					docs.length === 0 && (
-						<p className="text-muted-foreground text-xs">
+						<p className="text-muted-foreground text-footnote">
 							{t("noTemplate")}{" "}
 							<a href="/dokumente" className="text-primary hover:underline">
 								{t("useTemplate")}
@@ -469,11 +477,11 @@ export function QuestionCard({
 			</section>
 
 			{canDelegate && members.length > 0 && (
-				<div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3 text-xs">
+				<div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3 text-footnote">
 					<label className="flex items-center gap-2">
 						<span className="text-muted-foreground">{t("delegateTo")}</span>
 						<select
-							className="rounded-md border bg-background px-2 py-1 text-foreground text-sm"
+							className="rounded-2xl bg-card px-2 py-1 text-foreground text-subhead"
 							value={delegateTo}
 							onChange={(e) => setDelegateTo(e.target.value)}
 						>
@@ -508,7 +516,10 @@ export function QuestionCard({
 					</Button>
 				</div>
 			)}
-			<p aria-live="polite" className="mt-2 h-4 text-muted-foreground text-xs">
+			<p
+				aria-live="polite"
+				className="mt-2 h-4 text-muted-foreground text-footnote"
+			>
 				{status === "saving"
 					? t("saving")
 					: status === "saved"

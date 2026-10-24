@@ -31,7 +31,7 @@ export function SortableCard({
 			ref={setNodeRef}
 			style={{ transform: CSS.Transform.toString(transform), transition }}
 			className={cn(
-				"rounded-md border bg-card p-3 text-sm shadow-xs",
+				"rounded-2xl bg-card p-3 text-subhead shadow-xs",
 				!disabled && "cursor-grab active:cursor-grabbing",
 				isDragging && "opacity-40",
 			)}

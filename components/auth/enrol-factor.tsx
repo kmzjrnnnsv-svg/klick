@@ -41,7 +41,9 @@ export function EnrolFactor() {
 	if (mode === "totp")
 		return (
 			<div className="flex flex-col gap-4">
-				<p className="text-muted-foreground text-sm">{t("enrolTotpLead")}</p>
+				<p className="text-muted-foreground text-subhead">
+					{t("enrolTotpLead")}
+				</p>
 				<EnrolTwoFactor />
 			</div>
 		);
@@ -49,11 +51,11 @@ export function EnrolFactor() {
 	if (mode === "done")
 		return (
 			<div className="flex flex-col gap-4">
-				<p className="text-sm" role="status">
+				<p className="text-subhead" role="status">
 					{t("enrolPasskeyDone")}
 				</p>
 				{count < 2 && (
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{t("enrolPasskeyLead")}
 					</p>
 				)}
@@ -76,11 +78,13 @@ export function EnrolFactor() {
 			<Button size="lg" onClick={addPasskey} disabled={busy}>
 				<Fingerprint /> {busy ? t("passkeyBusy") : t("enrolPasskey")}
 			</Button>
-			<p className="text-muted-foreground text-xs">{t("enrolPasskeyLead")}</p>
+			<p className="text-muted-foreground text-footnote">
+				{t("enrolPasskeyLead")}
+			</p>
 			<button
 				type="button"
 				onClick={() => setMode("totp")}
-				className="text-left text-primary text-sm hover:underline"
+				className="text-left text-primary text-subhead hover:underline"
 			>
 				{t("enrolTotp")}
 			</button>

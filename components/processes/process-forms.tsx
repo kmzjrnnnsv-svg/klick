@@ -130,11 +130,7 @@ export function ProcessForm({
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				{trigger === "link" ? (
-					<Button
-						size="sm"
-						variant="ghost"
-						className="normal-case tracking-normal"
-					>
+					<Button size="sm" variant="ghost" className="">
 						{tc("edit")}
 					</Button>
 				) : (
@@ -385,7 +381,7 @@ export function RaciEditor({
 	return (
 		<div className="flex flex-col gap-3">
 			<div
-				className={`rounded-md border px-3 py-2 text-xs ${
+				className={`rounded-xl bg-card px-3 py-2 text-footnote ${
 					accountable === 1
 						? "text-muted-foreground"
 						: "border-destructive/40 bg-destructive/5 text-destructive"
@@ -398,9 +394,9 @@ export function RaciEditor({
 						: t("raciManyA")}
 			</div>
 			{rows.length === 0 ? (
-				<p className="text-muted-foreground text-sm">{t("raciEmpty")}</p>
+				<p className="text-muted-foreground text-subhead">{t("raciEmpty")}</p>
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 					{rows.map((r, idx) => (
 						<li
 							key={`${r.userId ?? r.function}-${r.raci}`}
@@ -413,7 +409,7 @@ export function RaciEditor({
 								{r.raci}
 							</Badge>
 							<span className="min-w-0 flex-1 truncate">{label(r)}</span>
-							<span className="text-muted-foreground text-xs">
+							<span className="text-muted-foreground text-footnote">
 								{r.userId ? t("person") : t("function")}
 							</span>
 							{canEdit && (
@@ -433,7 +429,7 @@ export function RaciEditor({
 			{canEdit && (
 				<div className="flex flex-wrap items-end gap-2">
 					<div className="flex flex-col gap-1">
-						<Label className="text-xs">{t("raciWho")}</Label>
+						<Label className="text-footnote">{t("raciWho")}</Label>
 						<div className="flex gap-2">
 							<Select
 								value={mode}
@@ -471,7 +467,7 @@ export function RaciEditor({
 						</div>
 					</div>
 					<div className="flex flex-col gap-1">
-						<Label className="text-xs">RACI</Label>
+						<Label className="text-footnote">RACI</Label>
 						<Select
 							value={raci}
 							onValueChange={(v) => setRaci(v as (typeof RACI)[number])}
@@ -561,7 +557,7 @@ function CheckList({
 	}, [options, q]);
 	return (
 		<fieldset className="flex min-w-0 flex-col gap-2">
-			<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+			<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 				{title} · {selected.size}
 			</legend>
 			<Input
@@ -570,9 +566,9 @@ function CheckList({
 				placeholder="Filter …"
 				className="h-8"
 			/>
-			<div className="max-h-44 overflow-y-auto rounded-md border p-2 text-sm">
+			<div className="max-h-44 overflow-y-auto rounded-2xl bg-card p-2 text-subhead">
 				{visible.length === 0 ? (
-					<p className="text-muted-foreground text-xs">—</p>
+					<p className="text-muted-foreground text-footnote">—</p>
 				) : (
 					visible.map((o) => (
 						<label key={o.id} className="flex items-start gap-2 py-0.5">
@@ -588,7 +584,7 @@ function CheckList({
 							<span className="min-w-0">
 								<span className="block truncate">{o.label}</span>
 								{o.hint && (
-									<span className="block truncate text-muted-foreground text-xs">
+									<span className="block truncate text-muted-foreground text-footnote">
 										{o.hint}
 									</span>
 								)}

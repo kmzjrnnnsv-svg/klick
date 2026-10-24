@@ -77,7 +77,7 @@ export function PortalSession({
 	if (state === "session" && phase !== "failed") return null;
 	if (phase === "opening")
 		return (
-			<p aria-live="polite" className="text-muted-foreground text-sm">
+			<p aria-live="polite" className="text-muted-foreground text-subhead">
 				{t("opening")}
 			</p>
 		);
@@ -94,9 +94,9 @@ export function PortalSession({
 				? "expired"
 				: "missing";
 	return (
-		<div role="alert" className="flex flex-col gap-2 rounded-md border p-4">
+		<div role="alert" className="flex flex-col gap-2 rounded-2xl bg-card p-4">
 			<h2 className="font-medium">{t(`noAccess_${reason}`)}</h2>
-			<p className="text-muted-foreground text-sm">{t("noAccessLead")}</p>
+			<p className="text-muted-foreground text-subhead">{t("noAccessLead")}</p>
 		</div>
 	);
 }
@@ -250,12 +250,12 @@ export function PortalQuestion({
 			id={id}
 			aria-labelledby={`${id}-title`}
 			className={cn(
-				"scroll-mt-24 rounded-md border p-4",
+				"scroll-mt-24 rounded-2xl bg-card p-4",
 				initial.clarify && "border-warning/60",
 			)}
 		>
 			<header className="flex flex-col gap-1">
-				<div className="flex flex-wrap items-center gap-2 text-xs">
+				<div className="flex flex-wrap items-center gap-2 text-footnote">
 					<span className="font-mono text-muted-foreground" translate="no">
 						{question.code}
 					</span>
@@ -269,10 +269,12 @@ export function PortalQuestion({
 				</h3>
 			</header>
 			{question.help && (
-				<p className="mt-2 text-muted-foreground text-sm">{question.help}</p>
+				<p className="mt-2 text-muted-foreground text-subhead">
+					{question.help}
+				</p>
 			)}
 			{question.evidenceHints && question.evidenceHints.length > 0 && (
-				<p className="mt-2 text-muted-foreground text-xs">
+				<p className="mt-2 text-muted-foreground text-footnote">
 					{t("evidenceHints", { list: question.evidenceHints.join(", ") })}
 				</p>
 			)}
@@ -284,7 +286,7 @@ export function PortalQuestion({
 						<label
 							key={a}
 							className={cn(
-								"cursor-pointer rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
+								"cursor-pointer rounded-xl bg-card px-3 py-1.5 text-subhead transition-colors hover:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
 								answer === a && ANSWER_TONE[a],
 								answer === a && "font-medium",
 								readOnly && "cursor-default",
@@ -341,7 +343,7 @@ export function PortalQuestion({
 
 			<section className="mt-4 flex flex-col gap-2" aria-label={t("files")}>
 				{files.length > 0 && (
-					<ul className="flex flex-col gap-1 text-sm">
+					<ul className="flex flex-col gap-1 text-subhead">
 						{files.map((f) => (
 							<li key={f.id} className="flex items-center gap-2">
 								<FileText
@@ -432,7 +434,10 @@ export function PortalQuestion({
 					</div>
 				)}
 			</section>
-			<p aria-live="polite" className="mt-2 h-4 text-muted-foreground text-xs">
+			<p
+				aria-live="polite"
+				className="mt-2 h-4 text-muted-foreground text-footnote"
+			>
 				{status === "saving"
 					? ta("saving")
 					: status === "saved"
@@ -468,7 +473,7 @@ export function PortalSubmit({
 					</DialogDescription>
 				</DialogHeader>
 				{unanswered > 0 && (
-					<p role="alert" className="text-sm">
+					<p role="alert" className="text-subhead">
 						{t("submitOpen", { n: unanswered })}
 					</p>
 				)}

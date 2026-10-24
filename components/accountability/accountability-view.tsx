@@ -38,7 +38,7 @@ export function AccountabilityView({
 	);
 	return (
 		<div className="flex flex-col gap-6 print:text-black">
-			<p className="text-muted-foreground text-sm print:text-black">
+			<p className="text-muted-foreground text-subhead print:text-black">
 				{labels.total}: {total}
 				{overdue > 0 && (
 					<span className="ml-2 text-destructive">
@@ -50,19 +50,23 @@ export function AccountabilityView({
 				{sections.map((s) => (
 					<section
 						key={s.key}
-						className="break-inside-avoid rounded-md border p-3 print:rounded-none"
+						className="break-inside-avoid rounded-2xl bg-card p-3 print:rounded-none"
 					>
-						<h2 className="lv-eyebrow mb-1 flex items-center justify-between text-[0.7rem] text-muted-foreground print:text-black">
+						<h2 className="font-medium text-footnote mb-1 flex items-center justify-between text-footnote text-muted-foreground print:text-black">
 							{s.title}
 							<span>{s.items.length}</span>
 						</h2>
 						{s.hint && (
-							<p className="mb-2 text-muted-foreground text-xs">{s.hint}</p>
+							<p className="mb-2 text-muted-foreground text-footnote">
+								{s.hint}
+							</p>
 						)}
 						{s.items.length === 0 ? (
-							<p className="text-muted-foreground text-xs">{labels.none}</p>
+							<p className="text-muted-foreground text-footnote">
+								{labels.none}
+							</p>
 						) : (
-							<ul className="flex flex-col divide-y divide-border/60 text-sm">
+							<ul className="flex flex-col divide-y divide-border/60 text-subhead">
 								{s.items.map((i) => (
 									<li
 										key={i.id}
@@ -73,7 +77,9 @@ export function AccountabilityView({
 											className="min-w-0 truncate hover:underline"
 										>
 											{i.code && (
-												<span className="mr-1 font-mono text-xs">{i.code}</span>
+												<span className="mr-1 font-mono text-footnote">
+													{i.code}
+												</span>
 											)}
 											{i.title}
 											{i.meta && (
@@ -83,7 +89,7 @@ export function AccountabilityView({
 												</span>
 											)}
 										</Link>
-										<span className="flex shrink-0 items-center gap-2 text-xs">
+										<span className="flex shrink-0 items-center gap-2 text-footnote">
 											{i.dueAt && (
 												<span
 													className={
@@ -98,7 +104,7 @@ export function AccountabilityView({
 											{i.status && (
 												<Badge
 													variant={i.overdue ? "destructive" : "outline"}
-													className="normal-case tracking-normal"
+													className=""
 												>
 													{i.status}
 												</Badge>

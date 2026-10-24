@@ -55,7 +55,7 @@ export function ItemControl({
 					{evidenceOptions.map((e) => (
 						<label
 							key={e.id}
-							className="flex min-w-0 items-center gap-2 text-sm"
+							className="flex min-w-0 items-center gap-2 text-subhead"
 						>
 							<Checkbox
 								checked={ids.includes(e.id)}
@@ -80,7 +80,7 @@ export function ItemControl({
 					rows={2}
 					maxLength={4000}
 					disabled={disabled || pending}
-					className="min-h-0 text-sm"
+					className="min-h-0 text-subhead"
 				/>
 			) : (
 				!disabled && (
@@ -88,7 +88,7 @@ export function ItemControl({
 						<Button
 							size="sm"
 							variant="ghost"
-							className="h-7 px-2 text-xs"
+							className="h-7 px-2 text-footnote"
 							onClick={() => setWriting(true)}
 						>
 							{t("textEvidence")}

@@ -70,9 +70,9 @@ export async function ApprovalBar({
 	const overdue =
 		data.status === "pending" && data.dueAt !== null && data.dueAt < new Date();
 	return (
-		<div className="flex flex-col gap-2 rounded-md border bg-muted/30 p-3 text-sm">
+		<div className="flex flex-col gap-2 rounded-xl bg-muted p-3 text-subhead">
 			<div className="flex flex-wrap items-center gap-2">
-				<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+				<span className="font-medium text-footnote text-muted-foreground">
 					{ta("bar")}
 				</span>
 				<span className="font-medium">{data.workflowName}</span>
@@ -81,8 +81,8 @@ export async function ApprovalBar({
 					<span
 						className={
 							overdue
-								? "text-destructive text-xs"
-								: "text-muted-foreground text-xs"
+								? "text-destructive text-footnote"
+								: "text-muted-foreground text-footnote"
 						}
 					>
 						{overdue
@@ -102,7 +102,7 @@ export async function ApprovalBar({
 				names={ruleNames}
 			/>
 			{data.decisions.length > 0 && (
-				<ul className="flex flex-col gap-0.5 text-muted-foreground text-xs">
+				<ul className="flex flex-col gap-0.5 text-muted-foreground text-footnote">
 					{data.decisions.map((d) => (
 						<li key={`${d.step}-${d.decidedAt.toISOString()}`}>
 							{ta("step", { n: d.step })} ·{" "}

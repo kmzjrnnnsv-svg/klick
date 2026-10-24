@@ -38,7 +38,7 @@ function AuthorLink({
 	return (
 		<Link
 			href={`/nachweise/verfassen?${q.toString()}`}
-			className="mt-1 inline-flex items-center gap-1 text-primary text-xs hover:underline"
+			className="mt-1 inline-flex items-center gap-1 text-primary text-footnote hover:underline"
 		>
 			<PenLine className="size-3.5" aria-hidden="true" />
 			{template ? suggestedLabel(template.title) : label}
@@ -99,10 +99,10 @@ export async function SheetView({
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-1">
-				<p className="text-muted-foreground text-sm">
+				<p className="text-muted-foreground text-subhead">
 					{focus ? t("leadFocus") : t("lead")}
 				</p>
-				<p className="text-sm tabular-nums">
+				<p className="text-subhead tabular-nums">
 					{t("progress", {
 						answered: p.questions.answered,
 						questions: p.questions.total,
@@ -118,7 +118,7 @@ export async function SheetView({
 				{focus && (
 					<Link
 						href={`/controls/${code}#nachweisbogen`}
-						className="text-primary text-xs hover:underline"
+						className="text-primary text-footnote hover:underline"
 					>
 						{t("openFull")} · {code} →
 					</Link>
@@ -126,19 +126,21 @@ export async function SheetView({
 			</div>
 
 			{questions.length === 0 && items.length === 0 && (
-				<p className="text-muted-foreground text-sm">{t("noneForFocus")}</p>
+				<p className="text-muted-foreground text-subhead">
+					{t("noneForFocus")}
+				</p>
 			)}
 
 			{questions.length > 0 && (
 				<div className="flex flex-col gap-2">
-					<h3 className="font-medium text-sm">{t("questions")}</h3>
-					<ol className="flex flex-col divide-y divide-border/60 rounded-md border">
+					<h3 className="font-medium text-subhead">{t("questions")}</h3>
+					<ol className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 						{questions.map((q) => (
 							<li key={q.id} className="flex flex-col gap-2 px-3 py-3">
-								<p className="text-sm">{q.text}</p>
+								<p className="text-subhead">{q.text}</p>
 								<SourceChips sources={q.sources} />
 								{q.sources.length > 1 && (
-									<details className="text-muted-foreground text-xs">
+									<details className="text-muted-foreground text-footnote">
 										<summary className="cursor-pointer">
 											{t("mergedFrom", { count: q.sources.length })}
 										</summary>
@@ -170,12 +172,12 @@ export async function SheetView({
 
 			{items.length > 0 && (
 				<div className="flex flex-col gap-2">
-					<h3 className="font-medium text-sm">{t("items")}</h3>
-					<p className="text-muted-foreground text-xs">
+					<h3 className="font-medium text-subhead">{t("items")}</h3>
+					<p className="text-muted-foreground text-footnote">
 						{t("freeLead")}
 						{evidenceOptions.length === 0 && ` ${t("noEvidence")}`}
 					</p>
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 						{items.map((i) => (
 							<li key={i.id} className="flex flex-col gap-2 px-3 py-3">
 								<div className="flex items-start gap-2">
@@ -191,13 +193,10 @@ export async function SheetView({
 										/>
 									)}
 									<div className="flex min-w-0 flex-col gap-1">
-										<p className="text-sm">
+										<p className="text-subhead">
 											{i.text}
 											{i.mandatory && (
-												<Badge
-													variant="outline"
-													className="ml-2 align-middle normal-case tracking-normal"
-												>
+												<Badge variant="outline" className="ml-2 align-middle">
 													{t("mandatory")}
 												</Badge>
 											)}
@@ -218,7 +217,7 @@ export async function SheetView({
 											const generatable =
 												canGenerate(kind.code) && kind.scope === "org";
 											return (
-												<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+												<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-subhead">
 													<Link
 														href={kind.edit.href}
 														className="text-primary hover:underline"
@@ -231,7 +230,7 @@ export async function SheetView({
 															label={produced ? t("regenerate") : t("generate")}
 														/>
 													)}
-													<span className="text-muted-foreground text-xs">
+													<span className="text-muted-foreground text-footnote">
 														{produced ? (
 															<>
 																<a
@@ -258,10 +257,7 @@ export async function SheetView({
 														)}
 													</span>
 													{stale && (
-														<Badge
-															variant="warning"
-															className="normal-case tracking-normal"
-														>
+														<Badge variant="warning" className="">
 															{t("stale")}
 														</Badge>
 													)}
@@ -269,7 +265,7 @@ export async function SheetView({
 											);
 										})()}
 									{i.resolution.type === "template" && (
-										<p className="text-sm">
+										<p className="text-subhead">
 											{i.resolution.document ? (
 												<Link
 													href="/dokumente"
@@ -321,7 +317,7 @@ export async function SheetView({
 										/>
 									)}
 									{i.coveredElsewhere.length > 0 && (
-										<p className="mt-1 text-muted-foreground text-xs">
+										<p className="mt-1 text-muted-foreground text-footnote">
 											{t("coveredElsewhere", {
 												controls: [
 													...new Set(
@@ -340,15 +336,17 @@ export async function SheetView({
 
 			{params.length > 0 && (
 				<div className="flex flex-col gap-2">
-					<h3 className="font-medium text-sm">{t("params")}</h3>
-					<p className="text-muted-foreground text-xs">{t("paramsLead")}</p>
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border">
+					<h3 className="font-medium text-subhead">{t("params")}</h3>
+					<p className="text-muted-foreground text-footnote">
+						{t("paramsLead")}
+					</p>
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 						{params.map((row) => (
 							<li key={row.topic} className="flex flex-col gap-2 px-3 py-3">
-								<p className="text-sm">
+								<p className="text-subhead">
 									{topicLabel(row.topic)}
 									{row.differs && (
-										<span className="ml-2 text-muted-foreground text-xs">
+										<span className="ml-2 text-muted-foreground text-footnote">
 											({t("differs")})
 										</span>
 									)}
@@ -358,7 +356,7 @@ export async function SheetView({
 										return (
 											<li
 												key={f.framework}
-												className="flex flex-wrap items-center justify-between gap-2 text-sm"
+												className="flex flex-wrap items-center justify-between gap-2 text-subhead"
 											>
 												<span className="min-w-0">
 													<span className="font-medium">
@@ -389,12 +387,12 @@ export async function SheetView({
 
 			{sheet.findings.length > 0 && (
 				<div className="flex flex-col gap-2">
-					<h3 className="font-medium text-sm">{t("findings")}</h3>
+					<h3 className="font-medium text-subhead">{t("findings")}</h3>
 					<ul className="flex flex-col gap-2">
 						{sheet.findings.map((f) => (
 							<li
 								key={findingKey(f)}
-								className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-sm"
+								className="flex items-start gap-2 rounded-xl bg-warning/12 px-3 py-2 text-subhead"
 							>
 								<TriangleAlert
 									className="mt-0.5 size-4 shrink-0 text-warning"
@@ -409,23 +407,20 @@ export async function SheetView({
 
 			{sheet.recommendations.length > 0 && !focus && (
 				<div className="flex flex-col gap-2">
-					<h3 className="font-medium text-sm">{t("recommendations")}</h3>
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border">
+					<h3 className="font-medium text-subhead">{t("recommendations")}</h3>
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 						{sheet.recommendations.map((r) => (
 							<li
 								key={r.text}
-								className="flex flex-col gap-1 px-3 py-2 text-sm"
+								className="flex flex-col gap-1 px-3 py-2 text-subhead"
 							>
 								<span>
-									<Badge
-										variant="outline"
-										className="mr-2 normal-case tracking-normal"
-									>
+									<Badge variant="outline" className="mr-2">
 										{t(`level_${r.level}`)}
 									</Badge>
 									{r.text}
 								</span>
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{r.source}
 									{r.action && (
 										<>
@@ -459,7 +454,7 @@ function SourceChips({
 				<Badge
 					key={s.key}
 					variant="outline"
-					className="font-normal text-[0.7rem] normal-case tracking-normal"
+					className="font-normal text-footnote"
 				>
 					{s.label}
 				</Badge>

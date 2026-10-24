@@ -31,9 +31,9 @@ export function TrustRequestForm({
 
 	if (state === "sent")
 		return (
-			<div className="rounded-md border bg-muted/40 p-4" role="status">
+			<div className="rounded-xl bg-muted p-4" role="status">
 				<p className="font-medium">{t("requestSentTitle")}</p>
-				<p className="mt-1 text-muted-foreground text-sm">
+				<p className="mt-1 text-muted-foreground text-subhead">
 					{t("requestSentLead")}
 				</p>
 			</div>
@@ -45,7 +45,7 @@ export function TrustRequestForm({
 			: {};
 	const error = (name: string) =>
 		errors[name] ? (
-			<p className="text-destructive text-sm" id={`tr-${name}-error`}>
+			<p className="text-destructive text-subhead" id={`tr-${name}-error`}>
 				{errors[name]}
 			</p>
 		) : null;
@@ -166,11 +166,11 @@ export function TrustRequestForm({
 				/>
 			</div>
 			<div className="flex flex-col gap-2 sm:col-span-2">
-				<p className="font-medium text-sm">{t("ndaTitle")}</p>
-				<div className="max-h-48 overflow-y-auto whitespace-pre-line rounded-md border bg-muted/30 p-3 text-sm leading-relaxed">
+				<p className="font-medium text-subhead">{t("ndaTitle")}</p>
+				<div className="max-h-48 overflow-y-auto whitespace-pre-line rounded-xl bg-muted p-3 text-subhead leading-relaxed">
 					{ndaText}
 				</div>
-				<label className="flex items-start gap-2 text-sm" htmlFor="tr-nda">
+				<label className="flex items-start gap-2 text-subhead" htmlFor="tr-nda">
 					<input
 						id="tr-nda"
 						name="ndaAccepted"
@@ -187,11 +187,11 @@ export function TrustRequestForm({
 				<Button type="submit" disabled={state === "sending"}>
 					{state === "sending" ? t("requestSending") : t("requestSubmit")}
 				</Button>
-				<p className="text-muted-foreground text-sm" aria-live="polite">
+				<p className="text-muted-foreground text-subhead" aria-live="polite">
 					{failure ?? t("requestHint")}
 				</p>
 			</div>
-			<p className="text-muted-foreground text-xs sm:col-span-2">
+			<p className="text-muted-foreground text-footnote sm:col-span-2">
 				{t.rich("requestPrivacy", {
 					org: orgName,
 					link: (chunks) => (

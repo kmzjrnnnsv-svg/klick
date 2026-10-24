@@ -122,7 +122,7 @@ export default async function ReportsPage() {
 			/>
 			{schedule.length > 0 && (
 				<section aria-labelledby="rp-due" className="mb-8 flex flex-col gap-3">
-					<h2 id="rp-due" className="font-serif-display text-lg text-primary">
+					<h2 id="rp-due" className="font-semibold text-headline">
 						{t("scheduleTitle")}
 					</h2>
 					<ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -131,7 +131,7 @@ export default async function ReportsPage() {
 							return (
 								<li
 									key={s.kind.kind}
-									className="flex flex-col gap-2 rounded-md border p-3 text-sm"
+									className="flex flex-col gap-2 rounded-2xl bg-card p-3 text-subhead"
 								>
 									<div className="flex items-start justify-between gap-2">
 										<span className="font-medium">{s.kind.title}</span>
@@ -147,11 +147,11 @@ export default async function ReportsPage() {
 											{t(`state_${s.state}`)}
 										</Badge>
 									</div>
-									<p className="text-muted-foreground text-xs">
+									<p className="text-muted-foreground text-footnote">
 										{s.kind.author ? `${tf(s.kind.author)} · ` : ""}
 										{s.kind.legalBasis}
 									</p>
-									<p className="text-muted-foreground text-xs">
+									<p className="text-muted-foreground text-footnote">
 										{s.lastPeriodTo
 											? t("lastUntil", {
 													date: fmtDate.format(new Date(s.lastPeriodTo)),
@@ -196,10 +196,10 @@ export default async function ReportsPage() {
 						return (
 							<article
 								key={r.id}
-								className="flex flex-col gap-4 rounded-md border p-4 text-sm"
+								className="flex flex-col gap-4 rounded-2xl bg-card p-4 text-subhead"
 							>
 								<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-									<h2 className="min-w-0 break-words font-serif-display text-xl text-primary">
+									<h2 className="min-w-0 break-words font-semibold text-title-3">
 										{r.title}
 									</h2>
 									<Badge
@@ -207,13 +207,13 @@ export default async function ReportsPage() {
 									>
 										{t(`status_${r.status}`)}
 									</Badge>
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{fmtDate.format(new Date(r.periodFrom))} –{" "}
 										{fmtDate.format(new Date(r.periodTo))}
 										{def && def.title !== r.title ? ` · ${def.title}` : ""}
 									</span>
 									{r.authorUserId && (
-										<span className="text-muted-foreground text-xs">
+										<span className="text-muted-foreground text-footnote">
 											{t("author")}:{" "}
 											<UserChip name={names.get(r.authorUserId) ?? null} />
 										</span>
@@ -235,7 +235,7 @@ export default async function ReportsPage() {
 								</div>
 								{digest && digest.sections.length > 0 && (
 									<details
-										className="rounded-md border p-3"
+										className="rounded-2xl bg-card p-3"
 										open={r.status === "draft"}
 									>
 										<summary className="cursor-pointer font-medium">

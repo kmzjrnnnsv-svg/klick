@@ -97,12 +97,12 @@ export function WalletLinkPanel({
 					</Button>
 				)}
 			</CardHeader>
-			<CardContent className="flex flex-col gap-4 text-sm">
+			<CardContent className="flex flex-col gap-4 text-subhead">
 				<p className="max-w-2xl text-muted-foreground">{t("lead")}</p>
 				{active.length === 0 ? (
 					<p className="text-muted-foreground">{t("empty")}</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 						{active.map((l) => (
 							<li
 								key={l.id}
@@ -112,13 +112,13 @@ export function WalletLinkPanel({
 									<span className="font-medium">{l.name}</span>{" "}
 									{l.tokenPrefix && (
 										<span
-											className="font-mono text-muted-foreground text-xs"
+											className="font-mono text-muted-foreground text-footnote"
 											translate="no"
 										>
 											{l.tokenPrefix}…
 										</span>
 									)}
-									<span className="block text-muted-foreground text-xs">
+									<span className="block text-muted-foreground text-footnote">
 										{l.walletOrgName
 											? t("boundTo", { org: l.walletOrgName })
 											: t("waiting")}
@@ -251,13 +251,13 @@ export function WalletLinkPanel({
 						<DialogDescription>{t("tokenLead")}</DialogDescription>
 					</DialogHeader>
 					{shown && (
-						<div className="flex flex-col gap-4 text-sm">
+						<div className="flex flex-col gap-4 text-subhead">
 							<div className="flex gap-2">
 								<Input
 									readOnly
 									aria-label={t("tokenLabel")}
 									value={shown.token}
-									className="font-mono text-xs"
+									className="font-mono text-footnote"
 									spellCheck={false}
 									translate="no"
 								/>
@@ -278,7 +278,7 @@ export function WalletLinkPanel({
 								<li>
 									{t("step2")}{" "}
 									<code
-										className="font-mono text-foreground text-xs"
+										className="font-mono text-foreground text-footnote"
 										translate="no"
 									>
 										{origin}
@@ -286,7 +286,7 @@ export function WalletLinkPanel({
 								</li>
 								<li>{t("step3")}</li>
 							</ol>
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{t("tokenExpires", {
 									date: fmtDay.format(new Date(shown.expiresAt)),
 								})}

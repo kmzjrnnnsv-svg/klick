@@ -27,10 +27,10 @@ export default async function LoginPage({
 	return (
 		<div className="flex flex-col gap-8">
 			<div>
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("loginTitle")}
-				</h1>
-				<p className="mt-2 text-muted-foreground text-sm">{t("loginLead")}</p>
+				<h1 className="font-bold text-title-1">{t("loginTitle")}</h1>
+				<p className="mt-2 text-muted-foreground text-subhead">
+					{t("loginLead")}
+				</p>
 			</div>
 			{reason && (
 				<Alert variant={grund === "org-geloescht" ? "default" : "warning"}>

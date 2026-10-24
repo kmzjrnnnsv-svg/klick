@@ -116,7 +116,7 @@ export function StepUpDialog({
 						/>
 					)}
 					{passkey && totp && (
-						<p className="text-muted-foreground text-xs">{t("orCode")}</p>
+						<p className="text-muted-foreground text-footnote">{t("orCode")}</p>
 					)}
 					{(totp || !passkey) && (
 						<div className="grid gap-2">
@@ -129,9 +129,11 @@ export function StepUpDialog({
 								required
 								value={code}
 								onChange={(e) => setCode(e.target.value)}
-								className="font-mono text-lg tracking-[0.3em]"
+								className="font-mono text-lg"
 							/>
-							{error && <p className="text-destructive text-xs">{error}</p>}
+							{error && (
+								<p className="text-destructive text-footnote">{error}</p>
+							)}
 						</div>
 					)}
 					<DialogFooter>

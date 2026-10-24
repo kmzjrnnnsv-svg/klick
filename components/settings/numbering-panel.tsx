@@ -34,7 +34,7 @@ export function NumberingPanel({
 	);
 	return (
 		<form
-			className="flex flex-col gap-4 text-sm"
+			className="flex flex-col gap-4 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {
@@ -57,7 +57,7 @@ export function NumberingPanel({
 				{types.map((ty) => (
 					<div
 						key={ty}
-						className="flex items-center gap-2 rounded-md border p-2"
+						className="flex items-center gap-2 rounded-2xl bg-card p-2"
 					>
 						<span className="min-w-0 flex-1 truncate">{td(`type_${ty}`)}</span>
 						<Input

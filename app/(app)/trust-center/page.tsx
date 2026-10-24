@@ -104,7 +104,7 @@ export default async function TrustCenterAdminPage({
 							href={trustPublicPath(center.slug)}
 							target="_blank"
 							rel="noreferrer"
-							className="inline-flex items-center gap-1.5 text-sm underline underline-offset-4"
+							className="inline-flex items-center gap-1.5 text-subhead underline underline-offset-4"
 						>
 							{t("openPublic")}
 							<ExternalLink className="size-3.5" aria-hidden="true" />
@@ -113,7 +113,7 @@ export default async function TrustCenterAdminPage({
 				}
 			/>
 
-			<div className="mb-6 flex flex-col gap-3 rounded-md border p-4 sm:flex-row sm:items-center sm:justify-between">
+			<div className="mb-6 flex flex-col gap-3 rounded-2xl bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
 				<div className="flex flex-col gap-1">
 					<p className="flex flex-wrap items-center gap-2 font-medium">
 						{center?.published ? (
@@ -121,11 +121,11 @@ export default async function TrustCenterAdminPage({
 						) : (
 							<Badge variant="outline">{t("stateDraft")}</Badge>
 						)}
-						<span className="break-all font-mono text-sm" translate="no">
+						<span className="break-all font-mono text-subhead" translate="no">
 							{trustPublicPath(slug)}
 						</span>
 					</p>
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{center?.published && center.publishedAt
 							? t("publishedAt", { date: fmtDate.format(center.publishedAt) })
 							: t("notPublished")}
@@ -159,7 +159,7 @@ export default async function TrustCenterAdminPage({
 					/>
 					<aside
 						aria-label={t("previewTitle")}
-						className="flex flex-col gap-3 rounded-md border p-4 text-sm lg:self-start"
+						className="flex flex-col gap-3 rounded-2xl bg-card p-4 text-subhead lg:self-start"
 					>
 						<p className="font-medium">{t("previewTitle")}</p>
 						<p className="text-muted-foreground">{t("previewLead")}</p>
@@ -202,7 +202,9 @@ export default async function TrustCenterAdminPage({
 					</aside>
 				</div>
 			) : requests.length === 0 ? (
-				<p className="text-muted-foreground text-sm">{t("requestsEmpty")}</p>
+				<p className="text-muted-foreground text-subhead">
+					{t("requestsEmpty")}
+				</p>
 			) : (
 				<Table>
 					<TableHeader>
@@ -223,11 +225,11 @@ export default async function TrustCenterAdminPage({
 								<TableRow key={r.id} className="align-top">
 									<TableCell>
 										<p className="font-medium">{r.name}</p>
-										<p className="text-muted-foreground text-xs">
+										<p className="text-muted-foreground text-footnote">
 											{r.company} · {r.email}
 										</p>
 									</TableCell>
-									<TableCell className="max-w-xs text-muted-foreground text-sm">
+									<TableCell className="max-w-xs text-muted-foreground text-subhead">
 										{r.reason ?? "—"}
 									</TableCell>
 									<TableCell>
@@ -235,12 +237,12 @@ export default async function TrustCenterAdminPage({
 											{t(`reqState_${state}`)}
 										</Badge>
 										{state === "active" && r.expiresAt && (
-											<p className="mt-1 text-muted-foreground text-xs">
+											<p className="mt-1 text-muted-foreground text-footnote">
 												{t("until", { date: fmtDate.format(r.expiresAt) })}
 											</p>
 										)}
 									</TableCell>
-									<TableCell className="whitespace-nowrap text-muted-foreground text-sm">
+									<TableCell className="whitespace-nowrap text-muted-foreground text-subhead">
 										{fmtDate.format(r.createdAt)}
 									</TableCell>
 									<TableCell className="text-right">

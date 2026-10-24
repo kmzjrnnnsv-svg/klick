@@ -56,12 +56,14 @@ export function EntityProfilePanel({
 				aria-invalid={errors[key] ? true : undefined}
 				{...props}
 			/>
-			{errors[key] && <p className="text-destructive text-xs">{errors[key]}</p>}
+			{errors[key] && (
+				<p className="text-destructive text-footnote">{errors[key]}</p>
+			)}
 		</div>
 	);
 	return (
 		<form
-			className="flex flex-col gap-4 text-sm"
+			className="flex flex-col gap-4 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {
@@ -87,7 +89,7 @@ export function EntityProfilePanel({
 			}}
 		>
 			<div>
-				<p className="font-serif-display text-xl text-primary">{orgName}</p>
+				<p className="font-semibold text-title-3">{orgName}</p>
 				<p className="mt-1 text-muted-foreground">{t("entityProfileLead")}</p>
 				<Link
 					href="/einrichtung/unternehmen"

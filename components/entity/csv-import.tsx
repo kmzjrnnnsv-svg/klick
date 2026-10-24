@@ -81,13 +81,13 @@ export function CsvImport({
 			/>
 			<Textarea
 				rows={10}
-				className="font-mono text-xs"
+				className="font-mono text-footnote"
 				placeholder={columns}
 				value={csv}
 				onChange={(e) => setCsv(e.target.value)}
 			/>
 			{errors.length > 0 && (
-				<ul className="max-h-40 list-disc overflow-auto pl-5 text-destructive text-xs">
+				<ul className="max-h-40 list-disc overflow-auto pl-5 text-destructive text-footnote">
 					{errors.map((e) => (
 						<li key={e}>{e}</li>
 					))}

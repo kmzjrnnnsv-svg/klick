@@ -62,10 +62,12 @@ export function UserMenu({
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-64">
 				<DropdownMenuLabel className="font-normal text-foreground text-subhead">
-					<p className="truncate font-medium text-foreground text-sm">
+					<p className="truncate font-medium text-foreground text-subhead">
 						{name || email}
 					</p>
-					<p className="truncate text-muted-foreground text-xs">{email}</p>
+					<p className="truncate text-muted-foreground text-footnote">
+						{email}
+					</p>
 					<p className="mt-1 text-footnote text-muted-foreground">
 						{roleLabel}
 					</p>

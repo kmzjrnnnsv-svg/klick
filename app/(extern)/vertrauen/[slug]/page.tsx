@@ -50,10 +50,10 @@ export default async function PublicTrustCenterPage({
 	return (
 		<div className="flex flex-col gap-10">
 			<header className="flex flex-col gap-3">
-				<p className="text-muted-foreground text-xs uppercase tracking-wider">
+				<p className="text-muted-foreground text-footnote">
 					{t("publicEyebrow", { org: s.orgName })}
 				</p>
-				<h1 className="text-balance font-serif-display text-3xl text-primary leading-tight sm:text-4xl">
+				<h1 className="text-balance font-bold text-title-1 leading-tight sm:text-4xl">
 					{s.title}
 				</h1>
 				{s.intro && (
@@ -61,7 +61,7 @@ export default async function PublicTrustCenterPage({
 						{s.intro}
 					</p>
 				)}
-				<p className="text-muted-foreground text-sm">
+				<p className="text-muted-foreground text-subhead">
 					{center.publishedAt &&
 						t("publicAsOf", { date: fmtDate.format(center.publishedAt) })}
 					{s.contactEmail && (
@@ -83,14 +83,14 @@ export default async function PublicTrustCenterPage({
 					aria-labelledby="tc-frameworks"
 					className="flex flex-col gap-4"
 				>
-					<h2 id="tc-frameworks" className="font-serif-display text-2xl">
+					<h2 id="tc-frameworks" className="font-bold text-title-2">
 						{t("publicFrameworks")}
 					</h2>
 					<ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 						{s.frameworks.map((f) => (
 							<li
 								key={f.slug}
-								className="flex flex-col gap-2 rounded-md border p-4"
+								className="flex flex-col gap-2 rounded-2xl bg-card p-4"
 							>
 								<div className="flex flex-wrap items-start justify-between gap-2">
 									<p className="font-medium">{f.name}</p>
@@ -101,15 +101,15 @@ export default async function PublicTrustCenterPage({
 									</Badge>
 								</div>
 								{f.validUntil && (
-									<p className="text-muted-foreground text-sm">
+									<p className="text-muted-foreground text-subhead">
 										{t("validUntil", {
 											date: fmtDate.format(new Date(f.validUntil)),
 										})}
 									</p>
 								)}
-								{f.note && <p className="text-sm">{f.note}</p>}
+								{f.note && <p className="text-subhead">{f.note}</p>}
 								{f.coverage !== null && (
-									<div className="flex items-center gap-2 text-muted-foreground text-xs">
+									<div className="flex items-center gap-2 text-muted-foreground text-footnote">
 										<span
 											className="h-1.5 grow overflow-hidden rounded-full bg-muted"
 											aria-hidden="true"
@@ -132,17 +132,17 @@ export default async function PublicTrustCenterPage({
 
 			{s.domains && s.domains.length > 0 && (
 				<section aria-labelledby="tc-controls" className="flex flex-col gap-4">
-					<h2 id="tc-controls" className="font-serif-display text-2xl">
+					<h2 id="tc-controls" className="font-bold text-title-2">
 						{t("publicControls")}
 					</h2>
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{t("publicControlsLead")}
 					</p>
 					<ul className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
 						{s.domains.map((d) => (
 							<li
 								key={d.domain}
-								className="flex items-baseline justify-between gap-3 border-b py-1.5 text-sm"
+								className="flex items-baseline justify-between gap-3 border-b py-1.5 text-subhead"
 							>
 								<span>
 									{domainKnown(d.domain) ? tc(`domain_${d.domain}`) : d.domain}
@@ -161,16 +161,16 @@ export default async function PublicTrustCenterPage({
 					aria-labelledby="tc-subprocessors"
 					className="flex flex-col gap-4"
 				>
-					<h2 id="tc-subprocessors" className="font-serif-display text-2xl">
+					<h2 id="tc-subprocessors" className="font-bold text-title-2">
 						{t("publicSubprocessors")}
 					</h2>
 					{s.subprocessors.length === 0 ? (
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("publicSubprocessorsNone")}
 						</p>
 					) : (
-						<div className="overflow-x-auto rounded-md border">
-							<table className="w-full text-sm">
+						<div className="overflow-x-auto rounded-2xl bg-card">
+							<table className="w-full text-subhead">
 								<thead>
 									<tr className="text-left">
 										<th className="px-3 py-2 font-medium">{t("colName")}</th>
@@ -203,10 +203,10 @@ export default async function PublicTrustCenterPage({
 
 			{s.documents.length > 0 && (
 				<section aria-labelledby="tc-documents" className="flex flex-col gap-4">
-					<h2 id="tc-documents" className="font-serif-display text-2xl">
+					<h2 id="tc-documents" className="font-bold text-title-2">
 						{t("publicDocuments")}
 					</h2>
-					<ul className="flex flex-col divide-y rounded-md border">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 						{s.documents.map((d) => (
 							<li
 								key={d.versionId}
@@ -214,7 +214,7 @@ export default async function PublicTrustCenterPage({
 							>
 								<div className="min-w-0">
 									<p className="font-medium">{d.title}</p>
-									<p className="text-muted-foreground text-xs">
+									<p className="text-muted-foreground text-footnote">
 										<span
 											className="whitespace-nowrap font-mono"
 											translate="no"
@@ -227,7 +227,7 @@ export default async function PublicTrustCenterPage({
 								{d.access === "public" ? (
 									<a
 										href={trustDocumentHref(center.slug, d.versionId)}
-										className="inline-flex items-center gap-1.5 text-sm underline underline-offset-4"
+										className="inline-flex items-center gap-1.5 text-subhead underline underline-offset-4"
 									>
 										<Download className="size-4" aria-hidden="true" />
 										{t("download")}
@@ -235,7 +235,7 @@ export default async function PublicTrustCenterPage({
 								) : (
 									<a
 										href="#zugang"
-										className="inline-flex items-center gap-1.5 text-muted-foreground text-sm"
+										className="inline-flex items-center gap-1.5 text-muted-foreground text-subhead"
 									>
 										<Lock className="size-4" aria-hidden="true" />
 										{t("ndaOnly")}
@@ -253,10 +253,10 @@ export default async function PublicTrustCenterPage({
 					aria-labelledby="tc-request"
 					className="flex scroll-mt-20 flex-col gap-4"
 				>
-					<h2 id="tc-request" className="font-serif-display text-2xl">
+					<h2 id="tc-request" className="font-bold text-title-2">
 						{t("requestTitle")}
 					</h2>
-					<p className="max-w-2xl text-muted-foreground text-sm">
+					<p className="max-w-2xl text-muted-foreground text-subhead">
 						{t("requestLead", { org: s.orgName })}
 					</p>
 					<TrustRequestForm
@@ -268,7 +268,7 @@ export default async function PublicTrustCenterPage({
 				</section>
 			)}
 
-			<p className="border-t pt-6 text-muted-foreground text-xs">
+			<p className="border-t pt-6 text-muted-foreground text-footnote">
 				{t("publicFooter", { org: s.orgName })}{" "}
 				<a
 					href={`/leistungen?meldung=${encodeURIComponent(`/vertrauen/${center.slug}`)}#anfrage`}

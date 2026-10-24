@@ -43,11 +43,7 @@ export function MemberAccessForm({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button
-					size="sm"
-					variant="ghost"
-					className="normal-case tracking-normal"
-				>
+				<Button size="sm" variant="ghost" className="">
 					{t("access")}
 				</Button>
 			</DialogTrigger>
@@ -87,8 +83,8 @@ export function MemberAccessForm({
 							onChange={(e) => setUntil(e.target.value)}
 						/>
 					</div>
-					<fieldset className="flex flex-col gap-2 text-sm">
-						<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+					<fieldset className="flex flex-col gap-2 text-subhead">
+						<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 							{t("grants")}
 						</legend>
 						{ACCESS_GRANTS.map((g) => (

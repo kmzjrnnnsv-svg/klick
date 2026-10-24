@@ -182,12 +182,12 @@ export function TemplatesDialog({
 					<DialogTitle>{t("templatesTitle")}</DialogTitle>
 					<DialogDescription>{t("templatesLead")}</DialogDescription>
 				</DialogHeader>
-				<div className="flex items-center gap-2 text-xs">
+				<div className="flex items-center gap-2 text-footnote">
 					<Button
 						type="button"
 						size="sm"
 						variant="ghost"
-						className="normal-case tracking-normal"
+						className=""
 						onClick={() =>
 							setPicked(
 								templates
@@ -202,7 +202,7 @@ export function TemplatesDialog({
 						type="button"
 						size="sm"
 						variant="ghost"
-						className="normal-case tracking-normal"
+						className=""
 						onClick={() =>
 							setPicked(templates.filter((x) => !x.present).map((x) => x.code))
 						}
@@ -210,7 +210,7 @@ export function TemplatesDialog({
 						{tc("search") === "Suchen" ? "Alle" : "All"}
 					</Button>
 				</div>
-				<ul className="max-h-[50vh] overflow-y-auto divide-y divide-border/60 rounded-md border text-sm">
+				<ul className="max-h-[50vh] overflow-y-auto divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 					{templates.map((x) => (
 						<li
 							key={x.code}
@@ -229,7 +229,7 @@ export function TemplatesDialog({
 							/>
 							<span className="min-w-0 flex-1">
 								<span className="font-medium">{x.title}</span>
-								<span className="ml-2 text-muted-foreground text-xs">
+								<span className="ml-2 text-muted-foreground text-footnote">
 									{t(`type_${x.type as "policy"}`)} · {x.frameworks.join(", ")}
 								</span>
 							</span>
@@ -295,7 +295,7 @@ export function ImportDialog() {
 					accept=".pdf,.docx,.xlsx,.pptx,.txt"
 					onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
 				/>
-				<p className="text-muted-foreground text-xs">{te("fileHint")}</p>
+				<p className="text-muted-foreground text-footnote">{te("fileHint")}</p>
 				<DialogFooter>
 					<Button variant="ghost" onClick={() => setOpen(false)}>
 						{tc("cancel")}
@@ -402,11 +402,11 @@ export function DocumentEditor({
 					value={value}
 					onChange={(e) => setValue(e.target.value)}
 					rows={24}
-					className="font-mono text-xs"
+					className="font-mono text-footnote"
 				/>
 			</TabsContent>
 			<TabsContent value="preview">
-				<div className="rounded-md border p-4">
+				<div className="rounded-2xl bg-card p-4">
 					<MarkdownView source={value || `_${t("noContent")}_`} />
 				</div>
 			</TabsContent>

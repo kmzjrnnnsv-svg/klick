@@ -124,27 +124,29 @@ export async function SoaTab({
 
 	return (
 		<div className="flex flex-col gap-8">
-			<p className="text-muted-foreground text-sm">{t("soaLead")}</p>
-			<p className="text-sm">{t("soaCounts", counts)}</p>
+			<p className="text-muted-foreground text-subhead">{t("soaLead")}</p>
+			<p className="text-subhead">{t("soaCounts", counts)}</p>
 
 			<section className="flex flex-col gap-3">
 				<div className="flex flex-wrap items-baseline justify-between gap-3">
-					<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+					<h2 className="font-medium text-footnote text-muted-foreground">
 						{t("isoMandatoryDocs")}
 					</h2>
-					<span className="text-muted-foreground text-xs">
+					<span className="text-muted-foreground text-footnote">
 						{t("isoMandatoryComplete", {
 							present: presentCount,
 							total: docRows.length,
 						})}
 					</span>
 				</div>
-				<p className="text-muted-foreground text-xs">{t("isoMandatoryLead")}</p>
-				<ul className="grid grid-cols-1 gap-1.5 text-sm sm:grid-cols-2">
+				<p className="text-muted-foreground text-footnote">
+					{t("isoMandatoryLead")}
+				</p>
+				<ul className="grid grid-cols-1 gap-1.5 text-subhead sm:grid-cols-2">
 					{docRows.map(({ tpl, present }) => (
 						<li
 							key={tpl.code}
-							className="flex items-center justify-between gap-3 rounded-md border px-3 py-1.5"
+							className="flex items-center justify-between gap-3 rounded-xl bg-card px-3 py-1.5"
 						>
 							<span className="min-w-0 truncate">
 								{present ? (
@@ -152,7 +154,7 @@ export async function SoaTab({
 										href={`/dokumente/${encodeURIComponent(present.docNumber)}`}
 										className="hover:underline underline-offset-4"
 									>
-										<span className="mr-2 font-mono text-xs text-muted-foreground">
+										<span className="mr-2 font-mono text-footnote text-muted-foreground">
 											{present.docNumber}
 										</span>
 										{tpl.title}
@@ -180,7 +182,7 @@ export async function SoaTab({
 				{presentCount < docRows.length && (
 					<Link
 						href="/dokumente?vorlagen=1"
-						className="text-primary text-sm underline-offset-4 hover:underline"
+						className="text-primary text-subhead underline-offset-4 hover:underline"
 					>
 						{t("docOpenTemplates")} →
 					</Link>
@@ -188,10 +190,10 @@ export async function SoaTab({
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+				<h2 className="font-medium text-footnote text-muted-foreground">
 					Annex A
 				</h2>
-				<div className="overflow-x-auto rounded-md border">
+				<div className="overflow-x-auto rounded-2xl bg-card">
 					<Table>
 						<TableHeader>
 							<TableRow>
@@ -210,11 +212,11 @@ export async function SoaTab({
 									<TableCell className="align-top">
 										<Link
 											href={`/rahmenwerke/${slug}/${encodeURIComponent(r.code)}`}
-											className="font-mono text-xs hover:underline underline-offset-4"
+											className="font-mono text-footnote hover:underline underline-offset-4"
 										>
 											{r.code}
 										</Link>
-										<p className="mt-0.5 text-muted-foreground text-xs leading-snug">
+										<p className="mt-0.5 text-muted-foreground text-footnote leading-snug">
 											{r.title}
 										</p>
 									</TableCell>
@@ -223,12 +225,12 @@ export async function SoaTab({
 											{applicable ? t("soaApplicable") : t("soaNotApplicable")}
 										</Badge>
 									</TableCell>
-									<TableCell className="max-w-[18rem] align-top text-xs leading-snug">
+									<TableCell className="max-w-[18rem] align-top text-footnote leading-snug">
 										{justification}
 									</TableCell>
 									<TableCell className="align-top">
 										{edges.length === 0 ? (
-											<span className="text-muted-foreground text-xs">
+											<span className="text-muted-foreground text-footnote">
 												{t("soaNoControls")}
 											</span>
 										) : (
@@ -241,7 +243,7 @@ export async function SoaTab({
 													return (
 														<div
 															key={e.control}
-															className="flex flex-wrap items-center gap-1.5 text-xs"
+															className="flex flex-wrap items-center gap-1.5 text-footnote"
 														>
 															<Link
 																href={`/controls/${e.control}`}

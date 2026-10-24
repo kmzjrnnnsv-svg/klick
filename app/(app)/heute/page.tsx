@@ -207,7 +207,7 @@ export default async function TodayPage() {
 						}}
 						className="border-primary/40 md:col-span-2"
 					>
-						<p className="text-sm">
+						<p className="text-subhead">
 							{tsu("cardLead", {
 								done: setup.done.length,
 								total: SETUP_STEPS.length,
@@ -225,7 +225,7 @@ export default async function TodayPage() {
 						className="border-primary/40 md:col-span-2"
 					>
 						{openGap ? (
-							<div className="flex flex-col gap-2 text-sm">
+							<div className="flex flex-col gap-2 text-subhead">
 								<p>
 									{openGap.title} ·{" "}
 									{ta("cardLead", {
@@ -446,7 +446,7 @@ export default async function TodayPage() {
 									href={`/dokumente/${encodeURIComponent(d.docNumber)}`}
 									title={
 										<>
-											<span className="font-mono text-xs" translate="no">
+											<span className="font-mono text-footnote" translate="no">
 												{d.docNumber}
 											</span>{" "}
 											{d.title}{" "}

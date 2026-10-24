@@ -107,22 +107,27 @@ export function SecurityPanel({
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
 					{passkeys.length === 1 && !hasTotp && (
-						<p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-sm">
+						<p className="rounded-xl bg-muted px-3 py-2 text-subhead">
 							{t("secondPasskeyHint")}
 						</p>
 					)}
 					{passkeys.length === 0 ? (
-						<p className="text-muted-foreground text-sm">{t("noPasskeys")}</p>
+						<p className="text-muted-foreground text-subhead">
+							{t("noPasskeys")}
+						</p>
 					) : (
 						<ul className="divide-y divide-border/60">
 							{passkeys.map((p) => (
-								<li key={p.id} className="flex items-center gap-3 py-2 text-sm">
+								<li
+									key={p.id}
+									className="flex items-center gap-3 py-2 text-subhead"
+								>
 									<KeyRound
 										className="size-4 text-muted-foreground"
 										strokeWidth={1.5}
 									/>
 									<span className="font-medium">{p.name ?? "Passkey"}</span>
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{p.deviceType}
 										{p.createdAt ? ` · ${fmt.format(p.createdAt)}` : ""}
 									</span>
@@ -165,13 +170,15 @@ export function SecurityPanel({
 						{sessions.map((s) => (
 							<li
 								key={s.id}
-								className="flex flex-wrap items-center gap-3 py-2 text-sm"
+								className="flex flex-wrap items-center gap-3 py-2 text-subhead"
 							>
-								<span className="font-mono text-xs">{s.ipAddress ?? "–"}</span>
-								<span className="line-clamp-1 max-w-sm text-muted-foreground text-xs">
+								<span className="font-mono text-footnote">
+									{s.ipAddress ?? "–"}
+								</span>
+								<span className="line-clamp-1 max-w-sm text-muted-foreground text-footnote">
 									{s.userAgent ?? ""}
 								</span>
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{fmt.format(s.createdAt)}
 								</span>
 								{s.current ? (

@@ -132,11 +132,11 @@ export default async function ProcessesPage({
 
 			{tab === "kritisch" && (
 				<>
-					<p className="mb-4 text-muted-foreground text-sm">
+					<p className="mb-4 text-muted-foreground text-subhead">
 						{t("criticalLead")}
 					</p>
 					{critical.length === 0 ? (
-						<p className="text-sm">{t("criticalEmpty")}</p>
+						<p className="text-subhead">{t("criticalEmpty")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -156,7 +156,7 @@ export default async function ProcessesPage({
 							<TableBody>
 								{critical.map((r) => (
 									<TableRow key={r.id}>
-										<TableCell className="whitespace-nowrap font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-footnote">
 											<Link
 												href={`/prozesse/${encodeURIComponent(r.code)}`}
 												className="hover:underline"
@@ -184,7 +184,7 @@ export default async function ProcessesPage({
 										>
 											{accountableLabel(r) ?? t("noAccountable")}
 										</TableCell>
-										<TableCell className="text-right text-muted-foreground text-xs">
+										<TableCell className="text-right text-muted-foreground text-footnote">
 											{r.assetCount} {t("assetsShort")} · {r.providerCount}{" "}
 											{t("providersShort")}
 										</TableCell>
@@ -198,11 +198,11 @@ export default async function ProcessesPage({
 
 			{tab === "abhaengigkeiten" && (
 				<>
-					<p className="mb-4 text-muted-foreground text-sm">
+					<p className="mb-4 text-muted-foreground text-subhead">
 						{t("dependenciesLead")}
 					</p>
 					{nodes.length === 0 ? (
-						<p className="text-sm">{t("dependenciesEmpty")}</p>
+						<p className="text-subhead">{t("dependenciesEmpty")}</p>
 					) : (
 						<DependencyMap
 							nodes={nodes}
@@ -261,7 +261,7 @@ export default async function ProcessesPage({
 						/>
 					</div>
 					{withoutA.length > 0 && (
-						<p className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm">
+						<p className="mb-3 rounded-xl bg-destructive/10 px-3 py-2 text-subhead">
 							{t("withoutAccountable", { n: withoutA.length })}
 						</p>
 					)}
@@ -286,7 +286,7 @@ export default async function ProcessesPage({
 								if (items.length === 0) return null;
 								return (
 									<section key={cat}>
-										<h2 className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground">
+										<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
 											{t(`category_${cat}`)} · {items.length}
 										</h2>
 										<Table>
@@ -308,7 +308,7 @@ export default async function ProcessesPage({
 											<TableBody>
 												{items.map((r) => (
 													<TableRow key={r.id}>
-														<TableCell className="whitespace-nowrap font-mono text-xs">
+														<TableCell className="whitespace-nowrap font-mono text-footnote">
 															<Link
 																href={`/prozesse/${encodeURIComponent(r.code)}`}
 																className="hover:underline"
@@ -332,8 +332,8 @@ export default async function ProcessesPage({
 														<TableCell
 															className={
 																r.accountable
-																	? "text-sm"
-																	: "text-destructive text-sm"
+																	? "text-subhead"
+																	: "text-destructive text-subhead"
 															}
 														>
 															{accountableLabel(r) ?? t("noAccountable")}
@@ -357,7 +357,7 @@ export default async function ProcessesPage({
 																}
 															/>
 														</TableCell>
-														<TableCell className="text-right text-muted-foreground text-xs">
+														<TableCell className="text-right text-muted-foreground text-footnote">
 															{r.controlCount} C · {r.assetCount} A ·{" "}
 															{r.providerCount} D
 														</TableCell>

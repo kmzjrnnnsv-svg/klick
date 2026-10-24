@@ -172,7 +172,7 @@ export function ScanImportDialog({
 						/>
 					)}
 					{!engagementId && (
-						<label className="flex items-start gap-2 text-sm">
+						<label className="flex items-start gap-2 text-subhead">
 							<Checkbox
 								checked={fullScan}
 								onCheckedChange={(v) => setFullScan(Boolean(v))}
@@ -180,7 +180,7 @@ export function ScanImportDialog({
 							/>
 							<span>
 								{t("fullScan")}
-								<span className="block text-muted-foreground text-xs">
+								<span className="block text-muted-foreground text-footnote">
 									{t("fullScanHint")}
 								</span>
 							</span>
@@ -193,7 +193,7 @@ export function ScanImportDialog({
 							onAcknowledge={setAck}
 						/>
 					)}
-					<p aria-live="polite" className="text-destructive text-xs">
+					<p aria-live="polite" className="text-destructive text-footnote">
 						{message}
 					</p>
 					<DialogFooter>
@@ -242,7 +242,7 @@ export function QuickCheckForm({
 	const [error, setError] = useState<string | null>(null);
 	return (
 		<form
-			className="flex max-w-xl flex-col gap-4 text-sm"
+			className="flex max-w-xl flex-col gap-4 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				setError(null);
@@ -283,7 +283,7 @@ export function QuickCheckForm({
 				<p
 					id="qc-url-error"
 					aria-live="polite"
-					className="text-destructive text-xs"
+					className="text-destructive text-footnote"
 				>
 					{error}
 				</p>
@@ -305,7 +305,7 @@ export function QuickCheckForm({
 				<span>{t("quickConfirm")}</span>
 			</label>
 			<div className="flex items-center justify-between gap-2">
-				<span className="text-muted-foreground text-xs">
+				<span className="text-muted-foreground text-footnote">
 					{t("quickRemaining", { n: remaining })}
 				</span>
 				<Button

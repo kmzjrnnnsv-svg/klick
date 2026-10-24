@@ -145,7 +145,7 @@ export function ApprovalActions({
 					size="sm"
 					variant="ghost"
 					disabled={pending}
-					className="normal-case tracking-normal"
+					className=""
 					onClick={() =>
 						start(async () => {
 							const res = await withdrawApproval(requestId);

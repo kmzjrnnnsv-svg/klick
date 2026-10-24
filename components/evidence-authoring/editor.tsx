@@ -155,7 +155,7 @@ export function AuthoringEditor({
 		<div className="flex flex-col gap-6">
 			<section
 				aria-label={t("headSection")}
-				className="grid grid-cols-1 gap-4 rounded-md border p-4 md:grid-cols-2"
+				className="grid grid-cols-1 gap-4 rounded-2xl bg-card p-4 md:grid-cols-2"
 			>
 				<div className="flex flex-col gap-1.5 md:col-span-2">
 					<Label htmlFor="au-title">{t("title")}</Label>
@@ -219,7 +219,7 @@ export function AuthoringEditor({
 					</Select>
 				</div>
 				<fieldset className="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0 md:col-span-2">
-					<legend className="mb-1.5 font-medium text-sm">
+					<legend className="mb-1.5 font-medium text-subhead">
 						{t("controls")}
 					</legend>
 					<div className="flex flex-wrap items-center gap-2">
@@ -252,11 +252,15 @@ export function AuthoringEditor({
 							}
 						/>
 					</div>
-					<p className="text-muted-foreground text-xs">{t("controlsHint")}</p>
+					<p className="text-muted-foreground text-footnote">
+						{t("controlsHint")}
+					</p>
 				</fieldset>
 				<div className="flex flex-col gap-2 md:col-span-2">
-					<span className="font-medium text-sm">{t("signers")}</span>
-					<p className="text-muted-foreground text-xs">{t("signersHint")}</p>
+					<span className="font-medium text-subhead">{t("signers")}</span>
+					<p className="text-muted-foreground text-footnote">
+						{t("signersHint")}
+					</p>
 					<div className="max-w-sm">
 						<FunctionSelect
 							label={t("counterSign")}
@@ -319,7 +323,10 @@ export function AuthoringEditor({
 					<FileCheck2 aria-hidden="true" />
 					{t("finalize")}
 				</Button>
-				<span className="text-muted-foreground text-xs" aria-live="polite">
+				<span
+					className="text-muted-foreground text-footnote"
+					aria-live="polite"
+				>
 					{dirty ? t("unsaved") : t("allSaved")}
 				</span>
 				<div className="ml-auto">
@@ -334,7 +341,7 @@ export function AuthoringEditor({
 						<DialogDescription>{t("finalizeLead")}</DialogDescription>
 					</DialogHeader>
 					{missing.length > 0 ? (
-						<div className="flex flex-col gap-2 text-sm">
+						<div className="flex flex-col gap-2 text-subhead">
 							<p className="font-medium">{t("missing")}</p>
 							<ul className="list-disc pl-5 text-muted-foreground">
 								{missing.map((m) => (
@@ -343,9 +350,9 @@ export function AuthoringEditor({
 							</ul>
 						</div>
 					) : (
-						<div className="flex flex-col gap-3 text-sm">
+						<div className="flex flex-col gap-3 text-subhead">
 							{d.controlCodes.length === 0 && (
-								<p className="rounded-md border border-warning/40 bg-warning/5 p-2">
+								<p className="rounded-xl bg-warning/12 p-2">
 									{t("noControlsWarning")}
 								</p>
 							)}
@@ -469,7 +476,7 @@ function ControlPicker({
 											setOpen(false);
 										}}
 									>
-										<span className="font-mono text-xs">{c.code}</span>
+										<span className="font-mono text-footnote">{c.code}</span>
 										<span className="truncate">{c.title}</span>
 									</CommandItem>
 								))}

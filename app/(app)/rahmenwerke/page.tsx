@@ -87,15 +87,15 @@ export default async function FrameworksPage() {
 										{meta?.description}
 									</CardDescription>
 								</CardHeader>
-								<CardContent className="flex flex-col gap-3 text-sm">
+								<CardContent className="flex flex-col gap-3 text-subhead">
 									{hasIndex && bucket ? (
 										<CoverageBar bucket={bucket} labels={labels} />
 									) : (
-										<p className="text-muted-foreground text-xs">
+										<p className="text-muted-foreground text-footnote">
 											{t("noIndex")}
 										</p>
 									)}
-									<dl className="grid grid-cols-2 gap-2 text-muted-foreground text-xs">
+									<dl className="grid grid-cols-2 gap-2 text-muted-foreground text-footnote">
 										<dt>{t("owner")}</dt>
 										<dd className="text-foreground">{f.ownerName ?? "—"}</dd>
 										<dt>{t("enabledAt")}</dt>

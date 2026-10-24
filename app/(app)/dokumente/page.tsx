@@ -76,7 +76,7 @@ export default async function DocumentsPage({
 		{
 			key: "n",
 			header: t("docNumber"),
-			className: "w-24 font-mono text-xs",
+			className: "w-24 font-mono text-footnote",
 			cell: (r) => r.docNumber,
 		},
 		{

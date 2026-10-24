@@ -17,10 +17,8 @@ export default async function MagicLinkConfirmPage({
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("linkTitle")}
-				</h1>
-				<p className="mt-2 text-muted-foreground text-sm">
+				<h1 className="font-bold text-title-1">{t("linkTitle")}</h1>
+				<p className="mt-2 text-muted-foreground text-subhead">
 					{fields ? t("linkLead") : t("linkBroken")}
 				</p>
 			</div>

@@ -19,9 +19,7 @@ export default async function InvitationPage({
 	if (!ctx) {
 		return (
 			<div className="flex flex-col gap-6">
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("title")}
-				</h1>
+				<h1 className="font-bold text-title-1">{t("title")}</h1>
 				<p className="text-muted-foreground">{t("loginFirst")}</p>
 				<Link
 					href={`/login?weiter=/einladung/${id}`}
@@ -51,9 +49,7 @@ export default async function InvitationPage({
 	) {
 		return (
 			<div className="flex flex-col gap-6">
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("title")}
-				</h1>
+				<h1 className="font-bold text-title-1">{t("title")}</h1>
 				<p className="text-muted-foreground">{t("expired")}</p>
 			</div>
 		);
@@ -61,7 +57,7 @@ export default async function InvitationPage({
 
 	return (
 		<div className="flex flex-col gap-6">
-			<h1 className="font-serif-display text-3xl text-primary">{t("title")}</h1>
+			<h1 className="font-bold text-title-1">{t("title")}</h1>
 			<p className="text-muted-foreground">
 				{t("lead", {
 					inviter: invitation.inviterEmail,

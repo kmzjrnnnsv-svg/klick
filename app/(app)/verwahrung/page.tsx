@@ -142,7 +142,7 @@ export default async function CustodyPage({
 			{overdue && (
 				<p
 					role="status"
-					className="mb-4 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm"
+					className="mb-4 rounded-xl bg-destructive/10 p-3 text-subhead"
 				>
 					{t("overdueBanner", { day: fmtDate.format(new Date(stichtag)) })}{" "}
 					<Link
@@ -189,31 +189,31 @@ export default async function CustodyPage({
 											href={`/verwahrung/${w.id}`}
 											className="font-medium underline-offset-4 hover:underline"
 										>
-											<span className="whitespace-nowrap font-mono text-xs">
+											<span className="whitespace-nowrap font-mono text-footnote">
 												{w.code}
 											</span>{" "}
 											{w.name}
 										</Link>
-										<p className="text-muted-foreground text-xs">
+										<p className="text-muted-foreground text-footnote">
 											{t(`purpose_${w.purpose}`)}
 											{w.status === "retired" && ` · ${t("status_retired")}`}
 											{w.assetSymbols.length > 0 &&
 												` · ${w.assetSymbols.join(", ")}`}
 										</p>
 									</TableCell>
-									<TableCell className="text-sm">
+									<TableCell className="text-subhead">
 										{t(`kind_${w.kind}`)} · {t(`tech_${w.technology}`)}
 									</TableCell>
-									<TableCell className="whitespace-nowrap text-sm tabular-nums">
+									<TableCell className="whitespace-nowrap text-subhead tabular-nums">
 										{t("quorumValue", {
 											m: w.quorumRequired,
 											n: w.quorumTotal,
 										})}
-										<p className="text-muted-foreground text-xs">
+										<p className="text-muted-foreground text-footnote">
 											{t("holderCount", { n: activeHolders })}
 										</p>
 									</TableCell>
-									<TableCell className="whitespace-nowrap text-sm">
+									<TableCell className="whitespace-nowrap text-subhead">
 										{w.nextBackupTestDue
 											? fmtDate.format(new Date(w.nextBackupTestDue))
 											: "—"}
@@ -241,7 +241,7 @@ export default async function CustodyPage({
 
 			{tab === "abstimmung" && (
 				<div className="flex flex-col gap-6">
-					<p className="max-w-3xl text-muted-foreground text-sm">
+					<p className="max-w-3xl text-muted-foreground text-subhead">
 						{t("reconLead")}
 					</p>
 					<ReconciliationForm
@@ -287,32 +287,32 @@ export default async function CustodyPage({
 														: t(`recon_${r.status}`)}
 												</Badge>
 												{r.status === "reviewed" && r.shortfall && (
-													<p className="mt-1 text-muted-foreground text-xs">
+													<p className="mt-1 text-muted-foreground text-footnote">
 														{t("recon_reviewed")}
 													</p>
 												)}
 											</TableCell>
-											<TableCell className="text-sm tabular-nums">
+											<TableCell className="text-subhead tabular-nums">
 												{off.length === 0
 													? t("allMatched", { n: res.symbols.length })
 													: off
 															.map((s) => `${s.symbol} ${s.difference}`)
 															.join(" · ")}
 												{r.explanation && (
-													<p className="mt-1 max-w-sm text-muted-foreground text-xs">
+													<p className="mt-1 max-w-sm text-muted-foreground text-footnote">
 														{r.explanation}
 													</p>
 												)}
 												{r.nonconformityId && (
 													<Link
 														href={`/abweichungen/${r.nonconformityId}`}
-														className="mt-1 block text-xs underline underline-offset-4"
+														className="mt-1 block text-footnote underline underline-offset-4"
 													>
 														{t("toNonconformity")}
 													</Link>
 												)}
 											</TableCell>
-											<TableCell className="text-muted-foreground text-xs">
+											<TableCell className="text-muted-foreground text-footnote">
 												{t("preparedBy", {
 													name: data.names.get(r.preparedByUserId ?? "") ?? "—",
 												})}
@@ -370,7 +370,7 @@ export default async function CustodyPage({
 											href={`/verwahrung/${c.walletId}`}
 											className="underline-offset-4 hover:underline"
 										>
-											<span className="font-mono text-xs">{c.code}</span>{" "}
+											<span className="font-mono text-footnote">{c.code}</span>{" "}
 											{c.name}
 										</Link>
 									</TableCell>
@@ -392,22 +392,22 @@ export default async function CustodyPage({
 				<h2 id="custody-controls" className="mb-3 font-medium">
 					{t("controlsTitle")}
 				</h2>
-				<ul className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+				<ul className="grid grid-cols-1 gap-2 text-subhead sm:grid-cols-2">
 					{controlStatus.map((c) => (
 						<li
 							key={c.code}
-							className="flex items-start justify-between gap-3 rounded-md border px-3 py-2"
+							className="flex items-start justify-between gap-3 rounded-xl bg-card px-3 py-2"
 						>
 							<Link
 								href={`/controls/${c.code}`}
 								className="min-w-0 underline-offset-4 hover:underline"
 							>
-								<span className="whitespace-nowrap font-mono text-xs">
+								<span className="whitespace-nowrap font-mono text-footnote">
 									{c.code}
 								</span>{" "}
 								{c.title}
 							</Link>
-							<span className="whitespace-nowrap text-muted-foreground text-xs">
+							<span className="whitespace-nowrap text-muted-foreground text-footnote">
 								{c.status
 									? ts(CONTROL_STATUS.labelKey[c.status] as "notStarted")
 									: t("controlNotInScope")}

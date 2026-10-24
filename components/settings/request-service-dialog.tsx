@@ -130,7 +130,10 @@ export function RequestServiceDialog({
 							className="min-h-28"
 						/>
 						{errors.message && (
-							<p id="rs-message-error" className="text-destructive text-xs">
+							<p
+								id="rs-message-error"
+								className="text-destructive text-footnote"
+							>
 								{errors.message}
 							</p>
 						)}

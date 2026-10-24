@@ -408,8 +408,8 @@ export function AuditForm({
 				rows={2}
 			/>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				<fieldset className="flex flex-col gap-1.5 text-sm">
-					<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+				<fieldset className="flex flex-col gap-1.5 text-subhead">
+					<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 						{t("frameworks")}
 					</legend>
 					{frameworks.map((f) => (
@@ -427,8 +427,8 @@ export function AuditForm({
 						</label>
 					))}
 				</fieldset>
-				<fieldset className="flex flex-col gap-1.5 text-sm">
-					<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+				<fieldset className="flex flex-col gap-1.5 text-subhead">
+					<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 						{t("auditors")}
 					</legend>
 					{members.map((m) => (
@@ -799,12 +799,12 @@ export function RespondRequestForm({
 					onChange={(e) => setNote(e.target.value)}
 				/>
 			</div>
-			<fieldset className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-md border p-2 text-sm">
-				<legend className="lv-eyebrow px-1 text-[0.7rem] text-muted-foreground">
+			<fieldset className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-2xl bg-card p-2 text-subhead">
+				<legend className="font-medium text-footnote px-1 text-footnote text-muted-foreground">
 					{t("attachEvidence")}
 				</legend>
 				{evidence.length === 0 ? (
-					<p className="text-muted-foreground text-xs">—</p>
+					<p className="text-muted-foreground text-footnote">—</p>
 				) : (
 					evidence.map((e) => (
 						<label key={e.id} className="flex items-center gap-2">
@@ -847,7 +847,7 @@ export function DecideRequestButtons({ requestId }: { requestId: string }) {
 			</Button>
 			<Textarea
 				rows={1}
-				className="min-h-8 w-56 py-1 text-xs"
+				className="min-h-8 w-56 py-1 text-footnote"
 				placeholder={t("rejectNote")}
 				value={note}
 				onChange={(e) => setNote(e.target.value)}

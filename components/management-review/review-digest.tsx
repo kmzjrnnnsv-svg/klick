@@ -23,7 +23,7 @@ export function ReviewDigestView({
 }) {
 	return (
 		<div className="flex flex-col gap-3">
-			<p className="text-muted-foreground text-xs">
+			<p className="text-muted-foreground text-footnote">
 				{labels.period} {fmtDate.format(new Date(digest.from))} –{" "}
 				{fmtDate.format(new Date(digest.to))}
 			</p>
@@ -31,21 +31,21 @@ export function ReviewDigestView({
 				{digest.sections.map((s) => (
 					<section
 						key={s.key}
-						className="flex flex-col gap-2 rounded-md border p-3 text-sm"
+						className="flex flex-col gap-2 rounded-2xl bg-card p-3 text-subhead"
 					>
 						<div className="flex items-start justify-between gap-2">
 							<h3 className="font-medium leading-snug">{s.title}</h3>
 							{s.href && (
 								<Link
 									href={s.href}
-									className="shrink-0 text-primary text-xs hover:underline"
+									className="shrink-0 text-primary text-footnote hover:underline"
 								>
 									{labels.open}
 								</Link>
 							)}
 						</div>
 						{s.facts.length > 0 ? (
-							<dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 text-xs">
+							<dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 text-footnote">
 								{s.facts.map((f) => (
 									<div key={f.label} className="contents">
 										<dt className="text-muted-foreground">{f.label}</dt>
@@ -58,10 +58,12 @@ export function ReviewDigestView({
 								))}
 							</dl>
 						) : (
-							<p className="text-muted-foreground text-xs">{labels.nothing}</p>
+							<p className="text-muted-foreground text-footnote">
+								{labels.nothing}
+							</p>
 						)}
 						{s.items.length > 0 && (
-							<ul className="flex flex-col gap-0.5 border-t pt-2 text-xs">
+							<ul className="flex flex-col gap-0.5 border-t pt-2 text-footnote">
 								{s.items.map((i) => (
 									<li key={`${i.title}-${i.note ?? ""}`} className="min-w-0">
 										{i.href ? (

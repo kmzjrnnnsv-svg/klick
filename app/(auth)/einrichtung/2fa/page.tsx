@@ -11,10 +11,10 @@ export default async function EnrolPage() {
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("enrolTitle")}
-				</h1>
-				<p className="mt-2 text-muted-foreground text-sm">{t("enrolLead")}</p>
+				<h1 className="font-bold text-title-1">{t("enrolTitle")}</h1>
+				<p className="mt-2 text-muted-foreground text-subhead">
+					{t("enrolLead")}
+				</p>
 			</div>
 			<EnrolFactor />
 		</div>

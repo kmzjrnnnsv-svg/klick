@@ -51,7 +51,9 @@ export function IncidentClocks({
 	const now = new Date();
 	return (
 		<div className="flex flex-col gap-2">
-			<p className="text-muted-foreground text-xs">{regimes.join(" · ")}</p>
+			<p className="text-muted-foreground text-footnote">
+				{regimes.join(" · ")}
+			</p>
 			<ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">
 				{clocks
 					.filter((c) => c.dueAt)
@@ -60,9 +62,9 @@ export function IncidentClocks({
 						return (
 							<li
 								key={c.key}
-								className="flex flex-col gap-1 rounded-md border p-3 text-sm"
+								className="flex flex-col gap-1 rounded-2xl bg-card p-3 text-subhead"
 							>
-								<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+								<span className="font-medium text-footnote text-muted-foreground">
 									{c.label}
 								</span>
 								<span className="font-medium">
@@ -86,7 +88,9 @@ export function IncidentClocks({
 					})}
 			</ul>
 			{projected && (
-				<p className="text-muted-foreground text-xs">{labels.projected}</p>
+				<p className="text-muted-foreground text-footnote">
+					{labels.projected}
+				</p>
 			)}
 		</div>
 	);

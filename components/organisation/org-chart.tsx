@@ -21,7 +21,7 @@ function NodeCard({
 }) {
 	return (
 		<div
-			className={`flex min-w-0 flex-col gap-0.5 rounded-md border px-3 py-2 text-xs ${
+			className={`flex min-w-0 flex-col gap-0.5 rounded-xl bg-card px-3 py-2 text-footnote ${
 				node.vacant
 					? "border-destructive/50 border-dashed"
 					: top
@@ -29,7 +29,7 @@ function NodeCard({
 						: "bg-card"
 			}`}
 		>
-			<span className="font-medium text-foreground text-sm leading-snug">
+			<span className="font-medium text-foreground text-subhead leading-snug">
 				{label}
 			</span>
 			<span
@@ -60,7 +60,7 @@ export async function OrgChart({
 	const t = await getTranslations("Organisation");
 	if (size === 0)
 		return (
-			<p className="text-muted-foreground text-sm">{t("orgChartEmpty")}</p>
+			<p className="text-muted-foreground text-subhead">{t("orgChartEmpty")}</p>
 		);
 	const label = (f: string) => functionLabels[f] ?? f;
 	const card = (node: ChartNode, top?: boolean) => (
@@ -93,7 +93,7 @@ export async function OrgChart({
 		<div className="flex flex-col gap-3">
 			<figure
 				aria-label={t("orgChartAria", { count: size })}
-				className="m-0 flex flex-col gap-6 rounded-md border bg-background p-4"
+				className="m-0 flex flex-col gap-6 rounded-2xl bg-card p-4"
 			>
 				{roots.map((root) => (
 					<div key={root.function} className="flex flex-col items-stretch">
@@ -120,7 +120,7 @@ export async function OrgChart({
 				))}
 			</figure>
 			{warnings.length > 0 && (
-				<ul className="flex list-disc flex-col gap-1 rounded-md border border-warning/40 bg-warning/5 py-2 pr-3 pl-7 text-xs">
+				<ul className="flex list-disc flex-col gap-1 rounded-xl bg-warning/12 py-2 pr-3 pl-7 text-footnote">
 					{warnings.map((w) => (
 						<li key={`${w.kind}-${"function" in w ? w.function : ""}`}>
 							{w.kind === "not_direct"

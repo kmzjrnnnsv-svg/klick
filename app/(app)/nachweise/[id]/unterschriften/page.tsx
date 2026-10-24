@@ -40,7 +40,7 @@ export default async function SignaturesPage({
 		check: checkSignature(r, env),
 	}));
 	const Ok = ({ ok, label }: { ok: boolean; label: string }) => (
-		<span className="inline-flex items-center gap-1 text-xs">
+		<span className="inline-flex items-center gap-1 text-footnote">
 			{ok ? (
 				<CheckCircle2 className="size-3.5 text-success" aria-hidden="true" />
 			) : (
@@ -56,7 +56,7 @@ export default async function SignaturesPage({
 				title={data.evidence.title}
 				lead={t("lead")}
 				actions={
-					<div className="flex flex-wrap gap-2 text-sm">
+					<div className="flex flex-wrap gap-2 text-subhead">
 						<a
 							href={`/api/nachweise/${id}`}
 							className="text-primary hover:underline"
@@ -72,22 +72,24 @@ export default async function SignaturesPage({
 					</div>
 				}
 			/>
-			<dl className="mb-6 grid grid-cols-1 gap-2 text-sm sm:grid-cols-[12rem_minmax(0,1fr)]">
+			<dl className="mb-6 grid grid-cols-1 gap-2 text-subhead sm:grid-cols-[12rem_minmax(0,1fr)]">
 				<dt className="text-muted-foreground">{t("file")}</dt>
 				<dd className="break-all">{data.evidence.fileName ?? "—"}</dd>
 				<dt className="text-muted-foreground">{t("sha256")}</dt>
-				<dd className="break-all font-mono text-xs">{data.evidence.sha256}</dd>
+				<dd className="break-all font-mono text-footnote">
+					{data.evidence.sha256}
+				</dd>
 				<dt className="text-muted-foreground">{t("created")}</dt>
 				<dd>{fmtDate.format(data.evidence.createdAt)}</dd>
 			</dl>
 			{checks.length === 0 ? (
-				<p className="text-muted-foreground text-sm">{t("none")}</p>
+				<p className="text-muted-foreground text-subhead">{t("none")}</p>
 			) : (
 				<ul className="flex flex-col gap-3">
 					{checks.map(({ row, check }) => (
 						<li
 							key={row.id}
-							className="flex flex-col gap-2 rounded-md border p-4 text-sm"
+							className="flex flex-col gap-2 rounded-2xl bg-card p-4 text-subhead"
 						>
 							<div className="flex flex-wrap items-center gap-2">
 								<span className="font-medium">{row.signerName}</span>
@@ -101,15 +103,12 @@ export default async function SignaturesPage({
 								</span>
 								<Badge
 									variant={check.valid ? "success" : "destructive"}
-									className="normal-case tracking-normal"
+									className=""
 								>
 									{check.valid ? t("valid") : t("invalid")}
 								</Badge>
 								{row.batchId && (
-									<Badge
-										variant="outline"
-										className="normal-case tracking-normal"
-									>
+									<Badge variant="outline" className="">
 										{t("batch")}
 									</Badge>
 								)}
@@ -130,11 +129,11 @@ export default async function SignaturesPage({
 								{check.merkle !== null && (
 									<Ok ok={check.merkle} label={t("checkMerkle")} />
 								)}
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{row.backupEligible ? t("synced") : t("deviceBound")}
 								</span>
 							</div>
-							<details className="text-xs">
+							<details className="text-footnote">
 								<summary className="cursor-pointer text-muted-foreground">
 									{t("details")}
 								</summary>
@@ -147,7 +146,7 @@ export default async function SignaturesPage({
 					))}
 				</ul>
 			)}
-			<p className="mt-6 max-w-3xl text-muted-foreground text-xs">
+			<p className="mt-6 max-w-3xl text-muted-foreground text-footnote">
 				{t("legal")}
 			</p>
 		</>

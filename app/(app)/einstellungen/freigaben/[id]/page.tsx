@@ -80,7 +80,7 @@ export default async function WorkflowEditorPage({
 		<>
 			<Link
 				href="/einstellungen?tab=workflows"
-				className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-sm hover:text-foreground"
+				className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-subhead hover:text-foreground"
 			>
 				<ArrowLeft className="size-4" aria-hidden />
 				{t("back")}

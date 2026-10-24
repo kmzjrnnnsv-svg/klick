@@ -92,7 +92,7 @@ export default async function SynergiesPage({
 	return (
 		<>
 			<PageHeader title={t("title")} lead={t("lead")} />
-			<p className="mb-4 text-sm">
+			<p className="mb-4 text-subhead">
 				<span className="font-medium">
 					{cov.frameworks.map(fwLabel).join(" + ")}
 				</span>{" "}
@@ -126,7 +126,8 @@ export default async function SynergiesPage({
 						: (options.find((o) => o.slug !== a)?.slug ?? "");
 					const asOf =
 						stichtag && /^\d{4}-\d{2}-\d{2}$/.test(stichtag) ? stichtag : null;
-					if (!a || !b) return <p className="text-sm">{t("compareNeedTwo")}</p>;
+					if (!a || !b)
+						return <p className="text-subhead">{t("compareNeedTwo")}</p>;
 					// Anwendbarkeit: heute aus der Org-Rechnung; am Stichtag neu abgeleitet,
 					// manuelle Entscheidungen bleiben darüber.
 					let applicabilityMap = applicability;
@@ -172,11 +173,11 @@ export default async function SynergiesPage({
 					} as const;
 					return (
 						<>
-							<p className="mb-4 text-muted-foreground text-sm">
+							<p className="mb-4 text-muted-foreground text-subhead">
 								{t("compareLead")}
 							</p>
 							<CompareControls options={options} a={a} b={b} asOf={asOf} />
-							<div className="mb-4 flex flex-wrap gap-2 text-sm">
+							<div className="mb-4 flex flex-wrap gap-2 text-subhead">
 								<Badge variant="success">
 									{t("kind_equivalent")}: {cmp.counts.equivalent}
 								</Badge>
@@ -207,7 +208,7 @@ export default async function SynergiesPage({
 								<TableBody>
 									{cmp.rows.map((row) => (
 										<TableRow key={row.key}>
-											<TableCell className="whitespace-nowrap font-mono text-xs">
+											<TableCell className="whitespace-nowrap font-mono text-footnote">
 												<Link
 													href={`/rahmenwerke/${a}/${encodeURIComponent(row.code)}`}
 													className="hover:underline underline-offset-4"
@@ -215,7 +216,7 @@ export default async function SynergiesPage({
 													{row.code}
 												</Link>
 											</TableCell>
-											<TableCell className="text-sm">
+											<TableCell className="text-subhead">
 												{REQUIREMENT_BY_KEY.get(row.key)?.title}
 											</TableCell>
 											<TableCell>
@@ -223,7 +224,7 @@ export default async function SynergiesPage({
 													{t(`kind_${row.kind}`, { fw: fwLabel(a) })}
 												</Badge>
 											</TableCell>
-											<TableCell className="font-mono text-xs">
+											<TableCell className="font-mono text-footnote">
 												{row.counterparts.length === 0
 													? "—"
 													: row.counterparts.map((c) => (
@@ -237,7 +238,7 @@ export default async function SynergiesPage({
 															</Link>
 														))}
 											</TableCell>
-											<TableCell className="font-mono text-[0.7rem] text-muted-foreground">
+											<TableCell className="font-mono text-footnote text-muted-foreground">
 												{row.sharedControls.join(", ") || "—"}
 											</TableCell>
 											<TableCell>
@@ -251,7 +252,7 @@ export default async function SynergiesPage({
 							</Table>
 							{cmp.uniqueB.length > 0 && (
 								<div className="mt-6">
-									<h3 className="font-medium text-sm">
+									<h3 className="font-medium text-subhead">
 										{t("uniqueBTitle", { fw: fwLabel(b), other: fwLabel(a) })}
 									</h3>
 									<ul className="mt-2 flex flex-wrap gap-1">
@@ -260,10 +261,7 @@ export default async function SynergiesPage({
 												<Link
 													href={`/rahmenwerke/${b}/${encodeURIComponent(u.code)}`}
 												>
-													<Badge
-														variant="outline"
-														className="normal-case tracking-normal"
-													>
+													<Badge variant="outline" className="">
 														{u.code} · {REQUIREMENT_BY_KEY.get(u.key)?.title}
 													</Badge>
 												</Link>
@@ -272,12 +270,12 @@ export default async function SynergiesPage({
 									</ul>
 								</div>
 							)}
-							<div className="mt-6 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+							<div className="mt-6 grid grid-cols-1 gap-4 text-subhead sm:grid-cols-2">
 								<div>
 									<h3 className="font-medium">
 										{t("onlyControls", { fw: fwLabel(a) })}
 									</h3>
-									<p className="mt-1 font-mono text-muted-foreground text-xs">
+									<p className="mt-1 font-mono text-muted-foreground text-footnote">
 										{cmp.onlyA.join(", ") || "—"}
 									</p>
 								</div>
@@ -285,7 +283,7 @@ export default async function SynergiesPage({
 									<h3 className="font-medium">
 										{t("onlyControls", { fw: fwLabel(b) })}
 									</h3>
-									<p className="mt-1 font-mono text-muted-foreground text-xs">
+									<p className="mt-1 font-mono text-muted-foreground text-footnote">
 										{cmp.onlyB.join(", ") || "—"}
 									</p>
 								</div>
@@ -296,7 +294,7 @@ export default async function SynergiesPage({
 
 			{tab === "matrix" && (
 				<>
-					<p className="mb-4 text-muted-foreground text-sm">
+					<p className="mb-4 text-muted-foreground text-subhead">
 						{t("matrixLead")}
 					</p>
 					<Table>
@@ -331,7 +329,7 @@ export default async function SynergiesPage({
 								const status = cov.implStatus.get(lev.control);
 								return (
 									<TableRow key={lev.control}>
-										<TableCell className="sticky left-0 z-10 whitespace-nowrap bg-background font-mono text-xs">
+										<TableCell className="sticky left-0 z-10 whitespace-nowrap bg-background font-mono text-footnote">
 											<Link
 												href={`/controls/${lev.control}`}
 												className="hover:underline underline-offset-4"
@@ -350,7 +348,7 @@ export default async function SynergiesPage({
 												{c?.title}
 											</span>
 										</TableCell>
-										<TableCell className="text-right text-xs">
+										<TableCell className="text-right text-footnote">
 											{lev.score}
 										</TableCell>
 										{cov.frameworks.map((fw) => {
@@ -383,7 +381,7 @@ export default async function SynergiesPage({
 														</span>
 													)}
 													{fwEdges.length > 0 && (
-														<span className="ml-0.5 text-[0.7rem] text-muted-foreground">
+														<span className="ml-0.5 text-footnote text-muted-foreground">
 															{fwEdges.length}
 														</span>
 													)}
@@ -400,7 +398,7 @@ export default async function SynergiesPage({
 
 			{tab === "was-waere-wenn" && (
 				<>
-					<p className="mb-4 text-muted-foreground text-sm">
+					<p className="mb-4 text-muted-foreground text-subhead">
 						{t("whatIfLead")}
 					</p>
 					{(() => {
@@ -408,7 +406,7 @@ export default async function SynergiesPage({
 							(f) => !cov.frameworks.includes(f.slug),
 						);
 						if (candidates.length === 0)
-							return <p className="text-sm">{t("whatIfAll")}</p>;
+							return <p className="text-subhead">{t("whatIfAll")}</p>;
 						return (
 							<ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
 								{candidates.map((f) => {
@@ -421,39 +419,39 @@ export default async function SynergiesPage({
 									return (
 										<li
 											key={f.slug}
-											className="flex flex-col gap-2 rounded-md border p-4 text-sm"
+											className="flex flex-col gap-2 rounded-2xl bg-card p-4 text-subhead"
 										>
 											<p className="font-medium">{f.name}</p>
 											<p className="text-muted-foreground">{f.description}</p>
 											<dl className="grid grid-cols-3 gap-2 text-center">
 												<div>
-													<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+													<dt className="font-medium text-footnote text-muted-foreground">
 														{t("newControls")}
 													</dt>
-													<dd className="font-serif-display text-2xl text-primary">
+													<dd className="font-bold text-title-2">
 														{w.newControls.length}
 													</dd>
 												</div>
 												<div>
-													<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+													<dt className="font-medium text-footnote text-muted-foreground">
 														{t("alreadyNeeded")}
 													</dt>
-													<dd className="font-serif-display text-2xl text-primary">
+													<dd className="font-bold text-title-2">
 														{w.alreadyNeededControls}
 													</dd>
 												</div>
 												<div>
-													<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+													<dt className="font-medium text-footnote text-muted-foreground">
 														{t("alreadyCovered")}
 													</dt>
-													<dd className="font-serif-display text-2xl text-primary">
+													<dd className="font-bold text-title-2">
 														{pct(w.alreadyCoveredPct)}
 													</dd>
 												</div>
 											</dl>
 											<Link
 												href="/einstellungen?tab=frameworks"
-												className="text-primary text-xs hover:underline"
+												className="text-primary text-footnote hover:underline"
 											>
 												{t("tabWhatIf")} → Einstellungen
 											</Link>
@@ -468,7 +466,9 @@ export default async function SynergiesPage({
 
 			{tab === "plan" && (
 				<>
-					<p className="mb-4 text-muted-foreground text-sm">{t("planLead")}</p>
+					<p className="mb-4 text-muted-foreground text-subhead">
+						{t("planLead")}
+					</p>
 					{(() => {
 						const plan = prioritizePlan(
 							cov.frameworks,
@@ -477,7 +477,7 @@ export default async function SynergiesPage({
 							25,
 						);
 						if (plan.steps.length === 0)
-							return <p className="text-sm">{t("planEmpty")}</p>;
+							return <p className="text-subhead">{t("planEmpty")}</p>;
 						return (
 							<Table>
 								<TableHeader>
@@ -506,7 +506,7 @@ export default async function SynergiesPage({
 											<TableCell className="text-muted-foreground">
 												{i + 1}
 											</TableCell>
-											<TableCell className="whitespace-nowrap font-mono text-xs">
+											<TableCell className="whitespace-nowrap font-mono text-footnote">
 												<Link
 													href={`/controls/${s.control}`}
 													className="hover:underline underline-offset-4"
@@ -518,7 +518,7 @@ export default async function SynergiesPage({
 												{CONTROL_BY_CODE.get(s.control)?.title}
 											</TableCell>
 											<TableCell>{tc(`effort_${s.effort}`)}</TableCell>
-											<TableCell className="text-xs">
+											<TableCell className="text-footnote">
 												{t("gainText", {
 													covered: s.gainCovered,
 													partial: s.gainPartial,
@@ -526,11 +526,7 @@ export default async function SynergiesPage({
 											</TableCell>
 											<TableCell className="flex flex-wrap gap-1">
 												{s.frameworks.map((fw) => (
-													<Badge
-														key={fw}
-														variant="outline"
-														className="normal-case tracking-normal"
-													>
+													<Badge key={fw} variant="outline" className="">
 														{fwLabel(fw)}
 													</Badge>
 												))}

@@ -49,7 +49,7 @@ const TASK_PRIORITY: Record<
 function Bar({ label, value }: { label: string; value: number | null }) {
 	return (
 		<div className="flex flex-col gap-1">
-			<div className="flex justify-between text-xs">
+			<div className="flex justify-between text-footnote">
 				<span className="text-muted-foreground">{label}</span>
 				<span className="tabular-nums">
 					{value === null ? "—" : `${Math.round(value)} %`}
@@ -76,7 +76,7 @@ export async function BlockerList({
 }) {
 	const t = await getTranslations("Readiness");
 	if (blockers.length === 0)
-		return <p className="text-sm">{t("blockersEmpty")}</p>;
+		return <p className="text-subhead">{t("blockersEmpty")}</p>;
 	const row = (b: ReadinessBlocker) => (
 		<li
 			key={`${b.kind}:${b.ref}`}
@@ -86,7 +86,7 @@ export async function BlockerList({
 				<Badge variant={SEV_TONE[b.severity]}>
 					{t(`severity_${b.severity}`)}
 				</Badge>
-				<span className="text-muted-foreground text-xs">
+				<span className="text-muted-foreground text-footnote">
 					{t(`kind_${b.kind}`)}
 				</span>
 				{b.href ? (
@@ -100,7 +100,7 @@ export async function BlockerList({
 					<span className="min-w-0 truncate font-medium">{b.label}</span>
 				)}
 			</span>
-			<span className="flex shrink-0 items-center gap-3 text-muted-foreground text-xs">
+			<span className="flex shrink-0 items-center gap-3 text-muted-foreground text-footnote">
 				{b.requirements > 0 && (
 					<span>{t("requirementsCount", { count: b.requirements })}</span>
 				)}
@@ -123,11 +123,11 @@ export async function BlockerList({
 	);
 	return (
 		<div className="flex flex-col gap-2">
-			<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 				{blockers.slice(0, limit).map(row)}
 			</ul>
 			{blockers.length > limit && (
-				<details className="rounded-md border text-sm">
+				<details className="rounded-2xl bg-card text-subhead">
 					<summary className="cursor-pointer px-3 py-2 text-muted-foreground">
 						{t("blockersMore", { count: blockers.length })}
 					</summary>
@@ -160,13 +160,13 @@ export async function ReadinessPanel({
 	const today = stichtage[0];
 	return (
 		<div className="flex flex-col gap-6">
-			<p className="text-muted-foreground text-sm">{t("lead")}</p>
+			<p className="text-muted-foreground text-subhead">{t("lead")}</p>
 			<div className="grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr]">
-				<div className="flex flex-col gap-2 rounded-md border p-4">
-					<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+				<div className="flex flex-col gap-2 rounded-2xl bg-card p-4">
+					<span className="font-medium text-footnote text-muted-foreground">
 						{t("score")}
 					</span>
-					<span className="font-serif-display text-4xl text-primary tabular-nums">
+					<span className="font-bold text-title-1 tabular-nums">
 						{result.score ?? "—"}
 					</span>
 					<Badge variant={VERDICT_TONE[result.verdict]} className="w-fit">
@@ -180,12 +180,12 @@ export async function ReadinessPanel({
 						{Object.entries(base.params).map(([k, v]) => (
 							<input key={k} type="hidden" name={k} value={v} />
 						))}
-						<label className="flex flex-col gap-1 text-xs">
+						<label className="flex flex-col gap-1 text-footnote">
 							<span className="text-muted-foreground">{t("asOf")}</span>
 							<select
 								name="stichtag"
 								defaultValue={result.asOf}
-								className="rounded-md border bg-background px-2 py-1 text-sm text-foreground"
+								className="rounded-2xl bg-card px-2 py-1 text-subhead text-foreground"
 							>
 								{stichtage.map((d) => (
 									<option key={d} value={d}>
@@ -198,20 +198,20 @@ export async function ReadinessPanel({
 						</label>
 						<button
 							type="submit"
-							className="rounded-md border px-2 py-1 text-sm hover:bg-muted"
+							className="rounded-xl bg-card px-2 py-1 text-subhead hover:bg-muted"
 						>
 							{t("apply")}
 						</button>
 					</Form>
 					{result.asOf !== today && (
-						<p className="max-w-56 text-muted-foreground text-xs">
+						<p className="max-w-56 text-muted-foreground text-footnote">
 							{t("asOfFuture", { date: fmtDate.format(new Date(result.asOf)) })}
 						</p>
 					)}
 					{exportHref && (
 						<a
 							href={exportHref}
-							className="text-primary text-sm hover:underline underline-offset-4"
+							className="text-primary text-subhead hover:underline underline-offset-4"
 						>
 							{t("export")}
 						</a>
@@ -223,11 +223,11 @@ export async function ReadinessPanel({
 					<Bar label={t("dimTests")} value={result.dimensions.tests} />
 					<Bar label={t("dimDocuments")} value={result.dimensions.documents} />
 					{result.penalty.total > 0 && (
-						<p className="text-sm">
+						<p className="text-subhead">
 							<span className="font-medium">
 								{t("penalty")}: −{result.penalty.total}
 							</span>{" "}
-							<span className="text-muted-foreground text-xs">
+							<span className="text-muted-foreground text-footnote">
 								{t("penaltyDetail", {
 									nc: result.penalty.nonconformities,
 									findings: result.penalty.findings,
@@ -241,7 +241,7 @@ export async function ReadinessPanel({
 
 			<section>
 				<h2 className="mb-1 font-medium">{t("blockers")}</h2>
-				<p className="mb-3 text-muted-foreground text-xs">
+				<p className="mb-3 text-muted-foreground text-footnote">
 					{t("blockersLead")}
 				</p>
 				<BlockerList blockers={result.blockers} canCreateTask={canCreateTask} />
@@ -250,11 +250,11 @@ export async function ReadinessPanel({
 			{result.bySection.length > 1 && (
 				<section>
 					<h2 className="mb-2 font-medium">{t("bySection")}</h2>
-					<ul className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+					<ul className="grid grid-cols-1 gap-2 text-subhead sm:grid-cols-2">
 						{result.bySection.map((s) => (
 							<li
 								key={s.sectionCode}
-								className="flex items-center justify-between gap-3 rounded-md border px-3 py-1.5"
+								className="flex items-center justify-between gap-3 rounded-xl bg-card px-3 py-1.5"
 							>
 								<span className="min-w-0 truncate">
 									{s.sectionCode} · {sectionTitles[s.sectionCode] ?? ""}

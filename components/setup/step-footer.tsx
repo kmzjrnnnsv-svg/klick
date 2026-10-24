@@ -21,7 +21,7 @@ export function StepFooter({
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	return (
-		<div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4 text-sm">
+		<div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4 text-subhead">
 			{prevHref ? (
 				<Link
 					href={prevHref}

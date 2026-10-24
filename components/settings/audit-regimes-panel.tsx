@@ -64,12 +64,12 @@ export function AuditRegimesPanel({
 }) {
 	const t = useTranslations("AuditRegimes");
 	return (
-		<div className="flex flex-col gap-4 text-sm">
+		<div className="flex flex-col gap-4 text-subhead">
 			<p className="max-w-3xl text-muted-foreground">{t("lead")}</p>
 			{regimes.length === 0 ? (
 				<p className="text-muted-foreground">{t("empty")}</p>
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 rounded-md border">
+				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 					{regimes.map((r) => (
 						<li key={r.framework}>
 							<RegimeEditor regime={r} canEdit={canEdit} />
@@ -182,14 +182,14 @@ function RegimeEditor({
 			<summary className="flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
 				<span className="flex min-w-0 flex-wrap items-baseline gap-2">
 					<span className="font-medium">{r.name}</span>
-					<span className="text-muted-foreground text-xs">{r.label}</span>
+					<span className="text-muted-foreground text-footnote">{r.label}</span>
 					{r.custom && (
-						<Badge variant="outline" className="normal-case tracking-normal">
+						<Badge variant="outline" className="">
 							{t("custom")}
 						</Badge>
 					)}
 				</span>
-				<span className="text-muted-foreground text-xs tabular-nums">
+				<span className="text-muted-foreground text-footnote tabular-nums">
 					{next
 						? t("nextAudit", { label: next.label, date: day(next.date) })
 						: t("noDate")}
@@ -202,7 +202,7 @@ function RegimeEditor({
 					save(false);
 				}}
 			>
-				<p className="text-muted-foreground text-xs">
+				<p className="text-muted-foreground text-footnote">
 					{t("source")}: {r.source}
 				</p>
 
@@ -227,7 +227,7 @@ function RegimeEditor({
 											setMonths((m) => ({ ...m, [c.kind]: e.target.value }))
 										}
 									/>
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{Number(months[c.kind]) === 0
 											? t("once")
 											: t("everyMonths")}
@@ -256,7 +256,7 @@ function RegimeEditor({
 						))}
 					</div>
 					{r.missing.length > 0 && (
-						<p className="text-muted-foreground text-xs">
+						<p className="text-muted-foreground text-footnote">
 							{t("missingAnchors", {
 								list: r.missing
 									.map((k) => r.cycles.find((c) => c.kind === k)?.label ?? k)
@@ -268,10 +268,12 @@ function RegimeEditor({
 
 				<fieldset className="flex flex-col gap-2">
 					<legend className="mb-2 font-medium">{t("classesTitle")}</legend>
-					<p className="text-muted-foreground text-xs">{t("classesLead")}</p>
+					<p className="text-muted-foreground text-footnote">
+						{t("classesLead")}
+					</p>
 					<div className="overflow-x-auto">
 						<table className="w-full min-w-[34rem] text-left">
-							<thead className="text-muted-foreground text-xs">
+							<thead className="text-muted-foreground text-footnote">
 								<tr>
 									<th className="py-1 pr-3 font-normal">{t("class")}</th>
 									<th className="py-1 pr-3 font-normal">{t("planDays")}</th>
@@ -328,7 +330,7 @@ function RegimeEditor({
 				{r.upcoming.length > 0 && (
 					<div className="flex flex-col gap-1">
 						<h4 className="font-medium">{t("upcomingTitle")}</h4>
-						<ul className="flex flex-col gap-0.5 text-xs tabular-nums">
+						<ul className="flex flex-col gap-0.5 text-footnote tabular-nums">
 							{r.upcoming.slice(0, 6).map((u) => (
 								<li key={`${u.kind}-${u.date}`}>
 									{day(u.date)} · {u.label}

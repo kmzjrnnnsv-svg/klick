@@ -96,7 +96,7 @@ export function ShareholderForm({ initial }: { initial?: ShareholderDraft }) {
 						required
 					/>
 				</div>
-				<label className="flex items-center gap-2 pt-6 text-sm">
+				<label className="flex items-center gap-2 pt-6 text-subhead">
 					<Checkbox
 						checked={d.isLegalPerson}
 						onCheckedChange={(v) => setD({ ...d, isLegalPerson: Boolean(v) })}
@@ -170,7 +170,7 @@ export function ShareholderForm({ initial }: { initial?: ShareholderDraft }) {
 				onChange={(v) => setD({ ...d, uboChain: v })}
 				rows={3}
 			/>
-			<p className="text-muted-foreground text-xs">
+			<p className="text-muted-foreground text-footnote">
 				{threshold ? t("thresholdHint", { t: threshold }) : t("noThreshold")} ·{" "}
 				{t("encryptedHint")}
 			</p>

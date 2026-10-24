@@ -75,7 +75,7 @@ export function DlpWarning({
 	return (
 		<div
 			role="alert"
-			className="flex flex-col gap-2 rounded-md border border-amber-500/50 bg-amber-500/5 p-3 text-sm"
+			className="flex flex-col gap-2 rounded-xl bg-warning/12 p-3 text-subhead"
 		>
 			<p className="font-medium">{t("warnTitle")}</p>
 			<p className="text-muted-foreground">

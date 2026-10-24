@@ -114,16 +114,14 @@ export default async function NonconformitiesPage({
 					) : undefined
 				}
 			/>
-			<div className="mb-4 flex flex-wrap gap-4 text-sm">
+			<div className="mb-4 flex flex-wrap gap-4 text-subhead">
 				<span>
-					<span className="font-serif-display text-2xl text-primary">
-						{openCount}
-					</span>{" "}
+					<span className="font-bold text-title-2">{openCount}</span>{" "}
 					<span className="text-muted-foreground">{t("openCount")}</span>
 				</span>
 				<span>
 					<span
-						className={`font-serif-display text-2xl ${overdueCount > 0 ? "text-destructive" : "text-primary"}`}
+						className={`font-bold text-title-2 ${overdueCount > 0 ? "text-destructive" : "text-primary"}`}
 					>
 						{overdueCount}
 					</span>{" "}
@@ -195,7 +193,7 @@ export default async function NonconformitiesPage({
 					<TableBody>
 						{filtered.map(({ r, s }) => (
 							<TableRow key={r.id}>
-								<TableCell className="whitespace-nowrap font-mono text-xs">
+								<TableCell className="whitespace-nowrap font-mono text-footnote">
 									<Link
 										href={`/abweichungen/${r.id}`}
 										className="hover:underline"
@@ -209,7 +207,9 @@ export default async function NonconformitiesPage({
 											{t(`priority_${r.priority}`)}
 										</Badge>
 									) : (
-										<span className="text-muted-foreground text-xs">—</span>
+										<span className="text-muted-foreground text-footnote">
+											—
+										</span>
 									)}
 								</TableCell>
 								<TableCell>
@@ -220,12 +220,12 @@ export default async function NonconformitiesPage({
 										{r.title}
 									</Link>
 									{r.rootCause && (
-										<p className="line-clamp-1 text-muted-foreground text-xs">
+										<p className="line-clamp-1 text-muted-foreground text-footnote">
 											{r.rootCause}
 										</p>
 									)}
 								</TableCell>
-								<TableCell className="text-xs">
+								<TableCell className="text-footnote">
 									{r.sourceAudit ? (
 										<Link
 											href={`/audits/${r.sourceAudit.id}?tab=findings`}
@@ -259,7 +259,7 @@ export default async function NonconformitiesPage({
 									) : s.effectivenessDue ? (
 										<Badge variant="warning">{t("effectivenessDue")}</Badge>
 									) : (
-										<span className="text-muted-foreground text-xs">
+										<span className="text-muted-foreground text-footnote">
 											{r.effectivenessCheckAt
 												? fmtDate.format(new Date(r.effectivenessCheckAt))
 												: "—"}

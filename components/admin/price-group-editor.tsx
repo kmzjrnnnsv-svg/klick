@@ -235,7 +235,7 @@ export function PriceGroupEditor({
 							))}
 						</SelectContent>
 					</Select>
-					<p className="text-muted-foreground text-xs">
+					<p className="text-muted-foreground text-footnote">
 						{level === "custom"
 							? "Nur eigene Werte gelten; Positionen ohne Wert stehen „auf Anfrage“."
 							: "Die Stufe liefert alle Werte; eigene Werte je Position gehen vor."}
@@ -275,7 +275,7 @@ export function PriceGroupEditor({
 							<TableRow key={item.key}>
 								<TableCell className="min-w-48">
 									<span className="font-medium">{item.label}</span>
-									<span className="block font-mono text-[0.7rem] text-muted-foreground">
+									<span className="block font-mono text-footnote text-muted-foreground">
 										{item.key}
 									</span>
 								</TableCell>

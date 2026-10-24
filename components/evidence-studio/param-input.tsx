@@ -57,11 +57,11 @@ export function ParamInput({
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
 				aria-label={`${t("ownValue")} ${frameworkName}`}
-				className="h-8 w-20 text-sm tabular-nums"
+				className="h-8 w-20 text-subhead tabular-nums"
 				disabled={disabled || pending}
 				autoComplete="off"
 			/>
-			<span className="text-muted-foreground text-xs">{unit}</span>
+			<span className="text-muted-foreground text-footnote">{unit}</span>
 			{dirty && valid && !disabled && (
 				<Button
 					size="sm"

@@ -119,7 +119,7 @@ export default async function RatingPage({
 						)}
 						<Link
 							href={`/dienstleister/${provider.id}?tab=bewertungen`}
-							className="text-primary text-sm hover:underline"
+							className="text-primary text-subhead hover:underline"
 						>
 							{t("backToProvider")}
 						</Link>
@@ -136,7 +136,7 @@ export default async function RatingPage({
 						value={sum.percent === null ? "—" : `${sum.percent} %`}
 					/>
 				</div>
-				<div className="flex flex-wrap items-center gap-3 text-sm">
+				<div className="flex flex-wrap items-center gap-3 text-subhead">
 					{rating.traffic && (
 						<Badge variant={TRAFFIC_TONE[rating.traffic]}>{rating.level}</Badge>
 					)}
@@ -158,14 +158,14 @@ export default async function RatingPage({
 					)}
 				</div>
 				{rating.decisionNote && (
-					<p className="whitespace-pre-line rounded-md border p-3 text-sm">
+					<p className="whitespace-pre-line rounded-2xl bg-card p-3 text-subhead">
 						{rating.decisionNote}
 					</p>
 				)}
 				{(["general", "security"] as const).map((area) => (
 					<section key={area} className="flex flex-col gap-2">
 						<h2 className="font-medium">{t(`res_${area}`)}</h2>
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{rating.criteria
 								.filter((c) => c.area === area)
 								.map((c) => {
@@ -177,7 +177,7 @@ export default async function RatingPage({
 										>
 											<span className="font-medium">
 												{c.title}
-												<span className="ml-2 font-normal text-muted-foreground text-xs">
+												<span className="ml-2 font-normal text-muted-foreground text-footnote">
 													{t("weight", { w: c.weight })}
 												</span>
 											</span>
@@ -185,7 +185,7 @@ export default async function RatingPage({
 												{s?.score ?? "—"} ·{" "}
 												{s?.score ? c.anchors[s.score - 1] || "—" : ""}
 											</span>
-											<span className="text-muted-foreground text-xs">
+											<span className="text-muted-foreground text-footnote">
 												{s?.note}
 												{s?.ratedBy ? ` · ${names[s.ratedBy] ?? "—"}` : ""}
 											</span>
@@ -198,16 +198,16 @@ export default async function RatingPage({
 				<section className="flex flex-col gap-2">
 					<h2 className="font-medium">{t("measuresTitle")}</h2>
 					{rating.measures.length === 0 ? (
-						<p className="text-muted-foreground text-sm">—</p>
+						<p className="text-muted-foreground text-subhead">—</p>
 					) : (
-						<ul className="flex flex-col gap-1 text-sm">
+						<ul className="flex flex-col gap-1 text-subhead">
 							{rating.measures.map((m) => (
 								<li key={m.code}>
 									{m.title}
 									{m.taskId && (
 										<Link
 											href="/heute/aufgaben"
-											className="ml-2 text-primary text-xs hover:underline"
+											className="ml-2 text-primary text-footnote hover:underline"
 										>
 											{t("toTask")}
 										</Link>
@@ -224,8 +224,8 @@ export default async function RatingPage({
 
 function Stat({ label, value }: { label: string; value: string }) {
 	return (
-		<div className="rounded-md border p-3">
-			<p className="text-muted-foreground text-xs">{label}</p>
+		<div className="rounded-2xl bg-card p-3">
+			<p className="text-muted-foreground text-footnote">{label}</p>
 			<p className="font-medium text-2xl tabular-nums">{value}</p>
 		</div>
 	);

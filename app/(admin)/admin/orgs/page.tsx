@@ -54,9 +54,7 @@ export default async function AdminOrgsPage() {
 	});
 	return (
 		<>
-			<h1 className="mb-6 font-serif-display text-3xl text-primary">
-				{t("orgs")}
-			</h1>
+			<h1 className="mb-6 font-bold text-title-1">{t("orgs")}</h1>
 			<Table>
 				<TableHeader>
 					<TableRow>
@@ -81,11 +79,11 @@ export default async function AdminOrgsPage() {
 						return (
 							<TableRow key={o.id}>
 								<TableCell className="font-medium">{o.name}</TableCell>
-								<TableCell className="whitespace-nowrap font-mono text-xs">
+								<TableCell className="whitespace-nowrap font-mono text-footnote">
 									{o.slug}
 								</TableCell>
 								<TableCell>{Number(o.members)}</TableCell>
-								<TableCell className="text-xs">
+								<TableCell className="text-footnote">
 									{profile ? (
 										<>
 											<span>
@@ -116,13 +114,13 @@ export default async function AdminOrgsPage() {
 												defaultName={defaultGroup?.name ?? null}
 											/>
 											{suggested && suggested !== current && (
-												<span className="mt-1 block text-muted-foreground text-xs">
+												<span className="mt-1 block text-muted-foreground text-footnote">
 													{t("priceGroupSuggested", { name: suggested })}
 												</span>
 											)}
 										</>
 									) : (
-										<span className="text-muted-foreground text-xs">
+										<span className="text-muted-foreground text-footnote">
 											Onboarding offen
 										</span>
 									)}

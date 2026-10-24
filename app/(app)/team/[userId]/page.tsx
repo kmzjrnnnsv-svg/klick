@@ -62,7 +62,7 @@ export default async function MemberAccountabilityPage({
 						<div className="flex gap-2">
 							<Link
 								href="/team"
-								className="inline-flex h-8 items-center rounded-md border px-3 text-xs hover:bg-muted"
+								className="inline-flex h-8 items-center rounded-full bg-muted px-3 font-medium text-footnote hover:bg-foreground/12"
 							>
 								← {tt("title")}
 							</Link>
@@ -71,7 +71,7 @@ export default async function MemberAccountabilityPage({
 					}
 				/>
 			</div>
-			<h1 className="mb-4 hidden font-serif-display text-2xl print:block">
+			<h1 className="mb-4 hidden font-bold text-title-2 print:block">
 				{t("title")} — {m.name || m.email}
 			</h1>
 			<AccountabilityView

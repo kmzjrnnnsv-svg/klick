@@ -22,12 +22,10 @@ export default async function OnboardingPage() {
 	return (
 		<div className="flex flex-col gap-8">
 			<div>
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("title")}
-				</h1>
-				<p className="mt-2 text-muted-foreground text-sm">{t("lead")}</p>
+				<h1 className="font-bold text-title-1">{t("title")}</h1>
+				<p className="mt-2 text-muted-foreground text-subhead">{t("lead")}</p>
 				{consultantOnly && (
-					<p className="mt-2 text-sm">
+					<p className="mt-2 text-subhead">
 						<Link
 							href="/organisationen"
 							className="underline underline-offset-4"

@@ -23,10 +23,8 @@ export default async function TwoFactorPage({
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("twoFactorTitle")}
-				</h1>
-				<p className="mt-2 text-muted-foreground text-sm">
+				<h1 className="font-bold text-title-1">{t("twoFactorTitle")}</h1>
+				<p className="mt-2 text-muted-foreground text-subhead">
 					{stepUp
 						? t("twoFactorStepUp")
 						: passkey

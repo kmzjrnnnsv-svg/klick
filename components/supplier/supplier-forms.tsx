@@ -125,7 +125,7 @@ export function StartSupplierAssessmentDialog({
 							</SelectContent>
 						</Select>
 						{chosen && (
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{chosen.description}{" "}
 								{t("questionCount", { n: chosen.questions })}
 							</p>
@@ -226,10 +226,12 @@ export function PortalLinkDialog({
 							readOnly
 							value={url}
 							aria-label={t("linkTitle")}
-							className="font-mono text-xs"
+							className="font-mono text-footnote"
 							onFocus={(e) => e.currentTarget.select()}
 						/>
-						<p className="text-muted-foreground text-xs">{t("linkOnce")}</p>
+						<p className="text-muted-foreground text-footnote">
+							{t("linkOnce")}
+						</p>
 						<DialogFooter>
 							<Button
 								variant="outline"
@@ -269,7 +271,7 @@ export function PortalLinkDialog({
 						}}
 					>
 						{hasActiveLink && (
-							<p role="alert" className="text-sm">
+							<p role="alert" className="text-subhead">
 								{t("replaceWarning")}
 							</p>
 						)}
@@ -289,7 +291,7 @@ export function PortalLinkDialog({
 							</Select>
 						</div>
 						{contactEmail ? (
-							<label className="flex items-start gap-2 text-sm">
+							<label className="flex items-start gap-2 text-subhead">
 								<Checkbox
 									checked={sendMail}
 									onCheckedChange={(v) => setSendMail(Boolean(v))}
@@ -298,7 +300,9 @@ export function PortalLinkDialog({
 								<span>{t("sendMail", { email: contactEmail })}</span>
 							</label>
 						) : (
-							<p className="text-muted-foreground text-xs">{t("noEmail")}</p>
+							<p className="text-muted-foreground text-footnote">
+								{t("noEmail")}
+							</p>
 						)}
 						<DialogFooter>
 							<Button
@@ -423,7 +427,7 @@ export function CompleteSupplierDialog({
 						<DialogTitle>{t("completeTitle")}</DialogTitle>
 						<DialogDescription>{t("completeLead")}</DialogDescription>
 					</DialogHeader>
-					<p className="text-sm">
+					<p className="text-subhead">
 						{t("completeScore", {
 							score: score ?? "—",
 							rating: rating ?? "—",
@@ -433,14 +437,14 @@ export function CompleteSupplierDialog({
 						{unanswered > 0 && ` ${t("completeOpen", { n: unanswered })}`}
 					</p>
 					<fieldset className="flex flex-col gap-2">
-						<legend className="mb-1 font-medium text-sm">
+						<legend className="mb-1 font-medium text-subhead">
 							{t("decision")}
 						</legend>
 						{DECISIONS.map((d) => (
 							<label
 								key={d}
 								className={cn(
-									"flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
+									"flex cursor-pointer items-start gap-2 rounded-xl bg-card px-3 py-2 text-subhead has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
 									decision === d && "border-primary bg-primary/5",
 								)}
 							>
@@ -454,7 +458,7 @@ export function CompleteSupplierDialog({
 								/>
 								<span>
 									<span className="font-medium">{t(`decision_${d}`)}</span>
-									<span className="block text-muted-foreground text-xs">
+									<span className="block text-muted-foreground text-footnote">
 										{t(`decisionHint_${d}`)}
 									</span>
 								</span>
@@ -631,7 +635,7 @@ export function ContractClausesForm({
 				});
 			}}
 		>
-			<ul className="flex flex-col divide-y divide-border/60 rounded-md border">
+			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 				{clauses.map((c) => (
 					<li
 						key={c.code}
@@ -640,24 +644,24 @@ export function ContractClausesForm({
 							!c.required && "opacity-70",
 						)}
 					>
-						<span className="min-w-0 text-sm">
-							<span className="font-mono text-xs" translate="no">
+						<span className="min-w-0 text-subhead">
+							<span className="font-mono text-footnote" translate="no">
 								Art. {c.code}
 							</span>{" "}
 							<span className="font-medium">{c.title}</span>
 							{c.criticalOnly && (
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{" "}
 									· {t("criticalOnly")}
 								</span>
 							)}
-							<span className="block text-muted-foreground text-xs">
+							<span className="block text-muted-foreground text-footnote">
 								{c.text}
 							</span>
 						</span>
 						<select
 							aria-label={`Art. ${c.code} ${c.title}`}
-							className="w-full shrink-0 rounded-md border bg-background px-2 py-1 text-sm sm:w-40"
+							className="w-full shrink-0 rounded-2xl bg-card px-2 py-1 text-subhead sm:w-40"
 							value={state[c.code] ?? "open"}
 							disabled={!canEdit || pending}
 							onChange={(e) =>

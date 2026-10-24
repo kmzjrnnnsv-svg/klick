@@ -97,7 +97,7 @@ export function StagePanel({
 				<CardTitle className="text-base">{t("stageTitle")}</CardTitle>
 				<CardDescription>{t("stageLead")}</CardDescription>
 			</CardHeader>
-			<CardContent className="flex flex-col gap-5 text-sm">
+			<CardContent className="flex flex-col gap-5 text-subhead">
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div className="flex flex-col gap-1.5">
 						<Label>{t("stage")}</Label>
@@ -122,7 +122,10 @@ export function StagePanel({
 						<Label>{t("caspServices")}</Label>
 						<div className="grid grid-cols-2 gap-1.5">
 							{CASP_SERVICES.map((s) => (
-								<label key={s} className="flex items-center gap-2 text-xs">
+								<label
+									key={s}
+									className="flex items-center gap-2 text-footnote"
+								>
 									<Checkbox
 										checked={services.includes(s)}
 										disabled={!canEdit}
@@ -139,8 +142,8 @@ export function StagePanel({
 					</div>
 				</div>
 
-				<div className="rounded-md border border-dashed p-4">
-					<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+				<div className="rounded-2xl bg-card p-4">
+					<p className="font-medium text-footnote text-muted-foreground">
 						{t("stageReport")}
 					</p>
 					{loading && !report ? (
@@ -166,7 +169,7 @@ export function StagePanel({
 								label={t("reportControls")}
 								value={`${report.newControls.length} · ${report.effortBuckets.S} S / ${report.effortBuckets.M} M / ${report.effortBuckets.L} L`}
 							/>
-							<p className="text-muted-foreground text-xs sm:col-span-4">
+							<p className="text-muted-foreground text-footnote sm:col-span-4">
 								{t("reportCoverage", {
 									before: report.coverageBeforePct ?? 0,
 									after: report.coverageAfterPct ?? 0,
@@ -213,10 +216,10 @@ export function StagePanel({
 					</div>
 				)}
 
-				<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+				<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-card p-3">
 					<div>
 						<p className="font-medium">{t("tlptCheck")}</p>
-						<p className="text-muted-foreground text-xs">
+						<p className="text-muted-foreground text-footnote">
 							{tlptConfirmedAt
 								? t("tlptConfirmed", {
 										date: new Date(tlptConfirmedAt).toLocaleDateString("de-DE"),
@@ -255,10 +258,10 @@ export function StagePanel({
 function Stat({ label, value }: { label: string; value: string }) {
 	return (
 		<div>
-			<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+			<dt className="font-medium text-footnote text-muted-foreground">
 				{label}
 			</dt>
-			<dd className="font-serif-display text-xl text-primary">{value}</dd>
+			<dd className="font-semibold text-title-3">{value}</dd>
 		</div>
 	);
 }

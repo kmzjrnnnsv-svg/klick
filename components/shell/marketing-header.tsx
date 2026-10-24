@@ -46,12 +46,12 @@ export async function MarketingHeader({
 						>
 							<Menu className="size-5" aria-hidden="true" />
 						</summary>
-						<nav className="absolute right-0 z-40 mt-2 flex w-56 flex-col rounded-md border bg-background p-2 shadow-lg">
+						<nav className="absolute right-0 z-40 mt-2 flex w-56 flex-col rounded-2xl bg-card p-2 shadow-lg">
 							{links.map((l) => (
 								<a
 									key={l.href}
 									href={l.href}
-									className="rounded-sm px-3 py-2.5 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className="rounded-sm px-3 py-2.5 text-subhead hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								>
 									{l.label}
 								</a>

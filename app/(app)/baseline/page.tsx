@@ -28,7 +28,7 @@ export default async function BaselinePage() {
 				title={t("title")}
 				lead={t("lead", { date: BASELINE.asOf })}
 			/>
-			<p className="mb-6 text-muted-foreground text-sm">
+			<p className="mb-6 text-muted-foreground text-subhead">
 				{t("summary", {
 					implemented: counts.implemented,
 					inProgress: counts.inProgress,
@@ -42,9 +42,9 @@ export default async function BaselinePage() {
 						<CardHeader>
 							<CardTitle className="text-base">{n.title}</CardTitle>
 						</CardHeader>
-						<CardContent className="flex flex-col gap-3 text-sm">
+						<CardContent className="flex flex-col gap-3 text-subhead">
 							<div>
-								<p className="lv-eyebrow mb-1 text-[0.7rem] text-success">
+								<p className="font-medium text-footnote mb-1 text-footnote text-success">
 									{t("present")}
 								</p>
 								<ul className="list-disc pl-5">
@@ -54,7 +54,7 @@ export default async function BaselinePage() {
 								</ul>
 							</div>
 							<div>
-								<p className="lv-eyebrow mb-1 text-[0.7rem] text-destructive">
+								<p className="font-medium text-footnote mb-1 text-footnote text-destructive">
 									{t("gaps")}
 								</p>
 								<ul className="list-disc pl-5 text-muted-foreground">
@@ -64,7 +64,7 @@ export default async function BaselinePage() {
 								</ul>
 							</div>
 							<div>
-								<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+								<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 									{t("next")}
 								</p>
 								<ul className="list-disc pl-5 text-muted-foreground">
@@ -78,10 +78,10 @@ export default async function BaselinePage() {
 				))}
 			</div>
 
-			<h2 className="lv-eyebrow mt-10 mb-3 text-[0.7rem] text-muted-foreground">
+			<h2 className="font-medium text-footnote mt-10 mb-3 text-footnote text-muted-foreground">
 				{t("controlsTitle")}
 			</h2>
-			<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 				{BASELINE.controls.map((b) => {
 					const c = CONTROL_BY_CODE.get(b.code);
 					return (
@@ -91,21 +91,17 @@ export default async function BaselinePage() {
 						>
 							<Link
 								href={`/controls/${b.code}`}
-								className="w-28 shrink-0 font-mono text-xs hover:underline"
+								className="w-28 shrink-0 font-mono text-footnote hover:underline"
 							>
 								{b.code}
 							</Link>
 							<div className="min-w-0 flex-1">
 								<p className="font-medium">{c?.title ?? b.code}</p>
-								<p className="text-muted-foreground text-xs">{b.note}</p>
+								<p className="text-muted-foreground text-footnote">{b.note}</p>
 								{b.evidence && b.evidence.length > 0 && (
 									<p className="mt-1 flex flex-wrap gap-1">
 										{b.evidence.map((e) => (
-											<Badge
-												key={e}
-												variant="muted"
-												className="font-mono normal-case tracking-normal"
-											>
+											<Badge key={e} variant="muted" className="font-mono">
 												{e}
 											</Badge>
 										))}
@@ -129,7 +125,7 @@ export default async function BaselinePage() {
 						<CardTitle className="text-base">{t("providers")}</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<ul className="flex flex-col gap-2 text-sm">
+						<ul className="flex flex-col gap-2 text-subhead">
 							{BASELINE.providers.map((p) => (
 								<li key={p.name}>
 									<span className="font-medium">{p.name}</span>
@@ -147,7 +143,7 @@ export default async function BaselinePage() {
 						<CardTitle className="text-base">{t("assets")}</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<ul className="flex flex-col gap-2 text-sm">
+						<ul className="flex flex-col gap-2 text-subhead">
 							{BASELINE.assets.map((a) => (
 								<li key={a.name}>
 									<span className="font-medium">{a.name}</span>
@@ -161,7 +157,7 @@ export default async function BaselinePage() {
 					</CardContent>
 				</Card>
 			</div>
-			<p className="mt-6 text-muted-foreground text-xs">{tc("lead")}</p>
+			<p className="mt-6 text-muted-foreground text-footnote">{tc("lead")}</p>
 		</>
 	);
 }

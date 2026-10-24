@@ -83,47 +83,45 @@ export default async function OwnFundsPage({
 
 			{tab === "berechnung" && (
 				<section className="flex flex-col gap-4">
-					<div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-4">
-						<div className="rounded-md border p-3">
-							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+					<div className="grid grid-cols-1 gap-3 text-subhead sm:grid-cols-4">
+						<div className="rounded-2xl bg-card p-3">
+							<p className="font-medium text-footnote text-muted-foreground">
 								{t("suggestedClass")}
 							</p>
-							<p className="font-serif-display text-2xl text-primary">
-								{suggestedClass}
-							</p>
-							<p className="text-muted-foreground text-xs">
+							<p className="font-bold text-title-2">{suggestedClass}</p>
+							<p className="text-muted-foreground text-footnote">
 								{t("suggestedClassHint")}
 							</p>
 						</div>
-						<div className="rounded-md border p-3">
-							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<div className="rounded-2xl bg-card p-3">
+							<p className="font-medium text-footnote text-muted-foreground">
 								{t("latestRequired")}
 							</p>
-							<p className="font-serif-display text-2xl text-primary">
+							<p className="font-bold text-title-2">
 								{money(latest?.totalRequired)}
 							</p>
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{latest?.periodLabel ?? "—"}
 							</p>
 						</div>
-						<div className="rounded-md border p-3">
-							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<div className="rounded-2xl bg-card p-3">
+							<p className="font-medium text-footnote text-muted-foreground">
 								{t("latestBuffer")}
 							</p>
 							<p
-								className={`font-serif-display text-2xl ${latest?.buffer && Number(latest.buffer) < 0 ? "text-destructive" : "text-primary"}`}
+								className={`font-bold text-title-2 ${latest?.buffer && Number(latest.buffer) < 0 ? "text-destructive" : "text-primary"}`}
 							>
 								{money(latest?.buffer)}
 							</p>
 						</div>
-						<div className="rounded-md border p-3">
-							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<div className="rounded-2xl bg-card p-3">
+							<p className="font-medium text-footnote text-muted-foreground">
 								{t("approvedRun")}
 							</p>
-							<p className="font-serif-display text-2xl text-primary">
+							<p className="font-bold text-title-2">
 								{latestApproved ? latestApproved.periodLabel : "—"}
 							</p>
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{latestApproved
 									? t("approvedBy", {
 											name: latestApproved.approvedByName ?? "",
@@ -132,7 +130,7 @@ export default async function OwnFundsPage({
 							</p>
 						</div>
 					</div>
-					<p className="text-muted-foreground text-sm">{t("calcLead")}</p>
+					<p className="text-muted-foreground text-subhead">{t("calcLead")}</p>
 					{rows.length === 0 ? (
 						<EmptyState
 							title={t("empty")}
@@ -159,10 +157,10 @@ export default async function OwnFundsPage({
 									const x = extrasOf(r);
 									return (
 										<TableRow key={r.id}>
-											<TableCell className="whitespace-nowrap font-mono text-xs">
+											<TableCell className="whitespace-nowrap font-mono text-footnote">
 												{r.periodLabel}
 											</TableCell>
-											<TableCell className="text-xs">
+											<TableCell className="text-footnote">
 												{money(r.micarRequired)}
 												<p className="text-muted-foreground">
 													{r.micarClass
@@ -170,7 +168,7 @@ export default async function OwnFundsPage({
 														: "—"}
 												</p>
 											</TableCell>
-											<TableCell className="text-xs">
+											<TableCell className="text-footnote">
 												{money(r.zagRequired)}
 												<p className="text-muted-foreground">
 													{r.zagMethod
@@ -208,7 +206,7 @@ export default async function OwnFundsPage({
 													{t(`ostatus_${r.status}`)}
 												</Badge>
 												{r.approvedAt && (
-													<p className="text-[0.7rem] text-muted-foreground">
+													<p className="text-footnote text-muted-foreground">
 														{fmtDate.format(r.approvedAt)}
 													</p>
 												)}
@@ -255,7 +253,7 @@ export default async function OwnFundsPage({
 													</div>
 												)}
 												{r.status === "draft" && !canEdit && (
-													<span className="text-muted-foreground text-xs">
+													<span className="text-muted-foreground text-footnote">
 														{ts("approvalRequired")}
 													</span>
 												)}
@@ -266,13 +264,15 @@ export default async function OwnFundsPage({
 							</TableBody>
 						</Table>
 					)}
-					<p className="text-muted-foreground text-xs">{t("disclaimer")}</p>
+					<p className="text-muted-foreground text-footnote">
+						{t("disclaimer")}
+					</p>
 				</section>
 			)}
 
 			{tab === "risikotragfaehigkeit" && (
 				<section className="flex flex-col gap-4">
-					<p className="text-muted-foreground text-sm">{t("rbcLead")}</p>
+					<p className="text-muted-foreground text-subhead">{t("rbcLead")}</p>
 					{(() => {
 						const run = latestApproved ?? latest;
 						const x = run ? extrasOf(run) : null;
@@ -288,32 +288,32 @@ export default async function OwnFundsPage({
 						const rbc = x.rbc;
 						return (
 							<>
-								<div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-4">
-									<div className="rounded-md border p-3">
-										<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+								<div className="grid grid-cols-1 gap-3 text-subhead sm:grid-cols-4">
+									<div className="rounded-2xl bg-card p-3">
+										<p className="font-medium text-footnote text-muted-foreground">
 											{t("potential")}
 										</p>
-										<p className="font-serif-display text-2xl text-primary">
+										<p className="font-bold text-title-2">
 											{eur.format(rbc.potential)}
 										</p>
-										<p className="text-muted-foreground text-xs">
+										<p className="text-muted-foreground text-footnote">
 											{run.periodLabel}
 										</p>
 									</div>
-									<div className="rounded-md border p-3">
-										<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+									<div className="rounded-2xl bg-card p-3">
+										<p className="font-medium text-footnote text-muted-foreground">
 											{t("totalRisk")}
 										</p>
-										<p className="font-serif-display text-2xl text-primary">
+										<p className="font-bold text-title-2">
 											{eur.format(rbc.totalRisk)}
 										</p>
 									</div>
-									<div className="rounded-md border p-3">
-										<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+									<div className="rounded-2xl bg-card p-3">
+										<p className="font-medium text-footnote text-muted-foreground">
 											{t("utilisation")}
 										</p>
 										<p
-											className={`font-serif-display text-2xl ${rbc.status === "exceeded" ? "text-destructive" : "text-primary"}`}
+											className={`font-bold text-title-2 ${rbc.status === "exceeded" ? "text-destructive" : "text-primary"}`}
 										>
 											{rbc.utilisationPct === null
 												? "—"
@@ -324,12 +324,12 @@ export default async function OwnFundsPage({
 											className="mt-2"
 										/>
 									</div>
-									<div className="rounded-md border p-3">
-										<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+									<div className="rounded-2xl bg-card p-3">
+										<p className="font-medium text-footnote text-muted-foreground">
 											{t("headroom")}
 										</p>
 										<p
-											className={`font-serif-display text-2xl ${rbc.headroom < 0 ? "text-destructive" : "text-primary"}`}
+											className={`font-bold text-title-2 ${rbc.headroom < 0 ? "text-destructive" : "text-primary"}`}
 										>
 											{eur.format(rbc.headroom)}
 										</p>
@@ -384,7 +384,7 @@ export default async function OwnFundsPage({
 										)}
 									</TableBody>
 								</Table>
-								<p className="text-muted-foreground text-xs">
+								<p className="text-muted-foreground text-footnote">
 									{t("rbcHint")}{" "}
 									<Link
 										href="/risiken"

@@ -122,61 +122,57 @@ export default async function TestProgrammePage({
 					) : undefined
 				}
 			/>
-			<div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
+			<div className="mb-6 flex flex-wrap items-center gap-3 text-subhead">
 				<Link
 					href={`/testprogramm?jahr=${year - 1}`}
 					scroll={false}
-					className="rounded-md border px-2 py-1 hover:bg-muted"
+					className="rounded-xl bg-card px-2 py-1 hover:bg-muted"
 				>
 					← {year - 1}
 				</Link>
-				<span className="font-serif-display text-2xl text-primary">{year}</span>
+				<span className="font-bold text-title-2">{year}</span>
 				<Link
 					href={`/testprogramm?jahr=${year + 1}`}
 					scroll={false}
-					className="rounded-md border px-2 py-1 hover:bg-muted"
+					className="rounded-xl bg-card px-2 py-1 hover:bg-muted"
 				>
 					{year + 1} →
 				</Link>
 			</div>
 			<div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-				<div className="rounded-md border p-3">
-					<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+				<div className="rounded-2xl bg-card p-3">
+					<p className="font-medium text-footnote text-muted-foreground">
 						{t("performed")}
 					</p>
-					<p className="font-serif-display text-3xl text-primary">
-						{status.performed}
-					</p>
-					<p className="text-muted-foreground text-xs">
+					<p className="font-bold text-title-1">{status.performed}</p>
+					<p className="text-muted-foreground text-footnote">
 						{t("passedFailed", { p: status.passed, f: status.failed })}
 					</p>
 				</div>
-				<div className="rounded-md border p-3">
-					<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+				<div className="rounded-2xl bg-card p-3">
+					<p className="font-medium text-footnote text-muted-foreground">
 						{t("plannedOpen")}
 					</p>
-					<p className="font-serif-display text-3xl text-primary">
-						{status.planned}
-					</p>
+					<p className="font-bold text-title-1">{status.planned}</p>
 					<p
-						className={`text-xs ${status.overduePlanned > 0 ? "text-destructive" : "text-muted-foreground"}`}
+						className={`text-footnote ${status.overduePlanned > 0 ? "text-destructive" : "text-muted-foreground"}`}
 					>
 						{t("overduePlanned", { n: status.overduePlanned })}
 					</p>
 				</div>
-				<div className="rounded-md border p-3">
-					<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+				<div className="rounded-2xl bg-card p-3">
+					<p className="font-medium text-footnote text-muted-foreground">
 						{t("pentest")}
 					</p>
 					<Badge variant={status.pentestDone ? "success" : "warning"}>
 						{status.pentestDone ? t("done") : t("open")}
 					</Badge>
-					<p className="mt-1 text-muted-foreground text-xs">
+					<p className="mt-1 text-muted-foreground text-footnote">
 						{t("pentestLead")}
 					</p>
 				</div>
-				<div className="rounded-md border p-3">
-					<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+				<div className="rounded-2xl bg-card p-3">
+					<p className="font-medium text-footnote text-muted-foreground">
 						TLPT (DORA Art. 26)
 					</p>
 					<Badge
@@ -192,7 +188,7 @@ export default async function TestProgrammePage({
 					>
 						{t(`tlpt_${tlpt.state}`)}
 					</Badge>
-					<p className="mt-1 text-muted-foreground text-xs">
+					<p className="mt-1 text-muted-foreground text-footnote">
 						{tlpt.dueAt
 							? `${t("tlptDue")} ${fmtDate.format(tlpt.dueAt)}`
 							: t("tlptLead")}
@@ -201,12 +197,14 @@ export default async function TestProgrammePage({
 			</div>
 
 			<section className="mb-8">
-				<h2 className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground">
+				<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
 					{t("bcmTitle")}
 				</h2>
-				<p className="mb-3 text-muted-foreground text-xs">{t("bcmLead")}</p>
+				<p className="mb-3 text-muted-foreground text-footnote">
+					{t("bcmLead")}
+				</p>
 				{critical.length === 0 ? (
-					<p className="text-sm">{t("bcmNoProcesses")}</p>
+					<p className="text-subhead">{t("bcmNoProcesses")}</p>
 				) : (
 					<ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
 						{critical.map((p) => {
@@ -214,13 +212,14 @@ export default async function TestProgrammePage({
 							return (
 								<li
 									key={p.id}
-									className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+									className="flex items-center justify-between gap-2 rounded-xl bg-card px-3 py-2 text-subhead"
 								>
 									<Link
 										href={`/prozesse/${encodeURIComponent(p.code)}`}
 										className="min-w-0 truncate hover:underline"
 									>
-										<span className="font-mono text-xs">{p.code}</span> {p.name}
+										<span className="font-mono text-footnote">{p.code}</span>{" "}
+										{p.name}
 									</Link>
 									<span className="flex shrink-0 items-center gap-2">
 										<Badge variant={gap ? "warning" : "success"}>
@@ -242,10 +241,10 @@ export default async function TestProgrammePage({
 						})}
 					</ul>
 				)}
-				<h3 className="lv-eyebrow mt-6 mb-2 text-[0.7rem] text-muted-foreground">
+				<h3 className="font-medium text-footnote mt-6 mb-2 text-footnote text-muted-foreground">
 					{t("sitesTitle")}
 				</h3>
-				<p className="mb-3 text-muted-foreground text-xs">
+				<p className="mb-3 text-muted-foreground text-footnote">
 					{t("sitesLead")}{" "}
 					<Link
 						href="/organisation?tab=standorte"
@@ -255,7 +254,7 @@ export default async function TestProgrammePage({
 					</Link>
 				</p>
 				{criticalSites.length === 0 ? (
-					<p className="text-sm">{t("sitesNone")}</p>
+					<p className="text-subhead">{t("sitesNone")}</p>
 				) : (
 					<ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
 						{criticalSites.map((x) => {
@@ -263,7 +262,7 @@ export default async function TestProgrammePage({
 							return (
 								<li
 									key={x.id}
-									className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+									className="flex items-center justify-between gap-2 rounded-xl bg-card px-3 py-2 text-subhead"
 								>
 									<span className="min-w-0 truncate">{x.name}</span>
 									<span className="flex shrink-0 items-center gap-2">
@@ -286,7 +285,7 @@ export default async function TestProgrammePage({
 						})}
 					</ul>
 				)}
-				<p className="mt-3 text-muted-foreground text-xs">
+				<p className="mt-3 text-muted-foreground text-footnote">
 					{t("accessReview")}:{" "}
 					{status.accessReviewQuarters
 						.map((q, i) => `Q${i + 1} ${q ? "✓" : "–"}`)
@@ -296,7 +295,7 @@ export default async function TestProgrammePage({
 
 			<section className="flex flex-col gap-3">
 				<div className="flex flex-wrap items-center justify-between gap-3">
-					<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+					<h2 className="font-medium text-footnote text-muted-foreground">
 						{t("tests", { year })}
 					</h2>
 				</div>
@@ -313,7 +312,7 @@ export default async function TestProgrammePage({
 					]}
 				/>
 				{inYear.length === 0 ? (
-					<p className="text-sm">{t("testsEmpty")}</p>
+					<p className="text-subhead">{t("testsEmpty")}</p>
 				) : (
 					<Table>
 						<TableHeader>
@@ -348,7 +347,7 @@ export default async function TestProgrammePage({
 												href={`/controls/${x.controlCode}`}
 												className="hover:underline"
 											>
-												<span className="font-mono text-xs">
+												<span className="font-mono text-footnote">
 													{x.controlCode}
 												</span>{" "}
 												{x.controlTitle}
@@ -357,13 +356,15 @@ export default async function TestProgrammePage({
 											"—"
 										)}
 										{x.scope && (
-											<p className="text-muted-foreground text-xs">{x.scope}</p>
+											<p className="text-muted-foreground text-footnote">
+												{x.scope}
+											</p>
 										)}
 									</TableCell>
-									<TableCell className="text-xs">
+									<TableCell className="text-footnote">
 										{tt(`method_${x.method}` as "method_inspection")}
 									</TableCell>
-									<TableCell className="text-xs">
+									<TableCell className="text-footnote">
 										{x.processCode ? `${x.processCode} ${x.processName}` : "—"}
 									</TableCell>
 									<TableCell>

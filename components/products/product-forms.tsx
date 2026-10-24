@@ -143,7 +143,7 @@ export function NewProductDialog() {
 						</div>
 					</div>
 					{kind === "saas" && (
-						<p className="rounded-md border border-dashed p-2 text-muted-foreground text-xs">
+						<p className="rounded-2xl bg-card p-2 text-muted-foreground text-footnote">
 							{t("saasHint")}
 						</p>
 					)}
@@ -236,7 +236,7 @@ export function ScopeForm({
 	const scope = d.craInScope === null ? "unknown" : d.craInScope ? "yes" : "no";
 	return (
 		<form
-			className="flex flex-col gap-4 text-sm"
+			className="flex flex-col gap-4 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				save({
@@ -341,7 +341,9 @@ export function ScopeForm({
 								))}
 							</SelectContent>
 						</Select>
-						<p className="text-muted-foreground text-xs">{t("classHint")}</p>
+						<p className="text-muted-foreground text-footnote">
+							{t("classHint")}
+						</p>
 					</div>
 					{d.craClass !== "default" && (
 						<div className="flex flex-col gap-1.5">
@@ -412,7 +414,7 @@ export function LifecycleForm({
 		setD({ ...d, [k]: v });
 	return (
 		<form
-			className="flex flex-col gap-4 text-sm"
+			className="flex flex-col gap-4 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				save({
@@ -479,7 +481,9 @@ export function LifecycleForm({
 					autoComplete="off"
 					spellCheck={false}
 				/>
-				<p className="text-muted-foreground text-xs">{t("vulnContactHint")}</p>
+				<p className="text-muted-foreground text-footnote">
+					{t("vulnContactHint")}
+				</p>
 			</div>
 			{!disabled && (
 				<div className="flex justify-end">
@@ -548,7 +552,7 @@ export function ConformityForm({
 	);
 	return (
 		<form
-			className="flex flex-col gap-4 text-sm"
+			className="flex flex-col gap-4 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				save({
@@ -565,7 +569,9 @@ export function ConformityForm({
 				{docSelect("prd-tech-doc", t("techDocument"), "techDocDocumentId")}
 			</div>
 			{documents.length === 0 && (
-				<p className="text-muted-foreground text-xs">{t("noDocuments")}</p>
+				<p className="text-muted-foreground text-footnote">
+					{t("noDocuments")}
+				</p>
 			)}
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
@@ -655,7 +661,7 @@ export function SbomUpload({ productId }: { productId: string }) {
 	}
 	return (
 		<form
-			className="flex flex-col gap-3 text-sm"
+			className="flex flex-col gap-3 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				send(ack);
@@ -669,11 +675,13 @@ export function SbomUpload({ productId }: { productId: string }) {
 				accept=".json,application/json"
 				required
 			/>
-			<p className="text-muted-foreground text-xs">{t("sbomUploadHint")}</p>
+			<p className="text-muted-foreground text-footnote">
+				{t("sbomUploadHint")}
+			</p>
 			{warn && (
 				<DlpWarning reasons={warn} acknowledged={ack} onAcknowledge={setAck} />
 			)}
-			<p aria-live="polite" className="text-destructive text-xs">
+			<p aria-live="polite" className="text-destructive text-footnote">
 				{message}
 			</p>
 			<div className="flex justify-end">

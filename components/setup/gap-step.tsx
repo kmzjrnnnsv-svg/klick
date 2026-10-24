@@ -23,7 +23,7 @@ export function GapStep({
 	const [selected, setSelected] = useState(frameworks.map((f) => f.slug));
 	if (frameworks.length === 0)
 		return (
-			<p className="text-sm">
+			<p className="text-subhead">
 				{t("gapNoFrameworks")}{" "}
 				<Link
 					href="/einrichtung/rahmenwerke"
@@ -35,7 +35,7 @@ export function GapStep({
 		);
 	return (
 		<div className="flex flex-col gap-6">
-			<fieldset className="flex flex-col gap-2 text-sm">
+			<fieldset className="flex flex-col gap-2 text-subhead">
 				<legend className="mb-1.5 font-medium">{t("gapFrameworks")}</legend>
 				<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 					{frameworks.map((f) => (
@@ -55,7 +55,7 @@ export function GapStep({
 					))}
 				</div>
 			</fieldset>
-			<p className="text-muted-foreground text-xs">{t("gapLater")}</p>
+			<p className="text-muted-foreground text-footnote">{t("gapLater")}</p>
 			<div className="flex justify-end">
 				<Button
 					disabled={pending || selected.length === 0}

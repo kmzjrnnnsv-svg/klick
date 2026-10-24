@@ -140,11 +140,11 @@ export default async function ResolutionsPage({
 
 			{tab === "anfragen" && (
 				<section className="flex flex-col gap-3">
-					<p className="max-w-3xl text-muted-foreground text-sm">
+					<p className="max-w-3xl text-muted-foreground text-subhead">
 						{td("tabLead")}
 					</p>
 					{requests.length === 0 ? (
-						<p className="text-sm">{td("empty")}</p>
+						<p className="text-subhead">{td("empty")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -159,23 +159,23 @@ export default async function ResolutionsPage({
 							<TableBody>
 								{requests.map((q) => (
 									<TableRow key={q.id} id={q.code}>
-										<TableCell className="whitespace-nowrap font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-footnote">
 											{q.code}
 										</TableCell>
 										<TableCell>
 											<p className="font-medium">{q.question}</p>
 											{q.context && (
-												<p className="line-clamp-2 text-muted-foreground text-xs">
+												<p className="line-clamp-2 text-muted-foreground text-footnote">
 													{q.context}
 												</p>
 											)}
 											{q.options.length > 0 && (
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{q.options.join(" · ")}
 												</p>
 											)}
 											{q.chosenOption && (
-												<p className="text-xs">
+												<p className="text-footnote">
 													{td("chosen", { option: q.chosenOption })}
 												</p>
 											)}
@@ -195,7 +195,7 @@ export default async function ResolutionsPage({
 															q.linkedEntityType,
 															q.linkedEntityId,
 														)}
-														className="text-primary text-xs hover:underline"
+														className="text-primary text-footnote hover:underline"
 													>
 														{t("linked")}
 													</Link>
@@ -207,7 +207,7 @@ export default async function ResolutionsPage({
 												))}
 											</div>
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{q.dueAt ? fmtDate.format(new Date(q.dueAt)) : "—"}
 											{q.status === "open" && q.dueAt && q.dueAt < today && (
 												<Badge variant="destructive" className="mt-1">
@@ -234,7 +234,7 @@ export default async function ResolutionsPage({
 													<WithdrawDecisionButton id={q.id} code={q.code} />
 												)}
 										</TableCell>
-										<TableCell className="whitespace-nowrap font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-footnote">
 											{q.resolutionNumber ?? "—"}
 										</TableCell>
 									</TableRow>
@@ -246,7 +246,7 @@ export default async function ResolutionsPage({
 			)}
 
 			{tab === "register" && usedFrameworks.length > 0 && (
-				<div className="mb-3 flex flex-wrap items-center gap-1.5 text-xs">
+				<div className="mb-3 flex flex-wrap items-center gap-1.5 text-footnote">
 					<Link
 						href="/beschluesse"
 						scroll={false}
@@ -277,9 +277,11 @@ export default async function ResolutionsPage({
 
 			{tab === "pflicht" && (
 				<section className="flex flex-col gap-3">
-					<p className="text-muted-foreground text-sm">{t("requiredLead")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("requiredLead")}
+					</p>
 					{coverage.items.length === 0 ? (
-						<p className="text-sm">{t("requiredEmpty")}</p>
+						<p className="text-subhead">{t("requiredEmpty")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -297,27 +299,23 @@ export default async function ResolutionsPage({
 									<TableRow key={it.required.code}>
 										<TableCell>
 											<p className="font-medium">{it.required.title}</p>
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{it.required.legalBasis}
 											</p>
 										</TableCell>
 										<TableCell>
 											<span className="flex flex-wrap gap-1">
 												{it.required.frameworks.map((f) => (
-													<Badge
-														key={f}
-														variant="muted"
-														className="normal-case tracking-normal"
-													>
+													<Badge key={f} variant="muted" className="">
 														{shortFrameworkName(f)}
 													</Badge>
 												))}
 											</span>
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{t(`freq_${it.required.frequency}`)}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{it.lastAt ? (
 												<>
 													<span className="font-mono">
@@ -386,7 +384,7 @@ export default async function ResolutionsPage({
 									<Link
 										href="/beschluesse?tab=pflicht"
 										scroll={false}
-										className="inline-flex h-8 items-center rounded-md border px-3 text-xs hover:bg-muted"
+										className="inline-flex h-8 items-center rounded-full bg-muted px-3 font-medium text-footnote hover:bg-foreground/12"
 									>
 										{t("tabRequired")}
 									</Link>
@@ -409,22 +407,22 @@ export default async function ResolutionsPage({
 						<TableBody>
 							{sorted.map((r) => (
 								<TableRow key={r.id}>
-									<TableCell className="whitespace-nowrap font-mono text-xs">
+									<TableCell className="whitespace-nowrap font-mono text-footnote">
 										{r.resolutionNumber}
 									</TableCell>
 									<TableCell>{fmtDate.format(new Date(r.date))}</TableCell>
-									<TableCell className="text-xs">
+									<TableCell className="text-footnote">
 										{t(`body_${r.body}`)}
 									</TableCell>
 									<TableCell>
 										<p className="font-medium">{r.subject}</p>
-										<p className="line-clamp-2 text-muted-foreground text-xs">
+										<p className="line-clamp-2 text-muted-foreground text-footnote">
 											{r.decisionText}
 										</p>
 										{r.reviewHeldAt && (
 											<Link
 												href="/managementbewertung"
-												className="mt-0.5 block text-primary text-[0.7rem] hover:underline"
+												className="mt-0.5 block text-primary text-footnote hover:underline"
 											>
 												{t("fromReview", {
 													date: fmtDate.format(new Date(r.reviewHeldAt)),
@@ -439,7 +437,7 @@ export default async function ResolutionsPage({
 															r.linkedEntityType,
 															r.linkedEntityId,
 														)}
-														className="text-primary text-[0.7rem] hover:underline"
+														className="text-primary text-footnote hover:underline"
 													>
 														{t("linked")}
 													</Link>
@@ -452,15 +450,15 @@ export default async function ResolutionsPage({
 											</div>
 										)}
 										{r.attendeeNames.length > 0 && (
-											<p className="mt-0.5 text-muted-foreground text-[0.7rem]">
+											<p className="mt-0.5 text-muted-foreground text-footnote">
 												{t("attendees")}: {r.attendeeNames.join(", ")}
 											</p>
 										)}
 									</TableCell>
-									<TableCell className="text-xs">
+									<TableCell className="text-footnote">
 										{r.legalBasis ?? "—"}
 										{r.requiredCode && (
-											<p className="font-mono text-[0.7rem] text-muted-foreground">
+											<p className="font-mono text-footnote text-muted-foreground">
 												{r.requiredCode}
 											</p>
 										)}

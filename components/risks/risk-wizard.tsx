@@ -89,7 +89,7 @@ const STEPS = [
 type Step = (typeof STEPS)[number];
 const TREATMENTS: Treatment[] = ["mitigate", "transfer", "avoid", "accept"];
 const selectCls =
-	"h-9 w-full rounded-sm border border-input bg-background px-2 text-foreground text-sm disabled:opacity-60";
+	"h-9 w-full rounded-md bg-muted px-2 text-foreground text-subhead disabled:opacity-60";
 
 export function RiskWizard({
 	mode,
@@ -320,7 +320,7 @@ export function RiskWizard({
 		t(`zoneMeans_${zone}` as "zoneMeans_acceptable");
 	const err = (k: string) =>
 		errors[k] ? (
-			<p className="text-destructive text-xs" role="alert">
+			<p className="text-destructive text-footnote" role="alert">
 				{errors[k]}
 			</p>
 		) : null;
@@ -337,7 +337,7 @@ export function RiskWizard({
 	return (
 		<div className="flex flex-col gap-6">
 			{d.source && (
-				<p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-sm">
+				<p className="rounded-xl bg-muted px-3 py-2 text-subhead">
 					{t("fromSource")}{" "}
 					<a href={d.source.href} className="text-primary hover:underline">
 						{d.source.label}
@@ -345,7 +345,7 @@ export function RiskWizard({
 				</p>
 			)}
 			<nav aria-label={t("stepsLabel")}>
-				<ol className="flex flex-wrap gap-1.5 text-xs">
+				<ol className="flex flex-wrap gap-1.5 text-footnote">
 					{steps.map((s, i) => (
 						<li key={s}>
 							<button
@@ -373,7 +373,9 @@ export function RiskWizard({
 					<h2 id="rw-h" className="font-medium text-lg">
 						{t(`q_${step}`)}
 					</h2>
-					<p className="text-muted-foreground text-sm">{t(`lead_${step}`)}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t(`lead_${step}`)}
+					</p>
 				</header>
 
 				{step === "scenario" && (
@@ -391,7 +393,7 @@ export function RiskWizard({
 								/>
 							</div>
 							{hiddenCount > 0 && (
-								<label className="flex items-center gap-2 pb-2 text-sm">
+								<label className="flex items-center gap-2 pb-2 text-subhead">
 									<input
 										type="checkbox"
 										checked={showAll}
@@ -402,7 +404,7 @@ export function RiskWizard({
 								</label>
 							)}
 						</div>
-						<div className="grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-[1fr_16rem]">
+						<div className="grid grid-cols-1 gap-3 rounded-2xl bg-card p-3 sm:grid-cols-[1fr_16rem]">
 							<div className="flex flex-col gap-1">
 								<Label htmlFor="rw-title">{t("title")}</Label>
 								<Input
@@ -446,7 +448,7 @@ export function RiskWizard({
 										aria-pressed={group === g.key}
 										onClick={() => setGroup(g.key)}
 										className={cn(
-											"rounded-full border px-3 py-1 text-xs transition-colors",
+											"rounded-full border px-3 py-1 text-footnote transition-colors",
 											group === g.key
 												? "border-primary bg-primary/10"
 												: "text-muted-foreground hover:bg-muted",
@@ -466,12 +468,12 @@ export function RiskWizard({
 							onClick={() => pickScenario(null)}
 							aria-pressed={d.scenarioCode === null}
 							className={cn(
-								"rounded-md border border-dashed p-3 text-left text-sm hover:border-foreground/40",
+								"rounded-2xl bg-card p-3 text-left text-subhead hover:border-foreground/40",
 								d.scenarioCode === null && "border-primary bg-primary/5",
 							)}
 						>
 							<span className="font-medium">{t("ownScenario")}</span>
-							<span className="block text-muted-foreground text-xs">
+							<span className="block text-muted-foreground text-footnote">
 								{t("ownScenarioHint")}
 							</span>
 						</button>
@@ -482,7 +484,7 @@ export function RiskWizard({
 							if (list.length === 0) return null;
 							return (
 								<div key={g.key} className="flex flex-col gap-2">
-									<h3 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+									<h3 className="font-medium text-footnote text-muted-foreground">
 										{g.label}
 									</h3>
 									<div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
@@ -493,13 +495,13 @@ export function RiskWizard({
 												aria-pressed={d.scenarioCode === s.code}
 												onClick={() => pickScenario(s)}
 												className={cn(
-													"flex flex-col gap-1 rounded-md border p-3 text-left text-sm transition-colors hover:border-foreground/40",
+													"flex flex-col gap-1 rounded-2xl bg-card p-3 text-left text-subhead transition-colors hover:border-foreground/40",
 													d.scenarioCode === s.code &&
 														"border-primary bg-primary/5",
 												)}
 											>
 												<span className="font-medium">{s.title}</span>
-												<span className="line-clamp-2 text-muted-foreground text-xs">
+												<span className="line-clamp-2 text-muted-foreground text-footnote">
 													{s.impactHint}
 												</span>
 											</button>
@@ -509,7 +511,9 @@ export function RiskWizard({
 							);
 						})}
 						{visible.length === 0 && (
-							<p className="text-muted-foreground text-sm">{t("noScenario")}</p>
+							<p className="text-muted-foreground text-subhead">
+								{t("noScenario")}
+							</p>
 						)}
 					</div>
 				)}
@@ -564,7 +568,7 @@ export function RiskWizard({
 						</div>
 						<div className="flex flex-col gap-1">
 							<Label htmlFor="rw-impact">{t("impactDescription")}</Label>
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{t("impactDescriptionHint")}
 							</p>
 							<Textarea
@@ -575,14 +579,14 @@ export function RiskWizard({
 							/>
 						</div>
 						<fieldset className="flex flex-col gap-2">
-							<legend className="mb-1 font-medium text-sm">
+							<legend className="mb-1 font-medium text-subhead">
 								{t("protectionGoals")}
 							</legend>
 							<div className="flex flex-wrap gap-2">
 								{PROTECTION_GOALS.map((g) => (
 									<label
 										key={g}
-										className="flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+										className="flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1 text-subhead has-[:checked]:border-primary has-[:checked]:bg-primary/5"
 									>
 										<input
 											type="checkbox"
@@ -604,7 +608,7 @@ export function RiskWizard({
 						</fieldset>
 						<div className="flex flex-col gap-1">
 							<Label htmlFor="rw-existing">{t("existingMeasures")}</Label>
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{t("existingMeasuresHint")}
 							</p>
 							<Textarea
@@ -615,10 +619,10 @@ export function RiskWizard({
 							/>
 						</div>
 						<fieldset className="flex flex-col gap-2">
-							<legend className="mb-1 font-medium text-sm">
+							<legend className="mb-1 font-medium text-subhead">
 								{t("controls")}
 							</legend>
-							<p className="-mt-1 text-muted-foreground text-xs">
+							<p className="-mt-1 text-muted-foreground text-footnote">
 								{t("controlsHint")}
 							</p>
 							<ul className="flex flex-col gap-1">
@@ -627,9 +631,9 @@ export function RiskWizard({
 									return (
 										<li
 											key={code}
-											className="flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
+											className="flex items-center gap-2 rounded-xl bg-card px-2 py-1.5 text-subhead"
 										>
-											<span className="font-mono text-xs" translate="no">
+											<span className="font-mono text-footnote" translate="no">
 												{code}
 											</span>
 											<span className="min-w-0 flex-1 truncate">
@@ -671,7 +675,7 @@ export function RiskWizard({
 								})}
 							</ul>
 							<div className="flex flex-col gap-1">
-								<Label htmlFor="rw-cq" className="text-xs">
+								<Label htmlFor="rw-cq" className="text-footnote">
 									{t("addControl")}
 								</Label>
 								<Input
@@ -683,7 +687,7 @@ export function RiskWizard({
 									autoComplete="off"
 								/>
 								{ctrlQuery.trim().length >= 2 && (
-									<ul className="max-h-48 overflow-y-auto rounded-md border text-sm">
+									<ul className="max-h-48 overflow-y-auto rounded-2xl bg-card text-subhead">
 										{controls
 											.filter(
 												(c) =>
@@ -703,7 +707,10 @@ export function RiskWizard({
 															setCtrlQuery("");
 														}}
 													>
-														<span className="font-mono text-xs" translate="no">
+														<span
+															className="font-mono text-footnote"
+															translate="no"
+														>
 															{c.code}
 														</span>
 														<span className="truncate">{c.title}</span>
@@ -737,10 +744,10 @@ export function RiskWizard({
 						))}
 						{moreDims.length > 0 && (
 							<details
-								className="rounded-md border p-3"
+								className="rounded-2xl bg-card p-3"
 								open={firstDims.length === 0}
 							>
-								<summary className="cursor-pointer text-sm">
+								<summary className="cursor-pointer text-subhead">
 									{t("moreDimensions", { n: moreDims.length })}
 								</summary>
 								<div className="mt-4 flex flex-col gap-5">
@@ -767,7 +774,7 @@ export function RiskWizard({
 							</details>
 						)}
 						<p
-							className="rounded-md border bg-muted/40 p-3 text-sm"
+							className="rounded-xl bg-muted p-3 text-subhead"
 							aria-live="polite"
 						>
 							{impact === null
@@ -804,11 +811,11 @@ export function RiskWizard({
 					<div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto]">
 						<div
 							className={cn(
-								"flex flex-col gap-3 rounded-md border p-4",
+								"flex flex-col gap-3 rounded-2xl bg-card p-4",
 								ZONE_CELL[assessed.inherent.zone],
 							)}
 						>
-							<p className="text-sm">
+							<p className="text-subhead">
 								{t("resultCalc", {
 									l: d.likelihood ?? 0,
 									i: impact,
@@ -826,9 +833,9 @@ export function RiskWizard({
 								{tr(`zone_${assessed.inherent.zone}`)}
 							</Badge>
 							{assessed.inherent.cls.meaning && (
-								<p className="text-sm">{assessed.inherent.cls.meaning}</p>
+								<p className="text-subhead">{assessed.inherent.cls.meaning}</p>
 							)}
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{zoneText(assessed.inherent.zone)}
 							</p>
 						</div>
@@ -842,14 +849,14 @@ export function RiskWizard({
 				{step === "treatment" && assessed && (
 					<div className="flex flex-col gap-6">
 						<fieldset className="flex flex-col gap-2">
-							<legend className="mb-1 font-medium text-sm">
+							<legend className="mb-1 font-medium text-subhead">
 								{t("treatmentLegend")}
 							</legend>
 							<div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
 								{TREATMENTS.map((o) => (
 									<label
 										key={o}
-										className="flex cursor-pointer flex-col gap-1 rounded-md border p-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50"
+										className="flex cursor-pointer flex-col gap-1 rounded-2xl bg-card p-3 text-subhead has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50"
 									>
 										<span className="flex items-center gap-2 font-medium">
 											<input
@@ -862,14 +869,14 @@ export function RiskWizard({
 											/>
 											{tr(`treatment_${o}`)}
 										</span>
-										<span className="text-muted-foreground text-xs">
+										<span className="text-muted-foreground text-footnote">
 											{t(`treatmentHint_${o}`)}
 										</span>
 									</label>
 								))}
 							</div>
 							{d.treatment === "accept" && (
-								<p className="rounded-md border border-warning/50 bg-warning/10 p-2 text-sm">
+								<p className="rounded-xl bg-warning/12 p-2 text-subhead">
 									{t(
 										`acceptHint_${assessed.inherent.zone}` as "acceptHint_acceptable",
 									)}
@@ -879,15 +886,15 @@ export function RiskWizard({
 
 						{d.treatment !== "accept" && (
 							<div className="flex flex-col gap-2">
-								<h3 className="font-medium text-sm">{t("measures")}</h3>
-								<p className="text-muted-foreground text-xs">
+								<h3 className="font-medium text-subhead">{t("measures")}</h3>
+								<p className="text-muted-foreground text-footnote">
 									{t("measuresHint")}
 								</p>
 								<ul className="flex flex-col gap-2">
 									{d.measures.map((m, i) => (
 										<li
 											key={m.key}
-											className="grid grid-cols-1 gap-2 rounded-md border p-2 md:grid-cols-[1fr_12rem_10rem_8rem_auto]"
+											className="grid grid-cols-1 gap-2 rounded-2xl bg-card p-2 md:grid-cols-[1fr_12rem_10rem_8rem_auto]"
 										>
 											<Input
 												aria-label={t("measureTitle")}
@@ -1014,9 +1021,11 @@ export function RiskWizard({
 						</div>
 
 						{d.treatment !== "accept" && (
-							<div className="flex flex-col gap-3 rounded-md border p-3">
-								<h3 className="font-medium text-sm">{t("residualTitle")}</h3>
-								<p className="text-muted-foreground text-xs">
+							<div className="flex flex-col gap-3 rounded-2xl bg-card p-3">
+								<h3 className="font-medium text-subhead">
+									{t("residualTitle")}
+								</h3>
+								<p className="text-muted-foreground text-footnote">
 									{t("residualHint")}
 								</p>
 								<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1064,7 +1073,7 @@ export function RiskWizard({
 									</div>
 								</div>
 								{assessed.residual && (
-									<p className="text-sm" aria-live="polite">
+									<p className="text-subhead" aria-live="polite">
 										{t("residualResult", {
 											score: assessed.residual.score,
 											label: assessed.residual.cls.label,
@@ -1118,7 +1127,7 @@ export function RiskWizard({
 				)}
 
 				{step === "summary" && assessed && impact !== null && (
-					<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-[14rem_1fr]">
+					<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-subhead sm:grid-cols-[14rem_1fr]">
 						<dt className="text-muted-foreground">{t("title")}</dt>
 						<dd className="font-medium">
 							{riskCode ? `${riskCode} · ` : ""}
@@ -1175,7 +1184,7 @@ export function RiskWizard({
 							</>
 						)}
 						<dt className="text-muted-foreground">{t("controls")}</dt>
-						<dd className="font-mono text-xs" translate="no">
+						<dd className="font-mono text-footnote" translate="no">
 							{d.controlCodes.join(", ") || "—"}
 						</dd>
 						<dt className="text-muted-foreground">{t("owner")}</dt>
@@ -1248,7 +1257,7 @@ function DimChoice({
 				<button
 					type="button"
 					onClick={onClear}
-					className="w-fit text-muted-foreground text-xs underline-offset-4 hover:underline"
+					className="w-fit text-muted-foreground text-footnote underline-offset-4 hover:underline"
 				>
 					{clearLabel}
 				</button>
@@ -1272,11 +1281,11 @@ function CheckList({
 }) {
 	return (
 		<fieldset className="flex flex-col gap-1">
-			<legend className="mb-1 font-medium text-sm">{label}</legend>
+			<legend className="mb-1 font-medium text-subhead">{label}</legend>
 			{items.length === 0 ? (
-				<p className="text-muted-foreground text-xs">{empty}</p>
+				<p className="text-muted-foreground text-footnote">{empty}</p>
 			) : (
-				<ul className="max-h-44 overflow-y-auto rounded-md border p-1 text-sm">
+				<ul className="max-h-44 overflow-y-auto rounded-2xl bg-card p-1 text-subhead">
 					{items.map((it) => (
 						<li key={it.id}>
 							<label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-muted">

@@ -43,9 +43,7 @@ export default async function AdminUsersPage() {
 	return (
 		<>
 			<div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("users")}
-				</h1>
+				<h1 className="font-bold text-title-1">{t("users")}</h1>
 				<CreateAccountDialog
 					orgs={orgs.map((o) => ({ id: o.id, name: o.name }))}
 					days={ACTIVATION_DAYS}
@@ -88,7 +86,9 @@ export default async function AdminUsersPage() {
 								</TableCell>
 								<TableCell>
 									{(orgsByUser.get(u.id) ?? []).length === 0 ? (
-										<span className="text-muted-foreground text-xs">—</span>
+										<span className="text-muted-foreground text-footnote">
+											—
+										</span>
 									) : (
 										<ul className="flex flex-col gap-1">
 											{(orgsByUser.get(u.id) ?? []).map((m) => (
@@ -125,12 +125,12 @@ export default async function AdminUsersPage() {
 										<span className="flex flex-col items-start gap-0.5">
 											<Badge variant="destructive">{ta("statusBlocked")}</Badge>
 											{u.banReason && (
-												<span className="max-w-48 break-words text-muted-foreground text-xs">
+												<span className="max-w-48 break-words text-muted-foreground text-footnote">
 													{ta("statusBlockedReason", { reason: u.banReason })}
 												</span>
 											)}
 											{u.banExpires && (
-												<span className="text-muted-foreground text-xs">
+												<span className="text-muted-foreground text-footnote">
 													{ta("statusBlockedUntil", {
 														date: fmt.format(u.banExpires),
 													})}
@@ -140,7 +140,7 @@ export default async function AdminUsersPage() {
 									) : status === "pending" && linkUntil ? (
 										<span className="flex flex-col items-start gap-0.5">
 											<Badge variant="warning">{ta("statusPending")}</Badge>
-											<span className="text-muted-foreground text-xs">
+											<span className="text-muted-foreground text-footnote">
 												{linkUntil < now
 													? ta("statusPendingExpired")
 													: ta("statusPendingUntil", {
@@ -149,7 +149,7 @@ export default async function AdminUsersPage() {
 											</span>
 										</span>
 									) : (
-										<span className="text-muted-foreground text-xs">
+										<span className="text-muted-foreground text-footnote">
 											{ta("statusActive")}
 										</span>
 									)}

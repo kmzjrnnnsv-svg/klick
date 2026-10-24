@@ -84,7 +84,7 @@ export default async function ProvidersPage({
 						canExport ? (
 							<a
 								href="/api/export/lieferantenbewertung.csv"
-								className="text-primary text-sm underline-offset-4 hover:underline"
+								className="text-primary text-subhead underline-offset-4 hover:underline"
 							>
 								{tr("exportCsv")}
 							</a>
@@ -115,14 +115,14 @@ export default async function ProvidersPage({
 						{TOOL_LANDSCAPE.map((cat) => (
 							<TableRow key={cat.code}>
 								<TableCell className="font-medium">{cat.name}</TableCell>
-								<TableCell className="text-xs">
+								<TableCell className="text-footnote">
 									<p>{cat.covers}</p>
 									<p className="mt-1 flex flex-wrap gap-1">
 										{cat.controls.map((c) => (
 											<Link
 												key={c}
 												href={`/controls/${c}`}
-												className="font-mono text-[0.7rem] text-primary hover:underline"
+												className="font-mono text-footnote text-primary hover:underline"
 												title={CONTROL_BY_CODE.get(c)?.title}
 											>
 												{c}
@@ -130,10 +130,10 @@ export default async function ProvidersPage({
 										))}
 									</p>
 								</TableCell>
-								<TableCell className="text-xs">
+								<TableCell className="text-footnote">
 									{cat.startup.join(", ")}
 								</TableCell>
-								<TableCell className="text-xs">
+								<TableCell className="text-footnote">
 									{cat.scale.join(", ")}
 								</TableCell>
 								<TableCell>
@@ -161,7 +161,7 @@ export default async function ProvidersPage({
 						))}
 					</TableBody>
 				</Table>
-				<p className="mt-4 text-muted-foreground text-xs">
+				<p className="mt-4 text-muted-foreground text-footnote">
 					{t("toolsDisclaimer")}
 				</p>
 			</>
@@ -200,7 +200,7 @@ export default async function ProvidersPage({
 						)
 					)}
 					{r.serviceDescription && (
-						<span className="block text-muted-foreground text-xs">
+						<span className="block text-muted-foreground text-footnote">
 							{r.serviceDescription}
 						</span>
 					)}
@@ -215,7 +215,7 @@ export default async function ProvidersPage({
 				<span>
 					{t(`partner_${r.partnerType}`)}
 					{r.category && (
-						<span className="block text-muted-foreground text-xs">
+						<span className="block text-muted-foreground text-footnote">
 							{t(`category_${r.category}`)}
 						</span>
 					)}
@@ -255,17 +255,17 @@ export default async function ProvidersPage({
 							{x.traffic && (
 								<Badge variant={TRAFFIC_TONE[x.traffic]}>{x.level}</Badge>
 							)}
-							<span className="tabular-nums text-xs">
+							<span className="tabular-nums text-footnote">
 								{Math.round((x.totalScore / 5) * 100)} %
 							</span>
 						</span>
-						<span className="text-muted-foreground text-xs">
+						<span className="text-muted-foreground text-footnote">
 							{tr(`decision_${x.decision}` as "decision_open")}
 						</span>
 						{r.nextAssessmentAt && (
 							<span
 								className={cn(
-									"text-xs tabular-nums",
+									"text-footnote tabular-nums",
 									r.nextAssessmentAt < today
 										? "text-destructive"
 										: "text-muted-foreground",
@@ -284,7 +284,7 @@ export default async function ProvidersPage({
 			className: "hidden w-36 xl:table-cell",
 			mobile: false,
 			cell: (r) => (
-				<span className="flex flex-wrap gap-1 text-xs">
+				<span className="flex flex-wrap gap-1 text-footnote">
 					{r.isOutsourcing && (
 						<Badge variant="outline">{t("isOutsourcing")}</Badge>
 					)}
@@ -326,7 +326,7 @@ export default async function ProvidersPage({
 						}))}
 					/>
 					{(links.assetsByProvider.get(r.id)?.length ?? 0) > 0 && (
-						<span className="text-muted-foreground text-xs">
+						<span className="text-muted-foreground text-footnote">
 							{t("assetsCount", {
 								n: links.assetsByProvider.get(r.id)?.length ?? 0,
 							})}
@@ -386,14 +386,14 @@ export default async function ProvidersPage({
 					<Link
 						href="/dienstleister?tab=uebersicht"
 						scroll={false}
-						className="text-primary text-sm hover:underline underline-offset-4"
+						className="text-primary text-subhead hover:underline underline-offset-4"
 					>
 						{t("tabOverview")}
 					</Link>
 					<Link
 						href="/dienstleister?tab=werkzeuge"
 						scroll={false}
-						className="text-primary text-sm hover:underline underline-offset-4"
+						className="text-primary text-subhead hover:underline underline-offset-4"
 					>
 						{t("tabTools")}
 					</Link>
@@ -401,14 +401,14 @@ export default async function ProvidersPage({
 						<>
 							<ExportLink
 								href="/api/export/informationsregister.zip"
-								className="text-primary text-sm underline-offset-4 hover:underline"
+								className="text-primary text-subhead underline-offset-4 hover:underline"
 								title={t("exportRegisterHint")}
 							>
 								{t("exportRegister")}
 							</ExportLink>
 							<ExportLink
 								href="/api/export/lieferantenpaket.zip"
-								className="text-primary text-sm underline-offset-4 hover:underline"
+								className="text-primary text-subhead underline-offset-4 hover:underline"
 								title={t("exportSupplierPackHint")}
 							>
 								{t("exportSupplierPack")}

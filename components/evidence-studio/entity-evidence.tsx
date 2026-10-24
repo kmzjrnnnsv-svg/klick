@@ -47,7 +47,7 @@ export async function EntityEvidence({
 		};
 	});
 	return (
-		<div className="flex flex-col gap-1.5 text-sm">
+		<div className="flex flex-col gap-1.5 text-subhead">
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
 				{allows(ctx, { evidence: ["create"] }) && (
 					<GenerateButton
@@ -75,7 +75,7 @@ export async function EntityEvidence({
 						}
 					/>
 				)}
-				<span className="text-muted-foreground text-xs">
+				<span className="text-muted-foreground text-footnote">
 					{latest ? (
 						<>
 							<a
@@ -98,7 +98,7 @@ export async function EntityEvidence({
 				</span>
 			</div>
 			{sign && (sign.signatures.length > 0 || sign.open.length > 0) && (
-				<p className="text-muted-foreground text-xs">
+				<p className="text-muted-foreground text-footnote">
 					{sign.signatures.length > 0 && `${ts("signedPrefix")} `}
 					{sign.signatures.map((s, i) => (
 						<span key={`${s.name}-${s.signedAt}`}>

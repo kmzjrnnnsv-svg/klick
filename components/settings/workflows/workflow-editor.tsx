@@ -336,7 +336,9 @@ export function WorkflowEditor({
 						onChange={(e) => setDescription(e.target.value)}
 					/>
 					{initial.custom && (
-						<p className="text-muted-foreground text-xs">{t("priorityHint")}</p>
+						<p className="text-muted-foreground text-footnote">
+							{t("priorityHint")}
+						</p>
 					)}
 				</div>
 			</section>
@@ -344,7 +346,7 @@ export function WorkflowEditor({
 			<section className="flex flex-col gap-3">
 				<div>
 					<h2 className="font-medium">{t("whenTitle")}</h2>
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{facts.length > 0 ? t("whenLead") : t("noFacts")}
 					</p>
 				</div>
@@ -361,13 +363,13 @@ export function WorkflowEditor({
 			<section className="flex flex-col gap-3">
 				<div>
 					<h2 className="font-medium">{t("stepsTitle")}</h2>
-					<p className="text-muted-foreground text-sm">{t("stepsLead")}</p>
+					<p className="text-muted-foreground text-subhead">{t("stepsLead")}</p>
 				</div>
 				<ol className="flex flex-col gap-3">
 					{steps.map((s, i) => (
 						<li
 							key={s.key}
-							className="flex flex-col gap-4 rounded-md border p-3"
+							className="flex flex-col gap-4 rounded-2xl bg-card p-3"
 						>
 							<div className="flex flex-wrap items-center gap-2">
 								<Badge variant="outline">{t("step", { n: i + 1 })}</Badge>
@@ -415,7 +417,9 @@ export function WorkflowEditor({
 								</div>
 							</div>
 							<div className="flex flex-col gap-1.5">
-								<span className="font-medium text-sm">{t("approvers")}</span>
+								<span className="font-medium text-subhead">
+									{t("approvers")}
+								</span>
 								<RulePicker
 									value={s.approvers}
 									onChange={(approvers) => update(i, { approvers })}
@@ -477,8 +481,8 @@ export function WorkflowEditor({
 								</div>
 							</div>
 							<div className="flex flex-col gap-1.5">
-								<span className="font-medium text-sm">{t("skipIf")}</span>
-								<span className="text-muted-foreground text-xs">
+								<span className="font-medium text-subhead">{t("skipIf")}</span>
+								<span className="text-muted-foreground text-footnote">
 									{t("skipIfLead")}
 								</span>
 								<RulePicker
@@ -491,8 +495,10 @@ export function WorkflowEditor({
 							</div>
 							{facts.length > 0 && (
 								<div className="flex flex-col gap-1.5">
-									<span className="font-medium text-sm">{t("onlyIf")}</span>
-									<span className="text-muted-foreground text-xs">
+									<span className="font-medium text-subhead">
+										{t("onlyIf")}
+									</span>
+									<span className="text-muted-foreground text-footnote">
 										{t("onlyIfLead")}
 									</span>
 									<ConditionsEditor
@@ -505,7 +511,7 @@ export function WorkflowEditor({
 							)}
 							{issuesAt(`steps.${i}`).length > 0 && (
 								<p
-									className="text-destructive text-sm"
+									className="text-destructive text-subhead"
 									role="alert"
 									tabIndex={-1}
 								>
@@ -536,14 +542,16 @@ export function WorkflowEditor({
 			<section className="flex flex-col gap-2">
 				<h2 className="font-medium">{t("previewTitle")}</h2>
 				{conditions.length > 0 && (
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{t("appliesWhen", { conditions: text.conditions(conditions) })}
 					</p>
 				)}
 				{planned.length === 0 ? (
-					<p className="text-muted-foreground text-sm">{t("previewEmpty")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("previewEmpty")}
+					</p>
 				) : (
-					<ol className="flex list-decimal flex-col gap-1 pl-5 text-sm">
+					<ol className="flex list-decimal flex-col gap-1 pl-5 text-subhead">
 						{planned.map((s) => (
 							<li key={s.order}>
 								<span className="font-medium">
@@ -626,7 +634,7 @@ function RulePicker({
 						<li key={r}>
 							<Badge
 								variant="outline"
-								className="h-auto max-w-full gap-1 whitespace-normal py-0.5 pr-0.5 text-left normal-case tracking-normal"
+								className="h-auto max-w-full gap-1 whitespace-normal py-0.5 pr-0.5 text-left"
 							>
 								{ruleLabel(r, names)}
 								<button
@@ -798,7 +806,7 @@ function ConditionsEditor({
 										<label
 											key={o.value}
 											htmlFor={id}
-											className="flex items-center gap-1.5 text-sm"
+											className="flex items-center gap-1.5 text-subhead"
 										>
 											<Checkbox
 												id={id}
@@ -821,7 +829,7 @@ function ConditionsEditor({
 						)}
 						{errs.length > 0 && (
 							<p
-								className="text-destructive text-xs"
+								className="text-destructive text-footnote"
 								role="alert"
 								tabIndex={-1}
 							>
@@ -918,10 +926,10 @@ function DryRun({
 	}
 
 	return (
-		<section className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3">
+		<section className="flex flex-col gap-3 rounded-xl bg-muted p-3">
 			<div>
 				<h2 className="font-medium">{t("dryRunTitle")}</h2>
-				<p className="text-muted-foreground text-sm">{t("dryRunLead")}</p>
+				<p className="text-muted-foreground text-subhead">{t("dryRunLead")}</p>
 			</div>
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 				<div className="flex flex-col gap-1.5">
@@ -1010,7 +1018,7 @@ function DryRun({
 			</Button>
 			<div aria-live="polite">
 				{result && (
-					<div className="flex flex-col gap-2 text-sm">
+					<div className="flex flex-col gap-2 text-subhead">
 						{!result.applies && (
 							<p className="font-medium text-foreground">
 								{t("dryRunNotApplies")}
@@ -1074,7 +1082,7 @@ function DryRun({
 									})
 								: t("dryRunOk")}
 						</p>
-						<p className="text-muted-foreground text-xs">
+						<p className="text-muted-foreground text-footnote">
 							{t("requester")}: {nameOf(requester)}
 						</p>
 					</div>

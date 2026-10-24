@@ -63,7 +63,7 @@ export function OrgSwitcher({
 						className="flex flex-col items-start gap-0"
 					>
 						<span className="w-full truncate">{o.orgName}</span>
-						<span className="text-muted-foreground text-xs">
+						<span className="text-muted-foreground text-footnote">
 							{o.roleLabel}
 							{o.expired && ` · ${t("expired")}`}
 						</span>

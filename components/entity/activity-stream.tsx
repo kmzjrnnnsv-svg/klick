@@ -21,10 +21,10 @@ export function ActivityStream({
 		timeZone: "Europe/Berlin",
 	});
 	if (entries.length === 0) {
-		return <p className="text-muted-foreground text-sm">{labels.empty}</p>;
+		return <p className="text-muted-foreground text-subhead">{labels.empty}</p>;
 	}
 	return (
-		<ol className="flex flex-col gap-4 text-sm">
+		<ol className="flex flex-col gap-4 text-subhead">
 			{entries.map((e) => {
 				if (e.type === "comment") {
 					const name = e.comment.authorUserId
@@ -32,7 +32,7 @@ export function ActivityStream({
 						: null;
 					return (
 						<li key={`c-${e.comment.id}`} className="flex flex-col gap-1">
-							<div className="flex items-center justify-between gap-2 text-muted-foreground text-xs">
+							<div className="flex items-center justify-between gap-2 text-muted-foreground text-footnote">
 								<UserChip
 									name={name ?? labels.system}
 									external={Boolean(
@@ -45,7 +45,7 @@ export function ActivityStream({
 							<div className="rounded-md bg-muted/50 px-3 py-2">
 								<MarkdownView
 									source={e.comment.bodyMarkdown}
-									className="text-sm [&_p]:my-1"
+									className="text-subhead [&_p]:my-1"
 								/>
 							</div>
 						</li>
@@ -54,7 +54,7 @@ export function ActivityStream({
 				const name = e.item.actorUserId ? names.get(e.item.actorUserId) : null;
 				return (
 					<li key={`h-${e.item.id}`} className="flex flex-col gap-1">
-						<div className="flex items-center justify-between gap-2 text-muted-foreground text-xs">
+						<div className="flex items-center justify-between gap-2 text-muted-foreground text-footnote">
 							<span className="inline-flex items-center gap-1.5">
 								<UserChip
 									name={name ?? labels.system}
@@ -67,7 +67,7 @@ export function ActivityStream({
 							<time dateTime={e.at.toISOString()}>{fmt.format(e.at)}</time>
 						</div>
 						{e.item.changes.length > 0 ? (
-							<ul className="flex flex-col gap-0.5 pl-1 text-xs">
+							<ul className="flex flex-col gap-0.5 pl-1 text-footnote">
 								{e.item.changes.map((ch) => (
 									<li
 										key={ch.field}
@@ -87,7 +87,7 @@ export function ActivityStream({
 								))}
 							</ul>
 						) : (
-							<p className="pl-1 text-muted-foreground text-xs">
+							<p className="pl-1 text-muted-foreground text-footnote">
 								{e.item.action}
 							</p>
 						)}

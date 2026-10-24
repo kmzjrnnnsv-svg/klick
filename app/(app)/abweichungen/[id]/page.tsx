@@ -258,19 +258,19 @@ export default async function NonconformityDetailPage({
 						}
 					>
 						{tasks.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{te("tasksEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col gap-2 text-sm">
+							<ul className="flex flex-col gap-2 text-subhead">
 								{tasks.map((task) => (
 									<li
 										key={task.id}
-										className="flex items-start justify-between gap-2 rounded-md border p-2"
+										className="flex items-start justify-between gap-2 rounded-2xl bg-card p-2"
 									>
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{task.assigneeName ?? "—"}
 												{task.dueAt
 													? ` · ${fmtDate.format(new Date(task.dueAt))}`
@@ -297,9 +297,9 @@ export default async function NonconformityDetailPage({
 				currentUserId={ctx.userId}
 			/>
 			<Section title={t("capa")}>
-				<dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+				<dl className="grid grid-cols-1 gap-4 text-subhead sm:grid-cols-2">
 					<div className="sm:col-span-2">
-						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<dt className="font-medium text-footnote text-muted-foreground">
 							{t("rootCause")}
 						</dt>
 						<dd className={nc.rootCause ? "" : "text-destructive"}>
@@ -307,13 +307,13 @@ export default async function NonconformityDetailPage({
 						</dd>
 					</div>
 					<div>
-						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<dt className="font-medium text-footnote text-muted-foreground">
 							{t("correction")}
 						</dt>
 						<dd>{nc.correction ?? "—"}</dd>
 					</div>
 					<div>
-						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<dt className="font-medium text-footnote text-muted-foreground">
 							{t("correctiveAction")}
 						</dt>
 						<dd className={nc.correctiveAction ? "" : "text-warning"}>
@@ -322,7 +322,7 @@ export default async function NonconformityDetailPage({
 					</div>
 				</dl>
 				{sourceHref && (
-					<p className="mt-3 text-xs">
+					<p className="mt-3 text-footnote">
 						<span className="text-muted-foreground">{t("sourceLink")}: </span>
 						<Link href={sourceHref} className="text-primary hover:underline">
 							{data.sourceAudit
@@ -334,7 +334,7 @@ export default async function NonconformityDetailPage({
 			</Section>
 			{nc.followUpClass && (
 				<Section title={t("followUpTitle")}>
-					<p className="text-sm">
+					<p className="text-subhead">
 						{t(`followUp_${nc.followUpClass}`)}
 						{nc.planDueAt &&
 							` · ${t("planDueAt")} ${fmtDate.format(new Date(nc.planDueAt))}`}
@@ -343,8 +343,8 @@ export default async function NonconformityDetailPage({
 					</p>
 					{(nc.followUp ?? []).length > 0 && (
 						<div className="mt-3 overflow-x-auto">
-							<table className="w-full min-w-[28rem] text-left text-sm">
-								<thead className="text-muted-foreground text-xs">
+							<table className="w-full min-w-[28rem] text-left text-subhead">
+								<thead className="text-muted-foreground text-footnote">
 									<tr>
 										<th className="py-1 pr-3 font-normal">
 											{t("followUpFramework")}
@@ -379,7 +379,7 @@ export default async function NonconformityDetailPage({
 							</table>
 						</div>
 					)}
-					<p className="mt-2 text-muted-foreground text-xs">
+					<p className="mt-2 text-muted-foreground text-footnote">
 						{t("followUpSettings")}{" "}
 						<Link
 							href="/einstellungen?tab=audits"
@@ -391,7 +391,7 @@ export default async function NonconformityDetailPage({
 				</Section>
 			)}
 			<Section title={t("effectiveness")}>
-				<div className="flex flex-wrap items-center gap-3 text-sm">
+				<div className="flex flex-wrap items-center gap-3 text-subhead">
 					{nc.effectivenessResult ? (
 						<Badge
 							variant={
@@ -410,12 +410,12 @@ export default async function NonconformityDetailPage({
 						</span>
 					)}
 					{state.canClose && nc.status !== "closed" && (
-						<span className="text-muted-foreground text-xs">
+						<span className="text-muted-foreground text-footnote">
 							{t("canClose")}
 						</span>
 					)}
 				</div>
-				<p className="mt-2 text-muted-foreground text-xs">
+				<p className="mt-2 text-muted-foreground text-footnote">
 					{t("effectivenessLead")}
 				</p>
 				{canEdit && nc.status !== "closed" && (
@@ -425,7 +425,7 @@ export default async function NonconformityDetailPage({
 				)}
 			</Section>
 			<Section title={t("priorityTitle")}>
-				<div className="flex flex-wrap items-center gap-2 text-sm">
+				<div className="flex flex-wrap items-center gap-2 text-subhead">
 					{nc.priority ? (
 						<Badge variant={NC_PRIORITY_TONE[nc.priority]}>
 							{t(`priority_${nc.priority}`)}
@@ -434,7 +434,7 @@ export default async function NonconformityDetailPage({
 						<span className="text-muted-foreground">{t("priorityNone")}</span>
 					)}
 					{nc.prioritizedAt && (
-						<span className="text-muted-foreground text-xs">
+						<span className="text-muted-foreground text-footnote">
 							{t("prioritizedBy", {
 								name:
 									(nc.prioritizedByUserId &&
@@ -446,7 +446,9 @@ export default async function NonconformityDetailPage({
 					)}
 				</div>
 				{nc.priorityNote && (
-					<p className="mt-1 whitespace-pre-wrap text-sm">{nc.priorityNote}</p>
+					<p className="mt-1 whitespace-pre-wrap text-subhead">
+						{nc.priorityNote}
+					</p>
 				)}
 				{tm.isTopManagement && nc.status !== "closed" ? (
 					<div className="mt-3">
@@ -457,7 +459,7 @@ export default async function NonconformityDetailPage({
 						/>
 					</div>
 				) : (
-					<p className="mt-2 text-muted-foreground text-xs">
+					<p className="mt-2 text-muted-foreground text-footnote">
 						{tm.anyAssigned ? (
 							t("priorityOnlyTop")
 						) : (

@@ -185,7 +185,7 @@ export default async function RequirementPage({
 					/>
 					{req.evidenceHints && req.evidenceHints.length > 0 && (
 						<Section title={t("evidenceHints")}>
-							<ul className="list-disc pl-5 text-sm">
+							<ul className="list-disc pl-5 text-subhead">
 								{req.evidenceHints.map((h) => (
 									<li key={h}>{h}</li>
 								))}
@@ -194,7 +194,7 @@ export default async function RequirementPage({
 					)}
 					{req.auditQuestions && req.auditQuestions.length > 0 && (
 						<Section title={t("auditQuestions")}>
-							<ul className="list-disc pl-5 text-sm">
+							<ul className="list-disc pl-5 text-subhead">
 								{req.auditQuestions.map((q) => (
 									<li key={q}>{q}</li>
 								))}
@@ -203,7 +203,7 @@ export default async function RequirementPage({
 					)}
 					{req.pitfalls && req.pitfalls.length > 0 && (
 						<Section title={t("pitfalls")}>
-							<ul className="list-disc pl-5 text-sm">
+							<ul className="list-disc pl-5 text-subhead">
 								{req.pitfalls.map((p) => (
 									<li key={p}>{p}</li>
 								))}
@@ -213,10 +213,10 @@ export default async function RequirementPage({
 					{req.tools &&
 						(req.tools.startup.length > 0 || req.tools.scale.length > 0) && (
 							<Section title={t("tools")}>
-								<dl className="text-sm">
+								<dl className="text-subhead">
 									{req.tools.startup.length > 0 && (
 										<>
-											<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+											<dt className="font-medium text-footnote text-muted-foreground">
 												{t("toolsStartup")}
 											</dt>
 											<dd className="mb-2">{req.tools.startup.join(", ")}</dd>
@@ -224,14 +224,14 @@ export default async function RequirementPage({
 									)}
 									{req.tools.scale.length > 0 && (
 										<>
-											<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+											<dt className="font-medium text-footnote text-muted-foreground">
 												{t("toolsScale")}
 											</dt>
 											<dd>{req.tools.scale.join(", ")}</dd>
 										</>
 									)}
 								</dl>
-								<p className="text-muted-foreground text-xs">
+								<p className="text-muted-foreground text-footnote">
 									{t("toolsDisclaimer")}
 								</p>
 							</Section>
@@ -241,13 +241,13 @@ export default async function RequirementPage({
 		>
 			{req.guidance && (
 				<Section title={t("guidance")}>
-					<p className="text-sm">{req.guidance}</p>
+					<p className="text-subhead">{req.guidance}</p>
 				</Section>
 			)}
 
 			{req.recommendations && req.recommendations.length > 0 && (
 				<Section title={t("recommendations")}>
-					<ul className="flex flex-col gap-2 text-sm">
+					<ul className="flex flex-col gap-2 text-subhead">
 						{req.recommendations.map((r) => (
 							<li key={r.text} className="flex gap-2">
 								<Badge
@@ -279,9 +279,11 @@ export default async function RequirementPage({
 
 			<Section title={t("coveredBy")}>
 				{edges.length === 0 ? (
-					<p className="text-muted-foreground text-sm">{t("coveredByEmpty")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("coveredByEmpty")}
+					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{edges.map((e) => {
 							const c = CONTROL_BY_CODE.get(e.control);
 							const s = implStatus.get(e.control);
@@ -290,10 +292,7 @@ export default async function RequirementPage({
 									key={e.control}
 									className="flex flex-wrap items-center gap-2 px-3 py-2"
 								>
-									<Badge
-										variant="outline"
-										className="font-mono normal-case tracking-normal"
-									>
+									<Badge variant="outline" className="font-mono">
 										{e.control}
 									</Badge>
 									<Link
@@ -302,7 +301,7 @@ export default async function RequirementPage({
 									>
 										{c?.title ?? e.control}
 									</Link>
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{e.coverage === "full" ? tc("full") : tc("partial")}
 									</span>
 									{s ? (
@@ -326,11 +325,8 @@ export default async function RequirementPage({
 					<div className="flex flex-col gap-8">
 						{sheets.map(({ sheet, evidenceOptions }) => (
 							<div key={sheet.control.code} className="flex flex-col gap-3">
-								<h3 className="flex flex-wrap items-center gap-2 font-medium text-sm">
-									<Badge
-										variant="outline"
-										className="font-mono normal-case tracking-normal"
-									>
+								<h3 className="flex flex-wrap items-center gap-2 font-medium text-subhead">
+									<Badge variant="outline" className="font-mono">
 										{sheet.control.code}
 									</Badge>
 									{sheet.control.title}
@@ -351,16 +347,13 @@ export default async function RequirementPage({
 
 			{related.length > 0 && (
 				<Section title={t("seeAlso")}>
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{related.map(({ key: k, req: r, status: s }) => (
 							<li
 								key={k}
 								className="flex flex-wrap items-center gap-2 px-3 py-2"
 							>
-								<Badge
-									variant="outline"
-									className="font-mono normal-case tracking-normal"
-								>
+								<Badge variant="outline" className="font-mono">
 									{shortFrameworkName(r?.framework ?? "")} {r?.code}
 								</Badge>
 								<Link

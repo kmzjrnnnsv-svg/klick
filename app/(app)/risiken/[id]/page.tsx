@@ -308,19 +308,19 @@ export default async function RiskDetailPage({
 						}
 					>
 						{tasks.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{te("tasksEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col gap-2 text-sm">
+							<ul className="flex flex-col gap-2 text-subhead">
 								{tasks.map((task) => (
 									<li
 										key={task.id}
-										className="flex items-start justify-between gap-2 rounded-md border p-2"
+										className="flex items-start justify-between gap-2 rounded-2xl bg-card p-2"
 									>
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{task.assigneeName ?? "—"}
 												{task.dueAt
 													? ` · ${fmtDate.format(new Date(task.dueAt))}`
@@ -341,7 +341,7 @@ export default async function RiskDetailPage({
 			}
 		>
 			{a.aboveAppetite && risk.status !== "accepted" && (
-				<p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+				<p className="rounded-xl bg-destructive/10 p-3 text-subhead">
 					<span className="font-medium">{t("aboveAppetite")}</span> —{" "}
 					{t("aboveAppetiteLead")} {t("acceptNeedsApproval")}
 				</p>
@@ -368,14 +368,14 @@ export default async function RiskDetailPage({
 
 			<Section title={t("assessment")}>
 				{risk.impactDetail && Object.keys(risk.impactDetail).length > 0 ? (
-					<div className="flex flex-col gap-4 text-sm">
-						<p className="text-muted-foreground text-xs">
+					<div className="flex flex-col gap-4 text-subhead">
+						<p className="text-muted-foreground text-footnote">
 							{t("assessmentLead")}
 							{risk.assessedAt
 								? ` · ${t("assessedAt")} ${fmtDate.format(risk.assessedAt)}`
 								: ""}
 						</p>
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 							{method.dimensions
 								.filter((dim) => dim.key in (risk.impactDetail ?? {}))
 								.map((dim) => {
@@ -389,7 +389,7 @@ export default async function RiskDetailPage({
 											<span>
 												{v} · {method.impact[v - 1]}
 											</span>
-											<span className="text-muted-foreground text-xs">
+											<span className="text-muted-foreground text-footnote">
 												{dim.anchors[v - 1]}
 											</span>
 										</li>
@@ -468,7 +468,9 @@ export default async function RiskDetailPage({
 						</dl>
 					</div>
 				) : (
-					<p className="text-muted-foreground text-sm">{t("notAssessed")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("notAssessed")}
+					</p>
 				)}
 			</Section>
 
@@ -479,11 +481,11 @@ export default async function RiskDetailPage({
 				}
 			>
 				{treatments.length === 0 ? (
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{t("treatmentsEmpty")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{treatments.map((tr) => (
 							<li
 								key={tr.id}
@@ -494,12 +496,12 @@ export default async function RiskDetailPage({
 								</span>
 								<UserChip name={names.get(tr.ownerUserId ?? "")} />
 								{tr.dueAt && (
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{fmtDate.format(new Date(tr.dueAt))}
 									</span>
 								)}
 								{tr.costEur != null && (
-									<span className="text-muted-foreground text-xs tabular-nums">
+									<span className="text-muted-foreground text-footnote tabular-nums">
 										{tr.costEur.toLocaleString("de-DE")} €
 									</span>
 								)}
@@ -522,15 +524,12 @@ export default async function RiskDetailPage({
 
 			<Section title={t("controls")}>
 				{linkedControls.length === 0 ? (
-					<p className="text-muted-foreground text-sm">—</p>
+					<p className="text-muted-foreground text-subhead">—</p>
 				) : (
 					<ul className="flex flex-wrap gap-1.5">
 						{linkedControls.map((c) => (
 							<Link key={c.code} href={`/controls/${c.code}`}>
-								<Badge
-									variant="outline"
-									className="font-mono normal-case tracking-normal"
-								>
+								<Badge variant="outline" className="font-mono">
 									{c.code}
 								</Badge>
 							</Link>

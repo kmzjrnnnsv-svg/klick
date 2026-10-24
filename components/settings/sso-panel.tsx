@@ -78,12 +78,14 @@ export function SsoPanel({
 				aria-invalid={errors[key] ? true : undefined}
 				{...props}
 			/>
-			{errors[key] && <p className="text-destructive text-xs">{errors[key]}</p>}
+			{errors[key] && (
+				<p className="text-destructive text-footnote">{errors[key]}</p>
+			)}
 		</div>
 	);
 
 	return (
-		<div className="flex flex-col gap-6 text-sm">
+		<div className="flex flex-col gap-6 text-subhead">
 			<p className="text-muted-foreground">{t("ssoLead")}</p>
 			{providers.length === 0 ? (
 				<p className="text-muted-foreground">{t("ssoNone")}</p>
@@ -92,26 +94,26 @@ export function SsoPanel({
 					{providers.map((p) => (
 						<li
 							key={p.id}
-							className="flex flex-col gap-2 rounded-md border p-3"
+							className="flex flex-col gap-2 rounded-2xl bg-card p-3"
 						>
 							<div className="flex flex-wrap items-center gap-2">
-								<span className="font-mono text-xs">{p.providerId}</span>
+								<span className="font-mono text-footnote">{p.providerId}</span>
 								<span className="font-medium">{p.domain}</span>
 								<Badge variant={p.domainVerified ? "success" : "warning"}>
 									{p.domainVerified ? t("ssoVerified") : t("ssoUnverified")}
 								</Badge>
-								<span className="ml-auto text-muted-foreground text-xs">
+								<span className="ml-auto text-muted-foreground text-footnote">
 									{p.issuer}
 								</span>
 							</div>
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{t("ssoCallbackHint")}{" "}
 								<code className="rounded-sm bg-muted px-1">
 									{callbackBase}/api/auth/sso/callback/{p.providerId}
 								</code>
 							</p>
 							{tokens[p.providerId] && (
-								<p className="rounded-md bg-muted/40 p-2 text-xs">
+								<p className="rounded-md bg-muted/40 p-2 text-footnote">
 									{t("ssoDnsHint", { domain: p.domain })}{" "}
 									<code className="break-all">{tokens[p.providerId]}</code>
 								</p>

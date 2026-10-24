@@ -78,7 +78,7 @@ export function ReconciliationForm({
 
 	return (
 		<form
-			className="flex flex-col gap-4 rounded-md border p-4"
+			className="flex flex-col gap-4 rounded-2xl bg-card p-4"
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {
@@ -118,7 +118,7 @@ export function ReconciliationForm({
 					/>
 				</div>
 				<div className="flex flex-col gap-2">
-					<div className="hidden grid-cols-[6rem_minmax(0,1fr)_minmax(0,1fr)_7rem_7rem_2.25rem] gap-2 text-muted-foreground text-xs sm:grid">
+					<div className="hidden grid-cols-[6rem_minmax(0,1fr)_minmax(0,1fr)_7rem_7rem_2.25rem] gap-2 text-muted-foreground text-footnote sm:grid">
 						<span>{t("symbol")}</span>
 						<span>{t("onChain")}</span>
 						<span>{t("ledger")}</span>
@@ -134,7 +134,7 @@ export function ReconciliationForm({
 							<div
 								// biome-ignore lint/suspicious/noArrayIndexKey: Zeilen ohne eigene ID, Reihenfolge stabil
 								key={i}
-								className="grid grid-cols-2 gap-2 rounded-md border p-2 sm:grid-cols-[6rem_minmax(0,1fr)_minmax(0,1fr)_7rem_7rem_2.25rem] sm:items-center sm:border-0 sm:p-0"
+								className="grid grid-cols-2 gap-2 rounded-2xl bg-card p-2 sm:grid-cols-[6rem_minmax(0,1fr)_minmax(0,1fr)_7rem_7rem_2.25rem] sm:items-center sm:border-0 sm:p-0"
 							>
 								<Input
 									aria-label={t("symbol")}
@@ -174,11 +174,11 @@ export function ReconciliationForm({
 									className="tabular-nums"
 								/>
 								<span
-									className={`text-right text-sm tabular-nums ${
+									className={`text-right text-subhead tabular-nums ${
 										r?.state === "shortfall"
 											? "font-medium text-destructive"
 											: r?.state === "surplus"
-												? "text-brown"
+												? "text-primary"
 												: "text-muted-foreground"
 									}`}
 								>
@@ -198,7 +198,7 @@ export function ReconciliationForm({
 						);
 					})}
 					{nodeHoldings.length > 0 && (
-						<p className="text-muted-foreground text-xs">
+						<p className="text-muted-foreground text-footnote">
 							{t("nodePrefill", {
 								list: nodeHoldings
 									.map(
@@ -226,7 +226,7 @@ export function ReconciliationForm({
 						</Button>
 					</div>
 				</div>
-				<p aria-live="polite" className="text-sm">
+				<p aria-live="polite" className="text-subhead">
 					{preview
 						? preview.shortfall
 							? t("previewShortfall")

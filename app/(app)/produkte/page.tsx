@@ -74,14 +74,14 @@ export default async function ProductsPage({
 			cell: (r) => (
 				<span>
 					<span
-						className="font-mono text-muted-foreground text-xs"
+						className="font-mono text-muted-foreground text-footnote"
 						translate="no"
 					>
 						{r.code}
 					</span>{" "}
 					<span className="font-medium">{r.name}</span>
 					{r.version && (
-						<span className="text-muted-foreground text-xs">
+						<span className="text-muted-foreground text-footnote">
 							{" "}
 							· {r.version}
 						</span>
@@ -198,7 +198,9 @@ export default async function ProductsPage({
 						}
 					/>
 				) : (
-					<p className="text-muted-foreground text-sm">{te("noMatches")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{te("noMatches")}
+					</p>
 				)
 			}
 		/>

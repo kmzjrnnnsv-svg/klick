@@ -63,15 +63,13 @@ export default async function AdminInquiriesPage({
 
 	return (
 		<>
-			<h1 className="mb-2 font-serif-display text-3xl text-primary">
-				{t("inquiries")}
-			</h1>
-			<p className="mb-6 max-w-3xl text-muted-foreground text-sm">
+			<h1 className="mb-2 font-bold text-title-1">{t("inquiries")}</h1>
+			<p className="mb-6 max-w-3xl text-muted-foreground text-subhead">
 				{t("inquiriesLead")}
 			</p>
 			<nav
 				aria-label="Status"
-				className="mb-6 flex flex-wrap gap-x-5 gap-y-2 text-sm"
+				className="mb-6 flex flex-wrap gap-x-5 gap-y-2 text-subhead"
 			>
 				{filters.map((f) => (
 					<Link
@@ -108,7 +106,7 @@ export default async function AdminInquiriesPage({
 								key={r.id}
 								className={cn(selected?.id === r.id && "bg-muted/60")}
 							>
-								<TableCell className="whitespace-nowrap text-muted-foreground text-xs tabular-nums">
+								<TableCell className="whitespace-nowrap text-muted-foreground text-footnote tabular-nums">
 									{fmt.format(r.createdAt)}
 								</TableCell>
 								<TableCell>
@@ -133,7 +131,7 @@ export default async function AdminInquiriesPage({
 										</Badge>
 									)}
 								</TableCell>
-								<TableCell className="text-sm">
+								<TableCell className="text-subhead">
 									{INQUIRY_STATUS_LABEL[r.status]}
 								</TableCell>
 							</TableRow>
@@ -150,22 +148,19 @@ export default async function AdminInquiriesPage({
 				{selected ? (
 					<section
 						aria-labelledby="inq-detail"
-						className="flex min-w-0 flex-col gap-4 rounded-lg border border-border/60 p-5"
+						className="flex min-w-0 flex-col gap-4 rounded-2xl bg-card p-5"
 					>
 						<div>
-							<h2
-								id="inq-detail"
-								className="font-serif-display text-2xl text-primary"
-							>
+							<h2 id="inq-detail" className="font-bold text-title-2">
 								{inquiryServiceLabel(selected.serviceKey)}
 							</h2>
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{fmt.format(selected.createdAt)} ·{" "}
 								{selected.source === "app" ? "aus der App" : "Website"} ·{" "}
 								{INQUIRY_STATUS_LABEL[selected.status]}
 							</p>
 						</div>
-						<dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
+						<dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-2 text-subhead">
 							<dt className="text-muted-foreground">Name</dt>
 							<dd className="break-words">{selected.name}</dd>
 							<dt className="text-muted-foreground">Firma</dt>
@@ -200,13 +195,13 @@ export default async function AdminInquiriesPage({
 								</>
 							)}
 						</dl>
-						<p className="whitespace-pre-wrap break-words rounded-md bg-muted p-4 text-sm">
+						<p className="whitespace-pre-wrap break-words rounded-md bg-muted p-4 text-subhead">
 							{selected.message}
 						</p>
 						<InquiryActions id={selected.id} status={selected.status} />
 					</section>
 				) : (
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						Wähle eine Anfrage, um sie zu lesen.
 					</p>
 				)}

@@ -110,8 +110,8 @@ export function BulkBar({ members }: { members: MemberOption[] }) {
 			router.refresh();
 		});
 	return (
-		<div className="sticky bottom-4 z-20 mt-4 flex flex-wrap items-center gap-2 rounded-md border bg-card p-3 shadow-lg">
-			<span className="font-medium text-sm">
+		<div className="sticky bottom-4 z-20 mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-card p-3 shadow-lg">
+			<span className="font-medium text-subhead">
 				{t("bulkSelected", { n: ctx.selected.size })}
 			</span>
 			<Select value={status} onValueChange={setStatus}>

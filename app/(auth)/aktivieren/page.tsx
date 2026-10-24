@@ -8,9 +8,7 @@ export default async function ActivatePage() {
 	return (
 		<div className="flex flex-col gap-6">
 			<div>
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("title")}
-				</h1>
+				<h1 className="font-bold text-title-1">{t("title")}</h1>
 			</div>
 			<LinkRegistration expected="activate" sessionEmail={null} />
 		</div>
