@@ -13,18 +13,21 @@
 
 import { legalEntityFrom, legalMailLines } from "@/lib/legal/entity";
 import { MAIL_FROM_DEFAULT, PLATFORM_MAIL } from "./address";
-import { escapeHtml, textToHtml } from "./templates";
+import { escapeHtml, textToHtml } from "./html";
 
 export type SendMailInput = {
 	to: string;
 	subject: string;
 	text: string;
 	html?: string;
+	// Absender und Impressum je App (both.money); ohne Angabe gilt Klick
+	from?: string;
+	imprintUrl?: string;
 };
 
 // Ohne MAIL_FROM gilt die Plattform-Adresse (lib/mail/address.ts).
-function fromAddress(): string {
-	return process.env.MAIL_FROM || MAIL_FROM_DEFAULT;
+function fromAddress(input?: Pick<SendMailInput, "from">): string {
+	return input?.from || process.env.MAIL_FROM || MAIL_FROM_DEFAULT;
 }
 
 // „Klick <no-reply@raza.work>“ → { name, email } — Brevo will beides getrennt.
@@ -44,7 +47,7 @@ function logToConsole(input: SendMailInput, reason: string): void {
 		return;
 	}
 	console.log(
-		`\n┌──── Mail (${reason}) ──────────────────────\n│ to:      ${input.to}\n│ from:    ${fromAddress()}\n│ subject: ${input.subject}\n│ body:    ${input.text.slice(0, 240).replace(/\n/g, "\n│         ")}\n└────────────────────────────────────────────\n`,
+		`\n┌──── Mail (${reason}) ──────────────────────\n│ to:      ${input.to}\n│ from:    ${fromAddress(input)}\n│ subject: ${input.subject}\n│ body:    ${input.text.slice(0, 240).replace(/\n/g, "\n│         ")}\n└────────────────────────────────────────────\n`,
 	);
 }
 
@@ -58,7 +61,7 @@ async function sendViaResend(input: SendMailInput): Promise<void> {
 			"Content-Type": "application/json",
 		},
 		body: JSON.stringify({
-			from: fromAddress(),
+			from: fromAddress(input),
 			to: [input.to],
 			subject: input.subject,
 			text: input.text,
@@ -83,7 +86,7 @@ async function sendViaBrevo(input: SendMailInput): Promise<void> {
 			"content-type": "application/json",
 		},
 		body: JSON.stringify({
-			sender: parseFrom(fromAddress()),
+			sender: parseFrom(fromAddress(input)),
 			to: [{ email: input.to }],
 			subject: input.subject,
 			textContent: input.text,
@@ -115,7 +118,7 @@ async function sendViaSmtp(input: SendMailInput): Promise<void> {
 	});
 	await transport.sendMail({
 		to: input.to,
-		from: fromAddress(),
+		from: fromAddress(input),
 		subject: input.subject,
 		text: input.text,
 		html: input.html,
@@ -162,7 +165,10 @@ export function withLegalFooter(
 		}),
 	);
 	const base = (env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
-	if (/^https?:\/\//.test(base)) lines.push(`Impressum: ${base}/impressum`);
+	const imprint =
+		input.imprintUrl ??
+		(/^https?:\/\//.test(base) ? `${base}/impressum` : null);
+	if (imprint) lines.push(`Impressum: ${imprint}`);
 	if (lines.length === 0) return input;
 	const text = `${input.text}\n\n—\n${lines.join("\n")}`;
 	if (!input.html) return { ...input, text };
@@ -177,7 +183,7 @@ export async function sendTransactionalMail(
 	raw: SendMailInput,
 ): Promise<SendOutcome> {
 	const input = withLegalFooter(raw);
-	const from = fromAddress();
+	const from = fromAddress(input);
 	const active = PROVIDERS.filter((p) => p.enabled());
 	let last: { path: MailPath; error: string } | null = null;
 	for (const [i, provider] of active.entries()) {

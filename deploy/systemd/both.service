@@ -1,0 +1,77 @@
+# /etc/systemd/system/both.service — both.money (Next.js, apps/wallet), gehärtet
+# wie klick.service, eigener User und eigene Grenzen (Plan both.money, W3).
+#
+# Secrets als systemd-Credentials (nie im Repo, nie die von Klick):
+#   systemd-creds encrypt --name=wallet_auth_secret         - /etc/credstore.encrypted/wallet_auth_secret
+#   systemd-creds encrypt --name=wallet_vault_kek_base64    - /etc/credstore.encrypted/wallet_vault_kek_base64
+#   systemd-creds encrypt --name=wallet_database_url        - /etc/credstore.encrypted/wallet_database_url
+#   systemd-creds encrypt --name=wallet_database_url_migrate - /etc/credstore.encrypted/wallet_database_url_migrate
+# Mailversand, Knoten und Signer: both.service.d/{mail,nodes,signer}.conf.example.
+# both-start.sh liest sie ($CREDENTIALS_DIRECTORY → WALLET_*-Env).
+# Ziel: systemd-analyze security both ≤ 2.0.
+[Unit]
+Description=both.money — Wallet (Next.js)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=both
+Group=both
+WorkingDirectory=/opt/both/current
+ExecStart=/opt/both/current/deploy/systemd/both-start.sh
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+KillSignal=SIGTERM
+
+Environment=NODE_ENV=production
+Environment=PORT=3010
+Environment=HOSTNAME=127.0.0.1
+Environment=WALLET_AUTH_URL=https://both.money
+# Relying Party der Passkeys — nie ändern (bricht alle Passkeys)
+Environment=WALLET_PASSKEY_RP_ID=both.money
+Environment=LOG_LEVEL=info
+# LEGAL_*, WALLET_MAIL_FROM, GLITCHTIP_DSN
+EnvironmentFile=-/etc/both/both.env
+LoadCredentialEncrypted=wallet_auth_secret:/etc/credstore.encrypted/wallet_auth_secret
+LoadCredentialEncrypted=wallet_vault_kek_base64:/etc/credstore.encrypted/wallet_vault_kek_base64
+LoadCredentialEncrypted=wallet_database_url:/etc/credstore.encrypted/wallet_database_url
+LoadCredentialEncrypted=wallet_database_url_migrate:/etc/credstore.encrypted/wallet_database_url_migrate
+
+# Sandbox
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallArchitectures=native
+UMask=0077
+ReadWritePaths=/opt/both/current/apps/wallet/.next/cache /opt/both/.cache
+LimitNOFILE=65536
+# Kleiner als Klick: beide laufen auf demselben Server
+MemoryHigh=640M
+MemoryMax=896M
+TasksMax=256
+CPUQuota=100%
+
+[Install]
+WantedBy=multi-user.target

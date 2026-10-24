@@ -1,3 +1,5 @@
+// Legacy (bis K6): Wallet-Bereich in Klick, ersetzt durch both.money —
+// Änderungen nur noch in apps/wallet/lib/wallet/queries.ts.
 import { and, asc, count, desc, eq, isNotNull, ne, sql } from "drizzle-orm";
 import {
 	walletAccounts,

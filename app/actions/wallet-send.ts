@@ -1,5 +1,7 @@
 "use server";
 
+// Legacy (bis K6): Wallet-Bereich in Klick, ersetzt durch both.money —
+// Änderungen nur noch in apps/wallet/app/actions/wallet-send.ts.
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";

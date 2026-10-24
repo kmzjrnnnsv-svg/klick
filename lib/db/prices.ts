@@ -1,3 +1,5 @@
+// Legacy (bis K6): Wallet-Bereich in Klick, ersetzt durch both.money —
+// Änderungen nur noch in apps/wallet/lib/db/prices.ts.
 import { and, asc, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { priceTicks } from "@/db/schema";

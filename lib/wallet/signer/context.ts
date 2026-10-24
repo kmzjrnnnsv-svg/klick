@@ -1,3 +1,5 @@
+// Legacy (bis K6): Wallet-Bereich in Klick, ersetzt durch both.money —
+// Änderungen nur noch in apps/wallet/lib/wallet/signer/context.ts.
 import { eq } from "drizzle-orm";
 import { walletSignerAnchor } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";

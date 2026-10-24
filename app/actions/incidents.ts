@@ -2,14 +2,7 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import {
-	incidents,
-	incidentUpdates,
-	products,
-	roleAssignments,
-	tasks,
-} from "@/db/schema";
-import type { IncidentRegime } from "@/db/schema/enums";
+import { incidents, incidentUpdates, tasks } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import {
 	approvalState,
@@ -22,18 +15,20 @@ import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
 import {
 	classifyDoraIncident,
 	classifyNis2Incident,
-	computeIncidentDeadlines,
 	craReasons,
-	leadRegime,
-	nextIncidentCode,
 } from "@/lib/compliance/incident";
+import {
+	createIncidentRecord,
+	deadlinesFor,
+	insertCraBundle,
+	isCra,
+	ownProduct,
+} from "@/lib/compliance/incident-service";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { INCIDENT_STATUS } from "@/lib/entities/incident";
 import { canTransition } from "@/lib/entities/status-machine";
-import { DATE_TIME } from "@/lib/history";
-import { notify } from "@/lib/notifications/notify";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	classifyIncidentSchema,
@@ -44,170 +39,16 @@ import {
 	setIncidentStatusSchema,
 } from "@/lib/validation/registers";
 
-type Tx = Parameters<Parameters<typeof mutateOrg>[1]>[0];
-
-// Fristen aus Regimes + Zeitstempeln ableiten (Leitregime, siehe leadRegime).
-function deadlinesFor(row: {
-	regimes: readonly IncidentRegime[];
-	awareAt: Date;
-	classifiedAt: Date | null;
-	initialReportedAt: Date | null;
-	intermediateReportedAt: Date | null;
-	mitigationAvailableAt?: Date | null;
-}) {
-	return computeIncidentDeadlines(leadRegime(row.regimes) ?? "dora", {
-		awareAt: row.awareAt,
-		classifiedAt: row.classifiedAt,
-		initialReportedAt: row.initialReportedAt,
-		intermediateReportedAt: row.intermediateReportedAt,
-		mitigationAvailableAt: row.mitigationAvailableAt,
-	});
-}
-
-const isCra = (r: readonly IncidentRegime[]) =>
-	r.includes("cra_vuln") || r.includes("cra_incident");
-
-// Produkt muss zur Org gehören (Fremdschlüssel prüfen nicht über RLS).
-async function ownProduct(
-	tx: Tx,
-	orgId: string,
-	productId: string | null | undefined,
-): Promise<string | null | undefined> {
-	if (!productId) return productId;
-	const [p] = await tx
-		.select({ id: products.id })
-		.from(products)
-		.where(and(eq(products.id, productId), eq(products.organizationId, orgId)))
-		.limit(1);
-	return p ? p.id : undefined;
-}
-
-// CRA-Meldepaket als Aufgaben (einmal je Vorfall).
-async function insertCraBundle(
-	tx: Tx,
-	orgId: string,
-	actorId: string,
-	incident: { id: string; code: string; ownerUserId: string | null },
-) {
-	const bundle = TASK_BUNDLES.find((b) => b.code === "INCIDENT_CRA");
-	if (!bundle) return;
-	await tx.insert(tasks).values(
-		bundle.items.map((it) => ({
-			organizationId: orgId,
-			title: `${incident.code}: ${it.title}`,
-			assigneeUserId: incident.ownerUserId ?? actorId,
-			createdByUserId: actorId,
-			dueAt: new Date(Date.now() + (it.offsetDays ?? 0) * 86_400_000)
-				.toISOString()
-				.slice(0, 10),
-			entityType: "incident" as const,
-			entityId: incident.id,
-			sourceKind: "incident_action" as const,
-			bundleCode: bundle.code,
-			priority: "critical" as const,
-		})),
-	);
-}
-
-async function incidentManager(tx: Tx, orgId: string): Promise<string | null> {
-	const [r] = await tx
-		.select({ userId: roleAssignments.userId })
-		.from(roleAssignments)
-		.where(
-			and(
-				eq(roleAssignments.organizationId, orgId),
-				eq(roleAssignments.function, "incident_manager"),
-			),
-		)
-		.limit(1);
-	return r?.userId ?? null;
-}
-
-// Drei Felder: Was · Wann bemerkt · Betrifft Zahlungen/Kunden → Uhren laufen ab Kenntnis.
+// Drei Felder: Was · Wann bemerkt · Betrifft Zahlungen/Kunden (createIncidentRecord).
 async function createIncidentImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; code: string }>> {
 	const c = await requireOrg({ incident: ["create"] });
 	const parsed = createIncidentSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
-	const d = parsed.data;
 	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const existing = await tx
-			.select({ code: incidents.code })
-			.from(incidents)
-			.where(eq(incidents.organizationId, c.orgId));
-		const code = nextIncidentCode(existing.map((r) => r.code));
-		const regimes = [
-			...new Set([
-				...d.regimes,
-				...(d.affectsPayments ? ["dora" as const] : []),
-				...(d.affectsCustomers ? ["dsgvo" as const] : []),
-			]),
-		];
-		const dl = deadlinesFor({
-			regimes,
-			awareAt: d.awareAt,
-			classifiedAt: null,
-			initialReportedAt: null,
-			intermediateReportedAt: null,
-		});
-		const owner = (await incidentManager(tx, c.orgId)) ?? c.userId;
-		const productId = await ownProduct(tx, c.orgId, d.productId);
-		const [row] = await tx
-			.insert(incidents)
-			.values({
-				productId: productId ?? null,
-				organizationId: c.orgId,
-				code,
-				title: d.title,
-				description: d.description ?? null,
-				awareAt: d.awareAt,
-				regimes,
-				affectsPayments: d.affectsPayments,
-				earlyWarningAt: dl.earlyWarningAt,
-				initialDueAt: dl.initialDueAt,
-				intermediateDueAt: dl.intermediateDueAt,
-				finalDueAt: dl.finalDueAt,
-				ownerUserId: owner,
-				assigneeUserId: c.userId,
-			})
-			.returning({ id: incidents.id });
-		if (!row) throw new Error("insert failed");
-		await tx.insert(incidentUpdates).values({
-			organizationId: c.orgId,
-			incidentId: row.id,
-			authorUserId: c.userId,
-			kind: "status_change",
-			body: `Vorfall erfasst. Kenntnis: ${DATE_TIME.format(d.awareAt)}`,
-		});
-		if (isCra(regimes))
-			await insertCraBundle(tx, c.orgId, c.userId, {
-				id: row.id,
-				code,
-				ownerUserId: owner,
-			});
-		await notify(tx, {
-			orgId: c.orgId,
-			recipients: [owner],
-			actorUserId: c.userId,
-			kind: "incident_deadline",
-			title: `Neuer Vorfall ${code}: Erstmeldung bis ${dl.initialDueAt.toISOString()}`,
-			link: `/vorfaelle/${row.id}`,
-		});
-		return {
-			result: { id: row.id, code },
-			audit: {
-				action: "incident.create",
-				target: `incident:${row.id}`,
-				after: {
-					code,
-					title: d.title,
-					awareAt: d.awareAt,
-					regimes,
-					affectsPayments: d.affectsPayments,
-				},
-			},
-		};
+		const r = await createIncidentRecord(tx, c, parsed.data);
+		return { result: { id: r.id, code: r.code }, audit: r.audit };
 	});
 	revalidatePath("/vorfaelle");
 	revalidatePath("/heute", "layout");

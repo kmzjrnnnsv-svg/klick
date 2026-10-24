@@ -17,9 +17,13 @@ ignoredBuiltDependencies:
 # GHSA-ch52-4w7c-c8xp http-cache-semantics via @cyclonedx/cyclonedx-npm → libxmljs2
 # → node-gyp → make-fetch-happen: SBOM-Generator läuft nur in CI, kein HTTP-Cache
 # im Produkt; Upstream ohne gepatchte Version. Bei Fix entfernen.
+# GHSA-834v-8h66-3h79 happy-dom ≤ 21.0.3 (Testumgebung für Komponenten-Tests,
+# lädt nur eigenes HTML): Fix 21.0.4 vom 20.10.2026 liegt noch im Cooldown —
+# ab 27.10.2026 auf happy-dom ^21.0.4 heben und diese Ausnahme entfernen.
 auditConfig:
   ignoreGhsas:
     - GHSA-ch52-4w7c-c8xp
+    - GHSA-834v-8h66-3h79
 
 # Transitive Dev-Abhängigkeiten auf gepatchte Versionen heben (Cooldown gilt).
 # ip-address via @cyclonedx/cyclonedx-npm → libxmljs2 → node-gyp → socks:

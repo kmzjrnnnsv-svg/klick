@@ -16,6 +16,9 @@
 # next.js
 /.next/
 /out/
+# both.money (apps/wallet)
+apps/*/.next/
+apps/*/next-env.d.ts
 
 # production
 /build

@@ -37,22 +37,23 @@ export class LocalKms implements Kms {
 		this.currentKeyVersion = currentKeyVersion;
 	}
 
-	// Liest VAULT_KEK_BASE64 (Version VAULT_KEK_VERSION, default 1) sowie
-	// VAULT_KEK_BASE64_V<n> für ältere/neuere Versionen (Rotation).
+	// Liest <prefix>_BASE64 (Version <prefix>_VERSION, default 1) sowie
+	// <prefix>_BASE64_V<n> für ältere/neuere Versionen (Rotation). Klick nutzt
+	// VAULT_KEK, both.money WALLET_VAULT_KEK — nie denselben Schlüssel.
 	static fromEnv(
 		source: Record<string, string | undefined> = process.env,
+		prefix = "VAULT_KEK",
 	): LocalKms {
 		const keys = new Map<number, Uint8Array>();
-		const currentVersion = Number(source.VAULT_KEK_VERSION ?? "1");
-		if (!source.VAULT_KEK_BASE64) {
-			throw new Error("VAULT_KEK_BASE64 fehlt");
+		const currentVersion = Number(source[`${prefix}_VERSION`] ?? "1");
+		const current = source[`${prefix}_BASE64`];
+		if (!current) {
+			throw new Error(`${prefix}_BASE64 fehlt`);
 		}
-		keys.set(
-			currentVersion,
-			decodeKey(source.VAULT_KEK_BASE64, "VAULT_KEK_BASE64"),
-		);
+		keys.set(currentVersion, decodeKey(current, `${prefix}_BASE64`));
+		const rotated = new RegExp(`^${prefix}_BASE64_V(\\d+)$`);
 		for (const [name, value] of Object.entries(source)) {
-			const m = /^VAULT_KEK_BASE64_V(\d+)$/.exec(name);
+			const m = rotated.exec(name);
 			if (m && value) keys.set(Number(m[1]), decodeKey(value, name));
 		}
 		return new LocalKms(keys, currentVersion);

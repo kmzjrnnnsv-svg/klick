@@ -1,5 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { buildCsp } from "@/lib/http/csp";
+
+export { buildCsp };
 
 // Proxy (Next 16; ehemals middleware): zwei Aufgaben.
 //   1. Tenant-Subdomain → x-org-slug (nur Branding/Pre-Select, nie Autorisierung).
@@ -22,24 +25,6 @@ export function resolveTenantSlug(host: string): string {
 	const parts = hostname.split(".");
 	const sub = parts.length > 2 ? parts[0] : undefined;
 	return sub && !RESERVED_SUBDOMAINS.has(sub) ? sub : fallback;
-}
-
-export function buildCsp(nonce: string, isDev: boolean): string {
-	return [
-		"default-src 'self'",
-		`script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
-		// Tailwind/Next-Inline-Styles brauchen 'unsafe-inline' (kein Style-Nonce in RSC-Streams).
-		"style-src 'self' 'unsafe-inline'",
-		"img-src 'self' data: blob:",
-		"font-src 'self'",
-		"connect-src 'self'",
-		"frame-src 'self'",
-		"frame-ancestors 'none'",
-		"object-src 'none'",
-		"base-uri 'self'",
-		"form-action 'self'",
-		...(isDev ? [] : ["upgrade-insecure-requests"]),
-	].join("; ");
 }
 
 export function proxy(request: NextRequest) {

@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -22,9 +22,11 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 const root = join(__dirname, "..");
-const serverFiles = walk(join(root, "app")).filter(
-	(f) => !/^\s*["']use client["']/.test(readFileSync(f, "utf8")),
-);
+// Klick und both.money (apps/wallet)
+const serverFiles = ["app", "apps/wallet/app"]
+	.filter((d) => existsSync(join(root, d)))
+	.flatMap((d) => walk(join(root, d)))
+	.filter((f) => !/^\s*["']use client["']/.test(readFileSync(f, "utf8")));
 
 describe("Server Components (app/**/page|layout.tsx)", () => {
 	it("gibt es", () => {

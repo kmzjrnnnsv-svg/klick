@@ -16,21 +16,9 @@ const BORDER = "#d8cfbd";
 const GOLD = "#6a4a2a";
 const TAGLINE = "Maison Klick — Compliance, die zusammenpasst.";
 
-// Alles, was in HTML landet, wird escaped — Titel, Namen und User-Agent kommen
-// aus Nutzereingaben bzw. vom Client (sonst Phishing-Links in Sicherheitsmails).
-export function escapeHtml(value: string): string {
-	return value
-		.replaceAll("&", "&amp;")
-		.replaceAll("<", "&lt;")
-		.replaceAll(">", "&gt;")
-		.replaceAll('"', "&quot;")
-		.replaceAll("'", "&#39;");
-}
+import { escapeHtml, textToHtml } from "./html";
 
-// Klartext → HTML: escapen, Zeilenumbrüche sichtbar machen.
-export function textToHtml(value: string): string {
-	return escapeHtml(value).replaceAll("\n", "<br>");
-}
+export { escapeHtml, textToHtml } from "./html";
 
 // Nur http(s)-Ziele als Button-Link; alles andere fällt weg.
 function safeHref(url: string): string | null {

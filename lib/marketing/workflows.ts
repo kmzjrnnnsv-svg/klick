@@ -613,19 +613,36 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				result: "Lückenlose Abstimmung nach MiCAR Art. 70 und 75.",
 			},
 			{
-				key: "wallet-send",
-				name: "Wallet: senden mit Sicherheitsschlüssel",
+				key: "both-money",
+				name: "Wallet in both.money, Nachweise in Klick",
 				summary:
-					"Eigene Bestände im Testnetz halten, empfangen und senden; jede Auszahlung bestätigt ein Sicherheitsschlüssel.",
-				where: "Wallet",
+					"Ein- und Ausgänge, Tagesbestände und Auffälligkeiten aus der Wallet both.money kommen automatisch in Klick an.",
+				where: "Krypto, Verwahrung, Einstellungen",
+				trigger:
+					"Einmal verbinden; danach jede Minute und jeden Tag um 00:10 Uhr.",
+				steps: [
+					"In Klick ein Token ausstellen und in both.money eintragen; both.money prüft die Verbindung sofort und liefert den heutigen Stand nach.",
+					"Konten landen im Verwahrungs-Register, Bewegungen und Auszahlungen unter Krypto; der Tagesbestand mit Blockhöhe belegt die Abstimmung.",
+					"Eine Ausgabe ohne Auszahlung wird zum Vorfall mit Fristen, ein Sanktionstreffer zum Verdachtsfall, alles andere zur Aufgabe.",
+					"Bleibt das Lebenszeichen aus, fehlt der Tagesabschluss oder ist die Sanktionsliste alt, erinnert Klick.",
+				],
+				result:
+					"Getrennte Systeme, lückenloser Nachweis: jedes Ereignis kommt genau einmal an, mit Prüfsumme.",
+			},
+			{
+				key: "wallet-send",
+				name: "both.money: senden mit Sicherheitsschlüssel",
+				summary:
+					"In both.money eigene Bestände halten, empfangen und senden; jede Auszahlung bestätigt ein Sicherheitsschlüssel.",
+				where: "both.money",
 				trigger:
 					"Auszahlung aus einem Hot-Konto an eine Adresse im Adressbuch.",
 				steps: [
 					"Zieladresse vorschlagen: Prüfung gegen die Sperrliste, aktiv erst nach 24 Stunden, Veto jederzeit.",
 					"Auszahlung anlegen; Betrag, Ziel und höchste Gebühr stehen danach fest.",
-					"Auf einer eigenen Bestätigungsseite mit dem Sicherheitsschlüssel bestätigen; ein Klick-Passkey zählt dafür nicht.",
-					"Ein eigener Signer ohne Netzzugang prüft Grenzen und Freigaben und signiert; Klick sendet über den eigenen Knoten.",
-					"Eine Ausgabe ohne Auszahlung in Klick friert den Signer sofort ein; „Alles stoppen“ kann jede:r im Wallet-Bereich.",
+					"Auf einer eigenen Bestätigungsseite mit dem Sicherheitsschlüssel bestätigen; ein Passkey zum Anmelden zählt dafür nicht.",
+					"Ein eigener Signer ohne Netzzugang prüft Grenzen und Freigaben und signiert; both.money sendet über den eigenen Knoten.",
+					"Eine Ausgabe ohne Auszahlung friert den Signer sofort ein und landet in Klick als Vorfall; „Alles stoppen“ kann jede:r in both.money.",
 				],
 				result:
 					"Ein übernommener Webserver allein kann kein Geld bewegen. Kundengelder erst mit Erlaubnis nach MiCAR.",

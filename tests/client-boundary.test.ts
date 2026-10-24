@@ -9,8 +9,9 @@ import { describe, expect, it } from "vitest";
 // eine Referenz, nicht den Code.
 
 const root = join(__dirname, "..");
-// Datenbank-Client (@/db) und alles unter lib/db; Schema-Konstanten sind erlaubt
-const FORBIDDEN = /^(db\/index\.ts$|lib\/db\/)/;
+// Datenbank-Client (@/db) und alles unter lib/db; Schema-Konstanten sind
+// erlaubt. Dasselbe für both.money (apps/wallet, Alias @wallet/).
+const FORBIDDEN = /^(?:apps\/wallet\/)?(db\/index\.ts$|lib\/db\/)/;
 
 function walk(dir: string, out: string[] = []): string[] {
 	for (const name of readdirSync(dir)) {
@@ -25,9 +26,11 @@ function walk(dir: string, out: string[] = []): string[] {
 function resolve(from: string, spec: string): string | null {
 	const base = spec.startsWith("@/")
 		? join(root, spec.slice(2))
-		: spec.startsWith(".")
-			? join(dirname(from), spec)
-			: null;
+		: spec.startsWith("@wallet/")
+			? join(root, "apps/wallet", spec.slice(8))
+			: spec.startsWith(".")
+				? join(dirname(from), spec)
+				: null;
 	if (!base) return null;
 	for (const c of [
 		base,
@@ -72,7 +75,15 @@ function pathToDb(entry: string): string[] | null {
 	return null;
 }
 
-const clientFiles = ["app", "components", "lib"]
+const clientFiles = [
+	"app",
+	"components",
+	"lib",
+	"apps/wallet/app",
+	"apps/wallet/components",
+	"apps/wallet/lib",
+]
+	.filter((d) => existsSync(join(root, d)))
 	.flatMap((d) => walk(join(root, d)))
 	.filter((f) => isDirective(readFileSync(f, "utf8"), "client"));
 

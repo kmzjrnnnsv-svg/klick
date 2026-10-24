@@ -6,7 +6,6 @@ import {
 	amlMonitoringRules,
 	amlRiskAnalyses,
 	jurisdictions,
-	roleAssignments,
 	suspiciousReports,
 	tasks,
 } from "@/db/schema";
@@ -18,11 +17,14 @@ import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import {
 	listRelevantChanges,
-	nextSuspiciousRef,
 	overallAmlRisk,
 	parseJurisdictionCsv,
 	sarHoldUntil,
 } from "@/lib/compliance/aml";
+import {
+	createSuspiciousReport,
+	functionHolder,
+} from "@/lib/compliance/aml-service";
 import { CORRIDOR_STEPS } from "@/lib/compliance/catalog/corridor-template";
 import { JURISDICTIONS } from "@/lib/compliance/catalog/jurisdictions";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
@@ -41,25 +43,6 @@ import {
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 
 const PATH = "/aml";
-
-// Geldwäschebeauftragte Person (oder Vertretung) als Standard-Empfänger.
-async function functionHolder(
-	tx: OrgTx,
-	orgId: string,
-	fn: RoleFunction,
-): Promise<string | null> {
-	const [row] = await tx
-		.select({ userId: roleAssignments.userId })
-		.from(roleAssignments)
-		.where(
-			and(
-				eq(roleAssignments.organizationId, orgId),
-				eq(roleAssignments.function, fn),
-			),
-		)
-		.limit(1);
-	return row?.userId ?? null;
-}
 
 // ── Risikoanalyse (§ 5 GwG / AMLR Art. 10) ─────────────────────────────────
 
@@ -403,63 +386,17 @@ async function upsertSuspiciousReportImpl(
 				},
 			};
 		}
-		const existing = await tx
-			.select({ ref: suspiciousReports.internalRef })
-			.from(suspiciousReports)
-			.where(eq(suspiciousReports.organizationId, c.orgId));
-		const internalRef = nextSuspiciousRef(
-			existing.map((e) => e.ref),
-			d.kind,
-		);
-		const owner =
-			d.ownerUserId ??
-			(await functionHolder(
-				tx,
-				c.orgId,
-				d.kind === "micar_stor" ? "compliance" : "aml_officer",
-			)) ??
-			c.userId;
-		const [row] = await tx
-			.insert(suspiciousReports)
-			.values({
-				organizationId: c.orgId,
-				kind: d.kind,
-				internalRef,
-				detectedAt: d.detectedAt,
-				category: d.category ?? null,
-				incidentId: d.incidentId ?? null,
-				ownerUserId: owner,
-			})
-			.returning({ id: suspiciousReports.id });
-		if (!row) throw new Error("insert failed");
-		if (decisionNote)
-			await tx
-				.update(suspiciousReports)
-				.set({
-					decisionNote: await encryptJson(
-						tx,
-						c.orgId,
-						decisionNote,
-						fieldAad("suspicious_reports", row.id, "decision_note"),
-					),
-				})
-				.where(eq(suspiciousReports.id, row.id));
-		await notify(tx, {
-			orgId: c.orgId,
-			recipients: [owner],
-			actorUserId: c.userId,
-			kind: "task_assigned",
-			title: `${internalRef}: ${d.kind === "micar_stor" ? "STOR" : "Verdachtsfall"} zur Prüfung`,
-			body: "Entscheidung über Meldung dokumentieren — Durchführungsverbot und Tipping-off beachten.",
-			link: `${PATH}?tab=verdacht`,
+		const r = await createSuspiciousReport(tx, c, {
+			kind: d.kind,
+			detectedAt: d.detectedAt,
+			category: d.category ?? null,
+			incidentId: d.incidentId ?? null,
+			ownerUserId: d.ownerUserId ?? null,
+			decisionNote: decisionNote ?? null,
 		});
 		return {
-			result: { ok: true, data: { id: row.id, internalRef } },
-			audit: {
-				action: "suspicious_report.create",
-				target: `suspicious_report:${row.id}`,
-				after: { internalRef, kind: d.kind, category: d.category ?? null },
-			},
+			result: { ok: true, data: { id: r.id, internalRef: r.internalRef } },
+			audit: r.audit,
 		};
 	});
 	revalidatePath(PATH);

@@ -37,6 +37,7 @@ export type NavLabelKey =
 	| "ownFunds"
 	| "cryptoAssets"
 	| "custody"
+	| "krypto"
 	| "complaints"
 	| "application"
 	| "baseline"
@@ -141,6 +142,8 @@ export type NavInput = {
 	caspServices: string[];
 	role: OrgRole;
 	counts?: { today?: number };
+	// Verbindung zu both.money aktiv → Eintrag „Krypto (both.money)“
+	walletLinked?: boolean;
 };
 
 const FINANCE_SLUGS = new Set([
@@ -423,9 +426,23 @@ export function buildNav(input: NavInput): NavGroup[] {
 				href: "/verwahrung",
 				icon: "vault",
 			});
+		if (input.walletLinked)
+			items.push({
+				key: "krypto",
+				labelKey: "krypto",
+				href: "/krypto",
+				icon: "wallet",
+			});
 		if (items.length > 0)
 			groups.push({ key: "casp", labelKey: "groupCasp", items });
-	}
+	} else if (input.walletLinked && !isAuditor)
+		groups.push({
+			key: "casp",
+			labelKey: "groupCasp",
+			items: [
+				{ key: "krypto", labelKey: "krypto", href: "/krypto", icon: "wallet" },
+			],
+		});
 
 	groups.push({
 		key: "frameworks",

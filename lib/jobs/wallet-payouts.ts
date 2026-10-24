@@ -1,3 +1,5 @@
+// Legacy (bis K6): Wallet-Bereich in Klick, ersetzt durch both.money —
+// Änderungen nur noch in apps/wallet/lib/jobs/wallet-payouts.ts.
 import { hex } from "@scure/base";
 import { Transaction } from "@scure/btc-signer";
 import { and, eq, inArray, sql } from "drizzle-orm";

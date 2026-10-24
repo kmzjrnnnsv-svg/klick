@@ -17,6 +17,7 @@ import { StagePanel } from "@/components/settings/stage-panel";
 import { SubscriptionPanel } from "@/components/settings/subscription-panel";
 import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel";
 import { WalletAreaPanel } from "@/components/settings/wallet-area-panel";
+import { WalletLinkPanel } from "@/components/settings/wallet-link-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { approvalWorkflows } from "@/db/schema";
@@ -74,6 +75,7 @@ import {
 	listRetiredFrameworkSlugs,
 } from "@/lib/org/queries";
 import { listOrgRoles } from "@/lib/org/roles";
+import { listWalletLinks } from "@/lib/wallet-link-ingest/queries";
 
 export default async function SettingsPage({
 	searchParams,
@@ -139,12 +141,13 @@ export default async function SettingsPage({
 	const canReadIntegrations = allows(ctx, {
 		integration: ["read"],
 	});
-	const { tokens, productOptions } = canReadIntegrations
+	const { tokens, productOptions, walletLinks } = canReadIntegrations
 		? await readOrg(toOrgCtx(ctx), async (tx) => ({
 				tokens: await listAccessTokens(tx, ctx.orgId),
 				productOptions: await listProductOptions(tx, ctx.orgId),
+				walletLinks: await listWalletLinks(tx, ctx.orgId),
 			}))
-		: { tokens: [], productOptions: [] };
+		: { tokens: [], productOptions: [], walletLinks: [] };
 	const { orgFws, retiredSlugs, openAudits, riskPoints, auditCtx } =
 		await readOrg(toOrgCtx(ctx), async (tx) => {
 			const rows = await listOrgFrameworks(tx, ctx.orgId);
@@ -478,7 +481,13 @@ export default async function SettingsPage({
 					</p>
 				</TabsContent>
 				{canReadIntegrations && (
-					<TabsContent value="integrationen">
+					<TabsContent value="integrationen" className="flex flex-col gap-6">
+						<WalletLinkPanel
+							links={walletLinks}
+							origin={callbackBase}
+							canCreate={allows(ctx, { integration: ["create"] })}
+							canRevoke={allows(ctx, { integration: ["revoke"] })}
+						/>
 						<IntegrationsPanel
 							tokens={tokens}
 							products={productOptions}

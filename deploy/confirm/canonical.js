@@ -1,7 +1,7 @@
-// Klick · Bestätigungsseite (freigabe.raza.work) — gemeinsamer Kern.
+// both.money · Bestätigungsseite (approve.both.money) — gemeinsamer Kern.
 //
 // Ohne Abhängigkeiten. Liest den kanonischen Text einer Absicht selbst und
-// rechnet die Challenge im Browser (SHA-256), statt einer Anzeige aus Klick
+// rechnet die Challenge im Browser (SHA-256), statt einer Anzeige aus der App
 // zu vertrauen. Muss exakt zu lib/wallet/core/intent.ts passen; Vitest lädt
 // diese Datei mit denselben Testvektoren (tests/confirm-static.test.ts).
 

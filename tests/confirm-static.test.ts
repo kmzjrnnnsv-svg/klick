@@ -138,7 +138,7 @@ describe("statisch und ohne Inline-Code", () => {
 			expect(text).not.toMatch(/<style/);
 			// einzige fremde Herkunft: die API im <meta>
 			const urls = [...text.matchAll(/https?:\/\/[^"'\s<]+/g)].map((m) => m[0]);
-			expect(urls).toEqual(["https://raza.work"]);
+			expect(urls).toEqual(["https://both.money"]);
 		}
 	});
 

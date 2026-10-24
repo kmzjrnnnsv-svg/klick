@@ -38,6 +38,14 @@ jobs:
       DATABASE_URL_MIGRATE: postgres://postgres:postgres@localhost:5432/klick_test
       DATABASE_URL_TEST: postgres://klick_test_app:klick_test_app@localhost:5432/klick_test
       KLICK_DISABLE_JOBS: "true"
+      # both.money (apps/wallet): eigene Test-DB wallet_test
+      WALLET_DATABASE_URL: postgres://wallet_test_app:wallet_test_app@localhost:5432/wallet_test
+      WALLET_DATABASE_URL_MIGRATE: postgres://postgres:postgres@localhost:5432/wallet_test
+      WALLET_DATABASE_URL_TEST: postgres://wallet_test_app:wallet_test_app@localhost:5432/wallet_test
+      WALLET_AUTH_URL: http://localhost:3400
+      WALLET_AUTH_SECRET: ci-only-wallet-secret-0123456789abcdef0123456789
+      WALLET_VAULT_KEK_BASE64: AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=
+      WALLET_DISABLE_JOBS: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -66,6 +74,24 @@ jobs:
           SQL
       - name: Seed (idempotent, als App-Rolle)
         run: pnpm db:seed
+      - name: both.money — Test-DB, Rolle, Migration, Grants
+        run: |
+          psql "$DATABASE_URL_MIGRATE" -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE wallet_test_app LOGIN PASSWORD 'wallet_test_app' NOBYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE;
+          CREATE DATABASE wallet_test;
+          SQL
+          pnpm db:wallet:migrate
+          psql "$WALLET_DATABASE_URL_MIGRATE" -v ON_ERROR_STOP=1 <<'SQL'
+          GRANT USAGE ON SCHEMA public TO wallet_test_app;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO wallet_test_app;
+          GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO wallet_test_app;
+          CREATE SCHEMA IF NOT EXISTS pgboss AUTHORIZATION wallet_test_app;
+          SQL
+      - name: Migrations-Drift (Schema ↔ Migrationen, Klick und both.money)
+        run: |
+          pnpm exec drizzle-kit generate --name ci-drift
+          pnpm db:wallet:generate --name ci-drift
+          test -z "$(git status --porcelain db/migrations apps/wallet/db/migrations)" || { git status --porcelain db/migrations apps/wallet/db/migrations; echo "Schema und Migrationen weichen ab — pnpm db:generate bzw. db:wallet:generate ausführen"; exit 1; }
       - name: Tests (Unit + RLS-Integration)
         run: pnpm test
       - name: Signer bündeln (SHA-256 für deploy/signer/install.sh)
@@ -75,6 +101,38 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat dist/signer.mjs.sha256 >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  wallet-build:
+    name: both.money (apps/wallet) — Build + Start
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      WALLET_AUTH_URL: http://localhost:3410
+      WALLET_DISABLE_JOBS: "true"
+      # Start ohne Datenbank-Zugriff: Health/CSP fragen keine DB ab
+      WALLET_DATABASE_URL: postgres://wallet_app@localhost:5432/wallet
+      WALLET_AUTH_SECRET: ci-only-wallet-secret-0123456789abcdef0123456789
+      WALLET_VAULT_KEK_BASE64: AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm build:wallet
+      - name: Start + Health + CSP mit Nonce
+        run: |
+          pnpm exec next start apps/wallet -p 3410 > wallet.log 2>&1 &
+          for i in $(seq 1 60); do curl -fs http://localhost:3410/api/health && break; sleep 1; done
+          curl -fs http://localhost:3410/api/health | grep -q '"service":"both.money"'
+          curl -fsD headers.txt http://localhost:3410/ -o page.html
+          grep -qi "^content-security-policy:.*'nonce-" headers.txt
+          grep -q 'nonce="' page.html
+      - if: failure()
+        run: cat wallet.log || true
 
   supply-chain:
     name: pnpm audit · OSV · SBOM

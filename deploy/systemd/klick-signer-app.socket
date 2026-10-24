@@ -1,8 +1,9 @@
-# /etc/systemd/system/klick-signer-app.socket — Signer, Socket für Klick
+# /etc/systemd/system/klick-signer-app.socket — Signer, Socket für die App
 #
-# Die App (Gruppe klick) reicht hier Absichten, Bestätigungen und
+# both.money (Gruppe both) reicht hier Absichten, Bestätigungen und
 # Ausgabepläne weiter und darf bremsen (einfrieren, Veto, abbrechen,
-# verschärfen) — einrichten und lockern geht nur über admin.sock.
+# verschärfen) — einrichten und lockern geht nur über admin.sock. Klick
+# (Gruppe klick) hat seit der Umstellung keinen Zugriff mehr.
 [Unit]
 Description=Klick — Signer (app.sock)
 
@@ -11,7 +12,7 @@ ListenStream=/run/klick-signer/app.sock
 FileDescriptorName=app
 Service=klick-signer.service
 SocketUser=root
-SocketGroup=klick
+SocketGroup=both
 SocketMode=0660
 DirectoryMode=0755
 RemoveOnStop=yes

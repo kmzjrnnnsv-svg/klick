@@ -1,3 +1,5 @@
+// Legacy (bis K6): Wallet-Bereich in Klick, ersetzt durch both.money —
+// Änderungen nur noch in apps/wallet/lib/wallet/signer/status.ts.
 import {
 	type SignerHello,
 	type SignerMeta,

@@ -17,3 +17,4 @@ export * from "./schema/signatures";
 export * from "./schema/supplier-ratings";
 export * from "./schema/trust";
 export * from "./schema/wallet";
+export * from "./schema/wallet-link";

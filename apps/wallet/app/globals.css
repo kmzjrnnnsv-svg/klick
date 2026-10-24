@@ -1,0 +1,9 @@
+/* both.money: nur die eigene App und die geteilten UI-Bausteine scannen */
+@import "tailwindcss" source(none);
+@source "../";
+@source "../../../components/ui";
+@import "tw-animate-css";
+
+@import "../../../styles/tokens.css";
+
+@import "../../../styles/base.css";

@@ -1,7 +1,7 @@
-import type { WalletAccount } from "@/db/schema/wallet";
 import { formatAmount } from "./core/amount";
 import { ASSETS } from "./core/assets";
 import { NETWORKS, type WalletNetwork } from "./core/networks";
+import type { AccountBalances, WalletAccountPurpose } from "./model";
 
 // Bestand laut eigenen Knoten für die tägliche Abstimmung des
 // Kundenvermögens (MiCAR Art. 70/75): je Kryptowert die bestätigten Salden
@@ -33,17 +33,20 @@ export const reconciliationSymbol = (network: WalletNetwork, code: string) =>
 		? code
 		: `${code}.${TESTNET_SUFFIX[network] ?? "TEST"}`;
 
+// Strukturell, damit Klick-Konten (Legacy) und gespiegelte Konten aus
+// both.money (crypto_accounts + crypto_balances) dieselbe Rechnung nutzen
+export type HoldingAccount = {
+	network: WalletNetwork;
+	purpose: WalletAccountPurpose;
+	status: string;
+	balances: AccountBalances | null;
+	balanceHeight: number | null;
+	balanceHash: string | null;
+	balanceAt: Date | null;
+};
+
 export function nodeHoldings(
-	accounts: readonly Pick<
-		WalletAccount,
-		| "network"
-		| "purpose"
-		| "status"
-		| "balances"
-		| "balanceHeight"
-		| "balanceHash"
-		| "balanceAt"
-	>[],
+	accounts: readonly HoldingAccount[],
 ): NodeHolding[] {
 	const by = new Map<
 		string,

@@ -3,6 +3,7 @@
 #
 #   scripts/backup-db.sh                 → ./backups/klick-<ts>.sql.age
 #   BACKUP_DIR=/var/backups/klick scripts/backup-db.sh
+#   BACKUP_PREFIX=both BACKUP_DIR=/var/backups/both scripts/backup-db.sh   (both.money, Rolle wallet_backup)
 #
 # Verbindung: DATABASE_URL_BACKUP (Rolle klick_backup aus
 # deploy/postgres/roles.sql, BYPASSRLS + nur lesen). Die Org-Tabellen tragen
@@ -20,10 +21,12 @@ set -euo pipefail
 : "${DATABASE_URL_BACKUP:=${DATABASE_URL_MIGRATE:?DATABASE_URL_BACKUP fehlt}}"
 : "${BACKUP_DIR:=./backups}"
 : "${BACKUP_KEEP_DAYS:=30}"
+: "${BACKUP_PREFIX:=klick}"
+[[ "$BACKUP_PREFIX" =~ ^[a-z]+$ ]] || { echo "BACKUP_PREFIX nur a–z" >&2; exit 2; }
 
 mkdir -p "$BACKUP_DIR"
 ts="$(date -u +%Y%m%dT%H%M%SZ)"
-out="$BACKUP_DIR/klick-$ts.sql"
+out="$BACKUP_DIR/$BACKUP_PREFIX-$ts.sql"
 
 # Schema pgboss bleibt draußen: es gehört klick_app (roles.sql) und enthält
 # nur die Job-Warteschlange; pg-boss legt seine Tabellen beim Start selbst
@@ -46,7 +49,7 @@ if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
   rclone copy "$out" "$BACKUP_RCLONE_REMOTE/" && rclone copy "$out.sha256" "$BACKUP_RCLONE_REMOTE/"
   echo "✔ Offsite: $BACKUP_RCLONE_REMOTE"
   # Offsite gilt dieselbe Aufbewahrung wie lokal (Löschkonzept, Art. 17 DSGVO)
-  rclone delete --min-age "${BACKUP_KEEP_DAYS}d" --include 'klick-*.sql*' "$BACKUP_RCLONE_REMOTE/"
+  rclone delete --min-age "${BACKUP_KEEP_DAYS}d" --include "$BACKUP_PREFIX-*.sql*" "$BACKUP_RCLONE_REMOTE/"
 fi
 
-find "$BACKUP_DIR" -name 'klick-*.sql*' -mtime "+$BACKUP_KEEP_DAYS" -delete
+find "$BACKUP_DIR" -name "$BACKUP_PREFIX-*.sql*" -mtime "+$BACKUP_KEEP_DAYS" -delete

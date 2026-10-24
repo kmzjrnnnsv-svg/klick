@@ -1,5 +1,10 @@
 import type { EntityKind, NotificationKind } from "@/db/schema/enums";
 import { previousBusinessDay } from "@/lib/custody/reconcile";
+import {
+	alertOverdue,
+	type LinkHealthInput,
+	linkHealth,
+} from "@/lib/wallet-link-ingest/health";
 
 // Stündlicher Fachjob (ADR-011): sammelt fällige Dinge je Org und leitet
 // daraus Benachrichtigungen, Eskalations-Aufgaben und Status-Übergänge ab.
@@ -217,6 +222,15 @@ export type DueRows = {
 		retestDueAt: Date | string | null;
 		ownerUserId: string | null;
 	}[];
+	/** Verbindungen zu both.money: Lebenszeichen, Abschluss, Liste, Token. */
+	walletLinks?: {
+		links: readonly (LinkHealthInput & { id: string; name: string })[];
+		openAlerts: readonly {
+			id: string;
+			title: string;
+			raisedAt: Date;
+		}[];
+	};
 	/** Verwahrung: Abstimmung, Backup-Tests, befristete Inhaberschaften. */
 	custody?: {
 		wallets: readonly {
@@ -1012,6 +1026,70 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 				dedupeKey: `access_expiring:${a.memberId}:${isoDay(until)}`,
 			});
 		}
+	}
+
+	// both.money (Plan both.money, K4): kein Lebenszeichen seit 2 h →
+	// Sicherheitsmeldung; fehlender Tagesabschluss ab 09:00, Sanktionsliste
+	// älter als 7 Tage, Token-Ablauf (30/7/1 Tage, danach wöchentlich) und
+	// Hinweise länger als 24 h offen → Erinnerung (täglich, dedupliziert)
+	if (rows.walletLinks) {
+		const owners = [...rows.orgOwnerIds];
+		for (const l of rows.walletLinks.links) {
+			const h = linkHealth(l, now);
+			const link = "/krypto";
+			if (h.heartbeatStale)
+				notifications.push({
+					kind: "security_alert",
+					recipients: owners,
+					title: `both.money meldet sich nicht: ${l.name}`,
+					body: "Seit über 2 Stunden kein Lebenszeichen. Dienst both.money und Verbindung prüfen.",
+					link,
+					dedupeKey: `wallet_link_heartbeat:${l.id}`,
+				});
+			if (h.dayCloseMissing)
+				notifications.push({
+					kind: "review_due",
+					recipients: owners,
+					title: `Tagesabschluss aus both.money fehlt: ${fmtDay(new Date(`${h.dayCloseMissing}T12:00:00Z`))}`,
+					body: "Ohne Tagesabschluss fehlt der Knotenstand für die Abstimmung des Kundenvermögens.",
+					link,
+					dedupeKey: `wallet_link_day:${l.id}:${h.dayCloseMissing}`,
+				});
+			if (h.sanctionsStale)
+				notifications.push({
+					kind: "review_due",
+					recipients: owners,
+					title: `Sanktionsliste in both.money veraltet: ${l.name}`,
+					body: "Die Sperrliste ist älter als 7 Tage oder fehlt. Import in both.money prüfen (CC-SAN-01).",
+					link,
+					dedupeKey: `wallet_link_sanctions:${l.id}`,
+				});
+			const exp = toDate(l.tokenExpiresAt);
+			if (exp) {
+				const d = daysUntil(now, exp);
+				if (d === 30 || d === 7 || d === 1 || (d <= 0 && -d % 7 === 0))
+					notifications.push({
+						kind: "review_due",
+						recipients: owners,
+						title:
+							d <= 0
+								? `Token für both.money abgelaufen: ${l.name}`
+								: `Token für both.money läuft in ${d} ${d === 1 ? "Tag" : "Tagen"} ab: ${l.name}`,
+						body: "Unter Einstellungen → Integrationen erneuern und in both.money eintragen.",
+						link: "/einstellungen?tab=integrationen",
+						dedupeKey: `wallet_link_token:${l.id}:${d}`,
+					});
+			}
+		}
+		for (const a of rows.walletLinks.openAlerts)
+			if (alertOverdue({ raisedAt: a.raisedAt, resolvedAt: null }, now))
+				notifications.push({
+					kind: "review_due",
+					recipients: owners,
+					title: `Hinweis aus both.money seit über 24 h offen: ${a.title}`,
+					link: "/krypto?tab=hinweise",
+					dedupeKey: `wallet_alert:${a.id}`,
+				});
 	}
 
 	return { notifications, tasks, actions };

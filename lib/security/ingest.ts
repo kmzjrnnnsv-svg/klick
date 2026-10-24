@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { accessTokens } from "@/db/schema";
-import type { IngestScope } from "@/db/schema/enums";
+import type { AccessTokenKind, IngestScope } from "@/db/schema/enums";
 import type { OrgCtx, OrgTx } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
 import { logger } from "@/lib/log";
@@ -35,10 +35,14 @@ export function clientIp(req: Request): string {
 	);
 }
 
-export async function ingestAuth(
+// Token-Zugang ohne Sitzung für jede Token-Art (ADR-017): Bearer, Art und
+// Scope passen, Grenzen je IP, Token und Org. Ohne Person (userId null) —
+// Dienste setzen Verantwortliche ausdrücklich.
+export async function tokenAuth(
 	req: Request,
-	scope: IngestScope,
+	want: { kind: AccessTokenKind; scope: string },
 ): Promise<{ token: ResolvedToken; ctx: OrgCtx } | NextResponse> {
+	const { kind, scope } = want;
 	const ip = clientIp(req);
 	const ipDecision = perIp.check(ip);
 	if (!ipDecision.allowed)
@@ -56,7 +60,7 @@ export async function ingestAuth(
 			{ error: "unauthorized" },
 			{ "www-authenticate": "Bearer" },
 		);
-	const r = await resolveToken(raw, "ingest");
+	const r = await resolveToken(raw, kind);
 	if (!r.ok)
 		return json(
 			401,
@@ -85,6 +89,13 @@ export async function ingestAuth(
 			userAgent: req.headers.get("user-agent"),
 		},
 	};
+}
+
+export function ingestAuth(
+	req: Request,
+	scope: IngestScope,
+): Promise<{ token: ResolvedToken; ctx: OrgCtx } | NextResponse> {
+	return tokenAuth(req, { kind: "ingest", scope });
 }
 
 // Body gestreamt mit harter Grenze lesen; nur UTF-8-Text.

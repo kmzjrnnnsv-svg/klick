@@ -1,0 +1,6 @@
+# /etc/systemd/system/both.service.d/mail.conf — Mailversand über Brevo
+# (Absender WALLET_MAIL_FROM in /etc/both/both.env, Domain both.money in
+# Brevo bestätigt, DKIM/DMARC). Schlüssel als Credential:
+#   systemd-creds encrypt --name=wallet_brevo_api_key - /etc/credstore.encrypted/wallet_brevo_api_key
+[Service]
+LoadCredentialEncrypted=wallet_brevo_api_key:/etc/credstore.encrypted/wallet_brevo_api_key
