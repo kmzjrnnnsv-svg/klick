@@ -97,7 +97,7 @@ export function ResolutionForm({
 						{triggerLabel ?? t("recordFor")}
 					</Button>
 				) : (
-					<Button size="sm" variant="brown">
+					<Button size="sm">
 						<Plus />
 						{triggerLabel ?? t("new")}
 					</Button>

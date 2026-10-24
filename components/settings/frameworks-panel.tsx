@@ -198,7 +198,6 @@ export function FrameworksPanel({
 							{canEdit && (
 								<div className="flex justify-end">
 									<Button
-										variant="brown"
 										disabled={pending || picked.length === 0}
 										onClick={() =>
 											start(async () => {

@@ -58,7 +58,6 @@ export function GapStep({
 			<p className="text-muted-foreground text-xs">{t("gapLater")}</p>
 			<div className="flex justify-end">
 				<Button
-					variant="brown"
 					disabled={pending || selected.length === 0}
 					onClick={() =>
 						start(async () => {

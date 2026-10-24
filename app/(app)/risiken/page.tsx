@@ -162,7 +162,7 @@ export default async function RisksPage({
 							/>
 						)}
 						{canCreate && (
-							<Button asChild size="sm" variant="brown">
+							<Button asChild size="sm">
 								<Link href="/risiken/neu">
 									<Plus />
 									{t("analyze")}
@@ -528,7 +528,7 @@ export default async function RisksPage({
 							actions={
 								canCreate ? (
 									<span className="flex flex-wrap gap-2">
-										<Button asChild size="sm" variant="brown">
+										<Button asChild size="sm">
 											<Link href="/risiken/neu">
 												<Plus />
 												{t("analyze")}

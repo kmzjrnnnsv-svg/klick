@@ -1,12 +1,15 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
+// Tabelle nach Apple HIG: Spaltenköpfe in Satzschreibung (Footnote,
+// halbfett), ruhige Trennlinien, Zeile tönt beim Darüberfahren
+
 function Table({ className, ...props }: React.ComponentProps<"table">) {
 	return (
 		<div data-slot="table-container" className="relative w-full overflow-x-auto">
 			<table
 				data-slot="table"
-				className={cn("tabular w-full caption-bottom text-sm", className)}
+				className={cn("tabular w-full caption-bottom text-subhead", className)}
 				{...props}
 			/>
 		</div>
@@ -44,7 +47,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
 		<tr
 			data-slot="table-row"
 			className={cn(
-				"border-b border-border/60 transition-colors hover:bg-muted/40 data-[state=selected]:bg-muted",
+				"border-b border-border/60 transition-colors hover:bg-muted/50 data-[state=selected]:bg-accent",
 				className,
 			)}
 			{...props}
@@ -57,7 +60,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
 		<th
 			data-slot="table-head"
 			className={cn(
-				"lv-eyebrow h-10 whitespace-nowrap px-3 text-left align-middle text-[0.7rem] text-muted-foreground [&:has([role=checkbox])]:pr-0",
+				"h-9 whitespace-nowrap px-3 text-left align-middle font-semibold text-footnote text-muted-foreground [&:has([role=checkbox])]:pr-0",
 				className,
 			)}
 			{...props}
@@ -79,7 +82,7 @@ function TableCaption({ className, ...props }: React.ComponentProps<"caption">) 
 	return (
 		<caption
 			data-slot="table-caption"
-			className={cn("mt-4 text-muted-foreground text-sm", className)}
+			className={cn("mt-4 text-footnote text-muted-foreground", className)}
 			{...props}
 		/>
 	);

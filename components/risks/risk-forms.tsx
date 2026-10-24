@@ -87,7 +87,7 @@ export function RiskQuickCreate({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button size="sm" variant={triggerLabel ? "outline" : "brown"}>
+				<Button size="sm" variant={triggerLabel ? "outline" : "default"}>
 					<Plus />
 					{triggerLabel ?? t("new")}
 				</Button>

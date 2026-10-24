@@ -62,7 +62,7 @@ export function DocumentCreate({ templates }: { templates: TemplateOption[] }) {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button size="sm" variant="brown">
+				<Button size="sm">
 					<Plus />
 					{t("new")}
 				</Button>
@@ -245,7 +245,6 @@ export function TemplatesDialog({
 						{tc("cancel")}
 					</Button>
 					<Button
-						variant="brown"
 						disabled={pending || picked.length === 0}
 						onClick={() =>
 							start(async () => {
@@ -302,7 +301,6 @@ export function ImportDialog() {
 						{tc("cancel")}
 					</Button>
 					<Button
-						variant="brown"
 						disabled={pending || files.length === 0}
 						onClick={() =>
 							start(async () => {

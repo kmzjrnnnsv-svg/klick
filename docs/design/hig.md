@@ -165,8 +165,22 @@ Varianten, die auf dem grauen Seitengrund (#F2F2F7) mindestens 4,5 : 1 erreichen
 ## 10. Umsetzung im Code
 
 - Tokens: `styles/tokens.css`; Grundstile und `.material-bar`: `styles/base.css`.
-- Bausteine: `components/ui/*` (Phase A2), Rahmen: `components/shell/*`,
-  `apps/wallet/components/shell/*` (Phase A3).
+- Textstile als Klassen `text-large-title` … `text-caption-2`; `cn()` kennt sie als Schriftgrößen
+  (`TEXT_STYLES` in `lib/utils.ts`, sonst verwirft tailwind-merge daneben stehende Textfarben).
+- Bausteine `components/ui/*`:
+  - `Button`: `default` = Primär (`bg-primary-fill`, weiße Schrift), `secondary`/`outline` = grau
+    getönt, `ghost` = schlicht in Akzentfarbe, `destructive` = Rot; `pending` für den Ladezustand.
+  - `Input`/`Textarea`/`SelectTrigger`: gefülltes Feld, mindestens 16 px Schrift (kein Zoom in
+    Safari auf iOS), `Label` darüber in Subhead.
+  - `Badge` = Status-Label: Punkt in der Statusfarbe, Text in der Vordergrundfarbe (getönte Flächen
+    drücken farbigen Text unter 4,5 : 1).
+  - `Dialog` = Sheet (am Handy von unten), `AlertDialog` = Alert (schmal, mittig, gestapelt am
+    Handy), `Tabs`/`UrlTabs` bis fünf als segmentierte Steuerung (`--segment`), mehr als Kapseln.
+  - `List` (`ListGroup`, `ListSection`, `ListRow`) für gruppierte Listen, `MiddleEllipsis` für
+    Adressen und Hashes.
+  - Seitengerüste: `PageHeader` (Large Title), `EntityLayout`/`Section`/`MetaItem`, `EmptyState`,
+    `RegisterPage` (am Handy gruppierte Liste mit Pfeil).
+- Rahmen: `components/shell/*`, `apps/wallet/components/shell/*` (Phase A3).
 - Alte Klassen `font-serif-display`, `lv-eyebrow`, `lv-nav`, `lv-wordmark` sind umgedeutet (keine
   Serifen, keine Versalien) und verschwinden mit dem Umbau der Seiten (Phase A5).
 - Prüfung: Test `ui-hig` (Bausteine), Prüfskripte unter `scripts/qa/` (Tippflächen, Kontrast,

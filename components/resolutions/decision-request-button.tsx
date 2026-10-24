@@ -52,7 +52,7 @@ export function DecisionRequestButton({
 	// niemand (außer dir) in der Geschäftsleitung → Hinweis vor dem Absenden
 	approverHint?: "none" | "only_you" | null;
 	// Unterlagen anhängen (nur mit Objektspeicher)
-	variant?: "outline" | "brown";
+	variant?: "outline" | "default";
 }) {
 	const t = useTranslations("Decisions");
 	const tc = useTranslations("Common");

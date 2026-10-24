@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 
+// Seitenkopf nach Apple HIG: Large Title (fett, Vordergrundfarbe), darunter
+// ein Satz Zweck; Aktionen hinten, höchstens eine hervorgehoben. eyebrow ist
+// nur noch leiser Kontext (Bereich), keine Versalien, keine Farbe.
 export function PageHeader({
 	eyebrow,
 	title,
@@ -12,18 +15,24 @@ export function PageHeader({
 	actions?: ReactNode;
 }) {
 	return (
-		<div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+		<div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
 			<div className="min-w-0">
 				{eyebrow && (
-					<p className="lv-eyebrow text-[0.7rem] text-brown">{eyebrow}</p>
+					<p className="font-medium text-footnote text-muted-foreground">
+						{eyebrow}
+					</p>
 				)}
-				<h1 className="mt-2 hyphens-auto break-words font-serif-display text-3xl text-primary sm:text-4xl">
+				<h1 className="mt-0.5 hyphens-auto break-words font-bold text-foreground text-title-1 text-balance sm:text-large-title">
 					{title}
 				</h1>
-				{lead && <p className="mt-3 max-w-2xl text-muted-foreground">{lead}</p>}
+				{lead && (
+					<p className="mt-2 max-w-2xl text-callout text-muted-foreground text-pretty">
+						{lead}
+					</p>
+				)}
 			</div>
 			{actions && (
-				<div className="flex min-w-0 flex-wrap gap-2 sm:max-w-[60%] sm:shrink-0 sm:justify-end">
+				<div className="flex min-w-0 flex-wrap items-center gap-2 sm:max-w-[60%] sm:shrink-0 sm:justify-end">
 					{actions}
 				</div>
 			)}

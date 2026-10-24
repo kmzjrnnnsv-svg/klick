@@ -71,7 +71,7 @@ export function CmsEditor({
 				/>
 			</div>
 			<div className="flex gap-2">
-				<Button type="submit" variant="brown" disabled={pending}>
+				<Button type="submit" disabled={pending}>
 					{t("cmsSave")}
 				</Button>
 				{initial && (

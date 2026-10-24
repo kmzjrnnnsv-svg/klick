@@ -167,7 +167,6 @@ export function NewAccountDialog({
 						<DialogFooter>
 							<Button
 								type="button"
-								variant="brown"
 								onClick={() => {
 									setOpen(false);
 									reset();
@@ -261,11 +260,7 @@ export function NewAccountDialog({
 							>
 								{tc("cancel")}
 							</Button>
-							<Button
-								type="submit"
-								variant="brown"
-								disabled={pending || networks.length === 0}
-							>
+							<Button type="submit" disabled={pending || networks.length === 0}>
 								{t("newAccount")}
 							</Button>
 						</DialogFooter>

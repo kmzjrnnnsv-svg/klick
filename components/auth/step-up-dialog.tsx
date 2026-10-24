@@ -145,7 +145,7 @@ export function StepUpDialog({
 						{(totp || !passkey) && (
 							<Button
 								type="submit"
-								variant={passkey ? "outline" : "brown"}
+								variant={passkey ? "outline" : "default"}
 								disabled={busy || code.trim().length < 6}
 							>
 								{t("verify")}

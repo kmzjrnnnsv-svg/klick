@@ -214,7 +214,7 @@ export function LinkRegistration({
 				{same ? (
 					<Link
 						href={`/einladung/${info.invitationId}`}
-						className={buttonVariants({ variant: "brown" })}
+						className={buttonVariants()}
 					>
 						{t("toAccept")}
 					</Link>
@@ -235,7 +235,7 @@ export function LinkRegistration({
 				</p>
 				<Link
 					href={`/login?weiter=/einladung/${info.invitationId}`}
-					className={buttonVariants({ variant: "brown" })}
+					className={buttonVariants()}
 				>
 					{t("signInToAccept")}
 				</Link>
@@ -292,7 +292,6 @@ export function LinkRegistration({
 			)}
 			<Button
 				type="submit"
-				variant="brown"
 				disabled={busy || (info.kind === "invite" && !name.trim())}
 			>
 				<KeyRound className="size-4" aria-hidden />

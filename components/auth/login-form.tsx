@@ -128,7 +128,6 @@ export function LoginForm({
 		<div className="flex flex-col gap-6">
 			<Button
 				type="button"
-				variant="brown"
 				size="lg"
 				onClick={passkey}
 				disabled={busy !== null}

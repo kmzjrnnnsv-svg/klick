@@ -33,15 +33,10 @@ export default async function MagicLinkConfirmPage({
 					{fields.map(([name, value]) => (
 						<input key={name} type="hidden" name={name} value={value} />
 					))}
-					<Button type="submit" variant="brown">
-						{t("linkConfirm")}
-					</Button>
+					<Button type="submit">{t("linkConfirm")}</Button>
 				</form>
 			) : (
-				<Link
-					href="/login/notweg"
-					className={buttonVariants({ variant: "brown" })}
-				>
+				<Link href="/login/notweg" className={buttonVariants()}>
 					{t("linkNew")}
 				</Link>
 			)}

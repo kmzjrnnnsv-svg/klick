@@ -61,7 +61,6 @@ export function EnrolFactor() {
 					<Fingerprint /> {t("enrolAnotherPasskey")}
 				</Button>
 				<Button
-					variant="brown"
 					onClick={() => {
 						router.replace("/heute");
 						router.refresh();
@@ -74,7 +73,7 @@ export function EnrolFactor() {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<Button variant="brown" size="lg" onClick={addPasskey} disabled={busy}>
+			<Button size="lg" onClick={addPasskey} disabled={busy}>
 				<Fingerprint /> {busy ? t("passkeyBusy") : t("enrolPasskey")}
 			</Button>
 			<p className="text-muted-foreground text-xs">{t("enrolPasskeyLead")}</p>

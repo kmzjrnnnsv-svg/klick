@@ -237,7 +237,6 @@ export function SitesStep({
 			{nextHref && (
 				<div className="flex justify-end">
 					<Button
-						variant="brown"
 						disabled={moving}
 						onClick={() => run(() => completeSetupStep({ step: "standorte" }))}
 					>

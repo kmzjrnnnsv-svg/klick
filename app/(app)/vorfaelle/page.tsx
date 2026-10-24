@@ -153,7 +153,7 @@ export default async function IncidentsPage({
 			lead={t("lead")}
 			actions={
 				canCreate ? (
-					<Button asChild variant="brown" size="sm">
+					<Button asChild size="sm">
 						<Link href="/vorfaelle/neu">{t("new")}</Link>
 					</Button>
 				) : undefined

@@ -5,6 +5,9 @@ import type * as React from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// Alert nach Apple HIG: schmal, mittig, Titel nennt die Folge (nie „Fehler“),
+// höchstens drei Buttons, „Abbrechen“ statt „OK“, am Handy gestapelt.
+
 function AlertDialog(props: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
 	return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
 }
@@ -25,7 +28,7 @@ function AlertDialogOverlay({
 		<AlertDialogPrimitive.Overlay
 			data-slot="alert-dialog-overlay"
 			className={cn(
-				"data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-foreground/40",
+				"data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/40",
 				className,
 			)}
 			{...props}
@@ -43,7 +46,7 @@ function AlertDialogContent({
 			<AlertDialogPrimitive.Content
 				data-slot="alert-dialog-content"
 				className={cn(
-					"data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full grid-cols-1 max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-5 rounded-md border bg-popover p-6 shadow-xl duration-200 sm:max-w-lg",
+					"data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-105 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-3rem)] translate-x-[-50%] translate-y-[-50%] grid-cols-1 gap-5 overflow-y-auto overscroll-contain rounded-2xl bg-popover p-5 text-popover-foreground shadow-2xl duration-200 sm:max-w-md",
 					className,
 				)}
 				{...props}
@@ -53,14 +56,14 @@ function AlertDialogContent({
 }
 
 function AlertDialogHeader({ className, ...props }: React.ComponentProps<"div">) {
-	return <div data-slot="alert-dialog-header" className={cn("flex flex-col gap-2 text-center sm:text-left", className)} {...props} />;
+	return <div data-slot="alert-dialog-header" className={cn("flex flex-col gap-1.5 text-center", className)} {...props} />;
 }
 
 function AlertDialogFooter({ className, ...props }: React.ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="alert-dialog-footer"
-			className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+			className={cn("flex flex-col-reverse gap-2 *:w-full sm:flex-row sm:*:w-auto sm:*:flex-1", className)}
 			{...props}
 		/>
 	);
@@ -73,7 +76,7 @@ function AlertDialogTitle({
 	return (
 		<AlertDialogPrimitive.Title
 			data-slot="alert-dialog-title"
-			className={cn("font-serif-display text-xl", className)}
+			className={cn("font-semibold text-headline", className)}
 			{...props}
 		/>
 	);
@@ -86,7 +89,7 @@ function AlertDialogDescription({
 	return (
 		<AlertDialogPrimitive.Description
 			data-slot="alert-dialog-description"
-			className={cn("text-muted-foreground text-sm", className)}
+			className={cn("text-foreground/80 text-subhead", className)}
 			{...props}
 		/>
 	);
@@ -105,7 +108,7 @@ function AlertDialogCancel({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
 	return (
 		<AlertDialogPrimitive.Cancel
-			className={cn(buttonVariants({ variant: "outline" }), className)}
+			className={cn(buttonVariants({ variant: "secondary" }), className)}
 			{...props}
 		/>
 	);

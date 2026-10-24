@@ -31,7 +31,7 @@ export function NewAssessmentDialog({
 	frameworks: { slug: string; name: string }[];
 	hasPrevious: boolean;
 	label?: string;
-	variant?: "default" | "outline" | "brown";
+	variant?: "default" | "outline";
 }) {
 	const t = useTranslations("Assessment");
 	const tc = useTranslations("Common");

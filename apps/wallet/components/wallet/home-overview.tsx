@@ -118,7 +118,7 @@ export async function WalletHome() {
 					lead={canManage ? t("accountsEmpty") : t("homeEmptyBody")}
 					actions={
 						canManage && (
-							<Button asChild variant="brown" size="sm">
+							<Button asChild size="sm">
 								<Link href="/accounts?new=1">
 									<Plus aria-hidden />
 									{t("homeAddAccount")}

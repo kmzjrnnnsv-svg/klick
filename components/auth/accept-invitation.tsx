@@ -37,7 +37,7 @@ export function AcceptInvitation({ invitationId }: { invitationId: string }) {
 
 	return (
 		<div className="flex gap-2">
-			<Button variant="brown" onClick={accept} disabled={busy}>
+			<Button onClick={accept} disabled={busy}>
 				{t("accept")}
 			</Button>
 			<Button variant="ghost" onClick={decline} disabled={busy}>

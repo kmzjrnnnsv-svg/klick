@@ -79,9 +79,7 @@ export function InviteLinkPanel({
 				>
 					{t("inviteLinkCopy")}
 				</Button>
-				<Button variant="brown" onClick={onDone}>
-					{t("inviteDone")}
-				</Button>
+				<Button onClick={onDone}>{t("inviteDone")}</Button>
 			</DialogFooter>
 		</div>
 	);
@@ -139,9 +137,7 @@ export function InviteForm({
 			}}
 		>
 			<DialogTrigger asChild>
-				<Button variant="brown" size="sm">
-					{t("invite")}
-				</Button>
+				<Button size="sm">{t("invite")}</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
@@ -236,7 +232,7 @@ export function InviteForm({
 							/>
 							{t("inviteSendMail")}
 						</label>
-						<Button type="submit" variant="brown" disabled={busy || !email}>
+						<Button type="submit" disabled={busy || !email}>
 							{t("invite")}
 						</Button>
 					</form>

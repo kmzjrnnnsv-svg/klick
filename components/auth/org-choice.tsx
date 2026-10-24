@@ -23,7 +23,6 @@ export function SwitchOrgButton({
 		<Button
 			type="button"
 			size="sm"
-			variant="brown"
 			disabled={disabled || pending}
 			onClick={() =>
 				start(async () => {

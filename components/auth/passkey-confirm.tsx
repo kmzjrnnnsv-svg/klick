@@ -68,13 +68,7 @@ export function PasskeyConfirmButton({
 
 	return (
 		<div className="flex flex-col gap-2">
-			<Button
-				type="button"
-				variant="brown"
-				onClick={run}
-				disabled={busy}
-				autoFocus={autoFocus}
-			>
+			<Button type="button" onClick={run} disabled={busy} autoFocus={autoFocus}>
 				<KeyRound className="size-4" aria-hidden />
 				{busy ? t("confirmPasskeyBusy") : t("confirmPasskey")}
 			</Button>

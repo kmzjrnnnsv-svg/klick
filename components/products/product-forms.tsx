@@ -64,7 +64,7 @@ export function NewProductDialog() {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button size="sm" variant="brown">
+				<Button size="sm">
 					<Plus />
 					{t("new")}
 				</Button>

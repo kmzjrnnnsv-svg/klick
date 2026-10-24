@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/page-header";
@@ -26,7 +27,9 @@ export type Column<T> = {
 };
 
 // Seitentyp Register: Kopf, Toolbar (Suche, Filter, Chips, Aktionen),
-// Tabelle mit festen Spalten; unter 640 px eine Kartenliste.
+// Tabelle mit festen Spalten auf einer Fläche; unter 640 px eine gruppierte
+// Liste nach Apple HIG (erste Spalte als Titel, weitere als Zeile darunter,
+// Pfeil für Drill-down).
 export function RegisterPage<T extends { id: string }>({
 	title,
 	lead,
@@ -73,8 +76,8 @@ export function RegisterPage<T extends { id: string }>({
 				empty
 			) : (
 				<>
-					<div className="hidden sm:block">
-						<Table>
+					<div className="hidden overflow-hidden rounded-2xl bg-card sm:block">
+						<Table className="[&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
 							<TableHeader>
 								<TableRow>
 									{columns.map((c) => (
@@ -109,34 +112,57 @@ export function RegisterPage<T extends { id: string }>({
 							</TableBody>
 						</Table>
 					</div>
-					<ul className="flex flex-col gap-2 sm:hidden">
-						{rows.map((row) => (
-							<li key={row.id}>
-								<Link
-									href={rowHref(row)}
-									className="flex flex-col gap-1.5 rounded-md border p-3 text-sm"
+					<ul className="overflow-hidden rounded-2xl bg-card sm:hidden">
+						{rows.map((row) => {
+							const [first, ...rest] = columns.filter(
+								(c) => c.mobile !== false,
+							);
+							return (
+								<li
+									key={row.id}
+									className="relative before:pointer-events-none before:absolute before:top-0 before:right-0 before:left-4 before:h-px before:bg-border/70 first:before:hidden"
 								>
-									{columns
-										.filter((c) => c.mobile !== false)
-										.map((c) => (
-											<div
-												key={c.key}
-												className="flex items-baseline justify-between gap-3"
-											>
-												<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
-													{c.header}
-												</span>
-												<span className="text-right">{c.cell(row)}</span>
-											</div>
-										))}
-								</Link>
-							</li>
-						))}
+									<Link
+										href={rowHref(row)}
+										className="flex items-center gap-3 py-3 pr-3 pl-4 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset active:bg-muted"
+									>
+										<div className="flex min-w-0 flex-1 flex-col gap-1">
+											{first && (
+												<div className="min-w-0 break-words font-medium text-body">
+													{first.cell(row)}
+												</div>
+											)}
+											{rest.length > 0 && (
+												<dl className="flex flex-wrap gap-x-3 gap-y-1 text-footnote">
+													{rest.map((c) => (
+														<div
+															key={c.key}
+															className="flex min-w-0 items-baseline gap-1"
+														>
+															<dt className="text-muted-foreground">
+																{c.header}
+															</dt>
+															<dd className="min-w-0">{c.cell(row)}</dd>
+														</div>
+													))}
+												</dl>
+											)}
+										</div>
+										<ChevronRight
+											aria-hidden="true"
+											className="size-4 shrink-0 text-muted-foreground/70"
+										/>
+									</Link>
+								</li>
+							);
+						})}
 					</ul>
 				</>
 			)}
 			{footer && (
-				<div className="mt-4 text-muted-foreground text-xs">{footer}</div>
+				<div className="mt-3 px-4 text-footnote text-muted-foreground">
+					{footer}
+				</div>
 			)}
 		</>
 	);

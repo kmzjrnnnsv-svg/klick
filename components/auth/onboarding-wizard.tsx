@@ -171,7 +171,6 @@ export function OnboardingWizard({
 			</div>
 			<Button
 				type="submit"
-				variant="brown"
 				disabled={busy || !name.trim() || slug.length < 2 || !terms}
 			>
 				{t("createAndContinue")}

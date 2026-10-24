@@ -157,7 +157,7 @@ export function ActivityStep({
 			</label>
 
 			<div className="flex justify-end">
-				<Button type="submit" variant="brown" disabled={pending}>
+				<Button type="submit" disabled={pending}>
 					{t("saveNext")}
 				</Button>
 			</div>

@@ -26,7 +26,11 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-export function ApplyObligationSeedButton({ variant }: { variant?: "brown" }) {
+export function ApplyObligationSeedButton({
+	variant,
+}: {
+	variant?: "default";
+}) {
 	const t = useTranslations("Calendar");
 	const tc = useTranslations("Common");
 	const router = useRouter();

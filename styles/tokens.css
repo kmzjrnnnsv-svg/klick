@@ -46,6 +46,8 @@
 	/* Bedienebene (Kopf-, Seiten-, Tab-Leiste) */
 	--bar: rgb(255 255 255 / 0.72);
 	--bar-solid: #ffffff;
+	/* gewähltes Segment der segmentierten Steuerung */
+	--segment: #ffffff;
 
 	/* Diagramme: Systemfarben (Flächen und Linien, kein Text) */
 	--chart-1: #0088ff;
@@ -112,6 +114,7 @@
 
 		--bar: rgb(28 28 30 / 0.72);
 		--bar-solid: #1c1c1e;
+		--segment: #636366;
 
 		--chart-1: #0091ff;
 		--chart-2: #6d7cff;
@@ -175,6 +178,7 @@
 	--color-success: var(--success);
 	--color-warning: var(--warning);
 	--color-bar: var(--bar);
+	--color-segment: var(--segment);
 	--color-chart-1: var(--chart-1);
 	--color-chart-2: var(--chart-2);
 	--color-chart-3: var(--chart-3);

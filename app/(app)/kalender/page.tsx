@@ -244,11 +244,7 @@ export default async function CalendarPage({
 							title={t("empty")}
 							lead={t("emptyLead")}
 							requiredBy={t("requiredBy")}
-							actions={
-								canEdit ? (
-									<ApplyObligationSeedButton variant="brown" />
-								) : undefined
-							}
+							actions={canEdit ? <ApplyObligationSeedButton /> : undefined}
 						/>
 					) : (
 						<div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -371,11 +367,7 @@ export default async function CalendarPage({
 						<EmptyState
 							title={t("empty")}
 							lead={t("emptyLead")}
-							actions={
-								canEdit ? (
-									<ApplyObligationSeedButton variant="brown" />
-								) : undefined
-							}
+							actions={canEdit ? <ApplyObligationSeedButton /> : undefined}
 						/>
 					) : (
 						<Table>

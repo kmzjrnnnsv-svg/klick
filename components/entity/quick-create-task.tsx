@@ -50,7 +50,7 @@ export function QuickCreateTask({
 		| "treatment"
 		| "incident_action";
 	label?: string;
-	variant?: "outline" | "brown" | "default" | "ghost";
+	variant?: "outline" | "default" | "ghost";
 }) {
 	const t = useTranslations("Tasks");
 	const tc = useTranslations("Common");

@@ -33,14 +33,14 @@ export function RequestServiceDialog({
 	defaultService = "svc:gap",
 	defaultMessage = "",
 	triggerLabel = "Leistung anfragen",
-	triggerVariant = "brown",
+	triggerVariant = "default",
 }: {
 	email: string;
 	// Vorbelegung aus „Für dich empfohlen“
 	defaultService?: string;
 	defaultMessage?: string;
 	triggerLabel?: string;
-	triggerVariant?: "brown" | "outline";
+	triggerVariant?: "default" | "outline";
 }) {
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
@@ -148,12 +148,7 @@ export function RequestServiceDialog({
 					</div>
 				</form>
 				<DialogFooter>
-					<Button
-						type="submit"
-						form="request-service"
-						variant="brown"
-						disabled={pending}
-					>
+					<Button type="submit" form="request-service" disabled={pending}>
 						{pending ? "Wird gesendet…" : "Anfrage senden"}
 					</Button>
 				</DialogFooter>

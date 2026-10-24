@@ -103,7 +103,7 @@ export function ScanImportDialog({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button size="sm" variant={engagementId ? "outline" : "brown"}>
+				<Button size="sm" variant={engagementId ? "outline" : "default"}>
 					<Upload aria-hidden="true" />
 					{t("import")}
 				</Button>

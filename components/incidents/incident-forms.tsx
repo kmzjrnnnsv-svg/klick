@@ -177,11 +177,7 @@ export function IncidentCreateForm({
 				/>
 			</div>
 			<div className="flex justify-end">
-				<Button
-					type="submit"
-					variant="brown"
-					disabled={pending || !title.trim()}
-				>
+				<Button type="submit" disabled={pending || !title.trim()}>
 					{t("report")}
 				</Button>
 			</div>

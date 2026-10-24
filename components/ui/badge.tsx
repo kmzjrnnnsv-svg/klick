@@ -3,18 +3,26 @@ import { Slot } from "radix-ui";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
+// Status-Label nach Apple HIG: Kapsel, Satzschreibung, Text immer in der
+// Vordergrundfarbe (getönte Flächen drücken farbigen Text unter 4,5 : 1).
+// Die Farbe trägt ein Punkt — nie allein: der Text nennt den Zustand.
 const badgeVariants = cva(
-	"inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden whitespace-nowrap rounded-sm border px-2 py-0.5 text-[0.7rem] font-medium uppercase tracking-[0.14em] transition-colors [&>svg]:pointer-events-none [&>svg]:size-3",
+	"inline-flex w-fit shrink-0 items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full px-2 py-0.5 font-medium text-footnote text-foreground transition-colors [&>svg]:pointer-events-none [&>svg]:size-3.5",
 	{
 		variants: {
 			variant: {
-				default: "border-transparent bg-primary text-primary-foreground",
-				secondary: "border-transparent bg-secondary text-secondary-foreground",
-				outline: "border-border text-foreground",
-				destructive: "border-transparent bg-destructive text-destructive-foreground",
-				success: "border-transparent bg-success/15 text-success",
-				warning: "border-transparent bg-warning/20 text-foreground",
-				muted: "border-transparent bg-muted text-muted-foreground",
+				default:
+					"bg-primary/12 before:size-1.5 before:shrink-0 before:rounded-full before:bg-primary before:content-[''] dark:bg-primary/20",
+				secondary: "bg-muted",
+				outline: "border border-border",
+				destructive:
+					"bg-destructive/12 before:size-1.5 before:shrink-0 before:rounded-full before:bg-destructive before:content-[''] dark:bg-destructive/20",
+				success:
+					"bg-success/12 before:size-1.5 before:shrink-0 before:rounded-full before:bg-success before:content-[''] dark:bg-success/20",
+				warning:
+					"bg-warning/14 before:size-1.5 before:shrink-0 before:rounded-full before:bg-warning before:content-[''] dark:bg-warning/20",
+				muted:
+					"bg-muted before:size-1.5 before:shrink-0 before:rounded-full before:bg-muted-foreground before:content-['']",
 			},
 		},
 		defaultVariants: { variant: "default" },

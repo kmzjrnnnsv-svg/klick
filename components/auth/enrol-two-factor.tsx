@@ -98,7 +98,6 @@ export function EnrolTwoFactor() {
 					))}
 				</ul>
 				<Button
-					variant="brown"
 					onClick={() => {
 						router.replace("/heute");
 						router.refresh();
@@ -143,11 +142,7 @@ export function EnrolTwoFactor() {
 						className="font-mono text-lg tracking-[0.3em]"
 					/>
 				</div>
-				<Button
-					type="submit"
-					variant="brown"
-					disabled={busy || code.trim().length !== 6}
-				>
+				<Button type="submit" disabled={busy || code.trim().length !== 6}>
 					{t("verify")}
 				</Button>
 			</form>

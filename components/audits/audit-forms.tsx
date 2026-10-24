@@ -773,11 +773,7 @@ export function RespondRequestForm({
 		<FormDialog
 			title={t("respond")}
 			lead={t("respondLead")}
-			trigger={
-				<Button size="sm" variant="brown">
-					{t("respond")}
-				</Button>
-			}
+			trigger={<Button size="sm">{t("respond")}</Button>}
 			open={open}
 			setOpen={setOpen}
 			pending={pending}

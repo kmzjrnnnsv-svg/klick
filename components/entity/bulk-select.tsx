@@ -155,7 +155,6 @@ export function BulkBar({ members }: { members: MemberOption[] }) {
 			</Select>
 			<Button
 				size="sm"
-				variant="brown"
 				disabled={
 					pending ||
 					(status === "none" && owner === "none" && assignee === "none")
