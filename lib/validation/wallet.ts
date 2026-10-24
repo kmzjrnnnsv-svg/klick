@@ -1,12 +1,12 @@
 import { z } from "zod";
+import { PAIRS } from "@/lib/wallet/core/feeds";
+import { WALLET_NETWORKS } from "@/lib/wallet/core/networks";
+import { INTRO_STEPS } from "@/lib/wallet/intro";
 import {
 	PAYOUT_SPEEDS,
 	WALLET_ACCOUNT_PURPOSES,
 	type WalletAccountPurpose,
-} from "@/db/schema/wallet";
-import { PAIRS } from "@/lib/wallet/core/feeds";
-import { WALLET_NETWORKS } from "@/lib/wallet/core/networks";
-import { INTRO_STEPS } from "@/lib/wallet/intro";
+} from "@/lib/wallet/model";
 
 // Wallet-Bereich: Konto aus einem öffentlichen Kontoschlüssel anlegen,
 // Empfangsadressen ausgeben. Private Schlüssel lehnt schon das Format ab

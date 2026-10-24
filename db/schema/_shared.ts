@@ -1,18 +1,21 @@
-import {
-	type AnyPgColumn,
-	customType,
-	jsonb,
-	timestamp,
-	uuid,
-} from "drizzle-orm/pg-core";
+import { type AnyPgColumn, uuid } from "drizzle-orm/pg-core";
 import { organization, user } from "../auth-schema";
 
-// Gemeinsame Spaltenbausteine. Spaltennamen entstehen über
-// drizzle `casing: "snake_case"` aus den Keys. IDs sind uuid — Better Auth
-// erzeugt seine Tabellen mit `generateId: "uuid"`, Fremdschlüssel müssen den
-// Typ teilen.
+// Gemeinsame Spaltenbausteine. Die reinen (pk, ts, json …) liegen in
+// db/columns.ts und gelten auch für both.money; hier nur die Fremdschlüssel
+// auf Klicks Better-Auth-Tabellen. IDs sind uuid — Better Auth erzeugt seine
+// Tabellen mit `generateId: "uuid"`, Fremdschlüssel müssen den Typ teilen.
 
-export const pk = () => uuid().primaryKey().defaultRandom();
+export {
+	bytea,
+	createdAt,
+	json,
+	pk,
+	stringList,
+	timestamps,
+	ts,
+	updatedAt,
+} from "../columns";
 
 export const orgId = () =>
 	uuid()
@@ -24,28 +27,3 @@ export const userRef = () =>
 
 export const ref = (col: () => AnyPgColumn, onDelete: "cascade" | "set null") =>
 	uuid().references(col, { onDelete });
-
-export const ts = () => timestamp({ withTimezone: true, mode: "date" });
-
-export const createdAt = () => ts().notNull().defaultNow();
-
-export const updatedAt = () =>
-	ts()
-		.notNull()
-		.defaultNow()
-		.$onUpdate(() => new Date());
-
-export const timestamps = () => ({
-	createdAt: createdAt(),
-	updatedAt: updatedAt(),
-});
-
-export const stringList = () => jsonb().$type<string[]>().notNull().default([]);
-export const json = <T>() => jsonb().$type<T>();
-
-// Binärdaten (bytea) als Uint8Array — postgres-js liefert Buffer
-export const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
-	dataType: () => "bytea",
-	toDriver: (v) => Buffer.from(v),
-	fromDriver: (v) => new Uint8Array(v),
-});

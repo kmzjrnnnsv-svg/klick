@@ -12,12 +12,16 @@ export default defineConfig({
 	plugins: [react()],
 	test: {
 		environment: "node",
-		include: ["tests/**/*.test.{ts,tsx}"],
+		include: [
+			"tests/**/*.test.{ts,tsx}",
+			"apps/wallet/tests/**/*.test.{ts,tsx}",
+		],
 		exclude: ["tests/e2e/**", "node_modules/**"],
 		globals: false,
 	},
 	resolve: {
 		alias: {
+			"@wallet": resolve(__dirname, "apps/wallet"),
 			"@": resolve(__dirname, "."),
 		},
 	},

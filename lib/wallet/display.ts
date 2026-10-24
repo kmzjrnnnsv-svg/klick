@@ -1,4 +1,4 @@
-import type { PayoutStatus } from "@/db/schema/wallet";
+import type { PayoutStatus } from "@/lib/wallet/model";
 import { formatAmountDe } from "./core/amount";
 import { type AssetCode, assetOf } from "./core/assets";
 import type { WalletNetwork } from "./core/networks";

@@ -1,4 +1,3 @@
-import type { PayoutSpeed, PayoutStatus } from "@/db/schema/wallet";
 import {
 	estimateVsize,
 	feeFor,
@@ -6,7 +5,8 @@ import {
 	selectCoins,
 	type Utxo,
 } from "@/lib/wallet/core/coin-select";
-import type { SignerIntentView } from "@/lib/wallet/signer/client";
+import type { PayoutSpeed, PayoutStatus } from "@/lib/wallet/model";
+import type { SignerIntentView } from "@/lib/wallet/signer/types";
 
 // Auszahlungen (rein, getestet): Gebühren je Tempo, Deckel der Absicht,
 // Erhöhung, Münzauswahl ohne gesperrte/reservierte Eingänge und Stand aus
