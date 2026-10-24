@@ -41,6 +41,22 @@ export function ensureWalletEnvLoaded(): void {
 	if (!filesLoaded) loadWalletEnvFiles();
 }
 
+const postgresUrl = z
+	.string()
+	.regex(/^postgres(ql)?:\/\//, "muss mit postgres:// beginnen");
+
+const base64Bytes = (bytes: number) =>
+	z.string().refine(
+		(v) => {
+			try {
+				return Buffer.from(v, "base64").length === bytes;
+			} catch {
+				return false;
+			}
+		},
+		{ message: `muss ${bytes} Byte, base64-kodiert, sein` },
+	);
+
 const flag = z
 	.enum(["true", "false"])
 	.default("false")
@@ -52,8 +68,23 @@ export const walletEnvSchema = z
 			.enum(["development", "test", "production"])
 			.default("development"),
 
+		// Eigene Datenbank (wallet, Rolle wallet_app); Migrationen mit
+		// wallet_migrator, Tests gegen wallet_test
+		WALLET_DATABASE_URL: postgresUrl,
+		WALLET_DATABASE_URL_MIGRATE: postgresUrl.optional(),
+		WALLET_DATABASE_URL_TEST: postgresUrl.optional(),
+
 		// Öffentliche Adresse der App (Passkeys, Links in Mails, Server Actions)
 		WALLET_AUTH_URL: z.url().optional(),
+		WALLET_AUTH_SECRET: z
+			.string()
+			.min(32, "mindestens 32 Zeichen — erzeugen mit: openssl rand -base64 33"),
+		// Relying Party der Passkeys: both.money (nie ändern — bricht alle Passkeys)
+		WALLET_PASSKEY_RP_ID: z.string().optional(),
+
+		// KEK für die Org-DEKs (eigener Schlüssel, nie Klicks VAULT_KEK)
+		WALLET_VAULT_KEK_BASE64: base64Bytes(32),
+		WALLET_VAULT_KEK_VERSION: z.coerce.number().int().min(1).default(1),
 
 		// Absender der Mails. Bis die Domain both.money im Mail-Dienst bestätigt
 		// ist, über die Plattform-Adresse (deploy/README.md, „both.money“).
@@ -95,7 +126,7 @@ let cached: WalletEnv | null = null;
 
 // Startup-Validierung: fehlt ein Pflichtwert, startet der Prozess nicht.
 export function validateWalletEnv(
-	source: NodeJS.ProcessEnv = process.env,
+	source: Record<string, string | undefined> = process.env,
 ): WalletEnv {
 	if (source === process.env) ensureWalletEnvLoaded();
 	const parsed = walletEnvSchema.safeParse(source);

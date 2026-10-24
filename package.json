@@ -28,6 +28,8 @@
 		"audit": "pnpm audit --audit-level=high",
 		"sbom": "npm_execpath= cyclonedx-npm --ignore-npm-errors --output-file sbom.cdx.json --output-format JSON",
 		"db:generate": "drizzle-kit generate",
+		"db:wallet:generate": "drizzle-kit generate --config apps/wallet/drizzle.config.ts",
+		"db:wallet:migrate": "tsx --tsconfig apps/wallet/tsconfig.json apps/wallet/scripts/db-migrate.ts",
 		"db:migrate": "tsx scripts/db-migrate.ts",
 		"db:seed": "tsx db/seed.ts",
 		"db:studio": "drizzle-kit studio",

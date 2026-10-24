@@ -157,18 +157,22 @@ describe("App-Grenze Klick ↔ both.money", () => {
 		const biome = JSON.parse(
 			readFileSync(join(ROOT, "biome.json"), "utf8"),
 		) as { overrides: Override[] };
-		const override = biome.overrides.find((o) =>
-			o.includes.includes(`${WALLET_APP}/**`),
+		// Jede Override für apps/wallet (auch die mit DB-Zugriff) trägt die Liste
+		const overrides = biome.overrides.filter((o) =>
+			o.includes.some((i) => i.startsWith(`${WALLET_APP}/`)),
 		);
-		const group =
-			override?.linter?.rules?.style?.noRestrictedImports?.options
-				?.patterns?.[0]?.group ?? [];
-		expect(group[0]).toBe("@/**");
-		const allowed = group.slice(1).map((g) => g.replace(/^!@\//, ""));
-		const expected = [...SHARED, ...WALLET_EXTRA].map((p) =>
-			p.endsWith("/") ? `${p}**` : p,
-		);
-		expect([...allowed].sort()).toEqual([...expected].sort());
+		expect(overrides.length).toBeGreaterThanOrEqual(2);
+		const expected = [...SHARED, ...WALLET_EXTRA]
+			.map((p) => (p.endsWith("/") ? `${p}**` : p))
+			.sort();
+		for (const override of overrides) {
+			const group =
+				override.linter?.rules?.style?.noRestrictedImports?.options
+					?.patterns?.[0]?.group ?? [];
+			expect(group[0]).toBe("@/**");
+			const allowed = group.slice(1).map((g) => g.replace(/^!@\//, ""));
+			expect([...allowed].sort()).toEqual(expected);
+		}
 	});
 
 	it("Quelltext hält die Grenze in beiden Richtungen", () => {
