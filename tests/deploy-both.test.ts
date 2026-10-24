@@ -76,7 +76,15 @@ describe("both.service", () => {
 
 	it("Backup und Sanktionsliste mit eigenen Credentials", () => {
 		const backup = lines(read("deploy/systemd/both-backup-db.service"));
-		expect(backup).toContain("Environment=BACKUP_PREFIX=both");
+		// EnvironmentFile= (backup.env mit Klicks BACKUP_DIR) überschreibt
+		// Environment= — Präfix und Verzeichnis daher im Aufruf selbst, und
+		// nur dorthin darf der Dienst schreiben
+		const exec = backup.find((l) => l.startsWith("ExecStart=")) ?? "";
+		expect(exec).toContain("BACKUP_PREFIX=both BACKUP_DIR=/var/backups/both ");
+		expect(backup.some((l) => l.startsWith("Environment=BACKUP_"))).toBe(false);
+		expect(backup).toContain(
+			"ReadWritePaths=/var/backups/both /var/lib/klick-backup",
+		);
 		expect(backup).toContain(
 			"LoadCredentialEncrypted=wallet_database_url_backup:/etc/credstore.encrypted/wallet_database_url_backup",
 		);

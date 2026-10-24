@@ -40,16 +40,22 @@ export function DateEntryList({
 	fullDate?: boolean;
 	action?: (e: DateEntry) => React.ReactNode;
 }) {
+	// Gleiche Termine kommen vor (z. B. zwei Personen mit derselben Funktion
+	// und demselben Wiedervorlagetag) — Wiederholungen bekommen eine Nummer
+	const seen = new Map<string, number>();
+	const keyed = entries.map((e) => {
+		const base = `${e.kind}-${e.href}-${e.date}-${e.note ?? ""}-${e.title}`;
+		const n = seen.get(base) ?? 0;
+		seen.set(base, n + 1);
+		return { e, key: n ? `${base}-${n}` : base };
+	});
 	return (
 		<ul className="flex flex-col divide-y divide-border/60">
-			{entries.map((e) => {
+			{keyed.map(({ e, key }) => {
 				const owner = e.ownerUserId ? names?.get(e.ownerUserId) : undefined;
 				const day = `${e.date.slice(8, 10)}.${e.date.slice(5, 7)}.`;
 				return (
-					<li
-						key={`${e.kind}-${e.href}-${e.date}-${e.note ?? ""}-${e.title}`}
-						className="flex flex-col gap-1 py-2 text-subhead"
-					>
+					<li key={key} className="flex flex-col gap-1 py-2 text-subhead">
 						<div className="flex items-baseline gap-2">
 							<span className="shrink-0 font-mono text-muted-foreground text-footnote tabular-nums">
 								{fullDate ? `${day}${e.date.slice(2, 4)}` : day}
