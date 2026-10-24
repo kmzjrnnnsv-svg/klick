@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Signer und Bestätigungsseite installieren (Plan Wallet, Phase 2) — als root.
+# Signer und Bestätigungsseite installieren (Plan Wallet, Phase 2; seit
+# both.money für https://both.money und approve.both.money) — als root.
 #
 #   sudo deploy/signer/install.sh <tag> <sha256 von dist/signer.mjs aus CI> [api-origin]
 #
@@ -7,7 +8,7 @@
 # App), ohne Lifecycle-Skripte, vergleicht den SHA-256 mit dem Wert aus CI und
 # installiert nur lesbar:
 #   /usr/local/lib/klick-signer/signer.mjs   (root, 0444)
-#   /var/www/freigabe/*                      (root, 0444; Ordner 0555)
+#   /var/www/approve/*                       (root, 0444; Ordner 0555; CONFIRM_ROOT)
 #   /etc/systemd/system/klick-signer*        (Units)
 # Legt beim ersten Mal den Dienst-User und den KEK (systemd-creds) an.
 # Runbook: deploy/README.md, „Wallet: Signer und Bestätigungsseite“.
@@ -15,7 +16,9 @@ set -euo pipefail
 
 TAG="${1:?Tag fehlt (z. B. signer-2026-10-24)}"
 EXPECTED="${2:?SHA-256 aus CI fehlt}"
-API="${3:-https://raza.work}"
+API="${3:-https://both.money}"
+# Ablage der Bestätigungsseite (nginx: deploy/nginx/approve.both.money.conf)
+CONFIRM_ROOT="${CONFIRM_ROOT:-/var/www/approve}"
 REPO="${KLICK_REPO:-https://github.com/kmzjrnnnsv-svg/klick.git}"
 SRC_BASE=/usr/local/src/klick-signer
 SRC="$SRC_BASE/$TAG"
@@ -25,6 +28,7 @@ die() { echo "install.sh: $*" >&2; exit 1; }
 [ "$(id -u)" = 0 ] || die "nur als root"
 [[ "$EXPECTED" =~ ^[0-9a-f]{64}$ ]] || die "SHA-256 hat nicht das Format von CI"
 [[ "$API" =~ ^https://[a-z0-9.-]+$ ]] || die "api-origin muss https://<host> sein"
+[[ "$CONFIRM_ROOT" =~ ^/var/www/[a-z]+$ ]] || die "CONFIRM_ROOT muss /var/www/<name> sein"
 command -v pnpm >/dev/null || die "pnpm fehlt"
 command -v systemd-creds >/dev/null || die "systemd-creds fehlt (systemd ≥ 250)"
 
@@ -64,12 +68,12 @@ trap 'rm -rf -- "$STAGE"' EXIT
 cp "$SRC"/deploy/confirm/{index.html,enrol.html,canonical.js,confirm.js,enrol.js,style.css} "$STAGE/"
 sed -i "s#<meta name=\"klick-api\" content=\"[^\"]*\">#<meta name=\"klick-api\" content=\"$API\">#" \
 	"$STAGE/index.html" "$STAGE/enrol.html"
-install -d -m 0555 -o root -g root /var/www/freigabe
+install -d -m 0555 -o root -g root "$CONFIRM_ROOT"
 for f in "$STAGE"/*; do
-	install -m 0444 -o root -g root "$f" "/var/www/freigabe/$(basename "$f")"
+	install -m 0444 -o root -g root "$f" "$CONFIRM_ROOT/$(basename "$f")"
 done
-if [ "$API" != "https://raza.work" ]; then
-	echo "Hinweis: connect-src in deploy/nginx/freigabe.raza.work.conf auf $API anpassen."
+if [ "$API" != "https://both.money" ]; then
+	echo "Hinweis: connect-src in deploy/nginx/approve.both.money.conf auf $API anpassen."
 fi
 
 # 6. Verwaltung am Terminal nur aus diesem root-eigenen Checkout — nie aus

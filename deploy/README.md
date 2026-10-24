@@ -360,6 +360,8 @@ Redirect-URI im IdP: `https://raza.work/api/auth/sso/callback/<providerId>`. Nut
 Domain werden als Mitglied (viewer) provisioniert; MFA-Pflicht und Sitzungsregeln gelten.
 
 ## Wallet: Knoten, Sync, Sanktionsliste (Plan Wallet, Phase 0/1)
+> **Legacy:** gilt für den Wallet-Bereich in Klick bis zur Umstellung auf both.money (Abschnitt
+> „both.money“ unten). Die Knoten selbst bleiben; both.money bekommt einen eigenen RPC-User.
 Der Wallet-Bereich liest nur eigene Knoten (kein Infura, kein Explorer). Klick kennt nie private
 Schlüssel — Konten entstehen aus dem öffentlichen Kontoschlüssel (xpub/zpub/tpub/vpub). Erst
 Testnetz (Signet, Sepolia); das echte Netz bleibt gesperrt, bis Phase 3 die signierte Richtlinie
@@ -423,6 +425,10 @@ Entsperren und Empfangen komplett durch. Die Testkette ersetzt nicht die Abnahme
 Knoten.
 
 ## Wallet: Signer und Bestätigungsseite (Plan Wallet, Phase 2)
+> **Ab both.money:** Signer und Bestätigungsseite gehören zu both.money (`approve.both.money`,
+> Socket-Gruppe `both`). Die Schritte unten gelten sinngemäß; die Unterschiede stehen im
+> Abschnitt „both.money“. `install.sh` installiert seit both.money nach `/var/www/approve` und
+> trägt `https://both.money` als API ein.
 
 Der Signer ist die einzige Instanz, die Hot-Auszahlungen signiert: eigener Prozess ohne Netz
 (`klick-signer.service`, nur AF_UNIX), Zustand im Journal `/var/lib/klick-signer/journal.log`,
@@ -512,3 +518,97 @@ neuen QA-Konto `QA_DIR/signer` beiseitelegen und `pnpm signer:dev` neu starten.
 17. **„Signer-Journal zurückgesetzt“:** Klick kennt einen neueren Journal-Stand als der Signer
     meldet (Backup eingespielt oder Journal ersetzt). Der Job arbeitet nicht weiter; nicht auftauen,
     sondern klären, welches Journal echt ist (`/var/backups/klick-signer`).
+
+## both.money (Plan both.money, auf dem Klick-Server)
+
+Die Wallet läuft als eigene App (`apps/wallet`) mit eigener Datenbank `wallet`, eigenem User
+`both`, eigenen Credentials (Präfix `wallet_`) und eigenem Dienst `both.service` auf Port 3010.
+Klick und both.money teilen nur Postgres, nginx, die Knoten und den Signer-Dienst. Später zieht
+both.money auf einen eigenen Server — dann ändern sich nur Units, Credentials und DNS.
+
+### Einmalig
+1. **DNS:** A/AAAA für `both.money`, `www.both.money`, `approve.both.money` auf diesen Server
+   (kein Wildcard). Zertifikate: `certbot certonly --webroot -w /var/www/letsencrypt -d both.money
+   -d www.both.money` und `… -d approve.both.money` (vorher die nginx-Dateien mit Port 80 aktiv).
+2. **Mail:** Domain `both.money` in Brevo bestätigen (DKIM, DMARC); bis dahin geht der Versand
+   über `no-reply@raza.work` (`WALLET_MAIL_FROM` leer lassen).
+3. **User und Checkout:** `useradd --system --home-dir /opt/both --shell /usr/sbin/nologin both`,
+   `install -d -o both -g both -m 0750 /opt/both /opt/both/.cache`,
+   `sudo -u both git clone <repo> /opt/both/current`.
+4. **Datenbank:** `sudo -u postgres psql -v ON_ERROR_STOP=1 -f deploy/postgres/wallet-roles.sql`,
+   Passwörter setzen (`ALTER ROLE wallet_migrator|wallet_app|wallet_backup PASSWORD '…'`).
+   Nach dem ersten Release das Skript erneut ausführen (Rechte auf `drizzle`).
+5. **Credentials** (nie die von Klick wiederverwenden):
+   `openssl rand -base64 33 | systemd-creds encrypt --name=wallet_auth_secret - /etc/credstore.encrypted/wallet_auth_secret`,
+   `head -c 32 /dev/urandom | base64 | systemd-creds encrypt --name=wallet_vault_kek_base64 - …`,
+   `wallet_database_url` (`postgres://wallet_app:…@localhost/wallet`),
+   `wallet_database_url_migrate` (`wallet_migrator`), `wallet_database_url_backup` (`wallet_backup`),
+   optional `wallet_brevo_api_key`. KEK-Backup wie bei Klick getrennt offline ablegen.
+6. **Anbieterkennzeichnung:** `/etc/both/both.env` (0640 root:both) mit `LEGAL_*` (wie Klick,
+   `docs/legal/impressum.md`) und später `WALLET_MAIL_FROM="both.money <no-reply@both.money>"`.
+7. **Release** (unten), dann Units: `deploy/systemd/both.service` nach `/etc/systemd/system/`,
+   Drop-ins aus `both.service.d/*.example` nach Bedarf (Mail, Knoten, Signer),
+   `both-sanctions.{service,timer}`, `both-backup-db.{service,timer}` (Skript-Kopie wie Klick unter
+   `/usr/local/lib/klick-backup`, `install -d -o klick-backup -m 0700 /var/backups/both`),
+   `systemctl daemon-reload && systemctl enable --now both both-sanctions.timer both-backup-db.timer`.
+8. **nginx:** `deploy/nginx/both.money.conf` und `deploy/nginx/approve.both.money.conf` aktivieren,
+   `nginx -t && systemctl reload nginx`. Prüfen: `curl -f https://both.money/api/ready`.
+9. **Erste Org und dein Konto** (Betreiber-Org: Hot-Konten für eigene Bestände):
+   `pnpm wallet:admin org create --name "Raza" --slug raza --operator`, dann
+   `pnpm wallet:admin account create --email <adresse> --name "<Name>" --org raza --role owner --admin`
+   → Link öffnen, Passkey anlegen. Weitere Personen nur per Einladung (Mitglieder → Einladen).
+10. **Knoten:** am Knoten-Server `RPC_USER=both NODE_WG_IP=10.8.0.2 deploy/nodes/add-bitcoin-rpc-user.sh`
+    (eigener rpcauth-User, gleiche rpcwhitelist); Ethereum über dieselbe Tunnel-URL wie Klick.
+    Credentials `both_rpc_bitcoin_signet`, `both_rpc_ethereum_sepolia`, Drop-in `nodes.conf`.
+11. **Sanktionsliste:** `systemctl start both-sanctions.service`, Ergebnis im Journal.
+12. **Signer (neue Zeremonie, alter Signer verfällt):** alten Signer einfrieren
+    (`klick-signer-admin freeze "Umstellung both.money"`), `systemctl stop klick-signer
+    klick-signer-app.socket`, Zustand archivieren (`mv /var/lib/klick-signer
+    /var/lib/klick-signer.raza-$(date +%F)`, Journal-Backup aufheben), in Klick die Drop-ins
+    `signer.conf` und `wallet.conf` löschen, `systemctl daemon-reload && systemctl restart klick`.
+    Dann `deploy/signer/install.sh <tag> <sha256>` (Socket-Gruppe `both`, Seite nach
+    `/var/www/approve`), `klick-signer-admin init --org <Org-ID aus wallet:admin org list> --rp
+    approve.both.money --networks bitcoin_signet,ethereum_sepolia --dice`, Sicherheitsschlüssel mit
+    `klick-signer-admin enrol --person <User-ID>` (Link auf `approve.both.money`), Drop-in
+    `signer.conf` für both.money, `systemctl restart both`. Hot-Konto in both.money anlegen, Faucet.
+13. **Prüfen:** `pnpm wallet:check` (Knoten, Token-Verträge, Kursfeeds, Signer mit Herkunft
+    `https://approve.both.money`), `systemd-analyze security both` ≤ 2.0.
+
+Befehle am Terminal brauchen dieselben Werte wie der Dienst:
+
+```bash
+sudo bash -c '
+set -euo pipefail
+cd /opt/both/current
+d() { systemd-creds decrypt "/etc/credstore.encrypted/$1" - 2>/dev/null; }
+set -a; . /etc/both/both.env; set +a
+export HOME=/opt/both WALLET_AUTH_URL=https://both.money
+export WALLET_AUTH_SECRET="$(d wallet_auth_secret)" WALLET_VAULT_KEK_BASE64="$(d wallet_vault_kek_base64)"
+export WALLET_DATABASE_URL="$(d wallet_database_url)" WALLET_DATABASE_URL_MIGRATE="$(d wallet_database_url_migrate)"
+runuser -u both -- pnpm wallet:admin org list
+'
+```
+
+### Release
+CI grün → `both-backup-db.service` einmal starten → Dienst stoppen (Speicher für den Build) →
+`sudo -u both git -C /opt/both/current pull --ff-only` → im Block oben statt `wallet:admin`:
+`NODE_OPTIONS=--max-old-space-size=1536 runuser -u both -- pnpm release:wallet` (install →
+`db:wallet:migrate` → `next build apps/wallet`) → `systemctl start both` →
+`curl -f https://both.money/api/ready`. Klick und both.money nie gleichzeitig bauen (Speicher,
+Swap prüfen: `swapon --show`).
+
+### Verwahrmodus (Sperre für Kundengelder)
+Hot-Konten, Zieladressen und Auszahlungen gibt es nur für die Betreiber-Org (`--operator`,
+Modus `own`) oder mit eingetragener Erlaubnis. Setzen nur am Terminal, mit Grund im Protokoll
+der Org: `pnpm wallet:admin org custody --org <slug> --mode licensed --ref "<Erlaubnis>"
+--reason "<Grund>"`. Zurück mit `--mode none`. Cold-Konten aus einer xpub darf jede Org
+beobachten; Kundengelder im echten Netz nur mit `licensed`.
+
+### Lokal
+`pnpm dev:wallet` (3400, Env in `apps/wallet/.env.local`), `pnpm db:wallet:migrate`.
+Senden durchspielen: `pnpm wallet:devchain`, `pnpm signer:dev`,
+`pnpm signer:admin --dev init --org <Org-ID> --rp localhost --origin http://localhost:3201
+--networks bitcoin_signet,ethereum_sepolia`, `pnpm confirm:dev`, App mit
+`WALLET_DISABLE_JOBS=true WALLET_SIGNER_SOCKET=$QA_DIR/signer/app.sock
+WALLET_CONFIRM_ORIGIN=http://localhost:3201 WALLET_RPC_BITCOIN_SIGNET=http://dev:dev@127.0.0.1:18443`,
+dann mit derselben Umgebung `pnpm wallet:smoke:send --org <slug>` (`WALLET_SHOTS=<ordner>`).

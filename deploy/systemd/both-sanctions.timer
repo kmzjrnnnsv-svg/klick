@@ -1,0 +1,10 @@
+[Unit]
+Description=both.money — Sanktionsliste täglich 05:35
+
+[Timer]
+OnCalendar=*-*-* 05:35:00
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target

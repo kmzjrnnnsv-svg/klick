@@ -53,12 +53,12 @@ describe("systemd", () => {
 		expect(service.some((l) => l.startsWith("ReadWritePaths"))).toBe(false);
 	});
 
-	it("Sockets: app 0660 Gruppe klick, admin 0600 nur root, Namen für LISTEN_FDNAMES", () => {
+	it("Sockets: app 0660 Gruppe both, admin 0600 nur root, Namen für LISTEN_FDNAMES", () => {
 		expect(app).toEqual(
 			expect.arrayContaining([
 				"ListenStream=/run/klick-signer/app.sock",
 				"FileDescriptorName=app",
-				"SocketGroup=klick",
+				"SocketGroup=both",
 				"SocketMode=0660",
 				"Service=klick-signer.service",
 			]),
@@ -91,8 +91,8 @@ describe("systemd", () => {
 	});
 });
 
-describe("nginx freigabe.raza.work", () => {
-	const conf = read("deploy/nginx/freigabe.raza.work.conf");
+describe("nginx approve.both.money", () => {
+	const conf = read("deploy/nginx/approve.both.money.conf");
 	const active = lines(conf).join("\n");
 
 	it("nur TLS 1.3, nie proxy_pass, nur GET/HEAD", () => {
@@ -110,7 +110,7 @@ describe("nginx freigabe.raza.work", () => {
 			"default-src 'none'",
 			"script-src 'self'",
 			"style-src 'self'",
-			"connect-src https://raza.work",
+			"connect-src https://both.money",
 			"frame-ancestors 'none'",
 			"base-uri 'none'",
 			"form-action 'none'",

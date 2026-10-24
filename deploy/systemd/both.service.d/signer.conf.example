@@ -1,0 +1,6 @@
+# /etc/systemd/system/both.service.d/signer.conf — both.money an den Signer
+# anbinden. Der Dienst läuft als Gruppe both und darf damit app.sock (0660,
+# Gruppe both) benutzen, admin.sock nie. Klick verliert den Zugriff.
+[Service]
+Environment=WALLET_SIGNER_SOCKET=/run/klick-signer/app.sock
+Environment=WALLET_CONFIRM_ORIGIN=https://approve.both.money

@@ -1,0 +1,38 @@
+# /etc/systemd/system/both-backup-db.service — tägliches Backup der
+# Datenbank wallet (both.money), verschlüsselt und offsite wie Klick.
+# Rolle wallet_backup (BYPASSRLS, nur lesen, deploy/postgres/wallet-roles.sql);
+# Skript aus der root-eigenen Kopie /usr/local/lib/klick-backup.
+[Unit]
+Description=both.money — DB-Backup (verschlüsselt, offsite)
+After=postgresql.service network-online.target
+Wants=network-online.target
+OnFailure=klick-alert@%n.service
+
+[Service]
+Type=oneshot
+User=klick-backup
+Group=klick-backup
+WorkingDirectory=/usr/local/lib/klick-backup
+# BACKUP_AGE_RECIPIENT, BACKUP_RCLONE_REMOTE wie Klick (backup.env)
+EnvironmentFile=/etc/klick/backup.env
+Environment=BACKUP_PREFIX=both
+Environment=BACKUP_DIR=/var/backups/both
+LoadCredentialEncrypted=wallet_database_url_backup:/etc/credstore.encrypted/wallet_database_url_backup
+LoadCredentialEncrypted=rclone_conf:/etc/credstore.encrypted/rclone_conf
+ExecStart=/bin/sh -c 'DATABASE_URL_BACKUP="$(cat "$CREDENTIALS_DIRECTORY/wallet_database_url_backup")" RCLONE_CONFIG="$CREDENTIALS_DIRECTORY/rclone_conf" exec scripts/backup-db.sh'
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+UMask=0077
+ReadWritePaths=/var/backups/both /var/lib/klick-backup
