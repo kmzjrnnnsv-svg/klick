@@ -75,6 +75,13 @@ d("RLS both.money (Postgres)", () => {
 			"notifications",
 			"org_settings",
 			"orgs",
+			"wallet_accounts",
+			"wallet_address_book",
+			"wallet_addresses",
+			"wallet_payouts",
+			"wallet_preferences",
+			"wallet_signer_anchor",
+			"wallet_transfers",
 		]);
 		expect(rows.filter((r) => !r.force || r.policies === 0)).toEqual([]);
 	});

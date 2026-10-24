@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as authSchema from "@wallet/db/auth-schema";
 import * as appSchema from "@wallet/db/schema";
@@ -7,10 +7,12 @@ import { databaseAllowed } from "@wallet/scripts/db-migrate";
 import { describe, expect, it } from "vitest";
 import { checkRls } from "@/db/rls";
 
-const migration = readFileSync(
-	join(import.meta.dirname, "../db/migrations/0000_init.sql"),
-	"utf8",
-);
+const dir = join(import.meta.dirname, "../db/migrations");
+const migration = readFileSync(join(dir, "0000_init.sql"), "utf8");
+const allMigrations = readdirSync(dir)
+	.filter((f) => f.endsWith(".sql"))
+	.map((f) => readFileSync(join(dir, f), "utf8"))
+	.join("\n");
 
 describe("Schema both.money", () => {
 	it("jede Org-Tabelle hat RLS und eine Policy, Auth-Tabellen haben keine Org", () => {
@@ -21,6 +23,13 @@ describe("Schema both.money", () => {
 			"members",
 			"notifications",
 			"org_settings",
+			"wallet_accounts",
+			"wallet_address_book",
+			"wallet_addresses",
+			"wallet_payouts",
+			"wallet_preferences",
+			"wallet_signer_anchor",
+			"wallet_transfers",
 		]);
 		expect(results.filter((r) => !r.ok)).toEqual([]);
 	});
@@ -30,12 +39,12 @@ describe("Schema both.money", () => {
 			"current_database() NOT IN ('wallet', 'wallet_test')",
 		);
 		const enabled = [
-			...migration.matchAll(
+			...allMigrations.matchAll(
 				/ALTER TABLE "([a-z_]+)" ENABLE ROW LEVEL SECURITY/g,
 			),
 		].map((m) => m[1]);
 		const forced = [
-			...migration.matchAll(
+			...allMigrations.matchAll(
 				/ALTER TABLE "([a-z_]+)" FORCE ROW LEVEL SECURITY/g,
 			),
 		].map((m) => m[1]);

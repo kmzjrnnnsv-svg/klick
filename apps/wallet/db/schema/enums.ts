@@ -21,6 +21,8 @@ export type CustodyMode = (typeof CUSTODY_MODES)[number];
 export const NOTIFICATION_KINDS = [
 	"security_alert",
 	"payout",
+	"approval_requested",
+	"wallet_transfer",
 	"address_book",
 	"signer",
 	"account",

@@ -103,6 +103,19 @@ export const walletEnvSchema = z
 		LEGAL_PHONE: z.string().optional(),
 		LEGAL_CONTACT_MAIL: z.email().default(PLATFORM_MAIL),
 
+		// Eigene Knoten (über WireGuard), Zugangsdaten in der URL — nie in Logs
+		WALLET_RPC_BITCOIN_SIGNET: z.url().optional(),
+		WALLET_RPC_BITCOIN_MAINNET: z.url().optional(),
+		WALLET_RPC_ETHEREUM_SEPOLIA: z.url().optional(),
+		WALLET_RPC_ETHEREUM_MAINNET: z.url().optional(),
+		// Signer (app.sock) und Herkunft der Bestätigungsseite
+		// (approve.both.money); ohne Socket kein Senden, nur Empfangen
+		WALLET_SIGNER_SOCKET: z.string().startsWith("/").optional(),
+		WALLET_CONFIRM_ORIGIN: z
+			.string()
+			.regex(/^(https:\/\/[a-z0-9.-]+|http:\/\/localhost(:\d{1,5})?)$/)
+			.optional(),
+
 		LOG_LEVEL: z
 			.enum(["trace", "debug", "info", "warn", "error", "fatal"])
 			.default("info"),

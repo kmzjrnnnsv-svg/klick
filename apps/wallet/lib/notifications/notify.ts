@@ -21,13 +21,16 @@ export async function notify(
 		body?: string;
 		link?: string;
 		payload?: Record<string, unknown>;
-		// Empfänger: Rollen der Org (Standard: alle) oder feste Personen
+		// Empfänger: feste Personen (wie Klick), sonst Rollen der Org
+		// (Standard: alle Mitglieder)
+		recipients?: readonly (string | null | undefined)[];
 		roles?: readonly MemberRole[];
-		userIds?: readonly string[];
 	},
 ): Promise<number> {
-	let to = input.userIds ? [...input.userIds] : [];
-	if (!input.userIds) {
+	let to = input.recipients
+		? input.recipients.filter((r): r is string => Boolean(r))
+		: [];
+	if (!input.recipients) {
 		const rows = await tx
 			.select({ userId: members.userId })
 			.from(members)

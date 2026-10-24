@@ -59,6 +59,14 @@ const WALLET_EXTRA: readonly string[] = [
 	"styles/",
 ];
 
+// Nur für Tests und Skripte von both.money: Signer, Testkette, QA-Helfer
+const WALLET_TEST_EXTRA: readonly string[] = [
+	"signer/",
+	"scripts/devchain/",
+	"scripts/qa/",
+	"tests/helpers/",
+];
+
 const SHARED_PACKAGES = [
 	"node:",
 	"@noble/",
@@ -105,7 +113,12 @@ function boundaryViolation(file: string, spec: string): string | null {
 
 	if (inWallet) {
 		if (isPkg || targetsWallet) return null;
-		return within(target, SHARED) || within(target, WALLET_EXTRA)
+		const testOrScript =
+			src.startsWith(`${WALLET_APP}/tests/`) ||
+			src.startsWith(`${WALLET_APP}/scripts/`);
+		return within(target, SHARED) ||
+			within(target, WALLET_EXTRA) ||
+			(testOrScript && within(target, WALLET_TEST_EXTRA))
 			? null
 			: `${file}: both.money greift auf Klick-Code zu (${target})`;
 	}
@@ -140,6 +153,12 @@ describe("App-Grenze Klick ↔ both.money", () => {
 		).toBeNull();
 		expect(boundaryViolation("apps/wallet/lib/a.ts", "@wallet/db")).toBeNull();
 		expect(boundaryViolation("lib/mail/send.ts", "./html")).toBeNull();
+		expect(
+			boundaryViolation("apps/wallet/tests/a.test.ts", "@/signer/service"),
+		).toBeNull();
+		expect(
+			boundaryViolation("apps/wallet/lib/a.ts", "@/signer/service"),
+		).toMatch(/both.money greift auf Klick-Code/);
 	});
 
 	it("Biome-Regel für apps/wallet nennt dieselben Module", () => {
@@ -162,17 +181,23 @@ describe("App-Grenze Klick ↔ both.money", () => {
 		const overrides = biome.overrides.filter((o) =>
 			o.includes.some((i) => i.startsWith(`${WALLET_APP}/`)),
 		);
-		expect(overrides.length).toBeGreaterThanOrEqual(2);
+		expect(overrides.length).toBeGreaterThanOrEqual(3);
 		const expected = [...SHARED, ...WALLET_EXTRA]
 			.map((p) => (p.endsWith("/") ? `${p}**` : p))
 			.sort();
+		const testExtra = WALLET_TEST_EXTRA.map((p) => `${p}**`);
 		for (const override of overrides) {
 			const group =
 				override.linter?.rules?.style?.noRestrictedImports?.options
 					?.patterns?.[0]?.group ?? [];
 			expect(group[0]).toBe("@/**");
 			const allowed = group.slice(1).map((g) => g.replace(/^!@\//, ""));
-			expect([...allowed].sort()).toEqual(expected);
+			const testsOnly = override.includes.every((i) =>
+				/^apps\/wallet\/(tests|scripts)\//.test(i),
+			);
+			expect([...allowed].sort()).toEqual(
+				testsOnly ? [...expected, ...testExtra].sort() : expected,
+			);
 		}
 	});
 
