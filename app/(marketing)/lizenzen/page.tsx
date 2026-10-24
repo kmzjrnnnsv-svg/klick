@@ -33,9 +33,7 @@ export default async function LicensesPage() {
 			id="inhalt"
 			className="mx-auto w-full max-w-3xl flex-1 px-4 pt-10 pb-20 sm:px-6 sm:pt-16"
 		>
-			<h1 className="font-serif-display text-3xl text-primary sm:text-4xl">
-				{t("title")}
-			</h1>
+			<h1 className="font-bold text-title-1 sm:text-4xl">{t("title")}</h1>
 			<p className="mt-6 max-w-[56ch] leading-relaxed">{t("lead")}</p>
 
 			<h2 className="mt-10 font-medium text-lg">{t("fontsTitle")}</h2>
@@ -45,7 +43,7 @@ export default async function LicensesPage() {
 			<p className="mt-3 max-w-[56ch] leading-relaxed">{t("images")}</p>
 
 			<h2 className="mt-10 font-medium text-lg">{t("packagesTitle")}</h2>
-			<p className="mt-3 text-muted-foreground text-sm">
+			<p className="mt-3 text-muted-foreground text-subhead">
 				{t("packagesLead", { count: licenses.length })}
 			</p>
 			{sorted.map(([license, rows]) => (
@@ -56,11 +54,11 @@ export default async function LicensesPage() {
 				>
 					<h3 className="font-medium" translate="no">
 						{license}{" "}
-						<span className="font-normal text-muted-foreground text-sm">
+						<span className="font-normal text-muted-foreground text-subhead">
 							({rows.length})
 						</span>
 					</h3>
-					<ul className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+					<ul className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-subhead sm:grid-cols-2">
 						{rows.map((r) => (
 							<li
 								key={`${r.name}@${r.version}`}
