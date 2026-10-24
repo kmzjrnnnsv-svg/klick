@@ -604,6 +604,22 @@ der Org: `pnpm wallet:admin org custody --org <slug> --mode licensed --ref "<Erl
 --reason "<Grund>"`. Zurück mit `--mode none`. Cold-Konten aus einer xpub darf jede Org
 beobachten; Kundengelder im echten Netz nur mit `licensed`.
 
+### Compliance-Export nach Klick
+both.money schickt Ein- und Ausgänge, Bestände (Tagesabschluss 00:10 Uhr Berlin), Zeremonie-Stand
+und Auffälligkeiten an eine oder mehrere Klick-Organisationen (Vertrag `lib/wallet-link`, v1).
+Ziele nur aus `WALLET_KLICK_ORIGINS` (Standard `https://raza.work`, komma-getrennt; in
+`/etc/both/both.env`). Verbinden: in Klick „both.money verbinden“ (Token `klk_wallet_…`, nur
+einmal sichtbar), in both.money Organisation → Compliance-Export → „Mit Klick verbinden“ (Step-up;
+`hello` prüft das Token vor dem Speichern, Token nur verschlüsselt mit dem Org-DEK). Der heutige
+Stand wird nachgeliefert, danach sendet der Job `klick-export` jede Minute Stapel bis 200
+Ereignisse. Klick lehnt ab → Liste auf der Seite + Hinweis an die Inhaber:innen, der Export läuft
+weiter. 401/403 → Verbindung pausiert, neues Token aus Klick über „Token erneuern“ eintragen
+(nichts geht verloren). Klick nicht erreichbar → Wiederholung nach 1, 2, 4 … höchstens 60 min,
+Hinweis nach 6 Versuchen. Der Ausgang (`export_outbox`) wird erst nach 30 Tagen **und** Quittung
+aller Verbindungen gelöscht — eine lange Pause kostet Speicher, aber keine Daten. Stand prüfen:
+`select origin, status, acked_seq, last_success_at, attempts, last_error from klick_links;`
+(als `wallet_migrator`).
+
 ### Lokal
 `pnpm dev:wallet` (3400, Env in `apps/wallet/.env.local`), `pnpm db:wallet:migrate`.
 Senden durchspielen: `pnpm wallet:devchain`, `pnpm signer:dev`,

@@ -116,6 +116,28 @@ export const walletEnvSchema = z
 			.regex(/^(https:\/\/[a-z0-9.-]+|http:\/\/localhost(:\d{1,5})?)$/)
 			.optional(),
 
+		// Klick-Herkünfte, an die der Compliance-Export gehen darf (Komma-
+		// getrennt). Andere Adressen lehnt die Einstellung ab.
+		WALLET_KLICK_ORIGINS: z
+			.string()
+			.default("https://raza.work")
+			.transform((v) =>
+				v
+					.split(",")
+					.map((s) => s.trim())
+					.filter(Boolean),
+			)
+			.pipe(
+				z.array(
+					z
+						.string()
+						.regex(
+							/^(https:\/\/[a-z0-9.-]+|http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?)$/,
+							"https://<host> (lokal http://localhost:<port>)",
+						),
+				),
+			),
+
 		LOG_LEVEL: z
 			.enum(["trace", "debug", "info", "warn", "error", "fatal"])
 			.default("info"),

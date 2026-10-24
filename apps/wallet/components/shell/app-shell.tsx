@@ -62,6 +62,9 @@ export async function AppShell({
 				...(roleAllows(ctx.role, "audit:read")
 					? [{ href: "/audit", label: t("audit") }]
 					: []),
+				...(roleAllows(ctx.role, "export:manage")
+					? [{ href: "/settings/export", label: t("export") }]
+					: []),
 			],
 		},
 	].filter((g) => g.items.length > 0);
