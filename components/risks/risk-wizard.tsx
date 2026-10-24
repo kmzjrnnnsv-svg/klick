@@ -352,12 +352,12 @@ export function RiskWizard({
 								aria-current={s === step ? "step" : undefined}
 								onClick={() => go(s)}
 								className={cn(
-									"rounded-full border px-3 py-1 transition-colors",
+									"inline-flex min-h-(--control-h-sm) items-center rounded-full px-3 transition-colors",
 									s === step
-										? "border-primary bg-primary text-primary-foreground"
+										? "bg-primary-fill text-white"
 										: i < idx
-											? "border-primary/40 text-foreground hover:bg-muted"
-											: "text-muted-foreground hover:bg-muted",
+											? "bg-primary/12 text-foreground hover:bg-primary/20"
+											: "bg-muted text-muted-foreground hover:bg-foreground/12",
 								)}
 							>
 								{i + 1} · {t(`step_${s}`)}
@@ -447,10 +447,10 @@ export function RiskWizard({
 										aria-pressed={group === g.key}
 										onClick={() => setGroup(g.key)}
 										className={cn(
-											"rounded-full border px-3 py-1 text-footnote transition-colors",
+											"inline-flex min-h-(--control-h-sm) items-center rounded-full px-3 text-footnote transition-colors",
 											group === g.key
-												? "border-primary bg-primary/10"
-												: "text-muted-foreground hover:bg-muted",
+												? "bg-primary-fill text-white"
+												: "bg-muted text-muted-foreground hover:bg-foreground/12",
 										)}
 									>
 										{g.label}
@@ -585,7 +585,7 @@ export function RiskWizard({
 								{PROTECTION_GOALS.map((g) => (
 									<label
 										key={g}
-										className="flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1 text-subhead has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+										className="flex min-h-(--control-h-sm) cursor-pointer items-center gap-2 rounded-full bg-muted px-3 text-subhead has-[:checked]:bg-primary/12 has-[:checked]:ring-1 has-[:checked]:ring-primary/50"
 									>
 										<input
 											type="checkbox"

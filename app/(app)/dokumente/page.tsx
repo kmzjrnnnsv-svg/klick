@@ -192,7 +192,7 @@ export default async function DocumentsPage({
 			footer={
 				<Link
 					href="/rahmenwerke/iso27001?tab=soa"
-					className="text-primary hover:underline"
+					className="hit-area text-primary hover:underline"
 				>
 					{t("isoMandatory")} → SoA
 				</Link>

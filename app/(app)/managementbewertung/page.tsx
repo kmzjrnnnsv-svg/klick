@@ -92,7 +92,7 @@ export default async function ManagementReviewPage() {
 				open
 				className="group mb-6 flex flex-col gap-3 rounded-2xl bg-card p-4"
 			>
-				<summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2">
+				<summary className="flex min-h-(--control-h-sm) cursor-pointer list-none flex-wrap items-center justify-between gap-2">
 					<span className="font-semibold text-headline">
 						{t("digestTitle")}
 					</span>
@@ -308,7 +308,7 @@ export default async function ManagementReviewPage() {
 								</div>
 								{snapshot && (
 									<details className="flex flex-col gap-3 border-t pt-3">
-										<summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2">
+										<summary className="flex min-h-(--control-h-sm) cursor-pointer list-none flex-wrap items-center justify-between gap-2">
 											<span className="font-medium text-footnote text-muted-foreground">
 												{t("digestSnapshot")}
 											</span>

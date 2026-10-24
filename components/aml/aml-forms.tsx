@@ -189,10 +189,10 @@ export function RiskAnalysisForm({
 								aria-current={s === step ? "step" : undefined}
 								onClick={() => setStep(s)}
 								className={cn(
-									"rounded-full border px-3 py-1",
+									"inline-flex min-h-(--control-h-sm) items-center rounded-full px-3",
 									s === step
-										? "border-primary bg-primary text-primary-foreground"
-										: "text-muted-foreground hover:bg-muted",
+										? "bg-primary-fill text-white"
+										: "bg-muted text-muted-foreground hover:bg-foreground/12",
 								)}
 							>
 								{i + 1} · {s === "summary" ? t("stepSummary") : t(`dim_${s}`)}

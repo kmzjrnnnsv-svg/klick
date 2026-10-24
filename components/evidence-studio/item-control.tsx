@@ -88,7 +88,7 @@ export function ItemControl({
 						<Button
 							size="sm"
 							variant="ghost"
-							className="h-7 px-2 text-footnote"
+							className="h-(--control-h-sm) px-2 text-footnote"
 							onClick={() => setWriting(true)}
 						>
 							{t("textEvidence")}

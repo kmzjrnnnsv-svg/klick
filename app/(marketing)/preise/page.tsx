@@ -61,7 +61,7 @@ export default async function PricingPage() {
 						<Link href="/leistungen#anfrage" className={s.button}>
 							{t("heroCta")}
 						</Link>
-						<Link href="/login" className={s.textLink}>
+						<Link href="/login" className={`hit-area ${s.textLink}`}>
 							{t("heroLogin")}
 						</Link>
 					</div>

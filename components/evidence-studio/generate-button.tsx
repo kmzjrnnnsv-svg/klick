@@ -27,7 +27,7 @@ export function GenerateButton({
 			type="button"
 			size="sm"
 			variant="outline"
-			className="h-7 gap-1.5 px-2.5 text-footnote"
+			className="h-(--control-h-sm) gap-1.5 px-2.5 text-footnote"
 			disabled={pending}
 			onClick={() =>
 				start(async () => {

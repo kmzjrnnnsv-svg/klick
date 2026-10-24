@@ -169,10 +169,10 @@
 	min-height: 340px;
 	padding: 28px;
 	border-radius: 16px;
-	color: var(--primary-foreground);
+	color: #fff;
 }
 .toneBlue {
-	background: var(--primary);
+	background: var(--primary-fill);
 }
 .toneBrown {
 	background: var(--primary-fill);
@@ -363,8 +363,8 @@
 	margin: 160px var(--edge) 0;
 	padding: 48px;
 	border-radius: 16px;
-	background: var(--primary);
-	color: var(--primary-foreground);
+	background: var(--primary-fill);
+	color: #fff;
 }
 .consultingLead {
 	max-width: 56ch;

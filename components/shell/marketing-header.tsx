@@ -22,16 +22,16 @@ export async function MarketingHeader({
 			<div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
 				<Link
 					href="/"
-					className="font-bold text-foreground text-headline hover:opacity-70"
+					className="hit-area font-bold text-foreground text-headline hover:opacity-70"
 				>
 					{t("productName")}
 				</Link>
-				<nav className="hidden items-center gap-6 sm:flex">
+				<nav className="hidden items-center gap-6 lg:flex">
 					{links.map((l) => (
 						<Link
 							key={l.href}
 							href={l.href}
-							className="text-muted-foreground text-subhead transition-colors hover:text-foreground"
+							className="hit-area text-muted-foreground text-subhead transition-colors hover:text-foreground"
 						>
 							{l.label}
 						</Link>
@@ -39,10 +39,10 @@ export async function MarketingHeader({
 				</nav>
 				<div className="flex items-center gap-1">
 					{/* Telefon: Menü ohne Skript; volle Navigation (a statt Link), damit es sich schließt */}
-					<details className="group relative sm:hidden">
+					<details className="group relative lg:hidden">
 						<summary
 							aria-label={tf("menu")}
-							className="flex size-9 cursor-pointer list-none items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
+							className="flex size-(--control-h) cursor-pointer list-none items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
 						>
 							<Menu className="size-5" aria-hidden="true" />
 						</summary>
@@ -51,7 +51,7 @@ export async function MarketingHeader({
 								<a
 									key={l.href}
 									href={l.href}
-									className="rounded-sm px-3 py-2.5 text-subhead hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className="flex min-h-11 items-center rounded-lg px-3 text-body hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								>
 									{l.label}
 								</a>

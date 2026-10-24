@@ -82,7 +82,7 @@ function Points({
 }) {
 	return (
 		<Card>
-			<h2 className="font-medium text-base">{title}</h2>
+			<h2 className="font-semibold text-headline">{title}</h2>
 			<ul className="mt-3 flex flex-col gap-2.5 text-subhead">
 				{items.map((x) => (
 					<li key={x} className="flex gap-2.5">
@@ -422,7 +422,7 @@ export default async function WalletIntroPage({
 							<Link
 								href={welcomeHref(s)}
 								aria-current={s === schritt ? "step" : undefined}
-								className="group block py-2 focus-visible:outline-2 focus-visible:outline-primary"
+								className="group block py-2 focus-visible:outline-2 focus-visible:outline-primary pointer-coarse:py-5"
 							>
 								<span
 									aria-hidden
@@ -462,7 +462,7 @@ export default async function WalletIntroPage({
 				<h1 className="text-balance font-bold text-title-1 sm:text-4xl">
 					{title}
 				</h1>
-				<p className="max-w-prose text-pretty text-base text-muted-foreground">
+				<p className="max-w-prose text-pretty text-body text-muted-foreground">
 					{lead}
 				</p>
 			</header>

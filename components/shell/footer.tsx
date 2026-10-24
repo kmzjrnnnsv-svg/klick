@@ -22,7 +22,7 @@ export async function Footer() {
 						<Link
 							key={l.href}
 							href={l.href}
-							className="inline-flex min-h-8 items-center text-footnote text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-11"
+							className="hit-area inline-flex min-h-8 items-center text-footnote text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-11"
 						>
 							{l.label}
 						</Link>

@@ -64,12 +64,12 @@ export default async function FrameworksPage() {
 						const bucket = cov?.result.byFramework.get(f.slug);
 						const hasIndex = (meta?.requirements.length ?? 0) > 0;
 						return (
-							<Card key={f.slug}>
+							<Card key={f.slug} className="min-w-0">
 								<CardHeader>
-									<CardTitle className="flex items-start justify-between gap-2 text-base">
+									<CardTitle className="flex items-start justify-between gap-2 text-headline">
 										<Link
 											href={`/rahmenwerke/${f.slug}`}
-											className="hover:underline underline-offset-4"
+											className="hit-area min-w-0 underline-offset-4 hover:underline"
 										>
 											{f.name}
 										</Link>

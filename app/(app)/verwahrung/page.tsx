@@ -400,7 +400,7 @@ export default async function CustodyPage({
 						>
 							<Link
 								href={`/controls/${c.code}`}
-								className="min-w-0 underline-offset-4 hover:underline"
+								className="hit-area min-w-0 underline-offset-4 hover:underline"
 							>
 								<span className="whitespace-nowrap font-mono text-footnote">
 									{c.code}

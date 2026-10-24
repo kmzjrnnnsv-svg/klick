@@ -99,7 +99,7 @@ export default async function LandingPage() {
 					{t("exampleLead", { count })}
 				</p>
 
-				<div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto_1fr]">
+				<div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
 					<article className="flex flex-col rounded-2xl bg-card/60 p-6">
 						<p className="font-medium text-footnote text-muted-foreground">
 							{t("withoutTitle")}

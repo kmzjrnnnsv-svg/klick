@@ -212,7 +212,7 @@ export default async function CalendarPage({
 						<Link
 							href={`/kalender?tab=jahr&jahr=${year - 1}`}
 							scroll={false}
-							className="rounded-xl bg-card px-2 py-1 hover:bg-muted"
+							className="inline-flex h-(--control-h-sm) items-center rounded-full bg-muted px-3 hover:bg-foreground/12"
 						>
 							← {year - 1}
 						</Link>
@@ -220,7 +220,7 @@ export default async function CalendarPage({
 						<Link
 							href={`/kalender?tab=jahr&jahr=${year + 1}`}
 							scroll={false}
-							className="rounded-xl bg-card px-2 py-1 hover:bg-muted"
+							className="inline-flex h-(--control-h-sm) items-center rounded-full bg-muted px-3 hover:bg-foreground/12"
 						>
 							{year + 1} →
 						</Link>
@@ -254,9 +254,9 @@ export default async function CalendarPage({
 								return (
 									<section
 										key={name}
-										className={`rounded-2xl bg-card p-3 text-subhead ${isCurrent ? "border-primary/50" : ""}`}
+										className={`rounded-2xl bg-card p-3 text-subhead ${isCurrent ? "ring-1 ring-primary/50" : ""}`}
 									>
-										<h2 className="font-medium text-footnote mb-2 flex items-center justify-between text-footnote text-muted-foreground">
+										<h2 className="mb-2 flex items-center justify-between font-medium text-footnote text-muted-foreground">
 											{name}
 											<span>{items.length + others.length}</span>
 										</h2>

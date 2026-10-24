@@ -133,8 +133,8 @@ export default async function ReportsPage() {
 									key={s.kind.kind}
 									className="flex flex-col gap-2 rounded-2xl bg-card p-3 text-subhead"
 								>
-									<div className="flex items-start justify-between gap-2">
-										<span className="font-medium">{s.kind.title}</span>
+									<div className="flex flex-wrap items-start justify-between gap-2">
+										<span className="min-w-0 font-medium">{s.kind.title}</span>
 										<Badge
 											variant={
 												s.state === "due"
@@ -238,7 +238,7 @@ export default async function ReportsPage() {
 										className="rounded-2xl bg-card p-3"
 										open={r.status === "draft"}
 									>
-										<summary className="cursor-pointer font-medium">
+										<summary className="cursor-pointer py-1.5 font-medium pointer-coarse:py-3">
 											{r.status === "draft"
 												? t("figuresLive")
 												: t("figuresSnapshot", {

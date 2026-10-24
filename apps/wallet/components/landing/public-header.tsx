@@ -4,7 +4,7 @@ import s from "./landing.module.css";
 // Kopf der öffentlichen Seiten (Startseite abgemeldet, Fahrplan)
 export function PublicHeader({ current }: { current: "home" | "roadmap" }) {
 	const link =
-		"rounded-sm px-1 py-1 text-subhead underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2";
+		"hit-area rounded-sm px-1 py-1 text-subhead underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2";
 	return (
 		<header className={`border-b ${s.noPrint}`}>
 			<a
@@ -17,7 +17,7 @@ export function PublicHeader({ current }: { current: "home" | "roadmap" }) {
 				<Link
 					href="/"
 					aria-current={current === "home" ? "page" : undefined}
-					className="font-bold text-title-2 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-4"
+					className="hit-area font-bold text-title-2 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-4"
 					translate="no"
 				>
 					both.money

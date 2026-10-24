@@ -103,10 +103,12 @@ export function DateGroupChips({
 				href={key ? `${base}${sep}art=${key}` : base}
 				scroll={false}
 				aria-current={on ? "true" : undefined}
-				className={`inline-flex h-7 items-center gap-1 rounded-full border px-3 text-footnote ${on ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+				className={`inline-flex h-(--control-h-sm) items-center gap-1 rounded-full px-3 text-footnote ${on ? "bg-primary-fill text-white" : "bg-muted hover:bg-foreground/12"}`}
 			>
 				{label}
-				{n !== undefined && <span className="opacity-70">{n}</span>}
+				{n !== undefined && (
+					<span className={on ? undefined : "text-muted-foreground"}>{n}</span>
+				)}
 			</Link>
 		);
 	};

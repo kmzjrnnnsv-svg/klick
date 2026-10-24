@@ -134,7 +134,7 @@ export default async function SignaturesPage({
 								</span>
 							</div>
 							<details className="text-footnote">
-								<summary className="cursor-pointer text-muted-foreground">
+								<summary className="cursor-pointer py-1.5 text-muted-foreground pointer-coarse:py-3">
 									{t("details")}
 								</summary>
 								<p className="mt-2 break-all font-mono">{row.signText}</p>

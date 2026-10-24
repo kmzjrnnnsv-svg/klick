@@ -947,7 +947,7 @@ export default async function AmlPage({
 						</Table>
 					)}
 					<details className="rounded-2xl bg-card p-3 text-subhead">
-						<summary className="cursor-pointer font-medium">
+						<summary className="cursor-pointer py-1.5 font-medium pointer-coarse:py-3">
 							{t("corridorStepsTitle")}
 						</summary>
 						<p className="mt-2 text-muted-foreground">

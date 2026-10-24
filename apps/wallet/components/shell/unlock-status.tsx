@@ -45,7 +45,7 @@ export function UnlockStatus({ until }: { until: string | null }) {
 	}).format(new Date(until));
 	return (
 		<div className="flex shrink-0 items-center gap-2">
-			<span className="hidden items-center gap-1 text-muted-foreground text-footnote sm:flex">
+			<span className="hidden items-center gap-1 text-muted-foreground text-footnote lg:flex">
 				<LockOpen className="size-3.5" aria-hidden />{" "}
 				{t("unlockedUntil", { time })}
 			</span>
@@ -53,13 +53,14 @@ export function UnlockStatus({ until }: { until: string | null }) {
 				variant="outline"
 				size="sm"
 				aria-label={tu("lock")}
+				className="min-w-(--control-h-sm)"
 				onClick={async () => {
 					await lock();
 					router.refresh();
 				}}
 			>
 				<Lock aria-hidden />{" "}
-				<span className="hidden sm:inline">{tu("lock")}</span>
+				<span className="hidden lg:inline">{tu("lock")}</span>
 			</Button>
 		</div>
 	);
