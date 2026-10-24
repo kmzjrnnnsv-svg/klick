@@ -422,12 +422,14 @@ export default async function OverviewPage() {
 									>
 										{s.done ? (
 											<CheckCircle2
-												className="size-4 text-success"
+												aria-hidden="true"
+												className="size-4 shrink-0 text-success"
 												strokeWidth={1.5}
 											/>
 										) : (
 											<Circle
-												className="size-4 text-muted-foreground"
+												aria-hidden="true"
+												className="size-4 shrink-0 text-muted-foreground"
 												strokeWidth={1.5}
 											/>
 										)}
