@@ -1,0 +1,10 @@
+{
+	"contract": "klick-wallet-link",
+	"v": 1,
+	"klickOrg": {
+		"name": "Raza GmbH"
+	},
+	"linkRef": "wl_1",
+	"lastSeq": 10,
+	"expiresAt": "2027-10-24T08:00:00.000Z"
+}

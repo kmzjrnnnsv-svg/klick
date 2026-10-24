@@ -1,0 +1,248 @@
+{
+	"contract": "klick-wallet-link",
+	"v": 1,
+	"walletOrgId": "5e1c0a6e-0b1f-4c39-9a3e-2f1b6c7d8e01",
+	"linkId": "7a2d4f10-3c5b-4e8a-b1d2-9f0e1a2b3c04",
+	"batchId": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+	"sentAt": "2026-10-24T08:01:00.000Z",
+	"events": [
+		{
+			"id": "90000001-0000-4000-8000-000000000001",
+			"seq": 10,
+			"type": "org.updated",
+			"occurredAt": "2026-10-24T08:00:00.000Z",
+			"data": {
+				"org": {
+					"id": "5e1c0a6e-0b1f-4c39-9a3e-2f1b6c7d8e01",
+					"name": "Raza",
+					"slug": "raza"
+				},
+				"custodyMode": "own",
+				"isOperator": true,
+				"caspLicenceRef": null,
+				"rev": 1
+			}
+		},
+		{
+			"id": "90000002-0000-4000-8000-000000000002",
+			"seq": 11,
+			"type": "account.upserted",
+			"occurredAt": "2026-10-24T08:00:00.000Z",
+			"data": {
+				"account": {
+					"id": "0b9d8c7a-6e5f-4a3b-8c2d-1e0f9a8b7c6d",
+					"name": "Betrieb Hot",
+					"network": "bitcoin_signet",
+					"kind": "hot",
+					"purpose": "own",
+					"keyFingerprint": "4efb73ea",
+					"firstAddress": "tb1q5gg9ejc2thxzshakj7k46le7wa3zsns27ugnzg",
+					"status": "active",
+					"createdAt": "2026-10-24T08:00:00.000Z"
+				},
+				"rev": 2
+			}
+		},
+		{
+			"id": "90000003-0000-4000-8000-000000000003",
+			"seq": 12,
+			"type": "transfer.upserted",
+			"occurredAt": "2026-10-24T08:00:00.000Z",
+			"data": {
+				"transfer": {
+					"id": "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+					"accountId": "0b9d8c7a-6e5f-4a3b-8c2d-1e0f9a8b7c6d",
+					"network": "bitcoin_signet",
+					"direction": "in",
+					"asset": "BTC",
+					"amount": "1000000",
+					"txid": "89e509a900000000000000000000000000000000000000000000000000000000",
+					"outputRef": "vout:0",
+					"address": "tb1q5gg9ejc2thxzshakj7k46le7wa3zsns27ugnzg",
+					"counterparty": null,
+					"blockHeight": 205,
+					"blockHash": "0000000000000000000000000000000000000000000000000000000000000000",
+					"blockTime": "2026-10-24T08:00:00.000Z",
+					"confirmations": 1,
+					"status": "confirmed",
+					"screening": "clear",
+					"frozen": false,
+					"payoutId": null,
+					"firstSeenAt": "2026-10-24T08:00:00.000Z",
+					"confirmedAt": "2026-10-24T08:00:00.000Z"
+				},
+				"rev": 3
+			}
+		},
+		{
+			"id": "90000004-0000-4000-8000-000000000004",
+			"seq": 13,
+			"type": "destination.upserted",
+			"occurredAt": "2026-10-24T08:00:00.000Z",
+			"data": {
+				"destination": {
+					"id": "3e4f5a6b-7c8d-4e9f-8a1b-2c3d4e5f6071",
+					"network": "bitcoin_signet",
+					"address": "tb1qf8gv32rqzyf44jplfqpqf7yn2dx3mu7qme29pd",
+					"label": "Lieferant A",
+					"status": "active",
+					"screening": "clear",
+					"approvedAt": "2026-10-24T08:00:00.000Z",
+					"activeFrom": "2026-10-24T08:00:00.000Z",
+					"vetoedAt": null,
+					"vetoReason": null,
+					"createdAt": "2026-10-24T08:00:00.000Z"
+				},
+				"rev": 4
+			}
+		},
+		{
+			"id": "90000005-0000-4000-8000-000000000005",
+			"seq": 14,
+			"type": "payout.upserted",
+			"occurredAt": "2026-10-24T08:00:00.000Z",
+			"data": {
+				"payout": {
+					"id": "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f60",
+					"accountId": "0b9d8c7a-6e5f-4a3b-8c2d-1e0f9a8b7c6d",
+					"network": "bitcoin_signet",
+					"asset": "BTC",
+					"amount": "80000",
+					"destination": "tb1qf8gv32rqzyf44jplfqpqf7yn2dx3mu7qme29pd",
+					"destinationLabel": "Lieferant A",
+					"speed": "normal",
+					"status": "confirmed",
+					"intentId": "abababababababababababababababab",
+					"feeCap": "836",
+					"fee": "282",
+					"txid": "f7dc344b00000000000000000000000000000000000000000000000000000000",
+					"txids": [
+						"f7dc344b00000000000000000000000000000000000000000000000000000000"
+					],
+					"createdAt": "2026-10-24T08:00:00.000Z",
+					"approvedAt": "2026-10-24T08:00:00.000Z",
+					"signedAt": "2026-10-24T08:00:00.000Z",
+					"broadcastAt": "2026-10-24T08:00:00.000Z",
+					"confirmedAt": "2026-10-24T08:00:00.000Z"
+				},
+				"rev": 5
+			}
+		},
+		{
+			"id": "90000006-0000-4000-8000-000000000006",
+			"seq": 15,
+			"type": "day.closed",
+			"occurredAt": "2026-10-24T08:00:00.000Z",
+			"data": {
+				"date": "2026-10-23",
+				"timeZone": "Europe/Berlin",
+				"closedAt": "2026-10-23T22:10:00.000Z",
+				"accounts": [
+					{
+						"accountId": "0b9d8c7a-6e5f-4a3b-8c2d-1e0f9a8b7c6d",
+						"network": "bitcoin_signet",
+						"balances": {
+							"BTC": {
+								"confirmed": "919650",
+								"pending": "0"
+							}
+						},
+						"height": 207,
+						"hash": "1111111111111111111111111111111111111111111111111111111111111111",
+						"at": "2026-10-23T22:09:58.000Z",
+						"frozen": {}
+					}
+				],
+				"screening": {
+					"clear": 3,
+					"hit": 0,
+					"unchecked": 0
+				}
+			}
+		},
+		{
+			"id": "90000007-0000-4000-8000-000000000007",
+			"seq": 16,
+			"type": "ceremony.recorded",
+			"occurredAt": "2026-10-24T08:00:00.000Z",
+			"data": {
+				"recordedAt": "2026-10-24T08:00:00.000Z",
+				"reason": "initialised",
+				"policy": {
+					"version": 1,
+					"mode": "solo",
+					"hash": "2222222222222222222222222222222222222222222222222222222222222222"
+				},
+				"keys": {
+					"active": 2,
+					"persons": 1
+				},
+				"networks": ["bitcoin_signet", "ethereum_sepolia"],
+				"fingerprints": {
+					"bitcoin_signet": "4efb73ea",
+					"ethereum_sepolia": "13247199"
+				}
+			}
+		},
+		{
+			"id": "90000008-0000-4000-8000-000000000008",
+			"seq": 17,
+			"type": "screening.list_updated",
+			"occurredAt": "2026-10-24T08:00:00.000Z",
+			"data": {
+				"source": "ofac",
+				"listVersion": "10/21/2026#a1b2c3d4e5f6",
+				"total": 512,
+				"importedAt": "2026-10-24T08:00:00.000Z"
+			}
+		},
+		{
+			"id": "90000009-0000-4000-8000-000000000009",
+			"seq": 18,
+			"type": "alert.raised",
+			"occurredAt": "2026-10-24T08:00:00.000Z",
+			"data": {
+				"alertId": "signer_frozen:2026-10-24T08:00:00.000Z",
+				"code": "manual_stop",
+				"severity": "high",
+				"title": "Alles stoppen",
+				"detail": "Signer eingefroren: Notfallübung",
+				"subject": {
+					"kind": "signer",
+					"id": "5e1c0a6e-0b1f-4c39-9a3e-2f1b6c7d8e01"
+				},
+				"raisedAt": "2026-10-24T08:00:00.000Z"
+			}
+		},
+		{
+			"id": "90000010-0000-4000-8000-000000000010",
+			"seq": 19,
+			"type": "alert.resolved",
+			"occurredAt": "2026-10-24T08:00:00.000Z",
+			"data": {
+				"alertId": "signer_frozen:2026-10-24T08:00:00.000Z",
+				"code": "manual_stop",
+				"resolvedAt": "2026-10-24T09:00:00.000Z",
+				"note": "Am Terminal aufgetaut"
+			}
+		},
+		{
+			"id": "90000011-0000-4000-8000-000000000011",
+			"seq": 20,
+			"type": "heartbeat",
+			"occurredAt": "2026-10-24T08:00:00.000Z",
+			"data": {
+				"at": "2026-10-24T08:00:00.000Z",
+				"signer": "ready",
+				"nodes": [
+					{
+						"network": "bitcoin_signet",
+						"height": 207,
+						"syncedAt": "2026-10-24T08:00:00.000Z"
+					}
+				],
+				"pending": 0
+			}
+		}
+	]
+}
