@@ -10,3 +10,45 @@ reason = "http-cache-semantics via @cyclonedx/cyclonedx-npm → libxmljs2 → no
 id = "GHSA-67mh-4wv8-2f99"
 ignoreUntil = 2027-01-31
 reason = "esbuild 0.18 via drizzle-kit → @esbuild-kit/core-utils: betrifft nur den esbuild-Dev-Server (CORS), den drizzle-kit nicht startet; läuft nie auf dem Server."
+
+# Befristet bis die Fixes den 7-Tage-Cooldown (minimumReleaseAge) hinter sich
+# haben — dann heben und diese Einträge entfernen (geplant 27.10.2026).
+[[IgnoredVulns]]
+id = "GHSA-834v-8h66-3h79"
+ignoreUntil = 2026-10-28
+reason = "happy-dom ≤ 21.0.3: nur Testumgebung der Komponenten-Tests mit eigenem HTML; Fix 21.0.4 vom 20.10.2026 im Cooldown."
+
+[[IgnoredVulns]]
+id = "GHSA-85x2-q946-cp5h"
+ignoreUntil = 2026-10-28
+reason = "nodemailer < 10.1.4 (addressparser): Empfänger nur aus zod-geprüften Adressen, SMTP ist Rückfall hinter der Brevo-API; Fix 10.1.4 vom 18.10.2026 im Cooldown."
+
+[[IgnoredVulns]]
+id = "GHSA-8c8m-p3m8-cjg8"
+ignoreUntil = 2026-10-28
+reason = "nodemailer < 10.1.4 (addressparser): wie GHSA-85x2-q946-cp5h."
+
+[[IgnoredVulns]]
+id = "GHSA-m943-m63m-w62w"
+ignoreUntil = 2026-10-28
+reason = "nodemailer < 10.1.4 (addressparser): wie GHSA-85x2-q946-cp5h."
+
+[[IgnoredVulns]]
+id = "GHSA-w74x-v6f9-j3xg"
+ignoreUntil = 2026-10-28
+reason = "fast-uri < 3.1.9 via ajv (SBOM-Werkzeug in CI, ungenutzter Resolver in @hookform/resolvers); Fix 3.1.9 vom 19.10.2026 im Cooldown."
+
+[[IgnoredVulns]]
+id = "GHSA-wjr9-j795-jxcr"
+ignoreUntil = 2026-10-28
+reason = "fast-uri < 3.1.9: wie GHSA-w74x-v6f9-j3xg."
+
+[[IgnoredVulns]]
+id = "GHSA-xhq7-xmqj-769h"
+ignoreUntil = 2026-10-28
+reason = "fast-uri < 3.1.9: wie GHSA-w74x-v6f9-j3xg."
+
+[[IgnoredVulns]]
+id = "GHSA-333x-w4r6-6crp"
+ignoreUntil = 2026-10-28
+reason = "fast-uri < 3.1.9: wie GHSA-w74x-v6f9-j3xg."
