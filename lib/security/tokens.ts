@@ -10,6 +10,7 @@ export const TOKEN_PREFIX: Record<AccessTokenKind, string> = {
 	ingest: "klk_ingest_",
 	supplier_portal: "klk_portal_",
 	trust_center: "klk_trust_",
+	wallet: "klk_wallet_",
 };
 
 const BODY = /^[A-Za-z0-9_-]{43}$/;

@@ -289,12 +289,15 @@ export const ACCESS_TOKEN_KINDS = [
 	"ingest",
 	"supplier_portal",
 	"trust_center",
+	// both.money → Klick (Plan both.money, K2): Subjekt = wallet_links.id
+	"wallet",
 ] as const;
 export type AccessTokenKind = (typeof ACCESS_TOKEN_KINDS)[number];
 export const INGEST_SCOPES = ["scan:write", "sbom:write"] as const;
 export type IngestScope = (typeof INGEST_SCOPES)[number];
 // Lieferantenportal: Token gilt für genau einen Fragebogen (subject).
 export const PORTAL_SCOPES = ["assessment:answer"] as const;
+export const WALLET_LINK_SCOPES = ["wallet:push"] as const;
 export type ScanSource = (typeof SCAN_SOURCES)[number];
 
 // Zähler je Scan (security_scans.counts).

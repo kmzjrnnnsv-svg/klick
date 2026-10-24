@@ -232,6 +232,13 @@
       "when": 1792772308282,
       "tag": "0032_wallet_send",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792838900909,
+      "tag": "0033_wallet_link",
+      "breakpoints": true
     }
   ]
 }

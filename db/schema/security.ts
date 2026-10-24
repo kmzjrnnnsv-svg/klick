@@ -57,7 +57,13 @@ export const accessTokens = pgTable(
 		tokenHash: text().notNull().unique(),
 		scopes: stringList(),
 		subjectType: text({
-			enum: ["product", "provider", "assessment", "trust_request"],
+			enum: [
+				"product",
+				"provider",
+				"assessment",
+				"trust_request",
+				"wallet_link",
+			],
 		}),
 		subjectId: uuid(),
 		createdByUserId: userRef(),
