@@ -7,7 +7,7 @@ import {
 	evidenceByIsoClause,
 	pickerFrameworks,
 } from "@/lib/marketing/catalog-facts";
-import { synergyOf } from "@/lib/marketing/synergy";
+import { addedControls, bestReuse, synergyOf } from "@/lib/marketing/synergy";
 import {
 	FEATURE_FAQ,
 	PICKER_DEFAULT,
@@ -125,6 +125,53 @@ describe("synergyOf", () => {
 			shared: 0,
 			separate: 1,
 		});
+	});
+});
+
+describe("addedControls / bestReuse", () => {
+	const fws = [
+		{ slug: "a", label: "A", requirements: 10, controls: ["C1", "C2", "C3"] },
+		{ slug: "b", label: "B", requirements: 5, controls: ["C2", "C3", "C4"] },
+		{ slug: "c", label: "C", requirements: 2, controls: ["C5"] },
+		{ slug: "d", label: "D", requirements: 4, controls: ["C1", "C6", "C7"] },
+	];
+
+	it("zählt je nicht gewähltem Rahmenwerk, was neu dazukäme", () => {
+		const m = addedControls(fws, ["a"]);
+		expect(m.has("a")).toBe(false);
+		expect(m.get("b")).toEqual({ added: 1, reused: 2, total: 3 });
+		expect(m.get("c")).toEqual({ added: 1, reused: 0, total: 1 });
+		expect(m.get("d")).toEqual({ added: 2, reused: 1, total: 3 });
+	});
+
+	it("ohne Auswahl ist alles neu", () => {
+		const m = addedControls(fws, []);
+		for (const f of fws)
+			expect(m.get(f.slug)).toEqual({
+				added: f.controls.length,
+				reused: 0,
+				total: f.controls.length,
+			});
+	});
+
+	it("nennt das Rahmenwerk mit dem größten schon abgedeckten Anteil", () => {
+		expect(bestReuse(fws, ["a"])).toEqual({
+			slug: "b",
+			label: "B",
+			reused: 2,
+			total: 3,
+		});
+		expect(bestReuse(fws, [])).toBeNull();
+		expect(bestReuse(fws, ["c"])).toBeNull();
+		expect(bestReuse(fws, ["a", "b", "c", "d"])).toBeNull();
+	});
+
+	it("passt zum echten Katalog: ISO 27001 deckt einen Teil jedes Nachbarn", () => {
+		const real = pickerFrameworks();
+		const best = bestReuse(real, ["iso27001"]);
+		expect(best).not.toBeNull();
+		expect(best?.reused).toBeGreaterThan(0);
+		expect(best?.reused).toBeLessThanOrEqual(best?.total ?? 0);
 	});
 });
 

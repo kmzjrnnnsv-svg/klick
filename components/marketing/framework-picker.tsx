@@ -1,15 +1,23 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { type PickerFramework, synergyOf } from "@/lib/marketing/synergy";
+import {
+	addedControls,
+	bestReuse,
+	type PickerFramework,
+	synergyOf,
+} from "@/lib/marketing/synergy";
 import s from "./framework-picker.module.css";
 
 const num = new Intl.NumberFormat("de-DE");
 
 // Ausschnitt aus Klick: Rahmenwerke wählen und sehen, wie viele Controls die
-// Anforderungen gemeinsam abdecken — gerechnet mit dem echten Katalog. Ohne
-// Skript bleibt die Vorauswahl stehen (der Server rendert sie).
+// Anforderungen gemeinsam abdecken — gerechnet mit dem echten Katalog. Die
+// Zahl an jedem nicht gewählten Rahmenwerk zeigt, was es neu dazubrächte;
+// so ergibt die Auswahl schon mit einem Rahmenwerk Sinn. Ohne Skript bleibt
+// die Vorauswahl stehen (der Server rendert sie).
 export function FrameworkPicker({
 	frameworks,
 	initial,
@@ -20,7 +28,8 @@ export function FrameworkPicker({
 	const t = useTranslations("Features");
 	const [selected, setSelected] = useState<string[]>(initial);
 	const r = synergyOf(frameworks, selected);
-	const saved = r.separate - r.controls;
+	const added = addedControls(frameworks, selected);
+	const next = selected.length === 1 ? bestReuse(frameworks, selected) : null;
 	const toggle = (slug: string) =>
 		setSelected((cur) =>
 			cur.includes(slug) ? cur.filter((x) => x !== slug) : [...cur, slug],
@@ -30,15 +39,13 @@ export function FrameworkPicker({
 			<div className={s.head}>
 				<span className={s.title}>{t("pickerTitle")}</span>
 				<span className={s.hint}>
-					{t("pickerSelected", {
-						n: selected.length,
-						total: frameworks.length,
-					})}
+					{t("pickerSelected", { n: selected.length })}
 				</span>
 			</div>
 			<ul className={s.chips} aria-label={t("pickerLabel")}>
 				{frameworks.map((f) => {
 					const on = selected.includes(f.slug);
+					const n = added.get(f.slug)?.added ?? 0;
 					return (
 						<li key={f.slug}>
 							<button
@@ -48,37 +55,56 @@ export function FrameworkPicker({
 								onClick={() => toggle(f.slug)}
 							>
 								{f.label}
-								<span className={s.chipCount}>{f.requirements}</span>
+								{on ? (
+									<Check className={s.check} aria-hidden="true" />
+								) : (
+									<>
+										<span className={s.chipCount} aria-hidden="true">
+											+{num.format(n)}
+										</span>
+										<span className="sr-only">, {t("pickerAdded", { n })}</span>
+									</>
+								)}
 							</button>
 						</li>
 					);
 				})}
 			</ul>
-			<dl className={s.result} aria-live="polite">
-				<div className={s.row}>
-					<dt>{t("pickerRequirements")}</dt>
-					<dd>{num.format(r.requirements)}</dd>
-				</div>
-				<div className={s.row}>
-					<dt>{t("pickerControls")}</dt>
-					<dd className={s.strong}>{num.format(r.controls)}</dd>
-				</div>
-				<div className={s.row}>
-					<dt>{t("pickerShared")}</dt>
-					<dd>{num.format(r.shared)}</dd>
-				</div>
-				<div className={s.row}>
-					<dt>{t("pickerSeparate")}</dt>
-					<dd>{num.format(r.separate)}</dd>
-				</div>
-			</dl>
-			<p className={s.note}>
-				{selected.length === 0
-					? t("pickerNone")
-					: saved > 0
-						? t("pickerSaved", { n: num.format(saved) })
-						: t("pickerSingle")}
-			</p>
+			<p className={s.legend}>{t("pickerLegend")}</p>
+			<div aria-live="polite">
+				<dl className={s.result}>
+					<div className={s.row}>
+						<dt>{t("pickerRequirements")}</dt>
+						<dd>{num.format(r.requirements)}</dd>
+					</div>
+					<div className={s.row}>
+						<dt>{t("pickerControls")}</dt>
+						<dd className={s.strong}>{num.format(r.controls)}</dd>
+					</div>
+					{selected.length > 1 && (
+						<div className={s.row}>
+							<dt>{t("pickerShared")}</dt>
+							<dd>{num.format(r.shared)}</dd>
+						</div>
+					)}
+				</dl>
+				<p className={s.note}>
+					{selected.length === 0
+						? t("pickerNone")
+						: selected.length > 1
+							? t("pickerCompare", {
+									separate: num.format(r.separate),
+									controls: num.format(r.controls),
+								})
+							: next
+								? t("pickerSingle", {
+										name: next.label,
+										reused: num.format(next.reused),
+										total: num.format(next.total),
+									})
+								: t("pickerSingleNone")}
+				</p>
+			</div>
 		</div>
 	);
 }
