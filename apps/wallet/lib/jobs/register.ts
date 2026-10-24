@@ -2,6 +2,7 @@ import { configuredNetworks } from "@wallet/lib/wallet/node-clients";
 import { signerConfigured } from "@wallet/lib/wallet/signer/client";
 import type { PgBoss } from "pg-boss";
 import { runVerifyAuditChains } from "./audit-chain";
+import { runDayClose, runKlickExport } from "./klick-export";
 import { runImmediateMails } from "./mails";
 import { runPriceTick } from "./price-tick";
 import { runRetention } from "./retention";
@@ -15,6 +16,8 @@ export const JOBS = {
 	walletSync: "wallet-sync",
 	priceTick: "price-tick",
 	walletPayouts: "wallet-payouts",
+	klickExport: "klick-export",
+	exportDayClose: "export-day-close",
 } as const;
 
 // Jede Minute und nie doppelt: Sync, Kurse, Auszahlungen (einziger Schreiber)
@@ -35,6 +38,9 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.schedule(JOBS.notificationMail, "*/5 * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.retention, "0 3 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.verifyAuditChain, "0 4 * * *", {}, { tz: TZ });
+	// Export nach Klick: läuft nur für Orgs mit Verbindung (sonst sofort fertig)
+	await boss.schedule(JOBS.klickExport, "* * * * *", {}, { tz: TZ });
+	await boss.schedule(JOBS.exportDayClose, "10 0 * * *", {}, { tz: TZ });
 	const networks = configuredNetworks();
 	if (networks.length > 0)
 		await boss.schedule(JOBS.walletSync, "* * * * *", {}, { tz: TZ });
@@ -63,5 +69,11 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	});
 	await boss.work(JOBS.walletPayouts, async () => {
 		await runWalletPayouts();
+	});
+	await boss.work(JOBS.klickExport, async () => {
+		await runKlickExport();
+	});
+	await boss.work(JOBS.exportDayClose, async () => {
+		await runDayClose();
 	});
 }

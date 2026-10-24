@@ -29,6 +29,7 @@ import {
 	WALLET_ACCOUNT_KINDS,
 	WALLET_ACCOUNT_PURPOSES,
 } from "../../../../lib/wallet/model";
+import type { CeremonySnapshot } from "../../lib/export/ceremony";
 import { user } from "../auth-schema";
 import { orgs } from "./orgs";
 
@@ -263,6 +264,9 @@ export const walletSignerAnchor = pgTable(
 		checkedAt: ts(),
 		unreachableSince: ts(),
 		alertedAt: ts(),
+		// Zuletzt exportierter Stand der Zeremonie (Richtlinie, Schlüssel,
+		// Netze) — Änderung ⇒ ceremony.recorded
+		ceremony: json<CeremonySnapshot>(),
 		updatedAt: ts()
 			.notNull()
 			.defaultNow()

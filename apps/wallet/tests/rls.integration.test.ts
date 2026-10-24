@@ -70,7 +70,11 @@ d("RLS both.money (Postgres)", () => {
 			  and c.relrowsecurity`;
 		expect(rows.map((r) => r.relname).sort()).toEqual([
 			"audit_log",
+			"export_alerts",
+			"export_changes",
+			"export_outbox",
 			"invitations",
+			"klick_links",
 			"members",
 			"notifications",
 			"org_settings",

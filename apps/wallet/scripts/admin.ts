@@ -22,6 +22,8 @@ import { auditPlatform } from "@wallet/lib/audit";
 import { issueLink } from "@wallet/lib/auth/links";
 import { isMemberRole } from "@wallet/lib/auth/permissions";
 import { mutateOrg, withPlatform } from "@wallet/lib/db/with-org";
+import { hasLinks } from "@wallet/lib/export/emit";
+import { emitOrgUpdated } from "@wallet/lib/export/org";
 import { createInvitation } from "@wallet/lib/orgs/invitations";
 import { createOrg } from "@wallet/lib/orgs/service";
 import { asc, count, eq } from "drizzle-orm";
@@ -147,6 +149,7 @@ async function main() {
 								: {}),
 						})
 						.where(eq(orgSettings.organizationId, org.id));
+					if (await hasLinks(tx, org.id)) await emitOrgUpdated(tx, org.id);
 					return {
 						result: s,
 						audit: {

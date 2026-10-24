@@ -1,5 +1,7 @@
 import { type DbTx, db, type WalletDb } from "@wallet/db";
-import { auditLog } from "@wallet/db/schema";
+import { auditLog, exportChanges } from "@wallet/db/schema";
+import { ALERT_AUDIT_ACTIONS } from "@wallet/lib/export/alerts";
+import { hasLinks } from "@wallet/lib/export/emit";
 import { desc, eq, isNull, sql } from "drizzle-orm";
 import {
 	type ChainVerification,
@@ -69,6 +71,18 @@ export async function audit(
 	};
 	const hash = computeAuditHash(prevHash, row);
 	await tx.insert(auditLog).values({ ...row, prevHash, hash });
+	// Auffälligkeiten für den Export nach Klick vermerken (dieselbe
+	// Transaktion; der Export-Lauf macht daraus alert.raised)
+	if (
+		orgId &&
+		ALERT_AUDIT_ACTIONS.has(input.action) &&
+		(await hasLinks(tx as DbTx, orgId))
+	)
+		await tx.insert(exportChanges).values({
+			organizationId: orgId,
+			entity: "audit",
+			entityId: row.id,
+		});
 	return { id: row.id, hash, prevHash };
 }
 

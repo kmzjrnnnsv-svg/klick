@@ -1,7 +1,7 @@
 import { type DbTx, db } from "@wallet/db";
-import { orgs } from "@wallet/db/schema";
+import { klickLinks, orgs } from "@wallet/db/schema";
 import { type Actor, type AuditInput, audit } from "@wallet/lib/audit";
-import { sql } from "drizzle-orm";
+import { ne, sql } from "drizzle-orm";
 
 // Kontext für jede Datenbankarbeit in both.money (wie Klick, lib/db/with-org).
 // withOrg setzt app.org_id und — mit Person — app.user_id transaktionslokal;
@@ -123,6 +123,19 @@ export async function forEachOrg(
 
 // Nur für Jobs: IDs aller Orgs (Plattform-Kontext ohne Audit — der Lauf
 // selbst liest danach jede Org in ihrem eigenen Kontext, forEachOrg)
+// Orgs mit Verbindung nach Klick (Export-Job), nur lesend wie jobOrgIds
+export async function exportOrgIds(): Promise<string[]> {
+	return db.transaction(async (tx) => {
+		await tx.execute(sql`set transaction read only`);
+		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
+		const rows = await tx
+			.selectDistinct({ id: klickLinks.organizationId })
+			.from(klickLinks)
+			.where(ne(klickLinks.status, "revoked"));
+		return rows.map((r) => r.id);
+	});
+}
+
 export async function jobOrgIds(): Promise<string[]> {
 	return db.transaction(async (tx) => {
 		await tx.execute(sql`set transaction read only`);

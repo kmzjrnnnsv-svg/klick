@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 import { sqlClient } from "@wallet/db";
 import { auditPlatform } from "@wallet/lib/audit";
 import { replaceSanctionList } from "@wallet/lib/db/sanctions";
+import { exportOrgIds, withOrg } from "@wallet/lib/db/with-org";
 import { loadWalletEnvFiles } from "@wallet/lib/env";
+import { emitEvent } from "@wallet/lib/export/emit";
 import { parseOfacSdnXml } from "@/lib/wallet/ofac";
 
 // both.money: Sperr-Adressen aus der OFAC-SDN-Liste übernehmen (eigener Import, kein
@@ -61,6 +63,23 @@ async function main() {
 			},
 		},
 	);
+	// Stand der Liste an jede Org mit Verbindung nach Klick (CC-SAN-01)
+	const importedAt = new Date();
+	for (const orgId of await exportOrgIds())
+		await withOrg({ orgId, userId: null }, (tx) =>
+			emitEvent(
+				tx,
+				orgId,
+				"screening.list_updated",
+				() => ({
+					source: "ofac",
+					listVersion,
+					total: result.total,
+					importedAt: importedAt.toISOString(),
+				}),
+				{ occurredAt: importedAt },
+			),
+		);
 	console.log(
 		`✔ OFAC ${parsed.publishDate ?? ""}: ${result.total} Adressen (neu ${result.inserted}, entfernt ${result.removed}, übersprungen ${parsed.skipped})`,
 	);

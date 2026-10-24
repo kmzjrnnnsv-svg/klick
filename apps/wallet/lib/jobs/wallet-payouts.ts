@@ -12,6 +12,8 @@ import {
 } from "@wallet/db/schema";
 import { audit } from "@wallet/lib/audit";
 import { type OrgTx, withOrg } from "@wallet/lib/db/with-org";
+import { ceremonyChange, ceremonySnapshot } from "@wallet/lib/export/ceremony";
+import { emitEvent, hasLinks } from "@wallet/lib/export/emit";
 import { notify } from "@wallet/lib/notifications/notify";
 import { custodyFacts } from "@wallet/lib/orgs/custody";
 import { membersAllowed } from "@wallet/lib/orgs/members-allowed";
@@ -126,7 +128,11 @@ export async function runWalletPayouts(
 		logger.warn({ orgId }, "wallet payouts: custody gate closed");
 		return { state: "custody_locked", processed: 0, failed: 0 };
 	}
-	const status = await signerCall<{ policy: Policy }>("status");
+	const status = await signerCall<{
+		policy: Policy;
+		keys?: { person: string; active: boolean }[];
+	}>("status");
+	await recordCeremony(orgId, hello, status.result, now);
 	const ctx: Ctx = {
 		orgId,
 		clients: opts.clients ?? nodeClientsFromEnv(),
@@ -705,5 +711,43 @@ async function markUnreachable(now: Date) {
 				link: "/security",
 			});
 		}
+	});
+}
+
+// Zeremonie für den Export nach Klick: Richtlinie, aktive Schlüssel, Netze.
+// Den Stand merkt sich der Anker immer; ein Ereignis entsteht nur mit
+// Verbindung (die Nachlieferung meldet den Stand beim Verbinden).
+async function recordCeremony(
+	orgId: string,
+	hello: SignerHello,
+	status: { policy: Policy; keys?: { person: string; active: boolean }[] },
+	now: Date,
+): Promise<void> {
+	const snap = ceremonySnapshot({
+		policy: status.policy,
+		policyHash: hello.policyHash,
+		keys: status.keys ?? [],
+		networks: hello.networks,
+	});
+	await withOrg({ orgId, userId: null }, async (tx) => {
+		const [a] = await tx
+			.select({
+				id: walletSignerAnchor.id,
+				ceremony: walletSignerAnchor.ceremony,
+			})
+			.from(walletSignerAnchor)
+			.where(eq(walletSignerAnchor.organizationId, orgId))
+			.limit(1);
+		if (!a) return;
+		const change = ceremonyChange(a.ceremony ?? null, snap, now);
+		if (!change) return;
+		if (await hasLinks(tx, orgId))
+			await emitEvent(tx, orgId, "ceremony.recorded", () => change, {
+				occurredAt: now,
+			});
+		await tx
+			.update(walletSignerAnchor)
+			.set({ ceremony: snap })
+			.where(eq(walletSignerAnchor.id, a.id));
 	});
 }
