@@ -15,6 +15,9 @@ const DIRS = [
 	"public",
 	"deploy",
 	"docs",
+	"apps/wallet/app",
+	"apps/wallet/lib",
+	"apps/wallet/messages",
 ];
 const FILES = ["README.md", "SECURITY.md", ".env.example", "CLAUDE.md"];
 const TEXT = /\.(tsx?|mjs|json|md|txt|ya?ml|conf|service|sh|example)$/;

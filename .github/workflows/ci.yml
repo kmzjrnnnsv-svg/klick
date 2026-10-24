@@ -76,6 +76,34 @@ jobs:
           cat dist/signer.mjs.sha256 >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
+  wallet-build:
+    name: both.money (apps/wallet) — Build + Start
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      WALLET_AUTH_URL: http://localhost:3410
+      WALLET_DISABLE_JOBS: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm build:wallet
+      - name: Start + Health + CSP mit Nonce
+        run: |
+          pnpm exec next start apps/wallet -p 3410 > wallet.log 2>&1 &
+          for i in $(seq 1 60); do curl -fs http://localhost:3410/api/health && break; sleep 1; done
+          curl -fs http://localhost:3410/api/health | grep -q '"service":"both.money"'
+          curl -fsD headers.txt http://localhost:3410/ -o page.html
+          grep -qi "^content-security-policy:.*'nonce-" headers.txt
+          grep -q 'nonce="' page.html
+      - if: failure()
+        run: cat wallet.log || true
+
   supply-chain:
     name: pnpm audit · OSV · SBOM
     runs-on: ubuntu-latest

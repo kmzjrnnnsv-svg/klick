@@ -1,5 +1,13 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { importsOf, resolveSpec, WALLET_APP, walkFiles } from "./helpers/walk";
+import {
+	importsOf,
+	ROOT,
+	resolveSpec,
+	WALLET_APP,
+	walkFiles,
+} from "./helpers/walk";
 
 // Grenze zwischen Klick (Wurzel) und both.money (apps/wallet), Plan
 // „both.money“: Beide Apps teilen nur reine Bausteine. Klick importiert nie
@@ -131,6 +139,36 @@ describe("App-Grenze Klick ↔ both.money", () => {
 		).toBeNull();
 		expect(boundaryViolation("apps/wallet/lib/a.ts", "@wallet/db")).toBeNull();
 		expect(boundaryViolation("lib/mail/send.ts", "./html")).toBeNull();
+	});
+
+	it("Biome-Regel für apps/wallet nennt dieselben Module", () => {
+		type Override = {
+			includes: string[];
+			linter?: {
+				rules?: {
+					style?: {
+						noRestrictedImports?: {
+							options?: { patterns?: { group: string[] }[] };
+						};
+					};
+				};
+			};
+		};
+		const biome = JSON.parse(
+			readFileSync(join(ROOT, "biome.json"), "utf8"),
+		) as { overrides: Override[] };
+		const override = biome.overrides.find((o) =>
+			o.includes.includes(`${WALLET_APP}/**`),
+		);
+		const group =
+			override?.linter?.rules?.style?.noRestrictedImports?.options
+				?.patterns?.[0]?.group ?? [];
+		expect(group[0]).toBe("@/**");
+		const allowed = group.slice(1).map((g) => g.replace(/^!@\//, ""));
+		const expected = [...SHARED, ...WALLET_EXTRA].map((p) =>
+			p.endsWith("/") ? `${p}**` : p,
+		);
+		expect([...allowed].sort()).toEqual([...expected].sort());
 	});
 
 	it("Quelltext hält die Grenze in beiden Richtungen", () => {

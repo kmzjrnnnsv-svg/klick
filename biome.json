@@ -65,6 +65,67 @@
 					}
 				}
 			}
+		},
+		{
+			"includes": ["apps/wallet/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"@/db": "both.money hat eine eigene Datenbank — nie Klicks @/db.",
+									"@/db/index": "both.money hat eine eigene Datenbank — nie Klicks @/db."
+								},
+								"patterns": [
+									{
+										"group": [
+											"@/**",
+											"!@/lib/wallet/core/**",
+											"!@/lib/wallet/rpc/**",
+											"!@/lib/wallet/sync/**",
+											"!@/lib/wallet-link/**",
+											"!@/lib/http/**",
+											"!@/lib/wallet/model",
+											"!@/lib/wallet/display",
+											"!@/lib/wallet/intro",
+											"!@/lib/wallet/ofac",
+											"!@/lib/wallet/pair-names",
+											"!@/lib/wallet/prices",
+											"!@/lib/wallet/reconcile-source",
+											"!@/lib/wallet/return-path",
+											"!@/lib/wallet/screening",
+											"!@/lib/wallet/payouts/plan",
+											"!@/lib/wallet/signer/types",
+											"!@/db/columns",
+											"!@/db/rls",
+											"!@/lib/mail/send",
+											"!@/lib/mail/address",
+											"!@/lib/mail/html",
+											"!@/lib/legal/entity",
+											"!@/lib/audit-hash",
+											"!@/lib/auth/session-rules",
+											"!@/lib/auth/endpoint-policy",
+											"!@/lib/crypto/envelope",
+											"!@/lib/crypto/kms",
+											"!@/lib/crypto/fields",
+											"!@/components/ui/**",
+											"!@/lib/utils",
+											"!@/lib/log",
+											"!@/lib/rate-limit",
+											"!@/lib/observability/glitchtip",
+											"!@/signer/client",
+											"!@/styles/**"
+										],
+										"message": "both.money nutzt aus Klick nur geteilte, reine Module (Liste in tests/app-boundaries.test.ts) — nie Datenbank, Auth oder Fachcode."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
 		}
 	],
 	"javascript": {
