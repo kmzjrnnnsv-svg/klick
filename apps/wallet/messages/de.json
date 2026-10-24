@@ -10,7 +10,16 @@
 	},
 	"Legal": {
 		"imprint": "Impressum",
-		"privacy": "Datenschutz"
+		"privacy": "Datenschutz",
+		"provider": "Anbieter",
+		"representedBy": "Vertreten durch",
+		"register": "Registereintrag",
+		"vatId": "Umsatzsteuer-ID",
+		"contact": "Kontakt",
+		"email": "E-Mail",
+		"phone": "Telefon",
+		"audience": "both.money richtet sich ausschließlich an Unternehmen (§ 14 BGB), nicht an Verbraucher:innen.",
+		"incomplete": "Die Anbieterangaben werden gerade ergänzt."
 	},
 	"Auth": {
 		"loginTitle": "Anmelden",
@@ -54,7 +63,7 @@
 	},
 	"Unlock": {
 		"title": "Entsperren",
-		"lead": "Bestätige mit deinem Passkey. Danach bleibt {org} 15\u00a0Minuten entsperrt – Aktivität verlängert das nicht.",
+		"lead": "Bestätige mit deinem Passkey. Danach bleibt {org} 15 Minuten entsperrt – Aktivität verlängert das nicht.",
 		"lock": "Jetzt sperren"
 	},
 	"Orgs": {
@@ -62,5 +71,81 @@
 		"lead": "Du hast Zugang zu mehreren Organisationen.",
 		"none": "Du gehörst noch zu keiner Organisation. Bitte um eine Einladung.",
 		"choose": "Öffnen"
+	},
+	"Common": {
+		"cancel": "Abbrechen",
+		"close": "Schließen",
+		"copy": "Kopieren",
+		"copied": "Kopiert",
+		"error": "Das hat nicht geklappt. Versuch es noch einmal.",
+		"errorRef": "Das hat nicht geklappt (Referenz {ref}). Versuch es noch einmal oder melde die Referenz."
+	},
+	"Shell": {
+		"skip": "Zum Inhalt",
+		"nav": "Navigation",
+		"overview": "Übersicht",
+		"members": "Mitglieder",
+		"audit": "Protokoll",
+		"unlockedUntil": "Entsperrt bis {time}",
+		"locked": "Gesperrt",
+		"unlock": "Entsperren",
+		"orgSwitch": "Organisation wechseln",
+		"account": "Konto",
+		"notifications": "Benachrichtigungen",
+		"unread": "{count, plural, =0 {Keine neuen} one {# neue} other {# neue}}",
+		"noNotifications": "Keine Benachrichtigungen.",
+		"markRead": "Alle als gelesen markieren"
+	},
+	"StepUp": {
+		"title": "Kurz bestätigen",
+		"lead": "Für diesen Schritt bestätigst du noch einmal mit deinem Passkey."
+	},
+	"Overview": {
+		"title": "Übersicht",
+		"lead": "Du bist in {org} als {role} angemeldet.",
+		"next": "Konten, Empfangen, Senden und der Export nach Klick folgen in den nächsten Schritten.",
+		"members": "{count, plural, one {# Mitglied} other {# Mitglieder}}",
+		"toMembers": "Mitglieder verwalten"
+	},
+	"Members": {
+		"title": "Mitglieder",
+		"lead": "Wer in {org} Zugang hat. Geld bewegt keine Rolle allein – Auszahlungen bestätigen Sicherheitsschlüssel.",
+		"name": "Name",
+		"email": "E-Mail",
+		"role": "Rolle",
+		"since": "Seit",
+		"you": "du",
+		"invite": "Einladen",
+		"inviteTitle": "Person einladen",
+		"inviteLead": "Du bekommst einen Link (72 Stunden gültig). Gib ihn selbst weiter oder schick ihn per Mail.",
+		"sendMail": "Link zusätzlich per Mail schicken",
+		"inviteSubmit": "Einladung anlegen",
+		"inviteBusy": "Wird angelegt …",
+		"linkReady": "Einladungslink",
+		"linkHint": "Nur an die eingeladene Person geben. Der Link erscheint nur jetzt.",
+		"mailed": "Mail ist unterwegs.",
+		"mailFailed": "Mail ging nicht raus – gib den Link selbst weiter.",
+		"open": "Offene Einladungen",
+		"until": "gültig bis {date}",
+		"revoke": "Zurückziehen",
+		"remove": "Entfernen",
+		"removeTitle": "{name} entfernen?",
+		"removeLead": "Die Person verliert sofort den Zugang zu {org}.",
+		"lastOwner": "Die letzte Inhaber:in kann nicht entfernt oder herabgestuft werden.",
+		"saved": "Gespeichert.",
+		"roleOf": "Rolle von {name}"
+	},
+	"Audit": {
+		"title": "Protokoll",
+		"lead": "Jede Änderung in {org}, nur anhängend und als Hash-Kette verknüpft.",
+		"chainOk": "Kette geprüft: {count} Einträge, unverändert.",
+		"chainBroken": "Kette ab Eintrag {seq} nicht schlüssig – bitte sofort melden.",
+		"when": "Zeitpunkt",
+		"who": "Wer",
+		"what": "Was",
+		"target": "Bezug",
+		"system": "System",
+		"empty": "Noch keine Einträge.",
+		"shown": "Die letzten {count} Einträge."
 	}
 }

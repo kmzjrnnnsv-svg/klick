@@ -1,8 +1,10 @@
+import { LegalFooter } from "@wallet/components/legal/footer";
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, JetBrains_Mono, Jost } from "next/font/google";
 import { headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const jost = Jost({
@@ -65,6 +67,8 @@ export default async function RootLayout({
 			<body className="flex min-h-full flex-col bg-background text-foreground">
 				<NextIntlClientProvider locale={locale} messages={messages}>
 					{children}
+					<LegalFooter />
+					<Toaster />
 				</NextIntlClientProvider>
 			</body>
 		</html>

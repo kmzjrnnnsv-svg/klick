@@ -7,6 +7,10 @@ export async function register() {
 	if (process.env.NEXT_RUNTIME !== "nodejs") return;
 	const { validateWalletEnv } = await import("@wallet/lib/env");
 	const env = validateWalletEnv();
+	if (!env.WALLET_DISABLE_JOBS) {
+		const { startScheduler } = await import("@wallet/lib/jobs/boss");
+		await startScheduler();
+	}
 	if (env.NODE_ENV !== "production") return;
 	const { logger } = await import("@/lib/log");
 	const { legalEntityFrom } = await import("@/lib/legal/entity");

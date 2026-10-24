@@ -1,4 +1,5 @@
 import { type DbTx, db } from "@wallet/db";
+import { orgs } from "@wallet/db/schema";
 import { type Actor, type AuditInput, audit } from "@wallet/lib/audit";
 import { sql } from "drizzle-orm";
 
@@ -118,4 +119,15 @@ export async function forEachOrg(
 ): Promise<void> {
 	for (const orgId of orgIds)
 		await withOrg({ orgId, userId: null }, (tx) => fn(tx, orgId));
+}
+
+// Nur für Jobs: IDs aller Orgs (Plattform-Kontext ohne Audit — der Lauf
+// selbst liest danach jede Org in ihrem eigenen Kontext, forEachOrg)
+export async function jobOrgIds(): Promise<string[]> {
+	return db.transaction(async (tx) => {
+		await tx.execute(sql`set transaction read only`);
+		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
+		const rows = await tx.select({ id: orgs.id }).from(orgs);
+		return rows.map((r) => r.id);
+	});
 }
