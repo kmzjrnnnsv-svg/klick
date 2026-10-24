@@ -14,9 +14,9 @@ export default async function ExternLayout({
 	const t = await getTranslations("Common");
 	return (
 		<>
-			<header className="w-full border-border/60 border-b bg-background">
+			<header className="material-bar w-full border-border/60 border-b">
 				<div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4 sm:px-6">
-					<span className="lv-wordmark text-[0.95rem] text-foreground">
+					<span className="font-bold text-headline text-foreground">
 						{t("productName")}
 					</span>
 				</div>

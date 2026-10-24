@@ -26,16 +26,16 @@ export default async function WalletIntroLayout({
 			: null;
 	return (
 		<>
-			<header className="sticky top-0 z-30 w-full border-b bg-background/90 backdrop-blur">
+			<header className="material-bar sticky top-0 z-30 w-full border-border/60 border-b">
 				<div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4 sm:px-6">
 					<Link
 						href="/wallet"
 						className="flex items-baseline gap-2 hover:opacity-70"
 					>
-						<span className="lv-wordmark text-[0.95rem] text-foreground">
+						<span className="font-bold text-headline text-foreground">
 							{t("productName")}
 						</span>
-						<span className="text-muted-foreground text-sm">
+						<span className="text-muted-foreground text-subhead">
 							{tn("groupWallet")}
 						</span>
 					</Link>

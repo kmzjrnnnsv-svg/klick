@@ -18,7 +18,14 @@ import type { NavGroup } from "@/lib/nav";
 import { NavIcon } from "./nav-icon";
 
 // ⌘K: Navigation + Volltextsuche (/suche?q=…).
-export function CommandPalette({ groups }: { groups: NavGroup[] }) {
+// tabBar: am Handy steht die Suche in der Tab-Leiste — kein zweiter Knopf oben
+export function CommandPalette({
+	groups,
+	tabBar = false,
+}: {
+	groups: NavGroup[];
+	tabBar?: boolean;
+}) {
 	const t = useTranslations("Nav");
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
@@ -47,17 +54,17 @@ export function CommandPalette({ groups }: { groups: NavGroup[] }) {
 				variant="outline"
 				size="sm"
 				onClick={() => setOpen(true)}
-				className="hidden normal-case tracking-normal text-muted-foreground md:inline-flex"
+				className="hidden font-normal text-muted-foreground md:inline-flex"
 				aria-label={t("searchHint")}
 			>
 				<Search />
-				<span className="text-xs">{t("searchHint")}</span>
+				<span>{t("searchHint")}</span>
 			</Button>
 			<Button
 				variant="ghost"
 				size="icon"
 				onClick={() => setOpen(true)}
-				className="md:hidden"
+				className={tabBar ? "hidden" : "md:hidden"}
 				aria-label={t("searchHint")}
 			>
 				<Search />

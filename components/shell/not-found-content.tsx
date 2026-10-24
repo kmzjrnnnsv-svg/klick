@@ -12,7 +12,7 @@ export async function NotFoundContent() {
 			id="inhalt"
 			className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-6 px-4 py-24 text-center"
 		>
-			<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">404</p>
+			<p className="font-medium text-footnote text-muted-foreground">404</p>
 			<h1 className="font-serif-display text-4xl text-primary">
 				{t("notFoundTitle")}
 			</h1>

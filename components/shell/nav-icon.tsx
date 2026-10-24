@@ -18,6 +18,7 @@ import {
 	GraduationCap,
 	History,
 	Landmark,
+	Layers,
 	List,
 	ListChecks,
 	Lock,
@@ -25,6 +26,7 @@ import {
 	MessageSquare,
 	Package,
 	Presentation,
+	Search,
 	Send,
 	Server,
 	Settings,
@@ -86,6 +88,8 @@ const ICONS = {
 	send: Send,
 	list: List,
 	"book-user": BookUser,
+	search: Search,
+	layers: Layers,
 } as const;
 
 export function NavIcon({
@@ -96,5 +100,5 @@ export function NavIcon({
 	className?: string;
 }) {
 	const Icon = ICONS[name] ?? ShieldCheck;
-	return <Icon className={className} strokeWidth={1.5} aria-hidden="true" />;
+	return <Icon className={className} strokeWidth={1.75} aria-hidden="true" />;
 }

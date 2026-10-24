@@ -18,13 +18,13 @@ export async function LegalLinks({ children }: { children?: ReactNode }) {
 		<footer className="mt-auto border-border/60 border-t">
 			<nav
 				aria-label={t("legalNav")}
-				className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-5 gap-y-1 px-4 py-3 text-muted-foreground text-xs sm:px-6"
+				className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-5 px-4 py-2 text-footnote text-muted-foreground sm:px-6"
 			>
 				{links.map((l) => (
 					<Link
 						key={l.href}
 						href={l.href}
-						className="rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						className="inline-flex min-h-8 items-center rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11"
 					>
 						{l.label}
 					</Link>

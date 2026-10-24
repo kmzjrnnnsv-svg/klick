@@ -18,11 +18,11 @@ export async function MarketingHeader({
 		{ href: "/vertrauen", label: tf("trust") },
 	];
 	return (
-		<header className="sticky top-0 z-30 w-full bg-background/90 backdrop-blur">
+		<header className="material-bar sticky top-0 z-30 w-full">
 			<div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
 				<Link
 					href="/"
-					className="lv-wordmark text-[0.95rem] text-foreground hover:opacity-70"
+					className="font-bold text-foreground text-headline hover:opacity-70"
 				>
 					{t("productName")}
 				</Link>
@@ -31,7 +31,7 @@ export async function MarketingHeader({
 						<Link
 							key={l.href}
 							href={l.href}
-							className="lv-eyebrow text-xs text-muted-foreground transition-colors hover:text-foreground"
+							className="text-muted-foreground text-subhead transition-colors hover:text-foreground"
 						>
 							{l.label}
 						</Link>

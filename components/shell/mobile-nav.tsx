@@ -41,14 +41,12 @@ export function MobileNav({
 			</SheetTrigger>
 			<SheetContent side="left" className="w-80 p-0">
 				<SheetHeader className="border-b border-border/60">
-					<SheetTitle className="lv-wordmark text-[0.8rem]">
-						{orgName}
-					</SheetTitle>
+					<SheetTitle className="font-bold text-headline">{orgName}</SheetTitle>
 					{canSwitch && (
 						<Link
 							href="/organisationen"
 							onClick={() => setOpen(false)}
-							className="text-muted-foreground text-xs underline-offset-4 hover:underline"
+							className="text-footnote text-primary underline-offset-4 hover:underline"
 						>
 							{to("switch")}
 						</Link>

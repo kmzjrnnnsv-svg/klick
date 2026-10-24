@@ -16,15 +16,13 @@ export async function Footer() {
 	return (
 		<footer className="mt-auto bg-muted">
 			<div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-4 py-8 sm:flex-row sm:px-6">
-				<p className="lv-eyebrow text-xs text-muted-foreground">
-					{t("tagline")}
-				</p>
+				<p className="text-footnote text-muted-foreground">{t("tagline")}</p>
 				<nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
 					{links.map((l) => (
 						<Link
 							key={l.href}
 							href={l.href}
-							className="lv-eyebrow text-xs text-muted-foreground transition-colors hover:text-foreground"
+							className="inline-flex min-h-8 items-center text-footnote text-muted-foreground transition-colors hover:text-foreground pointer-coarse:min-h-11"
 						>
 							{l.label}
 						</Link>

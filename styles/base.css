@@ -90,6 +90,14 @@ h1 {
 	}
 }
 
+/* Tab-Leiste am Handy (fest unten): Platz am Seitenende, damit Inhalt und
+   Fußzeile nicht dahinter verschwinden */
+@media (width < 64rem) {
+	body:has([data-tab-bar]) {
+		padding-bottom: calc(3.0625rem + env(safe-area-inset-bottom));
+	}
+}
+
 /* Bewegung: bei reduzierter Bewegung nur Überblendung, keine Wege */
 @media (prefers-reduced-motion: reduce) {
 	*,

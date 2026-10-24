@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
 	activeNavKey,
+	activeNavTab,
 	buildNav,
 	buildWalletNav,
 	countNavTargets,
+	navTabs,
 } from "@/lib/nav";
 
 const iso = [{ slug: "iso27001", name: "ISO 27001" }];
@@ -155,5 +157,74 @@ describe("activeNavKey", () => {
 	});
 	it("fremde Pfade markieren nichts", () => {
 		expect(activeNavKey(wallet, "/heute")).toBeNull();
+	});
+});
+
+describe("Tab-Leiste (Apple HIG)", () => {
+	const groups = buildNav({
+		frameworks: casp,
+		licenceStage: "2_casp_zag",
+		caspServices: ["custody"],
+		role: "owner",
+		walletLinked: true,
+	});
+
+	it("höchstens fünf Tabs, jeder Eintrag in genau einem Tab", () => {
+		const tabs = navTabs(groups);
+		expect(tabs.map((t) => t.key)).toEqual([
+			"heute",
+			"umsetzen",
+			"register",
+			"steuerung",
+			"suche",
+		]);
+		const inTabs = tabs.flatMap((t) =>
+			t.groups.flatMap((g) => g.items.map((i) => i.key)),
+		);
+		const all = groups.flatMap((g) => g.items.map((i) => i.key));
+		expect([...inTabs].sort()).toEqual([...all].sort());
+		expect(new Set(inTabs).size).toBe(inTabs.length);
+	});
+
+	it("CASP und Team/Einstellungen unter Steuerung, Rahmenwerke unter Umsetzen", () => {
+		const tabs = navTabs(groups);
+		const keys = (k: string) =>
+			tabs
+				.find((t) => t.key === k)
+				?.groups.flatMap((g) => g.items.map((i) => i.key)) ?? [];
+		expect(keys("steuerung")).toEqual(
+			expect.arrayContaining(["aml", "krypto", "team", "settings"]),
+		);
+		expect(keys("umsetzen")).toEqual(
+			expect.arrayContaining(["overview", "controls", "fw-micar"]),
+		);
+	});
+
+	it("aktiver Tab aus Detailseiten, Bereichslisten und Suche", () => {
+		expect(activeNavTab(groups, "/heute/aufgaben")).toBe("heute");
+		expect(activeNavTab(groups, "/risiken/123")).toBe("register");
+		expect(activeNavTab(groups, "/rahmenwerke/dora/Art.5")).toBe("umsetzen");
+		expect(activeNavTab(groups, "/einstellungen")).toBe("steuerung");
+		expect(activeNavTab(groups, "/bereich/register")).toBe("register");
+		expect(activeNavTab(groups, "/bereich/unbekannt")).toBeNull();
+		expect(activeNavTab(groups, "/suche")).toBe("suche");
+		expect(activeNavTab(groups, "/onboarding")).toBeNull();
+	});
+
+	it("Prüfer:innen: höchstens fünf Tabs, Register bleibt", () => {
+		const auditor = navTabs(
+			buildNav({
+				frameworks: iso,
+				licenceStage: "0_vorbereitung",
+				caspServices: [],
+				role: "auditor",
+			}),
+		);
+		expect(auditor.map((t) => t.key)).toContain("register");
+		expect(auditor.length).toBeLessThanOrEqual(5);
+	});
+
+	it("Wallet-Bereich (alte Navigation) hat keine Tabs", () => {
+		expect(navTabs(buildWalletNav({ send: true }))).toEqual([]);
 	});
 });
