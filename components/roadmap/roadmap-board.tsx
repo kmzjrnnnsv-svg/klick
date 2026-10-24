@@ -91,10 +91,10 @@ export function RoadmapBoard({
 			}}
 			renderCard={(m) => (
 				<div className="flex flex-col gap-2">
-					<div className="flex items-start justify-between gap-2">
-						<p className="font-medium leading-snug">{m.title}</p>
+					<div className="flex flex-wrap items-start justify-between gap-2">
+						<p className="min-w-0 font-medium leading-snug">{m.title}</p>
 						{m.phase && (
-							<Badge variant="outline" className="shrink-0">
+							<Badge variant="outline" className="max-w-full">
 								{phaseTitle(m.phase)}
 							</Badge>
 						)}

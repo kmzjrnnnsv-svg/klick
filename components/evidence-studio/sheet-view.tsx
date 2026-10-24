@@ -146,7 +146,8 @@ export async function SheetView({
 										</summary>
 										<ul className="mt-1 flex flex-col gap-1">
 											{q.sources.map((s) => (
-												<li key={s.key}>
+												// dieselbe Quelle kann mit zwei Fragen vorkommen
+												<li key={`${s.key}:${s.text}`}>
 													<span className="font-medium">{s.label}:</span>{" "}
 													{s.text}
 												</li>
@@ -448,9 +449,14 @@ function SourceChips({
 }: {
 	sources: { key: string; label: string }[];
 }) {
+	// Zusammengeführte Fragen tragen dieselbe Quelle ggf. mehrfach — je Quelle
+	// ein Chip
+	const unique = sources.filter(
+		(s, i, all) => all.findIndex((x) => x.key === s.key) === i,
+	);
 	return (
 		<div className="flex flex-wrap gap-1">
-			{sources.map((s) => (
+			{unique.map((s) => (
 				<Badge
 					key={s.key}
 					variant="outline"
