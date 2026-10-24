@@ -368,7 +368,8 @@ Testnetz (Signet, Sepolia); das echte Netz bleibt gesperrt, bis Phase 3 die sign
 bringt.
 
 1. **Knoten-Server** (eigene Maschine, nicht der App-Server): Signet unter 20 GB, Sepolia-Archiv
-   einige hundert GB SSD (PRÜFEN beim Bestellen), später echtes Netz rund 2 TB + 1 TB.
+   einige hundert GB SSD (PRÜFEN beim Bestellen), später echtes Netz rund 2 TB + 1 TB. Richtwerte,
+   Stufen und Gegenprobe: `docs/betrieb/knoten-hardware.md`.
 2. **WireGuard** auf beiden Servern: `deploy/wireguard/wg0-app.conf.example` (App, 10.8.0.1) und
    `wg0-nodes.conf.example` (Knoten, 10.8.0.2); `systemctl enable --now wg-quick@wg0`. Firewall
    des Knoten-Servers: `deploy/wireguard/firewall-nodes.nft` (`<APP_PUBLIC_IP>` ersetzen) — RPC

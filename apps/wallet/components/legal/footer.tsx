@@ -9,6 +9,12 @@ export async function LegalFooter() {
 			<div className="mx-auto flex max-w-6xl flex-wrap gap-x-4 gap-y-1 px-4 py-4 text-muted-foreground text-xs">
 				<span translate="no">both.money</span>
 				<Link
+					href="/roadmap"
+					className="hover:underline focus-visible:underline"
+				>
+					{t("roadmap")}
+				</Link>
+				<Link
 					href="/imprint"
 					className="hover:underline focus-visible:underline"
 				>
