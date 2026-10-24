@@ -23,6 +23,9 @@ export type Column<T> = {
 	className?: string;
 	// Spalten, die < 640 px in der Kartenansicht erscheinen
 	mobile?: boolean;
+	// Eigenes Bedienelement (z. B. Auswahl-Checkbox): nie im Zeilen-Link,
+	// der Link sitzt dann in der ersten Spalte ohne Bedienelement
+	interactive?: boolean;
 	cell: (row: T) => ReactNode;
 };
 
@@ -57,6 +60,7 @@ export function RegisterPage<T extends { id: string }>({
 	empty: ReactNode;
 	footer?: ReactNode;
 }) {
+	const linkKey = columns.find((c) => !c.interactive)?.key;
 	return (
 		<>
 			<PageHeader
@@ -90,15 +94,15 @@ export function RegisterPage<T extends { id: string }>({
 							<TableBody>
 								{rows.map((row) => (
 									<TableRow key={row.id} className="group">
-										{columns.map((c, i) => (
+										{columns.map((c) => (
 											<TableCell
 												key={c.key}
 												className={cn(c.className, "align-top")}
 											>
-												{i === 0 ? (
+												{c.key === linkKey ? (
 													<Link
 														href={rowHref(row)}
-														className="block hover:underline underline-offset-4"
+														className="hit-area block underline-offset-4 hover:underline"
 													>
 														{c.cell(row)}
 													</Link>
