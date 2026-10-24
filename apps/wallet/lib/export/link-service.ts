@@ -196,16 +196,34 @@ export async function createLink(
 	};
 }
 
-// Schranke: wartet, bis Schreiber fertig sind, die vor dem Anlegen der
-// Verbindung begonnen haben (deren Trigger sahen die Verbindung noch nicht).
-// Danach liest die Nachlieferung einen Stand, in dem nichts fehlt — spätere
-// Änderungen vermerken die Trigger. Gesperrt wird nur für diesen Augenblick.
+// Schranke: wartet, bis alle Transaktionen fertig sind, die beim Anlegen
+// der Verbindung schon geschrieben hatten (deren Trigger sahen die
+// Verbindung noch nicht). Danach liest die Nachlieferung einen Stand, in dem
+// nichts fehlt — spätere Änderungen vermerken die Trigger. Ohne Sperren:
+// Snapshot der laufenden Transaktionen, dann pg_xact_status abfragen.
+const BARRIER_MAX_MS = 30_000;
+
 async function waitForEarlierWriters(orgId: string): Promise<void> {
-	await withOrg({ orgId, userId: null }, (tx) =>
-		tx.execute(
-			sql`lock table wallet_accounts, wallet_transfers, wallet_payouts, wallet_address_book, audit_log in share mode`,
-		),
-	);
+	const ctx = { orgId, userId: null };
+	const xids = await readOrg(ctx, async (tx) => {
+		const rows = await tx.execute<{ x: string }>(
+			sql`select x::text as x from pg_snapshot_xip(pg_current_snapshot()) as x`,
+		);
+		return [...rows].map((r) => r.x);
+	});
+	const until = Date.now() + BARRIER_MAX_MS;
+	let open = xids;
+	while (open.length > 0) {
+		if (Date.now() > until)
+			throw new Error("export backfill: earlier writers still running");
+		await new Promise((r) => setTimeout(r, 50));
+		open = await readOrg(ctx, async (tx) => {
+			const rows = await tx.execute<{ x: string }>(
+				sql`select x::text as x from unnest(${`{${open.join(",")}}`}::xid8[]) as x where pg_xact_status(x) = 'in progress'`,
+			);
+			return [...rows].map((r) => r.x);
+		});
+	}
 }
 
 // Nachlieferung für eine Verbindung ohne backfilledAt (genau einmal: die

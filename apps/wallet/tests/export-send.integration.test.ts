@@ -12,6 +12,7 @@ import {
 } from "@wallet/db/schema";
 import { readOrg, withOrg, withPlatform } from "@wallet/lib/db/with-org";
 import {
+	completeBackfill,
 	createLink,
 	renewLinkToken,
 	setLinkState,
@@ -419,5 +420,70 @@ d("Export nach Klick: Senden", () => {
 		});
 		await run();
 		expect(klick.batches).toBe(n);
+	});
+
+	it("Schranke: Nachlieferung wartet auf vorher begonnene Schreiber", async () => {
+		let release!: () => void;
+		const gate = new Promise<void>((r) => {
+			release = r;
+		});
+		let written!: (id: string) => void;
+		const wrote = new Promise<string>((r) => {
+			written = r;
+		});
+		txCount += 1;
+		const writer = withOrg(sys(), async (tx) => {
+			const [t] = await tx
+				.insert(walletTransfers)
+				.values({
+					organizationId: orgId,
+					accountId: accountA,
+					direction: "in",
+					asset: "BTC",
+					amount: "4242",
+					txid: `ff${txCount.toString(16).padStart(62, "0")}`,
+					outputRef: "vout:0",
+					address: "tb1qexample",
+					screening: "clear",
+				})
+				.returning({ id: walletTransfers.id });
+			written(t?.id as string);
+			await gate;
+		});
+		const transferId = await wrote;
+		const [l] = await withOrg(sys(), (tx) =>
+			tx
+				.insert(klickLinks)
+				.values({
+					organizationId: orgId,
+					origin: klick.origin,
+					tokenEnc: "enc1:test",
+					tokenHint: "…test",
+				})
+				.returning({ id: klickLinks.id }),
+		);
+		let done = false;
+		const backfill = completeBackfill(orgId, l?.id as string, t0).then((n) => {
+			done = true;
+			return n;
+		});
+		await new Promise((r) => setTimeout(r, 300));
+		expect(done).toBe(false);
+		release();
+		await writer;
+		expect(await backfill).toBeGreaterThan(0);
+		const rows = await readOrg(sys(), (tx) =>
+			tx
+				.select({ type: exportOutbox.type, data: exportOutbox.data })
+				.from(exportOutbox)
+				.where(eq(exportOutbox.linkId, l?.id as string)),
+		);
+		expect(
+			rows.some(
+				(r) =>
+					r.type === "transfer.upserted" &&
+					(r.data as { transfer: { id: string } }).transfer.id === transferId,
+			),
+		).toBe(true);
 	});
 });
