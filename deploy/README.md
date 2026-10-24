@@ -608,8 +608,9 @@ beobachten; Kundengelder im echten Netz nur mit `licensed`.
 both.money schickt Ein- und Ausgänge, Bestände (Tagesabschluss 00:10 Uhr Berlin), Zeremonie-Stand
 und Auffälligkeiten an eine oder mehrere Klick-Organisationen (Vertrag `lib/wallet-link`, v1).
 Ziele nur aus `WALLET_KLICK_ORIGINS` (Standard `https://raza.work`, komma-getrennt; in
-`/etc/both/both.env`). Verbinden: in Klick „both.money verbinden“ (Token `klk_wallet_…`, nur
-einmal sichtbar), in both.money Organisation → Compliance-Export → „Mit Klick verbinden“ (Step-up;
+`/etc/both/both.env`). Verbinden: in Klick Einstellungen → Integrationen → „both.money
+verbinden“ (Step-up, Token `klk_wallet_…` 365 Tage, nur einmal sichtbar; Empfang
+`/api/ingest/wallet`, nginx-Block `/api/ingest/`), in both.money Organisation → Compliance-Export → „Mit Klick verbinden“ (Step-up;
 `hello` prüft das Token vor dem Speichern, Token nur verschlüsselt mit dem Org-DEK). Der heutige
 Stand wird nachgeliefert, danach sendet der Job `klick-export` jede Minute Stapel bis 200
 Ereignisse. Klick lehnt ab → Liste auf der Seite + Hinweis an die Inhaber:innen, der Export läuft

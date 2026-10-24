@@ -20,6 +20,7 @@ import {
 	controlImplementations,
 	controls,
 	controlTests,
+	cryptoAlerts,
 	dataSubjectRequests,
 	documentAcknowledgements,
 	documents,
@@ -43,6 +44,7 @@ import {
 	trainingAssignments,
 	trainingRequirements,
 	walletKeyHolders,
+	walletLinks,
 	wallets,
 } from "@/db/schema";
 import { entityOwnersOf, ownerKey } from "@/lib/approvals/entity-owner";
@@ -661,6 +663,44 @@ async function loadDueRows(
 					lastReconciliationDay: await lastReconciliationDay(tx, orgId),
 				}
 			: undefined;
+	const linkRows = await tx
+		.select({
+			id: walletLinks.id,
+			name: walletLinks.name,
+			walletOrgId: walletLinks.walletOrgId,
+			createdAt: walletLinks.createdAt,
+			lastHeartbeatAt: walletLinks.lastHeartbeatAt,
+			lastDayClosed: walletLinks.lastDayClosed,
+			sanctionsList: walletLinks.sanctionsList,
+			tokenExpiresAt: accessTokens.expiresAt,
+		})
+		.from(walletLinks)
+		.leftJoin(accessTokens, eq(accessTokens.id, walletLinks.tokenId))
+		.where(
+			and(
+				eq(walletLinks.organizationId, orgId),
+				eq(walletLinks.status, "active"),
+			),
+		);
+	const walletLinkRows =
+		linkRows.length > 0
+			? {
+					links: linkRows,
+					openAlerts: await tx
+						.select({
+							id: cryptoAlerts.id,
+							title: cryptoAlerts.title,
+							raisedAt: cryptoAlerts.raisedAt,
+						})
+						.from(cryptoAlerts)
+						.where(
+							and(
+								eq(cryptoAlerts.organizationId, orgId),
+								isNull(cryptoAlerts.resolvedAt),
+							),
+						),
+				}
+			: undefined;
 	const productRows = await tx
 		.select({
 			id: products.id,
@@ -773,6 +813,7 @@ async function loadDueRows(
 		products: productRows,
 		assets: assetRows,
 		custody,
+		walletLinks: walletLinkRows,
 		objectives: objectiveRows,
 		securityFindings: findingRows,
 		supplierAssessments: supplierRows,

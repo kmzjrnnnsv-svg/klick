@@ -909,3 +909,68 @@ describe("collectDueItems — Audits & Fristen je Rahmenwerk", () => {
 		expect(planned.notifications).toHaveLength(0);
 	});
 });
+
+describe("both.money-Verbindung im Tick", () => {
+	const link = {
+		id: "l1",
+		name: "both.money",
+		walletOrgId: "w1",
+		createdAt: new Date("2026-10-01T00:00:00Z"),
+		lastHeartbeatAt: new Date("2026-10-24T05:00:00Z"),
+		lastDayClosed: "2026-10-22",
+		sanctionsList: { importedAt: "2026-10-10T06:00:00Z" },
+		tokenExpiresAt: new Date("2026-11-23T10:00:00Z"),
+	};
+	const run = (now: Date, walletLinks: NonNullable<DueRows["walletLinks"]>) =>
+		collectDueItems(now, { ...empty, orgOwnerIds: ["o1"], walletLinks })
+			.notifications;
+
+	it("Lebenszeichen, Tagesabschluss, Sanktionsliste, Token, offene Hinweise", () => {
+		const now = new Date("2026-10-24T10:00:00Z"); // 12:00 Berlin
+		const n = run(now, {
+			links: [link],
+			openAlerts: [
+				{
+					id: "a1",
+					title: "Alles stoppen",
+					raisedAt: new Date("2026-10-23T08:00:00Z"),
+				},
+				{
+					id: "a2",
+					title: "frisch",
+					raisedAt: new Date("2026-10-24T09:00:00Z"),
+				},
+			],
+		});
+		const keys = n.map((x) => x.dedupeKey).sort();
+		expect(keys).toEqual([
+			"wallet_alert:a1",
+			"wallet_link_day:l1:2026-10-23",
+			"wallet_link_heartbeat:l1",
+			"wallet_link_sanctions:l1",
+			"wallet_link_token:l1:30",
+		]);
+		expect(
+			n.find((x) => x.dedupeKey === "wallet_link_heartbeat:l1")?.kind,
+		).toBe("security_alert");
+		expect(n.every((x) => x.recipients.includes("o1"))).toBe(true);
+	});
+
+	it("alles frisch: nichts", () => {
+		const now = new Date("2026-10-24T10:00:00Z");
+		expect(
+			run(now, {
+				links: [
+					{
+						...link,
+						lastHeartbeatAt: new Date("2026-10-24T09:55:00Z"),
+						lastDayClosed: "2026-10-23",
+						sanctionsList: { importedAt: "2026-10-23T06:00:00Z" },
+						tokenExpiresAt: new Date("2027-10-01T00:00:00Z"),
+					},
+				],
+				openAlerts: [],
+			}),
+		).toEqual([]);
+	});
+});

@@ -34,6 +34,7 @@ import { readOrg } from "@/lib/db/with-org";
 import { CONTROL_STATUS } from "@/lib/entities/control";
 import { listWalletAccounts } from "@/lib/wallet/queries";
 import { nodeHoldings } from "@/lib/wallet/reconcile-source";
+import { cryptoHoldingAccounts } from "@/lib/wallet-link-ingest/queries";
 
 const TABS = ["wallets", "abstimmung", "zeremonien"] as const;
 
@@ -99,7 +100,10 @@ export default async function CustodyPage({
 			recs.flatMap((r) => [r.preparedByUserId, r.reviewedByUserId]),
 		);
 		// Bestand der Kundenkonten laut eigenen Knoten (Wallet-Bereich)
-		const holdings = nodeHoldings(await listWalletAccounts(tx, ctx.orgId));
+		const holdings = nodeHoldings([
+			...(await listWalletAccounts(tx, ctx.orgId)),
+			...(await cryptoHoldingAccounts(tx, ctx.orgId)),
+		]);
 		return {
 			walletRows,
 			recs,

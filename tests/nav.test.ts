@@ -27,6 +27,22 @@ describe("buildNav", () => {
 		expect(keys(iso)).not.toContain("products");
 		expect(keys([...iso, { slug: "cra", name: "CRA" }])).toContain("products");
 	});
+	it("Krypto (both.money) nur mit Verbindung, auch ohne CASP-Rahmenwerk", () => {
+		const keys = (
+			frameworks: { slug: string; name: string }[],
+			walletLinked: boolean,
+		) =>
+			buildNav({
+				frameworks,
+				licenceStage: "0_vorbereitung",
+				caspServices: [],
+				role: "owner",
+				walletLinked,
+			}).flatMap((g) => g.items.map((i) => i.key));
+		expect(keys(iso, false)).not.toContain("krypto");
+		expect(keys(iso, true)).toContain("krypto");
+		expect(keys(casp, true).filter((k) => k === "krypto")).toHaveLength(1);
+	});
 	it("ISO-only-Org: keine CASP-Gruppe, rund 20 Ziele", () => {
 		const groups = buildNav({
 			frameworks: iso,
