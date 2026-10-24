@@ -97,7 +97,9 @@
 		"walletPayouts": "Auszahlungen",
 		"walletAddressBook": "Adressbuch",
 		"walletSecurity": "Sicherheit",
-		"krypto": "Krypto (both.money)"
+		"krypto": "Krypto (both.money)",
+		"search": "Suche",
+		"tabBar": "Bereiche"
 	},
 	"Footer": {
 		"tagline": "Maison Klick — Compliance, die zusammenpasst.",
