@@ -22,7 +22,7 @@ export function StartRatingButton({
 		<Button
 			type="button"
 			size="sm"
-			variant={draftId ? "outline" : "brown"}
+			variant={draftId ? "outline" : "default"}
 			disabled={pending}
 			onClick={() =>
 				start(async () => {

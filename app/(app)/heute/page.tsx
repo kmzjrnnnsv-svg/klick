@@ -195,13 +195,7 @@ export default async function TodayPage() {
 					timeZone: "Europe/Berlin",
 				}).format(new Date())}
 				title={t("greeting", { name: ctx.name.split(" ")[0] ?? ctx.name })}
-				actions={
-					<QuickCreateTask
-						members={members}
-						label={t("newTask")}
-						variant="brown"
-					/>
-				}
+				actions={<QuickCreateTask members={members} label={t("newTask")} />}
 			/>
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 				{canSetup && !setup.completed && setup.next && (

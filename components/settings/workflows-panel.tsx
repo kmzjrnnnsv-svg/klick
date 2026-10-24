@@ -329,7 +329,6 @@ function PresetsDialog({
 							</div>
 							<Button
 								size="sm"
-								variant="brown"
 								disabled={pending}
 								className="self-start"
 								onClick={() =>

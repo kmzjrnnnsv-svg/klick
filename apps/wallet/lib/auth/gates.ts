@@ -29,6 +29,17 @@ function redirectFor(e: unknown, back: string): never {
 	redirect(`/login?next=${next}`);
 }
 
+// Für Seiten, die abgemeldet etwas anderes zeigen (Startseite „/“): gültige
+// Sitzung oder null — abgelaufene Sitzungen zählen als abgemeldet
+export async function sessionOrNull(): Promise<SessionCtx | null> {
+	try {
+		return await requireSession();
+	} catch (e) {
+		if (e instanceof AuthError) return null;
+		throw e;
+	}
+}
+
 export async function requireSessionPage(back = "/"): Promise<SessionCtx> {
 	try {
 		return await requireSession();

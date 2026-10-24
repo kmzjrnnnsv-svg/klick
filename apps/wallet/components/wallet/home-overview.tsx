@@ -32,7 +32,6 @@ import {
 	Plus,
 	Send,
 } from "lucide-react";
-import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -46,11 +45,10 @@ import { resumeStep, shouldShowIntro } from "@/lib/wallet/intro";
 import { PAIR_NAMES } from "@/lib/wallet/pair-names";
 import { formatScaled } from "@/lib/wallet/prices";
 
-export const metadata: Metadata = { title: "Wallet" };
-
-// /wallet — Startseite: Gesamtwert in Euro, Bestand je Netz und Asset, drei
-// Handlungen, Kurse der Watchlist, Konten, letzte Bewegungen.
-export default async function WalletHomePage() {
+// Übersicht für angemeldete Personen unter „/“ (app/(home)/page.tsx):
+// Gesamtwert in Euro, Bestand je Netz und Asset, drei Handlungen, Kurse der
+// Watchlist, Konten, letzte Bewegungen.
+export async function WalletHome() {
 	const ctx = await requireUnlockedPage("/");
 	const t = await getTranslations("Wallet");
 	const canManage = roleAllows(ctx.role, "wallet:manage");
@@ -120,7 +118,7 @@ export default async function WalletHomePage() {
 					lead={canManage ? t("accountsEmpty") : t("homeEmptyBody")}
 					actions={
 						canManage && (
-							<Button asChild variant="brown" size="sm">
+							<Button asChild size="sm">
 								<Link href="/accounts?new=1">
 									<Plus aria-hidden />
 									{t("homeAddAccount")}

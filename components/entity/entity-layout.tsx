@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 // Fälligkeit), Hauptspalte mit Fachsektionen, Seitenleiste mit EINEM
 // Aktivitätsstrom (Kommentare + Feld-Historie), darunter Aufgaben und
 // Verknüpfungen. Mobil rutscht die Seitenleiste unter die Hauptspalte.
+// Gestaltung nach Apple HIG: Titel fett, Eckdaten als gruppierter Abschnitt,
+// Abschnittsköpfe in Satzschreibung (Headline), keine Versalien.
 export function EntityLayout({
 	eyebrow,
 	title,
@@ -25,15 +27,17 @@ export function EntityLayout({
 }) {
 	return (
 		<>
-			<div className="mb-6 flex flex-col gap-4 border-border/60 border-b pb-6">
+			<div className="mb-8 flex flex-col gap-4">
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0">
-						<p className="lv-eyebrow text-[0.7rem] text-brown">{eyebrow}</p>
-						<h1 className="mt-2 hyphens-auto break-words font-serif-display text-2xl text-primary sm:text-3xl">
+						<p className="font-medium text-footnote text-muted-foreground">
+							{eyebrow}
+						</p>
+						<h1 className="mt-0.5 hyphens-auto break-words font-bold text-foreground text-title-1 text-balance">
 							{title}
 						</h1>
 						{subtitle && (
-							<p className="mt-2 max-w-2xl text-muted-foreground text-sm">
+							<p className="mt-2 max-w-2xl text-callout text-muted-foreground">
 								{subtitle}
 							</p>
 						)}
@@ -44,7 +48,7 @@ export function EntityLayout({
 					</div>
 				</div>
 				{meta && (
-					<dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+					<dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-2xl bg-card px-4 py-3.5 text-subhead sm:grid-cols-2 sm:px-5 lg:grid-cols-4">
 						{meta}
 					</dl>
 				)}
@@ -66,9 +70,7 @@ export function MetaItem({
 }) {
 	return (
 		<div className="flex flex-col gap-0.5">
-			<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
-				{label}
-			</dt>
+			<dt className="text-footnote text-muted-foreground">{label}</dt>
 			<dd className="min-w-0 truncate">{children}</dd>
 		</div>
 	);
@@ -88,9 +90,7 @@ export function Section({
 	return (
 		<section id={id} className="flex flex-col gap-3">
 			<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-				<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
-					{title}
-				</h2>
+				<h2 className="font-semibold text-foreground text-headline">{title}</h2>
 				{actions}
 			</div>
 			{children}

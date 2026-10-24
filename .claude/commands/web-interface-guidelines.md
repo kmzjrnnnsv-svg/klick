@@ -18,7 +18,7 @@ Klick ist eine deutschsprachige App. Wo die Upstream-Regeln abweichen, gilt:
 - **i18n:** DE-only über next-intl (`messages/de.json`), Zeitzone Europe/Berlin. Kein Accept-Language-Sniffing. Datum/Zahl über next-intl-Formatter bzw. `Intl.*`.
 - **URL-State:** Tabs, Filter, Schritte über `searchParams` (`UrlTabs`, `RegisterPage`) — kein `nuqs`.
 - **Abhängigkeiten:** keine neuen Pakete für UI-Kleinkram (z. B. `virtua`); lange Listen paginieren oder `content-visibility: auto`. Neue Pakete nur nach Cooldown (`minimumReleaseAge`).
-- **Design-System:** Maison-Tokens und `components/ui/*` (shadcn-v4-Stil, Lucide-Icons) sind gesetzt — Befunde nur, wenn die Regel innerhalb dieses Systems verletzt ist.
+- **Design-System:** Apple Human Interface Guidelines nach `docs/design/hig.md` (Tokens `styles/tokens.css`, Bausteine `components/ui/*`, Lucide-Icons) — zusätzlich prüfen: Tippflächen 44 px am Touch-Bildschirm, keine Versalien, Textstile statt freier Größen, eine Haupthandlung je Ansicht, Farbe nie allein, Dunkelmodus und erhöhter Kontrast.
 - **Server Components zuerst:** Interaktivität nur in `"use client"`-Komponenten; keine Event-Handler in Server Components (Test `server-components-no-handlers`).
 - **Destruktive Aktionen:** Bestätigungsdialog (bei Org-weiten Folgen mit Abtippen des Namens) + Step-up über `withStepUp`.
 - **Fehler:** Toasts aus `safeAction`-Ergebnissen nennen den nächsten Schritt; nie rohe Fehlermeldungen.

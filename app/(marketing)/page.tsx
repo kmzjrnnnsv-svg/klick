@@ -79,10 +79,7 @@ export default async function LandingPage() {
 					{t("lead")}
 				</p>
 				<div className="mt-10 flex flex-wrap gap-3">
-					<Link
-						href="/login"
-						className={cn(buttonVariants({ variant: "brown", size: "lg" }))}
-					>
+					<Link href="/login" className={cn(buttonVariants({ size: "lg" }))}>
 						{t("ctaLogin")}
 					</Link>
 					<a
@@ -280,10 +277,7 @@ export default async function LandingPage() {
 						{t("ctaLead")}
 					</p>
 					<div className="mt-8 flex flex-wrap justify-center gap-3">
-						<Link
-							href="/login"
-							className={cn(buttonVariants({ variant: "brown", size: "lg" }))}
-						>
+						<Link href="/login" className={cn(buttonVariants({ size: "lg" }))}>
 							{t("ctaLogin")}
 						</Link>
 						<Link

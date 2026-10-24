@@ -2,15 +2,18 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
+// Hinweis im Inhalt (kein Modal): getönte Fläche, Symbol in der Statusfarbe,
+// Text in der Vordergrundfarbe — Farbe nie allein, der Titel nennt den Zustand
+
 const alertVariants = cva(
-	"relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-md border px-4 py-3 text-sm has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] has-[>svg]:gap-x-3 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
+	"relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-xl px-4 py-3 text-subhead has-[>svg]:grid-cols-[calc(var(--spacing)*5)_1fr] has-[>svg]:gap-x-3 [&>svg]:size-5 [&>svg]:text-current",
 	{
 		variants: {
 			variant: {
-				default: "bg-card text-card-foreground",
-				destructive: "border-destructive/40 bg-destructive/5 text-destructive [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90",
-				warning: "border-warning/50 bg-warning/10 text-foreground",
-				success: "border-success/40 bg-success/10 text-foreground",
+				default: "bg-card text-card-foreground [&>svg]:text-primary",
+				destructive: "bg-destructive/10 text-foreground [&>svg]:text-destructive dark:bg-destructive/18",
+				warning: "bg-warning/12 text-foreground [&>svg]:text-warning dark:bg-warning/18",
+				success: "bg-success/10 text-foreground [&>svg]:text-success dark:bg-success/18",
 			},
 		},
 		defaultVariants: { variant: "default" },
@@ -29,7 +32,7 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="alert-title"
-			className={cn("col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight", className)}
+			className={cn("col-start-2 min-h-5 font-semibold", className)}
 			{...props}
 		/>
 	);
@@ -39,7 +42,7 @@ function AlertDescription({ className, ...props }: React.ComponentProps<"div">) 
 	return (
 		<div
 			data-slot="alert-description"
-			className={cn("col-start-2 grid justify-items-start gap-1 text-muted-foreground text-sm [&_p]:leading-relaxed", className)}
+			className={cn("col-start-2 grid justify-items-start gap-1 text-foreground/80 text-subhead [&_p]:leading-relaxed", className)}
 			{...props}
 		/>
 	);

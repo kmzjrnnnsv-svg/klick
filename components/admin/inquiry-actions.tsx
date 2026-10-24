@@ -35,7 +35,7 @@ export function InquiryActions({
 					key={s}
 					type="button"
 					size="sm"
-					variant={s === "contacted" ? "brown" : "outline"}
+					variant={s === "contacted" ? "default" : "outline"}
 					disabled={pending}
 					onClick={() =>
 						start(async () => {

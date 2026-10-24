@@ -82,7 +82,6 @@ export function IntroFooter({
 			{primary && (
 				<Button
 					type="button"
-					variant="brown"
 					className="ml-auto"
 					disabled={pending}
 					onClick={() => run([() => advanceWalletIntro({ step })], nextHref)}
@@ -204,12 +203,7 @@ export function IntroWatchlist({
 				>
 					{t("later")}
 				</button>
-				<Button
-					type="submit"
-					variant="brown"
-					className="ml-auto"
-					disabled={pending}
-				>
+				<Button type="submit" className="ml-auto" disabled={pending}>
 					{t("saveNext")}
 				</Button>
 			</div>

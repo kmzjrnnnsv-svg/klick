@@ -110,7 +110,7 @@ export function AssetForm({
 						{tc("edit")}
 					</Button>
 				) : (
-					<Button size="sm" variant="brown">
+					<Button size="sm">
 						<Plus />
 						{t("new")}
 					</Button>

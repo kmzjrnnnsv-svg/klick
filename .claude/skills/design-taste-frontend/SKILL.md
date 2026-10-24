@@ -3,12 +3,14 @@ name: design-taste-frontend
 description: tasteskill v2, the anti-slop frontend skill. Art direction for websites, distilled from a study of 247 curated gallery sites (One Page Love, Awwwards Sites of the Day). Deals researched directions (idea, composition, type, palette, photographs, section blueprints) from a library, enforces a strict no-slop house style with a real-browser inspector, and runs a look-and-fix loop on screenshots. Use this whenever you build, design, redesign, restyle, polish or review a landing page, marketing site, portfolio, product page, one-pager, hero or any public-facing web page, in any stack (HTML/CSS, React, Next.js, Vue, Svelte, Astro, Tailwind) — also when the user says a page looks generic, templated, "AI-made", sloppy, or asks to make it look designed, premium, award-level or less like every other site. Not for dashboards or app screens.
 ---
 
-> **Klick-Hinweis (lokale Ergänzung, siehe `UPSTREAM.md`):** Nur für öffentliche Seiten unter
-> `app/(marketing)/*` (Landing, `/preise`, `/vertrauen`, `/leistungen`). **Nie** für App-Screens unter
-> `app/(app)`, `(auth)` oder `(admin)` — dort gelten Maison-Tokens, `components/ui/*` und
-> `/web-interface-guidelines`. Texte auf Deutsch in Du-Form über `messages/de.json`. Bilder und Videos
-> **lokal unter `public/`** ablegen (CSP erlaubt keine Fremd-Hosts, keine picsum-/Commons-Hotlinks),
-> Credits auf der Seite. Schriften über `next/font` (keine CDN-Fonts). Arbeitsdateien landen in
+> **Klick-Hinweis (lokale Ergänzung, siehe `UPSTREAM.md`):** Nur für öffentliche Seiten
+> (`app/(marketing)/*`, both.money `/` und `/roadmap`) und dort nur für Idee, Aufbau und Bilder.
+> **Gestaltung (Schrift, Farben, Größen, Bausteine) kommt seit 10/2026 aus den Apple Human Interface
+> Guidelines** (`docs/design/hig.md`): Systemschrift statt gezogener Schriften, Tokens aus
+> `styles/tokens.css`, keine Serifen, keine Versalien. **Nie** für App-Screens unter `app/(app)`,
+> `(auth)` oder `(admin)`. Texte auf Deutsch in Du-Form. Bilder und Videos **lokal unter `public/`**
+> ablegen (CSP erlaubt keine Fremd-Hosts, keine picsum-/Commons-Hotlinks), Credits auf der Seite.
+> Keine Webfonts (auch kein SF als Webfont, Lizenz). Arbeitsdateien landen in
 > `.taste-skill/` (gitignored). In Cloud-Sessions: `CHROME_PATH=/opt/pw-browsers/chromium` (bzw. `chromium-<build>/chrome-linux/chrome`).
 
 # tasteskill v2

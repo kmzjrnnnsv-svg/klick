@@ -188,7 +188,6 @@ export function StagePanel({
 				{canEdit && (
 					<div className="flex justify-end">
 						<Button
-							variant="brown"
 							disabled={pending || !changed}
 							onClick={() =>
 								start(async () => {

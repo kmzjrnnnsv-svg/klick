@@ -337,7 +337,7 @@ export function PriceGroupEditor({
 			</Table>
 
 			<div className="flex flex-wrap gap-2">
-				<Button type="submit" variant="brown" disabled={pending}>
+				<Button type="submit" disabled={pending}>
 					Speichern
 				</Button>
 				{group && !group.isDefault && (

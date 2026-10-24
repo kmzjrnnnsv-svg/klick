@@ -138,7 +138,7 @@ export function ProcessForm({
 						{tc("edit")}
 					</Button>
 				) : (
-					<Button size="sm" variant="brown">
+					<Button size="sm">
 						<Plus />
 						{t("new")}
 					</Button>
@@ -321,7 +321,7 @@ export function ProcessForm({
 }
 
 // „Prozesslandkarte übernehmen": fehlende Katalog-Prozesse als Entwürfe anlegen.
-export function ApplyProcessSeedButton({ variant }: { variant?: "brown" }) {
+export function ApplyProcessSeedButton({ variant }: { variant?: "default" }) {
 	const t = useTranslations("Processes");
 	const tc = useTranslations("Common");
 	const router = useRouter();

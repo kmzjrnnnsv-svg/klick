@@ -30,7 +30,7 @@ export default function ErrorPage({
 				<Button variant="outline" onClick={() => reset()}>
 					{tc("retry")}
 				</Button>
-				<Button variant="brown" asChild>
+				<Button asChild>
 					<Link href="/heute">{t("home")}</Link>
 				</Button>
 			</div>

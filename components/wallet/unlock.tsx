@@ -46,7 +46,6 @@ export function WalletUnlock({ returnTo }: { returnTo: string }) {
 		<div className="flex flex-col gap-3">
 			<Button
 				type="button"
-				variant="brown"
 				size="lg"
 				className="w-full"
 				onClick={run}

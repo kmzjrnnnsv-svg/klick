@@ -116,11 +116,7 @@ export function FrameworksStep({
 				/>
 			)}
 			<div className="flex justify-end">
-				<Button
-					type="submit"
-					variant="brown"
-					disabled={pending || selected.length === 0}
-				>
+				<Button type="submit" disabled={pending || selected.length === 0}>
 					{t("saveNext")}
 				</Button>
 			</div>

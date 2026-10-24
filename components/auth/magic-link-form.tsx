@@ -72,7 +72,7 @@ export function MagicLinkForm({
 					onChange={(e) => setEmail(e.target.value)}
 				/>
 			</div>
-			<Button type="submit" variant="brown" disabled={busy || email.length < 3}>
+			<Button type="submit" disabled={busy || email.length < 3}>
 				{busy ? t("sendingLink") : t("sendLink")}
 			</Button>
 			{signupAllowed && (

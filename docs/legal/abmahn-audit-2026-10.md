@@ -19,7 +19,7 @@
 
 | Bereich | Stand | Was getan wurde |
 |---|---|---|
-| Schriften | ✅ in Ordnung | `next/font` lädt Jost, Cormorant Garamond, JetBrains Mono beim Build und liefert sie selbst aus — keine Anfrage an Google (LG München I, 20.01.2022, 3 O 17493/20). Lizenz (OFL) auf `/lizenzen`. |
+| Schriften | ✅ in Ordnung | Seit 10/2026 Systemschrift (Apple HIG, `docs/design/hig.md`): keine Webfonts, also auch keine Anfrage an Google (LG München I, 20.01.2022, 3 O 17493/20); SF wird nicht ausgeliefert (Apple-Lizenz). Hinweis auf `/lizenzen`. |
 | Tracking, Session Replay, Cookies | ✅ in Ordnung | Keine Analyse, kein Replay, keine Drittanbieter-Skripte (CSP mit Nonce verhindert sie). Nur technisch nötige Cookies (§ 25 Abs. 2 Nr. 2 TDDDG) → kein Banner nötig; Liste in der Datenschutzerklärung (Entwurf). Ein Banner ohne „Alle ablehnen“ wäre selbst angreifbar (OLG Köln 19.01.2024, 6 U 80/23; VG Hannover 19.03.2025). |
 | Impressum | 🟠 du musst | Angaben kommen jetzt aus der Env (`LEGAL_*`) und stehen auf `/impressum`; Kontaktformular als zweiter Weg. Fehlen Angaben, warnt der Server beim Start. **Firmendaten setzen** und dafür sorgen, dass `no-reply@raza.work` Mails annimmt und gelesen wird (§ 5 DDG). |
 | Datenschutzerklärung | 🟠 du musst | Entwurf `docs/legal/datenschutzerklaerung.md` deckt Hosting, Logs, CrowdSec, Cookies, Konto, Brevo, Anfragen, Trust Center, Lieferantenportal, Uploads, Wallet, Rechte ab. **Prüfen lassen und als CMS-Seite veröffentlichen.** |

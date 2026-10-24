@@ -103,7 +103,7 @@ export function NewTrigger({
 	...props
 }: TriggerProps & { label: string }) {
 	return (
-		<Button size="sm" variant="brown" {...props}>
+		<Button size="sm" {...props}>
 			<Plus />
 			{label}
 		</Button>

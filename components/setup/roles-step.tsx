@@ -118,7 +118,6 @@ export function RolesStep({
 
 			<div className="flex justify-end">
 				<Button
-					variant="brown"
 					disabled={pending}
 					onClick={() => run(() => completeSetupStep({ step: "rollen" }))}
 				>

@@ -106,7 +106,7 @@ export function TwoFactorForm({
 		return (
 			<div className="flex flex-col gap-4" aria-live="polite">
 				<p className="text-sm">{t("downloadStarted")}</p>
-				<Button variant="brown" onClick={() => router.replace(backPath())}>
+				<Button onClick={() => router.replace(backPath())}>
 					{t("downloadBack")}
 				</Button>
 			</div>
@@ -144,7 +144,7 @@ export function TwoFactorForm({
 					</div>
 					<Button
 						type="submit"
-						variant={passkey ? "outline" : "brown"}
+						variant={passkey ? "outline" : "default"}
 						disabled={busy || code.trim().length < 6}
 					>
 						{t("verify")}

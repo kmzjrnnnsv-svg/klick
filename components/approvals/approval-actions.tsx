@@ -116,7 +116,6 @@ export function ApprovalActions({
 					<div className="flex flex-wrap gap-2">
 						<Button
 							size="sm"
-							variant="brown"
 							disabled={pending || (withOptions && !chosen)}
 							onClick={() => run("approved")}
 						>

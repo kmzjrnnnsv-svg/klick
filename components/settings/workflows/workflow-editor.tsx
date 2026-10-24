@@ -576,11 +576,7 @@ export function WorkflowEditor({
 
 			<div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
 				<div className="flex gap-2">
-					<Button
-						variant="brown"
-						disabled={pending || name.trim().length < 3}
-						onClick={save}
-					>
+					<Button disabled={pending || name.trim().length < 3} onClick={save}>
 						{pending ? `${t("save")}…` : t("save")}
 					</Button>
 					<Button

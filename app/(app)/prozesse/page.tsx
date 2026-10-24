@@ -273,7 +273,7 @@ export default async function ProcessesPage({
 							actions={
 								canCreate ? (
 									<>
-										<ApplyProcessSeedButton variant="brown" />
+										<ApplyProcessSeedButton />
 										<ProcessForm members={members} />
 									</>
 								) : undefined

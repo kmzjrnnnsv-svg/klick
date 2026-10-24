@@ -51,6 +51,7 @@ export function RegisterFilters({
 	return (
 		<div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
 			<Input
+				type="search"
 				defaultValue={params.get("q") ?? ""}
 				placeholder={searchPlaceholder ?? t("search")}
 				onChange={(e) => update("q", e.target.value.trim() || null)}
@@ -88,10 +89,10 @@ export function RegisterFilters({
 							aria-pressed={on}
 							onClick={() => update(c.key, on ? null : "1")}
 							className={cn(
-								"rounded-sm border px-2.5 py-1 text-xs transition-colors",
+								"inline-flex h-(--control-h-sm) items-center rounded-full px-3 font-medium text-footnote transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 								on
-									? "border-primary/60 bg-primary/10 text-foreground"
-									: "border-border text-muted-foreground hover:bg-muted",
+									? "bg-primary-fill text-white"
+									: "bg-muted text-foreground hover:bg-foreground/12",
 							)}
 						>
 							{c.label}
@@ -104,7 +105,6 @@ export function RegisterFilters({
 					variant="ghost"
 					size="sm"
 					onClick={() => router.replace(pathname, { scroll: false })}
-					className="normal-case tracking-normal"
 				>
 					<X />
 					{t("clearFilters")}

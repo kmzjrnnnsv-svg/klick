@@ -132,9 +132,7 @@ export function CreateAccountDialog({
 			}}
 		>
 			<DialogTrigger asChild>
-				<Button variant="brown" size="sm">
-					{t("create")}
-				</Button>
+				<Button size="sm">{t("create")}</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
@@ -227,7 +225,6 @@ export function CreateAccountDialog({
 						</label>
 						<Button
 							type="submit"
-							variant="brown"
 							disabled={busy || !email.trim() || !name.trim()}
 						>
 							{busy ? t("submitting") : t("submit")}
@@ -310,7 +307,7 @@ export function RenewLinkDialog({
 							<Button variant="outline" onClick={close}>
 								{tc("cancel")}
 							</Button>
-							<Button variant="brown" onClick={confirm} disabled={busy}>
+							<Button onClick={confirm} disabled={busy}>
 								{t("renewConfirm")}
 							</Button>
 						</DialogFooter>

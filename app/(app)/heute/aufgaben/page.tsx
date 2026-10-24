@@ -56,11 +56,7 @@ export default async function TasksPage({
 			<PageHeader
 				title={t("title")}
 				lead={t("lead")}
-				actions={
-					canEdit ? (
-						<QuickCreateTask members={members} variant="brown" />
-					) : undefined
-				}
+				actions={canEdit ? <QuickCreateTask members={members} /> : undefined}
 			/>
 			<div className="mb-4">
 				<RegisterFilters

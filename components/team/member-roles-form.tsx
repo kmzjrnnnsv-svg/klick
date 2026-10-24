@@ -86,7 +86,6 @@ export function MemberRolesForm({
 				)}
 				<DialogFooter>
 					<Button
-						variant="brown"
 						disabled={pending || roles.length === 0}
 						onClick={() =>
 							start(async () => {

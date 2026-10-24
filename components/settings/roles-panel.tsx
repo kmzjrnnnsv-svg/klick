@@ -289,11 +289,7 @@ function RoleDialog({
 					</section>
 
 					<DialogFooter>
-						<Button
-							type="submit"
-							variant="brown"
-							disabled={pending || name.trim().length < 2}
-						>
+						<Button type="submit" disabled={pending || name.trim().length < 2}>
 							{pending ? `${t("save")}…` : t("save")}
 						</Button>
 					</DialogFooter>
@@ -344,7 +340,7 @@ export function RolesPanel({
 							members={members}
 							editorPreset={editorPreset}
 							trigger={
-								<Button size="sm" variant="brown">
+								<Button size="sm">
 									<Plus />
 									{t("new")}
 								</Button>

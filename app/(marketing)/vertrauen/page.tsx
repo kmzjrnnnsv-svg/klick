@@ -39,7 +39,7 @@ export default async function TrustPage() {
 				<div className="mt-8 flex flex-wrap gap-3">
 					<a
 						href="/vertrauen/paket.md"
-						className={cn(buttonVariants({ variant: "brown", size: "lg" }))}
+						className={cn(buttonVariants({ size: "lg" }))}
 					>
 						{t("download")}
 					</a>

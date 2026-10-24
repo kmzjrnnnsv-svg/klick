@@ -26,17 +26,17 @@ export function KanbanColumn({
 			ref={setNodeRef}
 			aria-label={title}
 			className={cn(
-				"flex min-h-40 flex-col gap-2 rounded-md border bg-muted/30 p-3 transition-colors",
-				isOver && "border-primary/60 bg-primary/5",
+				"flex min-h-40 flex-col gap-2 rounded-2xl bg-muted/60 p-3 transition-colors",
+				isOver && "bg-accent ring-2 ring-primary/40",
 			)}
 		>
 			<header className="flex items-baseline justify-between gap-2">
-				<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+				<h2 className="font-semibold text-foreground text-subhead">
 					{title}
 				</h2>
-				<span className="text-muted-foreground text-xs">{count}</span>
+				<span className="tabular text-footnote text-muted-foreground">{count}</span>
 			</header>
-			{hint && <p className="text-muted-foreground text-xs">{hint}</p>}
+			{hint && <p className="text-footnote text-muted-foreground">{hint}</p>}
 			<SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
 				<div className="flex flex-col gap-2">{children}</div>
 			</SortableContext>

@@ -25,7 +25,7 @@ export default async function InvitationPage({
 				<p className="text-muted-foreground">{t("loginFirst")}</p>
 				<Link
 					href={`/login?weiter=/einladung/${id}`}
-					className={buttonVariants({ variant: "brown" })}
+					className={buttonVariants()}
 				>
 					Anmelden
 				</Link>
