@@ -360,9 +360,10 @@ Redirect-URI im IdP: `https://raza.work/api/auth/sso/callback/<providerId>`. Nut
 Domain werden als Mitglied (viewer) provisioniert; MFA-Pflicht und Sitzungsregeln gelten.
 
 ## Wallet: Knoten, Sync, Sanktionsliste (Plan Wallet, Phase 0/1)
-> **Legacy:** gilt für den Wallet-Bereich in Klick bis zur Umstellung auf both.money (Abschnitt
-> „both.money“ unten). Die Knoten selbst bleiben; both.money bekommt einen eigenen RPC-User.
-Der Wallet-Bereich liest nur eigene Knoten (kein Infura, kein Explorer). Klick kennt nie private
+> **Seit K6 nur both.money:** Klick hat keinen Wallet-Bereich mehr. Knoten, Sync und
+> Sanktionsliste gehören zu both.money (Credentials `both_rpc_*`, Drop-in
+> `both.service.d/nodes.conf`, Units `both-sanctions.*` — Abschnitt „both.money“ unten).
+both.money liest nur eigene Knoten (kein Infura, kein Explorer). Die App kennt nie private
 Schlüssel — Konten entstehen aus dem öffentlichen Kontoschlüssel (xpub/zpub/tpub/vpub). Erst
 Testnetz (Signet, Sepolia); das echte Netz bleibt gesperrt, bis Phase 3 die signierte Richtlinie
 bringt.
@@ -386,27 +387,25 @@ bringt.
    finalisierten Checkpoint gegen zwei unabhängige Quellen prüfen:
    `SOURCES="https://… https://…" deploy/nodes/verify-checkpoint.sh` (muss „stimmt überein“
    melden, sonst Knoten nicht verwenden).
-5. **App anbinden:** je Netz die URL als Credential ablegen
-   (`printf %s '<url>' | systemd-creds encrypt --name=wallet_rpc_bitcoin_signet -
-   /etc/credstore.encrypted/wallet_rpc_bitcoin_signet`, ebenso `wallet_rpc_ethereum_sepolia`),
-   `deploy/systemd/klick.service.d/wallet.conf.example` nach
-   `/etc/systemd/system/klick.service.d/wallet.conf`, `systemctl daemon-reload && systemctl
-   restart klick`. Der Job `wallet-sync` läuft dann jede Minute (nur mit gesetzten URLs).
+5. **App anbinden:** je Netz die URL als Credential `both_rpc_<netz>` ablegen und
+   `deploy/systemd/both.service.d/nodes.conf.example` nach
+   `/etc/systemd/system/both.service.d/nodes.conf` (Abschnitt „both.money“), dann
+   `systemctl daemon-reload && systemctl restart both`. Der Job `wallet-sync` läuft jede Minute
+   (nur mit gesetzten URLs).
 6. **Prüfen:** `WALLET_RPC_BITCOIN_SIGNET="$(systemd-creds decrypt
    /etc/credstore.encrypted/wallet_rpc_bitcoin_signet -)" WALLET_RPC_ETHEREUM_SEPOLIA="…" pnpm
    wallet:check` — Kette, Sync, Finalität, trace-API, rpcwhitelist (403) und die hinterlegten
    USDC-/EURC-Verträge (`decimals`/`symbol`). Vertragsadressen zusätzlich gegen die offizielle
    Liste von Circle prüfen, bevor das echte Netz freigeschaltet wird.
 7. **Sanktionsliste:** `pnpm wallet:sanctions --fetch` einmal von Hand, dann
-   `deploy/systemd/klick-sanctions.{service,timer}` installieren und `systemctl enable --now
-   klick-sanctions.timer` (täglich 05:20). Jeder Import steht als `sanctions.list_imported` im
+   `deploy/systemd/both-sanctions.{service,timer}` installieren und `systemctl enable --now
+   both-sanctions.timer`. Jeder Import steht als `sanctions.list_imported` im
    Plattform-Audit; eine leere oder kaputte Datei bricht ab, ohne die Liste zu leeren. Treffer
    bei einem Eingang: Betrag eingefroren, `security_alert` an alle mit Wallet-Zugriff.
-8. **Abnahme im Testnetz** (Plan „Ziel: eine funktionierende Wallet“): Konto unter Wallet →
-   Konten aus der xpub der Hardware-Wallet/Sparrow anlegen, erste Adresse auf dem Gerät
-   vergleichen, Signet-/Sepolia-Coins und Test-USDC/EURC aus den Faucets empfangen, Bestand und
-   Bewegungen prüfen, Kundenkonto (Zweck „Kundengelder“) in der täglichen Abstimmung unter
-   `/verwahrung` mit vorbelegtem On-Chain-Bestand (Blockhöhe/Hash) speichern.
+8. **Abnahme im Testnetz:** in both.money unter Konten aus der xpub der Hardware-Wallet/Sparrow
+   anlegen, erste Adresse auf dem Gerät vergleichen, Signet-/Sepolia-Coins aus den Faucets
+   empfangen, Bestand und Bewegungen prüfen; in Klick erscheinen sie unter `/krypto`, der
+   Tagesabschluss belegt die Abstimmung unter `/verwahrung` vor (Blockhöhe/Hash).
 9. **Knoten neu aufgesetzt:** Beobachtungs-Wallets entstehen neu, wenn Klick sie für nicht
    eingerichtet hält: `update wallet_accounts set node_ready = false, sync_cursor = null where
    network = 'bitcoin_signet';` (als `klick_migrator`, danach rescannt der Knoten ab
@@ -421,15 +420,15 @@ Blöcken, Reorg und Senden wie ein Knoten — Signaturen, Doppelausgabe, RBF, No
 Circle-Sperre; Steuerung über `POST :18443/dev/{faucet,mine,reorg,fee}` bzw.
 `:18545/dev/{faucet,mine,basefee,blacklist}`) und in `.env.local`
 `WALLET_RPC_BITCOIN_SIGNET=http://dev:dev@127.0.0.1:18443`,
-`WALLET_RPC_ETHEREUM_SEPOLIA=http://127.0.0.1:18545`. `scripts/qa/wallet-smoke.ts` spielt damit
-Entsperren und Empfangen komplett durch. Die Testkette ersetzt nicht die Abnahme mit echten
-Knoten.
+`WALLET_RPC_ETHEREUM_SEPOLIA=http://127.0.0.1:18545` (für `pnpm dev:wallet` in
+`apps/wallet/.env.local`). Die Testkette ersetzt nicht die Abnahme mit echten Knoten.
 
 ## Wallet: Signer und Bestätigungsseite (Plan Wallet, Phase 2)
-> **Ab both.money:** Signer und Bestätigungsseite gehören zu both.money (`approve.both.money`,
-> Socket-Gruppe `both`). Die Schritte unten gelten sinngemäß; die Unterschiede stehen im
-> Abschnitt „both.money“. `install.sh` installiert seit both.money nach `/var/www/approve` und
-> trägt `https://both.money` als API ein.
+> **Seit both.money:** Signer und Bestätigungsseite gehören zu both.money (`approve.both.money`,
+> Socket-Gruppe `both`); Klick ist nicht mehr angebunden (K6). Die Schritte unten gelten
+> sinngemäß — statt `freigabe.raza.work` gilt `approve.both.money`, statt Klick die App
+> both.money; die Unterschiede stehen im Abschnitt „both.money“. `install.sh` installiert nach
+> `/var/www/approve` und trägt `https://both.money` als API ein.
 
 Der Signer ist die einzige Instanz, die Hot-Auszahlungen signiert: eigener Prozess ohne Netz
 (`klick-signer.service`, nur AF_UNIX), Zustand im Journal `/var/lib/klick-signer/journal.log`,
@@ -458,9 +457,9 @@ Die App kann über `app.sock` bremsen, einrichten und lockern geht nur als root 
    eine Person zwei aktive Schlüssel, getrennt verwahrt. Synchronisierte Passkeys (iCloud, Google,
    Passwort-Manager) lehnt der Signer ab. Sperren: `klick-signer-admin revoke <credId>`
    (`klick-signer-admin status` zeigt die Schlüssel).
-5. **App anbinden:** `deploy/systemd/klick.service.d/signer.conf.example` nach
-   `/etc/systemd/system/klick.service.d/signer.conf`, `systemctl daemon-reload && systemctl restart klick`.
-   Die App (Gruppe klick) erreicht nur `app.sock`.
+5. **App anbinden:** `deploy/systemd/both.service.d/signer.conf.example` nach
+   `/etc/systemd/system/both.service.d/signer.conf`, `systemctl daemon-reload && systemctl restart both`.
+   Die App (Gruppe both) erreicht nur `app.sock`.
 6. **Richtlinie:** Start = Solo, zwei Schlüssel, 30 min Pause vor dem Signieren, 24 h Wartezeit für
    neue Zieladressen, kleine Testnetz-Grenzen, kein Echtgeld. Ändern:
    `klick-signer-admin status > p.json`, `policy`-Teil anpassen und als eigene Datei speichern,
@@ -487,11 +486,10 @@ Die App kann über `app.sock` bremsen, einrichten und lockern geht nur als root 
 **Lokal:** `pnpm signer:dev` (Dev-Bundle: Wartezeiten 0, ein Schlüssel genügt; Zustand in
 `QA_DIR/signer`), `pnpm signer:admin --dev init --org <qaOrg> --rp localhost --origin http://localhost:3201 --networks bitcoin_signet,ethereum_sepolia --auto-confirm`,
 `pnpm confirm:dev` (Seite auf :3201 mit denselben Headern),
-`SIGNER_SOCKET=$QA_DIR/signer/app.sock CONFIRM_ORIGIN=http://localhost:3201 pnpm dev`.
+`WALLET_SIGNER_SOCKET=$QA_DIR/signer/app.sock WALLET_CONFIRM_ORIGIN=http://localhost:3201 pnpm dev:wallet`.
 Durchspielen im Browser (virtuelle Sicherheitsschlüssel, Jobs ruft das Skript selbst auf):
-`pnpm wallet:devchain`, `pnpm signer:dev`, `pnpm confirm:dev`, Dev-Server wie oben, dann
-`SIGNER_SOCKET=$QA_DIR/signer/app.sock pnpm exec tsx scripts/qa/wallet-send-smoke.ts`
-(`WALLET_SHOTS=<ordner>` für Bildschirmfotos). Ein Dev-Signer gehört genau einer Org: nach einem
+`pnpm wallet:devchain`, `pnpm signer:dev`, `CONFIRM_API=http://localhost:3400 pnpm confirm:dev`,
+Dev-Server wie oben, dann `pnpm wallet:smoke:send --org <slug>`. Ein Dev-Signer gehört genau einer Org: nach einem
 neuen QA-Konto `QA_DIR/signer` beiseitelegen und `pnpm signer:dev` neu starten.
 
 ### Auszahlungen im Betrieb
@@ -584,6 +582,13 @@ both.money auf einen eigenen Server — dann ändern sich nur Units, Credentials
 15. **Sicherheitsschlüssel**, sobald sie da sind: je Person `klick-signer-admin enrol --person
     <User-ID>`, Link auf `approve.both.money` öffnen. Danach in Klick unter `/krypto` die Zeremonie
     (Richtlinie, Anzahl Schlüssel) und unter `/verwahrung` das Quorum der Hot-Wallet prüfen.
+16. **Alten Wallet-Bereich abbauen (K6),** nach dem Release ohne Wallet-Bereich:
+    `systemctl disable --now klick-sanctions.timer`, `rm -f
+    /etc/systemd/system/klick-sanctions.{service,timer}
+    /etc/systemd/system/klick.service.d/{wallet,signer}.conf`, `systemctl daemon-reload &&
+    systemctl restart klick`. Alte Credentials `wallet_rpc_*` unter `/etc/credstore.encrypted`
+    braucht Klick nicht mehr. Die alten pg-boss-Zeitpläne der Wallet-Jobs räumt Klick beim Start
+    selbst ab; die Wallet-Tabellen in der Klick-DB bleiben (kein DROP).
 
 Befehle am Terminal brauchen dieselben Werte wie der Dienst:
 

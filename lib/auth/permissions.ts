@@ -68,11 +68,6 @@ export const statements = {
 	security: ["read", "create", "update", "accept"],
 	// Zugangstoken für CI/API (ADR-017)
 	integration: ["read", "create", "revoke"],
-	// Wallet-Bereich: read = ansehen/empfangen, initiate = Auszahlung
-	// anstoßen, approve = Auszahlung freigeben, manage = Konten und
-	// Richtlinie (nur Inhaber:innen). Geld bewegt erst der Signer mit
-	// eigener Prüfung (Plan Wallet, Phase 2).
-	wallet: ["read", "initiate", "approve", "manage"],
 } as const;
 
 export const ac = createAccessControl(statements);
@@ -165,7 +160,6 @@ export const editor = ac.newRole({
 	aml: ["read", "create", "update"],
 	own_funds: ["read", "create", "update"],
 	crypto_asset: ["read", "create", "update"],
-	wallet: ["read", "initiate"],
 	shareholder: ["read", "create", "update"],
 	privacy: ["read", "create", "update"],
 	assessment: ["read", "create", "answer", "review", "apply"],
@@ -253,7 +247,6 @@ export const owner = ac.newRole({
 	aml: ["read", "create", "update", "approve"],
 	own_funds: ["read", "create", "update", "approve"],
 	crypto_asset: ["read", "create", "update"],
-	wallet: ["read", "initiate", "approve", "manage"],
 	shareholder: ["read", "create", "update"],
 	privacy: ["read", "create", "update"],
 	assessment: ["read", "create", "answer", "review", "apply"],

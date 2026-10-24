@@ -143,22 +143,6 @@ export const envSchema = z.object({
 	ORG_RATE_LIMIT_PER_MIN: z.coerce.number().int().min(0).default(600),
 	GLITCHTIP_DSN: z.url().optional(),
 
-	// Wallet (Plan Wallet, Phase 0/1): eigene Knoten, nur über WireGuard
-	// erreichbar. Zugangsdaten stehen in der URL (http://user:pass@host:port)
-	// und gehen als Basic-Auth-Header raus, nie in Logs. Ohne URL ist das
-	// Netz im Wallet-Bereich nicht verfügbar.
-	WALLET_RPC_BITCOIN_SIGNET: z.url().optional(),
-	WALLET_RPC_BITCOIN_MAINNET: z.url().optional(),
-	WALLET_RPC_ETHEREUM_SEPOLIA: z.url().optional(),
-	WALLET_RPC_ETHEREUM_MAINNET: z.url().optional(),
-	// Signer (Plan Wallet, Phase 2): app.sock des Signier-Dienstes und die
-	// Herkunft der Bestätigungsseite (CORS des Relays). Ohne SIGNER_SOCKET
-	// gibt es kein Senden, nur Empfangen.
-	SIGNER_SOCKET: z.string().startsWith("/").optional(),
-	CONFIRM_ORIGIN: z
-		.string()
-		.regex(/^(https:\/\/[a-z0-9.-]+|http:\/\/localhost(:\d{1,5})?)$/)
-		.optional(),
 	KLICK_RELEASE: z.string().optional(),
 	ORG_DATABASE_URLS: z
 		.string()

@@ -16,7 +16,6 @@ import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
 import { SubscriptionPanel } from "@/components/settings/subscription-panel";
 import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel";
-import { WalletAreaPanel } from "@/components/settings/wallet-area-panel";
 import { WalletLinkPanel } from "@/components/settings/wallet-link-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -459,10 +458,6 @@ export default async function SettingsPage({
 						orgName={orgSummary?.name ?? ""}
 						profile={settings?.entityProfile ?? {}}
 						canEdit={canEditSettings}
-					/>
-					<WalletAreaPanel
-						enabled={settings?.walletEnabled ?? false}
-						canEdit={ctx.orgRole === "owner"}
 					/>
 					{ctx.orgRole === "owner" && (
 						<DangerZonePanel orgSlug={orgSummary?.slug ?? ""} canDelete />

@@ -36,7 +36,6 @@ import {
 	revokeKeyHolderSchema,
 	walletSchema,
 } from "@/lib/validation/custody";
-import { listWalletAccounts } from "@/lib/wallet/queries";
 import { nodeHoldings } from "@/lib/wallet/reconcile-source";
 import { cryptoHoldingAccounts } from "@/lib/wallet-link-ingest/queries";
 
@@ -319,12 +318,9 @@ async function saveReconciliationImpl(
 			.limit(1);
 		if (before?.status === "reviewed")
 			return { result: { ok: false, error: "already_reviewed" }, audit: [] };
-		// Bestand on-chain = Stand der eigenen Knoten? Dann mit Blockhöhe/Hash
-		// als Quelle speichern (vom Server, nie aus der Eingabe)
-		const holdings = nodeHoldings([
-			...(await listWalletAccounts(tx, c.orgId)),
-			...(await cryptoHoldingAccounts(tx, c.orgId)),
-		]);
+		// Bestand on-chain = letzter Tagesabschluss aus both.money? Dann mit
+		// Blockhöhe/Hash als Quelle speichern (vom Server, nie aus der Eingabe)
+		const holdings = nodeHoldings(await cryptoHoldingAccounts(tx, c.orgId));
 		const lines = d.lines.map((l) => {
 			const h = holdings.find((x) => x.symbol === l.symbol);
 			return h && parseDecimal(h.onChain) === parseDecimal(l.onChain)

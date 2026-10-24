@@ -43,16 +43,7 @@ export type NavLabelKey =
 	| "baseline"
 	| "team"
 	| "settings"
-	| "activity"
-	| "walletHome"
-	| "walletReceive"
-	| "walletAccounts"
-	| "walletSend"
-	| "walletPayouts"
-	| "walletAddressBook"
-	| "walletSecurity"
-	| "walletActivity"
-	| "walletQuotes";
+	| "activity";
 
 export type NavGroupKey =
 	| "today"
@@ -62,9 +53,7 @@ export type NavGroupKey =
 	| "governance"
 	| "casp"
 	| "frameworks"
-	| "bottom"
-	| "wallet"
-	| "wallet-send";
+	| "bottom";
 
 export type NavIcon =
 	| "sun"
@@ -103,12 +92,6 @@ export type NavIcon =
 	| "badge-check"
 	| "vault"
 	| "wallet"
-	| "arrow-down"
-	| "history"
-	| "trending-up"
-	| "send"
-	| "list"
-	| "book-user"
 	| "search"
 	| "layers";
 
@@ -132,9 +115,7 @@ export type NavGroup = {
 		| "groupRegisters"
 		| "groupGovernance"
 		| "groupCasp"
-		| "groupFrameworks"
-		| "groupWallet"
-		| "groupWalletSend";
+		| "groupFrameworks";
 	items: NavItem[];
 };
 
@@ -519,8 +500,8 @@ export function buildNav(input: NavInput): NavGroup[] {
 	return groups;
 }
 
-// Aktiver Eintrag: der spezifischste Pfad gewinnt — /wallet/kurse markiert
-// „Kurse“, nicht zusätzlich „Übersicht“ (/wallet)
+// Aktiver Eintrag: der spezifischste Pfad gewinnt — /heute/aufgaben markiert
+// „Aufgaben“, nicht zusätzlich „Heute“
 export function activeNavKey(
 	groups: NavGroup[],
 	pathname: string,
@@ -538,87 +519,6 @@ export function activeNavKey(
 
 export function countNavTargets(groups: NavGroup[]): number {
 	return groups.reduce((n, g) => n + g.items.length, 0);
-}
-
-// Wallet-Bereich: eigene, kurze Navigation (Umschalter im Kopf wechselt
-// zwischen Compliance und Wallet).
-// Senden, Auszahlungen, Adressbuch und Sicherheit nur mit eigenem Signer
-// (`isOwnSigner`) — Kund:innen ohne Hot-Konten sehen sie nicht.
-export function buildWalletNav(opts: { send?: boolean } = {}): NavGroup[] {
-	const send: NavGroup[] = opts.send
-		? [
-				{
-					key: "wallet-send",
-					labelKey: "groupWalletSend",
-					items: [
-						{
-							key: "wallet-send",
-							labelKey: "walletSend",
-							href: "/wallet/senden",
-							icon: "send",
-						},
-						{
-							key: "wallet-payouts",
-							labelKey: "walletPayouts",
-							href: "/wallet/auszahlungen",
-							icon: "list",
-						},
-						{
-							key: "wallet-address-book",
-							labelKey: "walletAddressBook",
-							href: "/wallet/adressbuch",
-							icon: "book-user",
-						},
-						{
-							key: "wallet-security",
-							labelKey: "walletSecurity",
-							href: "/wallet/sicherheit",
-							icon: "shield-check",
-						},
-					],
-				},
-			]
-		: [];
-	return [
-		{
-			key: "wallet",
-			labelKey: "groupWallet",
-			items: [
-				{
-					key: "wallet-home",
-					labelKey: "walletHome",
-					href: "/wallet",
-					icon: "wallet",
-				},
-				{
-					key: "wallet-receive",
-					labelKey: "walletReceive",
-					href: "/wallet/empfangen",
-					icon: "arrow-down",
-				},
-				{
-					key: "wallet-quotes",
-					labelKey: "walletQuotes",
-					href: "/wallet/kurse",
-					match: ["/wallet/kurs"],
-					icon: "trending-up",
-				},
-				{
-					key: "wallet-activity",
-					labelKey: "walletActivity",
-					href: "/wallet/bewegungen",
-					icon: "history",
-				},
-				{
-					key: "wallet-accounts",
-					labelKey: "walletAccounts",
-					href: "/wallet/konten",
-					icon: "vault",
-				},
-			],
-		},
-		...send,
-	];
 }
 
 // Tab-Leiste am Handy nach Apple HIG: höchstens fünf Tabs, nur Navigation,
@@ -687,8 +587,8 @@ const TAB_DEFS: (Omit<NavTab, "groups"> & { groupKeys: NavGroupKey[] })[] = [
 export const LIST_TABS = ["umsetzen", "register", "steuerung"] as const;
 export type ListTabKey = (typeof LIST_TABS)[number];
 
-// Tabs aus der abgeleiteten Navigation; Tabs ohne Einträge entfallen
-// (z. B. Wallet-Bereich), die Suche gibt es nur zusammen mit anderen Tabs.
+// Tabs aus der abgeleiteten Navigation; Tabs ohne Einträge entfallen, die
+// Suche gibt es nur zusammen mit anderen Tabs.
 export function navTabs(groups: NavGroup[]): NavTab[] {
 	const tabs = TAB_DEFS.map(({ groupKeys, ...tab }) => ({
 		...tab,

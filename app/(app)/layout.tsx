@@ -16,16 +16,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 		getOrgSummary(ctx.orgId),
 		listUserMemberships(ctx.userId),
 	]);
-	const { settings, groups, bell } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => ({
-			...(await loadOrgNav(tx, ctx)),
-			bell: {
-				items: await listNotifications(tx, ctx.userId),
-				unread: await unreadCount(tx, ctx.userId),
-			},
-		}),
-	);
+	const { groups, bell } = await readOrg(toOrgCtx(ctx), async (tx) => ({
+		...(await loadOrgNav(tx, ctx)),
+		bell: {
+			items: await listNotifications(tx, ctx.userId),
+			unread: await unreadCount(tx, ctx.userId),
+		},
+	}));
 	return (
 		<AppShell
 			ctx={ctx}
@@ -38,7 +35,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 			}))}
 			groups={groups}
 			bell={bell}
-			walletEnabled={settings?.walletEnabled ?? false}
 		>
 			{children}
 		</AppShell>

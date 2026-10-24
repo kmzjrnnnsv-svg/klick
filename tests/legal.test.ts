@@ -104,7 +104,7 @@ describe("Rechtslinks und Sprungziel in jedem Layout", () => {
 		const layouts = files.filter(
 			(f) => /layout\.tsx$/.test(f) && read(f).includes("<main"),
 		);
-		expect(layouts.length).toBeGreaterThan(4);
+		expect(layouts.length).toBeGreaterThanOrEqual(4);
 		for (const f of layouts)
 			expect(
 				/<LegalLinks|<Footer/.test(read(f)),
@@ -112,9 +112,8 @@ describe("Rechtslinks und Sprungziel in jedem Layout", () => {
 			).toBe(true);
 		expect(read("components/shell/app-shell.tsx")).toContain("<LegalLinks");
 		expect(read("app/not-found.tsx")).toContain("<LegalLinks");
-		// Layouts ohne eigenes <main> laufen durch AppShell (Wallet, App)
-		for (const f of ["app/(app)/layout.tsx", "app/(wallet)/layout.tsx"])
-			expect(read(f)).toContain("<AppShell");
+		// Layouts ohne eigenes <main> laufen durch AppShell
+		expect(read("app/(app)/layout.tsx")).toContain("<AppShell");
 	});
 
 	it("jedes <main> ist Ziel des Sprunglinks", () => {

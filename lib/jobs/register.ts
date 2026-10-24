@@ -10,16 +10,11 @@ import {
 	QUICK_CHECK_JOB,
 	type QuickCheckJob,
 } from "@/lib/security/quick-check-service";
-import { configuredNetworks } from "@/lib/wallet/node-clients";
-import { signerConfigured } from "@/lib/wallet/signer/client";
 import { runComplianceTick } from "./compliance-tick-runner";
 import { runDigest, runImmediateMails } from "./digest";
 import { runPostureSnapshot } from "./posture";
-import { runPriceTick } from "./price-tick";
 import { runRetention } from "./retention";
 import { runStorageOrphans, runStoragePurge } from "./storage";
-import { runWalletPayouts } from "./wallet-payouts";
-import { runWalletSync } from "./wallet-sync";
 
 // Job-Register (ADR-011). Zeitpläne in Europe/Berlin. Fachjobs laufen je Org
 // in eigenem RLS-Kontext (lib/db/with-org.ts#forEachOrg):
@@ -32,13 +27,8 @@ import { runWalletSync } from "./wallet-sync";
 //   posture-snapshot   02:00       Abdeckung je Org/Rahmenwerk → Verlauf auf /ueberblick
 //   storage-purge      03:30       gelöschte Nachweis-Objekte nach Backup-Frist entfernen
 //   storage-orphans    So 04:30    Objekte ohne Nachweis-Zeile in die Purge-Warteschlange
-//   wallet-sync        jede Minute Bewegungen und Stand der Wallet-Konten von den
-//                                  eigenen Knoten (nur mit WALLET_RPC_*, eine Instanz)
-//   price-tick         jede Minute Chainlink-Kurse über den eigenen Ethereum-Knoten
-//                                  (+ Verlauf rückwärts auffüllen, eine Instanz)
-//   wallet-payouts     jede Minute Auszahlungen und Adressbuch: Stand aus dem Signer,
-//                                  signieren, senden, verfolgen (nur mit SIGNER_SOCKET,
-//                                  eine Instanz — einziger Schreiber)
+// Die Wallet-Jobs (wallet-sync, price-tick, wallet-payouts) laufen seit K6 nur
+// noch in both.money (apps/wallet/lib/jobs); alte Zeitpläne räumt der Start ab.
 
 export const JOBS = {
 	complianceTick: "compliance-tick",
@@ -50,25 +40,16 @@ export const JOBS = {
 	storagePurge: "storage-purge",
 	storageOrphans: "storage-orphans",
 	quickCheck: QUICK_CHECK_JOB,
-	walletSync: "wallet-sync",
-	priceTick: "price-tick",
-	walletPayouts: "wallet-payouts",
 } as const;
+
+// Frühere Wallet-Jobs in Klick (bis K6) — Zeitpläne entfernen
+const LEGACY_JOBS = ["wallet-sync", "price-tick", "wallet-payouts"] as const;
 
 const TZ = "Europe/Berlin";
 
 export async function registerJobs(boss: PgBoss): Promise<void> {
-	for (const name of Object.values(JOBS)) {
-		// wallet-sync: nie zwei Läufe gleichzeitig (Knoten-Abfragen dauern)
-		await boss.createQueue(
-			name,
-			name === JOBS.walletSync ||
-				name === JOBS.priceTick ||
-				name === JOBS.walletPayouts
-				? { policy: "singleton" }
-				: undefined,
-		);
-	}
+	for (const name of Object.values(JOBS)) await boss.createQueue(name);
+	for (const name of LEGACY_JOBS) await boss.unschedule(name).catch(() => {});
 
 	await boss.schedule(JOBS.complianceTick, "0 * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.notificationMail, "*/5 * * * *", {}, { tz: TZ });
@@ -78,16 +59,6 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.schedule(JOBS.verifyAuditChain, "0 4 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.storagePurge, "30 3 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.storageOrphans, "30 4 * * 0", {}, { tz: TZ });
-	const networks = configuredNetworks();
-	if (networks.length > 0)
-		await boss.schedule(JOBS.walletSync, "* * * * *", {}, { tz: TZ });
-	else await boss.unschedule(JOBS.walletSync).catch(() => {});
-	if (networks.some((n) => n.startsWith("ethereum")))
-		await boss.schedule(JOBS.priceTick, "* * * * *", {}, { tz: TZ });
-	else await boss.unschedule(JOBS.priceTick).catch(() => {});
-	if (signerConfigured())
-		await boss.schedule(JOBS.walletPayouts, "* * * * *", {}, { tz: TZ });
-	else await boss.unschedule(JOBS.walletPayouts).catch(() => {});
 
 	await boss.work(JOBS.complianceTick, async () => {
 		await runComplianceTick();
@@ -114,15 +85,6 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	});
 	await boss.work(JOBS.storageOrphans, async () => {
 		await runStorageOrphans();
-	});
-	await boss.work(JOBS.walletSync, async () => {
-		await runWalletSync();
-	});
-	await boss.work(JOBS.priceTick, async () => {
-		await runPriceTick();
-	});
-	await boss.work(JOBS.walletPayouts, async () => {
-		await runWalletPayouts();
 	});
 	// Schnellcheck auf Anfrage: höchstens zwei gleichzeitig je Prozess
 	await boss.work<QuickCheckJob>(

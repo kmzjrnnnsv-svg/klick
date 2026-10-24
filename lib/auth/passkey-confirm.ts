@@ -13,7 +13,6 @@ import {
 	verification,
 } from "@/db/auth-schema";
 import { auditPlatform } from "@/lib/audit";
-import { passkeyOldEnough } from "./session-rules";
 
 // Bestätigen mit Passkey für die LAUFENDE Sitzung (ADR-019): zweiter Faktor
 // nach einer Mail-Link-Anmeldung („mfa“) oder Step-up vor einer sensiblen
@@ -22,9 +21,7 @@ import { passkeyOldEnough } from "./session-rules";
 // (gleiche Version wie im Plugin), verlangen Nutzerverifikation und setzen
 // nur Zeitstempel an der bestehenden Sitzung.
 
-// „wallet“ entsperrt den Wallet-Bereich (15 min, nur diese Org) — setzt
-// weder Step-up noch MFA.
-export type ConfirmPurpose = "mfa" | "stepup" | "wallet";
+export type ConfirmPurpose = "mfa" | "stepup";
 
 const CHALLENGE_MS = 5 * 60 * 1000;
 
@@ -74,7 +71,7 @@ export async function passkeyConfirmOptions(input: {
 
 export type PasskeyConfirmResult =
 	| { ok: true }
-	| { ok: false; error: "invalid" | "expired" | "passkey_too_new" };
+	| { ok: false; error: "invalid" | "expired" };
 
 export async function verifyPasskeyConfirm(input: {
 	userId: string;
@@ -83,23 +80,16 @@ export async function verifyPasskeyConfirm(input: {
 	response: AuthenticationResponseJSON;
 	ip: string | null;
 	userAgent: string | null;
-	// nur „wallet“: Org, für die entsperrt wird, und ob Echtgeld aktiv ist
-	// (dann zählen nur Passkeys ≥ 72 h)
-	wallet?: { orgId: string; liveEnabled: boolean };
 }): Promise<PasskeyConfirmResult> {
 	const actor = {
 		userId: input.userId,
 		ip: input.ip,
 		userAgent: input.userAgent,
 	};
-	const failed = async (error: "invalid" | "expired" | "passkey_too_new") => {
+	const failed = async (error: "invalid" | "expired") => {
 		await auditPlatform(actor, {
 			action:
-				input.purpose === "mfa"
-					? "auth.2fa_failed"
-					: input.purpose === "wallet"
-						? "wallet.unlock_failed"
-						: "auth.step_up_failed",
+				input.purpose === "mfa" ? "auth.2fa_failed" : "auth.step_up_failed",
 			outcome: "failure",
 			after: { method: "passkey", reason: error },
 		});
@@ -152,14 +142,6 @@ export async function verifyPasskeyConfirm(input: {
 	}
 	if (!verified.verified || !verified.authenticationInfo.userVerified)
 		return failed("invalid");
-	if (
-		input.purpose === "wallet" &&
-		(!input.wallet ||
-			!passkeyOldEnough(pk.createdAt, {
-				liveEnabled: input.wallet.liveEnabled,
-			}))
-	)
-		return failed(input.wallet ? "passkey_too_new" : "invalid");
 
 	const now = new Date();
 	// Zähler nur fortschreiben, wenn er sich seit dem Lesen nicht geändert
@@ -176,13 +158,7 @@ export async function verifyPasskeyConfirm(input: {
 		.set(
 			input.purpose === "mfa"
 				? { mfaVerifiedAt: now, lastActiveAt: now }
-				: input.purpose === "wallet"
-					? {
-							walletUnlockedAt: now,
-							walletUnlockOrgId: input.wallet?.orgId ?? null,
-							lastActiveAt: now,
-						}
-					: { stepUpAt: now, lastActiveAt: now },
+				: { stepUpAt: now, lastActiveAt: now },
 		)
 		.where(
 			and(
@@ -191,17 +167,9 @@ export async function verifyPasskeyConfirm(input: {
 			),
 		);
 	await auditPlatform(actor, {
-		action:
-			input.purpose === "mfa"
-				? "auth.2fa_verified"
-				: input.purpose === "wallet"
-					? "wallet.unlocked"
-					: "auth.step_up",
+		action: input.purpose === "mfa" ? "auth.2fa_verified" : "auth.step_up",
 		target: `session:${input.sessionId}`,
-		after: {
-			method: "passkey",
-			...(input.wallet ? { orgId: input.wallet.orgId } : {}),
-		},
+		after: { method: "passkey" },
 	});
 	return { ok: true };
 }

@@ -32,7 +32,6 @@ import {
 import { previousBusinessDay, reconcile } from "@/lib/custody/reconcile";
 import { readOrg } from "@/lib/db/with-org";
 import { CONTROL_STATUS } from "@/lib/entities/control";
-import { listWalletAccounts } from "@/lib/wallet/queries";
 import { nodeHoldings } from "@/lib/wallet/reconcile-source";
 import { cryptoHoldingAccounts } from "@/lib/wallet-link-ingest/queries";
 
@@ -99,11 +98,8 @@ export default async function CustodyPage({
 			tx,
 			recs.flatMap((r) => [r.preparedByUserId, r.reviewedByUserId]),
 		);
-		// Bestand der Kundenkonten laut eigenen Knoten (Wallet-Bereich)
-		const holdings = nodeHoldings([
-			...(await listWalletAccounts(tx, ctx.orgId)),
-			...(await cryptoHoldingAccounts(tx, ctx.orgId)),
-		]);
+		// Bestand der Kundenkonten laut letztem Tagesabschluss aus both.money
+		const holdings = nodeHoldings(await cryptoHoldingAccounts(tx, ctx.orgId));
 		return {
 			walletRows,
 			recs,

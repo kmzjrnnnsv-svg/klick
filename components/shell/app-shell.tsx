@@ -4,12 +4,9 @@ import type { ReactNode } from "react";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import type { OrgContext } from "@/lib/auth/guards";
 import { isExternal, ROLE_LABEL } from "@/lib/auth/memberships";
-import { allows } from "@/lib/auth/permissions";
-import { type NavGroup, navTabs } from "@/lib/nav";
-import { AreaSwitcher, type ShellArea } from "./area-switcher";
+import type { NavGroup } from "@/lib/nav";
 import { CommandPalette } from "./command-palette";
 import { LegalLinks } from "./legal-links";
-import { MobileNav } from "./mobile-nav";
 import type { BellItem } from "./notification-bell";
 import { NotificationBell } from "./notification-bell";
 import { OrgSwitcher, type SwitcherOrg } from "./org-switcher";
@@ -23,8 +20,6 @@ export async function AppShell({
 	orgs,
 	groups,
 	bell,
-	area = "compliance",
-	walletEnabled = false,
 	children,
 }: {
 	ctx: OrgContext;
@@ -33,17 +28,10 @@ export async function AppShell({
 	orgs: readonly SwitcherOrg[];
 	groups: NavGroup[];
 	bell: { items: BellItem[]; unread: number };
-	// Compliance oder Wallet: bestimmt Startseite und Umschalter
-	area?: ShellArea;
-	// Wallet-Bereich für die Org eingeschaltet (org_settings.wallet_enabled)
-	walletEnabled?: boolean;
 	children: ReactNode;
 }) {
 	const t = await getTranslations("Common");
-	const home = area === "wallet" ? "/wallet" : "/heute";
-	const walletAccess = walletEnabled && allows(ctx, { wallet: ["read"] });
-	// Am Handy Tab-Leiste (Apple HIG); ohne Tabs (Wallet-Bereich) das Menü
-	const tabBar = navTabs(groups).length > 0;
+	const home = "/heute";
 	return (
 		<div className="flex min-h-dvh">
 			{/* Sidebar klebt in Fensterhöhe; nur die Navigation scrollt. Flex-Kinder
@@ -85,23 +73,11 @@ export async function AppShell({
 			</aside>
 			<div className="flex min-w-0 flex-1 flex-col">
 				<header className="material-bar sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-border/60 border-b pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] sm:px-6">
-					{!tabBar && (
-						<MobileNav
-							groups={groups}
-							orgName={orgName}
-							canSwitch={orgs.length > 1}
-						/>
-					)}
 					<Link href={home} className="px-1 font-bold text-headline lg:hidden">
 						{t("productName")}
 					</Link>
-					{walletAccess && (
-						<div className="ml-1 sm:ml-2 lg:ml-0">
-							<AreaSwitcher area={area} />
-						</div>
-					)}
 					<div className="ml-auto flex items-center gap-1">
-						<CommandPalette groups={groups} tabBar={tabBar} />
+						<CommandPalette groups={groups} tabBar />
 						<NotificationBell items={bell.items} unread={bell.unread} />
 						<UserMenu
 							name={ctx.name}
@@ -118,7 +94,7 @@ export async function AppShell({
 					{children}
 				</main>
 				<LegalLinks />
-				{tabBar && <TabBar groups={groups} />}
+				<TabBar groups={groups} />
 				<StepUpDialog passkey={ctx.hasPasskey} totp={ctx.hasTotp} />
 			</div>
 		</div>

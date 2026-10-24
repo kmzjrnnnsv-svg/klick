@@ -3,8 +3,8 @@ import {
 	activeNavKey,
 	activeNavTab,
 	buildNav,
-	buildWalletNav,
 	countNavTargets,
+	type NavGroup,
 	navTabs,
 } from "@/lib/nav";
 
@@ -145,18 +145,32 @@ describe("buildNav: Verwahrung", () => {
 });
 
 describe("activeNavKey", () => {
-	const wallet = buildWalletNav();
+	const groups: NavGroup[] = [
+		{
+			key: "today",
+			items: [
+				{ key: "today", href: "/heute", icon: "sun" },
+				{ key: "tasks", href: "/heute/aufgaben", icon: "list-checks" },
+				{
+					key: "fw",
+					href: "/rahmenwerke",
+					match: ["/rahmenwerk-vergleich"],
+					icon: "book-open",
+				},
+			],
+		},
+	];
 	it("der spezifischste Pfad gewinnt", () => {
-		expect(activeNavKey(wallet, "/wallet")).toBe("wallet-home");
-		expect(activeNavKey(wallet, "/wallet/kurse")).toBe("wallet-quotes");
-		expect(activeNavKey(wallet, "/wallet/konten/abc")).toBe("wallet-accounts");
+		expect(activeNavKey(groups, "/heute")).toBe("today");
+		expect(activeNavKey(groups, "/heute/aufgaben")).toBe("tasks");
+		expect(activeNavKey(groups, "/heute/freigaben")).toBe("today");
 	});
 	it("Zusatzpfade (Detailseiten) markieren ihren Eintrag", () => {
-		expect(activeNavKey(wallet, "/wallet/kurs/btc-eur")).toBe("wallet-quotes");
-		expect(activeNavKey(wallet, "/wallet/kursx")).toBe("wallet-home");
+		expect(activeNavKey(groups, "/rahmenwerk-vergleich/x")).toBe("fw");
+		expect(activeNavKey(groups, "/heutex")).toBeNull();
 	});
 	it("fremde Pfade markieren nichts", () => {
-		expect(activeNavKey(wallet, "/heute")).toBeNull();
+		expect(activeNavKey(groups, "/risiken")).toBeNull();
 	});
 });
 
@@ -222,9 +236,5 @@ describe("Tab-Leiste (Apple HIG)", () => {
 		);
 		expect(auditor.map((t) => t.key)).toContain("register");
 		expect(auditor.length).toBeLessThanOrEqual(5);
-	});
-
-	it("Wallet-Bereich (alte Navigation) hat keine Tabs", () => {
-		expect(navTabs(buildWalletNav({ send: true }))).toEqual([]);
 	});
 });
