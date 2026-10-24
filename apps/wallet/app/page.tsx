@@ -1,12 +1,14 @@
+import { LockButton } from "@wallet/components/auth/lock-button";
+import { SignOutButton } from "@wallet/components/auth/sign-out-button";
+import { requireUnlockedPage } from "@wallet/lib/auth/gates";
+import { ROLE_LABEL } from "@wallet/lib/auth/permissions";
 import { getTranslations } from "next-intl/server";
-import { Button } from "@/components/ui/button";
-import { NETWORKS } from "@/lib/wallet/core/networks";
 
-// Startseite von both.money. Anmelden und die Wallet selbst folgen (W2/W3);
-// die Netzliste beweist, dass geteilte Bausteine von der Repo-Wurzel laden.
+// Startseite von both.money: angemeldet und entsperrt. Rahmen mit Navigation
+// und die Wallet selbst folgen (W2c/W3).
 export default async function HomePage() {
 	const t = await getTranslations("Home");
-	const testnets = Object.values(NETWORKS).filter((n) => !n.live);
+	const ctx = await requireUnlockedPage("/");
 	return (
 		<main
 			id="inhalt"
@@ -15,10 +17,11 @@ export default async function HomePage() {
 			<h1 className="font-serif-display text-4xl text-primary">both.money</h1>
 			<p className="text-lg leading-relaxed">{t("lead")}</p>
 			<p className="text-muted-foreground text-sm">
-				{t("invite")} · {testnets.map((n) => n.label).join(", ")}
+				{ctx.name} · {ctx.orgName} · {ROLE_LABEL[ctx.role]}
 			</p>
-			<div>
-				<Button disabled>{t("login")}</Button>
+			<div className="flex gap-3">
+				<LockButton />
+				<SignOutButton />
 			</div>
 		</main>
 	);

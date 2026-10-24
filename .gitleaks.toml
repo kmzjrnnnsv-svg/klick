@@ -7,3 +7,16 @@ paths = [
   '''\.env\.example''',
   '''db/migrations/.*\.sql''',
 ]
+
+# Eigene Token-Präfixe (ADR-017/019): Klick klk_…, both.money kwl_…
+[[rules]]
+id = "klick-token"
+description = "Klick-Token (Einladung, Zurücksetzen, Aktivieren, Portal, Trust Center, CI, Wallet-Export)"
+regex = '''\bklk_[a-z]+_[A-Za-z0-9_-]{32,}'''
+keywords = ["klk_"]
+
+[[rules]]
+id = "both-money-link"
+description = "both.money-Link-Token (Einladung, Zurücksetzen, Aktivieren)"
+regex = '''\bkwl_(invite|recover|activate)_[A-Za-z0-9_-]{32,}'''
+keywords = ["kwl_"]

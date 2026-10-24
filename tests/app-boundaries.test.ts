@@ -50,6 +50,7 @@ const SHARED: readonly string[] = [
 // Zusätzlich für apps/wallet erlaubt (UI und Laufzeit-Helfer ohne Klick-DB)
 const WALLET_EXTRA: readonly string[] = [
 	"components/ui/",
+	"lib/actions/safe",
 	"lib/utils",
 	"lib/log",
 	"lib/rate-limit",

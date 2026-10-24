@@ -118,7 +118,8 @@
 											"!@/lib/rate-limit",
 											"!@/lib/observability/glitchtip",
 											"!@/signer/client",
-											"!@/styles/**"
+											"!@/styles/**",
+											"!@/lib/actions/safe"
 										],
 										"message": "both.money nutzt aus Klick nur geteilte, reine Module (Liste in tests/app-boundaries.test.ts) — nie Datenbank, Auth oder Fachcode."
 									}
@@ -188,7 +189,8 @@
 											"!@/lib/rate-limit",
 											"!@/lib/observability/glitchtip",
 											"!@/signer/client",
-											"!@/styles/**"
+											"!@/styles/**",
+											"!@/lib/actions/safe"
 										],
 										"message": "both.money nutzt aus Klick nur geteilte, reine Module (Liste in tests/app-boundaries.test.ts) — nie Datenbank, Auth oder Fachcode."
 									}

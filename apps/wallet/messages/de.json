@@ -11,5 +11,56 @@
 	"Legal": {
 		"imprint": "Impressum",
 		"privacy": "Datenschutz"
+	},
+	"Auth": {
+		"loginTitle": "Anmelden",
+		"loginLead": "Mit deinem Passkey – Fingerabdruck, Gesicht oder Geräte-PIN. Ein Passwort gibt es nicht.",
+		"passkey": "Mit Passkey anmelden",
+		"passkeyBusy": "Warte auf deinen Passkey …",
+		"email": "E-Mail-Adresse",
+		"emailHint": "Optional: Dein Browser schlägt passende Passkeys direkt im Feld vor.",
+		"passkeyCancelled": "Abgebrochen. Versuch es noch einmal, wenn du so weit bist.",
+		"passkeySignInFailed": "Anmeldung nicht möglich. Nutze den Passkey, den du für both.money angelegt hast.",
+		"passkeyFailed": "Bestätigung fehlgeschlagen. Versuch es noch einmal.",
+		"passkeyExpired": "Die Anfrage ist abgelaufen. Versuch es noch einmal.",
+		"confirmPasskey": "Mit Passkey bestätigen",
+		"confirmPasskeyBusy": "Warte auf deinen Passkey …",
+		"noAccount": "Kein Zugang? both.money gibt es nur per Einladung. Frag die Person, die eure Organisation verwaltet.",
+		"lost": "Passkey verloren? Wende dich an die Inhaber:in deiner Organisation oder an no-reply@raza.work.",
+		"signOut": "Abmelden"
+	},
+	"Link": {
+		"checking": "Link wird geprüft …",
+		"incomplete": "Der Link ist unvollständig. Öffne ihn bitte noch einmal vollständig aus der Nachricht.",
+		"invalid": "Der Link ist abgelaufen oder wurde schon benutzt. Bitte um einen neuen.",
+		"activateTitle": "Konto aktivieren",
+		"activateLead": "Hallo {name}, lege jetzt deinen Passkey für {email} an. Damit meldest du dich künftig an und bestätigst wichtige Schritte.",
+		"recoverTitle": "Neuen Passkey anlegen",
+		"recoverLead": "Dein Zugang für {email} wurde zurückgesetzt. Lege einen neuen Passkey an.",
+		"inviteTitle": "Einladung",
+		"inviteLead": "Du bist als {role} zu {organization} eingeladen ({email}).",
+		"name": "Dein Name",
+		"create": "Passkey anlegen",
+		"createBusy": "Warte auf deinen Passkey …",
+		"accountExists": "Für {email} gibt es schon ein Konto. Melde dich an und nimm die Einladung danach an.",
+		"signInToAccept": "Anmelden und annehmen",
+		"signedInOther": "Du bist als {current} angemeldet, die Einladung gilt für {email}. Melde dich ab und öffne den Link noch einmal.",
+		"accept": "Einladung annehmen",
+		"acceptBusy": "Wird angenommen …",
+		"errorUv": "Dein Gerät hat die Nutzerverifikation (Fingerabdruck, Gesicht oder PIN) nicht bestätigt.",
+		"errorRegistered": "Dieser Passkey ist schon angelegt.",
+		"errorGeneric": "Das hat nicht geklappt. Versuch es noch einmal oder bitte um einen neuen Link.",
+		"wrongAccount": "Diese Einladung gilt für eine andere Adresse."
+	},
+	"Unlock": {
+		"title": "Entsperren",
+		"lead": "Bestätige mit deinem Passkey. Danach bleibt {org} 15\u00a0Minuten entsperrt – Aktivität verlängert das nicht.",
+		"lock": "Jetzt sperren"
+	},
+	"Orgs": {
+		"title": "Organisation wählen",
+		"lead": "Du hast Zugang zu mehreren Organisationen.",
+		"none": "Du gehörst noch zu keiner Organisation. Bitte um eine Einladung.",
+		"choose": "Öffnen"
 	}
 }
