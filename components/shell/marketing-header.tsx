@@ -1,7 +1,6 @@
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -59,7 +58,6 @@ export async function MarketingHeader({
 							))}
 						</nav>
 					</details>
-					<ThemeSwitcher />
 					{showLogin && (
 						<Link
 							href="/login"

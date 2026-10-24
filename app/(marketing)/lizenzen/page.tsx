@@ -17,12 +17,6 @@ type Row = {
 	homepage?: string;
 };
 
-const FONTS = [
-	{ name: "Jost", by: "Owen Earl (indestructible type*)" },
-	{ name: "Cormorant Garamond", by: "Christian Thalmann (Catharsis Fonts)" },
-	{ name: "JetBrains Mono", by: "JetBrains s.r.o." },
-];
-
 export default async function LicensesPage() {
 	const t = await getTranslations("Licenses");
 	const groups = new Map<string, Row[]>();
@@ -45,13 +39,7 @@ export default async function LicensesPage() {
 			<p className="mt-6 max-w-[56ch] leading-relaxed">{t("lead")}</p>
 
 			<h2 className="mt-10 font-medium text-lg">{t("fontsTitle")}</h2>
-			<ul className="mt-3 space-y-1">
-				{FONTS.map((f) => (
-					<li key={f.name}>
-						<span translate="no">{f.name}</span> — {f.by}, {t("fontsLicense")}
-					</li>
-				))}
-			</ul>
+			<p className="mt-3 max-w-[56ch] leading-relaxed">{t("fontsNone")}</p>
 
 			<h2 className="mt-10 font-medium text-lg">{t("imagesTitle")}</h2>
 			<p className="mt-3 max-w-[56ch] leading-relaxed">{t("images")}</p>

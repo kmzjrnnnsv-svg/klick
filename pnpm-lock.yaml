@@ -98,9 +98,6 @@ importers:
       next-intl:
         specifier: ^4.14.8
         version: 4.14.8(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.1(@playwright/test@1.63.0)(@types/node@22.20.4)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
-      next-themes:
-        specifier: ^0.4.6
-        version: 0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       nodemailer:
         specifier: ^10.0.13
         version: 10.0.13
@@ -3789,12 +3786,6 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
-
-  next-themes@0.4.6:
-    resolution: {integrity: sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA==}
-    peerDependencies:
-      react: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
 
   next@16.4.1:
     resolution: {integrity: sha512-uc657V62E34fOI6W5NtG9IzwsPcms0Z60grz2MJGtglgD+pTFnNt4Yw2PzaU622tfX4vhrDgLZzicE2YlhI20Q==}
@@ -8195,11 +8186,6 @@ snapshots:
       '@types/react': 19.3.0
     transitivePeerDependencies:
       - '@swc/helpers'
-
-  next-themes@0.4.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
-    dependencies:
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
 
   next@16.4.1(@playwright/test@1.63.0)(@types/node@22.20.4)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:

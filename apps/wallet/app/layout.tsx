@@ -1,32 +1,10 @@
 import { LegalFooter } from "@wallet/components/legal/footer";
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, JetBrains_Mono, Jost } from "next/font/google";
 import { headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
-
-const jost = Jost({
-	variable: "--font-sans-display",
-	subsets: ["latin"],
-	display: "swap",
-	weight: ["300", "400", "500", "600", "700"],
-});
-
-const cormorant = Cormorant_Garamond({
-	variable: "--font-serif-display",
-	subsets: ["latin"],
-	display: "swap",
-	weight: ["400", "500", "600", "700"],
-	style: ["normal", "italic"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-	variable: "--font-jetbrains-mono",
-	subsets: ["latin"],
-	display: "swap",
-});
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations("Meta");
@@ -41,8 +19,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const viewport: Viewport = {
 	themeColor: [
-		{ media: "(prefers-color-scheme: light)", color: "#f8f6f0" },
-		{ media: "(prefers-color-scheme: dark)", color: "#1c1c1c" },
+		{ media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
+		{ media: "(prefers-color-scheme: dark)", color: "#000000" },
 	],
 	width: "device-width",
 	initialScale: 1,
@@ -60,10 +38,7 @@ export default async function RootLayout({
 	const locale = await getLocale();
 	const messages = await getMessages();
 	return (
-		<html
-			lang={locale}
-			className={`${jost.variable} ${cormorant.variable} ${jetbrainsMono.variable} h-full antialiased`}
-		>
+		<html lang={locale} className="h-full antialiased">
 			<body className="flex min-h-full flex-col bg-background text-foreground">
 				<NextIntlClientProvider locale={locale} messages={messages}>
 					{children}

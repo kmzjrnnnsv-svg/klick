@@ -8,7 +8,7 @@ export { buildCsp };
 //   1. Tenant-Subdomain → x-org-slug (nur Branding/Pre-Select, nie Autorisierung).
 //   2. Nonce-CSP je Request: script-src 'nonce-…' 'strict-dynamic' statt
 //      'unsafe-inline'. Next liest den Nonce aus dem CSP-Request-Header und
-//      setzt ihn auf Framework-Skripte; next-themes bekommt ihn als Prop.
+//      setzt ihn auf Framework-Skripte (Root-Layout rendert dafür dynamisch).
 // Die übrigen Security-Header kommen weiterhin aus next.config.ts.
 
 // Subdomains, die nie ein Mandant sind (eigene Dienste auf eigener Herkunft)

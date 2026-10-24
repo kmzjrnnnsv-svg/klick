@@ -2278,12 +2278,6 @@
 		"homepage": "https://next-intl.dev"
 	},
 	{
-		"name": "next-themes",
-		"version": "0.4.6",
-		"license": "MIT",
-		"homepage": "https://github.com/pacocoursey/next-themes#readme"
-	},
-	{
 		"name": "node-addon-api",
 		"version": "7.1.1",
 		"license": "MIT",
@@ -3229,7 +3223,7 @@
 	},
 	{
 		"name": "zod",
-		"version": "4.6.5",
+		"version": "4.6.7",
 		"license": "MIT",
 		"author": "Colin McDonnell",
 		"homepage": "https://zod.dev"

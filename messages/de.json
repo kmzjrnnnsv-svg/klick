@@ -5866,7 +5866,7 @@
 		"title": "Lizenzen",
 		"lead": "Klick nutzt Open-Source-Software und freie Schriften. Hier stehen die Lizenzen und die Urheber:innen. Die vollständigen Lizenztexte liegen den Paketen bei; die Links führen zu den Projekten.",
 		"fontsTitle": "Schriften",
-		"fontsLicense": "SIL Open Font License 1.1, auf unserem Server gehostet",
+		"fontsNone": "Klick lädt keine Schriften aus dem Netz: Texte erscheinen in der Systemschrift deines Geräts.",
 		"imagesTitle": "Bilder",
 		"images": "Die Bilder auf den Seiten „Leistungen“ und „Funktionen“ sind Bildschirmfotos aus Klick mit erfundenen Beispieldaten. Das Logo ist eine eigene Gestaltung.",
 		"packagesTitle": "Software-Pakete",

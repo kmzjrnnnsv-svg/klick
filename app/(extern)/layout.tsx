@@ -1,7 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { LegalLinks } from "@/components/shell/legal-links";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 
 // Externe Zugänge ohne Konto (Lieferantenportal, ADR-017): kein AppShell,
 // keine Navigation in die App, nie statisch vorrendern.
@@ -20,7 +19,6 @@ export default async function ExternLayout({
 					<span className="lv-wordmark text-[0.95rem] text-foreground">
 						{t("productName")}
 					</span>
-					<ThemeSwitcher />
 				</div>
 			</header>
 			<main

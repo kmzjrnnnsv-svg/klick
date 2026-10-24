@@ -2,7 +2,6 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { LegalLinks } from "@/components/shell/legal-links";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 
 // Geführte Einrichtung (D0): ruhiges Layout ohne Sidebar, breiter als die
 // Anmeldeseiten. Sitzung je Request — nie statisch vorrendern.
@@ -24,7 +23,6 @@ export default async function SetupLayout({
 					>
 						{t("productName")}
 					</Link>
-					<ThemeSwitcher />
 				</div>
 			</header>
 			<main

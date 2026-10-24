@@ -3,7 +3,6 @@ import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import { LegalLinks } from "@/components/shell/legal-links";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { buttonVariants } from "@/components/ui/button";
 import { gateAdmin } from "@/lib/auth/gates";
 import { getSessionCtx } from "@/lib/auth/guards";
@@ -52,7 +51,6 @@ export default async function AdminLayout({
 						))}
 					</nav>
 					<div className="ml-auto flex items-center gap-1">
-						<ThemeSwitcher />
 						<Link
 							href="/heute"
 							className={cn(buttonVariants({ variant: "outline", size: "sm" }))}

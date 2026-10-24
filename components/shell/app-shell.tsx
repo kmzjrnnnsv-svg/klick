@@ -2,7 +2,6 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import type { OrgContext } from "@/lib/auth/guards";
 import { isExternal, ROLE_LABEL } from "@/lib/auth/memberships";
 import { allows } from "@/lib/auth/permissions";
@@ -99,7 +98,6 @@ export async function AppShell({
 					<div className="ml-auto flex items-center gap-1">
 						<CommandPalette groups={groups} />
 						<NotificationBell items={bell.items} unread={bell.unread} />
-						<ThemeSwitcher />
 						<UserMenu
 							name={ctx.name}
 							email={ctx.email}

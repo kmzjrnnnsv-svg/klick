@@ -1,19 +1,25 @@
-/* Grundstile (Seite, Typografie, Ligaturen) — gemeinsam für Klick und
-   both.money. Eingebunden nach tailwindcss und tokens.css. */
+/* Grundstile (Seite, Typografie) nach den Apple Human Interface Guidelines —
+   gemeinsam für Klick und both.money. Eingebunden nach tailwindcss und
+   tokens.css. Regeln: docs/design/hig.md. */
 
 /* Nur html auf Fensterhöhe; body wächst mit dem Inhalt (min-h-full im Layout).
    Ein festes body { height: 100% } klemmt die Shell auf Fensterhöhe — Header
    und Sidebar verlieren dann nach einem Bildschirm ihren sticky-Halt. */
 html {
 	height: 100%;
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
 }
 
 body {
 	background: var(--background);
 	color: var(--foreground);
 	font-family: var(--font-sans);
-	font-feature-settings: "ss01", "cv11";
+	/* Body nach Dynamic Type (17/22) */
+	font-size: var(--text-body);
+	line-height: var(--text-body--line-height);
 	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 	text-rendering: optimizeLegibility;
 }
 
@@ -21,45 +27,79 @@ body {
 	background: oklch(from var(--primary) l c h / 0.25);
 }
 
-/* LV-inspired typographic utilities */
+/* Überschriften: Systemschrift, Gewicht statt Schriftwechsel (Large Title
+   und Titel fett bzw. halbfett), keine dünnen Schnitte */
+h1,
+h2,
+h3 {
+	font-family: var(--font-sans);
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+h1 {
+	font-weight: 700;
+}
+
+/* Frühere Gestaltungs-Klassen (Maison), umgedeutet bis zum Umbau der Seiten:
+   keine Versalien, keine Sperrung, keine Serifen (HIG: Abschnittsköpfe nicht
+   in Großbuchstaben; Schrift ab 11 px). Neue Stellen nutzen die Textstile
+   text-large-title … text-caption-2 aus tokens.css. */
 .font-serif-display {
-	font-family: var(--font-serif);
-	font-weight: 500;
+	font-family: var(--font-sans);
+	font-weight: 600;
 	letter-spacing: -0.01em;
 }
 
 .lv-eyebrow {
 	font-family: var(--font-sans);
+	font-size: var(--text-footnote);
+	line-height: var(--text-footnote--line-height);
 	font-weight: 500;
-	text-transform: uppercase;
-	/* ab 11 px (Impeccable-Untergrenze) reicht weniger Sperrung */
-	letter-spacing: 0.16em;
+	text-transform: none;
+	letter-spacing: 0;
 }
 
 .lv-wordmark {
 	font-family: var(--font-sans);
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.32em;
+	font-weight: 700;
+	text-transform: none;
+	letter-spacing: -0.01em;
 }
 
 .lv-nav {
 	font-family: var(--font-sans);
-	font-weight: 400;
-	text-transform: uppercase;
-	letter-spacing: 0.18em;
+	font-weight: 500;
+	text-transform: none;
+	letter-spacing: 0;
 }
 
-h1,
-h2,
-h3 {
-	font-family: var(--font-serif);
-	font-weight: 500;
-	letter-spacing: -0.005em;
+/* Materialien nur in der Bedienebene (Kopf-, Seiten-, Tab-Leiste), nie im
+   Inhalt; massiv bei reduzierter Transparenz oder erhöhtem Kontrast
+   (--bar fällt in tokens.css auf --bar-solid zurück) */
+.material-bar {
+	background: var(--bar);
+	-webkit-backdrop-filter: saturate(180%) blur(20px);
+	backdrop-filter: saturate(180%) blur(20px);
 }
 
-h1 {
-	font-weight: 500;
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+	.material-bar {
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
+}
+
+/* Bewegung: bei reduzierter Bewegung nur Überblendung, keine Wege */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		scroll-behavior: auto !important;
+		transition-duration: 0.01ms !important;
+	}
 }
 
 @layer base {
@@ -71,14 +111,23 @@ h1 {
 	fieldset {
 		min-inline-size: 0;
 	}
-	/* JetBrains Mono setzt „||“, „->“, „!=“ als Ligatur — Hashes, Adressen
-	   und der Absichtstext des Signers müssen Zeichen für Zeichen stimmen */
+	/* Hashes, Adressen und der Absichtstext des Signers müssen Zeichen für
+	   Zeichen stimmen: keine Ligaturen in Monospace */
 	code,
 	pre,
 	kbd,
 	samp,
 	.font-mono {
 		font-variant-ligatures: none;
+	}
+	/* Tippen ohne Zoom-Verzögerung, kein grauer Blitz auf iOS */
+	a,
+	button,
+	[role="button"],
+	label,
+	summary {
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
 	}
 }
 

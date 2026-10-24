@@ -4,7 +4,6 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { LegalLinks } from "@/components/shell/legal-links";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { WalletLockStrip } from "@/components/wallet/lock-strip";
 import { requireWalletAreaPage } from "@/lib/auth/gates";
 import { WALLET_UNLOCK_MS } from "@/lib/auth/session-rules";
@@ -40,7 +39,6 @@ export default async function WalletIntroLayout({
 							{tn("groupWallet")}
 						</span>
 					</Link>
-					<ThemeSwitcher />
 				</div>
 			</header>
 			<main
