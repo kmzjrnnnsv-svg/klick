@@ -573,6 +573,16 @@ both.money auf einen eigenen Server — dann ändern sich nur Units, Credentials
     `signer.conf` für both.money, `systemctl restart both`. Hot-Konto in both.money anlegen, Faucet.
 13. **Prüfen:** `pnpm wallet:check` (Knoten, Token-Verträge, Kursfeeds, Signer mit Herkunft
     `https://approve.both.money`), `systemd-analyze security both` ≤ 2.0.
+14. **Mit Klick verbinden:** Klick zuerst releasen (Migration 0033). In Klick unter Einstellungen →
+    Integrationen → „both.money verbinden“ ein Token ausstellen (Step-up, einmal sichtbar), in
+    both.money unter Organisation → Compliance-Export → „Mit Klick verbinden“ mit Adresse
+    `https://raza.work` eintragen, Konten „alle“, Nachlieferung ab Jahresbeginn. Prüfen: in Klick
+    `/krypto` (Statusleiste „Läuft“, Konten mit Register-Eintrag `W-…`), `/verwahrung` (neue
+    Wallets „(both.money)“: Technik, Schlüsselinhaber:innen und Backup-Test ergänzen), in
+    both.money Compliance-Export „nichts offen“. Am nächsten Morgen: Tagesabschluss in `/krypto`.
+15. **Sicherheitsschlüssel**, sobald sie da sind: je Person `klick-signer-admin enrol --person
+    <User-ID>`, Link auf `approve.both.money` öffnen. Danach in Klick unter `/krypto` die Zeremonie
+    (Richtlinie, Anzahl Schlüssel) und unter `/verwahrung` das Quorum der Hot-Wallet prüfen.
 
 Befehle am Terminal brauchen dieselben Werte wie der Dienst:
 
