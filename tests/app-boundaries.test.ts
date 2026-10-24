@@ -45,12 +45,17 @@ const SHARED: readonly string[] = [
 	"lib/crypto/envelope",
 	"lib/crypto/kms",
 	"lib/crypto/fields",
+	"lib/validation/common",
+	"lib/validation/wallet",
 ];
 
 // Zusätzlich für apps/wallet erlaubt (UI und Laufzeit-Helfer ohne Klick-DB)
 const WALLET_EXTRA: readonly string[] = [
 	"components/ui/",
+	"components/page-header",
+	"components/entity/empty-state",
 	"lib/actions/safe",
+	"lib/csv",
 	"lib/utils",
 	"lib/log",
 	"lib/rate-limit",

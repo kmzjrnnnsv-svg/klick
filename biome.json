@@ -112,14 +112,19 @@
 											"!@/lib/crypto/envelope",
 											"!@/lib/crypto/kms",
 											"!@/lib/crypto/fields",
+											"!@/lib/validation/common",
+											"!@/lib/validation/wallet",
 											"!@/components/ui/**",
+											"!@/components/page-header",
+											"!@/components/entity/empty-state",
 											"!@/lib/utils",
 											"!@/lib/log",
 											"!@/lib/rate-limit",
 											"!@/lib/observability/glitchtip",
 											"!@/signer/client",
 											"!@/styles/**",
-											"!@/lib/actions/safe"
+											"!@/lib/actions/safe",
+											"!@/lib/csv"
 										],
 										"message": "both.money nutzt aus Klick nur geteilte, reine Module (Liste in tests/app-boundaries.test.ts) — nie Datenbank, Auth oder Fachcode."
 									}
@@ -181,14 +186,19 @@
 											"!@/lib/crypto/envelope",
 											"!@/lib/crypto/kms",
 											"!@/lib/crypto/fields",
+											"!@/lib/validation/common",
+											"!@/lib/validation/wallet",
 											"!@/components/ui/**",
+											"!@/components/page-header",
+											"!@/components/entity/empty-state",
 											"!@/lib/utils",
 											"!@/lib/log",
 											"!@/lib/rate-limit",
 											"!@/lib/observability/glitchtip",
 											"!@/signer/client",
 											"!@/styles/**",
-											"!@/lib/actions/safe"
+											"!@/lib/actions/safe",
+											"!@/lib/csv"
 										],
 										"message": "both.money nutzt aus Klick nur geteilte, reine Module (Liste in tests/app-boundaries.test.ts) — nie Datenbank, Auth oder Fachcode."
 									}
@@ -243,7 +253,11 @@
 											"!@/lib/crypto/envelope",
 											"!@/lib/crypto/kms",
 											"!@/lib/crypto/fields",
+											"!@/lib/validation/common",
+											"!@/lib/validation/wallet",
 											"!@/components/ui/**",
+											"!@/components/page-header",
+											"!@/components/entity/empty-state",
 											"!@/lib/utils",
 											"!@/lib/log",
 											"!@/lib/rate-limit",
@@ -251,6 +265,7 @@
 											"!@/signer/client",
 											"!@/styles/**",
 											"!@/lib/actions/safe",
+											"!@/lib/csv",
 											"!@/signer/**",
 											"!@/scripts/devchain/**",
 											"!@/scripts/qa/**",

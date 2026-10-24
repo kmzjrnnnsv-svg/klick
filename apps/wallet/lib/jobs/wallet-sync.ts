@@ -318,7 +318,7 @@ async function readBitcoin(
 			)
 				throw new WalletSyncError(
 					"address_mismatch",
-					"Knoten leitet andere Adressen ab als Klick — Konto angehalten",
+					"Knoten leitet andere Adressen ab als both.money — Konto angehalten",
 				);
 			const have = new Set(
 				p.addresses.filter((a) => a.branch === branch).map((a) => a.index),
@@ -1008,8 +1008,8 @@ async function unknownSpend(
 		kind: "security_alert",
 		title: `Unbekannte Ausgabe aus Hot-Konto „${account.name}“`,
 		body: frozen
-			? `Transaktion ${txid} gehört zu keiner Auszahlung in Klick. Der Signer wurde eingefroren.`
-			: `Transaktion ${txid} gehört zu keiner Auszahlung in Klick. Den Signer sofort einfrieren (Sicherheit).`,
+			? `Transaktion ${txid} gehört zu keiner Auszahlung in both.money. Der Signer wurde eingefroren.`
+			: `Transaktion ${txid} gehört zu keiner Auszahlung in both.money. Den Signer sofort einfrieren (Sicherheit).`,
 		link: "/security",
 		payload: { txid },
 	});

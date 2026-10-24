@@ -1,4 +1,4 @@
-// Klick · Sicherheitsschlüssel einrichten. Link vom Terminal
+// both.money · Sicherheitsschlüssel einrichten. Link vom Terminal
 // (`pnpm signer:admin enrol`): /enrol.html#e=<id>&t=<geheim>&p=<person>
 import {
 	apiBase,
@@ -37,11 +37,11 @@ async function enrol(p, info, button) {
 	try {
 		const cred = await navigator.credentials.create({
 			publicKey: {
-				rp: { id: location.hostname, name: "Klick Freigabe" },
+				rp: { id: location.hostname, name: "both.money Freigabe" },
 				user: {
 					id: new TextEncoder().encode(p.person),
 					name: `klick-${p.person.slice(0, 8)}`,
-					displayName: "Klick Freigabe",
+					displayName: "both.money Freigabe",
 				},
 				challenge: await enrolChallenge(p.secret, p.enrolId),
 				pubKeyCredParams: [{ type: "public-key", alg: -7 }],
@@ -78,22 +78,19 @@ async function enrol(p, info, button) {
 			authenticatorData: new Uint8Array(authData),
 			spki: new Uint8Array(spki),
 		});
-		const res = await fetch(
-			`${apiBase()}/api/wallet/einrichtung/${p.enrolId}`,
-			{
-				method: "POST",
-				credentials: "omit",
-				cache: "no-store",
-				headers: { "content-type": "application/json" },
-				body: JSON.stringify({
-					credId,
-					spki: b64u.encode(spki),
-					authenticatorData: b64u.encode(authData),
-					clientDataJSON: b64u.encode(clientDataJSON),
-					mac: b64u.encode(mac),
-				}),
-			},
-		);
+		const res = await fetch(`${apiBase()}/api/enrol/${p.enrolId}`, {
+			method: "POST",
+			credentials: "omit",
+			cache: "no-store",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				credId,
+				spki: b64u.encode(spki),
+				authenticatorData: b64u.encode(authData),
+				clientDataJSON: b64u.encode(clientDataJSON),
+				mac: b64u.encode(mac),
+			}),
+		});
 		const out = await res.json().catch(() => ({}));
 		if (!res.ok || !out.ok) {
 			$("status").textContent = message(
@@ -136,13 +133,10 @@ async function main() {
 		return fail("Der Link ist unvollständig.");
 	let info;
 	try {
-		const res = await fetch(
-			`${apiBase()}/api/wallet/einrichtung/${p.enrolId}`,
-			{
-				credentials: "omit",
-				cache: "no-store",
-			},
-		);
+		const res = await fetch(`${apiBase()}/api/enrol/${p.enrolId}`, {
+			credentials: "omit",
+			cache: "no-store",
+		});
 		const out = await res.json();
 		if (!res.ok || !out.ok)
 			return fail(message(out.error?.code ?? "unreachable"));

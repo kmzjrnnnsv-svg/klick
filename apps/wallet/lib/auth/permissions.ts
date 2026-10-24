@@ -12,12 +12,19 @@ export const PERMISSIONS = [
 	"settings:update",
 	"audit:read",
 	"export:manage",
+	"export:download",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
 const ROLE_PERMISSIONS: Record<MemberRole, readonly Permission[]> = {
 	owner: PERMISSIONS,
-	operator: ["wallet:read", "wallet:initiate", "members:read", "audit:read"],
+	operator: [
+		"wallet:read",
+		"wallet:initiate",
+		"members:read",
+		"audit:read",
+		"export:download",
+	],
 	viewer: ["wallet:read", "members:read"],
 };
 

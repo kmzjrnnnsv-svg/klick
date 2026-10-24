@@ -41,8 +41,8 @@ describe("Stand des Signers", () => {
 		v: 1,
 		initialized: true,
 		orgId: "org-1",
-		rpId: "freigabe.raza.work",
-		origin: "https://freigabe.raza.work",
+		rpId: "approve.both.money",
+		origin: "https://approve.both.money",
 		dev: false,
 		networks: ["bitcoin_signet"],
 		frozen: null,
@@ -83,9 +83,9 @@ describe("Stand des Signers", () => {
 	it("Link zur Bestätigungsseite nur mit CONFIRM_ORIGIN", () => {
 		delete process.env.WALLET_CONFIRM_ORIGIN;
 		expect(confirmUrl("ab".repeat(16))).toBeNull();
-		process.env.WALLET_CONFIRM_ORIGIN = "https://freigabe.raza.work";
+		process.env.WALLET_CONFIRM_ORIGIN = "https://approve.both.money";
 		expect(confirmUrl("ab".repeat(16))).toBe(
-			`https://freigabe.raza.work/#i=${"ab".repeat(16)}`,
+			`https://approve.both.money/#i=${"ab".repeat(16)}`,
 		);
 		delete process.env.WALLET_CONFIRM_ORIGIN;
 	});

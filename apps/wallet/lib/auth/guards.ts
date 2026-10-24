@@ -123,6 +123,16 @@ export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 	};
 }
 
+// Kontext für readOrg/mutateOrg aus dem Guard-Ergebnis
+export function toOrgCtx(c: OrgContext): {
+	orgId: string;
+	userId: string;
+	ip: string | null;
+	userAgent: string | null;
+} {
+	return { orgId: c.orgId, userId: c.userId, ip: c.ip, userAgent: c.userAgent };
+}
+
 export async function requireStepUp(perm?: Permission): Promise<OrgContext> {
 	const c = await requireOrg(perm);
 	if (!c.stepUpFresh) throw new AuthError("step_up_required");

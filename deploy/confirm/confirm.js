@@ -1,4 +1,4 @@
-// Klick · Bestätigungsseite: eine Absicht (Auszahlung oder Zieladresse) mit
+// both.money · Bestätigungsseite: eine Absicht (Auszahlung oder Zieladresse) mit
 // dem Sicherheitsschlüssel bestätigen. Link: /#i=<intentId>
 import {
 	ASSETS,
@@ -78,7 +78,7 @@ async function render(intent, data) {
 	} else {
 		$("title").textContent = "Zieladresse freigeben";
 		$("lead").textContent =
-			"Nach der Wartezeit dürfen Auszahlungen an diese Adresse gehen. Bis dahin kann jede:r in Klick ein Veto einlegen.";
+			"Nach der Wartezeit dürfen Auszahlungen an diese Adresse gehen. Bis dahin kann jede:r in both.money ein Veto einlegen.";
 		fact(dl, "Netz", net.label, net.live ? "live" : "");
 		fact(dl, "Adresse", address(intent.destination));
 	}
@@ -123,7 +123,7 @@ async function confirm(id, intent, data, button) {
 			},
 		});
 		if (!cred) throw new Error("abgebrochen");
-		const res = await fetch(`${apiBase()}/api/wallet/bestaetigung/${id}`, {
+		const res = await fetch(`${apiBase()}/api/confirm/${id}`, {
 			method: "POST",
 			credentials: "omit",
 			cache: "no-store",
@@ -161,7 +161,7 @@ async function main() {
 	if (!/^[0-9a-f]{32}$/.test(id)) return fail("Der Link ist unvollständig.");
 	let data;
 	try {
-		const res = await fetch(`${apiBase()}/api/wallet/bestaetigung/${id}`, {
+		const res = await fetch(`${apiBase()}/api/confirm/${id}`, {
 			credentials: "omit",
 			cache: "no-store",
 		});

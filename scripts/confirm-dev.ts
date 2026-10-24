@@ -1,10 +1,10 @@
 /**
- * Bestätigungsseite lokal (wie freigabe.raza.work, aber http://localhost):
+ * Bestätigungsseite lokal (wie approve.both.money, aber http://localhost):
  * liefert deploy/confirm mit denselben Sicherheits-Headern wie nginx aus und
  * trägt die API-Herkunft der lokalen App ein.
  *
  *   pnpm confirm:dev                       → http://localhost:3201
- *   CONFIRM_API=http://localhost:3200 CONFIRM_PORT=3201 pnpm confirm:dev
+ *   CONFIRM_API=http://localhost:3400 CONFIRM_PORT=3201 pnpm confirm:dev
  *
  * Der Dev-Signer muss mit --rp localhost --origin http://localhost:3201
  * eingerichtet sein (scripts/signer-dev.ts).
@@ -15,7 +15,7 @@ import { join, resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..", "deploy", "confirm");
 const PORT = Number(process.env.CONFIRM_PORT ?? 3201);
-const API = process.env.CONFIRM_API ?? "http://localhost:3200";
+const API = process.env.CONFIRM_API ?? "http://localhost:3400";
 
 const FILES: Record<string, string> = {
 	"/": "index.html",

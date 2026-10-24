@@ -6,7 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { WALLET_UNLOCK_MS } from "@/lib/auth/session-rules";
 import { StepUpDialog } from "../auth/step-up-dialog";
 import { Bell, type BellItem } from "./bell";
-import { type NavItem, NavLinks } from "./nav-links";
+import { type NavGroup, NavLinks } from "./nav-links";
 import { OrgMenu } from "./org-menu";
 import { UnlockStatus } from "./unlock-status";
 import { UserMenu } from "./user-menu";
@@ -17,23 +17,54 @@ export async function AppShell({
 	ctx,
 	orgs,
 	bell,
+	send,
+	banner,
 	children,
 }: {
 	ctx: OrgContext;
 	orgs: Membership[];
 	bell: { items: BellItem[]; unread: number };
+	// Senden nur mit eigenem Signer (isOwnSigner)
+	send: boolean;
+	banner?: React.ReactNode;
 	children: React.ReactNode;
 }) {
 	const t = await getTranslations("Shell");
-	const nav: NavItem[] = [
-		{ href: "/", label: t("overview") },
-		...(roleAllows(ctx.role, "members:read")
-			? [{ href: "/members", label: t("members") }]
+	const nav: NavGroup[] = [
+		{
+			items: [
+				{ href: "/", label: t("overview") },
+				{ href: "/receive", label: t("receive") },
+				{ href: "/prices", label: t("prices") },
+				{ href: "/activity", label: t("activity") },
+				{ href: "/accounts", label: t("accounts") },
+			],
+		},
+		...(send
+			? [
+					{
+						label: t("groupSend"),
+						items: [
+							{ href: "/send", label: t("send") },
+							{ href: "/payouts", label: t("payouts") },
+							{ href: "/address-book", label: t("addressBook") },
+							{ href: "/security", label: t("security") },
+						],
+					},
+				]
 			: []),
-		...(roleAllows(ctx.role, "audit:read")
-			? [{ href: "/audit", label: t("audit") }]
-			: []),
-	];
+		{
+			label: t("groupOrg"),
+			items: [
+				...(roleAllows(ctx.role, "members:read")
+					? [{ href: "/members", label: t("members") }]
+					: []),
+				...(roleAllows(ctx.role, "audit:read")
+					? [{ href: "/audit", label: t("audit") }]
+					: []),
+			],
+		},
+	].filter((g) => g.items.length > 0);
 	const until =
 		ctx.unlocked && ctx.unlockedAt
 			? new Date(ctx.unlockedAt.getTime() + WALLET_UNLOCK_MS).toISOString()
@@ -74,9 +105,10 @@ export async function AppShell({
 			</header>
 			<div className="mx-auto flex w-full max-w-6xl grow flex-col gap-6 px-4 py-6 md:flex-row">
 				<aside className="md:w-48 md:shrink-0">
-					<NavLinks items={nav} label={t("nav")} />
+					<NavLinks groups={nav} label={t("nav")} />
 				</aside>
 				<main id="inhalt" className="min-w-0 grow">
+					{banner}
 					{children}
 				</main>
 			</div>

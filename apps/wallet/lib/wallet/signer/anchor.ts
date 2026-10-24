@@ -109,7 +109,7 @@ export async function recordAnchor(
 			actorUserId: null,
 			kind: "security_alert",
 			title: "Signer-Journal zurückgesetzt",
-			body: `Der Signer meldet Stand ${seen.seq}, Klick kennt bereits ${stored.seq}. Das Journal wurde ersetzt — Auszahlungen stoppen und den Server prüfen.`,
+			body: `Der Signer meldet Stand ${seen.seq}, both.money kennt bereits ${stored.seq}. Das Journal wurde ersetzt — Auszahlungen stoppen und den Server prüfen.`,
 			link: "/security",
 		});
 	}

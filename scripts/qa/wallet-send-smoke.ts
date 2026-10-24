@@ -11,7 +11,7 @@
  * Voraussetzung (je ein Terminal, Umgebung wie der Dev-Server):
  *   pnpm wallet:devchain
  *   pnpm signer:dev
- *   pnpm confirm:dev
+ *   CONFIRM_API=http://localhost:3200 pnpm confirm:dev
  *   SIGNER_SOCKET=$QA_DIR/signer/app.sock CONFIRM_ORIGIN=http://localhost:3201 \
  *     WALLET_RPC_BITCOIN_SIGNET=http://dev:dev@127.0.0.1:18443 pnpm dev -p 3200
  *   QA-Konto aus `pnpm exec tsx scripts/qa/crawl.ts --login`
