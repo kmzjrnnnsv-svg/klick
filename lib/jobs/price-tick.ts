@@ -1,3 +1,5 @@
+// Legacy (bis K6): Wallet-Bereich in Klick, ersetzt durch both.money —
+// Änderungen nur noch in apps/wallet/lib/jobs/price-tick.ts.
 import { insertTicks, oldestTick, type TickRow } from "@/lib/db/prices";
 import { logger } from "@/lib/log";
 import { FEED_CALLS, FEEDS, type Feed } from "@/lib/wallet/core/feeds";

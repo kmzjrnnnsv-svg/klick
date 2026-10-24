@@ -1,3 +1,5 @@
+// Legacy (bis K6): Wallet-Bereich in Klick, ersetzt durch both.money —
+// Änderungen nur noch in apps/wallet/lib/wallet/node-clients.ts.
 import { env } from "@/lib/env";
 import { NETWORKS, WALLET_NETWORKS, type WalletNetwork } from "./core/networks";
 import { BitcoinRpc } from "./rpc/bitcoin";

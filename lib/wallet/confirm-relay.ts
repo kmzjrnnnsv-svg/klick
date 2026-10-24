@@ -1,3 +1,5 @@
+// Legacy (bis K6): Wallet-Bereich in Klick, ersetzt durch both.money —
+// Änderungen nur noch in apps/wallet/lib/wallet/confirm-relay.ts.
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/log";

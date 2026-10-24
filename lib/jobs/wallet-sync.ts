@@ -1,3 +1,5 @@
+// Legacy (bis K6): Wallet-Bereich in Klick, ersetzt durch both.money —
+// Änderungen nur noch in apps/wallet/lib/jobs/wallet-sync.ts.
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { organization } from "@/db/auth-schema";

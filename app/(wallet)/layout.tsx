@@ -1,3 +1,5 @@
+// Legacy (bis K6): Wallet-Bereich in Klick, ersetzt durch both.money —
+// Änderungen nur noch in apps/wallet/app/(app)/layout.tsx.
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { WalletLockStrip } from "@/components/wallet/lock-strip";

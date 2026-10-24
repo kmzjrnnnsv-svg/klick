@@ -1,3 +1,5 @@
+// Legacy (bis K6): Wallet-Bereich in Klick, ersetzt durch both.money —
+// Änderungen nur noch in apps/wallet/lib/wallet/market.ts.
 import { loadTicks } from "@/lib/db/prices";
 import { type AssetCode, assetOf } from "./core/assets";
 import {
