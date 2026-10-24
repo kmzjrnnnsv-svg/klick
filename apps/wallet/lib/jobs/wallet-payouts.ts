@@ -13,11 +13,13 @@ import {
 import { audit } from "@wallet/lib/audit";
 import { type OrgTx, withOrg } from "@wallet/lib/db/with-org";
 import { notify } from "@wallet/lib/notifications/notify";
+import { custodyFacts } from "@wallet/lib/orgs/custody";
 import { membersAllowed } from "@wallet/lib/orgs/members-allowed";
 import {
 	applyAddressBookViews,
 	openAddressBookIntents,
 } from "@wallet/lib/wallet/address-book";
+import { hotAccountAllowed } from "@wallet/lib/wallet/custody-gate";
 import {
 	type NodeClients,
 	nodeClientsFromEnv,
@@ -118,6 +120,12 @@ export async function runWalletPayouts(
 	}
 	// Journal zurückgelaufen: nichts mehr tun, bis ein Mensch draufschaut
 	if (anchor !== "ok") return { state: "anchor", processed: 0, failed: 0 };
+	// Sperre für Kundengelder: ohne Recht auf Hot-Konten signiert und sendet
+	// der Job nichts (Bremsen bleibt in der App möglich)
+	if (!hotAccountAllowed(await withOrg(db, (tx) => custodyFacts(tx, orgId)))) {
+		logger.warn({ orgId }, "wallet payouts: custody gate closed");
+		return { state: "custody_locked", processed: 0, failed: 0 };
+	}
 	const status = await signerCall<{ policy: Policy }>("status");
 	const ctx: Ctx = {
 		orgId,

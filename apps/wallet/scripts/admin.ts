@@ -4,6 +4,8 @@
  *
  *   pnpm wallet:admin org create --name "Raza" --slug raza [--operator]
  *   pnpm wallet:admin org list
+ *   pnpm wallet:admin org custody --org <slug> --mode none|own|licensed --reason "<Grund>" [--ref "<Erlaubnis>"]
+ *     (Sperre für Kundengelder: „licensed“ nur mit Erlaubnis-Referenz, Protokoll der Org)
  *   pnpm wallet:admin account create --email <adresse> --name "<Name>" [--org <slug>] [--role owner|operator|viewer] [--admin]
  *   pnpm wallet:admin account link --email <adresse>     (neuer Aktivierungslink, nur ohne Passkey)
  *   pnpm wallet:admin account list
@@ -15,10 +17,11 @@ import { readFileSync } from "node:fs";
 import { db, sqlClient } from "@wallet/db";
 import { passkey, session, user } from "@wallet/db/auth-schema";
 import { members, orgSettings, orgs } from "@wallet/db/schema";
+import { CUSTODY_MODES, type CustodyMode } from "@wallet/db/schema/enums";
 import { auditPlatform } from "@wallet/lib/audit";
 import { issueLink } from "@wallet/lib/auth/links";
 import { isMemberRole } from "@wallet/lib/auth/permissions";
-import { withPlatform } from "@wallet/lib/db/with-org";
+import { mutateOrg, withPlatform } from "@wallet/lib/db/with-org";
 import { createInvitation } from "@wallet/lib/orgs/invitations";
 import { createOrg } from "@wallet/lib/orgs/service";
 import { asc, count, eq } from "drizzle-orm";
@@ -106,6 +109,58 @@ async function main() {
 						.orderBy(asc(orgs.createdAt)),
 			);
 			console.table(rows);
+			return;
+		}
+		case "org custody": {
+			const org = await orgBySlug(need(opt("org"), "--org"));
+			const mode = need(opt("mode"), "--mode") as CustodyMode;
+			if (!CUSTODY_MODES.includes(mode))
+				throw new Error(`--mode: ${CUSTODY_MODES.join(", ")}`);
+			const reason = need(opt("reason"), "--reason");
+			const ref = opt("ref")?.trim() || null;
+			if (mode === "licensed" && !ref)
+				throw new Error(
+					"--ref (Erlaubnis, z. B. BaFin-Geschäftszeichen) fehlt",
+				);
+			const before = await mutateOrg(
+				{ orgId: org.id, userId: null, userAgent: CLI.userAgent },
+				async (tx) => {
+					const [s] = await tx
+						.select({
+							custodyMode: orgSettings.custodyMode,
+							caspLicenceRef: orgSettings.caspLicenceRef,
+						})
+						.from(orgSettings)
+						.where(eq(orgSettings.organizationId, org.id))
+						.limit(1);
+					if (!s) throw new Error("Org ohne Einstellungen");
+					const after = {
+						custodyMode: mode,
+						caspLicenceRef: mode === "licensed" ? ref : s.caspLicenceRef,
+					};
+					await tx
+						.update(orgSettings)
+						.set({
+							...after,
+							...(mode === "licensed"
+								? { caspSetAt: new Date(), caspSetBy: null }
+								: {}),
+						})
+						.where(eq(orgSettings.organizationId, org.id));
+					return {
+						result: s,
+						audit: {
+							action: "org.custody_mode_changed",
+							target: `org:${org.id}`,
+							before: s,
+							after: { ...after, reason, via: "cli" },
+						},
+					};
+				},
+			);
+			console.log(
+				`${org.name}: Verwahrmodus ${before.custodyMode} → ${mode}${ref ? ` (${ref})` : ""}.`,
+			);
 			return;
 		}
 		case "account create": {

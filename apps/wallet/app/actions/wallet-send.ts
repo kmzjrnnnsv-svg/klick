@@ -11,8 +11,10 @@ import { AuthError, requireUnlocked, toOrgCtx } from "@wallet/lib/auth/guards";
 import { loadSanctionSet } from "@wallet/lib/db/sanctions";
 import { mutateOrg, readOrg } from "@wallet/lib/db/with-org";
 import { notify } from "@wallet/lib/notifications/notify";
+import { custodyFacts } from "@wallet/lib/orgs/custody";
 import { membersAllowed } from "@wallet/lib/orgs/members-allowed";
 import { effectiveStatus } from "@wallet/lib/wallet/address-book";
+import { hotAccountAllowed } from "@wallet/lib/wallet/custody-gate";
 import {
 	configuredNetworks,
 	nodeClientsFromEnv,
@@ -63,6 +65,14 @@ import { screenSources } from "@/lib/wallet/screening";
 
 const PATH = "/";
 
+// Sperre für Kundengelder: Hot-Konten, Zieladressen und Auszahlungen nur,
+// wenn die Org sie haben darf (custody-gate). Bremsen bleibt immer erlaubt.
+async function hotAllowed(c: Awaited<ReturnType<typeof requireUnlocked>>) {
+	return hotAccountAllowed(
+		await readOrg(toOrgCtx(c), (tx) => custodyFacts(tx, c.orgId)),
+	);
+}
+
 async function helloForOrg(orgId: string) {
 	if (!signerConfigured()) return { error: "signer_off" } as const;
 	try {
@@ -88,6 +98,7 @@ async function createHotWalletAccountImpl(
 	if (!c.stepUpFresh) throw new AuthError("step_up_required");
 	if (!parsed.success) return fromZod(parsed.error);
 	const { name, network } = parsed.data;
+	if (!(await hotAllowed(c))) return fail("custody_locked");
 	if (!configuredNetworks().includes(network))
 		return fail("network_unavailable");
 	if (NETWORKS[network].live) return fail("network_live");
@@ -180,6 +191,7 @@ async function proposeDestinationImpl(
 	const c = await requireUnlocked("wallet:initiate");
 	if (!parsed.success) return fromZod(parsed.error);
 	const { network, label } = parsed.data;
+	if (!(await hotAllowed(c))) return fail("custody_locked");
 	if (NETWORKS[network].live) return fail("network_live");
 	const checked = checkAddress(network, parsed.data.address);
 	if (!checked.ok)
@@ -356,6 +368,7 @@ async function createPayoutImpl(
 	const c = await requireUnlocked("wallet:initiate");
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
+	if (!(await hotAllowed(c))) return fail("custody_locked");
 	const s = await helloForOrg(c.orgId);
 	if ("error" in s) return fail(s.error as string);
 	if (s.hello.frozen) return fail("signer_frozen");

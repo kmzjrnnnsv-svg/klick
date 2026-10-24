@@ -2,7 +2,9 @@
 
 import { walletAccounts, walletAddresses } from "@wallet/db/schema";
 import { requireUnlocked, toOrgCtx } from "@wallet/lib/auth/guards";
-import { mutateOrg } from "@wallet/lib/db/with-org";
+import { mutateOrg, readOrg } from "@wallet/lib/db/with-org";
+import { custodyFacts } from "@wallet/lib/orgs/custody";
+import { clientPurposeAllowed } from "@wallet/lib/wallet/custody-gate";
 import { configuredNetworks } from "@wallet/lib/wallet/node-clients";
 import {
 	getWalletPreferences,
@@ -26,11 +28,7 @@ import {
 	GAP_LIMIT,
 	parseAccountKey,
 } from "@/lib/wallet/core/derive";
-import {
-	clientFundsAllowed,
-	NETWORKS,
-	networkAllowed,
-} from "@/lib/wallet/core/networks";
+import { NETWORKS, networkAllowed } from "@/lib/wallet/core/networks";
 import { INTRO_STEPS, laterStep } from "@/lib/wallet/intro";
 
 // Wallet-Bereich (Plan Wallet, Phase 1). Jede Action verlangt den
@@ -50,16 +48,15 @@ async function createWalletAccountImpl(
 	if (!configuredNetworks().includes(d.network))
 		return fail("network_unavailable");
 	// Echtgeld erst mit signierter Richtlinie (Phase 3); Kundengelder nur im
-	// Testnetz bzw. mit CASP-Erlaubnis
+	// Testnetz bzw. mit eingetragener Erlaubnis (custody-gate)
 	if (!networkAllowed(d.network, { liveEnabled: false }))
 		return fail("network_live");
 	if (
 		d.purpose === "client" &&
-		!clientFundsAllowed(d.network, {
-			caspLicensed: false,
-			zagLicensed: false,
-			emt: false,
-		})
+		!clientPurposeAllowed(
+			await readOrg(toOrgCtx(c), (tx) => custodyFacts(tx, c.orgId)),
+			d.network,
+		)
 	)
 		return fail("client_funds");
 	let key: ReturnType<typeof parseAccountKey>;

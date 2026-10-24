@@ -554,7 +554,8 @@
 		"secLimits": "Grenzen je Asset",
 		"secAsset": "Asset",
 		"secPerPayout": "Je Auszahlung",
-		"secPerDay": "Je 24 Stunden"
+		"secPerDay": "Je 24 Stunden",
+		"error_custody_locked": "Hot-Konten, Zieladressen und Auszahlungen gibt es für diese Organisation erst mit eingetragener Verwahrerlaubnis. Konten aus einer xpub kannst du weiter beobachten."
 	},
 	"WalletIntro": {
 		"eyebrow": "Einführung",

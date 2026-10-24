@@ -269,7 +269,12 @@ d("Auszahlungen: Job wallet-payouts (Postgres + Testkette + Signer)", () => {
 	beforeAll(async () => {
 		const [org] = await client.begin(async (tx) => {
 			await tx`select set_config('app.scope', 'platform', true)`;
-			return tx`insert into orgs (name, slug) values (${"Payouts"}, ${`payouts-${stamp}`}) returning id`;
+			const rows =
+				await tx`insert into orgs (name, slug) values (${"Payouts"}, ${`payouts-${stamp}`}) returning id`;
+			// Betreiber-Org mit eigenen Beständen: Hot-Konten erlaubt
+			await tx`insert into org_settings (organization_id, encrypted_dek, custody_mode, is_operator)
+				values (${rows[0]?.id as string}, ${"test"}, ${"own"}, true)`;
+			return rows;
 		});
 		orgId = org?.id as string;
 		const [user] = await client`
@@ -551,6 +556,21 @@ d("Auszahlungen: Job wallet-payouts (Postgres + Testkette + Signer)", () => {
 			new Set([usdc.id, eth.id]),
 		);
 		expect(out.filter((o) => o.outputRef === "out:fee")).toHaveLength(2);
+	});
+
+	it("Sperre für Kundengelder: ohne Recht auf Hot-Konten signiert der Job nichts", async () => {
+		const operator = (on: boolean) =>
+			client.begin(async (tx) => {
+				await tx`select set_config('app.scope', 'platform', true)`;
+				await tx`update org_settings set is_operator = ${on} where organization_id = ${orgId}`;
+			});
+		await operator(false);
+		try {
+			expect((await job()).state).toBe("custody_locked");
+		} finally {
+			await operator(true);
+		}
+		expect((await job()).state).toBe("ok");
 	});
 
 	it("Ausgabe ohne Auszahlung in Klick: Alarm und Signer eingefroren", async () => {
