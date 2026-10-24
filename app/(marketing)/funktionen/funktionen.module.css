@@ -1,6 +1,7 @@
 /* /funktionen — Richtung „The product performs“ (taste-skill): echte
    Ausschnitte der Oberfläche (data-ui) auf flachen Bühnen, sonst keine
-   Linien, Schatten, Verläufe. Farben und Schriften aus den Maison-Tokens. */
+   Linien, Schatten, Verläufe. Farben und Schrift aus den Tokens (Apple HIG,
+   docs/design/hig.md). */
 
 .page {
 	--edge: 32px;

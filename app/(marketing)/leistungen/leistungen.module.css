@@ -1,6 +1,6 @@
 /* /leistungen — übersichtlich statt Mosaik: eine Aussage, eine Übersicht,
    je Leistung ein Abschnitt mit einem lesbaren Bild. Gleiche Tokens wie
-   /funktionen (Maison-Farben, Cormorant + Jost), keine Linien, Schatten
+   /funktionen (Tokens nach Apple HIG, Systemschrift), keine Linien, Schatten
    oder Verläufe außerhalb von Bildern. */
 
 .page {

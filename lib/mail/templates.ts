@@ -1,19 +1,21 @@
 // HTML/Text-Templates für transaktionale Mails. Eigenes Modul, damit Auth.js
 // und andere Stellen denselben Stil teilen.
 //
-// Editorial-Stil im Sinne der App: Cremeweiß-Hintergrund, Cocoa-Text,
-// Cormorant Garamond für Headlines (mit Georgia-Fallback, da Mail-Clients
-// keine externen Schriften laden), Jost/Futura-Fallback für Body und
-// uppercase-Eyebrow-Labels. Wirkt auf Apple Mail / Outlook / Gmail
-// gleichermaßen.
+// Stil wie die App (Apple HIG, docs/design/hig.md): systemgrauer Grund,
+// weiße Karte mit 16 px Ecken, Systemschrift (Mail-Clients laden keine
+// Webfonts; auf Apple-Geräten erscheint SF), Satzschreibung statt Versalien,
+// Knopf als Kapsel im Akzentblau. Wirkt auf Apple Mail / Outlook / Gmail.
 
 import { roleLabel } from "@/lib/auth/memberships";
 
-const CREAM = "#f7f3ec";
-const COCOA = "#211c14";
-const STONE = "#6b5e4a";
-const BORDER = "#d8cfbd";
-const GOLD = "#6a4a2a";
+const PAGE = "#f2f2f7";
+const INK = "#1c1c1e";
+const SECONDARY = "#5e5e63";
+const SEPARATOR = "#e5e5ea";
+const ACCENT = "#0a63d6";
+const FONT =
+	"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
+const MONO = "ui-monospace,'SF Mono',Menlo,Consolas,monospace";
 const TAGLINE = "Maison Klick — Compliance, die zusammenpasst.";
 
 import { escapeHtml, textToHtml } from "./html";
@@ -56,61 +58,58 @@ export function magicLinkEmail(input: { url: string; host: string }): {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(subject)}</title>
 </head>
-<body style="margin:0;padding:0;background:${CREAM};font-family:'Jost','Futura','Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:${COCOA}">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${CREAM};padding:48px 16px">
+<body style="margin:0;padding:0;background:${PAGE};font-family:${FONT};color:${INK}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${PAGE};padding:40px 16px">
 	<tr>
 		<td align="center">
-			<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;background:${CREAM}">
+			<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%">
 				<tr>
-					<td style="padding:0 8px 32px 8px;text-align:center">
-						<p style="margin:0;font-size:11px;letter-spacing:0.32em;text-transform:uppercase;color:${STONE};font-weight:600">
+					<td style="padding:0 8px 20px 8px;text-align:center">
+						<p style="margin:0;font-size:17px;font-weight:700;color:${INK}">
 							Klick
-						</p>
-						<p style="margin:6px 0 0 0;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:${STONE}">
-							Maison Klick — Est. 2026
 						</p>
 					</td>
 				</tr>
 				<tr>
-					<td style="background:#ffffff;border:1px solid ${BORDER};border-radius:2px;padding:48px 40px">
-						<p style="margin:0;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:${GOLD};font-weight:500">
+					<td style="background:#ffffff;border-radius:16px;padding:36px 32px">
+						<p style="margin:0;font-size:13px;line-height:18px;color:${SECONDARY}">
 							Anmeldung
 						</p>
-						<h1 style="margin:14px 0 0 0;font-family:'Cormorant Garamond','Didot','Bodoni 72','Hoefler Text',Cambria,Georgia,serif;font-size:36px;line-height:1.05;font-weight:500;letter-spacing:-0.005em;color:${COCOA}">
+						<h1 style="margin:6px 0 0 0;font-size:28px;line-height:34px;font-weight:700;color:${INK}">
 							Schön, dass du da bist.
 						</h1>
-						<p style="margin:18px 0 0 0;font-size:15px;line-height:1.65;color:${COCOA};opacity:0.85">
+						<p style="margin:14px 0 0 0;font-size:17px;line-height:1.45;color:${INK}">
 							Klick auf den Button, um dich einzuloggen — du brauchst kein Passwort und kein Konto-Setup.
 						</p>
 						<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:32px 0 12px 0">
 							<tr>
 								<td align="center">
 									<a href="${urlHtml}"
-										style="display:inline-block;background:${COCOA};color:${CREAM};padding:16px 40px;border-radius:2px;text-decoration:none;font-size:11px;font-weight:500;letter-spacing:0.22em;text-transform:uppercase">
+										style="display:inline-block;background:${ACCENT};color:#ffffff;padding:14px 28px;border-radius:999px;text-decoration:none;font-size:17px;font-weight:600">
 										Bei ${hostHtml} anmelden
 									</a>
 								</td>
 							</tr>
 						</table>
-						<p style="margin:0;font-size:11px;line-height:1.6;color:${STONE};text-align:center">
+						<p style="margin:0;font-size:13px;line-height:18px;color:${SECONDARY};text-align:center">
 							Der Link ist 15 Minuten gültig und einmalig nutzbar.
 						</p>
-						<hr style="border:0;border-top:1px solid ${BORDER};margin:36px 0">
-						<p style="margin:0;font-size:11px;color:${STONE};line-height:1.6">
+						<hr style="border:0;border-top:1px solid ${SEPARATOR};margin:28px 0">
+						<p style="margin:0;font-size:13px;color:${SECONDARY};line-height:18px">
 							Funktioniert der Button nicht? Kopiere diesen Link in deinen Browser:
 						</p>
-						<p style="margin:8px 0 0 0;font-family:'JetBrains Mono','SFMono-Regular','Menlo',monospace;font-size:11px;line-height:1.5;color:${COCOA};word-break:break-all;background:${CREAM};padding:10px 12px;border-radius:2px">
+						<p style="margin:8px 0 0 0;font-family:${MONO};font-size:13px;line-height:18px;color:${INK};word-break:break-all;background:${PAGE};padding:10px 12px;border-radius:10px">
 							${urlHtml}
 						</p>
 					</td>
 				</tr>
 				<tr>
-					<td style="padding:24px 8px 0 8px;text-align:center">
-						<p style="margin:0;font-size:11px;line-height:1.6;color:${STONE}">
+					<td style="padding:20px 8px 0 8px;text-align:center">
+						<p style="margin:0;font-size:13px;line-height:18px;color:${SECONDARY}">
 							Du hast diese Mail nicht angefordert? Ignoriere sie — niemand
 							kommt damit in dein Konto, ohne den Link zu öffnen.
 						</p>
-						<p style="margin:18px 0 0 0;font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:${STONE};opacity:0.7">
+						<p style="margin:12px 0 0 0;font-size:12px;line-height:16px;color:${SECONDARY}">
 							${TAGLINE}
 						</p>
 					</td>
@@ -161,27 +160,27 @@ export function transactionalEmail(input: {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(subject)}</title>
 </head>
-<body style="margin:0;padding:0;background:${CREAM};font-family:'Jost','Futura','Century Gothic',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:${COCOA}">
-${preheader ? `<div style="display:none;font-size:1px;color:${CREAM};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden">${escapeHtml(preheader)}</div>` : ""}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${CREAM};padding:48px 16px">
+<body style="margin:0;padding:0;background:${PAGE};font-family:${FONT};color:${INK}">
+${preheader ? `<div style="display:none;font-size:1px;color:${PAGE};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden">${escapeHtml(preheader)}</div>` : ""}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${PAGE};padding:40px 16px">
 	<tr>
 		<td align="center">
 			<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%">
 				<tr>
-					<td style="padding:0 8px 28px 8px;text-align:center">
-						<p style="margin:0;font-size:11px;letter-spacing:0.32em;text-transform:uppercase;color:${STONE};font-weight:600">Klick</p>
+					<td style="padding:0 8px 20px 8px;text-align:center">
+						<p style="margin:0;font-size:17px;font-weight:700;color:${INK}">Klick</p>
 					</td>
 				</tr>
 				<tr>
-					<td style="background:#ffffff;border:1px solid ${BORDER};border-radius:2px;padding:40px 36px">
-						${eyebrow ? `<p style="margin:0;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:${GOLD};font-weight:500">${escapeHtml(eyebrow)}</p>` : ""}
-						<h1 style="margin:${eyebrow ? "12px" : "0"} 0 0 0;font-family:'Cormorant Garamond','Didot','Hoefler Text',Cambria,Georgia,serif;font-size:30px;line-height:1.1;font-weight:500;color:${COCOA}">${escapeHtml(title)}</h1>
-						<div style="margin:18px 0 0 0;font-size:14px;line-height:1.65;color:${COCOA};opacity:0.85">${bodyHtml ?? textToHtml(body)}</div>
+					<td style="background:#ffffff;border-radius:16px;padding:32px 28px">
+						${eyebrow ? `<p style="margin:0;font-size:13px;line-height:18px;color:${SECONDARY}">${escapeHtml(eyebrow)}</p>` : ""}
+						<h1 style="margin:${eyebrow ? "6px" : "0"} 0 0 0;font-size:22px;line-height:28px;font-weight:700;color:${INK}">${escapeHtml(title)}</h1>
+						<div style="margin:12px 0 0 0;font-size:16px;line-height:1.45;color:${INK}">${bodyHtml ?? textToHtml(body)}</div>
 						${
 							cta && ctaHref
 								? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0 0">
 							<tr><td align="left">
-								<a href="${ctaHref}" style="display:inline-block;background:${COCOA};color:${CREAM};padding:14px 32px;border-radius:2px;text-decoration:none;font-size:11px;font-weight:500;letter-spacing:0.22em;text-transform:uppercase">${escapeHtml(cta.label)}</a>
+								<a href="${ctaHref}" style="display:inline-block;background:${ACCENT};color:#ffffff;padding:12px 24px;border-radius:999px;text-decoration:none;font-size:16px;font-weight:600">${escapeHtml(cta.label)}</a>
 							</td></tr>
 						</table>`
 								: ""
@@ -190,7 +189,7 @@ ${preheader ? `<div style="display:none;font-size:1px;color:${CREAM};line-height
 				</tr>
 				<tr>
 					<td style="padding:20px 8px 0 8px;text-align:center">
-						<p style="margin:0;font-size:11px;color:${STONE};line-height:1.6">${escapeHtml(footnote ?? TAGLINE)}</p>
+						<p style="margin:0;font-size:13px;color:${SECONDARY};line-height:18px">${escapeHtml(footnote ?? TAGLINE)}</p>
 					</td>
 				</tr>
 			</table>
