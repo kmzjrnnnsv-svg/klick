@@ -236,7 +236,7 @@ export function RiskEditForm({
 	if (!canEdit) return null;
 	return (
 		<form
-			className="flex flex-col gap-4 text-sm"
+			className="flex flex-col gap-4 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {
@@ -270,7 +270,7 @@ export function RiskEditForm({
 				<div className="flex flex-col gap-1.5">
 					<Label>{t("impact")}</Label>
 					{guided ? (
-						<p className="text-muted-foreground text-xs">
+						<p className="text-muted-foreground text-footnote">
 							{i} · {scales.impact[i - 1]} — {t("guidedImpactHint")}
 						</p>
 					) : (
@@ -394,14 +394,14 @@ export function RiskEditForm({
 			</div>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<fieldset className="flex min-w-0 flex-col gap-1.5">
-					<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+					<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 						{t("controls")}
 					</legend>
-					<div className="max-h-48 overflow-y-auto rounded-md border p-2">
+					<div className="max-h-48 overflow-y-auto rounded-2xl bg-card p-2">
 						{controlOptions.map((c) => (
 							<label
 								key={c.code}
-								className="flex items-center gap-2 py-0.5 text-xs"
+								className="flex items-center gap-2 py-0.5 text-footnote"
 							>
 								<input
 									type="checkbox"
@@ -423,17 +423,17 @@ export function RiskEditForm({
 					</div>
 				</fieldset>
 				<fieldset className="flex min-w-0 flex-col gap-1.5">
-					<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+					<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 						{t("assets")}
 					</legend>
-					<div className="max-h-48 overflow-y-auto rounded-md border p-2">
+					<div className="max-h-48 overflow-y-auto rounded-2xl bg-card p-2">
 						{assetOptions.length === 0 && (
-							<p className="text-muted-foreground text-xs">—</p>
+							<p className="text-muted-foreground text-footnote">—</p>
 						)}
 						{assetOptions.map((a) => (
 							<label
 								key={a.id}
-								className="flex items-center gap-2 py-0.5 text-xs"
+								className="flex items-center gap-2 py-0.5 text-footnote"
 							>
 								<input
 									type="checkbox"

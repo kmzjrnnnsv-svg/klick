@@ -63,12 +63,7 @@ function Card({
 	className?: string;
 }) {
 	return (
-		<div
-			className={cn(
-				"rounded-xl border border-border/60 bg-card p-5 sm:p-6",
-				className,
-			)}
-		>
+		<div className={cn("rounded-2xl bg-card p-5 sm:p-6", className)}>
 			{children}
 		</div>
 	);
@@ -88,7 +83,7 @@ function Points({
 	return (
 		<Card>
 			<h2 className="font-medium text-base">{title}</h2>
-			<ul className="mt-3 flex flex-col gap-2.5 text-sm">
+			<ul className="mt-3 flex flex-col gap-2.5 text-subhead">
 				{items.map((x) => (
 					<li key={x} className="flex gap-2.5">
 						<Icon
@@ -198,15 +193,15 @@ export default async function WalletIntroPage({
 							</span>
 							<div className="min-w-0">
 								<h2 className="font-medium">{h}</h2>
-								<p className="mt-1 text-muted-foreground text-sm">{p}</p>
+								<p className="mt-1 text-muted-foreground text-subhead">{p}</p>
 							</div>
 						</Card>
 					))}
-					<p className="flex items-center gap-2 text-sm">
+					<p className="flex items-center gap-2 text-subhead">
 						<CheckCircle2 className="size-4 text-success" aria-hidden />
 						{t("securityStatus")}
 					</p>
-					<p className="rounded-lg bg-muted/40 p-4 text-sm">
+					<p className="rounded-lg bg-muted/40 p-4 text-subhead">
 						{t("securityNote")}
 					</p>
 				</div>
@@ -218,20 +213,20 @@ export default async function WalletIntroPage({
 					<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
 						<Card>
 							<h2 className="font-medium">{t("signetTitle")}</h2>
-							<p className="mt-1 text-muted-foreground text-sm">
+							<p className="mt-1 text-muted-foreground text-subhead">
 								{t("signetBody")}
 							</p>
 						</Card>
 						<Card>
 							<h2 className="font-medium">{t("sepoliaTitle")}</h2>
-							<p className="mt-1 text-muted-foreground text-sm">
+							<p className="mt-1 text-muted-foreground text-subhead">
 								{t("sepoliaBody")}
 							</p>
 						</Card>
 					</div>
 					<Card>
 						<h2 className="font-medium">{t("liveTitle")}</h2>
-						<p className="mt-1 text-muted-foreground text-sm">
+						<p className="mt-1 text-muted-foreground text-subhead">
 							{t("liveBody")}
 						</p>
 					</Card>
@@ -239,11 +234,11 @@ export default async function WalletIntroPage({
 						<h2 id="intro-nodes" className="mb-2 font-medium text-base">
 							{t("nodesTitle")}
 						</h2>
-						<ul className="divide-y divide-border/60 rounded-xl border border-border/60">
+						<ul className="divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 							{WALLET_NETWORKS.map((n) => (
 								<li
 									key={n}
-									className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm"
+									className="flex items-center justify-between gap-3 px-4 py-2.5 text-subhead"
 								>
 									<span className="min-w-0 truncate">{NETWORKS[n].label}</span>
 									{NETWORKS[n].live ? (
@@ -269,14 +264,14 @@ export default async function WalletIntroPage({
 								<CheckCircle2 className="size-4 text-success" aria-hidden />
 								{t("accountsThere", { count: accounts.length })}
 							</p>
-							<ul className="mt-3 flex flex-col gap-1.5 text-sm">
+							<ul className="mt-3 flex flex-col gap-1.5 text-subhead">
 								{accounts.slice(0, 5).map((a) => (
 									<li
 										key={a.id}
 										className="flex items-center justify-between gap-3"
 									>
 										<span className="min-w-0 truncate">{a.name}</span>
-										<span className="shrink-0 text-muted-foreground text-xs">
+										<span className="shrink-0 text-muted-foreground text-footnote">
 											{NETWORKS[a.network].label}
 										</span>
 									</li>
@@ -286,10 +281,10 @@ export default async function WalletIntroPage({
 					) : (
 						<Card>
 							<h2 className="font-medium">{t("howTitle")}</h2>
-							<ol className="mt-3 flex flex-col gap-3 text-sm">
+							<ol className="mt-3 flex flex-col gap-3 text-subhead">
 								{[t("how1"), t("how2"), t("how3")].map((x, i) => (
 									<li key={x} className="flex gap-3">
-										<span className="flex size-6 shrink-0 items-center justify-center rounded-full border text-xs tabular-nums">
+										<span className="flex size-6 shrink-0 items-center justify-center rounded-full border text-footnote tabular-nums">
 											{i + 1}
 										</span>
 										<span className="pt-0.5">{x}</span>
@@ -298,11 +293,11 @@ export default async function WalletIntroPage({
 							</ol>
 							<div className="mt-5">
 								{!canManage ? (
-									<p className="text-muted-foreground text-sm">
+									<p className="text-muted-foreground text-subhead">
 										{t("accountNotManager")}
 									</p>
 								) : testNetworks.length === 0 ? (
-									<p className="text-muted-foreground text-sm">
+									<p className="text-muted-foreground text-subhead">
 										{t("noNetwork")}
 									</p>
 								) : (
@@ -311,7 +306,9 @@ export default async function WalletIntroPage({
 							</div>
 						</Card>
 					)}
-					<p className="text-muted-foreground text-sm">{t("accountHot")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("accountHot")}
+					</p>
 				</div>
 			);
 			break;
@@ -321,7 +318,7 @@ export default async function WalletIntroPage({
 			body = (
 				<>
 					{!any && (
-						<p className="mb-4 rounded-lg bg-muted/40 p-4 text-sm">
+						<p className="mb-4 rounded-lg bg-muted/40 p-4 text-subhead">
 							{t("quotesNone")}
 						</p>
 					)}
@@ -360,10 +357,10 @@ export default async function WalletIntroPage({
 												className="absolute top-6 bottom-0 left-3 w-px bg-border"
 											/>
 										)}
-										<span className="relative flex size-6 shrink-0 items-center justify-center rounded-full border bg-card text-xs tabular-nums">
+										<span className="relative flex size-6 shrink-0 items-center justify-center rounded-full border bg-card text-footnote tabular-nums">
 											{i + 1}
 										</span>
-										<span className="pt-0.5 text-sm">{x}</span>
+										<span className="pt-0.5 text-subhead">{x}</span>
 									</li>
 								),
 							)}
@@ -381,7 +378,7 @@ export default async function WalletIntroPage({
 							))}
 						</div>
 					) : (
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("depositNoAccount")}
 						</p>
 					)}
@@ -390,7 +387,7 @@ export default async function WalletIntroPage({
 							<h2 id="intro-faucets" className="mb-2 font-medium text-base">
 								{t("faucetsTitle")}
 							</h2>
-							<ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+							<ul className="flex flex-wrap gap-x-5 gap-y-1 text-subhead">
 								{faucets.map((f) => (
 									<li key={f.href}>
 										<a
@@ -415,7 +412,7 @@ export default async function WalletIntroPage({
 	return (
 		<div className="flex flex-col">
 			<nav aria-label={t("progressLabel")}>
-				<p className="lv-eyebrow text-[0.7rem] text-brown">
+				<p className="font-medium text-footnote text-muted-foreground">
 					{t("eyebrow")} ·{" "}
 					{t("stepOf", { n: idx + 1, total: INTRO_STEPS.length })}
 				</p>
@@ -432,7 +429,7 @@ export default async function WalletIntroPage({
 									className={cn(
 										"block h-1 rounded-full transition-[background-color]",
 										s === schritt
-											? "bg-brown"
+											? "bg-primary-fill"
 											: i <= Math.max(idx, doneIdx)
 												? "bg-foreground"
 												: "bg-border group-hover:bg-muted-foreground/40",
@@ -459,10 +456,10 @@ export default async function WalletIntroPage({
 			</nav>
 
 			<header className="mt-8 mb-8 flex flex-col gap-4">
-				<span className="flex size-12 items-center justify-center rounded-full bg-brown text-brown-foreground">
+				<span className="flex size-12 items-center justify-center rounded-full bg-primary-fill text-white">
 					<Icon className="size-5" aria-hidden />
 				</span>
-				<h1 className="text-balance font-serif-display text-3xl text-primary sm:text-4xl">
+				<h1 className="text-balance font-bold text-title-1 sm:text-4xl">
 					{title}
 				</h1>
 				<p className="max-w-prose text-pretty text-base text-muted-foreground">

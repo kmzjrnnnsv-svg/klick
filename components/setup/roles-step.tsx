@@ -81,7 +81,7 @@ export function RolesStep({
 				))}
 			</ul>
 
-			<section className="flex flex-col gap-2 rounded-md border p-4 text-sm">
+			<section className="flex flex-col gap-2 rounded-2xl bg-card p-4 text-subhead">
 				<h2 className="font-medium">{t("sodTitle")}</h2>
 				{sod.length === 0 ? (
 					<p className="text-muted-foreground">{t("sodOk")}</p>
@@ -103,7 +103,7 @@ export function RolesStep({
 				)}
 			</section>
 
-			<section className="flex flex-col gap-2 rounded-md border p-4 text-sm">
+			<section className="flex flex-col gap-2 rounded-2xl bg-card p-4 text-subhead">
 				<h2 className="font-medium">{t("rightsTitle")}</h2>
 				<p className="text-muted-foreground">{t("rightsLead")}</p>
 				<dl className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[max-content_minmax(0,1fr)]">
@@ -204,7 +204,7 @@ function FunctionRow({
 		(mode === "external" && name.trim());
 
 	return (
-		<li className="flex flex-col gap-3 rounded-md border p-4 text-sm">
+		<li className="flex flex-col gap-3 rounded-2xl bg-card p-4 text-subhead">
 			<div className="flex flex-wrap items-start justify-between gap-2">
 				<div className="min-w-0">
 					<p className="font-medium">
@@ -212,10 +212,10 @@ function FunctionRow({
 						{fn.required && <Badge variant="outline">{t("required")}</Badge>}
 					</p>
 					{fn.hint && (
-						<p className="text-muted-foreground text-xs">{fn.hint}</p>
+						<p className="text-muted-foreground text-footnote">{fn.hint}</p>
 					)}
 					{fn.legalBasis && (
-						<p className="text-[0.7rem] text-muted-foreground">
+						<p className="text-footnote text-muted-foreground">
 							{fn.legalBasis}
 						</p>
 					)}
@@ -241,7 +241,7 @@ function FunctionRow({
 								</Badge>
 							)}
 							{assignment.deputyName && (
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{" "}
 									· {t("deputy")}: {assignment.deputyName}
 								</span>
@@ -379,7 +379,7 @@ function FunctionRow({
 						</Select>
 					</div>
 					{mode === "invite" && (
-						<label className="flex items-center gap-2 text-sm sm:self-end sm:pb-2">
+						<label className="flex items-center gap-2 text-subhead sm:self-end sm:pb-2">
 							<Checkbox
 								checked={sendMail}
 								onCheckedChange={(v) => setSendMail(Boolean(v))}

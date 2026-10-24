@@ -48,10 +48,10 @@ export function DateEntryList({
 				return (
 					<li
 						key={`${e.kind}-${e.href}-${e.date}-${e.note ?? ""}-${e.title}`}
-						className="flex flex-col gap-1 py-2 text-sm"
+						className="flex flex-col gap-1 py-2 text-subhead"
 					>
 						<div className="flex items-baseline gap-2">
-							<span className="shrink-0 font-mono text-muted-foreground text-xs tabular-nums">
+							<span className="shrink-0 font-mono text-muted-foreground text-footnote tabular-nums">
 								{fullDate ? `${day}${e.date.slice(2, 4)}` : day}
 							</span>
 							<Link
@@ -62,7 +62,7 @@ export function DateEntryList({
 								{e.title}
 							</Link>
 						</div>
-						<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-xs">
+						<div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-footnote">
 							<span className="min-w-0">
 								{labels.kind(e.kind)}
 								{e.note ? ` · ${e.note}` : ""}
@@ -103,7 +103,7 @@ export function DateGroupChips({
 				href={key ? `${base}${sep}art=${key}` : base}
 				scroll={false}
 				aria-current={on ? "true" : undefined}
-				className={`inline-flex h-7 items-center gap-1 rounded-full border px-3 text-xs ${on ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+				className={`inline-flex h-7 items-center gap-1 rounded-full border px-3 text-footnote ${on ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"}`}
 			>
 				{label}
 				{n !== undefined && <span className="opacity-70">{n}</span>}

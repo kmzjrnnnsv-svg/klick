@@ -112,7 +112,7 @@ export function ItDataStep({
 				);
 			}}
 		>
-			<fieldset className="flex flex-col gap-2 text-sm">
+			<fieldset className="flex flex-col gap-2 text-subhead">
 				<legend className="mb-1.5 font-medium">{t("itOperation")}</legend>
 				{IT.map((x) => (
 					<label key={x} className="flex items-center gap-2">
@@ -131,10 +131,12 @@ export function ItDataStep({
 
 			<section className="flex flex-col gap-3">
 				<div>
-					<h2 className="font-medium text-sm">{t("providersTitle")}</h2>
-					<p className="text-muted-foreground text-xs">{t("providersLead")}</p>
+					<h2 className="font-medium text-subhead">{t("providersTitle")}</h2>
+					<p className="text-muted-foreground text-footnote">
+						{t("providersLead")}
+					</p>
 					{existingProviders.length > 0 && (
-						<p className="mt-1 text-muted-foreground text-xs">
+						<p className="mt-1 text-muted-foreground text-footnote">
 							{t("providersExisting")}: {existingProviders.join(", ")}
 						</p>
 					)}
@@ -143,7 +145,7 @@ export function ItDataStep({
 					{rows.map((r, i) => (
 						<li
 							key={r.key}
-							className="grid grid-cols-1 items-end gap-3 rounded-md border p-3 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_auto_auto]"
+							className="grid grid-cols-1 items-end gap-3 rounded-2xl bg-card p-3 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_auto_auto]"
 						>
 							<div className="flex flex-col gap-1.5">
 								<Label htmlFor={`pv-name-${r.key}`}>{t("providerName")}</Label>
@@ -206,7 +208,7 @@ export function ItDataStep({
 									</SelectContent>
 								</Select>
 							</div>
-							<label className="flex items-center gap-2 pb-2 text-sm">
+							<label className="flex items-center gap-2 pb-2 text-subhead">
 								<Checkbox
 									checked={r.critical}
 									onCheckedChange={(v) =>
@@ -256,7 +258,7 @@ export function ItDataStep({
 				</div>
 			</section>
 
-			<fieldset className="flex flex-col gap-2 text-sm">
+			<fieldset className="flex flex-col gap-2 text-subhead">
 				<legend className="mb-1.5 font-medium">{t("personalData")}</legend>
 				<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 					{PERSONAL_DATA.map((p) => (

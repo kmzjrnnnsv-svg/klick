@@ -77,7 +77,7 @@ export default async function WalletMovementsPage({
 					roleAllows(ctx.role, "export:download") &&
 					list.total > 0 && (
 						<Button asChild variant="outline" size="sm">
-							<a href="/api/export/wallet-bewegungen.csv" download>
+							<a href="/api/export/activity.csv" download>
 								<Download aria-hidden />
 								{t("exportCsv")}
 							</a>
@@ -92,10 +92,10 @@ export default async function WalletMovementsPage({
 						href={href({ direction: f.key })}
 						aria-current={direction === f.key ? "page" : undefined}
 						className={cn(
-							"rounded-md border px-3 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-primary",
+							"inline-flex h-(--control-h-sm) items-center rounded-full px-3 font-medium text-footnote transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 							direction === f.key
-								? "border-foreground/40 bg-muted font-medium"
-								: "border-border/60 hover:bg-muted/60",
+								? "bg-primary-fill text-white"
+								: "bg-muted hover:bg-foreground/12",
 						)}
 					>
 						{f.label}
@@ -108,10 +108,10 @@ export default async function WalletMovementsPage({
 							href={href({ account: sp.account === a.id ? null : a.id })}
 							aria-current={sp.account === a.id ? "page" : undefined}
 							className={cn(
-								"rounded-md border px-3 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-primary",
+								"inline-flex h-(--control-h-sm) items-center rounded-full px-3 font-medium text-footnote transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 								sp.account === a.id
-									? "border-foreground/40 bg-muted font-medium"
-									: "border-border/60 hover:bg-muted/60",
+									? "bg-primary-fill text-white"
+									: "bg-muted hover:bg-foreground/12",
 							)}
 						>
 							{a.name}
@@ -122,7 +122,7 @@ export default async function WalletMovementsPage({
 			{pages > 1 && (
 				<nav
 					aria-label={t("pageOf", { page, pages })}
-					className="mt-6 flex items-center justify-between gap-2 text-sm"
+					className="mt-6 flex items-center justify-between gap-2 text-subhead"
 				>
 					{page > 1 ? (
 						<Link

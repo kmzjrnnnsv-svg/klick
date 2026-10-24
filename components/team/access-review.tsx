@@ -15,9 +15,9 @@ export function AccessReview({ lastAt }: { lastAt: Date | null }) {
 	const [note, setNote] = useState("");
 	const [pending, start] = useTransition();
 	return (
-		<div className="flex flex-col gap-2 rounded-md border p-3 text-sm">
+		<div className="flex flex-col gap-2 rounded-2xl bg-card p-3 text-subhead">
 			<p className="font-medium">{t("accessReview")}</p>
-			<p className="text-muted-foreground text-xs">
+			<p className="text-muted-foreground text-footnote">
 				{t("accessReviewLead")}
 				{lastAt
 					? ` Zuletzt: ${new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeZone: "Europe/Berlin" }).format(lastAt)}`

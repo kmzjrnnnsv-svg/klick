@@ -50,18 +50,16 @@ export default async function AdminPricesPage({
 	return (
 		<>
 			<div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("prices")}
-				</h1>
+				<h1 className="font-bold text-title-1">{t("prices")}</h1>
 				<Link
 					href="/admin/preise?gruppe=neu"
 					scroll={false}
-					className="text-sm underline-offset-4 hover:underline"
+					className="text-subhead underline-offset-4 hover:underline"
 				>
 					Neue Gruppe
 				</Link>
 			</div>
-			<p className="mb-6 max-w-3xl text-muted-foreground text-sm">
+			<p className="mb-6 max-w-3xl text-muted-foreground text-subhead">
 				{t("pricesLead")}
 			</p>
 			<div className="grid grid-cols-1 gap-8 xl:grid-cols-[18rem_minmax(0,1fr)]">
@@ -70,7 +68,7 @@ export default async function AdminPricesPage({
 					className="min-w-0 xl:sticky xl:top-20 xl:self-start"
 				>
 					{groups.length === 0 ? (
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							Noch keine Gruppe — öffentlich gilt „Marktüblich“.
 						</p>
 					) : (
@@ -85,7 +83,7 @@ export default async function AdminPricesPage({
 											scroll={false}
 											aria-current={on ? "page" : undefined}
 											className={cn(
-												"flex flex-col gap-0.5 rounded-md border px-3 py-2.5 text-sm transition-colors",
+												"flex flex-col gap-0.5 rounded-xl bg-card px-3 py-2.5 text-subhead transition-colors",
 												on
 													? "border-primary/50 bg-muted/60"
 													: "border-border/60 hover:bg-muted/40",
@@ -99,7 +97,7 @@ export default async function AdminPricesPage({
 													<Badge variant="secondary">Standard</Badge>
 												)}
 											</span>
-											<span className="text-muted-foreground text-xs">
+											<span className="text-muted-foreground text-footnote">
 												{LEVEL_LABEL[group.level]}
 												{n > 0 && ` · ${n} eigene`} ·{" "}
 												{orgs === 1
@@ -114,10 +112,7 @@ export default async function AdminPricesPage({
 					)}
 				</nav>
 				<section aria-labelledby="pg-editor" className="min-w-0">
-					<h2
-						id="pg-editor"
-						className="mb-4 font-serif-display text-2xl text-primary"
-					>
+					<h2 id="pg-editor" className="mb-4 font-bold text-title-2">
 						{selected ? selected.group.name : "Neue Gruppe"}
 					</h2>
 					<PriceGroupEditor

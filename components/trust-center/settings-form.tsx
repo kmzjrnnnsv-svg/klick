@@ -131,7 +131,7 @@ export function TrustSettingsForm({
 
 	const fieldError = (key: string) =>
 		errors[key] ? (
-			<p className="text-destructive text-sm" id={`tc-${key}-error`}>
+			<p className="text-destructive text-subhead" id={`tc-${key}-error`}>
 				{errors[key]}
 			</p>
 		) : null;
@@ -154,7 +154,7 @@ export function TrustSettingsForm({
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="tc-slug">{t("fieldSlug")}</Label>
 						<div className="flex items-center gap-2">
-							<span className="whitespace-nowrap text-muted-foreground text-sm">
+							<span className="whitespace-nowrap text-muted-foreground text-subhead">
 								/vertrauen/
 							</span>
 							<Input
@@ -169,7 +169,9 @@ export function TrustSettingsForm({
 								{...a11y("slug")}
 							/>
 						</div>
-						<p className="text-muted-foreground text-xs">{t("slugHint")}</p>
+						<p className="text-muted-foreground text-footnote">
+							{t("slugHint")}
+						</p>
 						{fieldError("slug")}
 					</div>
 					<div className="flex flex-col gap-1.5">
@@ -217,7 +219,7 @@ export function TrustSettingsForm({
 								["indexable", t("toggleIndexable")],
 							] as const
 						).map(([key, label]) => (
-							<label key={key} className="flex items-center gap-2 text-sm">
+							<label key={key} className="flex items-center gap-2 text-subhead">
 								<Checkbox
 									checked={s[key]}
 									onCheckedChange={(v) => set(key, v === true)}
@@ -230,15 +232,17 @@ export function TrustSettingsForm({
 
 				<section className="flex flex-col gap-3">
 					<h2 className="font-medium text-lg">{t("sectionFrameworks")}</h2>
-					<p className="text-muted-foreground text-sm">{t("frameworksHint")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("frameworksHint")}
+					</p>
 					{s.frameworks.length > 0 && (
 						<ul className="flex flex-col gap-3">
 							{s.frameworks.map((f, i) => (
 								<li
 									key={f.slug}
-									className="grid grid-cols-1 gap-2 rounded-md border p-3 sm:grid-cols-[minmax(0,1fr)_11rem_10rem_auto] sm:items-center"
+									className="grid grid-cols-1 gap-2 rounded-2xl bg-card p-3 sm:grid-cols-[minmax(0,1fr)_11rem_10rem_auto] sm:items-center"
 								>
-									<p className="font-medium text-sm">
+									<p className="font-medium text-subhead">
 										{fwName.get(f.slug) ?? f.slug}
 									</p>
 									<Select
@@ -328,7 +332,9 @@ export function TrustSettingsForm({
 
 				<section className="flex flex-col gap-3">
 					<h2 className="font-medium text-lg">{t("sectionDocuments")}</h2>
-					<p className="text-muted-foreground text-sm">{t("documentsHint")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("documentsHint")}
+					</p>
 					{s.documents.length > 0 && (
 						<ul className="flex flex-col gap-2">
 							{s.documents.map((entry, i) => {
@@ -336,14 +342,14 @@ export function TrustSettingsForm({
 								return (
 									<li
 										key={entry.documentId}
-										className="grid grid-cols-1 gap-2 rounded-md border p-3 sm:grid-cols-[minmax(0,1fr)_12rem_auto] sm:items-center"
+										className="grid grid-cols-1 gap-2 rounded-2xl bg-card p-3 sm:grid-cols-[minmax(0,1fr)_12rem_auto] sm:items-center"
 									>
 										<div className="min-w-0">
-											<p className="truncate font-medium text-sm">
+											<p className="truncate font-medium text-subhead">
 												{d ? d.title : t("documentMissing")}
 											</p>
 											{d && (
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													<span className="whitespace-nowrap font-mono">
 														{d.docNumber}
 													</span>{" "}
@@ -430,7 +436,7 @@ export function TrustSettingsForm({
 						</Select>
 					) : (
 						documents.length === 0 && (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("noDocuments")}
 							</p>
 						)
@@ -450,7 +456,7 @@ export function TrustSettingsForm({
 						onChange={(e) => set("ndaText", e.target.value)}
 						{...a11y("ndaText")}
 					/>
-					<p className="text-muted-foreground text-xs">{t("ndaHint")}</p>
+					<p className="text-muted-foreground text-footnote">{t("ndaHint")}</p>
 					{fieldError("ndaText")}
 				</section>
 

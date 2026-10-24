@@ -131,11 +131,7 @@ export function RunActions({
 				title={t("waive")}
 				lead={t("waiveLead")}
 				trigger={
-					<Button
-						size="sm"
-						variant="ghost"
-						className="normal-case tracking-normal"
-					>
+					<Button size="sm" variant="ghost" className="">
 						{t("waive")}
 					</Button>
 				}

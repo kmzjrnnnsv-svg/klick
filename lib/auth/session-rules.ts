@@ -79,14 +79,10 @@ export function isStepUpFresh(
 	return !!at && now - at.getTime() <= STEP_UP_MS;
 }
 
-// Wallet-Bereich (Plan Wallet, H9): Entsperren nur per Passkey-Bestätigung
-// mit Zweck „wallet“, gilt 15 Minuten ab Bestätigung — Aktivität verlängert
-// nicht. Nur in der Org, in der entsperrt wurde; nie in einer
-// Impersonation-Sitzung.
+// both.money (apps/wallet): entsperrt nur per Passkey, 15 Minuten ab
+// Bestätigung — Aktivität verlängert nicht. Nur in der Org, in der entsperrt
+// wurde; nie in einer Impersonation-Sitzung.
 export const WALLET_UNLOCK_MS = 15 * 60 * 1000;
-// Mit Echtgeld entsperren nur Passkeys, die mindestens 72 h alt sind (ein
-// frisch registrierter Schlüssel nach Zugang-Zurücksetzen öffnet nichts).
-export const WALLET_MIN_PASSKEY_AGE_MS = 72 * 60 * 60 * 1000;
 
 export type WalletSessionLike = {
 	walletUnlockedAt?: Date | null;
@@ -104,26 +100,6 @@ export function isWalletUnlocked(
 	if (!at || session.walletUnlockOrgId !== orgId) return false;
 	const age = now - at.getTime();
 	return age >= 0 && age <= WALLET_UNLOCK_MS;
-}
-
-export function walletUnlockRemainingMs(
-	session: WalletSessionLike,
-	orgId: string,
-	now: number = Date.now(),
-): number {
-	if (!isWalletUnlocked(session, orgId, now)) return 0;
-	return (
-		WALLET_UNLOCK_MS - (now - (session.walletUnlockedAt as Date).getTime())
-	);
-}
-
-export function passkeyOldEnough(
-	createdAt: Date | null | undefined,
-	opts: { liveEnabled: boolean },
-	now: number = Date.now(),
-): boolean {
-	if (!opts.liveEnabled) return true;
-	return !!createdAt && now - createdAt.getTime() >= WALLET_MIN_PASSKEY_AGE_MS;
 }
 
 export const ORG_ROLES = [

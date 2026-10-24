@@ -13,9 +13,10 @@ export function Sparkline({
 	title?: string;
 }) {
 	if (points.length < 2) return null;
-	const step = width / (points.length - 1);
+	// Platz für den Endpunkt (r = 3) rechts
+	const step = (width - 3) / (points.length - 1);
 	const y = (v: number) =>
-		height - (Math.min(max, Math.max(0, v)) / max) * (height - 2) - 1;
+		height - (Math.min(max, Math.max(0, v)) / max) * (height - 6) - 3;
 	const d = points
 		.map(
 			(v, i) =>
@@ -31,11 +32,18 @@ export function Sparkline({
 			aria-label={title ?? "Verlauf"}
 			className="text-primary"
 		>
-			<path d={d} fill="none" stroke="currentColor" strokeWidth="1.5" />
+			<path
+				d={d}
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="2"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
 			<circle
-				cx={width}
+				cx={width - 3}
 				cy={y(points[points.length - 1] ?? 0)}
-				r="2"
+				r="3"
 				fill="currentColor"
 			/>
 		</svg>

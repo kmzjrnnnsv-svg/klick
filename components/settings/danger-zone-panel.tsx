@@ -51,11 +51,11 @@ export function DangerZonePanel({
 				<CardTitle className="text-base">{t("dangerTitle")}</CardTitle>
 				<CardDescription>{t("dangerLead")}</CardDescription>
 			</CardHeader>
-			<CardContent className="flex flex-col gap-4 text-sm">
+			<CardContent className="flex flex-col gap-4 text-subhead">
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
 					<div>
 						<p className="font-medium">{t("exportOrg")}</p>
-						<p className="text-muted-foreground text-xs">
+						<p className="text-muted-foreground text-footnote">
 							{t("exportOrgHint")}
 						</p>
 					</div>
@@ -70,7 +70,7 @@ export function DangerZonePanel({
 					<div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-start sm:justify-between">
 						<div>
 							<p className="font-medium">{t("deleteOrg")}</p>
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{t("deleteOrgLead")}
 							</p>
 						</div>
@@ -85,8 +85,8 @@ export function DangerZonePanel({
 									<DialogTitle>{t("deleteOrg")}</DialogTitle>
 									<DialogDescription>{t("deleteOrgLead")}</DialogDescription>
 								</DialogHeader>
-								<div className="flex flex-col gap-4 text-sm">
-									<p className="rounded-md border border-warning/40 bg-warning/5 p-3 text-xs">
+								<div className="flex flex-col gap-4 text-subhead">
+									<p className="rounded-xl bg-warning/12 p-3 text-footnote">
 										{t("deleteOrgRetention")}
 									</p>
 									<label className="flex items-start gap-2">

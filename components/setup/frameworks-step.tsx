@@ -48,7 +48,7 @@ export function FrameworksStep({
 		const isActive = active.includes(slug);
 		return (
 			<li key={slug}>
-				<label className="flex items-start gap-3 rounded-md border p-3 text-sm">
+				<label className="flex items-start gap-3 rounded-2xl bg-card p-3 text-subhead">
 					<Checkbox
 						className="mt-0.5"
 						checked={selected.includes(slug)}
@@ -62,7 +62,7 @@ export function FrameworksStep({
 						) : recommended === false ? (
 							<Badge variant="muted">{t("optional")}</Badge>
 						) : null}
-						<span className="block text-muted-foreground text-xs">
+						<span className="block text-muted-foreground text-footnote">
 							{reason}
 						</span>
 					</span>
@@ -93,13 +93,13 @@ export function FrameworksStep({
 			}}
 		>
 			<section className="flex flex-col gap-2">
-				<h2 className="font-medium text-sm">{t("suggested")}</h2>
+				<h2 className="font-medium text-subhead">{t("suggested")}</h2>
 				<ul className="flex flex-col gap-2">
 					{suggestions.map((s) => row(s.slug, s.reason, s.recommended))}
 				</ul>
 			</section>
 			<details className="flex flex-col gap-2">
-				<summary className="cursor-pointer font-medium text-sm">
+				<summary className="cursor-pointer font-medium text-subhead">
 					{t("others")} ({others.length})
 				</summary>
 				<ul className="mt-2 flex flex-col gap-2">

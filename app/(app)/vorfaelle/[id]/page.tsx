@@ -290,19 +290,19 @@ export default async function IncidentDetailPage({
 						}
 					>
 						{tasks.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{te("tasksEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col gap-2 text-sm">
+							<ul className="flex flex-col gap-2 text-subhead">
 								{tasks.map((task) => (
 									<li
 										key={task.id}
-										className="flex items-start justify-between gap-2 rounded-md border p-2"
+										className="flex items-start justify-between gap-2 rounded-2xl bg-card p-2"
 									>
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{task.assigneeName ?? "—"}
 												{task.dueAt ? ` · ${task.dueAt}` : ""}
 											</p>
@@ -356,7 +356,7 @@ export default async function IncidentDetailPage({
 					projected={dl.projected}
 				/>
 				{regimes.includes("cra_vuln") && (
-					<div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+					<div className="mt-3 flex flex-wrap items-center gap-3 text-subhead">
 						{incident.mitigationAvailableAt ? (
 							<span className="text-muted-foreground">
 								{t("mitigationSince", {
@@ -411,8 +411,8 @@ export default async function IncidentDetailPage({
 
 			<Section title={t("updates")}>
 				{incident.rootCause && (
-					<p className="text-sm">
-						<span className="lv-eyebrow mr-2 text-[0.7rem] text-muted-foreground">
+					<p className="text-subhead">
+						<span className="font-medium text-footnote mr-2 text-footnote text-muted-foreground">
 							{t("rootCause")}
 						</span>
 						{incident.rootCause}

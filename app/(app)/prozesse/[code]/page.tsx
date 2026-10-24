@@ -276,19 +276,19 @@ export default async function ProcessDetailPage({
 						}
 					>
 						{tasks.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{te("tasksEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col gap-2 text-sm">
+							<ul className="flex flex-col gap-2 text-subhead">
 								{tasks.map((task) => (
 									<li
 										key={task.id}
-										className="flex items-start justify-between gap-2 rounded-md border p-2"
+										className="flex items-start justify-between gap-2 rounded-2xl bg-card p-2"
 									>
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{task.assigneeName ?? "—"}
 												{task.dueAt
 													? ` · ${fmtDate.format(new Date(task.dueAt))}`
@@ -315,37 +315,31 @@ export default async function ProcessDetailPage({
 				currentUserId={ctx.userId}
 			/>
 			<Section title={t("bia")}>
-				<dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
+				<dl className="grid grid-cols-1 gap-4 text-subhead sm:grid-cols-3">
 					<div>
-						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<dt className="font-medium text-footnote text-muted-foreground">
 							RTO
 						</dt>
-						<dd className="font-serif-display text-2xl text-primary">
-							{p.rtoHours ?? "—"} h
-						</dd>
+						<dd className="font-bold text-title-2">{p.rtoHours ?? "—"} h</dd>
 					</div>
 					<div>
-						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<dt className="font-medium text-footnote text-muted-foreground">
 							RPO
 						</dt>
-						<dd className="font-serif-display text-2xl text-primary">
-							{p.rpoHours ?? "—"} h
-						</dd>
+						<dd className="font-bold text-title-2">{p.rpoHours ?? "—"} h</dd>
 					</div>
 					<div>
-						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<dt className="font-medium text-footnote text-muted-foreground">
 							MTPD
 						</dt>
-						<dd className="font-serif-display text-2xl text-primary">
-							{p.mtpdHours ?? "—"} h
-						</dd>
+						<dd className="font-bold text-title-2">{p.mtpdHours ?? "—"} h</dd>
 					</div>
 				</dl>
 				{(p.inputs || p.outputs || p.impactNotes) && (
-					<dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+					<dl className="mt-4 grid grid-cols-1 gap-3 text-subhead sm:grid-cols-2">
 						{p.inputs && (
 							<div>
-								<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+								<dt className="font-medium text-footnote text-muted-foreground">
 									{t("inputs")}
 								</dt>
 								<dd>{p.inputs}</dd>
@@ -353,7 +347,7 @@ export default async function ProcessDetailPage({
 						)}
 						{p.outputs && (
 							<div>
-								<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+								<dt className="font-medium text-footnote text-muted-foreground">
 									{t("outputs")}
 								</dt>
 								<dd>{p.outputs}</dd>
@@ -361,7 +355,7 @@ export default async function ProcessDetailPage({
 						)}
 						{p.impactNotes && (
 							<div className="sm:col-span-2">
-								<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+								<dt className="font-medium text-footnote text-muted-foreground">
 									{t("impactNotes")}
 								</dt>
 								<dd>{p.impactNotes}</dd>
@@ -370,14 +364,16 @@ export default async function ProcessDetailPage({
 					</dl>
 				)}
 				{p.reviewAt && (
-					<p className="mt-3 text-muted-foreground text-xs">
+					<p className="mt-3 text-muted-foreground text-footnote">
 						{t("reviewAt")}: {fmtDate.format(new Date(p.reviewAt))}
 					</p>
 				)}
 			</Section>
 
 			<Section title={t("raci")}>
-				<p className="mb-3 text-muted-foreground text-xs">{t("raciLead")}</p>
+				<p className="mb-3 text-muted-foreground text-footnote">
+					{t("raciLead")}
+				</p>
 				<RaciEditor
 					processId={p.id}
 					entries={raci.map((r) => ({
@@ -433,18 +429,18 @@ export default async function ProcessDetailPage({
 			>
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div>
-						<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+						<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 							{t("controls")}
 						</p>
 						{controls.length === 0 ? (
-							<p className="text-muted-foreground text-sm">—</p>
+							<p className="text-muted-foreground text-subhead">—</p>
 						) : (
-							<ul className="flex flex-col gap-1 text-sm">
+							<ul className="flex flex-col gap-1 text-subhead">
 								{controls.map((c) => (
 									<li key={c.code} className="flex items-center gap-2">
 										<Link
 											href={`/controls/${c.code}`}
-											className="font-mono text-xs hover:underline"
+											className="font-mono text-footnote hover:underline"
 										>
 											{c.code}
 										</Link>
@@ -468,19 +464,19 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div>
-						<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+						<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 							{t("assets")}
 						</p>
 						{linkedAssets.length === 0 ? (
-							<p className="text-muted-foreground text-sm">—</p>
+							<p className="text-muted-foreground text-subhead">—</p>
 						) : (
-							<ul className="flex flex-col gap-1 text-sm">
+							<ul className="flex flex-col gap-1 text-subhead">
 								{linkedAssets.map((a) => (
 									<li key={a.id}>
 										<Link href="/assets" className="hover:underline">
 											{a.name}
 										</Link>
-										<span className="text-muted-foreground text-xs">
+										<span className="text-muted-foreground text-footnote">
 											{" "}
 											· {a.type}
 										</span>
@@ -490,20 +486,17 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div>
-						<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+						<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 							{t("providers")}
 						</p>
 						{linkedProviders.length === 0 ? (
-							<p className="text-muted-foreground text-sm">—</p>
+							<p className="text-muted-foreground text-subhead">—</p>
 						) : (
 							<ul className="flex flex-wrap gap-1.5">
 								{linkedProviders.map((x) => (
 									<li key={x.id}>
 										<Link href="/dienstleister">
-											<Badge
-												variant={CRIT_TONE[x.criticality]}
-												className="normal-case tracking-normal"
-											>
+											<Badge variant={CRIT_TONE[x.criticality]} className="">
 												{x.name}
 											</Badge>
 										</Link>
@@ -514,7 +507,7 @@ export default async function ProcessDetailPage({
 					</div>
 					<div>
 						<div className="mb-1 flex items-center justify-between gap-2">
-							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+							<p className="font-medium text-footnote text-muted-foreground">
 								{t("risks")}
 							</p>
 							<SourceRisks
@@ -526,13 +519,13 @@ export default async function ProcessDetailPage({
 							/>
 						</div>
 						{linkedRisks.length === 0 ? (
-							<p className="text-muted-foreground text-sm">—</p>
+							<p className="text-muted-foreground text-subhead">—</p>
 						) : (
-							<ul className="flex flex-col gap-1 text-sm">
+							<ul className="flex flex-col gap-1 text-subhead">
 								{linkedRisks.map((r) => (
 									<li key={r.id}>
 										<Link href={`/risiken/${r.id}`} className="hover:underline">
-											<span className="font-mono text-xs">{r.code}</span>{" "}
+											<span className="font-mono text-footnote">{r.code}</span>{" "}
 											{r.title}
 										</Link>
 									</li>
@@ -541,20 +534,22 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div className="sm:col-span-2">
-						<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+						<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 							{t("documents")}
 						</p>
 						{linkedDocs.length === 0 ? (
-							<p className="text-muted-foreground text-sm">—</p>
+							<p className="text-muted-foreground text-subhead">—</p>
 						) : (
-							<ul className="flex flex-col gap-1 text-sm">
+							<ul className="flex flex-col gap-1 text-subhead">
 								{linkedDocs.map((d) => (
 									<li key={d.id} className="flex items-center gap-2">
 										<Link
 											href={`/dokumente/${encodeURIComponent(d.docNumber)}`}
 											className="hover:underline"
 										>
-											<span className="font-mono text-xs">{d.docNumber}</span>{" "}
+											<span className="font-mono text-footnote">
+												{d.docNumber}
+											</span>{" "}
 											{d.title}
 										</Link>
 										<Badge

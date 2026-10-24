@@ -13,17 +13,17 @@ export function QuoteRow({ quote, name }: { quote: Quote; name: string }) {
 	return (
 		<Link
 			href={`/prices/${pairSlug(quote.pair)}`}
-			className="flex items-center gap-3 rounded-md px-2 py-3 transition-[background-color] hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-primary"
+			className="flex min-h-14 items-center gap-3 px-4 py-2.5 transition-[background-color] hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
 		>
 			<div className="min-w-0 grow">
-				<p className="truncate font-medium text-sm" translate="no">
+				<p className="truncate font-semibold text-subhead" translate="no">
 					{quote.pair}
 				</p>
-				<p className="truncate text-muted-foreground text-xs">{name}</p>
+				<p className="truncate text-footnote text-muted-foreground">{name}</p>
 			</div>
 			<Sparkline values={quote.spark} />
 			<div className="flex w-28 shrink-0 flex-col items-end">
-				<span className="font-medium text-sm tabular-nums" translate="no">
+				<span className="font-medium text-subhead tabular-nums" translate="no">
 					{quote.price !== null
 						? `${formatScaled(quote.price, fraction)} ${symbol(quote.pair)}`
 						: "—"}

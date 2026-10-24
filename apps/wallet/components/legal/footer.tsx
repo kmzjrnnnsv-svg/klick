@@ -6,7 +6,7 @@ export async function LegalFooter() {
 	const t = await getTranslations("Legal");
 	return (
 		<footer className="border-t">
-			<div className="mx-auto flex max-w-6xl flex-wrap gap-x-4 gap-y-1 px-4 py-4 text-muted-foreground text-xs">
+			<div className="mx-auto flex max-w-6xl flex-wrap gap-x-4 gap-y-1 px-4 py-4 text-muted-foreground text-footnote">
 				<span translate="no">both.money</span>
 				<Link
 					href="/roadmap"

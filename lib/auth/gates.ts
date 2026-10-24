@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { walletAreaEnabled } from "@/lib/wallet/area";
 import {
 	AuthError,
 	type AuthErrorCode,
@@ -8,7 +7,6 @@ import {
 	type PlatformAdminContext,
 	requireOrg,
 	requirePlatformAdmin,
-	requireWallet,
 } from "./guards";
 import { listUserMemberships } from "./org";
 
@@ -31,10 +29,6 @@ export function redirectFor(code: AuthErrorCode): string {
 			return "/heute";
 		case "step_up_required":
 			return "/login/2fa?stepup=1";
-		case "wallet_locked":
-			return "/wallet/entsperren";
-		case "wallet_disabled":
-			return "/heute";
 		default:
 			return "/login";
 	}
@@ -63,35 +57,6 @@ export async function requireOrgPage(
 	try {
 		return await requireOrg(perm);
 	} catch (e) {
-		if (e instanceof AuthError)
-			redirect(
-				e.code === "access_expired"
-					? await expiredTarget()
-					: redirectFor(e.code),
-			);
-		throw e;
-	}
-}
-
-// Wallet-Bereich (Layouts, Entsperr-Seite): wallet:read und für die Org
-// eingeschaltet (org_settings.wallet_enabled), sonst zurück nach /heute.
-export async function requireWalletAreaPage(): Promise<OrgContext> {
-	const ctx = await requireOrgPage({ wallet: ["read"] });
-	if (!(await walletAreaEnabled(ctx.orgId)))
-		redirect(redirectFor("wallet_disabled"));
-	return ctx;
-}
-
-// Wallet-Seiten: gesperrt → Entsperr-Seite mit Rückweg.
-export async function requireWalletPage(
-	returnTo: string,
-	perm?: Parameters<typeof requireWallet>[0],
-): Promise<OrgContext> {
-	try {
-		return await requireWallet(perm);
-	} catch (e) {
-		if (e instanceof AuthError && e.code === "wallet_locked")
-			redirect(`/wallet/entsperren?zurueck=${encodeURIComponent(returnTo)}`);
 		if (e instanceof AuthError)
 			redirect(
 				e.code === "access_expired"

@@ -165,7 +165,7 @@ function RenewTokenDialog({ linkId }: { linkId: string }) {
 							placeholder={t("tokenPlaceholder")}
 							value={token}
 							onChange={(e) => setToken(e.target.value)}
-							className="font-mono text-sm"
+							className="font-mono text-subhead"
 						/>
 					</div>
 					<div className="flex justify-end gap-2">

@@ -45,7 +45,7 @@ export function UnlockStatus({ until }: { until: string | null }) {
 	}).format(new Date(until));
 	return (
 		<div className="flex shrink-0 items-center gap-2">
-			<span className="hidden items-center gap-1 text-muted-foreground text-xs sm:flex">
+			<span className="hidden items-center gap-1 text-muted-foreground text-footnote sm:flex">
 				<LockOpen className="size-3.5" aria-hidden />{" "}
 				{t("unlockedUntil", { time })}
 			</span>

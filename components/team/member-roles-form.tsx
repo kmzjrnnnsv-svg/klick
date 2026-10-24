@@ -56,7 +56,7 @@ export function MemberRolesForm({
 					<DialogDescription>{t("memberRolesLead")}</DialogDescription>
 				</DialogHeader>
 				{roles.length === 0 ? (
-					<p className="text-muted-foreground text-sm">{t("noRoles")}</p>
+					<p className="text-muted-foreground text-subhead">{t("noRoles")}</p>
 				) : (
 					<div className="flex flex-col gap-2">
 						{roles.map((r) => {
@@ -65,7 +65,7 @@ export function MemberRolesForm({
 								<label
 									key={r.id}
 									htmlFor={id}
-									className="flex items-center gap-2 text-sm"
+									className="flex items-center gap-2 text-subhead"
 								>
 									<Checkbox
 										id={id}

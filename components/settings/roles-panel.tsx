@@ -65,7 +65,7 @@ function RightsList({ permissions }: { permissions: RolePermissions }) {
 				<li key={res}>
 					<Badge
 						variant="outline"
-						className="h-auto max-w-full whitespace-normal text-left normal-case tracking-normal"
+						className="h-auto max-w-full whitespace-normal text-left"
 					>
 						{l.resource(res)}:{" "}
 						{(acts ?? []).map((a) => l.action(res, a)).join(", ")}
@@ -189,8 +189,8 @@ function RoleDialog({
 					<section className="flex flex-col gap-3">
 						<div className="flex flex-wrap items-center justify-between gap-2">
 							<div>
-								<h3 className="font-medium text-sm">{t("rights")}</h3>
-								<p className="text-muted-foreground text-xs">
+								<h3 className="font-medium text-subhead">{t("rights")}</h3>
+								<p className="text-muted-foreground text-footnote">
 									{t("rightsHint")} {t("decideHint")}
 								</p>
 							</div>
@@ -216,9 +216,9 @@ function RoleDialog({
 						{catalog.map((area) => (
 							<fieldset
 								key={area.key}
-								className="flex flex-col gap-1 rounded-md border p-3"
+								className="flex flex-col gap-1 rounded-2xl bg-card p-3"
 							>
-								<legend className="px-1 font-medium text-xs">
+								<legend className="px-1 font-medium text-footnote">
 									{l.area(area.key)}
 								</legend>
 								{area.resources.map((r) => (
@@ -226,7 +226,9 @@ function RoleDialog({
 										key={r.resource}
 										className="grid grid-cols-1 items-start gap-1 py-1 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-3"
 									>
-										<span className="text-sm">{l.resource(r.resource)}</span>
+										<span className="text-subhead">
+											{l.resource(r.resource)}
+										</span>
 										<div className="flex flex-wrap gap-x-4 gap-y-1">
 											{r.actions.map((a) => {
 												const id = `perm-${r.resource}-${a}`;
@@ -234,7 +236,7 @@ function RoleDialog({
 													<label
 														key={a}
 														htmlFor={id}
-														className="flex items-center gap-1.5 text-sm"
+														className="flex items-center gap-1.5 text-subhead"
 													>
 														<Checkbox
 															id={id}
@@ -255,10 +257,14 @@ function RoleDialog({
 					</section>
 
 					<section className="flex flex-col gap-2">
-						<h3 className="font-medium text-sm">{t("members")}</h3>
-						<p className="text-muted-foreground text-xs">{t("membersHint")}</p>
+						<h3 className="font-medium text-subhead">{t("members")}</h3>
+						<p className="text-muted-foreground text-footnote">
+							{t("membersHint")}
+						</p>
 						{members.length === 0 ? (
-							<p className="text-muted-foreground text-sm">{t("noMembers")}</p>
+							<p className="text-muted-foreground text-subhead">
+								{t("noMembers")}
+							</p>
 						) : (
 							<div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
 								{members.map((m) => {
@@ -267,7 +273,7 @@ function RoleDialog({
 										<label
 											key={m.memberId}
 											htmlFor={id}
-											className="flex items-center gap-2 text-sm"
+											className="flex items-center gap-2 text-subhead"
 										>
 											<Checkbox
 												id={id}
@@ -331,7 +337,7 @@ export function RolesPanel({
 				<div className="flex flex-wrap items-start justify-between gap-3">
 					<div className="max-w-prose">
 						<h2 className="font-medium">{t("customTitle")}</h2>
-						<p className="text-muted-foreground text-sm">{t("lead")}</p>
+						<p className="text-muted-foreground text-subhead">{t("lead")}</p>
 					</div>
 					{canEdit && (
 						<RoleDialog
@@ -349,17 +355,17 @@ export function RolesPanel({
 					)}
 				</div>
 				{roles.length === 0 ? (
-					<p className="rounded-md border border-dashed p-4 text-muted-foreground text-sm">
+					<p className="rounded-2xl bg-card p-4 text-muted-foreground text-subhead">
 						{t("empty")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y rounded-md border">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 						{roles.map((r) => (
 							<li key={r.id} className="flex flex-col gap-2 p-3 sm:flex-row">
 								<div className="flex min-w-0 grow flex-col gap-1.5">
 									<p className="font-medium">
 										{r.name}{" "}
-										<span className="font-normal text-muted-foreground text-xs">
+										<span className="font-normal text-muted-foreground text-footnote">
 											· {t("rightsCount", { n: countRights(r.permissions) })} ·{" "}
 											{t("membersCount", {
 												n: r.memberIds.length + r.pendingEmails.length,
@@ -367,13 +373,13 @@ export function RolesPanel({
 										</span>
 									</p>
 									{r.description && (
-										<p className="text-muted-foreground text-sm">
+										<p className="text-muted-foreground text-subhead">
 											{r.description}
 										</p>
 									)}
 									<RightsList permissions={r.permissions} />
 									{(r.memberIds.length > 0 || r.pendingEmails.length > 0) && (
-										<p className="text-muted-foreground text-xs">
+										<p className="text-muted-foreground text-footnote">
 											{[
 												...r.memberIds.map((id) => nameOf.get(id) ?? "—"),
 												...r.pendingEmails.map((e) => `${e} (${t("pending")})`),
@@ -442,13 +448,13 @@ export function RolesPanel({
 			<section className="flex flex-col gap-3">
 				<div className="max-w-prose">
 					<h2 className="font-medium">{t("baseTitle")}</h2>
-					<p className="text-muted-foreground text-sm">{t("baseLead")}</p>
+					<p className="text-muted-foreground text-subhead">{t("baseLead")}</p>
 				</div>
-				<ul className="flex flex-col divide-y rounded-md border">
+				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 					{baseRoles.map((b) => (
 						<li key={b.role} className="p-3">
 							<details>
-								<summary className="cursor-pointer text-sm">
+								<summary className="cursor-pointer text-subhead">
 									<span className="font-medium">{b.label}</span>{" "}
 									<span className="text-muted-foreground">— {b.hint}</span>
 								</summary>

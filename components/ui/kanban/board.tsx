@@ -153,7 +153,7 @@ export function KanbanBoard<T extends KanbanItem>({
 			</div>
 			<DragOverlay>
 				{active ? (
-					<div className="rounded-md border bg-card p-3 shadow-lg">
+					<div className="rounded-2xl bg-card p-3 shadow-lg">
 						{renderCard(active, true)}
 					</div>
 				) : null}

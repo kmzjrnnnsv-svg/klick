@@ -55,18 +55,18 @@ export async function DecisionRequestsBlock({
 			}
 		>
 			{empty ? (
-				<p className="text-muted-foreground text-sm">{t("none")}</p>
+				<p className="text-muted-foreground text-subhead">{t("none")}</p>
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 text-sm">
+				<ul className="flex flex-col divide-y divide-border/60 text-subhead">
 					{data.resolutions.map((r) => (
 						<li key={r.id} className="py-1.5">
 							<Link href="/beschluesse" className="hover:underline">
-								<span className="whitespace-nowrap font-mono text-muted-foreground text-xs">
+								<span className="whitespace-nowrap font-mono text-muted-foreground text-footnote">
 									{r.number}
 								</span>{" "}
 								{r.subject}
 							</Link>
-							<p className="line-clamp-2 text-muted-foreground text-xs">
+							<p className="line-clamp-2 text-muted-foreground text-footnote">
 								{r.decisionText}
 							</p>
 						</li>
@@ -79,7 +79,7 @@ export async function DecisionRequestsBlock({
 									href="/beschluesse?tab=anfragen"
 									className="min-w-0 truncate hover:underline"
 								>
-									<span className="whitespace-nowrap font-mono text-muted-foreground text-xs">
+									<span className="whitespace-nowrap font-mono text-muted-foreground text-footnote">
 										{q.code}
 									</span>{" "}
 									{q.question}

@@ -119,7 +119,7 @@ export function LinkRegistration({
 
 	if (state.s === "loading")
 		return (
-			<p className="text-muted-foreground text-sm" aria-live="polite">
+			<p className="text-muted-foreground text-subhead" aria-live="polite">
 				{expected === "invite" ? t("linkChecking") : tv("checking")}
 			</p>
 		);
@@ -262,7 +262,7 @@ export function LinkRegistration({
 						: tr("lead", { email: info.email })}
 			</p>
 			{info.kind === "activate" && (
-				<p className="text-sm">
+				<p className="text-subhead">
 					{info.organization
 						? tv("forEmailOrg", {
 								email: info.email,
@@ -274,7 +274,7 @@ export function LinkRegistration({
 			)}
 			{info.kind === "invite" && (
 				<>
-					<p className="text-sm">{t("forEmail", { email: info.email })}</p>
+					<p className="text-subhead">{t("forEmail", { email: info.email })}</p>
 					<div className="grid gap-2">
 						<Label htmlFor="reg-name">{t("yourName")}</Label>
 						<Input
@@ -286,7 +286,9 @@ export function LinkRegistration({
 							value={name}
 							onChange={(e) => setName(e.target.value)}
 						/>
-						<p className="text-muted-foreground text-xs">{t("yourNameHint")}</p>
+						<p className="text-muted-foreground text-footnote">
+							{t("yourNameHint")}
+						</p>
 					</div>
 				</>
 			)}
@@ -304,16 +306,16 @@ export function LinkRegistration({
 							: tr("create")}
 			</Button>
 			{error && (
-				<p role="alert" className="text-destructive text-sm">
+				<p role="alert" className="text-destructive text-subhead">
 					{error}
 				</p>
 			)}
-			<p className="text-muted-foreground text-xs">{t("passkeyHint")}</p>
+			<p className="text-muted-foreground text-footnote">{t("passkeyHint")}</p>
 			{info.kind === "activate" && (
-				<p className="text-muted-foreground text-xs">{tv("noDevice")}</p>
+				<p className="text-muted-foreground text-footnote">{tv("noDevice")}</p>
 			)}
 			{info.kind === "invite" && (
-				<p className="text-muted-foreground text-xs">
+				<p className="text-muted-foreground text-footnote">
 					{t("noPasskeyDevice")}{" "}
 					<Link
 						href={`/login/notweg?weiter=/einladung/${info.invitationId}`}

@@ -267,19 +267,19 @@ export default async function ProviderPage({
 						}
 					>
 						{data.tasks.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{te("tasksEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col gap-2 text-sm">
+							<ul className="flex flex-col gap-2 text-subhead">
 								{data.tasks.map((task) => (
 									<li
 										key={task.id}
-										className="flex items-start justify-between gap-2 rounded-md border p-2"
+										className="flex items-start justify-between gap-2 rounded-2xl bg-card p-2"
 									>
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{task.assigneeName ?? "—"}
 												{task.dueAt ? ` · ${task.dueAt}` : ""}
 											</p>
@@ -336,21 +336,21 @@ export default async function ProviderPage({
 			{tab === "stammdaten" && (
 				<>
 					<Section title={t("profile")}>
-						<dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+						<dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-subhead sm:grid-cols-2">
 							<div>
-								<dt className="text-muted-foreground text-xs">
+								<dt className="text-muted-foreground text-footnote">
 									{tp("serviceType")}
 								</dt>
 								<dd>{p.serviceType ? tp(`service_${p.serviceType}`) : "—"}</dd>
 							</div>
 							<div>
-								<dt className="text-muted-foreground text-xs">
+								<dt className="text-muted-foreground text-footnote">
 									{tp("country")}
 								</dt>
 								<dd>{p.country ?? "—"}</dd>
 							</div>
 							<div>
-								<dt className="text-muted-foreground text-xs">
+								<dt className="text-muted-foreground text-footnote">
 									{tp("contract")}
 								</dt>
 								<dd>
@@ -362,7 +362,7 @@ export default async function ProviderPage({
 								</dd>
 							</div>
 							<div>
-								<dt className="text-muted-foreground text-xs">DORA</dt>
+								<dt className="text-muted-foreground text-footnote">DORA</dt>
 								<dd className="flex flex-wrap gap-1">
 									{p.isIct && <Badge variant="outline">{tp("isIct")}</Badge>}
 									{p.isOutsourcing && (
@@ -379,7 +379,7 @@ export default async function ProviderPage({
 							</div>
 							{p.dataLocations.length > 0 && (
 								<div>
-									<dt className="text-muted-foreground text-xs">
+									<dt className="text-muted-foreground text-footnote">
 										{tp("dataLocations")}
 									</dt>
 									<dd>{p.dataLocations.join(", ")}</dd>
@@ -387,14 +387,14 @@ export default async function ProviderPage({
 							)}
 						</dl>
 						{p.notes && (
-							<p className="mt-3 whitespace-pre-line text-muted-foreground text-sm">
+							<p className="mt-3 whitespace-pre-line text-muted-foreground text-subhead">
 								{p.notes}
 							</p>
 						)}
 					</Section>
 					<Section title={t("dueDiligence")}>
 						{dd?.method === "rating" ? (
-							<p className="text-sm">
+							<p className="text-subhead">
 								{tr("ddSummary", {
 									date: dd.assessedAt
 										? fmtDate.format(new Date(String(dd.assessedAt)))
@@ -414,7 +414,7 @@ export default async function ProviderPage({
 								)}
 							</p>
 						) : dd ? (
-							<p className="text-sm">
+							<p className="text-subhead">
 								{t("ddSummary", {
 									date: dd.assessedAt
 										? fmtDate.format(new Date(String(dd.assessedAt)))
@@ -435,7 +435,9 @@ export default async function ProviderPage({
 								)}
 							</p>
 						) : (
-							<p className="text-muted-foreground text-sm">{t("ddEmpty")}</p>
+							<p className="text-muted-foreground text-subhead">
+								{t("ddEmpty")}
+							</p>
 						)}
 					</Section>
 				</>
@@ -453,13 +455,13 @@ export default async function ProviderPage({
 						) : null
 					}
 				>
-					<p className="mb-3 text-muted-foreground text-sm">
+					<p className="mb-3 text-muted-foreground text-subhead">
 						{tr("internalLead")}
 					</p>
 					{data.ratings.length === 0 ? (
-						<p className="text-sm">{tr("internalEmpty")}</p>
+						<p className="text-subhead">{tr("internalEmpty")}</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.ratings.map((r) => (
 								<li
 									key={r.id}
@@ -467,7 +469,7 @@ export default async function ProviderPage({
 								>
 									<Link
 										href={`${base}/bewertung/${r.id}`}
-										className="font-mono text-xs hover:underline"
+										className="font-mono text-footnote hover:underline"
 									>
 										{r.code}
 									</Link>
@@ -487,7 +489,7 @@ export default async function ProviderPage({
 											<span>{tr(`decision_${r.decision}`)}</span>
 										</>
 									)}
-									<span className="ml-auto text-muted-foreground text-xs">
+									<span className="ml-auto text-muted-foreground text-footnote">
 										{r.completedAt
 											? fmtDate.format(r.completedAt)
 											: fmtDate.format(r.createdAt)}
@@ -515,11 +517,11 @@ export default async function ProviderPage({
 						) : null
 					}
 				>
-					<p className="mb-3 text-muted-foreground text-sm">
+					<p className="mb-3 text-muted-foreground text-subhead">
 						{t("assessmentsLead")}
 					</p>
 					{data.assessments.length === 0 ? (
-						<p className="text-sm">{t("assessmentsEmpty")}</p>
+						<p className="text-subhead">{t("assessmentsEmpty")}</p>
 					) : (
 						<ul className="flex flex-col gap-3">
 							{data.assessments.map((a) => {
@@ -528,7 +530,7 @@ export default async function ProviderPage({
 								return (
 									<li
 										key={a.id}
-										className="flex flex-col gap-2 rounded-md border p-3 text-sm"
+										className="flex flex-col gap-2 rounded-2xl bg-card p-3 text-subhead"
 									>
 										<div className="flex flex-wrap items-start justify-between gap-2">
 											<div className="min-w-0">
@@ -536,12 +538,15 @@ export default async function ProviderPage({
 													href={`/gap-analyse/${a.id}${a.status === "submitted" || a.status === "in_review" ? "?schritt=bewertung" : ""}`}
 													className="font-medium hover:underline"
 												>
-													<span className="font-mono text-xs" translate="no">
+													<span
+														className="font-mono text-footnote"
+														translate="no"
+													>
 														{a.code}
 													</span>{" "}
 													{a.title}
 												</Link>
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{ta(`status_${a.status}`)} ·{" "}
 													{ta("progress", {
 														answered: a.answered,
@@ -574,7 +579,7 @@ export default async function ProviderPage({
 										</div>
 										{open && (
 											<div className="flex flex-wrap items-center gap-2 border-t pt-2">
-												<span className="text-muted-foreground text-xs">
+												<span className="text-muted-foreground text-footnote">
 													{a.link?.active
 														? t("linkActive", {
 																prefix: a.link.prefix,
@@ -609,7 +614,7 @@ export default async function ProviderPage({
 
 			{tab === "vertrag" && (
 				<Section title={t("contractTitle")}>
-					<p className="mb-3 text-muted-foreground text-sm">
+					<p className="mb-3 text-muted-foreground text-subhead">
 						{critical ? t("contractLeadCritical") : t("contractLead")}
 					</p>
 					<ContractClausesForm
@@ -623,11 +628,13 @@ export default async function ProviderPage({
 
 			{tab === "nachweise" && (
 				<Section title={t("files")}>
-					<p className="mb-3 text-muted-foreground text-sm">{t("filesLead")}</p>
+					<p className="mb-3 text-muted-foreground text-subhead">
+						{t("filesLead")}
+					</p>
 					{data.files.length === 0 ? (
-						<p className="text-sm">{t("filesEmpty")}</p>
+						<p className="text-subhead">{t("filesEmpty")}</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.files.map((f) => (
 								<li
 									key={f.id}
@@ -639,7 +646,7 @@ export default async function ProviderPage({
 									>
 										{f.title}
 									</a>
-									<span className="flex items-center gap-2 text-muted-foreground text-xs">
+									<span className="flex items-center gap-2 text-muted-foreground text-footnote">
 										{f.source === "supplier_portal" && (
 											<Badge variant="outline">{t("fromSupplier")}</Badge>
 										)}
@@ -659,18 +666,18 @@ export default async function ProviderPage({
 				<>
 					<Section title={t("processes")}>
 						{data.processes.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("processesEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col gap-1 text-sm">
+							<ul className="flex flex-col gap-1 text-subhead">
 								{data.processes.map((pr) => (
 									<li key={pr.code} className="flex items-center gap-2">
 										<Link
 											href={`/prozesse/${encodeURIComponent(pr.code)}`}
 											className="hover:underline"
 										>
-											<span className="font-mono text-xs" translate="no">
+											<span className="font-mono text-footnote" translate="no">
 												{pr.code}
 											</span>{" "}
 											{pr.name}
@@ -693,11 +700,11 @@ export default async function ProviderPage({
 					</Section>
 					<Section title={t("assets")}>
 						{data.assets.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("assetsEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col gap-1 text-sm">
+							<ul className="flex flex-col gap-1 text-subhead">
 								{data.assets.map((as) => (
 									<li key={as.id}>
 										<Link href="/assets" className="hover:underline">

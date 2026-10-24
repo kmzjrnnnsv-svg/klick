@@ -19,7 +19,7 @@ export async function SignerNotice({
 	return (
 		<p
 			role="status"
-			className={`mb-6 flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${danger ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/40"}`}
+			className={`mb-6 flex items-start gap-2 rounded-xl bg-card px-3 py-2 text-subhead ${danger ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/40"}`}
 		>
 			<ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
 			<span>{t(`signerState_${state}`)}</span>

@@ -344,7 +344,7 @@ export default async function OverviewPage() {
 						{fws.filter(
 							(f) => (FRAMEWORK_BY_SLUG.get(f)?.requirements.length ?? 0) > 0,
 						).length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("coverageNone")}
 							</p>
 						) : (
@@ -353,7 +353,7 @@ export default async function OverviewPage() {
 								if (!b || b.total === 0) return null;
 								return (
 									<div key={fw} className="flex flex-col gap-1">
-										<div className="flex items-baseline justify-between gap-2 text-sm">
+										<div className="flex items-baseline justify-between gap-2 text-subhead">
 											<Link
 												href={`/rahmenwerke/${fw}`}
 												className="font-medium hover:underline underline-offset-4"
@@ -367,7 +367,7 @@ export default async function OverviewPage() {
 													return (
 														<Link
 															href={`/rahmenwerke/${fw}?tab=pruefungsreife`}
-															className="text-muted-foreground text-xs hover:underline underline-offset-4"
+															className="text-muted-foreground text-footnote hover:underline underline-offset-4"
 															title={tr("overviewLead")}
 														>
 															{tr("auditBadge", { score: r.score })} ·{" "}
@@ -375,7 +375,7 @@ export default async function OverviewPage() {
 														</Link>
 													);
 												})()}
-												<span className="font-serif-display text-lg text-primary">
+												<span className="font-semibold text-headline">
 													{pct(b.coveragePct)}
 												</span>
 											</span>
@@ -388,7 +388,7 @@ export default async function OverviewPage() {
 											);
 											if (tr.points.length < 2) return null;
 											return (
-												<div className="flex items-center justify-between text-muted-foreground text-xs">
+												<div className="flex items-center justify-between text-muted-foreground text-footnote">
 													<span>
 														{t("trend30", {
 															delta: `${(tr.deltaPct ?? 0) >= 0 ? "+" : ""}${tr.deltaPct ?? 0}`,
@@ -418,16 +418,18 @@ export default async function OverviewPage() {
 								{steps.map((s) => (
 									<li
 										key={s.key}
-										className="flex items-center gap-3 py-2 text-sm"
+										className="flex items-center gap-3 py-2 text-subhead"
 									>
 										{s.done ? (
 											<CheckCircle2
-												className="size-4 text-success"
+												aria-hidden="true"
+												className="size-4 shrink-0 text-success"
 												strokeWidth={1.5}
 											/>
 										) : (
 											<Circle
-												className="size-4 text-muted-foreground"
+												aria-hidden="true"
+												className="size-4 shrink-0 text-muted-foreground"
 												strokeWidth={1.5}
 											/>
 										)}
@@ -446,14 +448,14 @@ export default async function OverviewPage() {
 											</Link>
 										)}
 										{s.phase && !s.done && (
-											<span className="ml-auto text-[0.7rem] tracking-[0.12em] text-muted-foreground">
+											<span className="ml-auto text-footnote text-muted-foreground">
 												{s.phase}
 											</span>
 										)}
 									</li>
 								))}
 							</ul>
-							<p className="mt-3 text-muted-foreground text-xs">
+							<p className="mt-3 text-muted-foreground text-footnote">
 								{steps.length - open.length} {t("done")} · {open.length}{" "}
 								{t("open")}
 							</p>
@@ -466,9 +468,11 @@ export default async function OverviewPage() {
 						</CardHeader>
 						<CardContent>
 							{gaps.length === 0 ? (
-								<p className="text-muted-foreground text-sm">{t("gapsNone")}</p>
+								<p className="text-muted-foreground text-subhead">
+									{t("gapsNone")}
+								</p>
 							) : (
-								<ul className="flex flex-col divide-y divide-border/60 text-sm">
+								<ul className="flex flex-col divide-y divide-border/60 text-subhead">
 									{gaps.map((x) => (
 										<li
 											key={x.key}
@@ -494,7 +498,7 @@ export default async function OverviewPage() {
 							{t("nextControls")}
 							<Link
 								href="/synergien"
-								className="text-primary text-xs font-normal normal-case hover:underline"
+								className="text-primary text-footnote font-normal normal-case hover:underline"
 							>
 								{t("toSynergies")}
 							</Link>
@@ -503,11 +507,11 @@ export default async function OverviewPage() {
 					</CardHeader>
 					<CardContent>
 						{!plan || plan.steps.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("nextControlsEmpty")}
 							</p>
 						) : (
-							<ol className="flex flex-col divide-y divide-border/60 text-sm">
+							<ol className="flex flex-col divide-y divide-border/60 text-subhead">
 								{plan.steps.map((s, i) => (
 									<li key={s.control} className="flex items-center gap-3 py-2">
 										<span className="w-5 shrink-0 text-muted-foreground">
@@ -517,21 +521,19 @@ export default async function OverviewPage() {
 											href={`/controls/${s.control}`}
 											className="min-w-0 flex-1 truncate hover:underline underline-offset-4"
 										>
-											<span className="font-mono text-xs">{s.control}</span> ·{" "}
-											{CONTROL_BY_CODE.get(s.control)?.title}
+											<span className="font-mono text-footnote">
+												{s.control}
+											</span>{" "}
+											· {CONTROL_BY_CODE.get(s.control)?.title}
 										</Link>
 										<span className="hidden min-w-0 max-w-[45%] flex-wrap justify-end gap-1 sm:flex">
 											{s.frameworks.map((fw) => (
-												<Badge
-													key={fw}
-													variant="outline"
-													className="normal-case tracking-normal"
-												>
+												<Badge key={fw} variant="outline" className="">
 													{shortFrameworkName(fw)}
 												</Badge>
 											))}
 										</span>
-										<span className="w-16 shrink-0 text-right text-muted-foreground text-xs">
+										<span className="w-16 shrink-0 text-right text-muted-foreground text-footnote">
 											{tc(`effort_${s.effort}`)}
 										</span>
 										<span className="w-14 shrink-0 text-right font-medium">
@@ -551,12 +553,12 @@ export default async function OverviewPage() {
 							</CardTitle>
 						</CardHeader>
 						<CardContent className="flex items-baseline justify-between">
-							<span className="font-serif-display text-3xl text-primary">
+							<span className="font-bold text-title-1">
 								{implementedWithoutEvidence.length}
 							</span>
 							<Link
 								href="/controls?status=implemented"
-								className="text-primary text-xs hover:underline"
+								className="text-primary text-footnote hover:underline"
 							>
 								{t("toControls")}
 							</Link>
@@ -567,12 +569,12 @@ export default async function OverviewPage() {
 							<CardTitle className="text-base">{t("withoutOwner")}</CardTitle>
 						</CardHeader>
 						<CardContent className="flex items-baseline justify-between">
-							<span className="font-serif-display text-3xl text-primary">
+							<span className="font-bold text-title-1">
 								{withoutOwner.length}
 							</span>
 							<Link
 								href="/controls?unowned=1"
-								className="text-primary text-xs hover:underline"
+								className="text-primary text-footnote hover:underline"
 							>
 								{t("toControls")}
 							</Link>
@@ -583,12 +585,10 @@ export default async function OverviewPage() {
 							<CardTitle className="text-base">{t("openTasks")}</CardTitle>
 						</CardHeader>
 						<CardContent className="flex items-baseline justify-between">
-							<span className="font-serif-display text-3xl text-primary">
-								{openTasks}
-							</span>
+							<span className="font-bold text-title-1">{openTasks}</span>
 							<Link
 								href="/heute/aufgaben?all=1"
-								className="text-primary text-xs hover:underline"
+								className="text-primary text-footnote hover:underline"
 							>
 								{t("toControls")}
 							</Link>
@@ -598,9 +598,9 @@ export default async function OverviewPage() {
 						<CardHeader>
 							<CardTitle className="text-base">{t("stage")}</CardTitle>
 						</CardHeader>
-						<CardContent className="text-sm">
+						<CardContent className="text-subhead">
 							{STAGE_LABEL[settings?.licenceStage ?? "0_vorbereitung"]}
-							<p className="mt-1 text-muted-foreground text-xs">
+							<p className="mt-1 text-muted-foreground text-footnote">
 								{t("members")}: {members.length}
 							</p>
 						</CardContent>

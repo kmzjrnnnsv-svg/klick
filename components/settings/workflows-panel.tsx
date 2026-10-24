@@ -81,7 +81,9 @@ export function WorkflowsPanel({
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-				<p className="max-w-prose text-muted-foreground text-sm">{t("lead")}</p>
+				<p className="max-w-prose text-muted-foreground text-subhead">
+					{t("lead")}
+				</p>
 				{canEdit && <PresetsDialog presets={presets} texts={texts} />}
 			</div>
 			{AREAS.map((area) => {
@@ -89,7 +91,7 @@ export function WorkflowsPanel({
 				if (inArea.length === 0) return null;
 				return (
 					<section key={area} className="flex flex-col gap-3">
-						<h3 className="font-medium text-sm">{l.area(area)}</h3>
+						<h3 className="font-medium text-subhead">{l.area(area)}</h3>
 						{inArea.map((tr) => (
 							<TriggerCard
 								key={tr.key}
@@ -131,10 +133,10 @@ function TriggerCard({
 }) {
 	const t = useTranslations("Workflows");
 	return (
-		<div className="rounded-md border">
+		<div className="overflow-hidden rounded-2xl bg-card">
 			<div className="flex flex-col gap-2 border-b px-3 py-2 sm:flex-row sm:items-start sm:justify-between">
 				<div className="min-w-0">
-					<p className="flex flex-wrap items-center gap-2 font-medium text-sm">
+					<p className="flex flex-wrap items-center gap-2 font-medium text-subhead">
 						{text?.label ?? trigger.key}
 						<Badge
 							variant="outline"
@@ -153,7 +155,7 @@ function TriggerCard({
 							</span>
 						</Badge>
 					</p>
-					<p className="text-muted-foreground text-xs">{text?.hint}</p>
+					<p className="text-muted-foreground text-footnote">{text?.hint}</p>
 				</div>
 				{canEdit && (
 					<Button asChild size="sm" variant="ghost" className="self-start">
@@ -200,13 +202,13 @@ function WorkflowRow({
 	return (
 		<li className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:gap-4">
 			<div className="min-w-0 flex-1">
-				<p className="text-sm">
+				<p className="text-subhead">
 					<span className="text-muted-foreground">
 						{item.custom ? t("variant") : t("standard")}:
 					</span>{" "}
 					<span className="font-medium">{item.name}</span>
 				</p>
-				<p className="text-muted-foreground text-xs">
+				<p className="text-muted-foreground text-footnote">
 					{item.conditions.length > 0
 						? t("appliesWhen", {
 								conditions: text.conditions(item.conditions),
@@ -214,7 +216,7 @@ function WorkflowRow({
 						: t("appliesAlways")}
 					{item.custom ? ` · ${t("priorityShort", { n: item.priority })}` : ""}
 				</p>
-				<ol className="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
+				<ol className="mt-1.5 flex flex-wrap items-center gap-1 text-footnote">
 					{item.steps.map((s, i) => (
 						<li key={s.order} className="flex items-center gap-1">
 							{i > 0 && (
@@ -225,7 +227,7 @@ function WorkflowRow({
 							)}
 							<Badge
 								variant="outline"
-								className="h-auto max-w-full whitespace-normal text-left normal-case tracking-normal"
+								className="h-auto max-w-full whitespace-normal text-left"
 								title={text.extras(s).join(" · ") || undefined}
 							>
 								{s.order}. {s.label || text.approvers(s)}
@@ -305,24 +307,24 @@ function PresetsDialog({
 					<DialogTitle>{t("presetsTitle")}</DialogTitle>
 					<DialogDescription>{t("presetsLead")}</DialogDescription>
 				</DialogHeader>
-				<ul className="flex flex-col divide-y divide-border/60 rounded-md border">
+				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 					{presets.map((p) => (
 						<li
 							key={p.key}
 							className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-start sm:gap-4"
 						>
 							<div className="min-w-0 flex-1">
-								<p className="font-medium text-sm">
+								<p className="font-medium text-subhead">
 									{p.name}{" "}
 									{p.variant && (
 										<Badge variant="muted">{t("presetVariant")}</Badge>
 									)}
 								</p>
-								<p className="text-muted-foreground text-xs">
+								<p className="text-muted-foreground text-footnote">
 									{texts[p.trigger]?.label} · {p.description}
 								</p>
 								{p.roles.length > 0 && (
-									<p className="mt-1 text-muted-foreground text-xs">
+									<p className="mt-1 text-muted-foreground text-footnote">
 										{t("presetRoles", { names: p.roles.join(", ") })}
 									</p>
 								)}

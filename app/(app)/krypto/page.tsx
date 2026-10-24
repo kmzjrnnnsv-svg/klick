@@ -112,7 +112,7 @@ export default async function CryptoPage({
 					allows(ctx, { export: ["create"] }) ? (
 						<a
 							href="/api/export/krypto-bewegungen.csv"
-							className="text-primary text-sm underline-offset-4 hover:underline"
+							className="text-primary text-subhead underline-offset-4 hover:underline"
 						>
 							{t("exportCsv")}
 						</a>
@@ -149,7 +149,7 @@ export default async function CryptoPage({
 					return (
 						<div
 							key={l.id}
-							className="flex flex-col gap-1 rounded-md border px-4 py-3 text-sm"
+							className="flex flex-col gap-1 rounded-xl bg-card px-4 py-3 text-subhead"
 						>
 							<p className="flex flex-wrap items-center gap-x-3 gap-y-1">
 								<span className="font-medium">{l.walletOrgName ?? l.name}</span>
@@ -186,7 +186,7 @@ export default async function CryptoPage({
 									: ""}
 							</p>
 							{warnings.length > 0 && (
-								<ul className="list-disc ps-5 text-sm" role="status">
+								<ul className="list-disc ps-5 text-subhead" role="status">
 									{warnings.map((w) => (
 										<li key={w}>{w}</li>
 									))}
@@ -218,7 +218,10 @@ export default async function CryptoPage({
 
 			{tab === "bewegungen" && data.movements && (
 				<div className="flex flex-col gap-4">
-					<nav aria-label={t("filterLabel")} className="flex gap-2 text-sm">
+					<nav
+						aria-label={t("filterLabel")}
+						className="flex gap-2 text-subhead"
+					>
 						{[undefined, ...DIRECTIONS].map((d) => (
 							<Link
 								key={d ?? "alle"}
@@ -257,7 +260,7 @@ export default async function CryptoPage({
 										<TableCell>
 											{m.accountName}
 											{!isLiveNetwork(m.network) && (
-												<span className="block text-muted-foreground text-xs">
+												<span className="block text-muted-foreground text-footnote">
 													{networkLabel(m.network)}
 												</span>
 											)}
@@ -293,7 +296,7 @@ export default async function CryptoPage({
 										</TableCell>
 										<TableCell>
 											<code
-												className="whitespace-nowrap font-mono text-xs"
+												className="whitespace-nowrap font-mono text-footnote"
 												translate="no"
 												title={m.txid}
 											>
@@ -308,7 +311,7 @@ export default async function CryptoPage({
 					{data.movements.total > MOVEMENTS_PAGE && (
 						<nav
 							aria-label={t("pagesLabel")}
-							className="flex items-center gap-3 text-sm"
+							className="flex items-center gap-3 text-subhead"
 						>
 							{page > 1 && (
 								<Link
@@ -357,7 +360,7 @@ export default async function CryptoPage({
 									<TableCell>
 										<span className="font-medium">{a.name}</span>
 										{a.status === "retired" && (
-											<span className="block text-muted-foreground text-xs">
+											<span className="block text-muted-foreground text-footnote">
 												{t("retired")}
 											</span>
 										)}
@@ -371,7 +374,7 @@ export default async function CryptoPage({
 										{a.walletId ? (
 											<Link
 												href={`/verwahrung/${a.walletId}`}
-												className="whitespace-nowrap font-mono text-xs underline-offset-4 hover:underline"
+												className="whitespace-nowrap font-mono text-footnote underline-offset-4 hover:underline"
 											>
 												{a.walletCode}
 											</Link>
@@ -392,7 +395,7 @@ export default async function CryptoPage({
 														</span>
 													),
 												)}
-												<span className="block text-muted-foreground text-xs">
+												<span className="block text-muted-foreground text-footnote">
 													{t("balanceAt", {
 														day: fmtDate.format(new Date(a.balanceDay ?? "")),
 														height: a.balance.height ?? "—",
@@ -434,7 +437,7 @@ export default async function CryptoPage({
 									<TableCell>
 										{p.destinationLabel}
 										<code
-											className="block font-mono text-muted-foreground text-xs"
+											className="block font-mono text-muted-foreground text-footnote"
 											translate="no"
 											title={p.destination}
 										>
@@ -444,7 +447,7 @@ export default async function CryptoPage({
 									<TableCell className="whitespace-nowrap text-right tabular-nums">
 										{amountText(p.network, p.asset, p.amount)}
 										{p.fee && (
-											<span className="block text-muted-foreground text-xs">
+											<span className="block text-muted-foreground text-footnote">
 												{t("fee", {
 													fee: amountText(p.network, p.asset, p.fee),
 												})}
@@ -471,7 +474,7 @@ export default async function CryptoPage({
 				(data.alerts.length === 0 ? (
 					<EmptyState title={t("noAlerts")} lead={t("noAlertsLead")} />
 				) : (
-					<ul className="flex flex-col divide-y rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{data.alerts.map((a) => (
 							<li key={a.id} className="flex flex-col gap-1 px-4 py-3">
 								<p className="flex flex-wrap items-center gap-2">
@@ -492,13 +495,13 @@ export default async function CryptoPage({
 									</Badge>
 									<span className="font-medium">{a.title}</span>
 									{alertOverdue(a, now) && (
-										<span className="text-destructive text-xs">
+										<span className="text-destructive text-footnote">
 											{t("overdue")}
 										</span>
 									)}
 								</p>
 								<p className="text-muted-foreground">{a.detail}</p>
-								<p className="text-muted-foreground text-xs tabular-nums">
+								<p className="text-muted-foreground text-footnote tabular-nums">
 									{DATE_TIME.format(a.raisedAt)}
 									{a.resolvedAt
 										? ` · ${t("resolvedAt", { time: DATE_TIME.format(a.resolvedAt) })}`

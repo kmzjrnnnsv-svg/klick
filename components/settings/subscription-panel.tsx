@@ -49,10 +49,10 @@ export async function SubscriptionPanel({
 	return (
 		<div className="flex flex-col gap-8">
 			<section aria-labelledby="sub-plan" className="flex flex-col gap-2">
-				<h2 id="sub-plan" className="font-serif-display text-xl text-primary">
+				<h2 id="sub-plan" className="font-semibold text-title-3">
 					{t("subscriptionPlan")}
 				</h2>
-				<p className="text-sm">
+				<p className="text-subhead">
 					<span className="font-medium">{planLabel}</span>
 					{planItem && (
 						<span className="text-muted-foreground tabular-nums">
@@ -61,15 +61,15 @@ export async function SubscriptionPanel({
 						</span>
 					)}
 				</p>
-				<p className="max-w-2xl text-muted-foreground text-sm">
+				<p className="max-w-2xl text-muted-foreground text-subhead">
 					{t("subscriptionLead")}
 				</p>
 			</section>
 			<section aria-labelledby="sub-seats" className="flex flex-col gap-2">
-				<h2 id="sub-seats" className="font-serif-display text-xl text-primary">
+				<h2 id="sub-seats" className="font-semibold text-title-3">
 					{t("subscriptionSeats")}
 				</h2>
-				<p className="text-sm tabular-nums">
+				<p className="text-subhead tabular-nums">
 					{t("subscriptionSeatsCount", { n: consultantSeats })}
 					<span className="text-muted-foreground">
 						{" "}
@@ -79,16 +79,16 @@ export async function SubscriptionPanel({
 							: ""}
 					</span>
 				</p>
-				<p className="max-w-2xl text-muted-foreground text-sm">
+				<p className="max-w-2xl text-muted-foreground text-subhead">
 					{t("subscriptionSeatsLead")}
 				</p>
 			</section>
 			{recommendations.length > 0 && (
 				<section aria-labelledby="sub-reco" className="flex flex-col gap-3">
-					<h2 id="sub-reco" className="font-serif-display text-xl text-primary">
+					<h2 id="sub-reco" className="font-semibold text-title-3">
 						{t("recommendedTitle")}
 					</h2>
-					<p className="max-w-2xl text-muted-foreground text-sm">
+					<p className="max-w-2xl text-muted-foreground text-subhead">
 						{t("recommendedLead")}
 					</p>
 					<ul className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -98,12 +98,12 @@ export async function SubscriptionPanel({
 							return (
 								<li
 									key={r.service}
-									className="flex flex-col gap-2 rounded-md border p-4"
+									className="flex flex-col gap-2 rounded-2xl bg-card p-4"
 								>
 									<p className="font-medium">{svc?.name ?? r.service}</p>
-									<p className="text-sm">{reason(r)}</p>
+									<p className="text-subhead">{reason(r)}</p>
 									{svc && (
-										<p className="text-muted-foreground text-xs">
+										<p className="text-muted-foreground text-footnote">
 											{svc.duration}
 											{prices[priceKey]
 												? ` · ${
@@ -130,13 +130,10 @@ export async function SubscriptionPanel({
 				</section>
 			)}
 			<section aria-labelledby="sub-services" className="flex flex-col gap-3">
-				<h2
-					id="sub-services"
-					className="font-serif-display text-xl text-primary"
-				>
+				<h2 id="sub-services" className="font-semibold text-title-3">
 					{t("subscriptionServices")}
 				</h2>
-				<p className="max-w-2xl text-muted-foreground text-sm">
+				<p className="max-w-2xl text-muted-foreground text-subhead">
 					{t("subscriptionServicesLead")}
 				</p>
 				<Table>
@@ -166,7 +163,9 @@ export async function SubscriptionPanel({
 						))}
 					</TableBody>
 				</Table>
-				<p className="text-muted-foreground text-xs">{t("subscriptionNote")}</p>
+				<p className="text-muted-foreground text-footnote">
+					{t("subscriptionNote")}
+				</p>
 				<div className="flex flex-wrap gap-2">
 					<RequestServiceDialog email={email} />
 					<Link

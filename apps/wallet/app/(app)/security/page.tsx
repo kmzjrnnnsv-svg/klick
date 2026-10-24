@@ -160,13 +160,10 @@ export default async function WalletSecurityPage() {
 			/>
 			<div className="flex flex-col gap-10">
 				<section aria-labelledby="sec-state" className="flex flex-col gap-4">
-					<h2
-						id="sec-state"
-						className="font-serif-display text-lg text-primary"
-					>
+					<h2 id="sec-state" className="font-semibold text-headline">
 						{t("secSignerTitle")}
 					</h2>
-					<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-[12rem_minmax(0,1fr)]">
+					<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-subhead sm:grid-cols-[12rem_minmax(0,1fr)]">
 						{facts.map(([k, v]) => (
 							<div key={k} className="contents">
 								<dt className="text-muted-foreground">{k}</dt>
@@ -175,7 +172,7 @@ export default async function WalletSecurityPage() {
 						))}
 					</dl>
 					{state === "frozen" && (
-						<p className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+						<p className="rounded-xl bg-muted px-3 py-2 text-subhead">
 							{t("secUnfreezeHint")}{" "}
 							<code className="font-mono text-[13px]" translate="no">
 								sudo klick-signer-admin unfreeze
@@ -185,24 +182,26 @@ export default async function WalletSecurityPage() {
 				</section>
 
 				<section aria-labelledby="sec-keys" className="flex flex-col gap-4">
-					<h2 id="sec-keys" className="font-serif-display text-lg text-primary">
+					<h2 id="sec-keys" className="font-semibold text-headline">
 						{t("secKeysTitle")}
 					</h2>
-					<p className="max-w-2xl text-muted-foreground text-sm">
+					<p className="max-w-2xl text-muted-foreground text-subhead">
 						{t("secKeysLead")}
 					</p>
 					{soloShort && policy && (
 						<p
 							role="status"
-							className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
+							className="rounded-xl bg-warning/12 px-3 py-2 text-subhead"
 						>
 							{t("secSoloShort", { n: policy.soloMinKeys })}
 						</p>
 					)}
 					{keys.length === 0 ? (
-						<p className="text-muted-foreground text-sm">{t("secKeysNone")}</p>
+						<p className="text-muted-foreground text-subhead">
+							{t("secKeysNone")}
+						</p>
 					) : (
-						<ul className="flex flex-col divide-y rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{keys.map((k) => (
 								<li
 									key={k.credId}
@@ -211,7 +210,7 @@ export default async function WalletSecurityPage() {
 									<span className="min-w-0 grow">
 										{names.get(k.person) ?? t("secUnknownPerson")}
 										<code
-											className="ms-2 font-mono text-muted-foreground text-xs"
+											className="ms-2 font-mono text-muted-foreground text-footnote"
 											translate="no"
 										>
 											{shortHash(k.credId, 8, 4)}
@@ -227,7 +226,7 @@ export default async function WalletSecurityPage() {
 							))}
 						</ul>
 					)}
-					<div className="flex flex-col gap-2 rounded-md border bg-muted/40 px-3 py-3 text-sm">
+					<div className="flex flex-col gap-2 rounded-xl bg-muted px-3 py-3 text-subhead">
 						<p>
 							{myKeys > 0 ? t("secMyKeys", { n: myKeys }) : t("secMyKeysNone")}{" "}
 							{t("secEnrolHint")}
@@ -246,16 +245,13 @@ export default async function WalletSecurityPage() {
 
 				{policy && (
 					<section aria-labelledby="sec-policy" className="flex flex-col gap-4">
-						<h2
-							id="sec-policy"
-							className="font-serif-display text-lg text-primary"
-						>
+						<h2 id="sec-policy" className="font-semibold text-headline">
 							{t("secPolicyTitle", { v: policy.version })}
 						</h2>
-						<p className="max-w-2xl text-muted-foreground text-sm">
+						<p className="max-w-2xl text-muted-foreground text-subhead">
 							{t("secPolicyLead")}
 						</p>
-						<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-[12rem_minmax(0,1fr)]">
+						<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-subhead sm:grid-cols-[12rem_minmax(0,1fr)]">
 							<div className="contents">
 								<dt className="text-muted-foreground">{t("secApproval")}</dt>
 								<dd>
@@ -291,8 +287,8 @@ export default async function WalletSecurityPage() {
 								</dd>
 							</div>
 						</dl>
-						<div className="overflow-x-auto rounded-md border">
-							<table className="w-full text-sm">
+						<div className="overflow-x-auto rounded-2xl bg-card">
+							<table className="w-full text-subhead">
 								<caption className="sr-only">{t("secLimits")}</caption>
 								<thead className="bg-muted/40 text-left text-muted-foreground">
 									<tr>

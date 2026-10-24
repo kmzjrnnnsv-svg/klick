@@ -119,7 +119,7 @@ export function LinkCreateDialog({
 								readOnly
 								value={origin}
 								translate="no"
-								className="font-mono text-sm"
+								className="font-mono text-subhead"
 							/>
 						)}
 					</div>
@@ -135,15 +135,17 @@ export function LinkCreateDialog({
 							placeholder={t("tokenPlaceholder")}
 							value={token}
 							onChange={(e) => setToken(e.target.value)}
-							className="font-mono text-sm"
+							className="font-mono text-subhead"
 						/>
-						<p className="text-muted-foreground text-xs">{t("tokenHint")}</p>
+						<p className="text-muted-foreground text-footnote">
+							{t("tokenHint")}
+						</p>
 					</div>
 					<fieldset className="grid gap-2">
-						<legend className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground">
+						<legend className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
 							{t("scope")}
 						</legend>
-						<label className="flex items-center gap-2 text-sm">
+						<label className="flex items-center gap-2 text-subhead">
 							<input
 								type="radio"
 								name="export-scope"
@@ -154,7 +156,7 @@ export function LinkCreateDialog({
 							/>
 							{t("scopeAll")}
 						</label>
-						<label className="flex items-center gap-2 text-sm">
+						<label className="flex items-center gap-2 text-subhead">
 							<input
 								type="radio"
 								name="export-scope"
@@ -170,7 +172,7 @@ export function LinkCreateDialog({
 							<ul className="ms-6 flex flex-col gap-2 border-s ps-3">
 								{accounts.map((a) => (
 									<li key={a.id}>
-										<label className="flex items-center gap-2 text-sm">
+										<label className="flex items-center gap-2 text-subhead">
 											<Checkbox
 												checked={selected.includes(a.id)}
 												onCheckedChange={(v) =>
@@ -186,7 +188,9 @@ export function LinkCreateDialog({
 							</ul>
 						)}
 						{accounts.length === 0 && (
-							<p className="text-muted-foreground text-xs">{t("scopeNone")}</p>
+							<p className="text-muted-foreground text-footnote">
+								{t("scopeNone")}
+							</p>
 						)}
 					</fieldset>
 					<div className="grid gap-2">
@@ -198,7 +202,9 @@ export function LinkCreateDialog({
 							onChange={(e) => setFrom(e.target.value)}
 							className="w-48"
 						/>
-						<p className="text-muted-foreground text-xs">{t("backfillHint")}</p>
+						<p className="text-muted-foreground text-footnote">
+							{t("backfillHint")}
+						</p>
 					</div>
 					<div className="flex justify-end gap-2">
 						<Button type="button" variant="ghost" onClick={() => reset(false)}>

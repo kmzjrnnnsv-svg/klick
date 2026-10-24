@@ -79,7 +79,7 @@ export default async function TasksPage({
 					actions={canEdit ? <QuickCreateTask members={members} /> : undefined}
 				/>
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 					{rows.map((task) => {
 						const overdue =
 							task.dueAt !== null &&
@@ -92,7 +92,7 @@ export default async function TasksPage({
 							>
 								<div className="min-w-0 flex-1">
 									<p className="font-medium">{task.title}</p>
-									<p className="flex flex-wrap items-center gap-x-2 text-muted-foreground text-xs">
+									<p className="flex flex-wrap items-center gap-x-2 text-muted-foreground text-footnote">
 										<UserChip name={task.assigneeName} />
 										{task.dueAt ? (
 											<span

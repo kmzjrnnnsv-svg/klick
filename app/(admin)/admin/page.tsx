@@ -22,7 +22,7 @@ export default async function AdminHome() {
 						<CardHeader>
 							<CardTitle className="text-base">{tile.label}</CardTitle>
 						</CardHeader>
-						<CardContent className="font-serif-display text-3xl text-primary">
+						<CardContent className="font-bold text-title-1">
 							{tile.value}
 						</CardContent>
 					</Card>

@@ -201,7 +201,7 @@ export function ProcessingActivityForm({
 					</Select>
 				</div>
 			</div>
-			<label className="flex items-center gap-2 text-sm">
+			<label className="flex items-center gap-2 text-subhead">
 				<Checkbox
 					checked={d.dsfaRequired}
 					onCheckedChange={(v) => setD({ ...d, dsfaRequired: Boolean(v) })}
@@ -329,7 +329,7 @@ export function DsrForm({
 					onChange={(v) => setD({ ...d, subjectRef: v })}
 				/>
 			</div>
-			<p className="text-muted-foreground text-xs">{t("noPiiHint")}</p>
+			<p className="text-muted-foreground text-footnote">{t("noPiiHint")}</p>
 		</FormDialog>
 	);
 }

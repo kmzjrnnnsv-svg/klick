@@ -28,7 +28,7 @@ export function OrgChoice({
 	}
 
 	return (
-		<ul className="flex flex-col divide-y divide-border rounded-md border">
+		<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 			{orgs.map((o) => (
 				<li
 					key={o.orgId}
@@ -36,7 +36,7 @@ export function OrgChoice({
 				>
 					<div className="min-w-0">
 						<p className="truncate font-medium">{o.name}</p>
-						<p className="text-muted-foreground text-xs">{o.role}</p>
+						<p className="text-muted-foreground text-footnote">{o.role}</p>
 					</div>
 					<Button
 						variant="outline"

@@ -183,11 +183,7 @@ export default async function AssessmentPage({
 							</Link>
 						)}
 						{a.frameworks.map((s) => (
-							<Badge
-								key={s}
-								variant="muted"
-								className="normal-case tracking-normal"
-							>
+							<Badge key={s} variant="muted" className="">
 								{shortFrameworkName(s)}
 							</Badge>
 						))}
@@ -196,14 +192,14 @@ export default async function AssessmentPage({
 			/>
 
 			<nav aria-label="Schritte" className="mb-6">
-				<ol className="flex flex-wrap gap-2 text-sm">
+				<ol className="flex flex-wrap gap-2 text-subhead">
 					{STEPS.map((s) => (
 						<li key={s}>
 							<Link
 								href={stepHref(s)}
 								aria-current={step === s ? "step" : undefined}
 								className={cn(
-									"inline-flex rounded-md border px-3 py-1.5 transition-colors hover:bg-muted",
+									"inline-flex rounded-xl bg-card px-3 py-1.5 transition-colors hover:bg-muted",
 									step === s && "border-primary bg-primary/5 font-medium",
 								)}
 							>
@@ -233,7 +229,7 @@ export default async function AssessmentPage({
 			</nav>
 
 			{closed && (
-				<p className="mb-4 rounded-md border border-dashed p-3 text-sm">
+				<p className="mb-4 rounded-2xl bg-card p-3 text-subhead">
 					{t("readOnly")}
 				</p>
 			)}
@@ -262,14 +258,14 @@ export default async function AssessmentPage({
 													href={stepHref("fragen", `&kapitel=${s.code}`)}
 													aria-current={s.code === chapter ? "page" : undefined}
 													className={cn(
-														"flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-2 py-1.5 text-sm hover:bg-muted",
+														"flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-2 py-1.5 text-subhead hover:bg-muted",
 														s.code === chapter && "bg-muted font-medium",
 													)}
 												>
 													<span className="truncate">{s.title}</span>
 													<span
 														className={cn(
-															"text-xs tabular-nums",
+															"text-footnote tabular-nums",
 															done === s.count
 																? "text-success"
 																: "text-muted-foreground",
@@ -358,27 +354,29 @@ export default async function AssessmentPage({
 
 			{step === "bewertung" && (
 				<div className="flex flex-col gap-6">
-					<p className="text-muted-foreground text-sm">{t("reviewLead")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("reviewLead")}
+					</p>
 					<div className="grid grid-cols-1 gap-4 md:grid-cols-[auto_1fr]">
-						<div className="flex flex-col gap-1 rounded-md border p-4">
-							<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<div className="flex flex-col gap-1 rounded-2xl bg-card p-4">
+							<span className="font-medium text-footnote text-muted-foreground">
 								{t("score")}
 							</span>
-							<span className="font-serif-display text-4xl text-primary tabular-nums">
+							<span className="font-bold text-title-1 tabular-nums">
 								{score.score ?? "—"}
 							</span>
-							<span className="max-w-48 text-muted-foreground text-xs">
+							<span className="max-w-48 text-muted-foreground text-footnote">
 								{t("scoreHint")}
 							</span>
 						</div>
-						<div className="flex flex-col gap-2 text-sm">
-							<p className="text-muted-foreground text-xs">
+						<div className="flex flex-col gap-2 text-subhead">
+							<p className="text-muted-foreground text-footnote">
 								{t("counts", score.counts)}
 							</p>
 							{!subjectScoped && (
-								<table className="w-full text-sm">
+								<table className="w-full text-subhead">
 									<thead>
-										<tr className="text-left text-muted-foreground text-xs">
+										<tr className="text-left text-muted-foreground text-footnote">
 											<th className="py-1 font-normal" />
 											<th className="py-1 font-normal">{t("coverageNow")}</th>
 											<th className="py-1 font-normal">{t("coverageAfter")}</th>
@@ -452,7 +450,7 @@ export default async function AssessmentPage({
 					{sections.map((s) => (
 						<section key={s.code}>
 							<h2 className="mb-2 font-medium">{s.title}</h2>
-							<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 								{a.questions
 									.filter((q) => q.sectionCode === s.code)
 									.map((q) => {
@@ -472,12 +470,15 @@ export default async function AssessmentPage({
 														)}
 														className="min-w-0 truncate hover:underline"
 													>
-														<span className="font-mono text-xs" translate="no">
+														<span
+															className="font-mono text-footnote"
+															translate="no"
+														>
 															{q.code}
 														</span>{" "}
 														{q.text}
 													</Link>
-													<span className="text-muted-foreground text-xs">
+													<span className="text-muted-foreground text-footnote">
 														{row?.answeredBy === "supplier"
 															? t("supplierAnswer")
 															: t("selfAnswer")}
@@ -542,7 +543,7 @@ export default async function AssessmentPage({
 							});
 					return (
 						<div className="flex flex-col gap-4">
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("measuresLead")}
 							</p>
 							{canTasks ? (
@@ -554,7 +555,7 @@ export default async function AssessmentPage({
 									frameworkNames={fwNames}
 								/>
 							) : (
-								<p className="text-sm">{t("measuresEmpty")}</p>
+								<p className="text-subhead">{t("measuresEmpty")}</p>
 							)}
 						</div>
 					);
@@ -562,43 +563,45 @@ export default async function AssessmentPage({
 
 			{step === "ergebnis" && (
 				<div className="flex flex-col gap-6">
-					<p className="text-muted-foreground text-sm">{t("resultLead")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("resultLead")}
+					</p>
 					<div className="flex flex-wrap items-end gap-6">
 						<div>
-							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+							<p className="font-medium text-footnote text-muted-foreground">
 								{t("score")}
 							</p>
-							<p className="font-serif-display text-5xl text-primary tabular-nums">
+							<p className="font-semibold text-5xl text-primary tabular-nums">
 								{a.score ?? score.score ?? "—"}
 							</p>
 						</div>
-						<p className="max-w-xl text-muted-foreground text-sm">
+						<p className="max-w-xl text-muted-foreground text-subhead">
 							{t("counts", score.counts)}
 						</p>
 						{a.rating && (
-							<p className="text-sm">
+							<p className="text-subhead">
 								{t("ratingLabel", { rating: a.rating })}
 								{a.decision && ` · ${t(`decision_${a.decision}`)}`}
 							</p>
 						)}
 					</div>
 					{a.decisionNote && (
-						<p className="max-w-2xl text-muted-foreground text-sm">
+						<p className="max-w-2xl text-muted-foreground text-subhead">
 							{a.decisionNote}
 						</p>
 					)}
 					<section>
 						<h2 className="mb-2 font-medium">{t("bySection")}</h2>
-						<ul className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+						<ul className="grid grid-cols-1 gap-2 text-subhead sm:grid-cols-2">
 							{score.bySection.map((s) => (
 								<li
 									key={s.code}
-									className="flex items-center justify-between rounded-md border px-3 py-1.5"
+									className="flex items-center justify-between rounded-xl bg-card px-3 py-1.5"
 								>
 									<span>{s.title}</span>
 									<span className="tabular-nums">
 										{s.score ?? "—"}{" "}
-										<span className="text-muted-foreground text-xs">
+										<span className="text-muted-foreground text-footnote">
 											({s.answered}/{s.total})
 										</span>
 									</span>

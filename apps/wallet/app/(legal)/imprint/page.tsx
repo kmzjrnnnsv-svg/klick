@@ -21,7 +21,7 @@ export default async function ImprintPage() {
 	const reps = legalRepresentatives(e);
 	return (
 		<article className="flex flex-col gap-6 leading-relaxed">
-			<h1 className="font-serif-display text-3xl">{t("imprint")}</h1>
+			<h1 className="font-bold text-title-1">{t("imprint")}</h1>
 			<section className="flex flex-col gap-2">
 				<h2 className="font-medium">{t("provider")}</h2>
 				{name ? (
@@ -72,7 +72,7 @@ export default async function ImprintPage() {
 					)}
 				</p>
 			</section>
-			<p className="text-muted-foreground text-sm">{t("audience")}</p>
+			<p className="text-muted-foreground text-subhead">{t("audience")}</p>
 		</article>
 	);
 }

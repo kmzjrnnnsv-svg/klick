@@ -50,18 +50,18 @@ export function InviteLinkPanel({
 				readOnly
 				value={url}
 				aria-label={hint ? t("resetLinkTitle") : t("inviteLink")}
-				className="font-mono text-xs"
+				className="font-mono text-footnote"
 				onFocus={(e) => e.currentTarget.select()}
 			/>
-			<p className="text-muted-foreground text-xs">
+			<p className="text-muted-foreground text-footnote">
 				{hint ?? t("inviteLinkHint")}
 			</p>
 			{mailed !== null && (
 				<p
 					className={
 						mailed
-							? "text-muted-foreground text-xs"
-							: "text-destructive text-xs"
+							? "text-muted-foreground text-footnote"
+							: "text-destructive text-footnote"
 					}
 				>
 					{mailed ? t("inviteMailed") : t("inviteMailFailed")}
@@ -195,7 +195,7 @@ export function InviteForm({
 						</div>
 						{customAllowed && roles.length > 0 && (
 							<fieldset className="flex flex-col gap-2">
-								<legend className="mb-1 font-medium text-sm">
+								<legend className="mb-1 font-medium text-subhead">
 									{tr("inviteRoles")}
 								</legend>
 								<div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -205,7 +205,7 @@ export function InviteForm({
 											<label
 												key={r.id}
 												htmlFor={id}
-												className="flex items-center gap-2 text-sm"
+												className="flex items-center gap-2 text-subhead"
 											>
 												<Checkbox
 													id={id}
@@ -225,7 +225,7 @@ export function InviteForm({
 								</div>
 							</fieldset>
 						)}
-						<label className="flex items-center gap-2 text-sm">
+						<label className="flex items-center gap-2 text-subhead">
 							<Checkbox
 								checked={sendMail}
 								onCheckedChange={(v) => setSendMail(v === true)}

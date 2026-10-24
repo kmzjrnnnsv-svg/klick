@@ -79,9 +79,9 @@ export function SitesStep({
 	return (
 		<div className="flex flex-col gap-6">
 			{sites.length === 0 ? (
-				<p className="text-muted-foreground text-sm">{t("sitesEmpty")}</p>
+				<p className="text-muted-foreground text-subhead">{t("sitesEmpty")}</p>
 			) : (
-				<ul className="flex flex-col divide-y rounded-md border text-sm">
+				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 					{sites.map((s) => (
 						<li key={s.id} className="flex items-center gap-3 px-3 py-2">
 							<div className="min-w-0 flex-1">
@@ -91,7 +91,7 @@ export function SitesStep({
 										<Badge variant="warning">{t("critical")}</Badge>
 									)}
 								</p>
-								<p className="text-muted-foreground text-xs">
+								<p className="text-muted-foreground text-footnote">
 									{t(`kind_${s.kind}`)}
 									{s.city ? ` · ${s.city}` : ""}
 									{s.country ? ` · ${s.country}` : ""}
@@ -103,7 +103,7 @@ export function SitesStep({
 							{canRisk && (
 								<Link
 									href={newRiskHref("site", s.id)}
-									className="shrink-0 text-primary text-xs underline-offset-4 hover:underline"
+									className="shrink-0 text-primary text-footnote underline-offset-4 hover:underline"
 								>
 									{tr("create")}
 								</Link>
@@ -133,7 +133,7 @@ export function SitesStep({
 
 			{canEdit && (
 				<form
-					className="flex flex-col gap-4 rounded-md border p-4"
+					className="flex flex-col gap-4 rounded-2xl bg-card p-4"
 					onSubmit={(e) => {
 						e.preventDefault();
 						start(async () => {
@@ -152,7 +152,7 @@ export function SitesStep({
 						});
 					}}
 				>
-					<h2 className="font-medium text-sm">{t("addSite")}</h2>
+					<h2 className="font-medium text-subhead">{t("addSite")}</h2>
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="si-name">{t("siteName")}</Label>
@@ -214,7 +214,7 @@ export function SitesStep({
 								}
 							/>
 						</div>
-						<label className="flex items-center gap-2 self-end pb-2 text-sm">
+						<label className="flex items-center gap-2 self-end pb-2 text-subhead">
 							<Checkbox
 								checked={d.critical}
 								onCheckedChange={(v) => setD({ ...d, critical: Boolean(v) })}

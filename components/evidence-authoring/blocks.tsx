@@ -139,7 +139,7 @@ function BlockShell({
 	return (
 		<section
 			aria-labelledby={title ? headingId : undefined}
-			className="flex min-w-0 flex-col gap-3 rounded-md border p-4"
+			className="flex min-w-0 flex-col gap-3 rounded-2xl bg-card p-4"
 		>
 			{title && (
 				<div className="flex flex-col gap-1">
@@ -147,7 +147,7 @@ function BlockShell({
 						{title}
 						<Required show={required} />
 					</h2>
-					{hint && <p className="text-muted-foreground text-sm">{hint}</p>}
+					{hint && <p className="text-muted-foreground text-subhead">{hint}</p>}
 				</div>
 			)}
 			{children}
@@ -212,7 +212,7 @@ function PasteRows({
 			</Button>
 		);
 	return (
-		<div className="flex w-full flex-col gap-2 rounded-md border border-dashed p-3">
+		<div className="flex w-full flex-col gap-2 rounded-2xl bg-card p-3">
 			<Label htmlFor={id}>
 				{t("pasteLabel", { columns: columns.map((c) => c.label).join(" · ") })}
 			</Label>
@@ -355,7 +355,7 @@ export function BlockEditor({
 					headingId={headingId}
 				>
 					<div
-						className="hidden gap-2 text-muted-foreground text-xs sm:grid sm:[grid-template-columns:var(--cols)]"
+						className="hidden gap-2 text-muted-foreground text-footnote sm:grid sm:[grid-template-columns:var(--cols)]"
 						style={grid}
 						aria-hidden="true"
 					>
@@ -368,7 +368,7 @@ export function BlockEditor({
 							<li
 								// biome-ignore lint/suspicious/noArrayIndexKey: Zeilen haben keine ID
 								key={ri}
-								className="grid grid-cols-1 gap-2 rounded-md border p-2 sm:rounded-none sm:border-0 sm:p-0 sm:[grid-template-columns:var(--cols)]"
+								className="grid grid-cols-1 gap-2 rounded-2xl bg-card p-2 sm:rounded-none sm:border-0 sm:p-0 sm:[grid-template-columns:var(--cols)]"
 								style={grid}
 							>
 								{cols.map((c, ci) => {
@@ -385,7 +385,7 @@ export function BlockEditor({
 										);
 									return (
 										<div key={c.key} className="flex min-w-0 flex-col gap-1">
-											<span className="text-muted-foreground text-xs sm:hidden">
+											<span className="text-muted-foreground text-footnote sm:hidden">
 												{c.label}
 											</span>
 											{c.type === "select" ? (
@@ -461,7 +461,7 @@ export function BlockEditor({
 							<li
 								// biome-ignore lint/suspicious/noArrayIndexKey: Zeilen haben keine ID
 								key={ri}
-								className="grid grid-cols-1 gap-2 rounded-md border p-2 md:grid-cols-[minmax(0,5fr)_minmax(0,2fr)_minmax(0,3fr)_2.5rem] md:items-start"
+								className="grid grid-cols-1 gap-2 rounded-2xl bg-card p-2 md:grid-cols-[minmax(0,5fr)_minmax(0,2fr)_minmax(0,3fr)_2.5rem] md:items-start"
 							>
 								<Textarea
 									aria-label={t("checkText", { row: ri + 1 })}
@@ -549,7 +549,7 @@ export function BlockEditor({
 							<label
 								key={r}
 								className={cn(
-									"cursor-pointer rounded-md border px-3 py-1.5 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+									"cursor-pointer rounded-xl bg-card px-3 py-1.5 text-subhead transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
 									value.value === r
 										? r === "pass"
 											? "border-success bg-success/10"
@@ -594,7 +594,7 @@ export function BlockEditor({
 							<li
 								// biome-ignore lint/suspicious/noArrayIndexKey: Zeilen haben keine ID
 								key={ri}
-								className="grid grid-cols-1 gap-2 rounded-md border p-2 md:grid-cols-[minmax(0,5fr)_minmax(0,3fr)_minmax(0,2fr)_2.5rem] md:items-start"
+								className="grid grid-cols-1 gap-2 rounded-2xl bg-card p-2 md:grid-cols-[minmax(0,5fr)_minmax(0,3fr)_minmax(0,2fr)_2.5rem] md:items-start"
 							>
 								<Input
 									aria-label={t("measureText", { row: ri + 1 })}
@@ -689,7 +689,7 @@ export function BlockEditor({
 							<li
 								// biome-ignore lint/suspicious/noArrayIndexKey: Abschnitte haben keine ID
 								key={ri}
-								className="flex flex-col gap-2 rounded-md border p-3"
+								className="flex flex-col gap-2 rounded-2xl bg-card p-3"
 							>
 								<div className="flex items-center gap-2">
 									<Input

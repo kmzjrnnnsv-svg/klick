@@ -8,7 +8,7 @@ import { createMeasures } from "@/app/actions/assessments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
+import { Input, nativeSelectCompactClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Measure } from "@/lib/assessments/measures";
 
@@ -45,7 +45,7 @@ export function MeasuresForm({
 	const [pending, start] = useTransition();
 
 	if (measures.length === 0)
-		return <p className="text-sm">{t("measuresEmpty")}</p>;
+		return <p className="text-subhead">{t("measuresEmpty")}</p>;
 
 	return (
 		<form
@@ -71,7 +71,7 @@ export function MeasuresForm({
 		>
 			<label
 				htmlFor="m-all"
-				className="flex cursor-pointer items-center gap-2 text-sm"
+				className="flex cursor-pointer items-center gap-2 text-subhead"
 			>
 				<Checkbox
 					id="m-all"
@@ -82,7 +82,7 @@ export function MeasuresForm({
 				/>
 				{t("selectAll")}
 			</label>
-			<ol className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+			<ol className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 				{measures.map((m, i) => {
 					const k = key(m);
 					return (
@@ -110,12 +110,12 @@ export function MeasuresForm({
 										<Badge variant={KIND_TONE[m.kind]}>
 											{t(`kind_${m.kind}`)}
 										</Badge>
-										<span className="font-mono text-xs" translate="no">
+										<span className="font-mono text-footnote" translate="no">
 											{m.controlCode}
 										</span>
 										<span className="min-w-0 font-medium">{m.title}</span>
 									</span>
-									<span className="flex flex-wrap gap-x-3 text-muted-foreground text-xs">
+									<span className="flex flex-wrap gap-x-3 text-muted-foreground text-footnote">
 										<span>{t("effort", { effort: m.effort })}</span>
 										{m.requirements > 0 && (
 											<span>
@@ -136,7 +136,7 @@ export function MeasuresForm({
 										)}
 									</span>
 									{m.recommendation && (
-										<span className="text-muted-foreground text-xs">
+										<span className="text-muted-foreground text-footnote">
 											{m.recommendation}
 										</span>
 									)}
@@ -151,7 +151,7 @@ export function MeasuresForm({
 					<Label htmlFor="m-assignee">{t("assignTo")}</Label>
 					<select
 						id="m-assignee"
-						className="rounded-md border bg-background px-2 py-1.5 text-foreground text-sm"
+						className={nativeSelectCompactClass}
 						value={assignee}
 						onChange={(e) => setAssignee(e.target.value)}
 					>

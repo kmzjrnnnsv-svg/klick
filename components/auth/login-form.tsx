@@ -134,7 +134,7 @@ export function LoginForm({
 			>
 				<Fingerprint /> {busy === "passkey" ? t("passkeyBusy") : t("passkey")}
 			</Button>
-			<div className="flex items-center gap-3 text-muted-foreground text-xs">
+			<div className="flex items-center gap-3 text-muted-foreground text-footnote">
 				<span className="h-px flex-1 bg-border" />
 				{t("orPasskey")}
 				<span className="h-px flex-1 bg-border" />
@@ -171,7 +171,7 @@ export function LoginForm({
 					</Button>
 				)}
 			</div>
-			<p className="text-muted-foreground text-sm">
+			<p className="text-muted-foreground text-subhead">
 				{t("lostPasskey")}{" "}
 				<Link href={notweg} className="text-primary hover:underline">
 					{signupAllowed ? t("mailLinkOrSignup") : t("mailLink")}

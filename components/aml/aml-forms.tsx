@@ -181,7 +181,7 @@ export function RiskAnalysisForm({
 			}
 		>
 			<nav aria-label={t("stepsLabel")}>
-				<ol className="flex flex-wrap gap-1.5 text-xs">
+				<ol className="flex flex-wrap gap-1.5 text-footnote">
 					{AML_STEPS.map((s, i) => (
 						<li key={s}>
 							<button
@@ -215,13 +215,13 @@ export function RiskAnalysisForm({
 					const list = factors.filter((f) => f.dimension === key);
 					return (
 						<div className="flex flex-col gap-4">
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t(`dimLead_${key}`)}
 							</p>
 							<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 								{(["higher", "lower"] as const).map((dir) => (
 									<fieldset key={dir} className="flex min-w-0 flex-col gap-1.5">
-										<legend className="mb-1 font-medium text-sm">
+										<legend className="mb-1 font-medium text-subhead">
 											{t(`factors_${dir}`)}
 										</legend>
 										{list
@@ -229,7 +229,7 @@ export function RiskAnalysisForm({
 											.map((f) => (
 												<label
 													key={f.code}
-													className="flex cursor-pointer items-start gap-2 rounded-md border p-2 text-xs has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+													className="flex cursor-pointer items-start gap-2 rounded-2xl bg-card p-2 text-footnote has-[:checked]:border-primary has-[:checked]:bg-primary/5"
 												>
 													<input
 														type="checkbox"
@@ -254,7 +254,7 @@ export function RiskAnalysisForm({
 									</fieldset>
 								))}
 							</div>
-							<div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/40 p-2 text-sm">
+							<div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted p-2 text-subhead">
 								<span aria-live="polite">
 									{t("suggestion", {
 										score: sug.score,
@@ -308,7 +308,7 @@ export function RiskAnalysisForm({
 								/>
 							</div>
 							{dim.score >= 4 && (
-								<p className="text-sm">
+								<p className="text-subhead">
 									<Link
 										className="text-primary hover:underline"
 										href={`/risiken/neu?szenario=${key === "country" ? "RS-AML-08" : key === "channel" ? "RS-AML-07" : "RS-AML-01"}`}
@@ -345,17 +345,17 @@ export function RiskAnalysisForm({
 							onChange={(v) => setD({ ...d, nextReviewAt: v })}
 						/>
 					</div>
-					<ul className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-4">
+					<ul className="grid grid-cols-1 gap-2 text-subhead sm:grid-cols-4">
 						{DIMENSIONS.map((key) => (
-							<li key={key} className="rounded-md border p-2">
-								<p className="text-muted-foreground text-xs">
+							<li key={key} className="rounded-2xl bg-card p-2">
+								<p className="text-muted-foreground text-footnote">
 									{t(`dim_${key}`)}
 								</p>
 								<p className="font-medium">
 									{d.dimensions[key].score} ·{" "}
 									{AML_SCORE_LABELS[d.dimensions[key].score - 1]}
 								</p>
-								<p className="text-muted-foreground text-xs">
+								<p className="text-muted-foreground text-footnote">
 									{t("factorCount", {
 										n: (d.dimensions[key].factorCodes ?? []).length,
 									})}
@@ -370,7 +370,7 @@ export function RiskAnalysisForm({
 						onChange={(v) => setD({ ...d, summary: v })}
 						rows={3}
 					/>
-					<p className="font-medium text-sm">
+					<p className="font-medium text-subhead">
 						{t("overallPreview", { risk: t(`risk_${overall}`) })}
 					</p>
 				</div>
@@ -692,7 +692,7 @@ export function SuspiciousReportForm({
 				onChange={(v) => setD({ ...d, decisionNote: v })}
 				rows={3}
 			/>
-			<p className="text-muted-foreground text-xs">{t("noPiiHint")}</p>
+			<p className="text-muted-foreground text-footnote">{t("noPiiHint")}</p>
 		</FormDialog>
 	);
 }
@@ -797,7 +797,7 @@ export function JurisdictionForm({ initial }: { initial?: JurisdictionDraft }) {
 		k: "euHighRisk" | "euSanctions" | "usSanctions";
 		label: string;
 	}) => (
-		<label className="flex items-center gap-2 text-sm">
+		<label className="flex items-center gap-2 text-subhead">
 			<Checkbox
 				checked={d[k]}
 				onCheckedChange={(v) => setD({ ...d, [k]: Boolean(v) })}
@@ -961,13 +961,13 @@ export function JurisdictionCsvImport() {
 		>
 			<Textarea
 				rows={10}
-				className="font-mono text-xs"
+				className="font-mono text-footnote"
 				placeholder="iso2;name;euHighRisk;fatfStatus;euSanctions;usSanctions;orgStance;corridorStatus;legalNotes"
 				value={csv}
 				onChange={(e) => setCsv(e.target.value)}
 			/>
 			{errors.length > 0 && (
-				<ul className="list-disc pl-5 text-destructive text-xs">
+				<ul className="list-disc pl-5 text-destructive text-footnote">
 					{errors.map((e) => (
 						<li key={e}>{e}</li>
 					))}

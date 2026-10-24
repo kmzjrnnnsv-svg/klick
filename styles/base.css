@@ -90,6 +90,20 @@ h1 {
 	}
 }
 
+/* Tab-Leiste am Handy (fest unten): Platz am Seitenende, damit Inhalt und
+   Fußzeile nicht dahinter verschwinden. --bar-offset hebt klebende Leisten
+   am unteren Rand (Speichern, Auswahl) über die Tab-Leiste:
+   `sticky bottom-(--bar-offset)` */
+:root {
+	--bar-offset: 0px;
+}
+@media (width < 64rem) {
+	body:has([data-tab-bar]) {
+		--bar-offset: calc(3.0625rem + env(safe-area-inset-bottom));
+		padding-bottom: var(--bar-offset);
+	}
+}
+
 /* Bewegung: bei reduzierter Bewegung nur Überblendung, keine Wege */
 @media (prefers-reduced-motion: reduce) {
 	*,

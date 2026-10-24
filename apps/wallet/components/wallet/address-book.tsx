@@ -125,7 +125,9 @@ export function ProposeDestinationDialog({
 							required
 						/>
 					</div>
-					<p className="text-muted-foreground text-sm">{t("abProposeHint")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("abProposeHint")}
+					</p>
 					<DialogFooter>
 						<Button type="submit" disabled={pending || !network}>
 							{pending ? t("abProposing") : t("abProposeSubmit")}

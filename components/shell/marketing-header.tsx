@@ -18,11 +18,11 @@ export async function MarketingHeader({
 		{ href: "/vertrauen", label: tf("trust") },
 	];
 	return (
-		<header className="sticky top-0 z-30 w-full bg-background/90 backdrop-blur">
+		<header className="material-bar sticky top-0 z-30 w-full">
 			<div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
 				<Link
 					href="/"
-					className="lv-wordmark text-[0.95rem] text-foreground hover:opacity-70"
+					className="font-bold text-foreground text-headline hover:opacity-70"
 				>
 					{t("productName")}
 				</Link>
@@ -31,7 +31,7 @@ export async function MarketingHeader({
 						<Link
 							key={l.href}
 							href={l.href}
-							className="lv-eyebrow text-xs text-muted-foreground transition-colors hover:text-foreground"
+							className="text-muted-foreground text-subhead transition-colors hover:text-foreground"
 						>
 							{l.label}
 						</Link>
@@ -46,12 +46,12 @@ export async function MarketingHeader({
 						>
 							<Menu className="size-5" aria-hidden="true" />
 						</summary>
-						<nav className="absolute right-0 z-40 mt-2 flex w-56 flex-col rounded-md border bg-background p-2 shadow-lg">
+						<nav className="absolute right-0 z-40 mt-2 flex w-56 flex-col rounded-2xl bg-card p-2 shadow-lg">
 							{links.map((l) => (
 								<a
 									key={l.href}
 									href={l.href}
-									className="rounded-sm px-3 py-2.5 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className="rounded-sm px-3 py-2.5 text-subhead hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								>
 									{l.label}
 								</a>

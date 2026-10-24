@@ -6,7 +6,7 @@
  *   pnpm signer:dev
  *   pnpm signer:admin --dev init --org <qaOrg> --rp localhost --origin http://localhost:3201 \
  *     --networks bitcoin_signet,ethereum_sepolia --auto-confirm
- *   SIGNER_SOCKET=$QA_DIR/signer/app.sock pnpm dev
+ *   WALLET_SIGNER_SOCKET=$QA_DIR/signer/app.sock pnpm dev:wallet
  */
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";

@@ -101,8 +101,8 @@ export function ReviewForm({
 					members={members}
 				/>
 			</div>
-			<fieldset className="flex flex-wrap gap-3 text-sm">
-				<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+			<fieldset className="flex flex-wrap gap-3 text-subhead">
+				<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 					{t("attendees")}
 				</legend>
 				{members.map((m) => (
@@ -166,10 +166,10 @@ export function ReviewInputsChecklist({
 	};
 	return (
 		<div className="flex flex-col gap-2">
-			<p className="text-muted-foreground text-xs">
+			<p className="text-muted-foreground text-footnote">
 				{t("inputsProgress", { done, total: inputs.length })}
 			</p>
-			<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 				{inputs.map((i) => {
 					const v = state[i.key] ?? { done: false };
 					return (
@@ -185,7 +185,7 @@ export function ReviewInputsChecklist({
 								/>
 								<span className="min-w-0 flex-1">
 									<span className="font-medium">{i.title}</span>
-									<span className="block text-muted-foreground text-xs">
+									<span className="block text-muted-foreground text-footnote">
 										{i.hint}{" "}
 										<span className="opacity-70">({i.legalBasis})</span>
 									</span>
@@ -193,7 +193,7 @@ export function ReviewInputsChecklist({
 								{i.href && (
 									<a
 										href={i.href}
-										className="shrink-0 text-primary text-xs hover:underline"
+										className="shrink-0 text-primary text-footnote hover:underline"
 									>
 										{t("open")}
 									</a>
@@ -201,7 +201,7 @@ export function ReviewInputsChecklist({
 							</label>
 							{canEdit && (
 								<Input
-									className="h-7 text-xs"
+									className="h-7 text-footnote"
 									placeholder={t("inputNote")}
 									defaultValue={v.note ?? ""}
 									onBlur={(e) => {
@@ -250,7 +250,7 @@ export function CompleteReviewForm({
 	const [next, setNext] = useState<"planned" | "held" | "done">(status);
 	const [actions, setActions] = useState<ActionDraft[]>([]);
 	return (
-		<div className="flex flex-col gap-3 rounded-md border p-3 text-sm">
+		<div className="flex flex-col gap-3 rounded-2xl bg-card p-3 text-subhead">
 			<div className="flex flex-wrap items-center gap-3">
 				<Label>{t("status")}</Label>
 				<Select value={next} onValueChange={(v) => setNext(v as typeof next)}>
@@ -273,7 +273,7 @@ export function CompleteReviewForm({
 				<div className="flex items-center justify-between gap-3">
 					<div>
 						<Label>{t("actions")}</Label>
-						<p className="mt-1 text-muted-foreground text-xs">
+						<p className="mt-1 text-muted-foreground text-footnote">
 							{t("actionsLead")}
 						</p>
 					</div>
@@ -302,7 +302,7 @@ export function CompleteReviewForm({
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: editierbare Liste ohne natürliche ID
 						key={`${i}-${actions.length}`}
-						className="flex flex-col gap-2 rounded-md border border-dashed p-2"
+						className="flex flex-col gap-2 rounded-2xl bg-card p-2"
 					>
 						{/* Zwei Zeilen: in der schmalen Spalte der Bewertungskarte
 						    bliebe für den Titel sonst keine Breite. */}

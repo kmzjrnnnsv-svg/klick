@@ -46,7 +46,7 @@ export default async function CrisisContactsPage() {
 						<div className="flex gap-2">
 							<Link
 								href="/organisation?tab=kommunikation"
-								className="inline-flex h-8 items-center rounded-md border px-3 text-xs hover:bg-muted"
+								className="inline-flex h-8 items-center rounded-full bg-muted px-3 font-medium text-footnote hover:bg-foreground/12"
 							>
 								← {t("tabCommunication")}
 							</Link>
@@ -55,17 +55,17 @@ export default async function CrisisContactsPage() {
 					}
 				/>
 			</div>
-			<article className="mx-auto max-w-3xl text-sm print:max-w-none">
+			<article className="mx-auto max-w-3xl text-subhead print:max-w-none">
 				<header className="mb-6 hidden border-b pb-3 print:block">
-					<h1 className="font-serif-display text-2xl">
+					<h1 className="font-bold text-title-2">
 						{org?.name} — {t("crisisSheet")}
 					</h1>
-					<p className="text-xs">
+					<p className="text-footnote">
 						{t("printedAt")} {stamp}
 					</p>
 				</header>
 				<section className="mb-8">
-					<h2 className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground print:text-black">
+					<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground print:text-black">
 						{t("crisisTeamSheet")}
 					</h2>
 					<div className="overflow-x-auto print:overflow-visible">
@@ -97,7 +97,7 @@ export default async function CrisisContactsPage() {
 					</div>
 				</section>
 				<section>
-					<h2 className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground print:text-black">
+					<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground print:text-black">
 						{t("crisisChannels")}
 					</h2>
 					{comms.length === 0 ? (
@@ -107,15 +107,15 @@ export default async function CrisisContactsPage() {
 							{comms.map((c) => (
 								<li
 									key={c.id}
-									className="break-inside-avoid rounded-md border p-3 print:rounded-none"
+									className="break-inside-avoid rounded-2xl bg-card p-3 print:rounded-none"
 								>
 									<p className="font-medium">
 										{c.topic}{" "}
-										<span className="text-muted-foreground text-xs print:text-black">
+										<span className="text-muted-foreground text-footnote print:text-black">
 											({t(`trigger_${c.trigger}`)})
 										</span>
 									</p>
-									<dl className="mt-1 grid grid-cols-1 gap-x-4 gap-y-0.5 text-xs sm:grid-cols-[8rem_1fr]">
+									<dl className="mt-1 grid grid-cols-1 gap-x-4 gap-y-0.5 text-footnote sm:grid-cols-[8rem_1fr]">
 										<dt className="text-muted-foreground print:text-black">
 											{t("audience")}
 										</dt>
@@ -154,7 +154,7 @@ export default async function CrisisContactsPage() {
 						</ul>
 					)}
 				</section>
-				<p className="mt-8 text-muted-foreground text-xs print:text-black">
+				<p className="mt-8 text-muted-foreground text-footnote print:text-black">
 					{t("crisisFootnote")}
 				</p>
 			</article>

@@ -7,7 +7,7 @@ import { useState } from "react";
 import { confirmPasskey, passkeyOptions } from "@/app/actions/security";
 import { Button } from "@/components/ui/button";
 
-type Purpose = "mfa" | "stepup" | "wallet";
+type Purpose = "mfa" | "stepup";
 
 // Passkey für die laufende Sitzung bestätigen (zweiter Faktor oder Step-up).
 // „cancelled“ = Browser-Dialog geschlossen bzw. abgelaufen.
@@ -57,9 +57,7 @@ export function PasskeyConfirmButton({
 					? t("passkeyCancelled")
 					: res.error === "expired"
 						? t("passkeyExpired")
-						: res.error === "passkey_too_new"
-							? t("passkeyTooNew")
-							: t("passkeyFailed"),
+						: t("passkeyFailed"),
 			);
 		} finally {
 			setBusy(false);
@@ -73,7 +71,7 @@ export function PasskeyConfirmButton({
 				{busy ? t("confirmPasskeyBusy") : t("confirmPasskey")}
 			</Button>
 			{error && (
-				<p role="alert" className="text-destructive text-xs">
+				<p role="alert" className="text-destructive text-footnote">
 					{error}
 				</p>
 			)}

@@ -191,7 +191,7 @@ export default async function TrainingsPage({
 									const overdue = count("overdue");
 									return (
 										<TableRow key={r.id}>
-											<TableCell className="whitespace-nowrap font-mono text-xs">
+											<TableCell className="whitespace-nowrap font-mono text-footnote">
 												{r.code}
 											</TableCell>
 											<TableCell>
@@ -212,18 +212,18 @@ export default async function TrainingsPage({
 														</Badge>
 													)}
 												</p>
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{r.description}
 												</p>
 												<CourseLink url={r.courseUrl} />
 											</TableCell>
-											<TableCell className="text-xs">
+											<TableCell className="text-footnote">
 												{audienceLabel(r)}
 											</TableCell>
-											<TableCell className="text-xs">
+											<TableCell className="text-footnote">
 												{t("frequency", { n: r.frequencyMonths })}
 											</TableCell>
-											<TableCell className="text-muted-foreground text-xs">
+											<TableCell className="text-muted-foreground text-footnote">
 												{r.legalBasis}
 											</TableCell>
 											<TableCell className="text-right">
@@ -290,9 +290,11 @@ export default async function TrainingsPage({
 
 			{tab === "meine" && (
 				<>
-					<p className="mb-3 text-muted-foreground text-sm">{t("mineLead")}</p>
+					<p className="mb-3 text-muted-foreground text-subhead">
+						{t("mineLead")}
+					</p>
 					{mine.length === 0 ? (
-						<p className="text-sm">{t("mineEmpty")}</p>
+						<p className="text-subhead">{t("mineEmpty")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -308,12 +310,12 @@ export default async function TrainingsPage({
 									<TableRow key={x.req?.id}>
 										<TableCell>
 											<p className="font-medium">{x.req?.title}</p>
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{x.req?.description}
 											</p>
 											<CourseLink url={x.req?.courseUrl} />
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{x.open ? fmtDate.format(new Date(x.open.dueAt)) : "—"}
 											{x.lastDoneAt && (
 												<p className="text-muted-foreground">
@@ -346,7 +348,7 @@ export default async function TrainingsPage({
 
 			{tab === "durchgefuehrt" &&
 				(trainings.length === 0 ? (
-					<p className="text-muted-foreground text-sm">{t("empty")}</p>
+					<p className="text-muted-foreground text-subhead">{t("empty")}</p>
 				) : (
 					<Table>
 						<TableHeader>
@@ -363,15 +365,15 @@ export default async function TrainingsPage({
 								<TableRow key={x.id}>
 									<TableCell>{fmtDate.format(new Date(x.heldAt))}</TableCell>
 									<TableCell className="font-medium">{x.title}</TableCell>
-									<TableCell className="text-xs">
+									<TableCell className="text-footnote">
 										{t(`audience_${x.audience}`)}
 									</TableCell>
-									<TableCell className="text-xs">
+									<TableCell className="text-footnote">
 										{x.attendeeUserIds
 											.map((u) => names.get(u) ?? "?")
 											.join(", ")}
 									</TableCell>
-									<TableCell className="text-xs">
+									<TableCell className="text-footnote">
 										{x.externalTrainer ??
 											(x.trainerUserId ? names.get(x.trainerUserId) : "—")}
 									</TableCell>
@@ -383,11 +385,11 @@ export default async function TrainingsPage({
 
 			{tab === "matrix" && (
 				<>
-					<p className="mb-3 text-muted-foreground text-sm">
+					<p className="mb-3 text-muted-foreground text-subhead">
 						{t("matrixLead")}
 					</p>
 					{approvedReqs.length === 0 ? (
-						<p className="text-sm">{t("empty")}</p>
+						<p className="text-subhead">{t("empty")}</p>
 					) : (
 						<div className="overflow-x-auto">
 							<Table>
@@ -397,7 +399,7 @@ export default async function TrainingsPage({
 										{approvedReqs.map((r) => (
 											<TableHead
 												key={r.id}
-												className="text-center text-xs"
+												className="text-center text-footnote"
 												title={r.title}
 											>
 												{r.code}

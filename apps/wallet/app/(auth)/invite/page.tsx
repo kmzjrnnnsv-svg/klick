@@ -10,7 +10,7 @@ export default async function InvitePage() {
 	const session = await requireSession().catch(() => null);
 	return (
 		<div className="flex flex-col gap-6">
-			<h1 className="font-serif-display text-2xl">{t("inviteTitle")}</h1>
+			<h1 className="font-bold text-title-2">{t("inviteTitle")}</h1>
 			<LinkRegistration
 				page="invite"
 				sessionEmail={session?.user.email ?? null}

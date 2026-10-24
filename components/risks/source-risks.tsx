@@ -48,16 +48,16 @@ export async function SourceRisks({
 	return (
 		<Section title={t("title")} actions={button}>
 			{risks.length === 0 ? (
-				<p className="text-muted-foreground text-sm">{t("none")}</p>
+				<p className="text-muted-foreground text-subhead">{t("none")}</p>
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 text-sm">
+				<ul className="flex flex-col divide-y divide-border/60 text-subhead">
 					{risks.map((r) => (
 						<li key={r.id} className="flex items-center gap-2 py-1.5">
 							<Link
 								href={`/risiken/${r.id}`}
 								className="min-w-0 truncate hover:underline"
 							>
-								<span className="whitespace-nowrap font-mono text-muted-foreground text-xs">
+								<span className="whitespace-nowrap font-mono text-muted-foreground text-footnote">
 									{r.code}
 								</span>{" "}
 								{r.title}

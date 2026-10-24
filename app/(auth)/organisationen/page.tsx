@@ -40,17 +40,15 @@ export default async function OrganisationsPage({
 	return (
 		<div className="flex flex-col gap-8">
 			<div>
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("title")}
-				</h1>
-				<p className="mt-2 text-muted-foreground text-sm">{t("lead")}</p>
+				<h1 className="font-bold text-title-1">{t("title")}</h1>
+				<p className="mt-2 text-muted-foreground text-subhead">{t("lead")}</p>
 			</div>
 			{grund === "zugang-abgelaufen" && (
 				<Alert variant="warning">
 					<AlertDescription>{t("expiredNotice")}</AlertDescription>
 				</Alert>
 			)}
-			<ul className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/60">
+			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 				{list.map((m) => {
 					const current = m.organizationId === active && !m.expired;
 					return (
@@ -67,7 +65,7 @@ export default async function OrganisationsPage({
 										</Badge>
 									)}
 								</p>
-								<p className="text-muted-foreground text-xs">
+								<p className="text-muted-foreground text-footnote">
 									{roleLabel(m.role)}
 									{m.accessUntil &&
 										` · ${m.expired ? t("expiredOn") : t("until")} ${fmt.format(m.accessUntil)}`}

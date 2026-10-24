@@ -18,10 +18,10 @@ import { PublicHeader } from "./public-header";
 // Ereignis-Umschalter ist eine Radio-Gruppe, CSS zeigt die gewählte Antwort;
 // Fragen über <details>. Bewegung nur per CSS, nie bei reduzierter Bewegung.
 const button =
-	"inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2";
+	"inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary-fill px-6 font-semibold text-white transition-[filter] hover:brightness-110 active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 const section = "mx-auto w-full max-w-6xl px-4 py-16 sm:py-24";
 const heading =
-	"text-balance font-serif-display text-4xl text-foreground leading-tight sm:text-5xl";
+	"text-balance font-bold text-title-1 text-foreground leading-tight sm:text-5xl";
 
 export function Landing() {
 	return (
@@ -35,11 +35,11 @@ export function Landing() {
 					<div className="flex flex-col gap-7">
 						<h1
 							id="bm-title"
-							className={`text-balance font-serif-display text-5xl leading-[1.02] sm:text-7xl ${s.rise}`}
+							className={`text-balance font-semibold text-5xl leading-[1.02] sm:text-7xl ${s.rise}`}
 						>
 							{HERO.lines[0]}
 							<br />
-							<em className="text-primary">{HERO.lines[1]}</em>
+							<span className="text-primary">{HERO.lines[1]}</span>
 						</h1>
 						<p
 							className={`max-w-xl text-pretty text-lg leading-relaxed ${s.rise} ${s.rise2}`}
@@ -60,7 +60,7 @@ export function Landing() {
 								<ArrowRight className="size-4" aria-hidden />
 							</Link>
 						</div>
-						<p className="max-w-xl text-muted-foreground text-sm">
+						<p className="max-w-xl text-muted-foreground text-subhead">
 							{HERO.note}
 						</p>
 					</div>
@@ -80,7 +80,7 @@ export function Landing() {
 								>
 									<p className="flex items-baseline gap-3 font-medium text-lg">
 										<span
-											className="font-serif-display text-3xl text-primary tabular-nums"
+											className="font-bold text-title-1 tabular-nums"
 											aria-hidden
 										>
 											{i + 1}
@@ -111,7 +111,7 @@ export function Landing() {
 						<p className="mt-4 max-w-2xl text-muted-foreground">
 							{BACKEND.caption}
 						</p>
-						<ul className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-2 lg:grid-cols-3">
+						<ul className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded-2xl bg-border/60 sm:grid-cols-2 lg:grid-cols-3">
 							{BACKEND.parts.map((p) => (
 								<li
 									key={p.key}
@@ -119,7 +119,7 @@ export function Landing() {
 								>
 									<div className="flex flex-wrap items-baseline justify-between gap-2">
 										<span className="font-medium">{p.label}</span>
-										<span className="inline-flex items-center gap-1.5 text-success text-xs">
+										<span className="inline-flex items-center gap-1.5 text-success text-footnote">
 											<span
 												className="size-1.5 rounded-full bg-success"
 												aria-hidden
@@ -127,10 +127,13 @@ export function Landing() {
 											{p.state}
 										</span>
 									</div>
-									<p className="font-mono text-primary text-sm" translate="no">
+									<p
+										className="font-mono text-primary text-subhead"
+										translate="no"
+									>
 										{p.value}
 									</p>
-									<p className="text-pretty text-muted-foreground text-sm leading-relaxed">
+									<p className="text-pretty text-muted-foreground text-subhead leading-relaxed">
 										<strong className="font-medium text-foreground">
 											{p.note.title}.
 										</strong>{" "}
@@ -150,7 +153,7 @@ export function Landing() {
 						<p className="mt-4 max-w-2xl text-pretty text-muted-foreground leading-relaxed">
 							{COMPLIANCE.lead}
 						</p>
-						<p className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-muted-foreground text-sm">
+						<p className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-muted-foreground text-subhead">
 							<span className="inline-flex items-center gap-2">
 								<span className="size-2 rounded-full bg-primary" aria-hidden />
 								läuft heute
@@ -189,7 +192,7 @@ export function Landing() {
 															{later ? " (folgt)" : " (läuft)"}
 														</span>
 													</span>
-													<span className="text-muted-foreground text-sm">
+													<span className="text-muted-foreground text-subhead">
 														{r.value}
 													</span>
 												</li>
@@ -256,7 +259,7 @@ export function Landing() {
 					<div className={`${section} flex flex-col items-start gap-6`}>
 						<h2
 							id="bm-close"
-							className="max-w-2xl text-balance font-serif-display text-3xl sm:text-4xl"
+							className="max-w-2xl text-balance font-bold text-title-1 sm:text-4xl"
 						>
 							{CLOSE.sentence}
 						</h2>
@@ -274,10 +277,10 @@ export function Landing() {
 function EventPicker() {
 	return (
 		<fieldset
-			className={`${s.picker} ${s.rise} ${s.rise2} min-w-0 rounded-xl border bg-card p-5 shadow-sm sm:p-7`}
+			className={`${s.picker} ${s.rise} ${s.rise2} min-w-0 rounded-2xl bg-card p-5 shadow-sm sm:p-7`}
 		>
 			<legend className="sr-only">Ereignis wählen</legend>
-			<p className="font-serif-display text-2xl" aria-hidden>
+			<p className="font-bold text-title-2" aria-hidden>
 				Was passiert bei …
 			</p>
 			<div className="mt-4 flex flex-wrap gap-2">
@@ -300,17 +303,24 @@ function EventPicker() {
 				{EVENTS.map((e) => (
 					<div
 						key={e.key}
-						className={`${s.out} grid-cols-1 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-2`}
+						className={`${s.out} grid-cols-1 gap-px overflow-hidden rounded-xl bg-border/60 sm:grid-cols-2`}
 					>
 						<div className="flex flex-col gap-2 bg-background p-4">
-							<p className="font-medium text-primary text-sm" translate="no">
+							<p
+								className="font-medium text-primary text-subhead"
+								translate="no"
+							>
 								In both.money
 							</p>
-							<p className="text-pretty text-sm leading-relaxed">{e.wallet}</p>
+							<p className="text-pretty text-subhead leading-relaxed">
+								{e.wallet}
+							</p>
 						</div>
 						<div className="flex flex-col gap-2 bg-background p-4">
-							<p className="font-medium text-brown text-sm">In Klick</p>
-							<p className="text-pretty text-sm leading-relaxed">{e.klick}</p>
+							<p className="font-medium text-primary text-subhead">In Klick</p>
+							<p className="text-pretty text-subhead leading-relaxed">
+								{e.klick}
+							</p>
 						</div>
 					</div>
 				))}
@@ -320,8 +330,8 @@ function EventPicker() {
 }
 
 // Ausschnitte der echten Oberflächen, nachgebaut mit Beispielwerten
-const frag = "rounded-lg border bg-background p-4 text-sm shadow-sm";
-const fragTitle = "font-serif-display text-xl";
+const frag = "rounded-2xl bg-card p-4 text-subhead shadow-sm";
+const fragTitle = "font-semibold text-title-3";
 
 function Fields({ rows }: { rows: [string, React.ReactNode][] }) {
 	return (
@@ -339,7 +349,7 @@ function Fields({ rows }: { rows: [string, React.ReactNode][] }) {
 function FakeButton({ children }: { children: React.ReactNode }) {
 	return (
 		<span
-			className="mt-4 inline-flex w-full items-center justify-center rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground text-xs"
+			className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-primary-fill px-3 py-2 font-semibold text-footnote text-white"
 			aria-hidden
 		>
 			{children}
@@ -373,7 +383,10 @@ function ApproveFragment() {
 			<figcaption className="sr-only">
 				Beispiel: Bestätigungsseite approve.both.money
 			</figcaption>
-			<p className="font-mono text-muted-foreground text-xs" translate="no">
+			<p
+				className="font-mono text-muted-foreground text-footnote"
+				translate="no"
+			>
 				approve.both.money
 			</p>
 			<p className={`${fragTitle} mt-1`}>Auszahlung bestätigen</p>
@@ -382,13 +395,13 @@ function ApproveFragment() {
 					["Betrag", "0,0004 BTC"],
 					[
 						"Ziel",
-						<span key="z" className="font-mono text-xs" translate="no">
+						<span key="z" className="font-mono text-footnote" translate="no">
 							tb1q w508 d6qe jxtd …
 						</span>,
 					],
 					[
 						"Prüfsumme",
-						<span key="p" className="font-mono text-xs" translate="no">
+						<span key="p" className="font-mono text-footnote" translate="no">
 							04ac eab3 6423 3507
 						</span>,
 					],
@@ -407,7 +420,7 @@ function KlickFragment() {
 	];
 	return (
 		<figure className={frag}>
-			<p className="text-muted-foreground text-xs">
+			<p className="text-muted-foreground text-footnote">
 				Klick · Krypto (both.money)
 			</p>
 			<table className="mt-2 w-full text-left">
@@ -415,7 +428,7 @@ function KlickFragment() {
 					Beispiel: Bewegungen aus both.money in Klick
 				</caption>
 				<thead>
-					<tr className="border-b text-muted-foreground text-xs">
+					<tr className="border-b text-muted-foreground text-footnote">
 						<th scope="col" className="py-1.5 font-normal">
 							Art
 						</th>

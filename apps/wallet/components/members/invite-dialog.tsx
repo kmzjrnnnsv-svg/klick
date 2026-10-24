@@ -92,7 +92,7 @@ export function InviteDialog({
 								id="invite-link"
 								readOnly
 								value={result.url}
-								className="font-mono text-xs"
+								className="font-mono text-footnote"
 								spellCheck={false}
 							/>
 							<Button
@@ -107,9 +107,11 @@ export function InviteDialog({
 								<Copy aria-hidden />
 							</Button>
 						</div>
-						<p className="text-muted-foreground text-xs">{t("linkHint")}</p>
+						<p className="text-muted-foreground text-footnote">
+							{t("linkHint")}
+						</p>
 						{sendMail && (
-							<p className="text-sm" aria-live="polite">
+							<p className="text-subhead" aria-live="polite">
 								{result.mailed ? t("mailed") : t("mailFailed")}
 							</p>
 						)}
@@ -148,7 +150,7 @@ export function InviteDialog({
 								</SelectContent>
 							</Select>
 						</div>
-						<label className="flex items-center gap-2 text-sm">
+						<label className="flex items-center gap-2 text-subhead">
 							<Checkbox
 								checked={sendMail}
 								onCheckedChange={(v) => setSendMail(v === true)}

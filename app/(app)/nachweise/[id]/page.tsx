@@ -99,13 +99,13 @@ export default async function EvidenceDetailPage({
 			: 0;
 	const download = `/api/nachweise/${row.id}`;
 	const btn =
-		"inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+		"inline-flex h-(--control-h-sm) items-center gap-1.5 rounded-full bg-muted px-3 font-medium text-footnote hover:bg-foreground/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 	return (
 		<>
 			<Link
 				href="/nachweise"
-				className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-sm hover:text-foreground"
+				className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-subhead hover:text-foreground"
 			>
 				<ArrowLeft className="size-4" aria-hidden />
 				{t("back")}
@@ -153,7 +153,7 @@ export default async function EvidenceDetailPage({
 				}
 			/>
 			{data.supersededBy && (
-				<p className="mb-6 rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-sm">
+				<p className="mb-6 rounded-xl bg-warning/12 px-3 py-2 text-subhead">
 					{t("supersededNote")}{" "}
 					<Link
 						href={`/nachweise/${data.supersededBy.id}`}
@@ -165,13 +165,10 @@ export default async function EvidenceDetailPage({
 			)}
 			<div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 				<section aria-labelledby="ev-details" className="flex flex-col gap-3">
-					<h2
-						id="ev-details"
-						className="font-serif-display text-lg text-primary"
-					>
+					<h2 id="ev-details" className="font-semibold text-headline">
 						{t("details")}
 					</h2>
-					<dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[11rem_minmax(0,1fr)]">
+					<dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-subhead sm:grid-cols-[11rem_minmax(0,1fr)]">
 						<dt className="text-muted-foreground">{t("typeField")}</dt>
 						<dd>{t(`type_${row.type}`)}</dd>
 						<dt className="text-muted-foreground">{t("classification")}</dt>
@@ -204,7 +201,7 @@ export default async function EvidenceDetailPage({
 										</span>
 									)}
 									{row.storageKey && !fileReadable && (
-										<span className="block text-muted-foreground text-xs">
+										<span className="block text-muted-foreground text-footnote">
 											{t("storageMissing")}
 										</span>
 									)}
@@ -216,7 +213,10 @@ export default async function EvidenceDetailPage({
 						{row.sha256 && (
 							<>
 								<dt className="text-muted-foreground">{t("sha256")}</dt>
-								<dd className="break-all font-mono text-xs" translate="no">
+								<dd
+									className="break-all font-mono text-footnote"
+									translate="no"
+								>
 									{row.sha256}
 								</dd>
 							</>
@@ -266,23 +266,20 @@ export default async function EvidenceDetailPage({
 						aria-labelledby="ev-controls"
 						className="flex flex-col gap-3"
 					>
-						<h2
-							id="ev-controls"
-							className="font-serif-display text-lg text-primary"
-						>
+						<h2 id="ev-controls" className="font-semibold text-headline">
 							{t("controlsTitle")}
 						</h2>
 						{data.controls.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("controlsEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col gap-1.5 text-sm">
+							<ul className="flex flex-col gap-1.5 text-subhead">
 								{data.controls.map((c) => (
 									<li key={c.code} className="flex min-w-0 gap-2">
 										<Link
 											href={`/controls/${c.code}`}
-											className="whitespace-nowrap font-mono text-primary text-xs hover:underline"
+											className="whitespace-nowrap font-mono text-primary text-footnote hover:underline"
 										>
 											{c.code}
 										</Link>
@@ -296,17 +293,14 @@ export default async function EvidenceDetailPage({
 						aria-labelledby="ev-signatures"
 						className="flex flex-col gap-3"
 					>
-						<h2
-							id="ev-signatures"
-							className="font-serif-display text-lg text-primary"
-						>
+						<h2 id="ev-signatures" className="font-semibold text-headline">
 							{t("signaturesTitle")}
 						</h2>
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("signaturesCount", { count: data.signatureCount })}
 						</p>
 						{sign && sign.signatures.length > 0 && (
-							<ul className="flex flex-col gap-1 text-sm">
+							<ul className="flex flex-col gap-1 text-subhead">
 								{sign.signatures.map((s) => (
 									<li key={`${s.name}-${s.signedAt}`}>
 										{ts("signedLine", {
@@ -319,7 +313,7 @@ export default async function EvidenceDetailPage({
 							</ul>
 						)}
 						{sign && sign.open.length > 0 && (
-							<p className="text-sm text-warning">
+							<p className="text-subhead text-warning">
 								{ts("openFor", { fns: sign.open.map(fnLabel).join(", ") })}
 							</p>
 						)}
@@ -346,7 +340,7 @@ export default async function EvidenceDetailPage({
 						{data.signatureCount > 0 && (
 							<Link
 								href={`/nachweise/${row.id}/unterschriften`}
-								className="inline-flex items-center gap-1.5 text-primary text-sm hover:underline"
+								className="inline-flex items-center gap-1.5 text-primary text-subhead hover:underline"
 							>
 								<PenLine className="size-4" aria-hidden="true" />
 								{t("signaturesCheck")}
@@ -358,12 +352,9 @@ export default async function EvidenceDetailPage({
 			{authored && (
 				<section
 					aria-labelledby="ev-content"
-					className="mt-10 flex flex-col gap-3 rounded-md border p-4"
+					className="mt-10 flex flex-col gap-3 rounded-2xl bg-card p-4"
 				>
-					<h2
-						id="ev-content"
-						className="font-serif-display text-lg text-primary"
-					>
+					<h2 id="ev-content" className="font-semibold text-headline">
 						{ta("contentTitle")}
 					</h2>
 					<MarkdownView

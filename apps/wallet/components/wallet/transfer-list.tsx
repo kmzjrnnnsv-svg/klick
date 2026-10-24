@@ -45,16 +45,21 @@ export async function TransferList({
 	const t = await getTranslations("Wallet");
 	if (rows.length === 0)
 		return (
-			<p className="text-muted-foreground text-sm">{t("movementsEmpty")}</p>
+			<p className="rounded-2xl bg-card px-4 py-3 text-muted-foreground text-subhead">
+				{t("movementsEmpty")}
+			</p>
 		);
 	return (
-		<ul className="divide-y divide-border/60">
+		<ul className="overflow-hidden rounded-2xl bg-card">
 			{rows.map((r) => {
 				const incoming = r.direction === "in";
 				const Icon = incoming ? ArrowDownLeft : ArrowUpRight;
 				const when = r.blockTime ?? r.firstSeenAt;
 				return (
-					<li key={r.id} className="flex items-center gap-3 py-3">
+					<li
+						key={r.id}
+						className="relative flex min-h-14 items-center gap-3 px-4 py-2.5 before:pointer-events-none before:absolute before:top-0 before:right-0 before:left-16 before:h-px before:bg-border/70 first:before:hidden"
+					>
 						<span
 							className={`flex size-9 shrink-0 items-center justify-center rounded-full ${
 								incoming
@@ -65,7 +70,7 @@ export async function TransferList({
 							<Icon className="size-4" aria-hidden />
 						</span>
 						<div className="min-w-0 grow">
-							<p className="truncate text-sm">
+							<p className="truncate text-subhead">
 								{r.outputRef === "out:fee"
 									? t("fee")
 									: incoming
@@ -79,7 +84,7 @@ export async function TransferList({
 								)}
 							</p>
 							<p
-								className="truncate text-muted-foreground text-xs"
+								className="truncate text-footnote text-muted-foreground"
 								title={r.txid}
 								translate="no"
 							>
@@ -88,7 +93,7 @@ export async function TransferList({
 						</div>
 						<div className="flex shrink-0 flex-col items-end gap-1">
 							<span
-								className={`whitespace-nowrap text-sm tabular-nums ${
+								className={`whitespace-nowrap font-medium text-subhead tabular-nums ${
 									incoming ? "text-success" : ""
 								}`}
 								translate="no"

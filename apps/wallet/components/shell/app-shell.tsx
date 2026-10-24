@@ -1,18 +1,20 @@
 import type { OrgContext } from "@wallet/lib/auth/guards";
 import { ROLE_LABEL, roleAllows } from "@wallet/lib/auth/permissions";
+import { walletNav } from "@wallet/lib/nav";
 import type { Membership } from "@wallet/lib/orgs/memberships";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { WALLET_UNLOCK_MS } from "@/lib/auth/session-rules";
 import { StepUpDialog } from "../auth/step-up-dialog";
 import { Bell, type BellItem } from "./bell";
-import { type NavGroup, NavLinks } from "./nav-links";
+import { SidebarLinks, TabBar } from "./nav-links";
 import { OrgMenu } from "./org-menu";
 import { UnlockStatus } from "./unlock-status";
 import { UserMenu } from "./user-menu";
 
-// Rahmen von both.money: Kopf mit Org, Entsperr-Status, Glocke und Konto;
-// Navigation links (ab md), darunter als Leiste; Step-up-Dialog gemountet.
+// Rahmen von both.money nach Apple HIG: Kopf als Material mit Org,
+// Entsperr-Status, Glocke und Konto; Seitenleiste ab 1024 px, darunter die
+// Tab-Leiste (lib/nav.ts); Step-up-Dialog gemountet.
 export async function AppShell({
 	ctx,
 	orgs,
@@ -30,44 +32,12 @@ export async function AppShell({
 	children: React.ReactNode;
 }) {
 	const t = await getTranslations("Shell");
-	const nav: NavGroup[] = [
-		{
-			items: [
-				{ href: "/", label: t("overview") },
-				{ href: "/receive", label: t("receive") },
-				{ href: "/prices", label: t("prices") },
-				{ href: "/activity", label: t("activity") },
-				{ href: "/accounts", label: t("accounts") },
-			],
-		},
-		...(send
-			? [
-					{
-						label: t("groupSend"),
-						items: [
-							{ href: "/send", label: t("send") },
-							{ href: "/payouts", label: t("payouts") },
-							{ href: "/address-book", label: t("addressBook") },
-							{ href: "/security", label: t("security") },
-						],
-					},
-				]
-			: []),
-		{
-			label: t("groupOrg"),
-			items: [
-				...(roleAllows(ctx.role, "members:read")
-					? [{ href: "/members", label: t("members") }]
-					: []),
-				...(roleAllows(ctx.role, "audit:read")
-					? [{ href: "/audit", label: t("audit") }]
-					: []),
-				...(roleAllows(ctx.role, "export:manage")
-					? [{ href: "/settings/export", label: t("export") }]
-					: []),
-			],
-		},
-	].filter((g) => g.items.length > 0);
+	const nav = walletNav({
+		send,
+		members: roleAllows(ctx.role, "members:read"),
+		audit: roleAllows(ctx.role, "audit:read"),
+		exportManage: roleAllows(ctx.role, "export:manage"),
+	});
 	const until =
 		ctx.unlocked && ctx.unlockedAt
 			? new Date(ctx.unlockedAt.getTime() + WALLET_UNLOCK_MS).toISOString()
@@ -80,11 +50,11 @@ export async function AppShell({
 			>
 				{t("skip")}
 			</a>
-			<header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
-				<div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 sm:gap-3">
+			<header className="material-bar sticky top-0 z-30 border-border/60 border-b">
+				<div className="mx-auto flex h-14 max-w-6xl items-center gap-2 pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] sm:gap-3">
 					<Link
 						href="/"
-						className="shrink-0 font-serif-display text-lg text-primary sm:text-xl focus-visible:outline-2 focus-visible:outline-primary"
+						className="shrink-0 rounded-sm font-bold text-headline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					>
 						both.money
 					</Link>
@@ -106,15 +76,16 @@ export async function AppShell({
 					/>
 				</div>
 			</header>
-			<div className="mx-auto flex w-full max-w-6xl grow flex-col gap-6 px-4 py-6 md:flex-row">
-				<aside className="md:w-48 md:shrink-0">
-					<NavLinks groups={nav} label={t("nav")} />
+			<div className="mx-auto flex w-full max-w-6xl grow gap-8 px-4 py-6 lg:py-8">
+				<aside className="sticky top-20 hidden w-52 shrink-0 self-start lg:block">
+					<SidebarLinks groups={nav} />
 				</aside>
 				<main id="inhalt" className="min-w-0 grow">
 					{banner}
 					{children}
 				</main>
 			</div>
+			<TabBar send={send} />
 			<StepUpDialog />
 		</div>
 	);

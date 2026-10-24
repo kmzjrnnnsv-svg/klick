@@ -63,7 +63,7 @@ export function RemoveFrameworkDialog({
 					<DialogTitle>{t("removeFrameworkTitle", { name })}</DialogTitle>
 					<DialogDescription>{t("removeFrameworkLead")}</DialogDescription>
 				</DialogHeader>
-				<div className="flex flex-col gap-4 text-sm">
+				<div className="flex flex-col gap-4 text-subhead">
 					<ul className="list-disc space-y-1 pl-5">
 						<li>
 							{t("removeImpactRequirements", { count: impact.requirements })}
@@ -102,12 +102,12 @@ export function RemoveFrameworkDialog({
 						</div>
 					))}
 					{impact.lastFramework && (
-						<p className="rounded-md border border-destructive/40 p-3 text-destructive">
+						<p className="rounded-xl bg-destructive/10 p-3 text-foreground">
 							{t("removeBlockedLast")}
 						</p>
 					)}
 					{impact.blockingAudits.length > 0 && (
-						<div className="rounded-md border border-destructive/40 p-3">
+						<div className="rounded-xl bg-destructive/10 p-3">
 							<p className="text-destructive">{t("removeBlockedAudit")}</p>
 							<ul className="mt-1 list-disc pl-5">
 								{impact.blockingAudits.map((a) => (

@@ -68,7 +68,7 @@ export default async function IncidentsPage({
 		{
 			key: "code",
 			header: t("code"),
-			className: "w-28 font-mono text-xs",
+			className: "w-28 font-mono text-footnote",
 			cell: (r) => r.code,
 		},
 		{

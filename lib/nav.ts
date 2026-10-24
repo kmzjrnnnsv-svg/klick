@@ -43,16 +43,7 @@ export type NavLabelKey =
 	| "baseline"
 	| "team"
 	| "settings"
-	| "activity"
-	| "walletHome"
-	| "walletReceive"
-	| "walletAccounts"
-	| "walletSend"
-	| "walletPayouts"
-	| "walletAddressBook"
-	| "walletSecurity"
-	| "walletActivity"
-	| "walletQuotes";
+	| "activity";
 
 export type NavGroupKey =
 	| "today"
@@ -62,9 +53,7 @@ export type NavGroupKey =
 	| "governance"
 	| "casp"
 	| "frameworks"
-	| "bottom"
-	| "wallet"
-	| "wallet-send";
+	| "bottom";
 
 export type NavIcon =
 	| "sun"
@@ -103,12 +92,8 @@ export type NavIcon =
 	| "badge-check"
 	| "vault"
 	| "wallet"
-	| "arrow-down"
-	| "history"
-	| "trending-up"
-	| "send"
-	| "list"
-	| "book-user";
+	| "search"
+	| "layers";
 
 export type NavItem = {
 	key: string;
@@ -130,9 +115,7 @@ export type NavGroup = {
 		| "groupRegisters"
 		| "groupGovernance"
 		| "groupCasp"
-		| "groupFrameworks"
-		| "groupWallet"
-		| "groupWalletSend";
+		| "groupFrameworks";
 	items: NavItem[];
 };
 
@@ -517,8 +500,8 @@ export function buildNav(input: NavInput): NavGroup[] {
 	return groups;
 }
 
-// Aktiver Eintrag: der spezifischste Pfad gewinnt — /wallet/kurse markiert
-// „Kurse“, nicht zusätzlich „Übersicht“ (/wallet)
+// Aktiver Eintrag: der spezifischste Pfad gewinnt — /heute/aufgaben markiert
+// „Aufgaben“, nicht zusätzlich „Heute“
 export function activeNavKey(
 	groups: NavGroup[],
 	pathname: string,
@@ -538,83 +521,97 @@ export function countNavTargets(groups: NavGroup[]): number {
 	return groups.reduce((n, g) => n + g.items.length, 0);
 }
 
-// Wallet-Bereich: eigene, kurze Navigation (Umschalter im Kopf wechselt
-// zwischen Compliance und Wallet).
-// Senden, Auszahlungen, Adressbuch und Sicherheit nur mit eigenem Signer
-// (`isOwnSigner`) — Kund:innen ohne Hot-Konten sehen sie nicht.
-export function buildWalletNav(opts: { send?: boolean } = {}): NavGroup[] {
-	const send: NavGroup[] = opts.send
-		? [
-				{
-					key: "wallet-send",
-					labelKey: "groupWalletSend",
-					items: [
-						{
-							key: "wallet-send",
-							labelKey: "walletSend",
-							href: "/wallet/senden",
-							icon: "send",
-						},
-						{
-							key: "wallet-payouts",
-							labelKey: "walletPayouts",
-							href: "/wallet/auszahlungen",
-							icon: "list",
-						},
-						{
-							key: "wallet-address-book",
-							labelKey: "walletAddressBook",
-							href: "/wallet/adressbuch",
-							icon: "book-user",
-						},
-						{
-							key: "wallet-security",
-							labelKey: "walletSecurity",
-							href: "/wallet/sicherheit",
-							icon: "shield-check",
-						},
-					],
-				},
-			]
-		: [];
-	return [
-		{
-			key: "wallet",
-			labelKey: "groupWallet",
-			items: [
-				{
-					key: "wallet-home",
-					labelKey: "walletHome",
-					href: "/wallet",
-					icon: "wallet",
-				},
-				{
-					key: "wallet-receive",
-					labelKey: "walletReceive",
-					href: "/wallet/empfangen",
-					icon: "arrow-down",
-				},
-				{
-					key: "wallet-quotes",
-					labelKey: "walletQuotes",
-					href: "/wallet/kurse",
-					match: ["/wallet/kurs"],
-					icon: "trending-up",
-				},
-				{
-					key: "wallet-activity",
-					labelKey: "walletActivity",
-					href: "/wallet/bewegungen",
-					icon: "history",
-				},
-				{
-					key: "wallet-accounts",
-					labelKey: "walletAccounts",
-					href: "/wallet/konten",
-					icon: "vault",
-				},
-			],
-		},
-		...send,
-	];
+// Tab-Leiste am Handy nach Apple HIG: höchstens fünf Tabs, nur Navigation,
+// kein „Mehr“. Heute und Suche führen direkt zur Seite; Umsetzen, Register und
+// Steuerung öffnen /bereich/<tab> — eine gruppierte Liste ihrer Seiten (wie
+// die iOS-Einstellungen). CASP & Aufsicht, Team und Einstellungen hängen unter
+// Steuerung, Überblick und Rahmenwerke unter Umsetzen.
+export type NavTabKey =
+	| "heute"
+	| "umsetzen"
+	| "register"
+	| "steuerung"
+	| "suche";
+
+export type NavTab = {
+	key: NavTabKey;
+	labelKey:
+		| "today"
+		| "groupImplement"
+		| "groupRegisters"
+		| "groupGovernance"
+		| "search";
+	icon: NavIcon;
+	href: string;
+	groups: NavGroup[];
+};
+
+const TAB_DEFS: (Omit<NavTab, "groups"> & { groupKeys: NavGroupKey[] })[] = [
+	{
+		key: "heute",
+		labelKey: "today",
+		icon: "sun",
+		href: "/heute",
+		groupKeys: ["today"],
+	},
+	{
+		key: "umsetzen",
+		labelKey: "groupImplement",
+		icon: "shield-check",
+		href: "/bereich/umsetzen",
+		groupKeys: ["overview", "implement", "frameworks"],
+	},
+	{
+		key: "register",
+		labelKey: "groupRegisters",
+		icon: "layers",
+		href: "/bereich/register",
+		groupKeys: ["registers"],
+	},
+	{
+		key: "steuerung",
+		labelKey: "groupGovernance",
+		icon: "building",
+		href: "/bereich/steuerung",
+		groupKeys: ["governance", "casp", "bottom"],
+	},
+	{
+		key: "suche",
+		labelKey: "search",
+		icon: "search",
+		href: "/suche",
+		groupKeys: [],
+	},
+];
+
+export const LIST_TABS = ["umsetzen", "register", "steuerung"] as const;
+export type ListTabKey = (typeof LIST_TABS)[number];
+
+// Tabs aus der abgeleiteten Navigation; Tabs ohne Einträge entfallen, die
+// Suche gibt es nur zusammen mit anderen Tabs.
+export function navTabs(groups: NavGroup[]): NavTab[] {
+	const tabs = TAB_DEFS.map(({ groupKeys, ...tab }) => ({
+		...tab,
+		groups: groups.filter(
+			(g) => groupKeys.includes(g.key) && g.items.length > 0,
+		),
+	})).filter((t) => t.key === "suche" || t.groups.length > 0);
+	return tabs.length > 1 ? tabs : [];
+}
+
+// Aktiver Tab: Bereichsliste, Suche oder der Tab, dessen Gruppe den aktiven
+// Eintrag enthält (Detailseiten über activeNavKey)
+export function activeNavTab(
+	groups: NavGroup[],
+	pathname: string,
+): NavTabKey | null {
+	if (pathname === "/suche" || pathname.startsWith("/suche/")) return "suche";
+	const list = pathname.match(/^\/bereich\/([^/]+)/)?.[1];
+	if (list && (LIST_TABS as readonly string[]).includes(list))
+		return list as ListTabKey;
+	const key = activeNavKey(groups, pathname);
+	if (!key) return null;
+	const group = groups.find((g) => g.items.some((i) => i.key === key));
+	if (!group) return null;
+	return TAB_DEFS.find((t) => t.groupKeys.includes(group.key))?.key ?? null;
 }

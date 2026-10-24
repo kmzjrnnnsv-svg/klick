@@ -72,7 +72,7 @@ export default async function LandingPage() {
 			<MonogramPattern className="-z-10 pointer-events-none absolute inset-0 h-full w-full text-foreground/[0.04]" />
 
 			<section className="mx-auto max-w-5xl px-4 pt-20 pb-12 sm:px-6 sm:pt-28">
-				<h1 className="max-w-3xl font-serif-display text-5xl text-primary leading-[1.02] sm:text-7xl">
+				<h1 className="max-w-3xl text-balance font-bold text-5xl leading-[1.04] tracking-tight sm:text-7xl">
 					{t("title")}
 				</h1>
 				<p className="mt-6 max-w-2xl text-lg text-muted-foreground leading-relaxed">
@@ -92,7 +92,7 @@ export default async function LandingPage() {
 			</section>
 
 			<section className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 sm:pt-12">
-				<h2 className="font-serif-display text-2xl text-primary sm:text-3xl">
+				<h2 className="font-bold text-title-2 sm:text-3xl">
 					{t("exampleTitle")}
 				</h2>
 				<p className="mt-3 max-w-2xl text-muted-foreground">
@@ -100,63 +100,63 @@ export default async function LandingPage() {
 				</p>
 
 				<div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto_1fr]">
-					<article className="flex flex-col rounded-lg border border-border/60 bg-background/60 p-6">
-						<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+					<article className="flex flex-col rounded-2xl bg-card/60 p-6">
+						<p className="font-medium text-footnote text-muted-foreground">
 							{t("withoutTitle")}
 						</p>
 						<ul className="mt-4 flex flex-col gap-2">
 							{EXAMPLE.frameworks.map((fw) => (
 								<li
 									key={fw}
-									className="flex items-baseline justify-between gap-3 border-border/60 border-b border-dashed pb-2 text-sm"
+									className="flex items-baseline justify-between gap-3 border-border/60 border-b pb-2 text-subhead"
 								>
 									<span className="font-medium">{fw}</span>
-									<span className="text-right text-muted-foreground text-xs">
+									<span className="text-right text-muted-foreground text-footnote">
 										{t("withoutRow")}
 									</span>
 								</li>
 							))}
 						</ul>
 						<div className="flex-1" />
-						<p className="mt-6 text-muted-foreground text-sm">
+						<p className="mt-6 text-muted-foreground text-subhead">
 							{t("withoutFooter", { count })}
 						</p>
 					</article>
 
 					<div
 						aria-hidden="true"
-						className="flex items-center justify-center text-brown"
+						className="flex items-center justify-center text-primary"
 					>
 						<ArrowRightIcon className="hidden size-6 md:block" />
 						<ArrowDownIcon className="size-6 md:hidden" />
 					</div>
 
-					<article className="flex flex-col rounded-lg border border-brown bg-brown/5 p-6">
-						<p className="lv-eyebrow text-[0.7rem] text-brown">
+					<article className="flex flex-col rounded-2xl bg-primary/8 p-6 ring-1 ring-primary/40">
+						<p className="font-medium text-footnote text-muted-foreground">
 							{t("withTitle")}
 						</p>
-						<p className="mt-4 text-muted-foreground text-xs">
+						<p className="mt-4 text-muted-foreground text-footnote">
 							{t("withLabel")}
 						</p>
-						<h3 className="mt-1 font-serif-display text-2xl text-primary leading-tight">
+						<h3 className="mt-1 font-bold text-title-2 leading-tight">
 							{EXAMPLE.title}
 						</h3>
 						<ul className="mt-5 flex flex-wrap gap-2">
 							{EXAMPLE.frameworks.map((fw) => (
 								<li
 									key={fw}
-									className="inline-flex items-center gap-1.5 rounded-full border border-brown/40 bg-background px-3 py-1 text-sm"
+									className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-subhead ring-1 ring-primary/30"
 								>
 									<CheckIcon
 										aria-hidden="true"
-										className="size-3.5 text-brown"
+										className="size-3.5 text-primary"
 									/>
 									{fw}
 								</li>
 							))}
 						</ul>
 						<div className="flex-1" />
-						<p className="mt-6 font-medium text-sm">
+						<p className="mt-6 font-medium text-subhead">
 							{t("withFooter", { count })}
 						</p>
 					</article>
@@ -164,25 +164,25 @@ export default async function LandingPage() {
 
 				<div className="mt-16 grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
 					<div>
-						<p className="font-serif-display text-5xl text-muted-foreground sm:text-6xl">
+						<p className="font-semibold text-5xl text-muted-foreground sm:text-6xl">
 							{SYNERGY.requirementCount}
 						</p>
-						<p className="mt-1 text-muted-foreground text-sm">
+						<p className="mt-1 text-muted-foreground text-subhead">
 							{t("numbersRequirements", { frameworks: FRAMEWORKS.length })}
 						</p>
 					</div>
 					<ArrowRightIcon
 						aria-hidden="true"
-						className="hidden size-6 text-brown sm:block"
+						className="hidden size-6 text-primary sm:block"
 					/>
 					<div>
-						<p className="font-serif-display text-5xl text-primary sm:text-6xl">
+						<p className="font-semibold text-5xl text-primary sm:text-6xl">
 							{SYNERGY.controlCount}
 						</p>
-						<p className="mt-1 text-sm">{t("numbersControls")}</p>
+						<p className="mt-1 text-subhead">{t("numbersControls")}</p>
 					</div>
 				</div>
-				<p className="mt-6 max-w-2xl text-muted-foreground text-sm">
+				<p className="mt-6 max-w-2xl text-muted-foreground text-subhead">
 					{t("numbersShared", { shared: SYNERGY.multiFrameworkControls })}
 				</p>
 			</section>
@@ -193,18 +193,16 @@ export default async function LandingPage() {
 				id="so-gehts"
 				className="mx-auto max-w-5xl scroll-mt-20 px-4 sm:px-6"
 			>
-				<h2 className="font-serif-display text-2xl text-primary sm:text-3xl">
-					{t("howTitle")}
-				</h2>
+				<h2 className="font-bold text-title-2 sm:text-3xl">{t("howTitle")}</h2>
 				<p className="mt-3 max-w-2xl text-muted-foreground">{t("howLead")}</p>
 				<ol className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-3">
 					{STEPS.map((s, i) => (
 						<li key={s} className="flex flex-col gap-3">
-							<p className="font-serif-display text-3xl text-brown">{i + 1}</p>
-							<h3 className="font-serif-display text-xl leading-tight">
+							<p className="font-bold text-title-1 text-primary">{i + 1}</p>
+							<h3 className="font-semibold text-title-3 leading-tight">
 								{t(`${s}Title`)}
 							</h3>
-							<p className="text-muted-foreground text-sm leading-relaxed">
+							<p className="text-muted-foreground text-subhead leading-relaxed">
 								{t(`${s}Body`)}
 							</p>
 						</li>
@@ -215,10 +213,10 @@ export default async function LandingPage() {
 			<SectionDivider />
 
 			<section className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-				<p className="lv-eyebrow text-[0.7rem] text-brown">
+				<p className="font-medium text-footnote text-muted-foreground">
 					{t("sentenceEyebrow")}
 				</p>
-				<p className="mt-6 font-serif-display text-3xl text-primary leading-snug sm:text-4xl">
+				<p className="mt-6 font-bold text-title-1 leading-snug sm:text-4xl">
 					„{t("sentence")}“
 				</p>
 			</section>
@@ -226,17 +224,17 @@ export default async function LandingPage() {
 			<SectionDivider />
 
 			<section className="mx-auto max-w-5xl px-4 sm:px-6">
-				<h2 className="font-serif-display text-2xl text-primary sm:text-3xl">
+				<h2 className="font-bold text-title-2 sm:text-3xl">
 					{t("pillarsTitle")}
 				</h2>
 				<div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-3">
 					{PILLARS.map((p) => (
 						<article key={p} className="flex flex-col gap-3">
-							<CheckIcon aria-hidden="true" className="size-5 text-brown" />
-							<h3 className="font-serif-display text-xl leading-tight">
+							<CheckIcon aria-hidden="true" className="size-5 text-primary" />
+							<h3 className="font-semibold text-title-3 leading-tight">
 								{t(`${p}Title`)}
 							</h3>
-							<p className="text-muted-foreground text-sm leading-relaxed">
+							<p className="text-muted-foreground text-subhead leading-relaxed">
 								{t(`${p}Body`)}
 							</p>
 						</article>
@@ -247,7 +245,7 @@ export default async function LandingPage() {
 			<SectionDivider />
 
 			<section className="mx-auto max-w-5xl px-4 sm:px-6">
-				<h2 className="font-serif-display text-2xl text-primary sm:text-3xl">
+				<h2 className="font-bold text-title-2 sm:text-3xl">
 					{t("frameworksTitle")}
 				</h2>
 				<p className="mt-3 max-w-2xl text-muted-foreground">
@@ -260,7 +258,7 @@ export default async function LandingPage() {
 					{FRAMEWORKS.map((f) => (
 						<li
 							key={f.slug}
-							className="rounded-full border border-border/70 px-3 py-1 text-sm"
+							className="rounded-full border border-border/70 px-3 py-1 text-subhead"
 						>
 							{f.name}
 						</li>
@@ -269,8 +267,8 @@ export default async function LandingPage() {
 			</section>
 
 			<section className="mx-auto max-w-5xl px-4 pt-20 pb-24 sm:px-6 sm:pt-28">
-				<div className="rounded-lg border border-border/60 bg-background/60 px-6 py-12 text-center sm:px-12">
-					<h2 className="font-serif-display text-3xl text-primary sm:text-4xl">
+				<div className="rounded-2xl bg-card/60 px-6 py-12 text-center sm:px-12">
+					<h2 className="font-bold text-title-1 sm:text-4xl">
 						{t("ctaTitle")}
 					</h2>
 					<p className="mx-auto mt-4 max-w-xl text-muted-foreground leading-relaxed">
@@ -294,7 +292,9 @@ export default async function LandingPage() {
 						</Link>
 					</div>
 				</div>
-				<p className="mt-10 text-muted-foreground text-xs">{t("footnote")}</p>
+				<p className="mt-10 text-muted-foreground text-footnote">
+					{t("footnote")}
+				</p>
 			</section>
 		</main>
 	);

@@ -16,7 +16,7 @@ export function DecisionAttachments({
 				<li key={a.id} className="min-w-0">
 					<a
 						href={`/api/nachweise/${a.id}`}
-						className="inline-flex max-w-full items-center gap-1 text-primary text-xs underline-offset-4 hover:underline"
+						className="inline-flex max-w-full items-center gap-1 text-primary text-footnote underline-offset-4 hover:underline"
 					>
 						<Paperclip aria-hidden className="size-3 shrink-0" />
 						<span className="truncate">{a.title}</span>

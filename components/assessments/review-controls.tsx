@@ -22,6 +22,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { nativeSelectCompactClass } from "@/components/ui/input";
 import type { AssessmentAnswer } from "@/db/schema/enums";
 
 const ANSWERS: AssessmentAnswer[] = ["yes", "partial", "no", "unknown", "na"];
@@ -75,10 +76,10 @@ export function ReviewCell({
 			>
 				{t("confirm")}
 			</Button>
-			<label className="flex items-center gap-1 text-xs">
+			<label className="flex items-center gap-1 text-footnote">
 				<span className="text-muted-foreground">{t("adjust")}</span>
 				<select
-					className="rounded-md border bg-background px-1.5 py-1 text-foreground text-sm"
+					className={nativeSelectCompactClass}
 					value={adj}
 					disabled={pending}
 					onChange={(e) => {
@@ -185,18 +186,20 @@ export function ApplyDialog({
 					<DialogTitle>{t("applyTitle")}</DialogTitle>
 					<DialogDescription>{t("applyHint")}</DialogDescription>
 				</DialogHeader>
-				<p className="text-sm">{t("applyLead", { count: changes.length })}</p>
+				<p className="text-subhead">
+					{t("applyLead", { count: changes.length })}
+				</p>
 				{changes.length > 0 && (
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{changes.map((c) => (
 							<li key={c.controlCode} className="flex flex-col px-3 py-1.5">
 								<span className="min-w-0 truncate">
-									<span className="font-mono text-xs" translate="no">
+									<span className="font-mono text-footnote" translate="no">
 										{c.controlCode}
 									</span>{" "}
 									{c.title}
 								</span>
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{c.from} → <span className="text-foreground">{c.to}</span>
 								</span>
 							</li>

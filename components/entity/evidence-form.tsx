@@ -239,7 +239,9 @@ export function EvidenceForm({
 									}}
 									accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.txt,.csv,.json"
 								/>
-								<p className="text-muted-foreground text-xs">{t("fileHint")}</p>
+								<p className="text-muted-foreground text-footnote">
+									{t("fileHint")}
+								</p>
 							</div>
 							{common}
 							{dlpReasons && (

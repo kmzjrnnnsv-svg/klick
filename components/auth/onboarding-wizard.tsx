@@ -101,7 +101,7 @@ export function OnboardingWizard({
 					}}
 				/>
 				{slugError && (
-					<p id="ob-slug-error" className="text-destructive text-xs">
+					<p id="ob-slug-error" className="text-destructive text-footnote">
 						{slugError}
 					</p>
 				)}
@@ -121,10 +121,12 @@ export function OnboardingWizard({
 						<SelectItem value="none">{t("ownFunctionNone")}</SelectItem>
 					</SelectContent>
 				</Select>
-				<p className="text-muted-foreground text-xs">{t("ownFunctionHint")}</p>
+				<p className="text-muted-foreground text-footnote">
+					{t("ownFunctionHint")}
+				</p>
 			</div>
 			{canApplyBaseline && (
-				<label className="flex items-start gap-2 text-sm">
+				<label className="flex items-start gap-2 text-subhead">
 					<Checkbox
 						id="ob-baseline"
 						checked={baseline}
@@ -134,7 +136,7 @@ export function OnboardingWizard({
 					{t("applyBaseline")}
 				</label>
 			)}
-			<div className="flex items-start gap-2 text-sm">
+			<div className="flex items-start gap-2 text-subhead">
 				<Checkbox
 					id="ob-terms"
 					required
@@ -142,7 +144,7 @@ export function OnboardingWizard({
 					onCheckedChange={(v) => setTerms(Boolean(v))}
 					className="mt-0.5"
 				/>
-				<label htmlFor="ob-terms" className="text-sm leading-snug">
+				<label htmlFor="ob-terms" className="text-subhead leading-snug">
 					{t.rich("termsLabel", {
 						terms: (chunks) => (
 							<a
@@ -175,7 +177,7 @@ export function OnboardingWizard({
 			>
 				{t("createAndContinue")}
 			</Button>
-			<p className="text-muted-foreground text-xs">{t("nextSteps")}</p>
+			<p className="text-muted-foreground text-footnote">{t("nextSteps")}</p>
 		</form>
 	);
 }

@@ -14,7 +14,7 @@ export default function AuthLayout({
 		>
 			<Link
 				href="/"
-				className="font-serif-display text-3xl text-primary focus-visible:outline-2 focus-visible:outline-offset-4"
+				className="font-bold text-title-1 focus-visible:outline-2 focus-visible:outline-offset-4"
 			>
 				both.money
 			</Link>

@@ -211,13 +211,15 @@ export default async function EngagementPage({
 			{blocker && canEdit && (
 				<p
 					role="status"
-					className="mb-4 rounded-md border border-warning/60 bg-warning/10 p-3 text-sm"
+					className="mb-4 rounded-xl bg-warning/12 p-3 text-subhead"
 				>
 					{tst(`gate_${blocker}`)}
 				</p>
 			)}
 			{e.statusNote && (
-				<p className="mb-4 text-muted-foreground text-sm">{e.statusNote}</p>
+				<p className="mb-4 text-muted-foreground text-subhead">
+					{e.statusNote}
+				</p>
 			)}
 			<UrlTabs
 				base={base}
@@ -239,16 +241,16 @@ export default async function EngagementPage({
 				<>
 					{e.kind !== "quick_check" && (
 						<Section title={t("authorizationTitle")}>
-							<p className="mb-3 text-sm">{t("authorizationLead")}</p>
+							<p className="mb-3 text-subhead">{t("authorizationLead")}</p>
 							{data.authorization ? (
-								<p className="mb-3 text-sm">
+								<p className="mb-3 text-subhead">
 									<a
 										href={`/api/nachweise/${data.authorization.id}`}
 										className="hover:underline"
 									>
 										{data.authorization.title}
 									</a>
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{" "}
 										· {fmtDate.format(data.authorization.createdAt)}
 										{e.authorizedAt &&
@@ -259,7 +261,7 @@ export default async function EngagementPage({
 									</span>
 								</p>
 							) : (
-								<p className="mb-3 text-destructive text-sm">
+								<p className="mb-3 text-destructive text-subhead">
 									{t("authorizationMissingLead")}
 								</p>
 							)}
@@ -303,14 +305,14 @@ export default async function EngagementPage({
 					}
 				>
 					{e.status === "planned" && (
-						<p className="mb-3 text-muted-foreground text-sm">
+						<p className="mb-3 text-muted-foreground text-subhead">
 							{t("findingsAfterAuthorization")}
 						</p>
 					)}
 					{data.findings.length === 0 ? (
-						<p className="text-sm">{t("findingsEmpty")}</p>
+						<p className="text-subhead">{t("findingsEmpty")}</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.findings.map((f, i) => (
 								<li
 									key={f.id}
@@ -321,12 +323,12 @@ export default async function EngagementPage({
 											href={`/sicherheit/befunde/${f.id}`}
 											className="font-medium hover:underline"
 										>
-											<span className="font-mono text-xs" translate="no">
+											<span className="font-mono text-footnote" translate="no">
 												{findingRef(i)}
 											</span>{" "}
 											{f.title}
 										</Link>
-										<span className="block text-muted-foreground text-xs">
+										<span className="block text-muted-foreground text-footnote">
 											{[
 												f.cvss !== null ? `CVSS ${f.cvss.toFixed(1)}` : null,
 												f.cwe,
@@ -358,7 +360,7 @@ export default async function EngagementPage({
 
 			{tab === "nachtest" && (
 				<Section title={t("retestTitle")}>
-					<p className="mb-3 text-muted-foreground text-sm">
+					<p className="mb-3 text-muted-foreground text-subhead">
 						{e.retestDueAt
 							? t("retestLead", {
 									date: fmtDate.format(new Date(e.retestDueAt)),
@@ -366,20 +368,20 @@ export default async function EngagementPage({
 							: t("retestLeadNone")}
 					</p>
 					{data.findings.length === 0 ? (
-						<p className="text-sm">{t("findingsEmpty")}</p>
+						<p className="text-subhead">{t("findingsEmpty")}</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.findings.map((f, i) => (
 								<li
 									key={f.id}
 									className="flex flex-col gap-2 px-3 py-2 lg:flex-row lg:items-start lg:justify-between"
 								>
 									<span className="min-w-0">
-										<span className="font-mono text-xs" translate="no">
+										<span className="font-mono text-footnote" translate="no">
 											{findingRef(i)}
 										</span>{" "}
 										{f.title}
-										<span className="block text-muted-foreground text-xs">
+										<span className="block text-muted-foreground text-footnote">
 											{ts(`sev_${f.severity}`)} ·{" "}
 											{tst(
 												FINDING_STATUS_MACHINE.labelKey[f.status] as "sfOpen",
@@ -388,7 +390,7 @@ export default async function EngagementPage({
 											{f.retestedAt && ` · ${fmtDate.format(f.retestedAt)}`}
 										</span>
 										{f.retestNote && (
-											<span className="block text-muted-foreground text-xs">
+											<span className="block text-muted-foreground text-footnote">
 												{f.retestNote}
 											</span>
 										)}
@@ -416,20 +418,20 @@ export default async function EngagementPage({
 					</Section>
 					<Section title={t("reportFile")}>
 						{data.report ? (
-							<p className="mb-3 text-sm">
+							<p className="mb-3 text-subhead">
 								<a
 									href={`/api/nachweise/${data.report.id}`}
 									className="hover:underline"
 								>
 									{data.report.title}
 								</a>
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{" "}
 									· {fmtDate.format(data.report.createdAt)}
 								</span>
 							</p>
 						) : (
-							<p className="mb-3 text-muted-foreground text-sm">
+							<p className="mb-3 text-muted-foreground text-subhead">
 								{t("reportFileNone")}
 							</p>
 						)}
@@ -444,7 +446,7 @@ export default async function EngagementPage({
 					<Section title={t("deliveryTitle")}>
 						<p
 							className={cn(
-								"text-sm",
+								"text-subhead",
 								!e.deliveredAt && "text-muted-foreground",
 							)}
 						>
@@ -458,7 +460,7 @@ export default async function EngagementPage({
 						{e.deliveredAt && (
 							<Link
 								href="/testprogramm"
-								className="mt-2 inline-block text-primary text-sm hover:underline"
+								className="mt-2 inline-block text-primary text-subhead hover:underline"
 							>
 								{t("toTestProgramme")}
 							</Link>

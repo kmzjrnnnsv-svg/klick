@@ -130,12 +130,12 @@ export function ReceivePanel({
 						)}
 					</div>
 					{reused && (
-						<p className="mt-2 text-muted-foreground text-xs">
+						<p className="mt-2 text-muted-foreground text-footnote">
 							{t("receiveReused")}
 						</p>
 					)}
 					{kind === "cold" && (
-						<p className="mt-2 text-xs">{t("receiveCheckDevice")}</p>
+						<p className="mt-2 text-footnote">{t("receiveCheckDevice")}</p>
 					)}
 				</div>
 				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -175,7 +175,7 @@ export function ReceivePanel({
 						{parsed.error && (
 							<p
 								id="rc-amount-error"
-								className="text-destructive text-xs"
+								className="text-destructive text-footnote"
 								aria-live="polite"
 							>
 								{t("receiveAmountInvalid", { decimals: info?.decimals ?? 0 })}

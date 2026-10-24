@@ -124,7 +124,7 @@ export function ActivityStep({
 			</div>
 
 			{showCasp && (
-				<fieldset className="flex flex-col gap-2 text-sm">
+				<fieldset className="flex flex-col gap-2 text-subhead">
 					<legend className="mb-1.5 font-medium">{to("caspServices")}</legend>
 					<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 						{CASP_SERVICES.map((s) => (
@@ -147,7 +147,7 @@ export function ActivityStep({
 				</fieldset>
 			)}
 
-			<label className="flex items-start gap-2 text-sm">
+			<label className="flex items-start gap-2 text-subhead">
 				<Checkbox
 					className="mt-0.5"
 					checked={d.digitalProducts}

@@ -79,7 +79,7 @@ export function NewAssessmentDialog({
 					}}
 				>
 					<fieldset className="flex flex-col gap-2">
-						<legend className="mb-1 font-medium text-sm">
+						<legend className="mb-1 font-medium text-subhead">
 							{t("newFrameworks")}
 						</legend>
 						<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -87,7 +87,7 @@ export function NewAssessmentDialog({
 								<label
 									key={f.slug}
 									htmlFor={`fw-${f.slug}`}
-									className="flex cursor-pointer items-start gap-2 rounded-md border p-2 text-sm"
+									className="flex cursor-pointer items-start gap-2 rounded-2xl bg-card p-2 text-subhead"
 								>
 									<Checkbox
 										id={`fw-${f.slug}`}
@@ -115,7 +115,7 @@ export function NewAssessmentDialog({
 								value={asOf}
 								onChange={(e) => setAsOf(e.target.value)}
 							/>
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{t("newAsOfHint")}
 							</p>
 						</div>
@@ -134,7 +134,7 @@ export function NewAssessmentDialog({
 					{hasPrevious && (
 						<label
 							htmlFor="ga-only-new"
-							className="flex cursor-pointer items-start gap-2 text-sm"
+							className="flex cursor-pointer items-start gap-2 text-subhead"
 						>
 							<Checkbox
 								id="ga-only-new"

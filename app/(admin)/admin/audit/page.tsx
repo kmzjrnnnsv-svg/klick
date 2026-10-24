@@ -36,9 +36,7 @@ export default async function AdminAuditPage() {
 	return (
 		<>
 			<div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-				<h1 className="font-serif-display text-3xl text-primary">
-					{t("audit")}
-				</h1>
+				<h1 className="font-bold text-title-1">{t("audit")}</h1>
 				<div className="flex flex-wrap items-start gap-3">
 					<Button
 						asChild
@@ -69,22 +67,24 @@ export default async function AdminAuditPage() {
 				<TableBody>
 					{rows.map((r) => (
 						<TableRow key={r.id}>
-							<TableCell className="whitespace-nowrap font-mono text-xs">
+							<TableCell className="whitespace-nowrap font-mono text-footnote">
 								{String(r.seq)}
 							</TableCell>
-							<TableCell className="whitespace-nowrap text-xs">
+							<TableCell className="whitespace-nowrap text-footnote">
 								{fmt.format(r.at)}
 							</TableCell>
-							<TableCell className="whitespace-nowrap font-mono text-xs">
+							<TableCell className="whitespace-nowrap font-mono text-footnote">
 								{r.organizationId
 									? r.organizationId.slice(0, 8)
 									: t("platform")}
 							</TableCell>
-							<TableCell className="whitespace-nowrap font-mono text-xs">
+							<TableCell className="whitespace-nowrap font-mono text-footnote">
 								{r.actorUserId?.slice(0, 8) ?? "—"}
 							</TableCell>
-							<TableCell className="font-medium text-xs">{r.action}</TableCell>
-							<TableCell className="font-mono text-xs">
+							<TableCell className="font-medium text-footnote">
+								{r.action}
+							</TableCell>
+							<TableCell className="font-mono text-footnote">
 								{r.target ?? "—"}
 							</TableCell>
 							<TableCell>
@@ -100,7 +100,7 @@ export default async function AdminAuditPage() {
 									{r.outcome}
 								</Badge>
 							</TableCell>
-							<TableCell className="whitespace-nowrap font-mono text-xs">
+							<TableCell className="whitespace-nowrap font-mono text-footnote">
 								{r.ip ?? "—"}
 							</TableCell>
 						</TableRow>

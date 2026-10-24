@@ -43,7 +43,7 @@ export function OrgSwitcher({
 				aria-label={`${t("switch")}: ${currentName}`}
 				disabled={pending}
 			>
-				<span className="lv-eyebrow min-w-0 flex-1 truncate text-[0.7rem] text-muted-foreground">
+				<span className="min-w-0 flex-1 truncate font-medium text-footnote text-muted-foreground">
 					{currentName}
 				</span>
 				<ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
@@ -63,7 +63,7 @@ export function OrgSwitcher({
 						className="flex flex-col items-start gap-0"
 					>
 						<span className="w-full truncate">{o.orgName}</span>
-						<span className="text-muted-foreground text-xs">
+						<span className="text-muted-foreground text-footnote">
 							{o.roleLabel}
 							{o.expired && ` · ${t("expired")}`}
 						</span>

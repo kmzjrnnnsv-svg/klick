@@ -25,7 +25,7 @@ export function UserChip({
 	return (
 		<span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
 			<Avatar className={size === "sm" ? "size-5 shrink-0" : "size-7 shrink-0"}>
-				<AvatarFallback className="text-[0.7rem]">
+				<AvatarFallback className="text-footnote">
 					{initials(name)}
 				</AvatarFallback>
 			</Avatar>
@@ -35,7 +35,7 @@ export function UserChip({
 				{name}
 			</span>
 			{external && (
-				<span className="rounded-sm bg-warning/20 px-1 text-[0.7rem] text-foreground uppercase tracking-[0.1em]">
+				<span className="rounded-sm bg-warning/20 px-1 text-footnote text-foreground">
 					extern
 				</span>
 			)}

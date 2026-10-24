@@ -82,13 +82,13 @@ export default async function SupplierPortalPage() {
 			<PortalSession state="session" />
 			<header className="flex flex-col gap-2">
 				<div className="flex items-start justify-between gap-2">
-					<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+					<p className="font-medium text-footnote text-muted-foreground">
 						{t("eyebrow", { organization })}
 					</p>
 					<PortalLogout />
 				</div>
 				<h1 className="text-balance font-serif text-3xl">{a.title}</h1>
-				<p className="text-muted-foreground text-sm">
+				<p className="text-muted-foreground text-subhead">
 					<span translate="no">{a.code}</span>
 					{a.dueAt &&
 						` · ${t("due", { date: fmtDate.format(new Date(a.dueAt)) })}`}
@@ -97,10 +97,7 @@ export default async function SupplierPortalPage() {
 			</header>
 
 			{readOnly ? (
-				<p
-					role="status"
-					className="rounded-md border border-success/50 bg-success/5 p-3 text-sm"
-				>
+				<p role="status" className="rounded-xl bg-success/10 p-3 text-subhead">
 					{a.submittedAt
 						? t("submittedInfo", {
 								date: fmtDate.format(a.submittedAt),
@@ -109,16 +106,13 @@ export default async function SupplierPortalPage() {
 						: t("closedInfo")}
 				</p>
 			) : (
-				<div className="flex flex-col gap-2 text-sm">
+				<div className="flex flex-col gap-2 text-subhead">
 					<p>{t("intro", { organization })}</p>
 					<p className="text-muted-foreground">
 						{t("privacy", { organization })}
 					</p>
 					{a.reopenNote && (
-						<p
-							role="alert"
-							className="rounded-md border border-warning/60 bg-warning/10 p-3"
-						>
+						<p role="alert" className="rounded-xl bg-warning/12 p-3">
 							{t("reopened", { organization, note: a.reopenNote })}
 						</p>
 					)}
@@ -158,7 +152,7 @@ export default async function SupplierPortalPage() {
 
 			{!readOnly && (
 				<footer className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{t("progress", { answered, total: a.questions.length })}
 					</p>
 					<PortalSubmit

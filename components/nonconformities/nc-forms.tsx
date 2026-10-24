@@ -169,8 +169,8 @@ export function NonconformityForm({
 					onChange={(v) => setD({ ...d, effectivenessCheckAt: v })}
 				/>
 			</div>
-			<fieldset className="flex flex-col gap-2 rounded-md border p-3">
-				<legend className="px-1 text-sm">{t("followUpTitle")}</legend>
+			<fieldset className="flex flex-col gap-2 rounded-2xl bg-card p-3">
+				<legend className="px-1 text-subhead">{t("followUpTitle")}</legend>
 				<div className="flex flex-col gap-1.5 sm:max-w-xs">
 					<Label htmlFor="nc-class">{t("followUpClass")}</Label>
 					<Select
@@ -197,14 +197,14 @@ export function NonconformityForm({
 				</div>
 				{d.followUpClass && frameworks.length > 0 && (
 					<div className="flex flex-col gap-1.5">
-						<span className="text-sm">{t("followUpFrameworks")}</span>
+						<span className="text-subhead">{t("followUpFrameworks")}</span>
 						<div className="flex flex-wrap gap-x-4 gap-y-1.5">
 							{frameworks.map((f) => {
 								const on = (d.followUpFrameworks ?? []).includes(f.slug);
 								return (
 									<label
 										key={f.slug}
-										className="flex items-center gap-2 text-sm"
+										className="flex items-center gap-2 text-subhead"
 									>
 										<Checkbox
 											checked={on}
@@ -226,7 +226,9 @@ export function NonconformityForm({
 						</div>
 					</div>
 				)}
-				<p className="text-muted-foreground text-xs">{t("followUpLead")}</p>
+				<p className="text-muted-foreground text-footnote">
+					{t("followUpLead")}
+				</p>
 			</fieldset>
 			<Field
 				id="nc-desc"

@@ -86,7 +86,7 @@ export function NewHotAccountDialog({
 							<DialogDescription>{t("hotCreatedLead")}</DialogDescription>
 						</DialogHeader>
 						<p
-							className="break-all rounded-md border border-border/60 bg-muted/40 p-3 font-mono text-sm"
+							className="break-all rounded-xl bg-muted p-3 font-mono text-subhead"
 							translate="no"
 						>
 							{created}
@@ -140,7 +140,7 @@ export function NewHotAccountDialog({
 								</SelectContent>
 							</Select>
 						</div>
-						<ul className="list-disc pl-5 text-muted-foreground text-sm">
+						<ul className="list-disc pl-5 text-muted-foreground text-subhead">
 							<li>{t("hotHint1")}</li>
 							<li>{t("hotHint2")}</li>
 						</ul>

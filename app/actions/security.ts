@@ -12,10 +12,8 @@ import {
 	AuthError,
 	checkSessionRules,
 	getSessionCtx,
-	requireOrg,
 	requireStepUp,
 } from "@/lib/auth/guards";
-import { lockWalletSession } from "@/lib/auth/org";
 import {
 	type ConfirmPurpose,
 	passkeyConfirmOptions,
@@ -45,24 +43,9 @@ async function verifyStepUpImpl(code: string): Promise<ActionResult> {
 // Mail-Link-Anmeldung — dann fehlt der zweite Faktor noch, alle anderen
 // Sitzungsregeln gelten —, „stepup“ vor sensiblen Aktionen.
 async function confirmCtx(purpose: unknown) {
-	if (purpose !== "mfa" && purpose !== "stepup" && purpose !== "wallet")
-		return null;
+	if (purpose !== "mfa" && purpose !== "stepup") return null;
 	const ctx = await getSessionCtx();
 	if (!ctx) throw new AuthError("unauthenticated");
-	// Wallet entsperren: volle Sitzungsregeln, Mitgliedschaft mit
-	// wallet:read in der aktiven Org, nie in einer Impersonation-Sitzung.
-	if (purpose === "wallet") {
-		const org = await requireOrg({ wallet: ["read"] });
-		if ((ctx.session as { impersonatedBy?: string | null }).impersonatedBy)
-			throw new AuthError("forbidden");
-		return {
-			ctx,
-			purpose: "wallet" as ConfirmPurpose,
-			// Echtgeld gibt es erst ab Phase 3 (signierte Richtlinie); bis
-			// dahin nur Testnetze — dann ist das Alter des Passkeys egal.
-			wallet: { orgId: org.orgId, liveEnabled: false },
-		};
-	}
 	try {
 		checkSessionRules(ctx);
 	} catch (e) {
@@ -70,11 +53,7 @@ async function confirmCtx(purpose: unknown) {
 			purpose === "mfa" && e instanceof AuthError && e.code === "mfa_required";
 		if (!pending) throw e;
 	}
-	return {
-		ctx,
-		purpose: purpose as ConfirmPurpose,
-		wallet: undefined as { orgId: string; liveEnabled: boolean } | undefined,
-	};
+	return { ctx, purpose: purpose as ConfirmPurpose };
 }
 
 async function passkeyOptionsImpl(
@@ -105,7 +84,6 @@ async function confirmPasskeyImpl(
 		response,
 		ip: c.ctx.ip,
 		userAgent: c.ctx.userAgent,
-		wallet: c.wallet,
 	});
 	if (!res.ok) return res;
 	revalidatePath("/", "layout");
@@ -118,15 +96,6 @@ async function confirmPasskeyImpl(
 // als Seitennavigation im Leeren).
 async function ensureExportStepUpImpl(): Promise<ActionResult> {
 	await requireStepUp({ export: ["create"] });
-	return { ok: true, data: undefined };
-}
-
-// Wallet-Bereich sofort schließen (Knopf „Jetzt sperren“)
-async function lockWalletImpl(): Promise<ActionResult> {
-	const ctx = await getSessionCtx();
-	if (!ctx) throw new AuthError("unauthenticated");
-	await lockWalletSession(ctx.session.id);
-	revalidatePath("/wallet", "layout");
 	return { ok: true, data: undefined };
 }
 
@@ -172,4 +141,3 @@ export const revokeOtherSessions = safeAction(
 	"revokeOtherSessions",
 	revokeOtherSessionsImpl,
 );
-export const lockWallet = safeAction("lockWallet", lockWalletImpl);

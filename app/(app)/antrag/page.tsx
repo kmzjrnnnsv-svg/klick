@@ -117,7 +117,7 @@ export default async function ApplicationPage({
 				actions={
 					<a
 						href={`/api/export/antrag.md?mappe=${tab}`}
-						className="text-primary text-sm hover:underline underline-offset-4"
+						className="text-primary text-subhead hover:underline underline-offset-4"
 					>
 						{t("exportMd")}
 					</a>
@@ -134,7 +134,7 @@ export default async function ApplicationPage({
 			<div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
 				<div className="flex flex-col gap-2">
 					<Progress value={result.completenessPct ?? 0} />
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{t("summary", {
 							done: result.done,
 							partial: result.partial,
@@ -143,25 +143,25 @@ export default async function ApplicationPage({
 						})}
 					</p>
 				</div>
-				<p className="font-serif-display text-3xl text-primary">
+				<p className="font-bold text-title-1">
 					{result.completenessPct === null
 						? "—"
 						: `${Math.round(result.completenessPct)} %`}
 				</p>
 			</div>
-			<p className="mb-4 text-muted-foreground text-sm">
+			<p className="mb-4 text-muted-foreground text-subhead">
 				{tab === "micar" ? t("micarLead") : t("zagLead")}
 			</p>
 			<ol className="flex flex-col gap-3">
 				{result.items.map((r, idx) => (
-					<li key={r.item.code} className="rounded-md border p-4">
+					<li key={r.item.code} className="rounded-2xl bg-card p-4">
 						<div className="flex flex-wrap items-start justify-between gap-3">
 							<div className="min-w-0 flex-1">
-								<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+								<p className="font-medium text-footnote text-muted-foreground">
 									#{idx + 1} · {r.item.code} · {r.item.legalBasis}
 								</p>
 								<h2 className="font-medium">{r.item.title}</h2>
-								<p className="mt-1 text-muted-foreground text-sm">
+								<p className="mt-1 text-muted-foreground text-subhead">
 									{r.item.description}
 								</p>
 							</div>
@@ -171,14 +171,14 @@ export default async function ApplicationPage({
 								</Badge>
 								<Link
 									href={r.item.route}
-									className="text-primary text-xs hover:underline"
+									className="text-primary text-footnote hover:underline"
 								>
 									{t("openModule")}
 								</Link>
 							</div>
 						</div>
 						{r.status !== "not_applicable" && (
-							<ul className="mt-3 flex flex-col gap-1.5 border-t pt-3 text-sm">
+							<ul className="mt-3 flex flex-col gap-1.5 border-t pt-3 text-subhead">
 								{r.checks.map((c) => {
 									const href = checkHref(c.check);
 									const manual = c.check.kind === "manual";
@@ -206,7 +206,7 @@ export default async function ApplicationPage({
 											)}
 											<span className="flex items-center gap-2">
 												{manual && state[r.item.code]?.at && (
-													<span className="text-muted-foreground text-xs">
+													<span className="text-muted-foreground text-footnote">
 														{fmtDate.format(
 															new Date(state[r.item.code]?.at ?? ""),
 														)}
@@ -222,7 +222,7 @@ export default async function ApplicationPage({
 							</ul>
 						)}
 						{r.status === "not_applicable" && (
-							<p className="mt-2 text-muted-foreground text-xs">
+							<p className="mt-2 text-muted-foreground text-footnote">
 								{t("notApplicableHint", {
 									services: (r.item.services ?? []).join(", "),
 								})}
@@ -231,7 +231,7 @@ export default async function ApplicationPage({
 					</li>
 				))}
 			</ol>
-			<p className="mt-6 text-muted-foreground text-xs">
+			<p className="mt-6 text-muted-foreground text-footnote">
 				{t("disclaimer")}{" "}
 				{CONTROL_BY_CODE.has("CC-REG-03") && (
 					<Link

@@ -49,7 +49,7 @@ export function DlpPanel({
 				<CardTitle className="text-base">{t("dlpTitle")}</CardTitle>
 				<CardDescription>{t("dlpLead")}</CardDescription>
 			</CardHeader>
-			<CardContent className="flex flex-col gap-5 text-sm">
+			<CardContent className="flex flex-col gap-5 text-subhead">
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					{CATEGORIES.map((cat) => (
 						<div key={cat} className="flex flex-col gap-1.5">
@@ -124,7 +124,7 @@ export function DlpPanel({
 						/>
 					</div>
 				</div>
-				<p className="text-muted-foreground text-xs">{t("dlpHint")}</p>
+				<p className="text-muted-foreground text-footnote">{t("dlpHint")}</p>
 				{canEdit && (
 					<div className="flex justify-end">
 						<Button

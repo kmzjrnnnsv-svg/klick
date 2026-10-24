@@ -61,7 +61,7 @@ export function LoginForm({ next }: { next: string }) {
 			<p
 				role="alert"
 				aria-live="polite"
-				className="min-h-4 text-destructive text-sm"
+				className="min-h-4 text-destructive text-subhead"
 			>
 				{error}
 			</p>
@@ -75,7 +75,7 @@ export function LoginForm({ next }: { next: string }) {
 					spellCheck={false}
 					placeholder="name@firma.de …"
 				/>
-				<p className="text-muted-foreground text-xs">{t("emailHint")}</p>
+				<p className="text-muted-foreground text-footnote">{t("emailHint")}</p>
 			</div>
 		</div>
 	);

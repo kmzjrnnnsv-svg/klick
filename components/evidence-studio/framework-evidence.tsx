@@ -68,10 +68,12 @@ export async function FrameworkEvidence({
 				<section className="flex flex-col gap-3" aria-labelledby="ev-kinds">
 					<div className="flex flex-wrap items-end justify-between gap-3">
 						<div className="flex max-w-2xl flex-col gap-1">
-							<h2 id="ev-kinds" className="font-medium text-sm">
+							<h2 id="ev-kinds" className="font-medium text-subhead">
 								{t("kindsTitle")}
 							</h2>
-							<p className="text-muted-foreground text-sm">{t("kindsLead")}</p>
+							<p className="text-muted-foreground text-subhead">
+								{t("kindsLead")}
+							</p>
 						</div>
 						<div className="flex flex-wrap gap-2">
 							{batchFn && batchIds.length > 1 && (
@@ -87,7 +89,7 @@ export async function FrameworkEvidence({
 							)}
 						</div>
 					</div>
-					<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{kinds.map((k) => (
 							<li
 								key={k.code}
@@ -97,15 +99,12 @@ export async function FrameworkEvidence({
 									<span className="font-medium">
 										{k.title}
 										{k.mandatory && (
-											<Badge
-												variant="outline"
-												className="ml-2 align-middle normal-case tracking-normal"
-											>
+											<Badge variant="outline" className="ml-2 align-middle">
 												{t("mandatory")}
 											</Badge>
 										)}
 									</span>
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{k.latest ? (
 											<a
 												href={`/api/nachweise/${k.latest.id}`}
@@ -120,7 +119,7 @@ export async function FrameworkEvidence({
 										)}
 									</span>
 									{k.signatures.length > 0 && (
-										<span className="text-muted-foreground text-xs">
+										<span className="text-muted-foreground text-footnote">
 											{ts("signedBy", {
 												names: k.signatures
 													.map(
@@ -143,20 +142,17 @@ export async function FrameworkEvidence({
 										</span>
 									)}
 									{k.latest && k.openSigners > 0 && (
-										<span className="text-warning text-xs">
+										<span className="text-warning text-footnote">
 											{ts("open", { count: k.openSigners })}
 										</span>
 									)}
 								</div>
-								<Badge
-									variant={stateTone[k.state]}
-									className="normal-case tracking-normal"
-								>
+								<Badge variant={stateTone[k.state]} className="">
 									{t(`kindState_${k.state}`)}
 								</Badge>
 								<Link
 									href={k.editHref}
-									className="text-primary text-xs hover:underline"
+									className="text-primary text-footnote hover:underline"
 								>
 									{k.editLabel} →
 								</Link>
@@ -179,8 +175,10 @@ export async function FrameworkEvidence({
 				</section>
 			)}
 			<div className="flex flex-col gap-1">
-				<p className="text-muted-foreground text-sm">{t("frameworkLead")}</p>
-				<p className="text-sm tabular-nums">
+				<p className="text-muted-foreground text-subhead">
+					{t("frameworkLead")}
+				</p>
+				<p className="text-subhead tabular-nums">
 					{t("frameworkProgress", { done: complete, total: live.length })}
 				</p>
 			</div>
@@ -189,10 +187,10 @@ export async function FrameworkEvidence({
 				if (reqs.length === 0) return null;
 				return (
 					<section key={section.code} className="flex flex-col gap-2">
-						<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<h2 className="font-medium text-footnote text-muted-foreground">
 							{section.code} · {section.title}
 						</h2>
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{reqs.map((r) => {
 								const p = progress.get(`${framework.slug}:${r.code}`);
 								const state = p?.state ?? "open";
@@ -203,7 +201,7 @@ export async function FrameworkEvidence({
 									>
 										<Badge
 											variant="outline"
-											className="whitespace-nowrap font-mono normal-case tracking-normal"
+											className="whitespace-nowrap font-mono"
 										>
 											{r.code}
 										</Badge>
@@ -214,7 +212,7 @@ export async function FrameworkEvidence({
 											{r.title}
 										</Link>
 										{p && (
-											<span className="text-muted-foreground text-xs tabular-nums">
+											<span className="text-muted-foreground text-footnote tabular-nums">
 												{t("colQuestions")} {p.questions.answered}/
 												{p.questions.total} · {t("colItems")} {p.items.done}/
 												{p.items.total}

@@ -16,7 +16,7 @@ export default async function UnlockPage({
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-2">
-				<h1 className="font-serif-display text-2xl">{t("title")}</h1>
+				<h1 className="font-bold text-title-2">{t("title")}</h1>
 				<p className="text-muted-foreground">
 					{t("lead", { org: ctx.orgName })}
 				</p>

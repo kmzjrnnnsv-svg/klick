@@ -105,7 +105,7 @@ export function TwoFactorForm({
 	if (downloading) {
 		return (
 			<div className="flex flex-col gap-4" aria-live="polite">
-				<p className="text-sm">{t("downloadStarted")}</p>
+				<p className="text-subhead">{t("downloadStarted")}</p>
 				<Button onClick={() => router.replace(backPath())}>
 					{t("downloadBack")}
 				</Button>
@@ -123,7 +123,7 @@ export function TwoFactorForm({
 				/>
 			)}
 			{passkey && totp && (
-				<p className="text-muted-foreground text-xs">{t("orCode")}</p>
+				<p className="text-muted-foreground text-footnote">{t("orCode")}</p>
 			)}
 			{totp && (
 				<>
@@ -139,7 +139,7 @@ export function TwoFactorForm({
 							required
 							value={code}
 							onChange={(e) => setCode(e.target.value)}
-							className="font-mono text-lg tracking-[0.3em]"
+							className="font-mono text-lg"
 						/>
 					</div>
 					<Button
@@ -155,7 +155,7 @@ export function TwoFactorForm({
 				<button
 					type="button"
 					onClick={() => setUseBackup((v) => !v)}
-					className="text-left text-primary text-xs hover:underline"
+					className="text-left text-primary text-footnote hover:underline"
 				>
 					{useBackup ? t("useTotp") : t("useBackupCode")}
 				</button>
@@ -164,7 +164,7 @@ export function TwoFactorForm({
 				<button
 					type="button"
 					onClick={signOut}
-					className="text-left text-muted-foreground text-xs hover:underline"
+					className="text-left text-muted-foreground text-footnote hover:underline"
 				>
 					{t("signOut")}
 				</button>

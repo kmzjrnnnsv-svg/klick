@@ -192,7 +192,7 @@ export default async function FrameworkPage({
 				title={fw.name}
 				lead={fw.description}
 				actions={
-					<span className="flex flex-wrap gap-3 text-sm">
+					<span className="flex flex-wrap gap-3 text-subhead">
 						<a
 							href={`/api/export/gap.csv?fw=${slug}`}
 							className="text-primary hover:underline underline-offset-4"
@@ -213,20 +213,20 @@ export default async function FrameworkPage({
 			{bucket && (
 				<div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
 					<CoverageBar bucket={bucket} labels={labels} />
-					<div className="flex gap-4 text-sm">
+					<div className="flex gap-4 text-subhead">
 						<div>
-							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+							<p className="font-medium text-footnote text-muted-foreground">
 								{t("coverage")}
 							</p>
-							<p className="font-serif-display text-2xl text-primary">
+							<p className="font-bold text-title-2">
 								{pct(bucket.coveragePct)}
 							</p>
 						</div>
 						<div>
-							<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+							<p className="font-medium text-footnote text-muted-foreground">
 								{t("progress")}
 							</p>
-							<p className="font-serif-display text-2xl text-primary">
+							<p className="font-bold text-title-2">
 								{pct(bucket.progressPct)}
 							</p>
 						</div>
@@ -234,15 +234,15 @@ export default async function FrameworkPage({
 				</div>
 			)}
 			{fw.recommendedApproach && (
-				<p className="mb-6 rounded-md border border-dashed p-3 text-sm">
-					<span className="lv-eyebrow mr-2 text-[0.7rem] text-muted-foreground">
+				<p className="mb-6 rounded-2xl bg-card p-3 text-subhead">
+					<span className="font-medium text-footnote mr-2 text-footnote text-muted-foreground">
 						{t("approach")}
 					</span>
 					{fw.recommendedApproach}
 				</p>
 			)}
 			{fw.requirements.length === 0 ? (
-				<p className="text-muted-foreground text-sm">{t("noIndex")}</p>
+				<p className="text-muted-foreground text-subhead">{t("noIndex")}</p>
 			) : (
 				<>
 					<UrlTabs
@@ -298,13 +298,13 @@ export default async function FrameworkPage({
 						/>
 					) : tab === "luecken" ? (
 						<>
-							<p className="mb-4 text-muted-foreground text-sm">
+							<p className="mb-4 text-muted-foreground text-subhead">
 								{t("gapsLead")}
 							</p>
 							{gaps.length === 0 ? (
-								<p className="text-sm">{t("gapsEmpty")}</p>
+								<p className="text-subhead">{t("gapsEmpty")}</p>
 							) : (
-								<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+								<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 									{gaps.map(({ r, key, status }) => {
 										const edges = EDGES_BY_REQUIREMENT.get(key) ?? [];
 										return (
@@ -313,10 +313,7 @@ export default async function FrameworkPage({
 												className="flex flex-col gap-1 px-3 py-2"
 											>
 												<div className="flex flex-wrap items-center gap-2">
-													<Badge
-														variant="outline"
-														className="font-mono normal-case tracking-normal"
-													>
+													<Badge variant="outline" className="font-mono">
 														{r.code}
 													</Badge>
 													<Link
@@ -329,7 +326,7 @@ export default async function FrameworkPage({
 														{statusLabel(status)}
 													</Badge>
 												</div>
-												<div className="flex flex-wrap gap-1.5 text-xs">
+												<div className="flex flex-wrap gap-1.5 text-footnote">
 													{edges.map((e) => {
 														const c = CONTROL_BY_CODE.get(e.control);
 														const s =
@@ -364,25 +361,22 @@ export default async function FrameworkPage({
 								return (
 									<section key={section.code}>
 										<div className="mb-2 flex items-baseline justify-between gap-3">
-											<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+											<h2 className="font-medium text-footnote text-muted-foreground">
 												{section.code} · {section.title}
 											</h2>
 											{sb && (
-												<span className="text-muted-foreground text-xs">
+												<span className="text-muted-foreground text-footnote">
 													{pct(sb.coveragePct)}
 												</span>
 											)}
 										</div>
-										<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+										<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 											{items.map(({ r, status }) => (
 												<li
 													key={r.code}
 													className="flex flex-wrap items-center gap-2 px-3 py-2"
 												>
-													<Badge
-														variant="outline"
-														className="font-mono normal-case tracking-normal"
-													>
+													<Badge variant="outline" className="font-mono">
 														{r.code}
 													</Badge>
 													<Link
@@ -404,7 +398,7 @@ export default async function FrameworkPage({
 					)}
 				</>
 			)}
-			<p className="mt-8 text-muted-foreground text-xs">
+			<p className="mt-8 text-muted-foreground text-footnote">
 				{shortFrameworkName(slug)} · {fw.legalBasis ?? ""}
 			</p>
 		</>

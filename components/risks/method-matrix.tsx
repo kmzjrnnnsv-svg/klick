@@ -24,7 +24,7 @@ export function MethodMatrix({
 	return (
 		<table
 			className={cn(
-				"border-separate border-spacing-0.5 text-[0.7rem] tabular-nums",
+				"border-separate border-spacing-0.5 text-footnote tabular-nums",
 				className,
 			)}
 		>

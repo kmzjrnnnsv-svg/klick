@@ -57,13 +57,13 @@ export function RiskProposals({
 
 	return (
 		<div className="flex flex-col gap-6">
-			<p className="max-w-3xl text-muted-foreground text-sm">
+			<p className="max-w-3xl text-muted-foreground text-subhead">
 				{t("proposalsLead")}
 			</p>
 			{proposals.length === 0 ? (
-				<p className="text-sm">{t("proposalsNone")}</p>
+				<p className="text-subhead">{t("proposalsNone")}</p>
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 rounded-md border">
+				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 					{proposals.map((p) => (
 						<li
 							key={p.key}
@@ -74,7 +74,9 @@ export function RiskProposals({
 									<Badge variant="muted">{t(`kind_${p.kind}`)}</Badge>
 									<span className="font-medium">{p.title}</span>
 								</p>
-								<p className="text-muted-foreground text-xs">{p.reason}</p>
+								<p className="text-muted-foreground text-footnote">
+									{p.reason}
+								</p>
 							</div>
 							<div className="flex shrink-0 flex-wrap gap-2">
 								{canCreate && (
@@ -104,7 +106,7 @@ export function RiskProposals({
 				</ul>
 			)}
 			{moreGaps > 0 && (
-				<p className="text-muted-foreground text-sm">
+				<p className="text-muted-foreground text-subhead">
 					{t("moreGaps", { n: moreGaps })}{" "}
 					<Link href="/rahmenwerke" className="text-primary hover:underline">
 						{t("toGaps")}
@@ -112,14 +114,14 @@ export function RiskProposals({
 				</p>
 			)}
 			{dismissed.length > 0 && (
-				<details className="text-sm">
+				<details className="text-subhead">
 					<summary className="cursor-pointer text-muted-foreground">
 						{t("dismissedList", { n: dismissed.length })}
 					</summary>
 					<ul className="mt-2 flex flex-col gap-1">
 						{dismissed.map((d) => (
 							<li key={d.key} className="flex flex-wrap items-center gap-2">
-								<span className="font-mono text-muted-foreground text-xs">
+								<span className="font-mono text-muted-foreground text-footnote">
 									{d.key.split(":")[0]}
 								</span>
 								<span>{d.reason}</span>

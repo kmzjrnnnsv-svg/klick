@@ -22,9 +22,7 @@ export default async function AdminCmsPage({
 	});
 	return (
 		<>
-			<h1 className="mb-6 font-serif-display text-3xl text-primary">
-				{t("cms")}
-			</h1>
+			<h1 className="mb-6 font-bold text-title-1">{t("cms")}</h1>
 			<div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_2fr]">
 				<nav
 					aria-label={t("cms")}
@@ -40,14 +38,14 @@ export default async function AdminCmsPage({
 										scroll={false}
 										aria-current={on ? "page" : undefined}
 										className={cn(
-											"flex flex-col gap-0.5 rounded-md border px-3 py-2.5 text-sm transition-colors",
+											"flex flex-col gap-0.5 rounded-xl bg-card px-3 py-2.5 text-subhead transition-colors",
 											on
 												? "border-primary/50 bg-muted/60"
 												: "border-border/60 hover:bg-muted/40",
 										)}
 									>
 										<span className="truncate font-medium">{p.title}</span>
-										<span className="flex min-w-0 flex-wrap gap-x-2 text-muted-foreground text-xs">
+										<span className="flex min-w-0 flex-wrap gap-x-2 text-muted-foreground text-footnote">
 											<span className="truncate font-mono" translate="no">
 												{p.slug}
 											</span>

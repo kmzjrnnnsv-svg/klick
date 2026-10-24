@@ -91,12 +91,12 @@ export function IntegrationsPanel({
 				<CardHeader>
 					<CardTitle className="text-base">{t("title")}</CardTitle>
 				</CardHeader>
-				<CardContent className="flex flex-col gap-4 text-sm">
+				<CardContent className="flex flex-col gap-4 text-subhead">
 					<p className="max-w-2xl text-muted-foreground">{t("lead")}</p>
 					{tokens.length === 0 ? (
 						<p className="text-muted-foreground">{t("empty")}</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 							{tokens.map((tok) => {
 								const state = tok.revokedAt
 									? "revoked"
@@ -111,12 +111,12 @@ export function IntegrationsPanel({
 										<span className="min-w-0">
 											<span className="font-medium">{tok.name}</span>{" "}
 											<span
-												className="font-mono text-muted-foreground text-xs"
+												className="font-mono text-muted-foreground text-footnote"
 												translate="no"
 											>
 												{tok.prefix}…
 											</span>
-											<span className="block text-muted-foreground text-xs">
+											<span className="block text-muted-foreground text-footnote">
 												{tok.scopes.join(", ")} ·{" "}
 												{t("expires", { date: fmt.format(tok.expiresAt) })} ·{" "}
 												{tok.lastUsedAt
@@ -154,7 +154,7 @@ export function IntegrationsPanel({
 					</CardHeader>
 					<CardContent>
 						<form
-							className="flex max-w-xl flex-col gap-4 text-sm"
+							className="flex max-w-xl flex-col gap-4 text-subhead"
 							onSubmit={(e) => {
 								e.preventDefault();
 								start(async () => {
@@ -197,7 +197,7 @@ export function IntegrationsPanel({
 												)
 											}
 										/>
-										<span className="font-mono text-xs" translate="no">
+										<span className="font-mono text-footnote" translate="no">
 											{s}
 										</span>
 										<span className="text-muted-foreground">
@@ -261,10 +261,10 @@ export function IntegrationsPanel({
 				<CardHeader>
 					<CardTitle className="text-base">{t("ciTitle")}</CardTitle>
 				</CardHeader>
-				<CardContent className="flex flex-col gap-3 text-sm">
+				<CardContent className="flex flex-col gap-3 text-subhead">
 					<p className="max-w-2xl text-muted-foreground">{t("ciLead")}</p>
 					<pre
-						className="max-h-96 overflow-auto rounded-md border bg-muted/40 p-3 text-xs"
+						className="max-h-96 overflow-auto rounded-xl bg-muted p-3 text-footnote"
 						translate="no"
 					>
 						{snippet}
@@ -298,7 +298,7 @@ export function IntegrationsPanel({
 					<Input
 						readOnly
 						value={created ?? ""}
-						className="font-mono text-xs"
+						className="font-mono text-footnote"
 						onFocus={(e) => e.currentTarget.select()}
 					/>
 					<DialogFooter>

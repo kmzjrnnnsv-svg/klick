@@ -59,7 +59,7 @@ export function CourseLink({ url }: { url: string | null | undefined }) {
 			href={url}
 			target="_blank"
 			rel="noopener noreferrer"
-			className="inline-flex items-center gap-1 text-primary text-xs hover:underline"
+			className="inline-flex items-center gap-1 text-primary text-footnote hover:underline"
 		>
 			<ExternalLink className="size-3" />
 			{t("openCourse")}
@@ -210,11 +210,7 @@ export function AssignTrainingForm({
 			title={t("assignTitle", { title })}
 			lead={t("assignLead")}
 			trigger={
-				<Button
-					size="sm"
-					variant="ghost"
-					className="normal-case tracking-normal"
-				>
+				<Button size="sm" variant="ghost" className="">
 					<UserPlus />
 					{t("assign")}
 				</Button>
@@ -253,7 +249,7 @@ export function AssignTrainingForm({
 						type="button"
 						size="sm"
 						variant="ghost"
-						className="normal-case tracking-normal"
+						className=""
 						onClick={() => setPicked(new Set(members.map((m) => m.userId)))}
 					>
 						{t("selectAll")}
@@ -264,7 +260,7 @@ export function AssignTrainingForm({
 						<label
 							key={m.userId}
 							htmlFor={`as-${requirementId}-${m.userId}`}
-							className="flex items-center gap-2 text-sm"
+							className="flex items-center gap-2 text-subhead"
 						>
 							<Checkbox
 								id={`as-${requirementId}-${m.userId}`}
@@ -278,7 +274,7 @@ export function AssignTrainingForm({
 							/>
 							<span>{m.name}</span>
 							{assigned.has(m.userId) && (
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									({t("alreadyAssigned")})
 								</span>
 							)}

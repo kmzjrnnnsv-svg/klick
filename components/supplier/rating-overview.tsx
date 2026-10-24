@@ -74,8 +74,8 @@ export async function RatingOverview({
 		<div className="flex flex-col gap-8">
 			<dl className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
 				{kpis.map(([label, value]) => (
-					<div key={label} className="rounded-md border p-3">
-						<dt className="text-muted-foreground text-xs">{label}</dt>
+					<div key={label} className="rounded-2xl bg-card p-3">
+						<dt className="text-muted-foreground text-footnote">{label}</dt>
 						<dd className="font-medium text-2xl tabular-nums">{value}</dd>
 					</div>
 				))}
@@ -88,13 +88,13 @@ export async function RatingOverview({
 					{TRAFFIC_ORDER.map((k) => (
 						<li
 							key={k}
-							className="flex items-center gap-3 rounded-md border p-3"
+							className="flex items-center gap-3 rounded-2xl bg-card p-3"
 						>
 							<span
 								aria-hidden
 								className={cn("size-3 shrink-0 rounded-full", TRAFFIC_BAR[k])}
 							/>
-							<span className="flex-1 text-sm">{t(`traffic_${k}`)}</span>
+							<span className="flex-1 text-subhead">{t(`traffic_${k}`)}</span>
 							<span className="font-medium text-xl tabular-nums">
 								{byTraffic[k]}
 							</span>
@@ -107,9 +107,9 @@ export async function RatingOverview({
 					{t("barsTitle")}
 				</h2>
 				{sorted.length === 0 ? (
-					<p className="text-muted-foreground text-sm">{t("barsEmpty")}</p>
+					<p className="text-muted-foreground text-subhead">{t("barsEmpty")}</p>
 				) : (
-					<ul className="flex flex-col gap-2 text-sm">
+					<ul className="flex flex-col gap-2 text-subhead">
 						{sorted.map(({ p, r }) => {
 							const pct = Math.round(((r.totalScore ?? 0) / 5) * 100);
 							return (

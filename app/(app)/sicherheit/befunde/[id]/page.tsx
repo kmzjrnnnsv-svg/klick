@@ -102,7 +102,7 @@ export default async function FindingPage({
 						</Badge>
 						{f.cvss !== null && (
 							<span
-								className="ml-2 text-muted-foreground text-xs tabular-nums"
+								className="ml-2 text-muted-foreground text-footnote tabular-nums"
 								title={f.cvssVector ?? undefined}
 							>
 								CVSS {f.cvss.toFixed(1)}
@@ -160,7 +160,7 @@ export default async function FindingPage({
 			}
 		>
 			{f.status === "accepted" && (
-				<p className="mb-4 rounded-md border border-dashed p-3 text-sm">
+				<p className="mb-4 rounded-2xl bg-card p-3 text-subhead">
 					{t("acceptedInfo", {
 						until: f.acceptedUntil
 							? fmtDate.format(new Date(f.acceptedUntil))
@@ -170,13 +170,15 @@ export default async function FindingPage({
 				</p>
 			)}
 			{f.status !== "accepted" && f.statusNote && (
-				<p className="mb-4 text-muted-foreground text-sm">{f.statusNote}</p>
+				<p className="mb-4 text-muted-foreground text-subhead">
+					{f.statusNote}
+				</p>
 			)}
 
 			<Section title={t("what")}>
-				<p className="text-sm">{data.details?.description ?? fix.why}</p>
+				<p className="text-subhead">{data.details?.description ?? fix.why}</p>
 				{f.packageName && (
-					<p className="mt-2 text-sm">
+					<p className="mt-2 text-subhead">
 						{t("package", {
 							name: f.packageName,
 							version: f.packageVersion ?? "?",
@@ -187,14 +189,14 @@ export default async function FindingPage({
 				)}
 				{data.details?.evidence && (
 					<p
-						className="mt-2 whitespace-pre-line font-mono text-muted-foreground text-xs"
+						className="mt-2 whitespace-pre-line font-mono text-muted-foreground text-footnote"
 						translate="no"
 					>
 						{data.details.evidence}
 					</p>
 				)}
 				{f.retestNote && (
-					<p className="mt-2 text-sm">
+					<p className="mt-2 text-subhead">
 						{tg("retestNote")} {f.retestNote}
 					</p>
 				)}
@@ -202,10 +204,10 @@ export default async function FindingPage({
 
 			<Section title={t("fix")}>
 				{data.details?.remediation && (
-					<p className="mb-2 text-sm">{data.details.remediation}</p>
+					<p className="mb-2 text-subhead">{data.details.remediation}</p>
 				)}
-				<p className="mb-2 text-muted-foreground text-sm">{fix.why}</p>
-				<ul className="list-disc pl-5 text-sm">
+				<p className="mb-2 text-muted-foreground text-subhead">{fix.why}</p>
+				<ul className="list-disc pl-5 text-subhead">
 					{fix.fix.map((x) => (
 						<li key={x}>{x}</li>
 					))}
@@ -213,7 +215,7 @@ export default async function FindingPage({
 			</Section>
 
 			<Section title={te("links")}>
-				<ul className="flex flex-col gap-1 text-sm">
+				<ul className="flex flex-col gap-1 text-subhead">
 					{control && (
 						<li>
 							Control:{" "}

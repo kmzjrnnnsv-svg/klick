@@ -2,6 +2,9 @@
 @import "tailwindcss" source(none);
 @source "../";
 @source "../../../components/ui";
+/* geteilte Seitengerüste (WALLET_EXTRA in tests/app-boundaries.test.ts) */
+@source "../../../components/page-header.tsx";
+@source "../../../components/entity/empty-state.tsx";
 @import "tw-animate-css";
 
 @import "../../../styles/tokens.css";

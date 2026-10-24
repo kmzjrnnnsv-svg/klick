@@ -148,7 +148,7 @@ export function ComplaintForm({
 					rows={2}
 				/>
 			)}
-			<label className="flex items-center gap-2 text-sm">
+			<label className="flex items-center gap-2 text-subhead">
 				<Checkbox
 					checked={Boolean(d.escalatedToRegulator)}
 					onCheckedChange={(v) =>
@@ -157,7 +157,7 @@ export function ComplaintForm({
 				/>
 				{t("escalated")}
 			</label>
-			<p className="text-muted-foreground text-xs">{t("privacyHint")}</p>
+			<p className="text-muted-foreground text-footnote">{t("privacyHint")}</p>
 		</FormDialog>
 	);
 }
@@ -253,7 +253,9 @@ export function WhistleblowingForm({
 				onChange={(v) => setD({ ...d, summary: v })}
 				rows={4}
 			/>
-			<p className="text-muted-foreground text-xs">{t("wbPrivacyHint")}</p>
+			<p className="text-muted-foreground text-footnote">
+				{t("wbPrivacyHint")}
+			</p>
 		</FormDialog>
 	);
 }

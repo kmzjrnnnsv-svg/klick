@@ -312,21 +312,21 @@ export default async function OrganisationPage({
 					<section className="flex flex-col gap-3">
 						<div className="flex items-start justify-between gap-3">
 							<div>
-								<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+								<h2 className="font-medium text-footnote text-muted-foreground">
 									{t("issues")}
 								</h2>
-								<p className="mt-1 text-muted-foreground text-xs">
+								<p className="mt-1 text-muted-foreground text-footnote">
 									{t("issuesLead")}
 								</p>
 							</div>
 							{canEdit && <ContextIssueForm members={members} />}
 						</div>
 						{data.issues.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("issuesEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 								{data.issues.map((i) => (
 									<li key={i.id} className="flex items-start gap-3 px-3 py-2">
 										<Badge variant="outline" className="mt-0.5 shrink-0">
@@ -335,12 +335,12 @@ export default async function OrganisationPage({
 										<div className="min-w-0 flex-1">
 											<p className="font-medium">{i.title}</p>
 											{i.description && (
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{i.description}
 												</p>
 											)}
 											{i.impact && (
-												<p className="text-xs">
+												<p className="text-footnote">
 													<span className="text-muted-foreground">
 														{t("impact")}:{" "}
 													</span>
@@ -377,38 +377,35 @@ export default async function OrganisationPage({
 					<section className="flex flex-col gap-3">
 						<div className="flex items-start justify-between gap-3">
 							<div>
-								<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+								<h2 className="font-medium text-footnote text-muted-foreground">
 									{t("parties")}
 								</h2>
-								<p className="mt-1 text-muted-foreground text-xs">
+								<p className="mt-1 text-muted-foreground text-footnote">
 									{t("partiesLead")}
 								</p>
 							</div>
 							{canEdit && <PartyForm members={members} />}
 						</div>
 						{data.parties.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("partiesEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 								{data.parties.map((p) => (
 									<li key={p.id} className="flex items-start gap-3 px-3 py-2">
-										<Badge
-											variant="outline"
-											className="mt-0.5 shrink-0 normal-case tracking-normal"
-										>
+										<Badge variant="outline" className="mt-0.5 shrink-0">
 											{t(`party_${p.type}`)}
 										</Badge>
 										<div className="min-w-0 flex-1">
 											<p className="font-medium">{p.name}</p>
 											{p.expectations && (
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{p.expectations}
 												</p>
 											)}
 											{p.howAddressed && (
-												<p className="text-xs">
+												<p className="text-footnote">
 													<span className="text-muted-foreground">
 														{t("howAddressed")}:{" "}
 													</span>
@@ -418,11 +415,7 @@ export default async function OrganisationPage({
 											{p.relevantFrameworks.length > 0 && (
 												<p className="mt-1 flex flex-wrap gap-1">
 													{p.relevantFrameworks.map((f) => (
-														<Badge
-															key={f}
-															variant="muted"
-															className="normal-case tracking-normal"
-														>
+														<Badge key={f} variant="muted" className="">
 															{shortFrameworkName(f)}
 														</Badge>
 													))}
@@ -463,11 +456,13 @@ export default async function OrganisationPage({
 			{"scopes" in data && (
 				<section className="flex flex-col gap-4">
 					<div className="flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-sm">{t("scopeLead")}</p>
+						<p className="text-muted-foreground text-subhead">
+							{t("scopeLead")}
+						</p>
 						{canEdit && <ScopeForm members={members} frameworks={orgFws} />}
 					</div>
 					{data.scopes.length === 0 ? (
-						<p className="text-sm">{t("scopeEmpty")}</p>
+						<p className="text-subhead">{t("scopeEmpty")}</p>
 					) : (
 						data.scopes.map((s, idx) => {
 							const req = data.requests[idx] ?? null;
@@ -493,7 +488,7 @@ export default async function OrganisationPage({
 							return (
 								<article
 									key={s.id}
-									className="flex flex-col gap-3 rounded-md border p-4 text-sm"
+									className="flex flex-col gap-3 rounded-2xl bg-card p-4 text-subhead"
 								>
 									<div className="flex flex-wrap items-center gap-2">
 										<Badge
@@ -510,7 +505,7 @@ export default async function OrganisationPage({
 										<span className="font-medium">
 											{s.frameworkName ?? t("allFrameworks")} · v{s.version}
 										</span>
-										<span className="ml-auto text-muted-foreground text-xs">
+										<span className="ml-auto text-muted-foreground text-footnote">
 											{s.approvedAt
 												? `${t("approvedBy")} ${s.approvedByName ?? "—"} · ${fmtDate.format(s.approvedAt)}`
 												: `${t("owner")}: ${s.ownerName ?? "—"}`}
@@ -535,12 +530,12 @@ export default async function OrganisationPage({
 									</div>
 									<p className="whitespace-pre-wrap">{s.statement}</p>
 									{s.boundaries && (
-										<p className="text-muted-foreground text-xs">
+										<p className="text-muted-foreground text-footnote">
 											<span className="font-medium">{t("boundaries")}:</span>{" "}
 											{s.boundaries}
 										</p>
 									)}
-									<div className="flex flex-wrap gap-4 text-xs">
+									<div className="flex flex-wrap gap-4 text-footnote">
 										{s.locations.length > 0 && (
 											<span>
 												<span className="text-muted-foreground">
@@ -560,10 +555,10 @@ export default async function OrganisationPage({
 									</div>
 									{s.exclusions.length > 0 && (
 										<div>
-											<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+											<p className="font-medium text-footnote text-muted-foreground">
 												{t("exclusions")}
 											</p>
-											<ul className="mt-1 list-disc pl-5 text-xs">
+											<ul className="mt-1 list-disc pl-5 text-footnote">
 												{s.exclusions.map((e) => (
 													<li key={e.what}>
 														<span className="font-medium">{e.what}</span> —{" "}
@@ -610,13 +605,10 @@ export default async function OrganisationPage({
 					<section aria-labelledby="org-chart" className="flex flex-col gap-3">
 						<div className="flex flex-wrap items-start justify-between gap-3">
 							<div className="flex flex-col gap-1">
-								<h2
-									id="org-chart"
-									className="font-serif-display text-lg text-primary"
-								>
+								<h2 id="org-chart" className="font-semibold text-headline">
 									{t("orgChartTitle")}
 								</h2>
-								<p className="text-muted-foreground text-sm">
+								<p className="text-muted-foreground text-subhead">
 									{t("orgChartLead")}
 								</p>
 							</div>
@@ -640,7 +632,9 @@ export default async function OrganisationPage({
 						/>
 					</section>
 					<div className="flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-sm">{t("rolesLead")}</p>
+						<p className="text-muted-foreground text-subhead">
+							{t("rolesLead")}
+						</p>
 						{canRoles && (
 							<RoleAssignmentForm
 								members={members}
@@ -649,9 +643,9 @@ export default async function OrganisationPage({
 						)}
 					</div>
 					{gov.sod.length > 0 && (
-						<div className="flex flex-col gap-1 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+						<div className="flex flex-col gap-1 rounded-xl bg-destructive/10 p-3 text-subhead">
 							<p className="font-medium">{t("sodTitle")}</p>
-							<ul className="list-disc pl-5 text-xs">
+							<ul className="list-disc pl-5 text-footnote">
 								{gov.sod.map((v) => (
 									<li key={`${v.rule.code}-${v.userId}`}>
 										<Badge
@@ -701,7 +695,7 @@ export default async function OrganisationPage({
 												{functionLabels[it.required.function]}
 											</p>
 											{it.required.hint && (
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{it.required.hint}
 												</p>
 											)}
@@ -736,7 +730,7 @@ export default async function OrganisationPage({
 											{a?.deputyName ? (
 												<UserChip name={a.deputyName} />
 											) : it.deputyMissing ? (
-												<span className="text-warning text-xs">
+												<span className="text-warning text-footnote">
 													{t("deputyMissing")}
 												</span>
 											) : (
@@ -745,7 +739,7 @@ export default async function OrganisationPage({
 										</TableCell>
 										<TableCell>
 											{a ? (
-												<div className="flex flex-col gap-0.5 text-xs">
+												<div className="flex flex-col gap-0.5 text-footnote">
 													<Badge
 														variant={
 															a.fitProperStatus === "confirmed"
@@ -774,7 +768,7 @@ export default async function OrganisationPage({
 												"—"
 											)}
 										</TableCell>
-										<TableCell className="text-muted-foreground text-xs">
+										<TableCell className="text-muted-foreground text-footnote">
 											{it.required.legalBasis}
 										</TableCell>
 										<TableCell className="text-right">
@@ -861,7 +855,7 @@ export default async function OrganisationPage({
 													{t(`fp_${a.fitProperStatus}`)}
 												</Badge>
 											</TableCell>
-											<TableCell className="text-xs">
+											<TableCell className="text-footnote">
 												{t("optionalFunction")}
 											</TableCell>
 											<TableCell className="text-right">
@@ -901,7 +895,9 @@ export default async function OrganisationPage({
 								})}
 						</TableBody>
 					</Table>
-					<p className="text-muted-foreground text-xs">{t("rolesFootnote")}</p>
+					<p className="text-muted-foreground text-footnote">
+						{t("rolesFootnote")}
+					</p>
 					<AssetOwners
 						rows={data.assetRows.filter((a) => a.status !== "retired")}
 						title={t("assetOwnersTitle")}
@@ -915,7 +911,7 @@ export default async function OrganisationPage({
 			{"objectives" in data && (
 				<section className="flex flex-col gap-4">
 					<div className="flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("objectivesLead")}
 						</p>
 						{canEdit && (
@@ -927,7 +923,7 @@ export default async function OrganisationPage({
 						)}
 					</div>
 					{data.objectives.length === 0 ? (
-						<p className="text-sm">{t("objectivesEmpty")}</p>
+						<p className="text-subhead">{t("objectivesEmpty")}</p>
 					) : (
 						<ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
 							{data.objectives.map((o, idx) => {
@@ -976,12 +972,12 @@ export default async function OrganisationPage({
 								return (
 									<li
 										key={o.id}
-										className="flex flex-col gap-2 rounded-md border p-3 text-sm"
+										className="flex flex-col gap-2 rounded-2xl bg-card p-3 text-subhead"
 									>
 										<div className="flex items-start justify-between gap-2">
 											<div className="min-w-0">
 												<p className="font-medium">{o.title}</p>
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{o.kpiName ?? "—"}
 													{o.target ? ` · ${t("target")}: ${o.target}` : ""}
 													{o.dueAt
@@ -1058,7 +1054,7 @@ export default async function OrganisationPage({
 													</span>
 												)}
 												{ind.trend && (
-													<span className="text-muted-foreground text-xs">
+													<span className="text-muted-foreground text-footnote">
 														{t(`trend_${ind.trend}`)}
 													</span>
 												)}
@@ -1076,7 +1072,7 @@ export default async function OrganisationPage({
 											</div>
 										)}
 										{hasNumbers && (
-											<p className="text-muted-foreground text-xs tabular-nums">
+											<p className="text-muted-foreground text-footnote tabular-nums">
 												{t("thresholds", {
 													target: fmtN(o.targetValue),
 													warn: fmtN(o.warnAt),
@@ -1091,8 +1087,8 @@ export default async function OrganisationPage({
 											<p
 												className={
 													o.nextMeasureAt < today
-														? "text-destructive text-xs"
-														: "text-muted-foreground text-xs"
+														? "text-destructive text-footnote"
+														: "text-muted-foreground text-footnote"
 												}
 											>
 												{t(
@@ -1104,7 +1100,7 @@ export default async function OrganisationPage({
 											</p>
 										)}
 										{o.approvalStatus !== "approved" && (
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{t("objectiveNotApproved")}
 											</p>
 										)}
@@ -1112,7 +1108,7 @@ export default async function OrganisationPage({
 											{o.measurements.slice(-8).map((m) => (
 												<span
 													key={m.id}
-													className="rounded-sm border px-1.5 py-0.5 text-xs"
+													className="rounded-sm border px-1.5 py-0.5 text-footnote"
 													title={m.note ?? ""}
 												>
 													{fmtDate.format(new Date(m.measuredAt))}:{" "}
@@ -1120,7 +1116,7 @@ export default async function OrganisationPage({
 												</span>
 											))}
 											{o.measurements.length === 0 && (
-												<span className="text-muted-foreground text-xs">
+												<span className="text-muted-foreground text-footnote">
 													{t("noMeasurements")}
 												</span>
 											)}
@@ -1170,13 +1166,13 @@ export default async function OrganisationPage({
 			{"comms" in data && (
 				<section className="flex flex-col gap-4">
 					<div className="flex flex-wrap items-start justify-between gap-3">
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("communicationLead")}
 						</p>
 						<div className="flex gap-2">
 							<Link
 								href="/organisation/krisenkontakte"
-								className="inline-flex h-8 items-center rounded-md border px-3 text-xs hover:bg-muted"
+								className="inline-flex h-8 items-center rounded-full bg-muted px-3 font-medium text-footnote hover:bg-foreground/12"
 							>
 								{t("crisisSheet")}
 							</Link>
@@ -1193,7 +1189,7 @@ export default async function OrganisationPage({
 						</div>
 					</div>
 					{data.comms.length === 0 ? (
-						<p className="text-sm">{t("communicationEmpty")}</p>
+						<p className="text-subhead">{t("communicationEmpty")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -1226,29 +1222,29 @@ export default async function OrganisationPage({
 										<TableCell>
 											<p className="font-medium">{c.topic}</p>
 											{c.purpose && (
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{c.purpose}
 												</p>
 											)}
 											{c.legalBasis && (
-												<p className="text-muted-foreground text-[0.7rem]">
+												<p className="text-muted-foreground text-footnote">
 													{c.legalBasis}
 												</p>
 											)}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{c.partyName ?? c.audience ?? "—"}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{c.channel ?? "—"}
 											{c.contact && (
 												<p className="text-muted-foreground">{c.contact}</p>
 											)}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{c.frequency ?? "—"}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{c.ownerFunction
 												? functionLabels[c.ownerFunction]
 												: (c.ownerName ?? "—")}
@@ -1297,13 +1293,13 @@ export default async function OrganisationPage({
 			{"interactions" in data && (
 				<section className="flex flex-col gap-4">
 					<div className="flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("regulatorLead")}
 						</p>
 						{canEdit && <RegulatorInteractionForm members={members} />}
 					</div>
 					{data.interactions.length === 0 ? (
-						<p className="text-sm">{t("regulatorEmpty")}</p>
+						<p className="text-subhead">{t("regulatorEmpty")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -1325,14 +1321,14 @@ export default async function OrganisationPage({
 											<Badge variant="outline">
 												{t(`authority_${r.authority}`)}
 											</Badge>
-											<p className="text-muted-foreground text-[0.7rem]">
+											<p className="text-muted-foreground text-footnote">
 												{t(`direction_${r.direction}`)}
 											</p>
 										</TableCell>
 										<TableCell>
 											<p className="font-medium">{r.subject}</p>
 											{r.notes && (
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{r.notes}
 												</p>
 											)}
@@ -1392,13 +1388,13 @@ export default async function OrganisationPage({
 			{"conflicts" in data && (
 				<section className="flex flex-col gap-4">
 					<div className="flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("conflictsLead")}
 						</p>
 						{canEdit && <ConflictForm members={members} />}
 					</div>
 					{data.conflicts.length === 0 ? (
-						<p className="text-sm">{t("conflictsEmpty")}</p>
+						<p className="text-subhead">{t("conflictsEmpty")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -1417,15 +1413,15 @@ export default async function OrganisationPage({
 										<TableCell>
 											<p className="font-medium">{c.title}</p>
 											{c.type && (
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{c.type}
 												</p>
 											)}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{c.partiesInvolved ?? "—"}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{c.mitigation ?? "—"}
 										</TableCell>
 										<TableCell>
@@ -1476,7 +1472,7 @@ export default async function OrganisationPage({
 			{"shareholders" in data && (
 				<section className="flex flex-col gap-4">
 					<div className="flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-sm">{tsh("lead")}</p>
+						<p className="text-muted-foreground text-subhead">{tsh("lead")}</p>
 						{canShareholders && <ShareholderForm />}
 					</div>
 					{(() => {
@@ -1501,7 +1497,7 @@ export default async function OrganisationPage({
 						);
 						return (
 							<>
-								<div className="flex flex-wrap gap-2 text-sm">
+								<div className="flex flex-wrap gap-2 text-subhead">
 									<Badge variant={total > 100 ? "destructive" : "outline"}>
 										{tsh("total", { pct: total })}
 									</Badge>
@@ -1510,7 +1506,7 @@ export default async function OrganisationPage({
 									</Badge>
 								</div>
 								{gaps.length > 0 && (
-									<ul className="list-disc rounded-md border border-dashed p-3 pl-7 text-sm">
+									<ul className="list-disc rounded-2xl bg-card p-3 pl-7 text-subhead">
 										{gaps.map((g) => (
 											<li key={`${g.name}-${g.kind}`}>
 												<span className="font-medium">{g.name}</span>:{" "}
@@ -1520,7 +1516,7 @@ export default async function OrganisationPage({
 									</ul>
 								)}
 								{rows.length === 0 ? (
-									<p className="text-sm">{tsh("empty")}</p>
+									<p className="text-subhead">{tsh("empty")}</p>
 								) : (
 									<Table>
 										<TableHeader>
@@ -1565,7 +1561,7 @@ export default async function OrganisationPage({
 																)}
 															</p>
 															{data.ubo[i] && (
-																<p className="line-clamp-2 text-muted-foreground text-xs">
+																<p className="line-clamp-2 text-muted-foreground text-footnote">
 																	{tsh("uboChain")}: {data.ubo[i]}
 																</p>
 															)}
@@ -1584,7 +1580,7 @@ export default async function OrganisationPage({
 																	≥ {x.thresholdCrossed} %
 																</Badge>
 															) : (
-																<span className="text-muted-foreground text-xs">
+																<span className="text-muted-foreground text-footnote">
 																	—
 																</span>
 															)}
@@ -1604,7 +1600,7 @@ export default async function OrganisationPage({
 																{tsh(`status_${x.inhaberkontrolleStatus}`)}
 															</Badge>
 														</TableCell>
-														<TableCell className="text-xs">
+														<TableCell className="text-footnote">
 															{due ? (
 																<Badge
 																	variant={
@@ -1617,7 +1613,7 @@ export default async function OrganisationPage({
 																"—"
 															)}
 														</TableCell>
-														<TableCell className="text-xs">
+														<TableCell className="text-footnote">
 															{x.sanctionsCheckedAt
 																? fmtDate.format(
 																		new Date(
@@ -1658,7 +1654,9 @@ export default async function OrganisationPage({
 										</TableBody>
 									</Table>
 								)}
-								<p className="text-muted-foreground text-xs">{tsh("hint")}</p>
+								<p className="text-muted-foreground text-footnote">
+									{tsh("hint")}
+								</p>
 							</>
 						);
 					})()}
@@ -1667,7 +1665,7 @@ export default async function OrganisationPage({
 
 			{"siteRows" in data && (
 				<section className="flex flex-col gap-4">
-					<p className="text-muted-foreground text-sm">{t("sitesLead")}</p>
+					<p className="text-muted-foreground text-subhead">{t("sitesLead")}</p>
 					<SitesStep
 						sites={data.siteRows.map((x) => ({
 							id: x.id,
@@ -1688,11 +1686,11 @@ export default async function OrganisationPage({
 			{"policies" in data && (
 				<section className="flex flex-col gap-4">
 					<div className="flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-sm">{tin("lead")}</p>
+						<p className="text-muted-foreground text-subhead">{tin("lead")}</p>
 						{canEdit && <InsuranceForm members={members} />}
 					</div>
 					{data.policies.length === 0 ? (
-						<p className="text-sm">{tin("empty")}</p>
+						<p className="text-subhead">{tin("empty")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -1719,12 +1717,12 @@ export default async function OrganisationPage({
 											<TableCell>
 												<p className="font-medium">{p.insurer}</p>
 												{p.policyRef && (
-													<p className="font-mono text-muted-foreground text-xs">
+													<p className="font-mono text-muted-foreground text-footnote">
 														{p.policyRef}
 													</p>
 												)}
 												{p.exclusions && (
-													<p className="line-clamp-2 text-muted-foreground text-xs">
+													<p className="line-clamp-2 text-muted-foreground text-footnote">
 														{tin("exclusions")}: {p.exclusions}
 													</p>
 												)}
@@ -1738,7 +1736,7 @@ export default async function OrganisationPage({
 														}).format(Number(p.coverageLimit))
 													: "—"}
 											</TableCell>
-											<TableCell className="text-xs">
+											<TableCell className="text-footnote">
 												{Object.entries(p.subLimits ?? {})
 													.map(
 														([k, v]) =>
@@ -1761,7 +1759,7 @@ export default async function OrganisationPage({
 													{tin(`state_${state}`)}
 												</Badge>
 												{p.validUntil && (
-													<p className="text-[0.7rem] text-muted-foreground">
+													<p className="text-footnote text-muted-foreground">
 														{tin("until")}{" "}
 														{fmtDate.format(
 															new Date(`${p.validUntil}T00:00:00Z`),
@@ -1807,7 +1805,7 @@ export default async function OrganisationPage({
 							</TableBody>
 						</Table>
 					)}
-					<p className="text-muted-foreground text-xs">{tin("hint")}</p>
+					<p className="text-muted-foreground text-footnote">{tin("hint")}</p>
 				</section>
 			)}
 		</>
@@ -1838,13 +1836,13 @@ function AssetOwners({
 	}
 	const unowned = rows.filter((a) => !a.ownerUserId).length;
 	return (
-		<div className="flex flex-col gap-2 rounded-md border p-3 text-sm">
+		<div className="flex flex-col gap-2 rounded-2xl bg-card p-3 text-subhead">
 			<h3 className="font-medium">{title}</h3>
-			<p className="text-muted-foreground text-xs">{lead}</p>
+			<p className="text-muted-foreground text-footnote">{lead}</p>
 			{unowned > 0 && (
 				<Link
 					href="/assets?unowned=1"
-					className="w-fit rounded-md border border-warning/40 bg-warning/5 px-2 py-1 text-warning text-xs hover:underline"
+					className="w-fit rounded-xl bg-warning/12 px-2 py-1 text-warning text-footnote hover:underline"
 				>
 					{gapLabel(unowned)}
 				</Link>
@@ -1856,7 +1854,7 @@ function AssetOwners({
 						<li key={userId}>
 							<Link
 								href={`/team/${userId}`}
-								className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"
+								className="inline-flex items-center gap-1 rounded-xl bg-card px-2 py-1 text-footnote hover:bg-muted"
 							>
 								{e.name}
 								<span className="text-muted-foreground">

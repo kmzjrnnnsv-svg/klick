@@ -31,12 +31,12 @@ export default async function AdminLayout({
 	];
 	return (
 		<>
-			<header className="sticky top-0 z-30 shrink-0 border-border/60 border-b bg-background/85 backdrop-blur">
+			<header className="material-bar sticky top-0 z-30 shrink-0 border-border/60 border-b">
 				<div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
-					<Link href="/heute" className="lv-wordmark text-[0.8rem]">
+					<Link href="/heute" className="font-bold text-headline">
 						Klick
 					</Link>
-					<span className="lv-eyebrow text-[0.7rem] text-brown">
+					<span className="font-medium text-footnote text-muted-foreground">
 						{t("title")}
 					</span>
 					<nav className="ml-4 hidden gap-4 md:flex">
@@ -44,7 +44,7 @@ export default async function AdminLayout({
 							<Link
 								key={tab.href}
 								href={tab.href}
-								className="lv-nav text-[0.7rem] text-muted-foreground hover:text-foreground"
+								className="font-medium text-muted-foreground text-subhead hover:text-foreground"
 							>
 								{tab.label}
 							</Link>
@@ -59,12 +59,24 @@ export default async function AdminLayout({
 						</Link>
 					</div>
 				</div>
+				{/* Handy: dieselben Reiter als waagrecht scrollende Leiste */}
+				<nav className="flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] md:hidden">
+					{tabs.map((tab) => (
+						<Link
+							key={tab.href}
+							href={tab.href}
+							className="inline-flex h-(--control-h-sm) shrink-0 items-center rounded-full bg-muted px-3 font-medium text-footnote"
+						>
+							{tab.label}
+						</Link>
+					))}
+				</nav>
 			</header>
 			<main
 				id="inhalt"
 				className="mx-auto w-full max-w-6xl grow px-4 py-8 sm:px-6"
 			>
-				<p className="mb-6 text-muted-foreground text-sm">{t("lead")}</p>
+				<p className="mb-6 text-callout text-muted-foreground">{t("lead")}</p>
 				{children}
 			</main>
 			<LegalLinks />

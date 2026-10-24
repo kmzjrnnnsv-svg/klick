@@ -103,7 +103,7 @@ export default async function AssetsPage({
 						)
 					)}
 					{r.description && (
-						<span className="block text-muted-foreground text-xs">
+						<span className="block text-muted-foreground text-footnote">
 							{r.description}
 						</span>
 					)}
@@ -198,7 +198,7 @@ export default async function AssetsPage({
 								lc.state === "stale_patch") && (
 								<Link
 									href={newRiskHref("asset", r.id)}
-									className="text-primary text-xs hover:underline"
+									className="text-primary text-footnote hover:underline"
 								>
 									{tr("create")}
 								</Link>

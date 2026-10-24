@@ -29,7 +29,7 @@ export default async function AuditPage() {
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="flex max-w-2xl flex-col gap-2">
-				<h1 className="font-serif-display text-3xl">{t("title")}</h1>
+				<h1 className="font-bold text-title-1">{t("title")}</h1>
 				<p className="text-muted-foreground">
 					{t("lead", { org: ctx.orgName })}
 				</p>
@@ -37,7 +37,9 @@ export default async function AuditPage() {
 			<p
 				role={chain.ok ? undefined : "alert"}
 				className={
-					chain.ok ? "text-sm" : "font-medium text-destructive text-sm"
+					chain.ok
+						? "text-subhead"
+						: "font-medium text-destructive text-subhead"
 				}
 			>
 				{chain.ok
@@ -47,7 +49,7 @@ export default async function AuditPage() {
 			{rows.length === 0 ? (
 				<p className="text-muted-foreground">{t("empty")}</p>
 			) : (
-				<div className="overflow-x-auto rounded-md border">
+				<div className="overflow-x-auto rounded-2xl bg-card">
 					<Table>
 						<TableHeader>
 							<TableRow>
@@ -66,7 +68,7 @@ export default async function AuditPage() {
 									<TableCell>{r.actor ?? t("system")}</TableCell>
 									<TableCell>{auditLabel(r.action)}</TableCell>
 									<TableCell
-										className="whitespace-nowrap font-mono text-xs"
+										className="whitespace-nowrap font-mono text-footnote"
 										translate="no"
 									>
 										{r.target?.split(":")[0] ?? ""}
@@ -77,7 +79,7 @@ export default async function AuditPage() {
 					</Table>
 				</div>
 			)}
-			<p className="text-muted-foreground text-xs">
+			<p className="text-muted-foreground text-footnote">
 				{t("shown", { count: rows.length })}
 			</p>
 		</div>

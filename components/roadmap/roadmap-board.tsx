@@ -94,16 +94,13 @@ export function RoadmapBoard({
 					<div className="flex items-start justify-between gap-2">
 						<p className="font-medium leading-snug">{m.title}</p>
 						{m.phase && (
-							<Badge
-								variant="outline"
-								className="shrink-0 normal-case tracking-normal"
-							>
+							<Badge variant="outline" className="shrink-0">
 								{phaseTitle(m.phase)}
 							</Badge>
 						)}
 					</div>
 					{m.description && (
-						<p className="line-clamp-2 text-muted-foreground text-xs">
+						<p className="line-clamp-2 text-muted-foreground text-footnote">
 							{m.description}
 						</p>
 					)}
@@ -123,14 +120,14 @@ export function RoadmapBoard({
 							<Link
 								key={code}
 								href={`/controls/${code}`}
-								className="font-mono text-[0.7rem] text-primary hover:underline"
+								className="font-mono text-footnote text-primary hover:underline"
 								onPointerDown={(e) => e.stopPropagation()}
 							>
 								{code}
 							</Link>
 						))}
 						{m.controlCodes.length > 4 && (
-							<span className="text-[0.7rem] text-muted-foreground">
+							<span className="text-footnote text-muted-foreground">
 								+{m.controlCodes.length - 4}
 							</span>
 						)}
@@ -181,7 +178,7 @@ function TaskFromMilestoneButton({
 			}
 		>
 			<ListTodo />
-			{openTasks > 0 && <span className="text-[0.7rem]">{openTasks}</span>}
+			{openTasks > 0 && <span className="text-footnote">{openTasks}</span>}
 		</Button>
 	);
 }
@@ -393,7 +390,7 @@ export function AdoptDateButton({
 	return (
 		<button
 			type="button"
-			className="text-primary text-xs underline-offset-4 hover:underline disabled:opacity-50"
+			className="text-primary text-footnote underline-offset-4 hover:underline disabled:opacity-50"
 			disabled={pending}
 			onClick={() =>
 				start(async () => {

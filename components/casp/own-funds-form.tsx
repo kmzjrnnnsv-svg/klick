@@ -328,7 +328,7 @@ export function OwnFundsForm({ initial }: { initial?: OwnFundsDraft }) {
 					</div>
 				))}
 			</div>
-			<dl className="grid grid-cols-2 gap-2 rounded-md border border-dashed p-3 text-sm sm:grid-cols-4">
+			<dl className="grid grid-cols-2 gap-2 rounded-2xl bg-card p-3 text-subhead sm:grid-cols-4">
 				<dt className="text-muted-foreground">{t("micarRequired")}</dt>
 				<dd className="font-medium">
 					{fmt.format(preview.micar?.required ?? 0)}
@@ -338,7 +338,7 @@ export function OwnFundsForm({ initial }: { initial?: OwnFundsDraft }) {
 					{fmt.format(preview.zag?.required ?? 0)}
 				</dd>
 				<dt className="text-muted-foreground">{t("totalRequired")}</dt>
-				<dd className="font-serif-display text-lg text-primary">
+				<dd className="font-semibold text-headline">
 					{fmt.format(preview.totalRequired)}
 				</dd>
 				<dt className="text-muted-foreground">{t("buffer")}</dt>

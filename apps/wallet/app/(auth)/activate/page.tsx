@@ -9,7 +9,7 @@ export default async function ActivatePage() {
 	const t = await getTranslations("Link");
 	return (
 		<div className="flex flex-col gap-6">
-			<h1 className="font-serif-display text-2xl">{t("activateTitle")}</h1>
+			<h1 className="font-bold text-title-2">{t("activateTitle")}</h1>
 			<LinkRegistration page="activate" sessionEmail={null} />
 		</div>
 	);

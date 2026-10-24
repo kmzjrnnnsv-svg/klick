@@ -159,7 +159,7 @@ export function NewAccountDialog({
 							<DialogDescription>{t("createdCheck")}</DialogDescription>
 						</DialogHeader>
 						<p
-							className="break-all rounded-md border border-border/60 bg-muted/40 p-3 font-mono text-sm"
+							className="break-all rounded-xl bg-muted p-3 font-mono text-subhead"
 							translate="no"
 						>
 							{created}
@@ -190,7 +190,9 @@ export function NewAccountDialog({
 							<DialogDescription>{t("newAccountLead")}</DialogDescription>
 						</DialogHeader>
 						{networks.length === 0 ? (
-							<p className="text-muted-foreground text-sm">{t("noNetworks")}</p>
+							<p className="text-muted-foreground text-subhead">
+								{t("noNetworks")}
+							</p>
 						) : (
 							<>
 								<Field
@@ -224,7 +226,7 @@ export function NewAccountDialog({
 										placeholder={t("fieldKeyPlaceholder")}
 										spellCheck={false}
 										autoComplete="off"
-										className="break-all font-mono text-xs"
+										className="break-all font-mono text-footnote"
 									/>
 								</div>
 								<SimpleSelect
@@ -244,9 +246,9 @@ export function NewAccountDialog({
 										type="date"
 										value={historyFrom}
 										onChange={(e) => setHistoryFrom(e.target.value)}
-										className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+										className="h-(--control-h) rounded-md bg-muted px-3 text-callout focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
 									/>
-									<p className="text-muted-foreground text-xs">
+									<p className="text-muted-foreground text-footnote">
 										{t("fieldHistoryHint")}
 									</p>
 								</div>
@@ -329,7 +331,7 @@ export function RetireAccountButton({
 			type="button"
 			variant="ghost"
 			size="sm"
-			className="normal-case tracking-normal"
+			className=""
 			disabled={pending}
 			onClick={() => {
 				if (!window.confirm(t("retireConfirm", { name }))) return;

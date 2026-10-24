@@ -31,14 +31,14 @@ export default async function MembersPage() {
 		<div className="flex flex-col gap-6">
 			<div className="flex flex-wrap items-end justify-between gap-4">
 				<div className="flex max-w-2xl flex-col gap-2">
-					<h1 className="font-serif-display text-3xl">{t("title")}</h1>
+					<h1 className="font-bold text-title-1">{t("title")}</h1>
 					<p className="text-muted-foreground">
 						{t("lead", { org: ctx.orgName })}
 					</p>
 				</div>
 				{manage && <InviteDialog roles={roles} />}
 			</div>
-			<ul className="divide-y rounded-md border">
+			<ul className="divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 				{rows.map((m) => (
 					<li
 						key={m.id}
@@ -48,19 +48,19 @@ export default async function MembersPage() {
 							<p className="truncate font-medium">
 								{m.name}
 								{m.userId === ctx.userId && (
-									<span className="ml-2 text-muted-foreground text-xs">
+									<span className="ml-2 text-muted-foreground text-footnote">
 										({t("you")})
 									</span>
 								)}
 							</p>
 							<p
-								className="truncate text-muted-foreground text-sm"
+								className="truncate text-muted-foreground text-subhead"
 								translate="no"
 							>
 								{m.email}
 							</p>
 						</div>
-						<p className="text-muted-foreground text-xs tabular-nums">
+						<p className="text-muted-foreground text-footnote tabular-nums">
 							{t("since")} {date.format(m.createdAt)}
 						</p>
 						{manage && m.userId !== ctx.userId ? (
@@ -74,7 +74,7 @@ export default async function MembersPage() {
 								<RemoveMember memberId={m.id} name={m.name} org={ctx.orgName} />
 							</div>
 						) : (
-							<span className="text-sm">{ROLE_LABEL[m.role]}</span>
+							<span className="text-subhead">{ROLE_LABEL[m.role]}</span>
 						)}
 					</li>
 				))}
@@ -82,7 +82,7 @@ export default async function MembersPage() {
 			{manage && open.length > 0 && (
 				<section className="flex flex-col gap-3">
 					<h2 className="font-medium">{t("open")}</h2>
-					<ul className="divide-y rounded-md border">
+					<ul className="divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 						{open.map((i) => (
 							<li
 								key={i.id}
@@ -91,8 +91,8 @@ export default async function MembersPage() {
 								<p className="min-w-0 grow truncate" translate="no">
 									{i.email}
 								</p>
-								<span className="text-sm">{ROLE_LABEL[i.role]}</span>
-								<span className="text-muted-foreground text-xs tabular-nums">
+								<span className="text-subhead">{ROLE_LABEL[i.role]}</span>
+								<span className="text-muted-foreground text-footnote tabular-nums">
 									{t("until", { date: date.format(i.expiresAt) })}
 								</span>
 								<RevokeInvitation id={i.id} />

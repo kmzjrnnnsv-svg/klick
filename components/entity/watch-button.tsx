@@ -32,7 +32,7 @@ export function WatchButton({
 					router.refresh();
 				})
 			}
-			className="normal-case tracking-normal"
+			className=""
 		>
 			{watching ? <BellOff /> : <Bell />}
 			{watching ? t("unwatch") : t("watch")}

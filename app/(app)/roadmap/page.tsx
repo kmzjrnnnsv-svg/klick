@@ -149,7 +149,7 @@ export default async function RoadmapPage({
 				/>
 			) : (
 				<>
-					<div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+					<div className="mb-4 flex flex-wrap items-center gap-2 text-subhead">
 						<Badge variant="outline">
 							{t("progress", { done, total: items.length })}
 						</Badge>
@@ -159,17 +159,15 @@ export default async function RoadmapPage({
 							</Badge>
 						)}
 						{byPhase.map((p) => (
-							<Badge
-								key={p.key}
-								variant="muted"
-								className="normal-case tracking-normal"
-							>
+							<Badge key={p.key} variant="muted" className="">
 								{p.title}: {p.done}/{p.total}
 							</Badge>
 						))}
 					</div>
 					<RoadmapBoard items={items} members={members} canEdit={canEdit} />
-					<p className="mt-4 text-muted-foreground text-xs">{t("hint")}</p>
+					<p className="mt-4 text-muted-foreground text-footnote">
+						{t("hint")}
+					</p>
 				</>
 			)}
 		</>
@@ -229,18 +227,20 @@ function Timeline({
 	const titles = new Set(items.map((m) => m.title));
 	return (
 		<section className="flex flex-col gap-4">
-			<p className="text-muted-foreground text-sm">{labels.lead}</p>
+			<p className="text-muted-foreground text-subhead">{labels.lead}</p>
 			<div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
 				{quarters.map((q) => {
 					const list = byQuarter.get(q) ?? [];
 					return (
-						<section key={q} className="rounded-md border p-3">
-							<h2 className="lv-eyebrow mb-1 flex items-center justify-between text-[0.7rem] text-muted-foreground">
+						<section key={q} className="rounded-2xl bg-card p-3">
+							<h2 className="font-medium text-footnote mb-1 flex items-center justify-between text-footnote text-muted-foreground">
 								{q.replace("-", " ")}
 								<span>{list.length}</span>
 							</h2>
 							{list.length === 0 ? (
-								<p className="text-muted-foreground text-xs">{labels.empty}</p>
+								<p className="text-muted-foreground text-footnote">
+									{labels.empty}
+								</p>
 							) : (
 								<DateEntryList
 									entries={list}
@@ -261,15 +261,15 @@ function Timeline({
 				})}
 			</div>
 			{undated.length > 0 && (
-				<section className="rounded-md border p-3 text-sm">
-					<h2 className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+				<section className="rounded-2xl bg-card p-3 text-subhead">
+					<h2 className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 						{labels.noDate}
 					</h2>
 					<ul className="flex flex-col gap-1">
 						{undated.map((m) => (
 							<li key={m.id}>
 								{m.title}
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{" "}
 									· {labels.milestone}
 								</span>

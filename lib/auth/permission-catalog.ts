@@ -51,7 +51,6 @@ export const PERMISSION_AREAS: readonly PermissionArea[] = [
 			"aml",
 			"own_funds",
 			"crypto_asset",
-			"wallet",
 			"shareholder",
 			"export",
 		],
@@ -63,8 +62,6 @@ export const RESERVED: Partial<Record<Resource, readonly string[]>> = {
 	settings: ["update"],
 	role_assignment: ["update"],
 	integration: ["create", "revoke"],
-	// Konten, Richtlinie und Echtgeld bleiben Inhaber:innen vorbehalten
-	wallet: ["manage"],
 };
 
 // Rechte, die keine Aktion prüft (z. B. kein Löschen von Risiken) — im

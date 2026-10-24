@@ -28,7 +28,7 @@ export function TodayCard({
 					{link && (
 						<Link
 							href={link.href}
-							className="shrink-0 font-normal font-sans text-primary text-xs underline-offset-4 hover:underline"
+							className="shrink-0 font-normal font-sans text-primary text-footnote underline-offset-4 hover:underline"
 						>
 							{link.label}
 						</Link>
@@ -42,7 +42,7 @@ export function TodayCard({
 
 export function TodayEmpty({ children }: { children: React.ReactNode }) {
 	return (
-		<p className="flex min-h-12 items-center text-muted-foreground text-sm">
+		<p className="flex min-h-12 items-center text-muted-foreground text-subhead">
 			{children}
 		</p>
 	);
@@ -50,7 +50,7 @@ export function TodayEmpty({ children }: { children: React.ReactNode }) {
 
 export function TodayList({ children }: { children: React.ReactNode }) {
 	return (
-		<ul className="flex flex-col text-sm sm:grid sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+		<ul className="flex flex-col text-subhead sm:grid sm:grid-cols-[minmax(0,1fr)_auto_auto]">
 			{children}
 		</ul>
 	);
@@ -129,7 +129,7 @@ export function DueBadge({
 
 export function TodayMeta({ children }: { children: React.ReactNode }) {
 	return (
-		<span className="text-muted-foreground text-xs tabular-nums">
+		<span className="text-muted-foreground text-footnote tabular-nums">
 			{children}
 		</span>
 	);

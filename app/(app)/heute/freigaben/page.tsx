@@ -79,7 +79,7 @@ export default async function ApprovalsInboxPage({
 			{list.length === 0 ? (
 				<EmptyState title={t("empty")} />
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 					{list.map((r) => {
 						const title =
 							entityTitles.get(`${r.entityType}:${r.entityId}`) ??
@@ -91,10 +91,7 @@ export default async function ApprovalsInboxPage({
 								className={`flex flex-col gap-2 px-3 py-3 ${highlight === r.id ? "bg-primary/5" : ""}`}
 							>
 								<div className="flex flex-wrap items-center gap-2">
-									<Badge
-										variant="outline"
-										className="normal-case tracking-normal"
-									>
+									<Badge variant="outline" className="">
 										{r.workflowName}
 									</Badge>
 									<Link
@@ -103,7 +100,7 @@ export default async function ApprovalsInboxPage({
 									>
 										{title}
 									</Link>
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{t("requestedBy")} {r.requestedByName ?? "—"} ·{" "}
 										{fmtDate.format(r.requestedAt)}
 									</span>
@@ -131,7 +128,7 @@ export default async function ApprovalsInboxPage({
 									const q = questions.get(r.entityId);
 									if (r.entityType !== "decision_request" || !q) return null;
 									return (
-										<div className="flex flex-col gap-1 text-xs">
+										<div className="flex flex-col gap-1 text-footnote">
 											{q.context && (
 												<p className="line-clamp-3 text-muted-foreground">
 													{q.context}
@@ -169,7 +166,7 @@ export default async function ApprovalsInboxPage({
 				</ul>
 			)}
 			<div className="mt-8">
-				<h2 className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground">
+				<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
 					{t("delegation")}
 				</h2>
 				<DelegationForm members={members} selfId={ctx.userId} />

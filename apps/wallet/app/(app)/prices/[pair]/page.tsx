@@ -142,28 +142,31 @@ export default async function WalletPairPage({
 	return (
 		<>
 			<PageHeader eyebrow={PAIR_NAMES[pair]} title={pair} />
-			<section className="rounded-xl border border-border/60 bg-card p-4 sm:p-6">
+			<section className="rounded-2xl bg-card p-4 sm:p-6">
 				<div className="flex flex-wrap items-end justify-between gap-3">
 					<div>
-						<p className="font-semibold text-4xl lining-nums" translate="no">
+						<p className="tabular font-bold text-large-title" translate="no">
 							{current !== null ? money(current) : "—"}
 						</p>
-						<p className="mt-1 flex items-center gap-2 text-muted-foreground text-xs">
+						<p className="mt-1 flex items-center gap-2 text-muted-foreground text-footnote">
 							<ChangeBadge bp={changeBp(series, rangeStart)} />
 							<span>{t("chartRange", { range: RANGES[range].label })}</span>
 						</p>
 					</div>
-					<nav aria-label={t("chartRangeLabel")} className="flex gap-1">
+					<nav
+						aria-label={t("chartRangeLabel")}
+						className="flex w-full gap-0.5 rounded-[0.5625rem] bg-muted p-0.5 sm:w-auto"
+					>
 						{(Object.keys(RANGES) as RangeKey[]).map((r) => (
 							<Link
 								key={r}
 								href={`/prices/${slug}?range=${r}`}
 								aria-current={r === range ? "page" : undefined}
 								className={cn(
-									"rounded-md px-2.5 py-1 text-xs focus-visible:outline-2 focus-visible:outline-primary",
+									"inline-flex h-(--control-h-sm) flex-1 items-center justify-center rounded-[0.4375rem] px-3 font-medium text-footnote transition-[background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-none",
 									r === range
-										? "bg-foreground font-medium text-background"
-										: "text-muted-foreground hover:bg-muted",
+										? "bg-segment font-semibold shadow-[0_1px_3px_rgb(0_0_0/0.12)]"
+										: "hover:bg-foreground/5",
 								)}
 							>
 								{RANGES[r].label}
@@ -173,7 +176,7 @@ export default async function WalletPairPage({
 				</div>
 				{markers.length > 0 && (
 					<ul
-						className="mt-4 flex gap-4 text-muted-foreground text-xs"
+						className="mt-4 flex gap-4 text-muted-foreground text-footnote"
 						aria-label={t("chartLegend")}
 					>
 						<li className="flex items-center gap-1.5">
@@ -204,7 +207,9 @@ export default async function WalletPairPage({
 						})}
 					/>
 				</div>
-				<p className="mt-2 text-muted-foreground text-xs">{t("chartSource")}</p>
+				<p className="mt-2 text-muted-foreground text-footnote">
+					{t("chartSource")}
+				</p>
 			</section>
 
 			{asset && (
@@ -213,27 +218,27 @@ export default async function WalletPairPage({
 						{t("chartStats")}
 					</h2>
 					<dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-						<div className="rounded-lg border border-border/60 p-4">
-							<dt className="text-muted-foreground text-xs">
+						<div className="rounded-2xl bg-card p-4">
+							<dt className="text-muted-foreground text-footnote">
 								{t("statAvgIn")}
 							</dt>
-							<dd className="mt-1 font-semibold text-xl lining-nums">
+							<dd className="mt-1 tabular font-semibold text-title-3">
 								{avg !== null ? money(avg) : "—"}
 							</dd>
 						</div>
-						<div className="rounded-lg border border-border/60 p-4">
-							<dt className="text-muted-foreground text-xs">
+						<div className="rounded-2xl bg-card p-4">
+							<dt className="text-muted-foreground text-footnote">
 								{t("statSinceAvg")}
 							</dt>
-							<dd className="mt-1 text-xl">
+							<dd className="mt-1 text-title-3">
 								<ChangeBadge bp={sinceAvgBp} />
 							</dd>
 						</div>
-						<div className="rounded-lg border border-border/60 p-4">
-							<dt className="text-muted-foreground text-xs">
+						<div className="rounded-2xl bg-card p-4">
+							<dt className="text-muted-foreground text-footnote">
 								{t("statHolding")}
 							</dt>
-							<dd className="mt-1 font-semibold text-xl lining-nums">
+							<dd className="mt-1 tabular font-semibold text-title-3">
 								{current !== null && holding > 0n
 									? money(amountValue(holding, decimals, current))
 									: "—"}
@@ -241,7 +246,7 @@ export default async function WalletPairPage({
 						</div>
 					</dl>
 					{testnet && (
-						<p className="mt-2 text-muted-foreground text-xs">
+						<p className="mt-2 text-muted-foreground text-footnote">
 							{t("chartTestnet")}
 						</p>
 					)}
@@ -249,12 +254,12 @@ export default async function WalletPairPage({
 			)}
 
 			{priced.length > 0 && (
-				<details className="mt-8 text-sm">
+				<details className="mt-8 text-subhead">
 					<summary className="cursor-pointer text-muted-foreground hover:text-foreground">
 						{t("chartTable")}
 					</summary>
-					<table className="mt-3 w-full text-left text-sm">
-						<thead className="text-muted-foreground text-xs">
+					<table className="mt-3 w-full text-left text-subhead">
+						<thead className="text-muted-foreground text-footnote">
 							<tr>
 								<th className="py-1 font-normal">{t("colTime")}</th>
 								<th className="py-1 font-normal">{t("colDirection")}</th>

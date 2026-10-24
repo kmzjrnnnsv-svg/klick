@@ -89,11 +89,7 @@ export function ResolutionForm({
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				{trigger === "link" ? (
-					<Button
-						size="sm"
-						variant="outline"
-						className="normal-case tracking-normal"
-					>
+					<Button size="sm" variant="outline" className="">
 						{triggerLabel ?? t("recordFor")}
 					</Button>
 				) : (
@@ -153,7 +149,7 @@ export function ResolutionForm({
 						<DialogTitle>{t("new")}</DialogTitle>
 						<DialogDescription>{t("formLead")}</DialogDescription>
 						{linked && (
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{t("linkedTo", { label: linked.label })}
 							</p>
 						)}
@@ -243,8 +239,8 @@ export function ResolutionForm({
 							required
 						/>
 					</div>
-					<fieldset className="flex flex-wrap gap-3 text-sm">
-						<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+					<fieldset className="flex flex-wrap gap-3 text-subhead">
+						<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 							{t("attendees")}
 						</legend>
 						{members.map((m) => (
@@ -262,11 +258,11 @@ export function ResolutionForm({
 							</label>
 						))}
 					</fieldset>
-					<div className="flex flex-col gap-2 rounded-md border p-3 text-sm">
+					<div className="flex flex-col gap-2 rounded-2xl bg-card p-3 text-subhead">
 						<label className="flex items-center justify-between gap-3">
 							<span>
 								<span className="font-medium">{t("withApproval")}</span>
-								<span className="block text-muted-foreground text-xs">
+								<span className="block text-muted-foreground text-footnote">
 									{t("withApprovalLead")}
 								</span>
 							</span>

@@ -365,13 +365,13 @@ export function PriceChart({
 			)}
 			{(marker || active) && tipX !== undefined && (
 				<div
-					className="pointer-events-none absolute top-0 z-10 w-[184px] rounded-md border border-border/60 bg-popover px-3 py-2 text-xs shadow-sm"
+					className="pointer-events-none absolute top-0 z-10 w-[184px] rounded-md border border-border/60 bg-popover px-3 py-2 text-footnote shadow-sm"
 					style={{ left: tipLeft }}
 					aria-live="polite"
 				>
 					{marker ? (
 						<>
-							<p className="font-semibold text-sm">{marker.lines[0]}</p>
+							<p className="font-semibold text-subhead">{marker.lines[0]}</p>
 							<p className="text-muted-foreground">{marker.title}</p>
 							{marker.lines.slice(1).map((l) => (
 								<p key={l}>{l}</p>
@@ -380,7 +380,7 @@ export function PriceChart({
 					) : (
 						active && (
 							<>
-								<p className="font-semibold text-sm tabular-nums">
+								<p className="font-semibold text-subhead tabular-nums">
 									{fmtValue.format(active.v)}
 								</p>
 								<p className="text-muted-foreground">
@@ -392,7 +392,7 @@ export function PriceChart({
 				</div>
 			)}
 			{!geo && points.length < 2 && width > 0 && (
-				<p className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+				<p className="absolute inset-0 flex items-center justify-center text-muted-foreground text-subhead">
 					{t("chartEmpty")}
 				</p>
 			)}

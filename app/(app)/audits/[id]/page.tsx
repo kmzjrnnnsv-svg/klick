@@ -281,27 +281,23 @@ export default async function AuditCockpitPage({
 			<div className="-mt-2 mb-6">
 				<EntityEvidence ctx={ctx} code="NW-AUDITBERICHT" entityId={audit.id} />
 			</div>
-			<dl className="mb-6 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+			<dl className="mb-6 grid grid-cols-1 gap-x-6 gap-y-2 text-subhead sm:grid-cols-2 lg:grid-cols-4">
 				<div>
-					<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+					<dt className="font-medium text-footnote text-muted-foreground">
 						{t("frameworks")}
 					</dt>
 					<dd className="flex flex-wrap gap-1">
 						{slugs.length === 0
 							? "—"
 							: slugs.map((s) => (
-									<Badge
-										key={s}
-										variant="muted"
-										className="normal-case tracking-normal"
-									>
+									<Badge key={s} variant="muted" className="">
 										{shortFrameworkName(s)}
 									</Badge>
 								))}
 					</dd>
 				</div>
 				<div>
-					<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+					<dt className="font-medium text-footnote text-muted-foreground">
 						{t("auditors")}
 					</dt>
 					<dd className="flex flex-wrap gap-2">
@@ -315,7 +311,7 @@ export default async function AuditCockpitPage({
 					</dd>
 				</div>
 				<div>
-					<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+					<dt className="font-medium text-footnote text-muted-foreground">
 						{t("owner")}
 					</dt>
 					<dd>
@@ -323,23 +319,23 @@ export default async function AuditCockpitPage({
 					</dd>
 				</div>
 				<div>
-					<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+					<dt className="font-medium text-footnote text-muted-foreground">
 						{t("requests")}
 					</dt>
-					<dd className="font-serif-display text-xl text-primary">
+					<dd className="font-semibold text-title-3">
 						{answered}/{requests.length}
 					</dd>
 				</div>
 				{readiness && (
 					<div>
-						<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<dt className="font-medium text-footnote text-muted-foreground">
 							{tr("title")} · {fmtDate.format(readinessAsOf)}
 						</dt>
 						<dd className="flex items-center gap-2">
 							<Link
 								href={`/audits/${audit.id}?tab=pruefungsreife`}
 								scroll={false}
-								className="font-serif-display text-xl text-primary tabular-nums hover:underline"
+								className="font-semibold text-title-3 tabular-nums hover:underline"
 							>
 								{readiness.combined.score ?? "—"}
 							</Link>
@@ -351,9 +347,9 @@ export default async function AuditCockpitPage({
 				)}
 			</dl>
 			{independence.length > 0 && (
-				<div className="mb-6 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+				<div className="mb-6 rounded-xl bg-destructive/10 p-3 text-subhead">
 					<p className="font-medium">{t("independenceTitle")}</p>
-					<ul className="mt-1 list-disc pl-5 text-xs">
+					<ul className="mt-1 list-disc pl-5 text-footnote">
 						{independence.map((i) => (
 							<li key={`${i.auditorUserId}-${i.kind}-${i.ref}`}>
 								{names.get(i.auditorUserId) ?? i.auditorUserId}:{" "}
@@ -389,13 +385,13 @@ export default async function AuditCockpitPage({
 
 			{tab === "pruefungsreife" && readiness && (
 				<section className="flex flex-col gap-4">
-					<p className="text-muted-foreground text-sm">{tr("lead")}</p>
-					<ul className="flex flex-wrap gap-2 text-sm">
+					<p className="text-muted-foreground text-subhead">{tr("lead")}</p>
+					<ul className="flex flex-wrap gap-2 text-subhead">
 						{readiness.results.map((r) => (
 							<li key={r.framework}>
 								<Link
 									href={`/rahmenwerke/${r.framework}?tab=pruefungsreife&stichtag=${r.asOf}`}
-									className="flex items-center gap-2 rounded-md border px-3 py-1.5 hover:bg-muted"
+									className="flex items-center gap-2 rounded-xl bg-card px-3 py-1.5 hover:bg-muted"
 								>
 									<span>{shortFrameworkName(r.framework)}</span>
 									<span className="tabular-nums">{r.score ?? "—"}</span>
@@ -416,11 +412,11 @@ export default async function AuditCockpitPage({
 
 			{tab === "pruefpfad" && (
 				<section className="flex flex-col gap-3">
-					<p className="text-muted-foreground text-sm">{t("pathLead")}</p>
+					<p className="text-muted-foreground text-subhead">{t("pathLead")}</p>
 					{path.length === 0 ? (
-						<p className="text-sm">{t("pathEmpty")}</p>
+						<p className="text-subhead">{t("pathEmpty")}</p>
 					) : (
-						<div className="overflow-x-auto rounded-md border">
+						<div className="overflow-x-auto rounded-2xl bg-card">
 							<Table>
 								<TableHeader>
 									<TableRow>
@@ -436,19 +432,19 @@ export default async function AuditCockpitPage({
 											<TableCell className="align-top">
 												<Link
 													href={`/rahmenwerke/${slug}/${encodeURIComponent(r.code)}`}
-													className="font-mono text-xs hover:underline"
+													className="font-mono text-footnote hover:underline"
 												>
 													{shortFrameworkName(slug)} {r.code}
 												</Link>
 											</TableCell>
-											<TableCell className="align-top text-xs">
+											<TableCell className="align-top text-footnote">
 												{r.title}
 											</TableCell>
 											<TableCell className="align-top">
 												<Badge variant={TONE[status]}>{status}</Badge>
 											</TableCell>
 											<TableCell className="align-top">
-												<ul className="flex flex-col gap-1 text-xs">
+												<ul className="flex flex-col gap-1 text-footnote">
 													{edges.map((e) => {
 														const c = controlByCode.get(e.control);
 														const ev = evidenceCount.get(e.control) ?? 0;
@@ -511,7 +507,9 @@ export default async function AuditCockpitPage({
 			{tab === "anfragen" && (
 				<section className="flex flex-col gap-4">
 					<div className="flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-sm">{t("requestsLead")}</p>
+						<p className="text-muted-foreground text-subhead">
+							{t("requestsLead")}
+						</p>
 						{canRequest && (
 							<AuditRequestForm
 								auditId={audit.id}
@@ -524,13 +522,13 @@ export default async function AuditCockpitPage({
 						)}
 					</div>
 					{requests.length === 0 ? (
-						<p className="text-sm">{t("requestsEmpty")}</p>
+						<p className="text-subhead">{t("requestsEmpty")}</p>
 					) : (
 						<ul className="flex flex-col gap-3">
 							{requests.map((r) => (
 								<li
 									key={r.id}
-									className="flex flex-col gap-2 rounded-md border p-3 text-sm"
+									className="flex flex-col gap-2 rounded-2xl bg-card p-3 text-subhead"
 								>
 									<div className="flex flex-wrap items-center gap-2">
 										<Badge variant={REQ_TONE[r.status]}>
@@ -540,12 +538,12 @@ export default async function AuditCockpitPage({
 										{r.controlCode && (
 											<Link
 												href={`/controls/${r.controlCode}`}
-												className="font-mono text-xs hover:underline"
+												className="font-mono text-footnote hover:underline"
 											>
 												{r.controlCode}
 											</Link>
 										)}
-										<span className="ml-auto text-muted-foreground text-xs">
+										<span className="ml-auto text-muted-foreground text-footnote">
 											{t("requestedBy")}{" "}
 											{names.get(r.requestedByUserId ?? "") ?? "—"} ·{" "}
 											{t("assignee")}:{" "}
@@ -556,13 +554,13 @@ export default async function AuditCockpitPage({
 										</span>
 									</div>
 									{r.description && (
-										<p className="text-muted-foreground text-xs">
+										<p className="text-muted-foreground text-footnote">
 											{r.description}
 										</p>
 									)}
 									{r.responseNote && (
-										<div className="rounded-md bg-muted/40 p-2 text-xs">
-											<p className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+										<div className="rounded-md bg-muted/40 p-2 text-footnote">
+											<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 												{t("response")}
 											</p>
 											<p className="whitespace-pre-wrap">{r.responseNote}</p>
@@ -609,7 +607,9 @@ export default async function AuditCockpitPage({
 			{tab === "findings" && (
 				<section className="flex flex-col gap-4">
 					<div className="flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-sm">{t("findingsLead")}</p>
+						<p className="text-muted-foreground text-subhead">
+							{t("findingsLead")}
+						</p>
 						<div className="flex shrink-0 flex-wrap items-center gap-2">
 							{canNc && adoptable > 0 && (
 								<AdoptFindingsButton auditId={audit.id} count={adoptable} />
@@ -626,7 +626,7 @@ export default async function AuditCockpitPage({
 						</div>
 					</div>
 					{findings.length === 0 ? (
-						<p className="text-sm">{t("findingsEmpty")}</p>
+						<p className="text-subhead">{t("findingsEmpty")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -651,17 +651,17 @@ export default async function AuditCockpitPage({
 										<TableCell>
 											<p className="font-medium">{f.title}</p>
 											{f.description && (
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{f.description}
 												</p>
 											)}
-											<p className="text-muted-foreground text-[0.7rem]">
+											<p className="text-muted-foreground text-footnote">
 												{names.get(f.createdByUserId ?? "") ?? "—"} ·{" "}
 												{fmtDate.format(f.createdAt)}
 												{f.requirementCode ? ` · ${f.requirementCode}` : ""}
 											</p>
 										</TableCell>
-										<TableCell className="whitespace-nowrap font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-footnote">
 											{f.controlCode ? (
 												<Link
 													href={`/controls/${f.controlCode}`}
@@ -688,7 +688,7 @@ export default async function AuditCockpitPage({
 											{f.nonconformityId ? (
 												<Link
 													href={`/abweichungen/${f.nonconformityId}`}
-													className="font-mono text-xs hover:underline"
+													className="font-mono text-footnote hover:underline"
 												>
 													{f.ncCode} ·{" "}
 													{f.ncStatus
@@ -707,7 +707,7 @@ export default async function AuditCockpitPage({
 											{canRisk && f.severity !== "observation" && (
 												<Link
 													href={newRiskHref("audit_finding", f.id)}
-													className="mt-1 block text-primary text-xs hover:underline"
+													className="mt-1 block text-primary text-footnote hover:underline"
 												>
 													{trs("create")}
 												</Link>

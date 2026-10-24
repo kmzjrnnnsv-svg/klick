@@ -172,7 +172,7 @@ export function withLegalFooter(
 	if (lines.length === 0) return input;
 	const text = `${input.text}\n\n—\n${lines.join("\n")}`;
 	if (!input.html) return { ...input, text };
-	const block = `<p style="margin:32px auto 0;max-width:560px;padding:16px 8px 0;border-top:1px solid #d8cfbd;font-size:11px;line-height:1.6;color:#6b5e4a;text-align:center">${lines.map(escapeHtml).join("<br>")}</p>`;
+	const block = `<p style="margin:32px auto 0;max-width:560px;padding:16px 8px 0;border-top:1px solid #e5e5ea;font-size:12px;line-height:16px;color:#5e5e63;text-align:center">${lines.map(escapeHtml).join("<br>")}</p>`;
 	const html = input.html.includes("</body>")
 		? input.html.replace("</body>", `${block}\n</body>`)
 		: `${input.html}\n${block}`;

@@ -189,8 +189,8 @@ export default async function SecurityPage({
 				) : (
 					<div className="flex flex-col gap-6">
 						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-							<div className="flex flex-col gap-1 rounded-md border p-4">
-								<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+							<div className="flex flex-col gap-1 rounded-2xl bg-card p-4">
+								<span className="font-medium text-footnote text-muted-foreground">
 									{t("light")}
 								</span>
 								<span className="flex items-center gap-2">
@@ -228,14 +228,14 @@ export default async function SecurityPage({
 								<Link
 									key={k}
 									href={href}
-									className="flex flex-col gap-1 rounded-md border p-4 hover:bg-muted"
+									className="flex flex-col gap-1 rounded-2xl bg-card p-4 hover:bg-muted"
 								>
-									<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+									<span className="font-medium text-footnote text-muted-foreground">
 										{t(`stat_${k}`)}
 									</span>
 									<span
 										className={cn(
-											"font-serif-display text-3xl tabular-nums",
+											"font-bold text-title-1 tabular-nums",
 											n > 0 && k !== "open"
 												? "text-destructive"
 												: "text-primary",
@@ -252,7 +252,7 @@ export default async function SecurityPage({
 									key={s}
 									href={`/sicherheit?tab=befunde&open=1&severity=${s}`}
 									scroll={false}
-									className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
+									className="flex items-center gap-2 rounded-xl bg-card px-3 py-1.5 text-subhead hover:bg-muted"
 								>
 									{severityBadge(s)}
 									<span className="tabular-nums">{stats.bySeverity[s]}</span>
@@ -261,7 +261,7 @@ export default async function SecurityPage({
 						</div>
 						<section>
 							<h2 className="mb-2 font-medium">{t("topFindings")}</h2>
-							<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 								{findings
 									.filter(
 										(f) => f.status === "open" || f.status === "in_progress",
@@ -278,7 +278,7 @@ export default async function SecurityPage({
 											>
 												{f.title}
 											</Link>
-											<span className="flex items-center gap-2 text-xs">
+											<span className="flex items-center gap-2 text-footnote">
 												{severityBadge(f.severity)}
 												{f.dueAt && (
 													<span
@@ -338,7 +338,7 @@ export default async function SecurityPage({
 						/>
 					</div>
 					{filtered.length === 0 ? (
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{findings.length === 0 ? t("noFindings") : te("noMatches")}
 						</p>
 					) : (
@@ -366,7 +366,7 @@ export default async function SecurityPage({
 											>
 												{f.title}
 											</Link>
-											<span className="block truncate text-muted-foreground text-xs">
+											<span className="block truncate text-muted-foreground text-footnote">
 												{[f.location, f.productCode, SCAN_TOOL_LABEL[f.tool]]
 													.filter(Boolean)
 													.join(" · ")}
@@ -406,11 +406,11 @@ export default async function SecurityPage({
 
 			{tab === "scans" && (
 				<>
-					<p className="mb-4 max-w-2xl text-muted-foreground text-sm">
+					<p className="mb-4 max-w-2xl text-muted-foreground text-subhead">
 						{t("scansLead")}
 					</p>
 					{scans.length === 0 ? (
-						<p className="text-muted-foreground text-sm">{t("noScans")}</p>
+						<p className="text-muted-foreground text-subhead">{t("noScans")}</p>
 					) : (
 						<Table>
 							<TableHeader>
@@ -428,7 +428,7 @@ export default async function SecurityPage({
 											<span className="block truncate font-medium">
 												{s.toolName ?? SCAN_TOOL_LABEL[s.tool]}
 											</span>
-											<span className="block truncate text-muted-foreground text-xs">
+											<span className="block truncate text-muted-foreground text-footnote">
 												{[
 													s.target,
 													s.productCode,
@@ -439,7 +439,7 @@ export default async function SecurityPage({
 											</span>
 										</TableCell>
 										<TableCell>{t(`source_${s.source}`)}</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{s.status === "running" && !s.stale ? (
 												<Badge variant="outline">{t("running")}</Badge>
 											) : s.status === "failed" || s.stale ? (
@@ -462,7 +462,7 @@ export default async function SecurityPage({
 												"—"
 											)}
 										</TableCell>
-										<TableCell className="text-xs tabular-nums">
+										<TableCell className="text-footnote tabular-nums">
 											{fmtDate.format(s.startedAt)}
 										</TableCell>
 									</TableRow>
@@ -476,16 +476,18 @@ export default async function SecurityPage({
 			{tab === "schnellcheck" && (
 				<div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_20rem]">
 					<section className="flex flex-col gap-4">
-						<p className="max-w-xl text-sm">{t("quickLead")}</p>
+						<p className="max-w-xl text-subhead">{t("quickLead")}</p>
 						{canCreate ? (
 							<QuickCheckForm
 								products={products}
 								remaining={Math.max(0, QUICK_CHECKS_PER_DAY - quickToday)}
 							/>
 						) : (
-							<p className="text-muted-foreground text-sm">{te("viewer")}</p>
+							<p className="text-muted-foreground text-subhead">
+								{te("viewer")}
+							</p>
 						)}
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{scans
 								.filter((s) => s.tool === "quick_check")
 								.slice(0, 10)
@@ -495,7 +497,7 @@ export default async function SecurityPage({
 										className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
 									>
 										<span className="min-w-0 truncate">{s.target}</span>
-										<span className="text-xs">
+										<span className="text-footnote">
 											{s.status === "running" && !s.stale
 												? t("running")
 												: s.status === "failed" || s.stale
@@ -513,7 +515,7 @@ export default async function SecurityPage({
 								))}
 						</ul>
 					</section>
-					<aside className="flex flex-col gap-3 rounded-md border p-4 text-sm">
+					<aside className="flex flex-col gap-3 rounded-2xl bg-card p-4 text-subhead">
 						<h2 className="font-medium">{t("quickWhatTitle")}</h2>
 						<ul className="list-disc pl-5 text-muted-foreground">
 							{(
@@ -538,7 +540,7 @@ export default async function SecurityPage({
 			{tab === "auftraege" && (
 				<section className="flex flex-col gap-4">
 					<div className="flex flex-wrap items-start justify-between gap-3">
-						<p className="max-w-2xl text-sm">{tg("lead")}</p>
+						<p className="max-w-2xl text-subhead">{tg("lead")}</p>
 						{canCreate && <NewEngagementDialog products={products} />}
 					</div>
 					{engagements.length === 0 ? (
@@ -562,26 +564,29 @@ export default async function SecurityPage({
 												href={`/sicherheit/auftraege/${e.id}`}
 												className="font-medium hover:underline"
 											>
-												<span className="font-mono text-xs" translate="no">
+												<span
+													className="font-mono text-footnote"
+													translate="no"
+												>
 													{e.code}
 												</span>{" "}
 												{e.title}
 											</Link>
 											{e.productCode && (
-												<span className="block text-muted-foreground text-xs">
+												<span className="block text-muted-foreground text-footnote">
 													{e.productCode} {e.productName}
 												</span>
 											)}
 										</TableCell>
-										<TableCell className="text-sm">
+										<TableCell className="text-subhead">
 											{tg(`kind_${e.kind}`)}
 										</TableCell>
-										<TableCell className="text-sm">
+										<TableCell className="text-subhead">
 											{e.startAt
 												? `${fmtDate.format(new Date(e.startAt))} – ${e.endAt ? fmtDate.format(new Date(e.endAt)) : "…"}`
 												: "—"}
 										</TableCell>
-										<TableCell className="text-sm">
+										<TableCell className="text-subhead">
 											{tg("findingsShort", {
 												total: e.findings.total,
 												open: e.findings.open,

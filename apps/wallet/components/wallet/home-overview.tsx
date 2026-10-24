@@ -148,21 +148,21 @@ export async function WalletHome() {
 			/>
 			<section
 				aria-labelledby="wallet-total"
-				className="rounded-xl border border-border/60 bg-card p-5 sm:p-6"
+				className="rounded-2xl bg-card p-5 sm:p-6"
 			>
 				<h2
 					id="wallet-total"
-					className="lv-eyebrow text-[0.7rem] text-muted-foreground"
+					className="font-medium text-muted-foreground text-subhead"
 				>
 					{t("homeValueLabel")}
 				</h2>
 				<p
-					className="mt-2 font-semibold text-4xl lining-nums sm:text-5xl"
+					className="tabular mt-1 font-bold text-large-title sm:text-[2.75rem] sm:leading-tight"
 					translate="no"
 				>
 					{euroTotal !== null ? `${formatScaled(euroTotal)} €` : "—"}
 				</p>
-				<p className="mt-1 text-muted-foreground text-xs">
+				<p className="mt-1 text-footnote text-muted-foreground">
 					{euroTotal === null
 						? t("homeValueNone")
 						: [
@@ -176,10 +176,10 @@ export async function WalletHome() {
 				<ul className="mt-5 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
 					{totals.map((x) => (
 						<li key={`${x.network}:${x.code}`} className="min-w-0">
-							<p className="font-semibold text-lg lining-nums" translate="no">
+							<p className="tabular font-semibold text-title-3" translate="no">
 								{amountText(x.network, x.code, x.sum)}
 							</p>
-							<p className="text-muted-foreground text-xs">
+							<p className="text-footnote text-muted-foreground">
 								{NETWORKS[x.network].label} · {t("available")}
 							</p>
 						</li>
@@ -189,9 +189,9 @@ export async function WalletHome() {
 					<li>
 						<Link
 							href="/receive"
-							className="group flex flex-col items-center gap-1.5 text-xs focus-visible:outline-none"
+							className="group flex flex-col items-center gap-1.5 font-medium text-footnote text-primary focus-visible:outline-none"
 						>
-							<span className="flex size-12 items-center justify-center rounded-full bg-brown text-brown-foreground transition-opacity group-hover:opacity-90 group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2">
+							<span className="flex size-12 items-center justify-center rounded-full bg-primary-fill text-white transition-[filter] group-hover:brightness-110 group-active:opacity-70 group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2">
 								<ArrowDownToLine className="size-5" aria-hidden />
 							</span>
 							{t("actionReceive")}
@@ -201,9 +201,9 @@ export async function WalletHome() {
 						<li>
 							<Link
 								href="/send"
-								className="group flex flex-col items-center gap-1.5 text-xs focus-visible:outline-none"
+								className="group flex flex-col items-center gap-1.5 font-medium text-footnote text-primary focus-visible:outline-none"
 							>
-								<span className="flex size-12 items-center justify-center rounded-full bg-brown text-brown-foreground transition-opacity group-hover:opacity-90 group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2">
+								<span className="flex size-12 items-center justify-center rounded-full bg-primary-fill text-white transition-[filter] group-hover:brightness-110 group-active:opacity-70 group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2">
 									<Send className="size-5" aria-hidden />
 								</span>
 								{t("actionSend")}
@@ -216,11 +216,11 @@ export async function WalletHome() {
 					].map(({ Icon, label }) => (
 						<li
 							key={label}
-							className="flex flex-col items-center gap-1.5 text-muted-foreground text-xs"
+							className="flex flex-col items-center gap-1.5 font-medium text-footnote text-muted-foreground"
 							title={t("actionSoon")}
 						>
 							<span
-								className="flex size-12 items-center justify-center rounded-full border border-border bg-muted/40"
+								className="flex size-12 items-center justify-center rounded-full bg-muted"
 								aria-hidden
 							>
 								<Icon className="size-5" />
@@ -234,23 +234,20 @@ export async function WalletHome() {
 				</ul>
 			</section>
 
-			<section aria-labelledby="wallet-quotes" className="mt-10">
+			<section aria-labelledby="wallet-quotes" className="mt-8">
 				<div className="mb-2 flex items-center justify-between gap-2">
-					<h2
-						id="wallet-quotes"
-						className="font-serif-display text-xl text-primary"
-					>
+					<h2 id="wallet-quotes" className="font-semibold text-title-3">
 						{t("homeQuotesTitle")}
 					</h2>
 					<Link
 						href="/prices"
-						className="text-primary text-sm underline-offset-4 hover:underline"
+						className="text-primary text-subhead underline-offset-4 hover:underline"
 					>
 						{t("homeAllQuotes")}
 					</Link>
 				</div>
 				{quotes.some((q) => q.price !== null) ? (
-					<ul className="divide-y divide-border/60 rounded-xl border border-border/60 bg-card px-2">
+					<ul className="divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 						{quotes.map((q) => (
 							<li key={q.pair}>
 								<QuoteRow quote={q} name={PAIR_NAMES[q.pair]} />
@@ -258,16 +255,15 @@ export async function WalletHome() {
 						))}
 					</ul>
 				) : (
-					<p className="text-muted-foreground text-sm">{t("quotesEmpty")}</p>
+					<p className="rounded-2xl bg-card px-4 py-3 text-muted-foreground text-subhead">
+						{t("quotesEmpty")}
+					</p>
 				)}
 			</section>
 
-			<section aria-labelledby="wallet-accounts" className="mt-10">
+			<section aria-labelledby="wallet-accounts" className="mt-8">
 				<div className="mb-3 flex items-center justify-between gap-2">
-					<h2
-						id="wallet-accounts"
-						className="font-serif-display text-xl text-primary"
-					>
+					<h2 id="wallet-accounts" className="font-semibold text-title-3">
 						{t("homeAccountsTitle")}
 					</h2>
 					{canManage && (
@@ -286,17 +282,14 @@ export async function WalletHome() {
 				</div>
 			</section>
 
-			<section aria-labelledby="wallet-recent" className="mt-10">
+			<section aria-labelledby="wallet-recent" className="mt-8">
 				<div className="mb-1 flex items-center justify-between gap-2">
-					<h2
-						id="wallet-recent"
-						className="font-serif-display text-xl text-primary"
-					>
+					<h2 id="wallet-recent" className="font-semibold text-title-3">
 						{t("homeRecentTitle")}
 					</h2>
 					<Link
 						href="/activity"
-						className="text-primary text-sm underline-offset-4 hover:underline"
+						className="text-primary text-subhead underline-offset-4 hover:underline"
 					>
 						{t("homeAllMovements")}
 					</Link>

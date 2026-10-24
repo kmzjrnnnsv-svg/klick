@@ -34,7 +34,7 @@ export function DelegationForm({
 	if (others.length === 0) return null;
 	return (
 		<form
-			className="flex flex-col gap-3 rounded-md border p-3 text-sm sm:flex-row sm:items-end"
+			className="flex flex-col gap-3 rounded-2xl bg-card p-3 text-subhead sm:flex-row sm:items-end"
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {

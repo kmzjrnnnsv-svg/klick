@@ -75,9 +75,7 @@ export default async function CmsPage({
 			id="inhalt"
 			className="mx-auto w-full max-w-3xl flex-1 px-4 pt-10 pb-20 sm:px-6 sm:pt-16"
 		>
-			<h1 className="font-serif-display text-3xl text-primary sm:text-4xl">
-				{page.title}
-			</h1>
+			<h1 className="font-bold text-title-1 sm:text-4xl">{page.title}</h1>
 			{slug === "impressum" && <ImprintFacts />}
 			<MarkdownView source={page.body} className="mt-8" />
 		</main>

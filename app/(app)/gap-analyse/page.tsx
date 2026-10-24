@@ -49,7 +49,7 @@ export default async function GapAnalysisPage() {
 			{rows.length === 0 ? (
 				<EmptyState title={t("empty")} lead={t("emptyLead")} actions={create} />
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 rounded-md border">
+				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 					{rows.map((r) => {
 						const pct =
 							r.total > 0 ? Math.round((100 * r.answered) / r.total) : 0;
@@ -61,7 +61,7 @@ export default async function GapAnalysisPage() {
 								>
 									<span className="flex min-w-0 flex-1 flex-col gap-1">
 										<span className="flex flex-wrap items-center gap-2">
-											<span className="font-mono text-muted-foreground text-xs">
+											<span className="font-mono text-muted-foreground text-footnote">
 												{r.code}
 											</span>
 											<span className="min-w-0 truncate font-medium">
@@ -73,24 +73,20 @@ export default async function GapAnalysisPage() {
 										</span>
 										<span className="flex flex-wrap gap-1">
 											{r.frameworks.map((s) => (
-												<Badge
-													key={s}
-													variant="muted"
-													className="normal-case tracking-normal"
-												>
+												<Badge key={s} variant="muted" className="">
 													{shortFrameworkName(s)}
 												</Badge>
 											))}
 										</span>
 									</span>
-									<span className="flex shrink-0 items-center gap-4 text-sm">
+									<span className="flex shrink-0 items-center gap-4 text-subhead">
 										{r.score !== null && (
-											<span className="font-serif-display text-xl text-primary tabular-nums">
+											<span className="font-semibold text-title-3 tabular-nums">
 												{r.score}
 											</span>
 										)}
 										<span className="flex w-40 flex-col gap-1">
-											<span className="text-muted-foreground text-xs">
+											<span className="text-muted-foreground text-footnote">
 												{t("progress", {
 													answered: r.answered,
 													total: r.total,
@@ -103,7 +99,7 @@ export default async function GapAnalysisPage() {
 												/>
 											</span>
 										</span>
-										<span className="w-24 text-right text-muted-foreground text-xs">
+										<span className="w-24 text-right text-muted-foreground text-footnote">
 											{fmtDate.format(r.updatedAt)}
 										</span>
 									</span>

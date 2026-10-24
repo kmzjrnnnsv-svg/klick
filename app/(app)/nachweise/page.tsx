@@ -81,10 +81,7 @@ export default async function EvidencePage({
 				<span className="flex flex-wrap gap-1">
 					{r.controlCodes.map((c) => (
 						<Link key={c} href={`/controls/${c}`}>
-							<Badge
-								variant="outline"
-								className="font-mono normal-case tracking-normal"
-							>
+							<Badge variant="outline" className="font-mono">
 								{c}
 							</Badge>
 						</Link>
@@ -106,7 +103,7 @@ export default async function EvidencePage({
 						</Badge>
 					)}
 					{r.dlp?.extraction === "unsupported" && (
-						<span className="text-muted-foreground text-xs">
+						<span className="text-muted-foreground text-footnote">
 							{td("notScanned")}
 						</span>
 					)}

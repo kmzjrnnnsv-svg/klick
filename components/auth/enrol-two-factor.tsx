@@ -77,22 +77,22 @@ export function EnrolTwoFactor() {
 	}
 
 	if (phase === "loading")
-		return <p className="text-muted-foreground text-sm">…</p>;
+		return <p className="text-muted-foreground text-subhead">…</p>;
 	if (phase === "error")
-		return <p className="text-destructive text-sm">{t("genericError")}</p>;
+		return <p className="text-destructive text-subhead">{t("genericError")}</p>;
 
 	if (phase === "backup") {
 		return (
 			<div className="flex flex-col gap-5">
 				<div>
-					<h2 className="font-serif-display text-xl">
+					<h2 className="font-semibold text-title-3">
 						{t("enrolBackupTitle")}
 					</h2>
-					<p className="mt-1 text-muted-foreground text-sm">
+					<p className="mt-1 text-muted-foreground text-subhead">
 						{t("enrolBackupLead")}
 					</p>
 				</div>
-				<ul className="grid grid-cols-2 gap-2 rounded-md border bg-card p-4 font-mono text-sm">
+				<ul className="grid grid-cols-2 gap-2 rounded-2xl bg-card p-4 font-mono text-subhead">
 					{backupCodes.map((c) => (
 						<li key={c}>{c}</li>
 					))}
@@ -122,7 +122,7 @@ export function EnrolTwoFactor() {
 				/>
 			)}
 			{secret && (
-				<div className="text-xs">
+				<div className="text-footnote">
 					<p className="text-muted-foreground">{t("enrolSecret")}</p>
 					<code className="mt-1 block break-all rounded-sm bg-muted px-2 py-1 font-mono">
 						{secret}
@@ -139,7 +139,7 @@ export function EnrolTwoFactor() {
 						required
 						value={code}
 						onChange={(e) => setCode(e.target.value)}
-						className="font-mono text-lg tracking-[0.3em]"
+						className="font-mono text-lg"
 					/>
 				</div>
 				<Button type="submit" disabled={busy || code.trim().length !== 6}>

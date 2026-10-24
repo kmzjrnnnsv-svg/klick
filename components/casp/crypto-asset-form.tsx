@@ -208,7 +208,7 @@ export function CryptoAssetForm({ initial }: { initial?: CryptoAssetDraft }) {
 					onChange={(v) => setD({ ...d, networks: v })}
 				/>
 			</div>
-			<label className="flex items-center gap-2 text-sm">
+			<label className="flex items-center gap-2 text-subhead">
 				<Checkbox
 					checked={d.accepted}
 					disabled={!canAccept}
@@ -216,7 +216,7 @@ export function CryptoAssetForm({ initial }: { initial?: CryptoAssetDraft }) {
 				/>
 				{t("accepted")}
 				{!canAccept && (
-					<span className="text-muted-foreground text-xs">
+					<span className="text-muted-foreground text-footnote">
 						— {t("notAuthorised")}
 					</span>
 				)}

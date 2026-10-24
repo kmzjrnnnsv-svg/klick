@@ -208,15 +208,15 @@ export default async function WalletDetailPage({
 						}
 					>
 						{data.tasks.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{te("tasksEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col gap-2 text-sm">
+							<ul className="flex flex-col gap-2 text-subhead">
 								{data.tasks.map((task) => (
-									<li key={task.id} className="rounded-md border p-2">
+									<li key={task.id} className="rounded-2xl bg-card p-2">
 										<p className="break-words">{task.title}</p>
-										<p className="text-muted-foreground text-xs">
+										<p className="text-muted-foreground text-footnote">
 											{task.assigneeName ?? "—"}
 											{task.dueAt ? ` · ${day(task.dueAt)}` : ""}
 										</p>
@@ -233,7 +233,7 @@ export default async function WalletDetailPage({
 					<h2 id="w-issues" className="font-medium">
 						{t("issuesTitle")}
 					</h2>
-					<ul className="flex flex-col gap-1 text-sm">
+					<ul className="flex flex-col gap-1 text-subhead">
 						{issues.map((i) => (
 							<li key={i} className="flex gap-2">
 								<Badge variant="destructive">{t(`issue_${i}`)}</Badge>
@@ -246,23 +246,31 @@ export default async function WalletDetailPage({
 				</section>
 			)}
 
-			<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+			<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-subhead sm:grid-cols-2">
 				<div>
-					<dt className="text-muted-foreground text-xs">{t("assetSymbols")}</dt>
+					<dt className="text-muted-foreground text-footnote">
+						{t("assetSymbols")}
+					</dt>
 					<dd>{w.assetSymbols.join(", ") || "—"}</dd>
 				</div>
 				<div>
-					<dt className="text-muted-foreground text-xs">{t("networks")}</dt>
+					<dt className="text-muted-foreground text-footnote">
+						{t("networks")}
+					</dt>
 					<dd>{w.networks.join(", ") || "—"}</dd>
 				</div>
 				<div className="sm:col-span-2">
-					<dt className="text-muted-foreground text-xs">{t("addressLabel")}</dt>
-					<dd className="break-all font-mono text-xs" translate="no">
+					<dt className="text-muted-foreground text-footnote">
+						{t("addressLabel")}
+					</dt>
+					<dd className="break-all font-mono text-footnote" translate="no">
 						{w.addressLabel ?? "—"}
 					</dd>
 				</div>
 				<div>
-					<dt className="text-muted-foreground text-xs">{t("provider")}</dt>
+					<dt className="text-muted-foreground text-footnote">
+						{t("provider")}
+					</dt>
 					<dd>
 						{w.providerId ? (
 							<Link
@@ -277,17 +285,21 @@ export default async function WalletDetailPage({
 					</dd>
 				</div>
 				<div>
-					<dt className="text-muted-foreground text-xs">{t("hsmAsset")}</dt>
+					<dt className="text-muted-foreground text-footnote">
+						{t("hsmAsset")}
+					</dt>
 					<dd>{data.hsms.find((a) => a.id === w.hsmAssetId)?.name ?? "—"}</dd>
 				</div>
 				<div>
-					<dt className="text-muted-foreground text-xs">
+					<dt className="text-muted-foreground text-footnote">
 						{t("lastBackupTest")}
 					</dt>
 					<dd>{day(w.lastBackupTestAt)}</dd>
 				</div>
 				<div>
-					<dt className="text-muted-foreground text-xs">{t("lastCeremony")}</dt>
+					<dt className="text-muted-foreground text-footnote">
+						{t("lastCeremony")}
+					</dt>
 					<dd>{day(w.lastCeremonyAt)}</dd>
 				</div>
 			</dl>
@@ -305,9 +317,11 @@ export default async function WalletDetailPage({
 				}
 			>
 				{holders.length === 0 ? (
-					<p className="text-muted-foreground text-sm">{t("holdersEmpty")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("holdersEmpty")}
+					</p>
 				) : (
-					<ul className="flex flex-col divide-y rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{holders.map((h) => {
 							const name =
 								(h.userId ? names.get(h.userId) : null) ??
@@ -325,7 +339,7 @@ export default async function WalletDetailPage({
 												· {t(`role_${h.role}`)}
 											</span>
 										</p>
-										<p className="break-words text-muted-foreground text-xs">
+										<p className="break-words text-muted-foreground text-footnote">
 											{[
 												h.siteId ? siteName.get(h.siteId) : null,
 												h.location,
@@ -338,7 +352,7 @@ export default async function WalletDetailPage({
 												.join(" · ")}
 										</p>
 										{h.status === "revoked" && (
-											<p className="text-destructive text-xs">
+											<p className="text-destructive text-footnote">
 												{t("revokedOn", {
 													date: h.revokedAt ? fmtDate.format(h.revokedAt) : "—",
 													reason: h.revokedReason ?? "",
@@ -365,11 +379,11 @@ export default async function WalletDetailPage({
 				}
 			>
 				{ceremonies.length === 0 ? (
-					<p className="text-muted-foreground text-sm">
+					<p className="text-muted-foreground text-subhead">
 						{t("ceremoniesEmptyLead")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y rounded-md border text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 						{ceremonies.map((c) => (
 							<li
 								key={c.id}
@@ -379,13 +393,13 @@ export default async function WalletDetailPage({
 									<p className="font-medium">
 										{t(`ceremony_${c.kind}`)} · {day(c.heldAt)}
 									</p>
-									<p className="break-words text-muted-foreground text-xs">
+									<p className="break-words text-muted-foreground text-footnote">
 										{c.participantUserIds
 											.map((u) => names.get(u) ?? "—")
 											.join(", ") || "—"}
 										{c.witnesses ? ` · ${c.witnesses}` : ""}
 									</p>
-									{c.notes && <p className="mt-1 text-xs">{c.notes}</p>}
+									{c.notes && <p className="mt-1 text-footnote">{c.notes}</p>}
 								</div>
 								<Badge
 									variant={c.result === "pass" ? "default" : "destructive"}

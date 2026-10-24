@@ -72,8 +72,8 @@ export function SynergyPreviewPanel({
 	const label = (slug: string) => names?.[slug] ?? slug;
 
 	return (
-		<div className="rounded-md border border-dashed p-4 text-sm">
-			<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+		<div className="rounded-2xl bg-card p-4 text-subhead">
+			<p className="font-medium text-footnote text-muted-foreground">
 				{t("synergyPreview")}
 			</p>
 			{frameworks.length === 0 ? (
@@ -110,7 +110,7 @@ export function SynergyPreviewPanel({
 						})}
 					</p>
 					{data.synergy.requirementCount === 0 && (
-						<p className="text-muted-foreground text-xs">
+						<p className="text-muted-foreground text-footnote">
 							{t("synergyNoIndex")}
 						</p>
 					)}

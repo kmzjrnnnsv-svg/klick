@@ -87,7 +87,7 @@ export default async function AuthoringGalleryPage({
 				href={
 					controlCode ? `/controls/${controlCode}#nachweisbogen` : "/nachweise"
 				}
-				className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-sm hover:text-foreground"
+				className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-subhead hover:text-foreground"
 			>
 				<ArrowLeft className="size-4" aria-hidden />
 				{controlCode ? t("backToControl", { code: controlCode }) : t("back")}
@@ -97,7 +97,7 @@ export default async function AuthoringGalleryPage({
 			{controlCode && (
 				<section
 					aria-labelledby="au-for"
-					className="mb-8 flex flex-col gap-3 rounded-md border border-primary/30 bg-primary/5 p-4"
+					className="mb-8 flex flex-col gap-3 rounded-xl bg-primary/8 p-4"
 				>
 					<h2 id="au-for" className="font-medium">
 						{t("forControl", {
@@ -106,13 +106,13 @@ export default async function AuthoringGalleryPage({
 						})}
 					</h2>
 					{title && (
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("forItem", { item: title })}
 						</p>
 					)}
 					{suggested && canCreate ? (
 						<div className="flex flex-col gap-2">
-							<p className="text-sm">
+							<p className="text-subhead">
 								{t("suggested")}{" "}
 								<strong className="font-medium">{suggested.title}</strong> —{" "}
 								{suggested.purpose}
@@ -129,7 +129,9 @@ export default async function AuthoringGalleryPage({
 							/>
 						</div>
 					) : (
-						<p className="text-muted-foreground text-sm">{t("noSuggestion")}</p>
+						<p className="text-muted-foreground text-subhead">
+							{t("noSuggestion")}
+						</p>
 					)}
 				</section>
 			)}
@@ -139,17 +141,14 @@ export default async function AuthoringGalleryPage({
 					aria-labelledby="au-drafts"
 					className="mb-10 flex flex-col gap-3"
 				>
-					<h2
-						id="au-drafts"
-						className="font-serif-display text-lg text-primary"
-					>
+					<h2 id="au-drafts" className="font-semibold text-headline">
 						{t("drafts")}
 					</h2>
-					<ul className="flex flex-col divide-y rounded-md border">
+					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
 						{drafts.map((d) => (
 							<li
 								key={d.id}
-								className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm"
+								className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-subhead"
 							>
 								<Link
 									href={`/nachweise/verfassen/${d.id}`}
@@ -164,11 +163,11 @@ export default async function AuthoringGalleryPage({
 									<Badge variant="outline">{t("newVersionBadge")}</Badge>
 								)}
 								{d.controlCodes.length > 0 && (
-									<span className="font-mono text-muted-foreground text-xs">
+									<span className="font-mono text-muted-foreground text-footnote">
 										{d.controlCodes.join(", ")}
 									</span>
 								)}
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{t("updated", {
 										date: fmtDate.format(d.updatedAt),
 										name:
@@ -194,17 +193,14 @@ export default async function AuthoringGalleryPage({
 						aria-labelledby={`au-g-${g.key}`}
 						className="flex flex-col gap-3"
 					>
-						<h2
-							id={`au-g-${g.key}`}
-							className="font-serif-display text-lg text-primary"
-						>
+						<h2 id={`au-g-${g.key}`} className="font-semibold text-headline">
 							{g.title}
 						</h2>
 						<ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
 							{EVIDENCE_TEMPLATES.filter((x) => x.group === g.key).map((x) => (
 								<li
 									key={x.key}
-									className="flex min-w-0 flex-col gap-2 rounded-md border p-4 text-sm"
+									className="flex min-w-0 flex-col gap-2 rounded-2xl bg-card p-4 text-subhead"
 								>
 									<div className="flex items-start justify-between gap-2">
 										<h3 className="font-medium">{x.title}</h3>
@@ -215,7 +211,9 @@ export default async function AuthoringGalleryPage({
 										)}
 									</div>
 									<p className="text-muted-foreground">{x.purpose}</p>
-									<p className="text-muted-foreground text-xs">{x.basis}</p>
+									<p className="text-muted-foreground text-footnote">
+										{x.basis}
+									</p>
 									{canCreate && (
 										<div className="mt-auto pt-2">
 											<StartDraft

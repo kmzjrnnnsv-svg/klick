@@ -104,14 +104,14 @@ export function IncidentCreateForm({
 				/>
 			</div>
 			<div className="flex flex-wrap gap-6">
-				<label className="flex items-center gap-2 text-sm">
+				<label className="flex items-center gap-2 text-subhead">
 					<Checkbox
 						checked={payments}
 						onCheckedChange={(v) => setPayments(Boolean(v))}
 					/>
 					{t("affectsPayments")}
 				</label>
-				<label className="flex items-center gap-2 text-sm">
+				<label className="flex items-center gap-2 text-subhead">
 					<Checkbox
 						checked={customers}
 						onCheckedChange={(v) => setCustomers(Boolean(v))}
@@ -120,8 +120,8 @@ export function IncidentCreateForm({
 				</label>
 			</div>
 			{products.length > 0 && (
-				<fieldset className="grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-2">
-					<legend className="px-1 text-muted-foreground text-xs">
+				<fieldset className="grid grid-cols-1 gap-3 rounded-2xl bg-card p-3 sm:grid-cols-2">
+					<legend className="px-1 text-muted-foreground text-footnote">
 						{t("craLegend")}
 					</legend>
 					<div className="flex flex-col gap-1.5">
@@ -254,7 +254,7 @@ export function ClassifyForm({
 	const [overrideNote, setOverrideNote] = useState("");
 	return (
 		<form
-			className="flex flex-col gap-4 text-sm"
+			className="flex flex-col gap-4 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {
@@ -292,8 +292,8 @@ export function ClassifyForm({
 				))}
 			</div>
 			{regs.includes("dora") && (
-				<fieldset className="grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-2">
-					<legend className="lv-eyebrow px-1 text-[0.7rem] text-muted-foreground">
+				<fieldset className="grid grid-cols-1 gap-3 rounded-2xl bg-card p-3 sm:grid-cols-2">
+					<legend className="font-medium text-footnote px-1 text-footnote text-muted-foreground">
 						DORA · RTS 2024/1772
 					</legend>
 					{DORA_BOOL.map((k) => (
@@ -307,7 +307,7 @@ export function ClassifyForm({
 					))}
 					{DORA_NUM.map((k) => (
 						<div key={k} className="flex flex-col gap-1">
-							<Label htmlFor={`d-${k}`} className="normal-case tracking-normal">
+							<Label htmlFor={`d-${k}`} className="">
 								{t(`crit_${k}`)}
 							</Label>
 							<Input
@@ -330,8 +330,8 @@ export function ClassifyForm({
 				</fieldset>
 			)}
 			{regs.includes("nis2") && (
-				<fieldset className="grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-3">
-					<legend className="lv-eyebrow px-1 text-[0.7rem] text-muted-foreground">
+				<fieldset className="grid grid-cols-1 gap-3 rounded-2xl bg-card p-3 sm:grid-cols-3">
+					<legend className="font-medium text-footnote px-1 text-footnote text-muted-foreground">
 						NIS2 · Art. 23(3)
 					</legend>
 					{NIS2_BOOL.map((k) => (
@@ -346,8 +346,8 @@ export function ClassifyForm({
 				</fieldset>
 			)}
 			{hasCra && (
-				<fieldset className="grid grid-cols-1 gap-3 rounded-md border p-3 sm:grid-cols-2">
-					<legend className="lv-eyebrow px-1 text-[0.7rem] text-muted-foreground">
+				<fieldset className="grid grid-cols-1 gap-3 rounded-2xl bg-card p-3 sm:grid-cols-2">
+					<legend className="font-medium text-footnote px-1 text-footnote text-muted-foreground">
 						CRA · Art. 14
 					</legend>
 					{CRA_BOOL.map((k) => (
@@ -512,7 +512,7 @@ export function IncidentUpdateForm({
 	const [cause, setCause] = useState(rootCause ?? "");
 	return (
 		<form
-			className="flex flex-col gap-2 text-sm"
+			className="flex flex-col gap-2 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {

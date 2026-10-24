@@ -145,14 +145,14 @@ export function TrainingForm({
 						</div>
 					</div>
 					<fieldset className="flex flex-col gap-1.5">
-						<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+						<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 							{t("attendees")}
 						</legend>
-						<div className="max-h-40 overflow-y-auto rounded-md border p-2">
+						<div className="max-h-40 overflow-y-auto rounded-2xl bg-card p-2">
 							{members.map((m) => (
 								<label
 									key={m.userId}
-									className="flex items-center gap-2 py-0.5 text-sm"
+									className="flex items-center gap-2 py-0.5 text-subhead"
 								>
 									<Checkbox
 										checked={attendees.includes(m.userId)}

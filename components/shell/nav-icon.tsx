@@ -1,9 +1,7 @@
 import {
 	Activity,
-	ArrowDownToLine,
 	BadgeCheck,
 	BookOpen,
-	BookUser,
 	Building2,
 	Calendar,
 	ClipboardCheck,
@@ -16,23 +14,21 @@ import {
 	Gavel,
 	GitMerge,
 	GraduationCap,
-	History,
 	Landmark,
-	List,
+	Layers,
 	ListChecks,
 	Lock,
 	Map as MapIcon,
 	MessageSquare,
 	Package,
 	Presentation,
-	Send,
+	Search,
 	Server,
 	Settings,
 	ShieldAlert,
 	ShieldCheck,
 	Siren,
 	Sun,
-	TrendingUp,
 	TriangleAlert,
 	Truck,
 	Users,
@@ -80,12 +76,8 @@ const ICONS = {
 	"badge-check": BadgeCheck,
 	vault: Vault,
 	wallet: Wallet,
-	"arrow-down": ArrowDownToLine,
-	history: History,
-	"trending-up": TrendingUp,
-	send: Send,
-	list: List,
-	"book-user": BookUser,
+	search: Search,
+	layers: Layers,
 } as const;
 
 export function NavIcon({
@@ -96,5 +88,5 @@ export function NavIcon({
 	className?: string;
 }) {
 	const Icon = ICONS[name] ?? ShieldCheck;
-	return <Icon className={className} strokeWidth={1.5} aria-hidden="true" />;
+	return <Icon className={className} strokeWidth={1.75} aria-hidden="true" />;
 }

@@ -15,11 +15,11 @@ export default async function SetupLayout({
 	const t = await getTranslations("Common");
 	return (
 		<>
-			<header className="sticky top-0 z-30 w-full border-b bg-background/90 backdrop-blur">
+			<header className="material-bar sticky top-0 z-30 w-full border-border/60 border-b">
 				<div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4 sm:px-6">
 					<Link
 						href="/heute"
-						className="lv-wordmark text-[0.95rem] text-foreground hover:opacity-70"
+						className="font-bold text-headline text-foreground hover:opacity-70"
 					>
 						{t("productName")}
 					</Link>

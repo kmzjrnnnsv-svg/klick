@@ -81,10 +81,8 @@ export default async function WalletAccountsPage({
 			)}
 			{retired.length > 0 && (
 				<section className="mt-10">
-					<h2 className="mb-3 font-serif-display text-lg text-primary">
-						{t("retired")}
-					</h2>
-					<ul className="flex flex-col gap-2 text-sm">
+					<h2 className="mb-3 font-semibold text-headline">{t("retired")}</h2>
+					<ul className="flex flex-col gap-2 text-subhead">
 						{retired.map((a) => (
 							<li key={a.id} className="flex items-center gap-2">
 								<span className="truncate">{a.name}</span>

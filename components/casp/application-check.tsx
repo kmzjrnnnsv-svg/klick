@@ -23,7 +23,7 @@ export function ApplicationCheck({
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	return (
-		<label className="flex items-center gap-2 text-sm">
+		<label className="flex items-center gap-2 text-subhead">
 			<Checkbox
 				checked={done}
 				disabled={disabled || pending}

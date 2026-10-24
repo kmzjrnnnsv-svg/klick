@@ -34,8 +34,10 @@ export function LevelChoice({
 }) {
 	return (
 		<fieldset className={cn("flex flex-col gap-2", className)}>
-			<legend className="mb-1 font-medium text-sm">{legend}</legend>
-			{hint && <p className="-mt-1 text-muted-foreground text-xs">{hint}</p>}
+			<legend className="mb-1 font-medium text-subhead">{legend}</legend>
+			{hint && (
+				<p className="-mt-1 text-muted-foreground text-footnote">{hint}</p>
+			)}
 			<div
 				className={cn(
 					"grid gap-2",
@@ -46,12 +48,12 @@ export function LevelChoice({
 					<label
 						key={o.value}
 						className={cn(
-							"flex cursor-pointer flex-col gap-1 rounded-md border bg-background p-2.5 text-xs transition-colors hover:border-foreground/40",
+							"flex cursor-pointer flex-col gap-1 rounded-2xl bg-card p-2.5 text-footnote transition-colors hover:border-foreground/40",
 							"has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
 							disabled && "cursor-default opacity-70",
 						)}
 					>
-						<span className="flex items-center gap-2 font-medium text-sm">
+						<span className="flex items-center gap-2 font-medium text-subhead">
 							<input
 								type="radio"
 								name={name}

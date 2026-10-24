@@ -74,7 +74,7 @@ export default async function TeamPage() {
 				actions={canManage ? <InviteForm roles={customRoles} /> : undefined}
 			/>
 			<section className="flex flex-col gap-3">
-				<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+				<h2 className="font-medium text-footnote text-muted-foreground">
 					{t("members")}
 				</h2>
 				<Table>
@@ -105,7 +105,7 @@ export default async function TeamPage() {
 											m.name || m.email
 										)}
 										{m.userId === ctx.userId && (
-											<span className="ml-2 text-muted-foreground text-xs">
+											<span className="ml-2 text-muted-foreground text-footnote">
 												({t("you")})
 											</span>
 										)}
@@ -131,28 +131,24 @@ export default async function TeamPage() {
 											</Badge>
 										)}
 										{(roleMap.get(m.memberId) ?? []).map((r) => (
-											<Badge
-												key={r.id}
-												variant="muted"
-												className="ml-1 normal-case tracking-normal"
-											>
+											<Badge key={r.id} variant="muted" className="ml-1">
 												{r.name}
 											</Badge>
 										))}
 										{m.accessUntil && (
 											<span
-												className={`ml-2 text-xs ${m.accessUntil.getTime() < Date.now() ? "text-destructive" : "text-muted-foreground"}`}
+												className={`ml-2 text-footnote ${m.accessUntil.getTime() < Date.now() ? "text-destructive" : "text-muted-foreground"}`}
 											>
 												bis {fmt.format(m.accessUntil)}
 											</span>
 										)}
 										{(m.grants?.length ?? 0) > 0 && (
-											<span className="ml-2 text-muted-foreground text-xs">
+											<span className="ml-2 text-muted-foreground text-footnote">
 												· {m.grants?.length} {t("grantsShort")}
 											</span>
 										)}
 									</TableCell>
-									<TableCell className="text-muted-foreground text-xs">
+									<TableCell className="text-muted-foreground text-footnote">
 										{workload(m.userId)}
 									</TableCell>
 									<TableCell>
@@ -201,11 +197,11 @@ export default async function TeamPage() {
 				</Table>
 			</section>
 			<section className="mt-10 flex flex-col gap-3">
-				<h2 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+				<h2 className="font-medium text-footnote text-muted-foreground">
 					{t("pending")}
 				</h2>
 				{invitations.length === 0 ? (
-					<p className="text-muted-foreground text-sm">{t("noPending")}</p>
+					<p className="text-muted-foreground text-subhead">{t("noPending")}</p>
 				) : (
 					<Table>
 						<TableHeader>
@@ -225,11 +221,7 @@ export default async function TeamPage() {
 										{customRoles
 											.filter((r) => r.pending.includes(i.email.toLowerCase()))
 											.map((r) => (
-												<Badge
-													key={r.id}
-													variant="muted"
-													className="ml-1 normal-case tracking-normal"
-												>
+												<Badge key={r.id} variant="muted" className="ml-1">
 													{r.name}
 												</Badge>
 											))}

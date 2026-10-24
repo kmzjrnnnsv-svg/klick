@@ -79,7 +79,7 @@ export function SignButton({
 			type="button"
 			size={size}
 			variant={variant}
-			className={size === "sm" ? "h-7 gap-1.5 px-2.5 text-xs" : "gap-1.5"}
+			className={size === "sm" ? "h-7 gap-1.5 px-2.5 text-footnote" : "gap-1.5"}
 			disabled={pending || evidenceIds.length === 0}
 			onClick={run}
 			title={fullLabel}

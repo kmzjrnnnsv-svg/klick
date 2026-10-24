@@ -74,7 +74,7 @@ export default async function ManagementReviewPage() {
 				actions={canEdit ? <ReviewForm members={members} /> : undefined}
 			/>
 			<div
-				className={`mb-6 rounded-md border p-3 text-sm ${stale ? "border-warning/40 bg-warning/5" : ""}`}
+				className={`mb-6 rounded-2xl bg-card p-3 text-subhead ${stale ? "border-warning/40 bg-warning/5" : ""}`}
 			>
 				{last ? (
 					<>
@@ -90,20 +90,20 @@ export default async function ManagementReviewPage() {
 			</div>
 			<details
 				open
-				className="group mb-6 flex flex-col gap-3 rounded-md border p-4"
+				className="group mb-6 flex flex-col gap-3 rounded-2xl bg-card p-4"
 			>
 				<summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2">
-					<span className="font-serif-display text-lg text-primary">
+					<span className="font-semibold text-headline">
 						{t("digestTitle")}
 					</span>
 					<a
 						href="/api/export/managementbewertung.md"
-						className="text-primary text-sm underline-offset-4 hover:underline"
+						className="text-primary text-subhead underline-offset-4 hover:underline"
 					>
 						{t("digestExport")}
 					</a>
 				</summary>
-				<p className="mt-1 mb-3 text-muted-foreground text-sm">
+				<p className="mt-1 mb-3 text-muted-foreground text-subhead">
 					{t("digestLead")}
 				</p>
 				<ReviewDigestView digest={live} labels={digestLabels} />
@@ -123,20 +123,20 @@ export default async function ManagementReviewPage() {
 						return (
 							<article
 								key={r.id}
-								className="flex flex-col gap-4 rounded-md border p-4 text-sm"
+								className="flex flex-col gap-4 rounded-2xl bg-card p-4 text-subhead"
 							>
 								<div className="flex flex-wrap items-center gap-3">
-									<h2 className="font-serif-display text-xl text-primary">
+									<h2 className="font-semibold text-title-3">
 										{fmtDate.format(new Date(r.heldAt))}
 									</h2>
 									<Badge variant={STATUS_TONE[r.status]}>
 										{t(`status_${r.status}`)}
 									</Badge>
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{t("owner")}: <UserChip name={r.ownerName} />
 									</span>
 									{r.attendeeNames.length > 0 && (
-										<span className="text-muted-foreground text-xs">
+										<span className="text-muted-foreground text-footnote">
 											{t("attendees")}: {r.attendeeNames.join(", ")}
 										</span>
 									)}
@@ -163,7 +163,7 @@ export default async function ManagementReviewPage() {
 								/>
 								<div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
 									<div>
-										<h3 className="lv-eyebrow mb-2 text-[0.7rem] text-muted-foreground">
+										<h3 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
 											{t("inputs")}
 										</h3>
 										<ReviewInputsChecklist
@@ -176,7 +176,7 @@ export default async function ManagementReviewPage() {
 									<div className="flex flex-col gap-4">
 										{r.summary && (
 											<div>
-												<h3 className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+												<h3 className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 													{t("summary")}
 												</h3>
 												<p className="whitespace-pre-wrap">{r.summary}</p>
@@ -184,7 +184,7 @@ export default async function ManagementReviewPage() {
 										)}
 										{r.decisions && (
 											<div>
-												<h3 className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+												<h3 className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 													{t("decisions")}
 												</h3>
 												<p className="whitespace-pre-wrap">{r.decisions}</p>
@@ -192,7 +192,7 @@ export default async function ManagementReviewPage() {
 										)}
 										<div>
 											<div className="mb-1 flex items-center justify-between gap-2">
-												<h3 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+												<h3 className="font-medium text-footnote text-muted-foreground">
 													{t("outcomes")}
 												</h3>
 												{canResolve && (
@@ -216,7 +216,7 @@ export default async function ManagementReviewPage() {
 												r.outcomes.tasks.length +
 												r.outcomes.nonconformities.length ===
 											0 ? (
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{t("noOutcomes")}
 												</p>
 											) : (
@@ -233,7 +233,7 @@ export default async function ManagementReviewPage() {
 																href="/beschluesse"
 																className="hover:underline"
 															>
-																<span className="font-mono text-xs">
+																<span className="font-mono text-footnote">
 																	{x.number}
 																</span>{" "}
 																{x.subject}
@@ -281,7 +281,7 @@ export default async function ManagementReviewPage() {
 																href={`/abweichungen/${x.id}`}
 																className="hover:underline"
 															>
-																<span className="font-mono text-xs">
+																<span className="font-mono text-footnote">
 																	{x.code}
 																</span>{" "}
 																{x.title}
@@ -300,7 +300,7 @@ export default async function ManagementReviewPage() {
 											/>
 										)}
 										{r.status === "done" && (
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{t("doneHint")}
 											</p>
 										)}
@@ -309,12 +309,12 @@ export default async function ManagementReviewPage() {
 								{snapshot && (
 									<details className="flex flex-col gap-3 border-t pt-3">
 										<summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2">
-											<span className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+											<span className="font-medium text-footnote text-muted-foreground">
 												{t("digestSnapshot")}
 											</span>
 											<a
 												href={`/api/export/managementbewertung.md?id=${r.id}`}
-												className="text-primary text-xs underline-offset-4 hover:underline"
+												className="text-primary text-footnote underline-offset-4 hover:underline"
 											>
 												{t("digestExport")}
 											</a>

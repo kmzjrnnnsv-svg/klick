@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { CRITICALITY } from "@/db/schema/enums";
@@ -65,8 +66,7 @@ const TRAFFIC_BG = {
 	amber: "bg-warning/15 border-warning/50",
 	green: "bg-success/10 border-success/40",
 } as const;
-const selectCls =
-	"h-9 w-full rounded-sm border border-input bg-background px-2 text-foreground text-sm";
+const selectCls = nativeSelectClass;
 const OUTSOURCING_FWS = ["kwg", "zag", "zag-marisk", "micar"];
 
 export function RatingWizard({
@@ -269,7 +269,7 @@ export function RatingWizard({
 	return (
 		<div className="flex flex-col gap-6">
 			<nav aria-label={t("stepsLabel")}>
-				<ol className="flex flex-wrap gap-1.5 text-xs">
+				<ol className="flex flex-wrap gap-1.5 text-footnote">
 					{STEPS.map((s, i) => (
 						<li key={s}>
 							<button
@@ -298,12 +298,14 @@ export function RatingWizard({
 
 			<header className="flex flex-col gap-1">
 				<h2 className="font-medium text-lg">{t(`q_${step}`)}</h2>
-				<p className="text-muted-foreground text-sm">{t(`lead_${step}`)}</p>
+				<p className="text-muted-foreground text-subhead">
+					{t(`lead_${step}`)}
+				</p>
 			</header>
 
 			{step === "steckbrief" && (
 				<div className="flex flex-col gap-6">
-					<dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-[12rem_1fr]">
+					<dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-subhead sm:grid-cols-[12rem_1fr]">
 						<dt className="text-muted-foreground">{tp("name")}</dt>
 						<dd className="font-medium">{provider.name}</dd>
 						<dt className="text-muted-foreground">{tp("partnerType")}</dt>
@@ -337,14 +339,14 @@ export function RatingWizard({
 						</select>
 					</div>
 					<fieldset className="flex flex-col gap-2">
-						<legend className="mb-1 font-medium text-sm">
+						<legend className="mb-1 font-medium text-subhead">
 							{t("criticality")}
 						</legend>
 						<div className="grid grid-cols-1 gap-2 md:grid-cols-3">
 							{(["critical", "important", "standard"] as const).map((k) => (
 								<label
 									key={k}
-									className="flex cursor-pointer flex-col gap-1 rounded-md border p-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50"
+									className="flex cursor-pointer flex-col gap-1 rounded-2xl bg-card p-3 text-subhead has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50"
 								>
 									<span className="flex items-center gap-2 font-medium">
 										<input
@@ -357,7 +359,7 @@ export function RatingWizard({
 										/>
 										{tp(`crit_${k}`)}
 									</span>
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{CRITICALITY_HELP[k]}
 									</span>
 								</label>
@@ -375,8 +377,10 @@ export function RatingWizard({
 						/>
 					)}
 					{showOutsourcing && (
-						<div className="flex flex-col gap-4 rounded-md border p-3">
-							<h3 className="font-medium text-sm">{t("outsourcingTitle")}</h3>
+						<div className="flex flex-col gap-4 rounded-2xl bg-card p-3">
+							<h3 className="font-medium text-subhead">
+								{t("outsourcingTitle")}
+							</h3>
 							<YesNo
 								name="inst"
 								legend={t("q_instituteTask")}
@@ -406,7 +410,7 @@ export function RatingWizard({
 								/>
 							)}
 							<p
-								className="rounded-md bg-muted/50 p-2 text-sm"
+								className="rounded-md bg-muted/50 p-2 text-subhead"
 								aria-live="polite"
 							>
 								{t(`outsourcing_${outs.label}`)}
@@ -435,11 +439,11 @@ export function RatingWizard({
 											legend={
 												<span className="flex flex-wrap items-center gap-2">
 													{c.title}
-													<span className="font-normal text-muted-foreground text-xs">
+													<span className="font-normal text-muted-foreground text-footnote">
 														{t("weight", { w: c.weight })}
 													</span>
 													{saving === c.code && (
-														<span className="font-normal text-muted-foreground text-xs">
+														<span className="font-normal text-muted-foreground text-footnote">
 															{t("saving")}
 														</span>
 													)}
@@ -484,13 +488,13 @@ export function RatingWizard({
 						)}
 					</ol>
 					{step === "sicherheit" && (
-						<aside className="flex flex-col gap-2 self-start rounded-md border p-3 text-sm">
+						<aside className="flex flex-col gap-2 self-start rounded-2xl bg-card p-3 text-subhead">
 							<h3 className="font-medium">{t("selfDisclosure")}</h3>
-							<p className="text-muted-foreground text-xs">
+							<p className="text-muted-foreground text-footnote">
 								{t("selfDisclosureLead")}
 							</p>
 							{questionnaires.length === 0 ? (
-								<p className="text-muted-foreground text-xs">
+								<p className="text-muted-foreground text-footnote">
 									{t("selfDisclosureNone")}
 								</p>
 							) : (
@@ -503,7 +507,7 @@ export function RatingWizard({
 											>
 												{q.code} · {q.title}
 											</Link>
-											<span className="block text-muted-foreground text-xs">
+											<span className="block text-muted-foreground text-footnote">
 												{q.rating
 													? t("questionnaireRated", {
 															rating: q.rating,
@@ -530,15 +534,17 @@ export function RatingWizard({
 								["total", sum.total],
 							] as const
 						).map(([k, v]) => (
-							<div key={k} className="rounded-md border p-3">
-								<p className="text-muted-foreground text-xs">{t(`res_${k}`)}</p>
+							<div key={k} className="rounded-2xl bg-card p-3">
+								<p className="text-muted-foreground text-footnote">
+									{t(`res_${k}`)}
+								</p>
 								<p className="font-medium text-2xl tabular-nums">
 									{v === null ? "—" : v.toFixed(2).replace(".", ",")}
 								</p>
 							</div>
 						))}
-						<div className="rounded-md border p-3">
-							<p className="text-muted-foreground text-xs">
+						<div className="rounded-2xl bg-card p-3">
+							<p className="text-muted-foreground text-footnote">
 								{t("res_percent")}
 							</p>
 							<p className="font-medium text-2xl tabular-nums">
@@ -549,7 +555,7 @@ export function RatingWizard({
 					{sum.level ? (
 						<div
 							className={cn(
-								"flex flex-col gap-1 rounded-md border p-4",
+								"flex flex-col gap-1 rounded-2xl bg-card p-4",
 								TRAFFIC_BG[sum.level.traffic],
 							)}
 						>
@@ -561,10 +567,10 @@ export function RatingWizard({
 									{sum.level.status}
 								</Badge>
 							</p>
-							<p className="text-sm">
+							<p className="text-subhead">
 								{t("recommendation", { text: sum.level.recommendation })}
 							</p>
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("reviewIn", {
 									months:
 										criticality === "critical"
@@ -574,10 +580,12 @@ export function RatingWizard({
 							</p>
 						</div>
 					) : (
-						<p className="rounded-md border p-3 text-sm">{t("noResult")}</p>
+						<p className="rounded-2xl bg-card p-3 text-subhead">
+							{t("noResult")}
+						</p>
 					)}
 					{sum.open.length > 0 && (
-						<div className="rounded-md border border-warning/50 p-3 text-sm">
+						<div className="rounded-xl bg-warning/12 p-3 text-subhead">
 							<p className="font-medium">
 								{t("openCriteria", { n: sum.open.length })}
 							</p>
@@ -603,7 +611,7 @@ export function RatingWizard({
 
 			{step === "massnahmen" && (
 				<div className="flex flex-col gap-4">
-					{!sum.level && <p className="text-sm">{t("noResult")}</p>}
+					{!sum.level && <p className="text-subhead">{t("noResult")}</p>}
 					<ul className="flex flex-col gap-2">
 						{[
 							...suggested,
@@ -639,7 +647,7 @@ export function RatingWizard({
 							/>
 						))}
 					</ul>
-					<details className="rounded-md border p-3 text-sm">
+					<details className="rounded-2xl bg-card p-3 text-subhead">
 						<summary className="cursor-pointer">{t("moreMeasures")}</summary>
 						<ul className="mt-3 flex flex-col gap-1.5">
 							{SUPPLIER_MEASURES.filter(
@@ -664,7 +672,7 @@ export function RatingWizard({
 										/>
 										<span>
 											{m.text}
-											<span className="block text-muted-foreground text-xs">
+											<span className="block text-muted-foreground text-footnote">
 												{m.hint}
 											</span>
 										</span>
@@ -681,7 +689,7 @@ export function RatingWizard({
 					{sum.level && (
 						<p
 							className={cn(
-								"rounded-md border p-3 text-sm",
+								"rounded-2xl bg-card p-3 text-subhead",
 								TRAFFIC_BG[sum.level.traffic],
 							)}
 						>
@@ -692,7 +700,7 @@ export function RatingWizard({
 						</p>
 					)}
 					<fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-						<legend className="mb-1 font-medium text-sm">
+						<legend className="mb-1 font-medium text-subhead">
 							{t("decision")}
 						</legend>
 						{(
@@ -700,7 +708,7 @@ export function RatingWizard({
 						).map((k) => (
 							<label
 								key={k}
-								className="flex cursor-pointer flex-col gap-1 rounded-md border p-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50"
+								className="flex cursor-pointer flex-col gap-1 rounded-2xl bg-card p-3 text-subhead has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50"
 							>
 								<span className="flex items-center gap-2 font-medium">
 									<input
@@ -712,7 +720,7 @@ export function RatingWizard({
 									/>
 									{t(`decision_${k}`)}
 								</span>
-								<span className="text-muted-foreground text-xs">
+								<span className="text-muted-foreground text-footnote">
 									{t(`decisionHint_${k}`)}
 								</span>
 							</label>
@@ -721,7 +729,7 @@ export function RatingWizard({
 					{sum.level?.traffic === "red" &&
 						(decision === "approved" ||
 							decision === "approved_with_conditions") && (
-							<p className="rounded-md border border-warning/50 bg-warning/10 p-2 text-sm">
+							<p className="rounded-xl bg-warning/12 p-2 text-subhead">
 								{t("redNeedsManagement")}
 							</p>
 						)}
@@ -734,7 +742,7 @@ export function RatingWizard({
 							onChange={(e) => setNote(e.target.value)}
 						/>
 					</div>
-					<details className="text-sm">
+					<details className="text-subhead">
 						<summary className="cursor-pointer text-muted-foreground">
 							{t("soloTitle")}
 						</summary>
@@ -747,7 +755,7 @@ export function RatingWizard({
 							onChange={(e) => setSoloReason(e.target.value)}
 						/>
 					</details>
-					<p className="text-muted-foreground text-xs">
+					<p className="text-muted-foreground text-footnote">
 						{t("measuresPicked", {
 							n: SUPPLIER_MEASURES.filter((m) => isPicked(m.code)).length,
 						})}
@@ -755,7 +763,7 @@ export function RatingWizard({
 				</div>
 			)}
 
-			<footer className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t bg-background py-3">
+			<footer className="sticky bottom-(--bar-offset) flex flex-wrap items-center justify-between gap-3 border-t material-bar py-3">
 				<span className="flex gap-2">
 					<Button
 						type="button"
@@ -842,13 +850,13 @@ function YesNo({
 }) {
 	return (
 		<fieldset className="flex flex-col gap-1">
-			<legend className="font-medium text-sm">{legend}</legend>
-			{hint && <p className="text-muted-foreground text-xs">{hint}</p>}
+			<legend className="font-medium text-subhead">{legend}</legend>
+			{hint && <p className="text-muted-foreground text-footnote">{hint}</p>}
 			<div className="mt-1 flex gap-2">
 				{([true, false] as const).map((v) => (
 					<label
 						key={String(v)}
-						className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+						className="flex cursor-pointer items-center gap-2 rounded-xl bg-card px-3 py-1.5 text-subhead has-[:checked]:border-primary has-[:checked]:bg-primary/5"
 					>
 						<input
 							type="radio"
@@ -885,7 +893,7 @@ function MeasureRow({
 	onChange: (v: { on?: boolean; owner?: string; due?: string }) => void;
 }) {
 	return (
-		<li className="grid grid-cols-1 gap-2 rounded-md border p-2 text-sm md:grid-cols-[1fr_12rem_10rem]">
+		<li className="grid grid-cols-1 gap-2 rounded-2xl bg-card p-2 text-subhead md:grid-cols-[1fr_12rem_10rem]">
 			<label className="flex cursor-pointer items-start gap-2">
 				<input
 					type="checkbox"
@@ -895,7 +903,9 @@ function MeasureRow({
 				/>
 				<span>
 					{text}
-					<span className="block text-muted-foreground text-xs">{hint}</span>
+					<span className="block text-muted-foreground text-footnote">
+						{hint}
+					</span>
 				</span>
 			</label>
 			<select

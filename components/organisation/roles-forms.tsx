@@ -267,20 +267,22 @@ export function RoleAssignmentForm({
 						value={d.appointmentNotes ?? ""}
 						onChange={(e) => setD({ ...d, appointmentNotes: e.target.value })}
 					/>
-					<p className="text-muted-foreground text-xs">
+					<p className="text-muted-foreground text-footnote">
 						{t("appointmentNotesHint")}
 					</p>
 				</div>
 			)}
 			{showFitProper && (
-				<fieldset className="flex flex-col gap-2 rounded-md border p-3">
-					<legend className="lv-eyebrow px-1 text-[0.7rem] text-muted-foreground">
+				<fieldset className="flex flex-col gap-2 rounded-2xl bg-card p-3">
+					<legend className="font-medium text-footnote px-1 text-footnote text-muted-foreground">
 						{t("fitProperChecklist")}
 					</legend>
-					<p className="text-muted-foreground text-xs">{t("fitProperLead")}</p>
+					<p className="text-muted-foreground text-footnote">
+						{t("fitProperLead")}
+					</p>
 					<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 						{CHECKLIST_KEYS.map((k) => (
-							<label key={k} className="flex items-center gap-2 text-sm">
+							<label key={k} className="flex items-center gap-2 text-subhead">
 								<Checkbox
 									checked={checklist[k]}
 									onCheckedChange={(v) =>
@@ -768,7 +770,9 @@ export function ObjectiveForm({
 					onChange={(v) => setD({ ...d, alertAt: num(v) })}
 				/>
 			</div>
-			<p className="text-muted-foreground text-xs">{t("indicatorHint")}</p>
+			<p className="text-muted-foreground text-footnote">
+				{t("indicatorHint")}
+			</p>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<Field
 					id="ob-kpi"
@@ -824,8 +828,8 @@ export function ObjectiveForm({
 					members={members}
 				/>
 			</div>
-			<fieldset className="flex flex-wrap gap-3 text-sm">
-				<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+			<fieldset className="flex flex-wrap gap-3 text-subhead">
+				<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 					{t("frameworks")}
 				</legend>
 				{frameworks.map((f) => (
@@ -877,7 +881,7 @@ export function MeasurementForm({
 	return (
 		<div className="flex flex-col items-end gap-1">
 			{suggestion && (
-				<p className="flex flex-wrap items-center justify-end gap-2 text-muted-foreground text-xs">
+				<p className="flex flex-wrap items-center justify-end gap-2 text-muted-foreground text-footnote">
 					<span>
 						{t("suggestion", {
 							value: `${fmt.format(suggestion.value)}${unit ? ` ${unit}` : ""}`,
@@ -888,7 +892,7 @@ export function MeasurementForm({
 						type="button"
 						size="sm"
 						variant="ghost"
-						className="h-7 normal-case tracking-normal"
+						className="h-7"
 						onClick={() => setValue(fmt.format(suggestion.value))}
 					>
 						{t("suggestionApply")}

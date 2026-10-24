@@ -17,8 +17,10 @@ export default async function PrivacyPage() {
 	return (
 		<article className="flex flex-col gap-8 leading-relaxed">
 			<div className="flex flex-col gap-2">
-				<h1 className="font-serif-display text-3xl">{t("privacy")}</h1>
-				<p className="text-muted-foreground text-sm">Stand: {PRIVACY_AS_OF}</p>
+				<h1 className="font-bold text-title-1">{t("privacy")}</h1>
+				<p className="text-muted-foreground text-subhead">
+					Stand: {PRIVACY_AS_OF}
+				</p>
 			</div>
 			<section className="flex flex-col gap-2">
 				<h2 className="font-medium text-lg">1. Wer ist verantwortlich?</h2>

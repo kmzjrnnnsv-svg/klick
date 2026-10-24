@@ -102,11 +102,7 @@ export function AssetForm({
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				{trigger === "link" ? (
-					<Button
-						size="sm"
-						variant="ghost"
-						className="normal-case tracking-normal"
-					>
+					<Button size="sm" variant="ghost" className="">
 						{tc("edit")}
 					</Button>
 				) : (
@@ -275,7 +271,7 @@ export function AssetForm({
 								onChange={(e) => set("location", e.target.value)}
 							/>
 						</div>
-						<label className="flex items-center gap-2 self-end text-sm">
+						<label className="flex items-center gap-2 self-end text-subhead">
 							<Checkbox
 								checked={d.isLegacy}
 								onCheckedChange={(v) => set("isLegacy", Boolean(v))}
@@ -313,7 +309,7 @@ export function AssetForm({
 						)}
 					</div>
 					<fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-						<legend className="lv-eyebrow mb-1 text-[0.7rem] text-muted-foreground">
+						<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
 							{t("lifecycle")}
 						</legend>
 						<div className="flex flex-col gap-1.5">

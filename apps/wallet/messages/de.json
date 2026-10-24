@@ -132,7 +132,10 @@
 		"addressBook": "Adressbuch",
 		"security": "Sicherheit",
 		"groupOrg": "Organisation",
-		"export": "Compliance-Export"
+		"export": "Compliance-Export",
+		"settings": "Einstellungen",
+		"groupWallet": "Wallet",
+		"tabBar": "Bereiche"
 	},
 	"StepUp": {
 		"title": "Kurz bestätigen",

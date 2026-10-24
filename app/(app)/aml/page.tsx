@@ -243,7 +243,7 @@ export default async function AmlPage({
 	const ControlList = ({ codes }: { codes: string[] }) => {
 		const rows = "controls" in data ? data.controls : [];
 		return (
-			<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 				{codes.map((code) => {
 					const row = rows.find((r) => r.code === code);
 					const meta = CONTROL_BY_CODE.get(code);
@@ -255,7 +255,7 @@ export default async function AmlPage({
 							<span>
 								<Link
 									href={`/controls/${code}`}
-									className="font-mono text-xs hover:underline underline-offset-4"
+									className="font-mono text-footnote hover:underline underline-offset-4"
 								>
 									{code}
 								</Link>{" "}
@@ -277,7 +277,7 @@ export default async function AmlPage({
 	const DocList = ({ codes }: { codes: string[] }) => {
 		const docs = "documents" in data ? data.documents : [];
 		return (
-			<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 				{codes.map((code) => {
 					const tpl = TEMPLATE_BY_CODE.get(code);
 					const doc = docs.find((d) => d.templateCode === code);
@@ -292,7 +292,9 @@ export default async function AmlPage({
 										href={`/dokumente/${encodeURIComponent(doc.docNumber)}`}
 										className="hover:underline underline-offset-4"
 									>
-										<span className="font-mono text-xs">{doc.docNumber}</span>{" "}
+										<span className="font-mono text-footnote">
+											{doc.docNumber}
+										</span>{" "}
 										{doc.title}
 									</Link>
 								) : (
@@ -312,7 +314,7 @@ export default async function AmlPage({
 							) : (
 								<Link
 									href="/dokumente"
-									className="text-primary text-xs hover:underline"
+									className="text-primary text-footnote hover:underline"
 								>
 									{t("docMissing")}
 								</Link>
@@ -363,11 +365,13 @@ export default async function AmlPage({
 
 			{tab === "risikoanalyse" && "analyses" in data && (
 				<section className="flex flex-col gap-3">
-					<p className="text-muted-foreground text-sm">{t("analysisLead")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("analysisLead")}
+					</p>
 					{(() => {
 						const valid = data.analyses.find((a) => a.status === "approved");
 						return (
-							<p className="text-sm">
+							<p className="text-subhead">
 								{valid ? (
 									<>
 										<Badge variant="success">{t("validAnalysis")}</Badge>{" "}
@@ -413,7 +417,7 @@ export default async function AmlPage({
 									const dims = a.dimensions as unknown as RiskDimensions;
 									return (
 										<TableRow key={a.id}>
-											<TableCell className="whitespace-nowrap font-mono text-xs">
+											<TableCell className="whitespace-nowrap font-mono text-footnote">
 												{a.version}
 											</TableCell>
 											<TableCell>
@@ -448,7 +452,7 @@ export default async function AmlPage({
 													"—"
 												)}
 											</TableCell>
-											<TableCell className="text-xs">
+											<TableCell className="text-footnote">
 												{(
 													["customer", "product", "country", "channel"] as const
 												).map((k) => (
@@ -465,7 +469,7 @@ export default async function AmlPage({
 											<TableCell>
 												<UserChip name={a.ownerName} />
 											</TableCell>
-											<TableCell className="text-xs">
+											<TableCell className="text-footnote">
 												{a.approvedAt ? (
 													<>
 														{fmtDate.format(a.approvedAt)}
@@ -503,7 +507,7 @@ export default async function AmlPage({
 													{a.status === "in_review" && (
 														<Link
 															href="/heute/freigaben"
-															className="text-primary text-xs hover:underline"
+															className="text-primary text-footnote hover:underline"
 														>
 															{ts("approvalPending")}
 														</Link>
@@ -522,17 +526,17 @@ export default async function AmlPage({
 			{tab === "sorgfalt" && "controls" in data && (
 				<section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 					<div className="flex flex-col gap-3">
-						<p className="text-muted-foreground text-sm">{t("ddLead")}</p>
-						<h2 className="font-medium text-sm">{t("controls")}</h2>
+						<p className="text-muted-foreground text-subhead">{t("ddLead")}</p>
+						<h2 className="font-medium text-subhead">{t("controls")}</h2>
 						<ControlList codes={DD_CONTROLS} />
-						<h2 className="mt-2 font-medium text-sm">{t("documents")}</h2>
+						<h2 className="mt-2 font-medium text-subhead">{t("documents")}</h2>
 						<DocList codes={DD_DOCS} />
 					</div>
 					<div className="flex flex-col gap-3">
-						<h2 className="font-medium text-sm">{t("legalChanges")}</h2>
-						<div className="rounded-md border border-dashed p-3 text-sm">
+						<h2 className="font-medium text-subhead">{t("legalChanges")}</h2>
+						<div className="rounded-2xl bg-card p-3 text-subhead">
 							<p>{t("amlrHint")}</p>
-							<ul className="mt-2 flex flex-col gap-1 text-muted-foreground text-xs">
+							<ul className="mt-2 flex flex-col gap-1 text-muted-foreground text-footnote">
 								{legal.map((c) => (
 									<li key={`${c.date}-${c.title}`}>
 										<span className="font-medium text-foreground">
@@ -544,13 +548,15 @@ export default async function AmlPage({
 							</ul>
 							<Link
 								href="/kalender?tab=legal"
-								className="mt-2 inline-block text-primary text-xs hover:underline"
+								className="mt-2 inline-block text-primary text-footnote hover:underline"
 							>
 								{t("toCalendar")}
 							</Link>
 						</div>
-						<h2 className="mt-2 font-medium text-sm">{t("providersTitle")}</h2>
-						<p className="text-muted-foreground text-sm">
+						<h2 className="mt-2 font-medium text-subhead">
+							{t("providersTitle")}
+						</h2>
+						<p className="text-muted-foreground text-subhead">
 							{t("providersHint")}{" "}
 							<Link
 								href="/dienstleister?tab=werkzeuge"
@@ -565,7 +571,9 @@ export default async function AmlPage({
 
 			{tab === "monitoring" && "rules" in data && (
 				<section className="flex flex-col gap-3">
-					<p className="text-muted-foreground text-sm">{t("monitoringLead")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("monitoringLead")}
+					</p>
 					<ControlList codes={MON_CONTROLS} />
 					{data.rules.length === 0 ? (
 						<EmptyState
@@ -596,29 +604,29 @@ export default async function AmlPage({
 							<TableBody>
 								{data.rules.map((r) => (
 									<TableRow key={r.id}>
-										<TableCell className="whitespace-nowrap font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-footnote">
 											{r.code}
 										</TableCell>
 										<TableCell>
 											<p>{r.description}</p>
 											{r.legalBasis && (
-												<p className="text-muted-foreground text-xs">
+												<p className="text-muted-foreground text-footnote">
 													{r.legalBasis}
 												</p>
 											)}
 											{r.rationale && (
-												<p className="line-clamp-2 text-muted-foreground text-xs">
+												<p className="line-clamp-2 text-muted-foreground text-footnote">
 													{r.rationale}
 												</p>
 											)}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{r.threshold ?? "—"}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{r.falsePositiveRate ? `${r.falsePositiveRate} %` : "—"}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{r.lastTunedAt
 												? fmtDate.format(new Date(`${r.lastTunedAt}T00:00:00Z`))
 												: "—"}
@@ -668,8 +676,10 @@ export default async function AmlPage({
 
 			{tab === "verdacht" && "notes" in data && (
 				<section className="flex flex-col gap-3">
-					<p className="text-muted-foreground text-sm">{t("reportsLead")}</p>
-					<div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-5">
+					<p className="text-muted-foreground text-subhead">
+						{t("reportsLead")}
+					</p>
+					<div className="grid grid-cols-1 gap-3 text-subhead sm:grid-cols-5">
 						{(
 							[
 								["statsOpen", data.stats.open, data.stats.open > 0],
@@ -679,12 +689,12 @@ export default async function AmlPage({
 								["statsAvgDays", data.stats.avgDecisionDays ?? "—", false],
 							] as const
 						).map(([key, value, warn]) => (
-							<div key={key} className="rounded-md border p-3">
-								<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+							<div key={key} className="rounded-2xl bg-card p-3">
+								<p className="font-medium text-footnote text-muted-foreground">
 									{t(key)}
 								</p>
 								<p
-									className={`font-serif-display text-2xl ${warn ? "text-destructive" : "text-primary"}`}
+									className={`font-bold text-title-2 ${warn ? "text-destructive" : "text-primary"}`}
 								>
 									{value}
 								</p>
@@ -692,7 +702,7 @@ export default async function AmlPage({
 						))}
 					</div>
 					{!detail ? (
-						<p className="rounded-md border border-dashed p-3 text-sm">
+						<p className="rounded-2xl bg-card p-3 text-subhead">
 							{t("aggregatedOnly")}
 						</p>
 					) : data.reports.length === 0 ? (
@@ -722,7 +732,7 @@ export default async function AmlPage({
 							<TableBody>
 								{data.reports.map((r, i) => (
 									<TableRow key={r.id}>
-										<TableCell className="font-mono text-xs">
+										<TableCell className="font-mono text-footnote">
 											{r.internalRef}
 											{r.externalRef && (
 												<p className="text-muted-foreground">{r.externalRef}</p>
@@ -731,18 +741,18 @@ export default async function AmlPage({
 										<TableCell>
 											<Badge variant="outline">{t(`kind_${r.kind}`)}</Badge>
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{fmtTs.format(r.detectedAt)}
 										</TableCell>
 										<TableCell>
 											<p>{r.category ?? "—"}</p>
 											{data.notes[i] && (
-												<p className="line-clamp-2 text-muted-foreground text-xs">
+												<p className="line-clamp-2 text-muted-foreground text-footnote">
 													{data.notes[i]}
 												</p>
 											)}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{r.holdUntil ? (
 												<Badge
 													variant={r.holdUntil > now ? "warning" : "muted"}
@@ -803,7 +813,9 @@ export default async function AmlPage({
 
 			{tab === "laender" && "jurisdictions" in data && (
 				<section className="flex flex-col gap-4">
-					<p className="text-muted-foreground text-sm">{t("countriesLead")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("countriesLead")}
+					</p>
 					{data.jurisdictions.length === 0 ? (
 						<EmptyState
 							title={t("countriesEmpty")}
@@ -834,13 +846,13 @@ export default async function AmlPage({
 							<TableBody>
 								{data.jurisdictions.map((j) => (
 									<TableRow key={j.id}>
-										<TableCell className="whitespace-nowrap font-mono text-xs">
+										<TableCell className="whitespace-nowrap font-mono text-footnote">
 											{j.iso2}
 										</TableCell>
 										<TableCell>
 											<p className="font-medium">{j.name}</p>
 											{j.legalNotes && (
-												<p className="line-clamp-2 text-muted-foreground text-xs">
+												<p className="line-clamp-2 text-muted-foreground text-footnote">
 													{j.legalNotes}
 												</p>
 											)}
@@ -884,7 +896,9 @@ export default async function AmlPage({
 										</TableCell>
 										<TableCell>
 											{j.corridorStatus === "none" ? (
-												<span className="text-muted-foreground text-xs">—</span>
+												<span className="text-muted-foreground text-footnote">
+													—
+												</span>
 											) : (
 												<Badge
 													variant={
@@ -897,7 +911,7 @@ export default async function AmlPage({
 												</Badge>
 											)}
 										</TableCell>
-										<TableCell className="text-xs">
+										<TableCell className="text-footnote">
 											{j.reviewedAt
 												? fmtDate.format(new Date(`${j.reviewedAt}T00:00:00Z`))
 												: "—"}
@@ -932,7 +946,7 @@ export default async function AmlPage({
 							</TableBody>
 						</Table>
 					)}
-					<details className="rounded-md border p-3 text-sm">
+					<details className="rounded-2xl bg-card p-3 text-subhead">
 						<summary className="cursor-pointer font-medium">
 							{t("corridorStepsTitle")}
 						</summary>
@@ -943,14 +957,14 @@ export default async function AmlPage({
 							{CORRIDOR_STEPS.map((s) => (
 								<li key={s.order} className="py-0.5">
 									<span className="font-medium">{s.title}</span>{" "}
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										· {tf(s.ownerFunction)} · +{s.offsetDays} d
 									</span>
 								</li>
 							))}
 						</ol>
 						<p className="mt-3 font-medium">{t("dossierTitle")}</p>
-						<ol className="mt-1 list-decimal pl-5 text-muted-foreground text-xs">
+						<ol className="mt-1 list-decimal pl-5 text-muted-foreground text-footnote">
 							{CORRIDOR_DOSSIER_QUESTIONS.map((q) => (
 								<li key={q}>{q}</li>
 							))}
@@ -962,19 +976,21 @@ export default async function AmlPage({
 			{tab === "travel-rule" && "assets" in data && (
 				<section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 					<div className="flex flex-col gap-3">
-						<p className="text-muted-foreground text-sm">{t("travelLead")}</p>
-						<h2 className="font-medium text-sm">{t("controls")}</h2>
+						<p className="text-muted-foreground text-subhead">
+							{t("travelLead")}
+						</p>
+						<h2 className="font-medium text-subhead">{t("controls")}</h2>
 						<ControlList codes={TR_CONTROLS} />
-						<h2 className="mt-2 font-medium text-sm">{t("documents")}</h2>
+						<h2 className="mt-2 font-medium text-subhead">{t("documents")}</h2>
 						<DocList codes={TR_DOCS} />
-						<p className="rounded-md border border-dashed p-3 text-muted-foreground text-xs">
+						<p className="rounded-2xl bg-card p-3 text-muted-foreground text-footnote">
 							{t("selfHostedHint")}
 						</p>
 					</div>
 					<div className="flex flex-col gap-3">
-						<h2 className="font-medium text-sm">{t("acceptedAssets")}</h2>
+						<h2 className="font-medium text-subhead">{t("acceptedAssets")}</h2>
 						{data.assets.filter((a) => a.accepted).length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("noAssets")}{" "}
 								<Link
 									href="/kryptowerte"
@@ -984,7 +1000,7 @@ export default async function AmlPage({
 								</Link>
 							</p>
 						) : (
-							<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 								{data.assets
 									.filter((a) => a.accepted)
 									.map((a) => (
@@ -993,17 +1009,21 @@ export default async function AmlPage({
 											className="flex items-center justify-between gap-3 p-2.5"
 										>
 											<span>
-												<span className="font-mono text-xs">{a.symbol}</span>{" "}
+												<span className="font-mono text-footnote">
+													{a.symbol}
+												</span>{" "}
 												{a.name}
 											</span>
-											<span className="text-muted-foreground text-xs">
+											<span className="text-muted-foreground text-footnote">
 												{(a.networks ?? []).join(", ") || "—"}
 											</span>
 										</li>
 									))}
 							</ul>
 						)}
-						<h2 className="mt-2 font-medium text-sm">{t("corridorsActive")}</h2>
+						<h2 className="mt-2 font-medium text-subhead">
+							{t("corridorsActive")}
+						</h2>
 						<ul className="flex flex-wrap gap-1">
 							{data.jurisdictions
 								.filter((j) => j.corridorStatus !== "none")
@@ -1019,7 +1039,7 @@ export default async function AmlPage({
 									</li>
 								))}
 							{data.jurisdictions.every((j) => j.corridorStatus === "none") && (
-								<li className="text-muted-foreground text-sm">—</li>
+								<li className="text-muted-foreground text-subhead">—</li>
 							)}
 						</ul>
 					</div>
@@ -1029,10 +1049,12 @@ export default async function AmlPage({
 			{tab === "schulung" && "runs" in data && (
 				<section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 					<div className="flex flex-col gap-3">
-						<p className="text-muted-foreground text-sm">{t("trainingLead")}</p>
-						<h2 className="font-medium text-sm">{t("gwgRequirements")}</h2>
+						<p className="text-muted-foreground text-subhead">
+							{t("trainingLead")}
+						</p>
+						<h2 className="font-medium text-subhead">{t("gwgRequirements")}</h2>
 						{data.requirements.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("noRequirements")}{" "}
 								<Link
 									href="/schulungen"
@@ -1042,17 +1064,17 @@ export default async function AmlPage({
 								</Link>
 							</p>
 						) : (
-							<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 								{data.requirements.map((r) => (
 									<li
 										key={r.id}
 										className="flex items-center justify-between gap-3 p-2.5"
 									>
 										<span>
-											<span className="font-mono text-xs">{r.code}</span>{" "}
+											<span className="font-mono text-footnote">{r.code}</span>{" "}
 											{r.title}
 										</span>
-										<span className="text-muted-foreground text-xs">
+										<span className="text-muted-foreground text-footnote">
 											{r.function ? tf(r.function) : "—"} · {r.frequencyMonths}{" "}
 											M
 										</span>
@@ -1060,7 +1082,7 @@ export default async function AmlPage({
 								))}
 							</ul>
 						)}
-						<h2 className="mt-2 font-medium text-sm">
+						<h2 className="mt-2 font-medium text-subhead">
 							{t("trainingsLast12", {
 								n: data.trainings.filter(
 									(x) =>
@@ -1069,14 +1091,14 @@ export default async function AmlPage({
 								).length,
 							})}
 						</h2>
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.trainings.slice(0, 8).map((x) => (
 								<li
 									key={x.id}
 									className="flex items-center justify-between gap-3 p-2.5"
 								>
 									<span>{x.title}</span>
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{fmtDate.format(new Date(`${x.heldAt}T00:00:00Z`))} ·{" "}
 										{x.attendeeUserIds?.length ?? 0}
 									</span>
@@ -1088,16 +1110,18 @@ export default async function AmlPage({
 						</ul>
 					</div>
 					<div className="flex flex-col gap-3">
-						<h2 className="font-medium text-sm">{t("obligationsTitle")}</h2>
+						<h2 className="font-medium text-subhead">
+							{t("obligationsTitle")}
+						</h2>
 						{data.runs.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{t("noRuns")}{" "}
 								<Link href="/kalender" className="text-primary hover:underline">
 									/kalender
 								</Link>
 							</p>
 						) : (
-							<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 								{data.runs.map((r) => (
 									<li
 										key={r.id}
@@ -1105,7 +1129,7 @@ export default async function AmlPage({
 									>
 										<span>
 											{r.title}
-											<span className="block text-muted-foreground text-xs">
+											<span className="block text-muted-foreground text-footnote">
 												{r.periodLabel} · {t("dueAt")}{" "}
 												{fmtDate.format(new Date(`${r.dueAt}T00:00:00Z`))}
 											</span>
@@ -1127,8 +1151,10 @@ export default async function AmlPage({
 								))}
 							</ul>
 						)}
-						<h2 className="mt-2 font-medium text-sm">{t("reportFigures")}</h2>
-						<dl className="grid grid-cols-2 gap-2 rounded-md border p-3 text-sm">
+						<h2 className="mt-2 font-medium text-subhead">
+							{t("reportFigures")}
+						</h2>
+						<dl className="grid grid-cols-2 gap-2 rounded-2xl bg-card p-3 text-subhead">
 							<dt className="text-muted-foreground">{t("figAnalysis")}</dt>
 							<dd>
 								{data.analyses.some((a) => a.status === "approved")

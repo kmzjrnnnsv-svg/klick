@@ -20,12 +20,32 @@ export function walletMail(input: {
 		input.body,
 		...(input.cta ? ["", `${input.cta.label}: ${input.cta.url}`] : []),
 	].join("\n");
-	const html = `<div style="font-family:system-ui,sans-serif;max-width:560px;color:#1c1c1c">
-<p style="font-size:20px;color:#004296;margin:0 0 16px">both.money</p>
-<h1 style="font-size:18px;margin:0 0 12px">${escapeHtml(input.title)}</h1>
-<div style="font-size:15px;line-height:1.5">${textToHtml(input.body)}</div>
-${input.cta ? `<p style="margin:20px 0"><a href="${escapeHtml(input.cta.url)}" style="background:#004296;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">${escapeHtml(input.cta.label)}</a></p>` : ""}
-</div>`;
+	// Stil wie die App (Apple HIG): systemgrauer Grund, weiße Karte,
+	// Systemschrift, Knopf als Kapsel im Akzentblau
+	const cta =
+		input.cta && /^https?:\/\//i.test(input.cta.url) ? input.cta : null;
+	const html = `<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeHtml(input.subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:#f2f2f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#1c1c1e">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f2f7;padding:40px 16px">
+<tr><td align="center">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%">
+<tr><td style="padding:0 8px 20px 8px;text-align:center"><p style="margin:0;font-size:17px;font-weight:700;color:#1c1c1e">both.money</p></td></tr>
+<tr><td style="background:#ffffff;border-radius:16px;padding:32px 28px">
+<h1 style="margin:0;font-size:22px;line-height:28px;font-weight:700;color:#1c1c1e">${escapeHtml(input.title)}</h1>
+<div style="margin:12px 0 0 0;font-size:16px;line-height:1.45;color:#1c1c1e">${textToHtml(input.body)}</div>
+${cta ? `<p style="margin:28px 0 0 0"><a href="${escapeHtml(cta.url)}" style="display:inline-block;background:#0a63d6;color:#ffffff;padding:12px 24px;border-radius:999px;text-decoration:none;font-size:16px;font-weight:600">${escapeHtml(cta.label)}</a></p>` : ""}
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
 	return { subject: input.subject, text, html };
 }
 

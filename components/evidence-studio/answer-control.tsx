@@ -55,7 +55,7 @@ export function AnswerControl({
 						disabled={disabled || pending}
 						onClick={() => setAnswer(answer === a ? null : a)}
 						className={cn(
-							"rounded-md border px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
+							"rounded-full bg-muted px-3 py-1 font-medium text-footnote transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
 							answer === a
 								? a === "yes"
 									? "border-success bg-success/10 text-foreground"
@@ -78,7 +78,7 @@ export function AnswerControl({
 					rows={2}
 					maxLength={4000}
 					disabled={disabled || pending}
-					className="min-h-0 text-sm"
+					className="min-h-0 text-subhead"
 				/>
 			)}
 			{dirty && !disabled && (

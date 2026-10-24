@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { updateSupplierMethod } from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,7 +79,7 @@ export function SupplierMethodPanel({
 
 	return (
 		<form
-			className="flex flex-col gap-8 text-sm"
+			className="flex flex-col gap-8 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {
@@ -139,10 +139,12 @@ export function SupplierMethodPanel({
 				<h3 id="sm-crit" className="font-medium">
 					2 · {t("criteriaTitle")}
 				</h3>
-				<p className="text-muted-foreground text-xs">{t("criteriaLead")}</p>
+				<p className="text-muted-foreground text-footnote">
+					{t("criteriaLead")}
+				</p>
 				{(["general", "security"] as const).map((area) => (
 					<div key={area} className="flex flex-col gap-2">
-						<h4 className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+						<h4 className="font-medium text-footnote text-muted-foreground">
 							{t(`area_${area}`)} ·{" "}
 							{t("baseSum", { sum: sumOf(area).toFixed(2) })}
 						</h4>
@@ -150,7 +152,7 @@ export function SupplierMethodPanel({
 							{d.criteria
 								.filter((c) => c.area === area)
 								.map((c) => (
-									<li key={c.code} className="rounded-md border">
+									<li key={c.code} className="rounded-xl bg-muted/50">
 										<details>
 											<summary className="flex cursor-pointer flex-wrap items-center gap-3 px-3 py-2">
 												<span
@@ -162,7 +164,7 @@ export function SupplierMethodPanel({
 													{c.title}
 												</span>
 												{(c.frameworks || c.partnerTypes) && (
-													<span className="text-muted-foreground text-xs">
+													<span className="text-muted-foreground text-footnote">
 														{t("addon", {
 															scope: [
 																...(c.frameworks ?? []),
@@ -171,7 +173,7 @@ export function SupplierMethodPanel({
 														})}
 													</span>
 												)}
-												<span className="text-muted-foreground text-xs tabular-nums">
+												<span className="text-muted-foreground text-footnote tabular-nums">
 													{t("weightShort", { w: c.weight })}
 												</span>
 											</summary>
@@ -225,12 +227,12 @@ export function SupplierMethodPanel({
 												<ol className="grid grid-cols-1 gap-2 sm:grid-cols-5">
 													{[1, 2, 3, 4, 5].map((level) => (
 														<li key={level} className="flex flex-col gap-1">
-															<span className="text-muted-foreground text-xs">
+															<span className="text-muted-foreground text-footnote">
 																{level}
 															</span>
 															<Textarea
 																aria-label={`${c.title} – ${level}`}
-																className="min-h-16 text-xs"
+																className="min-h-16 text-footnote"
 																value={c.anchors[level - 1] ?? ""}
 																maxLength={400}
 																disabled={!canEdit}
@@ -258,18 +260,20 @@ export function SupplierMethodPanel({
 				<h3 id="sm-thr" className="font-medium">
 					3 · {t("thresholdsTitle")}
 				</h3>
-				<p className="text-muted-foreground text-xs">{t("thresholdsLead")}</p>
+				<p className="text-muted-foreground text-footnote">
+					{t("thresholdsLead")}
+				</p>
 				<ol className="flex flex-col gap-2">
 					{d.thresholds.map((th, i) => (
 						<li
 							key={thresholdKeys[i]}
 							className={cn(
-								"grid gap-2 rounded-md border p-2 md:grid-cols-[6rem_9rem_8rem_1fr_6rem]",
+								"grid gap-2 rounded-2xl bg-card p-2 md:grid-cols-[6rem_9rem_8rem_1fr_6rem]",
 								TRAFFIC_CLS[th.traffic],
 							)}
 						>
 							<div className="flex flex-col gap-1">
-								<Label htmlFor={`sm-min-${i}`} className="text-xs">
+								<Label htmlFor={`sm-min-${i}`} className="text-footnote">
 									{t("from")}
 								</Label>
 								<Input
@@ -285,7 +289,7 @@ export function SupplierMethodPanel({
 								/>
 							</div>
 							<div className="flex flex-col gap-1">
-								<Label htmlFor={`sm-lvl-${i}`} className="text-xs">
+								<Label htmlFor={`sm-lvl-${i}`} className="text-footnote">
 									{t("level")}
 								</Label>
 								<Input
@@ -297,12 +301,12 @@ export function SupplierMethodPanel({
 								/>
 							</div>
 							<div className="flex flex-col gap-1">
-								<Label htmlFor={`sm-tr-${i}`} className="text-xs">
+								<Label htmlFor={`sm-tr-${i}`} className="text-footnote">
 									{t("traffic")}
 								</Label>
 								<select
 									id={`sm-tr-${i}`}
-									className="h-9 rounded-sm border border-input bg-background px-2 text-foreground"
+									className={nativeSelectClass}
 									value={th.traffic}
 									disabled={!canEdit}
 									onChange={(e) =>
@@ -319,7 +323,7 @@ export function SupplierMethodPanel({
 								</select>
 							</div>
 							<div className="flex flex-col gap-1">
-								<Label htmlFor={`sm-rec-${i}`} className="text-xs">
+								<Label htmlFor={`sm-rec-${i}`} className="text-footnote">
 									{t("recommendation")}
 								</Label>
 								<Input
@@ -336,7 +340,7 @@ export function SupplierMethodPanel({
 								/>
 							</div>
 							<div className="flex flex-col gap-1">
-								<Label htmlFor={`sm-mo-${i}`} className="text-xs">
+								<Label htmlFor={`sm-mo-${i}`} className="text-footnote">
 									{t("months")}
 								</Label>
 								<Input
@@ -376,7 +380,7 @@ export function SupplierMethodPanel({
 			</section>
 
 			{canEdit && (
-				<div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 border-t bg-background py-3">
+				<div className="sticky bottom-(--bar-offset) flex flex-wrap items-center justify-end gap-2 border-t material-bar py-3">
 					<Button
 						type="button"
 						size="sm"

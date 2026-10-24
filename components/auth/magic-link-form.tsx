@@ -76,7 +76,7 @@ export function MagicLinkForm({
 				{busy ? t("sendingLink") : t("sendLink")}
 			</Button>
 			{signupAllowed && (
-				<p className="text-muted-foreground text-xs">{t("signupHint")}</p>
+				<p className="text-muted-foreground text-footnote">{t("signupHint")}</p>
 			)}
 		</form>
 	);

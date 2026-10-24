@@ -194,19 +194,19 @@ export default async function ProductPage({
 						}
 					>
 						{data.tasks.length === 0 ? (
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-subhead">
 								{te("tasksEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col gap-2 text-sm">
+							<ul className="flex flex-col gap-2 text-subhead">
 								{data.tasks.map((task) => (
 									<li
 										key={task.id}
-										className="flex items-start justify-between gap-2 rounded-md border p-2"
+										className="flex items-start justify-between gap-2 rounded-2xl bg-card p-2"
 									>
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
-											<p className="text-muted-foreground text-xs">
+											<p className="text-muted-foreground text-footnote">
 												{task.assigneeName ?? "—"}
 												{task.dueAt ? ` · ${task.dueAt}` : ""}
 											</p>
@@ -258,13 +258,13 @@ export default async function ProductPage({
 				<>
 					<Section title={t("craChecks")}>
 						{cra.state === "out_of_scope" ? (
-							<p className="text-sm">{t("outOfScopeLead")}</p>
+							<p className="text-subhead">{t("outOfScopeLead")}</p>
 						) : (
 							<>
-								<p className="mb-3 text-muted-foreground text-sm">
+								<p className="mb-3 text-muted-foreground text-subhead">
 									{t("checksLead", { done: cra.done, total: cra.total })}
 								</p>
-								<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+								<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 									{cra.checks.map((c) => (
 										<li
 											key={c.key}
@@ -284,7 +284,7 @@ export default async function ProductPage({
 												/>
 												{c.ok ? t(`check_${c.key}`) : CRA_CHECK_LABEL[c.key]}
 											</span>
-											<span className="text-muted-foreground text-xs">
+											<span className="text-muted-foreground text-footnote">
 												{c.ok
 													? t("checkOk")
 													: t("checkDue", {
@@ -299,13 +299,15 @@ export default async function ProductPage({
 					</Section>
 					{cra.state !== "out_of_scope" && (
 						<Section title={t("route")}>
-							<p className="text-sm">{cra.route.label}</p>
-							<p className="text-muted-foreground text-xs">{cra.route.basis}</p>
+							<p className="text-subhead">{cra.route.label}</p>
+							<p className="text-muted-foreground text-footnote">
+								{cra.route.basis}
+							</p>
 						</Section>
 					)}
 					{cra.state !== "out_of_scope" && p.role === "manufacturer" && (
 						<Section title={t("reporting")}>
-							<p className="text-sm">
+							<p className="text-subhead">
 								{t("reportingLead", {
 									date: fmtDate.format(new Date(CRA_REPORTING_FROM)),
 								})}
@@ -345,7 +347,7 @@ export default async function ProductPage({
 						{cra.support.state !== "ok" && (
 							<p
 								className={cn(
-									"mb-3 rounded-md border p-2 text-sm",
+									"mb-3 rounded-2xl bg-card p-2 text-subhead",
 									cra.support.state === "ending_soon"
 										? "border-warning/50"
 										: "border-destructive/50",
@@ -375,19 +377,21 @@ export default async function ProductPage({
 			{tab === "konformitaet" && (
 				<>
 					<Section title={t("route")}>
-						<p className="text-sm">{cra.route.label}</p>
-						<p className="text-muted-foreground text-xs">{cra.route.basis}</p>
+						<p className="text-subhead">{cra.route.label}</p>
+						<p className="text-muted-foreground text-footnote">
+							{cra.route.basis}
+						</p>
 					</Section>
 					<Section title={t("conformity")}>
-						<dl className="mb-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+						<dl className="mb-4 grid grid-cols-1 gap-2 text-subhead sm:grid-cols-2">
 							<div>
-								<dt className="text-muted-foreground text-xs">
+								<dt className="text-muted-foreground text-footnote">
 									{t("riskDocument")}
 								</dt>
 								<dd>{docLabel(p.riskDocumentId)}</dd>
 							</div>
 							<div>
-								<dt className="text-muted-foreground text-xs">
+								<dt className="text-muted-foreground text-footnote">
 									{t("techDocument")}
 								</dt>
 								<dd>{docLabel(p.techDocDocumentId)}</dd>
@@ -406,7 +410,7 @@ export default async function ProductPage({
 								notifiedBody: p.notifiedBody,
 							}}
 						/>
-						<p className="mt-3 text-muted-foreground text-xs">
+						<p className="mt-3 text-muted-foreground text-footnote">
 							{t("templatesHint")}{" "}
 							<Link href="/dokumente" className="underline">
 								{t("toTemplates")}
@@ -420,7 +424,7 @@ export default async function ProductPage({
 				<>
 					<Section title={t("sbom")}>
 						{sbom ? (
-							<div className="flex flex-col gap-3 text-sm">
+							<div className="flex flex-col gap-3 text-subhead">
 								<p>
 									<Badge variant={sbom.ok ? "success" : "warning"}>
 										{sbom.ok ? t("sbomValid") : t("sbomInvalid")}
@@ -434,11 +438,11 @@ export default async function ProductPage({
 										})}`}
 								</p>
 								{sbom.primaryComponent && (
-									<p className="text-muted-foreground text-xs">
+									<p className="text-muted-foreground text-footnote">
 										{sbom.primaryComponent}
 									</p>
 								)}
-								<table className="w-full max-w-md text-sm">
+								<table className="w-full max-w-md text-subhead">
 									<tbody>
 										{(
 											[
@@ -459,14 +463,14 @@ export default async function ProductPage({
 									</tbody>
 								</table>
 								{sbom.issues.length > 0 && (
-									<ul className="list-disc pl-5 text-muted-foreground text-xs">
+									<ul className="list-disc pl-5 text-muted-foreground text-footnote">
 										{sbom.issues.map((i) => (
 											<li key={i}>{i}</li>
 										))}
 									</ul>
 								)}
 								{data.sbomEvidence && (
-									<p className="text-xs">
+									<p className="text-footnote">
 										<a
 											href={`/api/nachweise/${data.sbomEvidence.id}`}
 											className="underline"
@@ -477,7 +481,9 @@ export default async function ProductPage({
 								)}
 							</div>
 						) : (
-							<p className="text-muted-foreground text-sm">{t("sbomEmpty")}</p>
+							<p className="text-muted-foreground text-subhead">
+								{t("sbomEmpty")}
+							</p>
 						)}
 					</Section>
 					{canEdit && (
@@ -500,15 +506,15 @@ export default async function ProductPage({
 						</Link>
 					}
 				>
-					<p className="mb-3 text-muted-foreground text-sm">
+					<p className="mb-3 text-muted-foreground text-subhead">
 						{t("findingsLead")}
 					</p>
 					{data.findings.length === 0 ? (
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("findingsEmpty")}
 						</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.findings.slice(0, 100).map((f) => (
 								<li
 									key={f.id}
@@ -520,7 +526,7 @@ export default async function ProductPage({
 									>
 										{f.title}
 									</Link>
-									<span className="flex items-center gap-2 text-xs">
+									<span className="flex items-center gap-2 text-footnote">
 										<Badge variant={SEVERITY_TONE[f.severity]}>
 											{ts2(`sev_${f.severity}`)}
 										</Badge>
@@ -549,17 +555,17 @@ export default async function ProductPage({
 						) : null
 					}
 				>
-					<p className="mb-3 text-muted-foreground text-sm">
+					<p className="mb-3 text-muted-foreground text-subhead">
 						{p.role === "oss_steward"
 							? t("checklistSteward")
 							: t("checklistLead")}
 					</p>
 					{data.checklists.length === 0 ? (
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("checklistEmpty")}
 						</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.checklists.map((c) => (
 								<li
 									key={c.id}
@@ -569,12 +575,12 @@ export default async function ProductPage({
 										href={`/gap-analyse/${c.id}`}
 										className="min-w-0 truncate hover:underline"
 									>
-										<span className="font-mono text-xs" translate="no">
+										<span className="font-mono text-footnote" translate="no">
 											{c.code}
 										</span>{" "}
 										{c.title}
 									</Link>
-									<span className="flex items-center gap-2 text-xs">
+									<span className="flex items-center gap-2 text-footnote">
 										{c.score !== null && (
 											<span className="tabular-nums">{c.score} / 100</span>
 										)}
@@ -605,11 +611,11 @@ export default async function ProductPage({
 					}
 				>
 					{data.incidents.length === 0 ? (
-						<p className="text-muted-foreground text-sm">
+						<p className="text-muted-foreground text-subhead">
 							{t("incidentsEmpty")}
 						</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 rounded-md border text-sm">
+						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.incidents.map((i) => (
 								<li
 									key={i.id}
@@ -619,12 +625,12 @@ export default async function ProductPage({
 										href={`/vorfaelle/${i.id}`}
 										className="min-w-0 truncate hover:underline"
 									>
-										<span className="font-mono text-xs" translate="no">
+										<span className="font-mono text-footnote" translate="no">
 											{i.code}
 										</span>{" "}
 										{i.title}
 									</Link>
-									<span className="text-muted-foreground text-xs">
+									<span className="text-muted-foreground text-footnote">
 										{i.regimes.map((r) => ti(`regime_${r}`)).join(" · ")} ·{" "}
 										{fmtDate.format(i.awareAt)}
 									</span>

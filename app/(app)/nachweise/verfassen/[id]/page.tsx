@@ -60,7 +60,7 @@ export default async function AuthoringEditorPage({
 		<>
 			<Link
 				href="/nachweise/verfassen"
-				className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-sm hover:text-foreground"
+				className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-subhead hover:text-foreground"
 			>
 				<ArrowLeft className="size-4" aria-hidden />
 				{t("backToGallery")}
@@ -71,7 +71,7 @@ export default async function AuthoringEditorPage({
 				lead={template.purpose}
 			/>
 			{prev && (
-				<p className="mb-6 rounded-md border px-3 py-2 text-sm">
+				<p className="mb-6 rounded-xl bg-card px-3 py-2 text-subhead">
 					{t("versionOf")}{" "}
 					<Link
 						href={`/nachweise/${prev.id}`}

@@ -111,7 +111,7 @@ export function NewEngagementDialog({
 								))}
 							</SelectContent>
 						</Select>
-						<p className="text-muted-foreground text-xs">
+						<p className="text-muted-foreground text-footnote">
 							{t(`kindHint_${kind}`)}
 						</p>
 					</div>
@@ -217,7 +217,7 @@ export function EngagementScopeForm({
 	const lockScope = disabled || scopeLocked;
 	return (
 		<form
-			className="flex flex-col gap-4 text-sm"
+			className="flex flex-col gap-4 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {
@@ -259,7 +259,7 @@ export function EngagementScopeForm({
 			}}
 		>
 			{scopeLocked && (
-				<p className="rounded-md border border-dashed p-3 text-muted-foreground">
+				<p className="rounded-2xl bg-card p-3 text-muted-foreground">
 					{t("scopeLockedHint")}
 				</p>
 			)}
@@ -284,10 +284,12 @@ export function EngagementScopeForm({
 						disabled={lockScope}
 						spellCheck={false}
 						placeholder="https://staging.example.com…"
-						className="font-mono text-xs"
+						className="font-mono text-footnote"
 						onChange={(e) => set("targets", e.target.value)}
 					/>
-					<p className="text-muted-foreground text-xs">{t("targetsHint")}</p>
+					<p className="text-muted-foreground text-footnote">
+						{t("targetsHint")}
+					</p>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="eg-oos">{t("outOfScope")}</Label>
@@ -560,7 +562,7 @@ export function AddFindingDialog({
 			</DialogTrigger>
 			<DialogContent className="max-h-[90vh] overflow-y-auto overscroll-contain sm:max-w-2xl">
 				<form
-					className="flex flex-col gap-4 text-sm"
+					className="flex flex-col gap-4 text-subhead"
 					onSubmit={(e) => {
 						e.preventDefault();
 						setError(null);
@@ -665,7 +667,7 @@ export function AddFindingDialog({
 								value={v.cvssVector}
 								spellCheck={false}
 								autoComplete="off"
-								className="font-mono text-xs"
+								className="font-mono text-footnote"
 								placeholder="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H…"
 								aria-describedby="ef-cvss-hint"
 								onChange={(e) => set("cvssVector", e.target.value)}
@@ -673,7 +675,7 @@ export function AddFindingDialog({
 							<p
 								id="ef-cvss-hint"
 								aria-live="polite"
-								className="text-muted-foreground text-xs"
+								className="text-muted-foreground text-footnote"
 							>
 								{parsed === null
 									? t("cvssHint")
@@ -756,7 +758,9 @@ export function AddFindingDialog({
 							placeholder={t("stepsPlaceholder")}
 							onChange={(e) => set("steps", e.target.value)}
 						/>
-						<p className="text-muted-foreground text-xs">{t("stepsHint")}</p>
+						<p className="text-muted-foreground text-footnote">
+							{t("stepsHint")}
+						</p>
 					</div>
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="ef-fix">{t("remediation")}</Label>
@@ -767,7 +771,7 @@ export function AddFindingDialog({
 							onChange={(e) => set("remediation", e.target.value)}
 						/>
 					</div>
-					<p aria-live="polite" className="text-destructive text-xs">
+					<p aria-live="polite" className="text-destructive text-footnote">
 						{error}
 					</p>
 					<DialogFooter>
@@ -845,7 +849,7 @@ export function RetestControls({ findingId }: { findingId: string }) {
 			</div>
 			{failing && (
 				<div className="flex flex-col gap-2">
-					<Label htmlFor={`rt-${findingId}`} className="text-xs">
+					<Label htmlFor={`rt-${findingId}`} className="text-footnote">
 						{t("retestNote")}
 					</Label>
 					<Textarea
@@ -890,7 +894,7 @@ export function EngagementSummaryForm({
 	const [due, setDue] = useState(retestDueAt ?? "");
 	return (
 		<form
-			className="flex flex-col gap-3 text-sm"
+			className="flex flex-col gap-3 text-subhead"
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {

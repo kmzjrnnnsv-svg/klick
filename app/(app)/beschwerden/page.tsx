@@ -112,40 +112,38 @@ export default async function ComplaintsPage({
 	);
 
 	const Stats = ({ a }: { a: typeof aggC }) => (
-		<div className="mb-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-4">
-			<div className="rounded-md border p-3">
-				<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+		<div className="mb-4 grid grid-cols-1 gap-3 text-subhead sm:grid-cols-4">
+			<div className="rounded-2xl bg-card p-3">
+				<p className="font-medium text-footnote text-muted-foreground">
 					{t("open")}
 				</p>
-				<p className="font-serif-display text-2xl text-primary">{a.open}</p>
+				<p className="font-bold text-title-2">{a.open}</p>
 			</div>
-			<div className="rounded-md border p-3">
-				<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+			<div className="rounded-2xl bg-card p-3">
+				<p className="font-medium text-footnote text-muted-foreground">
 					{t("ackOverdue")}
 				</p>
 				<p
-					className={`font-serif-display text-2xl ${a.ackOverdue ? "text-destructive" : "text-primary"}`}
+					className={`font-bold text-title-2 ${a.ackOverdue ? "text-destructive" : "text-primary"}`}
 				>
 					{a.ackOverdue}
 				</p>
 			</div>
-			<div className="rounded-md border p-3">
-				<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+			<div className="rounded-2xl bg-card p-3">
+				<p className="font-medium text-footnote text-muted-foreground">
 					{t("responseOverdue")}
 				</p>
 				<p
-					className={`font-serif-display text-2xl ${a.responseOverdue ? "text-destructive" : "text-primary"}`}
+					className={`font-bold text-title-2 ${a.responseOverdue ? "text-destructive" : "text-primary"}`}
 				>
 					{a.responseOverdue}
 				</p>
 			</div>
-			<div className="rounded-md border p-3">
-				<p className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+			<div className="rounded-2xl bg-card p-3">
+				<p className="font-medium text-footnote text-muted-foreground">
 					{t("last90")}
 				</p>
-				<p className="font-serif-display text-2xl text-primary">
-					{a.last90Days}
-				</p>
+				<p className="font-bold text-title-2">{a.last90Days}</p>
 			</div>
 		</div>
 	);
@@ -182,10 +180,12 @@ export default async function ComplaintsPage({
 
 			{tab === "beschwerden" && (
 				<section className="flex flex-col gap-3">
-					<p className="text-muted-foreground text-sm">{t("complaintsLead")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("complaintsLead")}
+					</p>
 					<Stats a={aggC} />
 					{!detailComplaints ? (
-						<p className="rounded-md border border-dashed p-3 text-sm">
+						<p className="rounded-2xl bg-card p-3 text-subhead">
 							{t("aggregatedOnly")}
 						</p>
 					) : data.complaints.length === 0 ? (
@@ -245,10 +245,10 @@ export default async function ComplaintsPage({
 													: [{ to: "open", label: t("reopen") }];
 									return (
 										<TableRow key={c.id}>
-											<TableCell className="whitespace-nowrap font-mono text-xs">
+											<TableCell className="whitespace-nowrap font-mono text-footnote">
 												{c.code}
 											</TableCell>
-											<TableCell className="text-xs">
+											<TableCell className="text-footnote">
 												{fmt.format(c.receivedAt)}
 												<br />
 												<span className="text-muted-foreground">
@@ -258,12 +258,12 @@ export default async function ComplaintsPage({
 											<TableCell>
 												<p className="font-medium">{c.category ?? "—"}</p>
 												{c.description && (
-													<p className="line-clamp-2 text-muted-foreground text-xs">
+													<p className="line-clamp-2 text-muted-foreground text-footnote">
 														{c.description}
 													</p>
 												)}
 												{data.refs[i] && (
-													<p className="text-[0.7rem] text-muted-foreground">
+													<p className="text-footnote text-muted-foreground">
 														{t("complainantRef")}: {data.refs[i]}
 													</p>
 												)}
@@ -278,7 +278,7 @@ export default async function ComplaintsPage({
 													{t(`clock_${ack}`)}
 												</Badge>
 												{c.ackDueAt && (
-													<p className="text-[0.7rem] text-muted-foreground">
+													<p className="text-footnote text-muted-foreground">
 														{fmt.format(c.ackDueAt)}
 													</p>
 												)}
@@ -288,7 +288,7 @@ export default async function ComplaintsPage({
 													{t(`clock_${resp}`)}
 												</Badge>
 												{c.responseDueAt && (
-													<p className="text-[0.7rem] text-muted-foreground">
+													<p className="text-footnote text-muted-foreground">
 														{fmt.format(c.responseDueAt)}
 													</p>
 												)}
@@ -347,9 +347,11 @@ export default async function ComplaintsPage({
 
 			{tab === "hinweise" && (
 				<section className="flex flex-col gap-3">
-					<p className="text-muted-foreground text-sm">{t("reportsLead")}</p>
+					<p className="text-muted-foreground text-subhead">
+						{t("reportsLead")}
+					</p>
 					{!canSeeWb ? (
-						<p className="rounded-md border border-dashed p-3 text-sm">
+						<p className="rounded-2xl bg-card p-3 text-subhead">
 							{t("aggregatedOnly")}
 						</p>
 					) : (
@@ -413,10 +415,10 @@ export default async function ComplaintsPage({
 															: [{ to: "received", label: t("reopen") }];
 											return (
 												<TableRow key={r.id}>
-													<TableCell className="font-mono text-xs">
+													<TableCell className="font-mono text-footnote">
 														{r.internalRef}
 													</TableCell>
-													<TableCell className="text-xs">
+													<TableCell className="text-footnote">
 														{fmt.format(r.receivedAt)}
 														<br />
 														<span className="text-muted-foreground">
@@ -426,7 +428,7 @@ export default async function ComplaintsPage({
 													<TableCell>
 														<p className="font-medium">{r.category ?? "—"}</p>
 														{data.summaries[i] && (
-															<p className="line-clamp-2 text-muted-foreground text-xs">
+															<p className="line-clamp-2 text-muted-foreground text-footnote">
 																{data.summaries[i]}
 															</p>
 														)}
@@ -436,7 +438,7 @@ export default async function ComplaintsPage({
 															{t(`clock_${ack}`)}
 														</Badge>
 														{r.ackDueAt && (
-															<p className="text-[0.7rem] text-muted-foreground">
+															<p className="text-footnote text-muted-foreground">
 																{fmt.format(r.ackDueAt)}
 															</p>
 														)}
@@ -446,12 +448,12 @@ export default async function ComplaintsPage({
 															{t(`clock_${fb}`)}
 														</Badge>
 														{r.feedbackDueAt && (
-															<p className="text-[0.7rem] text-muted-foreground">
+															<p className="text-footnote text-muted-foreground">
 																{fmt.format(r.feedbackDueAt)}
 															</p>
 														)}
 													</TableCell>
-													<TableCell className="text-xs">
+													<TableCell className="text-footnote">
 														{functionLabels[r.ownerFunction]}
 													</TableCell>
 													<TableCell>

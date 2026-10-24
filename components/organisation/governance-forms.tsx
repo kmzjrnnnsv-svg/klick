@@ -115,12 +115,7 @@ export function EditTrigger({
 }: TriggerProps & { label?: string }) {
 	const tc = useTranslations("Common");
 	return (
-		<Button
-			size="sm"
-			variant="ghost"
-			className="normal-case tracking-normal"
-			{...props}
-		>
+		<Button size="sm" variant="ghost" className="" {...props}>
 			{label ?? tc("edit")}
 		</Button>
 	);

@@ -120,7 +120,7 @@ export function BanDialog({
 							value={reason}
 							onChange={(e) => setReason(e.target.value)}
 						/>
-						<p className="text-muted-foreground text-xs">
+						<p className="text-muted-foreground text-footnote">
 							{t("banReasonHint")}
 						</p>
 					</div>

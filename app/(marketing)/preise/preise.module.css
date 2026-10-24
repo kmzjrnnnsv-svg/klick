@@ -27,7 +27,8 @@
 	margin: 0;
 }
 .h2 {
-	font-family: var(--font-serif);
+	font-family: var(--font-sans);
+	font-weight: 600;
 	font-size: var(--s2);
 	line-height: 1.05;
 	letter-spacing: -0.01em;
@@ -39,9 +40,9 @@
 	justify-content: center;
 	min-height: 48px;
 	padding: 0 22px;
-	border-radius: 6px;
-	background: var(--primary);
-	color: var(--primary-foreground);
+	border-radius: 999px;
+	background: var(--primary-fill);
+	color: #fff;
 	font-weight: 500;
 	text-decoration: none;
 	transition:
@@ -94,7 +95,8 @@
 	grid-column: 1 / 7;
 }
 .heroTitle {
-	font-family: var(--font-serif);
+	font-family: var(--font-sans);
+	font-weight: 600;
 	font-size: var(--s1);
 	line-height: 0.98;
 	letter-spacing: -0.02em;
@@ -126,9 +128,9 @@
 }
 .stopDue {
 	padding: 40px 28px;
-	border-radius: 6px;
-	background: var(--brown);
-	color: var(--brown-foreground);
+	border-radius: 12px;
+	background: var(--primary-fill);
+	color: #fff;
 	transform-origin: 0 50%;
 	animation: lift 900ms 400ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
@@ -138,7 +140,8 @@
 	}
 }
 .stopAt {
-	font-family: var(--font-serif);
+	font-family: var(--font-sans);
+	font-weight: 600;
 	font-size: var(--s3);
 	line-height: 1.15;
 }
@@ -165,29 +168,31 @@
 	gap: 8px;
 	min-height: 340px;
 	padding: 28px;
-	border-radius: 6px;
+	border-radius: 16px;
 	color: var(--primary-foreground);
 }
 .toneBlue {
 	background: var(--primary);
 }
 .toneBrown {
-	background: var(--brown);
-	color: var(--brown-foreground);
+	background: var(--primary-fill);
+	color: #fff;
 }
 .toneSky {
 	background: var(--accent);
 	color: var(--accent-foreground);
 }
 .termTitle {
-	font-family: var(--font-serif);
+	font-family: var(--font-sans);
+	font-weight: 600;
 	font-size: var(--s3);
 	line-height: 1.15;
 }
 .termPrice {
 	margin-top: auto !important;
 	padding-top: 24px;
-	font-family: var(--font-serif);
+	font-family: var(--font-sans);
+	font-weight: 600;
 	font-size: var(--s2);
 	line-height: 1.05;
 	font-variant-numeric: tabular-nums;
@@ -214,14 +219,14 @@
 	grid-column: 6 / 13;
 	margin: 0 calc(var(--edge) * -1) 0 0;
 	padding: 40px 0 40px 40px;
-	background: var(--brown);
+	background: var(--primary-fill);
 	clip-path: polygon(0 56px, 56px 0, 100% 0, 100% 100%, 0 100%);
 }
 .readinessPic img {
 	display: block;
 	width: 100%;
 	height: auto;
-	border-radius: 6px 0 0 6px;
+	border-radius: 16px 0 0 16px;
 }
 
 /* ── Software-Stufen ──────────────────────────────────────────────────── */
@@ -242,7 +247,7 @@
 	display: flex;
 	flex-direction: column;
 	padding: 0 28px 40px;
-	border-radius: 6px;
+	border-radius: 16px;
 	background: var(--field);
 	overflow: hidden;
 }
@@ -260,7 +265,8 @@
 	color: var(--accent-foreground);
 }
 .tierName {
-	font-family: var(--font-serif);
+	font-family: var(--font-sans);
+	font-weight: 600;
 	font-size: var(--s2);
 	line-height: 1.05;
 }
@@ -273,7 +279,8 @@
 }
 .tierPrice {
 	margin-top: 28px !important;
-	font-family: var(--font-serif);
+	font-family: var(--font-sans);
+	font-weight: 600;
 	font-size: var(--s2);
 	line-height: 1.05;
 	font-variant-numeric: tabular-nums;
@@ -332,7 +339,8 @@
 }
 .faqQ::after {
 	content: "+";
-	font-family: var(--font-serif);
+	font-family: var(--font-sans);
+	font-weight: 600;
 	font-size: 26px;
 	line-height: 1;
 	transition: transform 160ms ease;
@@ -354,7 +362,7 @@
 	gap: 24px;
 	margin: 160px var(--edge) 0;
 	padding: 48px;
-	border-radius: 6px;
+	border-radius: 16px;
 	background: var(--primary);
 	color: var(--primary-foreground);
 }

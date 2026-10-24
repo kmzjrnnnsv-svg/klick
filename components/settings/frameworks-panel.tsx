@@ -89,7 +89,7 @@ export function FrameworksPanel({
 					<CardDescription>{t("frameworksLead")}</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<ul className="flex flex-col divide-y divide-border/60 text-sm">
+					<ul className="flex flex-col divide-y divide-border/60 text-subhead">
 						{active.map((f) => (
 							<li
 								key={f.slug}
@@ -135,7 +135,7 @@ export function FrameworksPanel({
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
 					{available.length === 0 ? (
-						<p className="text-muted-foreground text-sm">{t("noMore")}</p>
+						<p className="text-muted-foreground text-subhead">{t("noMore")}</p>
 					) : (
 						<>
 							<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -145,7 +145,7 @@ export function FrameworksPanel({
 										<label
 											key={f.slug}
 											className={cn(
-												"flex cursor-pointer gap-3 rounded-md border p-3 text-sm transition-colors hover:bg-muted/50",
+												"flex cursor-pointer gap-3 rounded-2xl bg-card p-3 text-subhead transition-colors hover:bg-muted/50",
 												checked && "border-primary/60 bg-primary/5",
 												!canEdit && "cursor-default opacity-70",
 											)}
@@ -174,7 +174,7 @@ export function FrameworksPanel({
 													</Badge>
 												)}
 												{f.description && (
-													<span className="mt-0.5 block line-clamp-2 text-muted-foreground text-xs">
+													<span className="mt-0.5 block line-clamp-2 text-muted-foreground text-footnote">
 														{f.description}
 													</span>
 												)}
@@ -227,22 +227,22 @@ export function FrameworksPanel({
 				<CardHeader>
 					<CardTitle className="text-base">{t("stage")}</CardTitle>
 				</CardHeader>
-				<CardContent className="flex flex-col gap-5 text-sm">
+				<CardContent className="flex flex-col gap-5 text-subhead">
 					<dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">
 						<div>
-							<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+							<dt className="font-medium text-footnote text-muted-foreground">
 								{t("stage")}
 							</dt>
 							<dd>{profile.licenceStage}</dd>
 						</div>
 						<div>
-							<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+							<dt className="font-medium text-footnote text-muted-foreground">
 								{t("sector")}
 							</dt>
 							<dd>{profile.sector}</dd>
 						</div>
 						<div>
-							<dt className="lv-eyebrow text-[0.7rem] text-muted-foreground">
+							<dt className="font-medium text-footnote text-muted-foreground">
 								{t("caspServices")}
 							</dt>
 							<dd>
@@ -252,10 +252,12 @@ export function FrameworksPanel({
 							</dd>
 						</div>
 					</dl>
-					<div className="flex items-start justify-between gap-4 rounded-md border p-3">
+					<div className="flex items-start justify-between gap-4 rounded-2xl bg-card p-3">
 						<div>
 							<Label htmlFor="tlpt">{t("tlpt")}</Label>
-							<p className="text-muted-foreground text-xs">{t("tlptHint")}</p>
+							<p className="text-muted-foreground text-footnote">
+								{t("tlptHint")}
+							</p>
 						</div>
 						<Switch
 							id="tlpt"
