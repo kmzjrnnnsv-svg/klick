@@ -1,0 +1,103 @@
+/* Öffentliche Seiten von both.money: nur, was Tailwind nicht kann.
+   Ereignis-Umschalter ohne Skript (Radio + :has, IDs werden in CSS-Modulen
+   umbenannt, deshalb Reihenfolge statt #id) und sanftes Einblenden beim
+   Scrollen, nur mit Scroll-Timeline und ohne reduzierte Bewegung. */
+
+.pick {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.chip {
+	display: inline-flex;
+	align-items: center;
+	min-height: 2.25rem;
+	padding: 0.375rem 0.875rem;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	background: var(--background);
+	font-size: 0.875rem;
+	cursor: pointer;
+	touch-action: manipulation;
+	transition:
+		background-color 160ms ease,
+		color 160ms ease,
+		border-color 160ms ease;
+}
+
+.chip:hover {
+	border-color: var(--primary);
+}
+
+.pick:checked + .chip {
+	background: var(--primary);
+	border-color: var(--primary);
+	color: var(--primary-foreground);
+}
+
+.pick:focus-visible + .chip {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
+
+.out {
+	display: none;
+}
+
+.picker:has(.pick:nth-of-type(1):checked) .out:nth-of-type(1),
+.picker:has(.pick:nth-of-type(2):checked) .out:nth-of-type(2),
+.picker:has(.pick:nth-of-type(3):checked) .out:nth-of-type(3),
+.picker:has(.pick:nth-of-type(4):checked) .out:nth-of-type(4),
+.picker:has(.pick:nth-of-type(5):checked) .out:nth-of-type(5),
+.picker:has(.pick:nth-of-type(6):checked) .out:nth-of-type(6),
+.picker:has(.pick:nth-of-type(7):checked) .out:nth-of-type(7),
+.picker:has(.pick:nth-of-type(8):checked) .out:nth-of-type(8) {
+	display: grid;
+}
+
+/* Ohne :has-Unterstützung alle Antworten zeigen */
+@supports not selector(:has(*)) {
+	.out {
+		display: grid;
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.rise {
+		animation: rise 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+	}
+	.rise2 {
+		animation-delay: 120ms;
+	}
+	.rise3 {
+		animation-delay: 240ms;
+	}
+
+	@supports (animation-timeline: view()) {
+		.reveal {
+			animation: rise linear both;
+			animation-timeline: view();
+			animation-range: entry 0% entry 35%;
+		}
+	}
+}
+
+@keyframes rise {
+	from {
+		opacity: 0;
+		transform: translateY(18px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media print {
+	.noPrint {
+		display: none !important;
+	}
+}
