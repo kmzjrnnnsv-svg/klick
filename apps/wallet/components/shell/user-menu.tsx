@@ -29,7 +29,7 @@ export function UserMenu({
 		<DropdownMenu>
 			<DropdownMenuTrigger
 				aria-label={t("account")}
-				className="rounded-md p-2 hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+				className="flex size-(--control-h) items-center justify-center rounded-full hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
 			>
 				<CircleUser className="size-5" aria-hidden />
 			</DropdownMenuTrigger>

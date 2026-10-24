@@ -64,7 +64,7 @@ export function IntroFooter({
 			{prevHref ? (
 				<Link
 					href={prevHref}
-					className="text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline"
+					className="hit-area text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline"
 				>
 					← {t("back")}
 				</Link>
@@ -72,7 +72,7 @@ export function IntroFooter({
 			<button
 				type="button"
 				disabled={pending}
-				className="text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+				className="hit-area text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
 				onClick={() => run([() => deferWalletIntro()], "/", t("laterDone"))}
 			>
 				{t("later")}
@@ -192,14 +192,14 @@ export function IntroWatchlist({
 			<div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-t pt-5">
 				<Link
 					href={prevHref}
-					className="text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline"
+					className="hit-area text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline"
 				>
 					← {t("back")}
 				</Link>
 				<button
 					type="button"
 					disabled={pending}
-					className="text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+					className="hit-area text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
 					onClick={() => run([() => deferWalletIntro()], "/", t("laterDone"))}
 				>
 					{t("later")}

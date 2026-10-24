@@ -406,7 +406,7 @@ export default async function FeaturesPage() {
 						>
 							{t("ctaAction")}
 						</Link>
-						<Link href="/login" className={s.ctaLink}>
+						<Link href="/login" className={`hit-area ${s.ctaLink}`}>
 							{t("ctaLogin")}
 						</Link>
 					</div>

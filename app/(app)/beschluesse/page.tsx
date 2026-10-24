@@ -252,8 +252,8 @@ export default async function ResolutionsPage({
 						scroll={false}
 						className={
 							fwFilter
-								? "rounded-full border px-2.5 py-0.5 hover:bg-muted"
-								: "rounded-full border border-primary bg-primary px-2.5 py-0.5 text-primary-foreground"
+								? "inline-flex h-(--control-h-sm) items-center rounded-full bg-muted px-3 hover:bg-foreground/12"
+								: "inline-flex h-(--control-h-sm) items-center rounded-full bg-primary-fill px-3 text-white"
 						}
 					>
 						{t("allFrameworks")}
@@ -265,8 +265,8 @@ export default async function ResolutionsPage({
 							scroll={false}
 							className={
 								fwFilter === f
-									? "rounded-full border border-primary bg-primary px-2.5 py-0.5 text-primary-foreground"
-									: "rounded-full border px-2.5 py-0.5 hover:bg-muted"
+									? "inline-flex h-(--control-h-sm) items-center rounded-full bg-primary-fill px-3 text-white"
+									: "inline-flex h-(--control-h-sm) items-center rounded-full bg-muted px-3 hover:bg-foreground/12"
 							}
 						>
 							{shortFrameworkName(f)}
@@ -384,7 +384,7 @@ export default async function ResolutionsPage({
 									<Link
 										href="/beschluesse?tab=pflicht"
 										scroll={false}
-										className="inline-flex h-8 items-center rounded-full bg-muted px-3 font-medium text-footnote hover:bg-foreground/12"
+										className="inline-flex h-8 items-center rounded-full pointer-coarse:h-11 bg-muted px-3 font-medium text-footnote hover:bg-foreground/12"
 									>
 										{t("tabRequired")}
 									</Link>

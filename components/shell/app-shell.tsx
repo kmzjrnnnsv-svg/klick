@@ -42,7 +42,7 @@ export async function AppShell({
 				<div className="flex h-14 shrink-0 items-center gap-2 px-5">
 					<Link
 						href={home}
-						className="truncate font-bold text-headline hover:opacity-70"
+						className="hit-area font-bold text-headline hover:opacity-70"
 					>
 						{t("productName")}
 					</Link>
@@ -73,7 +73,10 @@ export async function AppShell({
 			</aside>
 			<div className="flex min-w-0 flex-1 flex-col">
 				<header className="material-bar sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-border/60 border-b pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] sm:px-6">
-					<Link href={home} className="px-1 font-bold text-headline lg:hidden">
+					<Link
+						href={home}
+						className="hit-area px-1 font-bold text-headline lg:hidden"
+					>
 						{t("productName")}
 					</Link>
 					<div className="ml-auto flex items-center gap-1">

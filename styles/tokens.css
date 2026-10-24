@@ -27,7 +27,7 @@
 
 	/* Text */
 	--foreground: #000000; /* label */
-	--muted-foreground: #6c6c70; /* secondaryLabel, AA auf dem Seitengrund */
+	--muted-foreground: #636366; /* secondaryLabel, AA auch auf getönten Flächen (≥ 4,5 : 1 auf --muted) */
 
 	/* Linien */
 	--border: #c6c6c8; /* opaqueSeparator */
@@ -98,7 +98,7 @@
 		--accent: rgb(64 156 255 / 0.18);
 
 		--foreground: #ffffff;
-		--muted-foreground: #98989f;
+		--muted-foreground: #a1a1a8; /* ≥ 4,5 : 1 auch auf --muted über --card */
 
 		--border: #38383a;
 		--input: #38383a;

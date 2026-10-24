@@ -201,7 +201,7 @@ export function ReviewInputsChecklist({
 							</label>
 							{canEdit && (
 								<Input
-									className="h-7 text-footnote"
+									className="h-(--control-h-sm) text-footnote"
 									placeholder={t("inputNote")}
 									defaultValue={v.note ?? ""}
 									onBlur={(e) => {

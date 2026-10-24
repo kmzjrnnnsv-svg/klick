@@ -57,7 +57,12 @@ export function UrlTabs({
 							<span
 								className={cn(
 									"tabular font-normal",
-									on && !segmented ? "text-white/85" : "text-muted-foreground",
+									// Zahl im gewählten Reiter in voller Schriftfarbe (Kontrast)
+									on
+										? segmented
+											? "text-foreground"
+											: "text-white"
+										: "text-muted-foreground",
 								)}
 							>
 								{tab.count}

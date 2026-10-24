@@ -202,8 +202,8 @@ export default async function AuthoringGalleryPage({
 									key={x.key}
 									className="flex min-w-0 flex-col gap-2 rounded-2xl bg-card p-4 text-subhead"
 								>
-									<div className="flex items-start justify-between gap-2">
-										<h3 className="font-medium">{x.title}</h3>
+									<div className="flex flex-wrap items-start justify-between gap-2">
+										<h3 className="min-w-0 font-medium">{x.title}</h3>
 										{x.testMethod && (
 											<Badge variant="outline" className="shrink-0">
 												{t("withTest")}

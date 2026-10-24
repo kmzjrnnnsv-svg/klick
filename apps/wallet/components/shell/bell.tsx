@@ -34,7 +34,7 @@ export function Bell({ items, unread }: { items: BellItem[]; unread: number }) {
 			<PopoverTrigger asChild>
 				<Button
 					variant="ghost"
-					size="sm"
+					size="icon"
 					aria-label={`${t("notifications")}: ${t("unread", { count: unread })}`}
 					className="relative"
 				>

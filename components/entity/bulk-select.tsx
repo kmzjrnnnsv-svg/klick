@@ -24,8 +24,8 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 
-// Bulk-Aktionen im Register: Auswahl je Zeile (Checkbox stoppt den Zeilen-
-// Link), schwebende Leiste mit Status/Zuweisung. Jede ID wird serverseitig
+// Bulk-Aktionen im Register: Auswahl je Zeile (Spalte mit interactive: true,
+// also außerhalb des Zeilen-Links), schwebende Leiste mit Status/Zuweisung. Jede ID wird serverseitig
 // über RLS geprüft; nicht erlaubte Übergänge werden übersprungen und gezählt.
 
 type Ctx = {
@@ -57,22 +57,10 @@ export function BulkCheckbox({ id, label }: { id: string; label: string }) {
 	const ctx = useContext(BulkContext);
 	if (!ctx) return null;
 	return (
-		// Klick darf nicht zur Detailseite navigieren (Zeile ist ein Link).
 		<Checkbox
 			checked={ctx.selected.has(id)}
 			aria-label={label}
-			onClick={(e) => {
-				e.stopPropagation();
-				e.preventDefault();
-				ctx.toggle(id);
-			}}
-			onKeyDown={(e) => {
-				if (e.key === " " || e.key === "Enter") {
-					e.stopPropagation();
-					e.preventDefault();
-					ctx.toggle(id);
-				}
-			}}
+			onCheckedChange={() => ctx.toggle(id)}
 		/>
 	);
 }

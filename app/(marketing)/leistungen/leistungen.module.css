@@ -233,7 +233,7 @@
 	border-radius: 16px 0 0 16px;
 }
 .toneBlue {
-	background: var(--primary);
+	background: var(--primary-fill);
 }
 .toneBrown {
 	background: var(--primary-fill);
@@ -357,7 +357,7 @@
 	min-height: 320px;
 	padding: 28px;
 	border-radius: 16px;
-	color: var(--primary-foreground);
+	color: #fff;
 }
 .term.toneSky {
 	color: var(--accent-foreground);
@@ -444,8 +444,8 @@
 	margin: 160px var(--edge) 0;
 	padding: 56px;
 	border-radius: 20px;
-	background: var(--primary);
-	color: var(--primary-foreground);
+	background: var(--primary-fill);
+	color: #fff;
 	scroll-margin-top: 72px;
 }
 .ctaText {

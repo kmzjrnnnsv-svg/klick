@@ -33,8 +33,8 @@ export function ReviewDigestView({
 						key={s.key}
 						className="flex flex-col gap-2 rounded-2xl bg-card p-3 text-subhead"
 					>
-						<div className="flex items-start justify-between gap-2">
-							<h3 className="font-medium leading-snug">{s.title}</h3>
+						<div className="flex flex-wrap items-start justify-between gap-2">
+							<h3 className="min-w-0 font-medium leading-snug">{s.title}</h3>
 							{s.href && (
 								<Link
 									href={s.href}

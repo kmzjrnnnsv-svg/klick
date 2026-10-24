@@ -126,7 +126,7 @@ export default async function TestProgrammePage({
 				<Link
 					href={`/testprogramm?jahr=${year - 1}`}
 					scroll={false}
-					className="rounded-xl bg-card px-2 py-1 hover:bg-muted"
+					className="inline-flex h-(--control-h-sm) items-center rounded-full bg-muted px-3 hover:bg-foreground/12"
 				>
 					← {year - 1}
 				</Link>
@@ -134,7 +134,7 @@ export default async function TestProgrammePage({
 				<Link
 					href={`/testprogramm?jahr=${year + 1}`}
 					scroll={false}
-					className="rounded-xl bg-card px-2 py-1 hover:bg-muted"
+					className="inline-flex h-(--control-h-sm) items-center rounded-full bg-muted px-3 hover:bg-foreground/12"
 				>
 					{year + 1} →
 				</Link>

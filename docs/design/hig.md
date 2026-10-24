@@ -25,7 +25,7 @@ Purpose, Agency, Responsibility, Familiarity, Flexibility, Simplicity, Craft, De
 
 | Thema | HIG | Bei uns |
 |---|---|---|
-| Tippfläche | iOS 44 × 44 pt (min. 28), macOS 28 × 28 (min. 20) | `--control-h`: 44 px bei `pointer: coarse`, sonst 36 px; dichte Tabellen ≥ 28 px |
+| Tippfläche | iOS 44 × 44 pt (min. 28), macOS 28 × 28 (min. 20) | `--control-h`: 44 px bei `pointer: coarse`, sonst 36 px; dichte Tabellen ≥ 28 px. Kleine Ziele (Text-Links, Checkbox, Wortmarke) bekommen ein unsichtbares Vorfeld: `.hit-area` bzw. automatisch jeder reine Text-Link (ohne Fläche, Rundung, eigene Position) außerhalb von Fließtext und Tab-Leiste (`styles/base.css`) |
 | Abstand zwischen Bedienelementen | ≈ 12 pt mit Rahmen, ≈ 24 pt ohne | `gap-3` bzw. `gap-6` |
 | Textgröße | iOS Standard 17 pt, min. 11 pt; Vergrößern bis 200 % | Body 17 px (`text-body`), nie unter 11 px (`text-caption-2`), alles in rem |
 | Kontrast | 4,5 : 1 bis 17 pt; Dark Mode bei kleiner Schrift 7 : 1 anstreben | WCAG AA verbindlich (siehe 4) |
@@ -74,7 +74,7 @@ Varianten, die auf dem grauen Seitengrund (#F2F2F7) mindestens 4,5 : 1 erreichen
 | `--card` | #FFFFFF | #1C1C1E | Abschnitte, Karten |
 | `--popover` | #FFFFFF | #2C2C2E | angehobene Ebene (Popover, Sheet) |
 | `--foreground` | #000000 | #FFFFFF | label |
-| `--muted-foreground` | #6C6C70 | #98989F | secondaryLabel, AA-tauglich |
+| `--muted-foreground` | #636366 | #A1A1A8 | secondaryLabel, abgedunkelt bzw. aufgehellt: ≥ 4,5 : 1 auch auf getönten Flächen (`--muted`) |
 | `--border` | #C6C6C8 | #38383A | opaqueSeparator |
 | `--muted` | rgba(118,118,128,.12) | rgba(118,118,128,.24) | Füllung (tertiarySystemFill) |
 | `--primary` | #0A63D6 | #409CFF | Akzent für Text, Links, Ringe |
@@ -176,15 +176,31 @@ Varianten, die auf dem grauen Seitengrund (#F2F2F7) mindestens 4,5 : 1 erreichen
     drücken farbigen Text unter 4,5 : 1).
   - `Dialog` = Sheet (am Handy von unten), `AlertDialog` = Alert (schmal, mittig, gestapelt am
     Handy), `Tabs`/`UrlTabs` bis fünf als segmentierte Steuerung (`--segment`), mehr als Kapseln.
-  - `List` (`ListGroup`, `ListSection`, `ListRow`) für gruppierte Listen, `MiddleEllipsis` für
-    Adressen und Hashes.
+  - `List` (`ListGroup`, `ListSection`, `ListRow`, `current` für die gewählte Zeile) für
+    gruppierte Listen, `MiddleEllipsis` für Adressen und Hashes.
+  - Natives `<select>` nur mit `nativeSelectClass` bzw. `nativeSelectCompactClass` aus
+    `components/ui/input.tsx` (gefüllt, 16 px).
+  - `CardHeader` ist ein Raster mit `minmax(0,1fr)` als Basisspalte, sonst bestimmt das längste
+    Wort die Kartenbreite (200 % Text).
+- Einstellungen nach dem Muster der iOS-Einstellungen: Bereiche als gruppierte Liste
+  (`lib/settings/sections.ts`), am Handy erst Liste, dann Bereich mit Rückweg, ab Desktop Liste
+  links und Bereich rechts; Adresse bleibt `?tab=`.
+- Klebende Leisten am unteren Rand (Speichern, Auswahl) mit `sticky bottom-(--bar-offset)` und
+  `.material-bar`: `--bar-offset` hebt sie am Handy über die Tab-Leiste.
+- Spalten mit eigenem Bedienelement in `RegisterPage` tragen `interactive: true`, damit der
+  Zeilen-Link nie ein Bedienelement umschließt.
+- Mails (`lib/mail/templates.ts`, `apps/wallet/lib/mail/templates.ts`) im selben Stil:
+  Systemschrift, weiße Karte auf Systemgrau, Knopf als Kapsel.
   - Seitengerüste: `PageHeader` (Large Title), `EntityLayout`/`Section`/`MetaItem`, `EmptyState`,
     `RegisterPage` (am Handy gruppierte Liste mit Pfeil).
 - Rahmen: `components/shell/*`, `apps/wallet/components/shell/*` (Phase A3).
 - Alte Klassen `font-serif-display`, `lv-eyebrow`, `lv-nav`, `lv-wordmark` sind umgedeutet (keine
   Serifen, keine Versalien) und verschwinden mit dem Umbau der Seiten (Phase A5).
-- Prüfung: Test `ui-hig` (Bausteine), Prüfskripte unter `scripts/qa/` (Tippflächen, Kontrast,
-  200 %, dunkel; Phase A6).
+- Prüfung: Test `ui-hig` (Bausteine) und `pnpm exec tsx scripts/qa/hig-check.ts <pfade>` gegen
+  eine laufende Instanz (Sitzung aus `crawl.ts --login`): Tippflächen am Handy ≥ 44 und am
+  Desktop ≥ 28 (Vorfeld zählt mit, Links im Fließtext ausgenommen), Kontrast jedes Textes hell
+  und dunkel, 200 % Textgröße bei 768 px ohne Überlauf, mit `--shots <ordner>` Fotos dunkel,
+  erhöhter Kontrast und reduzierte Bewegung. Für both.money `QA_BASE` und `QA_STATE_FILE` setzen.
 
 ## Nicht von Apple belegt (prüfen)
 

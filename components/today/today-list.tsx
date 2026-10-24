@@ -23,12 +23,12 @@ export function TodayCard({
 	return (
 		<Card className={className}>
 			<CardHeader>
-				<CardTitle className="flex items-baseline justify-between gap-3 text-base">
-					<span className="min-w-0 truncate">{title}</span>
+				<CardTitle className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-headline">
+					<span className="min-w-0 break-words">{title}</span>
 					{link && (
 						<Link
 							href={link.href}
-							className="shrink-0 font-normal font-sans text-primary text-footnote underline-offset-4 hover:underline"
+							className="shrink-0 font-normal text-primary text-subhead underline-offset-4 hover:underline"
 						>
 							{link.label}
 						</Link>

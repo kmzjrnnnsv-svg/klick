@@ -542,8 +542,8 @@
 	margin-top: 10px !important;
 	padding: 2px 10px;
 	border-radius: 8px;
-	background: var(--primary);
-	color: var(--primary-foreground);
+	background: var(--primary-fill);
+	color: #fff;
 	font-size: 13px;
 }
 .fragList,
@@ -574,7 +574,7 @@
 	background: var(--muted);
 }
 .check[data-on] {
-	background: var(--primary);
+	background: var(--primary-fill);
 }
 .check[data-on]::after {
 	content: "";
@@ -583,7 +583,7 @@
 	top: 2px;
 	width: 5px;
 	height: 9px;
-	border: solid var(--primary-foreground); /* taste-skill-ignore: Häkchen im data-ui-Ausschnitt */
+	border: solid #fff; /* taste-skill-ignore: Häkchen im data-ui-Ausschnitt */
 	border-width: 0 2px 2px 0;
 	transform: rotate(45deg);
 }
@@ -623,7 +623,7 @@
 .bar span {
 	display: block;
 	height: 100%;
-	background: var(--primary);
+	background: var(--primary-fill);
 }
 
 /* ── Alle Abläufe: Index, schmale Spalte, Bild je Bereich ───────────── */
@@ -653,7 +653,7 @@
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	min-height: 36px;
+	min-height: max(36px, var(--control-h));
 	color: var(--foreground);
 	text-decoration: none;
 	transition: opacity 160ms ease;
@@ -718,7 +718,7 @@
 	flex: none;
 }
 .toneBlue {
-	background: var(--primary);
+	background: var(--primary-fill);
 }
 .toneBrown {
 	background: var(--primary-fill);
@@ -803,8 +803,8 @@
 .tileHead {
 	grid-column: span 2;
 	aspect-ratio: auto;
-	background: var(--primary);
-	color: var(--primary-foreground);
+	background: var(--primary-fill);
+	color: #fff;
 }
 .proofTitle {
 	font-family: var(--font-sans);
@@ -872,7 +872,7 @@
 	color: var(--foreground);
 }
 .faqItem:has(.radio:checked) .faqDot {
-	background: var(--primary);
+	background: var(--primary-fill);
 }
 .faqItem:has(.radio:focus-visible) .faqQ {
 	outline: 2px solid var(--primary);
@@ -946,8 +946,8 @@
 	height: 360px;
 	padding: 40px;
 	border-radius: 20px;
-	background: var(--primary);
-	color: var(--primary-foreground);
+	background: var(--primary-fill);
+	color: #fff;
 }
 .ctaTitle {
 	font-family: var(--font-sans);

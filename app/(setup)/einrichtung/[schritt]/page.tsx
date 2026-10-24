@@ -139,12 +139,12 @@ export default async function SetupStepPage({
 							<Link
 								href={stepHref(s)}
 								aria-current={s === schritt ? "step" : undefined}
-								className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-footnote ${
+								className={`inline-flex h-(--control-h-sm) items-center gap-1.5 rounded-full px-3 text-footnote ${
 									s === schritt
-										? "border-primary bg-primary text-primary-foreground"
+										? "bg-primary-fill text-white"
 										: done.has(s)
-											? "border-success/40 text-foreground hover:bg-muted"
-											: "text-muted-foreground hover:bg-muted"
+											? "bg-success/12 text-foreground hover:bg-success/20"
+											: "bg-muted text-muted-foreground hover:bg-foreground/12"
 								}`}
 							>
 								<span className="tabular-nums">

@@ -58,7 +58,7 @@ export default async function ServicesPage({
 						<a href="#anfrage" className={s.button}>
 							{t("ctaContact")}
 						</a>
-						<Link href="/preise" className={s.textLink}>
+						<Link href="/preise" className={`hit-area ${s.textLink}`}>
 							{t("heroPrices")}
 						</Link>
 					</div>
@@ -150,7 +150,7 @@ export default async function ServicesPage({
 						</ol>
 						<Link
 							href={`/leistungen?leistung=${svc.key}#anfrage`}
-							className={s.svcLink}
+							className={`hit-area ${s.svcLink}`}
 							data-r=""
 						>
 							{t("requestThis")}
@@ -176,7 +176,7 @@ export default async function ServicesPage({
 					<h2 id="billing-title" className={s.h2} data-r="">
 						{t("billingTitle")}
 					</h2>
-					<Link href="/preise" className={s.textLink} data-r="">
+					<Link href="/preise" className={`hit-area ${s.textLink}`} data-r="">
 						{t("billingMore")}
 					</Link>
 				</div>

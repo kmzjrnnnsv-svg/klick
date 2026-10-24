@@ -115,6 +115,7 @@ export default async function ControlsPage({
 						header: "",
 						className: "w-8",
 						mobile: false,
+						interactive: true,
 						cell: (r: ControlRow & { id: string }) => (
 							<BulkCheckbox
 								id={r.id}

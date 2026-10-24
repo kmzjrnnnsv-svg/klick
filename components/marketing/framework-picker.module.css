@@ -1,12 +1,12 @@
 /* Rahmenwerk-Ausschnitt (data-ui): Klicks eigene Oberfläche in echter Größe —
-   innerhalb gelten die Konventionen der App (1px-Rahmen, kleine Radien). */
+   innerhalb gelten die Konventionen der App (Apple HIG: Fläche ohne Rahmen,
+   Kapseln, Tippflächen aus --control-h-sm). */
 
 .panel {
 	width: 620px;
 	max-width: 100%;
 	padding: 20px 22px 18px;
-	border: 1px solid var(--border); /* taste-skill-ignore: data-ui */
-	border-radius: 8px;
+	border-radius: 16px;
 	background: var(--card);
 	color: var(--card-foreground);
 	font-size: 14px;
@@ -42,14 +42,14 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	min-height: 32px;
-	padding: 0 10px;
-	border: 1px solid var(--border); /* taste-skill-ignore: data-ui */
+	min-height: max(32px, var(--control-h-sm));
+	padding: 0 12px;
+	border: 0;
 	border-radius: 999px;
-	background: var(--background);
+	background: var(--muted);
 	color: var(--foreground);
 	font: inherit;
-	font-size: 13px;
+	font-size: 15px;
 	cursor: pointer;
 	transition:
 		background-color 140ms ease,
@@ -58,7 +58,7 @@
 	touch-action: manipulation;
 }
 .chip:hover {
-	background: var(--muted);
+	background: var(--accent);
 }
 .chip:active {
 	transform: scale(0.97);
@@ -68,13 +68,16 @@
 	outline-offset: 2px;
 }
 .chip[aria-pressed="true"] {
-	border-color: var(--primary);
-	background: var(--primary);
-	color: var(--primary-foreground);
+	background: var(--primary-fill);
+	color: #fff;
 }
+/* Zahl volle Deckkraft (Kontrast ≥ 4,5 : 1), nur heller Ton ohne Auswahl */
 .chipCount {
 	font-variant-numeric: tabular-nums;
-	opacity: 0.75;
+	color: var(--muted-foreground);
+}
+.chip[aria-pressed="true"] .chipCount {
+	color: inherit;
 }
 
 .result {

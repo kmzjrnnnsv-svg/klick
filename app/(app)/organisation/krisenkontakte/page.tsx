@@ -46,7 +46,7 @@ export default async function CrisisContactsPage() {
 						<div className="flex gap-2">
 							<Link
 								href="/organisation?tab=kommunikation"
-								className="inline-flex h-8 items-center rounded-full bg-muted px-3 font-medium text-footnote hover:bg-foreground/12"
+								className="inline-flex h-8 items-center rounded-full pointer-coarse:h-11 bg-muted px-3 font-medium text-footnote hover:bg-foreground/12"
 							>
 								← {t("tabCommunication")}
 							</Link>

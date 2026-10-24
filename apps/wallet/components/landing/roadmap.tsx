@@ -41,7 +41,7 @@ const STATUS_STYLE: Record<RoadmapStatus, string> = {
 function StatusBadge({ status }: { status: RoadmapStatus }) {
 	return (
 		<span
-			className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 font-medium text-footnote text-foreground before:size-1.5 before:rounded-full before:content-[''] ${STATUS_STYLE[status]}`}
+			className={`inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 font-medium text-footnote text-foreground before:size-1.5 before:rounded-full before:content-[''] ${STATUS_STYLE[status]}`}
 		>
 			{STATUS_LABEL[status]}
 		</span>
@@ -77,7 +77,9 @@ function ItemCard({
 			className={`flex flex-col gap-3 break-inside-avoid rounded-2xl bg-card p-5 ${s.reveal}`}
 		>
 			<div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-				<h3 className="font-medium text-lg leading-snug">{item.title}</h3>
+				<h3 className="min-w-0 font-semibold text-headline leading-snug">
+					{item.title}
+				</h3>
 				<StatusBadge status={item.status} />
 			</div>
 			<p className="text-pretty text-muted-foreground leading-relaxed">
@@ -118,7 +120,7 @@ export function Roadmap() {
 									<li key={x.id}>
 										<a
 											href={`#${x.id}`}
-											className="inline-flex min-h-9 items-center rounded-full border px-3.5 text-subhead hover:border-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+											className="inline-flex min-h-9 items-center rounded-full bg-muted px-3.5 text-subhead hover:bg-accent pointer-coarse:min-h-11 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
 										>
 											{x.label}
 										</a>
@@ -160,7 +162,7 @@ export function Roadmap() {
 							{NEXT.map((item, i) => (
 								<li
 									key={item.key}
-									className="grid grid-cols-[2.5rem_1fr] gap-x-4 sm:grid-cols-[3.5rem_1fr]"
+									className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-4 sm:grid-cols-[3.5rem_minmax(0,1fr)]"
 								>
 									<span
 										className="pt-4 font-bold text-title-1 tabular-nums sm:text-4xl"
@@ -198,7 +200,7 @@ export function Roadmap() {
 							Infrastruktur und Hardware
 						</h2>
 
-						<div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1.2fr]">
+						<div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
 							<div className="flex flex-col gap-4">
 								<h3 className="font-bold text-title-1">{NODE_BASICS.title}</h3>
 								{NODE_BASICS.paragraphs.map((p) => (
@@ -230,7 +232,7 @@ export function Roadmap() {
 							))}
 						</ul>
 
-						<div className="mt-16 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1.4fr]">
+						<div className="mt-16 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
 							<div>
 								<h3 className="font-bold text-title-1">{SPLIT.title}</h3>
 								<p className="mt-4 text-pretty leading-relaxed">{SPLIT.lead}</p>
@@ -333,7 +335,7 @@ export function Roadmap() {
 											{t.when}
 										</span>
 									</div>
-									<dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-subhead">
+									<dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 text-subhead">
 										<dt className="text-muted-foreground">Ausstattung</dt>
 										<dd>{t.spec}</dd>
 										<dt className="text-muted-foreground">Darauf läuft</dt>

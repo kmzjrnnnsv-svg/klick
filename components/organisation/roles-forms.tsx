@@ -892,7 +892,7 @@ export function MeasurementForm({
 						type="button"
 						size="sm"
 						variant="ghost"
-						className="h-7"
+						className="h-(--control-h-sm)"
 						onClick={() => setValue(fmt.format(suggestion.value))}
 					>
 						{t("suggestionApply")}

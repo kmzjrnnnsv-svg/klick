@@ -54,7 +54,7 @@ export function UserMenu({
 		<DropdownMenu>
 			<DropdownMenuTrigger
 				aria-label={name || email}
-				className="flex h-9 items-center gap-2 rounded-sm px-1.5 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				className="flex h-(--control-h) min-w-(--control-h) items-center justify-center gap-2 rounded-full px-1.5 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			>
 				<Avatar className="size-7">
 					<AvatarFallback>{initialsOf(name, email) || "?"}</AvatarFallback>

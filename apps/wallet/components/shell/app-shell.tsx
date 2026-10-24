@@ -54,7 +54,7 @@ export async function AppShell({
 				<div className="mx-auto flex h-14 max-w-6xl items-center gap-2 pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] sm:gap-3">
 					<Link
 						href="/"
-						className="shrink-0 rounded-sm font-bold text-headline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						className="hit-area shrink-0 rounded-sm font-bold text-headline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 					>
 						both.money
 					</Link>
