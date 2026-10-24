@@ -64,6 +64,7 @@ function ListRow({
 	icon,
 	accessory,
 	href,
+	current = false,
 	destructive = false,
 	className,
 	children,
@@ -78,6 +79,8 @@ function ListRow({
 	accessory?: React.ReactNode;
 	// Drill-down: ganze Zeile als Link mit Pfeil
 	href?: string;
+	// Gewählte Zeile in einer Liste als Seitenleiste (Einstellungen am Desktop)
+	current?: boolean;
 	destructive?: boolean;
 	className?: string;
 	// Eigener Inhalt statt Titel/Untertitel
@@ -134,9 +137,11 @@ function ListRow({
 			{href ? (
 				<Link
 					href={href}
+					aria-current={current ? "page" : undefined}
 					className={cn(
 						rowClass,
 						"transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset active:bg-muted",
+						current && "bg-primary/12 font-semibold hover:bg-primary/12",
 					)}
 				>
 					{body}

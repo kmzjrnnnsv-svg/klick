@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { updateSupplierMethod } from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -306,7 +306,7 @@ export function SupplierMethodPanel({
 								</Label>
 								<select
 									id={`sm-tr-${i}`}
-									className="h-9 rounded-md bg-muted px-2 text-foreground"
+									className={nativeSelectClass}
 									value={th.traffic}
 									disabled={!canEdit}
 									onChange={(e) =>
@@ -380,7 +380,7 @@ export function SupplierMethodPanel({
 			</section>
 
 			{canEdit && (
-				<div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 border-t bg-background py-3">
+				<div className="sticky bottom-(--bar-offset) flex flex-wrap items-center justify-end gap-2 border-t material-bar py-3">
 					<Button
 						type="button"
 						size="sm"

@@ -9,7 +9,7 @@ import { updateRiskMethod } from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { MethodMatrix, ZONE_CELL } from "@/components/risks/method-matrix";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -455,7 +455,7 @@ export function RiskMethodPanel({
 							<li
 								key={c.key}
 								className={cn(
-									"grid gap-3 rounded-2xl bg-card p-3 lg:grid-cols-[10rem_9rem_12rem_1fr_auto]",
+									"grid grid-cols-1 gap-3 rounded-2xl bg-card p-3 sm:grid-cols-2 2xl:grid-cols-[10rem_9rem_12rem_minmax(0,1fr)_auto]",
 									ZONE_CELL[c.zone],
 								)}
 							>
@@ -510,7 +510,7 @@ export function RiskMethodPanel({
 									</Label>
 									<select
 										id={`rm-cz-${c.key}`}
-										className="h-9 rounded-md bg-muted px-2 text-foreground"
+										className={nativeSelectClass}
 										value={c.zone}
 										disabled={!canEdit}
 										onChange={(e) =>
@@ -536,7 +536,7 @@ export function RiskMethodPanel({
 									</Label>
 									<select
 										id={`rm-ca-${c.key}`}
-										className="h-9 rounded-md bg-muted px-2 text-foreground"
+										className={nativeSelectClass}
 										value={acceptanceValue(c.acceptance)}
 										disabled={!canEdit}
 										onChange={(e) =>
@@ -678,7 +678,7 @@ export function RiskMethodPanel({
 			</section>
 
 			{canEdit && (
-				<div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t bg-background py-3">
+				<div className="sticky bottom-(--bar-offset) flex flex-wrap items-center justify-between gap-3 border-t material-bar py-3">
 					<p className="text-muted-foreground text-footnote" aria-live="polite">
 						{risks.length > 0 && stored
 							? t("preview", {

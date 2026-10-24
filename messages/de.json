@@ -444,6 +444,9 @@
 	},
 	"Settings": {
 		"title": "Einstellungen",
+		"groupAccount": "Dein Konto",
+		"groupOrg": "Organisation",
+		"groupMethods": "Methoden & Abläufe",
 		"tabOrganisation": "Organisation",
 		"tabFrameworks": "Rahmenwerke & Stufe",
 		"tabWorkflows": "Freigabe-Workflows",

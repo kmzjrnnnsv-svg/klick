@@ -24,7 +24,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Input, nativeSelectCompactClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -661,7 +661,10 @@ export function ContractClausesForm({
 						</span>
 						<select
 							aria-label={`Art. ${c.code} ${c.title}`}
-							className="w-full shrink-0 rounded-2xl bg-card px-2 py-1 text-subhead sm:w-40"
+							className={cn(
+								nativeSelectCompactClass,
+								"w-full shrink-0 sm:w-40",
+							)}
 							value={state[c.code] ?? "open"}
 							disabled={!canEdit || pending}
 							onChange={(e) =>

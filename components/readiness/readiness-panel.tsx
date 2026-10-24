@@ -2,6 +2,7 @@ import Form from "next/form";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
+import { nativeSelectCompactClass } from "@/components/ui/input";
 import { fmtDate } from "@/lib/compliance/page-data";
 import type {
 	BlockerSeverity,
@@ -185,7 +186,7 @@ export async function ReadinessPanel({
 							<select
 								name="stichtag"
 								defaultValue={result.asOf}
-								className="rounded-2xl bg-card px-2 py-1 text-subhead text-foreground"
+								className={nativeSelectCompactClass}
 							>
 								{stichtage.map((d) => (
 									<option key={d} value={d}>

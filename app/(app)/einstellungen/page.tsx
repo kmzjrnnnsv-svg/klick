@@ -1,5 +1,22 @@
 import { eq } from "drizzle-orm";
+import {
+	Bell,
+	Building2,
+	ChevronLeft,
+	ClipboardCheck,
+	Gauge,
+	GitBranch,
+	Hash,
+	KeyRound,
+	Layers,
+	Plug,
+	Receipt,
+	ShieldCheck,
+	Truck,
+	Users,
+} from "lucide-react";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
 import { AuditRegimesPanel } from "@/components/settings/audit-regimes-panel";
@@ -18,7 +35,7 @@ import { SubscriptionPanel } from "@/components/settings/subscription-panel";
 import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel";
 import { WalletLinkPanel } from "@/components/settings/wallet-link-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
 import { approvalWorkflows } from "@/db/schema";
 import {
 	factInfos,
@@ -74,8 +91,56 @@ import {
 	listRetiredFrameworkSlugs,
 } from "@/lib/org/queries";
 import { listOrgRoles } from "@/lib/org/roles";
+import {
+	resolveSettingsSection,
+	type SettingsSectionKey,
+	settingsGroups,
+	visibleSettingsSections,
+} from "@/lib/settings/sections";
+import { cn } from "@/lib/utils";
 import { listWalletLinks } from "@/lib/wallet-link-ingest/queries";
 
+const SECTION_LABEL = {
+	security: "tabSecurity",
+	notifications: "tabNotifications",
+	organisation: "tabOrganisation",
+	frameworks: "tabFrameworks",
+	rollen: "tabRoles",
+	sso: "tabSso",
+	integrationen: "tabIntegrations",
+	abo: "tabSubscription",
+	workflows: "tabWorkflows",
+	audits: "tabAudits",
+	risk: "tabRiskScales",
+	lieferanten: "tabSupplierMethod",
+	numbering: "tabNumbering",
+} as const satisfies Record<SettingsSectionKey, string>;
+
+const SECTION_ICON: Record<SettingsSectionKey, React.ReactNode> = {
+	security: <ShieldCheck />,
+	notifications: <Bell />,
+	organisation: <Building2 />,
+	frameworks: <Layers />,
+	rollen: <Users />,
+	sso: <KeyRound />,
+	integrationen: <Plug />,
+	abo: <Receipt />,
+	workflows: <GitBranch />,
+	audits: <ClipboardCheck />,
+	risk: <Gauge />,
+	lieferanten: <Truck />,
+	numbering: <Hash />,
+};
+
+const GROUP_LABEL = {
+	account: "groupAccount",
+	org: "groupOrg",
+	methods: "groupMethods",
+} as const;
+
+// Einstellungen nach Apple HIG (iOS-Einstellungen): gruppierte Liste der
+// Bereiche; am Handy erst die Liste, dann der Bereich mit Rückweg, ab Desktop
+// Liste links und Bereich rechts. Geladen wird nur, was der Bereich braucht.
 export default async function SettingsPage({
 	searchParams,
 }: {
@@ -83,257 +148,112 @@ export default async function SettingsPage({
 }) {
 	const { tab } = await searchParams;
 	const ctx = await requireOrgPage();
-	const cov = await getOrgCoverageCached(ctx);
-	// Workflows je Org sicherstellen (Seed) und laden.
-	const { settings, workflows, workflowNames } = await withOrg(
-		toOrgCtx(ctx),
-		async (tx) => {
-			const settings = await getOrgSettings(tx, ctx.orgId);
-			await ensureOrgWorkflows(
-				tx,
-				ctx.orgId,
-				settings?.licenceStage ?? "0_vorbereitung",
-			);
-			const rows = await tx
-				.select()
-				.from(approvalWorkflows)
-				.where(eq(approvalWorkflows.organizationId, ctx.orgId));
-			// nur angeschlossene Auslöser (Designer, lib/approvals/triggers.ts)
-			const workflows = rows.flatMap((r) => {
-				const trigger = triggerOf(r);
-				if (!trigger || !TRIGGER_BY_KEY.get(trigger)?.wired) return [];
-				return [
-					{
-						id: r.id,
-						kind: r.kind,
-						name: r.name,
-						description: r.description,
-						trigger,
-						custom: r.custom,
-						enabled: r.enabled,
-						priority: r.priority,
-						conditions: r.conditions,
-						steps: r.steps,
-					},
-				];
-			});
-			const [roles, members] = await Promise.all([
-				listOrgRoles(tx, ctx.orgId),
-				userNames(
-					tx,
-					rows.flatMap((r) =>
-						r.steps.flatMap((s) =>
-							[...(s.approvers ?? [s.approverRule]), ...(s.skipIf ?? [])]
-								.filter((x) => x.startsWith("user:"))
-								.map((x) => x.slice(5)),
-						),
-					),
-				),
-			]);
-			return {
-				settings,
-				workflows,
-				workflowNames: await ruleNames({ roles, users: members }),
-			};
-		},
-	);
-	const canReadIntegrations = allows(ctx, {
-		integration: ["read"],
-	});
-	const { tokens, productOptions, walletLinks } = canReadIntegrations
-		? await readOrg(toOrgCtx(ctx), async (tx) => ({
-				tokens: await listAccessTokens(tx, ctx.orgId),
-				productOptions: await listProductOptions(tx, ctx.orgId),
-				walletLinks: await listWalletLinks(tx, ctx.orgId),
-			}))
-		: { tokens: [], productOptions: [], walletLinks: [] };
-	const { orgFws, retiredSlugs, openAudits, riskPoints, auditCtx } =
-		await readOrg(toOrgCtx(ctx), async (tx) => {
-			const rows = await listOrgFrameworks(tx, ctx.orgId);
-			const names = await userNames(
-				tx,
-				rows.map((r) => r.ownerUserId),
-			);
-			return {
-				orgFws: rows.map((r) => ({
-					...r,
-					ownerName: r.ownerUserId ? (names.get(r.ownerUserId) ?? null) : null,
-				})),
-				retiredSlugs: new Set(await listRetiredFrameworkSlugs(tx, ctx.orgId)),
-				openAudits: await listOpenAuditScopes(tx, ctx.orgId),
-				auditCtx: await loadAuditRegimeContext(tx, ctx.orgId),
-				riskPoints: (await listRisks(tx, ctx.orgId)).map((r) => ({
-					likelihood: r.likelihood,
-					impact: r.impact,
-					residualLikelihood: r.residualLikelihood,
-					residualImpact: r.residualImpact,
-				})),
-			};
-		});
-	const activeSlugs = new Set(orgFws.map((f) => f.slug));
-	const applicability = new Map(
-		[...(cov?.applicabilityDetail ?? [])].map(([k, d]) => [k, d.applicable]),
-	);
-	const removalFor = (slug: string) =>
-		cov
-			? frameworkRemovalImpact({
-					slug,
-					activeSlugs: cov.frameworks,
-					licenceStage: cov.profile.licenceStage,
-					tlptDesignated: cov.profile.tlptDesignated,
-					requirements: CATALOG_REQ_REFS,
-					edges: CATALOG_EDGES,
-					applicability,
-					implStatus: cov.implStatus,
-					openAudits,
-				})
-			: undefined;
-	const toItem = (slug: string) => {
-		const meta = CATALOG_FRAMEWORKS.find((f) => f.slug === slug);
-		return {
-			slug,
-			name: meta?.name ?? slug,
-			description: meta?.description ?? null,
-			hasIndex: (meta?.requirements.length ?? 0) > 0,
-			coveragePct: cov?.result.byFramework.get(slug)?.coveragePct ?? null,
-		};
-	};
-	const activeItems = orgFws.map((f) => ({
-		...toItem(f.slug),
-		ownerName: f.ownerName,
-		removal: removalFor(f.slug),
-	}));
-	const availableItems = CATALOG_FRAMEWORKS.filter(
-		(f) => !activeSlugs.has(f.slug),
-	).map((f) => ({ ...toItem(f.slug), retired: retiredSlugs.has(f.slug) }));
 	const canEditSettings = allows(ctx, { settings: ["update"] });
-	const { prices } = canEditSettings
-		? await loadPriceTable(settings?.priceGroupId)
-		: { prices: null };
-	// „Für dich empfohlen“ unter Abo & Leistungen (nur Inhaber:innen)
-	const recommendations = prices
-		? recommendServices(
-				await readOrg(toOrgCtx(ctx), (tx) =>
-					loadRecommendInput(tx, ctx.orgId, cov?.frameworks ?? []),
-				),
-			)
-		: [];
-	// Rollen & Rechte (ADR-020): nur für Inhaber:innen
-	const rolesData = canEditSettings
-		? await (async () => {
-				const tt = await getTranslations("Team");
-				const [roles, members] = await Promise.all([
-					readOrg(toOrgCtx(ctx), (tx) => listOrgRoles(tx, ctx.orgId)),
-					listOrgMembers(ctx.orgId),
-				]);
-				const cap = (r: string) => `${r[0]?.toUpperCase()}${r.slice(1)}`;
-				const now = Date.now();
-				return {
-					// Berater-Zugänge (ADR-018) kosten ab Start — nur gültige zählen
-					consultantSeats: members.filter(
-						(m) =>
-							normalizeRole(m.role) === "consultant" &&
-							(!m.accessUntil || m.accessUntil.getTime() > now),
-					).length,
-					roles: roles.map((r) => ({
-						id: r.id,
-						name: r.name,
-						description: r.description,
-						permissions: r.permissions,
-						memberIds: r.members
-							.map((m) => m.memberId)
-							.filter((x): x is string => Boolean(x)),
-						pendingEmails: r.members
-							.map((m) => m.pendingEmail)
-							.filter((x): x is string => Boolean(x)),
-					})),
-					members: members
-						.filter((m) => canHoldCustomRoles(normalizeRole(m.role)))
-						.map((m) => ({ memberId: m.memberId, name: m.name || m.email })),
-					baseRoles: (
-						["owner", "editor", "viewer", "auditor", "consultant"] as const
-					).map((role) => ({
-						role,
-						label: tt(`role${cap(role)}` as "roleOwner"),
-						hint: tt(`role${cap(role)}Hint` as "roleOwnerHint"),
-						// Better-Auth-interne Ressourcen (Team, Einladungen, …) ausblenden
-						permissions: Object.fromEntries(
-							Object.entries(roleStatements(role)).filter(
-								([res]) =>
-									![
-										"organization",
-										"member",
-										"invitation",
-										"team",
-										"ac",
-									].includes(res),
-							),
-						),
-					})),
-				};
-			})()
-		: null;
-	const orgSummary = await getOrgSummary(ctx.orgId);
-	const ssoProviders = await listSsoProvidersForOrg(ctx.orgId);
-	const callbackBase = (process.env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
-	const sctx = await getSessionCtx();
+	const canReadIntegrations = allows(ctx, { integration: ["read"] });
+	const visible = visibleSettingsSections({
+		settings: canEditSettings,
+		integrations: canReadIntegrations,
+	});
+	const { key: section, chosen } = resolveSettingsSection(tab, visible);
 	const t = await getTranslations("Settings");
-	const h = await headers();
-	const [sessions, passkeys] = await Promise.all([
-		auth.api.listSessions({ headers: h }),
-		auth.api.listPasskeys({ headers: h }).catch(() => []),
-	]);
+	const sectionTitle = t(SECTION_LABEL[section]);
+	const panel = await renderSection(section, ctx, {
+		canEditSettings,
+		t,
+	});
 	return (
 		<>
-			<PageHeader title={t("title")} />
-			<Tabs
-				defaultValue={
-					tab &&
-					[
-						"frameworks",
-						"workflows",
-						"audits",
-						"risk",
-						"lieferanten",
-						"numbering",
-						"organisation",
-						"sso",
-						"notifications",
-						...(canReadIntegrations ? ["integrationen"] : []),
-						...(canEditSettings ? ["abo", "rollen"] : []),
-					].includes(tab)
-						? tab
-						: "security"
-				}
-			>
-				<TabsList>
-					<TabsTrigger value="security">{t("tabSecurity")}</TabsTrigger>
-					<TabsTrigger value="frameworks">{t("tabFrameworks")}</TabsTrigger>
-					{rolesData && (
-						<TabsTrigger value="rollen">{t("tabRoles")}</TabsTrigger>
+			<div className={cn(chosen && "hidden lg:block")}>
+				<PageHeader title={t("title")} />
+			</div>
+			{chosen && (
+				<div className="lg:hidden">
+					<Link
+						href="/einstellungen"
+						className="-ml-1 mb-1 inline-flex min-h-11 items-center gap-0.5 rounded-md pr-2 text-body text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					>
+						<ChevronLeft aria-hidden="true" className="size-5" />
+						{t("title")}
+					</Link>
+					<PageHeader title={sectionTitle} />
+				</div>
+			)}
+			<div className="grid grid-cols-1 gap-8 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
+				<nav
+					aria-label={t("title")}
+					// Am Desktop ist die Liste eine Seitenleiste: ohne Pfeile
+					className={cn(
+						"lg:sticky lg:top-20 lg:[&_.lucide-chevron-right]:hidden",
+						chosen && "hidden lg:block",
 					)}
-					<TabsTrigger value="workflows">{t("tabWorkflows")}</TabsTrigger>
-					<TabsTrigger value="audits">{t("tabAudits")}</TabsTrigger>
-					<TabsTrigger value="risk">{t("tabRiskScales")}</TabsTrigger>
-					<TabsTrigger value="lieferanten">
-						{t("tabSupplierMethod")}
-					</TabsTrigger>
-					<TabsTrigger value="numbering">{t("tabNumbering")}</TabsTrigger>
-					<TabsTrigger value="organisation">{t("tabOrganisation")}</TabsTrigger>
-					<TabsTrigger value="sso">{t("tabSso")}</TabsTrigger>
-					<TabsTrigger value="notifications">
-						{t("tabNotifications")}
-					</TabsTrigger>
-					{canReadIntegrations && (
-						<TabsTrigger value="integrationen">
-							{t("tabIntegrations")}
-						</TabsTrigger>
+				>
+					<ListGroup>
+						{settingsGroups(visible).map((g) => (
+							<ListSection key={g.group} title={t(GROUP_LABEL[g.group])}>
+								{g.keys.map((k) => (
+									<ListRow
+										key={k}
+										icon={SECTION_ICON[k]}
+										title={t(SECTION_LABEL[k])}
+										href={`/einstellungen?tab=${k}`}
+										current={chosen && k === section}
+										// Ohne Wahl zeigt der Desktop den Standardbereich
+										className={cn(
+											!chosen &&
+												k === section &&
+												"lg:bg-primary/12 lg:font-semibold",
+										)}
+									/>
+								))}
+							</ListSection>
+						))}
+					</ListGroup>
+				</nav>
+				<section
+					aria-labelledby="einstellungen-bereich"
+					className={cn(
+						"flex min-w-0 flex-col gap-6",
+						!chosen && "hidden lg:flex",
 					)}
-					{prices && (
-						<TabsTrigger value="abo">{t("tabSubscription")}</TabsTrigger>
-					)}
-				</TabsList>
-				<TabsContent value="security" className="flex flex-col gap-6">
+				>
+					<h2
+						id="einstellungen-bereich"
+						className="sr-only font-bold text-title-2 lg:not-sr-only"
+					>
+						{sectionTitle}
+					</h2>
+					{panel}
+				</section>
+			</div>
+		</>
+	);
+}
+
+type PageCtx = Awaited<ReturnType<typeof requireOrgPage>>;
+
+async function renderSection(
+	section: SettingsSectionKey,
+	ctx: PageCtx,
+	{
+		canEditSettings,
+		t,
+	}: {
+		canEditSettings: boolean;
+		t: Awaited<ReturnType<typeof getTranslations<"Settings">>>;
+	},
+): Promise<React.ReactNode> {
+	const octx = toOrgCtx(ctx);
+	switch (section) {
+		case "security": {
+			const h = await headers();
+			const [sctx, settings, sessions, passkeys] = await Promise.all([
+				getSessionCtx(),
+				readOrg(octx, (tx) => getOrgSettings(tx, ctx.orgId)),
+				auth.api.listSessions({ headers: h }),
+				auth.api.listPasskeys({ headers: h }).catch(() => []),
+			]);
+			return (
+				<>
 					<SecurityPanel
 						mfaEnabled={
 							Boolean(sctx?.user.twoFactorEnabled) || passkeys.length > 0
@@ -358,102 +278,292 @@ export default async function SettingsPage({
 						policy={withDlpDefaults(settings?.dlpPolicy)}
 						canEdit={canEditSettings}
 					/>
-				</TabsContent>
-				<TabsContent value="frameworks" className="flex flex-col gap-6">
-					{cov && (
-						<StagePanel
-							licenceStage={cov.profile.licenceStage}
-							caspServices={[...cov.profile.caspServices]}
-							tlptDesignated={cov.profile.tlptDesignated}
-							tlptConfirmedAt={settings?.setupFlags?.tlptConfirmedAt ?? null}
-							canEdit={canEditSettings}
-						/>
+				</>
+			);
+		}
+		case "notifications":
+			return (
+				<p className="text-muted-foreground text-subhead">
+					{t("notificationsLead")}
+				</p>
+			);
+		case "frameworks": {
+			const cov = await getOrgCoverageCached(ctx);
+			if (!cov) return null;
+			const { settings, orgFws, retiredSlugs, openAudits } = await readOrg(
+				octx,
+				async (tx) => {
+					const rows = await listOrgFrameworks(tx, ctx.orgId);
+					const names = await userNames(
+						tx,
+						rows.map((r) => r.ownerUserId),
+					);
+					return {
+						settings: await getOrgSettings(tx, ctx.orgId),
+						orgFws: rows.map((r) => ({
+							...r,
+							ownerName: r.ownerUserId
+								? (names.get(r.ownerUserId) ?? null)
+								: null,
+						})),
+						retiredSlugs: new Set(
+							await listRetiredFrameworkSlugs(tx, ctx.orgId),
+						),
+						openAudits: await listOpenAuditScopes(tx, ctx.orgId),
+					};
+				},
+			);
+			const activeSlugs = new Set(orgFws.map((f) => f.slug));
+			const applicability = new Map(
+				[...cov.applicabilityDetail].map(([k, d]) => [k, d.applicable]),
+			);
+			const toItem = (slug: string) => {
+				const meta = CATALOG_FRAMEWORKS.find((f) => f.slug === slug);
+				return {
+					slug,
+					name: meta?.name ?? slug,
+					description: meta?.description ?? null,
+					hasIndex: (meta?.requirements.length ?? 0) > 0,
+					coveragePct: cov.result.byFramework.get(slug)?.coveragePct ?? null,
+				};
+			};
+			const activeItems = orgFws.map((f) => ({
+				...toItem(f.slug),
+				ownerName: f.ownerName,
+				removal: frameworkRemovalImpact({
+					slug: f.slug,
+					activeSlugs: cov.frameworks,
+					licenceStage: cov.profile.licenceStage,
+					tlptDesignated: cov.profile.tlptDesignated,
+					requirements: CATALOG_REQ_REFS,
+					edges: CATALOG_EDGES,
+					applicability,
+					implStatus: cov.implStatus,
+					openAudits,
+				}),
+			}));
+			const availableItems = CATALOG_FRAMEWORKS.filter(
+				(f) => !activeSlugs.has(f.slug),
+			).map((f) => ({ ...toItem(f.slug), retired: retiredSlugs.has(f.slug) }));
+			return (
+				<>
+					<StagePanel
+						licenceStage={cov.profile.licenceStage}
+						caspServices={[...cov.profile.caspServices]}
+						tlptDesignated={cov.profile.tlptDesignated}
+						tlptConfirmedAt={settings?.setupFlags?.tlptConfirmedAt ?? null}
+						canEdit={canEditSettings}
+					/>
+					<FrameworksPanel
+						active={activeItems}
+						available={availableItems}
+						profile={{
+							sector: cov.profile.sector,
+							licenceStage: cov.profile.licenceStage,
+							caspServices: [...cov.profile.caspServices],
+							tlptDesignated: cov.profile.tlptDesignated,
+							nis2Status: cov.profile.nis2Status,
+						}}
+						canEdit={canEditSettings}
+					/>
+				</>
+			);
+		}
+		case "rollen": {
+			const tt = await getTranslations("Team");
+			const [roles, members] = await Promise.all([
+				readOrg(octx, (tx) => listOrgRoles(tx, ctx.orgId)),
+				listOrgMembers(ctx.orgId),
+			]);
+			const cap = (r: string) => `${r[0]?.toUpperCase()}${r.slice(1)}`;
+			return (
+				<RolesPanel
+					roles={roles.map((r) => ({
+						id: r.id,
+						name: r.name,
+						description: r.description,
+						permissions: r.permissions,
+						memberIds: r.members
+							.map((m) => m.memberId)
+							.filter((x): x is string => Boolean(x)),
+						pendingEmails: r.members
+							.map((m) => m.pendingEmail)
+							.filter((x): x is string => Boolean(x)),
+					}))}
+					members={members
+						.filter((m) => canHoldCustomRoles(normalizeRole(m.role)))
+						.map((m) => ({ memberId: m.memberId, name: m.name || m.email }))}
+					catalog={permissionCatalog()}
+					editorPreset={grantablePresetOf("editor")}
+					baseRoles={(
+						["owner", "editor", "viewer", "auditor", "consultant"] as const
+					).map((role) => ({
+						role,
+						label: tt(`role${cap(role)}` as "roleOwner"),
+						hint: tt(`role${cap(role)}Hint` as "roleOwnerHint"),
+						// Better-Auth-interne Ressourcen (Team, Einladungen, …) ausblenden
+						permissions: Object.fromEntries(
+							Object.entries(roleStatements(role)).filter(
+								([res]) =>
+									![
+										"organization",
+										"member",
+										"invitation",
+										"team",
+										"ac",
+									].includes(res),
+							),
+						),
+					}))}
+					canEdit={canEditSettings}
+				/>
+			);
+		}
+		case "workflows": {
+			// Workflows je Org sicherstellen (Seed) und laden
+			const { workflows, workflowNames } = await withOrg(octx, async (tx) => {
+				const settings = await getOrgSettings(tx, ctx.orgId);
+				await ensureOrgWorkflows(
+					tx,
+					ctx.orgId,
+					settings?.licenceStage ?? "0_vorbereitung",
+				);
+				const rows = await tx
+					.select()
+					.from(approvalWorkflows)
+					.where(eq(approvalWorkflows.organizationId, ctx.orgId));
+				// nur angeschlossene Auslöser (Designer, lib/approvals/triggers.ts)
+				const workflows = rows.flatMap((r) => {
+					const trigger = triggerOf(r);
+					if (!trigger || !TRIGGER_BY_KEY.get(trigger)?.wired) return [];
+					return [
+						{
+							id: r.id,
+							kind: r.kind,
+							name: r.name,
+							description: r.description,
+							trigger,
+							custom: r.custom,
+							enabled: r.enabled,
+							priority: r.priority,
+							conditions: r.conditions,
+							steps: r.steps,
+						},
+					];
+				});
+				const [roles, members] = await Promise.all([
+					listOrgRoles(tx, ctx.orgId),
+					userNames(
+						tx,
+						rows.flatMap((r) =>
+							r.steps.flatMap((s) =>
+								[...(s.approvers ?? [s.approverRule]), ...(s.skipIf ?? [])]
+									.filter((x) => x.startsWith("user:"))
+									.map((x) => x.slice(5)),
+							),
+						),
+					),
+				]);
+				return {
+					workflows,
+					workflowNames: await ruleNames({ roles, users: members }),
+				};
+			});
+			return (
+				<WorkflowsPanel
+					triggers={TRIGGERS.filter((x) => x.wired).map((x) => ({
+						key: x.key,
+						area: x.area,
+						mode: x.mode,
+					}))}
+					texts={await triggerTexts()}
+					facts={await factInfos()}
+					workflows={workflows}
+					names={workflowNames}
+					presets={WORKFLOW_PRESETS.map((p) => ({
+						key: p.key,
+						trigger: p.trigger,
+						name: p.name,
+						description: p.description,
+						variant: Boolean(p.variant),
+						roles: p.roles.map((r) => r.name),
+					}))}
+					canEdit={canEditSettings}
+				/>
+			);
+		}
+		case "audits": {
+			const [cov, auditCtx] = await Promise.all([
+				getOrgCoverageCached(ctx),
+				readOrg(octx, (tx) => loadAuditRegimeContext(tx, ctx.orgId)),
+			]);
+			return (
+				<AuditRegimesPanel
+					regimes={regimeViews(
+						cov?.frameworks ?? [],
+						auditCtx.settings,
+						auditCtx.registered,
+						berlinToday(),
 					)}
-					{cov && (
-						<FrameworksPanel
-							active={activeItems}
-							available={availableItems}
-							profile={{
-								sector: cov.profile.sector,
-								licenceStage: cov.profile.licenceStage,
-								caspServices: [...cov.profile.caspServices],
-								tlptDesignated: cov.profile.tlptDesignated,
-								nis2Status: cov.profile.nis2Status,
-							}}
-							canEdit={canEditSettings}
-						/>
-					)}
-				</TabsContent>
-				{rolesData && (
-					<TabsContent value="rollen">
-						<RolesPanel
-							roles={rolesData.roles}
-							members={rolesData.members}
-							catalog={permissionCatalog()}
-							editorPreset={grantablePresetOf("editor")}
-							baseRoles={rolesData.baseRoles}
-							canEdit={canEditSettings}
-						/>
-					</TabsContent>
-				)}
-				<TabsContent value="workflows">
-					<WorkflowsPanel
-						triggers={TRIGGERS.filter((x) => x.wired).map((x) => ({
-							key: x.key,
-							area: x.area,
-							mode: x.mode,
-						}))}
-						texts={await triggerTexts()}
-						facts={await factInfos()}
-						workflows={workflows}
-						names={workflowNames}
-						presets={WORKFLOW_PRESETS.map((p) => ({
-							key: p.key,
-							trigger: p.trigger,
-							name: p.name,
-							description: p.description,
-							variant: Boolean(p.variant),
-							roles: p.roles.map((r) => r.name),
-						}))}
-						canEdit={canEditSettings}
-					/>
-				</TabsContent>
-				<TabsContent value="audits">
-					<AuditRegimesPanel
-						regimes={regimeViews(
-							cov?.frameworks ?? [],
-							auditCtx.settings,
-							auditCtx.registered,
-							berlinToday(),
-						)}
-						canEdit={canEditSettings}
-					/>
-				</TabsContent>
-				<TabsContent value="risk">
-					<RiskMethodPanel
-						method={resolveRiskMethod(settings, cov?.frameworks ?? [])}
-						stored={Boolean(settings?.riskMethod)}
-						template={defaultRiskMethod(cov?.frameworks ?? [])}
-						risks={riskPoints}
-						allowSelfApproval={settings?.allowSelfApproval ?? true}
-						canEdit={canEditSettings}
-					/>
-				</TabsContent>
-				<TabsContent value="lieferanten">
-					<SupplierMethodPanel
-						method={resolveSupplierMethod(settings)}
-						stored={Boolean(settings?.supplierMethod)}
-						template={defaultSupplierMethod()}
-						canEdit={canEditSettings}
-					/>
-				</TabsContent>
-				<TabsContent value="numbering">
-					<NumberingPanel
-						numbering={settings?.documentNumbering ?? {}}
-						canEdit={canEditSettings}
-					/>
-				</TabsContent>
-				<TabsContent value="organisation" className="flex flex-col gap-8">
+					canEdit={canEditSettings}
+				/>
+			);
+		}
+		case "risk": {
+			const [cov, { settings, riskPoints }] = await Promise.all([
+				getOrgCoverageCached(ctx),
+				readOrg(octx, async (tx) => ({
+					settings: await getOrgSettings(tx, ctx.orgId),
+					riskPoints: (await listRisks(tx, ctx.orgId)).map((r) => ({
+						likelihood: r.likelihood,
+						impact: r.impact,
+						residualLikelihood: r.residualLikelihood,
+						residualImpact: r.residualImpact,
+					})),
+				})),
+			]);
+			return (
+				<RiskMethodPanel
+					method={resolveRiskMethod(settings, cov?.frameworks ?? [])}
+					stored={Boolean(settings?.riskMethod)}
+					template={defaultRiskMethod(cov?.frameworks ?? [])}
+					risks={riskPoints}
+					allowSelfApproval={settings?.allowSelfApproval ?? true}
+					canEdit={canEditSettings}
+				/>
+			);
+		}
+		case "lieferanten": {
+			const settings = await readOrg(octx, (tx) =>
+				getOrgSettings(tx, ctx.orgId),
+			);
+			return (
+				<SupplierMethodPanel
+					method={resolveSupplierMethod(settings)}
+					stored={Boolean(settings?.supplierMethod)}
+					template={defaultSupplierMethod()}
+					canEdit={canEditSettings}
+				/>
+			);
+		}
+		case "numbering": {
+			const settings = await readOrg(octx, (tx) =>
+				getOrgSettings(tx, ctx.orgId),
+			);
+			return (
+				<NumberingPanel
+					numbering={settings?.documentNumbering ?? {}}
+					canEdit={canEditSettings}
+				/>
+			);
+		}
+		case "organisation": {
+			const [settings, orgSummary] = await Promise.all([
+				readOrg(octx, (tx) => getOrgSettings(tx, ctx.orgId)),
+				getOrgSummary(ctx.orgId),
+			]);
+			return (
+				<div className="flex flex-col gap-8">
 					<EntityProfilePanel
 						orgName={orgSummary?.name ?? ""}
 						profile={settings?.entityProfile ?? {}}
@@ -462,48 +572,80 @@ export default async function SettingsPage({
 					{ctx.orgRole === "owner" && (
 						<DangerZonePanel orgSlug={orgSummary?.slug ?? ""} canDelete />
 					)}
-				</TabsContent>
-				<TabsContent value="sso">
-					<SsoPanel
-						providers={ssoProviders}
-						callbackBase={callbackBase}
-						canEdit={ctx.orgRole === "owner"}
+				</div>
+			);
+		}
+		case "sso":
+			return (
+				<SsoPanel
+					providers={await listSsoProvidersForOrg(ctx.orgId)}
+					callbackBase={callbackBase()}
+					canEdit={ctx.orgRole === "owner"}
+				/>
+			);
+		case "integrationen": {
+			const { tokens, productOptions, walletLinks } = await readOrg(
+				octx,
+				async (tx) => ({
+					tokens: await listAccessTokens(tx, ctx.orgId),
+					productOptions: await listProductOptions(tx, ctx.orgId),
+					walletLinks: await listWalletLinks(tx, ctx.orgId),
+				}),
+			);
+			const canCreate = allows(ctx, { integration: ["create"] });
+			const canRevoke = allows(ctx, { integration: ["revoke"] });
+			return (
+				<>
+					<WalletLinkPanel
+						links={walletLinks}
+						origin={callbackBase()}
+						canCreate={canCreate}
+						canRevoke={canRevoke}
 					/>
-				</TabsContent>
-				<TabsContent value="notifications">
-					<p className="text-muted-foreground text-subhead">
-						{t("notificationsLead")}
-					</p>
-				</TabsContent>
-				{canReadIntegrations && (
-					<TabsContent value="integrationen" className="flex flex-col gap-6">
-						<WalletLinkPanel
-							links={walletLinks}
-							origin={callbackBase}
-							canCreate={allows(ctx, { integration: ["create"] })}
-							canRevoke={allows(ctx, { integration: ["revoke"] })}
-						/>
-						<IntegrationsPanel
-							tokens={tokens}
-							products={productOptions}
-							baseUrl={callbackBase}
-							canCreate={allows(ctx, { integration: ["create"] })}
-							canRevoke={allows(ctx, { integration: ["revoke"] })}
-						/>
-					</TabsContent>
-				)}
-				{prices && (
-					<TabsContent value="abo">
-						<SubscriptionPanel
-							plan={settings?.plan ?? "start"}
-							prices={prices}
-							consultantSeats={rolesData?.consultantSeats ?? 0}
-							email={ctx.email}
-							recommendations={recommendations}
-						/>
-					</TabsContent>
-				)}
-			</Tabs>
-		</>
-	);
+					<IntegrationsPanel
+						tokens={tokens}
+						products={productOptions}
+						baseUrl={callbackBase()}
+						canCreate={canCreate}
+						canRevoke={canRevoke}
+					/>
+				</>
+			);
+		}
+		case "abo": {
+			const [cov, settings, members] = await Promise.all([
+				getOrgCoverageCached(ctx),
+				readOrg(octx, (tx) => getOrgSettings(tx, ctx.orgId)),
+				listOrgMembers(ctx.orgId),
+			]);
+			const { prices } = await loadPriceTable(settings?.priceGroupId);
+			// „Für dich empfohlen“ (nur Inhaber:innen sehen den Bereich)
+			const recommendations = recommendServices(
+				await readOrg(octx, (tx) =>
+					loadRecommendInput(tx, ctx.orgId, cov?.frameworks ?? []),
+				),
+			);
+			const now = Date.now();
+			return (
+				<SubscriptionPanel
+					plan={settings?.plan ?? "start"}
+					prices={prices}
+					// Berater-Zugänge (ADR-018) kosten ab Start — nur gültige zählen
+					consultantSeats={
+						members.filter(
+							(m) =>
+								normalizeRole(m.role) === "consultant" &&
+								(!m.accessUntil || m.accessUntil.getTime() > now),
+						).length
+					}
+					email={ctx.email}
+					recommendations={recommendations}
+				/>
+			);
+		}
+	}
+}
+
+function callbackBase(): string {
+	return (process.env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
 }

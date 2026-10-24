@@ -11,7 +11,7 @@ import type { MemberOption } from "@/components/entity/owner-assignee";
 import { MethodMatrix, ZONE_CELL } from "@/components/risks/method-matrix";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RISK_CATEGORIES } from "@/db/schema/grc";
@@ -88,8 +88,7 @@ const STEPS = [
 ] as const;
 type Step = (typeof STEPS)[number];
 const TREATMENTS: Treatment[] = ["mitigate", "transfer", "avoid", "accept"];
-const selectCls =
-	"h-9 w-full rounded-md bg-muted px-2 text-foreground text-subhead disabled:opacity-60";
+const selectCls = nativeSelectClass;
 
 export function RiskWizard({
 	mode,
@@ -1198,7 +1197,7 @@ export function RiskWizard({
 				)}
 			</section>
 
-			<footer className="sticky bottom-0 flex items-center justify-between gap-3 border-t bg-background py-3">
+			<footer className="sticky bottom-(--bar-offset) flex items-center justify-between gap-3 border-t material-bar py-3">
 				<Button
 					type="button"
 					variant="ghost"

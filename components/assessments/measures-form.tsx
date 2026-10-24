@@ -8,7 +8,7 @@ import { createMeasures } from "@/app/actions/assessments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
+import { Input, nativeSelectCompactClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Measure } from "@/lib/assessments/measures";
 
@@ -151,7 +151,7 @@ export function MeasuresForm({
 					<Label htmlFor="m-assignee">{t("assignTo")}</Label>
 					<select
 						id="m-assignee"
-						className="rounded-2xl bg-card px-2 py-1.5 text-foreground text-subhead"
+						className={nativeSelectCompactClass}
 						value={assignee}
 						onChange={(e) => setAssignee(e.target.value)}
 					>

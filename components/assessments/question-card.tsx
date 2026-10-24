@@ -17,6 +17,7 @@ import {
 } from "@/components/entity/upload-feedback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { nativeSelectCompactClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { AssessmentAnswer, AssessmentQuestion } from "@/db/schema/enums";
@@ -433,7 +434,7 @@ export function QuestionCard({
 					<label className="flex flex-col gap-1 text-footnote sm:flex-row sm:items-center sm:gap-2">
 						<span className="text-muted-foreground">{t("linkExisting")}</span>
 						<select
-							className="rounded-2xl bg-card px-2 py-1 text-foreground text-subhead"
+							className={nativeSelectCompactClass}
 							value=""
 							disabled={pending}
 							onChange={(e) => {
@@ -481,7 +482,7 @@ export function QuestionCard({
 					<label className="flex items-center gap-2">
 						<span className="text-muted-foreground">{t("delegateTo")}</span>
 						<select
-							className="rounded-2xl bg-card px-2 py-1 text-foreground text-subhead"
+							className={nativeSelectCompactClass}
 							value={delegateTo}
 							onChange={(e) => setDelegateTo(e.target.value)}
 						>

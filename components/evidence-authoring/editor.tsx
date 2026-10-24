@@ -301,7 +301,7 @@ export function AuthoringEditor({
 				);
 			})}
 
-			<div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-md sm:border">
+			<div className="sticky bottom-(--bar-offset) z-10 -mx-4 flex flex-wrap items-center gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-md sm:border">
 				<Button
 					type="button"
 					variant="outline"

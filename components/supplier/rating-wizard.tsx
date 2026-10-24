@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { CRITICALITY } from "@/db/schema/enums";
@@ -65,8 +66,7 @@ const TRAFFIC_BG = {
 	amber: "bg-warning/15 border-warning/50",
 	green: "bg-success/10 border-success/40",
 } as const;
-const selectCls =
-	"h-9 w-full rounded-md bg-muted px-2 text-foreground text-subhead";
+const selectCls = nativeSelectClass;
 const OUTSOURCING_FWS = ["kwg", "zag", "zag-marisk", "micar"];
 
 export function RatingWizard({
@@ -763,7 +763,7 @@ export function RatingWizard({
 				</div>
 			)}
 
-			<footer className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t bg-background py-3">
+			<footer className="sticky bottom-(--bar-offset) flex flex-wrap items-center justify-between gap-3 border-t material-bar py-3">
 				<span className="flex gap-2">
 					<Button
 						type="button"

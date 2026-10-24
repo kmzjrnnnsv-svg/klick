@@ -22,6 +22,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { nativeSelectCompactClass } from "@/components/ui/input";
 import type { AssessmentAnswer } from "@/db/schema/enums";
 
 const ANSWERS: AssessmentAnswer[] = ["yes", "partial", "no", "unknown", "na"];
@@ -78,7 +79,7 @@ export function ReviewCell({
 			<label className="flex items-center gap-1 text-footnote">
 				<span className="text-muted-foreground">{t("adjust")}</span>
 				<select
-					className="rounded-2xl bg-card px-1.5 py-1 text-foreground text-subhead"
+					className={nativeSelectCompactClass}
 					value={adj}
 					disabled={pending}
 					onChange={(e) => {
