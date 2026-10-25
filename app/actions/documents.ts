@@ -345,7 +345,10 @@ async function transitionDocumentImpl(
 				tx,
 				{ orgId: c.orgId, userId: c.userId, name: c.name },
 				{
-					kind: "document_publish",
+					// Marketingmitteilungen laufen über einen eigenen Ablauf
+					// (Compliance, MiCAR Art. 66)
+					trigger:
+						doc.type === "marketing" ? "marketing.publish" : "document.publish",
 					entityType: "document",
 					entityId: doc.id,
 					entityOwnerUserId: doc.ownerUserId,

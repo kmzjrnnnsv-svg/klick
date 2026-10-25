@@ -6,14 +6,17 @@ import { useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
 import {
 	createProduct,
+	requestProductDeclaration,
 	startProductChecklist,
 	updateProduct,
 	uploadSbom,
 } from "@/app/actions/products";
+import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import {
 	DlpWarning,
 	useUploadFeedback,
 } from "@/components/entity/upload-feedback";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -507,17 +510,76 @@ type ConformityDraft = Pick<
 	| "notifiedBody"
 >;
 
+// EU-Konformitätserklärung: Datum setzt erst die Freigabe (Ablauf
+// product_declaration, CRA Art. 28), nie die Eingabe
+export function DeclarationControl({
+	productId,
+	declarationAt,
+	pendingApproval,
+	disabled,
+}: {
+	productId: string;
+	declarationAt: string | null;
+	pendingApproval: boolean;
+	disabled?: boolean;
+}) {
+	const t = useTranslations("Products");
+	const tc = useTranslations("Common");
+	const gate = useGateFeedback();
+	const router = useRouter();
+	const [pending, start] = useTransition();
+	if (declarationAt)
+		return (
+			<p>
+				{t("declarationIssued", {
+					date: new Date(declarationAt).toLocaleDateString("de-DE"),
+				})}
+			</p>
+		);
+	if (pendingApproval)
+		return <Badge variant="warning">{t("declarationPending")}</Badge>;
+	if (disabled) return <p className="text-muted-foreground">—</p>;
+	return (
+		<Button
+			type="button"
+			size="sm"
+			variant="secondary"
+			className="self-start"
+			disabled={pending}
+			onClick={() =>
+				start(async () => {
+					const res = await requestProductDeclaration({ productId });
+					if (!res.ok)
+						return void toast.error(
+							gate.errorText(res.error) ?? errorText(tc, res),
+						);
+					toast.success(
+						res.data.status === "pending"
+							? t("declarationRequested")
+							: t("declarationIssuedNow"),
+					);
+					router.refresh();
+				})
+			}
+		>
+			{t("declarationRequest")}
+		</Button>
+	);
+}
+
 export function ConformityForm({
 	productId,
 	initial,
 	documents,
 	thirdParty,
+	declarationPending,
 	disabled,
 }: {
 	productId: string;
 	initial: ConformityDraft;
 	documents: { id: string; docNumber: string; title: string }[];
 	thirdParty: boolean;
+	declarationPending: boolean;
 	disabled?: boolean;
 }) {
 	const t = useTranslations("Products");
@@ -560,7 +622,6 @@ export function ConformityForm({
 				save({
 					riskDocumentId: d.riskDocumentId,
 					techDocDocumentId: d.techDocDocumentId,
-					declarationAt: d.declarationAt || null,
 					ceMarked: d.ceMarked,
 					notifiedBody: d.notifiedBody ?? "",
 				});
@@ -577,12 +638,11 @@ export function ConformityForm({
 			)}
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="prd-doc-at">{t("declarationAt")}</Label>
-					<Input
-						id="prd-doc-at"
-						type="date"
-						value={d.declarationAt ?? ""}
-						onChange={(e) => set("declarationAt", e.target.value || null)}
+					<span className="font-medium text-subhead">{t("declarationAt")}</span>
+					<DeclarationControl
+						productId={productId}
+						declarationAt={d.declarationAt}
+						pendingApproval={declarationPending}
 						disabled={disabled}
 					/>
 				</div>

@@ -125,6 +125,17 @@ export const APPROVAL_DUTIES: readonly ApprovalDuty[] = [
 		requires: [MANAGEMENT],
 	},
 	{
+		kind: "key_holder_appointment",
+		basis: { ccss: "CCSS 1.06" },
+		requires: [MANAGEMENT],
+		everyone: true,
+	},
+	{
+		kind: "product_declaration",
+		basis: { cra: "CRA Art. 28" },
+		requires: [MANAGEMENT],
+	},
+	{
 		kind: "marketing",
 		basis: { micar: "MiCAR Art. 66" },
 		requires: ["function:compliance"],

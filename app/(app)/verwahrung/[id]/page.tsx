@@ -358,6 +358,16 @@ export default async function WalletDetailPage({
 												.filter(Boolean)
 												.join(" · ")}
 										</p>
+										{h.status === "proposed" && (
+											<Badge variant="warning" className="mt-1">
+												{t("holderProposed")}
+											</Badge>
+										)}
+										{h.status === "rejected" && (
+											<Badge variant="muted" className="mt-1">
+												{t("holderRejected")}
+											</Badge>
+										)}
 										{h.status === "revoked" && (
 											<p className="text-destructive text-footnote">
 												{t("revokedOn", {
@@ -367,9 +377,10 @@ export default async function WalletDetailPage({
 											</p>
 										)}
 									</div>
-									{canEdit && h.status === "active" && (
-										<RevokeHolderButton id={h.id} name={name} />
-									)}
+									{canEdit &&
+										(h.status === "active" || h.status === "proposed") && (
+											<RevokeHolderButton id={h.id} name={name} />
+										)}
 								</li>
 							);
 						})}

@@ -441,6 +441,8 @@ export const ENTITY_KINDS = [
 	// Verwahrung: Wallet, tägliche Abstimmung des Kundenvermögens
 	"wallet",
 	"custody_reconciliation",
+	// Schlüsselinhaber:in einer Wallet (Bestellung CCSS 1.06)
+	"wallet_key_holder",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 

@@ -53,7 +53,6 @@ export const updateProductSchema = z.object({
 	// Konformität
 	riskDocumentId: uuid.nullable().optional(),
 	techDocDocumentId: uuid.nullable().optional(),
-	declarationAt: optionalDate,
 	ceMarked: z.boolean().optional(),
 	notifiedBody: optionalText(200),
 	ownerUserId: responsibleRef,

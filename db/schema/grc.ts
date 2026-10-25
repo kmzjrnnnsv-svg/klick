@@ -302,6 +302,8 @@ export const DOCUMENT_TYPES = [
 	"report",
 	"contract",
 	"form",
+	// Marketingmitteilung (MiCAR Art. 66): eigene Freigabe marketing.publish
+	"marketing",
 ] as const;
 
 export const DOCUMENT_STATUS = [

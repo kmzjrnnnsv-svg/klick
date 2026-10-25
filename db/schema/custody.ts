@@ -115,7 +115,9 @@ export const walletKeyHolders = pgTable(
 		since: date(),
 		until: date(),
 		vettedAt: date(),
-		status: text({ enum: ["active", "revoked"] })
+		// proposed: wartet auf die Freigabe der Geschäftsleitung
+		// (key_holder.appoint, CCSS 1.06); nur active zählt fürs Quorum
+		status: text({ enum: ["proposed", "active", "rejected", "revoked"] })
 			.notNull()
 			.default("active"),
 		revokedAt: ts(),

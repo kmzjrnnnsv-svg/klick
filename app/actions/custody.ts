@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
 	custodyReconciliations,
@@ -10,16 +10,22 @@ import {
 	wallets,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import { GateBlocked } from "@/lib/approvals/gate-error";
+import { gateApproval, withdrawOpenRequests } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { insertControlTest } from "@/lib/compliance/control-test-service";
-import { ownerColumns } from "@/lib/compliance/function-holders-service";
+import {
+	functionRecipients,
+	ownerColumns,
+} from "@/lib/compliance/function-holders-service";
 import {
 	NC_DUE_DAYS,
 	NC_EFFECTIVENESS_DAYS,
 } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
-import { listMembersForPicker } from "@/lib/compliance/queries";
+import { listMembersForPicker, userNames } from "@/lib/compliance/queries";
+import { TOP_MANAGEMENT_FUNCTION } from "@/lib/compliance/top-management";
 import { encryptJson } from "@/lib/crypto/org-dek";
 import { parseDecimal } from "@/lib/custody/decimal";
 import { holderLocationAad, implementationIdFor } from "@/lib/custody/queries";
@@ -147,12 +153,38 @@ async function addKeyHolderImpl(input: unknown): Promise<ActionResult> {
 		const locationEnc = location
 			? await encryptJson(tx, c.orgId, { location }, holderLocationAad(id))
 			: null;
+		// Bestellung durch die Geschäftsleitung (CCSS 1.06): bis zur Freigabe
+		// „vorgeschlagen“ und nicht im Quorum
 		await tx.insert(walletKeyHolders).values({
 			id,
 			organizationId: c.orgId,
 			...d,
 			locationEnc,
+			status: "proposed",
 		});
+		const names = d.userId ? await userNames(tx, [d.userId]) : null;
+		const who = (d.userId && names?.get(d.userId)) || d.externalName || "";
+		const gate = await gateApproval(
+			tx,
+			{ orgId: c.orgId, userId: c.userId, name: c.name },
+			{
+				trigger: "key_holder.appoint",
+				entityType: "wallet_key_holder",
+				entityId: id,
+				entityOwnerUserId: w.ownerUserId,
+				title: `Schlüsselinhaber:in ${w.code}: ${who}`,
+				link: `${PATH}/${w.id}`,
+				facts: { role: d.role },
+			},
+		);
+		if (gate.status === "error")
+			throw new GateBlocked(gate.error, gate.warnings);
+		const status = gate.status === "pending" ? "proposed" : "active";
+		if (status === "active")
+			await tx
+				.update(walletKeyHolders)
+				.set({ status })
+				.where(eq(walletKeyHolders.id, id));
 		return {
 			result: { ok: true, data: undefined },
 			audit: {
@@ -167,6 +199,7 @@ async function addKeyHolderImpl(input: unknown): Promise<ActionResult> {
 					hasLocation: Boolean(location),
 					vettedAt: d.vettedAt,
 					until: d.until,
+					status,
 				},
 			},
 		};
@@ -194,7 +227,7 @@ async function revokeKeyHolderImpl(input: unknown): Promise<ActionResult> {
 				and(
 					eq(walletKeyHolders.id, d.id),
 					eq(walletKeyHolders.organizationId, c.orgId),
-					eq(walletKeyHolders.status, "active"),
+					inArray(walletKeyHolders.status, ["active", "proposed"]),
 				),
 			)
 			.returning({
@@ -203,6 +236,22 @@ async function revokeKeyHolderImpl(input: unknown): Promise<ActionResult> {
 			});
 		if (!h) return { result: { ok: false, error: "notFound" }, audit: [] };
 		const w = await loadWallet(tx, c.orgId, h.walletId);
+		// Entzug wirkt sofort (Sicherheit vor Ablauf); die Geschäftsleitung
+		// erfährt es danach. Offener Bestellungsantrag wird zurückgezogen.
+		await withdrawOpenRequests(tx, c.orgId, "wallet_key_holder", d.id);
+		await notify(tx, {
+			orgId: c.orgId,
+			recipients: await functionRecipients(
+				tx,
+				c.orgId,
+				TOP_MANAGEMENT_FUNCTION,
+			),
+			actorUserId: c.userId,
+			kind: "management_info",
+			title: `${w?.code ?? "Wallet"}: Schlüsselinhaberschaft entzogen`,
+			body: d.reason,
+			link: `${PATH}/${h.walletId}`,
+		});
 		const [task] = await tx
 			.insert(tasks)
 			.values({

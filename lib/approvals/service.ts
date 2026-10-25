@@ -901,6 +901,29 @@ export async function withdraw(
 	return res.length > 0;
 }
 
+// Offene Anträge zu einer Entität beenden, weil die Entität selbst
+// zurückgezogen oder entzogen wurde (unabhängig von der anfragenden Person)
+export async function withdrawOpenRequests(
+	tx: OrgTx,
+	orgId: string,
+	entityType: EntityKind,
+	entityId: string,
+): Promise<number> {
+	const res = await tx
+		.update(approvalRequests)
+		.set({ status: "withdrawn", decidedAt: new Date() })
+		.where(
+			and(
+				eq(approvalRequests.organizationId, orgId),
+				eq(approvalRequests.entityType, entityType),
+				eq(approvalRequests.entityId, entityId),
+				eq(approvalRequests.status, "pending"),
+			),
+		)
+		.returning({ id: approvalRequests.id });
+	return res.length;
+}
+
 export type PendingForUser = {
 	id: string;
 	kind: string;

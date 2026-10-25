@@ -51,6 +51,31 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		defaultEnabled: true,
 	},
 	{
+		kind: "key_holder_appointment",
+		name: "Schlüsselinhaber:in bestellen",
+		entityType: "wallet_key_holder",
+		description:
+			"Neue Schlüsselinhaber:innen zählen erst nach Zustimmung aller Mitglieder der Geschäftsleitung zum Quorum (CCSS 1.06). Der Entzug wirkt sofort.",
+		steps: NEW_TRIGGER_STEPS.key_holder_appointment ?? [],
+		defaultEnabled: false,
+	},
+	{
+		kind: "product_declaration",
+		name: "Konformitätserklärung freigeben",
+		entityType: "product",
+		description:
+			"Die Geschäftsleitung gibt die EU-Konformitätserklärung frei; erst dann gilt sie als ausgestellt (CRA Art. 28). Stellt sie die Geschäftsleitung selbst aus, entfällt die Stufe.",
+		steps: [
+			{
+				order: 1,
+				approverRule: "function:management_body",
+				skipIf: ["function:management_body"],
+				slaDays: 10,
+			},
+		],
+		defaultEnabled: false,
+	},
+	{
 		kind: "document_publish",
 		name: "Dokument veröffentlichen",
 		entityType: "document",

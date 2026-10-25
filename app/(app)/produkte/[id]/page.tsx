@@ -25,6 +25,7 @@ import { DecisionRequestsBlock } from "@/components/resolutions/decision-request
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -89,7 +90,7 @@ export default async function ProductPage({
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getProductDetail(tx, ctx.orgId, id);
 		if (!d) return null;
-		const [comments, history, members, tasks, docs, findings] =
+		const [comments, history, members, tasks, docs, findings, waiting] =
 			await Promise.all([
 				listComments(tx, ctx.orgId, "product", id),
 				historyFor(tx, `product:${id}`),
@@ -97,13 +98,24 @@ export default async function ProductPage({
 				listTasks(tx, ctx.orgId, { entityType: "product", entityId: id }),
 				listDocuments(tx, ctx.orgId),
 				listFindings(tx, ctx.orgId, { productId: id }),
+				pendingApprovalIds(tx, ctx.orgId, "product", [id]),
 			]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
 		]);
 		for (const [k, v] of d.names) names.set(k, v);
-		return { ...d, comments, history, members, tasks, docs, findings, names };
+		return {
+			...d,
+			comments,
+			history,
+			members,
+			tasks,
+			docs,
+			findings,
+			names,
+			declarationPending: waiting.size > 0,
+		};
 	});
 	if (!data) notFound();
 	const p = data.product;
@@ -408,6 +420,7 @@ export default async function ProductPage({
 							disabled={!canEdit}
 							documents={docOptions}
 							thirdParty={cra.route.thirdParty}
+							declarationPending={data.declarationPending}
 							initial={{
 								riskDocumentId: p.riskDocumentId,
 								techDocDocumentId: p.techDocDocumentId,

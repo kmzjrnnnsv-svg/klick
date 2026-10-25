@@ -30,7 +30,8 @@ type WalletFacts = {
 
 type HolderFacts = {
 	role: KeyHolderRole;
-	status: "active" | "revoked";
+	// nur „active“ zählt; vorgeschlagene warten auf die Geschäftsleitung
+	status: "proposed" | "active" | "rejected" | "revoked";
 	siteId: string | null;
 	vettedAt: string | null;
 	until: string | null;

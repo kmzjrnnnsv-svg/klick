@@ -1,3 +1,4 @@
+import { KEY_HOLDER_ROLES } from "@/db/schema/custody";
 import type { EntityKind } from "@/db/schema/enums";
 import {
 	CLASSIFICATIONS,
@@ -203,13 +204,14 @@ export const TRIGGERS: readonly TriggerDef[] = [
 		wired: true,
 	},
 	{
+		// Dokumente der Art „marketing“ (MiCAR Art. 66)
 		key: "marketing.publish",
 		kind: "marketing",
 		entityType: "document",
 		area: "documents",
 		mode: "pending",
-		facts: [],
-		wired: false,
+		facts: [{ key: "classification", type: "enum", options: CLASSIFICATIONS }],
+		wired: true,
 	},
 	{
 		key: "control.signoff",
@@ -306,6 +308,27 @@ export const TRIGGERS: readonly TriggerDef[] = [
 		wired: true,
 	},
 	{
+		// Schlüsselinhaber:in einer Wallet bestellen (CCSS 1.06); Entzug
+		// bleibt sofort ohne Freigabe
+		key: "key_holder.appoint",
+		kind: "key_holder_appointment",
+		entityType: "wallet_key_holder",
+		area: "governance",
+		mode: "pending",
+		facts: [{ key: "role", type: "enum", options: KEY_HOLDER_ROLES }],
+		wired: true,
+	},
+	{
+		// EU-Konformitätserklärung (CRA Art. 28): Datum erst mit Freigabe
+		key: "product.declaration",
+		kind: "product_declaration",
+		entityType: "product",
+		area: "special",
+		mode: "pending",
+		facts: [],
+		wired: true,
+	},
+	{
 		key: "objective.release",
 		kind: "objective_release",
 		entityType: "objective",
@@ -398,6 +421,7 @@ const MANAGEMENT_ALL: ApprovalStep[] = [
 export const NEW_TRIGGER_STEPS: Readonly<Record<string, ApprovalStep[]>> = {
 	role_appointment: MANAGEMENT_ALL,
 	role_revocation: MANAGEMENT_ALL,
+	key_holder_appointment: MANAGEMENT_ALL,
 	provider_intake: [
 		{ order: 1, approverRule: "function:outsourcing_officer", slaDays: 10 },
 	],
