@@ -3,18 +3,22 @@ import {
 	CLOSE,
 	COMPLIANCE,
 	EVENTS,
+	EVENTS_TITLE,
 	FAQ,
+	FLOW,
 	HERO,
 	PAYOUT,
 	ROADMAP_TEASER,
 } from "@wallet/lib/landing";
+import { STAGES, STATUS_LABEL } from "@wallet/lib/roadmap";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Fragment } from "react";
 import s from "./landing.module.css";
 import { PublicHeader } from "./public-header";
 
-// Öffentliche Startseite (abgemeldet unter „/“). Ohne Skript: der
+// Öffentliche Startseite (abgemeldet unter „/“). Oben das Ziel, klar als Ziel
+// markiert, dann der Weg dahin; danach, was heute läuft. Ohne Skript: der
 // Ereignis-Umschalter ist eine Radio-Gruppe, CSS zeigt die gewählte Antwort;
 // Fragen über <details>. Bewegung nur per CSS, nie bei reduzierter Bewegung.
 const button =
@@ -30,12 +34,17 @@ export function Landing() {
 			<main id="inhalt" className="flex grow flex-col">
 				<section
 					aria-labelledby="bm-title"
-					className="mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-12 px-4 pt-14 pb-16 sm:pt-20 lg:grid-cols-[1.05fr_1fr] lg:gap-16"
+					className="mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-12 px-4 pt-14 pb-16 sm:pt-20 lg:grid-cols-[1.25fr_1fr] lg:gap-16"
 				>
 					<div className="flex flex-col gap-7">
+						<p
+							className={`inline-flex items-center gap-1.5 self-start rounded-full bg-warning/14 px-3 py-1 font-medium text-footnote before:size-1.5 before:rounded-full before:bg-warning before:content-[''] dark:bg-warning/20 ${s.rise}`}
+						>
+							{HERO.goal}
+						</p>
 						<h1
 							id="bm-title"
-							className={`text-balance font-semibold text-5xl leading-[1.02] sm:text-7xl ${s.rise}`}
+							className={`text-balance font-semibold text-5xl leading-[1.04] sm:text-6xl lg:text-5xl xl:text-[3.25rem] ${s.rise}`}
 						>
 							{HERO.lines[0]}
 							<br />
@@ -60,11 +69,105 @@ export function Landing() {
 								<ArrowRight className="size-4" aria-hidden />
 							</Link>
 						</div>
-						<p className="max-w-xl text-muted-foreground text-subhead">
-							{HERO.note}
+						<p className="max-w-xl text-pretty text-subhead leading-relaxed">
+							{HERO.today}
 						</p>
 					</div>
 					<EventPicker />
+				</section>
+
+				<section aria-labelledby="bm-flow" className="border-t bg-card">
+					<div className={section}>
+						<h2 id="bm-flow" className={`${heading} ${s.reveal}`}>
+							{FLOW.title}
+						</h2>
+						<p className="mt-4 max-w-2xl text-pretty text-muted-foreground leading-relaxed">
+							{FLOW.lead}
+						</p>
+						{/* Zeilen per Subgrid: „Heute“ steht in allen Spalten auf einer Höhe */}
+						<ol className="mt-12 grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-4">
+							{FLOW.steps.map((step, i) => (
+								<li
+									key={step.key}
+									className={`row-span-3 grid grid-rows-subgrid gap-3 ${s.reveal}`}
+								>
+									<p className="flex items-baseline gap-3 font-semibold text-headline">
+										<span
+											className="font-bold text-title-1 tabular-nums"
+											aria-hidden
+										>
+											{i + 1}
+										</span>
+										{step.title}
+									</p>
+									<p className="text-pretty text-muted-foreground leading-relaxed">
+										{step.text}
+									</p>
+									<p className="flex items-baseline gap-2.5 self-start border-t pt-3 text-subhead">
+										<span
+											className={
+												step.live
+													? "size-2 shrink-0 translate-y-[-1px] rounded-full bg-primary"
+													: "size-2 shrink-0 translate-y-[-1px] rounded-full border border-muted-foreground"
+											}
+											aria-hidden
+										/>
+										<span>
+											<span className="font-medium">Heute:</span> {step.today}
+										</span>
+									</p>
+								</li>
+							))}
+						</ol>
+					</div>
+				</section>
+
+				<section aria-labelledby="bm-next" className="border-t">
+					<div className={section}>
+						<div className="grid grid-cols-1 items-end gap-8 lg:grid-cols-[1.4fr_auto]">
+							<div className={s.reveal}>
+								<h2 id="bm-next" className={heading}>
+									{ROADMAP_TEASER.title}
+								</h2>
+								<p className="mt-5 max-w-3xl text-pretty text-lg leading-relaxed">
+									{ROADMAP_TEASER.text}
+								</p>
+							</div>
+							<Link
+								href="/roadmap"
+								className={`${button} self-start lg:self-end`}
+							>
+								{ROADMAP_TEASER.action}
+								<ArrowRight className="size-4" aria-hidden />
+							</Link>
+						</div>
+						<ol className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+							{STAGES.map((stage) => (
+								<li
+									key={stage.key}
+									className={`flex flex-col gap-3 rounded-2xl bg-card p-5 ${s.reveal}`}
+								>
+									<h3 className="text-pretty font-semibold text-headline leading-snug">
+										{stage.title}
+									</h3>
+									<span
+										className={`inline-flex max-w-full items-center gap-1.5 self-start rounded-full px-2.5 py-0.5 font-medium text-footnote before:size-1.5 before:rounded-full before:content-[''] ${
+											stage.status === "live"
+												? "bg-success/12 before:bg-success dark:bg-success/20"
+												: "bg-warning/14 before:bg-warning dark:bg-warning/20"
+										}`}
+									>
+										{STATUS_LABEL[stage.status]}
+									</span>
+									{stage.requires && (
+										<p className="text-pretty text-muted-foreground text-subhead leading-relaxed">
+											{stage.requires}
+										</p>
+									)}
+								</li>
+							))}
+						</ol>
+					</div>
 				</section>
 
 				<section aria-labelledby="bm-payout" className="border-t bg-card">
@@ -205,29 +308,7 @@ export function Landing() {
 					</div>
 				</section>
 
-				<section aria-labelledby="bm-next" className="border-t">
-					<div
-						className={`${section} grid grid-cols-1 items-end gap-8 lg:grid-cols-[1.4fr_auto]`}
-					>
-						<div className={s.reveal}>
-							<h2 id="bm-next" className={heading}>
-								{ROADMAP_TEASER.title}
-							</h2>
-							<p className="mt-5 max-w-3xl text-pretty text-lg leading-relaxed">
-								{ROADMAP_TEASER.text}
-							</p>
-						</div>
-						<Link
-							href="/roadmap"
-							className={`${button} self-start lg:self-end`}
-						>
-							{ROADMAP_TEASER.action}
-							<ArrowRight className="size-4" aria-hidden />
-						</Link>
-					</div>
-				</section>
-
-				<section aria-labelledby="bm-faq" className="border-t bg-card">
+				<section aria-labelledby="bm-faq" className="border-t">
 					<div
 						className={`${section} grid grid-cols-1 gap-10 lg:grid-cols-[1fr_2fr]`}
 					>
@@ -255,7 +336,7 @@ export function Landing() {
 					</div>
 				</section>
 
-				<section aria-labelledby="bm-close" className="border-t">
+				<section aria-labelledby="bm-close" className="border-t bg-card">
 					<div className={`${section} flex flex-col items-start gap-6`}>
 						<h2
 							id="bm-close"
@@ -281,7 +362,7 @@ function EventPicker() {
 		>
 			<legend className="sr-only">Ereignis wählen</legend>
 			<p className="font-bold text-title-2" aria-hidden>
-				Was passiert bei …
+				{EVENTS_TITLE}
 			</p>
 			<div className="mt-4 flex flex-wrap gap-2">
 				{EVENTS.map((e, i) => (

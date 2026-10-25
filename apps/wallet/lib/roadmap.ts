@@ -1,4 +1,5 @@
-// Öffentlicher Fahrplan von both.money (/roadmap): was heute läuft, was als
+// Öffentlicher Fahrplan von both.money (/roadmap): das Ziel (Zahlungsweg
+// zwischen geprüften Parteien, Stufen bis zur Bank), was heute läuft, was als
 // Nächstes kommt, die Phasen und die Infrastruktur mit Hardware-Richtwerten.
 // Für Investor:innen und Entwickler:innen; jede Zeile nennt, auf welche
 // Pflicht sie einzahlt. Nur Pläne, keine Termine und keine Zusagen; keine
@@ -30,11 +31,96 @@ export type RoadmapItem = {
 
 export const INTRO = {
 	title: "Fahrplan",
-	lead: "Was both.money heute kann, was als Nächstes kommt und welche Infrastruktur dafür nötig ist. Zu jedem Schritt steht, auf welche Pflicht er einzahlt.",
+	lead: "Wohin both.money will, was heute läuft, was als Nächstes kommt und welche Infrastruktur dafür nötig ist. Zu jedem Schritt steht, auf welche Pflicht er einzahlt.",
 	status:
 		"Stand Oktober 2026. Testphase im Bitcoin-Testnetz Signet, kein echtes Geld.",
 	note: "Diese Seite beschreibt Pläne, keine Zusagen und keine Termine. Keine Rechtsberatung: Ob eine Maßnahme reicht, entscheiden Prüfer:in und Aufsicht.",
 } as const;
+
+// Ziel: Geld annehmen, getrennt verwahren und an der anderen Stelle auszahlen,
+// sobald der Eingang bestätigt ist; Absender und Empfänger sind beide geprüfte
+// Kund:innen. Bewusst ohne Vergleich mit informellen Transfersystemen (Test
+// public-pages). Erst ab Stufe 2 und nur mit Erlaubnis ein Angebot.
+export const GOAL = {
+	title: "Ziel",
+	lead: "both.money soll ein Zahlungsweg zwischen geprüften Parteien werden: Geld in Euro oder in Kryptowerten annehmen, getrennt verwahren und an der anderen Stelle auszahlen, sobald der Eingang bestätigt ist.",
+	principles: [
+		{
+			title: "Beide Seiten geprüft",
+			text: "Absender und Empfänger sind beide Kund:innen von both.money. Personen mit Identitätsprüfung (KYC), Unternehmen mit Registerauszug, wirtschaftlich Berechtigten und Geschäftszweck (KYB). Zahlungen an Unbekannte gibt es nicht.",
+		},
+		{
+			title: "Ausgezahlt wird erst nach dem Eingang",
+			text: "Das Geld kommt an einer Stelle an und wird an der anderen ausgezahlt, aber erst, wenn der Eingang endgültig bestätigt ist: bei Kryptowerten nach genug Blöcken, bei Euro nach der Gutschrift.",
+		},
+		{
+			title: "Getrennt verwahrt",
+			text: "Das Geld der Kund:innen liegt getrennt vom Geld des Betreibers, Euro auf einem Treuhandkonto, Kryptowerte in der eigenen Verwahrung, und wird täglich abgestimmt.",
+		},
+		{
+			title: "Überall derselbe Standard",
+			text: "Die Prüfung soll in jedem Land nach demselben Maßstab laufen. Was ein Land zusätzlich verlangt, kommt dazu; weniger gilt nirgends.",
+		},
+		{
+			title: "Jede Zahlung belegt",
+			text: "Wer, an wen, wie viel, wofür: Zu jeder Zahlung liegen Prüfung, Freigabe und Bestätigung als Nachweis in Klick.",
+		},
+	],
+	note: "Das ist ein Ziel, kein Angebot. Geld für andere annehmen und weiterleiten darf both.money erst mit Erlaubnis; bis dahin ist es technisch gesperrt.",
+} as const;
+
+// Stufen bis zur Bank; jede nach der ersten braucht eine Erlaubnis
+export const STAGES: readonly RoadmapItem[] = [
+	{
+		key: "stufe-wallet",
+		title: "Stufe 1 · Wallet für eigene Bestände",
+		text: "Eigene Knoten, Signer mit Sicherheitsschlüsseln, Sanktionsprüfung vor der Gutschrift und Nachweise in Klick. Nur Bestände des Betreibers, im Testnetz, kein Kundengeld.",
+		status: "live",
+		anchors: [
+			{ framework: "MiCAR", point: "Schutz der Kryptowerte (Art. 70)" },
+			{ framework: "CCSS", point: "Schlüssel und Freigaben" },
+		],
+	},
+	{
+		key: "stufe-zahlungsweg",
+		title: "Stufe 2 · Zahlungsinstitut und Krypto-Dienstleister",
+		text: "Geld geprüfter Kund:innen annehmen, getrennt verwahren und an geprüfte Empfänger auszahlen: Euro über ein Treuhandkonto bei einer Partnerbank, Kryptowerte über die eigene Verwahrung. Dazu KYC und KYB auf beiden Seiten, Travel Rule und Transaktionsmonitoring.",
+		status: "locked",
+		requires:
+			"Erlaubnis als Zahlungsinstitut nach ZAG (Finanztransfer) und als Anbieter von Krypto-Dienstleistungen nach MiCAR",
+		anchors: [
+			{ framework: "ZAG", point: "Finanztransfer, Sicherung der Kundengelder" },
+			{ framework: "MiCAR", point: "Verwahrung (Art. 75) und Transfer" },
+			{ framework: "GwG / AMLR", point: "Sorgfaltspflichten für beide Seiten" },
+			{ framework: "TFR", point: "Angaben zu Absender und Empfänger" },
+		],
+	},
+	{
+		key: "stufe-korridore",
+		title: "Stufe 3 · Korridore in weitere Länder",
+		text: "Je Land ein Korridor: eine eigene Einheit mit Erlaubnis oder ein Partner mit Erlaubnis vor Ort, der nach demselben Standard prüft. Wer einmal geprüft ist, fängt nicht in jedem Land neu an; was ein Land zusätzlich verlangt, wird nachgeholt.",
+		status: "locked",
+		requires:
+			"Erlaubnis im jeweiligen Land oder ein Partner mit Erlaubnis dort",
+		anchors: [
+			{ framework: "AMLR", point: "Gruppenweit gleiche Sorgfaltspflichten" },
+			{ framework: "FATF", point: "Empfehlung 16, Angaben bei Überweisungen" },
+			{ framework: "Sanktionsrecht", point: "Listen je Land" },
+		],
+	},
+	{
+		key: "stufe-bank",
+		title: "Stufe 4 · Bank",
+		text: "Eigene Konten für Kundengeld statt Treuhandkonto bei einer Partnerbank, Einlagen und später Kredite. Der Zahlungsweg bleibt derselbe, nur ohne Bank dazwischen.",
+		status: "locked",
+		requires: "Erlaubnis als Kreditinstitut nach KWG",
+		anchors: [
+			{ framework: "KWG", point: "Einlagen- und Kreditgeschäft" },
+			{ framework: "CRR", point: "Eigenmittel und Liquidität" },
+			{ framework: "DORA", point: "Digitale Resilienz" },
+		],
+	},
+];
 
 export const TODAY: readonly RoadmapItem[] = [
 	{
@@ -200,8 +286,8 @@ export const PHASES: readonly RoadmapItem[] = [
 	},
 	{
 		key: "phase-k",
-		title: "Phase K · Verwahrung für Kund:innen",
-		text: "Identitätsprüfung der Kund:innen, Travel Rule bei Überweisungen, Transaktionsmonitoring, Kundenregister mit Positionsauszügen, eine eigene Signer-Instanz je Kunden-Organisation und Steuermeldungen nach DAC8.",
+		title: "Phase K · Kundengeld und Prüfung beider Seiten",
+		text: "Identitätsprüfung für Personen (KYC) und Unternehmen (KYB), auf beiden Seiten jeder Zahlung. Auszahlung nur an geprüfte Empfänger und erst nach bestätigtem Eingang, Travel Rule, Transaktionsmonitoring, Kundenregister mit Positionsauszügen, eine eigene Signer-Instanz je Kunden-Organisation und Steuermeldungen nach DAC8.",
 		status: "locked",
 		requires: "Erlaubnis als Anbieter von Krypto-Dienstleistungen (CASP)",
 		anchors: [
@@ -209,6 +295,18 @@ export const PHASES: readonly RoadmapItem[] = [
 			{ framework: "GwG / AMLR", point: "Sorgfaltspflichten und Monitoring" },
 			{ framework: "TFR", point: "Travel Rule" },
 			{ framework: "DAC8", point: "Meldungen an die Steuerbehörden" },
+		],
+	},
+	{
+		key: "phase-f",
+		title: "Phase F · Euro über ein Treuhandkonto",
+		text: "Euro annehmen und auszahlen über ein Treuhandkonto bei einer Partnerbank, getrennt vom Geld des Betreibers. Jeder Eingang wird der geprüften Kund:in zugeordnet und erst nach der Gutschrift weitergeleitet; abgestimmt wird täglich wie bei Kryptowerten.",
+		status: "locked",
+		requires: "Erlaubnis als Zahlungsinstitut nach ZAG und eine Partnerbank",
+		anchors: [
+			{ framework: "ZAG", point: "Sicherung der Kundengelder" },
+			{ framework: "GwG", point: "Herkunft der Mittel prüfen" },
+			{ framework: "DORA", point: "Abhängigkeit von der Partnerbank steuern" },
 		],
 	},
 	{
@@ -403,6 +501,7 @@ export const LIMITS = {
 } as const;
 
 export const SECTIONS = [
+	{ id: "ziel", label: "Ziel" },
 	{ id: "heute", label: "Heute" },
 	{ id: "als-naechstes", label: "Als Nächstes" },
 	{ id: "phasen", label: "Phasen" },

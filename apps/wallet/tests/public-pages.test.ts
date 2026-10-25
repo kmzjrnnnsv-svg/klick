@@ -46,7 +46,12 @@ describe("öffentliche Seiten", () => {
 	});
 
 	it("nennen zu jedem Schritt die Pflicht, auf die er einzahlt", () => {
-		for (const item of [...roadmap.TODAY, ...roadmap.NEXT, ...roadmap.PHASES]) {
+		for (const item of [
+			...roadmap.STAGES,
+			...roadmap.TODAY,
+			...roadmap.NEXT,
+			...roadmap.PHASES,
+		]) {
 			expect(item.anchors.length, item.key).toBeGreaterThan(0);
 		}
 	});
@@ -57,10 +62,31 @@ describe("öffentliche Seiten", () => {
 		expect(k?.requires).toMatch(/Erlaubnis/);
 	});
 
+	it("zeigen den Zahlungsweg als Ziel, nicht als Angebot", () => {
+		expect(landing.HERO.goal).toMatch(/Ziel/);
+		expect(landing.HERO.today).toMatch(/^Heute/);
+		expect(roadmap.GOAL.note).toMatch(/Erlaubnis/);
+		const [first, ...rest] = roadmap.STAGES;
+		expect(first?.status).toBe("live");
+		for (const stage of rest) {
+			expect(stage.status, stage.key).toBe("locked");
+			expect(stage.requires, stage.key).toMatch(/Erlaubnis/);
+		}
+	});
+
+	// Entscheidung 25.10.: das Prinzip beschreiben, den Begriff informeller
+	// Transfersysteme nicht nennen (Signal für Partnerbanken und Aufsicht)
+	it("vergleichen sich nicht mit informellen Transfersystemen", () => {
+		expect(all.filter((t) => /hawala|hundi/i.test(t))).toEqual([]);
+	});
+
 	it("haben eindeutige Schlüssel", () => {
-		const keys = [...roadmap.TODAY, ...roadmap.NEXT, ...roadmap.PHASES].map(
-			(i) => i.key,
-		);
+		const keys = [
+			...roadmap.STAGES,
+			...roadmap.TODAY,
+			...roadmap.NEXT,
+			...roadmap.PHASES,
+		].map((i) => i.key);
 		expect(new Set(keys).size).toBe(keys.length);
 	});
 });

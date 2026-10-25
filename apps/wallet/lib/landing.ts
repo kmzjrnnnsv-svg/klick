@@ -1,17 +1,66 @@
 // Öffentliche Startseite von both.money (abgemeldet unter „/“): alle Texte an
-// einer Stelle, Du-Form, keine Geviertstriche (Test public-pages). Nur, was
-// both.money heute tut; Kundengelder, echtes Netz und Travel Rule sind als
-// „folgt“ gekennzeichnet, der Rest steht im Fahrplan (lib/roadmap.ts).
-// Rechtliche Einordnung vor der Bewerbung prüfen.
+// einer Stelle, Du-Form, keine Geviertstriche (Test public-pages). Oben das
+// Ziel (Zahlungsweg zwischen geprüften Parteien), klar als Ziel markiert; der
+// Rest zeigt, was both.money heute tut. Kundengeld, Prüfung beider Seiten,
+// Euro und Travel Rule sind „folgt“ bzw. „gesperrt“, die Stufen stehen im
+// Fahrplan (lib/roadmap.ts). Rechtliche Einordnung vor der Bewerbung prüfen.
 
 export const HERO = {
+	goal: "Ziel · braucht Erlaubnis",
 	// Zeilen von Hand umbrochen
-	lines: ["Wallet mit", "eingebautem Nachweis"],
-	lead: "Bitcoin und Ethereum deines Unternehmens, über eigene Knoten geführt. Jede Bewegung landet zugleich als Nachweis in deiner Compliance-App Klick.",
+	lines: ["Geld weitergeben,", "beide Seiten geprüft"],
+	lead: "both.money soll Geld in Euro und in Kryptowerten annehmen, getrennt verwahren und an der anderen Stelle auszahlen, sobald der Eingang bestätigt ist. Absender und Empfänger sind vorher geprüft, als Person oder als Unternehmen, nach einem Standard, der überall gleich gilt.",
 	action: "Anmelden",
-	note: "Zugang nur per Einladung. Testphase im Bitcoin-Testnetz Signet, kein echtes Geld.",
+	today:
+		"Heute ist both.money eine Wallet für eigene Bestände im Bitcoin-Testnetz Signet: kein echtes Geld, kein Kundengeld, Zugang nur per Einladung.",
 	backend: "Einblick ins Backend",
 } as const;
+
+// So soll eine Zahlung laufen; je Schritt, was davon heute schon läuft
+export type FlowStep = {
+	key: string;
+	title: string;
+	text: string;
+	today: string;
+	live: boolean;
+};
+
+export const FLOW = {
+	title: "So soll eine Zahlung laufen",
+	lead: "Vier Schritte, bei jeder Zahlung gleich. Darunter steht, was davon heute schon läuft.",
+	steps: [
+		{
+			key: "pruefen",
+			title: "Beide Seiten geprüft",
+			text: "Bevor Geld fließt, kennt both.money Absender und Empfänger: Personen mit Identitätsprüfung (KYC), Unternehmen mit Registerauszug, wirtschaftlich Berechtigten und Geschäftszweck (KYB).",
+			today: "folgt mit Erlaubnis",
+			live: false,
+		},
+		{
+			key: "eingang",
+			title: "Geld kommt an",
+			text: "Euro auf ein Treuhandkonto, Kryptowerte auf eine Wallet über eigene Knoten. Jeder Eingang wird gegen Sanktionslisten und den angegebenen Zweck geprüft.",
+			today: "Sanktionsprüfung je Krypto-Eingang läuft",
+			live: true,
+		},
+		{
+			key: "verwahren",
+			title: "Verwahrt, bis es bestätigt ist",
+			text: "Das Geld liegt getrennt vom Geld des Betreibers, bis der Eingang endgültig bestätigt ist, und wird täglich abgestimmt.",
+			today: "Tagesabschluss mit Blockhöhe läuft",
+			live: true,
+		},
+		{
+			key: "auszahlen",
+			title: "Ausgezahlt an der anderen Stelle",
+			text: "Erst dann geht der Betrag an den geprüften Empfänger, freigegeben per Sicherheitsschlüssel und mit den Angaben zu Absender und Empfänger (Travel Rule). Jeder Schritt landet als Nachweis in Klick.",
+			today: "Freigabe per Sicherheitsschlüssel bereit, Travel Rule folgt",
+			live: false,
+		},
+	] satisfies FlowStep[],
+} as const;
+
+export const EVENTS_TITLE = "Was heute schon passiert bei …";
 
 // Das Live-Element: ein Ereignis wählen, beide Seiten lesen
 export type LandingEvent = {
@@ -73,7 +122,7 @@ export const EVENTS: readonly LandingEvent[] = [
 
 // Eine Auszahlung, Schritt für Schritt (Ruf und Antwort)
 export const PAYOUT = {
-	title: "Eine Auszahlung",
+	title: "Eine Auszahlung, wie sie heute läuft",
 	steps: [
 		{
 			say: "Zuerst legst du die Auszahlung an.",
@@ -179,6 +228,24 @@ export const COMPLIANCE = {
 	lead: "both.money ist auf diese Pflichten ausgelegt und liefert die Nachweise dafür nach Klick. Ob sie reichen, entscheiden Prüfer:in und Aufsicht.",
 	groups: [
 		{
+			title: "Zahlungsweg, beide Seiten",
+			rows: [
+				{
+					name: "KYC und KYB von Absender und Empfänger",
+					value: "folgt mit Erlaubnis",
+				},
+				{
+					name: "Kundengeld getrennt verwahren",
+					value: "gesperrt bis zur Erlaubnis",
+				},
+				{
+					name: "Auszahlung erst nach bestätigtem Eingang",
+					value: "läuft für eigene Bestände",
+				},
+				{ name: "Travel Rule", value: "folgt mit Kundengeld" },
+			],
+		},
+		{
 			title: "MiCAR, Verwahrung",
 			rows: [
 				{ name: "Tägliche Abstimmung", value: "Bestand mit Blockhöhe" },
@@ -204,7 +271,6 @@ export const COMPLIANCE = {
 					name: "Treffer einfrieren und prüfen",
 					value: "Verdachtsfall in Klick",
 				},
-				{ name: "Travel Rule", value: "folgt mit Kundengeldern" },
 			],
 		},
 		{
@@ -235,8 +301,20 @@ export const FAQ = {
 	title: "Häufige Fragen",
 	items: [
 		{
-			q: "Verwahrt both.money Geld für andere?",
-			a: "Heute nicht. both.money führt nur Bestände der eigenen Organisation. Verwahrung für Kund:innen braucht eine Erlaubnis; die Sperre dafür ist eingebaut und bleibt zu, bis eine Erlaubnis eingetragen ist.",
+			q: "Ist both.money schon ein Zahlungsdienstleister?",
+			a: "Nein. Heute ist both.money eine Wallet für die eigenen Bestände der Betreiber-Organisation, im Testnetz. Geld für andere annehmen, verwahren und weiterleiten braucht Erlaubnisse als Zahlungsinstitut und als Anbieter von Krypto-Dienstleistungen; die Sperre dafür ist eingebaut und bleibt zu, bis eine Erlaubnis eingetragen ist.",
+		},
+		{
+			q: "Warum werden beide Seiten geprüft?",
+			a: "Bei einer Überweisung kennt meist jede Bank nur ihre eigene Seite. both.money soll Absender und Empfänger selbst prüfen. So lässt sich bei jeder Zahlung belegen, wer sie geschickt hat, wer sie bekommt und wofür, und Geld an Unbekannte oder gelistete Personen geht gar nicht erst hinaus.",
+		},
+		{
+			q: "Wie soll das in anderen Ländern gehen?",
+			a: "Über Korridore: je Land eine eigene Einheit mit Erlaubnis oder ein Partner mit Erlaubnis vor Ort, der nach demselben Standard prüft. Welche Länder zuerst kommen, hängt an den Erlaubnissen; Termine gibt es dafür nicht.",
+		},
+		{
+			q: "Wird both.money eine Bank?",
+			a: "Das ist die letzte Stufe im Fahrplan: eigene Konten für Kundengeld statt Treuhandkonto bei einer Partnerbank. Dafür braucht es eine Erlaubnis als Kreditinstitut; vorher kommen die Stufen als Zahlungsinstitut und Krypto-Dienstleister.",
 		},
 		{
 			q: "Läuft das schon mit echtem Geld?",
@@ -266,8 +344,8 @@ export const FAQ = {
 } as const;
 
 export const ROADMAP_TEASER = {
-	title: "Was als Nächstes kommt",
-	text: "Senden mit Sicherheitsschlüsseln, ein eigener Ethereum-Knoten, eine Gegenprobe der Kette und ein zweiter Knoten je Kette. Danach Bitcoin cold, das echte Netz und, erst mit Erlaubnis, Verwahrung für Kund:innen. Jeder Schritt mit der Pflicht, auf die er einzahlt, und der Hardware, die er braucht.",
+	title: "Der Weg dahin",
+	text: "Vier Stufen: zuerst die Wallet für eigene Bestände, dann mit Erlaubnis Zahlungsinstitut und Krypto-Dienstleister, danach Korridore in weitere Länder, am Ende die Bank. Im Fahrplan steht jeder Schritt mit der Pflicht, auf die er einzahlt, und der Hardware, die er braucht.",
 	action: "Zum Fahrplan",
 } as const;
 
