@@ -30,6 +30,8 @@
 		"email": "E-Mail-Adresse",
 		"emailHint": "Optional: Dein Browser schlägt passende Passkeys direkt im Feld vor.",
 		"passkeyCancelled": "Abgebrochen. Versuch es noch einmal, wenn du so weit bist.",
+		"passkeyCancel": "Abbrechen",
+		"passkeyTimeout": "Keine Antwort vom Passkey. Lade die Seite neu und versuch es noch einmal. Erscheint kein Fenster, prüf, ob dieses Gerät deinen Passkey für both.money kennt.",
 		"passkeySignInFailed": "Anmeldung nicht möglich. Nutze den Passkey, den du für both.money angelegt hast.",
 		"passkeyFailed": "Bestätigung fehlgeschlagen. Versuch es noch einmal.",
 		"passkeyExpired": "Die Anfrage ist abgelaufen. Versuch es noch einmal.",
