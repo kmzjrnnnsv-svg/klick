@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UrlTabs } from "@/components/entity/url-tabs";
@@ -339,7 +340,10 @@ export default async function ProcessesPage({
 															{accountableLabel(r) ?? t("noAccountable")}
 														</TableCell>
 														<TableCell>
-															<UserChip name={r.names.ownerUserId} />
+															<OwnerChip
+																ownerFunction={r.ownerFunction}
+																name={r.names.ownerUserId}
+															/>
 														</TableCell>
 														<TableCell>
 															<StatusBadge

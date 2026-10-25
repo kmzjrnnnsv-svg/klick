@@ -12,6 +12,7 @@ import {
 } from "@/app/actions/processes";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { ResponsibleField } from "@/components/organisation/governance-forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -106,7 +107,7 @@ export function ProcessForm({
 	);
 	const set = <K extends keyof ProcessDraft>(k: K, v: ProcessDraft[K]) =>
 		setD({ ...d, [k]: v });
-	const userSelect = (label: string, key: "ownerUserId" | "deputyUserId") => (
+	const userSelect = (label: string, key: "deputyUserId") => (
 		<div className="flex flex-col gap-1.5">
 			<Label>{label}</Label>
 			<Select
@@ -231,7 +232,12 @@ export function ProcessForm({
 								</SelectContent>
 							</Select>
 						</div>
-						{userSelect(t("owner"), "ownerUserId")}
+						<ResponsibleField
+							label={t("owner")}
+							value={d.ownerUserId}
+							onChange={(v) => set("ownerUserId", v)}
+							members={members}
+						/>
 						{userSelect(t("deputy"), "deputyUserId")}
 						<NumberField
 							id="pr-rto"

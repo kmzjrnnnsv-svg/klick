@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { UserChip } from "@/components/entity/user-chip";
 import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
 import { ReviewDigestView } from "@/components/management-review/review-digest";
@@ -25,6 +26,7 @@ import { getOrgProfile, listMembersForPicker } from "@/lib/compliance/queries";
 import { listManagementReviews } from "@/lib/compliance/queries-p3";
 import { buildReviewDigest } from "@/lib/compliance/queries-review-digest";
 import { readOrg } from "@/lib/db/with-org";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 const STATUS_TONE = {
 	planned: "outline",
@@ -133,7 +135,11 @@ export default async function ManagementReviewPage() {
 										{t(`status_${r.status}`)}
 									</Badge>
 									<span className="text-muted-foreground text-footnote">
-										{t("owner")}: <UserChip name={r.ownerName} />
+										{t("owner")}:{" "}
+										<OwnerChip
+											ownerFunction={r.ownerFunction}
+											name={r.ownerName}
+										/>
 									</span>
 									{r.attendeeNames.length > 0 && (
 										<span className="text-muted-foreground text-footnote">
@@ -150,7 +156,7 @@ export default async function ManagementReviewPage() {
 													attendeeUserIds: r.attendeeUserIds,
 													summary: r.summary,
 													decisions: r.decisions,
-													ownerUserId: r.ownerUserId,
+													ownerUserId: responsibleValue(r),
 												}}
 											/>
 										</div>

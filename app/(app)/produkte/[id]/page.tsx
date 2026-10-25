@@ -8,6 +8,7 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
@@ -173,7 +174,10 @@ export default async function ProductPage({
 						{p.supportUntil ? fmtDate.format(new Date(p.supportUntil)) : "—"}
 					</MetaItem>
 					<MetaItem label={t("owner")}>
-						<UserChip name={data.names.get(p.ownerUserId ?? "")} />
+						<OwnerChip
+							ownerFunction={p.ownerFunction}
+							name={data.names.get(p.ownerUserId ?? "")}
+						/>
 					</MetaItem>
 				</>
 			}

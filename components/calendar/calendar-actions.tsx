@@ -11,6 +11,7 @@ import {
 	waiveObligationRun,
 } from "@/app/actions/obligations";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { ResponsibleSelect } from "@/components/entity/responsible-select";
 import { FormDialog } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
 import { errorText } from "@/components/ui/error-text";
@@ -163,13 +164,14 @@ export function RunActions({
 
 export function ObligationSettings({
 	obligationId,
-	ownerUserId,
+	owner,
 	leadDays,
 	active,
 	members,
 }: {
 	obligationId: string;
-	ownerUserId: string | null;
+	// Funktion oder Person (responsibleValue)
+	owner: string | null;
 	leadDays: number;
 	active: boolean;
 	members: MemberOption[];
@@ -186,23 +188,15 @@ export function ObligationSettings({
 		});
 	return (
 		<div className="flex flex-wrap items-center gap-2">
-			<Select
-				value={ownerUserId ?? "none"}
+			<ResponsibleSelect
+				value={owner}
 				disabled={pending}
-				onValueChange={(v) => save({ ownerUserId: v === "none" ? null : v })}
-			>
-				<SelectTrigger size="sm" className="w-44">
-					<SelectValue placeholder={t("owner")} />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="none">—</SelectItem>
-					{members.map((m) => (
-						<SelectItem key={m.userId} value={m.userId}>
-							{m.name}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
+				onChange={(v) => save({ ownerUserId: v })}
+				members={members}
+				size="sm"
+				className="w-52"
+				aria-label={t("owner")}
+			/>
 			<Input
 				type="number"
 				min={0}

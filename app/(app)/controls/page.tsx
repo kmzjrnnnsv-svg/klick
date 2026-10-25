@@ -6,6 +6,7 @@ import {
 	BulkProvider,
 } from "@/components/entity/bulk-select";
 import { EmptyState } from "@/components/entity/empty-state";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { ResponsibleLabel } from "@/components/entity/responsible-select";
 import { StatusBadge } from "@/components/entity/status-badge";
@@ -164,7 +165,7 @@ export default async function ControlsPage({
 						ownerName={r.ownerName}
 					/>
 				) : (
-					<UserChip name={r.ownerName} />
+					<OwnerChip ownerFunction={r.ownerFunction} name={r.ownerName} />
 				),
 		},
 		{

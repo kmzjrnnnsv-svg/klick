@@ -14,6 +14,7 @@ import {
 	Field,
 	FormDialog,
 	NewTrigger,
+	ResponsibleField,
 	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
@@ -143,7 +144,7 @@ export function NonconformityForm({
 						</Select>
 					</div>
 				)}
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}

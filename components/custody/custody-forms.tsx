@@ -14,6 +14,7 @@ import {
 	Field,
 	FormDialog,
 	NewTrigger,
+	ResponsibleField,
 	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -247,7 +248,7 @@ export function WalletForm({
 					value={String(d.quorumTotal)}
 					onChange={(v) => setD({ ...d, quorumTotal: Number(v) || 1 })}
 				/>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}

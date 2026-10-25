@@ -209,7 +209,7 @@ export function RiskEditForm({
 		residualLikelihood: number | null;
 		residualImpact: number | null;
 		ownerUserId: string | null;
-		ownerFunction?: RoleFunction | null;
+		ownerFunction: RoleFunction | null;
 		assigneeUserId: string | null;
 		reviewAt: string | null;
 		description: string | null;

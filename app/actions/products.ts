@@ -18,6 +18,7 @@ import { scoreAssessment } from "@/lib/assessments/score";
 import { answerStates, nextAssessmentCode } from "@/lib/assessments/state";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nextProductCode } from "@/lib/compliance/cra";
+import { ownerColumns } from "@/lib/compliance/function-holders-service";
 import { storeSbom } from "@/lib/compliance/sbom-service";
 import type { OrgTx } from "@/lib/db/with-org";
 import { mutateOrg } from "@/lib/db/with-org";
@@ -80,7 +81,12 @@ async function createProductImpl(
 					d.kind === "saas"
 						? "Reiner Webdienst ohne Produktbezug — NIS2 statt CRA (Art. 3 Nr. 2). Prüfen, ob Apps, Clients oder SDKs dazugehören."
 						: null,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(
+					tx,
+					c.orgId,
+					d.ownerUserId ?? undefined,
+					c.userId,
+				)),
 			})
 			.returning({ id: products.id });
 		if (!row) throw new Error("insert failed");

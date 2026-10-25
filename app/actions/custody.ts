@@ -13,6 +13,7 @@ import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { insertControlTest } from "@/lib/compliance/control-test-service";
+import { ownerColumns } from "@/lib/compliance/function-holders-service";
 import {
 	NC_DUE_DAYS,
 	NC_EFFECTIVENESS_DAYS,
@@ -80,7 +81,16 @@ async function saveWalletImpl(
 				const before = await loadWallet(tx, c.orgId, id);
 				if (!before)
 					return { result: { ok: false, error: "notFound" }, audit: [] };
-				await tx.update(wallets).set(d).where(eq(wallets.id, id));
+				const { ownerUserId: ownerRef, ...rest } = d;
+				await tx
+					.update(wallets)
+					.set({
+						...rest,
+						...(ownerRef === undefined
+							? {}
+							: await ownerColumns(tx, c.orgId, ownerRef, before.ownerUserId)),
+					})
+					.where(eq(wallets.id, id));
 				return {
 					result: { ok: true, data: { id } },
 					audit: {
@@ -102,7 +112,12 @@ async function saveWalletImpl(
 					...d,
 					organizationId: c.orgId,
 					code,
-					ownerUserId: d.ownerUserId ?? c.userId,
+					...(await ownerColumns(
+						tx,
+						c.orgId,
+						d.ownerUserId ?? undefined,
+						c.userId,
+					)),
 				})
 				.returning({ id: wallets.id });
 			if (!row) throw new Error("insert failed");

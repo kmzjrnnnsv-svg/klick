@@ -15,6 +15,7 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ import {
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 // /verwahrung/[id] — eine Wallet: Quorum, Schlüsselinhaber:innen (Ort
 // feldverschlüsselt), Zeremonien und Tests, Aufgaben, Aktivität.
@@ -149,7 +151,7 @@ export default async function WalletDetailPage({
 							addressLabel: w.addressLabel,
 							providerId: w.providerId,
 							hsmAssetId: w.hsmAssetId,
-							ownerUserId: w.ownerUserId,
+							ownerUserId: responsibleValue(w),
 							status: w.status,
 							notes: w.notes,
 							networks: w.networks.join(", "),
@@ -167,7 +169,10 @@ export default async function WalletDetailPage({
 						{t("quorumValue", { m: w.quorumRequired, n: w.quorumTotal })}
 					</MetaItem>
 					<MetaItem label={t("owner")}>
-						{names.get(w.ownerUserId ?? "") ?? "—"}
+						<OwnerChip
+							ownerFunction={w.ownerFunction}
+							name={names.get(w.ownerUserId ?? "")}
+						/>
 					</MetaItem>
 					<MetaItem label={t("colBackupTest")}>
 						{day(w.nextBackupTestDue)}

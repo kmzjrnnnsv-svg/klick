@@ -23,6 +23,7 @@ import {
 	Field,
 	FormDialog,
 	NewTrigger,
+	ResponsibleField,
 	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
@@ -332,7 +333,7 @@ export function RiskAnalysisForm({
 								onChange={(v) => setD({ ...d, version: v })}
 							/>
 						)}
-						<UserSelect
+						<ResponsibleField
 							label={t("owner")}
 							value={d.ownerUserId}
 							onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -565,7 +566,7 @@ export function MonitoringRuleForm({
 					value={d.legalBasis ?? ""}
 					onChange={(v) => setD({ ...d, legalBasis: v })}
 				/>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -681,7 +682,7 @@ export function SuspiciousReportForm({
 					value={d.category ?? ""}
 					onChange={(v) => setD({ ...d, category: v })}
 				/>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}

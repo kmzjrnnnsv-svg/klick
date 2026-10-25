@@ -5,6 +5,7 @@ import { importAssetsCsv } from "@/app/actions/imports";
 import { CsvImport } from "@/components/entity/csv-import";
 import { EmptyState } from "@/components/entity/empty-state";
 import { LinkChips } from "@/components/entity/link-chips";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UserChip } from "@/components/entity/user-chip";
 import { AssetForm } from "@/components/registers/asset-form";
@@ -162,7 +163,9 @@ export default async function AssetsPage({
 			key: "owner",
 			header: t("owner"),
 			className: "w-40",
-			cell: (r) => <UserChip name={r.ownerName} />,
+			cell: (r) => (
+				<OwnerChip ownerFunction={r.ownerFunction} name={r.ownerName} />
+			),
 		},
 		{
 			key: "rot",

@@ -11,6 +11,7 @@ import {
 import { deleteInsurancePolicy } from "@/app/actions/privacy";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { ShareholderForm } from "@/components/casp/shareholder-form";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { Sparkline } from "@/components/entity/sparkline";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
@@ -97,6 +98,7 @@ import { decryptMany, fieldAad } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import type { FitProperChecklist } from "@/lib/validation/governance";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -358,7 +360,7 @@ export default async function OrganisationPage({
 														title: i.title,
 														description: i.description,
 														impact: i.impact,
-														ownerUserId: i.ownerUserId,
+														ownerUserId: responsibleValue(i),
 														reviewAt: i.reviewAt,
 													}}
 												/>
@@ -434,7 +436,7 @@ export default async function OrganisationPage({
 														requirements: p.requirements,
 														howAddressed: p.howAddressed,
 														contact: p.contact,
-														ownerUserId: p.ownerUserId,
+														ownerUserId: responsibleValue(p),
 														reviewAt: p.reviewAt,
 													}}
 												/>
@@ -523,7 +525,7 @@ export default async function OrganisationPage({
 													services: s.services,
 													exclusions: s.exclusions,
 													version: s.version,
-													ownerUserId: s.ownerUserId,
+													ownerUserId: responsibleValue(s),
 												}}
 											/>
 										)}
@@ -1028,7 +1030,7 @@ export default async function OrganisationPage({
 															unit: o.unit,
 															target: o.target,
 															dueAt: o.dueAt,
-															ownerUserId: o.ownerUserId,
+															ownerUserId: responsibleValue(o),
 															status: o.status,
 															indicatorType: o.indicatorType,
 															direction: o.direction,
@@ -1139,7 +1141,10 @@ export default async function OrganisationPage({
 											/>
 										)}
 										<div className="flex flex-wrap items-center justify-between gap-2">
-											<UserChip name={o.ownerName} />
+											<OwnerChip
+												ownerFunction={o.ownerFunction}
+												name={o.ownerName}
+											/>
 											{canEdit && (
 												<MeasurementForm
 													objectiveId={o.id}
@@ -1343,7 +1348,10 @@ export default async function OrganisationPage({
 											{r.deadline ? fmtDate.format(new Date(r.deadline)) : "—"}
 										</TableCell>
 										<TableCell>
-											<UserChip name={r.ownerName} />
+											<OwnerChip
+												ownerFunction={r.ownerFunction}
+												name={r.ownerName}
+											/>
 										</TableCell>
 										<TableCell>
 											<Badge
@@ -1370,7 +1378,7 @@ export default async function OrganisationPage({
 														direction: r.direction,
 														deadline: r.deadline,
 														responseAt: r.responseAt,
-														ownerUserId: r.ownerUserId,
+														ownerUserId: responsibleValue(r),
 														notes: r.notes,
 														status: r.status,
 													}}
@@ -1454,7 +1462,7 @@ export default async function OrganisationPage({
 														description: c.description,
 														mitigation: c.mitigation,
 														disclosedAt: c.disclosedAt,
-														ownerUserId: c.ownerUserId,
+														ownerUserId: responsibleValue(c),
 														reviewAt: c.reviewAt,
 														status: c.status,
 													}}
@@ -1768,7 +1776,10 @@ export default async function OrganisationPage({
 												)}
 											</TableCell>
 											<TableCell>
-												<UserChip name={p.ownerName} />
+												<OwnerChip
+													ownerFunction={p.ownerFunction}
+													name={p.ownerName}
+												/>
 											</TableCell>
 											<TableCell>
 												{canEdit && (
@@ -1788,7 +1799,7 @@ export default async function OrganisationPage({
 																validFrom: p.validFrom,
 																validUntil: p.validUntil,
 																premium: p.premium ?? "",
-																ownerUserId: p.ownerUserId,
+																ownerUserId: responsibleValue(p),
 															}}
 														/>
 														<DeleteRowButton

@@ -15,6 +15,7 @@ import {
 	Field,
 	FormDialog,
 	NewTrigger,
+	ResponsibleField,
 	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Badge } from "@/components/ui/badge";
@@ -95,7 +96,7 @@ export function ReviewForm({
 					onChange={(v) => setD({ ...d, heldAt: v })}
 					required
 				/>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}

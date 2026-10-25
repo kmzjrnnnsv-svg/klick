@@ -65,6 +65,7 @@ import { readOrg } from "@/lib/db/with-org";
 import { NONCONFORMITY_STATUS } from "@/lib/entities/nonconformity";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import { cn } from "@/lib/utils";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -271,7 +272,7 @@ export default async function AuditCockpitPage({
 									auditorMemberIds: audit.auditorMemberIds,
 									externalAuditor: audit.externalAuditor,
 									plannedAt: audit.plannedAt,
-									ownerUserId: audit.ownerUserId,
+									ownerUserId: responsibleValue(audit),
 								}}
 							/>
 						)}

@@ -12,6 +12,7 @@ import {
 	SuspiciousTransitionButtons,
 } from "@/components/aml/aml-forms";
 import { EmptyState } from "@/components/entity/empty-state";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { PageHeader } from "@/components/page-header";
@@ -59,6 +60,7 @@ import {
 } from "@/lib/compliance/queries-p4";
 import { decryptMany, fieldAad } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -467,7 +469,10 @@ export default async function AmlPage({
 												)}
 											</TableCell>
 											<TableCell>
-												<UserChip name={a.ownerName} />
+												<OwnerChip
+													ownerFunction={a.ownerFunction}
+													name={a.ownerName}
+												/>
 											</TableCell>
 											<TableCell className="text-footnote">
 												{a.approvedAt ? (
@@ -494,7 +499,7 @@ export default async function AmlPage({
 																	version: a.version,
 																	dimensions: dims,
 																	summary: a.summary,
-																	ownerUserId: a.ownerUserId,
+																	ownerUserId: responsibleValue(a),
 																	nextReviewAt: a.nextReviewAt,
 																}}
 															/>
@@ -632,7 +637,10 @@ export default async function AmlPage({
 												: "—"}
 										</TableCell>
 										<TableCell>
-											<UserChip name={r.ownerName} />
+											<OwnerChip
+												ownerFunction={r.ownerFunction}
+												name={r.ownerName}
+											/>
 										</TableCell>
 										<TableCell>
 											<div className="flex items-center gap-1">
@@ -657,7 +665,7 @@ export default async function AmlPage({
 															threshold: r.threshold,
 															rationale: r.rationale,
 															legalBasis: r.legalBasis,
-															ownerUserId: r.ownerUserId,
+															ownerUserId: responsibleValue(r),
 															lastTunedAt: r.lastTunedAt,
 															falsePositiveRate: r.falsePositiveRate,
 															status: r.status,
@@ -764,7 +772,10 @@ export default async function AmlPage({
 											)}
 										</TableCell>
 										<TableCell>
-											<UserChip name={r.ownerName} />
+											<OwnerChip
+												ownerFunction={r.ownerFunction}
+												name={r.ownerName}
+											/>
 										</TableCell>
 										<TableCell>
 											<div className="flex flex-wrap items-center gap-1">
@@ -796,7 +807,7 @@ export default async function AmlPage({
 																	.slice(0, 16),
 																category: r.category,
 																decisionNote: data.notes[i] ?? "",
-																ownerUserId: r.ownerUserId,
+																ownerUserId: responsibleValue(r),
 															}}
 														/>
 													</>

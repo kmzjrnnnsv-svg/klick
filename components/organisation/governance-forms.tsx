@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import {
 	type ComponentProps,
 	type ReactNode,
+	useId,
 	useState,
 	useTransition,
 } from "react";
@@ -19,6 +20,7 @@ import {
 } from "@/app/actions/organisation";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { ResponsibleSelect } from "@/components/entity/responsible-select";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -169,6 +171,33 @@ export function UserSelect({
 					))}
 				</SelectContent>
 			</Select>
+		</div>
+	);
+}
+
+// „Verantwortlich“ = Funktion oder Person (Wert `function:<key>` oder
+// Konto-ID, lib/validation/responsible.ts)
+export function ResponsibleField({
+	label,
+	value,
+	onChange,
+	members,
+}: {
+	label: string;
+	value: string | null | undefined;
+	onChange: (v: string | null) => void;
+	members: MemberOption[];
+}) {
+	const id = useId();
+	return (
+		<div className="flex flex-col gap-1.5">
+			<Label htmlFor={id}>{label}</Label>
+			<ResponsibleSelect
+				id={id}
+				value={value}
+				onChange={onChange}
+				members={members}
+			/>
 		</div>
 	);
 }
@@ -408,7 +437,7 @@ export function ContextIssueForm({
 				onChange={(v) => setD({ ...d, impact: v })}
 				rows={2}
 			/>
-			<UserSelect
+			<ResponsibleField
 				label={t("owner")}
 				value={d.ownerUserId}
 				onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -529,7 +558,7 @@ export function PartyForm({
 					value={d.contact ?? ""}
 					onChange={(v) => setD({ ...d, contact: v })}
 				/>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -873,7 +902,7 @@ export function RegulatorInteractionForm({
 						</SelectContent>
 					</Select>
 				</div>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -1005,7 +1034,7 @@ export function ConflictForm({
 						</SelectContent>
 					</Select>
 				</div>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}

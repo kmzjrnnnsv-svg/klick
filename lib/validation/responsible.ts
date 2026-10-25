@@ -36,9 +36,10 @@ export function functionOfRef(
 }
 
 // Wert für die Auswahl aus einer Zeile mit owner_function/owner_user_id
+// (ownerFunction Pflicht: wer die Spalte nicht lädt, zeigt sonst still die Person)
 export function responsibleValue(row: {
-	ownerFunction?: RoleFunction | null;
-	ownerUserId?: string | null;
+	ownerFunction: RoleFunction | null;
+	ownerUserId: string | null;
 }): string | null {
 	return row.ownerFunction
 		? `${FUNCTION_REF}${row.ownerFunction}`

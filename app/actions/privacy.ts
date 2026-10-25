@@ -11,7 +11,7 @@ import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { applicableProcessingActivities } from "@/lib/compliance/catalog/processing-activities";
-import { functionResponsible } from "@/lib/compliance/function-holders-service";
+import { ownerColumns } from "@/lib/compliance/function-holders-service";
 import { dsrDueAt, dsrExtendedUntil } from "@/lib/compliance/privacy";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg } from "@/lib/db/with-org";
@@ -52,7 +52,6 @@ async function upsertProcessingActivityImpl(
 				legalBasis: d.legalBasis ?? null,
 				dsfaRequired: d.dsfaRequired,
 				dsfaEvidenceId: d.dsfaEvidenceId ?? null,
-				ownerUserId: d.ownerUserId ?? null,
 			};
 			if (id) {
 				const [before] = await tx
@@ -69,7 +68,10 @@ async function upsertProcessingActivityImpl(
 					return { result: { ok: false, error: "notFound" }, audit: [] };
 				await tx
 					.update(processingActivities)
-					.set(values)
+					.set({
+						...values,
+						...(await ownerColumns(tx, c.orgId, d.ownerUserId ?? null, null)),
+					})
 					.where(eq(processingActivities.id, id));
 				return {
 					result: { ok: true, data: { id } },
@@ -96,10 +98,13 @@ async function upsertProcessingActivityImpl(
 				.values({
 					organizationId: c.orgId,
 					...values,
-					ownerUserId:
-						values.ownerUserId ??
-						(await functionResponsible(tx, c.orgId, "dpo")) ??
+					// ohne Auswahl die Datenschutz-Funktion (bleibt beim Umbesetzen richtig)
+					...(await ownerColumns(
+						tx,
+						c.orgId,
+						d.ownerUserId ?? "function:dpo",
 						c.userId,
+					)),
 				})
 				.returning({ id: processingActivities.id });
 			if (!row) throw new Error("insert failed");
@@ -168,7 +173,7 @@ async function applyProcessingActivitySeedImpl(): Promise<
 					.where(eq(processingActivities.organizationId, c.orgId))
 			).map((x) => x.name),
 		);
-		const owner = (await functionResponsible(tx, c.orgId, "dpo")) ?? c.userId;
+		const owner = await ownerColumns(tx, c.orgId, "function:dpo", c.userId);
 		const audits: AuditInput[] = [];
 		let n = 0;
 		for (const p of applicableProcessingActivities(fws)) {
@@ -186,7 +191,7 @@ async function applyProcessingActivitySeedImpl(): Promise<
 					retention: p.retention,
 					legalBasis: p.legalBasis,
 					dsfaRequired: p.dsfaRequired,
-					ownerUserId: owner,
+					...owner,
 				})
 				.returning({ id: processingActivities.id });
 			if (row) {
@@ -233,7 +238,14 @@ async function upsertDataSubjectRequestImpl(
 					.update(dataSubjectRequests)
 					.set({
 						type: d.type,
-						ownerUserId: d.ownerUserId ?? before.ownerUserId,
+						...(d.ownerUserId == null
+							? {}
+							: await ownerColumns(
+									tx,
+									c.orgId,
+									d.ownerUserId,
+									before.ownerUserId,
+								)),
 						subjectRef:
 							subjectRef === undefined
 								? before.subjectRef
@@ -260,10 +272,12 @@ async function upsertDataSubjectRequestImpl(
 					},
 				};
 			}
-			const owner =
-				d.ownerUserId ??
-				(await functionResponsible(tx, c.orgId, "dpo")) ??
-				c.userId;
+			const owner = await ownerColumns(
+				tx,
+				c.orgId,
+				d.ownerUserId ?? "function:dpo",
+				c.userId,
+			);
 			const dueAt = dsrDueAt(d.receivedAt);
 			const [row] = await tx
 				.insert(dataSubjectRequests)
@@ -272,7 +286,7 @@ async function upsertDataSubjectRequestImpl(
 					receivedAt: d.receivedAt,
 					type: d.type,
 					dueAt,
-					ownerUserId: owner,
+					...owner,
 				})
 				.returning({ id: dataSubjectRequests.id });
 			if (!row) throw new Error("insert failed");
@@ -290,7 +304,7 @@ async function upsertDataSubjectRequestImpl(
 					.where(eq(dataSubjectRequests.id, row.id));
 			await notify(tx, {
 				orgId: c.orgId,
-				recipients: [owner],
+				recipients: [owner.ownerUserId ?? c.userId],
 				actorUserId: c.userId,
 				kind: "task_assigned",
 				title: `Betroffenenanfrage (${d.type}) eingegangen`,
@@ -417,7 +431,6 @@ async function upsertInsurancePolicyImpl(
 		validUntil: d.validUntil ?? null,
 		premium:
 			d.premium === null || d.premium === undefined ? null : String(d.premium),
-		ownerUserId: d.ownerUserId ?? null,
 	};
 	const res = await mutateOrg<ActionResult<{ id: string }>>(
 		toOrgCtx(c),
@@ -437,7 +450,10 @@ async function upsertInsurancePolicyImpl(
 					return { result: { ok: false, error: "notFound" }, audit: [] };
 				await tx
 					.update(insurancePolicies)
-					.set(values)
+					.set({
+						...values,
+						...(await ownerColumns(tx, c.orgId, d.ownerUserId ?? null, null)),
+					})
 					.where(eq(insurancePolicies.id, id));
 				return {
 					result: { ok: true, data: { id } },
@@ -462,7 +478,12 @@ async function upsertInsurancePolicyImpl(
 				.values({
 					organizationId: c.orgId,
 					...values,
-					ownerUserId: values.ownerUserId ?? c.userId,
+					...(await ownerColumns(
+						tx,
+						c.orgId,
+						d.ownerUserId ?? undefined,
+						c.userId,
+					)),
 				})
 				.returning({ id: insurancePolicies.id });
 			if (!row) throw new Error("insert failed");

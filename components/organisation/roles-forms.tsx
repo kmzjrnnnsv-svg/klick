@@ -41,6 +41,7 @@ import {
 	FormDialog,
 	FunctionSelect,
 	NewTrigger,
+	ResponsibleField,
 	UserSelect,
 } from "./governance-forms";
 
@@ -402,7 +403,7 @@ export function ScopeForm({
 						</SelectContent>
 					</Select>
 				</div>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -824,7 +825,7 @@ export function ObjectiveForm({
 						</SelectContent>
 					</Select>
 				</div>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}

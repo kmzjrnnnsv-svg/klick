@@ -16,6 +16,7 @@ import {
 	FormDialog,
 	FunctionSelect,
 	NewTrigger,
+	ResponsibleField,
 	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
@@ -120,7 +121,7 @@ export function ComplaintForm({
 					value={d.category ?? ""}
 					onChange={(v) => setD({ ...d, category: v })}
 				/>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}

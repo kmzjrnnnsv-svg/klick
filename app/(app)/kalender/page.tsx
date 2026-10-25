@@ -13,6 +13,7 @@ import {
 	groupCounts,
 } from "@/components/calendar/date-entries";
 import { EmptyState } from "@/components/entity/empty-state";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { PageHeader } from "@/components/page-header";
@@ -53,6 +54,7 @@ import {
 	listObligations,
 } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -405,15 +407,18 @@ export default async function CalendarPage({
 											{canEdit ? (
 												<ObligationSettings
 													obligationId={o.id}
-													ownerUserId={o.ownerUserId}
+													owner={responsibleValue(o)}
 													leadDays={o.leadDays}
 													active={o.active}
 													members={data.members}
 												/>
 											) : (
 												<span className="flex items-center gap-2 text-footnote">
-													<UserChip name={o.ownerName} /> · {o.leadDays}{" "}
-													{t("daysLead")}
+													<OwnerChip
+														ownerFunction={o.ownerFunction}
+														name={o.ownerName}
+													/>{" "}
+													· {o.leadDays} {t("daysLead")}
 												</span>
 											)}
 										</TableCell>

@@ -402,7 +402,10 @@ export default async function RisksPage({
 											)}
 										</TableCell>
 										<TableCell>
-											<UserChip name={e.ownerName} />
+											<OwnerChip
+												ownerFunction={e.ownerFunction}
+												name={e.ownerName}
+											/>
 										</TableCell>
 										<TableCell
 											className={e.validUntil < today ? "text-destructive" : ""}

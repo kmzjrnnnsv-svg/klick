@@ -30,6 +30,7 @@ import {
 	applicableParties,
 } from "@/lib/compliance/catalog/interested-parties";
 import { openDecisionRequest } from "@/lib/compliance/decision-service";
+import { ownerColumns } from "@/lib/compliance/function-holders-service";
 import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import {
 	addMonths,
@@ -155,7 +156,12 @@ async function upsertContextIssueImpl(
 				description: d.description ?? null,
 				impact: d.impact ?? null,
 				relatedRiskId: d.relatedRiskId ?? null,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(
+					tx,
+					c.orgId,
+					d.ownerUserId ?? undefined,
+					c.userId,
+				)),
 				reviewAt: d.reviewAt ?? null,
 			},
 			"context_issue",
@@ -209,7 +215,7 @@ async function upsertInterestedPartyImpl(
 				relevantFrameworks: d.relevantFrameworks ?? [],
 				howAddressed: d.howAddressed ?? null,
 				contact: d.contact ?? null,
-				ownerUserId: d.ownerUserId ?? null,
+				...(await ownerColumns(tx, c.orgId, d.ownerUserId ?? null, null)),
 				reviewAt: d.reviewAt ?? null,
 			},
 			"interested_party",
@@ -371,7 +377,14 @@ async function upsertScopeImpl(
 					status: reopened ? "draft" : before.status,
 					approvedAt: reopened ? null : before.approvedAt,
 					approvedByUserId: reopened ? null : before.approvedByUserId,
-					ownerUserId: d.ownerUserId ?? before.ownerUserId,
+					...(d.ownerUserId == null
+						? {}
+						: await ownerColumns(
+								tx,
+								c.orgId,
+								d.ownerUserId,
+								before.ownerUserId,
+							)),
 				})
 				.where(eq(scopes.id, id));
 			return {
@@ -403,7 +416,12 @@ async function upsertScopeImpl(
 				services: d.services ?? [],
 				exclusions: d.exclusions ?? [],
 				version: d.version ?? "1.0",
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(
+					tx,
+					c.orgId,
+					d.ownerUserId ?? undefined,
+					c.userId,
+				)),
 			})
 			.returning({ id: scopes.id });
 		if (!row) throw new Error("insert failed");
@@ -715,7 +733,12 @@ async function upsertObjectiveImpl(input: unknown): Promise<
 			unit: d.unit ?? null,
 			target: d.target ?? null,
 			dueAt: d.dueAt ?? null,
-			ownerUserId: d.ownerUserId ?? c.userId,
+			...(await ownerColumns(
+				tx,
+				c.orgId,
+				d.ownerUserId ?? undefined,
+				c.userId,
+			)),
 			status: d.status,
 			indicatorType: d.indicatorType,
 			direction: d.direction,
@@ -1023,7 +1046,12 @@ async function upsertRegulatorInteractionImpl(
 				direction: d.direction,
 				deadline: d.deadline ?? null,
 				responseAt: d.responseAt ?? null,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(
+					tx,
+					c.orgId,
+					d.ownerUserId ?? undefined,
+					c.userId,
+				)),
 				evidenceId: d.evidenceId ?? null,
 				notes: d.notes ?? null,
 				status: d.status,
@@ -1064,7 +1092,12 @@ async function upsertConflictImpl(
 				description: d.description ?? null,
 				mitigation: d.mitigation ?? null,
 				disclosedAt: d.disclosedAt ?? null,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(
+					tx,
+					c.orgId,
+					d.ownerUserId ?? undefined,
+					c.userId,
+				)),
 				reviewAt: d.reviewAt ?? null,
 				status: d.status,
 			},

@@ -9,6 +9,7 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
@@ -50,6 +51,7 @@ import {
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 const IMPL_KEY = {
 	not_started: "notStarted",
@@ -200,7 +202,7 @@ export default async function ProcessDetailPage({
 								description: p.description,
 								category: p.category,
 								criticality: p.criticality,
-								ownerUserId: p.ownerUserId,
+								ownerUserId: responsibleValue(p),
 								deputyUserId: p.deputyUserId,
 								rtoHours: p.rtoHours,
 								rpoHours: p.rpoHours,
@@ -236,7 +238,10 @@ export default async function ProcessDetailPage({
 						)}
 					</MetaItem>
 					<MetaItem label={t("owner")}>
-						<UserChip name={names.get(p.ownerUserId ?? "")} />
+						<OwnerChip
+							ownerFunction={p.ownerFunction}
+							name={names.get(p.ownerUserId ?? "")}
+						/>
 					</MetaItem>
 					<MetaItem label={t("deputy")}>
 						<UserChip name={names.get(p.deputyUserId ?? "")} />

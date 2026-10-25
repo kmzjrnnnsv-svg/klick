@@ -5,6 +5,7 @@ import {
 	WhistleblowingForm,
 } from "@/components/complaints/complaint-forms";
 import { EmptyState } from "@/components/entity/empty-state";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { PageHeader } from "@/components/page-header";
@@ -30,6 +31,7 @@ import {
 } from "@/lib/compliance/queries-p3";
 import { decryptMany, fieldAad } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -294,7 +296,10 @@ export default async function ComplaintsPage({
 												)}
 											</TableCell>
 											<TableCell>
-												<UserChip name={c.ownerName} />
+												<OwnerChip
+													ownerFunction={c.ownerFunction}
+													name={c.ownerName}
+												/>
 											</TableCell>
 											<TableCell>
 												<div className="flex flex-wrap items-center gap-1">
@@ -327,7 +332,7 @@ export default async function ComplaintsPage({
 																	category: c.category,
 																	description: c.description,
 																	complainantRef: data.refs[i] ?? "",
-																	ownerUserId: c.ownerUserId,
+																	ownerUserId: responsibleValue(c),
 																	outcome: c.outcome,
 																	escalatedToRegulator: c.escalatedToRegulator,
 																}}

@@ -18,6 +18,7 @@ import {
 	Field,
 	FormDialog,
 	NewTrigger,
+	ResponsibleField,
 	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
@@ -174,7 +175,7 @@ export function ProcessingActivityForm({
 					value={d.thirdCountryTransfer ?? ""}
 					onChange={(v) => setD({ ...d, thirdCountryTransfer: v })}
 				/>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -317,7 +318,7 @@ export function DsrForm({
 						</SelectContent>
 					</Select>
 				</div>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -543,7 +544,7 @@ export function InsuranceForm({
 					value={d.premium ?? ""}
 					onChange={(v) => setD({ ...d, premium: v })}
 				/>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}

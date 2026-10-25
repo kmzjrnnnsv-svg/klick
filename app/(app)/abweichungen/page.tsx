@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UserChip } from "@/components/entity/user-chip";
@@ -238,7 +239,10 @@ export default async function NonconformitiesPage({
 									)}
 								</TableCell>
 								<TableCell>
-									<UserChip name={r.ownerName} />
+									<OwnerChip
+										ownerFunction={r.ownerFunction}
+										name={r.ownerName}
+									/>
 								</TableCell>
 								<TableCell className={s.overdue ? "text-destructive" : ""}>
 									{r.dueAt ? fmtDate.format(new Date(r.dueAt)) : "—"}

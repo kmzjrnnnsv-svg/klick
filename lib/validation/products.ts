@@ -6,6 +6,7 @@ import {
 	PRODUCT_STATUS,
 } from "@/db/schema/enums";
 import { longText, shortText, uuid } from "./common";
+import { responsibleRef } from "./responsible";
 
 // Produktregister (CRA). Leere Strings aus Formularen werden zu null.
 
@@ -26,7 +27,7 @@ export const createProductSchema = z.object({
 	kind: z.enum(PRODUCT_KINDS).default("software"),
 	role: z.enum(PRODUCT_ROLES).default("manufacturer"),
 	version: optionalText(60),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 });
 export type CreateProductInput = z.output<typeof createProductSchema>;
 
@@ -55,7 +56,7 @@ export const updateProductSchema = z.object({
 	declarationAt: optionalDate,
 	ceMarked: z.boolean().optional(),
 	notifiedBody: optionalText(200),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 });
 export type UpdateProductInput = z.output<typeof updateProductSchema>;
 

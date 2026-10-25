@@ -24,6 +24,7 @@ import {
 	Field,
 	FormDialog,
 	NewTrigger,
+	ResponsibleField,
 	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
@@ -374,7 +375,7 @@ export function AuditForm({
 					value={d.plannedAt ?? ""}
 					onChange={(v) => setD({ ...d, plannedAt: v })}
 				/>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}

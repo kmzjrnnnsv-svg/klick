@@ -12,7 +12,7 @@ import {
 } from "@/lib/compliance/complaints";
 import {
 	functionRecipients,
-	functionResponsible,
+	ownerColumns,
 } from "@/lib/compliance/function-holders-service";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg } from "@/lib/db/with-org";
@@ -66,7 +66,14 @@ async function upsertComplaintImpl(
 						category: d.category ?? before.category,
 						description: d.description ?? before.description,
 						complainantRef: enc,
-						ownerUserId: d.ownerUserId ?? before.ownerUserId,
+						...(d.ownerUserId == null
+							? {}
+							: await ownerColumns(
+									tx,
+									c.orgId,
+									d.ownerUserId,
+									before.ownerUserId,
+								)),
 						outcome: d.outcome ?? before.outcome,
 						escalatedToRegulator:
 							d.escalatedToRegulator ?? before.escalatedToRegulator,
@@ -85,6 +92,7 @@ async function upsertComplaintImpl(
 						after: {
 							category: d.category ?? before.category,
 							ownerUserId: d.ownerUserId ?? before.ownerUserId,
+							via: "form",
 							escalated: d.escalatedToRegulator ?? before.escalatedToRegulator,
 						},
 					},
@@ -99,10 +107,14 @@ async function upsertComplaintImpl(
 				"BES",
 			);
 			const dl = complaintDeadlines(d.receivedAt);
-			const ownerUserId =
-				d.ownerUserId ??
-				(await functionResponsible(tx, c.orgId, "compliance")) ??
-				c.userId;
+			// ohne Auswahl die Compliance-Funktion (bleibt beim Umbesetzen richtig)
+			const owner = await ownerColumns(
+				tx,
+				c.orgId,
+				d.ownerUserId ?? "function:compliance",
+				c.userId,
+			);
+			const ownerUserId = owner.ownerUserId;
 			const [row] = await tx
 				.insert(complaints)
 				.values({
@@ -114,7 +126,7 @@ async function upsertComplaintImpl(
 					description: d.description ?? null,
 					ackDueAt: dl.ackDueAt,
 					responseDueAt: dl.responseDueAt,
-					ownerUserId,
+					...owner,
 					escalatedToRegulator: d.escalatedToRegulator ?? false,
 				})
 				.returning({ id: complaints.id });
