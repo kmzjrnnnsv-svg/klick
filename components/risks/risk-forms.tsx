@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	createException,
 	createLossEvent,
@@ -14,6 +13,7 @@ import {
 } from "@/app/actions/risks";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { ResponsibleSelect } from "@/components/entity/responsible-select";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -24,6 +24,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -34,7 +35,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
+import type { FunctionKey } from "@/db/schema/enums";
 import { RISK_CATEGORIES } from "@/db/schema/grc";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 const SCALE = [1, 2, 3, 4, 5] as const;
 
@@ -106,7 +110,7 @@ export function RiskQuickCreate({
 							});
 							if (!res.ok)
 								return void toast.error(
-									gate.errorText(res.error) ?? tc("error"),
+									gate.errorText(res.error) ?? errorText(tc, res),
 								);
 							if (res.data.approvalPending) toast.info(gate.pendingText());
 							else toast.success(t("created"));
@@ -205,6 +209,7 @@ export function RiskEditForm({
 		residualLikelihood: number | null;
 		residualImpact: number | null;
 		ownerUserId: string | null;
+		ownerFunction: FunctionKey | null;
 		assigneeUserId: string | null;
 		reviewAt: string | null;
 		description: string | null;
@@ -227,7 +232,7 @@ export function RiskEditForm({
 	const [treatment, setTreatment] = useState(risk.treatment);
 	const [rl, setRl] = useState<number | null>(risk.residualLikelihood);
 	const [ri, setRi] = useState<number | null>(risk.residualImpact);
-	const [owner, setOwner] = useState(risk.ownerUserId ?? "");
+	const [owner, setOwner] = useState(responsibleValue(risk) ?? "");
 	const [assignee, setAssignee] = useState(risk.assigneeUserId ?? "");
 	const [reviewAt, setReviewAt] = useState(risk.reviewAt ?? "");
 	const [description, setDescription] = useState(risk.description ?? "");
@@ -254,7 +259,7 @@ export function RiskEditForm({
 						controlCodes: ctrls,
 						assetIds: assets,
 					});
-					if (!res.ok) toast.error(tc("error"));
+					if (!res.ok) toast.error(errorText(tc, res));
 					else {
 						toast.success(t("saved"));
 						router.refresh();
@@ -346,22 +351,12 @@ export function RiskEditForm({
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label>{te("owner")}</Label>
-					<Select
-						value={owner || "none"}
-						onValueChange={(v) => setOwner(v === "none" ? "" : v)}
-					>
-						<SelectTrigger className="w-full">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="none">—</SelectItem>
-							{members.map((m) => (
-								<SelectItem key={m.userId} value={m.userId}>
-									{m.name || m.email}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					<ResponsibleSelect
+						value={owner || null}
+						onChange={(v) => setOwner(v ?? "")}
+						members={members}
+						aria-label={te("owner")}
+					/>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label>{te("assignee")}</Label>
@@ -394,7 +389,7 @@ export function RiskEditForm({
 			</div>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<fieldset className="flex min-w-0 flex-col gap-1.5">
-					<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+					<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 						{t("controls")}
 					</legend>
 					<div className="max-h-48 overflow-y-auto rounded-2xl bg-card p-2">
@@ -423,7 +418,7 @@ export function RiskEditForm({
 					</div>
 				</fieldset>
 				<fieldset className="flex min-w-0 flex-col gap-1.5">
-					<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+					<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 						{t("assets")}
 					</legend>
 					<div className="max-h-48 overflow-y-auto rounded-2xl bg-card p-2">
@@ -496,7 +491,7 @@ export function TreatmentForm({
 								ownerUserId: owner || null,
 								dueAt: dueAt || null,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("treatmentCreated"));
 							setOpen(false);
 							setTitle("");
@@ -609,7 +604,7 @@ export function ExceptionForm({
 								toast.error(
 									res.error.startsWith("solo_") || res.error === "no_approver"
 										? ta(`errors_${res.error}` as "errors_no_approver")
-										: tc("error"),
+										: errorText(tc, res),
 								);
 								return;
 							}
@@ -749,7 +744,7 @@ export function LossEventForm() {
 								category,
 								cause: cause || undefined,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("lossEventCreated"));
 							setOpen(false);
 							router.refresh();

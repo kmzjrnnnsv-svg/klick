@@ -13,6 +13,7 @@ import { orgPolicy } from "../rls";
 import {
 	json,
 	orgId,
+	ownerFunction,
 	pk,
 	stringList,
 	timestamps,
@@ -43,6 +44,7 @@ export const amlRiskAnalyses = pgTable(
 		approvedAt: ts(),
 		nextReviewAt: date(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		evidenceId: uuid().references(() => evidence.id, { onDelete: "set null" }),
 		...timestamps(),
 	},
@@ -63,6 +65,7 @@ export const amlMonitoringRules = pgTable(
 		rationale: text(),
 		legalBasis: text(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		lastTunedAt: date(),
 		falsePositiveRate: numeric({ precision: 5, scale: 2 }),
 		status: text({ enum: ["active", "paused", "retired"] })
@@ -100,6 +103,7 @@ export const suspiciousReports = pgTable(
 			.default("review"),
 		incidentId: uuid().references(() => incidents.id, { onDelete: "set null" }),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		...timestamps(),
 	},
 	(t) => [
@@ -182,6 +186,7 @@ export const obligations = pgTable(
 			.notNull()
 			.default("intern"),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		leadDays: integer().notNull().default(14),
 		appliesFromStage: text({ enum: LICENCE_STAGES }),
 		active: boolean().notNull().default(true),
@@ -323,6 +328,7 @@ export const insurancePolicies = pgTable(
 		premium: numeric({ precision: 18, scale: 2 }),
 		evidenceId: uuid().references(() => evidence.id, { onDelete: "set null" }),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		...timestamps(),
 	},
 	(t) => [
@@ -350,6 +356,7 @@ export const processingActivities = pgTable(
 			onDelete: "set null",
 		}),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		...timestamps(),
 	},
 	(t) => [

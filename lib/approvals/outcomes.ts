@@ -11,14 +11,22 @@ import {
 	objectives,
 	ownFundsCalculations,
 	processes,
+	products,
 	providerRatings,
 	providers,
 	risks,
 	scopes,
 	tasks,
 	trainingRequirements,
+	walletKeyHolders,
 } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
+import {
+	applyAppointment,
+	applyRevocation,
+	rejectAppointment,
+} from "@/lib/compliance/appointment-service";
+import { applyChangeDecision } from "@/lib/compliance/change-request-service";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -40,6 +48,51 @@ export async function applyApprovalOutcome(
 	// Auslöser des Freigabe-Designers zuerst (gleiche Entität, andere
 	// Wirkung: Aufnahme vs. Akzeptanz, Maßnahmenplan vs. Abschluss …)
 	switch (r.trigger) {
+		// Bestellung/Abberufung einer Funktion durch die Geschäftsleitung
+		case "role.appoint":
+		case "role.revoke": {
+			if (approved)
+				return r.trigger === "role.appoint"
+					? applyAppointment(tx, ctx, r.entityId)
+					: applyRevocation(tx, ctx, r.entityId);
+			if (rejected) return rejectAppointment(tx, ctx, r.entityId, r.trigger);
+			return extra;
+		}
+		// Schlüsselinhaber:in (CCSS 1.06): erst mit der Freigabe im Quorum
+		case "key_holder.appoint": {
+			if (approved || rejected)
+				await tx
+					.update(walletKeyHolders)
+					.set({ status: approved ? "active" : "rejected" })
+					.where(
+						and(
+							eq(walletKeyHolders.id, r.entityId),
+							eq(walletKeyHolders.organizationId, ctx.orgId),
+							eq(walletKeyHolders.status, "proposed"),
+						),
+					);
+			return extra;
+		}
+		// EU-Konformitätserklärung: mit der Freigabe ausgestellt (heute)
+		case "product.declaration": {
+			if (approved)
+				await tx
+					.update(products)
+					.set({ declarationAt: new Date().toISOString().slice(0, 10) })
+					.where(
+						and(
+							eq(products.id, r.entityId),
+							eq(products.organizationId, ctx.orgId),
+						),
+					);
+			return extra;
+		}
+		// Neues Produkt / wesentliche Änderung (MaRisk AT 8)
+		case "change.request": {
+			if (approved || rejected)
+				return applyChangeDecision(tx, ctx, r.entityId, approved);
+			return extra;
+		}
 		case "provider.create": {
 			if (approved || rejected)
 				await tx

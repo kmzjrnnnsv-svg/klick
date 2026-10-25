@@ -132,7 +132,7 @@
 	margin: 16px 0 0;
 	padding: 0 0 0 56px;
 	list-style: none;
-	font-size: 14px;
+	font-size: 0.875rem;
 	line-height: 1.4;
 	color: var(--muted-foreground);
 }
@@ -240,7 +240,7 @@
 	border-radius: 16px;
 	background: var(--card);
 	color: var(--card-foreground);
-	font-size: 14px;
+	font-size: 0.875rem;
 	line-height: 1.45;
 }
 .sheetHead {
@@ -248,12 +248,12 @@
 }
 .sheetTitle {
 	font-weight: 600;
-	font-size: 16px;
+	font-size: var(--text-callout);
 }
 .sheetSub {
 	margin-top: 4px !important;
 	color: var(--muted-foreground);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 }
 .sheetSums {
 	display: grid;
@@ -268,12 +268,12 @@
 }
 .sheetSums dt {
 	color: var(--muted-foreground);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 }
 .sheetSums dd {
 	margin: 2px 0 0;
 	font-weight: 600;
-	font-size: 18px;
+	font-size: 1.125rem;
 	font-variant-numeric: tabular-nums;
 }
 .sheetTable {
@@ -286,7 +286,7 @@
 	border-bottom: 1px solid var(--border); /* taste-skill-ignore: data-ui bzw. verstecktes Radio */
 	color: var(--muted-foreground);
 	font-weight: 400;
-	font-size: 13px;
+	font-size: var(--text-footnote);
 	text-align: left;
 }
 .sheetTable td {
@@ -304,12 +304,12 @@
 .cellNote {
 	display: block;
 	color: var(--muted-foreground);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 }
 .sheetLabel {
 	margin-top: 14px !important;
 	color: var(--muted-foreground);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 }
 .sheetList {
 	margin: 2px 0 0;
@@ -332,7 +332,7 @@
 }
 .sigMeta {
 	color: var(--primary);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 	font-variant-numeric: tabular-nums;
 }
 .sheetAlert {
@@ -360,7 +360,7 @@
 .clockRule,
 .clockState {
 	color: var(--muted-foreground);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 }
 .clockDue {
 	text-align: right;
@@ -394,7 +394,7 @@
 .tourText {
 	max-width: 62ch;
 	margin-top: 16px;
-	font-size: 15px;
+	font-size: var(--text-subhead);
 	line-height: 1.5;
 	color: var(--muted-foreground);
 }
@@ -439,7 +439,7 @@
 	margin: 0;
 	padding-left: 18px;
 	list-style: disc;
-	font-size: 14px;
+	font-size: 0.875rem;
 	hyphens: auto;
 	overflow-wrap: break-word;
 }
@@ -535,21 +535,21 @@
 	border: 1px solid var(--border); /* taste-skill-ignore: data-ui bzw. verstecktes Radio */
 	background: var(--card);
 	color: var(--card-foreground);
-	font-size: 14px;
+	font-size: 0.875rem;
 	line-height: 1.45;
 }
 .fragTitle {
 	font-weight: 600;
-	font-size: 16px;
+	font-size: var(--text-callout);
 }
 .fragSub {
 	color: var(--muted-foreground);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 }
 .fragLabel {
 	margin-top: 16px !important;
 	color: var(--muted-foreground);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 }
 .fragStatus {
 	display: inline-block;
@@ -558,7 +558,7 @@
 	border-radius: 8px;
 	background: var(--primary-fill);
 	color: #fff;
-	font-size: 13px;
+	font-size: var(--text-footnote);
 }
 .fragList,
 .fragFiles {
@@ -606,7 +606,7 @@
 }
 .fragNote {
 	color: var(--muted-foreground);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 }
 .fragNum {
 	min-width: 2.5ch;
@@ -619,12 +619,12 @@
 .score {
 	margin-top: 14px !important;
 	font-weight: 600;
-	font-size: 36px;
+	font-size: 2.25rem;
 	font-variant-numeric: tabular-nums;
 }
 .score span {
 	font-weight: 400;
-	font-size: 14px;
+	font-size: 0.875rem;
 	color: var(--muted-foreground);
 }
 .bar {
@@ -681,7 +681,7 @@
 .groupLead {
 	margin-top: 4px !important;
 	color: var(--soft);
-	font-size: 15px;
+	font-size: var(--text-subhead);
 	line-height: 20px;
 }
 /* eingerückte gruppierte Liste: eine Fläche, Trennlinien ab dem Text */
@@ -749,7 +749,7 @@
 	min-width: 0;
 }
 .rowName {
-	font-size: 17px;
+	font-size: var(--text-body);
 	line-height: 22px;
 }
 .row[open] .rowName {
@@ -757,7 +757,7 @@
 }
 .rowWhere {
 	color: var(--soft);
-	font-size: 15px;
+	font-size: var(--text-subhead);
 	line-height: 20px;
 }
 .rowChevron {
@@ -775,7 +775,7 @@
 	flex-direction: column;
 	gap: 16px;
 	padding: 2px 16px 20px;
-	font-size: 15px;
+	font-size: var(--text-subhead);
 	line-height: 21px;
 }
 /* geschlossen: nicht nur unsichtbar, sondern ohne Box (Messwerkzeuge und
@@ -790,7 +790,7 @@
 }
 .rowLabel {
 	color: var(--soft);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 	line-height: 18px;
 	font-weight: 600;
 }
@@ -850,7 +850,7 @@
 	margin-top: 24px;
 	padding: 0 16px;
 	color: var(--soft);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 	line-height: 18px;
 }
 
@@ -1051,7 +1051,7 @@
 		font-size: 10vw;
 	}
 	.heroLead {
-		font-size: 16px;
+		font-size: var(--text-callout);
 	}
 	.stage {
 		grid-row: auto;
@@ -1165,7 +1165,7 @@
 		max-width: none;
 		padding: 0 0 16px 20px;
 		font-family: inherit;
-		font-size: 17px;
+		font-size: var(--text-body);
 	}
 	.faqItem:has(.radio:checked) .faqA {
 		display: block;

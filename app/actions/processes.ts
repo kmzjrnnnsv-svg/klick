@@ -20,6 +20,7 @@ import {
 	applicableProcesses,
 	raciValid,
 } from "@/lib/compliance/catalog/processes";
+import { ownerColumns } from "@/lib/compliance/function-holders-service";
 import { nextRiskCode } from "@/lib/compliance/risk";
 import { mutateOrg } from "@/lib/db/with-org";
 import { PROCESS_STATUS } from "@/lib/entities/process";
@@ -53,7 +54,7 @@ async function upsertProcessImpl(input: unknown): Promise<UpsertProcessResult> {
 				description: d.description ?? null,
 				category: d.category,
 				criticality: d.criticality,
-				ownerUserId: d.ownerUserId ?? null,
+				...(await ownerColumns(tx, c.orgId, d.ownerUserId, null)),
 				deputyUserId: d.deputyUserId ?? null,
 				assigneeUserId: d.assigneeUserId ?? null,
 				rtoHours: d.rtoHours ?? null,
@@ -122,7 +123,8 @@ async function upsertProcessImpl(input: unknown): Promise<UpsertProcessResult> {
 							criticality: d.criticality,
 							rtoHours: d.rtoHours ?? null,
 							rpoHours: d.rpoHours ?? null,
-							ownerUserId: d.ownerUserId ?? null,
+							ownerUserId: values.ownerUserId,
+							ownerFunction: values.ownerFunction,
 						},
 					},
 				};

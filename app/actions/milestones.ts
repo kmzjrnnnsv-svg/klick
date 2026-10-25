@@ -7,6 +7,7 @@ import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { buildRoadmap } from "@/lib/compliance/catalog/roadmap";
+import { ownerColumns } from "@/lib/compliance/function-holders-service";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
@@ -132,8 +133,14 @@ async function upsertMilestoneImpl(
 						description: d.description ?? before.description,
 						phase: d.phase === undefined ? before.phase : d.phase,
 						dueAt: d.dueAt === undefined ? before.dueAt : d.dueAt,
-						ownerUserId:
-							d.ownerUserId === undefined ? before.ownerUserId : d.ownerUserId,
+						...(d.ownerUserId === undefined
+							? {}
+							: await ownerColumns(
+									tx,
+									c.orgId,
+									d.ownerUserId,
+									before.ownerUserId,
+								)),
 						assigneeUserId:
 							d.assigneeUserId === undefined
 								? before.assigneeUserId
@@ -150,7 +157,12 @@ async function upsertMilestoneImpl(
 						description: d.description ?? null,
 						phase: d.phase ?? null,
 						dueAt: d.dueAt ?? null,
-						ownerUserId: d.ownerUserId ?? c.userId,
+						...(await ownerColumns(
+							tx,
+							c.orgId,
+							d.ownerUserId ?? undefined,
+							c.userId,
+						)),
 						assigneeUserId: d.assigneeUserId ?? null,
 						sortOrder: 9999,
 					})

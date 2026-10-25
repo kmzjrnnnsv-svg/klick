@@ -2,18 +2,14 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import {
-	cryptoAssets,
-	ownFundsCalculations,
-	roleAssignments,
-	shareholders,
-} from "@/db/schema";
+import { cryptoAssets, ownFundsCalculations, shareholders } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { CRYPTO_ASSETS } from "@/lib/compliance/catalog/crypto-assets";
+import { functionRecipients } from "@/lib/compliance/function-holders-service";
 import {
 	calculateOwnFunds,
 	type MicarClass,
@@ -517,19 +513,9 @@ async function upsertShareholderImpl(
 			d.inhaberkontrolleStatus === "not_required" &&
 			(!before || before.thresholdCrossed !== threshold)
 		) {
-			const [comp] = await tx
-				.select({ userId: roleAssignments.userId })
-				.from(roleAssignments)
-				.where(
-					and(
-						eq(roleAssignments.organizationId, c.orgId),
-						eq(roleAssignments.function, "compliance"),
-					),
-				)
-				.limit(1);
 			await notify(tx, {
 				orgId: c.orgId,
-				recipients: [comp?.userId],
+				recipients: await functionRecipients(tx, c.orgId, "compliance"),
 				actorUserId: c.userId,
 				kind: "entity_changed",
 				title: `Inhaberkontrolle: ${d.name} ≥ ${threshold} %`,

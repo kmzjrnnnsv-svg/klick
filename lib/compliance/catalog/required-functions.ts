@@ -188,27 +188,33 @@ export type FunctionCoverage = {
 	documentsExpired: boolean;
 };
 
-// Abgleich Pflichtfunktionen × Besetzung → Gaps.
+// Abgleich Pflichtfunktionen × Besetzung → Gaps. Eine Funktion kann mehrere
+// Inhaber:innen haben (z. B. zwei Geschäftsführer:innen): besetzt, sobald
+// eine sie hält; Vertretung und Nachweis zählen von irgendeiner Zeile,
+// abgelaufene Unterlagen bei irgendeiner Person.
 export function roleCoverage(
 	required: readonly RequiredFunction[],
 	assignments: readonly FunctionAssignment[],
 	now = new Date(),
 ): { items: FunctionCoverage[]; gaps: FunctionCoverage[] } {
 	const items = required.map((req) => {
-		const a = assignments.find((x) => x.function === req.function);
-		const filled = Boolean(a && (a.userId || a.externalName));
-		const hasDeputy = Boolean(a?.deputyUserId);
-		const until = a?.documentsValidUntil
-			? new Date(a.documentsValidUntil)
-			: null;
+		const rows = assignments.filter((x) => x.function === req.function);
+		const held = rows.filter((a) => a.userId || a.externalName);
+		const filled = held.length > 0;
+		const hasDeputy = rows.some((a) => a.deputyUserId);
+		const first = held[0];
 		return {
 			required: req,
 			filled,
-			holder: a?.userId ?? a?.externalName ?? null,
+			holder: first?.userId ?? first?.externalName ?? null,
 			hasDeputy,
 			deputyMissing: Boolean(req.deputyRequired) && filled && !hasDeputy,
-			hasEvidence: Boolean(a?.evidenceId),
-			documentsExpired: Boolean(until && until.getTime() < now.getTime()),
+			hasEvidence: rows.some((a) => a.evidenceId),
+			documentsExpired: held.some(
+				(a) =>
+					a.documentsValidUntil &&
+					new Date(a.documentsValidUntil).getTime() < now.getTime(),
+			),
 		};
 	});
 	return { items, gaps: items.filter((i) => !i.filled) };

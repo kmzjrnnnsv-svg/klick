@@ -4,7 +4,6 @@ import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	completeReview,
 	saveReviewInputs,
@@ -16,11 +15,13 @@ import {
 	Field,
 	FormDialog,
 	NewTrigger,
+	ResponsibleField,
 	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -31,6 +32,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { ReviewInput } from "@/lib/compliance/catalog/management-review-inputs";
 
 export type ReviewDraft = {
@@ -78,7 +80,7 @@ export function ReviewForm({
 						summary: d.summary ?? undefined,
 						decisions: d.decisions ?? undefined,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("saved"));
 					setOpen(false);
 					router.refresh();
@@ -94,7 +96,7 @@ export function ReviewForm({
 					onChange={(v) => setD({ ...d, heldAt: v })}
 					required
 				/>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -102,7 +104,7 @@ export function ReviewForm({
 				/>
 			</div>
 			<fieldset className="flex flex-wrap gap-3 text-subhead">
-				<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+				<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 					{t("attendees")}
 				</legend>
 				{members.map((m) => (
@@ -160,7 +162,7 @@ export function ReviewInputsChecklist({
 		setState(next);
 		start(async () => {
 			const res = await saveReviewInputs({ reviewId, inputs: next });
-			if (!res.ok) toast.error(tc("error"));
+			if (!res.ok) toast.error(errorText(tc, res));
 			else router.refresh();
 		});
 	};
@@ -169,7 +171,7 @@ export function ReviewInputsChecklist({
 			<p className="text-muted-foreground text-footnote">
 				{t("inputsProgress", { done, total: inputs.length })}
 			</p>
-			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+			<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 				{inputs.map((i) => {
 					const v = state[i.key] ?? { done: false };
 					return (
@@ -413,7 +415,7 @@ export function CompleteReviewForm({
 										? t("inputsIncomplete")
 										: res.error === "forbidden"
 											? t("forbiddenKind")
-											: tc("error"),
+											: errorText(tc, res),
 								);
 							toast.success(
 								t("statusSaved", {

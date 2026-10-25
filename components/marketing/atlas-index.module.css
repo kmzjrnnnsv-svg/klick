@@ -10,7 +10,7 @@
 	margin: 0 0 6px !important;
 	padding: 0 12px;
 	color: var(--muted-foreground);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 	line-height: 18px;
 	font-weight: 600;
 }
@@ -30,7 +30,7 @@
 	padding: 0 12px;
 	border-radius: 10px;
 	color: var(--foreground);
-	font-size: 15px;
+	font-size: var(--text-subhead);
 	line-height: 20px;
 	text-decoration: none;
 	transition:
@@ -58,7 +58,7 @@
 }
 .count {
 	color: var(--muted-foreground);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 	font-weight: 400;
 	font-variant-numeric: tabular-nums;
 }

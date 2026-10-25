@@ -1,0 +1,2 @@
+ALTER TABLE "role_assignments" ADD COLUMN "proposed_by_user_id" uuid;--> statement-breakpoint
+ALTER TABLE "role_assignments" ADD CONSTRAINT "role_assignments_proposed_by_user_id_user_id_fk" FOREIGN KEY ("proposed_by_user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;

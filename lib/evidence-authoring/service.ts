@@ -11,6 +11,7 @@ import {
 import type { ControlSheetState, RoleFunction } from "@/db/schema/enums";
 import type { AuditInput } from "@/lib/audit";
 import { getOrgSummary } from "@/lib/auth/org";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { EDGES_BY_CONTROL } from "@/lib/compliance/catalog";
 import { insertControlTest } from "@/lib/compliance/control-test-service";
 import { getOrgProfile, userNames } from "@/lib/compliance/queries";
@@ -494,6 +495,7 @@ export async function authoredSignState(
 			.where(
 				and(
 					eq(roleAssignments.organizationId, orgId),
+					effectiveAssignment(),
 					eq(roleAssignments.userId, userId),
 				),
 			),

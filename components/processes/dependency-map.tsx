@@ -62,7 +62,7 @@ export function DependencyMap({
 							<p className="mt-1 font-medium">{n.name}</p>
 						</div>
 						<div className="min-w-0 border-border/60 md:border-l md:pl-3">
-							<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+							<p className="font-medium text-footnote mb-1 text-muted-foreground">
 								{labels.assets}
 							</p>
 							{n.assets.length === 0 ? (
@@ -85,7 +85,7 @@ export function DependencyMap({
 							)}
 						</div>
 						<div className="min-w-0 border-border/60 md:border-l md:pl-3">
-							<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+							<p className="font-medium text-footnote mb-1 text-muted-foreground">
 								{labels.providers}
 							</p>
 							{n.providers.length === 0 ? (

@@ -20,6 +20,7 @@ import {
 	toOrgCtx,
 } from "@/lib/auth/guards";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
+import type { WorkflowEnabledByDuty } from "@/lib/compliance/catalog/approval-duties";
 import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
 import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import {
@@ -39,9 +40,13 @@ import {
 
 // Rahmenwerk nachträglich hinzufügen: org_frameworks + Re-Initialisierung des
 // Arbeitsvorrats (Anwendbarkeit, Controls). Einstellungen → Step-up.
-async function addFrameworksImpl(
-	input: unknown,
-): Promise<ActionResult<{ added: string[]; controlsCreated: number }>> {
+async function addFrameworksImpl(input: unknown): Promise<
+	ActionResult<{
+		added: string[];
+		controlsCreated: number;
+		workflowsEnabled: WorkflowEnabledByDuty[];
+	}>
+> {
 	const guarded = await stepUpOrFail();
 	if (!guarded.ok) return guarded;
 	const c = guarded.ctx;
@@ -67,8 +72,16 @@ async function addFrameworksImpl(
 			issuesTokens: p.profile.issuesTokens,
 			productRoles: p.profile.productRoles,
 		});
+		// Pflicht-Freigaben der neuen Rahmenwerke einschalten
+		const wf = await ensureOrgWorkflows(tx, c.orgId, p.profile.licenceStage, {
+			frameworks: all,
+		});
 		return {
-			result: { added, controlsCreated: init.controlsCreated },
+			result: {
+				added,
+				controlsCreated: init.controlsCreated,
+				workflowsEnabled: wf.enabled,
+			},
 			audit: {
 				action: "org.frameworks_added",
 				target: `organization:${c.orgId}`,
@@ -315,9 +328,13 @@ const licenceProfileSchema = z.object({
 
 // Lizenzstufe und Krypto-Dienste ändern: Anwendbarkeit und Arbeitsvorrat
 // werden neu abgeleitet, stufenabhängige Workflows angelegt. Step-up.
-async function updateLicenceProfileImpl(
-	input: unknown,
-): Promise<ActionResult<{ controlsCreated: number; notApplicable: number }>> {
+async function updateLicenceProfileImpl(input: unknown): Promise<
+	ActionResult<{
+		controlsCreated: number;
+		notApplicable: number;
+		workflowsEnabled: WorkflowEnabledByDuty[];
+	}>
+> {
 	const guarded = await stepUpOrFail();
 	if (!guarded.ok) return guarded;
 	const c = guarded.ctx;
@@ -343,11 +360,14 @@ async function updateLicenceProfileImpl(
 			issuesTokens: p.profile.issuesTokens,
 			productRoles: p.profile.productRoles,
 		});
-		await ensureOrgWorkflows(tx, c.orgId, d.licenceStage);
+		const wf = await ensureOrgWorkflows(tx, c.orgId, d.licenceStage, {
+			frameworks: p.frameworks,
+		});
 		return {
 			result: {
 				controlsCreated: init.controlsCreated,
 				notApplicable: init.notApplicable,
+				workflowsEnabled: wf.enabled,
 			},
 			audit: {
 				action: "org.stage_changed",

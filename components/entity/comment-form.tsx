@@ -3,10 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { addComment } from "@/app/actions/comments";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { EntityKind } from "@/db/schema/enums";
 
 export function CommentForm({
@@ -36,7 +37,7 @@ export function CommentForm({
 						link,
 					);
 					if (!res.ok) {
-						toast.error(tc("error"));
+						toast.error(errorText(tc, res));
 						return;
 					}
 					setBody("");

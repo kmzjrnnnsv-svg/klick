@@ -3,9 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 import { verifyStepUp } from "@/app/actions/security";
 import { Button } from "@/components/ui/button";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/client";
@@ -46,16 +46,19 @@ export function TwoFactorForm({
 	const [code, setCode] = useState("");
 	const [useBackup, setUseBackup] = useState(false);
 	const [busy, setBusy] = useState(false);
+	// Fehler am Feld statt im Toast (gesperrt bzw. falscher Code)
+	const [error, setError] = useState<string | null>(null);
 	const [downloading, setDownloading] = useState(false);
 
 	async function submit(e: React.FormEvent) {
 		e.preventDefault();
 		setBusy(true);
+		setError(null);
 		try {
 			if (stepUp) {
 				const res = await verifyStepUp(code.trim());
 				if (!res.ok) {
-					toast.error(res.error === "locked" ? t("locked") : t("invalidCode"));
+					setError(res.error === "locked" ? t("locked") : t("invalidCode"));
 					return;
 				}
 			} else {
@@ -73,7 +76,7 @@ export function TwoFactorForm({
 						return;
 					}
 					const msg = res.error.message ?? "";
-					toast.error(/lock/i.test(msg) ? t("locked") : t("invalidCode"));
+					setError(/lock/i.test(msg) ? t("locked") : t("invalidCode"));
 					return;
 				}
 			}
@@ -139,9 +142,11 @@ export function TwoFactorForm({
 							required
 							value={code}
 							onChange={(e) => setCode(e.target.value)}
-							className="font-mono text-lg"
+							aria-invalid={error ? true : undefined}
+							className="font-mono text-title-3"
 						/>
 					</div>
+					<FormAlert message={error} />
 					<Button
 						type="submit"
 						variant={passkey ? "outline" : "default"}

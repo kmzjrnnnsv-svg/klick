@@ -3,9 +3,10 @@
 import { useTranslations } from "next-intl";
 import type * as React from "react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { ensureExportStepUp } from "@/app/actions/security";
 import { withStepUp } from "@/components/auth/step-up-dialog";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 import type { ActionResult } from "@/lib/validation/common";
 
 // Download einer Export-Route mit Step-up-Pflicht (ZIP-Pakete): erst den
@@ -42,7 +43,8 @@ export function ExportLink({
 				try {
 					const res = await withStepUp(() => ensure());
 					if (res.ok) window.location.assign(href);
-					else if (res.error !== "step_up_required") toast.error(tc("error"));
+					else if (res.error !== "step_up_required")
+						toast.error(errorText(tc, res));
 				} finally {
 					setBusy(false);
 				}

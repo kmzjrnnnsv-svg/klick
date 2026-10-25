@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { ensureEvidenceStepUp } from "@/app/actions/evidence";
 import { DeleteEvidenceButton } from "@/components/entity/evidence-delete";
 import { ExportLink } from "@/components/entity/export-link";
+import { ResponsibleEditor } from "@/components/entity/responsible-editor";
 import { UserChip } from "@/components/entity/user-chip";
 import { NewVersionButton } from "@/components/evidence-authoring/start-draft";
 import { MarkdownView } from "@/components/markdown-view";
@@ -16,8 +17,9 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
+import { ownRoleIdOf } from "@/lib/compliance/function-key";
 import { fmtDate } from "@/lib/compliance/page-data";
-import { evidenceDetail } from "@/lib/compliance/queries";
+import { evidenceDetail, listMembersForPicker } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
 import { isDbStorageKey } from "@/lib/evidence/aad";
 import { s3Configured } from "@/lib/evidence/store";
@@ -31,6 +33,7 @@ import { functionLabel } from "@/lib/evidence-studio/generate/doc";
 import { evidenceSignState } from "@/lib/evidence-studio/generate/service";
 import { berlinToday } from "@/lib/evidence-studio/queries";
 import { renderBlocksMarkdown } from "@/lib/export/doc-model";
+import { orgRoleNames } from "@/lib/org/roles";
 
 const fmtSize = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
 const size = (bytes: number) =>
@@ -54,12 +57,15 @@ export default async function EvidenceDetailPage({
 	const ta = await getTranslations("Authoring");
 	const ts = await getTranslations("Signatures");
 	const tf = await getTranslations("Functions");
+	const te = await getTranslations("Entity");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const detail = await evidenceDetail(tx, ctx.orgId, id);
 		if (!detail) return null;
 		const { row } = detail;
 		return {
 			...detail,
+			members: await listMembersForPicker(tx, ctx.orgId),
+			roleNames: await orgRoleNames(tx, ctx.orgId),
 			authored: row.templateKey
 				? await authoredContentOf(tx, ctx.orgId, row.id)
 				: null,
@@ -77,13 +83,16 @@ export default async function EvidenceDetailPage({
 		};
 	});
 	if (!data) notFound();
-	const { row, authored, sign } = data;
+	const { row, authored, sign, roleNames } = data;
+	// eigene Rolle (`role:<id>`, ADR-024) mit Namen
 	const fnLabel = (f: string) =>
 		f === "-"
 			? ta("authorSlot")
-			: tf.has(f as "other")
-				? tf(f as "other")
-				: functionLabel(f);
+			: ownRoleIdOf(f)
+				? (roleNames[ownRoleIdOf(f) as string] ?? f)
+				: tf.has(f as "other")
+					? tf(f as "other")
+					: functionLabel(f);
 	const canCreate = allows(ctx, { evidence: ["create"] });
 	// S3-Objekt ohne eingerichteten Objektspeicher ist nicht abrufbar
 	const fileReadable =
@@ -244,6 +253,18 @@ export default async function EvidenceDetailPage({
 								</dd>
 							</>
 						)}
+						<dt className="text-muted-foreground">{te("owner")}</dt>
+						<dd>
+							<ResponsibleEditor
+								entity="evidence"
+								id={row.id}
+								ownerUserId={row.ownerUserId}
+								ownerFunction={row.ownerFunction}
+								ownerName={data.ownerName}
+								members={data.members}
+								canEdit={canCreate}
+							/>
+						</dd>
 						<dt className="text-muted-foreground">{t("createdAt")}</dt>
 						<dd className="flex flex-wrap items-center gap-2">
 							{fmtDate.format(row.createdAt)}

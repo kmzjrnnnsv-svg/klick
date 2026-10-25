@@ -1,0 +1,1 @@
+ALTER TABLE "org_settings" ADD COLUMN "approval_duties" jsonb DEFAULT '{}'::jsonb NOT NULL;

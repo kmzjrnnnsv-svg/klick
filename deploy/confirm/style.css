@@ -1,33 +1,46 @@
 /* both.money · Bestätigungsseite — ohne Schriften von außen, ohne Skript-Stile */
 
 :root {
-	--bg: #eef1f4;
+	/* Farben wie die Apps (styles/tokens.css, Apple HIG): systemgrauer Grund,
+	   weiße Karte, Akzentblau in der AA-Variante */
+	--bg: #f2f2f7;
 	--card: #ffffff;
-	--ink: #1d1c1a;
-	--muted: #5c5a55;
-	--line: #d5dbe2;
-	--primary: #1f3a5f;
+	--ink: #000000;
+	--muted: #636366;
+	--line: #c6c6c8;
+	--primary: #0a63d6;
+	--primary-fill: #0a63d6;
 	--primary-ink: #ffffff;
-	--warn-bg: #fff4d6;
-	--warn-ink: #5a4100;
-	--live: #9b1c1c;
-	--focus: #2d6cdf;
+	--warn-bg: #fff4e5;
+	--warn-ink: #7a3a00;
+	--live: #d70015;
+	--focus: #0a63d6;
 	color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--bg: #141414;
-		--card: #1d1d1c;
-		--ink: #f1efe9;
-		--muted: #b3afa6;
-		--line: #3a3936;
-		--primary: #9cc0f0;
-		--primary-ink: #0f1a2a;
-		--warn-bg: #3a2f10;
-		--warn-ink: #f6e2a8;
-		--live: #ff8a8a;
-		--focus: #8db6ff;
+		--bg: #000000;
+		--card: #1c1c1e;
+		--ink: #ffffff;
+		--muted: #a1a1a8;
+		--line: #38383a;
+		--primary: #409cff;
+		--primary-fill: #0a63d6;
+		--primary-ink: #ffffff;
+		--warn-bg: #3a2a0f;
+		--warn-ink: #ffd8a1;
+		--live: #ff6961;
+		--focus: #409cff;
+	}
+}
+
+@media (prefers-contrast: more) {
+	:root {
+		--muted: #3c3c43;
+		--line: #8e8e93;
+		--primary: #0b5fd0;
+		--primary-fill: #0b5fd0;
 	}
 }
 
@@ -44,7 +57,9 @@ body {
 	min-height: 100vh;
 	background: var(--bg);
 	color: var(--ink);
-	font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	font: 17px/1.4 -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto,
+		sans-serif;
+	-webkit-font-smoothing: antialiased;
 	padding: 24px 16px 48px;
 }
 
@@ -52,22 +67,22 @@ body {
 	max-width: 640px;
 	margin: 0 auto;
 	background: var(--card);
-	border: 1px solid var(--line);
-	border-radius: 12px;
+	border-radius: 16px;
 	padding: 24px;
 }
 
 .brand {
 	margin: 0 0 8px;
 	color: var(--muted);
-	font-size: 14px;
-	letter-spacing: 0.02em;
+	font-size: 15px;
+	font-weight: 600;
 }
 
 h1 {
 	margin: 0 0 8px;
-	font-size: 26px;
-	line-height: 1.2;
+	font-size: 28px;
+	line-height: 34px;
+	font-weight: 700;
 	text-wrap: balance;
 }
 
@@ -79,7 +94,7 @@ h1 {
 .banner {
 	margin: 0 0 16px;
 	padding: 12px 14px;
-	border-radius: 8px;
+	border-radius: 12px;
 	background: var(--warn-bg);
 	color: var(--warn-ink);
 }
@@ -93,7 +108,7 @@ h1 {
 
 .facts dt {
 	color: var(--muted);
-	font-size: 14px;
+	font-size: 15px;
 }
 
 .facts dd {
@@ -140,11 +155,11 @@ pre {
 
 button.primary {
 	appearance: none;
-	min-height: 48px;
-	padding: 12px 20px;
+	min-height: 50px;
+	padding: 12px 24px;
 	border: 0;
-	border-radius: 8px;
-	background: var(--primary);
+	border-radius: 999px;
+	background: var(--primary-fill);
 	color: var(--primary-ink);
 	font: inherit;
 	font-weight: 600;
@@ -182,6 +197,8 @@ details {
 summary {
 	cursor: pointer;
 	color: var(--muted);
+	/* Tippfläche 44 px */
+	padding: 10px 0;
 }
 
 pre {
@@ -201,7 +218,8 @@ pre {
 	max-width: 640px;
 	margin: 16px auto 0;
 	color: var(--muted);
-	font-size: 14px;
+	font-size: 13px;
+	line-height: 18px;
 }
 
 @media (max-width: 480px) {

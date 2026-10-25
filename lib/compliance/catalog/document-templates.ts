@@ -4,6 +4,10 @@ import type { DOCUMENT_TYPES } from "@/db/schema/grc";
 // Pläne — je mit Control-Vorverknüpfung (deckt damit quer alle gewählten
 // Rahmenwerke ab). `isoMandatory` = Pflichtdokument der ISO 27001 (P).
 // Inhalt ist ein Gerüst (Markdown mit Platzhaltern), kein Rechtsrat.
+// approverFunction = wer nach der Eigner:in freigibt (Ablauf
+// document_publish): Richtlinien und Notfallpläne die Geschäftsleitung
+// (ISO 27001 5.2/A.5.1), Verfahren, Konzepte und Anweisungen die zuständige
+// Fachfunktion (Test document-templates-approver).
 
 export type DocumentTemplate = {
 	code: string;
@@ -24,6 +28,14 @@ export type DocumentTemplate = {
 	frameworks: string[];
 	body: string;
 };
+
+// Eigene Dokumente ohne Vorlage: Richtlinien gibt die Geschäftsleitung
+// frei, alles andere nur die Eigner:in (änderbar am Dokument)
+export function defaultApproverFunction(
+	type: (typeof DOCUMENT_TYPES)[number],
+): DocumentTemplate["approverFunction"] | null {
+	return type === "policy" ? "management_body" : null;
+}
 
 const skeleton = (title: string, purpose: string, sections: string[]): string =>
 	[
@@ -153,9 +165,9 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		frameworks: ["iso27001", "dora"],
 		body: skeleton(
 			"Risikobehandlungsplan",
-			"Massnahmen, Verantwortliche und Termine zur Behandlung der identifizierten Risiken.",
+			"Maßnahmen, Verantwortliche und Termine zur Behandlung der identifizierten Risiken.",
 			[
-				"Priorisierte Massnahmen",
+				"Priorisierte Maßnahmen",
 				"Verantwortliche und Termine",
 				"Restrisiko und Akzeptanz",
 			],
@@ -231,7 +243,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Zugangs- und Berechtigungsrichtlinie",
 		type: "policy",
 		domain: "access",
-		approverFunction: "isb_ciso",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: [
@@ -294,7 +306,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Schwachstellen- und Patchmanagement",
 		type: "policy",
 		domain: "operations",
-		approverFunction: "isb_ciso",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-OPS-03", "CC-DEV-05"],
@@ -321,7 +333,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Netzsicherheitsrichtlinie",
 		type: "policy",
 		domain: "network",
-		approverFunction: "isb_ciso",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-NET-01", "CC-NET-02", "CC-NET-03"],
@@ -343,7 +355,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Änderungsmanagement",
 		type: "policy",
 		domain: "development",
-		approverFunction: "ict_risk_function",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-DEV-06", "CC-GOV-12"],
@@ -366,7 +378,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Richtlinie sichere Entwicklung",
 		type: "policy",
 		domain: "development",
-		approverFunction: "isb_ciso",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-DEV-01", "CC-DEV-02", "CC-DEV-03", "CC-DEV-04", "CC-DEV-07"],
@@ -416,7 +428,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Endgeräte- und Mobilgeräterichtlinie",
 		type: "policy",
 		domain: "operations",
-		approverFunction: "isb_ciso",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-OPS-01", "CC-OPS-02", "CC-OPS-06", "CC-PHY-04"],
@@ -438,7 +450,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Asset-Management und Klassifizierung",
 		type: "policy",
 		domain: "asset",
-		approverFunction: "isb_ciso",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-AST-01", "CC-AST-02", "CC-AST-03", "CC-AST-07"],
@@ -550,7 +562,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Vorfall- und Melderichtlinie",
 		type: "policy",
 		domain: "incident",
-		approverFunction: "isb_ciso",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: [
@@ -631,7 +643,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Notfall- und Wiederanlaufplan",
 		type: "plan",
 		domain: "continuity",
-		approverFunction: "isb_ciso",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-BCM-01", "CC-BCM-03", "CC-BCM-04"],
@@ -726,7 +738,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Physische Sicherheit",
 		type: "policy",
 		domain: "physical",
-		approverFunction: "isb_ciso",
+		approverFunction: "management_body",
 		reviewCycleMonths: 24,
 		isoMandatory: false,
 		controls: ["CC-PHY-01", "CC-PHY-02", "CC-PHY-03", "CC-PHY-05"],
@@ -798,7 +810,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 			"Managementbewertung",
 			"Inputs, Bewertung und Beschlüsse der obersten Leitung.",
 			[
-				"Status früherer Massnahmen",
+				"Status früherer Maßnahmen",
 				"Kontextänderungen",
 				"Leistung (KPIs, Audits, Vorfälle)",
 				"Risiken und Chancen",
@@ -820,7 +832,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		body: skeleton(
 			"Verfahren Abweichungen und Korrekturmassnahmen",
 			"Erfassung, Ursachenanalyse, Korrektur, Wirksamkeitsprüfung.",
-			["Quellen", "Ursachenanalyse", "Massnahmen", "Wirksamkeitsprüfung"],
+			["Quellen", "Ursachenanalyse", "Maßnahmen", "Wirksamkeitsprüfung"],
 		),
 	},
 	{
@@ -845,7 +857,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Datenschutzrichtlinie",
 		type: "policy",
 		domain: "compliance",
-		approverFunction: "dpo",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-CMP-01"],
@@ -1013,7 +1025,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Beschwerderichtlinie",
 		type: "policy",
 		domain: "conduct",
-		approverFunction: "compliance",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-CND-05"],
@@ -1036,7 +1048,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Richtlinie Interessenkonflikte",
 		type: "policy",
 		domain: "conduct",
-		approverFunction: "compliance",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-CND-06"],
@@ -1185,7 +1197,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Sanktions- und Länderrichtlinie",
 		type: "policy",
 		domain: "aml",
-		approverFunction: "aml_officer",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-SAN-01", "CC-SAN-02"],
@@ -1208,7 +1220,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Travel-Rule-Richtlinie",
 		type: "policy",
 		domain: "payments",
-		approverFunction: "aml_officer",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-TR-01", "CC-TR-02", "CC-TR-03"],
@@ -1236,7 +1248,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Richtlinie Marketing und Kundeninformation",
 		type: "policy",
 		domain: "conduct",
-		approverFunction: "compliance",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-CND-01", "CC-CND-02"],
@@ -1332,7 +1344,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		title: "Richtlinie koordinierte Offenlegung von Schwachstellen",
 		type: "policy",
 		domain: "development",
-		approverFunction: "isb_ciso",
+		approverFunction: "management_body",
 		reviewCycleMonths: 12,
 		isoMandatory: false,
 		controls: ["CC-PRD-02", "CC-OPS-03"],

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { longText, shortText, uuid } from "./common";
+import { responsibleRef } from "./responsible";
 
 // Datenschutz (P5): Verarbeitungsverzeichnis, Betroffenenanfragen,
 // Versicherungen (Organisation).
@@ -20,7 +21,7 @@ export const processingActivitySchema = z.object({
 	legalBasis: z.string().trim().max(200).nullable().optional(),
 	dsfaRequired: z.boolean().default(false),
 	dsfaEvidenceId: uuid.nullable().optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 });
 
 export const DSR_TYPES = [
@@ -44,7 +45,7 @@ export const dataSubjectRequestSchema = z.object({
 	type: z.enum(DSR_TYPES),
 	// feldverschlüsselt — Pseudonym/Ticketnummer, keine Klarnamen
 	subjectRef: z.string().trim().max(400).nullable().optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 });
 
 export const dsrTransitionSchema = z.object({
@@ -78,7 +79,7 @@ export const insurancePolicySchema = z.object({
 	validFrom: optionalDate,
 	validUntil: optionalDate,
 	premium: z.coerce.number().min(0).max(1e13).nullable().optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 });
 
 export function parseSubLimits(

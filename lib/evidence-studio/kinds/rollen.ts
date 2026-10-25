@@ -1,5 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { roleAssignments } from "@/db/schema";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import {
 	requiredFunctions,
 	roleCoverage,
@@ -97,7 +98,9 @@ export const rollen = generator<RollenFacts>({
 					fitProperStatus: roleAssignments.fitProperStatus,
 				})
 				.from(roleAssignments)
-				.where(eq(roleAssignments.organizationId, orgId))
+				.where(
+					and(eq(roleAssignments.organizationId, orgId), effectiveAssignment()),
+				)
 				.orderBy(roleAssignments.function),
 			getOrgProfile(tx, orgId),
 		]);

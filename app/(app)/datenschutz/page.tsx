@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { deleteProcessingActivity } from "@/app/actions/privacy";
 import { EmptyState } from "@/components/entity/empty-state";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { DeleteRowButton } from "@/components/organisation/governance-forms";
@@ -39,6 +40,7 @@ import {
 } from "@/lib/compliance/queries-p5";
 import { decryptMany, fieldAad } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -234,7 +236,10 @@ export default async function PrivacyPage({
 											)}
 										</TableCell>
 										<TableCell>
-											<UserChip name={a.ownerName} />
+											<OwnerChip
+												ownerFunction={a.ownerFunction}
+												name={a.ownerName}
+											/>
 										</TableCell>
 										<TableCell>
 											{canEdit && (
@@ -256,7 +261,7 @@ export default async function PrivacyPage({
 															legalBasis: a.legalBasis,
 															dsfaRequired: a.dsfaRequired,
 															dsfaEvidenceId: a.dsfaEvidenceId,
-															ownerUserId: a.ownerUserId,
+															ownerUserId: responsibleValue(a),
 														}}
 													/>
 													<DeleteRowButton
@@ -285,7 +290,7 @@ export default async function PrivacyPage({
 							requiredBy={t("requiredByDsfa")}
 						/>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{dsfa.map((a) => (
 								<li
 									key={a.id}
@@ -401,7 +406,10 @@ export default async function PrivacyPage({
 												</p>
 											</TableCell>
 											<TableCell>
-												<UserChip name={r.ownerName} />
+												<OwnerChip
+													ownerFunction={r.ownerFunction}
+													name={r.ownerName}
+												/>
 											</TableCell>
 											<TableCell>
 												<div className="flex flex-wrap items-center gap-1">
@@ -434,7 +442,7 @@ export default async function PrivacyPage({
 																		.slice(0, 16),
 																	type: r.type,
 																	subjectRef: data.refs[i] ?? "",
-																	ownerUserId: r.ownerUserId,
+																	ownerUserId: responsibleValue(r),
 																}}
 															/>
 														</>

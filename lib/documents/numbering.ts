@@ -17,6 +17,7 @@ export const DEFAULT_PREFIXES: Record<DocType, string> = {
 	report: "BE",
 	contract: "VT",
 	form: "FO",
+	marketing: "MK",
 };
 
 export function nextDocNumber(

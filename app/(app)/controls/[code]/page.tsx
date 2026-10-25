@@ -30,6 +30,7 @@ import {
 	EDGES_BY_CONTROL,
 	REQUIREMENT_BY_KEY,
 } from "@/lib/compliance/catalog";
+import { responsibleOptions } from "@/lib/compliance/function-holders-service";
 import { moduleEvidenceFor } from "@/lib/compliance/module-evidence";
 import {
 	fmtDate,
@@ -67,6 +68,7 @@ export default async function ControlDetailPage({
 	const control = CONTROL_BY_CODE.get(code);
 	if (!control) notFound();
 	const t = await getTranslations("Controls");
+	const tNav = await getTranslations("Nav");
 	const ta = await getTranslations("Authoring");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
@@ -76,19 +78,28 @@ export default async function ControlDetailPage({
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const row = await getControlRowByCode(tx, ctx.orgId, code);
 		if (!row) return null;
-		const [evidence, tasks, comments, history, watcherIds, members, tests] =
-			await Promise.all([
-				listEvidenceForImplementation(tx, ctx.orgId, row.implementationId),
-				listTasks(tx, ctx.orgId, {
-					entityType: "control",
-					entityId: row.implementationId,
-				}),
-				listComments(tx, ctx.orgId, "control", row.implementationId),
-				historyFor(tx, `control:${row.implementationId}`),
-				listWatcherIds(tx, ctx.orgId, "control", row.implementationId),
-				listMembersForPicker(tx, ctx.orgId),
-				listControlTests(tx, ctx.orgId, row.implementationId),
-			]);
+		const [
+			evidence,
+			tasks,
+			comments,
+			history,
+			watcherIds,
+			members,
+			tests,
+			functions,
+		] = await Promise.all([
+			listEvidenceForImplementation(tx, ctx.orgId, row.implementationId),
+			listTasks(tx, ctx.orgId, {
+				entityType: "control",
+				entityId: row.implementationId,
+			}),
+			listComments(tx, ctx.orgId, "control", row.implementationId),
+			historyFor(tx, `control:${row.implementationId}`),
+			listWatcherIds(tx, ctx.orgId, "control", row.implementationId),
+			listMembersForPicker(tx, ctx.orgId),
+			listControlTests(tx, ctx.orgId, row.implementationId),
+			responsibleOptions(tx, ctx.orgId),
+		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
@@ -103,6 +114,7 @@ export default async function ControlDetailPage({
 			members,
 			tests,
 			names,
+			functions,
 		};
 	});
 	if (!data) notFound();
@@ -115,6 +127,7 @@ export default async function ControlDetailPage({
 		watcherIds,
 		members,
 		tests,
+		functions,
 		names,
 	} = data;
 	const cov = await getOrgCoverageCached(ctx);
@@ -173,6 +186,7 @@ export default async function ControlDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/controls", label: tNav("controls") }}
 			eyebrow={`${control.code} · ${t(`domain_${control.domain}`)}`}
 			title={control.title}
 			subtitle={control.description}
@@ -201,8 +215,10 @@ export default async function ControlDetailPage({
 					<OwnerAssignee
 						implementationId={row.implementationId}
 						ownerUserId={row.ownerUserId}
+						ownerFunction={row.ownerFunction}
 						assigneeUserId={row.assigneeUserId}
 						members={members}
+						functions={functions}
 						canAssign={allows(ctx, { control: ["assign"] })}
 					/>
 					<MetaItem label={t("effort")}>
@@ -299,7 +315,7 @@ export default async function ControlDetailPage({
 					<p className="mb-2 text-muted-foreground text-footnote">
 						{t("moduleEvidenceLead")}
 					</p>
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{moduleEv.facts.map((f) => (
 							<li
 								key={f.label}
@@ -343,7 +359,7 @@ export default async function ControlDetailPage({
 				<p className="text-muted-foreground text-subhead">
 					{t("satisfiesLead")}
 				</p>
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 					{edges.map(({ edge, req, status, active }) => (
 						<li
 							key={edge.requirement}
@@ -418,7 +434,7 @@ export default async function ControlDetailPage({
 						{t("evidenceEmpty")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{evidence.map((ev) => (
 							<li
 								key={ev.id}
@@ -472,7 +488,7 @@ export default async function ControlDetailPage({
 				{tests.length === 0 ? (
 					<p className="text-muted-foreground text-subhead">{tt("empty")}</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{tests.map((x) => (
 							<li
 								key={x.id}

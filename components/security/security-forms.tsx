@@ -4,7 +4,6 @@ import { Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	acceptFinding,
 	importScanFile,
@@ -25,6 +24,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -35,6 +35,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 
 type ProductOption = { id: string; code: string; name: string };
 
@@ -205,7 +206,7 @@ export function ScanImportDialog({
 							{tc("cancel")}
 						</Button>
 						<Button type="submit" disabled={pending || (warn !== null && !ack)}>
-							{pending ? `${t("import")}…` : t("import")}
+							{pending ? tc("working") : t("import")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -255,7 +256,7 @@ export function QuickCheckForm({
 					if (!res.ok) {
 						const text = TARGET_ERRORS.has(res.error)
 							? t(res.error as "quota")
-							: tc("error");
+							: errorText(tc, res);
 						setError(text);
 						return void toast.error(text);
 					}
@@ -312,7 +313,7 @@ export function QuickCheckForm({
 					type="submit"
 					disabled={pending || !confirmed || !url.trim() || remaining <= 0}
 				>
-					{pending ? `${t("quickStart")}…` : t("quickStart")}
+					{pending ? tc("working") : t("quickStart")}
 				</Button>
 			</div>
 		</form>
@@ -369,7 +370,7 @@ export function AcceptFindingDialog({ findingId }: { findingId: string }) {
 								return void toast.error(
 									res.error === "acceptedUntil_range"
 										? t("acceptRange")
-										: tc("error"),
+										: errorText(tc, res),
 								);
 							toast.success(t("accepted"));
 							setOpen(false);
@@ -411,7 +412,7 @@ export function AcceptFindingDialog({ findingId }: { findingId: string }) {
 							{tc("cancel")}
 						</Button>
 						<Button type="submit" disabled={pending || note.trim().length < 10}>
-							{pending ? `${t("accept")}…` : t("accept")}
+							{pending ? tc("working") : t("accept")}
 						</Button>
 					</DialogFooter>
 				</form>

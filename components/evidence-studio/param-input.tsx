@@ -2,10 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { saveSheetParam } from "@/app/actions/evidence-studio";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/toast";
 
 // Eigene Frist je Rahmenwerk und Thema (Monate, Stunden oder Jahre)
 export function ParamInput({
@@ -44,7 +45,7 @@ export function ParamInput({
 			if (res.ok) {
 				toast.success(t("saved"));
 				if (v === null) setValue("");
-			} else toast.error(tc("error"));
+			} else toast.error(errorText(tc, res));
 		});
 
 	return (
@@ -57,7 +58,7 @@ export function ParamInput({
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
 				aria-label={`${t("ownValue")} ${frameworkName}`}
-				className="h-8 w-20 text-subhead tabular-nums"
+				className="w-24 tabular-nums"
 				disabled={disabled || pending}
 				autoComplete="off"
 			/>

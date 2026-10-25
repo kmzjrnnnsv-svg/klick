@@ -7,6 +7,7 @@ import {
 	WALLET_TECHNOLOGIES,
 } from "@/db/schema/custody";
 import { isDecimal } from "@/lib/custody/decimal";
+import { responsibleId } from "./responsible";
 
 const optional = (max: number) =>
 	z
@@ -70,7 +71,11 @@ export const walletSchema = z
 		addressLabel: noKeyMaterial(200),
 		providerId: optionalUuid,
 		hsmAssetId: optionalUuid,
-		ownerUserId: optionalUuid,
+		// Funktion oder Person (lib/validation/responsible.ts)
+		ownerUserId: z
+			.union([responsibleId, z.literal("")])
+			.nullish()
+			.transform((v) => (v ? v : null)),
 		status: z.enum(["active", "retired"]).default("active"),
 		notes: noKeyMaterial(2_000),
 	})

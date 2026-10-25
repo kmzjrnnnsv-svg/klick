@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { deleteOrganizationAction } from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { ExportLink } from "@/components/entity/export-link";
@@ -24,8 +23,11 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
 
@@ -44,11 +46,12 @@ export function DangerZonePanel({
 	const [confirm, setConfirm] = useState("");
 	const [exported, setExported] = useState(false);
 	const [open, setOpen] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	return (
 		<Card className="border-destructive/40">
 			<CardHeader>
-				<CardTitle className="text-base">{t("dangerTitle")}</CardTitle>
+				<CardTitle className="text-headline">{t("dangerTitle")}</CardTitle>
 				<CardDescription>{t("dangerLead")}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4 text-subhead">
@@ -110,6 +113,7 @@ export function DangerZonePanel({
 										/>
 									</div>
 								</div>
+								<FormAlert message={error} />
 								<DialogFooter>
 									<Button
 										variant="outline"
@@ -127,6 +131,7 @@ export function DangerZonePanel({
 										}
 										onClick={() =>
 											start(async () => {
+												setError(null);
 												const res = await withStepUp(() =>
 													deleteOrganizationAction({
 														confirmSlug: confirm.trim(),
@@ -134,12 +139,12 @@ export function DangerZonePanel({
 													}),
 												);
 												if (!res.ok) {
-													toast.error(
+													setError(
 														res.error === "step_up_required"
 															? t("stepUp")
 															: res.error === "slugMismatch"
 																? t("deleteOrgSlugMismatch")
-																: tc("error"),
+																: errorText(tc, res),
 													);
 													return;
 												}

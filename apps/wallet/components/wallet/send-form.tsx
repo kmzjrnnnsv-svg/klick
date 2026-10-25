@@ -7,7 +7,6 @@ import { Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +17,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import { formatAmountDe } from "@/lib/wallet/core/amount";
 import { ASSETS, type AssetCode } from "@/lib/wallet/core/assets";
 import type { WalletNetwork } from "@/lib/wallet/core/networks";

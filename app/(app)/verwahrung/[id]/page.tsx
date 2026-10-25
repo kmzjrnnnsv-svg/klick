@@ -15,6 +15,7 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ import {
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 // /verwahrung/[id] — eine Wallet: Quorum, Schlüsselinhaber:innen (Ort
 // feldverschlüsselt), Zeremonien und Tests, Aufgaben, Aktivität.
@@ -50,6 +52,7 @@ export default async function WalletDetailPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ crypto_asset: ["read"] });
 	const t = await getTranslations("Custody");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const canEdit = allows(ctx, { crypto_asset: ["update"] });
 
@@ -124,6 +127,7 @@ export default async function WalletDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/verwahrung", label: tNav("custody") }}
 			eyebrow={`${w.code} · ${t(`purpose_${w.purpose}`)}`}
 			title={w.name}
 			subtitle={w.notes ?? undefined}
@@ -149,7 +153,7 @@ export default async function WalletDetailPage({
 							addressLabel: w.addressLabel,
 							providerId: w.providerId,
 							hsmAssetId: w.hsmAssetId,
-							ownerUserId: w.ownerUserId,
+							ownerUserId: responsibleValue(w),
 							status: w.status,
 							notes: w.notes,
 							networks: w.networks.join(", "),
@@ -167,7 +171,10 @@ export default async function WalletDetailPage({
 						{t("quorumValue", { m: w.quorumRequired, n: w.quorumTotal })}
 					</MetaItem>
 					<MetaItem label={t("owner")}>
-						{names.get(w.ownerUserId ?? "") ?? "—"}
+						<OwnerChip
+							ownerFunction={w.ownerFunction}
+							name={names.get(w.ownerUserId ?? "")}
+						/>
 					</MetaItem>
 					<MetaItem label={t("colBackupTest")}>
 						{day(w.nextBackupTestDue)}
@@ -321,7 +328,7 @@ export default async function WalletDetailPage({
 						{t("holdersEmpty")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{holders.map((h) => {
 							const name =
 								(h.userId ? names.get(h.userId) : null) ??
@@ -351,6 +358,16 @@ export default async function WalletDetailPage({
 												.filter(Boolean)
 												.join(" · ")}
 										</p>
+										{h.status === "proposed" && (
+											<Badge variant="warning" className="mt-1">
+												{t("holderProposed")}
+											</Badge>
+										)}
+										{h.status === "rejected" && (
+											<Badge variant="muted" className="mt-1">
+												{t("holderRejected")}
+											</Badge>
+										)}
 										{h.status === "revoked" && (
 											<p className="text-destructive text-footnote">
 												{t("revokedOn", {
@@ -360,9 +377,10 @@ export default async function WalletDetailPage({
 											</p>
 										)}
 									</div>
-									{canEdit && h.status === "active" && (
-										<RevokeHolderButton id={h.id} name={name} />
-									)}
+									{canEdit &&
+										(h.status === "active" || h.status === "proposed") && (
+											<RevokeHolderButton id={h.id} name={name} />
+										)}
 								</li>
 							);
 						})}
@@ -383,7 +401,7 @@ export default async function WalletDetailPage({
 						{t("ceremoniesEmptyLead")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{ceremonies.map((c) => (
 							<li
 								key={c.id}

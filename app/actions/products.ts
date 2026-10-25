@@ -2,6 +2,7 @@
 
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import {
 	assessmentAnswers,
 	assessments,
@@ -9,6 +10,8 @@ import {
 	products,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import { pendingApprovalIds } from "@/lib/approvals/bar";
+import { gateApproval } from "@/lib/approvals/service";
 import {
 	PRODUCT_TEMPLATE,
 	PRODUCT_TEMPLATE_VERSION,
@@ -18,6 +21,7 @@ import { scoreAssessment } from "@/lib/assessments/score";
 import { answerStates, nextAssessmentCode } from "@/lib/assessments/state";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nextProductCode } from "@/lib/compliance/cra";
+import { ownerColumns } from "@/lib/compliance/function-holders-service";
 import { storeSbom } from "@/lib/compliance/sbom-service";
 import type { OrgTx } from "@/lib/db/with-org";
 import { mutateOrg } from "@/lib/db/with-org";
@@ -28,7 +32,7 @@ import { parseIsolated, sbomResultSchema } from "@/lib/parse/client";
 import { getOrgLimiter } from "@/lib/rate-limit";
 import { checkSbom } from "@/lib/security/sbom-check";
 import { assessmentIdSchema } from "@/lib/validation/assessments";
-import { type ActionResult, fromZod } from "@/lib/validation/common";
+import { type ActionResult, fromZod, uuid } from "@/lib/validation/common";
 import {
 	createProductSchema,
 	productIdSchema,
@@ -80,7 +84,12 @@ async function createProductImpl(
 					d.kind === "saas"
 						? "Reiner Webdienst ohne Produktbezug — NIS2 statt CRA (Art. 3 Nr. 2). Prüfen, ob Apps, Clients oder SDKs dazugehören."
 						: null,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(
+					tx,
+					c.orgId,
+					d.ownerUserId ?? undefined,
+					c.userId,
+				)),
 			})
 			.returning({ id: products.id });
 		if (!row) throw new Error("insert failed");
@@ -145,6 +154,66 @@ async function updateProductImpl(input: unknown): Promise<ActionResult> {
 	});
 	revalidatePath(PATH, "layout");
 	revalidatePath("/", "layout");
+	return res;
+}
+
+// EU-Konformitätserklärung (CRA Art. 28): ausgestellt erst mit der
+// Freigabe (Ablauf product_declaration); ohne Ablauf gilt sie sofort.
+const declarationSchema = z.object({ productId: uuid });
+
+async function requestProductDeclarationImpl(
+	input: unknown,
+): Promise<ActionResult<{ status: "issued" | "pending" }>> {
+	const c = await requireOrg({ product: ["update"] });
+	const parsed = declarationSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const res = await mutateOrg<ActionResult<{ status: "issued" | "pending" }>>(
+		toOrgCtx(c),
+		async (tx) => {
+			const row = await loadProduct(tx, c.orgId, parsed.data.productId);
+			if (!row) return { result: { ok: false, error: "notFound" }, audit: [] };
+			if (row.declarationAt)
+				return { result: { ok: true, data: { status: "issued" } }, audit: [] };
+			const waiting = await pendingApprovalIds(tx, c.orgId, "product", [
+				row.id,
+			]);
+			if (waiting.size > 0)
+				return { result: { ok: false, error: "approval_pending" }, audit: [] };
+			const gate = await gateApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					trigger: "product.declaration",
+					entityType: "product",
+					entityId: row.id,
+					entityOwnerUserId: row.ownerUserId,
+					title: `Konformitätserklärung: ${row.code} ${row.name}`,
+					link: `${PATH}/${row.id}`,
+				},
+			);
+			if (gate.status === "error")
+				return { result: { ok: false, error: gate.error }, audit: [] };
+			const status = gate.status === "pending" ? "pending" : "issued";
+			const today = new Date().toISOString().slice(0, 10);
+			if (status === "issued")
+				await tx
+					.update(products)
+					.set({ declarationAt: today })
+					.where(eq(products.id, row.id));
+			return {
+				result: { ok: true, data: { status } },
+				audit: {
+					action:
+						status === "issued"
+							? "product.declaration_issued"
+							: "product.declaration_requested",
+					target: `product:${row.id}`,
+					after: status === "issued" ? { declarationAt: today } : {},
+				},
+			};
+		},
+	);
+	revalidatePath(PATH, "layout");
 	return res;
 }
 
@@ -406,4 +475,8 @@ export const startProductChecklist = safeAction(
 export const completeProductChecklist = safeAction(
 	"completeProductChecklist",
 	completeProductChecklistImpl,
+);
+export const requestProductDeclaration = safeAction(
+	"requestProductDeclaration",
+	requestProductDeclarationImpl,
 );

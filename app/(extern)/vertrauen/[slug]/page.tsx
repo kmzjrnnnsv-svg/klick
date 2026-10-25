@@ -50,12 +50,12 @@ export default async function PublicTrustCenterPage({
 	return (
 		<div className="flex flex-col gap-10">
 			<header className="flex flex-col gap-3">
-				<p className="text-muted-foreground text-footnote">
-					{t("publicEyebrow", { org: s.orgName })}
-				</p>
 				<h1 className="text-balance font-bold text-title-1 leading-tight sm:text-4xl">
 					{s.title}
 				</h1>
+				<p className="text-muted-foreground text-subhead">
+					{t("publicEyebrow", { org: s.orgName })}
+				</p>
 				{s.intro && (
 					<p className="max-w-2xl whitespace-pre-line break-words text-muted-foreground leading-relaxed">
 						{s.intro}
@@ -206,7 +206,7 @@ export default async function PublicTrustCenterPage({
 					<h2 id="tc-documents" className="font-bold text-title-2">
 						{t("publicDocuments")}
 					</h2>
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 						{s.documents.map((d) => (
 							<li
 								key={d.versionId}

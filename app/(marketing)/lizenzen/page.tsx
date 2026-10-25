@@ -36,13 +36,13 @@ export default async function LicensesPage() {
 			<h1 className="font-bold text-title-1 sm:text-4xl">{t("title")}</h1>
 			<p className="mt-6 max-w-[56ch] leading-relaxed">{t("lead")}</p>
 
-			<h2 className="mt-10 font-medium text-lg">{t("fontsTitle")}</h2>
+			<h2 className="mt-10 font-semibold text-title-3">{t("fontsTitle")}</h2>
 			<p className="mt-3 max-w-[56ch] leading-relaxed">{t("fontsNone")}</p>
 
-			<h2 className="mt-10 font-medium text-lg">{t("imagesTitle")}</h2>
+			<h2 className="mt-10 font-semibold text-title-3">{t("imagesTitle")}</h2>
 			<p className="mt-3 max-w-[56ch] leading-relaxed">{t("images")}</p>
 
-			<h2 className="mt-10 font-medium text-lg">{t("packagesTitle")}</h2>
+			<h2 className="mt-10 font-semibold text-title-3">{t("packagesTitle")}</h2>
 			<p className="mt-3 text-muted-foreground text-subhead">
 				{t("packagesLead", { count: licenses.length })}
 			</p>

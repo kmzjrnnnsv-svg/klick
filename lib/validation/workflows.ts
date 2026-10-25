@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GOVERNANCE_MODES } from "@/db/schema/enums";
 import { uuid } from "./common";
 
 // Freigabe-Designer (Einstellungen → Freigaben). Form der Eingabe hier;
@@ -10,7 +11,7 @@ const rule = z
 	.trim()
 	.max(80)
 	.regex(
-		/^(function:[a-z_]+|role:[A-Za-z0-9_-]+|user:[A-Za-z0-9_-]+|owner_of_entity|not_requester)$/,
+		/^(function:[a-z_]+|role:[A-Za-z0-9_-]+|user:[A-Za-z0-9_-]+|owner_of_entity|approver_of_entity|not_requester)$/,
 	);
 
 export const conditionSchema = z.object({
@@ -30,6 +31,8 @@ export const workflowStepSchema = z.object({
 	// leer erlaubt: checkWorkflowDraft meldet „no_approvers“ am Feld
 	approvers: z.array(rule).max(8),
 	mode: z.enum(["any", "all"]).default("any"),
+	// alle Personen der Stellen stimmen zu (beim Antrag aufgelöst)
+	everyone: z.boolean().optional(),
 	minApprovers: z.number().int().min(1).max(5).optional(),
 	slaDays: z.number().int().min(0).max(90).optional(),
 	skipIf: z.array(rule).max(8).optional(),
@@ -65,4 +68,9 @@ export const dryRunSchema = z.object({
 			z.union([z.string().max(80), z.number(), z.boolean(), z.null()]),
 		)
 		.default({}),
+});
+
+// Standard oder individuell (ADR-024)
+export const governanceModeSchema = z.object({
+	mode: z.enum(GOVERNANCE_MODES),
 });

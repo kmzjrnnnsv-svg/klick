@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UserChip } from "@/components/entity/user-chip";
@@ -144,7 +145,9 @@ export default async function ProductsPage({
 			header: t("owner"),
 			className: "w-36",
 			mobile: false,
-			cell: (r) => <UserChip name={r.ownerName} />,
+			cell: (r) => (
+				<OwnerChip ownerFunction={r.ownerFunction} name={r.ownerName} />
+			),
 		},
 	];
 

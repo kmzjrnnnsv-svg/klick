@@ -5,6 +5,7 @@ import { importAssetsCsv } from "@/app/actions/imports";
 import { CsvImport } from "@/components/entity/csv-import";
 import { EmptyState } from "@/components/entity/empty-state";
 import { LinkChips } from "@/components/entity/link-chips";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UserChip } from "@/components/entity/user-chip";
 import { AssetForm } from "@/components/registers/asset-form";
@@ -21,6 +22,7 @@ import { linkIndex } from "@/lib/compliance/queries-links";
 import { listAssets, listProviders } from "@/lib/compliance/queries-p2";
 import { newRiskHref } from "@/lib/compliance/risk-sources";
 import { readOrg } from "@/lib/db/with-org";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 type Row = Awaited<ReturnType<typeof listAssets>>[number];
 type Search = Record<string, string | string[] | undefined>;
@@ -161,7 +163,9 @@ export default async function AssetsPage({
 			key: "owner",
 			header: t("owner"),
 			className: "w-40",
-			cell: (r) => <UserChip name={r.ownerName} />,
+			cell: (r) => (
+				<OwnerChip ownerFunction={r.ownerFunction} name={r.ownerName} />
+			),
 		},
 		{
 			key: "rot",
@@ -227,7 +231,7 @@ export default async function AssetsPage({
 							classification: r.classification,
 							providerId: r.providerId,
 							siteId: r.siteId,
-							ownerUserId: r.ownerUserId,
+							ownerUserId: responsibleValue(r),
 							location: r.location,
 							description: r.description,
 							isLegacy: r.isLegacy,

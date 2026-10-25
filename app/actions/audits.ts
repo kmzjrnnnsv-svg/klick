@@ -16,6 +16,7 @@ import {
 import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { ownerColumns } from "@/lib/compliance/function-holders-service";
 import { findingNeedsNonconformity } from "@/lib/compliance/nonconformity";
 import {
 	nonconformityForFinding,
@@ -235,7 +236,17 @@ async function upsertAuditImpl(
 			if (!before) return { result: null, audit: [] };
 			await tx
 				.update(audits)
-				.set({ ...values, ownerUserId: d.ownerUserId ?? before.ownerUserId })
+				.set({
+					...values,
+					...(d.ownerUserId == null
+						? {}
+						: await ownerColumns(
+								tx,
+								c.orgId,
+								d.ownerUserId,
+								before.ownerUserId,
+							)),
+				})
 				.where(eq(audits.id, id));
 			return {
 				result: id,
@@ -262,7 +273,12 @@ async function upsertAuditImpl(
 			.values({
 				organizationId: c.orgId,
 				...values,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(
+					tx,
+					c.orgId,
+					d.ownerUserId ?? undefined,
+					c.userId,
+				)),
 			})
 			.returning({ id: audits.id });
 		if (!row) throw new Error("insert failed");

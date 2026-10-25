@@ -16,6 +16,7 @@ import {
 	bytea,
 	json,
 	orgId,
+	ownerFunction,
 	pk,
 	stringList,
 	timestamps,
@@ -24,6 +25,8 @@ import {
 } from "./_shared";
 import { controls, requirements } from "./catalog";
 import {
+	CHANGE_KINDS,
+	CHANGE_STATUS,
 	CLASSIFICATIONS,
 	CONTROL_TEST_METHODS,
 	type ControlSheetState,
@@ -56,6 +59,7 @@ export const controlImplementations = pgTable(
 			.notNull()
 			.default("onboarding"),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		note: text(),
 		implementedAt: ts(),
@@ -145,6 +149,9 @@ export const evidence = pgTable(
 		// (enc1, AAD evidence:<id>:content_enc) — Migration 0031
 		templateKey: text(),
 		contentEnc: text(),
+		// verantwortlich, dass der Nachweis gültig bleibt (Funktion oder Person)
+		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		createdByUserId: userRef(),
 		createdAt: ts().notNull().defaultNow(),
 	},
@@ -297,6 +304,8 @@ export const DOCUMENT_TYPES = [
 	"report",
 	"contract",
 	"form",
+	// Marketingmitteilung (MiCAR Art. 66): eigene Freigabe marketing.publish
+	"marketing",
 ] as const;
 
 export const DOCUMENT_STATUS = [
@@ -321,6 +330,7 @@ export const documents = pgTable(
 			.notNull()
 			.default("internal"),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		authorUserId: userRef(),
 		assigneeUserId: userRef(),
 		approverFunction: text({ enum: ROLE_FUNCTIONS }),
@@ -533,8 +543,20 @@ export type ApprovalStep = {
 	skipIf?: string[];
 	// Stufe gilt nur, wenn alle Bedingungen auf die Fakten zutreffen
 	onlyIf?: ApprovalCondition[];
+	// alle Personen der Stellen stimmen zu (z. B. die ganze Geschäftsleitung):
+	// beim Antrag aufgelöst zu user:-Stellen mit mode "all"
+	everyone?: boolean;
+	// im Schnappschuss: Stellen vor der Auflösung (Anzeige „Geschäftsleitung“)
+	expandedFrom?: string[];
+	// im Schnappschuss: Personen, deren Zustimmung mit dem Antrag gegeben ist
+	// (anfragende Person hält die Stelle selbst)
+	given?: string[];
 	// im Schnappschuss am Antrag: warum die Stufe entfällt
-	skipped?: { by: "requester"; rule: string } | { by: "condition" };
+	skipped?:
+		| { by: "requester"; rule: string }
+		| { by: "condition" }
+		// Funktion nicht besetzt (nie bei der Geschäftsleitung)
+		| { by: "vacant" };
 };
 
 export const approvalWorkflows = pgTable(
@@ -760,6 +782,7 @@ export const risks = pgTable(
 		residualLikelihood: integer(),
 		residualImpact: integer(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		// proposed: wartet auf Freigabe (Auslöser risk.create)
 		status: text({
@@ -898,6 +921,30 @@ export const tasks = pgTable(
 	],
 ).enableRLS();
 
+// Neues Produkt, neuer Markt, neuer Vertriebsweg oder wesentliche
+// IT-Änderung (ZAG-MaRisk/MaRisk AT 8, DORA Art. 8 Abs. 3): Antrag mit
+// Freigabe (change.request); die Umsetzung läuft als Aufgabe.
+export const changeRequests = pgTable(
+	"change_requests",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		code: text().notNull(),
+		title: text().notNull(),
+		kind: text({ enum: CHANGE_KINDS }).notNull(),
+		description: text(),
+		processIds: stringList(),
+		assetIds: stringList(),
+		riskId: uuid().references(() => risks.id, { onDelete: "set null" }),
+		taskId: uuid().references(() => tasks.id, { onDelete: "set null" }),
+		status: text({ enum: CHANGE_STATUS }).notNull().default("pending"),
+		requestedByUserId: userRef(),
+		decidedAt: ts(),
+		...timestamps(),
+	},
+	(t) => [unique().on(t.organizationId, t.code), orgPolicy("change_requests")],
+).enableRLS();
+
 export const riskTreatments = pgTable(
 	"risk_treatments",
 	{
@@ -909,6 +956,7 @@ export const riskTreatments = pgTable(
 		title: text().notNull(),
 		description: text(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		dueAt: date(),
 		status: text({ enum: ["planned", "in_progress", "done", "dropped"] })
 			.notNull()
@@ -999,6 +1047,7 @@ export const exceptions = pgTable(
 			onDelete: "set null",
 		}),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		validUntil: date().notNull(),
 		status: text({ enum: ["requested", "approved", "expired", "revoked"] })
 			.notNull()
@@ -1052,10 +1101,14 @@ export const incidents = pgTable(
 		intermediateReportedAt: ts(),
 		finalReportedAt: ts(),
 		rootCause: text(),
+		// Geschäftsleitung informiert (Meldung an die Aufsicht): Kenntnisnahme
+		managementAcknowledgedAt: ts(),
+		managementAcknowledgedBy: userRef(),
 		status: text({ enum: ["open", "contained", "resolved", "closed"] })
 			.notNull()
 			.default("open"),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		...timestamps(),
 	},
@@ -1105,6 +1158,7 @@ export const lossEvents = pgTable(
 		incidentId: uuid().references(() => incidents.id, { onDelete: "set null" }),
 		riskId: uuid().references(() => risks.id, { onDelete: "set null" }),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		createdAt: ts().notNull().defaultNow(),
 	},
 	(t) => [
@@ -1128,6 +1182,7 @@ export const milestones = pgTable(
 			.default("todo"),
 		dueAt: date(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		sortOrder: integer().notNull().default(0),
 		...timestamps(),

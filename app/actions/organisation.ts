@@ -16,6 +16,7 @@ import {
 	roleAssignments,
 	scopes,
 } from "@/db/schema";
+import type { AppointmentStatus } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
 import { ensureOrgWorkflows, requestApproval } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
@@ -26,10 +27,17 @@ import {
 	toOrgCtx,
 } from "@/lib/auth/guards";
 import {
+	proposeAssignment,
+	proposeRevocation,
+	requestRoleMatrixResolution,
+	updateProposal,
+} from "@/lib/compliance/appointment-service";
+import {
 	applicableCommunications,
 	applicableParties,
 } from "@/lib/compliance/catalog/interested-parties";
 import { openDecisionRequest } from "@/lib/compliance/decision-service";
+import { ownerColumns } from "@/lib/compliance/function-holders-service";
 import {
 	addMonths,
 	INDICATOR_TEMPLATES,
@@ -38,9 +46,7 @@ import {
 } from "@/lib/compliance/indicators";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg } from "@/lib/db/with-org";
-import { notify } from "@/lib/notifications/notify";
 import { listOrgFrameworks } from "@/lib/org/queries";
-import { syncTrainingAssignments } from "@/lib/trainings/assignments";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	communicationSchema,
@@ -154,7 +160,12 @@ async function upsertContextIssueImpl(
 				description: d.description ?? null,
 				impact: d.impact ?? null,
 				relatedRiskId: d.relatedRiskId ?? null,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(
+					tx,
+					c.orgId,
+					d.ownerUserId ?? undefined,
+					c.userId,
+				)),
 				reviewAt: d.reviewAt ?? null,
 			},
 			"context_issue",
@@ -208,7 +219,7 @@ async function upsertInterestedPartyImpl(
 				relevantFrameworks: d.relevantFrameworks ?? [],
 				howAddressed: d.howAddressed ?? null,
 				contact: d.contact ?? null,
-				ownerUserId: d.ownerUserId ?? null,
+				...(await ownerColumns(tx, c.orgId, d.ownerUserId ?? null, null)),
 				reviewAt: d.reviewAt ?? null,
 			},
 			"interested_party",
@@ -370,7 +381,14 @@ async function upsertScopeImpl(
 					status: reopened ? "draft" : before.status,
 					approvedAt: reopened ? null : before.approvedAt,
 					approvedByUserId: reopened ? null : before.approvedByUserId,
-					ownerUserId: d.ownerUserId ?? before.ownerUserId,
+					...(d.ownerUserId == null
+						? {}
+						: await ownerColumns(
+								tx,
+								c.orgId,
+								d.ownerUserId,
+								before.ownerUserId,
+							)),
 				})
 				.where(eq(scopes.id, id));
 			return {
@@ -402,7 +420,12 @@ async function upsertScopeImpl(
 				services: d.services ?? [],
 				exclusions: d.exclusions ?? [],
 				version: d.version ?? "1.0",
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(
+					tx,
+					c.orgId,
+					d.ownerUserId ?? undefined,
+					c.userId,
+				)),
 			})
 			.returning({ id: scopes.id });
 		if (!row) throw new Error("insert failed");
@@ -501,9 +524,18 @@ async function requestScopeApprovalImpl(
 
 // ── Rollen & Leitung ───────────────────────────────────────────────────────
 
+type AppointmentResult = {
+	id: string;
+	status: AppointmentStatus | "withdrawn";
+	waiting: null | "approval" | "no_management";
+};
+
+// Funktion besetzen: Vorschlag an die Geschäftsleitung (role.appoint). Ein
+// neuer Vorschlag ersetzt eine bestellte Besetzung erst mit der Bestellung;
+// Ergänzungen (Berichtsweg, Fit & Proper, Fristen) ändern direkt.
 async function upsertRoleAssignmentImpl(
 	input: unknown,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<AppointmentResult>> {
 	let c: Awaited<ReturnType<typeof requireStepUp>>;
 	try {
 		c = await requireStepUp({ role_assignment: ["update"] });
@@ -515,22 +547,55 @@ async function upsertRoleAssignmentImpl(
 	const parsed = roleAssignmentSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { id, fitProperChecklist, ...d } = parsed.data;
-	const res = await mutateOrg<string | null>(toOrgCtx(c), async (tx) => {
-		const base = {
-			function: d.function,
-			userId: d.userId ?? null,
-			externalName: d.externalName?.trim() || null,
-			appointedAt: d.appointedAt ?? null,
-			deputyUserId: d.deputyUserId ?? null,
-			evidenceId: d.evidenceId ?? null,
-			fitProperStatus: d.fitProperStatus,
-			documentsValidUntil: d.documentsValidUntil ?? null,
-			reviewAt: d.reviewAt ?? null,
-			reportsToFunction:
-				d.function === "management_body" ? null : (d.reportsToFunction ?? null),
-			appointmentNotes: d.appointmentNotes?.trim() || null,
-		};
-		if (id) {
+	const actor = { orgId: c.orgId, userId: c.userId, name: c.name };
+	const res = await mutateOrg<AppointmentResult | null>(
+		toOrgCtx(c),
+		async (tx) => {
+			const base = {
+				function: d.function,
+				userId: d.userId ?? null,
+				externalName: d.externalName?.trim() || null,
+				appointedAt: d.appointedAt ?? null,
+				deputyUserId: d.deputyUserId ?? null,
+				evidenceId: d.evidenceId ?? null,
+				fitProperStatus: d.fitProperStatus,
+				documentsValidUntil: d.documentsValidUntil ?? null,
+				reviewAt: d.reviewAt ?? null,
+				reportsToFunction:
+					d.function === "management_body"
+						? null
+						: (d.reportsToFunction ?? null),
+				appointmentNotes: d.appointmentNotes?.trim() || null,
+			};
+			const checklist = async (rowId: string, current: string | null) =>
+				fitProperChecklist === undefined
+					? current
+					: fitProperChecklist === null
+						? null
+						: await encryptJson(
+								tx,
+								c.orgId,
+								fitProperChecklist,
+								fieldAad("role_assignments", rowId, "fit_proper_checklist"),
+							);
+			const propose = async (replaces: string | null) => {
+				const out = await proposeAssignment(
+					tx,
+					actor,
+					{ ...base, replacesAssignmentId: replaces },
+					"organisation",
+				);
+				if (fitProperChecklist)
+					await tx
+						.update(roleAssignments)
+						.set({ fitProperChecklist: await checklist(out.id, null) })
+						.where(eq(roleAssignments.id, out.id));
+				return {
+					result: { id: out.id, status: out.status, waiting: out.waiting },
+					audit: out.audit,
+				};
+			};
+			if (!id) return propose(null);
 			const [before] = await tx
 				.select()
 				.from(roleAssignments)
@@ -542,106 +607,66 @@ async function upsertRoleAssignmentImpl(
 				)
 				.limit(1);
 			if (!before) return { result: null, audit: [] };
-			const encrypted =
-				fitProperChecklist === undefined
-					? before.fitProperChecklist
-					: fitProperChecklist === null
-						? null
-						: await encryptJson(
-								tx,
-								c.orgId,
-								fitProperChecklist,
-								fieldAad("role_assignments", id, "fit_proper_checklist"),
-							);
+			// noch nicht bestellt: Vorschlag ändern und neu beantragen
+			if (before.status === "proposed" || before.status === "rejected") {
+				const out = await updateProposal(tx, actor, id, {
+					...base,
+					fitProperChecklist: await checklist(id, before.fitProperChecklist),
+				});
+				return out
+					? {
+							result: { id, status: out.status, waiting: out.waiting },
+							audit: [
+								{
+									action: "role_assignment.update",
+									target: `role_assignment:${id}`,
+									before: { userId: before.userId, status: before.status },
+									after: { userId: base.userId, status: out.status },
+								},
+								...out.audit,
+							],
+						}
+					: { result: null, audit: [] };
+			}
+			// andere Person, Vertretung oder Funktion → neue Bestellung
+			const changed =
+				before.function !== base.function ||
+				before.userId !== base.userId ||
+				(before.externalName ?? null) !== base.externalName ||
+				before.deputyUserId !== base.deputyUserId;
+			if (changed) return propose(id);
 			await tx
 				.update(roleAssignments)
-				.set({ ...base, fitProperChecklist: encrypted })
+				.set({
+					...base,
+					fitProperChecklist: await checklist(id, before.fitProperChecklist),
+				})
 				.where(eq(roleAssignments.id, id));
-			// Neue Funktion → zugehörige Pflichtschulungen zuweisen.
-			await syncTrainingAssignments(tx, c.orgId);
-			if (d.userId && d.userId !== before.userId) {
-				await notify(tx, {
-					orgId: c.orgId,
-					recipients: [d.userId],
-					actorUserId: c.userId,
-					kind: "entity_changed",
-					title: `Du wurdest als ${d.function} benannt`,
-					link: "/organisation?tab=rollen",
-				});
-			}
 			return {
-				result: id,
+				result: { id, status: before.status, waiting: null },
 				audit: {
 					action: "role_assignment.update",
 					target: `role_assignment:${id}`,
 					before: {
-						function: before.function,
-						userId: before.userId,
-						externalName: before.externalName,
-						deputyUserId: before.deputyUserId,
+						reportsToFunction: before.reportsToFunction,
 						fitProperStatus: before.fitProperStatus,
+						appointedAt: before.appointedAt,
 					},
 					after: {
-						function: d.function,
-						userId: d.userId ?? null,
-						externalName: d.externalName ?? null,
-						deputyUserId: d.deputyUserId ?? null,
-						fitProperStatus: d.fitProperStatus,
+						reportsToFunction: base.reportsToFunction,
+						fitProperStatus: base.fitProperStatus,
+						appointedAt: base.appointedAt,
 					},
 				},
 			};
-		}
-		const [row] = await tx
-			.insert(roleAssignments)
-			.values({ organizationId: c.orgId, ...base })
-			.returning({ id: roleAssignments.id });
-		if (!row) throw new Error("insert failed");
-		await syncTrainingAssignments(tx, c.orgId);
-		if (fitProperChecklist) {
-			await tx
-				.update(roleAssignments)
-				.set({
-					fitProperChecklist: await encryptJson(
-						tx,
-						c.orgId,
-						fitProperChecklist,
-						fieldAad("role_assignments", row.id, "fit_proper_checklist"),
-					),
-				})
-				.where(eq(roleAssignments.id, row.id));
-		}
-		if (d.userId) {
-			await notify(tx, {
-				orgId: c.orgId,
-				recipients: [d.userId],
-				actorUserId: c.userId,
-				kind: "entity_changed",
-				title: `Du wurdest als ${d.function} benannt`,
-				link: "/organisation?tab=rollen",
-			});
-		}
-		return {
-			result: row.id,
-			audit: {
-				action: "role_assignment.create",
-				target: `role_assignment:${row.id}`,
-				after: {
-					function: d.function,
-					userId: d.userId ?? null,
-					externalName: d.externalName ?? null,
-					deputyUserId: d.deputyUserId ?? null,
-					fitProperStatus: d.fitProperStatus,
-				},
-			},
-		};
-	});
+		},
+	);
 	revalidatePath(PATH);
 	revalidatePath("/ueberblick");
-	return res
-		? { ok: true, data: { id: res } }
-		: { ok: false, error: "notFound" };
+	return res ? { ok: true, data: res } : { ok: false, error: "notFound" };
 }
 
+// Entfernen: Vorschlag zurückziehen oder Abberufung beantragen
 async function deleteRoleAssignmentImpl(input: unknown): Promise<ActionResult> {
 	let c: Awaited<ReturnType<typeof requireStepUp>>;
 	try {
@@ -653,24 +678,51 @@ async function deleteRoleAssignmentImpl(input: unknown): Promise<ActionResult> {
 	}
 	const parsed = deleteByIdSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
-	await mutateOrg(toOrgCtx(c), async (tx) => {
-		const a = await deleteRow(
+	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const r = await proposeRevocation(
 			tx,
-			c.orgId,
-			roleAssignments,
+			{ orgId: c.orgId, userId: c.userId, name: c.name },
 			parsed.data.id,
-			"role_assignment",
-			(r) => ({
-				function: r.function,
-				userId: r.userId,
-				externalName: r.externalName,
-			}),
+			"organisation",
 		);
-		return { result: null, audit: a ?? [] };
+		return { result: r, audit: r.ok ? r.audit : [] };
 	});
 	revalidatePath(PATH);
 	revalidatePath("/ueberblick");
-	return { ok: true, data: undefined };
+	return res.ok
+		? { ok: true, data: undefined }
+		: {
+				ok: false,
+				error: res.error === "no_management" ? "noManagement" : "notFound",
+			};
+}
+
+// Sammelbeschluss „Besetzung bestätigen“ (RES-ROLES): alle Mitglieder der
+// Geschäftsleitung stimmen zu
+async function confirmRoleMatrixImpl(): Promise<
+	ActionResult<{ number: string; approval: "none" | "pending" | "approved" }>
+> {
+	let c: Awaited<ReturnType<typeof requireStepUp>>;
+	try {
+		c = await requireStepUp({ role_assignment: ["update"] });
+	} catch (e) {
+		if (e instanceof AuthError && e.code === "step_up_required")
+			return { ok: false, error: "step_up_required" };
+		throw e;
+	}
+	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const r = await requestRoleMatrixResolution(tx, {
+			orgId: c.orgId,
+			userId: c.userId,
+			name: c.name,
+		});
+		return { result: r, audit: r.ok ? r.audit : [] };
+	});
+	revalidatePath(PATH);
+	revalidatePath("/beschluesse");
+	return res.ok
+		? { ok: true, data: { number: res.number, approval: res.approval } }
+		: { ok: false, error: res.error };
 }
 
 // ── Ziele & KPIs ───────────────────────────────────────────────────────────
@@ -711,7 +763,12 @@ async function upsertObjectiveImpl(input: unknown): Promise<
 			unit: d.unit ?? null,
 			target: d.target ?? null,
 			dueAt: d.dueAt ?? null,
-			ownerUserId: d.ownerUserId ?? c.userId,
+			...(await ownerColumns(
+				tx,
+				c.orgId,
+				d.ownerUserId ?? undefined,
+				c.userId,
+			)),
 			status: d.status,
 			indicatorType: d.indicatorType,
 			direction: d.direction,
@@ -1019,7 +1076,12 @@ async function upsertRegulatorInteractionImpl(
 				direction: d.direction,
 				deadline: d.deadline ?? null,
 				responseAt: d.responseAt ?? null,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(
+					tx,
+					c.orgId,
+					d.ownerUserId ?? undefined,
+					c.userId,
+				)),
 				evidenceId: d.evidenceId ?? null,
 				notes: d.notes ?? null,
 				status: d.status,
@@ -1060,7 +1122,12 @@ async function upsertConflictImpl(
 				description: d.description ?? null,
 				mitigation: d.mitigation ?? null,
 				disclosedAt: d.disclosedAt ?? null,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(
+					tx,
+					c.orgId,
+					d.ownerUserId ?? undefined,
+					c.userId,
+				)),
 				reviewAt: d.reviewAt ?? null,
 				status: d.status,
 			},
@@ -1105,6 +1172,10 @@ export const requestScopeApproval = safeAction(
 export const upsertRoleAssignment = safeAction(
 	"upsertRoleAssignment",
 	upsertRoleAssignmentImpl,
+);
+export const confirmRoleMatrix = safeAction(
+	"confirmRoleMatrix",
+	confirmRoleMatrixImpl,
 );
 export const deleteRoleAssignment = safeAction(
 	"deleteRoleAssignment",

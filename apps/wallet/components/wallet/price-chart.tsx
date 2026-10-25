@@ -231,7 +231,7 @@ export function PriceChart({
 								x={M.left + plotW + 8}
 								y={geo.y(v)}
 								dy="0.32em"
-								className="fill-muted-foreground text-[11px] tabular-nums"
+								className="fill-muted-foreground text-caption-2 tabular-nums"
 							>
 								{fmtAxis.format(v)}
 							</text>
@@ -243,7 +243,7 @@ export function PriceChart({
 							x={geo.x(tt)}
 							y={H - 6}
 							textAnchor="middle"
-							className="fill-muted-foreground text-[11px]"
+							className="fill-muted-foreground text-caption-2"
 						>
 							{fmtTime.format(tt)}
 						</text>

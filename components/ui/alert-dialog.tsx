@@ -3,6 +3,7 @@
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui";
 import type * as React from "react";
 import { buttonVariants } from "@/components/ui/button";
+import { registerModalHost, takeHostEscape } from "@/components/ui/modal-host";
 import { cn } from "@/lib/utils";
 
 // Alert nach Apple HIG: schmal, mittig, Titel nennt die Folge (nie „Fehler“),
@@ -38,6 +39,8 @@ function AlertDialogOverlay({
 
 function AlertDialogContent({
 	className,
+	children,
+	onEscapeKeyDown,
 	...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
 	return (
@@ -46,11 +49,18 @@ function AlertDialogContent({
 			<AlertDialogPrimitive.Content
 				data-slot="alert-dialog-content"
 				className={cn(
-					"data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-105 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-3rem)] translate-x-[-50%] translate-y-[-50%] grid-cols-1 gap-5 overflow-y-auto overscroll-contain rounded-2xl bg-popover p-5 text-popover-foreground shadow-2xl duration-200 sm:max-w-md",
+					"data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-105 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-3rem)] translate-x-[-50%] translate-y-[-50%] grid-cols-1 gap-5 overflow-y-auto overscroll-contain rounded-2xl bg-popover p-5 text-popover-foreground shadow-2xl duration-200 sm:max-w-md has-[[data-step-up]]:min-h-80 has-[[data-step-up]]:overflow-hidden",
 					className,
 				)}
+				onEscapeKeyDown={(e) => {
+					if (takeHostEscape()) e.preventDefault();
+					else onEscapeKeyDown?.(e);
+				}}
 				{...props}
-			/>
+			>
+				{children}
+				<div ref={registerModalHost} data-slot="dialog-host" className="contents" />
+			</AlertDialogPrimitive.Content>
 		</AlertDialogPortal>
 	);
 }

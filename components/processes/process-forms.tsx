@@ -4,7 +4,6 @@ import { Plus, Sparkles, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	applyProcessSeed,
 	setProcessLinks,
@@ -13,6 +12,7 @@ import {
 } from "@/app/actions/processes";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { ResponsibleField } from "@/components/organisation/governance-forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +25,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -35,6 +36,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
 
 const CATEGORIES = ["core", "support", "management", "control"] as const;
@@ -105,7 +107,7 @@ export function ProcessForm({
 	);
 	const set = <K extends keyof ProcessDraft>(k: K, v: ProcessDraft[K]) =>
 		setD({ ...d, [k]: v });
-	const userSelect = (label: string, key: "ownerUserId" | "deputyUserId") => (
+	const userSelect = (label: string, key: "deputyUserId") => (
 		<div className="flex flex-col gap-1.5">
 			<Label>{label}</Label>
 			<Select
@@ -158,7 +160,7 @@ export function ProcessForm({
 								return void toast.error(
 									res.error === "codeTaken"
 										? t("codeTaken")
-										: (gate.errorText(res.error) ?? tc("error")),
+										: (gate.errorText(res.error) ?? errorText(tc, res)),
 								);
 							toast.success(
 								res.data.approvalPending
@@ -230,7 +232,12 @@ export function ProcessForm({
 								</SelectContent>
 							</Select>
 						</div>
-						{userSelect(t("owner"), "ownerUserId")}
+						<ResponsibleField
+							label={t("owner")}
+							value={d.ownerUserId}
+							onChange={(v) => set("ownerUserId", v)}
+							members={members}
+						/>
 						{userSelect(t("deputy"), "deputyUserId")}
 						<NumberField
 							id="pr-rto"
@@ -330,7 +337,7 @@ export function ApplyProcessSeedButton({ variant }: { variant?: "default" }) {
 			onClick={() =>
 				start(async () => {
 					const res = await applyProcessSeed({});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("seedApplied", { n: res.data.created.length }));
 					router.refresh();
 				})
@@ -396,7 +403,7 @@ export function RaciEditor({
 			{rows.length === 0 ? (
 				<p className="text-muted-foreground text-subhead">{t("raciEmpty")}</p>
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 					{rows.map((r, idx) => (
 						<li
 							key={`${r.userId ?? r.function}-${r.raci}`}
@@ -518,7 +525,7 @@ export function RaciEditor({
 														? "raciNoA"
 														: "raciManyA",
 												)
-											: tc("error"),
+											: errorText(tc, res),
 									);
 								toast.success(t("saved"));
 								router.refresh();
@@ -557,14 +564,13 @@ function CheckList({
 	}, [options, q]);
 	return (
 		<fieldset className="flex min-w-0 flex-col gap-2">
-			<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+			<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 				{title} · {selected.size}
 			</legend>
 			<Input
 				value={q}
 				onChange={(e) => setQ(e.target.value)}
 				placeholder="Filter …"
-				className="h-8"
 			/>
 			<div className="max-h-44 overflow-y-auto rounded-2xl bg-card p-2 text-subhead">
 				{visible.length === 0 ? (
@@ -690,7 +696,7 @@ export function ProcessLinksEditor({
 									riskIds: [...r],
 									documentIds: [...dcs],
 								});
-								if (!res.ok) return void toast.error(tc("error"));
+								if (!res.ok) return void toast.error(errorText(tc, res));
 								toast.success(t("saved"));
 								setOpen(false);
 								router.refresh();

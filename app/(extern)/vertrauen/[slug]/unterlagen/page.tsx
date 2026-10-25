@@ -27,12 +27,12 @@ export default async function TrustDocumentsPage({
 	return (
 		<div className="flex flex-col gap-6">
 			<header className="flex flex-col gap-2">
-				<p className="text-muted-foreground text-footnote">
-					{t("publicEyebrow", { org: s.orgName })}
-				</p>
 				<h1 className="text-balance font-bold text-title-1 leading-tight">
 					{t("gateTitle")}
 				</h1>
+				<p className="text-muted-foreground text-subhead">
+					{t("publicEyebrow", { org: s.orgName })}
+				</p>
 				<p className="max-w-2xl text-muted-foreground text-subhead">
 					{t("gateIntro", { org: s.orgName })}
 				</p>

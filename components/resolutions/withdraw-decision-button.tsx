@@ -4,7 +4,6 @@ import { Undo2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { withdrawDecisionRequest } from "@/app/actions/decisions";
 import {
 	AlertDialog,
@@ -18,6 +17,8 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 
 // Eigene offene Managementanfrage zurückziehen (zieht auch den Antrag zurück)
 export function WithdrawDecisionButton({
@@ -51,7 +52,7 @@ export function WithdrawDecisionButton({
 							start(async () => {
 								const res = await withdrawDecisionRequest(id);
 								if (!res.ok) {
-									toast.error(tc("error"));
+									toast.error(errorText(tc, res));
 									return;
 								}
 								toast.success(t("withdrawDone"));

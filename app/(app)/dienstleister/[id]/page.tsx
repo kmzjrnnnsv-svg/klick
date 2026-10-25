@@ -46,6 +46,7 @@ import { TRAFFIC_TONE } from "@/lib/compliance/supplier-rating";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { mergeActivity, toHistoryItems } from "@/lib/history";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 const TABS = [
 	"stammdaten",
@@ -80,6 +81,7 @@ export default async function ProviderPage({
 	const sp = await searchParams;
 	const ctx = await requireOrgPage({ provider: ["read"] });
 	const t = await getTranslations("Suppliers");
+	const tNav = await getTranslations("Nav");
 	const tr = await getTranslations("Rating");
 	const tp = await getTranslations("Providers");
 	const ta = await getTranslations("Assessment");
@@ -158,6 +160,7 @@ export default async function ProviderPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/dienstleister", label: tNav("providers") }}
 			eyebrow={`${tp(`partner_${p.partnerType}`)} · ${tp(`crit_${p.criticality}`)}`}
 			title={p.name}
 			subtitle={p.serviceDescription ?? undefined}
@@ -192,7 +195,7 @@ export default async function ProviderPage({
 								contractEnd: p.contractEnd,
 								dataLocations: p.dataLocations,
 								noticePeriodDays: p.noticePeriodDays,
-								ownerUserId: p.ownerUserId,
+								ownerUserId: responsibleValue(p),
 								notes: p.notes,
 							}}
 						/>
@@ -461,7 +464,7 @@ export default async function ProviderPage({
 					{data.ratings.length === 0 ? (
 						<p className="text-subhead">{tr("internalEmpty")}</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.ratings.map((r) => (
 								<li
 									key={r.id}
@@ -634,7 +637,7 @@ export default async function ProviderPage({
 					{data.files.length === 0 ? (
 						<p className="text-subhead">{t("filesEmpty")}</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.files.map((f) => (
 								<li
 									key={f.id}

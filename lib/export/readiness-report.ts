@@ -36,6 +36,7 @@ const KIND: Record<BlockerKind, string> = {
 	pbc_rejected: "Abgelehnte Prüferanfrage nachreichen",
 	product_gap: "Produktpflicht erfüllen",
 	security_finding: "Sicherheitsbefund beheben",
+	governance_gap: "Freigabe-Pflicht abdecken",
 };
 
 const cell = (v: unknown) =>

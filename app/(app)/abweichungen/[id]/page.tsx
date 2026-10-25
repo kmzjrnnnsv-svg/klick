@@ -9,6 +9,7 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
@@ -51,6 +52,7 @@ import {
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 const SOURCE_KIND = {
 	audit: "audit_finding",
@@ -72,6 +74,7 @@ export default async function NonconformityDetailPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ nonconformity: ["read"] });
 	const t = await getTranslations("Nonconformities");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const canEdit = allows(ctx, { nonconformity: ["update"] });
@@ -142,6 +145,7 @@ export default async function NonconformityDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/abweichungen", label: tNav("nonconformities") }}
 			eyebrow={`${nc.code} · ${t(`source_${nc.source}`)}`}
 			title={nc.title}
 			subtitle={nc.description ?? undefined}
@@ -174,7 +178,7 @@ export default async function NonconformityDetailPage({
 								rootCause: nc.rootCause,
 								correction: nc.correction,
 								correctiveAction: nc.correctiveAction,
-								ownerUserId: nc.ownerUserId,
+								ownerUserId: responsibleValue(nc),
 								assigneeUserId: nc.assigneeUserId,
 								dueAt: nc.dueAt,
 								effectivenessCheckAt: nc.effectivenessCheckAt,
@@ -190,7 +194,10 @@ export default async function NonconformityDetailPage({
 			meta={
 				<>
 					<MetaItem label={t("owner")}>
-						<UserChip name={names.get(nc.ownerUserId ?? "")} />
+						<OwnerChip
+							ownerFunction={nc.ownerFunction}
+							name={names.get(nc.ownerUserId ?? "")}
+						/>
 					</MetaItem>
 					<MetaItem label={t("assignee")}>
 						<UserChip name={names.get(nc.assigneeUserId ?? "")} />

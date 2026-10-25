@@ -1,5 +1,12 @@
+import { KEY_HOLDER_ROLES } from "@/db/schema/custody";
 import type { EntityKind } from "@/db/schema/enums";
-import { CLASSIFICATIONS, CRITICALITY, NC_PRIORITIES } from "@/db/schema/enums";
+import {
+	CHANGE_KINDS,
+	CLASSIFICATIONS,
+	CRITICALITY,
+	NC_PRIORITIES,
+	ROLE_FUNCTIONS,
+} from "@/db/schema/enums";
 import type { ApprovalStep } from "@/db/schema/grc";
 import { RISK_CATEGORIES } from "@/db/schema/grc";
 import { PROVIDER_CATEGORIES } from "@/db/schema/registers";
@@ -46,7 +53,32 @@ const providerFacts: readonly FactDef[] = [
 	{ key: "isIct", type: "boolean" },
 	{ key: "isOutsourcing", type: "boolean" },
 	{ key: "isMaterial", type: "boolean" },
+	{ key: "needsManagement", type: "boolean" },
 ];
+
+// Fakten eines Dienstleisters. needsManagement fasst zusammen, wann die
+// Geschäftsleitung zustimmt (kritische oder wichtige Funktion, DORA Art. 28;
+// wesentliche Auslagerung, MaRisk AT 9) — Bedingungen sind UND-verknüpft,
+// darum ein abgeleiteter Fakt.
+export function providerFactsOf(p: {
+	criticality: (typeof CRITICALITY)[number];
+	category?: string | null;
+	isIct: boolean;
+	isOutsourcing: boolean;
+	isMaterial: boolean;
+}) {
+	return {
+		criticality: p.criticality,
+		category: p.category ?? null,
+		isIct: p.isIct,
+		isOutsourcing: p.isOutsourcing,
+		isMaterial: p.isMaterial,
+		needsManagement:
+			p.criticality === "critical" ||
+			p.criticality === "important" ||
+			(p.isOutsourcing && p.isMaterial),
+	};
+}
 const assetFacts: readonly FactDef[] = [
 	{ key: "assetType", type: "enum", options: ASSET_TYPES },
 	{ key: "classification", type: "enum", options: CLASSIFICATIONS },
@@ -81,6 +113,11 @@ const ncFacts: readonly FactDef[] = [
 ];
 const processFacts: readonly FactDef[] = [
 	{ key: "criticality", type: "enum", options: CRITICALITY },
+];
+// Bestellung: welche Funktion, gehört sie zur Leitung selbst
+const appointmentFacts: readonly FactDef[] = [
+	{ key: "function", type: "enum", options: ROLE_FUNCTIONS },
+	{ key: "isManagement", type: "boolean" },
 ];
 
 export const TRIGGERS: readonly TriggerDef[] = [
@@ -168,13 +205,14 @@ export const TRIGGERS: readonly TriggerDef[] = [
 		wired: true,
 	},
 	{
+		// Dokumente der Art „marketing“ (MiCAR Art. 66)
 		key: "marketing.publish",
 		kind: "marketing",
 		entityType: "document",
 		area: "documents",
 		mode: "pending",
-		facts: [],
-		wired: false,
+		facts: [{ key: "classification", type: "enum", options: CLASSIFICATIONS }],
+		wired: true,
 	},
 	{
 		key: "control.signoff",
@@ -241,15 +279,58 @@ export const TRIGGERS: readonly TriggerDef[] = [
 		wired: true,
 	},
 	{
+		// Neues Produkt, neuer Markt/Vertriebsweg, wesentliche IT-Änderung
+		// (MaRisk AT 8, /aenderungen)
 		key: "change.request",
 		kind: "change",
-		entityType: "task",
+		entityType: "change_request",
 		area: "operations",
 		mode: "pending",
-		facts: [],
-		wired: false,
+		facts: [{ key: "changeKind", type: "enum", options: CHANGE_KINDS }],
+		wired: true,
 	},
 	// Steuerung
+	{
+		// Funktion besetzen, neu besetzen, Vertretung ändern (ISO 27001 5.3,
+		// DORA Art. 5(2), ZAG-MaRisk AT 4.4, § 7 GwG …)
+		key: "role.appoint",
+		kind: "role_appointment",
+		entityType: "role_assignment",
+		area: "governance",
+		mode: "pending",
+		facts: appointmentFacts,
+		wired: true,
+	},
+	{
+		key: "role.revoke",
+		kind: "role_revocation",
+		entityType: "role_assignment",
+		area: "governance",
+		mode: "pending",
+		facts: appointmentFacts,
+		wired: true,
+	},
+	{
+		// Schlüsselinhaber:in einer Wallet bestellen (CCSS 1.06); Entzug
+		// bleibt sofort ohne Freigabe
+		key: "key_holder.appoint",
+		kind: "key_holder_appointment",
+		entityType: "wallet_key_holder",
+		area: "governance",
+		mode: "pending",
+		facts: [{ key: "role", type: "enum", options: KEY_HOLDER_ROLES }],
+		wired: true,
+	},
+	{
+		// EU-Konformitätserklärung (CRA Art. 28): Datum erst mit Freigabe
+		key: "product.declaration",
+		kind: "product_declaration",
+		entityType: "product",
+		area: "special",
+		mode: "pending",
+		facts: [],
+		wired: true,
+	},
 	{
 		key: "objective.release",
 		kind: "objective_release",
@@ -330,7 +411,20 @@ export function triggerForKind(kind: string): TriggerDef | undefined {
 }
 
 // Standard-Stufen neuer Auslöser (Seed; der Owner passt sie im Designer an)
+// Bestellung und Abberufung: die ganze Geschäftsleitung stimmt zu
+const MANAGEMENT_ALL: ApprovalStep[] = [
+	{
+		order: 1,
+		approverRule: "function:management_body",
+		everyone: true,
+		slaDays: 10,
+	},
+];
+
 export const NEW_TRIGGER_STEPS: Readonly<Record<string, ApprovalStep[]>> = {
+	role_appointment: MANAGEMENT_ALL,
+	role_revocation: MANAGEMENT_ALL,
+	key_holder_appointment: MANAGEMENT_ALL,
 	provider_intake: [
 		{ order: 1, approverRule: "function:outsourcing_officer", slaDays: 10 },
 	],

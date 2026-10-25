@@ -1,4 +1,5 @@
 import type { EntityKind, NotificationKind } from "@/db/schema/enums";
+import { managementAckState } from "@/lib/compliance/incident-management";
 import { previousBusinessDay } from "@/lib/custody/reconcile";
 import {
 	alertOverdue,
@@ -22,6 +23,9 @@ export const EXCEPTION_HORIZON_DAYS = 30;
 export const INCIDENT_SOON_HOURS = 2;
 export const DEDUPE_HOURS = 24;
 export const ACK_GRACE_DAYS = 7;
+// Bestellung: Annahme = Unterschrift der bestellten Person unter dem
+// Bestellungsschreiben; ab dann wöchentlich erinnern
+export const ACCEPTANCE_REMINDER_DAYS = 14;
 export const INSURANCE_WARN_DAYS = 60;
 export const SUPPLIER_REMIND_DAYS = 14;
 
@@ -79,12 +83,17 @@ export type DueRows = {
 		dueAt: Date | string | null;
 		status: "due" | "overdue" | "done";
 	}[];
+	/** Geschäftsleitung (Funktion management_body inkl. Vertretung). */
+	managementIds?: readonly string[];
 	incidents: readonly {
 		id: string;
 		code: string;
 		title: string;
 		ownerUserId: string | null;
 		status: string;
+		classification?: string | null;
+		classifiedAt?: Date | string | null;
+		managementAcknowledgedAt?: Date | string | null;
 		clocks: readonly {
 			label: string;
 			dueAt: Date | string | null;
@@ -96,6 +105,13 @@ export type DueRows = {
 		title: string;
 		publishedAt: Date | string | null;
 		missingUserIds: readonly string[];
+	}[];
+	/** Bestellt, Schreiben erzeugt, aber noch nicht von der Person unterschrieben. */
+	appointmentAcceptances?: readonly {
+		id: string;
+		userId: string;
+		evidenceId: string;
+		appointedAt: Date | string | null;
 	}[];
 	/** Pflichten-Läufe (Kalender): Vorlauf > Aufgabe, überfällig > Status. */
 	obligationRuns: readonly {
@@ -546,6 +562,31 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 		}
 	}
 
+	// Geschäftsleitung informiert, Kenntnisnahme nach 24 h noch offen
+	for (const inc of rows.incidents) {
+		if (inc.status === "closed") continue;
+		const state = managementAckState(
+			{
+				classification: inc.classification ?? null,
+				classifiedAt: inc.classifiedAt ?? null,
+				managementAcknowledgedAt: inc.managementAcknowledgedAt ?? null,
+			},
+			now,
+		);
+		if (state !== "overdue") continue;
+		notifications.push({
+			kind: "management_info",
+			recipients:
+				rows.managementIds && rows.managementIds.length > 0
+					? [...rows.managementIds]
+					: [...rows.orgOwnerIds],
+			title: `Kenntnisnahme offen: ${inc.code}`,
+			body: `${inc.title} — die Geschäftsleitung hat den meldepflichtigen Vorfall noch nicht zur Kenntnis genommen.`,
+			link: `/vorfaelle/${encodeURIComponent(inc.id)}`,
+			dedupeKey: `incident-ack:${inc.id}`,
+		});
+	}
+
 	// Kenntnisnahmen: nach ACK_GRACE_DAYS erinnern
 	for (const ack of rows.acknowledgements) {
 		const published = toDate(ack.publishedAt);
@@ -559,6 +600,22 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			body: `${ack.title} — bitte auf „Heute" bestätigen.`,
 			link: "/heute",
 			dedupeKey: `ack:${ack.docNumber}:${isoDay(published)}`,
+		});
+	}
+
+	// Bestellung angenommen? Ab 14 Tagen ohne Unterschrift einmal je Woche
+	for (const a of rows.appointmentAcceptances ?? []) {
+		const since = toDate(a.appointedAt);
+		if (!since) continue;
+		const days = Math.floor((now.getTime() - since.getTime()) / DAY);
+		if (days < ACCEPTANCE_REMINDER_DAYS) continue;
+		notifications.push({
+			kind: "acknowledgement_due",
+			recipients: [a.userId],
+			title: "Bestellungsschreiben unterschreiben",
+			body: `Deine Bestellung wartet seit ${days} Tagen auf deine Unterschrift; sie belegt, dass du die Funktion angenommen hast.`,
+			link: `/nachweise/${encodeURIComponent(a.evidenceId)}`,
+			dedupeKey: `appointment-accept:${a.id}:${Math.floor(days / 7)}`,
 		});
 	}
 

@@ -1,8 +1,11 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { GovernanceModeControl } from "@/components/settings/governance-mode-control";
 import { ActivityStep } from "@/components/setup/activity-step";
+import { BoardStep } from "@/components/setup/board-step";
 import { CompanyStep } from "@/components/setup/company-step";
 import { FrameworksStep } from "@/components/setup/frameworks-step";
 import { GapStep } from "@/components/setup/gap-step";
@@ -10,20 +13,39 @@ import { ItDataStep } from "@/components/setup/it-data-step";
 import { RolesStep } from "@/components/setup/roles-step";
 import { SitesStep } from "@/components/setup/sites-step";
 import { StepFooter } from "@/components/setup/step-footer";
-import { orgSettings, providers, roleAssignments, sites } from "@/db/schema";
-import type { RoleFunction } from "@/db/schema/enums";
+import {
+	controlImplementations,
+	controls,
+	orgSettings,
+	providers,
+	roleAssignments,
+	sites,
+} from "@/db/schema";
+import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
+import { governanceModeOf } from "@/lib/approvals/governance-mode";
+import { approvalProgressFor } from "@/lib/approvals/service";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { listPendingInvitations } from "@/lib/auth/org";
+import { allows } from "@/lib/auth/permissions";
+import { isEffective } from "@/lib/compliance/appointments";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
+import {
+	areaOf,
+	RESPONSIBILITY_AREAS,
+	suggestAreaFunction,
+} from "@/lib/compliance/catalog/domain-functions";
 import { requiredFunctions } from "@/lib/compliance/catalog/required-functions";
-import { checkSod } from "@/lib/compliance/catalog/sod-rules";
 import { suggestFrameworks } from "@/lib/compliance/company-profile";
+import { whoHoldsWhat } from "@/lib/compliance/function-holders";
+import { isOwnRoleKey } from "@/lib/compliance/function-key";
 import {
 	getOrgProfile,
 	listMembersForPicker,
 	userNames,
 } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
+import { loadRoleBoard } from "@/lib/org/role-board-data";
 import {
 	isSetupStep,
 	neighbours,
@@ -48,14 +70,21 @@ const BASE_FUNCTIONS: readonly RoleFunction[] = [
 
 export default async function SetupStepPage({
 	params,
+	searchParams,
 }: {
 	params: Promise<{ schritt: string }>;
+	searchParams: Promise<{ ansicht?: string | string[] }>;
 }) {
 	const { schritt } = await params;
 	if (!isSetupStep(schritt)) notFound();
 	const ctx = await requireOrgPage({ settings: ["update"] });
+	const { ansicht } = await searchParams;
 	const t = await getTranslations("Setup");
 	const tf = await getTranslations("Functions");
+	const tcl = await getTranslations("Controls");
+	// Rollen-Tafel (individuell): offene Einladungen stehen als Personen bereit
+	const invitations =
+		schritt === "rollen" ? await listPendingInvitations(ctx.orgId) : [];
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const profile = await getOrgProfile(tx, ctx.orgId);
@@ -63,6 +92,7 @@ export default async function SetupStepPage({
 			.select({
 				flags: orgSettings.setupFlags,
 				entity: orgSettings.entityProfile,
+				areaFunctions: orgSettings.areaFunctions,
 			})
 			.from(orgSettings)
 			.where(eq(orgSettings.organizationId, ctx.orgId))
@@ -78,18 +108,74 @@ export default async function SetupStepPage({
 						externalName: roleAssignments.externalName,
 						pendingEmail: roleAssignments.pendingEmail,
 						deputyUserId: roleAssignments.deputyUserId,
+						appointedAt: roleAssignments.appointedAt,
+						createdAt: roleAssignments.createdAt,
+						status: roleAssignments.status,
+						decisionNote: roleAssignments.decisionNote,
 					})
 					.from(roleAssignments)
-					.where(eq(roleAssignments.organizationId, ctx.orgId));
+					.where(
+						and(
+							eq(roleAssignments.organizationId, ctx.orgId),
+							ne(roleAssignments.status, "revoked"),
+							// eigene Rollen stehen auf der Rollen-Tafel (individuell)
+							isNull(roleAssignments.orgRoleId),
+						),
+					)
+					.orderBy(roleAssignments.appointedAt, roleAssignments.createdAt);
+				// Stand der Bestellung (wartet auf die Geschäftsleitung, 1 von 2)
+				const progress = await approvalProgressFor(
+					tx,
+					ctx.orgId,
+					"role_assignment",
+					rows.filter((r) => r.status !== "appointed").map((r) => r.id),
+				);
 				const names = await userNames(
 					tx,
 					rows.flatMap((r) => [r.userId, r.deputyUserId]),
 				);
+				// Standard oder individuell (ADR-024); individuell mit Rollen-Tafel
+				const mode = await governanceModeOf(tx, ctx.orgId);
 				return {
 					...base,
-					assignments: rows,
+					mode,
+					board:
+						mode === "individual" && profile
+							? await loadRoleBoard(tx, ctx.orgId, {
+									required: requiredFunctions(
+										profile.frameworks,
+										profile.profile.licenceStage,
+									).map((r) => r.function),
+									functionLabels: Object.fromEntries(
+										ROLE_FUNCTIONS.map((f) => [f, tf(f)]),
+									),
+									areaLabel: (area) =>
+										area === "privacy"
+											? t("areaPrivacy")
+											: tcl(`domain_${area}` as "domain_governance"),
+									invitations,
+								})
+							: null,
+					assignments: rows.map((r) => ({
+						...r,
+						progress: progress.get(r.id) ?? null,
+					})),
 					names,
 					members: await listMembersForPicker(tx, ctx.orgId),
+					areaFunctions: s?.areaFunctions ?? {},
+					controlOwners: await tx
+						.select({
+							code: controls.code,
+							domain: controls.domain,
+							ownerFunction: controlImplementations.ownerFunction,
+							ownerUserId: controlImplementations.ownerUserId,
+						})
+						.from(controlImplementations)
+						.innerJoin(
+							controls,
+							eq(controls.id, controlImplementations.controlId),
+						)
+						.where(eq(controlImplementations.organizationId, ctx.orgId)),
 				};
 			}
 			case "standorte":
@@ -148,7 +234,14 @@ export default async function SetupStepPage({
 								}`}
 							>
 								<span className="tabular-nums">
-									{done.has(s) ? "✓" : i + 1}
+									{done.has(s) ? (
+										<>
+											<Check aria-hidden="true" className="size-4" />
+											<span className="sr-only">{t("stepDone")}</span>
+										</>
+									) : (
+										i + 1
+									)}
 								</span>
 								{t(`step_${s}`)}
 							</Link>
@@ -163,46 +256,155 @@ export default async function SetupStepPage({
 				</p>
 			</header>
 
-			{schritt === "rollen" && "assignments" in data && (
-				<RolesStep
-					functions={(() => {
-						const req = requiredFunctions(
-							profile.frameworks,
-							profile.profile.licenceStage,
-						);
-						const keys = new Set<RoleFunction>([
-							...req.map((r) => r.function),
-							...(req.length === 0 ? BASE_FUNCTIONS : []),
-						]);
-						return [...keys].map((f) => {
-							const r = req.find((x) => x.function === f);
-							return {
-								function: f,
-								title: tf(f),
-								hint: r?.hint ?? null,
-								legalBasis: r?.legalBasis ?? null,
-								required: Boolean(r),
-							};
-						});
-					})()}
-					assignments={data.assignments.map((a) => ({
+			{schritt === "rollen" &&
+				"assignments" in data &&
+				(() => {
+					const req = requiredFunctions(
+						profile.frameworks,
+						profile.profile.licenceStage,
+					);
+					// oben: Pflichtfunktionen (ohne Rahmenwerke die Grundausstattung)
+					// und alles, was schon besetzt ist; der Rest unter „Weitere“
+					const main = new Set<RoleFunction>([
+						...req.map((r) => r.function),
+						...(req.length === 0 ? BASE_FUNCTIONS : []),
+						...data.assignments.map((a) => a.function),
+					]);
+					const order = ROLE_FUNCTIONS.filter((f) => f !== "other");
+					const functions = [
+						...order.filter((f) => main.has(f)),
+						...order.filter((f) => !main.has(f)),
+					].map((f) => {
+						const r = req.find((x) => x.function === f);
+						return {
+							function: f,
+							title: tf(f),
+							hint: r?.hint ?? null,
+							legalBasis: r?.legalBasis ?? null,
+							required: Boolean(r),
+							deputyRequired: Boolean(r?.deputyRequired),
+							more: !main.has(f),
+						};
+					});
+					const named = data.assignments.map((a) => ({
 						...a,
 						userName: a.userId ? (data.names.get(a.userId) ?? null) : null,
 						deputyName: a.deputyUserId
 							? (data.names.get(a.deputyUserId) ?? null)
 							: null,
-					}))}
-					members={data.members}
-					currentUserId={ctx.userId}
-					sod={checkSod(data.assignments).map((v) => ({
-						code: v.rule.code,
-						text: v.rule.text,
-						severity: v.rule.severity,
-						who: data.names.get(v.userId) ?? "—",
-					}))}
-					nextHref={nextHref}
-				/>
-			)}
+					}));
+					// Bereiche → Funktion: gespeichert, sonst die Funktion, die den
+					// Bereich schon trägt, sonst der Vorschlag aus dem Katalog
+					const held = new Set(
+						data.assignments
+							.filter((a) => isEffective(a.status))
+							.map((a) => a.function),
+					);
+					const areas = RESPONSIBILITY_AREAS.map((area) => {
+						const rows = data.controlOwners.filter((c) => areaOf(c) === area);
+						const counts = new Map<RoleFunction, number>();
+						for (const r of rows)
+							if (r.ownerFunction && !isOwnRoleKey(r.ownerFunction))
+								counts.set(
+									r.ownerFunction,
+									(counts.get(r.ownerFunction) ?? 0) + 1,
+								);
+						const current =
+							[...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+						// die Einrichtung kennt nur Katalog-Funktionen (eigene Rollen:
+						// Rollen-Tafel im individuellen Modus)
+						const stored = data.areaFunctions[area] ?? null;
+						const saved =
+							stored && !isOwnRoleKey(stored) ? (stored as RoleFunction) : null;
+						return {
+							area,
+							label:
+								area === "privacy" ? t("areaPrivacy") : tcl(`domain_${area}`),
+							total: rows.length,
+							open: rows.filter(
+								(r) =>
+									!r.ownerFunction &&
+									(!r.ownerUserId || r.ownerUserId === ctx.userId),
+							).length,
+							initial:
+								(saved && held.has(saved) ? saved : null) ??
+								current ??
+								suggestAreaFunction(area, held),
+						};
+					});
+					const anyControls = data.controlOwners.length > 0;
+					const board =
+						data.board &&
+						(Array.isArray(ansicht) ? ansicht[0] : ansicht) !== "liste"
+							? data.board
+							: null;
+					return (
+						<div className="flex flex-col gap-8">
+							<GovernanceModeControl
+								mode={data.mode}
+								canSwitch={ctx.orgRole === "owner"}
+								variant="setup"
+							/>
+							{data.board && (
+								<nav
+									aria-label={t("modeTitle")}
+									className="grid grid-cols-2 gap-1 self-start rounded-xl bg-muted p-1"
+								>
+									{(
+										[
+											["tafel", t("boardBoard")],
+											["liste", t("boardList")],
+										] as const
+									).map(([v, label]) => (
+										<Link
+											key={v}
+											href={
+												v === "tafel"
+													? stepHref("rollen")
+													: `${stepHref("rollen")}?ansicht=liste`
+											}
+											aria-current={
+												(v === "tafel") === Boolean(board) ? "page" : undefined
+											}
+											className={`flex min-h-(--control-h) items-center justify-center rounded-lg px-3 text-subhead ${
+												(v === "tafel") === Boolean(board)
+													? "bg-background font-medium shadow-sm"
+													: "text-muted-foreground hover:text-foreground"
+											}`}
+										>
+											{label}
+										</Link>
+									))}
+								</nav>
+							)}
+							{board ? (
+								<BoardStep
+									{...board}
+									canEdit={allows(ctx, { role_assignment: ["update"] })}
+									nextHref={nextHref}
+								/>
+							) : (
+								<RolesStep
+									functions={functions}
+									areas={areas.filter((a) =>
+										anyControls ? a.total > 0 : a.initial !== null,
+									)}
+									heldFunctions={order
+										.filter((f) => held.has(f))
+										.map((f) => ({ function: f, title: tf(f) }))}
+									assignments={named}
+									people={whoHoldsWhat(
+										named.filter((a) => a.status !== "rejected"),
+										(fn) => tf(fn as RoleFunction),
+									)}
+									members={data.members}
+									currentUserId={ctx.userId}
+									nextHref={nextHref}
+								/>
+							)}
+						</div>
+					);
+				})()}
 			{schritt === "unternehmen" && (
 				<CompanyStep
 					initial={entity}

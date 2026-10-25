@@ -3,7 +3,7 @@
 // getestet (tests/decision-resolutions.test.ts); angewendet in
 // lib/compliance/decision-service.ts.
 
-import type { EntityKind } from "@/db/schema/enums";
+import type { EntityKind, RoleFunction } from "@/db/schema/enums";
 
 export type DecisionInput = {
 	workflowKind: string;
@@ -17,6 +17,8 @@ export type DecisionInput = {
 	providerMaterial?: boolean;
 	// Managementanfrage (E2)
 	question?: string | null;
+	// Bestellung einer Funktion
+	roleFunction?: RoleFunction | null;
 };
 
 // Pflichtbeschluss (lib/compliance/catalog/resolutions-required.ts), den
@@ -35,9 +37,43 @@ export function requiredCodeFor(d: DecisionInput): string | null {
 		case "provider":
 		case "provider_rating":
 			return d.providerMaterial ? "RES-DORA-TPR" : null;
+		case "role_assignment":
+			// Abberufung erfüllt keinen Pflichtbeschluss
+			if (d.workflowKind === "role_revocation") return null;
+			return d.roleFunction === "aml_officer" ? "RES-GWG-AMLO" : "RES-ROLES";
 		default:
 			return null;
 	}
+}
+
+// Normpunkte einer Bestellung (Beschluss mit Rahmenwerk-Bezug): allgemein
+// Rollen und Zuständigkeiten, dazu je Funktion die eigene Grundlage.
+const APPOINTMENT_KEYS_ALL = [
+	"iso27001:5.3",
+	"dora:Art.5(2)",
+	"zag-marisk:AT3",
+	"kwg:§25c-25d",
+	"micar:Art.68",
+	"soc2:CC1.3",
+] as const;
+
+const APPOINTMENT_KEYS_BY_FUNCTION: Partial<
+	Record<RoleFunction, readonly string[]>
+> = {
+	isb_ciso: ["iso27001:A.5.2"],
+	ict_risk_function: ["dora:Art.6(1-4)"],
+	outsourcing_officer: ["dora:Art.5(3)", "zag-marisk:AT9"],
+	compliance: ["zag-marisk:AT4.4.2", "kwg:AT4.4"],
+	risk_control: ["zag-marisk:AT4.4.1", "kwg:AT4.4"],
+	internal_audit: ["zag-marisk:AT4.4.3", "kwg:AT4.4"],
+	aml_officer: ["gwg:§7", "amlr:Art.11"],
+	compliance_manager: ["gwg:§4", "amlr:Art.9"],
+	dpo: ["dsgvo:Art.37-39"],
+	nis2_responsible: ["nis2:Art.27"],
+};
+
+export function appointmentRequirementKeys(fn: RoleFunction): string[] {
+	return [...APPOINTMENT_KEYS_ALL, ...(APPOINTMENT_KEYS_BY_FUNCTION[fn] ?? [])];
 }
 
 const DOCUMENT_RESOLUTION: Record<string, string> = {

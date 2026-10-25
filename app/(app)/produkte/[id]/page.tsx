@@ -8,6 +8,7 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
@@ -24,6 +25,7 @@ import { DecisionRequestsBlock } from "@/components/resolutions/decision-request
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -79,6 +81,7 @@ export default async function ProductPage({
 	const sp = await searchParams;
 	const ctx = await requireOrgPage({ product: ["read"] });
 	const t = await getTranslations("Products");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const ti = await getTranslations("Incidents");
@@ -87,7 +90,7 @@ export default async function ProductPage({
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getProductDetail(tx, ctx.orgId, id);
 		if (!d) return null;
-		const [comments, history, members, tasks, docs, findings] =
+		const [comments, history, members, tasks, docs, findings, waiting] =
 			await Promise.all([
 				listComments(tx, ctx.orgId, "product", id),
 				historyFor(tx, `product:${id}`),
@@ -95,13 +98,24 @@ export default async function ProductPage({
 				listTasks(tx, ctx.orgId, { entityType: "product", entityId: id }),
 				listDocuments(tx, ctx.orgId),
 				listFindings(tx, ctx.orgId, { productId: id }),
+				pendingApprovalIds(tx, ctx.orgId, "product", [id]),
 			]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
 		]);
 		for (const [k, v] of d.names) names.set(k, v);
-		return { ...d, comments, history, members, tasks, docs, findings, names };
+		return {
+			...d,
+			comments,
+			history,
+			members,
+			tasks,
+			docs,
+			findings,
+			names,
+			declarationPending: waiting.size > 0,
+		};
 	});
 	if (!data) notFound();
 	const p = data.product;
@@ -152,6 +166,7 @@ export default async function ProductPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/produkte", label: tNav("products") }}
 			eyebrow={`${p.code} · ${t(`role_${p.role}`)} · ${t(`kind_${p.kind}`)}`}
 			title={p.name}
 			subtitle={p.description ?? undefined}
@@ -173,7 +188,10 @@ export default async function ProductPage({
 						{p.supportUntil ? fmtDate.format(new Date(p.supportUntil)) : "—"}
 					</MetaItem>
 					<MetaItem label={t("owner")}>
-						<UserChip name={data.names.get(p.ownerUserId ?? "")} />
+						<OwnerChip
+							ownerFunction={p.ownerFunction}
+							name={data.names.get(p.ownerUserId ?? "")}
+						/>
 					</MetaItem>
 				</>
 			}
@@ -264,7 +282,7 @@ export default async function ProductPage({
 								<p className="mb-3 text-muted-foreground text-subhead">
 									{t("checksLead", { done: cra.done, total: cra.total })}
 								</p>
-								<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+								<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 									{cra.checks.map((c) => (
 										<li
 											key={c.key}
@@ -402,6 +420,7 @@ export default async function ProductPage({
 							disabled={!canEdit}
 							documents={docOptions}
 							thirdParty={cra.route.thirdParty}
+							declarationPending={data.declarationPending}
 							initial={{
 								riskDocumentId: p.riskDocumentId,
 								techDocDocumentId: p.techDocDocumentId,
@@ -514,7 +533,7 @@ export default async function ProductPage({
 							{t("findingsEmpty")}
 						</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.findings.slice(0, 100).map((f) => (
 								<li
 									key={f.id}
@@ -565,7 +584,7 @@ export default async function ProductPage({
 							{t("checklistEmpty")}
 						</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.checklists.map((c) => (
 								<li
 									key={c.id}
@@ -615,7 +634,7 @@ export default async function ProductPage({
 							{t("incidentsEmpty")}
 						</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.incidents.map((i) => (
 								<li
 									key={i.id}

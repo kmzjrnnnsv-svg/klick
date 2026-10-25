@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { createEvidenceLink, uploadEvidence } from "@/app/actions/evidence";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +14,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { DlpWarning, useUploadFeedback } from "./upload-feedback";
 
 const TYPES = [
@@ -122,7 +123,7 @@ export function EvidenceForm({
 				toast.error(
 					res.error.startsWith("upload_")
 						? `${tc("error")} (${res.error.slice(7)})`
-						: tc("error"),
+						: errorText(tc, res),
 				);
 				return;
 			}

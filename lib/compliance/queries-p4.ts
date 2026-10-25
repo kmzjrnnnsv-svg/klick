@@ -179,6 +179,7 @@ export async function listMilestones(tx: OrgTx, orgId: string) {
 		status: r.status,
 		dueAt: r.dueAt,
 		ownerUserId: r.ownerUserId,
+		ownerFunction: r.ownerFunction,
 		ownerName: r.ownerUserId ? (names.get(r.ownerUserId) ?? null) : null,
 		assigneeUserId: r.assigneeUserId,
 		assigneeName: r.assigneeUserId

@@ -1,10 +1,7 @@
 import { CheckIcon } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import {
-	MonogramPattern,
-	SectionDivider,
-} from "@/components/marketing/landing-decor";
+import { SectionDivider } from "@/components/marketing/landing-decor";
 import { buttonVariants } from "@/components/ui/button";
 import {
 	CONTROL_BY_CODE,
@@ -69,13 +66,11 @@ export default async function LandingPage() {
 	const count = EXAMPLE.frameworks.length;
 	return (
 		<main id="inhalt" className="relative flex-1 overflow-hidden">
-			<MonogramPattern className="-z-10 pointer-events-none absolute inset-0 h-full w-full text-foreground/[0.04]" />
-
 			<section className="mx-auto max-w-5xl px-4 pt-20 pb-12 sm:px-6 sm:pt-28">
 				<h1 className="max-w-3xl text-balance font-bold text-5xl leading-[1.04] tracking-tight sm:text-7xl">
 					{t("title")}
 				</h1>
-				<p className="mt-6 max-w-2xl text-lg text-muted-foreground leading-relaxed">
+				<p className="mt-6 max-w-2xl text-title-3 text-muted-foreground leading-relaxed">
 					{t("lead")}
 				</p>
 				<div className="mt-10 flex flex-wrap gap-3">
@@ -92,7 +87,7 @@ export default async function LandingPage() {
 			</section>
 
 			<section className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 sm:pt-12">
-				<h2 className="font-bold text-title-2 sm:text-3xl">
+				<h2 className="font-bold text-title-2 sm:text-title-1">
 					{t("exampleTitle")}
 				</h2>
 				<p className="mt-3 max-w-2xl text-muted-foreground">
@@ -181,7 +176,9 @@ export default async function LandingPage() {
 				id="so-gehts"
 				className="mx-auto max-w-5xl scroll-mt-20 px-4 sm:px-6"
 			>
-				<h2 className="font-bold text-title-2 sm:text-3xl">{t("howTitle")}</h2>
+				<h2 className="font-bold text-title-2 sm:text-title-1">
+					{t("howTitle")}
+				</h2>
 				<p className="mt-3 max-w-2xl text-muted-foreground">{t("howLead")}</p>
 				<ol className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-3">
 					{STEPS.map((s, i) => (
@@ -201,10 +198,7 @@ export default async function LandingPage() {
 			<SectionDivider />
 
 			<section className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-				<p className="font-medium text-footnote text-muted-foreground">
-					{t("sentenceEyebrow")}
-				</p>
-				<p className="mt-6 font-bold text-title-1 leading-snug sm:text-4xl">
+				<p className="font-bold text-title-1 leading-snug sm:text-4xl">
 					„{t("sentence")}“
 				</p>
 			</section>
@@ -212,7 +206,7 @@ export default async function LandingPage() {
 			<SectionDivider />
 
 			<section className="mx-auto max-w-5xl px-4 sm:px-6">
-				<h2 className="font-bold text-title-2 sm:text-3xl">
+				<h2 className="font-bold text-title-2 sm:text-title-1">
 					{t("pillarsTitle")}
 				</h2>
 				<div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-3">
@@ -233,7 +227,7 @@ export default async function LandingPage() {
 			<SectionDivider />
 
 			<section className="mx-auto max-w-5xl px-4 sm:px-6">
-				<h2 className="font-bold text-title-2 sm:text-3xl">
+				<h2 className="font-bold text-title-2 sm:text-title-1">
 					{t("frameworksTitle")}
 				</h2>
 				<p className="mt-3 max-w-2xl text-muted-foreground">

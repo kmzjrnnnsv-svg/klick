@@ -16,6 +16,9 @@ const ACCENT = "#0a63d6";
 const FONT =
 	"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
 const MONO = "ui-monospace,'SF Mono',Menlo,Consolas,monospace";
+
+// für Mails, die eigenes HTML in transactionalEmail geben (z. B. Tages-Mail)
+export const MAIL_COLORS = { INK, SECONDARY, SEPARATOR, ACCENT } as const;
 const TAGLINE = "Maison Klick — Compliance, die zusammenpasst.";
 
 import { escapeHtml, textToHtml } from "./html";
@@ -264,8 +267,8 @@ export function supplierPortalEmail(input: {
 		subject: `Fragebogen von ${input.organization}: ${input.questionnaire}`,
 		eyebrow: "Lieferantenbewertung",
 		title: `${input.organization} bittet dich um Auskunft.`,
-		body: `${greeting}\n\nim Rahmen der Lieferantenbewertung bitten wir dich, den Fragebogen „${input.questionnaire}“ zu beantworten und passende Nachweise hochzuladen.${dueDate ? ` Bitte reiche ihn bis zum ${dueDate} ein.` : ""} ${rest}`,
-		bodyHtml: `${escapeHtml(greeting)}<br><br>im Rahmen der Lieferantenbewertung bitten wir dich, den Fragebogen <strong>${escapeHtml(input.questionnaire)}</strong> zu beantworten und passende Nachweise hochzuladen.${dueDate ? ` Bitte reiche ihn bis zum <strong>${dueDate}</strong> ein.` : ""} ${escapeHtml(rest)}`,
+		body: `${greeting}\n\n${input.organization} bittet dich im Rahmen der Lieferantenbewertung, den Fragebogen „${input.questionnaire}“ zu beantworten und passende Nachweise hochzuladen.${dueDate ? ` Bitte reiche ihn bis zum ${dueDate} ein.` : ""} ${rest}`,
+		bodyHtml: `${escapeHtml(greeting)}<br><br>${escapeHtml(input.organization)} bittet dich im Rahmen der Lieferantenbewertung, den Fragebogen <strong>${escapeHtml(input.questionnaire)}</strong> zu beantworten und passende Nachweise hochzuladen.${dueDate ? ` Bitte reiche ihn bis zum <strong>${dueDate}</strong> ein.` : ""} ${escapeHtml(rest)}`,
 		cta: { label: "Fragebogen öffnen", url: input.url },
 		footnote:
 			"Wenn du diese Anfrage nicht erwartest, ignoriere diese Mail und melde dich bei deinem Ansprechpartner.",

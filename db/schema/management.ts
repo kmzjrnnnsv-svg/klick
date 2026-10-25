@@ -1,4 +1,5 @@
 import {
+	type AnyPgColumn,
 	boolean,
 	date,
 	doublePrecision,
@@ -13,6 +14,7 @@ import { orgPolicy } from "../rls";
 import {
 	json,
 	orgId,
+	ownerFunction,
 	pk,
 	stringList,
 	timestamps,
@@ -21,13 +23,16 @@ import {
 } from "./_shared";
 import { controls, frameworks, requirements } from "./catalog";
 import {
+	APPOINTMENT_STATUS,
 	ENTITY_KINDS,
 	FOLLOW_UP_CLASSES,
+	type FunctionKey,
 	MANAGEMENT_REPORT_KINDS,
 	NC_PRIORITIES,
 	ROLE_FUNCTIONS,
 } from "./enums";
 import { documents, evidence, risks } from "./grc";
+import { orgRoles } from "./platform";
 
 // Managementsystem-Schicht (ISO 27001 Klauseln 4–10 und Pendants in DORA,
 // NIS2, ZAG-MaRisk, MiCAR, GwG): Kontext, Parteien, Geltungsbereich, Rollen,
@@ -47,6 +52,7 @@ export const contextIssues = pgTable(
 		impact: text(),
 		relatedRiskId: uuid().references(() => risks.id, { onDelete: "set null" }),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		reviewAt: date(),
 		...timestamps(),
 	},
@@ -82,6 +88,7 @@ export const interestedParties = pgTable(
 		howAddressed: text(),
 		contact: text(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		reviewAt: date(),
 		...timestamps(),
 	},
@@ -113,6 +120,7 @@ export const scopes = pgTable(
 		approvedByUserId: userRef(),
 		approvedAt: ts(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		...timestamps(),
 	},
 	(t) => [index("scopes_org_idx").on(t.organizationId), orgPolicy("scopes")],
@@ -124,6 +132,22 @@ export const roleAssignments = pgTable(
 		id: pk(),
 		organizationId: orgId(),
 		function: text({ enum: ROLE_FUNCTIONS }).notNull(),
+		// eigene Rolle (individueller Modus, ADR-024): function = other
+		orgRoleId: uuid().references(() => orgRoles.id, { onDelete: "cascade" }),
+		// Bestellung durch die Geschäftsleitung: wirksam erst ab appointed
+		// (Default proposed — ein vergessener Weg bestellt nie still)
+		status: text({ enum: APPOINTMENT_STATUS }).notNull().default("proposed"),
+		// Neubesetzung bzw. neue Vertretung ersetzt diese Zeile bei Bestellung
+		replacesAssignmentId: uuid().references(
+			(): AnyPgColumn => roleAssignments.id,
+			{ onDelete: "set null" },
+		),
+		revokedAt: ts(),
+		// Begründung der Geschäftsleitung bei Ablehnung
+		decisionNote: text(),
+		// wer vorgeschlagen hat — anfragende Person, wenn ein offener
+		// Vorschlag später beantragt wird (z. B. sobald die GL beigetreten ist)
+		proposedByUserId: userRef(),
 		userId: userRef(),
 		externalName: text(),
 		// eingeladen, Konto noch nicht angelegt (D1): wird bei der Annahme der
@@ -133,7 +157,7 @@ export const roleAssignments = pgTable(
 		deputyUserId: userRef(),
 		// Organigramm (N3): Funktion, an die diese Funktion berichtet; leer =
 		// direkt an die Geschäftsleitung (bei management_body: oberste Ebene)
-		reportsToFunction: text({ enum: ROLE_FUNCTIONS }),
+		reportsToFunction: text().$type<FunctionKey>(),
 		// Ergänzungen zum Bestellungsschreiben (Aufgaben, Befugnisse, Budget)
 		appointmentNotes: text(),
 		evidenceId: uuid().references(() => evidence.id, { onDelete: "set null" }),
@@ -168,6 +192,7 @@ export const objectives = pgTable(
 		target: text(),
 		dueAt: date(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		status: text({
 			enum: ["open", "on_track", "at_risk", "achieved", "dropped"],
 		})
@@ -272,6 +297,7 @@ export const audits = pgTable(
 			onDelete: "set null",
 		}),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		...timestamps(),
 	},
 	(t) => [index("audits_org_idx").on(t.organizationId), orgPolicy("audits")],
@@ -329,6 +355,7 @@ export const nonconformities = pgTable(
 		correction: text(),
 		correctiveAction: text(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		dueAt: date(),
 		effectivenessCheckAt: date(),
@@ -447,6 +474,7 @@ export const managementReviews = pgTable(
 			onDelete: "set null",
 		}),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		...timestamps(),
 	},
 	(t) => [
@@ -505,6 +533,7 @@ export const complaints = pgTable(
 		outcome: text(),
 		escalatedToRegulator: boolean().notNull().default(false),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		status: text({ enum: ["open", "acknowledged", "resolved", "closed"] })
 			.notNull()
 			.default("open"),
@@ -525,6 +554,7 @@ export const conflictsOfInterest = pgTable(
 		mitigation: text(),
 		disclosedAt: date(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		reviewAt: date(),
 		status: text({ enum: ["open", "mitigated", "closed"] })
 			.notNull()
@@ -627,6 +657,7 @@ export const regulatorInteractions = pgTable(
 		deadline: date(),
 		responseAt: date(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		evidenceId: uuid().references(() => evidence.id, { onDelete: "set null" }),
 		linkedEntityType: text({ enum: ENTITY_KINDS }),
 		linkedEntityId: uuid(),
@@ -666,6 +697,7 @@ export const dataSubjectRequests = pgTable(
 		outcome: text(),
 		evidenceId: uuid().references(() => evidence.id, { onDelete: "set null" }),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		status: text({ enum: ["open", "in_progress", "done", "rejected"] })
 			.notNull()
 			.default("open"),

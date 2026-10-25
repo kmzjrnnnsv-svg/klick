@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	deletePriceGroup,
 	savePriceGroup,
@@ -20,6 +20,8 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -38,6 +40,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import {
 	PRICE_LEVELS,
 	type PriceLevel,
@@ -75,8 +78,10 @@ export function PriceGroupEditor({
 		"itemKey" | "mode" | "amount" | "unit"
 	>[];
 }) {
+	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
+	const [formError, setFormError] = useState<string | null>(null);
 	const [name, setName] = useState(group?.name ?? "");
 	const [slug, setSlug] = useState(group?.slug ?? "");
 	const [description, setDescription] = useState(group?.description ?? "");
@@ -128,7 +133,7 @@ export function PriceGroupEditor({
 		start(async () => {
 			const res = await fn();
 			if (!res.ok) {
-				toast.error(res.error ?? "Fehler");
+				toast.error(errorText(tc, res));
 				return;
 			}
 			toast.success("Gespeichert");
@@ -141,10 +146,11 @@ export function PriceGroupEditor({
 			onSubmit={(e) => {
 				e.preventDefault();
 				if (draft.some((d) => d.invalid)) {
-					toast.error("Beträge nur als ganze Euro eingeben.");
+					setFormError("Beträge nur als ganze Euro eingeben.");
 					return;
 				}
 				start(async () => {
+					setFormError(null);
 					const res = await savePriceGroup({
 						id: group?.id,
 						slug: slug.trim(),
@@ -155,10 +161,10 @@ export function PriceGroupEditor({
 						overrides: draft.map(({ invalid: _, ...o }) => o),
 					});
 					if (!res.ok) {
-						toast.error(
+						setFormError(
 							res.fieldErrors
-								? `${res.error}: ${Object.keys(res.fieldErrors).join(", ")}`
-								: res.error,
+								? `${errorText(tc, res)} (${Object.keys(res.fieldErrors).join(", ")})`
+								: errorText(tc, res),
 						);
 						return;
 					}
@@ -336,6 +342,7 @@ export function PriceGroupEditor({
 				</TableBody>
 			</Table>
 
+			<FormAlert message={formError} />
 			<div className="flex flex-wrap gap-2">
 				<Button type="submit" disabled={pending}>
 					Speichern
@@ -372,7 +379,7 @@ export function PriceGroupEditor({
 											start(async () => {
 												const res = await deletePriceGroup(group.id);
 												if (!res.ok) {
-													toast.error(res.error);
+													toast.error(errorText(tc, res));
 													return;
 												}
 												toast.success("Gruppe gelöscht");

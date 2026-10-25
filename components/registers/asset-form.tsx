@@ -4,12 +4,13 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { retireAsset, upsertAsset } from "@/app/actions/registers";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { ResponsibleSelect } from "@/components/entity/responsible-select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import {
 	Dialog,
 	DialogContent,
@@ -18,6 +19,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,6 +30,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 
 const TYPES = [
 	"system",
@@ -95,6 +98,10 @@ export function AssetForm({
 			isLegacy: false,
 		},
 	);
+	const retire = useConfirm({
+		title: t("retireConfirm", { name: d.name }),
+		confirmLabel: t("retire"),
+	});
 	const set = <K extends keyof AssetDraft>(k: K, v: AssetDraft[K]) =>
 		setD({ ...d, [k]: v });
 	const isKey = d.type === "key_material" || d.type === "hsm";
@@ -139,7 +146,7 @@ export function AssetForm({
 							});
 							if (!res.ok)
 								return void toast.error(
-									gate.errorText(res.error) ?? tc("error"),
+									gate.errorText(res.error) ?? errorText(tc, res),
 								);
 							if (res.data.approvalPending) toast.info(gate.pendingText());
 							else toast.success(initial ? t("saved") : t("created"));
@@ -244,24 +251,12 @@ export function AssetForm({
 						)}
 						<div className="flex flex-col gap-1.5">
 							<Label>{t("owner")}</Label>
-							<Select
-								value={d.ownerUserId ?? "none"}
-								onValueChange={(v) =>
-									set("ownerUserId", v === "none" ? null : v)
-								}
-							>
-								<SelectTrigger className="w-full">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="none">—</SelectItem>
-									{members.map((m) => (
-										<SelectItem key={m.userId} value={m.userId}>
-											{m.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+							<ResponsibleSelect
+								value={d.ownerUserId}
+								onChange={(v) => set("ownerUserId", v)}
+								members={members}
+								aria-label={t("owner")}
+							/>
 						</div>
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="as-loc">{t("location")}</Label>
@@ -309,7 +304,7 @@ export function AssetForm({
 						)}
 					</div>
 					<fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-						<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+						<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 							{t("lifecycle")}
 						</legend>
 						<div className="flex flex-col gap-1.5">
@@ -418,30 +413,31 @@ export function AssetForm({
 								variant="outline"
 								className="sm:mr-auto"
 								disabled={pending}
-								onClick={() => {
-									if (!window.confirm(t("retireConfirm", { name: d.name })))
-										return;
-									start(async () => {
-										const res = await retireAsset({
-											assetId: d.assetId as string,
-										});
-										if (!res.ok)
-											return void toast.error(
-												gate.errorText(res.error) ?? tc("error"),
+								onClick={() =>
+									retire.ask(() =>
+										start(async () => {
+											const res = await retireAsset({
+												assetId: d.assetId as string,
+											});
+											if (!res.ok)
+												return void toast.error(
+													gate.errorText(res.error) ?? errorText(tc, res),
+												);
+											toast.success(
+												res.data.approvalPending
+													? t("retireRequested")
+													: t("retired"),
 											);
-										toast.success(
-											res.data.approvalPending
-												? t("retireRequested")
-												: t("retired"),
-										);
-										setOpen(false);
-										router.refresh();
-									});
-								}}
+											setOpen(false);
+											router.refresh();
+										}),
+									)
+								}
 							>
 								{t("retire")}
 							</Button>
 						)}
+						{retire.node}
 						<Button
 							type="button"
 							variant="ghost"

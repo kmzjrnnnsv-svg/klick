@@ -3,10 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { recordAccessReview } from "@/app/actions/registers";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 
 export function AccessReview({ lastAt }: { lastAt: Date | null }) {
 	const t = useTranslations("Team");
@@ -37,7 +38,7 @@ export function AccessReview({ lastAt }: { lastAt: Date | null }) {
 					onClick={() =>
 						start(async () => {
 							const res = await recordAccessReview(note);
-							if (!res.ok) toast.error(tc("error"));
+							if (!res.ok) toast.error(errorText(tc, res));
 							else {
 								toast.success(t("accessReviewDone"));
 								setNote("");

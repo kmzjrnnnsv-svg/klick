@@ -36,6 +36,7 @@ export default async function PayoutPage({
 	if (!UUID.test(id)) notFound();
 	const ctx = await requireUnlockedPage(`/payouts/${id}`);
 	const t = await getTranslations("Wallet");
+	const tShell = await getTranslations("Shell");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const row = await payoutDetail(tx, ctx.orgId, id);
 		if (!row) return null;
@@ -73,7 +74,7 @@ export default async function PayoutPage({
 			t("payoutDestination"),
 			<span key="d" className="flex flex-col gap-0.5">
 				<span>{p.destinationLabel}</span>
-				<code className="break-all font-mono text-[13px]" translate="no">
+				<code className="break-all font-mono text-footnote" translate="no">
 					{p.destination}
 				</code>
 			</span>,
@@ -92,7 +93,7 @@ export default async function PayoutPage({
 						t("payoutTxid"),
 						<code
 							key="t"
-							className="break-all font-mono text-[13px]"
+							className="break-all font-mono text-footnote"
 							translate="no"
 						>
 							{p.txid}
@@ -116,6 +117,7 @@ export default async function PayoutPage({
 	return (
 		<>
 			<PageHeader
+				back={{ href: "/payouts", label: tShell("payouts") }}
 				title={amountText(account.network, p.asset, p.amount)}
 				lead={t("payoutTo", { label: p.destinationLabel })}
 				eyebrow={t("payoutEyebrow")}
@@ -171,7 +173,7 @@ export default async function PayoutPage({
 								{earlier.map((x) => (
 									<li key={x}>
 										<code
-											className="break-all font-mono text-[13px] text-muted-foreground"
+											className="break-all font-mono text-footnote text-muted-foreground"
 											translate="no"
 										>
 											{x}

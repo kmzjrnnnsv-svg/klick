@@ -385,6 +385,21 @@ export type NcPriority = (typeof NC_PRIORITIES)[number];
 // Polymorphe Verknüpfung (Kommentare, Aufgaben, Watcher, Freigaben, Historie).
 // Textspalte + Union statt pg-Enum, damit neue Entitäten keine Migration
 // brauchen; Zod validiert gegen diese Liste.
+// Neu-Produkt-Prozess und wesentliche Änderungen (MaRisk AT 8)
+export const CHANGE_KINDS = [
+	"product",
+	"market",
+	"channel",
+	"it_change",
+] as const;
+export type ChangeKind = (typeof CHANGE_KINDS)[number];
+export const CHANGE_STATUS = [
+	"pending",
+	"approved",
+	"rejected",
+	"withdrawn",
+] as const;
+
 export const ENTITY_KINDS = [
 	"control",
 	"risk",
@@ -441,6 +456,10 @@ export const ENTITY_KINDS = [
 	// Verwahrung: Wallet, tägliche Abstimmung des Kundenvermögens
 	"wallet",
 	"custody_reconciliation",
+	// Schlüsselinhaber:in einer Wallet (Bestellung CCSS 1.06)
+	"wallet_key_holder",
+	// Neues Produkt oder wesentliche Änderung (ZAG-MaRisk AT 8)
+	"change_request",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 
@@ -464,6 +483,25 @@ export const ROLE_FUNCTIONS = [
 	"other",
 ] as const;
 export type RoleFunction = (typeof ROLE_FUNCTIONS)[number];
+// Funktionsschlüssel (ADR-024): Katalog-Funktion oder eigene Rolle `role:<id>`
+export type FunctionKey = RoleFunction | `role:${string}`;
+
+// Bestellung einer Funktion durch die Geschäftsleitung (role_assignments):
+// wirksam sind nur appointed und revocation_requested (Abberufung beantragt,
+// gilt bis zur Freigabe weiter)
+export const APPOINTMENT_STATUS = [
+	"proposed",
+	"appointed",
+	"rejected",
+	"revocation_requested",
+	"revoked",
+] as const;
+export type AppointmentStatus = (typeof APPOINTMENT_STATUS)[number];
+
+// Standard (Freigaben und Funktionen nach Rahmenwerk) oder individuell
+// (eigene Rollen, Abläufe frei, Pflichten als Warnung) — ADR-024
+export const GOVERNANCE_MODES = ["standard", "individual"] as const;
+export type GovernanceMode = (typeof GOVERNANCE_MODES)[number];
 
 // Berichte an die Geschäftsleitung (N3, management_reports)
 export const MANAGEMENT_REPORT_KINDS = [
@@ -516,6 +554,8 @@ export const NOTIFICATION_KINDS = [
 	"audit_request",
 	"security_alert",
 	"inquiry",
+	// Geschäftsleitung informiert (Vorfall schwerwiegend bzw. gemeldet)
+	"management_info",
 	// Wallet: Eingang bestätigt bzw. Ausgang gesehen (Treffer der
 	// Sanktionsprüfung laufen als security_alert)
 	"wallet_transfer",

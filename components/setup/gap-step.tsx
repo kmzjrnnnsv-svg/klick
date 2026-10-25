@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { startSetupGapAnalysis } from "@/app/actions/setup";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 
 // Schritt 7 (D5): Gap-Analyse über die gewählten Rahmenwerke anlegen,
 // vorbelegt aus der Einrichtung, und direkt öffnen
@@ -62,7 +63,7 @@ export function GapStep({
 					onClick={() =>
 						start(async () => {
 							const res = await startSetupGapAnalysis({ frameworks: selected });
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("gapStarted", { n: res.data.prefilled }));
 							router.push(`/gap-analyse/${res.data.id}`);
 						})

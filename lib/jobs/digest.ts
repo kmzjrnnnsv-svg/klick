@@ -7,7 +7,11 @@ import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/log";
 import { sendTransactionalMail } from "@/lib/mail/send";
-import { escapeHtml, transactionalEmail } from "@/lib/mail/templates";
+import {
+	escapeHtml,
+	MAIL_COLORS,
+	transactionalEmail,
+} from "@/lib/mail/templates";
 import { IMMEDIATE_MAIL_KINDS } from "@/lib/notifications/notify";
 import { safeInternalPath } from "@/lib/safe-path";
 
@@ -27,6 +31,7 @@ const DIGEST_MAX_ITEMS = 40;
 export const KIND_LABELS: Record<NotificationKind, string> = {
 	review_due: "Fällige Reviews",
 	incident_deadline: "Vorfall-Fristen",
+	management_info: "An die Geschäftsleitung",
 	approval_requested: "Freigaben angefragt",
 	approval_decided: "Freigaben entschieden",
 	approval_overdue: "Freigaben überfällig",
@@ -89,7 +94,7 @@ export function buildDigest(
 	for (const [kind, list] of groups) {
 		textParts.push(`${KIND_LABELS[kind]} (${list.length})`);
 		htmlParts.push(
-			`<p style="margin:16px 0 4px 0;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:#8a7f72">${esc(KIND_LABELS[kind])} · ${list.length}</p><ul style="margin:0;padding-left:18px">`,
+			`<p style="margin:20px 0 6px 0;font-size:13px;line-height:18px;font-weight:600;color:${MAIL_COLORS.SECONDARY}">${esc(KIND_LABELS[kind])} · ${list.length}</p><ul style="margin:0;padding-left:18px">`,
 		);
 		for (const it of list) {
 			const url = absolute(opts.baseUrl, it.link);
@@ -97,7 +102,7 @@ export function buildDigest(
 				`  – ${it.title}${it.body ? ` — ${it.body}` : ""}${url ? ` (${url})` : ""}`,
 			);
 			htmlParts.push(
-				`<li style="margin:4px 0">${url ? `<a href="${esc(url)}" style="color:#2c3f68">${esc(it.title)}</a>` : esc(it.title)}${it.body ? `<span style="opacity:0.75"> — ${esc(it.body)}</span>` : ""}</li>`,
+				`<li style="margin:6px 0">${url ? `<a href="${esc(url)}" style="color:${MAIL_COLORS.ACCENT};text-decoration:none">${esc(it.title)}</a>` : esc(it.title)}${it.body ? `<br><span style="font-size:15px;line-height:20px;color:${MAIL_COLORS.SECONDARY}">${esc(it.body)}</span>` : ""}</li>`,
 			);
 		}
 		htmlParts.push("</ul>");
@@ -107,7 +112,7 @@ export function buildDigest(
 		const more = items.length - DIGEST_MAX_ITEMS;
 		textParts.push(`… und ${more} weitere auf „Heute“.`);
 		htmlParts.push(
-			`<p style="margin:12px 0 0 0;opacity:0.75">… und ${more} weitere auf „Heute“.</p>`,
+			`<p style="margin:16px 0 0 0;font-size:15px;color:${MAIL_COLORS.SECONDARY}">… und ${more} weitere auf „Heute“.</p>`,
 		);
 	}
 	const mail = transactionalEmail({

@@ -18,6 +18,7 @@ export const IMMEDIATE_MAIL_KINDS: ReadonlySet<NotificationKind> = new Set([
 	"risk_above_appetite",
 	"security_alert",
 	"inquiry",
+	"management_info",
 ]);
 
 // Plattform-Benachrichtigung (ohne Org) an alle Plattform-Admins. Nur in

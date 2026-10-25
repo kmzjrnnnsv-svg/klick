@@ -87,7 +87,7 @@ export default async function AddressBookPage() {
 					<Badge variant="muted">{NETWORKS[r.network].label}</Badge>
 				</div>
 				<code
-					className="break-all font-mono text-[13px] leading-relaxed"
+					className="break-all font-mono text-footnote leading-relaxed"
 					translate="no"
 				>
 					{r.address}

@@ -51,7 +51,7 @@ export function Landing() {
 							<span className="text-primary">{HERO.lines[1]}</span>
 						</h1>
 						<p
-							className={`max-w-xl text-pretty text-lg leading-relaxed ${s.rise} ${s.rise2}`}
+							className={`max-w-xl text-pretty text-title-3 leading-relaxed ${s.rise} ${s.rise2}`}
 						>
 							{HERO.lead}
 						</p>
@@ -129,7 +129,7 @@ export function Landing() {
 								<h2 id="bm-next" className={heading}>
 									{ROADMAP_TEASER.title}
 								</h2>
-								<p className="mt-5 max-w-3xl text-pretty text-lg leading-relaxed">
+								<p className="mt-5 max-w-3xl text-pretty text-title-3 leading-relaxed">
 									{ROADMAP_TEASER.text}
 								</p>
 							</div>
@@ -180,7 +180,7 @@ export function Landing() {
 									key={step.say}
 									className={`flex flex-col gap-4 ${s.reveal}`}
 								>
-									<p className="flex items-baseline gap-3 font-medium text-lg">
+									<p className="flex items-baseline gap-3 font-semibold text-title-3">
 										<span
 											className="font-bold text-title-1 tabular-nums"
 											aria-hidden
@@ -271,7 +271,7 @@ export function Landing() {
 						<div className="mt-10 grid grid-cols-1 gap-x-12 gap-y-10 md:grid-cols-2">
 							{COMPLIANCE.groups.map((g) => (
 								<div key={g.title} className={s.reveal}>
-									<h3 className="font-medium text-lg">{g.title}</h3>
+									<h3 className="font-semibold text-title-3">{g.title}</h3>
 									<ul className="mt-3 divide-y border-y">
 										{g.rows.map((r) => {
 											const later = /^(folgt|gesperrt)/.test(r.value);
@@ -320,7 +320,7 @@ export function Landing() {
 									<summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 font-medium focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 [&::-webkit-details-marker]:hidden">
 										{item.q}
 										<span
-											className="text-primary text-xl leading-none transition-transform group-open:rotate-45"
+											className="text-primary text-title-3 leading-none transition-transform group-open:rotate-45"
 											aria-hidden
 										>
 											+

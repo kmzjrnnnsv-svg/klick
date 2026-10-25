@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { deleteInquiry, setInquiryStatus } from "@/app/actions/inquiries";
 import {
 	AlertDialog,
@@ -16,6 +16,8 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 import { INQUIRY_STATUS, type InquiryStatus } from "@/db/schema/enums";
 import { INQUIRY_STATUS_LABEL } from "@/lib/inquiries/rules";
 
@@ -26,6 +28,7 @@ export function InquiryActions({
 	id: string;
 	status: InquiryStatus;
 }) {
+	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	return (
@@ -41,7 +44,7 @@ export function InquiryActions({
 						start(async () => {
 							const res = await setInquiryStatus({ id, status: s });
 							if (!res.ok) {
-								toast.error(res.error);
+								toast.error(errorText(tc, res));
 								return;
 							}
 							toast.success(`Status: ${INQUIRY_STATUS_LABEL[s]}`);
@@ -79,7 +82,7 @@ export function InquiryActions({
 								start(async () => {
 									const res = await deleteInquiry(id);
 									if (!res.ok) {
-										toast.error(res.error);
+										toast.error(errorText(tc, res));
 										return;
 									}
 									toast.success("Anfrage gelöscht");

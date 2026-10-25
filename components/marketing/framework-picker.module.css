@@ -9,7 +9,7 @@
 	border-radius: 16px;
 	background: var(--card);
 	color: var(--card-foreground);
-	font-size: 14px;
+	font-size: 0.875rem;
 	line-height: 1.4;
 }
 
@@ -22,11 +22,11 @@
 }
 .title {
 	font-weight: 500;
-	font-size: 15px;
+	font-size: var(--text-subhead);
 }
 .hint {
 	color: var(--muted-foreground);
-	font-size: 13px;
+	font-size: var(--text-footnote);
 	font-variant-numeric: tabular-nums;
 }
 
@@ -49,7 +49,7 @@
 	background: var(--muted);
 	color: var(--foreground);
 	font: inherit;
-	font-size: 15px;
+	font-size: var(--text-subhead);
 	cursor: pointer;
 	transition:
 		background-color 140ms ease,
@@ -107,6 +107,6 @@
 }
 .note {
 	margin: 12px 0 0;
-	font-size: 13px;
+	font-size: var(--text-footnote);
 	color: var(--foreground);
 }

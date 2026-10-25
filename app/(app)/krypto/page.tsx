@@ -474,7 +474,7 @@ export default async function CryptoPage({
 				(data.alerts.length === 0 ? (
 					<EmptyState title={t("noAlerts")} lead={t("noAlertsLead")} />
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{data.alerts.map((a) => (
 							<li key={a.id} className="flex flex-col gap-1 px-4 py-3">
 								<p className="flex flex-wrap items-center gap-2">

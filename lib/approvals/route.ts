@@ -1,3 +1,4 @@
+import type { RoleFunction } from "@/db/schema/enums";
 import type { ApprovalCondition, ApprovalStep } from "@/db/schema/grc";
 import {
 	type ApproverCandidate,
@@ -5,6 +6,7 @@ import {
 	eligibleApprovers,
 	firstActiveStep,
 	matchesRule,
+	parseRule,
 	stepRules,
 } from "./rules";
 import { triggerOf } from "./triggers";
@@ -88,7 +90,86 @@ export type PlannedRoute = {
 	warnings: RouteWarning[];
 };
 
-// Schnappschuss eines Antrags: entfallende Stufen markieren, Lücken melden.
+const MANAGEMENT_RULE = "function:management_body";
+
+// Stelle approver_of_entity auf die Freigebende Funktion der Entität
+// auflösen (Dokument: approverFunction); ohne Funktion fällt sie weg.
+export function resolveEntityApprover(
+	rules: readonly string[],
+	fn: RoleFunction | null | undefined,
+): string[] {
+	return [
+		...new Set(
+			rules.flatMap((r) =>
+				r === "approver_of_entity" ? (fn ? [`function:${fn}`] : []) : [r],
+			),
+		),
+	];
+}
+
+// Unbesetzt: jede Stelle ist eine Funktion, die niemand hält oder vertritt.
+// Die Geschäftsleitung ist nie unbesetzt-entfallend — sonst würde sie still
+// übersprungen; dort bleibt es bei „niemand kann freigeben“.
+export function stepVacant(
+	rules: readonly string[],
+	candidates: readonly ApproverCandidate[],
+): boolean {
+	if (rules.length === 0) return true;
+	return rules.every((r) => {
+		const { kind, value } = parseRule(r);
+		return (
+			kind === "function" &&
+			r !== MANAGEMENT_RULE &&
+			!candidates.some((c) => c.functions.includes(value as RoleFunction))
+		);
+	});
+}
+
+// „Alle Personen der Stellen“: Inhaber:innen (ohne Vertretung) werden zu
+// user:-Stellen mit mode „all“. Hält die anfragende Person die Stelle selbst,
+// zählt ihre Zustimmung als gegeben; bleibt niemand, entfällt die Stufe.
+export function expandEveryone(
+	step: ApprovalStep,
+	candidates: readonly ApproverCandidate[],
+	ctx: EligibilityContext,
+	// nicht mitzählen (z. B. die abberufene Person bei ihrer Abberufung)
+	exclude: readonly string[] = [],
+): ApprovalStep {
+	const rules = stepRules(step);
+	const people = new Set<string>();
+	for (const c of candidates) {
+		if (exclude.includes(c.userId)) continue;
+		const holds = rules.some((r) => {
+			const { kind, value } = parseRule(r);
+			if (kind === "function")
+				return (c.holderFunctions ?? c.functions).includes(
+					value as RoleFunction,
+				);
+			if (kind === "role" || kind === "user") return matchesRule(r, c, ctx);
+			return false;
+		});
+		if (holds) people.add(c.userId);
+	}
+	// niemand hält die Stelle: bleibt stehen, die Warnung meldet es
+	if (people.size === 0) return step;
+	const requester = ctx.requesterUserId;
+	const base: ApprovalStep = { ...step, everyone: true, expandedFrom: rules };
+	if (requester && people.has(requester)) base.given = [requester];
+	const others = [...people].filter((u) => u !== requester).sort();
+	if (others.length === 0)
+		return { ...base, skipped: { by: "requester", rule: rules[0] ?? "" } };
+	const approvers = others.map((u) => `user:${u}`);
+	const { minApprovers: _min, ...rest } = base;
+	return {
+		...rest,
+		approverRule: approvers[0] ?? step.approverRule,
+		approvers,
+		mode: "all",
+	};
+}
+
+// Schnappschuss eines Antrags: Stellen auflösen, entfallende Stufen
+// markieren, Lücken melden.
 export function planRoute(
 	steps: readonly ApprovalStep[],
 	input: {
@@ -96,12 +177,24 @@ export function planRoute(
 		facts: Facts;
 		candidates: readonly ApproverCandidate[];
 		ctx: EligibilityContext;
+		// Stufen „alle Personen“: diese Personen zählen nicht mit
+		exclude?: readonly string[];
 	},
 ): PlannedRoute {
 	const planned: ApprovalStep[] = [...steps]
 		.sort((a, b) => a.order - b.order)
 		.map((s) => {
-			const { skipped: _drop, ...step } = s;
+			const { skipped: _drop, given: _given, expandedFrom: _from, ...raw } = s;
+			let step: ApprovalStep = raw;
+			if (stepRules(step).includes("approver_of_entity")) {
+				const rules = resolveEntityApprover(
+					stepRules(step),
+					input.ctx.entityApproverFunction,
+				);
+				if (rules.length === 0)
+					return { ...step, skipped: { by: "vacant" as const } };
+				step = { ...step, approverRule: rules[0] ?? "", approvers: rules };
+			}
 			if (step.onlyIf && !matchConditions(step.onlyIf, input.facts))
 				return { ...step, skipped: { by: "condition" as const } };
 			const hit = input.requester
@@ -111,6 +204,10 @@ export function planRoute(
 				: undefined;
 			if (hit)
 				return { ...step, skipped: { by: "requester" as const, rule: hit } };
+			if (stepVacant(stepRules(step), input.candidates))
+				return { ...step, skipped: { by: "vacant" as const } };
+			if (step.everyone)
+				return expandEveryone(step, input.candidates, input.ctx, input.exclude);
 			return step;
 		});
 	const warnings: RouteWarning[] = [];
@@ -152,6 +249,7 @@ export function normalizeSteps(steps: readonly ApprovalStep[]): ApprovalStep[] {
 			if (s.label?.trim()) out.label = s.label.trim();
 			if (s.skipIf?.length) out.skipIf = [...s.skipIf];
 			if (s.onlyIf?.length) out.onlyIf = [...s.onlyIf];
+			if (s.everyone) out.everyone = true;
 			return out;
 		});
 }

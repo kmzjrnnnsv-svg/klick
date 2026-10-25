@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { addFrameworks, updateProfileFlags } from "@/app/actions/frameworks";
+import { useWorkflowsEnabledText } from "@/components/approvals/workflows-enabled";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { SynergyPreviewPanel } from "@/components/auth/synergy-preview";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -26,6 +27,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "@/components/ui/toast";
 import type { CaspService, LicenceStage } from "@/db/schema/enums";
 import type { FrameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import { cn } from "@/lib/utils";
@@ -71,6 +73,7 @@ export function FrameworksPanel({
 }) {
 	const t = useTranslations("Settings");
 	const tf = useTranslations("Frameworks");
+	const enabledText = useWorkflowsEnabledText();
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [picked, setPicked] = useState<string[]>([]);
@@ -78,14 +81,18 @@ export function FrameworksPanel({
 	const currentSlugs = active.map((a) => a.slug);
 
 	function handleError(error: string) {
-		toast.error(error === "step_up_required" ? t("stepUp") : tc("error"));
+		toast.error(
+			error === "step_up_required" ? t("stepUp") : errorText(tc, error),
+		);
 	}
 
 	return (
 		<div className="flex flex-col gap-6">
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">{t("frameworksActive")}</CardTitle>
+					<CardTitle className="text-headline">
+						{t("frameworksActive")}
+					</CardTitle>
 					<CardDescription>{t("frameworksLead")}</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -128,7 +135,7 @@ export function FrameworksPanel({
 
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">
+					<CardTitle className="text-headline">
 						{t("frameworksAvailable")}
 					</CardTitle>
 					<CardDescription>{tf("addLead")}</CardDescription>
@@ -208,7 +215,11 @@ export function FrameworksPanel({
 													handleError(res.error);
 													return;
 												}
-												toast.success(tf("added"));
+												const enabled = enabledText(res.data.workflowsEnabled);
+												toast.success(tf("added"), {
+													description: enabled,
+													duration: enabled ? 8000 : undefined,
+												});
 												setPicked([]);
 												router.refresh();
 											})
@@ -225,7 +236,7 @@ export function FrameworksPanel({
 
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">{t("stage")}</CardTitle>
+					<CardTitle className="text-headline">{t("stage")}</CardTitle>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-5 text-subhead">
 					<dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">

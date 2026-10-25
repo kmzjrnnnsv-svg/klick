@@ -6,21 +6,27 @@ import { member } from "@/db/auth-schema";
 import {
 	assets,
 	providers,
-	roleAssignments,
 	taskBundles,
 	tasks,
 	trainingRequirements,
 	trainings,
 } from "@/db/schema";
+import type { RoleFunction } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
 import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { GateBlocked } from "@/lib/approvals/gate-error";
 import { gateApproval } from "@/lib/approvals/service";
+import { providerFactsOf } from "@/lib/approvals/triggers";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
 import { TRAINING_REQUIREMENTS } from "@/lib/compliance/catalog/training-requirements";
 import { insertControlTest } from "@/lib/compliance/control-test-service";
+import { responsibleFor } from "@/lib/compliance/function-holders";
+import {
+	loadAssignments,
+	ownerColumns,
+} from "@/lib/compliance/function-holders-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import {
@@ -60,6 +66,8 @@ async function upsertProviderImpl(
 	const sent = new Set(
 		input && typeof input === "object" ? Object.keys(input) : [],
 	);
+	// Verantwortlich = Funktion oder Person: beide Spalten gehen zusammen
+	if (sent.has("ownerUserId")) sent.add("ownerFunction");
 	let res: { id: string; approvalPending: boolean };
 	try {
 		res = await mutateOrg(toOrgCtx(c), async (tx) => {
@@ -81,7 +89,7 @@ async function upsertProviderImpl(
 				contractStart: d.contractStart ?? null,
 				contractEnd: d.contractEnd ?? null,
 				noticePeriodDays: d.noticePeriodDays ?? null,
-				ownerUserId: d.ownerUserId === undefined ? c.userId : d.ownerUserId,
+				...(await ownerColumns(tx, c.orgId, d.ownerUserId, c.userId)),
 				notes: d.notes ?? null,
 			};
 			const patch = Object.fromEntries(
@@ -119,13 +127,7 @@ async function upsertProviderImpl(
 								entityOwnerUserId: merged.ownerUserId,
 								title: `Dienstleister aufnehmen: ${merged.name}`,
 								link: `/dienstleister/${providerId}`,
-								facts: {
-									criticality: merged.criticality,
-									category: merged.category,
-									isIct: merged.isIct,
-									isOutsourcing: merged.isOutsourcing,
-									isMaterial: merged.isMaterial,
-								},
+								facts: providerFactsOf(merged),
 							},
 						);
 						if (gate.status === "error")
@@ -173,13 +175,7 @@ async function upsertProviderImpl(
 					entityOwnerUserId: values.ownerUserId,
 					title: `Dienstleister aufnehmen: ${d.name}`,
 					link: `/dienstleister/${row.id}`,
-					facts: {
-						criticality: d.criticality,
-						category: d.category ?? null,
-						isIct: d.isIct,
-						isOutsourcing: d.isOutsourcing,
-						isMaterial: d.isMaterial,
-					},
+					facts: providerFactsOf(d),
 				},
 			);
 			if (gate.status === "error")
@@ -232,7 +228,7 @@ async function upsertAssetImpl(
 				classification: d.classification,
 				providerId: d.providerId ?? null,
 				siteId: d.siteId ?? null,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(tx, c.orgId, d.ownerUserId, c.userId)),
 				location: d.location ?? null,
 				description: d.description ?? null,
 				isLegacy: d.isLegacy,
@@ -558,13 +554,7 @@ async function applyTaskBundleImpl(
 				triggerEntityType: custom.triggerEntityType ?? undefined,
 			};
 		if (!bundle) throw new Error("notFound");
-		const fns = await tx
-			.select({
-				function: roleAssignments.function,
-				userId: roleAssignments.userId,
-			})
-			.from(roleAssignments)
-			.where(eq(roleAssignments.organizationId, c.orgId));
+		const fns = await loadAssignments(tx, c.orgId);
 		const owners = await tx
 			.select({ userId: member.userId, role: member.role })
 			.from(member)
@@ -574,7 +564,7 @@ async function applyTaskBundleImpl(
 			if (!rule) return c.userId;
 			const [kind, value] = rule.split(":");
 			if (kind === "function")
-				return fns.find((f) => f.function === value)?.userId ?? c.userId;
+				return responsibleFor(fns, value as RoleFunction) ?? c.userId;
 			if (kind === "role")
 				return (
 					owners.find((o) => normalizeRole(o.role) === value)?.userId ??

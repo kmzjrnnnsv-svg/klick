@@ -10,6 +10,7 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
@@ -63,6 +64,7 @@ export default async function RiskDetailPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ risk: ["read"] });
 	const t = await getTranslations("Risks");
+	const tNav = await getTranslations("Nav");
 	const tw = await getTranslations("RiskWizard");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
@@ -205,6 +207,7 @@ export default async function RiskDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/risiken", label: tNav("risks") }}
 			eyebrow={`${risk.code} · ${t(`category_${risk.category}`)}`}
 			title={risk.title}
 			subtitle={risk.description ?? undefined}
@@ -255,7 +258,10 @@ export default async function RiskDetailPage({
 						)}
 					</MetaItem>
 					<MetaItem label={te("owner")}>
-						<UserChip name={names.get(risk.ownerUserId ?? "")} />
+						<OwnerChip
+							ownerFunction={risk.ownerFunction}
+							name={names.get(risk.ownerUserId ?? "")}
+						/>
 					</MetaItem>
 					<MetaItem label={t("reviewAt")}>
 						{risk.reviewAt ? fmtDate.format(new Date(risk.reviewAt)) : "—"}
@@ -375,7 +381,7 @@ export default async function RiskDetailPage({
 								? ` · ${t("assessedAt")} ${fmtDate.format(risk.assessedAt)}`
 								: ""}
 						</p>
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 							{method.dimensions
 								.filter((dim) => dim.key in (risk.impactDetail ?? {}))
 								.map((dim) => {
@@ -485,7 +491,7 @@ export default async function RiskDetailPage({
 						{t("treatmentsEmpty")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{treatments.map((tr) => (
 							<li
 								key={tr.id}
@@ -549,6 +555,7 @@ export default async function RiskDetailPage({
 							residualLikelihood: risk.residualLikelihood,
 							residualImpact: risk.residualImpact,
 							ownerUserId: risk.ownerUserId,
+							ownerFunction: risk.ownerFunction,
 							assigneeUserId: risk.assigneeUserId,
 							reviewAt: risk.reviewAt,
 							description: risk.description,

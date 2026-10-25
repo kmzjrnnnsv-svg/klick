@@ -101,6 +101,36 @@ describe("roleCoverage", () => {
 		expect(gaps.map((g) => g.required.function)).toContain("ict_risk_function");
 		expect(gaps.map((g) => g.required.function)).not.toContain("isb_ciso");
 	});
+	it("mehrere Personen je Funktion: besetzt, sobald eine sie hält", () => {
+		const now = new Date("2026-10-07");
+		const { items } = roleCoverage(
+			required,
+			[
+				// offene Einladung (noch ohne Konto) vor der zweiten Person
+				{
+					function: "management_body",
+					userId: null,
+					externalName: null,
+					deputyUserId: null,
+					evidenceId: null,
+				},
+				{
+					function: "management_body",
+					userId: "u2",
+					externalName: null,
+					deputyUserId: "u3",
+					evidenceId: null,
+					documentsValidUntil: "2026-01-01",
+				},
+			],
+			now,
+		);
+		const gl = items.find((i) => i.required.function === "management_body");
+		expect(gl?.filled).toBe(true);
+		expect(gl?.holder).toBe("u2");
+		expect(gl?.hasDeputy).toBe(true);
+		expect(gl?.documentsExpired).toBe(true);
+	});
 	it("externe Person zählt als besetzt (ausgelagerte Revision)", () => {
 		const req = requiredFunctions(["zag-marisk"], "2_casp_zag");
 		const { items } = roleCoverage(req, [

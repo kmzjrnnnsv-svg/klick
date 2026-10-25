@@ -16,6 +16,7 @@ import {
 	createdAt,
 	json,
 	orgId,
+	ownerFunction,
 	pk,
 	stringList,
 	timestamps,
@@ -24,7 +25,13 @@ import {
 	userRef,
 } from "./_shared";
 import { frameworks } from "./catalog";
-import { type CaspService, LICENCE_STAGES, NOTIFICATION_KINDS } from "./enums";
+import {
+	type CaspService,
+	type FunctionKey,
+	GOVERNANCE_MODES,
+	LICENCE_STAGES,
+	NOTIFICATION_KINDS,
+} from "./enums";
 import { priceGroups } from "./pricing";
 
 // Plattform-Tabellen: Org-Einstellungen (RLS), Rechtskataster (RLS),
@@ -225,6 +232,20 @@ export const orgSettings = pgTable(
 			.default({}),
 		// Setup-Checkliste: bestätigte Prüfungen (z. B. tlptConfirmedAt).
 		setupFlags: json<Record<string, string>>().notNull().default({}),
+		// Bereich → Funktion (Einrichtung, lib/compliance/catalog/
+		// domain-functions.ts): neue Controls bekommen die Funktion als
+		// Verantwortlich
+		areaFunctions: json<Partial<Record<string, FunctionKey>>>()
+			.notNull()
+			.default({}),
+		// Standard (nach Rahmenwerk) oder individuell (ADR-024)
+		governanceMode: text({ enum: GOVERNANCE_MODES })
+			.notNull()
+			.default("standard"),
+		// Freigabe-Pflichten, die ein Rahmenwerk schon eingeschaltet hat
+		// („kind@slug“ → Datum, lib/compliance/catalog/approval-duties.ts):
+		// bewusst ausgeschaltete Abläufe bleiben aus
+		approvalDuties: json<Record<string, string>>().notNull().default({}),
 		// Risikovorschläge (B3), die bewusst kein Risiko sind: „kind:id“ →
 		// Begründung, wer, wann
 		riskProposalDismissals: json<
@@ -254,6 +275,7 @@ export const orgFrameworks = pgTable(
 			.notNull()
 			.references(() => frameworks.id, { onDelete: "cascade" }),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		enabledAt: createdAt(),
 		reviewAt: date(),
 		targetDate: date(),
@@ -297,6 +319,12 @@ export const orgRoles = pgTable(
 		description: text(),
 		// Record<Ressource, Aktion[]>; beim Lesen über sanitizePermissions
 		permissions: json<Record<string, string[]>>().notNull().default({}),
+		// als Funktion (ADR-024): Aufgaben fürs Bestellungsschreiben, Berichtsweg
+		// (Funktionsschlüssel: Funktion oder role:<id>), Vertretung Pflicht
+		tasks: text(),
+		reportsTo: text(),
+		deputyRequired: boolean().notNull().default(false),
+		active: boolean().notNull().default(true),
 		createdByUserId: userRef(),
 		...timestamps(),
 	},

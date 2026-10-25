@@ -4,7 +4,6 @@ import { Check, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	applyObligationSeed,
 	completeObligationRun,
@@ -12,8 +11,10 @@ import {
 	waiveObligationRun,
 } from "@/app/actions/obligations";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { ResponsibleSelect } from "@/components/entity/responsible-select";
 import { FormDialog } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 
 export function ApplyObligationSeedButton({
 	variant,
@@ -43,7 +45,7 @@ export function ApplyObligationSeedButton({
 			onClick={() =>
 				start(async () => {
 					const res = await applyObligationSeed();
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(
 						t("seedApplied", { n: res.data.created, r: res.data.runs }),
 					);
@@ -94,7 +96,7 @@ export function RunActions({
 							evidenceId: evidenceId === "none" ? null : evidenceId,
 							note: note || undefined,
 						});
-						if (!res.ok) return void toast.error(tc("error"));
+						if (!res.ok) return void toast.error(errorText(tc, res));
 						toast.success(t("completed"));
 						setOpen(false);
 						router.refresh();
@@ -142,7 +144,7 @@ export function RunActions({
 				onSubmit={() =>
 					start(async () => {
 						const res = await waiveObligationRun({ runId, note: reason });
-						if (!res.ok) return void toast.error(tc("error"));
+						if (!res.ok) return void toast.error(errorText(tc, res));
 						toast.success(t("waived"));
 						setWaiveOpen(false);
 						router.refresh();
@@ -162,13 +164,14 @@ export function RunActions({
 
 export function ObligationSettings({
 	obligationId,
-	ownerUserId,
+	owner,
 	leadDays,
 	active,
 	members,
 }: {
 	obligationId: string;
-	ownerUserId: string | null;
+	// Funktion oder Person (responsibleValue)
+	owner: string | null;
 	leadDays: number;
 	active: boolean;
 	members: MemberOption[];
@@ -180,34 +183,26 @@ export function ObligationSettings({
 	const save = (patch: Record<string, unknown>) =>
 		start(async () => {
 			const res = await updateObligation({ obligationId, ...patch });
-			if (!res.ok) return void toast.error(tc("error"));
+			if (!res.ok) return void toast.error(errorText(tc, res));
 			router.refresh();
 		});
 	return (
 		<div className="flex flex-wrap items-center gap-2">
-			<Select
-				value={ownerUserId ?? "none"}
+			<ResponsibleSelect
+				value={owner}
 				disabled={pending}
-				onValueChange={(v) => save({ ownerUserId: v === "none" ? null : v })}
-			>
-				<SelectTrigger className="h-8 w-44">
-					<SelectValue placeholder={t("owner")} />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="none">—</SelectItem>
-					{members.map((m) => (
-						<SelectItem key={m.userId} value={m.userId}>
-							{m.name}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
+				onChange={(v) => save({ ownerUserId: v })}
+				members={members}
+				size="sm"
+				className="w-52"
+				aria-label={t("owner")}
+			/>
 			<Input
 				type="number"
 				min={0}
 				max={365}
 				defaultValue={leadDays}
-				className="h-8 w-20"
+				className="w-20"
 				title={t("leadDays")}
 				onBlur={(e) => {
 					const v = Number(e.target.value);

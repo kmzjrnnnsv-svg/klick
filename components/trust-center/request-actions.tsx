@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	approveTrustRequest,
 	rejectTrustRequest,
@@ -21,6 +20,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -30,6 +30,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { TRUST_ACCESS_DAYS, type TrustRequestState } from "@/lib/trust/rules";
 
 // Anfrage freigeben (Step-up, Link einmal zum Kopieren, Mail optional),
@@ -70,7 +71,9 @@ export function RequestActions({
 				approveTrustRequest({ id, days: Number(days), sendMail }),
 			);
 			if (!res.ok) {
-				toast.error(res.error === "notFound" ? t("errorGone") : tc("error"));
+				toast.error(
+					res.error === "notFound" ? t("errorGone") : errorText(tc, res),
+				);
 				return;
 			}
 			setLink({ url: res.data.url, mailed: res.data.mailed });
@@ -81,7 +84,9 @@ export function RequestActions({
 			const fn = kind === "reject" ? rejectTrustRequest : revokeTrustAccess;
 			const res = await fn({ id, note: note || null });
 			if (!res.ok) {
-				toast.error(res.error === "notFound" ? t("errorGone") : tc("error"));
+				toast.error(
+					res.error === "notFound" ? t("errorGone") : errorText(tc, res),
+				);
 				return;
 			}
 			toast.success(kind === "reject" ? t("rejected") : t("revoked"));

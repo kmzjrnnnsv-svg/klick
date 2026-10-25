@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { createResolution } from "@/app/actions/resolutions";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 
 export type RequiredOption = {
 	code: string;
@@ -124,7 +125,7 @@ export function ResolutionForm({
 										? ts(
 												`approvalError_${res.error}` as "approvalError_no_approver",
 											)
-										: tc("error"),
+										: errorText(tc, res),
 								);
 							if (res.data.approvalSkipped) {
 								toast.warning(
@@ -240,7 +241,7 @@ export function ResolutionForm({
 						/>
 					</div>
 					<fieldset className="flex flex-wrap gap-3 text-subhead">
-						<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+						<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 							{t("attendees")}
 						</legend>
 						{members.map((m) => (

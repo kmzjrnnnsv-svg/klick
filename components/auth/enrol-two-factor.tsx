@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 import { authClient } from "@/lib/auth/client";
 
 type Phase = "loading" | "scan" | "backup" | "error";
@@ -139,7 +139,7 @@ export function EnrolTwoFactor() {
 						required
 						value={code}
 						onChange={(e) => setCode(e.target.value)}
-						className="font-mono text-lg"
+						className="font-mono text-title-3"
 					/>
 				</div>
 				<Button type="submit" disabled={busy || code.trim().length !== 6}>

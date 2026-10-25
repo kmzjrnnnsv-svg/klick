@@ -58,6 +58,8 @@ export const fmtDay = (iso: string | null | undefined): string =>
 
 export type SignerSlot = {
 	function: string;
+	// Anzeige, wenn die Funktion eine eigene Rolle ist (`role:<id>`)
+	label?: string;
 	mode: "all" | "any";
 	holders: string[];
 };
@@ -84,12 +86,12 @@ export function assembleDoc(input: {
 						signers: input.signers.flatMap((s) =>
 							s.mode === "all" && s.holders.length > 0
 								? s.holders.map((h) => ({
-										role: functionLabel(s.function),
+										role: s.label ?? functionLabel(s.function),
 										name: h,
 									}))
 								: [
 										{
-											role: functionLabel(s.function),
+											role: s.label ?? functionLabel(s.function),
 											name:
 												s.holders.length > 0
 													? s.holders.join(" oder ")

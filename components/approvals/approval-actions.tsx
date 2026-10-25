@@ -3,10 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { decideApproval, withdrawApproval } from "@/app/actions/approvals";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -16,6 +16,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 
 // Entscheidung mit einem Klick (auch mobil, Deep-Link aus der Mail).
 // Managementanfragen mit Optionen: Zustimmung nennt die gewählte Option.
@@ -149,7 +150,7 @@ export function ApprovalActions({
 					onClick={() =>
 						start(async () => {
 							const res = await withdrawApproval(requestId);
-							if (!res.ok) toast.error(tc("error"));
+							if (!res.ok) toast.error(errorText(tc, res));
 							else {
 								toast.success(t("withdrawn"));
 								router.refresh();

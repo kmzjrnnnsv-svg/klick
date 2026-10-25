@@ -4,17 +4,19 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	createProduct,
+	requestProductDeclaration,
 	startProductChecklist,
 	updateProduct,
 	uploadSbom,
 } from "@/app/actions/products";
+import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import {
 	DlpWarning,
 	useUploadFeedback,
 } from "@/components/entity/upload-feedback";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -26,6 +28,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -36,6 +40,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import {
 	CRA_CLASSES,
 	type CraClass,
@@ -82,7 +87,7 @@ export function NewProductDialog() {
 								version,
 								description: description || undefined,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("created"));
 							setOpen(false);
 							router.push(`/produkte/${res.data.id}`);
@@ -180,7 +185,7 @@ export function NewProductDialog() {
 							{tc("cancel")}
 						</Button>
 						<Button type="submit" disabled={pending || !name.trim()}>
-							{pending ? `${t("create")}…` : t("create")}
+							{pending ? tc("creating") : t("create")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -209,7 +214,7 @@ function useSave(productId: string) {
 	const save = (patch: Record<string, unknown>) =>
 		start(async () => {
 			const res = await updateProduct({ productId, ...patch });
-			if (!res.ok) return void toast.error(tc("error"));
+			if (!res.ok) return void toast.error(errorText(tc, res));
 			toast.success(t("saved"));
 			router.refresh();
 		});
@@ -380,7 +385,7 @@ export function ScopeForm({
 			{!disabled && (
 				<div className="flex justify-end">
 					<Button type="submit" size="sm" disabled={pending}>
-						{pending ? `${tc("save")}…` : tc("save")}
+						{pending ? tc("saving") : tc("save")}
 					</Button>
 				</div>
 			)}
@@ -488,7 +493,7 @@ export function LifecycleForm({
 			{!disabled && (
 				<div className="flex justify-end">
 					<Button type="submit" size="sm" disabled={pending}>
-						{pending ? `${tc("save")}…` : tc("save")}
+						{pending ? tc("saving") : tc("save")}
 					</Button>
 				</div>
 			)}
@@ -505,17 +510,76 @@ type ConformityDraft = Pick<
 	| "notifiedBody"
 >;
 
+// EU-Konformitätserklärung: Datum setzt erst die Freigabe (Ablauf
+// product_declaration, CRA Art. 28), nie die Eingabe
+export function DeclarationControl({
+	productId,
+	declarationAt,
+	pendingApproval,
+	disabled,
+}: {
+	productId: string;
+	declarationAt: string | null;
+	pendingApproval: boolean;
+	disabled?: boolean;
+}) {
+	const t = useTranslations("Products");
+	const tc = useTranslations("Common");
+	const gate = useGateFeedback();
+	const router = useRouter();
+	const [pending, start] = useTransition();
+	if (declarationAt)
+		return (
+			<p>
+				{t("declarationIssued", {
+					date: new Date(declarationAt).toLocaleDateString("de-DE"),
+				})}
+			</p>
+		);
+	if (pendingApproval)
+		return <Badge variant="warning">{t("declarationPending")}</Badge>;
+	if (disabled) return <p className="text-muted-foreground">—</p>;
+	return (
+		<Button
+			type="button"
+			size="sm"
+			variant="secondary"
+			className="self-start"
+			disabled={pending}
+			onClick={() =>
+				start(async () => {
+					const res = await requestProductDeclaration({ productId });
+					if (!res.ok)
+						return void toast.error(
+							gate.errorText(res.error) ?? errorText(tc, res),
+						);
+					toast.success(
+						res.data.status === "pending"
+							? t("declarationRequested")
+							: t("declarationIssuedNow"),
+					);
+					router.refresh();
+				})
+			}
+		>
+			{t("declarationRequest")}
+		</Button>
+	);
+}
+
 export function ConformityForm({
 	productId,
 	initial,
 	documents,
 	thirdParty,
+	declarationPending,
 	disabled,
 }: {
 	productId: string;
 	initial: ConformityDraft;
 	documents: { id: string; docNumber: string; title: string }[];
 	thirdParty: boolean;
+	declarationPending: boolean;
 	disabled?: boolean;
 }) {
 	const t = useTranslations("Products");
@@ -558,7 +622,6 @@ export function ConformityForm({
 				save({
 					riskDocumentId: d.riskDocumentId,
 					techDocDocumentId: d.techDocDocumentId,
-					declarationAt: d.declarationAt || null,
 					ceMarked: d.ceMarked,
 					notifiedBody: d.notifiedBody ?? "",
 				});
@@ -575,12 +638,11 @@ export function ConformityForm({
 			)}
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="prd-doc-at">{t("declarationAt")}</Label>
-					<Input
-						id="prd-doc-at"
-						type="date"
-						value={d.declarationAt ?? ""}
-						onChange={(e) => set("declarationAt", e.target.value || null)}
+					<span className="font-medium text-subhead">{t("declarationAt")}</span>
+					<DeclarationControl
+						productId={productId}
+						declarationAt={d.declarationAt}
+						pendingApproval={declarationPending}
 						disabled={disabled}
 					/>
 				</div>
@@ -608,7 +670,7 @@ export function ConformityForm({
 			{!disabled && (
 				<div className="flex justify-end">
 					<Button type="submit" size="sm" disabled={pending}>
-						{pending ? `${tc("save")}…` : tc("save")}
+						{pending ? tc("saving") : tc("save")}
 					</Button>
 				</div>
 			)}
@@ -624,6 +686,7 @@ const SBOM_ERRORS = new Set([
 
 export function SbomUpload({ productId }: { productId: string }) {
 	const t = useTranslations("Products");
+	const tc = useTranslations("Common");
 	const router = useRouter();
 	const { errorText, dlpWarning, tooLarge } = useUploadFeedback();
 	const input = useRef<HTMLInputElement>(null);
@@ -648,8 +711,7 @@ export function SbomUpload({ productId }: { productId: string }) {
 				const text = SBOM_ERRORS.has(res.error)
 					? t(res.error as "sbom_invalid_json")
 					: errorText(res);
-				setMessage(text);
-				return void toast.error(text);
+				return void setMessage(text);
 			}
 			setWarn(null);
 			setAck(false);
@@ -681,16 +743,14 @@ export function SbomUpload({ productId }: { productId: string }) {
 			{warn && (
 				<DlpWarning reasons={warn} acknowledged={ack} onAcknowledge={setAck} />
 			)}
-			<p aria-live="polite" className="text-destructive text-footnote">
-				{message}
-			</p>
+			<FormAlert message={message} />
 			<div className="flex justify-end">
 				<Button
 					type="submit"
 					size="sm"
 					disabled={pending || (warn !== null && !ack)}
 				>
-					{pending ? `${t("sbomCheck")}…` : t("sbomCheck")}
+					{pending ? tc("working") : t("sbomCheck")}
 				</Button>
 			</div>
 		</form>
@@ -714,7 +774,7 @@ export function StartChecklistButton({
 			onClick={() =>
 				start(async () => {
 					const res = await startProductChecklist({ productId });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					router.push(`/gap-analyse/${res.data.id}`);
 				})
 			}

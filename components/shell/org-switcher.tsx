@@ -4,7 +4,6 @@ import { ChevronsUpDown } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { switchOrganization } from "@/app/actions/memberships";
 import {
 	DropdownMenu,
@@ -14,6 +13,8 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 
 export type SwitcherOrg = {
 	organizationId: string;
@@ -34,12 +35,13 @@ export function OrgSwitcher({
 	currentName: string;
 	orgs: readonly SwitcherOrg[];
 }) {
+	const tc = useTranslations("Common");
 	const t = useTranslations("Organisations");
 	const [pending, start] = useTransition();
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
-				className="flex w-full min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+				className="flex min-h-(--control-h-sm) w-full min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
 				aria-label={`${t("switch")}: ${currentName}`}
 				disabled={pending}
 			>
@@ -57,7 +59,7 @@ export function OrgSwitcher({
 						onSelect={() =>
 							start(async () => {
 								const res = await switchOrganization(o.organizationId);
-								if (res && !res.ok) toast.error(res.error);
+								if (res && !res.ok) toast.error(errorText(tc, res));
 							})
 						}
 						className="flex flex-col items-start gap-0"

@@ -4,7 +4,6 @@ import { Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	reviewReconciliation,
 	saveReconciliation,
@@ -15,9 +14,12 @@ import {
 	FormDialog,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { ReconciliationLine } from "@/db/schema/custody";
 import { isDecimal } from "@/lib/custody/decimal";
 import { reconcile } from "@/lib/custody/reconcile";
@@ -54,6 +56,7 @@ export function ReconciliationForm({
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
+	const [formError, setFormError] = useState<string | null>(null);
 	const [day, setDay] = useState(defaultDay);
 	const fromNode = (symbol: string) =>
 		nodeHoldings.find((h) => h.symbol === symbol)?.onChain ?? "";
@@ -82,6 +85,7 @@ export function ReconciliationForm({
 			onSubmit={(e) => {
 				e.preventDefault();
 				start(async () => {
+					setFormError(null);
 					const res = await saveReconciliation({
 						day,
 						lines: lines.map((l) => ({ ...l, walletId: null })),
@@ -89,12 +93,12 @@ export function ReconciliationForm({
 					});
 					if (!res.ok) {
 						const first = Object.values(res.fieldErrors ?? {})[0]?.[0];
-						toast.error(
+						setFormError(
 							res.error === "already_reviewed"
 								? t("errorReviewed")
 								: res.error === "future_day"
 									? t("errorFutureDay")
-									: (first ?? tc("error")),
+									: (first ?? errorText(tc, res)),
 						);
 						return;
 					}
@@ -245,6 +249,7 @@ export function ReconciliationForm({
 						placeholder={t("explanationPlaceholder")}
 					/>
 				</div>
+				<FormAlert message={formError} />
 				{canEdit && (
 					<div>
 						<Button type="submit" disabled={pending || !complete}>
@@ -292,7 +297,7 @@ export function ReviewReconciliationButton({
 								? t("errorFourEyes")
 								: res.error === "explanation_required"
 									? t("errorExplanation")
-									: tc("error"),
+									: errorText(tc, res),
 						);
 						return;
 					}

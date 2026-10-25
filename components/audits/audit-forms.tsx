@@ -4,7 +4,6 @@ import { Check, Plus, Trash2, Wrench, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	addProgrammeItem,
 	adoptOpenFindings,
@@ -25,10 +24,12 @@ import {
 	Field,
 	FormDialog,
 	NewTrigger,
+	ResponsibleField,
 	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -38,6 +39,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import {
 	AUDIT_STATUSES,
 	AUDIT_TYPES,
@@ -56,7 +58,7 @@ function useRun(setOpen?: (o: boolean) => void) {
 	) =>
 		start(async () => {
 			const res = await fn();
-			if (!res.ok) return void toast.error(tc("error"));
+			if (!res.ok) return void toast.error(errorText(tc, res));
 			toast.success(
 				typeof okMessage === "function" ? okMessage(res) : okMessage,
 			);
@@ -373,7 +375,7 @@ export function AuditForm({
 					value={d.plannedAt ?? ""}
 					onChange={(v) => setD({ ...d, plannedAt: v })}
 				/>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -409,7 +411,7 @@ export function AuditForm({
 			/>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<fieldset className="flex flex-col gap-1.5 text-subhead">
-					<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+					<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 						{t("frameworks")}
 					</legend>
 					{frameworks.map((f) => (
@@ -428,7 +430,7 @@ export function AuditForm({
 					))}
 				</fieldset>
 				<fieldset className="flex flex-col gap-1.5 text-subhead">
-					<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+					<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 						{t("auditors")}
 					</legend>
 					{members.map((m) => (
@@ -466,7 +468,7 @@ export function AuditStatusSelect({
 			disabled={pending}
 			onValueChange={(v) => run(() => setAuditStatus({ auditId, status: v }))}
 		>
-			<SelectTrigger className="h-8 w-44">
+			<SelectTrigger size="sm" className="w-44">
 				<SelectValue />
 			</SelectTrigger>
 			<SelectContent>
@@ -595,7 +597,7 @@ export function FindingStatusSelect({
 				run(() => setFindingStatus({ findingId, status: v }))
 			}
 		>
-			<SelectTrigger className="h-8 w-40">
+			<SelectTrigger size="sm" className="w-40">
 				<SelectValue />
 			</SelectTrigger>
 			<SelectContent>
@@ -622,7 +624,7 @@ export function FindingToNcButton({ findingId }: { findingId: string }) {
 			onClick={() =>
 				start(async () => {
 					const res = await findingToNonconformity({ findingId });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("ncCreated", { code: res.data.code }));
 					router.refresh();
 				})
@@ -654,7 +656,7 @@ export function AdoptFindingsButton({
 			onClick={() =>
 				start(async () => {
 					const res = await adoptOpenFindings({ auditId });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("adoptFindingsDone", { n: res.data.count }));
 					router.refresh();
 				})
@@ -800,7 +802,7 @@ export function RespondRequestForm({
 				/>
 			</div>
 			<fieldset className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-2xl bg-card p-2 text-subhead">
-				<legend className="font-medium text-footnote px-1 text-footnote text-muted-foreground">
+				<legend className="font-medium text-footnote px-1 text-muted-foreground">
 					{t("attachEvidence")}
 				</legend>
 				{evidence.length === 0 ? (
@@ -847,7 +849,7 @@ export function DecideRequestButtons({ requestId }: { requestId: string }) {
 			</Button>
 			<Textarea
 				rows={1}
-				className="min-h-8 w-56 py-1 text-footnote"
+				className="min-h-(--control-h) w-56 py-1.5"
 				placeholder={t("rejectNote")}
 				value={note}
 				onChange={(e) => setNote(e.target.value)}

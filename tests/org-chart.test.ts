@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ROLE_FUNCTIONS } from "@/db/schema/enums";
+import { type FunctionKey, ROLE_FUNCTIONS } from "@/db/schema/enums";
 import {
 	APPOINTMENT_TEMPLATE_BY_FUNCTION,
 	appointable,
@@ -8,6 +8,7 @@ import {
 	buildOrgChart,
 	type ChartAssignment,
 	flattenChart,
+	wouldCycle,
 } from "@/lib/compliance/org-chart";
 import { buildBestellung } from "@/lib/evidence-studio/kinds/bestellung";
 import {
@@ -152,5 +153,24 @@ describe("Organigramm als Nachweis", () => {
 			"Leitungsorgan / Geschäftsleitung",
 		]);
 		expect(doc.blocks.some((b) => b.type === "list")).toBe(true);
+	});
+});
+
+describe("wouldCycle", () => {
+	const ID = "6f1d3c2a-9b8e-4c7d-a1f0-2e3b4c5d6e7f";
+	const parents = new Map<FunctionKey, FunctionKey | null>([
+		["management_body", null],
+		["risk_control", "management_body"],
+		[`role:${ID}`, "risk_control"],
+	]);
+	it("erkennt Kreise und Selbstbezug", () => {
+		expect(wouldCycle(parents, "risk_control", `role:${ID}`)).toBe(true);
+		expect(wouldCycle(parents, "risk_control", "risk_control")).toBe(true);
+		expect(wouldCycle(parents, "management_body", "risk_control")).toBe(true);
+	});
+	it("erlaubt Bäume", () => {
+		expect(wouldCycle(parents, `role:${ID}`, "management_body")).toBe(false);
+		expect(wouldCycle(parents, "dpo", `role:${ID}`)).toBe(false);
+		expect(wouldCycle(parents, "dpo", null)).toBe(false);
 	});
 });

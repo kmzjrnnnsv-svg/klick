@@ -9,7 +9,6 @@ import { Ban, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -30,6 +29,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { WalletNetwork } from "@/lib/wallet/core/networks";
 
 // Zieladresse vorschlagen → Absicht im Signer, Freigabe per Sicherheitsschlüssel

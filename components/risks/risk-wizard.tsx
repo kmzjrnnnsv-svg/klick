@@ -3,17 +3,22 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 import { createRiskGuided, reassessRisk } from "@/app/actions/risks";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import { LevelChoice } from "@/components/entity/level-choice";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { useResponsibleOptions } from "@/components/entity/responsible-context";
+import {
+	ResponsibleLabel,
+	ResponsibleSelect,
+} from "@/components/entity/responsible-select";
 import { MethodMatrix, ZONE_CELL } from "@/components/risks/method-matrix";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { RISK_CATEGORIES } from "@/db/schema/grc";
 import type { RiskMethod } from "@/db/schema/platform";
 import {
@@ -30,6 +35,7 @@ import {
 	ZONE_TONE,
 } from "@/lib/compliance/risk-method";
 import { cn } from "@/lib/utils";
+import { functionOfRef } from "@/lib/validation/responsible";
 
 export type WizardScenario = Pick<
 	RiskScenario,
@@ -118,6 +124,7 @@ export function RiskWizard({
 	const t = useTranslations("RiskWizard");
 	const tr = useTranslations("Risks");
 	const ts = useTranslations("Status");
+	const functions = useResponsibleOptions();
 	const gate = useGateFeedback();
 	const router = useRouter();
 	const [pending, start] = useTransition();
@@ -205,7 +212,12 @@ export function RiskWizard({
 		setErrors({});
 		setStep(to);
 		if (typeof window !== "undefined")
-			window.scrollTo({ top: 0, behavior: "smooth" });
+			window.scrollTo({
+				top: 0,
+				behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+					? "auto"
+					: "smooth",
+			});
 	}
 
 	function pickScenario(s: WizardScenario | null) {
@@ -369,7 +381,7 @@ export function RiskWizard({
 
 			<section aria-labelledby="rw-h" className="flex flex-col gap-4">
 				<header className="flex flex-col gap-1">
-					<h2 id="rw-h" className="font-medium text-lg">
+					<h2 id="rw-h" className="font-semibold text-title-3">
 						{t(`q_${step}`)}
 					</h2>
 					<p className="text-muted-foreground text-subhead">
@@ -822,7 +834,7 @@ export function RiskWizard({
 									score: assessed.inherent.score,
 								})}
 							</p>
-							<p className="font-medium text-2xl">
+							<p className="font-semibold text-title-2">
 								{t("resultClass", { label: assessed.inherent.cls.label })}
 							</p>
 							<Badge
@@ -1099,18 +1111,16 @@ export function RiskWizard({
 						<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 							<div className="flex flex-col gap-1">
 								<Label htmlFor="rw-owner">{t("owner")}</Label>
-								<select
+								<ResponsibleSelect
 									id="rw-owner"
-									className={selectCls}
-									value={d.ownerUserId}
-									onChange={(e) => set("ownerUserId", e.target.value)}
-								>
-									{members.map((u) => (
-										<option key={u.userId} value={u.userId}>
-											{u.name || u.email}
-										</option>
-									))}
-								</select>
+									value={d.ownerUserId || null}
+									onChange={(v) => set("ownerUserId", v ?? "")}
+									members={members.map((u) => ({
+										userId: u.userId,
+										name: u.name || u.email,
+									}))}
+									allowNone={false}
+								/>
 							</div>
 							<div className="flex flex-col gap-1">
 								<Label htmlFor="rw-review">{t("reviewAt")}</Label>
@@ -1189,8 +1199,17 @@ export function RiskWizard({
 						<dt className="text-muted-foreground">{t("owner")}</dt>
 						<dd>
 							{(() => {
+								const fn = functionOfRef(d.ownerUserId);
+								const holder = fn
+									? (functions.find((f) => f.function === fn)?.holder ?? null)
+									: null;
 								const m = members.find((x) => x.userId === d.ownerUserId);
-								return m ? m.name || m.email : "—";
+								return (
+									<ResponsibleLabel
+										ownerFunction={fn}
+										ownerName={fn ? holder : m ? m.name || m.email : null}
+									/>
+								);
 							})()}
 						</dd>
 					</dl>

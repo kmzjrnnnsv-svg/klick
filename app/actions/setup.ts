@@ -1,27 +1,47 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { inviteMember } from "@/app/actions/team";
 import {
 	assessmentAnswers,
+	controlImplementations,
+	controls,
 	orgSettings,
 	providers,
 	roleAssignments,
 	sites,
 } from "@/db/schema";
+import type { AppointmentStatus, RoleFunction } from "@/db/schema/enums";
 import type { EntityProfile } from "@/db/schema/platform";
 import { safeAction } from "@/lib/actions/safe";
+import {
+	type ModeSwitchSummary,
+	setGovernanceModeTx,
+} from "@/lib/approvals/governance-mode";
 import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import { insertSelfAssessment } from "@/lib/assessments/create-service";
 import type { AuditInput } from "@/lib/audit";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
+import {
+	proposeAssignment,
+	proposeRevocation,
+	updateProposal,
+} from "@/lib/compliance/appointment-service";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
+import type { WorkflowEnabledByDuty } from "@/lib/compliance/catalog/approval-duties";
+import {
+	areaOf,
+	type ResponsibilityArea,
+} from "@/lib/compliance/catalog/domain-functions";
 import { requiredFunctions } from "@/lib/compliance/catalog/required-functions";
 import {
 	classifyCompany,
 	prefillFromSetup,
 } from "@/lib/compliance/company-profile";
+import { loadAssignments } from "@/lib/compliance/function-holders-service";
+import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import {
 	activeFrameworkSlugs,
 	addOrgFrameworks,
@@ -32,25 +52,23 @@ import {
 	appetiteFromMethod,
 	defaultRiskMethod,
 } from "@/lib/compliance/risk-method";
-import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
-import {
-	markStepDone,
-	SETUP_FLAG,
-	type SetupStep,
-	setupState,
-} from "@/lib/setup/steps";
+import { mutateOrg, type OrgTx, readOrg } from "@/lib/db/with-org";
+import { setupOpen } from "@/lib/setup/open";
+import { markStepDone, SETUP_FLAG, type SetupStep } from "@/lib/setup/steps";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	activitySchema,
 	companyProfileSchema,
 	deleteSiteSchema,
 	itDataSchema,
+	setupAreasSchema,
 	setupAssignSchema,
 	setupFrameworksSchema,
 	setupGapSchema,
 	setupStepSchema,
 	siteSchema,
 } from "@/lib/validation/setup";
+import { governanceModeSchema } from "@/lib/validation/workflows";
 
 // Geführte Einrichtung (D0–D5): jeder Schritt speichert sofort in die
 // Register und ins Profil. Bis die Einrichtung abgeschlossen ist, genügt
@@ -95,24 +113,37 @@ async function markStep(
 // Nach Abschluss der Einrichtung keine Abkürzung mehr an Step-up vorbei
 async function requireSetup(perm: Parameters<typeof requireOrg>[0]) {
 	const c = await requireOrg(perm);
-	const open = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const s = await loadSettings(tx, c.orgId);
-		return { result: !setupState(s?.flags ?? {}).completed, audit: [] };
-	});
+	const open = await readOrg(toOrgCtx(c), (tx) => setupOpen(tx, c.orgId));
 	return { c, open };
 }
 
 // ── Schritt 1: Rollen & Rechte ────────────────────────────────────────────
 
-async function setupAssignFunctionImpl(
-	input: unknown,
-): Promise<
-	ActionResult<{ id: string; inviteUrl: string | null; mailed: boolean | null }>
+async function setupAssignFunctionImpl(input: unknown): Promise<
+	ActionResult<{
+		id: string;
+		status: AppointmentStatus;
+		waiting: null | "approval" | "no_management";
+		inviteUrl: string | null;
+		mailed: boolean | null;
+	}>
 > {
-	const c = await requireOrg({ role_assignment: ["update"] });
+	// in der Einrichtung ohne Step-up, danach wie unter /organisation
+	const { c, open } = await requireSetup({ role_assignment: ["update"] });
+	if (!open) await requireStepUp();
 	const parsed = setupAssignSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
+	const holderId =
+		d.mode === "me" ? c.userId : d.mode === "member" ? d.userId : null;
+	if (d.deputyUserId && d.deputyUserId === holderId)
+		return {
+			ok: false,
+			error: "invalid",
+			fieldErrors: {
+				deputyUserId: ["Die Vertretung muss eine andere Person sein."],
+			},
+		};
 	let inviteUrl: string | null = null;
 	let mailed: boolean | null = null;
 	if (d.mode === "invite") {
@@ -130,13 +161,15 @@ async function setupAssignFunctionImpl(
 			return { ok: false, error: inv.error };
 	}
 	const values = {
-		userId: d.mode === "me" ? c.userId : d.mode === "member" ? d.userId : null,
+		userId: holderId,
 		externalName: d.mode === "invite" || d.mode === "external" ? d.name : null,
 		pendingEmail: d.mode === "invite" ? d.email.toLowerCase() : null,
 		deputyUserId: d.deputyUserId ?? null,
 	};
-	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const [existing] = await tx
+	const actor = { orgId: c.orgId, userId: c.userId, name: c.name };
+	// Vorschlag an die Geschäftsleitung; wirkt erst mit der Bestellung
+	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const rows = await tx
 			.select()
 			.from(roleAssignments)
 			.where(
@@ -144,79 +177,189 @@ async function setupAssignFunctionImpl(
 					eq(roleAssignments.organizationId, c.orgId),
 					eq(roleAssignments.function, d.function),
 				),
-			)
-			.limit(1);
-		if (existing) {
-			await tx
-				.update(roleAssignments)
-				.set(values)
-				.where(eq(roleAssignments.id, existing.id));
+			);
+		const live = rows.filter(
+			(r) => r.status !== "revoked" && r.status !== "rejected",
+		);
+		// geändert wird nur die gewählte Zeile; dieselbe Person nie doppelt
+		const existing =
+			rows.find((r) => r.id === d.id) ??
+			(holderId ? live.find((r) => r.userId === holderId) : undefined);
+		if (d.id && !existing) return { result: null, audit: [] };
+		if (
+			existing &&
+			(existing.status === "proposed" || existing.status === "rejected")
+		) {
+			const out = await updateProposal(tx, actor, existing.id, values);
+			if (!out) return { result: null, audit: [] };
 			return {
-				result: existing.id,
-				audit: {
-					action: "role_assignment.update",
-					target: `role_assignment:${existing.id}`,
-					before: {
-						userId: existing.userId,
-						externalName: existing.externalName,
-						pendingEmail: existing.pendingEmail,
+				result: out,
+				audit: [
+					{
+						action: "role_assignment.update",
+						target: `role_assignment:${existing.id}`,
+						before: {
+							userId: existing.userId,
+							externalName: existing.externalName,
+							pendingEmail: existing.pendingEmail,
+							deputyUserId: existing.deputyUserId,
+						},
+						after: { function: d.function, ...values, via: "setup" },
 					},
-					after: { function: d.function, ...values, via: "setup" },
-				},
+					...out.audit,
+				],
 			};
 		}
-		const [row] = await tx
-			.insert(roleAssignments)
-			.values({
-				organizationId: c.orgId,
+		const unchanged =
+			existing &&
+			existing.userId === values.userId &&
+			(existing.externalName ?? null) === values.externalName &&
+			(existing.pendingEmail ?? null) === values.pendingEmail &&
+			existing.deputyUserId === values.deputyUserId;
+		if (existing && unchanged)
+			return {
+				result: {
+					id: existing.id,
+					status: existing.status,
+					waiting: null,
+					audit: [],
+				},
+				audit: [],
+			};
+		// neu oder Neubesetzung einer bestellten Zeile
+		const out = await proposeAssignment(
+			tx,
+			actor,
+			{
 				function: d.function,
-				appointedAt: new Date().toISOString().slice(0, 10),
 				...values,
-			})
-			.returning({ id: roleAssignments.id });
-		if (!row) throw new Error("insert failed");
-		return {
-			result: row.id,
-			audit: {
-				action: "role_assignment.create",
-				target: `role_assignment:${row.id}`,
-				after: { function: d.function, ...values, via: "setup" },
+				replacesAssignmentId: existing?.id ?? null,
 			},
-		};
+			"setup",
+		);
+		return { result: out, audit: out.audit };
 	});
+	if (!res) return { ok: false, error: "notFound" };
 	revalidatePath(PATH, "layout");
-	return { ok: true, data: { id, inviteUrl, mailed } };
+	return {
+		ok: true,
+		data: {
+			id: res.id,
+			status: res.status,
+			waiting: res.waiting,
+			inviteUrl,
+			mailed,
+		},
+	};
 }
 
 async function setupRemoveAssignmentImpl(
 	input: unknown,
-): Promise<ActionResult> {
+): Promise<ActionResult<{ status: string }>> {
 	const { c, open } = await requireSetup({ role_assignment: ["update"] });
-	if (!open) return { ok: false, error: "setup_completed" };
+	if (!open) await requireStepUp();
 	const parsed = deleteSiteSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
-	const ok = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const [row] = await tx
-			.delete(roleAssignments)
+	// Vorschlag zurückziehen oder Abberufung bei der Geschäftsleitung beantragen
+	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const r = await proposeRevocation(
+			tx,
+			{ orgId: c.orgId, userId: c.userId, name: c.name },
+			parsed.data.id,
+			"setup",
+		);
+		return { result: r, audit: r.ok ? r.audit : [] };
+	});
+	revalidatePath(PATH, "layout");
+	return res.ok
+		? { ok: true, data: { status: res.status } }
+		: {
+				ok: false,
+				error: res.error === "no_management" ? "noManagement" : "notFound",
+			};
+}
+
+// Bereiche → Funktion: merkt die Zuordnung (org_settings.areaFunctions, für
+// Controls, die später entstehen) und setzt die Funktion an allen Controls
+// des Bereichs, die noch bei der einrichtenden Person (initializeOrg) oder
+// niemandem liegen. Was schon einer Funktion oder einer anderen Person
+// gehört, bleibt. Die Person rechnet syncFunctionOwners (mit Benachrichtigung).
+async function setupAssignAreasImpl(
+	input: unknown,
+): Promise<ActionResult<{ count: number }>> {
+	const { c, open } = await requireSetup({ control: ["assign"] });
+	if (!open) await requireStepUp();
+	const parsed = setupAreasSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const count = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const held = new Set(
+			(await loadAssignments(tx, c.orgId)).map((a) => a.function),
+		);
+		const byArea = new Map<ResponsibilityArea, RoleFunction>(
+			parsed.data.areas
+				.filter((a) => held.has(a.function))
+				.map((a) => [a.area, a.function]),
+		);
+		// merken: neue Controls (Rahmenwerke kommen erst in Schritt 6) bekommen
+		// die Funktion in initializeOrg
+		const [cur] = await tx
+			.select({ areaFunctions: orgSettings.areaFunctions })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		await tx
+			.update(orgSettings)
+			.set({
+				areaFunctions: {
+					...(cur?.areaFunctions ?? {}),
+					...Object.fromEntries(byArea),
+				},
+			})
+			.where(eq(orgSettings.organizationId, c.orgId));
+		const rows = await tx
+			.select({
+				id: controlImplementations.id,
+				code: controls.code,
+				domain: controls.domain,
+			})
+			.from(controlImplementations)
+			.innerJoin(controls, eq(controls.id, controlImplementations.controlId))
 			.where(
 				and(
-					eq(roleAssignments.id, parsed.data.id),
-					eq(roleAssignments.organizationId, c.orgId),
+					eq(controlImplementations.organizationId, c.orgId),
+					isNull(controlImplementations.ownerFunction),
+					or(
+						isNull(controlImplementations.ownerUserId),
+						eq(controlImplementations.ownerUserId, c.userId),
+					),
 				),
-			)
-			.returning();
-		if (!row) return { result: false, audit: [] };
+			);
+		const idsBy = new Map<RoleFunction, string[]>();
+		for (const r of rows) {
+			const fn = byArea.get(areaOf(r));
+			if (fn) idsBy.set(fn, [...(idsBy.get(fn) ?? []), r.id]);
+		}
+		let n = 0;
+		for (const [fn, ids] of idsBy) {
+			await tx
+				.update(controlImplementations)
+				.set({ ownerFunction: fn })
+				.where(inArray(controlImplementations.id, ids));
+			n += ids.length;
+		}
+		await syncOwnersAndNotify(tx, c.orgId, c.userId);
 		return {
-			result: true,
+			result: n,
 			audit: {
-				action: "role_assignment.delete",
-				target: `role_assignment:${row.id}`,
-				before: { function: row.function, userId: row.userId, via: "setup" },
+				action: "control.owner_areas_assigned",
+				target: `org:${c.orgId}`,
+				before: { areas: cur?.areaFunctions ?? {} },
+				after: { areas: Object.fromEntries(byArea), count: n, via: "setup" },
 			},
 		};
 	});
 	revalidatePath(PATH, "layout");
-	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
+	return { ok: true, data: { count } };
 }
 
 // ── Schritte abschließen / später fortsetzen ──────────────────────────────
@@ -492,9 +635,13 @@ async function saveItDataImpl(
 
 // ── Schritt 6: Rahmenwerke ────────────────────────────────────────────────
 
-async function saveSetupFrameworksImpl(
-	input: unknown,
-): Promise<ActionResult<{ added: string[]; controlsCreated: number }>> {
+async function saveSetupFrameworksImpl(input: unknown): Promise<
+	ActionResult<{
+		added: string[];
+		controlsCreated: number;
+		workflowsEnabled: WorkflowEnabledByDuty[];
+	}>
+> {
 	const { c, open } = await requireSetup({ settings: ["update"] });
 	if (!open) return { ok: false, error: "setup_completed" };
 	const parsed = setupFrameworksSchema.safeParse(input);
@@ -531,8 +678,16 @@ async function saveSetupFrameworksImpl(
 				.set({ riskMethod: method, riskAppetite: appetiteFromMethod(method) })
 				.where(eq(orgSettings.organizationId, c.orgId));
 		}
+		// Pflicht-Freigaben der gewählten Rahmenwerke einschalten
+		const wf = await ensureOrgWorkflows(tx, c.orgId, p.profile.licenceStage, {
+			frameworks: all,
+		});
 		return {
-			result: { added, controlsCreated: init.controlsCreated },
+			result: {
+				added,
+				controlsCreated: init.controlsCreated,
+				workflowsEnabled: wf.enabled,
+			},
 			audit: [
 				{
 					action: "org.frameworks_added",
@@ -574,7 +729,12 @@ async function startSetupGapAnalysisImpl(
 			tx
 				.select({ function: roleAssignments.function })
 				.from(roleAssignments)
-				.where(eq(roleAssignments.organizationId, c.orgId)),
+				.where(
+					and(
+						eq(roleAssignments.organizationId, c.orgId),
+						effectiveAssignment(),
+					),
+				),
 			tx
 				.select({ kind: sites.kind })
 				.from(sites)
@@ -623,6 +783,36 @@ async function startSetupGapAnalysisImpl(
 	return { ok: true, data: out };
 }
 
+// Standard oder individuell (ADR-024) gleich zu Beginn: Inhaber:in, in der
+// offenen Einrichtung ohne Step-up, danach wie unter Einstellungen
+async function setupGovernanceModeImpl(
+	input: unknown,
+): Promise<ActionResult<ModeSwitchSummary>> {
+	const { c, open } = await requireSetup({ settings: ["update"] });
+	if (!open) await requireStepUp();
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const parsed = governanceModeSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const res = await mutateOrg<ActionResult<ModeSwitchSummary>>(
+		toOrgCtx(c),
+		async (tx) => {
+			const [s] = await tx
+				.select({ stage: orgSettings.licenceStage })
+				.from(orgSettings)
+				.where(eq(orgSettings.organizationId, c.orgId))
+				.limit(1);
+			const out = await setGovernanceModeTx(tx, c.orgId, parsed.data.mode, {
+				licenceStage: s?.stage ?? "0_vorbereitung",
+				frameworks: await activeFrameworkSlugs(tx, c.orgId),
+			});
+			return { result: { ok: true, data: out.summary }, audit: out.audit };
+		},
+	);
+	revalidatePath(PATH, "layout");
+	revalidatePath("/einstellungen");
+	return res;
+}
+
 export const setupAssignFunction = safeAction(
 	"setupAssignFunction",
 	setupAssignFunctionImpl,
@@ -630,6 +820,10 @@ export const setupAssignFunction = safeAction(
 export const setupRemoveAssignment = safeAction(
 	"setupRemoveAssignment",
 	setupRemoveAssignmentImpl,
+);
+export const setupAssignAreas = safeAction(
+	"setupAssignAreas",
+	setupAssignAreasImpl,
 );
 export const completeSetupStep = safeAction(
 	"completeSetupStep",
@@ -651,4 +845,8 @@ export const saveSetupFrameworks = safeAction(
 export const startSetupGapAnalysis = safeAction(
 	"startSetupGapAnalysis",
 	startSetupGapAnalysisImpl,
+);
+export const setupGovernanceMode = safeAction(
+	"setupGovernanceMode",
+	setupGovernanceModeImpl,
 );

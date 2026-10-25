@@ -37,12 +37,14 @@ function startOfYear(now: Date): string {
 export default async function ExportSettingsPage() {
 	const ctx = await requireUnlockedPage("/settings/export", "export:manage");
 	const t = await getTranslations("Export");
+	const tShell = await getTranslations("Shell");
 	const { links, revoked, accounts } = await listLinks(toOrgCtx(ctx));
 	const origins = walletEnv().WALLET_KLICK_ORIGINS;
 
 	return (
 		<>
 			<PageHeader
+				back={{ href: "/settings", label: tShell("settings") }}
 				title={t("title")}
 				lead={t("lead")}
 				actions={
@@ -65,7 +67,11 @@ export default async function ExportSettingsPage() {
 						const facts: [string, React.ReactNode][] = [
 							[
 								t("origin"),
-								<code key="o" className="font-mono text-[13px]" translate="no">
+								<code
+									key="o"
+									className="font-mono text-footnote"
+									translate="no"
+								>
 									{l.origin}
 								</code>,
 							],
@@ -241,7 +247,7 @@ export default async function ExportSettingsPage() {
 					<h2 id="revoked" className="font-semibold text-headline">
 						{t("revokedTitle")}
 					</h2>
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{revoked.map((r) => (
 							<li
 								key={r.id}

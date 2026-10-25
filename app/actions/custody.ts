@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
 	custodyReconciliations,
@@ -10,15 +10,22 @@ import {
 	wallets,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import { GateBlocked } from "@/lib/approvals/gate-error";
+import { gateApproval, withdrawOpenRequests } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { insertControlTest } from "@/lib/compliance/control-test-service";
+import {
+	functionRecipients,
+	ownerColumns,
+} from "@/lib/compliance/function-holders-service";
 import {
 	NC_DUE_DAYS,
 	NC_EFFECTIVENESS_DAYS,
 } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
-import { listMembersForPicker } from "@/lib/compliance/queries";
+import { listMembersForPicker, userNames } from "@/lib/compliance/queries";
+import { TOP_MANAGEMENT_FUNCTION } from "@/lib/compliance/top-management";
 import { encryptJson } from "@/lib/crypto/org-dek";
 import { parseDecimal } from "@/lib/custody/decimal";
 import { holderLocationAad, implementationIdFor } from "@/lib/custody/queries";
@@ -80,7 +87,16 @@ async function saveWalletImpl(
 				const before = await loadWallet(tx, c.orgId, id);
 				if (!before)
 					return { result: { ok: false, error: "notFound" }, audit: [] };
-				await tx.update(wallets).set(d).where(eq(wallets.id, id));
+				const { ownerUserId: ownerRef, ...rest } = d;
+				await tx
+					.update(wallets)
+					.set({
+						...rest,
+						...(ownerRef === undefined
+							? {}
+							: await ownerColumns(tx, c.orgId, ownerRef, before.ownerUserId)),
+					})
+					.where(eq(wallets.id, id));
 				return {
 					result: { ok: true, data: { id } },
 					audit: {
@@ -102,7 +118,12 @@ async function saveWalletImpl(
 					...d,
 					organizationId: c.orgId,
 					code,
-					ownerUserId: d.ownerUserId ?? c.userId,
+					...(await ownerColumns(
+						tx,
+						c.orgId,
+						d.ownerUserId ?? undefined,
+						c.userId,
+					)),
 				})
 				.returning({ id: wallets.id });
 			if (!row) throw new Error("insert failed");
@@ -125,37 +146,70 @@ async function addKeyHolderImpl(input: unknown): Promise<ActionResult> {
 	const parsed = keyHolderSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { location, ...d } = parsed.data;
-	const res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
-		const w = await loadWallet(tx, c.orgId, d.walletId);
-		if (!w) return { result: { ok: false, error: "notFound" }, audit: [] };
-		const id = crypto.randomUUID();
-		const locationEnc = location
-			? await encryptJson(tx, c.orgId, { location }, holderLocationAad(id))
-			: null;
-		await tx.insert(walletKeyHolders).values({
-			id,
-			organizationId: c.orgId,
-			...d,
-			locationEnc,
-		});
-		return {
-			result: { ok: true, data: undefined },
-			audit: {
-				action: "wallet.key_holder_added",
-				target: `wallet:${w.id}`,
-				after: {
-					holderId: id,
-					userId: d.userId,
-					externalName: d.externalName,
-					role: d.role,
-					siteId: d.siteId,
-					hasLocation: Boolean(location),
-					vettedAt: d.vettedAt,
-					until: d.until,
+	let res: ActionResult;
+	try {
+		res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+			const w = await loadWallet(tx, c.orgId, d.walletId);
+			if (!w) return { result: { ok: false, error: "notFound" }, audit: [] };
+			const id = crypto.randomUUID();
+			const locationEnc = location
+				? await encryptJson(tx, c.orgId, { location }, holderLocationAad(id))
+				: null;
+			// Bestellung durch die Geschäftsleitung (CCSS 1.06): bis zur Freigabe
+			// „vorgeschlagen“ und nicht im Quorum
+			await tx.insert(walletKeyHolders).values({
+				id,
+				organizationId: c.orgId,
+				...d,
+				locationEnc,
+				status: "proposed",
+			});
+			const names = d.userId ? await userNames(tx, [d.userId]) : null;
+			const who = (d.userId && names?.get(d.userId)) || d.externalName || "";
+			const gate = await gateApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					trigger: "key_holder.appoint",
+					entityType: "wallet_key_holder",
+					entityId: id,
+					entityOwnerUserId: w.ownerUserId,
+					title: `Schlüsselinhaber:in ${w.code}: ${who}`,
+					link: `${PATH}/${w.id}`,
+					facts: { role: d.role },
 				},
-			},
-		};
-	});
+			);
+			if (gate.status === "error")
+				throw new GateBlocked(gate.error, gate.warnings);
+			const status = gate.status === "pending" ? "proposed" : "active";
+			if (status === "active")
+				await tx
+					.update(walletKeyHolders)
+					.set({ status })
+					.where(eq(walletKeyHolders.id, id));
+			return {
+				result: { ok: true, data: undefined },
+				audit: {
+					action: "wallet.key_holder_added",
+					target: `wallet:${w.id}`,
+					after: {
+						holderId: id,
+						userId: d.userId,
+						externalName: d.externalName,
+						role: d.role,
+						siteId: d.siteId,
+						hasLocation: Boolean(location),
+						vettedAt: d.vettedAt,
+						until: d.until,
+						status,
+					},
+				},
+			};
+		});
+	} catch (e) {
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		throw e;
+	}
 	revalidatePath(PATH, "layout");
 	return res;
 }
@@ -179,7 +233,7 @@ async function revokeKeyHolderImpl(input: unknown): Promise<ActionResult> {
 				and(
 					eq(walletKeyHolders.id, d.id),
 					eq(walletKeyHolders.organizationId, c.orgId),
-					eq(walletKeyHolders.status, "active"),
+					inArray(walletKeyHolders.status, ["active", "proposed"]),
 				),
 			)
 			.returning({
@@ -188,6 +242,22 @@ async function revokeKeyHolderImpl(input: unknown): Promise<ActionResult> {
 			});
 		if (!h) return { result: { ok: false, error: "notFound" }, audit: [] };
 		const w = await loadWallet(tx, c.orgId, h.walletId);
+		// Entzug wirkt sofort (Sicherheit vor Ablauf); die Geschäftsleitung
+		// erfährt es danach. Offener Bestellungsantrag wird zurückgezogen.
+		await withdrawOpenRequests(tx, c.orgId, "wallet_key_holder", d.id);
+		await notify(tx, {
+			orgId: c.orgId,
+			recipients: await functionRecipients(
+				tx,
+				c.orgId,
+				TOP_MANAGEMENT_FUNCTION,
+			),
+			actorUserId: c.userId,
+			kind: "management_info",
+			title: `${w?.code ?? "Wallet"}: Schlüsselinhaberschaft entzogen`,
+			body: d.reason,
+			link: `${PATH}/${h.walletId}`,
+		});
 		const [task] = await tx
 			.insert(tasks)
 			.values({

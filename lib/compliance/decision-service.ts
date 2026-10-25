@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, like } from "drizzle-orm";
+import { getTranslations } from "next-intl/server";
 import {
 	amlRiskAnalyses,
 	approvalDecisions,
@@ -19,8 +20,9 @@ import {
 	resolutions,
 	riskControls,
 	risks,
+	roleAssignments,
 } from "@/db/schema";
-import type { EntityKind } from "@/db/schema/enums";
+import type { EntityKind, RoleFunction } from "@/db/schema/enums";
 import { soloModeAllowed, stepRules } from "@/lib/approvals/rules";
 import {
 	ensureOrgWorkflows,
@@ -33,11 +35,13 @@ import type { OrgTx } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import { EDGES_BY_CONTROL, REQUIREMENT_BY_KEY } from "./catalog";
 import {
+	appointmentRequirementKeys,
 	frameworkRefs,
 	isManagementDecision,
 	nextDecisionCode,
 	resolutionFromDecision,
 } from "./decision-resolutions";
+import { userNames } from "./queries";
 import { insertResolution } from "./resolutions-service";
 import { topManagementOf } from "./top-management";
 
@@ -113,6 +117,12 @@ export async function entityFrameworkRefs(
 		if (r) keys = [`${r.slug}:${r.code}`];
 	} else if (entityType === "scope") {
 		keys = ["iso27001:4.3"];
+	} else if (entityType === "role_assignment") {
+		const [r] = await tx
+			.select({ fn: roleAssignments.function })
+			.from(roleAssignments)
+			.where(eq(roleAssignments.id, entityId));
+		if (r) keys = appointmentRequirementKeys(r.fn);
 	} else {
 		const prefix = CONTROL_PREFIX[entityType];
 		if (prefix) {
@@ -136,8 +146,33 @@ async function entityFacts(
 	documentTemplateCode?: string | null;
 	providerMaterial?: boolean;
 	question?: string;
+	roleFunction?: RoleFunction | null;
 }> {
 	switch (entityType) {
+		case "role_assignment": {
+			const [r] = await tx
+				.select({
+					fn: roleAssignments.function,
+					userId: roleAssignments.userId,
+					externalName: roleAssignments.externalName,
+					pendingEmail: roleAssignments.pendingEmail,
+					appointedAt: roleAssignments.appointedAt,
+				})
+				.from(roleAssignments)
+				.where(eq(roleAssignments.id, entityId));
+			if (!r) return { label: "Funktion" };
+			const names = await userNames(tx, [r.userId]);
+			const holder =
+				(r.userId ? names.get(r.userId) : null) ??
+				r.externalName ??
+				r.pendingEmail ??
+				"";
+			const tf = await getTranslations("Functions");
+			return {
+				label: [tf(r.fn as never), holder].filter(Boolean).join(" · "),
+				roleFunction: r.fn,
+			};
+		}
 		case "risk": {
 			const [r] = await tx
 				.select({ code: risks.code, title: risks.title })
@@ -220,10 +255,14 @@ async function entityFacts(
 // Nach einer abschließenden Freigabe-Entscheidung (app/actions/approvals.ts):
 // war es die Geschäftsleitung, entsteht ein Beschluss — höchstens einer je
 // Antrag. Liefert die Audit-Einträge für die laufende Transaktion.
+// `immediate`: Antrag ging ohne Entscheidung durch (Stufe entfiel wegen der
+// anfragenden Person, Solo-Modus) — dann zählt nur, ob sie selbst der
+// Geschäftsleitung angehört, nicht die Stufe.
 export async function resolutionForApproval(
 	tx: OrgTx,
 	actor: { orgId: string; userId: string; name: string },
 	requestId: string,
+	opts: { immediate?: boolean } = {},
 ): Promise<AuditInput[]> {
 	const [row] = await tx
 		.select({
@@ -264,29 +303,47 @@ export async function resolutionForApproval(
 	const top = await topManagementOf(tx, actor.orgId, actor.userId);
 	if (
 		!isManagementDecision({
-			approverRule: step
-				? (stepRules(step).find((r) => r === "function:management_body") ??
-					step.approverRule)
-				: undefined,
+			approverRule:
+				step && !opts.immediate
+					? (stepRules(step).find((r) => r === "function:management_body") ??
+						step.approverRule)
+					: undefined,
 			deciderIsTopManagement: top.isTopManagement,
 			entityType: req.entityType,
 		})
 	)
 		return [];
-	const [last] = await tx
-		.select({ note: approvalDecisions.note })
+	const decided = await tx
+		.select({
+			note: approvalDecisions.note,
+			userId: approvalDecisions.approverUserId,
+			decision: approvalDecisions.decision,
+		})
 		.from(approvalDecisions)
 		.where(eq(approvalDecisions.requestId, requestId))
-		.orderBy(desc(approvalDecisions.decidedAt))
-		.limit(1);
+		.orderBy(desc(approvalDecisions.decidedAt));
+	// Beteiligte: alle, die zugestimmt haben, und wessen Zustimmung mit dem
+	// Antrag gegeben war (Stufe „alle Personen“)
+	const attendees = [
+		...new Set(
+			[
+				actor.userId,
+				...requestSteps(req, row.wfSteps).flatMap((s) => s.given ?? []),
+				...decided
+					.filter((d) => d.decision === "approved")
+					.map((d) => d.userId),
+			].filter((x): x is string => Boolean(x)),
+		),
+	];
 	return createDecisionResolution(tx, actor, {
 		workflowKind: row.kind,
 		workflowName: row.name,
 		entityType: req.entityType,
 		entityId: req.entityId,
 		outcome: req.status,
-		note: last?.note ?? null,
+		note: decided[0]?.note ?? null,
 		requestId,
+		attendeeUserIds: attendees,
 	});
 }
 
@@ -302,8 +359,24 @@ export async function createDecisionResolution(
 		outcome: "approved" | "rejected";
 		note?: string | null;
 		requestId?: string | null;
+		attendeeUserIds?: string[];
 	},
 ): Promise<AuditInput[]> {
+	// höchstens ein Beschluss je Antrag (sofortige Freigabe und Aufrufer
+	// dürfen beide hier landen)
+	if (d.requestId) {
+		const [already] = await tx
+			.select({ id: resolutions.id })
+			.from(resolutions)
+			.where(
+				and(
+					eq(resolutions.organizationId, actor.orgId),
+					eq(resolutions.approvalRequestId, d.requestId),
+				),
+			)
+			.limit(1);
+		if (already) return [];
+	}
 	const facts = await entityFacts(tx, d.entityType, d.entityId);
 	const res = resolutionFromDecision({
 		workflowKind: d.workflowKind,
@@ -315,6 +388,7 @@ export async function createDecisionResolution(
 		documentTemplateCode: facts.documentTemplateCode,
 		providerMaterial: facts.providerMaterial,
 		question: facts.question,
+		roleFunction: facts.roleFunction,
 	});
 	const refs = await entityFrameworkRefs(
 		tx,
@@ -330,7 +404,7 @@ export async function createDecisionResolution(
 		requiredCode: res.requiredCode,
 		linkedEntityType: d.entityType,
 		linkedEntityId: d.entityId,
-		attendeeUserIds: [actor.userId],
+		attendeeUserIds: d.attendeeUserIds ?? [actor.userId],
 		requestApproval: false,
 		frameworks: refs.frameworks,
 		requirementKeys: refs.requirementKeys,
@@ -638,4 +712,73 @@ export async function evidenceTitles(
 			and(eq(evidence.organizationId, orgId), inArray(evidence.id, [...ids])),
 		);
 	return new Map(rows.map((r) => [r.id, r.title]));
+}
+
+// Mehrere Bestellungen auf einmal freigegeben (Posteingang „Alle
+// Bestellungen freigeben“): ein gemeinsamer Beschluss statt einer je Antrag.
+export async function createAppointmentsResolution(
+	tx: OrgTx,
+	actor: { orgId: string; userId: string; name: string },
+	requestIds: readonly string[],
+): Promise<AuditInput[]> {
+	if (requestIds.length === 0) return [];
+	const rows = await tx
+		.select({ req: approvalRequests, wfSteps: approvalWorkflows.steps })
+		.from(approvalRequests)
+		.innerJoin(
+			approvalWorkflows,
+			eq(approvalWorkflows.id, approvalRequests.workflowId),
+		)
+		.where(
+			and(
+				eq(approvalRequests.organizationId, actor.orgId),
+				inArray(approvalRequests.id, [...requestIds]),
+			),
+		);
+	const decided = await tx
+		.select({ userId: approvalDecisions.approverUserId })
+		.from(approvalDecisions)
+		.where(
+			and(
+				inArray(approvalDecisions.requestId, [...requestIds]),
+				eq(approvalDecisions.decision, "approved"),
+			),
+		);
+	const labels: string[] = [];
+	const keys: string[] = [];
+	for (const { req } of rows) {
+		const facts = await entityFacts(tx, req.entityType, req.entityId);
+		labels.push(facts.label);
+		if (facts.roleFunction)
+			keys.push(...appointmentRequirementKeys(facts.roleFunction));
+	}
+	const active = (await listOrgFrameworks(tx, actor.orgId)).map((f) => f.slug);
+	const refs = frameworkRefs(keys, active);
+	const attendees = [
+		...new Set(
+			[
+				actor.userId,
+				...rows.flatMap(({ req, wfSteps }) =>
+					requestSteps(req, wfSteps).flatMap((s) => s.given ?? []),
+				),
+				...decided.map((d) => d.userId),
+			].filter((x): x is string => Boolean(x)),
+		),
+	];
+	const created = await insertResolution(tx, actor, {
+		subject: `Bestellungen: ${labels.join("; ")}`.slice(0, 300),
+		decisionText: [
+			"Die Geschäftsleitung bestellt:",
+			...labels.map((l) => `- ${l}`),
+		].join("\n"),
+		body: "management",
+		date: new Date().toISOString().slice(0, 10),
+		requiredCode: "RES-ROLES",
+		attendeeUserIds: attendees,
+		requestApproval: false,
+		frameworks: refs.frameworks,
+		requirementKeys: refs.requirementKeys,
+		decidedRequestId: requestIds[0] ?? null,
+	});
+	return created.ok ? [created.audit] : [];
 }

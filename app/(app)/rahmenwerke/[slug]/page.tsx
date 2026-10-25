@@ -60,6 +60,7 @@ export default async function FrameworkPage({
 	const fw = FRAMEWORK_BY_SLUG.get(slug);
 	if (!fw) notFound();
 	const t = await getTranslations("Frameworks");
+	const tNav = await getTranslations("Nav");
 	const tes = await getTranslations("EvidenceStudio");
 	const cov = await getOrgCoverageCached(ctx);
 	if (!cov?.frameworks.includes(slug)) notFound();
@@ -188,6 +189,7 @@ export default async function FrameworkPage({
 	return (
 		<>
 			<PageHeader
+				back={{ href: "/rahmenwerke", label: tNav("groupFrameworks") }}
 				eyebrow={`${fw.authority ?? ""} ${fw.version ?? ""}`.trim()}
 				title={fw.name}
 				lead={fw.description}
@@ -235,7 +237,7 @@ export default async function FrameworkPage({
 			)}
 			{fw.recommendedApproach && (
 				<p className="mb-6 rounded-2xl bg-card p-3 text-subhead">
-					<span className="font-medium text-footnote mr-2 text-footnote text-muted-foreground">
+					<span className="font-medium text-footnote mr-2 text-muted-foreground">
 						{t("approach")}
 					</span>
 					{fw.recommendedApproach}
@@ -304,7 +306,7 @@ export default async function FrameworkPage({
 							{gaps.length === 0 ? (
 								<p className="text-subhead">{t("gapsEmpty")}</p>
 							) : (
-								<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+								<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 									{gaps.map(({ r, key, status }) => {
 										const edges = EDGES_BY_REQUIREMENT.get(key) ?? [];
 										return (
@@ -370,7 +372,7 @@ export default async function FrameworkPage({
 												</span>
 											)}
 										</div>
-										<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+										<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 											{items.map(({ r, status }) => (
 												<li
 													key={r.code}

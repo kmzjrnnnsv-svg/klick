@@ -6,6 +6,7 @@ import { obligationRuns, obligations, tasks } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
+import { ownerColumns } from "@/lib/compliance/function-holders-service";
 import {
 	planObligationRuns,
 	syncObligations,
@@ -186,6 +187,7 @@ async function updateObligationImpl(input: unknown): Promise<ActionResult> {
 		const [before] = await tx
 			.select({
 				ownerUserId: obligations.ownerUserId,
+				ownerFunction: obligations.ownerFunction,
 				leadDays: obligations.leadDays,
 				active: obligations.active,
 			})
@@ -199,7 +201,11 @@ async function updateObligationImpl(input: unknown): Promise<ActionResult> {
 			.limit(1);
 		if (!before) return { result: false, audit: [] };
 		const set: Record<string, unknown> = {};
-		if (patch.ownerUserId !== undefined) set.ownerUserId = patch.ownerUserId;
+		if (patch.ownerUserId !== undefined)
+			Object.assign(
+				set,
+				await ownerColumns(tx, c.orgId, patch.ownerUserId, before.ownerUserId),
+			);
 		if (patch.leadDays !== undefined) set.leadDays = patch.leadDays;
 		if (patch.active !== undefined) set.active = patch.active;
 		if (Object.keys(set).length > 0)

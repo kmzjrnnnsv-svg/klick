@@ -90,6 +90,7 @@ export default async function AssessmentPage({
 	const sp = await searchParams;
 	const ctx = await requireOrgPage({ assessment: ["read"] });
 	const t = await getTranslations("Assessment");
+	const tNav = await getTranslations("Nav");
 	const ts = await getTranslations("Status");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const detail = await getAssessmentDetail(tx, ctx.orgId, id);
@@ -158,6 +159,7 @@ export default async function AssessmentPage({
 	return (
 		<>
 			<PageHeader
+				back={{ href: "/gap-analyse", label: tNav("gapAnalysis") }}
 				eyebrow={`${a.code} · ${t(`status_${a.status}`)}${a.asOf ? ` · Stichtag ${fmtDate.format(new Date(a.asOf))}` : ""}`}
 				title={a.title}
 				lead={t("progress", {
@@ -450,7 +452,7 @@ export default async function AssessmentPage({
 					{sections.map((s) => (
 						<section key={s.code}>
 							<h2 className="mb-2 font-medium">{s.title}</h2>
-							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+							<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 								{a.questions
 									.filter((q) => q.sectionCode === s.code)
 									.map((q) => {

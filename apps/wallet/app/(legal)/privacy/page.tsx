@@ -23,7 +23,9 @@ export default async function PrivacyPage() {
 				</p>
 			</div>
 			<section className="flex flex-col gap-2">
-				<h2 className="font-medium text-lg">1. Wer ist verantwortlich?</h2>
+				<h2 className="font-semibold text-title-3">
+					1. Wer ist verantwortlich?
+				</h2>
 				<p>
 					Verantwortlich für die Verarbeitung in both.money, soweit wir selbst
 					über Zweck und Mittel entscheiden, ist:
@@ -49,7 +51,7 @@ export default async function PrivacyPage() {
 			</section>
 			{PRIVACY_SECTIONS.map((s, i) => (
 				<section key={s.title} className="flex flex-col gap-2">
-					<h2 className="font-medium text-lg">
+					<h2 className="font-semibold text-title-3">
 						{i + 2}. {s.title}
 					</h2>
 					{s.paragraphs?.map((p) => (

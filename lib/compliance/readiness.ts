@@ -55,7 +55,9 @@ export type BlockerKind =
 	| "pbc_open"
 	| "pbc_rejected"
 	| "product_gap"
-	| "security_finding";
+	| "security_finding"
+	// Freigabe-Pflicht eines Rahmenwerks nicht abgedeckt (ADR-024)
+	| "governance_gap";
 
 export type ReadinessBlocker = {
 	kind: BlockerKind;

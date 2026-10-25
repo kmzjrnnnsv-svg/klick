@@ -89,7 +89,7 @@ export async function FrameworkEvidence({
 							)}
 						</div>
 					</div>
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{kinds.map((k) => (
 							<li
 								key={k.code}
@@ -190,7 +190,7 @@ export async function FrameworkEvidence({
 						<h2 className="font-medium text-footnote text-muted-foreground">
 							{section.code} · {section.title}
 						</h2>
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{reqs.map((r) => {
 								const p = progress.get(`${framework.slug}:${r.code}`);
 								const state = p?.state ?? "open";

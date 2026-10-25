@@ -4,12 +4,13 @@ import { Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import { FormDialog } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { ActionResult } from "@/lib/validation/common";
 
 export type CsvImportResult = { imported: number; errors: string[] };
@@ -55,7 +56,7 @@ export function CsvImport({
 						return void toast.error(
 							res.error === "tooManyRows"
 								? t("tooManyRows")
-								: (gate.errorText(res.error) ?? tc("error")),
+								: (gate.errorText(res.error) ?? errorText(tc, res)),
 						);
 					setErrors(res.data.errors);
 					toast.success(

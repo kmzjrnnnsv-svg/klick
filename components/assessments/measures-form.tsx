@@ -3,13 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { createMeasures } from "@/app/actions/assessments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Input, nativeSelectCompactClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 import type { Measure } from "@/lib/assessments/measures";
 
 const KIND_TONE = {
@@ -62,7 +63,7 @@ export function MeasuresForm({
 						assigneeUserId: assignee || null,
 						dueAt: dueAt || null,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("measuresCreated", { count: res.data.created }));
 					setPicked(new Set());
 					router.refresh();
@@ -82,7 +83,7 @@ export function MeasuresForm({
 				/>
 				{t("selectAll")}
 			</label>
-			<ol className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+			<ol className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 				{measures.map((m, i) => {
 					const k = key(m);
 					return (

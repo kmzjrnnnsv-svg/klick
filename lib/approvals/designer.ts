@@ -59,6 +59,8 @@ export function ruleKnown(
 			return known.userIds.has(value);
 		case "owner_of_entity":
 			return value === "";
+		case "approver_of_entity":
+			return value === "" && use === "approver";
 		case "not_requester":
 			return value === "" && use === "approver";
 		default:
@@ -133,6 +135,7 @@ export type RuleNames = {
 	roles: Readonly<Record<string, string>>;
 	users: Readonly<Record<string, string>>;
 	ownerOfEntity: string;
+	approverOfEntity: string;
 	notRequester: string;
 	unknown: string;
 };
@@ -148,6 +151,8 @@ export function ruleLabel(rule: string, names: RuleNames): string {
 			return names.users[value] ?? names.unknown;
 		case "owner_of_entity":
 			return names.ownerOfEntity;
+		case "approver_of_entity":
+			return names.approverOfEntity;
 		case "not_requester":
 			return names.notRequester;
 		default:

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { UserChip } from "@/components/entity/user-chip";
 import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
 import { ReviewDigestView } from "@/components/management-review/review-digest";
@@ -25,6 +26,7 @@ import { getOrgProfile, listMembersForPicker } from "@/lib/compliance/queries";
 import { listManagementReviews } from "@/lib/compliance/queries-p3";
 import { buildReviewDigest } from "@/lib/compliance/queries-review-digest";
 import { readOrg } from "@/lib/db/with-org";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 const STATUS_TONE = {
 	planned: "outline",
@@ -133,7 +135,11 @@ export default async function ManagementReviewPage() {
 										{t(`status_${r.status}`)}
 									</Badge>
 									<span className="text-muted-foreground text-footnote">
-										{t("owner")}: <UserChip name={r.ownerName} />
+										{t("owner")}:{" "}
+										<OwnerChip
+											ownerFunction={r.ownerFunction}
+											name={r.ownerName}
+										/>
 									</span>
 									{r.attendeeNames.length > 0 && (
 										<span className="text-muted-foreground text-footnote">
@@ -150,7 +156,7 @@ export default async function ManagementReviewPage() {
 													attendeeUserIds: r.attendeeUserIds,
 													summary: r.summary,
 													decisions: r.decisions,
-													ownerUserId: r.ownerUserId,
+													ownerUserId: responsibleValue(r),
 												}}
 											/>
 										</div>
@@ -163,7 +169,7 @@ export default async function ManagementReviewPage() {
 								/>
 								<div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
 									<div>
-										<h3 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
+										<h3 className="font-medium text-footnote mb-2 text-muted-foreground">
 											{t("inputs")}
 										</h3>
 										<ReviewInputsChecklist
@@ -176,7 +182,7 @@ export default async function ManagementReviewPage() {
 									<div className="flex flex-col gap-4">
 										{r.summary && (
 											<div>
-												<h3 className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+												<h3 className="font-medium text-footnote mb-1 text-muted-foreground">
 													{t("summary")}
 												</h3>
 												<p className="whitespace-pre-wrap">{r.summary}</p>
@@ -184,7 +190,7 @@ export default async function ManagementReviewPage() {
 										)}
 										{r.decisions && (
 											<div>
-												<h3 className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+												<h3 className="font-medium text-footnote mb-1 text-muted-foreground">
 													{t("decisions")}
 												</h3>
 												<p className="whitespace-pre-wrap">{r.decisions}</p>

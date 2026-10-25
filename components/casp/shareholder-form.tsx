@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { upsertShareholder } from "@/app/actions/casp";
 import {
 	EditTrigger,
@@ -12,6 +11,7 @@ import {
 	NewTrigger,
 } from "@/components/organisation/governance-forms";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -20,6 +20,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import { thresholdCrossed } from "@/lib/compliance/shareholders";
 
 export type ShareholderDraft = {
@@ -79,7 +80,7 @@ export function ShareholderForm({ initial }: { initial?: ShareholderDraft }) {
 						approvedAt: d.approvedAt || null,
 						sanctionsCheckedAt: d.sanctionsCheckedAt || null,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("saved"));
 					setOpen(false);
 					router.refresh();

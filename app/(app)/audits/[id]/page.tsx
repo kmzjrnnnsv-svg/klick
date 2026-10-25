@@ -65,6 +65,7 @@ import { readOrg } from "@/lib/db/with-org";
 import { NONCONFORMITY_STATUS } from "@/lib/entities/nonconformity";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import { cn } from "@/lib/utils";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -111,6 +112,7 @@ export default async function AuditCockpitPage({
 	const tab = one(sp.tab) ?? "pruefpfad";
 	const ctx = await requireOrgPage({ audit: ["read"] });
 	const t = await getTranslations("Audits");
+	const tNav = await getTranslations("Nav");
 	const ts = await getTranslations("Status");
 	const canEdit = allows(ctx, { audit: ["update"] });
 	const canRequest = allows(ctx, { audit_request: ["create"] });
@@ -230,6 +232,7 @@ export default async function AuditCockpitPage({
 	return (
 		<>
 			<PageHeader
+				back={{ href: "/audits", label: tNav("audits") }}
 				eyebrow={`${t(`type_${audit.type}`)}${periodLabel ? ` · ${periodLabel}` : ""}`}
 				title={audit.title}
 				lead={audit.scope ?? undefined}
@@ -271,7 +274,7 @@ export default async function AuditCockpitPage({
 									auditorMemberIds: audit.auditorMemberIds,
 									externalAuditor: audit.externalAuditor,
 									plannedAt: audit.plannedAt,
-									ownerUserId: audit.ownerUserId,
+									ownerUserId: responsibleValue(audit),
 								}}
 							/>
 						)}
@@ -560,7 +563,7 @@ export default async function AuditCockpitPage({
 									)}
 									{r.responseNote && (
 										<div className="rounded-md bg-muted/40 p-2 text-footnote">
-											<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+											<p className="font-medium text-footnote mb-1 text-muted-foreground">
 												{t("response")}
 											</p>
 											<p className="whitespace-pre-wrap">{r.responseNote}</p>

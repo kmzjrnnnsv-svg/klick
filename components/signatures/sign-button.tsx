@@ -5,12 +5,13 @@ import { PenLine } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import {
 	prepareEvidenceSignature,
 	submitEvidenceSignature,
 } from "@/app/actions/signatures";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 
 // Mit dem eigenen Passkey unterschreiben: ein Nachweis oder viele auf einmal
 // (Sammelunterschrift über die Merkle-Wurzel). Der Browser fragt nach
@@ -55,7 +56,8 @@ export function SignButton({
 					optionsJSON: prep.data.options,
 				});
 			} catch {
-				return void toast.error(t("cancelled"));
+				// Abbrechen ist kein Fehler: kurze, neutrale Meldung
+				return void toast(t("cancelled"));
 			}
 			const res = await submitEvidenceSignature({
 				evidenceIds,
@@ -69,7 +71,7 @@ export function SignButton({
 						? t("expired")
 						: res.error === "invalid"
 							? t("invalid")
-							: tc("error"),
+							: errorText(tc, res),
 				);
 			toast.success(t("signed", { count: res.data.count }));
 			router.refresh();

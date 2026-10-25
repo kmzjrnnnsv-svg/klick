@@ -9,11 +9,13 @@ import { magicLink } from "better-auth/plugins/magic-link";
 import { organization } from "better-auth/plugins/organization";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { and, eq } from "drizzle-orm";
+import { requestOpenAppointments } from "@/lib/compliance/appointment-service";
 import { globalDb, schema } from "../../db";
 import { member, session as sessionTable, user } from "../../db/auth-schema";
 import { memberAccess, memberRoles, roleAssignments } from "../../db/schema";
-import { auditPlatform } from "../audit";
-import { withOrg } from "../db/with-org";
+import { audit, auditPlatform } from "../audit";
+import { syncFunctionOwners } from "../compliance/function-owners";
+import { takeQueuedAudits, withOrg } from "../db/with-org";
 import { sendTransactionalMail } from "../mail/send";
 import {
 	invitationEmail,
@@ -399,10 +401,12 @@ export const auth = betterAuth({
 					);
 					// In der Einrichtung vorgemerkte Funktionen (pendingEmail) mit dem
 					// neuen Konto verknüpfen (D1).
+					// Danach rechnen Einträge mit dieser Funktion als Verantwortlich
+					// auf die neue Person um (syncFunctionOwners).
 					await withOrg(
 						{ orgId: invitation.organizationId, userId: user.id },
-						(tx) =>
-							tx
+						async (tx) => {
+							await tx
 								.update(roleAssignments)
 								.set({ userId: user.id, pendingEmail: null })
 								.where(
@@ -413,7 +417,24 @@ export const auth = betterAuth({
 										),
 										eq(roleAssignments.pendingEmail, user.email.toLowerCase()),
 									),
-								),
+								);
+							await syncFunctionOwners(tx, invitation.organizationId);
+							// Vorschläge, die bisher niemand bestellen konnte (z. B. die
+							// Geschäftsleitung war nur eingeladen), jetzt beantragen
+							const entries = [
+								...(await requestOpenAppointments(tx, {
+									orgId: invitation.organizationId,
+									userId: user.id,
+								})),
+								...takeQueuedAudits(tx),
+							];
+							for (const entry of entries)
+								await audit(
+									tx,
+									{ userId: user.id },
+									{ ...entry, organizationId: invitation.organizationId },
+								);
+						},
 					);
 					// Beim Einladen gewählte eigene Rollen (ADR-020) verknüpfen —
 					// nur für interne Grundrollen, Externe bekommen keine.

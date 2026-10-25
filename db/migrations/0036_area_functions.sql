@@ -1,0 +1,1 @@
+ALTER TABLE "org_settings" ADD COLUMN "area_functions" jsonb DEFAULT '{}'::jsonb NOT NULL;

@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { updateEntityProfile } from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 import type { EntityProfile } from "@/db/schema/platform";
 
 // Stammdaten der Organisation für Meldungen — LEI, Sitzland, Behörde,
@@ -78,7 +79,9 @@ export function EntityProfilePanel({
 							),
 						);
 						toast.error(
-							res.error === "step_up_required" ? t("stepUp") : tc("error"),
+							res.error === "step_up_required"
+								? t("stepUp")
+								: errorText(tc, res),
 						);
 					} else {
 						setErrors({});

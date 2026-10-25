@@ -4,7 +4,6 @@ import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { deleteEvidence } from "@/app/actions/evidence";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import {
@@ -19,6 +18,8 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 
 // Nachweis löschen (Step-up): Zeile sofort weg, Datei nach der Backup-
 // Aufbewahrung. Unterschriebene Nachweise lehnt der Server ab.
@@ -54,7 +55,9 @@ export function DeleteEvidenceButton({ id }: { id: string }) {
 								if (!res.ok) {
 									if (res.error !== "step_up_required")
 										toast.error(
-											res.error === "signed" ? t("deleteSigned") : tc("error"),
+											res.error === "signed"
+												? t("deleteSigned")
+												: errorText(tc, res),
 										);
 									return;
 								}

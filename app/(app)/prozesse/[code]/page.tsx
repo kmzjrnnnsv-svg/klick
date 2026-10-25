@@ -9,6 +9,7 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
@@ -50,6 +51,7 @@ import {
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 const IMPL_KEY = {
 	not_started: "notStarted",
@@ -81,6 +83,7 @@ export default async function ProcessDetailPage({
 	if (!/^P-\d{2,3}$/.test(code)) notFound();
 	const ctx = await requireOrgPage({ process: ["read"] });
 	const t = await getTranslations("Processes");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const tf = await getTranslations("Functions");
@@ -174,6 +177,7 @@ export default async function ProcessDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/prozesse", label: tNav("processes") }}
 			eyebrow={`${p.code} · ${t(`category_${p.category}`)}`}
 			title={p.name}
 			subtitle={p.description ?? undefined}
@@ -200,7 +204,7 @@ export default async function ProcessDetailPage({
 								description: p.description,
 								category: p.category,
 								criticality: p.criticality,
-								ownerUserId: p.ownerUserId,
+								ownerUserId: responsibleValue(p),
 								deputyUserId: p.deputyUserId,
 								rtoHours: p.rtoHours,
 								rpoHours: p.rpoHours,
@@ -236,7 +240,10 @@ export default async function ProcessDetailPage({
 						)}
 					</MetaItem>
 					<MetaItem label={t("owner")}>
-						<UserChip name={names.get(p.ownerUserId ?? "")} />
+						<OwnerChip
+							ownerFunction={p.ownerFunction}
+							name={names.get(p.ownerUserId ?? "")}
+						/>
 					</MetaItem>
 					<MetaItem label={t("deputy")}>
 						<UserChip name={names.get(p.deputyUserId ?? "")} />
@@ -429,7 +436,7 @@ export default async function ProcessDetailPage({
 			>
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div>
-						<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+						<p className="font-medium text-footnote mb-1 text-muted-foreground">
 							{t("controls")}
 						</p>
 						{controls.length === 0 ? (
@@ -464,7 +471,7 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div>
-						<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+						<p className="font-medium text-footnote mb-1 text-muted-foreground">
 							{t("assets")}
 						</p>
 						{linkedAssets.length === 0 ? (
@@ -486,7 +493,7 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div>
-						<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+						<p className="font-medium text-footnote mb-1 text-muted-foreground">
 							{t("providers")}
 						</p>
 						{linkedProviders.length === 0 ? (
@@ -534,7 +541,7 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div className="sm:col-span-2">
-						<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+						<p className="font-medium text-footnote mb-1 text-muted-foreground">
 							{t("documents")}
 						</p>
 						{linkedDocs.length === 0 ? (

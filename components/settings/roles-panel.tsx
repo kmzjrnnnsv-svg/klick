@@ -1,15 +1,16 @@
 "use client";
 
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { deleteOrgRole, saveOrgRole } from "@/app/actions/roles";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import {
 	Dialog,
 	DialogContent,
@@ -19,9 +20,11 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { CatalogArea } from "@/lib/auth/permission-catalog";
 import type { RolePermissions } from "@/lib/auth/permissions";
 
@@ -29,8 +32,12 @@ type RoleItem = {
 	id: string;
 	name: string;
 	description: string | null;
+	// Aufgaben fürs Bestellungsschreiben (eine je Zeile)
+	tasks: string | null;
 	permissions: RolePermissions;
+	// bestellt oder vorgeschlagen; die Rechte gelten erst mit der Bestellung
 	memberIds: string[];
+	waitingMemberIds: string[];
 	pendingEmails: string[];
 };
 
@@ -97,6 +104,7 @@ function RoleDialog({
 	const [pending, start] = useTransition();
 	const [name, setName] = useState(item?.name ?? "");
 	const [description, setDescription] = useState(item?.description ?? "");
+	const [tasks, setTasks] = useState(item?.tasks ?? "");
 	const [perms, setPerms] = useState<RolePermissions>(item?.permissions ?? {});
 	const [memberIds, setMemberIds] = useState<string[]>(item?.memberIds ?? []);
 
@@ -117,6 +125,7 @@ function RoleDialog({
 				if (o) {
 					setName(item?.name ?? "");
 					setDescription(item?.description ?? "");
+					setTasks(item?.tasks ?? "");
 					setPerms(item?.permissions ?? {});
 					setMemberIds(item?.memberIds ?? []);
 				}
@@ -140,6 +149,7 @@ function RoleDialog({
 									id: item?.id,
 									name,
 									description,
+									tasks,
 									permissions: perms,
 									memberIds,
 								}),
@@ -150,11 +160,15 @@ function RoleDialog({
 										? t("roleNameTaken")
 										: res.error === "step_up_required"
 											? t("stepUp")
-											: tc("error"),
+											: errorText(tc, res),
 								);
 								return;
 							}
-							toast.success(t("saved"));
+							toast.success(
+								res.data.waiting > 0
+									? t("savedWaiting", { n: res.data.waiting })
+									: t("saved"),
+							);
 							setOpen(false);
 							router.refresh();
 						});
@@ -184,6 +198,20 @@ function RoleDialog({
 								onChange={(e) => setDescription(e.target.value)}
 							/>
 						</div>
+					</div>
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="role-tasks">{t("tasks")}</Label>
+						<Textarea
+							id="role-tasks"
+							rows={3}
+							maxLength={2000}
+							placeholder={t("tasksPlaceholder")}
+							value={tasks}
+							onChange={(e) => setTasks(e.target.value)}
+						/>
+						<p className="text-muted-foreground text-footnote">
+							{t("tasksHint")}
+						</p>
 					</div>
 
 					<section className="flex flex-col gap-3">
@@ -287,6 +315,9 @@ function RoleDialog({
 												}
 											/>
 											<span className="min-w-0 truncate">{m.name}</span>
+											{item?.waitingMemberIds.includes(m.memberId) && (
+												<Badge variant="warning">{t("waiting")}</Badge>
+											)}
 										</label>
 									);
 								})}
@@ -296,7 +327,7 @@ function RoleDialog({
 
 					<DialogFooter>
 						<Button type="submit" disabled={pending || name.trim().length < 2}>
-							{pending ? `${t("save")}…` : t("save")}
+							{pending ? tc("saving") : t("save")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -311,7 +342,8 @@ export function RolesPanel({
 	catalog,
 	editorPreset,
 	baseRoles,
-	canEdit,
+	canEdit: canEditSettings,
+	individual,
 }: {
 	roles: RoleItem[];
 	members: MemberOption[];
@@ -324,12 +356,44 @@ export function RolesPanel({
 		permissions: RolePermissions;
 	}[];
 	canEdit: boolean;
+	// eigene Rollen anlegen, ändern, löschen nur im individuellen Modus
+	individual: boolean;
 }) {
+	const canEdit = canEditSettings && individual;
 	const t = useTranslations("Roles");
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const nameOf = new Map(members.map((m) => [m.memberId, m.name]));
+	const [toDelete, setToDelete] = useState<string>("");
+	const del = useConfirm({
+		title: t("deleteConfirm", { name: toDelete }),
+		confirmLabel: tc("delete"),
+	});
+	const remove = (id: string) =>
+		start(async () => {
+			const res = await withStepUp(() => deleteOrgRole({ id }));
+			if (!res.ok) {
+				const used = (res as { fieldErrors?: Record<string, string[]> })
+					.fieldErrors?.workflows;
+				toast.error(
+					res.error === "roleInUse"
+						? t("roleInUse", {
+								workflows: (used ?? []).join(", "),
+							})
+						: res.error === "roleHasHolders"
+							? t("roleHasHolders")
+							: res.error === "roleIsResponsible"
+								? t("roleIsResponsible")
+								: res.error === "step_up_required"
+									? t("stepUp")
+									: errorText(tc, res),
+				);
+				return;
+			}
+			toast.success(t("deleted"));
+			router.refresh();
+		});
 
 	return (
 		<div className="flex flex-col gap-8">
@@ -338,6 +402,20 @@ export function RolesPanel({
 					<div className="max-w-prose">
 						<h2 className="font-medium">{t("customTitle")}</h2>
 						<p className="text-muted-foreground text-subhead">{t("lead")}</p>
+						{!individual && (
+							<p
+								className="mt-2 rounded-xl bg-muted p-3 text-subhead"
+								role="status"
+							>
+								{t("standardLocked")}{" "}
+								<Link
+									href="/einstellungen?tab=workflows"
+									className="text-primary hover:underline"
+								>
+									{t("standardLockedLink")}
+								</Link>
+							</p>
+						)}
 					</div>
 					{canEdit && (
 						<RoleDialog
@@ -359,7 +437,7 @@ export function RolesPanel({
 						{t("empty")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 						{roles.map((r) => (
 							<li key={r.id} className="flex flex-col gap-2 p-3 sm:flex-row">
 								<div className="flex min-w-0 grow flex-col gap-1.5">
@@ -381,7 +459,10 @@ export function RolesPanel({
 									{(r.memberIds.length > 0 || r.pendingEmails.length > 0) && (
 										<p className="text-muted-foreground text-footnote">
 											{[
-												...r.memberIds.map((id) => nameOf.get(id) ?? "—"),
+												...r.memberIds.map(
+													(id) =>
+														`${nameOf.get(id) ?? "—"}${r.waitingMemberIds.includes(id) ? ` (${t("waiting")})` : ""}`,
+												),
 												...r.pendingEmails.map((e) => `${e} (${t("pending")})`),
 											].join(" · ")}
 										</p>
@@ -407,32 +488,8 @@ export function RolesPanel({
 											aria-label={`${t("delete")}: ${r.name}`}
 											disabled={pending}
 											onClick={() => {
-												if (
-													!window.confirm(t("deleteConfirm", { name: r.name }))
-												)
-													return;
-												start(async () => {
-													const res = await withStepUp(() =>
-														deleteOrgRole({ id: r.id }),
-													);
-													if (!res.ok) {
-														const used = (
-															res as { fieldErrors?: Record<string, string[]> }
-														).fieldErrors?.workflows;
-														toast.error(
-															res.error === "roleInUse"
-																? t("roleInUse", {
-																		workflows: (used ?? []).join(", "),
-																	})
-																: res.error === "step_up_required"
-																	? t("stepUp")
-																	: tc("error"),
-														);
-														return;
-													}
-													toast.success(t("deleted"));
-													router.refresh();
-												});
+												setToDelete(r.name);
+												del.ask(() => remove(r.id));
 											}}
 										>
 											<Trash2 />
@@ -443,6 +500,7 @@ export function RolesPanel({
 						))}
 					</ul>
 				)}
+				{del.node}
 			</section>
 
 			<section className="flex flex-col gap-3">
@@ -450,11 +508,11 @@ export function RolesPanel({
 					<h2 className="font-medium">{t("baseTitle")}</h2>
 					<p className="text-muted-foreground text-subhead">{t("baseLead")}</p>
 				</div>
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 					{baseRoles.map((b) => (
-						<li key={b.role} className="p-3">
+						<li key={b.role} className="px-3 py-1">
 							<details>
-								<summary className="cursor-pointer text-subhead">
+								<summary className="cursor-pointer py-2 text-subhead pointer-coarse:py-3">
 									<span className="font-medium">{b.label}</span>{" "}
 									<span className="text-muted-foreground">— {b.hint}</span>
 								</summary>

@@ -47,7 +47,22 @@ export async function RouteProgress({
 			{[...steps]
 				.sort((a, b) => a.order - b.order)
 				.map((s, i) => {
-					const title = s.label || stepApproversText(s, names, words);
+					// „alle Personen“: Stellen vor der Auflösung als Titel
+					const title =
+						s.label ||
+						(s.expandedFrom?.length
+							? t("stepEveryone", {
+									stelle: stepApproversText(
+										{
+											approverRule: s.expandedFrom[0] ?? "",
+											approvers: s.expandedFrom,
+											mode: "any",
+										},
+										names,
+										words,
+									),
+								})
+							: stepApproversText(s, names, words));
 					const pending = status === "pending";
 					const current = pending && s.order === currentStep;
 					const rejected =
@@ -110,10 +125,29 @@ export async function RouteProgress({
 								<span className="text-muted-foreground">
 									(
 									{s.skipped.by === "requester"
-										? t("stepSkippedRequester", {
-												name: ruleLabel(s.skipped.rule, names),
-											})
-										: t("stepSkippedCondition")}
+										? s.given?.length
+											? t("stepGivenOnly", {
+													names: s.given
+														.map((u) => ruleLabel(`user:${u}`, names))
+														.join(", "),
+												})
+											: t("stepSkippedRequester", {
+													name: ruleLabel(s.skipped.rule, names),
+												})
+										: s.skipped.by === "vacant"
+											? t("stepSkippedVacant")
+											: t("stepSkippedCondition")}
+									)
+								</span>
+							)}
+							{!s.skipped && s.given && s.given.length > 0 && (
+								<span className="text-muted-foreground">
+									(
+									{t("stepGiven", {
+										names: s.given
+											.map((u) => ruleLabel(`user:${u}`, names))
+											.join(", "),
+									})}
 									)
 								</span>
 							)}

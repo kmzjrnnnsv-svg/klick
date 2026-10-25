@@ -3,14 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { updateAuditRegime } from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 import type { OrgAuditSetting } from "@/lib/compliance/audit-follow-up";
 import type {
 	AuditCycleKind,
@@ -69,7 +71,7 @@ export function AuditRegimesPanel({
 			{regimes.length === 0 ? (
 				<p className="text-muted-foreground">{t("empty")}</p>
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 					{regimes.map((r) => (
 						<li key={r.framework}>
 							<RegimeEditor regime={r} canEdit={canEdit} />
@@ -92,6 +94,7 @@ function RegimeEditor({
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
+	const [formError, setFormError] = useState<string | null>(null);
 	const [months, setMonths] = useState(() =>
 		Object.fromEntries(r.cycles.map((c) => [c.kind, String(c.everyMonths)])),
 	);
@@ -162,16 +165,17 @@ function RegimeEditor({
 
 	const save = (reset: boolean) =>
 		start(async () => {
+			setFormError(null);
 			const res = await withStepUp(() =>
 				updateAuditRegime({ framework: r.framework, setting: build(reset) }),
 			);
 			if (!res.ok)
-				return void toast.error(
+				return void setFormError(
 					res.error === "step_up_required"
 						? t("stepUp")
 						: res.fieldErrors
 							? t("invalid")
-							: tc("error"),
+							: errorText(tc, res),
 				);
 			toast.success(reset ? t("resetDone") : t("saved"));
 			router.refresh();
@@ -340,10 +344,11 @@ function RegimeEditor({
 					</div>
 				)}
 
+				<FormAlert message={formError} />
 				{canEdit && (
 					<div className="flex flex-wrap gap-2">
 						<Button type="submit" size="sm" disabled={pending}>
-							{pending ? `${t("save")}…` : t("save")}
+							{pending ? tc("saving") : t("save")}
 						</Button>
 						{r.custom && (
 							<Button

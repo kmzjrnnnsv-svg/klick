@@ -5,8 +5,9 @@ import { EditTrigger, FormDialog } from "@wallet/components/form-dialog";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 import type { Pair } from "@/lib/wallet/core/feeds";
 
 // Watchlist auswählen: Häkchen je Paar, Reihenfolge wie im Katalog
@@ -40,7 +41,7 @@ export function WatchlistForm({
 						pairs: all.filter((p) => pick.includes(p)),
 					});
 					if (!res.ok) {
-						toast.error(tc("error"));
+						toast.error(errorText(tc, res));
 						return;
 					}
 					setOpen(false);

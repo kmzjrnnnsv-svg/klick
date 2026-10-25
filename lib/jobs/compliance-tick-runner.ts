@@ -56,9 +56,12 @@ import {
 } from "@/lib/approvals/service";
 import { audit } from "@/lib/audit";
 import { normalizeRole } from "@/lib/auth/guards";
+import { openAcceptances } from "@/lib/compliance/appointment-acceptance";
 import { cycleDates } from "@/lib/compliance/audit-follow-up";
 import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
 import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
+import { functionRecipients } from "@/lib/compliance/function-holders-service";
+import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import {
 	computeIncidentDeadlines,
 	leadRegime,
@@ -70,6 +73,7 @@ import { loadAuditRegimeContext } from "@/lib/compliance/queries-audit-regimes";
 import { lastReconciliationDay } from "@/lib/custody/queries";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
 import { logger } from "@/lib/log";
+import { syncMemberRoles } from "@/lib/org/member-role-sync";
 import {
 	collectDueItems,
 	DEDUPE_HOURS,
@@ -105,6 +109,18 @@ export async function runComplianceTick(
 	await forEachOrg(
 		orgs.map((o) => o.id),
 		async (tx, orgId) => {
+			// einmal am Tag (03:00 UTC): Verantwortliche über Funktionen abgleichen,
+			// falls eine Änderung an role_assignments den Abgleich verpasst hat
+			// und die Rechte eigener Rollen aus den Bestellungen (ADR-024)
+			if (now.getUTCHours() === 3) {
+				await syncOwnersAndNotify(tx, orgId, null);
+				for (const entry of await syncMemberRoles(tx, orgId, null))
+					await audit(
+						tx,
+						{ userId: null },
+						{ ...entry, organizationId: orgId },
+					);
+			}
 			const rows = await loadDueRows(tx, orgId, now);
 			const result = collectDueItems(now, rows);
 			const written = await applyTick(tx, orgId, now, result);
@@ -331,6 +347,9 @@ async function loadDueRows(
 			title: inc.title,
 			ownerUserId: inc.ownerUserId,
 			status: inc.status,
+			classification: inc.classification,
+			classifiedAt: inc.classifiedAt,
+			managementAcknowledgedAt: inc.managementAcknowledgedAt,
 			clocks,
 		};
 	});
@@ -792,7 +811,9 @@ async function loadDueRows(
 		exceptions: exceptionRows,
 		trainingAssignments: assignments,
 		incidents: incidentRows,
+		managementIds: await functionRecipients(tx, orgId, "management_body"),
 		acknowledgements,
+		appointmentAcceptances: await openAcceptances(tx, orgId),
 		obligationRuns: runRows,
 		legalChanges,
 		auditCycles,

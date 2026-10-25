@@ -2,7 +2,12 @@ import { z } from "zod";
 import { SIGN_PURPOSES } from "@/lib/signatures/canonical";
 
 const ids = z.array(z.uuid()).min(1).max(200);
-const fn = z.string().regex(/^(-|[a-z][a-z_]{1,39})$/);
+// Funktion, eigene Rolle `role:<uuid>` (ADR-024) oder "-" (ohne)
+const fn = z
+	.string()
+	.regex(
+		/^(-|[a-z][a-z_]{1,39}|role:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/,
+	);
 
 export const prepareSignatureSchema = z.object({
 	evidenceIds: ids,

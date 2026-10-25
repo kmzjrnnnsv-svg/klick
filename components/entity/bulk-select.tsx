@@ -11,11 +11,12 @@ import {
 	useState,
 	useTransition,
 } from "react";
-import { toast } from "sonner";
 import { bulkUpdateControls } from "@/app/actions/controls";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { useFunctionLabel } from "@/components/entity/responsible-context";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import {
 	Select,
 	SelectContent,
@@ -23,6 +24,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
+import type { ResponsibleOption } from "@/lib/compliance/function-holders";
+import { FUNCTION_REF } from "@/lib/validation/responsible";
 
 // Bulk-Aktionen im Register: Auswahl je Zeile (Spalte mit interactive: true,
 // also außerhalb des Zeilen-Links), schwebende Leiste mit Status/Zuweisung. Jede ID wird serverseitig
@@ -65,11 +69,18 @@ export function BulkCheckbox({ id, label }: { id: string; label: string }) {
 	);
 }
 
-export function BulkBar({ members }: { members: MemberOption[] }) {
+export function BulkBar({
+	members,
+	functions,
+}: {
+	members: MemberOption[];
+	functions: ResponsibleOption[];
+}) {
 	const ctx = useContext(BulkContext);
 	const t = useTranslations("Controls");
 	const ts = useTranslations("Status");
 	const tc = useTranslations("Common");
+	const fnLabel = useFunctionLabel();
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const [status, setStatus] = useState<string>("none");
@@ -90,7 +101,7 @@ export function BulkBar({ members }: { members: MemberOption[] }) {
 							? null
 							: assignee,
 			});
-			if (!res.ok) return void toast.error(tc("error"));
+			if (!res.ok) return void toast.error(errorText(tc, res));
 			toast.success(
 				t("bulkDone", { n: res.data.updated, skipped: res.data.skipped }),
 			);
@@ -98,7 +109,7 @@ export function BulkBar({ members }: { members: MemberOption[] }) {
 			router.refresh();
 		});
 	return (
-		<div className="sticky bottom-[calc(var(--bar-offset)+1rem)] z-20 mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-card p-3 shadow-lg">
+		<div className="sticky bottom-[calc(var(--bar-offset)+1rem)] z-20 mt-4 flex flex-wrap items-center gap-2 rounded-2xl material-bar p-3 shadow-lg">
 			<span className="font-medium text-subhead">
 				{t("bulkSelected", { n: ctx.selected.size })}
 			</span>
@@ -120,6 +131,13 @@ export function BulkBar({ members }: { members: MemberOption[] }) {
 				<SelectContent>
 					<SelectItem value="none">{t("bulkOwner")}</SelectItem>
 					<SelectItem value="clear">—</SelectItem>
+					{/* Funktion statt Person: bleibt richtig beim Umbesetzen */}
+					{functions.map((f) => (
+						<SelectItem key={f.function} value={`${FUNCTION_REF}${f.function}`}>
+							{fnLabel(f.function)}
+							<span className="text-muted-foreground"> · {f.holder}</span>
+						</SelectItem>
+					))}
 					{members.map((m) => (
 						<SelectItem key={m.userId} value={m.userId}>
 							{m.name}

@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	createAccessToken,
 	revokeAccessToken,
@@ -21,6 +20,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -30,6 +30,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import { INGEST_SCOPES, type IngestScope } from "@/db/schema/enums";
 import { githubActionsSnippet } from "@/lib/security/ci-snippets";
 
@@ -89,14 +90,14 @@ export function IntegrationsPanel({
 		<div className="flex flex-col gap-6">
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">{t("title")}</CardTitle>
+					<CardTitle className="text-headline">{t("title")}</CardTitle>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4 text-subhead">
 					<p className="max-w-2xl text-muted-foreground">{t("lead")}</p>
 					{tokens.length === 0 ? (
 						<p className="text-muted-foreground">{t("empty")}</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 							{tokens.map((tok) => {
 								const state = tok.revokedAt
 									? "revoked"
@@ -150,7 +151,7 @@ export function IntegrationsPanel({
 			{canCreate && (
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">{t("newTitle")}</CardTitle>
+						<CardTitle className="text-headline">{t("newTitle")}</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<form
@@ -166,7 +167,7 @@ export function IntegrationsPanel({
 											productId: productId || null,
 										}),
 									);
-									if (!res.ok) return void toast.error(tc("error"));
+									if (!res.ok) return void toast.error(errorText(tc, res));
 									setCreated(res.data.token);
 									setName("");
 									router.refresh();
@@ -249,7 +250,7 @@ export function IntegrationsPanel({
 									type="submit"
 									disabled={pending || !name.trim() || scopes.length === 0}
 								>
-									{pending ? `${t("create")}…` : t("create")}
+									{pending ? tc("creating") : t("create")}
 								</Button>
 							</div>
 						</form>
@@ -259,7 +260,7 @@ export function IntegrationsPanel({
 
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">{t("ciTitle")}</CardTitle>
+					<CardTitle className="text-headline">{t("ciTitle")}</CardTitle>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-3 text-subhead">
 					<p className="max-w-2xl text-muted-foreground">{t("ciLead")}</p>
@@ -342,14 +343,14 @@ export function IntegrationsPanel({
 									const res = await withStepUp(() =>
 										revokeAccessToken({ tokenId: revoking.id }),
 									);
-									if (!res.ok) return void toast.error(tc("error"));
+									if (!res.ok) return void toast.error(errorText(tc, res));
 									toast.success(t("revoked"));
 									setRevoking(null);
 									router.refresh();
 								})
 							}
 						>
-							{pending ? `${t("revoke")}…` : t("revoke")}
+							{pending ? tc("working") : t("revoke")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

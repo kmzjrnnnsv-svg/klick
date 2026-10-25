@@ -142,7 +142,7 @@ export function LinkCreateDialog({
 						</p>
 					</div>
 					<fieldset className="grid gap-2">
-						<legend className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
+						<legend className="font-medium text-footnote mb-2 text-muted-foreground">
 							{t("scope")}
 						</legend>
 						<label className="flex items-center gap-2 text-subhead">

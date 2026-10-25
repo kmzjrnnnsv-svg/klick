@@ -6,10 +6,10 @@ import { useTranslations } from "next-intl";
 import {
 	type ComponentProps,
 	type ReactNode,
+	useId,
 	useState,
 	useTransition,
 } from "react";
-import { toast } from "sonner";
 import {
 	applyGovernanceSeed,
 	upsertCommunication,
@@ -20,7 +20,9 @@ import {
 } from "@/app/actions/organisation";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { ResponsibleSelect } from "@/components/entity/responsible-select";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import {
 	Dialog,
 	DialogContent,
@@ -30,6 +32,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -40,7 +44,13 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
+import { toast } from "@/components/ui/toast";
+import {
+	type FunctionKey,
+	ROLE_FUNCTIONS,
+	type RoleFunction,
+} from "@/db/schema/enums";
+import { isOwnRoleKey } from "@/lib/compliance/function-key";
 import type { ActionResult } from "@/lib/validation/common";
 import { AUTHORITIES, PARTY_TYPES } from "@/lib/validation/governance";
 
@@ -58,6 +68,7 @@ export function FormDialog({
 	disabled,
 	children,
 	wide,
+	error,
 }: {
 	title: string;
 	lead?: string;
@@ -69,6 +80,8 @@ export function FormDialog({
 	disabled?: boolean;
 	children: ReactNode;
 	wide?: boolean;
+	// Prüffehler über dem Speichern-Knopf statt im Toast
+	error?: string | null;
 }) {
 	const tc = useTranslations("Common");
 	return (
@@ -87,6 +100,7 @@ export function FormDialog({
 						{lead && <DialogDescription>{lead}</DialogDescription>}
 					</DialogHeader>
 					{children}
+					<FormAlert message={error} />
 					<DialogFooter>
 						<Button
 							type="button"
@@ -163,6 +177,33 @@ export function UserSelect({
 					))}
 				</SelectContent>
 			</Select>
+		</div>
+	);
+}
+
+// „Verantwortlich“ = Funktion oder Person (Wert `function:<key>` oder
+// Konto-ID, lib/validation/responsible.ts)
+export function ResponsibleField({
+	label,
+	value,
+	onChange,
+	members,
+}: {
+	label: string;
+	value: string | null | undefined;
+	onChange: (v: string | null) => void;
+	members: MemberOption[];
+}) {
+	const id = useId();
+	return (
+		<div className="flex flex-col gap-1.5">
+			<Label htmlFor={id}>{label}</Label>
+			<ResponsibleSelect
+				id={id}
+				value={value}
+				onChange={onChange}
+				members={members}
+			/>
 		</div>
 	);
 }
@@ -275,24 +316,32 @@ export function DeleteRowButton({
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
+	const confirm = useConfirm({
+		title: `${label}?`,
+		confirmLabel: tc("delete"),
+	});
 	return (
-		<Button
-			size="icon"
-			variant="ghost"
-			aria-label={label}
-			title={label}
-			disabled={pending}
-			onClick={() => {
-				if (!window.confirm(label)) return;
-				start(async () => {
-					const res = await action({ id });
-					if (!res.ok) return void toast.error(tc("error"));
-					router.refresh();
-				});
-			}}
-		>
-			<Trash2 />
-		</Button>
+		<>
+			<Button
+				size="icon"
+				variant="ghost"
+				aria-label={label}
+				title={label}
+				disabled={pending}
+				onClick={() =>
+					confirm.ask(() =>
+						start(async () => {
+							const res = await action({ id });
+							if (!res.ok) return void toast.error(errorText(tc, res));
+							router.refresh();
+						}),
+					)
+				}
+			>
+				<Trash2 />
+			</Button>
+			{confirm.node}
+		</>
 	);
 }
 
@@ -309,7 +358,7 @@ function useSave<T extends { ok: boolean }>(
 			const res = await withStepUp(fn);
 			if (!res.ok) {
 				toast.error(
-					res.error === "step_up_required" ? t("stepUp") : tc("error"),
+					res.error === "step_up_required" ? t("stepUp") : errorText(tc, res),
 				);
 				return;
 			}
@@ -402,7 +451,7 @@ export function ContextIssueForm({
 				onChange={(v) => setD({ ...d, impact: v })}
 				rows={2}
 			/>
-			<UserSelect
+			<ResponsibleField
 				label={t("owner")}
 				value={d.ownerUserId}
 				onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -523,7 +572,7 @@ export function PartyForm({
 					value={d.contact ?? ""}
 					onChange={(v) => setD({ ...d, contact: v })}
 				/>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -547,7 +596,7 @@ export function ApplyGovernanceSeedButton() {
 			onClick={() =>
 				start(async () => {
 					const res = await applyGovernanceSeed();
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(
 						t("seedApplied", {
 							p: res.data.parties,
@@ -574,7 +623,7 @@ export type CommunicationDraft = {
 	channel?: string | null;
 	frequency?: string | null;
 	trigger: "regular" | "incident" | "crisis" | "change";
-	ownerFunction?: RoleFunction | null;
+	ownerFunction?: FunctionKey | null;
 	ownerUserId?: string | null;
 	legalBasis?: string | null;
 	contact?: string | null;
@@ -700,7 +749,12 @@ export function CommunicationForm({
 				/>
 				<FunctionSelect
 					label={t("ownerFunction")}
-					value={d.ownerFunction}
+					value={
+						// Kommunikation nennt nur Katalog-Funktionen
+						d.ownerFunction && !isOwnRoleKey(d.ownerFunction)
+							? (d.ownerFunction as RoleFunction)
+							: null
+					}
 					onChange={(v) => setD({ ...d, ownerFunction: v })}
 					labels={functionLabels}
 					allowNone
@@ -867,7 +921,7 @@ export function RegulatorInteractionForm({
 						</SelectContent>
 					</Select>
 				</div>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}
@@ -999,7 +1053,7 @@ export function ConflictForm({
 						</SelectContent>
 					</Select>
 				</div>
-				<UserSelect
+				<ResponsibleField
 					label={t("owner")}
 					value={d.ownerUserId}
 					onChange={(v) => setD({ ...d, ownerUserId: v })}

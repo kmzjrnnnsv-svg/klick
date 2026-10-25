@@ -4,6 +4,7 @@ import type { OrgContext } from "@/lib/auth/guards";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
+import { ownRoleIdOf } from "@/lib/compliance/function-key";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { readOrg } from "@/lib/db/with-org";
 import { functionLabel } from "@/lib/evidence-studio/generate/doc";
@@ -12,6 +13,7 @@ import {
 	evidenceSignState,
 	generatedFor,
 } from "@/lib/evidence-studio/generate/service";
+import { orgRoleNames } from "@/lib/org/roles";
 import { GenerateButton } from "./generate-button";
 
 // Nachweis je Datensatz (Auditbericht je Audit, Protokoll je
@@ -34,18 +36,26 @@ export async function EntityEvidence({
 	const t = await getTranslations("EvidenceStudio");
 	const ts = await getTranslations("Signatures");
 	const tf = await getTranslations("Functions");
-	const fnLabel = (f: string) =>
-		tf.has(f as "other") ? tf(f as "other") : functionLabel(f);
 	const kind = EVIDENCE_KIND_BY_CODE.get(code);
-	const { latest, sign } = await readOrg(toOrgCtx(ctx), async (tx) => {
-		const latest = await generatedFor(tx, ctx.orgId, code, entityId);
-		return {
-			latest,
-			sign: latest
-				? await evidenceSignState(tx, ctx.orgId, code, latest.id, ctx.userId)
-				: null,
-		};
-	});
+	const { latest, sign, roleNames } = await readOrg(
+		toOrgCtx(ctx),
+		async (tx) => {
+			const latest = await generatedFor(tx, ctx.orgId, code, entityId);
+			return {
+				latest,
+				roleNames: await orgRoleNames(tx, ctx.orgId),
+				sign: latest
+					? await evidenceSignState(tx, ctx.orgId, code, latest.id, ctx.userId)
+					: null,
+			};
+		},
+	);
+	// eigene Rolle (`role:<id>`, ADR-024) mit Namen, sonst Katalog-Funktion
+	const fnLabel = (f: string) => {
+		const roleId = ownRoleIdOf(f);
+		if (roleId) return roleNames[roleId] ?? f;
+		return tf.has(f as "other") ? tf(f as "other") : functionLabel(f);
+	};
 	return (
 		<div className="flex flex-col gap-1.5 text-subhead">
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">

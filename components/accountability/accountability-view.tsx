@@ -52,7 +52,7 @@ export function AccountabilityView({
 						key={s.key}
 						className="break-inside-avoid rounded-2xl bg-card p-3 print:rounded-none"
 					>
-						<h2 className="font-medium text-footnote mb-1 flex items-center justify-between text-footnote text-muted-foreground print:text-black">
+						<h2 className="font-medium text-footnote mb-1 flex items-center justify-between text-muted-foreground print:text-black">
 							{s.title}
 							<span>{s.items.length}</span>
 						</h2>

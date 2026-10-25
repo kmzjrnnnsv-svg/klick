@@ -16,11 +16,16 @@ import {
 	riskControls,
 	risks,
 } from "@/db/schema";
+import type { FunctionKey } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
 import { GateBlocked } from "@/lib/approvals/gate-error";
 import { gateApproval, requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import {
+	ownerColumns,
+	resolveResponsible,
+} from "@/lib/compliance/function-holders-service";
 import { loadRiskSource } from "@/lib/compliance/queries-risk-sources";
 import { assessRisk, nextRiskCode } from "@/lib/compliance/risk";
 import { damageFrom } from "@/lib/compliance/risk-method";
@@ -77,6 +82,7 @@ async function createRiskImpl(
 				.where(eq(risks.organizationId, c.orgId));
 			const code = nextRiskCode(existing.map((r) => r.code));
 			const settings = await riskSettingsFor(tx, c.orgId);
+			const owner = await ownerColumns(tx, c.orgId, d.ownerUserId, c.userId);
 			const [row] = await tx
 				.insert(risks)
 				.values({
@@ -87,7 +93,7 @@ async function createRiskImpl(
 					category: d.category,
 					likelihood: d.likelihood,
 					impact: d.impact,
-					ownerUserId: d.ownerUserId ?? c.userId,
+					...owner,
 					reviewAt: plusMonths(settings.reviewDefaults?.risk ?? 3),
 				})
 				.returning({ id: risks.id });
@@ -104,7 +110,7 @@ async function createRiskImpl(
 					trigger: "risk.create",
 					entityType: "risk",
 					entityId: row.id,
-					entityOwnerUserId: d.ownerUserId ?? c.userId,
+					entityOwnerUserId: owner.ownerUserId,
 					title: `Risiko aufnehmen: ${code} · ${d.title}`,
 					link: `/risiken/${row.id}`,
 					facts: { riskCategory: d.category, score: a.effective.score },
@@ -120,7 +126,7 @@ async function createRiskImpl(
 			if (a.aboveAppetite && gate.status !== "pending") {
 				await notify(tx, {
 					orgId: c.orgId,
-					recipients: [d.ownerUserId ?? c.userId],
+					recipients: [owner.ownerUserId],
 					actorUserId: null,
 					kind: "risk_above_appetite",
 					title: `${code} liegt über dem Risikoappetit (${a.effective.cls.label}, Wert ${a.effective.score})`,
@@ -167,9 +173,17 @@ async function updateRiskImpl(input: unknown): Promise<ActionResult> {
 			.where(and(eq(risks.id, riskId), eq(risks.organizationId, c.orgId)))
 			.limit(1);
 		if (!before) return { result: false, audit: [] };
+		const { ownerUserId: ownerRef, ...rest } = patch;
 		const set: Partial<typeof risks.$inferInsert> = {};
-		for (const [k, v] of Object.entries(patch))
+		for (const [k, v] of Object.entries(rest))
 			if (v !== undefined) (set as Record<string, unknown>)[k] = v;
+		const owner = await resolveResponsible(
+			tx,
+			c.orgId,
+			ownerRef,
+			before.ownerUserId,
+		);
+		if (owner) Object.assign(set, owner);
 		// Schadenshöhe von Hand geändert → Einzelwerte passen nicht mehr
 		if (
 			set.impact !== undefined &&
@@ -549,6 +563,7 @@ async function saveGuided(
 			let id: string;
 			let code: string;
 			let ownerUserId: string | null;
+			let ownerFunction: FunctionKey | null;
 			let before: Record<string, unknown> | null = null;
 			let wasAbove = false;
 			let status: string;
@@ -562,8 +577,17 @@ async function saveGuided(
 					return { result: { ok: false, error: "notFound" }, audit: [] };
 				id = row.id;
 				code = row.code;
-				ownerUserId =
-					d.ownerUserId === undefined ? row.ownerUserId : d.ownerUserId;
+				const owner = (await resolveResponsible(
+					tx,
+					c.orgId,
+					d.ownerUserId,
+					row.ownerUserId,
+				)) ?? {
+					ownerUserId: row.ownerUserId,
+					ownerFunction: row.ownerFunction,
+				};
+				ownerUserId = owner.ownerUserId;
+				ownerFunction = owner.ownerFunction;
 				wasAbove = assessRisk(row, method).aboveAppetite;
 				before = {
 					likelihood: row.likelihood,
@@ -580,6 +604,7 @@ async function saveGuided(
 					.set({
 						...fields,
 						ownerUserId,
+						ownerFunction,
 						reviewAt:
 							d.reviewAt ?? plusMonths(settings.reviewDefaults?.risk ?? 3),
 					})
@@ -593,7 +618,9 @@ async function saveGuided(
 					.from(risks)
 					.where(eq(risks.organizationId, c.orgId));
 				code = nextRiskCode(existing.map((r) => r.code));
-				ownerUserId = d.ownerUserId ?? c.userId;
+				const owner = await ownerColumns(tx, c.orgId, d.ownerUserId, c.userId);
+				ownerUserId = owner.ownerUserId;
+				ownerFunction = owner.ownerFunction;
 				const [row] = await tx
 					.insert(risks)
 					.values({
@@ -603,6 +630,7 @@ async function saveGuided(
 						sourceEntityType: source?.kind ?? null,
 						sourceEntityId: source?.id ?? null,
 						ownerUserId,
+						ownerFunction,
 						reviewAt:
 							d.reviewAt ?? plusMonths(settings.reviewDefaults?.risk ?? 3),
 					})

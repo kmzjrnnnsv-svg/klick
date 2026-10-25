@@ -1,10 +1,19 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { auditRequests, audits, frameworks, requirements } from "@/db/schema";
+import {
+	approvalWorkflows,
+	auditRequests,
+	audits,
+	frameworks,
+	orgSettings,
+	requirements,
+} from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
 import { ALL_REQUIREMENTS, CONTROL_BY_CODE } from "./catalog";
+import { WORKFLOW_BY_KIND } from "./catalog/approval-workflows";
 import { mandatoryTemplatesFor } from "./catalog/document-templates";
 import { CATALOG_EDGES } from "./catalog-view";
 import { craBlockers } from "./cra";
+import { governanceChecks } from "./governance-checks";
 import {
 	listEvidenceWithControls,
 	type OrgCoverage,
@@ -38,6 +47,49 @@ export type ReadinessContext = {
 	results: ReadinessResult[];
 	combined: ReturnType<typeof combineReadiness>;
 };
+
+async function governanceBlockers(
+	tx: OrgTx,
+	orgId: string,
+	slugs: readonly string[],
+): Promise<Map<string, ReadinessBlocker[]>> {
+	const [settings] = await tx
+		.select({ stage: orgSettings.licenceStage })
+		.from(orgSettings)
+		.where(eq(orgSettings.organizationId, orgId))
+		.limit(1);
+	const workflows = await tx
+		.select({
+			kind: approvalWorkflows.kind,
+			enabled: approvalWorkflows.enabled,
+			steps: approvalWorkflows.steps,
+		})
+		.from(approvalWorkflows)
+		.where(eq(approvalWorkflows.organizationId, orgId));
+	const out = new Map<string, ReadinessBlocker[]>();
+	// noch keine Abläufe angelegt: nichts zu prüfen (Seed beim ersten Bedarf)
+	if (workflows.length === 0) return out;
+	const findings = governanceChecks({
+		frameworks: slugs,
+		stage: Number.parseInt((settings?.stage ?? "0").charAt(0), 10) || 0,
+		workflows,
+	});
+	for (const f of findings)
+		f.frameworks.forEach((slug, i) => {
+			const list = out.get(slug) ?? [];
+			list.push({
+				kind: "governance_gap",
+				severity: "high",
+				label: `${WORKFLOW_BY_KIND.get(f.kind)?.name ?? f.kind} (${f.basis[i] ?? slug})`,
+				ref: `${f.kind}:${f.problem}`,
+				href: "/einstellungen?tab=workflows",
+				requirements: 0,
+				gain: 0,
+			});
+			out.set(slug, list);
+		});
+	return out;
+}
 
 export async function loadReadiness(
 	tx: OrgTx,
@@ -73,6 +125,10 @@ export async function loadReadiness(
 		]);
 	// CRA: offene Produktpflichten als Blocker (abgeleitet aus dem Register)
 	const extra = new Map(opts.extraBlockers ?? []);
+	// Freigabe-Pflichten, die die Abläufe nicht tragen (ADR-024): je
+	// verlangendem Rahmenwerk ein Blocker
+	for (const [slug, list] of await governanceBlockers(tx, orgId, slugs))
+		extra.set(slug, [...(extra.get(slug) ?? []), ...list]);
 	if (slugs.includes("cra"))
 		extra.set("cra", [
 			...(extra.get("cra") ?? []),

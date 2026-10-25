@@ -33,6 +33,7 @@ export default async function NewRiskPage({
 	const ctx = await requireOrgPage({ risk: ["create"] });
 	const sp = await searchParams;
 	const t = await getTranslations("RiskWizard");
+	const tNav = await getTranslations("Nav");
 	const cov = await getOrgCoverageCached(ctx);
 	const from = riskSourceFromParams(sp);
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => ({
@@ -108,7 +109,11 @@ export default async function NewRiskPage({
 	};
 	return (
 		<>
-			<PageHeader title={t("pageTitle")} lead={t("pageLead")} />
+			<PageHeader
+				back={{ href: "/risiken", label: tNav("risks") }}
+				title={t("pageTitle")}
+				lead={t("pageLead")}
+			/>
 			<RiskWizard
 				mode="create"
 				method={data.method}

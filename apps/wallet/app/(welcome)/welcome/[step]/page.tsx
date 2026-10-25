@@ -232,10 +232,10 @@ export default async function WalletIntroPage({
 						</p>
 					</Card>
 					<section aria-labelledby="intro-nodes" className="mt-4">
-						<h2 id="intro-nodes" className="mb-2 font-medium text-base">
+						<h2 id="intro-nodes" className="mb-2 font-semibold text-headline">
 							{t("nodesTitle")}
 						</h2>
-						<ul className="divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+						<ul className="list-inset overflow-hidden rounded-2xl bg-card">
 							{WALLET_NETWORKS.map((n) => (
 								<li
 									key={n}
@@ -385,7 +385,10 @@ export default async function WalletIntroPage({
 					)}
 					{faucets.length > 0 && (
 						<section aria-labelledby="intro-faucets">
-							<h2 id="intro-faucets" className="mb-2 font-medium text-base">
+							<h2
+								id="intro-faucets"
+								className="mb-2 font-semibold text-headline"
+							>
 								{t("faucetsTitle")}
 							</h2>
 							<ul className="flex flex-wrap gap-x-5 gap-y-1 text-subhead">
@@ -439,7 +442,7 @@ export default async function WalletIntroPage({
 								/>
 								<span
 									className={cn(
-										"mt-1.5 hidden truncate text-[11px] sm:block",
+										"mt-1.5 hidden truncate text-caption-2 sm:block",
 										s === schritt
 											? "font-medium text-foreground"
 											: "text-muted-foreground",

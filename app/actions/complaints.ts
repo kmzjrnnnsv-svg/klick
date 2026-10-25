@@ -2,11 +2,7 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import {
-	complaints,
-	roleAssignments,
-	whistleblowingReports,
-} from "@/db/schema";
+import { complaints, whistleblowingReports } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import {
@@ -14,6 +10,10 @@ import {
 	nextCaseCode,
 	whistleblowingDeadlines,
 } from "@/lib/compliance/complaints";
+import {
+	functionRecipients,
+	ownerColumns,
+} from "@/lib/compliance/function-holders-service";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
@@ -66,7 +66,14 @@ async function upsertComplaintImpl(
 						category: d.category ?? before.category,
 						description: d.description ?? before.description,
 						complainantRef: enc,
-						ownerUserId: d.ownerUserId ?? before.ownerUserId,
+						...(d.ownerUserId == null
+							? {}
+							: await ownerColumns(
+									tx,
+									c.orgId,
+									d.ownerUserId,
+									before.ownerUserId,
+								)),
 						outcome: d.outcome ?? before.outcome,
 						escalatedToRegulator:
 							d.escalatedToRegulator ?? before.escalatedToRegulator,
@@ -85,6 +92,7 @@ async function upsertComplaintImpl(
 						after: {
 							category: d.category ?? before.category,
 							ownerUserId: d.ownerUserId ?? before.ownerUserId,
+							via: "form",
 							escalated: d.escalatedToRegulator ?? before.escalatedToRegulator,
 						},
 					},
@@ -99,17 +107,14 @@ async function upsertComplaintImpl(
 				"BES",
 			);
 			const dl = complaintDeadlines(d.receivedAt);
-			const [owner] = await tx
-				.select({ userId: roleAssignments.userId })
-				.from(roleAssignments)
-				.where(
-					and(
-						eq(roleAssignments.organizationId, c.orgId),
-						eq(roleAssignments.function, "compliance"),
-					),
-				)
-				.limit(1);
-			const ownerUserId = d.ownerUserId ?? owner?.userId ?? c.userId;
+			// ohne Auswahl die Compliance-Funktion (bleibt beim Umbesetzen richtig)
+			const owner = await ownerColumns(
+				tx,
+				c.orgId,
+				d.ownerUserId ?? "function:compliance",
+				c.userId,
+			);
+			const ownerUserId = owner.ownerUserId;
 			const [row] = await tx
 				.insert(complaints)
 				.values({
@@ -121,7 +126,7 @@ async function upsertComplaintImpl(
 					description: d.description ?? null,
 					ackDueAt: dl.ackDueAt,
 					responseDueAt: dl.responseDueAt,
-					ownerUserId,
+					...owner,
 					escalatedToRegulator: d.escalatedToRegulator ?? false,
 				})
 				.returning({ id: complaints.id });
@@ -307,18 +312,10 @@ async function upsertWhistleblowingReportImpl(
 					})
 					.where(eq(whistleblowingReports.id, row.id));
 			// Benachrichtigung an die zuständige Funktion (ohne Inhalt)
-			const holders = await tx
-				.select({ userId: roleAssignments.userId })
-				.from(roleAssignments)
-				.where(
-					and(
-						eq(roleAssignments.organizationId, c.orgId),
-						eq(roleAssignments.function, d.ownerFunction),
-					),
-				);
+			const holders = await functionRecipients(tx, c.orgId, d.ownerFunction);
 			await notify(tx, {
 				orgId: c.orgId,
-				recipients: holders.map((h) => h.userId),
+				recipients: holders,
 				actorUserId: c.userId,
 				kind: "task_assigned",
 				title: `Hinweis ${ref} eingegangen`,

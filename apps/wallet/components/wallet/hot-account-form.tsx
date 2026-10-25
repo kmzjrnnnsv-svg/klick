@@ -6,7 +6,6 @@ import { KeyRound, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -17,6 +16,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,6 +26,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import type { WalletNetwork } from "@/lib/wallet/core/networks";
 
 // Hot-Konto anlegen: den Schlüssel erzeugt der Signer aus seiner Seed;
@@ -53,7 +54,7 @@ export function NewHotAccountDialog({
 			);
 			if (!res.ok) {
 				const key = `error_${res.error ?? ""}`;
-				toast.error(t.has(key as never) ? t(key as never) : tc("error"));
+				toast.error(t.has(key as never) ? t(key as never) : errorText(tc, res));
 				return;
 			}
 			setCreated(res.data.address);

@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +17,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import { AmountError, parseAmount } from "@/lib/wallet/core/amount";
 import { type AssetCode, assetOf, assetsFor } from "@/lib/wallet/core/assets";
 import { NETWORKS, type WalletNetwork } from "@/lib/wallet/core/networks";
@@ -109,7 +109,7 @@ export function ReceivePanel({
 			<div className="flex min-w-0 flex-col gap-4">
 				<div>
 					<p
-						className="break-all font-mono text-base leading-relaxed sm:text-lg"
+						className="break-all font-mono text-body leading-relaxed sm:text-title-3"
 						translate="no"
 					>
 						{address}

@@ -12,13 +12,14 @@ import {
 	ruleNames,
 	triggerTexts,
 } from "@/lib/approvals/designer-labels";
+import { governanceModeOf } from "@/lib/approvals/governance-mode";
 import { ensureOrgWorkflows, loadCandidates } from "@/lib/approvals/service";
 import { TRIGGER_BY_KEY, triggerOf } from "@/lib/approvals/triggers";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { ROLE_LABEL } from "@/lib/auth/memberships";
 import { listOrgMembers } from "@/lib/auth/org";
-import { withOrg } from "@/lib/db/with-org";
+import { flushQueuedAudits, withOrg } from "@/lib/db/with-org";
 import { listOrgRoles } from "@/lib/org/roles";
 
 // Freigabe-Designer: Ablauf bearbeiten bzw. neue Variante (?ausloeser=…).
@@ -35,13 +36,15 @@ export default async function WorkflowEditorPage({
 	const isNew = id === "neu";
 	if (!isNew && !/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ settings: ["update"] });
-	const data = await withOrg(toOrgCtx(ctx), async (tx) => {
+	const octx = toOrgCtx(ctx);
+	const data = await withOrg(octx, async (tx) => {
 		const [s] = await tx
 			.select({ stage: orgSettings.licenceStage })
 			.from(orgSettings)
 			.where(eq(orgSettings.organizationId, ctx.orgId))
 			.limit(1);
 		await ensureOrgWorkflows(tx, ctx.orgId, s?.stage ?? "0_vorbereitung");
+		await flushQueuedAudits(tx, octx);
 		const rows = await tx
 			.select()
 			.from(approvalWorkflows)
@@ -53,14 +56,15 @@ export default async function WorkflowEditorPage({
 		if (!trigger || !def?.wired) return null;
 		// neue Variante startet mit den Stufen des Standard-Ablaufs
 		const standard = rows.find((r) => !r.custom && triggerOf(r) === trigger);
-		const [roles, candidates] = await Promise.all([
+		const [roles, candidates, mode] = await Promise.all([
 			listOrgRoles(tx, ctx.orgId),
 			loadCandidates(tx, ctx.orgId),
+			governanceModeOf(tx, ctx.orgId),
 		]);
-		return { row, def, standard, roles, candidates };
+		return { row, def, standard, roles, candidates, mode };
 	});
 	if (!data) notFound();
-	const { row, def, standard, roles, candidates } = data;
+	const { row, def, standard, roles, candidates, mode } = data;
 	const members = await listOrgMembers(ctx.orgId);
 	const nameOf = new Map(members.map((m) => [m.userId, m.name || m.email]));
 	const [t, tf, texts, facts, names] = await Promise.all([
@@ -84,6 +88,7 @@ export default async function WorkflowEditorPage({
 				lead={text?.hint}
 			/>
 			<WorkflowEditor
+				locked={mode === "standard"}
 				trigger={{ key: def.key, mode: def.mode }}
 				facts={facts[def.key] ?? []}
 				names={names}

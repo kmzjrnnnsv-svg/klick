@@ -6,6 +6,7 @@ import {
 	trainingRequirements,
 } from "@/db/schema";
 import { normalizeRole } from "@/lib/auth/session-rules";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import type { OrgTx } from "@/lib/db/with-org";
 
 function addDays(base: Date, days: number): string {
@@ -116,7 +117,9 @@ export async function syncTrainingAssignments(
 			userId: roleAssignments.userId,
 		})
 		.from(roleAssignments)
-		.where(eq(roleAssignments.organizationId, orgId));
+		.where(
+			and(eq(roleAssignments.organizationId, orgId), effectiveAssignment()),
+		);
 	const existing = await tx
 		.select({
 			requirementId: trainingAssignments.requirementId,

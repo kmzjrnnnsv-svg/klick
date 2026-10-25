@@ -39,6 +39,7 @@ export default async function WalletAccountPage({
 	const { id } = await params;
 	const ctx = await requireUnlockedPage(`/accounts/${id}`);
 	const t = await getTranslations("Wallet");
+	const tShell = await getTranslations("Shell");
 	const canManage = roleAllows(ctx.role, "wallet:manage");
 	if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
@@ -59,6 +60,7 @@ export default async function WalletAccountPage({
 	return (
 		<>
 			<PageHeader
+				back={{ href: "/accounts", label: tShell("accounts") }}
 				eyebrow={NETWORKS[account.network].label}
 				title={account.name}
 				actions={

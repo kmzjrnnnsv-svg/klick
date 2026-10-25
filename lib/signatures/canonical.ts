@@ -31,7 +31,9 @@ const PATTERNS: Record<keyof SignFields, RegExp> = {
 		/^(evidence|batch):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
 	hash: /^[0-9a-f]{64}$/,
 	signer: UUID,
-	function: /^(-|[a-z][a-z_]{1,39})$/,
+	// Funktion, eigene Rolle `role:<uuid>` (ADR-024) oder "-" (ohne)
+	function:
+		/^(-|[a-z][a-z_]{1,39}|role:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/,
 	purpose: new RegExp(`^(${SIGN_PURPOSES.join("|")})$`),
 	nonce: /^[0-9a-f]{32}$/,
 	expires: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/,

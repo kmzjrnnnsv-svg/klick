@@ -4,7 +4,6 @@ import { Copy, Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	connectWallet,
 	disconnectWallet,
@@ -35,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 
 export type WalletLinkView = {
 	id: string;
@@ -90,7 +90,7 @@ export function WalletLinkPanel({
 	return (
 		<Card>
 			<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-				<CardTitle className="text-base">{t("title")}</CardTitle>
+				<CardTitle className="text-headline">{t("title")}</CardTitle>
 				{canCreate && (
 					<Button size="sm" onClick={() => setAskName(true)}>
 						<Link2 aria-hidden /> {t("connect")}
@@ -102,7 +102,7 @@ export function WalletLinkPanel({
 				{active.length === 0 ? (
 					<p className="text-muted-foreground">{t("empty")}</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 						{active.map((l) => (
 							<li
 								key={l.id}

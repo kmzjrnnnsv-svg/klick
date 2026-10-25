@@ -410,7 +410,7 @@ export default async function OverviewPage() {
 				<div className="flex flex-col gap-4">
 					<Card>
 						<CardHeader>
-							<CardTitle className="text-base">{t("setupTitle")}</CardTitle>
+							<CardTitle className="text-headline">{t("setupTitle")}</CardTitle>
 							<CardDescription>{t("setupLead")}</CardDescription>
 						</CardHeader>
 						<CardContent>
@@ -463,7 +463,7 @@ export default async function OverviewPage() {
 					</Card>
 					<Card>
 						<CardHeader>
-							<CardTitle className="text-base">{t("gapsTitle")}</CardTitle>
+							<CardTitle className="text-headline">{t("gapsTitle")}</CardTitle>
 							<CardDescription>{t("gapsLead")}</CardDescription>
 						</CardHeader>
 						<CardContent>
@@ -494,7 +494,7 @@ export default async function OverviewPage() {
 			<div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
 				<Card className="lg:col-span-2">
 					<CardHeader>
-						<CardTitle className="flex items-center justify-between text-base">
+						<CardTitle className="flex items-center justify-between text-headline">
 							{t("nextControls")}
 							<Link
 								href="/synergien"
@@ -548,7 +548,7 @@ export default async function OverviewPage() {
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
 					<Card>
 						<CardHeader>
-							<CardTitle className="text-base">
+							<CardTitle className="text-headline">
 								{t("withoutEvidence")}
 							</CardTitle>
 						</CardHeader>
@@ -566,7 +566,9 @@ export default async function OverviewPage() {
 					</Card>
 					<Card>
 						<CardHeader>
-							<CardTitle className="text-base">{t("withoutOwner")}</CardTitle>
+							<CardTitle className="text-headline">
+								{t("withoutOwner")}
+							</CardTitle>
 						</CardHeader>
 						<CardContent className="flex items-baseline justify-between">
 							<span className="font-bold text-title-1">
@@ -582,7 +584,7 @@ export default async function OverviewPage() {
 					</Card>
 					<Card>
 						<CardHeader>
-							<CardTitle className="text-base">{t("openTasks")}</CardTitle>
+							<CardTitle className="text-headline">{t("openTasks")}</CardTitle>
 						</CardHeader>
 						<CardContent className="flex items-baseline justify-between">
 							<span className="font-bold text-title-1">{openTasks}</span>
@@ -596,7 +598,7 @@ export default async function OverviewPage() {
 					</Card>
 					<Card>
 						<CardHeader>
-							<CardTitle className="text-base">{t("stage")}</CardTitle>
+							<CardTitle className="text-headline">{t("stage")}</CardTitle>
 						</CardHeader>
 						<CardContent className="text-subhead">
 							{STAGE_LABEL[settings?.licenceStage ?? "0_vorbereitung"]}

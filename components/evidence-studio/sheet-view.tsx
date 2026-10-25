@@ -134,7 +134,7 @@ export async function SheetView({
 			{questions.length > 0 && (
 				<div className="flex flex-col gap-2">
 					<h3 className="font-medium text-subhead">{t("questions")}</h3>
-					<ol className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+					<ol className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 						{questions.map((q) => (
 							<li key={q.id} className="flex flex-col gap-2 px-3 py-3">
 								<p className="text-subhead">{q.text}</p>
@@ -178,7 +178,7 @@ export async function SheetView({
 						{t("freeLead")}
 						{evidenceOptions.length === 0 && ` ${t("noEvidence")}`}
 					</p>
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 						{items.map((i) => (
 							<li key={i.id} className="flex flex-col gap-2 px-3 py-3">
 								<div className="flex items-start gap-2">
@@ -341,7 +341,7 @@ export async function SheetView({
 					<p className="text-muted-foreground text-footnote">
 						{t("paramsLead")}
 					</p>
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 						{params.map((row) => (
 							<li key={row.topic} className="flex flex-col gap-2 px-3 py-3">
 								<p className="text-subhead">
@@ -409,7 +409,7 @@ export async function SheetView({
 			{sheet.recommendations.length > 0 && !focus && (
 				<div className="flex flex-col gap-2">
 					<h3 className="font-medium text-subhead">{t("recommendations")}</h3>
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 						{sheet.recommendations.map((r) => (
 							<li
 								key={r.text}

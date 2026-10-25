@@ -32,6 +32,9 @@ const OPTION_KEY: Readonly<Record<string, string>> = {
 	ncPriority: "Nonconformities.priority_",
 	ncSource: "Nonconformities.source_",
 	indicatorType: "Organisation.indicator_",
+	function: "Functions.",
+	role: "Custody.role_",
+	changeKind: "Changes.kind_",
 };
 
 const msgKey = (trigger: string) => trigger.replace(".", "_");
@@ -93,6 +96,7 @@ export async function ruleNames(input: {
 		},
 		users,
 		ownerOfEntity: tw("ownerOfEntity"),
+		approverOfEntity: tw("approverOfEntity"),
 		notRequester: tw("notRequester"),
 		unknown: tw("unknownStelle"),
 	};

@@ -6,7 +6,6 @@ import { OctagonX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -19,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 
 // Alles stoppen: Signer einfrieren — bremst nur, deshalb ohne
 // Sicherheitsschlüssel; auftauen geht nur am Server-Terminal

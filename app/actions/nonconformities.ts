@@ -9,6 +9,7 @@ import { gateApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { followUpForNonconformity } from "@/lib/compliance/audit-follow-up";
+import { ownerColumns } from "@/lib/compliance/function-holders-service";
 import {
 	NC_DUE_DAYS,
 	NC_EFFECTIVENESS_DAYS,
@@ -107,7 +108,14 @@ async function upsertNonconformityImpl(
 					rootCause: d.rootCause ?? null,
 					correction: d.correction ?? null,
 					correctiveAction: d.correctiveAction ?? null,
-					ownerUserId: d.ownerUserId ?? before.ownerUserId,
+					...(d.ownerUserId == null
+						? {}
+						: await ownerColumns(
+								tx,
+								c.orgId,
+								d.ownerUserId,
+								before.ownerUserId,
+							)),
 					assigneeUserId: d.assigneeUserId ?? before.assigneeUserId,
 					dueAt,
 					effectivenessCheckAt:
@@ -153,7 +161,7 @@ async function upsertNonconformityImpl(
 							rootCause: set.rootCause,
 							correctiveAction: set.correctiveAction,
 							dueAt: set.dueAt,
-							ownerUserId: set.ownerUserId,
+							ownerUserId: set.ownerUserId ?? before.ownerUserId,
 							...(reclass
 								? {
 										followUpClass: followUpSet.followUpClass,
@@ -166,8 +174,9 @@ async function upsertNonconformityImpl(
 			}
 			// Prüfer:innen sind nie verantwortlich: ohne Auswahl übernimmt eine
 			// Inhaberin/ein Inhaber der Organisation.
+			const chosen = await ownerColumns(tx, c.orgId, d.ownerUserId, null);
 			const owner =
-				d.ownerUserId ??
+				chosen.ownerUserId ??
 				(byAuditor ? await firstOwner(tx, c.orgId) : c.userId) ??
 				c.userId;
 			const fu = d.followUpClass
@@ -194,12 +203,13 @@ async function upsertNonconformityImpl(
 					...(fu ? { followUp: fu.followUp } : {}),
 				},
 			);
-			if (d.correction || d.correctiveAction)
+			if (d.correction || d.correctiveAction || chosen.ownerFunction)
 				await tx
 					.update(nonconformities)
 					.set({
 						correction: d.correction ?? null,
 						correctiveAction: d.correctiveAction ?? null,
+						ownerFunction: chosen.ownerFunction,
 					})
 					.where(eq(nonconformities.id, nc.id));
 			return { result: { id: nc.id, code: nc.code }, audit: nc.audit };

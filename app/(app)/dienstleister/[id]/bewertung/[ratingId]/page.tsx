@@ -58,6 +58,7 @@ export default async function RatingPage({
 		return (
 			<>
 				<PageHeader
+					back={{ href: `/dienstleister/${provider.id}`, label: provider.name }}
 					title={t("title", { name: provider.name })}
 					lead={t("pageLead", { code: rating.code })}
 				/>
@@ -101,6 +102,7 @@ export default async function RatingPage({
 	return (
 		<>
 			<PageHeader
+				back={{ href: `/dienstleister/${provider.id}`, label: provider.name }}
 				title={t("title", { name: provider.name })}
 				lead={t("resultLead", {
 					code: rating.code,
@@ -165,7 +167,7 @@ export default async function RatingPage({
 				{(["general", "security"] as const).map((area) => (
 					<section key={area} className="flex flex-col gap-2">
 						<h2 className="font-medium">{t(`res_${area}`)}</h2>
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{rating.criteria
 								.filter((c) => c.area === area)
 								.map((c) => {
@@ -226,7 +228,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 	return (
 		<div className="rounded-2xl bg-card p-3">
 			<p className="text-muted-foreground text-footnote">{label}</p>
-			<p className="font-medium text-2xl tabular-nums">{value}</p>
+			<p className="font-semibold text-title-2 tabular-nums">{value}</p>
 		</div>
 	);
 }

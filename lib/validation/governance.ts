@@ -6,9 +6,11 @@ import {
 	ROLE_FUNCTIONS,
 } from "@/db/schema/enums";
 import { FOLLOW_UP_CLASS_KEYS } from "@/lib/compliance/catalog/audit-regimes";
+import { type FunctionKey, isFunctionKey } from "@/lib/compliance/function-key";
 import { NONCONFORMITY_STATUSES } from "@/lib/entities/nonconformity";
 import { PROCESS_STATUSES } from "@/lib/entities/process";
 import { frameworkSlugs, longText, shortText, uuid } from "./common";
+import { responsibleRef } from "./responsible";
 
 const isoDate = z.iso.date();
 const optionalDate = isoDate.nullable().optional();
@@ -28,7 +30,7 @@ export const processSchema = z.object({
 		.enum(["core", "support", "management", "control"])
 		.default("core"),
 	criticality: z.enum(CRITICALITY).default("standard"),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	deputyUserId: uuid.nullable().optional(),
 	assigneeUserId: uuid.nullable().optional(),
 	rtoHours: hours,
@@ -84,7 +86,7 @@ export const contextIssueSchema = z.object({
 	description: longText.optional(),
 	impact: longText.optional(),
 	relatedRiskId: uuid.nullable().optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	reviewAt: optionalDate,
 });
 
@@ -108,7 +110,7 @@ export const interestedPartySchema = z.object({
 	relevantFrameworks: frameworkSlugs.optional(),
 	howAddressed: longText.optional(),
 	contact: z.string().max(400).optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	reviewAt: optionalDate,
 });
 
@@ -124,7 +126,7 @@ export const scopeSchema = z.object({
 		.max(30)
 		.optional(),
 	version: z.string().max(20).optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 });
 
 export const requestScopeApprovalSchema = z.object({
@@ -160,7 +162,13 @@ export const roleAssignmentSchema = z
 		fitProperChecklist: fitProperChecklistSchema.nullable().optional(),
 		documentsValidUntil: optionalDate,
 		reviewAt: optionalDate,
-		reportsToFunction: z.enum(ROLE_FUNCTIONS).nullable().optional(),
+		// Funktion oder eigene Rolle `role:<id>` (ADR-024)
+		reportsToFunction: z
+			.string()
+			.refine(isFunctionKey, "Unbekannte Funktion")
+			.transform((v) => v as FunctionKey)
+			.nullable()
+			.optional(),
 		appointmentNotes: z.string().trim().max(4000).nullable().optional(),
 	})
 	.refine((r) => Boolean(r.userId) || Boolean(r.externalName?.trim()), {
@@ -181,7 +189,7 @@ export const objectiveSchema = z.object({
 	unit: z.string().max(30).optional(),
 	target: z.string().max(60).optional(),
 	dueAt: optionalDate,
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	status: z
 		.enum(["open", "on_track", "at_risk", "achieved", "dropped"])
 		.default("open"),
@@ -255,7 +263,7 @@ export const regulatorInteractionSchema = z.object({
 	direction: z.enum(["inbound", "outbound"]).default("inbound"),
 	deadline: optionalDate,
 	responseAt: optionalDate,
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	evidenceId: uuid.nullable().optional(),
 	notes: longText.optional(),
 	status: z.enum(["open", "answered", "closed"]).default("open"),
@@ -269,7 +277,7 @@ export const conflictSchema = z.object({
 	description: longText.optional(),
 	mitigation: longText.optional(),
 	disclosedAt: optionalDate,
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	reviewAt: optionalDate,
 	status: z.enum(["open", "mitigated", "closed"]).default("open"),
 });
@@ -339,7 +347,7 @@ export const auditSchema = z.object({
 	externalAuditor: z.string().max(200).optional(),
 	plannedAt: optionalDate,
 	performedAt: optionalDate,
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	reportEvidenceId: uuid.nullable().optional(),
 });
 
@@ -421,7 +429,7 @@ export const nonconformitySchema = z.object({
 	rootCause: longText.optional(),
 	correction: longText.optional(),
 	correctiveAction: longText.optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	assigneeUserId: uuid.nullable().optional(),
 	dueAt: optionalDate,
 	effectivenessCheckAt: optionalDate,
@@ -455,7 +463,7 @@ export const managementReviewSchema = z.object({
 	attendeeUserIds: z.array(uuid).max(50).optional(),
 	summary: longText.optional(),
 	decisions: longText.optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	minutesEvidenceId: uuid.nullable().optional(),
 });
 
@@ -515,7 +523,7 @@ export const waiveRunSchema = z.object({
 
 export const updateObligationSchema = z.object({
 	obligationId: uuid,
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	leadDays: z.coerce.number().int().min(0).max(365).optional(),
 	active: z.boolean().optional(),
 });
@@ -550,7 +558,7 @@ export const complaintSchema = z.object({
 	description: longText.optional(),
 	// Pseudonym/Referenz — wird feldverschlüsselt
 	complainantRef: z.string().max(200).nullable().optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	outcome: longText.optional(),
 	escalatedToRegulator: z.boolean().optional(),
 });

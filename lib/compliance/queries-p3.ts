@@ -41,6 +41,9 @@ import {
 	whistleblowingReports,
 } from "@/db/schema";
 import type { LicenceStage } from "@/db/schema/enums";
+import { approvalProgressFor } from "@/lib/approvals/service";
+import { openAcceptances } from "@/lib/compliance/appointment-acceptance";
+import { isEffective } from "@/lib/compliance/appointments";
 import type { OrgTx } from "@/lib/db/with-org";
 import { requiredFunctions, roleCoverage } from "./catalog/required-functions";
 import { checkSod } from "./catalog/sod-rules";
@@ -403,15 +406,25 @@ export async function governanceStatus(
 	frameworkSlugs: readonly string[],
 	stage: LicenceStage,
 ) {
-	const assignments = await listRoleAssignments(tx, orgId);
+	const all = await listRoleAssignments(tx, orgId);
+	// Liste: Vorschläge, Bestellte und Abgelehnte mit Begründung;
+	// Abberufene nur als Verlauf
+	const assignments = all.filter((a) => a.status !== "revoked");
 	const required = requiredFunctions(frameworkSlugs, stage);
-	const coverage = roleCoverage(required, assignments);
-	const sod = checkSod(assignments).map((v) => ({
-		...v,
-		userName:
-			assignments.find((a) => a.userId === v.userId)?.holderName ?? v.userId,
-	}));
-	return { assignments, required, coverage, sod };
+	// besetzt ist eine Funktion erst mit Bestellung durch die Geschäftsleitung
+	const coverage = roleCoverage(
+		required,
+		assignments.filter((a) => isEffective(a.status)),
+	);
+	// Funktionstrennung auch für Vorschläge (Hinweis vor der Bestellung)
+	const sod = checkSod(assignments.filter((a) => a.status !== "rejected")).map(
+		(v) => ({
+			...v,
+			userName:
+				assignments.find((a) => a.userId === v.userId)?.holderName ?? v.userId,
+		}),
+	);
+	return { assignments, history: all, required, coverage, sod };
 }
 
 export async function listObjectives(tx: OrgTx, orgId: string) {
@@ -1122,6 +1135,111 @@ export async function accountabilityFor(
 			(a) =>
 				(a.ownerUserId === userId || a.auditorMemberIds.includes(userId)) &&
 				a.status !== "closed",
+		),
+	};
+}
+
+// Bestellung je Besetzung (/organisation → Rollen): Stand offener Anträge,
+// offene Anzeigen an Behörden, Bestellungen ohne Beschluss (eigener aus der
+// Freigabe oder ein Sammelbeschluss RES-ROLES, der nach der Anlage gefasst
+// wurde — er listet alle Besetzungen, die beim Fassen bestellt waren)
+export async function appointmentFacts(
+	tx: OrgTx,
+	orgId: string,
+	assignments: readonly {
+		id: string;
+		function: string;
+		status: string;
+		createdAt: Date;
+	}[],
+) {
+	const progress = await approvalProgressFor(
+		tx,
+		orgId,
+		"role_assignment",
+		assignments.filter((a) => !isEffective(a.status)).map((a) => a.id),
+	);
+	const ids = assignments.map((a) => a.id);
+	const notices =
+		ids.length === 0
+			? []
+			: await tx
+					.select({ entityId: tasks.entityId })
+					.from(tasks)
+					.where(
+						and(
+							eq(tasks.organizationId, orgId),
+							eq(tasks.entityType, "role_assignment"),
+							eq(tasks.sourceKind, "obligation"),
+							inArray(tasks.entityId, ids),
+							inArray(tasks.status, ["todo", "doing", "blocked"]),
+						),
+					);
+	const res = await tx
+		.select({
+			code: resolutions.requiredCode,
+			createdAt: resolutions.createdAt,
+			linkedType: resolutions.linkedEntityType,
+			linkedId: resolutions.linkedEntityId,
+			approvalStatus: approvalRequests.status,
+		})
+		.from(resolutions)
+		.leftJoin(
+			approvalRequests,
+			eq(approvalRequests.id, resolutions.approvalRequestId),
+		)
+		.where(eq(resolutions.organizationId, orgId));
+	// gilt: ohne Freigabe erfasst oder Freigabe durch
+	const valid = res.filter(
+		(r) => r.approvalStatus === null || r.approvalStatus === "approved",
+	);
+	const own = new Set(
+		valid
+			.filter((r) => r.linkedType === "role_assignment")
+			.map((r) => r.linkedId),
+	);
+	// von der GL freigegeben (Beschluss einzeln oder gemeinsam entstanden)
+	const approved = new Set(
+		ids.length === 0
+			? []
+			: (
+					await tx
+						.select({ entityId: approvalRequests.entityId })
+						.from(approvalRequests)
+						.where(
+							and(
+								eq(approvalRequests.organizationId, orgId),
+								eq(approvalRequests.entityType, "role_assignment"),
+								eq(approvalRequests.status, "approved"),
+								inArray(approvalRequests.entityId, ids),
+							),
+						)
+				).map((r) => r.entityId),
+	);
+	const matrix = valid
+		.filter((r) => r.code === "RES-ROLES" && r.linkedType === "organization")
+		.map((r) => r.createdAt.getTime())
+		.reduce((a, b) => Math.max(a, b), 0);
+	const withoutResolution = new Set(
+		assignments
+			.filter(
+				(a) =>
+					isEffective(a.status) &&
+					// die GL selbst bestellt nicht die GL (Gesellschafterbeschluss)
+					a.function !== "management_body" &&
+					!own.has(a.id) &&
+					!approved.has(a.id) &&
+					!(matrix > 0 && matrix >= a.createdAt.getTime()),
+			)
+			.map((a) => a.id),
+	);
+	return {
+		progress,
+		noticesOpen: new Set(notices.map((n) => n.entityId)),
+		withoutResolution,
+		// bestellt, Schreiben noch nicht von der Person unterschrieben
+		acceptanceOpen: new Map(
+			(await openAcceptances(tx, orgId)).map((a) => [a.id, a.evidenceId]),
 		),
 	};
 }

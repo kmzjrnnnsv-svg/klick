@@ -316,7 +316,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 					"Melden: was, wann bemerkt, was betroffen.",
 					"Klassifizieren nach DORA, NIS2, DSGVO oder CRA.",
 					"Meldeuhren laufen: bei DORA Erstmeldung 4 Stunden nach Einstufung, spätestens 24 Stunden nach Kenntnis; Zwischenbericht nach 72 Stunden; Abschluss nach einem Monat.",
-					"Meldung an die Aufsicht, auf Wunsch erst nach Freigabe.",
+					"Meldung an die Aufsicht; die Geschäftsleitung erfährt es sofort und bestätigt die Kenntnisnahme. Eine Freigabe vorab lässt sich zuschalten.",
 					"Abschließen mit Ursache; ein schwerwiegender Vorfall erzeugt eine Abweichung.",
 				],
 				result:
@@ -452,17 +452,49 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				key: "approvals",
 				name: "Freigaben",
 				summary:
-					"Wer wann zustimmt, legst du je Auslöser fest, mit Bedingungen und Stufen.",
+					"Was deine Rahmenwerke an Freigaben verlangen, schaltet Klick ein; Bedingungen und Stufen siehst du je Auslöser.",
 				where: "Heute > Freigaben",
 				trigger:
-					"Zum Beispiel: Dokument veröffentlichen, Risiko akzeptieren, Dienstleister aufnehmen, Meldung an die Aufsicht.",
+					"Zum Beispiel: Dokument veröffentlichen, Risiko akzeptieren, Dienstleister aufnehmen, Funktion bestellen.",
 				steps: [
-					"Klick wählt den passenden Ablauf nach Bedingungen (etwa Kritikalität).",
+					"Klick wählt den passenden Ablauf nach Bedingungen (etwa Kritikalität); Stufen, deren Funktion niemand innehat, entfallen, die Geschäftsleitung nie.",
 					"Stufen mit einer oder allen Stellen im Vier-Augen-Prinzip; die anfragende Person entscheidet nicht über ihren eigenen Antrag (Ausnahme: Ein-Personen-Organisation).",
 					"Bis zur Entscheidung wartet die Sache im Status „Wartet auf Freigabe“.",
 				],
 				result:
 					"Die Entscheidung wirkt direkt auf die Sache; der Ablauf steht im Protokoll.",
+			},
+			{
+				key: "appointment",
+				name: "Bestellung durch die Geschäftsleitung",
+				summary:
+					"Funktionen wie ISB, Geldwäschebeauftragte oder Datenschutz gelten erst, wenn die Geschäftsleitung sie bestellt hat.",
+				where: "Organisation > Rollen & Leitung",
+				trigger:
+					"Jemand wird für eine Funktion vorgeschlagen, neu besetzt oder abberufen.",
+				steps: [
+					"Vorschlag eintragen, in der Einrichtung oder unter Organisation; bis zur Bestellung trägt die Person weder Verantwortung noch Freigaberechte.",
+					"Alle Mitglieder der Geschäftsleitung stimmen zu; wer selbst einträgt und zur Leitung gehört, zählt als erste Zustimmung.",
+					"Klick legt den Beschluss an, erzeugt das Bestellungsschreiben zum Unterschreiben und, wo nötig, die Aufgabe für die Anzeige an die Aufsicht, etwa an die BaFin bei Geldwäschebeauftragten.",
+				],
+				result:
+					"Bestellung mit Beschluss, unterschriebenem Schreiben und Frist für die Anzeige.",
+			},
+			{
+				key: "individual",
+				name: "Rollen und Freigaben individuell gestalten",
+				summary:
+					"Eigene Rollen für dein Unternehmen, Personen und Freigaben per Ziehen, wenn dir der Standard nicht passt.",
+				where: "Einstellungen > Freigaben",
+				trigger:
+					"Du wählst in der Einrichtung oder unter Einstellungen > Freigaben „Individuell gestalten“.",
+				steps: [
+					"Eigene Rollen anlegen, etwa Einkauf oder Finanzen, mit Aufgaben, Berichtsweg und Rechten in Klick.",
+					"Auf der Rollen-Tafel Personen auf Rollen ziehen, Bereiche zuordnen und im Organigramm Berichtswege setzen; bestellt wird wie im Standard durch die Geschäftsleitung. Jeder Schritt geht auch ohne Ziehen über das Menü.",
+					"Im Freigabe-Designer Stellen in Stufen ziehen. Was deine Rahmenwerke verlangen und fehlt, zeigt Klick als Hinweis mit Rechtsgrundlage und in der Prüfungsreife.",
+				],
+				result:
+					"Abläufe, die zu deinem Aufbau passen, mit sichtbaren Lücken statt stiller Abweichung. Zurück zum Standard geht jederzeit.",
 			},
 			{
 				key: "resolutions",

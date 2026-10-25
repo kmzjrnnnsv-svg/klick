@@ -37,6 +37,7 @@ export default async function FindingPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ security: ["read"] });
 	const t = await getTranslations("Security");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const tg = await getTranslations("Engagements");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
@@ -78,6 +79,7 @@ export default async function FindingPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/sicherheit", label: tNav("security") }}
 			eyebrow={`${SCAN_TOOL_LABEL[f.tool]} · ${t(`cat_${f.category}`)}`}
 			title={f.title}
 			subtitle={f.location ?? undefined}

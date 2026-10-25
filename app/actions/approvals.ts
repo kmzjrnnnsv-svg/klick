@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
@@ -8,13 +8,21 @@ import {
 	approvalWorkflows,
 	decisionRequests,
 	delegations,
+	roleAssignments,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { applyApprovalOutcome } from "@/lib/approvals/outcomes";
 import { type DecideResult, decide, withdraw } from "@/lib/approvals/service";
+import { triggerOf } from "@/lib/approvals/triggers";
+import type { AuditInput } from "@/lib/audit";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { AuthError } from "@/lib/auth/session-rules";
-import { resolutionForApproval } from "@/lib/compliance/decision-service";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
+import {
+	createAppointmentsResolution,
+	resolutionForApproval,
+} from "@/lib/compliance/decision-service";
+import { topManagementOf } from "@/lib/compliance/top-management";
 import { mutateOrg } from "@/lib/db/with-org";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
@@ -243,7 +251,126 @@ async function setWorkflowEnabledImpl(input: unknown): Promise<ActionResult> {
 
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
+// Posteingang „Alle Bestellungen freigeben“: jede Bestellung wie einzeln
+// entschieden (Vier-Augen, alle Personen der GL); was dabei endgültig
+// bestellt ist, kommt in einen gemeinsamen Beschluss — die
+// Geldwäschebeauftragte bleibt ein eigener (Pflichtbeschluss RES-GWG-AMLO).
+const bulkSchema = z.object({
+	requestIds: z.array(z.string().uuid()).min(1).max(50),
+});
+
+async function decideAppointmentsImpl(
+	input: unknown,
+): Promise<ActionResult<{ decided: number; appointed: number }>> {
+	let c: Awaited<ReturnType<typeof requireStepUp>>;
+	try {
+		c = await requireStepUp({ approval: ["decide"] });
+	} catch (e) {
+		if (e instanceof AuthError && e.code === "step_up_required")
+			return { ok: false, error: "step_up_required" };
+		throw e;
+	}
+	const parsed = bulkSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const actor = { orgId: c.orgId, userId: c.userId, name: c.name };
+	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const reqs = await tx
+			.select({
+				id: approvalRequests.id,
+				entityId: approvalRequests.entityId,
+				trigger: approvalWorkflows.trigger,
+				kind: approvalWorkflows.kind,
+			})
+			.from(approvalRequests)
+			.innerJoin(
+				approvalWorkflows,
+				eq(approvalWorkflows.id, approvalRequests.workflowId),
+			)
+			.where(
+				and(
+					eq(approvalRequests.organizationId, c.orgId),
+					inArray(approvalRequests.id, parsed.data.requestIds),
+					eq(approvalRequests.status, "pending"),
+				),
+			);
+		const audit: AuditInput[] = [];
+		const finals: { id: string; entityId: string }[] = [];
+		let decided = 0;
+		for (const q of reqs) {
+			if (triggerOf(q) !== "role.appoint") continue;
+			const r = await decide(tx, actor, {
+				requestId: q.id,
+				decision: "approved",
+			});
+			if (!r.ok) continue;
+			decided += 1;
+			audit.push({
+				action: "approval.approved",
+				target: `${r.entityType}:${r.entityId}`,
+				after: { requestId: q.id, outcome: r.status, bulk: true },
+			});
+			if (r.status === "approved") {
+				audit.push(
+					...(await applyApprovalOutcome(
+						tx,
+						{ orgId: c.orgId, userId: c.userId },
+						r,
+					)),
+				);
+				finals.push({ id: q.id, entityId: q.entityId });
+			}
+		}
+		// Beschluss: GWB einzeln, übrige gemeinsam (bei einem: wie einzeln)
+		const fns = new Map(
+			(finals.length === 0
+				? []
+				: await tx
+						.select({ id: roleAssignments.id, fn: roleAssignments.function })
+						.from(roleAssignments)
+						.where(
+							and(
+								inArray(
+									roleAssignments.id,
+									finals.map((f) => f.entityId),
+								),
+								effectiveAssignment(),
+							),
+						)
+			).map((r) => [r.id, r.fn]),
+		);
+		const single = finals.filter(
+			(f) => fns.get(f.entityId) === "aml_officer" || finals.length === 1,
+		);
+		const together = finals.filter((f) => !single.includes(f));
+		for (const f of single)
+			audit.push(...(await resolutionForApproval(tx, actor, f.id)));
+		if (
+			together.length > 0 &&
+			(await topManagementOf(tx, c.orgId, c.userId)).isTopManagement
+		)
+			audit.push(
+				...(await createAppointmentsResolution(
+					tx,
+					actor,
+					together.map((f) => f.id),
+				)),
+			);
+		else
+			for (const f of together)
+				audit.push(...(await resolutionForApproval(tx, actor, f.id)));
+		return { result: { decided, appointed: finals.length }, audit };
+	});
+	revalidatePath("/heute/freigaben");
+	revalidatePath("/organisation");
+	revalidatePath("/beschluesse");
+	return { ok: true, data: res };
+}
+
 export const decideApproval = safeAction("decideApproval", decideApprovalImpl);
+export const decideAppointments = safeAction(
+	"decideAppointments",
+	decideAppointmentsImpl,
+);
 export const withdrawApproval = safeAction(
 	"withdrawApproval",
 	withdrawApprovalImpl,

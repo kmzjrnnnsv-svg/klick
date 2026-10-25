@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { longText, shortText, uuid } from "./common";
+import { responsibleRef } from "./responsible";
 
 // Validierung für die CASP-/AML-Module (P4): AML-Risikoanalyse, Monitoring-
 // Regelwerk, Verdachtsmeldungen/STOR, Länder & Korridore, Eigenmittel,
@@ -32,7 +33,7 @@ export const amlRiskAnalysisSchema = z.object({
 		channel: dimensionSchema,
 	}),
 	summary: longText.optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	nextReviewAt: optionalDate,
 });
 export type AmlRiskAnalysisInput = z.output<typeof amlRiskAnalysisSchema>;
@@ -59,7 +60,7 @@ export const monitoringRuleSchema = z.object({
 	threshold: z.string().trim().max(200).optional(),
 	rationale: longText.optional(),
 	legalBasis: z.string().trim().max(200).optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	lastTunedAt: optionalDate,
 	falsePositiveRate: z.coerce.number().min(0).max(100).nullable().optional(),
 	status: z.enum(MONITORING_RULE_STATUSES).default("active"),
@@ -77,7 +78,7 @@ export const suspiciousReportSchema = z.object({
 	// feldverschlüsselt; keine Kunden-PII
 	decisionNote: z.string().trim().max(8000).nullable().optional(),
 	incidentId: uuid.nullable().optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 });
 
 export const suspiciousTransitionSchema = z.object({

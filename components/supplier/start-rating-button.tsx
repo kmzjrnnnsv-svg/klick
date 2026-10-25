@@ -3,9 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { startProviderRating } from "@/app/actions/provider-ratings";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 
 // Startet die interne Bewertung (oder öffnet den offenen Entwurf).
 export function StartRatingButton({

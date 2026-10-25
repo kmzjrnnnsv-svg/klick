@@ -19,8 +19,8 @@ import { ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import {
 	Dialog,
 	DialogContent,
@@ -30,6 +30,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -39,6 +40,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { WalletNetwork } from "@/lib/wallet/core/networks";
 
 type Result = {
@@ -58,7 +60,7 @@ function useWalletError() {
 		if (t.has(key as never)) toast.error(t(key as never));
 		else if (first && t.has(`error_${first}` as never))
 			toast.error(t(`error_${first}` as never));
-		else toast.error(first ?? tc("error"));
+		else toast.error(first ?? errorText(tc, res));
 	};
 }
 
@@ -326,24 +328,32 @@ export function RetireAccountButton({
 	const router = useRouter();
 	const onError = useWalletError();
 	const [pending, start] = useTransition();
+	const confirm = useConfirm({
+		title: t("retireConfirm", { name }),
+		confirmLabel: t("retire"),
+	});
 	return (
-		<Button
-			type="button"
-			variant="ghost"
-			size="sm"
-			className=""
-			disabled={pending}
-			onClick={() => {
-				if (!window.confirm(t("retireConfirm", { name }))) return;
-				start(async () => {
-					const res = await retireWalletAccount({ id });
-					if (!res.ok) return onError(res);
-					router.push("/accounts");
-					router.refresh();
-				});
-			}}
-		>
-			{t("retire")}
-		</Button>
+		<>
+			<Button
+				type="button"
+				variant="ghost"
+				size="sm"
+				className=""
+				disabled={pending}
+				onClick={() =>
+					confirm.ask(() =>
+						start(async () => {
+							const res = await retireWalletAccount({ id });
+							if (!res.ok) return onError(res);
+							router.push("/accounts");
+							router.refresh();
+						}),
+					)
+				}
+			>
+				{t("retire")}
+			</Button>
+			{confirm.node}
+		</>
 	);
 }

@@ -42,6 +42,7 @@ import {
 	ruleNames,
 	triggerTexts,
 } from "@/lib/approvals/designer-labels";
+import { governanceModeOf } from "@/lib/approvals/governance-mode";
 import { WORKFLOW_PRESETS } from "@/lib/approvals/presets";
 import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import { TRIGGER_BY_KEY, TRIGGERS, triggerOf } from "@/lib/approvals/triggers";
@@ -53,7 +54,7 @@ import {
 	listSsoProvidersForOrg,
 } from "@/lib/auth/org";
 import {
-	canHoldCustomRoles,
+	canHoldOwnRole,
 	grantablePresetOf,
 	permissionCatalog,
 } from "@/lib/auth/permission-catalog";
@@ -61,9 +62,13 @@ import { allows, roleStatements } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
+import { requiredDuties } from "@/lib/compliance/catalog/approval-duties";
+import { WORKFLOW_BY_KIND } from "@/lib/compliance/catalog/approval-workflows";
 import { defaultSupplierMethod } from "@/lib/compliance/catalog/supplier-criteria";
 import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
 import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
+import { governanceChecks } from "@/lib/compliance/governance-checks";
+import { activeFrameworkSlugs } from "@/lib/compliance/initialize-org";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import { userNames } from "@/lib/compliance/queries";
 import {
@@ -80,7 +85,7 @@ import {
 } from "@/lib/compliance/risk-method";
 import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
 import { loadPriceTable } from "@/lib/db/pricing";
-import { readOrg, withOrg } from "@/lib/db/with-org";
+import { flushQueuedAudits, readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
 import { berlinToday } from "@/lib/evidence-studio/queries";
 import { recommendServices } from "@/lib/marketing/recommend";
@@ -371,27 +376,43 @@ async function renderSection(
 		}
 		case "rollen": {
 			const tt = await getTranslations("Team");
-			const [roles, members] = await Promise.all([
-				readOrg(octx, (tx) => listOrgRoles(tx, ctx.orgId)),
+			const [{ roles, mode }, members] = await Promise.all([
+				readOrg(octx, async (tx) => ({
+					roles: await listOrgRoles(tx, ctx.orgId),
+					mode: await governanceModeOf(tx, ctx.orgId),
+				})),
 				listOrgMembers(ctx.orgId),
 			]);
+			const memberOf = new Map(members.map((m) => [m.userId, m.memberId]));
 			const cap = (r: string) => `${r[0]?.toUpperCase()}${r.slice(1)}`;
+			// Besetzung aus der Bestellung (ADR-024): bestellt oder vorgeschlagen
+			const heldBy = (
+				r: (typeof roles)[number],
+				pick: (s: (typeof r.holders)[number]["status"]) => boolean,
+			) =>
+				r.holders
+					.filter((h) => h.userId && pick(h.status))
+					.flatMap((h) => {
+						const id = memberOf.get(h.userId as string);
+						return id ? [id] : [];
+					});
 			return (
 				<RolesPanel
+					individual={mode === "individual"}
 					roles={roles.map((r) => ({
 						id: r.id,
 						name: r.name,
 						description: r.description,
+						tasks: r.tasks,
 						permissions: r.permissions,
-						memberIds: r.members
-							.map((m) => m.memberId)
-							.filter((x): x is string => Boolean(x)),
-						pendingEmails: r.members
-							.map((m) => m.pendingEmail)
+						memberIds: heldBy(r, () => true),
+						waitingMemberIds: heldBy(r, (s) => s === "proposed"),
+						pendingEmails: r.holders
+							.map((h) => (h.userId ? null : h.pendingEmail))
 							.filter((x): x is string => Boolean(x)),
 					}))}
 					members={members
-						.filter((m) => canHoldCustomRoles(normalizeRole(m.role)))
+						.filter((m) => canHoldOwnRole(normalizeRole(m.role)))
 						.map((m) => ({ memberId: m.memberId, name: m.name || m.email }))}
 					catalog={permissionCatalog()}
 					editorPreset={grantablePresetOf("editor")}
@@ -421,54 +442,82 @@ async function renderSection(
 		}
 		case "workflows": {
 			// Workflows je Org sicherstellen (Seed) und laden
-			const { workflows, workflowNames } = await withOrg(octx, async (tx) => {
-				const settings = await getOrgSettings(tx, ctx.orgId);
-				await ensureOrgWorkflows(
-					tx,
-					ctx.orgId,
-					settings?.licenceStage ?? "0_vorbereitung",
-				);
-				const rows = await tx
-					.select()
-					.from(approvalWorkflows)
-					.where(eq(approvalWorkflows.organizationId, ctx.orgId));
-				// nur angeschlossene Auslöser (Designer, lib/approvals/triggers.ts)
-				const workflows = rows.flatMap((r) => {
-					const trigger = triggerOf(r);
-					if (!trigger || !TRIGGER_BY_KEY.get(trigger)?.wired) return [];
-					return [
-						{
-							id: r.id,
-							kind: r.kind,
-							name: r.name,
-							description: r.description,
-							trigger,
-							custom: r.custom,
-							enabled: r.enabled,
-							priority: r.priority,
-							conditions: r.conditions,
-							steps: r.steps,
-						},
-					];
-				});
-				const [roles, members] = await Promise.all([
-					listOrgRoles(tx, ctx.orgId),
-					userNames(
+			const { workflows, workflowNames, mode, findings } = await withOrg(
+				octx,
+				async (tx) => {
+					const settings = await getOrgSettings(tx, ctx.orgId);
+					await ensureOrgWorkflows(
 						tx,
-						rows.flatMap((r) =>
-							r.steps.flatMap((s) =>
-								[...(s.approvers ?? [s.approverRule]), ...(s.skipIf ?? [])]
-									.filter((x) => x.startsWith("user:"))
-									.map((x) => x.slice(5)),
+						ctx.orgId,
+						settings?.licenceStage ?? "0_vorbereitung",
+					);
+					await flushQueuedAudits(tx, octx);
+					const rows = await tx
+						.select()
+						.from(approvalWorkflows)
+						.where(eq(approvalWorkflows.organizationId, ctx.orgId));
+					// Fundstellen der gewählten Rahmenwerke je Ablauf (approval-duties.ts)
+					const stageNum =
+						Number.parseInt(
+							(settings?.licenceStage ?? "0_vorbereitung").charAt(0),
+							10,
+						) || 0;
+					const fws = await activeFrameworkSlugs(tx, ctx.orgId);
+					const basisByKind = new Map(
+						requiredDuties(fws, stageNum).map((d) => [d.kind, d.basis]),
+					);
+					// Pflichten prüfen statt erzwingen (ADR-024)
+					const mode = await governanceModeOf(tx, ctx.orgId);
+					const findings = governanceChecks({
+						frameworks: fws,
+						stage: stageNum,
+						workflows: rows,
+					}).map((f) => ({
+						...f,
+						name: WORKFLOW_BY_KIND.get(f.kind)?.name ?? f.kind,
+						id: rows.find((r) => r.kind === f.kind)?.id ?? null,
+					}));
+					// nur angeschlossene Auslöser (Designer, lib/approvals/triggers.ts)
+					const workflows = rows.flatMap((r) => {
+						const trigger = triggerOf(r);
+						if (!trigger || !TRIGGER_BY_KEY.get(trigger)?.wired) return [];
+						return [
+							{
+								id: r.id,
+								kind: r.kind,
+								name: r.name,
+								description: r.description,
+								trigger,
+								custom: r.custom,
+								enabled: r.enabled,
+								priority: r.priority,
+								conditions: r.conditions,
+								steps: r.steps,
+								requiredBy: r.custom ? [] : (basisByKind.get(r.kind) ?? []),
+							},
+						];
+					});
+					const [roles, members] = await Promise.all([
+						listOrgRoles(tx, ctx.orgId),
+						userNames(
+							tx,
+							rows.flatMap((r) =>
+								r.steps.flatMap((s) =>
+									[...(s.approvers ?? [s.approverRule]), ...(s.skipIf ?? [])]
+										.filter((x) => x.startsWith("user:"))
+										.map((x) => x.slice(5)),
+								),
 							),
 						),
-					),
-				]);
-				return {
-					workflows,
-					workflowNames: await ruleNames({ roles, users: members }),
-				};
-			});
+					]);
+					return {
+						workflows,
+						workflowNames: await ruleNames({ roles, users: members }),
+						mode,
+						findings,
+					};
+				},
+			);
 			return (
 				<WorkflowsPanel
 					triggers={TRIGGERS.filter((x) => x.wired).map((x) => ({
@@ -489,6 +538,9 @@ async function renderSection(
 						roles: p.roles.map((r) => r.name),
 					}))}
 					canEdit={canEditSettings}
+					mode={mode}
+					findings={findings}
+					isOwner={ctx.orgRole === "owner"}
 				/>
 			);
 		}

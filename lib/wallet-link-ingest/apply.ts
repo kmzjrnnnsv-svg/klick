@@ -13,10 +13,8 @@ import {
 } from "@/db/schema";
 import type { RoleFunction } from "@/db/schema/enums";
 import type { AuditInput } from "@/lib/audit";
-import {
-	createSuspiciousReport,
-	functionHolder,
-} from "@/lib/compliance/aml-service";
+import { createSuspiciousReport } from "@/lib/compliance/aml-service";
+import { functionResponsible } from "@/lib/compliance/function-holders-service";
 import { createIncidentRecord } from "@/lib/compliance/incident-service";
 import { nextWalletCode } from "@/lib/custody/wallet-rules";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -57,7 +55,7 @@ async function responsible(
 	fn: RoleFunction,
 ): Promise<string | null> {
 	return (
-		(await functionHolder(tx, orgId, fn)) ??
+		(await functionResponsible(tx, orgId, fn)) ??
 		(await orgOwnerIds(tx, orgId))[0] ??
 		null
 	);

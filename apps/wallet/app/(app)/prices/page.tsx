@@ -48,7 +48,7 @@ export default async function WalletQuotesPage() {
 			/>
 			{latest ? (
 				<>
-					<ul className="divide-y divide-border/60 rounded-2xl bg-card px-2">
+					<ul className="list-inset rounded-2xl bg-card px-2">
 						{quotes.map((q) => (
 							<li key={q.pair}>
 								<QuoteRow quote={q} name={PAIR_NAMES[q.pair]} />

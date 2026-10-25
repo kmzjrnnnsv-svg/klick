@@ -247,7 +247,7 @@ export async function WalletHome() {
 					</Link>
 				</div>
 				{quotes.some((q) => q.price !== null) ? (
-					<ul className="divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+					<ul className="list-inset overflow-hidden rounded-2xl bg-card">
 						{quotes.map((q) => (
 							<li key={q.pair}>
 								<QuoteRow quote={q} name={PAIR_NAMES[q.pair]} />

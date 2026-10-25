@@ -4,7 +4,6 @@ import { ClipboardCheck, Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	completeSupplierAssessment,
 	createPortalLink,
@@ -24,6 +23,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input, nativeSelectCompactClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -34,6 +35,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 type TemplateOption = {
@@ -59,6 +61,7 @@ export function StartSupplierAssessmentDialog({
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const [pending, start] = useTransition();
 	const [template, setTemplate] = useState(defaultTemplate);
 	const [name, setName] = useState(contact.name ?? "");
@@ -82,6 +85,7 @@ export function StartSupplierAssessmentDialog({
 					onSubmit={(e) => {
 						e.preventDefault();
 						start(async () => {
+							setError(null);
 							const res = await startSupplierAssessment({
 								providerId,
 								templateCode: template,
@@ -90,10 +94,10 @@ export function StartSupplierAssessmentDialog({
 								dueAt: dueAt || null,
 							});
 							if (!res.ok)
-								return void toast.error(
+								return void setError(
 									res.fieldErrors?.contactEmail
 										? t("emailInvalid")
-										: tc("error"),
+										: errorText(tc, res),
 								);
 							toast.success(
 								res.data.existing ? t("startedExisting") : t("started"),
@@ -164,6 +168,7 @@ export function StartSupplierAssessmentDialog({
 							onChange={(e) => setDueAt(e.target.value)}
 						/>
 					</div>
+					<FormAlert message={error} />
 					<DialogFooter>
 						<Button
 							type="button"
@@ -173,7 +178,7 @@ export function StartSupplierAssessmentDialog({
 							{tc("cancel")}
 						</Button>
 						<Button type="submit" disabled={pending}>
-							{pending ? `${t("start")}…` : t("start")}
+							{pending ? tc("working") : t("start")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -258,7 +263,7 @@ export function PortalLinkDialog({
 									expiresInDays: Number(days),
 									sendMail: sendMail && Boolean(contactEmail),
 								});
-								if (!res.ok) return void toast.error(tc("error"));
+								if (!res.ok) return void toast.error(errorText(tc, res));
 								setUrl(res.data.url);
 								if (sendMail && contactEmail)
 									toast[res.data.mailed ? "success" : "warning"](
@@ -313,7 +318,7 @@ export function PortalLinkDialog({
 								{tc("cancel")}
 							</Button>
 							<Button type="submit" disabled={pending}>
-								{pending ? `${t("createLink")}…` : t("createLink")}
+								{pending ? tc("creating") : t("createLink")}
 							</Button>
 						</DialogFooter>
 					</form>
@@ -351,14 +356,14 @@ export function RevokeLinkButton({ assessmentId }: { assessmentId: string }) {
 						onClick={() =>
 							start(async () => {
 								const res = await revokePortalLinks({ assessmentId });
-								if (!res.ok) return void toast.error(tc("error"));
+								if (!res.ok) return void toast.error(errorText(tc, res));
 								toast.success(t("revoked"));
 								setOpen(false);
 								router.refresh();
 							})
 						}
 					>
-						{pending ? `${t("revoke")}…` : t("revoke")}
+						{pending ? tc("working") : t("revoke")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>
@@ -388,6 +393,7 @@ export function CompleteSupplierDialog({
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const [pending, start] = useTransition();
 	const [decision, setDecision] =
 		useState<(typeof DECISIONS)[number]>("accept");
@@ -404,16 +410,17 @@ export function CompleteSupplierDialog({
 					onSubmit={(e) => {
 						e.preventDefault();
 						start(async () => {
+							setError(null);
 							const res = await completeSupplierAssessment({
 								assessmentId,
 								decision,
 								decisionNote: note || undefined,
 							});
 							if (!res.ok)
-								return void toast.error(
+								return void setError(
 									res.fieldErrors?.decisionNote
 										? t("noteRequired")
-										: tc("error"),
+										: errorText(tc, res),
 								);
 							toast.success(
 								res.data.taskId ? t("completedWithTask") : t("completed"),
@@ -478,6 +485,7 @@ export function CompleteSupplierDialog({
 							minLength={needsNote ? 10 : undefined}
 						/>
 					</div>
+					<FormAlert message={error} />
 					<DialogFooter>
 						<Button
 							type="button"
@@ -490,7 +498,7 @@ export function CompleteSupplierDialog({
 							type="submit"
 							disabled={pending || (needsNote && note.trim().length < 10)}
 						>
-							{pending ? `${t("complete")}…` : t("complete")}
+							{pending ? tc("working") : t("complete")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -526,7 +534,7 @@ export function ReopenSupplierDialog({
 								assessmentId,
 								note,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("reopened"));
 							setOpen(false);
 							router.refresh();
@@ -557,7 +565,7 @@ export function ReopenSupplierDialog({
 							{tc("cancel")}
 						</Button>
 						<Button type="submit" disabled={pending || note.trim().length < 3}>
-							{pending ? `${t("reopen")}…` : t("reopen")}
+							{pending ? tc("working") : t("reopen")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -629,13 +637,13 @@ export function ContractClausesForm({
 							clauses.map((c) => [c.code, fromOption(state[c.code] ?? "open")]),
 						),
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("clausesSaved"));
 					router.refresh();
 				});
 			}}
 		>
-			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+			<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 				{clauses.map((c) => (
 					<li
 						key={c.code}
@@ -686,7 +694,7 @@ export function ContractClausesForm({
 			{canEdit && (
 				<div className="flex justify-end">
 					<Button type="submit" disabled={pending || !dirty}>
-						{pending ? `${tc("save")}…` : tc("save")}
+						{pending ? tc("saving") : tc("save")}
 					</Button>
 				</div>
 			)}

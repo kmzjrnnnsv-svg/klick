@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { assignPriceGroup } from "@/app/actions/pricing";
+import { errorText } from "@/components/ui/error-text";
 import {
 	Select,
 	SelectContent,
@@ -11,6 +12,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 
 const DEFAULT = "default";
 
@@ -27,6 +29,7 @@ export function OrgPriceGroupSelect({
 	groups: readonly { id: string; name: string }[];
 	defaultName: string | null;
 }) {
+	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	return (
@@ -40,7 +43,7 @@ export function OrgPriceGroupSelect({
 						groupId: v === DEFAULT ? null : v,
 					});
 					if (!res.ok) {
-						toast.error(res.error);
+						toast.error(errorText(tc, res));
 						return;
 					}
 					toast.success("Preisgruppe zugeordnet");
@@ -49,7 +52,8 @@ export function OrgPriceGroupSelect({
 			}
 		>
 			<SelectTrigger
-				className="h-8 w-full min-w-44"
+				size="sm"
+				className="w-full min-w-44"
 				aria-label={`Preisgruppe: ${orgName}`}
 			>
 				<SelectValue />

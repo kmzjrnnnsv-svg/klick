@@ -9,6 +9,7 @@ import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { REQUIREMENT_BY_KEY } from "@/lib/compliance/catalog";
 import { coverageDelta } from "@/lib/compliance/coverage";
+import { resolveResponsible } from "@/lib/compliance/function-holders-service";
 import { orgCoverage } from "@/lib/compliance/queries";
 import { mutateOrg } from "@/lib/db/with-org";
 import { CONTROL_STATUS } from "@/lib/entities/control";
@@ -23,6 +24,7 @@ import {
 	assignControlSchema,
 	setControlStatusSchema,
 } from "@/lib/validation/grc";
+import { responsibleRef } from "@/lib/validation/responsible";
 export type StatusChangeResult = {
 	code: string;
 	status: string;
@@ -167,7 +169,13 @@ async function assignControlImpl(input: unknown): Promise<ActionResult> {
 			.limit(1);
 		if (!row) return { result: false, audit: [] };
 		const patch: Partial<typeof controlImplementations.$inferInsert> = {};
-		if (ownerUserId !== undefined) patch.ownerUserId = ownerUserId;
+		const owner = await resolveResponsible(
+			tx,
+			c.orgId,
+			ownerUserId,
+			row.ownerUserId,
+		);
+		if (owner) Object.assign(patch, owner);
 		if (assigneeUserId !== undefined) patch.assigneeUserId = assigneeUserId;
 		if (nextReviewAt !== undefined) patch.nextReviewAt = nextReviewAt;
 		await tx
@@ -206,7 +214,7 @@ async function assignControlImpl(input: unknown): Promise<ActionResult> {
 const bulkSchema = z.object({
 	implementationIds: z.array(uuidSchema).min(1).max(200),
 	status: z.enum(["not_started", "planned", "in_progress"]).optional(),
-	ownerUserId: uuidSchema.nullable().optional(),
+	ownerUserId: responsibleRef,
 	assigneeUserId: uuidSchema.nullable().optional(),
 });
 
@@ -252,7 +260,13 @@ async function bulkUpdateControlsImpl(
 				patch.status = d.status;
 				patch.source = "manual";
 			}
-			if (d.ownerUserId !== undefined) patch.ownerUserId = d.ownerUserId;
+			const owner = await resolveResponsible(
+				tx,
+				c.orgId,
+				d.ownerUserId,
+				row.ownerUserId,
+			);
+			if (owner) Object.assign(patch, owner);
 			if (d.assigneeUserId !== undefined)
 				patch.assigneeUserId = d.assigneeUserId;
 			if (Object.keys(patch).length === 0) {

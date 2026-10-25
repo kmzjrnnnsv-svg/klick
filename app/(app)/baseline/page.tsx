@@ -40,11 +40,11 @@ export default async function BaselinePage() {
 				{BASELINE.narrative.map((n) => (
 					<Card key={n.domain}>
 						<CardHeader>
-							<CardTitle className="text-base">{n.title}</CardTitle>
+							<CardTitle className="text-headline">{n.title}</CardTitle>
 						</CardHeader>
 						<CardContent className="flex flex-col gap-3 text-subhead">
 							<div>
-								<p className="font-medium text-footnote mb-1 text-footnote text-success">
+								<p className="font-medium text-footnote mb-1 text-success">
 									{t("present")}
 								</p>
 								<ul className="list-disc pl-5">
@@ -54,7 +54,7 @@ export default async function BaselinePage() {
 								</ul>
 							</div>
 							<div>
-								<p className="font-medium text-footnote mb-1 text-footnote text-destructive">
+								<p className="font-medium text-footnote mb-1 text-destructive">
 									{t("gaps")}
 								</p>
 								<ul className="list-disc pl-5 text-muted-foreground">
@@ -64,7 +64,7 @@ export default async function BaselinePage() {
 								</ul>
 							</div>
 							<div>
-								<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+								<p className="font-medium text-footnote mb-1 text-muted-foreground">
 									{t("next")}
 								</p>
 								<ul className="list-disc pl-5 text-muted-foreground">
@@ -78,10 +78,10 @@ export default async function BaselinePage() {
 				))}
 			</div>
 
-			<h2 className="font-medium text-footnote mt-10 mb-3 text-footnote text-muted-foreground">
+			<h2 className="font-medium text-footnote mt-10 mb-3 text-muted-foreground">
 				{t("controlsTitle")}
 			</h2>
-			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+			<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 				{BASELINE.controls.map((b) => {
 					const c = CONTROL_BY_CODE.get(b.code);
 					return (
@@ -122,7 +122,7 @@ export default async function BaselinePage() {
 			<div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">{t("providers")}</CardTitle>
+						<CardTitle className="text-headline">{t("providers")}</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<ul className="flex flex-col gap-2 text-subhead">
@@ -140,7 +140,7 @@ export default async function BaselinePage() {
 				</Card>
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">{t("assets")}</CardTitle>
+						<CardTitle className="text-headline">{t("assets")}</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<ul className="flex flex-col gap-2 text-subhead">

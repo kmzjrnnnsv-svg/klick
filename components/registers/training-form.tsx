@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	applyTrainingRequirements,
 	createTraining,
@@ -20,6 +19,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -30,6 +30,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 
 export function TrainingForm({
 	members,
@@ -73,7 +74,7 @@ export function TrainingForm({
 								requirementCode: requirementCode || undefined,
 								notes: notes || undefined,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("created"));
 							setOpen(false);
 							router.refresh();
@@ -145,7 +146,7 @@ export function TrainingForm({
 						</div>
 					</div>
 					<fieldset className="flex flex-col gap-1.5">
-						<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+						<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 							{t("attendees")}
 						</legend>
 						<div className="max-h-40 overflow-y-auto rounded-2xl bg-card p-2">
@@ -209,7 +210,7 @@ export function ApplyRequirementsButton() {
 			onClick={() =>
 				start(async () => {
 					const res = await applyTrainingRequirements();
-					if (!res.ok) toast.error(tc("error"));
+					if (!res.ok) toast.error(errorText(tc, res));
 					else {
 						toast.success(
 							t("requirementsApplied", { n: res.data.requirements }),

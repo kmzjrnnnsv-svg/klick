@@ -2,10 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { saveSheetAnswer } from "@/app/actions/evidence-studio";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 const ANSWERS = ["yes", "partial", "no", "na"] as const;
@@ -40,7 +41,7 @@ export function AnswerControl({
 				note: note.trim() || undefined,
 			});
 			if (res.ok) toast.success(t("saved"));
-			else toast.error(tc("error"));
+			else toast.error(errorText(tc, res));
 		});
 
 	return (
@@ -84,7 +85,7 @@ export function AnswerControl({
 			{dirty && !disabled && (
 				<div>
 					<Button size="sm" onClick={save} disabled={pending}>
-						{pending ? `${t("save")}…` : t("save")}
+						{pending ? tc("saving") : t("save")}
 					</Button>
 				</div>
 			)}

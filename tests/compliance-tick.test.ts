@@ -355,6 +355,35 @@ describe("collectDueItems — Kenntnisnahmen", () => {
 	});
 });
 
+describe("collectDueItems — Annahme der Bestellung", () => {
+	const day = (n: number) =>
+		new Date(NOW.getTime() - n * DAY).toISOString().slice(0, 10);
+	it("erinnert ab 14 Tagen ohne Unterschrift, einmal je Woche", () => {
+		const r = collectDueItems(NOW, {
+			...empty,
+			appointmentAcceptances: [
+				{ id: "a1", userId: "u1", evidenceId: "e1", appointedAt: day(15) },
+				{ id: "a2", userId: "u2", evidenceId: "e2", appointedAt: day(5) },
+				{ id: "a3", userId: "u3", evidenceId: "e3", appointedAt: null },
+			],
+		});
+		expect(r.notifications).toHaveLength(1);
+		expect(r.notifications[0]).toMatchObject({
+			kind: "acknowledgement_due",
+			recipients: ["u1"],
+			link: "/nachweise/e1",
+			dedupeKey: "appointment-accept:a1:2",
+		});
+		const later = collectDueItems(new Date(NOW.getTime() + 7 * DAY), {
+			...empty,
+			appointmentAcceptances: [
+				{ id: "a1", userId: "u1", evidenceId: "e1", appointedAt: day(15) },
+			],
+		});
+		expect(later.notifications[0]?.dedupeKey).toBe("appointment-accept:a1:3");
+	});
+});
+
 describe("dedupeNotifications", () => {
 	it("entfernt Empfänger, die denselben Sachverhalt in 24 h schon bekamen", () => {
 		const out = dedupeNotifications(

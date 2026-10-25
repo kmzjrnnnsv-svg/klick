@@ -3,12 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	confirmSetupFlag,
 	updateLicenceProfile,
 } from "@/app/actions/frameworks";
 import { previewStageChange } from "@/app/actions/synergy";
+import { useWorkflowsEnabledText } from "@/components/approvals/workflows-enabled";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -28,6 +29,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/toast";
 import {
 	CASP_SERVICES,
 	type CaspService,
@@ -53,6 +55,7 @@ export function StagePanel({
 	canEdit: boolean;
 }) {
 	const t = useTranslations("Settings");
+	const enabledText = useWorkflowsEnabledText();
 	const to = useTranslations("Onboarding");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -89,12 +92,14 @@ export function StagePanel({
 	}, [key]);
 
 	const handleError = (error: string) =>
-		toast.error(error === "step_up_required" ? t("stepUp") : tc("error"));
+		toast.error(
+			error === "step_up_required" ? t("stepUp") : errorText(tc, error),
+		);
 
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle className="text-base">{t("stageTitle")}</CardTitle>
+				<CardTitle className="text-headline">{t("stageTitle")}</CardTitle>
 				<CardDescription>{t("stageLead")}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-5 text-subhead">
@@ -201,11 +206,16 @@ export function StagePanel({
 										}),
 									);
 									if (!res.ok) return void handleError(res.error);
+									const enabled = enabledText(res.data.workflowsEnabled);
 									toast.success(
 										t("stageChanged", {
 											controls: res.data.controlsCreated,
 											na: res.data.notApplicable,
 										}),
+										{
+											description: enabled,
+											duration: enabled ? 8000 : undefined,
+										},
 									);
 									router.refresh();
 								})

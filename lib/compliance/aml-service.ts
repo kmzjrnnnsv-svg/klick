@@ -1,42 +1,26 @@
-import { and, eq } from "drizzle-orm";
-import { roleAssignments, suspiciousReports } from "@/db/schema";
-import type { RoleFunction } from "@/db/schema/enums";
+import { eq } from "drizzle-orm";
+import { suspiciousReports } from "@/db/schema";
+import type { FunctionKey } from "@/db/schema/enums";
 import type { AuditInput } from "@/lib/audit";
 import { nextSuspiciousRef } from "@/lib/compliance/aml";
+import { functionResponsible } from "@/lib/compliance/function-holders-service";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import type { OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { orgOwnerIds } from "@/lib/org/queries";
+import { functionOfRef } from "@/lib/validation/responsible";
 
 // Verdachtsfälle (§ 43 GwG, goAML) und STOR (Art. 92 MiCAR) anlegen — aus der
 // Oberfläche und ohne Sitzung (Export aus both.money). Kein PII-Feld; die
 // Entscheidungsnotiz ist feldverschlüsselt. Ohne handelnde Person ist die
 // zuständige Funktion verantwortlich, sonst die erste Inhaber:in.
 
-// Inhaber:in einer Funktion (oder Vertretung) als Standard-Empfänger
-export async function functionHolder(
-	tx: OrgTx,
-	orgId: string,
-	fn: RoleFunction,
-): Promise<string | null> {
-	const [row] = await tx
-		.select({ userId: roleAssignments.userId })
-		.from(roleAssignments)
-		.where(
-			and(
-				eq(roleAssignments.organizationId, orgId),
-				eq(roleAssignments.function, fn),
-			),
-		)
-		.limit(1);
-	return row?.userId ?? null;
-}
-
 export type NewSuspiciousReport = {
 	kind: "gwg_sar" | "micar_stor";
 	detectedAt: Date;
 	category?: string | null;
 	incidentId?: string | null;
+	// Konto-ID oder `function:<key>` (lib/validation/responsible.ts)
 	ownerUserId?: string | null;
 	decisionNote?: string | null;
 };
@@ -60,13 +44,16 @@ export async function createSuspiciousReport(
 		existing.map((e) => e.ref),
 		d.kind,
 	);
+	// Verantwortlich = Funktion oder Person; ohne Auswahl die zuständige
+	// Funktion (bleibt beim Umbesetzen richtig, lib/compliance/function-owners.ts)
+	const fn: FunctionKey | null = d.ownerUserId
+		? functionOfRef(d.ownerUserId)
+		: d.kind === "micar_stor"
+			? "compliance"
+			: "aml_officer";
 	const owner =
-		d.ownerUserId ??
-		(await functionHolder(
-			tx,
-			ctx.orgId,
-			d.kind === "micar_stor" ? "compliance" : "aml_officer",
-		)) ??
+		(d.ownerUserId && !fn ? d.ownerUserId : null) ??
+		(fn ? await functionResponsible(tx, ctx.orgId, fn) : null) ??
 		ctx.userId ??
 		(await orgOwnerIds(tx, ctx.orgId))[0] ??
 		null;
@@ -80,6 +67,7 @@ export async function createSuspiciousReport(
 			category: d.category ?? null,
 			incidentId: d.incidentId ?? null,
 			ownerUserId: owner,
+			ownerFunction: fn,
 		})
 		.returning({ id: suspiciousReports.id });
 	if (!row) throw new Error("insert failed");

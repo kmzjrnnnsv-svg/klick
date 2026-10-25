@@ -25,7 +25,7 @@ export default async function TrustPage() {
 				<h1 className="max-w-3xl font-bold text-title-1 leading-[1.05] sm:text-5xl">
 					{t("title")}
 				</h1>
-				<p className="mt-6 max-w-2xl text-lg text-muted-foreground leading-relaxed">
+				<p className="mt-6 max-w-2xl text-title-3 text-muted-foreground leading-relaxed">
 					{t("lead")}
 				</p>
 				<p className="mt-4 text-muted-foreground text-subhead">
@@ -55,7 +55,7 @@ export default async function TrustPage() {
 			<SectionDivider />
 
 			<section className="mx-auto max-w-5xl px-4 sm:px-6">
-				<h2 className="font-bold text-title-2 sm:text-3xl">
+				<h2 className="font-bold text-title-2 sm:text-title-1">
 					{t("measuresTitle")}
 				</h2>
 				<p className="mt-3 max-w-2xl text-muted-foreground">
@@ -86,7 +86,7 @@ export default async function TrustPage() {
 			<SectionDivider />
 
 			<section className="mx-auto max-w-5xl px-4 sm:px-6">
-				<h2 className="font-bold text-title-2 sm:text-3xl">
+				<h2 className="font-bold text-title-2 sm:text-title-1">
 					{t("supplierTitle")}
 				</h2>
 				<p className="mt-3 max-w-2xl text-muted-foreground">

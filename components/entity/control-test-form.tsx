@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { recordControlTest } from "@/app/actions/registers";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +15,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,6 +26,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import {
 	CONTROL_TEST_METHODS,
 	type ControlTestMethod,
@@ -72,7 +73,7 @@ export function ControlTestForm({
 								notes: notes || undefined,
 								nextTestAt: nextTestAt || null,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("created"));
 							setOpen(false);
 							router.refresh();

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { AckButton } from "@/components/documents/ack-button";
+import { ApproverFunctionSelect } from "@/components/documents/approver-select";
 import {
 	DocumentEditor,
 	NewVersionDialog,
@@ -16,8 +17,8 @@ import {
 	Section,
 } from "@/components/entity/entity-layout";
 import { EvidenceForm } from "@/components/entity/evidence-form";
+import { ResponsibleEditor } from "@/components/entity/responsible-editor";
 import { StatusButton } from "@/components/entity/status-button";
-import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
 import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +57,7 @@ export default async function DocumentDetailPage({
 	const docNumber = decodeURIComponent(raw);
 	const ctx = await requireOrgPage({ document: ["read"] });
 	const t = await getTranslations("Documents");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getDocumentByNumber(tx, ctx.orgId, docNumber);
@@ -152,6 +154,7 @@ export default async function DocumentDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/dokumente", label: tNav("documents") }}
 			eyebrow={`${doc.docNumber} · ${t(`type_${doc.type}`)} · v${doc.version}`}
 			title={doc.title}
 			status={
@@ -178,10 +181,22 @@ export default async function DocumentDetailPage({
 			meta={
 				<>
 					<MetaItem label={t("owner")}>
-						<UserChip name={names.get(doc.ownerUserId ?? "")} />
+						<ResponsibleEditor
+							entity="document"
+							id={doc.id}
+							ownerUserId={doc.ownerUserId}
+							ownerFunction={doc.ownerFunction}
+							ownerName={names.get(doc.ownerUserId ?? "") ?? null}
+							members={members}
+							canEdit={canEdit}
+						/>
 					</MetaItem>
 					<MetaItem label={t("approver")}>
-						{doc.approverFunction ?? "—"}
+						<ApproverFunctionSelect
+							documentId={doc.id}
+							value={doc.approverFunction}
+							canEdit={canEdit}
+						/>
 					</MetaItem>
 					<MetaItem label={t("classification")}>{doc.classification}</MetaItem>
 					<MetaItem label={t("nextReview")}>
@@ -318,7 +333,7 @@ export default async function DocumentDetailPage({
 						{t("versionsEmpty")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{versions.map((v) => (
 							<li
 								key={v.id}
@@ -334,7 +349,10 @@ export default async function DocumentDetailPage({
 								</span>
 								<span className="text-muted-foreground text-footnote">
 									{v.approvedAt
-										? `✓ ${names.get(v.approvedByUserId ?? "") ?? ""} ${fmtDate.format(v.approvedAt)}`
+										? t("approvedBy", {
+												name: names.get(v.approvedByUserId ?? "") ?? "—",
+												date: fmtDate.format(v.approvedAt),
+											})
 										: ""}
 									{v.publishedAt ? ` · ${fmtDate.format(v.publishedAt)}` : ""}
 								</span>

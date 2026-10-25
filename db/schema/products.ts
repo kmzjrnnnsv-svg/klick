@@ -8,7 +8,7 @@ import {
 	uuid,
 } from "drizzle-orm/pg-core";
 import { orgPolicy } from "../rls";
-import { json, orgId, pk, timestamps, userRef } from "./_shared";
+import { json, orgId, ownerFunction, pk, timestamps, userRef } from "./_shared";
 import {
 	CRA_CLASSES,
 	PRODUCT_KINDS,
@@ -61,6 +61,7 @@ export const products = pgTable(
 		notifiedBody: text(),
 		status: text({ enum: PRODUCT_STATUS }).notNull().default("development"),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		...timestamps(),
 	},

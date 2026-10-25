@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { ApprovalActions } from "@/components/approvals/approval-actions";
+import { BulkAppointmentsButton } from "@/components/approvals/bulk-appointments";
 import { DelegationForm } from "@/components/approvals/delegation-form";
 import { RouteProgress } from "@/components/approvals/route-progress";
 import { EmptyState } from "@/components/entity/empty-state";
@@ -29,6 +30,7 @@ export default async function ApprovalsInboxPage({
 	const { tab = "waiting", request } = await searchParams;
 	const ctx = await requireOrgPage({ approval: ["read"] });
 	const t = await getTranslations("Approvals");
+	const tNav = await getTranslations("Nav");
 	const ts = await getTranslations("Status");
 	const td = await getTranslations("Decisions");
 	const { rows, members, entityTitles, questions } = await readOrg(
@@ -65,7 +67,11 @@ export default async function ApprovalsInboxPage({
 
 	return (
 		<>
-			<PageHeader title={t("title")} lead={t("lead")} />
+			<PageHeader
+				back={{ href: "/heute", label: tNav("today") }}
+				title={t("title")}
+				lead={t("lead")}
+			/>
 			<UrlTabs
 				base="/heute/freigaben"
 				active={tab}
@@ -76,10 +82,21 @@ export default async function ApprovalsInboxPage({
 					{ value: "decided", label: t("decided") },
 				]}
 			/>
+			{/* mehrere Bestellungen warten: in einem Schritt freigeben */}
+			{tab === "waiting" &&
+				waiting.filter((r) => r.kind === "role_appointment").length > 1 && (
+					<div className="mb-3 flex justify-end">
+						<BulkAppointmentsButton
+							requestIds={waiting
+								.filter((r) => r.kind === "role_appointment")
+								.map((r) => r.id)}
+						/>
+					</div>
+				)}
 			{list.length === 0 ? (
 				<EmptyState title={t("empty")} />
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 					{list.map((r) => {
 						const title =
 							entityTitles.get(`${r.entityType}:${r.entityId}`) ??
@@ -165,12 +182,15 @@ export default async function ApprovalsInboxPage({
 					})}
 				</ul>
 			)}
-			<div className="mt-8">
-				<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
-					{t("delegation")}
-				</h2>
-				<DelegationForm members={members} selfId={ctx.userId} />
-			</div>
+			{/* Vertretung nur, wenn es jemanden gibt, an den man abgeben kann */}
+			{members.some((m) => m.userId !== ctx.userId) && (
+				<div className="mt-8">
+					<h2 className="mb-2 font-medium text-footnote text-muted-foreground">
+						{t("delegation")}
+					</h2>
+					<DelegationForm members={members} selfId={ctx.userId} />
+				</div>
+			)}
 		</>
 	);
 }

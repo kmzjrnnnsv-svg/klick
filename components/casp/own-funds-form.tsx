@@ -4,7 +4,6 @@ import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { requestOwnFundsApproval, upsertOwnFunds } from "@/app/actions/casp";
 import {
 	EditTrigger,
@@ -13,6 +12,7 @@ import {
 	NewTrigger,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,6 +22,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import {
 	calculateOwnFunds,
 	type MicarClass,
@@ -130,7 +131,7 @@ export function OwnFundsForm({ initial }: { initial?: OwnFundsDraft }) {
 								? t("duplicatePeriod")
 								: res.error === "notDraft"
 									? t("notDraft")
-									: tc("error"),
+									: errorText(tc, res),
 						);
 					toast.success(
 						t("saved", { total: fmt.format(res.data.totalRequired) }),
@@ -373,7 +374,7 @@ export function OwnFundsApproveButton({
 		<div className="flex flex-wrap items-center gap-2">
 			{soloHint && (
 				<Input
-					className="h-8 w-64"
+					className="w-64"
 					placeholder={t("soloReason")}
 					value={reason}
 					onChange={(e) => setReason(e.target.value)}
@@ -398,7 +399,7 @@ export function OwnFundsApproveButton({
 										)
 									: res.error === "notDraft"
 										? t("notDraft")
-										: tc("error"),
+										: errorText(tc, res),
 							);
 						toast.success(
 							res.data.status === "approved"

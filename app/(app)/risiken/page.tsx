@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { importRisksCsv } from "@/app/actions/imports";
 import { CsvImport } from "@/components/entity/csv-import";
 import { EmptyState } from "@/components/entity/empty-state";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UrlTabs } from "@/components/entity/url-tabs";
@@ -401,7 +402,10 @@ export default async function RisksPage({
 											)}
 										</TableCell>
 										<TableCell>
-											<UserChip name={e.ownerName} />
+											<OwnerChip
+												ownerFunction={e.ownerFunction}
+												name={e.ownerName}
+											/>
 										</TableCell>
 										<TableCell
 											className={e.validUntil < today ? "text-destructive" : ""}
@@ -612,7 +616,10 @@ export default async function RisksPage({
 											)}
 										</TableCell>
 										<TableCell>
-											<UserChip name={r.names.ownerUserId} />
+											<OwnerChip
+												ownerFunction={r.ownerFunction}
+												name={r.names.ownerUserId}
+											/>
 										</TableCell>
 										<TableCell
 											className={

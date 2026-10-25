@@ -21,12 +21,13 @@ import {
 	parseJurisdictionCsv,
 	sarHoldUntil,
 } from "@/lib/compliance/aml";
-import {
-	createSuspiciousReport,
-	functionHolder,
-} from "@/lib/compliance/aml-service";
+import { createSuspiciousReport } from "@/lib/compliance/aml-service";
 import { CORRIDOR_STEPS } from "@/lib/compliance/catalog/corridor-template";
 import { JURISDICTIONS } from "@/lib/compliance/catalog/jurisdictions";
+import {
+	functionResponsible,
+	ownerColumns,
+} from "@/lib/compliance/function-holders-service";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
@@ -78,7 +79,14 @@ async function upsertAmlRiskAnalysisImpl(
 						dimensions: d.dimensions,
 						overallRisk: overall,
 						summary: d.summary ?? before.summary,
-						ownerUserId: d.ownerUserId ?? before.ownerUserId,
+						...(d.ownerUserId == null
+							? {}
+							: await ownerColumns(
+									tx,
+									c.orgId,
+									d.ownerUserId,
+									before.ownerUserId,
+								)),
 						nextReviewAt: d.nextReviewAt ?? before.nextReviewAt,
 					})
 					.where(eq(amlRiskAnalyses.id, d.id));
@@ -103,10 +111,13 @@ async function upsertAmlRiskAnalysisImpl(
 				d.version && !existing.some((e) => e.version === d.version)
 					? d.version
 					: `v${existing.length + 1}`;
-			const owner =
-				d.ownerUserId ??
-				(await functionHolder(tx, c.orgId, "aml_officer")) ??
-				c.userId;
+			// ohne Auswahl die GWB-Funktion (bleibt beim Umbesetzen richtig)
+			const owner = await ownerColumns(
+				tx,
+				c.orgId,
+				d.ownerUserId ?? "function:aml_officer",
+				c.userId,
+			);
 			const [row] = await tx
 				.insert(amlRiskAnalyses)
 				.values({
@@ -115,7 +126,7 @@ async function upsertAmlRiskAnalysisImpl(
 					dimensions: d.dimensions,
 					overallRisk: overall,
 					summary: d.summary ?? null,
-					ownerUserId: owner,
+					...owner,
 					nextReviewAt: d.nextReviewAt ?? null,
 				})
 				.returning({ id: amlRiskAnalyses.id });
@@ -248,7 +259,7 @@ async function upsertMonitoringRuleImpl(
 				threshold: d.threshold ?? null,
 				rationale: d.rationale ?? null,
 				legalBasis: d.legalBasis ?? null,
-				ownerUserId: d.ownerUserId ?? null,
+				...(await ownerColumns(tx, c.orgId, d.ownerUserId ?? null, null)),
 				lastTunedAt: d.lastTunedAt ?? null,
 				falsePositiveRate:
 					d.falsePositiveRate === null || d.falsePositiveRate === undefined
@@ -367,7 +378,14 @@ async function upsertSuspiciousReportImpl(
 					category: d.category ?? before.category,
 					decisionNote: enc,
 					incidentId: d.incidentId ?? before.incidentId,
-					ownerUserId: d.ownerUserId ?? before.ownerUserId,
+					...(d.ownerUserId == null
+						? {}
+						: await ownerColumns(
+								tx,
+								c.orgId,
+								d.ownerUserId,
+								before.ownerUserId,
+							)),
 				})
 				.where(eq(suspiciousReports.id, id));
 			return {
@@ -524,7 +542,7 @@ async function upsertJurisdictionRow(
 		usSanctions: v.usSanctions ?? false,
 	});
 	if (changes.length > 0) {
-		const gwb = await functionHolder(tx, ctx.orgId, "aml_officer");
+		const gwb = await functionResponsible(tx, ctx.orgId, "aml_officer");
 		const due = new Date();
 		due.setUTCDate(due.getUTCDate() + 14);
 		await tx.insert(tasks).values({
@@ -695,7 +713,7 @@ async function applyCorridorTemplateImpl(
 				if (!holders.has(step.ownerFunction))
 					holders.set(
 						step.ownerFunction,
-						await functionHolder(tx, c.orgId, step.ownerFunction),
+						await functionResponsible(tx, c.orgId, step.ownerFunction),
 					);
 				const due = new Date(start);
 				due.setUTCDate(due.getUTCDate() + step.offsetDays);

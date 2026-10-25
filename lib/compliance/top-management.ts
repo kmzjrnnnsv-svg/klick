@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { roleAssignments } from "@/db/schema";
 import type { RoleFunction } from "@/db/schema/enums";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import type { OrgTx } from "@/lib/db/with-org";
 
 // Top-Management = Funktion „Leitungsorgan / Geschäftsleitung“
@@ -40,6 +41,7 @@ export async function topManagementOf(
 			and(
 				eq(roleAssignments.organizationId, orgId),
 				eq(roleAssignments.function, TOP_MANAGEMENT_FUNCTION),
+				effectiveAssignment(),
 			),
 		);
 	return {

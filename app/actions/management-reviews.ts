@@ -11,6 +11,7 @@ import {
 	applicableReviewInputs,
 	reviewComplete,
 } from "@/lib/compliance/catalog/management-review-inputs";
+import { ownerColumns } from "@/lib/compliance/function-holders-service";
 import {
 	NC_DUE_DAYS,
 	NC_EFFECTIVENESS_DAYS,
@@ -59,7 +60,17 @@ async function upsertManagementReviewImpl(
 			if (!before) return { result: null, audit: [] };
 			await tx
 				.update(managementReviews)
-				.set({ ...values, ownerUserId: d.ownerUserId ?? before.ownerUserId })
+				.set({
+					...values,
+					...(d.ownerUserId == null
+						? {}
+						: await ownerColumns(
+								tx,
+								c.orgId,
+								d.ownerUserId,
+								before.ownerUserId,
+							)),
+				})
 				.where(eq(managementReviews.id, id));
 			return {
 				result: id,
@@ -76,7 +87,12 @@ async function upsertManagementReviewImpl(
 			.values({
 				organizationId: c.orgId,
 				...values,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(
+					tx,
+					c.orgId,
+					d.ownerUserId ?? undefined,
+					c.userId,
+				)),
 			})
 			.returning({ id: managementReviews.id });
 		if (!row) throw new Error("insert failed");

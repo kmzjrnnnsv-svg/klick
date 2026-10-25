@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react";
+import {
+	ArrowDown,
+	ArrowUp,
+	GripVertical,
+	Plus,
+	Trash2,
+	X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -11,7 +18,6 @@ import {
 	useState,
 	useTransition,
 } from "react";
-import { toast } from "sonner";
 import {
 	type DryRunStep,
 	deleteWorkflow,
@@ -31,8 +37,16 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+	DndShell,
+	Draggable,
+	type DropEvent,
+	DropZone,
+} from "@/components/ui/dnd";
+import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -46,14 +60,22 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { ApprovalCondition, ApprovalStep } from "@/db/schema/grc";
 import {
 	OPS_BY_TYPE,
 	type RuleNames,
 	ruleLabel,
 } from "@/lib/approvals/designer";
+import {
+	applyDesignerDrop,
+	type DesignerDrag,
+	type DesignerDrop,
+	MAX_STEPS,
+} from "@/lib/approvals/designer-dnd";
 import type { FactInfo } from "@/lib/approvals/designer-labels";
 import type { RouteWarning } from "@/lib/approvals/route";
+import { ApproverPalette } from "./approver-palette";
 import { useRouteText } from "./route-text";
 
 type Opt = { value: string; label: string };
@@ -64,6 +86,8 @@ type DraftStep = {
 	label: string;
 	approvers: string[];
 	mode: "any" | "all";
+	// alle Personen der Stellen stimmen zu (z. B. ganze Geschäftsleitung)
+	everyone: boolean;
 	minApprovers: string;
 	slaDays: string;
 	skipIf: string[];
@@ -102,6 +126,7 @@ function toDraft(s: ApprovalStep): DraftStep {
 			Boolean,
 		),
 		mode: s.mode === "all" ? "all" : "any",
+		everyone: Boolean(s.everyone),
 		minApprovers: s.minApprovers ? String(s.minApprovers) : "",
 		slaDays: s.slaDays ? String(s.slaDays) : "",
 		skipIf: s.skipIf ?? [],
@@ -116,8 +141,9 @@ function toStep(s: DraftStep, i: number): ApprovalStep {
 		order: i + 1,
 		approverRule: s.approvers[0] ?? "",
 		approvers: s.approvers,
-		mode: s.approvers.length > 1 ? s.mode : undefined,
-		minApprovers: s.mode === "any" && min > 1 ? min : undefined,
+		mode: s.approvers.length > 1 && !s.everyone ? s.mode : undefined,
+		everyone: s.everyone || undefined,
+		minApprovers: s.mode === "any" && !s.everyone && min > 1 ? min : undefined,
 		slaDays: sla > 0 ? sla : undefined,
 		label: s.label.trim() || undefined,
 		skipIf: s.skipIf.length ? s.skipIf : undefined,
@@ -130,6 +156,7 @@ function payloadStep(s: ApprovalStep) {
 		label: s.label,
 		approvers: s.approvers ?? [s.approverRule],
 		mode: s.mode ?? "any",
+		everyone: s.everyone,
 		minApprovers: s.minApprovers,
 		slaDays: s.slaDays,
 		skipIf: s.skipIf,
@@ -145,7 +172,10 @@ export function WorkflowEditor({
 	options,
 	people,
 	requesterDefault,
+	locked = false,
 }: {
+	// Standard-Modus (ADR-024): nur ansehen
+	locked?: boolean;
 	trigger: { key: string; mode: "pending" | "before" };
 	facts: FactInfo[];
 	names: RuleNames;
@@ -167,6 +197,8 @@ export function WorkflowEditor({
 	const uid = useId();
 	const [pending, start] = useTransition();
 	const [name, setName] = useState(initial.name);
+	// ungesicherte Änderungen: Rückfrage als Alert (nie window.confirm)
+	const [leaveOpen, setLeaveOpen] = useState(false);
 	const [description, setDescription] = useState(initial.description);
 	const [enabled, setEnabled] = useState(initial.enabled);
 	const [priority, setPriority] = useState(String(initial.priority));
@@ -177,6 +209,7 @@ export function WorkflowEditor({
 			: [toDraft({ order: 1, approverRule: "" })],
 	);
 	const [issues, setIssues] = useState<Record<string, string[]>>({});
+	const [formError, setFormError] = useState<string | null>(null);
 	const rootRef = useRef<HTMLDivElement>(null);
 	// ungespeicherte Änderungen: Vergleich mit dem zuletzt gespeicherten Stand
 	const snapshot = JSON.stringify([
@@ -208,6 +241,11 @@ export function WorkflowEditor({
 			label: t("group_general"),
 			options: [
 				{ value: "owner_of_entity", label: names.ownerOfEntity },
+				// Dokumente tragen ihre Freigebende Funktion (Vorlage)
+				...(trigger.key.startsWith("document.") ||
+				trigger.key === "marketing.publish"
+					? [{ value: "approver_of_entity", label: names.approverOfEntity }]
+					: []),
 				{ value: "not_requester", label: names.notRequester },
 			],
 		},
@@ -242,6 +280,21 @@ export function WorkflowEditor({
 			if (s) out.splice(i + d, 0, s);
 			return out;
 		});
+	// Ziehen (individueller Modus): Palette, Stufen, „Neue Stufe“
+	function onDrop(e: DropEvent) {
+		if (locked) return;
+		setSteps((xs) =>
+			applyDesignerDrop(
+				xs,
+				e.drag.payload as DesignerDrag,
+				e.drop.payload as DesignerDrop,
+				(approvers) => ({
+					...toDraft({ order: xs.length + 1, approverRule: "" }),
+					approvers,
+				}),
+			),
+		);
+	}
 	const issuesAt = (prefix: string) =>
 		Object.entries(issues)
 			.filter(([k]) => k === prefix || k.startsWith(`${prefix}.`))
@@ -254,6 +307,7 @@ export function WorkflowEditor({
 
 	function save() {
 		start(async () => {
+			setFormError(null);
 			const res = await withStepUp(() =>
 				saveWorkflow({
 					id: initial.id,
@@ -268,12 +322,12 @@ export function WorkflowEditor({
 			);
 			if (!res.ok) {
 				setIssues(res.fieldErrors ?? {});
-				toast.error(
+				setFormError(
 					res.error === "step_up_required"
 						? t("stepUp")
 						: res.fieldErrors
 							? t("error_invalid")
-							: tc("error"),
+							: errorText(tc, res),
 				);
 				return;
 			}
@@ -288,289 +342,405 @@ export function WorkflowEditor({
 
 	return (
 		<div ref={rootRef} className="flex flex-col gap-8">
-			<section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor={`${uid}-name`}>{t("name")}</Label>
-					<Input
-						id={`${uid}-name`}
-						name="name"
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-						autoComplete="off"
-						required
-					/>
-				</div>
-				<div className="flex items-end gap-6">
-					<div className="flex items-center gap-2">
-						<Switch
-							id={`${uid}-enabled`}
-							checked={enabled}
-							onCheckedChange={setEnabled}
+			{locked && (
+				<p className="rounded-xl bg-muted p-3 text-subhead" role="status">
+					{t("lockedStandard")}
+				</p>
+			)}
+			{/* im Standard nur ansehen: alle Felder gesperrt, der Probelauf bleibt */}
+			<fieldset
+				disabled={locked}
+				className="m-0 flex min-w-0 flex-col gap-8 border-0 p-0"
+			>
+				<section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor={`${uid}-name`}>{t("name")}</Label>
+						<Input
+							id={`${uid}-name`}
+							name="name"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							autoComplete="off"
+							required
 						/>
-						<Label htmlFor={`${uid}-enabled`}>{t("enabled")}</Label>
 					</div>
-					{initial.custom && (
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor={`${uid}-prio`}>{t("priority")}</Label>
-							<Input
-								id={`${uid}-prio`}
-								name="priority"
-								type="number"
-								inputMode="numeric"
-								min={0}
-								max={100}
-								className="w-24"
-								value={priority}
-								onChange={(e) => setPriority(e.target.value)}
+					<div className="flex items-end gap-6">
+						<div className="flex items-center gap-2">
+							<Switch
+								id={`${uid}-enabled`}
+								checked={enabled}
+								onCheckedChange={setEnabled}
 							/>
+							<Label htmlFor={`${uid}-enabled`}>{t("enabled")}</Label>
 						</div>
-					)}
-				</div>
-				<div className="flex flex-col gap-1.5 sm:col-span-2">
-					<Label htmlFor={`${uid}-desc`}>{t("description")}</Label>
-					<Textarea
-						id={`${uid}-desc`}
-						name="description"
-						rows={2}
-						value={description}
-						onChange={(e) => setDescription(e.target.value)}
-					/>
-					{initial.custom && (
-						<p className="text-muted-foreground text-footnote">
-							{t("priorityHint")}
-						</p>
-					)}
-				</div>
-			</section>
-
-			<section className="flex flex-col gap-3">
-				<div>
-					<h2 className="font-medium">{t("whenTitle")}</h2>
-					<p className="text-muted-foreground text-subhead">
-						{facts.length > 0 ? t("whenLead") : t("noFacts")}
-					</p>
-				</div>
-				{facts.length > 0 && (
-					<ConditionsEditor
-						value={conditions}
-						onChange={setConditions}
-						facts={facts}
-						issuesAt={(i) => issuesAt(`conditions.${i}`)}
-					/>
-				)}
-			</section>
-
-			<section className="flex flex-col gap-3">
-				<div>
-					<h2 className="font-medium">{t("stepsTitle")}</h2>
-					<p className="text-muted-foreground text-subhead">{t("stepsLead")}</p>
-				</div>
-				<ol className="flex flex-col gap-3">
-					{steps.map((s, i) => (
-						<li
-							key={s.key}
-							className="flex flex-col gap-4 rounded-2xl bg-card p-3"
-						>
-							<div className="flex flex-wrap items-center gap-2">
-								<Badge variant="outline">{t("step", { n: i + 1 })}</Badge>
+						{initial.custom && (
+							<div className="flex flex-col gap-1.5">
+								<Label htmlFor={`${uid}-prio`}>{t("priority")}</Label>
 								<Input
-									aria-label={t("stepLabel")}
-									placeholder={t("stepLabelPlaceholder")}
-									value={s.label}
-									onChange={(e) => update(i, { label: e.target.value })}
-									className="h-8 min-w-0 flex-1 basis-48"
-									autoComplete="off"
+									id={`${uid}-prio`}
+									name="priority"
+									type="number"
+									inputMode="numeric"
+									min={0}
+									max={100}
+									className="w-24"
+									value={priority}
+									onChange={(e) => setPriority(e.target.value)}
 								/>
-								<div className="flex gap-1">
+							</div>
+						)}
+					</div>
+					<div className="flex flex-col gap-1.5 sm:col-span-2">
+						<Label htmlFor={`${uid}-desc`}>{t("description")}</Label>
+						<Textarea
+							id={`${uid}-desc`}
+							name="description"
+							rows={2}
+							value={description}
+							onChange={(e) => setDescription(e.target.value)}
+						/>
+						{initial.custom && (
+							<p className="text-muted-foreground text-footnote">
+								{t("priorityHint")}
+							</p>
+						)}
+					</div>
+				</section>
+
+				<section className="flex flex-col gap-3">
+					<div>
+						<h2 className="font-medium">{t("whenTitle")}</h2>
+						<p className="text-muted-foreground text-subhead">
+							{facts.length > 0 ? t("whenLead") : t("noFacts")}
+						</p>
+					</div>
+					{facts.length > 0 && (
+						<ConditionsEditor
+							value={conditions}
+							onChange={setConditions}
+							facts={facts}
+							issuesAt={(i) => issuesAt(`conditions.${i}`)}
+						/>
+					)}
+				</section>
+
+				<section className="flex flex-col gap-3">
+					<div>
+						<h2 className="font-medium">{t("stepsTitle")}</h2>
+						<p className="text-muted-foreground text-subhead">
+							{t("stepsLead")}
+						</p>
+						{!locked && (
+							<p className="hidden text-muted-foreground text-subhead md:block">
+								{t("dragHint")}
+							</p>
+						)}
+					</div>
+					<DndShell onDrop={onDrop}>
+						<div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_16rem]">
+							<div className="flex min-w-0 flex-col gap-3">
+								<ol className="flex flex-col gap-3">
+									{steps.map((s, i) => (
+										<li key={s.key}>
+											<DropZone
+												id={`step:${s.key}`}
+												target={{
+													label: t("step", { n: i + 1 }),
+													accepts: ["rule", "everyone", "assigned", "step"],
+													payload: {
+														type: "step",
+														step: s.key,
+													} satisfies DesignerDrop,
+												}}
+												disabled={locked}
+												className="flex flex-col gap-4 rounded-2xl bg-card p-3"
+											>
+												<div className="flex flex-wrap items-center gap-2">
+													{!locked && (
+														<Draggable
+															id={`step-handle:${s.key}`}
+															item={{
+																kind: "step",
+																label: t("step", { n: i + 1 }),
+																payload: {
+																	type: "step",
+																	step: s.key,
+																} satisfies DesignerDrag,
+															}}
+															ariaLabel={t("dragStep", { n: i + 1 })}
+															className="hidden size-(--control-h-sm) shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted md:flex"
+														>
+															<GripVertical aria-hidden className="size-4" />
+														</Draggable>
+													)}
+													<Badge variant="outline">
+														{t("step", { n: i + 1 })}
+													</Badge>
+													<Input
+														aria-label={t("stepLabel")}
+														placeholder={t("stepLabelPlaceholder")}
+														value={s.label}
+														onChange={(e) =>
+															update(i, { label: e.target.value })
+														}
+														className="min-w-0 flex-1 basis-48"
+														autoComplete="off"
+													/>
+													<div className="flex gap-1">
+														<Button
+															type="button"
+															size="icon"
+															variant="ghost"
+															disabled={i === 0}
+															aria-label={t("moveUp", { n: i + 1 })}
+															onClick={() => move(i, -1)}
+														>
+															<ArrowUp />
+														</Button>
+														<Button
+															type="button"
+															size="icon"
+															variant="ghost"
+															disabled={i === steps.length - 1}
+															aria-label={t("moveDown", { n: i + 1 })}
+															onClick={() => move(i, 1)}
+														>
+															<ArrowDown />
+														</Button>
+														<Button
+															type="button"
+															size="icon"
+															variant="ghost"
+															disabled={steps.length === 1}
+															aria-label={t("removeStep", { n: i + 1 })}
+															onClick={() =>
+																setSteps((xs) => xs.filter((_, j) => j !== i))
+															}
+														>
+															<Trash2 />
+														</Button>
+													</div>
+												</div>
+												<div className="flex flex-col gap-1.5">
+													<span className="font-medium text-subhead">
+														{t("approvers")}
+													</span>
+													<RulePicker
+														value={s.approvers}
+														onChange={(approvers) => update(i, { approvers })}
+														groups={approverGroups}
+														placeholder={t("addApprover")}
+														names={names}
+														dragStep={locked ? undefined : s.key}
+													/>
+												</div>
+												<div className="flex min-h-11 items-start gap-3">
+													<Checkbox
+														id={`${uid}-${s.key}-everyone`}
+														checked={s.everyone}
+														onCheckedChange={(v) =>
+															update(i, { everyone: v === true })
+														}
+														className="mt-0.5"
+													/>
+													<div className="flex flex-col gap-0.5">
+														<Label htmlFor={`${uid}-${s.key}-everyone`}>
+															{t("everyone")}
+														</Label>
+														<span className="text-muted-foreground text-footnote">
+															{t("everyoneLead")}
+														</span>
+													</div>
+												</div>
+												<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+													{s.approvers.length > 1 && !s.everyone && (
+														<div className="flex flex-col gap-1.5">
+															<Label htmlFor={`${uid}-${s.key}-mode`}>
+																{t("mode")}
+															</Label>
+															<Select
+																value={s.mode}
+																onValueChange={(v) =>
+																	update(i, {
+																		mode: v === "all" ? "all" : "any",
+																	})
+																}
+															>
+																<SelectTrigger id={`${uid}-${s.key}-mode`}>
+																	<SelectValue />
+																</SelectTrigger>
+																<SelectContent>
+																	<SelectItem value="any">
+																		{t("modeAny")}
+																	</SelectItem>
+																	<SelectItem value="all">
+																		{t("modeAll")}
+																	</SelectItem>
+																</SelectContent>
+															</Select>
+														</div>
+													)}
+													{s.mode === "any" && !s.everyone && (
+														<div className="flex flex-col gap-1.5">
+															<Label htmlFor={`${uid}-${s.key}-min`}>
+																{t("minApprovers")}
+															</Label>
+															<Input
+																id={`${uid}-${s.key}-min`}
+																type="number"
+																inputMode="numeric"
+																min={1}
+																max={5}
+																placeholder="1"
+																value={s.minApprovers}
+																onChange={(e) =>
+																	update(i, { minApprovers: e.target.value })
+																}
+															/>
+														</div>
+													)}
+													<div className="flex flex-col gap-1.5">
+														<Label htmlFor={`${uid}-${s.key}-sla`}>
+															{t("slaDays")}
+														</Label>
+														<Input
+															id={`${uid}-${s.key}-sla`}
+															type="number"
+															inputMode="numeric"
+															min={0}
+															max={90}
+															value={s.slaDays}
+															onChange={(e) =>
+																update(i, { slaDays: e.target.value })
+															}
+														/>
+													</div>
+												</div>
+												<div className="flex flex-col gap-1.5">
+													<span className="font-medium text-subhead">
+														{t("skipIf")}
+													</span>
+													<span className="text-muted-foreground text-footnote">
+														{t("skipIfLead")}
+													</span>
+													<RulePicker
+														value={s.skipIf}
+														onChange={(skipIf) => update(i, { skipIf })}
+														groups={skipGroups}
+														placeholder={t("addApprover")}
+														names={names}
+													/>
+												</div>
+												{facts.length > 0 && (
+													<div className="flex flex-col gap-1.5">
+														<span className="font-medium text-subhead">
+															{t("onlyIf")}
+														</span>
+														<span className="text-muted-foreground text-footnote">
+															{t("onlyIfLead")}
+														</span>
+														<ConditionsEditor
+															value={s.onlyIf}
+															onChange={(onlyIf) => update(i, { onlyIf })}
+															facts={facts}
+															issuesAt={(j) =>
+																issuesAt(`steps.${i}.onlyIf.${j}`)
+															}
+														/>
+													</div>
+												)}
+												{issuesAt(`steps.${i}`).length > 0 && (
+													<p
+														className="text-destructive text-subhead"
+														role="alert"
+														tabIndex={-1}
+													>
+														{[...new Set(issuesAt(`steps.${i}`))].join(" ")}
+													</p>
+												)}
+											</DropZone>
+										</li>
+									))}
+								</ol>
+								<DropZone
+									id="step:new"
+									target={{
+										label: t("newStepZone"),
+										accepts: ["rule", "assigned"],
+										payload: { type: "new" } satisfies DesignerDrop,
+									}}
+									disabled={locked || steps.length >= MAX_STEPS}
+									className={`flex flex-wrap items-center gap-3 rounded-2xl ${
+										locked
+											? ""
+											: "md:border-2 md:border-border md:border-dashed md:p-3"
+									}`}
+								>
 									<Button
 										type="button"
-										size="icon"
-										variant="ghost"
-										disabled={i === 0}
-										aria-label={t("moveUp", { n: i + 1 })}
-										onClick={() => move(i, -1)}
-									>
-										<ArrowUp />
-									</Button>
-									<Button
-										type="button"
-										size="icon"
-										variant="ghost"
-										disabled={i === steps.length - 1}
-										aria-label={t("moveDown", { n: i + 1 })}
-										onClick={() => move(i, 1)}
-									>
-										<ArrowDown />
-									</Button>
-									<Button
-										type="button"
-										size="icon"
-										variant="ghost"
-										disabled={steps.length === 1}
-										aria-label={t("removeStep", { n: i + 1 })}
+										variant="outline"
+										size="sm"
+										disabled={steps.length >= MAX_STEPS}
 										onClick={() =>
-											setSteps((xs) => xs.filter((_, j) => j !== i))
+											setSteps((xs) => [
+												...xs,
+												toDraft({ order: xs.length + 1, approverRule: "" }),
+											])
 										}
 									>
-										<Trash2 />
+										<Plus />
+										{t("addStep")}
 									</Button>
-								</div>
+									{!locked && (
+										<span className="hidden text-muted-foreground text-footnote md:inline">
+											{t("newStepHint")}
+										</span>
+									)}
+								</DropZone>
 							</div>
-							<div className="flex flex-col gap-1.5">
-								<span className="font-medium text-subhead">
-									{t("approvers")}
-								</span>
-								<RulePicker
-									value={s.approvers}
-									onChange={(approvers) => update(i, { approvers })}
-									groups={approverGroups}
-									placeholder={t("addApprover")}
-									names={names}
+							{!locked && (
+								<ApproverPalette
+									groups={approverGroups.filter((g) => g.options.length > 0)}
+									disabled={pending}
 								/>
-							</div>
-							<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-								{s.approvers.length > 1 && (
-									<div className="flex flex-col gap-1.5">
-										<Label htmlFor={`${uid}-${s.key}-mode`}>{t("mode")}</Label>
-										<Select
-											value={s.mode}
-											onValueChange={(v) =>
-												update(i, { mode: v === "all" ? "all" : "any" })
-											}
-										>
-											<SelectTrigger id={`${uid}-${s.key}-mode`}>
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="any">{t("modeAny")}</SelectItem>
-												<SelectItem value="all">{t("modeAll")}</SelectItem>
-											</SelectContent>
-										</Select>
-									</div>
-								)}
-								{s.mode === "any" && (
-									<div className="flex flex-col gap-1.5">
-										<Label htmlFor={`${uid}-${s.key}-min`}>
-											{t("minApprovers")}
-										</Label>
-										<Input
-											id={`${uid}-${s.key}-min`}
-											type="number"
-											inputMode="numeric"
-											min={1}
-											max={5}
-											placeholder="1"
-											value={s.minApprovers}
-											onChange={(e) =>
-												update(i, { minApprovers: e.target.value })
-											}
-										/>
-									</div>
-								)}
-								<div className="flex flex-col gap-1.5">
-									<Label htmlFor={`${uid}-${s.key}-sla`}>{t("slaDays")}</Label>
-									<Input
-										id={`${uid}-${s.key}-sla`}
-										type="number"
-										inputMode="numeric"
-										min={0}
-										max={90}
-										value={s.slaDays}
-										onChange={(e) => update(i, { slaDays: e.target.value })}
-									/>
-								</div>
-							</div>
-							<div className="flex flex-col gap-1.5">
-								<span className="font-medium text-subhead">{t("skipIf")}</span>
-								<span className="text-muted-foreground text-footnote">
-									{t("skipIfLead")}
-								</span>
-								<RulePicker
-									value={s.skipIf}
-									onChange={(skipIf) => update(i, { skipIf })}
-									groups={skipGroups}
-									placeholder={t("addApprover")}
-									names={names}
-								/>
-							</div>
-							{facts.length > 0 && (
-								<div className="flex flex-col gap-1.5">
-									<span className="font-medium text-subhead">
-										{t("onlyIf")}
-									</span>
-									<span className="text-muted-foreground text-footnote">
-										{t("onlyIfLead")}
-									</span>
-									<ConditionsEditor
-										value={s.onlyIf}
-										onChange={(onlyIf) => update(i, { onlyIf })}
-										facts={facts}
-										issuesAt={(j) => issuesAt(`steps.${i}.onlyIf.${j}`)}
-									/>
-								</div>
 							)}
-							{issuesAt(`steps.${i}`).length > 0 && (
-								<p
-									className="text-destructive text-subhead"
-									role="alert"
-									tabIndex={-1}
-								>
-									{[...new Set(issuesAt(`steps.${i}`))].join(" ")}
-								</p>
-							)}
-						</li>
-					))}
-				</ol>
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					className="self-start"
-					disabled={steps.length >= 8}
-					onClick={() =>
-						setSteps((xs) => [
-							...xs,
-							toDraft({ order: xs.length + 1, approverRule: "" }),
-						])
-					}
-				>
-					<Plus />
-					{t("addStep")}
-				</Button>
-			</section>
+						</div>
+					</DndShell>
+				</section>
 
-			<section className="flex flex-col gap-2">
-				<h2 className="font-medium">{t("previewTitle")}</h2>
-				{conditions.length > 0 && (
-					<p className="text-muted-foreground text-subhead">
-						{t("appliesWhen", { conditions: text.conditions(conditions) })}
-					</p>
-				)}
-				{planned.length === 0 ? (
-					<p className="text-muted-foreground text-subhead">
-						{t("previewEmpty")}
-					</p>
-				) : (
-					<ol className="flex list-decimal flex-col gap-1 pl-5 text-subhead">
-						{planned.map((s) => (
-							<li key={s.order}>
-								<span className="font-medium">
-									{s.label && s.label !== text.approvers(s)
-										? `${s.label}: `
-										: ""}
-									{text.approvers(s)}
-								</span>
-								{text.extras(s).length > 0 && (
-									<span className="text-muted-foreground">
-										{" "}
-										({text.extras(s).join(" · ")})
+				<section className="flex flex-col gap-2">
+					<h2 className="font-medium">{t("previewTitle")}</h2>
+					{conditions.length > 0 && (
+						<p className="text-muted-foreground text-subhead">
+							{t("appliesWhen", { conditions: text.conditions(conditions) })}
+						</p>
+					)}
+					{planned.length === 0 ? (
+						<p className="text-muted-foreground text-subhead">
+							{t("previewEmpty")}
+						</p>
+					) : (
+						<ol className="flex list-decimal flex-col gap-1 pl-5 text-subhead">
+							{planned.map((s) => (
+								<li key={s.order}>
+									<span className="font-medium">
+										{s.label && s.label !== text.approvers(s)
+											? `${s.label}: `
+											: ""}
+										{text.approvers(s)}
 									</span>
-								)}
-							</li>
-						))}
-					</ol>
-				)}
-			</section>
+									{text.extras(s).length > 0 && (
+										<span className="text-muted-foreground">
+											{" "}
+											({text.extras(s).join(" · ")})
+										</span>
+									)}
+								</li>
+							))}
+						</ol>
+					)}
+				</section>
+			</fieldset>
 
 			<DryRun
 				trigger={trigger.key}
@@ -582,23 +752,46 @@ export function WorkflowEditor({
 				requesterDefault={requesterDefault}
 			/>
 
-			<div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+			<FormAlert message={formError} />
+			<div
+				hidden={locked}
+				className="flex flex-wrap items-center justify-between gap-3 border-t pt-4"
+			>
 				<div className="flex gap-2">
-					<Button disabled={pending || name.trim().length < 3} onClick={save}>
-						{pending ? `${t("save")}…` : t("save")}
+					<Button
+						disabled={locked || pending || name.trim().length < 3}
+						onClick={save}
+					>
+						{pending ? tc("saving") : t("save")}
 					</Button>
 					<Button
 						variant="outline"
 						type="button"
 						onClick={() => {
-							if (dirty && !window.confirm(t("leaveConfirm"))) return;
+							if (dirty) return setLeaveOpen(true);
 							router.push("/einstellungen?tab=workflows");
 						}}
 					>
 						{t("cancel")}
 					</Button>
+					<AlertDialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>{t("leaveConfirm")}</AlertDialogTitle>
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>{t("leaveKeep")}</AlertDialogCancel>
+								<AlertDialogAction
+									className={buttonVariants({ variant: "destructive" })}
+									onClick={() => router.push("/einstellungen?tab=workflows")}
+								>
+									{t("leaveDiscard")}
+								</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
 				</div>
-				{initial.id && initial.custom && (
+				{!locked && initial.id && initial.custom && (
 					<DeleteVariant id={initial.id} name={initial.name} />
 				)}
 			</div>
@@ -612,12 +805,15 @@ function RulePicker({
 	groups,
 	placeholder,
 	names,
+	dragStep,
 }: {
 	value: string[];
 	onChange: (v: string[]) => void;
 	groups: Group[];
 	placeholder: string;
 	names: RuleNames;
+	// Stufe, aus der die Stellen gezogen werden können (individueller Modus)
+	dragStep?: string;
 }) {
 	const t = useTranslations("Workflows");
 	const visible = groups
@@ -630,24 +826,49 @@ function RulePicker({
 		<div className="flex flex-col gap-2">
 			{value.length > 0 && (
 				<ul className="flex flex-wrap gap-1">
-					{value.map((r) => (
-						<li key={r}>
+					{value.map((r) => {
+						const badge = (
 							<Badge
 								variant="outline"
-								className="h-auto max-w-full gap-1 whitespace-normal py-0.5 pr-0.5 text-left"
+								className="h-auto min-h-(--control-h-sm) max-w-full gap-1 whitespace-normal py-0.5 pr-1 text-left"
 							>
 								{ruleLabel(r, names)}
 								<button
 									type="button"
-									className="rounded p-0.5 hover:bg-muted focus-visible:outline-2"
+									className="hit-area rounded-full p-1 hover:bg-muted focus-visible:outline-2"
 									aria-label={t("removeRule", { name: ruleLabel(r, names) })}
+									// Ziehen startet nicht über dem Entfernen-Knopf
+									onPointerDown={(e) => e.stopPropagation()}
 									onClick={() => onChange(value.filter((x) => x !== r))}
 								>
 									<X className="size-3" aria-hidden />
 								</button>
 							</Badge>
-						</li>
-					))}
+						);
+						return (
+							<li key={r} className="min-w-0 max-w-full">
+								{dragStep ? (
+									<Draggable
+										id={`assigned:${dragStep}:${r}`}
+										item={{
+											kind: "assigned",
+											label: ruleLabel(r, names),
+											payload: {
+												type: "assigned",
+												step: dragStep,
+												rule: r,
+											} satisfies DesignerDrag,
+										}}
+										className="max-w-full rounded-full"
+									>
+										{badge}
+									</Draggable>
+								) : (
+									badge
+								)}
+							</li>
+						);
+					})}
 				</ul>
 			)}
 			{visible.length > 0 && (
@@ -918,7 +1139,7 @@ function DryRun({
 				facts: factValues,
 			});
 			if (!res.ok) {
-				toast.error(res.fieldErrors ? t("error_invalid") : tc("error"));
+				toast.error(res.fieldErrors ? t("error_invalid") : errorText(tc, res));
 				return;
 			}
 			setResult(res.data);
@@ -1014,7 +1235,7 @@ function DryRun({
 				disabled={pending || steps.every((s) => !s.approverRule)}
 				onClick={run}
 			>
-				{pending ? `${t("dryRunButton")}…` : t("dryRunButton")}
+				{pending ? tc("working") : t("dryRunButton")}
 			</Button>
 			<div aria-live="polite">
 				{result && (
@@ -1122,7 +1343,7 @@ function DeleteVariant({ id, name }: { id: string; name: string }) {
 											? t("error_hasRequests")
 											: res.error === "step_up_required"
 												? t("stepUp")
-												: tc("error"),
+												: errorText(tc, res),
 									);
 									return;
 								}

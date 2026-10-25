@@ -143,7 +143,7 @@ function BlockShell({
 		>
 			{title && (
 				<div className="flex flex-col gap-1">
-					<h2 id={headingId} className="font-medium text-base">
+					<h2 id={headingId} className="font-semibold text-headline">
 						{title}
 						<Required show={required} />
 					</h2>

@@ -6,15 +6,19 @@ import {
 	deleteCommunication,
 	deleteContextIssue,
 	deleteInterestedParty,
-	deleteRoleAssignment,
 } from "@/app/actions/organisation";
 import { deleteInsurancePolicy } from "@/app/actions/privacy";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { ShareholderForm } from "@/components/casp/shareholder-form";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { Sparkline } from "@/components/entity/sparkline";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
+import {
+	ConfirmMatrixButton,
+	RevokeAssignmentButton,
+} from "@/components/organisation/appointment-actions";
 import {
 	ApplyGovernanceSeedButton,
 	CommunicationForm,
@@ -25,6 +29,8 @@ import {
 	RegulatorInteractionForm,
 } from "@/components/organisation/governance-forms";
 import { OrgChart } from "@/components/organisation/org-chart";
+import { OrgChartEditor } from "@/components/organisation/org-chart-editor";
+import { RoleBoard } from "@/components/organisation/role-board";
 import {
 	MeasurementForm,
 	ObjectiveForm,
@@ -32,6 +38,7 @@ import {
 	ScopeApproveButton,
 	ScopeForm,
 } from "@/components/organisation/roles-forms";
+import { WhoHoldsWhat } from "@/components/organisation/who-holds-what";
 import { PageHeader } from "@/components/page-header";
 import { InsuranceForm } from "@/components/privacy/privacy-forms";
 import { SitesStep } from "@/components/setup/sites-step";
@@ -44,8 +51,13 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { sites } from "@/db/schema";
-import { ROLE_FUNCTIONS } from "@/db/schema/enums";
+import { orgRoles, sites } from "@/db/schema";
+import {
+	type FunctionKey,
+	ROLE_FUNCTIONS,
+	type RoleFunction,
+} from "@/db/schema/enums";
+import { governanceModeOf } from "@/lib/approvals/governance-mode";
 import { canDecideNow } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
@@ -54,9 +66,12 @@ import {
 } from "@/lib/approvals/service";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { listOrgMembers } from "@/lib/auth/org";
+import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
 import { allows } from "@/lib/auth/permissions";
+import { isEffective } from "@/lib/compliance/appointments";
 import { appointable } from "@/lib/compliance/catalog/appointment-templates";
+import { whoHoldsWhat } from "@/lib/compliance/function-holders";
+import { functionKeyOf, ownRoleKey } from "@/lib/compliance/function-key";
 import { loadIndicatorData } from "@/lib/compliance/indicator-data";
 import {
 	objectiveTemplateKey,
@@ -77,6 +92,7 @@ import {
 } from "@/lib/compliance/queries";
 import { listAssets } from "@/lib/compliance/queries-p2";
 import {
+	appointmentFacts,
 	governanceStatus,
 	listCommunications,
 	listConflicts,
@@ -96,7 +112,10 @@ import {
 import { decryptMany, fieldAad } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
+import { loadRoleBoard } from "@/lib/org/role-board-data";
+import { orgRoleNames } from "@/lib/org/roles";
 import type { FitProperChecklist } from "@/lib/validation/governance";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -143,6 +162,11 @@ export default async function OrganisationPage({
 	const tin = await getTranslations("Insurance");
 	const orgMembers = await listOrgMembers(ctx.orgId);
 	const memberCount = orgMembers.length;
+	const tcl = await getTranslations("Controls");
+	const tsu = await getTranslations("Setup");
+	// Rollen-Tafel: offene Einladungen stehen als Personen zur Auswahl
+	const invitations =
+		tab === "rollen" ? await listPendingInvitations(ctx.orgId) : [];
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const profile = await getOrgProfile(tx, ctx.orgId);
@@ -151,7 +175,8 @@ export default async function OrganisationPage({
 		const members = await listMembersForPicker(tx, ctx.orgId);
 		const orgFws = await listOrgFrameworks(tx, ctx.orgId);
 		const gov = await governanceStatus(tx, ctx.orgId, fws, stage);
-		const base = { fws, stage, members, orgFws, gov };
+		const roleNames = await orgRoleNames(tx, ctx.orgId);
+		const base = { fws, stage, members, orgFws, gov, roleNames };
 		switch (tab) {
 			case "kontext":
 				return {
@@ -184,7 +209,43 @@ export default async function OrganisationPage({
 					})),
 				);
 				const assetRows = await listAssets(tx, ctx.orgId);
-				return { ...base, checklists, assetRows };
+				// Bestellung: Stand, offene Anzeigen, Beschluss vorhanden?
+				const appointments = await appointmentFacts(
+					tx,
+					ctx.orgId,
+					gov.assignments,
+				);
+				// Rollen-Tafel (individueller Modus, ADR-024)
+				const mode = await governanceModeOf(tx, ctx.orgId);
+				return {
+					...base,
+					checklists,
+					assetRows,
+					appointments,
+					mode,
+					board:
+						mode === "individual"
+							? await loadRoleBoard(tx, ctx.orgId, {
+									required: gov.required.map((r) => r.function),
+									functionLabels: Object.fromEntries(
+										ROLE_FUNCTIONS.map((f) => [f, tf(f)]),
+									),
+									areaLabel: (area) =>
+										area === "privacy"
+											? tsu("areaPrivacy")
+											: tcl(`domain_${area}` as "domain_governance"),
+									invitations,
+								})
+							: null,
+					ownReports: Object.fromEntries(
+						(
+							await tx
+								.select({ id: orgRoles.id, reportsTo: orgRoles.reportsTo })
+								.from(orgRoles)
+								.where(eq(orgRoles.organizationId, ctx.orgId))
+						).map((r) => [r.id, r.reportsTo as FunctionKey | null]),
+					) as Record<string, FunctionKey | null>,
+				};
 			}
 			case "standorte":
 				return {
@@ -263,11 +324,81 @@ export default async function OrganisationPage({
 				};
 		}
 	});
-	const { members, orgFws, gov } = data;
-	const functionLabels = Object.fromEntries(
-		ROLE_FUNCTIONS.map((f) => [f, tf(f)]),
-	) as Record<string, string>;
+	const { members, orgFws, gov, roleNames } = data;
+	// Katalog-Funktionen und eigene Rollen (`role:<id>`, ADR-024)
+	const functionLabels = {
+		...Object.fromEntries(ROLE_FUNCTIONS.map((f) => [f, tf(f)])),
+		...Object.fromEntries(
+			Object.entries(roleNames).map(([id, name]) => [ownRoleKey(id), name]),
+		),
+	} as Record<string, string>;
+	const labelOf = (a: { function: RoleFunction; orgRoleId: string | null }) =>
+		functionLabels[functionKeyOf(a)] ?? functionLabels[a.function];
 	const today = new Date().toISOString().slice(0, 10);
+	const ta = await getTranslations("Appointments");
+	const tb = await getTranslations("Board");
+	// Ansicht im Reiter Rollen: im individuellen Modus zuerst die Tafel
+	const individual = "mode" in data && data.mode === "individual";
+	const view = individual && one(sp.ansicht) !== "liste" ? "tafel" : "liste";
+	// Organigramm: Berichtsweg eigener Rollen steht an der Rolle (org_roles)
+	const ownReports = "ownReports" in data ? data.ownReports : {};
+	const chart = buildOrgChart(
+		gov.assignments
+			.filter((a) => isEffective(a.status))
+			.map((a) => ({
+				function: functionKeyOf(a),
+				reportsToFunction: a.orgRoleId
+					? (ownReports[a.orgRoleId] ?? null)
+					: a.reportsToFunction,
+				holder: a.holderName ?? a.pendingEmail,
+				deputy: a.deputyName,
+			})),
+		gov.required.map((r) => r.function),
+	);
+	const facts = "appointments" in data ? data.appointments : null;
+	// Stand der Bestellung je Besetzung (immer mit Text, nie nur Farbe)
+	const appointmentState = (a: (typeof gov.assignments)[number]) => {
+		const p = facts?.progress.get(a.id);
+		return (
+			<div className="mt-1 flex flex-wrap gap-1">
+				{a.status === "proposed" && (
+					<Badge variant="warning">
+						{p ? ta("statusProgress", p) : ta("statusNoManagement")}
+					</Badge>
+				)}
+				{a.status === "revocation_requested" && (
+					<Badge variant="warning">
+						{p
+							? `${ta("statusRevocation")} (${p.done}/${p.total})`
+							: ta("statusRevocation")}
+					</Badge>
+				)}
+				{a.status === "rejected" && (
+					<span className="text-footnote">
+						<Badge variant="destructive">{ta("statusRejected")}</Badge>
+						{a.decisionNote && (
+							<span className="ml-1 text-muted-foreground">
+								{ta("rejectedNote", { note: a.decisionNote })}
+							</span>
+						)}
+					</span>
+				)}
+				{facts?.withoutResolution.has(a.id) && (
+					<Badge variant="muted">{ta("withoutResolution")}</Badge>
+				)}
+				{facts?.acceptanceOpen.has(a.id) && (
+					<Link href={`/nachweise/${facts.acceptanceOpen.get(a.id)}`}>
+						<Badge variant="warning">{ta("acceptanceOpen")}</Badge>
+					</Link>
+				)}
+				{facts?.noticesOpen.has(a.id) && (
+					<Link href="/heute/aufgaben">
+						<Badge variant="warning">{ta("noticeOpen")}</Badge>
+					</Link>
+				)}
+			</div>
+		);
+	};
 	const gapCount = gov.coverage.gaps.length;
 	const blockSod = gov.sod.filter((v) => v.rule.severity === "block").length;
 
@@ -326,7 +457,7 @@ export default async function OrganisationPage({
 								{t("issuesEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+							<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 								{data.issues.map((i) => (
 									<li key={i.id} className="flex items-start gap-3 px-3 py-2">
 										<Badge variant="outline" className="mt-0.5 shrink-0">
@@ -358,7 +489,7 @@ export default async function OrganisationPage({
 														title: i.title,
 														description: i.description,
 														impact: i.impact,
-														ownerUserId: i.ownerUserId,
+														ownerUserId: responsibleValue(i),
 														reviewAt: i.reviewAt,
 													}}
 												/>
@@ -391,7 +522,7 @@ export default async function OrganisationPage({
 								{t("partiesEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+							<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 								{data.parties.map((p) => (
 									<li key={p.id} className="flex items-start gap-3 px-3 py-2">
 										<Badge variant="outline" className="mt-0.5 shrink-0">
@@ -434,7 +565,7 @@ export default async function OrganisationPage({
 														requirements: p.requirements,
 														howAddressed: p.howAddressed,
 														contact: p.contact,
-														ownerUserId: p.ownerUserId,
+														ownerUserId: responsibleValue(p),
 														reviewAt: p.reviewAt,
 													}}
 												/>
@@ -523,7 +654,7 @@ export default async function OrganisationPage({
 													services: s.services,
 													exclusions: s.exclusions,
 													version: s.version,
-													ownerUserId: s.ownerUserId,
+													ownerUserId: responsibleValue(s),
 												}}
 											/>
 										)}
@@ -602,6 +733,27 @@ export default async function OrganisationPage({
 
 			{"checklists" in data && (
 				<section className="flex flex-col gap-6">
+					{individual && (
+						<nav
+							aria-label={tb("viewLabel")}
+							className="grid w-full grid-cols-2 gap-1 rounded-xl bg-muted p-1 sm:max-w-xs"
+						>
+							{(["tafel", "liste"] as const).map((v) => (
+								<Link
+									key={v}
+									href={`/organisation?tab=rollen&ansicht=${v}`}
+									aria-current={view === v ? "page" : undefined}
+									className={`flex min-h-(--control-h) items-center justify-center rounded-lg px-3 text-subhead ${
+										view === v
+											? "bg-background font-medium shadow-sm"
+											: "text-muted-foreground hover:text-foreground"
+									}`}
+								>
+									{v === "tafel" ? tb("viewBoard") : tb("viewList")}
+								</Link>
+							))}
+						</nav>
+					)}
 					<section aria-labelledby="org-chart" className="flex flex-col gap-3">
 						<div className="flex flex-wrap items-start justify-between gap-3">
 							<div className="flex flex-col gap-1">
@@ -618,30 +770,33 @@ export default async function OrganisationPage({
 								generateLabel={t("orgChartGenerate")}
 							/>
 						</div>
-						<OrgChart
-							{...buildOrgChart(
-								gov.assignments.map((a) => ({
-									function: a.function,
-									reportsToFunction: a.reportsToFunction,
-									holder: a.holderName ?? a.pendingEmail,
-									deputy: a.deputyName,
-								})),
-								gov.required.map((r) => r.function),
-							)}
-							functionLabels={functionLabels}
-						/>
+						{view === "tafel" ? (
+							<OrgChartEditor
+								roots={chart.roots}
+								labels={functionLabels}
+								canEdit={canRoles}
+							/>
+						) : (
+							<OrgChart {...chart} functionLabels={functionLabels} />
+						)}
 					</section>
-					<div className="flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-subhead">
+					<div className="flex flex-wrap items-start justify-between gap-3">
+						<p className="min-w-0 max-w-2xl grow basis-64 text-muted-foreground text-subhead">
 							{t("rolesLead")}
 						</p>
 						{canRoles && (
-							<RoleAssignmentForm
-								members={members}
-								functionLabels={functionLabels}
-							/>
+							<div className="flex flex-wrap items-center gap-2">
+								<ConfirmMatrixButton />
+								<RoleAssignmentForm
+									members={members}
+									functionLabels={functionLabels}
+								/>
+							</div>
 						)}
 					</div>
+					<p className="max-w-2xl text-muted-foreground text-footnote">
+						{ta("appointHint")} {ta("confirmMatrixLead")}
+					</p>
 					{gov.sod.length > 0 && (
 						<div className="flex flex-col gap-1 rounded-xl bg-destructive/10 p-3 text-subhead">
 							<p className="font-medium">{t("sodTitle")}</p>
@@ -666,31 +821,48 @@ export default async function OrganisationPage({
 							</ul>
 						</div>
 					)}
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>{t("function")}</TableHead>
-								<TableHead>{t("holder")}</TableHead>
-								<TableHead>{t("deputy")}</TableHead>
-								<TableHead className="w-28">{t("fitProper")}</TableHead>
-								<TableHead className="w-40">{t("legalBasis")}</TableHead>
-								<TableHead className="w-28 text-right">{t("status")}</TableHead>
-								<TableHead className="w-24" />
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{gov.coverage.items.map((it) => {
-								const a = gov.assignments.find(
-									(x) => x.function === it.required.function,
-								);
-								const idx = a ? gov.assignments.indexOf(a) : -1;
-								const cl = idx >= 0 ? data.checklists[idx] : null;
-								const doneCount = cl
-									? Object.values(cl).filter((v) => v === true).length
-									: 0;
-								return (
-									<TableRow key={it.required.function}>
-										<TableCell>
+					{view === "tafel" ? (
+						<section
+							aria-labelledby="role-board"
+							className="flex flex-col gap-3"
+						>
+							<div className="flex flex-col gap-1">
+								<h2 id="role-board" className="font-semibold text-headline">
+									{tb("title")}
+								</h2>
+								<p className="max-w-2xl text-muted-foreground text-subhead">
+									{tb("lead")}
+								</p>
+							</div>
+							{"board" in data && data.board && (
+								<RoleBoard canEdit={canRoles} {...data.board} />
+							)}
+						</section>
+					) : (
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>{t("function")}</TableHead>
+									<TableHead>{t("holder")}</TableHead>
+									<TableHead>{t("deputy")}</TableHead>
+									<TableHead className="w-28">{t("fitProper")}</TableHead>
+									<TableHead className="w-40">{t("legalBasis")}</TableHead>
+									<TableHead className="w-28 text-right">
+										{t("status")}
+									</TableHead>
+									<TableHead className="w-24" />
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{gov.coverage.items.flatMap((it) => {
+									// je Person eine Zeile (z. B. zwei Geschäftsführer:innen);
+									// Funktion, Rechtsgrundlage und Status gelten für alle
+									const rows = gov.assignments.filter(
+										(x) => x.function === it.required.function,
+									);
+									const span = Math.max(rows.length, 1);
+									const fnCell = (
+										<TableCell rowSpan={span} className="align-top">
 											<p className="font-medium">
 												{functionLabels[it.required.function]}
 											</p>
@@ -699,202 +871,282 @@ export default async function OrganisationPage({
 													{it.required.hint}
 												</p>
 											)}
-											{a && appointable(a.function) && (
+											{canRoles && rows.length > 0 && (
 												<div className="mt-2">
-													<EntityEvidence
-														ctx={ctx}
-														code="NW-BESTELLUNG"
-														entityId={a.id}
-														generateLabel={t("appointmentGenerate")}
-													/>
-												</div>
-											)}
-										</TableCell>
-										<TableCell>
-											{it.filled ? (
-												a?.userId ? (
-													<UserChip name={a.holderName} />
-												) : (
-													<span>
-														{a?.externalName}{" "}
-														<Badge variant="muted">extern</Badge>
-													</span>
-												)
-											) : (
-												<span className="text-destructive">
-													{t("unfilled")}
-												</span>
-											)}
-										</TableCell>
-										<TableCell>
-											{a?.deputyName ? (
-												<UserChip name={a.deputyName} />
-											) : it.deputyMissing ? (
-												<span className="text-warning text-footnote">
-													{t("deputyMissing")}
-												</span>
-											) : (
-												<span className="text-muted-foreground">—</span>
-											)}
-										</TableCell>
-										<TableCell>
-											{a ? (
-												<div className="flex flex-col gap-0.5 text-footnote">
-													<Badge
-														variant={
-															a.fitProperStatus === "confirmed"
-																? "success"
-																: a.fitProperStatus === "pending"
-																	? "warning"
-																	: a.fitProperStatus === "rejected"
-																		? "destructive"
-																		: "muted"
-														}
-													>
-														{t(`fp_${a.fitProperStatus}`)}
-													</Badge>
-													{cl && (
-														<span className="text-muted-foreground">
-															{doneCount}/7
-														</span>
-													)}
-													{it.documentsExpired && (
-														<span className="text-destructive">
-															{t("documentsExpired")}
-														</span>
-													)}
-												</div>
-											) : (
-												"—"
-											)}
-										</TableCell>
-										<TableCell className="text-muted-foreground text-footnote">
-											{it.required.legalBasis}
-										</TableCell>
-										<TableCell className="text-right">
-											{it.filled ? (
-												<Badge variant="success">{t("filled")}</Badge>
-											) : (
-												<Badge variant="destructive">{t("gap")}</Badge>
-											)}
-										</TableCell>
-										<TableCell className="text-right">
-											{canRoles && (
-												<div className="flex items-center justify-end">
 													<RoleAssignmentForm
 														members={members}
 														functionLabels={functionLabels}
 														presetFunction={it.required.function}
-														triggerLabel={a ? undefined : t("assign")}
-														initial={
-															a
-																? {
-																		id: a.id,
-																		function: a.function,
-																		userId: a.userId,
-																		externalName: a.externalName,
-																		appointedAt: a.appointedAt,
-																		deputyUserId: a.deputyUserId,
-																		fitProperStatus: a.fitProperStatus,
-																		fitProperChecklist: cl,
-																		documentsValidUntil: a.documentsValidUntil,
-																		reviewAt: a.reviewAt,
-																		reportsToFunction: a.reportsToFunction,
-																		appointmentNotes: a.appointmentNotes,
-																	}
-																: undefined
-														}
+														triggerLabel={t("addHolder")}
+														triggerVariant="ghost"
 													/>
-													{a && (
-														<DeleteRowButton
-															id={a.id}
-															action={deleteRoleAssignment}
-															label={t("deleteAssignment")}
-														/>
-													)}
 												</div>
 											)}
 										</TableCell>
-									</TableRow>
-								);
-							})}
-							{gov.assignments
-								.filter(
-									(a) => !gov.required.some((r) => r.function === a.function),
-								)
-								.map((a) => {
-									const idx = gov.assignments.indexOf(a);
-									const cl = data.checklists[idx];
-									return (
-										<TableRow key={a.id} className="text-muted-foreground">
-											<TableCell>
-												{functionLabels[a.function]}
-												{appointable(a.function) && (
-													<div className="mt-2">
-														<EntityEvidence
-															ctx={ctx}
-															code="NW-BESTELLUNG"
-															entityId={a.id}
-															generateLabel={t("appointmentGenerate")}
-														/>
-													</div>
-												)}
+									);
+									const shared = (
+										<>
+											<TableCell
+												rowSpan={span}
+												className="align-top text-muted-foreground text-footnote"
+											>
+												{it.required.legalBasis}
 											</TableCell>
-											<TableCell>
-												{a.userId ? (
-													<UserChip name={a.holderName} />
+											<TableCell
+												rowSpan={span}
+												className="align-top text-right"
+											>
+												{it.filled ? (
+													<Badge variant="success">{t("filled")}</Badge>
 												) : (
-													a.externalName
+													<Badge variant="destructive">{t("gap")}</Badge>
 												)}
 											</TableCell>
-											<TableCell>
-												{a.deputyName ? <UserChip name={a.deputyName} /> : "—"}
-											</TableCell>
-											<TableCell>
-												<Badge variant="muted">
-													{t(`fp_${a.fitProperStatus}`)}
-												</Badge>
-											</TableCell>
-											<TableCell className="text-footnote">
-												{t("optionalFunction")}
-											</TableCell>
-											<TableCell className="text-right">
-												<Badge variant="outline">{t("filled")}</Badge>
-											</TableCell>
-											<TableCell className="text-right">
-												{canRoles && (
-													<div className="flex items-center justify-end">
+										</>
+									);
+									if (rows.length === 0)
+										return [
+											<TableRow key={it.required.function}>
+												{fnCell}
+												<TableCell>
+													<span className="text-destructive">
+														{t("unfilled")}
+													</span>
+												</TableCell>
+												<TableCell>
+													<span className="text-muted-foreground">—</span>
+												</TableCell>
+												<TableCell>—</TableCell>
+												{shared}
+												<TableCell className="text-right">
+													{canRoles && (
 														<RoleAssignmentForm
 															members={members}
 															functionLabels={functionLabels}
-															initial={{
-																id: a.id,
-																function: a.function,
-																userId: a.userId,
-																externalName: a.externalName,
-																appointedAt: a.appointedAt,
-																deputyUserId: a.deputyUserId,
-																fitProperStatus: a.fitProperStatus,
-																fitProperChecklist: cl,
-																documentsValidUntil: a.documentsValidUntil,
-																reviewAt: a.reviewAt,
-																reportsToFunction: a.reportsToFunction,
-																appointmentNotes: a.appointmentNotes,
-															}}
+															presetFunction={it.required.function}
+															triggerLabel={t("assign")}
+															triggerVariant="ghost"
 														/>
-														<DeleteRowButton
-															id={a.id}
-															action={deleteRoleAssignment}
-															label={t("deleteAssignment")}
-														/>
+													)}
+												</TableCell>
+											</TableRow>,
+										];
+									return rows.map((a, i) => {
+										const idx = gov.assignments.indexOf(a);
+										const cl = idx >= 0 ? data.checklists[idx] : null;
+										const doneCount = cl
+											? Object.values(cl).filter((v) => v === true).length
+											: 0;
+										const expired =
+											a.documentsValidUntil &&
+											new Date(a.documentsValidUntil).getTime() < Date.now();
+										return (
+											<TableRow key={a.id}>
+												{i === 0 && fnCell}
+												<TableCell>
+													{a.userId ? (
+														<UserChip name={a.holderName} />
+													) : a.externalName ? (
+														<span>
+															{a.externalName}{" "}
+															<Badge variant="muted">extern</Badge>
+														</span>
+													) : (
+														<span className="text-muted-foreground">
+															{a.pendingEmail ?? t("unfilled")}
+														</span>
+													)}
+													{appointmentState(a)}
+													{appointable(a.function) && isEffective(a.status) && (
+														<div className="mt-2">
+															<EntityEvidence
+																ctx={ctx}
+																code="NW-BESTELLUNG"
+																entityId={a.id}
+																generateLabel={t("appointmentGenerate")}
+															/>
+														</div>
+													)}
+												</TableCell>
+												<TableCell>
+													{a.deputyName ? (
+														<UserChip name={a.deputyName} />
+													) : it.deputyMissing && i === 0 ? (
+														<span className="text-warning text-footnote">
+															{t("deputyMissing")}
+														</span>
+													) : (
+														<span className="text-muted-foreground">—</span>
+													)}
+												</TableCell>
+												<TableCell>
+													<div className="flex flex-col gap-0.5 text-footnote">
+														<Badge
+															variant={
+																a.fitProperStatus === "confirmed"
+																	? "success"
+																	: a.fitProperStatus === "pending"
+																		? "warning"
+																		: a.fitProperStatus === "rejected"
+																			? "destructive"
+																			: "muted"
+															}
+														>
+															{t(`fp_${a.fitProperStatus}`)}
+														</Badge>
+														{cl && (
+															<span className="text-muted-foreground">
+																{doneCount}/7
+															</span>
+														)}
+														{expired && (
+															<span className="text-destructive">
+																{t("documentsExpired")}
+															</span>
+														)}
 													</div>
-												)}
-											</TableCell>
-										</TableRow>
-									);
+												</TableCell>
+												{i === 0 && shared}
+												<TableCell className="text-right">
+													{canRoles && (
+														<div className="flex items-center justify-end">
+															<RoleAssignmentForm
+																members={members}
+																functionLabels={functionLabels}
+																presetFunction={it.required.function}
+																initial={{
+																	id: a.id,
+																	function: a.function,
+																	userId: a.userId,
+																	externalName: a.externalName,
+																	appointedAt: a.appointedAt,
+																	deputyUserId: a.deputyUserId,
+																	fitProperStatus: a.fitProperStatus,
+																	fitProperChecklist: cl,
+																	documentsValidUntil: a.documentsValidUntil,
+																	reviewAt: a.reviewAt,
+																	reportsToFunction: a.reportsToFunction,
+																	appointmentNotes: a.appointmentNotes,
+																}}
+															/>
+															<RevokeAssignmentButton
+																id={a.id}
+																status={a.status}
+																name={
+																	a.holderName ??
+																	a.externalName ??
+																	a.pendingEmail ??
+																	""
+																}
+															/>
+														</div>
+													)}
+												</TableCell>
+											</TableRow>
+										);
+									});
 								})}
-						</TableBody>
-					</Table>
+								{gov.assignments
+									.filter(
+										(a) => !gov.required.some((r) => r.function === a.function),
+									)
+									.map((a) => {
+										const idx = gov.assignments.indexOf(a);
+										const cl = data.checklists[idx];
+										return (
+											<TableRow key={a.id} className="text-muted-foreground">
+												<TableCell>
+													{labelOf(a)}
+													{appointable(a.function) && (
+														<div className="mt-2">
+															<EntityEvidence
+																ctx={ctx}
+																code="NW-BESTELLUNG"
+																entityId={a.id}
+																generateLabel={t("appointmentGenerate")}
+															/>
+														</div>
+													)}
+												</TableCell>
+												<TableCell>
+													{a.userId ? (
+														<UserChip name={a.holderName} />
+													) : (
+														a.externalName
+													)}
+													{appointmentState(a)}
+												</TableCell>
+												<TableCell>
+													{a.deputyName ? (
+														<UserChip name={a.deputyName} />
+													) : (
+														"—"
+													)}
+												</TableCell>
+												<TableCell>
+													<Badge variant="muted">
+														{t(`fp_${a.fitProperStatus}`)}
+													</Badge>
+												</TableCell>
+												<TableCell className="text-footnote">
+													{t("optionalFunction")}
+												</TableCell>
+												<TableCell className="text-right">
+													<Badge variant="outline">{t("filled")}</Badge>
+												</TableCell>
+												<TableCell className="text-right">
+													{canRoles && (
+														<div className="flex items-center justify-end">
+															<RoleAssignmentForm
+																members={members}
+																functionLabels={functionLabels}
+																initial={{
+																	id: a.id,
+																	function: a.function,
+																	userId: a.userId,
+																	externalName: a.externalName,
+																	appointedAt: a.appointedAt,
+																	deputyUserId: a.deputyUserId,
+																	fitProperStatus: a.fitProperStatus,
+																	fitProperChecklist: cl,
+																	documentsValidUntil: a.documentsValidUntil,
+																	reviewAt: a.reviewAt,
+																	reportsToFunction: a.reportsToFunction,
+																	appointmentNotes: a.appointmentNotes,
+																}}
+															/>
+															<RevokeAssignmentButton
+																id={a.id}
+																status={a.status}
+																name={
+																	a.holderName ??
+																	a.externalName ??
+																	a.pendingEmail ??
+																	""
+																}
+															/>
+														</div>
+													)}
+												</TableCell>
+											</TableRow>
+										);
+									})}
+							</TableBody>
+						</Table>
+					)}
+					<WhoHoldsWhat
+						showSod={false}
+						people={whoHoldsWhat(
+							gov.assignments
+								.filter((a) => a.status !== "rejected")
+								.map((a) => ({
+									...a,
+									function: functionKeyOf(a),
+									userName: a.userId ? a.holderName : null,
+								})),
+							(fn) => functionLabels[fn] ?? fn,
+						)}
+					/>
 					<p className="text-muted-foreground text-footnote">
 						{t("rolesFootnote")}
 					</p>
@@ -1028,7 +1280,7 @@ export default async function OrganisationPage({
 															unit: o.unit,
 															target: o.target,
 															dueAt: o.dueAt,
-															ownerUserId: o.ownerUserId,
+															ownerUserId: responsibleValue(o),
 															status: o.status,
 															indicatorType: o.indicatorType,
 															direction: o.direction,
@@ -1139,7 +1391,10 @@ export default async function OrganisationPage({
 											/>
 										)}
 										<div className="flex flex-wrap items-center justify-between gap-2">
-											<UserChip name={o.ownerName} />
+											<OwnerChip
+												ownerFunction={o.ownerFunction}
+												name={o.ownerName}
+											/>
 											{canEdit && (
 												<MeasurementForm
 													objectiveId={o.id}
@@ -1343,7 +1598,10 @@ export default async function OrganisationPage({
 											{r.deadline ? fmtDate.format(new Date(r.deadline)) : "—"}
 										</TableCell>
 										<TableCell>
-											<UserChip name={r.ownerName} />
+											<OwnerChip
+												ownerFunction={r.ownerFunction}
+												name={r.ownerName}
+											/>
 										</TableCell>
 										<TableCell>
 											<Badge
@@ -1370,7 +1628,7 @@ export default async function OrganisationPage({
 														direction: r.direction,
 														deadline: r.deadline,
 														responseAt: r.responseAt,
-														ownerUserId: r.ownerUserId,
+														ownerUserId: responsibleValue(r),
 														notes: r.notes,
 														status: r.status,
 													}}
@@ -1454,7 +1712,7 @@ export default async function OrganisationPage({
 														description: c.description,
 														mitigation: c.mitigation,
 														disclosedAt: c.disclosedAt,
-														ownerUserId: c.ownerUserId,
+														ownerUserId: responsibleValue(c),
 														reviewAt: c.reviewAt,
 														status: c.status,
 													}}
@@ -1768,7 +2026,10 @@ export default async function OrganisationPage({
 												)}
 											</TableCell>
 											<TableCell>
-												<UserChip name={p.ownerName} />
+												<OwnerChip
+													ownerFunction={p.ownerFunction}
+													name={p.ownerName}
+												/>
 											</TableCell>
 											<TableCell>
 												{canEdit && (
@@ -1788,7 +2049,7 @@ export default async function OrganisationPage({
 																validFrom: p.validFrom,
 																validUntil: p.validUntil,
 																premium: p.premium ?? "",
-																ownerUserId: p.ownerUserId,
+																ownerUserId: responsibleValue(p),
 															}}
 														/>
 														<DeleteRowButton
@@ -1842,7 +2103,7 @@ function AssetOwners({
 			{unowned > 0 && (
 				<Link
 					href="/assets?unowned=1"
-					className="w-fit rounded-xl bg-warning/12 px-2 py-1 text-warning text-footnote hover:underline"
+					className="inline-flex h-(--control-h-sm) w-fit items-center rounded-xl bg-warning/12 px-2 text-warning text-footnote hover:underline"
 				>
 					{gapLabel(unowned)}
 				</Link>
@@ -1854,7 +2115,7 @@ function AssetOwners({
 						<li key={userId}>
 							<Link
 								href={`/team/${userId}`}
-								className="inline-flex items-center gap-1 rounded-xl bg-card px-2 py-1 text-footnote hover:bg-muted"
+								className="inline-flex h-(--control-h-sm) items-center gap-1 rounded-xl bg-card px-2 text-footnote hover:bg-muted"
 							>
 								{e.name}
 								<span className="text-muted-foreground">

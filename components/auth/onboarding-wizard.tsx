@@ -1,23 +1,19 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 import { createOrganizationAction } from "@/app/actions/onboarding";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
 import { slugify } from "@/lib/setup/labels";
+import { cn } from "@/lib/utils";
 
 // Onboarding (D0): nur Name, Kurzname und die eigene Funktion — danach
 // begleitet die geführte Einrichtung durch Rollen, Profil, Rahmenwerke und
@@ -36,7 +32,8 @@ export function OnboardingWizard({
 	const [slug, setSlug] = useState("");
 	const [slugEdited, setSlugEdited] = useState(false);
 	const [slugError, setSlugError] = useState<string | null>(null);
-	const [fn, setFn] = useState<RoleFunction | "none">("management_body");
+	// eigene Funktionen: mehrere möglich (z. B. Geschäftsführung und ISB)
+	const [fns, setFns] = useState<RoleFunction[]>(["management_body"]);
 	const [baseline, setBaseline] = useState(false);
 	const [terms, setTerms] = useState(false);
 
@@ -47,7 +44,7 @@ export function OnboardingWizard({
 		const res = await createOrganizationAction({
 			name,
 			slug,
-			ownFunction: fn === "none" ? undefined : fn,
+			ownFunctions: fns,
 			applyBaseline: canApplyBaseline && baseline,
 			termsAccepted: terms,
 		});
@@ -58,7 +55,7 @@ export function OnboardingWizard({
 				toast.error(t("alreadyMember"));
 				router.replace("/heute");
 			} else if (res.fieldErrors?.slug) setSlugError(t("slugInvalid"));
-			else toast.error(tc("error"));
+			else toast.error(errorText(tc, res));
 			return;
 		}
 		toast.success(t("created"));
@@ -106,25 +103,38 @@ export function OnboardingWizard({
 					</p>
 				)}
 			</div>
-			<div className="flex flex-col gap-1.5">
-				<Label htmlFor="ob-fn">{t("ownFunction")}</Label>
-				<Select value={fn} onValueChange={(v) => setFn(v as typeof fn)}>
-					<SelectTrigger id="ob-fn" className="w-full">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						{ROLE_FUNCTIONS.filter((f) => f !== "other").map((f) => (
-							<SelectItem key={f} value={f}>
+			<fieldset className="flex flex-col gap-2">
+				<legend className="mb-1.5 font-medium text-subhead">
+					{t("ownFunction")}
+				</legend>
+				<div className="flex flex-wrap gap-2">
+					{ROLE_FUNCTIONS.filter((f) => f !== "other").map((f) => {
+						const on = fns.includes(f);
+						return (
+							<button
+								key={f}
+								type="button"
+								aria-pressed={on}
+								onClick={() =>
+									setFns((xs) => (on ? xs.filter((x) => x !== f) : [...xs, f]))
+								}
+								className={cn(
+									"inline-flex h-(--control-h-sm) items-center gap-1.5 rounded-full px-3 font-medium text-footnote transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+									on
+										? "bg-primary-fill text-white"
+										: "bg-muted text-foreground hover:bg-foreground/12",
+								)}
+							>
+								{on && <Check aria-hidden="true" className="size-3.5" />}
 								{tf(f)}
-							</SelectItem>
-						))}
-						<SelectItem value="none">{t("ownFunctionNone")}</SelectItem>
-					</SelectContent>
-				</Select>
+							</button>
+						);
+					})}
+				</div>
 				<p className="text-muted-foreground text-footnote">
-					{t("ownFunctionHint")}
+					{fns.length === 0 ? t("ownFunctionNone") : t("ownFunctionHint")}
 				</p>
-			</div>
+			</fieldset>
 			{canApplyBaseline && (
 				<label className="flex items-start gap-2 text-subhead">
 					<Checkbox
