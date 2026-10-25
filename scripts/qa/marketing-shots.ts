@@ -1,8 +1,8 @@
 /**
  * Bildschirmfotos für die Website (/funktionen, /leistungen) aus Klick mit
  * Beispieldaten neu aufnehmen — nach Änderungen an der Oberfläche einmal
- * laufen lassen, Ergebnis ansehen, Maße in lib/marketing/{workflows,services}.ts
- * nachziehen (das Skript gibt sie aus).
+ * laufen lassen, Ergebnis ansehen, Maße in lib/marketing/shots.ts nachziehen
+ * (das Skript gibt die Zeilen aus, Test `marketing-shots` prüft sie).
  *
  *   QA_BASE=http://localhost:3200 pnpm exec tsx scripts/qa/marketing-shots.ts [--only risiko,freigaben]
  *
@@ -422,9 +422,9 @@ for (const shot of SHOTS) {
 				height: Math.round(clip.height),
 			},
 		});
-		results.push(
-			`✔ ${shot.name}: ${shot.file} ${Math.round(clip.width) * 2}×${Math.round(clip.height) * 2}`,
-		);
+		const w = Math.round(clip.width) * 2;
+		const h = Math.round(clip.height) * 2;
+		results.push(`✔ ${shot.name}: { src: "/${shot.file}", w: ${w}, h: ${h} }`);
 	}
 	await page.context().close();
 }

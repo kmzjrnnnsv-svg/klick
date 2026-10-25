@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { RevealRoot } from "@/components/marketing/reveal";
 import { loadPriceTable } from "@/lib/db/pricing";
+import { assetUrl } from "@/lib/marketing/asset-url";
 import {
 	BILLING_FAQ,
 	BILLING_NOTE,
@@ -10,6 +11,7 @@ import {
 	BILLING_TIMELINE,
 	withSeatPrice,
 } from "@/lib/marketing/billing";
+import { SHOTS } from "@/lib/marketing/shots";
 import { PRICE_ITEM_BY_KEY } from "@/lib/pricing/items";
 import { formatPrice } from "@/lib/pricing/resolve";
 import { cn } from "@/lib/utils";
@@ -26,11 +28,11 @@ const FAQ = ["q1", "q2", "q3", "q4"] as const;
 const TONES = [s.toneBlue, s.toneBrown, s.toneSky] as const;
 // Je Stufe ein Bildschirmfoto aus Klick (Beispieldaten), natürliche Größe
 const TIER_IMAGE = {
-	start: { src: "/funktionen/risiko.jpg", w: 1440, h: 1000 },
-	growth: { src: "/funktionen/freigaben.jpg", w: 1440, h: 1000 },
-	licence: { src: "/funktionen/verwahrung.jpg", w: 1440, h: 779 },
+	start: SHOTS.risiko,
+	growth: SHOTS.freigaben,
+	licence: SHOTS.verwahrung,
 } as const;
-const READINESS = { src: "/leistungen/pruefungsreife.jpg", w: 2200, h: 1040 };
+const READINESS = SHOTS.pruefungsreife;
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations("Pricing");
@@ -115,7 +117,7 @@ export default async function PricingPage() {
 				<figure className={s.readinessPic} data-r="">
 					{/* biome-ignore lint/performance/noImgElement: statisches Bildschirmfoto, CSP ohne Bild-Optimierer */}
 					<img
-						src={READINESS.src}
+						src={assetUrl(READINESS.src)}
 						width={READINESS.w}
 						height={READINESS.h}
 						alt={t("readinessImageAlt")}
@@ -147,7 +149,7 @@ export default async function PricingPage() {
 								{/* biome-ignore lint/performance/noImgElement: statisches Bildschirmfoto, CSP ohne Bild-Optimierer */}
 								<img
 									className={s.tierPic}
-									src={TIER_IMAGE[tier].src}
+									src={assetUrl(TIER_IMAGE[tier].src)}
 									width={TIER_IMAGE[tier].w}
 									height={TIER_IMAGE[tier].h}
 									alt={t(`${tier}ImageAlt`)}
