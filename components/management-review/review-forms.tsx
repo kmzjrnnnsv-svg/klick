@@ -171,7 +171,7 @@ export function ReviewInputsChecklist({
 			<p className="text-muted-foreground text-footnote">
 				{t("inputsProgress", { done, total: inputs.length })}
 			</p>
-			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+			<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 				{inputs.map((i) => {
 					const v = state[i.key] ?? { done: false };
 					return (

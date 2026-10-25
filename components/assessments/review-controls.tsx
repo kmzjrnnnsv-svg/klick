@@ -202,7 +202,7 @@ export function ApplyDialog({
 					{t("applyLead", { count: changes.length })}
 				</p>
 				{changes.length > 0 && (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{changes.map((c) => (
 							<li key={c.controlCode} className="flex flex-col px-3 py-1.5">
 								<span className="min-w-0 truncate">

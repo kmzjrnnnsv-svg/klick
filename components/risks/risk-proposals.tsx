@@ -64,7 +64,7 @@ export function RiskProposals({
 			{proposals.length === 0 ? (
 				<p className="text-subhead">{t("proposalsNone")}</p>
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 					{proposals.map((p) => (
 						<li
 							key={p.key}

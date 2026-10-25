@@ -270,7 +270,7 @@ export default async function ProductPage({
 								<p className="mb-3 text-muted-foreground text-subhead">
 									{t("checksLead", { done: cra.done, total: cra.total })}
 								</p>
-								<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+								<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 									{cra.checks.map((c) => (
 										<li
 											key={c.key}
@@ -520,7 +520,7 @@ export default async function ProductPage({
 							{t("findingsEmpty")}
 						</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.findings.slice(0, 100).map((f) => (
 								<li
 									key={f.id}
@@ -571,7 +571,7 @@ export default async function ProductPage({
 							{t("checklistEmpty")}
 						</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.checklists.map((c) => (
 								<li
 									key={c.id}
@@ -621,7 +621,7 @@ export default async function ProductPage({
 							{t("incidentsEmpty")}
 						</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.incidents.map((i) => (
 								<li
 									key={i.id}

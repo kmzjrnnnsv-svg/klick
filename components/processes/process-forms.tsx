@@ -403,7 +403,7 @@ export function RaciEditor({
 			{rows.length === 0 ? (
 				<p className="text-muted-foreground text-subhead">{t("raciEmpty")}</p>
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 					{rows.map((r, idx) => (
 						<li
 							key={`${r.userId ?? r.function}-${r.raci}`}

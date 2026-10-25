@@ -284,7 +284,7 @@ export default async function RequirementPage({
 						{t("coveredByEmpty")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{edges.map((e) => {
 							const c = CONTROL_BY_CODE.get(e.control);
 							const s = implStatus.get(e.control);
@@ -348,7 +348,7 @@ export default async function RequirementPage({
 
 			{related.length > 0 && (
 				<Section title={t("seeAlso")}>
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{related.map(({ key: k, req: r, status: s }) => (
 							<li
 								key={k}

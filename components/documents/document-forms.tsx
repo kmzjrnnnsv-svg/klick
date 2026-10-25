@@ -211,7 +211,7 @@ export function TemplatesDialog({
 						{tc("search") === "Suchen" ? "Alle" : "All"}
 					</Button>
 				</div>
-				<ul className="max-h-[50vh] overflow-y-auto divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+				<ul className="max-h-[50vh] overflow-y-auto list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 					{templates.map((x) => (
 						<li
 							key={x.code}

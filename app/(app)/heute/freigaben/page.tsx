@@ -84,7 +84,7 @@ export default async function ApprovalsInboxPage({
 			{list.length === 0 ? (
 				<EmptyState title={t("empty")} />
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 					{list.map((r) => {
 						const title =
 							entityTitles.get(`${r.entityType}:${r.entityId}`) ??
@@ -170,12 +170,15 @@ export default async function ApprovalsInboxPage({
 					})}
 				</ul>
 			)}
-			<div className="mt-8">
-				<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
-					{t("delegation")}
-				</h2>
-				<DelegationForm members={members} selfId={ctx.userId} />
-			</div>
+			{/* Vertretung nur, wenn es jemanden gibt, an den man abgeben kann */}
+			{members.some((m) => m.userId !== ctx.userId) && (
+				<div className="mt-8">
+					<h2 className="mb-2 font-medium text-footnote text-muted-foreground">
+						{t("delegation")}
+					</h2>
+					<DelegationForm members={members} selfId={ctx.userId} />
+				</div>
+			)}
 		</>
 	);
 }

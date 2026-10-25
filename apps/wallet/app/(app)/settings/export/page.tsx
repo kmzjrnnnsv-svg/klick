@@ -243,7 +243,7 @@ export default async function ExportSettingsPage() {
 					<h2 id="revoked" className="font-semibold text-headline">
 						{t("revokedTitle")}
 					</h2>
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{revoked.map((r) => (
 							<li
 								key={r.id}

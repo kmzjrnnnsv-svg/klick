@@ -49,7 +49,7 @@ export default async function GapAnalysisPage() {
 			{rows.length === 0 ? (
 				<EmptyState title={t("empty")} lead={t("emptyLead")} actions={create} />
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 					{rows.map((r) => {
 						const pct =
 							r.total > 0 ? Math.round((100 * r.answered) / r.total) : 0;

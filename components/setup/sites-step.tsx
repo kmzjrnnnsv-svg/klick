@@ -82,7 +82,7 @@ export function SitesStep({
 			{sites.length === 0 ? (
 				<p className="text-muted-foreground text-subhead">{t("sitesEmpty")}</p>
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 					{sites.map((s) => (
 						<li key={s.id} className="flex items-center gap-3 px-3 py-2">
 							<div className="min-w-0 flex-1">

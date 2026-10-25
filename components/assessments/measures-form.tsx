@@ -83,7 +83,7 @@ export function MeasuresForm({
 				/>
 				{t("selectAll")}
 			</label>
-			<ol className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+			<ol className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 				{measures.map((m, i) => {
 					const k = key(m);
 					return (

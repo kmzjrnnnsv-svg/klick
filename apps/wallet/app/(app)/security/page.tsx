@@ -201,7 +201,7 @@ export default async function WalletSecurityPage() {
 							{t("secKeysNone")}
 						</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{keys.map((k) => (
 								<li
 									key={k.credId}

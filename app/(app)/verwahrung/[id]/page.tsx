@@ -328,7 +328,7 @@ export default async function WalletDetailPage({
 						{t("holdersEmpty")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{holders.map((h) => {
 							const name =
 								(h.userId ? names.get(h.userId) : null) ??
@@ -390,7 +390,7 @@ export default async function WalletDetailPage({
 						{t("ceremoniesEmptyLead")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{ceremonies.map((c) => (
 							<li
 								key={c.id}

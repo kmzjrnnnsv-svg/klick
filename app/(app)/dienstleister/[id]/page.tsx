@@ -464,7 +464,7 @@ export default async function ProviderPage({
 					{data.ratings.length === 0 ? (
 						<p className="text-subhead">{tr("internalEmpty")}</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.ratings.map((r) => (
 								<li
 									key={r.id}
@@ -637,7 +637,7 @@ export default async function ProviderPage({
 					{data.files.length === 0 ? (
 						<p className="text-subhead">{t("filesEmpty")}</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.files.map((f) => (
 								<li
 									key={f.id}

@@ -315,7 +315,7 @@ export default async function ControlDetailPage({
 					<p className="mb-2 text-muted-foreground text-footnote">
 						{t("moduleEvidenceLead")}
 					</p>
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{moduleEv.facts.map((f) => (
 							<li
 								key={f.label}
@@ -359,7 +359,7 @@ export default async function ControlDetailPage({
 				<p className="text-muted-foreground text-subhead">
 					{t("satisfiesLead")}
 				</p>
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 					{edges.map(({ edge, req, status, active }) => (
 						<li
 							key={edge.requirement}
@@ -434,7 +434,7 @@ export default async function ControlDetailPage({
 						{t("evidenceEmpty")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{evidence.map((ev) => (
 							<li
 								key={ev.id}
@@ -488,7 +488,7 @@ export default async function ControlDetailPage({
 				{tests.length === 0 ? (
 					<p className="text-muted-foreground text-subhead">{tt("empty")}</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{tests.map((x) => (
 							<li
 								key={x.id}

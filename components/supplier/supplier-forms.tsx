@@ -643,7 +643,7 @@ export function ContractClausesForm({
 				});
 			}}
 		>
-			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+			<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 				{clauses.map((c) => (
 					<li
 						key={c.code}

@@ -143,7 +143,7 @@ export default async function AuthoringGalleryPage({
 					<h2 id="au-drafts" className="font-semibold text-headline">
 						{t("drafts")}
 					</h2>
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 						{drafts.map((d) => (
 							<li
 								key={d.id}

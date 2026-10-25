@@ -124,7 +124,7 @@ export async function BlockerList({
 	);
 	return (
 		<div className="flex flex-col gap-2">
-			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+			<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 				{blockers.slice(0, limit).map(row)}
 			</ul>
 			{blockers.length > limit && (

@@ -167,7 +167,7 @@ export default async function RatingPage({
 				{(["general", "security"] as const).map((area) => (
 					<section key={area} className="flex flex-col gap-2">
 						<h2 className="font-medium">{t(`res_${area}`)}</h2>
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{rating.criteria
 								.filter((c) => c.area === area)
 								.map((c) => {

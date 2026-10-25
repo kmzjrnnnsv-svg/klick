@@ -381,7 +381,7 @@ export default async function RiskDetailPage({
 								? ` · ${t("assessedAt")} ${fmtDate.format(risk.assessedAt)}`
 								: ""}
 						</p>
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 							{method.dimensions
 								.filter((dim) => dim.key in (risk.impactDetail ?? {}))
 								.map((dim) => {
@@ -491,7 +491,7 @@ export default async function RiskDetailPage({
 						{t("treatmentsEmpty")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 						{treatments.map((tr) => (
 							<li
 								key={tr.id}

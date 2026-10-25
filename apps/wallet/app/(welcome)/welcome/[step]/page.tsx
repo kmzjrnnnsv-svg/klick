@@ -235,7 +235,7 @@ export default async function WalletIntroPage({
 						<h2 id="intro-nodes" className="mb-2 font-medium text-base">
 							{t("nodesTitle")}
 						</h2>
-						<ul className="divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+						<ul className="list-inset overflow-hidden rounded-2xl bg-card">
 							{WALLET_NETWORKS.map((n) => (
 								<li
 									key={n}

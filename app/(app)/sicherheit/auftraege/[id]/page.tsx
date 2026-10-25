@@ -314,7 +314,7 @@ export default async function EngagementPage({
 					{data.findings.length === 0 ? (
 						<p className="text-subhead">{t("findingsEmpty")}</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.findings.map((f, i) => (
 								<li
 									key={f.id}
@@ -372,7 +372,7 @@ export default async function EngagementPage({
 					{data.findings.length === 0 ? (
 						<p className="text-subhead">{t("findingsEmpty")}</p>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{data.findings.map((f, i) => (
 								<li
 									key={f.id}

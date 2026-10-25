@@ -51,7 +51,7 @@ export default async function PayoutsPage() {
 			{rows.length === 0 ? (
 				<EmptyState title={t("payoutsEmpty")} lead={t("payoutsEmptyLead")} />
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 					{rows.map(({ payout: p, account }) => (
 						<li key={p.id}>
 							<Link

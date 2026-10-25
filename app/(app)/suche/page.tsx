@@ -88,7 +88,7 @@ export default async function SearchPage({
 							<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
 								{t(`kind_${kind}`)} · {list.length}
 							</h2>
-							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+							<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 								{list.map((h) => (
 									<li key={`${h.kind}-${h.id}`} className="px-3 py-2">
 										<Link

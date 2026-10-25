@@ -206,7 +206,7 @@ export default async function PublicTrustCenterPage({
 					<h2 id="tc-documents" className="font-bold text-title-2">
 						{t("publicDocuments")}
 					</h2>
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 						{s.documents.map((d) => (
 							<li
 								key={d.versionId}

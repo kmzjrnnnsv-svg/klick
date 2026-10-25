@@ -261,7 +261,7 @@ export default async function SecurityPage({
 						</div>
 						<section>
 							<h2 className="mb-2 font-medium">{t("topFindings")}</h2>
-							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+							<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 								{findings
 									.filter(
 										(f) => f.status === "open" || f.status === "in_progress",
@@ -487,7 +487,7 @@ export default async function SecurityPage({
 								{te("viewer")}
 							</p>
 						)}
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{scans
 								.filter((s) => s.tool === "quick_check")
 								.slice(0, 10)

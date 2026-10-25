@@ -122,7 +122,7 @@ export function TrustAccessGate({ slug, docs }: { slug: string; docs: Doc[] }) {
 			{docs.length === 0 ? (
 				<p className="text-muted-foreground text-subhead">{t("gateNoDocs")}</p>
 			) : (
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 					{docs.map((d) => (
 						<li
 							key={d.versionId}

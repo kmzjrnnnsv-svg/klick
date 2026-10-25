@@ -1,4 +1,6 @@
+import { useTranslations } from "next-intl";
 import { MarkdownView } from "@/components/markdown-view";
+import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
 import { type ActivityEntry, formatValue } from "@/lib/history";
 import { UserChip } from "./user-chip";
 
@@ -15,6 +17,14 @@ export function ActivityStream({
 	external?: ReadonlySet<string>;
 	labels: { empty: string; changed: string; commented: string; system: string };
 }) {
+	const tf = useTranslations("Functions");
+	// Funktionen mit ihrem Namen statt des Schlüssels (z. B. isb_ciso)
+	const show = (field: string, v: unknown) =>
+		/(^|[a-z])(f|F)unction$/.test(field) &&
+		typeof v === "string" &&
+		(ROLE_FUNCTIONS as readonly string[]).includes(v)
+			? tf(v as RoleFunction)
+			: formatValue(v);
 	const fmt = new Intl.DateTimeFormat("de-DE", {
 		dateStyle: "medium",
 		timeStyle: "short",
@@ -77,10 +87,10 @@ export function ActivityStream({
 											{ch.field}
 										</span>
 										<del className="min-w-0 text-muted-foreground [overflow-wrap:anywhere]">
-											{formatValue(ch.before)}
+											{show(ch.field, ch.before)}
 										</del>
 										<ins className="min-w-0 font-medium no-underline [overflow-wrap:anywhere]">
-											{formatValue(ch.after)}
+											{show(ch.field, ch.after)}
 										</ins>
 									</li>
 								))}

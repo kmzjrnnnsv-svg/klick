@@ -290,7 +290,7 @@ export default async function PrivacyPage({
 							requiredBy={t("requiredByDsfa")}
 						/>
 					) : (
-						<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 							{dsfa.map((a) => (
 								<li
 									key={a.id}

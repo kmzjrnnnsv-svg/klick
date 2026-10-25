@@ -360,7 +360,7 @@ export function RolesPanel({
 						{t("empty")}
 					</p>
 				) : (
-					<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 						{roles.map((r) => (
 							<li key={r.id} className="flex flex-col gap-2 p-3 sm:flex-row">
 								<div className="flex min-w-0 grow flex-col gap-1.5">
@@ -451,7 +451,7 @@ export function RolesPanel({
 					<h2 className="font-medium">{t("baseTitle")}</h2>
 					<p className="text-muted-foreground text-subhead">{t("baseLead")}</p>
 				</div>
-				<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 					{baseRoles.map((b) => (
 						<li key={b.role} className="p-3">
 							<details>

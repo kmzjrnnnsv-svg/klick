@@ -330,7 +330,7 @@ export default async function OrganisationPage({
 								{t("issuesEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+							<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 								{data.issues.map((i) => (
 									<li key={i.id} className="flex items-start gap-3 px-3 py-2">
 										<Badge variant="outline" className="mt-0.5 shrink-0">
@@ -395,7 +395,7 @@ export default async function OrganisationPage({
 								{t("partiesEmpty")}
 							</p>
 						) : (
-							<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+							<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 								{data.parties.map((p) => (
 									<li key={p.id} className="flex items-start gap-3 px-3 py-2">
 										<Badge variant="outline" className="mt-0.5 shrink-0">

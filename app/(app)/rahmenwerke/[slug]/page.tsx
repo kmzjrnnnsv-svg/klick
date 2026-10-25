@@ -306,7 +306,7 @@ export default async function FrameworkPage({
 							{gaps.length === 0 ? (
 								<p className="text-subhead">{t("gapsEmpty")}</p>
 							) : (
-								<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+								<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 									{gaps.map(({ r, key, status }) => {
 										const edges = EDGES_BY_REQUIREMENT.get(key) ?? [];
 										return (
@@ -372,7 +372,7 @@ export default async function FrameworkPage({
 												</span>
 											)}
 										</div>
-										<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card text-subhead">
+										<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 											{items.map(({ r, status }) => (
 												<li
 													key={r.code}

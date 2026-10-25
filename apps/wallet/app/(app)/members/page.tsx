@@ -38,7 +38,7 @@ export default async function MembersPage() {
 				</div>
 				{manage && <InviteDialog roles={roles} />}
 			</div>
-			<ul className="divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+			<ul className="list-inset overflow-hidden rounded-2xl bg-card">
 				{rows.map((m) => (
 					<li
 						key={m.id}
@@ -82,7 +82,7 @@ export default async function MembersPage() {
 			{manage && open.length > 0 && (
 				<section className="flex flex-col gap-3">
 					<h2 className="font-medium">{t("open")}</h2>
-					<ul className="divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+					<ul className="list-inset overflow-hidden rounded-2xl bg-card">
 						{open.map((i) => (
 							<li
 								key={i.id}

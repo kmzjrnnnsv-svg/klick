@@ -48,7 +48,7 @@ export default async function OrganisationsPage({
 					<AlertDescription>{t("expiredNotice")}</AlertDescription>
 				</Alert>
 			)}
-			<ul className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl bg-card">
+			<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 				{list.map((m) => {
 					const current = m.organizationId === active && !m.expired;
 					return (

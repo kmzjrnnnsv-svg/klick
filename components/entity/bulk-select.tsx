@@ -108,7 +108,7 @@ export function BulkBar({
 			router.refresh();
 		});
 	return (
-		<div className="sticky bottom-[calc(var(--bar-offset)+1rem)] z-20 mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-card p-3 shadow-lg">
+		<div className="sticky bottom-[calc(var(--bar-offset)+1rem)] z-20 mt-4 flex flex-wrap items-center gap-2 rounded-2xl material-bar p-3 shadow-lg">
 			<span className="font-medium text-subhead">
 				{t("bulkSelected", { n: ctx.selected.size })}
 			</span>
