@@ -198,9 +198,9 @@ export const updateDocumentSchema = z.object({
 export const newDocumentVersionSchema = z.object({
 	documentId: uuid,
 	changeSummary: z.string().trim().min(3).max(2000),
-	bodyMarkdown: z.string().max(200_000).optional(),
-	fileEvidenceId: uuid.optional(),
 	bump: z.enum(["minor", "major"]).default("minor"),
+	// ältere Fassung als Grundlage der neuen
+	fromVersion: z.string().trim().max(20).optional(),
 });
 
 export const documentTransitionSchema = z.object({

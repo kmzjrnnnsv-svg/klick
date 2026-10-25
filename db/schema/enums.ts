@@ -322,6 +322,8 @@ export const EVIDENCE_SOURCES = [
 	"klick",
 	// in Klick verfasst (Rohling)
 	"authored",
+	// Datei einer Dokumentfassung (Dokumente, hochgeladen am Dokument)
+	"document",
 ] as const;
 export type EvidenceSource = (typeof EVIDENCE_SOURCES)[number];
 

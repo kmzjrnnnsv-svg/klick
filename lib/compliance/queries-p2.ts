@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import {
 	assets,
 	auditLog,
@@ -25,6 +25,8 @@ import {
 	trainings,
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
+import { currentVersionsByDocument } from "@/lib/documents/in-force";
+import { currentPublished } from "@/lib/documents/versions";
 import { userNames } from "./queries";
 
 // Org-gescopte Lesezugriffe für die P2-Register — immer in readOrg/withOrg.
@@ -125,7 +127,21 @@ export async function listDocuments(tx: OrgTx, orgId: string) {
 		.from(documents)
 		.where(eq(documents.organizationId, orgId))
 		.orderBy(asc(documents.docNumber));
-	return withNames(tx, rows, ["ownerUserId", "assigneeUserId"]);
+	// gültige Fassung je Dokument (läuft eine neue Fassung, gilt die alte)
+	const current = await currentVersionsByDocument(tx, orgId);
+	return withNames(
+		tx,
+		rows.map((r) => {
+			const c = current.get(r.id);
+			return {
+				...r,
+				current: c
+					? { id: c.id, version: c.version, publishedAt: c.publishedAt }
+					: null,
+			};
+		}),
+		["ownerUserId", "assigneeUserId"],
+	);
 }
 
 export async function getDocumentByNumber(
@@ -170,30 +186,25 @@ export async function getDocumentByNumber(
 	return { doc, versions, controls: ctrl, acks, names };
 }
 
-// Offene Kenntnisnahmen eines Users: veröffentlichte Dokumente mit Verteilung,
-// deren aktuelle Version noch nicht bestätigt ist.
+// Offene Kenntnisnahmen eines Users: Dokumente mit gültiger Fassung und
+// passender Verteilung, deren gültige Fassung noch nicht bestätigt ist —
+// auch während eine neue Fassung in Arbeit ist.
 export async function pendingAcknowledgements(
 	tx: OrgTx,
 	orgId: string,
 	userId: string,
 	orgRole: string,
 ) {
-	const pubs = await tx
+	const docs = await tx
 		.select({
 			id: documents.id,
 			docNumber: documents.docNumber,
 			title: documents.title,
-			version: documents.version,
 			distribution: documents.distribution,
 		})
 		.from(documents)
-		.where(
-			and(
-				eq(documents.organizationId, orgId),
-				eq(documents.status, "published"),
-			),
-		);
-	const relevant = pubs.filter(
+		.where(eq(documents.organizationId, orgId));
+	const relevant = docs.filter(
 		(d) =>
 			d.distribution.length === 0 ||
 			d.distribution.includes("all") ||
@@ -205,21 +216,20 @@ export async function pendingAcknowledgements(
 			id: documentVersions.id,
 			documentId: documentVersions.documentId,
 			version: documentVersions.version,
+			approvedAt: documentVersions.approvedAt,
+			publishedAt: documentVersions.publishedAt,
+			retiredAt: documentVersions.retiredAt,
 		})
 		.from(documentVersions)
 		.where(
-			inArray(
-				documentVersions.documentId,
-				relevant.map((d) => d.id),
+			and(
+				inArray(
+					documentVersions.documentId,
+					relevant.map((d) => d.id),
+				),
+				isNotNull(documentVersions.publishedAt),
 			),
 		);
-	const currentVersionIds = new Map(
-		relevant.map((d) => [
-			d.id,
-			versions.find((v) => v.documentId === d.id && v.version === d.version)
-				?.id ?? null,
-		]),
-	);
 	const done = new Set(
 		(
 			await tx
@@ -233,12 +243,22 @@ export async function pendingAcknowledgements(
 				)
 		).map((a) => a.versionId),
 	);
-	return relevant
-		.filter((d) => {
-			const vid = currentVersionIds.get(d.id);
-			return vid && !done.has(vid);
-		})
-		.map((d) => ({ ...d, versionId: currentVersionIds.get(d.id) as string }));
+	return relevant.flatMap((d) => {
+		const current = currentPublished(
+			versions.filter((v) => v.documentId === d.id),
+		);
+		if (!current || done.has(current.id)) return [];
+		return [
+			{
+				id: d.id,
+				docNumber: d.docNumber,
+				title: d.title,
+				version: current.version,
+				distribution: d.distribution,
+				versionId: current.id,
+			},
+		];
+	});
 }
 
 // ── Vorfälle ───────────────────────────────────────────────────────────────

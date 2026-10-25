@@ -339,6 +339,9 @@ export const documents = pgTable(
 			onDelete: "set null",
 		}),
 		version: text().notNull().default("0.1"),
+		// Änderungsnotiz der Fassung in Arbeit; geht beim Einreichen in die
+		// Fassung (document_versions.change_summary)
+		changeSummary: text(),
 		status: text({ enum: DOCUMENT_STATUS }).notNull().default("draft"),
 		effectiveFrom: date(),
 		reviewCycleMonths: integer().notNull().default(12),
@@ -379,12 +382,18 @@ export const documentVersions = pgTable(
 			onDelete: "set null",
 		}),
 		changeSummary: text().notNull(),
+		// Prüfsumme über Text und Datei beim Einreichen (versionContentHash)
+		contentSha256: text(),
 		approvedByUserId: userRef(),
 		approvedAt: ts(),
 		publishedAt: ts(),
+		// zurückgezogen: gilt ab hier nicht mehr (ohne Nachfolgerin)
+		retiredAt: ts(),
 		createdByUserId: userRef(),
 		createdAt: ts().notNull().defaultNow(),
 	},
+	// Freigegebene oder veröffentlichte Fassungen sind unveränderlich
+	// (Trigger document_versions_frozen, Migration 0042)
 	(t) => [unique().on(t.documentId, t.version), orgPolicy("document_versions")],
 ).enableRLS();
 

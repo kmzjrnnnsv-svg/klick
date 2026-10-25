@@ -24,7 +24,6 @@ import {
 	dataSubjectRequests,
 	documentAcknowledgements,
 	documents,
-	documentVersions,
 	evidence,
 	exceptions,
 	incidents,
@@ -72,6 +71,7 @@ import { getOrgProfile } from "@/lib/compliance/queries";
 import { loadAuditRegimeContext } from "@/lib/compliance/queries-audit-regimes";
 import { lastReconciliationDay } from "@/lib/custody/queries";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
+import { currentVersionsByDocument } from "@/lib/documents/in-force";
 import { logger } from "@/lib/log";
 import { syncMemberRoles } from "@/lib/org/member-role-sync";
 import {
@@ -163,21 +163,30 @@ async function loadDueRows(
 			),
 		);
 
-	const documentReviews = await tx
-		.select({
-			docNumber: documents.docNumber,
-			title: documents.title,
-			nextReviewAt: documents.nextReviewAt,
-			ownerUserId: documents.ownerUserId,
-		})
-		.from(documents)
-		.where(
-			and(
-				eq(documents.organizationId, orgId),
-				isNotNull(documents.nextReviewAt),
-				inArray(documents.status, ["approved", "published"]),
-			),
-		);
+	// Review fällig: freigegebene oder geltende Dokumente (eine neue Fassung
+	// in Arbeit hebt die Pflicht für die gültige nicht auf)
+	const docsInForce = await currentVersionsByDocument(tx, orgId);
+	const documentReviews = (
+		await tx
+			.select({
+				id: documents.id,
+				docNumber: documents.docNumber,
+				title: documents.title,
+				nextReviewAt: documents.nextReviewAt,
+				ownerUserId: documents.ownerUserId,
+				status: documents.status,
+			})
+			.from(documents)
+			.where(
+				and(
+					eq(documents.organizationId, orgId),
+					isNotNull(documents.nextReviewAt),
+					ne(documents.status, "retired"),
+				),
+			)
+	)
+		.filter((d) => d.status === "approved" || docsInForce.has(d.id))
+		.map(({ id: _id, status: _s, ...d }) => d);
 
 	const providerAssessments = await tx
 		.select({
@@ -354,39 +363,28 @@ async function loadDueRows(
 		};
 	});
 
-	// Kenntnisnahmen: veröffentlichte Dokumente, aktuelle Version, fehlende
-	// Bestätigungen je Mitglied laut Verteilung.
-	const published = await tx
-		.select({
-			id: documents.id,
-			docNumber: documents.docNumber,
-			title: documents.title,
-			version: documents.version,
-			distribution: documents.distribution,
-		})
-		.from(documents)
-		.where(
-			and(
-				eq(documents.organizationId, orgId),
-				eq(documents.status, "published"),
-			),
-		);
+	// Kenntnisnahmen: gültige Fassung je Dokument (auch während eine neue
+	// Fassung in Arbeit ist), fehlende Bestätigungen je Mitglied laut Verteilung
+	const inForce = docsInForce;
+	const published =
+		inForce.size === 0
+			? []
+			: await tx
+					.select({
+						id: documents.id,
+						docNumber: documents.docNumber,
+						title: documents.title,
+						distribution: documents.distribution,
+					})
+					.from(documents)
+					.where(
+						and(
+							eq(documents.organizationId, orgId),
+							inArray(documents.id, [...inForce.keys()]),
+						),
+					);
 	let acknowledgements: DueRows["acknowledgements"] = [];
 	if (published.length > 0) {
-		const versions = await tx
-			.select({
-				id: documentVersions.id,
-				documentId: documentVersions.documentId,
-				version: documentVersions.version,
-				publishedAt: documentVersions.publishedAt,
-			})
-			.from(documentVersions)
-			.where(
-				inArray(
-					documentVersions.documentId,
-					published.map((d) => d.id),
-				),
-			);
 		const acks = await tx
 			.select({
 				versionId: documentAcknowledgements.documentVersionId,
@@ -395,9 +393,7 @@ async function loadDueRows(
 			.from(documentAcknowledgements)
 			.where(eq(documentAcknowledgements.organizationId, orgId));
 		acknowledgements = published.flatMap((d) => {
-			const v = versions.find(
-				(x) => x.documentId === d.id && x.version === d.version,
-			);
+			const v = inForce.get(d.id);
 			if (!v) return [];
 			const audience = members
 				.filter((m) => {

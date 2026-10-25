@@ -1,9 +1,10 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
 	controlImplementations,
+	documentVersions,
 	evidence,
 	evidenceSignatures,
 	storagePurgeQueue,
@@ -185,67 +186,81 @@ async function linkEvidenceImpl(input: {
 // sorgt dafür, dass ein später eingespieltes DB-Backup die Löschung nachholt.
 async function deleteEvidenceImpl(evidenceId: string): Promise<ActionResult> {
 	const c = await requireStepUp({ evidence: ["delete"] });
-	const removed = await mutateOrg<{ hadFile: boolean } | "signed" | null>(
-		toOrgCtx(c),
-		async (tx) => {
-			const [row] = await tx
-				.select()
-				.from(evidence)
-				.where(
-					and(
-						eq(evidence.id, evidenceId),
-						eq(evidence.organizationId, c.orgId),
+	const removed = await mutateOrg<
+		{ hadFile: boolean } | "signed" | "in_document" | null
+	>(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select()
+			.from(evidence)
+			.where(
+				and(eq(evidence.id, evidenceId), eq(evidence.organizationId, c.orgId)),
+			)
+			.limit(1);
+		if (!row) return { result: null, audit: [] };
+		// unterschriebene Nachweise bleiben (Unterschriften sind nur anhängend)
+		const [signed] = await tx
+			.select({ id: evidenceSignatures.id })
+			.from(evidenceSignatures)
+			.where(
+				and(
+					eq(evidenceSignatures.organizationId, c.orgId),
+					eq(evidenceSignatures.evidenceId, evidenceId),
+				),
+			)
+			.limit(1);
+		if (signed) return { result: "signed" as const, audit: [] };
+		// Datei einer freigegebenen oder veröffentlichten Dokumentfassung
+		// bleibt (die Fassung ist unveränderlich)
+		const [inVersion] = await tx
+			.select({ id: documentVersions.id })
+			.from(documentVersions)
+			.where(
+				and(
+					eq(documentVersions.organizationId, c.orgId),
+					eq(documentVersions.fileEvidenceId, evidenceId),
+					or(
+						isNotNull(documentVersions.approvedAt),
+						isNotNull(documentVersions.publishedAt),
 					),
-				)
-				.limit(1);
-			if (!row) return { result: null, audit: [] };
-			// unterschriebene Nachweise bleiben (Unterschriften sind nur anhängend)
-			const [signed] = await tx
-				.select({ id: evidenceSignatures.id })
-				.from(evidenceSignatures)
-				.where(
-					and(
-						eq(evidenceSignatures.organizationId, c.orgId),
-						eq(evidenceSignatures.evidenceId, evidenceId),
-					),
-				)
-				.limit(1);
-			if (signed) return { result: "signed" as const, audit: [] };
-			// Objekt in der Datenbank (db:) geht mit der Zeile (Kaskade, gleiches
-			// Backup); S3-Objekte erst nach der Backup-Aufbewahrung
-			await tx.delete(evidence).where(eq(evidence.id, evidenceId));
-			const inS3 = Boolean(row.storageKey && !isDbStorageKey(row.storageKey));
-			const after = inS3 ? purgeAfter(new Date()) : null;
-			if (row.storageKey && after) {
-				await tx
-					.insert(storagePurgeQueue)
-					.values({
-						organizationId: c.orgId,
-						storageKey: row.storageKey,
-						reason: "evidence_deleted",
-						refId: row.id,
-						requestedByUserId: c.userId,
-						purgeAfter: after,
-					})
-					.onConflictDoNothing();
-			}
-			return {
-				result: { hadFile: inS3 },
-				audit: {
-					action: "evidence.delete",
-					target: `evidence:${evidenceId}`,
-					before: {
-						title: row.title,
-						fileName: row.fileName,
-						sha256: row.sha256,
-					},
-					after: { objectPurgeAfter: after?.toISOString() ?? null },
+				),
+			)
+			.limit(1);
+		if (inVersion) return { result: "in_document" as const, audit: [] };
+		// Objekt in der Datenbank (db:) geht mit der Zeile (Kaskade, gleiches
+		// Backup); S3-Objekte erst nach der Backup-Aufbewahrung
+		await tx.delete(evidence).where(eq(evidence.id, evidenceId));
+		const inS3 = Boolean(row.storageKey && !isDbStorageKey(row.storageKey));
+		const after = inS3 ? purgeAfter(new Date()) : null;
+		if (row.storageKey && after) {
+			await tx
+				.insert(storagePurgeQueue)
+				.values({
+					organizationId: c.orgId,
+					storageKey: row.storageKey,
+					reason: "evidence_deleted",
+					refId: row.id,
+					requestedByUserId: c.userId,
+					purgeAfter: after,
+				})
+				.onConflictDoNothing();
+		}
+		return {
+			result: { hadFile: inS3 },
+			audit: {
+				action: "evidence.delete",
+				target: `evidence:${evidenceId}`,
+				before: {
+					title: row.title,
+					fileName: row.fileName,
+					sha256: row.sha256,
 				},
-			};
-		},
-	);
+				after: { objectPurgeAfter: after?.toISOString() ?? null },
+			},
+		};
+	});
 	if (!removed) return { ok: false, error: "notFound" };
 	if (removed === "signed") return { ok: false, error: "signed" };
+	if (removed === "in_document") return { ok: false, error: "in_document" };
 	if (removed.hadFile && s3Configured()) {
 		await writeTombstone({
 			kind: "evidence",

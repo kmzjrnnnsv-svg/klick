@@ -69,7 +69,7 @@ export default async function DocumentsPage({
 				!overdue ||
 				(r.nextReviewAt !== null &&
 					r.nextReviewAt < today &&
-					r.status === "published"),
+					r.current !== null),
 		);
 
 	const columns: Column<Row>[] = [
@@ -113,10 +113,22 @@ export default async function DocumentsPage({
 		},
 		{
 			key: "version",
-			header: t("version"),
-			className: "w-16",
+			header: t("current"),
+			className: "w-28",
 			mobile: false,
-			cell: (r) => `v${r.version}`,
+			cell: (r) => (
+				<span className="tabular-nums">
+					{r.current ? `v${r.current.version}` : "—"}
+					{r.current?.version !== r.version &&
+						(r.status === "draft" ||
+							r.status === "in_review" ||
+							r.status === "approved") && (
+							<span className="block text-muted-foreground text-footnote">
+								{t("workingCopy", { version: r.version })}
+							</span>
+						)}
+				</span>
+			),
 		},
 		{
 			key: "owner",
@@ -132,7 +144,7 @@ export default async function DocumentsPage({
 			cell: (r) => (
 				<span
 					className={
-						r.nextReviewAt && r.nextReviewAt < today && r.status === "published"
+						r.nextReviewAt && r.nextReviewAt < today && r.current !== null
 							? "text-destructive"
 							: "text-muted-foreground"
 					}

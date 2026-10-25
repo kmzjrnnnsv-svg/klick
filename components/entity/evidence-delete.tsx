@@ -57,7 +57,9 @@ export function DeleteEvidenceButton({ id }: { id: string }) {
 										toast.error(
 											res.error === "signed"
 												? t("deleteSigned")
-												: errorText(tc, res),
+												: res.error === "in_document"
+													? t("deleteInDocument")
+													: errorText(tc, res),
 										);
 									return;
 								}

@@ -4,7 +4,6 @@ import {
 	assets,
 	decisionRequests,
 	documents,
-	documentVersions,
 	exceptions,
 	incidents,
 	nonconformities,
@@ -30,6 +29,7 @@ import { applyChangeDecision } from "@/lib/compliance/change-request-service";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import type { OrgTx } from "@/lib/db/with-org";
+import { markVersionApproved } from "@/lib/documents/version-service";
 import { notify } from "@/lib/notifications/notify";
 import { syncTrainingAssignments } from "@/lib/trainings/assignments";
 import type { DecideResult } from "./service";
@@ -239,20 +239,31 @@ export async function applyApprovalOutcome(
 				)
 				.limit(1);
 			if (!doc) return extra;
+			// Die Entscheidung gilt genau der eingereichten Fassung: ist das
+			// Dokument inzwischen weiter (neue Fassung, zurück im Entwurf),
+			// bleibt sie im Protokoll, wirkt aber nicht
+			if (
+				doc.status !== "in_review" ||
+				(r.entityVersionRef !== null && r.entityVersionRef !== doc.version)
+			) {
+				extra.push({
+					action: "document.approval_stale",
+					target: `document:${doc.id}`,
+					after: {
+						decided: r.status,
+						version: r.entityVersionRef,
+						current: doc.version,
+						status: doc.status,
+					},
+				});
+				return extra;
+			}
 			if (approved) {
 				await tx
 					.update(documents)
 					.set({ status: "approved" })
 					.where(eq(documents.id, doc.id));
-				await tx
-					.update(documentVersions)
-					.set({ approvedByUserId: ctx.userId, approvedAt: new Date() })
-					.where(
-						and(
-							eq(documentVersions.documentId, doc.id),
-							eq(documentVersions.version, doc.version),
-						),
-					);
+				await markVersionApproved(tx, doc.id, doc.version, ctx.userId);
 			} else {
 				await tx
 					.update(documents)

@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { member, user } from "@/db/auth-schema";
 import {
 	documentAcknowledgements,
@@ -6,6 +6,7 @@ import {
 	documentVersions,
 } from "@/db/schema";
 import { normalizeRole } from "@/lib/auth/session-rules";
+import { currentVersionsByDocument } from "@/lib/documents/in-force";
 import type { DocBlock } from "@/lib/export/doc-model";
 import { fmtDay } from "../generate/doc";
 import { generator } from "../generate/types";
@@ -104,7 +105,7 @@ export function buildKenntnisnahme(f: KenntnisnahmeFacts) {
 export const kenntnisnahme = generator<KenntnisnahmeFacts>({
 	code: "NW-KENNTNISNAHME",
 	async load(tx, orgId) {
-		const docs = await tx
+		const allDocs = await tx
 			.select({
 				id: documents.id,
 				docNumber: documents.docNumber,
@@ -113,13 +114,14 @@ export const kenntnisnahme = generator<KenntnisnahmeFacts>({
 				distribution: documents.distribution,
 			})
 			.from(documents)
-			.where(
-				and(
-					eq(documents.organizationId, orgId),
-					eq(documents.status, "published"),
-				),
-			)
+			.where(eq(documents.organizationId, orgId))
 			.orderBy(documents.docNumber);
+		// Kenntnisnahme gilt der gültigen Fassung (auch während eine neue
+		// Fassung in Arbeit ist)
+		const current = await currentVersionsByDocument(tx, orgId);
+		const docs = allDocs
+			.filter((d) => current.has(d.id))
+			.map((d) => ({ ...d, version: current.get(d.id)?.version ?? d.version }));
 		if (docs.length === 0) return { documents: [] };
 		const [versions, acks, members] = await Promise.all([
 			tx

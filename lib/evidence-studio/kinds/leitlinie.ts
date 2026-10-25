@@ -1,6 +1,8 @@
 import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import { documents, documentVersions, evidence } from "@/db/schema";
 import { userNames } from "@/lib/compliance/queries";
+import { currentVersionsByDocument } from "@/lib/documents/in-force";
+import { inForceStatus } from "@/lib/documents/versions";
 import type { DocBlock } from "@/lib/export/doc-model";
 import { fmtDay } from "../generate/doc";
 import { generator } from "../generate/types";
@@ -134,10 +136,14 @@ export const leitlinie = generator<LeitlinieFacts>({
 				),
 			)
 			.orderBy(desc(documents.updatedAt));
+		// in Kraft (gültige Fassung) vor freigegeben vor Entwurf
+		const current = await currentVersionsByDocument(tx, orgId);
 		const doc =
+			docs.find((d) => current.has(d.id)) ??
 			docs.find((d) => d.status === "published" || d.status === "approved") ??
 			docs.find((d) => d.status !== "retired" && d.status !== "superseded");
 		if (!doc) return null;
+		const cur = current.get(doc.id);
 		const [version] = await tx
 			.select()
 			.from(documentVersions)
@@ -145,7 +151,9 @@ export const leitlinie = generator<LeitlinieFacts>({
 				and(
 					eq(documentVersions.documentId, doc.id),
 					eq(documentVersions.organizationId, orgId),
-					isNotNull(documentVersions.approvedAt),
+					cur
+						? eq(documentVersions.id, cur.id)
+						: isNotNull(documentVersions.approvedAt),
 				),
 			)
 			.orderBy(desc(documentVersions.approvedAt))
@@ -167,7 +175,7 @@ export const leitlinie = generator<LeitlinieFacts>({
 		return {
 			docNumber: doc.docNumber,
 			title: doc.title,
-			status: doc.status,
+			status: inForceStatus(doc.status, Boolean(cur)),
 			version: version?.version ?? doc.version,
 			approvedAt: version?.approvedAt?.toISOString() ?? null,
 			approvedBy: version?.approvedByUserId

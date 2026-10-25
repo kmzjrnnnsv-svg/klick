@@ -295,6 +295,13 @@
       "when": 1792957316649,
       "tag": "0041_own_role_assignments",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792969713006,
+      "tag": "0042_document_versions",
+      "breakpoints": true
     }
   ]
 }

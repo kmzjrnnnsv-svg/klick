@@ -12,6 +12,7 @@ import {
 import { listProcesses } from "@/lib/compliance/queries-p3";
 import { listInsurancePolicies } from "@/lib/compliance/queries-p5";
 import { readOrg } from "@/lib/db/with-org";
+import { currentPublished, inForceStatus } from "@/lib/documents/versions";
 import {
 	auditExport,
 	exportStepUpGuard,
@@ -102,15 +103,16 @@ export async function GET(req: Request) {
 
 	const profile = data.settings?.entityProfile ?? {};
 	const fileById = new Map(data.fileEvidence.map((f) => [f.id, f]));
+	// je Dokument die gültige Fassung (nicht zurückgezogen, nicht ersetzt)
 	const latestPublishedByDoc = new Map<
 		string,
 		(typeof data.versions)[number]
 	>();
-	for (const v of data.versions) {
-		if (!v.publishedAt) continue;
-		const prev = latestPublishedByDoc.get(v.documentId);
-		if (!prev || (prev.publishedAt?.getTime() ?? 0) < v.publishedAt.getTime())
-			latestPublishedByDoc.set(v.documentId, v);
+	for (const d of data.documents) {
+		const cur = currentPublished(
+			data.versions.filter((v) => v.documentId === d.id),
+		);
+		if (cur) latestPublishedByDoc.set(d.id, cur);
 	}
 	const yearAgo = new Date(generatedAt.getTime() - 365 * 86_400_000);
 	const recent = data.incidents.filter((i) => i.awareAt >= yearAgo);
@@ -152,7 +154,7 @@ export async function GET(req: Request) {
 				templateCode: d.templateCode,
 				docNumber: d.docNumber,
 				title: d.title,
-				status: d.status,
+				status: inForceStatus(d.status, Boolean(v)),
 				version: v?.version ?? d.version,
 				classification: d.classification,
 				publishedAt: v?.publishedAt ?? null,
