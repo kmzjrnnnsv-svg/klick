@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { Check } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -20,8 +20,10 @@ import {
 	sites,
 } from "@/db/schema";
 import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
+import { approvalProgressFor } from "@/lib/approvals/service";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { isEffective } from "@/lib/compliance/appointments";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import {
 	areaOf,
@@ -95,17 +97,34 @@ export default async function SetupStepPage({
 						deputyUserId: roleAssignments.deputyUserId,
 						appointedAt: roleAssignments.appointedAt,
 						createdAt: roleAssignments.createdAt,
+						status: roleAssignments.status,
+						decisionNote: roleAssignments.decisionNote,
 					})
 					.from(roleAssignments)
-					.where(eq(roleAssignments.organizationId, ctx.orgId))
+					.where(
+						and(
+							eq(roleAssignments.organizationId, ctx.orgId),
+							ne(roleAssignments.status, "revoked"),
+						),
+					)
 					.orderBy(roleAssignments.appointedAt, roleAssignments.createdAt);
+				// Stand der Bestellung (wartet auf die Geschäftsleitung, 1 von 2)
+				const progress = await approvalProgressFor(
+					tx,
+					ctx.orgId,
+					"role_assignment",
+					rows.filter((r) => r.status !== "appointed").map((r) => r.id),
+				);
 				const names = await userNames(
 					tx,
 					rows.flatMap((r) => [r.userId, r.deputyUserId]),
 				);
 				return {
 					...base,
-					assignments: rows,
+					assignments: rows.map((r) => ({
+						...r,
+						progress: progress.get(r.id) ?? null,
+					})),
 					names,
 					members: await listMembersForPicker(tx, ctx.orgId),
 					areaFunctions: s?.areaFunctions ?? {},
@@ -241,7 +260,11 @@ export default async function SetupStepPage({
 					}));
 					// Bereiche → Funktion: gespeichert, sonst die Funktion, die den
 					// Bereich schon trägt, sonst der Vorschlag aus dem Katalog
-					const held = new Set(data.assignments.map((a) => a.function));
+					const held = new Set(
+						data.assignments
+							.filter((a) => isEffective(a.status))
+							.map((a) => a.function),
+					);
 					const areas = RESPONSIBILITY_AREAS.map((area) => {
 						const rows = data.controlOwners.filter((c) => areaOf(c) === area);
 						const counts = new Map<RoleFunction, number>();
@@ -281,7 +304,10 @@ export default async function SetupStepPage({
 								.filter((f) => held.has(f))
 								.map((f) => ({ function: f, title: tf(f) }))}
 							assignments={named}
-							people={whoHoldsWhat(named, tf)}
+							people={whoHoldsWhat(
+								named.filter((a) => a.status !== "rejected"),
+								tf,
+							)}
 							members={data.members}
 							currentUserId={ctx.userId}
 							nextHref={nextHref}

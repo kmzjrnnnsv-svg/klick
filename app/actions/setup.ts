@@ -256,7 +256,7 @@ async function setupAssignFunctionImpl(input: unknown): Promise<
 
 async function setupRemoveAssignmentImpl(
 	input: unknown,
-): Promise<ActionResult> {
+): Promise<ActionResult<{ status: string }>> {
 	const { c, open } = await requireSetup({ role_assignment: ["update"] });
 	if (!open) await requireStepUp();
 	const parsed = deleteSiteSchema.safeParse(input);
@@ -273,7 +273,7 @@ async function setupRemoveAssignmentImpl(
 	});
 	revalidatePath(PATH, "layout");
 	return res.ok
-		? { ok: true, data: undefined }
+		? { ok: true, data: { status: res.status } }
 		: {
 				ok: false,
 				error: res.error === "no_management" ? "noManagement" : "notFound",

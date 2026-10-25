@@ -29,6 +29,7 @@ import {
 import {
 	proposeAssignment,
 	proposeRevocation,
+	requestRoleMatrixResolution,
 	updateProposal,
 } from "@/lib/compliance/appointment-service";
 import {
@@ -696,6 +697,34 @@ async function deleteRoleAssignmentImpl(input: unknown): Promise<ActionResult> {
 			};
 }
 
+// Sammelbeschluss „Besetzung bestätigen“ (RES-ROLES): alle Mitglieder der
+// Geschäftsleitung stimmen zu
+async function confirmRoleMatrixImpl(): Promise<
+	ActionResult<{ number: string; approval: "none" | "pending" | "approved" }>
+> {
+	let c: Awaited<ReturnType<typeof requireStepUp>>;
+	try {
+		c = await requireStepUp({ role_assignment: ["update"] });
+	} catch (e) {
+		if (e instanceof AuthError && e.code === "step_up_required")
+			return { ok: false, error: "step_up_required" };
+		throw e;
+	}
+	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const r = await requestRoleMatrixResolution(tx, {
+			orgId: c.orgId,
+			userId: c.userId,
+			name: c.name,
+		});
+		return { result: r, audit: r.ok ? r.audit : [] };
+	});
+	revalidatePath(PATH);
+	revalidatePath("/beschluesse");
+	return res.ok
+		? { ok: true, data: { number: res.number, approval: res.approval } }
+		: { ok: false, error: res.error };
+}
+
 // ── Ziele & KPIs ───────────────────────────────────────────────────────────
 
 // Ziele mit Kennzahlen (B5): Vorschlag → Freigabe durch die
@@ -1143,6 +1172,10 @@ export const requestScopeApproval = safeAction(
 export const upsertRoleAssignment = safeAction(
 	"upsertRoleAssignment",
 	upsertRoleAssignmentImpl,
+);
+export const confirmRoleMatrix = safeAction(
+	"confirmRoleMatrix",
+	confirmRoleMatrixImpl,
 );
 export const deleteRoleAssignment = safeAction(
 	"deleteRoleAssignment",

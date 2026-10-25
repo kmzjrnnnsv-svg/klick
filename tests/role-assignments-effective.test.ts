@@ -19,6 +19,7 @@ const ALL_ROWS: Record<string, string> = {
 		"/organisation listet alle Zeilen; Abdeckung filtert selbst",
 	"lib/compliance/appointment-service.ts":
 		"Bestellung selbst: liest Vorschläge, um sie zu bestellen",
+	"lib/entities/links.ts": "Titel im Posteingang, auch für Vorschläge",
 	"lib/compliance/decision-service.ts":
 		"Beschluss nennt die Funktion der Bestellung (auch vor der Wirkung)",
 };

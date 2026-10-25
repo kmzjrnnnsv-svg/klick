@@ -13,10 +13,12 @@ import type { AuditInput } from "@/lib/audit";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { noticesFor } from "@/lib/compliance/catalog/appointment-notices";
 import { appointable } from "@/lib/compliance/catalog/appointment-templates";
+import { appointmentRequirementKeys } from "@/lib/compliance/decision-resolutions";
 import { recipientsOf } from "@/lib/compliance/function-holders";
 import { loadAssignments } from "@/lib/compliance/function-holders-service";
 import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import { userNames } from "@/lib/compliance/queries";
+import { insertResolution } from "@/lib/compliance/resolutions-service";
 import type { OrgTx } from "@/lib/db/with-org";
 import { berlinToday } from "@/lib/evidence-studio/queries";
 import { logger } from "@/lib/log";
@@ -649,4 +651,81 @@ export async function requestOpenAppointments(
 		audit.push(...res.audit);
 	}
 	return audit;
+}
+
+// Sammelbeschluss „Besetzung bestätigen“: die Geschäftsleitung bestätigt
+// alle bestellten Funktionen auf einmal (Bestand ohne eigenen Beschluss,
+// jährliche Bestätigung RES-ROLES). Freigabe durch alle Mitglieder der GL.
+export async function requestRoleMatrixResolution(
+	tx: OrgTx,
+	actor: Actor,
+): Promise<
+	| {
+			ok: true;
+			number: string;
+			approval: "none" | "pending" | "approved";
+			audit: AuditInput[];
+	  }
+	| { ok: false; error: "empty" | string }
+> {
+	const rows = await tx
+		.select()
+		.from(roleAssignments)
+		.where(
+			and(
+				eq(roleAssignments.organizationId, actor.orgId),
+				effectiveAssignment(),
+			),
+		)
+		.orderBy(roleAssignments.function);
+	if (rows.length === 0) return { ok: false, error: "empty" };
+	const tf = await getTranslations("Functions");
+	const names = await userNames(
+		tx,
+		rows.flatMap((r) => [r.userId, r.deputyUserId]),
+	);
+	const who = (id: string | null) => (id ? (names.get(id) ?? "") : "");
+	const lines = rows.map((r) => {
+		const holder = who(r.userId) || r.externalName || r.pendingEmail || "";
+		const deputy = r.deputyUserId
+			? ` (Vertretung: ${who(r.deputyUserId)})`
+			: "";
+		return `- ${tf(r.function as never)}: ${holder}${deputy}`;
+	});
+	const today = berlinToday();
+	const { frameworks } = await orgContext(tx, actor.orgId);
+	const keys = appointmentRequirementKeys("other").filter((k) =>
+		frameworks.includes(k.split(":")[0] ?? ""),
+	);
+	const created = await insertResolution(tx, actor, {
+		subject: `Rollen und Verantwortlichkeiten (Stand ${today})`,
+		decisionText: [
+			"Die Geschäftsleitung bestätigt die Besetzung der Funktionen:",
+			...lines,
+		].join("\n"),
+		body: "management",
+		date: today,
+		requiredCode: "RES-ROLES",
+		linkedEntityType: "organization",
+		linkedEntityId: actor.orgId,
+		attendeeUserIds: [actor.userId],
+		requestApproval: true,
+		approvalSteps: [
+			{
+				order: 1,
+				approverRule: "function:management_body",
+				everyone: true,
+				slaDays: 10,
+			},
+		],
+		frameworks: [...new Set(keys.map((k) => k.split(":")[0] ?? ""))],
+		requirementKeys: keys,
+	});
+	if (!created.ok) return created;
+	return {
+		ok: true,
+		number: created.data.number,
+		approval: created.data.approval,
+		audit: [created.audit],
+	};
 }

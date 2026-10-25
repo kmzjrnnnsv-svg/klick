@@ -1,4 +1,5 @@
 import { eq, inArray } from "drizzle-orm";
+import { getTranslations } from "next-intl/server";
 import {
 	assets,
 	audits,
@@ -16,9 +17,11 @@ import {
 	providers,
 	resolutions,
 	risks,
+	roleAssignments,
 	trainingRequirements,
 } from "@/db/schema";
 import type { EntityKind } from "@/db/schema/enums";
+import { userNames } from "@/lib/compliance/queries";
 import type { OrgTx } from "@/lib/db/with-org";
 
 // Link und Titel zu einer polymorphen Entität (Freigaben, Aufgaben, Feed).
@@ -176,6 +179,32 @@ export async function resolveEntityTitles(
 			.where(inArray(decisionRequests.id, ids("decision_request")));
 		for (const r of rows)
 			out.set(`decision_request:${r.id}`, `${r.code} ${r.question}`);
+	}
+	if (ids("role_assignment").length) {
+		// Bestellung: „Funktion · Person“ (auch für Vorschläge)
+		const rows = await tx
+			.select({
+				id: roleAssignments.id,
+				fn: roleAssignments.function,
+				userId: roleAssignments.userId,
+				external: roleAssignments.externalName,
+				email: roleAssignments.pendingEmail,
+			})
+			.from(roleAssignments)
+			.where(inArray(roleAssignments.id, ids("role_assignment")));
+		const names = await userNames(
+			tx,
+			rows.map((r) => r.userId),
+		);
+		const tf = await getTranslations("Functions");
+		for (const r of rows) {
+			const who =
+				(r.userId ? names.get(r.userId) : null) ?? r.external ?? r.email;
+			out.set(
+				`role_assignment:${r.id}`,
+				[tf(r.fn as never), who].filter(Boolean).join(" · "),
+			);
+		}
 	}
 	if (ids("objective").length) {
 		const rows = await tx

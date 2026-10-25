@@ -15,6 +15,7 @@ import { InviteLinkPanel } from "@/components/team/invite-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import { errorText } from "@/components/ui/error-text";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
-import type { RoleFunction } from "@/db/schema/enums";
+import type { AppointmentStatus, RoleFunction } from "@/db/schema/enums";
 import type { PersonView } from "@/lib/compliance/function-holders";
 import { type AreaRow, AreasBlock } from "./areas-block";
 import { useStepRunner } from "./step-footer";
@@ -50,6 +51,10 @@ type Assignment = {
 	deputyUserId: string | null;
 	userName: string | null;
 	deputyName: string | null;
+	status: AppointmentStatus;
+	decisionNote: string | null;
+	// offene Freigabe: Zustimmungen der Geschäftsleitung
+	progress: { done: number; total: number } | null;
 };
 type Member = { userId: string; name: string; email: string };
 type Mode = "me" | "member" | "invite" | "external";
@@ -79,6 +84,7 @@ export function RolesStep({
 	nextHref: string;
 }) {
 	const t = useTranslations("Setup");
+	const ta = useTranslations("Appointments");
 	const tt = useTranslations("Team");
 	const { pending, run } = useStepRunner(nextHref);
 	const card = (f: Fn) => (
@@ -93,6 +99,9 @@ export function RolesStep({
 	const more = functions.filter((f) => f.more);
 	return (
 		<div className="flex flex-col gap-8">
+			<p className="max-w-2xl rounded-2xl bg-card p-4 text-subhead">
+				{ta("appointHint")}
+			</p>
 			<ul className="flex flex-col gap-3">
 				{functions.filter((f) => !f.more).map(card)}
 			</ul>
@@ -163,8 +172,10 @@ function FunctionCard({
 }) {
 	const t = useTranslations("Setup");
 	const [adding, setAdding] = useState(false);
+	// nur bestellte Besetzungen zählen (Vorschläge und Abgelehnte nicht)
+	const live = rows.filter((r) => r.status === "appointed");
 	const deputyMissing =
-		fn.deputyRequired && rows.length > 0 && !rows.some((r) => r.deputyUserId);
+		fn.deputyRequired && live.length > 0 && !live.some((r) => r.deputyUserId);
 	return (
 		<li className="flex flex-col gap-3 rounded-2xl bg-card p-4 text-subhead">
 			<div className="flex flex-wrap items-start justify-between gap-2">
@@ -244,11 +255,37 @@ function HolderLine({
 	currentUserId: string;
 }) {
 	const t = useTranslations("Setup");
+	const ta = useTranslations("Appointments");
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const [editing, setEditing] = useState(false);
 	const name = row.userName ?? row.externalName ?? row.pendingEmail ?? "—";
+	// Abberufen ist ein Antrag an die Geschäftsleitung: vorher nachfragen
+	const revoke = useConfirm({
+		title: ta("revokeConfirm", { name }),
+		description: ta("revokeConfirmLead"),
+		confirmLabel: ta("revoke"),
+	});
+	const remove = () =>
+		start(async () => {
+			const res = await withStepUp(() => setupRemoveAssignment({ id: row.id }));
+			if (!res.ok)
+				return void toast.error(
+					res.error === "noManagement"
+						? ta("noManagement")
+						: errorText(tc, res),
+				);
+			toast.success(
+				res.data.status === "revocation_requested"
+					? ta("revocationRequested")
+					: res.data.status === "withdrawn"
+						? ta("withdrawn")
+						: ta("removed"),
+			);
+			router.refresh();
+		});
+	const appointed = row.status === "appointed";
 	if (editing)
 		return (
 			<li className="px-4 py-3">
@@ -282,31 +319,72 @@ function HolderLine({
 						· {t("asDeputy")}: {row.deputyName}
 					</span>
 				)}
+				<AppointmentBadge row={row} />
+				{row.status === "rejected" && row.decisionNote && (
+					<span className="block text-muted-foreground text-footnote">
+						{ta("rejectedNote", { note: row.decisionNote })}
+					</span>
+				)}
 			</span>
 			<span className="flex gap-1">
-				<Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
-					{t("change")}
-				</Button>
-				<Button
-					size="sm"
-					variant="ghost"
-					disabled={pending}
-					onClick={() =>
-						start(async () => {
-							const res = await withStepUp(() =>
-								setupRemoveAssignment({ id: row.id }),
-							);
-							if (!res.ok) return void toast.error(errorText(tc, res));
-							toast.success(t("removed"));
-							router.refresh();
-						})
-					}
-				>
-					{t("remove")}
-				</Button>
+				{row.status !== "revocation_requested" && (
+					<Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+						{t("change")}
+					</Button>
+				)}
+				{row.status !== "revocation_requested" && (
+					<Button
+						size="sm"
+						variant="ghost"
+						disabled={pending}
+						onClick={() => (appointed ? revoke.ask(remove) : remove())}
+					>
+						{appointed
+							? ta("revoke")
+							: row.status === "rejected"
+								? t("remove")
+								: ta("withdraw")}
+					</Button>
+				)}
 			</span>
+			{revoke.node}
 		</li>
 	);
+}
+
+// Stand der Bestellung als Text (nie nur Farbe)
+function AppointmentBadge({ row }: { row: Assignment }) {
+	const ta = useTranslations("Appointments");
+	switch (row.status) {
+		case "appointed":
+			return (
+				<Badge variant="success" className="ml-2">
+					{ta("statusAppointed")}
+				</Badge>
+			);
+		case "rejected":
+			return (
+				<Badge variant="destructive" className="ml-2">
+					{ta("statusRejected")}
+				</Badge>
+			);
+		case "revocation_requested":
+			return (
+				<Badge variant="warning" className="ml-2">
+					{ta("statusRevocation")}
+				</Badge>
+			);
+		case "proposed":
+			return (
+				<Badge variant="warning" className="ml-2">
+					{row.progress
+						? ta("statusProgress", row.progress)
+						: ta("statusNoManagement")}
+				</Badge>
+			);
+		default:
+			return null;
+	}
 }
 
 function initialMode(
@@ -339,6 +417,7 @@ function AssignmentEditor({
 	onDone: () => void;
 }) {
 	const t = useTranslations("Setup");
+	const ta = useTranslations("Appointments");
 	const tt = useTranslations("Team");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -390,7 +469,13 @@ function AssignmentEditor({
 				const field = "fieldErrors" in res ? res.fieldErrors : undefined;
 				return void setError(field?.deputyUserId?.[0] ?? errorText(tc, res));
 			}
-			toast.success(res.data.inviteUrl ? t("invited") : t("assigned"));
+			toast.success(
+				res.data.status === "appointed"
+					? ta("appointedNow")
+					: res.data.waiting === "approval"
+						? ta("proposedWaiting")
+						: ta("proposedNoManagement"),
+			);
 			if (res.data.inviteUrl)
 				setInvite({ url: res.data.inviteUrl, mailed: res.data.mailed });
 			else onDone();

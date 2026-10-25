@@ -6,7 +6,6 @@ import {
 	deleteCommunication,
 	deleteContextIssue,
 	deleteInterestedParty,
-	deleteRoleAssignment,
 } from "@/app/actions/organisation";
 import { deleteInsurancePolicy } from "@/app/actions/privacy";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
@@ -16,6 +15,10 @@ import { Sparkline } from "@/components/entity/sparkline";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
+import {
+	ConfirmMatrixButton,
+	RevokeAssignmentButton,
+} from "@/components/organisation/appointment-actions";
 import {
 	ApplyGovernanceSeedButton,
 	CommunicationForm,
@@ -81,6 +84,7 @@ import {
 } from "@/lib/compliance/queries";
 import { listAssets } from "@/lib/compliance/queries-p2";
 import {
+	appointmentFacts,
 	governanceStatus,
 	listCommunications,
 	listConflicts,
@@ -189,7 +193,13 @@ export default async function OrganisationPage({
 					})),
 				);
 				const assetRows = await listAssets(tx, ctx.orgId);
-				return { ...base, checklists, assetRows };
+				// Bestellung: Stand, offene Anzeigen, Beschluss vorhanden?
+				const appointments = await appointmentFacts(
+					tx,
+					ctx.orgId,
+					gov.assignments,
+				);
+				return { ...base, checklists, assetRows, appointments };
 			}
 			case "standorte":
 				return {
@@ -273,6 +283,46 @@ export default async function OrganisationPage({
 		ROLE_FUNCTIONS.map((f) => [f, tf(f)]),
 	) as Record<string, string>;
 	const today = new Date().toISOString().slice(0, 10);
+	const ta = await getTranslations("Appointments");
+	const facts = "appointments" in data ? data.appointments : null;
+	// Stand der Bestellung je Besetzung (immer mit Text, nie nur Farbe)
+	const appointmentState = (a: (typeof gov.assignments)[number]) => {
+		const p = facts?.progress.get(a.id);
+		return (
+			<div className="mt-1 flex flex-wrap gap-1">
+				{a.status === "proposed" && (
+					<Badge variant="warning">
+						{p ? ta("statusProgress", p) : ta("statusNoManagement")}
+					</Badge>
+				)}
+				{a.status === "revocation_requested" && (
+					<Badge variant="warning">
+						{p
+							? `${ta("statusRevocation")} (${p.done}/${p.total})`
+							: ta("statusRevocation")}
+					</Badge>
+				)}
+				{a.status === "rejected" && (
+					<span className="text-footnote">
+						<Badge variant="destructive">{ta("statusRejected")}</Badge>
+						{a.decisionNote && (
+							<span className="ml-1 text-muted-foreground">
+								{ta("rejectedNote", { note: a.decisionNote })}
+							</span>
+						)}
+					</span>
+				)}
+				{facts?.withoutResolution.has(a.id) && (
+					<Badge variant="muted">{ta("withoutResolution")}</Badge>
+				)}
+				{facts?.noticesOpen.has(a.id) && (
+					<Link href="/heute/aufgaben">
+						<Badge variant="warning">{ta("noticeOpen")}</Badge>
+					</Link>
+				)}
+			</div>
+		);
+	};
 	const gapCount = gov.coverage.gaps.length;
 	const blockSod = gov.sod.filter((v) => v.rule.severity === "block").length;
 
@@ -638,17 +688,23 @@ export default async function OrganisationPage({
 							functionLabels={functionLabels}
 						/>
 					</section>
-					<div className="flex items-start justify-between gap-3">
-						<p className="text-muted-foreground text-subhead">
+					<div className="flex flex-wrap items-start justify-between gap-3">
+						<p className="min-w-0 max-w-2xl grow basis-64 text-muted-foreground text-subhead">
 							{t("rolesLead")}
 						</p>
 						{canRoles && (
-							<RoleAssignmentForm
-								members={members}
-								functionLabels={functionLabels}
-							/>
+							<div className="flex flex-wrap items-center gap-2">
+								<ConfirmMatrixButton />
+								<RoleAssignmentForm
+									members={members}
+									functionLabels={functionLabels}
+								/>
+							</div>
 						)}
 					</div>
+					<p className="max-w-2xl text-muted-foreground text-footnote">
+						{ta("appointHint")} {ta("confirmMatrixLead")}
+					</p>
 					{gov.sod.length > 0 && (
 						<div className="flex flex-col gap-1 rounded-xl bg-destructive/10 p-3 text-subhead">
 							<p className="font-medium">{t("sodTitle")}</p>
@@ -785,7 +841,8 @@ export default async function OrganisationPage({
 														{a.pendingEmail ?? t("unfilled")}
 													</span>
 												)}
-												{appointable(a.function) && (
+												{appointmentState(a)}
+												{appointable(a.function) && isEffective(a.status) && (
 													<div className="mt-2">
 														<EntityEvidence
 															ctx={ctx}
@@ -857,10 +914,15 @@ export default async function OrganisationPage({
 																appointmentNotes: a.appointmentNotes,
 															}}
 														/>
-														<DeleteRowButton
+														<RevokeAssignmentButton
 															id={a.id}
-															action={deleteRoleAssignment}
-															label={t("deleteAssignment")}
+															status={a.status}
+															name={
+																a.holderName ??
+																a.externalName ??
+																a.pendingEmail ??
+																""
+															}
 														/>
 													</div>
 												)}
@@ -897,6 +959,7 @@ export default async function OrganisationPage({
 												) : (
 													a.externalName
 												)}
+												{appointmentState(a)}
 											</TableCell>
 											<TableCell>
 												{a.deputyName ? <UserChip name={a.deputyName} /> : "—"}
@@ -933,10 +996,15 @@ export default async function OrganisationPage({
 																appointmentNotes: a.appointmentNotes,
 															}}
 														/>
-														<DeleteRowButton
+														<RevokeAssignmentButton
 															id={a.id}
-															action={deleteRoleAssignment}
-															label={t("deleteAssignment")}
+															status={a.status}
+															name={
+																a.holderName ??
+																a.externalName ??
+																a.pendingEmail ??
+																""
+															}
 														/>
 													</div>
 												)}
@@ -949,10 +1017,12 @@ export default async function OrganisationPage({
 					<WhoHoldsWhat
 						showSod={false}
 						people={whoHoldsWhat(
-							gov.assignments.map((a) => ({
-								...a,
-								userName: a.userId ? a.holderName : null,
-							})),
+							gov.assignments
+								.filter((a) => a.status !== "rejected")
+								.map((a) => ({
+									...a,
+									userName: a.userId ? a.holderName : null,
+								})),
 							(fn) => functionLabels[fn] ?? fn,
 						)}
 					/>
@@ -1912,7 +1982,7 @@ function AssetOwners({
 			{unowned > 0 && (
 				<Link
 					href="/assets?unowned=1"
-					className="w-fit rounded-xl bg-warning/12 px-2 py-1 text-warning text-footnote hover:underline"
+					className="inline-flex h-(--control-h-sm) w-fit items-center rounded-xl bg-warning/12 px-2 text-warning text-footnote hover:underline"
 				>
 					{gapLabel(unowned)}
 				</Link>
@@ -1924,7 +1994,7 @@ function AssetOwners({
 						<li key={userId}>
 							<Link
 								href={`/team/${userId}`}
-								className="inline-flex items-center gap-1 rounded-xl bg-card px-2 py-1 text-footnote hover:bg-muted"
+								className="inline-flex h-(--control-h-sm) items-center gap-1 rounded-xl bg-card px-2 text-footnote hover:bg-muted"
 							>
 								{e.name}
 								<span className="text-muted-foreground">

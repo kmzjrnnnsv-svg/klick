@@ -713,3 +713,72 @@ export async function evidenceTitles(
 		);
 	return new Map(rows.map((r) => [r.id, r.title]));
 }
+
+// Mehrere Bestellungen auf einmal freigegeben (Posteingang „Alle
+// Bestellungen freigeben“): ein gemeinsamer Beschluss statt einer je Antrag.
+export async function createAppointmentsResolution(
+	tx: OrgTx,
+	actor: { orgId: string; userId: string; name: string },
+	requestIds: readonly string[],
+): Promise<AuditInput[]> {
+	if (requestIds.length === 0) return [];
+	const rows = await tx
+		.select({ req: approvalRequests, wfSteps: approvalWorkflows.steps })
+		.from(approvalRequests)
+		.innerJoin(
+			approvalWorkflows,
+			eq(approvalWorkflows.id, approvalRequests.workflowId),
+		)
+		.where(
+			and(
+				eq(approvalRequests.organizationId, actor.orgId),
+				inArray(approvalRequests.id, [...requestIds]),
+			),
+		);
+	const decided = await tx
+		.select({ userId: approvalDecisions.approverUserId })
+		.from(approvalDecisions)
+		.where(
+			and(
+				inArray(approvalDecisions.requestId, [...requestIds]),
+				eq(approvalDecisions.decision, "approved"),
+			),
+		);
+	const labels: string[] = [];
+	const keys: string[] = [];
+	for (const { req } of rows) {
+		const facts = await entityFacts(tx, req.entityType, req.entityId);
+		labels.push(facts.label);
+		if (facts.roleFunction)
+			keys.push(...appointmentRequirementKeys(facts.roleFunction));
+	}
+	const active = (await listOrgFrameworks(tx, actor.orgId)).map((f) => f.slug);
+	const refs = frameworkRefs(keys, active);
+	const attendees = [
+		...new Set(
+			[
+				actor.userId,
+				...rows.flatMap(({ req, wfSteps }) =>
+					requestSteps(req, wfSteps).flatMap((s) => s.given ?? []),
+				),
+				...decided.map((d) => d.userId),
+			].filter((x): x is string => Boolean(x)),
+		),
+	];
+	const created = await insertResolution(tx, actor, {
+		subject: `Bestellungen: ${labels.join("; ")}`.slice(0, 300),
+		decisionText: [
+			"Die Geschäftsleitung bestellt:",
+			...labels.map((l) => `- ${l}`),
+		].join("\n"),
+		body: "management",
+		date: new Date().toISOString().slice(0, 10),
+		requiredCode: "RES-ROLES",
+		attendeeUserIds: attendees,
+		requestApproval: false,
+		frameworks: refs.frameworks,
+		requirementKeys: refs.requirementKeys,
+		decidedRequestId: requestIds[0] ?? null,
+	});
+	return created.ok ? [created.audit] : [];
+}

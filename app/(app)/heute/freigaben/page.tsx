@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { ApprovalActions } from "@/components/approvals/approval-actions";
+import { BulkAppointmentsButton } from "@/components/approvals/bulk-appointments";
 import { DelegationForm } from "@/components/approvals/delegation-form";
 import { RouteProgress } from "@/components/approvals/route-progress";
 import { EmptyState } from "@/components/entity/empty-state";
@@ -81,6 +82,17 @@ export default async function ApprovalsInboxPage({
 					{ value: "decided", label: t("decided") },
 				]}
 			/>
+			{/* mehrere Bestellungen warten: in einem Schritt freigeben */}
+			{tab === "waiting" &&
+				waiting.filter((r) => r.kind === "role_appointment").length > 1 && (
+					<div className="mb-3 flex justify-end">
+						<BulkAppointmentsButton
+							requestIds={waiting
+								.filter((r) => r.kind === "role_appointment")
+								.map((r) => r.id)}
+						/>
+					</div>
+				)}
 			{list.length === 0 ? (
 				<EmptyState title={t("empty")} />
 			) : (

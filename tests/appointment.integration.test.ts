@@ -18,7 +18,10 @@ import {
 	proposeAssignment,
 	proposeRevocation,
 } from "@/lib/compliance/appointment-service";
-import { resolutionForApproval } from "@/lib/compliance/decision-service";
+import {
+	createAppointmentsResolution,
+	resolutionForApproval,
+} from "@/lib/compliance/decision-service";
 import { functionResponsible } from "@/lib/compliance/function-holders-service";
 import { generateDek, wrapDek } from "@/lib/crypto/envelope";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -296,5 +299,46 @@ d("Bestellung durch die Geschäftsleitung (Postgres)", () => {
 		expect(
 			await inOrg((tx) => functionResponsible(tx, orgId, "isb_ciso")),
 		).toBeNull();
+	});
+	it("mehrere Bestellungen auf einmal: ein gemeinsamer Beschluss", async () => {
+		const ids: string[] = [];
+		for (const fn of ["bcm_manager", "incident_manager"] as const) {
+			const out = await inOrg((tx) =>
+				proposeAssignment(
+					tx,
+					actor("ines"),
+					{ function: fn, userId: u.ines },
+					"test",
+				),
+			);
+			ids.push(out.id);
+		}
+		const reqs = await Promise.all(ids.map((id) => pendingRequest(id)));
+		// wie decideAppointments: entscheiden, Wirkung, dann ein Beschluss
+		await inOrg(async (tx) => {
+			for (const who of ["anna", "bert", "cleo"] as const)
+				for (const req of reqs) {
+					const r = await decide(tx, actor(who), {
+						requestId: req as string,
+						decision: "approved",
+					});
+					if (r.ok && r.status === "approved")
+						await applyApprovalOutcome(tx, { orgId, userId: u[who] }, r);
+				}
+			await createAppointmentsResolution(tx, actor("cleo"), reqs as string[]);
+		});
+		for (const id of ids) expect((await statusOf(id))?.s).toBe("appointed");
+		const [res] = await inOrg((tx) =>
+			tx
+				.select({
+					subject: resolutions.subject,
+					code: resolutions.requiredCode,
+				})
+				.from(resolutions)
+				.where(eq(resolutions.approvalRequestId, reqs[0] as string)),
+		);
+		expect(res?.code).toBe("RES-ROLES");
+		expect(res?.subject).toContain("bcm_manager");
+		expect(res?.subject).toContain("incident_manager");
 	});
 });

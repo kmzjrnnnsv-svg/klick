@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { resolutions } from "@/db/schema";
 import type { EntityKind } from "@/db/schema/enums";
+import type { ApprovalStep } from "@/db/schema/grc";
 import { requestApproval } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
 import { nextResolutionNumber } from "@/lib/compliance/catalog/resolutions-required";
@@ -24,6 +25,8 @@ export type ResolutionDraft = {
 	requirementKeys?: string[];
 	// schon entschiedene Freigabe, aus der dieser Beschluss entsteht (E1)
 	decidedRequestId?: string | null;
+	// Stufen nur für diesen Beschluss (z. B. alle Mitglieder der GL)
+	approvalSteps?: ApprovalStep[];
 };
 
 export type ResolutionCreated = {
@@ -81,6 +84,7 @@ export async function insertResolution(
 			title: `${number} · ${d.subject}`,
 			link: "/beschluesse",
 			selfApprovalReason: d.selfApprovalReason,
+			steps: d.approvalSteps,
 		});
 		if (r.ok) {
 			await tx

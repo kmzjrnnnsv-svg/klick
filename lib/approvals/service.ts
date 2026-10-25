@@ -951,3 +951,64 @@ export async function latestRequestFor(
 		decisions,
 	};
 }
+
+// Stand offener Anträge je Entität (Anzeige „wartet auf die
+// Geschäftsleitung, 1 von 2“): Zustimmungen auf der aktuellen Stufe inkl.
+// der mit dem Antrag gegebenen gegen die nötigen Stellen.
+export async function approvalProgressFor(
+	tx: OrgTx,
+	orgId: string,
+	entityType: EntityKind,
+	entityIds: readonly string[],
+): Promise<Map<string, { done: number; total: number }>> {
+	const out = new Map<string, { done: number; total: number }>();
+	if (entityIds.length === 0) return out;
+	const rows = await tx
+		.select({ req: approvalRequests, wfSteps: approvalWorkflows.steps })
+		.from(approvalRequests)
+		.innerJoin(
+			approvalWorkflows,
+			eq(approvalWorkflows.id, approvalRequests.workflowId),
+		)
+		.where(
+			and(
+				eq(approvalRequests.organizationId, orgId),
+				eq(approvalRequests.entityType, entityType),
+				eq(approvalRequests.status, "pending"),
+				inArray(approvalRequests.entityId, [...entityIds]),
+			),
+		);
+	if (rows.length === 0) return out;
+	const decisions = await tx
+		.select({
+			requestId: approvalDecisions.requestId,
+			step: approvalDecisions.step,
+			decision: approvalDecisions.decision,
+		})
+		.from(approvalDecisions)
+		.where(
+			inArray(
+				approvalDecisions.requestId,
+				rows.map((r) => r.req.id),
+			),
+		);
+	for (const { req, wfSteps } of rows) {
+		const step = requestSteps(req, wfSteps).find(
+			(s) => s.order === req.currentStep,
+		);
+		if (!step) continue;
+		const given = step.given?.length ?? 0;
+		const rules =
+			step.mode === "all"
+				? (step.approvers?.length ?? 1)
+				: (step.minApprovers ?? 1);
+		const done = decisions.filter(
+			(d) =>
+				d.requestId === req.id &&
+				d.step === req.currentStep &&
+				d.decision === "approved",
+		).length;
+		out.set(req.entityId, { done: done + given, total: rules + given });
+	}
+	return out;
+}
