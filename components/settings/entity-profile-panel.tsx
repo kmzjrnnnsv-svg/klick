@@ -95,7 +95,7 @@ export function EntityProfilePanel({
 					href="/einrichtung/unternehmen"
 					className="mt-2 inline-block text-primary underline-offset-4 hover:underline"
 				>
-					{tsu("openSetup")} →
+					{tsu("openSetup")}
 				</Link>
 			</div>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

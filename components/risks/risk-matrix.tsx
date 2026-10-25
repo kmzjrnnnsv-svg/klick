@@ -41,7 +41,7 @@ export function RiskMatrix({
 				<thead>
 					<tr>
 						<th className="w-28 text-left align-bottom font-normal text-muted-foreground">
-							{labels.axisL} ↓ · {labels.axisI} →
+							{labels.axisL} in Zeilen, {labels.axisI} in Spalten
 						</th>
 						{[1, 2, 3, 4, 5].map((i) => (
 							<th key={i} className="pb-1 font-normal text-muted-foreground">

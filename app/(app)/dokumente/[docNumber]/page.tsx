@@ -1,3 +1,4 @@
+import { Download } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -274,9 +275,10 @@ export default async function DocumentDetailPage({
 					<p className="text-subhead">
 						<a
 							href={`/api/nachweise/${doc.fileEvidenceId}`}
-							className="text-primary hover:underline"
+							className="inline-flex items-center gap-1 text-primary hover:underline"
 						>
-							{t("file")} ↓
+							<Download aria-hidden="true" className="size-4" />
+							{t("file")}
 						</a>
 					</p>
 				)}

@@ -1,5 +1,5 @@
 import { and, desc, eq, notInArray } from "drizzle-orm";
-import { ExternalLink } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { PageHeader } from "@/components/page-header";
@@ -107,7 +107,7 @@ export default async function TrustCenterAdminPage({
 							className="inline-flex items-center gap-1.5 text-subhead underline underline-offset-4"
 						>
 							{t("openPublic")}
-							<ExternalLink className="size-3.5" aria-hidden="true" />
+							<ArrowUpRight className="size-3.5" aria-hidden="true" />
 						</a>
 					) : undefined
 				}

@@ -27,7 +27,7 @@ export function StepFooter({
 					href={prevHref}
 					className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
 				>
-					← {t("back")}
+					{t("back")}
 				</Link>
 			) : (
 				<span />

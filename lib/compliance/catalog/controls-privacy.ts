@@ -17,7 +17,7 @@ export const PART_D: CatalogControl[] = [
 		description:
 			"Alle Verarbeitungstätigkeiten sind mit Zweck, Rechtsgrundlage, Kategorien, Empfängern, Drittlandtransfer, Löschfrist und TOMs verzeichnet; das Verzeichnis ist aktuell und exportierbar.",
 		implementationGuidance:
-			"/datenschutz → VVT: je Tätigkeit ein Eintrag; Dienstleister aus dem Register verknüpfen; Löschklassen aus dem Löschkonzept; jährlicher Review durch die DSB.",
+			"Datenschutz > VVT: je Tätigkeit ein Eintrag; Dienstleister aus dem Register verknüpfen; Löschklassen aus dem Löschkonzept; jährlicher Review durch die DSB.",
 		domain: "compliance",
 		effort: "M",
 		kind: "documentation",
@@ -31,7 +31,7 @@ export const PART_D: CatalogControl[] = [
 		description:
 			"Anfragen (Auskunft, Löschung, Berichtigung, Widerspruch, Portabilität, Einschränkung) werden registriert, identitätsgeprüft und binnen eines Monats (verlängerbar um zwei) beantwortet; Aufbewahrungspflichten werden begründet gegengehalten.",
 		implementationGuidance:
-			"/datenschutz → Anfragen: Uhr ab Eingang, Erinnerung bei 7 Tagen Rest; Pseudonym statt Klarname (verschlüsselt); Antwortvorlagen je Anfragetyp.",
+			"Datenschutz > Anfragen: Uhr ab Eingang, Erinnerung bei 7 Tagen Rest; Pseudonym statt Klarname (verschlüsselt); Antwortvorlagen je Anfragetyp.",
 		domain: "compliance",
 		effort: "M",
 		kind: "process",
@@ -77,7 +77,7 @@ export const PART_D: CatalogControl[] = [
 		description:
 			"Datenschutzverletzungen werden erkannt, bewertet, binnen 72 Stunden der Aufsicht gemeldet (sofern Risiko) und bei hohem Risiko den Betroffenen mitgeteilt; alle Verletzungen sind dokumentiert.",
 		implementationGuidance:
-			"Vorfall mit Regime „dsgvo“ → 72-h-Uhr; Entscheidungsbaum Risiko/kein Risiko; Meldevorlage der Aufsicht; Lessons Learned als Abweichung.",
+			"Vorfall mit Regime „dsgvo“ startet die 72-h-Uhr; Entscheidungsbaum Risiko/kein Risiko; Meldevorlage der Aufsicht; Lessons Learned als Abweichung.",
 		domain: "incident",
 		effort: "S",
 		kind: "process",

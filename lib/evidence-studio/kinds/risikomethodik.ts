@@ -113,7 +113,7 @@ export function buildRisikomethodik(f: RisikomethodikFacts) {
 						: "verantwortliche Person"
 					: c.acceptance.length === 0
 						? "verantwortliche Person"
-						: c.acceptance.map(functionLabel).join(" → "),
+						: c.acceptance.map(functionLabel).join(", dann "),
 			]),
 			empty: "Keine Risikoklassen festgelegt.",
 		},

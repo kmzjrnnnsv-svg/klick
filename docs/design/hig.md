@@ -128,6 +128,19 @@ Varianten, die auf dem grauen Seitengrund (#F2F2F7) mindestens 4,5 : 1 erreichen
 - **Segmentierte Steuerung:** höchstens fünf gleich breite Segmente, Text oder Symbol, nicht für
   die Hauptnavigation.
 - **Schalter** nur in Listenzeilen; Checkbox für Mehrfachauswahl in Formularen.
+- **Pfeile und Chevrons** (Seiten „Lists and tables“, „Disclosure controls“; Test
+  `tests/ui-arrows.test.ts`). Nur dort, wo Apple sie auch zeigt:
+  - Chevron rechts = Drill-down in einer Listenzeile (Disclosure-Indikator) und Untermenü.
+  - Chevron links = Zurück, immer mit dem Titel der Elternseite (`BackLink`).
+  - Aufklappen: Chevron zeigt zugeklappt nach rechts (zur Mitte), aufgeklappt nach unten;
+    ein Aufklapp-Knopf daneben zeigt nach unten bzw. oben, höchstens einer je Ansicht.
+  - Auf-/Ab-Chevrons im Pop-up-Knopf (Select), Chevrons zum Blättern (Jahr vor/zurück).
+  - Pfeil schräg nach rechts oben hinter dem Text = öffnet woanders (externer Link).
+  - Fachliche Richtung, wo Apple sie zeigt: Ein-/Ausgang einer Bewegung, Umsortieren.
+  - **Nie:** Pfeile als Schmuck an Knöpfen oder Links („Weiter →“), Pfeilketten im Text
+    („A → B → C“ → als Satz oder nummerierte Schritte), Pfeile zwischen Vorher und Nachher
+    („von 40 % auf 55 %“ bzw. alter Wert durchgestrichen), Pfeile als Achsenbeschriftung.
+  - Menüpfade im Text mit „>“: „Einstellungen > Freigaben“.
 - **Formularfelder:** Label über dem Feld, Platzhalter mit Beispiel („z. B. …“), Fehler direkt am
   Feld mit Lösung („Bitte nur Ziffern“ statt „Ungültig“), Zahlen und Daten im deutschen Format,
   Passwortfelder nie vorbelegt.

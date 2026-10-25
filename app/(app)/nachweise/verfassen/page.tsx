@@ -1,5 +1,4 @@
 import { desc, eq } from "drizzle-orm";
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import {
@@ -7,6 +6,7 @@ import {
 	StartDraft,
 } from "@/components/evidence-authoring/start-draft";
 import { PageHeader } from "@/components/page-header";
+import { BackLink } from "@/components/ui/back-link";
 import { Badge } from "@/components/ui/badge";
 import { evidenceDrafts } from "@/db/schema";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -83,15 +83,14 @@ export default async function AuthoringGalleryPage({
 
 	return (
 		<>
-			<Link
+			<BackLink
 				href={
 					controlCode ? `/controls/${controlCode}#nachweisbogen` : "/nachweise"
 				}
-				className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-subhead hover:text-foreground"
-			>
-				<ArrowLeft className="size-4" aria-hidden />
-				{controlCode ? t("backToControl", { code: controlCode }) : t("back")}
-			</Link>
+				label={
+					controlCode ? t("backToControl", { code: controlCode }) : t("back")
+				}
+			/>
 			<PageHeader title={t("pageTitle")} lead={t("lead")} />
 
 			{controlCode && (

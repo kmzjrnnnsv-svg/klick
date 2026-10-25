@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, ExternalLink, UserPlus, X } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, UserPlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
@@ -61,8 +61,8 @@ export function CourseLink({ url }: { url: string | null | undefined }) {
 			rel="noopener noreferrer"
 			className="inline-flex items-center gap-1 text-primary text-footnote hover:underline"
 		>
-			<ExternalLink className="size-3" />
 			{t("openCourse")}
+			<ArrowUpRight className="size-3" aria-hidden="true" />
 		</a>
 	);
 }

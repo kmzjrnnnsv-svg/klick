@@ -184,7 +184,7 @@ export async function SoaTab({
 						href="/dokumente?vorlagen=1"
 						className="text-primary text-subhead underline-offset-4 hover:underline"
 					>
-						{t("docOpenTemplates")} →
+						{t("docOpenTemplates")}
 					</Link>
 				)}
 			</section>

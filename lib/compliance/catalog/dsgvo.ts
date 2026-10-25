@@ -104,7 +104,7 @@ export const DSGVO_REQUIREMENTS: CatalogRequirement[] = [
 			"Identitätsprüfung bei Anfragen",
 		],
 		tools: {
-			startup: ["Klick Datenschutz → Anfragen"],
+			startup: ["Klick: Datenschutz > Anfragen"],
 			scale: ["OneTrust Privacy", "Usercentrics"],
 		},
 		sortOrder: 100,
@@ -188,7 +188,7 @@ export const DSGVO_REQUIREMENTS: CatalogRequirement[] = [
 		domain: "compliance",
 		evidenceHints: ["VVT (Export)"],
 		tools: {
-			startup: ["Klick Datenschutz → VVT"],
+			startup: ["Klick: Datenschutz > VVT"],
 			scale: ["OneTrust", "DataGuard"],
 		},
 		sortOrder: 220,

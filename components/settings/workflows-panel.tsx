@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Pencil, Plus, Wand2 } from "lucide-react";
+import { ChevronRight, Pencil, Plus, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -220,7 +220,7 @@ function WorkflowRow({
 					{item.steps.map((s, i) => (
 						<li key={s.order} className="flex items-center gap-1">
 							{i > 0 && (
-								<ArrowRight
+								<ChevronRight
 									aria-hidden
 									className="size-3 text-muted-foreground"
 								/>

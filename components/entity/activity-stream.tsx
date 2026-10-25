@@ -76,13 +76,12 @@ export function ActivityStream({
 										<span className="font-mono text-muted-foreground">
 											{ch.field}
 										</span>
-										<span className="min-w-0 text-muted-foreground line-through [overflow-wrap:anywhere]">
+										<del className="min-w-0 text-muted-foreground [overflow-wrap:anywhere]">
 											{formatValue(ch.before)}
-										</span>
-										<span>→</span>
-										<span className="min-w-0 font-medium [overflow-wrap:anywhere]">
+										</del>
+										<ins className="min-w-0 font-medium no-underline [overflow-wrap:anywhere]">
 											{formatValue(ch.after)}
-										</span>
+										</ins>
 									</li>
 								))}
 							</ul>

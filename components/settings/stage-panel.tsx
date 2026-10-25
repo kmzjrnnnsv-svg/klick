@@ -155,7 +155,7 @@ export function StagePanel({
 						<div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-4">
 							<Stat
 								label={t("reportApplicable")}
-								value={`${report.applicableBefore} → ${report.applicableAfter}`}
+								value={`von ${report.applicableBefore} auf ${report.applicableAfter}`}
 							/>
 							<Stat
 								label={t("reportNew")}

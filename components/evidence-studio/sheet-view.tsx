@@ -120,7 +120,7 @@ export async function SheetView({
 						href={`/controls/${code}#nachweisbogen`}
 						className="text-primary text-footnote hover:underline"
 					>
-						{t("openFull")} · {code} →
+						{t("openFull")} · {code}
 					</Link>
 				)}
 			</div>
@@ -223,7 +223,7 @@ export async function SheetView({
 														href={kind.edit.href}
 														className="text-primary hover:underline"
 													>
-														{kind.edit.label} →
+														{kind.edit.label}
 													</Link>
 													{generatable && canCreateEvidence && (
 														<GenerateButton
@@ -285,7 +285,7 @@ export async function SheetView({
 													{t("template", {
 														title: i.resolution.template.title,
 													})}{" "}
-													· {t("templateMissing")} →
+													· {t("templateMissing")}
 												</Link>
 											)}
 										</p>
@@ -430,7 +430,7 @@ export async function SheetView({
 												href={r.action.href}
 												className="text-primary hover:underline"
 											>
-												{r.action.label} →
+												{r.action.label}
 											</Link>
 										</>
 									)}

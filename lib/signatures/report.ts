@@ -86,7 +86,7 @@ export function signaturesJson(input: {
 			origin: input.env.origin,
 			steps: [
 				"SHA-256 der Nachweis-Datei bilden und mit evidence.sha256 vergleichen.",
-				"signText zerlegen (klick-sign/v1|org|target|hash|signer|function|purpose|nonce|expires); target evidence:<id> → hash = evidence.sha256; target batch:<id> → hash = merkleRoot.",
+				"signText zerlegen (klick-sign/v1|org|target|hash|signer|function|purpose|nonce|expires); bei target evidence:<id> ist hash = evidence.sha256, bei target batch:<id> ist hash = merkleRoot.",
 				'Sammelunterschrift: Blatt = SHA-256(0x00 ‖ "<evidenceId>|<sha256>"), Knoten = SHA-256(0x01 ‖ L ‖ R), mit merkleProof bis merkleRoot rechnen.',
 				"challenge = base64url(SHA-256(signText)); clientDataJSON muss type webauthn.get, diese challenge und origin enthalten.",
 				"authenticatorData: die ersten 32 Byte = SHA-256(rpId); Flags UP (0x01) und UV (0x04) gesetzt.",

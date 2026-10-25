@@ -1,10 +1,10 @@
 import { and, eq } from "drizzle-orm";
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AuthoringEditor } from "@/components/evidence-authoring/editor";
 import { PageHeader } from "@/components/page-header";
+import { BackLink } from "@/components/ui/back-link";
 import { evidence } from "@/db/schema";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -58,13 +58,7 @@ export default async function AuthoringEditorPage({
 
 	return (
 		<>
-			<Link
-				href="/nachweise/verfassen"
-				className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-subhead hover:text-foreground"
-			>
-				<ArrowLeft className="size-4" aria-hidden />
-				{t("backToGallery")}
-			</Link>
+			<BackLink href="/nachweise/verfassen" label={t("backToGallery")} />
 			<PageHeader
 				eyebrow={`${template.code} · ${presetOf(template, row.preset)?.title ?? template.title}`}
 				title={row.title}

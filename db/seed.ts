@@ -11,17 +11,17 @@ const CMS_PLACEHOLDERS = [
 	{
 		slug: "impressum",
 		title: "Impressum",
-		body: "Dieses Impressum ist noch nicht ausgefüllt. Die Pflichtangaben nach § 5 DDG kommen aus der Server-Konfiguration (`LEGAL_*`, deploy/README.md); ergänzende Angaben trägt der Plattform-Admin unter Admin → CMS ein. Vorlage: docs/legal/impressum.md.",
+		body: "Dieses Impressum ist noch nicht ausgefüllt. Die Pflichtangaben nach § 5 DDG kommen aus der Server-Konfiguration (`LEGAL_*`, deploy/README.md); ergänzende Angaben trägt der Plattform-Admin unter Admin > Rechtstexte ein. Vorlage: docs/legal/impressum.md.",
 	},
 	{
 		slug: "datenschutz-erklaerung",
 		title: "Datenschutzerklärung",
-		body: "Diese Datenschutzerklärung ist noch nicht ausgefüllt. Der Plattform-Admin trägt die Angaben nach Art. 13 DSGVO unter Admin → CMS ein. Vorlage: docs/legal/datenschutzerklaerung.md.",
+		body: "Diese Datenschutzerklärung ist noch nicht ausgefüllt. Der Plattform-Admin trägt die Angaben nach Art. 13 DSGVO unter Admin > Rechtstexte ein. Vorlage: docs/legal/datenschutzerklaerung.md.",
 	},
 	{
 		slug: "nutzungsbedingungen",
 		title: "Nutzungsbedingungen",
-		body: "Die Nutzungsbedingungen sind noch nicht veröffentlicht. Klick richtet sich ausschließlich an Unternehmen (§ 14 BGB). Der Plattform-Admin trägt die Bedingungen unter Admin → CMS ein. Vorlage: docs/legal/nutzungsbedingungen.md.",
+		body: "Die Nutzungsbedingungen sind noch nicht veröffentlicht. Klick richtet sich ausschließlich an Unternehmen (§ 14 BGB). Der Plattform-Admin trägt die Bedingungen unter Admin > Rechtstexte ein. Vorlage: docs/legal/nutzungsbedingungen.md.",
 	},
 ];
 
@@ -47,7 +47,7 @@ async function main() {
 		);
 	const groups = await seedPriceGroups();
 	if (groups > 0)
-		console.log(`✔ ${groups} Preisgruppen angelegt (Admin → Preise).`);
+		console.log(`✔ ${groups} Preisgruppen angelegt (Admin > Preise).`);
 	const s = await syncCatalog(globalDb);
 	console.log(
 		`✔ Katalog synchronisiert: ${s.frameworks} Rahmenwerke, ${s.sections} Sections, ${s.requirements} Anforderungen, ${s.controls} Controls, ${s.edges} Kanten.`,

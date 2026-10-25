@@ -221,13 +221,19 @@ export function listRelevantChanges(
 	if (!before) return [];
 	const changes: string[] = [];
 	if (before.euHighRisk !== after.euHighRisk)
-		changes.push(`EU-Hochrisiko: ${before.euHighRisk} → ${after.euHighRisk}`);
+		changes.push(
+			`EU-Hochrisiko: von ${before.euHighRisk} auf ${after.euHighRisk}`,
+		);
 	if (before.fatfStatus !== after.fatfStatus)
-		changes.push(`FATF: ${before.fatfStatus} → ${after.fatfStatus}`);
+		changes.push(`FATF: von ${before.fatfStatus} auf ${after.fatfStatus}`);
 	if (before.euSanctions !== after.euSanctions)
-		changes.push(`EU-Sanktionen: ${before.euSanctions} → ${after.euSanctions}`);
+		changes.push(
+			`EU-Sanktionen: von ${before.euSanctions} auf ${after.euSanctions}`,
+		);
 	if (before.usSanctions !== after.usSanctions)
-		changes.push(`US-Sanktionen: ${before.usSanctions} → ${after.usSanctions}`);
+		changes.push(
+			`US-Sanktionen: von ${before.usSanctions} auf ${after.usSanctions}`,
+		);
 	return changes;
 }
 

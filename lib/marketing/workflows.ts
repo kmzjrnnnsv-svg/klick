@@ -149,7 +149,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				name: "Nachweise aus Klick erzeugen",
 				summary:
 					"Kontextanalyse, Rollenregister, Organigramm, Erklärung zur Anwendbarkeit, Auditprogramm und gut zwei Dutzend weitere Nachweise entstehen aus dem, was du ohnehin in Klick pflegst.",
-				where: "Rahmenwerke → Nachweise",
+				where: "Rahmenwerke > Nachweise",
 				trigger:
 					"Ein Register ist gepflegt oder ein Nachweis ist fällig, veraltet oder abgelaufen.",
 				steps: [
@@ -165,7 +165,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				key: "evidence-authoring",
 				name: "Nachweise in Klick verfassen",
 				summary: `Kein Link, kein Screenshot? Aus ${EVIDENCE_TEMPLATES.length} Rohlingen (Protokolle, Listen, Checklisten, Bestätigungen) wird ein prüfbarer Nachweis.`,
-				where: "Nachweise → In Klick verfassen",
+				where: "Nachweise > In Klick verfassen",
 				trigger:
 					"Eine Position im Nachweisbogen ist offen, und es gibt keine Datei dafür.",
 				steps: [
@@ -182,7 +182,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				name: "Unterschrift per Passkey",
 				summary:
 					"Die richtige Person unterschreibt mit ihrem Passkey statt mit einem Häkchen.",
-				where: "Rahmenwerke → Nachweise, Organisation, Berichte an die GL",
+				where: "Rahmenwerke > Nachweise, Organisation, Berichte an die GL",
 				trigger:
 					"Ein Nachweis wartet auf die Unterschrift einer Funktion, etwa der Geschäftsleitung.",
 				steps: [
@@ -349,7 +349,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				steps: [
 					"Formate: SARIF, Trivy, ZAP, OSV, Nuclei, gitleaks.",
 					"Abgleich per Fingerabdruck: neu, behoben, wieder aufgetaucht.",
-					"Kritisch → Abweichung, hoch → Aufgabe mit Frist; Geheimnisse werden geschwärzt.",
+					"Kritische Befunde werden zur Abweichung, hohe zur Aufgabe mit Frist; Geheimnisse werden geschwärzt.",
 					"Passiver Schnellcheck einer Domain: Header, TLS, DNS, security.txt.",
 				],
 				result: "Befundliste mit Ampel, Fristen und befristeten Ausnahmen.",
@@ -453,7 +453,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				name: "Freigaben",
 				summary:
 					"Wer wann zustimmt, legst du je Auslöser fest, mit Bedingungen und Stufen.",
-				where: "Heute → Freigaben",
+				where: "Heute > Freigaben",
 				trigger:
 					"Zum Beispiel: Dokument veröffentlichen, Risiko akzeptieren, Dienstleister aufnehmen, Meldung an die Aufsicht.",
 				steps: [
@@ -528,7 +528,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				name: "Organigramm und Bestellungen",
 				summary:
 					"Berichtswege und Bestellungsschreiben je Funktion, mit Hinweis, wenn die Unabhängigkeit fehlt.",
-				where: "Organisation → Rollen & Leitung",
+				where: "Organisation > Rollen & Leitung",
 				trigger: "Eine Pflichtfunktion wird besetzt oder ändert sich.",
 				steps: [
 					"Funktion besetzen und eintragen, an wen sie berichtet.",
@@ -547,7 +547,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				trigger: "Geplantes internes oder externes Audit.",
 				steps: [
 					"Programm planen; Klick prüft, ob alle Bereiche abgedeckt sind.",
-					"Im Cockpit dem Prüfpfad folgen: Anforderung → Control → Nachweis.",
+					"Im Cockpit dem Prüfpfad folgen: von der Anforderung über das Control zum Nachweis.",
 					"Anfragen der Prüfer:innen werden Aufgaben; Feststellungen werden Abweichungen mit den Fristen des jeweiligen Rahmenwerks (Haupt- und Nebenabweichung).",
 				],
 				result: "Prüfungspaket als ZIP mit Prüfsummen.",

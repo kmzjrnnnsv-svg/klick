@@ -67,7 +67,7 @@ export const WORKFLOW_PRESETS: readonly WorkflowPreset[] = [
 	{
 		key: "provider_departments",
 		trigger: "provider.create",
-		name: "Dienstleister aufnehmen: Einkauf → Finanzen → Recht + Informationssicherheit",
+		name: "Dienstleister aufnehmen: Einkauf, Finanzen, dann Recht und Informationssicherheit",
 		description:
 			"Einkauf legt an. Finanzen gibt frei (entfällt, wenn die anfragende Person selbst Finanzen ist), danach Recht und Informationssicherheit — beide müssen zustimmen.",
 		roles: [ROLE.purchasing, ROLE.finance, ROLE.legal, ROLE.infosec],
@@ -154,7 +154,7 @@ export const WORKFLOW_PRESETS: readonly WorkflowPreset[] = [
 	{
 		key: "training_proposal",
 		trigger: "training.propose",
-		name: "Schulung vorschlagen: Bereichsleitung → Personal",
+		name: "Schulung vorschlagen: Bereichsleitung, dann Personal",
 		description:
 			"Vorschläge gibt zuerst die Bereichsleitung frei, danach plant Personal die Schulung ein.",
 		roles: [ROLE.hr],
@@ -171,7 +171,7 @@ export const WORKFLOW_PRESETS: readonly WorkflowPreset[] = [
 	{
 		key: "nc_plan",
 		trigger: "nonconformity.plan",
-		name: "Maßnahmenplan freigeben: Verantwortliche:r → Compliance",
+		name: "Maßnahmenplan freigeben: Verantwortliche:r, dann Compliance",
 		description:
 			"Bevor die Umsetzung beginnt, bestätigen die verantwortliche Person und Compliance den Maßnahmenplan.",
 		roles: [],
@@ -202,7 +202,7 @@ export const WORKFLOW_PRESETS: readonly WorkflowPreset[] = [
 	{
 		key: "process_activation",
 		trigger: "process.activate",
-		name: "Prozess aktivieren: Verantwortliche:r → Compliance",
+		name: "Prozess aktivieren: Verantwortliche:r, dann Compliance",
 		description:
 			"Ein Prozess wird erst aktiv, wenn die verantwortliche Person und Compliance zugestimmt haben.",
 		roles: [],

@@ -151,7 +151,7 @@ export const auth = betterAuth({
 
 	socialProviders: microsoft,
 
-	// Datenbank-Hooks → Audit (zuverlässig für alle Login-Methoden) und
+	// Datenbank-Hooks > Audit (zuverlässig für alle Login-Methoden) und
 	// aktive Org beim Session-Start.
 	databaseHooks: {
 		session: {
@@ -619,7 +619,7 @@ export type Auth = typeof auth;
 export type AuthSession = typeof auth.$Infer.Session;
 
 // Login-Benachrichtigung: erste Sitzung von einem neuen Gerät (User-Agent)
-// oder einer neuen IP → Mail an den Nutzer. Vergleich gegen frühere Sitzungen
+// oder einer neuen IP > Mail an den Nutzer. Vergleich gegen frühere Sitzungen
 // desselben Users; die allererste Sitzung löst nichts aus.
 async function notifyNewDevice(session: {
 	id: string;
@@ -658,7 +658,7 @@ async function notifyNewDevice(session: {
 		subject: "Neue Anmeldung bei Klick",
 		eyebrow: "Sicherheit",
 		title: "Neue Anmeldung von einem unbekannten Gerät",
-		body: `Hallo ${u.name || ""},\n\nam ${when} hat sich jemand mit deinem Konto angemeldet.\nIP: ${session.ipAddress ?? "unbekannt"}\nGerät: ${(session.userAgent ?? "unbekannt").slice(0, 120)}\n\nWarst das nicht du? Melde dich unter Einstellungen → Sicherheit überall ab und sprich mit deiner Organisation.`,
+		body: `Hallo ${u.name || ""},\n\nam ${when} hat sich jemand mit deinem Konto angemeldet.\nIP: ${session.ipAddress ?? "unbekannt"}\nGerät: ${(session.userAgent ?? "unbekannt").slice(0, 120)}\n\nWarst das nicht du? Melde dich unter Einstellungen > Sicherheit überall ab und sprich mit deiner Organisation.`,
 		cta: { label: "Sitzungen prüfen", url: `${baseURL}/einstellungen` },
 	});
 	await sendTransactionalMail({ to: u.email, ...mail });

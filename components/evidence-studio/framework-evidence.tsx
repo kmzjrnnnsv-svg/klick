@@ -154,7 +154,7 @@ export async function FrameworkEvidence({
 									href={k.editHref}
 									className="text-primary text-footnote hover:underline"
 								>
-									{k.editLabel} →
+									{k.editLabel}
 								</Link>
 								{k.signAs && k.latest && (
 									<SignButton

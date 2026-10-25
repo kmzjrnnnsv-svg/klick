@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { PrintButton } from "@/components/organisation/print-button";
 import { PageHeader } from "@/components/page-header";
+import { BackLink } from "@/components/ui/back-link";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -38,18 +38,16 @@ export default async function CrisisContactsPage() {
 	return (
 		<div className="print:text-black">
 			<div className="print:hidden">
+				<BackLink
+					href="/organisation?tab=kommunikation"
+					label={t("tabCommunication")}
+				/>
 				<PageHeader
 					eyebrow={org?.name}
 					title={t("crisisSheet")}
 					lead={t("crisisSheetLead")}
 					actions={
 						<div className="flex gap-2">
-							<Link
-								href="/organisation?tab=kommunikation"
-								className="inline-flex h-8 items-center rounded-full pointer-coarse:h-11 bg-muted px-3 font-medium text-footnote hover:bg-foreground/12"
-							>
-								← {t("tabCommunication")}
-							</Link>
 							<PrintButton label={t("print")} />
 						</div>
 					}

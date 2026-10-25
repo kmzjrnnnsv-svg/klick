@@ -666,7 +666,7 @@ export const PART_C: CatalogControl[] = [
 		description:
 			"Kundeninformationen und Marketingmitteilungen sind fair, klar, nicht irreführend und enthalten Risikohinweise; Marketing durchläuft eine Compliance-Freigabe.",
 		implementationGuidance:
-			"Workflow `marketing` (Vertrieb → Compliance), Register der Werbemittel als Nachweise, Standard-Risikohinweise.",
+			"Workflow `marketing` (Vertrieb, dann Compliance), Register der Werbemittel als Nachweise, Standard-Risikohinweise.",
 		domain: "conduct",
 		effort: "M",
 		kind: "process",

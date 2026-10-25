@@ -190,7 +190,7 @@
 		"unlockBusy": "Warte auf deinen Passkey…",
 		"unlockCancelled": "Abgebrochen. Versuch es noch einmal, wenn du so weit bist.",
 		"unlockFailed": "Das hat nicht geklappt. Versuch es noch einmal.",
-		"unlockNoPasskey": "Du hast noch keinen Passkey. Lege unter Einstellungen → Sicherheit einen an – TOTP oder Mail-Link öffnen die Wallet nicht.",
+		"unlockNoPasskey": "Du hast noch keinen Passkey. Lege unter Einstellungen > Sicherheit einen an – TOTP oder Mail-Link öffnen die Wallet nicht.",
 		"unlockNoPasskeyLink": "Passkey anlegen",
 		"unlockForbidden": "Diese Sitzung darf die Wallet nicht öffnen.",
 		"unlockNetworkTest": "Testnetz: Signet (Bitcoin) und Sepolia (Ethereum). Hier liegt kein echtes Geld.",
@@ -648,7 +648,7 @@
 	"Export": {
 		"title": "Compliance-Export",
 		"lead": "Schick Ein- und Ausgänge, Bestände, Prüfungen und Auffälligkeiten automatisch an deine Organisation in Klick. Klick legt daraus Verwahrungs-Register, Abstimmung, Nachweise und Fälle an.",
-		"how": "So verbindest du: In Klick unter Einstellungen → Integrationen „both.money verbinden“ wählen, das Token kopieren und hier eintragen.",
+		"how": "So verbindest du: In Klick unter Einstellungen > Integrationen „both.money verbinden“ wählen, das Token kopieren und hier eintragen.",
 		"connect": "Mit Klick verbinden",
 		"connectTitle": "Mit Klick verbinden",
 		"connectLead": "both.money prüft das Token sofort bei Klick und speichert es nur verschlüsselt.",

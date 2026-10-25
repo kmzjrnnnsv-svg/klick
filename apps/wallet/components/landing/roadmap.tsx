@@ -18,7 +18,7 @@ import {
 	TODAY,
 	WHY_OWN,
 } from "@wallet/lib/roadmap";
-import { ArrowLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import s from "./landing.module.css";
 import { PublicHeader } from "./public-header";
@@ -413,10 +413,10 @@ export function Roadmap() {
 						</p>
 						<Link
 							href="/"
-							className={`inline-flex min-h-11 items-center gap-2 font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 ${s.noPrint}`}
+							className={`inline-flex min-h-11 items-center gap-0.5 font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 ${s.noPrint}`}
 						>
-							<ArrowLeft className="size-4" aria-hidden />
-							Zur Startseite
+							<ChevronLeft className="size-5" aria-hidden />
+							Startseite
 						</Link>
 					</div>
 				</section>
@@ -425,7 +425,8 @@ export function Roadmap() {
 	);
 }
 
-// Weg einer Zahlung als Bild aus HTML (bricht auf schmalen Bildschirmen um)
+// Weg einer Zahlung als nummerierte Schritte (ohne Pfeile, bricht auf
+// schmalen Bildschirmen um)
 function Flow() {
 	const steps = [
 		{ title: "Netz", text: "Bitcoin, später Ethereum" },
@@ -437,23 +438,21 @@ function Flow() {
 		<figure className="flex flex-col gap-4">
 			<ol className="flex flex-col gap-2">
 				{steps.map((st, i) => (
-					<li key={st.title} className="flex flex-col items-stretch gap-2">
-						<div className="flex items-baseline justify-between gap-4 rounded-2xl bg-card px-4 py-3">
-							<span
-								className="font-medium"
-								translate={st.title === "both.money" ? "no" : undefined}
-							>
+					<li
+						key={st.title}
+						className="flex items-baseline justify-between gap-4 rounded-2xl bg-card px-4 py-3"
+					>
+						<span className="font-medium">
+							<span className="mr-2 text-muted-foreground tabular-nums">
+								{i + 1}
+							</span>
+							<span translate={st.title === "both.money" ? "no" : undefined}>
 								{st.title}
 							</span>
-							<span className="text-right text-muted-foreground text-subhead">
-								{st.text}
-							</span>
-						</div>
-						{i < steps.length - 1 && (
-							<span className="self-center text-primary" aria-hidden>
-								↓
-							</span>
-						)}
+						</span>
+						<span className="text-right text-muted-foreground text-subhead">
+							{st.text}
+						</span>
 					</li>
 				))}
 			</ol>

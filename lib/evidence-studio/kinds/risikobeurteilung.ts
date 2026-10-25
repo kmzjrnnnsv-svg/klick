@@ -69,7 +69,7 @@ export function buildRisikobeurteilung(
 		(x) => x.r.reviewAt && x.r.reviewAt < ctx.today,
 	).length;
 	const point = (p: { likelihood: number; impact: number; score: number }) =>
-		`${p.likelihood} × ${p.impact} → ${p.score}`;
+		`EW ${p.likelihood}, SH ${p.impact}: ${p.score}`;
 	const blocks: DocBlock[] = [
 		{
 			type: "paragraph",

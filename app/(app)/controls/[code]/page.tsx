@@ -321,7 +321,7 @@ export default async function ControlDetailPage({
 						href={moduleEv.href}
 						className="mt-2 inline-block text-primary text-footnote hover:underline"
 					>
-						{t("moduleOpen")}: {moduleEv.module} →
+						{t("moduleOpen")}: {moduleEv.module}
 					</Link>
 				</Section>
 			)}

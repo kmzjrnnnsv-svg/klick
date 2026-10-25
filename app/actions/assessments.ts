@@ -535,7 +535,9 @@ async function applyAssessmentResultsImpl(
 			after: {
 				status: "completed",
 				score: score.score,
-				changes: changes.map((x) => `${x.controlCode}:${x.from}→${x.to}`),
+				changes: changes.map(
+					(x) => `${x.controlCode}: von ${x.from} auf ${x.to}`,
+				),
 			},
 		});
 		return { result: { changed: changes.length }, audit: audits };

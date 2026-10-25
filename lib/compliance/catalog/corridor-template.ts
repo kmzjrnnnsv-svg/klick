@@ -29,7 +29,7 @@ export const CORRIDOR_STEPS: readonly CorridorStep[] = [
 		order: 2,
 		title: "Länderrisiko bewerten und Stance festlegen",
 		description:
-			"EU-Hochrisikoliste, FATF, Sanktionen, Korruptionsindex → allowed / enhanced_dd / blocked im Jurisdiktionsregister.",
+			"EU-Hochrisikoliste, FATF, Sanktionen, Korruptionsindex ergeben den Status allowed, enhanced_dd oder blocked im Jurisdiktionsregister.",
 		offsetDays: 21,
 		ownerFunction: "aml_officer",
 	},

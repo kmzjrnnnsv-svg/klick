@@ -12,7 +12,7 @@ const BY_RULE: { match: RegExp; r: Remediation }[] = [
 		r: {
 			why: "Der service_role-Key umgeht Row Level Security. Wer ihn aus dem Browser-Bundle liest, kann alle Tabellen lesen und schreiben.",
 			fix: [
-				"Key sofort im Supabase-Dashboard rotieren (Settings → API).",
+				"Key sofort im Supabase-Dashboard rotieren (Settings > API).",
 				"Im Browser nur den anon-Key verwenden; jede Tabelle mit RLS-Policies absichern.",
 				"Aufrufe, die den service_role-Key brauchen, in Server Actions, Route Handler oder Edge Functions verlegen.",
 				"Variablen mit NEXT_PUBLIC_-Präfix landen im Bundle — Secrets nie so benennen.",

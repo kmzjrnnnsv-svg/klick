@@ -1,33 +1,35 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
+import { ListRow, ListSection } from "@/components/ui/list";
 import { requirePlatformAdminPage } from "@/lib/auth/gates";
 import { platformCounts } from "@/lib/db/global";
 
+// Plattform-Admin: großer Titel, darunter die Bereiche als gruppierte Liste
+// (Drill-down mit Chevron, Zahlen rechts in Grau) — Apple HIG
 export default async function AdminHome() {
 	await requirePlatformAdminPage();
 	const t = await getTranslations("Admin");
 	const counts = await platformCounts();
-	const tiles = [
-		{ href: "/admin/orgs", label: t("orgs"), value: counts.organizations },
-		{ href: "/admin/users", label: t("users"), value: counts.users },
-		{ href: "/admin/audit", label: t("audit"), value: "→" },
-		{ href: "/admin/cms", label: t("cms"), value: "→" },
-	];
+	const num = new Intl.NumberFormat("de-DE");
 	return (
-		<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-			{tiles.map((tile) => (
-				<Link key={tile.href} href={tile.href}>
-					<Card className="h-full transition-colors hover:bg-muted/40">
-						<CardHeader>
-							<CardTitle className="text-base">{tile.label}</CardTitle>
-						</CardHeader>
-						<CardContent className="font-bold text-title-1">
-							{tile.value}
-						</CardContent>
-					</Card>
-				</Link>
-			))}
+		<div className="flex max-w-2xl flex-col gap-6">
+			<PageHeader title={t("title")} lead={t("lead")} />
+			<ListSection>
+				<ListRow
+					href="/admin/orgs"
+					title={t("orgs")}
+					value={num.format(counts.organizations)}
+				/>
+				<ListRow
+					href="/admin/users"
+					title={t("users")}
+					value={num.format(counts.users)}
+				/>
+				<ListRow href="/admin/audit" title={t("audit")} />
+				<ListRow href="/admin/anfragen" title={t("inquiries")} />
+				<ListRow href="/admin/preise" title={t("prices")} />
+				<ListRow href="/admin/cms" title={t("cms")} />
+			</ListSection>
 		</div>
 	);
 }

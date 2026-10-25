@@ -89,7 +89,8 @@ export function SynergyPreviewPanel({
 						<span className="font-medium">
 							{frameworks.map(label).join(" + ")}
 						</span>{" "}
-						= {t("synergyRequirements", { n: data.synergy.requirementCount })} →{" "}
+						= {t("synergyRequirements", { n: data.synergy.requirementCount })},
+						umgesetzt mit{" "}
 						<span className="font-medium">
 							{t("synergyControls", { n: data.synergy.controlCount })}
 						</span>

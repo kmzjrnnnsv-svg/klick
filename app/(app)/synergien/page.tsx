@@ -453,7 +453,7 @@ export default async function SynergiesPage({
 												href="/einstellungen?tab=frameworks"
 												className="text-primary text-footnote hover:underline"
 											>
-												{t("tabWhatIf")} → Einstellungen
+												{`${t("tabWhatIf")} > Einstellungen`}
 											</Link>
 										</li>
 									);
