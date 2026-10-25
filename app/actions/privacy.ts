@@ -6,15 +6,15 @@ import {
 	dataSubjectRequests,
 	insurancePolicies,
 	processingActivities,
-	roleAssignments,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { applicableProcessingActivities } from "@/lib/compliance/catalog/processing-activities";
+import { functionResponsible } from "@/lib/compliance/function-holders-service";
 import { dsrDueAt, dsrExtendedUntil } from "@/lib/compliance/privacy";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
-import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
+import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
@@ -28,20 +28,6 @@ import {
 } from "@/lib/validation/privacy";
 
 const PATH = "/datenschutz";
-
-async function dpo(tx: OrgTx, orgId: string): Promise<string | null> {
-	const [row] = await tx
-		.select({ userId: roleAssignments.userId })
-		.from(roleAssignments)
-		.where(
-			and(
-				eq(roleAssignments.organizationId, orgId),
-				eq(roleAssignments.function, "dpo"),
-			),
-		)
-		.limit(1);
-	return row?.userId ?? null;
-}
 
 // ── Verarbeitungsverzeichnis (Art. 30) ─────────────────────────────────────
 
@@ -111,7 +97,9 @@ async function upsertProcessingActivityImpl(
 					organizationId: c.orgId,
 					...values,
 					ownerUserId:
-						values.ownerUserId ?? (await dpo(tx, c.orgId)) ?? c.userId,
+						values.ownerUserId ??
+						(await functionResponsible(tx, c.orgId, "dpo")) ??
+						c.userId,
 				})
 				.returning({ id: processingActivities.id });
 			if (!row) throw new Error("insert failed");
@@ -180,7 +168,7 @@ async function applyProcessingActivitySeedImpl(): Promise<
 					.where(eq(processingActivities.organizationId, c.orgId))
 			).map((x) => x.name),
 		);
-		const owner = (await dpo(tx, c.orgId)) ?? c.userId;
+		const owner = (await functionResponsible(tx, c.orgId, "dpo")) ?? c.userId;
 		const audits: AuditInput[] = [];
 		let n = 0;
 		for (const p of applicableProcessingActivities(fws)) {
@@ -272,7 +260,10 @@ async function upsertDataSubjectRequestImpl(
 					},
 				};
 			}
-			const owner = d.ownerUserId ?? (await dpo(tx, c.orgId)) ?? c.userId;
+			const owner =
+				d.ownerUserId ??
+				(await functionResponsible(tx, c.orgId, "dpo")) ??
+				c.userId;
 			const dueAt = dsrDueAt(d.receivedAt);
 			const [row] = await tx
 				.insert(dataSubjectRequests)

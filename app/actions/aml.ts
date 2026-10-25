@@ -21,12 +21,10 @@ import {
 	parseJurisdictionCsv,
 	sarHoldUntil,
 } from "@/lib/compliance/aml";
-import {
-	createSuspiciousReport,
-	functionHolder,
-} from "@/lib/compliance/aml-service";
+import { createSuspiciousReport } from "@/lib/compliance/aml-service";
 import { CORRIDOR_STEPS } from "@/lib/compliance/catalog/corridor-template";
 import { JURISDICTIONS } from "@/lib/compliance/catalog/jurisdictions";
+import { functionResponsible } from "@/lib/compliance/function-holders-service";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
@@ -105,7 +103,7 @@ async function upsertAmlRiskAnalysisImpl(
 					: `v${existing.length + 1}`;
 			const owner =
 				d.ownerUserId ??
-				(await functionHolder(tx, c.orgId, "aml_officer")) ??
+				(await functionResponsible(tx, c.orgId, "aml_officer")) ??
 				c.userId;
 			const [row] = await tx
 				.insert(amlRiskAnalyses)
@@ -524,7 +522,7 @@ async function upsertJurisdictionRow(
 		usSanctions: v.usSanctions ?? false,
 	});
 	if (changes.length > 0) {
-		const gwb = await functionHolder(tx, ctx.orgId, "aml_officer");
+		const gwb = await functionResponsible(tx, ctx.orgId, "aml_officer");
 		const due = new Date();
 		due.setUTCDate(due.getUTCDate() + 14);
 		await tx.insert(tasks).values({
@@ -695,7 +693,7 @@ async function applyCorridorTemplateImpl(
 				if (!holders.has(step.ownerFunction))
 					holders.set(
 						step.ownerFunction,
-						await functionHolder(tx, c.orgId, step.ownerFunction),
+						await functionResponsible(tx, c.orgId, step.ownerFunction),
 					);
 				const due = new Date(start);
 				due.setUTCDate(due.getUTCDate() + step.offsetDays);

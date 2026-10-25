@@ -1,14 +1,9 @@
 import { and, eq } from "drizzle-orm";
-import {
-	incidents,
-	incidentUpdates,
-	products,
-	roleAssignments,
-	tasks,
-} from "@/db/schema";
+import { incidents, incidentUpdates, products, tasks } from "@/db/schema";
 import type { IncidentRegime } from "@/db/schema/enums";
 import type { AuditInput } from "@/lib/audit";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
+import { functionResponsible } from "@/lib/compliance/function-holders-service";
 import {
 	computeIncidentDeadlines,
 	leadRegime,
@@ -87,23 +82,6 @@ export async function insertCraBundle(
 	);
 }
 
-export async function incidentManager(
-	tx: OrgTx,
-	orgId: string,
-): Promise<string | null> {
-	const [r] = await tx
-		.select({ userId: roleAssignments.userId })
-		.from(roleAssignments)
-		.where(
-			and(
-				eq(roleAssignments.organizationId, orgId),
-				eq(roleAssignments.function, "incident_manager"),
-			),
-		)
-		.limit(1);
-	return r?.userId ?? null;
-}
-
 // Drei Felder: Was · Wann bemerkt · Betrifft Zahlungen/Kunden → Uhren laufen
 // ab Kenntnis. Der Audit-Eintrag geht an den Aufrufer (letzte Anweisung).
 export async function createIncidentRecord(
@@ -138,7 +116,7 @@ export async function createIncidentRecord(
 		intermediateReportedAt: null,
 	});
 	const owner =
-		(await incidentManager(tx, ctx.orgId)) ??
+		(await functionResponsible(tx, ctx.orgId, "incident_manager")) ??
 		ctx.userId ??
 		(await orgOwnerIds(tx, ctx.orgId))[0] ??
 		null;

@@ -2,11 +2,7 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import {
-	complaints,
-	roleAssignments,
-	whistleblowingReports,
-} from "@/db/schema";
+import { complaints, whistleblowingReports } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import {
@@ -14,6 +10,10 @@ import {
 	nextCaseCode,
 	whistleblowingDeadlines,
 } from "@/lib/compliance/complaints";
+import {
+	functionRecipients,
+	functionResponsible,
+} from "@/lib/compliance/function-holders-service";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
@@ -99,17 +99,10 @@ async function upsertComplaintImpl(
 				"BES",
 			);
 			const dl = complaintDeadlines(d.receivedAt);
-			const [owner] = await tx
-				.select({ userId: roleAssignments.userId })
-				.from(roleAssignments)
-				.where(
-					and(
-						eq(roleAssignments.organizationId, c.orgId),
-						eq(roleAssignments.function, "compliance"),
-					),
-				)
-				.limit(1);
-			const ownerUserId = d.ownerUserId ?? owner?.userId ?? c.userId;
+			const ownerUserId =
+				d.ownerUserId ??
+				(await functionResponsible(tx, c.orgId, "compliance")) ??
+				c.userId;
 			const [row] = await tx
 				.insert(complaints)
 				.values({
@@ -307,18 +300,10 @@ async function upsertWhistleblowingReportImpl(
 					})
 					.where(eq(whistleblowingReports.id, row.id));
 			// Benachrichtigung an die zuständige Funktion (ohne Inhalt)
-			const holders = await tx
-				.select({ userId: roleAssignments.userId })
-				.from(roleAssignments)
-				.where(
-					and(
-						eq(roleAssignments.organizationId, c.orgId),
-						eq(roleAssignments.function, d.ownerFunction),
-					),
-				);
+			const holders = await functionRecipients(tx, c.orgId, d.ownerFunction);
 			await notify(tx, {
 				orgId: c.orgId,
-				recipients: holders.map((h) => h.userId),
+				recipients: holders,
 				actorUserId: c.userId,
 				kind: "task_assigned",
 				title: `Hinweis ${ref} eingegangen`,

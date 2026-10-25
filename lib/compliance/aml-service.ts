@@ -1,8 +1,8 @@
-import { and, eq } from "drizzle-orm";
-import { roleAssignments, suspiciousReports } from "@/db/schema";
-import type { RoleFunction } from "@/db/schema/enums";
+import { eq } from "drizzle-orm";
+import { suspiciousReports } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
 import { nextSuspiciousRef } from "@/lib/compliance/aml";
+import { functionResponsible } from "@/lib/compliance/function-holders-service";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import type { OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
@@ -12,25 +12,6 @@ import { orgOwnerIds } from "@/lib/org/queries";
 // Oberfläche und ohne Sitzung (Export aus both.money). Kein PII-Feld; die
 // Entscheidungsnotiz ist feldverschlüsselt. Ohne handelnde Person ist die
 // zuständige Funktion verantwortlich, sonst die erste Inhaber:in.
-
-// Inhaber:in einer Funktion (oder Vertretung) als Standard-Empfänger
-export async function functionHolder(
-	tx: OrgTx,
-	orgId: string,
-	fn: RoleFunction,
-): Promise<string | null> {
-	const [row] = await tx
-		.select({ userId: roleAssignments.userId })
-		.from(roleAssignments)
-		.where(
-			and(
-				eq(roleAssignments.organizationId, orgId),
-				eq(roleAssignments.function, fn),
-			),
-		)
-		.limit(1);
-	return row?.userId ?? null;
-}
 
 export type NewSuspiciousReport = {
 	kind: "gwg_sar" | "micar_stor";
@@ -62,7 +43,7 @@ export async function createSuspiciousReport(
 	);
 	const owner =
 		d.ownerUserId ??
-		(await functionHolder(
+		(await functionResponsible(
 			tx,
 			ctx.orgId,
 			d.kind === "micar_stor" ? "compliance" : "aml_officer",

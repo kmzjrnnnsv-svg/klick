@@ -6,12 +6,12 @@ import { member } from "@/db/auth-schema";
 import {
 	assets,
 	providers,
-	roleAssignments,
 	taskBundles,
 	tasks,
 	trainingRequirements,
 	trainings,
 } from "@/db/schema";
+import type { RoleFunction } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
 import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { GateBlocked } from "@/lib/approvals/gate-error";
@@ -21,6 +21,8 @@ import { normalizeRole } from "@/lib/auth/session-rules";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
 import { TRAINING_REQUIREMENTS } from "@/lib/compliance/catalog/training-requirements";
 import { insertControlTest } from "@/lib/compliance/control-test-service";
+import { responsibleFor } from "@/lib/compliance/function-holders";
+import { loadAssignments } from "@/lib/compliance/function-holders-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import {
@@ -558,13 +560,7 @@ async function applyTaskBundleImpl(
 				triggerEntityType: custom.triggerEntityType ?? undefined,
 			};
 		if (!bundle) throw new Error("notFound");
-		const fns = await tx
-			.select({
-				function: roleAssignments.function,
-				userId: roleAssignments.userId,
-			})
-			.from(roleAssignments)
-			.where(eq(roleAssignments.organizationId, c.orgId));
+		const fns = await loadAssignments(tx, c.orgId);
 		const owners = await tx
 			.select({ userId: member.userId, role: member.role })
 			.from(member)
@@ -574,7 +570,7 @@ async function applyTaskBundleImpl(
 			if (!rule) return c.userId;
 			const [kind, value] = rule.split(":");
 			if (kind === "function")
-				return fns.find((f) => f.function === value)?.userId ?? c.userId;
+				return responsibleFor(fns, value as RoleFunction) ?? c.userId;
 			if (kind === "role")
 				return (
 					owners.find((o) => normalizeRole(o.role) === value)?.userId ??
