@@ -34,7 +34,7 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
-	margin: 0 0 16px;
+	margin: 0 0 10px;
 	padding: 0;
 	list-style: none;
 }
@@ -71,13 +71,23 @@
 	background: var(--primary-fill);
 	color: #fff;
 }
-/* Zahl volle Deckkraft (Kontrast ≥ 4,5 : 1), nur heller Ton ohne Auswahl */
+/* „+N“ = so viele Controls brächte das Rahmenwerk neu dazu; volle Deckkraft
+   (Kontrast ≥ 4,5 : 1). Gewählt: Häkchen statt Zahl. */
 .chipCount {
 	font-variant-numeric: tabular-nums;
 	color: var(--muted-foreground);
 }
-.chip[aria-pressed="true"] .chipCount {
-	color: inherit;
+.check {
+	width: 14px;
+	height: 14px;
+	flex: none;
+}
+
+.legend {
+	margin: 0 0 14px;
+	font-size: 13px;
+	line-height: 1.35;
+	color: var(--muted-foreground);
 }
 
 .result {
