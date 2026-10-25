@@ -1,4 +1,5 @@
 import {
+	GOAL,
 	INTRO,
 	LIMITS,
 	NEXT,
@@ -11,6 +12,7 @@ import {
 	SPEC_DISCLAIMER,
 	SPEC_NOTES,
 	SPLIT,
+	STAGES,
 	STATUS_LABEL,
 	TIERS,
 	TODAY,
@@ -22,7 +24,8 @@ import s from "./landing.module.css";
 import { PublicHeader } from "./public-header";
 
 // Öffentlicher Fahrplan (/roadmap) für Investor:innen und Entwickler:innen:
-// Stand heute, nächste Schritte, Phasen, Infrastruktur mit Hardware.
+// Ziel mit Stufen bis zur Bank, Stand heute, nächste Schritte, Phasen,
+// Infrastruktur mit Hardware.
 // Druckbar (Kopf und Rücksprung fallen weg).
 const section = "mx-auto w-full max-w-6xl px-4 py-14 sm:py-20";
 const heading =
@@ -134,7 +137,42 @@ export function Roadmap() {
 					</div>
 				</section>
 
-				<section aria-labelledby="heute">
+				<section aria-labelledby="ziel">
+					<div className={section}>
+						<h2 id="ziel" className={heading}>
+							{GOAL.title}
+						</h2>
+						<p className="mt-4 max-w-3xl text-pretty text-lg leading-relaxed">
+							{GOAL.lead}
+						</p>
+						<ul className="mt-10 grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
+							{GOAL.principles.map((p) => (
+								<li
+									key={p.title}
+									className={`flex flex-col gap-1.5 border-t pt-4 ${s.reveal}`}
+								>
+									<h3 className="font-semibold text-headline">{p.title}</h3>
+									<p className="text-pretty text-muted-foreground leading-relaxed">
+										{p.text}
+									</p>
+								</li>
+							))}
+						</ul>
+						<p className="mt-10 max-w-3xl rounded-2xl bg-warning/14 p-4 text-pretty text-subhead leading-relaxed dark:bg-warning/20">
+							{GOAL.note}
+						</p>
+						<h3 className="mt-14 font-bold text-title-2">
+							Stufen bis zur Bank
+						</h3>
+						<ul className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+							{STAGES.map((item) => (
+								<ItemCard key={item.key} item={item} as="li" />
+							))}
+						</ul>
+					</div>
+				</section>
+
+				<section aria-labelledby="heute" className="border-t">
 					<div className={section}>
 						<h2 id="heute" className={heading}>
 							Heute
@@ -183,8 +221,8 @@ export function Roadmap() {
 							Phasen
 						</h2>
 						<p className="mt-4 max-w-2xl text-muted-foreground">
-							Größere Ausbaustufen. Verwahrung für Kund:innen ist eingebaut,
-							aber gesperrt, bis eine Erlaubnis vorliegt.
+							Größere Ausbaustufen der Technik. Alles, was Kundengeld berührt,
+							bleibt gesperrt, bis die Erlaubnis dafür vorliegt.
 						</p>
 						<ul className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
 							{PHASES.map((item) => (

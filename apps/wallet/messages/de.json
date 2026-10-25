@@ -1,7 +1,7 @@
 {
 	"Meta": {
 		"title": "both.money",
-		"description": "Krypto-Wallet für Unternehmen: halten, empfangen, senden – mit Freigabe per Sicherheitsschlüssel und Export an deine Compliance."
+		"description": "Ziel: ein Zahlungsweg zwischen geprüften Parteien. Heute eine Wallet für eigene Bestände, mit Freigabe per Sicherheitsschlüssel und Nachweis in Klick."
 	},
 	"Home": {
 		"lead": "Die Wallet für Unternehmen. Bestände auf eigenen Knoten, Auszahlungen nur mit Sicherheitsschlüssel, Compliance-Daten automatisch in Klick.",

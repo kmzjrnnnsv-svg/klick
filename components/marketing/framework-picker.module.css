@@ -112,6 +112,12 @@
 	font-weight: 600;
 	color: var(--primary);
 }
+.explain {
+	margin: 10px 0 0;
+	font-size: 13px;
+	line-height: 1.35;
+	color: var(--muted-foreground);
+}
 .note {
 	margin: 12px 0 0;
 	font-size: 13px;

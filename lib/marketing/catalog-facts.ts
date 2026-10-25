@@ -2,12 +2,14 @@ import {
 	ALL_REQUIREMENTS,
 	CATALOG_FRAMEWORKS,
 	EDGES,
+	EDGES_BY_REQUIREMENT,
+	requirementKey,
 	splitRequirementKey,
 } from "@/lib/compliance/catalog";
 import { CONTROLS } from "@/lib/compliance/catalog/controls";
 import { EVIDENCE_KINDS } from "@/lib/compliance/catalog/evidence-kinds";
 import { shortFrameworkName } from "@/lib/compliance/framework-names";
-import type { PickerFramework } from "./synergy";
+import type { PickerExample, PickerFramework } from "./synergy";
 import { PICKER_FRAMEWORKS } from "./workflows";
 
 // Zahlen für /funktionen aus dem echten Katalog — rein, getestet
@@ -33,6 +35,24 @@ function controlsByFramework(): Map<string, Set<string>> {
 	return by;
 }
 
+// „Art.75“ → „Art. 75“, „§27“ → „§ 27“ (Lesbarkeit, Katalog-Codes bleiben)
+function displayCode(code: string): string {
+	return code.replace(/^Art\.(?=\d)/, "Art. ").replace(/^§(?=\d)/, "§ ");
+}
+
+// Die Anforderung mit den meisten Controls (bei Gleichstand die erste)
+function widestRequirement(slug: string): PickerExample | undefined {
+	let best: PickerExample | undefined;
+	for (const r of ALL_REQUIREMENTS) {
+		if (r.framework !== slug) continue;
+		const n =
+			EDGES_BY_REQUIREMENT.get(requirementKey(slug, r.code))?.length ?? 0;
+		if (!best || n > best.controls)
+			best = { code: displayCode(r.code), title: r.title, controls: n };
+	}
+	return best && best.controls > 1 ? best : undefined;
+}
+
 export function pickerFrameworks(): PickerFramework[] {
 	const by = controlsByFramework();
 	return PICKER_FRAMEWORKS.flatMap(({ slug, label }) => {
@@ -44,6 +64,7 @@ export function pickerFrameworks(): PickerFramework[] {
 				label,
 				requirements: f.requirements.length,
 				controls: [...(by.get(slug) ?? [])].sort(),
+				example: widestRequirement(slug),
 			},
 		];
 	});

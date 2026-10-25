@@ -9,7 +9,11 @@ import type { Metadata } from "next";
 export async function generateMetadata(): Promise<Metadata> {
 	return (await sessionOrNull())
 		? { title: "Wallet" }
-		: { title: { absolute: "both.money · Wallet mit eingebautem Nachweis" } };
+		: {
+				title: {
+					absolute: "both.money · Geld weitergeben, beide Seiten geprüft",
+				},
+			};
 }
 
 export default async function HomePage() {
