@@ -11,6 +11,7 @@ import { RISK_SOURCE_KINDS } from "@/lib/compliance/risk-sources";
 import { INCIDENT_STATUSES } from "@/lib/entities/incident";
 import { RISK_STATUSES } from "@/lib/entities/risk";
 import { httpUrl, longText, shortText, uuid } from "./common";
+import { responsibleRef } from "./responsible";
 
 const scale = z.coerce.number().int().min(1).max(5);
 const isoDate = z.iso.date();
@@ -23,7 +24,7 @@ export const createRiskSchema = z.object({
 	category: z.enum(RISK_CATEGORIES).default("operational"),
 	likelihood: scale.default(3),
 	impact: scale.default(3),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 });
 export type CreateRiskInput = z.output<typeof createRiskSchema>;
 
@@ -37,7 +38,7 @@ export const updateRiskSchema = z.object({
 	treatment: z.enum(["mitigate", "accept", "transfer", "avoid"]).optional(),
 	residualLikelihood: scale.nullable().optional(),
 	residualImpact: scale.nullable().optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	assigneeUserId: uuid.nullable().optional(),
 	reviewAt: optionalDate,
 	controlCodes: z.array(z.string().min(1)).max(50).optional(),
@@ -123,7 +124,7 @@ export const guidedRiskSchema = z
 		residualLikelihood: scale.nullable().optional(),
 		residualImpact: scale.nullable().optional(),
 		residualNote: longText.optional(),
-		ownerUserId: uuid.nullable().optional(),
+		ownerUserId: responsibleRef,
 		reviewAt: optionalDate,
 		selfApprovalReason: z.string().trim().max(2000).optional(),
 	})
@@ -165,7 +166,7 @@ export const createDocumentSchema = z.object({
 	type: z.enum(DOCUMENT_TYPES).default("policy"),
 	domain: z.string().max(40).optional(),
 	classification: z.enum(CLASSIFICATIONS).default("internal"),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	approverFunction: z.string().max(40).optional(),
 	bodyMarkdown: z.string().max(200_000).optional(),
 	templateCode: z.string().max(60).optional(),
@@ -181,7 +182,7 @@ export const updateDocumentSchema = z.object({
 	title: shortText.optional(),
 	domain: z.string().max(40).nullable().optional(),
 	classification: z.enum(CLASSIFICATIONS).optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	assigneeUserId: uuid.nullable().optional(),
 	approverFunction: z.string().max(40).nullable().optional(),
 	bodyMarkdown: z.string().max(200_000).nullable().optional(),
@@ -337,7 +338,7 @@ export const providerSchema = z.object({
 		.max(3650)
 		.nullable()
 		.optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	notes: longText.optional(),
 });
 
@@ -364,7 +365,7 @@ export const assetSchema = z.object({
 	classification: z.enum(CLASSIFICATIONS).default("internal"),
 	providerId: uuid.nullable().optional(),
 	siteId: uuid.nullable().optional(),
-	ownerUserId: uuid.nullable().optional(),
+	ownerUserId: responsibleRef,
 	location: z.string().max(120).optional(),
 	description: longText.optional(),
 	isLegacy: z.boolean().default(false),

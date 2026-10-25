@@ -22,6 +22,7 @@ import {
 	classifyCompany,
 	prefillFromSetup,
 } from "@/lib/compliance/company-profile";
+import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import {
 	activeFrameworkSlugs,
 	addOrgFrameworks,
@@ -167,6 +168,7 @@ async function setupAssignFunctionImpl(
 				.update(roleAssignments)
 				.set(values)
 				.where(eq(roleAssignments.id, existing.id));
+			await syncOwnersAndNotify(tx, c.orgId, c.userId);
 			return {
 				result: existing.id,
 				audit: {
@@ -192,6 +194,7 @@ async function setupAssignFunctionImpl(
 			})
 			.returning({ id: roleAssignments.id });
 		if (!row) throw new Error("insert failed");
+		await syncOwnersAndNotify(tx, c.orgId, c.userId);
 		return {
 			result: row.id,
 			audit: {
@@ -224,6 +227,7 @@ async function setupRemoveAssignmentImpl(
 			)
 			.returning();
 		if (!row) return { result: false, audit: [] };
+		await syncOwnersAndNotify(tx, c.orgId, c.userId);
 		return {
 			result: true,
 			audit: {

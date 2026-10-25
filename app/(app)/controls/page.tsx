@@ -7,6 +7,7 @@ import {
 } from "@/components/entity/bulk-select";
 import { EmptyState } from "@/components/entity/empty-state";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
+import { ResponsibleLabel } from "@/components/entity/responsible-select";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UserChip } from "@/components/entity/user-chip";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { BASELINE } from "@/lib/compliance/catalog";
 import { requiredControlCodes } from "@/lib/compliance/catalog-view";
+import { responsibleOptions } from "@/lib/compliance/function-holders-service";
 import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
 	type ControlRow,
@@ -38,10 +40,11 @@ export default async function ControlsPage({
 	const t = await getTranslations("Controls");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const [{ rows, members }, cov] = await Promise.all([
+	const [{ rows, members, functions }, cov] = await Promise.all([
 		readOrg(toOrgCtx(ctx), async (tx) => ({
 			rows: await listControlRows(tx, ctx.orgId),
 			members: await listMembersForPicker(tx, ctx.orgId),
+			functions: await responsibleOptions(tx, ctx.orgId),
 		})),
 		getOrgCoverageCached(ctx),
 	]);
@@ -154,7 +157,15 @@ export default async function ControlsPage({
 			key: "owner",
 			header: te("owner"),
 			className: "w-44",
-			cell: (r) => <UserChip name={r.ownerName} />,
+			cell: (r) =>
+				r.ownerFunction ? (
+					<ResponsibleLabel
+						ownerFunction={r.ownerFunction}
+						ownerName={r.ownerName}
+					/>
+				) : (
+					<UserChip name={r.ownerName} />
+				),
 		},
 		{
 			key: "leverage",
@@ -244,7 +255,7 @@ export default async function ControlsPage({
 				}
 				footer={t("countSummary", { n: rows.length, implemented, inProgress })}
 			/>
-			{canBulk && <BulkBar members={members} />}
+			{canBulk && <BulkBar members={members} functions={functions} />}
 		</BulkProvider>
 	);
 }

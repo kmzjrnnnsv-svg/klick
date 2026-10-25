@@ -1,5 +1,6 @@
-import { type AnyPgColumn, uuid } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, text, uuid } from "drizzle-orm/pg-core";
 import { organization, user } from "../auth-schema";
+import { ROLE_FUNCTIONS } from "./enums";
 
 // Gemeinsame Spaltenbausteine. Die reinen (pk, ts, json …) liegen in
 // db/columns.ts und gelten auch für both.money; hier nur die Fremdschlüssel
@@ -27,3 +28,7 @@ export const userRef = () =>
 
 export const ref = (col: () => AnyPgColumn, onDelete: "cascade" | "set null") =>
 	uuid().references(col, { onDelete });
+
+// „Verantwortlich“ als Funktion (Teil A): ist sie gesetzt, ist ownerUserId
+// die aufgelöste Person (syncFunctionOwners) — die Lesestellen bleiben.
+export const ownerFunction = () => text({ enum: ROLE_FUNCTIONS });

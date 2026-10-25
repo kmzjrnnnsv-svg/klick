@@ -35,6 +35,7 @@ import { latestRatingsByProvider } from "@/lib/compliance/queries-ratings";
 import { TRAFFIC_TONE } from "@/lib/compliance/supplier-rating";
 import { readOrg } from "@/lib/db/with-org";
 import { cn } from "@/lib/utils";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 type Row = Awaited<ReturnType<typeof listProviders>>[number];
 type Search = Record<string, string | string[] | undefined>;
@@ -370,7 +371,7 @@ export default async function ProvidersPage({
 							contractEnd: r.contractEnd,
 							dataLocations: r.dataLocations,
 							noticePeriodDays: r.noticePeriodDays,
-							ownerUserId: r.ownerUserId,
+							ownerUserId: responsibleValue(r),
 							notes: r.notes,
 						}}
 					/>

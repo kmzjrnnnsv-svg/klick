@@ -21,6 +21,7 @@ import { linkIndex } from "@/lib/compliance/queries-links";
 import { listAssets, listProviders } from "@/lib/compliance/queries-p2";
 import { newRiskHref } from "@/lib/compliance/risk-sources";
 import { readOrg } from "@/lib/db/with-org";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 type Row = Awaited<ReturnType<typeof listAssets>>[number];
 type Search = Record<string, string | string[] | undefined>;
@@ -227,7 +228,7 @@ export default async function AssetsPage({
 							classification: r.classification,
 							providerId: r.providerId,
 							siteId: r.siteId,
-							ownerUserId: r.ownerUserId,
+							ownerUserId: responsibleValue(r),
 							location: r.location,
 							description: r.description,
 							isLegacy: r.isLegacy,

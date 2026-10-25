@@ -16,6 +16,7 @@ import {
 	bytea,
 	json,
 	orgId,
+	ownerFunction,
 	pk,
 	stringList,
 	timestamps,
@@ -56,6 +57,7 @@ export const controlImplementations = pgTable(
 			.notNull()
 			.default("onboarding"),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		note: text(),
 		implementedAt: ts(),
@@ -145,6 +147,9 @@ export const evidence = pgTable(
 		// (enc1, AAD evidence:<id>:content_enc) — Migration 0031
 		templateKey: text(),
 		contentEnc: text(),
+		// verantwortlich, dass der Nachweis gültig bleibt (Funktion oder Person)
+		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		createdByUserId: userRef(),
 		createdAt: ts().notNull().defaultNow(),
 	},
@@ -321,6 +326,7 @@ export const documents = pgTable(
 			.notNull()
 			.default("internal"),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		authorUserId: userRef(),
 		assigneeUserId: userRef(),
 		approverFunction: text({ enum: ROLE_FUNCTIONS }),
@@ -760,6 +766,7 @@ export const risks = pgTable(
 		residualLikelihood: integer(),
 		residualImpact: integer(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		// proposed: wartet auf Freigabe (Auslöser risk.create)
 		status: text({
@@ -909,6 +916,7 @@ export const riskTreatments = pgTable(
 		title: text().notNull(),
 		description: text(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		dueAt: date(),
 		status: text({ enum: ["planned", "in_progress", "done", "dropped"] })
 			.notNull()
@@ -999,6 +1007,7 @@ export const exceptions = pgTable(
 			onDelete: "set null",
 		}),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		validUntil: date().notNull(),
 		status: text({ enum: ["requested", "approved", "expired", "revoked"] })
 			.notNull()
@@ -1056,6 +1065,7 @@ export const incidents = pgTable(
 			.notNull()
 			.default("open"),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		...timestamps(),
 	},
@@ -1105,6 +1115,7 @@ export const lossEvents = pgTable(
 		incidentId: uuid().references(() => incidents.id, { onDelete: "set null" }),
 		riskId: uuid().references(() => risks.id, { onDelete: "set null" }),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		createdAt: ts().notNull().defaultNow(),
 	},
 	(t) => [
@@ -1128,6 +1139,7 @@ export const milestones = pgTable(
 			.default("todo"),
 		dueAt: date(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		sortOrder: integer().notNull().default(0),
 		...timestamps(),

@@ -10,6 +10,7 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import { OwnerChip } from "@/components/entity/owner-chip";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
@@ -255,7 +256,10 @@ export default async function RiskDetailPage({
 						)}
 					</MetaItem>
 					<MetaItem label={te("owner")}>
-						<UserChip name={names.get(risk.ownerUserId ?? "")} />
+						<OwnerChip
+							ownerFunction={risk.ownerFunction}
+							name={names.get(risk.ownerUserId ?? "")}
+						/>
 					</MetaItem>
 					<MetaItem label={t("reviewAt")}>
 						{risk.reviewAt ? fmtDate.format(new Date(risk.reviewAt)) : "—"}
@@ -549,6 +553,7 @@ export default async function RiskDetailPage({
 							residualLikelihood: risk.residualLikelihood,
 							residualImpact: risk.residualImpact,
 							ownerUserId: risk.ownerUserId,
+							ownerFunction: risk.ownerFunction,
 							assigneeUserId: risk.assigneeUserId,
 							reviewAt: risk.reviewAt,
 							description: risk.description,

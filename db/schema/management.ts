@@ -13,6 +13,7 @@ import { orgPolicy } from "../rls";
 import {
 	json,
 	orgId,
+	ownerFunction,
 	pk,
 	stringList,
 	timestamps,
@@ -47,6 +48,7 @@ export const contextIssues = pgTable(
 		impact: text(),
 		relatedRiskId: uuid().references(() => risks.id, { onDelete: "set null" }),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		reviewAt: date(),
 		...timestamps(),
 	},
@@ -82,6 +84,7 @@ export const interestedParties = pgTable(
 		howAddressed: text(),
 		contact: text(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		reviewAt: date(),
 		...timestamps(),
 	},
@@ -113,6 +116,7 @@ export const scopes = pgTable(
 		approvedByUserId: userRef(),
 		approvedAt: ts(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		...timestamps(),
 	},
 	(t) => [index("scopes_org_idx").on(t.organizationId), orgPolicy("scopes")],
@@ -168,6 +172,7 @@ export const objectives = pgTable(
 		target: text(),
 		dueAt: date(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		status: text({
 			enum: ["open", "on_track", "at_risk", "achieved", "dropped"],
 		})
@@ -272,6 +277,7 @@ export const audits = pgTable(
 			onDelete: "set null",
 		}),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		...timestamps(),
 	},
 	(t) => [index("audits_org_idx").on(t.organizationId), orgPolicy("audits")],
@@ -329,6 +335,7 @@ export const nonconformities = pgTable(
 		correction: text(),
 		correctiveAction: text(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		dueAt: date(),
 		effectivenessCheckAt: date(),
@@ -447,6 +454,7 @@ export const managementReviews = pgTable(
 			onDelete: "set null",
 		}),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		...timestamps(),
 	},
 	(t) => [
@@ -505,6 +513,7 @@ export const complaints = pgTable(
 		outcome: text(),
 		escalatedToRegulator: boolean().notNull().default(false),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		status: text({ enum: ["open", "acknowledged", "resolved", "closed"] })
 			.notNull()
 			.default("open"),
@@ -525,6 +534,7 @@ export const conflictsOfInterest = pgTable(
 		mitigation: text(),
 		disclosedAt: date(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		reviewAt: date(),
 		status: text({ enum: ["open", "mitigated", "closed"] })
 			.notNull()
@@ -627,6 +637,7 @@ export const regulatorInteractions = pgTable(
 		deadline: date(),
 		responseAt: date(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		evidenceId: uuid().references(() => evidence.id, { onDelete: "set null" }),
 		linkedEntityType: text({ enum: ENTITY_KINDS }),
 		linkedEntityId: uuid(),
@@ -666,6 +677,7 @@ export const dataSubjectRequests = pgTable(
 		outcome: text(),
 		evidenceId: uuid().references(() => evidence.id, { onDelete: "set null" }),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		status: text({ enum: ["open", "in_progress", "done", "rejected"] })
 			.notNull()
 			.default("open"),

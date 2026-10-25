@@ -16,6 +16,7 @@ import {
 	createdAt,
 	json,
 	orgId,
+	ownerFunction,
 	pk,
 	stringList,
 	timestamps,
@@ -254,6 +255,7 @@ export const orgFrameworks = pgTable(
 			.notNull()
 			.references(() => frameworks.id, { onDelete: "cascade" }),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		enabledAt: createdAt(),
 		reviewAt: date(),
 		targetDate: date(),

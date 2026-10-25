@@ -7,6 +7,11 @@ import { createRiskGuided, reassessRisk } from "@/app/actions/risks";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import { LevelChoice } from "@/components/entity/level-choice";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { useResponsibleOptions } from "@/components/entity/responsible-context";
+import {
+	ResponsibleLabel,
+	ResponsibleSelect,
+} from "@/components/entity/responsible-select";
 import { MethodMatrix, ZONE_CELL } from "@/components/risks/method-matrix";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +35,7 @@ import {
 	ZONE_TONE,
 } from "@/lib/compliance/risk-method";
 import { cn } from "@/lib/utils";
+import { functionOfRef } from "@/lib/validation/responsible";
 
 export type WizardScenario = Pick<
 	RiskScenario,
@@ -118,6 +124,7 @@ export function RiskWizard({
 	const t = useTranslations("RiskWizard");
 	const tr = useTranslations("Risks");
 	const ts = useTranslations("Status");
+	const functions = useResponsibleOptions();
 	const gate = useGateFeedback();
 	const router = useRouter();
 	const [pending, start] = useTransition();
@@ -1099,18 +1106,16 @@ export function RiskWizard({
 						<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 							<div className="flex flex-col gap-1">
 								<Label htmlFor="rw-owner">{t("owner")}</Label>
-								<select
+								<ResponsibleSelect
 									id="rw-owner"
-									className={selectCls}
-									value={d.ownerUserId}
-									onChange={(e) => set("ownerUserId", e.target.value)}
-								>
-									{members.map((u) => (
-										<option key={u.userId} value={u.userId}>
-											{u.name || u.email}
-										</option>
-									))}
-								</select>
+									value={d.ownerUserId || null}
+									onChange={(v) => set("ownerUserId", v ?? "")}
+									members={members.map((u) => ({
+										userId: u.userId,
+										name: u.name || u.email,
+									}))}
+									allowNone={false}
+								/>
 							</div>
 							<div className="flex flex-col gap-1">
 								<Label htmlFor="rw-review">{t("reviewAt")}</Label>
@@ -1189,8 +1194,17 @@ export function RiskWizard({
 						<dt className="text-muted-foreground">{t("owner")}</dt>
 						<dd>
 							{(() => {
+								const fn = functionOfRef(d.ownerUserId);
+								const holder = fn
+									? (functions.find((f) => f.function === fn)?.holder ?? null)
+									: null;
 								const m = members.find((x) => x.userId === d.ownerUserId);
-								return m ? m.name || m.email : "—";
+								return (
+									<ResponsibleLabel
+										ownerFunction={fn}
+										ownerName={fn ? holder : m ? m.name || m.email : null}
+									/>
+								);
 							})()}
 						</dd>
 					</dl>

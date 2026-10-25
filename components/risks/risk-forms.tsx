@@ -13,6 +13,7 @@ import {
 } from "@/app/actions/risks";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { ResponsibleSelect } from "@/components/entity/responsible-select";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -35,7 +36,9 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
+import type { RoleFunction } from "@/db/schema/enums";
 import { RISK_CATEGORIES } from "@/db/schema/grc";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 const SCALE = [1, 2, 3, 4, 5] as const;
 
@@ -206,6 +209,7 @@ export function RiskEditForm({
 		residualLikelihood: number | null;
 		residualImpact: number | null;
 		ownerUserId: string | null;
+		ownerFunction?: RoleFunction | null;
 		assigneeUserId: string | null;
 		reviewAt: string | null;
 		description: string | null;
@@ -228,7 +232,7 @@ export function RiskEditForm({
 	const [treatment, setTreatment] = useState(risk.treatment);
 	const [rl, setRl] = useState<number | null>(risk.residualLikelihood);
 	const [ri, setRi] = useState<number | null>(risk.residualImpact);
-	const [owner, setOwner] = useState(risk.ownerUserId ?? "");
+	const [owner, setOwner] = useState(responsibleValue(risk) ?? "");
 	const [assignee, setAssignee] = useState(risk.assigneeUserId ?? "");
 	const [reviewAt, setReviewAt] = useState(risk.reviewAt ?? "");
 	const [description, setDescription] = useState(risk.description ?? "");
@@ -347,22 +351,12 @@ export function RiskEditForm({
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label>{te("owner")}</Label>
-					<Select
-						value={owner || "none"}
-						onValueChange={(v) => setOwner(v === "none" ? "" : v)}
-					>
-						<SelectTrigger className="w-full">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="none">—</SelectItem>
-							{members.map((m) => (
-								<SelectItem key={m.userId} value={m.userId}>
-									{m.name || m.email}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					<ResponsibleSelect
+						value={owner || null}
+						onChange={(v) => setOwner(v ?? "")}
+						members={members}
+						aria-label={te("owner")}
+					/>
 				</div>
 				<div className="flex flex-col gap-1.5">
 					<Label>{te("assignee")}</Label>

@@ -16,8 +16,8 @@ import {
 	Section,
 } from "@/components/entity/entity-layout";
 import { EvidenceForm } from "@/components/entity/evidence-form";
+import { ResponsibleEditor } from "@/components/entity/responsible-editor";
 import { StatusButton } from "@/components/entity/status-button";
-import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
 import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { Badge } from "@/components/ui/badge";
@@ -178,7 +178,15 @@ export default async function DocumentDetailPage({
 			meta={
 				<>
 					<MetaItem label={t("owner")}>
-						<UserChip name={names.get(doc.ownerUserId ?? "")} />
+						<ResponsibleEditor
+							entity="document"
+							id={doc.id}
+							ownerUserId={doc.ownerUserId}
+							ownerFunction={doc.ownerFunction}
+							ownerName={names.get(doc.ownerUserId ?? "") ?? null}
+							members={members}
+							canEdit={canEdit}
+						/>
 					</MetaItem>
 					<MetaItem label={t("approver")}>
 						{doc.approverFunction ?? "—"}

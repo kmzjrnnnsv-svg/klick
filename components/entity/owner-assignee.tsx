@@ -13,22 +13,33 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
+import type { RoleFunction } from "@/db/schema/enums";
+import { responsibleValue } from "@/lib/validation/responsible";
+import {
+	ResponsibleLabel,
+	type ResponsibleOption,
+	ResponsibleSelect,
+} from "./responsible-select";
 
 export type MemberOption = { userId: string; name: string; email: string };
 
-// Verantwortlich (Owner) und Bearbeitet von (Assignee) — zwei Auswahlfelder,
-// sofort gespeichert. Zuweisung löst eine Benachrichtigung aus.
+// Verantwortlich (Funktion oder Person) und Bearbeitet von (Person) — zwei
+// Auswahlfelder, sofort gespeichert. Zuweisung löst eine Benachrichtigung aus.
 export function OwnerAssignee({
 	implementationId,
 	ownerUserId,
+	ownerFunction,
 	assigneeUserId,
 	members,
+	functions,
 	canAssign,
 }: {
 	implementationId: string;
 	ownerUserId: string | null;
+	ownerFunction: RoleFunction | null;
 	assigneeUserId: string | null;
 	members: MemberOption[];
+	functions: ResponsibleOption[];
 	canAssign: boolean;
 }) {
 	const t = useTranslations("Entity");
@@ -36,7 +47,7 @@ export function OwnerAssignee({
 	const router = useRouter();
 	const [pending, start] = useTransition();
 
-	function save(field: "ownerUserId" | "assigneeUserId", value: string) {
+	function save(field: "ownerUserId" | "assigneeUserId", value: string | null) {
 		start(async () => {
 			const res = await assignControl({
 				implementationId,
@@ -57,7 +68,12 @@ export function OwnerAssignee({
 					<dt className="font-medium text-footnote text-muted-foreground">
 						{t("owner")}
 					</dt>
-					<dd>{label(ownerUserId)}</dd>
+					<dd>
+						<ResponsibleLabel
+							ownerFunction={ownerFunction}
+							ownerName={ownerUserId ? label(ownerUserId) : null}
+						/>
+					</dd>
 				</div>
 				<div className="flex flex-col gap-0.5">
 					<dt className="font-medium text-footnote text-muted-foreground">
@@ -74,7 +90,7 @@ export function OwnerAssignee({
 		value,
 		title,
 	}: {
-		field: "ownerUserId" | "assigneeUserId";
+		field: "assigneeUserId";
 		value: string | null;
 		title: string;
 	}) => (
@@ -106,7 +122,22 @@ export function OwnerAssignee({
 
 	return (
 		<>
-			<Picker field="ownerUserId" value={ownerUserId} title={t("owner")} />
+			<div className="flex flex-col gap-0.5">
+				<dt className="font-medium text-footnote text-muted-foreground">
+					{t("owner")}
+				</dt>
+				<dd>
+					<ResponsibleSelect
+						size="sm"
+						value={responsibleValue({ ownerFunction, ownerUserId })}
+						onChange={(v) => save("ownerUserId", v)}
+						members={members}
+						functions={functions}
+						disabled={pending}
+						aria-label={t("owner")}
+					/>
+				</dd>
+			</div>
 			<Picker
 				field="assigneeUserId"
 				value={assigneeUserId}

@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { upsertProvider } from "@/app/actions/registers";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { ResponsibleSelect } from "@/components/entity/responsible-select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -354,24 +355,12 @@ export function ProviderForm({
 						</div>
 						<div className="flex flex-col gap-1.5">
 							<Label>{t("owner")}</Label>
-							<Select
-								value={d.ownerUserId ?? "none"}
-								onValueChange={(v) =>
-									set("ownerUserId", v === "none" ? null : v)
-								}
-							>
-								<SelectTrigger className="w-full">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="none">—</SelectItem>
-									{members.map((m) => (
-										<SelectItem key={m.userId} value={m.userId}>
-											{m.name || m.email}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+							<ResponsibleSelect
+								value={d.ownerUserId}
+								onChange={(v) => set("ownerUserId", v)}
+								members={members}
+								aria-label={t("owner")}
+							/>
 						</div>
 					</div>
 					<div className="flex flex-wrap gap-5 text-subhead">

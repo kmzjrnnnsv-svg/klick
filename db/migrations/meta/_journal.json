@@ -246,6 +246,13 @@
       "when": 1792934827126,
       "tag": "0034_arrow_texts",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792937284257,
+      "tag": "0035_responsible_function",
+      "breakpoints": true
     }
   ]
 }

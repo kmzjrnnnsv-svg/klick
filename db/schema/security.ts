@@ -16,6 +16,7 @@ import {
 	createdAt,
 	json,
 	orgId,
+	ownerFunction,
 	pk,
 	stringList,
 	timestamps,
@@ -157,6 +158,7 @@ export const securityEngagements = pgTable(
 		closedAt: ts(),
 		statusNote: text(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		createdByUserId: userRef(),
 		...timestamps(),
 	},
@@ -215,6 +217,7 @@ export const securityFindings = pgTable(
 		retestedAt: ts(),
 		retestNote: text(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		...timestamps(),
 	},
 	(t) => [

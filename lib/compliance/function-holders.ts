@@ -76,6 +76,13 @@ export function recipientsOf(
 	return [...holders, ...deputies];
 }
 
+// besetzte Funktion mit Name der verantwortlichen Person (Auswahl
+// „Verantwortlich“, components/entity/responsible-select.tsx)
+export type ResponsibleOption = {
+	function: RoleFunction;
+	holder: string | null;
+};
+
 export type HeldFunction = { function: RoleFunction; as: "holder" | "deputy" };
 
 export function functionsOf(

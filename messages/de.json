@@ -903,6 +903,8 @@
 		"riskProposed": "Vorgeschlagen"
 	},
 	"Entity": {
+		"responsibleFunctions": "Funktionen",
+		"responsiblePeople": "Personen",
 		"search": "Suchen …",
 		"all": "alle",
 		"clearFilters": "Filter zurücksetzen",

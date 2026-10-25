@@ -11,6 +11,7 @@ import { orgPolicy } from "../rls";
 import {
 	json,
 	orgId,
+	ownerFunction,
 	pk,
 	stringList,
 	timestamps,
@@ -49,6 +50,7 @@ export const assessments = pgTable(
 		rating: text(),
 		result: json<Record<string, unknown>>(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		reviewerUserId: userRef(),
 		dueAt: date(),
 		submittedAt: ts(),

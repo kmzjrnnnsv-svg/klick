@@ -30,6 +30,7 @@ import {
 	EDGES_BY_CONTROL,
 	REQUIREMENT_BY_KEY,
 } from "@/lib/compliance/catalog";
+import { responsibleOptions } from "@/lib/compliance/function-holders-service";
 import { moduleEvidenceFor } from "@/lib/compliance/module-evidence";
 import {
 	fmtDate,
@@ -76,19 +77,28 @@ export default async function ControlDetailPage({
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const row = await getControlRowByCode(tx, ctx.orgId, code);
 		if (!row) return null;
-		const [evidence, tasks, comments, history, watcherIds, members, tests] =
-			await Promise.all([
-				listEvidenceForImplementation(tx, ctx.orgId, row.implementationId),
-				listTasks(tx, ctx.orgId, {
-					entityType: "control",
-					entityId: row.implementationId,
-				}),
-				listComments(tx, ctx.orgId, "control", row.implementationId),
-				historyFor(tx, `control:${row.implementationId}`),
-				listWatcherIds(tx, ctx.orgId, "control", row.implementationId),
-				listMembersForPicker(tx, ctx.orgId),
-				listControlTests(tx, ctx.orgId, row.implementationId),
-			]);
+		const [
+			evidence,
+			tasks,
+			comments,
+			history,
+			watcherIds,
+			members,
+			tests,
+			functions,
+		] = await Promise.all([
+			listEvidenceForImplementation(tx, ctx.orgId, row.implementationId),
+			listTasks(tx, ctx.orgId, {
+				entityType: "control",
+				entityId: row.implementationId,
+			}),
+			listComments(tx, ctx.orgId, "control", row.implementationId),
+			historyFor(tx, `control:${row.implementationId}`),
+			listWatcherIds(tx, ctx.orgId, "control", row.implementationId),
+			listMembersForPicker(tx, ctx.orgId),
+			listControlTests(tx, ctx.orgId, row.implementationId),
+			responsibleOptions(tx, ctx.orgId),
+		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
@@ -103,6 +113,7 @@ export default async function ControlDetailPage({
 			members,
 			tests,
 			names,
+			functions,
 		};
 	});
 	if (!data) notFound();
@@ -115,6 +126,7 @@ export default async function ControlDetailPage({
 		watcherIds,
 		members,
 		tests,
+		functions,
 		names,
 	} = data;
 	const cov = await getOrgCoverageCached(ctx);
@@ -201,8 +213,10 @@ export default async function ControlDetailPage({
 					<OwnerAssignee
 						implementationId={row.implementationId}
 						ownerUserId={row.ownerUserId}
+						ownerFunction={row.ownerFunction}
 						assigneeUserId={row.assigneeUserId}
 						members={members}
+						functions={functions}
 						canAssign={allows(ctx, { control: ["assign"] })}
 					/>
 					<MetaItem label={t("effort")}>

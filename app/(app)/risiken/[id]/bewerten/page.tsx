@@ -13,6 +13,7 @@ import { loadRiskWizardData } from "@/lib/compliance/queries-risk-wizard";
 import { plusMonths } from "@/lib/compliance/risk-service";
 import { readOrg } from "@/lib/db/with-org";
 import { getOrgSettings } from "@/lib/org/queries";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 // Neubewertung eines bestehenden Risikos mit dem Assistenten (ab „Bezug“).
 export default async function ReassessRiskPage({
@@ -79,7 +80,7 @@ export default async function ReassessRiskPage({
 		residualLikelihood: risk.residualLikelihood,
 		residualImpact: risk.residualImpact,
 		residualNote: risk.residualNote ?? "",
-		ownerUserId: risk.ownerUserId ?? ctx.userId,
+		ownerUserId: responsibleValue(risk) ?? ctx.userId,
 		reviewAt: plusMonths(data.settings?.reviewDefaults.risk ?? 3),
 	};
 	return (

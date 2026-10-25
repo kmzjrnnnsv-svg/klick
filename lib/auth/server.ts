@@ -13,6 +13,7 @@ import { globalDb, schema } from "../../db";
 import { member, session as sessionTable, user } from "../../db/auth-schema";
 import { memberAccess, memberRoles, roleAssignments } from "../../db/schema";
 import { auditPlatform } from "../audit";
+import { syncFunctionOwners } from "../compliance/function-owners";
 import { withOrg } from "../db/with-org";
 import { sendTransactionalMail } from "../mail/send";
 import {
@@ -399,10 +400,12 @@ export const auth = betterAuth({
 					);
 					// In der Einrichtung vorgemerkte Funktionen (pendingEmail) mit dem
 					// neuen Konto verknüpfen (D1).
+					// Danach rechnen Einträge mit dieser Funktion als Verantwortlich
+					// auf die neue Person um (syncFunctionOwners).
 					await withOrg(
 						{ orgId: invitation.organizationId, userId: user.id },
-						(tx) =>
-							tx
+						async (tx) => {
+							await tx
 								.update(roleAssignments)
 								.set({ userId: user.id, pendingEmail: null })
 								.where(
@@ -413,7 +416,9 @@ export const auth = betterAuth({
 										),
 										eq(roleAssignments.pendingEmail, user.email.toLowerCase()),
 									),
-								),
+								);
+							await syncFunctionOwners(tx, invitation.organizationId);
+						},
 					);
 					// Beim Einladen gewählte eigene Rollen (ADR-020) verknüpfen —
 					// nur für interne Grundrollen, Externe bekommen keine.

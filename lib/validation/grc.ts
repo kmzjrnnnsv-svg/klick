@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ENTITY_KINDS, IMPL_STATUS } from "@/db/schema/enums";
 import { TASK_STATUSES } from "@/lib/entities/task";
 import { frameworkSlugs, httpUrl, longText, shortText, uuid } from "./common";
+import { responsibleRef } from "./responsible";
 
 export const entityRefSchema = z.object({
 	entityType: z.enum(ENTITY_KINDS),
@@ -17,7 +18,8 @@ export const setControlStatusSchema = z.object({
 
 export const assignControlSchema = z.object({
 	implementationId: uuid,
-	ownerUserId: uuid.nullable().optional(),
+	// Konto-ID oder `function:<key>` (lib/validation/responsible.ts)
+	ownerUserId: responsibleRef,
 	assigneeUserId: uuid.nullable().optional(),
 	nextReviewAt: z.iso.date().nullable().optional(),
 });

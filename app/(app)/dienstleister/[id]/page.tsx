@@ -46,6 +46,7 @@ import { TRAFFIC_TONE } from "@/lib/compliance/supplier-rating";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { mergeActivity, toHistoryItems } from "@/lib/history";
+import { responsibleValue } from "@/lib/validation/responsible";
 
 const TABS = [
 	"stammdaten",
@@ -192,7 +193,7 @@ export default async function ProviderPage({
 								contractEnd: p.contractEnd,
 								dataLocations: p.dataLocations,
 								noticePeriodDays: p.noticePeriodDays,
-								ownerUserId: p.ownerUserId,
+								ownerUserId: responsibleValue(p),
 								notes: p.notes,
 							}}
 						/>

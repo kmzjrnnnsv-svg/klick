@@ -18,6 +18,10 @@ import {
 	DOCUMENT_TEMPLATES,
 	TEMPLATE_BY_CODE,
 } from "@/lib/compliance/catalog/document-templates";
+import {
+	ownerColumns,
+	resolveResponsible,
+} from "@/lib/compliance/function-holders-service";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { mutateOrg } from "@/lib/db/with-org";
 import {
@@ -108,6 +112,7 @@ async function createDocumentImpl(
 	const d = parsed.data;
 	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const docNumber = await allocateNumber(tx, c.orgId, d.type);
+		const owner = await ownerColumns(tx, c.orgId, d.ownerUserId, c.userId);
 		const tpl = d.templateCode
 			? TEMPLATE_BY_CODE.get(d.templateCode)
 			: undefined;
@@ -120,7 +125,7 @@ async function createDocumentImpl(
 				type: d.type,
 				domain: d.domain ?? tpl?.domain ?? null,
 				classification: d.classification,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...owner,
 				authorUserId: c.userId,
 				approverFunction: (d.approverFunction ??
 					tpl?.approverFunction ??
@@ -180,8 +185,16 @@ async function updateDocumentImpl(input: unknown): Promise<ActionResult> {
 		if (before.status !== "draft" && patch.bodyMarkdown !== undefined) {
 			return { result: "locked" as const, audit: [] };
 		}
+		const { ownerUserId: ownerRef, ...rest } = patch;
 		const set: Record<string, unknown> = {};
-		for (const [k, v] of Object.entries(patch)) if (v !== undefined) set[k] = v;
+		for (const [k, v] of Object.entries(rest)) if (v !== undefined) set[k] = v;
+		const owner = await resolveResponsible(
+			tx,
+			c.orgId,
+			ownerRef,
+			before.ownerUserId,
+		);
+		if (owner) Object.assign(set, owner);
 		if (set.reviewCycleMonths)
 			set.nextReviewAt = plusMonths(Number(set.reviewCycleMonths));
 		if (Object.keys(set).length > 0)

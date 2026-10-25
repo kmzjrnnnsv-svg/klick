@@ -30,6 +30,7 @@ import {
 	applicableParties,
 } from "@/lib/compliance/catalog/interested-parties";
 import { openDecisionRequest } from "@/lib/compliance/decision-service";
+import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import {
 	addMonths,
 	INDICATOR_TEMPLATES,
@@ -559,6 +560,7 @@ async function upsertRoleAssignmentImpl(
 				.where(eq(roleAssignments.id, id));
 			// Neue Funktion → zugehörige Pflichtschulungen zuweisen.
 			await syncTrainingAssignments(tx, c.orgId);
+			await syncOwnersAndNotify(tx, c.orgId, c.userId);
 			if (d.userId && d.userId !== before.userId) {
 				await notify(tx, {
 					orgId: c.orgId,
@@ -597,6 +599,7 @@ async function upsertRoleAssignmentImpl(
 			.returning({ id: roleAssignments.id });
 		if (!row) throw new Error("insert failed");
 		await syncTrainingAssignments(tx, c.orgId);
+		await syncOwnersAndNotify(tx, c.orgId, c.userId);
 		if (fitProperChecklist) {
 			await tx
 				.update(roleAssignments)
@@ -666,6 +669,7 @@ async function deleteRoleAssignmentImpl(input: unknown): Promise<ActionResult> {
 				externalName: r.externalName,
 			}),
 		);
+		await syncOwnersAndNotify(tx, c.orgId, c.userId);
 		return { result: null, audit: a ?? [] };
 	});
 	revalidatePath(PATH);

@@ -59,6 +59,7 @@ import { normalizeRole } from "@/lib/auth/guards";
 import { cycleDates } from "@/lib/compliance/audit-follow-up";
 import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
 import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
+import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import {
 	computeIncidentDeadlines,
 	leadRegime,
@@ -105,6 +106,9 @@ export async function runComplianceTick(
 	await forEachOrg(
 		orgs.map((o) => o.id),
 		async (tx, orgId) => {
+			// einmal am Tag (03:00 UTC): Verantwortliche über Funktionen abgleichen,
+			// falls eine Änderung an role_assignments den Abgleich verpasst hat
+			if (now.getUTCHours() === 3) await syncOwnersAndNotify(tx, orgId, null);
 			const rows = await loadDueRows(tx, orgId, now);
 			const result = collectDueItems(now, rows);
 			const written = await applyTick(tx, orgId, now, result);

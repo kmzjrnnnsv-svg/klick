@@ -16,7 +16,12 @@ import {
 	tasks,
 	watchers,
 } from "@/db/schema";
-import type { EntityKind, ImplStatus, OrgRoleLegal } from "@/db/schema/enums";
+import type {
+	EntityKind,
+	ImplStatus,
+	OrgRoleLegal,
+	RoleFunction,
+} from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
 import { mergeApplicability } from "./applicability";
 import {
@@ -213,6 +218,7 @@ export type ControlRow = {
 	status: ImplStatus;
 	source: string;
 	ownerUserId: string | null;
+	ownerFunction: RoleFunction | null;
 	ownerName: string | null;
 	assigneeUserId: string | null;
 	assigneeName: string | null;
@@ -237,6 +243,7 @@ export async function listControlRows(
 			status: controlImplementations.status,
 			source: controlImplementations.source,
 			ownerUserId: controlImplementations.ownerUserId,
+			ownerFunction: controlImplementations.ownerFunction,
 			assigneeUserId: controlImplementations.assigneeUserId,
 			nextReviewAt: controlImplementations.nextReviewAt,
 			updatedAt: controlImplementations.updatedAt,
@@ -367,7 +374,7 @@ export async function evidenceDetail(tx: OrgTx, orgId: string, id: string) {
 					eq(evidenceSignatures.evidenceId, id),
 				),
 			),
-		userNames(tx, [row.createdByUserId]),
+		userNames(tx, [row.createdByUserId, row.ownerUserId]),
 	]);
 	return {
 		row,
@@ -378,6 +385,7 @@ export async function evidenceDetail(tx: OrgTx, orgId: string, id: string) {
 		createdByName: row.createdByUserId
 			? (names.get(row.createdByUserId) ?? null)
 			: null,
+		ownerName: row.ownerUserId ? (names.get(row.ownerUserId) ?? null) : null,
 	};
 }
 

@@ -13,6 +13,7 @@ import { orgPolicy } from "../rls";
 import {
 	json,
 	orgId,
+	ownerFunction,
 	pk,
 	stringList,
 	timestamps,
@@ -111,6 +112,7 @@ export const providers = pgTable(
 		lastAssessmentAt: date(),
 		nextAssessmentAt: date(),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		status: text({ enum: PROVIDER_STATUSES }).notNull().default("active"),
 		notes: text(),
@@ -147,6 +149,7 @@ export const sites = pgTable(
 		employees: integer(),
 		critical: boolean().notNull().default(false),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		notes: text(),
 		...timestamps(),
 	},
@@ -177,6 +180,7 @@ export const assets = pgTable(
 			.notNull()
 			.default("internal"),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		assigneeUserId: userRef(),
 		providerId: uuid().references(() => providers.id, { onDelete: "set null" }),
 		location: text(),
@@ -220,6 +224,7 @@ export const processes = pgTable(
 			.notNull()
 			.default("core"),
 		ownerUserId: userRef(),
+		ownerFunction: ownerFunction(),
 		deputyUserId: userRef(),
 		assigneeUserId: userRef(),
 		criticality: text({ enum: CRITICALITY }).notNull().default("standard"),

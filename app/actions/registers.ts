@@ -22,7 +22,10 @@ import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
 import { TRAINING_REQUIREMENTS } from "@/lib/compliance/catalog/training-requirements";
 import { insertControlTest } from "@/lib/compliance/control-test-service";
 import { responsibleFor } from "@/lib/compliance/function-holders";
-import { loadAssignments } from "@/lib/compliance/function-holders-service";
+import {
+	loadAssignments,
+	ownerColumns,
+} from "@/lib/compliance/function-holders-service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import {
@@ -62,6 +65,8 @@ async function upsertProviderImpl(
 	const sent = new Set(
 		input && typeof input === "object" ? Object.keys(input) : [],
 	);
+	// Verantwortlich = Funktion oder Person: beide Spalten gehen zusammen
+	if (sent.has("ownerUserId")) sent.add("ownerFunction");
 	let res: { id: string; approvalPending: boolean };
 	try {
 		res = await mutateOrg(toOrgCtx(c), async (tx) => {
@@ -83,7 +88,7 @@ async function upsertProviderImpl(
 				contractStart: d.contractStart ?? null,
 				contractEnd: d.contractEnd ?? null,
 				noticePeriodDays: d.noticePeriodDays ?? null,
-				ownerUserId: d.ownerUserId === undefined ? c.userId : d.ownerUserId,
+				...(await ownerColumns(tx, c.orgId, d.ownerUserId, c.userId)),
 				notes: d.notes ?? null,
 			};
 			const patch = Object.fromEntries(
@@ -234,7 +239,7 @@ async function upsertAssetImpl(
 				classification: d.classification,
 				providerId: d.providerId ?? null,
 				siteId: d.siteId ?? null,
-				ownerUserId: d.ownerUserId ?? c.userId,
+				...(await ownerColumns(tx, c.orgId, d.ownerUserId, c.userId)),
 				location: d.location ?? null,
 				description: d.description ?? null,
 				isLegacy: d.isLegacy,
