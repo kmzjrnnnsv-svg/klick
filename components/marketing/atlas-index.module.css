@@ -96,7 +96,7 @@
 	}
 	.link[aria-current="true"] {
 		background: var(--primary-fill);
-		color: var(--primary-foreground);
+		color: #fff;
 	}
 	.link[aria-current="true"] .count {
 		color: inherit;
