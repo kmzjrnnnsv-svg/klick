@@ -227,10 +227,7 @@
 		"tiersLead": "Jede Stufe enthält den vollständigen Katalog, Mandantentrennung in der Datenbank und Passkey-Anmeldung für alle. Der Unterschied liegt in Rahmenwerken, Umfang und Begleitung.",
 		"readinessTitle": "Vorher siehst du, ob es reicht.",
 		"readinessLead": "Klick rechnet die Prüfungsreife je Rahmenwerk zu einem Stichtag aus und zeigt, was noch fehlt, sortiert nach Wirkung. So weißt du vor dem Audit, wo du stehst, und zahlst die Software erst, wenn es bestanden ist.",
-		"readinessImageAlt": "Prüfungsreife in Klick: Reifegrad mit Stichtag und die Blocker nach Punktgewinn",
-		"startImageAlt": "Risikoanalyse in Klick mit Szenarien und Bewertung",
-		"growthImageAlt": "Freigabe-Ablauf in Klick mit mehreren Stufen",
-		"licenceImageAlt": "Verwahrung in Klick: Wallets, Quorum und tägliche Abstimmung"
+		"readinessImageAlt": "Prüfungsreife in Klick: Reifegrad mit Stichtag und die Blocker nach Punktgewinn"
 	},
 	"Auth": {
 		"loginTitle": "Anmelden",

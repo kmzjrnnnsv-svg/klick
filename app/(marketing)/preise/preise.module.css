@@ -246,19 +246,9 @@
 .tier {
 	display: flex;
 	flex-direction: column;
-	padding: 0 28px 40px;
+	padding: 32px 28px 40px;
 	border-radius: 16px;
 	background: var(--field);
-	overflow: hidden;
-}
-.tierPic {
-	display: block;
-	width: calc(100% + 56px);
-	max-width: none;
-	height: 220px;
-	margin: 0 -28px 28px;
-	object-fit: cover;
-	object-position: top left;
 }
 .tierMain {
 	background: var(--accent);
