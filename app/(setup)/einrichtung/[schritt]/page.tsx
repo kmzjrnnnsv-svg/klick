@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -179,7 +180,14 @@ export default async function SetupStepPage({
 								}`}
 							>
 								<span className="tabular-nums">
-									{done.has(s) ? "✓" : i + 1}
+									{done.has(s) ? (
+										<>
+											<Check aria-hidden="true" className="size-4" />
+											<span className="sr-only">{t("stepDone")}</span>
+										</>
+									) : (
+										i + 1
+									)}
 								</span>
 								{t(`step_${s}`)}
 							</Link>

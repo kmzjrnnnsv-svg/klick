@@ -30,7 +30,7 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { errorText } from "@/components/ui/error-text";
 import { FormAlert } from "@/components/ui/form-alert";
@@ -169,6 +169,8 @@ export function WorkflowEditor({
 	const uid = useId();
 	const [pending, start] = useTransition();
 	const [name, setName] = useState(initial.name);
+	// ungesicherte Änderungen: Rückfrage als Alert (nie window.confirm)
+	const [leaveOpen, setLeaveOpen] = useState(false);
 	const [description, setDescription] = useState(initial.description);
 	const [enabled, setEnabled] = useState(initial.enabled);
 	const [priority, setPriority] = useState(String(initial.priority));
@@ -596,12 +598,28 @@ export function WorkflowEditor({
 						variant="outline"
 						type="button"
 						onClick={() => {
-							if (dirty && !window.confirm(t("leaveConfirm"))) return;
+							if (dirty) return setLeaveOpen(true);
 							router.push("/einstellungen?tab=workflows");
 						}}
 					>
 						{t("cancel")}
 					</Button>
+					<AlertDialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>{t("leaveConfirm")}</AlertDialogTitle>
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>{t("leaveKeep")}</AlertDialogCancel>
+								<AlertDialogAction
+									className={buttonVariants({ variant: "destructive" })}
+									onClick={() => router.push("/einstellungen?tab=workflows")}
+								>
+									{t("leaveDiscard")}
+								</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
 				</div>
 				{initial.id && initial.custom && (
 					<DeleteVariant id={initial.id} name={initial.name} />

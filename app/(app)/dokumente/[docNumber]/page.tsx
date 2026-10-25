@@ -344,7 +344,10 @@ export default async function DocumentDetailPage({
 								</span>
 								<span className="text-muted-foreground text-footnote">
 									{v.approvedAt
-										? `✓ ${names.get(v.approvedByUserId ?? "") ?? ""} ${fmtDate.format(v.approvedAt)}`
+										? t("approvedBy", {
+												name: names.get(v.approvedByUserId ?? "") ?? "—",
+												date: fmtDate.format(v.approvedAt),
+											})
 										: ""}
 									{v.publishedAt ? ` · ${fmtDate.format(v.publishedAt)}` : ""}
 								</span>

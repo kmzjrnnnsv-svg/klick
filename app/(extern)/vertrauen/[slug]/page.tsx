@@ -50,12 +50,12 @@ export default async function PublicTrustCenterPage({
 	return (
 		<div className="flex flex-col gap-10">
 			<header className="flex flex-col gap-3">
-				<p className="text-muted-foreground text-footnote">
-					{t("publicEyebrow", { org: s.orgName })}
-				</p>
 				<h1 className="text-balance font-bold text-title-1 leading-tight sm:text-4xl">
 					{s.title}
 				</h1>
+				<p className="text-muted-foreground text-subhead">
+					{t("publicEyebrow", { org: s.orgName })}
+				</p>
 				{s.intro && (
 					<p className="max-w-2xl whitespace-pre-line break-words text-muted-foreground leading-relaxed">
 						{s.intro}

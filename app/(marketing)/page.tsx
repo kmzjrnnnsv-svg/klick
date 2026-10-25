@@ -1,10 +1,7 @@
 import { CheckIcon } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import {
-	MonogramPattern,
-	SectionDivider,
-} from "@/components/marketing/landing-decor";
+import { SectionDivider } from "@/components/marketing/landing-decor";
 import { buttonVariants } from "@/components/ui/button";
 import {
 	CONTROL_BY_CODE,
@@ -69,8 +66,6 @@ export default async function LandingPage() {
 	const count = EXAMPLE.frameworks.length;
 	return (
 		<main id="inhalt" className="relative flex-1 overflow-hidden">
-			<MonogramPattern className="-z-10 pointer-events-none absolute inset-0 h-full w-full text-foreground/[0.04]" />
-
 			<section className="mx-auto max-w-5xl px-4 pt-20 pb-12 sm:px-6 sm:pt-28">
 				<h1 className="max-w-3xl text-balance font-bold text-5xl leading-[1.04] tracking-tight sm:text-7xl">
 					{t("title")}
@@ -203,10 +198,7 @@ export default async function LandingPage() {
 			<SectionDivider />
 
 			<section className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-				<p className="font-medium text-footnote text-muted-foreground">
-					{t("sentenceEyebrow")}
-				</p>
-				<p className="mt-6 font-bold text-title-1 leading-snug sm:text-4xl">
+				<p className="font-bold text-title-1 leading-snug sm:text-4xl">
 					„{t("sentence")}“
 				</p>
 			</section>

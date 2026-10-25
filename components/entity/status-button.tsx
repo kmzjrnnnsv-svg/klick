@@ -350,6 +350,7 @@ export function StatusButton({
 						onChange={(e) => setNote(e.target.value)}
 						rows={4}
 						autoFocus
+						aria-label={t("noteTitle")}
 						placeholder={t("notePlaceholder")}
 					/>
 					<DialogFooter>

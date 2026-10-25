@@ -291,7 +291,9 @@ export default async function TestProgrammePage({
 				<p className="mt-3 text-muted-foreground text-footnote">
 					{t("accessReview")}:{" "}
 					{status.accessReviewQuarters
-						.map((q, i) => `Q${i + 1} ${q ? "✓" : "–"}`)
+						.map(
+							(q, i) => `Q${i + 1} ${q ? t("quarterDone") : t("quarterOpen")}`,
+						)
 						.join(" · ")}
 				</p>
 			</section>
