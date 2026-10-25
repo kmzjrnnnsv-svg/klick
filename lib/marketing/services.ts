@@ -1,3 +1,5 @@
+import { SHOTS, type Shot } from "@/lib/marketing/shots";
+
 // Beratungsleistungen für /leistungen — Inhalt (DE, Du-Form). Ablauf und
 // Ergebnisdateien entsprechen dem, was Klick tatsächlich erzeugt
 // (Exporte unter /api/export/*). Beratung hat keinen öffentlichen Preis:
@@ -10,7 +12,7 @@ export type ServiceStep = {
 	files?: string[];
 };
 
-export type ServiceImage = { src: string; w: number; h: number; alt: string };
+export type ServiceImage = Shot & { alt: string };
 
 export type Service = {
 	key: "gap" | "ai-check" | "cra" | "suppliers" | "pentest";
@@ -29,9 +31,7 @@ export const SERVICES: readonly Service[] = [
 		key: "gap",
 		name: "Gap-Analyse & Prüfungsreife",
 		image: {
-			src: "/leistungen/frage.jpg",
-			w: 2304,
-			h: 1338,
+			...SHOTS.frage,
 			alt: "Gap-Analyse in Klick: eine Frage je Control mit Antwort, Erläuterung und Nachweis",
 		},
 		short: "Gap-Analyse",
@@ -67,9 +67,7 @@ export const SERVICES: readonly Service[] = [
 		key: "ai-check",
 		name: "Security-Check für KI-gebaute Apps",
 		image: {
-			src: "/leistungen/sicherheit.jpg",
-			w: 2304,
-			h: 1240,
+			...SHOTS.sicherheit,
 			alt: "Security-Checks in Klick: Ampel, offene Befunde nach Schwere und was zuerst dran ist",
 		},
 		short: "KI-App-Check",
@@ -105,9 +103,7 @@ export const SERVICES: readonly Service[] = [
 		key: "cra",
 		name: "CRA-Readiness",
 		image: {
-			src: "/leistungen/produkt.jpg",
-			w: 1504,
-			h: 810,
+			...SHOTS.produkt,
 			alt: "Produkt in Klick: offene CRA-Punkte bis zur Marktreife mit Stichtag",
 		},
 		short: "CRA-Readiness",
@@ -143,9 +139,7 @@ export const SERVICES: readonly Service[] = [
 		key: "suppliers",
 		name: "Lieferantenprüfung für Software",
 		image: {
-			src: "/leistungen/vertrag.jpg",
-			w: 1504,
-			h: 2200,
+			...SHOTS.vertrag,
 			alt: "Klausel-Checkliste nach DORA Art. 30 in Klick: Klausel für Klausel erfüllt oder offen",
 		},
 		short: "Lieferanten",
@@ -181,9 +175,7 @@ export const SERVICES: readonly Service[] = [
 		key: "pentest",
 		name: "Penetrationstest",
 		image: {
-			src: "/leistungen/cvss.jpg",
-			w: 1344,
-			h: 1680,
+			...SHOTS.cvss,
 			alt: "Befund erfassen in Klick: Schwere aus dem CVSS-Vektor, Reproduktion und Empfehlung",
 		},
 		short: "Pentest",

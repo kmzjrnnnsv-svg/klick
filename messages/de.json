@@ -5351,6 +5351,7 @@
 		"listTitle": "Alle Abläufe",
 		"listLead": "{n} Abläufe in {g} Bereichen. Öffne einen Ablauf für Auslöser, Schritte und Ergebnis.",
 		"indexLabel": "Bereiche",
+		"indexCount": "{n, plural, one {# Ablauf} other {# Abläufe}}",
 		"trigger": "Auslöser",
 		"steps": "Schritte",
 		"result": "Ergebnis",
