@@ -1,0 +1,124 @@
+/* „Was gilt für dich?“ (Apple HIG): Kapseln zur Auswahl, darunter je Stufe
+   eine eingerückte gruppierte Liste. Farben und Größen aus den Tokens. */
+
+.guide {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.choices {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.choice {
+	display: inline-flex;
+	align-items: center;
+	min-height: max(36px, var(--control-h-sm));
+	padding: 0 16px;
+	border: 0;
+	border-radius: 999px;
+	background: var(--muted);
+	color: var(--foreground);
+	font: inherit;
+	font-size: 15px;
+	line-height: 20px;
+	cursor: pointer;
+	transition:
+		background-color 160ms ease,
+		color 160ms ease;
+	touch-action: manipulation;
+}
+@media (hover: hover) {
+	.choice:hover {
+		background: color-mix(in oklab, var(--muted), var(--foreground) 6%);
+	}
+}
+.choice:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
+.choice[aria-pressed="true"] {
+	background: var(--primary-fill);
+	color: #fff;
+	font-weight: 600;
+}
+.hint {
+	margin: 0 0 16px !important;
+	color: var(--muted-foreground);
+	font-size: 15px;
+	line-height: 20px;
+}
+.groups {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+	align-items: start;
+	gap: 24px 16px;
+}
+.group {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+}
+.groupHead {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	margin: 0 !important;
+	padding: 0 16px;
+	color: var(--muted-foreground);
+	font-size: 13px !important;
+	line-height: 18px;
+	font-weight: 600 !important;
+}
+.count {
+	font-weight: 400;
+	font-variant-numeric: tabular-nums;
+}
+.rows {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border-radius: 16px;
+	background: var(--card);
+	color: var(--card-foreground);
+	overflow: hidden;
+}
+.row {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 11px 16px;
+}
+.row + .row::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: 0;
+	left: 16px;
+	height: 1px;
+	background: var(--border);
+}
+.name {
+	font-size: 17px;
+	line-height: 22px;
+	font-weight: 600;
+}
+.why {
+	color: var(--muted-foreground);
+	font-size: 15px;
+	line-height: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.choice {
+		transition: none;
+	}
+}

@@ -2,12 +2,13 @@ import { ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import type { CSSProperties } from "react";
 import { AtlasIndex } from "@/components/marketing/atlas-index";
+import { AudienceGuide } from "@/components/marketing/audience-guide";
 import { FrameworkPicker } from "@/components/marketing/framework-picker";
 import { PinnedSteps } from "@/components/marketing/pinned-steps";
 import { RevealRoot } from "@/components/marketing/reveal";
 import { assetUrl } from "@/lib/marketing/asset-url";
+import { AUDIENCE_DEFAULT, audienceViews } from "@/lib/marketing/audiences";
 import {
 	busiestControl,
 	catalogTotals,
@@ -39,19 +40,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const OUTPUTS = ["soa", "evidence", "package", "incident", "recon"] as const;
-// Rahmenwerke für die Kacheln (Reihenfolge = Anzeige)
-const TILE_FRAMEWORKS = [
-	"iso27001",
-	"dora",
-	"nis2",
-	"micar",
-	"zag",
-	"gwg",
-	"dsgvo",
-	"cra",
-	"soc2",
-	"ccss",
-];
 
 // /funktionen — öffentlich, vor der Anmeldung: jeder Ablauf in Klick mit
 // Auslöser, Schritten und Ergebnis, dazu echte Ausschnitte der Oberfläche
@@ -334,37 +322,28 @@ export default async function FeaturesPage() {
 				</div>
 			</section>
 
-			{/* Rahmenwerke als Kacheln */}
-			<section className={s.proof} aria-labelledby="fn-proof">
-				<div className={cn(s.tile, s.tileHead)} data-r="">
-					<h2 id="fn-proof" className={s.proofTitle}>
-						{t("proofTitle", { n: totals.frameworks })}
+			{/* Was gilt für dich? Nicht jedes Rahmenwerk muss jede:r umsetzen */}
+			<section id="fuer-wen" className={s.fit} aria-labelledby="fn-fit">
+				<div className={s.fitHead}>
+					<h2 id="fn-fit" className={s.h2} data-r="">
+						{t("audienceTitle")}
 					</h2>
-					<p>
-						{t("proofLead", {
-							r: totals.requirements,
-							c: totals.controls,
-							e: totals.edges,
-						})}
+					<p className={s.fitLead} data-r="">
+						{t("audienceLead")}
 					</p>
 				</div>
-				{TILE_FRAMEWORKS.map((slug, i) => {
-					const f = fwBy.get(slug);
-					if (!f) return null;
-					return (
-						<div
-							key={slug}
-							className={s.tile}
-							data-r=""
-							style={{ "--d": `${(i % 4) * 60}ms` } as CSSProperties}
-						>
-							<p className={s.tileName}>{f.label}</p>
-						</div>
-					);
-				})}
-				<p className={s.proofMore}>
-					{t("proofMore", { n: totals.frameworks - TILE_FRAMEWORKS.length })}
-				</p>
+				<AudienceGuide audiences={audienceViews()} initial={AUDIENCE_DEFAULT} />
+				<div className={s.fitNotes}>
+					<p>{t("audienceRest")}</p>
+					<p>
+						{t("audienceCatalog", {
+							n: totals.frameworks,
+							r: totals.requirements,
+							c: totals.controls,
+						})}{" "}
+						{t("audienceNote")}
+					</p>
+				</div>
 			</section>
 
 			{/* Fragen: links die Liste, rechts die Antwort */}
