@@ -2,6 +2,7 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { incidents, incidentUpdates, tasks } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import {
@@ -17,6 +18,8 @@ import {
 	classifyNis2Incident,
 	craReasons,
 } from "@/lib/compliance/incident";
+import { informsManagement } from "@/lib/compliance/incident-management";
+import { informManagement } from "@/lib/compliance/incident-management-service";
 import {
 	createIncidentRecord,
 	deadlinesFor,
@@ -26,10 +29,11 @@ import {
 } from "@/lib/compliance/incident-service";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
+import { topManagementOf } from "@/lib/compliance/top-management";
 import { mutateOrg } from "@/lib/db/with-org";
 import { INCIDENT_STATUS } from "@/lib/entities/incident";
 import { canTransition } from "@/lib/entities/status-machine";
-import { type ActionResult, fromZod } from "@/lib/validation/common";
+import { type ActionResult, fromZod, uuid } from "@/lib/validation/common";
 import {
 	classifyIncidentSchema,
 	createIncidentSchema,
@@ -161,21 +165,33 @@ async function classifyIncidentImpl(
 				);
 			}
 		}
+		// meldepflichtig geworden: Geschäftsleitung sofort informieren
+		const informed =
+			informsManagement(classification) &&
+			!informsManagement(row.classification)
+				? await informManagement(tx, c, row, {
+						title: `Vorfall meldepflichtig: ${row.code}`,
+						body: `${row.title} — eingestuft als ${CLASS_LABEL[classification] ?? classification}. Bitte zur Kenntnis nehmen.`,
+					})
+				: [];
 		return {
 			result: { ok: true, data: { classification, reasons } },
-			audit: {
-				action: "incident.classified",
-				target: `incident:${row.id}`,
-				before: { classification: row.classification },
-				after: {
-					classification,
-					derived,
-					reasons,
-					regimes: d.regimes,
-					productId,
-					override: d.classificationOverride ?? null,
+			audit: [
+				{
+					action: "incident.classified",
+					target: `incident:${row.id}`,
+					before: { classification: row.classification },
+					after: {
+						classification,
+						derived,
+						reasons,
+						regimes: d.regimes,
+						productId,
+						override: d.classificationOverride ?? null,
+					},
 				},
-			},
+				...informed,
+			],
 		};
 	});
 	revalidatePath("/vorfaelle", "layout");
@@ -187,6 +203,11 @@ const REPORT_LABEL = {
 	intermediate: "Zwischenbericht",
 	final: "Abschlussbericht",
 } as const;
+
+const CLASS_LABEL: Record<string, string> = {
+	major: "schwerwiegend",
+	significant: "erheblich",
+};
 
 type ReportResult = ActionResult<{ approvalRequested: boolean }>;
 
@@ -274,13 +295,21 @@ async function markIncidentReportedImpl(input: unknown): Promise<ReportResult> {
 			kind: "report_sent",
 			body: `${REPORT_LABEL[d.report]} abgegeben.${d.note ? ` ${d.note}` : ""}`,
 		});
+		// Meldung abgegeben: Geschäftsleitung informieren (keine Freigabe vorab)
+		const informed = await informManagement(tx, c, row, {
+			title: `${REPORT_LABEL[d.report]} abgegeben: ${row.code}`,
+			body: `${row.title} — an die Aufsicht gemeldet.`,
+		});
 		return {
 			result: { ok: true, data: { approvalRequested: false } },
-			audit: {
-				action: "incident.report_sent",
-				target: `incident:${row.id}`,
-				after: { report: d.report, at: now, note: d.note ?? null },
-			},
+			audit: [
+				{
+					action: "incident.report_sent",
+					target: `incident:${row.id}`,
+					after: { report: d.report, at: now, note: d.note ?? null },
+				},
+				...informed,
+			],
 		};
 	});
 	revalidatePath("/vorfaelle", "layout");
@@ -490,6 +519,57 @@ async function setIncidentStatusImpl(
 
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
+// Kenntnisnahme durch die Geschäftsleitung (Meldungen an die Aufsicht:
+// informieren statt vorab freigeben). Nur Mitglieder der Geschäftsleitung
+// (Funktion management_body inkl. Vertretung); eine Kenntnisnahme genügt.
+const acknowledgeSchema = z.object({ incidentId: uuid });
+
+async function acknowledgeIncidentImpl(input: unknown): Promise<ActionResult> {
+	const c = await requireOrg({ incident: ["read"] });
+	const parsed = acknowledgeSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select()
+			.from(incidents)
+			.where(
+				and(
+					eq(incidents.id, parsed.data.incidentId),
+					eq(incidents.organizationId, c.orgId),
+				),
+			)
+			.limit(1);
+		if (!row) return { result: { ok: false, error: "notFound" }, audit: [] };
+		const tm = await topManagementOf(tx, c.orgId, c.userId);
+		if (!tm.isTopManagement)
+			return { result: { ok: false, error: "not_management" }, audit: [] };
+		if (row.managementAcknowledgedAt)
+			return { result: { ok: true, data: undefined }, audit: [] };
+		const at = new Date();
+		await tx
+			.update(incidents)
+			.set({ managementAcknowledgedAt: at, managementAcknowledgedBy: c.userId })
+			.where(eq(incidents.id, row.id));
+		await tx.insert(incidentUpdates).values({
+			organizationId: c.orgId,
+			incidentId: row.id,
+			authorUserId: c.userId,
+			kind: "update",
+			body: "Von der Geschäftsleitung zur Kenntnis genommen.",
+		});
+		return {
+			result: { ok: true, data: undefined },
+			audit: {
+				action: "incident.management_acknowledged",
+				target: `incident:${row.id}`,
+				after: { at },
+			},
+		};
+	});
+	revalidatePath("/vorfaelle", "layout");
+	return res;
+}
+
 export const createIncident = safeAction("createIncident", createIncidentImpl);
 export const classifyIncident = safeAction(
 	"classifyIncident",
@@ -510,4 +590,8 @@ export const addIncidentUpdate = safeAction(
 export const setIncidentStatus = safeAction(
 	"setIncidentStatus",
 	setIncidentStatusImpl,
+);
+export const acknowledgeIncident = safeAction(
+	"acknowledgeIncident",
+	acknowledgeIncidentImpl,
 );

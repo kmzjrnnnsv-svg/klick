@@ -20,6 +20,7 @@ import {
 	IncidentUpdateForm,
 	MitigationButton,
 } from "@/components/incidents/incident-forms";
+import { ManagementAckButton } from "@/components/incidents/management-ack";
 import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ import {
 	computeIncidentDeadlines,
 	leadRegime,
 } from "@/lib/compliance/incident";
+import { managementAckState } from "@/lib/compliance/incident-management";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
 	listComments,
@@ -48,6 +50,7 @@ import {
 } from "@/lib/compliance/queries";
 import { getIncident } from "@/lib/compliance/queries-p2";
 import { listProductOptions } from "@/lib/compliance/queries-products";
+import { topManagementOf } from "@/lib/compliance/top-management";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
 import {
@@ -96,7 +99,9 @@ export default async function IncidentDetailPage({
 			loadCandidates(tx, ctx.orgId),
 			activeDelegations(tx, ctx.orgId),
 		]);
+		const tm = await topManagementOf(tx, ctx.orgId, ctx.userId);
 		const names = await userNames(tx, [
+			r.incident.managementAcknowledgedBy,
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
 			...(approval?.decisions.map((x) => x.approverUserId) ?? []),
@@ -113,6 +118,7 @@ export default async function IncidentDetailPage({
 			candidates,
 			dels,
 			names,
+			isTopManagement: tm.isTopManagement,
 		};
 	});
 	if (!data) notFound();
@@ -130,6 +136,8 @@ export default async function IncidentDetailPage({
 		names,
 	} = data;
 	const canEdit = allows(ctx, { incident: ["update"] });
+	// Geschäftsleitung informiert, Kenntnisnahme offen/erledigt
+	const ackState = managementAckState(incident, new Date());
 	const regimes = incident.regimes as IncidentRegime[];
 	const lead = leadRegime(regimes) ?? "dora";
 	const dl = computeIncidentDeadlines(lead, {
@@ -238,6 +246,31 @@ export default async function IncidentDetailPage({
 							{t(`class_${incident.classification}`)}
 						</Badge>
 					</MetaItem>
+					{ackState !== "none" && (
+						<MetaItem label={t("management")}>
+							{ackState === "done" ? (
+								<span>
+									{t("ackBy", {
+										name:
+											names.get(incident.managementAcknowledgedBy ?? "") ?? "—",
+										date: fmt.format(incident.managementAcknowledgedAt as Date),
+									})}
+								</span>
+							) : (
+								<span className="flex flex-wrap items-center gap-2">
+									<Badge
+										variant={ackState === "overdue" ? "destructive" : "warning"}
+										className="h-auto whitespace-normal text-left"
+									>
+										{t("ackOpen")}
+									</Badge>
+									{data.isTopManagement && (
+										<ManagementAckButton incidentId={incident.id} />
+									)}
+								</span>
+							)}
+						</MetaItem>
+					)}
 					<MetaItem label={t("aware")}>{fmt.format(incident.awareAt)}</MetaItem>
 					<MetaItem label={t("owner")}>
 						<UserChip name={names.get(incident.ownerUserId ?? "")} />

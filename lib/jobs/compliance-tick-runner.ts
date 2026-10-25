@@ -59,6 +59,7 @@ import { normalizeRole } from "@/lib/auth/guards";
 import { cycleDates } from "@/lib/compliance/audit-follow-up";
 import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
 import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
+import { functionRecipients } from "@/lib/compliance/function-holders-service";
 import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import {
 	computeIncidentDeadlines,
@@ -335,6 +336,9 @@ async function loadDueRows(
 			title: inc.title,
 			ownerUserId: inc.ownerUserId,
 			status: inc.status,
+			classification: inc.classification,
+			classifiedAt: inc.classifiedAt,
+			managementAcknowledgedAt: inc.managementAcknowledgedAt,
 			clocks,
 		};
 	});
@@ -796,6 +800,7 @@ async function loadDueRows(
 		exceptions: exceptionRows,
 		trainingAssignments: assignments,
 		incidents: incidentRows,
+		managementIds: await functionRecipients(tx, orgId, "management_body"),
 		acknowledgements,
 		obligationRuns: runRows,
 		legalChanges,

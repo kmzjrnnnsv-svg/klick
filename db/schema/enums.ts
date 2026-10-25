@@ -533,6 +533,8 @@ export const NOTIFICATION_KINDS = [
 	"audit_request",
 	"security_alert",
 	"inquiry",
+	// Geschäftsleitung informiert (Vorfall schwerwiegend bzw. gemeldet)
+	"management_info",
 	// Wallet: Eingang bestätigt bzw. Ausgang gesehen (Treffer der
 	// Sanktionsprüfung laufen als security_alert)
 	"wallet_transfer",

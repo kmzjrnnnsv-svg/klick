@@ -1,4 +1,5 @@
 import type { EntityKind, NotificationKind } from "@/db/schema/enums";
+import { managementAckState } from "@/lib/compliance/incident-management";
 import { previousBusinessDay } from "@/lib/custody/reconcile";
 import {
 	alertOverdue,
@@ -79,12 +80,17 @@ export type DueRows = {
 		dueAt: Date | string | null;
 		status: "due" | "overdue" | "done";
 	}[];
+	/** Geschäftsleitung (Funktion management_body inkl. Vertretung). */
+	managementIds?: readonly string[];
 	incidents: readonly {
 		id: string;
 		code: string;
 		title: string;
 		ownerUserId: string | null;
 		status: string;
+		classification?: string | null;
+		classifiedAt?: Date | string | null;
+		managementAcknowledgedAt?: Date | string | null;
 		clocks: readonly {
 			label: string;
 			dueAt: Date | string | null;
@@ -544,6 +550,31 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 				dedupeKey: `incident:${inc.id}:${clock.label}:${overdue ? "overdue" : "soon"}`,
 			});
 		}
+	}
+
+	// Geschäftsleitung informiert, Kenntnisnahme nach 24 h noch offen
+	for (const inc of rows.incidents) {
+		if (inc.status === "closed") continue;
+		const state = managementAckState(
+			{
+				classification: inc.classification ?? null,
+				classifiedAt: inc.classifiedAt ?? null,
+				managementAcknowledgedAt: inc.managementAcknowledgedAt ?? null,
+			},
+			now,
+		);
+		if (state !== "overdue") continue;
+		notifications.push({
+			kind: "management_info",
+			recipients:
+				rows.managementIds && rows.managementIds.length > 0
+					? [...rows.managementIds]
+					: [...rows.orgOwnerIds],
+			title: `Kenntnisnahme offen: ${inc.code}`,
+			body: `${inc.title} — die Geschäftsleitung hat den meldepflichtigen Vorfall noch nicht zur Kenntnis genommen.`,
+			link: `/vorfaelle/${encodeURIComponent(inc.id)}`,
+			dedupeKey: `incident-ack:${inc.id}`,
+		});
 	}
 
 	// Kenntnisnahmen: nach ACK_GRACE_DAYS erinnern
