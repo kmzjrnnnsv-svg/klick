@@ -83,6 +83,8 @@
 	position: relative;
 	display: grid;
 	grid-template-columns: repeat(12, minmax(0, 1fr));
+	/* Zeile 2 nur für die Hinweise unter dem Ausschnitt */
+	grid-template-rows: minmax(0, 1fr) auto;
 	column-gap: 24px;
 	min-height: max(680px, calc(100svh - 56px));
 	padding: 0 var(--edge);
@@ -114,16 +116,29 @@
 	grid-column: 5 / 13;
 	grid-row: 1;
 	align-self: end;
-	height: 58%;
-	min-height: 380px;
 	margin-right: calc(var(--edge) * -1);
 	background: var(--primary-fill);
 	clip-path: polygon(0 72px, 72px 0, 100% 0, 100% 100%, 0 100%);
 	overflow: hidden;
 	animation: shutter 1100ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
+/* Zwei Hinweise unter dem Ausschnitt: was „+N“ heißt, Maßnahme = Control */
+.stageNotes {
+	grid-column: 5 / 13;
+	grid-row: 2;
+	display: grid;
+	align-content: start;
+	gap: 6px;
+	max-width: 72ch;
+	margin: 16px 0 0;
+	padding: 0 0 0 56px;
+	list-style: none;
+	font-size: 14px;
+	line-height: 1.4;
+	color: var(--muted-foreground);
+}
 .stageInner {
-	padding: 56px 0 0 56px;
+	padding: 56px 0 56px 56px;
 	animation: settle 1100ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 	transform-origin: 0 0;
 }
@@ -1001,6 +1016,7 @@
 	}
 	.hero {
 		min-height: 0;
+		grid-template-rows: none;
 	}
 	.heroText,
 	.stage,
@@ -1027,13 +1043,16 @@
 	}
 	.stage {
 		grid-row: auto;
-		height: auto;
-		min-height: 520px;
 		margin: 40px calc(var(--edge) * -1) 0;
 		clip-path: polygon(0 72px, 72px 0, 100% 0, 100% 100%, 0 100%);
 	}
 	.stageInner {
-		padding: 56px 16px 0;
+		padding: 56px 16px 32px;
+	}
+	.stageNotes {
+		grid-column: 1;
+		grid-row: auto;
+		padding: 0;
 	}
 	.outputs {
 		margin-top: 96px;

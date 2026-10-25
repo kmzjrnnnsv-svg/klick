@@ -1,8 +1,8 @@
 // Rahmenwerk-Ausschnitt auf /funktionen — rein und ohne Katalog-Import,
 // damit der Browser nur die Zahlen bekommt, nicht den ganzen Katalog.
 
-// Beispiel je Rahmenwerk: die Anforderung mit den meisten Controls — erklärt,
-// warum es mehr Controls als Anforderungen geben kann (MiCAR Art. 75: 8)
+// Beispiel je Rahmenwerk: die Anforderung mit den meisten Controls — erklärt
+// unter dem Ausschnitt, warum es mehr Maßnahmen als Anforderungen geben kann
 export type PickerExample = { code: string; title: string; controls: number };
 
 export type PickerFramework = {
@@ -85,21 +85,6 @@ export function bestReuse(
 			const label = frameworks.find((f) => f.slug === slug)?.label ?? slug;
 			best = { slug, label, reused: a.reused, total: a.total };
 		}
-	}
-	return best;
-}
-
-// Das Beispiel mit den meisten Controls unter den gewählten Rahmenwerken
-// (bei Gleichstand das zuerst gelistete), mit dem Namen des Rahmenwerks.
-export function exampleFor(
-	frameworks: readonly PickerFramework[],
-	selected: readonly string[],
-): (PickerExample & { label: string }) | null {
-	let best: (PickerExample & { label: string }) | null = null;
-	for (const f of frameworks) {
-		if (!selected.includes(f.slug) || !f.example) continue;
-		if (!best || f.example.controls > best.controls)
-			best = { ...f.example, label: f.label };
 	}
 	return best;
 }

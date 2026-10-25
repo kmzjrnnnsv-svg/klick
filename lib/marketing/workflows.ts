@@ -34,8 +34,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		tone: "blue",
 		image: {
 			src: "/leistungen/frage.jpg",
-			w: 1648,
-			h: 1054,
+			w: 2304,
+			h: 1338,
 			alt: "Gap-Analyse in Klick: eine Frage je Control mit Antwort und Nachweis",
 		},
 		workflows: [
@@ -113,8 +113,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		tone: "sky",
 		image: {
 			src: "/leistungen/pruefungsreife.jpg",
-			w: 2200,
-			h: 1040,
+			w: 2304,
+			h: 1120,
 			alt: "Prüfungsreife je Rahmenwerk mit Blockern",
 		},
 		workflows: [
@@ -252,8 +252,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		tone: "brown",
 		image: {
 			src: "/funktionen/risiko.jpg",
-			w: 1440,
-			h: 1000,
+			w: 2304,
+			h: 1520,
 			alt: "Risiko-Assistent in Klick mit Szenarien",
 		},
 		workflows: [
@@ -312,8 +312,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		tone: "ink",
 		image: {
 			src: "/leistungen/sicherheit.jpg",
-			w: 2200,
-			h: 1400,
+			w: 2304,
+			h: 1240,
 			alt: "Security-Checks in Klick mit Ampel und Fristen",
 		},
 		workflows: [
@@ -461,8 +461,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		tone: "blue",
 		image: {
 			src: "/funktionen/freigaben.jpg",
-			w: 1440,
-			h: 1000,
+			w: 2304,
+			h: 1520,
 			alt: "Freigabe-Designer in Klick mit Stufen",
 		},
 		workflows: [
@@ -592,8 +592,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		tone: "brown",
 		image: {
 			src: "/funktionen/verwahrung.jpg",
-			w: 1440,
-			h: 779,
+			w: 2304,
+			h: 1280,
 			alt: "Tägliche Abstimmung des Kundenvermögens in Klick",
 		},
 		workflows: [
@@ -698,8 +698,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		tone: "ink",
 		image: {
 			src: "/funktionen/trust-center.jpg",
-			w: 960,
-			h: 1000,
+			w: 1536,
+			h: 1800,
 			alt: "Öffentliches Trust Center einer Organisation",
 		},
 		workflows: [
@@ -754,8 +754,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		tone: "blue",
 		image: {
 			src: "/funktionen/anmeldung.jpg",
-			w: 1020,
-			h: 630,
+			w: 1440,
+			h: 920,
 			alt: "Anmeldung bei Klick mit Passkey",
 		},
 		workflows: [

@@ -13,12 +13,13 @@ Nichts davon läuft im Projekt selbst; alles in einem eigenen Ordner außerhalb 
    `pnpm add hyperframes@0.8.158 gsap@3.13.0 --ignore-scripts --config.minimum-release-age=10080`
 2. Projektordner mit `index.html` aus diesem Verzeichnis und `assets/`:
    - `gsap.min.js` aus `node_modules/gsap/dist/`
-   - `jost.woff2`, `cormorant.woff2`: lateinische Teilmenge aus `.next/static/media` nach
-     `pnpm build` (im CSS-Chunk die `@font-face` mit `unicode-range:U+??`)
+   - `inter-{regular,medium,semibold,bold}.otf`: Inter (SIL OFL) nur zum Rendern als Ersatz für
+     die Systemschrift, nicht für die Website (die liefert keinen Webfont aus)
    - `risiko.jpg`, `freigaben.jpg` aus `public/funktionen/`, `pruefungsreife.jpg` aus
      `public/leistungen/` (Beispieldaten)
    - `funktionen-seite.jpg`: Ganzseitenfoto von `/funktionen` (1440 px breit, Bilder geladen,
      oberste 5400 px)
+   - Die drei Ansichten kommen aus `scripts/qa/marketing-shots.ts`; nach neuen Bildern Video neu bauen
 3. Rendern (Telemetrie aus, Browser ohne Sandbox nur als root nötig):
    `HYPERFRAMES_NO_TELEMETRY=1 HYPERFRAMES_NO_UPDATE_CHECK=1 HYPERFRAMES_SKIP_SKILLS=1 npx hyperframes render -o rundgang.mp4`
 4. Fürs Web:

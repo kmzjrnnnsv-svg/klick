@@ -22,6 +22,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import s from "./landing.module.css";
 import { PublicHeader } from "./public-header";
+import { ScrollPath } from "./scroll-path";
 
 // Öffentlicher Fahrplan (/roadmap) für Investor:innen und Entwickler:innen:
 // Ziel mit Stufen bis zur Bank, Stand heute, nächste Schritte, Phasen,
@@ -224,11 +225,14 @@ export function Roadmap() {
 							Größere Ausbaustufen der Technik. Alles, was Kundengeld berührt,
 							bleibt gesperrt, bis die Erlaubnis dafür vorliegt.
 						</p>
-						<ul className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
+						<ScrollPath>
 							{PHASES.map((item) => (
-								<ItemCard key={item.key} item={item} as="li" />
+								<li key={item.key} data-step="" className={s.pathStep}>
+									<span className={s.pathDot} aria-hidden />
+									<ItemCard item={item} />
+								</li>
 							))}
-						</ul>
+						</ScrollPath>
 					</div>
 				</section>
 

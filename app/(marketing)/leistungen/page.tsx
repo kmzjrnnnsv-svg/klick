@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Bildschirmfoto für den Einstieg (Beispieldaten), natürliche Größe
-const HERO = { src: "/leistungen/pruefungsreife.jpg", w: 2200, h: 1040 };
+const HERO = { src: "/leistungen/pruefungsreife.jpg", w: 2304, h: 1120 };
 const TONES = [s.toneBlue, s.toneBrown, s.toneSky] as const;
 
 // /leistungen — unsere Beratung, übersichtlich: was, für wen, wie es

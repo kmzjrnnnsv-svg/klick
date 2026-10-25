@@ -1,13 +1,18 @@
 "use client";
 
+import { WebAuthnAbortService } from "@simplewebauthn/browser";
 import { authClient } from "@wallet/lib/auth/client";
 import { Fingerprint } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+// Ohne Antwort (kein Passkey-Fenster, Server hängt) gibt der Knopf nach
+// dieser Zeit wieder frei, statt auf Dauer „Warte …“ zu zeigen
+const TIMEOUT_MS = 90_000;
 
 // Anmeldung nur per Passkey: Knopf oder Autofill im E-Mail-Feld
 // (Conditional UI). Kein Mail-Link, kein Passwort.
@@ -16,8 +21,12 @@ export function LoginForm({ next }: { next: string }) {
 	const router = useRouter();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	// Nach einem Abbruch startet die Autofill-Anfrage neu
+	const [autofillRound, setAutofillRound] = useState(0);
+	const cancelled = useRef(false);
 
 	useEffect(() => {
+		void autofillRound;
 		let active = true;
 		(async () => {
 			const pkc = window.PublicKeyCredential as
@@ -36,28 +45,65 @@ export function LoginForm({ next }: { next: string }) {
 		return () => {
 			active = false;
 		};
-	}, [router, next]);
+	}, [router, next, autofillRound]);
 
 	async function passkey() {
 		setBusy(true);
 		setError(null);
-		const res = await authClient.signIn.passkey();
+		cancelled.current = false;
+		// Laufende Autofill-Anfrage vorher beenden: Safari zeigt das
+		// Passkey-Fenster sonst manchmal nicht, wenn Abbruch und neue Anfrage
+		// unmittelbar aufeinander folgen
+		WebAuthnAbortService.cancelCeremony();
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const timeout = new Promise<"timeout">((resolve) => {
+			timer = setTimeout(() => resolve("timeout"), TIMEOUT_MS);
+		});
+		const res = await Promise.race([authClient.signIn.passkey(), timeout]);
+		clearTimeout(timer);
 		setBusy(false);
-		if (res?.error) {
-			const code = "code" in res.error ? String(res.error.code ?? "") : "";
-			if (code === "AUTH_CANCELLED" || code === "ERROR_CEREMONY_ABORTED")
-				return setError(t("passkeyCancelled"));
-			return setError(t("passkeySignInFailed"));
+		if (res !== "timeout" && res && !res.error) {
+			router.push(next);
+			router.refresh();
+			return;
 		}
-		router.push(next);
-		router.refresh();
+		setAutofillRound((n) => n + 1);
+		if (cancelled.current) return;
+		if (res === "timeout") {
+			WebAuthnAbortService.cancelCeremony();
+			return setError(t("passkeyTimeout"));
+		}
+		const code =
+			res?.error && "code" in res.error ? String(res.error.code ?? "") : "";
+		if (code === "AUTH_CANCELLED" || code === "ERROR_CEREMONY_ABORTED")
+			return setError(t("passkeyCancelled"));
+		setError(t("passkeySignInFailed"));
+	}
+
+	function cancel() {
+		cancelled.current = true;
+		WebAuthnAbortService.cancelCeremony();
+		setBusy(false);
+		setError(null);
 	}
 
 	return (
 		<div className="flex flex-col gap-5">
-			<Button type="button" size="lg" onClick={passkey} disabled={busy}>
-				<Fingerprint aria-hidden /> {busy ? t("passkeyBusy") : t("passkey")}
-			</Button>
+			<div className="flex flex-col gap-2">
+				<Button type="button" size="lg" onClick={passkey} disabled={busy}>
+					<Fingerprint aria-hidden /> {busy ? t("passkeyBusy") : t("passkey")}
+				</Button>
+				{busy && (
+					<Button
+						type="button"
+						variant="ghost"
+						onClick={cancel}
+						className="self-center"
+					>
+						{t("passkeyCancel")}
+					</Button>
+				)}
+			</div>
 			<p
 				role="alert"
 				aria-live="polite"
