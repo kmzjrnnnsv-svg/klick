@@ -16,9 +16,14 @@ import { effectivePermissions } from "@/lib/auth/permission-catalog";
 import { type OrgRole, permissionsAllow } from "@/lib/auth/permissions";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
-import type { OrgTx } from "@/lib/db/with-org";
+import { type OrgTx, queueAudit } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
-import { entityOwnerOf, entityOwnersOf, ownerKey } from "./entity-owner";
+import {
+	entityApproverOf,
+	entityOwnerOf,
+	entityOwnersOf,
+	ownerKey,
+} from "./entity-owner";
 import {
 	type Facts,
 	planRoute,
@@ -130,12 +135,18 @@ export async function loadCandidates(
 		.from(roleAssignments)
 		.where(eq(roleAssignments.organizationId, orgId));
 	const byUser = new Map<string, Set<RoleFunction>>();
+	const heldBy = new Map<string, Set<RoleFunction>>();
 	for (const f of fns) {
 		for (const uid of [f.userId, f.deputyUserId]) {
 			if (!uid) continue;
 			const set = byUser.get(uid) ?? new Set<RoleFunction>();
 			set.add(f.function);
 			byUser.set(uid, set);
+		}
+		if (f.userId) {
+			const held = heldBy.get(f.userId) ?? new Set<RoleFunction>();
+			held.add(f.function);
+			heldBy.set(f.userId, held);
 		}
 	}
 	return members.map((m) => {
@@ -149,6 +160,7 @@ export async function loadCandidates(
 			userId: m.userId,
 			orgRole,
 			functions: [...(byUser.get(m.userId) ?? [])],
+			holderFunctions: [...(heldBy.get(m.userId) ?? [])],
 			customRoleIds: own.map((c) => c.roleId),
 			// Berater:innen u. a. ohne approval:decide bekommen keine Anfragen
 			canDecide: permissionsAllow(perms, { approval: ["decide"] }),
@@ -186,6 +198,9 @@ export type RequestApprovalInput = {
 	entityType: EntityKind;
 	entityId: string;
 	entityOwnerUserId?: string | null;
+	// Stelle approver_of_entity; fehlt der Wert, liest der Dienst ihn aus der
+	// Entität (Dokument: approverFunction)
+	entityApproverFunction?: RoleFunction | null;
 	entityVersionRef?: string | null;
 	title: string;
 	link: string;
@@ -243,6 +258,23 @@ async function resolveWorkflow(
 	return rows.find((w) => w.kind === input.kind && w.enabled) ?? null;
 }
 
+// Sofort freigegebener Antrag: gehört die anfragende Person zur
+// Geschäftsleitung, entsteht wie bei einer Entscheidung ein Beschluss (E1).
+// Dynamischer Import: decision-service nutzt selbst requestApproval.
+async function immediateResolution(
+	tx: OrgTx,
+	ctx: { orgId: string; userId: string; name: string },
+	requestId: string,
+): Promise<void> {
+	const { resolutionForApproval } = await import(
+		"@/lib/compliance/decision-service"
+	);
+	queueAudit(
+		tx,
+		await resolutionForApproval(tx, ctx, requestId, { immediate: true }),
+	);
+}
+
 export async function requestApproval(
 	tx: OrgTx,
 	ctx: { orgId: string; userId: string; name: string },
@@ -274,6 +306,15 @@ export async function requestApproval(
 		entityOwnerUserId:
 			input.entityOwnerUserId ??
 			(await entityOwnerOf(tx, ctx.orgId, input.entityType, input.entityId)),
+		entityApproverFunction:
+			input.entityApproverFunction !== undefined
+				? input.entityApproverFunction
+				: await entityApproverOf(
+						tx,
+						ctx.orgId,
+						input.entityType,
+						input.entityId,
+					),
 		delegations: dels,
 	};
 	// Schnappschuss: entfallende Stufen (anfragende Person, Bedingungen)
@@ -284,6 +325,17 @@ export async function requestApproval(
 		ctx: eligCtx,
 	});
 	const steps = route.steps;
+	// „Alle Personen“: kann eine Person nie zustimmen (fehlendes Recht, keine
+	// Vertretung), käme der Antrag nie durch — gleich melden statt hängen
+	if (
+		steps.some(
+			(s) =>
+				s.everyone &&
+				!s.skipped &&
+				route.warnings.some((w) => w.order === s.order),
+		)
+	)
+		return { ok: false, error: "no_approver", warnings: route.warnings };
 	const first = steps.find((s) => s.order === route.firstOrder);
 	if (!first) {
 		// Alle Stufen entfallen → ohne Entscheidung freigegeben, nachvollziehbar
@@ -304,6 +356,10 @@ export async function requestApproval(
 			})
 			.returning({ id: approvalRequests.id });
 		if (!req) throw new Error("insert failed");
+		// entfiel eine Stufe wegen der anfragenden Person (z. B. sie gehört
+		// selbst zur Geschäftsleitung), ist das ihre Entscheidung → Beschluss
+		if (steps.some((s) => s.skipped?.by === "requester"))
+			await immediateResolution(tx, ctx, req.id);
 		return {
 			ok: true,
 			requestId: req.id,
@@ -364,6 +420,7 @@ export async function requestApproval(
 			decision: "approved",
 			note: `Selbstfreigabe (Solo-Modus): ${input.selfApprovalReason.trim()}`,
 		});
+		await immediateResolution(tx, ctx, req.id);
 		return {
 			ok: true,
 			requestId: req.id,

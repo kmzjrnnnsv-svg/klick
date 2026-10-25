@@ -220,10 +220,14 @@ async function entityFacts(
 // Nach einer abschließenden Freigabe-Entscheidung (app/actions/approvals.ts):
 // war es die Geschäftsleitung, entsteht ein Beschluss — höchstens einer je
 // Antrag. Liefert die Audit-Einträge für die laufende Transaktion.
+// `immediate`: Antrag ging ohne Entscheidung durch (Stufe entfiel wegen der
+// anfragenden Person, Solo-Modus) — dann zählt nur, ob sie selbst der
+// Geschäftsleitung angehört, nicht die Stufe.
 export async function resolutionForApproval(
 	tx: OrgTx,
 	actor: { orgId: string; userId: string; name: string },
 	requestId: string,
+	opts: { immediate?: boolean } = {},
 ): Promise<AuditInput[]> {
 	const [row] = await tx
 		.select({
@@ -264,29 +268,47 @@ export async function resolutionForApproval(
 	const top = await topManagementOf(tx, actor.orgId, actor.userId);
 	if (
 		!isManagementDecision({
-			approverRule: step
-				? (stepRules(step).find((r) => r === "function:management_body") ??
-					step.approverRule)
-				: undefined,
+			approverRule:
+				step && !opts.immediate
+					? (stepRules(step).find((r) => r === "function:management_body") ??
+						step.approverRule)
+					: undefined,
 			deciderIsTopManagement: top.isTopManagement,
 			entityType: req.entityType,
 		})
 	)
 		return [];
-	const [last] = await tx
-		.select({ note: approvalDecisions.note })
+	const decided = await tx
+		.select({
+			note: approvalDecisions.note,
+			userId: approvalDecisions.approverUserId,
+			decision: approvalDecisions.decision,
+		})
 		.from(approvalDecisions)
 		.where(eq(approvalDecisions.requestId, requestId))
-		.orderBy(desc(approvalDecisions.decidedAt))
-		.limit(1);
+		.orderBy(desc(approvalDecisions.decidedAt));
+	// Beteiligte: alle, die zugestimmt haben, und wessen Zustimmung mit dem
+	// Antrag gegeben war (Stufe „alle Personen“)
+	const attendees = [
+		...new Set(
+			[
+				actor.userId,
+				...requestSteps(req, row.wfSteps).flatMap((s) => s.given ?? []),
+				...decided
+					.filter((d) => d.decision === "approved")
+					.map((d) => d.userId),
+			].filter((x): x is string => Boolean(x)),
+		),
+	];
 	return createDecisionResolution(tx, actor, {
 		workflowKind: row.kind,
 		workflowName: row.name,
 		entityType: req.entityType,
 		entityId: req.entityId,
 		outcome: req.status,
-		note: last?.note ?? null,
+		note: decided[0]?.note ?? null,
 		requestId,
+		attendeeUserIds: attendees,
 	});
 }
 
@@ -302,8 +324,24 @@ export async function createDecisionResolution(
 		outcome: "approved" | "rejected";
 		note?: string | null;
 		requestId?: string | null;
+		attendeeUserIds?: string[];
 	},
 ): Promise<AuditInput[]> {
+	// höchstens ein Beschluss je Antrag (sofortige Freigabe und Aufrufer
+	// dürfen beide hier landen)
+	if (d.requestId) {
+		const [already] = await tx
+			.select({ id: resolutions.id })
+			.from(resolutions)
+			.where(
+				and(
+					eq(resolutions.organizationId, actor.orgId),
+					eq(resolutions.approvalRequestId, d.requestId),
+				),
+			)
+			.limit(1);
+		if (already) return [];
+	}
 	const facts = await entityFacts(tx, d.entityType, d.entityId);
 	const res = resolutionFromDecision({
 		workflowKind: d.workflowKind,
@@ -330,7 +368,7 @@ export async function createDecisionResolution(
 		requiredCode: res.requiredCode,
 		linkedEntityType: d.entityType,
 		linkedEntityId: d.entityId,
-		attendeeUserIds: [actor.userId],
+		attendeeUserIds: d.attendeeUserIds ?? [actor.userId],
 		requestApproval: false,
 		frameworks: refs.frameworks,
 		requirementKeys: refs.requirementKeys,

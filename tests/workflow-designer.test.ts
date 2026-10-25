@@ -30,6 +30,7 @@ const names: RuleNames = {
 	roles: { owner: "Inhaber:in", [ROLE_FIN]: "Finanzen", [ROLE_LAW]: "Recht" },
 	users: { [USER_A]: "Anna" },
 	ownerOfEntity: "Verantwortliche:r",
+	approverOfEntity: "Freigebende Funktion",
 	notRequester: "jede andere Person",
 	unknown: "unbekannt",
 };

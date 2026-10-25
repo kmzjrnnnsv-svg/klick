@@ -46,6 +46,20 @@ export async function readOrg<T>(
 	});
 }
 
+// Audit-Einträge, die ein Dienst tief im Aufruf erzeugt (z. B. der Beschluss
+// einer sofort freigegebenen Anfrage), ohne dass jeder Aufrufer sie
+// durchreicht. mutateOrg schreibt sie nach den eigenen Einträgen — weiter als
+// letzte Anweisung derselben Transaktion. Nur mit der äußeren Transaktion
+// aufrufen (ein Savepoint hat ein eigenes tx-Objekt).
+const queuedAudits = new WeakMap<object, AuditInput[]>();
+
+export function queueAudit(tx: OrgTx, entries: readonly AuditInput[]): void {
+	if (entries.length === 0) return;
+	const list = queuedAudits.get(tx) ?? [];
+	list.push(...entries);
+	queuedAudits.set(tx, list);
+}
+
 // Mutation + Audit atomar: fn liefert Ergebnis und Audit-Eintrag; der Eintrag
 // wird als letzte Anweisung derselben Transaktion geschrieben.
 export async function mutateOrg<T>(
@@ -59,7 +73,12 @@ export async function mutateOrg<T>(
 			ip: ctx.ip ?? null,
 			userAgent: ctx.userAgent ?? null,
 		};
-		for (const entry of Array.isArray(entries) ? entries : [entries]) {
+		const queued = queuedAudits.get(tx) ?? [];
+		queuedAudits.delete(tx);
+		for (const entry of [
+			...(Array.isArray(entries) ? entries : [entries]),
+			...queued,
+		]) {
 			await audit(tx, actor, { ...entry, organizationId: ctx.orgId });
 		}
 		return result;

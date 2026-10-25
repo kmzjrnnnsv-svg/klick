@@ -539,8 +539,20 @@ export type ApprovalStep = {
 	skipIf?: string[];
 	// Stufe gilt nur, wenn alle Bedingungen auf die Fakten zutreffen
 	onlyIf?: ApprovalCondition[];
+	// alle Personen der Stellen stimmen zu (z. B. die ganze Geschäftsleitung):
+	// beim Antrag aufgelöst zu user:-Stellen mit mode "all"
+	everyone?: boolean;
+	// im Schnappschuss: Stellen vor der Auflösung (Anzeige „Geschäftsleitung“)
+	expandedFrom?: string[];
+	// im Schnappschuss: Personen, deren Zustimmung mit dem Antrag gegeben ist
+	// (anfragende Person hält die Stelle selbst)
+	given?: string[];
 	// im Schnappschuss am Antrag: warum die Stufe entfällt
-	skipped?: { by: "requester"; rule: string } | { by: "condition" };
+	skipped?:
+		| { by: "requester"; rule: string }
+		| { by: "condition" }
+		// Funktion nicht besetzt (nie bei der Geschäftsleitung)
+		| { by: "vacant" };
 };
 
 export const approvalWorkflows = pgTable(

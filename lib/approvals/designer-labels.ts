@@ -93,6 +93,7 @@ export async function ruleNames(input: {
 		},
 		users,
 		ownerOfEntity: tw("ownerOfEntity"),
+		approverOfEntity: tw("approverOfEntity"),
 		notRequester: tw("notRequester"),
 		unknown: tw("unknownStelle"),
 	};

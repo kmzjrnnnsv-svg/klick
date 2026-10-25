@@ -13,7 +13,7 @@ import {
 	risks,
 	scopes,
 } from "@/db/schema";
-import type { EntityKind } from "@/db/schema/enums";
+import type { EntityKind, RoleFunction } from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
 
 // Verantwortliche:r einer Entität für Freigabestufen `owner_of_entity`.
@@ -102,4 +102,21 @@ export async function entityOwnerOf(
 
 export function ownerKey(entityType: EntityKind, entityId: string): string {
 	return key(entityType, entityId);
+}
+
+// Freigebende Funktion einer Entität (Stelle approver_of_entity): bei
+// Dokumenten die an der Vorlage bzw. am Dokument gewählte Funktion.
+export async function entityApproverOf(
+	tx: OrgTx,
+	orgId: string,
+	entityType: EntityKind,
+	entityId: string,
+): Promise<RoleFunction | null> {
+	if (entityType !== "document") return null;
+	const [row] = await tx
+		.select({ fn: documents.approverFunction })
+		.from(documents)
+		.where(and(eq(documents.organizationId, orgId), eq(documents.id, entityId)))
+		.limit(1);
+	return row?.fn ?? null;
 }

@@ -10,6 +10,8 @@ import type { OrgRole } from "@/lib/auth/permissions";
 //   role:<orgRole|roleId>     Grundrolle (owner/editor/…) oder eigene Rolle (ADR-020)
 //   user:<id>                 konkrete Person
 //   owner_of_entity           Owner der Entität
+//   approver_of_entity        Funktion, die an der Entität als Freigebende steht
+//                             (Dokument: approverFunction); beim Antrag aufgelöst
 //   not_requester             jede Person ausser Antragsteller:in
 // Immer: Vier-Augen (Freigeber:in ≠ Antragsteller:in), ausser Solo-Modus.
 
@@ -17,6 +19,9 @@ export type ApproverCandidate = {
 	userId: string;
 	orgRole: OrgRole;
 	functions: readonly RoleFunction[];
+	// nur selbst gehaltene Funktionen, ohne Vertretung (Stufen „alle
+	// Personen der Funktion“ zählen Inhaber:innen, nicht Vertretungen)
+	holderFunctions?: readonly RoleFunction[];
 	// eigene Rollen (ADR-020); Stufe role:<id> trifft sie
 	customRoleIds?: readonly string[];
 	// Recht „Freigaben entscheiden“ (approval:decide); fehlt es, zählt die
@@ -27,6 +32,8 @@ export type ApproverCandidate = {
 export type EligibilityContext = {
 	requesterUserId: string | null;
 	entityOwnerUserId?: string | null;
+	// Freigebende Funktion der Entität (Stelle approver_of_entity)
+	entityApproverFunction?: RoleFunction | null;
 	// aktive Vertretungen: fromUserId → toUserId
 	delegations?: readonly { fromUserId: string; toUserId: string }[];
 	now?: Date;
@@ -78,6 +85,11 @@ export function matchesRule(
 			return (
 				Boolean(ctx.entityOwnerUserId) &&
 				candidate.userId === ctx.entityOwnerUserId
+			);
+		case "approver_of_entity":
+			return (
+				Boolean(ctx.entityApproverFunction) &&
+				candidate.functions.includes(ctx.entityApproverFunction as RoleFunction)
 			);
 		case "not_requester":
 			return candidate.userId !== ctx.requesterUserId;

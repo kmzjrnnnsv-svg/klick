@@ -66,6 +66,8 @@ type DraftStep = {
 	label: string;
 	approvers: string[];
 	mode: "any" | "all";
+	// alle Personen der Stellen stimmen zu (z. B. ganze Geschäftsleitung)
+	everyone: boolean;
 	minApprovers: string;
 	slaDays: string;
 	skipIf: string[];
@@ -104,6 +106,7 @@ function toDraft(s: ApprovalStep): DraftStep {
 			Boolean,
 		),
 		mode: s.mode === "all" ? "all" : "any",
+		everyone: Boolean(s.everyone),
 		minApprovers: s.minApprovers ? String(s.minApprovers) : "",
 		slaDays: s.slaDays ? String(s.slaDays) : "",
 		skipIf: s.skipIf ?? [],
@@ -118,8 +121,9 @@ function toStep(s: DraftStep, i: number): ApprovalStep {
 		order: i + 1,
 		approverRule: s.approvers[0] ?? "",
 		approvers: s.approvers,
-		mode: s.approvers.length > 1 ? s.mode : undefined,
-		minApprovers: s.mode === "any" && min > 1 ? min : undefined,
+		mode: s.approvers.length > 1 && !s.everyone ? s.mode : undefined,
+		everyone: s.everyone || undefined,
+		minApprovers: s.mode === "any" && !s.everyone && min > 1 ? min : undefined,
 		slaDays: sla > 0 ? sla : undefined,
 		label: s.label.trim() || undefined,
 		skipIf: s.skipIf.length ? s.skipIf : undefined,
@@ -132,6 +136,7 @@ function payloadStep(s: ApprovalStep) {
 		label: s.label,
 		approvers: s.approvers ?? [s.approverRule],
 		mode: s.mode ?? "any",
+		everyone: s.everyone,
 		minApprovers: s.minApprovers,
 		slaDays: s.slaDays,
 		skipIf: s.skipIf,
@@ -213,6 +218,11 @@ export function WorkflowEditor({
 			label: t("group_general"),
 			options: [
 				{ value: "owner_of_entity", label: names.ownerOfEntity },
+				// Dokumente tragen ihre Freigebende Funktion (Vorlage)
+				...(trigger.key.startsWith("document.") ||
+				trigger.key === "marketing.publish"
+					? [{ value: "approver_of_entity", label: names.approverOfEntity }]
+					: []),
 				{ value: "not_requester", label: names.notRequester },
 			],
 		},
@@ -434,8 +444,24 @@ export function WorkflowEditor({
 									names={names}
 								/>
 							</div>
+							<div className="flex min-h-11 items-start gap-3">
+								<Checkbox
+									id={`${uid}-${s.key}-everyone`}
+									checked={s.everyone}
+									onCheckedChange={(v) => update(i, { everyone: v === true })}
+									className="mt-0.5"
+								/>
+								<div className="flex flex-col gap-0.5">
+									<Label htmlFor={`${uid}-${s.key}-everyone`}>
+										{t("everyone")}
+									</Label>
+									<span className="text-muted-foreground text-footnote">
+										{t("everyoneLead")}
+									</span>
+								</div>
+							</div>
 							<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-								{s.approvers.length > 1 && (
+								{s.approvers.length > 1 && !s.everyone && (
 									<div className="flex flex-col gap-1.5">
 										<Label htmlFor={`${uid}-${s.key}-mode`}>{t("mode")}</Label>
 										<Select
@@ -454,7 +480,7 @@ export function WorkflowEditor({
 										</Select>
 									</div>
 								)}
-								{s.mode === "any" && (
+								{s.mode === "any" && !s.everyone && (
 									<div className="flex flex-col gap-1.5">
 										<Label htmlFor={`${uid}-${s.key}-min`}>
 											{t("minApprovers")}
