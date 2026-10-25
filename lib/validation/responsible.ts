@@ -21,11 +21,11 @@ const functionRef = z
 		"Unbekannte Funktion",
 	);
 
+// Konto-ID oder `function:<key>`
+export const responsibleId = z.union([uuid, functionRef]);
+
 // ersetzt `ownerUserId: uuid.nullable().optional()` in den Schemas
-export const responsibleRef = z
-	.union([uuid, functionRef])
-	.nullable()
-	.optional();
+export const responsibleRef = responsibleId.nullable().optional();
 
 export function functionOfRef(
 	ref: string | null | undefined,
