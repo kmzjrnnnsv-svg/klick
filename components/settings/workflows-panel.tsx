@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { setWorkflowEnabled } from "@/app/actions/approvals";
-import { applyWorkflowPreset } from "@/app/actions/workflows";
+import {
+	applyWorkflowPreset,
+	setGovernanceMode,
+} from "@/app/actions/workflows";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { usePermissionLabel } from "@/components/settings/roles-panel";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +47,15 @@ export type WorkflowItem = {
 	requiredBy: string[];
 };
 
+export type FindingItem = {
+	kind: string;
+	name: string;
+	id: string | null;
+	problem: "off" | "missing_approver" | "not_everyone";
+	basis: string[];
+	missing: string[];
+};
+
 export type PresetInfo = {
 	key: string;
 	trigger: string;
@@ -71,6 +83,9 @@ export function WorkflowsPanel({
 	names,
 	presets,
 	canEdit,
+	mode,
+	findings,
+	isOwner,
 }: {
 	triggers: Pick<TriggerDef, "key" | "area" | "mode">[];
 	texts: Record<string, TriggerText>;
@@ -79,16 +94,23 @@ export function WorkflowsPanel({
 	names: RuleNames;
 	presets: PresetInfo[];
 	canEdit: boolean;
+	mode: "standard" | "individual";
+	findings: FindingItem[];
+	isOwner: boolean;
 }) {
 	const t = useTranslations("Workflows");
 	const l = usePermissionLabel();
+	const individual = mode === "individual";
+	const design = canEdit && individual;
 	return (
 		<div className="flex flex-col gap-6">
+			<ModeControl mode={mode} canSwitch={isOwner} />
+			<Findings findings={findings} names={names} canEdit={design} />
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
 				<p className="max-w-prose text-muted-foreground text-subhead">
-					{t("lead")}
+					{individual ? t("lead") : t("leadStandard")}
 				</p>
-				{canEdit && <PresetsDialog presets={presets} texts={texts} />}
+				{design && <PresetsDialog presets={presets} texts={texts} />}
 			</div>
 			{AREAS.map((area) => {
 				const inArea = triggers.filter((x) => x.area === area);
@@ -111,6 +133,7 @@ export function WorkflowsPanel({
 									)}
 								names={names}
 								canEdit={canEdit}
+								design={design}
 							/>
 						))}
 					</section>
@@ -127,6 +150,7 @@ function TriggerCard({
 	items,
 	names,
 	canEdit,
+	design,
 }: {
 	trigger: Pick<TriggerDef, "key" | "mode">;
 	text: TriggerText | undefined;
@@ -134,6 +158,8 @@ function TriggerCard({
 	items: WorkflowItem[];
 	names: RuleNames;
 	canEdit: boolean;
+	// Abläufe gestalten (individueller Modus)
+	design: boolean;
 }) {
 	const t = useTranslations("Workflows");
 	return (
@@ -161,7 +187,7 @@ function TriggerCard({
 					</p>
 					<p className="text-muted-foreground text-footnote">{text?.hint}</p>
 				</div>
-				{canEdit && (
+				{design && (
 					<Button asChild size="sm" variant="ghost" className="self-start">
 						<Link
 							href={`/einstellungen/freigaben/neu?ausloeser=${encodeURIComponent(trigger.key)}`}
@@ -180,6 +206,7 @@ function TriggerCard({
 						facts={facts}
 						names={names}
 						canEdit={canEdit}
+						design={design}
 					/>
 				))}
 			</ul>
@@ -192,11 +219,13 @@ function WorkflowRow({
 	facts,
 	names,
 	canEdit,
+	design,
 }: {
 	item: WorkflowItem;
 	facts: FactInfo[];
 	names: RuleNames;
 	canEdit: boolean;
+	design: boolean;
 }) {
 	const t = useTranslations("Workflows");
 	const tc = useTranslations("Common");
@@ -302,10 +331,14 @@ function WorkflowRow({
 					<Button asChild size="sm" variant="outline">
 						<Link
 							href={`/einstellungen/freigaben/${item.id}`}
-							aria-label={t("editNamed", { name: item.name })}
+							aria-label={
+								design
+									? t("editNamed", { name: item.name })
+									: t("viewNamed", { name: item.name })
+							}
 						>
-							<Pencil />
-							{t("edit")}
+							{design && <Pencil />}
+							{design ? t("edit") : t("view")}
 						</Link>
 					</Button>
 				)}
@@ -399,5 +432,139 @@ function PresetsDialog({
 				</ul>
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+// Standard oder individuell (ADR-024): Wechsel nur Inhaber:in, mit Rückfrage
+// und frischer Bestätigung
+function ModeControl({
+	mode,
+	canSwitch,
+}: {
+	mode: "standard" | "individual";
+	canSwitch: boolean;
+}) {
+	const t = useTranslations("Workflows");
+	const tc = useTranslations("Common");
+	const router = useRouter();
+	const [pending, start] = useTransition();
+	const [target, setTarget] = useState<"standard" | "individual">(mode);
+	const confirm = useConfirm({
+		title:
+			target === "individual" ? t("toIndividualTitle") : t("toStandardTitle"),
+		description:
+			target === "individual" ? t("toIndividualLead") : t("toStandardLead"),
+		confirmLabel: target === "individual" ? t("toIndividual") : t("toStandard"),
+		destructive: target === "standard",
+	});
+	const pick = (next: "standard" | "individual") => {
+		if (next === mode || !canSwitch) return;
+		setTarget(next);
+		confirm.ask(() =>
+			start(async () => {
+				const res = await withStepUp(() => setGovernanceMode({ mode: next }));
+				if (!res.ok)
+					return void toast.error(
+						res.error === "step_up_required" ? t("stepUp") : errorText(tc, res),
+					);
+				toast.success(
+					next === "individual" ? t("nowIndividual") : t("nowStandard"),
+				);
+				router.refresh();
+			}),
+		);
+	};
+	return (
+		<section className="flex flex-col gap-3 rounded-2xl bg-card p-4">
+			{confirm.node}
+			<div>
+				<h3 className="font-medium text-headline">{t("modeTitle")}</h3>
+				<p className="text-muted-foreground text-subhead">
+					{mode === "standard"
+						? t("modeStandardLead")
+						: t("modeIndividualLead")}
+				</p>
+			</div>
+			<fieldset
+				aria-label={t("modeTitle")}
+				className="grid grid-cols-2 gap-1 rounded-xl border-0 bg-muted p-1 sm:max-w-md"
+			>
+				{(["standard", "individual"] as const).map((m) => (
+					<button
+						key={m}
+						type="button"
+						aria-pressed={mode === m}
+						disabled={pending || (!canSwitch && mode !== m)}
+						onClick={() => pick(m)}
+						className={`min-h-(--control-h) rounded-lg px-3 text-subhead transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+							mode === m
+								? "bg-background font-medium shadow-sm"
+								: "text-muted-foreground hover:text-foreground"
+						}`}
+					>
+						{m === "standard" ? t("modeStandard") : t("modeIndividual")}
+					</button>
+				))}
+			</fieldset>
+			{!canSwitch && (
+				<p className="text-muted-foreground text-footnote">
+					{t("modeOwnerOnly")}
+				</p>
+			)}
+		</section>
+	);
+}
+
+// Pflichten der Rahmenwerke, die die Abläufe gerade nicht tragen
+function Findings({
+	findings,
+	names,
+	canEdit,
+}: {
+	findings: FindingItem[];
+	names: RuleNames;
+	canEdit: boolean;
+}) {
+	const t = useTranslations("Workflows");
+	const text = useRouteText(names, []);
+	if (findings.length === 0) return null;
+	return (
+		<section
+			className="flex flex-col gap-2 rounded-2xl bg-warning/12 p-4"
+			aria-labelledby="governance-findings"
+		>
+			<h3 id="governance-findings" className="font-medium text-headline">
+				{t("findingsTitle", { n: findings.length })}
+			</h3>
+			<ul className="flex flex-col gap-2 text-subhead">
+				{findings.map((f) => (
+					<li key={`${f.kind}-${f.problem}`} className="flex flex-col gap-0.5">
+						<span>
+							<span className="font-medium">{f.name}</span>
+							{": "}
+							{t(`finding_${f.problem}`, {
+								missing: f.missing
+									.map((r) => text.approvers({ order: 1, approverRule: r }))
+									.join(", "),
+							})}
+						</span>
+						<span className="text-footnote">
+							{t("requiredBy", { basis: f.basis.join(", ") })}
+							{canEdit && f.id && (
+								<>
+									{" · "}
+									<Link
+										href={`/einstellungen/freigaben/${f.id}`}
+										className="text-primary hover:underline"
+									>
+										{t("findingFix")}
+									</Link>
+								</>
+							)}
+						</span>
+					</li>
+				))}
+			</ul>
+		</section>
 	);
 }

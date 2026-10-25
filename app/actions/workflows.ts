@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { and, count, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import type { z } from "zod";
+import { type z, z as zod } from "zod";
 import { member } from "@/db/auth-schema";
 import {
 	approvalRequests,
@@ -11,9 +11,15 @@ import {
 	orgRoles,
 	orgSettings,
 } from "@/db/schema";
+import { GOVERNANCE_MODES } from "@/db/schema/enums";
 import type { ApprovalStep } from "@/db/schema/grc";
 import { safeAction } from "@/lib/actions/safe";
 import { checkWorkflowDraft, type DraftIssue } from "@/lib/approvals/designer";
+import {
+	governanceModeOf,
+	type ModeSwitchSummary,
+	setGovernanceModeTx,
+} from "@/lib/approvals/governance-mode";
 import { PRESET_BY_KEY, resolvePresetSteps } from "@/lib/approvals/presets";
 import {
 	matchConditions,
@@ -36,6 +42,7 @@ import {
 	toOrgCtx,
 } from "@/lib/auth/guards";
 import { sanitizePermissions } from "@/lib/auth/permission-catalog";
+import { activeFrameworkSlugs } from "@/lib/compliance/initialize-org";
 import { userNames } from "@/lib/compliance/queries";
 import { mutateOrg, type OrgTx, readOrg } from "@/lib/db/with-org";
 import { listOrgRoles } from "@/lib/org/roles";
@@ -53,6 +60,8 @@ import {
 // Anträge behalten ihren Schnappschuss (approval_requests.steps).
 
 const PATH = "/einstellungen";
+// Fehlercode: im Standard-Modus sind die Stufen fest (ADR-024)
+const GOVERNANCE_LOCKED = "governance_standard";
 
 async function stepUp() {
 	try {
@@ -126,6 +135,9 @@ async function saveWorkflowImpl(
 	const res = await mutateOrg<ActionResult<{ id: string }>>(
 		toOrgCtx(c),
 		async (tx) => {
+			// Standard-Modus: Abläufe folgen den Rahmenwerken (ADR-024)
+			if ((await governanceModeOf(tx, c.orgId)) === "standard")
+				return { result: { ok: false, error: GOVERNANCE_LOCKED }, audit: [] };
 			let before: typeof approvalWorkflows.$inferSelect | undefined;
 			if (d.id) {
 				[before] = await tx
@@ -210,6 +222,8 @@ async function deleteWorkflowImpl(input: unknown): Promise<ActionResult> {
 	const parsed = deleteWorkflowSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+		if ((await governanceModeOf(tx, c.orgId)) === "standard")
+			return { result: { ok: false, error: GOVERNANCE_LOCKED }, audit: [] };
 		const [w] = await tx
 			.select()
 			.from(approvalWorkflows)
@@ -269,6 +283,8 @@ async function applyWorkflowPresetImpl(
 			.where(eq(orgSettings.organizationId, c.orgId))
 			.limit(1);
 		await ensureOrgWorkflows(tx, c.orgId, s?.stage ?? "0_vorbereitung");
+		if ((await governanceModeOf(tx, c.orgId)) === "standard")
+			return { result: { ok: false, error: GOVERNANCE_LOCKED }, audit: [] };
 		const roles = await listOrgRoles(tx, c.orgId);
 		const roleIds: Record<string, string> = {};
 		const createdRoles: string[] = [];
@@ -358,6 +374,36 @@ async function applyWorkflowPresetImpl(
 	return res;
 }
 
+// Standard oder individuell (ADR-024): Inhaber:in mit frischer Bestätigung
+const modeSchema = zod.object({ mode: zod.enum(GOVERNANCE_MODES) });
+
+async function setGovernanceModeImpl(
+	input: unknown,
+): Promise<ActionResult<ModeSwitchSummary>> {
+	const c = await stepUp();
+	if (!c) return { ok: false, error: "step_up_required" };
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const parsed = modeSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const res = await mutateOrg<ActionResult<ModeSwitchSummary>>(
+		toOrgCtx(c),
+		async (tx) => {
+			const [s] = await tx
+				.select({ stage: orgSettings.licenceStage })
+				.from(orgSettings)
+				.where(eq(orgSettings.organizationId, c.orgId))
+				.limit(1);
+			const out = await setGovernanceModeTx(tx, c.orgId, parsed.data.mode, {
+				licenceStage: s?.stage ?? "0_vorbereitung",
+				frameworks: await activeFrameworkSlugs(tx, c.orgId),
+			});
+			return { result: { ok: true, data: out.summary }, audit: out.audit };
+		},
+	);
+	revalidatePath(PATH, "layout");
+	return res;
+}
+
 export type DryRunStep = {
 	order: number;
 	label: string | null;
@@ -444,3 +490,7 @@ export const applyWorkflowPreset = safeAction(
 	applyWorkflowPresetImpl,
 );
 export const dryRunWorkflow = safeAction("dryRunWorkflow", dryRunWorkflowImpl);
+export const setGovernanceMode = safeAction(
+	"setGovernanceMode",
+	setGovernanceModeImpl,
+);

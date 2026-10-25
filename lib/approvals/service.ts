@@ -1,9 +1,10 @@
-import { and, desc, eq, gt, inArray, lte } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import { member, user } from "@/db/auth-schema";
 import {
 	approvalDecisions,
 	approvalRequests,
 	approvalWorkflows,
+	auditLog,
 	delegations,
 	frameworks as frameworksTable,
 	memberRoles,
@@ -26,6 +27,7 @@ import {
 import {
 	APPROVAL_WORKFLOW_TEMPLATES,
 	LEGACY_DESCRIPTIONS,
+	LEGACY_NAMES,
 	LEGACY_STEPS,
 	WORKFLOW_BY_KIND,
 } from "@/lib/compliance/catalog/approval-workflows";
@@ -71,8 +73,12 @@ const canonical = (v: unknown): unknown =>
 						.map((k) => [k, canonical((v as Record<string, unknown>)[k])]),
 				)
 			: v;
-const sameSteps = (a: unknown, b: unknown) =>
+export const sameSteps = (a: unknown, b: unknown) =>
 	JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
+
+// Merker in org_settings.approvalDuties: Modus einmal aus der Designer-
+// Historie abgeleitet
+const MODE_CHECKED = "_mode_checked";
 
 // Abläufe je Org sicherstellen: fehlende Vorlagen anlegen, unveränderte
 // Altfassungen angleichen und — im Standard-Modus — die Abläufe einschalten,
@@ -96,7 +102,45 @@ export async function ensureOrgWorkflows(
 		.from(orgSettings)
 		.where(eq(orgSettings.organizationId, orgId))
 		.limit(1);
-	const standard = (settings?.mode ?? "standard") === "standard";
+	let standard = (settings?.mode ?? "standard") === "standard";
+	// Einmal je Org (ADR-024): wer Stufen im Designer schon selbst gestaltet
+	// hat, arbeitet individuell weiter — sonst würde der Standard dessen
+	// Abläufe übersteuern
+	const applied0 = settings?.applied ?? {};
+	if (standard && settings && !applied0[MODE_CHECKED]) {
+		const [designed] = await tx
+			.select({ id: auditLog.id })
+			.from(auditLog)
+			.where(
+				and(
+					eq(auditLog.organizationId, orgId),
+					eq(auditLog.action, "settings.workflow"),
+					sql`${auditLog.after}->'steps' is not null`,
+				),
+			)
+			.limit(1);
+		await tx
+			.update(orgSettings)
+			.set({
+				approvalDuties: {
+					...applied0,
+					[MODE_CHECKED]: new Date().toISOString().slice(0, 10),
+				},
+				...(designed ? { governanceMode: "individual" as const } : {}),
+			})
+			.where(eq(orgSettings.organizationId, orgId));
+		if (designed) {
+			standard = false;
+			queueAudit(tx, [
+				{
+					action: "org.governance_mode_changed",
+					target: `organization:${orgId}`,
+					before: { mode: "standard" },
+					after: { mode: "individual", via: "designer_history" },
+				},
+			]);
+		}
+	}
 	const fws =
 		opts.frameworks ??
 		(
@@ -136,12 +180,18 @@ export async function ensureOrgWorkflows(
 			enabled: approvalWorkflows.enabled,
 			custom: approvalWorkflows.custom,
 			steps: approvalWorkflows.steps,
+			name: approvalWorkflows.name,
 			description: approvalWorkflows.description,
 		})
 		.from(approvalWorkflows)
 		.where(eq(approvalWorkflows.organizationId, orgId));
 	const existing = new Map(rows.map((r) => [r.kind, r]));
-	const applied = { ...(settings?.applied ?? {}) };
+	const [fresh] = await tx
+		.select({ applied: orgSettings.approvalDuties })
+		.from(orgSettings)
+		.where(eq(orgSettings.organizationId, orgId))
+		.limit(1);
+	const applied = { ...(fresh?.applied ?? {}) };
 	const today = new Date().toISOString().slice(0, 10);
 	const enabled: WorkflowEnabledByDuty[] = [];
 	let created = 0;
@@ -188,6 +238,7 @@ export async function ensureOrgWorkflows(
 			patch.entityType = t.entityType;
 			patch.name = t.name;
 		}
+		if (row.name === LEGACY_NAMES[t.kind]) patch.name = t.name;
 		if (
 			row.description === LEGACY_DESCRIPTIONS[t.kind] ||
 			row.description === LEGACY_DESCRIPTIONS[`${t.kind}_v2`]

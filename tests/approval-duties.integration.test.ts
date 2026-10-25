@@ -143,7 +143,11 @@ d("Freigaben je Rahmenwerk (Postgres)", () => {
 				.from(orgSettings)
 				.where(eq(orgSettings.organizationId, orgId)),
 		);
-		expect(Object.keys(s?.applied ?? {}).sort()).toEqual([
+		expect(
+			Object.keys(s?.applied ?? {})
+				.filter((k) => !k.startsWith("_"))
+				.sort(),
+		).toEqual([
 			"provider_intake@dora",
 			"provider_intake_management@dora",
 			"provider_onboarding@dora",

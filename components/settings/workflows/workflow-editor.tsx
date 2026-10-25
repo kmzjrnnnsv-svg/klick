@@ -152,7 +152,10 @@ export function WorkflowEditor({
 	options,
 	people,
 	requesterDefault,
+	locked = false,
 }: {
+	// Standard-Modus (ADR-024): nur ansehen
+	locked?: boolean;
 	trigger: { key: string; mode: "pending" | "before" };
 	facts: FactInfo[];
 	names: RuleNames;
@@ -304,305 +307,324 @@ export function WorkflowEditor({
 
 	return (
 		<div ref={rootRef} className="flex flex-col gap-8">
-			<section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor={`${uid}-name`}>{t("name")}</Label>
-					<Input
-						id={`${uid}-name`}
-						name="name"
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-						autoComplete="off"
-						required
-					/>
-				</div>
-				<div className="flex items-end gap-6">
-					<div className="flex items-center gap-2">
-						<Switch
-							id={`${uid}-enabled`}
-							checked={enabled}
-							onCheckedChange={setEnabled}
+			{locked && (
+				<p className="rounded-xl bg-muted p-3 text-subhead" role="status">
+					{t("lockedStandard")}
+				</p>
+			)}
+			{/* im Standard nur ansehen: alle Felder gesperrt, der Probelauf bleibt */}
+			<fieldset
+				disabled={locked}
+				className="m-0 flex min-w-0 flex-col gap-8 border-0 p-0"
+			>
+				<section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor={`${uid}-name`}>{t("name")}</Label>
+						<Input
+							id={`${uid}-name`}
+							name="name"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							autoComplete="off"
+							required
 						/>
-						<Label htmlFor={`${uid}-enabled`}>{t("enabled")}</Label>
 					</div>
-					{initial.custom && (
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor={`${uid}-prio`}>{t("priority")}</Label>
-							<Input
-								id={`${uid}-prio`}
-								name="priority"
-								type="number"
-								inputMode="numeric"
-								min={0}
-								max={100}
-								className="w-24"
-								value={priority}
-								onChange={(e) => setPriority(e.target.value)}
+					<div className="flex items-end gap-6">
+						<div className="flex items-center gap-2">
+							<Switch
+								id={`${uid}-enabled`}
+								checked={enabled}
+								onCheckedChange={setEnabled}
 							/>
+							<Label htmlFor={`${uid}-enabled`}>{t("enabled")}</Label>
 						</div>
-					)}
-				</div>
-				<div className="flex flex-col gap-1.5 sm:col-span-2">
-					<Label htmlFor={`${uid}-desc`}>{t("description")}</Label>
-					<Textarea
-						id={`${uid}-desc`}
-						name="description"
-						rows={2}
-						value={description}
-						onChange={(e) => setDescription(e.target.value)}
-					/>
-					{initial.custom && (
-						<p className="text-muted-foreground text-footnote">
-							{t("priorityHint")}
-						</p>
-					)}
-				</div>
-			</section>
-
-			<section className="flex flex-col gap-3">
-				<div>
-					<h2 className="font-medium">{t("whenTitle")}</h2>
-					<p className="text-muted-foreground text-subhead">
-						{facts.length > 0 ? t("whenLead") : t("noFacts")}
-					</p>
-				</div>
-				{facts.length > 0 && (
-					<ConditionsEditor
-						value={conditions}
-						onChange={setConditions}
-						facts={facts}
-						issuesAt={(i) => issuesAt(`conditions.${i}`)}
-					/>
-				)}
-			</section>
-
-			<section className="flex flex-col gap-3">
-				<div>
-					<h2 className="font-medium">{t("stepsTitle")}</h2>
-					<p className="text-muted-foreground text-subhead">{t("stepsLead")}</p>
-				</div>
-				<ol className="flex flex-col gap-3">
-					{steps.map((s, i) => (
-						<li
-							key={s.key}
-							className="flex flex-col gap-4 rounded-2xl bg-card p-3"
-						>
-							<div className="flex flex-wrap items-center gap-2">
-								<Badge variant="outline">{t("step", { n: i + 1 })}</Badge>
-								<Input
-									aria-label={t("stepLabel")}
-									placeholder={t("stepLabelPlaceholder")}
-									value={s.label}
-									onChange={(e) => update(i, { label: e.target.value })}
-									className="min-w-0 flex-1 basis-48"
-									autoComplete="off"
-								/>
-								<div className="flex gap-1">
-									<Button
-										type="button"
-										size="icon"
-										variant="ghost"
-										disabled={i === 0}
-										aria-label={t("moveUp", { n: i + 1 })}
-										onClick={() => move(i, -1)}
-									>
-										<ArrowUp />
-									</Button>
-									<Button
-										type="button"
-										size="icon"
-										variant="ghost"
-										disabled={i === steps.length - 1}
-										aria-label={t("moveDown", { n: i + 1 })}
-										onClick={() => move(i, 1)}
-									>
-										<ArrowDown />
-									</Button>
-									<Button
-										type="button"
-										size="icon"
-										variant="ghost"
-										disabled={steps.length === 1}
-										aria-label={t("removeStep", { n: i + 1 })}
-										onClick={() =>
-											setSteps((xs) => xs.filter((_, j) => j !== i))
-										}
-									>
-										<Trash2 />
-									</Button>
-								</div>
-							</div>
+						{initial.custom && (
 							<div className="flex flex-col gap-1.5">
-								<span className="font-medium text-subhead">
-									{t("approvers")}
-								</span>
-								<RulePicker
-									value={s.approvers}
-									onChange={(approvers) => update(i, { approvers })}
-									groups={approverGroups}
-									placeholder={t("addApprover")}
-									names={names}
+								<Label htmlFor={`${uid}-prio`}>{t("priority")}</Label>
+								<Input
+									id={`${uid}-prio`}
+									name="priority"
+									type="number"
+									inputMode="numeric"
+									min={0}
+									max={100}
+									className="w-24"
+									value={priority}
+									onChange={(e) => setPriority(e.target.value)}
 								/>
 							</div>
-							<div className="flex min-h-11 items-start gap-3">
-								<Checkbox
-									id={`${uid}-${s.key}-everyone`}
-									checked={s.everyone}
-									onCheckedChange={(v) => update(i, { everyone: v === true })}
-									className="mt-0.5"
-								/>
-								<div className="flex flex-col gap-0.5">
-									<Label htmlFor={`${uid}-${s.key}-everyone`}>
-										{t("everyone")}
-									</Label>
-									<span className="text-muted-foreground text-footnote">
-										{t("everyoneLead")}
-									</span>
-								</div>
-							</div>
-							<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-								{s.approvers.length > 1 && !s.everyone && (
-									<div className="flex flex-col gap-1.5">
-										<Label htmlFor={`${uid}-${s.key}-mode`}>{t("mode")}</Label>
-										<Select
-											value={s.mode}
-											onValueChange={(v) =>
-												update(i, { mode: v === "all" ? "all" : "any" })
+						)}
+					</div>
+					<div className="flex flex-col gap-1.5 sm:col-span-2">
+						<Label htmlFor={`${uid}-desc`}>{t("description")}</Label>
+						<Textarea
+							id={`${uid}-desc`}
+							name="description"
+							rows={2}
+							value={description}
+							onChange={(e) => setDescription(e.target.value)}
+						/>
+						{initial.custom && (
+							<p className="text-muted-foreground text-footnote">
+								{t("priorityHint")}
+							</p>
+						)}
+					</div>
+				</section>
+
+				<section className="flex flex-col gap-3">
+					<div>
+						<h2 className="font-medium">{t("whenTitle")}</h2>
+						<p className="text-muted-foreground text-subhead">
+							{facts.length > 0 ? t("whenLead") : t("noFacts")}
+						</p>
+					</div>
+					{facts.length > 0 && (
+						<ConditionsEditor
+							value={conditions}
+							onChange={setConditions}
+							facts={facts}
+							issuesAt={(i) => issuesAt(`conditions.${i}`)}
+						/>
+					)}
+				</section>
+
+				<section className="flex flex-col gap-3">
+					<div>
+						<h2 className="font-medium">{t("stepsTitle")}</h2>
+						<p className="text-muted-foreground text-subhead">
+							{t("stepsLead")}
+						</p>
+					</div>
+					<ol className="flex flex-col gap-3">
+						{steps.map((s, i) => (
+							<li
+								key={s.key}
+								className="flex flex-col gap-4 rounded-2xl bg-card p-3"
+							>
+								<div className="flex flex-wrap items-center gap-2">
+									<Badge variant="outline">{t("step", { n: i + 1 })}</Badge>
+									<Input
+										aria-label={t("stepLabel")}
+										placeholder={t("stepLabelPlaceholder")}
+										value={s.label}
+										onChange={(e) => update(i, { label: e.target.value })}
+										className="min-w-0 flex-1 basis-48"
+										autoComplete="off"
+									/>
+									<div className="flex gap-1">
+										<Button
+											type="button"
+											size="icon"
+											variant="ghost"
+											disabled={i === 0}
+											aria-label={t("moveUp", { n: i + 1 })}
+											onClick={() => move(i, -1)}
+										>
+											<ArrowUp />
+										</Button>
+										<Button
+											type="button"
+											size="icon"
+											variant="ghost"
+											disabled={i === steps.length - 1}
+											aria-label={t("moveDown", { n: i + 1 })}
+											onClick={() => move(i, 1)}
+										>
+											<ArrowDown />
+										</Button>
+										<Button
+											type="button"
+											size="icon"
+											variant="ghost"
+											disabled={steps.length === 1}
+											aria-label={t("removeStep", { n: i + 1 })}
+											onClick={() =>
+												setSteps((xs) => xs.filter((_, j) => j !== i))
 											}
 										>
-											<SelectTrigger id={`${uid}-${s.key}-mode`}>
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="any">{t("modeAny")}</SelectItem>
-												<SelectItem value="all">{t("modeAll")}</SelectItem>
-											</SelectContent>
-										</Select>
+											<Trash2 />
+										</Button>
 									</div>
-								)}
-								{s.mode === "any" && !s.everyone && (
+								</div>
+								<div className="flex flex-col gap-1.5">
+									<span className="font-medium text-subhead">
+										{t("approvers")}
+									</span>
+									<RulePicker
+										value={s.approvers}
+										onChange={(approvers) => update(i, { approvers })}
+										groups={approverGroups}
+										placeholder={t("addApprover")}
+										names={names}
+									/>
+								</div>
+								<div className="flex min-h-11 items-start gap-3">
+									<Checkbox
+										id={`${uid}-${s.key}-everyone`}
+										checked={s.everyone}
+										onCheckedChange={(v) => update(i, { everyone: v === true })}
+										className="mt-0.5"
+									/>
+									<div className="flex flex-col gap-0.5">
+										<Label htmlFor={`${uid}-${s.key}-everyone`}>
+											{t("everyone")}
+										</Label>
+										<span className="text-muted-foreground text-footnote">
+											{t("everyoneLead")}
+										</span>
+									</div>
+								</div>
+								<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+									{s.approvers.length > 1 && !s.everyone && (
+										<div className="flex flex-col gap-1.5">
+											<Label htmlFor={`${uid}-${s.key}-mode`}>
+												{t("mode")}
+											</Label>
+											<Select
+												value={s.mode}
+												onValueChange={(v) =>
+													update(i, { mode: v === "all" ? "all" : "any" })
+												}
+											>
+												<SelectTrigger id={`${uid}-${s.key}-mode`}>
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="any">{t("modeAny")}</SelectItem>
+													<SelectItem value="all">{t("modeAll")}</SelectItem>
+												</SelectContent>
+											</Select>
+										</div>
+									)}
+									{s.mode === "any" && !s.everyone && (
+										<div className="flex flex-col gap-1.5">
+											<Label htmlFor={`${uid}-${s.key}-min`}>
+												{t("minApprovers")}
+											</Label>
+											<Input
+												id={`${uid}-${s.key}-min`}
+												type="number"
+												inputMode="numeric"
+												min={1}
+												max={5}
+												placeholder="1"
+												value={s.minApprovers}
+												onChange={(e) =>
+													update(i, { minApprovers: e.target.value })
+												}
+											/>
+										</div>
+									)}
 									<div className="flex flex-col gap-1.5">
-										<Label htmlFor={`${uid}-${s.key}-min`}>
-											{t("minApprovers")}
+										<Label htmlFor={`${uid}-${s.key}-sla`}>
+											{t("slaDays")}
 										</Label>
 										<Input
-											id={`${uid}-${s.key}-min`}
+											id={`${uid}-${s.key}-sla`}
 											type="number"
 											inputMode="numeric"
-											min={1}
-											max={5}
-											placeholder="1"
-											value={s.minApprovers}
-											onChange={(e) =>
-												update(i, { minApprovers: e.target.value })
-											}
+											min={0}
+											max={90}
+											value={s.slaDays}
+											onChange={(e) => update(i, { slaDays: e.target.value })}
+										/>
+									</div>
+								</div>
+								<div className="flex flex-col gap-1.5">
+									<span className="font-medium text-subhead">
+										{t("skipIf")}
+									</span>
+									<span className="text-muted-foreground text-footnote">
+										{t("skipIfLead")}
+									</span>
+									<RulePicker
+										value={s.skipIf}
+										onChange={(skipIf) => update(i, { skipIf })}
+										groups={skipGroups}
+										placeholder={t("addApprover")}
+										names={names}
+									/>
+								</div>
+								{facts.length > 0 && (
+									<div className="flex flex-col gap-1.5">
+										<span className="font-medium text-subhead">
+											{t("onlyIf")}
+										</span>
+										<span className="text-muted-foreground text-footnote">
+											{t("onlyIfLead")}
+										</span>
+										<ConditionsEditor
+											value={s.onlyIf}
+											onChange={(onlyIf) => update(i, { onlyIf })}
+											facts={facts}
+											issuesAt={(j) => issuesAt(`steps.${i}.onlyIf.${j}`)}
 										/>
 									</div>
 								)}
-								<div className="flex flex-col gap-1.5">
-									<Label htmlFor={`${uid}-${s.key}-sla`}>{t("slaDays")}</Label>
-									<Input
-										id={`${uid}-${s.key}-sla`}
-										type="number"
-										inputMode="numeric"
-										min={0}
-										max={90}
-										value={s.slaDays}
-										onChange={(e) => update(i, { slaDays: e.target.value })}
-									/>
-								</div>
-							</div>
-							<div className="flex flex-col gap-1.5">
-								<span className="font-medium text-subhead">{t("skipIf")}</span>
-								<span className="text-muted-foreground text-footnote">
-									{t("skipIfLead")}
-								</span>
-								<RulePicker
-									value={s.skipIf}
-									onChange={(skipIf) => update(i, { skipIf })}
-									groups={skipGroups}
-									placeholder={t("addApprover")}
-									names={names}
-								/>
-							</div>
-							{facts.length > 0 && (
-								<div className="flex flex-col gap-1.5">
-									<span className="font-medium text-subhead">
-										{t("onlyIf")}
-									</span>
-									<span className="text-muted-foreground text-footnote">
-										{t("onlyIfLead")}
-									</span>
-									<ConditionsEditor
-										value={s.onlyIf}
-										onChange={(onlyIf) => update(i, { onlyIf })}
-										facts={facts}
-										issuesAt={(j) => issuesAt(`steps.${i}.onlyIf.${j}`)}
-									/>
-								</div>
-							)}
-							{issuesAt(`steps.${i}`).length > 0 && (
-								<p
-									className="text-destructive text-subhead"
-									role="alert"
-									tabIndex={-1}
-								>
-									{[...new Set(issuesAt(`steps.${i}`))].join(" ")}
-								</p>
-							)}
-						</li>
-					))}
-				</ol>
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					className="self-start"
-					disabled={steps.length >= 8}
-					onClick={() =>
-						setSteps((xs) => [
-							...xs,
-							toDraft({ order: xs.length + 1, approverRule: "" }),
-						])
-					}
-				>
-					<Plus />
-					{t("addStep")}
-				</Button>
-			</section>
-
-			<section className="flex flex-col gap-2">
-				<h2 className="font-medium">{t("previewTitle")}</h2>
-				{conditions.length > 0 && (
-					<p className="text-muted-foreground text-subhead">
-						{t("appliesWhen", { conditions: text.conditions(conditions) })}
-					</p>
-				)}
-				{planned.length === 0 ? (
-					<p className="text-muted-foreground text-subhead">
-						{t("previewEmpty")}
-					</p>
-				) : (
-					<ol className="flex list-decimal flex-col gap-1 pl-5 text-subhead">
-						{planned.map((s) => (
-							<li key={s.order}>
-								<span className="font-medium">
-									{s.label && s.label !== text.approvers(s)
-										? `${s.label}: `
-										: ""}
-									{text.approvers(s)}
-								</span>
-								{text.extras(s).length > 0 && (
-									<span className="text-muted-foreground">
-										{" "}
-										({text.extras(s).join(" · ")})
-									</span>
+								{issuesAt(`steps.${i}`).length > 0 && (
+									<p
+										className="text-destructive text-subhead"
+										role="alert"
+										tabIndex={-1}
+									>
+										{[...new Set(issuesAt(`steps.${i}`))].join(" ")}
+									</p>
 								)}
 							</li>
 						))}
 					</ol>
-				)}
-			</section>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="self-start"
+						disabled={steps.length >= 8}
+						onClick={() =>
+							setSteps((xs) => [
+								...xs,
+								toDraft({ order: xs.length + 1, approverRule: "" }),
+							])
+						}
+					>
+						<Plus />
+						{t("addStep")}
+					</Button>
+				</section>
+
+				<section className="flex flex-col gap-2">
+					<h2 className="font-medium">{t("previewTitle")}</h2>
+					{conditions.length > 0 && (
+						<p className="text-muted-foreground text-subhead">
+							{t("appliesWhen", { conditions: text.conditions(conditions) })}
+						</p>
+					)}
+					{planned.length === 0 ? (
+						<p className="text-muted-foreground text-subhead">
+							{t("previewEmpty")}
+						</p>
+					) : (
+						<ol className="flex list-decimal flex-col gap-1 pl-5 text-subhead">
+							{planned.map((s) => (
+								<li key={s.order}>
+									<span className="font-medium">
+										{s.label && s.label !== text.approvers(s)
+											? `${s.label}: `
+											: ""}
+										{text.approvers(s)}
+									</span>
+									{text.extras(s).length > 0 && (
+										<span className="text-muted-foreground">
+											{" "}
+											({text.extras(s).join(" · ")})
+										</span>
+									)}
+								</li>
+							))}
+						</ol>
+					)}
+				</section>
+			</fieldset>
 
 			<DryRun
 				trigger={trigger.key}
@@ -615,9 +637,15 @@ export function WorkflowEditor({
 			/>
 
 			<FormAlert message={formError} />
-			<div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+			<div
+				hidden={locked}
+				className="flex flex-wrap items-center justify-between gap-3 border-t pt-4"
+			>
 				<div className="flex gap-2">
-					<Button disabled={pending || name.trim().length < 3} onClick={save}>
+					<Button
+						disabled={locked || pending || name.trim().length < 3}
+						onClick={save}
+					>
 						{pending ? tc("saving") : t("save")}
 					</Button>
 					<Button
@@ -647,7 +675,7 @@ export function WorkflowEditor({
 						</AlertDialogContent>
 					</AlertDialog>
 				</div>
-				{initial.id && initial.custom && (
+				{!locked && initial.id && initial.custom && (
 					<DeleteVariant id={initial.id} name={initial.name} />
 				)}
 			</div>

@@ -152,7 +152,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 	},
 	{
 		kind: "incident_closure",
-		name: "Vorfall schliessen",
+		name: "Vorfall schließen",
 		entityType: "incident",
 		description: "Informationssicherheit (ISB) gibt den Abschluss frei.",
 		steps: [{ order: 1, approverRule: "function:isb_ciso", slaDays: 5 }],
@@ -351,6 +351,11 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		defaultEnabled: false,
 	},
 ];
+
+// Frühere Namen (Schreibfehler), die ensureOrgWorkflows angleicht
+export const LEGACY_NAMES: Readonly<Record<string, string>> = {
+	incident_closure: "Vorfall schliessen",
+};
 
 // Beschreibungen bis Oktober 2026: unveränderte Zeilen bestehender Orgs
 // bekommen die neue Fassung (sie passt zu den Stufen)
