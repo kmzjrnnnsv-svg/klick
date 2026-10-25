@@ -5,19 +5,25 @@ import {
 	controls,
 	frameworks,
 	orgFrameworks,
+	orgSettings,
 	providers,
 	requirementApplicability,
 	requirements,
+	roleAssignments,
 } from "@/db/schema";
 import type {
 	CaspService,
+	Domain,
 	LicenceStage,
 	OrgRoleLegal,
+	RoleFunction,
 } from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
 import { deriveApplicability, inWorkQueue } from "./applicability";
 import { BASELINE, EDGES, splitRequirementKey } from "./catalog";
+import { areaOf } from "./catalog/domain-functions";
 import { toProfile } from "./catalog-view";
+import { responsibleFor } from "./function-holders";
 
 // Initialisiert (oder aktualisiert) den Arbeitsvorrat einer Organisation aus
 // ihrem Profil — idempotent, läuft innerhalb von withOrg/mutateOrg:
@@ -185,12 +191,17 @@ export async function initializeOrg(
 		neededCodes.size === 0
 			? []
 			: await tx
-					.select({ id: controls.id, code: controls.code })
+					.select({
+						id: controls.id,
+						code: controls.code,
+						domain: controls.domain,
+					})
 					.from(controls)
 					.where(inArray(controls.code, [...neededCodes]));
 
 	let controlsCreated = 0;
 	if (controlRows.length > 0) {
+		const owner = await areaOwners(tx, input.orgId, input.userId);
 		const inserted = await tx
 			.insert(controlImplementations)
 			.values(
@@ -199,7 +210,7 @@ export async function initializeOrg(
 					controlId: c.id,
 					status: "not_started" as const,
 					source: "onboarding" as const,
-					ownerUserId: input.userId,
+					...owner(c),
 				})),
 			)
 			.onConflictDoNothing()
@@ -332,6 +343,47 @@ export async function activeFrameworkSlugs(
 		)
 		.orderBy(frameworks.sortOrder);
 	return rows.map((r) => r.slug);
+}
+
+// Verantwortlich für neue Controls: die Funktion des Bereichs aus der
+// Einrichtung (org_settings.areaFunctions) mit ihrer Person, sonst die
+// einrichtende Person
+async function areaOwners(
+	tx: OrgTx,
+	orgId: string,
+	fallback: string | null,
+): Promise<
+	(c: { code: string; domain: Domain }) => {
+		ownerUserId: string | null;
+		ownerFunction: RoleFunction | null;
+	}
+> {
+	const [s] = await tx
+		.select({ areaFunctions: orgSettings.areaFunctions })
+		.from(orgSettings)
+		.where(eq(orgSettings.organizationId, orgId))
+		.limit(1);
+	const map = s?.areaFunctions ?? {};
+	const assignments =
+		Object.keys(map).length === 0
+			? []
+			: await tx
+					.select({
+						function: roleAssignments.function,
+						userId: roleAssignments.userId,
+						deputyUserId: roleAssignments.deputyUserId,
+						appointedAt: roleAssignments.appointedAt,
+						createdAt: roleAssignments.createdAt,
+					})
+					.from(roleAssignments)
+					.where(eq(roleAssignments.organizationId, orgId));
+	return (c) => {
+		const fn = map[areaOf(c)] ?? null;
+		return {
+			ownerFunction: fn,
+			ownerUserId: (fn && responsibleFor(assignments, fn)) || fallback,
+		};
+	};
 }
 
 // Rahmenwerke hinzufügen (org_frameworks) — Initialisierung ruft der Aufrufer.

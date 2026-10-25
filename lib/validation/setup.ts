@@ -6,6 +6,7 @@ import {
 } from "@/db/schema/enums";
 import { PROVIDER_CATEGORIES, SITE_KINDS } from "@/db/schema/registers";
 import { ORG_ROLES } from "@/lib/auth/session-rules";
+import { RESPONSIBILITY_AREAS } from "@/lib/compliance/catalog/domain-functions";
 import { SETUP_STEPS } from "@/lib/setup/steps";
 import { frameworkSlugs, shortText, uuid } from "./common";
 import { sectorSchema } from "./org";
@@ -121,3 +122,16 @@ export const setupFrameworksSchema = z.object({
 	frameworks: frameworkSlugs.min(1, "mindestens ein Rahmenwerk"),
 });
 export const setupGapSchema = z.object({ frameworks: frameworkSlugs.min(1) });
+
+// „Wer ist für welchen Bereich verantwortlich?“ (Schritt Rollen)
+export const setupAreasSchema = z.object({
+	areas: z
+		.array(
+			z.object({
+				area: z.enum(RESPONSIBILITY_AREAS),
+				function: z.enum(ROLE_FUNCTIONS),
+			}),
+		)
+		.min(1)
+		.max(RESPONSIBILITY_AREAS.length),
+});

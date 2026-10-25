@@ -25,7 +25,12 @@ import {
 	userRef,
 } from "./_shared";
 import { frameworks } from "./catalog";
-import { type CaspService, LICENCE_STAGES, NOTIFICATION_KINDS } from "./enums";
+import {
+	type CaspService,
+	LICENCE_STAGES,
+	NOTIFICATION_KINDS,
+	type RoleFunction,
+} from "./enums";
 import { priceGroups } from "./pricing";
 
 // Plattform-Tabellen: Org-Einstellungen (RLS), Rechtskataster (RLS),
@@ -226,6 +231,12 @@ export const orgSettings = pgTable(
 			.default({}),
 		// Setup-Checkliste: bestätigte Prüfungen (z. B. tlptConfirmedAt).
 		setupFlags: json<Record<string, string>>().notNull().default({}),
+		// Bereich → Funktion (Einrichtung, lib/compliance/catalog/
+		// domain-functions.ts): neue Controls bekommen die Funktion als
+		// Verantwortlich
+		areaFunctions: json<Partial<Record<string, RoleFunction>>>()
+			.notNull()
+			.default({}),
 		// Risikovorschläge (B3), die bewusst kein Risiko sind: „kind:id“ →
 		// Begründung, wer, wann
 		riskProposalDismissals: json<

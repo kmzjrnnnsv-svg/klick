@@ -10,11 +10,23 @@ import { ItDataStep } from "@/components/setup/it-data-step";
 import { RolesStep } from "@/components/setup/roles-step";
 import { SitesStep } from "@/components/setup/sites-step";
 import { StepFooter } from "@/components/setup/step-footer";
-import { orgSettings, providers, roleAssignments, sites } from "@/db/schema";
+import {
+	controlImplementations,
+	controls,
+	orgSettings,
+	providers,
+	roleAssignments,
+	sites,
+} from "@/db/schema";
 import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
+import {
+	areaOf,
+	RESPONSIBILITY_AREAS,
+	suggestAreaFunction,
+} from "@/lib/compliance/catalog/domain-functions";
 import { requiredFunctions } from "@/lib/compliance/catalog/required-functions";
 import { suggestFrameworks } from "@/lib/compliance/company-profile";
 import { whoHoldsWhat } from "@/lib/compliance/function-holders";
@@ -56,6 +68,7 @@ export default async function SetupStepPage({
 	const ctx = await requireOrgPage({ settings: ["update"] });
 	const t = await getTranslations("Setup");
 	const tf = await getTranslations("Functions");
+	const tcl = await getTranslations("Controls");
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const profile = await getOrgProfile(tx, ctx.orgId);
@@ -63,6 +76,7 @@ export default async function SetupStepPage({
 			.select({
 				flags: orgSettings.setupFlags,
 				entity: orgSettings.entityProfile,
+				areaFunctions: orgSettings.areaFunctions,
 			})
 			.from(orgSettings)
 			.where(eq(orgSettings.organizationId, ctx.orgId))
@@ -93,6 +107,20 @@ export default async function SetupStepPage({
 					assignments: rows,
 					names,
 					members: await listMembersForPicker(tx, ctx.orgId),
+					areaFunctions: s?.areaFunctions ?? {},
+					controlOwners: await tx
+						.select({
+							code: controls.code,
+							domain: controls.domain,
+							ownerFunction: controlImplementations.ownerFunction,
+							ownerUserId: controlImplementations.ownerUserId,
+						})
+						.from(controlImplementations)
+						.innerJoin(
+							controls,
+							eq(controls.id, controlImplementations.controlId),
+						)
+						.where(eq(controlImplementations.organizationId, ctx.orgId)),
 				};
 			}
 			case "standorte":
@@ -203,9 +231,47 @@ export default async function SetupStepPage({
 							? (data.names.get(a.deputyUserId) ?? null)
 							: null,
 					}));
+					// Bereiche → Funktion: gespeichert, sonst die Funktion, die den
+					// Bereich schon trägt, sonst der Vorschlag aus dem Katalog
+					const held = new Set(data.assignments.map((a) => a.function));
+					const areas = RESPONSIBILITY_AREAS.map((area) => {
+						const rows = data.controlOwners.filter((c) => areaOf(c) === area);
+						const counts = new Map<RoleFunction, number>();
+						for (const r of rows)
+							if (r.ownerFunction)
+								counts.set(
+									r.ownerFunction,
+									(counts.get(r.ownerFunction) ?? 0) + 1,
+								);
+						const current =
+							[...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+						const saved = data.areaFunctions[area] ?? null;
+						return {
+							area,
+							label:
+								area === "privacy" ? t("areaPrivacy") : tcl(`domain_${area}`),
+							total: rows.length,
+							open: rows.filter(
+								(r) =>
+									!r.ownerFunction &&
+									(!r.ownerUserId || r.ownerUserId === ctx.userId),
+							).length,
+							initial:
+								(saved && held.has(saved) ? saved : null) ??
+								current ??
+								suggestAreaFunction(area, held),
+						};
+					});
+					const anyControls = data.controlOwners.length > 0;
 					return (
 						<RolesStep
 							functions={functions}
+							areas={areas.filter((a) =>
+								anyControls ? a.total > 0 : a.initial !== null,
+							)}
+							heldFunctions={order
+								.filter((f) => held.has(f))
+								.map((f) => ({ function: f, title: tf(f) }))}
 							assignments={named}
 							people={whoHoldsWhat(named, tf)}
 							members={data.members}

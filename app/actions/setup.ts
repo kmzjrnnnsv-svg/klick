@@ -1,15 +1,18 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { inviteMember } from "@/app/actions/team";
 import {
 	assessmentAnswers,
+	controlImplementations,
+	controls,
 	orgSettings,
 	providers,
 	roleAssignments,
 	sites,
 } from "@/db/schema";
+import type { RoleFunction } from "@/db/schema/enums";
 import type { EntityProfile } from "@/db/schema/platform";
 import { safeAction } from "@/lib/actions/safe";
 import { ensureOrgWorkflows } from "@/lib/approvals/service";
@@ -17,11 +20,16 @@ import { insertSelfAssessment } from "@/lib/assessments/create-service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
+import {
+	areaOf,
+	type ResponsibilityArea,
+} from "@/lib/compliance/catalog/domain-functions";
 import { requiredFunctions } from "@/lib/compliance/catalog/required-functions";
 import {
 	classifyCompany,
 	prefillFromSetup,
 } from "@/lib/compliance/company-profile";
+import { loadAssignments } from "@/lib/compliance/function-holders-service";
 import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import {
 	activeFrameworkSlugs,
@@ -46,6 +54,7 @@ import {
 	companyProfileSchema,
 	deleteSiteSchema,
 	itDataSchema,
+	setupAreasSchema,
 	setupAssignSchema,
 	setupFrameworksSchema,
 	setupGapSchema,
@@ -239,6 +248,89 @@ async function setupRemoveAssignmentImpl(
 	});
 	revalidatePath(PATH, "layout");
 	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
+}
+
+// Bereiche → Funktion: merkt die Zuordnung (org_settings.areaFunctions, für
+// Controls, die später entstehen) und setzt die Funktion an allen Controls
+// des Bereichs, die noch bei der einrichtenden Person (initializeOrg) oder
+// niemandem liegen. Was schon einer Funktion oder einer anderen Person
+// gehört, bleibt. Die Person rechnet syncFunctionOwners (mit Benachrichtigung).
+async function setupAssignAreasImpl(
+	input: unknown,
+): Promise<ActionResult<{ count: number }>> {
+	const { c, open } = await requireSetup({ control: ["assign"] });
+	if (!open) await requireStepUp();
+	const parsed = setupAreasSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const count = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const held = new Set(
+			(await loadAssignments(tx, c.orgId)).map((a) => a.function),
+		);
+		const byArea = new Map<ResponsibilityArea, RoleFunction>(
+			parsed.data.areas
+				.filter((a) => held.has(a.function))
+				.map((a) => [a.area, a.function]),
+		);
+		// merken: neue Controls (Rahmenwerke kommen erst in Schritt 6) bekommen
+		// die Funktion in initializeOrg
+		const [cur] = await tx
+			.select({ areaFunctions: orgSettings.areaFunctions })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		await tx
+			.update(orgSettings)
+			.set({
+				areaFunctions: {
+					...(cur?.areaFunctions ?? {}),
+					...Object.fromEntries(byArea),
+				},
+			})
+			.where(eq(orgSettings.organizationId, c.orgId));
+		const rows = await tx
+			.select({
+				id: controlImplementations.id,
+				code: controls.code,
+				domain: controls.domain,
+			})
+			.from(controlImplementations)
+			.innerJoin(controls, eq(controls.id, controlImplementations.controlId))
+			.where(
+				and(
+					eq(controlImplementations.organizationId, c.orgId),
+					isNull(controlImplementations.ownerFunction),
+					or(
+						isNull(controlImplementations.ownerUserId),
+						eq(controlImplementations.ownerUserId, c.userId),
+					),
+				),
+			);
+		const idsBy = new Map<RoleFunction, string[]>();
+		for (const r of rows) {
+			const fn = byArea.get(areaOf(r));
+			if (fn) idsBy.set(fn, [...(idsBy.get(fn) ?? []), r.id]);
+		}
+		let n = 0;
+		for (const [fn, ids] of idsBy) {
+			await tx
+				.update(controlImplementations)
+				.set({ ownerFunction: fn })
+				.where(inArray(controlImplementations.id, ids));
+			n += ids.length;
+		}
+		await syncOwnersAndNotify(tx, c.orgId, c.userId);
+		return {
+			result: n,
+			audit: {
+				action: "control.owner_areas_assigned",
+				target: `org:${c.orgId}`,
+				before: { areas: cur?.areaFunctions ?? {} },
+				after: { areas: Object.fromEntries(byArea), count: n, via: "setup" },
+			},
+		};
+	});
+	revalidatePath(PATH, "layout");
+	return { ok: true, data: { count } };
 }
 
 // ── Schritte abschließen / später fortsetzen ──────────────────────────────
@@ -652,6 +744,10 @@ export const setupAssignFunction = safeAction(
 export const setupRemoveAssignment = safeAction(
 	"setupRemoveAssignment",
 	setupRemoveAssignmentImpl,
+);
+export const setupAssignAreas = safeAction(
+	"setupAssignAreas",
+	setupAssignAreasImpl,
 );
 export const completeSetupStep = safeAction(
 	"completeSetupStep",

@@ -253,6 +253,13 @@
       "when": 1792937284257,
       "tag": "0035_responsible_function",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792939930215,
+      "tag": "0036_area_functions",
+      "breakpoints": true
     }
   ]
 }

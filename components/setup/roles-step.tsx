@@ -28,6 +28,7 @@ import {
 import { toast } from "@/components/ui/toast";
 import type { RoleFunction } from "@/db/schema/enums";
 import type { PersonView } from "@/lib/compliance/function-holders";
+import { type AreaRow, AreasBlock } from "./areas-block";
 import { useStepRunner } from "./step-footer";
 
 type Fn = {
@@ -59,6 +60,8 @@ const RIGHTS = ["Owner", "Editor", "Viewer", "Auditor", "Consultant"] as const;
 // je Person mehrere Funktionen; „Wer trägt was“ zeigt die Funktionstrennung.
 export function RolesStep({
 	functions,
+	areas,
+	heldFunctions,
 	assignments,
 	people,
 	members,
@@ -66,6 +69,8 @@ export function RolesStep({
 	nextHref,
 }: {
 	functions: Fn[];
+	areas: AreaRow[];
+	heldFunctions: { function: RoleFunction; title: string }[];
 	assignments: Assignment[];
 	people: PersonView[];
 	members: Member[];
@@ -111,6 +116,13 @@ export function RolesStep({
 			)}
 
 			<WhoHoldsWhat people={people} />
+
+			<AreasBlock
+				// neu laden, wenn sich die besetzten Funktionen ändern
+				key={heldFunctions.map((f) => f.function).join()}
+				areas={areas}
+				held={heldFunctions}
+			/>
 
 			<section className="flex flex-col gap-2 rounded-2xl bg-card p-4 text-subhead">
 				<h2 className="font-semibold text-headline">{t("rightsTitle")}</h2>
