@@ -119,7 +119,9 @@ Varianten, die auf dem grauen Seitengrund (#F2F2F7) mindestens 4,5 : 1 erreichen
   eine Primäraktion hinten; Suche hinten.
 - **Sheet** (statt Dialog): für abgegrenzte Aufgaben; am Handy von unten, am Desktop mittig;
   Abbrechen vorne, Fertig/Sichern hinten; nie zwei Modale gleichzeitig; Wischen zum Schließen nur
-  ohne ungesicherte Änderungen.
+  ohne ungesicherte Änderungen. **Im Code:** Rückfragen wie der Step-up erscheinen **im** offenen
+  Sheet (`components/ui/modal-host.tsx`: `DialogContent` meldet sich als Gastgeber, `HostPanel`
+  legt die Rückfrage darüber, Esc schließt nur die Rückfrage); ohne offenes Sheet eigenes Sheet.
 - **Alert:** nur für Kritisches; Titel nicht „Fehler“; höchstens drei Buttons; „Abbrechen“ statt
   „OK“, kein Ja/Nein; Abbrechen nie Standard; Esc bricht ab.
 - **Popover:** klein, nie für Warnungen, auf schmalen Bildschirmen als Sheet.
@@ -143,7 +145,15 @@ Varianten, die auf dem grauen Seitengrund (#F2F2F7) mindestens 4,5 : 1 erreichen
   - Menüpfade im Text mit „>“: „Einstellungen > Freigaben“.
 - **Formularfelder:** Label über dem Feld, Platzhalter mit Beispiel („z. B. …“), Fehler direkt am
   Feld mit Lösung („Bitte nur Ziffern“ statt „Ungültig“), Zahlen und Daten im deutschen Format,
-  Passwortfelder nie vorbelegt.
+  Passwortfelder nie vorbelegt. Am Touch-Bildschirm Feldschrift ≥ 16 px (sonst zoomt Safari beim
+  Tippen; Regel in `styles/base.css`, keine Überschreibung mit `text-footnote` an Feldern) und
+  Feldhöhe 44 px (`--control-h`, kein `h-8`).
+- **Fehler** (Code: `components/ui/{error-text,form-alert,toast}.ts(x)`): Prüf- und Aktionsfehler
+  eines Formulars stehen über dem Absenden-Knopf (`FormAlert`, `role="alert"`), nicht im Toast.
+  Fehler-Toasts bleiben stehen, bis man sie schließt (`toast.error` aus `components/ui/toast`, nie
+  direkt aus `sonner`); Bestätigungen verschwinden von selbst. Codes nie roh anzeigen:
+  `errorText(tc, res)` übersetzt sie und hängt die Referenz an (Test `ui-feedback`). Ladetexte als
+  Satz („Wird gespeichert …“), nicht als Verb mit Auslassung.
 - **Fortschritt:** bestimmte Anzeige, wo möglich; keine vagen „Laden“-Texte; sofort Platzhalter.
 - **Badges** nur für Benachrichtigungen; Status als Status-Label (Punkt + Text).
 - **Diagramme:** Werte ohne Interaktion erkennbar, Achsen sparsam, Farbe nie allein, zugängliche
