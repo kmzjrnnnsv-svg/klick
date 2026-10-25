@@ -67,6 +67,9 @@ export default async function FeaturesPage() {
 	const busiest = busiestControl(["iso27001", "dora", "micar"]);
 	const fwBy = new Map(frameworks.map((f) => [f.slug, f]));
 	const clauses = evidenceByIsoClause();
+	// Beispiel für den Hinweis unter dem Ausschnitt, aus dem Katalog
+	const micar = fwBy.get("micar");
+	const example = micar?.example;
 
 	return (
 		<RevealRoot as="main" id="inhalt" className={s.page}>
@@ -88,6 +91,17 @@ export default async function FeaturesPage() {
 						<FrameworkPicker frameworks={frameworks} initial={PICKER_DEFAULT} />
 					</div>
 				</div>
+				<ul className={s.stageNotes}>
+					<li>{t("pickerNoteAdded")}</li>
+					<li>
+						{micar && example
+							? t("pickerNoteTerms", {
+									name: `${micar.label} ${example.code}`,
+									n: example.controls,
+								})
+							: t("pickerNoteTermsPlain")}
+					</li>
+				</ul>
 			</section>
 
 			{/* Rundgang: kurzes Video (Beispieldaten), startet nur auf Klick */}

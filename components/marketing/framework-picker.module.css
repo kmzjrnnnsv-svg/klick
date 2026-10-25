@@ -34,7 +34,7 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
-	margin: 0 0 10px;
+	margin: 0 0 16px;
 	padding: 0;
 	list-style: none;
 }
@@ -83,13 +83,6 @@
 	flex: none;
 }
 
-.legend {
-	margin: 0 0 14px;
-	font-size: 13px;
-	line-height: 1.35;
-	color: var(--muted-foreground);
-}
-
 .result {
 	margin: 0;
 	border-top: 1px solid var(--border); /* taste-skill-ignore: data-ui */
@@ -111,12 +104,6 @@
 .strong {
 	font-weight: 600;
 	color: var(--primary);
-}
-.explain {
-	margin: 10px 0 0;
-	font-size: 13px;
-	line-height: 1.35;
-	color: var(--muted-foreground);
 }
 .note {
 	margin: 12px 0 0;

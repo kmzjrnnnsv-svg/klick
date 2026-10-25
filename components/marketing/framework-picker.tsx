@@ -6,7 +6,6 @@ import { useState } from "react";
 import {
 	addedControls,
 	bestReuse,
-	exampleFor,
 	type PickerFramework,
 	synergyOf,
 } from "@/lib/marketing/synergy";
@@ -17,9 +16,10 @@ const num = new Intl.NumberFormat("de-DE");
 // Ausschnitt aus Klick: Rahmenwerke wählen und sehen, wie viele Controls die
 // Anforderungen gemeinsam abdecken — gerechnet mit dem echten Katalog. Die
 // Zahl an jedem nicht gewählten Rahmenwerk zeigt, was es neu dazubrächte;
-// so ergibt die Auswahl schon mit einem Rahmenwerk Sinn. Die Texte sagen
-// „Maßnahmen“, der App-Begriff „Controls“ steht einmal in Klammern. Ohne
-// Skript bleibt die Vorauswahl stehen (der Server rendert sie).
+// so ergibt die Auswahl schon mit einem Rahmenwerk Sinn. Knapp gehalten: die
+// Erklärungen (Bedeutung von „+N“, Maßnahme = Control) stehen auf der Seite
+// unter dem Ausschnitt. Ohne Skript bleibt die Vorauswahl stehen (der Server
+// rendert sie).
 export function FrameworkPicker({
 	frameworks,
 	initial,
@@ -32,9 +32,6 @@ export function FrameworkPicker({
 	const r = synergyOf(frameworks, selected);
 	const added = addedControls(frameworks, selected);
 	const next = selected.length === 1 ? bestReuse(frameworks, selected) : null;
-	// Anforderung und Control zählen verschieden (ein Artikel kann viele
-	// Controls brauchen): mit einem echten Beispiel aus der Auswahl erklären
-	const example = exampleFor(frameworks, selected);
 	const toggle = (slug: string) =>
 		setSelected((cur) =>
 			cur.includes(slug) ? cur.filter((x) => x !== slug) : [...cur, slug],
@@ -75,7 +72,6 @@ export function FrameworkPicker({
 					);
 				})}
 			</ul>
-			<p className={s.legend}>{t("pickerLegend")}</p>
 			<div aria-live="polite">
 				<dl className={s.result}>
 					<div className={s.row}>
@@ -86,30 +82,12 @@ export function FrameworkPicker({
 						<dt>{t("pickerControls")}</dt>
 						<dd className={s.strong}>{num.format(r.controls)}</dd>
 					</div>
-					{selected.length > 1 && (
-						<div className={s.row}>
-							<dt>{t("pickerShared")}</dt>
-							<dd>{num.format(r.shared)}</dd>
-						</div>
-					)}
 				</dl>
-				{example && (
-					<p className={s.explain}>
-						{t("pickerExample", {
-							name: `${example.label} ${example.code}`,
-							title: example.title,
-							n: example.controls,
-						})}
-					</p>
-				)}
 				<p className={s.note}>
 					{selected.length === 0
 						? t("pickerNone")
 						: selected.length > 1
-							? t("pickerCompare", {
-									separate: num.format(r.separate),
-									controls: num.format(r.controls),
-								})
+							? t("pickerSeparate", { n: num.format(r.separate) })
 							: next
 								? t("pickerSingle", {
 										name: next.label,
