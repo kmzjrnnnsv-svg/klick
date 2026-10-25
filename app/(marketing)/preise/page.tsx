@@ -26,12 +26,6 @@ const TIER_ITEM = {
 const FEATURES = ["f1", "f2", "f3", "f4", "f5", "f6"] as const;
 const FAQ = ["q1", "q2", "q3", "q4"] as const;
 const TONES = [s.toneBlue, s.toneBrown, s.toneSky] as const;
-// Je Stufe ein Bildschirmfoto aus Klick (Beispieldaten), natürliche Größe
-const TIER_IMAGE = {
-	start: SHOTS.risiko,
-	growth: SHOTS.freigaben,
-	licence: SHOTS.verwahrung,
-} as const;
 const READINESS = SHOTS.pruefungsreife;
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -146,16 +140,6 @@ export default async function PricingPage() {
 								aria-labelledby={`tier-${tier}`}
 								data-r=""
 							>
-								{/* biome-ignore lint/performance/noImgElement: statisches Bildschirmfoto, CSP ohne Bild-Optimierer */}
-								<img
-									className={s.tierPic}
-									src={assetUrl(TIER_IMAGE[tier].src)}
-									width={TIER_IMAGE[tier].w}
-									height={TIER_IMAGE[tier].h}
-									alt={t(`${tier}ImageAlt`)}
-									loading="lazy"
-									decoding="async"
-								/>
 								<h3 id={`tier-${tier}`} className={s.tierName}>
 									{t(`${tier}Name`)}
 								</h3>
