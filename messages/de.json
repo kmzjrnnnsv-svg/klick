@@ -4584,6 +4584,7 @@
 		"cancel": "Abbrechen"
 	},
 	"Appointments": {
+		"acceptanceOpen": "Annahme offen",
 		"appointHint": "Die Geschäftsleitung bestellt die Funktionen. Trag sie zuerst ein: Danach geht jeder Vorschlag an sie zur Freigabe. Gibt es mehrere Mitglieder, stimmen alle zu.",
 		"statusAppointed": "bestellt",
 		"statusProgress": "wartet auf die Geschäftsleitung ({done} von {total})",

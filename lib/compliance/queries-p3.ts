@@ -42,6 +42,7 @@ import {
 } from "@/db/schema";
 import type { LicenceStage } from "@/db/schema/enums";
 import { approvalProgressFor } from "@/lib/approvals/service";
+import { openAcceptances } from "@/lib/compliance/appointment-acceptance";
 import { isEffective } from "@/lib/compliance/appointments";
 import type { OrgTx } from "@/lib/db/with-org";
 import { requiredFunctions, roleCoverage } from "./catalog/required-functions";
@@ -1236,5 +1237,9 @@ export async function appointmentFacts(
 		progress,
 		noticesOpen: new Set(notices.map((n) => n.entityId)),
 		withoutResolution,
+		// bestellt, Schreiben noch nicht von der Person unterschrieben
+		acceptanceOpen: new Map(
+			(await openAcceptances(tx, orgId)).map((a) => [a.id, a.evidenceId]),
+		),
 	};
 }

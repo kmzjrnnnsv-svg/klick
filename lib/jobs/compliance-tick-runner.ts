@@ -56,6 +56,7 @@ import {
 } from "@/lib/approvals/service";
 import { audit } from "@/lib/audit";
 import { normalizeRole } from "@/lib/auth/guards";
+import { openAcceptances } from "@/lib/compliance/appointment-acceptance";
 import { cycleDates } from "@/lib/compliance/audit-follow-up";
 import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
 import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
@@ -812,6 +813,7 @@ async function loadDueRows(
 		incidents: incidentRows,
 		managementIds: await functionRecipients(tx, orgId, "management_body"),
 		acknowledgements,
+		appointmentAcceptances: await openAcceptances(tx, orgId),
 		obligationRuns: runRows,
 		legalChanges,
 		auditCycles,

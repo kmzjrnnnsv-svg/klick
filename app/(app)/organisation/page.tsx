@@ -386,6 +386,11 @@ export default async function OrganisationPage({
 				{facts?.withoutResolution.has(a.id) && (
 					<Badge variant="muted">{ta("withoutResolution")}</Badge>
 				)}
+				{facts?.acceptanceOpen.has(a.id) && (
+					<Link href={`/nachweise/${facts.acceptanceOpen.get(a.id)}`}>
+						<Badge variant="warning">{ta("acceptanceOpen")}</Badge>
+					</Link>
+				)}
 				{facts?.noticesOpen.has(a.id) && (
 					<Link href="/heute/aufgaben">
 						<Badge variant="warning">{ta("noticeOpen")}</Badge>
