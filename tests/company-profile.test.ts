@@ -91,6 +91,21 @@ describe("suggestFrameworks", () => {
 		expect(slugs).not.toContain("micar");
 		expect(slugs).not.toContain("nis2");
 	});
+	it("Bank: KWG und Travel Rule", () => {
+		const s = suggestFrameworks({
+			sector: "bank",
+			licenceStage: "4_bank",
+			caspServices: [],
+			issuesTokens: "none",
+			hasProducts: false,
+			entity: { employees: 400, personalData: ["kunden"] },
+		});
+		const slugs = s.filter((x) => x.recommended).map((x) => x.slug);
+		expect(slugs).toEqual(
+			expect.arrayContaining(["kwg", "dora", "gwg", "tfr", "sanctions"]),
+		);
+		expect(slugs).not.toContain("zag");
+	});
 	it("Hersteller ohne Finanzbezug: CRA, NIS2 bei Größe, ISO optional", () => {
 		const s = suggestFrameworks({
 			sector: "other",
