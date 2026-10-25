@@ -124,6 +124,13 @@ export function canHoldCustomRoles(orgRole: string): boolean {
 	return orgRole === "editor" || orgRole === "viewer";
 }
 
+// Eine eigene Rolle als Funktion tragen (ADR-024): alle internen Mitglieder,
+// auch Inhaber:innen (Verantwortung, Organigramm, Freigaben) — Rechte daraus
+// bekommen nur die, die canHoldCustomRoles erfüllen
+export function canHoldOwnRole(orgRole: string): boolean {
+	return orgRole === "owner" || canHoldCustomRoles(orgRole);
+}
+
 // Effektive Rechte: Grundrolle ∪ bereinigte eigene Rollen
 export function effectivePermissions(
 	orgRole: string,

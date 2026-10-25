@@ -27,7 +27,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import type { RoleFunction } from "@/db/schema/enums";
+import type { FunctionKey, RoleFunction } from "@/db/schema/enums";
+import { isOwnRoleKey } from "@/lib/compliance/function-key";
 import type { MeasurementSuggestion } from "@/lib/compliance/indicator-sources";
 import {
 	INDICATOR_TEMPLATES,
@@ -57,7 +58,8 @@ export type RoleAssignmentDraft = {
 	fitProperChecklist?: FitProperChecklist | null;
 	documentsValidUntil?: string | null;
 	reviewAt?: string | null;
-	reportsToFunction?: RoleFunction | null;
+	// Funktion oder eigene Rolle (ADR-024)
+	reportsToFunction?: FunctionKey | null;
 	appointmentNotes?: string | null;
 };
 
@@ -223,7 +225,11 @@ export function RoleAssignmentForm({
 				{d.function !== "management_body" && (
 					<FunctionSelect
 						label={t("reportsTo")}
-						value={d.reportsToFunction}
+						value={
+							d.reportsToFunction && !isOwnRoleKey(d.reportsToFunction)
+								? (d.reportsToFunction as RoleFunction)
+								: null
+						}
 						onChange={(v) => setD({ ...d, reportsToFunction: v })}
 						labels={functionLabels}
 						allowNone

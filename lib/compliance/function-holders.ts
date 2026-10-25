@@ -4,11 +4,13 @@ import {
 	SOD_RULES,
 	type SodRule,
 } from "@/lib/compliance/catalog/sod-rules";
+import { type FunctionKey, isOwnRoleKey } from "@/lib/compliance/function-key";
 
 // Funktion → Person, rein und an einer Stelle (Teil A „Rollen zu Beginn“).
 // Eine Funktion kann mehrere Inhaber:innen haben (z. B. zwei
 // Geschäftsführer:innen), eine Person mehrere Funktionen. Zeilen ohne
-// Konto (extern, Einladung offen) zählen nicht als Person.
+// Konto (extern, Einladung offen) zählen nicht als Person. Funktion heißt
+// hier Funktionsschlüssel: Katalog-Funktion oder eigene Rolle `role:<id>`.
 //
 // Welche Sicht wo gilt:
 // - Verantwortliche:r eines Eintrags: responsibleFor (erste Inhaber:in,
@@ -18,7 +20,7 @@ import {
 //   Ausweitung auf die Vertretung)
 
 export type FunctionAssignment = {
-	function: RoleFunction;
+	function: FunctionKey;
 	userId: string | null;
 	deputyUserId: string | null;
 	appointedAt?: string | null;
@@ -29,7 +31,7 @@ const time = (v: Date | string | null | undefined): number =>
 	v ? new Date(v).getTime() : Number.POSITIVE_INFINITY;
 
 // nach Bestellung, dann nach Anlage — die zuerst bestellte Person führt
-function ordered(rows: readonly FunctionAssignment[], fn: RoleFunction) {
+function ordered(rows: readonly FunctionAssignment[], fn: FunctionKey) {
 	return rows
 		.filter((r) => r.function === fn)
 		.sort(
@@ -41,7 +43,7 @@ function ordered(rows: readonly FunctionAssignment[], fn: RoleFunction) {
 
 export function holdersOf(
 	rows: readonly FunctionAssignment[],
-	fn: RoleFunction,
+	fn: FunctionKey,
 ): { holders: string[]; deputies: string[] } {
 	const list = ordered(rows, fn);
 	const holders = [
@@ -61,7 +63,7 @@ export function holdersOf(
 
 export function responsibleFor(
 	rows: readonly FunctionAssignment[],
-	fn: RoleFunction,
+	fn: FunctionKey,
 ): string | null {
 	const { holders, deputies } = holdersOf(rows, fn);
 	return holders[0] ?? deputies[0] ?? null;
@@ -70,7 +72,7 @@ export function responsibleFor(
 // alle, die es angeht: Inhaber:innen und Vertretungen
 export function recipientsOf(
 	rows: readonly FunctionAssignment[],
-	fn: RoleFunction,
+	fn: FunctionKey,
 ): string[] {
 	const { holders, deputies } = holdersOf(rows, fn);
 	return [...holders, ...deputies];
@@ -79,11 +81,11 @@ export function recipientsOf(
 // besetzte Funktion mit Name der verantwortlichen Person (Auswahl
 // „Verantwortlich“, components/entity/responsible-select.tsx)
 export type ResponsibleOption = {
-	function: RoleFunction;
+	function: FunctionKey;
 	holder: string | null;
 };
 
-export type HeldFunction = { function: RoleFunction; as: "holder" | "deputy" };
+export type HeldFunction = { function: FunctionKey; as: "holder" | "deputy" };
 
 export function functionsOf(
 	rows: readonly FunctionAssignment[],
@@ -115,7 +117,7 @@ export function functionsOf(
 // kombinieren dürfen, Prüfer:innen sehen die Hinweise.
 
 export type HolderRow = {
-	function: RoleFunction;
+	function: FunctionKey;
 	userId: string | null;
 	externalName: string | null;
 	pendingEmail: string | null;
@@ -129,7 +131,7 @@ export type PersonView = {
 	name: string;
 	kind: "member" | "invite" | "external";
 	functions: {
-		function: RoleFunction;
+		function: FunctionKey;
 		title: string;
 		as: "holder" | "deputy";
 	}[];
@@ -156,13 +158,13 @@ function personOf(r: HolderRow) {
 
 export function whoHoldsWhat(
 	rows: readonly HolderRow[],
-	title: (fn: RoleFunction) => string,
+	title: (fn: FunctionKey) => string,
 	rules: readonly SodRule[] = SOD_RULES,
 ): PersonView[] {
 	const people = new Map<string, PersonView>();
 	const add = (
 		p: { key: string; name: string; kind: PersonView["kind"] },
-		fn: RoleFunction,
+		fn: FunctionKey,
 		as: "holder" | "deputy",
 	) => {
 		const v = people.get(p.key) ?? { ...p, functions: [], sod: [] };
@@ -181,9 +183,12 @@ export function whoHoldsWhat(
 				"deputy",
 			);
 	}
+	// Funktionstrennung kennt nur Katalog-Funktionen
 	const keyed = rows.flatMap((r) => {
 		const p = personOf(r);
-		return p ? [{ function: r.function, userId: p.key }] : [];
+		return p && !isOwnRoleKey(r.function)
+			? [{ function: r.function as RoleFunction, userId: p.key }]
+			: [];
 	});
 	for (const v of checkSod(keyed, rules)) {
 		const p = people.get(v.userId);

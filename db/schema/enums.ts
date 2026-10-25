@@ -483,6 +483,8 @@ export const ROLE_FUNCTIONS = [
 	"other",
 ] as const;
 export type RoleFunction = (typeof ROLE_FUNCTIONS)[number];
+// Funktionsschlüssel (ADR-024): Katalog-Funktion oder eigene Rolle `role:<id>`
+export type FunctionKey = RoleFunction | `role:${string}`;
 
 // Bestellung einer Funktion durch die Geschäftsleitung (role_assignments):
 // wirksam sind nur appointed und revocation_requested (Abberufung beantragt,

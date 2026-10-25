@@ -16,7 +16,10 @@ import {
 } from "@/lib/auth/guards";
 import { membershipAllowed, ownerMayReset } from "@/lib/auth/memberships";
 import { listPendingInvitations, rolesElsewhere } from "@/lib/auth/org";
-import { canHoldCustomRoles } from "@/lib/auth/permission-catalog";
+import {
+	canHoldCustomRoles,
+	canHoldOwnRole,
+} from "@/lib/auth/permission-catalog";
 import { findResetTarget, resetUserAccess } from "@/lib/auth/recover";
 import {
 	type InviteDelivery,
@@ -26,6 +29,10 @@ import {
 } from "@/lib/auth/registration-link";
 import { auth } from "@/lib/auth/server";
 import { mutateOrg } from "@/lib/db/with-org";
+import {
+	dropInvitedOwnRoles,
+	setOwnRoleAssignments,
+} from "@/lib/org/own-role-service";
 import { syncTrainingAssignments } from "@/lib/trainings/assignments";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { memberAccessSchema } from "@/lib/validation/governance";
@@ -64,10 +71,9 @@ async function inviteMemberImpl(
 				headers: await headers(),
 			}),
 		);
-		// Eigene Rollen vormerken (ADR-020) — verknüpft beim Annehmen
-		const roleIds = canHoldCustomRoles(parsed.data.role)
-			? parsed.data.roleIds
-			: [];
+		// Eigene Rollen vorschlagen (ADR-024): die Geschäftsleitung bestellt,
+		// verknüpft wird beim Annehmen über die Adresse
+		const roleIds = canHoldOwnRole(parsed.data.role) ? parsed.data.roleIds : [];
 		if (roleIds.length > 0) {
 			const email = parsed.data.email.toLowerCase();
 			await mutateOrg(toOrgCtx(c), async (tx) => {
@@ -80,28 +86,23 @@ async function inviteMemberImpl(
 							inArray(orgRoles.id, roleIds),
 						),
 					);
-				await tx
-					.delete(memberRoles)
-					.where(
-						and(
-							eq(memberRoles.organizationId, c.orgId),
-							eq(memberRoles.pendingEmail, email),
-						),
-					);
-				for (const r of valid)
-					await tx.insert(memberRoles).values({
-						organizationId: c.orgId,
-						roleId: r.id,
-						pendingEmail: email,
-						createdByUserId: c.userId,
-					});
+				const out = await setOwnRoleAssignments(
+					tx,
+					{ orgId: c.orgId, userId: c.userId, name: c.name },
+					valid.map((r) => ({ roleId: r.id, holder: { pendingEmail: email } })),
+					{ holder: { pendingEmail: email } },
+					"invitation",
+				);
 				return {
 					result: valid.length,
-					audit: {
-						action: "member.roles_pending",
-						target: `invitation:${inv.id}`,
-						after: { roleIds: valid.map((r) => r.id) },
-					},
+					audit: [
+						{
+							action: "member.roles_pending",
+							target: `invitation:${inv.id}`,
+							after: { roleIds: valid.map((r) => r.id) },
+						},
+						...out.audit,
+					],
 				};
 			});
 		}
@@ -191,28 +192,11 @@ async function cancelInvitationImpl(
 			headers: await headers(),
 		});
 		await revokeRegistrationLinks({ invitationId });
-		// vorgemerkte eigene Rollen der Einladung verwerfen (ADR-020)
+		// vorgemerkte eigene Rollen der Einladung verwerfen (ADR-024)
 		if (inv)
 			await mutateOrg(toOrgCtx(c), async (tx) => {
-				const gone = await tx
-					.delete(memberRoles)
-					.where(
-						and(
-							eq(memberRoles.organizationId, c.orgId),
-							eq(memberRoles.pendingEmail, inv.email.toLowerCase()),
-						),
-					)
-					.returning({ id: memberRoles.id });
-				return {
-					result: gone.length,
-					audit: gone.length
-						? {
-								action: "member.roles_pending_cleared",
-								target: `invitation:${invitationId}`,
-								after: { removed: gone.length },
-							}
-						: [],
-				};
+				const audit = await dropInvitedOwnRoles(tx, c.orgId, inv.email);
+				return { result: audit.length, audit };
 			});
 		revalidatePath("/team");
 		return { ok: true, data: undefined };

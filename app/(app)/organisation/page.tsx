@@ -50,7 +50,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { sites } from "@/db/schema";
-import { ROLE_FUNCTIONS } from "@/db/schema/enums";
+import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
 import { canDecideNow } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
@@ -64,6 +64,7 @@ import { allows } from "@/lib/auth/permissions";
 import { isEffective } from "@/lib/compliance/appointments";
 import { appointable } from "@/lib/compliance/catalog/appointment-templates";
 import { whoHoldsWhat } from "@/lib/compliance/function-holders";
+import { functionKeyOf, ownRoleKey } from "@/lib/compliance/function-key";
 import { loadIndicatorData } from "@/lib/compliance/indicator-data";
 import {
 	objectiveTemplateKey,
@@ -104,6 +105,7 @@ import {
 import { decryptMany, fieldAad } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
+import { orgRoleNames } from "@/lib/org/roles";
 import type { FitProperChecklist } from "@/lib/validation/governance";
 import { responsibleValue } from "@/lib/validation/responsible";
 
@@ -160,7 +162,8 @@ export default async function OrganisationPage({
 		const members = await listMembersForPicker(tx, ctx.orgId);
 		const orgFws = await listOrgFrameworks(tx, ctx.orgId);
 		const gov = await governanceStatus(tx, ctx.orgId, fws, stage);
-		const base = { fws, stage, members, orgFws, gov };
+		const roleNames = await orgRoleNames(tx, ctx.orgId);
+		const base = { fws, stage, members, orgFws, gov, roleNames };
 		switch (tab) {
 			case "kontext":
 				return {
@@ -278,10 +281,16 @@ export default async function OrganisationPage({
 				};
 		}
 	});
-	const { members, orgFws, gov } = data;
-	const functionLabels = Object.fromEntries(
-		ROLE_FUNCTIONS.map((f) => [f, tf(f)]),
-	) as Record<string, string>;
+	const { members, orgFws, gov, roleNames } = data;
+	// Katalog-Funktionen und eigene Rollen (`role:<id>`, ADR-024)
+	const functionLabels = {
+		...Object.fromEntries(ROLE_FUNCTIONS.map((f) => [f, tf(f)])),
+		...Object.fromEntries(
+			Object.entries(roleNames).map(([id, name]) => [ownRoleKey(id), name]),
+		),
+	} as Record<string, string>;
+	const labelOf = (a: { function: RoleFunction; orgRoleId: string | null }) =>
+		functionLabels[functionKeyOf(a)] ?? functionLabels[a.function];
 	const today = new Date().toISOString().slice(0, 10);
 	const ta = await getTranslations("Appointments");
 	const facts = "appointments" in data ? data.appointments : null;
@@ -678,7 +687,7 @@ export default async function OrganisationPage({
 								gov.assignments
 									.filter((a) => isEffective(a.status))
 									.map((a) => ({
-										function: a.function,
+										function: functionKeyOf(a),
 										reportsToFunction: a.reportsToFunction,
 										holder: a.holderName ?? a.pendingEmail,
 										deputy: a.deputyName,
@@ -941,7 +950,7 @@ export default async function OrganisationPage({
 									return (
 										<TableRow key={a.id} className="text-muted-foreground">
 											<TableCell>
-												{functionLabels[a.function]}
+												{labelOf(a)}
 												{appointable(a.function) && (
 													<div className="mt-2">
 														<EntityEvidence
@@ -1021,6 +1030,7 @@ export default async function OrganisationPage({
 								.filter((a) => a.status !== "rejected")
 								.map((a) => ({
 									...a,
+									function: functionKeyOf(a),
 									userName: a.userId ? a.holderName : null,
 								})),
 							(fn) => functionLabels[fn] ?? fn,

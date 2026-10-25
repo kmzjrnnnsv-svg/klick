@@ -165,9 +165,9 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		frameworks: ["iso27001", "dora"],
 		body: skeleton(
 			"Risikobehandlungsplan",
-			"Massnahmen, Verantwortliche und Termine zur Behandlung der identifizierten Risiken.",
+			"Maßnahmen, Verantwortliche und Termine zur Behandlung der identifizierten Risiken.",
 			[
-				"Priorisierte Massnahmen",
+				"Priorisierte Maßnahmen",
 				"Verantwortliche und Termine",
 				"Restrisiko und Akzeptanz",
 			],
@@ -810,7 +810,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 			"Managementbewertung",
 			"Inputs, Bewertung und Beschlüsse der obersten Leitung.",
 			[
-				"Status früherer Massnahmen",
+				"Status früherer Maßnahmen",
 				"Kontextänderungen",
 				"Leistung (KPIs, Audits, Vorfälle)",
 				"Risiken und Chancen",
@@ -832,7 +832,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 		body: skeleton(
 			"Verfahren Abweichungen und Korrekturmassnahmen",
 			"Erfassung, Ursachenanalyse, Korrektur, Wirksamkeitsprüfung.",
-			["Quellen", "Ursachenanalyse", "Massnahmen", "Wirksamkeitsprüfung"],
+			["Quellen", "Ursachenanalyse", "Maßnahmen", "Wirksamkeitsprüfung"],
 		),
 	},
 	{

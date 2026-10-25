@@ -288,6 +288,13 @@
       "when": 1792953736646,
       "tag": "0040_change_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792957316649,
+      "tag": "0041_own_role_assignments",
+      "breakpoints": true
     }
   ]
 }

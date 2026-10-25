@@ -6,6 +6,7 @@ import {
 	ROLE_FUNCTIONS,
 } from "@/db/schema/enums";
 import { FOLLOW_UP_CLASS_KEYS } from "@/lib/compliance/catalog/audit-regimes";
+import { type FunctionKey, isFunctionKey } from "@/lib/compliance/function-key";
 import { NONCONFORMITY_STATUSES } from "@/lib/entities/nonconformity";
 import { PROCESS_STATUSES } from "@/lib/entities/process";
 import { frameworkSlugs, longText, shortText, uuid } from "./common";
@@ -161,7 +162,13 @@ export const roleAssignmentSchema = z
 		fitProperChecklist: fitProperChecklistSchema.nullable().optional(),
 		documentsValidUntil: optionalDate,
 		reviewAt: optionalDate,
-		reportsToFunction: z.enum(ROLE_FUNCTIONS).nullable().optional(),
+		// Funktion oder eigene Rolle `role:<id>` (ADR-024)
+		reportsToFunction: z
+			.string()
+			.refine(isFunctionKey, "Unbekannte Funktion")
+			.transform((v) => v as FunctionKey)
+			.nullable()
+			.optional(),
 		appointmentNotes: z.string().trim().max(4000).nullable().optional(),
 	})
 	.refine((r) => Boolean(r.userId) || Boolean(r.externalName?.trim()), {

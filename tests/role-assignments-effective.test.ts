@@ -22,6 +22,11 @@ const ALL_ROWS: Record<string, string> = {
 	"lib/entities/links.ts": "Titel im Posteingang, auch für Vorschläge",
 	"lib/compliance/decision-service.ts":
 		"Beschluss nennt die Funktion der Bestellung (auch vor der Wirkung)",
+	"app/actions/roles.ts":
+		"Rolle löschen nur ohne Besetzung und ohne offenen Vorschlag",
+	"lib/org/own-role-service.ts":
+		"Besetzung eigener Rollen abgleichen: Vorschläge zählen mit",
+	"lib/org/roles.ts": "Rollen-Editor zeigt Bestellte und Vorgeschlagene",
 };
 
 function unfiltered(src: string): number {

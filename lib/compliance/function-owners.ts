@@ -38,7 +38,7 @@ import {
 	suspiciousReports,
 	wallets,
 } from "@/db/schema";
-import { ROLE_FUNCTIONS } from "@/db/schema/enums";
+import { type FunctionKey, ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { responsibleFor } from "@/lib/compliance/function-holders";
 import { loadAssignments } from "@/lib/compliance/function-holders-service";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -98,7 +98,14 @@ export async function syncFunctionOwners(
 	orgId: string,
 ): Promise<Map<string, number>> {
 	const rows = await loadAssignments(tx, orgId);
-	const pairs = ROLE_FUNCTIONS.flatMap((fn) => {
+	// Katalog-Funktionen und eigene Rollen (`role:<id>`), die jemand hält
+	const keys = [
+		...new Set<FunctionKey>([
+			...ROLE_FUNCTIONS,
+			...rows.map((r) => r.function),
+		]),
+	];
+	const pairs = keys.flatMap((fn) => {
 		const u = responsibleFor(rows, fn);
 		return u ? [{ fn, u }] : [];
 	});
@@ -121,6 +128,23 @@ export async function syncFunctionOwners(
 			gained.set(r.owner_user_id, (gained.get(r.owner_user_id) ?? 0) + 1);
 	}
 	return gained;
+}
+
+// Einträge, die eine Funktion (z. B. eigene Rolle `role:<id>`) als
+// Verantwortlich tragen — je Tabelle die Anzahl (Löschen einer Rolle)
+export async function ownerRefsOf(
+	tx: OrgTx,
+	orgId: string,
+	key: FunctionKey,
+): Promise<number> {
+	let total = 0;
+	for (const table of OWNER_FUNCTION_TABLES) {
+		const [r] = await tx.execute<{ n: number }>(sql`
+			select count(*)::int as n from ${sql.identifier(getTableName(table))}
+			where organization_id = ${orgId} and owner_function = ${key}`);
+		total += r?.n ?? 0;
+	}
+	return total;
 }
 
 // Nach jeder Änderung an role_assignments: Personen neu rechnen und wer neu

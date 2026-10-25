@@ -14,6 +14,7 @@ const PERSON_ONLY = new Set([
 ]);
 
 const dir = join(__dirname, "../lib/validation");
+const ROLE_ID = "6f1d3c2a-9b8e-4c7d-a1f0-2e3b4c5d6e7f";
 
 async function schemasWithOwner() {
 	const out: { key: string; field: z.ZodType }[] = [];
@@ -34,7 +35,12 @@ describe("Verantwortlich in den Schemas", () => {
 		expect(all.length).toBeGreaterThan(20);
 		const rejecting = all
 			.filter(({ key }) => !PERSON_ONLY.has(key))
-			.filter(({ field }) => !field.safeParse("function:isb_ciso").success)
+			.filter(
+				({ field }) =>
+					!field.safeParse("function:isb_ciso").success ||
+					// eigene Rolle als Funktion (ADR-024)
+					!field.safeParse(`function:role:${ROLE_ID}`).success,
+			)
 			.map(({ key }) => key);
 		expect(rejecting).toEqual([]);
 		// keine veralteten Ausnahmen

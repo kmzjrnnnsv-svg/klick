@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { suspiciousReports } from "@/db/schema";
-import type { RoleFunction } from "@/db/schema/enums";
+import type { FunctionKey } from "@/db/schema/enums";
 import type { AuditInput } from "@/lib/audit";
 import { nextSuspiciousRef } from "@/lib/compliance/aml";
 import { functionResponsible } from "@/lib/compliance/function-holders-service";
@@ -46,7 +46,7 @@ export async function createSuspiciousReport(
 	);
 	// Verantwortlich = Funktion oder Person; ohne Auswahl die zuständige
 	// Funktion (bleibt beim Umbesetzen richtig, lib/compliance/function-owners.ts)
-	const fn: RoleFunction | null = d.ownerUserId
+	const fn: FunctionKey | null = d.ownerUserId
 		? functionOfRef(d.ownerUserId)
 		: d.kind === "micar_stor"
 			? "compliance"

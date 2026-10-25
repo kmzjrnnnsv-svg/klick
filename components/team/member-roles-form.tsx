@@ -103,7 +103,11 @@ export function MemberRolesForm({
 									);
 									return;
 								}
-								toast.success(t("saved"));
+								toast.success(
+									res.data.waiting > 0
+										? t("savedWaitingPerson", { n: res.data.waiting })
+										: t("saved"),
+								);
 								setOpen(false);
 								router.refresh();
 							})

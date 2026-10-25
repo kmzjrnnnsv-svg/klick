@@ -13,6 +13,7 @@ import {
 } from "react";
 import { bulkUpdateControls } from "@/app/actions/controls";
 import type { MemberOption } from "@/components/entity/owner-assignee";
+import { useFunctionLabel } from "@/components/entity/responsible-context";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { errorText } from "@/components/ui/error-text";
@@ -79,7 +80,7 @@ export function BulkBar({
 	const t = useTranslations("Controls");
 	const ts = useTranslations("Status");
 	const tc = useTranslations("Common");
-	const tf = useTranslations("Functions");
+	const fnLabel = useFunctionLabel();
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const [status, setStatus] = useState<string>("none");
@@ -133,7 +134,7 @@ export function BulkBar({
 					{/* Funktion statt Person: bleibt richtig beim Umbesetzen */}
 					{functions.map((f) => (
 						<SelectItem key={f.function} value={`${FUNCTION_REF}${f.function}`}>
-							{tf(f.function)}
+							{fnLabel(f.function)}
 							<span className="text-muted-foreground"> · {f.holder}</span>
 						</SelectItem>
 					))}

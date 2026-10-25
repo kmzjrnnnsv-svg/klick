@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
+import { type FunctionKey, isFunctionKey } from "@/lib/compliance/function-key";
 import { uuid } from "./common";
 
 // „Verantwortlich“ = Funktion oder Person (Teil A). Im Formular ein Wert:
-// `function:<key>` für eine Funktion, sonst wie bisher die Konto-ID; leer
+// `function:<key>` für eine Funktion (auch eigene Rolle `function:role:<id>`,
+// ADR-024), sonst wie bisher die Konto-ID; leer
 // bzw. null = niemand. Der Server zerlegt über resolveResponsible
 // (lib/compliance/function-holders-service.ts) in owner_function und die
 // aufgelöste Person (owner_user_id).
@@ -14,10 +15,7 @@ const functionRef = z
 	.string()
 	.refine(
 		(v) =>
-			v.startsWith(FUNCTION_REF) &&
-			(ROLE_FUNCTIONS as readonly string[]).includes(
-				v.slice(FUNCTION_REF.length),
-			),
+			v.startsWith(FUNCTION_REF) && isFunctionKey(v.slice(FUNCTION_REF.length)),
 		"Unbekannte Funktion",
 	);
 
@@ -29,16 +27,16 @@ export const responsibleRef = responsibleId.nullable().optional();
 
 export function functionOfRef(
 	ref: string | null | undefined,
-): RoleFunction | null {
+): FunctionKey | null {
 	return ref?.startsWith(FUNCTION_REF)
-		? (ref.slice(FUNCTION_REF.length) as RoleFunction)
+		? (ref.slice(FUNCTION_REF.length) as FunctionKey)
 		: null;
 }
 
 // Wert für die Auswahl aus einer Zeile mit owner_function/owner_user_id
 // (ownerFunction Pflicht: wer die Spalte nicht lädt, zeigt sonst still die Person)
 export function responsibleValue(row: {
-	ownerFunction: RoleFunction | null;
+	ownerFunction: FunctionKey | null;
 	ownerUserId: string | null;
 }): string | null {
 	return row.ownerFunction

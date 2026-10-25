@@ -1,6 +1,12 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, notInArray } from "drizzle-orm";
 import { member } from "@/db/auth-schema";
-import { approvalWorkflows, memberRoles, orgRoles } from "@/db/schema";
+import {
+	approvalWorkflows,
+	memberRoles,
+	orgRoles,
+	roleAssignments,
+} from "@/db/schema";
+import type { AppointmentStatus } from "@/db/schema/enums";
 import {
 	effectivePermissions,
 	sanitizePermissions,
@@ -21,10 +27,18 @@ export type OrgRoleRow = {
 	name: string;
 	description: string | null;
 	permissions: RolePermissions;
+	tasks: string | null;
+	// wer die Rechte hat (member_roles, folgt der Bestellung)
 	members: {
 		memberId: string | null;
 		userId: string | null;
 		pendingEmail: string | null;
+	}[];
+	// wer die Rolle trägt oder vorgeschlagen ist (role_assignments, ADR-024)
+	holders: {
+		userId: string | null;
+		pendingEmail: string | null;
+		status: AppointmentStatus;
 	}[];
 };
 
@@ -55,11 +69,37 @@ export async function listOrgRoles(
 				),
 			),
 		);
+	const held = await tx
+		.select({
+			roleId: roleAssignments.orgRoleId,
+			userId: roleAssignments.userId,
+			pendingEmail: roleAssignments.pendingEmail,
+			status: roleAssignments.status,
+		})
+		.from(roleAssignments)
+		.where(
+			and(
+				eq(roleAssignments.organizationId, orgId),
+				inArray(
+					roleAssignments.orgRoleId,
+					roles.map((r) => r.id),
+				),
+				notInArray(roleAssignments.status, ["revoked", "rejected"]),
+			),
+		);
 	return roles.map((r) => ({
 		id: r.id,
 		name: r.name,
 		description: r.description,
 		permissions: sanitizePermissions(r.permissions),
+		tasks: r.tasks,
+		holders: held
+			.filter((h) => h.roleId === r.id)
+			.map(({ userId, pendingEmail, status }) => ({
+				userId,
+				pendingEmail,
+				status,
+			})),
 		members: links
 			.filter((l) => l.roleId === r.id)
 			.map(({ memberId, userId, pendingEmail }) => ({
@@ -68,6 +108,19 @@ export async function listOrgRoles(
 				pendingEmail,
 			})),
 	}));
+}
+
+// Namen eigener Rollen (auch ausgeschalteter) für die Anzeige als Funktion
+// (`role:<id>`, lib/compliance/function-key.ts)
+export async function orgRoleNames(
+	tx: OrgTx,
+	orgId: string,
+): Promise<Record<string, string>> {
+	const rows = await tx
+		.select({ id: orgRoles.id, name: orgRoles.name })
+		.from(orgRoles)
+		.where(eq(orgRoles.organizationId, orgId));
+	return Object.fromEntries(rows.map((r) => [r.id, r.name]));
 }
 
 // Mitglieder, deren effektive Rechte (Grundrolle ∪ eigene Rollen) die

@@ -5,6 +5,7 @@ import type { AuditInput } from "@/lib/audit";
 import { getOrgSummary } from "@/lib/auth/org";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
+import { functionKeyOf } from "@/lib/compliance/function-key";
 import { userNames } from "@/lib/compliance/queries";
 import type { OrgTx } from "@/lib/db/with-org";
 import {
@@ -334,7 +335,10 @@ export async function evidenceSignState(
 			)
 			.orderBy(evidenceSignatures.signedAt),
 		tx
-			.select({ function: roleAssignments.function })
+			.select({
+				function: roleAssignments.function,
+				orgRoleId: roleAssignments.orgRoleId,
+			})
 			.from(roleAssignments)
 			.where(
 				and(
@@ -346,7 +350,7 @@ export async function evidenceSignState(
 	]);
 	const signed = new Set(sigs.map((x) => x.function));
 	const open = required.filter((f) => !signed.has(f));
-	const myFns = new Set(mine.map((m) => m.function as string));
+	const myFns = new Set<string>(mine.map((m) => functionKeyOf(m)));
 	return {
 		signatures: sigs.map((x) => ({
 			name: x.name,

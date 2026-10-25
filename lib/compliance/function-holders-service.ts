@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { roleAssignments } from "@/db/schema";
-import type { RoleFunction } from "@/db/schema/enums";
+import type { FunctionKey } from "@/db/schema/enums";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
 import {
 	type FunctionAssignment,
@@ -8,6 +8,7 @@ import {
 	recipientsOf,
 	responsibleFor,
 } from "@/lib/compliance/function-holders";
+import { functionKeyOf } from "@/lib/compliance/function-key";
 import { userNames } from "@/lib/compliance/queries";
 import type { OrgTx } from "@/lib/db/with-org";
 import { functionOfRef } from "@/lib/validation/responsible";
@@ -18,9 +19,10 @@ export async function loadAssignments(
 	tx: OrgTx,
 	orgId: string,
 ): Promise<FunctionAssignment[]> {
-	return tx
+	const rows = await tx
 		.select({
 			function: roleAssignments.function,
+			orgRoleId: roleAssignments.orgRoleId,
 			userId: roleAssignments.userId,
 			deputyUserId: roleAssignments.deputyUserId,
 			appointedAt: roleAssignments.appointedAt,
@@ -30,13 +32,18 @@ export async function loadAssignments(
 		.where(
 			and(eq(roleAssignments.organizationId, orgId), effectiveAssignment()),
 		);
+	// eigene Rollen (function = other) unter ihrem Schlüssel `role:<id>`
+	return rows.map(({ orgRoleId, ...r }) => ({
+		...r,
+		function: functionKeyOf({ function: r.function, orgRoleId }),
+	}));
 }
 
 // Verantwortliche:r für Einträge dieser Funktion (Inhaber:in, sonst Vertretung)
 export async function functionResponsible(
 	tx: OrgTx,
 	orgId: string,
-	fn: RoleFunction,
+	fn: FunctionKey,
 ): Promise<string | null> {
 	return responsibleFor(await loadAssignments(tx, orgId), fn);
 }
@@ -45,12 +52,12 @@ export async function functionResponsible(
 export async function functionRecipients(
 	tx: OrgTx,
 	orgId: string,
-	fn: RoleFunction,
+	fn: FunctionKey,
 ): Promise<string[]> {
 	return recipientsOf(await loadAssignments(tx, orgId), fn);
 }
 
-// Formularwert (Konto-ID oder `function:<key>`) → Spalten. undefined = nicht
+// Formularwert (Konto-ID oder `function:<key>`, auch `function:role:<id>`) → Spalten. undefined = nicht
 // ändern, null = niemand. Bei einer Funktion ohne Inhaber:in bleibt die
 // bisherige Person (fallback) eingetragen.
 export async function resolveResponsible(
@@ -59,7 +66,7 @@ export async function resolveResponsible(
 	ref: string | null | undefined,
 	fallback: string | null,
 ): Promise<
-	{ ownerUserId: string | null; ownerFunction: RoleFunction | null } | undefined
+	{ ownerUserId: string | null; ownerFunction: FunctionKey | null } | undefined
 > {
 	if (ref === undefined) return undefined;
 	const fn = functionOfRef(ref);
@@ -92,7 +99,7 @@ export async function ownerColumns(
 	orgId: string,
 	ref: string | null | undefined,
 	fallback: string | null,
-): Promise<{ ownerUserId: string | null; ownerFunction: RoleFunction | null }> {
+): Promise<{ ownerUserId: string | null; ownerFunction: FunctionKey | null }> {
 	return (
 		(await resolveResponsible(tx, orgId, ref, fallback)) ?? {
 			ownerUserId: fallback,

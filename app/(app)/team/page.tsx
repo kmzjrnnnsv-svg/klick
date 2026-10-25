@@ -25,7 +25,7 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { normalizeRole, toOrgCtx } from "@/lib/auth/guards";
 import { isExternal } from "@/lib/auth/memberships";
 import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
-import { canHoldCustomRoles } from "@/lib/auth/permission-catalog";
+import { canHoldOwnRole } from "@/lib/auth/permission-catalog";
 import { mfaFactors } from "@/lib/auth/session-rules";
 import { listControlRows, listTasks } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
@@ -38,15 +38,20 @@ export default async function TeamPage() {
 		listOrgMembers(ctx.orgId),
 		listPendingInvitations(ctx.orgId),
 	]);
+	const tr = await getTranslations("Roles");
 	const canManage = ctx.orgRole === "owner";
 	const { tasks, controls, approvals, lastReview, customRoles, roleMap } =
 		await readOrg(toOrgCtx(ctx), async (tx) => ({
 			customRoles: (await listOrgRoles(tx, ctx.orgId)).map((r) => ({
 				id: r.id,
 				name: r.name,
-				pending: r.members
-					.map((m) => m.pendingEmail)
+				pending: r.holders
+					.map((h) => (h.userId ? null : h.pendingEmail))
 					.filter((e): e is string => Boolean(e)),
+				// vorgeschlagen, wartet auf die Bestellung (ADR-024)
+				proposed: r.holders
+					.filter((h) => h.userId && h.status === "proposed")
+					.map((h) => h.userId as string),
 			})),
 			roleMap: await rolesByMember(tx, ctx.orgId),
 			tasks: await listTasks(tx, ctx.orgId, { openOnly: true }),
@@ -135,6 +140,13 @@ export default async function TeamPage() {
 												{r.name}
 											</Badge>
 										))}
+										{customRoles
+											.filter((r) => r.proposed.includes(m.userId))
+											.map((r) => (
+												<Badge key={r.id} variant="warning" className="ml-1">
+													{tr("waitingNamed", { name: r.name })}
+												</Badge>
+											))}
 										{m.accessUntil && (
 											<span
 												className={`ml-2 text-footnote ${m.accessUntil.getTime() < Date.now() ? "text-destructive" : "text-muted-foreground"}`}
@@ -170,14 +182,19 @@ export default async function TeamPage() {
 														grants={m.grants ?? []}
 													/>
 												)}
-												{canHoldCustomRoles(role) && (
+												{canHoldOwnRole(role) && (
 													<MemberRolesForm
 														memberId={m.memberId}
 														name={m.name || m.email}
 														roles={customRoles}
-														current={(roleMap.get(m.memberId) ?? []).map(
-															(r) => r.id,
-														)}
+														current={[
+															...(roleMap.get(m.memberId) ?? []).map(
+																(r) => r.id,
+															),
+															...customRoles
+																.filter((r) => r.proposed.includes(m.userId))
+																.map((r) => r.id),
+														]}
 													/>
 												)}
 												<MemberActions

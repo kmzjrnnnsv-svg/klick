@@ -1,24 +1,33 @@
 import { and, asc, eq, ne } from "drizzle-orm";
-import { roleAssignments } from "@/db/schema";
-import type { RoleFunction } from "@/db/schema/enums";
+import { orgRoles, roleAssignments } from "@/db/schema";
+import type { FunctionKey, RoleFunction } from "@/db/schema/enums";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { APPOINTMENT_TEMPLATE_BY_FUNCTION } from "@/lib/compliance/catalog/appointment-templates";
 import { REQUIRED_FUNCTIONS } from "@/lib/compliance/catalog/required-functions";
+import { ownRoleIdOf, ownRoleKey } from "@/lib/compliance/function-key";
 import { userNames } from "@/lib/compliance/queries";
 import type { DocBlock } from "@/lib/export/doc-model";
+import { orgRoleNames } from "@/lib/org/roles";
 import { fmtDay, functionLabel } from "../generate/doc";
 import { generator } from "../generate/types";
 
 // NW-BESTELLUNG (je Funktion): Bestellungsschreiben aus Funktion, Vorlage
 // (appointment-templates.ts) und Ergänzungen der Org. Unterschreiben die
-// Geschäftsleitung (Bestellung) und die bestellte Person (Annahme).
+// Geschäftsleitung (Bestellung) und die bestellte Person (Annahme). Eigene
+// Rollen (ADR-024) tragen Name und Aufgaben aus org_roles; die Felder
+// functionTitle/reportsToTitle stehen nur dann im Schnappschuss, damit die
+// Prüfsumme bestehender Schreiben gleich bleibt.
 export type BestellungFacts = {
 	function: RoleFunction;
+	// nur bei eigener Rolle: Schlüssel `role:<id>` und Name
+	roleKey?: FunctionKey;
+	functionTitle?: string;
 	holder: string | null;
 	external: boolean;
 	deputy: string | null;
 	appointedAt: string | null;
-	reportsTo: RoleFunction;
+	reportsTo: FunctionKey;
+	reportsToTitle?: string;
 	reportsDirectly: boolean;
 	independenceBasis: string | null;
 	legalBasis: string | null;
@@ -29,7 +38,8 @@ export type BestellungFacts = {
 };
 
 export function buildBestellung(f: BestellungFacts) {
-	const fn = functionLabel(f.function);
+	const fn = f.functionTitle ?? functionLabel(f.function);
+	const reportsTo = f.reportsToTitle ?? functionLabel(f.reportsTo);
 	const holder = f.holder ?? "(nicht besetzt)";
 	const blocks: DocBlock[] = [
 		{
@@ -42,7 +52,7 @@ export function buildBestellung(f: BestellungFacts) {
 				["Funktion", fn],
 				["Bestellte Person", `${holder}${f.external ? " (extern)" : ""}`],
 				["Vertretung", f.deputy ?? "—"],
-				["Berichtet an", functionLabel(f.reportsTo)],
+				["Berichtet an", reportsTo],
 				["Rechtsgrundlage", f.legalBasis ?? "—"],
 			],
 		},
@@ -55,7 +65,7 @@ export function buildBestellung(f: BestellungFacts) {
 			type: "paragraph",
 			text: f.reportsDirectly
 				? `Berichtet unmittelbar an die Geschäftsleitung${f.independenceBasis ? ` (${f.independenceBasis})` : ""}.`
-				: `Berichtet an: ${functionLabel(f.reportsTo)}.`,
+				: `Berichtet an: ${reportsTo}.`,
 		},
 		{ type: "heading", level: 1, text: "Ressourcen" },
 		{ type: "paragraph", text: f.resources },
@@ -98,19 +108,50 @@ export const bestellung = generator<BestellungFacts>({
 		if (!r || !t) return null;
 		const names = await userNames(tx, [r.userId, r.deputyUserId]);
 		const name = (id: string | null) => (id ? (names.get(id) ?? null) : null);
+		// eigene Rolle: Name, Aufgaben und Berichtsweg aus org_roles
+		const [own] = r.orgRoleId
+			? await tx
+					.select({
+						name: orgRoles.name,
+						tasks: orgRoles.tasks,
+						reportsTo: orgRoles.reportsTo,
+					})
+					.from(orgRoles)
+					.where(
+						and(
+							eq(orgRoles.organizationId, orgId),
+							eq(orgRoles.id, r.orgRoleId),
+						),
+					)
+					.limit(1)
+			: [];
+		const ownTasks = (own?.tasks ?? "")
+			.split("\n")
+			.map((l) => l.replace(/^[-•*]\s*/, "").trim())
+			.filter(Boolean);
+		const reportsTo = ((own ? own.reportsTo : r.reportsToFunction) ??
+			"management_body") as FunctionKey;
+		const reportsToRole = ownRoleIdOf(reportsTo);
+		const roleNames = reportsToRole ? await orgRoleNames(tx, orgId) : {};
 		return {
 			function: r.function,
+			...(own && r.orgRoleId
+				? { roleKey: ownRoleKey(r.orgRoleId), functionTitle: own.name }
+				: {}),
 			holder: name(r.userId) ?? r.externalName ?? r.pendingEmail ?? null,
 			external: !r.userId && Boolean(r.externalName),
 			deputy: name(r.deputyUserId),
 			appointedAt: r.appointedAt,
-			reportsTo: r.reportsToFunction ?? "management_body",
+			reportsTo,
+			...(reportsToRole
+				? { reportsToTitle: roleNames[reportsToRole] ?? "Rolle entfernt" }
+				: {}),
 			reportsDirectly: t.reportsDirectly,
 			independenceBasis: t.independenceBasis ?? null,
 			legalBasis:
 				REQUIRED_FUNCTIONS.find((x) => x.function === r.function)?.legalBasis ??
 				null,
-			tasks: [...t.tasks],
+			tasks: ownTasks.length > 0 ? ownTasks : [...t.tasks],
 			powers: [...t.powers],
 			resources: t.resources,
 			notes: r.appointmentNotes?.trim() || null,
@@ -120,7 +161,8 @@ export const bestellung = generator<BestellungFacts>({
 	// die bestellte Person unterschreibt in ihrer Funktion
 	extraSigners: (f) => [
 		{
-			function: f.function,
+			function: f.roleKey ?? f.function,
+			...(f.roleKey && f.functionTitle ? { label: f.functionTitle } : {}),
 			mode: "any",
 			holders: f.holder ? [f.holder] : [],
 		},
@@ -131,6 +173,7 @@ export const bestellung = generator<BestellungFacts>({
 			.select({
 				id: roleAssignments.id,
 				function: roleAssignments.function,
+				orgRoleId: roleAssignments.orgRoleId,
 				userId: roleAssignments.userId,
 				externalName: roleAssignments.externalName,
 			})
@@ -147,9 +190,10 @@ export const bestellung = generator<BestellungFacts>({
 			tx,
 			rows.map((r) => r.userId),
 		);
+		const roleNames = await orgRoleNames(tx, orgId);
 		return rows.map((r) => ({
 			id: r.id,
-			label: `${functionLabel(r.function)} — ${(r.userId ? names.get(r.userId) : r.externalName) ?? "nicht besetzt"}`,
+			label: `${(r.orgRoleId ? roleNames[r.orgRoleId] : null) ?? functionLabel(r.function)} — ${(r.userId ? names.get(r.userId) : r.externalName) ?? "nicht besetzt"}`,
 		}));
 	},
 });

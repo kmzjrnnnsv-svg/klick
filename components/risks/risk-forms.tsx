@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import type { RoleFunction } from "@/db/schema/enums";
+import type { FunctionKey } from "@/db/schema/enums";
 import { RISK_CATEGORIES } from "@/db/schema/grc";
 import { responsibleValue } from "@/lib/validation/responsible";
 
@@ -209,7 +209,7 @@ export function RiskEditForm({
 		residualLikelihood: number | null;
 		residualImpact: number | null;
 		ownerUserId: string | null;
-		ownerFunction: RoleFunction | null;
+		ownerFunction: FunctionKey | null;
 		assigneeUserId: string | null;
 		reviewAt: string | null;
 		description: string | null;

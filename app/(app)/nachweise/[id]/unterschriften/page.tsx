@@ -6,9 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { SIGN_ORIGIN, SIGN_RP_ID } from "@/lib/auth/passkey-sign";
+import { ownRoleIdOf } from "@/lib/compliance/function-key";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { readOrg } from "@/lib/db/with-org";
 import { functionLabel } from "@/lib/evidence-studio/generate/doc";
+import { orgRoleNames } from "@/lib/org/roles";
 import { evidenceWithSignatures } from "@/lib/signatures/queries";
 import { checkSignature } from "@/lib/signatures/report";
 
@@ -30,9 +32,10 @@ export default async function SignaturesPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ evidence: ["read"] });
 	const t = await getTranslations("SignatureCheck");
-	const data = await readOrg(toOrgCtx(ctx), (tx) =>
-		evidenceWithSignatures(tx, ctx.orgId, id),
-	);
+	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
+		const ev = await evidenceWithSignatures(tx, ctx.orgId, id);
+		return ev ? { ...ev, roleNames: await orgRoleNames(tx, ctx.orgId) } : null;
+	});
 	if (!data) notFound();
 	const env = { origin: SIGN_ORIGIN, rpId: SIGN_RP_ID };
 	const checks = data.rows.map((r) => ({
@@ -99,7 +102,10 @@ export default async function SignaturesPage({
 								<span className="font-medium">{row.signerName}</span>
 								{row.function && (
 									<span className="text-muted-foreground">
-										{functionLabel(row.function)}
+										{ownRoleIdOf(row.function)
+											? (data.roleNames[ownRoleIdOf(row.function) as string] ??
+												row.function)
+											: functionLabel(row.function)}
 									</span>
 								)}
 								<span className="text-muted-foreground tabular-nums">

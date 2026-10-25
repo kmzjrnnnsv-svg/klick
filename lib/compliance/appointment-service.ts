@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import {
 	approvalDecisions,
 	approvalRequests,
+	orgRoles,
 	orgSettings,
 	roleAssignments,
 	tasks,
@@ -16,6 +17,7 @@ import { appointable } from "@/lib/compliance/catalog/appointment-templates";
 import { appointmentRequirementKeys } from "@/lib/compliance/decision-resolutions";
 import { recipientsOf } from "@/lib/compliance/function-holders";
 import { loadAssignments } from "@/lib/compliance/function-holders-service";
+import { functionKeyOf } from "@/lib/compliance/function-key";
 import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import { userNames } from "@/lib/compliance/queries";
 import { insertResolution } from "@/lib/compliance/resolutions-service";
@@ -23,6 +25,7 @@ import type { OrgTx } from "@/lib/db/with-org";
 import { berlinToday } from "@/lib/evidence-studio/queries";
 import { logger } from "@/lib/log";
 import { notify } from "@/lib/notifications/notify";
+import { syncMemberRoles } from "@/lib/org/member-role-sync";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import { syncTrainingAssignments } from "@/lib/trainings/assignments";
 
@@ -93,10 +96,28 @@ async function holderLabel(tx: OrgTx, row: Row): Promise<string> {
 	);
 }
 
-async function title(tx: OrgTx, row: Row): Promise<string> {
+// Name der Funktion; eigene Rolle (ADR-024) mit ihrem Namen
+async function functionName(tx: OrgTx, row: Row): Promise<string> {
+	if (row.orgRoleId) {
+		const [r] = await tx
+			.select({ name: orgRoles.name })
+			.from(orgRoles)
+			.where(
+				and(
+					eq(orgRoles.organizationId, row.organizationId),
+					eq(orgRoles.id, row.orgRoleId),
+				),
+			)
+			.limit(1);
+		if (r) return r.name;
+	}
 	const tf = await getTranslations("Functions");
+	return tf(row.function as never);
+}
+
+async function title(tx: OrgTx, row: Row): Promise<string> {
 	const who = await holderLabel(tx, row);
-	return [tf(row.function as never), who].filter(Boolean).join(" · ");
+	return [await functionName(tx, row), who].filter(Boolean).join(" · ");
 }
 
 async function hasManagement(
@@ -145,6 +166,7 @@ export async function proposeAssignment(
 				target: `role_assignment:${row.id}`,
 				after: {
 					function: row.function,
+					orgRoleId: row.orgRoleId,
 					userId: row.userId,
 					externalName: row.externalName,
 					pendingEmail: row.pendingEmail,
@@ -206,7 +228,7 @@ async function requestAppointment(
 		entityType: "role_assignment",
 		entityId: row.id,
 		entityOwnerUserId: null,
-		facts: { function: row.function, isManagement },
+		facts: { function: functionKeyOf(row), isManagement },
 		title: await title(tx, row),
 		link: LINK,
 	});
@@ -249,6 +271,7 @@ export async function applyAppointment(
 			target: `role_assignment:${id}`,
 			after: {
 				function: row.function,
+				orgRoleId: row.orgRoleId,
 				userId: row.userId,
 				replaces: row.replacesAssignmentId,
 			},
@@ -268,8 +291,10 @@ export async function applyAppointment(
 	}
 	await syncTrainingAssignments(tx, actor.orgId);
 	await syncOwnersAndNotify(tx, actor.orgId, actor.userId);
-	const tf = await getTranslations("Functions");
-	const fnLabel = tf(row.function as never);
+	// eigene Rolle: Rechte folgen der Bestellung
+	if (row.orgRoleId)
+		audit.push(...(await syncMemberRoles(tx, actor.orgId, actor.userId)));
+	const fnLabel = await functionName(tx, row);
 	await notify(tx, {
 		orgId: actor.orgId,
 		recipients: [row.userId, row.deputyUserId],
@@ -519,7 +544,7 @@ export async function proposeRevocation(
 				entityType: "role_assignment",
 				entityId: id,
 				entityOwnerUserId: null,
-				facts: { function: row.function, isManagement },
+				facts: { function: functionKeyOf(row), isManagement },
 				title: await title(tx, row),
 				link: LINK,
 				everyoneExclude: row.userId ? [row.userId] : [],
@@ -564,21 +589,28 @@ export async function applyRevocation(
 		.where(eq(roleAssignments.id, id));
 	await syncTrainingAssignments(tx, actor.orgId);
 	await syncOwnersAndNotify(tx, actor.orgId, actor.userId);
-	const tf = await getTranslations("Functions");
 	await notify(tx, {
 		orgId: actor.orgId,
 		recipients: [row.userId, row.deputyUserId],
 		actorUserId: actor.userId,
 		kind: "entity_changed",
-		title: `Du wurdest als ${tf(row.function as never)} abberufen`,
+		title: `Du wurdest als ${await functionName(tx, row)} abberufen`,
 		link: LINK,
 	});
 	return [
 		{
 			action: "role_assignment.revoked",
 			target: `role_assignment:${id}`,
-			before: { function: row.function, userId: row.userId },
+			before: {
+				function: row.function,
+				orgRoleId: row.orgRoleId,
+				userId: row.userId,
+			},
 		},
+		// eigene Rolle: Rechte enden mit der Abberufung
+		...(row.orgRoleId
+			? await syncMemberRoles(tx, actor.orgId, actor.userId)
+			: []),
 		...(await noticeTasks(tx, actor, row, "revoke")),
 	];
 }

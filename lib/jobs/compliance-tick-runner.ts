@@ -72,6 +72,7 @@ import { loadAuditRegimeContext } from "@/lib/compliance/queries-audit-regimes";
 import { lastReconciliationDay } from "@/lib/custody/queries";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
 import { logger } from "@/lib/log";
+import { syncMemberRoles } from "@/lib/org/member-role-sync";
 import {
 	collectDueItems,
 	DEDUPE_HOURS,
@@ -109,7 +110,16 @@ export async function runComplianceTick(
 		async (tx, orgId) => {
 			// einmal am Tag (03:00 UTC): Verantwortliche über Funktionen abgleichen,
 			// falls eine Änderung an role_assignments den Abgleich verpasst hat
-			if (now.getUTCHours() === 3) await syncOwnersAndNotify(tx, orgId, null);
+			// und die Rechte eigener Rollen aus den Bestellungen (ADR-024)
+			if (now.getUTCHours() === 3) {
+				await syncOwnersAndNotify(tx, orgId, null);
+				for (const entry of await syncMemberRoles(tx, orgId, null))
+					await audit(
+						tx,
+						{ userId: null },
+						{ ...entry, organizationId: orgId },
+					);
+			}
 			const rows = await loadDueRows(tx, orgId, now);
 			const result = collectDueItems(now, rows);
 			const written = await applyTick(tx, orgId, now, result);

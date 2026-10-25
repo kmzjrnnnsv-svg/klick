@@ -4,6 +4,7 @@ import { evidence, evidenceSignatures, roleAssignments } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
 import type { SignedAssertion } from "@/lib/auth/passkey-sign";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
+import { ownRoleIdOf } from "@/lib/compliance/function-key";
 import type { OrgTx } from "@/lib/db/with-org";
 import { encodeSignText, type SignFields, type SignPurpose } from "./canonical";
 import { merkleLeaf, merkleProof, merkleRoot } from "./merkle";
@@ -54,6 +55,8 @@ export async function holdsFunction(
 	fn: string,
 ): Promise<boolean> {
 	if (fn === "-") return true;
+	// eigene Rolle (ADR-024): genau diese Rolle, nicht irgendeine
+	const roleId = ownRoleIdOf(fn);
 	const [row] = await tx
 		.select({ id: roleAssignments.id })
 		.from(roleAssignments)
@@ -62,10 +65,12 @@ export async function holdsFunction(
 				eq(roleAssignments.organizationId, orgId),
 				effectiveAssignment(),
 				eq(roleAssignments.userId, userId),
-				eq(
-					roleAssignments.function,
-					fn as (typeof roleAssignments.function.enumValues)[number],
-				),
+				roleId
+					? eq(roleAssignments.orgRoleId, roleId)
+					: eq(
+							roleAssignments.function,
+							fn as (typeof roleAssignments.function.enumValues)[number],
+						),
 			),
 		)
 		.limit(1);

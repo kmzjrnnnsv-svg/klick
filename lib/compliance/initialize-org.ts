@@ -14,9 +14,9 @@ import {
 import type {
 	CaspService,
 	Domain,
+	FunctionKey,
 	LicenceStage,
 	OrgRoleLegal,
-	RoleFunction,
 } from "@/db/schema/enums";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -356,7 +356,7 @@ async function areaOwners(
 ): Promise<
 	(c: { code: string; domain: Domain }) => {
 		ownerUserId: string | null;
-		ownerFunction: RoleFunction | null;
+		ownerFunction: FunctionKey | null;
 	}
 > {
 	const [s] = await tx

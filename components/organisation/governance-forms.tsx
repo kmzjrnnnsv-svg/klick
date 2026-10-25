@@ -45,7 +45,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
+import {
+	type FunctionKey,
+	ROLE_FUNCTIONS,
+	type RoleFunction,
+} from "@/db/schema/enums";
+import { isOwnRoleKey } from "@/lib/compliance/function-key";
 import type { ActionResult } from "@/lib/validation/common";
 import { AUTHORITIES, PARTY_TYPES } from "@/lib/validation/governance";
 
@@ -618,7 +623,7 @@ export type CommunicationDraft = {
 	channel?: string | null;
 	frequency?: string | null;
 	trigger: "regular" | "incident" | "crisis" | "change";
-	ownerFunction?: RoleFunction | null;
+	ownerFunction?: FunctionKey | null;
 	ownerUserId?: string | null;
 	legalBasis?: string | null;
 	contact?: string | null;
@@ -744,7 +749,12 @@ export function CommunicationForm({
 				/>
 				<FunctionSelect
 					label={t("ownerFunction")}
-					value={d.ownerFunction}
+					value={
+						// Kommunikation nennt nur Katalog-Funktionen
+						d.ownerFunction && !isOwnRoleKey(d.ownerFunction)
+							? (d.ownerFunction as RoleFunction)
+							: null
+					}
 					onChange={(v) => setD({ ...d, ownerFunction: v })}
 					labels={functionLabels}
 					allowNone

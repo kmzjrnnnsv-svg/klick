@@ -12,8 +12,9 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import type { ResponsibleOption } from "@/lib/compliance/function-holders";
+import { isOwnRoleKey } from "@/lib/compliance/function-key";
 import { FUNCTION_REF } from "@/lib/validation/responsible";
-import { useResponsibleOptions } from "./responsible-context";
+import { useFunctionLabel, useResponsibleOptions } from "./responsible-context";
 
 export type { ResponsibleOption };
 
@@ -22,8 +23,8 @@ type Member = { userId: string; name: string };
 const NONE = "none";
 
 // „Verantwortlich“ als Funktion oder Person in einer Auswahl (Teil A):
-// oben die besetzten Funktionen mit der Person, die sie gerade hält, darunter
-// die Personen. Wert: `function:<key>`, Konto-ID oder null (niemand). Wer
+// oben die besetzten Funktionen mit der Person, die sie gerade hält, dann
+// die eigenen Rollen (ADR-024), darunter die Personen. Wert: `function:<key>`, Konto-ID oder null (niemand). Wer
 // eine Funktion wählt, bleibt richtig zugeordnet, wenn sie neu besetzt wird.
 export function ResponsibleSelect({
 	id,
@@ -50,9 +51,21 @@ export function ResponsibleSelect({
 	"aria-label"?: string;
 }) {
 	const t = useTranslations("Entity");
-	const tf = useTranslations("Functions");
+	const label = useFunctionLabel();
 	const fromShell = useResponsibleOptions();
 	const options = functions ?? fromShell;
+	const groups = [
+		{
+			key: "functions",
+			label: t("responsibleFunctions"),
+			list: options.filter((o) => !isOwnRoleKey(o.function)),
+		},
+		{
+			key: "own",
+			label: t("responsibleOwnRoles"),
+			list: options.filter((o) => isOwnRoleKey(o.function)),
+		},
+	].filter((g) => g.list.length > 0);
 	return (
 		<Select
 			value={value ?? NONE}
@@ -69,23 +82,23 @@ export function ResponsibleSelect({
 			</SelectTrigger>
 			<SelectContent>
 				{allowNone && <SelectItem value={NONE}>—</SelectItem>}
-				{options.length > 0 && (
-					<SelectGroup>
-						<SelectLabel>{t("responsibleFunctions")}</SelectLabel>
-						{options.map((f) => (
+				{groups.map((g) => (
+					<SelectGroup key={g.key}>
+						<SelectLabel>{g.label}</SelectLabel>
+						{g.list.map((f) => (
 							<SelectItem
 								key={f.function}
 								value={`${FUNCTION_REF}${f.function}`}
 							>
-								{tf(f.function)}
+								{label(f.function)}
 								{f.holder && (
 									<span className="text-muted-foreground"> · {f.holder}</span>
 								)}
 							</SelectItem>
 						))}
 					</SelectGroup>
-				)}
-				{options.length > 0 && <SelectSeparator />}
+				))}
+				{groups.length > 0 && <SelectSeparator />}
 				<SelectGroup>
 					<SelectLabel>{t("responsiblePeople")}</SelectLabel>
 					{members.map((m) => (
@@ -107,11 +120,11 @@ export function ResponsibleLabel({
 	ownerFunction?: ResponsibleOption["function"] | null;
 	ownerName: string | null | undefined;
 }) {
-	const tf = useTranslations("Functions");
+	const label = useFunctionLabel();
 	if (!ownerFunction) return <>{ownerName ?? "—"}</>;
 	return (
 		<>
-			{tf(ownerFunction)}
+			{label(ownerFunction)}
 			<span className="text-muted-foreground">
 				{" · "}
 				{ownerName ?? "—"}

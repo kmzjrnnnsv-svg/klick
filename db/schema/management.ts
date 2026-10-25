@@ -26,6 +26,7 @@ import {
 	APPOINTMENT_STATUS,
 	ENTITY_KINDS,
 	FOLLOW_UP_CLASSES,
+	type FunctionKey,
 	MANAGEMENT_REPORT_KINDS,
 	NC_PRIORITIES,
 	ROLE_FUNCTIONS,
@@ -156,7 +157,7 @@ export const roleAssignments = pgTable(
 		deputyUserId: userRef(),
 		// Organigramm (N3): Funktion, an die diese Funktion berichtet; leer =
 		// direkt an die Geschäftsleitung (bei management_body: oberste Ebene)
-		reportsToFunction: text({ enum: ROLE_FUNCTIONS }),
+		reportsToFunction: text().$type<FunctionKey>(),
 		// Ergänzungen zum Bestellungsschreiben (Aufgaben, Befugnisse, Budget)
 		appointmentNotes: text(),
 		evidenceId: uuid().references(() => evidence.id, { onDelete: "set null" }),

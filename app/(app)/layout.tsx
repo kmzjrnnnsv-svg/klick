@@ -9,6 +9,7 @@ import { responsibleOptions } from "@/lib/compliance/function-holders-service";
 import { readOrg } from "@/lib/db/with-org";
 import { listNotifications, unreadCount } from "@/lib/notifications/query";
 import { loadOrgNav } from "@/lib/org/nav";
+import { orgRoleNames } from "@/lib/org/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -18,11 +19,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 		getOrgSummary(ctx.orgId),
 		listUserMemberships(ctx.userId),
 	]);
-	const { groups, bell, functions } = await readOrg(
+	const { groups, bell, functions, roleNames } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
 			...(await loadOrgNav(tx, ctx)),
 			functions: await responsibleOptions(tx, ctx.orgId),
+			roleNames: await orgRoleNames(tx, ctx.orgId),
 			bell: {
 				items: await listNotifications(tx, ctx.userId),
 				unread: await unreadCount(tx, ctx.userId),
@@ -42,7 +44,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 			groups={groups}
 			bell={bell}
 		>
-			<ResponsibleOptionsProvider value={functions}>
+			<ResponsibleOptionsProvider value={functions} roleNames={roleNames}>
 				{children}
 			</ResponsibleOptionsProvider>
 		</AppShell>

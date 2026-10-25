@@ -18,9 +18,9 @@ import {
 } from "@/db/schema";
 import type {
 	EntityKind,
+	FunctionKey,
 	ImplStatus,
 	OrgRoleLegal,
-	RoleFunction,
 } from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
 import { mergeApplicability } from "./applicability";
@@ -218,7 +218,7 @@ export type ControlRow = {
 	status: ImplStatus;
 	source: string;
 	ownerUserId: string | null;
-	ownerFunction: RoleFunction | null;
+	ownerFunction: FunctionKey | null;
 	ownerName: string | null;
 	assigneeUserId: string | null;
 	assigneeName: string | null;

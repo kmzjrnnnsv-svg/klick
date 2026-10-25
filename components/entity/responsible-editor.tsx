@@ -6,7 +6,7 @@ import { useTransition } from "react";
 import { setResponsible } from "@/app/actions/responsible";
 import { errorText } from "@/components/ui/error-text";
 import { toast } from "@/components/ui/toast";
-import type { RoleFunction } from "@/db/schema/enums";
+import type { FunctionKey } from "@/db/schema/enums";
 import { responsibleValue } from "@/lib/validation/responsible";
 import { OwnerChip } from "./owner-chip";
 import { ResponsibleSelect } from "./responsible-select";
@@ -25,7 +25,7 @@ export function ResponsibleEditor({
 	entity: "document" | "evidence";
 	id: string;
 	ownerUserId: string | null;
-	ownerFunction: RoleFunction | null;
+	ownerFunction: FunctionKey | null;
 	ownerName: string | null;
 	members: { userId: string; name: string }[];
 	canEdit: boolean;

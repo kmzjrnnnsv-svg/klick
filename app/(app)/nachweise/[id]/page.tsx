@@ -17,6 +17,7 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
+import { ownRoleIdOf } from "@/lib/compliance/function-key";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { evidenceDetail, listMembersForPicker } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
@@ -32,6 +33,7 @@ import { functionLabel } from "@/lib/evidence-studio/generate/doc";
 import { evidenceSignState } from "@/lib/evidence-studio/generate/service";
 import { berlinToday } from "@/lib/evidence-studio/queries";
 import { renderBlocksMarkdown } from "@/lib/export/doc-model";
+import { orgRoleNames } from "@/lib/org/roles";
 
 const fmtSize = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
 const size = (bytes: number) =>
@@ -63,6 +65,7 @@ export default async function EvidenceDetailPage({
 		return {
 			...detail,
 			members: await listMembersForPicker(tx, ctx.orgId),
+			roleNames: await orgRoleNames(tx, ctx.orgId),
 			authored: row.templateKey
 				? await authoredContentOf(tx, ctx.orgId, row.id)
 				: null,
@@ -80,13 +83,16 @@ export default async function EvidenceDetailPage({
 		};
 	});
 	if (!data) notFound();
-	const { row, authored, sign } = data;
+	const { row, authored, sign, roleNames } = data;
+	// eigene Rolle (`role:<id>`, ADR-024) mit Namen
 	const fnLabel = (f: string) =>
 		f === "-"
 			? ta("authorSlot")
-			: tf.has(f as "other")
-				? tf(f as "other")
-				: functionLabel(f);
+			: ownRoleIdOf(f)
+				? (roleNames[ownRoleIdOf(f) as string] ?? f)
+				: tf.has(f as "other")
+					? tf(f as "other")
+					: functionLabel(f);
 	const canCreate = allows(ctx, { evidence: ["create"] });
 	// S3-Objekt ohne eingerichteten Objektspeicher ist nicht abrufbar
 	const fileReadable =

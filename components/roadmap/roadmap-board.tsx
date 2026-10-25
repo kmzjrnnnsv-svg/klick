@@ -35,9 +35,9 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import {
+	type FunctionKey,
 	LICENCE_STAGES,
 	type LicenceStage,
-	type RoleFunction,
 } from "@/db/schema/enums";
 import { ROADMAP_PHASES } from "@/lib/compliance/catalog/roadmap";
 import { responsibleValue } from "@/lib/validation/responsible";
@@ -50,7 +50,7 @@ export type MilestoneCard = {
 	status: "todo" | "doing" | "done";
 	dueAt: string | null;
 	ownerUserId: string | null;
-	ownerFunction: RoleFunction | null;
+	ownerFunction: FunctionKey | null;
 	ownerName: string | null;
 	assigneeUserId: string | null;
 	assigneeName: string | null;

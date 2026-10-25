@@ -54,7 +54,7 @@ import {
 	listSsoProvidersForOrg,
 } from "@/lib/auth/org";
 import {
-	canHoldCustomRoles,
+	canHoldOwnRole,
 	grantablePresetOf,
 	permissionCatalog,
 } from "@/lib/auth/permission-catalog";
@@ -376,27 +376,43 @@ async function renderSection(
 		}
 		case "rollen": {
 			const tt = await getTranslations("Team");
-			const [roles, members] = await Promise.all([
-				readOrg(octx, (tx) => listOrgRoles(tx, ctx.orgId)),
+			const [{ roles, mode }, members] = await Promise.all([
+				readOrg(octx, async (tx) => ({
+					roles: await listOrgRoles(tx, ctx.orgId),
+					mode: await governanceModeOf(tx, ctx.orgId),
+				})),
 				listOrgMembers(ctx.orgId),
 			]);
+			const memberOf = new Map(members.map((m) => [m.userId, m.memberId]));
 			const cap = (r: string) => `${r[0]?.toUpperCase()}${r.slice(1)}`;
+			// Besetzung aus der Bestellung (ADR-024): bestellt oder vorgeschlagen
+			const heldBy = (
+				r: (typeof roles)[number],
+				pick: (s: (typeof r.holders)[number]["status"]) => boolean,
+			) =>
+				r.holders
+					.filter((h) => h.userId && pick(h.status))
+					.flatMap((h) => {
+						const id = memberOf.get(h.userId as string);
+						return id ? [id] : [];
+					});
 			return (
 				<RolesPanel
+					individual={mode === "individual"}
 					roles={roles.map((r) => ({
 						id: r.id,
 						name: r.name,
 						description: r.description,
+						tasks: r.tasks,
 						permissions: r.permissions,
-						memberIds: r.members
-							.map((m) => m.memberId)
-							.filter((x): x is string => Boolean(x)),
-						pendingEmails: r.members
-							.map((m) => m.pendingEmail)
+						memberIds: heldBy(r, () => true),
+						waitingMemberIds: heldBy(r, (s) => s === "proposed"),
+						pendingEmails: r.holders
+							.map((h) => (h.userId ? null : h.pendingEmail))
 							.filter((x): x is string => Boolean(x)),
 					}))}
 					members={members
-						.filter((m) => canHoldCustomRoles(normalizeRole(m.role)))
+						.filter((m) => canHoldOwnRole(normalizeRole(m.role)))
 						.map((m) => ({ memberId: m.memberId, name: m.name || m.email }))}
 					catalog={permissionCatalog()}
 					editorPreset={grantablePresetOf("editor")}

@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { Check } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -33,6 +33,7 @@ import {
 import { requiredFunctions } from "@/lib/compliance/catalog/required-functions";
 import { suggestFrameworks } from "@/lib/compliance/company-profile";
 import { whoHoldsWhat } from "@/lib/compliance/function-holders";
+import { isOwnRoleKey } from "@/lib/compliance/function-key";
 import {
 	getOrgProfile,
 	listMembersForPicker,
@@ -105,6 +106,8 @@ export default async function SetupStepPage({
 						and(
 							eq(roleAssignments.organizationId, ctx.orgId),
 							ne(roleAssignments.status, "revoked"),
+							// eigene Rollen stehen auf der Rollen-Tafel (individuell)
+							isNull(roleAssignments.orgRoleId),
 						),
 					)
 					.orderBy(roleAssignments.appointedAt, roleAssignments.createdAt);
@@ -269,7 +272,7 @@ export default async function SetupStepPage({
 						const rows = data.controlOwners.filter((c) => areaOf(c) === area);
 						const counts = new Map<RoleFunction, number>();
 						for (const r of rows)
-							if (r.ownerFunction)
+							if (r.ownerFunction && !isOwnRoleKey(r.ownerFunction))
 								counts.set(
 									r.ownerFunction,
 									(counts.get(r.ownerFunction) ?? 0) + 1,
@@ -306,7 +309,7 @@ export default async function SetupStepPage({
 							assignments={named}
 							people={whoHoldsWhat(
 								named.filter((a) => a.status !== "rejected"),
-								tf,
+								(fn) => tf(fn as RoleFunction),
 							)}
 							members={data.members}
 							currentUserId={ctx.userId}

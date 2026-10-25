@@ -1,23 +1,23 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import type { RoleFunction } from "@/db/schema/enums";
+import type { FunctionKey } from "@/lib/compliance/function-key";
+import { useFunctionLabel } from "./responsible-context";
 import { UserChip } from "./user-chip";
 
-// Verantwortlich in Registern und Detailseiten: bei einer Funktion
-// „Funktion · Person“, sonst nur die Person (Teil A)
+// Verantwortlich in Registern und Detailseiten: bei einer Funktion (auch
+// eigener Rolle) „Funktion · Person“, sonst nur die Person (Teil A)
 export function OwnerChip({
 	ownerFunction,
 	name,
 }: {
-	ownerFunction?: RoleFunction | null;
+	ownerFunction?: FunctionKey | null;
 	name: string | null | undefined;
 }) {
-	const tf = useTranslations("Functions");
+	const label = useFunctionLabel();
 	if (!ownerFunction) return <UserChip name={name} />;
 	return (
 		<span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5">
-			<span>{tf(ownerFunction)}</span>
+			<span>{label(ownerFunction)}</span>
 			<UserChip name={name} fallback="nicht besetzt" />
 		</span>
 	);

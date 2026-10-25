@@ -16,7 +16,7 @@ import {
 	riskControls,
 	risks,
 } from "@/db/schema";
-import type { RoleFunction } from "@/db/schema/enums";
+import type { FunctionKey } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
 import { GateBlocked } from "@/lib/approvals/gate-error";
 import { gateApproval, requestApproval } from "@/lib/approvals/service";
@@ -563,7 +563,7 @@ async function saveGuided(
 			let id: string;
 			let code: string;
 			let ownerUserId: string | null;
-			let ownerFunction: RoleFunction | null;
+			let ownerFunction: FunctionKey | null;
 			let before: Record<string, unknown> | null = null;
 			let wasAbove = false;
 			let status: string;

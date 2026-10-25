@@ -13,7 +13,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
-import type { RoleFunction } from "@/db/schema/enums";
+import type { FunctionKey } from "@/db/schema/enums";
 import { responsibleValue } from "@/lib/validation/responsible";
 import {
 	ResponsibleLabel,
@@ -36,7 +36,7 @@ export function OwnerAssignee({
 }: {
 	implementationId: string;
 	ownerUserId: string | null;
-	ownerFunction: RoleFunction | null;
+	ownerFunction: FunctionKey | null;
 	assigneeUserId: string | null;
 	members: MemberOption[];
 	functions: ResponsibleOption[];

@@ -1,6 +1,7 @@
 "use client";
 
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
@@ -31,8 +32,12 @@ type RoleItem = {
 	id: string;
 	name: string;
 	description: string | null;
+	// Aufgaben fürs Bestellungsschreiben (eine je Zeile)
+	tasks: string | null;
 	permissions: RolePermissions;
+	// bestellt oder vorgeschlagen; die Rechte gelten erst mit der Bestellung
 	memberIds: string[];
+	waitingMemberIds: string[];
 	pendingEmails: string[];
 };
 
@@ -99,6 +104,7 @@ function RoleDialog({
 	const [pending, start] = useTransition();
 	const [name, setName] = useState(item?.name ?? "");
 	const [description, setDescription] = useState(item?.description ?? "");
+	const [tasks, setTasks] = useState(item?.tasks ?? "");
 	const [perms, setPerms] = useState<RolePermissions>(item?.permissions ?? {});
 	const [memberIds, setMemberIds] = useState<string[]>(item?.memberIds ?? []);
 
@@ -119,6 +125,7 @@ function RoleDialog({
 				if (o) {
 					setName(item?.name ?? "");
 					setDescription(item?.description ?? "");
+					setTasks(item?.tasks ?? "");
 					setPerms(item?.permissions ?? {});
 					setMemberIds(item?.memberIds ?? []);
 				}
@@ -142,6 +149,7 @@ function RoleDialog({
 									id: item?.id,
 									name,
 									description,
+									tasks,
 									permissions: perms,
 									memberIds,
 								}),
@@ -156,7 +164,11 @@ function RoleDialog({
 								);
 								return;
 							}
-							toast.success(t("saved"));
+							toast.success(
+								res.data.waiting > 0
+									? t("savedWaiting", { n: res.data.waiting })
+									: t("saved"),
+							);
 							setOpen(false);
 							router.refresh();
 						});
@@ -186,6 +198,20 @@ function RoleDialog({
 								onChange={(e) => setDescription(e.target.value)}
 							/>
 						</div>
+					</div>
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="role-tasks">{t("tasks")}</Label>
+						<Textarea
+							id="role-tasks"
+							rows={3}
+							maxLength={2000}
+							placeholder={t("tasksPlaceholder")}
+							value={tasks}
+							onChange={(e) => setTasks(e.target.value)}
+						/>
+						<p className="text-muted-foreground text-footnote">
+							{t("tasksHint")}
+						</p>
 					</div>
 
 					<section className="flex flex-col gap-3">
@@ -289,6 +315,9 @@ function RoleDialog({
 												}
 											/>
 											<span className="min-w-0 truncate">{m.name}</span>
+											{item?.waitingMemberIds.includes(m.memberId) && (
+												<Badge variant="warning">{t("waiting")}</Badge>
+											)}
 										</label>
 									);
 								})}
@@ -313,7 +342,8 @@ export function RolesPanel({
 	catalog,
 	editorPreset,
 	baseRoles,
-	canEdit,
+	canEdit: canEditSettings,
+	individual,
 }: {
 	roles: RoleItem[];
 	members: MemberOption[];
@@ -326,7 +356,10 @@ export function RolesPanel({
 		permissions: RolePermissions;
 	}[];
 	canEdit: boolean;
+	// eigene Rollen anlegen, ändern, löschen nur im individuellen Modus
+	individual: boolean;
 }) {
+	const canEdit = canEditSettings && individual;
 	const t = useTranslations("Roles");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -348,9 +381,13 @@ export function RolesPanel({
 						? t("roleInUse", {
 								workflows: (used ?? []).join(", "),
 							})
-						: res.error === "step_up_required"
-							? t("stepUp")
-							: errorText(tc, res),
+						: res.error === "roleHasHolders"
+							? t("roleHasHolders")
+							: res.error === "roleIsResponsible"
+								? t("roleIsResponsible")
+								: res.error === "step_up_required"
+									? t("stepUp")
+									: errorText(tc, res),
 				);
 				return;
 			}
@@ -365,6 +402,20 @@ export function RolesPanel({
 					<div className="max-w-prose">
 						<h2 className="font-medium">{t("customTitle")}</h2>
 						<p className="text-muted-foreground text-subhead">{t("lead")}</p>
+						{!individual && (
+							<p
+								className="mt-2 rounded-xl bg-muted p-3 text-subhead"
+								role="status"
+							>
+								{t("standardLocked")}{" "}
+								<Link
+									href="/einstellungen?tab=workflows"
+									className="text-primary hover:underline"
+								>
+									{t("standardLockedLink")}
+								</Link>
+							</p>
+						)}
 					</div>
 					{canEdit && (
 						<RoleDialog
@@ -408,7 +459,10 @@ export function RolesPanel({
 									{(r.memberIds.length > 0 || r.pendingEmails.length > 0) && (
 										<p className="text-muted-foreground text-footnote">
 											{[
-												...r.memberIds.map((id) => nameOf.get(id) ?? "—"),
+												...r.memberIds.map(
+													(id) =>
+														`${nameOf.get(id) ?? "—"}${r.waitingMemberIds.includes(id) ? ` (${t("waiting")})` : ""}`,
+												),
 												...r.pendingEmails.map((e) => `${e} (${t("pending")})`),
 											].join(" · ")}
 										</p>
@@ -456,9 +510,9 @@ export function RolesPanel({
 				</div>
 				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card">
 					{baseRoles.map((b) => (
-						<li key={b.role} className="p-3">
+						<li key={b.role} className="px-3 py-1">
 							<details>
-								<summary className="cursor-pointer text-subhead">
+								<summary className="cursor-pointer py-2 text-subhead pointer-coarse:py-3">
 									<span className="font-medium">{b.label}</span>{" "}
 									<span className="text-muted-foreground">— {b.hint}</span>
 								</summary>

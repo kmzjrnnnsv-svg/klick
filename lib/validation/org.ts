@@ -113,7 +113,10 @@ export const orgRoleSchema = z.object({
 	name: z.string().trim().min(2).max(60),
 	description: z.string().trim().max(300).optional().default(""),
 	permissions: z.record(z.string(), z.array(z.string()).max(10)),
-	// Mitglieder der Rolle (memberIds); fehlt das Feld, bleibt die Zuordnung
+	// Aufgaben fürs Bestellungsschreiben (eine je Zeile, ADR-024)
+	tasks: z.string().trim().max(2000).optional(),
+	// Personen der Rolle (memberIds) — werden vorgeschlagen und von der
+	// Geschäftsleitung bestellt; fehlt das Feld, bleibt die Besetzung
 	memberIds: z.array(z.uuid()).max(250).optional(),
 });
 
