@@ -3,11 +3,13 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { saveSetupFrameworks } from "@/app/actions/setup";
+import { useWorkflowsEnabledText } from "@/components/approvals/workflows-enabled";
 import { SynergyPreviewPanel } from "@/components/auth/synergy-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { CaspService, LicenceStage } from "@/db/schema/enums";
+import type { WorkflowEnabledByDuty } from "@/lib/compliance/catalog/approval-duties";
 import type { FrameworkSuggestion } from "@/lib/compliance/company-profile";
 import { useStepRunner } from "./step-footer";
 
@@ -34,6 +36,7 @@ export function FrameworksStep({
 }) {
 	const t = useTranslations("Setup");
 	const { pending, run } = useStepRunner(nextHref);
+	const enabledText = useWorkflowsEnabledText();
 	const [selected, setSelected] = useState<string[]>(() => [
 		...new Set([
 			...active,
@@ -83,12 +86,20 @@ export function FrameworksStep({
 								? selected
 								: active,
 						}),
-					(res) =>
-						t("frameworksSaved", {
-							n:
-								(res as { data?: { controlsCreated?: number } }).data
-									?.controlsCreated ?? 0,
-						}),
+					(res) => {
+						const data = (
+							res as {
+								data?: {
+									controlsCreated?: number;
+									workflowsEnabled?: WorkflowEnabledByDuty[];
+								};
+							}
+						).data;
+						return {
+							title: t("frameworksSaved", { n: data?.controlsCreated ?? 0 }),
+							description: enabledText(data?.workflowsEnabled),
+						};
+					},
 				);
 			}}
 		>

@@ -61,9 +61,11 @@ import { allows, roleStatements } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
+import { requiredDuties } from "@/lib/compliance/catalog/approval-duties";
 import { defaultSupplierMethod } from "@/lib/compliance/catalog/supplier-criteria";
 import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
 import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
+import { activeFrameworkSlugs } from "@/lib/compliance/initialize-org";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import { userNames } from "@/lib/compliance/queries";
 import {
@@ -80,7 +82,7 @@ import {
 } from "@/lib/compliance/risk-method";
 import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
 import { loadPriceTable } from "@/lib/db/pricing";
-import { readOrg, withOrg } from "@/lib/db/with-org";
+import { flushQueuedAudits, readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
 import { berlinToday } from "@/lib/evidence-studio/queries";
 import { recommendServices } from "@/lib/marketing/recommend";
@@ -428,10 +430,23 @@ async function renderSection(
 					ctx.orgId,
 					settings?.licenceStage ?? "0_vorbereitung",
 				);
+				await flushQueuedAudits(tx, octx);
 				const rows = await tx
 					.select()
 					.from(approvalWorkflows)
 					.where(eq(approvalWorkflows.organizationId, ctx.orgId));
+				// Fundstellen der gewählten Rahmenwerke je Ablauf (approval-duties.ts)
+				const stageNum =
+					Number.parseInt(
+						(settings?.licenceStage ?? "0_vorbereitung").charAt(0),
+						10,
+					) || 0;
+				const basisByKind = new Map(
+					requiredDuties(
+						await activeFrameworkSlugs(tx, ctx.orgId),
+						stageNum,
+					).map((d) => [d.kind, d.basis]),
+				);
 				// nur angeschlossene Auslöser (Designer, lib/approvals/triggers.ts)
 				const workflows = rows.flatMap((r) => {
 					const trigger = triggerOf(r);
@@ -448,6 +463,7 @@ async function renderSection(
 							priority: r.priority,
 							conditions: r.conditions,
 							steps: r.steps,
+							requiredBy: r.custom ? [] : (basisByKind.get(r.kind) ?? []),
 						},
 					];
 				});

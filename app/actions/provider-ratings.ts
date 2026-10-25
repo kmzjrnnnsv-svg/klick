@@ -11,6 +11,7 @@ import {
 import type { RatingMeasure } from "@/db/schema/supplier-ratings";
 import { safeAction } from "@/lib/actions/safe";
 import { requestApproval } from "@/lib/approvals/service";
+import { providerFactsOf } from "@/lib/approvals/triggers";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
@@ -324,13 +325,7 @@ async function completeProviderRatingImpl(
 					title: `${p.name} · ${r.code} (${sum.level.level})`,
 					link: `${PATH}/${p.id}/bewertung/${r.id}`,
 					selfApprovalReason: d.selfApprovalReason,
-					facts: {
-						criticality: p.criticality,
-						category: p.category,
-						isIct: p.isIct,
-						isOutsourcing: p.isOutsourcing,
-						isMaterial: p.isMaterial,
-					},
+					facts: providerFactsOf(p),
 				});
 				if (r2.ok) {
 					approvalRequestId = r2.requestId;

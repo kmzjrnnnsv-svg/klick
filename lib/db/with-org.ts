@@ -68,6 +68,18 @@ export function takeQueuedAudits(tx: OrgTx): AuditInput[] {
 	return list;
 }
 
+// Für withOrg-Abläufe ohne eigenen Audit-Eintrag (Seiten, die beim Laden
+// Abläufe anlegen): vorgemerkte Einträge am Ende selbst schreiben
+export async function flushQueuedAudits(tx: OrgTx, ctx: OrgCtx): Promise<void> {
+	const actor: Actor = {
+		userId: ctx.userId,
+		ip: ctx.ip ?? null,
+		userAgent: ctx.userAgent ?? null,
+	};
+	for (const entry of takeQueuedAudits(tx))
+		await audit(tx, actor, { ...entry, organizationId: ctx.orgId });
+}
+
 // Mutation + Audit atomar: fn liefert Ergebnis und Audit-Eintrag; der Eintrag
 // wird als letzte Anweisung derselben Transaktion geschrieben.
 export async function mutateOrg<T>(

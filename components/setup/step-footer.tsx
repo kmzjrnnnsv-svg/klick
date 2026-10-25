@@ -62,7 +62,10 @@ export function useStepRunner(nextHref: string) {
 	const [pending, start] = useTransition();
 	const run = (
 		fn: () => Promise<{ ok: boolean; error?: string }>,
-		message?: (res: { ok: true; data?: unknown }) => string,
+		message?: (res: {
+			ok: true;
+			data?: unknown;
+		}) => string | { title: string; description?: string },
 	) =>
 		start(async () => {
 			const res = await fn();
@@ -74,7 +77,13 @@ export function useStepRunner(nextHref: string) {
 				);
 				return;
 			}
-			toast.success(message ? message(res as { ok: true }) : t("saved"));
+			const m = message ? message(res as { ok: true }) : t("saved");
+			if (typeof m === "string") toast.success(m);
+			else
+				toast.success(m.title, {
+					description: m.description,
+					duration: m.description ? 8000 : undefined,
+				});
 			router.push(nextHref);
 		});
 	return { pending, run };

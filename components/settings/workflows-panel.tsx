@@ -11,6 +11,7 @@ import { withStepUp } from "@/components/auth/step-up-dialog";
 import { usePermissionLabel } from "@/components/settings/roles-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import {
 	Dialog,
 	DialogContent,
@@ -39,6 +40,8 @@ export type WorkflowItem = {
 	priority: number;
 	conditions: ApprovalCondition[];
 	steps: ApprovalStep[];
+	// Fundstellen der gewählten Rahmenwerke, die den Ablauf verlangen
+	requiredBy: string[];
 };
 
 export type PresetInfo = {
@@ -200,22 +203,62 @@ function WorkflowRow({
 	const text = useRouteText(names, facts);
 	const router = useRouter();
 	const [pending, start] = useTransition();
+	const required = item.requiredBy.join(", ");
+	// höchstens drei Fundstellen im Label, alle in der Rückfrage
+	const shown =
+		item.requiredBy.length > 3
+			? t("requiredByMore", {
+					basis: item.requiredBy.slice(0, 3).join(", "),
+					n: item.requiredBy.length - 3,
+				})
+			: t("requiredBy", { basis: required });
+	const confirmOff = useConfirm({
+		title: t("disableRequiredTitle", { name: item.name }),
+		description: t("disableRequiredLead", { basis: required }),
+		confirmLabel: t("disableRequired"),
+	});
+	const toggle = (v: boolean) =>
+		start(async () => {
+			const res = await withStepUp(() =>
+				setWorkflowEnabled({ kind: item.kind, enabled: v }),
+			);
+			if (!res.ok)
+				toast.error(
+					res.error === "step_up_required" ? t("stepUp") : errorText(tc, res),
+				);
+			else {
+				toast.success(t("toggled"));
+				router.refresh();
+			}
+		});
+	const variant = item.custom || item.conditions.length > 0;
 	return (
 		<li className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:gap-4">
+			{confirmOff.node}
 			<div className="min-w-0 flex-1">
 				<p className="text-subhead">
 					<span className="text-muted-foreground">
-						{item.custom ? t("variant") : t("standard")}:
+						{variant ? t("variant") : t("standard")}:
 					</span>{" "}
 					<span className="font-medium">{item.name}</span>
 				</p>
+				{required && (
+					<p className="text-footnote">
+						<Badge
+							className="h-auto whitespace-normal text-left"
+							title={required}
+						>
+							{shown}
+						</Badge>
+					</p>
+				)}
 				<p className="text-muted-foreground text-footnote">
 					{item.conditions.length > 0
 						? t("appliesWhen", {
 								conditions: text.conditions(item.conditions),
 							})
 						: t("appliesAlways")}
-					{item.custom ? ` · ${t("priorityShort", { n: item.priority })}` : ""}
+					{variant ? ` · ${t("priorityShort", { n: item.priority })}` : ""}
 				</p>
 				<ol className="mt-1.5 flex flex-wrap items-center gap-1 text-footnote">
 					{item.steps.map((s, i) => (
@@ -252,21 +295,7 @@ function WorkflowRow({
 					disabled={!canEdit || pending}
 					aria-label={t("enabledNamed", { name: item.name })}
 					onCheckedChange={(v) =>
-						start(async () => {
-							const res = await withStepUp(() =>
-								setWorkflowEnabled({ kind: item.kind, enabled: v }),
-							);
-							if (!res.ok)
-								toast.error(
-									res.error === "step_up_required"
-										? t("stepUp")
-										: errorText(tc, res),
-								);
-							else {
-								toast.success(t("toggled"));
-								router.refresh();
-							}
-						})
+						!v && required ? confirmOff.ask(() => toggle(v)) : toggle(v)
 					}
 				/>
 				{canEdit && (

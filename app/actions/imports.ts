@@ -7,6 +7,7 @@ import { assets, providers, risks } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { GateBlocked } from "@/lib/approvals/gate-error";
 import { gateApproval } from "@/lib/approvals/service";
+import { providerFactsOf } from "@/lib/approvals/triggers";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { nextRiskCode } from "@/lib/compliance/risk";
@@ -358,13 +359,7 @@ async function importProvidersCsvImpl(
 							entityOwnerUserId: c.userId,
 							title: `Dienstleister aufnehmen: ${d.name}`,
 							link: `/dienstleister/${row.id}`,
-							facts: {
-								criticality: d.criticality,
-								category: d.category ?? null,
-								isIct: d.isIct,
-								isOutsourcing: d.isOutsourcing,
-								isMaterial: d.isMaterial,
-							},
+							facts: providerFactsOf(d),
 						},
 					);
 					if (gate.status === "error")

@@ -91,12 +91,11 @@ export const WORKFLOW_PRESETS: readonly WorkflowPreset[] = [
 		trigger: "provider.create",
 		name: "Kritische Dienstleister: zusätzlich Geschäftsleitung",
 		description:
-			"Variante nur für kritische und wichtige Dienstleister: wie die Abteilungsfreigabe, danach entscheidet die Geschäftsleitung.",
+			"Variante für kritische oder wichtige Funktionen und wesentliche Auslagerungen: wie die Abteilungsfreigabe, danach entscheidet die Geschäftsleitung.",
 		variant: {
-			conditions: [
-				{ field: "criticality", op: "in", value: ["critical", "important"] },
-			],
-			priority: 10,
+			conditions: [{ field: "needsManagement", op: "is_true" }],
+			// vor der mitgelieferten Variante „Kritischen Dienstleister aufnehmen“
+			priority: 20,
 		},
 		roles: [ROLE.finance, ROLE.legal, ROLE.infosec],
 		steps: [

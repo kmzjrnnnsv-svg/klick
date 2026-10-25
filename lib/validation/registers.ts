@@ -167,7 +167,10 @@ export const createDocumentSchema = z.object({
 	domain: z.string().max(40).optional(),
 	classification: z.enum(CLASSIFICATIONS).default("internal"),
 	ownerUserId: responsibleRef,
-	approverFunction: z.string().max(40).optional(),
+	// Freigabe nach der Eigner:in; leer = aus Vorlage bzw. Art, "none" = keine
+	approverFunction: z
+		.union([z.enum(ROLE_FUNCTIONS), z.literal("none")])
+		.optional(),
 	bodyMarkdown: z.string().max(200_000).optional(),
 	templateCode: z.string().max(60).optional(),
 	reviewCycleMonths: z.coerce.number().int().min(1).max(60).default(12),
@@ -184,7 +187,7 @@ export const updateDocumentSchema = z.object({
 	classification: z.enum(CLASSIFICATIONS).optional(),
 	ownerUserId: responsibleRef,
 	assigneeUserId: uuid.nullable().optional(),
-	approverFunction: z.string().max(40).nullable().optional(),
+	approverFunction: z.enum(ROLE_FUNCTIONS).nullable().optional(),
 	bodyMarkdown: z.string().max(200_000).nullable().optional(),
 	reviewCycleMonths: z.coerce.number().int().min(1).max(60).optional(),
 	controlCodes: z.array(z.string().min(1)).max(50).optional(),

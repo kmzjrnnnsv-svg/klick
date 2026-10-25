@@ -5,7 +5,9 @@ import {
 	approvalRequests,
 	approvalWorkflows,
 	delegations,
+	frameworks as frameworksTable,
 	memberRoles,
+	orgFrameworks,
 	orgRoles,
 	orgSettings,
 	roleAssignments,
@@ -16,7 +18,17 @@ import { effectivePermissions } from "@/lib/auth/permission-catalog";
 import { type OrgRole, permissionsAllow } from "@/lib/auth/permissions";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
-import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
+import {
+	dutyKeys,
+	requiredDuties,
+	type WorkflowEnabledByDuty,
+} from "@/lib/compliance/catalog/approval-duties";
+import {
+	APPROVAL_WORKFLOW_TEMPLATES,
+	LEGACY_DESCRIPTIONS,
+	LEGACY_DOCUMENT_PUBLISH_STEPS,
+	WORKFLOW_BY_KIND,
+} from "@/lib/compliance/catalog/approval-workflows";
 import { type OrgTx, queueAudit } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import {
@@ -41,45 +53,171 @@ import {
 	slaDueAt,
 	soloModeAllowed,
 } from "./rules";
-import { triggerForKind, triggerOf } from "./triggers";
+import { TRIGGER_BY_KEY, triggerForKind, triggerOf } from "./triggers";
 
 // Freigabe-Service (DB, innerhalb einer Org-Transaktion). Die reinen Regeln
 // liegen in rules.ts; hier: Workflows je Org sicherstellen, Kandidaten aus
 // Mitgliedern + role_assignments + Vertretungen auflösen, Anfrage anlegen,
 // entscheiden, zurückziehen. Jede Entscheidung schreibt der Aufrufer ins Audit.
 
+// jsonb ordnet Schlüssel um: Vergleich unabhängig von der Reihenfolge
+const canonical = (v: unknown): unknown =>
+	Array.isArray(v)
+		? v.map(canonical)
+		: v && typeof v === "object"
+			? Object.fromEntries(
+					Object.keys(v)
+						.sort()
+						.map((k) => [k, canonical((v as Record<string, unknown>)[k])]),
+				)
+			: v;
+const sameSteps = (a: unknown, b: unknown) =>
+	JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
+
+// Abläufe je Org sicherstellen: fehlende Vorlagen anlegen, unveränderte
+// Altfassungen angleichen und — im Standard-Modus — die Abläufe einschalten,
+// die ein gewähltes Rahmenwerk verlangt (approval-duties.ts). Je Ablauf und
+// Rahmenwerk nur einmal (org_settings.approvalDuties): wer danach bewusst
+// ausschaltet, bleibt bei aus. Im individuellen Modus schaltet sich nichts
+// ein (ADR-024). Audit über queueAudit — außerhalb von mutateOrg holt der
+// Aufrufer die Einträge mit takeQueuedAudits.
 export async function ensureOrgWorkflows(
 	tx: OrgTx,
 	orgId: string,
 	licenceStage: string,
-): Promise<number> {
+	opts: { frameworks?: readonly string[] } = {},
+): Promise<{ created: number; enabled: WorkflowEnabledByDuty[] }> {
 	const stage = Number.parseInt(licenceStage.charAt(0), 10) || 0;
-	const existing = new Set(
+	const [settings] = await tx
+		.select({
+			mode: orgSettings.governanceMode,
+			applied: orgSettings.approvalDuties,
+		})
+		.from(orgSettings)
+		.where(eq(orgSettings.organizationId, orgId))
+		.limit(1);
+	const standard = (settings?.mode ?? "standard") === "standard";
+	const fws =
+		opts.frameworks ??
 		(
 			await tx
-				.select({ kind: approvalWorkflows.kind })
-				.from(approvalWorkflows)
-				.where(eq(approvalWorkflows.organizationId, orgId))
-		).map((w) => w.kind),
+				.select({ slug: frameworksTable.slug })
+				.from(orgFrameworks)
+				.innerJoin(
+					frameworksTable,
+					eq(frameworksTable.id, orgFrameworks.frameworkId),
+				)
+				.where(
+					and(
+						eq(orgFrameworks.organizationId, orgId),
+						eq(orgFrameworks.status, "active"),
+					),
+				)
+		).map((f) => f.slug);
+	// nur Pflichten mit Rahmenwerk an einem angeschlossenen Auslöser
+	const duties = new Map(
+		requiredDuties(fws, stage)
+			.filter((d) => {
+				const t = WORKFLOW_BY_KIND.get(d.kind);
+				const trigger = t?.trigger ?? triggerForKind(d.kind)?.key;
+				return (
+					!d.always &&
+					d.frameworks.length > 0 &&
+					trigger !== undefined &&
+					TRIGGER_BY_KEY.get(trigger)?.wired === true
+				);
+			})
+			.map((d) => [d.kind, d]),
 	);
+	const rows = await tx
+		.select({
+			id: approvalWorkflows.id,
+			kind: approvalWorkflows.kind,
+			enabled: approvalWorkflows.enabled,
+			custom: approvalWorkflows.custom,
+			steps: approvalWorkflows.steps,
+			description: approvalWorkflows.description,
+		})
+		.from(approvalWorkflows)
+		.where(eq(approvalWorkflows.organizationId, orgId));
+	const existing = new Map(rows.map((r) => [r.kind, r]));
+	const applied = { ...(settings?.applied ?? {}) };
+	const today = new Date().toISOString().slice(0, 10);
+	const enabled: WorkflowEnabledByDuty[] = [];
 	let created = 0;
+	let appliedChanged = false;
 	for (const t of APPROVAL_WORKFLOW_TEMPLATES) {
-		if (existing.has(t.kind)) continue;
-		await tx.insert(approvalWorkflows).values({
-			organizationId: orgId,
-			entityType: t.entityType,
-			kind: t.kind,
-			name: t.name,
-			trigger: triggerForKind(t.kind)?.key ?? null,
-			description: t.description,
-			steps: t.steps,
-			enabled:
+		const duty = standard ? duties.get(t.kind) : undefined;
+		const fresh = duty ? dutyKeys(duty).filter((k) => !applied[k]) : [];
+		for (const k of fresh) applied[k] = today;
+		if (fresh.length > 0) appliedChanged = true;
+		const row = existing.get(t.kind);
+		if (!row) {
+			const on =
 				t.defaultEnabled ||
-				(t.enabledFromStage !== undefined && stage >= t.enabledFromStage),
-		});
-		created += 1;
+				(t.enabledFromStage !== undefined && stage >= t.enabledFromStage) ||
+				duty !== undefined;
+			await tx.insert(approvalWorkflows).values({
+				organizationId: orgId,
+				entityType: t.entityType,
+				kind: t.kind,
+				name: t.name,
+				trigger: t.trigger ?? triggerForKind(t.kind)?.key ?? null,
+				conditions: t.conditions ?? [],
+				priority: t.priority ?? 0,
+				description: t.description,
+				steps: t.steps,
+				enabled: on,
+			});
+			created += 1;
+			if (duty && !t.defaultEnabled)
+				enabled.push({
+					kind: t.kind,
+					name: t.name,
+					frameworks: duty.frameworks,
+					basis: duty.basis,
+				});
+			continue;
+		}
+		if (row.custom) continue;
+		// Altfassungen angleichen, eigene Anpassungen bleiben
+		const patch: Partial<typeof approvalWorkflows.$inferInsert> = {};
+		if (
+			t.kind === "document_publish" &&
+			sameSteps(row.steps, LEGACY_DOCUMENT_PUBLISH_STEPS)
+		)
+			patch.steps = t.steps;
+		if (row.description === LEGACY_DESCRIPTIONS[t.kind])
+			patch.description = t.description;
+		if (duty && fresh.length > 0 && !row.enabled) {
+			patch.enabled = true;
+			enabled.push({
+				kind: t.kind,
+				name: t.name,
+				frameworks: duty.frameworks,
+				basis: duty.basis,
+			});
+		}
+		if (Object.keys(patch).length > 0)
+			await tx
+				.update(approvalWorkflows)
+				.set(patch)
+				.where(eq(approvalWorkflows.id, row.id));
 	}
-	return created;
+	if (appliedChanged)
+		await tx
+			.update(orgSettings)
+			.set({ approvalDuties: applied })
+			.where(eq(orgSettings.organizationId, orgId));
+	queueAudit(
+		tx,
+		enabled.map((e) => ({
+			action: "approval_workflow.enabled_by_framework",
+			target: `approval_workflow:${e.kind}`,
+			after: { enabled: true, frameworks: e.frameworks, basis: e.basis },
+		})),
+	);
+	return { created, enabled };
 }
 
 export async function getWorkflow(tx: OrgTx, orgId: string, kind: string) {

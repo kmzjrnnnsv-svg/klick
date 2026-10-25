@@ -51,7 +51,32 @@ const providerFacts: readonly FactDef[] = [
 	{ key: "isIct", type: "boolean" },
 	{ key: "isOutsourcing", type: "boolean" },
 	{ key: "isMaterial", type: "boolean" },
+	{ key: "needsManagement", type: "boolean" },
 ];
+
+// Fakten eines Dienstleisters. needsManagement fasst zusammen, wann die
+// Geschäftsleitung zustimmt (kritische oder wichtige Funktion, DORA Art. 28;
+// wesentliche Auslagerung, MaRisk AT 9) — Bedingungen sind UND-verknüpft,
+// darum ein abgeleiteter Fakt.
+export function providerFactsOf(p: {
+	criticality: (typeof CRITICALITY)[number];
+	category?: string | null;
+	isIct: boolean;
+	isOutsourcing: boolean;
+	isMaterial: boolean;
+}) {
+	return {
+		criticality: p.criticality,
+		category: p.category ?? null,
+		isIct: p.isIct,
+		isOutsourcing: p.isOutsourcing,
+		isMaterial: p.isMaterial,
+		needsManagement:
+			p.criticality === "critical" ||
+			p.criticality === "important" ||
+			(p.isOutsourcing && p.isMaterial),
+	};
+}
 const assetFacts: readonly FactDef[] = [
 	{ key: "assetType", type: "enum", options: ASSET_TYPES },
 	{ key: "classification", type: "enum", options: CLASSIFICATIONS },

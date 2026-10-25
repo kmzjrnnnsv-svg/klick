@@ -242,6 +242,10 @@ export const orgSettings = pgTable(
 		governanceMode: text({ enum: GOVERNANCE_MODES })
 			.notNull()
 			.default("standard"),
+		// Freigabe-Pflichten, die ein Rahmenwerk schon eingeschaltet hat
+		// („kind@slug“ → Datum, lib/compliance/catalog/approval-duties.ts):
+		// bewusst ausgeschaltete Abläufe bleiben aus
+		approvalDuties: json<Record<string, string>>().notNull().default({}),
 		// Risikovorschläge (B3), die bewusst kein Risiko sind: „kind:id“ →
 		// Begründung, wer, wann
 		riskProposalDismissals: json<

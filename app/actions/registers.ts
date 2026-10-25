@@ -16,6 +16,7 @@ import { safeAction } from "@/lib/actions/safe";
 import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { GateBlocked } from "@/lib/approvals/gate-error";
 import { gateApproval } from "@/lib/approvals/service";
+import { providerFactsOf } from "@/lib/approvals/triggers";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
@@ -126,13 +127,7 @@ async function upsertProviderImpl(
 								entityOwnerUserId: merged.ownerUserId,
 								title: `Dienstleister aufnehmen: ${merged.name}`,
 								link: `/dienstleister/${providerId}`,
-								facts: {
-									criticality: merged.criticality,
-									category: merged.category,
-									isIct: merged.isIct,
-									isOutsourcing: merged.isOutsourcing,
-									isMaterial: merged.isMaterial,
-								},
+								facts: providerFactsOf(merged),
 							},
 						);
 						if (gate.status === "error")
@@ -180,13 +175,7 @@ async function upsertProviderImpl(
 					entityOwnerUserId: values.ownerUserId,
 					title: `Dienstleister aufnehmen: ${d.name}`,
 					link: `/dienstleister/${row.id}`,
-					facts: {
-						criticality: d.criticality,
-						category: d.category ?? null,
-						isIct: d.isIct,
-						isOutsourcing: d.isOutsourcing,
-						isMaterial: d.isMaterial,
-					},
+					facts: providerFactsOf(d),
 				},
 			);
 			if (gate.status === "error")

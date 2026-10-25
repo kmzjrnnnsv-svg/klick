@@ -159,8 +159,9 @@ async function saveWorkflowImpl(
 				description: d.description || null,
 				enabled: d.enabled,
 				conditions: d.conditions,
-				// nur Varianten haben eine Priorität; der Standard gilt zuletzt
-				priority: custom ? d.priority : 0,
+				// nur eigene Varianten ändern ihre Priorität; Standard und
+				// mitgelieferte Varianten behalten die gesetzte
+				priority: custom ? d.priority : (before?.priority ?? 0),
 				steps,
 			};
 			let id = before?.id;

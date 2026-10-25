@@ -8,6 +8,7 @@ import {
 	updateLicenceProfile,
 } from "@/app/actions/frameworks";
 import { previewStageChange } from "@/app/actions/synergy";
+import { useWorkflowsEnabledText } from "@/components/approvals/workflows-enabled";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +55,7 @@ export function StagePanel({
 	canEdit: boolean;
 }) {
 	const t = useTranslations("Settings");
+	const enabledText = useWorkflowsEnabledText();
 	const to = useTranslations("Onboarding");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -204,11 +206,16 @@ export function StagePanel({
 										}),
 									);
 									if (!res.ok) return void handleError(res.error);
+									const enabled = enabledText(res.data.workflowsEnabled);
 									toast.success(
 										t("stageChanged", {
 											controls: res.data.controlsCreated,
 											na: res.data.notApplicable,
 										}),
+										{
+											description: enabled,
+											duration: enabled ? 8000 : undefined,
+										},
 									);
 									router.refresh();
 								})

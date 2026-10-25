@@ -16,6 +16,7 @@ import { requestApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import {
 	DOCUMENT_TEMPLATES,
+	defaultApproverFunction,
 	TEMPLATE_BY_CODE,
 } from "@/lib/compliance/catalog/document-templates";
 import {
@@ -127,9 +128,12 @@ async function createDocumentImpl(
 				classification: d.classification,
 				...owner,
 				authorUserId: c.userId,
-				approverFunction: (d.approverFunction ??
-					tpl?.approverFunction ??
-					null) as typeof documents.$inferInsert.approverFunction,
+				approverFunction:
+					d.approverFunction === "none"
+						? null
+						: (d.approverFunction ??
+							tpl?.approverFunction ??
+							defaultApproverFunction(d.type)),
 				bodyMarkdown: d.bodyMarkdown ?? tpl?.body ?? null,
 				reviewCycleMonths: d.reviewCycleMonths,
 				nextReviewAt: plusMonths(d.reviewCycleMonths),

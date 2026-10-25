@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { AckButton } from "@/components/documents/ack-button";
+import { ApproverFunctionSelect } from "@/components/documents/approver-select";
 import {
 	DocumentEditor,
 	NewVersionDialog,
@@ -191,7 +192,11 @@ export default async function DocumentDetailPage({
 						/>
 					</MetaItem>
 					<MetaItem label={t("approver")}>
-						{doc.approverFunction ?? "—"}
+						<ApproverFunctionSelect
+							documentId={doc.id}
+							value={doc.approverFunction}
+							canEdit={canEdit}
+						/>
 					</MetaItem>
 					<MetaItem label={t("classification")}>{doc.classification}</MetaItem>
 					<MetaItem label={t("nextReview")}>

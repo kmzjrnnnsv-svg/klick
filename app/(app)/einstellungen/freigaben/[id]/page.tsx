@@ -18,7 +18,7 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { ROLE_LABEL } from "@/lib/auth/memberships";
 import { listOrgMembers } from "@/lib/auth/org";
-import { withOrg } from "@/lib/db/with-org";
+import { flushQueuedAudits, withOrg } from "@/lib/db/with-org";
 import { listOrgRoles } from "@/lib/org/roles";
 
 // Freigabe-Designer: Ablauf bearbeiten bzw. neue Variante (?ausloeser=…).
@@ -35,13 +35,15 @@ export default async function WorkflowEditorPage({
 	const isNew = id === "neu";
 	if (!isNew && !/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ settings: ["update"] });
-	const data = await withOrg(toOrgCtx(ctx), async (tx) => {
+	const octx = toOrgCtx(ctx);
+	const data = await withOrg(octx, async (tx) => {
 		const [s] = await tx
 			.select({ stage: orgSettings.licenceStage })
 			.from(orgSettings)
 			.where(eq(orgSettings.organizationId, ctx.orgId))
 			.limit(1);
 		await ensureOrgWorkflows(tx, ctx.orgId, s?.stage ?? "0_vorbereitung");
+		await flushQueuedAudits(tx, octx);
 		const rows = await tx
 			.select()
 			.from(approvalWorkflows)

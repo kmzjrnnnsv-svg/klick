@@ -12,6 +12,7 @@ import {
 	updateDocument,
 } from "@/app/actions/documents";
 import { uploadEvidence } from "@/app/actions/evidence";
+import { ApproverFunctionOptions } from "@/components/documents/approver-select";
 import { useUploadFeedback } from "@/components/entity/upload-feedback";
 import { MarkdownView } from "@/components/markdown-view";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
+import type { RoleFunction } from "@/db/schema/enums";
 import { DOCUMENT_TYPES } from "@/db/schema/grc";
 
 export type TemplateOption = {
@@ -60,6 +62,8 @@ export function DocumentCreate({ templates }: { templates: TemplateOption[] }) {
 	const [title, setTitle] = useState("");
 	const [type, setType] = useState<(typeof DOCUMENT_TYPES)[number]>("policy");
 	const [templateCode, setTemplateCode] = useState("");
+	// leer = aus Vorlage bzw. Art (Richtlinie: Geschäftsleitung)
+	const [approver, setApprover] = useState("auto");
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
@@ -78,6 +82,10 @@ export function DocumentCreate({ templates }: { templates: TemplateOption[] }) {
 								title,
 								type,
 								templateCode: templateCode || undefined,
+								approverFunction:
+									approver === "auto"
+										? undefined
+										: (approver as RoleFunction | "none"),
 							});
 							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("created"));
@@ -140,6 +148,21 @@ export function DocumentCreate({ templates }: { templates: TemplateOption[] }) {
 								</SelectContent>
 							</Select>
 						</div>
+					</div>
+					<div className="flex flex-col gap-1.5">
+						<Label>{t("approver")}</Label>
+						<Select value={approver} onValueChange={setApprover}>
+							<SelectTrigger className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="auto">{t("approverAuto")}</SelectItem>
+								<ApproverFunctionOptions />
+							</SelectContent>
+						</Select>
+						<p className="text-muted-foreground text-footnote">
+							{t("approverHint")}
+						</p>
 					</div>
 					<DialogFooter>
 						<Button
@@ -213,10 +236,7 @@ export function TemplatesDialog({
 				</div>
 				<ul className="max-h-[50vh] overflow-y-auto list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 					{templates.map((x) => (
-						<li
-							key={x.code}
-							className={`flex items-center gap-3 px-3 py-2 ${x.present ? "opacity-50" : ""}`}
-						>
+						<li key={x.code} className="flex items-center gap-3 px-3 py-2">
 							<Checkbox
 								checked={picked.includes(x.code)}
 								disabled={x.present}
@@ -229,7 +249,13 @@ export function TemplatesDialog({
 								}
 							/>
 							<span className="min-w-0 flex-1">
-								<span className="font-medium">{x.title}</span>
+								<span
+									className={
+										x.present ? "text-muted-foreground" : "font-medium"
+									}
+								>
+									{x.title}
+								</span>
 								<span className="ml-2 text-muted-foreground text-footnote">
 									{t(`type_${x.type as "policy"}`)} · {x.frameworks.join(", ")}
 								</span>

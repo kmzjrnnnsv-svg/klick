@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { addFrameworks, updateProfileFlags } from "@/app/actions/frameworks";
+import { useWorkflowsEnabledText } from "@/components/approvals/workflows-enabled";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { SynergyPreviewPanel } from "@/components/auth/synergy-preview";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +73,7 @@ export function FrameworksPanel({
 }) {
 	const t = useTranslations("Settings");
 	const tf = useTranslations("Frameworks");
+	const enabledText = useWorkflowsEnabledText();
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [picked, setPicked] = useState<string[]>([]);
@@ -213,7 +215,11 @@ export function FrameworksPanel({
 													handleError(res.error);
 													return;
 												}
-												toast.success(tf("added"));
+												const enabled = enabledText(res.data.workflowsEnabled);
+												toast.success(tf("added"), {
+													description: enabled,
+													duration: enabled ? 8000 : undefined,
+												});
 												setPicked([]);
 												router.refresh();
 											})

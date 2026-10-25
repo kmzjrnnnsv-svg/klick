@@ -26,6 +26,7 @@ import {
 } from "@/lib/compliance/appointment-service";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
+import type { WorkflowEnabledByDuty } from "@/lib/compliance/catalog/approval-duties";
 import {
 	areaOf,
 	type ResponsibilityArea,
@@ -636,9 +637,13 @@ async function saveItDataImpl(
 
 // ── Schritt 6: Rahmenwerke ────────────────────────────────────────────────
 
-async function saveSetupFrameworksImpl(
-	input: unknown,
-): Promise<ActionResult<{ added: string[]; controlsCreated: number }>> {
+async function saveSetupFrameworksImpl(input: unknown): Promise<
+	ActionResult<{
+		added: string[];
+		controlsCreated: number;
+		workflowsEnabled: WorkflowEnabledByDuty[];
+	}>
+> {
 	const { c, open } = await requireSetup({ settings: ["update"] });
 	if (!open) return { ok: false, error: "setup_completed" };
 	const parsed = setupFrameworksSchema.safeParse(input);
@@ -675,8 +680,16 @@ async function saveSetupFrameworksImpl(
 				.set({ riskMethod: method, riskAppetite: appetiteFromMethod(method) })
 				.where(eq(orgSettings.organizationId, c.orgId));
 		}
+		// Pflicht-Freigaben der gewählten Rahmenwerke einschalten
+		const wf = await ensureOrgWorkflows(tx, c.orgId, p.profile.licenceStage, {
+			frameworks: all,
+		});
 		return {
-			result: { added, controlsCreated: init.controlsCreated },
+			result: {
+				added,
+				controlsCreated: init.controlsCreated,
+				workflowsEnabled: wf.enabled,
+			},
 			audit: [
 				{
 					action: "org.frameworks_added",
