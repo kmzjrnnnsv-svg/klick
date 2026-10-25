@@ -10,6 +10,7 @@ import { readOrg } from "@/lib/db/with-org";
 export default async function NewIncidentPage() {
 	const ctx = await requireOrgPage({ incident: ["create"] });
 	const t = await getTranslations("Incidents");
+	const tNav = await getTranslations("Nav");
 	const cov = await getOrgCoverageCached(ctx);
 	const fws = cov?.frameworks ?? [];
 	const regimes = [
@@ -23,7 +24,11 @@ export default async function NewIncidentPage() {
 		: [];
 	return (
 		<>
-			<PageHeader title={t("new")} lead={t("lead")} />
+			<PageHeader
+				back={{ href: "/vorfaelle", label: tNav("incidents") }}
+				title={t("new")}
+				lead={t("lead")}
+			/>
 			<IncidentCreateForm regimes={[...regimes]} products={products} />
 		</>
 	);

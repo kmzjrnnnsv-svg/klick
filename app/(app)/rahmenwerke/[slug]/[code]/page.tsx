@@ -117,6 +117,7 @@ export default async function RequirementPage({
 
 	return (
 		<EntityLayout
+			back={{ href: `/rahmenwerke/${slug}`, label: shortFrameworkName(slug) }}
 			eyebrow={`${shortFrameworkName(slug)} · ${section ? `${section.code} ${section.title}` : ""}`}
 			title={`${req.code} · ${req.title}`}
 			subtitle={req.requirementText}

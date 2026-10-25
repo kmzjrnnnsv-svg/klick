@@ -74,6 +74,7 @@ export default async function NonconformityDetailPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ nonconformity: ["read"] });
 	const t = await getTranslations("Nonconformities");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const canEdit = allows(ctx, { nonconformity: ["update"] });
@@ -144,6 +145,7 @@ export default async function NonconformityDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/abweichungen", label: tNav("nonconformities") }}
 			eyebrow={`${nc.code} · ${t(`source_${nc.source}`)}`}
 			title={nc.title}
 			subtitle={nc.description ?? undefined}

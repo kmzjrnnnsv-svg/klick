@@ -67,6 +67,7 @@ export default async function EngagementPage({
 	const sp = await searchParams;
 	const ctx = await requireOrgPage({ security: ["read"] });
 	const t = await getTranslations("Engagements");
+	const tNav = await getTranslations("Nav");
 	const ts = await getTranslations("Security");
 	const tst = await getTranslations("Status");
 	const te = await getTranslations("Entity");
@@ -120,6 +121,7 @@ export default async function EngagementPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/sicherheit?tab=auftraege", label: tNav("security") }}
 			eyebrow={`${e.code} · ${t(`kind_${e.kind}`)}`}
 			title={e.title}
 			subtitle={

@@ -59,6 +59,7 @@ export default async function WalletPairPage({
 	const ctx = await requireUnlockedPage(`/prices/${slug}`);
 	if (!pair) notFound();
 	const t = await getTranslations("Wallet");
+	const tShell = await getTranslations("Shell");
 	const sp = await searchParams;
 	const range: RangeKey = isRange(sp.range) ? sp.range : "1m";
 	const [base, quote] = pair.split("/") as [string, "EUR" | "USD"];
@@ -141,7 +142,11 @@ export default async function WalletPairPage({
 				: "day";
 	return (
 		<>
-			<PageHeader eyebrow={PAIR_NAMES[pair]} title={pair} />
+			<PageHeader
+				back={{ href: "/prices", label: tShell("prices") }}
+				eyebrow={PAIR_NAMES[pair]}
+				title={pair}
+			/>
 			<section className="rounded-2xl bg-card p-4 sm:p-6">
 				<div className="flex flex-wrap items-end justify-between gap-3">
 					<div>

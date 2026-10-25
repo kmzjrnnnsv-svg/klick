@@ -81,6 +81,7 @@ export default async function ProviderPage({
 	const sp = await searchParams;
 	const ctx = await requireOrgPage({ provider: ["read"] });
 	const t = await getTranslations("Suppliers");
+	const tNav = await getTranslations("Nav");
 	const tr = await getTranslations("Rating");
 	const tp = await getTranslations("Providers");
 	const ta = await getTranslations("Assessment");
@@ -159,6 +160,7 @@ export default async function ProviderPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/dienstleister", label: tNav("providers") }}
 			eyebrow={`${tp(`partner_${p.partnerType}`)} · ${tp(`crit_${p.criticality}`)}`}
 			title={p.name}
 			subtitle={p.serviceDescription ?? undefined}

@@ -52,6 +52,10 @@ export default async function SignaturesPage({
 	return (
 		<>
 			<PageHeader
+				back={{
+					href: `/nachweise/${data.evidence.id}`,
+					label: data.evidence.title,
+				}}
 				eyebrow={data.evidence.kindCode ?? t("eyebrow")}
 				title={data.evidence.title}
 				lead={t("lead")}

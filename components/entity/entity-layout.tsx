@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BackLink } from "@/components/ui/back-link";
 
 // Seitentyp Detail: Kopf (Code, Titel, Status-Button, Verantwortliche,
 // Fälligkeit), Hauptspalte mit Fachsektionen, Seitenleiste mit EINEM
@@ -7,6 +8,7 @@ import type { ReactNode } from "react";
 // Gestaltung nach Apple HIG: Titel fett, Eckdaten als gruppierter Abschnitt,
 // Abschnittsköpfe in Satzschreibung (Headline), keine Versalien.
 export function EntityLayout({
+	back,
 	eyebrow,
 	title,
 	subtitle,
@@ -16,6 +18,8 @@ export function EntityLayout({
 	children,
 	aside,
 }: {
+	// Zurück zur Elternseite (Chevron links + Titel, docs/design/hig.md)
+	back?: { href: string; label: string };
 	eyebrow: string;
 	title: string;
 	subtitle?: string;
@@ -30,6 +34,7 @@ export function EntityLayout({
 			<div className="mb-8 flex flex-col gap-4">
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0">
+						{back && <BackLink href={back.href} label={back.label} />}
 						<p className="font-medium text-footnote text-muted-foreground">
 							{eyebrow}
 						</p>

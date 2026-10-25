@@ -14,6 +14,7 @@ import { readOrg } from "@/lib/db/with-org";
 export default async function MyAccountabilityPage() {
 	const ctx = await requireOrgPage();
 	const t = await getTranslations("Accountability");
+	const tNav = await getTranslations("Nav");
 	const today = new Date().toISOString().slice(0, 10);
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		acc: await accountabilityFor(tx, ctx.orgId, ctx.userId, today),
@@ -40,6 +41,7 @@ export default async function MyAccountabilityPage() {
 		<>
 			<div className="print:hidden">
 				<PageHeader
+					back={{ href: "/heute", label: tNav("today") }}
 					eyebrow={ctx.name || ctx.email}
 					title={t("title")}
 					lead={t("lead")}

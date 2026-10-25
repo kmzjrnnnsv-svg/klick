@@ -26,6 +26,7 @@ export default async function TasksPage({
 	const ctx = await requireOrgPage({ task: ["read"] });
 	const sp = await searchParams;
 	const t = await getTranslations("Tasks");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const all = one(sp.all) === "1";
@@ -54,6 +55,7 @@ export default async function TasksPage({
 	return (
 		<>
 			<PageHeader
+				back={{ href: "/heute", label: tNav("today") }}
 				title={t("title")}
 				lead={t("lead")}
 				actions={canEdit ? <QuickCreateTask members={members} /> : undefined}

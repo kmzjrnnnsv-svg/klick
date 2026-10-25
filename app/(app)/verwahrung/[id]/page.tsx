@@ -52,6 +52,7 @@ export default async function WalletDetailPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ crypto_asset: ["read"] });
 	const t = await getTranslations("Custody");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const canEdit = allows(ctx, { crypto_asset: ["update"] });
 
@@ -126,6 +127,7 @@ export default async function WalletDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/verwahrung", label: tNav("custody") }}
 			eyebrow={`${w.code} · ${t(`purpose_${w.purpose}`)}`}
 			title={w.name}
 			subtitle={w.notes ?? undefined}

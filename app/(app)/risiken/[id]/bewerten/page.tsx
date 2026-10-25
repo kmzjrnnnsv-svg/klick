@@ -86,6 +86,7 @@ export default async function ReassessRiskPage({
 	return (
 		<>
 			<PageHeader
+				back={{ href: `/risiken/${risk.id}`, label: risk.title }}
 				title={t("reassessTitle", { code: risk.code })}
 				lead={t("reassessLead")}
 			/>

@@ -71,6 +71,7 @@ export default async function IncidentDetailPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ incident: ["read"] });
 	const t = await getTranslations("Incidents");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
@@ -200,6 +201,7 @@ export default async function IncidentDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/vorfaelle", label: tNav("incidents") }}
 			eyebrow={`${incident.code} · ${regimes.map((r) => t(`regime_${r}`)).join(" · ")}`}
 			title={incident.title}
 			subtitle={incident.description ?? undefined}

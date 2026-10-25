@@ -83,6 +83,7 @@ export default async function ProcessDetailPage({
 	if (!/^P-\d{2,3}$/.test(code)) notFound();
 	const ctx = await requireOrgPage({ process: ["read"] });
 	const t = await getTranslations("Processes");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const tf = await getTranslations("Functions");
@@ -176,6 +177,7 @@ export default async function ProcessDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/prozesse", label: tNav("processes") }}
 			eyebrow={`${p.code} · ${t(`category_${p.category}`)}`}
 			title={p.name}
 			subtitle={p.description ?? undefined}

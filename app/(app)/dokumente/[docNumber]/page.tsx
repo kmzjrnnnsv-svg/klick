@@ -56,6 +56,7 @@ export default async function DocumentDetailPage({
 	const docNumber = decodeURIComponent(raw);
 	const ctx = await requireOrgPage({ document: ["read"] });
 	const t = await getTranslations("Documents");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getDocumentByNumber(tx, ctx.orgId, docNumber);
@@ -152,6 +153,7 @@ export default async function DocumentDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/dokumente", label: tNav("documents") }}
 			eyebrow={`${doc.docNumber} · ${t(`type_${doc.type}`)} · v${doc.version}`}
 			title={doc.title}
 			status={

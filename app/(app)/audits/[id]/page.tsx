@@ -112,6 +112,7 @@ export default async function AuditCockpitPage({
 	const tab = one(sp.tab) ?? "pruefpfad";
 	const ctx = await requireOrgPage({ audit: ["read"] });
 	const t = await getTranslations("Audits");
+	const tNav = await getTranslations("Nav");
 	const ts = await getTranslations("Status");
 	const canEdit = allows(ctx, { audit: ["update"] });
 	const canRequest = allows(ctx, { audit_request: ["create"] });
@@ -231,6 +232,7 @@ export default async function AuditCockpitPage({
 	return (
 		<>
 			<PageHeader
+				back={{ href: "/audits", label: tNav("audits") }}
 				eyebrow={`${t(`type_${audit.type}`)}${periodLabel ? ` · ${periodLabel}` : ""}`}
 				title={audit.title}
 				lead={audit.scope ?? undefined}

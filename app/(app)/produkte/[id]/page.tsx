@@ -80,6 +80,7 @@ export default async function ProductPage({
 	const sp = await searchParams;
 	const ctx = await requireOrgPage({ product: ["read"] });
 	const t = await getTranslations("Products");
+	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const ti = await getTranslations("Incidents");
@@ -153,6 +154,7 @@ export default async function ProductPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/produkte", label: tNav("products") }}
 			eyebrow={`${p.code} · ${t(`role_${p.role}`)} · ${t(`kind_${p.kind}`)}`}
 			title={p.name}
 			subtitle={p.description ?? undefined}

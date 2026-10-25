@@ -58,6 +58,7 @@ export default async function RatingPage({
 		return (
 			<>
 				<PageHeader
+					back={{ href: `/dienstleister/${provider.id}`, label: provider.name }}
 					title={t("title", { name: provider.name })}
 					lead={t("pageLead", { code: rating.code })}
 				/>
@@ -101,6 +102,7 @@ export default async function RatingPage({
 	return (
 		<>
 			<PageHeader
+				back={{ href: `/dienstleister/${provider.id}`, label: provider.name }}
 				title={t("title", { name: provider.name })}
 				lead={t("resultLead", {
 					code: rating.code,

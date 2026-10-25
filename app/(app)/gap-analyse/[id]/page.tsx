@@ -90,6 +90,7 @@ export default async function AssessmentPage({
 	const sp = await searchParams;
 	const ctx = await requireOrgPage({ assessment: ["read"] });
 	const t = await getTranslations("Assessment");
+	const tNav = await getTranslations("Nav");
 	const ts = await getTranslations("Status");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const detail = await getAssessmentDetail(tx, ctx.orgId, id);
@@ -158,6 +159,7 @@ export default async function AssessmentPage({
 	return (
 		<>
 			<PageHeader
+				back={{ href: "/gap-analyse", label: tNav("gapAnalysis") }}
 				eyebrow={`${a.code} · ${t(`status_${a.status}`)}${a.asOf ? ` · Stichtag ${fmtDate.format(new Date(a.asOf))}` : ""}`}
 				title={a.title}
 				lead={t("progress", {

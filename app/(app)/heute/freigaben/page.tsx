@@ -29,6 +29,7 @@ export default async function ApprovalsInboxPage({
 	const { tab = "waiting", request } = await searchParams;
 	const ctx = await requireOrgPage({ approval: ["read"] });
 	const t = await getTranslations("Approvals");
+	const tNav = await getTranslations("Nav");
 	const ts = await getTranslations("Status");
 	const td = await getTranslations("Decisions");
 	const { rows, members, entityTitles, questions } = await readOrg(
@@ -65,7 +66,11 @@ export default async function ApprovalsInboxPage({
 
 	return (
 		<>
-			<PageHeader title={t("title")} lead={t("lead")} />
+			<PageHeader
+				back={{ href: "/heute", label: tNav("today") }}
+				title={t("title")}
+				lead={t("lead")}
+			/>
 			<UrlTabs
 				base="/heute/freigaben"
 				active={tab}

@@ -68,6 +68,7 @@ export default async function ControlDetailPage({
 	const control = CONTROL_BY_CODE.get(code);
 	if (!control) notFound();
 	const t = await getTranslations("Controls");
+	const tNav = await getTranslations("Nav");
 	const ta = await getTranslations("Authoring");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
@@ -185,6 +186,7 @@ export default async function ControlDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/controls", label: tNav("controls") }}
 			eyebrow={`${control.code} · ${t(`domain_${control.domain}`)}`}
 			title={control.title}
 			subtitle={control.description}

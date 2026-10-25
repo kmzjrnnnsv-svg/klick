@@ -60,6 +60,7 @@ export default async function FrameworkPage({
 	const fw = FRAMEWORK_BY_SLUG.get(slug);
 	if (!fw) notFound();
 	const t = await getTranslations("Frameworks");
+	const tNav = await getTranslations("Nav");
 	const tes = await getTranslations("EvidenceStudio");
 	const cov = await getOrgCoverageCached(ctx);
 	if (!cov?.frameworks.includes(slug)) notFound();
@@ -188,6 +189,7 @@ export default async function FrameworkPage({
 	return (
 		<>
 			<PageHeader
+				back={{ href: "/rahmenwerke", label: tNav("groupFrameworks") }}
 				eyebrow={`${fw.authority ?? ""} ${fw.version ?? ""}`.trim()}
 				title={fw.name}
 				lead={fw.description}

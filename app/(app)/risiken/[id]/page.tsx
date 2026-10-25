@@ -64,6 +64,7 @@ export default async function RiskDetailPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ risk: ["read"] });
 	const t = await getTranslations("Risks");
+	const tNav = await getTranslations("Nav");
 	const tw = await getTranslations("RiskWizard");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
@@ -206,6 +207,7 @@ export default async function RiskDetailPage({
 
 	return (
 		<EntityLayout
+			back={{ href: "/risiken", label: tNav("risks") }}
 			eyebrow={`${risk.code} · ${t(`category_${risk.category}`)}`}
 			title={risk.title}
 			subtitle={risk.description ?? undefined}
