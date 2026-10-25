@@ -123,7 +123,9 @@ Varianten, die auf dem grauen Seitengrund (#F2F2F7) mindestens 4,5 : 1 erreichen
   Sheet (`components/ui/modal-host.tsx`: `DialogContent` meldet sich als Gastgeber, `HostPanel`
   legt die Rückfrage darüber, Esc schließt nur die Rückfrage); ohne offenes Sheet eigenes Sheet.
 - **Alert:** nur für Kritisches; Titel nicht „Fehler“; höchstens drei Buttons; „Abbrechen“ statt
-  „OK“, kein Ja/Nein; Abbrechen nie Standard; Esc bricht ab.
+  „OK“, kein Ja/Nein; Abbrechen nie Standard; Esc bricht ab. **Im Code:** Rückfragen vor
+  unumkehrbaren Schritten nur über `useConfirm` (`components/ui/confirm-alert.tsx`; im offenen
+  Sheet erscheint sie im Sheet), nie `window.confirm`.
 - **Popover:** klein, nie für Warnungen, auf schmalen Bildschirmen als Sheet.
 - **Menüs:** Verben, „…“ bei Folgeeingabe, Symbole ganz oder gar nicht je Gruppe, höchstens eine
   Untermenü-Ebene; Kontextmenüs blenden Unpassendes aus statt es zu sperren.
@@ -173,6 +175,12 @@ Varianten, die auf dem grauen Seitengrund (#F2F2F7) mindestens 4,5 : 1 erreichen
 ## 8. Barrierefreiheit und Bewegung
 
 - Text bis 200 % vergrößerbar ohne Überlauf; Bedienelemente wachsen mit.
+- Automatisch geprüft: `tests/ui-hig.test.ts` (Bausteine und alle Seiten beider Apps: keine
+  Versalien, Serifen, Tailwind-Schriftgrößen bis 3xl, px-Schrift, `divide-y` in Karten-Listen,
+  `window.confirm`, `h-8` an Feldern, Ladetexte mit Auslassung; CSS-Module ohne px-Schrift),
+  `tests/ui-back-links.test.ts` (Zurück auf jeder Unterseite), `tests/ui-arrows.test.ts`,
+  `tests/ui-feedback.test.ts`. Im Browser: `scripts/qa/hig-check.ts [--dialogs] <pfade>`
+  (Tippflächen, Kontrast hell/dunkel, 200 % Text; mit `--dialogs` auch in den Dialogen).
 - Jede Bedienfläche hat einen Namen; Statusänderungen werden angesagt (`aria-live`).
 - Sichtbarer Fokus, Tastatur vollständig; Esc schließt, ⌘K sucht; keine Standardkürzel
   überschreiben.

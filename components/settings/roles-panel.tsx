@@ -9,6 +9,7 @@ import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import {
 	Dialog,
 	DialogContent,
@@ -331,6 +332,31 @@ export function RolesPanel({
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const nameOf = new Map(members.map((m) => [m.memberId, m.name]));
+	const [toDelete, setToDelete] = useState<string>("");
+	const del = useConfirm({
+		title: t("deleteConfirm", { name: toDelete }),
+		confirmLabel: tc("delete"),
+	});
+	const remove = (id: string) =>
+		start(async () => {
+			const res = await withStepUp(() => deleteOrgRole({ id }));
+			if (!res.ok) {
+				const used = (res as { fieldErrors?: Record<string, string[]> })
+					.fieldErrors?.workflows;
+				toast.error(
+					res.error === "roleInUse"
+						? t("roleInUse", {
+								workflows: (used ?? []).join(", "),
+							})
+						: res.error === "step_up_required"
+							? t("stepUp")
+							: errorText(tc, res),
+				);
+				return;
+			}
+			toast.success(t("deleted"));
+			router.refresh();
+		});
 
 	return (
 		<div className="flex flex-col gap-8">
@@ -408,32 +434,8 @@ export function RolesPanel({
 											aria-label={`${t("delete")}: ${r.name}`}
 											disabled={pending}
 											onClick={() => {
-												if (
-													!window.confirm(t("deleteConfirm", { name: r.name }))
-												)
-													return;
-												start(async () => {
-													const res = await withStepUp(() =>
-														deleteOrgRole({ id: r.id }),
-													);
-													if (!res.ok) {
-														const used = (
-															res as { fieldErrors?: Record<string, string[]> }
-														).fieldErrors?.workflows;
-														toast.error(
-															res.error === "roleInUse"
-																? t("roleInUse", {
-																		workflows: (used ?? []).join(", "),
-																	})
-																: res.error === "step_up_required"
-																	? t("stepUp")
-																	: errorText(tc, res),
-														);
-														return;
-													}
-													toast.success(t("deleted"));
-													router.refresh();
-												});
+												setToDelete(r.name);
+												del.ask(() => remove(r.id));
 											}}
 										>
 											<Trash2 />
@@ -444,6 +446,7 @@ export function RolesPanel({
 						))}
 					</ul>
 				)}
+				{del.node}
 			</section>
 
 			<section className="flex flex-col gap-3">

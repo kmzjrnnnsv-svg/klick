@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buttonVariants } from "@/components/ui/button";
 import { cn, TEXT_STYLES } from "@/lib/utils";
+import { ROOT, walkFiles } from "./helpers/walk";
 
 // Bausteine nach Apple HIG (docs/design/hig.md): keine Versalien, keine
 // Sperrung, keine Maison-Klassen, keine Schrift unter 11 px (Caption 2),
@@ -80,5 +81,67 @@ describe("Bausteine nach HIG", () => {
 			expect(tokens).toContain(`--text-${style}:`);
 			expect(tokens).toContain(`--text-${style}--line-height:`);
 		}
+	});
+});
+
+// Seiten und Komponenten beider Apps (Durchsicht 25.10.2026): was in der
+// Durchsicht entfernt wurde, soll nicht zurückkommen.
+const APP_FILES = walkFiles(
+	["app", "components", "apps/wallet/app", "apps/wallet/components"],
+	/\.tsx$/,
+);
+const CSS_MODULES = walkFiles(
+	["app", "components", "apps/wallet/app", "apps/wallet/components"],
+	/\.module\.css$/,
+);
+
+const APP_BANNED: [string, RegExp][] = [
+	["Versalien", /\buppercase\b/],
+	["Sperrung", /tracking-(\[0\.[1-9]|widest|wider)/],
+	["Serifen", /\bfont-serif\b/],
+	// Textstile statt Tailwind-Größen (große Display-Titel der Websites ab 4xl bleiben)
+	["Tailwind-Schriftgröße", /\btext-(base|lg|xl|2xl|3xl)\b/],
+	["feste px-Schrift", /\btext-\[\d+px\]/],
+	// eingerückte Trennlinien (.list-inset) statt volle Breite
+	[
+		"Liste mit divide-y",
+		/className="[^"]*\bdivide-y\b[^"]*\bbg-card\b|className="[^"]*\bbg-card\b[^"]*\bdivide-y\b/,
+	],
+	// Rückfrage als Alert/useConfirm (components/ui/confirm-alert.tsx)
+	["window.confirm/alert", /\bwindow\.(confirm|alert)\(/],
+	// Felder bleiben 44 px am Touch-Bildschirm (--control-h)
+	["Feld mit h-8", /<(Input|Textarea|SelectTrigger)\b[^>]*\b(min-)?h-8\b/],
+	// Ladetexte als Satz („Wird gespeichert …“), nicht Verb + Auslassung
+	["Ladetext mit Auslassung", /\$\{t[A-Za-z]*\("[^"]+"\)\}…/],
+];
+
+describe("Seiten und Komponenten nach HIG", () => {
+	it("keine verbotenen Muster", () => {
+		const hits = APP_FILES.flatMap((f) => {
+			const src = readFileSync(join(ROOT, f), "utf8");
+			return [
+				...APP_BANNED.filter(([, re]) => re.test(src)).map(
+					([name]) => `${f}: ${name}`,
+				),
+				...tooSmall(src).map((m) => `${f}: ${m}`),
+			];
+		});
+		expect(hits).toEqual([]);
+	});
+
+	it("CSS-Module: keine Schrift unter 11 px, keine Versalien, keine px-Schriftgrößen", () => {
+		const hits = CSS_MODULES.flatMap((f) => {
+			const src = readFileSync(join(ROOT, f), "utf8");
+			const out: string[] = [];
+			if (/text-transform:\s*uppercase/.test(src)) out.push(`${f}: Versalien`);
+			for (const [, n, unit] of src.matchAll(
+				/font-size:\s*(\d*\.?\d+)(px|rem)/g,
+			)) {
+				if (unit === "px") out.push(`${f}: font-size ${n}px`);
+				else if (Number(n) * 16 < 11) out.push(`${f}: font-size ${n}rem`);
+			}
+			return out;
+		});
+		expect(hits).toEqual([]);
 	});
 });

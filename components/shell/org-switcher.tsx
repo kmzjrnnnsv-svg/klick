@@ -41,7 +41,7 @@ export function OrgSwitcher({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
-				className="flex w-full min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+				className="flex min-h-(--control-h-sm) w-full min-w-0 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
 				aria-label={`${t("switch")}: ${currentName}`}
 				disabled={pending}
 			>

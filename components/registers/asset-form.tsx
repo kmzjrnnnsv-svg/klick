@@ -10,6 +10,7 @@ import type { MemberOption } from "@/components/entity/owner-assignee";
 import { ResponsibleSelect } from "@/components/entity/responsible-select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import {
 	Dialog,
 	DialogContent,
@@ -97,6 +98,10 @@ export function AssetForm({
 			isLegacy: false,
 		},
 	);
+	const retire = useConfirm({
+		title: t("retireConfirm", { name: d.name }),
+		confirmLabel: t("retire"),
+	});
 	const set = <K extends keyof AssetDraft>(k: K, v: AssetDraft[K]) =>
 		setD({ ...d, [k]: v });
 	const isKey = d.type === "key_material" || d.type === "hsm";
@@ -408,30 +413,31 @@ export function AssetForm({
 								variant="outline"
 								className="sm:mr-auto"
 								disabled={pending}
-								onClick={() => {
-									if (!window.confirm(t("retireConfirm", { name: d.name })))
-										return;
-									start(async () => {
-										const res = await retireAsset({
-											assetId: d.assetId as string,
-										});
-										if (!res.ok)
-											return void toast.error(
-												gate.errorText(res.error) ?? errorText(tc, res),
+								onClick={() =>
+									retire.ask(() =>
+										start(async () => {
+											const res = await retireAsset({
+												assetId: d.assetId as string,
+											});
+											if (!res.ok)
+												return void toast.error(
+													gate.errorText(res.error) ?? errorText(tc, res),
+												);
+											toast.success(
+												res.data.approvalPending
+													? t("retireRequested")
+													: t("retired"),
 											);
-										toast.success(
-											res.data.approvalPending
-												? t("retireRequested")
-												: t("retired"),
-										);
-										setOpen(false);
-										router.refresh();
-									});
-								}}
+											setOpen(false);
+											router.refresh();
+										}),
+									)
+								}
 							>
 								{t("retire")}
 							</Button>
 						)}
+						{retire.node}
 						<Button
 							type="button"
 							variant="ghost"

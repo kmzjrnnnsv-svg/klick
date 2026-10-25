@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import {
 	Dialog,
 	DialogContent,
@@ -327,24 +328,32 @@ export function RetireAccountButton({
 	const router = useRouter();
 	const onError = useWalletError();
 	const [pending, start] = useTransition();
+	const confirm = useConfirm({
+		title: t("retireConfirm", { name }),
+		confirmLabel: t("retire"),
+	});
 	return (
-		<Button
-			type="button"
-			variant="ghost"
-			size="sm"
-			className=""
-			disabled={pending}
-			onClick={() => {
-				if (!window.confirm(t("retireConfirm", { name }))) return;
-				start(async () => {
-					const res = await retireWalletAccount({ id });
-					if (!res.ok) return onError(res);
-					router.push("/accounts");
-					router.refresh();
-				});
-			}}
-		>
-			{t("retire")}
-		</Button>
+		<>
+			<Button
+				type="button"
+				variant="ghost"
+				size="sm"
+				className=""
+				disabled={pending}
+				onClick={() =>
+					confirm.ask(() =>
+						start(async () => {
+							const res = await retireWalletAccount({ id });
+							if (!res.ok) return onError(res);
+							router.push("/accounts");
+							router.refresh();
+						}),
+					)
+				}
+			>
+				{t("retire")}
+			</Button>
+			{confirm.node}
+		</>
 	);
 }

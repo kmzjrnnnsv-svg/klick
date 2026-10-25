@@ -15,6 +15,7 @@ import {
 	NewTrigger,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
@@ -173,26 +174,35 @@ export function SubmitReportButton({ id }: { id: string }) {
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
+	const confirm = useConfirm({
+		title: t("submitConfirm"),
+		confirmLabel: t("submit"),
+		destructive: false,
+	});
 	return (
-		<Button
-			type="button"
-			size="sm"
-			disabled={pending}
-			onClick={() => {
-				if (!window.confirm(t("submitConfirm"))) return;
-				start(async () => {
-					const res = await submitManagementReport({ id });
-					if (!res.ok)
-						return void toast.error(
-							res.error === "locked" ? t("locked") : errorText(tc, res),
-						);
-					toast.success(t("submitted"));
-					router.refresh();
-				});
-			}}
-		>
-			<Send aria-hidden="true" />
-			{pending ? t("submitting") : t("submit")}
-		</Button>
+		<>
+			<Button
+				type="button"
+				size="sm"
+				disabled={pending}
+				onClick={() =>
+					confirm.ask(() =>
+						start(async () => {
+							const res = await submitManagementReport({ id });
+							if (!res.ok)
+								return void toast.error(
+									res.error === "locked" ? t("locked") : errorText(tc, res),
+								);
+							toast.success(t("submitted"));
+							router.refresh();
+						}),
+					)
+				}
+			>
+				<Send aria-hidden="true" />
+				{pending ? t("submitting") : t("submit")}
+			</Button>
+			{confirm.node}
+		</>
 	);
 }

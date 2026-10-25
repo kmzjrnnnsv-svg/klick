@@ -8,7 +8,10 @@
  *   - Textgröße 200 % (Dynamic Type, WCAG 1.4.4): Grundschrift verdoppelt,
  *     bei 768 px kein seitlicher Überlauf;
  *   - mit --shots <ordner>: Bildschirmfotos dunkel, erhöhter Kontrast und
- *     reduzierte Bewegung.
+ *     reduzierte Bewegung;
+ *   - mit --dialogs: zusätzlich je Seite die Dialoge (Auslöser mit
+ *     aria-haspopup="dialog", höchstens 12) öffnen und darin Tippflächen und
+ *     Kontrast messen — der Rest der Seite ist dabei aria-hidden.
  *
  *   pnpm exec tsx scripts/qa/hig-check.ts /heute /risiken /einstellungen
  *   QA_BASE=http://localhost:3410 QA_STATE_FILE=… pnpm exec tsx scripts/qa/hig-check.ts /
@@ -32,6 +35,7 @@ const opt = (name: string) => {
 	return i >= 0 ? args[i + 1] : undefined;
 };
 const SHOTS = opt("--shots");
+const DIALOGS = args.includes("--dialogs");
 const paths = args.filter(
 	(a, i) => a.startsWith("/") && args[i - 1] !== "--shots",
 );
@@ -235,6 +239,37 @@ async function open(page: Page, path: string) {
 	return res?.status() ?? 0;
 }
 
+// Dialoge der Seite nacheinander öffnen, messen, mit Escape schließen
+async function eachDialog(
+	page: Page,
+	measure: (label: string) => Promise<void>,
+) {
+	const triggers = page.locator('[aria-haspopup="dialog"]:visible');
+	const n = Math.min(await triggers.count(), 12);
+	for (let i = 0; i < n; i++) {
+		const t = triggers.nth(i);
+		const label = (
+			(await t.getAttribute("aria-label")) ??
+			(await t.innerText().catch(() => ""))
+		)
+			.trim()
+			.slice(0, 40);
+		try {
+			await t.click({ timeout: 5000 });
+			await page
+				.locator('[role="dialog"], [role="alertdialog"]')
+				.first()
+				.waitFor({ timeout: 5000 });
+			await page.waitForTimeout(300);
+			await measure(label || `Dialog ${i + 1}`);
+		} catch {
+			// nicht zu öffnen (deaktiviert, verdeckt) — kein Fund
+		}
+		await page.keyboard.press("Escape");
+		await page.waitForTimeout(250);
+	}
+}
+
 async function context(
 	browser: Awaited<ReturnType<typeof chromium.launch>>,
 	phone: boolean,
@@ -299,6 +334,20 @@ async function main() {
 					);
 				}
 				record(path, mode, findings);
+				if (DIALOGS)
+					await eachDialog(page, async (label) => {
+						const inDialog: Finding[] = [
+							...(await page.evaluate(measureContrast)),
+						];
+						if (scheme === "light")
+							inDialog.push(
+								...(await page.evaluate(
+									measureTargets,
+									phone && coarse ? 44 : 28,
+								)),
+							);
+						record(`${path} · Dialog „${label}“`, mode, inDialog);
+					});
 			}
 			await ctx.close();
 		}

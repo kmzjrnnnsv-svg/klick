@@ -22,6 +22,7 @@ import { withStepUp } from "@/components/auth/step-up-dialog";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { ResponsibleSelect } from "@/components/entity/responsible-select";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import {
 	Dialog,
 	DialogContent,
@@ -310,24 +311,32 @@ export function DeleteRowButton({
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
+	const confirm = useConfirm({
+		title: `${label}?`,
+		confirmLabel: tc("delete"),
+	});
 	return (
-		<Button
-			size="icon"
-			variant="ghost"
-			aria-label={label}
-			title={label}
-			disabled={pending}
-			onClick={() => {
-				if (!window.confirm(label)) return;
-				start(async () => {
-					const res = await action({ id });
-					if (!res.ok) return void toast.error(errorText(tc, res));
-					router.refresh();
-				});
-			}}
-		>
-			<Trash2 />
-		</Button>
+		<>
+			<Button
+				size="icon"
+				variant="ghost"
+				aria-label={label}
+				title={label}
+				disabled={pending}
+				onClick={() =>
+					confirm.ask(() =>
+						start(async () => {
+							const res = await action({ id });
+							if (!res.ok) return void toast.error(errorText(tc, res));
+							router.refresh();
+						}),
+					)
+				}
+			>
+				<Trash2 />
+			</Button>
+			{confirm.node}
+		</>
 	);
 }
 

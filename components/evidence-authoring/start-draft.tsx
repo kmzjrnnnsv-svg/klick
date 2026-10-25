@@ -10,6 +10,7 @@ import {
 	newEvidenceVersion,
 } from "@/app/actions/evidence-authoring";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import { errorText } from "@/components/ui/error-text";
 import {
 	Select,
@@ -103,26 +104,35 @@ export function DeleteDraftButton({
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
+	const confirm = useConfirm({
+		title: `${t("deleteDraft")}?`,
+		description: t("deleteDraftLead"),
+		confirmLabel: t("deleteDraft"),
+	});
 	return (
-		<Button
-			type="button"
-			variant="ghost"
-			size="sm"
-			className="text-destructive"
-			disabled={pending}
-			aria-label={t("deleteDraftNamed", { title })}
-			onClick={() => {
-				if (!window.confirm(t("deleteDraftLead"))) return;
-				start(async () => {
-					const res = await deleteEvidenceDraft({ id });
-					if (!res.ok) return void toast.error(errorText(tc, res));
-					toast.success(t("draftDeleted"));
-					router.refresh();
-				});
-			}}
-		>
-			{t("deleteDraft")}
-		</Button>
+		<>
+			<Button
+				type="button"
+				variant="ghost"
+				size="sm"
+				className="text-destructive"
+				disabled={pending}
+				aria-label={t("deleteDraftNamed", { title })}
+				onClick={() =>
+					confirm.ask(() =>
+						start(async () => {
+							const res = await deleteEvidenceDraft({ id });
+							if (!res.ok) return void toast.error(errorText(tc, res));
+							toast.success(t("draftDeleted"));
+							router.refresh();
+						}),
+					)
+				}
+			>
+				{t("deleteDraft")}
+			</Button>
+			{confirm.node}
+		</>
 	);
 }
 
