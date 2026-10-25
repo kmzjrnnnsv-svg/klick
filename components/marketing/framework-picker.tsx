@@ -17,8 +17,9 @@ const num = new Intl.NumberFormat("de-DE");
 // Ausschnitt aus Klick: Rahmenwerke wählen und sehen, wie viele Controls die
 // Anforderungen gemeinsam abdecken — gerechnet mit dem echten Katalog. Die
 // Zahl an jedem nicht gewählten Rahmenwerk zeigt, was es neu dazubrächte;
-// so ergibt die Auswahl schon mit einem Rahmenwerk Sinn. Ohne Skript bleibt
-// die Vorauswahl stehen (der Server rendert sie).
+// so ergibt die Auswahl schon mit einem Rahmenwerk Sinn. Die Texte sagen
+// „Maßnahmen“, der App-Begriff „Controls“ steht einmal in Klammern. Ohne
+// Skript bleibt die Vorauswahl stehen (der Server rendert sie).
 export function FrameworkPicker({
 	frameworks,
 	initial,
