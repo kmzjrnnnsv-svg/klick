@@ -30,8 +30,8 @@ export const SERVICES: readonly Service[] = [
 		name: "Gap-Analyse & Prüfungsreife",
 		image: {
 			src: "/leistungen/frage.jpg",
-			w: 1648,
-			h: 1054,
+			w: 2304,
+			h: 1338,
 			alt: "Gap-Analyse in Klick: eine Frage je Control mit Antwort, Erläuterung und Nachweis",
 		},
 		short: "Gap-Analyse",
@@ -68,8 +68,8 @@ export const SERVICES: readonly Service[] = [
 		name: "Security-Check für KI-gebaute Apps",
 		image: {
 			src: "/leistungen/sicherheit.jpg",
-			w: 2200,
-			h: 1400,
+			w: 2304,
+			h: 1240,
 			alt: "Security-Checks in Klick: Ampel, offene Befunde nach Schwere und was zuerst dran ist",
 		},
 		short: "KI-App-Check",
@@ -106,8 +106,8 @@ export const SERVICES: readonly Service[] = [
 		name: "CRA-Readiness",
 		image: {
 			src: "/leistungen/produkt.jpg",
-			w: 1408,
-			h: 730,
+			w: 1504,
+			h: 810,
 			alt: "Produkt in Klick: offene CRA-Punkte bis zur Marktreife mit Stichtag",
 		},
 		short: "CRA-Readiness",
@@ -144,8 +144,8 @@ export const SERVICES: readonly Service[] = [
 		name: "Lieferantenprüfung für Software",
 		image: {
 			src: "/leistungen/vertrag.jpg",
-			w: 1376,
-			h: 2154,
+			w: 1504,
+			h: 2200,
 			alt: "Klausel-Checkliste nach DORA Art. 30 in Klick: Klausel für Klausel erfüllt oder offen",
 		},
 		short: "Lieferanten",
@@ -183,7 +183,7 @@ export const SERVICES: readonly Service[] = [
 		image: {
 			src: "/leistungen/cvss.jpg",
 			w: 1344,
-			h: 1620,
+			h: 1680,
 			alt: "Befund erfassen in Klick: Schwere aus dem CVSS-Vektor, Reproduktion und Empfehlung",
 		},
 		short: "Pentest",

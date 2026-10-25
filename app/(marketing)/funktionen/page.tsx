@@ -401,8 +401,8 @@ export default async function FeaturesPage() {
 					{/* biome-ignore lint/performance/noImgElement: statisches Bildschirmfoto */}
 					<img
 						src="/funktionen/verwahrung.jpg"
-						width={1440}
-						height={779}
+						width={2304}
+						height={1280}
 						alt={t("ctaImage")}
 						loading="lazy"
 						decoding="async"
