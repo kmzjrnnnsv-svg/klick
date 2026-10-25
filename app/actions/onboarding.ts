@@ -115,6 +115,7 @@ async function createOrganizationActionImpl(
 						function: fn,
 						userId: ctx.user.id,
 						appointedAt: new Date().toISOString().slice(0, 10),
+						status: "appointed" as const,
 					})),
 				);
 			const fws = await tx

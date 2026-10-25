@@ -1073,6 +1073,9 @@ export const incidents = pgTable(
 		intermediateReportedAt: ts(),
 		finalReportedAt: ts(),
 		rootCause: text(),
+		// Geschäftsleitung informiert (Meldung an die Aufsicht): Kenntnisnahme
+		managementAcknowledgedAt: ts(),
+		managementAcknowledgedBy: userRef(),
 		status: text({ enum: ["open", "contained", "resolved", "closed"] })
 			.notNull()
 			.default("open"),

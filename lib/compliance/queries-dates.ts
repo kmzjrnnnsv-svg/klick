@@ -26,6 +26,7 @@ import {
 	trainingAssignments,
 	wallets,
 } from "@/db/schema";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import type { OrgTx } from "@/lib/db/with-org";
 import { cycleDates } from "./audit-follow-up";
 import { upcomingLegalChanges } from "./catalog/regulatory-calendar";
@@ -406,7 +407,9 @@ export async function loadDateSources(
 				externalName: roleAssignments.externalName,
 			})
 			.from(roleAssignments)
-			.where(eq(roleAssignments.organizationId, orgId)),
+			.where(
+				and(eq(roleAssignments.organizationId, orgId), effectiveAssignment()),
+			),
 	]);
 
 	const out: DateSource[] = [];

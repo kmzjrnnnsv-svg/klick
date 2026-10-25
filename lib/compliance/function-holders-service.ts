@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { roleAssignments } from "@/db/schema";
 import type { RoleFunction } from "@/db/schema/enums";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import {
 	type FunctionAssignment,
 	type ResponsibleOption,
@@ -26,7 +27,9 @@ export async function loadAssignments(
 			createdAt: roleAssignments.createdAt,
 		})
 		.from(roleAssignments)
-		.where(eq(roleAssignments.organizationId, orgId));
+		.where(
+			and(eq(roleAssignments.organizationId, orgId), effectiveAssignment()),
+		);
 }
 
 // Verantwortliche:r für Einträge dieser Funktion (Inhaber:in, sonst Vertretung)

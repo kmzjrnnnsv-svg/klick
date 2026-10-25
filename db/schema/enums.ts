@@ -465,6 +465,23 @@ export const ROLE_FUNCTIONS = [
 ] as const;
 export type RoleFunction = (typeof ROLE_FUNCTIONS)[number];
 
+// Bestellung einer Funktion durch die Geschäftsleitung (role_assignments):
+// wirksam sind nur appointed und revocation_requested (Abberufung beantragt,
+// gilt bis zur Freigabe weiter)
+export const APPOINTMENT_STATUS = [
+	"proposed",
+	"appointed",
+	"rejected",
+	"revocation_requested",
+	"revoked",
+] as const;
+export type AppointmentStatus = (typeof APPOINTMENT_STATUS)[number];
+
+// Standard (Freigaben und Funktionen nach Rahmenwerk) oder individuell
+// (eigene Rollen, Abläufe frei, Pflichten als Warnung) — ADR-024
+export const GOVERNANCE_MODES = ["standard", "individual"] as const;
+export type GovernanceMode = (typeof GOVERNANCE_MODES)[number];
+
 // Berichte an die Geschäftsleitung (N3, management_reports)
 export const MANAGEMENT_REPORT_KINDS = [
 	"isms",

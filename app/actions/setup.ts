@@ -19,6 +19,7 @@ import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import { insertSelfAssessment } from "@/lib/assessments/create-service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import {
 	areaOf,
@@ -199,6 +200,8 @@ async function setupAssignFunctionImpl(
 				organizationId: c.orgId,
 				function: d.function,
 				appointedAt: new Date().toISOString().slice(0, 10),
+				// bis die Bestellung über die Geschäftsleitung läuft (G3)
+				status: "appointed",
 				...values,
 			})
 			.returning({ id: roleAssignments.id });
@@ -688,7 +691,12 @@ async function startSetupGapAnalysisImpl(
 			tx
 				.select({ function: roleAssignments.function })
 				.from(roleAssignments)
-				.where(eq(roleAssignments.organizationId, c.orgId)),
+				.where(
+					and(
+						eq(roleAssignments.organizationId, c.orgId),
+						effectiveAssignment(),
+					),
+				),
 			tx
 				.select({ kind: sites.kind })
 				.from(sites)

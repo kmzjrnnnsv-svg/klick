@@ -27,6 +27,7 @@ import {
 import { frameworks } from "./catalog";
 import {
 	type CaspService,
+	GOVERNANCE_MODES,
 	LICENCE_STAGES,
 	NOTIFICATION_KINDS,
 	type RoleFunction,
@@ -237,6 +238,10 @@ export const orgSettings = pgTable(
 		areaFunctions: json<Partial<Record<string, RoleFunction>>>()
 			.notNull()
 			.default({}),
+		// Standard (nach Rahmenwerk) oder individuell (ADR-024)
+		governanceMode: text({ enum: GOVERNANCE_MODES })
+			.notNull()
+			.default("standard"),
 		// Risikovorschläge (B3), die bewusst kein Risiko sind: „kind:id“ →
 		// Begründung, wer, wann
 		riskProposalDismissals: json<
@@ -310,6 +315,12 @@ export const orgRoles = pgTable(
 		description: text(),
 		// Record<Ressource, Aktion[]>; beim Lesen über sanitizePermissions
 		permissions: json<Record<string, string[]>>().notNull().default({}),
+		// als Funktion (ADR-024): Aufgaben fürs Bestellungsschreiben, Berichtsweg
+		// (Funktionsschlüssel: Funktion oder role:<id>), Vertretung Pflicht
+		tasks: text(),
+		reportsTo: text(),
+		deputyRequired: boolean().notNull().default(false),
+		active: boolean().notNull().default(true),
 		createdByUserId: userRef(),
 		...timestamps(),
 	},

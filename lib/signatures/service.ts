@@ -3,6 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { evidence, evidenceSignatures, roleAssignments } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
 import type { SignedAssertion } from "@/lib/auth/passkey-sign";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import type { OrgTx } from "@/lib/db/with-org";
 import { encodeSignText, type SignFields, type SignPurpose } from "./canonical";
 import { merkleLeaf, merkleProof, merkleRoot } from "./merkle";
@@ -59,6 +60,7 @@ export async function holdsFunction(
 		.where(
 			and(
 				eq(roleAssignments.organizationId, orgId),
+				effectiveAssignment(),
 				eq(roleAssignments.userId, userId),
 				eq(
 					roleAssignments.function,

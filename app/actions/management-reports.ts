@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { managementReports, roleAssignments } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { REPORT_KIND_BY_KEY } from "@/lib/compliance/catalog/management-reports";
 import { reportFigures } from "@/lib/compliance/management-report-figures";
 import { mutateOrg } from "@/lib/db/with-org";
@@ -137,6 +138,7 @@ async function submitManagementReportImpl(
 				and(
 					eq(roleAssignments.organizationId, c.orgId),
 					eq(roleAssignments.function, "management_body"),
+					effectiveAssignment(),
 				),
 			);
 		await notify(tx, {

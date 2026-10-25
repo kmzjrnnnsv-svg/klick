@@ -1,6 +1,7 @@
 import { and, asc, eq, ne } from "drizzle-orm";
 import { roleAssignments } from "@/db/schema";
 import type { RoleFunction } from "@/db/schema/enums";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { APPOINTMENT_TEMPLATE_BY_FUNCTION } from "@/lib/compliance/catalog/appointment-templates";
 import { REQUIRED_FUNCTIONS } from "@/lib/compliance/catalog/required-functions";
 import { userNames } from "@/lib/compliance/queries";
@@ -88,6 +89,7 @@ export const bestellung = generator<BestellungFacts>({
 			.where(
 				and(
 					eq(roleAssignments.organizationId, orgId),
+					effectiveAssignment(),
 					eq(roleAssignments.id, entityId),
 				),
 			)
@@ -136,6 +138,7 @@ export const bestellung = generator<BestellungFacts>({
 			.where(
 				and(
 					eq(roleAssignments.organizationId, orgId),
+					effectiveAssignment(),
 					ne(roleAssignments.function, "management_body"),
 				),
 			)

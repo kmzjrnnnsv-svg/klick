@@ -79,6 +79,7 @@ d("Verantwortlich = Funktion (Postgres)", () => {
 		const gained = await inOrg(org.A, async (tx) => {
 			await tx.insert(roleAssignments).values({
 				organizationId: org.A,
+				status: "appointed",
 				function: "isb_ciso",
 				userId: users[0],
 			});

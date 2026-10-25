@@ -72,6 +72,7 @@ d("Bereiche → Funktion (Postgres)", () => {
 			await tx.execute(sql`select set_config('app.org_id', ${orgId}, true)`);
 			await tx.insert(roleAssignments).values({
 				organizationId: orgId,
+				status: "appointed",
 				function: "isb_ciso",
 				userId: users[1],
 			});

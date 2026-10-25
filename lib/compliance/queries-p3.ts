@@ -41,6 +41,7 @@ import {
 	whistleblowingReports,
 } from "@/db/schema";
 import type { LicenceStage } from "@/db/schema/enums";
+import { isEffective } from "@/lib/compliance/appointments";
 import type { OrgTx } from "@/lib/db/with-org";
 import { requiredFunctions, roleCoverage } from "./catalog/required-functions";
 import { checkSod } from "./catalog/sod-rules";
@@ -403,15 +404,24 @@ export async function governanceStatus(
 	frameworkSlugs: readonly string[],
 	stage: LicenceStage,
 ) {
-	const assignments = await listRoleAssignments(tx, orgId);
+	const all = await listRoleAssignments(tx, orgId);
+	// Liste: Vorschläge und Bestellte (Abgelehnte/Abberufene nur als Verlauf)
+	const assignments = all.filter(
+		(a) => a.status !== "rejected" && a.status !== "revoked",
+	);
 	const required = requiredFunctions(frameworkSlugs, stage);
-	const coverage = roleCoverage(required, assignments);
+	// besetzt ist eine Funktion erst mit Bestellung durch die Geschäftsleitung
+	const coverage = roleCoverage(
+		required,
+		assignments.filter((a) => isEffective(a.status)),
+	);
+	// Funktionstrennung auch für Vorschläge (Hinweis vor der Bestellung)
 	const sod = checkSod(assignments).map((v) => ({
 		...v,
 		userName:
 			assignments.find((a) => a.userId === v.userId)?.holderName ?? v.userId,
 	}));
-	return { assignments, required, coverage, sod };
+	return { assignments, history: all, required, coverage, sod };
 }
 
 export async function listObjectives(tx: OrgTx, orgId: string) {

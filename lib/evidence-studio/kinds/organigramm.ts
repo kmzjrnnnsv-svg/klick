@@ -1,6 +1,7 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { roleAssignments } from "@/db/schema";
 import type { RoleFunction } from "@/db/schema/enums";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { requiredFunctions } from "@/lib/compliance/catalog/required-functions";
 import {
 	buildOrgChart,
@@ -80,7 +81,9 @@ export const organigramm = generator<OrganigrammFacts>({
 					deputyUserId: roleAssignments.deputyUserId,
 				})
 				.from(roleAssignments)
-				.where(eq(roleAssignments.organizationId, orgId))
+				.where(
+					and(eq(roleAssignments.organizationId, orgId), effectiveAssignment()),
+				)
 				.orderBy(asc(roleAssignments.function), asc(roleAssignments.id)),
 			getOrgProfile(tx, orgId),
 		]);

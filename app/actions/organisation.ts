@@ -614,7 +614,7 @@ async function upsertRoleAssignmentImpl(
 		}
 		const [row] = await tx
 			.insert(roleAssignments)
-			.values({ organizationId: c.orgId, ...base })
+			.values({ organizationId: c.orgId, status: "appointed", ...base })
 			.returning({ id: roleAssignments.id });
 		if (!row) throw new Error("insert failed");
 		await syncTrainingAssignments(tx, c.orgId);

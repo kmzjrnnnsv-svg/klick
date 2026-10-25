@@ -15,6 +15,7 @@ import type { ApprovalStep } from "@/db/schema/grc";
 import { effectivePermissions } from "@/lib/auth/permission-catalog";
 import { type OrgRole, permissionsAllow } from "@/lib/auth/permissions";
 import { normalizeRole } from "@/lib/auth/session-rules";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { APPROVAL_WORKFLOW_TEMPLATES } from "@/lib/compliance/catalog/approval-workflows";
 import { type OrgTx, queueAudit } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
@@ -133,7 +134,9 @@ export async function loadCandidates(
 			deputyUserId: roleAssignments.deputyUserId,
 		})
 		.from(roleAssignments)
-		.where(eq(roleAssignments.organizationId, orgId));
+		.where(
+			and(eq(roleAssignments.organizationId, orgId), effectiveAssignment()),
+		);
 	const byUser = new Map<string, Set<RoleFunction>>();
 	const heldBy = new Map<string, Set<RoleFunction>>();
 	for (const f of fns) {

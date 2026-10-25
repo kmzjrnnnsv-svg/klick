@@ -3,6 +3,7 @@ import { evidence, evidenceSignatures, roleAssignments } from "@/db/schema";
 import type { RoleFunction } from "@/db/schema/enums";
 import type { AuditInput } from "@/lib/audit";
 import { getOrgSummary } from "@/lib/auth/org";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
 import { userNames } from "@/lib/compliance/queries";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -87,6 +88,7 @@ export async function signerSlots(
 		.where(
 			and(
 				eq(roleAssignments.organizationId, orgId),
+				effectiveAssignment(),
 				inArray(
 					roleAssignments.function,
 					signers.map((s) => s.function),
@@ -337,6 +339,7 @@ export async function evidenceSignState(
 			.where(
 				and(
 					eq(roleAssignments.organizationId, orgId),
+					effectiveAssignment(),
 					eq(roleAssignments.userId, userId),
 				),
 			),
@@ -398,6 +401,7 @@ export async function kindOverview(
 					.where(
 						and(
 							eq(roleAssignments.organizationId, orgId),
+							effectiveAssignment(),
 							eq(roleAssignments.userId, me.userId),
 						),
 					)

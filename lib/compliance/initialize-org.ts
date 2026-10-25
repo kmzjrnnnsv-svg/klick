@@ -18,6 +18,7 @@ import type {
 	OrgRoleLegal,
 	RoleFunction,
 } from "@/db/schema/enums";
+import { effectiveAssignment } from "@/lib/compliance/appointments";
 import type { OrgTx } from "@/lib/db/with-org";
 import { deriveApplicability, inWorkQueue } from "./applicability";
 import { BASELINE, EDGES, splitRequirementKey } from "./catalog";
@@ -376,7 +377,12 @@ async function areaOwners(
 						createdAt: roleAssignments.createdAt,
 					})
 					.from(roleAssignments)
-					.where(eq(roleAssignments.organizationId, orgId));
+					.where(
+						and(
+							eq(roleAssignments.organizationId, orgId),
+							effectiveAssignment(),
+						),
+					);
 	return (c) => {
 		const fn = map[areaOf(c)] ?? null;
 		return {

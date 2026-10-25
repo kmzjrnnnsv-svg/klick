@@ -58,6 +58,7 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
 import { allows } from "@/lib/auth/permissions";
+import { isEffective } from "@/lib/compliance/appointments";
 import { appointable } from "@/lib/compliance/catalog/appointment-templates";
 import { whoHoldsWhat } from "@/lib/compliance/function-holders";
 import { loadIndicatorData } from "@/lib/compliance/indicator-data";
@@ -624,12 +625,14 @@ export default async function OrganisationPage({
 						</div>
 						<OrgChart
 							{...buildOrgChart(
-								gov.assignments.map((a) => ({
-									function: a.function,
-									reportsToFunction: a.reportsToFunction,
-									holder: a.holderName ?? a.pendingEmail,
-									deputy: a.deputyName,
-								})),
+								gov.assignments
+									.filter((a) => isEffective(a.status))
+									.map((a) => ({
+										function: a.function,
+										reportsToFunction: a.reportsToFunction,
+										holder: a.holderName ?? a.pendingEmail,
+										deputy: a.deputyName,
+									})),
 								gov.required.map((r) => r.function),
 							)}
 							functionLabels={functionLabels}

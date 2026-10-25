@@ -1,4 +1,5 @@
 import {
+	type AnyPgColumn,
 	boolean,
 	date,
 	doublePrecision,
@@ -22,6 +23,7 @@ import {
 } from "./_shared";
 import { controls, frameworks, requirements } from "./catalog";
 import {
+	APPOINTMENT_STATUS,
 	ENTITY_KINDS,
 	FOLLOW_UP_CLASSES,
 	MANAGEMENT_REPORT_KINDS,
@@ -29,6 +31,7 @@ import {
 	ROLE_FUNCTIONS,
 } from "./enums";
 import { documents, evidence, risks } from "./grc";
+import { orgRoles } from "./platform";
 
 // Managementsystem-Schicht (ISO 27001 Klauseln 4–10 und Pendants in DORA,
 // NIS2, ZAG-MaRisk, MiCAR, GwG): Kontext, Parteien, Geltungsbereich, Rollen,
@@ -128,6 +131,19 @@ export const roleAssignments = pgTable(
 		id: pk(),
 		organizationId: orgId(),
 		function: text({ enum: ROLE_FUNCTIONS }).notNull(),
+		// eigene Rolle (individueller Modus, ADR-024): function = other
+		orgRoleId: uuid().references(() => orgRoles.id, { onDelete: "cascade" }),
+		// Bestellung durch die Geschäftsleitung: wirksam erst ab appointed
+		// (Default proposed — ein vergessener Weg bestellt nie still)
+		status: text({ enum: APPOINTMENT_STATUS }).notNull().default("proposed"),
+		// Neubesetzung bzw. neue Vertretung ersetzt diese Zeile bei Bestellung
+		replacesAssignmentId: uuid().references(
+			(): AnyPgColumn => roleAssignments.id,
+			{ onDelete: "set null" },
+		),
+		revokedAt: ts(),
+		// Begründung der Geschäftsleitung bei Ablehnung
+		decisionNote: text(),
 		userId: userRef(),
 		externalName: text(),
 		// eingeladen, Konto noch nicht angelegt (D1): wird bei der Annahme der
