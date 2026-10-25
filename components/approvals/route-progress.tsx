@@ -1,4 +1,4 @@
-import { ArrowRight, Check, X } from "lucide-react";
+import { Check, ChevronRight, X } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import type { ApprovalStep } from "@/db/schema/grc";
 import {
@@ -62,7 +62,7 @@ export async function RouteProgress({
 					return (
 						<li key={s.order} className="flex items-center gap-1">
 							{i > 0 && (
-								<ArrowRight
+								<ChevronRight
 									aria-hidden
 									className="size-3 shrink-0 text-muted-foreground"
 								/>

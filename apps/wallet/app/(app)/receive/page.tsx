@@ -6,7 +6,7 @@ import {
 	issuedAddresses,
 	listWalletAccounts,
 } from "@wallet/lib/wallet/queries";
-import { ExternalLink } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -129,7 +129,7 @@ export default async function WalletReceivePage({
 									className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
 								>
 									{t(f.key)}
-									<ExternalLink className="size-3" aria-hidden />
+									<ArrowUpRight className="size-3" aria-hidden />
 								</a>
 							</li>
 						))}

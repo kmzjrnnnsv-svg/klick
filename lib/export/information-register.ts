@@ -173,7 +173,7 @@ export function buildInformationRegister(input: {
 	const lei = e.lei?.trim() ?? "";
 	if (!lei)
 		warnings.push(
-			"B_01.01/B_01.02: LEI der Organisation fehlt (Einstellungen → Organisation).",
+			"B_01.01/B_01.02: LEI der Organisation fehlt (Einstellungen > Organisation).",
 		);
 	const country = (e.country ?? "DE").toUpperCase();
 	const authority = e.competentAuthority ?? (country === "DE" ? "BaFin" : "");
@@ -244,7 +244,7 @@ export function buildInformationRegister(input: {
 	};
 	if (e.totalAssets === null)
 		warnings.push(
-			"B_01.02 c0110: Bilanzsumme fehlt (Einstellungen → Organisation).",
+			"B_01.02 c0110: Bilanzsumme fehlt (Einstellungen > Organisation).",
 		);
 
 	const b0103: RegisterTemplate = {
@@ -461,7 +461,7 @@ export function buildInformationRegister(input: {
 			);
 		if (fns.length === 0)
 			warnings.push(
-				`B_02.02 ${p.name}: keiner Funktion zugeordnet (/prozesse → Dienstleister).`,
+				`B_02.02 ${p.name}: keiner Funktion zugeordnet (Prozesse > Dienstleister).`,
 			);
 		if (!p.country) warnings.push(`B_05.01 ${p.name}: Land fehlt.`);
 

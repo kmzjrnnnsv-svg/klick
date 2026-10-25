@@ -35,7 +35,7 @@ export function MethodMatrix({
 			<thead>
 				<tr>
 					<th className="px-1 text-left font-normal text-muted-foreground">
-						EW ↓ SH →
+						Zeile EW, Spalte SH
 					</th>
 					{cols.map((i) => (
 						<th

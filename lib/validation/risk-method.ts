@@ -19,7 +19,7 @@ export const RISK_METHOD_ISSUE_TEXT: Record<RiskMethodIssue, string> = {
 	class_range:
 		"Die Klassen müssen den ganzen Wertebereich abdecken (erste ab dem kleinsten, letzte bis zum größten Wert).",
 	zone_order:
-		"Die Zonen müssen aufsteigen: akzeptabel → tolerierbar → nicht tolerierbar.",
+		"Die Zonen müssen aufsteigen: zuerst akzeptabel, dann tolerierbar, dann nicht tolerierbar.",
 	duplicate_key: "Schlüssel doppelt vergeben.",
 	empty_label: "Jede Stufe, Schadensart und Klasse braucht eine Bezeichnung.",
 	no_dimension: "Mindestens eine Schadensart muss aktiv sein.",

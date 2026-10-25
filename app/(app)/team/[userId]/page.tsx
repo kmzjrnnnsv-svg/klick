@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AccountabilityView } from "@/components/accountability/accountability-view";
 import { PrintButton } from "@/components/organisation/print-button";
 import { PageHeader } from "@/components/page-header";
+import { BackLink } from "@/components/ui/back-link";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { normalizeRole, toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
@@ -54,18 +54,13 @@ export default async function MemberAccountabilityPage({
 	return (
 		<>
 			<div className="print:hidden">
+				<BackLink href="/team" label={tt("title")} />
 				<PageHeader
 					eyebrow={`${tt(`role${role[0]?.toUpperCase()}${role.slice(1)}` as "roleOwner")} · ${m.email}`}
 					title={m.name || m.email}
 					lead={t("memberLead")}
 					actions={
 						<div className="flex gap-2">
-							<Link
-								href="/team"
-								className="inline-flex h-8 items-center rounded-full pointer-coarse:h-11 bg-muted px-3 font-medium text-footnote hover:bg-foreground/12"
-							>
-								← {tt("title")}
-							</Link>
 							<PrintButton label={t("print")} />
 						</div>
 					}

@@ -77,7 +77,7 @@ export function DependencyMap({
 											<span className="text-muted-foreground">
 												{" "}
 												· {a.type}
-												{a.providerName ? ` → ${a.providerName}` : ""}
+												{a.providerName ? ` · ${a.providerName}` : ""}
 											</span>
 										</li>
 									))}

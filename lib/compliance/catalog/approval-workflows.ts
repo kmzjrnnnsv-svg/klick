@@ -23,7 +23,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		name: "Dokument veröffentlichen",
 		entityType: "document",
 		description:
-			"Eigner:in → Compliance → Geschäftsleitung (Richtlinien); Verfahren enden bei Compliance.",
+			"Eigner:in, dann Compliance, bei Richtlinien zuletzt die Geschäftsleitung; Verfahren enden bei Compliance.",
 		steps: [
 			{ order: 1, approverRule: "owner_of_entity", slaDays: 5 },
 			{ order: 2, approverRule: "function:compliance", slaDays: 5 },
@@ -89,7 +89,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		kind: "incident_closure",
 		name: "Vorfall schliessen",
 		entityType: "incident",
-		description: "Incident-Manager:in → ISB.",
+		description: "Incident-Manager:in, dann ISB.",
 		steps: [{ order: 1, approverRule: "function:isb_ciso", slaDays: 5 }],
 		defaultEnabled: false,
 	},
@@ -98,7 +98,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		name: "Ausnahme genehmigen",
 		entityType: "exception",
 		description:
-			"Owner → ISB; bei kritischen Controls zusätzlich Geschäftsleitung.",
+			"Owner, dann ISB; bei kritischen Controls zusätzlich Geschäftsleitung.",
 		steps: [
 			{ order: 1, approverRule: "function:isb_ciso", slaDays: 5 },
 			{ order: 2, approverRule: "function:management_body", slaDays: 10 },
@@ -110,7 +110,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		name: "Änderung / neues Produkt",
 		entityType: "task",
 		description:
-			"IT → IKT-Risikokontrolle → Geschäftsleitung bei kritisch (MaRisk AT 8, DORA 8(3)).",
+			"IT, dann IKT-Risikokontrolle, bei kritisch zuletzt die Geschäftsleitung (MaRisk AT 8, DORA 8(3)).",
 		steps: [
 			{ order: 1, approverRule: "function:ict_risk_function", slaDays: 5 },
 			{ order: 2, approverRule: "function:management_body", slaDays: 10 },
@@ -123,7 +123,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		name: "Rote Lieferantenbewertung freigeben",
 		entityType: "provider",
 		description:
-			"Auslagerungsbeauftragte:r → Geschäftsleitung: Freigabe trotz kritischem Bewertungsergebnis bzw. bei wesentlicher Auslagerung.",
+			"Auslagerungsbeauftragte:r, dann Geschäftsleitung: Freigabe trotz kritischem Bewertungsergebnis bzw. bei wesentlicher Auslagerung.",
 		steps: [
 			{ order: 1, approverRule: "function:outsourcing_officer", slaDays: 10 },
 			{ order: 2, approverRule: "function:management_body", slaDays: 10 },
@@ -135,7 +135,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		kind: "process_change",
 		name: "Prozess ändern",
 		entityType: "process",
-		description: "Prozess-Owner → ISB.",
+		description: "Prozess-Owner, dann ISB.",
 		steps: [{ order: 1, approverRule: "function:isb_ciso", slaDays: 5 }],
 		defaultEnabled: false,
 	},
@@ -153,7 +153,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		kind: "marketing",
 		name: "Marketingmitteilung freigeben",
 		entityType: "document",
-		description: "Vertrieb → Compliance (MiCAR Art. 66).",
+		description: "Vertrieb, dann Compliance (MiCAR Art. 66).",
 		steps: [{ order: 1, approverRule: "function:compliance", slaDays: 3 }],
 		defaultEnabled: false,
 		enabledFromStage: 1,
@@ -162,7 +162,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		kind: "aml_risk_analysis",
 		name: "AML-Risikoanalyse freigeben",
 		entityType: "aml_risk_analysis",
-		description: "Geldwäschebeauftragte:r → Geschäftsleitung (GwG § 5).",
+		description: "Geldwäschebeauftragte:r, dann Geschäftsleitung (GwG § 5).",
 		steps: [
 			{ order: 1, approverRule: "function:aml_officer", slaDays: 5 },
 			{ order: 2, approverRule: "function:management_body", slaDays: 10 },
@@ -174,7 +174,7 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		kind: "own_funds",
 		name: "Eigenmittelberechnung freigeben",
 		entityType: "own_funds_calculation",
-		description: "Finanzen → Geschäftsleitung (MiCAR Art. 67, § 15 ZAG).",
+		description: "Finanzen, dann Geschäftsleitung (MiCAR Art. 67, § 15 ZAG).",
 		steps: [
 			{ order: 1, approverRule: "function:management_body", slaDays: 10 },
 		],

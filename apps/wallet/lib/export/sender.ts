@@ -271,7 +271,7 @@ export async function sendLink(
 					actorUserId: null,
 					kind: "export",
 					title: `Klick hat ${rejected.length} Ereignis${rejected.length === 1 ? "" : "se"} abgelehnt`,
-					body: "Die Liste steht unter Einstellungen → Compliance-Export.",
+					body: "Die Liste steht unter Einstellungen > Compliance-Export.",
 					link: LINK_PAGE,
 					roles: owners,
 				});

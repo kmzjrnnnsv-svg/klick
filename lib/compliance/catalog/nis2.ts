@@ -174,12 +174,12 @@ export const NIS2_REQUIREMENTS: CatalogRequirement[] = [
 		requirementText:
 			"Einrichtungen ergreifen geeignete, verhältnismäßige technische, operative und organisatorische Maßnahmen, um Risiken für die Sicherheit der Netz- und Informationssysteme zu beherrschen und Auswirkungen von Sicherheitsvorfällen zu verhindern oder gering zu halten. Die Maßnahmen folgen einem gefahrenübergreifenden Ansatz, berücksichtigen den Stand der Technik und einschlägige Normen und stehen im Verhältnis zu Risikoexposition, Größe und Schadenswahrscheinlichkeit (§ 30 Abs. 1 BSIG).",
 		guidance:
-			"Ein ISMS nach ISO 27001 oder BSI IT-Grundschutz erfüllt den Rahmen; die Verhältnismäßigkeit ist in der Risikoanalyse zu begründen. Für DORA-Finanzunternehmen: gilt nicht – DORA Kapitel II (Art. 5–16) tritt an die Stelle der §§ 30–31 BSIG; eine Mapping-Tabelle NIS2 → DORA erleichtert Prüfern den Nachvollzug (§ 28 Abs. 6 BSIG).",
+			"Ein ISMS nach ISO 27001 oder BSI IT-Grundschutz erfüllt den Rahmen; die Verhältnismäßigkeit ist in der Risikoanalyse zu begründen. Für DORA-Finanzunternehmen: gilt nicht – DORA Kapitel II (Art. 5–16) tritt an die Stelle der §§ 30–31 BSIG; eine Zuordnungstabelle NIS2 zu DORA erleichtert Prüfern den Nachvollzug (§ 28 Abs. 6 BSIG).",
 		legalBasisRefs: ["Art. 21 Abs. 1 RL (EU) 2022/2555", "§§ 30–31 BSIG"],
 		domain: "governance",
 		appliesToRoles: ["any"],
 		evidenceHints: [
-			"Mapping-Tabelle NIS2 → DORA für Prüfer",
+			"Zuordnungstabelle NIS2 zu DORA für Prüfer",
 			"Maßnahmenkatalog mit Verhältnismäßigkeitsbegründung",
 		],
 		relatedRequirements: ["iso27001:6.1.3", "iso27001:8.1", "dora:Art.6(1-4)"],

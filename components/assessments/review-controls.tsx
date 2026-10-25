@@ -200,7 +200,8 @@ export function ApplyDialog({
 									{c.title}
 								</span>
 								<span className="text-muted-foreground text-footnote">
-									{c.from} → <span className="text-foreground">{c.to}</span>
+									<del>{c.from}</del>{" "}
+									<ins className="text-foreground no-underline">{c.to}</ins>
 								</span>
 							</li>
 						))}

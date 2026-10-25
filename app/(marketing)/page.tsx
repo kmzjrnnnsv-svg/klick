@@ -1,4 +1,4 @@
-import { ArrowDownIcon, ArrowRightIcon, CheckIcon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import {
@@ -99,7 +99,7 @@ export default async function LandingPage() {
 					{t("exampleLead", { count })}
 				</p>
 
-				<div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+				<div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
 					<article className="flex flex-col rounded-2xl bg-card/60 p-6">
 						<p className="font-medium text-footnote text-muted-foreground">
 							{t("withoutTitle")}
@@ -122,14 +122,6 @@ export default async function LandingPage() {
 							{t("withoutFooter", { count })}
 						</p>
 					</article>
-
-					<div
-						aria-hidden="true"
-						className="flex items-center justify-center text-primary"
-					>
-						<ArrowRightIcon className="hidden size-6 md:block" />
-						<ArrowDownIcon className="size-6 md:hidden" />
-					</div>
 
 					<article className="flex flex-col rounded-2xl bg-primary/8 p-6 ring-1 ring-primary/40">
 						<p className="font-medium text-footnote text-muted-foreground">
@@ -162,7 +154,7 @@ export default async function LandingPage() {
 					</article>
 				</div>
 
-				<div className="mt-16 grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
+				<div className="mt-16 grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
 					<div>
 						<p className="font-semibold text-5xl text-muted-foreground sm:text-6xl">
 							{SYNERGY.requirementCount}
@@ -171,10 +163,6 @@ export default async function LandingPage() {
 							{t("numbersRequirements", { frameworks: FRAMEWORKS.length })}
 						</p>
 					</div>
-					<ArrowRightIcon
-						aria-hidden="true"
-						className="hidden size-6 text-primary sm:block"
-					/>
 					<div>
 						<p className="font-semibold text-5xl text-primary sm:text-6xl">
 							{SYNERGY.controlCount}

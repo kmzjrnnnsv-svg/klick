@@ -11,6 +11,7 @@ import { listWalletAccounts } from "@wallet/lib/wallet/queries";
 import { stepFromSlug, welcomeHref } from "@wallet/lib/welcome";
 import {
 	ArrowDownToLine,
+	ArrowUpRight,
 	Ban,
 	Check,
 	CheckCircle2,
@@ -394,9 +395,10 @@ export default async function WalletIntroPage({
 											href={f.href}
 											target="_blank"
 											rel="noopener noreferrer"
-											className="text-primary underline-offset-4 hover:underline"
+											className="inline-flex items-center gap-0.5 text-primary underline-offset-4 hover:underline"
 										>
-											{tw(f.key)} <span aria-hidden>↗</span>
+											{tw(f.key)}
+											<ArrowUpRight aria-hidden className="size-3.5" />
 										</a>
 									</li>
 								))}

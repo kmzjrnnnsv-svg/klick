@@ -501,7 +501,7 @@ const PART_A: CatalogControl[] = [
 		domain: "compliance",
 		effort: "S",
 		kind: "documentation",
-		evidenceHints: ["Mapping RTS → Richtlinien", "Lückenliste"],
+		evidenceHints: ["Zuordnung der RTS zu den Richtlinien", "Lückenliste"],
 		auditQuestions: [
 			"Wo ist nachvollziehbar, welche Richtlinie RTS 2024/1774 Art. x umsetzt?",
 		],

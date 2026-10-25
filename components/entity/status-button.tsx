@@ -168,7 +168,7 @@ export function StatusButton({
 					const fwText = fw
 						.map(
 							(f) =>
-								`${names[f.framework] ?? f.framework} ${f.before ?? 0} % → ${f.after ?? 0} %`,
+								`${names[f.framework] ?? f.framework} von ${f.before ?? 0} % auf ${f.after ?? 0} %`,
 						)
 						.join(" · ");
 					toast.success(

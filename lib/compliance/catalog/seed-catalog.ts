@@ -170,7 +170,9 @@ export async function syncCatalog(db: GlobalDb): Promise<CatalogSyncSummary> {
 		const cid = controlId.get(e.control);
 		const rid = requirementId.get(e.requirement);
 		if (!cid || !rid) {
-			summary.unresolvedEdges.push(`${e.control} → ${e.requirement}`);
+			summary.unresolvedEdges.push(
+				`${e.control} (Anforderung ${e.requirement})`,
+			);
 			continue;
 		}
 		await db

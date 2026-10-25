@@ -1,4 +1,4 @@
-import { ArrowLeft, Download, ExternalLink, PenLine } from "lucide-react";
+import { ArrowUpRight, Download, PenLine } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -10,6 +10,7 @@ import { NewVersionButton } from "@/components/evidence-authoring/start-draft";
 import { MarkdownView } from "@/components/markdown-view";
 import { PageHeader } from "@/components/page-header";
 import { SignButton } from "@/components/signatures/sign-button";
+import { BackLink } from "@/components/ui/back-link";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -103,13 +104,7 @@ export default async function EvidenceDetailPage({
 
 	return (
 		<>
-			<Link
-				href="/nachweise"
-				className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-subhead hover:text-foreground"
-			>
-				<ArrowLeft className="size-4" aria-hidden />
-				{t("back")}
-			</Link>
+			<BackLink href="/nachweise" label={t("back")} />
 			<PageHeader
 				eyebrow={
 					authored
@@ -139,8 +134,8 @@ export default async function EvidenceDetailPage({
 								rel="noopener noreferrer"
 								className={btn}
 							>
-								<ExternalLink className="size-4" aria-hidden="true" />
 								{t("openLink")}
+								<ArrowUpRight className="size-4" aria-hidden="true" />
 							</a>
 						)}
 						{authored && canCreate && !data.supersededBy && (

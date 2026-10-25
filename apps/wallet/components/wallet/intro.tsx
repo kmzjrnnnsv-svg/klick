@@ -66,7 +66,7 @@ export function IntroFooter({
 					href={prevHref}
 					className="hit-area text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline"
 				>
-					← {t("back")}
+					{t("back")}
 				</Link>
 			) : null}
 			<button
@@ -194,7 +194,7 @@ export function IntroWatchlist({
 					href={prevHref}
 					className="hit-area text-muted-foreground text-subhead underline-offset-4 hover:text-foreground hover:underline"
 				>
-					← {t("back")}
+					{t("back")}
 				</Link>
 				<button
 					type="button"

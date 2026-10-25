@@ -1081,11 +1081,11 @@ export const DORA_REQUIREMENTS: CatalogRequirement[] = [
 		requirementText:
 			"Die Anforderungen der Art. 6–14 werden durch die Delegierte Verordnung (EU) 2024/1774 (RTS zum IKT-Risikomanagementrahmen) konkretisiert: Sicherheits-, Asset-, Krypto-, Betriebs-, Netz-, Change- und IAM-Richtlinien, Erkennung, Geschäftsfortführung und Berichterstattung. Das Finanzunternehmen weist nach, dass jede RTS-Vorgabe einer eigenen Richtlinie oder Maßnahme zugeordnet ist.",
 		guidance:
-			"Mapping-Tabelle RTS-Artikel → interne Richtlinie → Nachweis im GRC-Tool pflegen; Lücken als Maßnahmen mit Termin führen.",
+			"Zuordnung je RTS-Artikel zu interner Richtlinie und Nachweis im GRC-Tool pflegen; Lücken als Maßnahmen mit Termin führen.",
 		domain: "governance",
 		appliesToRoles: ["financial_entity"],
 		legalBasisRefs: ["RTS 2024/1774"],
-		evidenceHints: ["Mapping RTS → Richtlinien"],
+		evidenceHints: ["Zuordnung der RTS zu den Richtlinien"],
 		relatedRequirements: ["iso27001:A.5.1", "iso27001:A.5.36"],
 		recommendations: [
 			{

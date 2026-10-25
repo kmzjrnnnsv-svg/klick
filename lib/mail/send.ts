@@ -2,12 +2,12 @@
 // außen — Failures werden geloggt, der Aufrufer läuft weiter.
 //
 // Reihenfolge (scheitert ein Weg, kommt der nächste konfigurierte dran):
-//   1. BREVO_API_KEY  → HTTPS-POST an api.brevo.com (EU-Anbieter, Frankreich)
+//   1. BREVO_API_KEY  > HTTPS-POST an api.brevo.com (EU-Anbieter, Frankreich)
 //      Umgeht SMTP-Sperren und -Logins (nur ausgehend 443 nötig).
-//   2. SMTP_HOST       → klassischer Nodemailer-Pfad (z. B. Brevo-Relay).
-//   3. RESEND_API_KEY → api.resend.com (USA) — nur mit MAIL_ALLOW_RESEND=true,
+//   2. SMTP_HOST       > klassischer Nodemailer-Pfad (z. B. Brevo-Relay).
+//   3. RESEND_API_KEY > api.resend.com (USA) — nur mit MAIL_ALLOW_RESEND=true,
 //      weil die Datenschutzerklärung sonst keinen US-Empfänger nennt.
-//   4. sonst           → Konsole-Log (Dev-Mock). In Produktion nur Metadaten:
+//   4. sonst           > Konsole-Log (Dev-Mock). In Produktion nur Metadaten:
 //      Body (Magic-Links, Einladungen) landet nie im Log, der Versand zählt
 //      als fehlgeschlagen (Digest versucht es erneut).
 
@@ -30,7 +30,7 @@ function fromAddress(input?: Pick<SendMailInput, "from">): string {
 	return input?.from || process.env.MAIL_FROM || MAIL_FROM_DEFAULT;
 }
 
-// „Klick <no-reply@raza.work>“ → { name, email } — Brevo will beides getrennt.
+// „Klick <no-reply@raza.work>“ > { name, email } — Brevo will beides getrennt.
 export function parseFrom(from: string): { name?: string; email: string } {
 	const m = /^\s*"?([^"<]*?)"?\s*<([^<>\s]+)>\s*$/.exec(from);
 	if (!m?.[2]) return { email: from.trim() };
@@ -217,7 +217,7 @@ export async function sendTransactionalMail(
 	return consoleOutcome("no_provider");
 }
 
-// Dev: Konsole ist der Zustellweg. Prod: nichts zugestellt → ok: false.
+// Dev: Konsole ist der Zustellweg. Prod: nichts zugestellt > ok: false.
 function consoleOutcome(reason: string): SendOutcome {
 	return isProd()
 		? { path: "console", ok: false, error: reason }
@@ -267,8 +267,8 @@ export function mailErrorHint(
 		return "Resend: Anfrage abgelehnt — meist ein ungültiges MAIL_FROM (Format „Name <adresse@domain>“).";
 	if (e.startsWith("brevo_401") || e.startsWith("brevo_403")) {
 		return e.includes("ip address") || e.includes("unrecognised ip")
-			? "Brevo: Die IP des Servers ist nicht freigegeben — in Brevo unter Sicherheit → Autorisierte IPs freigeben (oder die IP-Sperre abschalten)."
-			: "Brevo: API-Schlüssel ungültig oder Konto ohne Transaktionsversand — BREVO_API_KEY prüfen (Brevo → SMTP & API → API-Schlüssel).";
+			? "Brevo: Die IP des Servers ist nicht freigegeben — in Brevo unter Sicherheit > Autorisierte IPs freigeben (oder die IP-Sperre abschalten)."
+			: "Brevo: API-Schlüssel ungültig oder Konto ohne Transaktionsversand — BREVO_API_KEY prüfen (Brevo > SMTP & API > API-Schlüssel).";
 	}
 	if (e.startsWith("brevo_400")) {
 		return e.includes("sender")

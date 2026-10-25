@@ -321,7 +321,7 @@ export function buildSupplierPack(input: SupplierPackInput): ZipEntry[] {
 			"# Versicherungsnachweise",
 			"",
 			input.insurance.length === 0
-				? "_Noch keine Policen erfasst (/organisation → Versicherungen)._"
+				? "_Noch keine Policen erfasst (Organisation > Versicherungen)._"
 				: "| Art | Versicherer | Police | Deckung | Sub-Limits | Ausschlüsse | gültig | Nachweis |\n|---|---|---|---|---|---|---|---|\n" +
 					input.insurance
 						.map(

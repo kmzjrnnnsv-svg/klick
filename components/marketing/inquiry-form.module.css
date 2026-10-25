@@ -79,10 +79,6 @@ select.control {
 	font-weight: 500;
 }
 
-.error::before {
-	content: "↳ ";
-}
-
 .check {
 	display: flex;
 	gap: 10px;

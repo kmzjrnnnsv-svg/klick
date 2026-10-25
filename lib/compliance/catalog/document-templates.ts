@@ -45,7 +45,7 @@ const skeleton = (title: string, purpose: string, sections: string[]): string =>
 		...sections.flatMap((s, i) => [`## ${i + 2}. ${s}`, "", "_…_", ""]),
 		"## Rechtsgrundlagen und Controls",
 		"",
-		"Siehe Verknüpfungen dieses Dokuments (Controls → Anforderungen je Rahmenwerk).",
+		"Siehe Verknüpfungen dieses Dokuments (Controls und ihre Anforderungen je Rahmenwerk).",
 		"",
 	].join("\n");
 

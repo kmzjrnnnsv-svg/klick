@@ -1,10 +1,9 @@
 import { eq } from "drizzle-orm";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
 import { WorkflowEditor } from "@/components/settings/workflows/workflow-editor";
+import { BackLink } from "@/components/ui/back-link";
 import { approvalWorkflows, orgSettings } from "@/db/schema";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { APPROVER_BASE_ROLES } from "@/lib/approvals/designer";
@@ -78,13 +77,7 @@ export default async function WorkflowEditorPage({
 	const initial = row ?? null;
 	return (
 		<>
-			<Link
-				href="/einstellungen?tab=workflows"
-				className="mb-4 inline-flex items-center gap-1 text-muted-foreground text-subhead hover:text-foreground"
-			>
-				<ArrowLeft className="size-4" aria-hidden />
-				{t("back")}
-			</Link>
+			<BackLink href="/einstellungen?tab=workflows" label={t("back")} />
 			<PageHeader
 				eyebrow={`${t("trigger")}: ${text?.label ?? def.key}`}
 				title={initial ? initial.name : t("newTitle")}

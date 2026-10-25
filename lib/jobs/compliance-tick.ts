@@ -97,7 +97,7 @@ export type DueRows = {
 		publishedAt: Date | string | null;
 		missingUserIds: readonly string[];
 	}[];
-	/** Pflichten-Läufe (Kalender): Vorlauf → Aufgabe, überfällig → Status. */
+	/** Pflichten-Läufe (Kalender): Vorlauf > Aufgabe, überfällig > Status. */
 	obligationRuns: readonly {
 		id: string;
 		code: string;
@@ -266,7 +266,7 @@ export type PendingNotification = {
 	title: string;
 	body?: string;
 	link: string;
-	/** Stabil je Sachverhalt — gleicher Key innerhalb DEDUPE_HOURS → kein Duplikat. */
+	/** Stabil je Sachverhalt — gleicher Key innerhalb DEDUPE_HOURS > kein Duplikat. */
 	dedupeKey: string;
 };
 
@@ -432,7 +432,7 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 		});
 	}
 
-	// Freigaben über SLA → approval_overdue + Eskalations-Aufgabe (einmal)
+	// Freigaben über SLA > approval_overdue + Eskalations-Aufgabe (einmal)
 	for (const a of rows.approvals) {
 		const due = toDate(a.dueAt);
 		if (!due || due > now) continue;
@@ -467,7 +467,7 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 		}
 	}
 
-	// Ausnahmen: 30 Tage vor Ablauf Aufgabe + Hinweis; abgelaufen → Status
+	// Ausnahmen: 30 Tage vor Ablauf Aufgabe + Hinweis; abgelaufen > Status
 	for (const x of rows.exceptions) {
 		if (x.status !== "approved" && x.status !== "requested") continue;
 		const until = toDate(x.validUntil);
@@ -562,7 +562,7 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 		});
 	}
 
-	// Pflichten-Läufe: im Vorlauf → Aufgabe + Hinweis; überfällig → Status + Hinweis
+	// Pflichten-Läufe: im Vorlauf > Aufgabe + Hinweis; überfällig > Status + Hinweis
 	for (const run of rows.obligationRuns) {
 		if (run.status === "done" || run.status === "waived") continue;
 		const due = toDate(run.dueAt);
@@ -798,7 +798,7 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 					: days === 0
 						? `Messung heute fällig: ${o.title}`
 						: `Messung in 7 Tagen: ${o.title}`,
-			body: `Nächste Messung am ${fmtDay(at)}. Wert unter Organisation → Ziele & KPIs eintragen.`,
+			body: `Nächste Messung am ${fmtDay(at)}. Wert unter Organisation > Ziele & KPIs eintragen.`,
 			link: "/organisation?tab=ziele",
 			dedupeKey: `objective_measure:${o.id}:${isoDay(now)}`,
 		});
@@ -899,7 +899,7 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 		}
 	}
 
-	// Sicherheitsbefunde: Akzeptanz abgelaufen → wieder offen; kritisch/hoch
+	// Sicherheitsbefunde: Akzeptanz abgelaufen > wieder offen; kritisch/hoch
 	// drei Tage vor der SLA-Frist und danach wöchentlich, solange offen
 	for (const f of rows.securityFindings ?? []) {
 		if (f.status === "accepted") {
@@ -1031,7 +1031,7 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 	// both.money (Plan both.money, K4): kein Lebenszeichen seit 2 h →
 	// Sicherheitsmeldung; fehlender Tagesabschluss ab 09:00, Sanktionsliste
 	// älter als 7 Tage, Token-Ablauf (30/7/1 Tage, danach wöchentlich) und
-	// Hinweise länger als 24 h offen → Erinnerung (täglich, dedupliziert)
+	// Hinweise länger als 24 h offen > Erinnerung (täglich, dedupliziert)
 	if (rows.walletLinks) {
 		const owners = [...rows.orgOwnerIds];
 		for (const l of rows.walletLinks.links) {
@@ -1075,7 +1075,7 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 							d <= 0
 								? `Token für both.money abgelaufen: ${l.name}`
 								: `Token für both.money läuft in ${d} ${d === 1 ? "Tag" : "Tagen"} ab: ${l.name}`,
-						body: "Unter Einstellungen → Integrationen erneuern und in both.money eintragen.",
+						body: "Unter Einstellungen > Integrationen erneuern und in both.money eintragen.",
 						link: "/einstellungen?tab=integrationen",
 						dedupeKey: `wallet_link_token:${l.id}:${d}`,
 					});

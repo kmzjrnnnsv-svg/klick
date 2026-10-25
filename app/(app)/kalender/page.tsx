@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import {
@@ -212,17 +213,19 @@ export default async function CalendarPage({
 						<Link
 							href={`/kalender?tab=jahr&jahr=${year - 1}`}
 							scroll={false}
-							className="inline-flex h-(--control-h-sm) items-center rounded-full bg-muted px-3 hover:bg-foreground/12"
+							className="inline-flex h-(--control-h-sm) items-center gap-0.5 rounded-full bg-muted pr-3 pl-2 hover:bg-foreground/12"
 						>
-							← {year - 1}
+							<ChevronLeft aria-hidden="true" className="size-4" />
+							{year - 1}
 						</Link>
 						<span className="font-bold text-title-2">{year}</span>
 						<Link
 							href={`/kalender?tab=jahr&jahr=${year + 1}`}
 							scroll={false}
-							className="inline-flex h-(--control-h-sm) items-center rounded-full bg-muted px-3 hover:bg-foreground/12"
+							className="inline-flex h-(--control-h-sm) items-center gap-0.5 rounded-full bg-muted pr-2 pl-3 hover:bg-foreground/12"
 						>
-							{year + 1} →
+							{year + 1}
+							<ChevronRight aria-hidden="true" className="size-4" />
 						</Link>
 						<span className="ml-auto text-muted-foreground text-footnote">
 							{t("yearStats", {

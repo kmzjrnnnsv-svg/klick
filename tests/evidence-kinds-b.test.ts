@@ -132,8 +132,8 @@ describe("Risikobeurteilung", () => {
 		expect(k["davon nicht tolerierbar"]).toBe("1");
 		expect(k["Überprüfung überfällig"]).toBe("1");
 		const m = md(blocks);
-		expect(m).toContain("5 × 5 → 25");
-		expect(m).toContain("2 × 2 → 4");
+		expect(m).toContain("EW 5, SH 5: 25");
+		expect(m).toContain("EW 2, SH 2: 4");
 		expect(m).toContain("nicht bewertet");
 		expect(m).toContain("IKT / Cyber");
 	});

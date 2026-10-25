@@ -194,7 +194,7 @@ export default async function DocumentsPage({
 					href="/rahmenwerke/iso27001?tab=soa"
 					className="hit-area text-primary hover:underline"
 				>
-					{t("isoMandatory")} → SoA
+					{`${t("isoMandatory")} > SoA`}
 				</Link>
 			}
 		/>

@@ -173,7 +173,7 @@ export default async function AuditsPage({
 									href="/einstellungen?tab=audits"
 									className="text-primary text-footnote hover:underline"
 								>
-									{t("cyclesSettings")} →
+									{t("cyclesSettings")}
 								</Link>
 							</div>
 							{cycles.some((c) => c.next) && (

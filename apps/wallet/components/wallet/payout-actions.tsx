@@ -2,7 +2,7 @@
 
 import { bumpPayout, cancelPayout } from "@wallet/app/actions/wallet-send";
 import { useWalletError } from "@wallet/components/wallet/use-wallet-error";
-import { FastForward, XCircle } from "lucide-react";
+import { XCircle, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
@@ -55,7 +55,7 @@ export function PayoutActions({
 						run(() => bumpPayout({ id }), t("payoutBumpRequested"))
 					}
 				>
-					<FastForward aria-hidden />
+					<Zap aria-hidden />
 					{t("payoutBump")}
 				</Button>
 			)}

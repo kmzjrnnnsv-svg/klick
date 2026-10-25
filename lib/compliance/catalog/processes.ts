@@ -66,7 +66,7 @@ export const PROCESSES: readonly CatalogProcess[] = [
 	},
 	{
 		code: "P-03",
-		name: "Umtausch Stablecoin ↔ Euro",
+		name: "Umtausch zwischen Stablecoin und Euro",
 		description:
 			"Tausch von EMT gegen Euro (und zurück) zu veröffentlichten Konditionen, Best Execution, Abrechnung.",
 		category: "core",

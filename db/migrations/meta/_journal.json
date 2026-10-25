@@ -239,6 +239,13 @@
       "when": 1792838900909,
       "tag": "0033_wallet_link",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792934827126,
+      "tag": "0034_arrow_texts",
+      "breakpoints": true
     }
   ]
 }

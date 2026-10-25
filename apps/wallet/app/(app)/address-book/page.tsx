@@ -20,7 +20,7 @@ import {
 	loadSignerAnchor,
 } from "@wallet/lib/wallet/signer/context";
 import { signerState } from "@wallet/lib/wallet/signer/status";
-import { ExternalLink } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
@@ -124,8 +124,8 @@ export default async function AddressBookPage() {
 								rel="noopener noreferrer"
 								className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground text-subhead hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							>
-								<ExternalLink className="size-4" aria-hidden />
 								{t("abConfirm")}
+								<ArrowUpRight className="size-4" aria-hidden />
 							</a>
 						)}
 						<VetoDestinationButton id={r.id} label={r.label} />

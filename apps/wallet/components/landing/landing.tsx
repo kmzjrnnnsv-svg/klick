@@ -11,7 +11,7 @@ import {
 	ROADMAP_TEASER,
 } from "@wallet/lib/landing";
 import { STAGES, STATUS_LABEL } from "@wallet/lib/roadmap";
-import { ArrowRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Fragment } from "react";
 import s from "./landing.module.css";
@@ -63,10 +63,10 @@ export function Landing() {
 							</Link>
 							<Link
 								href="/roadmap"
-								className="inline-flex min-h-11 items-center gap-1.5 font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+								className="inline-flex min-h-11 items-center gap-0.5 font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
 							>
 								{ROADMAP_TEASER.action}
-								<ArrowRight className="size-4" aria-hidden />
+								<ChevronRight className="size-4" aria-hidden />
 							</Link>
 						</div>
 						<p className="max-w-xl text-pretty text-subhead leading-relaxed">
@@ -138,7 +138,6 @@ export function Landing() {
 								className={`${button} self-start lg:self-end`}
 							>
 								{ROADMAP_TEASER.action}
-								<ArrowRight className="size-4" aria-hidden />
 							</Link>
 						</div>
 						<ol className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
