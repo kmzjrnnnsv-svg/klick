@@ -3,7 +3,9 @@ import { Check } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { GovernanceModeControl } from "@/components/settings/governance-mode-control";
 import { ActivityStep } from "@/components/setup/activity-step";
+import { BoardStep } from "@/components/setup/board-step";
 import { CompanyStep } from "@/components/setup/company-step";
 import { FrameworksStep } from "@/components/setup/frameworks-step";
 import { GapStep } from "@/components/setup/gap-step";
@@ -20,9 +22,12 @@ import {
 	sites,
 } from "@/db/schema";
 import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
+import { governanceModeOf } from "@/lib/approvals/governance-mode";
 import { approvalProgressFor } from "@/lib/approvals/service";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { listPendingInvitations } from "@/lib/auth/org";
+import { allows } from "@/lib/auth/permissions";
 import { isEffective } from "@/lib/compliance/appointments";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import {
@@ -40,6 +45,7 @@ import {
 	userNames,
 } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
+import { loadRoleBoard } from "@/lib/org/role-board-data";
 import {
 	isSetupStep,
 	neighbours,
@@ -64,15 +70,21 @@ const BASE_FUNCTIONS: readonly RoleFunction[] = [
 
 export default async function SetupStepPage({
 	params,
+	searchParams,
 }: {
 	params: Promise<{ schritt: string }>;
+	searchParams: Promise<{ ansicht?: string | string[] }>;
 }) {
 	const { schritt } = await params;
 	if (!isSetupStep(schritt)) notFound();
 	const ctx = await requireOrgPage({ settings: ["update"] });
+	const { ansicht } = await searchParams;
 	const t = await getTranslations("Setup");
 	const tf = await getTranslations("Functions");
 	const tcl = await getTranslations("Controls");
+	// Rollen-Tafel (individuell): offene Einladungen stehen als Personen bereit
+	const invitations =
+		schritt === "rollen" ? await listPendingInvitations(ctx.orgId) : [];
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const profile = await getOrgProfile(tx, ctx.orgId);
@@ -122,8 +134,28 @@ export default async function SetupStepPage({
 					tx,
 					rows.flatMap((r) => [r.userId, r.deputyUserId]),
 				);
+				// Standard oder individuell (ADR-024); individuell mit Rollen-Tafel
+				const mode = await governanceModeOf(tx, ctx.orgId);
 				return {
 					...base,
+					mode,
+					board:
+						mode === "individual" && profile
+							? await loadRoleBoard(tx, ctx.orgId, {
+									required: requiredFunctions(
+										profile.frameworks,
+										profile.profile.licenceStage,
+									).map((r) => r.function),
+									functionLabels: Object.fromEntries(
+										ROLE_FUNCTIONS.map((f) => [f, tf(f)]),
+									),
+									areaLabel: (area) =>
+										area === "privacy"
+											? t("areaPrivacy")
+											: tcl(`domain_${area}` as "domain_governance"),
+									invitations,
+								})
+							: null,
 					assignments: rows.map((r) => ({
 						...r,
 						progress: progress.get(r.id) ?? null,
@@ -301,24 +333,76 @@ export default async function SetupStepPage({
 						};
 					});
 					const anyControls = data.controlOwners.length > 0;
+					const board =
+						data.board &&
+						(Array.isArray(ansicht) ? ansicht[0] : ansicht) !== "liste"
+							? data.board
+							: null;
 					return (
-						<RolesStep
-							functions={functions}
-							areas={areas.filter((a) =>
-								anyControls ? a.total > 0 : a.initial !== null,
+						<div className="flex flex-col gap-8">
+							<GovernanceModeControl
+								mode={data.mode}
+								canSwitch={ctx.orgRole === "owner"}
+								variant="setup"
+							/>
+							{data.board && (
+								<nav
+									aria-label={t("modeTitle")}
+									className="grid grid-cols-2 gap-1 self-start rounded-xl bg-muted p-1"
+								>
+									{(
+										[
+											["tafel", t("boardBoard")],
+											["liste", t("boardList")],
+										] as const
+									).map(([v, label]) => (
+										<Link
+											key={v}
+											href={
+												v === "tafel"
+													? stepHref("rollen")
+													: `${stepHref("rollen")}?ansicht=liste`
+											}
+											aria-current={
+												(v === "tafel") === Boolean(board) ? "page" : undefined
+											}
+											className={`flex min-h-(--control-h) items-center justify-center rounded-lg px-3 text-subhead ${
+												(v === "tafel") === Boolean(board)
+													? "bg-background font-medium shadow-sm"
+													: "text-muted-foreground hover:text-foreground"
+											}`}
+										>
+											{label}
+										</Link>
+									))}
+								</nav>
 							)}
-							heldFunctions={order
-								.filter((f) => held.has(f))
-								.map((f) => ({ function: f, title: tf(f) }))}
-							assignments={named}
-							people={whoHoldsWhat(
-								named.filter((a) => a.status !== "rejected"),
-								(fn) => tf(fn as RoleFunction),
+							{board ? (
+								<BoardStep
+									{...board}
+									canEdit={allows(ctx, { role_assignment: ["update"] })}
+									nextHref={nextHref}
+								/>
+							) : (
+								<RolesStep
+									functions={functions}
+									areas={areas.filter((a) =>
+										anyControls ? a.total > 0 : a.initial !== null,
+									)}
+									heldFunctions={order
+										.filter((f) => held.has(f))
+										.map((f) => ({ function: f, title: tf(f) }))}
+									assignments={named}
+									people={whoHoldsWhat(
+										named.filter((a) => a.status !== "rejected"),
+										(fn) => tf(fn as RoleFunction),
+									)}
+									members={data.members}
+									currentUserId={ctx.userId}
+									nextHref={nextHref}
+								/>
 							)}
-							members={data.members}
-							currentUserId={ctx.userId}
-							nextHref={nextHref}
-						/>
+						</div>
 					);
 				})()}
 			{schritt === "unternehmen" && (

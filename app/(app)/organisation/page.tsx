@@ -51,7 +51,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { orgRoles, orgSettings, sites } from "@/db/schema";
+import { orgRoles, sites } from "@/db/schema";
 import {
 	type FunctionKey,
 	ROLE_FUNCTIONS,
@@ -70,7 +70,6 @@ import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
 import { allows } from "@/lib/auth/permissions";
 import { isEffective } from "@/lib/compliance/appointments";
 import { appointable } from "@/lib/compliance/catalog/appointment-templates";
-import { RESPONSIBILITY_AREAS } from "@/lib/compliance/catalog/domain-functions";
 import { whoHoldsWhat } from "@/lib/compliance/function-holders";
 import { functionKeyOf, ownRoleKey } from "@/lib/compliance/function-key";
 import { loadIndicatorData } from "@/lib/compliance/indicator-data";
@@ -113,6 +112,7 @@ import {
 import { decryptMany, fieldAad } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
+import { loadRoleBoard } from "@/lib/org/role-board-data";
 import { orgRoleNames } from "@/lib/org/roles";
 import type { FitProperChecklist } from "@/lib/validation/governance";
 import { responsibleValue } from "@/lib/validation/responsible";
@@ -162,6 +162,11 @@ export default async function OrganisationPage({
 	const tin = await getTranslations("Insurance");
 	const orgMembers = await listOrgMembers(ctx.orgId);
 	const memberCount = orgMembers.length;
+	const tcl = await getTranslations("Controls");
+	const tsu = await getTranslations("Setup");
+	// Rollen-Tafel: offene Einladungen stehen als Personen zur Auswahl
+	const invitations =
+		tab === "rollen" ? await listPendingInvitations(ctx.orgId) : [];
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const profile = await getOrgProfile(tx, ctx.orgId);
@@ -211,18 +216,27 @@ export default async function OrganisationPage({
 					gov.assignments,
 				);
 				// Rollen-Tafel (individueller Modus, ADR-024)
-				const [settings] = await tx
-					.select({ areaFunctions: orgSettings.areaFunctions })
-					.from(orgSettings)
-					.where(eq(orgSettings.organizationId, ctx.orgId))
-					.limit(1);
+				const mode = await governanceModeOf(tx, ctx.orgId);
 				return {
 					...base,
 					checklists,
 					assetRows,
 					appointments,
-					mode: await governanceModeOf(tx, ctx.orgId),
-					areaFunctions: settings?.areaFunctions ?? {},
+					mode,
+					board:
+						mode === "individual"
+							? await loadRoleBoard(tx, ctx.orgId, {
+									required: gov.required.map((r) => r.function),
+									functionLabels: Object.fromEntries(
+										ROLE_FUNCTIONS.map((f) => [f, tf(f)]),
+									),
+									areaLabel: (area) =>
+										area === "privacy"
+											? tsu("areaPrivacy")
+											: tcl(`domain_${area}` as "domain_governance"),
+									invitations,
+								})
+							: null,
 					ownReports: Object.fromEntries(
 						(
 							await tx
@@ -323,15 +337,9 @@ export default async function OrganisationPage({
 	const today = new Date().toISOString().slice(0, 10);
 	const ta = await getTranslations("Appointments");
 	const tb = await getTranslations("Board");
-	const tcl = await getTranslations("Controls");
-	const tsu = await getTranslations("Setup");
 	// Ansicht im Reiter Rollen: im individuellen Modus zuerst die Tafel
 	const individual = "mode" in data && data.mode === "individual";
 	const view = individual && one(sp.ansicht) !== "liste" ? "tafel" : "liste";
-	const invitations =
-		tab === "rollen" && view === "tafel"
-			? await listPendingInvitations(ctx.orgId)
-			: [];
 	// Organigramm: Berichtsweg eigener Rollen steht an der Rolle (org_roles)
 	const ownReports = "ownReports" in data ? data.ownReports : {};
 	const chart = buildOrgChart(
@@ -821,66 +829,9 @@ export default async function OrganisationPage({
 									{tb("lead")}
 								</p>
 							</div>
-							<RoleBoard
-								canEdit={canRoles}
-								roles={[
-									// Pflicht zuerst, dann besetzte, dann die übrigen; eigene Rollen danach
-									...[
-										...gov.required.map((r) => r.function),
-										...ROLE_FUNCTIONS.filter((f) => f !== "other"),
-									]
-										.filter((f, i, all) => all.indexOf(f) === i)
-										.map((f) => ({
-											key: f as FunctionKey,
-											label: functionLabels[f] ?? f,
-											required: gov.required.some((r) => r.function === f),
-											own: false,
-										})),
-									...Object.entries(roleNames).map(([id, name]) => ({
-										key: ownRoleKey(id),
-										label: name,
-										required: false,
-										own: true,
-									})),
-								].map((r) => ({
-									...r,
-									holders: gov.assignments
-										.filter(
-											(a) =>
-												a.status !== "rejected" && functionKeyOf(a) === r.key,
-										)
-										.map((a) => ({
-											id: a.id,
-											userId: a.userId,
-											pendingEmail: a.pendingEmail,
-											name: a.holderName ?? a.pendingEmail ?? "—",
-											status: a.status,
-										})),
-								}))}
-								people={[
-									...members.map((m) => ({
-										userId: m.userId,
-										pendingEmail: null,
-										name: m.name,
-									})),
-									...invitations.map((i) => ({
-										userId: null,
-										pendingEmail: i.email.toLowerCase(),
-										name: i.email,
-									})),
-								]}
-								areas={RESPONSIBILITY_AREAS.map((area) => ({
-									area,
-									label:
-										area === "privacy"
-											? tsu("areaPrivacy")
-											: tcl(`domain_${area}`),
-									fn:
-										("areaFunctions" in data
-											? data.areaFunctions[area]
-											: null) ?? null,
-								}))}
-							/>
+							{"board" in data && data.board && (
+								<RoleBoard canEdit={canRoles} {...data.board} />
+							)}
 						</section>
 					) : (
 						<Table>

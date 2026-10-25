@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { and, count, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { type z, z as zod } from "zod";
+import type { z } from "zod";
 import { member } from "@/db/auth-schema";
 import {
 	approvalRequests,
@@ -11,7 +11,6 @@ import {
 	orgRoles,
 	orgSettings,
 } from "@/db/schema";
-import { GOVERNANCE_MODES } from "@/db/schema/enums";
 import type { ApprovalStep } from "@/db/schema/grc";
 import { safeAction } from "@/lib/actions/safe";
 import { checkWorkflowDraft, type DraftIssue } from "@/lib/approvals/designer";
@@ -51,6 +50,7 @@ import {
 	applyPresetSchema,
 	deleteWorkflowSchema,
 	dryRunSchema,
+	governanceModeSchema,
 	workflowSchema,
 	type workflowStepSchema,
 } from "@/lib/validation/workflows";
@@ -375,7 +375,6 @@ async function applyWorkflowPresetImpl(
 }
 
 // Standard oder individuell (ADR-024): Inhaber:in mit frischer Bestätigung
-const modeSchema = zod.object({ mode: zod.enum(GOVERNANCE_MODES) });
 
 async function setGovernanceModeImpl(
 	input: unknown,
@@ -383,7 +382,7 @@ async function setGovernanceModeImpl(
 	const c = await stepUp();
 	if (!c) return { ok: false, error: "step_up_required" };
 	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
-	const parsed = modeSchema.safeParse(input);
+	const parsed = governanceModeSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const res = await mutateOrg<ActionResult<ModeSwitchSummary>>(
 		toOrgCtx(c),

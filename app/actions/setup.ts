@@ -15,6 +15,10 @@ import {
 import type { AppointmentStatus, RoleFunction } from "@/db/schema/enums";
 import type { EntityProfile } from "@/db/schema/platform";
 import { safeAction } from "@/lib/actions/safe";
+import {
+	type ModeSwitchSummary,
+	setGovernanceModeTx,
+} from "@/lib/approvals/governance-mode";
 import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import { insertSelfAssessment } from "@/lib/assessments/create-service";
 import type { AuditInput } from "@/lib/audit";
@@ -48,13 +52,9 @@ import {
 	appetiteFromMethod,
 	defaultRiskMethod,
 } from "@/lib/compliance/risk-method";
-import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
-import {
-	markStepDone,
-	SETUP_FLAG,
-	type SetupStep,
-	setupState,
-} from "@/lib/setup/steps";
+import { mutateOrg, type OrgTx, readOrg } from "@/lib/db/with-org";
+import { setupOpen } from "@/lib/setup/open";
+import { markStepDone, SETUP_FLAG, type SetupStep } from "@/lib/setup/steps";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	activitySchema,
@@ -68,6 +68,7 @@ import {
 	setupStepSchema,
 	siteSchema,
 } from "@/lib/validation/setup";
+import { governanceModeSchema } from "@/lib/validation/workflows";
 
 // Geführte Einrichtung (D0–D5): jeder Schritt speichert sofort in die
 // Register und ins Profil. Bis die Einrichtung abgeschlossen ist, genügt
@@ -112,10 +113,7 @@ async function markStep(
 // Nach Abschluss der Einrichtung keine Abkürzung mehr an Step-up vorbei
 async function requireSetup(perm: Parameters<typeof requireOrg>[0]) {
 	const c = await requireOrg(perm);
-	const open = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const s = await loadSettings(tx, c.orgId);
-		return { result: !setupState(s?.flags ?? {}).completed, audit: [] };
-	});
+	const open = await readOrg(toOrgCtx(c), (tx) => setupOpen(tx, c.orgId));
 	return { c, open };
 }
 
@@ -785,6 +783,36 @@ async function startSetupGapAnalysisImpl(
 	return { ok: true, data: out };
 }
 
+// Standard oder individuell (ADR-024) gleich zu Beginn: Inhaber:in, in der
+// offenen Einrichtung ohne Step-up, danach wie unter Einstellungen
+async function setupGovernanceModeImpl(
+	input: unknown,
+): Promise<ActionResult<ModeSwitchSummary>> {
+	const { c, open } = await requireSetup({ settings: ["update"] });
+	if (!open) await requireStepUp();
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const parsed = governanceModeSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const res = await mutateOrg<ActionResult<ModeSwitchSummary>>(
+		toOrgCtx(c),
+		async (tx) => {
+			const [s] = await tx
+				.select({ stage: orgSettings.licenceStage })
+				.from(orgSettings)
+				.where(eq(orgSettings.organizationId, c.orgId))
+				.limit(1);
+			const out = await setGovernanceModeTx(tx, c.orgId, parsed.data.mode, {
+				licenceStage: s?.stage ?? "0_vorbereitung",
+				frameworks: await activeFrameworkSlugs(tx, c.orgId),
+			});
+			return { result: { ok: true, data: out.summary }, audit: out.audit };
+		},
+	);
+	revalidatePath(PATH, "layout");
+	revalidatePath("/einstellungen");
+	return res;
+}
+
 export const setupAssignFunction = safeAction(
 	"setupAssignFunction",
 	setupAssignFunctionImpl,
@@ -817,4 +845,8 @@ export const saveSetupFrameworks = safeAction(
 export const startSetupGapAnalysis = safeAction(
 	"startSetupGapAnalysis",
 	startSetupGapAnalysisImpl,
+);
+export const setupGovernanceMode = safeAction(
+	"setupGovernanceMode",
+	setupGovernanceModeImpl,
 );

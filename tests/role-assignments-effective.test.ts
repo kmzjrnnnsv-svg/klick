@@ -27,6 +27,8 @@ const ALL_ROWS: Record<string, string> = {
 	"lib/org/own-role-service.ts":
 		"Besetzung eigener Rollen abgleichen: Vorschläge zählen mit",
 	"lib/org/roles.ts": "Rollen-Editor zeigt Bestellte und Vorgeschlagene",
+	"lib/org/role-board-data.ts":
+		"Rollen-Tafel zeigt Bestellte und Vorgeschlagene",
 	"app/actions/role-board.ts":
 		"Tafel: doppelte Vorschläge erkennen; Berichtsweg gilt auch für Vorschläge",
 };

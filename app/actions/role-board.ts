@@ -12,7 +12,12 @@ import {
 } from "@/db/schema";
 import type { FunctionKey } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
-import { AuthError, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
+import {
+	AuthError,
+	requireOrg,
+	requireStepUp,
+	toOrgCtx,
+} from "@/lib/auth/guards";
 import { canHoldOwnRole } from "@/lib/auth/permission-catalog";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { proposeAssignment } from "@/lib/compliance/appointment-service";
@@ -25,7 +30,8 @@ import {
 } from "@/lib/compliance/function-key";
 import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import { wouldCycle } from "@/lib/compliance/org-chart";
-import { mutateOrg } from "@/lib/db/with-org";
+import { mutateOrg, readOrg } from "@/lib/db/with-org";
+import { setupOpen } from "@/lib/setup/open";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	assignAreaSchema,
@@ -36,11 +42,17 @@ import {
 // Rollen-Tafel, Bereiche und Organigramm (ADR-024, individueller Modus).
 // Ziehen und das Menü „Zuordnen zu …“ rufen dieselben Aktionen. Besetzen
 // läuft immer über die Bestellung durch die Geschäftsleitung; Bereiche und
-// Berichtswege wirken sofort (wie unter /organisation). Alles mit Step-up.
+// Berichtswege wirken sofort (wie unter /organisation). Mit Step-up, außer
+// in der offenen Einrichtung.
 
 const PATH = "/organisation";
+const SETUP_PATH = "/einrichtung";
 
+// In der offenen Einrichtung ohne Step-up (wie die übrigen Schritte dort),
+// danach mit frischer Bestätigung
 async function stepUp(perm: Parameters<typeof requireStepUp>[0]) {
+	const c = await requireOrg(perm);
+	if (await readOrg(toOrgCtx(c), (tx) => setupOpen(tx, c.orgId))) return c;
 	try {
 		return await requireStepUp(perm);
 	} catch (e) {
@@ -149,6 +161,7 @@ async function boardAssignImpl(input: unknown): Promise<ActionResult<Placed>> {
 		};
 	});
 	revalidatePath(PATH);
+	revalidatePath(SETUP_PATH, "layout");
 	revalidatePath("/ueberblick");
 	return res;
 }
@@ -220,6 +233,7 @@ async function assignAreaImpl(
 		},
 	);
 	revalidatePath(PATH);
+	revalidatePath(SETUP_PATH, "layout");
 	revalidatePath("/controls");
 	return res;
 }

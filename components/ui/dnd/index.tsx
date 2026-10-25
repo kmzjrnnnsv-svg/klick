@@ -168,12 +168,15 @@ export function Draggable({
 	item,
 	disabled,
 	className,
+	ariaLabel,
 	children,
 }: {
 	id: string;
 	item: DragItem;
 	disabled?: boolean;
 	className?: string;
+	// nur für Griffe ohne eigenen Text (z. B. „Stufe 2 verschieben“)
+	ariaLabel?: string;
 	children: ReactNode;
 }) {
 	const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -193,6 +196,7 @@ export function Draggable({
 			)}
 			{...attributes}
 			aria-roledescription={attributes["aria-roledescription"]}
+			aria-label={ariaLabel}
 			{...pointer}
 			onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
 				if (e.target === e.currentTarget) onKeyDown?.(e);

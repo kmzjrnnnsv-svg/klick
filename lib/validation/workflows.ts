@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GOVERNANCE_MODES } from "@/db/schema/enums";
 import { uuid } from "./common";
 
 // Freigabe-Designer (Einstellungen → Freigaben). Form der Eingabe hier;
@@ -67,4 +68,9 @@ export const dryRunSchema = z.object({
 			z.union([z.string().max(80), z.number(), z.boolean(), z.null()]),
 		)
 		.default({}),
+});
+
+// Standard oder individuell (ADR-024)
+export const governanceModeSchema = z.object({
+	mode: z.enum(GOVERNANCE_MODES),
 });
