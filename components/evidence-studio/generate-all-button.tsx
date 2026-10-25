@@ -4,9 +4,10 @@ import { FileStack } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { generateFrameworkEvidence } from "@/app/actions/evidence-studio";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 
 // Alle fälligen Nachweise eines Rahmenwerks in einem Schritt erzeugen
 export function GenerateAllButton({
@@ -29,7 +30,7 @@ export function GenerateAllButton({
 			onClick={() =>
 				start(async () => {
 					const res = await generateFrameworkEvidence({ framework });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(
 						t("generatedAll", {
 							created: res.data.created,

@@ -3,13 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { planControlTest } from "@/app/actions/testprogramme";
 import {
 	Field,
 	FormDialog,
 	NewTrigger,
 } from "@/components/organisation/governance-forms";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -18,6 +18,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import { CONTROL_TEST_METHODS } from "@/db/schema/enums";
 
 export function PlanTestForm({
@@ -71,7 +72,7 @@ export function PlanTestForm({
 						processId: processId === "none" ? null : processId,
 						siteId: siteId === "none" ? null : siteId,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("planned"));
 					setOpen(false);
 					router.refresh();

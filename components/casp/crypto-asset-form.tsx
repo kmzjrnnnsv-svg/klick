@@ -4,7 +4,6 @@ import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { applyCryptoAssetSeed, upsertCryptoAsset } from "@/app/actions/casp";
 import {
 	EditTrigger,
@@ -14,6 +13,7 @@ import {
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -22,6 +22,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 
 export type CryptoAssetDraft = {
 	id?: string;
@@ -48,6 +49,7 @@ export function CryptoAssetForm({ initial }: { initial?: CryptoAssetDraft }) {
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const [pending, start] = useTransition();
 	const [d, setD] = useState<CryptoAssetDraft>(
 		initial ?? {
@@ -69,8 +71,10 @@ export function CryptoAssetForm({ initial }: { initial?: CryptoAssetDraft }) {
 			setOpen={setOpen}
 			pending={pending}
 			wide
+			error={error}
 			onSubmit={() =>
 				start(async () => {
+					setError(null);
 					const res = await upsertCryptoAsset({
 						id: d.id,
 						symbol: d.symbol,
@@ -91,7 +95,7 @@ export function CryptoAssetForm({ initial }: { initial?: CryptoAssetDraft }) {
 						notes: d.notes || undefined,
 					});
 					if (!res.ok)
-						return void toast.error(
+						return void setError(
 							res.error === "notAuthorised"
 								? t("notAuthorised")
 								: res.error === "duplicate"
@@ -100,7 +104,7 @@ export function CryptoAssetForm({ initial }: { initial?: CryptoAssetDraft }) {
 										? t("symbolHint")
 										: res.fieldErrors
 											? tc("invalid")
-											: tc("error"),
+											: errorText(tc, res),
 						);
 					toast.success(t("saved"));
 					setOpen(false);
@@ -245,7 +249,7 @@ export function ApplyCryptoSeedButton() {
 			onClick={() =>
 				start(async () => {
 					const res = await applyCryptoAssetSeed();
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("seedApplied", { n: res.data.created }));
 					router.refresh();
 				})

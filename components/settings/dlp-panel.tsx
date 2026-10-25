@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { updateDlpPolicy } from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,6 +23,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import type { DlpPolicy, DlpRuleAction } from "@/db/schema/platform";
 
 const RULES: DlpRuleAction[] = ["block", "warn", "raise", "allow"];
@@ -136,7 +137,7 @@ export function DlpPanel({
 										toast.error(
 											res.error === "step_up_required"
 												? t("stepUp")
-												: tc("error"),
+												: errorText(tc, res),
 										);
 										return;
 									}
@@ -145,7 +146,7 @@ export function DlpPanel({
 								})
 							}
 						>
-							{pending ? `${tc("save")}…` : tc("save")}
+							{pending ? tc("saving") : tc("save")}
 						</Button>
 					</div>
 				)}

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	completeProviderRating,
 	deleteRatingDraft,
@@ -26,9 +25,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { FormAlert } from "@/components/ui/form-alert";
 import { nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { CRITICALITY } from "@/db/schema/enums";
 import type {
 	SupplierArea,
@@ -118,6 +119,7 @@ export function RatingWizard({
 	const ts = useTranslations("Status");
 	const router = useRouter();
 	const [pending, start] = useTransition();
+	const [formError, setFormError] = useState<string | null>(null);
 	const [step, setStep] = useState<Step>(
 		(STEPS as readonly string[]).includes(initialStep ?? "")
 			? (initialStep as Step)
@@ -218,10 +220,11 @@ export function RatingWizard({
 
 	function complete() {
 		if (!decision) {
-			toast.error(t("errDecision"));
+			setFormError(t("errDecision"));
 			return;
 		}
 		start(async () => {
+			setFormError(null);
 			const res = await completeProviderRating({
 				ratingId: rating.id,
 				decision,
@@ -250,7 +253,7 @@ export function RatingWizard({
 								: res.fieldErrors
 									? Object.values(res.fieldErrors).flat().join(" ")
 									: t("saveFailed");
-				toast.error(msg);
+				setFormError(msg);
 				return;
 			}
 			toast.success(
@@ -763,6 +766,7 @@ export function RatingWizard({
 				</div>
 			)}
 
+			{step === "freigabe" && <FormAlert message={formError} />}
 			<footer className="sticky bottom-(--bar-offset) flex flex-wrap items-center justify-between gap-3 border-t material-bar py-3">
 				<span className="flex gap-2">
 					<Button

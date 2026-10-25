@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { removeFramework } from "@/app/actions/frameworks";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
@@ -17,8 +16,10 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 import type { FrameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 
 // Bestätigungsdialog „Rahmenwerk entfernen“: zeigt vorher, was wegfällt, und
@@ -158,7 +159,7 @@ export function RemoveFrameworkDialog({
 												? t("removeBlockedLast")
 												: res.error === "auditRunning"
 													? t("removeBlockedAudit")
-													: tc("error"),
+													: errorText(tc, res),
 									);
 									return;
 								}
@@ -168,9 +169,7 @@ export function RemoveFrameworkDialog({
 							})
 						}
 					>
-						{pending
-							? `${t("removeConfirmButton")}…`
-							: t("removeConfirmButton")}
+						{pending ? tc("working") : t("removeConfirmButton")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

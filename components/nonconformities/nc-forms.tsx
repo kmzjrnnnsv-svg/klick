@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	recordEffectiveness,
 	setNonconformityPriority,
@@ -19,6 +18,7 @@ import {
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -28,6 +28,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { NC_PRIORITIES, type NcPriority } from "@/db/schema/enums";
 import type { FollowUpClass } from "@/lib/compliance/catalog/audit-regimes";
 import { NC_SOURCES } from "@/lib/validation/governance";
@@ -101,7 +102,7 @@ export function NonconformityForm({
 								? t("forbidden")
 								: res.fieldErrors
 									? t("invalid")
-									: tc("error"),
+									: errorText(tc, res),
 						);
 					toast.success(
 						initial ? t("saved") : t("created", { code: res.data.code }),
@@ -288,7 +289,7 @@ export function EffectivenessForm({
 						result,
 						note: note || undefined,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("effectivenessSaved"));
 					setNote("");
 					router.refresh();
@@ -383,7 +384,7 @@ export function PriorityForm({
 									res.error === "not_top_management" ||
 										res.error === "no_top_management"
 										? t(`priorityError_${res.error}`)
-										: tc("error"),
+										: errorText(tc, res),
 								);
 							toast.success(t("prioritySaved"));
 							router.refresh();

@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	createException,
 	createLossEvent,
@@ -24,6 +23,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -34,6 +34,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { RISK_CATEGORIES } from "@/db/schema/grc";
 
 const SCALE = [1, 2, 3, 4, 5] as const;
@@ -106,7 +107,7 @@ export function RiskQuickCreate({
 							});
 							if (!res.ok)
 								return void toast.error(
-									gate.errorText(res.error) ?? tc("error"),
+									gate.errorText(res.error) ?? errorText(tc, res),
 								);
 							if (res.data.approvalPending) toast.info(gate.pendingText());
 							else toast.success(t("created"));
@@ -254,7 +255,7 @@ export function RiskEditForm({
 						controlCodes: ctrls,
 						assetIds: assets,
 					});
-					if (!res.ok) toast.error(tc("error"));
+					if (!res.ok) toast.error(errorText(tc, res));
 					else {
 						toast.success(t("saved"));
 						router.refresh();
@@ -496,7 +497,7 @@ export function TreatmentForm({
 								ownerUserId: owner || null,
 								dueAt: dueAt || null,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("treatmentCreated"));
 							setOpen(false);
 							setTitle("");
@@ -609,7 +610,7 @@ export function ExceptionForm({
 								toast.error(
 									res.error.startsWith("solo_") || res.error === "no_approver"
 										? ta(`errors_${res.error}` as "errors_no_approver")
-										: tc("error"),
+										: errorText(tc, res),
 								);
 								return;
 							}
@@ -749,7 +750,7 @@ export function LossEventForm() {
 								category,
 								cause: cause || undefined,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("lossEventCreated"));
 							setOpen(false);
 							router.refresh();

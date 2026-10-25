@@ -11,7 +11,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	deleteEvidenceDraft,
 	finalizeEvidenceDraft,
@@ -49,6 +48,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -63,6 +63,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import type { RoleFunction } from "@/db/schema/enums";
 import {
 	type AuthoredContent,
@@ -144,7 +145,7 @@ export function AuthoringEditor({
 	const save = async (): Promise<boolean> => {
 		const res = await saveEvidenceDraft({ id: draftId, ...d });
 		if (!res.ok) {
-			toast.error(tc("error"));
+			toast.error(errorText(tc, res));
 			return false;
 		}
 		setSaved(JSON.stringify(d));
@@ -313,7 +314,7 @@ export function AuthoringEditor({
 					}
 				>
 					<Save aria-hidden="true" />
-					{pending ? `${tc("save")}…` : tc("save")}
+					{pending ? tc("saving") : tc("save")}
 				</Button>
 				<Button
 					type="button"
@@ -420,7 +421,7 @@ export function AuthoringEditor({
 												? t("missing")
 												: res.error === "no_control"
 													? t("noControlsWarning")
-													: tc("error"),
+													: errorText(tc, res),
 										);
 										return;
 									}
@@ -520,7 +521,7 @@ function DeleteDraft({ id }: { id: string }) {
 						onClick={() =>
 							start(async () => {
 								const res = await deleteEvidenceDraft({ id });
-								if (!res.ok) return void toast.error(tc("error"));
+								if (!res.ok) return void toast.error(errorText(tc, res));
 								toast.success(t("draftDeleted"));
 								router.push("/nachweise/verfassen");
 							})

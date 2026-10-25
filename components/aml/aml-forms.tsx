@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	applyCorridorTemplate,
 	applyJurisdictionSeed,
@@ -28,6 +27,7 @@ import {
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -38,6 +38,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import {
 	EMPTY_DIMENSIONS,
 	overallAmlRisk,
@@ -172,7 +173,7 @@ export function RiskAnalysisForm({
 					});
 					if (!res.ok)
 						return void toast.error(
-							res.error === "notDraft" ? t("notDraft") : tc("error"),
+							res.error === "notDraft" ? t("notDraft") : errorText(tc, res),
 						);
 					toast.success(t("analysisSaved", { version: res.data.version }));
 					setOpen(false);
@@ -417,7 +418,7 @@ export function RiskAnalysisApproveButton({
 		<div className="flex flex-wrap items-center gap-2">
 			{soloHint && (
 				<Input
-					className="h-8 w-full min-w-0 max-w-64"
+					className="w-full min-w-0 max-w-64"
 					placeholder={t("soloReason")}
 					value={reason}
 					onChange={(e) => setReason(e.target.value)}
@@ -442,7 +443,7 @@ export function RiskAnalysisApproveButton({
 										)
 									: res.error === "notDraft"
 										? t("notDraft")
-										: tc("error"),
+										: errorText(tc, res),
 							);
 						toast.success(
 							res.data.status === "approved"
@@ -517,7 +518,9 @@ export function MonitoringRuleForm({
 					});
 					if (!res.ok)
 						return void toast.error(
-							res.error === "duplicate" ? t("duplicateCode") : tc("error"),
+							res.error === "duplicate"
+								? t("duplicateCode")
+								: errorText(tc, res),
 						);
 					toast.success(t("saved"));
 					setOpen(false);
@@ -641,7 +644,7 @@ export function SuspiciousReportForm({
 							d.decisionNote === undefined ? undefined : d.decisionNote || null,
 						ownerUserId: d.ownerUserId ?? null,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(
 						initial
 							? t("saved")
@@ -718,14 +721,14 @@ export function SuspiciousTransitionButtons({
 				to,
 				externalRef: ref || undefined,
 			});
-			if (!res.ok) return void toast.error(tc("error"));
+			if (!res.ok) return void toast.error(errorText(tc, res));
 			router.refresh();
 		});
 	if (status === "review")
 		return (
 			<span className="inline-flex flex-wrap items-center gap-1">
 				<Input
-					className="h-8 w-40"
+					className="w-40"
 					placeholder={kind === "micar_stor" ? t("bafinRef") : t("goAmlRef")}
 					value={ref}
 					onChange={(e) => setRef(e.target.value)}
@@ -832,7 +835,7 @@ export function JurisdictionForm({ initial }: { initial?: JurisdictionDraft }) {
 						legalNotes: d.legalNotes || undefined,
 						reviewedAt: d.reviewedAt || today(),
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("saved"));
 					setOpen(false);
 					router.refresh();
@@ -914,7 +917,7 @@ export function ApplyJurisdictionSeedButton() {
 			onClick={() =>
 				start(async () => {
 					const res = await applyJurisdictionSeed();
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("seedApplied", { n: res.data.created }));
 					router.refresh();
 				})
@@ -951,7 +954,7 @@ export function JurisdictionCsvImport() {
 			onSubmit={() =>
 				start(async () => {
 					const res = await importJurisdictionsCsv({ csv });
-					if (!res.ok) return void toast.error(res.error || tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					setErrors(res.data.errors);
 					toast.success(t("csvImported", { n: res.data.imported }));
 					if (res.data.errors.length === 0) setOpen(false);
@@ -991,7 +994,7 @@ export function CorridorTemplateButton({ iso2 }: { iso2: string }) {
 			onClick={() =>
 				start(async () => {
 					const res = await applyCorridorTemplate({ iso2 });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("corridorApplied", { n: res.data.tasks }));
 					router.refresh();
 				})

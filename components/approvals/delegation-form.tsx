@@ -3,10 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { createDelegation } from "@/app/actions/approvals";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,6 +16,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 
 export function DelegationForm({
 	members,
@@ -42,7 +43,7 @@ export function DelegationForm({
 						toUserId: to,
 						validUntil: new Date(`${until}T23:59:59`),
 					});
-					if (!res.ok) toast.error(tc("error"));
+					if (!res.ok) toast.error(errorText(tc, res));
 					else {
 						toast.success(t("delegationCreated"));
 						setUntil("");

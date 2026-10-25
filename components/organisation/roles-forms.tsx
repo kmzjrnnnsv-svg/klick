@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	addKpiMeasurement,
 	requestScopeApproval,
@@ -16,6 +15,7 @@ import { withStepUp } from "@/components/auth/step-up-dialog";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,6 +26,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { RoleFunction } from "@/db/schema/enums";
 import type { MeasurementSuggestion } from "@/lib/compliance/indicator-sources";
 import {
@@ -144,7 +145,9 @@ export function RoleAssignmentForm({
 					);
 					if (!res.ok)
 						return void toast.error(
-							res.error === "step_up_required" ? t("stepUp") : tc("error"),
+							res.error === "step_up_required"
+								? t("stepUp")
+								: errorText(tc, res),
 						);
 					toast.success(t("saved"));
 					setOpen(false);
@@ -370,7 +373,7 @@ export function ScopeForm({
 						services: split(srv),
 						exclusions: exclusions.filter((e) => e.what.trim()),
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("saved"));
 					setOpen(false);
 					router.refresh();
@@ -500,7 +503,7 @@ export function ScopeApproveButton({
 		<div className="flex flex-wrap items-center gap-2">
 			{soloHint && (
 				<Input
-					className="h-8 w-64"
+					className="w-64"
 					placeholder={t("soloReason")}
 					value={reason}
 					onChange={(e) => setReason(e.target.value)}
@@ -523,7 +526,7 @@ export function ScopeApproveButton({
 									? ts(
 											`approvalError_${res.error}` as "approvalError_no_approver",
 										)
-									: tc("error"),
+									: errorText(tc, res),
 							);
 						toast.success(
 							res.data.status === "approved"
@@ -638,7 +641,7 @@ export function ObjectiveForm({
 						nextMeasureAt: d.nextMeasureAt || null,
 						selfApprovalReason: solo || undefined,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					if (res.data.approval === "pending")
 						toast.success(t("objectiveProposed"));
 					else if (res.data.approval === "failed")
@@ -909,7 +912,7 @@ export function MeasurementForm({
 							measuredAt: date,
 							value,
 						});
-						if (!res.ok) return void toast.error(tc("error"));
+						if (!res.ok) return void toast.error(errorText(tc, res));
 						if (res.data.escalated)
 							toast.warning(
 								t("measurementEscalated", { code: res.data.escalated }),
@@ -928,7 +931,7 @@ export function MeasurementForm({
 				<Input
 					type="date"
 					aria-label={t("measuredAt")}
-					className="h-8 w-36"
+					className="w-36"
 					value={date}
 					onChange={(e) => setDate(e.target.value)}
 				/>
@@ -936,7 +939,7 @@ export function MeasurementForm({
 					aria-label={unit ? `${t("value")} (${unit})` : t("value")}
 					inputMode="decimal"
 					autoComplete="off"
-					className="h-8 w-28"
+					className="w-28"
 					placeholder={unit ? `${t("value")} (${unit})` : t("value")}
 					value={value}
 					onChange={(e) => setValue(e.target.value)}

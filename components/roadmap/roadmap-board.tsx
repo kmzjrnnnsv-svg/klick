@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	applyRoadmapTemplate,
 	createTaskFromMilestone,
@@ -23,6 +22,7 @@ import {
 } from "@/components/organisation/governance-forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { KanbanBoard } from "@/components/ui/kanban/board";
 import { Label } from "@/components/ui/label";
 import {
@@ -32,6 +32,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import { LICENCE_STAGES, type LicenceStage } from "@/db/schema/enums";
 import { ROADMAP_PHASES } from "@/lib/compliance/catalog/roadmap";
 
@@ -86,7 +87,7 @@ export function RoadmapBoard({
 					status: column as "todo" | "doing" | "done",
 					orderedIds,
 				});
-				if (!res.ok) toast.error(tc("error"));
+				if (!res.ok) toast.error(errorText(tc, res));
 				router.refresh();
 			}}
 			renderCard={(m) => (
@@ -171,7 +172,7 @@ function TaskFromMilestoneButton({
 			onClick={() =>
 				start(async () => {
 					const res = await createTaskFromMilestone({ id });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("taskCreated"));
 					router.refresh();
 				})
@@ -230,7 +231,7 @@ export function MilestoneForm({
 							.map((s) => s.trim().toUpperCase())
 							.filter(Boolean),
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("saved"));
 					setOpen(false);
 					router.refresh();
@@ -336,7 +337,7 @@ export function ApplyRoadmapForm({
 						targetStage: stage,
 						startDate,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("templateApplied", { n: res.data.created }));
 					setOpen(false);
 					router.refresh();
@@ -399,7 +400,7 @@ export function AdoptDateButton({
 						dueAt,
 						phase: null,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("adopted"));
 					router.refresh();
 				})

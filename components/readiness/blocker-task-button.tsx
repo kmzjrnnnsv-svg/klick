@@ -2,9 +2,10 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { createTask } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 
 // Ein Klick: offenen Punkt der Prüfungsreife als Aufgabe anlegen (Titel
 // vorbefüllt, Priorität aus der Schwere). Feinplanung danach in der Aufgabe.
@@ -36,7 +37,7 @@ export function BlockerTaskButton({
 						sourceKind: "remediation",
 					});
 					if (!res.ok) {
-						toast.error(tc("error"));
+						toast.error(errorText(tc, res));
 						return;
 					}
 					setDone(true);
@@ -44,7 +45,7 @@ export function BlockerTaskButton({
 				})
 			}
 		>
-			{done ? t("taskCreated") : pending ? `${t("asTask")}…` : t("asTask")}
+			{done ? t("taskCreated") : pending ? tc("creating") : t("asTask")}
 		</Button>
 	);
 }

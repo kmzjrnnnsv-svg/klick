@@ -9,7 +9,11 @@ function Toaster(props: ToasterProps) {
 			theme="system"
 			className="toaster group"
 			position="bottom-right"
+			// über der Tab-Leiste am Handy (styles/base.css, --bar-offset)
+			mobileOffset={{ bottom: "calc(var(--bar-offset, 0px) + 16px)" }}
+			containerAriaLabel="Meldungen"
 			toastOptions={{
+				closeButtonAriaLabel: "Meldung schließen",
 				classNames: {
 					toast: "group toast group-[.toaster]:bg-popover group-[.toaster]:text-popover-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg group-[.toaster]:rounded-md",
 					description: "group-[.toast]:text-muted-foreground",

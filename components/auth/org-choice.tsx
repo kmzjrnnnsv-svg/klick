@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { switchOrganization } from "@/app/actions/memberships";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 import { authClient } from "@/lib/auth/client";
 
 // Auswahl auf /organisationen: Wechsel über die Action (Step-up verfällt,
@@ -18,6 +20,7 @@ export function SwitchOrgButton({
 	label: string;
 	disabled?: boolean;
 }) {
+	const tc = useTranslations("Common");
 	const [pending, start] = useTransition();
 	return (
 		<Button
@@ -27,7 +30,7 @@ export function SwitchOrgButton({
 			onClick={() =>
 				start(async () => {
 					const res = await switchOrganization(orgId);
-					if (res && !res.ok) toast.error(res.error);
+					if (res && !res.ok) toast.error(errorText(tc, res));
 				})
 			}
 		>

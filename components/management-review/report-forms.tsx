@@ -4,7 +4,6 @@ import { Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	saveManagementReport,
 	submitManagementReport,
@@ -16,6 +15,7 @@ import {
 	NewTrigger,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -24,6 +24,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import type { ManagementReportKind } from "@/db/schema/enums";
 
 // Bericht an die Geschäftsleitung anlegen/bearbeiten (nur Entwürfe) und
@@ -77,7 +78,7 @@ export function ReportForm({
 					const res = await saveManagementReport(d);
 					if (!res.ok)
 						return void toast.error(
-							res.error === "locked" ? t("locked") : tc("error"),
+							res.error === "locked" ? t("locked") : errorText(tc, res),
 						);
 					toast.success(t("saved"));
 					setOpen(false);
@@ -183,7 +184,7 @@ export function SubmitReportButton({ id }: { id: string }) {
 					const res = await submitManagementReport({ id });
 					if (!res.ok)
 						return void toast.error(
-							res.error === "locked" ? t("locked") : tc("error"),
+							res.error === "locked" ? t("locked") : errorText(tc, res),
 						);
 					toast.success(t("submitted"));
 					router.refresh();

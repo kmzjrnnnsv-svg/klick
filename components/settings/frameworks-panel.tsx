@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { addFrameworks, updateProfileFlags } from "@/app/actions/frameworks";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { SynergyPreviewPanel } from "@/components/auth/synergy-preview";
@@ -17,6 +16,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -26,6 +26,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "@/components/ui/toast";
 import type { CaspService, LicenceStage } from "@/db/schema/enums";
 import type { FrameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import { cn } from "@/lib/utils";
@@ -78,7 +79,9 @@ export function FrameworksPanel({
 	const currentSlugs = active.map((a) => a.slug);
 
 	function handleError(error: string) {
-		toast.error(error === "step_up_required" ? t("stepUp") : tc("error"));
+		toast.error(
+			error === "step_up_required" ? t("stepUp") : errorText(tc, error),
+		);
 	}
 
 	return (

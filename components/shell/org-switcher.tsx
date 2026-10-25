@@ -4,7 +4,6 @@ import { ChevronsUpDown } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { switchOrganization } from "@/app/actions/memberships";
 import {
 	DropdownMenu,
@@ -14,6 +13,8 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 
 export type SwitcherOrg = {
 	organizationId: string;
@@ -34,6 +35,7 @@ export function OrgSwitcher({
 	currentName: string;
 	orgs: readonly SwitcherOrg[];
 }) {
+	const tc = useTranslations("Common");
 	const t = useTranslations("Organisations");
 	const [pending, start] = useTransition();
 	return (
@@ -57,7 +59,7 @@ export function OrgSwitcher({
 						onSelect={() =>
 							start(async () => {
 								const res = await switchOrganization(o.organizationId);
-								if (res && !res.ok) toast.error(res.error);
+								if (res && !res.ok) toast.error(errorText(tc, res));
 							})
 						}
 						className="flex flex-col items-start gap-0"

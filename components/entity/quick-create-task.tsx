@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { createTask } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +15,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -25,6 +25,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import type { EntityKind } from "@/db/schema/enums";
 import type { MemberOption } from "./owner-assignee";
 
@@ -88,7 +89,7 @@ export function QuickCreateTask({
 								sourceKind,
 							});
 							if (!res.ok) {
-								toast.error(tc("error"));
+								toast.error(errorText(tc, res));
 								return;
 							}
 							toast.success(t("created"));

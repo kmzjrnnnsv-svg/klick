@@ -4,9 +4,10 @@ import { FileOutput } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { generateEvidence } from "@/app/actions/evidence-studio";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 
 // „In Klick erzeugen“: Nachweis aus den Registern als PDF mit Schnappschuss
 export function GenerateButton({
@@ -34,7 +35,7 @@ export function GenerateButton({
 					const res = await generateEvidence({ kindCode, entityId });
 					if (!res.ok)
 						return void toast.error(
-							res.error === "not_found" ? t("noData") : tc("error"),
+							res.error === "not_found" ? t("noData") : errorText(tc, res),
 						);
 					toast.success(res.data.reused ? t("generateReused") : t("generated"));
 					router.refresh();

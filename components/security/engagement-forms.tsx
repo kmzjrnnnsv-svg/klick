@@ -4,7 +4,6 @@ import { Plus, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	addEngagementFinding,
 	createEngagement,
@@ -27,6 +26,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -37,6 +37,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import {
 	ENGAGEMENT_KINDS,
 	type EngagementKind,
@@ -84,7 +85,7 @@ export function NewEngagementDialog({
 								title,
 								productId: productId || null,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							setOpen(false);
 							router.push(`/sicherheit/auftraege/${res.data.id}`);
 						});
@@ -158,7 +159,7 @@ export function NewEngagementDialog({
 							{tc("cancel")}
 						</Button>
 						<Button type="submit" disabled={pending || title.trim().length < 3}>
-							{pending ? `${t("create")}…` : t("create")}
+							{pending ? tc("creating") : t("create")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -251,7 +252,7 @@ export function EngagementScopeForm({
 									? t("periodInvalid")
 									: res.fieldErrors?.testerEmail
 										? t("emailInvalid")
-										: tc("error"),
+										: errorText(tc, res),
 						);
 					toast.success(t("saved"));
 					router.refresh();
@@ -391,7 +392,7 @@ export function EngagementScopeForm({
 			{!disabled && (
 				<div className="flex justify-end">
 					<Button type="submit" disabled={pending}>
-						{pending ? `${tc("save")}…` : tc("save")}
+						{pending ? tc("saving") : tc("save")}
 					</Button>
 				</div>
 			)}
@@ -589,7 +590,7 @@ export function AddFindingDialog({
 									? t(`err_${res.error}` as "err_cvss_format")
 									: res.fieldErrors?.cwe
 										? t("err_cwe")
-										: tc("error");
+										: errorText(tc, res);
 								setError(text);
 								return void toast.error(text);
 							}
@@ -791,7 +792,7 @@ export function AddFindingDialog({
 								(!v.severity && !derived)
 							}
 						>
-							{pending ? `${t("addFinding")}…` : t("addFinding")}
+							{pending ? tc("creating") : t("addFinding")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -815,7 +816,7 @@ export function RetestControls({ findingId }: { findingId: string }) {
 				result,
 				note: note || undefined,
 			});
-			if (!res.ok) return void toast.error(tc("error"));
+			if (!res.ok) return void toast.error(errorText(tc, res));
 			toast.success(
 				result === "passed" ? t("retestPassed") : t("retestFailed"),
 			);
@@ -903,7 +904,7 @@ export function EngagementSummaryForm({
 						summary: text,
 						retestDueAt: due || null,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("saved"));
 					router.refresh();
 				});
@@ -933,7 +934,7 @@ export function EngagementSummaryForm({
 			{!disabled && (
 				<div className="flex justify-end">
 					<Button type="submit" disabled={pending}>
-						{pending ? `${tc("save")}…` : tc("save")}
+						{pending ? tc("saving") : tc("save")}
 					</Button>
 				</div>
 			)}

@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	addIncidentUpdate,
 	classifyIncident,
@@ -14,6 +13,7 @@ import {
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,6 +24,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { IncidentRegime } from "@/db/schema/enums";
 
 function nowLocal(): string {
@@ -76,7 +77,7 @@ export function IncidentCreateForm({
 								: ["dora"],
 						productId: productId || null,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("created"));
 					router.push(`/vorfaelle/${res.data.id}`);
 				});
@@ -269,7 +270,7 @@ export function ClassifyForm({
 						classificationOverride: override || undefined,
 						classificationOverrideNote: overrideNote || undefined,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(
 						`${t("classified")} ${t(`class_${res.data.classification as "major"}`)}`,
 					);
@@ -451,7 +452,7 @@ export function ReportButton({
 						toast.error(
 							res.error === "approval_pending"
 								? t("reportApprovalPending")
-								: (gate.errorText(res.error) ?? tc("error")),
+								: (gate.errorText(res.error) ?? errorText(tc, res)),
 						);
 						return;
 					}
@@ -484,7 +485,7 @@ export function MitigationButton({ incidentId }: { incidentId: string }) {
 			onClick={() =>
 				start(async () => {
 					const res = await markMitigationAvailable({ incidentId });
-					if (!res.ok) toast.error(tc("error"));
+					if (!res.ok) toast.error(errorText(tc, res));
 					else {
 						toast.success(t("mitigationSaved"));
 						router.refresh();
@@ -492,7 +493,7 @@ export function MitigationButton({ incidentId }: { incidentId: string }) {
 				})
 			}
 		>
-			{pending ? `${t("mitigationAvailable")}…` : t("mitigationAvailable")}
+			{pending ? tc("working") : t("mitigationAvailable")}
 		</Button>
 	);
 }
@@ -521,7 +522,7 @@ export function IncidentUpdateForm({
 						body,
 						rootCause: cause !== (rootCause ?? "") ? cause : undefined,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("updateAdded"));
 					setBody("");
 					router.refresh();

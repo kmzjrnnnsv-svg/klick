@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { setApplicationItem } from "@/app/actions/application";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 
 // Manuell abhakbarer Bestandteil der Antragsmappe (z. B. Satzung beigefügt).
 export function ApplicationCheck({
@@ -30,7 +31,7 @@ export function ApplicationCheck({
 				onCheckedChange={(v) =>
 					start(async () => {
 						const res = await setApplicationItem({ code, done: Boolean(v) });
-						if (!res.ok) return void toast.error(tc("error"));
+						if (!res.ok) return void toast.error(errorText(tc, res));
 						router.refresh();
 					})
 				}

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { setWorkflowEnabled } from "@/app/actions/approvals";
 import { applyWorkflowPreset } from "@/app/actions/workflows";
 import { withStepUp } from "@/components/auth/step-up-dialog";
@@ -20,7 +19,9 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "@/components/ui/toast";
 import type { ApprovalCondition, ApprovalStep } from "@/db/schema/grc";
 import type { RuleNames } from "@/lib/approvals/designer";
 import type { FactInfo, TriggerText } from "@/lib/approvals/designer-labels";
@@ -257,7 +258,9 @@ function WorkflowRow({
 							);
 							if (!res.ok)
 								toast.error(
-									res.error === "step_up_required" ? t("stepUp") : tc("error"),
+									res.error === "step_up_required"
+										? t("stepUp")
+										: errorText(tc, res),
 								);
 							else {
 								toast.success(t("toggled"));
@@ -342,7 +345,7 @@ function PresetsDialog({
 											toast.error(
 												res.error === "step_up_required"
 													? t("stepUp")
-													: tc("error"),
+													: errorText(tc, res),
 											);
 											return;
 										}

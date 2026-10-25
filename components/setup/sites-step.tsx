@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { addSite, completeSetupStep, deleteSite } from "@/app/actions/setup";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,6 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import type { SiteKind } from "@/db/schema/registers";
 import { newRiskHref } from "@/lib/compliance/risk-sources";
 import { useStepRunner } from "./step-footer";
@@ -117,7 +118,7 @@ export function SitesStep({
 									onClick={() =>
 										start(async () => {
 											const res = await deleteSite({ id: s.id });
-											if (!res.ok) return void toast.error(tc("error"));
+											if (!res.ok) return void toast.error(errorText(tc, res));
 											toast.success(t("siteDeleted"));
 											router.refresh();
 										})
@@ -145,7 +146,7 @@ export function SitesStep({
 								employees: d.employees ? Number(d.employees) : undefined,
 								critical: d.critical,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("siteAdded"));
 							setD({ ...empty, kind: "office", critical: false });
 							router.refresh();

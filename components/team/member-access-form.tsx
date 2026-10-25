@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { setMemberAccess } from "@/app/actions/team";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
@@ -17,8 +16,10 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 import { ACCESS_GRANTS } from "@/lib/validation/governance";
 
 // Zeitlich begrenzter Zugang + Grants für sensible Register (Prüfer-Sicht).
@@ -62,7 +63,9 @@ export function MemberAccessForm({
 							);
 							if (!res.ok)
 								return void toast.error(
-									res.error === "step_up_required" ? t("stepUp") : tc("error"),
+									res.error === "step_up_required"
+										? t("stepUp")
+										: errorText(tc, res),
 								);
 							toast.success(t("accessSaved"));
 							setOpen(false);

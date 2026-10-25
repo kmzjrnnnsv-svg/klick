@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { dismissRiskProposal, restoreRiskProposal } from "@/app/actions/risks";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -16,8 +15,10 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { RiskProposal } from "@/lib/compliance/risk-proposals";
 import { newRiskHref } from "@/lib/compliance/risk-sources";
 
@@ -47,7 +48,7 @@ export function RiskProposals({
 		if (!target) return;
 		start(async () => {
 			const res = await dismissRiskProposal({ key: target.key, reason });
-			if (!res.ok) return void toast.error(tc("error"));
+			if (!res.ok) return void toast.error(errorText(tc, res));
 			toast.success(t("dismissed"));
 			setTarget(null);
 			setReason("");

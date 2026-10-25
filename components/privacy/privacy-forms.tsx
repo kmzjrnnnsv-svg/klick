@@ -4,7 +4,6 @@ import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	applyProcessingActivitySeed,
 	extendDataSubjectRequest,
@@ -23,6 +22,7 @@ import {
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -32,6 +32,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import { DSR_TYPES, INSURANCE_TYPES } from "@/lib/validation/privacy";
 
 function nowLocal(): string {
@@ -115,7 +116,7 @@ export function ProcessingActivityForm({
 						dsfaEvidenceId: d.dsfaEvidenceId ?? null,
 						ownerUserId: d.ownerUserId ?? null,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("saved"));
 					setOpen(false);
 					router.refresh();
@@ -225,7 +226,7 @@ export function ApplyActivitySeedButton() {
 			onClick={() =>
 				start(async () => {
 					const res = await applyProcessingActivitySeed();
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("seedApplied", { n: res.data.created }));
 					router.refresh();
 				})
@@ -280,7 +281,7 @@ export function DsrForm({
 							d.subjectRef === undefined ? undefined : d.subjectRef || null,
 						ownerUserId: d.ownerUserId ?? null,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("saved"));
 					setOpen(false);
 					router.refresh();
@@ -351,7 +352,7 @@ export function DsrButtons({
 	const go = (to: "open" | "in_progress" | "done" | "rejected") =>
 		start(async () => {
 			const res = await transitionDataSubjectRequest({ id, to });
-			if (!res.ok) return void toast.error(tc("error"));
+			if (!res.ok) return void toast.error(errorText(tc, res));
 			router.refresh();
 		});
 	if (status === "done" || status === "rejected")
@@ -391,7 +392,7 @@ export function DsrButtons({
 			{!extended && (
 				<>
 					<Input
-						className="h-8 w-44"
+						className="w-44"
 						placeholder={t("extendReason")}
 						value={reason}
 						onChange={(e) => setReason(e.target.value)}
@@ -403,7 +404,7 @@ export function DsrButtons({
 						onClick={() =>
 							start(async () => {
 								const res = await extendDataSubjectRequest({ id, reason });
-								if (!res.ok) return void toast.error(tc("error"));
+								if (!res.ok) return void toast.error(errorText(tc, res));
 								toast.success(t("extended"));
 								router.refresh();
 							})
@@ -473,7 +474,7 @@ export function InsuranceForm({
 						premium: d.premium ? Number(d.premium) : null,
 						ownerUserId: d.ownerUserId ?? null,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("saved"));
 					setOpen(false);
 					router.refresh();

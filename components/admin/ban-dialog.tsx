@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 import { banUser } from "@/app/actions/admin";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +12,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,6 +22,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 
 // Konto sperren (Admin → Nutzer:innen): Grund ist Pflicht, Ende optional.
 // Better Auth beendet alle Sitzungen und hebt eine befristete Sperre beim
@@ -89,7 +90,7 @@ export function BanDialog({
 							? t("errorBanUntil")
 							: res.error.includes(" ")
 								? res.error
-								: tc("error"),
+								: errorText(tc, res),
 				);
 				return;
 			}

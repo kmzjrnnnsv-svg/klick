@@ -4,7 +4,6 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { deleteOrgRole, saveOrgRole } from "@/app/actions/roles";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +18,11 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { CatalogArea } from "@/lib/auth/permission-catalog";
 import type { RolePermissions } from "@/lib/auth/permissions";
 
@@ -150,7 +151,7 @@ function RoleDialog({
 										? t("roleNameTaken")
 										: res.error === "step_up_required"
 											? t("stepUp")
-											: tc("error"),
+											: errorText(tc, res),
 								);
 								return;
 							}
@@ -296,7 +297,7 @@ function RoleDialog({
 
 					<DialogFooter>
 						<Button type="submit" disabled={pending || name.trim().length < 2}>
-							{pending ? `${t("save")}…` : t("save")}
+							{pending ? tc("saving") : t("save")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -426,7 +427,7 @@ export function RolesPanel({
 																	})
 																: res.error === "step_up_required"
 																	? t("stepUp")
-																	: tc("error"),
+																	: errorText(tc, res),
 														);
 														return;
 													}

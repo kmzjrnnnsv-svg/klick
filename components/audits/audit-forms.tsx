@@ -4,7 +4,6 @@ import { Check, Plus, Trash2, Wrench, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	addProgrammeItem,
 	adoptOpenFindings,
@@ -29,6 +28,7 @@ import {
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -38,6 +38,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import {
 	AUDIT_STATUSES,
 	AUDIT_TYPES,
@@ -56,7 +57,7 @@ function useRun(setOpen?: (o: boolean) => void) {
 	) =>
 		start(async () => {
 			const res = await fn();
-			if (!res.ok) return void toast.error(tc("error"));
+			if (!res.ok) return void toast.error(errorText(tc, res));
 			toast.success(
 				typeof okMessage === "function" ? okMessage(res) : okMessage,
 			);
@@ -466,7 +467,7 @@ export function AuditStatusSelect({
 			disabled={pending}
 			onValueChange={(v) => run(() => setAuditStatus({ auditId, status: v }))}
 		>
-			<SelectTrigger className="h-8 w-44">
+			<SelectTrigger size="sm" className="w-44">
 				<SelectValue />
 			</SelectTrigger>
 			<SelectContent>
@@ -595,7 +596,7 @@ export function FindingStatusSelect({
 				run(() => setFindingStatus({ findingId, status: v }))
 			}
 		>
-			<SelectTrigger className="h-8 w-40">
+			<SelectTrigger size="sm" className="w-40">
 				<SelectValue />
 			</SelectTrigger>
 			<SelectContent>
@@ -622,7 +623,7 @@ export function FindingToNcButton({ findingId }: { findingId: string }) {
 			onClick={() =>
 				start(async () => {
 					const res = await findingToNonconformity({ findingId });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("ncCreated", { code: res.data.code }));
 					router.refresh();
 				})
@@ -654,7 +655,7 @@ export function AdoptFindingsButton({
 			onClick={() =>
 				start(async () => {
 					const res = await adoptOpenFindings({ auditId });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("adoptFindingsDone", { n: res.data.count }));
 					router.refresh();
 				})
@@ -847,7 +848,7 @@ export function DecideRequestButtons({ requestId }: { requestId: string }) {
 			</Button>
 			<Textarea
 				rows={1}
-				className="min-h-8 w-56 py-1 text-footnote"
+				className="min-h-(--control-h) w-56 py-1.5"
 				placeholder={t("rejectNote")}
 				value={note}
 				onChange={(e) => setNote(e.target.value)}

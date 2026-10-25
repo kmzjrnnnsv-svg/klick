@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { verifyStepUp } from "@/app/actions/security";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,14 +12,21 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	HostPanel,
+	topModalHost,
+	useModalHosts,
+} from "@/components/ui/modal-host";
 import { PasskeyConfirmButton } from "./passkey-confirm";
 
 // Step-up im Dialog statt Fehler-Toast: Eine Action meldet
 // `step_up_required`, withStepUp() öffnet den (einmal im AppShell
 // gemounteten) Dialog, bestätigt per Passkey (zuerst) oder TOTP und
-// wiederholt die Action.
+// wiederholt die Action. Ist schon ein Dialog offen, erscheint die
+// Bestätigung darin (components/ui/modal-host) — nie zwei Modale.
 // Abbrechen liefert das ursprüngliche Ergebnis zurück — der Aufrufer
 // zeigt dann wie bisher seinen Hinweis.
 
@@ -64,7 +71,11 @@ export function StepUpDialog({
 }) {
 	const t = useTranslations("Auth");
 	const tc = useTranslations("Common");
+	const titleId = useId();
 	const [open, setOpen] = useState(false);
+	// offener Dialog beim Anfordern: dort erscheint die Bestätigung
+	const [host, setHost] = useState<HTMLElement | null>(null);
+	const hosts = useModalHosts();
 	const [code, setCode] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
@@ -77,6 +88,7 @@ export function StepUpDialog({
 				resolver.current = resolve;
 				setCode("");
 				setError(null);
+				setHost(topModalHost());
 				setOpen(true);
 			});
 		return () => {
@@ -84,11 +96,18 @@ export function StepUpDialog({
 		};
 	}, []);
 
-	function finish(ok: boolean) {
+	const finish = useCallback((ok: boolean) => {
 		resolver.current?.(ok);
 		resolver.current = null;
 		setOpen(false);
-	}
+		setHost(null);
+	}, []);
+	const cancel = useCallback(() => finish(false), [finish]);
+
+	// Dialog geschlossen, während die Bestätigung offen war: abgebrochen
+	useEffect(() => {
+		if (open && host && !hosts.includes(host)) finish(false);
+	}, [open, host, hosts, finish]);
 
 	async function submit(e: React.FormEvent) {
 		e.preventDefault();
@@ -100,62 +119,76 @@ export function StepUpDialog({
 		setError(res.error === "locked" ? t("locked") : t("invalidCode"));
 	}
 
+	const body = (hosted: boolean) => (
+		<form onSubmit={submit} className="flex flex-col gap-4">
+			{hosted ? (
+				<div className="flex flex-col gap-1.5">
+					<h2 id={titleId} className="font-semibold text-headline">
+						{t("twoFactorTitle")}
+					</h2>
+					<p className="text-muted-foreground text-subhead">
+						{t("twoFactorStepUp")}
+					</p>
+				</div>
+			) : (
+				<DialogHeader>
+					<DialogTitle>{t("twoFactorTitle")}</DialogTitle>
+					<DialogDescription>{t("twoFactorStepUp")}</DialogDescription>
+				</DialogHeader>
+			)}
+			{passkey && (
+				<PasskeyConfirmButton
+					purpose="stepup"
+					autoFocus
+					onConfirmed={() => finish(true)}
+				/>
+			)}
+			{passkey && totp && (
+				<p className="text-muted-foreground text-footnote">{t("orCode")}</p>
+			)}
+			{(totp || !passkey) && (
+				<div className="grid gap-2">
+					<Label htmlFor="step-up-code">{t("code")}</Label>
+					<Input
+						id="step-up-code"
+						inputMode="numeric"
+						autoComplete="one-time-code"
+						autoFocus={!passkey}
+						required
+						value={code}
+						onChange={(e) => setCode(e.target.value)}
+						aria-invalid={error ? true : undefined}
+						className="font-mono text-lg"
+					/>
+					<FormAlert message={error} />
+				</div>
+			)}
+			<DialogFooter>
+				<Button type="button" variant="outline" onClick={cancel}>
+					{tc("cancel")}
+				</Button>
+				{(totp || !passkey) && (
+					<Button
+						type="submit"
+						variant={passkey ? "outline" : "default"}
+						disabled={busy || code.trim().length < 6}
+					>
+						{t("verify")}
+					</Button>
+				)}
+			</DialogFooter>
+		</form>
+	);
+
+	if (open && host)
+		return (
+			<HostPanel host={host} onCancel={cancel} labelledBy={titleId}>
+				{body(true)}
+			</HostPanel>
+		);
 	return (
-		<Dialog open={open} onOpenChange={(o) => !o && finish(false)}>
-			<DialogContent className="sm:max-w-sm">
-				<form onSubmit={submit} className="flex flex-col gap-4">
-					<DialogHeader>
-						<DialogTitle>{t("twoFactorTitle")}</DialogTitle>
-						<DialogDescription>{t("twoFactorStepUp")}</DialogDescription>
-					</DialogHeader>
-					{passkey && (
-						<PasskeyConfirmButton
-							purpose="stepup"
-							autoFocus
-							onConfirmed={() => finish(true)}
-						/>
-					)}
-					{passkey && totp && (
-						<p className="text-muted-foreground text-footnote">{t("orCode")}</p>
-					)}
-					{(totp || !passkey) && (
-						<div className="grid gap-2">
-							<Label htmlFor="step-up-code">{t("code")}</Label>
-							<Input
-								id="step-up-code"
-								inputMode="numeric"
-								autoComplete="one-time-code"
-								autoFocus={!passkey}
-								required
-								value={code}
-								onChange={(e) => setCode(e.target.value)}
-								className="font-mono text-lg"
-							/>
-							{error && (
-								<p className="text-destructive text-footnote">{error}</p>
-							)}
-						</div>
-					)}
-					<DialogFooter>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => finish(false)}
-						>
-							{tc("cancel")}
-						</Button>
-						{(totp || !passkey) && (
-							<Button
-								type="submit"
-								variant={passkey ? "outline" : "default"}
-								disabled={busy || code.trim().length < 6}
-							>
-								{t("verify")}
-							</Button>
-						)}
-					</DialogFooter>
-				</form>
-			</DialogContent>
+		<Dialog open={open} onOpenChange={(o) => !o && cancel()}>
+			<DialogContent className="sm:max-w-sm">{body(false)}</DialogContent>
 		</Dialog>
 	);
 }

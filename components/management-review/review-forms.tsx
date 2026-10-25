@@ -4,7 +4,6 @@ import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	completeReview,
 	saveReviewInputs,
@@ -21,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -31,6 +31,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { ReviewInput } from "@/lib/compliance/catalog/management-review-inputs";
 
 export type ReviewDraft = {
@@ -78,7 +79,7 @@ export function ReviewForm({
 						summary: d.summary ?? undefined,
 						decisions: d.decisions ?? undefined,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("saved"));
 					setOpen(false);
 					router.refresh();
@@ -160,7 +161,7 @@ export function ReviewInputsChecklist({
 		setState(next);
 		start(async () => {
 			const res = await saveReviewInputs({ reviewId, inputs: next });
-			if (!res.ok) toast.error(tc("error"));
+			if (!res.ok) toast.error(errorText(tc, res));
 			else router.refresh();
 		});
 	};
@@ -413,7 +414,7 @@ export function CompleteReviewForm({
 										? t("inputsIncomplete")
 										: res.error === "forbidden"
 											? t("forbiddenKind")
-											: tc("error"),
+											: errorText(tc, res),
 								);
 							toast.success(
 								t("statusSaved", {

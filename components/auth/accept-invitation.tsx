@@ -3,8 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 import { authClient } from "@/lib/auth/client";
 
 export function AcceptInvitation({ invitationId }: { invitationId: string }) {
@@ -20,7 +21,7 @@ export function AcceptInvitation({ invitationId }: { invitationId: string }) {
 		});
 		setBusy(false);
 		if (res.error) {
-			toast.error(res.error.message ?? tc("error"));
+			toast.error(errorText(tc, res.error.message));
 			return;
 		}
 		toast.success(t("accepted"));

@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { assignControl } from "@/app/actions/controls";
+import { errorText } from "@/components/ui/error-text";
 import {
 	Select,
 	SelectContent,
@@ -12,6 +12,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 
 export type MemberOption = { userId: string; name: string; email: string };
 
@@ -41,7 +42,7 @@ export function OwnerAssignee({
 				implementationId,
 				[field]: value === "none" ? null : value,
 			});
-			if (!res.ok) toast.error(tc("error"));
+			if (!res.ok) toast.error(errorText(tc, res));
 			else router.refresh();
 		});
 	}
@@ -87,7 +88,7 @@ export function OwnerAssignee({
 					onValueChange={(v) => save(field, v)}
 					disabled={pending}
 				>
-					<SelectTrigger className="h-8 w-full" aria-label={title}>
+					<SelectTrigger size="sm" className="w-full" aria-label={title}>
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>

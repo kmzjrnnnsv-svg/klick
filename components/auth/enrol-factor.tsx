@@ -4,8 +4,8 @@ import { Fingerprint } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { authClient } from "@/lib/auth/client";
 import { EnrolTwoFactor } from "./enrol-two-factor";
 

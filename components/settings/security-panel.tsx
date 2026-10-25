@@ -4,7 +4,6 @@ import { KeyRound, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { revokeOtherSessions, revokeSession } from "@/app/actions/security";
 import {
 	isStepUpError,
@@ -19,7 +18,9 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/toast";
 import { authClient } from "@/lib/auth/client";
 
 export type SessionRow = {
@@ -67,7 +68,7 @@ export function SecurityPanel({
 			authClient.passkey.addPasskey({ name: passkeyName || undefined }),
 		);
 		if (res?.error) {
-			toast.error(isStepUpError(res.error) ? t("stepUp") : tc("error"));
+			toast.error(isStepUpError(res.error) ? t("stepUp") : errorText(tc, res));
 			return;
 		}
 		setPasskeyName("");
@@ -84,7 +85,7 @@ export function SecurityPanel({
 					? t("stepUp")
 					: res.error.message === "last_factor"
 						? t("lastFactor")
-						: tc("error"),
+						: errorText(tc, res),
 			);
 		router.refresh();
 	}
@@ -194,7 +195,7 @@ export function SecurityPanel({
 										onClick={() =>
 											start(async () => {
 												const res = await revokeSession(s.token);
-												if (!res.ok) toast.error(res.error);
+												if (!res.ok) toast.error(errorText(tc, res));
 											})
 										}
 									>
@@ -212,7 +213,7 @@ export function SecurityPanel({
 							onClick={() =>
 								start(async () => {
 									const res = await revokeOtherSessions();
-									if (!res.ok) toast.error(res.error);
+									if (!res.ok) toast.error(errorText(tc, res));
 								})
 							}
 						>

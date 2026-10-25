@@ -4,7 +4,6 @@ import { FileUp, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	applyDocumentTemplates,
 	createDocument,
@@ -27,6 +26,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { DOCUMENT_TYPES } from "@/db/schema/grc";
 
 export type TemplateOption = {
@@ -78,7 +79,7 @@ export function DocumentCreate({ templates }: { templates: TemplateOption[] }) {
 								type,
 								templateCode: templateCode || undefined,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("created"));
 							setOpen(false);
 							router.push(
@@ -249,7 +250,7 @@ export function TemplatesDialog({
 						onClick={() =>
 							start(async () => {
 								const res = await applyDocumentTemplates({ codes: picked });
-								if (!res.ok) return void toast.error(tc("error"));
+								if (!res.ok) return void toast.error(errorText(tc, res));
 								toast.success(t("templatesApplied", { n: res.data.created }));
 								setOpen(false);
 								setPicked([]);
@@ -333,7 +334,7 @@ export function ImportDialog() {
 								}
 								if (ids.length === 0) return;
 								const res = await importDocumentsFromEvidence(ids);
-								if (!res.ok) return void toast.error(tc("error"));
+								if (!res.ok) return void toast.error(errorText(tc, res));
 								toast.success(t("imported", { n: res.data.created }));
 								setOpen(false);
 								setFiles([]);
@@ -385,7 +386,7 @@ export function DocumentEditor({
 								toast.error(
 									res.error === "locked"
 										? t("transitionBlockedApproval")
-										: tc("error"),
+										: errorText(tc, res),
 								);
 							else {
 								toast.success(tc("save"));
@@ -469,7 +470,7 @@ export function NewVersionDialog({ documentId }: { documentId: string }) {
 									changeSummary: summary,
 									bump,
 								});
-								if (!res.ok) return void toast.error(tc("error"));
+								if (!res.ok) return void toast.error(errorText(tc, res));
 								toast.success(`v${res.data.version}`);
 								setOpen(false);
 								setSummary("");

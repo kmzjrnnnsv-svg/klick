@@ -36,7 +36,7 @@ export function SidebarLinks({ groups }: { groups: WalletNavGroup[] }) {
 										href={i.href}
 										aria-current={on ? "page" : undefined}
 										className={cn(
-											"flex h-8 items-center gap-2.5 rounded-md px-2 text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+											"flex h-8 items-center gap-2.5 rounded-md px-2 text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-11",
 											on &&
 												"bg-primary/12 font-semibold hover:bg-primary/12 dark:bg-primary/20",
 										)}

@@ -47,7 +47,7 @@ export function SidebarNav({
 											<TooltipTrigger asChild>
 												<span
 													aria-disabled="true"
-													className="flex h-8 cursor-default items-center gap-2.5 rounded-md px-2 text-muted-foreground"
+													className="flex h-8 cursor-default items-center gap-2.5 rounded-md px-2 text-muted-foreground pointer-coarse:h-11"
 												>
 													<NavIcon
 														name={item.icon}
@@ -97,7 +97,7 @@ export function SidebarNav({
 				if (!group.labelKey) return <div key={group.key}>{items}</div>;
 				return (
 					<details key={group.key} open className="group/nav">
-						<summary className="mb-0.5 flex h-7 cursor-default list-none items-center justify-between rounded-md px-2 font-semibold text-footnote text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+						<summary className="mb-0.5 flex h-7 cursor-default list-none pointer-coarse:h-11 items-center justify-between rounded-md px-2 font-semibold text-footnote text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
 							{t(group.labelKey)}
 							<ChevronDown
 								aria-hidden="true"

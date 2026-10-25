@@ -3,7 +3,6 @@
 import { MoreHorizontal } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	cancelInvitation,
 	invitationLink,
@@ -28,6 +27,8 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 import { ORG_ROLES } from "@/lib/auth/session-rules";
 import { InviteLinkPanel } from "./invite-form";
 
@@ -80,7 +81,7 @@ export function MemberActions({
 									const res = await updateMemberRole({ memberId, role: r });
 									if (!res.ok)
 										toast.error(
-											res.error.includes(" ") ? res.error : tc("error"),
+											res.error.includes(" ") ? res.error : errorText(tc, res),
 										);
 								})
 							}
@@ -99,7 +100,7 @@ export function MemberActions({
 								const res = await removeMember(memberId);
 								if (!res.ok)
 									toast.error(
-										res.error.includes(" ") ? res.error : tc("error"),
+										res.error.includes(" ") ? res.error : errorText(tc, res),
 									);
 							})
 						}
@@ -128,8 +129,7 @@ export function CancelInvitationButton({
 			onClick={() =>
 				start(async () => {
 					const res = await cancelInvitation(invitationId);
-					if (!res.ok)
-						toast.error(res.error.includes(" ") ? res.error : tc("error"));
+					if (!res.ok) toast.error(errorText(tc, res));
 				})
 			}
 		>
@@ -158,7 +158,7 @@ export function InvitationLinkButton({
 					start(async () => {
 						const res = await invitationLink(invitationId);
 						if (res.ok) setUrl(res.data.url);
-						else toast.error(tc("error"));
+						else toast.error(errorText(tc, res));
 					})
 				}
 			>

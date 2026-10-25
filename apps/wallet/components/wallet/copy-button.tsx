@@ -3,8 +3,8 @@
 import { Check, Copy } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 
 // Kopieren mit kurzer Bestätigung im Knopf selbst (Adresse, Transaktions-ID)
 export function CopyButton({

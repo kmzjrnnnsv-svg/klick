@@ -3,7 +3,6 @@
 import { ChevronDown, FileText, Send, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	answerQuestion,
 	delegateQuestion,
@@ -17,9 +16,11 @@ import {
 } from "@/components/entity/upload-feedback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { nativeSelectCompactClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { AssessmentAnswer, AssessmentQuestion } from "@/db/schema/enums";
 import { cn } from "@/lib/utils";
 
@@ -110,7 +111,7 @@ export function QuestionCard({
 			});
 			if (!res.ok) {
 				setStatus("idle");
-				toast.error(tc("error"));
+				toast.error(errorText(tc, res));
 				return;
 			}
 			setStatus("saved");
@@ -338,7 +339,7 @@ export function QuestionCard({
 										onClick={() =>
 											start(async () => {
 												const res = await importDocumentsFromEvidence([d.id]);
-												if (!res.ok) toast.error(tc("error"));
+												if (!res.ok) toast.error(errorText(tc, res));
 												else toast.success(t("asDocumentDone"));
 											})
 										}
@@ -449,7 +450,7 @@ export function QuestionCard({
 										questionCode: question.code,
 										evidenceId,
 									});
-									if (!res.ok) return void toast.error(tc("error"));
+									if (!res.ok) return void toast.error(errorText(tc, res));
 									setDocs((d) => [...d, { id: evidenceId, title }]);
 									toast.success(t("linked"));
 								});
@@ -506,7 +507,7 @@ export function QuestionCard({
 									questionCode: question.code,
 									assigneeUserId: delegateTo,
 								});
-								if (!res.ok) return void toast.error(tc("error"));
+								if (!res.ok) return void toast.error(errorText(tc, res));
 								setDelegateTo("");
 								toast.success(t("delegated"));
 							})

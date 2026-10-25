@@ -4,7 +4,6 @@ import { ListChecks } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { createAssessment } from "@/app/actions/assessments";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,8 +16,10 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 
 // „Neue Gap-Analyse“: Rahmenwerke (vorausgewählt: alle aktiven), optional
 // Stichtag und „nur Neues“. Danach direkt in den Fragebogen.
@@ -69,7 +70,9 @@ export function NewAssessmentDialog({
 							});
 							if (!res.ok) {
 								toast.error(
-									res.error === "noQuestions" ? t("noQuestions") : tc("error"),
+									res.error === "noQuestions"
+										? t("noQuestions")
+										: errorText(tc, res),
 								);
 								return;
 							}

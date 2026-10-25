@@ -11,7 +11,6 @@ import {
 	useState,
 	useTransition,
 } from "react";
-import { toast } from "sonner";
 import {
 	type DryRunStep,
 	deleteWorkflow,
@@ -33,6 +32,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -46,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { ApprovalCondition, ApprovalStep } from "@/db/schema/grc";
 import {
 	OPS_BY_TYPE,
@@ -177,6 +179,7 @@ export function WorkflowEditor({
 			: [toDraft({ order: 1, approverRule: "" })],
 	);
 	const [issues, setIssues] = useState<Record<string, string[]>>({});
+	const [formError, setFormError] = useState<string | null>(null);
 	const rootRef = useRef<HTMLDivElement>(null);
 	// ungespeicherte Änderungen: Vergleich mit dem zuletzt gespeicherten Stand
 	const snapshot = JSON.stringify([
@@ -254,6 +257,7 @@ export function WorkflowEditor({
 
 	function save() {
 		start(async () => {
+			setFormError(null);
 			const res = await withStepUp(() =>
 				saveWorkflow({
 					id: initial.id,
@@ -268,12 +272,12 @@ export function WorkflowEditor({
 			);
 			if (!res.ok) {
 				setIssues(res.fieldErrors ?? {});
-				toast.error(
+				setFormError(
 					res.error === "step_up_required"
 						? t("stepUp")
 						: res.fieldErrors
 							? t("error_invalid")
-							: tc("error"),
+							: errorText(tc, res),
 				);
 				return;
 			}
@@ -378,7 +382,7 @@ export function WorkflowEditor({
 									placeholder={t("stepLabelPlaceholder")}
 									value={s.label}
 									onChange={(e) => update(i, { label: e.target.value })}
-									className="h-8 min-w-0 flex-1 basis-48"
+									className="min-w-0 flex-1 basis-48"
 									autoComplete="off"
 								/>
 								<div className="flex gap-1">
@@ -582,10 +586,11 @@ export function WorkflowEditor({
 				requesterDefault={requesterDefault}
 			/>
 
+			<FormAlert message={formError} />
 			<div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
 				<div className="flex gap-2">
 					<Button disabled={pending || name.trim().length < 3} onClick={save}>
-						{pending ? `${t("save")}…` : t("save")}
+						{pending ? tc("saving") : t("save")}
 					</Button>
 					<Button
 						variant="outline"
@@ -918,7 +923,7 @@ function DryRun({
 				facts: factValues,
 			});
 			if (!res.ok) {
-				toast.error(res.fieldErrors ? t("error_invalid") : tc("error"));
+				toast.error(res.fieldErrors ? t("error_invalid") : errorText(tc, res));
 				return;
 			}
 			setResult(res.data);
@@ -1014,7 +1019,7 @@ function DryRun({
 				disabled={pending || steps.every((s) => !s.approverRule)}
 				onClick={run}
 			>
-				{pending ? `${t("dryRunButton")}…` : t("dryRunButton")}
+				{pending ? tc("working") : t("dryRunButton")}
 			</Button>
 			<div aria-live="polite">
 				{result && (
@@ -1122,7 +1127,7 @@ function DeleteVariant({ id, name }: { id: string; name: string }) {
 											? t("error_hasRequests")
 											: res.error === "step_up_required"
 												? t("stepUp")
-												: tc("error"),
+												: errorText(tc, res),
 									);
 									return;
 								}

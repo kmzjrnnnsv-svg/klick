@@ -3,7 +3,6 @@
 import { MoreHorizontal } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	resetUserAccessAdmin,
 	setPlatformRole,
@@ -23,6 +22,8 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 import type { AccountStatus } from "@/lib/auth/account-status";
 
 export function UserActions({
@@ -42,6 +43,7 @@ export function UserActions({
 	isSelf: boolean;
 	activationDays: number;
 }) {
+	const tc = useTranslations("Common");
 	const t = useTranslations("Admin");
 	const ta = useTranslations("AdminAccounts");
 	const tt = useTranslations("Team");
@@ -56,7 +58,7 @@ export function UserActions({
 	) =>
 		start(async () => {
 			const res = await fn();
-			if (!res.ok) toast.error(res.error ?? "Fehler");
+			if (!res.ok) toast.error(errorText(tc, res));
 			else if (success) toast.success(success);
 		});
 	const openChange = (o: boolean) => {

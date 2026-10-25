@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { InviteLinkPanel } from "@/components/team/invite-form";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 import type { ActionResult } from "@/lib/validation/common";
 
 // Zugang zurücksetzen (ADR-019) für Owner (/team) und Plattform-Admins
@@ -57,7 +58,7 @@ export function ResetAccessDialog({
 							? t("resetErrorBlocked")
 							: res.error === "step_up_required"
 								? ta("twoFactorStepUp")
-								: tc("error"),
+								: errorText(tc, res),
 			);
 		} finally {
 			setBusy(false);

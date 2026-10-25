@@ -4,7 +4,6 @@ import { ArrowUpRight, CheckCircle2, UserPlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	assignTraining,
 	completeMyTraining,
@@ -22,6 +21,7 @@ import {
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -30,6 +30,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import type { RoleFunction } from "@/db/schema/enums";
 import { TRAINING_ORG_ROLES } from "@/lib/validation/registers";
 
@@ -79,6 +80,7 @@ export function RequirementForm({
 	const gate = useGateFeedback();
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const [pending, start] = useTransition();
 	const [d, setD] = useState<RequirementDraft>(
 		initial ?? { title: "", frequencyMonths: 12, orgRole: "all" },
@@ -98,19 +100,21 @@ export function RequirementForm({
 			setOpen={setOpen}
 			pending={pending}
 			disabled={!d.title.trim()}
+			error={error}
 			onSubmit={() =>
 				start(async () => {
+					setError(null);
 					const res = await upsertTrainingRequirement({
 						...d,
 						courseUrl: d.courseUrl?.trim() || null,
 					});
 					if (!res.ok)
-						return void toast.error(
+						return void setError(
 							res.fieldErrors?.courseUrl
 								? t("invalidUrl")
 								: res.error === "proposalNeedsWorkflow"
 									? t("proposalNeedsWorkflow")
-									: (gate.errorText(res.error) ?? tc("error")),
+									: (gate.errorText(res.error) ?? errorText(tc, res)),
 						);
 					toast.success(res.data.approvalPending ? t("proposed") : t("saved"));
 					setOpen(false);
@@ -226,7 +230,7 @@ export function AssignTrainingForm({
 						userIds: [...picked],
 						dueAt,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("assigned", { n: res.data.assigned }));
 					setPicked(new Set());
 					setOpen(false);
@@ -318,7 +322,7 @@ export function CompleteTrainingButton({
 						assignmentId,
 						note: note.trim() || undefined,
 					});
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(
 						res.data.nextDueAt
 							? t("completedNext", { date: res.data.nextDueAt })
@@ -356,7 +360,7 @@ export function UnassignButton({ assignmentId }: { assignmentId: string }) {
 			onClick={() =>
 				start(async () => {
 					const res = await unassignTraining({ id: assignmentId });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					router.refresh();
 				})
 			}

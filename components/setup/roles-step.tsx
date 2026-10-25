@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	completeSetupStep,
 	setupAssignFunction,
@@ -13,6 +12,7 @@ import { InviteLinkPanel } from "@/components/team/invite-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,6 +22,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import type { RoleFunction } from "@/db/schema/enums";
 import { useStepRunner } from "./step-footer";
 
@@ -188,7 +189,7 @@ function FunctionRow({
 						: { mode, function: fn.function, name, deputyUserId };
 		start(async () => {
 			const res = await setupAssignFunction(input);
-			if (!res.ok) return void toast.error(tc("error"));
+			if (!res.ok) return void toast.error(errorText(tc, res));
 			toast.success(res.data.inviteUrl ? t("invited") : t("assigned"));
 			if (res.data.inviteUrl)
 				setInvite({ url: res.data.inviteUrl, mailed: res.data.mailed });
@@ -259,7 +260,7 @@ function FunctionRow({
 									const res = await setupRemoveAssignment({
 										id: assignment.id,
 									});
-									if (!res.ok) return void toast.error(tc("error"));
+									if (!res.ok) return void toast.error(errorText(tc, res));
 									toast.success(t("removed"));
 									setEditing(false);
 									router.refresh();

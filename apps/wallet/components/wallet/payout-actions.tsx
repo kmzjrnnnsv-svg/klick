@@ -6,7 +6,6 @@ import { XCircle, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -19,6 +18,7 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 
 // Abbrechen (bremst — alle im Bereich) und Beschleunigen (wallet:initiate)
 export function PayoutActions({

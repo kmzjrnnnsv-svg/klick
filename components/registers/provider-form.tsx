@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { upsertProvider } from "@/app/actions/registers";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
@@ -19,6 +18,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -29,6 +29,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { PROVIDER_CATEGORIES, PROVIDER_STATUSES } from "@/db/schema/registers";
 
 const PARTNER = [
@@ -155,7 +156,7 @@ export function ProviderForm({
 								return void toast.error(
 									res.error === "statusLocked"
 										? t("statusLocked")
-										: (gate.errorText(res.error) ?? tc("error")),
+										: (gate.errorText(res.error) ?? errorText(tc, res)),
 								);
 							if (res.data.approvalPending) toast.info(gate.pendingText());
 							else toast.success(isEdit ? t("saved") : t("created"));

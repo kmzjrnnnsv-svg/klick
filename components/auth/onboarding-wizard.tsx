@@ -3,10 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 import { createOrganizationAction } from "@/app/actions/onboarding";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,6 +16,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
 import { slugify } from "@/lib/setup/labels";
 
@@ -58,7 +59,7 @@ export function OnboardingWizard({
 				toast.error(t("alreadyMember"));
 				router.replace("/heute");
 			} else if (res.fieldErrors?.slug) setSlugError(t("slugInvalid"));
-			else toast.error(tc("error"));
+			else toast.error(errorText(tc, res));
 			return;
 		}
 		toast.success(t("created"));

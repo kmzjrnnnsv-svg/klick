@@ -9,7 +9,6 @@ import {
 	useState,
 	useTransition,
 } from "react";
-import { toast } from "sonner";
 import {
 	applyGovernanceSeed,
 	upsertCommunication,
@@ -30,6 +29,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -40,6 +41,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
 import type { ActionResult } from "@/lib/validation/common";
 import { AUTHORITIES, PARTY_TYPES } from "@/lib/validation/governance";
@@ -58,6 +60,7 @@ export function FormDialog({
 	disabled,
 	children,
 	wide,
+	error,
 }: {
 	title: string;
 	lead?: string;
@@ -69,6 +72,8 @@ export function FormDialog({
 	disabled?: boolean;
 	children: ReactNode;
 	wide?: boolean;
+	// Prüffehler über dem Speichern-Knopf statt im Toast
+	error?: string | null;
 }) {
 	const tc = useTranslations("Common");
 	return (
@@ -87,6 +92,7 @@ export function FormDialog({
 						{lead && <DialogDescription>{lead}</DialogDescription>}
 					</DialogHeader>
 					{children}
+					<FormAlert message={error} />
 					<DialogFooter>
 						<Button
 							type="button"
@@ -286,7 +292,7 @@ export function DeleteRowButton({
 				if (!window.confirm(label)) return;
 				start(async () => {
 					const res = await action({ id });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					router.refresh();
 				});
 			}}
@@ -309,7 +315,7 @@ function useSave<T extends { ok: boolean }>(
 			const res = await withStepUp(fn);
 			if (!res.ok) {
 				toast.error(
-					res.error === "step_up_required" ? t("stepUp") : tc("error"),
+					res.error === "step_up_required" ? t("stepUp") : errorText(tc, res),
 				);
 				return;
 			}
@@ -547,7 +553,7 @@ export function ApplyGovernanceSeedButton() {
 			onClick={() =>
 				start(async () => {
 					const res = await applyGovernanceSeed();
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(
 						t("seedApplied", {
 							p: res.data.parties,

@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { retireAsset, upsertAsset } from "@/app/actions/registers";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import type { MemberOption } from "@/components/entity/owner-assignee";
@@ -18,6 +17,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,6 +28,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 
 const TYPES = [
 	"system",
@@ -139,7 +140,7 @@ export function AssetForm({
 							});
 							if (!res.ok)
 								return void toast.error(
-									gate.errorText(res.error) ?? tc("error"),
+									gate.errorText(res.error) ?? errorText(tc, res),
 								);
 							if (res.data.approvalPending) toast.info(gate.pendingText());
 							else toast.success(initial ? t("saved") : t("created"));
@@ -427,7 +428,7 @@ export function AssetForm({
 										});
 										if (!res.ok)
 											return void toast.error(
-												gate.errorText(res.error) ?? tc("error"),
+												gate.errorText(res.error) ?? errorText(tc, res),
 											);
 										toast.success(
 											res.data.approvalPending

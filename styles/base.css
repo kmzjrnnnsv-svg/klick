@@ -175,6 +175,27 @@ h1 {
 	}
 }
 
+/* Felder am Touch-Bildschirm mindestens 16 px: darunter zoomt Safari auf
+   iOS beim Tippen in die Seite. Ohne Ebene, damit es kleinere Textstile an
+   Feldern (Codes, Token, dichte Tabellen) sicher überstimmt. */
+@media (pointer: coarse) {
+	:is(
+			input:not(
+					[type="checkbox"],
+					[type="radio"],
+					[type="range"],
+					[type="file"],
+					[type="color"],
+					[type="hidden"]
+				),
+			textarea,
+			select,
+			[data-slot="select-trigger"]
+		):not([class*="text-body"], [class*="text-title"], [class*="text-large"]) {
+		font-size: var(--text-callout);
+	}
+}
+
 /* Bewegung: bei reduzierter Bewegung nur Überblendung, keine Wege */
 @media (prefers-reduced-motion: reduce) {
 	*,

@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	deleteSsoProvider,
 	registerSsoProvider,
@@ -20,8 +19,10 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/toast";
 
 export type SsoProviderRow = {
 	id: string;
@@ -61,7 +62,9 @@ export function SsoPanel({
 	const [tokens, setTokens] = useState<Record<string, string>>({});
 
 	const fail = (error: string): void => {
-		toast.error(error === "step_up_required" ? t("stepUp") : tc("error"));
+		toast.error(
+			error === "step_up_required" ? t("stepUp") : errorText(tc, error),
+		);
 	};
 
 	const field = (

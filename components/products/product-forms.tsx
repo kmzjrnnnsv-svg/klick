@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	createProduct,
 	startProductChecklist,
@@ -26,6 +25,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -36,6 +37,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import {
 	CRA_CLASSES,
 	type CraClass,
@@ -82,7 +84,7 @@ export function NewProductDialog() {
 								version,
 								description: description || undefined,
 							});
-							if (!res.ok) return void toast.error(tc("error"));
+							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("created"));
 							setOpen(false);
 							router.push(`/produkte/${res.data.id}`);
@@ -180,7 +182,7 @@ export function NewProductDialog() {
 							{tc("cancel")}
 						</Button>
 						<Button type="submit" disabled={pending || !name.trim()}>
-							{pending ? `${t("create")}…` : t("create")}
+							{pending ? tc("creating") : t("create")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -209,7 +211,7 @@ function useSave(productId: string) {
 	const save = (patch: Record<string, unknown>) =>
 		start(async () => {
 			const res = await updateProduct({ productId, ...patch });
-			if (!res.ok) return void toast.error(tc("error"));
+			if (!res.ok) return void toast.error(errorText(tc, res));
 			toast.success(t("saved"));
 			router.refresh();
 		});
@@ -380,7 +382,7 @@ export function ScopeForm({
 			{!disabled && (
 				<div className="flex justify-end">
 					<Button type="submit" size="sm" disabled={pending}>
-						{pending ? `${tc("save")}…` : tc("save")}
+						{pending ? tc("saving") : tc("save")}
 					</Button>
 				</div>
 			)}
@@ -488,7 +490,7 @@ export function LifecycleForm({
 			{!disabled && (
 				<div className="flex justify-end">
 					<Button type="submit" size="sm" disabled={pending}>
-						{pending ? `${tc("save")}…` : tc("save")}
+						{pending ? tc("saving") : tc("save")}
 					</Button>
 				</div>
 			)}
@@ -608,7 +610,7 @@ export function ConformityForm({
 			{!disabled && (
 				<div className="flex justify-end">
 					<Button type="submit" size="sm" disabled={pending}>
-						{pending ? `${tc("save")}…` : tc("save")}
+						{pending ? tc("saving") : tc("save")}
 					</Button>
 				</div>
 			)}
@@ -624,6 +626,7 @@ const SBOM_ERRORS = new Set([
 
 export function SbomUpload({ productId }: { productId: string }) {
 	const t = useTranslations("Products");
+	const tc = useTranslations("Common");
 	const router = useRouter();
 	const { errorText, dlpWarning, tooLarge } = useUploadFeedback();
 	const input = useRef<HTMLInputElement>(null);
@@ -648,8 +651,7 @@ export function SbomUpload({ productId }: { productId: string }) {
 				const text = SBOM_ERRORS.has(res.error)
 					? t(res.error as "sbom_invalid_json")
 					: errorText(res);
-				setMessage(text);
-				return void toast.error(text);
+				return void setMessage(text);
 			}
 			setWarn(null);
 			setAck(false);
@@ -681,16 +683,14 @@ export function SbomUpload({ productId }: { productId: string }) {
 			{warn && (
 				<DlpWarning reasons={warn} acknowledged={ack} onAcknowledge={setAck} />
 			)}
-			<p aria-live="polite" className="text-destructive text-footnote">
-				{message}
-			</p>
+			<FormAlert message={message} />
 			<div className="flex justify-end">
 				<Button
 					type="submit"
 					size="sm"
 					disabled={pending || (warn !== null && !ack)}
 				>
-					{pending ? `${t("sbomCheck")}…` : t("sbomCheck")}
+					{pending ? tc("working") : t("sbomCheck")}
 				</Button>
 			</div>
 		</form>
@@ -714,7 +714,7 @@ export function StartChecklistButton({
 			onClick={() =>
 				start(async () => {
 					const res = await startProductChecklist({ productId });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					router.push(`/gap-analyse/${res.data.id}`);
 				})
 			}

@@ -60,7 +60,11 @@ export function RoleSelect({
 				}
 			}}
 		>
-			<SelectTrigger aria-label={t("roleOf", { name })} className="h-8 w-36">
+			<SelectTrigger
+				aria-label={t("roleOf", { name })}
+				size="sm"
+				className="w-36"
+			>
 				<SelectValue />
 			</SelectTrigger>
 			<SelectContent>

@@ -4,13 +4,13 @@ import { PenLine } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	createEvidenceDraft,
 	deleteEvidenceDraft,
 	newEvidenceVersion,
 } from "@/app/actions/evidence-authoring";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import {
 	Select,
 	SelectContent,
@@ -18,6 +18,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 
 // Rohling wählen → Entwurf anlegen → Editor. Bei Listen zuerst die Vorlage.
 export function StartDraft({
@@ -79,7 +80,7 @@ export function StartDraft({
 							controlCode,
 							sheetItem,
 						});
-						if (!res.ok) return void toast.error(tc("error"));
+						if (!res.ok) return void toast.error(errorText(tc, res));
 						router.push(`/nachweise/verfassen/${res.data.id}`);
 					})
 				}
@@ -114,7 +115,7 @@ export function DeleteDraftButton({
 				if (!window.confirm(t("deleteDraftLead"))) return;
 				start(async () => {
 					const res = await deleteEvidenceDraft({ id });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("draftDeleted"));
 					router.refresh();
 				});
@@ -140,7 +141,7 @@ export function NewVersionButton({ evidenceId }: { evidenceId: string }) {
 			onClick={() =>
 				start(async () => {
 					const res = await newEvidenceVersion({ evidenceId });
-					if (!res.ok) return void toast.error(tc("error"));
+					if (!res.ok) return void toast.error(errorText(tc, res));
 					router.push(`/nachweise/verfassen/${res.data.id}`);
 				})
 			}

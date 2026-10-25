@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 import { createRiskGuided, reassessRisk } from "@/app/actions/risks";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import { LevelChoice } from "@/components/entity/level-choice";
@@ -14,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input, nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { RISK_CATEGORIES } from "@/db/schema/grc";
 import type { RiskMethod } from "@/db/schema/platform";
 import {

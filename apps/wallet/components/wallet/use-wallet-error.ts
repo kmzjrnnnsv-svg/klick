@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 // Fehler aus Wallet-Actions als Toast: Code (`error_<code>`) vor dem ersten
 // Feldfehler, sonst allgemein

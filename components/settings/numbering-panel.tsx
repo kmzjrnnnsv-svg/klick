@@ -3,11 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { updateNumbering } from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/toast";
 import type { DocumentNumbering } from "@/db/schema/platform";
 import { DEFAULT_PREFIXES, type DocType } from "@/lib/documents/numbering";
 
@@ -43,7 +44,9 @@ export function NumberingPanel({
 					);
 					if (!res.ok)
 						toast.error(
-							res.error === "step_up_required" ? t("stepUp") : tc("error"),
+							res.error === "step_up_required"
+								? t("stepUp")
+								: errorText(tc, res),
 						);
 					else {
 						toast.success(t("saved"));

@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { setMemberRoles } from "@/app/actions/roles";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 
 // Eigene Rollen einer Person (ADR-020) — zusätzlich zur Grundrolle.
 export function MemberRolesForm({
@@ -98,7 +99,7 @@ export function MemberRolesForm({
 											? t("rolesNotAllowed")
 											: res.error === "step_up_required"
 												? t("stepUp")
-												: tc("error"),
+												: errorText(tc, res),
 									);
 									return;
 								}

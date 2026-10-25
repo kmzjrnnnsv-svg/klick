@@ -11,11 +11,11 @@ import {
 	useState,
 	useTransition,
 } from "react";
-import { toast } from "sonner";
 import { bulkUpdateControls } from "@/app/actions/controls";
 import type { MemberOption } from "@/components/entity/owner-assignee";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import {
 	Select,
 	SelectContent,
@@ -23,6 +23,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 
 // Bulk-Aktionen im Register: Auswahl je Zeile (Spalte mit interactive: true,
 // also außerhalb des Zeilen-Links), schwebende Leiste mit Status/Zuweisung. Jede ID wird serverseitig
@@ -90,7 +91,7 @@ export function BulkBar({ members }: { members: MemberOption[] }) {
 							? null
 							: assignee,
 			});
-			if (!res.ok) return void toast.error(tc("error"));
+			if (!res.ok) return void toast.error(errorText(tc, res));
 			toast.success(
 				t("bulkDone", { n: res.data.updated, skipped: res.data.skipped }),
 			);

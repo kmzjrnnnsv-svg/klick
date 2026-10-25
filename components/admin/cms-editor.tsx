@@ -3,18 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { deleteCmsPage, saveCmsPage } from "@/app/actions/cms";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 
 export function CmsEditor({
 	initial,
 }: {
 	initial?: { slug: string; title: string; body: string };
 }) {
+	const tc = useTranslations("Common");
 	const t = useTranslations("Admin");
 	const router = useRouter();
 	const [slug, setSlug] = useState(initial?.slug ?? "");
@@ -30,7 +32,7 @@ export function CmsEditor({
 				start(async () => {
 					const res = await saveCmsPage({ slug, title, body });
 					if (!res.ok) {
-						toast.error(res.error);
+						toast.error(errorText(tc, res));
 						return;
 					}
 					toast.success("Gespeichert");
@@ -82,7 +84,7 @@ export function CmsEditor({
 						onClick={() =>
 							start(async () => {
 								const res = await deleteCmsPage(initial.slug);
-								if (!res.ok) toast.error(res.error);
+								if (!res.ok) toast.error(errorText(tc, res));
 								else {
 									router.push("/admin/cms");
 									router.refresh();

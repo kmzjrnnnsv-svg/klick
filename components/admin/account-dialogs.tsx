@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 import {
 	createAccount,
 	renewActivationLink,
@@ -30,6 +29,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import type { OrgRole } from "@/lib/auth/session-rules";
 
 // Admin → Benutzer: Konto anlegen, Aktivierungslink neu erzeugen, Anlage

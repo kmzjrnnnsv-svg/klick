@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	createDecisionRequest,
 	uploadDecisionAttachment,
@@ -25,9 +24,11 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { EntityKind } from "@/db/schema/enums";
 
 // „Entscheidung anfragen“ (E2): Frage an die Geschäftsleitung mit
@@ -149,7 +150,7 @@ export function DecisionRequestButton({
 						res.error === "solo_reason_required" ||
 						res.error === "solo_not_allowed"
 						? ts(`approvalError_${res.error}`)
-						: tc("error"),
+						: errorText(tc, res),
 				);
 				return;
 			}

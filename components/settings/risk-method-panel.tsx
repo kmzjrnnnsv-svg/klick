@@ -4,15 +4,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 import { updateRiskMethod } from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { MethodMatrix, ZONE_CELL } from "@/components/risks/method-matrix";
 import { Button } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input, nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type {
 	Five,
 	RiskAcceptanceStep,
@@ -96,6 +98,7 @@ export function RiskMethodPanel({
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
+	const [formError, setFormError] = useState<string | null>(null);
 	const [draft, setDraft] = useState<RiskMethod>(() => clone(method));
 	const [solo, setSolo] = useState(allowSelfApproval);
 	const range = scoreRange(draft);
@@ -129,16 +132,17 @@ export function RiskMethodPanel({
 
 	const save = () =>
 		start(async () => {
+			setFormError(null);
 			const res = await withStepUp(() =>
 				updateRiskMethod({ method: draft, allowSelfApproval: solo }),
 			);
 			if (!res.ok)
-				toast.error(
+				setFormError(
 					res.error === "step_up_required"
 						? t("stepUp")
 						: res.fieldErrors
 							? [...new Set(Object.values(res.fieldErrors).flat())].join(" ")
-							: tc("error"),
+							: errorText(tc, res),
 				);
 			else {
 				toast.success(t("saved"));
@@ -708,6 +712,7 @@ export function RiskMethodPanel({
 					</span>
 				</div>
 			)}
+			<FormAlert message={formError} />
 		</form>
 	);
 }

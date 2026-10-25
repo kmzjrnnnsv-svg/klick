@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	addKeyHolder,
 	recordCeremony,
@@ -18,6 +17,7 @@ import {
 	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Checkbox } from "@/components/ui/checkbox";
+import { errorText } from "@/components/ui/error-text";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -26,6 +26,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 import {
 	CEREMONY_KINDS,
 	KEY_HOLDER_ROLES,
@@ -44,13 +45,15 @@ type Result = {
 };
 
 // Fehlertext aus dem Action-Ergebnis: erste Feldmeldung (deutsch aus zod)
-// oder der allgemeine Hinweis.
+// oder der allgemeine Hinweis — steht im Dialog über dem Speichern-Knopf.
 function useFailure() {
 	const tc = useTranslations("Common");
-	return (res: Result) => {
+	const [error, setError] = useState<string | null>(null);
+	const fail = (res: Result) => {
 		const first = Object.values(res.fieldErrors ?? {})[0]?.[0];
-		toast.error(first ?? tc("error"));
+		setError(first ?? errorText(tc, res));
 	};
+	return { error, fail, reset: () => setError(null) };
 }
 
 function EnumSelect<T extends string>({
@@ -152,7 +155,7 @@ export function WalletForm({
 }) {
 	const t = useTranslations("Custody");
 	const router = useRouter();
-	const fail = useFailure();
+	const { error, fail, reset } = useFailure();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [d, setD] = useState<WalletDraft>(
@@ -183,9 +186,11 @@ export function WalletForm({
 			open={open}
 			setOpen={setOpen}
 			pending={pending}
+			error={error}
 			wide
 			onSubmit={() =>
 				start(async () => {
+					reset();
 					const res = await saveWallet(d);
 					if (!res.ok) return fail(res);
 					toast.success(t("walletSaved"));
@@ -327,7 +332,7 @@ export function KeyHolderForm({
 }) {
 	const t = useTranslations("Custody");
 	const router = useRouter();
-	const fail = useFailure();
+	const { error, fail, reset } = useFailure();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const empty = {
@@ -349,9 +354,11 @@ export function KeyHolderForm({
 			open={open}
 			setOpen={setOpen}
 			pending={pending}
+			error={error}
 			wide
 			onSubmit={() =>
 				start(async () => {
+					reset();
 					const res = await addKeyHolder({ walletId, ...d });
 					if (!res.ok) return fail(res);
 					toast.success(t("holderAdded"));
@@ -430,7 +437,7 @@ export function KeyHolderForm({
 export function RevokeHolderButton({ id, name }: { id: string; name: string }) {
 	const t = useTranslations("Custody");
 	const router = useRouter();
-	const fail = useFailure();
+	const { error, fail, reset } = useFailure();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [reason, setReason] = useState("");
@@ -443,8 +450,10 @@ export function RevokeHolderButton({ id, name }: { id: string; name: string }) {
 			setOpen={setOpen}
 			pending={pending}
 			disabled={reason.trim().length < 5}
+			error={error}
 			onSubmit={() =>
 				start(async () => {
+					reset();
 					const res = await revokeKeyHolder({ id, reason });
 					if (!res.ok) return fail(res);
 					toast.success(t("revoked"));
@@ -473,7 +482,7 @@ export function CeremonyForm({
 }) {
 	const t = useTranslations("Custody");
 	const router = useRouter();
-	const fail = useFailure();
+	const { error, fail, reset } = useFailure();
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const today = new Date().toISOString().slice(0, 10);
@@ -501,9 +510,11 @@ export function CeremonyForm({
 			open={open}
 			setOpen={setOpen}
 			pending={pending}
+			error={error}
 			wide
 			onSubmit={() =>
 				start(async () => {
+					reset();
 					const res = await recordCeremony({ walletId, ...d });
 					if (!res.ok) return fail(res);
 					toast.success(t("ceremonySaved"));

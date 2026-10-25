@@ -3,6 +3,7 @@
 import { XIcon } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import type * as React from "react";
+import { registerModalHost, takeHostEscape } from "@/components/ui/modal-host";
 import { cn } from "@/lib/utils";
 
 // Dialog als Sheet nach Apple HIG: am Handy von unten (volle Breite, oben
@@ -45,6 +46,7 @@ function DialogContent({
 	className,
 	children,
 	showCloseButton = true,
+	onEscapeKeyDown,
 	...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & { showCloseButton?: boolean }) {
 	return (
@@ -53,12 +55,18 @@ function DialogContent({
 			<DialogPrimitive.Content
 				data-slot="dialog-content"
 				className={cn(
-					"data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 max-sm:data-[state=closed]:slide-out-to-bottom max-sm:data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 fixed inset-x-0 bottom-0 z-50 grid max-h-[calc(100dvh-2.5rem)] w-full grid-cols-1 gap-5 overflow-y-auto overscroll-contain rounded-t-3xl bg-popover px-5 pt-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-popover-foreground shadow-2xl duration-300 sm:inset-x-auto sm:top-[50%] sm:bottom-auto sm:left-[50%] sm:max-h-[calc(100dvh-2rem)] sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl sm:p-6 sm:duration-200",
+					"data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 max-sm:data-[state=closed]:slide-out-to-bottom max-sm:data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 fixed inset-x-0 bottom-0 z-50 grid max-h-[calc(100dvh-2.5rem)] w-full grid-cols-1 gap-5 overflow-y-auto overscroll-contain rounded-t-3xl bg-popover px-5 pt-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-popover-foreground shadow-2xl duration-300 sm:inset-x-auto sm:top-[50%] sm:bottom-auto sm:left-[50%] sm:max-h-[calc(100dvh-2rem)] sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl sm:p-6 sm:duration-200 has-[[data-step-up]]:min-h-80 has-[[data-step-up]]:overflow-hidden",
 					className,
 				)}
+				onEscapeKeyDown={(e) => {
+					if (takeHostEscape()) e.preventDefault();
+					else onEscapeKeyDown?.(e);
+				}}
 				{...props}
 			>
 				{children}
+				{/* Platz für eine Rückfrage im Dialog (components/ui/modal-host) */}
+				<div ref={registerModalHost} data-slot="dialog-host" className="contents" />
 				{showCloseButton && (
 					<DialogPrimitive.Close
 						data-slot="dialog-close"

@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 import { inviteMember } from "@/app/actions/team";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,6 +14,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,6 +24,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/toast";
 
 const ROLES = ["editor", "viewer", "consultant", "owner", "auditor"] as const;
 
@@ -120,7 +121,7 @@ export function InviteForm({
 		if (!res.ok) {
 			// Better Auth liefert lesbare Meldungen („already a member“), unser
 			// Sicherheitsnetz nur Codes — die zeigen wir nicht roh an.
-			toast.error(res.error.includes(" ") ? res.error : tc("error"));
+			toast.error(errorText(tc, res));
 			return;
 		}
 		setResult({ url: res.data.url, mailed: res.data.mailed });

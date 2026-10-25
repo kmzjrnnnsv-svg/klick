@@ -4,7 +4,6 @@ import { FileText, LogOut, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
 import {
 	answerAsSupplier,
 	detachSupplierFile,
@@ -28,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { AssessmentAnswer, AssessmentQuestion } from "@/db/schema/enums";
 import { cn } from "@/lib/utils";
 
@@ -354,9 +354,8 @@ export function PortalQuestion({
 								{!readOnly && (
 									<Button
 										type="button"
-										size="icon"
+										size="icon-sm"
 										variant="ghost"
-										className="size-7"
 										aria-label={t("detach", { name: f.name })}
 										disabled={pending}
 										onClick={() =>
@@ -496,7 +495,7 @@ export function PortalSubmit({
 							})
 						}
 					>
-						{pending ? `${t("submit")}…` : t("submit")}
+						{pending ? tc("working") : t("submit")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

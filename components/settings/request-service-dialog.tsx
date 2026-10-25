@@ -1,7 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { requestService } from "@/app/actions/inquiries";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,6 +24,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { INQUIRY_SERVICES, NOTICE_SERVICE } from "@/lib/inquiries/rules";
 
 // „Leistung anfragen“ aus Einstellungen → Abo & Leistungen. Name, E-Mail und
@@ -42,6 +44,7 @@ export function RequestServiceDialog({
 	triggerLabel?: string;
 	triggerVariant?: "default" | "outline";
 }) {
+	const tc = useTranslations("Common");
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [service, setService] = useState<string>(defaultService);
@@ -89,7 +92,7 @@ export function RequestServiceDialog({
 										]),
 									),
 								);
-								if (!res.fieldErrors) toast.error(res.error);
+								if (!res.fieldErrors) toast.error(errorText(tc, res));
 								return;
 							}
 							toast.success("Anfrage gesendet — wir melden uns per E-Mail.");

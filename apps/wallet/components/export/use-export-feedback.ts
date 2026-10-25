@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 // Fehlertexte des Compliance-Exports (Codes aus link-service.ts)
 const CODES = [

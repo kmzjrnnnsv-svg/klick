@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import {
 	publishTrustCenter,
 	unpublishTrustCenter,
@@ -21,6 +20,8 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { errorText } from "@/components/ui/error-text";
+import { toast } from "@/components/ui/toast";
 
 // Veröffentlichen / Aktualisieren / Zurückziehen — jeweils mit Step-up.
 export function PublishControls({
@@ -39,7 +40,9 @@ export function PublishControls({
 		start(async () => {
 			const res = await withStepUp(() => publishTrustCenter());
 			if (!res.ok) {
-				toast.error(res.error === "notFound" ? t("saveFirst") : tc("error"));
+				toast.error(
+					res.error === "notFound" ? t("saveFirst") : errorText(tc, res),
+				);
 				return;
 			}
 			const n = res.data.warnings.length;
@@ -52,7 +55,7 @@ export function PublishControls({
 		start(async () => {
 			const res = await withStepUp(() => unpublishTrustCenter());
 			if (!res.ok) {
-				toast.error(tc("error"));
+				toast.error(errorText(tc, res));
 				return;
 			}
 			toast.success(t("unpublishedNow"));
