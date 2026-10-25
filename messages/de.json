@@ -5329,6 +5329,7 @@
 		"pickerAdded": "{n, plural, one {# Control neu} other {# Controls neu}}",
 		"pickerControls": "Controls, die du umsetzt",
 		"pickerShared": "davon für mehrere Rahmenwerke zugleich",
+		"pickerExample": "Anforderung und Control zählen verschieden: {name} „{title}“ braucht allein {n} Controls, und ein Control erfüllt oft mehrere Anforderungen.",
 		"pickerNone": "Wähle mindestens ein Rahmenwerk.",
 		"pickerCompare": "Jedes Rahmenwerk für sich: {separate} Controls. Zusammen in Klick: {controls}, weil ein Control für jedes Rahmenwerk zählt, das es verlangt.",
 		"pickerSingle": "Nimmst du {name} dazu, hast du schon {reused} seiner {total} Controls.",

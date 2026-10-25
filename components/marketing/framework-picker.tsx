@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
 	addedControls,
 	bestReuse,
+	exampleFor,
 	type PickerFramework,
 	synergyOf,
 } from "@/lib/marketing/synergy";
@@ -30,6 +31,9 @@ export function FrameworkPicker({
 	const r = synergyOf(frameworks, selected);
 	const added = addedControls(frameworks, selected);
 	const next = selected.length === 1 ? bestReuse(frameworks, selected) : null;
+	// Anforderung und Control zählen verschieden (ein Artikel kann viele
+	// Controls brauchen): mit einem echten Beispiel aus der Auswahl erklären
+	const example = exampleFor(frameworks, selected);
 	const toggle = (slug: string) =>
 		setSelected((cur) =>
 			cur.includes(slug) ? cur.filter((x) => x !== slug) : [...cur, slug],
@@ -88,6 +92,15 @@ export function FrameworkPicker({
 						</div>
 					)}
 				</dl>
+				{example && (
+					<p className={s.explain}>
+						{t("pickerExample", {
+							name: `${example.label} ${example.code}`,
+							title: example.title,
+							n: example.controls,
+						})}
+					</p>
+				)}
 				<p className={s.note}>
 					{selected.length === 0
 						? t("pickerNone")

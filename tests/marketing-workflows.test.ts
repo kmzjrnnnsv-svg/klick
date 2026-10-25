@@ -7,7 +7,12 @@ import {
 	evidenceByIsoClause,
 	pickerFrameworks,
 } from "@/lib/marketing/catalog-facts";
-import { addedControls, bestReuse, synergyOf } from "@/lib/marketing/synergy";
+import {
+	addedControls,
+	bestReuse,
+	exampleFor,
+	synergyOf,
+} from "@/lib/marketing/synergy";
 import {
 	FEATURE_FAQ,
 	PICKER_DEFAULT,
@@ -172,6 +177,47 @@ describe("addedControls / bestReuse", () => {
 		expect(best).not.toBeNull();
 		expect(best?.reused).toBeGreaterThan(0);
 		expect(best?.reused).toBeLessThanOrEqual(best?.total ?? 0);
+	});
+});
+
+describe("exampleFor", () => {
+	const fws = [
+		{
+			slug: "a",
+			label: "A",
+			requirements: 2,
+			controls: ["C1", "C2", "C3"],
+			example: { code: "Art. 1", title: "Eins", controls: 3 },
+		},
+		{
+			slug: "b",
+			label: "B",
+			requirements: 1,
+			controls: ["C1", "C2", "C3", "C4", "C5"],
+			example: { code: "§ 2", title: "Zwei", controls: 5 },
+		},
+		{ slug: "c", label: "C", requirements: 1, controls: ["C9"] },
+	];
+
+	it("nimmt die Anforderung mit den meisten Controls aus der Auswahl", () => {
+		expect(exampleFor(fws, ["a", "b"])).toEqual({
+			code: "§ 2",
+			title: "Zwei",
+			controls: 5,
+			label: "B",
+		});
+		expect(exampleFor(fws, ["a"])?.code).toBe("Art. 1");
+		expect(exampleFor(fws, ["c"])).toBeNull();
+		expect(exampleFor(fws, [])).toBeNull();
+	});
+
+	it("findet im echten Katalog Anforderungen mit mehreren Controls", () => {
+		const real = pickerFrameworks();
+		const micar = real.find((f) => f.slug === "micar");
+		expect(micar?.example?.controls).toBeGreaterThan(1);
+		expect(micar?.example?.code).toMatch(/^Art\. \d/);
+		for (const f of real)
+			if (f.example) expect(f.example.controls, f.slug).toBeGreaterThan(1);
 	});
 });
 
