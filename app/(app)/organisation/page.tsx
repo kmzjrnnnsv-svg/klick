@@ -33,6 +33,7 @@ import {
 	ScopeApproveButton,
 	ScopeForm,
 } from "@/components/organisation/roles-forms";
+import { WhoHoldsWhat } from "@/components/organisation/who-holds-what";
 import { PageHeader } from "@/components/page-header";
 import { InsuranceForm } from "@/components/privacy/privacy-forms";
 import { SitesStep } from "@/components/setup/sites-step";
@@ -58,6 +59,7 @@ import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers } from "@/lib/auth/org";
 import { allows } from "@/lib/auth/permissions";
 import { appointable } from "@/lib/compliance/catalog/appointment-templates";
+import { whoHoldsWhat } from "@/lib/compliance/function-holders";
 import { loadIndicatorData } from "@/lib/compliance/indicator-data";
 import {
 	objectiveTemplateKey,
@@ -681,66 +683,128 @@ export default async function OrganisationPage({
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{gov.coverage.items.map((it) => {
-								const a = gov.assignments.find(
+							{gov.coverage.items.flatMap((it) => {
+								// je Person eine Zeile (z. B. zwei Geschäftsführer:innen);
+								// Funktion, Rechtsgrundlage und Status gelten für alle
+								const rows = gov.assignments.filter(
 									(x) => x.function === it.required.function,
 								);
-								const idx = a ? gov.assignments.indexOf(a) : -1;
-								const cl = idx >= 0 ? data.checklists[idx] : null;
-								const doneCount = cl
-									? Object.values(cl).filter((v) => v === true).length
-									: 0;
-								return (
-									<TableRow key={it.required.function}>
-										<TableCell>
-											<p className="font-medium">
-												{functionLabels[it.required.function]}
+								const span = Math.max(rows.length, 1);
+								const fnCell = (
+									<TableCell rowSpan={span} className="align-top">
+										<p className="font-medium">
+											{functionLabels[it.required.function]}
+										</p>
+										{it.required.hint && (
+											<p className="text-muted-foreground text-footnote">
+												{it.required.hint}
 											</p>
-											{it.required.hint && (
-												<p className="text-muted-foreground text-footnote">
-													{it.required.hint}
-												</p>
-											)}
-											{a && appointable(a.function) && (
-												<div className="mt-2">
-													<EntityEvidence
-														ctx={ctx}
-														code="NW-BESTELLUNG"
-														entityId={a.id}
-														generateLabel={t("appointmentGenerate")}
-													/>
-												</div>
+										)}
+										{canRoles && rows.length > 0 && (
+											<div className="mt-2">
+												<RoleAssignmentForm
+													members={members}
+													functionLabels={functionLabels}
+													presetFunction={it.required.function}
+													triggerLabel={t("addHolder")}
+													triggerVariant="ghost"
+												/>
+											</div>
+										)}
+									</TableCell>
+								);
+								const shared = (
+									<>
+										<TableCell
+											rowSpan={span}
+											className="align-top text-muted-foreground text-footnote"
+										>
+											{it.required.legalBasis}
+										</TableCell>
+										<TableCell rowSpan={span} className="align-top text-right">
+											{it.filled ? (
+												<Badge variant="success">{t("filled")}</Badge>
+											) : (
+												<Badge variant="destructive">{t("gap")}</Badge>
 											)}
 										</TableCell>
-										<TableCell>
-											{it.filled ? (
-												a?.userId ? (
-													<UserChip name={a.holderName} />
-												) : (
-													<span>
-														{a?.externalName}{" "}
-														<Badge variant="muted">extern</Badge>
-													</span>
-												)
-											) : (
+									</>
+								);
+								if (rows.length === 0)
+									return [
+										<TableRow key={it.required.function}>
+											{fnCell}
+											<TableCell>
 												<span className="text-destructive">
 													{t("unfilled")}
 												</span>
-											)}
-										</TableCell>
-										<TableCell>
-											{a?.deputyName ? (
-												<UserChip name={a.deputyName} />
-											) : it.deputyMissing ? (
-												<span className="text-warning text-footnote">
-													{t("deputyMissing")}
-												</span>
-											) : (
+											</TableCell>
+											<TableCell>
 												<span className="text-muted-foreground">—</span>
-											)}
-										</TableCell>
-										<TableCell>
-											{a ? (
+											</TableCell>
+											<TableCell>—</TableCell>
+											{shared}
+											<TableCell className="text-right">
+												{canRoles && (
+													<RoleAssignmentForm
+														members={members}
+														functionLabels={functionLabels}
+														presetFunction={it.required.function}
+														triggerLabel={t("assign")}
+														triggerVariant="ghost"
+													/>
+												)}
+											</TableCell>
+										</TableRow>,
+									];
+								return rows.map((a, i) => {
+									const idx = gov.assignments.indexOf(a);
+									const cl = idx >= 0 ? data.checklists[idx] : null;
+									const doneCount = cl
+										? Object.values(cl).filter((v) => v === true).length
+										: 0;
+									const expired =
+										a.documentsValidUntil &&
+										new Date(a.documentsValidUntil).getTime() < Date.now();
+									return (
+										<TableRow key={a.id}>
+											{i === 0 && fnCell}
+											<TableCell>
+												{a.userId ? (
+													<UserChip name={a.holderName} />
+												) : a.externalName ? (
+													<span>
+														{a.externalName}{" "}
+														<Badge variant="muted">extern</Badge>
+													</span>
+												) : (
+													<span className="text-muted-foreground">
+														{a.pendingEmail ?? t("unfilled")}
+													</span>
+												)}
+												{appointable(a.function) && (
+													<div className="mt-2">
+														<EntityEvidence
+															ctx={ctx}
+															code="NW-BESTELLUNG"
+															entityId={a.id}
+															generateLabel={t("appointmentGenerate")}
+														/>
+													</div>
+												)}
+											</TableCell>
+											<TableCell>
+												{a.deputyName ? (
+													<UserChip name={a.deputyName} />
+												) : it.deputyMissing && i === 0 ? (
+													<span className="text-warning text-footnote">
+														{t("deputyMissing")}
+													</span>
+												) : (
+													<span className="text-muted-foreground">—</span>
+												)}
+											</TableCell>
+											<TableCell>
 												<div className="flex flex-col gap-0.5 text-footnote">
 													<Badge
 														variant={
@@ -760,65 +824,47 @@ export default async function OrganisationPage({
 															{doneCount}/7
 														</span>
 													)}
-													{it.documentsExpired && (
+													{expired && (
 														<span className="text-destructive">
 															{t("documentsExpired")}
 														</span>
 													)}
 												</div>
-											) : (
-												"—"
-											)}
-										</TableCell>
-										<TableCell className="text-muted-foreground text-footnote">
-											{it.required.legalBasis}
-										</TableCell>
-										<TableCell className="text-right">
-											{it.filled ? (
-												<Badge variant="success">{t("filled")}</Badge>
-											) : (
-												<Badge variant="destructive">{t("gap")}</Badge>
-											)}
-										</TableCell>
-										<TableCell className="text-right">
-											{canRoles && (
-												<div className="flex items-center justify-end">
-													<RoleAssignmentForm
-														members={members}
-														functionLabels={functionLabels}
-														presetFunction={it.required.function}
-														triggerLabel={a ? undefined : t("assign")}
-														initial={
-															a
-																? {
-																		id: a.id,
-																		function: a.function,
-																		userId: a.userId,
-																		externalName: a.externalName,
-																		appointedAt: a.appointedAt,
-																		deputyUserId: a.deputyUserId,
-																		fitProperStatus: a.fitProperStatus,
-																		fitProperChecklist: cl,
-																		documentsValidUntil: a.documentsValidUntil,
-																		reviewAt: a.reviewAt,
-																		reportsToFunction: a.reportsToFunction,
-																		appointmentNotes: a.appointmentNotes,
-																	}
-																: undefined
-														}
-													/>
-													{a && (
+											</TableCell>
+											{i === 0 && shared}
+											<TableCell className="text-right">
+												{canRoles && (
+													<div className="flex items-center justify-end">
+														<RoleAssignmentForm
+															members={members}
+															functionLabels={functionLabels}
+															presetFunction={it.required.function}
+															initial={{
+																id: a.id,
+																function: a.function,
+																userId: a.userId,
+																externalName: a.externalName,
+																appointedAt: a.appointedAt,
+																deputyUserId: a.deputyUserId,
+																fitProperStatus: a.fitProperStatus,
+																fitProperChecklist: cl,
+																documentsValidUntil: a.documentsValidUntil,
+																reviewAt: a.reviewAt,
+																reportsToFunction: a.reportsToFunction,
+																appointmentNotes: a.appointmentNotes,
+															}}
+														/>
 														<DeleteRowButton
 															id={a.id}
 															action={deleteRoleAssignment}
 															label={t("deleteAssignment")}
 														/>
-													)}
-												</div>
-											)}
-										</TableCell>
-									</TableRow>
-								);
+													</div>
+												)}
+											</TableCell>
+										</TableRow>
+									);
+								});
 							})}
 							{gov.assignments
 								.filter(
@@ -897,6 +943,16 @@ export default async function OrganisationPage({
 								})}
 						</TableBody>
 					</Table>
+					<WhoHoldsWhat
+						showSod={false}
+						people={whoHoldsWhat(
+							gov.assignments.map((a) => ({
+								...a,
+								userName: a.userId ? a.holderName : null,
+							})),
+							(fn) => functionLabels[fn] ?? fn,
+						)}
+					/>
 					<p className="text-muted-foreground text-footnote">
 						{t("rolesFootnote")}
 					</p>

@@ -87,12 +87,15 @@ export function RoleAssignmentForm({
 	functionLabels,
 	presetFunction,
 	triggerLabel,
+	triggerVariant,
 }: {
 	initial?: RoleAssignmentDraft;
 	members: MemberOption[];
 	functionLabels: Record<string, string>;
 	presetFunction?: RoleFunction;
 	triggerLabel?: string;
+	// in Tabellen schlicht, damit es je Ansicht nur einen Hauptknopf gibt
+	triggerVariant?: "ghost";
 }) {
 	const t = useTranslations("Organisation");
 	const tc = useTranslations("Common");
@@ -118,7 +121,10 @@ export function RoleAssignmentForm({
 				initial ? (
 					<EditTrigger label={triggerLabel} />
 				) : (
-					<NewTrigger label={triggerLabel ?? t("newAssignment")} />
+					<NewTrigger
+						label={triggerLabel ?? t("newAssignment")}
+						variant={triggerVariant}
+					/>
 				)
 			}
 			open={open}
