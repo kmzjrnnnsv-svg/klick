@@ -1,6 +1,7 @@
 import { DOCUMENT_TEMPLATES } from "@/lib/compliance/catalog/document-templates";
 import { RISK_SCENARIOS } from "@/lib/compliance/catalog/risk-scenarios";
 import { EVIDENCE_TEMPLATES } from "@/lib/evidence-authoring/templates";
+import { SHOTS, type Shot } from "@/lib/marketing/shots";
 // /funktionen — alle Abläufe in Klick, öffentlich erklärt. Jeder Ablauf:
 // was ihn auslöst, welche Schritte folgen, was am Ende prüfbar vorliegt und
 // wo er in der App liegt. Inhalt in Du-Form (Test tests/marketing-workflows),
@@ -21,8 +22,7 @@ export type WorkflowGroup = {
 	key: string;
 	title: string;
 	lead: string;
-	tone: "blue" | "brown" | "sky" | "ink";
-	image: { src: string; w: number; h: number; alt: string };
+	image: Shot & { alt: string };
 	workflows: Workflow[];
 };
 
@@ -31,11 +31,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "start",
 		title: "Einstieg",
 		lead: "Vom ersten Link bis zum Arbeitsvorrat, ohne Passwort.",
-		tone: "blue",
 		image: {
-			src: "/leistungen/frage.jpg",
-			w: 2304,
-			h: 1338,
+			...SHOTS.frage,
 			alt: "Gap-Analyse in Klick: eine Frage je Control mit Antwort und Nachweis",
 		},
 		workflows: [
@@ -110,11 +107,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "umsetzen",
 		title: "Umsetzen",
 		lead: "Ein Control, viele Anforderungen. Jeder Nachweis zählt überall.",
-		tone: "sky",
 		image: {
-			src: "/leistungen/pruefungsreife.jpg",
-			w: 2304,
-			h: 1120,
+			...SHOTS.pruefungsreife,
 			alt: "Prüfungsreife je Rahmenwerk mit Blockern",
 		},
 		workflows: [
@@ -249,11 +243,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "risiken",
 		title: "Risiken",
 		lead: "Risiken aus allem, was in Klick passiert, bewertet nach deiner Methode.",
-		tone: "brown",
 		image: {
-			src: "/funktionen/risiko.jpg",
-			w: 2304,
-			h: 1520,
+			...SHOTS.risiko,
 			alt: "Risiko-Assistent in Klick mit Szenarien",
 		},
 		workflows: [
@@ -309,11 +300,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "betrieb",
 		title: "Vorfälle und Befunde",
 		lead: "Meldefristen, Befunde und Korrekturen: mit Uhr statt Kalendereintrag.",
-		tone: "ink",
 		image: {
-			src: "/leistungen/sicherheit.jpg",
-			w: 2304,
-			h: 1240,
+			...SHOTS.sicherheit,
 			alt: "Security-Checks in Klick mit Ampel und Fristen",
 		},
 		workflows: [
@@ -402,11 +390,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "lieferkette",
 		title: "Dienstleister",
 		lead: "Bewerten intern oder per Fragebogen. Der Lieferant braucht kein Konto.",
-		tone: "sky",
 		image: {
-			src: "/leistungen/portal.jpg",
-			w: 780,
-			h: 1688,
+			...SHOTS.portal,
 			alt: "Lieferantenportal: Fragebogen ohne Konto",
 		},
 		workflows: [
@@ -458,11 +443,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "steuerung",
 		title: "Steuerung",
 		lead: "Freigaben, Beschlüsse und Fristen, damit nichts an einer Person hängen bleibt.",
-		tone: "blue",
 		image: {
-			src: "/funktionen/freigaben.jpg",
-			w: 2304,
-			h: 1520,
+			...SHOTS.freigaben,
 			alt: "Freigabe-Designer in Klick mit Stufen",
 		},
 		workflows: [
@@ -589,11 +571,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "krypto",
 		title: "Krypto und Finanzen",
 		lead: "Für Kryptowerte-Dienstleister und Zahlungsinstitute auf dem Weg zur Zulassung.",
-		tone: "brown",
 		image: {
-			src: "/funktionen/verwahrung.jpg",
-			w: 2304,
-			h: 1280,
+			...SHOTS.verwahrung,
 			alt: "Tägliche Abstimmung des Kundenvermögens in Klick",
 		},
 		workflows: [
@@ -695,11 +674,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "aussen",
 		title: "Nach außen",
 		lead: "Was Kund:innen, Prüfer:innen und Aufsicht sehen dürfen, und nicht mehr.",
-		tone: "ink",
 		image: {
-			src: "/funktionen/trust-center.jpg",
-			w: 1536,
-			h: 1800,
+			...SHOTS.trustCenter,
 			alt: "Öffentliches Trust Center einer Organisation",
 		},
 		workflows: [
@@ -751,11 +727,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "sicherheit",
 		title: "Sicherheit der Plattform",
 		lead: "Was Klick selbst tut, damit deine Daten sicher sind.",
-		tone: "blue",
 		image: {
-			src: "/funktionen/anmeldung.jpg",
-			w: 1440,
-			h: 920,
+			...SHOTS.anmeldung,
 			alt: "Anmeldung bei Klick mit Passkey",
 		},
 		workflows: [

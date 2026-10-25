@@ -1,10 +1,13 @@
+import { ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { CSSProperties } from "react";
+import { AtlasIndex } from "@/components/marketing/atlas-index";
 import { FrameworkPicker } from "@/components/marketing/framework-picker";
 import { PinnedSteps } from "@/components/marketing/pinned-steps";
 import { RevealRoot } from "@/components/marketing/reveal";
+import { assetUrl } from "@/lib/marketing/asset-url";
 import {
 	busiestControl,
 	catalogTotals,
@@ -19,13 +22,13 @@ import {
 	SAMPLE_ORG,
 	SOA_SAMPLE,
 } from "@/lib/marketing/feature-samples";
+import { SHOTS } from "@/lib/marketing/shots";
 import type { PickerFramework } from "@/lib/marketing/synergy";
 import {
 	FEATURE_FAQ,
 	PICKER_DEFAULT,
 	WORKFLOW_COUNT,
 	WORKFLOW_GROUPS,
-	type WorkflowGroup,
 } from "@/lib/marketing/workflows";
 import { cn } from "@/lib/utils";
 import s from "./funktionen.module.css";
@@ -36,13 +39,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const OUTPUTS = ["soa", "evidence", "package", "incident", "recon"] as const;
-const TONE: Record<WorkflowGroup["tone"], string> = {
-	blue: s.toneBlue,
-	brown: s.toneBrown,
-	sky: s.toneSky,
-	ink: s.toneInk,
-};
-
 // Rahmenwerke für die Kacheln (Reihenfolge = Anzeige)
 const TILE_FRAMEWORKS = [
 	"iso27001",
@@ -120,13 +116,16 @@ export default async function FeaturesPage() {
 					muted
 					playsInline
 					preload="none"
-					poster="/funktionen/rundgang.jpg"
+					poster={assetUrl("/funktionen/rundgang.jpg")}
 					width={1280}
 					height={720}
 					aria-describedby="fn-tour-text"
 				>
-					<source src="/funktionen/rundgang.mp4" type="video/mp4" />
-					<source src="/funktionen/rundgang.webm" type="video/webm" />
+					<source src={assetUrl("/funktionen/rundgang.mp4")} type="video/mp4" />
+					<source
+						src={assetUrl("/funktionen/rundgang.webm")}
+						type="video/webm"
+					/>
 				</video>
 				<p id="fn-tour-text" className={s.tourText}>
 					{t("tourText")}
@@ -249,24 +248,18 @@ export default async function FeaturesPage() {
 				/>
 			</section>
 
-			{/* Alle Abläufe: Bereiche als Index, je Bereich die Zeilen und ein Bild */}
+			{/* Alle Abläufe: Bereiche als Index, je Bereich eine gruppierte
+			    Liste zum Aufklappen und ein Bild (Apple HIG) */}
 			<section id="ablaeufe" className={s.atlas} aria-labelledby="fn-list">
-				<nav className={s.index} aria-label={t("indexLabel")}>
-					<p className={s.indexWord}>{t("indexLabel")}</p>
-					<ul>
-						{WORKFLOW_GROUPS.map((g) => (
-							<li key={g.key}>
-								<a href={`#bereich-${g.key}`} className={s.indexLink}>
-									<span
-										className={cn(s.dot, TONE[g.tone])}
-										aria-hidden="true"
-									/>
-									{g.title}
-								</a>
-							</li>
-						))}
-					</ul>
-				</nav>
+				<AtlasIndex
+					label={t("indexLabel")}
+					groups={WORKFLOW_GROUPS.map((g) => ({
+						key: g.key,
+						title: g.title,
+						count: g.workflows.length,
+						countLabel: t("indexCount", { n: g.workflows.length }),
+					}))}
+				/>
 				<div className={s.atlasBody}>
 					<div className={s.atlasHead}>
 						<h2 id="fn-list" className={s.h2} data-r="">
@@ -281,58 +274,60 @@ export default async function FeaturesPage() {
 					</div>
 					{WORKFLOW_GROUPS.map((g, gi) => (
 						<div key={g.key} id={`bereich-${g.key}`} className={s.group}>
-							<div className={s.groupList}>
-								<h3 className={s.groupWord} data-r="">
-									{g.title}
-								</h3>
-								<ul className={s.rows}>
-									{g.workflows.map((w, wi) => (
-										<li
-											key={w.key}
-											data-r=""
-											style={{ "--d": `${wi * 60}ms` } as CSSProperties}
-										>
-											<details className={s.row}>
-												<summary className={s.rowHead}>
-													<span
-														className={cn(s.dot, TONE[g.tone])}
-														aria-hidden="true"
-													/>
+							<div className={s.groupHead} data-r="">
+								<h3 className={s.groupTitle}>{g.title}</h3>
+								<p className={s.groupLead}>{g.lead}</p>
+							</div>
+							<ul className={s.rows} data-r="">
+								{g.workflows.map((w) => (
+									<li key={w.key}>
+										<details className={s.row}>
+											<summary className={s.rowHead}>
+												<span className={s.rowText}>
 													<span className={s.rowName}>{w.name}</span>
 													<span className={s.rowWhere}>
 														<span className="sr-only">{t("where")}: </span>
 														{w.where}
 													</span>
-												</summary>
-												<div className={s.rowBody}>
-													<p>{w.summary}</p>
+												</span>
+												<ChevronRight
+													className={s.rowChevron}
+													aria-hidden="true"
+												/>
+											</summary>
+											<div className={s.rowBody}>
+												<p>{w.summary}</p>
+												<div className={s.rowPart}>
 													<p className={s.rowLabel}>{t("trigger")}</p>
 													<p>{w.trigger}</p>
+												</div>
+												<div className={s.rowPart}>
 													<p className={s.rowLabel}>{t("steps")}</p>
 													<ol className={s.rowSteps}>
 														{w.steps.map((step) => (
 															<li key={step}>{step}</li>
 														))}
 													</ol>
+												</div>
+												<div className={s.rowPart}>
 													<p className={s.rowLabel}>{t("result")}</p>
 													<p>{w.result}</p>
 												</div>
-											</details>
-										</li>
-									))}
-								</ul>
-							</div>
+											</div>
+										</details>
+									</li>
+								))}
+							</ul>
 							<figure className={s.groupPic} data-r="">
 								{/* biome-ignore lint/performance/noImgElement: statische Bildschirmfotos, CSP ohne Bild-Optimierer */}
 								<img
-									src={g.image.src}
+									src={assetUrl(g.image.src)}
 									width={g.image.w}
 									height={g.image.h}
 									alt={g.image.alt}
 									loading={gi === 0 ? "eager" : "lazy"}
 									decoding="async"
 								/>
-								<figcaption>{g.lead}</figcaption>
 							</figure>
 						</div>
 					))}
@@ -400,9 +395,9 @@ export default async function FeaturesPage() {
 				<div className={s.ctaSide}>
 					{/* biome-ignore lint/performance/noImgElement: statisches Bildschirmfoto */}
 					<img
-						src="/funktionen/verwahrung.jpg"
-						width={2304}
-						height={1280}
+						src={assetUrl(SHOTS.verwahrung.src)}
+						width={SHOTS.verwahrung.w}
+						height={SHOTS.verwahrung.h}
 						alt={t("ctaImage")}
 						loading="lazy"
 						decoding="async"

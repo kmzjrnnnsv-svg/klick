@@ -53,7 +53,6 @@
 	transform: translateY(0) scale(0.98);
 }
 .button:focus-visible,
-.indexLink:focus-visible,
 .ctaLink:focus-visible {
 	outline: 2px solid var(--primary);
 	outline-offset: 3px;
@@ -641,65 +640,74 @@
 	background: var(--primary-fill);
 }
 
-/* ── Alle Abläufe: Index, schmale Spalte, Bild je Bereich ───────────── */
+/* ── Alle Abläufe (Apple HIG): Index als Seitenleiste
+   (components/marketing/atlas-index), je Bereich eine eingerückte
+   gruppierte Liste mit Aufklapp-Pfeil, daneben das Bild als Karte ───── */
 .atlas {
 	display: grid;
-	grid-template-columns: minmax(0, 22%) minmax(0, 1fr);
-	column-gap: 24px;
+	grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+	column-gap: 48px;
 	margin-top: 200px;
 	padding: 0 var(--edge);
 	scroll-margin-top: 72px;
 }
-.index {
-	position: sticky;
-	top: 96px;
-	align-self: start;
-	padding-top: 6px;
-}
-.index ul {
-	margin: 12px 0 0;
-	padding: 0;
-	list-style: none;
-}
-.indexWord {
-	color: var(--soft);
-}
-.indexLink {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	min-height: max(36px, var(--control-h));
-	color: var(--foreground);
-	text-decoration: none;
-	transition: opacity 160ms ease;
-}
-.indexLink:hover {
-	opacity: 0.65;
-}
 .atlasHead {
-	max-width: 520px;
-	margin-bottom: 40px;
+	max-width: 560px;
+	margin-bottom: 48px;
 }
 .atlasLead {
 	margin-top: 12px !important;
+	color: var(--soft);
 }
 .group {
 	display: grid;
-	grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
-	column-gap: 56px;
-	padding-bottom: 64px;
-	scroll-margin-top: 72px;
+	grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
+	grid-template-rows: auto 1fr;
+	column-gap: 48px;
+	padding-bottom: 80px;
+	scroll-margin-top: 88px;
 }
-.groupWord {
-	margin-bottom: 8px !important;
-	font-size: var(--s4) !important;
-	font-weight: 400 !important;
+.groupHead {
+	grid-column: 1;
+	grid-row: 1;
+	margin-bottom: 12px;
+	padding: 0 16px;
+}
+.groupTitle {
+	font-size: var(--text-title-2) !important;
+	line-height: var(--text-title-2--line-height) !important;
+	font-weight: 600 !important;
+}
+.groupLead {
+	margin-top: 4px !important;
 	color: var(--soft);
+	font-size: 15px;
+	line-height: 20px;
 }
+/* eingerückte gruppierte Liste: eine Fläche, Trennlinien ab dem Text */
 .rows {
+	grid-column: 1;
+	grid-row: 2;
+	align-self: start;
 	margin: 0;
 	padding: 0;
 	list-style: none;
+	border-radius: 16px;
+	background: var(--card);
+	color: var(--card-foreground);
+	overflow: hidden;
+}
+.rows > li {
+	position: relative;
+}
+.rows > li + li::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: 0;
+	left: 16px;
+	height: 1px;
+	background: var(--border);
 }
 .row summary {
 	list-style: none;
@@ -708,80 +716,107 @@
 	display: none;
 }
 .rowHead {
-	display: grid;
-	grid-template-columns: 16px minmax(0, 1fr) auto;
-	align-items: baseline;
-	column-gap: 10px;
-	min-height: 38px;
-	padding: 7px 0;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-height: 60px;
+	padding: 10px 16px;
 	cursor: pointer;
-	transition: opacity 160ms ease;
+	transition: background-color 160ms ease;
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
 }
-.rowHead:hover .rowName {
-	text-decoration: underline;
-	text-underline-offset: 4px;
+/* Tönung nur mit echtem Zeiger, am Touch-Bildschirm nur beim Drücken
+   (sonst bleibt sie nach dem Tippen stehen) */
+@media (hover: hover) {
+	.rowHead:hover {
+		background: var(--muted);
+	}
+}
+.rowHead:active {
+	background: var(--muted);
 }
 .rowHead:focus-visible {
 	outline: 2px solid var(--primary);
-	outline-offset: 2px;
+	outline-offset: -2px;
+	border-radius: 16px;
 }
-.dot {
-	align-self: center;
-	width: 16px;
-	height: 16px;
-	border-radius: 50%;
-	flex: none;
-}
-.toneBlue {
-	background: var(--primary-fill);
-}
-.toneBrown {
-	background: var(--primary-fill);
-}
-.toneSky {
-	background: var(--accent);
-}
-.toneInk {
-	background: var(--foreground);
+.rowText {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
 }
 .rowName {
-	font-size: var(--s4);
+	font-size: 17px;
+	line-height: 22px;
+}
+.row[open] .rowName {
+	font-weight: 600;
 }
 .rowWhere {
 	color: var(--soft);
-	font-size: var(--s5);
-	text-align: right;
+	font-size: 15px;
+	line-height: 20px;
+}
+.rowChevron {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	color: var(--soft);
+	transition: transform 200ms ease;
+}
+.row[open] .rowChevron {
+	transform: rotate(90deg);
 }
 .rowBody {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
-	padding: 6px 0 24px 26px;
+	gap: 16px;
+	padding: 2px 16px 20px;
+	font-size: 15px;
+	line-height: 21px;
 }
 /* geschlossen: nicht nur unsichtbar, sondern ohne Box (Messwerkzeuge und
    Vorleser sehen sonst verwaiste Zeilen) */
 .row:not([open]) > .rowBody {
 	display: none;
 }
+.rowPart {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
 .rowLabel {
-	margin-top: 10px !important;
-	font-weight: 500;
+	color: var(--soft);
+	font-size: 13px;
+	line-height: 18px;
+	font-weight: 600;
 }
 .rowSteps {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: 4px;
 	margin: 0;
-	padding: 0 0 0 18px;
+	padding: 0 0 0 22px;
+	list-style: decimal;
 }
-.row[open] .rowName {
-	font-weight: 500;
+.rowSteps li::marker {
+	color: var(--soft);
+	font-variant-numeric: tabular-nums;
 }
+/* Bild als Karte, Ecken konzentrisch (20 − 12 = 8) */
 .groupPic {
 	position: sticky;
 	top: 96px;
+	grid-column: 2;
+	grid-row: 1 / span 2;
 	align-self: start;
 	margin: 0;
+	padding: 12px;
+	border-radius: 20px;
+	background: var(--card);
 }
 .groupPic img {
 	display: block;
@@ -790,12 +825,8 @@
 	max-height: 62svh;
 	object-fit: cover;
 	object-position: top left;
-	border-radius: 12px;
+	border-radius: 8px;
 	background: var(--field);
-}
-.groupPic figcaption {
-	margin-top: 12px;
-	max-width: 46ch;
 }
 
 /* ── Rahmenwerke als Kacheln ────────────────────────────────────────── */
@@ -1112,36 +1143,30 @@
 		grid-template-columns: minmax(0, 1fr);
 		margin-top: 120px;
 	}
-	.index {
-		position: static;
-	}
-	.index ul {
-		display: flex;
-		flex-wrap: wrap;
-		column-gap: 18px;
-	}
 	.atlasHead {
-		margin-top: 32px;
+		margin: 32px 0 32px;
 	}
 	.group {
 		grid-template-columns: minmax(0, 1fr);
-		padding-bottom: 48px;
+		grid-template-rows: none;
+		padding-bottom: 56px;
+	}
+	.groupHead {
+		padding: 0 4px;
 	}
 	.groupPic {
 		position: static;
-		grid-row: 1;
-		margin-bottom: 20px;
+		grid-column: 1;
+		grid-row: 2;
+		margin-bottom: 16px;
+		padding: 8px;
+		border-radius: 16px;
 	}
 	.groupPic img {
 		max-height: 44svh;
 	}
-	.rowHead {
-		min-height: 44px;
-		grid-template-columns: 16px minmax(0, 1fr);
-	}
-	.rowWhere {
-		grid-column: 2;
-		text-align: left;
+	.rows {
+		grid-row: 3;
 	}
 	.proof {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1218,7 +1243,9 @@
 	.button,
 	.stepsState,
 	.sheetSlot,
-	.faqA {
+	.faqA,
+	.rowHead,
+	.rowChevron {
 		transition: none;
 	}
 }

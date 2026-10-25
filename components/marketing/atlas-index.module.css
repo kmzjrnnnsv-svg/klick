@@ -1,0 +1,110 @@
+/* Index der Bereiche (Apple HIG): Seitenleiste mit Auswahl am Desktop,
+   waagrecht scrollende Kapseln am Handy. Farben aus den Tokens. */
+
+.index {
+	position: sticky;
+	top: 96px;
+	align-self: start;
+}
+.word {
+	margin: 0 0 6px !important;
+	padding: 0 12px;
+	color: var(--muted-foreground);
+	font-size: 13px;
+	line-height: 18px;
+	font-weight: 600;
+}
+.list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.link {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-height: max(36px, var(--control-h-sm));
+	padding: 0 12px;
+	border-radius: 10px;
+	color: var(--foreground);
+	font-size: 15px;
+	line-height: 20px;
+	text-decoration: none;
+	transition:
+		background-color 160ms ease,
+		color 160ms ease;
+	touch-action: manipulation;
+}
+@media (hover: hover) {
+	.link:hover {
+		background: var(--muted);
+	}
+}
+.link:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: -2px;
+}
+.link[aria-current="true"] {
+	background: var(--muted);
+	color: var(--primary);
+	font-weight: 600;
+}
+.name {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+.count {
+	color: var(--muted-foreground);
+	font-size: 13px;
+	font-weight: 400;
+	font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+	.index {
+		position: static;
+		/* bis an den Rand scrollen, Inhalt bleibt in der Flucht */
+		margin: 0 calc(var(--edge, 16px) * -1);
+	}
+	.word {
+		padding: 0 var(--edge, 16px);
+	}
+	.list {
+		flex-direction: row;
+		gap: 8px;
+		padding: 0 var(--edge, 16px);
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		scroll-padding-inline: var(--edge, 16px);
+		scrollbar-width: none;
+	}
+	.list::-webkit-scrollbar {
+		display: none;
+	}
+	.list > li {
+		flex: none;
+	}
+	.link {
+		min-height: 44px;
+		padding: 0 16px;
+		border-radius: 999px;
+		background: var(--muted);
+		white-space: nowrap;
+	}
+	.link[aria-current="true"] {
+		background: var(--primary-fill);
+		color: var(--primary-foreground);
+	}
+	.link[aria-current="true"] .count {
+		color: inherit;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.link {
+		transition: none;
+	}
+}
