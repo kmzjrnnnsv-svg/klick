@@ -4,14 +4,9 @@ import { APIError } from "better-auth/api";
 import { inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import {
-	frameworks,
-	orgFrameworks,
-	orgSettings,
-	roleAssignments,
-} from "@/db/schema";
+import { frameworks, orgFrameworks, orgSettings } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
-import { audit } from "@/lib/audit";
+import { type AuditInput, audit } from "@/lib/audit";
 import {
 	AuthError,
 	checkSessionRules,
@@ -19,6 +14,7 @@ import {
 	primaryMembershipCount,
 } from "@/lib/auth/guards";
 import { auth } from "@/lib/auth/server";
+import { proposeAssignment } from "@/lib/compliance/appointment-service";
 import { initializeOrg } from "@/lib/compliance/initialize-org";
 import {
 	appetiteFromMethod,
@@ -26,7 +22,7 @@ import {
 } from "@/lib/compliance/risk-method";
 import { generateDek, wrapDek } from "@/lib/crypto/envelope";
 import { listFrameworkOptions } from "@/lib/db/global";
-import { withOrg } from "@/lib/db/with-org";
+import { takeQueuedAudits, withOrg } from "@/lib/db/with-org";
 import { TERMS_FLAG, TERMS_VERSION } from "@/lib/legal/terms";
 import { SETUP_FLAG } from "@/lib/setup/steps";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
@@ -107,17 +103,23 @@ async function createOrganizationActionImpl(
 					[TERMS_FLAG.version]: TERMS_VERSION,
 				},
 			});
-			const ownFunctions = [...new Set(data.ownFunctions)];
-			if (ownFunctions.length > 0)
-				await tx.insert(roleAssignments).values(
-					ownFunctions.map((fn) => ({
-						organizationId: org.id,
-						function: fn,
-						userId: ctx.user.id,
-						appointedAt: new Date().toISOString().slice(0, 10),
-						status: "appointed" as const,
-					})),
+			// eigene Funktionen: Geschäftsleitung zuerst (erster Eintrag gilt
+			// direkt), die übrigen bestellt sie damit gleich selbst; sonst
+			// bleiben sie Vorschläge, bis eine Geschäftsleitung bestellt ist
+			const ownFunctions = [...new Set(data.ownFunctions)].sort(
+				(a, b) =>
+					Number(b === "management_body") - Number(a === "management_body"),
+			);
+			const appointments: AuditInput[] = [];
+			for (const fn of ownFunctions) {
+				const out = await proposeAssignment(
+					tx,
+					{ orgId: org.id, userId: ctx.user.id, name: ctx.user.name },
+					{ function: fn, userId: ctx.user.id },
+					"onboarding",
 				);
+				appointments.push(...out.audit);
+			}
 			const fws = await tx
 				.select({ id: frameworks.id, slug: frameworks.slug })
 				.from(frameworks)
@@ -162,6 +164,12 @@ async function createOrganizationActionImpl(
 					},
 				},
 			);
+			for (const entry of [...appointments, ...takeQueuedAudits(tx)])
+				await audit(
+					tx,
+					{ userId: ctx.user.id, ip: ctx.ip, userAgent: ctx.userAgent },
+					{ ...entry, organizationId: org.id },
+				);
 		},
 	);
 

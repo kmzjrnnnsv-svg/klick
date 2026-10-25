@@ -103,6 +103,18 @@ export const REQUIRED_RESOLUTIONS: readonly RequiredResolution[] = [
 		linkedKind: "organization",
 	},
 	{
+		// Bestellungen durch die Geschäftsleitung (role.appoint) und der
+		// jährliche Sammelbeschluss „Besetzung bestätigen“ erfüllen ihn
+		code: "RES-ROLES",
+		title: "Rollen und Verantwortlichkeiten festlegen",
+		frameworks: ["iso27001", "dora", "zag-marisk", "kwg", "micar", "soc2"],
+		legalBasis:
+			"ISO 27001 5.3 · DORA Art. 5(2)(c) · ZAG-MaRisk AT 3, AT 4.3.1 · MiCAR Art. 68 · SOC 2 CC1.3",
+		frequency: "annual",
+		linkedKind: "organization",
+		hint: "Entsteht mit jeder Bestellung durch die Geschäftsleitung; einmal im Jahr bestätigt sie die ganze Besetzung.",
+	},
+	{
 		code: "RES-GWG-RISK",
 		title: "Risikoanalyse nach § 5 GwG genehmigen",
 		frameworks: ["gwg", "amlr"],

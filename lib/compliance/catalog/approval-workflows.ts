@@ -19,6 +19,24 @@ export type ApprovalWorkflowTemplate = {
 
 export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 	{
+		kind: "role_appointment",
+		name: "Funktion bestellen",
+		entityType: "role_assignment",
+		description:
+			"Die Geschäftsleitung bestellt Funktionen; bei mehreren Mitgliedern stimmen alle zu. Wer einträgt und zur Geschäftsleitung gehört, zählt als erste Zustimmung.",
+		steps: NEW_TRIGGER_STEPS.role_appointment ?? [],
+		defaultEnabled: true,
+	},
+	{
+		kind: "role_revocation",
+		name: "Funktion abberufen",
+		entityType: "role_assignment",
+		description:
+			"Die Abberufung wirkt erst, wenn alle Mitglieder der Geschäftsleitung zugestimmt haben; bis dahin bleibt die Besetzung bestehen.",
+		steps: NEW_TRIGGER_STEPS.role_revocation ?? [],
+		defaultEnabled: true,
+	},
+	{
 		kind: "document_publish",
 		name: "Dokument veröffentlichen",
 		entityType: "document",

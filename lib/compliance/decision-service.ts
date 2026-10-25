@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, like } from "drizzle-orm";
+import { getTranslations } from "next-intl/server";
 import {
 	amlRiskAnalyses,
 	approvalDecisions,
@@ -19,8 +20,9 @@ import {
 	resolutions,
 	riskControls,
 	risks,
+	roleAssignments,
 } from "@/db/schema";
-import type { EntityKind } from "@/db/schema/enums";
+import type { EntityKind, RoleFunction } from "@/db/schema/enums";
 import { soloModeAllowed, stepRules } from "@/lib/approvals/rules";
 import {
 	ensureOrgWorkflows,
@@ -33,11 +35,13 @@ import type { OrgTx } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import { EDGES_BY_CONTROL, REQUIREMENT_BY_KEY } from "./catalog";
 import {
+	appointmentRequirementKeys,
 	frameworkRefs,
 	isManagementDecision,
 	nextDecisionCode,
 	resolutionFromDecision,
 } from "./decision-resolutions";
+import { userNames } from "./queries";
 import { insertResolution } from "./resolutions-service";
 import { topManagementOf } from "./top-management";
 
@@ -113,6 +117,12 @@ export async function entityFrameworkRefs(
 		if (r) keys = [`${r.slug}:${r.code}`];
 	} else if (entityType === "scope") {
 		keys = ["iso27001:4.3"];
+	} else if (entityType === "role_assignment") {
+		const [r] = await tx
+			.select({ fn: roleAssignments.function })
+			.from(roleAssignments)
+			.where(eq(roleAssignments.id, entityId));
+		if (r) keys = appointmentRequirementKeys(r.fn);
 	} else {
 		const prefix = CONTROL_PREFIX[entityType];
 		if (prefix) {
@@ -136,8 +146,33 @@ async function entityFacts(
 	documentTemplateCode?: string | null;
 	providerMaterial?: boolean;
 	question?: string;
+	roleFunction?: RoleFunction | null;
 }> {
 	switch (entityType) {
+		case "role_assignment": {
+			const [r] = await tx
+				.select({
+					fn: roleAssignments.function,
+					userId: roleAssignments.userId,
+					externalName: roleAssignments.externalName,
+					pendingEmail: roleAssignments.pendingEmail,
+					appointedAt: roleAssignments.appointedAt,
+				})
+				.from(roleAssignments)
+				.where(eq(roleAssignments.id, entityId));
+			if (!r) return { label: "Funktion" };
+			const names = await userNames(tx, [r.userId]);
+			const holder =
+				(r.userId ? names.get(r.userId) : null) ??
+				r.externalName ??
+				r.pendingEmail ??
+				"";
+			const tf = await getTranslations("Functions");
+			return {
+				label: [tf(r.fn as never), holder].filter(Boolean).join(" · "),
+				roleFunction: r.fn,
+			};
+		}
 		case "risk": {
 			const [r] = await tx
 				.select({ code: risks.code, title: risks.title })
@@ -353,6 +388,7 @@ export async function createDecisionResolution(
 		documentTemplateCode: facts.documentTemplateCode,
 		providerMaterial: facts.providerMaterial,
 		question: facts.question,
+		roleFunction: facts.roleFunction,
 	});
 	const refs = await entityFrameworkRefs(
 		tx,

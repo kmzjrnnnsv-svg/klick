@@ -60,6 +60,14 @@ export function queueAudit(tx: OrgTx, entries: readonly AuditInput[]): void {
 	queuedAudits.set(tx, list);
 }
 
+// Für Abläufe ohne mutateOrg (Onboarding, Hooks): vorgemerkte Einträge
+// holen und selbst schreiben
+export function takeQueuedAudits(tx: OrgTx): AuditInput[] {
+	const list = queuedAudits.get(tx) ?? [];
+	queuedAudits.delete(tx);
+	return list;
+}
+
 // Mutation + Audit atomar: fn liefert Ergebnis und Audit-Eintrag; der Eintrag
 // wird als letzte Anweisung derselben Transaktion geschrieben.
 export async function mutateOrg<T>(
@@ -73,8 +81,7 @@ export async function mutateOrg<T>(
 			ip: ctx.ip ?? null,
 			userAgent: ctx.userAgent ?? null,
 		};
-		const queued = queuedAudits.get(tx) ?? [];
-		queuedAudits.delete(tx);
+		const queued = takeQueuedAudits(tx);
 		for (const entry of [
 			...(Array.isArray(entries) ? entries : [entries]),
 			...queued,

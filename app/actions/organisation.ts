@@ -2,7 +2,6 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { getTranslations } from "next-intl/server";
 import {
 	communications,
 	conflictsOfInterest,
@@ -17,6 +16,7 @@ import {
 	roleAssignments,
 	scopes,
 } from "@/db/schema";
+import type { AppointmentStatus } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
 import { ensureOrgWorkflows, requestApproval } from "@/lib/approvals/service";
 import type { AuditInput } from "@/lib/audit";
@@ -27,12 +27,16 @@ import {
 	toOrgCtx,
 } from "@/lib/auth/guards";
 import {
+	proposeAssignment,
+	proposeRevocation,
+	updateProposal,
+} from "@/lib/compliance/appointment-service";
+import {
 	applicableCommunications,
 	applicableParties,
 } from "@/lib/compliance/catalog/interested-parties";
 import { openDecisionRequest } from "@/lib/compliance/decision-service";
 import { ownerColumns } from "@/lib/compliance/function-holders-service";
-import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import {
 	addMonths,
 	INDICATOR_TEMPLATES,
@@ -41,9 +45,7 @@ import {
 } from "@/lib/compliance/indicators";
 import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { mutateOrg } from "@/lib/db/with-org";
-import { notify } from "@/lib/notifications/notify";
 import { listOrgFrameworks } from "@/lib/org/queries";
-import { syncTrainingAssignments } from "@/lib/trainings/assignments";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	communicationSchema,
@@ -521,9 +523,18 @@ async function requestScopeApprovalImpl(
 
 // ── Rollen & Leitung ───────────────────────────────────────────────────────
 
+type AppointmentResult = {
+	id: string;
+	status: AppointmentStatus | "withdrawn";
+	waiting: null | "approval" | "no_management";
+};
+
+// Funktion besetzen: Vorschlag an die Geschäftsleitung (role.appoint). Ein
+// neuer Vorschlag ersetzt eine bestellte Besetzung erst mit der Bestellung;
+// Ergänzungen (Berichtsweg, Fit & Proper, Fristen) ändern direkt.
 async function upsertRoleAssignmentImpl(
 	input: unknown,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<AppointmentResult>> {
 	let c: Awaited<ReturnType<typeof requireStepUp>>;
 	try {
 		c = await requireStepUp({ role_assignment: ["update"] });
@@ -535,22 +546,55 @@ async function upsertRoleAssignmentImpl(
 	const parsed = roleAssignmentSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { id, fitProperChecklist, ...d } = parsed.data;
-	const res = await mutateOrg<string | null>(toOrgCtx(c), async (tx) => {
-		const base = {
-			function: d.function,
-			userId: d.userId ?? null,
-			externalName: d.externalName?.trim() || null,
-			appointedAt: d.appointedAt ?? null,
-			deputyUserId: d.deputyUserId ?? null,
-			evidenceId: d.evidenceId ?? null,
-			fitProperStatus: d.fitProperStatus,
-			documentsValidUntil: d.documentsValidUntil ?? null,
-			reviewAt: d.reviewAt ?? null,
-			reportsToFunction:
-				d.function === "management_body" ? null : (d.reportsToFunction ?? null),
-			appointmentNotes: d.appointmentNotes?.trim() || null,
-		};
-		if (id) {
+	const actor = { orgId: c.orgId, userId: c.userId, name: c.name };
+	const res = await mutateOrg<AppointmentResult | null>(
+		toOrgCtx(c),
+		async (tx) => {
+			const base = {
+				function: d.function,
+				userId: d.userId ?? null,
+				externalName: d.externalName?.trim() || null,
+				appointedAt: d.appointedAt ?? null,
+				deputyUserId: d.deputyUserId ?? null,
+				evidenceId: d.evidenceId ?? null,
+				fitProperStatus: d.fitProperStatus,
+				documentsValidUntil: d.documentsValidUntil ?? null,
+				reviewAt: d.reviewAt ?? null,
+				reportsToFunction:
+					d.function === "management_body"
+						? null
+						: (d.reportsToFunction ?? null),
+				appointmentNotes: d.appointmentNotes?.trim() || null,
+			};
+			const checklist = async (rowId: string, current: string | null) =>
+				fitProperChecklist === undefined
+					? current
+					: fitProperChecklist === null
+						? null
+						: await encryptJson(
+								tx,
+								c.orgId,
+								fitProperChecklist,
+								fieldAad("role_assignments", rowId, "fit_proper_checklist"),
+							);
+			const propose = async (replaces: string | null) => {
+				const out = await proposeAssignment(
+					tx,
+					actor,
+					{ ...base, replacesAssignmentId: replaces },
+					"organisation",
+				);
+				if (fitProperChecklist)
+					await tx
+						.update(roleAssignments)
+						.set({ fitProperChecklist: await checklist(out.id, null) })
+						.where(eq(roleAssignments.id, out.id));
+				return {
+					result: { id: out.id, status: out.status, waiting: out.waiting },
+					audit: out.audit,
+				};
+			};
+			if (!id) return propose(null);
 			const [before] = await tx
 				.select()
 				.from(roleAssignments)
@@ -562,108 +606,66 @@ async function upsertRoleAssignmentImpl(
 				)
 				.limit(1);
 			if (!before) return { result: null, audit: [] };
-			const encrypted =
-				fitProperChecklist === undefined
-					? before.fitProperChecklist
-					: fitProperChecklist === null
-						? null
-						: await encryptJson(
-								tx,
-								c.orgId,
-								fitProperChecklist,
-								fieldAad("role_assignments", id, "fit_proper_checklist"),
-							);
+			// noch nicht bestellt: Vorschlag ändern und neu beantragen
+			if (before.status === "proposed" || before.status === "rejected") {
+				const out = await updateProposal(tx, actor, id, {
+					...base,
+					fitProperChecklist: await checklist(id, before.fitProperChecklist),
+				});
+				return out
+					? {
+							result: { id, status: out.status, waiting: out.waiting },
+							audit: [
+								{
+									action: "role_assignment.update",
+									target: `role_assignment:${id}`,
+									before: { userId: before.userId, status: before.status },
+									after: { userId: base.userId, status: out.status },
+								},
+								...out.audit,
+							],
+						}
+					: { result: null, audit: [] };
+			}
+			// andere Person, Vertretung oder Funktion → neue Bestellung
+			const changed =
+				before.function !== base.function ||
+				before.userId !== base.userId ||
+				(before.externalName ?? null) !== base.externalName ||
+				before.deputyUserId !== base.deputyUserId;
+			if (changed) return propose(id);
 			await tx
 				.update(roleAssignments)
-				.set({ ...base, fitProperChecklist: encrypted })
+				.set({
+					...base,
+					fitProperChecklist: await checklist(id, before.fitProperChecklist),
+				})
 				.where(eq(roleAssignments.id, id));
-			// Neue Funktion → zugehörige Pflichtschulungen zuweisen.
-			await syncTrainingAssignments(tx, c.orgId);
-			await syncOwnersAndNotify(tx, c.orgId, c.userId);
-			if (d.userId && d.userId !== before.userId) {
-				await notify(tx, {
-					orgId: c.orgId,
-					recipients: [d.userId],
-					actorUserId: c.userId,
-					kind: "entity_changed",
-					title: `Du wurdest als ${(await getTranslations("Functions"))(d.function)} benannt`,
-					link: "/organisation?tab=rollen",
-				});
-			}
 			return {
-				result: id,
+				result: { id, status: before.status, waiting: null },
 				audit: {
 					action: "role_assignment.update",
 					target: `role_assignment:${id}`,
 					before: {
-						function: before.function,
-						userId: before.userId,
-						externalName: before.externalName,
-						deputyUserId: before.deputyUserId,
+						reportsToFunction: before.reportsToFunction,
 						fitProperStatus: before.fitProperStatus,
+						appointedAt: before.appointedAt,
 					},
 					after: {
-						function: d.function,
-						userId: d.userId ?? null,
-						externalName: d.externalName ?? null,
-						deputyUserId: d.deputyUserId ?? null,
-						fitProperStatus: d.fitProperStatus,
+						reportsToFunction: base.reportsToFunction,
+						fitProperStatus: base.fitProperStatus,
+						appointedAt: base.appointedAt,
 					},
 				},
 			};
-		}
-		const [row] = await tx
-			.insert(roleAssignments)
-			.values({ organizationId: c.orgId, status: "appointed", ...base })
-			.returning({ id: roleAssignments.id });
-		if (!row) throw new Error("insert failed");
-		await syncTrainingAssignments(tx, c.orgId);
-		await syncOwnersAndNotify(tx, c.orgId, c.userId);
-		if (fitProperChecklist) {
-			await tx
-				.update(roleAssignments)
-				.set({
-					fitProperChecklist: await encryptJson(
-						tx,
-						c.orgId,
-						fitProperChecklist,
-						fieldAad("role_assignments", row.id, "fit_proper_checklist"),
-					),
-				})
-				.where(eq(roleAssignments.id, row.id));
-		}
-		if (d.userId) {
-			await notify(tx, {
-				orgId: c.orgId,
-				recipients: [d.userId],
-				actorUserId: c.userId,
-				kind: "entity_changed",
-				title: `Du wurdest als ${(await getTranslations("Functions"))(d.function)} benannt`,
-				link: "/organisation?tab=rollen",
-			});
-		}
-		return {
-			result: row.id,
-			audit: {
-				action: "role_assignment.create",
-				target: `role_assignment:${row.id}`,
-				after: {
-					function: d.function,
-					userId: d.userId ?? null,
-					externalName: d.externalName ?? null,
-					deputyUserId: d.deputyUserId ?? null,
-					fitProperStatus: d.fitProperStatus,
-				},
-			},
-		};
-	});
+		},
+	);
 	revalidatePath(PATH);
 	revalidatePath("/ueberblick");
-	return res
-		? { ok: true, data: { id: res } }
-		: { ok: false, error: "notFound" };
+	return res ? { ok: true, data: res } : { ok: false, error: "notFound" };
 }
 
+// Entfernen: Vorschlag zurückziehen oder Abberufung beantragen
 async function deleteRoleAssignmentImpl(input: unknown): Promise<ActionResult> {
 	let c: Awaited<ReturnType<typeof requireStepUp>>;
 	try {
@@ -675,25 +677,23 @@ async function deleteRoleAssignmentImpl(input: unknown): Promise<ActionResult> {
 	}
 	const parsed = deleteByIdSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
-	await mutateOrg(toOrgCtx(c), async (tx) => {
-		const a = await deleteRow(
+	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const r = await proposeRevocation(
 			tx,
-			c.orgId,
-			roleAssignments,
+			{ orgId: c.orgId, userId: c.userId, name: c.name },
 			parsed.data.id,
-			"role_assignment",
-			(r) => ({
-				function: r.function,
-				userId: r.userId,
-				externalName: r.externalName,
-			}),
+			"organisation",
 		);
-		await syncOwnersAndNotify(tx, c.orgId, c.userId);
-		return { result: null, audit: a ?? [] };
+		return { result: r, audit: r.ok ? r.audit : [] };
 	});
 	revalidatePath(PATH);
 	revalidatePath("/ueberblick");
-	return { ok: true, data: undefined };
+	return res.ok
+		? { ok: true, data: undefined }
+		: {
+				ok: false,
+				error: res.error === "no_management" ? "noManagement" : "notFound",
+			};
 }
 
 // ── Ziele & KPIs ───────────────────────────────────────────────────────────

@@ -12,13 +12,18 @@ import {
 	roleAssignments,
 	sites,
 } from "@/db/schema";
-import type { RoleFunction } from "@/db/schema/enums";
+import type { AppointmentStatus, RoleFunction } from "@/db/schema/enums";
 import type { EntityProfile } from "@/db/schema/platform";
 import { safeAction } from "@/lib/actions/safe";
 import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import { insertSelfAssessment } from "@/lib/assessments/create-service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
+import {
+	proposeAssignment,
+	proposeRevocation,
+	updateProposal,
+} from "@/lib/compliance/appointment-service";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import {
@@ -115,10 +120,14 @@ async function requireSetup(perm: Parameters<typeof requireOrg>[0]) {
 
 // ── Schritt 1: Rollen & Rechte ────────────────────────────────────────────
 
-async function setupAssignFunctionImpl(
-	input: unknown,
-): Promise<
-	ActionResult<{ id: string; inviteUrl: string | null; mailed: boolean | null }>
+async function setupAssignFunctionImpl(input: unknown): Promise<
+	ActionResult<{
+		id: string;
+		status: AppointmentStatus;
+		waiting: null | "approval" | "no_management";
+		inviteUrl: string | null;
+		mailed: boolean | null;
+	}>
 > {
 	// in der Einrichtung ohne Step-up, danach wie unter /organisation
 	const { c, open } = await requireSetup({ role_assignment: ["update"] });
@@ -158,7 +167,9 @@ async function setupAssignFunctionImpl(
 		pendingEmail: d.mode === "invite" ? d.email.toLowerCase() : null,
 		deputyUserId: d.deputyUserId ?? null,
 	};
-	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
+	const actor = { orgId: c.orgId, userId: c.userId, name: c.name };
+	// Vorschlag an die Geschäftsleitung; wirkt erst mit der Bestellung
+	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const rows = await tx
 			.select()
 			.from(roleAssignments)
@@ -168,57 +179,79 @@ async function setupAssignFunctionImpl(
 					eq(roleAssignments.function, d.function),
 				),
 			);
+		const live = rows.filter(
+			(r) => r.status !== "revoked" && r.status !== "rejected",
+		);
 		// geändert wird nur die gewählte Zeile; dieselbe Person nie doppelt
 		const existing =
 			rows.find((r) => r.id === d.id) ??
-			(holderId ? rows.find((r) => r.userId === holderId) : undefined);
+			(holderId ? live.find((r) => r.userId === holderId) : undefined);
 		if (d.id && !existing) return { result: null, audit: [] };
-		if (existing) {
-			await tx
-				.update(roleAssignments)
-				.set(values)
-				.where(eq(roleAssignments.id, existing.id));
-			await syncOwnersAndNotify(tx, c.orgId, c.userId);
+		if (
+			existing &&
+			(existing.status === "proposed" || existing.status === "rejected")
+		) {
+			const out = await updateProposal(tx, actor, existing.id, values);
+			if (!out) return { result: null, audit: [] };
 			return {
-				result: existing.id,
-				audit: {
-					action: "role_assignment.update",
-					target: `role_assignment:${existing.id}`,
-					before: {
-						userId: existing.userId,
-						externalName: existing.externalName,
-						pendingEmail: existing.pendingEmail,
-						deputyUserId: existing.deputyUserId,
+				result: out,
+				audit: [
+					{
+						action: "role_assignment.update",
+						target: `role_assignment:${existing.id}`,
+						before: {
+							userId: existing.userId,
+							externalName: existing.externalName,
+							pendingEmail: existing.pendingEmail,
+							deputyUserId: existing.deputyUserId,
+						},
+						after: { function: d.function, ...values, via: "setup" },
 					},
-					after: { function: d.function, ...values, via: "setup" },
-				},
+					...out.audit,
+				],
 			};
 		}
-		const [row] = await tx
-			.insert(roleAssignments)
-			.values({
-				organizationId: c.orgId,
+		const unchanged =
+			existing &&
+			existing.userId === values.userId &&
+			(existing.externalName ?? null) === values.externalName &&
+			(existing.pendingEmail ?? null) === values.pendingEmail &&
+			existing.deputyUserId === values.deputyUserId;
+		if (existing && unchanged)
+			return {
+				result: {
+					id: existing.id,
+					status: existing.status,
+					waiting: null,
+					audit: [],
+				},
+				audit: [],
+			};
+		// neu oder Neubesetzung einer bestellten Zeile
+		const out = await proposeAssignment(
+			tx,
+			actor,
+			{
 				function: d.function,
-				appointedAt: new Date().toISOString().slice(0, 10),
-				// bis die Bestellung über die Geschäftsleitung läuft (G3)
-				status: "appointed",
 				...values,
-			})
-			.returning({ id: roleAssignments.id });
-		if (!row) throw new Error("insert failed");
-		await syncOwnersAndNotify(tx, c.orgId, c.userId);
-		return {
-			result: row.id,
-			audit: {
-				action: "role_assignment.create",
-				target: `role_assignment:${row.id}`,
-				after: { function: d.function, ...values, via: "setup" },
+				replacesAssignmentId: existing?.id ?? null,
 			},
-		};
+			"setup",
+		);
+		return { result: out, audit: out.audit };
 	});
-	if (!id) return { ok: false, error: "notFound" };
+	if (!res) return { ok: false, error: "notFound" };
 	revalidatePath(PATH, "layout");
-	return { ok: true, data: { id, inviteUrl, mailed } };
+	return {
+		ok: true,
+		data: {
+			id: res.id,
+			status: res.status,
+			waiting: res.waiting,
+			inviteUrl,
+			mailed,
+		},
+	};
 }
 
 async function setupRemoveAssignmentImpl(
@@ -228,29 +261,23 @@ async function setupRemoveAssignmentImpl(
 	if (!open) await requireStepUp();
 	const parsed = deleteSiteSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
-	const ok = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const [row] = await tx
-			.delete(roleAssignments)
-			.where(
-				and(
-					eq(roleAssignments.id, parsed.data.id),
-					eq(roleAssignments.organizationId, c.orgId),
-				),
-			)
-			.returning();
-		if (!row) return { result: false, audit: [] };
-		await syncOwnersAndNotify(tx, c.orgId, c.userId);
-		return {
-			result: true,
-			audit: {
-				action: "role_assignment.delete",
-				target: `role_assignment:${row.id}`,
-				before: { function: row.function, userId: row.userId, via: "setup" },
-			},
-		};
+	// Vorschlag zurückziehen oder Abberufung bei der Geschäftsleitung beantragen
+	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const r = await proposeRevocation(
+			tx,
+			{ orgId: c.orgId, userId: c.userId, name: c.name },
+			parsed.data.id,
+			"setup",
+		);
+		return { result: r, audit: r.ok ? r.audit : [] };
 	});
 	revalidatePath(PATH, "layout");
-	return ok ? { ok: true, data: undefined } : { ok: false, error: "notFound" };
+	return res.ok
+		? { ok: true, data: undefined }
+		: {
+				ok: false,
+				error: res.error === "no_management" ? "noManagement" : "notFound",
+			};
 }
 
 // Bereiche → Funktion: merkt die Zuordnung (org_settings.areaFunctions, für

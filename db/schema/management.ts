@@ -144,6 +144,9 @@ export const roleAssignments = pgTable(
 		revokedAt: ts(),
 		// Begründung der Geschäftsleitung bei Ablehnung
 		decisionNote: text(),
+		// wer vorgeschlagen hat — anfragende Person, wenn ein offener
+		// Vorschlag später beantragt wird (z. B. sobald die GL beigetreten ist)
+		proposedByUserId: userRef(),
 		userId: userRef(),
 		externalName: text(),
 		// eingeladen, Konto noch nicht angelegt (D1): wird bei der Annahme der

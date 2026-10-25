@@ -212,6 +212,8 @@ export type RequestApprovalInput = {
 	// Stufen nur für diesen Antrag (z. B. je Risikoklasse, B4); sonst die
 	// Stufen des Workflows
 	steps?: ApprovalStep[];
+	// Stufen „alle Personen“: zählen nicht mit (abberufene Person)
+	everyoneExclude?: string[];
 };
 
 // Stufen eines Antrags: Schnappschuss am Antrag, sonst Workflow
@@ -326,6 +328,7 @@ export async function requestApproval(
 		facts: input.facts ?? {},
 		candidates,
 		ctx: eligCtx,
+		exclude: input.everyoneExclude,
 	});
 	const steps = route.steps;
 	// „Alle Personen“: kann eine Person nie zustimmen (fehlendes Recht, keine

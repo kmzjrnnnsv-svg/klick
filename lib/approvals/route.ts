@@ -132,10 +132,13 @@ export function expandEveryone(
 	step: ApprovalStep,
 	candidates: readonly ApproverCandidate[],
 	ctx: EligibilityContext,
+	// nicht mitzählen (z. B. die abberufene Person bei ihrer Abberufung)
+	exclude: readonly string[] = [],
 ): ApprovalStep {
 	const rules = stepRules(step);
 	const people = new Set<string>();
 	for (const c of candidates) {
+		if (exclude.includes(c.userId)) continue;
 		const holds = rules.some((r) => {
 			const { kind, value } = parseRule(r);
 			if (kind === "function")
@@ -174,6 +177,8 @@ export function planRoute(
 		facts: Facts;
 		candidates: readonly ApproverCandidate[];
 		ctx: EligibilityContext;
+		// Stufen „alle Personen“: diese Personen zählen nicht mit
+		exclude?: readonly string[];
 	},
 ): PlannedRoute {
 	const planned: ApprovalStep[] = [...steps]
@@ -202,7 +207,7 @@ export function planRoute(
 			if (stepVacant(stepRules(step), input.candidates))
 				return { ...step, skipped: { by: "vacant" as const } };
 			if (step.everyone)
-				return expandEveryone(step, input.candidates, input.ctx);
+				return expandEveryone(step, input.candidates, input.ctx, input.exclude);
 			return step;
 		});
 	const warnings: RouteWarning[] = [];

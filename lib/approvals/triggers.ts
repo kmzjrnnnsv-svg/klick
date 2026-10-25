@@ -1,5 +1,10 @@
 import type { EntityKind } from "@/db/schema/enums";
-import { CLASSIFICATIONS, CRITICALITY, NC_PRIORITIES } from "@/db/schema/enums";
+import {
+	CLASSIFICATIONS,
+	CRITICALITY,
+	NC_PRIORITIES,
+	ROLE_FUNCTIONS,
+} from "@/db/schema/enums";
 import type { ApprovalStep } from "@/db/schema/grc";
 import { RISK_CATEGORIES } from "@/db/schema/grc";
 import { PROVIDER_CATEGORIES } from "@/db/schema/registers";
@@ -81,6 +86,11 @@ const ncFacts: readonly FactDef[] = [
 ];
 const processFacts: readonly FactDef[] = [
 	{ key: "criticality", type: "enum", options: CRITICALITY },
+];
+// Bestellung: welche Funktion, gehört sie zur Leitung selbst
+const appointmentFacts: readonly FactDef[] = [
+	{ key: "function", type: "enum", options: ROLE_FUNCTIONS },
+	{ key: "isManagement", type: "boolean" },
 ];
 
 export const TRIGGERS: readonly TriggerDef[] = [
@@ -251,6 +261,26 @@ export const TRIGGERS: readonly TriggerDef[] = [
 	},
 	// Steuerung
 	{
+		// Funktion besetzen, neu besetzen, Vertretung ändern (ISO 27001 5.3,
+		// DORA Art. 5(2), ZAG-MaRisk AT 4.4, § 7 GwG …)
+		key: "role.appoint",
+		kind: "role_appointment",
+		entityType: "role_assignment",
+		area: "governance",
+		mode: "pending",
+		facts: appointmentFacts,
+		wired: true,
+	},
+	{
+		key: "role.revoke",
+		kind: "role_revocation",
+		entityType: "role_assignment",
+		area: "governance",
+		mode: "pending",
+		facts: appointmentFacts,
+		wired: true,
+	},
+	{
 		key: "objective.release",
 		kind: "objective_release",
 		entityType: "objective",
@@ -330,7 +360,19 @@ export function triggerForKind(kind: string): TriggerDef | undefined {
 }
 
 // Standard-Stufen neuer Auslöser (Seed; der Owner passt sie im Designer an)
+// Bestellung und Abberufung: die ganze Geschäftsleitung stimmt zu
+const MANAGEMENT_ALL: ApprovalStep[] = [
+	{
+		order: 1,
+		approverRule: "function:management_body",
+		everyone: true,
+		slaDays: 10,
+	},
+];
+
 export const NEW_TRIGGER_STEPS: Readonly<Record<string, ApprovalStep[]>> = {
+	role_appointment: MANAGEMENT_ALL,
+	role_revocation: MANAGEMENT_ALL,
 	provider_intake: [
 		{ order: 1, approverRule: "function:outsourcing_officer", slaDays: 10 },
 	],

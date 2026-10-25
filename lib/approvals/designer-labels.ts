@@ -32,6 +32,7 @@ const OPTION_KEY: Readonly<Record<string, string>> = {
 	ncPriority: "Nonconformities.priority_",
 	ncSource: "Nonconformities.source_",
 	indicatorType: "Organisation.indicator_",
+	function: "Functions.",
 };
 
 const msgKey = (trigger: string) => trigger.replace(".", "_");

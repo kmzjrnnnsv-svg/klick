@@ -17,6 +17,10 @@ const ALL_ROWS: Record<string, string> = {
 	"app/actions/organisation.ts": "Zeile vor dem Ändern lesen (Audit before)",
 	"lib/compliance/queries-p3.ts":
 		"/organisation listet alle Zeilen; Abdeckung filtert selbst",
+	"lib/compliance/appointment-service.ts":
+		"Bestellung selbst: liest Vorschläge, um sie zu bestellen",
+	"lib/compliance/decision-service.ts":
+		"Beschluss nennt die Funktion der Bestellung (auch vor der Wirkung)",
 };
 
 function unfiltered(src: string): number {

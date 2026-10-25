@@ -19,6 +19,11 @@ import {
 	trainingRequirements,
 } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
+import {
+	applyAppointment,
+	applyRevocation,
+	rejectAppointment,
+} from "@/lib/compliance/appointment-service";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -40,6 +45,16 @@ export async function applyApprovalOutcome(
 	// Auslöser des Freigabe-Designers zuerst (gleiche Entität, andere
 	// Wirkung: Aufnahme vs. Akzeptanz, Maßnahmenplan vs. Abschluss …)
 	switch (r.trigger) {
+		// Bestellung/Abberufung einer Funktion durch die Geschäftsleitung
+		case "role.appoint":
+		case "role.revoke": {
+			if (approved)
+				return r.trigger === "role.appoint"
+					? applyAppointment(tx, ctx, r.entityId)
+					: applyRevocation(tx, ctx, r.entityId);
+			if (rejected) return rejectAppointment(tx, ctx, r.entityId, r.trigger);
+			return extra;
+		}
 		case "provider.create": {
 			if (approved || rejected)
 				await tx

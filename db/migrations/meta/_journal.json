@@ -267,6 +267,13 @@
       "when": 1792946921446,
       "tag": "0037_appointments",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792947478303,
+      "tag": "0038_appointment_proposer",
+      "breakpoints": true
     }
   ]
 }
