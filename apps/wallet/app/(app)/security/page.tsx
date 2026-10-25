@@ -115,7 +115,7 @@ export default async function WalletSecurityPage() {
 		[
 			t("secJournal"),
 			anchor ? (
-				<code key="j" className="font-mono text-[13px]" translate="no">
+				<code key="j" className="font-mono text-footnote" translate="no">
 					#{anchor.seq} · {shortHash(anchor.head, 12, 8)}
 				</code>
 			) : (
@@ -131,7 +131,7 @@ export default async function WalletSecurityPage() {
 			anchor?.bundleHash ? (
 				<code
 					key="b"
-					className="break-all font-mono text-[13px]"
+					className="break-all font-mono text-footnote"
 					translate="no"
 				>
 					{anchor.bundleHash}
@@ -174,7 +174,7 @@ export default async function WalletSecurityPage() {
 					{state === "frozen" && (
 						<p className="rounded-xl bg-muted px-3 py-2 text-subhead">
 							{t("secUnfreezeHint")}{" "}
-							<code className="font-mono text-[13px]" translate="no">
+							<code className="font-mono text-footnote" translate="no">
 								sudo klick-signer-admin unfreeze
 							</code>
 						</p>
@@ -232,7 +232,10 @@ export default async function WalletSecurityPage() {
 							{t("secEnrolHint")}
 						</p>
 						<div className="flex flex-wrap items-center gap-2">
-							<code className="break-all font-mono text-[13px]" translate="no">
+							<code
+								className="break-all font-mono text-footnote"
+								translate="no"
+							>
 								sudo klick-signer-admin enrol.start --person {ctx.userId}
 							</code>
 							<CopyButton

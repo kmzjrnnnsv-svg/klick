@@ -143,7 +143,7 @@ export function TwoFactorForm({
 							value={code}
 							onChange={(e) => setCode(e.target.value)}
 							aria-invalid={error ? true : undefined}
-							className="font-mono text-lg"
+							className="font-mono text-title-3"
 						/>
 					</div>
 					<FormAlert message={error} />

@@ -97,7 +97,7 @@ export function StagePanel({
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle className="text-base">{t("stageTitle")}</CardTitle>
+				<CardTitle className="text-headline">{t("stageTitle")}</CardTitle>
 				<CardDescription>{t("stageLead")}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-5 text-subhead">

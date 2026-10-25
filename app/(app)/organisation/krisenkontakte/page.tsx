@@ -63,7 +63,7 @@ export default async function CrisisContactsPage() {
 					</p>
 				</header>
 				<section className="mb-8">
-					<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground print:text-black">
+					<h2 className="font-medium text-footnote mb-2 text-muted-foreground print:text-black">
 						{t("crisisTeamSheet")}
 					</h2>
 					<div className="overflow-x-auto print:overflow-visible">
@@ -95,7 +95,7 @@ export default async function CrisisContactsPage() {
 					</div>
 				</section>
 				<section>
-					<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground print:text-black">
+					<h2 className="font-medium text-footnote mb-2 text-muted-foreground print:text-black">
 						{t("crisisChannels")}
 					</h2>
 					{comms.length === 0 ? (

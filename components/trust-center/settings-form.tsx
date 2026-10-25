@@ -153,7 +153,7 @@ export function TrustSettingsForm({
 		>
 			<fieldset disabled={!canEdit || pending} className="contents">
 				<section className="flex flex-col gap-4">
-					<h2 className="font-medium text-lg">{t("sectionPage")}</h2>
+					<h2 className="font-semibold text-title-3">{t("sectionPage")}</h2>
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="tc-slug">{t("fieldSlug")}</Label>
 						<div className="flex items-center gap-2">
@@ -234,7 +234,9 @@ export function TrustSettingsForm({
 				</section>
 
 				<section className="flex flex-col gap-3">
-					<h2 className="font-medium text-lg">{t("sectionFrameworks")}</h2>
+					<h2 className="font-semibold text-title-3">
+						{t("sectionFrameworks")}
+					</h2>
 					<p className="text-muted-foreground text-subhead">
 						{t("frameworksHint")}
 					</p>
@@ -334,7 +336,9 @@ export function TrustSettingsForm({
 				</section>
 
 				<section className="flex flex-col gap-3">
-					<h2 className="font-medium text-lg">{t("sectionDocuments")}</h2>
+					<h2 className="font-semibold text-title-3">
+						{t("sectionDocuments")}
+					</h2>
 					<p className="text-muted-foreground text-subhead">
 						{t("documentsHint")}
 					</p>
@@ -448,7 +452,7 @@ export function TrustSettingsForm({
 				</section>
 
 				<section className="flex flex-col gap-1.5">
-					<h2 className="font-medium text-lg">{t("sectionNda")}</h2>
+					<h2 className="font-semibold text-title-3">{t("sectionNda")}</h2>
 					<Label htmlFor="tc-ndaText" className="sr-only">
 						{t("sectionNda")}
 					</Label>

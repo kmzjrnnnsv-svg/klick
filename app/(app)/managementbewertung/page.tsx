@@ -169,7 +169,7 @@ export default async function ManagementReviewPage() {
 								/>
 								<div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
 									<div>
-										<h3 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
+										<h3 className="font-medium text-footnote mb-2 text-muted-foreground">
 											{t("inputs")}
 										</h3>
 										<ReviewInputsChecklist
@@ -182,7 +182,7 @@ export default async function ManagementReviewPage() {
 									<div className="flex flex-col gap-4">
 										{r.summary && (
 											<div>
-												<h3 className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+												<h3 className="font-medium text-footnote mb-1 text-muted-foreground">
 													{t("summary")}
 												</h3>
 												<p className="whitespace-pre-wrap">{r.summary}</p>
@@ -190,7 +190,7 @@ export default async function ManagementReviewPage() {
 										)}
 										{r.decisions && (
 											<div>
-												<h3 className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+												<h3 className="font-medium text-footnote mb-1 text-muted-foreground">
 													{t("decisions")}
 												</h3>
 												<p className="whitespace-pre-wrap">{r.decisions}</p>

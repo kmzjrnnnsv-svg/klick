@@ -109,7 +109,7 @@ export function ReceivePanel({
 			<div className="flex min-w-0 flex-col gap-4">
 				<div>
 					<p
-						className="break-all font-mono text-base leading-relaxed sm:text-lg"
+						className="break-all font-mono text-body leading-relaxed sm:text-title-3"
 						translate="no"
 					>
 						{address}

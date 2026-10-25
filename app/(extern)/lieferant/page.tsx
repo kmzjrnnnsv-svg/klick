@@ -38,7 +38,7 @@ export default async function SupplierPortalPage() {
 	if (!p)
 		return (
 			<div className="flex flex-col gap-4">
-				<h1 className="font-serif text-3xl">{t("title")}</h1>
+				<h1 className="font-bold text-title-1">{t("title")}</h1>
 				<PortalSession state={expired ? "expired" : "none"} />
 			</div>
 		);
@@ -52,7 +52,7 @@ export default async function SupplierPortalPage() {
 	if (!data)
 		return (
 			<div className="flex flex-col gap-4">
-				<h1 className="font-serif text-3xl">{t("title")}</h1>
+				<h1 className="font-bold text-title-1">{t("title")}</h1>
 				<PortalSession state="none" />
 			</div>
 		);
@@ -87,7 +87,7 @@ export default async function SupplierPortalPage() {
 					</p>
 					<PortalLogout />
 				</div>
-				<h1 className="text-balance font-serif text-3xl">{a.title}</h1>
+				<h1 className="text-balance font-bold text-title-1">{a.title}</h1>
 				<p className="text-muted-foreground text-subhead">
 					<span translate="no">{a.code}</span>
 					{a.dueAt &&
@@ -121,7 +121,7 @@ export default async function SupplierPortalPage() {
 
 			{sections.map((s) => (
 				<section key={s.code} aria-labelledby={`sec-${s.code}`}>
-					<h2 id={`sec-${s.code}`} className="mb-3 font-medium text-lg">
+					<h2 id={`sec-${s.code}`} className="mb-3 font-semibold text-title-3">
 						{s.title}
 					</h2>
 					<div className="flex flex-col gap-3">

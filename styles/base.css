@@ -46,39 +46,6 @@ h1 {
 	font-weight: 700;
 }
 
-/* Frühere Gestaltungs-Klassen (Maison), umgedeutet bis zum Umbau der Seiten:
-   keine Versalien, keine Sperrung, keine Serifen (HIG: Abschnittsköpfe nicht
-   in Großbuchstaben; Schrift ab 11 px). Neue Stellen nutzen die Textstile
-   text-large-title … text-caption-2 aus tokens.css. */
-.font-serif-display {
-	font-family: var(--font-sans);
-	font-weight: 600;
-	letter-spacing: -0.01em;
-}
-
-.lv-eyebrow {
-	font-family: var(--font-sans);
-	font-size: var(--text-footnote);
-	line-height: var(--text-footnote--line-height);
-	font-weight: 500;
-	text-transform: none;
-	letter-spacing: 0;
-}
-
-.lv-wordmark {
-	font-family: var(--font-sans);
-	font-weight: 700;
-	text-transform: none;
-	letter-spacing: -0.01em;
-}
-
-.lv-nav {
-	font-family: var(--font-sans);
-	font-weight: 500;
-	text-transform: none;
-	letter-spacing: 0;
-}
-
 /* Materialien nur in der Bedienebene (Kopf-, Seiten-, Tab-Leiste), nie im
    Inhalt; massiv bei reduzierter Transparenz oder erhöhtem Kontrast
    (--bar fällt in tokens.css auf --bar-solid zurück) */

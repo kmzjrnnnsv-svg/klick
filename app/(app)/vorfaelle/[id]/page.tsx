@@ -414,7 +414,7 @@ export default async function IncidentDetailPage({
 			<Section title={t("updates")}>
 				{incident.rootCause && (
 					<p className="text-subhead">
-						<span className="font-medium text-footnote mr-2 text-footnote text-muted-foreground">
+						<span className="font-medium text-footnote mr-2 text-muted-foreground">
 							{t("rootCause")}
 						</span>
 						{incident.rootCause}

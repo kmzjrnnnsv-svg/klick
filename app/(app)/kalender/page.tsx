@@ -345,7 +345,7 @@ export default async function CalendarPage({
 						<div className="flex flex-col gap-4">
 							{datesByWeek(entries).map((w) => (
 								<section key={w.week} className="rounded-2xl bg-card p-3">
-									<h2 className="font-medium text-footnote mb-1 flex items-center justify-between text-footnote text-muted-foreground">
+									<h2 className="font-medium text-footnote mb-1 flex items-center justify-between text-muted-foreground">
 										{t("weekOf", { date: fmtDate.format(new Date(w.week)) })}
 										<span>{w.entries.length}</span>
 									</h2>

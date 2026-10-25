@@ -94,7 +94,7 @@ export function SecurityPanel({
 		<div className="flex flex-col gap-4">
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">
+					<CardTitle className="text-headline">
 						{mfaEnabled ? t("mfaStatusOn") : t("mfaStatusOff")}
 					</CardTitle>
 					<CardDescription>{t("securityLead")}</CardDescription>
@@ -103,7 +103,7 @@ export function SecurityPanel({
 
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">{t("passkeys")}</CardTitle>
+					<CardTitle className="text-headline">{t("passkeys")}</CardTitle>
 					<CardDescription>{t("passkeysLead")}</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
@@ -163,7 +163,7 @@ export function SecurityPanel({
 
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">{t("sessions")}</CardTitle>
+					<CardTitle className="text-headline">{t("sessions")}</CardTitle>
 					<CardDescription>{t("sessionsLead")}</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">

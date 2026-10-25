@@ -376,7 +376,7 @@ export function RiskWizard({
 
 			<section aria-labelledby="rw-h" className="flex flex-col gap-4">
 				<header className="flex flex-col gap-1">
-					<h2 id="rw-h" className="font-medium text-lg">
+					<h2 id="rw-h" className="font-semibold text-title-3">
 						{t(`q_${step}`)}
 					</h2>
 					<p className="text-muted-foreground text-subhead">
@@ -829,7 +829,7 @@ export function RiskWizard({
 									score: assessed.inherent.score,
 								})}
 							</p>
-							<p className="font-medium text-2xl">
+							<p className="font-semibold text-title-2">
 								{t("resultClass", { label: assessed.inherent.cls.label })}
 							</p>
 							<Badge

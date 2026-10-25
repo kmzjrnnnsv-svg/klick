@@ -90,7 +90,7 @@ export function IntegrationsPanel({
 		<div className="flex flex-col gap-6">
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">{t("title")}</CardTitle>
+					<CardTitle className="text-headline">{t("title")}</CardTitle>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4 text-subhead">
 					<p className="max-w-2xl text-muted-foreground">{t("lead")}</p>
@@ -151,7 +151,7 @@ export function IntegrationsPanel({
 			{canCreate && (
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">{t("newTitle")}</CardTitle>
+						<CardTitle className="text-headline">{t("newTitle")}</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<form
@@ -260,7 +260,7 @@ export function IntegrationsPanel({
 
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">{t("ciTitle")}</CardTitle>
+					<CardTitle className="text-headline">{t("ciTitle")}</CardTitle>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-3 text-subhead">
 					<p className="max-w-2xl text-muted-foreground">{t("ciLead")}</p>

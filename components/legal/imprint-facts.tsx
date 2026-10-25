@@ -16,7 +16,7 @@ export async function ImprintFacts() {
 			{name && (
 				<>
 					<div>
-						<h2 className="font-medium text-base">{t("imprintFacts")}</h2>
+						<h2 className="font-semibold text-headline">{t("imprintFacts")}</h2>
 						<p className="mt-2 leading-relaxed">
 							{name}
 							{e.address.map((line) => (
@@ -45,7 +45,7 @@ export async function ImprintFacts() {
 				</>
 			)}
 			<div>
-				<h2 className="font-medium text-base">{t("contact")}</h2>
+				<h2 className="font-semibold text-headline">{t("contact")}</h2>
 				<p className="mt-2 leading-relaxed">
 					{t("email")}:{" "}
 					<a

@@ -411,7 +411,7 @@ export function AuditForm({
 			/>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<fieldset className="flex flex-col gap-1.5 text-subhead">
-					<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+					<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 						{t("frameworks")}
 					</legend>
 					{frameworks.map((f) => (
@@ -430,7 +430,7 @@ export function AuditForm({
 					))}
 				</fieldset>
 				<fieldset className="flex flex-col gap-1.5 text-subhead">
-					<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+					<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 						{t("auditors")}
 					</legend>
 					{members.map((m) => (
@@ -802,7 +802,7 @@ export function RespondRequestForm({
 				/>
 			</div>
 			<fieldset className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-2xl bg-card p-2 text-subhead">
-				<legend className="font-medium text-footnote px-1 text-footnote text-muted-foreground">
+				<legend className="font-medium text-footnote px-1 text-muted-foreground">
 					{t("attachEvidence")}
 				</legend>
 				{evidence.length === 0 ? (

@@ -284,7 +284,7 @@ export function RoleAssignmentForm({
 			)}
 			{showFitProper && (
 				<fieldset className="flex flex-col gap-2 rounded-2xl bg-card p-3">
-					<legend className="font-medium text-footnote px-1 text-footnote text-muted-foreground">
+					<legend className="font-medium text-footnote px-1 text-muted-foreground">
 						{t("fitProperChecklist")}
 					</legend>
 					<p className="text-muted-foreground text-footnote">
@@ -839,7 +839,7 @@ export function ObjectiveForm({
 				/>
 			</div>
 			<fieldset className="flex flex-wrap gap-3 text-subhead">
-				<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+				<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 					{t("frameworks")}
 				</legend>
 				{frameworks.map((f) => (

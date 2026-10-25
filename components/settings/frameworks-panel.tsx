@@ -88,7 +88,9 @@ export function FrameworksPanel({
 		<div className="flex flex-col gap-6">
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">{t("frameworksActive")}</CardTitle>
+					<CardTitle className="text-headline">
+						{t("frameworksActive")}
+					</CardTitle>
 					<CardDescription>{t("frameworksLead")}</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -131,7 +133,7 @@ export function FrameworksPanel({
 
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">
+					<CardTitle className="text-headline">
 						{t("frameworksAvailable")}
 					</CardTitle>
 					<CardDescription>{tf("addLead")}</CardDescription>
@@ -228,7 +230,7 @@ export function FrameworksPanel({
 
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">{t("stage")}</CardTitle>
+					<CardTitle className="text-headline">{t("stage")}</CardTitle>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-5 text-subhead">
 					<dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">

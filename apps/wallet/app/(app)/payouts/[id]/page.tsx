@@ -74,7 +74,7 @@ export default async function PayoutPage({
 			t("payoutDestination"),
 			<span key="d" className="flex flex-col gap-0.5">
 				<span>{p.destinationLabel}</span>
-				<code className="break-all font-mono text-[13px]" translate="no">
+				<code className="break-all font-mono text-footnote" translate="no">
 					{p.destination}
 				</code>
 			</span>,
@@ -93,7 +93,7 @@ export default async function PayoutPage({
 						t("payoutTxid"),
 						<code
 							key="t"
-							className="break-all font-mono text-[13px]"
+							className="break-all font-mono text-footnote"
 							translate="no"
 						>
 							{p.txid}
@@ -173,7 +173,7 @@ export default async function PayoutPage({
 								{earlier.map((x) => (
 									<li key={x}>
 										<code
-											className="break-all font-mono text-[13px] text-muted-foreground"
+											className="break-all font-mono text-footnote text-muted-foreground"
 											translate="no"
 										>
 											{x}

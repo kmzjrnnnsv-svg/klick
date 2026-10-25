@@ -294,7 +294,7 @@ export function ClassifyForm({
 			</div>
 			{regs.includes("dora") && (
 				<fieldset className="grid grid-cols-1 gap-3 rounded-2xl bg-card p-3 sm:grid-cols-2">
-					<legend className="font-medium text-footnote px-1 text-footnote text-muted-foreground">
+					<legend className="font-medium text-footnote px-1 text-muted-foreground">
 						DORA · RTS 2024/1772
 					</legend>
 					{DORA_BOOL.map((k) => (
@@ -332,7 +332,7 @@ export function ClassifyForm({
 			)}
 			{regs.includes("nis2") && (
 				<fieldset className="grid grid-cols-1 gap-3 rounded-2xl bg-card p-3 sm:grid-cols-3">
-					<legend className="font-medium text-footnote px-1 text-footnote text-muted-foreground">
+					<legend className="font-medium text-footnote px-1 text-muted-foreground">
 						NIS2 · Art. 23(3)
 					</legend>
 					{NIS2_BOOL.map((k) => (
@@ -348,7 +348,7 @@ export function ClassifyForm({
 			)}
 			{hasCra && (
 				<fieldset className="grid grid-cols-1 gap-3 rounded-2xl bg-card p-3 sm:grid-cols-2">
-					<legend className="font-medium text-footnote px-1 text-footnote text-muted-foreground">
+					<legend className="font-medium text-footnote px-1 text-muted-foreground">
 						CRA · Art. 14
 					</legend>
 					{CRA_BOOL.map((k) => (

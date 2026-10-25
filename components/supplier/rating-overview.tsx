@@ -76,7 +76,7 @@ export async function RatingOverview({
 				{kpis.map(([label, value]) => (
 					<div key={label} className="rounded-2xl bg-card p-3">
 						<dt className="text-muted-foreground text-footnote">{label}</dt>
-						<dd className="font-medium text-2xl tabular-nums">{value}</dd>
+						<dd className="font-semibold text-title-2 tabular-nums">{value}</dd>
 					</div>
 				))}
 			</dl>
@@ -95,7 +95,7 @@ export async function RatingOverview({
 								className={cn("size-3 shrink-0 rounded-full", TRAFFIC_BAR[k])}
 							/>
 							<span className="flex-1 text-subhead">{t(`traffic_${k}`)}</span>
-							<span className="font-medium text-xl tabular-nums">
+							<span className="font-semibold text-title-3 tabular-nums">
 								{byTraffic[k]}
 							</span>
 						</li>

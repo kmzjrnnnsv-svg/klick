@@ -51,7 +51,7 @@ export function DangerZonePanel({
 	return (
 		<Card className="border-destructive/40">
 			<CardHeader>
-				<CardTitle className="text-base">{t("dangerTitle")}</CardTitle>
+				<CardTitle className="text-headline">{t("dangerTitle")}</CardTitle>
 				<CardDescription>{t("dangerLead")}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4 text-subhead">

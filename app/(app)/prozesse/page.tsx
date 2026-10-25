@@ -287,7 +287,7 @@ export default async function ProcessesPage({
 								if (items.length === 0) return null;
 								return (
 									<section key={cat}>
-										<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
+										<h2 className="font-medium text-footnote mb-2 text-muted-foreground">
 											{t(`category_${cat}`)} · {items.length}
 										</h2>
 										<Table>

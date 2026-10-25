@@ -139,7 +139,7 @@ export function EnrolTwoFactor() {
 						required
 						value={code}
 						onChange={(e) => setCode(e.target.value)}
-						className="font-mono text-lg"
+						className="font-mono text-title-3"
 					/>
 				</div>
 				<Button type="submit" disabled={busy || code.trim().length !== 6}>

@@ -90,7 +90,7 @@ export function WalletLinkPanel({
 	return (
 		<Card>
 			<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-				<CardTitle className="text-base">{t("title")}</CardTitle>
+				<CardTitle className="text-headline">{t("title")}</CardTitle>
 				{canCreate && (
 					<Button size="sm" onClick={() => setAskName(true)}>
 						<Link2 aria-hidden /> {t("connect")}

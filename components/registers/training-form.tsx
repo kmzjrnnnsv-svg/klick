@@ -146,7 +146,7 @@ export function TrainingForm({
 						</div>
 					</div>
 					<fieldset className="flex flex-col gap-1.5">
-						<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+						<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 							{t("attendees")}
 						</legend>
 						<div className="max-h-40 overflow-y-auto rounded-2xl bg-card p-2">

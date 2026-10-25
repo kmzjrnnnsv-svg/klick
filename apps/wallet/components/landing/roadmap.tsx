@@ -113,7 +113,7 @@ export function Roadmap() {
 							{INTRO.title}
 						</h1>
 						<p
-							className={`max-w-3xl text-pretty text-lg leading-relaxed ${s.rise} ${s.rise2}`}
+							className={`max-w-3xl text-pretty text-title-3 leading-relaxed ${s.rise} ${s.rise2}`}
 						>
 							{INTRO.lead}
 						</p>
@@ -143,7 +143,7 @@ export function Roadmap() {
 						<h2 id="ziel" className={heading}>
 							{GOAL.title}
 						</h2>
-						<p className="mt-4 max-w-3xl text-pretty text-lg leading-relaxed">
+						<p className="mt-4 max-w-3xl text-pretty text-title-3 leading-relaxed">
 							{GOAL.lead}
 						</p>
 						<ul className="mt-10 grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2 lg:grid-cols-3">
@@ -372,7 +372,7 @@ export function Roadmap() {
 									className={`flex flex-col gap-3 break-inside-avoid rounded-2xl bg-card p-5 ${s.reveal}`}
 								>
 									<div className="flex flex-wrap items-start justify-between gap-2">
-										<p className="font-medium text-lg">{t.title}</p>
+										<p className="font-semibold text-title-3">{t.title}</p>
 										<span className="rounded-full border px-2.5 py-0.5 text-muted-foreground text-footnote">
 											{t.when}
 										</span>

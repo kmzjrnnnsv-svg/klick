@@ -20,7 +20,7 @@
 }
 
 .label {
-	font-size: 13px;
+	font-size: var(--text-footnote);
 	font-weight: 500;
 }
 
@@ -33,7 +33,7 @@
 	background: var(--background);
 	color: var(--foreground);
 	font: inherit;
-	font-size: 16px;
+	font-size: var(--text-callout);
 }
 
 .control::placeholder {
@@ -75,7 +75,7 @@ select.control {
 }
 
 .error {
-	font-size: 13px;
+	font-size: var(--text-footnote);
 	font-weight: 500;
 }
 
@@ -83,7 +83,7 @@ select.control {
 	display: flex;
 	gap: 10px;
 	align-items: flex-start;
-	font-size: 14px;
+	font-size: 0.875rem;
 	line-height: 1.45;
 }
 
@@ -109,7 +109,7 @@ select.control {
 }
 
 .hint {
-	font-size: 13px;
+	font-size: var(--text-footnote);
 }
 
 /* Honeypot: für Menschen unsichtbar, nicht fokussierbar */
@@ -129,7 +129,7 @@ select.control {
 }
 
 .doneTitle {
-	font-size: 22px;
+	font-size: var(--text-title-2);
 	font-weight: 500;
 	margin: 0;
 }

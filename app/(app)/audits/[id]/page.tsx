@@ -563,7 +563,7 @@ export default async function AuditCockpitPage({
 									)}
 									{r.responseNote && (
 										<div className="rounded-md bg-muted/40 p-2 text-footnote">
-											<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+											<p className="font-medium text-footnote mb-1 text-muted-foreground">
 												{t("response")}
 											</p>
 											<p className="whitespace-pre-wrap">{r.responseNote}</p>

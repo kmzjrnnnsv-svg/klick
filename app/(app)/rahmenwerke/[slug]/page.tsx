@@ -237,7 +237,7 @@ export default async function FrameworkPage({
 			)}
 			{fw.recommendedApproach && (
 				<p className="mb-6 rounded-2xl bg-card p-3 text-subhead">
-					<span className="font-medium text-footnote mr-2 text-footnote text-muted-foreground">
+					<span className="font-medium text-footnote mr-2 text-muted-foreground">
 						{t("approach")}
 					</span>
 					{fw.recommendedApproach}

@@ -200,7 +200,7 @@ export default async function TestProgrammePage({
 			</div>
 
 			<section className="mb-8">
-				<h2 className="font-medium text-footnote mb-2 text-footnote text-muted-foreground">
+				<h2 className="font-medium text-footnote mb-2 text-muted-foreground">
 					{t("bcmTitle")}
 				</h2>
 				<p className="mb-3 text-muted-foreground text-footnote">
@@ -244,7 +244,7 @@ export default async function TestProgrammePage({
 						})}
 					</ul>
 				)}
-				<h3 className="font-medium text-footnote mt-6 mb-2 text-footnote text-muted-foreground">
+				<h3 className="font-medium text-footnote mt-6 mb-2 text-muted-foreground">
 					{t("sitesTitle")}
 				</h3>
 				<p className="mb-3 text-muted-foreground text-footnote">

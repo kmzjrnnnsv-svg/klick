@@ -67,7 +67,11 @@ export default async function ExportSettingsPage() {
 						const facts: [string, React.ReactNode][] = [
 							[
 								t("origin"),
-								<code key="o" className="font-mono text-[13px]" translate="no">
+								<code
+									key="o"
+									className="font-mono text-footnote"
+									translate="no"
+								>
 									{l.origin}
 								</code>,
 							],

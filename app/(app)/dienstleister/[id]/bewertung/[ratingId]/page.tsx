@@ -228,7 +228,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 	return (
 		<div className="rounded-2xl bg-card p-3">
 			<p className="text-muted-foreground text-footnote">{label}</p>
-			<p className="font-medium text-2xl tabular-nums">{value}</p>
+			<p className="font-semibold text-title-2 tabular-nums">{value}</p>
 		</div>
 	);
 }

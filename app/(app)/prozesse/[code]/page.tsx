@@ -436,7 +436,7 @@ export default async function ProcessDetailPage({
 			>
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div>
-						<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+						<p className="font-medium text-footnote mb-1 text-muted-foreground">
 							{t("controls")}
 						</p>
 						{controls.length === 0 ? (
@@ -471,7 +471,7 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div>
-						<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+						<p className="font-medium text-footnote mb-1 text-muted-foreground">
 							{t("assets")}
 						</p>
 						{linkedAssets.length === 0 ? (
@@ -493,7 +493,7 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div>
-						<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+						<p className="font-medium text-footnote mb-1 text-muted-foreground">
 							{t("providers")}
 						</p>
 						{linkedProviders.length === 0 ? (
@@ -541,7 +541,7 @@ export default async function ProcessDetailPage({
 						)}
 					</div>
 					<div className="sm:col-span-2">
-						<p className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+						<p className="font-medium text-footnote mb-1 text-muted-foreground">
 							{t("documents")}
 						</p>
 						{linkedDocs.length === 0 ? (

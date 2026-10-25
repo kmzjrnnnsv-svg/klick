@@ -47,7 +47,7 @@ export function DlpPanel({
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle className="text-base">{t("dlpTitle")}</CardTitle>
+				<CardTitle className="text-headline">{t("dlpTitle")}</CardTitle>
 				<CardDescription>{t("dlpLead")}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-5 text-subhead">

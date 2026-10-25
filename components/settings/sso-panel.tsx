@@ -191,7 +191,7 @@ export function SsoPanel({
 			{canEdit && (
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">{t("ssoAdd")}</CardTitle>
+						<CardTitle className="text-headline">{t("ssoAdd")}</CardTitle>
 						<CardDescription>{t("ssoAddLead")}</CardDescription>
 					</CardHeader>
 					<CardContent>

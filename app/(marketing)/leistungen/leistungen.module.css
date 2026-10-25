@@ -315,7 +315,7 @@
 	border-radius: 6px;
 	background: var(--field);
 	font-family: inherit;
-	font-size: 15px;
+	font-size: var(--text-subhead);
 }
 .svcLink {
 	display: inline-block;
@@ -424,7 +424,7 @@
 	content: "+";
 	font-family: var(--font-sans);
 	font-weight: 600;
-	font-size: 26px;
+	font-size: 1.625rem;
 	line-height: 1;
 	transition: transform 160ms ease;
 }

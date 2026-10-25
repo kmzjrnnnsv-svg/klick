@@ -564,7 +564,7 @@ function CheckList({
 	}, [options, q]);
 	return (
 		<fieldset className="flex min-w-0 flex-col gap-2">
-			<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+			<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 				{title} · {selected.size}
 			</legend>
 			<Input

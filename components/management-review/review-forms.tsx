@@ -104,7 +104,7 @@ export function ReviewForm({
 				/>
 			</div>
 			<fieldset className="flex flex-wrap gap-3 text-subhead">
-				<legend className="font-medium text-footnote mb-1 text-footnote text-muted-foreground">
+				<legend className="font-medium text-footnote mb-1 text-muted-foreground">
 					{t("attendees")}
 				</legend>
 				{members.map((m) => (
