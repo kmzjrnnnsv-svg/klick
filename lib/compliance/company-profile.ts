@@ -221,7 +221,9 @@ export function suggestFrameworks(p: SetupProfile): FrameworkSuggestion[] {
 		add("amlr", "EU-Geldwäscheverordnung, gilt ab 10.07.2027");
 		add("sanctions", "Sanktionsprüfung bei Kund:innen und Zahlungen");
 	}
-	if (p.sector === "casp" || p.sector === "payment" || p.sector === "emi")
+	// Geldtransferverordnung: alle Zahlungsdienstleister einschließlich
+	// Kreditinstitute sowie Kryptowerte-Dienstleister
+	if (FINANCIAL_SECTORS.includes(p.sector))
 		add(
 			"tfr",
 			"Geldtransferverordnung: Angaben zu Auftraggeber:in und Begünstigten",

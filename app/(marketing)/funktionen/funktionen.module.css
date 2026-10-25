@@ -829,48 +829,29 @@
 	background: var(--field);
 }
 
-/* ── Rahmenwerke als Kacheln ────────────────────────────────────────── */
-.proof {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 8px;
+/* ── Was gilt für dich? (components/marketing/audience-guide) ───────── */
+.fit {
 	margin-top: 160px;
 	padding: 0 var(--edge);
+	scroll-margin-top: 72px;
 }
-.tile {
-	display: flex;
-	flex-direction: column;
-	justify-content: space-between;
-	aspect-ratio: 3 / 2;
-	padding: 24px;
-	border-radius: 16px;
-	background: var(--field);
+.fitHead {
+	max-width: 640px;
+	margin-bottom: 32px;
 }
-.tileHead {
-	grid-column: span 2;
-	aspect-ratio: auto;
-	background: var(--primary-fill);
-	color: #fff;
-}
-.proofTitle {
-	font-family: var(--font-sans);
-	font-weight: 600;
-	font-size: var(--s2);
-	line-height: 1.05;
-}
-.tileHead p {
-	max-width: 44ch;
-}
-.tileName {
-	font-weight: 600;
-	font-size: var(--s3);
-	line-height: 1.1;
-}
-.proofMore {
-	grid-column: 1 / -1;
-	margin-top: 8px !important;
+.fitLead {
+	margin-top: 12px !important;
 	color: var(--soft);
-	font-size: var(--s5);
+}
+.fitNotes {
+	display: grid;
+	gap: 6px;
+	max-width: 72ch;
+	margin-top: 24px;
+	padding: 0 16px;
+	color: var(--soft);
+	font-size: 13px;
+	line-height: 18px;
 }
 
 /* ── Fragen: Liste links, Antwort rechts ─────────────────────────────── */
@@ -1168,20 +1149,11 @@
 	.rows {
 		grid-row: 3;
 	}
-	.proof {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 6px;
+	.fit {
 		margin-top: 120px;
 	}
-	.tileHead {
-		grid-column: 1 / -1;
-		min-height: 160px;
-	}
-	.tile {
-		padding: 16px;
-	}
-	.tileName {
-		font-size: var(--s3);
+	.fitNotes {
+		padding: 0;
 	}
 	.faq {
 		margin-top: 120px;
