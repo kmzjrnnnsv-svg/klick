@@ -34,6 +34,7 @@ const OPTION_KEY: Readonly<Record<string, string>> = {
 	indicatorType: "Organisation.indicator_",
 	function: "Functions.",
 	role: "Custody.role_",
+	changeKind: "Changes.kind_",
 };
 
 const msgKey = (trigger: string) => trigger.replace(".", "_");

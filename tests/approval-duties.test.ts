@@ -78,7 +78,8 @@ describe("Freigabe-Pflichten", () => {
 	});
 
 	it("alte Beschreibungen gehören zu Vorlagen mit neuer Fassung", () => {
-		for (const [kind, old] of Object.entries(LEGACY_DESCRIPTIONS)) {
+		for (const [key, old] of Object.entries(LEGACY_DESCRIPTIONS)) {
+			const kind = key.replace(/_v\d+$/, "");
 			const t = WORKFLOW_BY_KIND.get(kind);
 			expect(t, kind).toBeDefined();
 			expect(t?.description, kind).not.toBe(old);

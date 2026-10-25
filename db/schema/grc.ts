@@ -25,6 +25,8 @@ import {
 } from "./_shared";
 import { controls, requirements } from "./catalog";
 import {
+	CHANGE_KINDS,
+	CHANGE_STATUS,
 	CLASSIFICATIONS,
 	CONTROL_TEST_METHODS,
 	type ControlSheetState,
@@ -917,6 +919,30 @@ export const tasks = pgTable(
 		index("tasks_entity_idx").on(t.entityType, t.entityId),
 		orgPolicy("tasks"),
 	],
+).enableRLS();
+
+// Neues Produkt, neuer Markt, neuer Vertriebsweg oder wesentliche
+// IT-Änderung (ZAG-MaRisk/MaRisk AT 8, DORA Art. 8 Abs. 3): Antrag mit
+// Freigabe (change.request); die Umsetzung läuft als Aufgabe.
+export const changeRequests = pgTable(
+	"change_requests",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		code: text().notNull(),
+		title: text().notNull(),
+		kind: text({ enum: CHANGE_KINDS }).notNull(),
+		description: text(),
+		processIds: stringList(),
+		assetIds: stringList(),
+		riskId: uuid().references(() => risks.id, { onDelete: "set null" }),
+		taskId: uuid().references(() => tasks.id, { onDelete: "set null" }),
+		status: text({ enum: CHANGE_STATUS }).notNull().default("pending"),
+		requestedByUserId: userRef(),
+		decidedAt: ts(),
+		...timestamps(),
+	},
+	(t) => [unique().on(t.organizationId, t.code), orgPolicy("change_requests")],
 ).enableRLS();
 
 export const riskTreatments = pgTable(

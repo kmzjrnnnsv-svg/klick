@@ -385,6 +385,21 @@ export type NcPriority = (typeof NC_PRIORITIES)[number];
 // Polymorphe Verknüpfung (Kommentare, Aufgaben, Watcher, Freigaben, Historie).
 // Textspalte + Union statt pg-Enum, damit neue Entitäten keine Migration
 // brauchen; Zod validiert gegen diese Liste.
+// Neu-Produkt-Prozess und wesentliche Änderungen (MaRisk AT 8)
+export const CHANGE_KINDS = [
+	"product",
+	"market",
+	"channel",
+	"it_change",
+] as const;
+export type ChangeKind = (typeof CHANGE_KINDS)[number];
+export const CHANGE_STATUS = [
+	"pending",
+	"approved",
+	"rejected",
+	"withdrawn",
+] as const;
+
 export const ENTITY_KINDS = [
 	"control",
 	"risk",
@@ -443,6 +458,8 @@ export const ENTITY_KINDS = [
 	"custody_reconciliation",
 	// Schlüsselinhaber:in einer Wallet (Bestellung CCSS 1.06)
 	"wallet_key_holder",
+	// Neues Produkt oder wesentliche Änderung (ZAG-MaRisk AT 8)
+	"change_request",
 ] as const;
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 

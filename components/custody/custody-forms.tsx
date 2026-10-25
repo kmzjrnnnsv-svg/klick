@@ -9,6 +9,7 @@ import {
 	revokeKeyHolder,
 	saveWallet,
 } from "@/app/actions/custody";
+import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import {
 	EditTrigger,
 	Field,
@@ -49,10 +50,12 @@ type Result = {
 // oder der allgemeine Hinweis — steht im Dialog über dem Speichern-Knopf.
 function useFailure() {
 	const tc = useTranslations("Common");
+	const gate = useGateFeedback();
 	const [error, setError] = useState<string | null>(null);
 	const fail = (res: Result) => {
 		const first = Object.values(res.fieldErrors ?? {})[0]?.[0];
-		setError(first ?? errorText(tc, res));
+		const code = typeof res.error === "string" ? res.error : "";
+		setError(first ?? gate.errorText(code) ?? errorText(tc, res));
 	};
 	return { error, fail, reset: () => setError(null) };
 }

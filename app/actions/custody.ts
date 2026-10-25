@@ -146,64 +146,70 @@ async function addKeyHolderImpl(input: unknown): Promise<ActionResult> {
 	const parsed = keyHolderSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { location, ...d } = parsed.data;
-	const res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
-		const w = await loadWallet(tx, c.orgId, d.walletId);
-		if (!w) return { result: { ok: false, error: "notFound" }, audit: [] };
-		const id = crypto.randomUUID();
-		const locationEnc = location
-			? await encryptJson(tx, c.orgId, { location }, holderLocationAad(id))
-			: null;
-		// Bestellung durch die Geschäftsleitung (CCSS 1.06): bis zur Freigabe
-		// „vorgeschlagen“ und nicht im Quorum
-		await tx.insert(walletKeyHolders).values({
-			id,
-			organizationId: c.orgId,
-			...d,
-			locationEnc,
-			status: "proposed",
-		});
-		const names = d.userId ? await userNames(tx, [d.userId]) : null;
-		const who = (d.userId && names?.get(d.userId)) || d.externalName || "";
-		const gate = await gateApproval(
-			tx,
-			{ orgId: c.orgId, userId: c.userId, name: c.name },
-			{
-				trigger: "key_holder.appoint",
-				entityType: "wallet_key_holder",
-				entityId: id,
-				entityOwnerUserId: w.ownerUserId,
-				title: `Schlüsselinhaber:in ${w.code}: ${who}`,
-				link: `${PATH}/${w.id}`,
-				facts: { role: d.role },
-			},
-		);
-		if (gate.status === "error")
-			throw new GateBlocked(gate.error, gate.warnings);
-		const status = gate.status === "pending" ? "proposed" : "active";
-		if (status === "active")
-			await tx
-				.update(walletKeyHolders)
-				.set({ status })
-				.where(eq(walletKeyHolders.id, id));
-		return {
-			result: { ok: true, data: undefined },
-			audit: {
-				action: "wallet.key_holder_added",
-				target: `wallet:${w.id}`,
-				after: {
-					holderId: id,
-					userId: d.userId,
-					externalName: d.externalName,
-					role: d.role,
-					siteId: d.siteId,
-					hasLocation: Boolean(location),
-					vettedAt: d.vettedAt,
-					until: d.until,
-					status,
+	let res: ActionResult;
+	try {
+		res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+			const w = await loadWallet(tx, c.orgId, d.walletId);
+			if (!w) return { result: { ok: false, error: "notFound" }, audit: [] };
+			const id = crypto.randomUUID();
+			const locationEnc = location
+				? await encryptJson(tx, c.orgId, { location }, holderLocationAad(id))
+				: null;
+			// Bestellung durch die Geschäftsleitung (CCSS 1.06): bis zur Freigabe
+			// „vorgeschlagen“ und nicht im Quorum
+			await tx.insert(walletKeyHolders).values({
+				id,
+				organizationId: c.orgId,
+				...d,
+				locationEnc,
+				status: "proposed",
+			});
+			const names = d.userId ? await userNames(tx, [d.userId]) : null;
+			const who = (d.userId && names?.get(d.userId)) || d.externalName || "";
+			const gate = await gateApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					trigger: "key_holder.appoint",
+					entityType: "wallet_key_holder",
+					entityId: id,
+					entityOwnerUserId: w.ownerUserId,
+					title: `Schlüsselinhaber:in ${w.code}: ${who}`,
+					link: `${PATH}/${w.id}`,
+					facts: { role: d.role },
 				},
-			},
-		};
-	});
+			);
+			if (gate.status === "error")
+				throw new GateBlocked(gate.error, gate.warnings);
+			const status = gate.status === "pending" ? "proposed" : "active";
+			if (status === "active")
+				await tx
+					.update(walletKeyHolders)
+					.set({ status })
+					.where(eq(walletKeyHolders.id, id));
+			return {
+				result: { ok: true, data: undefined },
+				audit: {
+					action: "wallet.key_holder_added",
+					target: `wallet:${w.id}`,
+					after: {
+						holderId: id,
+						userId: d.userId,
+						externalName: d.externalName,
+						role: d.role,
+						siteId: d.siteId,
+						hasLocation: Boolean(location),
+						vettedAt: d.vettedAt,
+						until: d.until,
+						status,
+					},
+				},
+			};
+		});
+	} catch (e) {
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		throw e;
+	}
 	revalidatePath(PATH, "layout");
 	return res;
 }

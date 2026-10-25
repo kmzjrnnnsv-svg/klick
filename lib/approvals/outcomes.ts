@@ -26,6 +26,7 @@ import {
 	applyRevocation,
 	rejectAppointment,
 } from "@/lib/compliance/appointment-service";
+import { applyChangeDecision } from "@/lib/compliance/change-request-service";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -84,6 +85,12 @@ export async function applyApprovalOutcome(
 							eq(products.organizationId, ctx.orgId),
 						),
 					);
+			return extra;
+		}
+		// Neues Produkt / wesentliche Änderung (MaRisk AT 8)
+		case "change.request": {
+			if (approved || rejected)
+				return applyChangeDecision(tx, ctx, r.entityId, approved);
 			return extra;
 		}
 		case "provider.create": {

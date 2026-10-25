@@ -30,6 +30,7 @@ export type NavLabelKey =
 	| "reports"
 	| "trustCenter"
 	| "nonconformities"
+	| "changes"
 	| "testProgramme"
 	| "calendar"
 	| "roadmap"
@@ -74,6 +75,7 @@ export type NavIcon =
 	| "lock"
 	| "building"
 	| "gavel"
+	| "git-pull-request"
 	| "clipboard-check"
 	| "presentation"
 	| "wrench"
@@ -302,6 +304,18 @@ export function buildNav(input: NavInput): NavGroup[] {
 					href: "/beschluesse",
 					icon: "gavel",
 				},
+				// Neu-Produkt-Prozess (MaRisk AT 8, DORA Art. 8 Abs. 3): nur mit
+				// einem Rahmenwerk, das ihn verlangt
+				...(["zag-marisk", "kwg", "dora"].some((s) => slugs.has(s))
+					? [
+							{
+								key: "changes",
+								labelKey: "changes" as const,
+								href: "/aenderungen",
+								icon: "git-pull-request" as const,
+							},
+						]
+					: []),
 				{
 					key: "audits",
 					labelKey: "audits",

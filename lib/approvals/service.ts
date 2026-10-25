@@ -26,7 +26,7 @@ import {
 import {
 	APPROVAL_WORKFLOW_TEMPLATES,
 	LEGACY_DESCRIPTIONS,
-	LEGACY_DOCUMENT_PUBLISH_STEPS,
+	LEGACY_STEPS,
 	WORKFLOW_BY_KIND,
 } from "@/lib/compliance/catalog/approval-workflows";
 import { type OrgTx, queueAudit } from "@/lib/db/with-org";
@@ -182,12 +182,16 @@ export async function ensureOrgWorkflows(
 		if (row.custom) continue;
 		// Altfassungen angleichen, eigene Anpassungen bleiben
 		const patch: Partial<typeof approvalWorkflows.$inferInsert> = {};
-		if (
-			t.kind === "document_publish" &&
-			sameSteps(row.steps, LEGACY_DOCUMENT_PUBLISH_STEPS)
-		)
+		const legacySteps = LEGACY_STEPS[t.kind];
+		if (legacySteps && sameSteps(row.steps, legacySteps)) {
 			patch.steps = t.steps;
-		if (row.description === LEGACY_DESCRIPTIONS[t.kind])
+			patch.entityType = t.entityType;
+			patch.name = t.name;
+		}
+		if (
+			row.description === LEGACY_DESCRIPTIONS[t.kind] ||
+			row.description === LEGACY_DESCRIPTIONS[`${t.kind}_v2`]
+		)
 			patch.description = t.description;
 		if (duty && fresh.length > 0 && !row.enabled) {
 			patch.enabled = true;

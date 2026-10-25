@@ -281,6 +281,13 @@
       "when": 1792950968202,
       "tag": "0039_approval_duties",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792953736646,
+      "tag": "0040_change_requests",
+      "breakpoints": true
     }
   ]
 }

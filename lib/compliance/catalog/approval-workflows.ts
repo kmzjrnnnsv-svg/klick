@@ -31,6 +31,15 @@ export const LEGACY_DOCUMENT_PUBLISH_STEPS: ApprovalStep[] = [
 	{ order: 3, approverRule: "function:management_body", slaDays: 10 },
 ];
 
+// Altfassungen je Ablauf: unverändert übernommene Stufen werden angeglichen
+export const LEGACY_STEPS: Readonly<Record<string, ApprovalStep[]>> = {
+	document_publish: LEGACY_DOCUMENT_PUBLISH_STEPS,
+	change: [
+		{ order: 1, approverRule: "function:ict_risk_function", slaDays: 5 },
+		{ order: 2, approverRule: "function:management_body", slaDays: 10 },
+	],
+};
+
 export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 	{
 		kind: "role_appointment",
@@ -162,13 +171,25 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 	},
 	{
 		kind: "change",
-		name: "Änderung / neues Produkt",
-		entityType: "task",
+		name: "Neues Produkt oder wesentliche Änderung",
+		entityType: "change_request",
 		description:
-			"IKT-Risikokontrolle, dann die Geschäftsleitung (MaRisk AT 8, DORA Art. 8 Abs. 3).",
+			"IKT-Risikokontrolle (nur bei IT-Änderungen), Risikocontrolling, Compliance, dann die Geschäftsleitung (MaRisk AT 8, DORA Art. 8 Abs. 3). Nicht besetzte Funktionen entfallen; beantragt die Geschäftsleitung selbst, entfällt ihre Stufe.",
 		steps: [
-			{ order: 1, approverRule: "function:ict_risk_function", slaDays: 5 },
-			{ order: 2, approverRule: "function:management_body", slaDays: 10 },
+			{
+				order: 1,
+				approverRule: "function:ict_risk_function",
+				onlyIf: [{ field: "changeKind", op: "eq", value: "it_change" }],
+				slaDays: 5,
+			},
+			{ order: 2, approverRule: "function:risk_control", slaDays: 5 },
+			{ order: 3, approverRule: "function:compliance", slaDays: 5 },
+			{
+				order: 4,
+				approverRule: "function:management_body",
+				skipIf: ["function:management_body"],
+				slaDays: 10,
+			},
 		],
 		defaultEnabled: false,
 	},
@@ -343,6 +364,9 @@ export const LEGACY_DESCRIPTIONS: Readonly<Record<string, string>> = {
 		"Owner, dann ISB; bei kritischen Controls zusätzlich Geschäftsleitung.",
 	change:
 		"IT, dann IKT-Risikokontrolle, bei kritisch zuletzt die Geschäftsleitung (MaRisk AT 8, DORA 8(3)).",
+	// Zwischenfassung vom 25.10.2026 (vor dem Anschluss an /aenderungen)
+	change_v2:
+		"IKT-Risikokontrolle, dann die Geschäftsleitung (MaRisk AT 8, DORA Art. 8 Abs. 3).",
 	provider_onboarding:
 		"Auslagerungsbeauftragte:r, dann Geschäftsleitung: Freigabe trotz kritischem Bewertungsergebnis bzw. bei wesentlicher Auslagerung.",
 	process_change: "Prozess-Owner, dann ISB.",

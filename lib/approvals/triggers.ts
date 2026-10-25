@@ -1,6 +1,7 @@
 import { KEY_HOLDER_ROLES } from "@/db/schema/custody";
 import type { EntityKind } from "@/db/schema/enums";
 import {
+	CHANGE_KINDS,
 	CLASSIFICATIONS,
 	CRITICALITY,
 	NC_PRIORITIES,
@@ -278,13 +279,15 @@ export const TRIGGERS: readonly TriggerDef[] = [
 		wired: true,
 	},
 	{
+		// Neues Produkt, neuer Markt/Vertriebsweg, wesentliche IT-Änderung
+		// (MaRisk AT 8, /aenderungen)
 		key: "change.request",
 		kind: "change",
-		entityType: "task",
+		entityType: "change_request",
 		area: "operations",
 		mode: "pending",
-		facts: [],
-		wired: false,
+		facts: [{ key: "changeKind", type: "enum", options: CHANGE_KINDS }],
+		wired: true,
 	},
 	// Steuerung
 	{
