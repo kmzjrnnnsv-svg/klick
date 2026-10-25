@@ -15,7 +15,7 @@ import { safeAction } from "@/lib/actions/safe";
 import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import { insertSelfAssessment } from "@/lib/assessments/create-service";
 import type { AuditInput } from "@/lib/audit";
-import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import { requiredFunctions } from "@/lib/compliance/catalog/required-functions";
 import {
@@ -109,10 +109,22 @@ async function setupAssignFunctionImpl(
 ): Promise<
 	ActionResult<{ id: string; inviteUrl: string | null; mailed: boolean | null }>
 > {
-	const c = await requireOrg({ role_assignment: ["update"] });
+	// in der Einrichtung ohne Step-up, danach wie unter /organisation
+	const { c, open } = await requireSetup({ role_assignment: ["update"] });
+	if (!open) await requireStepUp();
 	const parsed = setupAssignSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
+	const holderId =
+		d.mode === "me" ? c.userId : d.mode === "member" ? d.userId : null;
+	if (d.deputyUserId && d.deputyUserId === holderId)
+		return {
+			ok: false,
+			error: "invalid",
+			fieldErrors: {
+				deputyUserId: ["Die Vertretung muss eine andere Person sein."],
+			},
+		};
 	let inviteUrl: string | null = null;
 	let mailed: boolean | null = null;
 	if (d.mode === "invite") {
@@ -130,13 +142,13 @@ async function setupAssignFunctionImpl(
 			return { ok: false, error: inv.error };
 	}
 	const values = {
-		userId: d.mode === "me" ? c.userId : d.mode === "member" ? d.userId : null,
+		userId: holderId,
 		externalName: d.mode === "invite" || d.mode === "external" ? d.name : null,
 		pendingEmail: d.mode === "invite" ? d.email.toLowerCase() : null,
 		deputyUserId: d.deputyUserId ?? null,
 	};
 	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const [existing] = await tx
+		const rows = await tx
 			.select()
 			.from(roleAssignments)
 			.where(
@@ -144,8 +156,12 @@ async function setupAssignFunctionImpl(
 					eq(roleAssignments.organizationId, c.orgId),
 					eq(roleAssignments.function, d.function),
 				),
-			)
-			.limit(1);
+			);
+		// geändert wird nur die gewählte Zeile; dieselbe Person nie doppelt
+		const existing =
+			rows.find((r) => r.id === d.id) ??
+			(holderId ? rows.find((r) => r.userId === holderId) : undefined);
+		if (d.id && !existing) return { result: null, audit: [] };
 		if (existing) {
 			await tx
 				.update(roleAssignments)
@@ -160,6 +176,7 @@ async function setupAssignFunctionImpl(
 						userId: existing.userId,
 						externalName: existing.externalName,
 						pendingEmail: existing.pendingEmail,
+						deputyUserId: existing.deputyUserId,
 					},
 					after: { function: d.function, ...values, via: "setup" },
 				},
@@ -184,6 +201,7 @@ async function setupAssignFunctionImpl(
 			},
 		};
 	});
+	if (!id) return { ok: false, error: "notFound" };
 	revalidatePath(PATH, "layout");
 	return { ok: true, data: { id, inviteUrl, mailed } };
 }
@@ -192,7 +210,7 @@ async function setupRemoveAssignmentImpl(
 	input: unknown,
 ): Promise<ActionResult> {
 	const { c, open } = await requireSetup({ role_assignment: ["update"] });
-	if (!open) return { ok: false, error: "setup_completed" };
+	if (!open) await requireStepUp();
 	const parsed = deleteSiteSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const ok = await mutateOrg(toOrgCtx(c), async (tx) => {

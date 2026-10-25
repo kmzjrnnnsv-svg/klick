@@ -18,8 +18,12 @@ export const createOrganizationSchema = z.object({
 	// leer = Rahmenwerke folgen in der geführten Einrichtung (D4)
 	frameworks: z.array(z.string().min(1)).default([]),
 	applyBaseline: z.boolean().default(false),
-	// eigene Funktion im Unternehmen (D0), wird direkt zugewiesen
-	ownFunction: z.enum(ROLE_FUNCTIONS).optional(),
+	// eigene Funktionen im Unternehmen (D0), werden direkt zugewiesen — eine
+	// Person kann mehrere tragen (z. B. Geschäftsführung und ISB)
+	ownFunctions: z
+		.array(z.enum(ROLE_FUNCTIONS))
+		.max(ROLE_FUNCTIONS.length)
+		.default([]),
 	// Nur für Unternehmen, volljährig, Nutzungsbedingungen (docs/legal)
 	termsAccepted: z.literal(true, { error: "termsRequired" }),
 });

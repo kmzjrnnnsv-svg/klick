@@ -175,6 +175,22 @@ h1 {
 	}
 }
 
+/* Eingerückte gruppierte Liste (Apple HIG, wie ListSection): Trennlinie
+   zwischen den Zeilen ab 16 px, nicht über die volle Breite */
+.list-inset > * {
+	position: relative;
+}
+.list-inset > * + *::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: 0;
+	left: 1rem;
+	height: 1px;
+	background: color-mix(in oklab, var(--border) 70%, transparent);
+	pointer-events: none;
+}
+
 /* Felder am Touch-Bildschirm mindestens 16 px: darunter zoomt Safari auf
    iOS beim Tippen in die Seite. Ohne Ebene, damit es kleinere Textstile an
    Feldern (Codes, Token, dichte Tabellen) sicher überstimmt. */

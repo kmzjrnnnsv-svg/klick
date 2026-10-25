@@ -25,34 +25,31 @@ const optionalEur = z.coerce.number().min(0).max(1e13).optional();
 export const setupStepSchema = z.object({ step: z.enum(SETUP_STEPS) });
 
 // Schritt 1: Funktion besetzen — ich, Mitglied, Einladung oder extern
-export const setupAssignSchema = z.discriminatedUnion("mode", [
-	z.object({
-		mode: z.literal("me"),
-		function: z.enum(ROLE_FUNCTIONS),
-		deputyUserId: uuid.nullable().optional(),
-	}),
-	z.object({
-		mode: z.literal("member"),
-		function: z.enum(ROLE_FUNCTIONS),
-		userId: uuid,
-		deputyUserId: uuid.nullable().optional(),
-	}),
-	z.object({
-		mode: z.literal("invite"),
-		function: z.enum(ROLE_FUNCTIONS),
-		name: shortText,
-		email: z.email(),
-		role: z.enum(ORG_ROLES).exclude(["owner"]),
-		sendMail: z.boolean().default(true),
-		deputyUserId: uuid.nullable().optional(),
-	}),
-	z.object({
-		mode: z.literal("external"),
-		function: z.enum(ROLE_FUNCTIONS),
-		name: shortText,
-		deputyUserId: uuid.nullable().optional(),
-	}),
-]);
+// eine Zeile je Person und Funktion: mit `id` wird genau diese Zeile
+// geändert, ohne wird eine weitere Person bestellt (mehrere je Funktion)
+const assignBase = {
+	id: uuid.optional(),
+	function: z.enum(ROLE_FUNCTIONS),
+	deputyUserId: uuid.nullable().optional(),
+};
+export const setupAssignSchema = z
+	.discriminatedUnion("mode", [
+		z.object({ mode: z.literal("me"), ...assignBase }),
+		z.object({ mode: z.literal("member"), ...assignBase, userId: uuid }),
+		z.object({
+			mode: z.literal("invite"),
+			...assignBase,
+			name: shortText,
+			email: z.email(),
+			role: z.enum(ORG_ROLES).exclude(["owner"]),
+			sendMail: z.boolean().default(true),
+		}),
+		z.object({ mode: z.literal("external"), ...assignBase, name: shortText }),
+	])
+	.refine((d) => !(d.mode === "member" && d.deputyUserId === d.userId), {
+		message: "Die Vertretung muss eine andere Person sein.",
+		path: ["deputyUserId"],
+	});
 export type SetupAssignInput = z.input<typeof setupAssignSchema>;
 
 // Schritt 2: Unternehmen und Größe

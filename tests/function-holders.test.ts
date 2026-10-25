@@ -5,6 +5,7 @@ import {
 	holdersOf,
 	recipientsOf,
 	responsibleFor,
+	whoHoldsWhat,
 } from "@/lib/compliance/function-holders";
 
 const rows: FunctionAssignment[] = [
@@ -58,6 +59,45 @@ describe("Funktion → Person", () => {
 		expect(functionsOf(rows, "anna")).toEqual([
 			{ function: "isb_ciso", as: "deputy" },
 			{ function: "aml_officer", as: "deputy" },
+		]);
+	});
+
+	it("Wer trägt was: Eingeladene zählen für die Funktionstrennung", () => {
+		const base = {
+			userId: null,
+			externalName: "Erika Muster",
+			deputyUserId: null,
+			userName: null,
+			deputyName: null,
+		};
+		const people = whoHoldsWhat(
+			[
+				// eingeladen als Revision und als Compliance: SOD-01 „nicht zulässig“
+				{ ...base, function: "internal_audit", pendingEmail: "erika@x.de" },
+				{ ...base, function: "compliance", pendingEmail: "Erika@x.de" },
+				{
+					function: "dpo",
+					userId: "gf1",
+					externalName: null,
+					pendingEmail: null,
+					deputyUserId: "anna",
+					userName: "Gabi",
+					deputyName: "Anna",
+				},
+			],
+			(fn) => fn,
+		);
+		const erika = people.find((p) => p.key === "invite:erika@x.de");
+		expect(erika?.kind).toBe("invite");
+		expect(erika?.functions.map((f) => f.function)).toEqual([
+			"internal_audit",
+			"compliance",
+		]);
+		expect(erika?.sod.map((v) => [v.code, v.severity])).toEqual([
+			["SOD-01", "block"],
+		]);
+		expect(people.find((p) => p.key === "anna")?.functions).toEqual([
+			{ function: "dpo", title: "dpo", as: "deputy" },
 		]);
 	});
 });

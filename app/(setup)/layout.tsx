@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import { LegalLinks } from "@/components/shell/legal-links";
+import { getSessionCtx } from "@/lib/auth/guards";
 
 // Geführte Einrichtung (D0): ruhiges Layout ohne Sidebar, breiter als die
 // Anmeldeseiten. Sitzung je Request — nie statisch vorrendern.
@@ -12,7 +14,10 @@ export default async function SetupLayout({
 }: {
 	children: ReactNode;
 }) {
-	const t = await getTranslations("Common");
+	const [t, sctx] = await Promise.all([
+		getTranslations("Common"),
+		getSessionCtx(),
+	]);
 	return (
 		<>
 			<header className="material-bar sticky top-0 z-30 w-full border-border/60 border-b">
@@ -32,6 +37,11 @@ export default async function SetupLayout({
 				{children}
 			</main>
 			<LegalLinks />
+			{/* nach abgeschlossener Einrichtung verlangen Änderungen Step-up */}
+			<StepUpDialog
+				passkey={Boolean(sctx?.user.hasPasskey)}
+				totp={Boolean(sctx?.user.twoFactorEnabled)}
+			/>
 		</>
 	);
 }

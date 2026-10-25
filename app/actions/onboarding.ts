@@ -107,13 +107,16 @@ async function createOrganizationActionImpl(
 					[TERMS_FLAG.version]: TERMS_VERSION,
 				},
 			});
-			if (data.ownFunction)
-				await tx.insert(roleAssignments).values({
-					organizationId: org.id,
-					function: data.ownFunction,
-					userId: ctx.user.id,
-					appointedAt: new Date().toISOString().slice(0, 10),
-				});
+			const ownFunctions = [...new Set(data.ownFunctions)];
+			if (ownFunctions.length > 0)
+				await tx.insert(roleAssignments).values(
+					ownFunctions.map((fn) => ({
+						organizationId: org.id,
+						function: fn,
+						userId: ctx.user.id,
+						appointedAt: new Date().toISOString().slice(0, 10),
+					})),
+				);
 			const fws = await tx
 				.select({ id: frameworks.id, slug: frameworks.slug })
 				.from(frameworks)
@@ -150,7 +153,7 @@ async function createOrganizationActionImpl(
 						licenceStage: data.licenceStage,
 						caspServices: data.caspServices,
 						frameworks: fws.map((f) => f.slug),
-						ownFunction: data.ownFunction ?? null,
+						ownFunctions: data.ownFunctions,
 						termsVersion: TERMS_VERSION,
 						keyVersion: wrapped.keyVersion,
 						applyBaseline,

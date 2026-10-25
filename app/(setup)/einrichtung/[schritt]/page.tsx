@@ -11,13 +11,13 @@ import { RolesStep } from "@/components/setup/roles-step";
 import { SitesStep } from "@/components/setup/sites-step";
 import { StepFooter } from "@/components/setup/step-footer";
 import { orgSettings, providers, roleAssignments, sites } from "@/db/schema";
-import type { RoleFunction } from "@/db/schema/enums";
+import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import { requiredFunctions } from "@/lib/compliance/catalog/required-functions";
-import { checkSod } from "@/lib/compliance/catalog/sod-rules";
 import { suggestFrameworks } from "@/lib/compliance/company-profile";
+import { whoHoldsWhat } from "@/lib/compliance/function-holders";
 import {
 	getOrgProfile,
 	listMembersForPicker,
@@ -78,9 +78,12 @@ export default async function SetupStepPage({
 						externalName: roleAssignments.externalName,
 						pendingEmail: roleAssignments.pendingEmail,
 						deputyUserId: roleAssignments.deputyUserId,
+						appointedAt: roleAssignments.appointedAt,
+						createdAt: roleAssignments.createdAt,
 					})
 					.from(roleAssignments)
-					.where(eq(roleAssignments.organizationId, ctx.orgId));
+					.where(eq(roleAssignments.organizationId, ctx.orgId))
+					.orderBy(roleAssignments.appointedAt, roleAssignments.createdAt);
 				const names = await userNames(
 					tx,
 					rows.flatMap((r) => [r.userId, r.deputyUserId]),
@@ -163,46 +166,54 @@ export default async function SetupStepPage({
 				</p>
 			</header>
 
-			{schritt === "rollen" && "assignments" in data && (
-				<RolesStep
-					functions={(() => {
-						const req = requiredFunctions(
-							profile.frameworks,
-							profile.profile.licenceStage,
-						);
-						const keys = new Set<RoleFunction>([
-							...req.map((r) => r.function),
-							...(req.length === 0 ? BASE_FUNCTIONS : []),
-						]);
-						return [...keys].map((f) => {
-							const r = req.find((x) => x.function === f);
-							return {
-								function: f,
-								title: tf(f),
-								hint: r?.hint ?? null,
-								legalBasis: r?.legalBasis ?? null,
-								required: Boolean(r),
-							};
-						});
-					})()}
-					assignments={data.assignments.map((a) => ({
+			{schritt === "rollen" &&
+				"assignments" in data &&
+				(() => {
+					const req = requiredFunctions(
+						profile.frameworks,
+						profile.profile.licenceStage,
+					);
+					// oben: Pflichtfunktionen (ohne Rahmenwerke die Grundausstattung)
+					// und alles, was schon besetzt ist; der Rest unter „Weitere“
+					const main = new Set<RoleFunction>([
+						...req.map((r) => r.function),
+						...(req.length === 0 ? BASE_FUNCTIONS : []),
+						...data.assignments.map((a) => a.function),
+					]);
+					const order = ROLE_FUNCTIONS.filter((f) => f !== "other");
+					const functions = [
+						...order.filter((f) => main.has(f)),
+						...order.filter((f) => !main.has(f)),
+					].map((f) => {
+						const r = req.find((x) => x.function === f);
+						return {
+							function: f,
+							title: tf(f),
+							hint: r?.hint ?? null,
+							legalBasis: r?.legalBasis ?? null,
+							required: Boolean(r),
+							deputyRequired: Boolean(r?.deputyRequired),
+							more: !main.has(f),
+						};
+					});
+					const named = data.assignments.map((a) => ({
 						...a,
 						userName: a.userId ? (data.names.get(a.userId) ?? null) : null,
 						deputyName: a.deputyUserId
 							? (data.names.get(a.deputyUserId) ?? null)
 							: null,
-					}))}
-					members={data.members}
-					currentUserId={ctx.userId}
-					sod={checkSod(data.assignments).map((v) => ({
-						code: v.rule.code,
-						text: v.rule.text,
-						severity: v.rule.severity,
-						who: data.names.get(v.userId) ?? "—",
-					}))}
-					nextHref={nextHref}
-				/>
-			)}
+					}));
+					return (
+						<RolesStep
+							functions={functions}
+							assignments={named}
+							people={whoHoldsWhat(named, tf)}
+							members={data.members}
+							currentUserId={ctx.userId}
+							nextHref={nextHref}
+						/>
+					);
+				})()}
 			{schritt === "unternehmen" && (
 				<CompanyStep
 					initial={entity}

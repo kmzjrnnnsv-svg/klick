@@ -1,4 +1,9 @@
 import type { RoleFunction } from "@/db/schema/enums";
+import {
+	checkSod,
+	SOD_RULES,
+	type SodRule,
+} from "@/lib/compliance/catalog/sod-rules";
 
 // Funktion → Person, rein und an einer Stelle (Teil A „Rollen zu Beginn“).
 // Eine Funktion kann mehrere Inhaber:innen haben (z. B. zwei
@@ -94,4 +99,101 @@ export function functionsOf(
 	}
 	// Inhaber:in vor Vertretung, dann in Katalog-Reihenfolge des Aufrufers
 	return out.sort((a, b) => (a.as === b.as ? 0 : a.as === "holder" ? -1 : 1));
+}
+
+// ── „Wer trägt was“ (Einrichtung, /organisation) ─────────────────────────
+// Je Person ihre Funktionen und die Funktionstrennungs-Hinweise. Eingeladene
+// zählen über ihre Adresse, Externe über den Namen — sonst fielen unzulässige
+// Kombinationen erst nach der Annahme auf. Kein Verbot: kleine Firmen müssen
+// kombinieren dürfen, Prüfer:innen sehen die Hinweise.
+
+export type HolderRow = {
+	function: RoleFunction;
+	userId: string | null;
+	externalName: string | null;
+	pendingEmail: string | null;
+	deputyUserId: string | null;
+	userName: string | null;
+	deputyName: string | null;
+};
+
+export type PersonView = {
+	key: string;
+	name: string;
+	kind: "member" | "invite" | "external";
+	functions: {
+		function: RoleFunction;
+		title: string;
+		as: "holder" | "deputy";
+	}[];
+	sod: Pick<SodRule, "code" | "text" | "severity">[];
+};
+
+function personOf(r: HolderRow) {
+	if (r.userId)
+		return { key: r.userId, name: r.userName ?? "—", kind: "member" as const };
+	if (r.pendingEmail)
+		return {
+			key: `invite:${r.pendingEmail.toLowerCase()}`,
+			name: r.externalName ?? r.pendingEmail,
+			kind: "invite" as const,
+		};
+	if (r.externalName)
+		return {
+			key: `ext:${r.externalName.trim().toLowerCase()}`,
+			name: r.externalName,
+			kind: "external" as const,
+		};
+	return null;
+}
+
+export function whoHoldsWhat(
+	rows: readonly HolderRow[],
+	title: (fn: RoleFunction) => string,
+	rules: readonly SodRule[] = SOD_RULES,
+): PersonView[] {
+	const people = new Map<string, PersonView>();
+	const add = (
+		p: { key: string; name: string; kind: PersonView["kind"] },
+		fn: RoleFunction,
+		as: "holder" | "deputy",
+	) => {
+		const v = people.get(p.key) ?? { ...p, functions: [], sod: [] };
+		if (!v.functions.some((f) => f.function === fn && f.as === as))
+			v.functions.push({ function: fn, title: title(fn), as });
+		people.set(p.key, v);
+	};
+	for (const r of rows) {
+		const p = personOf(r);
+		if (p) add(p, r.function, "holder");
+		// Altdaten: Vertretung = Inhaber:in zählt nicht als Vertretung
+		if (r.deputyUserId && r.deputyUserId !== r.userId)
+			add(
+				{ key: r.deputyUserId, name: r.deputyName ?? "—", kind: "member" },
+				r.function,
+				"deputy",
+			);
+	}
+	const keyed = rows.flatMap((r) => {
+		const p = personOf(r);
+		return p ? [{ function: r.function, userId: p.key }] : [];
+	});
+	for (const v of checkSod(keyed, rules)) {
+		const p = people.get(v.userId);
+		if (p && !p.sod.some((s) => s.code === v.rule.code))
+			p.sod.push({
+				code: v.rule.code,
+				text: v.rule.text,
+				severity: v.rule.severity,
+			});
+	}
+	for (const p of people.values())
+		p.functions.sort((a, b) =>
+			a.as === b.as ? 0 : a.as === "holder" ? -1 : 1,
+		);
+	return [...people.values()].sort(
+		(a, b) =>
+			b.functions.length - a.functions.length ||
+			a.name.localeCompare(b.name, "de"),
+	);
 }
