@@ -27,10 +27,10 @@ import {
 import { frameworks } from "./catalog";
 import {
 	type CaspService,
+	type FunctionKey,
 	GOVERNANCE_MODES,
 	LICENCE_STAGES,
 	NOTIFICATION_KINDS,
-	type RoleFunction,
 } from "./enums";
 import { priceGroups } from "./pricing";
 
@@ -235,7 +235,7 @@ export const orgSettings = pgTable(
 		// Bereich → Funktion (Einrichtung, lib/compliance/catalog/
 		// domain-functions.ts): neue Controls bekommen die Funktion als
 		// Verantwortlich
-		areaFunctions: json<Partial<Record<string, RoleFunction>>>()
+		areaFunctions: json<Partial<Record<string, FunctionKey>>>()
 			.notNull()
 			.default({}),
 		// Standard (nach Rahmenwerk) oder individuell (ADR-024)

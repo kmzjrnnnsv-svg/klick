@@ -279,7 +279,11 @@ export default async function SetupStepPage({
 								);
 						const current =
 							[...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-						const saved = data.areaFunctions[area] ?? null;
+						// die Einrichtung kennt nur Katalog-Funktionen (eigene Rollen:
+						// Rollen-Tafel im individuellen Modus)
+						const stored = data.areaFunctions[area] ?? null;
+						const saved =
+							stored && !isOwnRoleKey(stored) ? (stored as RoleFunction) : null;
 						return {
 							area,
 							label:

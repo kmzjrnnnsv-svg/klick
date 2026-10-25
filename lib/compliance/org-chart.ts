@@ -142,3 +142,23 @@ export function flattenChart(
 	for (const r of roots) walk(r, 0);
 	return out;
 }
+
+// Würde „child berichtet an parent“ einen Kreis bilden? (Organigramm
+// bearbeiten: solche Ablagen sind gesperrt). parents: Funktion → ihre
+// derzeitige übergeordnete Funktion.
+export function wouldCycle(
+	parents: ReadonlyMap<FunctionKey, FunctionKey | null>,
+	child: FunctionKey,
+	parent: FunctionKey | null,
+): boolean {
+	if (!parent) return false;
+	if (parent === child) return true;
+	const seen = new Set<FunctionKey>([child]);
+	let p: FunctionKey | null = parent;
+	while (p) {
+		if (seen.has(p)) return true;
+		seen.add(p);
+		p = parents.get(p) ?? null;
+	}
+	return false;
+}

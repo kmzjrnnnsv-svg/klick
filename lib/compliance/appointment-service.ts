@@ -291,8 +291,8 @@ export async function applyAppointment(
 	}
 	await syncTrainingAssignments(tx, actor.orgId);
 	await syncOwnersAndNotify(tx, actor.orgId, actor.userId);
-	// eigene Rolle: Rechte folgen der Bestellung
-	if (row.orgRoleId)
+	// eigene Rolle (auch die ersetzte): Rechte folgen der Bestellung
+	if (row.orgRoleId || row.replacesAssignmentId)
 		audit.push(...(await syncMemberRoles(tx, actor.orgId, actor.userId)));
 	const fnLabel = await functionName(tx, row);
 	await notify(tx, {
