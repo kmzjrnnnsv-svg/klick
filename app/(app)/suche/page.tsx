@@ -9,6 +9,7 @@ import { toOrgCtx } from "@/lib/auth/guards";
 import { type SearchHit, searchOrg } from "@/lib/compliance/search";
 import { readOrg } from "@/lib/db/with-org";
 import { entityHref } from "@/lib/entities/links";
+import { articlesFor, searchHelp } from "@/lib/help";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -52,6 +53,8 @@ export default async function SearchPage({
 	const sp = await searchParams;
 	const q = (one(sp.q) ?? "").trim();
 	const t = await getTranslations("Search");
+	const th = await getTranslations("Help");
+	const help = q.length >= 2 ? searchHelp(articlesFor(ctx.orgRole), q, 5) : [];
 	const hits =
 		q.length >= 2
 			? await readOrg(toOrgCtx(ctx), (tx) => searchOrg(tx, ctx.orgId, q))
@@ -76,13 +79,35 @@ export default async function SearchPage({
 			</form>
 			{q.length < 2 ? (
 				<p className="text-muted-foreground text-subhead">{t("hint")}</p>
-			) : hits.length === 0 ? (
+			) : hits.length === 0 && help.length === 0 ? (
 				<p className="text-subhead">{t("none", { q })}</p>
 			) : (
 				<div className="flex flex-col gap-6">
 					<p className="text-muted-foreground text-subhead">
 						{t("count", { n: hits.length, q })}
 					</p>
+					{help.length > 0 && (
+						<section>
+							<h2 className="font-medium text-footnote mb-2 text-muted-foreground">
+								{th("searchKind")} · {help.length}
+							</h2>
+							<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
+								{help.map((a) => (
+									<li key={a.slug} className="px-3 py-2">
+										<Link
+											href={`/hilfe/${a.slug}`}
+											className="font-medium hover:underline underline-offset-4"
+										>
+											{a.title}
+										</Link>
+										<p className="mt-0.5 line-clamp-2 text-muted-foreground text-footnote">
+											{a.summary}
+										</p>
+									</li>
+								))}
+							</ul>
+						</section>
+					)}
 					{[...groups.entries()].map(([kind, list]) => (
 						<section key={kind}>
 							<h2 className="font-medium text-footnote mb-2 text-muted-foreground">

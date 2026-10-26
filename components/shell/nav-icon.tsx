@@ -4,6 +4,7 @@ import {
 	BookOpen,
 	Building2,
 	Calendar,
+	CircleHelp,
 	ClipboardCheck,
 	Coins,
 	FileCheck2,
@@ -80,6 +81,7 @@ const ICONS = {
 	wallet: Wallet,
 	search: Search,
 	layers: Layers,
+	"circle-help": CircleHelp,
 } as const;
 
 export function NavIcon({

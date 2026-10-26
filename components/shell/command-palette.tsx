@@ -18,7 +18,8 @@ import type { NavGroup } from "@/lib/nav";
 import { NavIcon } from "./nav-icon";
 
 // ⌘K: Navigation + Volltextsuche (/suche?q=…).
-// tabBar: am Handy steht die Suche in der Tab-Leiste — kein zweiter Knopf oben
+// tabBar: unter 1024 px steht die Suche in der Tab-Leiste — kein zweiter Knopf
+// oben (sonst läuft die Kopfleiste bei großer Schrift über)
 export function CommandPalette({
 	groups,
 	tabBar = false,
@@ -54,7 +55,11 @@ export function CommandPalette({
 				variant="outline"
 				size="sm"
 				onClick={() => setOpen(true)}
-				className="hidden font-normal text-muted-foreground md:inline-flex"
+				className={
+					tabBar
+						? "hidden font-normal text-muted-foreground lg:inline-flex"
+						: "hidden font-normal text-muted-foreground md:inline-flex"
+				}
 				aria-label={t("searchHint")}
 			>
 				<Search />

@@ -40,7 +40,7 @@ describe("Rolle Mitarbeitende", () => {
 		expect(normalizeRole("member,employee")).toBe("employee");
 		expect(normalizeRole("member")).toBe("viewer");
 	});
-	it("Navigation: nur Richtlinien, keine Tab-Leiste", () => {
+	it("Navigation: nur Richtlinien und Hilfe, keine Tab-Leiste", () => {
 		const nav = buildNav({
 			frameworks: [{ slug: "iso27001", name: "ISO 27001" }],
 			licenceStage: "0_vorbereitung",
@@ -49,6 +49,7 @@ describe("Rolle Mitarbeitende", () => {
 		});
 		expect(nav.flatMap((g) => g.items.map((i) => i.href))).toEqual([
 			"/richtlinien",
+			"/hilfe",
 		]);
 		expect(navTabs(nav)).toEqual([]);
 	});

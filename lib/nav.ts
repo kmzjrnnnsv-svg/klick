@@ -45,7 +45,8 @@ export type NavLabelKey =
 	| "team"
 	| "settings"
 	| "activity"
-	| "policies";
+	| "policies"
+	| "help";
 
 export type NavGroupKey =
 	| "today"
@@ -96,7 +97,8 @@ export type NavIcon =
 	| "vault"
 	| "wallet"
 	| "search"
-	| "layers";
+	| "layers"
+	| "circle-help";
 
 export type NavItem = {
 	key: string;
@@ -154,6 +156,14 @@ const STAGE_INDEX: Record<LicenceStage, number> = {
 	"4_bank": 4,
 };
 
+// Hilfe-Wiki: für alle Rollen, unten in der Seitenleiste
+const HELP_ITEM: NavItem = {
+	key: "help",
+	labelKey: "help",
+	href: "/hilfe",
+	icon: "circle-help",
+};
+
 export function buildNav(input: NavInput): NavGroup[] {
 	// Mitarbeitende sehen nur ihre Richtlinien (Kenntnisnahme dort)
 	if (input.role === "employee")
@@ -167,6 +177,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 						href: "/richtlinien",
 						icon: "book-open",
 					},
+					HELP_ITEM,
 				],
 			},
 		];
@@ -490,6 +501,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 			href: "/aktivitaet",
 			icon: "activity",
 		},
+		HELP_ITEM,
 	];
 	groups.push({
 		key: "bottom",
@@ -514,6 +526,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 			"audits",
 			"settings",
 			"activity",
+			"help",
 		]);
 		return groups
 			.map((g) => ({
