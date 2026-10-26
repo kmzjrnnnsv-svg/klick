@@ -1,0 +1,1 @@
+ALTER TABLE "session" ADD COLUMN "mfa_org_id" text;

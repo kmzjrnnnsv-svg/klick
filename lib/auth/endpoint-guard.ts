@@ -14,7 +14,12 @@ import {
 	isGuardedAuthPath,
 } from "./endpoint-policy";
 import { REG_CONTEXT, REG_COOKIE } from "./registration-link";
-import { ipFromHeaders, isStepUpFresh } from "./session-rules";
+import {
+	effectiveMfaVerifiedAt,
+	ipFromHeaders,
+	isStepUpFresh,
+} from "./session-rules";
+import { SAML_SECURITY } from "./sso-policy";
 import { decodeSamlResponse, samlAlgorithmsAllowed } from "./sso-saml";
 
 export async function passkeyCount(userId: string): Promise<number> {
@@ -40,6 +45,13 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 	if (ctx.path.startsWith("/sso/saml2/sp/acs")) {
 		const raw = (ctx.body as { SAMLResponse?: unknown } | undefined)
 			?.SAMLResponse;
+		// Größe zuerst (wie das Plugin): sonst dekodiert und durchsucht diese
+		// Prüfung beliebig große Antworten (Selbstprüfung S7)
+		if (typeof raw === "string" && raw.length > SAML_SECURITY.maxResponseSize)
+			throw new APIError("BAD_REQUEST", {
+				code: "SAML_RESPONSE_TOO_LARGE",
+				message: "SAML-Antwort zu groß.",
+			});
 		if (
 			typeof raw === "string" &&
 			!samlAlgorithmsAllowed(decodeSamlResponse(raw))
@@ -63,9 +75,19 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 		return;
 	const current = await getSessionFromCtx(ctx).catch(() => null);
 	const s = current?.session as
-		| { mfaVerifiedAt?: unknown; stepUpAt?: unknown; impersonatedBy?: unknown }
+		| {
+				mfaVerifiedAt?: unknown;
+				mfaOrgId?: string | null;
+				activeOrganizationId?: string | null;
+				stepUpAt?: unknown;
+				impersonatedBy?: unknown;
+		  }
 		| undefined;
-	const mfaVerifiedAt = asDate(s?.mfaVerifiedAt);
+	const mfaVerifiedAt = effectiveMfaVerifiedAt({
+		mfaVerifiedAt: asDate(s?.mfaVerifiedAt),
+		mfaOrgId: s?.mfaOrgId,
+		activeOrganizationId: s?.activeOrganizationId,
+	});
 	const decision = authEndpointDecision(ctx.path, {
 		hasSession: Boolean(current),
 		mfaVerified: Boolean(mfaVerifiedAt),

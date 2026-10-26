@@ -78,6 +78,21 @@ export function checkSessionRules(
 	throw new AuthError("mfa_required");
 }
 
+/**
+ * Bestätigter zweiter Faktor für die aktive Org. Firmen-MFA (mfaOrgId) gilt
+ * nur in der Org des SSO-Anbieters — eine Berater:in, die sich über den IdP
+ * von Org A anmeldet, hat in Org C damit nichts bestätigt (Selbstprüfung S1).
+ */
+export function effectiveMfaVerifiedAt(s: {
+	mfaVerifiedAt?: Date | null;
+	mfaOrgId?: string | null;
+	activeOrganizationId?: string | null;
+}): Date | null {
+	if (!s.mfaVerifiedAt) return null;
+	if (s.mfaOrgId && s.mfaOrgId !== s.activeOrganizationId) return null;
+	return s.mfaVerifiedAt;
+}
+
 export function isStepUpFresh(
 	session: Pick<SessionLike, "stepUpAt" | "mfaVerifiedAt">,
 	now: number = Date.now(),

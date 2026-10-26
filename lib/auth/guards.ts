@@ -29,6 +29,7 @@ import { type AuthSession, auth } from "./server";
 import {
 	AuthError as AuthErr,
 	checkSessionRules as checkRules,
+	effectiveMfaVerifiedAt,
 	ipFromHeaders,
 	normalizeRole as normRole,
 	isStepUpFresh as stepUpFresh,
@@ -61,6 +62,7 @@ const TOUCH_THROTTLE_MS = 60 * 1000;
 
 type SessionRow = AuthSession["session"] & {
 	mfaVerifiedAt?: Date | null;
+	mfaOrgId?: string | null;
 	lastActiveAt?: Date | null;
 	stepUpAt?: Date | null;
 	activeOrganizationId?: string | null;
@@ -88,8 +90,10 @@ export async function getSessionCtx(): Promise<SessionCtx | null> {
 	// Ein indexierter count je Request: MFA-Regel (TOTP oder Passkey) und
 	// Bestätigungsdialog (Passkey zuerst).
 	const hasPasskey = await userHasPasskey(u.id);
+	const session = res.session as SessionRow;
 	return {
-		session: res.session as SessionRow,
+		// Firmen-MFA nur in der Org des Anbieters (effectiveMfaVerifiedAt)
+		session: { ...session, mfaVerifiedAt: effectiveMfaVerifiedAt(session) },
 		user: { ...u, hasPasskey },
 		ip: ipFromHeaders(h),
 		userAgent: h.get("user-agent"),

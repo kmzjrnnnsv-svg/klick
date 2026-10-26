@@ -44,7 +44,7 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 				const now = new Date();
 				await globalDb
 					.update(sessionTable)
-					.set({ mfaVerifiedAt: now, lastActiveAt: now })
+					.set({ mfaVerifiedAt: now, mfaOrgId: null, lastActiveAt: now })
 					.where(eq(sessionTable.token, verified.session.token));
 				await auditPlatform(actor, {
 					action: "auth.2fa_verified",
@@ -120,12 +120,16 @@ export const authAfterHook = createAuthMiddleware(async (ctx) => {
 		// (endpoint-policy), Link-Registrierungen bekommen eine neue Sitzung.
 		if (path === "/passkey/verify-registration" && !failed && !newSession) {
 			const s = current ?? (await getSessionFromCtx(ctx).catch(() => null));
-			const pending = s?.session as { mfaVerifiedAt?: unknown } | undefined;
-			if (s && !pending?.mfaVerifiedAt) {
+			const pending = s?.session as
+				| { mfaVerifiedAt?: unknown; mfaOrgId?: unknown }
+				| undefined;
+			// auch über eine nur in einer Org gültige Firmen-MFA hinweg: der
+			// Passkey ist ein eigener Faktor
+			if (s && (!pending?.mfaVerifiedAt || pending.mfaOrgId)) {
 				const now = new Date();
 				await globalDb
 					.update(sessionTable)
-					.set({ mfaVerifiedAt: now, lastActiveAt: now })
+					.set({ mfaVerifiedAt: now, mfaOrgId: null, lastActiveAt: now })
 					.where(eq(sessionTable.id, s.session.id));
 			}
 		}

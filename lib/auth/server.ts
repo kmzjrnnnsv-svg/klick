@@ -123,6 +123,9 @@ export const auth = betterAuth({
 			// Wallet-Bereich entsperrt (Passkey, 15 min, je Org)
 			walletUnlockedAt: { type: "date", required: false, input: false },
 			walletUnlockOrgId: { type: "string", required: false, input: false },
+			// Firmen-MFA (SSO, ADR-026): bestätigt nur in dieser Org; leer =
+			// eigener Faktor (Passkey, TOTP), gilt in jeder Org des Kontos
+			mfaOrgId: { type: "string", required: false, input: false },
 		},
 	},
 

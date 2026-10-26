@@ -1,4 +1,5 @@
-import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { APIError } from "better-auth/api";
+import { and, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { globalDb } from "@/db";
 import {
 	invitation,
@@ -88,7 +89,13 @@ export async function provisionSsoUser(p: ProvisionInput): Promise<void> {
 				after: { providerId: p.provider.providerId, reason: "google_hd" },
 			},
 		);
-		return;
+		// Keine Sitzung: das Plugin hat sie schon angelegt, setzt das Cookie
+		// aber erst nach dieser Stelle — ein privates Google-Konto mit einer
+		// Adresse der Firmen-Domain meldet sich so nicht an (Selbstprüfung S8)
+		throw new APIError("FORBIDDEN", {
+			code: "SSO_DOMAIN_MISMATCH",
+			message: "Dieses Google-Konto gehört nicht zur Firmen-Domain.",
+		});
 	}
 	const policy = await orgSsoPolicy(orgId);
 	const role = roleFromGroups(groupsFrom(claims, policy.groupClaim), policy);
@@ -182,7 +189,9 @@ export async function provisionSsoUser(p: ProvisionInput): Promise<void> {
 
 	// Die eben angelegte Sitzung: Org setzen (neu beigetreten) und Firmen-MFA
 	// anerkennen. Step-up bleibt bei Passkey oder Code (stepUpAt = Epoche).
+	// Firmen-MFA nur für Mitglieder dieser Org und nur für sie (mfaOrgId).
 	if (!joined && !mfa) return;
+	if (!here && !joined) return;
 	const [latest] = await globalDb
 		.select({
 			id: sessionTable.id,
@@ -194,6 +203,7 @@ export async function provisionSsoUser(p: ProvisionInput): Promise<void> {
 			and(
 				eq(sessionTable.userId, p.user.id),
 				gt(sessionTable.createdAt, new Date(Date.now() - 60_000)),
+				isNull(sessionTable.impersonatedBy),
 			),
 		)
 		.orderBy(desc(sessionTable.createdAt))
@@ -207,7 +217,12 @@ export async function provisionSsoUser(p: ProvisionInput): Promise<void> {
 				? { activeOrganizationId: orgId }
 				: {}),
 			...(mfa && !latest.mfaVerifiedAt
-				? { mfaVerifiedAt: now, stepUpAt: new Date(0), lastActiveAt: now }
+				? {
+						mfaVerifiedAt: now,
+						mfaOrgId: orgId,
+						stepUpAt: new Date(0),
+						lastActiveAt: now,
+					}
 				: {}),
 		})
 		.where(eq(sessionTable.id, latest.id));
