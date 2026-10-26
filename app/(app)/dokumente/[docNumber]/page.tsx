@@ -34,6 +34,7 @@ import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { hidesSecret, restrictedView } from "@/lib/auth/visibility";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
 	listComments,
@@ -113,7 +114,10 @@ export default async function DocumentDetailPage({
 		dels,
 		names,
 	} = data;
-	const canEdit = allows(ctx, { document: ["update"] });
+	// Prüfer-Sicht: nur die gültige Fassung, keine Arbeitskopie, Freigabe
+	// oder Verlauf; streng geheim ohne Grant nur der Hinweis
+	const restricted = restrictedView(ctx);
+	const canEdit = allows(ctx, { document: ["update"] }) && !restricted;
 	const me = candidates.find((c) => c.userId === ctx.userId);
 	const step = approval?.steps.find((s) => s.order === approval.currentStep);
 	const eligible = Boolean(
@@ -136,6 +140,18 @@ export default async function DocumentDetailPage({
 	// Gültig ist die zuletzt veröffentlichte, nicht zurückgezogene Fassung;
 	// die Arbeitskopie (Entwurf, in Prüfung, freigegeben) steht getrennt
 	const current = currentPublished(versions);
+	if (restricted && !current) notFound();
+	if (hidesSecret(ctx, doc))
+		return (
+			<EntityLayout
+				back={{ href: "/dokumente", label: tNav("documents") }}
+				eyebrow={doc.docNumber}
+				title={t("secretTitle")}
+				aside={null}
+			>
+				<p className="text-muted-foreground text-subhead">{t("secretLead")}</p>
+			</EntityLayout>
+		);
 	const ranges = validRanges(versions);
 	const working =
 		doc.status === "draft" ||
@@ -206,17 +222,27 @@ export default async function DocumentDetailPage({
 	return (
 		<EntityLayout
 			back={{ href: "/dokumente", label: tNav("documents") }}
-			eyebrow={`${doc.docNumber} · ${t(`type_${doc.type}`)} · v${doc.version}`}
+			eyebrow={`${doc.docNumber} · ${t(`type_${doc.type}`)} · v${restricted && current ? current.version : doc.version}`}
 			title={doc.title}
 			status={
-				<StatusButton
-					target={{ kind: "document", documentId: doc.id, status: doc.status }}
-					disabled={!canEdit}
-				/>
+				restricted ? (
+					<Badge variant="success">{t("state_current")}</Badge>
+				) : (
+					<StatusButton
+						target={{
+							kind: "document",
+							documentId: doc.id,
+							status: doc.status,
+						}}
+						disabled={!canEdit}
+					/>
+				)
 			}
 			actions={
 				<>
-					{current && !myAck && <AckButton documentId={doc.id} />}
+					{current && !myAck && !restricted && (
+						<AckButton documentId={doc.id} />
+					)}
 					{canEdit && !working && (
 						<NewVersionDialog
 							documentId={doc.id}
@@ -269,29 +295,33 @@ export default async function DocumentDetailPage({
 			}
 			aside={
 				<>
-					<DecisionRequestsBlock
-						ctx={ctx}
-						kind="document"
-						id={doc.id}
-						title={`${doc.docNumber} ${doc.title}`}
-					/>
-					<Section title={te("activity")}>
-						<CommentForm
-							entityType="document"
-							entityId={doc.id}
-							link={`/dokumente/${encodeURIComponent(doc.docNumber)}`}
+					{!restricted && (
+						<DecisionRequestsBlock
+							ctx={ctx}
+							kind="document"
+							id={doc.id}
+							title={`${doc.docNumber} ${doc.title}`}
 						/>
-						<ActivityStream
-							entries={entries}
-							names={names}
-							labels={{
-								empty: te("activityEmpty"),
-								changed: te("changed"),
-								commented: te("commented"),
-								system: te("system"),
-							}}
-						/>
-					</Section>
+					)}
+					{!restricted && (
+						<Section title={te("activity")}>
+							<CommentForm
+								entityType="document"
+								entityId={doc.id}
+								link={`/dokumente/${encodeURIComponent(doc.docNumber)}`}
+							/>
+							<ActivityStream
+								entries={entries}
+								names={names}
+								labels={{
+									empty: te("activityEmpty"),
+									changed: te("changed"),
+									commented: te("commented"),
+									system: te("system"),
+								}}
+							/>
+						</Section>
+					)}
 					<Section title={t("controls")}>
 						{controls.length === 0 ? (
 							<p className="text-muted-foreground text-subhead">—</p>
@@ -319,25 +349,27 @@ export default async function DocumentDetailPage({
 				</>
 			}
 		>
-			<ApprovalBar
-				data={
-					approval
-						? {
-								...approval,
-								decisions: approval.decisions.map((d) => ({
-									step: d.step,
-									approverUserId: d.approverUserId,
-									decision: d.decision,
-									note: d.note,
-									decidedAt: d.decidedAt,
-								})),
-							}
-						: null
-				}
-				names={names}
-				eligible={eligible}
-				currentUserId={ctx.userId}
-			/>
+			{!restricted && (
+				<ApprovalBar
+					data={
+						approval
+							? {
+									...approval,
+									decisions: approval.decisions.map((d) => ({
+										step: d.step,
+										approverUserId: d.approverUserId,
+										decision: d.decision,
+										note: d.note,
+										decidedAt: d.decidedAt,
+									})),
+								}
+							: null
+					}
+					names={names}
+					eligible={eligible}
+					currentUserId={ctx.userId}
+				/>
+			)}
 
 			<Section title={t("inForce")}>
 				{current ? (
@@ -390,7 +422,7 @@ export default async function DocumentDetailPage({
 				)}
 			</Section>
 
-			{working && (
+			{working && !restricted && (
 				<Section
 					title={workingTitle}
 					actions={
@@ -423,7 +455,7 @@ export default async function DocumentDetailPage({
 				</Section>
 			)}
 
-			{diff && (
+			{diff && !restricted && (
 				<Section title={t("diff")}>
 					<pre className="max-h-96 overflow-auto rounded-xl bg-muted p-3 font-mono text-footnote">
 						{diff.map((l, i) => (
@@ -446,72 +478,74 @@ export default async function DocumentDetailPage({
 				</Section>
 			)}
 
-			<Section title={t("versions")}>
-				{versions.length === 0 ? (
-					<p className="text-muted-foreground text-subhead">
-						{t("versionsEmpty")}
-					</p>
-				) : (
-					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
-						{versions.map((v) => {
-							const state = versionState(v, doc, versions);
-							const range = ranges.get(v.id);
-							return (
-								<li key={v.id} className="flex flex-col gap-1 px-4 py-2.5">
-									<div className="flex flex-wrap items-center gap-2">
-										<span className="font-medium tabular-nums">
-											v{v.version}
-										</span>
-										<Badge variant={stateVariant[state]}>
-											{t(`state_${state}`)}
-										</Badge>
-										<span className="min-w-0 flex-1 break-words">
-											{v.changeSummary}
-										</span>
-									</div>
-									<p className="flex flex-wrap gap-x-3 text-muted-foreground text-footnote">
-										{range && (
-											<span>
-												{range.until
-													? t("validRange", {
-															from: fmtDate.format(range.from),
-															until: fmtDate.format(range.until),
-														})
-													: t("validFrom", {
-															from: fmtDate.format(range.from),
-														})}
+			{!restricted && (
+				<Section title={t("versions")}>
+					{versions.length === 0 ? (
+						<p className="text-muted-foreground text-subhead">
+							{t("versionsEmpty")}
+						</p>
+					) : (
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
+							{versions.map((v) => {
+								const state = versionState(v, doc, versions);
+								const range = ranges.get(v.id);
+								return (
+									<li key={v.id} className="flex flex-col gap-1 px-4 py-2.5">
+										<div className="flex flex-wrap items-center gap-2">
+											<span className="font-medium tabular-nums">
+												v{v.version}
 											</span>
-										)}
-										{v.approvedAt && (
-											<span>
-												{names.get(v.approvedByUserId ?? "")
-													? t("approvedBy", {
-															name: names.get(v.approvedByUserId ?? "") ?? "",
-															date: fmtDate.format(v.approvedAt),
-														})
-													: t("approvedOn", {
-															date: fmtDate.format(v.approvedAt),
-														})}
+											<Badge variant={stateVariant[state]}>
+												{t(`state_${state}`)}
+											</Badge>
+											<span className="min-w-0 flex-1 break-words">
+												{v.changeSummary}
 											</span>
-										)}
-										{v.fileEvidenceId && (
-											<a
-												href={`/api/nachweise/${v.fileEvidenceId}`}
-												className="hit-area inline-flex items-center gap-1 text-primary hover:underline"
-											>
-												<Download aria-hidden="true" className="size-3.5" />
-												{t("file")}
-											</a>
-										)}
-									</p>
-								</li>
-							);
-						})}
-					</ul>
-				)}
-			</Section>
+										</div>
+										<p className="flex flex-wrap gap-x-3 text-muted-foreground text-footnote">
+											{range && (
+												<span>
+													{range.until
+														? t("validRange", {
+																from: fmtDate.format(range.from),
+																until: fmtDate.format(range.until),
+															})
+														: t("validFrom", {
+																from: fmtDate.format(range.from),
+															})}
+												</span>
+											)}
+											{v.approvedAt && (
+												<span>
+													{names.get(v.approvedByUserId ?? "")
+														? t("approvedBy", {
+																name: names.get(v.approvedByUserId ?? "") ?? "",
+																date: fmtDate.format(v.approvedAt),
+															})
+														: t("approvedOn", {
+																date: fmtDate.format(v.approvedAt),
+															})}
+												</span>
+											)}
+											{v.fileEvidenceId && (
+												<a
+													href={`/api/nachweise/${v.fileEvidenceId}`}
+													className="hit-area inline-flex items-center gap-1 text-primary hover:underline"
+												>
+													<Download aria-hidden="true" className="size-3.5" />
+													{t("file")}
+												</a>
+											)}
+										</p>
+									</li>
+								);
+							})}
+						</ul>
+					)}
+				</Section>
+			)}
 
-			{current && (
+			{current && !restricted && (
 				<Section title={t("acknowledgements")}>
 					<p className="text-subhead">
 						{t("ackFor", { version: current.version })} ·{" "}

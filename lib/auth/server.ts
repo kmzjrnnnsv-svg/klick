@@ -483,7 +483,9 @@ export const auth = betterAuth({
 										memberId: m.id,
 										organizationId: invitation.organizationId,
 										accessUntil: new Date(Date.now() + days * 86_400_000),
-										grants: [],
+										// Berater:innen arbeiten mit: Entwürfe und Verlauf
+										// voreingestellt; Prüfer:innen sehen nur Gültiges
+										grants: isConsultant(m.role) ? ["work_in_progress"] : [],
 										createdByUserId: invitation.inviterId,
 									})
 									.onConflictDoNothing(),

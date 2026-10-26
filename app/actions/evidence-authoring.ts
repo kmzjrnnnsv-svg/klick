@@ -6,6 +6,7 @@ import { evidenceDrafts } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { restrictedView } from "@/lib/auth/visibility";
 import { encryptJson } from "@/lib/crypto/org-dek";
 import { mutateOrg } from "@/lib/db/with-org";
 import { lockForSuccessor } from "@/lib/evidence/current";
@@ -42,6 +43,8 @@ async function createEvidenceDraftImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ evidence: ["create"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = createDraftSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
@@ -82,6 +85,8 @@ async function createEvidenceDraftImpl(
 
 async function saveEvidenceDraftImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ evidence: ["create"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = saveDraftSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
@@ -133,6 +138,8 @@ async function saveEvidenceDraftImpl(input: unknown): Promise<ActionResult> {
 
 async function deleteEvidenceDraftImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ evidence: ["create"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = draftIdSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
@@ -163,6 +170,8 @@ async function finalizeEvidenceDraftImpl(
 	input: unknown,
 ): Promise<ActionResult<{ evidenceId: string; tasks: number }>> {
 	const c = await requireOrg({ evidence: ["create"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = finalizeDraftSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
@@ -189,6 +198,8 @@ async function newEvidenceVersionImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ evidence: ["create"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = evidenceIdSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { evidenceId } = parsed.data;

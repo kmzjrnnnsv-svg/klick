@@ -34,6 +34,7 @@ import {
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { maskSecret } from "@/lib/auth/visibility";
 import { independenceIssues } from "@/lib/compliance/audit-programme";
 import {
 	CONTROL_BY_CODE,
@@ -185,8 +186,13 @@ export default async function AuditCockpitPage({
 		frameworks,
 		controls,
 		evidenceLinks,
-		evidence,
 	} = data;
+	// streng geheime Nachweise ohne Grant: ohne Titel (Prüfer-Sicht)
+	const evidence = maskSecret(
+		ctx,
+		data.evidence,
+		(await getTranslations("Evidence"))("secretTitle"),
+	);
 
 	const adoptable = findings.filter(
 		(f) =>

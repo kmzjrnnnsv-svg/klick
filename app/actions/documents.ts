@@ -14,6 +14,7 @@ import {
 import { safeAction } from "@/lib/actions/safe";
 import { requestApproval, withdrawOpenRequests } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { restrictedView } from "@/lib/auth/visibility";
 import {
 	DOCUMENT_TEMPLATES,
 	defaultApproverFunction,
@@ -130,6 +131,8 @@ async function createDocumentImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; docNumber: string }>> {
 	const c = await requireOrg({ document: ["create"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = createDocumentSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
@@ -193,6 +196,8 @@ async function createDocumentImpl(
 
 async function updateDocumentImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ document: ["update"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = updateDocumentSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { documentId, controlCodes, ...patch } = parsed.data;
@@ -291,6 +296,8 @@ async function newDocumentVersionImpl(
 	input: unknown,
 ): Promise<ActionResult<{ version: string }>> {
 	const c = await requireOrg({ document: ["update"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = newDocumentVersionSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
@@ -373,6 +380,8 @@ async function transitionDocumentImpl(
 	input: unknown,
 ): Promise<ActionResult<{ status: string; approvalRequested: boolean }>> {
 	const c = await requireOrg({ document: ["update"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = documentTransitionSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { documentId, to, note, selfApprovalReason } = parsed.data;
@@ -630,6 +639,8 @@ async function applyDocumentTemplatesImpl(
 	input: unknown,
 ): Promise<ActionResult<{ created: number }>> {
 	const c = await requireOrg({ document: ["create"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = applyTemplatesSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const created = await mutateOrg(toOrgCtx(c), async (tx) => {
@@ -695,6 +706,8 @@ async function importDocumentsFromEvidenceImpl(
 	evidenceIds: string[],
 ): Promise<ActionResult<{ created: number }>> {
 	const c = await requireOrg({ document: ["create"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	if (!Array.isArray(evidenceIds) || evidenceIds.length === 0)
 		return { ok: false, error: "empty" };
 	const created = await mutateOrg(toOrgCtx(c), async (tx) => {
@@ -757,6 +770,8 @@ async function uploadDocumentFileImpl(
 	formData: FormData,
 ): Promise<ActionResult<{ id: string }>> {
 	const c = await requireOrg({ document: ["update"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const documentId = formData.get("documentId");
 	const file = formData.get("file");
 	if (typeof documentId !== "string" || !/^[0-9a-f-]{36}$/i.test(documentId))

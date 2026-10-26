@@ -25,6 +25,7 @@ import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { maskSecret } from "@/lib/auth/visibility";
 import {
 	CONTROL_BY_CODE,
 	EDGES_BY_CONTROL,
@@ -118,9 +119,11 @@ export default async function ControlDetailPage({
 		};
 	});
 	if (!data) notFound();
+	const tev = await getTranslations("Evidence");
+	// streng geheime Nachweise ohne Grant: ohne Titel (Prüfer-Sicht)
+	const evidence = maskSecret(ctx, data.evidence, tev("secretTitle"));
 	const {
 		row,
-		evidence,
 		tasks,
 		comments,
 		history,

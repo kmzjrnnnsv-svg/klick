@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { evidence, orgSettings } from "@/db/schema";
 import { AuthError, requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { isExternal } from "@/lib/auth/memberships";
+import { restrictedView } from "@/lib/auth/visibility";
 import { mutateOrg } from "@/lib/db/with-org";
 import { egressGuard } from "@/lib/dlp/egress";
 import { isDbStorageKey } from "@/lib/evidence/aad";
@@ -12,6 +13,7 @@ import {
 	decryptEvidenceObject,
 } from "@/lib/evidence/read";
 import { s3Configured } from "@/lib/evidence/store";
+import { documentFileInForce } from "@/lib/evidence/visibility";
 import { rateLimited } from "@/lib/export/respond";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +59,22 @@ export async function GET(
 		// S3-Objekt, aber kein Objektspeicher eingerichtet
 		if (!isDbStorageKey(row.storageKey) && !s3Configured())
 			return { result: { kind: "none" }, audit: [] };
+		// Prüfer-Sicht: nur die gültige Fassung — keine ersetzten Nachweise,
+		// keine Dateien von Entwürfen oder nicht mehr geltenden Dokumentfassungen
+		if (
+			restrictedView(ctx) &&
+			(row.supersededAt !== null ||
+				(await documentFileInForce(tx, id)) === "not_current")
+		)
+			return {
+				result: { kind: "denied" },
+				audit: {
+					action: "evidence.download",
+					target: `evidence:${id}`,
+					outcome: "denied",
+					after: { reason: "superseded" },
+				},
+			};
 		// Streng geheim (z. B. von DLP angehoben): Prüfer:innen nur mit Grant.
 		if (
 			row.classification === "secret" &&

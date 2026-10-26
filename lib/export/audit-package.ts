@@ -1,4 +1,5 @@
 import { toCsv } from "@/lib/csv";
+import { validInPeriod, validRanges } from "@/lib/documents/versions";
 import type { ZipEntry } from "./zip";
 
 // Prüfungspaket (ZIP) — reine Zusammenstellung aus bereits geladenen Daten:
@@ -23,9 +24,11 @@ export type PackageControl = {
 };
 
 export type PackageDocumentVersion = {
+	id: string;
 	version: string;
 	publishedAt: Date | null;
 	approvedAt: Date | null;
+	retiredAt: Date | null;
 	approvedByName: string | null;
 	changeSummary: string;
 	bodyMarkdown: string | null;
@@ -59,6 +62,10 @@ export type PackageEvidence = {
 	createdAt: Date;
 	createdByName: string | null;
 	controlCodes: string[];
+	// Fassung im Strang (1 = erste), Stand zum Ende des Zeitraums, Herkunft
+	version: number;
+	state: "valid" | "expired";
+	source: string;
 };
 
 export type PackageIncident = {
@@ -208,10 +215,20 @@ export function buildAuditPackage(input: AuditPackageInput): ZipEntry[] {
 			secretDocs += 1;
 			continue;
 		}
-		const published = d.versions.filter((v) =>
-			inPeriod(v.publishedAt, input.period),
+		// jede Fassung, die im Zeitraum galt — auch wenn sie vorher
+		// veröffentlicht wurde
+		const ranges = validRanges(d.versions);
+		const published = validInPeriod(
+			d.versions,
+			input.period?.from
+				? new Date(`${input.period.from}T00:00:00Z`)
+				: new Date(0),
+			input.period?.to
+				? new Date(`${input.period.to}T23:59:59.999Z`)
+				: new Date(8.64e15),
 		);
 		for (const v of published) {
+			const range = ranges.get(v.id);
 			const file = v.bodyMarkdown
 				? `05-dokumente/${slugify(d.docNumber)}-v${slugify(v.version)}.md`
 				: "";
@@ -223,6 +240,8 @@ export function buildAuditPackage(input: AuditPackageInput): ZipEntry[] {
 				d.classification,
 				v.version,
 				iso(v.publishedAt),
+				iso(range?.from ?? null),
+				iso(range?.until ?? null),
 				iso(v.approvedAt),
 				v.approvedByName ?? "",
 				v.changeSummary,
@@ -234,7 +253,7 @@ export function buildAuditPackage(input: AuditPackageInput): ZipEntry[] {
 			if (v.bodyMarkdown) {
 				add(
 					file,
-					`<!-- ${d.docNumber} ${d.title} · Version ${v.version} · veröffentlicht ${iso(v.publishedAt)} · freigegeben von ${v.approvedByName ?? "—"} -->\n\n${v.bodyMarkdown}\n`,
+					`<!-- ${d.docNumber} ${d.title} · Version ${v.version} · veröffentlicht ${iso(v.publishedAt)} · gilt von ${iso(range?.from ?? null)} bis ${range?.until ? iso(range.until) : "heute"} · freigegeben von ${v.approvedByName ?? "—"} -->\n\n${v.bodyMarkdown}\n`,
 				);
 			}
 		}
@@ -249,7 +268,9 @@ export function buildAuditPackage(input: AuditPackageInput): ZipEntry[] {
 				"",
 				"",
 				"",
-				"(keine freigegebene Version im Zeitraum)",
+				"",
+				"",
+				"(keine Fassung galt im Zeitraum)",
 				d.ownerName ?? "",
 				d.nextReviewAt ?? "",
 				"",
@@ -268,6 +289,8 @@ export function buildAuditPackage(input: AuditPackageInput): ZipEntry[] {
 				"klassifizierung",
 				"version",
 				"veroeffentlicht",
+				"gilt_von",
+				"gilt_bis",
 				"freigegeben_am",
 				"freigegeben_von",
 				"aenderung",
@@ -298,6 +321,9 @@ export function buildAuditPackage(input: AuditPackageInput): ZipEntry[] {
 				"erstellt",
 				"erstellt_von",
 				"controls",
+				"fassung",
+				"stand",
+				"quelle",
 			],
 			input.evidence.flatMap((e) => {
 				if (e.classification === "secret") {
@@ -319,6 +345,9 @@ export function buildAuditPackage(input: AuditPackageInput): ZipEntry[] {
 						iso(e.createdAt),
 						e.createdByName ?? "",
 						e.controlCodes.join(" "),
+						e.version,
+						e.state === "expired" ? "abgelaufen" : "gültig",
+						e.source,
 					],
 				];
 			}),

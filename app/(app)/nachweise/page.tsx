@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { maskSecret, restrictedView } from "@/lib/auth/visibility";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listEvidenceWithControls } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
@@ -32,11 +33,16 @@ export default async function EvidencePage({
 	const te = await getTranslations("Entity");
 	const td = await getTranslations("Dlp");
 	// ersetzte Fassungen zählen nicht; auf Wunsch sichtbar (Chip)
-	const allVersions = one(sp.fassungen) === "1";
-	const rows = await readOrg(toOrgCtx(ctx), (tx) =>
-		listEvidenceWithControls(tx, ctx.orgId, {
-			includeSuperseded: allVersions,
-		}),
+	const restricted = restrictedView(ctx);
+	const allVersions = one(sp.fassungen) === "1" && !restricted;
+	const rows = maskSecret(
+		ctx,
+		await readOrg(toOrgCtx(ctx), (tx) =>
+			listEvidenceWithControls(tx, ctx.orgId, {
+				includeSuperseded: allVersions,
+			}),
+		),
+		t("secretTitle"),
 	);
 	const today = berlinToday();
 	const canCreate = allows(ctx, { evidence: ["create"] });
@@ -52,6 +58,8 @@ export default async function EvidencePage({
 			? r.dlp.findings.reduce((s, f) => s + f.count, 0)
 			: 0;
 	const filtered = rows
+		// Dateien von Dokumentfassungen gehören zum Dokument (/dokumente)
+		.filter((r) => r.source !== "document")
 		.filter(
 			(r) =>
 				!q ||
@@ -191,7 +199,9 @@ export default async function EvidencePage({
 			chips={[
 				{ key: "mine", label: te("chipMine") },
 				{ key: "dlp", label: td("filterHits") },
-				{ key: "fassungen", label: t("showSuperseded") },
+				...(restricted
+					? []
+					: [{ key: "fassungen", label: t("showSuperseded") }]),
 			]}
 			columns={columns}
 			rows={filtered}
