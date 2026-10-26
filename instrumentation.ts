@@ -38,12 +38,20 @@ export async function register() {
 				{ missing: legal.missing },
 				"Impressum unvollständig — LEGAL_* setzen (docs/legal/impressum.md)",
 			);
-		// Uploads parst in Produktion der Dienst klick-parse (N6); ohne ihn
-		// läuft der Parser als Kindprozess mit den Rechten der App.
-		if (!env.PARSER_SOCKET)
-			logger.warn(
-				"PARSER_SOCKET fehlt — Uploads werden ohne systemd-Sandbox geparst (deploy/README.md, „Uploads isoliert parsen“)",
+		// Unsichere Standardwerte (Härtung A6): Virenscanner, Admin-Netz,
+		// Parser-Dienst, offene Registrierung, Bindung an localhost. Was nicht
+		// ausdrücklich in PROD_ACCEPT_RISKS steht, verhindert den Start.
+		const { productionConfigReport } = await import("@/lib/env-checks");
+		const report = productionConfigReport(env, {
+			listenHost: process.env.HOSTNAME,
+		});
+		for (const w of report.warnings) logger.warn(w);
+		if (report.fatal.length > 0) {
+			for (const f of report.fatal) logger.fatal(f);
+			throw new Error(
+				`Unsichere Produktions-Konfiguration (${report.fatal.length}): ${report.fatal.join(" | ")}`,
 			);
+		}
 	}
 	if (process.env.KLICK_DISABLE_JOBS === "true") return;
 	const { startScheduler } = await import("@/lib/jobs/boss");

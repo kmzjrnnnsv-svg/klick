@@ -11,7 +11,8 @@ export type CommonErrorKey =
 	| "errorInvalid"
 	| "errorRateLimited"
 	| "errorSession"
-	| "errorStepUp";
+	| "errorStepUp"
+	| "errorNetwork";
 
 type Translate = (key: CommonErrorKey, values?: { ref: string }) => string;
 
@@ -33,6 +34,9 @@ const BY_CODE: Record<string, CommonErrorKey> = {
 	mfa_required: "errorSession",
 	access_expired: "errorSession",
 	step_up_required: "errorStepUp",
+	ip_blocked: "errorNetwork",
+	network_denied: "errorNetwork",
+	admin_network: "errorNetwork",
 };
 
 export function errorText(tc: Translate, res?: Failure): string {

@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { config } from "dotenv";
 import { z } from "zod";
 import { MAIL_FROM_DEFAULT, PLATFORM_MAIL } from "./mail/address";
+import { parseRanges } from "./net/ip";
 
 // Env-Dateien werden in Prioritätsreihenfolge geladen. dotenv ist idempotent —
 // die erste Datei, die eine Variable definiert, gewinnt. Production exportiert
@@ -63,6 +64,11 @@ const csvList = (fallback: string[]) =>
 						.filter(Boolean)
 				: fallback,
 		);
+
+const cidrList = csvList([]).refine(
+	(list) => parseRanges(list).invalid.length === 0,
+	{ message: "Liste von Netzen erwartet, z. B. 10.9.0.0/24,fd10:9::/64" },
+);
 
 // Startup-Validierung (ISO A.8.9 Konfigurationsmanagement): fehlt ein
 // Pflichtwert, startet der Prozess nicht — statt irgendwo später mit
@@ -126,8 +132,16 @@ export const envSchema = z.object({
 	PASSKEY_RP_ID: z.string().optional(),
 	PASSKEY_RP_NAME: z.string().default("Klick"),
 
+	// Admin-Netz (WireGuard wg-admin, Härtung A2): /admin und Plattform-
+	// Aktionen nur aus diesen Netzen (CIDR, IPv4/IPv6). Leer = überall (nur im
+	// Dev; Produktion verlangt es, lib/env-checks.ts). ADMIN_IP_ALLOWLIST
+	// (einzelne Adressen) gilt weiter und wird dazugenommen.
+	ADMIN_NETWORKS: cidrList,
 	ADMIN_IP_ALLOWLIST: csvList([]),
 	TRUSTED_PROXIES: csvList(["127.0.0.1", "::1"]),
+	// Bewusst hingenommene Abweichungen in Produktion (lib/env-checks.ts),
+	// z. B. "no_av" solange clamd fehlt. Jede Abweichung steht beim Start im Log.
+	PROD_ACCEPT_RISKS: csvList([]),
 
 	LOG_LEVEL: z
 		.enum(["trace", "debug", "info", "warn", "error", "fatal"])

@@ -90,6 +90,7 @@
 		"errorRateLimited": "Zu viele Versuche in kurzer Zeit. Warte einen Moment und versuch es dann noch einmal.",
 		"errorSession": "Deine Sitzung ist abgelaufen. Melde dich neu an.",
 		"errorStepUp": "Bestätige dich noch einmal, dann geht es weiter.",
+		"errorNetwork": "Aus diesem Netz ist das nicht erlaubt. Wechsle ins freigegebene Netz oder frag eine Inhaber:in.",
 		"errorRef": "Das hat nicht geklappt. Versuch es noch einmal; klappt es weiter nicht, nenn dem Support die Referenz {ref}.",
 		"productName": "Klick",
 		"tagline": "Compliance, die zusammenpasst.",

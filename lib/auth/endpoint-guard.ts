@@ -7,7 +7,8 @@ import { count, eq } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { passkey } from "@/db/auth-schema";
 import { auditPlatform } from "@/lib/audit";
-import { authEndpointDecision, GUARDED_AUTH_PATHS } from "./endpoint-policy";
+import { adminNetworkAllows } from "./admin-network";
+import { authEndpointDecision, isGuardedAuthPath } from "./endpoint-policy";
 import { REG_CONTEXT, REG_COOKIE } from "./registration-link";
 import { ipFromHeaders, isStepUpFresh } from "./session-rules";
 
@@ -26,10 +27,10 @@ export async function userHasPasskey(userId: string): Promise<boolean> {
 const asDate = (v: unknown): Date | null =>
 	v instanceof Date ? v : typeof v === "string" ? new Date(v) : null;
 
-// hooks.before: Faktor-Endpunkte nur nach lib/auth/endpoint-policy.ts.
+// hooks.before: Faktor- und Admin-Endpunkte nur nach lib/auth/endpoint-policy.ts.
 // Andere Pfade laufen ohne zusätzliche Abfrage durch.
 export const authBeforeHook = createAuthMiddleware(async (ctx) => {
-	if (!GUARDED_AUTH_PATHS.has(ctx.path)) return;
+	if (!isGuardedAuthPath(ctx.path)) return;
 	const current = await getSessionFromCtx(ctx).catch(() => null);
 	const s = current?.session as
 		| { mfaVerifiedAt?: unknown; stepUpAt?: unknown }
@@ -47,6 +48,10 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 		// (geprüft in registration.resolveUser, lib/auth/passkey-link.ts)
 		hasRegistrationToken:
 			ctx.query?.context === REG_CONTEXT && Boolean(ctx.getCookie(REG_COOKIE)),
+		// HTTP-Anfrage: Quelle prüfen; auth.api aus dem Server: schon über
+		// requirePlatformAdmin geprüft
+		adminNetwork:
+			!ctx.request || adminNetworkAllows(ipFromHeaders(ctx.headers)),
 	});
 	if (decision.allow) return;
 	await auditPlatform(

@@ -6,7 +6,7 @@ import { member, session as sessionTable } from "@/db/auth-schema";
 import { auditPlatform } from "@/lib/audit";
 import type { OrgCtx } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
-import { env } from "@/lib/env";
+import { adminNetworkAllows } from "./admin-network";
 import { userHasPasskey } from "./endpoint-guard";
 import { primaryMembershipCount as countPrimary } from "./memberships";
 import { memberContextFor } from "./org";
@@ -215,8 +215,8 @@ export async function requirePlatformAdmin(): Promise<PlatformAdminContext> {
 	checkRules(ctx);
 	if (ctx.user.role !== "admin") throw new AuthErr("forbidden");
 
-	const allow = env().ADMIN_IP_ALLOWLIST;
-	if (allow.length > 0 && (!ctx.ip || !allow.includes(ctx.ip))) {
+	// Nur aus dem Admin-Netz (WireGuard, ADMIN_NETWORKS; Härtung A2)
+	if (!adminNetworkAllows(ctx.ip)) {
 		await auditPlatform(
 			{ userId: ctx.user.id, ip: ctx.ip, userAgent: ctx.userAgent },
 			{ action: "admin.ip_blocked", outcome: "denied" },

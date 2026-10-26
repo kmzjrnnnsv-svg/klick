@@ -19,6 +19,9 @@ export type EndpointState = {
 	// Zurücksetz-Link (Cookie aus /api/registrierung); den Token selbst prüft
 	// registration.resolveUser
 	hasRegistrationToken: boolean;
+	// Anfrage kommt aus dem Admin-Netz (WireGuard, ADMIN_NETWORKS) oder ist
+	// ein Aufruf aus dem Server selbst (auth.api ohne HTTP-Anfrage)
+	adminNetwork: boolean;
 };
 
 export type EndpointDecision =
@@ -30,6 +33,7 @@ export type EndpointDecision =
 				| "mfa_required"
 				| "step_up_required"
 				| "last_factor"
+				| "admin_network"
 				| "forbidden";
 	  };
 
@@ -57,6 +61,14 @@ const FACTOR_ENROL = new Set([
 	"/passkey/verify-registration",
 ]);
 
+// Admin-Plugin (Konten anlegen, Rollen, Sperren, Impersonation): nur aus dem
+// Admin-Netz (Härtung A2); nginx sperrt den Pfad zusätzlich.
+export const ADMIN_ENDPOINT_PREFIX = "/admin/";
+
+export function isGuardedAuthPath(path: string): boolean {
+	return GUARDED_AUTH_PATHS.has(path) || path.startsWith(ADMIN_ENDPOINT_PREFIX);
+}
+
 // E-Mail-/SMS-Codes als zweiter Faktor sind nicht eingerichtet.
 const NEVER = new Set(["/two-factor/send-otp", "/two-factor/verify-otp"]);
 
@@ -76,6 +88,8 @@ export function authEndpointDecision(
 	s: EndpointState,
 ): EndpointDecision {
 	if (NEVER.has(path)) return deny("forbidden");
+	if (path.startsWith(ADMIN_ENDPOINT_PREFIX) && !s.adminNetwork)
+		return deny("admin_network");
 	const factors = (s.hasTotp ? 1 : 0) + s.passkeys;
 	const hasFactor = factors > 0;
 	const verified = (): EndpointDecision =>

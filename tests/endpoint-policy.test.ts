@@ -3,6 +3,7 @@ import {
 	authEndpointDecision,
 	type EndpointState,
 	GUARDED_AUTH_PATHS,
+	isGuardedAuthPath,
 } from "@/lib/auth/endpoint-policy";
 
 const base: EndpointState = {
@@ -12,6 +13,7 @@ const base: EndpointState = {
 	hasTotp: true,
 	passkeys: 0,
 	hasRegistrationToken: false,
+	adminNetwork: true,
 };
 
 // Sitzung nur per Mail-Link: kein bestätigter zweiter Faktor
@@ -135,5 +137,28 @@ describe("authEndpointDecision", () => {
 			true,
 		);
 		expect(GUARDED_AUTH_PATHS.has("/two-factor/verify-totp")).toBe(false);
+	});
+
+	it("Admin-Endpunkte nur aus dem Admin-Netz (Härtung A2)", () => {
+		const outside = { ...base, adminNetwork: false };
+		for (const path of [
+			"/admin/impersonate-user",
+			"/admin/ban-user",
+			"/admin/set-role",
+			"/admin/create-user",
+			"/admin/list-users",
+		]) {
+			expect(isGuardedAuthPath(path)).toBe(true);
+			expect(authEndpointDecision(path, outside)).toEqual({
+				allow: false,
+				code: "admin_network",
+			});
+			expect(authEndpointDecision(path, base).allow).toBe(true);
+		}
+		// andere Pfade hängen nicht am Admin-Netz
+		expect(authEndpointDecision("/sign-in/magic-link", outside).allow).toBe(
+			true,
+		);
+		expect(isGuardedAuthPath("/sign-in/magic-link")).toBe(false);
 	});
 });

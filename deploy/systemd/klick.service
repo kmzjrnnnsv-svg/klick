@@ -30,6 +30,10 @@ Environment=HOSTNAME=127.0.0.1
 Environment=BETTER_AUTH_URL=https://raza.work
 Environment=LOG_LEVEL=info
 Environment=TRUSTED_PROXIES=127.0.0.1,::1
+# Admin nur aus dem WireGuard-Admin-Netz (deploy/wireguard/wg-admin.conf.example)
+Environment=ADMIN_NETWORKS=10.9.0.0/24,fd10:9::/64
+# Start-Prüfung (lib/env-checks.ts): ohne clamd startet Klick nicht. Solange
+# clamd fehlt, bewusst hinnehmen in /etc/klick/klick.env: PROD_ACCEPT_RISKS=no_av
 # Uploads parst der Dienst klick-parse (eigener Prozess je Upload, N6)
 Environment=PARSER_SOCKET=/run/klick-parse.sock
 EnvironmentFile=-/etc/klick/klick.env
