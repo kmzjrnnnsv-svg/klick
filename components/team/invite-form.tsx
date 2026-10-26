@@ -14,7 +14,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { errorText } from "@/components/ui/error-text";
+import { errorText, isFourEyesNotice } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -125,6 +125,12 @@ export function InviteForm({
 			roleIds: customAllowed ? roleIds : [],
 		});
 		setBusy(false);
+		// Vier-Augen: Einladung als Inhaber:in ist beantragt
+		if (!res.ok && isFourEyesNotice(res)) {
+			setOpen(false);
+			toast.notice(errorText(tc, res));
+			return;
+		}
 		if (!res.ok) {
 			// Better Auth liefert lesbare Meldungen („already a member“), unser
 			// Sicherheitsnetz nur Codes — die zeigen wir nicht roh an.

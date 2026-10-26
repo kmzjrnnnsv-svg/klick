@@ -24,6 +24,7 @@ import {
 	zipResponse,
 } from "@/lib/export/respond";
 import { buildZip, withManifest, type ZipEntry } from "@/lib/export/zip";
+import { requirePermit } from "@/lib/security-changes/service";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -37,6 +38,15 @@ export async function GET(req: Request) {
 	const ctx = await exportStepUpGuard(req);
 	if (ctx instanceof NextResponse) return ctx;
 	if (ctx.orgRole !== "owner") return new NextResponse(null, { status: 403 });
+	// Vier-Augen (Härtung A4): einmalige Erlaubnis der zweiten Person (oder
+	// nach 24 h Wartezeit) einlösen; beantragt wird über ensureFullExport
+	const permit = await requirePermit(ctx, {
+		kind: "full_export",
+		targetKey: null,
+		summary: "Vollständigen Export der Organisation herunterladen",
+	});
+	if (!permit.ok)
+		return NextResponse.json({ error: permit.error }, { status: 403 });
 	const generatedAt = new Date();
 	const org = await getOrgSummary(ctx.orgId);
 	if (!org) return new NextResponse(null, { status: 404 });

@@ -18,6 +18,9 @@ export const SETTINGS_SECTIONS = [
 	// Lockbox (Härtung A3): alle internen und externen Mitglieder sehen die
 	// Zugriffe durch Klick, entscheiden dürfen Inhaber:innen und GL
 	{ key: "zugriffe", group: "org" },
+	// Vier-Augen (Härtung A4): offene Anträge sehen alle, zustimmen dürfen
+	// andere Inhaber:innen und GL
+	{ key: "sicherheitsaenderungen", group: "org" },
 	{ key: "abo", group: "org", needs: "settings" },
 	{ key: "workflows", group: "methods" },
 	{ key: "audits", group: "methods" },

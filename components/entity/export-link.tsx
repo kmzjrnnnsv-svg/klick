@@ -5,7 +5,7 @@ import type * as React from "react";
 import { useState } from "react";
 import { ensureExportStepUp } from "@/app/actions/security";
 import { withStepUp } from "@/components/auth/step-up-dialog";
-import { errorText } from "@/components/ui/error-text";
+import { errorText, isFourEyesNotice } from "@/components/ui/error-text";
 import { toast } from "@/components/ui/toast";
 import type { ActionResult } from "@/lib/validation/common";
 
@@ -43,6 +43,8 @@ export function ExportLink({
 				try {
 					const res = await withStepUp(() => ensure());
 					if (res.ok) window.location.assign(href);
+					// Vier-Augen: beantragt bzw. wartet, das ist der nächste Schritt
+					else if (isFourEyesNotice(res)) toast.notice(errorText(tc, res));
 					else if (res.error !== "step_up_required")
 						toast.error(errorText(tc, res));
 				} finally {

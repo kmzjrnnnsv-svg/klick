@@ -565,6 +565,8 @@ export const NOTIFICATION_KINDS = [
 	"wallet_transfer",
 	// Lockbox: Antrag, Notfall-Zugriff, Wartezeit (sofort per Mail)
 	"platform_access",
+	// Vier-Augen: Sicherheitsänderung beantragt, entschieden, gewirkt
+	"security_change",
 	"digest",
 	"system",
 ] as const;
@@ -620,3 +622,31 @@ export const PLATFORM_EMERGENCY_CATEGORIES = [
 ] as const;
 export type PlatformEmergencyCategory =
 	(typeof PLATFORM_EMERGENCY_CATEGORIES)[number];
+
+// Vier-Augen für Sicherheitsänderungen (Härtung A4): Art und Stand des
+// Antrags. Abgeleitet wird der Stand in lib/security-changes/rules.ts.
+export const SECURITY_CHANGE_KINDS = [
+	// „wirkt“: neuer Wert steht im Antrag
+	"sso_policy",
+	"dlp_policy",
+	// „erlaubt“: einmalige Erlaubnis für die anfragende Person (24 h)
+	"org_delete",
+	"full_export",
+	"member_reset_access",
+	"integration_token",
+	"sso_provider_remove",
+	// Inhaber:in hinzufügen (Einladung oder Rollenwechsel)
+	"owner_add",
+] as const;
+export type SecurityChangeKind = (typeof SECURITY_CHANGE_KINDS)[number];
+
+export const SECURITY_CHANGE_STATUS = [
+	"pending",
+	"waiting",
+	"approved",
+	"applied",
+	"rejected",
+	"cancelled",
+	"expired",
+] as const;
+export type SecurityChangeStatus = (typeof SECURITY_CHANGE_STATUS)[number];

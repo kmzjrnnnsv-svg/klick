@@ -33,6 +33,7 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
 	incident_deadline: "Vorfall-Fristen",
 	management_info: "An die Geschäftsleitung",
 	platform_access: "Zugriffe durch Klick",
+	security_change: "Sicherheitsänderungen",
 	approval_requested: "Freigaben angefragt",
 	approval_decided: "Freigaben entschieden",
 	approval_overdue: "Freigaben überfällig",

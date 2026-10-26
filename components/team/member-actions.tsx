@@ -27,7 +27,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { errorText } from "@/components/ui/error-text";
+import { errorText, isFourEyesNotice } from "@/components/ui/error-text";
 import { toast } from "@/components/ui/toast";
 import { ORG_ROLES } from "@/lib/auth/session-rules";
 import { InviteLinkPanel } from "./invite-form";
@@ -79,6 +79,9 @@ export function MemberActions({
 							onSelect={() =>
 								start(async () => {
 									const res = await updateMemberRole({ memberId, role: r });
+									// Vier-Augen: zur Inhaber:in machen ist beantragt
+									if (!res.ok && isFourEyesNotice(res))
+										return void toast.notice(errorText(tc, res));
 									if (!res.ok)
 										toast.error(
 											res.error.includes(" ") ? res.error : errorText(tc, res),

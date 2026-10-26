@@ -15,6 +15,7 @@ const base: EndpointState = {
 	hasRegistrationToken: false,
 	adminNetwork: true,
 	impersonated: false,
+	httpRequest: true,
 };
 
 // Sitzung nur per Mail-Link: kein bestätigter zweiter Faktor
@@ -186,6 +187,30 @@ describe("authEndpointDecision", () => {
 			true,
 		);
 		expect(authEndpointDecision("/sign-out", imp).allow).toBe(true);
+	});
+
+	it("Org- und SSO-Verwaltung nur aus Server-Actions (Vier-Augen)", () => {
+		for (const path of [
+			"/organization/delete",
+			"/organization/update-member-role",
+			"/organization/invite-member",
+			"/sso/delete-provider",
+			"/sso/register",
+		]) {
+			expect(isGuardedAuthPath(path)).toBe(true);
+			expect(authEndpointDecision(path, base)).toEqual({
+				allow: false,
+				code: "forbidden",
+			});
+			// auth.api aus der Action: Step-up und Vier-Augen prüft die Action
+			expect(
+				authEndpointDecision(path, { ...base, httpRequest: false }).allow,
+			).toBe(true);
+		}
+		// Einladung annehmen bleibt per HTTP (Client)
+		expect(
+			authEndpointDecision("/organization/accept-invitation", base).allow,
+		).toBe(true);
 	});
 
 	it("Impersonation nur mit frisch bestätigter Admin-Sitzung", () => {

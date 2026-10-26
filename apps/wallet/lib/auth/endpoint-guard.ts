@@ -51,6 +51,7 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 		// Plattform-Verwaltung läuft am Terminal (pnpm wallet:admin)
 		adminNetwork: true,
 		impersonated: false,
+		httpRequest: Boolean(ctx.request),
 	});
 	if (decision.allow) return;
 	await auditPlatform(

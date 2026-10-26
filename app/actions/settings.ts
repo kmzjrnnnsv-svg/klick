@@ -14,12 +14,18 @@ import { AuthError } from "@/lib/auth/session-rules";
 import type { OrgAuditSettings } from "@/lib/compliance/audit-follow-up";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import { appetiteFromMethod } from "@/lib/compliance/risk-method";
-import { mutateOrg } from "@/lib/db/with-org";
+import { mutateOrg, readOrg } from "@/lib/db/with-org";
+import { withDlpDefaults } from "@/lib/dlp/policy";
 import { DEFAULT_PREFIXES } from "@/lib/documents/numbering";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/log";
 import { sendTransactionalMail } from "@/lib/mail/send";
 import { transactionalEmail } from "@/lib/mail/templates";
+import { dlpRelaxed } from "@/lib/security-changes/rules";
+import {
+	requestApplyChange,
+	requirePermit,
+} from "@/lib/security-changes/service";
 import { writeTombstone } from "@/lib/storage/tombstones";
 import { auditRegimeSchema } from "@/lib/validation/audit-regimes";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
@@ -253,6 +259,24 @@ async function updateDlpPolicyImpl(input: unknown): Promise<ActionResult> {
 	const c = g.ctx;
 	const parsed = dlpPolicySchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
+	// Vier-Augen (Härtung A4): lockern nur mit zweiter Person bzw. nach 24 h
+	// Wartezeit; strenger wirkt sofort
+	const [current] = await readOrg(toOrgCtx(c), (tx) =>
+		tx
+			.select({ dlpPolicy: orgSettings.dlpPolicy })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1),
+	);
+	const relaxed = dlpRelaxed(withDlpDefaults(current?.dlpPolicy), parsed.data);
+	if (relaxed.length > 0)
+		return requestApplyChange(c, {
+			kind: "dlp_policy",
+			targetKey: null,
+			summary: "Datenabfluss-Regeln (DLP) lockern",
+			payload: { value: parsed.data, relaxed },
+			before: current?.dlpPolicy ?? null,
+		});
 	await mutateOrg(toOrgCtx(c), async (tx) => {
 		const [before] = await tx
 			.select({ dlpPolicy: orgSettings.dlpPolicy })
@@ -305,6 +329,14 @@ async function deleteOrganizationActionImpl(
 			error: "slugMismatch",
 			fieldErrors: { confirmSlug: ["slugMismatch"] },
 		};
+	// Vier-Augen (Härtung A4): zweite Person bzw. 24 h Wartezeit, dann darf
+	// die anfragende Person einmal löschen
+	const permit = await requirePermit(c, {
+		kind: "org_delete",
+		targetKey: null,
+		summary: `Organisation „${org.name}“ löschen`,
+	});
+	if (!permit.ok) return permit;
 
 	// 1) Bestand erfassen + letzter Eintrag in der Org-Kette.
 	const { fileCount } = await mutateOrg(toOrgCtx(c), async (tx) => {

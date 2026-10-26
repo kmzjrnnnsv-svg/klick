@@ -20,7 +20,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { errorText } from "@/components/ui/error-text";
+import { errorText, isFourEyesNotice } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -167,7 +167,10 @@ export function IntegrationsPanel({
 											productId: productId || null,
 										}),
 									);
-									if (!res.ok) return void toast.error(errorText(tc, res));
+									if (!res.ok)
+										return void (isFourEyesNotice(res)
+											? toast.notice(errorText(tc, res))
+											: toast.error(errorText(tc, res)));
 									setCreated(res.data.token);
 									setName("");
 									router.refresh();

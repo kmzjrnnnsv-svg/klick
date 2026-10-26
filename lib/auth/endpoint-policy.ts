@@ -25,6 +25,8 @@ export type EndpointState = {
 	// Sitzung „als Person angemeldet“ (Admin-Plugin, Lockbox): nie Faktoren,
 	// Org-Wechsel oder Beitritte im Namen der Person
 	impersonated: boolean;
+	// Aufruf kommt per HTTP (nicht auth.api aus einer Server-Action)
+	httpRequest: boolean;
 };
 
 export type EndpointDecision =
@@ -82,6 +84,24 @@ const IMPERSONATION_BLOCKED = new Set([
 	"/organization/accept-invitation",
 ]);
 
+// Nur aus Server-Actions (auth.api ohne HTTP-Anfrage): dort laufen Step-up,
+// Vier-Augen (Härtung A4), Ein-Org-Regel und Audit. Direkt per HTTP würde
+// eine Inhaber-Sitzung all das umgehen (Org löschen, Inhaber:in machen,
+// SSO-Verbindung entfernen).
+const SERVER_ONLY = new Set([
+	"/organization/invite-member",
+	"/organization/update-member-role",
+	"/organization/remove-member",
+	"/organization/cancel-invitation",
+	"/organization/update",
+	"/organization/delete",
+	"/sso/register",
+	"/sso/update-provider",
+	"/sso/delete-provider",
+	"/sso/request-domain-verification",
+	"/sso/verify-domain",
+]);
+
 // E-Mail-/SMS-Codes als zweiter Faktor sind nicht eingerichtet.
 const NEVER = new Set(["/two-factor/send-otp", "/two-factor/verify-otp"]);
 
@@ -90,6 +110,7 @@ export const GUARDED_AUTH_PATHS: ReadonlySet<string> = new Set([
 	...FACTOR_ENROL,
 	...NEVER,
 	...IMPERSONATION_BLOCKED,
+	...SERVER_ONLY,
 ]);
 
 const allow: EndpointDecision = { allow: true };
@@ -102,6 +123,7 @@ export function authEndpointDecision(
 	s: EndpointState,
 ): EndpointDecision {
 	if (NEVER.has(path)) return deny("forbidden");
+	if (SERVER_ONLY.has(path) && s.httpRequest) return deny("forbidden");
 	if (
 		s.impersonated &&
 		(IMPERSONATION_BLOCKED.has(path) ||

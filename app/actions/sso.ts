@@ -11,9 +11,17 @@ import { listSsoProvidersForOrg } from "@/lib/auth/org";
 import { auth } from "@/lib/auth/server";
 import { AuthError } from "@/lib/auth/session-rules";
 import { providerPreset, ssoPolicyOf } from "@/lib/auth/sso-policy";
-import { mutateOrg } from "@/lib/db/with-org";
+import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { safeFetch } from "@/lib/security/quick-check/fetcher";
+import {
+	ssoChangeSummary,
+	ssoPolicyCritical,
+} from "@/lib/security-changes/rules";
+import {
+	requestApplyChange,
+	requirePermit,
+} from "@/lib/security-changes/service";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	discoveryTestSchema,
@@ -105,6 +113,14 @@ async function deleteSsoProviderImpl(
 	const c = g.ctx;
 	const parsed = providerIdSchema.safeParse(providerId);
 	if (!parsed.success) return fromZod(parsed.error);
+	// Vier-Augen (Härtung A4): eine SSO-Verbindung entfernen nur mit Erlaubnis
+	// der zweiten Person (bzw. nach 24 h Wartezeit)
+	const permit = await requirePermit(c, {
+		kind: "sso_provider_remove",
+		targetKey: parsed.data,
+		summary: `SSO-Verbindung „${parsed.data}“ entfernen`,
+	});
+	if (!permit.ok) return permit;
 	try {
 		await auth.api.deleteSSOProvider({
 			body: { providerId: parsed.data },
@@ -287,6 +303,24 @@ async function saveSsoPolicyImpl(input: unknown): Promise<ActionResult> {
 		!(await listSsoProvidersForOrg(c.orgId)).some((p) => p.domainVerified)
 	)
 		return { ok: false, error: "sso_enforce_unverified" };
+	// Vier-Augen (Härtung A4): Erzwingen an/aus, Firmen-MFA anerkennen und
+	// Rollen aus Gruppen nur mit zweiter Person bzw. nach 24 h Wartezeit
+	const [current] = await readOrg(toOrgCtx(c), (tx) =>
+		tx
+			.select({ ssoPolicy: orgSettings.ssoPolicy })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1),
+	);
+	const critical = ssoPolicyCritical(ssoPolicyOf(current?.ssoPolicy), next);
+	if (critical.length > 0)
+		return requestApplyChange(c, {
+			kind: "sso_policy",
+			targetKey: null,
+			summary: ssoChangeSummary(critical),
+			payload: { value: next, critical },
+			before: current?.ssoPolicy ?? null,
+		});
 	await mutateOrg(toOrgCtx(c), async (tx) => {
 		const [row] = await tx
 			.select({ ssoPolicy: orgSettings.ssoPolicy })

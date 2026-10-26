@@ -33,6 +33,7 @@ import {
 	dropInvitedOwnRoles,
 	setOwnRoleAssignments,
 } from "@/lib/org/own-role-service";
+import { requirePermit } from "@/lib/security-changes/service";
 import { syncTrainingAssignments } from "@/lib/trainings/assignments";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { memberAccessSchema } from "@/lib/validation/governance";
@@ -59,6 +60,17 @@ async function inviteMemberImpl(
 	const c = await requireOrg({ member: ["create"] });
 	const parsed = inviteMemberSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
+	// Vier-Augen (Härtung A4): eine neue Inhaber:in nur mit zweiter Person
+	// bzw. nach 24 h Wartezeit (sonst setzte sich eine übernommene Sitzung
+	// ihre eigene zweite Person ein)
+	if (parsed.data.role === "owner") {
+		const permit = await requirePermit(c, {
+			kind: "owner_add",
+			targetKey: parsed.data.email.trim().toLowerCase(),
+			summary: `${parsed.data.email.trim()} als Inhaber:in einladen`,
+		});
+		if (!permit.ok) return permit;
+	}
 	const delivery: InviteDelivery = { mail: parsed.data.sendMail };
 	try {
 		const inv = await inviteDelivery.run(delivery, async () =>
@@ -164,6 +176,14 @@ async function resetMemberAccessImpl(
 	if (!may.ok) return { ok: false, error: `reset_${may.reason}` };
 	// Gesperrt: der Link ginge ins Leere (keine Sitzung) — erst entsperren
 	if (isBanActive(target)) return { ok: false, error: "account_blocked" };
+	// Vier-Augen (Härtung A4): Zurücksetzen übergibt das Konto per Link —
+	// nur mit Erlaubnis der zweiten Person bzw. nach 24 h Wartezeit
+	const permit = await requirePermit(c, {
+		kind: "member_reset_access",
+		targetKey: userId,
+		summary: `Zugang von ${target.name || target.email} zurücksetzen`,
+	});
+	if (!permit.ok) return permit;
 	const { url } = await resetUserAccess({
 		target,
 		actor: {
@@ -219,6 +239,15 @@ async function updateMemberRoleImpl(input: unknown): Promise<ActionResult> {
 			error:
 				"Diese Person gehört schon zu einer anderen Organisation und kann hier nur Berater:in (extern) sein.",
 		};
+	// Vier-Augen (Härtung A4): zur Inhaber:in machen nur mit zweiter Person
+	if (parsed.data.role === "owner") {
+		const permit = await requirePermit(c, {
+			kind: "owner_add",
+			targetKey: parsed.data.memberId,
+			summary: "Mitglied zur Inhaber:in machen",
+		});
+		if (!permit.ok) return permit;
+	}
 	try {
 		await auth.api.updateMemberRole({
 			body: {

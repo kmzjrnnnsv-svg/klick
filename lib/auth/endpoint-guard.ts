@@ -53,6 +53,7 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 		adminNetwork:
 			!ctx.request || adminNetworkAllows(ipFromHeaders(ctx.headers)),
 		impersonated: Boolean(s?.impersonatedBy),
+		httpRequest: Boolean(ctx.request),
 	});
 	if (decision.allow) return;
 	await auditPlatform(

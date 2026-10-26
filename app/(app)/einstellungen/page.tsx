@@ -14,6 +14,7 @@ import {
 	Plug,
 	Receipt,
 	ShieldCheck,
+	ShieldHalf,
 	Truck,
 	Users,
 } from "lucide-react";
@@ -32,6 +33,7 @@ import { PlatformAccessPanel } from "@/components/settings/platform-access-panel
 import { PolicyPortalPanel } from "@/components/settings/policy-portal-panel";
 import { RiskMethodPanel } from "@/components/settings/risk-method-panel";
 import { RolesPanel } from "@/components/settings/roles-panel";
+import { SecurityChangesPanel } from "@/components/settings/security-changes-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
 import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
@@ -40,7 +42,11 @@ import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel
 import { WalletLinkPanel } from "@/components/settings/wallet-link-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
-import { approvalWorkflows, platformAccessGrants } from "@/db/schema";
+import {
+	approvalWorkflows,
+	platformAccessGrants,
+	securityChanges,
+} from "@/db/schema";
 import {
 	factInfos,
 	ruleNames,
@@ -106,6 +112,12 @@ import { listOrgRoles } from "@/lib/org/roles";
 import { grantState, reportOverdue } from "@/lib/platform-access/rules";
 import { portalOf, portalReaders } from "@/lib/policy-portal/admin";
 import {
+	canCancelChange,
+	canDecideChange,
+	changeState,
+} from "@/lib/security-changes/rules";
+import { changeDeciders } from "@/lib/security-changes/service";
+import {
 	resolveSettingsSection,
 	type SettingsSectionKey,
 	settingsGroups,
@@ -124,6 +136,7 @@ const SECTION_LABEL = {
 	portal: "tabPortal",
 	integrationen: "tabIntegrations",
 	zugriffe: "tabPlatformAccess",
+	sicherheitsaenderungen: "tabSecurityChanges",
 	abo: "tabSubscription",
 	workflows: "tabWorkflows",
 	audits: "tabAudits",
@@ -142,6 +155,7 @@ const SECTION_ICON: Record<SettingsSectionKey, React.ReactNode> = {
 	portal: <BookOpen />,
 	integrationen: <Plug />,
 	zugriffe: <LockKeyhole />,
+	sicherheitsaenderungen: <ShieldHalf />,
 	abo: <Receipt />,
 	workflows: <GitBranch />,
 	audits: <ClipboardCheck />,
@@ -727,6 +741,47 @@ async function renderSection(
 						usedAt: iso(g.usedAt),
 						report: g.report,
 						reportOverdue: reportOverdue(g, now),
+					}))}
+				/>
+			);
+		}
+		case "sicherheitsaenderungen": {
+			const { rows, deciders } = await readOrg(octx, async (tx) => ({
+				rows: await tx
+					.select()
+					.from(securityChanges)
+					.where(eq(securityChanges.organizationId, ctx.orgId))
+					.orderBy(desc(securityChanges.requestedAt))
+					.limit(100),
+				deciders: await changeDeciders(tx, ctx.orgId),
+			}));
+			const names = await userLabels(
+				rows.flatMap((r) => [r.requestedBy, r.decidedBy]),
+			);
+			const now = new Date();
+			const iso = (d: Date | null) => d?.toISOString() ?? null;
+			return (
+				<SecurityChangesPanel
+					changes={rows.map((r) => ({
+						id: r.id,
+						kind: r.kind,
+						summary: r.summary,
+						state: changeState(r, now),
+						requestedByName: r.requestedBy
+							? (names.get(r.requestedBy) ?? null)
+							: null,
+						requestedByMe: r.requestedBy === ctx.userId,
+						requestedAt: r.requestedAt.toISOString(),
+						applyAfter: iso(r.applyAfter),
+						permitUntil: iso(r.permitUntil),
+						decidedByName: r.decidedBy
+							? (names.get(r.decidedBy) ?? null)
+							: null,
+						decidedAt: iso(r.decidedAt),
+						decisionNote: r.decisionNote,
+						appliedAt: iso(r.appliedAt),
+						mayDecide: canDecideChange(r, ctx.userId, deciders, now) === null,
+						mayCancel: canCancelChange(r, ctx.userId, deciders, now) === null,
 					}))}
 				/>
 			);

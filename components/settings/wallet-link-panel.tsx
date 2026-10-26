@@ -32,6 +32,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { errorText, isFourEyesNotice } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
@@ -84,6 +85,8 @@ export function WalletLinkPanel({
 
 	const fail = (res: { ok: boolean; error?: string; ref?: string }) => {
 		if (res.ok || res.error === "step_up_required") return;
+		// Vier-Augen: Token beantragt, wartet auf die zweite Person
+		if (isFourEyesNotice(res)) return void toast.notice(errorText(tc, res));
 		toast.error(tc("error"));
 	};
 

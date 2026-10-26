@@ -14,6 +14,7 @@ import { runComplianceTick } from "./compliance-tick-runner";
 import { runDigest, runImmediateMails } from "./digest";
 import { runPostureSnapshot } from "./posture";
 import { runRetention } from "./retention";
+import { runSecurityChanges } from "./security-changes";
 import { runStorageOrphans, runStoragePurge } from "./storage";
 
 // Job-Register (ADR-011). Zeitpläne in Europe/Berlin. Fachjobs laufen je Org
@@ -27,6 +28,7 @@ import { runStorageOrphans, runStoragePurge } from "./storage";
 //   posture-snapshot   02:00       Abdeckung je Org/Rahmenwerk → Verlauf auf /ueberblick
 //   storage-purge      03:30       gelöschte Nachweis-Objekte nach Backup-Frist entfernen
 //   storage-orphans    So 04:30    Objekte ohne Nachweis-Zeile in die Purge-Warteschlange
+//   security-changes   alle 5 min  Sicherheitsänderungen nach 24 h Wartezeit setzen
 // Die Wallet-Jobs (wallet-sync, price-tick, wallet-payouts) laufen seit K6 nur
 // noch in both.money (apps/wallet/lib/jobs); alte Zeitpläne räumt der Start ab.
 
@@ -39,6 +41,7 @@ export const JOBS = {
 	verifyAuditChain: "verify-audit-chain",
 	storagePurge: "storage-purge",
 	storageOrphans: "storage-orphans",
+	securityChanges: "security-changes",
 	quickCheck: QUICK_CHECK_JOB,
 } as const;
 
@@ -59,6 +62,7 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.schedule(JOBS.verifyAuditChain, "0 4 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.storagePurge, "30 3 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.storageOrphans, "30 4 * * 0", {}, { tz: TZ });
+	await boss.schedule(JOBS.securityChanges, "*/5 * * * *", {}, { tz: TZ });
 
 	await boss.work(JOBS.complianceTick, async () => {
 		await runComplianceTick();
@@ -85,6 +89,11 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	});
 	await boss.work(JOBS.storageOrphans, async () => {
 		await runStorageOrphans();
+	});
+	await boss.work(JOBS.securityChanges, async () => {
+		await runSecurityChanges();
+		// „Nach Wartezeit wirksam“ sofort zustellen
+		await runImmediateMails();
 	});
 	// Schnellcheck auf Anfrage: höchstens zwei gleichzeitig je Prozess
 	await boss.work<QuickCheckJob>(

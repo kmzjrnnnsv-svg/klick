@@ -13,7 +13,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { errorText } from "@/components/ui/error-text";
+import { errorText, isFourEyesNotice } from "@/components/ui/error-text";
 import { toast } from "@/components/ui/toast";
 import type { ActionResult } from "@/lib/validation/common";
 
@@ -47,6 +47,12 @@ export function ResetAccessDialog({
 			const res = await withStepUp(run);
 			if (res.ok) {
 				setUrl(res.data.url);
+				return;
+			}
+			// Vier-Augen: beantragt bzw. wartet auf die zweite Person
+			if (isFourEyesNotice(res)) {
+				close();
+				toast.notice(errorText(tc, res));
 				return;
 			}
 			toast.error(

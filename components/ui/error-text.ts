@@ -12,7 +12,12 @@ export type CommonErrorKey =
 	| "errorRateLimited"
 	| "errorSession"
 	| "errorStepUp"
-	| "errorNetwork";
+	| "errorNetwork"
+	| "errorFourEyesRequested"
+	| "errorFourEyesWaiting"
+	| "errorFourEyesWaitingPermit"
+	| "errorFourEyesPending"
+	| "errorFourEyesStale";
 
 type Translate = (key: CommonErrorKey, values?: { ref: string }) => string;
 
@@ -37,7 +42,24 @@ const BY_CODE: Record<string, CommonErrorKey> = {
 	ip_blocked: "errorNetwork",
 	network_denied: "errorNetwork",
 	admin_network: "errorNetwork",
+	// Vier-Augen (Härtung A4): kein Fehler, sondern der nächste Schritt
+	four_eyes_requested: "errorFourEyesRequested",
+	four_eyes_waiting: "errorFourEyesWaiting",
+	four_eyes_waiting_permit: "errorFourEyesWaitingPermit",
+	four_eyes_pending: "errorFourEyesPending",
+	four_eyes_stale: "errorFourEyesStale",
 };
+
+/** Antwort einer Vier-Augen-Prüfung: als Hinweis zeigen, nicht als Fehler. */
+export function isFourEyesNotice(res?: Failure): boolean {
+	const code =
+		typeof res === "string"
+			? res
+			: typeof res?.error === "string"
+				? res.error
+				: "";
+	return code.startsWith("four_eyes_") && code !== "four_eyes_stale";
+}
 
 export function errorText(tc: Translate, res?: Failure): string {
 	const code =
