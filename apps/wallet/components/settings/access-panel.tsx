@@ -263,6 +263,18 @@ export function AccessPanel({
 						<ListRow subtitle={t("assetsNone")} />
 					)}
 				</ListSection>
+				<ListSection title={t("mandatesTitle")} footer={t("mandatesFooter")}>
+					<ListRow
+						title={t("mandatesOnly")}
+						accessory={
+							<Switch
+								checked={p.mandatesRequired}
+								onCheckedChange={(v) => setP({ ...p, mandatesRequired: v })}
+								aria-label={t("mandatesOnly")}
+							/>
+						}
+					/>
+				</ListSection>
 			</ListGroup>
 
 			<FormAlert message={error} />

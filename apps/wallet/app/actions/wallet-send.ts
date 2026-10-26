@@ -14,12 +14,14 @@ import { notify } from "@wallet/lib/notifications/notify";
 import { currentAccessPolicy } from "@wallet/lib/orgs/access";
 import {
 	assetAllowed,
+	mandateRequired,
 	networkHasAllowedAsset,
 } from "@wallet/lib/orgs/access-policy";
 import { custodyFacts } from "@wallet/lib/orgs/custody";
 import { membersAllowed } from "@wallet/lib/orgs/members-allowed";
 import { effectiveStatus } from "@wallet/lib/wallet/address-book";
 import { hotAccountAllowed } from "@wallet/lib/wallet/custody-gate";
+import { mandateForPayout } from "@wallet/lib/wallet/mandates";
 import {
 	configuredNetworks,
 	nodeClientsFromEnv,
@@ -380,6 +382,9 @@ async function createPayoutImpl(
 	// seine Grenzen (ohne Grenze kein Asset)
 	const access = await currentAccessPolicy(c.orgId);
 	if (!assetAllowed(access, d.asset)) return fail("asset_not_allowed");
+	// Vollmacht (Härtung W): Bedienung zahlt nur im Rahmen einer von einer
+	// Inhaber:in per Sicherheitsschlüssel unterschriebenen Vollmacht aus
+	const needsMandate = mandateRequired(access, c.role);
 	const s = await helloForOrg(c.orgId);
 	if ("error" in s) return fail(s.error as string);
 	if (s.hello.frozen) return fail("signer_frozen");
@@ -437,6 +442,20 @@ async function createPayoutImpl(
 		if (e instanceof AmountError)
 			return fail(`amount_${e.code}`, { amount: [`amount_${e.code}`] });
 		throw e;
+	}
+	const mandateInput = {
+		orgId: c.orgId,
+		userId: c.userId,
+		network: account.network,
+		asset: d.asset,
+		amount,
+		destination: dest.address,
+	};
+	if (needsMandate) {
+		const pre = await readOrg(toOrgCtx(c), (tx) =>
+			mandateForPayout(tx, { ...mandateInput, now: new Date() }),
+		);
+		if (!pre.ok) return fail(pre.error);
 	}
 	// verfügbar = bestätigt laut Knoten minus offene Auszahlungen
 	const reserved = loaded.open.reduce((sum, p) => sum + BigInt(p.amount), 0n);
@@ -523,6 +542,17 @@ async function createPayoutImpl(
 		async (tx) => {
 			if (!anchorOk(await recordAnchor(tx, c.orgId, created)))
 				return { result: fail("signer_journal"), audit: [] };
+			// verbindlich unter Zeilensperre (zwei Auszahlungen gleichzeitig)
+			let mandateId: string | null = null;
+			if (needsMandate) {
+				const mc = await mandateForPayout(tx, {
+					...mandateInput,
+					now: new Date(),
+					lock: true,
+				});
+				if (!mc.ok) return { result: fail(mc.error), audit: [] };
+				mandateId = mc.mandateId;
+			}
 			const [row] = await tx
 				.insert(walletPayouts)
 				.values({
@@ -539,6 +569,7 @@ async function createPayoutImpl(
 					intentText: created.result.text,
 					expiresAt: new Date(created.result.expiresAt * 1000),
 					createdByUserId: c.userId,
+					mandateId,
 				})
 				.returning({ id: walletPayouts.id });
 			if (!row) throw new Error("insert failed");
@@ -565,11 +596,17 @@ async function createPayoutImpl(
 						feeCap: feeCap.toString(),
 						speed: d.speed,
 						intentId: created.result.intentId,
+						mandateId,
 					},
 				},
 			};
 		},
 	);
+	// Absicht liegt schon im Signer: ohne Auszahlung wieder abbrechen
+	if (!res.ok)
+		await signerCall("intent.cancel", {
+			intentId: created.result.intentId,
+		}).catch(() => undefined);
 	if (res.ok) revalidatePath(`${PATH}/auszahlungen`);
 	return res;
 }

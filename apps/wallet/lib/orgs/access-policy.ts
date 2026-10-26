@@ -153,6 +153,16 @@ export function signerAssetMismatch(
 	);
 }
 
+// ── Vollmacht ───────────────────────────────────────────────────────────────
+
+/** Braucht diese Rolle für Auszahlungen eine Vollmacht? Inhaber:innen nie. */
+export function mandateRequired(
+	p: WalletAccessPolicy,
+	role: "owner" | "operator" | "viewer",
+): boolean {
+	return p.mandatesRequired && role !== "owner";
+}
+
 // ── Änderungen ──────────────────────────────────────────────────────────────
 
 export type AccessChange =

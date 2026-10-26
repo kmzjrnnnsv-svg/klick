@@ -6,6 +6,7 @@ import {
 	credentialAllowed,
 	deviceBound,
 	isRelaxing,
+	mandateRequired,
 	networkHasAllowedAsset,
 	OPEN_ACCESS_POLICY,
 	onlyDeviceBound,
@@ -104,6 +105,16 @@ describe("Nur bestimmte Assets", () => {
 			signerAssetMismatch(tokens, { BTC: limit, ETH: limit, USDC: limit }),
 		).toEqual(["BTC", "ETH"]);
 		expect(signerAssetMismatch(OPEN_ACCESS_POLICY, { BTC: limit })).toEqual([]);
+	});
+});
+
+describe("Vollmacht", () => {
+	it("nur wenn eingeschaltet, nie für Inhaber:innen", () => {
+		const on = accessPolicyOf({ mandatesRequired: true });
+		expect(mandateRequired(OPEN_ACCESS_POLICY, "operator")).toBe(false);
+		expect(mandateRequired(on, "operator")).toBe(true);
+		expect(mandateRequired(on, "viewer")).toBe(true);
+		expect(mandateRequired(on, "owner")).toBe(false);
 	});
 });
 

@@ -33,6 +33,7 @@ export default async function SettingsPage() {
 			audit: roleAllows(ctx.role, "audit:read"),
 			exportManage: roleAllows(ctx.role, "export:manage"),
 			access: roleAllows(ctx.role, "settings:update"),
+			mandates: roleAllows(ctx.role, "wallet:initiate"),
 		}),
 		send,
 	);

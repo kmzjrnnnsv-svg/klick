@@ -27,6 +27,7 @@ describe("Schema both.money", () => {
 			"members",
 			"notifications",
 			"org_settings",
+			"payout_mandates",
 			"wallet_accounts",
 			"wallet_address_book",
 			"wallet_addresses",

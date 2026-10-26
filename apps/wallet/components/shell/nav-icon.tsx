@@ -10,6 +10,7 @@ import {
 	Send,
 	Settings,
 	ShieldCheck,
+	Signature,
 	TrendingUp,
 	Upload,
 	Users,
@@ -30,6 +31,7 @@ const ICONS = {
 	scroll: ScrollText,
 	upload: Upload,
 	key: KeyRound,
+	signature: Signature,
 	settings: Settings,
 } as const;
 

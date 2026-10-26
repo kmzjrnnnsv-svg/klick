@@ -7,7 +7,13 @@ import {
 } from "@wallet/lib/nav";
 import { describe, expect, it } from "vitest";
 
-const all = { members: true, audit: true, exportManage: true, access: true };
+const all = {
+	members: true,
+	audit: true,
+	exportManage: true,
+	access: true,
+	mandates: true,
+};
 
 describe("both.money Navigation (Apple HIG)", () => {
 	it("fünf Tabs; Senden nur mit eigenem Signer, sonst Empfangen", () => {
@@ -47,6 +53,7 @@ describe("both.money Navigation (Apple HIG)", () => {
 			audit: true,
 			exportManage: false,
 			access: false,
+			mandates: false,
 		}).flatMap((g) => g.items.map((i) => i.key));
 		expect(keys).toContain("audit");
 		expect(keys).not.toContain("members");
@@ -69,5 +76,6 @@ describe("both.money Navigation (Apple HIG)", () => {
 		expect(activeWalletNav(nav, "/payouts/123")).toBe("payouts");
 		expect(activeWalletNav(nav, "/settings/export")).toBe("export");
 		expect(activeWalletNav(nav, "/settings/access")).toBe("access");
+		expect(activeWalletNav(nav, "/mandates")).toBe("mandates");
 	});
 });
