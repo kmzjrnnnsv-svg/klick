@@ -132,6 +132,57 @@ export function isSsoCallbackPath(path: string | null | undefined): boolean {
 	);
 }
 
+// SSO absichern (Härtung A7): Grenzen für SAML im Plugin, eine Quelle für
+// lib/auth/server.ts und den Test. IdP-initiiert aus (jede Antwort gehört zu
+// einer eigenen Anfrage, InResponseTo), Zeitfenster Pflicht, SHA-1/RSA1_5/
+// 3DES abgelehnt. Signatur auf der Assertion setzt die Einrichtung
+// (wantAssertionsSigned), Audience/Recipient/Wiederholung prüft das Plugin.
+export const SAML_SECURITY = {
+	enableInResponseToValidation: true,
+	allowIdpInitiated: false,
+	requestTTL: 5 * 60_000,
+	clockSkew: 3 * 60_000,
+	requireTimestamps: true,
+	algorithms: { onDeprecated: "reject" },
+	maxResponseSize: 256 * 1024,
+	maxMetadataSize: 100 * 1024,
+} as const;
+
+// Anbieter des Rückrufs: /sso/callback/:providerId bzw. /sso/saml2/sp/acs/
+// :providerId. Den geteilten Rückruf ohne ID nutzt Klick nicht (gesperrt in
+// endpoint-policy), er liefert hier null.
+export function ssoCallbackProviderId(
+	path: string | null | undefined,
+	params: Record<string, unknown> | null | undefined,
+): string | null {
+	if (!isSsoCallbackPath(path)) return null;
+	const id = params?.providerId;
+	return typeof id === "string" && id.length > 0 ? id : null;
+}
+
+/**
+ * Darf dieser Anbieter diese Adresse anmelden? Nur, wenn seine Domain per
+ * TXT bestätigt ist und die Adresse genau dazu gehört (keine Subdomains,
+ * mehrere Domains durch Komma getrennt). Sonst könnte der IdP einer Org
+ * Konten mit Adressen einer anderen Org anlegen oder übernehmen.
+ */
+export function ssoEmailAllowed(
+	email: string | null | undefined,
+	provider: { domain: string; domainVerified?: boolean | null } | null,
+): boolean {
+	if (!provider?.domainVerified || !email) return false;
+	const at = email.lastIndexOf("@");
+	if (at < 1) return false;
+	const domain = email
+		.slice(at + 1)
+		.trim()
+		.toLowerCase();
+	return provider.domain
+		.split(",")
+		.map((d) => d.trim().toLowerCase())
+		.some((d) => d.length > 0 && d === domain);
+}
+
 // „SSO erzwingen“: Konten einer verifizierten, erzwungenen Domain bekommen
 // außerhalb des SSO-Rückrufs keine Sitzung — außer Inhaber:innen der Org
 // (Notzugang, auditiert) und Impersonation durch den Plattform-Betrieb.

@@ -11,6 +11,7 @@ import { listSsoProvidersForOrg } from "@/lib/auth/org";
 import { auth } from "@/lib/auth/server";
 import { AuthError } from "@/lib/auth/session-rules";
 import { providerPreset, ssoPolicyOf } from "@/lib/auth/sso-policy";
+import { samlRegistration } from "@/lib/auth/sso-saml";
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { safeFetch } from "@/lib/security/quick-check/fetcher";
@@ -236,7 +237,6 @@ async function registerSamlProviderImpl(input: unknown): Promise<ActionResult> {
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
 	const base = new URL(env().BETTER_AUTH_URL).origin;
-	const spEntityId = `${base}/api/auth/sso/saml2/sp/metadata?providerId=${d.providerId}`;
 	const idpEntityId = d.entityId ?? entityIdFromMetadata(d.metadataXml) ?? "";
 	if (!idpEntityId) return { ok: false, error: "sso_saml_entity" };
 	try {
@@ -246,27 +246,17 @@ async function registerSamlProviderImpl(input: unknown): Promise<ActionResult> {
 				issuer: idpEntityId,
 				domain: d.domain,
 				organizationId: c.orgId,
-				samlConfig: {
-					issuer: spEntityId,
-					entryPoint: d.ssoUrl ?? "",
-					cert: d.metadataXml ? undefined : d.certificate,
-					callbackUrl: `${base}/heute`,
-					idpMetadata: d.metadataXml
-						? { metadata: d.metadataXml }
-						: { entityID: idpEntityId, cert: d.certificate },
-					wantAssertionsSigned: true,
-					mapping: {
-						email: d.emailAttribute || "email",
-						name: d.nameAttribute || "name",
-						extraFields: {
-							groups:
-								d.groupsAttribute ||
-								"http://schemas.microsoft.com/ws/2008/06/identity/claims/groups",
-							authnmethodsreferences:
-								"http://schemas.microsoft.com/claims/authnmethodsreferences",
-						},
-					},
-				},
+				samlConfig: samlRegistration({
+					origin: base,
+					providerId: d.providerId,
+					idpEntityId,
+					ssoUrl: d.ssoUrl,
+					certificate: d.certificate,
+					metadataXml: d.metadataXml,
+					emailAttribute: d.emailAttribute,
+					nameAttribute: d.nameAttribute,
+					groupsAttribute: d.groupsAttribute,
+				}),
 			},
 			headers: await headers(),
 		});

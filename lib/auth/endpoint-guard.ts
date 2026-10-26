@@ -11,6 +11,7 @@ import { adminNetworkAllows } from "./admin-network";
 import { authEndpointDecision, isGuardedAuthPath } from "./endpoint-policy";
 import { REG_CONTEXT, REG_COOKIE } from "./registration-link";
 import { ipFromHeaders, isStepUpFresh } from "./session-rules";
+import { decodeSamlResponse, samlAlgorithmsAllowed } from "./sso-saml";
 
 export async function passkeyCount(userId: string): Promise<number> {
 	const [row] = await globalDb
@@ -30,6 +31,21 @@ const asDate = (v: unknown): Date | null =>
 // hooks.before: Faktor- und Admin-Endpunkte nur nach lib/auth/endpoint-policy.ts.
 // Andere Pfade laufen ohne zusätzliche Abfrage durch.
 export const authBeforeHook = createAuthMiddleware(async (ctx) => {
+	// SAML-ACS (Härtung A7): Signatur-/Digest-Verfahren der POST-Antwort aus
+	// der Allowlist — das Plugin prüft sie nur beim Redirect-Binding
+	if (ctx.path.startsWith("/sso/saml2/sp/acs")) {
+		const raw = (ctx.body as { SAMLResponse?: unknown } | undefined)
+			?.SAMLResponse;
+		if (
+			typeof raw === "string" &&
+			!samlAlgorithmsAllowed(decodeSamlResponse(raw))
+		)
+			throw new APIError("BAD_REQUEST", {
+				code: "SAML_ALGORITHM_NOT_ALLOWED",
+				message: "Signaturverfahren der SAML-Antwort nicht zugelassen.",
+			});
+		return;
+	}
 	if (!isGuardedAuthPath(ctx.path)) return;
 	const current = await getSessionFromCtx(ctx).catch(() => null);
 	const s = current?.session as

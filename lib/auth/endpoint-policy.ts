@@ -102,8 +102,14 @@ const SERVER_ONLY = new Set([
 	"/sso/verify-domain",
 ]);
 
-// E-Mail-/SMS-Codes als zweiter Faktor sind nicht eingerichtet.
-const NEVER = new Set(["/two-factor/send-otp", "/two-factor/verify-otp"]);
+// E-Mail-/SMS-Codes als zweiter Faktor sind nicht eingerichtet. Der geteilte
+// SSO-Rückruf ohne Anbieter-ID (nur mit redirectURI) ist ungenutzt: Klick
+// bindet jeden Rückruf an genau einen Anbieter und dessen Domain (A7).
+const NEVER = new Set([
+	"/two-factor/send-otp",
+	"/two-factor/verify-otp",
+	"/sso/callback",
+]);
 
 export const GUARDED_AUTH_PATHS: ReadonlySet<string> = new Set([
 	...FACTOR_MANAGEMENT,

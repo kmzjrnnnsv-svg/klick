@@ -55,7 +55,12 @@ import {
 	resolveRegistration,
 } from "./registration-link";
 import { ipFromHeaders, normalizeRole } from "./session-rules";
-import { provisionSsoUser, ssoGateForUser } from "./sso-provisioning";
+import { isSsoCallbackPath, SAML_SECURITY } from "./sso-policy";
+import {
+	provisionSsoUser,
+	ssoCallbackAllowsEmail,
+	ssoGateForUser,
+} from "./sso-provisioning";
 
 // Bewusst keine env()-Validierung beim Import: Better Auth liest
 // BETTER_AUTH_SECRET/BETTER_AUTH_URL selbst aus der Umgebung, und die CLI
@@ -226,6 +231,23 @@ export const auth = betterAuth({
 							code: "ACCOUNT_NOT_ACTIVATED",
 							message: "Konto noch nicht aktiviert.",
 						});
+					// SSO-Rückruf nur für Adressen der bestätigten Domain dieses
+					// Anbieters (Härtung A7): kein IdP meldet Konten anderer Orgs an
+					if (isSsoCallbackPath(ctx?.path)) {
+						const [u] = await globalDb
+							.select({ email: user.email })
+							.from(user)
+							.where(eq(user.id, session.userId))
+							.limit(1);
+						if (
+							!u ||
+							!(await ssoCallbackAllowsEmail(ctx?.path, ctx?.params, u.email))
+						)
+							throw new APIError("FORBIDDEN", {
+								code: "SSO_DOMAIN_MISMATCH",
+								message: "Diese Adresse gehört nicht zur Domain des Anbieters.",
+							});
+					}
 					// SSO erzwungen: Konten der Firmen-Domain nur über den SSO-
 					// Rückruf; Inhaber:innen behalten den Notzugang (auditiert)
 					const gate = await ssoGateForUser(session.userId, ctx?.path);
@@ -293,6 +315,23 @@ export const auth = betterAuth({
 						throw new APIError("FORBIDDEN", {
 							code: "new_user_signup_disabled",
 							message: "Kein gültiger Einladungslink.",
+						});
+					}
+					// SSO legt Konten nur für die bestätigte Domain des Anbieters
+					// an (Härtung A7) — sonst entstünden Konten mit fremden
+					// Adressen, die später Einladungen dieser Adresse annehmen
+					if (isSsoCallbackPath(ctx?.path)) {
+						if (
+							await ssoCallbackAllowsEmail(
+								ctx?.path,
+								ctx?.params,
+								newUser.email,
+							)
+						)
+							return;
+						throw new APIError("FORBIDDEN", {
+							code: "SSO_DOMAIN_MISMATCH",
+							message: "Diese Adresse gehört nicht zur Domain des Anbieters.",
 						});
 					}
 					if (allowSignup || ctx?.path !== "/magic-link/verify") return;
@@ -726,6 +765,9 @@ export const auth = betterAuth({
 			provisionUser: provisionSsoUser,
 			provisionUserOnEveryLogin: true,
 			domainVerification: { enabled: true, tokenPrefix: "klick-sso" },
+			// Härtung A7: IdP-initiiert aus, Zeitfenster Pflicht, alte
+			// Algorithmen abgelehnt (lib/auth/sso-policy.ts)
+			saml: SAML_SECURITY,
 		}),
 
 		// Muss der letzte Plugin-Eintrag sein (setzt Cookies in Server Actions).

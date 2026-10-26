@@ -18,6 +18,8 @@ import {
 	roleFromGroups,
 	type SsoPolicy,
 	samlMfa,
+	ssoCallbackProviderId,
+	ssoEmailAllowed,
 	ssoGate,
 	ssoPolicyOf,
 } from "./sso-policy";
@@ -218,6 +220,27 @@ export async function provisionSsoUser(p: ProvisionInput): Promise<void> {
 				after: { providerId: p.provider.providerId, organizationId: orgId },
 			},
 		);
+}
+
+// Domain-Bindung (Härtung A7): Anbieter des Rückrufs laden und prüfen, ob er
+// diese Adresse anmelden darf (ssoEmailAllowed). Ohne Anbieter-ID im Pfad
+// (geteilter Rückruf) oder unbekannten Anbieter: nein.
+export async function ssoCallbackAllowsEmail(
+	path: string | null | undefined,
+	params: Record<string, unknown> | null | undefined,
+	email: string,
+): Promise<boolean> {
+	const providerId = ssoCallbackProviderId(path, params);
+	if (!providerId) return false;
+	const [p] = await globalDb
+		.select({
+			domain: ssoProvider.domain,
+			domainVerified: ssoProvider.domainVerified,
+		})
+		.from(ssoProvider)
+		.where(eq(ssoProvider.providerId, providerId))
+		.limit(1);
+	return ssoEmailAllowed(email, p ?? null);
 }
 
 // „SSO erzwingen“ für die Anmeldung eines Kontos: verifizierte SSO-Domains

@@ -501,6 +501,22 @@ für den IdP (Klick zeigt sie im Formular zum Kopieren, `<id>` = Kennung des Anb
    per Passkey (Audit `auth.sso_bypass`). Wer im IdP gesperrt ist, kommt nicht mehr hinein; laufende
    Sitzungen enden spätestens nach 30 min Leerlauf bzw. 12 h.
 
+**Was Klick bei SAML prüft (Härtung A7):** Antwort nur zu einer eigenen Anfrage (InResponseTo, keine
+IdP-initiierte Anmeldung), genau eine Assertion und diese signiert (Signatur nur auf der Response reicht
+nicht), Signatur- und Digest-Verfahren SHA-256 oder stärker (SHA-1 wird abgelehnt — im IdP ggf. umstellen,
+ADFS: Relying Party > Erweitert > SHA-256), Audience = Entity-ID dieses Anbieters, Recipient = seine ACS,
+Zeitfenster Pflicht (±3 min), jede Assertion nur einmal. Bei OIDC: PKCE, Issuer und Audience gepinnt.
+Angemeldet und angelegt werden nur Adressen der bestätigten Domain **dieses** Anbieters; eine fremde
+Adresse (auch einer anderen Org) wird abgelehnt (`SSO_DOMAIN_MISMATCH`), es entsteht kein Konto.
+
+**SAML-Anbieter, die vor dem 26.10.2026 (Härtung A7) angelegt wurden,** haben als Entity-ID von Klick
+versehentlich die des IdP. Prüfen und neu anlegen (SSO-Verbindung entfernen, neu einrichten, im IdP
+Entity-ID/ACS aktualisieren):
+```bash
+runuser -u postgres -- psql klick -c "select provider_id, organization_id from sso_provider
+  where saml_config is not null and (saml_config::jsonb -> 'spMetadata' ->> 'entityID') is null"
+```
+
 **Prüfen nach dem Einrichten:** mit einem Testkonto anmelden (Rolle in Team prüfen), ein Konto ohne
 Gruppe (Standardrolle), ein Konto einer fremden Domain (abgelehnt). Vor dem Erzwingen einen Inhaber-Passkey
 testen. **Fehlersuche:** Audit der Org (`member.sso_provisioned`, `member.sso_role_changed`,
