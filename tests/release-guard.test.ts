@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { countSigners, releaseDecision } from "@/scripts/release-guard";
+import {
+	countSigners,
+	releaseDecision,
+	SIGNERS_FILE,
+	signersSource,
+} from "@/scripts/release-guard";
 
 // Release-Wächter (Härtung H8): nur sauberer Arbeitsbaum; mit hinterlegtem
 // Schlüssel nur signierte Tags.
@@ -58,5 +63,29 @@ describe("releaseDecision", () => {
 		const pkg = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8"));
 		for (const s of ["release", "release:wallet"])
 			expect(pkg.scripts[s]).toMatch(/^tsx scripts\/release-guard\.ts && /);
+	});
+});
+
+describe("signersSource", () => {
+	it("ohne Angabe gilt die Datei im Checkout", () => {
+		expect(signersSource({}, "/opt/klick/current")).toEqual({
+			path: `/opt/klick/current/${SIGNERS_FILE}`,
+			external: false,
+		});
+	});
+
+	it("root-eigener Anker außerhalb des Checkouts geht vor", () => {
+		expect(
+			signersSource(
+				{ RELEASE_ALLOWED_SIGNERS: "/etc/klick-release/allowed_signers" },
+				"/opt/klick/current",
+			),
+		).toEqual({ path: "/etc/klick-release/allowed_signers", external: true });
+	});
+
+	it("relativer Pfad ist ein Fehler, kein Rückfall", () => {
+		expect(
+			signersSource({ RELEASE_ALLOWED_SIGNERS: "allowed_signers" }, "/x"),
+		).toBeNull();
 	});
 });
