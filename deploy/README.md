@@ -15,6 +15,8 @@
 4. Backups: siehe „Backup & Restore“ unten (Timer für DB, Objekte, Stichprobe).
 
 ## Release
+Kurz: `sudo deploy/rollout/rollout.sh klick` (bzw. `both`) aus dem root-eigenen Checkout — Backup,
+Checkout auf `--ref`, Release, Units, Neustart, Prüfung (Abschnitt „Rollout-Skript“). Von Hand:
 CI grün → Wartungsfenster → `scripts/backup-db.sh` → `git pull && pnpm release`
 (migrate → seed → build) → `systemctl restart klick` → `curl -f https://raza.work/api/ready`.
 `pnpm release` prüft zuerst den Arbeitsbaum (keine Änderungen) und, sobald
@@ -226,6 +228,51 @@ Datei.
 5. `pnpm exec tsx scripts/verify-backup.ts --sample 50` gegen das Ziel, Audit-Kette prüfen
    (`/admin/audit`), `curl -f …/api/ready`. Ergebnis als Pflichten-Lauf dokumentieren.
 
+## Rollout-Skript (alles in einem Lauf)
+`deploy/rollout/rollout.sh` führt „Server härten“ (unten), die Releases von Klick und both.money,
+den Signer und den Bericht der Reihe nach aus. Die Schritte unten bleiben der Handweg und die
+Erklärung, was das Skript tut.
+
+**Start** (als root, nie aus `/opt/klick/current` — den kann der Dienst-User `klick` ändern; das
+Skript prüft das und bricht sonst ab):
+```bash
+sudo git clone --depth 1 --branch main https://github.com/kmzjrnnnsv-svg/klick.git /usr/local/src/klick-rollout
+sudo tmux new -s rollout                   # Verbindungsabbruch beendet das Skript nicht
+cd /usr/local/src/klick-rollout
+sudo deploy/rollout/rollout.sh pruefen     # Stand, RAM, Virenscanner-Entscheidung, nichts ändert sich
+sudo deploy/rollout/rollout.sh alles --admin <name> --geraet laptop --geraet handy --trocken
+sudo deploy/rollout/rollout.sh alles --admin <name> --geraet laptop --geraet handy
+```
+Später neu holen: `sudo git -C /usr/local/src/klick-rollout pull --ff-only` (bzw. mit Release-Schlüssel
+`fetch --tags` + `checkout <tag>`) und dieselbe Phase erneut starten.
+
+**Phasen** (Reihenfolge von `alles`, jede einzeln aufrufbar, `--ab <phase>` setzt fort):
+`pruefen` · `grundlage` (Pakete, `/var/log/klick`, `/var/www/letsencrypt`, 4 GB Swap ohne Swap,
+Release-Anker) · `firewall` (Übergang: SSH noch öffentlich, UDP 51820 offen) · `wireguard` (Geräte mit
+QR-Code, Konfiguration nur auf dem Bildschirm; wartet auf die Verbindung) · `ssh` (Admin-Konto, SSH nur
+über den Tunnel, bisherige Schlüssel) · `firewall-final` (SSH öffentlich zu) · `system` · `nginx` (vHosts
+mit `diff` und Rückfrage) · `crowdsec` (Paketquelle mit `signed-by`, Fingerprint bestätigen oder
+`CROWDSEC_KEY_FPR=<fpr>` setzen) · `postgres` (Passwörter als SCRAM neu mit **denselben** Werten aus den
+Credentials, pg_hba; bei Fehlern zurück) · `virenscanner` (clamd ab ≈ 7,5 GiB RAM mit
+`clamav-daemon.service.d/klick.conf`, sonst `no_av` in `PROD_ACCEPT_RISKS`) · `klick` (Backup,
+`pnpm release` mit Migrationen, Units, Neustart; unter 3 GB frei hält es erst both.money an) ·
+`both` · `signer` (nur mit `--signer-tag <tag> --signer-sha <sha aus CI „Signer bündeln“>`) ·
+`ueberwachung` · `abschluss` (AIDE-Basis, Lynis, Bericht `/var/backups/klick-rollout/<lauf>/bericht.md`
+mit Firewall, Ports, SSH, Sandbox, CrowdSec, Start-Prüfung, OpenTimestamps, Verlauf, SAML-Anbieter ohne
+eigene Entity-ID, Signer — als Nachweis in Klick hochladen). Später, mit FIDO2-Schlüsseln:
+`ssh-schluessel`.
+
+**Nicht aussperren:** `firewall`, `ssh` und `firewall-final` stellen vorher einen Rückweg scharf
+(`systemd-run`, 10 min) und gelten erst, wenn du aus einer **neuen** Sitzung bestätigst:
+`sudo deploy/rollout/rollout.sh bestaetigen <wort>` (das Wort zeigt das Skript; für `ssh` und
+`firewall-final` nur aus dem Tunnel 10.9.0.0/24). Ohne Bestätigung setzt der Rückweg von selbst zurück.
+Vor `ssh` verlangt das Skript ein root-Passwort (Hetzner-Konsole) und ein verbundenes Gerät.
+
+**Sicherungen und Protokoll:** jede überschriebene Datei unter `/var/backups/klick-rollout/<lauf>/`
+(0700), Protokoll `/var/log/klick-rollout/<lauf>.log` ohne Geheimnisse (WireGuard-Konfigurationen und
+Env-Inhalte gehen nicht hinein). Das Skript ändert nie die Signer-Richtlinie, nie Credentials und
+nie die Hetzner-Firewall (das sagt es an der passenden Stelle).
+
 ## Server härten (Plan Härtung, Teil H)
 Reihenfolge einhalten; bei jedem Schritt eine **zweite SSH-Sitzung offen lassen** und erst
 schließen, wenn die neue Verbindung geht. Rückweg immer: Hetzner Cloud Console (Konsole im
@@ -251,7 +298,8 @@ ISO A.8.9/A.8.20–22, BSI SYS.1.3).
 2. `ssh <admin>@10.9.0.1` testen (über den Tunnel, mit PIN und Berühren).
 3. `cp deploy/ssh/sshd_config.d/10-klick.conf /etc/ssh/sshd_config.d/`, `<admin>` ersetzen,
    `sshd -t && systemctl reload ssh`. Neue Sitzung über `10.9.0.1` öffnen, erst dann die alte schließen.
-4. sudo mit Schlüssel: `deploy/pam/sudo-u2f.example` (root-Shell offen lassen, `sudo -k; sudo true`).
+4. sudo bleibt beim Passwort des Admin-Kontos: `pam_u2f` (`deploy/pam/sudo-u2f.example`) fragt den
+   Schlüssel an der Maschine ab und geht über SSH nicht — nur für Hardware mit Konsole.
 5. Prüfen: `sshd -T | grep -Ei 'permitrootlogin|passwordauth|pubkeyaccepted|allowusers'`.
 
 **3. Firewall**
@@ -319,6 +367,11 @@ eigenen Rechner `git tag -s v<datum>` und pushen; auf dem Server `git fetch --ta
 statt `git pull`. `pnpm release` bzw. `release:wallet` bricht bei geänderten Dateien immer ab, mit
 Schlüssel zusätzlich ohne gültig signierten Tag (`scripts/release-guard.ts`). CI-Status vor dem
 Tag im Browser prüfen.
+**Vertrauensanker:** geprüft wird gegen die root-eigene Kopie `/etc/klick-release/allowed_signers`
+(`RELEASE_ALLOWED_SIGNERS`, `deploy/signer/install.sh`), nicht gegen die Datei im geprüften Stand —
+sonst trüge, wer ins Repo schreiben kann, dort seinen eigenen Schlüssel ein. Die Kopie legt
+`rollout.sh grundlage` an (Fingerprints zeigen, bestätigen); spätere Änderungen im Repo übernimmt sie
+nur nach Rückfrage. Steht dort ein Schlüssel, prüft auch `install.sh` die Signatur des Signer-Tags.
 
 **9. Zustand überwachen**
 `install -D -m 0755 -o root -g root scripts/host-health.sh /usr/local/lib/klick-health/host-health.sh`,
