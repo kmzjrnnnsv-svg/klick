@@ -1,0 +1,1 @@
+ALTER TABLE "evidence" ADD COLUMN "staff_visible" boolean DEFAULT false NOT NULL;

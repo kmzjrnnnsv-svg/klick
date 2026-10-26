@@ -24,7 +24,10 @@ import {
 	trainingRequirements,
 	trainings,
 } from "@/db/schema";
+import { functionsOf } from "@/lib/compliance/function-holders";
+import { loadAssignments } from "@/lib/compliance/function-holders-service";
 import type { OrgTx } from "@/lib/db/with-org";
+import { inDistribution } from "@/lib/documents/distribution";
 import { currentVersionsByDocument } from "@/lib/documents/in-force";
 import { currentPublished } from "@/lib/documents/versions";
 import { userNames } from "./queries";
@@ -204,11 +207,11 @@ export async function pendingAcknowledgements(
 		})
 		.from(documents)
 		.where(eq(documents.organizationId, orgId));
-	const relevant = docs.filter(
-		(d) =>
-			d.distribution.length === 0 ||
-			d.distribution.includes("all") ||
-			d.distribution.includes(orgRole),
+	const functions = functionsOf(await loadAssignments(tx, orgId), userId).map(
+		(f) => f.function as string,
+	);
+	const relevant = docs.filter((d) =>
+		inDistribution(d.distribution, { role: orgRole, functions }),
 	);
 	if (relevant.length === 0) return [];
 	const versions = await tx

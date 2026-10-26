@@ -26,7 +26,14 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 
-const ROLES = ["editor", "viewer", "consultant", "owner", "auditor"] as const;
+const ROLES = [
+	"editor",
+	"viewer",
+	"employee",
+	"consultant",
+	"owner",
+	"auditor",
+] as const;
 
 // Einladungslink mit Kopier-Knopf (Passkey ohne Mail, ADR-019). Der Token
 // steht im Fragment und ist nur jetzt sichtbar — gespeichert ist der Hash.

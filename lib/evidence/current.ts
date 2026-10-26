@@ -98,13 +98,23 @@ export async function supersedeEvidence(
 	const state = await lockForSuccessor(tx, orgId, oldId);
 	if (state !== "ok") return state;
 	const now = new Date();
+	const [prev] = await tx
+		.select({ staffVisible: evidence.staffVisible })
+		.from(evidence)
+		.where(eq(evidence.id, oldId))
+		.limit(1);
 	await tx
 		.update(evidence)
 		.set({ supersededAt: now, supersededById: newId })
 		.where(eq(evidence.id, oldId));
+	// Freigabe für Mitarbeitende wandert mit — nur, wenn die neue Fassung
+	// nicht vertraulich ist
 	await tx
 		.update(evidence)
-		.set({ supersedesId: oldId })
+		.set({
+			supersedesId: oldId,
+			staffVisible: sql`${prev?.staffVisible ?? false} and ${evidence.classification} in ('public', 'internal')`,
+		})
 		.where(and(eq(evidence.id, newId), eq(evidence.organizationId, orgId)));
 	// Controls der Vorgängerin
 	const links = await tx

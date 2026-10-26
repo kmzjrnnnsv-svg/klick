@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ensureEvidenceStepUp } from "@/app/actions/evidence";
 import { DeleteEvidenceButton } from "@/components/entity/evidence-delete";
+import { EvidenceStaffSwitch } from "@/components/entity/evidence-staff-switch";
 import { EvidenceVersionForm } from "@/components/entity/evidence-version-form";
 import { ExportLink } from "@/components/entity/export-link";
 import { ResponsibleEditor } from "@/components/entity/responsible-editor";
@@ -287,6 +288,21 @@ export default async function EvidenceDetailPage({
 								</dd>
 							</>
 						)}
+						{!restricted &&
+							!row.supersededAt &&
+							(row.classification === "public" ||
+								row.classification === "internal") && (
+								<>
+									<dt className="text-muted-foreground">{t("staffField")}</dt>
+									<dd>
+										<EvidenceStaffSwitch
+											evidenceId={row.id}
+											visible={row.staffVisible}
+											canEdit={canCreate}
+										/>
+									</dd>
+								</>
+							)}
 						<dt className="text-muted-foreground">{te("owner")}</dt>
 						<dd>
 							<ResponsibleEditor

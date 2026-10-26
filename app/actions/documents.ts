@@ -14,18 +14,22 @@ import {
 import { safeAction } from "@/lib/actions/safe";
 import { requestApproval, withdrawOpenRequests } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { allows } from "@/lib/auth/permissions";
 import { restrictedView } from "@/lib/auth/visibility";
 import {
 	DOCUMENT_TEMPLATES,
 	defaultApproverFunction,
 	TEMPLATE_BY_CODE,
 } from "@/lib/compliance/catalog/document-templates";
+import { functionsOf } from "@/lib/compliance/function-holders";
 import {
+	loadAssignments,
 	ownerColumns,
 	resolveResponsible,
 } from "@/lib/compliance/function-holders-service";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
+import { inDistribution } from "@/lib/documents/distribution";
 import {
 	bumpVersion,
 	guessDocType,
@@ -586,9 +590,12 @@ async function transitionDocumentImpl(
 }
 
 async function acknowledgeDocumentImpl(input: unknown): Promise<ActionResult> {
-	const c = await requireOrg({ document: ["read"] });
+	const c = await requireOrg({ acknowledgement: ["create"] });
 	const parsed = acknowledgeSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
+	// Mitarbeitende (ohne Dokument-Lesen) bestätigen nur, was sie unter
+	// /richtlinien sehen: Verteiler erreicht sie, nicht vertraulich
+	const readsDocuments = allows(c, { document: ["read"] });
 	const ok = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const [doc] = await tx
 			.select({
@@ -596,6 +603,8 @@ async function acknowledgeDocumentImpl(input: unknown): Promise<ActionResult> {
 				version: documents.version,
 				docNumber: documents.docNumber,
 				status: documents.status,
+				classification: documents.classification,
+				distribution: documents.distribution,
 			})
 			.from(documents)
 			.where(
@@ -606,6 +615,18 @@ async function acknowledgeDocumentImpl(input: unknown): Promise<ActionResult> {
 			)
 			.limit(1);
 		if (!doc) return { result: false, audit: [] };
+		if (
+			!readsDocuments &&
+			((doc.classification !== "public" && doc.classification !== "internal") ||
+				!inDistribution(doc.distribution, {
+					role: c.orgRole,
+					functions: functionsOf(
+						await loadAssignments(tx, c.orgId),
+						c.userId,
+					).map((f) => f.function as string),
+				}))
+		)
+			return { result: false, audit: [] };
 		// bestätigt wird die gültige Fassung — auch während eine neue
 		// Fassung in Arbeit ist
 		const v = currentPublished(await versionRows(tx, doc.id));

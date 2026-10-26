@@ -152,12 +152,14 @@ export default async function SettingsPage({
 	searchParams: Promise<{ tab?: string }>;
 }) {
 	const { tab } = await searchParams;
-	const ctx = await requireOrgPage();
+	// Mitarbeitende: nur „Dein Konto“ (Passkeys, Benachrichtigungen)
+	const ctx = await requireOrgPage(undefined, { employees: true });
 	const canEditSettings = allows(ctx, { settings: ["update"] });
 	const canReadIntegrations = allows(ctx, { integration: ["read"] });
 	const visible = visibleSettingsSections({
 		settings: canEditSettings,
 		integrations: canReadIntegrations,
+		accountOnly: ctx.orgRole === "employee",
 	});
 	const { key: section, chosen } = resolveSettingsSection(tab, visible);
 	const t = await getTranslations("Settings");
@@ -279,10 +281,12 @@ async function renderSection(
 							deviceType: p.deviceType,
 						}))}
 					/>
-					<DlpPanel
-						policy={withDlpDefaults(settings?.dlpPolicy)}
-						canEdit={canEditSettings}
-					/>
+					{ctx.orgRole !== "employee" && (
+						<DlpPanel
+							policy={withDlpDefaults(settings?.dlpPolicy)}
+							canEdit={canEditSettings}
+						/>
+					)}
 				</>
 			);
 		}

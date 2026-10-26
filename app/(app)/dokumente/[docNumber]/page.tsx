@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { AckButton } from "@/components/documents/ack-button";
 import { ApproverFunctionSelect } from "@/components/documents/approver-select";
+import { DistributionEditor } from "@/components/documents/distribution-editor";
 import { DocumentFileForm } from "@/components/documents/document-file-form";
 import {
 	DocumentEditor,
@@ -286,6 +287,13 @@ export default async function DocumentDetailPage({
 						/>
 					</MetaItem>
 					<MetaItem label={t("classification")}>{doc.classification}</MetaItem>
+					<MetaItem label={t("distribution")}>
+						<DistributionEditor
+							documentId={doc.id}
+							value={doc.distribution}
+							canEdit={canEdit}
+						/>
+					</MetaItem>
 					<MetaItem label={t("nextReview")}>
 						{doc.nextReviewAt
 							? fmtDate.format(new Date(doc.nextReviewAt))

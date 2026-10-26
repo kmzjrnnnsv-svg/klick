@@ -175,7 +175,8 @@ export const createDocumentSchema = z.object({
 	templateCode: z.string().max(60).optional(),
 	reviewCycleMonths: z.coerce.number().int().min(1).max(60).default(12),
 	controlCodes: z.array(z.string().min(1)).max(50).optional(),
-	distribution: z.array(z.string().max(40)).max(20).optional(),
+	// „all“, Grundrolle oder „function:<key>“ (auch eigene Rollen)
+	distribution: z.array(z.string().max(80)).max(30).optional(),
 	retentionYears: z.coerce.number().int().min(0).max(30).nullable().optional(),
 });
 export type CreateDocumentInput = z.output<typeof createDocumentSchema>;
@@ -191,7 +192,8 @@ export const updateDocumentSchema = z.object({
 	bodyMarkdown: z.string().max(200_000).nullable().optional(),
 	reviewCycleMonths: z.coerce.number().int().min(1).max(60).optional(),
 	controlCodes: z.array(z.string().min(1)).max(50).optional(),
-	distribution: z.array(z.string().max(40)).max(20).optional(),
+	// „all“, Grundrolle oder „function:<key>“ (auch eigene Rollen)
+	distribution: z.array(z.string().max(80)).max(30).optional(),
 	retentionYears: z.coerce.number().int().min(0).max(30).nullable().optional(),
 });
 

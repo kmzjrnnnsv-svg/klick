@@ -8,7 +8,8 @@ import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { withOrg } from "@/lib/db/with-org";
 
 async function markAllNotificationsReadImpl(): Promise<void> {
-	const c = await requireOrg();
+	// eigene Benachrichtigungen, auch für Mitarbeitende
+	const c = await requireOrg(undefined, { employees: true });
 	await withOrg(toOrgCtx(c), (tx) =>
 		tx
 			.update(notifications)

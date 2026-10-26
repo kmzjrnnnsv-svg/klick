@@ -59,7 +59,11 @@ import { openAcceptances } from "@/lib/compliance/appointment-acceptance";
 import { cycleDates } from "@/lib/compliance/audit-follow-up";
 import { OBLIGATION_BY_CODE } from "@/lib/compliance/catalog/obligations";
 import { upcomingLegalChanges } from "@/lib/compliance/catalog/regulatory-calendar";
-import { functionRecipients } from "@/lib/compliance/function-holders-service";
+import { functionsOf } from "@/lib/compliance/function-holders";
+import {
+	functionRecipients,
+	loadAssignments,
+} from "@/lib/compliance/function-holders-service";
 import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import {
 	computeIncidentDeadlines,
@@ -71,6 +75,7 @@ import { getOrgProfile } from "@/lib/compliance/queries";
 import { loadAuditRegimeContext } from "@/lib/compliance/queries-audit-regimes";
 import { lastReconciliationDay } from "@/lib/custody/queries";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
+import { inDistribution } from "@/lib/documents/distribution";
 import { currentVersionsByDocument } from "@/lib/documents/in-force";
 import { currentEvidence } from "@/lib/evidence/current";
 
@@ -399,18 +404,19 @@ async function loadDueRows(
 			})
 			.from(documentAcknowledgements)
 			.where(eq(documentAcknowledgements.organizationId, orgId));
+		const assignments = await loadAssignments(tx, orgId);
 		acknowledgements = published.flatMap((d) => {
 			const v = inForce.get(d.id);
 			if (!v) return [];
 			const audience = members
-				.filter((m) => {
-					const role = normalizeRole(m.role);
-					return (
-						d.distribution.length === 0 ||
-						d.distribution.includes("all") ||
-						d.distribution.includes(role)
-					);
-				})
+				.filter((m) =>
+					inDistribution(d.distribution, {
+						role: normalizeRole(m.role),
+						functions: functionsOf(assignments, m.userId).map(
+							(f) => f.function as string,
+						),
+					}),
+				)
 				.map((m) => m.userId);
 			const done = new Set(
 				acks.filter((a) => a.versionId === v.id).map((a) => a.userId),

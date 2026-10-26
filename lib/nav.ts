@@ -44,7 +44,8 @@ export type NavLabelKey =
 	| "baseline"
 	| "team"
 	| "settings"
-	| "activity";
+	| "activity"
+	| "policies";
 
 export type NavGroupKey =
 	| "today"
@@ -154,6 +155,21 @@ const STAGE_INDEX: Record<LicenceStage, number> = {
 };
 
 export function buildNav(input: NavInput): NavGroup[] {
+	// Mitarbeitende sehen nur ihre Richtlinien (Kenntnisnahme dort)
+	if (input.role === "employee")
+		return [
+			{
+				key: "today",
+				items: [
+					{
+						key: "policies",
+						labelKey: "policies",
+						href: "/richtlinien",
+						icon: "book-open",
+					},
+				],
+			},
+		];
 	const slugs = new Set(input.frameworks.map((f) => f.slug));
 	const hasFinance = [...slugs].some((s) => FINANCE_SLUGS.has(s));
 	const hasAml = [...slugs].some((s) => AML_SLUGS.has(s));
@@ -610,7 +626,12 @@ export function navTabs(groups: NavGroup[]): NavTab[] {
 			(g) => groupKeys.includes(g.key) && g.items.length > 0,
 		),
 	})).filter((t) => t.key === "suche" || t.groups.length > 0);
-	return tabs.length > 1 ? tabs : [];
+	// Suche nur neben Bereichslisten (Mitarbeitende haben keine)
+	const lists = tabs.some((t) =>
+		(LIST_TABS as readonly string[]).includes(t.key),
+	);
+	const shown = lists ? tabs : tabs.filter((t) => t.key !== "suche");
+	return shown.length > 1 ? shown : [];
 }
 
 // Aktiver Tab: Bereichsliste, Suche oder der Tab, dessen Gruppe den aktiven

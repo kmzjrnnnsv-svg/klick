@@ -1,6 +1,8 @@
 // Berechtigungsmodell (Better Auth Access Control).
 //
-// Fünf Org-Rollen:
+// Sechs Org-Rollen:
+//   employee   — Mitarbeitende: gültige Richtlinien laut Verteiler lesen,
+//                Kenntnisnahme bestätigen, freigegebene Nachweise lesen
 //   viewer     — lesen + kommentieren
 //   auditor    — viewer + Nachweisanfragen + Findings; zeitlich begrenzt über
 //                member_access.accessUntil (Prüfer-Sicht)
@@ -68,6 +70,11 @@ export const statements = {
 	security: ["read", "create", "update", "accept"],
 	// Zugangstoken für CI/API (ADR-017)
 	integration: ["read", "create", "revoke"],
+	// Richtlinien für Mitarbeitende (/richtlinien): gültige Fassungen laut
+	// Verteiler, Kenntnisnahme, für Mitarbeitende freigegebene Nachweise
+	policy: ["read"],
+	acknowledgement: ["create"],
+	evidence_shared: ["read"],
 } as const;
 
 export const ac = createAccessControl(statements);
@@ -106,7 +113,17 @@ const readAll = {
 	assessment: ["read"],
 	product: ["read"],
 	security: ["read"],
+	policy: ["read"],
+	evidence_shared: ["read"],
+	acknowledgement: ["create"],
 } as const;
+
+export const employee = ac.newRole({
+	...memberAc.statements,
+	policy: ["read"],
+	acknowledgement: ["create"],
+	evidence_shared: ["read"],
+});
 
 export const viewer = ac.newRole({
 	...memberAc.statements,
@@ -166,6 +183,9 @@ export const editor = ac.newRole({
 	product: ["read", "create", "update", "delete"],
 	security: ["read", "create", "update", "accept"],
 	integration: ["read"],
+	policy: ["read"],
+	acknowledgement: ["create"],
+	evidence_shared: ["read"],
 });
 
 // Berater:in: arbeitet mit, entscheidet nicht. Kein delete, kein
@@ -213,6 +233,9 @@ export const consultant = ac.newRole({
 	product: ["read", "create", "update"],
 	security: ["read", "create", "update"],
 	integration: ["read"],
+	policy: ["read"],
+	acknowledgement: ["create"],
+	evidence_shared: ["read"],
 });
 
 export const owner = ac.newRole({
@@ -253,6 +276,9 @@ export const owner = ac.newRole({
 	product: ["read", "create", "update", "delete"],
 	security: ["read", "create", "update", "accept"],
 	integration: ["read", "create", "revoke"],
+	policy: ["read"],
+	acknowledgement: ["create"],
+	evidence_shared: ["read"],
 });
 
 // Better Auth erwartet die Rolle "admin" in der Role-Map nicht zwingend;
@@ -263,6 +289,7 @@ export const roles = {
 	consultant,
 	viewer,
 	auditor,
+	employee,
 	admin: owner,
 } as const;
 

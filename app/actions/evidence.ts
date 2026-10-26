@@ -13,7 +13,11 @@ import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { isDbStorageKey } from "@/lib/evidence/aad";
-import { lockForSuccessor, supersedeEvidence } from "@/lib/evidence/current";
+import {
+	currentEvidence,
+	lockForSuccessor,
+	supersedeEvidence,
+} from "@/lib/evidence/current";
 import {
 	linkEvidenceToControl,
 	s3Configured,
@@ -288,6 +292,64 @@ async function uploadEvidenceVersionImpl(
 	return res;
 }
 
+// Für Mitarbeitende freigeben (/richtlinien): nur aktuelle Fassung, nur
+// öffentlich/intern; die neue Fassung übernimmt die Freigabe
+async function setEvidenceStaffVisibleImpl(input: {
+	evidenceId: string;
+	visible: boolean;
+}): Promise<ActionResult> {
+	const c = await requireOrg({ evidence: ["create"] });
+	if (
+		typeof input?.evidenceId !== "string" ||
+		!/^[0-9a-f-]{36}$/i.test(input.evidenceId) ||
+		typeof input.visible !== "boolean"
+	)
+		return { ok: false, error: "invalid" };
+	const res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select({
+				id: evidence.id,
+				classification: evidence.classification,
+				staffVisible: evidence.staffVisible,
+			})
+			.from(evidence)
+			.where(
+				and(
+					eq(evidence.id, input.evidenceId),
+					eq(evidence.organizationId, c.orgId),
+					currentEvidence(),
+				),
+			)
+			.limit(1);
+		if (!row) return { result: { ok: false, error: "notFound" }, audit: [] };
+		if (
+			input.visible &&
+			row.classification !== "public" &&
+			row.classification !== "internal"
+		)
+			return {
+				result: { ok: false, error: "staff_confidential" },
+				audit: [],
+			};
+		await tx
+			.update(evidence)
+			.set({ staffVisible: input.visible })
+			.where(eq(evidence.id, row.id));
+		return {
+			result: { ok: true, data: undefined },
+			audit: {
+				action: "evidence.staff_visible",
+				target: `evidence:${row.id}`,
+				before: { staffVisible: row.staffVisible },
+				after: { staffVisible: input.visible },
+			},
+		};
+	});
+	revalidatePath(`/nachweise/${input.evidenceId}`);
+	revalidatePath("/richtlinien");
+	return res;
+}
+
 async function linkEvidenceImpl(input: {
 	implementationId: string;
 	evidenceId: string;
@@ -484,6 +546,10 @@ export const createEvidenceLink = safeAction(
 export const uploadEvidenceVersion = safeAction(
 	"uploadEvidenceVersion",
 	uploadEvidenceVersionImpl,
+);
+export const setEvidenceStaffVisible = safeAction(
+	"setEvidenceStaffVisible",
+	setEvidenceStaffVisibleImpl,
 );
 export const uploadEvidence = safeAction("uploadEvidence", uploadEvidenceImpl);
 export const linkEvidence = safeAction("linkEvidence", linkEvidenceImpl);

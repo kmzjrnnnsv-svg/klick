@@ -142,6 +142,9 @@ export const evidence = pgTable(
 		supersededById: uuid().references((): AnyPgColumn => evidence.id, {
 			onDelete: "set null",
 		}),
+		// für Mitarbeitende freigegeben (/richtlinien); nur öffentlich/intern,
+		// wandert mit der neuen Fassung mit (Migration 0045)
+		staffVisible: boolean().notNull().default(false),
 		// Herkunft (manuell, Gap-Analyse, Scan-Import, API, Portal …)
 		source: text({ enum: EVIDENCE_SOURCES }).notNull().default("manual"),
 		// DLP-Ergebnis beim Upload: Treffer je Detektor (nur Zähler), Aktion,

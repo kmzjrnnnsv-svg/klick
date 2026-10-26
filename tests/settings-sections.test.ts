@@ -21,6 +21,14 @@ describe("Einstellungen als Liste", () => {
 			integrations: true,
 		});
 		expect(owner).toHaveLength(SETTINGS_SECTIONS.length);
+		// Mitarbeitende: nur das eigene Konto
+		expect(
+			visibleSettingsSections({
+				settings: false,
+				integrations: false,
+				accountOnly: true,
+			}),
+		).toEqual(["security", "notifications"]);
 	});
 
 	it("gruppiert in fester Reihenfolge", () => {

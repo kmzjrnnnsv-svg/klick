@@ -31,12 +31,14 @@ export type SettingsSectionKey = (typeof SETTINGS_SECTIONS)[number]["key"];
 export const DEFAULT_SETTINGS_SECTION: SettingsSectionKey = "security";
 
 // Sichtbar je Recht: Rollen und Abo nur mit settings:update, Integrationen
-// mit integration:read
+// mit integration:read; Mitarbeitende nur ihr Konto
 export function visibleSettingsSections(can: {
 	settings: boolean;
 	integrations: boolean;
+	accountOnly?: boolean;
 }): SettingsSectionKey[] {
 	return SETTINGS_SECTIONS.filter((s) => {
+		if (can.accountOnly) return s.group === "account";
 		const needs = "needs" in s ? s.needs : undefined;
 		if (needs === "settings") return can.settings;
 		if (needs === "integrations") return can.integrations;
