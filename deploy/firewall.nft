@@ -33,6 +33,7 @@ table inet klick {
     udp dport 51820 accept
     iifname "wg-admin" tcp dport 22 accept
     iifname "wg-admin" meta l4proto { tcp, udp } th dport 53 accept
+    # @rollout: ssh-uebergang (deploy/rollout setzt hier SSH öffentlich ein, bis der Tunnel steht)
 
     # Web
     tcp dport { 80, 443 } accept
