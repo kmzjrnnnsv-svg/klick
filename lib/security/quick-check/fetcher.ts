@@ -56,6 +56,17 @@ function once(
 	const mod = url.protocol === "https:" ? https : http;
 	return new Promise((resolve, reject) => {
 		let tls: TlsInfo | null = null;
+		// Gesamtfrist je Anfrage: `timeout` unten misst nur Pausen; ein Server,
+		// der Byte für Byte tröpfelt, hielte sonst ewig fest (Selbstprüfung S6)
+		let timedOut = false;
+		const deadline = setTimeout(() => {
+			timedOut = true;
+			req.destroy(new Error("timeout"));
+		}, opts.timeoutMs);
+		const fail = (e: unknown) => {
+			clearTimeout(deadline);
+			reject(timedOut ? new Error("timeout") : e);
+		};
 		const req = mod.request(
 			{
 				protocol: url.protocol,
@@ -117,7 +128,9 @@ function once(
 					}
 					chunks.push(c);
 				});
-				const done = () =>
+				const done = () => {
+					clearTimeout(deadline);
+					if (timedOut) return reject(new Error("timeout"));
 					resolve({
 						url: url.toString(),
 						status: res.statusCode ?? 0,
@@ -126,13 +139,14 @@ function once(
 						truncated,
 						tls,
 					});
+				};
 				res.on("end", done);
 				res.on("close", done);
-				res.on("error", (e) => (truncated ? done() : reject(e)));
+				res.on("error", (e) => (truncated ? done() : fail(e)));
 			},
 		);
 		req.on("timeout", () => req.destroy(new Error("timeout")));
-		req.on("error", reject);
+		req.on("error", fail);
 		req.end();
 	});
 }
