@@ -3,6 +3,7 @@ import { publicTrustCenter } from "@/lib/db/trust";
 import { env } from "@/lib/env";
 import { looksAutomated } from "@/lib/inquiries/rules";
 import { logger } from "@/lib/log";
+import { orgNetworkAllows } from "@/lib/net/org-network";
 import { SlidingWindowLimiter } from "@/lib/rate-limit";
 import { clientIp, ingestJson, ingestRoute } from "@/lib/security/ingest";
 import { createTrustRequest } from "@/lib/trust/access";
@@ -63,6 +64,15 @@ export const POST = ingestRoute("trust.request", async (req: Request) => {
 	const d = parsed.data;
 	const center = await publicTrustCenter(d.slug);
 	if (!center) return ingestJson(404, { error: "not_found" });
+	// IP-Liste der Organisation (Härtung A5), außer ausgenommen
+	if (
+		!(await orgNetworkAllows(
+			center.organizationId,
+			"trustCenter",
+			clientIp(req),
+		))
+	)
+		return ingestJson(403, { error: "network_denied" });
 	// Zugestimmt wurde der angezeigten Fassung — hat sich der NDA-Text
 	// inzwischen geändert, muss die Seite neu geladen werden.
 	if (d.ndaVersion !== center.snapshot.ndaVersion)

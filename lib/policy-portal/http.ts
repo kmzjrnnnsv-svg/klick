@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/log";
+import { orgNetworkAllows } from "@/lib/net/org-network";
+import { clientIp } from "@/lib/security/ingest";
 import { cookieValue } from "@/lib/trust/access";
 import { portalCookieName } from "./rules";
 import {
@@ -48,7 +50,20 @@ export function portalRoute<P extends { slug: string }>(
 ): (req: Request, ctx: { params: Promise<P> }) => Promise<Response> {
 	return async (req, ctx) => {
 		try {
-			return await handler(req, await ctx.params);
+			const params = await ctx.params;
+			// IP-Liste der Organisation (Härtung A5), außer das Portal ist
+			// ausgenommen
+			const portal = await publicPortal(params.slug);
+			if (
+				portal &&
+				!(await orgNetworkAllows(
+					portal.organizationId,
+					"policyPortal",
+					clientIp(req),
+				))
+			)
+				return json(403, { error: "network_denied" });
+			return await handler(req, params);
 		} catch (err) {
 			const ref = randomUUID().slice(0, 8);
 			logger.error({ err, route: name, ref }, "policy portal route failed");

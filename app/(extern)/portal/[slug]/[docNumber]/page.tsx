@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
@@ -7,7 +7,9 @@ import { PolicyBody } from "@/components/policies/policy-list";
 import { PortalAckButton } from "@/components/policy-portal/portal-client";
 import { BackLink } from "@/components/ui/back-link";
 import { Badge } from "@/components/ui/badge";
+import { ipFromHeaders } from "@/lib/auth/session-rules";
 import { fmtDate } from "@/lib/compliance/page-data";
+import { orgNetworkAllows } from "@/lib/net/org-network";
 import { portalCookieName } from "@/lib/policy-portal/rules";
 import {
 	publicPortal,
@@ -27,6 +29,15 @@ export default async function PortalPolicyPage({
 	const docNumber = decodeURIComponent(raw);
 	const portal = await publicPortal(slug);
 	if (!portal) notFound();
+	// IP-Liste der Organisation (Härtung A5)
+	if (
+		!(await orgNetworkAllows(
+			portal.organizationId,
+			"policyPortal",
+			ipFromHeaders(await headers()),
+		))
+	)
+		redirect("/netz?bereich=portal");
 	const reader = await resolvePortalReader(
 		portal,
 		(await cookies()).get(portalCookieName(slug))?.value,

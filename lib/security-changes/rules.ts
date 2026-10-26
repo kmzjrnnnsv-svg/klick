@@ -23,6 +23,7 @@ import type { DlpPolicy } from "@/lib/dlp/policy";
 export const APPLY_KINDS = [
 	"sso_policy",
 	"dlp_policy",
+	"network_policy",
 ] as const satisfies readonly SecurityChangeKind[];
 export const PERMIT_KINDS = [
 	"org_delete",

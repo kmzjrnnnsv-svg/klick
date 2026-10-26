@@ -11,6 +11,8 @@ export type AuthErrorCode =
 	| "access_expired"
 	| "forbidden"
 	| "ip_blocked"
+	// IP-Liste der Organisation (Härtung A5)
+	| "network_denied"
 	// Wallet-Bereich nicht entsperrt (Passkey-Bestätigung fehlt/abgelaufen)
 	| "wallet_locked"
 	| "wallet_disabled";

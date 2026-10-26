@@ -15,7 +15,7 @@ import { errorText } from "@/components/ui/error-text";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
 import { toast } from "@/components/ui/toast";
 import type { SecurityChangeKind } from "@/db/schema/enums";
-import type { ChangeState } from "@/lib/security-changes/rules";
+import { type ChangeState, isApplyKind } from "@/lib/security-changes/rules";
 
 // Einstellungen > Sicherheitsänderungen (Vier-Augen, Härtung A4): offene
 // Anträge zustimmen, ablehnen oder abbrechen, Erlaubnisse mit Frist, Verlauf.
@@ -124,12 +124,9 @@ export function SecurityChangesPanel({ changes }: { changes: ChangeView[] }) {
 		];
 		if (c.state === "waiting" && c.applyAfter)
 			parts.push(
-				t(
-					c.kind === "sso_policy" || c.kind === "dlp_policy"
-						? "waitingApply"
-						: "waitingPermit",
-					{ when: when(c.applyAfter) },
-				),
+				t(isApplyKind(c.kind) ? "waitingApply" : "waitingPermit", {
+					when: when(c.applyAfter),
+				}),
 			);
 		if (c.state === "due") parts.push(t("due"));
 		if (c.state === "permitted" && c.permitUntil)

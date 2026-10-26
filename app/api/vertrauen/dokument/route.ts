@@ -10,6 +10,7 @@ import {
 	decryptEvidenceObject,
 } from "@/lib/evidence/read";
 import { s3Configured } from "@/lib/evidence/store";
+import { orgNetworkAllows } from "@/lib/net/org-network";
 import { getOrgLimiter, SlidingWindowLimiter } from "@/lib/rate-limit";
 import { clientIp, ingestRoute } from "@/lib/security/ingest";
 import {
@@ -44,6 +45,15 @@ export const GET = ingestRoute("trust.document", async (req: Request) => {
 	if (!/^[0-9a-f-]{36}$/i.test(versionId)) return status(404);
 	const center = await publicTrustCenter(slug);
 	if (!center) return status(404);
+	// IP-Liste der Organisation (Härtung A5), außer ausgenommen
+	if (
+		!(await orgNetworkAllows(
+			center.organizationId,
+			"trustCenter",
+			clientIp(req),
+		))
+	)
+		return status(403);
 	const doc = snapshotDocument(center.snapshot, versionId);
 	if (!doc) return status(404);
 	const orgId = center.organizationId;

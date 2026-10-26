@@ -21,6 +21,8 @@ export const SETTINGS_SECTIONS = [
 	// Vier-Augen (Härtung A4): offene Anträge sehen alle, zustimmen dürfen
 	// andere Inhaber:innen und GL
 	{ key: "sicherheitsaenderungen", group: "org" },
+	// IP-Liste je Org (Härtung A5): ändern nur Inhaber:innen (Vier-Augen)
+	{ key: "netzwerk", group: "org", needs: "settings" },
 	{ key: "abo", group: "org", needs: "settings" },
 	{ key: "workflows", group: "methods" },
 	{ key: "audits", group: "methods" },

@@ -629,6 +629,8 @@ export const SECURITY_CHANGE_KINDS = [
 	// „wirkt“: neuer Wert steht im Antrag
 	"sso_policy",
 	"dlp_policy",
+	// IP-Liste der Organisation (Härtung A5), jede Änderung
+	"network_policy",
 	// „erlaubt“: einmalige Erlaubnis für die anfragende Person (24 h)
 	"org_delete",
 	"full_export",

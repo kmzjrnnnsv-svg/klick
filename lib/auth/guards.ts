@@ -10,9 +10,13 @@ import {
 } from "@/lib/db/platform-access";
 import type { OrgCtx } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
+import { orgNetworkAllows } from "@/lib/net/org-network";
 import { adminNetworkAllows } from "./admin-network";
 import { userHasPasskey } from "./endpoint-guard";
-import { primaryMembershipCount as countPrimary } from "./memberships";
+import {
+	primaryMembershipCount as countPrimary,
+	isExternal,
+} from "./memberships";
 import { memberContextFor } from "./org";
 import { effectivePermissions } from "./permission-catalog";
 import {
@@ -172,6 +176,15 @@ export async function requireOrg(
 	}
 
 	const orgRole = normRole(m.role);
+	// IP-Liste der Organisation (Härtung A5); Externe ggf. mit eigener Liste.
+	// Als Person angemeldet aus dem Admin-Netz: die Freigabe der Org gilt.
+	if (
+		!(ctx.session.impersonatedBy && adminNetworkAllows(ctx.ip)) &&
+		!(await orgNetworkAllows(orgId, "app", ctx.ip, {
+			external: isExternal(orgRole),
+		}))
+	)
+		throw new AuthErr("network_denied");
 	const permissions = effectivePermissions(
 		orgRole,
 		roles.map((r) => r.permissions),
@@ -296,6 +309,15 @@ export async function requirePortal(): Promise<PortalContext> {
 	if (r.token.subjectType !== "assessment" || !r.token.subjectId)
 		throw new AuthErr("forbidden");
 	const h = await headers();
+	// IP-Liste der Organisation (Härtung A5), außer das Portal ist ausgenommen
+	if (
+		!(await orgNetworkAllows(
+			r.token.organizationId,
+			"supplierPortal",
+			ipFromHeaders(h),
+		))
+	)
+		throw new AuthErr("network_denied");
 	return {
 		token: r.token,
 		assessmentId: r.token.subjectId,

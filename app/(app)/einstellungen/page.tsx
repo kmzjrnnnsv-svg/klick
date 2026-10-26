@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import {
 	Bell,
 	BookOpen,
@@ -11,6 +11,7 @@ import {
 	KeyRound,
 	Layers,
 	LockKeyhole,
+	Network,
 	Plug,
 	Receipt,
 	ShieldCheck,
@@ -28,6 +29,7 @@ import { DlpPanel } from "@/components/settings/dlp-panel";
 import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { IntegrationsPanel } from "@/components/settings/integrations-panel";
+import { NetworkPanel } from "@/components/settings/network-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
 import { PlatformAccessPanel } from "@/components/settings/platform-access-panel";
 import { PolicyPortalPanel } from "@/components/settings/policy-portal-panel";
@@ -44,6 +46,7 @@ import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
 import {
 	approvalWorkflows,
+	orgSettings,
 	platformAccessGrants,
 	securityChanges,
 } from "@/db/schema";
@@ -102,6 +105,8 @@ import { flushQueuedAudits, readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
 import { berlinToday } from "@/lib/evidence-studio/queries";
 import { recommendServices } from "@/lib/marketing/recommend";
+import { normalizeIp } from "@/lib/net/ip";
+import { networkPolicyOf } from "@/lib/net/network-policy";
 import {
 	getOrgSettings,
 	listOpenAuditScopes,
@@ -115,6 +120,7 @@ import {
 	canCancelChange,
 	canDecideChange,
 	changeState,
+	isOpen,
 } from "@/lib/security-changes/rules";
 import { changeDeciders } from "@/lib/security-changes/service";
 import {
@@ -137,6 +143,7 @@ const SECTION_LABEL = {
 	integrationen: "tabIntegrations",
 	zugriffe: "tabPlatformAccess",
 	sicherheitsaenderungen: "tabSecurityChanges",
+	netzwerk: "tabNetwork",
 	abo: "tabSubscription",
 	workflows: "tabWorkflows",
 	audits: "tabAudits",
@@ -156,6 +163,7 @@ const SECTION_ICON: Record<SettingsSectionKey, React.ReactNode> = {
 	integrationen: <Plug />,
 	zugriffe: <LockKeyhole />,
 	sicherheitsaenderungen: <ShieldHalf />,
+	netzwerk: <Network />,
 	abo: <Receipt />,
 	workflows: <GitBranch />,
 	audits: <ClipboardCheck />,
@@ -783,6 +791,33 @@ async function renderSection(
 						mayDecide: canDecideChange(r, ctx.userId, deciders, now) === null,
 						mayCancel: canCancelChange(r, ctx.userId, deciders, now) === null,
 					}))}
+				/>
+			);
+		}
+		case "netzwerk": {
+			const { row, open } = await readOrg(octx, async (tx) => {
+				const [row] = await tx
+					.select({ networkPolicy: orgSettings.networkPolicy })
+					.from(orgSettings)
+					.where(eq(orgSettings.organizationId, ctx.orgId))
+					.limit(1);
+				const changes = await tx
+					.select()
+					.from(securityChanges)
+					.where(
+						and(
+							eq(securityChanges.organizationId, ctx.orgId),
+							eq(securityChanges.kind, "network_policy"),
+						),
+					);
+				return { row, open: changes.some((c) => isOpen(c, new Date())) };
+			});
+			return (
+				<NetworkPanel
+					policy={networkPolicyOf(row?.networkPolicy)}
+					myIp={normalizeIp(ctx.ip)}
+					canEdit={ctx.orgRole === "owner"}
+					pendingChange={open}
 				/>
 			);
 		}

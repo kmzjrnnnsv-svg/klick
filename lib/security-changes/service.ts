@@ -9,6 +9,7 @@ import { normalizeRole } from "@/lib/auth/session-rules";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { TOP_MANAGEMENT_FUNCTION } from "@/lib/compliance/top-management";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
+import { invalidateNetworkPolicy } from "@/lib/net/org-network";
 import { notify } from "@/lib/notifications/notify";
 import type { ActionResult } from "@/lib/validation/common";
 import {
@@ -210,19 +211,24 @@ export async function requestApplyChange(
 
 // Wirkung einer „wirkt“-Änderung; veraltet (der Wert hat sich seit dem
 // Antrag geändert) → FourEyesError, der Antrag verfällt.
+const APPLY_COLUMN = {
+	sso_policy: "ssoPolicy",
+	dlp_policy: "dlpPolicy",
+	network_policy: "networkPolicy",
+} as const satisfies Record<ApplyKind, keyof typeof orgSettings.$inferSelect>;
+
 async function applyChange(tx: OrgTx, row: SecurityChange): Promise<void> {
+	const kind = row.kind as ApplyKind;
+	const column = APPLY_COLUMN[kind];
 	const [settings] = await tx
-		.select({
-			ssoPolicy: orgSettings.ssoPolicy,
-			dlpPolicy: orgSettings.dlpPolicy,
-		})
+		.select({ current: orgSettings[column] })
 		.from(orgSettings)
 		.where(eq(orgSettings.organizationId, row.organizationId))
 		.limit(1);
-	const kind = row.kind as ApplyKind;
-	const current =
-		kind === "sso_policy" ? settings?.ssoPolicy : settings?.dlpPolicy;
-	if (JSON.stringify(current ?? null) !== JSON.stringify(row.before ?? null))
+	if (
+		JSON.stringify(settings?.current ?? null) !==
+		JSON.stringify(row.before ?? null)
+	)
 		throw new FourEyesError("four_eyes_stale");
 	const value = row.payload?.value;
 	if (!value || typeof value !== "object")
@@ -236,16 +242,12 @@ async function applyChange(tx: OrgTx, row: SecurityChange): Promise<void> {
 			)
 		)
 			throw new FourEyesError("sso_enforce_unverified");
-		await tx
-			.update(orgSettings)
-			.set({ ssoPolicy: value as typeof settings.ssoPolicy })
-			.where(eq(orgSettings.organizationId, row.organizationId));
-	} else {
-		await tx
-			.update(orgSettings)
-			.set({ dlpPolicy: value as typeof settings.dlpPolicy })
-			.where(eq(orgSettings.organizationId, row.organizationId));
 	}
+	await tx
+		.update(orgSettings)
+		.set({ [column]: value })
+		.where(eq(orgSettings.organizationId, row.organizationId));
+	if (kind === "network_policy") invalidateNetworkPolicy(row.organizationId);
 }
 
 // ── „erlaubt“: einmalige Erlaubnis für die anfragende Person ──────────────

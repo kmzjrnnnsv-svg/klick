@@ -20,13 +20,15 @@ export default async function NetworkDeniedPage({
 	const t = await getTranslations("NetworkDenied");
 	const { bereich } = await searchParams;
 	const admin = bereich === "admin";
+	// Portale (Lieferant, Trust Center, Richtlinien) haben keine Anmeldung
+	const portal = bereich === "portal";
 	const ip = normalizeIp(ipFromHeaders(await headers()));
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-2">
 				<h1 className="font-bold text-title-1">{t("title")}</h1>
 				<p className="text-body text-muted-foreground">
-					{admin ? t("admin") : t("org")}
+					{admin ? t("admin") : portal ? t("portal") : t("org")}
 				</p>
 			</div>
 			<div className="rounded-2xl bg-card p-4">
@@ -36,11 +38,13 @@ export default async function NetworkDeniedPage({
 				</p>
 			</div>
 			<p className="text-subhead text-muted-foreground">
-				{admin ? t("adminHint") : t("orgHint")}
+				{admin ? t("adminHint") : portal ? t("portalHint") : t("orgHint")}
 			</p>
-			<Button asChild variant="secondary">
-				<Link href="/login">{t("back")}</Link>
-			</Button>
+			{!portal && (
+				<Button asChild variant="secondary">
+					<Link href="/login">{t("back")}</Link>
+				</Button>
+			)}
 		</div>
 	);
 }

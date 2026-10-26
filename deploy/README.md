@@ -140,6 +140,12 @@ neue RP-ID macht alle vorhandenen Passkeys unbrauchbar (dann hilft nur „Zugang
 - **Notfall, wenn niemand in der Organisation helfen kann** (z. B. die einzige Owner:in): mit dem
   Block oben `runuser -u klick -- pnpm auth:recover <adresse>` — gleiche Wirkung, Link nur im
   Terminal, Audit `auth.recover_link_cli`.
+- **Organisation hat sich mit ihrer IP-Liste ausgesperrt** (Einstellungen > Netzwerk, z. B. neue
+  Büro-Adresse): mit dem Block oben `runuser -u klick -- pnpm org:network-reset --org <kurzname>
+  --reason "<Anlass, Ticket>"` — schaltet die Liste aus (Ausnahmen und Liste für Externe fallen mit),
+  Audit `org.network_reset` in der Kette der Organisation und `platform.access`, alle Inhaber:innen
+  bekommen sofort eine Mitteilung. Wirkt in der App nach spätestens 30 Sekunden. Vorher die Person
+  auf einem zweiten Weg bestätigen (Rückruf an die bekannte Nummer), nie allein auf Mail hin.
 - Prüfen nach einem Release: `pnpm exec tsx scripts/qa/passkey-smoke.ts` gegen eine Testinstanz
   (virtueller Authenticator; setzt ein QA-Konto aus `scripts/qa/crawl.ts --login` voraus).
 

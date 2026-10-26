@@ -110,19 +110,33 @@ describe("Vier-Augen ist an jeder kritischen Änderung angeschlossen", () => {
 			expect(gate).toBeLessThan(effect);
 		});
 
-	it("SSO- und DLP-Regeln schreiben nur die Actions und der Dienst", () => {
+	it("SSO-, DLP- und Netz-Regeln schreiben nur die Actions, der Dienst und der Notweg", () => {
 		const allowed = new Set([
 			"app/actions/sso.ts",
 			"app/actions/settings.ts",
 			"lib/security-changes/service.ts",
+			// Notweg am Terminal (root, auditiert): IP-Liste ausschalten
+			"scripts/org-network-reset.ts",
 		]);
 		const writers = walkFiles(["app", "lib", "scripts"])
 			.filter((f) =>
-				/\.set\(\{\s*(ssoPolicy|dlpPolicy)\b/.test(
+				/\.set\(\{\s*(ssoPolicy|dlpPolicy|networkPolicy)\b/.test(
 					readFileSync(join(ROOT, f), "utf8"),
 				),
 			)
 			.filter((f) => !allowed.has(f));
 		expect(writers).toEqual([]);
+	});
+
+	it("IP-Liste: Aussperr-Schutz vor dem Antrag, kein direktes Schreiben", () => {
+		const b = body(
+			readFileSync(join(ROOT, "app/actions/network.ts"), "utf8"),
+			"saveNetworkPolicyImpl",
+		);
+		const lock = b.indexOf("locksOut(");
+		const gate = b.indexOf("requestApplyChange(");
+		expect(lock).toBeGreaterThan(-1);
+		expect(gate).toBeGreaterThan(lock);
+		expect(b).not.toMatch(/\.set\(\{/);
 	});
 });

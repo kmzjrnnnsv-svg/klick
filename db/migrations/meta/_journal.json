@@ -351,6 +351,13 @@
       "when": 1793003062078,
       "tag": "0049_security_changes",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1793004514592,
+      "tag": "0050_network_policy",
+      "breakpoints": true
     }
   ]
 }
