@@ -331,6 +331,26 @@ Neustart; Fehler gehen über `klick-alert@` an `ALERT_MAIL`.
 `rm /etc/ssh/sshd_config.d/10-klick.conf && systemctl reload ssh` (SSH wie vorher),
 `systemctl restart wg-quick@wg-admin`. Danach Ursache beheben und Schritte wiederholen.
 
+## Verlauf mit Bitcoin-Anker (Härtung V, ADR-030)
+Die Prüfsummen-Ketten aller Organisationen werden täglich ab 02:30 und nach kritischen Ereignissen
+(Zugriffe durch Klick, Sicherheitsänderungen, Notweg der IP-Liste) als Merkle-Wurzel bei
+OpenTimestamps eingereicht; nach einigen Stunden steht ein Hash davon in einem Bitcoin-Block. Kein
+eigenes Guthaben, keine Inhalte nach außen. Jobs `ledger-anchor` (alle 10 min) und `ledger-upgrade`
+(stündlich, :17).
+
+- **Ausgehend nötig:** https zu `a.pool.opentimestamps.org`, `b.pool.opentimestamps.org`,
+  `a.pool.eternitywall.com` (Einreichen) und `alice.btc.calendar.opentimestamps.org`,
+  `bob.btc.calendar.opentimestamps.org`, `finney.calendar.eternitywall.com`,
+  `btc.calendar.catallaxy.com` (Upgrade). Andere Kalender: `LEDGER_CALENDARS=https://…,https://…`
+  (Credential/Env), ausschalten mit `LEDGER_ANCHOR=off`.
+- **Prüfen:** `psql klick -c "select created_at, reason, status, bitcoin_height, error from ledger_anchors
+  order by created_at desc limit 5"` — `failed` = kein Kalender erreicht (Fehler in `error`, neuer
+  Versuch frühestens nach 1 h), `pending` = wartet auf Bitcoin, `confirmed` = im Block.
+- **Gegenprobe ohne Klick:** Einstellungen > Verlauf > „Verlauf herunterladen“, entpacken,
+  `node pruefen.mjs` (rechnet Kette, Köpfe, Merkle-Pfade und liest den Zeitstempel) und den Block mit
+  dem eigenen Knoten abgleichen: `bitcoin-cli getblockheader $(bitcoin-cli getblockhash <höhe>) |
+  grep merkleroot` — oder mit dem offiziellen Client `ots verify anker/<zeit>/wurzel.bin.ots`.
+
 ## Härtung III (optional, per Env aktiv)
 - **clamd:** `apt install clamav-daemon`, `freshclam` als Timer, `TCPSocket 3310` + `TCPAddr 127.0.0.1`
   in `/etc/clamav/clamd.conf`, `StreamMaxLength 30M`. App: `CLAMD_HOST=127.0.0.1`. Fail closed —

@@ -619,7 +619,8 @@
 		"subscriptionDue_from_start": "ab Start, jährlich",
 		"subscriptionDue_agreed": "nach Vereinbarung",
 		"subscriptionAgreed": "im Gespräch",
-		"tabNetwork": "Netzwerk"
+		"tabNetwork": "Netzwerk",
+		"tabLedger": "Verlauf"
 	},
 	"Team": {
 		"title": "Team",
@@ -6431,6 +6432,33 @@
 		"saved": "Gespeichert.",
 		"errorLockout": "Deine eigene Adresse stünde danach nicht in der Liste. Füge sie hinzu, bevor du die Änderung beantragst.",
 		"errorLockoutUnknown": "Deine Adresse ist nicht erkannt. Von hier lässt sich die Liste deshalb nicht einschalten."
+	},
+	"Ledger": {
+		"chainTitle": "Prüfsummen-Kette",
+		"lead": "Jede Änderung in deiner Organisation steht mit einer Prüfsumme im Protokoll; jede Prüfsumme hängt an der vorherigen. Wer einen alten Eintrag ändert, bricht die Kette.",
+		"entries": "Einträge",
+		"lastEntry": "Letzter Eintrag",
+		"lastAnchorTitle": "Letzter Anker in Bitcoin",
+		"anchorFooter": "Täglich und nach Zugriffen durch Klick oder Sicherheitsänderungen geht der Kopf der Kette als Zeitstempel (OpenTimestamps) in die Bitcoin-Blockchain. Dort steht nur ein Hash, keine Inhalte. Die Bestätigung durch einen Block dauert einige Stunden.",
+		"noAnchor": "Noch nicht verankert. Der erste Anker folgt mit dem nächsten täglichen Lauf.",
+		"anchoredAt": "Verankert am",
+		"state": "Stand",
+		"head": "Kopf der Kette",
+		"headHint": "nach {count} Einträgen",
+		"root": "Wurzel",
+		"blockRoot": "Merkle-Wurzel des Blocks",
+		"confirmedIn": "in Block {height} bestätigt",
+		"status_pending": "wartet auf Bitcoin",
+		"status_confirmed": "bestätigt",
+		"status_failed": "Kalender nicht erreicht",
+		"earlierTitle": "Frühere Anker",
+		"reason_daily": "täglich",
+		"reason_event": "nach einem kritischen Ereignis",
+		"reason_manual": "von Hand",
+		"verifyTitle": "Ohne Klick prüfen",
+		"verifyLead": "Der Download enthält deine Kette, jeden Anker mit Merkle-Pfad und Zeitstempel sowie ein Prüfskript (node pruefen.mjs).",
+		"verifyFooter": "Den Bitcoin-Block gleichst du mit einem eigenen Knoten oder dem offiziellen OpenTimestamps-Client ab (ots verify). Prüfer:innen brauchen dafür keinen Zugang zu Klick.",
+		"download": "Verlauf herunterladen"
 	},
 	"PlatformAccess": {
 		"lead": "Der Klick-Betrieb sieht Inhalte deiner Organisation nur mit eurer Freigabe, immer befristet. Jeder Antrag, jede Entscheidung und jeder Zugriff steht im Protokoll deiner Organisation.",

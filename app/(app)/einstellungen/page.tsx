@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
 	Bell,
 	BookOpen,
@@ -8,6 +8,7 @@ import {
 	Gauge,
 	GitBranch,
 	Hash,
+	History,
 	KeyRound,
 	Layers,
 	LockKeyhole,
@@ -29,6 +30,7 @@ import { DlpPanel } from "@/components/settings/dlp-panel";
 import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { IntegrationsPanel } from "@/components/settings/integrations-panel";
+import { LedgerPanel } from "@/components/settings/ledger-panel";
 import { NetworkPanel } from "@/components/settings/network-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
 import { PlatformAccessPanel } from "@/components/settings/platform-access-panel";
@@ -46,6 +48,7 @@ import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
 import {
 	approvalWorkflows,
+	auditLog,
 	orgSettings,
 	platformAccessGrants,
 	securityChanges,
@@ -104,6 +107,7 @@ import { loadPriceTable } from "@/lib/db/pricing";
 import { flushQueuedAudits, readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
 import { berlinToday } from "@/lib/evidence-studio/queries";
+import { orgLedger } from "@/lib/ledger/export";
 import { recommendServices } from "@/lib/marketing/recommend";
 import { normalizeIp } from "@/lib/net/ip";
 import { networkPolicyOf } from "@/lib/net/network-policy";
@@ -144,6 +148,7 @@ const SECTION_LABEL = {
 	zugriffe: "tabPlatformAccess",
 	sicherheitsaenderungen: "tabSecurityChanges",
 	netzwerk: "tabNetwork",
+	verlauf: "tabLedger",
 	abo: "tabSubscription",
 	workflows: "tabWorkflows",
 	audits: "tabAudits",
@@ -164,6 +169,7 @@ const SECTION_ICON: Record<SettingsSectionKey, React.ReactNode> = {
 	zugriffe: <LockKeyhole />,
 	sicherheitsaenderungen: <ShieldHalf />,
 	netzwerk: <Network />,
+	verlauf: <History />,
 	abo: <Receipt />,
 	workflows: <GitBranch />,
 	audits: <ClipboardCheck />,
@@ -818,6 +824,47 @@ async function renderSection(
 					myIp={normalizeIp(ctx.ip)}
 					canEdit={ctx.orgRole === "owner"}
 					pendingChange={open}
+				/>
+			);
+		}
+		case "verlauf": {
+			const [[stats], ledger] = await Promise.all([
+				readOrg(octx, (tx) =>
+					tx
+						.select({
+							n: sql<number>`count(*)::int`,
+							last: sql<string | null>`max(${auditLog.at})`,
+						})
+						.from(auditLog)
+						.where(eq(auditLog.organizationId, ctx.orgId)),
+				),
+				orgLedger(octx, 20),
+			]);
+			return (
+				<LedgerPanel
+					entries={stats?.n ?? 0}
+					lastEntryAt={stats?.last ? new Date(stats.last).toISOString() : null}
+					canExport={allows(ctx, { export: ["create"] })}
+					anchors={ledger.heads.flatMap((h) =>
+						h.anchor
+							? [
+									{
+										id: h.anchorId,
+										createdAt: h.createdAt.toISOString(),
+										status: h.anchor.status as
+											| "pending"
+											| "confirmed"
+											| "failed",
+										reason: h.anchor.reason,
+										count: h.count,
+										head: h.head,
+										root: h.anchor.root,
+										bitcoinHeight: h.anchor.bitcoinHeight,
+										bitcoinMerkleRoot: h.anchor.bitcoinMerkleRoot,
+									},
+								]
+							: [],
+					)}
 				/>
 			);
 		}

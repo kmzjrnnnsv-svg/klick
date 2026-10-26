@@ -49,6 +49,7 @@ import {
 	zipResponse,
 } from "@/lib/export/respond";
 import { buildZip, withManifest } from "@/lib/export/zip";
+import { ledgerExportEntries } from "@/lib/ledger/export";
 import { logger } from "@/lib/log";
 import { getOrgSettings } from "@/lib/org/queries";
 
@@ -381,8 +382,15 @@ export async function GET(req: Request) {
 		logger.warn({ err }, "pruefungspaket: Nachweise aus Klick nicht lesbar");
 		return [];
 	});
+	// Verlauf mit Bitcoin-Anker (Härtung V): Kette, Anker und pruefen.mjs
+	const ledger = await ledgerExportEntries(toOrgCtx(ctx), generatedAt)
+		.then((r) => r.entries.map((e) => ({ ...e, name: `verlauf/${e.name}` })))
+		.catch((err) => {
+			logger.warn({ err }, "pruefungspaket: Verlauf nicht lesbar");
+			return [];
+		});
 	const { entries, manifest } = withManifest(
-		[...buildAuditPackage(input), ...extra],
+		[...buildAuditPackage(input), ...extra, ...ledger],
 		{
 			title: "Prüfungspaket",
 			generatedAt,
