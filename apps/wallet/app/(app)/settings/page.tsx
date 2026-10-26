@@ -32,6 +32,7 @@ export default async function SettingsPage() {
 			members: roleAllows(ctx.role, "members:read"),
 			audit: roleAllows(ctx.role, "audit:read"),
 			exportManage: roleAllows(ctx.role, "export:manage"),
+			access: roleAllows(ctx.role, "settings:update"),
 		}),
 		send,
 	);

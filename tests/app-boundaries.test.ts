@@ -42,6 +42,8 @@ const SHARED: readonly string[] = [
 	"lib/audit-hash",
 	"lib/auth/session-rules",
 	"lib/auth/endpoint-policy",
+	"lib/net/ip",
+	"lib/net/network-policy",
 	"lib/crypto/envelope",
 	"lib/crypto/kms",
 	"lib/crypto/fields",

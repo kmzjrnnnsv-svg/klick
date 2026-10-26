@@ -17,6 +17,7 @@ export type ShellLabel =
 	| "members"
 	| "audit"
 	| "export"
+	| "access"
 	| "settings"
 	| "groupSend"
 	| "groupOrg"
@@ -35,6 +36,7 @@ export type WalletNavIcon =
 	| "users"
 	| "scroll"
 	| "upload"
+	| "key"
 	| "settings";
 
 export type WalletNavItem = {
@@ -57,6 +59,8 @@ export type WalletNavInput = {
 	members: boolean;
 	audit: boolean;
 	exportManage: boolean;
+	// Zugangsregeln (Inhaber:innen, settings:update)
+	access: boolean;
 };
 
 export function walletNav(input: WalletNavInput): WalletNavGroup[] {
@@ -141,6 +145,16 @@ export function walletNav(input: WalletNavInput): WalletNavGroup[] {
 						href: "/settings/export",
 						labelKey: "export" as const,
 						icon: "upload" as const,
+					},
+				]
+			: []),
+		...(input.access
+			? [
+					{
+						key: "access",
+						href: "/settings/access",
+						labelKey: "access" as const,
+						icon: "key" as const,
 					},
 				]
 			: []),

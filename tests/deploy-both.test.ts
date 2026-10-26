@@ -103,6 +103,24 @@ describe("nginx both.money", () => {
 		for (const t of targets) expect(t).toBe("http://127.0.0.1:3010");
 	});
 
+	it("Netz-Sperre der Plattform: App und Anmeldung, nie Relay oder Link", () => {
+		const blocks = (re: RegExp) =>
+			[...active.matchAll(re)].map((m) => m[0]).join("\n");
+		const include = "include /etc/nginx/snippets/both-allow*.conf;";
+		expect(blocks(/location \/ \{[^}]*\}/g)).toContain(include);
+		expect(blocks(/location \/api\/auth\/ \{[^}]*\}/g)).toContain(include);
+		for (const open of [
+			/location = \/api\/link \{[^}]*\}/g,
+			/location ~ \^\/api\/\(confirm\|enrol\)\/ \{[^}]*\}/g,
+			/location = \/api\/health \{[^}]*\}/g,
+		])
+			expect(blocks(open)).not.toContain(include);
+		// Vorlage endet mit deny all
+		expect(read("deploy/nginx/snippets/both-allow.conf.example")).toMatch(
+			/deny all;\s*$/,
+		);
+	});
+
 	it("www und http leiten auf https://both.money um", () => {
 		expect(active).toContain("return 301 https://both.money$request_uri;");
 		expect(active).toMatch(/server_name both\.money;/);

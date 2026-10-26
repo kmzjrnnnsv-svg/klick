@@ -1,4 +1,6 @@
 import { loadWalletEnvFiles } from "@wallet/lib/env";
+import { currentAccessPolicy } from "@wallet/lib/orgs/access";
+import { signerAssetMismatch } from "@wallet/lib/orgs/access-policy";
 import {
 	EXPECTED_BTC_CHAIN,
 	nodeClientsFromEnv,
@@ -22,7 +24,9 @@ import { RpcError } from "@/lib/wallet/rpc/http";
 // sowie die Chainlink-Kursfeeds (description, 8 Stellen, frische Runde).
 // Mit WALLET_SIGNER_SOCKET zusätzlich der Signer: erreichbar, eingerichtet,
 // nicht eingefroren, Herkunft = WALLET_CONFIRM_ORIGIN, Knoten für seine
-// Netze, genug Sicherheitsschlüssel für die Freigabe laut Richtlinie.
+// Netze, genug Sicherheitsschlüssel für die Freigabe laut Richtlinie und
+// — Härtung W — keine Signer-Grenze für ein Asset, das die Org nicht führt
+// (Einstellungen > Zugang).
 //
 //   pnpm wallet:check
 //
@@ -201,6 +205,7 @@ type SignerStatus = SignerHello & {
 		version: number;
 		mode: "solo" | "four_eyes";
 		soloMinKeys: number;
+		limits: Record<string, unknown>;
 	} | null;
 	keys: { person: string; active: boolean }[];
 };
@@ -258,6 +263,28 @@ async function checkSigner(nodeNetworks: string[]) {
 				? `Solo braucht ${st.policy.soloMinKeys} aktive Schlüssel einer Person`
 				: "Vier Augen braucht zwei Personen mit Schlüssel",
 		);
+	if (!st.orgId) return;
+	try {
+		const access = await currentAccessPolicy(st.orgId);
+		const extra = signerAssetMismatch(access, st.policy.limits ?? {});
+		if (extra.length === 0)
+			ok(
+				"Assets",
+				access.allowedAssets
+					? `Org führt ${access.allowedAssets.join(", ")}, Signer stimmt`
+					: "Org führt alle Assets",
+			);
+		else
+			bad(
+				"Assets",
+				`Signer zahlt noch ${extra.join(", ")} aus, die Org führt sie nicht — Grenzen entfernen: sudo klick-signer-admin policy`,
+			);
+	} catch (e) {
+		bad(
+			"Assets nicht prüfbar",
+			e instanceof Error ? e.message.split("\n")[0] : String(e),
+		);
+	}
 }
 
 main();

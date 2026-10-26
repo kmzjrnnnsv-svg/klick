@@ -4,6 +4,7 @@ import {
 	BookUser,
 	History,
 	House,
+	KeyRound,
 	List,
 	ScrollText,
 	Send,
@@ -28,6 +29,7 @@ const ICONS = {
 	users: Users,
 	scroll: ScrollText,
 	upload: Upload,
+	key: KeyRound,
 	settings: Settings,
 } as const;
 

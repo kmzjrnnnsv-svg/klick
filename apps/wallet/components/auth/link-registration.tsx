@@ -23,11 +23,13 @@ type InviteInfo = {
 	email: string;
 	role: string;
 	accountExists: boolean;
+	securityKey?: boolean;
 };
 type AccountInfo = {
 	kind: "activate" | "recover";
 	email: string;
 	name: string;
+	securityKey?: boolean;
 };
 type Info = InviteInfo | AccountInfo;
 type State =
@@ -144,6 +146,10 @@ export function LinkRegistration({
 			const res = await authClient.passkey.addPasskey({
 				context: "link",
 				createSession: true,
+				// Org verlangt Sicherheitsschlüssel: externen Authenticator anfordern
+				...(info.securityKey
+					? { authenticatorAttachment: "cross-platform" as const }
+					: {}),
 			});
 			if (res?.error) {
 				const code = "code" in res.error ? String(res.error.code ?? "") : "";
@@ -152,12 +158,14 @@ export function LinkRegistration({
 						? ta("passkeyCancelled")
 						: code === "USER_VERIFICATION_REQUIRED"
 							? t("errorUv")
-							: code === "ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED"
-								? t("errorRegistered")
-								: code === "REGISTRATION_LINK_INVALID" ||
-										code === "ACCOUNT_EXISTS"
-									? t("invalid")
-									: t("errorGeneric"),
+							: code === "SECURITY_KEY_REQUIRED"
+								? t("errorSecurityKey")
+								: code === "ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED"
+									? t("errorRegistered")
+									: code === "REGISTRATION_LINK_INVALID" ||
+											code === "ACCOUNT_EXISTS"
+										? t("invalid")
+										: t("errorGeneric"),
 				);
 				return;
 			}
@@ -260,6 +268,11 @@ export function LinkRegistration({
 							})
 						: t("recoverLead", { email: info.email })}
 			</p>
+			{info.securityKey && (
+				<p className="text-muted-foreground text-subhead">
+					{t("securityKeyHint")}
+				</p>
+			)}
 			{info.kind === "invite" && (
 				<div className="grid gap-2">
 					<Label htmlFor="name">{t("name")}</Label>

@@ -2,6 +2,7 @@
 
 import { WebAuthnAbortService } from "@simplewebauthn/browser";
 import { authClient } from "@wallet/lib/auth/client";
+import { SECURITY_KEY_HINT_COOKIE } from "@wallet/lib/auth/hints";
 import { Fingerprint } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -13,6 +14,16 @@ import { Label } from "@/components/ui/label";
 // Ohne Antwort (kein Passkey-Fenster, Server hängt) gibt der Knopf nach
 // dieser Zeit wieder frei, statt auf Dauer „Warte …“ zu zeigen
 const TIMEOUT_MS = 90_000;
+
+// Grund einer Ablehnung aus dem Hinweis-Cookie (lib/auth/hints.ts), einmal
+function takeSecurityKeyHint(): boolean {
+	const name = SECURITY_KEY_HINT_COOKIE;
+	const hit = document.cookie.split("; ").some((c) => c === `${name}=1`);
+	if (hit)
+		// biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API fehlt in Firefox
+		document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Strict`;
+	return hit;
+}
 
 // Anmeldung nur per Passkey: Knopf oder Autofill im E-Mail-Feld
 // (Conditional UI). Kein Mail-Link, kein Passwort.
@@ -40,12 +51,13 @@ export function LoginForm({ next }: { next: string }) {
 			if (active && res && !res.error) {
 				router.push(next);
 				router.refresh();
-			}
+			} else if (active && takeSecurityKeyHint())
+				setError(t("signInSecurityKey"));
 		})();
 		return () => {
 			active = false;
 		};
-	}, [router, next, autofillRound]);
+	}, [router, next, autofillRound, t]);
 
 	async function passkey() {
 		setBusy(true);
@@ -77,7 +89,11 @@ export function LoginForm({ next }: { next: string }) {
 			res?.error && "code" in res.error ? String(res.error.code ?? "") : "";
 		if (code === "AUTH_CANCELLED" || code === "ERROR_CEREMONY_ABORTED")
 			return setError(t("passkeyCancelled"));
-		setError(t("passkeySignInFailed"));
+		setError(
+			takeSecurityKeyHint() || code === "SECURITY_KEY_REQUIRED"
+				? t("signInSecurityKey")
+				: t("passkeySignInFailed"),
+		);
 	}
 
 	function cancel() {

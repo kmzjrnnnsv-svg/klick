@@ -39,7 +39,9 @@
 		"confirmPasskeyBusy": "Warte auf deinen Passkey …",
 		"noAccount": "Kein Zugang? both.money gibt es nur per Einladung. Frag die Person, die eure Organisation verwaltet.",
 		"lost": "Passkey verloren? Wende dich an die Inhaber:in deiner Organisation oder an no-reply@raza.work.",
-		"signOut": "Abmelden"
+		"signOut": "Abmelden",
+		"securityKeyRequired": "Deine Organisation lässt nur Sicherheitsschlüssel zu. Bestätige mit deinem Sicherheitsschlüssel, etwa einem YubiKey.",
+		"signInSecurityKey": "Deine Organisation lässt nur Sicherheitsschlüssel zu. Melde dich mit deinem Sicherheitsschlüssel an, etwa einem YubiKey. Hast du keinen, bitte eine Inhaber:in, deinen Zugang zurücksetzen zu lassen."
 	},
 	"Link": {
 		"checking": "Link wird geprüft …",
@@ -62,7 +64,9 @@
 		"errorUv": "Dein Gerät hat die Nutzerverifikation (Fingerabdruck, Gesicht oder PIN) nicht bestätigt.",
 		"errorRegistered": "Dieser Passkey ist schon angelegt.",
 		"errorGeneric": "Das hat nicht geklappt. Versuch es noch einmal oder bitte um einen neuen Link.",
-		"wrongAccount": "Diese Einladung gilt für eine andere Adresse."
+		"wrongAccount": "Diese Einladung gilt für eine andere Adresse.",
+		"errorSecurityKey": "Deine Organisation lässt nur Sicherheitsschlüssel zu. Synchronisierte Passkeys (iCloud, Google) gehen hier nicht. Steck deinen Sicherheitsschlüssel ein und versuch es noch einmal.",
+		"securityKeyHint": "Deine Organisation verlangt einen Sicherheitsschlüssel, etwa einen YubiKey. Halte ihn bereit; ein Passkey aus dem iCloud-Schlüsselbund oder dem Google-Passwortmanager geht hier nicht."
 	},
 	"Unlock": {
 		"title": "Entsperren",
@@ -149,7 +153,8 @@
 		"export": "Compliance-Export",
 		"settings": "Einstellungen",
 		"groupWallet": "Wallet",
-		"tabBar": "Bereiche"
+		"tabBar": "Bereiche",
+		"access": "Zugang"
 	},
 	"StepUp": {
 		"title": "Kurz bestätigen",
@@ -502,7 +507,7 @@
 		"error_amount_zero": "Der Betrag muss größer als null sein.",
 		"error_per_payout": "Über der Grenze je Auszahlung laut Richtlinie.",
 		"error_per_day": "Über der Grenze für 24 Stunden laut Richtlinie.",
-		"error_asset_not_allowed": "Dieses Asset erlaubt die Richtlinie nicht.",
+		"error_asset_not_allowed": "Dieses Asset lässt deine Organisation oder die Signer-Richtlinie nicht zu.",
 		"error_network_not_allowed": "Dieses Netz erlaubt die Richtlinie nicht.",
 		"error_plan_insufficient": "Nicht genug bestätigte Eingänge für Betrag und Gebühr.",
 		"error_plan_fee_cap": "Die Gebühr liegt gerade über dem Deckel. Versuch es später oder mit langsamerem Tempo.",
@@ -574,7 +579,9 @@
 		"secAsset": "Asset",
 		"secPerPayout": "Je Auszahlung",
 		"secPerDay": "Je 24 Stunden",
-		"error_custody_locked": "Hot-Konten, Zieladressen und Auszahlungen gibt es für diese Organisation erst mit eingetragener Verwahrerlaubnis. Konten aus einer xpub kannst du weiter beobachten."
+		"error_custody_locked": "Hot-Konten, Zieladressen und Auszahlungen gibt es für diese Organisation erst mit eingetragener Verwahrerlaubnis. Konten aus einer xpub kannst du weiter beobachten.",
+		"receiveNoAsset": "Deine Organisation führt auf {network} kein Asset. Empfangen ist hier ausgeschaltet.",
+		"receiveTokensOnly": "Deine Organisation führt hier nur {assets} – nur über {network}. Schick nichts anderes an diese Adresse."
 	},
 	"WalletIntro": {
 		"eyebrow": "Einführung",
@@ -728,5 +735,59 @@
 		"error_already_linked": "Mit dieser Klick-Verbindung bist du schon verbunden.",
 		"error_not_found": "Diese Verbindung gibt es nicht mehr.",
 		"error_not_paused": "Das geht in diesem Zustand nicht. Lad die Seite neu."
+	},
+	"Blocked": {
+		"thisOrg": "Diese Organisation",
+		"networkTitle": "Aus diesem Netz nicht erlaubt",
+		"networkLead": "{org} lässt both.money nur aus freigegebenen Netzen zu. Wechsle ins Firmennetz oder VPN, oder bitte eine Inhaber:in, deine Adresse freizugeben.",
+		"securityKeyTitle": "Nur mit Sicherheitsschlüssel",
+		"securityKeyLead": "{org} lässt nur gerätegebundene Sicherheitsschlüssel zu, etwa einen YubiKey. Dein Konto hat noch einen synchronisierten Passkey, zum Beispiel aus dem iCloud-Schlüsselbund oder dem Google-Passwortmanager.",
+		"securityKeySteps": "Bitte eine Inhaber:in, deinen Zugang zurücksetzen zu lassen. Mit dem neuen Link legst du dann einen Sicherheitsschlüssel an.",
+		"adminNetworkTitle": "Nur aus dem Admin-Netz",
+		"adminNetworkLead": "Die Plattform-Verwaltung von both.money ist nur über das Admin-Netz (WireGuard) erreichbar.",
+		"yourIp": "Deine Adresse",
+		"unknownIp": "unbekannt",
+		"otherOrg": "Andere Organisation wählen"
+	},
+	"Access": {
+		"title": "Zugang",
+		"lead": "Regeln für deine Organisation: aus welchen Netzen, mit welchen Schlüsseln und für welche Assets both.money genutzt wird.",
+		"networkTitle": "Netzwerk",
+		"networkFooter": "Ist die Liste leer, gilt keine Einschränkung. Sonst kommen Mitglieder nur aus diesen Netzen in die Organisation, auch Inhaber:innen. Die Bestätigungsseite für Sicherheitsschlüssel und Einladungslinks bleiben überall erreichbar. Speichern geht nur, wenn deine eigene Adresse in der Liste liegt.",
+		"networkOff": "Aus",
+		"networkOffHint": "Zugang aus jedem Netz",
+		"remove": "Entfernen",
+		"cidr": "Netz oder Adresse",
+		"cidrPlaceholder": "z. B. 203.0.113.0/24",
+		"cidrInvalid": "Gib ein Netz wie 203.0.113.0/24 oder eine einzelne Adresse ein.",
+		"note": "Beschreibung",
+		"notePlaceholder": "z. B. Büro Frankfurt",
+		"add": "Hinzufügen",
+		"addMine": "Meine Adresse hinzufügen",
+		"myIpNote": "Meine Adresse",
+		"myIp": "Deine Adresse",
+		"unknownIp": "unbekannt",
+		"myIpInside": "liegt in der Liste",
+		"myIpOutside": "liegt nicht in der Liste: so könntest du nicht speichern",
+		"keysTitle": "Anmeldung",
+		"keysFooter": "Gerätegebundene Sicherheitsschlüssel (etwa ein YubiKey) verlassen das Gerät nie. Synchronisierte Passkeys aus dem iCloud-Schlüsselbund oder dem Google-Passwortmanager werden dann bei Anmeldung, Entsperren und Bestätigung abgelehnt. Mitglieder ohne Sicherheitsschlüssel brauchen einen neuen Zugang.",
+		"keysOnly": "Nur Sicherheitsschlüssel",
+		"keysSelfMissing": "Du hast selbst noch einen synchronisierten Passkey. Lass deinen Zugang erst mit einem Sicherheitsschlüssel neu einrichten.",
+		"keysAffected": "{count, plural, one {# Mitglied kommt danach nicht mehr herein} other {# Mitglieder kommen danach nicht mehr herein}}",
+		"assetsTitle": "Assets",
+		"assetsFooter": "Konten, Empfangen und Auszahlungen gibt es dann nur für die gewählten Assets. ETH bleibt für Gebühren im Konto. Der Signer sperrt die übrigen Assets zusätzlich, sobald root seine Grenzen anpasst; pnpm wallet:check meldet Abweichungen.",
+		"assetsAll": "Alle Assets",
+		"assetsNone": "Wähle mindestens ein Asset.",
+		"asset_BTC": "Bitcoin (BTC)",
+		"asset_ETH": "Ether (ETH)",
+		"asset_USDC": "USD Coin (USDC)",
+		"asset_EURC": "Euro Coin (EURC)",
+		"save": "Speichern",
+		"saving": "Speichert …",
+		"saved": "Zugangsregeln gespeichert.",
+		"unchanged": "Keine Änderung.",
+		"error_lockout": "Deine eigene Adresse liegt nicht in der Liste. Füge sie hinzu, sonst sperrst du dich aus.",
+		"error_security_key_self": "Du hast selbst noch einen synchronisierten Passkey. Schalte die Regel erst ein, wenn du nur noch Sicherheitsschlüssel nutzt.",
+		"error_security_key_required": "Bestätige mit deinem Sicherheitsschlüssel."
 	}
 }

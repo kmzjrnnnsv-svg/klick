@@ -1,0 +1,22 @@
+# /etc/nginx/snippets/both-allow.conf — Netze für die App both.money (Härtung W)
+#
+# Optional, plattformweit: wer nicht aus diesen Netzen kommt, sieht von
+# both.money nur 403 — vor jeder Anmeldung. Je Organisation gibt es zusätzlich
+# die IP-Liste in der App (Einstellungen > Zugang).
+#
+# Bleiben bewusst offen (eigener Schutz über Sicherheitsschlüssel, Token,
+# Rate-Limit): /api/confirm/*, /api/enrol/* (Relay der Bestätigungsseite
+# approve.both.money), /api/link (Einladungs- und Aktivierungslinks),
+# /api/health und statische Dateien.
+#
+# Einschalten: Datei nach /etc/nginx/snippets/both-allow.conf kopieren,
+# Netze eintragen, `nginx -t && systemctl reload nginx`. Ohne Datei gilt
+# keine Sperre (both.money.conf bindet sie über ein Muster ein).
+#
+# Vorher prüfen, dass deine eigene Adresse drinsteht — sonst Aussperren;
+# Rückweg über WireGuard (10.9.0.0/24) oder die Hetzner-Konsole.
+
+allow 10.9.0.0/24;       # Admin-Netz (WireGuard wg-admin)
+allow fd10:9::/64;
+# allow 203.0.113.0/24;  # Büro (Beispiel)
+deny all;

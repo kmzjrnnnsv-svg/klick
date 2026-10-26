@@ -2,14 +2,23 @@ import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { passkey } from "@better-auth/passkey";
 import { db, schema } from "@wallet/db";
 import { auditPlatform } from "@wallet/lib/audit";
+import { userRequiresSecurityKey } from "@wallet/lib/orgs/access";
+import { credentialAllowed } from "@wallet/lib/orgs/access-policy";
 import { firstMembership } from "@wallet/lib/orgs/memberships";
 import { APIError } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
+import { ipFromHeaders } from "@/lib/auth/session-rules";
 import { baseURL, isProd, rpID, rpName } from "./config";
 import { authBeforeHook } from "./endpoint-guard";
+import { SECURITY_KEY_HINT_COOKIE } from "./hints";
 import { LINK_COOKIE, resolveLink } from "./links";
-import { completeLinkRegistration, linkRegistrationUser } from "./passkey-link";
+import {
+	completeLinkRegistration,
+	linkRegistrationUser,
+	securityKeyRequired,
+} from "./passkey-link";
+import { passkeyOwner } from "./security-keys";
 
 // Anmeldung von both.money: nur Passkeys mit Nutzerverifikation (ein Passkey
 // = beide Faktoren, ADR-019), Konten nur per Aktivierungs- oder
@@ -145,6 +154,10 @@ export const auth = betterAuth({
 						raw: ctx.getCookie(LINK_COOKIE),
 						context,
 						userVerified: Boolean(verification.registrationInfo?.userVerified),
+						credential: {
+							deviceType: verification.registrationInfo?.credentialDeviceType,
+							backedUp: verification.registrationInfo?.credentialBackedUp,
+						},
 						user: u,
 						createUser: (data) =>
 							ctx.context.internalAdapter.createUser(data, {
@@ -153,12 +166,39 @@ export const auth = betterAuth({
 					}),
 			},
 			authentication: {
-				async afterVerification({ verification }) {
+				async afterVerification({ ctx, verification, clientData }) {
 					if (!verification.authenticationInfo.userVerified)
 						throw new APIError("UNAUTHORIZED", {
 							code: "USER_VERIFICATION_REQUIRED",
 							message: "user_verification_required",
 						});
+					// Nur Sicherheitsschlüssel (Härtung W): gehört die Person zu
+					// einer Org, die das verlangt, zählt kein synchronisierter
+					// Passkey — Flags aus der eben geprüften Assertion
+					const owner = await passkeyOwner(clientData.id);
+					if (
+						owner &&
+						!credentialAllowed(await userRequiresSecurityKey(owner.userId), {
+							deviceType: verification.authenticationInfo.credentialDeviceType,
+							backedUp: verification.authenticationInfo.credentialBackedUp,
+						})
+					) {
+						ctx.setCookie(SECURITY_KEY_HINT_COOKIE, "1", {
+							maxAge: 60,
+							path: "/",
+							sameSite: "strict",
+							secure: isProd,
+						});
+						await auditPlatform(
+							{ userId: owner.userId, ip: ipFromHeaders(ctx.headers) },
+							{
+								action: "auth.signin_failed",
+								outcome: "failure",
+								after: { reason: "security_key_required" },
+							},
+						);
+						throw securityKeyRequired();
+					}
 				},
 			},
 		}),

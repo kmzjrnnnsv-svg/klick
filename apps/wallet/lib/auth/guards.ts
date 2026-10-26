@@ -1,6 +1,9 @@
 import { db } from "@wallet/db";
 import { session as sessionTable } from "@wallet/db/auth-schema";
 import type { MemberRole } from "@wallet/db/schema/enums";
+import { walletEnv } from "@wallet/lib/env";
+import { orgAccessPolicy } from "@wallet/lib/orgs/access";
+import { walletNetworkAllows } from "@wallet/lib/orgs/access-policy";
 import { listMemberships } from "@wallet/lib/orgs/memberships";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -12,8 +15,10 @@ import {
 	isStepUpFresh,
 	isWalletUnlocked,
 } from "@/lib/auth/session-rules";
+import { ipInRanges, parseRanges } from "@/lib/net/ip";
 import { passkeyCount } from "./endpoint-guard";
 import { type Permission, roleAllows } from "./permissions";
+import { userOnlyDeviceBound } from "./security-keys";
 import { type AuthSession, auth } from "./server";
 
 // Guards von both.money: jede Action/Query ruft zuerst einen davon. Regeln
@@ -97,6 +102,13 @@ export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 	if (!orgId) throw new AuthError("no_org");
 	const m = (await listMemberships(ctx.user.id)).find((x) => x.orgId === orgId);
 	if (!m) throw new AuthError("no_org");
+	// Zugangsregeln der Org (Härtung W): IP-Liste, nur Sicherheitsschlüssel.
+	// Netz zuerst — wer von außen kommt, erfährt nichts über die Konten.
+	const policy = await orgAccessPolicy(orgId);
+	if (!walletNetworkAllows(policy, ctx.ip))
+		throw new AuthError("network_denied");
+	if (policy.securityKeysOnly && !(await userOnlyDeviceBound(ctx.user.id)))
+		throw new AuthError("security_key_required");
 	if (perm && !roleAllows(m.role, perm)) throw new AuthError("forbidden");
 	touchSession(ctx);
 	return {
@@ -148,8 +160,16 @@ export async function requireUnlocked(
 	return c;
 }
 
+// Plattform-Verwaltung nur aus dem Admin-Netz (WALLET_ADMIN_NETWORKS,
+// WireGuard wg-admin; leer = keine Einschränkung, Härtung A2/W)
+export function walletAdminNetworkAllows(ip: string | null): boolean {
+	const ranges = parseRanges(walletEnv().WALLET_ADMIN_NETWORKS).ranges;
+	return ranges.length === 0 || ipInRanges(ip, ranges);
+}
+
 export async function requirePlatformAdmin(): Promise<SessionCtx> {
 	const ctx = await requireSession();
 	if (ctx.user.role !== "admin") throw new AuthError("forbidden");
+	if (!walletAdminNetworkAllows(ctx.ip)) throw new AuthError("ip_blocked");
 	return ctx;
 }

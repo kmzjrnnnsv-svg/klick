@@ -11,6 +11,11 @@ import { AuthError, requireUnlocked, toOrgCtx } from "@wallet/lib/auth/guards";
 import { loadSanctionSet } from "@wallet/lib/db/sanctions";
 import { mutateOrg, readOrg } from "@wallet/lib/db/with-org";
 import { notify } from "@wallet/lib/notifications/notify";
+import { currentAccessPolicy } from "@wallet/lib/orgs/access";
+import {
+	assetAllowed,
+	networkHasAllowedAsset,
+} from "@wallet/lib/orgs/access-policy";
 import { custodyFacts } from "@wallet/lib/orgs/custody";
 import { membersAllowed } from "@wallet/lib/orgs/members-allowed";
 import { effectiveStatus } from "@wallet/lib/wallet/address-book";
@@ -102,6 +107,8 @@ async function createHotWalletAccountImpl(
 	if (!configuredNetworks().includes(network))
 		return fail("network_unavailable");
 	if (NETWORKS[network].live) return fail("network_live");
+	if (!networkHasAllowedAsset(await currentAccessPolicy(c.orgId), network))
+		return fail("asset_not_allowed");
 	const s = await helloForOrg(c.orgId);
 	if ("error" in s) return fail(s.error as string);
 	if (!s.hello.networks.includes(network)) return fail("signer_network");
@@ -369,6 +376,10 @@ async function createPayoutImpl(
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
 	if (!(await hotAllowed(c))) return fail("custody_locked");
+	// Nur bestimmte Assets (Härtung W); der Signer sperrt zusätzlich über
+	// seine Grenzen (ohne Grenze kein Asset)
+	const access = await currentAccessPolicy(c.orgId);
+	if (!assetAllowed(access, d.asset)) return fail("asset_not_allowed");
 	const s = await helloForOrg(c.orgId);
 	if ("error" in s) return fail(s.error as string);
 	if (s.hello.frozen) return fail("signer_frozen");

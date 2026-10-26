@@ -1,6 +1,19 @@
 import { auditPlatform } from "@wallet/lib/audit";
+import {
+	orgAccessPolicy,
+	userRequiresSecurityKey,
+} from "@wallet/lib/orgs/access";
+import {
+	type CredentialFlags,
+	credentialAllowed,
+} from "@wallet/lib/orgs/access-policy";
 import { APIError } from "better-auth/api";
-import { consumeLink, LINK_CONTEXT, resolveLink } from "./links";
+import {
+	consumeLink,
+	LINK_CONTEXT,
+	type ResolvedLink,
+	resolveLink,
+} from "./links";
 
 // Passkey-Registrierung über einen Link (passkey-Plugin, registration.
 // resolveUser/afterVerification in server.ts). Ohne Sitzung zählt nur der
@@ -12,11 +25,27 @@ const invalid = () =>
 		code: "REGISTRATION_LINK_INVALID",
 		message: "registration_link_invalid",
 	});
+export const securityKeyRequired = () =>
+	new APIError("FORBIDDEN", {
+		code: "SECURITY_KEY_REQUIRED",
+		message: "security_key_required",
+	});
 const accountExists = () =>
 	new APIError("FORBIDDEN", {
 		code: "ACCOUNT_EXISTS",
 		message: "account_exists",
 	});
+
+// Verlangt die Org hinter dem Link Sicherheitsschlüssel (Härtung W)?
+// Einladung: die einladende Org; Aktivieren/Zurücksetzen: jede Org des Kontos.
+export async function linkNeedsSecurityKey(
+	r: Extract<ResolvedLink, { ok: true }>,
+): Promise<boolean> {
+	if (r.info.kind === "invite")
+		return (await orgAccessPolicy(r.info.organizationId)).securityKeysOnly;
+	if (r.payload.kind === "invite") return false;
+	return userRequiresSecurityKey(r.payload.userId);
+}
 
 export async function linkRegistrationUser(
 	raw: string | null,
@@ -47,6 +76,8 @@ export async function completeLinkRegistration(input: {
 	raw: string | null;
 	context: string | null | undefined;
 	userVerified: boolean;
+	// Flags des neuen Schlüssels (BE/BS) für „nur Sicherheitsschlüssel“
+	credential: CredentialFlags;
 	user: { id: string };
 	createUser: (data: {
 		email: string;
@@ -59,10 +90,21 @@ export async function completeLinkRegistration(input: {
 			code: "USER_VERIFICATION_REQUIRED",
 			message: "user_verification_required",
 		});
-	// Weiterer Passkey zur eigenen Sitzung: nichts weiter zu tun
-	if (input.context !== LINK_CONTEXT) return undefined;
+	// Weiterer Passkey zur eigenen Sitzung: nur die Schlüssel-Regel
+	if (input.context !== LINK_CONTEXT) {
+		if (
+			!credentialAllowed(
+				await userRequiresSecurityKey(input.user.id),
+				input.credential,
+			)
+		)
+			throw securityKeyRequired();
+		return undefined;
+	}
 	const r = await resolveLink(input.raw);
 	if (!r.ok || !input.raw) throw invalid();
+	if (!credentialAllowed(await linkNeedsSecurityKey(r), input.credential))
+		throw securityKeyRequired();
 	let userId: string;
 	if (r.info.kind === "invite") {
 		if (input.user.id !== r.info.invitationId) throw invalid();

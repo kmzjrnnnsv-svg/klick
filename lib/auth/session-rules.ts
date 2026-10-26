@@ -13,6 +13,8 @@ export type AuthErrorCode =
 	| "ip_blocked"
 	// IP-Liste der Organisation (Härtung A5)
 	| "network_denied"
+	// Org verlangt gerätegebundene Sicherheitsschlüssel (both.money, Härtung W)
+	| "security_key_required"
 	// Wallet-Bereich nicht entsperrt (Passkey-Bestätigung fehlt/abgelaufen)
 	| "wallet_locked"
 	| "wallet_disabled";

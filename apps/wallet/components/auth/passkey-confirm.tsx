@@ -55,7 +55,10 @@ export function PasskeyConfirmButton({
 					? t("passkeyCancelled")
 					: res.error === "expired"
 						? t("passkeyExpired")
-						: t("passkeyFailed"),
+						: res.error === "security_key_required" ||
+								res.error === "no_passkey"
+							? t("securityKeyRequired")
+							: t("passkeyFailed"),
 			);
 		} finally {
 			setBusy(false);
