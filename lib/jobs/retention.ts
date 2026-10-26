@@ -1,14 +1,20 @@
-import { and, isNotNull, lt, sql } from "drizzle-orm";
+import { and, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { rateLimit, session, verification } from "@/db/auth-schema";
-import { inquiries, notifications, trustAccessRequests } from "@/db/schema";
+import {
+	inquiries,
+	notifications,
+	policyReaders,
+	trustAccessRequests,
+} from "@/db/schema";
 import { logger } from "@/lib/log";
 
 // Retention (täglich 03:00): abgelaufene Sitzungen, Verifikations-Tokens,
 // gelesene Benachrichtigungen > 180 Tage, alte Rate-Limit-Zähler, Anfragen
 // 12 Monate nach der letzten Änderung (Kontaktdaten, Art. 5 Abs. 1 lit. e),
 // NDA-Anfragen an Trust Center 12 Monate nach Ablauf bzw. Entscheidung
-// (docs/legal/datenschutzerklaerung.md, Abschnitt 9).
+// (docs/legal/datenschutzerklaerung.md, Abschnitt 9), Adressen im
+// Richtlinien-Portal, die nie einen Code eingelöst haben, nach 7 Tagen.
 // Nie: audit_log (Hash-Kette, GwG § 8), fachliche Register, Nachweise —
 // deren Aufbewahrung regelt das Löschkonzept (CC-AST-10), nicht dieser Job.
 
@@ -19,6 +25,7 @@ export const RETENTION = {
 	rateLimitDays: 7,
 	inquiryDays: 365,
 	trustRequestDays: 365,
+	unconfirmedReaderDays: 7,
 } as const;
 
 export function retentionCutoffs(now = new Date()) {
@@ -30,6 +37,7 @@ export function retentionCutoffs(now = new Date()) {
 		rateLimit: minus(RETENTION.rateLimitDays),
 		inquiries: minus(RETENTION.inquiryDays),
 		trustRequests: minus(RETENTION.trustRequestDays),
+		unconfirmedReaders: minus(RETENTION.unconfirmedReaderDays),
 	};
 }
 
@@ -40,6 +48,7 @@ export type RetentionSummary = {
 	rateLimit: number;
 	inquiries: number;
 	trustRequests: number;
+	unconfirmedReaders: number;
 };
 
 export async function runRetention(
@@ -84,6 +93,17 @@ export async function runRetention(
 				),
 			)
 			.returning({ id: trustAccessRequests.id });
+		// Richtlinien-Portal: angefragt, nie bestätigt (Kenntnisnahmen gibt
+		// es dann nicht)
+		const ur = await tx
+			.delete(policyReaders)
+			.where(
+				and(
+					isNull(policyReaders.confirmedAt),
+					lt(policyReaders.createdAt, cut.unconfirmedReaders),
+				),
+			)
+			.returning({ id: policyReaders.id });
 		return {
 			sessions: s.length,
 			verifications: v.length,
@@ -91,6 +111,7 @@ export async function runRetention(
 			rateLimit: r.length,
 			inquiries: q.length,
 			trustRequests: tr.length,
+			unconfirmedReaders: ur.length,
 		};
 	});
 	logger.info({ job: "retention", ...summary }, "retention done");

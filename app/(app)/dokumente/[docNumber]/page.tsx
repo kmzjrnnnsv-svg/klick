@@ -57,6 +57,7 @@ import {
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
+import { portalAcknowledgementsFor } from "@/lib/policy-portal/admin";
 
 export default async function DocumentDetailPage({
 	params,
@@ -162,6 +163,13 @@ export default async function DocumentDetailPage({
 		? acks.filter((a) => a.documentVersionId === current.id)
 		: [];
 	const myAck = acksForCurrent.some((a) => a.userId === ctx.userId);
+	// Kenntnisnahmen über das Richtlinien-Portal (Leser:innen ohne Konto)
+	const portalAcks =
+		current && !restricted
+			? await readOrg(toOrgCtx(ctx), (tx) =>
+					portalAcknowledgementsFor(tx, ctx.orgId, current.id),
+				)
+			: [];
 	const diff =
 		working && current && doc.bodyMarkdown && current.bodyMarkdown
 			? diffLines(current.bodyMarkdown, doc.bodyMarkdown)
@@ -572,6 +580,23 @@ export default async function DocumentDetailPage({
 							);
 						})}
 					</ul>
+					{portalAcks.length > 0 && (
+						<div className="flex flex-col gap-1.5">
+							<p className="text-subhead">
+								{t("ackPortal", { count: portalAcks.length })}
+							</p>
+							<ul className="flex flex-wrap gap-1.5 text-footnote">
+								{portalAcks.map((a) => (
+									<Badge key={a.email} variant="success">
+										<span translate="no">{a.email}</span>
+									</Badge>
+								))}
+							</ul>
+							<p className="text-muted-foreground text-footnote">
+								{t("ackPortalNote")}
+							</p>
+						</div>
+					)}
 				</Section>
 			)}
 		</EntityLayout>

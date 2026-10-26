@@ -4,6 +4,7 @@ import {
 	documents,
 	documentVersions,
 	evidence,
+	policyReaderAcknowledgements,
 } from "@/db/schema";
 import { functionsOf } from "@/lib/compliance/function-holders";
 import { loadAssignments } from "@/lib/compliance/function-holders-service";
@@ -41,15 +42,30 @@ export type SharedEvidence = {
 	validUntil: string | null;
 };
 
+// Wer liest: Grundrolle und Funktionen (Verteiler) und woher die
+// Kenntnisnahmen kommen — Konto oder Portal-Leser:in (M2).
+export type PolicyViewer =
+	| { kind: "member"; userId: string; role: string }
+	| { kind: "reader"; readerId: string };
+
 export async function policiesFor(
 	tx: OrgTx,
 	orgId: string,
-	viewer: { userId: string; role: string },
+	viewer: PolicyViewer | { userId: string; role: string },
 ): Promise<PolicyItem[]> {
-	const functions = functionsOf(
-		await loadAssignments(tx, orgId),
-		viewer.userId,
-	).map((f) => f.function as string);
+	const v: PolicyViewer =
+		"kind" in viewer ? viewer : { kind: "member", ...viewer };
+	// Portal-Leser:innen gelten als Mitarbeitende ohne Funktion
+	const audience =
+		v.kind === "member"
+			? {
+					role: v.role,
+					functions: functionsOf(
+						await loadAssignments(tx, orgId),
+						v.userId,
+					).map((f) => f.function as string),
+				}
+			: { role: "employee", functions: [] };
 	const docs = (
 		await tx
 			.select({
@@ -66,9 +82,7 @@ export async function policiesFor(
 					inArray(documents.classification, [...OPEN]),
 				),
 			)
-	).filter((d) =>
-		inDistribution(d.distribution, { role: viewer.role, functions }),
-	);
+	).filter((d) => inDistribution(d.distribution, audience));
 	if (docs.length === 0) return [];
 	const versions = await tx
 		.select({
@@ -92,25 +106,40 @@ export async function policiesFor(
 			),
 		);
 	const acks = new Map(
-		(
-			await tx
-				.select({
-					versionId: documentAcknowledgements.documentVersionId,
-					at: documentAcknowledgements.acknowledgedAt,
-				})
-				.from(documentAcknowledgements)
-				.where(
-					and(
-						eq(documentAcknowledgements.organizationId, orgId),
-						eq(documentAcknowledgements.userId, viewer.userId),
-					),
-				)
-		).map((a) => [a.versionId, a.at]),
+		v.kind === "member"
+			? (
+					await tx
+						.select({
+							versionId: documentAcknowledgements.documentVersionId,
+							at: documentAcknowledgements.acknowledgedAt,
+						})
+						.from(documentAcknowledgements)
+						.where(
+							and(
+								eq(documentAcknowledgements.organizationId, orgId),
+								eq(documentAcknowledgements.userId, v.userId),
+							),
+						)
+				).map((a) => [a.versionId, a.at])
+			: (
+					await tx
+						.select({
+							versionId: policyReaderAcknowledgements.documentVersionId,
+							at: policyReaderAcknowledgements.acknowledgedAt,
+						})
+						.from(policyReaderAcknowledgements)
+						.where(
+							and(
+								eq(policyReaderAcknowledgements.organizationId, orgId),
+								eq(policyReaderAcknowledgements.readerId, v.readerId),
+							),
+						)
+				).map((a) => [a.versionId, a.at]),
 	);
 	return docs
 		.flatMap((d) => {
 			const cur = currentPublished(
-				versions.filter((v) => v.documentId === d.id),
+				versions.filter((x) => x.documentId === d.id),
 			);
 			if (!cur?.publishedAt) return [];
 			return [

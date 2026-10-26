@@ -13,6 +13,7 @@ export const SETTINGS_SECTIONS = [
 	{ key: "frameworks", group: "org" },
 	{ key: "rollen", group: "org", needs: "settings" },
 	{ key: "sso", group: "org" },
+	{ key: "portal", group: "org", needs: "settings" },
 	{ key: "integrationen", group: "org", needs: "integrations" },
 	{ key: "abo", group: "org", needs: "settings" },
 	{ key: "workflows", group: "methods" },

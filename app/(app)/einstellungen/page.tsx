@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import {
 	Bell,
+	BookOpen,
 	Building2,
 	ChevronLeft,
 	ClipboardCheck,
@@ -26,6 +27,7 @@ import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { IntegrationsPanel } from "@/components/settings/integrations-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
+import { PolicyPortalPanel } from "@/components/settings/policy-portal-panel";
 import { RiskMethodPanel } from "@/components/settings/risk-method-panel";
 import { RolesPanel } from "@/components/settings/roles-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
@@ -96,6 +98,7 @@ import {
 	listRetiredFrameworkSlugs,
 } from "@/lib/org/queries";
 import { listOrgRoles } from "@/lib/org/roles";
+import { portalOf, portalReaders } from "@/lib/policy-portal/admin";
 import {
 	resolveSettingsSection,
 	type SettingsSectionKey,
@@ -112,6 +115,7 @@ const SECTION_LABEL = {
 	frameworks: "tabFrameworks",
 	rollen: "tabRoles",
 	sso: "tabSso",
+	portal: "tabPortal",
 	integrationen: "tabIntegrations",
 	abo: "tabSubscription",
 	workflows: "tabWorkflows",
@@ -128,6 +132,7 @@ const SECTION_ICON: Record<SettingsSectionKey, React.ReactNode> = {
 	frameworks: <Layers />,
 	rollen: <Users />,
 	sso: <KeyRound />,
+	portal: <BookOpen />,
 	integrationen: <Plug />,
 	abo: <Receipt />,
 	workflows: <GitBranch />,
@@ -639,6 +644,36 @@ async function renderSection(
 					canEdit={ctx.orgRole === "owner"}
 				/>
 			);
+		case "portal": {
+			const [{ portal, readers }, sso] = await Promise.all([
+				readOrg(octx, async (tx) => ({
+					portal: await portalOf(tx, ctx.orgId),
+					readers: await portalReaders(tx, ctx.orgId),
+				})),
+				listSsoProvidersForOrg(ctx.orgId),
+			]);
+			return (
+				<PolicyPortalPanel
+					origin={callbackBase()}
+					portal={
+						portal && {
+							enabled: portal.enabled,
+							slug: portal.slug,
+							sessionDays: portal.sessionDays,
+							domains: portal.domains,
+						}
+					}
+					readers={readers.map((r) => ({
+						...r,
+						confirmedAt: r.confirmedAt?.toISOString() ?? null,
+						lastSeenAt: r.lastSeenAt?.toISOString() ?? null,
+					}))}
+					ssoDomains={sso
+						.filter((p) => p.domainVerified)
+						.map((p) => p.domain.toLowerCase())}
+				/>
+			);
+		}
 		case "integrationen": {
 			const { tokens, productOptions, walletLinks } = await readOrg(
 				octx,
