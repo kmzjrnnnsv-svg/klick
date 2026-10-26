@@ -639,6 +639,9 @@ export const SECURITY_CHANGE_KINDS = [
 	"sso_provider_remove",
 	// Inhaber:in hinzufügen (Einladung oder Rollenwechsel)
 	"owner_add",
+	// Inhaber:in herabstufen oder entfernen: sonst nimmt eine Inhaber:in der
+	// anderen die Stimme und wartet die 24 h allein ab
+	"owner_remove",
 ] as const;
 export type SecurityChangeKind = (typeof SECURITY_CHANGE_KINDS)[number];
 

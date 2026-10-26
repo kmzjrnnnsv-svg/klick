@@ -15,7 +15,11 @@ import {
 	toOrgCtx,
 } from "@/lib/auth/guards";
 import { membershipAllowed, ownerMayReset } from "@/lib/auth/memberships";
-import { listPendingInvitations, rolesElsewhere } from "@/lib/auth/org";
+import {
+	listPendingInvitations,
+	memberRoleIn,
+	rolesElsewhere,
+} from "@/lib/auth/org";
 import {
 	canHoldCustomRoles,
 	canHoldOwnRole,
@@ -239,12 +243,24 @@ async function updateMemberRoleImpl(input: unknown): Promise<ActionResult> {
 			error:
 				"Diese Person gehört schon zu einer anderen Organisation und kann hier nur Berater:in (extern) sein.",
 		};
-	// Vier-Augen (Härtung A4): zur Inhaber:in machen nur mit zweiter Person
-	if (parsed.data.role === "owner") {
+	// Vier-Augen (Härtung A4): zur Inhaber:in machen nur mit zweiter Person;
+	// eine Inhaber:in herabstufen ebenso — sonst nähme eine Inhaber:in der
+	// anderen die Stimme und hätte danach für alles nur noch die Wartezeit
+	const current = await memberRoleIn(parsed.data.memberId, c.orgId);
+	if (!current) return { ok: false, error: "Mitglied nicht gefunden" };
+	if (parsed.data.role === "owner" && current !== "owner") {
 		const permit = await requirePermit(c, {
 			kind: "owner_add",
 			targetKey: parsed.data.memberId,
 			summary: "Mitglied zur Inhaber:in machen",
+		});
+		if (!permit.ok) return permit;
+	}
+	if (current === "owner" && parsed.data.role !== "owner") {
+		const permit = await requirePermit(c, {
+			kind: "owner_remove",
+			targetKey: parsed.data.memberId,
+			summary: "Inhaber:in herabstufen",
 		});
 		if (!permit.ok) return permit;
 	}
@@ -290,6 +306,15 @@ async function updateMemberRoleImpl(input: unknown): Promise<ActionResult> {
 
 async function removeMemberImpl(memberId: string): Promise<ActionResult> {
 	const c = await requireOrg({ member: ["delete"] });
+	// Inhaber:in entfernen nur mit zweiter Person (wie herabstufen)
+	if ((await memberRoleIn(memberId, c.orgId)) === "owner") {
+		const permit = await requirePermit(c, {
+			kind: "owner_remove",
+			targetKey: memberId,
+			summary: "Inhaber:in entfernen",
+		});
+		if (!permit.ok) return permit;
+	}
 	try {
 		await auth.api.removeMember({
 			body: { memberIdOrEmail: memberId, organizationId: c.orgId },

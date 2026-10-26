@@ -330,6 +330,8 @@ d("Lockbox: Plattform-Zugriff nur mit Freigabe (Postgres)", () => {
 			note: null,
 		});
 		expect(await consumeGrantsForAll([orgA, orgB], use)).toBe(true);
+		// Zurücksetzen gilt einmal (K7): derselbe Vorgang geht nicht zweimal
+		expect(await consumeGrantsForAll([orgA, orgB], use)).toBe(false);
 		await client`delete from member where organization_id = ${orgB} and user_id = ${u.editor}`;
 	});
 
@@ -341,7 +343,7 @@ d("Lockbox: Plattform-Zugriff nur mit Freigabe (Postgres)", () => {
 			targetUserId: u.owner,
 		});
 		const id = res.ok ? res.data.id : "";
-		expect(await impersonationAllowed(u.owner, orgA)).toBe(false);
+		expect(await impersonationAllowed(u.owner, orgA, u.admin)).toBe(false);
 		// die Inhaberin ist Ziel, also entscheidet sie nicht: GL fehlt in A,
 		// darum hier direkt freigeben (Regeln dafür testet platform-access.test)
 		await inOrg(orgA, (tx) =>
@@ -353,8 +355,10 @@ d("Lockbox: Plattform-Zugriff nur mit Freigabe (Postgres)", () => {
 				})
 				.where(eq(platformAccessGrants.id, id)),
 		);
-		expect(await impersonationAllowed(u.owner, orgA)).toBe(true);
-		expect(await impersonationAllowed(u.owner, orgB)).toBe(false);
+		expect(await impersonationAllowed(u.owner, orgA, u.admin)).toBe(true);
+		expect(await impersonationAllowed(u.owner, orgB, u.admin)).toBe(false);
+		// die Freigabe gilt der beantragenden Person, nicht dem ganzen Betrieb
+		expect(await impersonationAllowed(u.owner, orgA, u.editor)).toBe(false);
 		await client`insert into session (expires_at, token, created_at, updated_at, user_id, impersonated_by)
 			values (now() + interval '1 hour', ${`imp-${stamp}`}, now(), now(), ${u.owner}, ${u.admin})`;
 		await client`insert into session (expires_at, token, created_at, updated_at, user_id)
@@ -362,7 +366,7 @@ d("Lockbox: Plattform-Zugriff nur mit Freigabe (Postgres)", () => {
 		expect(
 			(await revokePlatformAccess(member(u.owner, orgA, "owner"), id)).ok,
 		).toBe(true);
-		expect(await impersonationAllowed(u.owner, orgA)).toBe(false);
+		expect(await impersonationAllowed(u.owner, orgA, u.admin)).toBe(false);
 		const left =
 			await client`select token from session where user_id = ${u.owner}`;
 		expect(left.map((r) => r.token)).toEqual([`own-${stamp}`]);

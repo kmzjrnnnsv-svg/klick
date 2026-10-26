@@ -1,5 +1,10 @@
 import { and, eq, inArray, isNull, lte } from "drizzle-orm";
-import { orgSettings, roleAssignments, securityChanges } from "@/db/schema";
+import {
+	approvalRequests,
+	orgSettings,
+	roleAssignments,
+	securityChanges,
+} from "@/db/schema";
 import type { SecurityChangeKind } from "@/db/schema/enums";
 import type { SecurityChange } from "@/db/schema/security-changes";
 import { audit } from "@/lib/audit";
@@ -52,14 +57,40 @@ export async function changeDeciders(
 	orgId: string,
 	now = new Date(),
 ): Promise<string[]> {
-	const owners = (await listOrgMembers(orgId))
-		.filter((m) => normalizeRole(m.role) === "owner")
-		.map((m) => ({ userId: m.userId, since: m.createdAt }));
+	// „Seit“ = seit der Wirkung, nicht seit der Anlage der Zeile: ein später
+	// zur Inhaber:in gemachtes Mitglied zählt ab der Ernennung, ein lange
+	// offener und umbesetzter Vorschlag ab der Bestellung (Selbstprüfung K5)
+	const ownerRows = (await listOrgMembers(orgId)).filter(
+		(m) => normalizeRole(m.role) === "owner",
+	);
+	const promoted = await latestAt(
+		ownerRows.map((m) => m.memberId),
+		(ids) =>
+			tx
+				.select({
+					key: securityChanges.targetKey,
+					at: securityChanges.appliedAt,
+				})
+				.from(securityChanges)
+				.where(
+					and(
+						eq(securityChanges.organizationId, orgId),
+						eq(securityChanges.kind, "owner_add"),
+						eq(securityChanges.status, "applied"),
+						inArray(securityChanges.targetKey, ids),
+					),
+				),
+	);
+	const owners = ownerRows.map((m) => ({
+		userId: m.userId,
+		since: later(m.createdAt, promoted.get(m.memberId)),
+	}));
 	const gl = await tx
 		.select({
+			id: roleAssignments.id,
 			userId: roleAssignments.userId,
 			deputyUserId: roleAssignments.deputyUserId,
-			since: roleAssignments.createdAt,
+			createdAt: roleAssignments.createdAt,
 		})
 		.from(roleAssignments)
 		.where(
@@ -69,17 +100,54 @@ export async function changeDeciders(
 				effectiveAssignment(),
 			),
 		);
+	const appointed = await latestAt(
+		gl.map((r) => r.id),
+		(ids) =>
+			tx
+				.select({
+					key: approvalRequests.entityId,
+					at: approvalRequests.decidedAt,
+				})
+				.from(approvalRequests)
+				.where(
+					and(
+						eq(approvalRequests.organizationId, orgId),
+						eq(approvalRequests.entityType, "role_assignment"),
+						eq(approvalRequests.status, "approved"),
+						inArray(approvalRequests.entityId, ids),
+					),
+				),
+	);
 	return eligibleDeciders(
 		[
 			...owners,
-			...gl.flatMap((r) =>
-				[r.userId, r.deputyUserId]
+			...gl.flatMap((r) => {
+				const since = later(r.createdAt, appointed.get(r.id));
+				return [r.userId, r.deputyUserId]
 					.filter((id): id is string => Boolean(id))
-					.map((userId) => ({ userId, since: r.since })),
-			),
+					.map((userId) => ({ userId, since }));
+			}),
 		],
 		now,
 	);
+}
+
+const later = (a: Date, b: Date | undefined): Date =>
+	b && b.getTime() > a.getTime() ? b : a;
+
+/** Je Schlüssel der späteste Zeitpunkt aus der Abfrage. */
+async function latestAt(
+	ids: string[],
+	query: (ids: string[]) => Promise<{ key: string | null; at: Date | null }[]>,
+): Promise<Map<string, Date>> {
+	const out = new Map<string, Date>();
+	if (ids.length === 0) return out;
+	for (const r of await query(ids)) {
+		if (!r.key || !r.at) continue;
+		const prev = out.get(r.key);
+		if (!prev || r.at.getTime() > prev.getTime()) out.set(r.key, r.at);
+	}
+	return out;
 }
 
 const sameTarget = (targetKey: string | null) =>

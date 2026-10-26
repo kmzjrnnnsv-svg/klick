@@ -6544,6 +6544,7 @@
 		"where_integration_token": "Führe es jetzt aus: Einstellungen > Integrationen.",
 		"where_sso_provider_remove": "Führe es jetzt aus: Einstellungen > SSO, Verbindung entfernen.",
 		"where_owner_add": "Führe es jetzt aus: Team, als Inhaber:in einladen bzw. Rolle ändern.",
+		"where_owner_remove": "Führe es jetzt aus: Team, Rolle der Inhaber:in ändern bzw. Mitglied entfernen.",
 		"where_network_policy": "",
 		"where_sso_policy": "",
 		"where_dlp_policy": "",

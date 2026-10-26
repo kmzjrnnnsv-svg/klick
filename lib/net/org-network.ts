@@ -14,7 +14,12 @@ import {
 // der Eintrag sofort verworfen; ein Server, ein Prozess (wie das Rate-Limit).
 
 const TTL_MS = 30_000;
+// Verworfen wird noch in der Transaktion der Änderung; bis zum Commit liest
+// eine andere Anfrage den alten Stand. Darum kurz nichts zwischenspeichern,
+// sonst hielte sich der alte Stand weitere 30 s (Selbstprüfung K8).
+const SETTLE_MS = 5_000;
 const cache = new Map<string, { at: number; policy: NetworkPolicy }>();
+const settling = new Map<string, number>();
 
 export async function orgNetworkPolicy(orgId: string): Promise<NetworkPolicy> {
 	const hit = cache.get(orgId);
@@ -27,12 +32,16 @@ export async function orgNetworkPolicy(orgId: string): Promise<NetworkPolicy> {
 			.limit(1),
 	);
 	const policy = networkPolicyOf(row?.networkPolicy);
-	cache.set(orgId, { at: Date.now(), policy });
+	if (Date.now() >= (settling.get(orgId) ?? 0)) {
+		settling.delete(orgId);
+		cache.set(orgId, { at: Date.now(), policy });
+	}
 	return policy;
 }
 
 export function invalidateNetworkPolicy(orgId: string): void {
 	cache.delete(orgId);
+	settling.set(orgId, Date.now() + SETTLE_MS);
 }
 
 export async function orgNetworkAllows(

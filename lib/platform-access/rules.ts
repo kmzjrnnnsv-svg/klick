@@ -50,6 +50,14 @@ export type GrantLike = {
 	emergencyCategory: PlatformEmergencyCategory | null;
 	reportDueAt: Date | null;
 	reportedAt: Date | null;
+	usedAt?: Date | null;
+};
+
+/** Einmalig: eine Freigabe zum Zurücksetzen gilt für genau einen Vorgang. */
+export const SCOPE_SINGLE_USE: Record<PlatformAccessScope, boolean> = {
+	view: false,
+	impersonate: false,
+	reset_access: true,
 };
 
 export type GrantState =
@@ -79,16 +87,27 @@ export function grantState(g: GrantLike, now: Date): GrantState {
 export const grantActive = (g: GrantLike, now: Date): boolean =>
 	grantState(g, now) === "active";
 
-/** Erste gültige Freigabe für Zweck (und Person); sonst null. */
+/**
+ * Erste gültige Freigabe für Zweck (und Person); sonst null. Mit
+ * `requestedBy` nur Freigaben, die genau diese Person beantragt hat — die Org
+ * gibt einer bestimmten Person frei, nicht dem ganzen Betrieb (K7).
+ */
 export function findActiveGrant<G extends GrantLike>(
 	grants: readonly G[],
-	want: { scope: PlatformAccessScope; targetUserId?: string | null },
+	want: {
+		scope: PlatformAccessScope;
+		targetUserId?: string | null;
+		requestedBy?: string;
+	},
 	now: Date,
 ): G | null {
 	for (const g of grants) {
 		if (g.scope !== want.scope) continue;
 		if (SCOPE_NEEDS_TARGET[want.scope] && g.targetUserId !== want.targetUserId)
 			continue;
+		if (want.requestedBy !== undefined && g.requestedBy !== want.requestedBy)
+			continue;
+		if (SCOPE_SINGLE_USE[want.scope] && g.usedAt) continue;
 		if (grantActive(g, now)) return g;
 	}
 	return null;

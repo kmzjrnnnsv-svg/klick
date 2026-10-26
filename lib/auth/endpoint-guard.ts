@@ -8,7 +8,11 @@ import { globalDb } from "@/db";
 import { passkey } from "@/db/auth-schema";
 import { auditPlatform } from "@/lib/audit";
 import { adminNetworkAllows } from "./admin-network";
-import { authEndpointDecision, isGuardedAuthPath } from "./endpoint-policy";
+import {
+	authEndpointDecision,
+	IMPERSONATION_HTTP_ALLOWED,
+	isGuardedAuthPath,
+} from "./endpoint-policy";
 import { REG_CONTEXT, REG_COOKIE } from "./registration-link";
 import { ipFromHeaders, isStepUpFresh } from "./session-rules";
 import { decodeSamlResponse, samlAlgorithmsAllowed } from "./sso-saml";
@@ -46,7 +50,17 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 			});
 		return;
 	}
-	if (!isGuardedAuthPath(ctx.path)) return;
+	// Übrige HTTP-Pfade nur mit Sitzungs-Cookie nachsehen: eine Impersonation-
+	// Sitzung darf per HTTP nur lesen, abmelden und beenden
+	if (
+		!isGuardedAuthPath(ctx.path) &&
+		!(
+			ctx.request &&
+			!IMPERSONATION_HTTP_ALLOWED.has(ctx.path) &&
+			ctx.getCookie(ctx.context.authCookies.sessionToken.name)
+		)
+	)
+		return;
 	const current = await getSessionFromCtx(ctx).catch(() => null);
 	const s = current?.session as
 		| { mfaVerifiedAt?: unknown; stepUpAt?: unknown; impersonatedBy?: unknown }

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { platformAccessGrants } from "@/db/schema";
 import type { PlatformAccessScope } from "@/db/schema/enums";
 import type { PlatformAccessGrant } from "@/db/schema/platform-access";
@@ -25,6 +25,7 @@ import {
 	grantActive,
 	initialGrant,
 	type RequestInput,
+	SCOPE_SINGLE_USE,
 	validateRequest,
 } from "./rules";
 
@@ -343,11 +344,16 @@ export async function consumeGrant(
 	const now = new Date();
 	const grant = findActiveGrant(
 		await grantsForOrg(use.orgId),
-		{ scope: use.scope, targetUserId: use.targetUserId ?? null },
+		{
+			scope: use.scope,
+			targetUserId: use.targetUserId ?? null,
+			// ohne Person keine Freigabe (fail closed)
+			requestedBy: use.actor.userId ?? "",
+		},
 		now,
 	);
 	if (!grant) return null;
-	await withPlatform(
+	const used = await withPlatform(
 		{
 			userId: use.actor.userId,
 			reason: `Lockbox: ${SCOPE_LABEL[use.scope]}`,
@@ -355,7 +361,21 @@ export async function consumeGrant(
 			userAgent: use.actor.userAgent,
 		},
 		async (tx) => {
-			if (!grant.usedAt)
+			// einmalige Freigabe nur, wenn sie in dieser Transaktion noch frei
+			// ist — zwei gleichzeitige Vorgänge verbrauchen sie nicht beide
+			if (SCOPE_SINGLE_USE[use.scope]) {
+				const taken = await tx
+					.update(platformAccessGrants)
+					.set({ usedAt: now })
+					.where(
+						and(
+							eq(platformAccessGrants.id, grant.id),
+							isNull(platformAccessGrants.usedAt),
+						),
+					)
+					.returning({ id: platformAccessGrants.id });
+				if (taken.length === 0) return false;
+			} else if (!grant.usedAt)
 				await tx
 					.update(platformAccessGrants)
 					.set({ usedAt: now })
@@ -378,9 +398,10 @@ export async function consumeGrant(
 					},
 				},
 			);
+			return true;
 		},
 	);
-	return grant;
+	return used ? grant : null;
 }
 
 /**
@@ -398,7 +419,12 @@ export async function consumeGrantsForAll(
 		if (
 			!findActiveGrant(
 				await grantsForOrg(orgId),
-				{ scope: use.scope, targetUserId: use.targetUserId ?? null },
+				{
+					scope: use.scope,
+					targetUserId: use.targetUserId ?? null,
+					// ohne Person keine Freigabe (fail closed)
+					requestedBy: use.actor.userId ?? "",
+				},
 				now,
 			)
 		)

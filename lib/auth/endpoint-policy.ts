@@ -71,9 +71,48 @@ const FACTOR_ENROL = new Set([
 export const ADMIN_ENDPOINT_PREFIX = "/admin/";
 
 export const IMPERSONATE_PATH = "/admin/impersonate-user";
+export const STOP_IMPERSONATING_PATH = "/admin/stop-impersonating";
+
+// Per HTTP nur „als Person anmelden“ und beenden. Konten anlegen, Rollen,
+// Sperren und Sitzungen laufen über die Admin-Actions (Step-up, Lockbox,
+// Audit); direkt per HTTP reichte sonst eine Admin-Sitzung aus dem Admin-Netz
+// ohne zweiten Faktor (Selbstprüfung K1).
+const ADMIN_HTTP_ALLOWED = new Set([IMPERSONATE_PATH, STOP_IMPERSONATING_PATH]);
+
+// Org-Plugin per HTTP nur Einladung annehmen bzw. ablehnen. Lesen (Mitglieder,
+// Einladungen, Org-Daten) und Wechseln laufen über Actions mit requireOrg —
+// dort greifen IP-Liste der Org und Bindung der Lockbox, auf /api/auth nicht
+// (Selbstprüfung K4).
+const ORG_ENDPOINT_PREFIX = "/organization/";
+const ORG_HTTP_ALLOWED = new Set([
+	"/organization/accept-invitation",
+	"/organization/reject-invitation",
+]);
+
+// In einer Impersonation-Sitzung per HTTP nur Sitzung lesen, abmelden und
+// beenden: jeder andere Endpunkt wirkte im Namen der Person außerhalb von
+// requireOrg (Lockbox, Härtung A3).
+export const IMPERSONATION_HTTP_ALLOWED: ReadonlySet<string> = new Set([
+	"/get-session",
+	"/sign-out",
+	STOP_IMPERSONATING_PATH,
+]);
 
 export function isGuardedAuthPath(path: string): boolean {
-	return GUARDED_AUTH_PATHS.has(path) || path.startsWith(ADMIN_ENDPOINT_PREFIX);
+	return (
+		GUARDED_AUTH_PATHS.has(path) ||
+		path.startsWith(ADMIN_ENDPOINT_PREFIX) ||
+		path.startsWith(ORG_ENDPOINT_PREFIX)
+	);
+}
+
+/** Nur aus dem Server (auth.api), nie per HTTP. */
+export function httpServerOnly(path: string): boolean {
+	if (SERVER_ONLY.has(path)) return true;
+	if (path.startsWith(ADMIN_ENDPOINT_PREFIX))
+		return !ADMIN_HTTP_ALLOWED.has(path);
+	if (path.startsWith(ORG_ENDPOINT_PREFIX)) return !ORG_HTTP_ALLOWED.has(path);
+	return false;
 }
 
 // In einer Impersonation-Sitzung gesperrt (neben Faktoren und Admin):
@@ -129,15 +168,19 @@ export function authEndpointDecision(
 	s: EndpointState,
 ): EndpointDecision {
 	if (NEVER.has(path)) return deny("forbidden");
-	if (SERVER_ONLY.has(path) && s.httpRequest) return deny("forbidden");
-	if (
-		s.impersonated &&
-		(IMPERSONATION_BLOCKED.has(path) ||
+	if (s.httpRequest && httpServerOnly(path)) return deny("forbidden");
+	if (s.impersonated) {
+		if (s.httpRequest && !IMPERSONATION_HTTP_ALLOWED.has(path))
+			return deny("forbidden");
+		if (
+			IMPERSONATION_BLOCKED.has(path) ||
 			FACTOR_MANAGEMENT.has(path) ||
 			FACTOR_ENROL.has(path) ||
-			path.startsWith(ADMIN_ENDPOINT_PREFIX))
-	)
-		return deny("forbidden");
+			(path.startsWith(ADMIN_ENDPOINT_PREFIX) &&
+				path !== STOP_IMPERSONATING_PATH)
+		)
+			return deny("forbidden");
+	}
 	if (path.startsWith(ADMIN_ENDPOINT_PREFIX) && !s.adminNetwork)
 		return deny("admin_network");
 	// Als Person anmelden (Lockbox, Härtung A3): frisch bestätigte Admin-

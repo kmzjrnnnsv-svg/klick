@@ -188,6 +188,29 @@ describe("findActiveGrant", () => {
 			),
 		).toBeNull();
 	});
+
+	it("gilt nur der beantragenden Person, Zurücksetzen nur einmal (K7)", () => {
+		const imp = grant({ status: "approved", expiresAt: at(H) });
+		const want = { scope: "impersonate" as const, targetUserId: "u-target" };
+		expect(
+			findActiveGrant([imp], { ...want, requestedBy: "u-admin" }, now),
+		).toBe(imp);
+		expect(
+			findActiveGrant([imp], { ...want, requestedBy: "u-other-admin" }, now),
+		).toBeNull();
+		const reset = grant({
+			scope: "reset_access",
+			status: "approved",
+			expiresAt: at(H),
+		});
+		const r = { scope: "reset_access" as const, targetUserId: "u-target" };
+		expect(findActiveGrant([reset], r, now)).toBe(reset);
+		expect(findActiveGrant([{ ...reset, usedAt: now }], r, now)).toBeNull();
+		// „als Person anmelden“ bleibt bis zum Ablauf nutzbar
+		expect(
+			findActiveGrant([{ ...imp, usedAt: now }], want, now),
+		).not.toBeNull();
+	});
 });
 
 describe("Entscheiden und Widerrufen", () => {

@@ -79,6 +79,12 @@ const WIRES: Wire[] = [
 		effect: "auth.api.updateMemberRole",
 	},
 	{
+		file: "app/actions/team.ts",
+		fn: "removeMemberImpl",
+		gate: "requirePermit",
+		effect: "auth.api.removeMember",
+	},
+	{
 		file: "app/api/export/organisation.zip/route.ts",
 		fn: "GET",
 		gate: "requirePermit",

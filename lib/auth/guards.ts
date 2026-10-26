@@ -138,6 +138,17 @@ export type Permission = Partial<Record<Resource, readonly string[]>>;
 // — eine neue Seite oder Action ohne Recht bleibt ihnen so verschlossen.
 export type OrgGuardOptions = { employees?: boolean };
 
+const IMPERSONATION_READ_ONLY = ["member", "invitation", "integration"];
+
+/** Verlangt das Recht in einer Impersonation-Sitzung mehr als Lesen? */
+export function impersonationDenies(perm: Permission): boolean {
+	return Object.entries(perm).some(
+		([resource, actions]) =>
+			IMPERSONATION_READ_ONLY.includes(resource) &&
+			(actions ?? []).some((a) => a !== "read"),
+	);
+}
+
 export async function requireOrg(
 	perm?: Permission,
 	opts?: OrgGuardOptions,
@@ -153,7 +164,11 @@ export async function requireOrg(
 	// Sitzung selbst würde Better Auth sonst bis zu 12 h verlängern
 	if (
 		ctx.session.impersonatedBy &&
-		!(await impersonationAllowed(ctx.user.id, orgId))
+		!(await impersonationAllowed(
+			ctx.user.id,
+			orgId,
+			ctx.session.impersonatedBy,
+		))
 	) {
 		await endImpersonations(ctx.user.id);
 		throw new AuthErr("unauthenticated");
@@ -190,6 +205,11 @@ export async function requireOrg(
 		roles.map((r) => r.permissions),
 	);
 	if (perm && !permissionsAllow(permissions, perm))
+		throw new AuthErr("forbidden");
+	// Als Person angemeldet: Team und Integrationen nur lesen — ein
+	// Einladungs-Link oder Token wirkte über das Ende der Freigabe hinaus
+	// (Selbstprüfung K3)
+	if (perm && ctx.session.impersonatedBy && impersonationDenies(perm))
 		throw new AuthErr("forbidden");
 	if (!perm && orgRole === "employee" && !opts?.employees)
 		throw new AuthErr("forbidden");

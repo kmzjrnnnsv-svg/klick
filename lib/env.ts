@@ -137,7 +137,7 @@ export const envSchema = z.object({
 	// Dev; Produktion verlangt es, lib/env-checks.ts). ADMIN_IP_ALLOWLIST
 	// (einzelne Adressen) gilt weiter und wird dazugenommen.
 	ADMIN_NETWORKS: cidrList,
-	ADMIN_IP_ALLOWLIST: csvList([]),
+	ADMIN_IP_ALLOWLIST: cidrList,
 	TRUSTED_PROXIES: csvList(["127.0.0.1", "::1"]),
 	// Bewusst hingenommene Abweichungen in Produktion (lib/env-checks.ts),
 	// z. B. "no_av" solange clamd fehlt. Jede Abweichung steht beim Start im Log.

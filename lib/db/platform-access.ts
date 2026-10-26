@@ -133,12 +133,13 @@ export async function memberOrgIds(userId: string): Promise<string[]> {
 export async function impersonationAllowed(
 	userId: string,
 	orgId: string,
+	impersonator: string,
 	now = new Date(),
 ): Promise<boolean> {
 	return Boolean(
 		findActiveGrant(
 			await grantsForOrg(orgId),
-			{ scope: "impersonate", targetUserId: userId },
+			{ scope: "impersonate", targetUserId: userId, requestedBy: impersonator },
 			now,
 		),
 	);

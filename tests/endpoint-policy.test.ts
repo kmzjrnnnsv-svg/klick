@@ -145,10 +145,7 @@ describe("authEndpointDecision", () => {
 		const outside = { ...base, adminNetwork: false };
 		for (const path of [
 			"/admin/impersonate-user",
-			"/admin/ban-user",
-			"/admin/set-role",
-			"/admin/create-user",
-			"/admin/list-users",
+			"/admin/stop-impersonating",
 		]) {
 			expect(isGuardedAuthPath(path)).toBe(true);
 			expect(authEndpointDecision(path, outside)).toEqual({
@@ -156,6 +153,26 @@ describe("authEndpointDecision", () => {
 				code: "admin_network",
 			});
 			expect(authEndpointDecision(path, base).allow).toBe(true);
+		}
+		// alles andere am Admin-Plugin nur aus den Admin-Actions (K1): per
+		// HTTP reichte sonst eine Admin-Sitzung ohne zweiten Faktor
+		for (const path of [
+			"/admin/ban-user",
+			"/admin/set-role",
+			"/admin/create-user",
+			"/admin/update-user",
+			"/admin/remove-user",
+			"/admin/revoke-user-sessions",
+			"/admin/list-users",
+		]) {
+			expect(isGuardedAuthPath(path)).toBe(true);
+			expect(authEndpointDecision(path, base)).toEqual({
+				allow: false,
+				code: "forbidden",
+			});
+			expect(
+				authEndpointDecision(path, { ...base, httpRequest: false }).allow,
+			).toBe(true);
 		}
 		// andere Pfade hängen nicht am Admin-Netz
 		expect(authEndpointDecision("/sign-in/magic-link", outside).allow).toBe(
@@ -182,11 +199,53 @@ describe("authEndpointDecision", () => {
 				code: "forbidden",
 			});
 		}
-		// eigene Sitzung: Org wechseln wie bisher
-		expect(authEndpointDecision("/organization/set-active", base).allow).toBe(
-			true,
-		);
-		expect(authEndpointDecision("/sign-out", imp).allow).toBe(true);
+		// eigene Sitzung: Org wechseln wie bisher (aus der Action)
+		expect(
+			authEndpointDecision("/organization/set-active", {
+				...base,
+				httpRequest: false,
+			}).allow,
+		).toBe(true);
+		// per HTTP nur lesen, abmelden, beenden
+		for (const path of [
+			"/get-session",
+			"/sign-out",
+			"/admin/stop-impersonating",
+		])
+			expect(authEndpointDecision(path, imp).allow).toBe(true);
+		for (const path of [
+			"/passkey/generate-authenticate-options",
+			"/sign-in/magic-link",
+			"/list-sessions",
+			"/update-user",
+		])
+			expect(authEndpointDecision(path, imp)).toEqual({
+				allow: false,
+				code: "forbidden",
+			});
+	});
+
+	it("Org-Plugin per HTTP nur Einladung annehmen oder ablehnen (K4)", () => {
+		for (const path of [
+			"/organization/list",
+			"/organization/get-full-organization",
+			"/organization/list-members",
+			"/organization/get-active-member",
+			"/organization/list-invitations",
+			"/organization/set-active",
+			"/organization/leave",
+		]) {
+			expect(isGuardedAuthPath(path)).toBe(true);
+			expect(authEndpointDecision(path, base)).toEqual({
+				allow: false,
+				code: "forbidden",
+			});
+		}
+		for (const path of [
+			"/organization/accept-invitation",
+			"/organization/reject-invitation",
+		])
+			expect(authEndpointDecision(path, base).allow).toBe(true);
 	});
 
 	it("Org- und SSO-Verwaltung nur aus Server-Actions (Vier-Augen)", () => {

@@ -8,23 +8,33 @@
 import { env } from "@/lib/env";
 import { type IpRange, ipInRanges, parseRanges } from "@/lib/net/ip";
 
-let cache: { key: string; ranges: IpRange[] } | null = null;
+let cache: { key: string; ranges: IpRange[]; configured: boolean } | null =
+	null;
 
-export function adminRanges(): IpRange[] {
+function adminConfig(): { ranges: IpRange[]; configured: boolean } {
 	const e = env();
-	const key = `${e.ADMIN_NETWORKS.join(",")}|${e.ADMIN_IP_ALLOWLIST.join(",")}`;
+	const list = [...e.ADMIN_NETWORKS, ...e.ADMIN_IP_ALLOWLIST];
+	const key = list.join(",");
 	if (cache?.key !== key)
 		cache = {
 			key,
-			ranges: parseRanges([...e.ADMIN_NETWORKS, ...e.ADMIN_IP_ALLOWLIST])
-				.ranges,
+			ranges: parseRanges(list).ranges,
+			configured: list.some((x) => x.trim() !== ""),
 		};
-	return cache.ranges;
+	return cache;
 }
 
-/** Darf diese Adresse Plattform-Verwaltung? Ohne Netz-Liste: ja. */
+export function adminRanges(): IpRange[] {
+	return adminConfig().ranges;
+}
+
+/**
+ * Darf diese Adresse Plattform-Verwaltung? Ohne Netz-Liste: ja. Eine Liste
+ * ohne gültiges Netz sperrt alles (fail closed, Selbstprüfung K6) — die
+ * Env-Prüfung lehnt das beim Start schon ab.
+ */
 export function adminNetworkAllows(ip: string | null | undefined): boolean {
-	const ranges = adminRanges();
-	if (ranges.length === 0) return true;
+	const { ranges, configured } = adminConfig();
+	if (!configured) return true;
 	return ipInRanges(ip, ranges);
 }

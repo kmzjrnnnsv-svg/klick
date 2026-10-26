@@ -32,6 +32,7 @@ export const PERMIT_KINDS = [
 	"integration_token",
 	"sso_provider_remove",
 	"owner_add",
+	"owner_remove",
 ] as const satisfies readonly SecurityChangeKind[];
 
 export type ApplyKind = (typeof APPLY_KINDS)[number];
