@@ -74,6 +74,7 @@ import { shortFrameworkName } from "@/lib/compliance/page-data";
 import { getOrgProfile } from "@/lib/compliance/queries";
 import { loadAuditRegimeContext } from "@/lib/compliance/queries-audit-regimes";
 import { lastReconciliationDay } from "@/lib/custody/queries";
+import { remindOverdueReports } from "@/lib/db/platform-access";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
 import { inDistribution } from "@/lib/documents/distribution";
 import { currentVersionsByDocument } from "@/lib/documents/in-force";
@@ -136,6 +137,11 @@ export async function runComplianceTick(
 			summary.actions += written.actions;
 		},
 	);
+	// Lockbox: überfällige Notfall-Berichte der Plattform (Härtung A3)
+	summary.notifications += await remindOverdueReports(now).catch((err) => {
+		logger.error({ err }, "lockbox report reminder failed");
+		return 0;
+	});
 	logger.info(summary, "compliance-tick done");
 	return summary;
 }

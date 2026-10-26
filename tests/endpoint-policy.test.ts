@@ -14,6 +14,7 @@ const base: EndpointState = {
 	passkeys: 0,
 	hasRegistrationToken: false,
 	adminNetwork: true,
+	impersonated: false,
 };
 
 // Sitzung nur per Mail-Link: kein bestätigter zweiter Faktor
@@ -160,5 +161,49 @@ describe("authEndpointDecision", () => {
 			true,
 		);
 		expect(isGuardedAuthPath("/sign-in/magic-link")).toBe(false);
+	});
+
+	it("als Person angemeldet: keine Faktoren, kein Org-Wechsel, kein Admin", () => {
+		const imp = { ...base, impersonated: true };
+		for (const path of [
+			"/passkey/generate-register-options",
+			"/passkey/verify-registration",
+			"/two-factor/enable",
+			"/two-factor/get-totp-uri",
+			"/passkey/delete-passkey",
+			"/organization/set-active",
+			"/organization/accept-invitation",
+			"/admin/impersonate-user",
+		]) {
+			expect(isGuardedAuthPath(path)).toBe(true);
+			expect(authEndpointDecision(path, imp)).toEqual({
+				allow: false,
+				code: "forbidden",
+			});
+		}
+		// eigene Sitzung: Org wechseln wie bisher
+		expect(authEndpointDecision("/organization/set-active", base).allow).toBe(
+			true,
+		);
+		expect(authEndpointDecision("/sign-out", imp).allow).toBe(true);
+	});
+
+	it("Impersonation nur mit frisch bestätigter Admin-Sitzung", () => {
+		const path = "/admin/impersonate-user";
+		expect(authEndpointDecision(path, base).allow).toBe(true);
+		expect(authEndpointDecision(path, { ...base, stepUpFresh: false })).toEqual(
+			{
+				allow: false,
+				code: "step_up_required",
+			},
+		);
+		expect(authEndpointDecision(path, mailOnly)).toEqual({
+			allow: false,
+			code: "mfa_required",
+		});
+		expect(authEndpointDecision(path, { ...base, hasSession: false })).toEqual({
+			allow: false,
+			code: "unauthenticated",
+		});
 	});
 });

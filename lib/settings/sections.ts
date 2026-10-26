@@ -15,6 +15,9 @@ export const SETTINGS_SECTIONS = [
 	{ key: "sso", group: "org" },
 	{ key: "portal", group: "org", needs: "settings" },
 	{ key: "integrationen", group: "org", needs: "integrations" },
+	// Lockbox (Härtung A3): alle internen und externen Mitglieder sehen die
+	// Zugriffe durch Klick, entscheiden dürfen Inhaber:innen und GL
+	{ key: "zugriffe", group: "org" },
 	{ key: "abo", group: "org", needs: "settings" },
 	{ key: "workflows", group: "methods" },
 	{ key: "audits", group: "methods" },

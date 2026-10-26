@@ -33,7 +33,7 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 	if (!isGuardedAuthPath(ctx.path)) return;
 	const current = await getSessionFromCtx(ctx).catch(() => null);
 	const s = current?.session as
-		| { mfaVerifiedAt?: unknown; stepUpAt?: unknown }
+		| { mfaVerifiedAt?: unknown; stepUpAt?: unknown; impersonatedBy?: unknown }
 		| undefined;
 	const mfaVerifiedAt = asDate(s?.mfaVerifiedAt);
 	const decision = authEndpointDecision(ctx.path, {
@@ -52,6 +52,7 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 		// requirePlatformAdmin geprüft
 		adminNetwork:
 			!ctx.request || adminNetworkAllows(ipFromHeaders(ctx.headers)),
+		impersonated: Boolean(s?.impersonatedBy),
 	});
 	if (decision.allow) return;
 	await auditPlatform(

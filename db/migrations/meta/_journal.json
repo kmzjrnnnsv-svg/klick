@@ -337,6 +337,13 @@
       "when": 1792978632207,
       "tag": "0047_sso_policy",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792999553744,
+      "tag": "0048_platform_access",
+      "breakpoints": true
     }
   ]
 }

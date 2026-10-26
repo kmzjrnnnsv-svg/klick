@@ -563,6 +563,8 @@ export const NOTIFICATION_KINDS = [
 	// Wallet: Eingang bestätigt bzw. Ausgang gesehen (Treffer der
 	// Sanktionsprüfung laufen als security_alert)
 	"wallet_transfer",
+	// Lockbox: Antrag, Notfall-Zugriff, Wartezeit (sofort per Mail)
+	"platform_access",
 	"digest",
 	"system",
 ] as const;
@@ -586,3 +588,35 @@ export const TRUST_REQUEST_STATUS = [
 	"revoked",
 ] as const;
 export type TrustRequestStatus = (typeof TRUST_REQUEST_STATUS)[number];
+
+// Lockbox (Härtung A3): Plattform-Zugriff auf Inhalte einer Org nur mit
+// Freigabe der Inhaber:in bzw. Geschäftsleitung
+export const PLATFORM_ACCESS_SCOPES = [
+	// Protokoll der Org einsehen (Admin > Audit-Log)
+	"view",
+	// als eine Person der Org anmelden (Better-Auth-Impersonation)
+	"impersonate",
+	// Zugang einer Person zurücksetzen (Passkeys, Codes, Sitzungen)
+	"reset_access",
+] as const;
+export type PlatformAccessScope = (typeof PLATFORM_ACCESS_SCOPES)[number];
+
+export const PLATFORM_ACCESS_STATUS = [
+	"requested",
+	// Wartezeit (24 h) statt Freigabe, z. B. einzige Inhaber:in ausgesperrt
+	"waiting",
+	"approved",
+	"denied",
+	"cancelled",
+	"revoked",
+	// Notfall: wirkt sofort, Bericht binnen 24 h
+	"emergency",
+] as const;
+export type PlatformAccessStatus = (typeof PLATFORM_ACCESS_STATUS)[number];
+
+export const PLATFORM_EMERGENCY_CATEGORIES = [
+	"security_incident",
+	"legal_order",
+] as const;
+export type PlatformEmergencyCategory =
+	(typeof PLATFORM_EMERGENCY_CATEGORIES)[number];

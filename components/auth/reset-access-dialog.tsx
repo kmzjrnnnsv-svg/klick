@@ -52,13 +52,15 @@ export function ResetAccessDialog({
 			toast.error(
 				res.error === "reset_other_orgs"
 					? t("resetErrorOtherOrgs")
-					: res.error === "reset_platform_admin"
-						? t("resetErrorPlatform")
-						: res.error === "account_blocked"
-							? t("resetErrorBlocked")
-							: res.error === "step_up_required"
-								? ta("twoFactorStepUp")
-								: errorText(tc, res),
+					: res.error === "lockbox_required"
+						? t("resetErrorLockbox")
+						: res.error === "reset_platform_admin"
+							? t("resetErrorPlatform")
+							: res.error === "account_blocked"
+								? t("resetErrorBlocked")
+								: res.error === "step_up_required"
+									? ta("twoFactorStepUp")
+									: errorText(tc, res),
 			);
 		} finally {
 			setBusy(false);

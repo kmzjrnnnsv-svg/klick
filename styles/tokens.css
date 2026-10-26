@@ -94,7 +94,7 @@
 		--accent: rgb(64 156 255 / 0.18);
 
 		--foreground: #ffffff;
-		--muted-foreground: #a1a1a8; /* ≥ 4,5 : 1 auch auf --muted über --card */
+		--muted-foreground: #aeaeb2; /* ≥ 4,5 : 1 auch auf --muted über --card und --popover (Felder im Dialog) */
 
 		--border: #38383a;
 		--input: #38383a;

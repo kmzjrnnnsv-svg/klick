@@ -15,7 +15,9 @@ import { hasPendingActivation } from "@/lib/auth/allow-list";
 import { requirePlatformAdmin, requirePlatformStepUp } from "@/lib/auth/guards";
 import { findResetTarget, resetUserAccess } from "@/lib/auth/recover";
 import { auth } from "@/lib/auth/server";
+import { memberOrgIds, primaryOrgOf } from "@/lib/db/platform-access";
 import { runVerifyAuditChain } from "@/lib/jobs/register";
+import { consumeGrantsForAll } from "@/lib/platform-access/service";
 import { banAccountSchema, createAccountSchema } from "@/lib/validation/admin";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 
@@ -72,6 +74,21 @@ async function resetUserAccessImpl(
 	// sonst stehen und sperrte die Sitzung nach dem Zurücksetzen)
 	if (await hasPendingActivation(userId))
 		return { ok: false, error: "not_activated" };
+	// Lockbox (Härtung A3): Konten in Orgs nur mit Freigabe jeder dieser Orgs
+	// (eigene Org und Berater-Zugänge; oder nach der Wartezeit, wenn niemand
+	// freigeben kann); Plattform-Konten ohne Mitgliedschaft brauchen keine
+	const orgIds = await memberOrgIds(userId);
+	if (
+		orgIds.length > 0 &&
+		!(await consumeGrantsForAll(orgIds, {
+			scope: "reset_access",
+			targetUserId: userId,
+			actor: { userId: a.userId, ip: a.ip, userAgent: a.userAgent },
+			purpose: "Zugang zurückgesetzt",
+		}))
+	)
+		return { ok: false, error: "lockbox_required" };
+	const orgId = (await primaryOrgOf(userId)) ?? orgIds[0] ?? null;
 	const { url } = await resetUserAccess({
 		target,
 		actor: {
@@ -80,6 +97,7 @@ async function resetUserAccessImpl(
 			ip: a.ip,
 			userAgent: a.userAgent,
 		},
+		organizationId: orgId,
 		via: "platform_admin",
 	});
 	revalidatePath("/admin/users");

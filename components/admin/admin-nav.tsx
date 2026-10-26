@@ -20,7 +20,7 @@ export function AdminNav({
 		href === "/admin" ? path === "/admin" : path.startsWith(href);
 	if (variant === "bar")
 		return (
-			<nav className="ml-4 hidden gap-4 md:flex">
+			<nav className="ml-4 hidden gap-4 xl:flex">
 				{tabs.map((tab) => (
 					<Link
 						key={tab.href}
@@ -34,7 +34,7 @@ export function AdminNav({
 			</nav>
 		);
 	return (
-		<nav className="flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] md:hidden">
+		<nav className="flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] xl:hidden">
 			{tabs.map((tab) => (
 				<Link
 					key={tab.href}

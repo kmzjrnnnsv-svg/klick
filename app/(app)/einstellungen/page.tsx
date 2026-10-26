@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import {
 	Bell,
 	BookOpen,
@@ -10,6 +10,7 @@ import {
 	Hash,
 	KeyRound,
 	Layers,
+	LockKeyhole,
 	Plug,
 	Receipt,
 	ShieldCheck,
@@ -27,6 +28,7 @@ import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { IntegrationsPanel } from "@/components/settings/integrations-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
+import { PlatformAccessPanel } from "@/components/settings/platform-access-panel";
 import { PolicyPortalPanel } from "@/components/settings/policy-portal-panel";
 import { RiskMethodPanel } from "@/components/settings/risk-method-panel";
 import { RolesPanel } from "@/components/settings/roles-panel";
@@ -38,7 +40,7 @@ import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel
 import { WalletLinkPanel } from "@/components/settings/wallet-link-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
-import { approvalWorkflows } from "@/db/schema";
+import { approvalWorkflows, platformAccessGrants } from "@/db/schema";
 import {
 	factInfos,
 	ruleNames,
@@ -87,6 +89,8 @@ import {
 	resolveRiskMethod,
 } from "@/lib/compliance/risk-method";
 import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
+import { topManagementOf } from "@/lib/compliance/top-management";
+import { userLabels } from "@/lib/db/platform-access";
 import { loadPriceTable } from "@/lib/db/pricing";
 import { flushQueuedAudits, readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
@@ -99,6 +103,7 @@ import {
 	listRetiredFrameworkSlugs,
 } from "@/lib/org/queries";
 import { listOrgRoles } from "@/lib/org/roles";
+import { grantState, reportOverdue } from "@/lib/platform-access/rules";
 import { portalOf, portalReaders } from "@/lib/policy-portal/admin";
 import {
 	resolveSettingsSection,
@@ -118,6 +123,7 @@ const SECTION_LABEL = {
 	sso: "tabSso",
 	portal: "tabPortal",
 	integrationen: "tabIntegrations",
+	zugriffe: "tabPlatformAccess",
 	abo: "tabSubscription",
 	workflows: "tabWorkflows",
 	audits: "tabAudits",
@@ -135,6 +141,7 @@ const SECTION_ICON: Record<SettingsSectionKey, React.ReactNode> = {
 	sso: <KeyRound />,
 	portal: <BookOpen />,
 	integrationen: <Plug />,
+	zugriffe: <LockKeyhole />,
 	abo: <Receipt />,
 	workflows: <GitBranch />,
 	audits: <ClipboardCheck />,
@@ -673,6 +680,54 @@ async function renderSection(
 					ssoDomains={sso
 						.filter((p) => p.domainVerified)
 						.map((p) => p.domain.toLowerCase())}
+				/>
+			);
+		}
+		case "zugriffe": {
+			const { grants, mayDecide } = await readOrg(octx, async (tx) => ({
+				grants: await tx
+					.select()
+					.from(platformAccessGrants)
+					.where(eq(platformAccessGrants.organizationId, ctx.orgId))
+					.orderBy(desc(platformAccessGrants.requestedAt))
+					.limit(100),
+				mayDecide:
+					ctx.orgRole === "owner" ||
+					(await topManagementOf(tx, ctx.orgId, ctx.userId)).isTopManagement,
+			}));
+			const names = await userLabels(
+				grants.flatMap((g) => [g.targetUserId, g.requestedBy, g.decidedBy]),
+			);
+			const now = new Date();
+			const iso = (d: Date | null) => d?.toISOString() ?? null;
+			return (
+				<PlatformAccessPanel
+					mayDecide={mayDecide}
+					grants={grants.map((g) => ({
+						id: g.id,
+						scope: g.scope,
+						state: grantState(g, now),
+						reason: g.reason,
+						durationMinutes: g.durationMinutes,
+						targetName: g.targetUserId
+							? (names.get(g.targetUserId) ?? null)
+							: null,
+						targetIsMe: g.targetUserId === ctx.userId,
+						requestedByName: g.requestedBy
+							? (names.get(g.requestedBy) ?? null)
+							: null,
+						requestedAt: g.requestedAt.toISOString(),
+						applyAfter: iso(g.applyAfter),
+						expiresAt: iso(g.expiresAt),
+						emergencyCategory: g.emergencyCategory,
+						decidedByName: g.decidedBy
+							? (names.get(g.decidedBy) ?? null)
+							: null,
+						decidedAt: iso(g.decidedAt),
+						usedAt: iso(g.usedAt),
+						report: g.report,
+						reportOverdue: reportOverdue(g, now),
+					}))}
 				/>
 			);
 		}

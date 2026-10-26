@@ -103,6 +103,15 @@ export async function createAccount(
 		// Neues Konto ohne Mitgliedschaft: jede Rolle ist zulässig; die
 		// Ein-Org-Regel (ADR-018) prüft beforeAcceptInvitation beim Beitritt.
 		if (!org) return { ok: false, error: "not_found" };
+		// Lockbox (Härtung A3): ein Konto mit Rolle in einer Org, die schon
+		// Mitglieder hat, wäre ein Zugang an ihr vorbei — dort lädt die Org
+		// selbst ein. Erlaubt nur für neue, leere Orgs (Erstkund:innen).
+		const [anyMember] = await globalDb
+			.select({ id: member.id })
+			.from(member)
+			.where(eq(member.organizationId, orgId))
+			.limit(1);
+		if (anyMember) return { ok: false, error: "org_has_members" };
 	}
 
 	const { user: created } = await auth.api.createUser({

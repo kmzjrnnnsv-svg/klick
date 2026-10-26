@@ -22,6 +22,9 @@ export type EndpointState = {
 	// Anfrage kommt aus dem Admin-Netz (WireGuard, ADMIN_NETWORKS) oder ist
 	// ein Aufruf aus dem Server selbst (auth.api ohne HTTP-Anfrage)
 	adminNetwork: boolean;
+	// Sitzung „als Person angemeldet“ (Admin-Plugin, Lockbox): nie Faktoren,
+	// Org-Wechsel oder Beitritte im Namen der Person
+	impersonated: boolean;
 };
 
 export type EndpointDecision =
@@ -65,9 +68,19 @@ const FACTOR_ENROL = new Set([
 // Admin-Netz (Härtung A2); nginx sperrt den Pfad zusätzlich.
 export const ADMIN_ENDPOINT_PREFIX = "/admin/";
 
+export const IMPERSONATE_PATH = "/admin/impersonate-user";
+
 export function isGuardedAuthPath(path: string): boolean {
 	return GUARDED_AUTH_PATHS.has(path) || path.startsWith(ADMIN_ENDPOINT_PREFIX);
 }
+
+// In einer Impersonation-Sitzung gesperrt (neben Faktoren und Admin):
+// Org wechseln oder beitreten trüge den Zugriff aus der freigebenden Org
+// heraus (Lockbox, Härtung A3).
+const IMPERSONATION_BLOCKED = new Set([
+	"/organization/set-active",
+	"/organization/accept-invitation",
+]);
 
 // E-Mail-/SMS-Codes als zweiter Faktor sind nicht eingerichtet.
 const NEVER = new Set(["/two-factor/send-otp", "/two-factor/verify-otp"]);
@@ -76,6 +89,7 @@ export const GUARDED_AUTH_PATHS: ReadonlySet<string> = new Set([
 	...FACTOR_MANAGEMENT,
 	...FACTOR_ENROL,
 	...NEVER,
+	...IMPERSONATION_BLOCKED,
 ]);
 
 const allow: EndpointDecision = { allow: true };
@@ -88,8 +102,23 @@ export function authEndpointDecision(
 	s: EndpointState,
 ): EndpointDecision {
 	if (NEVER.has(path)) return deny("forbidden");
+	if (
+		s.impersonated &&
+		(IMPERSONATION_BLOCKED.has(path) ||
+			FACTOR_MANAGEMENT.has(path) ||
+			FACTOR_ENROL.has(path) ||
+			path.startsWith(ADMIN_ENDPOINT_PREFIX))
+	)
+		return deny("forbidden");
 	if (path.startsWith(ADMIN_ENDPOINT_PREFIX) && !s.adminNetwork)
 		return deny("admin_network");
+	// Als Person anmelden (Lockbox, Härtung A3): frisch bestätigte Admin-
+	// Sitzung; ob die Org freigegeben hat, prüft session.create.before
+	if (path === IMPERSONATE_PATH) {
+		if (!s.hasSession) return deny("unauthenticated");
+		if (!s.mfaVerified) return deny("mfa_required");
+		if (!s.stepUpFresh) return deny("step_up_required");
+	}
 	const factors = (s.hasTotp ? 1 : 0) + s.passkeys;
 	const hasFactor = factors > 0;
 	const verified = (): EndpointDecision =>

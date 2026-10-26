@@ -10,6 +10,9 @@ import { organization } from "better-auth/plugins/organization";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { and, eq } from "drizzle-orm";
 import { requestOpenAppointments } from "@/lib/compliance/appointment-service";
+import { memberOrgIds } from "@/lib/db/platform-access";
+import { capSessionExpiry } from "@/lib/platform-access/rules";
+import { consumeGrant } from "@/lib/platform-access/service";
 import { globalDb, schema } from "../../db";
 import { member, session as sessionTable, user } from "../../db/auth-schema";
 import { memberAccess, memberRoles, roleAssignments } from "../../db/schema";
@@ -51,7 +54,7 @@ import {
 	REG_COOKIE,
 	resolveRegistration,
 } from "./registration-link";
-import { normalizeRole } from "./session-rules";
+import { ipFromHeaders, normalizeRole } from "./session-rules";
 import { provisionSsoUser, ssoGateForUser } from "./sso-provisioning";
 
 // Bewusst keine env()-Validierung beim Import: Better Auth liest
@@ -161,6 +164,49 @@ export const auth = betterAuth({
 		session: {
 			create: {
 				async before(session, ctx) {
+					// Als Person anmelden (Admin-Plugin): nur mit Freigabe einer Org,
+					// in der die Person Mitglied ist (Lockbox, Härtung A3). Die
+					// Sitzung gilt nur in dieser Org (Wechsel gesperrt), nie länger
+					// als die Freigabe (requireOrg prüft bei jeder Anfrage) und
+					// ohne Step-up: der Admin hat keinen Faktor der Person, also
+					// keine Faktoren, Freigaben oder Exporte in ihrem Namen.
+					const impersonator = (session as { impersonatedBy?: string | null })
+						.impersonatedBy;
+					if (impersonator) {
+						let grant: Awaited<ReturnType<typeof consumeGrant>> = null;
+						for (const orgId of await memberOrgIds(session.userId)) {
+							grant = await consumeGrant({
+								orgId,
+								scope: "impersonate",
+								targetUserId: session.userId,
+								actor: {
+									userId: impersonator,
+									ip: ipFromHeaders(ctx?.headers ?? null),
+									userAgent: ctx?.headers?.get("user-agent") ?? null,
+								},
+								purpose: "Als Person angemeldet",
+							});
+							if (grant) break;
+						}
+						if (!grant?.expiresAt)
+							throw new APIError("FORBIDDEN", {
+								code: "LOCKBOX_REQUIRED",
+								message: "Kein freigegebener Zugriff der Organisation.",
+							});
+						const now = new Date();
+						return {
+							data: {
+								...session,
+								activeOrganizationId: grant.organizationId,
+								expiresAt: capSessionExpiry(session.expiresAt, grant.expiresAt),
+								mfaVerifiedAt: now,
+								// Epoche: Step-up nie frisch (isStepUpFresh fiele sonst
+								// auf mfaVerifiedAt zurück)
+								stepUpAt: new Date(0),
+								lastActiveAt: now,
+							},
+						};
+					}
 					// Aktive Org: die eigene Mitgliedschaft, sonst der zuletzt
 					// begonnene gültige Berater-Zugang (ADR-018).
 					const memberships = await listUserMemberships(session.userId);

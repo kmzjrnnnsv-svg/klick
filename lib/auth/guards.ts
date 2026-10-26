@@ -4,6 +4,10 @@ import { after } from "next/server";
 import { globalDb } from "@/db";
 import { member, session as sessionTable } from "@/db/auth-schema";
 import { auditPlatform } from "@/lib/audit";
+import {
+	endImpersonations,
+	impersonationAllowed,
+} from "@/lib/db/platform-access";
 import type { OrgCtx } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
 import { adminNetworkAllows } from "./admin-network";
@@ -140,6 +144,16 @@ export async function requireOrg(
 
 	const orgId = ctx.session.activeOrganizationId;
 	if (!orgId) throw new AuthErr("no_org");
+	// Als Person angemeldet (Lockbox, Härtung A3): nur solange die Org die
+	// Freigabe nicht widerrufen hat und sie nicht abgelaufen ist — die
+	// Sitzung selbst würde Better Auth sonst bis zu 12 h verlängern
+	if (
+		ctx.session.impersonatedBy &&
+		!(await impersonationAllowed(ctx.user.id, orgId))
+	) {
+		await endImpersonations(ctx.user.id);
+		throw new AuthErr("unauthenticated");
+	}
 
 	const [row] = await globalDb
 		.select({ id: member.id, role: member.role })

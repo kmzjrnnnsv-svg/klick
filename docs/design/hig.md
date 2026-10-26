@@ -74,7 +74,7 @@ Varianten, die auf dem grauen Seitengrund (#F2F2F7) mindestens 4,5 : 1 erreichen
 | `--card` | #FFFFFF | #1C1C1E | Abschnitte, Karten |
 | `--popover` | #FFFFFF | #2C2C2E | angehobene Ebene (Popover, Sheet) |
 | `--foreground` | #000000 | #FFFFFF | label |
-| `--muted-foreground` | #636366 | #A1A1A8 | secondaryLabel, abgedunkelt bzw. aufgehellt: ≥ 4,5 : 1 auch auf getönten Flächen (`--muted`) |
+| `--muted-foreground` | #636366 | #AEAEB2 | secondaryLabel, abgedunkelt bzw. aufgehellt: ≥ 4,5 : 1 auch auf getönten Flächen (`--muted`), dunkel auch auf Feldern im Dialog |
 | `--border` | #C6C6C8 | #38383A | opaqueSeparator |
 | `--muted` | rgba(118,118,128,.12) | rgba(118,118,128,.24) | Füllung (tertiarySystemFill) |
 | `--primary` | #0A63D6 | #409CFF | Akzent für Text, Links, Ringe |

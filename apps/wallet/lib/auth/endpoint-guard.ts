@@ -50,6 +50,7 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 		// both.money hat kein Admin-Plugin (keine /admin/*-Endpunkte); die
 		// Plattform-Verwaltung läuft am Terminal (pnpm wallet:admin)
 		adminNetwork: true,
+		impersonated: false,
 	});
 	if (decision.allow) return;
 	await auditPlatform(
