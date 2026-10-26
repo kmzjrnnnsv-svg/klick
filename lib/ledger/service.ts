@@ -11,7 +11,7 @@ import {
 	updateAnchor,
 } from "@/lib/db/ledger";
 import { logger } from "@/lib/log";
-import { anchorDue, stampTree } from "./anchor";
+import { anchorDue, confirmedBy, stampTree } from "./anchor";
 import {
 	calendarAllowed,
 	configuredCalendars,
@@ -177,17 +177,28 @@ export async function upgradePendingAnchors(
 	for (const a of pending) {
 		if (!a.ots) continue;
 		const file = parseOtsFile(Uint8Array.from(a.ots));
+		// je Kalender die Beglaubigung aus seiner eigenen Antwort: ein
+		// einzelner Kalender kann sonst „bestätigt“ vortäuschen (S2)
+		const byCalendar = new Map<
+			string,
+			{ height: number; merkleRoot: string }
+		>();
 		for (const { uri, commitment } of pendingCommitments(file)) {
 			if (!calendarAllowed(uri, calendars, production)) continue;
 			try {
 				const upgraded = await upgradeFromCalendar(uri, commitment, fetchImpl);
 				const node = upgraded && findByMsg(file, commitment);
-				if (upgraded && node) mergeTimestamp(node, upgraded);
+				if (upgraded && node) {
+					mergeTimestamp(node, upgraded);
+					const b = bitcoinAttestation(upgraded);
+					const prev = byCalendar.get(uri);
+					if (b && (!prev || b.height < prev.height)) byCalendar.set(uri, b);
+				}
 			} catch (err) {
 				logger.warn({ err, uri, anchor: a.id }, "ledger upgrade failed");
 			}
 		}
-		const btc = bitcoinAttestation(file);
+		const btc = confirmedBy(byCalendar, a.calendars.length);
 		await updateAnchor(a.id, {
 			ots: Buffer.from(serializeOtsFile(file)),
 			lastUpgradeAt: now,

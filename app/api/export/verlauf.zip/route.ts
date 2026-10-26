@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { getOrgSummary } from "@/lib/auth/org";
+import { ledgerExportAllowed } from "@/lib/auth/visibility";
 import {
 	auditExport,
 	exportStepUpGuard,
@@ -14,10 +15,13 @@ export const dynamic = "force-dynamic";
 
 // Verlauf mit Bitcoin-Anker (Härtung V): eigene Kette, Anker, Merkle-Pfade,
 // OpenTimestamps-Dateien und pruefen.mjs zum Prüfen ohne Klick. Step-up wie
-// alle Pakete; die Kette enthält dieselben Angaben wie das Protokoll.
+// alle Pakete; die Kette enthält dieselben Angaben wie das Protokoll, darum
+// nur Inhaber:innen und Prüfer:innen (ledgerExportAllowed).
 export async function GET(req: Request) {
 	const ctx = await exportStepUpGuard(req);
 	if (ctx instanceof NextResponse) return ctx;
+	if (!ledgerExportAllowed(ctx.orgRole))
+		return new NextResponse(null, { status: 403 });
 	const org = await getOrgSummary(ctx.orgId);
 	if (!org) return new NextResponse(null, { status: 404 });
 	const generatedAt = new Date();

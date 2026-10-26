@@ -1,7 +1,16 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { anchorDue, isCriticalAction, stampTree } from "@/lib/ledger/anchor";
-import { calendarAllowed, configuredCalendars } from "@/lib/ledger/calendar";
+import {
+	anchorDue,
+	confirmedBy,
+	isCriticalAction,
+	stampTree,
+} from "@/lib/ledger/anchor";
+import {
+	calendarAllowed,
+	configuredCalendars,
+	readLimited,
+} from "@/lib/ledger/calendar";
 import {
 	leafHash,
 	leafText,
@@ -281,5 +290,59 @@ describe("Kalender-Allowlist", () => {
 		expect(
 			configuredCalendars("https://x.example/, https://y.example"),
 		).toEqual(["https://x.example", "https://y.example"]);
+	});
+});
+
+describe("Grenzen gegen feindliche Kalender (S2/S3)", () => {
+	const msg = new Uint8Array(32).fill(7);
+
+	it("Nachricht höchstens 4096 Bytes, höchstens 1000 Knoten", () => {
+		// zwölfmal hexlify verdoppelt 32 Bytes auf über 4096
+		const deep = Uint8Array.from(new Array(12).fill(0xf3).concat([0x00]));
+		const bytes = Uint8Array.from([
+			...deep.slice(0, 12),
+			0x00,
+			...Buffer.from("0588960d73d71901", "hex"),
+			1,
+			1,
+		]);
+		expect(() => parseTimestamp(bytes, msg)).toThrow("ots_msg_too_long");
+		// 1001 Beglaubigungen auf einer Ebene
+		const one = [0x00, ...Buffer.from("0588960d73d71901", "hex"), 1, 1];
+		const many: number[] = [];
+		for (let i = 0; i < 1000; i++) many.push(0xff, ...one);
+		many.push(...one);
+		expect(() => parseTimestamp(Uint8Array.from(many), msg)).toThrow(
+			"ots_too_many_nodes",
+		);
+	});
+
+	it("Bitcoin-Beglaubigung nur auf einer 32-Byte-Nachricht", () => {
+		const ts = newTimestamp(Uint8Array.from([1, 2, 3]));
+		ts.attestations.push({ kind: "bitcoin", height: 1 });
+		expect(bitcoinAttestation(ts)).toBeNull();
+	});
+
+	it("liest Antworten nur bis 64 KB", async () => {
+		const big = new Response(new Uint8Array(70 * 1024));
+		await expect(readLimited(big)).rejects.toThrow("calendar_too_large");
+		const small = new Response(new Uint8Array(10));
+		expect((await readLimited(small)).length).toBe(10);
+	});
+
+	it("bestätigt erst mit zwei Kalendern, bei nur einem mit diesem", () => {
+		const b = (height: number) => ({ height, merkleRoot: "ab" });
+		expect(confirmedBy(new Map([["a", b(5)]]), 3)).toBeNull();
+		expect(
+			confirmedBy(
+				new Map([
+					["a", b(6)],
+					["b", b(5)],
+				]),
+				3,
+			)?.height,
+		).toBe(5);
+		expect(confirmedBy(new Map([["a", b(5)]]), 1)?.height).toBe(5);
+		expect(confirmedBy(new Map(), 0)).toBeNull();
 	});
 });

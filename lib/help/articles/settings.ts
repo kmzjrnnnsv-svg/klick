@@ -78,8 +78,9 @@ export const SETTINGS: HelpArticle[] = [
 				id: "verlauf",
 				heading: "Verlauf mit Bitcoin-Anker",
 				body: [
-					"Täglich und nach Zugriffen durch Klick oder Sicherheitsänderungen geht der Kopf der Prüfsummen-Kette deiner Organisation als Zeitstempel (OpenTimestamps) in die Bitcoin-Blockchain. Dort steht nur ein Hash, keine Inhalte. Nach einigen Stunden ist er in einem Block bestätigt.",
-					"„Verlauf herunterladen“ liefert die Kette, jeden Anker mit Merkle-Pfad und Zeitstempel und ein Prüfskript. So prüfen Prüfer:innen ohne Klick, dass seit dem Anker nichts umgeschrieben wurde.",
+					"Täglich und nach Zugriffen durch Klick oder Sicherheitsänderungen geht der Kopf der Prüfsummen-Kette deiner Organisation als Zeitstempel (OpenTimestamps) in die Bitcoin-Blockchain. Dort steht nur ein Hash, keine Inhalte. Nach einigen Stunden melden die Kalender einen Block; Klick zeigt ihn als bestätigt, sobald zwei Kalender ihn unabhängig melden.",
+					"„Verlauf herunterladen“ liefert die Kette, jeden Anker mit Merkle-Pfad und Zeitstempel und ein Prüfskript. So prüfen Prüfer:innen ohne Klick, dass seit dem Anker nichts umgeschrieben wurde. Den Bitcoin-Block selbst gleicht das Skript mit deinem eigenen Knoten ab (--block), sonst meldet es ihn als nicht geprüft.",
+					"Herunterladen dürfen Inhaber:innen und Prüfer:innen: Die Kette enthält zu jedem Eintrag IP-Adresse und Browser, weil beides zur Prüfsumme gehört.",
 				],
 			},
 			{

@@ -132,10 +132,12 @@ d("Verlauf mit Bitcoin-Anker (Postgres)", () => {
 		}
 		return dir;
 	};
-	const verify = (dir: string) => {
-		const r = spawnSync(process.execPath, [join(dir, "pruefen.mjs"), dir], {
-			encoding: "utf8",
-		});
+	const verify = (dir: string, ...extra: string[]) => {
+		const r = spawnSync(
+			process.execPath,
+			[join(dir, "pruefen.mjs"), dir, ...extra],
+			{ encoding: "utf8" },
+		);
 		return { code: r.status, out: r.stdout + r.stderr };
 	};
 
@@ -185,15 +187,24 @@ d("Verlauf mit Bitcoin-Anker (Postgres)", () => {
 		expect(a?.status).toBe("confirmed");
 		expect(a?.bitcoinHeight).toBe(912345);
 
-		const done = verify(await exportTo(orgs[0] as string, "a2"));
-		expect(done.code, done.out).toBe(0);
+		const dir = await exportTo(orgs[0] as string, "a2");
+		// ohne eigenen Knoten: stimmig, aber der Block ist nicht abgeglichen (S4)
+		const done = verify(dir);
+		expect(done.code, done.out).toBe(2);
 		expect(done.out).toContain("Bitcoin-Block 912345");
 		expect(done.out).toContain(`Merkle-Wurzel ${a?.bitcoinMerkleRoot}`);
+		expect(done.out).toContain("nicht geprüft");
+		const checked = verify(dir, "--block", `912345:${a?.bitcoinMerkleRoot}`);
+		expect(checked.code, checked.out).toBe(0);
+		expect(checked.out).toContain("stimmt mit deinem Knoten");
+		const wrong = verify(dir, "--block", `912345:${"0".repeat(64)}`);
+		expect(wrong.code).toBe(1);
 	});
 
 	it("erkennt eine nachträglich geänderte Kette", async () => {
 		const dir = await exportTo(orgs[1] as string, "b1");
-		expect(verify(dir).code).toBe(0);
+		// stimmig, der Bitcoin-Block ist nur nicht abgeglichen
+		expect(verify(dir).code).toBe(2);
 		const file = join(dir, "kette.jsonl");
 		const lines = readFileSync(file, "utf8").split("\n");
 		lines[1] = (lines[1] as string).replace('"i":2', '"i":20');

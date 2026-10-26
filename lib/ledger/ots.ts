@@ -29,6 +29,11 @@ const TAG_BITCOIN = "0588960d73d71901";
 const MAX_URI = 1000;
 const MAX_ARG = 4096;
 const MAX_DEPTH = 256;
+// Grenzen gegen Antworten, die beim Lesen explodieren (Selbstprüfung S3):
+// Nachricht höchstens 4096 Bytes wie python-opentimestamps (hexlify und
+// append verdoppeln sonst je Stufe), höchstens 1000 Knoten je Zeitstempel
+export const MAX_MSG = 4096;
+const MAX_NODES = 1000;
 
 export type OtsOp =
 	| { op: "append" | "prepend"; arg: Uint8Array }
@@ -68,6 +73,12 @@ export function sha256(data: Uint8Array): Uint8Array {
 }
 
 export function applyOp(op: OtsOp, msg: Uint8Array): Uint8Array {
+	const out = applyOpRaw(op, msg);
+	if (out.length > MAX_MSG) throw new Error("ots_msg_too_long");
+	return out;
+}
+
+function applyOpRaw(op: OtsOp, msg: Uint8Array): Uint8Array {
 	switch (op.op) {
 		case "append":
 			return concat(msg, op.arg);
@@ -205,7 +216,11 @@ export function serializeOtsFile(ts: OtsTimestamp): Uint8Array {
 
 class Reader {
 	pos = 0;
+	nodes = 0;
 	constructor(private readonly buf: Uint8Array) {}
+	node() {
+		if (++this.nodes > MAX_NODES) throw new Error("ots_too_many_nodes");
+	}
 	byte(): number {
 		const b = this.buf[this.pos];
 		if (b === undefined) throw new Error("ots_truncated");
@@ -272,6 +287,7 @@ function readTimestamp(
 	if (depth > MAX_DEPTH) throw new Error("ots_depth");
 	const ts = newTimestamp(msg);
 	const item = (tag: number) => {
+		r.node();
 		if (tag === 0x00) ts.attestations.push(readAttestation(r));
 		else {
 			const op = readOp(r, tag);
@@ -319,10 +335,15 @@ export function mergeTimestamp(ts: OtsTimestamp, other: OtsTimestamp): void {
 	const have = new Set(ts.attestations.map((a) => hex(attestationBytes(a))));
 	for (const a of other.attestations)
 		if (!have.has(hex(attestationBytes(a)))) ts.attestations.push(a);
+	// Zweige je Op einmal schlüsseln, nicht je Paar vergleichen
+	const byKey = new Map(ts.ops.map((x) => [opKey(x.op), x]));
 	for (const o of other.ops) {
-		const hit = ts.ops.find((x) => opKey(x.op) === opKey(o.op));
+		const hit = byKey.get(opKey(o.op));
 		if (hit) mergeTimestamp(hit.next, o.next);
-		else ts.ops.push(o);
+		else {
+			ts.ops.push(o);
+			byKey.set(opKey(o.op), o);
+		}
 	}
 }
 
@@ -339,12 +360,15 @@ export function attestations(ts: OtsTimestamp): AttestationAt[] {
 	return out;
 }
 
-/** Niedrigste Bitcoin-Beglaubigung (frühester Beweis), sonst null. */
+/**
+ * Niedrigste Bitcoin-Beglaubigung (frühester Beweis), sonst null. Nur mit
+ * 32-Byte-Nachricht — eine Merkle-Wurzel hat genau diese Länge.
+ */
 export function bitcoinAttestation(
 	ts: OtsTimestamp,
 ): { height: number; merkleRoot: string } | null {
 	const hits = attestations(ts).flatMap((a) =>
-		a.attestation.kind === "bitcoin"
+		a.attestation.kind === "bitcoin" && a.msg.length === 32
 			? [
 					{
 						height: a.attestation.height,

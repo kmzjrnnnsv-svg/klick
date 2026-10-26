@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Verlauf prüfen — ohne Klick, nur mit Node (node:crypto, node:fs).
 //
-//   node pruefen.mjs [ordner]      (ordner = entpackter Verlauf, Standard: hier)
+//   node pruefen.mjs [ordner] [--block <höhe>:<merkleroot>] …
+//   (ordner = entpackter Verlauf, Standard: hier)
 //
 // Prüft (Härtung V, ADR-030):
 //  1. Kette: jeder Eintrag aus kette.jsonl wird neu gehasht
@@ -12,20 +13,34 @@
 //  3. Zeitstempel (wurzel.bin.ots, OpenTimestamps): gehört zu wurzel.bin und
 //     führt zu einer Bitcoin-Beglaubigung (Blockhöhe + Merkle-Wurzel des
 //     Blocks zum Abgleich) oder ist noch ausstehend.
-// Den Bitcoin-Block gleichst du mit einem eigenen Knoten ab
-// (bitcoin-cli getblockheader $(bitcoin-cli getblockhash <höhe>)) oder prüfst
-// die .ots-Datei mit dem offiziellen Client: ots verify wurzel.bin.ots
+// Den Bitcoin-Block prüft dieses Skript nicht selbst (es kennt die Kette
+// nicht): gleiche ihn mit einem eigenen Knoten ab
+// (bitcoin-cli getblockheader $(bitcoin-cli getblockhash <höhe>)) und gib die
+// Merkle-Wurzel mit --block <höhe>:<merkleroot> mit, oder prüfe die .ots-Datei
+// mit dem offiziellen Client: ots verify wurzel.bin.ots
 //
-// Exit-Code 0 = alles stimmig, 1 = Abweichung gefunden.
+// Exit-Code 0 = alles stimmig, 1 = Abweichung gefunden, 2 = stimmig, aber
+// mindestens ein Bitcoin-Block ist noch nicht abgeglichen.
 
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const dir = process.argv[2] ?? dirname(fileURLToPath(import.meta.url));
+const args = process.argv.slice(2);
+const blocks = new Map();
+let dirArg = null;
+for (let i = 0; i < args.length; i++) {
+	if (args[i] === "--block") {
+		const [h, root] = String(args[++i] ?? "").split(":");
+		blocks.set(Number(h), String(root ?? "").toLowerCase());
+	} else dirArg = args[i];
+}
+const dir = dirArg ?? dirname(fileURLToPath(import.meta.url));
 const sha256 = (b) => createHash("sha256").update(b).digest();
+const MAX_MSG = 4096;
 let failures = 0;
+let unchecked = 0;
 const fail = (msg) => {
 	failures++;
 	console.log(`  ✗ ${msg}`);
@@ -150,6 +165,11 @@ function reader(buf) {
 	return r;
 }
 function applyOp(tag, arg, msg) {
+	const out = applyOpRaw(tag, arg, msg);
+	if (out.length > MAX_MSG) throw new Error("Nachricht zu lang");
+	return out;
+}
+function applyOpRaw(tag, arg, msg) {
 	switch (tag) {
 		case 0xf0:
 			return Buffer.concat([msg, arg]);
@@ -238,14 +258,25 @@ for (const a of anchors) {
 	try {
 		const found = readOts(readFileSync(otsPath), wurzel);
 		const btc = found
-			.filter((f) => f.kind === "bitcoin")
+			.filter((f) => f.kind === "bitcoin" && f.msg.length === 32)
 			.sort((x, y) => x.height - y.height)[0];
 		if (btc) {
 			const mr = Buffer.from(btc.msg).reverse().toString("hex");
-			ok(`Bitcoin-Block ${btc.height}, Merkle-Wurzel ${mr}`);
-			console.log(
-				`    abgleichen: bitcoin-cli getblockheader $(bitcoin-cli getblockhash ${btc.height}) | grep merkleroot`,
-			);
+			const known = blocks.get(btc.height);
+			if (known === undefined) {
+				unchecked++;
+				console.log(
+					`  · Bitcoin-Block ${btc.height} laut Zeitstempel, Merkle-Wurzel ${mr} (nicht geprüft)`,
+				);
+				console.log(
+					`    abgleichen: bitcoin-cli getblockheader $(bitcoin-cli getblockhash ${btc.height}) | grep merkleroot`,
+				);
+				console.log(`    dann erneut: --block ${btc.height}:<merkleroot>`);
+			} else if (known === mr)
+				ok(
+					`Bitcoin-Block ${btc.height}, Merkle-Wurzel stimmt mit deinem Knoten`,
+				);
+			else fail(`Bitcoin-Block ${btc.height}: Merkle-Wurzel weicht ab`);
 		} else {
 			const cals = found.filter((f) => f.kind === "pending").map((f) => f.uri);
 			console.log(
@@ -258,8 +289,10 @@ for (const a of anchors) {
 }
 
 console.log(
-	failures === 0
-		? "\nErgebnis: stimmig."
-		: `\nErgebnis: ${failures} Abweichung(en).`,
+	failures > 0
+		? `\nErgebnis: ${failures} Abweichung(en).`
+		: unchecked > 0
+			? `\nErgebnis: stimmig, ${unchecked} Bitcoin-Block/Blöcke noch nicht abgeglichen.`
+			: "\nErgebnis: stimmig.",
 );
-process.exitCode = failures === 0 ? 0 : 1;
+process.exitCode = failures > 0 ? 1 : unchecked > 0 ? 2 : 0;

@@ -64,10 +64,25 @@ export function configuredCalendars(env: string | undefined): string[] {
 	return list.length > 0 ? list : [...DEFAULT_CALENDARS];
 }
 
-async function readLimited(res: Response): Promise<Uint8Array> {
-	const buf = new Uint8Array(await res.arrayBuffer());
-	if (buf.length > MAX_RESPONSE) throw new Error("calendar_too_large");
-	return buf;
+// Beim Lesen abbrechen, nicht erst nach dem ganzen Körper (Selbstprüfung S3)
+export async function readLimited(res: Response): Promise<Uint8Array> {
+	const declared = Number(res.headers.get("content-length") ?? "0");
+	if (declared > MAX_RESPONSE) throw new Error("calendar_too_large");
+	if (!res.body) return new Uint8Array(0);
+	const reader = res.body.getReader();
+	const parts: Uint8Array[] = [];
+	let size = 0;
+	for (;;) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		size += value.length;
+		if (size > MAX_RESPONSE) {
+			await reader.cancel().catch(() => undefined);
+			throw new Error("calendar_too_large");
+		}
+		parts.push(value);
+	}
+	return Uint8Array.from(Buffer.concat(parts));
 }
 
 /** Commitment bei einem Kalender einreichen → Zeitstempel ab dem Commitment. */

@@ -6447,7 +6447,7 @@
 		"headHint": "nach {count} Einträgen",
 		"root": "Wurzel",
 		"blockRoot": "Merkle-Wurzel des Blocks",
-		"confirmedIn": "in Block {height} bestätigt",
+		"confirmedIn": "in Block {height}, von zwei Kalendern gemeldet",
 		"status_pending": "wartet auf Bitcoin",
 		"status_confirmed": "bestätigt",
 		"status_failed": "Kalender nicht erreicht",
@@ -6457,7 +6457,7 @@
 		"reason_manual": "von Hand",
 		"verifyTitle": "Ohne Klick prüfen",
 		"verifyLead": "Der Download enthält deine Kette, jeden Anker mit Merkle-Pfad und Zeitstempel sowie ein Prüfskript (node pruefen.mjs).",
-		"verifyFooter": "Den Bitcoin-Block gleichst du mit einem eigenen Knoten oder dem offiziellen OpenTimestamps-Client ab (ots verify). Prüfer:innen brauchen dafür keinen Zugang zu Klick.",
+		"verifyFooter": "Den Bitcoin-Block gleichst du mit einem eigenen Knoten ab (node pruefen.mjs --block <höhe>:<merkleroot>) oder mit dem offiziellen OpenTimestamps-Client (ots verify). Prüfer:innen brauchen dafür keinen Zugang zu Klick. Herunterladen dürfen Inhaber:innen und Prüfer:innen, weil die Kette IP-Adressen enthält.",
 		"download": "Verlauf herunterladen"
 	},
 	"PlatformAccess": {

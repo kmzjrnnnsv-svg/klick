@@ -66,3 +66,21 @@ export function stampTree(
 	});
 	return { file, commitment };
 }
+
+// Bestätigt erst, wenn zwei der Kalender, die den Anker angenommen haben,
+// je in ihrer eigenen Antwort einen Bitcoin-Block melden (bei nur einem
+// Kalender: dieser) — ein einzelner Kalender täuscht sonst „bestätigt“ vor
+// (Selbstprüfung S2). Den Block selbst prüft erst ots verify bzw. ein
+// eigener Knoten (scripts/verify-ledger.mjs --block).
+export const CONFIRMING_CALENDARS = 2;
+
+export function confirmedBy(
+	byCalendar: ReadonlyMap<string, { height: number; merkleRoot: string }>,
+	acceptedBy: number,
+): { height: number; merkleRoot: string } | null {
+	const need = Math.min(CONFIRMING_CALENDARS, Math.max(1, acceptedBy));
+	if (byCalendar.size < need) return null;
+	return (
+		[...byCalendar.values()].sort((x, y) => x.height - y.height)[0] ?? null
+	);
+}

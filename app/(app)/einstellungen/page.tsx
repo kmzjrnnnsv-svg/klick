@@ -78,6 +78,7 @@ import { allows, roleStatements } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { orgSsoPolicy } from "@/lib/auth/sso-provisioning";
+import { ledgerExportAllowed } from "@/lib/auth/visibility";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import { requiredDuties } from "@/lib/compliance/catalog/approval-duties";
 import { WORKFLOW_BY_KIND } from "@/lib/compliance/catalog/approval-workflows";
@@ -844,7 +845,10 @@ async function renderSection(
 				<LedgerPanel
 					entries={stats?.n ?? 0}
 					lastEntryAt={stats?.last ? new Date(stats.last).toISOString() : null}
-					canExport={allows(ctx, { export: ["create"] })}
+					canExport={
+						allows(ctx, { export: ["create"] }) &&
+						ledgerExportAllowed(ctx.orgRole)
+					}
 					anchors={ledger.heads.flatMap((h) =>
 						h.anchor
 							? [
