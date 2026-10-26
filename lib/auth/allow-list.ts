@@ -45,6 +45,17 @@ export async function hasPendingActivation(userId: string): Promise<boolean> {
 }
 
 // Gehört der Passkey (credential id) zu einem gesperrten Konto?
+export async function passkeyOwnerId(
+	credentialId: string,
+): Promise<string | null> {
+	const [row] = await globalDb
+		.select({ userId: passkey.userId })
+		.from(passkey)
+		.where(eq(passkey.credentialID, credentialId))
+		.limit(1);
+	return row?.userId ?? null;
+}
+
 export async function passkeyOwnerBlocked(
 	credentialId: string,
 ): Promise<boolean> {

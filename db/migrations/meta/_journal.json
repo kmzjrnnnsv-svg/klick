@@ -330,6 +330,13 @@
       "when": 1792976763357,
       "tag": "0046_policy_portal",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792978632207,
+      "tag": "0047_sso_policy",
+      "breakpoints": true
     }
   ]
 }

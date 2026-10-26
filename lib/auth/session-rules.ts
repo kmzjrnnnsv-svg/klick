@@ -66,9 +66,12 @@ export function checkSessionRules(
 		throw new AuthError("session_expired");
 	}
 	if (ctx.user.banned) throw new AuthError("forbidden");
+	// Bestätigt ist bestätigt — auch per Firmen-MFA ohne eigenen Faktor (SSO,
+	// je Org eingeschaltet); sonst erst einrichten, dann bestätigen
+	if (s.mfaVerifiedAt) return;
 	if (!ctx.user.twoFactorEnabled && !ctx.user.hasPasskey)
 		throw new AuthError("mfa_enrol");
-	if (!s.mfaVerifiedAt) throw new AuthError("mfa_required");
+	throw new AuthError("mfa_required");
 }
 
 export function isStepUpFresh(

@@ -238,6 +238,9 @@ export const orgSettings = pgTable(
 		areaFunctions: json<Partial<Record<string, FunctionKey>>>()
 			.notNull()
 			.default({}),
+		// SSO je Kunde (lib/auth/sso-policy.ts): erzwingen, Firmen-MFA,
+		// Gruppen → Rolle; gelesen nur über ssoPolicyOf
+		ssoPolicy: json<Record<string, unknown>>().notNull().default({}),
 		// Standard (nach Rahmenwerk) oder individuell (ADR-024)
 		governanceMode: text({ enum: GOVERNANCE_MODES })
 			.notNull()

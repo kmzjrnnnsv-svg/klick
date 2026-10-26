@@ -9,20 +9,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
-import { BLOCKED_HINT_COOKIE } from "@/lib/auth/account-status";
+import {
+	BLOCKED_HINT_COOKIE,
+	SSO_HINT_COOKIE,
+} from "@/lib/auth/account-status";
 import { authClient } from "@/lib/auth/client";
 
-// Hinweis-Cookie nach Passkey-Anmeldung eines gesperrten Kontos lesen und
-// sofort löschen (lib/auth/account-status.ts).
-function takeBlockedHint(): boolean {
-	const hit = document.cookie
-		.split("; ")
-		.some((c) => c === `${BLOCKED_HINT_COOKIE}=1`);
+// Hinweis-Cookie nach Passkey-Anmeldung eines gesperrten Kontos bzw. bei
+// erzwungenem SSO lesen und sofort löschen (lib/auth/account-status.ts).
+function takeHint(name: string): boolean {
+	const hit = document.cookie.split("; ").some((c) => c === `${name}=1`);
 	if (hit)
 		// biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API fehlt in Firefox
-		document.cookie = `${BLOCKED_HINT_COOKIE}=; Max-Age=0; Path=/; SameSite=Strict`;
+		document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Strict`;
 	return hit;
 }
+const takeBlockedHint = () => takeHint(BLOCKED_HINT_COOKIE);
+const takeSsoHint = () => takeHint(SSO_HINT_COOKIE);
 
 // Anmeldung „Passkey zuerst“ (ADR-019): Passkey als Hauptweg — per Knopf
 // oder über das Autofill des E-Mail-Felds (Conditional UI) —, dazu SSO und
@@ -49,6 +52,7 @@ export function LoginForm({
 		: "/login/notweg";
 
 	const blockedText = t("accountBlocked");
+	const ssoText = t("ssoRequired");
 
 	// Conditional UI: der Browser bietet gespeicherte Passkeys direkt im
 	// E-Mail-Feld an. Bricht still ab, sobald der Knopf benutzt wird.
@@ -63,7 +67,9 @@ export function LoginForm({
 			if (!(await pkc?.isConditionalMediationAvailable?.().catch(() => false)))
 				return;
 			const res = await authClient.signIn.passkey({ autoFill: true });
-			if (active && res?.error && takeBlockedHint()) toast.error(blockedText);
+			if (active && res?.error && takeSsoHint()) toast.error(ssoText);
+			else if (active && res?.error && takeBlockedHint())
+				toast.error(blockedText);
 			if (active && res && !res.error) {
 				router.push(target);
 				router.refresh();
@@ -72,7 +78,7 @@ export function LoginForm({
 		return () => {
 			active = false;
 		};
-	}, [router, target, blockedText]);
+	}, [router, target, blockedText, ssoText]);
 
 	async function passkey() {
 		setBusy("passkey");
@@ -84,9 +90,11 @@ export function LoginForm({
 			if (code === "AUTH_CANCELLED" || code === "ERROR_CEREMONY_ABORTED")
 				return;
 			toast.error(
-				code === "BANNED_USER" || takeBlockedHint()
-					? t("accountBlocked")
-					: t("passkeySignInFailed"),
+				code === "SSO_REQUIRED" || takeSsoHint()
+					? t("ssoRequired")
+					: code === "BANNED_USER" || takeBlockedHint()
+						? t("accountBlocked")
+						: t("passkeySignInFailed"),
 			);
 			return;
 		}

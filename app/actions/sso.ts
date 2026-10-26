@@ -1,15 +1,29 @@
 "use server";
 
 import { APIError } from "better-auth/api";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { orgSettings } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
-import { requireStepUp, toOrgCtx } from "@/lib/auth/guards";
+import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
+import { listSsoProvidersForOrg } from "@/lib/auth/org";
 import { auth } from "@/lib/auth/server";
 import { AuthError } from "@/lib/auth/session-rules";
+import { providerPreset, ssoPolicyOf } from "@/lib/auth/sso-policy";
 import { mutateOrg } from "@/lib/db/with-org";
+import { env } from "@/lib/env";
+import { safeFetch } from "@/lib/security/quick-check/fetcher";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
-import { registerSsoSchema, ssoProviderIdSchema } from "@/lib/validation/sso";
+import {
+	discoveryTestSchema,
+	isPublicHttpsUrl,
+	registerOidcPresetSchema,
+	registerSamlSchema,
+	registerSsoSchema,
+	ssoPolicySchema,
+	ssoProviderIdSchema,
+} from "@/lib/validation/sso";
 
 // SSO je Organisation (OIDC über @better-auth/sso). Nur Owner mit Step-up;
 // Client-Secret geht direkt an Better Auth (verschlüsselt gespeichert) und
@@ -173,4 +187,169 @@ export const requestSsoDomainVerification = safeAction(
 export const verifySsoDomain = safeAction(
 	"verifySsoDomain",
 	verifySsoDomainImpl,
+);
+
+// Geführte Einrichtung (S1): Issuer und Discovery aus der Anbieter-Vorlage.
+async function registerOidcPresetImpl(input: unknown): Promise<ActionResult> {
+	const parsed = registerOidcPresetSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const preset = providerPreset(d.kind, d);
+	if (!preset || !isPublicHttpsUrl(preset.issuer))
+		return { ok: false, error: "sso_preset_invalid" };
+	return registerSsoProviderImpl({
+		providerId: d.providerId,
+		domain: d.domain,
+		issuer: preset.issuer,
+		discoveryEndpoint: preset.discoveryEndpoint,
+		clientId: d.clientId,
+		clientSecret: d.clientSecret,
+		// Gruppen kommen bei Entra/Okta im ID-Token, wenn der Claim im IdP
+		// eingerichtet ist; Google liefert keine Gruppen
+		scopes: d.kind === "okta" ? "openid email profile groups" : undefined,
+	});
+}
+
+// SAML 2.0 (S3): Metadaten des IdP oder Entity-ID + SSO-URL + Zertifikat;
+// Klicks SP-Metadaten unter /api/auth/sso/saml2/sp/metadata?providerId=…
+async function registerSamlProviderImpl(input: unknown): Promise<ActionResult> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = registerSamlSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const base = new URL(env().BETTER_AUTH_URL).origin;
+	const spEntityId = `${base}/api/auth/sso/saml2/sp/metadata?providerId=${d.providerId}`;
+	const idpEntityId = d.entityId ?? entityIdFromMetadata(d.metadataXml) ?? "";
+	if (!idpEntityId) return { ok: false, error: "sso_saml_entity" };
+	try {
+		await auth.api.registerSSOProvider({
+			body: {
+				providerId: d.providerId,
+				issuer: idpEntityId,
+				domain: d.domain,
+				organizationId: c.orgId,
+				samlConfig: {
+					issuer: spEntityId,
+					entryPoint: d.ssoUrl ?? "",
+					cert: d.metadataXml ? undefined : d.certificate,
+					callbackUrl: `${base}/heute`,
+					idpMetadata: d.metadataXml
+						? { metadata: d.metadataXml }
+						: { entityID: idpEntityId, cert: d.certificate },
+					wantAssertionsSigned: true,
+					mapping: {
+						email: d.emailAttribute || "email",
+						name: d.nameAttribute || "name",
+						extraFields: {
+							groups:
+								d.groupsAttribute ||
+								"http://schemas.microsoft.com/ws/2008/06/identity/claims/groups",
+							authnmethodsreferences:
+								"http://schemas.microsoft.com/claims/authnmethodsreferences",
+						},
+					},
+				},
+			},
+			headers: await headers(),
+		});
+	} catch (e) {
+		return mapError(e);
+	}
+	await mutateOrg(toOrgCtx(c), async () => ({
+		result: null,
+		audit: {
+			action: "sso.provider_registered",
+			target: `sso_provider:${d.providerId}`,
+			after: { domain: d.domain, protocol: "saml", issuer: idpEntityId },
+		},
+	}));
+	revalidatePath("/einstellungen");
+	return { ok: true, data: undefined };
+}
+
+function entityIdFromMetadata(xml: string | undefined): string | null {
+	return /entityID="([^"]{1,500})"/.exec(xml ?? "")?.[1] ?? null;
+}
+
+// Regeln (S1/S2): Gruppen → Rolle, Firmen-MFA, Erzwingen. Erzwingen nur mit
+// verifizierter SSO-Domain — sonst sperrt sich die Org selbst aus.
+async function saveSsoPolicyImpl(input: unknown): Promise<ActionResult> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = ssoPolicySchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const next = ssoPolicyOf(parsed.data);
+	if (
+		next.enforce &&
+		!(await listSsoProvidersForOrg(c.orgId)).some((p) => p.domainVerified)
+	)
+		return { ok: false, error: "sso_enforce_unverified" };
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select({ ssoPolicy: orgSettings.ssoPolicy })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		await tx
+			.update(orgSettings)
+			.set({ ssoPolicy: next })
+			.where(eq(orgSettings.organizationId, c.orgId));
+		return {
+			result: null,
+			audit: {
+				action: "sso.policy_updated",
+				target: `org:${c.orgId}`,
+				before: ssoPolicyOf(row?.ssoPolicy),
+				after: next,
+			},
+		};
+	});
+	revalidatePath("/einstellungen");
+	return { ok: true, data: undefined };
+}
+
+// Verbindung testen: Discovery-Dokument des IdP abrufen (SSRF-geschützt).
+async function testSsoDiscoveryImpl(
+	input: unknown,
+): Promise<ActionResult<{ issuer: string; endpoints: number }>> {
+	const c = await requireOrg({ settings: ["update"] });
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const parsed = discoveryTestSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const r = await safeFetch(parsed.data.discoveryEndpoint, {
+		budget: { requests: 3, deadline: Date.now() + 8_000 },
+		maxBytes: 200_000,
+	});
+	if (!r.ok || r.res.status !== 200)
+		return { ok: false, error: "sso_discovery_failed" };
+	let doc: Record<string, unknown>;
+	try {
+		doc = JSON.parse(r.res.body) as Record<string, unknown>;
+	} catch {
+		return { ok: false, error: "sso_discovery_failed" };
+	}
+	const need = ["authorization_endpoint", "token_endpoint", "jwks_uri"];
+	if (
+		typeof doc.issuer !== "string" ||
+		need.some((k) => typeof doc[k] !== "string")
+	)
+		return { ok: false, error: "sso_discovery_failed" };
+	return { ok: true, data: { issuer: doc.issuer, endpoints: need.length } };
+}
+
+export const registerOidcPreset = safeAction(
+	"registerOidcPreset",
+	registerOidcPresetImpl,
+);
+export const registerSamlProvider = safeAction(
+	"registerSamlProvider",
+	registerSamlProviderImpl,
+);
+export const saveSsoPolicy = safeAction("saveSsoPolicy", saveSsoPolicyImpl);
+export const testSsoDiscovery = safeAction(
+	"testSsoDiscovery",
+	testSsoDiscoveryImpl,
 );

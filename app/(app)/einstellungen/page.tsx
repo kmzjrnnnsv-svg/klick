@@ -63,6 +63,7 @@ import {
 import { allows, roleStatements } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { normalizeRole } from "@/lib/auth/session-rules";
+import { orgSsoPolicy } from "@/lib/auth/sso-provisioning";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import { requiredDuties } from "@/lib/compliance/catalog/approval-duties";
 import { WORKFLOW_BY_KIND } from "@/lib/compliance/catalog/approval-workflows";
@@ -642,6 +643,7 @@ async function renderSection(
 					providers={await listSsoProvidersForOrg(ctx.orgId)}
 					callbackBase={callbackBase()}
 					canEdit={ctx.orgRole === "owner"}
+					policy={await orgSsoPolicy(ctx.orgId)}
 				/>
 			);
 		case "portal": {

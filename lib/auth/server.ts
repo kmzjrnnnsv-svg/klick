@@ -23,11 +23,12 @@ import {
 	transactionalEmail,
 } from "../mail/templates";
 import { syncTrainingAssignments } from "../trainings/assignments";
-import { BLOCKED_HINT_COOKIE } from "./account-status";
+import { BLOCKED_HINT_COOKIE, SSO_HINT_COOKIE } from "./account-status";
 import {
 	hasPendingActivation,
 	mayReceiveMagicLink,
 	passkeyOwnerBlocked,
+	passkeyOwnerId,
 	pendingInvitationId,
 } from "./allow-list";
 import { authAfterHook } from "./audit-events";
@@ -51,6 +52,7 @@ import {
 	resolveRegistration,
 } from "./registration-link";
 import { normalizeRole } from "./session-rules";
+import { provisionSsoUser, ssoGateForUser } from "./sso-provisioning";
 
 // Bewusst keine env()-Validierung beim Import: Better Auth liest
 // BETTER_AUTH_SECRET/BETTER_AUTH_URL selbst aus der Umgebung, und die CLI
@@ -178,6 +180,30 @@ export const auth = betterAuth({
 							code: "ACCOUNT_NOT_ACTIVATED",
 							message: "Konto noch nicht aktiviert.",
 						});
+					// SSO erzwungen: Konten der Firmen-Domain nur über den SSO-
+					// Rückruf; Inhaber:innen behalten den Notzugang (auditiert)
+					const gate = await ssoGateForUser(session.userId, ctx?.path);
+					if (gate === "deny") {
+						ctx?.setCookie(SSO_HINT_COOKIE, "1", {
+							maxAge: 60,
+							path: "/",
+							sameSite: "strict",
+							secure: process.env.NODE_ENV === "production",
+						});
+						throw new APIError("FORBIDDEN", {
+							code: "SSO_REQUIRED",
+							message: "Bitte mit dem Firmenkonto anmelden.",
+						});
+					}
+					if (gate === "bypass")
+						await auditPlatform(
+							{ userId: session.userId },
+							{
+								action: "auth.sso_bypass",
+								target: `user:${session.userId}`,
+								after: { path: ctx?.path ?? null },
+							},
+						);
 					const now = new Date();
 					return {
 						data: {
@@ -600,6 +626,25 @@ export const auth = betterAuth({
 					// Gesperrt: vor der Sitzung ablehnen und /login einen Hinweis
 					// geben (der Fehlercode selbst kommt nur als
 					// AUTHENTICATION_FAILED beim Client an).
+					// SSO erzwungen: Hinweis für /login (der Fehler selbst kommt
+					// nur als AUTHENTICATION_FAILED an)
+					const owner = await passkeyOwnerId(clientData.id);
+					if (
+						owner &&
+						(await ssoGateForUser(owner, "/passkey/verify-authentication")) ===
+							"deny"
+					) {
+						ctx.setCookie(SSO_HINT_COOKIE, "1", {
+							maxAge: 60,
+							path: "/",
+							sameSite: "strict",
+							secure: process.env.NODE_ENV === "production",
+						});
+						throw new APIError("FORBIDDEN", {
+							code: "SSO_REQUIRED",
+							message: "sso_required",
+						});
+					}
 					if (await passkeyOwnerBlocked(clientData.id)) {
 						ctx.setCookie(BLOCKED_HINT_COOKIE, "1", {
 							maxAge: 60,
@@ -629,7 +674,11 @@ export const auth = betterAuth({
 		sso({
 			disableImplicitSignUp: false,
 			defaultOverrideUserInfo: false,
-			organizationProvisioning: { disabled: false, defaultRole: "member" },
+			// Eigene Provisionierung bei jeder Anmeldung (lib/auth/sso-
+			// provisioning.ts): Rolle aus Gruppen, Ein-Org-Regel, Firmen-MFA
+			organizationProvisioning: { disabled: true },
+			provisionUser: provisionSsoUser,
+			provisionUserOnEveryLogin: true,
 			domainVerification: { enabled: true, tokenPrefix: "klick-sso" },
 		}),
 
