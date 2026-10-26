@@ -502,13 +502,13 @@ export function MandateSignerState({
 			</Button>
 		);
 	return (
-		<div className="flex items-center gap-2">
+		<span className="flex items-center gap-2">
 			{state === "stale" && (
 				<Badge variant="warning">{t("signerStillActive")}</Badge>
 			)}
 			<Button variant="ghost" size="sm" onClick={sync} disabled={busy}>
 				{t("signerMissing")}
 			</Button>
-		</div>
+		</span>
 	);
 }

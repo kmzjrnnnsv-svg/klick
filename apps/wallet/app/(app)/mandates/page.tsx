@@ -108,34 +108,38 @@ export default async function MandatesPage() {
 				network: NETWORKS[m.network].label,
 			})}
 			accessory={
-				<div className="flex flex-wrap items-center justify-end gap-2">
-					{(() => {
-						const st = signerState(m, live);
-						if (!st) return null;
-						if (st === "lapsed")
-							return <Badge variant="muted">{t("signerLapsed")}</Badge>;
-						return (
+				live ? (
+					owner ? (
+						<RevokeMandateButton id={m.id} />
+					) : (
+						<Badge variant="success">{t("statusActive")}</Badge>
+					)
+				) : (
+					<Badge variant="muted">
+						{m.revokedAt ? t("statusRevoked") : t("statusExpired")}
+					</Badge>
+				)
+			}
+		>
+			{(() => {
+				// Stand im Signer unter dem Text, damit die Zeile am Handy lesbar bleibt
+				const st = signerState(m, live);
+				if (!st) return null;
+				return (
+					<span className="mt-1.5 flex flex-wrap items-center gap-2">
+						{st === "lapsed" ? (
+							<Badge variant="muted">{t("signerLapsed")}</Badge>
+						) : (
 							<MandateSignerState
 								id={m.id}
 								state={st}
 								confirmUrl={mandateConfirmUrl(m.id)}
 							/>
-						);
-					})()}
-					{live ? (
-						owner ? (
-							<RevokeMandateButton id={m.id} />
-						) : (
-							<Badge variant="success">{t("statusActive")}</Badge>
-						)
-					) : (
-						<Badge variant="muted">
-							{m.revokedAt ? t("statusRevoked") : t("statusExpired")}
-						</Badge>
-					)}
-				</div>
-			}
-		/>
+						)}
+					</span>
+				);
+			})()}
+		</ListRow>
 	);
 
 	return (
