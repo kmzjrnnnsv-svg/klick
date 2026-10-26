@@ -32,6 +32,23 @@ export type SignerIntentView = {
 	cancelled: boolean;
 	vetoed: boolean;
 	signed: { mode: string; txid: string; fee: string; at: number } | null;
+	// vorab freigegeben über diese Vollmacht (Härtung W)
+	mandateId?: string | null;
+};
+
+// Vollmacht im Signer (lib/wallet/core/mandate.ts); `active` = freigegeben,
+// nicht widerrufen, Schlüssel noch aktiv
+export type SignerMandateView = {
+	mandateId: string;
+	text: string;
+	createdAt: number;
+	approvals: { person: string; at: number }[];
+	approvedAt: number | null;
+	approvableUntil: number | null;
+	active: boolean;
+	revoked: boolean;
+	validUntil: number;
+	used: string;
 };
 
 export type SignResult = {

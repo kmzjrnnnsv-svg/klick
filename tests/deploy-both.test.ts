@@ -111,7 +111,7 @@ describe("nginx both.money", () => {
 		expect(blocks(/location \/api\/auth\/ \{[^}]*\}/g)).toContain(include);
 		for (const open of [
 			/location = \/api\/link \{[^}]*\}/g,
-			/location ~ \^\/api\/\(confirm\|enrol\)\/ \{[^}]*\}/g,
+			/location ~ \^\/api\/\(confirm\|enrol\|mandate\)\/ \{[^}]*\}/g,
 			/location = \/api\/health \{[^}]*\}/g,
 		])
 			expect(blocks(open)).not.toContain(include);

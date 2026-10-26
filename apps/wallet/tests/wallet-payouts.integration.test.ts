@@ -31,6 +31,10 @@ import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { AssetCode } from "@/lib/wallet/core/assets";
 import { deriveAddress, parseAccountKey } from "@/lib/wallet/core/derive";
+import {
+	encodeMandate,
+	normalizeDestinations,
+} from "@/lib/wallet/core/mandate";
 import type { WalletNetwork } from "@/lib/wallet/core/networks";
 import type { Policy } from "@/lib/wallet/core/policy";
 import { BitcoinRpc } from "@/lib/wallet/rpc/bitcoin";
@@ -56,6 +60,9 @@ const RP = "localhost";
 const ORIGIN = "http://localhost:3201";
 const BTC_DEST = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx";
 const ETH_DEST = addr.addChecksum("0x00000000000000000000000000000000000000dd");
+const ETH_DEST2 = addr.addChecksum(
+	"0x00000000000000000000000000000000000000ee",
+);
 
 d("Auszahlungen: Job wallet-payouts (Postgres + Testkette + Signer)", () => {
 	const client = postgres(url ?? "postgres://invalid", { max: 1 });
@@ -178,6 +185,8 @@ d("Auszahlungen: Job wallet-payouts (Postgres + Testkette + Signer)", () => {
 		destination: string;
 		addressBookId: string;
 		speed?: PayoutSpeed;
+		initiator?: string;
+		mandateId?: string;
 	}) {
 		const pol = await policy();
 		const speed = p.speed ?? "normal";
@@ -217,19 +226,23 @@ d("Auszahlungen: Job wallet-payouts (Postgres + Testkette + Signer)", () => {
 			feeCap = cap.feeCap;
 		}
 		const created = (
-			await app<{ intentId: string; text: string; expiresAt: number }>(
-				"intent.create",
-				{
-					kind: "payout",
-					accountId: p.accountId,
-					asset: p.asset,
-					amount: p.amount.toString(),
-					destination: p.destination,
-					feeCap: feeCap.toString(),
-					initiator: userId,
-				},
-			)
+			await app<{
+				intentId: string;
+				text: string;
+				expiresAt: number;
+				approved: boolean;
+			}>("intent.create", {
+				kind: "payout",
+				accountId: p.accountId,
+				asset: p.asset,
+				amount: p.amount.toString(),
+				destination: p.destination,
+				feeCap: feeCap.toString(),
+				initiator: p.initiator ?? userId,
+				...(p.mandateId ? { mandateId: p.mandateId } : {}),
+			})
 		).result;
+		lastApproved = created.approved;
 		const [row] = await inOrg((tx) =>
 			tx
 				.insert(walletPayouts)
@@ -253,6 +266,7 @@ d("Auszahlungen: Job wallet-payouts (Postgres + Testkette + Signer)", () => {
 		return row as typeof walletPayouts.$inferSelect;
 	}
 
+	let lastApproved = false;
 	const get = async (id: string) => {
 		const [row] = await inOrg((tx) =>
 			tx.select().from(walletPayouts).where(eq(walletPayouts.id, id)),
@@ -556,6 +570,74 @@ d("Auszahlungen: Job wallet-payouts (Postgres + Testkette + Signer)", () => {
 			new Set([usdc.id, eth.id]),
 		);
 		expect(out.filter((o) => o.outputRef === "out:fee")).toHaveLength(2);
+	});
+
+	it("Vollmacht im Signer: Auszahlung der Bedienung ohne Bestätigung, Widerruf stoppt", async () => {
+		const destId = await destination("ethereum_sepolia", ETH_DEST2);
+		const grantee = randomUUID();
+		const now = Math.floor(Date.now() / 1000);
+		const mandateId = randomUUID();
+		const text = encodeMandate({
+			orgId,
+			mandateId,
+			grantee,
+			network: "ethereum_sepolia",
+			chainId: 11155111,
+			asset: "ETH",
+			perPayout: 10n ** 15n,
+			total: 2n * 10n ** 15n,
+			destinations: normalizeDestinations("ethereum_sepolia", [ETH_DEST2]),
+			validFrom: now - 60,
+			validUntil: now + 7 * 86_400,
+			issuer: userId,
+			nonce: randomBytes(16).toString("hex"),
+		});
+		await app("mandate.create", { text });
+		const g = (await app<{ challenge: string }>("mandate.get", { mandateId }))
+			.result;
+		const view = (
+			await app<{ active: boolean }>("mandate.approve", {
+				mandateId,
+				...key.assert({
+					rpId: RP,
+					origin: ORIGIN,
+					challenge: Buffer.from(g.challenge, "base64url"),
+				}),
+			})
+		).result;
+		expect(view.active).toBe(true);
+		const pay = () =>
+			payout({
+				accountId: ethAccount,
+				network: "ethereum_sepolia",
+				asset: "ETH",
+				amount: 10n ** 15n,
+				destination: ETH_DEST2,
+				addressBookId: destId,
+				initiator: grantee,
+				mandateId,
+			});
+		const first = await pay();
+		expect(lastApproved).toBe(true);
+		// ohne Schlüssel: der Job übernimmt die Vorab-Freigabe und signiert
+		await job();
+		expect((await get(first.id)).status).toBe("broadcast");
+		chain.eth.mine(4);
+		await job();
+		expect((await get(first.id)).status).toBe("confirmed");
+
+		// Widerruf: die nächste, schon vorab freigegebene Auszahlung signiert
+		// der Signer nicht mehr
+		const second = await pay();
+		expect(lastApproved).toBe(true);
+		await app("mandate.revoke", { mandateId });
+		await job();
+		const after = await get(second.id);
+		expect(after.status).not.toBe("broadcast");
+		expect(after.rawTx).toBeNull();
+		await app("intent.cancel", { intentId: second.intentId });
+		await job();
+		expect((await get(second.id)).status).toBe("cancelled");
 	});
 
 	it("Sperre für Kundengelder: ohne Recht auf Hot-Konten signiert der Job nichts", async () => {

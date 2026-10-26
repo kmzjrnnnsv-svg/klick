@@ -38,9 +38,9 @@ import {
 	type SignerHello,
 	type SignerIntentView,
 	signerCall,
-	signerConfigured,
 	signerErrorCode,
 } from "@wallet/lib/wallet/signer/client";
+import { helloForOrg } from "@wallet/lib/wallet/signer/org";
 import { resetSignerCache } from "@wallet/lib/wallet/signer/status";
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -78,19 +78,6 @@ async function hotAllowed(c: Awaited<ReturnType<typeof requireUnlocked>>) {
 	return hotAccountAllowed(
 		await readOrg(toOrgCtx(c), (tx) => custodyFacts(tx, c.orgId)),
 	);
-}
-
-async function helloForOrg(orgId: string) {
-	if (!signerConfigured()) return { error: "signer_off" } as const;
-	try {
-		const r = await signerCall<SignerHello>("hello");
-		if (!r.result.initialized)
-			return { error: "signer_uninitialized" } as const;
-		if (r.result.orgId !== orgId) return { error: "signer_other_org" } as const;
-		return { hello: r.result, meta: { seq: r.seq, head: r.head } } as const;
-	} catch (e) {
-		return { error: signerErrorCode(e) } as const;
-	}
 }
 
 // Hot-Konto: der Signer erzeugt den Kontoschlüssel aus seiner Seed, Klick
@@ -451,11 +438,16 @@ async function createPayoutImpl(
 		amount,
 		destination: dest.address,
 	};
-	if (needsMandate) {
+	// Bedienung: passende Vollmacht suchen (Pflicht, wenn die Org es
+	// verlangt). Ist sie auch im Signer freigegeben, gilt die Auszahlung dort
+	// als vorab freigegeben (Schritt 2); sonst Bestätigung wie immer.
+	let mandateId: string | null = null;
+	if (needsMandate || c.role !== "owner") {
 		const pre = await readOrg(toOrgCtx(c), (tx) =>
 			mandateForPayout(tx, { ...mandateInput, now: new Date() }),
 		);
-		if (!pre.ok) return fail(pre.error);
+		if (pre.ok) mandateId = pre.mandateId;
+		else if (needsMandate) return fail(pre.error);
 	}
 	// verfügbar = bestätigt laut Knoten minus offene Auszahlungen
 	const reserved = loaded.open.reduce((sum, p) => sum + BigInt(p.amount), 0n);
@@ -519,23 +511,41 @@ async function createPayoutImpl(
 		feeCap = cap.feeCap;
 	}
 	let created: {
-		result: { intentId: string; text: string; expiresAt: number };
+		result: {
+			intentId: string;
+			text: string;
+			expiresAt: number;
+			approved?: boolean;
+		};
 		seq: number;
 		head: string;
 	};
+	const intentArgs = {
+		kind: "payout",
+		accountId: account.id,
+		asset: d.asset,
+		amount: amount.toString(),
+		destination: dest.address,
+		feeCap: feeCap.toString(),
+		initiator: c.userId,
+	};
 	try {
-		created = await signerCall("intent.create", {
-			kind: "payout",
-			accountId: account.id,
-			asset: d.asset,
-			amount: amount.toString(),
-			destination: dest.address,
-			feeCap: feeCap.toString(),
-			initiator: c.userId,
-		});
+		try {
+			created = await signerCall(
+				"intent.create",
+				mandateId ? { ...intentArgs, mandateId } : intentArgs,
+			);
+		} catch (e) {
+			// Vollmacht im Signer fehlt oder deckt nicht: ohne Vorab-Freigabe,
+			// dann bestätigt das Quorum wie bei jeder Auszahlung
+			if (!mandateId || !signerErrorCode(e).startsWith("signer_mandate_"))
+				throw e;
+			created = await signerCall("intent.create", intentArgs);
+		}
 	} catch (e) {
 		return fail(signerErrorCode(e));
 	}
+	const preApproved = created.result.approved === true;
 	const text = amountText(account.network, d.asset, amount);
 	const res = await mutateOrg<ActionResult<{ id: string }>>(
 		toOrgCtx(c),
@@ -543,14 +553,15 @@ async function createPayoutImpl(
 			if (!anchorOk(await recordAnchor(tx, c.orgId, created)))
 				return { result: fail("signer_journal"), audit: [] };
 			// verbindlich unter Zeilensperre (zwei Auszahlungen gleichzeitig)
-			let mandateId: string | null = null;
-			if (needsMandate) {
+			if (mandateId) {
 				const mc = await mandateForPayout(tx, {
 					...mandateInput,
 					now: new Date(),
 					lock: true,
 				});
 				if (!mc.ok) return { result: fail(mc.error), audit: [] };
+				if (mc.mandateId !== mandateId && preApproved)
+					return { result: fail("mandate_changed"), audit: [] };
 				mandateId = mc.mandateId;
 			}
 			const [row] = await tx
@@ -573,16 +584,34 @@ async function createPayoutImpl(
 				})
 				.returning({ id: walletPayouts.id });
 			if (!row) throw new Error("insert failed");
-			await notify(tx, {
-				orgId: c.orgId,
-				recipients: await membersAllowed(tx, c.orgId, { wallet: ["approve"] }),
-				actorUserId: c.userId,
-				kind: "approval_requested",
-				title: `Auszahlung wartet auf Freigabe: ${text}`,
-				body: `An „${dest.label}“. Bestätigen nur mit Sicherheitsschlüssel auf der Bestätigungsseite.`,
-				link: `/payouts/${row.id}`,
-				payload: { payoutId: row.id },
-			});
+			await notify(
+				tx,
+				preApproved
+					? {
+							orgId: c.orgId,
+							recipients: await membersAllowed(tx, c.orgId, {
+								wallet: ["manage"],
+							}),
+							actorUserId: c.userId,
+							kind: "payout",
+							title: `Auszahlung über Vollmacht: ${text}`,
+							body: `An „${dest.label}“. Vorab freigegeben durch die Vollmacht, signiert nach der Pause der Richtlinie. Abbrechen kannst du sie bis dahin in both.money.`,
+							link: `/payouts/${row.id}`,
+							payload: { payoutId: row.id },
+						}
+					: {
+							orgId: c.orgId,
+							recipients: await membersAllowed(tx, c.orgId, {
+								wallet: ["approve"],
+							}),
+							actorUserId: c.userId,
+							kind: "approval_requested",
+							title: `Auszahlung wartet auf Freigabe: ${text}`,
+							body: `An „${dest.label}“. Bestätigen nur mit Sicherheitsschlüssel auf der Bestätigungsseite.`,
+							link: `/payouts/${row.id}`,
+							payload: { payoutId: row.id },
+						},
+			);
 			return {
 				result: { ok: true, data: { id: row.id } },
 				audit: {
@@ -597,6 +626,7 @@ async function createPayoutImpl(
 						speed: d.speed,
 						intentId: created.result.intentId,
 						mandateId,
+						preApproved,
 					},
 				},
 			};

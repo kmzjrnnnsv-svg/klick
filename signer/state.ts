@@ -1,4 +1,5 @@
 import { type Intent, parseIntent } from "../lib/wallet/core/intent";
+import { type Mandate, parseMandate } from "../lib/wallet/core/mandate";
 import type { WalletNetwork } from "../lib/wallet/core/networks";
 import { approvalsSatisfied, type Policy } from "../lib/wallet/core/policy";
 import type { EventOf, InitEvent, SignerEvent } from "./events";
@@ -32,6 +33,18 @@ export type IntentRecord = {
 	cancelled: boolean;
 	vetoed: boolean;
 	signatures: EventOf<"signed">[];
+	// vorab freigegeben über diese Vollmacht (Quorum = das der Vollmacht)
+	mandateId: string | null;
+};
+
+export type MandateRecord = {
+	mandateId: string;
+	text: string;
+	mandate: Mandate;
+	createdAt: number;
+	approvals: { credId: string; person: string; at: number }[];
+	approvedAt: number | null;
+	revoked: boolean;
 };
 
 export type AccountRecord = {
@@ -59,6 +72,7 @@ export type SignerState = {
 	>;
 	keys: Map<string, KeyRecord>;
 	intents: Map<string, IntentRecord>;
+	mandates: Map<string, MandateRecord>;
 	frozen: { reason: string; at: number; by: "app" | "admin" } | null;
 	// Bitcoin-Ausgang → Absicht, die ihn signiert ausgibt
 	reserved: Map<string, string>;
@@ -78,6 +92,7 @@ export function emptyState(): SignerState {
 		enrolments: new Map(),
 		keys: new Map(),
 		intents: new Map(),
+		mandates: new Map(),
 		frozen: null,
 		reserved: new Map(),
 		nonces: new Map(),
@@ -92,13 +107,31 @@ export function activeKeysByPerson(s: SignerState): Map<string, number> {
 	return out;
 }
 
-// Freigabe mit den jetzt aktiven Schlüsseln erreicht? (gesperrte zählen nie)
-export function quorum(s: SignerState, rec: IntentRecord): boolean {
+function approvalsQuorum(
+	s: SignerState,
+	approvals: readonly { credId: string; person: string }[],
+): boolean {
 	if (!s.policy) return false;
-	const valid = rec.approvals
+	const valid = approvals
 		.filter((a) => s.keys.get(a.credId)?.active)
 		.map((a) => ({ personId: a.person, credentialId: a.credId }));
 	return approvalsSatisfied(s.policy, valid, activeKeysByPerson(s));
+}
+
+// Vollmacht freigegeben und nicht widerrufen — mit den jetzt aktiven
+// Schlüsseln (wird ein Schlüssel gesperrt, trägt die Vollmacht nicht mehr)
+export function mandateQuorum(s: SignerState, m: MandateRecord): boolean {
+	return !m.revoked && approvalsQuorum(s, m.approvals);
+}
+
+// Freigabe mit den jetzt aktiven Schlüsseln erreicht? (gesperrte zählen nie)
+// Über eine Vollmacht zählt deren Quorum — auch noch beim Signieren.
+export function quorum(s: SignerState, rec: IntentRecord): boolean {
+	if (rec.mandateId !== null) {
+		const m = s.mandates.get(rec.mandateId);
+		return Boolean(m) && mandateQuorum(s, m as MandateRecord);
+	}
+	return approvalsQuorum(s, rec.approvals);
 }
 
 // Quorum prüfen und Zeiten setzen (Richtlinie zum Zeitpunkt der Freigabe)
@@ -182,7 +215,12 @@ export function apply(s: SignerState, e: SignerEvent): SignerState {
 				cancelled: false,
 				vetoed: false,
 				signatures: [],
+				mandateId: e.mandateId ?? null,
 			});
+			if (e.mandateId) {
+				const rec = s.intents.get(e.intentId);
+				if (rec) settle(s, rec, e.at);
+			}
 			break;
 		case "approval": {
 			const rec = s.intents.get(e.intentId);
@@ -227,6 +265,31 @@ export function apply(s: SignerState, e: SignerEvent): SignerState {
 		}
 		case "rekey":
 			break;
+		case "mandate":
+			s.mandates.set(e.mandateId, {
+				mandateId: e.mandateId,
+				text: e.text,
+				mandate: parseMandate(e.text),
+				createdAt: e.at,
+				approvals: [],
+				approvedAt: null,
+				revoked: false,
+			});
+			break;
+		case "mandate_approval": {
+			const m = s.mandates.get(e.mandateId);
+			const k = s.keys.get(e.credId);
+			if (k) k.counter = e.counter;
+			if (!m) break;
+			m.approvals.push({ credId: e.credId, person: e.person, at: e.at });
+			if (m.approvedAt === null && mandateQuorum(s, m)) m.approvedAt = e.at;
+			break;
+		}
+		case "mandate_revoked": {
+			const m = s.mandates.get(e.mandateId);
+			if (m) m.revoked = true;
+			break;
+		}
 	}
 	return s;
 }

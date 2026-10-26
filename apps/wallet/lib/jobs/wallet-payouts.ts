@@ -371,12 +371,17 @@ async function signFirst(
 		});
 	} catch (e) {
 		if (e instanceof SignerCallError && e.code === "signer") {
-			if (e.signerCode === "window_closed" || e.signerCode === "intent_closed")
+			// Vollmacht abgelaufen (Härtung W): wie ein geschlossenes Fenster
+			if (
+				e.signerCode === "window_closed" ||
+				e.signerCode === "mandate_expired" ||
+				e.signerCode === "intent_closed"
+			)
 				return update(
 					ctx,
 					p.id,
 					{
-						status: e.signerCode === "window_closed" ? "expired" : "cancelled",
+						status: e.signerCode === "intent_closed" ? "cancelled" : "expired",
 						error: e.signerCode,
 					},
 					{ action: "wallet.payout_expired" },

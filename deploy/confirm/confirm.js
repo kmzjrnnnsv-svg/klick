@@ -1,5 +1,6 @@
-// both.money · Bestätigungsseite: eine Absicht (Auszahlung oder Zieladresse) mit
-// dem Sicherheitsschlüssel bestätigen. Link: /#i=<intentId>
+// both.money · Bestätigungsseite: eine Absicht (Auszahlung oder Zieladresse)
+// oder eine Vollmacht mit dem Sicherheitsschlüssel bestätigen.
+// Links: /#i=<intentId> bzw. /#m=<mandateId>
 import {
 	ASSETS,
 	apiBase,
@@ -11,6 +12,7 @@ import {
 	formatUnits,
 	NETWORKS,
 	parseIntent,
+	parseMandate,
 	sha256Hex,
 	takeFragment,
 } from "./canonical.js";
@@ -22,6 +24,11 @@ const MESSAGES = {
 	intent_expired: "Diese Absicht ist abgelaufen.",
 	intent_closed: "Diese Absicht wurde abgebrochen oder per Veto gestoppt.",
 	intent_unknown: "Diese Absicht kennt der Signer nicht.",
+	mandate_expired: "Diese Vollmacht ist abgelaufen oder nicht mehr freigebbar.",
+	mandate_revoked: "Diese Vollmacht wurde widerrufen.",
+	mandate_unknown: "Diese Vollmacht kennt der Signer nicht.",
+	mandate_self:
+		"Die bevollmächtigte Person kann ihre eigene Vollmacht nicht freigeben.",
 	already_approved: "Dieser Schlüssel hat bereits bestätigt.",
 	key_unknown: "Dieser Schlüssel ist im Signer nicht (mehr) registriert.",
 	webauthn: "Der Signer hat die Bestätigung abgelehnt.",
@@ -31,6 +38,24 @@ const MESSAGES = {
 	rate_limited: "Zu viele Versuche. Warte einen Moment.",
 };
 const message = (code) => MESSAGES[code] ?? "Das hat nicht geklappt.";
+
+// je Art: Pfad des Relays, Format der Kennung, Leser des Textes
+const KINDS = {
+	i: {
+		path: "/api/confirm/",
+		id: /^[0-9a-f]{32}$/,
+		parse: parseIntent,
+		idOf: (x) => x.intentId,
+		noun: "Absicht",
+	},
+	m: {
+		path: "/api/mandate/",
+		id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+		parse: parseMandate,
+		idOf: (x) => x.mandateId,
+		noun: "Vollmacht",
+	},
+};
 
 function fail(text) {
 	$("title").textContent = "Nicht bestätigen";
@@ -54,11 +79,18 @@ function address(dest) {
 	return code;
 }
 
-async function render(intent, data) {
+function addresses(list) {
+	const ul = el("ul", null, "addresses");
+	for (const d of list) {
+		const li = el("li");
+		li.append(address(d));
+		ul.append(li);
+	}
+	return ul;
+}
+
+function renderIntent(dl, intent) {
 	const net = NETWORKS[intent.network];
-	const dl = $("facts");
-	dl.replaceChildren();
-	const sum = await sha256Hex(new TextEncoder().encode(data.text));
 	if (intent.kind === "payout") {
 		const asset = ASSETS[intent.network][intent.asset];
 		const amount = `${formatUnits(intent.amount, asset.decimals)} ${intent.asset}`;
@@ -84,26 +116,66 @@ async function render(intent, data) {
 	}
 	fact(dl, "Angelegt von (Kennung)", intent.initiator, "mono");
 	fact(dl, "Gültig bis", fmtTime(intent.expiresAt));
+}
+
+function renderMandate(dl, m) {
+	const net = NETWORKS[m.network];
+	const asset = ASSETS[m.network][m.asset];
+	const per = `${formatUnits(m.perPayout, asset.decimals)} ${m.asset}`;
+	const total = `${formatUnits(m.total, asset.decimals)} ${m.asset}`;
+	$("title").textContent = "Vollmacht freigeben";
+	const where =
+		m.destinations.length === 1 ? "die Adresse unten" : "die Adressen unten";
+	$("lead").textContent =
+		`Die Person unten darf bis ${fmtTime(m.validUntil)} insgesamt ${total} an ${where} auszahlen, ohne weitere Bestätigung mit dem Schlüssel. Pause und Grenzen des Signers gelten weiter.`;
+	fact(dl, "Bevollmächtigt (Kennung)", m.grantee, "mono");
+	fact(dl, "Je Auszahlung höchstens", per, "amount");
+	fact(dl, "Insgesamt höchstens", total, "amount");
+	fact(dl, "Netz", net.label, net.live ? "live" : "");
+	fact(
+		dl,
+		m.destinations.length === 1 ? "Zieladresse" : "Zieladressen",
+		addresses(m.destinations),
+	);
+	if (asset.contract) fact(dl, "Token-Vertrag", address(asset.contract));
+	fact(dl, "Gültig ab", fmtTime(m.validFrom));
+	fact(dl, "Gültig bis", fmtTime(m.validUntil));
+	fact(dl, "Ausgestellt von (Kennung)", m.issuer, "mono");
+}
+
+async function render(kind, parsed, data) {
+	const dl = $("facts");
+	dl.replaceChildren();
+	if (kind === "m") renderMandate(dl, parsed);
+	else renderIntent(dl, parsed);
+	const sum = await sha256Hex(new TextEncoder().encode(data.text));
 	fact(dl, "Prüfsumme", sum.slice(0, 16).match(/.{4}/g).join(" "), "mono");
 	fact(dl, "Bisher bestätigt", String(data.approvals?.length ?? 0));
 	$("rawtext").textContent = data.text;
 	$("raw").hidden = false;
 }
 
-function state(intent, data) {
+function state(kind, parsed, data) {
 	const now = Date.now() / 1000;
 	if (data.frozen) return message("frozen");
+	if (kind === "m") {
+		if (data.revoked) return message("mandate_revoked");
+		if (data.active)
+			return `Freigabe vollständig. Die Vollmacht gilt bis ${fmtTime(parsed.validUntil)}.`;
+		if (now > data.expiresAt) return message("mandate_expired");
+		return null;
+	}
 	if (data.cancelled || data.vetoed) return message("intent_closed");
 	if (data.signed) return "Diese Auszahlung ist bereits signiert.";
 	if (data.approvedAt)
-		return intent.kind === "payout"
+		return parsed.kind === "payout"
 			? `Freigabe vollständig. Signiert wird frühestens ${fmtTime(data.signableAt)}.`
 			: `Freigabe vollständig. Aktiv ab ${fmtTime(data.activeFrom)}.`;
-	if (now > intent.expiresAt) return message("intent_expired");
+	if (now > parsed.expiresAt) return message("intent_expired");
 	return null;
 }
 
-async function confirm(id, intent, data, button) {
+async function confirm(kind, id, parsed, data, button) {
 	button.disabled = true;
 	$("status").textContent =
 		"Stecke deinen Sicherheitsschlüssel ein und gib die PIN ein …";
@@ -123,7 +195,7 @@ async function confirm(id, intent, data, button) {
 			},
 		});
 		if (!cred) throw new Error("abgebrochen");
-		const res = await fetch(`${apiBase()}/api/confirm/${id}`, {
+		const res = await fetch(`${apiBase()}${KINDS[kind].path}${id}`, {
 			method: "POST",
 			credentials: "omit",
 			cache: "no-store",
@@ -144,9 +216,10 @@ async function confirm(id, intent, data, button) {
 			button.disabled = false;
 			return;
 		}
-		const view = out.result ?? {};
-		$("status").textContent = view.approvedAt
-			? (state(intent, { ...data, ...view }) ?? "Bestätigt.")
+		const view = { ...data, ...(out.result ?? {}) };
+		const done = kind === "m" ? view.active : view.approvedAt;
+		$("status").textContent = done
+			? (state(kind, parsed, view) ?? "Bestätigt.")
 			: "Bestätigt. Es fehlt noch eine Freigabe einer zweiten Person.";
 		button.remove();
 	} catch {
@@ -157,11 +230,14 @@ async function confirm(id, intent, data, button) {
 }
 
 async function main() {
-	const id = takeFragment().get("i") ?? "";
-	if (!/^[0-9a-f]{32}$/.test(id)) return fail("Der Link ist unvollständig.");
+	const params = takeFragment();
+	const kind = params.has("m") ? "m" : "i";
+	const k = KINDS[kind];
+	const id = params.get(kind) ?? "";
+	if (!k.id.test(id)) return fail("Der Link ist unvollständig.");
 	let data;
 	try {
-		const res = await fetch(`${apiBase()}/api/confirm/${id}`, {
+		const res = await fetch(`${apiBase()}${k.path}${id}`, {
 			credentials: "omit",
 			cache: "no-store",
 		});
@@ -172,16 +248,16 @@ async function main() {
 	} catch {
 		return fail(message("unreachable"));
 	}
-	let intent;
+	let parsed;
 	try {
-		intent = parseIntent(data.text);
+		parsed = k.parse(data.text);
 	} catch {
-		return fail("Der Text der Absicht ist ungültig. Nicht bestätigen.");
+		return fail(`Der Text der ${k.noun} ist ungültig. Nicht bestätigen.`);
 	}
-	if (intent.intentId !== id)
-		return fail("Die Absicht passt nicht zum Link. Nicht bestätigen.");
-	await render(intent, data);
-	const blocked = state(intent, data);
+	if (k.idOf(parsed) !== id)
+		return fail(`Die ${k.noun} passt nicht zum Link. Nicht bestätigen.`);
+	await render(kind, parsed, data);
+	const blocked = state(kind, parsed, data);
 	if (blocked) {
 		$("banner").textContent = blocked;
 		$("banner").hidden = false;
@@ -189,7 +265,9 @@ async function main() {
 	}
 	const button = el("button", "Mit Sicherheitsschlüssel bestätigen", "primary");
 	button.type = "button";
-	button.addEventListener("click", () => confirm(id, intent, data, button));
+	button.addEventListener("click", () =>
+		confirm(kind, id, parsed, data, button),
+	);
 	$("actions").append(button);
 }
 

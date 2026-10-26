@@ -9,31 +9,43 @@ import { ipFromHeaders } from "@/lib/auth/session-rules";
 import { logger } from "@/lib/log";
 import { SlidingWindowLimiter } from "@/lib/rate-limit";
 
-// Relay zwischen Bestätigungsseite (freigabe.raza.work) und Signer. Klick
+// Relay zwischen Bestätigungsseite (approve.both.money) und Signer. both.money
 // reicht nur weiter — prüfen tut der Signer (WebAuthn, Herkunft, Zähler).
-// Öffentlich ohne Sitzung: die 128-bit-ID der Absicht bzw. Einrichtung ist
-// die Berechtigung. CORS nur für CONFIRM_ORIGIN, keine Cookies, höchstens
-// 16 KB, Ratengrenze je IP und je ID, nur bekannte Felder.
+// Öffentlich ohne Sitzung: die zufällige ID der Absicht, Einrichtung bzw.
+// Vollmacht ist die Berechtigung. CORS nur für CONFIRM_ORIGIN, keine Cookies,
+// höchstens 16 KB, Ratengrenze je IP und je ID, nur bekannte Felder.
 
-const ID = /^[0-9a-f]{32}$/;
+const HEX_ID = /^[0-9a-f]{32}$/;
+const UUID_ID =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MAX_BODY = 16 * 1024;
 const perIp = new SlidingWindowLimiter(60, 60_000);
 const perId = new SlidingWindowLimiter(20, 60_000);
 
-export type RelayKind = "bestaetigung" | "einrichtung";
+export type RelayKind = "bestaetigung" | "einrichtung" | "vollmacht";
 
 const SPEC = {
 	bestaetigung: {
 		key: "intentId",
+		id: HEX_ID,
 		get: "intent.get",
 		post: "approve",
 		fields: ["credId", "authenticatorData", "clientDataJSON", "signature"],
 	},
 	einrichtung: {
 		key: "enrolId",
+		id: HEX_ID,
 		get: "enrol.info",
 		post: "enrol.finish",
 		fields: ["credId", "spki", "authenticatorData", "clientDataJSON", "mac"],
+	},
+	// Vollmacht (Härtung W): der Signer gibt sie über das Quorum frei
+	vollmacht: {
+		key: "mandateId",
+		id: UUID_ID,
+		get: "mandate.get",
+		post: "mandate.approve",
+		fields: ["credId", "authenticatorData", "clientDataJSON", "signature"],
 	},
 } as const;
 
@@ -90,7 +102,7 @@ export function relayRoute(kind: RelayKind) {
 				return reply(403, { ok: false, error: { code: "origin" } }, null);
 			try {
 				const { id } = await params;
-				if (!ID.test(id))
+				if (!spec.id.test(id))
 					return reply(404, { ok: false, error: { code: "not_found" } }, cors);
 				if (
 					!perIp.check(ipFromHeaders(req.headers) ?? "unknown").allowed ||

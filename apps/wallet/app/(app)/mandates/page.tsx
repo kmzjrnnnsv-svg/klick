@@ -1,5 +1,6 @@
 import {
 	IssueMandateDialog,
+	MandateSignerState,
 	RevokeMandateButton,
 } from "@wallet/components/wallet/mandates";
 import { requireUnlockedPage } from "@wallet/lib/auth/gates";
@@ -13,6 +14,10 @@ import {
 	effectiveStatus,
 	listAddressBook,
 } from "@wallet/lib/wallet/address-book";
+import {
+	mandateConfirmUrl,
+	signerMandates,
+} from "@wallet/lib/wallet/mandate-signer";
 import { listMandates } from "@wallet/lib/wallet/mandates";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -34,14 +39,15 @@ const fmt = new Intl.DateTimeFormat("de-DE", {
 // /mandates — Vollmachten (Härtung W): Inhaber:innen stellen sie per
 // Sicherheitsschlüssel aus und widerrufen sie, die Bedienung sieht ihre
 // eigenen mit Restbetrag. Ob Auszahlungen eine brauchen, steht unter
-// Einstellungen > Zugang.
+// Einstellungen > Zugang. Mit eigenem Signer zeigt jede Zeile den Stand
+// dort (Schritt 2: Vorab-Freigabe).
 export default async function MandatesPage() {
 	const ctx = await requireUnlockedPage("/mandates", "wallet:initiate");
 	const owner = roleAllows(ctx.role, "wallet:manage");
 	const t = await getTranslations("Mandates");
 	const now = new Date();
 	const policy = await currentAccessPolicy(ctx.orgId);
-	const [data, members] = await Promise.all([
+	const [data, members, signer] = await Promise.all([
 		readOrg(toOrgCtx(ctx), async (tx) => ({
 			mandates: await listMandates(
 				tx,
@@ -55,7 +61,20 @@ export default async function MandatesPage() {
 				: [],
 		})),
 		owner ? listMembers(toOrgCtx(ctx)) : Promise.resolve([]),
+		owner ? signerMandates(ctx.orgId) : Promise.resolve(null),
 	]);
+	const nowSec = Math.floor(now.getTime() / 1000);
+	// Stand im Signer; null = kein eigener Signer (nur Schritt 1)
+	const signerState = (m: (typeof data.mandates)[number], live: boolean) => {
+		if (!signer?.ok) return null;
+		const v = signer.byId.get(m.id);
+		if (!live) return v && !v.revoked ? ("stale" as const) : null;
+		if (!v) return "missing" as const;
+		if (v.active) return "active" as const;
+		if (v.approvableUntil !== null && nowSec > v.approvableUntil)
+			return "lapsed" as const;
+		return "pending" as const;
+	};
 	const operators = members
 		.filter((m) => m.role === "operator")
 		.map((m) => ({ id: m.userId, name: m.name || m.email }));
@@ -89,17 +108,32 @@ export default async function MandatesPage() {
 				network: NETWORKS[m.network].label,
 			})}
 			accessory={
-				live ? (
-					owner ? (
-						<RevokeMandateButton id={m.id} />
+				<div className="flex flex-wrap items-center justify-end gap-2">
+					{(() => {
+						const st = signerState(m, live);
+						if (!st) return null;
+						if (st === "lapsed")
+							return <Badge variant="muted">{t("signerLapsed")}</Badge>;
+						return (
+							<MandateSignerState
+								id={m.id}
+								state={st}
+								confirmUrl={mandateConfirmUrl(m.id)}
+							/>
+						);
+					})()}
+					{live ? (
+						owner ? (
+							<RevokeMandateButton id={m.id} />
+						) : (
+							<Badge variant="success">{t("statusActive")}</Badge>
+						)
 					) : (
-						<Badge variant="success">{t("statusActive")}</Badge>
-					)
-				) : (
-					<Badge variant="muted">
-						{m.revokedAt ? t("statusRevoked") : t("statusExpired")}
-					</Badge>
-				)
+						<Badge variant="muted">
+							{m.revokedAt ? t("statusRevoked") : t("statusExpired")}
+						</Badge>
+					)}
+				</div>
 			}
 		/>
 	);
@@ -143,7 +177,14 @@ export default async function MandatesPage() {
 				<EmptyState title={t("emptyTitle")} lead={t("emptyLead")} />
 			) : (
 				<ListGroup className="max-w-3xl">
-					<ListSection title={t("activeTitle")} footer={t("activeFooter")}>
+					<ListSection
+						title={t("activeTitle")}
+						footer={
+							signer?.ok
+								? `${t("activeFooter")} ${t("signerFooter")}`
+								: t("activeFooter")
+						}
+					>
 						{active.length === 0 && <ListRow subtitle={t("noneActive")} />}
 						{active.map((m) => row(m, true))}
 					</ListSection>

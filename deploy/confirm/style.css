@@ -149,6 +149,14 @@ pre {
 	background: var(--bg);
 }
 
+.addresses {
+	display: grid;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
 .actions {
 	margin: 8px 0;
 }

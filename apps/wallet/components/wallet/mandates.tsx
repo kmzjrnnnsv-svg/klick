@@ -5,12 +5,14 @@ import {
 	prepareMandateAction,
 	revokeMandateAction,
 	submitMandateAction,
+	syncMandateSignerAction,
 } from "@wallet/app/actions/mandates";
 import type { PreparedMandate } from "@wallet/lib/validation/mandates";
-import { KeyRound, Plus } from "lucide-react";
+import { ArrowUpRight, KeyRound, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -40,6 +42,7 @@ import type { WalletNetwork } from "@/lib/wallet/core/networks";
 // Vollmacht ausstellen (Härtung W): Rahmen wählen, Zusammenfassung lesen,
 // dann mit dem Sicherheitsschlüssel unterschreiben. Unterschrieben wird der
 // kanonische Text, den der Server gebaut hat (lib/wallet/core/mandate.ts).
+// Mit eigenem Signer folgt die Freigabe dort auf der Bestätigungsseite.
 
 type Destination = {
 	id: string;
@@ -90,6 +93,8 @@ export function IssueMandateDialog({
 	const [days, setDays] = useState("30");
 	const [dest, setDest] = useState<string[]>([]);
 	const [prepared, setPrepared] = useState<PreparedMandate | null>(null);
+	// nach dem Ausstellen: Link zur Freigabe im Signer
+	const [signerLink, setSignerLink] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -104,6 +109,7 @@ export function IssueMandateDialog({
 
 	function reset() {
 		setPrepared(null);
+		setSignerLink(null);
 		setError(null);
 		setBusy(false);
 	}
@@ -147,11 +153,17 @@ export function IssueMandateDialog({
 				setPrepared(null);
 				return setError(message(res.error));
 			}
-			toast.success(t("issued"));
-			setOpen(false);
-			reset();
 			setDest([]);
 			router.refresh();
+			if (res.data.signer === "registered" && res.data.confirmUrl) {
+				setPrepared(null);
+				setSignerLink(res.data.confirmUrl);
+				return;
+			}
+			if (res.data.signer === "failed") toast.error(t("issuedSignerFailed"));
+			else toast.success(t("issued"));
+			setOpen(false);
+			reset();
 		} finally {
 			setBusy(false);
 		}
@@ -177,12 +189,40 @@ export function IssueMandateDialog({
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>{prepared ? t("confirmTitle") : t("issue")}</DialogTitle>
+					<DialogTitle>
+						{signerLink
+							? t("signerTitle")
+							: prepared
+								? t("confirmTitle")
+								: t("issue")}
+					</DialogTitle>
 					<DialogDescription>
-						{prepared ? t("confirmLead") : t("issueLead")}
+						{signerLink
+							? t("signerLead")
+							: prepared
+								? t("confirmLead")
+								: t("issueLead")}
 					</DialogDescription>
 				</DialogHeader>
-				{prepared ? (
+				{signerLink ? (
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="secondary"
+							onClick={() => {
+								setOpen(false);
+								reset();
+							}}
+						>
+							{t("signerDone")}
+						</Button>
+						<Button asChild>
+							<a href={signerLink} target="_blank" rel="noopener noreferrer">
+								{t("signerOpen")} <ArrowUpRight aria-hidden />
+							</a>
+						</Button>
+					</DialogFooter>
+				) : prepared ? (
 					<div className="flex flex-col gap-4">
 						<dl className="grid grid-cols-1 gap-x-4 gap-y-2 rounded-2xl bg-muted p-4 text-subhead sm:grid-cols-[auto_1fr]">
 							<dt className="text-muted-foreground">{t("grantee")}</dt>
@@ -420,5 +460,55 @@ export function RevokeMandateButton({ id }: { id: string }) {
 				</form>
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+// Stand im Signer je Vollmacht (nur mit eigenem Signer): freigegeben,
+// offen (Link zur Bestätigungsseite) oder abweichend (abgleichen)
+export function MandateSignerState({
+	id,
+	state,
+	confirmUrl,
+}: {
+	id: string;
+	state: "active" | "pending" | "missing" | "stale";
+	confirmUrl: string | null;
+}) {
+	const t = useTranslations("Mandates");
+	const tc = useTranslations("Common");
+	const router = useRouter();
+	const [busy, setBusy] = useState(false);
+
+	async function sync() {
+		setBusy(true);
+		try {
+			const res = await syncMandateSignerAction(id);
+			if (!res.ok) return toast.error(tc("error"));
+			toast.success(t("signerSynced"));
+			router.refresh();
+		} finally {
+			setBusy(false);
+		}
+	}
+
+	if (state === "active")
+		return <Badge variant="success">{t("signerActive")}</Badge>;
+	if (state === "pending" && confirmUrl)
+		return (
+			<Button asChild variant="secondary" size="sm">
+				<a href={confirmUrl} target="_blank" rel="noopener noreferrer">
+					{t("signerPending")} <ArrowUpRight aria-hidden />
+				</a>
+			</Button>
+		);
+	return (
+		<div className="flex items-center gap-2">
+			{state === "stale" && (
+				<Badge variant="warning">{t("signerStillActive")}</Badge>
+			)}
+			<Button variant="ghost" size="sm" onClick={sync} disabled={busy}>
+				{t("signerMissing")}
+			</Button>
+		</div>
 	);
 }

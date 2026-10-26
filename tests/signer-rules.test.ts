@@ -14,98 +14,28 @@ import {
 } from "@/scripts/devchain/btc-tx";
 import { entropyOfMnemonic, KeyRing } from "@/signer/keys";
 import { Signer } from "@/signer/service";
-import { SignerError } from "@/signer/validate";
 import { SoftSecurityKey } from "./helpers/security-key";
+import {
+	ALICE,
+	approve,
+	BOB,
+	BTC_DEST,
+	code,
+	ETH_DEST,
+	enrol,
+	ORG,
+	ORIGIN,
+	RP,
+	setup,
+	T0,
+	whitelist,
+} from "./helpers/signer";
 
 // Regeln des Signers über den echten Dienst (Journal im Temp-Ordner, eigene
 // Uhr, Software-Schlüssel): Einrichtung, Schlüssel, Zieladressen mit
 // Wartezeit und Veto, Solo/Vier-Augen, Pause, Fenster, Grenzen, Einfrieren,
 // Richtlinie nur verschärfen, Signieren BTC/ETH mit Gebührenerhöhung und
 // Abbruch, Nachspielen nach Neustart.
-
-const RP = "freigabe.raza.work";
-const ORIGIN = `https://${RP}`;
-const ORG = randomUUID();
-const ALICE = randomUUID();
-const BOB = randomUUID();
-const T0 = 1_800_000_000;
-const ETH_DEST = addr.addChecksum("0x00000000000000000000000000000000000000cc");
-const BTC_DEST = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx";
-
-function code(fn: () => unknown): string {
-	try {
-		fn();
-	} catch (e) {
-		if (e instanceof SignerError)
-			return e.detail ? `${e.code}:${e.detail}` : e.code;
-		throw e;
-	}
-	return "ok";
-}
-
-function setup(opts: { dev?: boolean } = {}) {
-	const dir = mkdtempSync(join(tmpdir(), "klick-signer-"));
-	const kek = randomBytes(32);
-	const clock = { t: T0 };
-	const open = () =>
-		Signer.open({ dir, kek, dev: opts.dev ?? false, now: () => clock.t });
-	const s = open();
-	const prep = s.seedPrepare({
-		networks: ["bitcoin_signet", "ethereum_sepolia"],
-	});
-	const checks = Object.fromEntries(
-		Object.entries(prep.words).map(([n, w]) => {
-			const words = (w as string).split(" ");
-			return [n, { 1: words[0], 12: words[11], 24: words[23] }];
-		}),
-	);
-	s.initCommit({ token: prep.token, checks, orgId: ORG, rpId: RP });
-	return {
-		s,
-		dir,
-		kek,
-		clock,
-		open,
-		words: prep.words as Record<string, string>,
-	};
-}
-
-function enrol(s: Signer, person: string, key = new SoftSecurityKey()) {
-	const { enrolId, url } = s.enrolStart({ person });
-	const secret = new URL(url).hash.match(/t=([0-9a-f]{64})/)?.[1] as string;
-	s.enrolFinish(key.enrol({ rpId: RP, origin: ORIGIN, enrolId, secret }));
-	return key;
-}
-
-function approve(s: Signer, key: SoftSecurityKey, intentId: string) {
-	const g = s.intentGet({ intentId });
-	return s.approve({
-		intentId,
-		...key.assert({
-			rpId: RP,
-			origin: ORIGIN,
-			challenge: Buffer.from(g.challenge, "base64url"),
-		}),
-	});
-}
-
-// Zieladresse freigeben und Wartezeit abwarten
-function whitelist(
-	env: ReturnType<typeof setup>,
-	key: SoftSecurityKey,
-	network: "bitcoin_signet" | "ethereum_sepolia",
-	destination: string,
-) {
-	const w = env.s.intentCreate({
-		kind: "whitelist",
-		network,
-		destination,
-		initiator: ALICE,
-	});
-	approve(env.s, key, w.intentId);
-	env.clock.t += env.s.state.policy?.whitelistCooldownSec ?? 0;
-	return w.intentId;
-}
 
 describe("Einrichtung", () => {
 	it("drei Wörter je Netz bestätigt; falsches Wort speichert nichts", () => {

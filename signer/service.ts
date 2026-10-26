@@ -19,6 +19,12 @@ import {
 	IntentError,
 	intentChallenge,
 } from "../lib/wallet/core/intent";
+import {
+	MandateError,
+	mandateChallenge,
+	mandateCovers,
+	parseMandate,
+} from "../lib/wallet/core/mandate";
 import { NETWORKS, type WalletNetwork } from "../lib/wallet/core/networks";
 import {
 	isTightening,
@@ -45,6 +51,8 @@ import {
 	activeKeysByPerson,
 	apply,
 	type IntentRecord,
+	type MandateRecord,
+	mandateQuorum,
 	quorum,
 	replay,
 	type SignerState,
@@ -84,6 +92,8 @@ import {
 
 export const PAYOUT_TTL = 4 * 3600;
 export const WHITELIST_TTL = 24 * 3600;
+// Vollmacht: Freigabe binnen 24 h nach dem Anlegen
+export const MANDATE_TTL = 24 * 3600;
 const MAX_OPEN = 50;
 const MAX_PER_DAY = 200;
 const MAX_BTC_INPUTS = 50;
@@ -238,6 +248,9 @@ export class Signer {
 			openIntents: [...this.state.intents.values()]
 				.filter((r) => this.isOpen(r, now))
 				.map((r) => this.intentView(r)),
+			mandates: [...this.state.mandates.values()]
+				.filter((m) => !m.revoked && now < m.mandate.validUntil)
+				.map((m) => this.mandateView(m, now)),
 		};
 	}
 
@@ -269,6 +282,7 @@ export class Signer {
 			signed: last
 				? { mode: last.mode, txid: last.txid, fee: last.fee, at: last.at }
 				: null,
+			mandateId: r.mandateId,
 		};
 	}
 
@@ -337,6 +351,7 @@ export class Signer {
 		if (all.filter((r) => r.createdAt > now - 86_400).length >= MAX_PER_DAY)
 			throw new SignerError("too_many_today");
 		const initiator = uuid(a.initiator, "initiator");
+		let mandateId: string | undefined;
 		const intentId = randomBytes(16).toString("hex");
 		const nonce = randomBytes(16).toString("hex");
 		let intent: Intent;
@@ -388,6 +403,24 @@ export class Signer {
 				typeof a.destination === "string" ? a.destination : "";
 			const active = this.activeDestination(net, destination, now);
 			if (!active) throw new SignerError("destination_inactive");
+			// Vollmacht (Härtung W): vorab freigegeben, wenn sie diese
+			// Auszahlung deckt — sonst kein Rückfall auf die normale Freigabe
+			if (a.mandateId !== undefined) {
+				const m = this.mandateOf(a.mandateId);
+				if (!mandateQuorum(this.state, m))
+					throw new SignerError("mandate_not_approved");
+				const use = mandateCovers(m.mandate, {
+					grantee: initiator,
+					network: net,
+					asset: code,
+					amount,
+					destination,
+					at: now,
+					used: this.mandateUsed(m.mandateId, now),
+				});
+				if (use !== "ok") throw new SignerError(`mandate_${use}`);
+				mandateId = m.mandateId;
+			}
 			intent = {
 				kind: "payout",
 				orgId: init.orgId,
@@ -412,13 +445,172 @@ export class Signer {
 			if (e instanceof IntentError) return bad(e.field);
 			throw e;
 		}
-		this.record({ type: "intent", intentId, text });
+		this.record({
+			type: "intent",
+			intentId,
+			text,
+			...(mandateId ? { mandateId } : {}),
+		});
 		return {
 			intentId,
 			text,
 			challenge: b64u.encode(intentChallenge(text)),
 			expiresAt: intent.expiresAt,
+			approved: mandateId !== undefined,
 		};
+	}
+
+	// ── Vollmachten (Härtung W) ───────────────────────────────────────────
+
+	private mandateOf(raw: unknown): MandateRecord {
+		const id = uuid(raw, "mandateId");
+		const m = this.state.mandates.get(id);
+		if (!m) throw new SignerError("mandate_unknown");
+		return m;
+	}
+
+	// Summe der Auszahlungen über die Vollmacht: signiert oder noch offen
+	private mandateUsed(mandateId: string, now: number): bigint {
+		let sum = 0n;
+		for (const r of this.state.intents.values())
+			if (
+				r.mandateId === mandateId &&
+				!r.cancelled &&
+				!r.vetoed &&
+				(r.signatures.length > 0 || this.isOpen(r, now))
+			)
+				sum += r.intent.amount ?? 0n;
+		return sum;
+	}
+
+	private mandateView(m: MandateRecord, now: number) {
+		return {
+			mandateId: m.mandateId,
+			text: m.text,
+			createdAt: m.createdAt,
+			approvals: m.approvals.map((a) => ({ person: a.person, at: a.at })),
+			approvedAt: m.approvedAt,
+			// bis wann die Freigabe noch geht (danach neu ausstellen)
+			approvableUntil:
+				m.approvedAt === null
+					? Math.min(m.createdAt + MANDATE_TTL, m.mandate.validUntil)
+					: null,
+			active: mandateQuorum(this.state, m),
+			revoked: m.revoked,
+			validUntil: m.mandate.validUntil,
+			used: this.mandateUsed(m.mandateId, now).toString(),
+		};
+	}
+
+	// App legt an (Text aus both.money), freigeben nur über die Schlüssel
+	mandateCreate(raw: unknown) {
+		const a = obj(raw);
+		const { init, policy } = this.requireInit();
+		this.requireNotFrozen();
+		const now = this.now();
+		const text = typeof a.text === "string" ? a.text : "";
+		let m: ReturnType<typeof parseMandate>;
+		try {
+			m = parseMandate(text);
+		} catch (e) {
+			if (e instanceof MandateError) return bad(e.field);
+			throw e;
+		}
+		if (m.orgId !== init.orgId) throw new SignerError("wrong_org");
+		const existing = this.state.mandates.get(m.mandateId);
+		if (existing) {
+			if (existing.text !== text) throw new SignerError("mandate_exists");
+			return this.mandateGet({ mandateId: m.mandateId });
+		}
+		this.checkNetwork(m.network, policy);
+		if (!policy.limits[m.asset]) throw new SignerError("asset_not_allowed");
+		if (now >= m.validUntil) throw new SignerError("mandate_expired");
+		for (const d of m.destinations)
+			if (!this.activeDestination(m.network, d, now))
+				throw new SignerError("destination_inactive");
+		const pending = [...this.state.mandates.values()].filter(
+			(x) =>
+				x.approvedAt === null && !x.revoked && now <= x.createdAt + MANDATE_TTL,
+		);
+		if (pending.length >= MAX_OPEN) throw new SignerError("too_many_open");
+		this.record({ type: "mandate", mandateId: m.mandateId, text });
+		return this.mandateGet({ mandateId: m.mandateId });
+	}
+
+	// für die Bestätigungsseite (über das Relay in both.money)
+	mandateGet(raw: unknown) {
+		const a = obj(raw);
+		const { init } = this.requireInit();
+		const m = this.mandateOf(a.mandateId);
+		const now = this.now();
+		return {
+			...this.mandateView(m, now),
+			kind: "mandate" as const,
+			rpId: init.rpId,
+			challenge: b64u.encode(mandateChallenge(m.text)),
+			expiresAt: Math.min(m.createdAt + MANDATE_TTL, m.mandate.validUntil),
+			allowCredentials: [...this.state.keys.values()]
+				.filter((k) => k.active)
+				.map((k) => k.credId),
+			frozen: Boolean(this.state.frozen),
+		};
+	}
+
+	mandateApprove(raw: unknown) {
+		const a = obj(raw);
+		const { init } = this.requireInit();
+		this.requireNotFrozen();
+		const m = this.mandateOf(a.mandateId);
+		const now = this.now();
+		if (m.revoked) throw new SignerError("mandate_revoked");
+		if (now >= m.mandate.validUntil) throw new SignerError("mandate_expired");
+		if (m.approvedAt === null && now > m.createdAt + MANDATE_TTL)
+			throw new SignerError("mandate_expired");
+		const credId = b64uStr(a.credId, "credId", 1400);
+		const key = this.state.keys.get(credId);
+		if (!key?.active) throw new SignerError("key_unknown");
+		// die bevollmächtigte Person gibt sich nie selbst frei
+		if (key.person === m.mandate.grantee) throw new SignerError("mandate_self");
+		if (m.approvals.some((x) => x.credId === credId))
+			throw new SignerError("already_approved");
+		let counter: number;
+		try {
+			({ counter } = verifyAssertion(
+				{
+					authenticatorData: b64uStr(a.authenticatorData, "authenticatorData"),
+					clientDataJSON: b64uStr(a.clientDataJSON, "clientDataJSON"),
+					signature: b64uStr(a.signature, "signature", 200),
+				},
+				{
+					rpId: init.rpId,
+					origin: init.origin,
+					challenge: mandateChallenge(m.text),
+					spki: key.spki,
+					storedCounter: key.counter,
+				},
+			));
+		} catch (e) {
+			if (e instanceof WebAuthnFailure)
+				throw new SignerError("webauthn", e.code);
+			throw e;
+		}
+		this.record({
+			type: "mandate_approval",
+			mandateId: m.mandateId,
+			credId,
+			person: key.person,
+			counter,
+		});
+		return this.mandateView(m, now);
+	}
+
+	// Widerrufen bremst: App und root dürfen; offene Auszahlungen darüber
+	// verlieren ihre Freigabe (Quorum der Vollmacht zählt beim Signieren)
+	mandateRevoke(raw: unknown, by: "app" | "admin" = "app") {
+		const m = this.mandateOf(obj(raw).mandateId);
+		if (!m.revoked)
+			this.record({ type: "mandate_revoked", mandateId: m.mandateId, by });
+		return this.mandateView(m, this.now());
 	}
 
 	private checkNetwork(net: WalletNetwork, policy: Policy) {
@@ -458,6 +650,8 @@ export class Signer {
 		const now = this.now();
 		if (r.cancelled || r.vetoed) throw new SignerError("intent_closed");
 		if (now > r.intent.expiresAt) throw new SignerError("intent_expired");
+		// über eine Vollmacht vorab freigegeben: Schlüssel zählen hier nicht
+		if (r.mandateId !== null) throw new SignerError("mandate_intent");
 		const credId = b64uStr(a.credId, "credId", 1400);
 		const key = this.state.keys.get(credId);
 		if (!key?.active) throw new SignerError("key_unknown");
@@ -546,6 +740,11 @@ export class Signer {
 			if (last) return this.resultOf(last);
 			if (!quorum(this.state, r) || r.signableAt === null)
 				throw new SignerError("not_approved");
+			// Vollmacht: nach ihrem Ende geht nichts mehr hinaus, auch keine
+			// Auszahlung, die noch in der Pause der Richtlinie wartet
+			const m = r.mandateId ? this.state.mandates.get(r.mandateId) : null;
+			if (m && now >= m.mandate.validUntil)
+				throw new SignerError("mandate_expired");
 			if (now < r.signableAt) throw new SignerError("too_early");
 			if (now > (r.signUntil ?? 0)) throw new SignerError("window_closed");
 			if (!this.activeDestination(i.network, i.destination, now))

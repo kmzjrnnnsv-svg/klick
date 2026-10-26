@@ -54,8 +54,9 @@ import { amountText } from "@/lib/wallet/display";
 // Bedienung prüft — wenn die Org es verlangt (Einstellungen > Zugang) — eine
 // passende Vollmacht: Felder aus dem unterschriebenen Text, Unterschrift
 // neu mit dem gespeicherten Schlüssel, Aussteller:in noch Inhaber:in,
-// Restbetrag unter Zeilensperre. Schritt 2 (später): der Signer prüft
-// dieselbe Unterschrift selbst.
+// Restbetrag unter Zeilensperre. Schritt 2 (mandate-signer.ts): derselbe
+// Text geht in den Signer, dessen Quorum ihn mit den eigenen
+// Sicherheitsschlüsseln freigibt; erst dann gilt er dort als Vorab-Freigabe.
 
 const PENDING_MS = 5 * 60 * 1000;
 const b64u = (b: Uint8Array) => Buffer.from(b).toString("base64url");

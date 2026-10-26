@@ -1,9 +1,10 @@
 // both.money · Bestätigungsseite (approve.both.money) — gemeinsamer Kern.
 //
-// Ohne Abhängigkeiten. Liest den kanonischen Text einer Absicht selbst und
-// rechnet die Challenge im Browser (SHA-256), statt einer Anzeige aus der App
-// zu vertrauen. Muss exakt zu lib/wallet/core/intent.ts passen; Vitest lädt
-// diese Datei mit denselben Testvektoren (tests/confirm-static.test.ts).
+// Ohne Abhängigkeiten. Liest den kanonischen Text einer Absicht oder einer
+// Vollmacht selbst und rechnet die Challenge im Browser (SHA-256), statt
+// einer Anzeige aus der App zu vertrauen. Muss exakt zu
+// lib/wallet/core/{intent,mandate}.ts passen; Vitest lädt diese Datei mit
+// denselben Testvektoren (tests/confirm-static.test.ts).
 
 export const PREFIX = "klick-wallet/v1";
 
@@ -162,6 +163,90 @@ export function parseIntent(text) {
 		intentId,
 		nonce,
 		expiresAt: Number(expiresAt),
+	};
+}
+
+export const MANDATE_PREFIX = "both-mandate/v1";
+const MANDATE_MAX_DAYS = 90;
+const MANDATE_MAX_DESTINATIONS = 20;
+
+// Vollmacht (lib/wallet/core/mandate.ts): gleiche Regeln wie Kern und
+// Signer. Ethereum-Adressen prüft die Seite nur auf die Form (keine
+// Prüfsummen-Schreibweise ohne Keccak); die Prüfsumme prüft der Signer.
+export function parseMandate(text) {
+	check(
+		typeof text === "string" &&
+			/^[\x21-\x7e]+$/.test(text) &&
+			text.length <= 2400,
+		"text",
+	);
+	const f = text.split("|");
+	check(f.length === 14 && f[0] === MANDATE_PREFIX, "format");
+	const [
+		,
+		orgId,
+		mandateId,
+		grantee,
+		network,
+		chainId,
+		asset,
+		perPayout,
+		total,
+		destinations,
+		validFrom,
+		validUntil,
+		issuer,
+		nonce,
+	] = f;
+	check(UUID.test(orgId), "org");
+	check(UUID.test(mandateId), "id");
+	check(UUID.test(grantee), "grantee");
+	check(UUID.test(issuer), "issuer");
+	check(grantee !== issuer, "self");
+	check(HEX128.test(nonce), "nonce");
+	const net = NETWORKS[network];
+	check(Boolean(net) && Object.hasOwn(NETWORKS, network), "network");
+	check(
+		net.chainId === null ? chainId === NONE : chainId === String(net.chainId),
+		"chain",
+	);
+	check(Object.hasOwn(ASSETS[network], asset), "asset");
+	check(POSINT.test(perPayout) && POSINT.test(total), "amount");
+	check(BigInt(perPayout) <= BigInt(total), "amount");
+	const list = destinations.split(",");
+	check(
+		list.length > 0 && list.length <= MANDATE_MAX_DESTINATIONS,
+		"destinations",
+	);
+	for (const d of list)
+		check(
+			network.startsWith("bitcoin")
+				? BTC_ADDR[net.live ? "bc" : "tb"].test(d)
+				: ETH_ADDR.test(d),
+			"destination",
+		);
+	const sorted = [...new Set(list)].sort();
+	check(sorted.join(",") === destinations, "destinations");
+	check(SECONDS.test(validFrom), "from");
+	check(SECONDS.test(validUntil), "until");
+	const from = Number(validFrom);
+	const until = Number(validUntil);
+	check(until > from, "until");
+	check(until - from <= MANDATE_MAX_DAYS * 86_400, "until");
+	return {
+		orgId,
+		mandateId,
+		grantee,
+		network,
+		chainId: chainId === NONE ? null : Number(chainId),
+		asset,
+		perPayout,
+		total,
+		destinations: list,
+		validFrom: from,
+		validUntil: until,
+		issuer,
+		nonce,
 	};
 }
 

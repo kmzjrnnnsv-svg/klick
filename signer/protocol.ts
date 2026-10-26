@@ -27,6 +27,10 @@ export const APP_COMMANDS: Record<string, Handler> = {
 	"whitelist.veto": (s, a) => s.whitelistVeto(a),
 	freeze: (s, a) => s.freeze(a, "app"),
 	"policy.tighten": (s, a) => s.policyTighten(a),
+	"mandate.create": (s, a) => s.mandateCreate(a),
+	"mandate.get": (s, a) => s.mandateGet(a),
+	"mandate.approve": (s, a) => s.mandateApprove(a),
+	"mandate.revoke": (s, a) => s.mandateRevoke(a, "app"),
 };
 
 export const ADMIN_COMMANDS: Record<string, Handler> = {
@@ -44,6 +48,7 @@ export const ADMIN_COMMANDS: Record<string, Handler> = {
 	freeze: (s, a) => s.freeze(a, "admin"),
 	unfreeze: (s) => s.unfreeze(),
 	"intent.cancel": (s, a) => s.intentCancel(a, "admin"),
+	"mandate.revoke": (s, a) => s.mandateRevoke(a, "admin"),
 	"export-xpubs": (s) => s.exportXpubs(),
 	rekey: (s) => s.rekey(),
 };

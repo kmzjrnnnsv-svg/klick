@@ -592,7 +592,8 @@
 		"error_mandate_expired": "Deine Vollmacht ist abgelaufen.",
 		"error_mandate_per_payout": "Der Betrag liegt über dem Höchstbetrag je Auszahlung deiner Vollmacht.",
 		"error_mandate_total": "Der Betrag übersteigt, was von deiner Vollmacht noch frei ist.",
-		"error_mandate_signature": "Die Vollmacht ist nicht mehr gültig (Unterschrift oder Aussteller:in). Bitte um eine neue."
+		"error_mandate_signature": "Die Vollmacht ist nicht mehr gültig (Unterschrift oder Aussteller:in). Bitte um eine neue.",
+		"error_mandate_changed": "Deine Vollmacht hat sich gerade geändert. Versuch es noch einmal."
 	},
 	"WalletIntro": {
 		"eyebrow": "Einführung",
@@ -845,7 +846,7 @@
 		"issued": "Vollmacht ausgestellt.",
 		"revoke": "Widerrufen",
 		"revokeTitle": "Vollmacht widerrufen?",
-		"revokeLead": "Ab sofort zahlt die Person damit nichts mehr aus. Bereits angelegte Auszahlungen bleiben; abbrechen kannst du sie unter Auszahlungen.",
+		"revokeLead": "Ab sofort zahlt die Person damit nichts mehr aus. Auszahlungen, die über die Vollmacht vorab freigegeben und noch nicht signiert sind, verlieren die Freigabe im Signer. Alle anderen bleiben; abbrechen kannst du sie unter Auszahlungen.",
 		"reason": "Grund",
 		"revoked": "Vollmacht widerrufen.",
 		"error_mandate_self": "Für dich selbst stellst du keine Vollmacht aus.",
@@ -857,6 +858,18 @@
 		"error_destination_inactive": "Wähle nur Ziele, die im Adressbuch aktiv sind.",
 		"error_asset_not_allowed": "Dieses Asset führt deine Organisation nicht (Einstellungen > Zugang).",
 		"error_cancelled": "Abgebrochen. Versuch es noch einmal, wenn dein Schlüssel bereit ist.",
-		"error_amount": "Gib die Beträge als Zahl ein, etwa 500 oder 12,5."
+		"error_amount": "Gib die Beträge als Zahl ein, etwa 500 oder 12,5.",
+		"signerTitle": "Im Signer freigeben",
+		"signerLead": "Die Vollmacht gilt in both.money. Damit Auszahlungen im Rahmen ohne weitere Bestätigung laufen, gibt das Quorum der Sicherheitsschlüssel sie auf der Bestätigungsseite auch im Signer frei. Bis dahin bestätigst du jede Auszahlung wie bisher.",
+		"signerOpen": "Bestätigungsseite öffnen",
+		"signerDone": "Fertig",
+		"signerActive": "im Signer freigegeben",
+		"signerPending": "Im Signer freigeben",
+		"signerMissing": "Mit Signer abgleichen",
+		"signerStillActive": "im Signer noch aktiv",
+		"signerLapsed": "Freigabe im Signer abgelaufen, neu ausstellen",
+		"signerSynced": "Mit dem Signer abgeglichen.",
+		"issuedSignerFailed": "Vollmacht ausgestellt. Der Signer war nicht erreichbar: Gleich sie auf dieser Seite mit dem Signer ab.",
+		"signerFooter": "Im Signer freigegebene Vollmachten gelten dort als Vorab-Freigabe: Auszahlungen im Rahmen brauchen keinen Sicherheitsschlüssel mehr, Pause und Grenzen des Signers gelten weiter."
 	}
 }
