@@ -13,7 +13,12 @@ import { listMemberships } from "./memberships";
 // ungültig (invalidateAccessPolicy). Ohne Zeile gilt: alles offen.
 
 const TTL_MS = 30_000;
+// Verworfen wird vor dem Commit; bis dahin liest eine andere Anfrage noch den
+// alten Stand. Kurz danach nichts zwischenspeichern, sonst hielte er sich
+// weitere 30 s (Selbstprüfung B7, wie lib/net/org-network.ts).
+const SETTLE_MS = 5_000;
 const cache = new Map<string, { at: number; policy: WalletAccessPolicy }>();
+const settling = new Map<string, number>();
 
 const COLUMNS = {
 	networkPolicy: orgSettings.networkPolicy,
@@ -50,12 +55,16 @@ export async function orgAccessPolicy(
 	const policy = await readOrg({ orgId, userId: null }, (tx) =>
 		accessPolicyTx(tx, orgId),
 	);
-	cache.set(orgId, { at: Date.now(), policy });
+	if (Date.now() >= (settling.get(orgId) ?? 0)) {
+		settling.delete(orgId);
+		cache.set(orgId, { at: Date.now(), policy });
+	}
 	return policy;
 }
 
 export function invalidateAccessPolicy(orgId: string): void {
 	cache.delete(orgId);
+	settling.set(orgId, Date.now() + SETTLE_MS);
 }
 
 /** Verlangt eine Org dieser Person Sicherheitsschlüssel? (strengste gewinnt) */

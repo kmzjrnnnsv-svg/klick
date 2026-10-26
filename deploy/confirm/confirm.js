@@ -29,6 +29,8 @@ const MESSAGES = {
 	mandate_unknown: "Diese Vollmacht kennt der Signer nicht.",
 	mandate_self:
 		"Die bevollmächtigte Person kann ihre eigene Vollmacht nicht freigeben.",
+	mandate_intent:
+		"Diese Auszahlung läuft über eine Vollmacht und braucht hier keine Bestätigung.",
 	already_approved: "Dieser Schlüssel hat bereits bestätigt.",
 	key_unknown: "Dieser Schlüssel ist im Signer nicht (mehr) registriert.",
 	webauthn: "Der Signer hat die Bestätigung abgelehnt.",
@@ -127,8 +129,8 @@ function renderMandate(dl, m) {
 	const where =
 		m.destinations.length === 1 ? "die Adresse unten" : "die Adressen unten";
 	$("lead").textContent =
-		`Die Person unten darf bis ${fmtTime(m.validUntil)} insgesamt ${total} an ${where} auszahlen, ohne weitere Bestätigung mit dem Schlüssel. Pause und Grenzen des Signers gelten weiter.`;
-	fact(dl, "Bevollmächtigt (Kennung)", m.grantee, "mono");
+		`both.money darf bis ${fmtTime(m.validUntil)} im Auftrag der Person unten insgesamt ${total} an ${where} auszahlen, ohne weitere Bestätigung mit dem Schlüssel. Wer in both.money diese Kennung trägt, prüft both.money; der Signer kennt nur Betrag, Ziele und Zeitraum. Pause und Grenzen des Signers gelten weiter.`;
+	fact(dl, "Im Auftrag von (both.money-Kennung)", m.grantee, "mono");
 	fact(dl, "Je Auszahlung höchstens", per, "amount");
 	fact(dl, "Insgesamt höchstens", total, "amount");
 	fact(dl, "Netz", net.label, net.live ? "live" : "");

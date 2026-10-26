@@ -6,6 +6,7 @@ import { schema } from "@wallet/db";
 import type { PayoutSpeed } from "@wallet/db/schema";
 import {
 	auditLog,
+	payoutMandates,
 	walletAccounts,
 	walletAddressBook,
 	walletAddresses,
@@ -638,6 +639,89 @@ d("Auszahlungen: Job wallet-payouts (Postgres + Testkette + Signer)", () => {
 		await app("intent.cancel", { intentId: second.intentId });
 		await job();
 		expect((await get(second.id)).status).toBe("cancelled");
+	});
+
+	it("Vollmacht nur in der App widerrufen: der Job bricht ab, auch wenn der Signer sie noch trägt (B1)", async () => {
+		const dest = addr.addChecksum("0x00000000000000000000000000000000000000d3");
+		const destId = await destination("ethereum_sepolia", dest);
+		const now = Math.floor(Date.now() / 1000);
+		const mandateId = randomUUID();
+		const grantee = randomUUID();
+		const text = encodeMandate({
+			orgId,
+			mandateId,
+			grantee,
+			network: "ethereum_sepolia",
+			chainId: 11155111,
+			asset: "ETH",
+			perPayout: 10n ** 15n,
+			total: 10n ** 15n,
+			destinations: normalizeDestinations("ethereum_sepolia", [dest]),
+			validFrom: now - 60,
+			validUntil: now + 7 * 86_400,
+			issuer: userId,
+			nonce: randomBytes(16).toString("hex"),
+		});
+		await app("mandate.create", { text });
+		const g = (await app<{ challenge: string }>("mandate.get", { mandateId }))
+			.result;
+		await app("mandate.approve", {
+			mandateId,
+			...key.assert({
+				rpId: RP,
+				origin: ORIGIN,
+				challenge: Buffer.from(g.challenge, "base64url"),
+			}),
+		});
+		const p = await payout({
+			accountId: ethAccount,
+			network: "ethereum_sepolia",
+			asset: "ETH",
+			amount: 10n ** 15n,
+			destination: dest,
+			addressBookId: destId,
+			initiator: grantee,
+			mandateId,
+		});
+		expect(lastApproved).toBe(true);
+		// in der App widerrufen, im Signer nicht (z. B. nicht erreichbar)
+		await inOrg(async (tx) => {
+			await tx.insert(payoutMandates).values({
+				id: mandateId,
+				organizationId: orgId,
+				granteeUserId: userId,
+				network: "ethereum_sepolia",
+				asset: "ETH",
+				perPayout: String(10n ** 15n),
+				total: String(10n ** 15n),
+				destinations: [dest],
+				validFrom: new Date((now - 60) * 1000),
+				validUntil: new Date((now + 7 * 86_400) * 1000),
+				issuedByUserId: userId,
+				text,
+				textHash: "test",
+				assertion: {
+					credentialId: "x",
+					authenticatorData: "x",
+					clientDataJSON: "x",
+					signature: "x",
+				},
+				revokedAt: new Date(),
+			});
+			await tx
+				.update(walletPayouts)
+				.set({ mandateId })
+				.where(eq(walletPayouts.id, p.id));
+		});
+		await job();
+		const after = await get(p.id);
+		expect(after.status).toBe("cancelled");
+		expect(after.error).toBe("mandate_invalid");
+		expect(after.rawTx).toBeNull();
+		const view = (
+			await app<{ cancelled: boolean }>("intent.get", { intentId: p.intentId })
+		).result;
+		expect(view.cancelled).toBe(true);
 	});
 
 	it("Sperre für Kundengelder: ohne Recht auf Hot-Konten signiert der Job nichts", async () => {

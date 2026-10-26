@@ -13,7 +13,7 @@ import { SlidingWindowLimiter } from "@/lib/rate-limit";
 // reicht nur weiter — prüfen tut der Signer (WebAuthn, Herkunft, Zähler).
 // Öffentlich ohne Sitzung: die zufällige ID der Absicht, Einrichtung bzw.
 // Vollmacht ist die Berechtigung. CORS nur für CONFIRM_ORIGIN, keine Cookies,
-// höchstens 16 KB, Ratengrenze je IP und je ID, nur bekannte Felder.
+// höchstens 16 KB, Ratengrenze je IP und je IP + ID, nur bekannte Felder.
 
 const HEX_ID = /^[0-9a-f]{32}$/;
 const UUID_ID =
@@ -104,9 +104,12 @@ export function relayRoute(kind: RelayKind) {
 				const { id } = await params;
 				if (!spec.id.test(id))
 					return reply(404, { ok: false, error: { code: "not_found" } }, cors);
+				// je ID nur zusammen mit der IP: sonst sperrte jede:r, die eine ID
+				// kennt, die Bestätigung für alle (Selbstprüfung B5)
+				const ip = ipFromHeaders(req.headers) ?? "unknown";
 				if (
-					!perIp.check(ipFromHeaders(req.headers) ?? "unknown").allowed ||
-					!perId.check(`${kind}:${id}`).allowed
+					!perIp.check(ip).allowed ||
+					!perId.check(`${kind}:${id}:${ip}`).allowed
 				)
 					return reply(
 						429,

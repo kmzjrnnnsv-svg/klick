@@ -655,7 +655,9 @@ Die App kann über `app.sock` bremsen, einrichten und lockern geht nur als root 
    (1 h gültig) an die Person; sie richtet den Schlüssel auf der Seite ein. Allein (Solo) braucht
    eine Person zwei aktive Schlüssel, getrennt verwahrt. Synchronisierte Passkeys (iCloud, Google,
    Passwort-Manager) lehnt der Signer ab. Sperren: `klick-signer-admin revoke <credId>`
-   (`klick-signer-admin status` zeigt die Schlüssel).
+   (`klick-signer-admin status` zeigt die Schlüssel). `<User-ID>` ist die Konto-ID der Person in
+   both.money (Mitglieder-Seite): Vier-Augen und „nicht die eigene Vollmacht freigeben“ zählt der
+   Signer über diese Kennung, eine falsche ID hebelt beides aus.
 5. **App anbinden:** `deploy/systemd/both.service.d/signer.conf.example` nach
    `/etc/systemd/system/both.service.d/signer.conf`, `systemctl daemon-reload && systemctl restart both`.
    Die App (Gruppe both) erreicht nur `app.sock`.

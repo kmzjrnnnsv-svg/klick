@@ -414,7 +414,8 @@ export function RevokeMandateButton({ id }: { id: string }) {
 			const res = await revokeMandateAction({ id, reason });
 			if (!res.ok)
 				return setError(res.error.includes(" ") ? res.error : tc("error"));
-			toast.success(t("revoked"));
+			if (res.data.signer === "failed") toast.notice(t("revokedSignerFailed"));
+			else toast.success(t("revoked"));
 			setOpen(false);
 			router.refresh();
 		} finally {

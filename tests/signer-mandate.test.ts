@@ -318,7 +318,8 @@ describe("Widerruf und gesperrte Schlüssel", () => {
 					plan: env.plan("0"),
 				}),
 			),
-		).toBe("not_approved");
+			// endgültig, nicht „wartet auf Freigabe“ (B2): der Job bricht ab
+		).toBe("mandate_revoked");
 		expect(code(() => env.payout(m.mandateId))).toBe("mandate_not_approved");
 		expect(code(() => approveMandate(env, env.a1, m.mandateId))).toBe(
 			"mandate_revoked",
@@ -332,15 +333,18 @@ describe("Widerruf und gesperrte Schlüssel", () => {
 		env.s.keyRevoke({ credId: env.a2.id });
 		expect(env.s.mandateGet({ mandateId: m.mandateId }).active).toBe(false);
 		env.clock.t += 30 * 60;
-		expect(
+		const sign = () =>
 			code(() =>
 				env.s.sign({
 					intentId: p.intentId,
 					mode: "first",
 					plan: env.plan("0"),
 				}),
-			),
-		).toBe("not_approved");
+			);
+		expect(sign()).toBe("not_approved");
+		// nach Ende der Vollmacht endgültig statt „wartet“ (B2)
+		env.clock.t += 400 * 24 * 3600;
+		expect(sign()).toBe("mandate_expired");
 	});
 
 	it("eingefroren: weder anlegen noch freigeben", () => {

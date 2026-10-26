@@ -78,6 +78,22 @@ describe("kanonischer Text", () => {
 		}
 	});
 
+	it("klassische Bitcoin-Adressen wie der Kern (B8)", () => {
+		const base = vectors[0]?.text as string;
+		const dest = parseIntent(base).destination;
+		for (const b58 of [
+			"mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn",
+			"2MzQwSSnBHWHqSAqtTVQ6v47XtaisrJa1Vc",
+		]) {
+			const t = base.replace(dest, b58);
+			expect(parseIntent(t).destination).toBe(b58);
+			expect(pageParse(t).destination).toBe(b58);
+		}
+		// Hauptnetz-Format im Testnetz: beide lehnen ab
+		const main = base.replace(dest, "1BoatSLRHtKNngkdXEeobR76b53LETtpyT");
+		expect(throws(() => pageParse(main))).toBe(true);
+	});
+
 	it("Stellen und Verträge wie lib/wallet/core/assets.ts, Ketten-IDs wie networks.ts", () => {
 		for (const n of WALLET_NETWORKS) {
 			const fromCore = Object.fromEntries(

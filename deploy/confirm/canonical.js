@@ -72,9 +72,11 @@ const HEX128 = /^[0-9a-f]{32}$/;
 const UINT = /^(0|[1-9][0-9]{0,39})$/;
 const POSINT = /^[1-9][0-9]{0,39}$/;
 const SECONDS = /^[1-9][0-9]{8,10}$/;
+// Bech32/Bech32m und klassische Base58-Formate des Netzes, wie der Kern
+// (lib/wallet/core/address.ts); die Prüfsumme prüft der Signer (B8)
 const BTC_ADDR = {
-	tb: /^tb1[02-9ac-hj-np-z]{8,87}$/,
-	bc: /^bc1[02-9ac-hj-np-z]{8,87}$/,
+	tb: /^(?:tb1[02-9ac-hj-np-z]{8,87}|[mn2][1-9A-HJ-NP-Za-km-z]{25,34})$/,
+	bc: /^(?:bc1[02-9ac-hj-np-z]{8,87}|[13][1-9A-HJ-NP-Za-km-z]{25,34})$/,
 };
 const ETH_ADDR = /^0x[0-9a-fA-F]{40}$/;
 const NONE = "-";

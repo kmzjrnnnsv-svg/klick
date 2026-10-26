@@ -161,10 +161,16 @@ export async function requireUnlocked(
 }
 
 // Plattform-Verwaltung nur aus dem Admin-Netz (WALLET_ADMIN_NETWORKS,
-// WireGuard wg-admin; leer = keine Einschränkung, Härtung A2/W)
+// WireGuard wg-admin, Härtung A2/W). Leer = keine Einschränkung nur außerhalb
+// von Produktion; in Produktion und bei einer Liste ohne gültiges Netz ist
+// die Verwaltung im Browser gesperrt (fail closed, Selbstprüfung B6) — sie
+// läuft ohnehin am Terminal (pnpm wallet:admin).
 export function walletAdminNetworkAllows(ip: string | null): boolean {
-	const ranges = parseRanges(walletEnv().WALLET_ADMIN_NETWORKS).ranges;
-	return ranges.length === 0 || ipInRanges(ip, ranges);
+	const env = walletEnv();
+	const list = env.WALLET_ADMIN_NETWORKS;
+	const ranges = parseRanges(list).ranges;
+	if (list.length === 0) return env.NODE_ENV !== "production";
+	return ipInRanges(ip, ranges);
 }
 
 export async function requirePlatformAdmin(): Promise<SessionCtx> {

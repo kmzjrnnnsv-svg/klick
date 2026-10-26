@@ -265,17 +265,27 @@ export function apply(s: SignerState, e: SignerEvent): SignerState {
 		}
 		case "rekey":
 			break;
-		case "mandate":
+		case "mandate": {
+			// Ein Text, den diese Fassung nicht mehr liest, darf den Start nicht
+			// verhindern (Selbstprüfung B4): die Vollmacht fällt weg, Auszahlungen
+			// darauf gelten als nicht freigegeben (fail closed)
+			let mandate: Mandate;
+			try {
+				mandate = parseMandate(e.text);
+			} catch {
+				break;
+			}
 			s.mandates.set(e.mandateId, {
 				mandateId: e.mandateId,
 				text: e.text,
-				mandate: parseMandate(e.text),
+				mandate,
 				createdAt: e.at,
 				approvals: [],
 				approvedAt: null,
 				revoked: false,
 			});
 			break;
+		}
 		case "mandate_approval": {
 			const m = s.mandates.get(e.mandateId);
 			const k = s.keys.get(e.credId);

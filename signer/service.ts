@@ -738,13 +738,20 @@ export class Signer {
 			// schon signiert (z. B. Absturz der App nach der Antwort): dieselbe
 			// Signatur noch einmal, nie eine zweite Zahlung
 			if (last) return this.resultOf(last);
-			if (!quorum(this.state, r) || r.signableAt === null)
-				throw new SignerError("not_approved");
+			// Endgültiges zuerst, vor dem Quorum: eine widerrufene oder
+			// abgelaufene Vollmacht und ein geschlossenes Fenster ändern sich
+			// nicht mehr — „not_approved“ ließe die App ewig warten (B2)
+			const m = r.mandateId ? this.state.mandates.get(r.mandateId) : null;
+			if (r.mandateId && (!m || m.revoked))
+				throw new SignerError("mandate_revoked");
 			// Vollmacht: nach ihrem Ende geht nichts mehr hinaus, auch keine
 			// Auszahlung, die noch in der Pause der Richtlinie wartet
-			const m = r.mandateId ? this.state.mandates.get(r.mandateId) : null;
 			if (m && now >= m.mandate.validUntil)
 				throw new SignerError("mandate_expired");
+			if (r.signUntil !== null && now > r.signUntil)
+				throw new SignerError("window_closed");
+			if (!quorum(this.state, r) || r.signableAt === null)
+				throw new SignerError("not_approved");
 			if (now < r.signableAt) throw new SignerError("too_early");
 			if (now > (r.signUntil ?? 0)) throw new SignerError("window_closed");
 			if (!this.activeDestination(i.network, i.destination, now))

@@ -452,6 +452,89 @@ export async function mandateForPayout(
 	return error;
 }
 
+/**
+ * Gilt die Vollmacht einer schon angelegten Auszahlung noch? Der Job fragt
+ * das vor dem Signieren (Selbstprüfung B1): nicht widerrufen, im Zeitraum,
+ * Bedienung noch Bedienung, Aussteller:in noch Inhaber:in mit gültiger
+ * Unterschrift. Fällt das in der App weg, bremst die App auch dann, wenn der
+ * Widerruf im Signer nicht ankam.
+ */
+export async function mandateStillValid(
+	tx: OrgTx,
+	orgId: string,
+	mandateId: string,
+	now: Date,
+): Promise<boolean> {
+	const [row] = await tx
+		.select()
+		.from(payoutMandates)
+		.where(
+			and(
+				eq(payoutMandates.id, mandateId),
+				eq(payoutMandates.organizationId, orgId),
+			),
+		)
+		.limit(1);
+	if (!row || row.revokedAt) return false;
+	if (now < row.validFrom || now >= row.validUntil) return false;
+	if ((await roleOf(tx, orgId, row.granteeUserId)) !== "operator") return false;
+	let m: Mandate;
+	try {
+		m = parseMandate(row.text);
+	} catch {
+		return false;
+	}
+	if (m.mandateId !== row.id || m.orgId !== orgId) return false;
+	return signatureValid(tx, row, m);
+}
+
+/** Offene Vollmachten einer Person (Mitglied entfernt oder Rolle geändert). */
+export async function revokeMandatesOf(
+	tx: OrgTx,
+	ctx: OrgCtx & { userId: string | null },
+	granteeUserId: string,
+	reason: string,
+): Promise<string[]> {
+	const rows = await tx
+		.update(payoutMandates)
+		.set({
+			revokedAt: new Date(),
+			revokedByUserId: ctx.userId,
+			revokeReason: reason,
+		})
+		.where(
+			and(
+				eq(payoutMandates.organizationId, ctx.orgId),
+				eq(payoutMandates.granteeUserId, granteeUserId),
+				isNull(payoutMandates.revokedAt),
+			),
+		)
+		.returning({ id: payoutMandates.id });
+	return rows.map((r) => r.id);
+}
+
+/** Auszahlungen auf der Vollmacht, die noch nicht signiert sind. */
+export async function openMandatePayouts(
+	tx: OrgTx,
+	orgId: string,
+	mandateId: string,
+): Promise<{ id: string; intentId: string; status: string }[]> {
+	return tx
+		.select({
+			id: walletPayouts.id,
+			intentId: walletPayouts.intentId,
+			status: walletPayouts.status,
+		})
+		.from(walletPayouts)
+		.where(
+			and(
+				eq(walletPayouts.organizationId, orgId),
+				eq(walletPayouts.mandateId, mandateId),
+				inArray(walletPayouts.status, ["awaiting_approval", "approved"]),
+			),
+		);
+}
+
 // Unterschrift neu prüfen: gespeicherter Schlüssel der Aussteller:in,
 // gerätegebunden, Aussteller:in noch Inhaber:in der Org
 async function signatureValid(

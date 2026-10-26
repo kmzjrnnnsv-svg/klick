@@ -20,6 +20,10 @@ export async function register() {
 			{ missing: legal.missing },
 			"Impressum unvollständig — LEGAL_* setzen (docs/legal/impressum.md)",
 		);
+	if (env.WALLET_ADMIN_NETWORKS.length === 0)
+		logger.warn(
+			"WALLET_ADMIN_NETWORKS fehlt — Plattform-Verwaltung im Browser ist gesperrt (deploy/systemd/both.service)",
+		);
 	if (!env.BREVO_API_KEY && !env.SMTP_HOST)
 		logger.error(
 			"Kein Mailversand konfiguriert (BREVO_API_KEY oder SMTP_HOST) — Einladungen werden nicht zugestellt",

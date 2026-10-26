@@ -1,8 +1,10 @@
-import { payoutMandates } from "@wallet/db/schema";
+import { payoutMandates, walletPayouts } from "@wallet/db/schema";
 import { mutateOrg, type OrgCtx, readOrg } from "@wallet/lib/db/with-org";
+import { openMandatePayouts } from "@wallet/lib/wallet/mandates";
 import { anchorOk, recordAnchor } from "@wallet/lib/wallet/signer/anchor";
 import {
 	confirmOrigin,
+	SignerCallError,
 	type SignerMandateView,
 	signerCall,
 	signerErrorCode,
@@ -118,4 +120,55 @@ export async function revokeMandateInSigner(
 			},
 		};
 	});
+}
+
+/**
+ * Auszahlungen auf einer widerrufenen Vollmacht, die noch nicht signiert
+ * sind, im Signer abbrechen (Selbstprüfung B1); schon signierte bekommen den
+ * Abbruch-Wunsch wie beim Knopf „Abbrechen“. Liefert die Zahl der nicht
+ * abgebrochenen (Signer nicht erreichbar).
+ */
+export async function cancelMandatePayouts(
+	ctx: OrgCtx & { userId: string | null },
+	mandateId: string,
+): Promise<{ cancelled: number; failed: number }> {
+	const open = await readOrg(ctx, (tx) =>
+		openMandatePayouts(tx, ctx.orgId, mandateId),
+	);
+	let cancelled = 0;
+	let failed = 0;
+	for (const p of open) {
+		let meta: { seq: number; head: string } | null = null;
+		try {
+			const r = await signerCall("intent.cancel", { intentId: p.intentId });
+			meta = { seq: r.seq, head: r.head };
+		} catch (e) {
+			if (
+				!(e instanceof SignerCallError && e.signerCode === "already_signed")
+			) {
+				failed++;
+				continue;
+			}
+		}
+		await mutateOrg(ctx, async (tx) => {
+			if (meta) await recordAnchor(tx, ctx.orgId, meta);
+			await tx
+				.update(walletPayouts)
+				.set(meta ? { status: "cancelled" } : { cancelRequested: true })
+				.where(eq(walletPayouts.id, p.id));
+			return {
+				result: null,
+				audit: {
+					action: meta
+						? "wallet.payout_cancelled"
+						: "wallet.payout_cancel_requested",
+					target: `wallet_payout:${p.id}`,
+					before: { status: p.status },
+					after: { reason: "mandate_revoked", mandateId },
+				},
+			};
+		});
+		cancelled++;
+	}
+	return { cancelled, failed };
 }

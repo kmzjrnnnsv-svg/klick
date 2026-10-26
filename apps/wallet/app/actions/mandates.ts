@@ -10,6 +10,7 @@ import {
 	revokeMandateSchema,
 } from "@wallet/lib/validation/mandates";
 import {
+	cancelMandatePayouts,
 	registerMandateInSigner,
 	revokeMandateInSigner,
 } from "@wallet/lib/wallet/mandate-signer";
@@ -85,7 +86,9 @@ async function submitMandateImpl(response: AuthenticationResponseJSON): Promise<
 	};
 }
 
-async function revokeMandateImpl(input: unknown): Promise<ActionResult> {
+async function revokeMandateImpl(
+	input: unknown,
+): Promise<ActionResult<{ signer: "revoked" | "none" | "failed" }>> {
 	const c = await requireUnlocked("wallet:manage");
 	const parsed = revokeMandateSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
@@ -93,10 +96,21 @@ async function revokeMandateImpl(input: unknown): Promise<ActionResult> {
 	const res = await revokeMandate(ctx, parsed.data.id, parsed.data.reason);
 	if (!res.ok) return res;
 	revalidatePath(PAGE);
-	// im Signer ebenfalls (bremst); ohne Signer oder bei Ausfall bleibt
-	// „Mit Signer abgleichen“ auf der Seite
-	await revokeMandateInSigner(ctx, parsed.data.id);
-	return res;
+	// im Signer ebenfalls (bremst) und offene Auszahlungen darauf abbrechen;
+	// klappt das nicht, sagt die Seite es (B1) und „Mit Signer abgleichen“
+	// holt es nach — der Job signiert ohnehin nur mit gültiger Vollmacht
+	const inSigner = await revokeMandateInSigner(ctx, parsed.data.id);
+	if (!inSigner.ok && NO_SIGNER.has(inSigner.error))
+		return { ok: true, data: { signer: "none" } };
+	const payouts = inSigner.ok
+		? await cancelMandatePayouts(ctx, parsed.data.id)
+		: { failed: 1 };
+	return {
+		ok: true,
+		data: {
+			signer: inSigner.ok && payouts.failed === 0 ? "revoked" : "failed",
+		},
+	};
 }
 
 // Stand im Signer an die App angleichen: widerrufen bzw. (erneut) anlegen
@@ -121,9 +135,13 @@ async function syncMandateSignerImpl(
 	);
 	if (!row) return fail("notFound");
 	const res = row.revokedAt
-		? await revokeMandateInSigner(ctx, id).then((r) =>
-				r.ok ? { ok: true as const, data: { confirmUrl: null } } : r,
-			)
+		? await revokeMandateInSigner(ctx, id).then(async (r) => {
+				if (!r.ok) return r;
+				const p = await cancelMandatePayouts(ctx, id);
+				return p.failed === 0
+					? { ok: true as const, data: { confirmUrl: null } }
+					: fail("signer_unreachable");
+			})
 		: await registerMandateInSigner(ctx, id);
 	if (res.ok) revalidatePath(PAGE);
 	return res;
