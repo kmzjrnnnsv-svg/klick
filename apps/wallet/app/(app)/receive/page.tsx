@@ -2,6 +2,8 @@ import { ReceivePanel } from "@wallet/components/wallet/receive-panel";
 import { requireUnlockedPage } from "@wallet/lib/auth/gates";
 import { toOrgCtx } from "@wallet/lib/auth/guards";
 import { readOrg } from "@wallet/lib/db/with-org";
+import { currentAccessPolicy } from "@wallet/lib/orgs/access";
+import { allowedAssetsOn } from "@wallet/lib/orgs/access-policy";
 import {
 	issuedAddresses,
 	listWalletAccounts,
@@ -60,6 +62,10 @@ export default async function WalletReceivePage({
 			</>
 		);
 	const net = NETWORKS[account.network];
+	// Nur bestimmte Assets (Härtung W): Auswahl im Zahlungs-Link, Hinweis
+	const policy = await currentAccessPolicy(ctx.orgId);
+	const allowed = allowedAssetsOn(policy, account.network);
+	const restricted = policy.allowedAssets !== null;
 	// Bitcoin: jüngste noch unbenutzte Adresse; Ethereum: die eine Adresse
 	const current =
 		net.chain === "ethereum"
@@ -97,7 +103,11 @@ export default async function WalletReceivePage({
 			)}
 
 			<section className="rounded-2xl bg-card p-5 sm:p-6">
-				{current ? (
+				{allowed.length === 0 ? (
+					<p className="text-muted-foreground text-subhead">
+						{t("receiveNoAsset", { network: net.label })}
+					</p>
+				) : current ? (
 					<ReceivePanel
 						key={current.address}
 						accountId={account.id}
@@ -105,13 +115,19 @@ export default async function WalletReceivePage({
 						address={current.address}
 						kind={account.kind}
 						reused={!!current.firstSeenAt && net.chain === "bitcoin"}
+						allowed={restricted ? allowed : undefined}
 					/>
 				) : (
 					<p className="text-muted-foreground text-subhead">{t("syncNever")}</p>
 				)}
-				{net.chain === "ethereum" && (
+				{net.chain === "ethereum" && allowed.length > 0 && (
 					<p className="mt-4 text-muted-foreground text-footnote">
-						{t("receiveTokens", { network: net.label })}
+						{restricted
+							? t("receiveTokensOnly", {
+									assets: allowed.join(", "),
+									network: net.label,
+								})
+							: t("receiveTokens", { network: net.label })}
 					</p>
 				)}
 			</section>

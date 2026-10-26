@@ -6,6 +6,8 @@ paths = [
   '''pnpm-lock\.yaml''',
   '''\.env\.example''',
   '''db/migrations/.*\.sql''',
+  # Übernommene Sicherheits-Skills (.claude/THIRD_PARTY.md): Beispiel-Payloads, keine Geheimnisse
+  '''\.claude/skills/(owasp-security|sharp-edges|differential-review|spec-to-code-compliance|agentic-actions-auditor|insecure-defaults|auditing-code-for-vulnerabilities|reviewing-cryptography|auditing-supply-chain|hunting-web-backdoors|reviewing-code-changes|attacking-saml|testing-web-applications|testing-apis|exploiting-ssrf|15-blue-team-defense)/''',
 ]
 
 # Eigene Token-Präfixe (ADR-017/019): Klick klk_…, both.money kwl_…

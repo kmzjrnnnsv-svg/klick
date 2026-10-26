@@ -23,6 +23,11 @@ function redirectFor(e: unknown, back: string): never {
 	if (!(e instanceof AuthError)) throw e;
 	const next = encodeURIComponent(safeNext(back) ?? "/");
 	if (e.code === "no_org") redirect("/orgs");
+	// Zugangsregeln der Org (Härtung W): eigene Seite mit Grund und Ausweg
+	if (e.code === "network_denied") redirect("/blocked?reason=network");
+	if (e.code === "security_key_required")
+		redirect("/blocked?reason=security-key");
+	if (e.code === "ip_blocked") redirect("/blocked?reason=admin-network");
 	if (e.code === "wallet_locked" || e.code === "step_up_required")
 		redirect(`/unlock?next=${next}`);
 	if (e.code === "forbidden") notFound();

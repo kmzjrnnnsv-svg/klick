@@ -1,0 +1,15 @@
+# /etc/crowdsec/acquis.d/klick.yaml — Quellen für CrowdSec (Härtung H6)
+# nginx-Zugriffs- und Fehlerlogs (beide vHosts, volle IP; logrotate 14 Tage)
+filenames:
+  - /var/log/nginx/access.log
+  - /var/log/nginx/error.log
+labels:
+  type: nginx
+---
+# SSH-Anmeldungen aus dem Journal (sshd läuft nur im Admin-Tunnel, Fehlversuche
+# sind trotzdem ein Signal: gestohlenes Gerät, falscher Schlüssel)
+source: journalctl
+journalctl_filter:
+  - "_SYSTEMD_UNIT=ssh.service"
+labels:
+  type: syslog

@@ -79,6 +79,7 @@ d("RLS both.money (Postgres)", () => {
 			"notifications",
 			"org_settings",
 			"orgs",
+			"payout_mandates",
 			"wallet_accounts",
 			"wallet_address_book",
 			"wallet_addresses",

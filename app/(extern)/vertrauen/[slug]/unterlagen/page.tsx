@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { TrustAccessGate } from "@/components/trust-center/access-gate";
+import { ipFromHeaders } from "@/lib/auth/session-rules";
 import { publicTrustCenter } from "@/lib/db/trust";
+import { orgNetworkAllows } from "@/lib/net/org-network";
 
 // /vertrauen/<slug>/unterlagen — vertrauliche Unterlagen nach Freigabe. Der
 // Token kommt im Fragment (#klk_trust_…) und wird im Browser gegen ein
@@ -22,6 +25,15 @@ export default async function TrustDocumentsPage({
 	const { slug } = await params;
 	const center = await publicTrustCenter(slug);
 	if (!center) notFound();
+	// IP-Liste der Organisation (Härtung A5)
+	if (
+		!(await orgNetworkAllows(
+			center.organizationId,
+			"trustCenter",
+			ipFromHeaders(await headers()),
+		))
+	)
+		redirect("/netz?bereich=portal");
 	const s = center.snapshot;
 	const t = await getTranslations("TrustCenter");
 	return (

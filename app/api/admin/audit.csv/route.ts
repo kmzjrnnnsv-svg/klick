@@ -1,8 +1,9 @@
-import { and, asc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auditLog } from "@/db/schema";
 import { AuthError, requirePlatformAdmin } from "@/lib/auth/guards";
 import { withPlatform } from "@/lib/db/with-org";
+import { viewableOrgs } from "@/lib/platform-access/service";
 
 export const dynamic = "force-dynamic";
 
@@ -67,8 +68,22 @@ export async function GET(req: Request) {
 	if (org && !/^[0-9a-f-]{36}$/i.test(org))
 		return new NextResponse("ungültige org", { status: 400 });
 
+	// Org-Einträge nur mit Freigabe „Protokoll einsehen“ (Lockbox, Härtung A3)
+	const orgs = await viewableOrgs(
+		{ userId: admin.userId, ip: admin.ip, userAgent: admin.userAgent },
+		"Audit-Log als CSV exportiert",
+	);
+	if (org && !orgs.includes(org))
+		return new NextResponse("Keine Freigabe der Organisation", { status: 403 });
 	const conditions = [
-		org ? eq(auditLog.organizationId, org) : undefined,
+		org
+			? eq(auditLog.organizationId, org)
+			: orgs.length > 0
+				? or(
+						isNull(auditLog.organizationId),
+						inArray(auditLog.organizationId, orgs),
+					)
+				: isNull(auditLog.organizationId),
 		from ? gte(auditLog.at, from) : undefined,
 		to ? lte(auditLog.at, to) : undefined,
 	].filter((c) => c !== undefined);

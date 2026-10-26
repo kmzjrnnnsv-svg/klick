@@ -3,6 +3,7 @@ import { PORTAL_COOKIE } from "@/lib/auth/guards";
 import { mutateOrg } from "@/lib/db/with-org";
 import { resolveToken } from "@/lib/db/with-token";
 import { env } from "@/lib/env";
+import { orgNetworkAllows } from "@/lib/net/org-network";
 import { SlidingWindowLimiter } from "@/lib/rate-limit";
 import {
 	clientIp,
@@ -42,6 +43,9 @@ export const POST = ingestRoute("portal.session", async (req: Request) => {
 	const t = r.token;
 	if (t.subjectType !== "assessment" || !t.subjectId)
 		return ingestJson(401, { error: "invalid" });
+	// IP-Liste der Organisation (Härtung A5), außer das Portal ist ausgenommen
+	if (!(await orgNetworkAllows(t.organizationId, "supplierPortal", ip)))
+		return ingestJson(403, { error: "network_denied" });
 	await mutateOrg(
 		{
 			orgId: t.organizationId,

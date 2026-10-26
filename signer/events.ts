@@ -58,6 +58,9 @@ export type SignerEvent =
 			intentId: string;
 			// kanonischer Text (lib/wallet/core/intent.ts)
 			text: string;
+			// Auszahlung im Rahmen einer freigegebenen Vollmacht (vorab
+			// freigegeben, Härtung W); fehlt bei älteren Einträgen
+			mandateId?: string;
 	  })
 	| (Base & {
 			type: "approval";
@@ -90,7 +93,22 @@ export type SignerEvent =
 			maxPriorityFeePerGas?: string;
 			gasLimit?: string;
 	  })
-	| (Base & { type: "rekey"; fingerprints: Record<string, string> });
+	| (Base & { type: "rekey"; fingerprints: Record<string, string> })
+	// Vollmacht (lib/wallet/core/mandate.ts): angelegt von der App, freigegeben
+	// wie eine Absicht über das Quorum der Sicherheitsschlüssel
+	| (Base & { type: "mandate"; mandateId: string; text: string })
+	| (Base & {
+			type: "mandate_approval";
+			mandateId: string;
+			credId: string;
+			person: string;
+			counter: number;
+	  })
+	| (Base & {
+			type: "mandate_revoked";
+			mandateId: string;
+			by: "app" | "admin";
+	  });
 
 // erste Signatur, Gebührenerhöhung (gleiche Eingänge/Nonce), Abbruch
 // (gleiche Eingänge/Nonce an sich selbst)

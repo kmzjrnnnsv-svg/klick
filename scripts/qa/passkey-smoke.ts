@@ -10,12 +10,30 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { chromium } from "@playwright/test";
+import postgres from "postgres";
 import {
 	QA_BASE as BASE,
 	QA_SECRET as SECRET_FILE,
 	QA_STATE as STATE,
 } from "./paths";
 import { check, EXEC, failureCount, totp, withAuthenticator } from "./webauthn";
+
+// Wartezeit der Vier-Augen-Anträge vorspulen (nur QA, nie Produktion)
+async function fastForwardFourEyes(summaryPrefix: string) {
+	const url = process.env.QA_DB_URL ?? process.env.DATABASE_URL_MIGRATE;
+	if (!url) throw new Error("QA_DB_URL fehlt (Wartezeit vorspulen)");
+	const sql = postgres(url, { max: 1 });
+	try {
+		await sql.begin(async (tx) => {
+			await tx`select set_config('app.scope', 'platform', true)`;
+			await tx`update security_changes
+				set apply_after = now() - interval '1 minute'
+				where status = 'waiting' and summary like ${`${summaryPrefix}%`}`;
+		});
+	} finally {
+		await sql.end();
+	}
+}
 
 async function main() {
 	if (!existsSync(STATE) || !existsSync(SECRET_FILE))
@@ -81,6 +99,24 @@ async function main() {
 
 	// 5) Zugang zurücksetzen (Owner) → Link → neuer Passkey
 	await o.goto(`${BASE}/team`);
+	await o
+		.getByRole("row", { name: /QA Passkey/ })
+		.getByRole("button")
+		.last()
+		.click();
+	await o.getByRole("menuitem", { name: "Zugang zurücksetzen" }).click();
+	await o.getByRole("button", { name: "Zurücksetzen" }).click();
+	// Vier-Augen (Härtung A4): als einzige Inhaber:in startet das die 24-h-
+	// Wartezeit. Der Smoke spult sie über die Datenbank vor (QA_DB_URL bzw.
+	// DATABASE_URL_MIGRATE) und setzt danach zurück.
+	await o
+		.getByText(/24 Stunden|zweite Person/)
+		.first()
+		.waitFor({
+			timeout: 15_000,
+		});
+	check("Vier-Augen-Hinweis beim Zurücksetzen", true);
+	await fastForwardFourEyes("Zugang von");
 	await o
 		.getByRole("row", { name: /QA Passkey/ })
 		.getByRole("button")

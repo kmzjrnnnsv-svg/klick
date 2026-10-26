@@ -1,0 +1,23 @@
+# /etc/wireguard/wg-admin.conf auf dem App-Server (Klick + both.money).
+# Admin-Netz (Härtung H1): SSH, /admin von Klick und Plattform-Aktionen gehen
+# nur über diesen Tunnel. Nur Admin-Geräte sind Peers; kein Routing ins
+# Internet, kein Weiterleiten zwischen den Peers (forward bleibt drop).
+#
+#   umask 077
+#   wg genkey | tee /etc/wireguard/admin.key | wg pubkey > /etc/wireguard/admin.pub
+#   systemctl enable --now wg-quick@wg-admin
+#
+# Je Gerät ein Peer (Vorlage wg-admin-peer.conf.example), je Gerät eigene
+# Adresse — die App erkennt Admin-Zugriffe an der Quelladresse
+# (ADMIN_NETWORKS=10.9.0.0/24,fd10:9::/64). Gerät verloren: Peer löschen,
+# `wg syncconf wg-admin <(wg-quick strip wg-admin)`.
+[Interface]
+Address = 10.9.0.1/24, fd10:9::1/64
+ListenPort = 51820
+PrivateKey = <inhalt von /etc/wireguard/admin.key>
+
+[Peer]
+# Laptop Inhaber:in (Beispiel)
+PublicKey = <öffentlicher Schlüssel des Geräts>
+PresharedKey = <wg genpsk, je Peer eigener Wert>
+AllowedIPs = 10.9.0.10/32, fd10:9::10/128

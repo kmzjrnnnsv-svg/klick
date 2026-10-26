@@ -15,8 +15,13 @@
 4. Backups: siehe „Backup & Restore“ unten (Timer für DB, Objekte, Stichprobe).
 
 ## Release
+Kurz: `sudo deploy/rollout/rollout.sh klick` (bzw. `both`) aus dem root-eigenen Checkout — Backup,
+Checkout auf `--ref`, Release, Units, Neustart, Prüfung (Abschnitt „Rollout-Skript“). Von Hand:
 CI grün → Wartungsfenster → `scripts/backup-db.sh` → `git pull && pnpm release`
 (migrate → seed → build) → `systemctl restart klick` → `curl -f https://raza.work/api/ready`.
+`pnpm release` prüft zuerst den Arbeitsbaum (keine Änderungen) und, sobald
+`deploy/release/allowed_signers` einen Schlüssel enthält, einen signierten Tag auf HEAD
+(„Server härten“, Schritt 8).
 
 `pnpm release` läuft als User `klick` und braucht dieselben Secrets wie der Dienst
 (`db:seed` validiert die Env: `BETTER_AUTH_SECRET`, `VAULT_KEK_BASE64`, `BETTER_AUTH_URL`).
@@ -137,6 +142,12 @@ neue RP-ID macht alle vorhandenen Passkeys unbrauchbar (dann hilft nur „Zugang
 - **Notfall, wenn niemand in der Organisation helfen kann** (z. B. die einzige Owner:in): mit dem
   Block oben `runuser -u klick -- pnpm auth:recover <adresse>` — gleiche Wirkung, Link nur im
   Terminal, Audit `auth.recover_link_cli`.
+- **Organisation hat sich mit ihrer IP-Liste ausgesperrt** (Einstellungen > Netzwerk, z. B. neue
+  Büro-Adresse): mit dem Block oben `runuser -u klick -- pnpm org:network-reset --org <kurzname>
+  --reason "<Anlass, Ticket>"` — schaltet die Liste aus (Ausnahmen und Liste für Externe fallen mit),
+  Audit `org.network_reset` in der Kette der Organisation und `platform.access`, alle Inhaber:innen
+  bekommen sofort eine Mitteilung. Wirkt in der App nach spätestens 30 Sekunden. Vorher die Person
+  auf einem zweiten Weg bestätigen (Rückruf an die bekannte Nummer), nie allein auf Mail hin.
 - Prüfen nach einem Release: `pnpm exec tsx scripts/qa/passkey-smoke.ts` gegen eine Testinstanz
   (virtueller Authenticator; setzt ein QA-Konto aus `scripts/qa/crawl.ts --login` voraus).
 
@@ -217,6 +228,196 @@ Datei.
 5. `pnpm exec tsx scripts/verify-backup.ts --sample 50` gegen das Ziel, Audit-Kette prüfen
    (`/admin/audit`), `curl -f …/api/ready`. Ergebnis als Pflichten-Lauf dokumentieren.
 
+## Rollout-Skript (alles in einem Lauf)
+`deploy/rollout/rollout.sh` führt „Server härten“ (unten), die Releases von Klick und both.money,
+den Signer und den Bericht der Reihe nach aus. Die Schritte unten bleiben der Handweg und die
+Erklärung, was das Skript tut.
+
+**Start** (als root, nie aus `/opt/klick/current` — den kann der Dienst-User `klick` ändern; das
+Skript prüft das und bricht sonst ab):
+```bash
+sudo git clone --depth 1 --branch main https://github.com/kmzjrnnnsv-svg/klick.git /usr/local/src/klick-rollout
+sudo tmux new -s rollout                   # Verbindungsabbruch beendet das Skript nicht
+cd /usr/local/src/klick-rollout
+sudo deploy/rollout/rollout.sh pruefen     # Stand, RAM, Virenscanner-Entscheidung, nichts ändert sich
+sudo deploy/rollout/rollout.sh alles --admin <name> --geraet laptop --geraet handy --trocken
+sudo deploy/rollout/rollout.sh alles --admin <name> --geraet laptop --geraet handy
+```
+Später neu holen: `sudo git -C /usr/local/src/klick-rollout pull --ff-only` (bzw. mit Release-Schlüssel
+`fetch --tags` + `checkout <tag>`) und dieselbe Phase erneut starten.
+
+**Phasen** (Reihenfolge von `alles`, jede einzeln aufrufbar, `--ab <phase>` setzt fort):
+`pruefen` · `grundlage` (Pakete, `/var/log/klick`, `/var/www/letsencrypt`, 4 GB Swap ohne Swap,
+Release-Anker) · `firewall` (Übergang: SSH noch öffentlich, UDP 51820 offen) · `wireguard` (Geräte mit
+QR-Code, Konfiguration nur auf dem Bildschirm; wartet auf die Verbindung) · `ssh` (Admin-Konto, SSH nur
+über den Tunnel, bisherige Schlüssel) · `firewall-final` (SSH öffentlich zu) · `system` · `nginx` (vHosts
+mit `diff` und Rückfrage) · `crowdsec` (Paketquelle mit `signed-by`, Fingerprint bestätigen oder
+`CROWDSEC_KEY_FPR=<fpr>` setzen) · `postgres` (Passwörter als SCRAM neu mit **denselben** Werten aus den
+Credentials, pg_hba; bei Fehlern zurück) · `virenscanner` (clamd ab ≈ 7,5 GiB RAM mit
+`clamav-daemon.service.d/klick.conf`, sonst `no_av` in `PROD_ACCEPT_RISKS`) · `klick` (Backup,
+`pnpm release` mit Migrationen, Units, Neustart; unter 3 GB frei hält es erst both.money an) ·
+`both` · `signer` (nur mit `--signer-tag <tag> --signer-sha <sha aus CI „Signer bündeln“>`) ·
+`ueberwachung` · `abschluss` (AIDE-Basis, Lynis, Bericht `/var/backups/klick-rollout/<lauf>/bericht.md`
+mit Firewall, Ports, SSH, Sandbox, CrowdSec, Start-Prüfung, OpenTimestamps, Verlauf, SAML-Anbieter ohne
+eigene Entity-ID, Signer — als Nachweis in Klick hochladen). Später, mit FIDO2-Schlüsseln:
+`ssh-schluessel`.
+
+**Nicht aussperren:** `firewall`, `ssh` und `firewall-final` stellen vorher einen Rückweg scharf
+(`systemd-run`, 10 min) und gelten erst, wenn du aus einer **neuen** Sitzung bestätigst:
+`sudo deploy/rollout/rollout.sh bestaetigen <wort>` (das Wort zeigt das Skript; für `ssh` und
+`firewall-final` nur aus dem Tunnel 10.9.0.0/24). Ohne Bestätigung setzt der Rückweg von selbst zurück.
+Vor `ssh` verlangt das Skript ein root-Passwort (Hetzner-Konsole) und ein verbundenes Gerät.
+
+**Sicherungen und Protokoll:** jede überschriebene Datei unter `/var/backups/klick-rollout/<lauf>/`
+(0700), Protokoll `/var/log/klick-rollout/<lauf>.log` ohne Geheimnisse (WireGuard-Konfigurationen und
+Env-Inhalte gehen nicht hinein). Das Skript ändert nie die Signer-Richtlinie, nie Credentials und
+nie die Hetzner-Firewall (das sagt es an der passenden Stelle).
+
+## Server härten (Plan Härtung, Teil H)
+Reihenfolge einhalten; bei jedem Schritt eine **zweite SSH-Sitzung offen lassen** und erst
+schließen, wenn die neue Verbindung geht. Rückweg immer: Hetzner Cloud Console (Konsole im
+Browser) bzw. Rescue-System. Für die Konsole ein starkes root-Passwort setzen und offline
+verwahren (`passwd root`; SSH lässt root trotzdem nicht herein). Jeden Schritt mit dem
+Prüfbefehl abschließen und die Ausgabe als Nachweis in Klick hochladen (CC-OPS-04,
+ISO A.8.9/A.8.20–22, BSI SYS.1.3).
+
+**1. Admin-Netz (WireGuard `wg-admin`)**
+1. `apt install wireguard dnsmasq`; Server-Schlüssel nach `deploy/wireguard/wg-admin.conf.example`,
+   je Admin-Gerät ein Peer (eigene Adresse 10.9.0.x und fd10:9::x, eigener PresharedKey).
+2. `cp deploy/wireguard/wg-admin.conf.example /etc/wireguard/wg-admin.conf` (ausfüllen, `chmod 600`),
+   `systemctl enable --now wg-quick@wg-admin`. Auf dem Gerät `wg-admin-peer.conf.example`.
+3. `cp deploy/dnsmasq/klick-admin.conf /etc/dnsmasq.d/ && systemctl restart dnsmasq`.
+4. Hetzner-Firewall: UDP 51820 eingehend erlauben.
+5. Prüfen am Gerät: `ping 10.9.0.1`, `dig +short raza.work @10.9.0.1` → `10.9.0.1`,
+   `curl -sI https://raza.work/api/health` (geht jetzt über den Tunnel).
+
+**2. SSH nur noch im Tunnel, nur mit Sicherheitsschlüssel**
+1. Am Gerät: `ssh-keygen -t ed25519-sk -O resident -O verify-required -C "<name>@<gerät>"`,
+   öffentlichen Schlüssel beim Admin-Konto in `~/.ssh/authorized_keys` eintragen (zweiten Schlüssel
+   als Ersatz gleich mit).
+2. `ssh <admin>@10.9.0.1` testen (über den Tunnel, mit PIN und Berühren).
+3. `cp deploy/ssh/sshd_config.d/10-klick.conf /etc/ssh/sshd_config.d/`, `<admin>` ersetzen,
+   `sshd -t && systemctl reload ssh`. Neue Sitzung über `10.9.0.1` öffnen, erst dann die alte schließen.
+4. sudo bleibt beim Passwort des Admin-Kontos: `pam_u2f` (`deploy/pam/sudo-u2f.example`) fragt den
+   Schlüssel an der Maschine ab und geht über SSH nicht — nur für Hardware mit Konsole.
+5. Prüfen: `sshd -T | grep -Ei 'permitrootlogin|passwordauth|pubkeyaccepted|allowusers'`.
+
+**3. Firewall**
+1. `cp deploy/firewall.nft /etc/nftables.conf && nft -c -f /etc/nftables.conf`.
+2. Sicherheitsnetz: `systemd-run --on-active=10m nft delete table inet klick` (fällt die Verbindung
+   weg, ist die Regel nach 10 Minuten wieder weg), dann `systemctl reload nftables`.
+3. Neue SSH-Sitzung über den Tunnel testen, dann das Sicherheitsnetz löschen:
+   `systemctl list-timers 'run-*'` → `systemctl stop run-….timer`.
+4. Hetzner-Firewall angleichen: eingehend nur TCP 80/443 und UDP 51820.
+5. Knoten-Server: `deploy/wireguard/firewall-nodes.nft` (SSH nur aus dem Tunnel, Zugang mit
+   `ssh -J <admin>@10.9.0.1 <admin>@10.8.0.2`).
+6. Prüfen: `nft list ruleset`, `ss -tulpn` (öffentlich nur 80, 443, 51820), von außen
+   `nc -zv <ip> 22` → abgewiesen.
+
+**4. Kernel, Updates, Protokoll, Integrität**
+1. `cp deploy/sysctl/99-klick.conf /etc/sysctl.d/ && sysctl --system`.
+2. `apt install unattended-upgrades needrestart`; `cp deploy/apt/50unattended-upgrades deploy/apt/20auto-upgrades /etc/apt/apt.conf.d/`,
+   `cp deploy/apt/needrestart-klick.conf /etc/needrestart/conf.d/klick.conf`;
+   prüfen mit `unattended-upgrade --dry-run --debug`.
+3. `apt install auditd audispd-plugins`, `cp deploy/audit/klick.rules /etc/audit/rules.d/`,
+   `augenrules --load` (danach `auditctl -s` → `enabled 2`; Regeln ändern = Neustart).
+4. `apt install aide`, `cp deploy/aide/99_aide_klick /etc/aide/aide.conf.d/`, `aideinit`,
+   `cp /var/lib/aide/aide.db.new /var/lib/aide/aide.db`; Units `klick-aide.{service,timer}` nach
+   `/etc/systemd/system`, `systemctl enable --now klick-aide.timer`. Nach jedem Signer-, Parser-
+   oder Bestätigungsseiten-Release `aide --update` (siehe Kopf der Datei).
+5. AppArmor muss laufen: `aa-status` (Ubuntu-Standard).
+6. Lynis: `apt install lynis && lynis audit system --quick`; Hardening-Index und Vorschläge als
+   Nachweis hochladen, Abweichungen begründen.
+
+**5. Dienste gegeneinander abschotten**
+Units aus `deploy/systemd/` neu kopieren (`klick.service`, `both.service`, Backup-, Sanktions-,
+Signer-Backup- und Alarm-Unit), `systemctl daemon-reload`, nacheinander neu starten und prüfen:
+`systemd-analyze security klick both klick-signer klick-parse@x` (Ziel: App-Units ≤ 2,5, Signer
+und Parser „OK“). Test: `sudo -u klick ls /opt/both` → „Permission denied“ bzw. leer.
+
+**6. nginx und CrowdSec (mit WAF)**
+1. `cp deploy/nginx/snippets/klick-admin-net.conf /etc/nginx/snippets/`,
+   `cp deploy/nginx/00-default.conf /etc/nginx/sites-available/` + Link in `sites-enabled`
+   (vorher `grep -rn default_server /etc/nginx/sites-enabled/` — andere Sites dürfen keinen tragen),
+   vHosts neu kopieren, `nginx -t && systemctl reload nginx`.
+2. Prüfen: von außen `curl -sI https://raza.work/admin` → 403, über den Tunnel → 200/307;
+   `curl -sI -H 'Host: x.example' http://<ip>` → keine Antwort.
+3. CrowdSec: Repo nach crowdsec.net einrichten, `apt install crowdsec crowdsec-firewall-bouncer-nftables crowdsec-nginx-bouncer`;
+   `cscli collections install crowdsecurity/nginx crowdsecurity/base-http-scenarios crowdsecurity/http-cve crowdsecurity/linux crowdsecurity/sshd crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules`;
+   `deploy/crowdsec/acquis.d/*` nach `/etc/crowdsec/acquis.d/`, `scenarios/` und `parsers/` an dieselben
+   Pfade unter `/etc/crowdsec/`; Bouncer nach `bouncers/crowdsec-nginx-bouncer.conf.example`;
+   `systemctl restart crowdsec nginx`.
+4. Prüfen: `cscli metrics` (AppSec-Anfragen zählen), WAF-Test
+   `curl -s -o /dev/null -w '%{http_code}' 'https://raza.work/?x=<script>alert(1)</script>'` → 403,
+   Bann-Test `cscli decisions add --ip 198.51.100.7 --duration 5m` und wieder löschen.
+   Der Firewall-Bouncer legt eine eigene Tabelle an (`nft list table ip crowdsec`); `firewall.nft`
+   löscht sie beim Neuladen nicht.
+
+**7. Postgres**
+1. Vorher alle Rollen-Passwörter als SCRAM neu setzen (`sudo -u postgres psql`, `\password klick_app`
+   usw.; Credentials unverändert lassen, wenn dieselben Passwörter gesetzt werden).
+2. `cp deploy/postgres/klick.conf /etc/postgresql/16/main/conf.d/`, `pg_hba.conf.example` nach
+   `/etc/postgresql/16/main/pg_hba.conf` (Rollen prüfen), `systemctl restart postgresql`,
+   Apps neu starten, `curl -f https://raza.work/api/ready`.
+3. Prüfen: `ss -tlnp | grep 5432` → nur 127.0.0.1/::1; `psql -h 127.0.0.1 -U klick_app klick -c 'select 1'`.
+
+**8. Releases nur von signierten Tags**
+`deploy/release/allowed_signers` mit den Release-Schlüsseln füllen (Anleitung in der Datei), am
+eigenen Rechner `git tag -s v<datum>` und pushen; auf dem Server `git fetch --tags && git checkout v<datum>`
+statt `git pull`. `pnpm release` bzw. `release:wallet` bricht bei geänderten Dateien immer ab, mit
+Schlüssel zusätzlich ohne gültig signierten Tag (`scripts/release-guard.ts`). CI-Status vor dem
+Tag im Browser prüfen.
+**Vertrauensanker:** geprüft wird gegen die root-eigene Kopie `/etc/klick-release/allowed_signers`
+(`RELEASE_ALLOWED_SIGNERS`, `deploy/signer/install.sh`), nicht gegen die Datei im geprüften Stand —
+sonst trüge, wer ins Repo schreiben kann, dort seinen eigenen Schlüssel ein. Die Kopie legt
+`rollout.sh grundlage` an (Fingerprints zeigen, bestätigen); spätere Änderungen im Repo übernimmt sie
+nur nach Rückfrage. Steht dort ein Schlüssel, prüft auch `install.sh` die Signatur des Signer-Tags.
+
+**9. Zustand überwachen**
+`install -D -m 0755 -o root -g root scripts/host-health.sh /usr/local/lib/klick-health/host-health.sh`,
+Units `klick-health.{service,timer}` kopieren, `systemctl enable --now klick-health.timer`.
+Probe: `systemctl start klick-health && journalctl -u klick-health -n 20`. Meldet Platte ≥ 85 %,
+Zertifikate < 14 Tage, Dienste mit Fehler, auditd, nftables, CrowdSec-Sperren und ausstehenden
+Neustart; Fehler gehen über `klick-alert@` an `ALERT_MAIL`.
+
+**10. App-Seite: Admin-Netz und Start-Prüfung**
+1. Die Units setzen das Admin-Netz schon (`ADMIN_NETWORKS` in `klick.service`,
+   `WALLET_ADMIN_NETWORKS` in `both.service`, beide `10.9.0.0/24,fd10:9::/64`); ein anderes Netz
+   in `/etc/klick/klick.env` bzw. `/etc/both/both.env` überschreiben. Ohne Wert startet Klick in
+   Produktion nicht (`admin_anywhere`).
+2. Klick prüft beim Start die Produktions-Konfiguration (`lib/env-checks.ts`): kein clamd
+   (`CLAMD_HOST`), kein Admin-Netz, `AUTH_ALLOW_SIGNUP=true`, `MAIL_ALLOW_RESEND=true` oder kein
+   `PARSER_SOCKET` verhindern den Start — außer die Abweichung steht bewusst in
+   `PROD_ACCEPT_RISKS` (komma-getrennt: `no_av`, `admin_anywhere`, `signup_open`, `mail_us`,
+   `parser_in_app`; Warnung im Journal). Nie hinnehmbar: `BETTER_AUTH_URL` ohne https,
+   `PASSKEY_RP_ID` passt nicht, `HOSTNAME` ≠ `127.0.0.1`.
+3. Prüfen: `journalctl -u klick -n 50 | grep -i start-prüfung`; über den Tunnel `/admin` → 200,
+   von außen → 403.
+
+**Ausgesperrt?** Hetzner Console → root-Login → `nft delete table inet klick` (Firewall offen),
+`rm /etc/ssh/sshd_config.d/10-klick.conf && systemctl reload ssh` (SSH wie vorher),
+`systemctl restart wg-quick@wg-admin`. Danach Ursache beheben und Schritte wiederholen.
+
+## Verlauf mit Bitcoin-Anker (Härtung V, ADR-030)
+Die Prüfsummen-Ketten aller Organisationen werden täglich ab 02:30 und nach kritischen Ereignissen
+(Zugriffe durch Klick, Sicherheitsänderungen, Notweg der IP-Liste) als Merkle-Wurzel bei
+OpenTimestamps eingereicht; nach einigen Stunden steht ein Hash davon in einem Bitcoin-Block. Kein
+eigenes Guthaben, keine Inhalte nach außen. Jobs `ledger-anchor` (alle 10 min) und `ledger-upgrade`
+(stündlich, :17).
+
+- **Ausgehend nötig:** https zu `a.pool.opentimestamps.org`, `b.pool.opentimestamps.org`,
+  `a.pool.eternitywall.com` (Einreichen) und `alice.btc.calendar.opentimestamps.org`,
+  `bob.btc.calendar.opentimestamps.org`, `finney.calendar.eternitywall.com`,
+  `btc.calendar.catallaxy.com` (Upgrade). Andere Kalender: `LEDGER_CALENDARS=https://…,https://…`
+  (Credential/Env), ausschalten mit `LEDGER_ANCHOR=off`.
+- **Prüfen:** `psql klick -c "select created_at, reason, status, bitcoin_height, error from ledger_anchors
+  order by created_at desc limit 5"` — `failed` = kein Kalender erreicht (Fehler in `error`, neuer
+  Versuch frühestens nach 1 h), `pending` = wartet auf Bitcoin, `confirmed` = im Block.
+- **Gegenprobe ohne Klick:** Einstellungen > Verlauf > „Verlauf herunterladen“, entpacken,
+  `node pruefen.mjs` (rechnet Kette, Köpfe, Merkle-Pfade und liest den Zeitstempel) und den Block mit
+  dem eigenen Knoten abgleichen: `bitcoin-cli getblockheader $(bitcoin-cli getblockhash <höhe>) |
+  grep merkleroot` — oder mit dem offiziellen Client `ots verify anker/<zeit>/wurzel.bin.ots`.
+
 ## Härtung III (optional, per Env aktiv)
 - **clamd:** `apt install clamav-daemon`, `freshclam` als Timer, `TCPSocket 3310` + `TCPAddr 127.0.0.1`
   in `/etc/clamav/clamd.conf`, `StreamMaxLength 30M`. App: `CLAMD_HOST=127.0.0.1`. Fail closed —
@@ -228,11 +429,8 @@ Datei.
 - **GlitchTip (self-hosted, Hetzner):** Docker-Compose nach glitchtip.com/documentation, Projekt
   anlegen, DSN als `GLITCHTIP_DSN` (systemd-Credential). Die App sendet nur gescrubbte Events über
   die Store-API (kein SDK, keine Bodies, keine E-Mails/Tokens), Release-Tag über `KLICK_RELEASE`.
-- **CrowdSec statt fail2ban:** `crowdsec` + `crowdsec-firewall-bouncer-nftables` installieren,
-  Collections `crowdsecurity/nginx`, `crowdsecurity/base-http-scenarios`, `crowdsecurity/http-cve`;
-  Acquisition auf `/var/log/nginx/*.log` und journald `_SYSTEMD_UNIT=sshd.service`; Bouncer-Chain in
-  `deploy/firewall.nft` vor den Accept-Regeln einhängen (`crowdsec-blacklists`). Eigene Szenarien:
-  > 10 × 401 auf `/api/auth/*` in 5 min, > 20 × 429 in 5 min → Ban 4 h. `cscli metrics` prüfen.
+- **CrowdSec statt fail2ban:** jetzt Pflicht und mit WAF, siehe „Server härten“, Schritt 6
+  (eigene Szenarien `deploy/crowdsec/scenarios/klick-auth-bf.yaml`, Admin-Netz auf der Weißliste).
 - **Eigene Datenbank je Enterprise-Mandant:** zweite Postgres-Instanz mit denselben Rollen
   (`deploy/postgres/roles.sql`), `pnpm db:migrate` mit `DATABASE_URL_MIGRATE` gegen diese DB,
   `ORG_DATABASE_URLS={"<orgId>":"postgres://klick_app:…@host/klick"}`. withOrg/readOrg/mutateOrg
@@ -390,6 +588,22 @@ für den IdP (Klick zeigt sie im Formular zum Kopieren, `<id>` = Kennung des Anb
    per Passkey (Audit `auth.sso_bypass`). Wer im IdP gesperrt ist, kommt nicht mehr hinein; laufende
    Sitzungen enden spätestens nach 30 min Leerlauf bzw. 12 h.
 
+**Was Klick bei SAML prüft (Härtung A7):** Antwort nur zu einer eigenen Anfrage (InResponseTo, keine
+IdP-initiierte Anmeldung), genau eine Assertion und diese signiert (Signatur nur auf der Response reicht
+nicht), Signatur- und Digest-Verfahren SHA-256 oder stärker (SHA-1 wird abgelehnt — im IdP ggf. umstellen,
+ADFS: Relying Party > Erweitert > SHA-256), Audience = Entity-ID dieses Anbieters, Recipient = seine ACS,
+Zeitfenster Pflicht (±3 min), jede Assertion nur einmal. Bei OIDC: PKCE, Issuer und Audience gepinnt.
+Angemeldet und angelegt werden nur Adressen der bestätigten Domain **dieses** Anbieters; eine fremde
+Adresse (auch einer anderen Org) wird abgelehnt (`SSO_DOMAIN_MISMATCH`), es entsteht kein Konto.
+
+**SAML-Anbieter, die vor dem 26.10.2026 (Härtung A7) angelegt wurden,** haben als Entity-ID von Klick
+versehentlich die des IdP. Prüfen und neu anlegen (SSO-Verbindung entfernen, neu einrichten, im IdP
+Entity-ID/ACS aktualisieren):
+```bash
+runuser -u postgres -- psql klick -c "select provider_id, organization_id from sso_provider
+  where saml_config is not null and (saml_config::jsonb -> 'spMetadata' ->> 'entityID') is null"
+```
+
 **Prüfen nach dem Einrichten:** mit einem Testkonto anmelden (Rolle in Team prüfen), ein Konto ohne
 Gruppe (Standardrolle), ein Konto einer fremden Domain (abgelehnt). Vor dem Erzwingen einen Inhaber-Passkey
 testen. **Fehlersuche:** Audit der Org (`member.sso_provisioned`, `member.sso_role_changed`,
@@ -494,7 +708,9 @@ Die App kann über `app.sock` bremsen, einrichten und lockern geht nur als root 
    (1 h gültig) an die Person; sie richtet den Schlüssel auf der Seite ein. Allein (Solo) braucht
    eine Person zwei aktive Schlüssel, getrennt verwahrt. Synchronisierte Passkeys (iCloud, Google,
    Passwort-Manager) lehnt der Signer ab. Sperren: `klick-signer-admin revoke <credId>`
-   (`klick-signer-admin status` zeigt die Schlüssel).
+   (`klick-signer-admin status` zeigt die Schlüssel). `<User-ID>` ist die Konto-ID der Person in
+   both.money (Mitglieder-Seite): Vier-Augen und „nicht die eigene Vollmacht freigeben“ zählt der
+   Signer über diese Kennung, eine falsche ID hebelt beides aus.
 5. **App anbinden:** `deploy/systemd/both.service.d/signer.conf.example` nach
    `/etc/systemd/system/both.service.d/signer.conf`, `systemctl daemon-reload && systemctl restart both`.
    Die App (Gruppe both) erreicht nur `app.sock`.
@@ -657,6 +873,32 @@ Modus `own`) oder mit eingetragener Erlaubnis. Setzen nur am Terminal, mit Grund
 der Org: `pnpm wallet:admin org custody --org <slug> --mode licensed --ref "<Erlaubnis>"
 --reason "<Grund>"`. Zurück mit `--mode none`. Cold-Konten aus einer xpub darf jede Org
 beobachten; Kundengelder im echten Netz nur mit `licensed`.
+
+### Zugang und Vollmacht (Härtung W, ADR-031)
+Migrationen `0003_access` und `0004_mandates` laufen mit `release:wallet`. Inhaber:innen stellen
+unter Einstellungen > Zugang ein (Step-up): IP-Liste, nur Sicherheitsschlüssel, erlaubte Assets,
+„Bedienung nur mit Vollmacht“. Speichern lehnt ab, was die eigene Adresse oder die eigenen
+Schlüssel aussperren würde; Lockern meldet sich bei allen Inhaber:innen.
+1. **Plattformweite IP-Liste (optional):** `cp deploy/nginx/snippets/both-allow.conf.example
+   /etc/nginx/snippets/both-allow.conf`, Netze eintragen (Admin-Netz bleibt drin, endet mit
+   `deny all;`), `nginx -t && systemctl reload nginx`. Gilt für App und Anmeldung; Relay der
+   Bestätigungsseite (`/api/confirm|enrol|mandate/`), Link-Tausch und Health bleiben offen.
+   Zurück: Datei löschen, neu laden.
+2. **Nur Token (z. B. EURC/USDC):** in both.money „Alle Assets“ ausschalten und die Token wählen;
+   dann im Signer die Grenzen für BTC und ETH aus der Richtlinie entfernen
+   (`klick-signer-admin status > p.json`, `policy.limits` ohne `BTC`/`ETH` als
+   `richtlinie.json` speichern, `klick-signer-admin policy richtlinie.json`). ETH bleibt auf dem
+   Konto nur für Gebühren. Prüfen: `pnpm wallet:check` meldet unter „Assets“ keine Abweichung.
+3. **Vollmacht im Signer:** nach dem Ausstellen zeigt `/mandates` „Im Signer freigeben“; die
+   Freigabe läuft auf `approve.both.money/#m=<id>` mit den Sicherheitsschlüsseln wie bei
+   Auszahlungen (die bevollmächtigte Person zählt nicht). Danach sind Auszahlungen der Person
+   im Rahmen vorab freigegeben; Pause, Fenster und Grenzen der Richtlinie gelten weiter.
+   Sofort stoppen: in both.money widerrufen oder am Terminal
+   `klick-signer-admin mandate-revoke <mandateId>`.
+4. **Sicherheitsschlüssel-Pflicht:** vorher sicherstellen, dass jede Person einen
+   gerätegebundenen Schlüssel (z. B. YubiKey) registriert hat — die Seite listet, wer nur
+   synchronisierte Passkeys hat. Wer ausgesperrt ist: `pnpm wallet:recover <adresse>` (neuer
+   Link, dabei Sicherheitsschlüssel verwenden).
 
 ### Compliance-Export nach Klick
 both.money schickt Ein- und Ausgänge, Bestände (Tagesabschluss 00:10 Uhr Berlin), Zeremonie-Stand

@@ -34,6 +34,10 @@ for (const [net, prefix] of [
 	["fec0::", 10], // Site-Local (veraltet)
 	["ff00::", 8], // Multicast
 	["2001:db8::", 32], // Doku
+	// Teredo (IPv4 darin verschleiert) und lokales NAT64 (RFC 8215): kein
+	// Ziel für einen Schnellcheck, nur ein Weg um die IPv4-Sperren herum
+	["2001::", 32],
+	["64:ff9b:1::", 48],
 	["100::", 64], // Discard
 	["fd00:ec2::", 32], // AWS-Metadaten (IPv6)
 ] as const)

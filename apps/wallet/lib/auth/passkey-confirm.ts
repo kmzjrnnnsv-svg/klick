@@ -12,6 +12,8 @@ import {
 	verification,
 } from "@wallet/db/auth-schema";
 import { auditPlatform } from "@wallet/lib/audit";
+import { userRequiresSecurityKey } from "@wallet/lib/orgs/access";
+import { credentialAllowed, deviceBound } from "@wallet/lib/orgs/access-policy";
 import { and, eq } from "drizzle-orm";
 import { baseURL, rpID } from "./config";
 
@@ -37,10 +39,18 @@ export async function passkeyConfirmOptions(input: {
 	sessionId: string;
 	purpose: ConfirmPurpose;
 }): Promise<PublicKeyCredentialRequestOptionsJSON | null> {
-	const own = await db
-		.select({ id: passkey.credentialID, transports: passkey.transports })
+	const all = await db
+		.select({
+			id: passkey.credentialID,
+			transports: passkey.transports,
+			deviceType: passkey.deviceType,
+			backedUp: passkey.backedUp,
+		})
 		.from(passkey)
 		.where(eq(passkey.userId, input.userId));
+	// Nur Sicherheitsschlüssel (Härtung W): synchronisierte gar nicht anbieten
+	const strict = await userRequiresSecurityKey(input.userId);
+	const own = strict ? all.filter(deviceBound) : all;
 	if (own.length === 0) return null;
 	const options = await generateAuthenticationOptions({
 		rpID,
@@ -63,7 +73,7 @@ export async function passkeyConfirmOptions(input: {
 
 export type PasskeyConfirmResult =
 	| { ok: true }
-	| { ok: false; error: "invalid" | "expired" };
+	| { ok: false; error: "invalid" | "expired" | "security_key_required" };
 
 export async function verifyPasskeyConfirm(input: {
 	userId: string;
@@ -80,7 +90,9 @@ export async function verifyPasskeyConfirm(input: {
 		userAgent: input.userAgent,
 	};
 	const action = input.purpose === "unlock" ? "auth.unlock" : "auth.step_up";
-	const failed = async (error: "invalid" | "expired") => {
+	const failed = async (
+		error: "invalid" | "expired" | "security_key_required",
+	) => {
 		await auditPlatform(actor, {
 			action: `${action}_failed`,
 			outcome: "failure",
@@ -132,6 +144,13 @@ export async function verifyPasskeyConfirm(input: {
 	}
 	if (!verified.verified || !verified.authenticationInfo.userVerified)
 		return failed("invalid");
+	if (
+		!credentialAllowed(await userRequiresSecurityKey(input.userId), {
+			deviceType: verified.authenticationInfo.credentialDeviceType,
+			backedUp: verified.authenticationInfo.credentialBackedUp,
+		})
+	)
+		return failed("security_key_required");
 	if (input.purpose === "unlock" && !input.orgId) return failed("invalid");
 
 	const bumped = await db

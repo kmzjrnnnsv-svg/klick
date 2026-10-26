@@ -157,7 +157,8 @@ export async function verifyPasskeyConfirm(input: {
 		.update(sessionTable)
 		.set(
 			input.purpose === "mfa"
-				? { mfaVerifiedAt: now, lastActiveAt: now }
+				? // eigener Faktor: gilt in jeder Org (mfaOrgId leer)
+					{ mfaVerifiedAt: now, mfaOrgId: null, lastActiveAt: now }
 				: { stepUpAt: now, lastActiveAt: now },
 		)
 		.where(

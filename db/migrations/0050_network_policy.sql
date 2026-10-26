@@ -1,0 +1,1 @@
+ALTER TABLE "org_settings" ADD COLUMN "network_policy" jsonb DEFAULT '{}'::jsonb NOT NULL;

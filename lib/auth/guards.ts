@@ -4,11 +4,19 @@ import { after } from "next/server";
 import { globalDb } from "@/db";
 import { member, session as sessionTable } from "@/db/auth-schema";
 import { auditPlatform } from "@/lib/audit";
+import {
+	endImpersonations,
+	impersonationAllowed,
+} from "@/lib/db/platform-access";
 import type { OrgCtx } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
-import { env } from "@/lib/env";
+import { orgNetworkAllows } from "@/lib/net/org-network";
+import { adminNetworkAllows } from "./admin-network";
 import { userHasPasskey } from "./endpoint-guard";
-import { primaryMembershipCount as countPrimary } from "./memberships";
+import {
+	primaryMembershipCount as countPrimary,
+	isExternal,
+} from "./memberships";
 import { memberContextFor } from "./org";
 import { effectivePermissions } from "./permission-catalog";
 import {
@@ -21,6 +29,7 @@ import { type AuthSession, auth } from "./server";
 import {
 	AuthError as AuthErr,
 	checkSessionRules as checkRules,
+	effectiveMfaVerifiedAt,
 	ipFromHeaders,
 	normalizeRole as normRole,
 	isStepUpFresh as stepUpFresh,
@@ -53,6 +62,7 @@ const TOUCH_THROTTLE_MS = 60 * 1000;
 
 type SessionRow = AuthSession["session"] & {
 	mfaVerifiedAt?: Date | null;
+	mfaOrgId?: string | null;
 	lastActiveAt?: Date | null;
 	stepUpAt?: Date | null;
 	activeOrganizationId?: string | null;
@@ -80,8 +90,10 @@ export async function getSessionCtx(): Promise<SessionCtx | null> {
 	// Ein indexierter count je Request: MFA-Regel (TOTP oder Passkey) und
 	// Bestätigungsdialog (Passkey zuerst).
 	const hasPasskey = await userHasPasskey(u.id);
+	const session = res.session as SessionRow;
 	return {
-		session: res.session as SessionRow,
+		// Firmen-MFA nur in der Org des Anbieters (effectiveMfaVerifiedAt)
+		session: { ...session, mfaVerifiedAt: effectiveMfaVerifiedAt(session) },
 		user: { ...u, hasPasskey },
 		ip: ipFromHeaders(h),
 		userAgent: h.get("user-agent"),
@@ -130,6 +142,17 @@ export type Permission = Partial<Record<Resource, readonly string[]>>;
 // — eine neue Seite oder Action ohne Recht bleibt ihnen so verschlossen.
 export type OrgGuardOptions = { employees?: boolean };
 
+const IMPERSONATION_READ_ONLY = ["member", "invitation", "integration"];
+
+/** Verlangt das Recht in einer Impersonation-Sitzung mehr als Lesen? */
+export function impersonationDenies(perm: Permission): boolean {
+	return Object.entries(perm).some(
+		([resource, actions]) =>
+			IMPERSONATION_READ_ONLY.includes(resource) &&
+			(actions ?? []).some((a) => a !== "read"),
+	);
+}
+
 export async function requireOrg(
 	perm?: Permission,
 	opts?: OrgGuardOptions,
@@ -140,6 +163,20 @@ export async function requireOrg(
 
 	const orgId = ctx.session.activeOrganizationId;
 	if (!orgId) throw new AuthErr("no_org");
+	// Als Person angemeldet (Lockbox, Härtung A3): nur solange die Org die
+	// Freigabe nicht widerrufen hat und sie nicht abgelaufen ist — die
+	// Sitzung selbst würde Better Auth sonst bis zu 12 h verlängern
+	if (
+		ctx.session.impersonatedBy &&
+		!(await impersonationAllowed(
+			ctx.user.id,
+			orgId,
+			ctx.session.impersonatedBy,
+		))
+	) {
+		await endImpersonations(ctx.user.id);
+		throw new AuthErr("unauthenticated");
+	}
 
 	const [row] = await globalDb
 		.select({ id: member.id, role: member.role })
@@ -158,11 +195,25 @@ export async function requireOrg(
 	}
 
 	const orgRole = normRole(m.role);
+	// IP-Liste der Organisation (Härtung A5); Externe ggf. mit eigener Liste.
+	// Als Person angemeldet aus dem Admin-Netz: die Freigabe der Org gilt.
+	if (
+		!(ctx.session.impersonatedBy && adminNetworkAllows(ctx.ip)) &&
+		!(await orgNetworkAllows(orgId, "app", ctx.ip, {
+			external: isExternal(orgRole),
+		}))
+	)
+		throw new AuthErr("network_denied");
 	const permissions = effectivePermissions(
 		orgRole,
 		roles.map((r) => r.permissions),
 	);
 	if (perm && !permissionsAllow(permissions, perm))
+		throw new AuthErr("forbidden");
+	// Als Person angemeldet: Team und Integrationen nur lesen — ein
+	// Einladungs-Link oder Token wirkte über das Ende der Freigabe hinaus
+	// (Selbstprüfung K3)
+	if (perm && ctx.session.impersonatedBy && impersonationDenies(perm))
 		throw new AuthErr("forbidden");
 	if (!perm && orgRole === "employee" && !opts?.employees)
 		throw new AuthErr("forbidden");
@@ -215,8 +266,8 @@ export async function requirePlatformAdmin(): Promise<PlatformAdminContext> {
 	checkRules(ctx);
 	if (ctx.user.role !== "admin") throw new AuthErr("forbidden");
 
-	const allow = env().ADMIN_IP_ALLOWLIST;
-	if (allow.length > 0 && (!ctx.ip || !allow.includes(ctx.ip))) {
+	// Nur aus dem Admin-Netz (WireGuard, ADMIN_NETWORKS; Härtung A2)
+	if (!adminNetworkAllows(ctx.ip)) {
 		await auditPlatform(
 			{ userId: ctx.user.id, ip: ctx.ip, userAgent: ctx.userAgent },
 			{ action: "admin.ip_blocked", outcome: "denied" },
@@ -282,6 +333,15 @@ export async function requirePortal(): Promise<PortalContext> {
 	if (r.token.subjectType !== "assessment" || !r.token.subjectId)
 		throw new AuthErr("forbidden");
 	const h = await headers();
+	// IP-Liste der Organisation (Härtung A5), außer das Portal ist ausgenommen
+	if (
+		!(await orgNetworkAllows(
+			r.token.organizationId,
+			"supplierPortal",
+			ipFromHeaders(h),
+		))
+	)
+		throw new AuthErr("network_denied");
 	return {
 		token: r.token,
 		assessmentId: r.token.subjectId,

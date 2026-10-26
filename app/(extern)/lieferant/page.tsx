@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import {
 	PortalLogout,
@@ -33,6 +34,8 @@ export default async function SupplierPortalPage() {
 		p = await requirePortal();
 	} catch (e) {
 		if (!(e instanceof AuthError)) throw e;
+		// IP-Liste der Organisation (Härtung A5)
+		if (e.code === "network_denied") redirect("/netz?bereich=portal");
 		expired = e.code === "access_expired";
 	}
 	if (!p)

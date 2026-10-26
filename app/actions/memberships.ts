@@ -18,6 +18,8 @@ async function switchOrganizationImpl(orgId: string): Promise<ActionResult> {
 	const ctx = await getSessionCtx();
 	if (!ctx) throw new AuthError("unauthenticated");
 	checkSessionRules(ctx);
+	// Als Person angemeldet: nur in der Org der Freigabe (Lockbox, Härtung A3)
+	if (ctx.session.impersonatedBy) return { ok: false, error: "forbidden" };
 	if (!z.uuid().safeParse(orgId).success)
 		return { ok: false, error: "Organisation nicht gefunden" };
 	const target = (await listUserMemberships(ctx.user.id)).find(

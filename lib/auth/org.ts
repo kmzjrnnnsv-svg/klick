@@ -158,6 +158,19 @@ export type UserMembership = Awaited<
 
 // Rollen desselben Kontos in anderen Organisationen (Rollenwechsel prüfen,
 // ADR-018). null, wenn das Mitglied nicht zu orgId gehört.
+/** Grundrolle eines Mitglieds dieser Org (null = kein Mitglied hier). */
+export async function memberRoleIn(
+	memberId: string,
+	orgId: string,
+): Promise<string | null> {
+	const [m] = await globalDb
+		.select({ role: member.role })
+		.from(member)
+		.where(and(eq(member.id, memberId), eq(member.organizationId, orgId)))
+		.limit(1);
+	return m?.role ?? null;
+}
+
 export async function rolesElsewhere(memberId: string, orgId: string) {
 	const [m] = await globalDb
 		.select({ userId: member.userId })

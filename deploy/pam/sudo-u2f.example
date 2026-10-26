@@ -1,0 +1,22 @@
+# sudo mit Sicherheitsschlüssel (Härtung H3) — NUR bei physischem Zugang
+#
+# pam_u2f fragt den Schlüssel an der Maschine ab, auf der sudo läuft; über SSH
+# kommt er dort nicht an. Auf dem Hetzner-Cloud-Server (Zugang nur per SSH)
+# also NICHT einrichten — sonst sperrt sudo aus. Dort gilt: SSH nur mit
+# Sicherheitsschlüssel und PIN (deploy/rollout ssh-schluessel), sudo mit dem
+# Passwort des Admin-Kontos. Diese Datei bleibt für eigene Hardware (Server
+# im Büro, Konsole mit USB).
+#
+#   apt install libpam-u2f
+#   install -d -m 0755 /etc/klick
+#   pamu2fcfg -u <admin> -o pam://klick-app -i pam://klick-app -N >> /etc/klick/u2f_mappings
+#     (-N = PIN verlangen; je Person eine Zeile, zweiten Schlüssel mit
+#      `pamu2fcfg -n -N …` an dieselbe Zeile anhängen)
+#   chown root:root /etc/klick/u2f_mappings && chmod 0644 /etc/klick/u2f_mappings
+#
+# Dann in /etc/pam.d/sudo die folgende Zeile **vor** `@include common-auth`
+# einfügen. `required` = Schlüssel und Passwort; wer ohne Passwort arbeiten
+# will, nimmt `sufficient` (dann zählt der Schlüssel allein).
+# Vorher eine root-Shell offen lassen und mit `sudo -k; sudo true` prüfen.
+
+auth required pam_u2f.so cue pinverification=1 origin=pam://klick-app appid=pam://klick-app authfile=/etc/klick/u2f_mappings

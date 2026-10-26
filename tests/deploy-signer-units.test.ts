@@ -144,4 +144,13 @@ describe("install.sh", () => {
 		expect(script).toContain("cd /usr/local/src/klick-signer/current");
 		expect(script).toContain('chown -R root:root "$SRC"');
 	});
+
+	it("prüft die Tag-Signatur gegen den root-eigenen Anker, nie gegen den Tag selbst", () => {
+		expect(script).toContain(
+			"KLICK_ALLOWED_SIGNERS:-/etc/klick-release/allowed_signers",
+		);
+		expect(script).toContain("gpg.ssh.allowedSignersFile=$SIGNERS");
+		expect(script).not.toMatch(/allowedSignersFile=\$SRC/);
+		expect(script).not.toContain("KLICK_VERIFY_TAG");
+	});
 });

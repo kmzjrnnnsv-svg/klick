@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { publicTrustCenter } from "@/lib/db/trust";
 import { mutateOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
+import { orgNetworkAllows } from "@/lib/net/org-network";
 import { SlidingWindowLimiter } from "@/lib/rate-limit";
 import {
 	clientIp,
@@ -49,6 +50,15 @@ export const POST = ingestRoute("trust.session", async (req: Request) => {
 	const slug = typeof body?.slug === "string" ? body.slug : "";
 	const center = await publicTrustCenter(slug);
 	if (!center) return ingestJson(404, { error: "not_found" });
+	// IP-Liste der Organisation (Härtung A5), außer ausgenommen
+	if (
+		!(await orgNetworkAllows(
+			center.organizationId,
+			"trustCenter",
+			clientIp(req),
+		))
+	)
+		return ingestJson(403, { error: "network_denied" });
 	const r = await resolveTrustAccess(raw, center);
 	if (!r.ok) return ingestJson(401, { error: r.error });
 	const { token, request } = r.access;
@@ -95,6 +105,15 @@ export const GET = ingestRoute("trust.session_state", async (req: Request) => {
 	if (!raw) return ingestJson(200, { active: false, reason: "none" });
 	const center = await publicTrustCenter(slug);
 	if (!center) return ingestJson(404, { error: "not_found" });
+	// IP-Liste der Organisation (Härtung A5), außer ausgenommen
+	if (
+		!(await orgNetworkAllows(
+			center.organizationId,
+			"trustCenter",
+			clientIp(req),
+		))
+	)
+		return ingestJson(403, { error: "network_denied" });
 	const r = await resolveTrustAccess(raw, center);
 	if (!r.ok) return ingestJson(200, { active: false, reason: r.error });
 	return ingestJson(200, {

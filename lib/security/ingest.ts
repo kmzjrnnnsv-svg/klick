@@ -6,6 +6,7 @@ import type { AccessTokenKind, IngestScope } from "@/db/schema/enums";
 import type { OrgCtx, OrgTx } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
 import { logger } from "@/lib/log";
+import { orgNetworkAllows } from "@/lib/net/org-network";
 import { getOrgLimiter, SlidingWindowLimiter } from "@/lib/rate-limit";
 import { MAX_UPLOAD_BYTES } from "@/lib/uploads/validate";
 import { bearerToken, hasScopes } from "./tokens";
@@ -71,6 +72,16 @@ export async function tokenAuth(
 		);
 	if (!hasScopes(r.token.scopes, [scope]))
 		return json(403, { error: "scope_missing", scope });
+	// IP-Liste der Organisation (Härtung A5): Ingest und both.money je einzeln
+	// ausnehmbar
+	if (
+		!(await orgNetworkAllows(
+			r.token.organizationId,
+			kind === "wallet" ? "wallet" : "ingest",
+			ip,
+		))
+	)
+		return json(403, { error: "network_denied" });
 	const t = perToken.check(r.token.id);
 	if (!t.allowed || !getOrgLimiter().check(r.token.organizationId).allowed)
 		return json(

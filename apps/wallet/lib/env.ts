@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { config } from "dotenv";
 import { z } from "zod";
 import { PLATFORM_MAIL } from "@/lib/mail/address";
+import { parseRanges } from "@/lib/net/ip";
 
 // Umgebung von both.money. Eigene Namen mit Präfix WALLET_, damit die App nie
 // versehentlich Klicks Datenbank, Schlüssel oder Auth-URL übernimmt — beide
@@ -137,6 +138,22 @@ export const walletEnvSchema = z
 						),
 				),
 			),
+
+		// Admin-Netz (WireGuard wg-admin) für Plattform-Verwaltung im Browser,
+		// Komma-getrennt; leer = keine Einschränkung (Härtung W, wie Klicks
+		// ADMIN_NETWORKS). Die Verwaltung läuft heute am Terminal.
+		WALLET_ADMIN_NETWORKS: z
+			.string()
+			.default("")
+			.transform((v) =>
+				v
+					.split(",")
+					.map((s) => s.trim())
+					.filter(Boolean),
+			)
+			.refine((list) => parseRanges(list).invalid.length === 0, {
+				message: "Liste von Netzen erwartet, z. B. 10.9.0.0/24",
+			}),
 
 		LOG_LEVEL: z
 			.enum(["trace", "debug", "info", "warn", "error", "fatal"])

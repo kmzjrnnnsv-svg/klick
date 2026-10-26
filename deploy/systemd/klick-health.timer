@@ -1,0 +1,11 @@
+# /etc/systemd/system/klick-health.timer — stündlich
+[Unit]
+Description=Klick — Zustand des Servers stündlich prüfen
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=5m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

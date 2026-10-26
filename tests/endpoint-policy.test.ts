@@ -3,6 +3,7 @@ import {
 	authEndpointDecision,
 	type EndpointState,
 	GUARDED_AUTH_PATHS,
+	isGuardedAuthPath,
 } from "@/lib/auth/endpoint-policy";
 
 const base: EndpointState = {
@@ -12,6 +13,9 @@ const base: EndpointState = {
 	hasTotp: true,
 	passkeys: 0,
 	hasRegistrationToken: false,
+	adminNetwork: true,
+	impersonated: false,
+	httpRequest: true,
 };
 
 // Sitzung nur per Mail-Link: kein bestätigter zweiter Faktor
@@ -135,5 +139,155 @@ describe("authEndpointDecision", () => {
 			true,
 		);
 		expect(GUARDED_AUTH_PATHS.has("/two-factor/verify-totp")).toBe(false);
+	});
+
+	it("Admin-Endpunkte nur aus dem Admin-Netz (Härtung A2)", () => {
+		const outside = { ...base, adminNetwork: false };
+		for (const path of [
+			"/admin/impersonate-user",
+			"/admin/stop-impersonating",
+		]) {
+			expect(isGuardedAuthPath(path)).toBe(true);
+			expect(authEndpointDecision(path, outside)).toEqual({
+				allow: false,
+				code: "admin_network",
+			});
+			expect(authEndpointDecision(path, base).allow).toBe(true);
+		}
+		// alles andere am Admin-Plugin nur aus den Admin-Actions (K1): per
+		// HTTP reichte sonst eine Admin-Sitzung ohne zweiten Faktor
+		for (const path of [
+			"/admin/ban-user",
+			"/admin/set-role",
+			"/admin/create-user",
+			"/admin/update-user",
+			"/admin/remove-user",
+			"/admin/revoke-user-sessions",
+			"/admin/list-users",
+		]) {
+			expect(isGuardedAuthPath(path)).toBe(true);
+			expect(authEndpointDecision(path, base)).toEqual({
+				allow: false,
+				code: "forbidden",
+			});
+			expect(
+				authEndpointDecision(path, { ...base, httpRequest: false }).allow,
+			).toBe(true);
+		}
+		// andere Pfade hängen nicht am Admin-Netz
+		expect(authEndpointDecision("/sign-in/magic-link", outside).allow).toBe(
+			true,
+		);
+		expect(isGuardedAuthPath("/sign-in/magic-link")).toBe(false);
+	});
+
+	it("als Person angemeldet: keine Faktoren, kein Org-Wechsel, kein Admin", () => {
+		const imp = { ...base, impersonated: true };
+		for (const path of [
+			"/passkey/generate-register-options",
+			"/passkey/verify-registration",
+			"/two-factor/enable",
+			"/two-factor/get-totp-uri",
+			"/passkey/delete-passkey",
+			"/organization/set-active",
+			"/organization/accept-invitation",
+			"/admin/impersonate-user",
+		]) {
+			expect(isGuardedAuthPath(path)).toBe(true);
+			expect(authEndpointDecision(path, imp)).toEqual({
+				allow: false,
+				code: "forbidden",
+			});
+		}
+		// eigene Sitzung: Org wechseln wie bisher (aus der Action)
+		expect(
+			authEndpointDecision("/organization/set-active", {
+				...base,
+				httpRequest: false,
+			}).allow,
+		).toBe(true);
+		// per HTTP nur lesen, abmelden, beenden
+		for (const path of [
+			"/get-session",
+			"/sign-out",
+			"/admin/stop-impersonating",
+		])
+			expect(authEndpointDecision(path, imp).allow).toBe(true);
+		for (const path of [
+			"/passkey/generate-authenticate-options",
+			"/sign-in/magic-link",
+			"/list-sessions",
+			"/update-user",
+		])
+			expect(authEndpointDecision(path, imp)).toEqual({
+				allow: false,
+				code: "forbidden",
+			});
+	});
+
+	it("Org-Plugin per HTTP nur Einladung annehmen oder ablehnen (K4)", () => {
+		for (const path of [
+			"/organization/list",
+			"/organization/get-full-organization",
+			"/organization/list-members",
+			"/organization/get-active-member",
+			"/organization/list-invitations",
+			"/organization/set-active",
+			"/organization/leave",
+		]) {
+			expect(isGuardedAuthPath(path)).toBe(true);
+			expect(authEndpointDecision(path, base)).toEqual({
+				allow: false,
+				code: "forbidden",
+			});
+		}
+		for (const path of [
+			"/organization/accept-invitation",
+			"/organization/reject-invitation",
+		])
+			expect(authEndpointDecision(path, base).allow).toBe(true);
+	});
+
+	it("Org- und SSO-Verwaltung nur aus Server-Actions (Vier-Augen)", () => {
+		for (const path of [
+			"/organization/delete",
+			"/organization/update-member-role",
+			"/organization/invite-member",
+			"/sso/delete-provider",
+			"/sso/register",
+		]) {
+			expect(isGuardedAuthPath(path)).toBe(true);
+			expect(authEndpointDecision(path, base)).toEqual({
+				allow: false,
+				code: "forbidden",
+			});
+			// auth.api aus der Action: Step-up und Vier-Augen prüft die Action
+			expect(
+				authEndpointDecision(path, { ...base, httpRequest: false }).allow,
+			).toBe(true);
+		}
+		// Einladung annehmen bleibt per HTTP (Client)
+		expect(
+			authEndpointDecision("/organization/accept-invitation", base).allow,
+		).toBe(true);
+	});
+
+	it("Impersonation nur mit frisch bestätigter Admin-Sitzung", () => {
+		const path = "/admin/impersonate-user";
+		expect(authEndpointDecision(path, base).allow).toBe(true);
+		expect(authEndpointDecision(path, { ...base, stepUpFresh: false })).toEqual(
+			{
+				allow: false,
+				code: "step_up_required",
+			},
+		);
+		expect(authEndpointDecision(path, mailOnly)).toEqual({
+			allow: false,
+			code: "mfa_required",
+		});
+		expect(authEndpointDecision(path, { ...base, hasSession: false })).toEqual({
+			allow: false,
+			code: "unauthenticated",
+		});
 	});
 });

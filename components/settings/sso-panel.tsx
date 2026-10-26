@@ -16,7 +16,7 @@ import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-alert";
-import { errorText } from "@/components/ui/error-text";
+import { errorText, isFourEyesNotice } from "@/components/ui/error-text";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,7 +79,10 @@ export function SsoPanel({
 			: SSO_ERRORS.has(code)
 				? t(`err_${code}` as "err_sso_preset_invalid")
 				: errorText(tc, code);
-	const fail = (code: string) => void toast.error(message(code));
+	const fail = (code: string) =>
+		void (isFourEyesNotice(code)
+			? toast.notice(message(code))
+			: toast.error(message(code)));
 	const del = useConfirm({
 		title: t("deleteTitle"),
 		description: t("deleteLead"),
@@ -650,6 +653,11 @@ function PolicyForm({
 									groupRoles: p.groupRoles.filter((g) => g.group.trim()),
 								}),
 							);
+							// Vier-Augen: Erzwingen, Firmen-MFA, Rollen beantragt
+							if (!res.ok && isFourEyesNotice(res)) {
+								setError(null);
+								return void toast.notice(message(res.error));
+							}
 							if (!res.ok) return void setError(message(res.error));
 							setError(null);
 							toast.success(t("rulesSaved"));

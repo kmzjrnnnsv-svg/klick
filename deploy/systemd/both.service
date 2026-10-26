@@ -32,6 +32,8 @@ Environment=WALLET_AUTH_URL=https://both.money
 # Relying Party der Passkeys — nie ändern (bricht alle Passkeys)
 Environment=WALLET_PASSKEY_RP_ID=both.money
 Environment=LOG_LEVEL=info
+# Plattform-Admin nur aus dem WireGuard-Admin-Netz (Härtung W)
+Environment=WALLET_ADMIN_NETWORKS=10.9.0.0/24,fd10:9::/64
 # LEGAL_*, WALLET_MAIL_FROM, GLITCHTIP_DSN
 EnvironmentFile=-/etc/both/both.env
 LoadCredentialEncrypted=wallet_auth_secret:/etc/credstore.encrypted/wallet_auth_secret
@@ -65,6 +67,9 @@ SystemCallFilter=@system-service
 SystemCallFilter=~@privileged @resources
 SystemCallArchitectures=native
 UMask=0077
+# Die Apps sehen einander nicht (gleicher Server, Härtung H5)
+InaccessiblePaths=-/opt/klick -/etc/klick -/var/log/klick -/var/lib/klick-signer -/var/backups -/var/lib/klick-backup -/root
+SystemCallErrorNumber=EPERM
 ReadWritePaths=/opt/both/current/apps/wallet/.next/cache /opt/both/.cache
 LimitNOFILE=65536
 # Kleiner als Klick: beide laufen auf demselben Server

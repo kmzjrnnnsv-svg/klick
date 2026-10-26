@@ -13,7 +13,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { errorText } from "@/components/ui/error-text";
+import { errorText, isFourEyesNotice } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -133,6 +133,9 @@ export function DlpPanel({
 							onClick={() =>
 								start(async () => {
 									const res = await withStepUp(() => updateDlpPolicy(p));
+									// Vier-Augen: Lockern ist beantragt
+									if (!res.ok && isFourEyesNotice(res))
+										return void toast.notice(errorText(tc, res));
 									if (!res.ok) {
 										toast.error(
 											res.error === "step_up_required"

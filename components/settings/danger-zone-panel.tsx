@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
+import { ensureFullExport } from "@/app/actions/security-changes";
 import { deleteOrganizationAction } from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { ExportLink } from "@/components/entity/export-link";
@@ -23,7 +24,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { errorText } from "@/components/ui/error-text";
+import { errorText, isFourEyesNotice } from "@/components/ui/error-text";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,6 +65,7 @@ export function DangerZonePanel({
 					</div>
 					<ExportLink
 						href="/api/export/organisation.zip"
+						ensure={ensureFullExport}
 						className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
 					>
 						{t("exportOrg")}
@@ -138,6 +140,13 @@ export function DangerZonePanel({
 														exportConfirmed: exported,
 													}),
 												);
+												if (!res.ok && isFourEyesNotice(res)) {
+													// Vier-Augen: beantragt bzw. wartet — der nächste
+													// Schritt liegt bei der zweiten Person
+													setOpen(false);
+													toast.notice(errorText(tc, res));
+													return;
+												}
 												if (!res.ok) {
 													setError(
 														res.error === "step_up_required"

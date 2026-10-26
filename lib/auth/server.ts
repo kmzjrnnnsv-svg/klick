@@ -10,6 +10,9 @@ import { organization } from "better-auth/plugins/organization";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { and, eq } from "drizzle-orm";
 import { requestOpenAppointments } from "@/lib/compliance/appointment-service";
+import { memberOrgIds } from "@/lib/db/platform-access";
+import { capSessionExpiry } from "@/lib/platform-access/rules";
+import { consumeGrant } from "@/lib/platform-access/service";
 import { globalDb, schema } from "../../db";
 import { member, session as sessionTable, user } from "../../db/auth-schema";
 import { memberAccess, memberRoles, roleAssignments } from "../../db/schema";
@@ -51,8 +54,13 @@ import {
 	REG_COOKIE,
 	resolveRegistration,
 } from "./registration-link";
-import { normalizeRole } from "./session-rules";
-import { provisionSsoUser, ssoGateForUser } from "./sso-provisioning";
+import { ipFromHeaders, normalizeRole } from "./session-rules";
+import { isSsoCallbackPath, SAML_SECURITY } from "./sso-policy";
+import {
+	provisionSsoUser,
+	ssoCallbackAllowsEmail,
+	ssoGateForUser,
+} from "./sso-provisioning";
 
 // Bewusst keine env()-Validierung beim Import: Better Auth liest
 // BETTER_AUTH_SECRET/BETTER_AUTH_URL selbst aus der Umgebung, und die CLI
@@ -115,6 +123,9 @@ export const auth = betterAuth({
 			// Wallet-Bereich entsperrt (Passkey, 15 min, je Org)
 			walletUnlockedAt: { type: "date", required: false, input: false },
 			walletUnlockOrgId: { type: "string", required: false, input: false },
+			// Firmen-MFA (SSO, ADR-026): bestätigt nur in dieser Org; leer =
+			// eigener Faktor (Passkey, TOTP), gilt in jeder Org des Kontos
+			mfaOrgId: { type: "string", required: false, input: false },
 		},
 	},
 
@@ -161,6 +172,49 @@ export const auth = betterAuth({
 		session: {
 			create: {
 				async before(session, ctx) {
+					// Als Person anmelden (Admin-Plugin): nur mit Freigabe einer Org,
+					// in der die Person Mitglied ist (Lockbox, Härtung A3). Die
+					// Sitzung gilt nur in dieser Org (Wechsel gesperrt), nie länger
+					// als die Freigabe (requireOrg prüft bei jeder Anfrage) und
+					// ohne Step-up: der Admin hat keinen Faktor der Person, also
+					// keine Faktoren, Freigaben oder Exporte in ihrem Namen.
+					const impersonator = (session as { impersonatedBy?: string | null })
+						.impersonatedBy;
+					if (impersonator) {
+						let grant: Awaited<ReturnType<typeof consumeGrant>> = null;
+						for (const orgId of await memberOrgIds(session.userId)) {
+							grant = await consumeGrant({
+								orgId,
+								scope: "impersonate",
+								targetUserId: session.userId,
+								actor: {
+									userId: impersonator,
+									ip: ipFromHeaders(ctx?.headers ?? null),
+									userAgent: ctx?.headers?.get("user-agent") ?? null,
+								},
+								purpose: "Als Person angemeldet",
+							});
+							if (grant) break;
+						}
+						if (!grant?.expiresAt)
+							throw new APIError("FORBIDDEN", {
+								code: "LOCKBOX_REQUIRED",
+								message: "Kein freigegebener Zugriff der Organisation.",
+							});
+						const now = new Date();
+						return {
+							data: {
+								...session,
+								activeOrganizationId: grant.organizationId,
+								expiresAt: capSessionExpiry(session.expiresAt, grant.expiresAt),
+								mfaVerifiedAt: now,
+								// Epoche: Step-up nie frisch (isStepUpFresh fiele sonst
+								// auf mfaVerifiedAt zurück)
+								stepUpAt: new Date(0),
+								lastActiveAt: now,
+							},
+						};
+					}
 					// Aktive Org: die eigene Mitgliedschaft, sonst der zuletzt
 					// begonnene gültige Berater-Zugang (ADR-018).
 					const memberships = await listUserMemberships(session.userId);
@@ -180,6 +234,23 @@ export const auth = betterAuth({
 							code: "ACCOUNT_NOT_ACTIVATED",
 							message: "Konto noch nicht aktiviert.",
 						});
+					// SSO-Rückruf nur für Adressen der bestätigten Domain dieses
+					// Anbieters (Härtung A7): kein IdP meldet Konten anderer Orgs an
+					if (isSsoCallbackPath(ctx?.path)) {
+						const [u] = await globalDb
+							.select({ email: user.email })
+							.from(user)
+							.where(eq(user.id, session.userId))
+							.limit(1);
+						if (
+							!u ||
+							!(await ssoCallbackAllowsEmail(ctx?.path, ctx?.params, u.email))
+						)
+							throw new APIError("FORBIDDEN", {
+								code: "SSO_DOMAIN_MISMATCH",
+								message: "Diese Adresse gehört nicht zur Domain des Anbieters.",
+							});
+					}
 					// SSO erzwungen: Konten der Firmen-Domain nur über den SSO-
 					// Rückruf; Inhaber:innen behalten den Notzugang (auditiert)
 					const gate = await ssoGateForUser(session.userId, ctx?.path);
@@ -247,6 +318,23 @@ export const auth = betterAuth({
 						throw new APIError("FORBIDDEN", {
 							code: "new_user_signup_disabled",
 							message: "Kein gültiger Einladungslink.",
+						});
+					}
+					// SSO legt Konten nur für die bestätigte Domain des Anbieters
+					// an (Härtung A7) — sonst entstünden Konten mit fremden
+					// Adressen, die später Einladungen dieser Adresse annehmen
+					if (isSsoCallbackPath(ctx?.path)) {
+						if (
+							await ssoCallbackAllowsEmail(
+								ctx?.path,
+								ctx?.params,
+								newUser.email,
+							)
+						)
+							return;
+						throw new APIError("FORBIDDEN", {
+							code: "SSO_DOMAIN_MISMATCH",
+							message: "Diese Adresse gehört nicht zur Domain des Anbieters.",
 						});
 					}
 					if (allowSignup || ctx?.path !== "/magic-link/verify") return;
@@ -680,6 +768,9 @@ export const auth = betterAuth({
 			provisionUser: provisionSsoUser,
 			provisionUserOnEveryLogin: true,
 			domainVerification: { enabled: true, tokenPrefix: "klick-sso" },
+			// Härtung A7: IdP-initiiert aus, Zeitfenster Pflicht, alte
+			// Algorithmen abgelehnt (lib/auth/sso-policy.ts)
+			saml: SAML_SECURITY,
 		}),
 
 		// Muss der letzte Plugin-Eintrag sein (setzt Cookies in Server Actions).

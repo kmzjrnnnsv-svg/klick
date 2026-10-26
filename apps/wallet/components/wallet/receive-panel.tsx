@@ -31,17 +31,22 @@ export function ReceivePanel({
 	address,
 	kind,
 	reused,
+	allowed,
 }: {
 	accountId: string;
 	network: WalletNetwork;
 	address: string;
 	kind: "hot" | "cold";
 	reused?: boolean;
+	// Assets, die die Org führen darf (Härtung W); ohne Angabe alle
+	allowed?: readonly AssetCode[];
 }) {
 	const t = useTranslations("Wallet");
 	const router = useRouter();
 	const [pending, start] = useTransition();
-	const assets = assetsFor(network);
+	const assets = assetsFor(network).filter(
+		(a) => !allowed || allowed.includes(a.code),
+	);
 	const [asset, setAsset] = useState<AssetCode>(assets[0]?.code ?? "BTC");
 	const [amount, setAmount] = useState("");
 	const [label, setLabel] = useState("");

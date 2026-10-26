@@ -1,0 +1,10 @@
+[
+	{
+		"text": "both-mandate/v1|3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d|11111111-2222-4333-8444-555555555555|6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d|bitcoin_signet|-|BTC|50000|200000|tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7,tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx|1800000000|1802592000|9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a|00112233445566778899aabbccddeeff",
+		"challenge": "19c3cecd3574e0531c0b31d56a0fc3604699bc1565e48f8d1b0e69b8f4a08498"
+	},
+	{
+		"text": "both-mandate/v1|3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d|aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee|6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d|ethereum_sepolia|11155111|USDC|2500000000|10000000000|0x00000000000000000000000000000000000000AA|1800000000|1807776000|9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a|ffeeddccbbaa99887766554433221100",
+		"challenge": "b7c420504c55300997f2c7baa259baa034cf0f415e36285cbc0a12d20c6ce48d"
+	}
+]

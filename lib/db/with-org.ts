@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import { type DbTx, globalDb } from "@/db";
 import { type Actor, type AuditInput, audit } from "@/lib/audit";
+import { adminNetworkAllows } from "@/lib/auth/admin-network";
+import { AuthError } from "@/lib/auth/session-rules";
 import { dbForOrg } from "./router";
 
 // Mandanten-Kontext für jede Datenbankarbeit.
@@ -121,6 +123,9 @@ export async function withPlatform<T>(
 	if (!ctx.reason || ctx.reason.trim().length < 3) {
 		throw new Error("withPlatform verlangt eine Begründung (reason)");
 	}
+	// Aus einer Anfrage (ip gesetzt) nur aus dem Admin-Netz; Jobs und
+	// Terminal-Skripte laufen ohne ip auf dem Server selbst (Härtung A2)
+	if (ctx.ip && !adminNetworkAllows(ctx.ip)) throw new AuthError("ip_blocked");
 	await globalDb.transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		await audit(

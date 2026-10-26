@@ -1,0 +1,17 @@
+# WireGuard auf dem Admin-Gerät (Laptop, Handy). Nur das Admin-Netz geht durch
+# den Tunnel (split tunnel); alles andere bleibt im normalen Netz.
+# DNS zeigt auf dnsmasq im Tunnel: raza.work und both.money lösen dort auf
+# 10.9.0.1 auf (deploy/dnsmasq/klick-admin.conf), gleiche Adresse, gleiches
+# Zertifikat, gleiche Passkeys — nur die Quelladresse ist eine andere.
+[Interface]
+PrivateKey = <wg genkey auf dem Gerät, verlässt das Gerät nie>
+Address = 10.9.0.10/32, fd10:9::10/128
+DNS = 10.9.0.1
+
+[Peer]
+# App-Server
+PublicKey = <inhalt von /etc/wireguard/admin.pub>
+PresharedKey = <derselbe Wert wie im Server-Eintrag>
+Endpoint = <öffentliche IP des App-Servers>:51820
+AllowedIPs = 10.9.0.0/24, fd10:9::/64
+PersistentKeepalive = 25

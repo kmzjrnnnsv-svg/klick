@@ -4,6 +4,7 @@ import {
 	boolean,
 	index,
 	integer,
+	jsonb,
 	pgPolicy,
 	pgTable,
 	text,
@@ -66,6 +67,13 @@ export const orgSettings = pgTable(
 		caspSetBy: uuid(),
 		// Fortlaufende Nummer der Export-Ereignisse nach Klick
 		exportSeq: bigint({ mode: "number" }).notNull().default(0),
+		// Zugangsregeln (Härtung W), gelesen nur über accessPolicyOf
+		// (lib/orgs/access-policy.ts): IP-Liste, nur Sicherheitsschlüssel,
+		// erlaubte Assets (null = alle), Vollmacht für die Bedienung
+		networkPolicy: jsonb().notNull().default({}),
+		securityKeysOnly: boolean().notNull().default(false),
+		allowedAssets: jsonb().$type<string[]>(),
+		mandatesRequired: boolean().notNull().default(false),
 		...timestamps(),
 	},
 	() => [orgPolicy("org_settings")],

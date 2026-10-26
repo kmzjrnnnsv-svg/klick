@@ -1,0 +1,22 @@
+# /etc/postgresql/16/main/pg_hba.conf — wer sich womit anmelden darf (Härtung H7)
+# Erster Treffer gilt. Nach Änderung: systemctl reload postgresql
+#
+# TYPE   DATABASE        USER                                           ADDRESS        METHOD
+
+# Verwaltung nur als Systemnutzer postgres über den Socket
+local    all             postgres                                                      peer
+
+# Klick: App, Migration, Backup — nur über localhost mit SCRAM
+host     klick           klick_app,klick_migrator,klick_backup          127.0.0.1/32   scram-sha-256
+host     klick           klick_app,klick_migrator,klick_backup          ::1/128        scram-sha-256
+
+# both.money: eigene Rollen, eigene Datenbank
+host     wallet          wallet_app,wallet_migrator,wallet_backup       127.0.0.1/32   scram-sha-256
+host     wallet          wallet_app,wallet_migrator,wallet_backup       ::1/128        scram-sha-256
+
+# Alles andere ablehnen (auch Replikation, fremde Datenbanken, andere Rollen)
+local    all             all                                                           reject
+host     all             all                                            0.0.0.0/0      reject
+host     all             all                                            ::/0           reject
+host     replication     all                                            0.0.0.0/0      reject
+host     replication     all                                            ::/0           reject

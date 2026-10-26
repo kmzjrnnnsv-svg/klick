@@ -12,6 +12,7 @@
  *   pnpm signer:admin policy <datei.json>        (Version/Vorgänger setzt das Skript)
  *   pnpm signer:admin freeze "<Grund>" | unfreeze
  *   pnpm signer:admin cancel <intentId>
+ *   pnpm signer:admin mandate-revoke <mandateId>
  *   pnpm signer:admin verify | xpubs | rekey
  *
  * Socket: --socket <pfad>, sonst SIGNER_ADMIN_SOCKET, sonst
@@ -135,6 +136,8 @@ async function main() {
 			return print(await call("freeze", { reason: arg ?? "am Terminal" }));
 		case "cancel":
 			return print(await call("intent.cancel", { intentId: arg }));
+		case "mandate-revoke":
+			return print(await call("mandate.revoke", { mandateId: arg }));
 		case "revoke":
 			return print(await call("key.revoke", { credId: arg }));
 		case "enrol": {

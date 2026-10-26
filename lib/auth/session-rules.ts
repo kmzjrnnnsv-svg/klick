@@ -11,6 +11,10 @@ export type AuthErrorCode =
 	| "access_expired"
 	| "forbidden"
 	| "ip_blocked"
+	// IP-Liste der Organisation (Härtung A5)
+	| "network_denied"
+	// Org verlangt gerätegebundene Sicherheitsschlüssel (both.money, Härtung W)
+	| "security_key_required"
 	// Wallet-Bereich nicht entsperrt (Passkey-Bestätigung fehlt/abgelaufen)
 	| "wallet_locked"
 	| "wallet_disabled";
@@ -72,6 +76,21 @@ export function checkSessionRules(
 	if (!ctx.user.twoFactorEnabled && !ctx.user.hasPasskey)
 		throw new AuthError("mfa_enrol");
 	throw new AuthError("mfa_required");
+}
+
+/**
+ * Bestätigter zweiter Faktor für die aktive Org. Firmen-MFA (mfaOrgId) gilt
+ * nur in der Org des SSO-Anbieters — eine Berater:in, die sich über den IdP
+ * von Org A anmeldet, hat in Org C damit nichts bestätigt (Selbstprüfung S1).
+ */
+export function effectiveMfaVerifiedAt(s: {
+	mfaVerifiedAt?: Date | null;
+	mfaOrgId?: string | null;
+	activeOrganizationId?: string | null;
+}): Date | null {
+	if (!s.mfaVerifiedAt) return null;
+	if (s.mfaOrgId && s.mfaOrgId !== s.activeOrganizationId) return null;
+	return s.mfaVerifiedAt;
 }
 
 export function isStepUpFresh(

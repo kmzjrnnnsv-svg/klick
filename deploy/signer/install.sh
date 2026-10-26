@@ -20,6 +20,8 @@ API="${3:-https://both.money}"
 # Ablage der Bestätigungsseite (nginx: deploy/nginx/approve.both.money.conf)
 CONFIRM_ROOT="${CONFIRM_ROOT:-/var/www/approve}"
 REPO="${KLICK_REPO:-https://github.com/kmzjrnnnsv-svg/klick.git}"
+# Release-Schlüssel, root-eigen (deploy/rollout legt die Datei an)
+SIGNERS="${KLICK_ALLOWED_SIGNERS:-/etc/klick-release/allowed_signers}"
 SRC_BASE=/usr/local/src/klick-signer
 SRC="$SRC_BASE/$TAG"
 
@@ -36,8 +38,15 @@ command -v systemd-creds >/dev/null || die "systemd-creds fehlt (systemd ≥ 250
 install -d -m 0755 -o root -g root "$SRC_BASE"
 rm -rf -- "$SRC"
 git clone --quiet --depth 1 --branch "$TAG" "$REPO" "$SRC"
-if [ "${KLICK_VERIFY_TAG:-0}" = 1 ]; then
-	git -C "$SRC" verify-tag "$TAG" || die "Signatur des Tags ungültig"
+# Signatur gegen den root-eigenen Anker außerhalb des Checkouts (nie gegen
+# deploy/release/allowed_signers aus dem Tag selbst). Steht dort ein Schlüssel,
+# ist die Prüfung Pflicht; ohne Schlüssel nur ein Hinweis (Übergang).
+if [ -r "$SIGNERS" ] && grep -qvE '^[[:space:]]*(#|$)' "$SIGNERS"; then
+	git -C "$SRC" -c gpg.format=ssh -c "gpg.ssh.allowedSignersFile=$SIGNERS" \
+		verify-tag "$TAG" >/dev/null 2>&1 || die "Tag $TAG ist nicht gültig signiert ($SIGNERS)"
+	echo "Tag $TAG: Signatur gültig"
+else
+	echo "Hinweis: $SIGNERS ohne Schlüssel, Tag $TAG wird nicht auf Signatur geprüft"
 fi
 chown -R root:root "$SRC"
 

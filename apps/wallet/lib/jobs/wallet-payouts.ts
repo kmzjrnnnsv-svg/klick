@@ -22,6 +22,7 @@ import {
 	openAddressBookIntents,
 } from "@wallet/lib/wallet/address-book";
 import { hotAccountAllowed } from "@wallet/lib/wallet/custody-gate";
+import { mandateStillValid } from "@wallet/lib/wallet/mandates";
 import {
 	type NodeClients,
 	nodeClientsFromEnv,
@@ -322,6 +323,38 @@ async function signFirst(
 ): Promise<WalletPayout | null> {
 	if (ctx.frozen) return null;
 	if (p.signableAt && p.signableAt > ctx.now) return null;
+	// Vollmacht in der App noch gültig? Sonst abbrechen, auch wenn der
+	// Widerruf im Signer nicht ankam (Selbstprüfung B1)
+	if (p.mandateId) {
+		const mandateId = p.mandateId;
+		const valid = await withOrg({ orgId: ctx.orgId, userId: null }, (tx) =>
+			mandateStillValid(tx, ctx.orgId, mandateId, ctx.now),
+		);
+		if (!valid) {
+			let meta: { seq: number; head: string } | null = null;
+			try {
+				const r = await signerCall("intent.cancel", { intentId: p.intentId });
+				meta = { seq: r.seq, head: r.head };
+			} catch (e) {
+				logger.warn(
+					{ err: e, payout: p.id },
+					"wallet-payouts: Abbruch im Signer fehlgeschlagen",
+				);
+			}
+			return update(
+				ctx,
+				p.id,
+				{ status: "cancelled", error: "mandate_invalid" },
+				{
+					action: "wallet.payout_cancelled",
+					after: { reason: "mandate_invalid" },
+				},
+				meta
+					? (tx) => recordAnchor(tx, ctx.orgId, meta).then(() => undefined)
+					: undefined,
+			);
+		}
+	}
 	const client = ctx.clients[account.network];
 	if (!client) throw new Error(`kein Knoten für ${account.network}`);
 	const db = { orgId: ctx.orgId, userId: null };
@@ -371,16 +404,27 @@ async function signFirst(
 		});
 	} catch (e) {
 		if (e instanceof SignerCallError && e.code === "signer") {
-			if (e.signerCode === "window_closed" || e.signerCode === "intent_closed")
+			// Vollmacht abgelaufen (Härtung W): wie ein geschlossenes Fenster
+			if (
+				e.signerCode === "window_closed" ||
+				e.signerCode === "mandate_expired" ||
+				e.signerCode === "mandate_revoked" ||
+				e.signerCode === "intent_closed"
+			) {
+				const closed =
+					e.signerCode === "intent_closed" ||
+					e.signerCode === "mandate_revoked";
 				return update(
 					ctx,
 					p.id,
+					{ status: closed ? "cancelled" : "expired", error: e.signerCode },
 					{
-						status: e.signerCode === "window_closed" ? "expired" : "cancelled",
-						error: e.signerCode,
+						action: closed
+							? "wallet.payout_cancelled"
+							: "wallet.payout_expired",
 					},
-					{ action: "wallet.payout_expired" },
 				);
+			}
 			// Nonce passt nicht (z. B. frühere Auszahlung hängt): mit der vom
 			// Signer erwarteten Nonce erneut
 			const want = /^expected (\d+)$/.exec(e.detail ?? "")?.[1];

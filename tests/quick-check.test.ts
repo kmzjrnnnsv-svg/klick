@@ -44,6 +44,9 @@ describe("SSRF-Schutz", () => {
 			"fe80::1",
 			"fd12:3456::1",
 			"fd00:ec2::254",
+			// Teredo und lokales NAT64 (Selbstprüfung)
+			"2001:0:4136:e378:8000:63bf:3fff:fdd2",
+			"64:ff9b:1::a00:1",
 		])
 			expect(isBlockedAddress(ip), ip).toBe(true);
 		for (const ip of ["93.184.216.34", "1.1.1.1", "2606:4700:4700::1111"])

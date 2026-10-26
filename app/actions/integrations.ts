@@ -7,6 +7,7 @@ import { safeAction } from "@/lib/actions/safe";
 import { AuthError, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { mutateOrg } from "@/lib/db/with-org";
 import { newToken } from "@/lib/security/tokens";
+import { requirePermit } from "@/lib/security-changes/service";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	accessTokenIdSchema,
@@ -38,6 +39,14 @@ async function createAccessTokenImpl(
 	const parsed = createAccessTokenSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
+	// Vier-Augen (Härtung A4): ein Token schreibt ohne Sitzung in die Org —
+	// nur mit Erlaubnis der zweiten Person bzw. nach 24 h Wartezeit
+	const permit = await requirePermit(c, {
+		kind: "integration_token",
+		targetKey: null,
+		summary: `Integrations-Token „${d.name}“ anlegen`,
+	});
+	if (!permit.ok) return permit;
 	const t = newToken("ingest");
 	const expiresAt = new Date(Date.now() + d.expiresInDays * 86_400_000);
 	const res = await mutateOrg<ActionResult<{ token: string; prefix: string }>>(

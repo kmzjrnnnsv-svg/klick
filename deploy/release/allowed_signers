@@ -1,0 +1,7 @@
+# Schlüssel, die Release-Tags signieren dürfen (scripts/release-guard.ts, Härtung H8).
+# Format wie ssh-keygen ALLOWED SIGNERS: <principal> namespaces="git" <schlüsseltyp> <schlüssel>
+# Am besten ein Sicherheitsschlüssel (sk-ssh-ed25519@openssh.com). Einrichten am eigenen Rechner:
+#   git config gpg.format ssh
+#   git config user.signingkey ~/.ssh/id_ed25519_sk.pub
+#   git tag -s v2026.10.26 -m "Release 26.10.2026" && git push origin v2026.10.26
+# Solange hier kein Schlüssel steht, warnt der Wächter nur.

@@ -1,0 +1,17 @@
+# Ausschnitt für /etc/crowdsec/bouncers/crowdsec-nginx-bouncer.conf
+# (Paket crowdsec-nginx-bouncer). Sperren setzt zusätzlich der Firewall-Bouncer
+# (crowdsec-firewall-bouncer-nftables, eigene Tabelle `crowdsec`, Priorität -10).
+API_URL=http://127.0.0.1:8080
+API_KEY=<cscli bouncers add nginx-bouncer>
+MODE=stream
+# WAF: jede Anfrage vorab prüfen
+APPSEC_URL=http://127.0.0.1:7422
+# Fällt die WAF aus, laufen Anfragen weiter (klick-health meldet den Ausfall);
+# `deny` hieße: WAF weg = Seite weg
+APPSEC_FAILURE_ACTION=passthrough
+APPSEC_CONNECT_TIMEOUT=100
+APPSEC_SEND_TIMEOUT=100
+APPSEC_PROCESS_TIMEOUT=500
+# Gesperrte bekommen 403 ohne Captcha (keine Fremd-Skripte, CSP)
+FALLBACK_REMEDIATION=ban
+BAN_TEMPLATE_PATH=/var/lib/crowdsec/lua/templates/ban.html

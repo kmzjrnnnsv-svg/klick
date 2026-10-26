@@ -8,6 +8,7 @@ import { callSigner, SignerCallError } from "@/signer/client";
 export type {
 	SignerHello,
 	SignerIntentView,
+	SignerMandateView,
 	SignerMeta,
 	SignResult,
 } from "@/lib/wallet/signer/types";

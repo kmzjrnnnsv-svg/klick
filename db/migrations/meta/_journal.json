@@ -337,6 +337,41 @@
       "when": 1792978632207,
       "tag": "0047_sso_policy",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792999553744,
+      "tag": "0048_platform_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1793003062078,
+      "tag": "0049_security_changes",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1793004514592,
+      "tag": "0050_network_policy",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1793007211267,
+      "tag": "0051_ledger",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1793015203074,
+      "tag": "0052_session_mfa_org",
+      "breakpoints": true
     }
   ]
 }

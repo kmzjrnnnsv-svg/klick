@@ -8,6 +8,7 @@ import {
 import type { MemberRole } from "@wallet/db/schema/enums";
 import { verifyAuditChain } from "@wallet/lib/audit";
 import { mutateOrg, type OrgCtx, readOrg } from "@wallet/lib/db/with-org";
+import { revokeMandatesOf } from "@wallet/lib/wallet/mandates";
 import { and, count, desc, eq, isNull } from "drizzle-orm";
 
 // Mitglieder, Einladungen, Protokoll und Glocke einer Org (immer im
@@ -75,7 +76,7 @@ export async function changeMemberRole(
 ): Promise<MemberChange> {
 	return mutateOrg<MemberChange>(ctx, async (tx) => {
 		const rows = await tx
-			.select({ id: members.id, role: members.role })
+			.select({ id: members.id, role: members.role, userId: members.userId })
 			.from(members);
 		const before = rows.find((r) => r.id === memberId);
 		if (!before)
@@ -83,13 +84,21 @@ export async function changeMemberRole(
 		if (ownerWouldVanish(rows, memberId, role))
 			return { result: { ok: false, error: "last_owner" } as const, audit: [] };
 		await tx.update(members).set({ role }).where(eq(members.id, memberId));
+		// Vollmachten gelten nur für die Bedienung (Selbstprüfung B1)
+		const revoked =
+			before.role === "operator" && role !== "operator"
+				? await revokeMandatesOf(tx, ctx, before.userId, "Rolle geändert")
+				: [];
 		return {
 			result: { ok: true } as const,
 			audit: {
 				action: "member.role_changed",
 				target: `member:${memberId}`,
 				before: { role: before.role },
-				after: { role },
+				after: {
+					role,
+					...(revoked.length ? { mandatesRevoked: revoked } : {}),
+				},
 			},
 		};
 	});
@@ -101,13 +110,19 @@ export async function removeMember(
 ): Promise<MemberChange> {
 	return mutateOrg<MemberChange>(ctx, async (tx) => {
 		const rows = await tx
-			.select({ id: members.id, role: members.role })
+			.select({ id: members.id, role: members.role, userId: members.userId })
 			.from(members);
 		const before = rows.find((r) => r.id === memberId);
 		if (!before)
 			return { result: { ok: false, error: "not_found" } as const, audit: [] };
 		if (ownerWouldVanish(rows, memberId, null))
 			return { result: { ok: false, error: "last_owner" } as const, audit: [] };
+		const revoked = await revokeMandatesOf(
+			tx,
+			ctx,
+			before.userId,
+			"Mitglied entfernt",
+		);
 		await tx.delete(members).where(eq(members.id, memberId));
 		return {
 			result: { ok: true } as const,
@@ -115,6 +130,7 @@ export async function removeMember(
 				action: "member.removed",
 				target: `member:${memberId}`,
 				before: { role: before.role },
+				...(revoked.length ? { after: { mandatesRevoked: revoked } } : {}),
 			},
 		};
 	});

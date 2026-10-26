@@ -47,6 +47,11 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 		hasRegistrationToken:
 			ctx.query?.context === LINK_CONTEXT &&
 			Boolean(ctx.getCookie(LINK_COOKIE)),
+		// both.money hat kein Admin-Plugin (keine /admin/*-Endpunkte); die
+		// Plattform-Verwaltung läuft am Terminal (pnpm wallet:admin)
+		adminNetwork: true,
+		impersonated: false,
+		httpRequest: Boolean(ctx.request),
 	});
 	if (decision.allow) return;
 	await auditPlatform(

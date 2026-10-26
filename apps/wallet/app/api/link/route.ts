@@ -5,6 +5,7 @@ import {
 	resolveLink,
 	setLinkName,
 } from "@wallet/lib/auth/links";
+import { linkNeedsSecurityKey } from "@wallet/lib/auth/passkey-link";
 import { ROLE_LABEL } from "@wallet/lib/auth/permissions";
 import { NextResponse } from "next/server";
 import { ipFromHeaders } from "@/lib/auth/session-rules";
@@ -42,6 +43,9 @@ export async function POST(req: Request) {
 		typeof body?.name === "string" ? body.name.trim().slice(0, 80) : "";
 	if (name) await setLinkName(raw, name);
 	const info = r.info;
+	// Org verlangt Sicherheitsschlüssel: die Seite bittet darum und fordert
+	// beim Anlegen einen externen Authenticator an (Härtung W)
+	const securityKey = await linkNeedsSecurityKey(r);
 	const res = json(
 		200,
 		info.kind === "invite"
@@ -54,12 +58,14 @@ export async function POST(req: Request) {
 					role: ROLE_LABEL[info.role],
 					accountExists: info.accountExists,
 					expiresAt: info.expiresAt,
+					securityKey,
 				}
 			: {
 					kind: info.kind,
 					email: info.email,
 					name: info.name,
 					expiresAt: info.expiresAt,
+					securityKey,
 				},
 	);
 	res.cookies.set(LINK_COOKIE, raw, {

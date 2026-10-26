@@ -3,6 +3,7 @@ import {
 	ABSOLUTE_SESSION_MS,
 	AuthError,
 	checkSessionRules,
+	effectiveMfaVerifiedAt,
 	IDLE_SESSION_MS,
 	ipFromHeaders,
 	isStepUpFresh,
@@ -123,6 +124,28 @@ describe("checkSessionRules", () => {
 				),
 			),
 		).toBe("forbidden");
+	});
+});
+
+describe("effectiveMfaVerifiedAt", () => {
+	const at = new Date("2026-10-26T10:00:00Z");
+	it("eigener Faktor gilt in jeder Org", () => {
+		expect(
+			effectiveMfaVerifiedAt({ mfaVerifiedAt: at, activeOrganizationId: "b" }),
+		).toBe(at);
+	});
+	it("Firmen-MFA nur in der Org des Anbieters (S1)", () => {
+		const s = { mfaVerifiedAt: at, mfaOrgId: "a" };
+		expect(effectiveMfaVerifiedAt({ ...s, activeOrganizationId: "a" })).toBe(
+			at,
+		);
+		expect(
+			effectiveMfaVerifiedAt({ ...s, activeOrganizationId: "b" }),
+		).toBeNull();
+		expect(
+			effectiveMfaVerifiedAt({ ...s, activeOrganizationId: null }),
+		).toBeNull();
+		expect(effectiveMfaVerifiedAt({ mfaVerifiedAt: null })).toBeNull();
 	});
 });
 

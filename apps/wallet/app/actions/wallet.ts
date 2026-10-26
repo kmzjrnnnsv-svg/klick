@@ -3,6 +3,8 @@
 import { walletAccounts, walletAddresses } from "@wallet/db/schema";
 import { requireUnlocked, toOrgCtx } from "@wallet/lib/auth/guards";
 import { mutateOrg, readOrg } from "@wallet/lib/db/with-org";
+import { currentAccessPolicy } from "@wallet/lib/orgs/access";
+import { networkHasAllowedAsset } from "@wallet/lib/orgs/access-policy";
 import { custodyFacts } from "@wallet/lib/orgs/custody";
 import { clientPurposeAllowed } from "@wallet/lib/wallet/custody-gate";
 import { configuredNetworks } from "@wallet/lib/wallet/node-clients";
@@ -51,6 +53,9 @@ async function createWalletAccountImpl(
 	// Testnetz bzw. mit eingetragener Erlaubnis (custody-gate)
 	if (!networkAllowed(d.network, { liveEnabled: false }))
 		return fail("network_live");
+	// Nur bestimmte Assets (Härtung W): Konto nur, wenn das Netz eines führt
+	if (!networkHasAllowedAsset(await currentAccessPolicy(c.orgId), d.network))
+		return fail("asset_not_allowed");
 	if (
 		d.purpose === "client" &&
 		!clientPurposeAllowed(
@@ -213,6 +218,7 @@ async function issueReceiveAddressImpl(
 	const c = await requireUnlocked();
 	if (!parsed.success) return fromZod(parsed.error);
 	const { accountId, label } = parsed.data;
+	const policy = await currentAccessPolicy(c.orgId);
 	const res = await mutateOrg<
 		ActionResult<{ address: string; index: number; reused: boolean }>
 	>(toOrgCtx(c), async (tx) => {
@@ -228,6 +234,9 @@ async function issueReceiveAddressImpl(
 			)
 			.limit(1);
 		if (!account) return { result: fail("notFound"), audit: [] };
+		// Nur bestimmte Assets (Härtung W): kein Empfang auf Netzen ohne
+		if (!networkHasAllowedAsset(policy, account.network))
+			return { result: fail("asset_not_allowed"), audit: [] };
 		const branch0 = and(
 			eq(walletAddresses.accountId, account.id),
 			eq(walletAddresses.branch, 0),

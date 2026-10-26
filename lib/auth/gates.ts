@@ -30,6 +30,10 @@ export function redirectFor(code: AuthErrorCode): string {
 			return "/heute";
 		case "step_up_required":
 			return "/login/2fa?stepup=1";
+		case "ip_blocked":
+			return "/netz?bereich=admin";
+		case "network_denied":
+			return "/netz";
 		default:
 			return "/login";
 	}

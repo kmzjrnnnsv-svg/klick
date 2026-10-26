@@ -1,0 +1,54 @@
+# /etc/audit/rules.d/klick.rules — Kernel-Audit des App-Servers (Härtung H4)
+#   apt install auditd audispd-plugins
+#   cp deploy/audit/klick.rules /etc/audit/rules.d/ && augenrules --load
+# Auswerten: ausearch -k <schlüssel> -i   |   aureport --summary
+# Am Ende `-e 2`: Regeln sind bis zum Neustart fest (Änderung = Neustart).
+
+-D
+-b 8192
+-f 1
+--backlog_wait_time 60000
+
+# Identität und Anmeldung
+-w /etc/passwd -p wa -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/group -p wa -k identity
+-w /etc/gshadow -p wa -k identity
+-w /etc/sudoers -p wa -k sudoers
+-w /etc/sudoers.d/ -p wa -k sudoers
+-w /etc/pam.d/ -p wa -k pam
+-w /etc/klick/u2f_mappings -p wa -k pam
+-w /etc/ssh/sshd_config -p wa -k sshd
+-w /etc/ssh/sshd_config.d/ -p wa -k sshd
+-w /root/.ssh/ -p wa -k ssh_keys
+
+# Befehle mit Rechten
+-a always,exit -F arch=b64 -S execve -C uid!=euid -F euid=0 -k privileged_exec
+-a always,exit -F path=/usr/bin/sudo -F perm=x -F auid>=1000 -F auid!=unset -k sudo_use
+-a always,exit -F path=/usr/bin/su -F perm=x -F auid>=1000 -F auid!=unset -k su_use
+
+# Dienste, Geheimnisse, Netz
+-w /etc/systemd/system/ -p wa -k units
+-w /etc/credstore.encrypted/ -p wa -k credentials
+-w /etc/credstore/ -p rwa -k credentials
+-w /var/lib/systemd/credential.secret -p r -k credentials
+-w /etc/klick/ -p wa -k klick_config
+-w /etc/both/ -p wa -k both_config
+-w /etc/nginx/ -p wa -k nginx
+-w /etc/nftables.conf -p wa -k firewall
+-w /etc/wireguard/ -p rwa -k wireguard
+-w /etc/postgresql/ -p wa -k postgres
+
+# Code und Signer
+-w /opt/klick/current/ -p wa -k klick_code
+-w /opt/both/current/ -p wa -k both_code
+-w /usr/local/lib/klick-signer/ -p wa -k signer_code
+-w /usr/local/lib/klick-parse/ -p wa -k parser_code
+-w /var/lib/klick-signer/seeds.json -p rwa -k signer_state
+-w /var/www/approve/ -p wa -k confirm_page
+
+# Kernel-Module und Zeit
+-a always,exit -F arch=b64 -S init_module,finit_module,delete_module -k modules
+-a always,exit -F arch=b64 -S adjtimex,settimeofday,clock_settime -k time
+
+-e 2

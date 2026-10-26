@@ -48,7 +48,7 @@ d("SSO-Provisionierung (Postgres)", () => {
 	};
 	const sessionOf = async (id: string) =>
 		(
-			await client`select active_organization_id, mfa_verified_at, step_up_at from session where id = ${id}`
+			await client`select active_organization_id, mfa_verified_at, mfa_org_id, step_up_at from session where id = ${id}`
 		)[0];
 	const roleOf = async (userId: string, org = orgId) =>
 		(
@@ -128,6 +128,8 @@ d("SSO-Provisionierung (Postgres)", () => {
 		const s = await sessionOf(sid);
 		expect(s?.active_organization_id).toBe(orgId);
 		expect(s?.mfa_verified_at).not.toBeNull();
+		// Firmen-MFA gilt nur in der Org des Anbieters (S1)
+		expect(s?.mfa_org_id).toBe(orgId);
 		expect(new Date(s?.step_up_at).getTime()).toBe(0);
 	});
 
@@ -161,6 +163,29 @@ d("SSO-Provisionierung (Postgres)", () => {
 		const foreign = await newUser("fremd", `fremd-${stamp}@anders.example`);
 		await login(foreign, `fremd-${stamp}@anders.example`, {});
 		expect(await roleOf(foreign)).toBeNull();
+	});
+
+	it("Firmen-MFA nur für Mitglieder der Org des Anbieters (S1)", async () => {
+		await setPolicy({ trustIdpMfa: true, defaultRole: "employee" });
+		const uid = await newUser("ida");
+		await client`insert into member (organization_id, user_id, role, created_at) values (${otherOrg}, ${uid}, 'editor', now())`;
+		const sid = await newSession(uid);
+		await login(uid, `ida@${domain}`, { amr: ["mfa"] });
+		expect(await roleOf(uid)).toBeNull();
+		expect((await sessionOf(sid))?.mfa_verified_at).toBeNull();
+	});
+
+	it("Google ohne passendes hd: keine Sitzung (S8)", async () => {
+		const uid = await newUser("gina");
+		await expect(
+			provisionSsoUser({
+				user: { id: uid, email: `gina@${domain}` },
+				userInfo: { hd: "gmail.com" },
+				token: { idToken: undefined },
+				provider: { ...provider(), issuer: "https://accounts.google.com" },
+			}),
+		).rejects.toMatchObject({ body: { code: "SSO_DOMAIN_MISMATCH" } });
+		expect(await roleOf(uid)).toBeNull();
 	});
 
 	it("SSO erzwingen: nur der SSO-Rückruf, Inhaber:innen mit Notzugang", async () => {

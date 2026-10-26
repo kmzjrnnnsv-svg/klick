@@ -55,16 +55,18 @@ function useErrorText() {
 	return (error: string) =>
 		error === "account_exists"
 			? t("errorExists")
-			: error === "not_pending"
-				? t("errorNotPending")
-				: error === "account_blocked"
-					? t("errorBlocked")
-					: error === "step_up_required"
-						? ta("twoFactorStepUp")
-						: // Better Auth liefert lesbare Sätze, das Sicherheitsnetz nur Codes
-							error.includes(" ")
-							? error
-							: tc("error");
+			: error === "org_has_members"
+				? t("errorOrgHasMembers")
+				: error === "not_pending"
+					? t("errorNotPending")
+					: error === "account_blocked"
+						? t("errorBlocked")
+						: error === "step_up_required"
+							? ta("twoFactorStepUp")
+							: // Better Auth liefert lesbare Sätze, das Sicherheitsnetz nur Codes
+								error.includes(" ")
+								? error
+								: tc("error");
 }
 
 export function CreateAccountDialog({

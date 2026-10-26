@@ -239,11 +239,16 @@ export const walletPayouts = pgTable(
 		attempts: integer().notNull().default(0),
 		error: text(),
 		createdByUserId: userRef(),
+		// Vollmacht, auf die diese Auszahlung läuft (Härtung W)
+		mandateId: uuid().references((): AnyPgColumn => payoutMandates.id, {
+			onDelete: "no action",
+		}),
 		...timestamps(),
 	},
 	(t) => [
 		unique().on(t.organizationId, t.intentId),
 		index("wallet_payouts_org_status_idx").on(t.organizationId, t.status),
+		index("wallet_payouts_mandate_idx").on(t.mandateId),
 		orgPolicy("wallet_payouts"),
 	],
 ).enableRLS();
@@ -343,3 +348,53 @@ export type WalletPreferences = typeof walletPreferences.$inferSelect;
 export type WalletAddressBookEntry = typeof walletAddressBook.$inferSelect;
 export type WalletPayout = typeof walletPayouts.$inferSelect;
 export type WalletSignerAnchor = typeof walletSignerAnchor.$inferSelect;
+
+// Vollmachten (Härtung W): eine Inhaber:in erlaubt einer Person der
+// Bedienung Auszahlungen bis zu einem Betrag in einem Asset an feste Ziele in
+// einem Zeitraum — unterschrieben per Sicherheitsschlüssel über den
+// kanonischen Text (lib/wallet/core/mandate.ts). Gespeichert wird die ganze
+// Assertion, damit jede Auszahlung die Unterschrift neu prüfen kann; Text
+// und Felder ändern sich nie (nur Widerruf).
+export type MandateAssertion = {
+	credentialId: string;
+	authenticatorData: string;
+	clientDataJSON: string;
+	signature: string;
+};
+
+export const payoutMandates = pgTable(
+	"payout_mandates",
+	{
+		id: uuid().primaryKey(),
+		organizationId: orgId(),
+		granteeUserId: uuid()
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		network: text({ enum: WALLET_NETWORKS }).notNull(),
+		asset: text().$type<AssetCode>().notNull(),
+		perPayout: text().notNull(),
+		total: text().notNull(),
+		destinations: stringList(),
+		validFrom: ts().notNull(),
+		validUntil: ts().notNull(),
+		issuedByUserId: uuid()
+			.notNull()
+			.references(() => user.id, { onDelete: "no action" }),
+		text: text().notNull(),
+		textHash: text().notNull(),
+		assertion: json<MandateAssertion>().notNull(),
+		revokedAt: ts(),
+		revokedByUserId: userRef(),
+		revokeReason: text(),
+		createdAt: createdAt(),
+	},
+	(t) => [
+		index("payout_mandates_grantee_idx").on(
+			t.organizationId,
+			t.granteeUserId,
+			t.network,
+			t.asset,
+		),
+		orgPolicy("payout_mandates"),
+	],
+).enableRLS();

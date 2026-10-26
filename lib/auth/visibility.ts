@@ -53,3 +53,10 @@ export function maskSecret<
 			: r,
 	);
 }
+
+// Verlauf (Kette mit allen Hash-Feldern) enthält IP-Adressen und Browser-
+// Kennungen aller Mitglieder; die Felder gehören zur Prüfsumme und lassen
+// sich nicht kürzen. Darum nur Inhaber:innen und Prüfer:innen (S5).
+export function ledgerExportAllowed(orgRole: string | null): boolean {
+	return orgRole === "owner" || orgRole === "auditor";
+}

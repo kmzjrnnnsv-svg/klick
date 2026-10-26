@@ -5,6 +5,7 @@ import { z } from "zod";
 import { safeAction } from "@/lib/actions/safe";
 import { requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { mutateOrg } from "@/lib/db/with-org";
+import { requirePermit } from "@/lib/security-changes/service";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	createWalletLink,
@@ -27,6 +28,13 @@ async function connectWalletImpl(
 	const c = await requireStepUp({ integration: ["create"] });
 	const parsed = nameSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
+	// Vier-Augen (Härtung A4): Token für den Empfang aus both.money
+	const permit = await requirePermit(c, {
+		kind: "integration_token",
+		targetKey: null,
+		summary: "Verbindung zu both.money anlegen",
+	});
+	if (!permit.ok) return permit;
 	const r = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const created = await createWalletLink(tx, c, parsed.data);
 		return { result: created, audit: created.audit };
@@ -45,6 +53,12 @@ async function renewWalletTokenImpl(
 	const c = await requireStepUp({ integration: ["create"] });
 	const parsed = idSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
+	const permit = await requirePermit(c, {
+		kind: "integration_token",
+		targetKey: parsed.data.linkId,
+		summary: "Token der Verbindung zu both.money erneuern",
+	});
+	if (!permit.ok) return permit;
 	type Renewed = Awaited<ReturnType<typeof renewWalletLinkToken>>;
 	const r = await mutateOrg<Renewed>(toOrgCtx(c), async (tx) => {
 		const res = await renewWalletLinkToken(tx, c, parsed.data.linkId);

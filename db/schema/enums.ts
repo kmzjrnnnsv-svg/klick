@@ -563,6 +563,10 @@ export const NOTIFICATION_KINDS = [
 	// Wallet: Eingang bestätigt bzw. Ausgang gesehen (Treffer der
 	// Sanktionsprüfung laufen als security_alert)
 	"wallet_transfer",
+	// Lockbox: Antrag, Notfall-Zugriff, Wartezeit (sofort per Mail)
+	"platform_access",
+	// Vier-Augen: Sicherheitsänderung beantragt, entschieden, gewirkt
+	"security_change",
 	"digest",
 	"system",
 ] as const;
@@ -586,3 +590,68 @@ export const TRUST_REQUEST_STATUS = [
 	"revoked",
 ] as const;
 export type TrustRequestStatus = (typeof TRUST_REQUEST_STATUS)[number];
+
+// Lockbox (Härtung A3): Plattform-Zugriff auf Inhalte einer Org nur mit
+// Freigabe der Inhaber:in bzw. Geschäftsleitung
+export const PLATFORM_ACCESS_SCOPES = [
+	// Protokoll der Org einsehen (Admin > Audit-Log)
+	"view",
+	// als eine Person der Org anmelden (Better-Auth-Impersonation)
+	"impersonate",
+	// Zugang einer Person zurücksetzen (Passkeys, Codes, Sitzungen)
+	"reset_access",
+] as const;
+export type PlatformAccessScope = (typeof PLATFORM_ACCESS_SCOPES)[number];
+
+export const PLATFORM_ACCESS_STATUS = [
+	"requested",
+	// Wartezeit (24 h) statt Freigabe, z. B. einzige Inhaber:in ausgesperrt
+	"waiting",
+	"approved",
+	"denied",
+	"cancelled",
+	"revoked",
+	// Notfall: wirkt sofort, Bericht binnen 24 h
+	"emergency",
+] as const;
+export type PlatformAccessStatus = (typeof PLATFORM_ACCESS_STATUS)[number];
+
+export const PLATFORM_EMERGENCY_CATEGORIES = [
+	"security_incident",
+	"legal_order",
+] as const;
+export type PlatformEmergencyCategory =
+	(typeof PLATFORM_EMERGENCY_CATEGORIES)[number];
+
+// Vier-Augen für Sicherheitsänderungen (Härtung A4): Art und Stand des
+// Antrags. Abgeleitet wird der Stand in lib/security-changes/rules.ts.
+export const SECURITY_CHANGE_KINDS = [
+	// „wirkt“: neuer Wert steht im Antrag
+	"sso_policy",
+	"dlp_policy",
+	// IP-Liste der Organisation (Härtung A5), jede Änderung
+	"network_policy",
+	// „erlaubt“: einmalige Erlaubnis für die anfragende Person (24 h)
+	"org_delete",
+	"full_export",
+	"member_reset_access",
+	"integration_token",
+	"sso_provider_remove",
+	// Inhaber:in hinzufügen (Einladung oder Rollenwechsel)
+	"owner_add",
+	// Inhaber:in herabstufen oder entfernen: sonst nimmt eine Inhaber:in der
+	// anderen die Stimme und wartet die 24 h allein ab
+	"owner_remove",
+] as const;
+export type SecurityChangeKind = (typeof SECURITY_CHANGE_KINDS)[number];
+
+export const SECURITY_CHANGE_STATUS = [
+	"pending",
+	"waiting",
+	"approved",
+	"applied",
+	"rejected",
+	"cancelled",
+	"expired",
+] as const;
+export type SecurityChangeStatus = (typeof SECURITY_CHANGE_STATUS)[number];

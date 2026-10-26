@@ -9,12 +9,15 @@ import {
 	enrolChallenge as pageEnrolChallenge,
 	enrolMac as pageEnrolMac,
 	parseIntent as pageParse,
+	parseMandate as pageParseMandate,
 } from "@/deploy/confirm/canonical.js";
 import { ASSETS } from "@/lib/wallet/core/assets";
 import { intentChallenge, parseIntent } from "@/lib/wallet/core/intent";
+import { mandateChallenge, parseMandate } from "@/lib/wallet/core/mandate";
 import { NETWORKS, WALLET_NETWORKS } from "@/lib/wallet/core/networks";
 import { enrolChallenge, enrolMac } from "@/signer/webauthn";
 import vectors from "./fixtures/wallet-intent-vectors.json";
+import mandateVectors from "./fixtures/wallet-mandate-vectors.json";
 
 // Bestätigungsseite (deploy/confirm): liest den kanonischen Text genau wie
 // Signer und Kern, rechnet dieselbe Challenge und denselben MAC, kennt
@@ -75,6 +78,22 @@ describe("kanonischer Text", () => {
 		}
 	});
 
+	it("klassische Bitcoin-Adressen wie der Kern (B8)", () => {
+		const base = vectors[0]?.text as string;
+		const dest = parseIntent(base).destination;
+		for (const b58 of [
+			"mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn",
+			"2MzQwSSnBHWHqSAqtTVQ6v47XtaisrJa1Vc",
+		]) {
+			const t = base.replace(dest, b58);
+			expect(parseIntent(t).destination).toBe(b58);
+			expect(pageParse(t).destination).toBe(b58);
+		}
+		// Hauptnetz-Format im Testnetz: beide lehnen ab
+		const main = base.replace(dest, "1BoatSLRHtKNngkdXEeobR76b53LETtpyT");
+		expect(throws(() => pageParse(main))).toBe(true);
+	});
+
 	it("Stellen und Verträge wie lib/wallet/core/assets.ts, Ketten-IDs wie networks.ts", () => {
 		for (const n of WALLET_NETWORKS) {
 			const fromCore = Object.fromEntries(
@@ -96,6 +115,57 @@ describe("kanonischer Text", () => {
 		expect(formatUnits("0", 8)).toBe("0");
 		expect(formatUnits("100000000000", 8)).toBe("1.000");
 		expect(() => formatUnits("1.5", 8)).toThrow();
+	});
+});
+
+describe("Vollmacht", () => {
+	it("Testvektoren: gleiche Felder und Challenge wie der Kern", async () => {
+		for (const v of mandateVectors) {
+			const lib = parseMandate(v.text);
+			expect(pageParseMandate(v.text)).toEqual({
+				...lib,
+				perPayout: String(lib.perPayout),
+				total: String(lib.total),
+			});
+			expect(hex(await challengeOf(v.text))).toBe(v.challenge);
+			expect(hex(mandateChallenge(v.text))).toBe(v.challenge);
+		}
+	});
+
+	it("verwirft, was der Kern verwirft", () => {
+		const btc = mandateVectors[0]?.text as string;
+		const eth = mandateVectors[1]?.text as string;
+		const [first, second] = btc.split("|")[9]?.split(",") ?? [];
+		const bad = [
+			`${btc}|x`,
+			btc.replace("both-mandate/v1", "both-mandate/v2"),
+			btc.replace("|50000|200000|", "|300000|200000|"),
+			btc.replace("|50000|", "|050000|"),
+			btc.replace("|50000|", "|0|"),
+			btc.replace(`${first},${second}`, `${second},${first}`),
+			btc.replace(`${first},${second}`, `${first},${first}`),
+			btc.replace(`${first},${second}`, ""),
+			btc.replace("|bitcoin_signet|-|", "|bitcoin_signet|1|"),
+			btc.replace("|BTC|", "|ETH|"),
+			btc.replace("tb1qw508", "bc1qw508"),
+			btc.replace("|1802592000|", "|1800000000|"),
+			btc.replace("|1802592000|", "|1807776001|"),
+			btc.replace(
+				"6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",
+				"9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a",
+			),
+			btc.replace("00112233", "0011223"),
+			`${btc} `,
+			eth.replace("11155111", "1"),
+			eth.replace("|USDC|", "|USDT|"),
+			eth.replace("0x00000000000000000000000000000000000000AA", "0x00AA"),
+		];
+		for (const t of bad) {
+			const lib = throws(() => parseMandate(t));
+			const page = throws(() => pageParseMandate(t));
+			expect({ t, page }).toEqual({ t, page: true });
+			expect({ t, lib }).toEqual({ t, lib: page });
+		}
 	});
 });
 

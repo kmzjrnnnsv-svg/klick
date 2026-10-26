@@ -1,13 +1,16 @@
 import { Download, Lock } from "lucide-react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { cache } from "react";
 import { TrustRequestForm } from "@/components/trust-center/request-form";
 import { Badge } from "@/components/ui/badge";
 import { DOMAINS, type Domain } from "@/db/schema/enums";
+import { ipFromHeaders } from "@/lib/auth/session-rules";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { publicTrustCenter } from "@/lib/db/trust";
+import { orgNetworkAllows } from "@/lib/net/org-network";
 import { isServiceType, trustDocumentHref } from "@/lib/trust/labels";
 
 // /vertrauen/<slug> — öffentliches Trust Center einer Org. Gezeigt wird nur
@@ -39,6 +42,15 @@ export default async function PublicTrustCenterPage({
 	const { slug } = await params;
 	const center = await load(slug);
 	if (!center) notFound();
+	// IP-Liste der Organisation (Härtung A5)
+	if (
+		!(await orgNetworkAllows(
+			center.organizationId,
+			"trustCenter",
+			ipFromHeaders(await headers()),
+		))
+	)
+		redirect("/netz?bereich=portal");
 	const s = center.snapshot;
 	const t = await getTranslations("TrustCenter");
 	const tc = await getTranslations("Controls");

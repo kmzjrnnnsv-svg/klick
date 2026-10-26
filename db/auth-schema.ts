@@ -54,6 +54,7 @@ export const session = pgTable(
     stepUpAt: timestamp("step_up_at"),
     walletUnlockedAt: timestamp("wallet_unlocked_at"),
     walletUnlockOrgId: text("wallet_unlock_org_id"),
+    mfaOrgId: text("mfa_org_id"),
   },
   (table) => [index("session_userId_idx").on(table.userId)],
 );

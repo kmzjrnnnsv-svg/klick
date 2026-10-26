@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
 	Bell,
 	BookOpen,
@@ -8,11 +8,15 @@ import {
 	Gauge,
 	GitBranch,
 	Hash,
+	History,
 	KeyRound,
 	Layers,
+	LockKeyhole,
+	Network,
 	Plug,
 	Receipt,
 	ShieldCheck,
+	ShieldHalf,
 	Truck,
 	Users,
 } from "lucide-react";
@@ -26,10 +30,14 @@ import { DlpPanel } from "@/components/settings/dlp-panel";
 import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { IntegrationsPanel } from "@/components/settings/integrations-panel";
+import { LedgerPanel } from "@/components/settings/ledger-panel";
+import { NetworkPanel } from "@/components/settings/network-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
+import { PlatformAccessPanel } from "@/components/settings/platform-access-panel";
 import { PolicyPortalPanel } from "@/components/settings/policy-portal-panel";
 import { RiskMethodPanel } from "@/components/settings/risk-method-panel";
 import { RolesPanel } from "@/components/settings/roles-panel";
+import { SecurityChangesPanel } from "@/components/settings/security-changes-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
 import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
@@ -38,7 +46,13 @@ import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel
 import { WalletLinkPanel } from "@/components/settings/wallet-link-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
-import { approvalWorkflows } from "@/db/schema";
+import {
+	approvalWorkflows,
+	auditLog,
+	orgSettings,
+	platformAccessGrants,
+	securityChanges,
+} from "@/db/schema";
 import {
 	factInfos,
 	ruleNames,
@@ -64,6 +78,7 @@ import { allows, roleStatements } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { orgSsoPolicy } from "@/lib/auth/sso-provisioning";
+import { ledgerExportAllowed } from "@/lib/auth/visibility";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import { requiredDuties } from "@/lib/compliance/catalog/approval-duties";
 import { WORKFLOW_BY_KIND } from "@/lib/compliance/catalog/approval-workflows";
@@ -87,11 +102,16 @@ import {
 	resolveRiskMethod,
 } from "@/lib/compliance/risk-method";
 import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
+import { topManagementOf } from "@/lib/compliance/top-management";
+import { userLabels } from "@/lib/db/platform-access";
 import { loadPriceTable } from "@/lib/db/pricing";
 import { flushQueuedAudits, readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
 import { berlinToday } from "@/lib/evidence-studio/queries";
+import { orgLedger } from "@/lib/ledger/export";
 import { recommendServices } from "@/lib/marketing/recommend";
+import { normalizeIp } from "@/lib/net/ip";
+import { networkPolicyOf } from "@/lib/net/network-policy";
 import {
 	getOrgSettings,
 	listOpenAuditScopes,
@@ -99,7 +119,15 @@ import {
 	listRetiredFrameworkSlugs,
 } from "@/lib/org/queries";
 import { listOrgRoles } from "@/lib/org/roles";
+import { grantState, reportOverdue } from "@/lib/platform-access/rules";
 import { portalOf, portalReaders } from "@/lib/policy-portal/admin";
+import {
+	canCancelChange,
+	canDecideChange,
+	changeState,
+	isOpen,
+} from "@/lib/security-changes/rules";
+import { changeDeciders } from "@/lib/security-changes/service";
 import {
 	resolveSettingsSection,
 	type SettingsSectionKey,
@@ -118,6 +146,10 @@ const SECTION_LABEL = {
 	sso: "tabSso",
 	portal: "tabPortal",
 	integrationen: "tabIntegrations",
+	zugriffe: "tabPlatformAccess",
+	sicherheitsaenderungen: "tabSecurityChanges",
+	netzwerk: "tabNetwork",
+	verlauf: "tabLedger",
 	abo: "tabSubscription",
 	workflows: "tabWorkflows",
 	audits: "tabAudits",
@@ -135,6 +167,10 @@ const SECTION_ICON: Record<SettingsSectionKey, React.ReactNode> = {
 	sso: <KeyRound />,
 	portal: <BookOpen />,
 	integrationen: <Plug />,
+	zugriffe: <LockKeyhole />,
+	sicherheitsaenderungen: <ShieldHalf />,
+	netzwerk: <Network />,
+	verlauf: <History />,
 	abo: <Receipt />,
 	workflows: <GitBranch />,
 	audits: <ClipboardCheck />,
@@ -673,6 +709,166 @@ async function renderSection(
 					ssoDomains={sso
 						.filter((p) => p.domainVerified)
 						.map((p) => p.domain.toLowerCase())}
+				/>
+			);
+		}
+		case "zugriffe": {
+			const { grants, mayDecide } = await readOrg(octx, async (tx) => ({
+				grants: await tx
+					.select()
+					.from(platformAccessGrants)
+					.where(eq(platformAccessGrants.organizationId, ctx.orgId))
+					.orderBy(desc(platformAccessGrants.requestedAt))
+					.limit(100),
+				mayDecide:
+					ctx.orgRole === "owner" ||
+					(await topManagementOf(tx, ctx.orgId, ctx.userId)).isTopManagement,
+			}));
+			const names = await userLabels(
+				grants.flatMap((g) => [g.targetUserId, g.requestedBy, g.decidedBy]),
+			);
+			const now = new Date();
+			const iso = (d: Date | null) => d?.toISOString() ?? null;
+			return (
+				<PlatformAccessPanel
+					mayDecide={mayDecide}
+					grants={grants.map((g) => ({
+						id: g.id,
+						scope: g.scope,
+						state: grantState(g, now),
+						reason: g.reason,
+						durationMinutes: g.durationMinutes,
+						targetName: g.targetUserId
+							? (names.get(g.targetUserId) ?? null)
+							: null,
+						targetIsMe: g.targetUserId === ctx.userId,
+						requestedByName: g.requestedBy
+							? (names.get(g.requestedBy) ?? null)
+							: null,
+						requestedAt: g.requestedAt.toISOString(),
+						applyAfter: iso(g.applyAfter),
+						expiresAt: iso(g.expiresAt),
+						emergencyCategory: g.emergencyCategory,
+						decidedByName: g.decidedBy
+							? (names.get(g.decidedBy) ?? null)
+							: null,
+						decidedAt: iso(g.decidedAt),
+						usedAt: iso(g.usedAt),
+						report: g.report,
+						reportOverdue: reportOverdue(g, now),
+					}))}
+				/>
+			);
+		}
+		case "sicherheitsaenderungen": {
+			const { rows, deciders } = await readOrg(octx, async (tx) => ({
+				rows: await tx
+					.select()
+					.from(securityChanges)
+					.where(eq(securityChanges.organizationId, ctx.orgId))
+					.orderBy(desc(securityChanges.requestedAt))
+					.limit(100),
+				deciders: await changeDeciders(tx, ctx.orgId),
+			}));
+			const names = await userLabels(
+				rows.flatMap((r) => [r.requestedBy, r.decidedBy]),
+			);
+			const now = new Date();
+			const iso = (d: Date | null) => d?.toISOString() ?? null;
+			return (
+				<SecurityChangesPanel
+					changes={rows.map((r) => ({
+						id: r.id,
+						kind: r.kind,
+						summary: r.summary,
+						state: changeState(r, now),
+						requestedByName: r.requestedBy
+							? (names.get(r.requestedBy) ?? null)
+							: null,
+						requestedByMe: r.requestedBy === ctx.userId,
+						requestedAt: r.requestedAt.toISOString(),
+						applyAfter: iso(r.applyAfter),
+						permitUntil: iso(r.permitUntil),
+						decidedByName: r.decidedBy
+							? (names.get(r.decidedBy) ?? null)
+							: null,
+						decidedAt: iso(r.decidedAt),
+						decisionNote: r.decisionNote,
+						appliedAt: iso(r.appliedAt),
+						mayDecide: canDecideChange(r, ctx.userId, deciders, now) === null,
+						mayCancel: canCancelChange(r, ctx.userId, deciders, now) === null,
+					}))}
+				/>
+			);
+		}
+		case "netzwerk": {
+			const { row, open } = await readOrg(octx, async (tx) => {
+				const [row] = await tx
+					.select({ networkPolicy: orgSettings.networkPolicy })
+					.from(orgSettings)
+					.where(eq(orgSettings.organizationId, ctx.orgId))
+					.limit(1);
+				const changes = await tx
+					.select()
+					.from(securityChanges)
+					.where(
+						and(
+							eq(securityChanges.organizationId, ctx.orgId),
+							eq(securityChanges.kind, "network_policy"),
+						),
+					);
+				return { row, open: changes.some((c) => isOpen(c, new Date())) };
+			});
+			return (
+				<NetworkPanel
+					policy={networkPolicyOf(row?.networkPolicy)}
+					myIp={normalizeIp(ctx.ip)}
+					canEdit={ctx.orgRole === "owner"}
+					pendingChange={open}
+				/>
+			);
+		}
+		case "verlauf": {
+			const [[stats], ledger] = await Promise.all([
+				readOrg(octx, (tx) =>
+					tx
+						.select({
+							n: sql<number>`count(*)::int`,
+							last: sql<string | null>`max(${auditLog.at})`,
+						})
+						.from(auditLog)
+						.where(eq(auditLog.organizationId, ctx.orgId)),
+				),
+				orgLedger(octx, 20),
+			]);
+			return (
+				<LedgerPanel
+					entries={stats?.n ?? 0}
+					lastEntryAt={stats?.last ? new Date(stats.last).toISOString() : null}
+					canExport={
+						allows(ctx, { export: ["create"] }) &&
+						ledgerExportAllowed(ctx.orgRole)
+					}
+					anchors={ledger.heads.flatMap((h) =>
+						h.anchor
+							? [
+									{
+										id: h.anchorId,
+										createdAt: h.createdAt.toISOString(),
+										status: h.anchor.status as
+											| "pending"
+											| "confirmed"
+											| "failed",
+										reason: h.anchor.reason,
+										count: h.count,
+										head: h.head,
+										root: h.anchor.root,
+										bitcoinHeight: h.anchor.bitcoinHeight,
+										bitcoinMerkleRoot: h.anchor.bitcoinMerkleRoot,
+									},
+								]
+							: [],
+					)}
 				/>
 			);
 		}
