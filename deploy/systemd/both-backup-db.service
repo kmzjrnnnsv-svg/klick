@@ -36,4 +36,11 @@ CapabilityBoundingSet=
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 SystemCallFilter=@system-service
 UMask=0077
+# Die Apps sehen einander nicht (gleicher Server, Härtung H5)
+InaccessiblePaths=-/opt/klick -/opt/both -/etc/both -/var/lib/klick-signer -/root
+ProtectKernelLogs=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native
 ReadWritePaths=/var/backups/both /var/lib/klick-backup

@@ -1,0 +1,25 @@
+# /etc/aide/aide.conf.d/99_aide_klick — Dateiintegrität (Härtung H4), Modus 0644
+# Ubuntu prüft /etc, /usr, /boot schon; hier die Teile von Klick, both.money
+# und dem Signer, die sich nur mit einem Release oder einer Zeremonie ändern.
+# Code unter /opt/* bewacht auditd (Schreibzugriffe), nicht AIDE: er ändert
+# sich mit jedem Release. Nach einem Signer- oder Bestätigungsseiten-Release:
+#   aide --config /etc/aide/aide.conf --update && cp /var/lib/aide/aide.db.new /var/lib/aide/aide.db
+
+/usr/local/lib/klick-signer R
+/usr/local/lib/klick-parse R
+/usr/local/bin R
+/var/www/approve R
+/etc/credstore.encrypted R
+/etc/systemd/system R
+/etc/nginx R
+/etc/wireguard R
+/etc/ssh R
+/etc/sudoers.d R
+/etc/pam.d R
+
+!/opt/klick
+!/opt/both
+!/var/lib/klick-signer
+!/var/backups
+!/var/log
+!/var/lib/postgresql

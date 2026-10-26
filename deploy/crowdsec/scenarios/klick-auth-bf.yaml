@@ -1,0 +1,41 @@
+# /etc/crowdsec/scenarios/klick-auth-bf.yaml — viele Fehlschläge an der Anmeldung
+# (Passkey, Notweg-Link, Code, Einladungslinks): 10 × 401/403/429 je IP in
+# 5 Minuten → Sperre (Dauer aus profiles.yaml, Standard 4 h).
+type: leaky
+name: klick/auth-bf
+description: "Klick/both.money: wiederholt abgelehnte Anmeldeversuche"
+filter: >-
+  evt.Meta.log_type == 'http_access-log' &&
+  (evt.Meta.http_path startsWith '/api/auth/' || evt.Meta.http_path startsWith '/api/registrierung' || evt.Meta.http_path startsWith '/api/link') &&
+  evt.Meta.http_status in ['401', '403', '429']
+groupby: evt.Meta.source_ip
+capacity: 10
+leakspeed: 30s
+blackhole: 5m
+labels:
+  service: http
+  confidence: 2
+  spoofable: 0
+  behavior: "http:bruteforce"
+  label: "Anmelde-Brute-Force"
+  remediation: true
+---
+# Portal-Codes und NDA-Anfragen raten (Richtlinien-Portal, Trust Center, Anfrage)
+type: leaky
+name: klick/forms-bf
+description: "Klick: viele gedrosselte Anfragen an öffentliche Formulare"
+filter: >-
+  evt.Meta.log_type == 'http_access-log' &&
+  (evt.Meta.http_path matches '^/portal/[^/]+/(code|anmelden)$' || evt.Meta.http_path in ['/api/anfrage', '/api/vertrauen/anfrage']) &&
+  evt.Meta.http_status in ['400', '401', '403', '429']
+groupby: evt.Meta.source_ip
+capacity: 15
+leakspeed: 1m
+blackhole: 10m
+labels:
+  service: http
+  confidence: 2
+  spoofable: 0
+  behavior: "http:bruteforce"
+  label: "Formular-Missbrauch"
+  remediation: true

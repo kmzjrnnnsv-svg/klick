@@ -1,0 +1,15 @@
+# sudo nur mit Sicherheitsschlüssel (Härtung H3)
+#
+#   apt install libpam-u2f
+#   install -d -m 0755 /etc/klick
+#   pamu2fcfg -u <admin> -o pam://klick-app -i pam://klick-app -N >> /etc/klick/u2f_mappings
+#     (-N = PIN verlangen; je Person eine Zeile, zweiten Schlüssel mit
+#      `pamu2fcfg -n -N …` an dieselbe Zeile anhängen)
+#   chown root:root /etc/klick/u2f_mappings && chmod 0644 /etc/klick/u2f_mappings
+#
+# Dann in /etc/pam.d/sudo die folgende Zeile **vor** `@include common-auth`
+# einfügen. `required` = Schlüssel und Passwort; wer ohne Passwort arbeiten
+# will, nimmt `sufficient` (dann zählt der Schlüssel allein).
+# Vorher eine root-Shell offen lassen und mit `sudo -k; sudo true` prüfen.
+
+auth required pam_u2f.so cue pinverification=1 origin=pam://klick-app appid=pam://klick-app authfile=/etc/klick/u2f_mappings

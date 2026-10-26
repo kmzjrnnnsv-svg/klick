@@ -1,0 +1,12 @@
+# /etc/crowdsec/parsers/s02-enrich/klick-whitelist.yaml — Admin-Netz und lokale
+# Adressen nie sperren (sonst sperrt ein Tippfehler die Verwaltung aus)
+name: klick/whitelist-admin
+description: "Admin-Netz (WireGuard) und localhost nie sperren"
+whitelist:
+  reason: "Admin-Netz und localhost"
+  cidr:
+    - "10.9.0.0/24"
+    - "fd10:9::/64"
+    - "10.8.0.0/24"
+    - "127.0.0.1/32"
+    - "::1/128"

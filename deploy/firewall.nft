@@ -1,19 +1,44 @@
 #!/usr/sbin/nft -f
-# nftables — nur SSH, HTTP (Redirect) und HTTPS. Alles andere verwirft der Host.
-# Ergänzt die Hetzner-Cloud-Firewall (gleiches Regelwerk, zweite Schicht).
-flush ruleset
+# nftables auf dem App-Server (Klick + both.money), Härtung H2.
+#
+# Öffentlich: nur HTTP (Umleitung + ACME), HTTPS und WireGuard (Admin-Netz).
+# SSH und DNS nur im Admin-Tunnel wg-admin; Postgres, Node, Signer nie offen.
+# Dieselben Regeln als Hetzner-Cloud-Firewall (zweite Schicht): TCP 80/443,
+# UDP 51820 eingehend, sonst nichts.
+#
+# Eigene Tabelle statt `flush ruleset`: Tabellen anderer Dienste (CrowdSec-
+# Bouncer `crowdsec`/`crowdsec6`) überleben das Neuladen.
+#   nft -c -f /etc/nftables.conf   (prüfen)  →  systemctl reload nftables
+# Umstellen nur mit zweiter offener SSH-Sitzung und Hetzner-Konsole als Rückweg
+# (Runbook „Server härten“).
 
-table inet filter {
+add table inet klick
+delete table inet klick
+
+table inet klick {
   chain input {
     type filter hook input priority 0; policy drop;
     ct state established,related accept
     ct state invalid drop
     iif lo accept
-    ip protocol icmp accept
-    ip6 nexthdr icmpv6 accept
-    tcp dport 22 ct state new limit rate 10/minute accept
+
+    # ICMP: Erreichbarkeit und Pfad-MTU; Echo gedrosselt. IPv6 braucht
+    # Neighbor Discovery, sonst bricht die Adresse.
+    ip protocol icmp icmp type { destination-unreachable, time-exceeded, parameter-problem } accept
+    ip protocol icmp icmp type echo-request limit rate 10/second accept
+    ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
+    ip6 nexthdr icmpv6 icmpv6 type echo-request limit rate 10/second accept
+
+    # Admin-Netz (deploy/wireguard/wg-admin.conf.example)
+    udp dport 51820 accept
+    iifname "wg-admin" tcp dport 22 accept
+    iifname "wg-admin" meta l4proto { tcp, udp } th dport 53 accept
+
+    # Web
     tcp dport { 80, 443 } accept
-    # Postgres, MinIO, Node: nur lokal (kein Port offen)
+
+    # Rest verwerfen, gedrosselt protokollieren (journalctl -k | grep klick-drop)
+    limit rate 5/minute log prefix "klick-drop: "
   }
   chain forward {
     type filter hook forward priority 0; policy drop;

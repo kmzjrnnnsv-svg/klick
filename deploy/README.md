@@ -17,6 +17,9 @@
 ## Release
 CI grün → Wartungsfenster → `scripts/backup-db.sh` → `git pull && pnpm release`
 (migrate → seed → build) → `systemctl restart klick` → `curl -f https://raza.work/api/ready`.
+`pnpm release` prüft zuerst den Arbeitsbaum (keine Änderungen) und, sobald
+`deploy/release/allowed_signers` einen Schlüssel enthält, einen signierten Tag auf HEAD
+(„Server härten“, Schritt 8).
 
 `pnpm release` läuft als User `klick` und braucht dieselben Secrets wie der Dienst
 (`db:seed` validiert die Env: `BETTER_AUTH_SECRET`, `VAULT_KEK_BASE64`, `BETTER_AUTH_URL`).
@@ -217,6 +220,111 @@ Datei.
 5. `pnpm exec tsx scripts/verify-backup.ts --sample 50` gegen das Ziel, Audit-Kette prüfen
    (`/admin/audit`), `curl -f …/api/ready`. Ergebnis als Pflichten-Lauf dokumentieren.
 
+## Server härten (Plan Härtung, Teil H)
+Reihenfolge einhalten; bei jedem Schritt eine **zweite SSH-Sitzung offen lassen** und erst
+schließen, wenn die neue Verbindung geht. Rückweg immer: Hetzner Cloud Console (Konsole im
+Browser) bzw. Rescue-System. Für die Konsole ein starkes root-Passwort setzen und offline
+verwahren (`passwd root`; SSH lässt root trotzdem nicht herein). Jeden Schritt mit dem
+Prüfbefehl abschließen und die Ausgabe als Nachweis in Klick hochladen (CC-OPS-04,
+ISO A.8.9/A.8.20–22, BSI SYS.1.3).
+
+**1. Admin-Netz (WireGuard `wg-admin`)**
+1. `apt install wireguard dnsmasq`; Server-Schlüssel nach `deploy/wireguard/wg-admin.conf.example`,
+   je Admin-Gerät ein Peer (eigene Adresse 10.9.0.x und fd10:9::x, eigener PresharedKey).
+2. `cp deploy/wireguard/wg-admin.conf.example /etc/wireguard/wg-admin.conf` (ausfüllen, `chmod 600`),
+   `systemctl enable --now wg-quick@wg-admin`. Auf dem Gerät `wg-admin-peer.conf.example`.
+3. `cp deploy/dnsmasq/klick-admin.conf /etc/dnsmasq.d/ && systemctl restart dnsmasq`.
+4. Hetzner-Firewall: UDP 51820 eingehend erlauben.
+5. Prüfen am Gerät: `ping 10.9.0.1`, `dig +short raza.work @10.9.0.1` → `10.9.0.1`,
+   `curl -sI https://raza.work/api/health` (geht jetzt über den Tunnel).
+
+**2. SSH nur noch im Tunnel, nur mit Sicherheitsschlüssel**
+1. Am Gerät: `ssh-keygen -t ed25519-sk -O resident -O verify-required -C "<name>@<gerät>"`,
+   öffentlichen Schlüssel beim Admin-Konto in `~/.ssh/authorized_keys` eintragen (zweiten Schlüssel
+   als Ersatz gleich mit).
+2. `ssh <admin>@10.9.0.1` testen (über den Tunnel, mit PIN und Berühren).
+3. `cp deploy/ssh/sshd_config.d/10-klick.conf /etc/ssh/sshd_config.d/`, `<admin>` ersetzen,
+   `sshd -t && systemctl reload ssh`. Neue Sitzung über `10.9.0.1` öffnen, erst dann die alte schließen.
+4. sudo mit Schlüssel: `deploy/pam/sudo-u2f.example` (root-Shell offen lassen, `sudo -k; sudo true`).
+5. Prüfen: `sshd -T | grep -Ei 'permitrootlogin|passwordauth|pubkeyaccepted|allowusers'`.
+
+**3. Firewall**
+1. `cp deploy/firewall.nft /etc/nftables.conf && nft -c -f /etc/nftables.conf`.
+2. Sicherheitsnetz: `systemd-run --on-active=10m nft delete table inet klick` (fällt die Verbindung
+   weg, ist die Regel nach 10 Minuten wieder weg), dann `systemctl reload nftables`.
+3. Neue SSH-Sitzung über den Tunnel testen, dann das Sicherheitsnetz löschen:
+   `systemctl list-timers 'run-*'` → `systemctl stop run-….timer`.
+4. Hetzner-Firewall angleichen: eingehend nur TCP 80/443 und UDP 51820.
+5. Knoten-Server: `deploy/wireguard/firewall-nodes.nft` (SSH nur aus dem Tunnel, Zugang mit
+   `ssh -J <admin>@10.9.0.1 <admin>@10.8.0.2`).
+6. Prüfen: `nft list ruleset`, `ss -tulpn` (öffentlich nur 80, 443, 51820), von außen
+   `nc -zv <ip> 22` → abgewiesen.
+
+**4. Kernel, Updates, Protokoll, Integrität**
+1. `cp deploy/sysctl/99-klick.conf /etc/sysctl.d/ && sysctl --system`.
+2. `apt install unattended-upgrades needrestart`; `cp deploy/apt/50unattended-upgrades deploy/apt/20auto-upgrades /etc/apt/apt.conf.d/`,
+   `cp deploy/apt/needrestart-klick.conf /etc/needrestart/conf.d/klick.conf`;
+   prüfen mit `unattended-upgrade --dry-run --debug`.
+3. `apt install auditd audispd-plugins`, `cp deploy/audit/klick.rules /etc/audit/rules.d/`,
+   `augenrules --load` (danach `auditctl -s` → `enabled 2`; Regeln ändern = Neustart).
+4. `apt install aide`, `cp deploy/aide/99_aide_klick /etc/aide/aide.conf.d/`, `aideinit`,
+   `cp /var/lib/aide/aide.db.new /var/lib/aide/aide.db`; Units `klick-aide.{service,timer}` nach
+   `/etc/systemd/system`, `systemctl enable --now klick-aide.timer`. Nach jedem Signer-, Parser-
+   oder Bestätigungsseiten-Release `aide --update` (siehe Kopf der Datei).
+5. AppArmor muss laufen: `aa-status` (Ubuntu-Standard).
+6. Lynis: `apt install lynis && lynis audit system --quick`; Hardening-Index und Vorschläge als
+   Nachweis hochladen, Abweichungen begründen.
+
+**5. Dienste gegeneinander abschotten**
+Units aus `deploy/systemd/` neu kopieren (`klick.service`, `both.service`, Backup-, Sanktions-,
+Signer-Backup- und Alarm-Unit), `systemctl daemon-reload`, nacheinander neu starten und prüfen:
+`systemd-analyze security klick both klick-signer klick-parse@x` (Ziel: App-Units ≤ 2,5, Signer
+und Parser „OK“). Test: `sudo -u klick ls /opt/both` → „Permission denied“ bzw. leer.
+
+**6. nginx und CrowdSec (mit WAF)**
+1. `cp deploy/nginx/snippets/klick-admin-net.conf /etc/nginx/snippets/`,
+   `cp deploy/nginx/00-default.conf /etc/nginx/sites-available/` + Link in `sites-enabled`
+   (vorher `grep -rn default_server /etc/nginx/sites-enabled/` — andere Sites dürfen keinen tragen),
+   vHosts neu kopieren, `nginx -t && systemctl reload nginx`.
+2. Prüfen: von außen `curl -sI https://raza.work/admin` → 403, über den Tunnel → 200/307;
+   `curl -sI -H 'Host: x.example' http://<ip>` → keine Antwort.
+3. CrowdSec: Repo nach crowdsec.net einrichten, `apt install crowdsec crowdsec-firewall-bouncer-nftables crowdsec-nginx-bouncer`;
+   `cscli collections install crowdsecurity/nginx crowdsecurity/base-http-scenarios crowdsecurity/http-cve crowdsecurity/linux crowdsecurity/sshd crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules`;
+   `deploy/crowdsec/acquis.d/*` nach `/etc/crowdsec/acquis.d/`, `scenarios/` und `parsers/` an dieselben
+   Pfade unter `/etc/crowdsec/`; Bouncer nach `bouncers/crowdsec-nginx-bouncer.conf.example`;
+   `systemctl restart crowdsec nginx`.
+4. Prüfen: `cscli metrics` (AppSec-Anfragen zählen), WAF-Test
+   `curl -s -o /dev/null -w '%{http_code}' 'https://raza.work/?x=<script>alert(1)</script>'` → 403,
+   Bann-Test `cscli decisions add --ip 198.51.100.7 --duration 5m` und wieder löschen.
+   Der Firewall-Bouncer legt eine eigene Tabelle an (`nft list table ip crowdsec`); `firewall.nft`
+   löscht sie beim Neuladen nicht.
+
+**7. Postgres**
+1. Vorher alle Rollen-Passwörter als SCRAM neu setzen (`sudo -u postgres psql`, `\password klick_app`
+   usw.; Credentials unverändert lassen, wenn dieselben Passwörter gesetzt werden).
+2. `cp deploy/postgres/klick.conf /etc/postgresql/16/main/conf.d/`, `pg_hba.conf.example` nach
+   `/etc/postgresql/16/main/pg_hba.conf` (Rollen prüfen), `systemctl restart postgresql`,
+   Apps neu starten, `curl -f https://raza.work/api/ready`.
+3. Prüfen: `ss -tlnp | grep 5432` → nur 127.0.0.1/::1; `psql -h 127.0.0.1 -U klick_app klick -c 'select 1'`.
+
+**8. Releases nur von signierten Tags**
+`deploy/release/allowed_signers` mit den Release-Schlüsseln füllen (Anleitung in der Datei), am
+eigenen Rechner `git tag -s v<datum>` und pushen; auf dem Server `git fetch --tags && git checkout v<datum>`
+statt `git pull`. `pnpm release` bzw. `release:wallet` bricht bei geänderten Dateien immer ab, mit
+Schlüssel zusätzlich ohne gültig signierten Tag (`scripts/release-guard.ts`). CI-Status vor dem
+Tag im Browser prüfen.
+
+**9. Zustand überwachen**
+`install -D -m 0755 -o root -g root scripts/host-health.sh /usr/local/lib/klick-health/host-health.sh`,
+Units `klick-health.{service,timer}` kopieren, `systemctl enable --now klick-health.timer`.
+Probe: `systemctl start klick-health && journalctl -u klick-health -n 20`. Meldet Platte ≥ 85 %,
+Zertifikate < 14 Tage, Dienste mit Fehler, auditd, nftables, CrowdSec-Sperren und ausstehenden
+Neustart; Fehler gehen über `klick-alert@` an `ALERT_MAIL`.
+
+**Ausgesperrt?** Hetzner Console → root-Login → `nft delete table inet klick` (Firewall offen),
+`rm /etc/ssh/sshd_config.d/10-klick.conf && systemctl reload ssh` (SSH wie vorher),
+`systemctl restart wg-quick@wg-admin`. Danach Ursache beheben und Schritte wiederholen.
+
 ## Härtung III (optional, per Env aktiv)
 - **clamd:** `apt install clamav-daemon`, `freshclam` als Timer, `TCPSocket 3310` + `TCPAddr 127.0.0.1`
   in `/etc/clamav/clamd.conf`, `StreamMaxLength 30M`. App: `CLAMD_HOST=127.0.0.1`. Fail closed —
@@ -228,11 +336,8 @@ Datei.
 - **GlitchTip (self-hosted, Hetzner):** Docker-Compose nach glitchtip.com/documentation, Projekt
   anlegen, DSN als `GLITCHTIP_DSN` (systemd-Credential). Die App sendet nur gescrubbte Events über
   die Store-API (kein SDK, keine Bodies, keine E-Mails/Tokens), Release-Tag über `KLICK_RELEASE`.
-- **CrowdSec statt fail2ban:** `crowdsec` + `crowdsec-firewall-bouncer-nftables` installieren,
-  Collections `crowdsecurity/nginx`, `crowdsecurity/base-http-scenarios`, `crowdsecurity/http-cve`;
-  Acquisition auf `/var/log/nginx/*.log` und journald `_SYSTEMD_UNIT=sshd.service`; Bouncer-Chain in
-  `deploy/firewall.nft` vor den Accept-Regeln einhängen (`crowdsec-blacklists`). Eigene Szenarien:
-  > 10 × 401 auf `/api/auth/*` in 5 min, > 20 × 429 in 5 min → Ban 4 h. `cscli metrics` prüfen.
+- **CrowdSec statt fail2ban:** jetzt Pflicht und mit WAF, siehe „Server härten“, Schritt 6
+  (eigene Szenarien `deploy/crowdsec/scenarios/klick-auth-bf.yaml`, Admin-Netz auf der Weißliste).
 - **Eigene Datenbank je Enterprise-Mandant:** zweite Postgres-Instanz mit denselben Rollen
   (`deploy/postgres/roles.sql`), `pnpm db:migrate` mit `DATABASE_URL_MIGRATE` gegen diese DB,
   `ORG_DATABASE_URLS={"<orgId>":"postgres://klick_app:…@host/klick"}`. withOrg/readOrg/mutateOrg

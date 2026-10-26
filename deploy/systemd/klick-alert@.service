@@ -9,3 +9,19 @@ Description=Klick — Alarm für %i
 Type=oneshot
 EnvironmentFile=-/etc/klick/backup.env
 ExecStart=/bin/sh -c 'msg="Klick: Unit %i fehlgeschlagen auf $(hostname) — journalctl -u %i"; logger -p daemon.crit "$msg"; if [ -n "$ALERT_MAIL" ] && command -v sendmail >/dev/null; then printf "Subject: %%s\n\n%%s\n" "$msg" "$(journalctl -u %i -n 40 --no-pager)" | sendmail "$ALERT_MAIL"; fi'
+# Läuft als root (journalctl, sendmail mit setgid postdrop): kein
+# NoNewPrivileges/ProtectSystem, sonst bleibt der Alarm stumm. Nur, was weder
+# Mail noch Journal berührt.
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

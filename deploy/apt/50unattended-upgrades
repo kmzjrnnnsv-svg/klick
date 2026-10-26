@@ -1,0 +1,21 @@
+// /etc/apt/apt.conf.d/50unattended-upgrades — nur Sicherheits-Updates, automatisch (Härtung H4)
+// Dazu 20auto-upgrades (täglich) und needrestart (Dienste neu starten).
+// Prüfen: unattended-upgrade --dry-run --debug 2>&1 | tail -20
+Unattended-Upgrade::Allowed-Origins {
+	"${distro_id}:${distro_codename}-security";
+	"${distro_id}ESMApps:${distro_codename}-apps-security";
+	"${distro_id}ESM:${distro_codename}-infra-security";
+};
+// Node liegt unter /usr/local (kein Paket) und kommt nur mit einem Release;
+// nginx und Postgres bekommen Sicherheits-Updates automatisch (needrestart
+// startet sie neu, die Apps verbinden sich wieder).
+Unattended-Upgrade::DevRelease "false";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+// Kernel-Updates brauchen einen Neustart: nachts, mit Meldung
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
+Unattended-Upgrade::Automatic-Reboot-Time "04:30";
+Unattended-Upgrade::Mail "root";
+Unattended-Upgrade::MailReport "on-change";
+Unattended-Upgrade::SyslogEnable "true";

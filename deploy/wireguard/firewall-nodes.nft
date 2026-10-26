@@ -1,5 +1,5 @@
 #!/usr/sbin/nft -f
-# nftables auf dem Knoten-Server: SSH, WireGuard nur vom App-Server, P2P der
+# nftables auf dem Knoten-Server: SSH und WireGuard nur vom App-Server, P2P der
 # Knoten offen, RPC ausschließlich über wg0 vom App-Server.
 # <APP_PUBLIC_IP> vor dem Einspielen ersetzen.
 flush ruleset
@@ -12,7 +12,9 @@ table inet filter {
     iif lo accept
     ip protocol icmp accept
     ip6 nexthdr icmpv6 accept
-    tcp dport 22 ct state new limit rate 10/minute accept
+    # SSH nur über den Tunnel vom App-Server (ssh -J <app-server> 10.8.0.2,
+    # Härtung H2); Rückweg bei kaputtem Tunnel: Hetzner-Konsole
+    iifname "wg0" ip saddr 10.8.0.1 tcp dport 22 accept
     udp dport 51820 ip saddr <APP_PUBLIC_IP> accept
     # P2P: Bitcoin (Signet 38333, Mainnet 8333), Reth 30303, Lighthouse 9000
     tcp dport { 8333, 38333, 30303, 9000 } accept
