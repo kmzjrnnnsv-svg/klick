@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ensureEvidenceStepUp } from "@/app/actions/evidence";
 import { DeleteEvidenceButton } from "@/components/entity/evidence-delete";
+import { EvidenceVersionForm } from "@/components/entity/evidence-version-form";
 import { ExportLink } from "@/components/entity/export-link";
 import { ResponsibleEditor } from "@/components/entity/responsible-editor";
 import { UserChip } from "@/components/entity/user-chip";
@@ -150,6 +151,18 @@ export default async function EvidenceDetailPage({
 						{authored && canCreate && !data.supersededBy && (
 							<NewVersionButton evidenceId={row.id} />
 						)}
+						{canCreate &&
+							!row.supersededAt &&
+							!authored &&
+							!row.kindCode &&
+							row.source !== "document" &&
+							fileReadable && (
+								<EvidenceVersionForm
+									evidenceId={row.id}
+									title={row.title}
+									validUntilRequired={row.validUntil !== null}
+								/>
+							)}
 						{canDelete && data.signatureCount === 0 && (
 							<DeleteEvidenceButton id={row.id} />
 						)}
@@ -191,7 +204,11 @@ export default async function EvidenceDetailPage({
 							{row.validUntil
 								? fmtDate.format(new Date(row.validUntil))
 								: t("noValidity")}
-							{expired && <Badge variant="warning">{t("expired")}</Badge>}
+							{row.supersededAt ? (
+								<Badge variant="muted">{t("superseded")}</Badge>
+							) : (
+								expired && <Badge variant="warning">{t("expired")}</Badge>
+							)}
 						</dd>
 						<dt className="text-muted-foreground">{t("file")}</dt>
 						<dd className="min-w-0 break-words">
@@ -333,7 +350,7 @@ export default async function EvidenceDetailPage({
 								{ts("openFor", { fns: sign.open.map(fnLabel).join(", ") })}
 							</p>
 						)}
-						{sign?.signAs && (
+						{sign?.signAs && !row.supersededAt && (
 							<div>
 								<SignButton
 									evidenceIds={[row.id]}

@@ -11,8 +11,9 @@ import {
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
-import { mutateOrg } from "@/lib/db/with-org";
+import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { isDbStorageKey } from "@/lib/evidence/aad";
+import { lockForSuccessor, supersedeEvidence } from "@/lib/evidence/current";
 import {
 	linkEvidenceToControl,
 	s3Configured,
@@ -156,6 +157,137 @@ async function uploadEvidenceImpl(
 	};
 }
 
+// Neue Fassung eines hochgeladenen Nachweises: gleiche Controls, Einstufung
+// und Nachweisbogen-Position; die Vorgängerin zählt danach nicht mehr.
+// Erzeugte, verfasste und Dokument-Dateien haben eigene Wege.
+async function uploadEvidenceVersionImpl(
+	formData: FormData,
+): Promise<ActionResult<{ id: string; dlpRaised: boolean }>> {
+	const c = await requireOrg({ evidence: ["create"] });
+	const supersedesId = formData.get("supersedesId");
+	const file = formData.get("file");
+	if (
+		typeof supersedesId !== "string" ||
+		!/^[0-9a-f-]{36}$/i.test(supersedesId)
+	)
+		return { ok: false, error: "invalid" };
+	if (!(file instanceof File)) return { ok: false, error: "fileMissing" };
+	const prev = await readOrg(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select()
+			// evidence:any-version — Vorgängerin per ID (prüft selbst auf ersetzt)
+			.from(evidence)
+			.where(
+				and(
+					eq(evidence.id, supersedesId),
+					eq(evidence.organizationId, c.orgId),
+				),
+			)
+			.limit(1);
+		return row ?? null;
+	});
+	if (!prev) return { ok: false, error: "notFound" };
+	if (prev.supersededAt) return { ok: false, error: "already_superseded" };
+	if (
+		prev.kindCode ||
+		prev.templateKey ||
+		prev.source === "document" ||
+		!prev.storageKey
+	)
+		return { ok: false, error: "version_not_upload" };
+	const meta = evidenceLinkSchema.safeParse({
+		title: formData.get("title") || prev.title,
+		description: formData.get("description") || prev.description || undefined,
+		type: prev.type,
+		classification: prev.classification,
+		validUntil: formData.get("validUntil") || undefined,
+	});
+	if (!meta.success) return fromZod(meta.error);
+	const d = meta.data;
+	// hatte die Vorgängerin ein Gültig-bis, braucht die neue Fassung eins
+	if (prev.validUntil && !d.validUntil)
+		return {
+			ok: false,
+			error: "validUntil_required",
+			fieldErrors: { validUntil: ["required"] },
+		};
+	if (!getOrgLimiter().check(c.orgId).allowed)
+		return { ok: false, error: "rate_limited" };
+	const bytes = new Uint8Array(await file.arrayBuffer());
+	const v = await screenUpload(toOrgCtx(c), {
+		name: file.name,
+		bytes,
+		declaredMime: file.type,
+		classification: d.classification,
+		dlpAcknowledged: formData.get("dlpAcknowledged") === "1",
+	});
+	if (!v.ok)
+		return {
+			ok: false,
+			error: v.error,
+			fieldErrors: v.detail ? { dlp: v.detail } : undefined,
+		};
+	const res = await mutateOrg<ActionResult<{ id: string; dlpRaised: boolean }>>(
+		toOrgCtx(c),
+		async (tx) => {
+			if ((await lockForSuccessor(tx, c.orgId, prev.id)) !== "ok")
+				return {
+					result: { ok: false, error: "already_superseded" },
+					audit: [],
+				};
+			const stored = await storeEncryptedEvidence(tx, {
+				orgId: c.orgId,
+				bytes,
+				safeName: v.safeName,
+				mime: v.mime,
+				title: d.title,
+				description: d.description,
+				type: d.type,
+				classification: v.classification,
+				validUntil: d.validUntil,
+				createdByUserId: c.userId,
+				dlp: v.dlp,
+				source: prev.source,
+			});
+			await tx
+				.update(evidence)
+				.set({
+					ownerUserId: prev.ownerUserId,
+					ownerFunction: prev.ownerFunction,
+				})
+				.where(eq(evidence.id, stored.id));
+			await supersedeEvidence(tx, c.orgId, prev.id, stored.id);
+			return {
+				result: {
+					ok: true,
+					data: {
+						id: stored.id,
+						dlpRaised: v.classification !== d.classification,
+					},
+				},
+				audit: {
+					action: "evidence.version_uploaded",
+					target: `evidence:${stored.id}`,
+					before: { evidenceId: prev.id, validUntil: prev.validUntil },
+					after: {
+						title: d.title,
+						fileName: v.safeName,
+						size: bytes.byteLength,
+						classification: v.classification,
+						validUntil: d.validUntil ?? null,
+						supersedesId: prev.id,
+					},
+				},
+			};
+		},
+	);
+	if (res.ok) {
+		revalidatePath("/nachweise", "layout");
+		revalidatePath("/controls", "layout");
+	}
+	return res;
+}
+
 async function linkEvidenceImpl(input: {
 	implementationId: string;
 	evidenceId: string;
@@ -191,6 +323,7 @@ async function deleteEvidenceImpl(evidenceId: string): Promise<ActionResult> {
 	>(toOrgCtx(c), async (tx) => {
 		const [row] = await tx
 			.select()
+			// evidence:any-version — Löschen per ID
 			.from(evidence)
 			.where(
 				and(eq(evidence.id, evidenceId), eq(evidence.organizationId, c.orgId)),
@@ -347,6 +480,10 @@ export const ensureEvidenceStepUp = safeAction(
 export const createEvidenceLink = safeAction(
 	"createEvidenceLink",
 	createEvidenceLinkImpl,
+);
+export const uploadEvidenceVersion = safeAction(
+	"uploadEvidenceVersion",
+	uploadEvidenceVersionImpl,
 );
 export const uploadEvidence = safeAction("uploadEvidence", uploadEvidenceImpl);
 export const linkEvidence = safeAction("linkEvidence", linkEvidenceImpl);

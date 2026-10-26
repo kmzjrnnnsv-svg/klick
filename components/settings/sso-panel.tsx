@@ -166,7 +166,7 @@ export function SsoPanel({
 									<Button
 										size="sm"
 										variant="ghost"
-										className="text-destructive"
+										className="text-destructive hover:bg-destructive/10"
 										disabled={pending}
 										onClick={() =>
 											start(async () => {

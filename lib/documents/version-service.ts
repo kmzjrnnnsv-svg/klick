@@ -41,6 +41,7 @@ export async function snapshotForReview(
 	const [file] = doc.fileEvidenceId
 		? await tx
 				.select({ sha256: evidence.sha256 })
+				// evidence:any-version — Datei der Arbeitskopie per ID
 				.from(evidence)
 				.where(
 					and(

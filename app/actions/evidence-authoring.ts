@@ -8,6 +8,7 @@ import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { encryptJson } from "@/lib/crypto/org-dek";
 import { mutateOrg } from "@/lib/db/with-org";
+import { lockForSuccessor } from "@/lib/evidence/current";
 import { normalizeContent } from "@/lib/evidence-authoring/content";
 import {
 	authoredContentOf,
@@ -196,6 +197,12 @@ async function newEvidenceVersionImpl(
 		async (tx) => {
 			const prev = await authoredContentOf(tx, c.orgId, evidenceId);
 			if (!prev) return { result: { ok: false, error: "notFound" }, audit: [] };
+			// nur aus der aktuellen Fassung (sonst verzweigt der Strang)
+			if ((await lockForSuccessor(tx, c.orgId, evidenceId)) !== "ok")
+				return {
+					result: { ok: false, error: "already_superseded" },
+					audit: [],
+				};
 			const created = await createDraft(
 				tx,
 				{ orgId: c.orgId, userId: c.userId, name: c.name || c.email },

@@ -3,6 +3,7 @@ import { evidence, orgSettings } from "@/db/schema";
 import { SIGN_ORIGIN, SIGN_RP_ID } from "@/lib/auth/passkey-sign";
 import type { OrgTx } from "@/lib/db/with-org";
 import { isDbStorageKey } from "@/lib/evidence/aad";
+import { currentEvidence } from "@/lib/evidence/current";
 import { dbEnvelope, decryptEvidenceObject } from "@/lib/evidence/read";
 import { s3Configured } from "@/lib/evidence/store";
 import { signaturesJson } from "@/lib/signatures/report";
@@ -25,9 +26,6 @@ export async function loadGeneratedEvidence(tx: OrgTx, orgId: string) {
 			storageKey: evidence.storageKey,
 			kindCode: evidence.kindCode,
 			templateKey: evidence.templateKey,
-			supersededBy: sql<
-				string | null
-			>`(select n.id from evidence n where n.supersedes_id = ${evidence.id} limit 1)`,
 			entityId: sql<string | null>`${evidence.snapshot}->>'entityId'`,
 		})
 		.from(evidence)
@@ -35,15 +33,16 @@ export async function loadGeneratedEvidence(tx: OrgTx, orgId: string) {
 			and(
 				eq(evidence.organizationId, orgId),
 				or(isNotNull(evidence.kindCode), isNotNull(evidence.templateKey)),
+				currentEvidence(),
 			),
 		)
 		.orderBy(desc(evidence.createdAt));
-	// aus Registern: die neueste je Art (und Datensatz); verfasst: jede
-	// aktuelle Fassung (ohne Nachfolger)
+	// nur aktuelle Fassungen; aus Registern die neueste je Art (und
+	// Datensatz), verfasst jede
 	const latest = new Map<string, (typeof rows)[number]>();
 	for (const r of rows) {
 		if (r.templateKey) {
-			if (!r.supersededBy) latest.set(`authored:${r.id}`, r);
+			latest.set(`authored:${r.id}`, r);
 			continue;
 		}
 		const key = `${r.kindCode}:${r.entityId ?? ""}`;

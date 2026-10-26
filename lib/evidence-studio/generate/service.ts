@@ -9,6 +9,11 @@ import { functionKeyOf } from "@/lib/compliance/function-key";
 import { userNames } from "@/lib/compliance/queries";
 import type { OrgTx } from "@/lib/db/with-org";
 import {
+	currentEvidence,
+	lockForSuccessor,
+	supersedeEvidence,
+} from "@/lib/evidence/current";
+import {
 	linkEvidenceToControl,
 	storeEncryptedEvidence,
 } from "@/lib/evidence/store";
@@ -44,10 +49,12 @@ async function latestOf(
 	const entityMatch = entityId
 		? sql`${evidence.snapshot}->>'entityId' = ${entityId}`
 		: sql`coalesce(${evidence.snapshot}->>'entityId', '') = ''`;
+	// aktuelle Fassung (nie eine ersetzte)
 	const [latest] = await tx
 		.select({
 			id: evidence.id,
 			contentSha256: evidence.contentSha256,
+			validUntil: evidence.validUntil,
 			createdAt: evidence.createdAt,
 		})
 		.from(evidence)
@@ -56,12 +63,14 @@ async function latestOf(
 				eq(evidence.organizationId, orgId),
 				eq(evidence.kindCode, code),
 				entityMatch,
+				currentEvidence(),
 			),
 		)
 		.orderBy(desc(evidence.createdAt))
 		.limit(1);
 	const [n] = await tx
 		.select({ n: count() })
+		// evidence:any-version — Fassungsnummer zählt alle
 		.from(evidence)
 		.where(
 			and(
@@ -114,7 +123,7 @@ export async function signerSlots(
 
 export type GenerateResult =
 	| { ok: true; id: string; reused: boolean; audit: AuditInput[] }
-	| { ok: false; error: "unknown_kind" | "not_found" };
+	| { ok: false; error: "unknown_kind" | "not_found" | "already_superseded" };
 
 // Aktuelle Prüfsumme einer Art (für „veraltet“): null, wenn nicht erzeugbar
 export async function currentHash(
@@ -157,10 +166,17 @@ export async function generateKindEvidence(
 		code,
 		entityId ?? null,
 	);
-	if (latest?.contentSha256 === hash)
-		return { ok: true, id: latest.id, reused: true, audit: [] };
-
 	const today = berlinToday();
+	// gleicher Inhalt und noch gültig: wiederverwenden; abgelaufen: neu
+	// erzeugen (neue Fassung, neues Gültig-bis)
+	if (
+		latest?.contentSha256 === hash &&
+		(latest.validUntil === null || latest.validUntil >= today)
+	)
+		return { ok: true, id: latest.id, reused: true, audit: [] };
+	if (latest && (await lockForSuccessor(tx, ctx.orgId, latest.id)) !== "ok")
+		return { ok: false, error: "already_superseded" };
+
 	const id = crypto.randomUUID();
 	const version = versions + 1;
 	const built = gen.build(facts, { today });
@@ -215,9 +231,9 @@ export async function generateKindEvidence(
 			kindCode: code,
 			contentSha256: hash,
 			snapshot: snapshot as unknown as Record<string, unknown>,
-			supersedesId: latest?.id ?? null,
 		})
 		.where(eq(evidence.id, id));
+	if (latest) await supersedeEvidence(tx, ctx.orgId, latest.id, id);
 	const controls = gen.controls
 		? kind.controls.filter((c) => gen.controls?.(facts).includes(c))
 		: kind.controls;
@@ -306,6 +322,7 @@ export async function evidenceSignState(
 	const gen = GENERATORS.get(code);
 	const [row] = await tx
 		.select({ snapshot: evidence.snapshot })
+		// evidence:any-version — Schnappschuss einer Fassung per ID
 		.from(evidence)
 		.where(and(eq(evidence.organizationId, orgId), eq(evidence.id, evidenceId)))
 		.limit(1);
@@ -429,6 +446,7 @@ export async function kindOverview(
 							and(
 								eq(evidence.organizationId, orgId),
 								eq(evidence.kindCode, code),
+								currentEvidence(),
 							),
 						)
 						.orderBy(desc(evidence.createdAt))

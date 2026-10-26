@@ -6,6 +6,8 @@ import type { SignedAssertion } from "@/lib/auth/passkey-sign";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { ownRoleIdOf } from "@/lib/compliance/function-key";
 import type { OrgTx } from "@/lib/db/with-org";
+import { currentEvidence } from "@/lib/evidence/current";
+
 import { encodeSignText, type SignFields, type SignPurpose } from "./canonical";
 import { merkleLeaf, merkleProof, merkleRoot } from "./merkle";
 
@@ -28,7 +30,14 @@ export async function signTarget(
 	const rows = await tx
 		.select({ id: evidence.id, sha256: evidence.sha256 })
 		.from(evidence)
-		.where(and(eq(evidence.organizationId, orgId), inArray(evidence.id, ids)));
+		.where(
+			and(
+				eq(evidence.organizationId, orgId),
+				inArray(evidence.id, ids),
+				// ersetzte Fassungen werden nicht mehr unterschrieben
+				currentEvidence(),
+			),
+		);
 	if (rows.length !== ids.length || rows.some((r) => !r.sha256)) return null;
 	const items = ids.map((id) => {
 		const sha256 = rows.find((r) => r.id === id)?.sha256 ?? "";

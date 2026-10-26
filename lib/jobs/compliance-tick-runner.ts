@@ -72,6 +72,8 @@ import { loadAuditRegimeContext } from "@/lib/compliance/queries-audit-regimes";
 import { lastReconciliationDay } from "@/lib/custody/queries";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
 import { currentVersionsByDocument } from "@/lib/documents/in-force";
+import { currentEvidence } from "@/lib/evidence/current";
+
 import { logger } from "@/lib/log";
 import { syncMemberRoles } from "@/lib/org/member-role-sync";
 import {
@@ -212,7 +214,12 @@ async function loadDueRows(
 		})
 		.from(evidence)
 		.where(
-			and(eq(evidence.organizationId, orgId), isNotNull(evidence.validUntil)),
+			and(
+				eq(evidence.organizationId, orgId),
+				isNotNull(evidence.validUntil),
+				// ersetzte Fassungen laufen nicht mehr ab
+				currentEvidence(),
+			),
 		);
 
 	// Freigaben: nur pending mit SLA; berechtigte Freigeber über die Regeln.

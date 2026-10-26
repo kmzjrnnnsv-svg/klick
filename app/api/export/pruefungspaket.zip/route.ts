@@ -129,6 +129,7 @@ export async function GET(req: Request) {
 				fileName: evidence.fileName,
 				sha256: evidence.sha256,
 			})
+			// evidence:any-version — Dateien der Dokumentfassungen per ID
 			.from(evidence)
 			.where(eq(evidence.organizationId, ctx.orgId));
 

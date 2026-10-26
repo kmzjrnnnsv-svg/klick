@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
 	type AnyPgColumn,
 	boolean,
@@ -135,6 +136,12 @@ export const evidence = pgTable(
 		supersedesId: uuid().references((): AnyPgColumn => evidence.id, {
 			onDelete: "set null",
 		}),
+		// ersetzt durch eine neue Fassung (supersedeEvidence, Migration 0043):
+		// zählt nicht mehr, nur die aktuelle Fassung (currentEvidence())
+		supersededAt: ts(),
+		supersededById: uuid().references((): AnyPgColumn => evidence.id, {
+			onDelete: "set null",
+		}),
 		// Herkunft (manuell, Gap-Analyse, Scan-Import, API, Portal …)
 		source: text({ enum: EVIDENCE_SOURCES }).notNull().default("manual"),
 		// DLP-Ergebnis beim Upload: Treffer je Detektor (nur Zähler), Aktion,
@@ -157,6 +164,9 @@ export const evidence = pgTable(
 	},
 	(t) => [
 		index("evidence_org_idx").on(t.organizationId),
+		index("evidence_current_idx")
+			.on(t.organizationId)
+			.where(sql`${t.supersededAt} is null`),
 		orgPolicy("evidence"),
 	],
 ).enableRLS();

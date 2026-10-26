@@ -13,6 +13,8 @@ import { allows } from "@/lib/auth/permissions";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listEvidenceWithControls } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
+import { evidenceValidity } from "@/lib/evidence/current";
+import { berlinToday } from "@/lib/evidence-studio/queries";
 
 type Row = Awaited<ReturnType<typeof listEvidenceWithControls>>[number];
 type Search = Record<string, string | string[] | undefined>;
@@ -29,9 +31,14 @@ export default async function EvidencePage({
 	const ta = await getTranslations("Authoring");
 	const te = await getTranslations("Entity");
 	const td = await getTranslations("Dlp");
+	// ersetzte Fassungen zählen nicht; auf Wunsch sichtbar (Chip)
+	const allVersions = one(sp.fassungen) === "1";
 	const rows = await readOrg(toOrgCtx(ctx), (tx) =>
-		listEvidenceWithControls(tx, ctx.orgId),
+		listEvidenceWithControls(tx, ctx.orgId, {
+			includeSuperseded: allVersions,
+		}),
 	);
+	const today = berlinToday();
 	const canCreate = allows(ctx, { evidence: ["create"] });
 
 	const q = one(sp.q)?.toLowerCase();
@@ -61,7 +68,20 @@ export default async function EvidencePage({
 		{
 			key: "title",
 			header: t("titleField"),
-			cell: (r) => <span className="font-medium">{r.title}</span>,
+			cell: (r) => {
+				const state = evidenceValidity(r, today);
+				return (
+					<span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+						<span className="font-medium">{r.title}</span>
+						{state === "superseded" && (
+							<Badge variant="muted">{t("superseded")}</Badge>
+						)}
+						{state === "expired" && (
+							<Badge variant="warning">{t("expired")}</Badge>
+						)}
+					</span>
+				);
+			},
 		},
 		{
 			key: "type",
@@ -171,6 +191,7 @@ export default async function EvidencePage({
 			chips={[
 				{ key: "mine", label: te("chipMine") },
 				{ key: "dlp", label: td("filterHits") },
+				{ key: "fassungen", label: t("showSuperseded") },
 			]}
 			columns={columns}
 			rows={filtered}

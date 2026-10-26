@@ -310,6 +310,7 @@ async function deleteOrganizationActionImpl(
 	const { fileCount } = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const rows = await tx
 			.select({ key: evidence.storageKey })
+			// evidence:any-version — Organisation löschen: alle Dateien
 			.from(evidence)
 			.where(eq(evidence.organizationId, c.orgId));
 		return {

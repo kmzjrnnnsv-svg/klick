@@ -84,6 +84,7 @@ export async function getAssessmentDetail(
 						classification: evidence.classification,
 						dlp: evidence.dlp,
 					})
+					// evidence:any-version — Belege einer Antwort per ID
 					.from(evidence)
 					.where(
 						and(

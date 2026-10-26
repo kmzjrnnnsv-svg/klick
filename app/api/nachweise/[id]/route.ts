@@ -49,6 +49,7 @@ export async function GET(
 	const payload = await mutateOrg<Payload>(toOrgCtx(ctx), async (tx) => {
 		const [row] = await tx
 			.select()
+			// evidence:any-version — Download per ID, jede Fassung
 			.from(evidence)
 			.where(and(eq(evidence.id, id), eq(evidence.organizationId, ctx.orgId)))
 			.limit(1);

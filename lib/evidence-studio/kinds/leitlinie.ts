@@ -162,6 +162,7 @@ export const leitlinie = generator<LeitlinieFacts>({
 		const [file] = fileId
 			? await tx
 					.select({ name: evidence.fileName, sha256: evidence.sha256 })
+					// evidence:any-version — Datei der Leitlinie per ID
 					.from(evidence)
 					.where(
 						and(

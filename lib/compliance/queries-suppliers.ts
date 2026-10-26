@@ -98,6 +98,7 @@ export async function getProviderDetail(tx: OrgTx, orgId: string, id: string) {
 						validUntil: evidence.validUntil,
 						createdAt: evidence.createdAt,
 					})
+					// evidence:any-version — Belege einer Antwort per ID
 					.from(evidence)
 					.where(
 						and(
@@ -186,6 +187,7 @@ export async function getPortalAssessment(
 						fileName: evidence.fileName,
 						sizeBytes: evidence.sizeBytes,
 					})
+					// evidence:any-version — Portal-Uploads einer Antwort per ID
 					.from(evidence)
 					.where(
 						and(

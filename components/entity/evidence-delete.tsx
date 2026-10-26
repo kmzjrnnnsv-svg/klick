@@ -34,7 +34,7 @@ export function DeleteEvidenceButton({ id }: { id: string }) {
 				<Button
 					variant="ghost"
 					size="sm"
-					className="text-destructive"
+					className="text-destructive hover:bg-destructive/10"
 					disabled={pending}
 				>
 					<Trash2 aria-hidden="true" />

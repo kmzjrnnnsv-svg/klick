@@ -38,6 +38,7 @@ import {
 import { currentPublished } from "@/lib/documents/versions";
 import { DOCUMENT_STATUS_MACHINE } from "@/lib/entities/document";
 import { canTransition } from "@/lib/entities/status-machine";
+import { currentEvidence } from "@/lib/evidence/current";
 import { screenUpload, storeEncryptedEvidence } from "@/lib/evidence/store";
 import { notify } from "@/lib/notifications/notify";
 import { getOrgLimiter } from "@/lib/rate-limit";
@@ -704,6 +705,7 @@ async function importDocumentsFromEvidenceImpl(
 				and(
 					eq(evidence.organizationId, c.orgId),
 					inArray(evidence.id, evidenceIds.slice(0, 50)),
+					currentEvidence(),
 				),
 			);
 		let n = 0;

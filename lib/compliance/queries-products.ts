@@ -101,6 +101,7 @@ export async function getProductDetail(
 						fileName: evidence.fileName,
 						createdAt: evidence.createdAt,
 					})
+					// evidence:any-version — SBOM des Produkts per ID
 					.from(evidence)
 					.where(
 						and(
