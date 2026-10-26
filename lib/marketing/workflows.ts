@@ -791,6 +791,39 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 					"ZIP mit Manifest und SHA-256-Prüfsummen; jeder Export trägt eine Export-ID.",
 			},
 			{
+				key: "platform-access",
+				name: "Zugriffe durch Klick und Sicherheitsänderungen",
+				summary:
+					"Der Klick-Betrieb sieht deine Daten nur mit Freigabe; kritische Einstellungen brauchen eine zweite Person.",
+				where:
+					"Einstellungen > Zugriffe durch Klick, Sicherheitsänderungen, Netzwerk",
+				trigger:
+					"Support braucht Einblick, oder jemand will SSO, die IP-Liste oder Exporte ändern.",
+				steps: [
+					"Der Betrieb stellt einen Antrag mit Grund und Dauer; Inhaber:innen oder die Geschäftsleitung geben ihn mit Passkey frei, befristet und widerrufbar.",
+					"Kritische Änderungen (SSO erzwingen, IP-Liste, Organisation löschen, Vollexport, Token) wirken erst mit einer zweiten Person, sonst nach 24 Stunden.",
+					"Mit der IP-Liste erreichen nur deine Netze Klick, Token und Portale; Portale lassen sich einzeln ausnehmen.",
+				],
+				result:
+					"Jeder Zugriff und jede Änderung steht in deinem Protokoll; eine gestohlene Sitzung allein reicht nicht.",
+			},
+			{
+				key: "ledger",
+				name: "Verlauf mit Bitcoin-Anker prüfen",
+				summary:
+					"Belegt, dass das Protokoll seit dem Anker nicht umgeschrieben wurde, ohne Klick zu vertrauen.",
+				where: "Einstellungen > Verlauf",
+				trigger:
+					"Prüfung oder Kundenanfrage zur Unveränderbarkeit des Protokolls.",
+				steps: [
+					"Klick verankert den Kopf der Prüfsummen-Kette täglich und nach kritischen Ereignissen per OpenTimestamps in Bitcoin.",
+					"Verlauf herunterladen: Kette, Anker mit Merkle-Pfad und Zeitstempel, Prüfskript.",
+					"node pruefen.mjs ausführen und den Bitcoin-Block mit einem eigenen Knoten oder ots verify abgleichen.",
+				],
+				result:
+					"Prüfbar ohne Zugang zu Klick; auf der Blockchain steht nur ein Hash, keine Inhalte.",
+			},
+			{
 				key: "privacy",
 				name: "Datenschutz",
 				summary:
