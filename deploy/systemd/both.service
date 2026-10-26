@@ -32,6 +32,8 @@ Environment=WALLET_AUTH_URL=https://both.money
 # Relying Party der Passkeys — nie ändern (bricht alle Passkeys)
 Environment=WALLET_PASSKEY_RP_ID=both.money
 Environment=LOG_LEVEL=info
+# Plattform-Admin nur aus dem WireGuard-Admin-Netz (Härtung W)
+Environment=WALLET_ADMIN_NETWORKS=10.9.0.0/24,fd10:9::/64
 # LEGAL_*, WALLET_MAIL_FROM, GLITCHTIP_DSN
 EnvironmentFile=-/etc/both/both.env
 LoadCredentialEncrypted=wallet_auth_secret:/etc/credstore.encrypted/wallet_auth_secret

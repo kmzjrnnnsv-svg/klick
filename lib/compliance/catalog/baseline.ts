@@ -6,7 +6,7 @@ import type { CatalogBaseline } from "./types";
 // Eintrag bleiben not_started. Ehrlich bleiben — der Stand ist der Nachweis.
 
 export const BASELINE: CatalogBaseline = {
-	asOf: "2026-10-07",
+	asOf: "2026-10-26",
 	narrative: [
 		{
 			domain: "access",
@@ -15,12 +15,17 @@ export const BASELINE: CatalogBaseline = {
 				"MFA-Pflicht für alle Rollen (TOTP, Passkeys/FIDO2), Enrolment beim ersten Login erzwungen",
 				"Sitzungsregeln: Idle 30 min, absolut 12 h, Step-up ≤ 10 min für sensible Aktionen",
 				"Rollenmodell owner/editor/consultant/viewer/auditor; Prüfer- und Berater-Zugänge laufen über accessUntil ab",
-				"Plattform-Admin mit einstellbarer IP-Allowlist (ADMIN_IP_ALLOWLIST), jeder Plattform-Zugriff mit Begründung im Audit-Log",
+				"Plattform-Admin nur aus dem Admin-Netz (WireGuard, ADMIN_NETWORKS; App und nginx prüfen doppelt), jeder Plattform-Zugriff mit Begründung im Audit-Log",
+				"Lockbox: Inhalte einer Org lesen, sich als Person anmelden oder einen Zugang zurücksetzen nur mit befristeter Freigabe der Org; jede Nutzung steht in deren Kette",
+				"Vier-Augen bzw. 24 h Wartezeit für kritische Org-Einstellungen (SSO erzwingen, Org löschen, Vollexport, Token, IP-Liste)",
+				"IP-Liste je Org für App, Token und Portale; SSO je Org (OIDC/SAML) mit Domainbindung je Anbieter",
 				"Mandantentrennung in Postgres (RLS + FORCE auf jeder Org-Tabelle), App-Rolle ohne BYPASSRLS",
 			],
-			gaps: ["Kein dediziertes PAM für Server-Zugänge (SSH nur Key-basiert)"],
+			gaps: [
+				"Server-Zugang (SSH nur im WireGuard-Tunnel mit Sicherheitsschlüssel, sudo mit U2F) als Dateien und Runbook vorbereitet, auf dem Server noch einzuspielen",
+			],
 			next: [
-				"SSO je Organisation (OIDC, DNS-verifiziert) für Kunden ausrollen",
+				"Härtungs-Runbook (deploy/README.md, Server härten) auf dem Server ausführen",
 				"Passkey als Pflichtfaktor für Plattform-Admins erzwingen",
 			],
 		},
@@ -30,7 +35,7 @@ export const BASELINE: CatalogBaseline = {
 			present: [
 				"Per-Org-DEK, mit KEK umschlossen (Envelope, XChaCha20-Poly1305), Schlüsselversion ab Tag 1",
 				"Feldverschlüsselung sensibler Spalten mit dem Org-Schlüssel",
-				"TLS 1.2/1.3 mit HSTS-Preload, OCSP-Stapling (nginx)",
+				"TLS 1.2/1.3 mit HSTS-Preload (nginx)",
 			],
 			gaps: [
 				"KEK liegt als systemd-Credential, nicht in einem KMS/HSM",
@@ -47,13 +52,18 @@ export const BASELINE: CatalogBaseline = {
 				"KEK-Rotation ohne Re-Encrypt (pnpm kek:rotate), Rate-Limit je Organisation, optionaler clamd-Scan fail closed",
 				"systemd-Sandbox (ProtectSystem=strict, NoNewPrivileges, SystemCallFilter), Secrets über LoadCredentialEncrypted",
 				"Health-/Ready-Endpunkte, chrony, unattended-upgrades",
+				"Verlauf je Org mit Bitcoin-Anker (OpenTimestamps): Kettenköpfe täglich verankert, prüfbar ohne Klick",
+				"Start-Prüfung in Produktion: ohne Virenscanner, Admin-Netz oder isolierten Parser startet Klick nicht (außer ausdrücklich hingenommen)",
 			],
 			gaps: [
 				"Kein SIEM/SOC; Alarme für Kettenbruch, MFA-Lockout, neues Gerät",
 				"Kein externer Uptime-Check; GlitchTip-Instanz muss auf dem Server installiert werden",
-				"Keine CIS-Baseline-Prüfung der Server",
+				"auditd, AIDE, Lynis und Zustandsprüfung (klick-health) als Dateien und Runbook vorbereitet, auf dem Server noch einzuspielen",
 			],
-			next: ["Externer Uptime-Check", "CrowdSec nach Runbook ausrollen"],
+			next: [
+				"Externer Uptime-Check",
+				"Lynis-Bericht nach dem Einspielen als Nachweis hochladen",
+			],
 		},
 		{
 			domain: "development",
@@ -63,6 +73,8 @@ export const BASELINE: CatalogBaseline = {
 				"pnpm minimumReleaseAge 7 Tage, Lifecycle-Skripte blockiert, Lockfile, Dependabot",
 				"Threat Model (STRIDE light), SECURITY.md, security.txt",
 				"Getrennte Datenbanken für Entwicklung, Test und Produktion",
+				"Releases nur aus einem sauberen Arbeitsbaum und, mit hinterlegten Schlüsseln, nur von signierten Tags (release-guard)",
+				"Sicherheits-Skills (OWASP, Differential Review, unsichere Standardwerte) für Reviews im Repo",
 			],
 			gaps: [
 				"Kein externer Pentest",
@@ -74,15 +86,17 @@ export const BASELINE: CatalogBaseline = {
 			domain: "network",
 			title: "Netz",
 			present: [
-				"nftables: nur 22/80/443; nginx Rate-Limit-Zonen (/api/auth 10 r/min je IP)",
+				"nftables-Regeln für öffentlich nur 80/443 und WireGuard 51820 (SSH nur im Tunnel) im Repo; nginx Rate-Limit-Zonen (/api/auth 10 r/min je IP)",
+				"Admin-Pfade in nginx nur aus dem Admin-Netz, unbekannte Hosts ohne Antwort (default_server 444)",
 				"Postgres nur über localhost",
 				"Vollständiger Security-Header-Satz (CSP, HSTS, COOP/CORP, Permissions-Policy, X-Frame-Options)",
 			],
 			gaps: [
 				"Style-CSP mit 'unsafe-inline' (Tailwind/RSC)",
 				"Kein CDN/DDoS-Schutz",
+				"Firewall, CrowdSec mit AppSec-WAF und Postgres-Härtung auf dem Server noch einzuspielen",
 			],
-			next: ["CrowdSec mit nftables-Bouncer (Runbook in deploy/README.md)"],
+			next: ["CrowdSec mit WAF und nftables-Bouncer nach Runbook ausrollen"],
 		},
 		{
 			domain: "continuity",

@@ -327,6 +327,20 @@ Probe: `systemctl start klick-health && journalctl -u klick-health -n 20`. Melde
 Zertifikate < 14 Tage, Dienste mit Fehler, auditd, nftables, CrowdSec-Sperren und ausstehenden
 Neustart; Fehler gehen über `klick-alert@` an `ALERT_MAIL`.
 
+**10. App-Seite: Admin-Netz und Start-Prüfung**
+1. Die Units setzen das Admin-Netz schon (`ADMIN_NETWORKS` in `klick.service`,
+   `WALLET_ADMIN_NETWORKS` in `both.service`, beide `10.9.0.0/24,fd10:9::/64`); ein anderes Netz
+   in `/etc/klick/klick.env` bzw. `/etc/both/both.env` überschreiben. Ohne Wert startet Klick in
+   Produktion nicht (`admin_anywhere`).
+2. Klick prüft beim Start die Produktions-Konfiguration (`lib/env-checks.ts`): kein clamd
+   (`CLAMD_HOST`), kein Admin-Netz, `AUTH_ALLOW_SIGNUP=true`, `MAIL_ALLOW_RESEND=true` oder kein
+   `PARSER_SOCKET` verhindern den Start — außer die Abweichung steht bewusst in
+   `PROD_ACCEPT_RISKS` (komma-getrennt: `no_av`, `admin_anywhere`, `signup_open`, `mail_us`,
+   `parser_in_app`; Warnung im Journal). Nie hinnehmbar: `BETTER_AUTH_URL` ohne https,
+   `PASSKEY_RP_ID` passt nicht, `HOSTNAME` ≠ `127.0.0.1`.
+3. Prüfen: `journalctl -u klick -n 50 | grep -i start-prüfung`; über den Tunnel `/admin` → 200,
+   von außen → 403.
+
 **Ausgesperrt?** Hetzner Console → root-Login → `nft delete table inet klick` (Firewall offen),
 `rm /etc/ssh/sshd_config.d/10-klick.conf && systemctl reload ssh` (SSH wie vorher),
 `systemctl restart wg-quick@wg-admin`. Danach Ursache beheben und Schritte wiederholen.
@@ -804,6 +818,32 @@ Modus `own`) oder mit eingetragener Erlaubnis. Setzen nur am Terminal, mit Grund
 der Org: `pnpm wallet:admin org custody --org <slug> --mode licensed --ref "<Erlaubnis>"
 --reason "<Grund>"`. Zurück mit `--mode none`. Cold-Konten aus einer xpub darf jede Org
 beobachten; Kundengelder im echten Netz nur mit `licensed`.
+
+### Zugang und Vollmacht (Härtung W, ADR-031)
+Migrationen `0003_access` und `0004_mandates` laufen mit `release:wallet`. Inhaber:innen stellen
+unter Einstellungen > Zugang ein (Step-up): IP-Liste, nur Sicherheitsschlüssel, erlaubte Assets,
+„Bedienung nur mit Vollmacht“. Speichern lehnt ab, was die eigene Adresse oder die eigenen
+Schlüssel aussperren würde; Lockern meldet sich bei allen Inhaber:innen.
+1. **Plattformweite IP-Liste (optional):** `cp deploy/nginx/snippets/both-allow.conf.example
+   /etc/nginx/snippets/both-allow.conf`, Netze eintragen (Admin-Netz bleibt drin, endet mit
+   `deny all;`), `nginx -t && systemctl reload nginx`. Gilt für App und Anmeldung; Relay der
+   Bestätigungsseite (`/api/confirm|enrol|mandate/`), Link-Tausch und Health bleiben offen.
+   Zurück: Datei löschen, neu laden.
+2. **Nur Token (z. B. EURC/USDC):** in both.money „Alle Assets“ ausschalten und die Token wählen;
+   dann im Signer die Grenzen für BTC und ETH aus der Richtlinie entfernen
+   (`klick-signer-admin status > p.json`, `policy.limits` ohne `BTC`/`ETH` als
+   `richtlinie.json` speichern, `klick-signer-admin policy richtlinie.json`). ETH bleibt auf dem
+   Konto nur für Gebühren. Prüfen: `pnpm wallet:check` meldet unter „Assets“ keine Abweichung.
+3. **Vollmacht im Signer:** nach dem Ausstellen zeigt `/mandates` „Im Signer freigeben“; die
+   Freigabe läuft auf `approve.both.money/#m=<id>` mit den Sicherheitsschlüsseln wie bei
+   Auszahlungen (die bevollmächtigte Person zählt nicht). Danach sind Auszahlungen der Person
+   im Rahmen vorab freigegeben; Pause, Fenster und Grenzen der Richtlinie gelten weiter.
+   Sofort stoppen: in both.money widerrufen oder am Terminal
+   `klick-signer-admin mandate-revoke <mandateId>`.
+4. **Sicherheitsschlüssel-Pflicht:** vorher sicherstellen, dass jede Person einen
+   gerätegebundenen Schlüssel (z. B. YubiKey) registriert hat — die Seite listet, wer nur
+   synchronisierte Passkeys hat. Wer ausgesperrt ist: `pnpm wallet:recover <adresse>` (neuer
+   Link, dabei Sicherheitsschlüssel verwenden).
 
 ### Compliance-Export nach Klick
 both.money schickt Ein- und Ausgänge, Bestände (Tagesabschluss 00:10 Uhr Berlin), Zeremonie-Stand
