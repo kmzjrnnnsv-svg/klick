@@ -14,6 +14,7 @@ import { DOCUMENT_STATUS, DOCUMENT_TYPES } from "@/db/schema/grc";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { hidesSecret, restrictedView } from "@/lib/auth/visibility";
 import { DOCUMENT_TEMPLATES } from "@/lib/compliance/catalog/document-templates";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listDocuments } from "@/lib/compliance/queries-p2";
@@ -34,10 +35,20 @@ export default async function DocumentsPage({
 	const t = await getTranslations("Documents");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const rows = await readOrg(toOrgCtx(ctx), (tx) =>
-		listDocuments(tx, ctx.orgId),
-	);
-	const canCreate = allows(ctx, { document: ["create"] });
+	// Prüfer-Sicht: nur Dokumente mit gültiger Fassung, Stand und Nummer der
+	// gültigen Fassung; streng geheime ohne Grant ohne Titel
+	const restricted = restrictedView(ctx);
+	const rows = (
+		await readOrg(toOrgCtx(ctx), (tx) => listDocuments(tx, ctx.orgId))
+	).flatMap((r) => {
+		if (restricted && !r.current) return [];
+		const view =
+			restricted && r.current
+				? { ...r, status: "published" as const, version: r.current.version }
+				: r;
+		return [hidesSecret(ctx, r) ? { ...view, title: t("secretTitle") } : view];
+	});
+	const canCreate = allows(ctx, { document: ["create"] }) && !restricted;
 	const present = new Set(rows.map((r) => r.templateCode));
 	const templates = DOCUMENT_TEMPLATES.map((x) => ({
 		code: x.code,
@@ -69,7 +80,7 @@ export default async function DocumentsPage({
 				!overdue ||
 				(r.nextReviewAt !== null &&
 					r.nextReviewAt < today &&
-					r.status === "published"),
+					r.current !== null),
 		);
 
 	const columns: Column<Row>[] = [
@@ -113,10 +124,22 @@ export default async function DocumentsPage({
 		},
 		{
 			key: "version",
-			header: t("version"),
-			className: "w-16",
+			header: t("current"),
+			className: "w-28",
 			mobile: false,
-			cell: (r) => `v${r.version}`,
+			cell: (r) => (
+				<span className="tabular-nums">
+					{r.current ? `v${r.current.version}` : "—"}
+					{r.current?.version !== r.version &&
+						(r.status === "draft" ||
+							r.status === "in_review" ||
+							r.status === "approved") && (
+							<span className="block text-muted-foreground text-footnote">
+								{t("workingCopy", { version: r.version })}
+							</span>
+						)}
+				</span>
+			),
 		},
 		{
 			key: "owner",
@@ -132,7 +155,7 @@ export default async function DocumentsPage({
 			cell: (r) => (
 				<span
 					className={
-						r.nextReviewAt && r.nextReviewAt < today && r.status === "published"
+						r.nextReviewAt && r.nextReviewAt < today && r.current !== null
 							? "text-destructive"
 							: "text-muted-foreground"
 					}

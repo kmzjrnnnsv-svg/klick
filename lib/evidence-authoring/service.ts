@@ -17,6 +17,7 @@ import { insertControlTest } from "@/lib/compliance/control-test-service";
 import { getOrgProfile, userNames } from "@/lib/compliance/queries";
 import { decryptJson, encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import type { OrgTx } from "@/lib/db/with-org";
+import { lockForSuccessor, supersedeEvidence } from "@/lib/evidence/current";
 import {
 	linkEvidenceToControl,
 	storeEncryptedEvidence,
@@ -156,7 +157,10 @@ export type FinalizeResult =
 			testId: string | null;
 			audit: AuditInput[];
 	  }
-	| { ok: false; error: "not_found" | "incomplete" | "no_control" };
+	| {
+			ok: false;
+			error: "not_found" | "incomplete" | "no_control" | "already_superseded";
+	  };
 
 export async function finalizeDraft(
 	tx: OrgTx,
@@ -169,6 +173,13 @@ export async function finalizeDraft(
 	const { row, template, content } = loaded;
 	if (missingForFinalize(template, content).length > 0)
 		return { ok: false, error: "incomplete" };
+	// neue Fassung: Vorgängerin sperren; hat sie schon eine Nachfolgerin,
+	// würde sich der Strang verzweigen
+	if (row.supersedesId) {
+		const state = await lockForSuccessor(tx, ctx.orgId, row.supersedesId);
+		if (state === "already_superseded")
+			return { ok: false, error: "already_superseded" };
+	}
 
 	// Controls der Org (fehlende Umsetzungen legt implementationFor an)
 	const impls: { code: string; id: string }[] = [];
@@ -198,6 +209,7 @@ export async function finalizeDraft(
 	if (row.supersedesId) {
 		const [prev] = await tx
 			.select({ snapshot: evidence.snapshot })
+			// evidence:any-version — Fassungsnummer der Vorgängerin
 			.from(evidence)
 			.where(
 				and(
@@ -300,9 +312,11 @@ export async function finalizeDraft(
 				string,
 				unknown
 			>,
-			supersedesId: row.supersedesId,
 		})
 		.where(eq(evidence.id, id));
+	// Vorgängerin ersetzt: Controls und Nachweisbogen gehen mit
+	if (row.supersedesId)
+		await supersedeEvidence(tx, ctx.orgId, row.supersedesId, id);
 	for (const i of impls) await linkEvidenceToControl(tx, ctx.orgId, i.id, id);
 
 	// Position im Nachweisbogen schließen
@@ -414,6 +428,7 @@ export async function authoredContentOf(
 			title: evidence.title,
 			classification: evidence.classification,
 		})
+		// evidence:any-version — Inhalt einer Fassung per ID
 		.from(evidence)
 		.where(and(eq(evidence.organizationId, orgId), eq(evidence.id, evidenceId)))
 		.limit(1);
@@ -463,6 +478,7 @@ export async function authoredSignState(
 			snapshot: evidence.snapshot,
 			createdByUserId: evidence.createdByUserId,
 		})
+		// evidence:any-version — Fassung per ID
 		.from(evidence)
 		.where(and(eq(evidence.organizationId, orgId), eq(evidence.id, evidenceId)))
 		.limit(1);

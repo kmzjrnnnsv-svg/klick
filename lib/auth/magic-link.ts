@@ -66,6 +66,7 @@ export type LinkFailure =
 	| "expired"
 	| "no_account"
 	| "blocked"
+	| "sso_required"
 	| "not_activated"
 	| "other";
 
@@ -74,5 +75,6 @@ export function linkFailure(error: string | null | undefined): LinkFailure {
 	if (error === "new_user_signup_disabled") return "no_account";
 	if (error === "BANNED_USER" || error === "banned") return "blocked";
 	if (error === "ACCOUNT_NOT_ACTIVATED") return "not_activated";
+	if (error === "SSO_REQUIRED") return "sso_required";
 	return "other";
 }

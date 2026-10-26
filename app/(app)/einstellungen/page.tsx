@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import {
 	Bell,
+	BookOpen,
 	Building2,
 	ChevronLeft,
 	ClipboardCheck,
@@ -26,6 +27,7 @@ import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { IntegrationsPanel } from "@/components/settings/integrations-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
+import { PolicyPortalPanel } from "@/components/settings/policy-portal-panel";
 import { RiskMethodPanel } from "@/components/settings/risk-method-panel";
 import { RolesPanel } from "@/components/settings/roles-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
@@ -61,6 +63,7 @@ import {
 import { allows, roleStatements } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { normalizeRole } from "@/lib/auth/session-rules";
+import { orgSsoPolicy } from "@/lib/auth/sso-provisioning";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import { requiredDuties } from "@/lib/compliance/catalog/approval-duties";
 import { WORKFLOW_BY_KIND } from "@/lib/compliance/catalog/approval-workflows";
@@ -96,6 +99,7 @@ import {
 	listRetiredFrameworkSlugs,
 } from "@/lib/org/queries";
 import { listOrgRoles } from "@/lib/org/roles";
+import { portalOf, portalReaders } from "@/lib/policy-portal/admin";
 import {
 	resolveSettingsSection,
 	type SettingsSectionKey,
@@ -112,6 +116,7 @@ const SECTION_LABEL = {
 	frameworks: "tabFrameworks",
 	rollen: "tabRoles",
 	sso: "tabSso",
+	portal: "tabPortal",
 	integrationen: "tabIntegrations",
 	abo: "tabSubscription",
 	workflows: "tabWorkflows",
@@ -128,6 +133,7 @@ const SECTION_ICON: Record<SettingsSectionKey, React.ReactNode> = {
 	frameworks: <Layers />,
 	rollen: <Users />,
 	sso: <KeyRound />,
+	portal: <BookOpen />,
 	integrationen: <Plug />,
 	abo: <Receipt />,
 	workflows: <GitBranch />,
@@ -152,12 +158,14 @@ export default async function SettingsPage({
 	searchParams: Promise<{ tab?: string }>;
 }) {
 	const { tab } = await searchParams;
-	const ctx = await requireOrgPage();
+	// Mitarbeitende: nur „Dein Konto“ (Passkeys, Benachrichtigungen)
+	const ctx = await requireOrgPage(undefined, { employees: true });
 	const canEditSettings = allows(ctx, { settings: ["update"] });
 	const canReadIntegrations = allows(ctx, { integration: ["read"] });
 	const visible = visibleSettingsSections({
 		settings: canEditSettings,
 		integrations: canReadIntegrations,
+		accountOnly: ctx.orgRole === "employee",
 	});
 	const { key: section, chosen } = resolveSettingsSection(tab, visible);
 	const t = await getTranslations("Settings");
@@ -279,10 +287,12 @@ async function renderSection(
 							deviceType: p.deviceType,
 						}))}
 					/>
-					<DlpPanel
-						policy={withDlpDefaults(settings?.dlpPolicy)}
-						canEdit={canEditSettings}
-					/>
+					{ctx.orgRole !== "employee" && (
+						<DlpPanel
+							policy={withDlpDefaults(settings?.dlpPolicy)}
+							canEdit={canEditSettings}
+						/>
+					)}
 				</>
 			);
 		}
@@ -633,8 +643,39 @@ async function renderSection(
 					providers={await listSsoProvidersForOrg(ctx.orgId)}
 					callbackBase={callbackBase()}
 					canEdit={ctx.orgRole === "owner"}
+					policy={await orgSsoPolicy(ctx.orgId)}
 				/>
 			);
+		case "portal": {
+			const [{ portal, readers }, sso] = await Promise.all([
+				readOrg(octx, async (tx) => ({
+					portal: await portalOf(tx, ctx.orgId),
+					readers: await portalReaders(tx, ctx.orgId),
+				})),
+				listSsoProvidersForOrg(ctx.orgId),
+			]);
+			return (
+				<PolicyPortalPanel
+					origin={callbackBase()}
+					portal={
+						portal && {
+							enabled: portal.enabled,
+							slug: portal.slug,
+							sessionDays: portal.sessionDays,
+							domains: portal.domains,
+						}
+					}
+					readers={readers.map((r) => ({
+						...r,
+						confirmedAt: r.confirmedAt?.toISOString() ?? null,
+						lastSeenAt: r.lastSeenAt?.toISOString() ?? null,
+					}))}
+					ssoDomains={sso
+						.filter((p) => p.domainVerified)
+						.map((p) => p.domain.toLowerCase())}
+				/>
+			);
+		}
 		case "integrationen": {
 			const { tokens, productOptions, walletLinks } = await readOrg(
 				octx,

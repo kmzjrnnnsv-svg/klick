@@ -421,7 +421,9 @@ export function AuthoringEditor({
 												? t("missing")
 												: res.error === "no_control"
 													? t("noControlsWarning")
-													: errorText(tc, res),
+													: res.error === "already_superseded"
+														? t("alreadySuperseded")
+														: errorText(tc, res),
 										);
 										return;
 									}
@@ -501,7 +503,7 @@ function DeleteDraft({ id }: { id: string }) {
 					type="button"
 					variant="ghost"
 					size="sm"
-					className="text-destructive"
+					className="text-destructive hover:bg-destructive/10"
 					disabled={pending}
 				>
 					<Trash2 aria-hidden="true" />

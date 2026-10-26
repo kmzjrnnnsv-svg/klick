@@ -24,6 +24,8 @@ import {
 import { getAudit } from "@/lib/compliance/queries-p3";
 import { resolveRiskMethod } from "@/lib/compliance/risk-method";
 import { readOrg } from "@/lib/db/with-org";
+import { evidenceValidity } from "@/lib/evidence/current";
+import { berlinToday } from "@/lib/evidence-studio/queries";
 import {
 	type AuditPackageInput,
 	buildAuditPackage,
@@ -128,7 +130,9 @@ export async function GET(req: Request) {
 				id: evidence.id,
 				fileName: evidence.fileName,
 				sha256: evidence.sha256,
+				supersedesId: evidence.supersedesId,
 			})
+			// evidence:any-version — Dateien der Dokumentfassungen per ID
 			.from(evidence)
 			.where(eq(evidence.organizationId, ctx.orgId));
 
@@ -197,6 +201,18 @@ export async function GET(req: Request) {
 			});
 	}
 	const fileById = new Map(data.fileEvidence.map((f) => [f.id, f]));
+	// Fassung eines Nachweises: Länge des Strangs über supersedes_id
+	const chainPosition = (id: string) => {
+		let n = 1;
+		let cur = fileById.get(id)?.supersedesId ?? null;
+		const seen = new Set([id]);
+		while (cur && !seen.has(cur)) {
+			seen.add(cur);
+			n += 1;
+			cur = fileById.get(cur)?.supersedesId ?? null;
+		}
+		return n;
+	};
 	const versionsByDoc = new Map<string, typeof data.versions>();
 	for (const v of data.versions) {
 		const list = versionsByDoc.get(v.documentId) ?? [];
@@ -250,9 +266,11 @@ export async function GET(req: Request) {
 				.map((v) => {
 					const f = v.fileEvidenceId ? fileById.get(v.fileEvidenceId) : null;
 					return {
+						id: v.id,
 						version: v.version,
 						publishedAt: v.publishedAt,
 						approvedAt: v.approvedAt,
+						retiredAt: v.retiredAt,
 						approvedByName: v.approvedByUserId
 							? (data.names.get(v.approvedByUserId) ?? null)
 							: null,
@@ -277,6 +295,12 @@ export async function GET(req: Request) {
 			createdAt: e.createdAt,
 			createdByName: e.createdByName,
 			controlCodes: e.controlCodes,
+			version: chainPosition(e.id),
+			state:
+				evidenceValidity(e, data.period?.to ?? berlinToday()) === "expired"
+					? ("expired" as const)
+					: ("valid" as const),
+			source: e.source,
 		})),
 		incidents: data.incidents.map((i) => ({
 			code: i.code,

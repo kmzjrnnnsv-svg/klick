@@ -227,6 +227,7 @@ async function detachSupplierFileImpl(input: unknown): Promise<ActionResult> {
 		// nur eigene Uploads aus dem Portal
 		const [ev] = await tx
 			.select({ id: evidence.id })
+			// evidence:any-version — eigener Upload per ID
 			.from(evidence)
 			.where(
 				and(

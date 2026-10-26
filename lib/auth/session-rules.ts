@@ -66,9 +66,12 @@ export function checkSessionRules(
 		throw new AuthError("session_expired");
 	}
 	if (ctx.user.banned) throw new AuthError("forbidden");
+	// Bestätigt ist bestätigt — auch per Firmen-MFA ohne eigenen Faktor (SSO,
+	// je Org eingeschaltet); sonst erst einrichten, dann bestätigen
+	if (s.mfaVerifiedAt) return;
 	if (!ctx.user.twoFactorEnabled && !ctx.user.hasPasskey)
 		throw new AuthError("mfa_enrol");
-	if (!s.mfaVerifiedAt) throw new AuthError("mfa_required");
+	throw new AuthError("mfa_required");
 }
 
 export function isStepUpFresh(
@@ -108,6 +111,9 @@ export const ORG_ROLES = [
 	"consultant",
 	"viewer",
 	"auditor",
+	// Mitarbeitende: nur gültige Richtlinien, Kenntnisnahme, freigegebene
+	// Nachweise (/richtlinien)
+	"employee",
 ] as const;
 export type OrgRole = (typeof ORG_ROLES)[number];
 
@@ -117,19 +123,24 @@ const ROLE_RANK: Record<OrgRole, number> = {
 	consultant: 3,
 	auditor: 2,
 	viewer: 1,
+	employee: 0,
 };
 
 // Better Auth kann mehrere Rollen kommasepariert speichern; wir nehmen die
 // höchste bekannte.
 export function normalizeRole(raw: string | null | undefined): OrgRole {
 	const parts = (raw ?? "").split(",").map((p) => p.trim());
-	let best: OrgRole = "viewer";
+	let best: OrgRole | null = null;
 	for (const p of parts) {
 		if (p === "admin") return "owner";
-		if (p in ROLE_RANK && ROLE_RANK[p as OrgRole] > ROLE_RANK[best])
+		if (
+			p in ROLE_RANK &&
+			(best === null || ROLE_RANK[p as OrgRole] > ROLE_RANK[best])
+		)
 			best = p as OrgRole;
 	}
-	return best;
+	// unbekannt → Lesend (wie bisher); nur „employee“ bleibt Mitarbeitende
+	return best ?? "viewer";
 }
 
 // Client-IP aus Proxy-Headern (nginx setzt X-Real-IP).

@@ -1,6 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import { documents, documentVersions } from "@/db/schema";
 import { userNames } from "@/lib/compliance/queries";
+import { currentVersionsByDocument } from "@/lib/documents/in-force";
+import { inForceStatus } from "@/lib/documents/versions";
 import type { DocBlock } from "@/lib/export/doc-model";
 import { fmtDay } from "../generate/doc";
 import { generator } from "../generate/types";
@@ -172,6 +174,7 @@ export const richtlinien = generator<RichtlinienFacts>({
 				.where(eq(documentVersions.organizationId, orgId))
 				.orderBy(desc(documentVersions.createdAt)),
 		]);
+		const current = await currentVersionsByDocument(tx, orgId);
 		const names = await userNames(tx, [
 			...docs.map((d) => d.ownerUserId),
 			...versions.map((v) => v.approvedByUserId),
@@ -184,8 +187,9 @@ export const richtlinien = generator<RichtlinienFacts>({
 				title: d.title,
 				type: d.type,
 				classification: d.classification,
-				status: d.status,
-				version: d.version,
+				// läuft eine neue Fassung, gilt die bisherige weiter
+				status: inForceStatus(d.status, current.has(d.id)),
+				version: current.get(d.id)?.version ?? d.version,
 				effectiveFrom: d.effectiveFrom,
 				owner: name(d.ownerUserId),
 				reviewCycleMonths: d.reviewCycleMonths,

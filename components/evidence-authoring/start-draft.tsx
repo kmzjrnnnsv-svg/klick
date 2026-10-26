@@ -115,7 +115,7 @@ export function DeleteDraftButton({
 				type="button"
 				variant="ghost"
 				size="sm"
-				className="text-destructive"
+				className="text-destructive hover:bg-destructive/10"
 				disabled={pending}
 				aria-label={t("deleteDraftNamed", { title })}
 				onClick={() =>
@@ -151,7 +151,12 @@ export function NewVersionButton({ evidenceId }: { evidenceId: string }) {
 			onClick={() =>
 				start(async () => {
 					const res = await newEvidenceVersion({ evidenceId });
-					if (!res.ok) return void toast.error(errorText(tc, res));
+					if (!res.ok)
+						return void toast.error(
+							res.error === "already_superseded"
+								? t("alreadySuperseded")
+								: errorText(tc, res),
+						);
 					router.push(`/nachweise/verfassen/${res.data.id}`);
 				})
 			}

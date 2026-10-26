@@ -28,6 +28,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -42,6 +43,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { RoleFunction } from "@/db/schema/enums";
 import { DOCUMENT_TYPES } from "@/db/schema/grc";
+import { bumpVersion } from "@/lib/documents/numbering";
 
 export type TemplateOption = {
 	code: string;
@@ -441,7 +443,20 @@ export function DocumentEditor({
 	);
 }
 
-export function NewVersionDialog({ documentId }: { documentId: string }) {
+// Neue Fassung anlegen: nur aus freigegebenem, veröffentlichtem oder
+// zurückgezogenem Stand. Grundlage ist der aktuelle Stand oder eine ältere
+// Fassung (statt „Wiederherstellen“).
+export function NewVersionDialog({
+	documentId,
+	version,
+	basisVersions,
+	defaultBasis,
+}: {
+	documentId: string;
+	version: string;
+	basisVersions: string[];
+	defaultBasis?: string;
+}) {
 	const t = useTranslations("Documents");
 	const tc = useTranslations("Common");
 	const router = useRouter();
@@ -449,8 +464,18 @@ export function NewVersionDialog({ documentId }: { documentId: string }) {
 	const [pending, start] = useTransition();
 	const [summary, setSummary] = useState("");
 	const [bump, setBump] = useState<"minor" | "major">("minor");
+	const [basis, setBasis] = useState(defaultBasis ?? "");
+	const [error, setError] = useState<string | null>(null);
+	const others = basisVersions.filter((v) => v !== version);
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
+		<Dialog
+			open={open}
+			onOpenChange={(v) => {
+				setOpen(v);
+				if (v) setBasis(defaultBasis ?? "");
+				setError(null);
+			}}
+		>
 			<DialogTrigger asChild>
 				<Button size="sm" variant="outline">
 					{t("newVersion")}
@@ -459,7 +484,7 @@ export function NewVersionDialog({ documentId }: { documentId: string }) {
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>{t("newVersion")}</DialogTitle>
-					<DialogDescription>{t("ackReset")}</DialogDescription>
+					<DialogDescription>{t("newVersionLead")}</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-1.5">
 					<Label htmlFor="nv-summary">{t("changeSummary")}</Label>
@@ -468,21 +493,54 @@ export function NewVersionDialog({ documentId }: { documentId: string }) {
 						rows={3}
 						value={summary}
 						onChange={(e) => setSummary(e.target.value)}
-						autoFocus
 					/>
 				</div>
-				<div className="flex flex-col gap-1.5">
-					<Label>{t("version")}</Label>
-					<Select value={bump} onValueChange={(v) => setBump(v as typeof bump)}>
-						<SelectTrigger className="w-full">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="minor">minor (x.1)</SelectItem>
-							<SelectItem value="major">major (2.0)</SelectItem>
-						</SelectContent>
-					</Select>
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="nv-bump">{t("version")}</Label>
+						<Select
+							value={bump}
+							onValueChange={(v) => setBump(v as typeof bump)}
+						>
+							<SelectTrigger id="nv-bump" className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="minor">
+									{t("bumpMinor", { version: bumpVersion(version, "minor") })}
+								</SelectItem>
+								<SelectItem value="major">
+									{t("bumpMajor", { version: bumpVersion(version, "major") })}
+								</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+					{others.length > 0 && (
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="nv-basis">{t("basis")}</Label>
+							<Select
+								value={basis || "_current"}
+								onValueChange={(v) => setBasis(v === "_current" ? "" : v)}
+							>
+								<SelectTrigger id="nv-basis" className="w-full">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="_current">
+										{t("basisCurrent", { version })}
+									</SelectItem>
+									{others.map((v) => (
+										<SelectItem key={v} value={v}>
+											{t("basisVersion", { version: v })}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 				</div>
+				<p className="text-muted-foreground text-footnote">{t("ackReset")}</p>
+				<FormAlert message={error} />
 				<DialogFooter>
 					<Button variant="ghost" onClick={() => setOpen(false)}>
 						{tc("cancel")}
@@ -495,9 +553,18 @@ export function NewVersionDialog({ documentId }: { documentId: string }) {
 									documentId,
 									changeSummary: summary,
 									bump,
+									fromVersion: basis || undefined,
 								});
-								if (!res.ok) return void toast.error(errorText(tc, res));
-								toast.success(`v${res.data.version}`);
+								if (!res.ok)
+									return void setError(
+										res.error === "document_draft" ||
+											res.error === "document_in_review"
+											? t(res.error)
+											: errorText(tc, res),
+									);
+								toast.success(
+									t("newVersionCreated", { version: res.data.version }),
+								);
 								setOpen(false);
 								setSummary("");
 								router.refresh();

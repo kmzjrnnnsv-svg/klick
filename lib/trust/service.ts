@@ -12,6 +12,7 @@ import { controlsForFrameworks } from "@/lib/compliance/catalog";
 import { frameworkNameMap } from "@/lib/compliance/page-data";
 import { orgCoverage } from "@/lib/compliance/queries";
 import type { OrgTx } from "@/lib/db/with-org";
+import { currentPublished } from "@/lib/documents/versions";
 import { DEFAULT_NDA_TEXT } from "./rules";
 import type { SnapshotDocumentInput, SnapshotInput } from "./snapshot";
 
@@ -104,7 +105,9 @@ async function loadSnapshotDocuments(
 				documentId: documentVersions.documentId,
 				versionId: documentVersions.id,
 				version: documentVersions.version,
+				approvedAt: documentVersions.approvedAt,
 				publishedAt: documentVersions.publishedAt,
+				retiredAt: documentVersions.retiredAt,
 				hasBody: sql<boolean>`coalesce(length(${documentVersions.bodyMarkdown}), 0) > 0`,
 				hasFile: sql<boolean>`${documentVersions.fileEvidenceId} is not null`,
 			})
@@ -118,9 +121,15 @@ async function loadSnapshotDocuments(
 			)
 			.orderBy(desc(documentVersions.publishedAt)),
 	]);
-	const latest = new Map<string, (typeof versions)[number]>();
+	// gültige Fassung je Dokument (nie eine ersetzte oder zurückgezogene)
+	const byDoc = new Map<string, (typeof versions)[number][]>();
 	for (const v of versions)
-		if (!latest.has(v.documentId)) latest.set(v.documentId, v);
+		byDoc.set(v.documentId, [...(byDoc.get(v.documentId) ?? []), v]);
+	const latest = new Map<string, (typeof versions)[number]>();
+	for (const [docId, list] of byDoc) {
+		const cur = currentPublished(list.map((v) => ({ ...v, id: v.versionId })));
+		if (cur) latest.set(docId, cur);
+	}
 	return docs.map((d) => {
 		const v = latest.get(d.documentId);
 		return {

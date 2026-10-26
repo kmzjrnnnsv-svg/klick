@@ -1321,7 +1321,11 @@ function DeleteVariant({ id, name }: { id: string; name: string }) {
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button variant="ghost" className="text-destructive" disabled={pending}>
+				<Button
+					variant="ghost"
+					className="text-destructive hover:bg-destructive/10"
+					disabled={pending}
+				>
 					<Trash2 />
 					{t("delete")}
 				</Button>

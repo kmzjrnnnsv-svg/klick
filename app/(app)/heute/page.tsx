@@ -56,7 +56,9 @@ import { currentTrainings } from "@/lib/trainings/assignments";
 // Startseite nach Login: gestapelte Abschnitte, je max. fünf Einträge —
 // Freigaben, Aufgaben, Fälliges, Kenntnisnahmen, Erwähnungen.
 export default async function TodayPage() {
-	const ctx = await requireOrgPage();
+	const ctx = await requireOrgPage(undefined, { employees: true });
+	// Mitarbeitende: ihre Startseite sind die Richtlinien
+	if (ctx.orgRole === "employee") redirect("/richtlinien");
 	const t = await getTranslations("Today");
 	const tt = await getTranslations("Trainings");
 	const ts = await getTranslations("Status");

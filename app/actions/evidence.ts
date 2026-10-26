@@ -1,17 +1,23 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
 	controlImplementations,
+	documentVersions,
 	evidence,
 	evidenceSignatures,
 	storagePurgeQueue,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
-import { mutateOrg } from "@/lib/db/with-org";
+import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { isDbStorageKey } from "@/lib/evidence/aad";
+import {
+	currentEvidence,
+	lockForSuccessor,
+	supersedeEvidence,
+} from "@/lib/evidence/current";
 import {
 	linkEvidenceToControl,
 	s3Configured,
@@ -155,6 +161,195 @@ async function uploadEvidenceImpl(
 	};
 }
 
+// Neue Fassung eines hochgeladenen Nachweises: gleiche Controls, Einstufung
+// und Nachweisbogen-Position; die Vorgängerin zählt danach nicht mehr.
+// Erzeugte, verfasste und Dokument-Dateien haben eigene Wege.
+async function uploadEvidenceVersionImpl(
+	formData: FormData,
+): Promise<ActionResult<{ id: string; dlpRaised: boolean }>> {
+	const c = await requireOrg({ evidence: ["create"] });
+	const supersedesId = formData.get("supersedesId");
+	const file = formData.get("file");
+	if (
+		typeof supersedesId !== "string" ||
+		!/^[0-9a-f-]{36}$/i.test(supersedesId)
+	)
+		return { ok: false, error: "invalid" };
+	if (!(file instanceof File)) return { ok: false, error: "fileMissing" };
+	const prev = await readOrg(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select()
+			// evidence:any-version — Vorgängerin per ID (prüft selbst auf ersetzt)
+			.from(evidence)
+			.where(
+				and(
+					eq(evidence.id, supersedesId),
+					eq(evidence.organizationId, c.orgId),
+				),
+			)
+			.limit(1);
+		return row ?? null;
+	});
+	if (!prev) return { ok: false, error: "notFound" };
+	if (prev.supersededAt) return { ok: false, error: "already_superseded" };
+	if (
+		prev.kindCode ||
+		prev.templateKey ||
+		prev.source === "document" ||
+		!prev.storageKey
+	)
+		return { ok: false, error: "version_not_upload" };
+	const meta = evidenceLinkSchema.safeParse({
+		title: formData.get("title") || prev.title,
+		description: formData.get("description") || prev.description || undefined,
+		type: prev.type,
+		classification: prev.classification,
+		validUntil: formData.get("validUntil") || undefined,
+	});
+	if (!meta.success) return fromZod(meta.error);
+	const d = meta.data;
+	// hatte die Vorgängerin ein Gültig-bis, braucht die neue Fassung eins
+	if (prev.validUntil && !d.validUntil)
+		return {
+			ok: false,
+			error: "validUntil_required",
+			fieldErrors: { validUntil: ["required"] },
+		};
+	if (!getOrgLimiter().check(c.orgId).allowed)
+		return { ok: false, error: "rate_limited" };
+	const bytes = new Uint8Array(await file.arrayBuffer());
+	const v = await screenUpload(toOrgCtx(c), {
+		name: file.name,
+		bytes,
+		declaredMime: file.type,
+		classification: d.classification,
+		dlpAcknowledged: formData.get("dlpAcknowledged") === "1",
+	});
+	if (!v.ok)
+		return {
+			ok: false,
+			error: v.error,
+			fieldErrors: v.detail ? { dlp: v.detail } : undefined,
+		};
+	const res = await mutateOrg<ActionResult<{ id: string; dlpRaised: boolean }>>(
+		toOrgCtx(c),
+		async (tx) => {
+			if ((await lockForSuccessor(tx, c.orgId, prev.id)) !== "ok")
+				return {
+					result: { ok: false, error: "already_superseded" },
+					audit: [],
+				};
+			const stored = await storeEncryptedEvidence(tx, {
+				orgId: c.orgId,
+				bytes,
+				safeName: v.safeName,
+				mime: v.mime,
+				title: d.title,
+				description: d.description,
+				type: d.type,
+				classification: v.classification,
+				validUntil: d.validUntil,
+				createdByUserId: c.userId,
+				dlp: v.dlp,
+				source: prev.source,
+			});
+			await tx
+				.update(evidence)
+				.set({
+					ownerUserId: prev.ownerUserId,
+					ownerFunction: prev.ownerFunction,
+				})
+				.where(eq(evidence.id, stored.id));
+			await supersedeEvidence(tx, c.orgId, prev.id, stored.id);
+			return {
+				result: {
+					ok: true,
+					data: {
+						id: stored.id,
+						dlpRaised: v.classification !== d.classification,
+					},
+				},
+				audit: {
+					action: "evidence.version_uploaded",
+					target: `evidence:${stored.id}`,
+					before: { evidenceId: prev.id, validUntil: prev.validUntil },
+					after: {
+						title: d.title,
+						fileName: v.safeName,
+						size: bytes.byteLength,
+						classification: v.classification,
+						validUntil: d.validUntil ?? null,
+						supersedesId: prev.id,
+					},
+				},
+			};
+		},
+	);
+	if (res.ok) {
+		revalidatePath("/nachweise", "layout");
+		revalidatePath("/controls", "layout");
+	}
+	return res;
+}
+
+// Für Mitarbeitende freigeben (/richtlinien): nur aktuelle Fassung, nur
+// öffentlich/intern; die neue Fassung übernimmt die Freigabe
+async function setEvidenceStaffVisibleImpl(input: {
+	evidenceId: string;
+	visible: boolean;
+}): Promise<ActionResult> {
+	const c = await requireOrg({ evidence: ["create"] });
+	if (
+		typeof input?.evidenceId !== "string" ||
+		!/^[0-9a-f-]{36}$/i.test(input.evidenceId) ||
+		typeof input.visible !== "boolean"
+	)
+		return { ok: false, error: "invalid" };
+	const res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select({
+				id: evidence.id,
+				classification: evidence.classification,
+				staffVisible: evidence.staffVisible,
+			})
+			.from(evidence)
+			.where(
+				and(
+					eq(evidence.id, input.evidenceId),
+					eq(evidence.organizationId, c.orgId),
+					currentEvidence(),
+				),
+			)
+			.limit(1);
+		if (!row) return { result: { ok: false, error: "notFound" }, audit: [] };
+		if (
+			input.visible &&
+			row.classification !== "public" &&
+			row.classification !== "internal"
+		)
+			return {
+				result: { ok: false, error: "staff_confidential" },
+				audit: [],
+			};
+		await tx
+			.update(evidence)
+			.set({ staffVisible: input.visible })
+			.where(eq(evidence.id, row.id));
+		return {
+			result: { ok: true, data: undefined },
+			audit: {
+				action: "evidence.staff_visible",
+				target: `evidence:${row.id}`,
+				before: { staffVisible: row.staffVisible },
+				after: { staffVisible: input.visible },
+			},
+		};
+	});
+	revalidatePath(`/nachweise/${input.evidenceId}`);
+	revalidatePath("/richtlinien");
+	return res;
+}
+
 async function linkEvidenceImpl(input: {
 	implementationId: string;
 	evidenceId: string;
@@ -185,67 +380,82 @@ async function linkEvidenceImpl(input: {
 // sorgt dafür, dass ein später eingespieltes DB-Backup die Löschung nachholt.
 async function deleteEvidenceImpl(evidenceId: string): Promise<ActionResult> {
 	const c = await requireStepUp({ evidence: ["delete"] });
-	const removed = await mutateOrg<{ hadFile: boolean } | "signed" | null>(
-		toOrgCtx(c),
-		async (tx) => {
-			const [row] = await tx
-				.select()
-				.from(evidence)
-				.where(
-					and(
-						eq(evidence.id, evidenceId),
-						eq(evidence.organizationId, c.orgId),
+	const removed = await mutateOrg<
+		{ hadFile: boolean } | "signed" | "in_document" | null
+	>(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select()
+			// evidence:any-version — Löschen per ID
+			.from(evidence)
+			.where(
+				and(eq(evidence.id, evidenceId), eq(evidence.organizationId, c.orgId)),
+			)
+			.limit(1);
+		if (!row) return { result: null, audit: [] };
+		// unterschriebene Nachweise bleiben (Unterschriften sind nur anhängend)
+		const [signed] = await tx
+			.select({ id: evidenceSignatures.id })
+			.from(evidenceSignatures)
+			.where(
+				and(
+					eq(evidenceSignatures.organizationId, c.orgId),
+					eq(evidenceSignatures.evidenceId, evidenceId),
+				),
+			)
+			.limit(1);
+		if (signed) return { result: "signed" as const, audit: [] };
+		// Datei einer freigegebenen oder veröffentlichten Dokumentfassung
+		// bleibt (die Fassung ist unveränderlich)
+		const [inVersion] = await tx
+			.select({ id: documentVersions.id })
+			.from(documentVersions)
+			.where(
+				and(
+					eq(documentVersions.organizationId, c.orgId),
+					eq(documentVersions.fileEvidenceId, evidenceId),
+					or(
+						isNotNull(documentVersions.approvedAt),
+						isNotNull(documentVersions.publishedAt),
 					),
-				)
-				.limit(1);
-			if (!row) return { result: null, audit: [] };
-			// unterschriebene Nachweise bleiben (Unterschriften sind nur anhängend)
-			const [signed] = await tx
-				.select({ id: evidenceSignatures.id })
-				.from(evidenceSignatures)
-				.where(
-					and(
-						eq(evidenceSignatures.organizationId, c.orgId),
-						eq(evidenceSignatures.evidenceId, evidenceId),
-					),
-				)
-				.limit(1);
-			if (signed) return { result: "signed" as const, audit: [] };
-			// Objekt in der Datenbank (db:) geht mit der Zeile (Kaskade, gleiches
-			// Backup); S3-Objekte erst nach der Backup-Aufbewahrung
-			await tx.delete(evidence).where(eq(evidence.id, evidenceId));
-			const inS3 = Boolean(row.storageKey && !isDbStorageKey(row.storageKey));
-			const after = inS3 ? purgeAfter(new Date()) : null;
-			if (row.storageKey && after) {
-				await tx
-					.insert(storagePurgeQueue)
-					.values({
-						organizationId: c.orgId,
-						storageKey: row.storageKey,
-						reason: "evidence_deleted",
-						refId: row.id,
-						requestedByUserId: c.userId,
-						purgeAfter: after,
-					})
-					.onConflictDoNothing();
-			}
-			return {
-				result: { hadFile: inS3 },
-				audit: {
-					action: "evidence.delete",
-					target: `evidence:${evidenceId}`,
-					before: {
-						title: row.title,
-						fileName: row.fileName,
-						sha256: row.sha256,
-					},
-					after: { objectPurgeAfter: after?.toISOString() ?? null },
+				),
+			)
+			.limit(1);
+		if (inVersion) return { result: "in_document" as const, audit: [] };
+		// Objekt in der Datenbank (db:) geht mit der Zeile (Kaskade, gleiches
+		// Backup); S3-Objekte erst nach der Backup-Aufbewahrung
+		await tx.delete(evidence).where(eq(evidence.id, evidenceId));
+		const inS3 = Boolean(row.storageKey && !isDbStorageKey(row.storageKey));
+		const after = inS3 ? purgeAfter(new Date()) : null;
+		if (row.storageKey && after) {
+			await tx
+				.insert(storagePurgeQueue)
+				.values({
+					organizationId: c.orgId,
+					storageKey: row.storageKey,
+					reason: "evidence_deleted",
+					refId: row.id,
+					requestedByUserId: c.userId,
+					purgeAfter: after,
+				})
+				.onConflictDoNothing();
+		}
+		return {
+			result: { hadFile: inS3 },
+			audit: {
+				action: "evidence.delete",
+				target: `evidence:${evidenceId}`,
+				before: {
+					title: row.title,
+					fileName: row.fileName,
+					sha256: row.sha256,
 				},
-			};
-		},
-	);
+				after: { objectPurgeAfter: after?.toISOString() ?? null },
+			},
+		};
+	});
 	if (!removed) return { ok: false, error: "notFound" };
 	if (removed === "signed") return { ok: false, error: "signed" };
+	if (removed === "in_document") return { ok: false, error: "in_document" };
 	if (removed.hadFile && s3Configured()) {
 		await writeTombstone({
 			kind: "evidence",
@@ -332,6 +542,14 @@ export const ensureEvidenceStepUp = safeAction(
 export const createEvidenceLink = safeAction(
 	"createEvidenceLink",
 	createEvidenceLinkImpl,
+);
+export const uploadEvidenceVersion = safeAction(
+	"uploadEvidenceVersion",
+	uploadEvidenceVersionImpl,
+);
+export const setEvidenceStaffVisible = safeAction(
+	"setEvidenceStaffVisible",
+	setEvidenceStaffVisibleImpl,
 );
 export const uploadEvidence = safeAction("uploadEvidence", uploadEvidenceImpl);
 export const linkEvidence = safeAction("linkEvidence", linkEvidenceImpl);

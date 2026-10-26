@@ -34,6 +34,7 @@ export default async function AuthoringEditorPage({
 		const [prev] = draft.row.supersedesId
 			? await tx
 					.select({ id: evidence.id, title: evidence.title })
+					// evidence:any-version — Vorgängerin per ID
 					.from(evidence)
 					.where(
 						and(

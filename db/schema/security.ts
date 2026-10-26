@@ -64,6 +64,7 @@ export const accessTokens = pgTable(
 				"assessment",
 				"trust_request",
 				"wallet_link",
+				"policy_reader",
 			],
 		}),
 		subjectId: uuid(),

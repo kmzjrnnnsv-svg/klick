@@ -44,7 +44,9 @@ export type NavLabelKey =
 	| "baseline"
 	| "team"
 	| "settings"
-	| "activity";
+	| "activity"
+	| "policies"
+	| "help";
 
 export type NavGroupKey =
 	| "today"
@@ -95,7 +97,8 @@ export type NavIcon =
 	| "vault"
 	| "wallet"
 	| "search"
-	| "layers";
+	| "layers"
+	| "circle-help";
 
 export type NavItem = {
 	key: string;
@@ -153,7 +156,31 @@ const STAGE_INDEX: Record<LicenceStage, number> = {
 	"4_bank": 4,
 };
 
+// Hilfe-Wiki: für alle Rollen, unten in der Seitenleiste
+const HELP_ITEM: NavItem = {
+	key: "help",
+	labelKey: "help",
+	href: "/hilfe",
+	icon: "circle-help",
+};
+
 export function buildNav(input: NavInput): NavGroup[] {
+	// Mitarbeitende sehen nur ihre Richtlinien (Kenntnisnahme dort)
+	if (input.role === "employee")
+		return [
+			{
+				key: "today",
+				items: [
+					{
+						key: "policies",
+						labelKey: "policies",
+						href: "/richtlinien",
+						icon: "book-open",
+					},
+					HELP_ITEM,
+				],
+			},
+		];
 	const slugs = new Set(input.frameworks.map((f) => f.slug));
 	const hasFinance = [...slugs].some((s) => FINANCE_SLUGS.has(s));
 	const hasAml = [...slugs].some((s) => AML_SLUGS.has(s));
@@ -474,6 +501,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 			href: "/aktivitaet",
 			icon: "activity",
 		},
+		HELP_ITEM,
 	];
 	groups.push({
 		key: "bottom",
@@ -498,6 +526,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 			"audits",
 			"settings",
 			"activity",
+			"help",
 		]);
 		return groups
 			.map((g) => ({
@@ -610,7 +639,12 @@ export function navTabs(groups: NavGroup[]): NavTab[] {
 			(g) => groupKeys.includes(g.key) && g.items.length > 0,
 		),
 	})).filter((t) => t.key === "suche" || t.groups.length > 0);
-	return tabs.length > 1 ? tabs : [];
+	// Suche nur neben Bereichslisten (Mitarbeitende haben keine)
+	const lists = tabs.some((t) =>
+		(LIST_TABS as readonly string[]).includes(t.key),
+	);
+	const shown = lists ? tabs : tabs.filter((t) => t.key !== "suche");
+	return shown.length > 1 ? shown : [];
 }
 
 // Aktiver Tab: Bereichsliste, Suche oder der Tab, dessen Gruppe den aktiven

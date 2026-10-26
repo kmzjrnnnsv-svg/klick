@@ -4,8 +4,11 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ensureEvidenceStepUp } from "@/app/actions/evidence";
 import { DeleteEvidenceButton } from "@/components/entity/evidence-delete";
+import { EvidenceStaffSwitch } from "@/components/entity/evidence-staff-switch";
+import { EvidenceVersionForm } from "@/components/entity/evidence-version-form";
 import { ExportLink } from "@/components/entity/export-link";
 import { ResponsibleEditor } from "@/components/entity/responsible-editor";
+import { RevealWithStepUp } from "@/components/entity/reveal-with-step-up";
 import { UserChip } from "@/components/entity/user-chip";
 import { NewVersionButton } from "@/components/evidence-authoring/start-draft";
 import { MarkdownView } from "@/components/markdown-view";
@@ -16,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { hidesSecret, restrictedView } from "@/lib/auth/visibility";
 import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
 import { ownRoleIdOf } from "@/lib/compliance/function-key";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -23,6 +27,7 @@ import { evidenceDetail, listMembersForPicker } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
 import { isDbStorageKey } from "@/lib/evidence/aad";
 import { s3Configured } from "@/lib/evidence/store";
+import { documentFileInForce } from "@/lib/evidence/visibility";
 import { authoredBlocks } from "@/lib/evidence-authoring/render";
 import {
 	authoredContentOf,
@@ -64,6 +69,8 @@ export default async function EvidenceDetailPage({
 		const { row } = detail;
 		return {
 			...detail,
+			// Datei eines Dokuments: nur die der gültigen Fassung zählt (Prüfer-Sicht)
+			fileInForce: (await documentFileInForce(tx, row.id)) !== "not_current",
 			members: await listMembersForPicker(tx, ctx.orgId),
 			roleNames: await orgRoleNames(tx, ctx.orgId),
 			authored: row.templateKey
@@ -84,6 +91,17 @@ export default async function EvidenceDetailPage({
 	});
 	if (!data) notFound();
 	const { row, authored, sign, roleNames } = data;
+	// Prüfer-Sicht: ersetzte Fassungen gibt es nicht; streng geheim ohne
+	// Grant nur der Hinweis (kein Titel, keine Beschreibung, kein Link)
+	const restricted = restrictedView(ctx);
+	if (restricted && (row.supersededAt || !data.fileInForce)) notFound();
+	if (hidesSecret(ctx, row))
+		return (
+			<>
+				<BackLink href="/nachweise" label={t("back")} />
+				<PageHeader title={t("secretTitle")} lead={t("secretLead")} />
+			</>
+		);
 	// eigene Rolle (`role:<id>`, ADR-024) mit Namen
 	const fnLabel = (f: string) =>
 		f === "-"
@@ -147,9 +165,22 @@ export default async function EvidenceDetailPage({
 								<ArrowUpRight className="size-4" aria-hidden="true" />
 							</a>
 						)}
-						{authored && canCreate && !data.supersededBy && (
-							<NewVersionButton evidenceId={row.id} />
-						)}
+						{authored &&
+							canCreate &&
+							!restrictedView(ctx) &&
+							!data.supersededBy && <NewVersionButton evidenceId={row.id} />}
+						{canCreate &&
+							!row.supersededAt &&
+							!authored &&
+							!row.kindCode &&
+							row.source !== "document" &&
+							fileReadable && (
+								<EvidenceVersionForm
+									evidenceId={row.id}
+									title={row.title}
+									validUntilRequired={row.validUntil !== null}
+								/>
+							)}
 						{canDelete && data.signatureCount === 0 && (
 							<DeleteEvidenceButton id={row.id} />
 						)}
@@ -191,7 +222,11 @@ export default async function EvidenceDetailPage({
 							{row.validUntil
 								? fmtDate.format(new Date(row.validUntil))
 								: t("noValidity")}
-							{expired && <Badge variant="warning">{t("expired")}</Badge>}
+							{row.supersededAt ? (
+								<Badge variant="muted">{t("superseded")}</Badge>
+							) : (
+								expired && <Badge variant="warning">{t("expired")}</Badge>
+							)}
 						</dd>
 						<dt className="text-muted-foreground">{t("file")}</dt>
 						<dd className="min-w-0 break-words">
@@ -240,7 +275,7 @@ export default async function EvidenceDetailPage({
 								</dd>
 							</>
 						)}
-						{data.supersedes && (
+						{data.supersedes && !restricted && (
 							<>
 								<dt className="text-muted-foreground">{t("supersedes")}</dt>
 								<dd>
@@ -253,6 +288,21 @@ export default async function EvidenceDetailPage({
 								</dd>
 							</>
 						)}
+						{!restricted &&
+							!row.supersededAt &&
+							(row.classification === "public" ||
+								row.classification === "internal") && (
+								<>
+									<dt className="text-muted-foreground">{t("staffField")}</dt>
+									<dd>
+										<EvidenceStaffSwitch
+											evidenceId={row.id}
+											visible={row.staffVisible}
+											canEdit={canCreate}
+										/>
+									</dd>
+								</>
+							)}
 						<dt className="text-muted-foreground">{te("owner")}</dt>
 						<dd>
 							<ResponsibleEditor
@@ -333,7 +383,7 @@ export default async function EvidenceDetailPage({
 								{ts("openFor", { fns: sign.open.map(fnLabel).join(", ") })}
 							</p>
 						)}
-						{sign?.signAs && (
+						{sign?.signAs && !row.supersededAt && (
 							<div>
 								<SignButton
 									evidenceIds={[row.id]}
@@ -365,7 +415,21 @@ export default async function EvidenceDetailPage({
 					</section>
 				</div>
 			</div>
-			{authored && (
+			{authored && sensitive && !ctx.stepUpFresh && (
+				<section
+					aria-labelledby="ev-content"
+					className="mt-10 flex flex-col items-start gap-3 rounded-2xl bg-card p-4"
+				>
+					<h2 id="ev-content" className="font-semibold text-headline">
+						{ta("contentTitle")}
+					</h2>
+					<p className="text-muted-foreground text-subhead">
+						{t("revealLead")}
+					</p>
+					<RevealWithStepUp />
+				</section>
+			)}
+			{authored && (!sensitive || ctx.stepUpFresh) && (
 				<section
 					aria-labelledby="ev-content"
 					className="mt-10 flex flex-col gap-3 rounded-2xl bg-card p-4"

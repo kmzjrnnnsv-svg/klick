@@ -10,9 +10,12 @@ import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { maskSecret, restrictedView } from "@/lib/auth/visibility";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listEvidenceWithControls } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
+import { evidenceValidity } from "@/lib/evidence/current";
+import { berlinToday } from "@/lib/evidence-studio/queries";
 
 type Row = Awaited<ReturnType<typeof listEvidenceWithControls>>[number];
 type Search = Record<string, string | string[] | undefined>;
@@ -29,9 +32,19 @@ export default async function EvidencePage({
 	const ta = await getTranslations("Authoring");
 	const te = await getTranslations("Entity");
 	const td = await getTranslations("Dlp");
-	const rows = await readOrg(toOrgCtx(ctx), (tx) =>
-		listEvidenceWithControls(tx, ctx.orgId),
+	// ersetzte Fassungen zählen nicht; auf Wunsch sichtbar (Chip)
+	const restricted = restrictedView(ctx);
+	const allVersions = one(sp.fassungen) === "1" && !restricted;
+	const rows = maskSecret(
+		ctx,
+		await readOrg(toOrgCtx(ctx), (tx) =>
+			listEvidenceWithControls(tx, ctx.orgId, {
+				includeSuperseded: allVersions,
+			}),
+		),
+		t("secretTitle"),
 	);
+	const today = berlinToday();
 	const canCreate = allows(ctx, { evidence: ["create"] });
 
 	const q = one(sp.q)?.toLowerCase();
@@ -45,6 +58,8 @@ export default async function EvidencePage({
 			? r.dlp.findings.reduce((s, f) => s + f.count, 0)
 			: 0;
 	const filtered = rows
+		// Dateien von Dokumentfassungen gehören zum Dokument (/dokumente)
+		.filter((r) => r.source !== "document")
 		.filter(
 			(r) =>
 				!q ||
@@ -61,7 +76,20 @@ export default async function EvidencePage({
 		{
 			key: "title",
 			header: t("titleField"),
-			cell: (r) => <span className="font-medium">{r.title}</span>,
+			cell: (r) => {
+				const state = evidenceValidity(r, today);
+				return (
+					<span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+						<span className="font-medium">{r.title}</span>
+						{state === "superseded" && (
+							<Badge variant="muted">{t("superseded")}</Badge>
+						)}
+						{state === "expired" && (
+							<Badge variant="warning">{t("expired")}</Badge>
+						)}
+					</span>
+				);
+			},
 		},
 		{
 			key: "type",
@@ -171,6 +199,9 @@ export default async function EvidencePage({
 			chips={[
 				{ key: "mine", label: te("chipMine") },
 				{ key: "dlp", label: td("filterHits") },
+				...(restricted
+					? []
+					: [{ key: "fassungen", label: t("showSuperseded") }]),
 			]}
 			columns={columns}
 			rows={filtered}

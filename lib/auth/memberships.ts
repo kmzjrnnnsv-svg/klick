@@ -1,7 +1,7 @@
 import { normalizeRole, type OrgRole } from "./session-rules";
 
 // Mehr-Org-Zugang (ADR-018), pure: Ein Konto hat höchstens EINE eigene
-// Mitgliedschaft (owner/editor/viewer/auditor) und beliebig viele als
+// Mitgliedschaft (owner/editor/viewer/auditor/employee) und beliebig viele als
 // Berater:in (consultant). Externe Rollen (auditor, consultant) sind
 // befristet und sehen vertrauliche Detailbereiche nur mit Grant.
 
@@ -11,6 +11,7 @@ export const ROLE_LABEL: Record<OrgRole, string> = {
 	consultant: "Berater:in (extern)",
 	viewer: "Lesend",
 	auditor: "Prüfer:in",
+	employee: "Mitarbeitende",
 };
 
 export const roleLabel = (role: string | null | undefined) =>

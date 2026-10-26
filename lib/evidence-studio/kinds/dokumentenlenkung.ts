@@ -1,7 +1,9 @@
 import { eq } from "drizzle-orm";
 import { documents, orgSettings } from "@/db/schema";
 import type { DocumentNumbering } from "@/db/schema/platform";
+import { currentVersionsByDocument } from "@/lib/documents/in-force";
 import { DEFAULT_PREFIXES, type DocType } from "@/lib/documents/numbering";
+import { inForceStatus } from "@/lib/documents/versions";
 import type { DocBlock } from "@/lib/export/doc-model";
 import { fmtDay, functionLabel } from "../generate/doc";
 import { generator } from "../generate/types";
@@ -157,8 +159,10 @@ export const dokumentenlenkung = generator<DokumentenlenkungFacts>({
 			.where(eq(orgSettings.organizationId, orgId))
 			.limit(1);
 		const numbering: DocumentNumbering = settings?.numbering ?? {};
+		const current = await currentVersionsByDocument(tx, orgId);
 		const rows = await tx
 			.select({
+				id: documents.id,
 				docNumber: documents.docNumber,
 				title: documents.title,
 				type: documents.type,
@@ -176,7 +180,11 @@ export const dokumentenlenkung = generator<DokumentenlenkungFacts>({
 				prefix: numbering[type]?.prefix ?? DEFAULT_PREFIXES[type],
 				next: numbering[type]?.next ?? null,
 			})),
-			documents: rows,
+			// läuft eine neue Fassung, gilt die bisherige weiter
+			documents: rows.map(({ id, ...r }) => ({
+				...r,
+				status: inForceStatus(r.status, current.has(id)),
+			})),
 		};
 	},
 	build: buildDokumentenlenkung,

@@ -761,6 +761,8 @@ export type DecideResult =
 			// Auslöser des Ablaufs (outcomes.ts unterscheidet z. B.
 			// risk.create von risk.accept)
 			trigger: string | null;
+			// Fassung, für die der Antrag gestellt wurde (z. B. Dokument v1.2)
+			entityVersionRef: string | null;
 	  }
 	| {
 			ok: false;
@@ -933,6 +935,7 @@ export async function decide(
 		entityId: req.entityId,
 		onBehalfOf: elig.via === "delegation" ? elig.onBehalfOf : undefined,
 		trigger: triggerOf(wf),
+		entityVersionRef: req.entityVersionRef ?? null,
 	};
 }
 

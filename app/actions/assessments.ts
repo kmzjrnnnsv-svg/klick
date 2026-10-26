@@ -25,6 +25,8 @@ import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { getOrgProfile, loadApplicability } from "@/lib/compliance/queries";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
+import { currentEvidence } from "@/lib/evidence/current";
+
 import {
 	linkEvidenceToControl,
 	screenUpload,
@@ -297,6 +299,7 @@ async function linkAnswerEvidenceImpl(input: unknown): Promise<ActionResult> {
 				and(
 					eq(evidence.id, d.evidenceId),
 					eq(evidence.organizationId, c.orgId),
+					currentEvidence(),
 				),
 			)
 			.limit(1);

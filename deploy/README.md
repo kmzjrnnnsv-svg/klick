@@ -353,11 +353,49 @@ und App bleiben gleich, nur der Socket zeigt woanders hin.
   (vorher las der Guard `member_access` ohne Org-Kontext) — vor dem Release unter Team prüfen,
   ob Ablaufdaten stimmen.
 
-## SSO je Organisation
-`@better-auth/sso` (OIDC). Owner registrieren den IdP unter Einstellungen → SSO; die E-Mail-Domain
-muss per DNS-TXT (`_klick-sso.<domain>`) verifiziert werden, bevor Logins möglich sind.
-Redirect-URI im IdP: `https://raza.work/api/auth/sso/callback/<providerId>`. Nutzer:innen der
-Domain werden als Mitglied (viewer) provisioniert; MFA-Pflicht und Sitzungsregeln gelten.
+## SSO einrichten (Entra, Google, Okta, SAML; ADR-015, ADR-026)
+`@better-auth/sso` mit eigener Provisionierung (`lib/auth/sso-provisioning.ts`). Die Inhaber:in richtet
+den Anbieter unter Einstellungen > SSO ein; der Plattform-Betrieb braucht nichts zu installieren. Adressen
+für den IdP (Klick zeigt sie im Formular zum Kopieren, `<id>` = Kennung des Anbieters in Klick):
+
+| Protokoll | Adresse im IdP |
+|---|---|
+| OIDC (Entra, Google, Okta, andere) | Umleitungs-URI `https://raza.work/api/auth/sso/callback/<id>` |
+| SAML 2.0 | ACS `https://raza.work/api/auth/sso/saml2/sp/acs/<id>`, Entity-ID `https://raza.work/api/auth/sso/saml2/sp/metadata?providerId=<id>` |
+
+1. **Microsoft Entra ID:** App-Registrierung (nur dieses Verzeichnis), Umleitungs-URI (Web), Clientgeheimnis,
+   unter Tokenkonfiguration den Gruppenanspruch (Sicherheitsgruppen als Gruppen-ID), unter
+   Unternehmensanwendungen „Zuweisung erforderlich“. In Klick Mandanten-ID, Client-ID und Geheimnis
+   eintragen; der Issuer wird `https://login.microsoftonline.com/<tenant>/v2.0`. Firmen-MFA kommt über
+   `amr` (`mfa`, `otp`, `hwk` …).
+2. **Google Workspace:** OAuth-Client (Webanwendung), Zustimmungsbildschirm „Intern“. Klick prüft `hd`
+   gegen die Domain. Google liefert weder Gruppen noch `amr`: alle Konten bekommen die Standardrolle,
+   „Firmen-MFA anerkennen“ greift hier nicht (Passkey bleibt Pflicht).
+3. **Okta / andere OIDC:** App-Integration (Authorization Code mit PKCE), Gruppen-Claim `groups`, App den
+   Gruppen zuweisen. Issuer = Okta-Domain bzw. Discovery-Adresse; „Verbindung testen“ ruft
+   `/.well-known/openid-configuration` über `safeFetch` ab.
+4. **SAML (ADFS, Entra-SAML, Keycloak …):** ACS und Entity-ID eintragen, E-Mail als NameID oder Attribut
+   `email`, Gruppen als Attribut. Metadaten-XML einfügen oder Entity-ID, SSO-URL und Zertifikat einzeln.
+   Firmen-MFA über `authnmethodsreferences` (Entra/ADFS: `…/claims/multipleauthn`) oder
+   `AuthnContextClassRef`.
+5. **Domain bestätigen:** TXT `_klick-sso.<domain>` mit dem angezeigten Wert, dann „Prüfen“. Ohne bestätigte
+   Domain gibt es keine Anmeldung und kein Erzwingen.
+6. **Regeln:** Gruppen → Rolle (Mitarbeitende, Lesend, Bearbeiter:in; nie Inhaber:in), Standardrolle ohne
+   Treffer (Vorgabe Mitarbeitende). Die Rolle wird bei **jeder** Anmeldung aus den Gruppen neu gesetzt
+   (Audit), die Ein-Org-Regel (ADR-018) gilt.
+7. **Firmen-MFA anerkennen** (aus als Vorgabe): meldet der IdP MFA, setzt Klick `mfaVerifiedAt` für die
+   Sitzung, aber nie den Step-up: Freigaben, Exporte und Einstellungen verlangen weiter Passkey oder Code.
+8. **SSO erzwingen:** Konten der bestätigten Domain bekommen Sitzungen nur noch über den SSO-Rückruf;
+   Passkey und Mail-Link melden „Bitte mit dem Firmenkonto anmelden“. Inhaber:innen behalten den Notzugang
+   per Passkey (Audit `auth.sso_bypass`). Wer im IdP gesperrt ist, kommt nicht mehr hinein; laufende
+   Sitzungen enden spätestens nach 30 min Leerlauf bzw. 12 h.
+
+**Prüfen nach dem Einrichten:** mit einem Testkonto anmelden (Rolle in Team prüfen), ein Konto ohne
+Gruppe (Standardrolle), ein Konto einer fremden Domain (abgelehnt). Vor dem Erzwingen einen Inhaber-Passkey
+testen. **Fehlersuche:** Audit der Org (`member.sso_provisioned`, `member.sso_role_changed`,
+`sso.provision_skipped` mit Grund, z. B. fremde Domain oder zweite eigene Mitgliedschaft,
+`auth.idp_mfa_accepted`, `auth.sso_bypass`), unerwartete Fehler im Journal (`journalctl -u klick`). Der feste
+„Mit Microsoft anmelden“-Knopf (`MICROSOFT_TENANT_ID`) bleibt nur für den Plattform-Betrieb.
 
 ## Wallet: Knoten, Sync, Sanktionsliste (Plan Wallet, Phase 0/1)
 > **Seit K6 nur both.money:** Klick hat keinen Wallet-Bereich mehr. Knoten, Sync und

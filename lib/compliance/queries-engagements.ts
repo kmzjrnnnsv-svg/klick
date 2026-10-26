@@ -114,6 +114,7 @@ export async function getEngagementDetail(
 						sha256: evidence.sha256,
 						createdAt: evidence.createdAt,
 					})
+					// evidence:any-version — Beauftragung und Bericht per ID
 					.from(evidence)
 					.where(
 						and(

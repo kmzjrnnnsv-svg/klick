@@ -707,6 +707,7 @@ export async function evidenceTitles(
 	if (ids.length === 0) return new Map();
 	const rows = await tx
 		.select({ id: evidence.id, title: evidence.title })
+		// evidence:any-version — Titel angehängter Unterlagen per ID
 		.from(evidence)
 		.where(
 			and(eq(evidence.organizationId, orgId), inArray(evidence.id, [...ids])),

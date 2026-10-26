@@ -124,7 +124,16 @@ export type OrgContext = {
 
 export type Permission = Partial<Record<Resource, readonly string[]>>;
 
-export async function requireOrg(perm?: Permission): Promise<OrgContext> {
+// Mitarbeitende (Grundrolle „employee“) sehen nur, was ein Recht ausdrücklich
+// erlaubt (Richtlinien, Kenntnisnahme, freigegebene Nachweise). Stellen ohne
+// Recht öffnen sich ihnen nur mit { employees: true } (Rahmen, Konto, Glocke)
+// — eine neue Seite oder Action ohne Recht bleibt ihnen so verschlossen.
+export type OrgGuardOptions = { employees?: boolean };
+
+export async function requireOrg(
+	perm?: Permission,
+	opts?: OrgGuardOptions,
+): Promise<OrgContext> {
 	const ctx = await getSessionCtx();
 	if (!ctx) throw new AuthErr("unauthenticated");
 	checkRules(ctx);
@@ -155,6 +164,8 @@ export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 	);
 	if (perm && !permissionsAllow(permissions, perm))
 		throw new AuthErr("forbidden");
+	if (!perm && orgRole === "employee" && !opts?.employees)
+		throw new AuthErr("forbidden");
 
 	touchSession(ctx);
 	return {
@@ -179,8 +190,11 @@ export async function requireOrg(perm?: Permission): Promise<OrgContext> {
 
 // Sensible Aktionen (Freigaben, Exporte, Mitglieder, Einstellungen,
 // vertrauliche Nachweise): zusätzlich frische MFA-Bestätigung.
-export async function requireStepUp(perm?: Permission): Promise<OrgContext> {
-	const c = await requireOrg(perm);
+export async function requireStepUp(
+	perm?: Permission,
+	opts?: OrgGuardOptions,
+): Promise<OrgContext> {
+	const c = await requireOrg(perm, opts);
 	if (!c.stepUpFresh) throw new AuthErr("step_up_required");
 	return c;
 }

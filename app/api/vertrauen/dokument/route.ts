@@ -111,6 +111,7 @@ export const GET = ingestRoute("trust.document", async (req: Request) => {
 					fileName: evidence.fileName,
 					mimeType: evidence.mimeType,
 				})
+				// evidence:any-version — Datei der veröffentlichten Fassung per ID
 				.from(evidence)
 				.where(
 					and(

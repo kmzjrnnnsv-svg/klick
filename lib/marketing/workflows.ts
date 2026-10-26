@@ -53,6 +53,23 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 					"Ein Konto ohne Passwort; Sitzung höchstens 12 Stunden, nach 30 Minuten Leerlauf neu anmelden.",
 			},
 			{
+				key: "sso",
+				name: "Anmelden mit dem Firmenkonto",
+				summary:
+					"Microsoft Entra ID, Google Workspace, Okta oder SAML je Organisation, mit Rollen aus den Gruppen.",
+				where: "Einstellungen > SSO",
+				trigger:
+					"Die Organisation will Konten zentral im eigenen Verzeichnis verwalten.",
+				steps: [
+					"Anbieter wählen und der Anleitung folgen; Klick zeigt Weiterleitungsadresse bzw. SAML-Metadaten zum Kopieren.",
+					"Domain per DNS-Eintrag bestätigen und die Verbindung testen.",
+					"Gruppen den Rollen zuordnen (Mitarbeitende, Lesend, Bearbeiter:in); neue Konten entstehen bei der ersten Anmeldung.",
+					"Optional die Firmen-MFA anerkennen und SSO für die Firmen-Domain erzwingen; Inhaber:innen behalten einen Notzugang per Passkey.",
+				],
+				result:
+					"Wer im Firmenkonto gesperrt ist, kommt nicht mehr in Klick; Rollen folgen den Gruppen, jede Änderung steht im Protokoll.",
+			},
+			{
 				key: "setup",
 				name: "Geführte Einrichtung",
 				summary:
@@ -94,7 +111,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				trigger: "Jemand soll mitarbeiten oder prüfen.",
 				steps: [
 					"Einladen als Link zum Kopieren, Mail optional.",
-					"Grundrolle wählen: Inhaber:in, Bearbeiter:in, Lesend, Prüfer:in oder Berater:in.",
+					"Grundrolle wählen: Inhaber:in, Bearbeiter:in, Lesend, Mitarbeitende, Prüfer:in oder Berater:in.",
 					"Eigene Rollen wie Einkauf oder Recht ergänzen; ihre Rechte kommen zur Grundrolle hinzu.",
 					"Externe sehen vertrauliche Bereiche nur mit ausdrücklicher Freigabe; ihr Zugang läuft ab (42 bzw. 90 Tage).",
 				],
@@ -208,6 +225,40 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				],
 				result:
 					"Versionen mit Unterschieden, Kenntnisnahmen je Person und Pflichtdokumente je Rahmenwerk im Blick.",
+			},
+			{
+				key: "staff-policies",
+				name: "Richtlinien an Mitarbeitende",
+				summary:
+					"Gültige Richtlinien lesen und bestätigen, mit Konto oder über ein Portal mit Einmal-Code.",
+				where: "Richtlinien, Einstellungen > Richtlinien-Portal",
+				trigger:
+					"Eine Richtlinie wird veröffentlicht oder bekommt eine neue Fassung.",
+				steps: [
+					"Im Verteiler wählen, wer sie lesen soll: alle, Mitarbeitende oder bestimmte Funktionen.",
+					"Mitarbeitende mit Konto sehen nur ihre Richtlinien; ohne Konto öffnen sie das Portal und bekommen einen Code an die Firmen-Adresse.",
+					"Lesen und „Zur Kenntnis genommen“ tippen; Klick hält Fassung und Zeitpunkt fest.",
+					"Ausgewählte Nachweise lassen sich für Mitarbeitende freigeben, etwa ein Notfallplan als Datei.",
+				],
+				result:
+					"Kenntnisnahmen je Fassung und Person am Dokument, auch aus dem Portal; vertrauliche Unterlagen sehen Mitarbeitende nie.",
+			},
+			{
+				key: "versions",
+				name: "Fassungen und Prüfer-Sicht",
+				summary:
+					"Was einmal freigegeben ist, bleibt so; Prüfer:innen sehen nur, was gilt.",
+				where: "Dokumente, Nachweise",
+				trigger:
+					"Ein Dokument wird eingereicht oder ein Nachweis bekommt eine neue Fassung.",
+				steps: [
+					"Beim Einreichen schreibt Klick Text und Datei in eine Fassung mit Nummer und Prüfsumme fest.",
+					"Die Freigabe gilt genau dieser Fassung; veröffentlicht lässt sie sich auch in der Datenbank nicht mehr ändern.",
+					"Eine neue Nachweis-Fassung übernimmt Controls und Einstufung, die alte zählt nicht mehr.",
+					"Prüfer:innen sehen nur gültige Fassungen, abgelaufene Nachweise deutlich markiert; Berater:innen sehen auch Entwürfe und Verlauf.",
+				],
+				result:
+					"Ein Prüfungspaket mit jeder Fassung, die im Prüfzeitraum galt, samt „gilt von“ und „gilt bis“.",
 			},
 			{
 				key: "trainings",
@@ -839,6 +890,10 @@ export const FEATURE_FAQ: { q: string; a: string }[] = [
 		a: "Nein. Du meldest dich mit einem Passkey an: Fingerabdruck, Gesicht oder Geräte-PIN. Er zählt als beide Faktoren. Für den Notfall gibt es einen Mail-Link, nur für bestehende Konten.",
 	},
 	{
+		q: "Geht die Anmeldung auch mit unserem Firmenkonto?",
+		a: "Ja. Je Organisation lässt sich Microsoft Entra ID, Google Workspace, Okta oder ein anderer Anbieter über OIDC oder SAML einrichten. Rollen kommen aus euren Gruppen, die Firmen-MFA kann zählen, und SSO lässt sich für eure Domain erzwingen.",
+	},
+	{
 		q: "Wer sieht meine Daten?",
 		a: "Deine Organisation. Die Datenbank trennt jede Zeile nach Organisation, Dateien und sensible Felder sind mit eurem eigenen Schlüssel verschlüsselt. Prüfer:innen und Berater:innen sehen nur, was ihre Rolle erlaubt, und nur befristet. Wir als Betreiber greifen nur im Support- oder Störungsfall zu, mit Begründung, und jeder Zugriff steht im Audit-Log.",
 	},
@@ -853,6 +908,10 @@ export const FEATURE_FAQ: { q: string; a: string }[] = [
 	{
 		q: "Bekomme ich meine Daten wieder heraus?",
 		a: "Ja. Prüfungspaket, Informationsregister und ein vollständiger Export aller Daten deiner Organisation stehen als ZIP bereit, mit Prüfsummen und nach Bestätigung per Passkey.",
+	},
+	{
+		q: "Gibt es eine Anleitung?",
+		a: "Ja. Unter „Hilfe“ erklärt Klick jeden Bereich Schritt für Schritt: wozu er da ist, wer was darf, was Klick von selbst tut und welche Normen und Rahmenwerke dahinterstehen. Oben rechts öffnet „Hilfe zu dieser Seite“ den passenden Artikel.",
 	},
 	{
 		q: "Wie lange dauert der Einstieg?",

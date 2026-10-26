@@ -23,6 +23,8 @@ import type {
 	OrgRoleLegal,
 } from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
+import { currentEvidence } from "@/lib/evidence/current";
+
 import { mergeApplicability } from "./applicability";
 import {
 	CATALOG_EDGES,
@@ -305,20 +307,28 @@ export async function listEvidenceForImplementation(
 			and(
 				eq(controlEvidence.organizationId, orgId),
 				eq(controlEvidence.implementationId, implementationId),
+				currentEvidence(),
 			),
 		)
 		.orderBy(desc(evidence.createdAt))
 		.then((rows) => rows.map((r) => r.e));
 }
 
+// Register: nur aktuelle Fassungen, auf Wunsch auch ersetzte
 export async function listEvidence(
 	tx: OrgTx,
 	orgId: string,
+	opts: { includeSuperseded?: boolean } = {},
 ): Promise<EvidenceRow[]> {
 	return tx
 		.select()
 		.from(evidence)
-		.where(eq(evidence.organizationId, orgId))
+		.where(
+			and(
+				eq(evidence.organizationId, orgId),
+				opts.includeSuperseded ? undefined : currentEvidence(),
+			),
+		)
 		.orderBy(desc(evidence.createdAt));
 }
 
@@ -326,6 +336,7 @@ export async function listEvidence(
 export async function evidenceDetail(tx: OrgTx, orgId: string, id: string) {
 	const [row] = await tx
 		.select()
+		// evidence:any-version — Detailseite zeigt jede Fassung
 		.from(evidence)
 		.where(and(eq(evidence.id, id), eq(evidence.organizationId, orgId)))
 		.limit(1);
@@ -333,6 +344,7 @@ export async function evidenceDetail(tx: OrgTx, orgId: string, id: string) {
 	const [linked, newer, older, signatures, names] = await Promise.all([
 		tx
 			.select({ code: controls.code, title: controls.title })
+			// evidence:any-version — Controls und Nachbarn dieser Fassung
 			.from(controlEvidence)
 			.innerJoin(
 				controlImplementations,
@@ -346,13 +358,18 @@ export async function evidenceDetail(tx: OrgTx, orgId: string, id: string) {
 				),
 			)
 			.orderBy(asc(controls.code)),
-		tx
-			.select({ id: evidence.id, title: evidence.title })
-			.from(evidence)
-			.where(
-				and(eq(evidence.organizationId, orgId), eq(evidence.supersedesId, id)),
-			)
-			.limit(1),
+		row.supersededById
+			? tx
+					.select({ id: evidence.id, title: evidence.title })
+					.from(evidence)
+					.where(
+						and(
+							eq(evidence.organizationId, orgId),
+							eq(evidence.id, row.supersededById),
+						),
+					)
+					.limit(1)
+			: Promise.resolve([]),
 		row.supersedesId
 			? tx
 					.select({ id: evidence.id, title: evidence.title })
@@ -498,13 +515,15 @@ export async function listMembersForPicker(
 export async function listEvidenceWithControls(
 	tx: OrgTx,
 	orgId: string,
+	opts: { includeSuperseded?: boolean } = {},
 ): Promise<
 	(EvidenceRow & { controlCodes: string[]; createdByName: string | null })[]
 > {
-	const rows = await listEvidence(tx, orgId);
+	const rows = await listEvidence(tx, orgId, opts);
 	if (rows.length === 0) return [];
 	const links = await tx
 		.select({ evidenceId: controlEvidence.evidenceId, code: controls.code })
+		// evidence:any-version — Zuordnung zu den gelesenen Nachweisen
 		.from(controlEvidence)
 		.innerJoin(
 			controlImplementations,

@@ -8,6 +8,7 @@ import {
 	requirements,
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
+import { inForceStatus } from "@/lib/documents/versions";
 import { ALL_REQUIREMENTS, CONTROL_BY_CODE } from "./catalog";
 import { WORKFLOW_BY_KIND } from "./catalog/approval-workflows";
 import { mandatoryTemplatesFor } from "./catalog/document-templates";
@@ -227,7 +228,12 @@ export async function loadReadiness(
 	const docRank = (s: string) =>
 		s === "published" ? 0 : s === "approved" ? 1 : s === "in_review" ? 2 : 3;
 	const docByTemplate = new Map<string, (typeof docs)[number]>();
-	for (const d of docs) {
+	for (const raw of docs) {
+		// läuft eine neue Fassung, gilt das Dokument mit der bisherigen weiter
+		const d = {
+			...raw,
+			status: inForceStatus(raw.status, raw.current !== null),
+		};
 		if (!d.templateCode || d.status === "retired" || d.status === "superseded")
 			continue;
 		const prev = docByTemplate.get(d.templateCode);

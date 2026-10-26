@@ -501,6 +501,8 @@ export const ACCESS_GRANTS = [
 	"whistleblowing_detail",
 	"complaints_detail",
 	"secret_evidence",
+	// Entwürfe, Arbeitskopien und ersetzte Fassungen (lib/auth/visibility.ts)
+	"work_in_progress",
 ] as const;
 
 export const memberAccessSchema = z.object({

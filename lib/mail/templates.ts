@@ -277,6 +277,27 @@ export function supplierPortalEmail(input: {
 
 // Trust Center: Zugang zu vertraulichen Unterlagen nach Freigabe. Der Link
 // trägt den Token im Fragment (#klk_trust_…) — ohne Konto, befristet.
+// Richtlinien-Portal (M2): Einmal-Code, 10 Minuten gültig. Kein Link mit
+// Token — wer die Mail weiterleitet, gibt nur einen bald ungültigen Code weiter.
+export function portalCodeEmail(input: {
+	organization: string;
+	code: string;
+	url: string;
+}): { subject: string; text: string; html: string } {
+	const body = `Dein Code für die Richtlinien von ${input.organization}: ${input.code}\n\nGib ihn auf der Seite ein, auf der du ihn angefordert hast. Er gilt 10 Minuten und nur einmal.`;
+	return transactionalEmail({
+		// Code nie im Betreff: Prod loggt bei Zustellfehlern den Betreff
+		subject: `Dein Code für die Richtlinien von ${input.organization}`,
+		eyebrow: "Richtlinien",
+		title: `Dein Code: ${input.code}`,
+		body,
+		bodyHtml: escapeHtml(body).replace(/\n/g, "<br>"),
+		cta: { label: "Richtlinien öffnen", url: input.url },
+		footnote:
+			"Wenn du keinen Code angefordert hast, ignoriere diese Mail. Ohne den Code kommt niemand hinein.",
+	});
+}
+
 export function trustAccessEmail(input: {
 	url: string;
 	organization: string;

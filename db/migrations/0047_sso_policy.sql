@@ -1,0 +1,1 @@
+ALTER TABLE "org_settings" ADD COLUMN "sso_policy" jsonb DEFAULT '{}'::jsonb NOT NULL;

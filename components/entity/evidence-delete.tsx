@@ -34,7 +34,7 @@ export function DeleteEvidenceButton({ id }: { id: string }) {
 				<Button
 					variant="ghost"
 					size="sm"
-					className="text-destructive"
+					className="text-destructive hover:bg-destructive/10"
 					disabled={pending}
 				>
 					<Trash2 aria-hidden="true" />
@@ -57,7 +57,9 @@ export function DeleteEvidenceButton({ id }: { id: string }) {
 										toast.error(
 											res.error === "signed"
 												? t("deleteSigned")
-												: errorText(tc, res),
+												: res.error === "in_document"
+													? t("deleteInDocument")
+													: errorText(tc, res),
 										);
 									return;
 								}

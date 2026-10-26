@@ -220,6 +220,7 @@ export async function listSsoProvidersForOrg(orgId: string) {
 			domain: ssoProvider.domain,
 			domainVerified: ssoProvider.domainVerified,
 			oidcConfig: ssoProvider.oidcConfig,
+			samlConfig: ssoProvider.samlConfig,
 		})
 		.from(ssoProvider)
 		.where(eq(ssoProvider.organizationId, orgId))
@@ -238,6 +239,7 @@ export async function listSsoProvidersForOrg(orgId: string) {
 			providerId: r.providerId,
 			issuer: r.issuer,
 			domain: r.domain,
+			protocol: (r.samlConfig ? "saml" : "oidc") as "saml" | "oidc",
 			domainVerified: Boolean(r.domainVerified),
 			clientId: typeof cfg.clientId === "string" ? cfg.clientId : null,
 			discoveryEndpoint:

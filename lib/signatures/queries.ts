@@ -18,6 +18,7 @@ export async function evidenceWithSignatures(
 			kindCode: evidence.kindCode,
 			createdAt: evidence.createdAt,
 		})
+		// evidence:any-version — Prüfseite je Fassung per ID
 		.from(evidence)
 		.where(and(eq(evidence.id, id), eq(evidence.organizationId, orgId)))
 		.limit(1);

@@ -4,6 +4,7 @@ import {
 	type AuthErrorCode,
 	getSessionCtx,
 	type OrgContext,
+	type OrgGuardOptions,
 	type PlatformAdminContext,
 	requireOrg,
 	requirePlatformAdmin,
@@ -53,9 +54,10 @@ async function expiredTarget(): Promise<string> {
 // nutzen weiterhin requireOrg()/requireStepUp() und geben Fehlercodes zurück.
 export async function requireOrgPage(
 	perm?: Parameters<typeof requireOrg>[0],
+	opts?: OrgGuardOptions,
 ): Promise<OrgContext> {
 	try {
-		return await requireOrg(perm);
+		return await requireOrg(perm, opts);
 	} catch (e) {
 		if (e instanceof AuthError)
 			redirect(
@@ -77,7 +79,9 @@ export async function requirePlatformAdminPage(): Promise<PlatformAdminContext> 
 }
 
 // (app): eingeloggt + MFA + Org, sonst Redirect.
-export const gateApp = (): Promise<OrgContext> => requireOrgPage();
+// Mitarbeitende dürfen in den Rahmen; die Seiten prüfen selbst.
+export const gateApp = (): Promise<OrgContext> =>
+	requireOrgPage(undefined, { employees: true });
 
 // (admin): Plattform-Admin.
 export const gateAdmin = (): Promise<PlatformAdminContext> =>

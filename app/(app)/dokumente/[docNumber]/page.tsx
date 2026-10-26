@@ -1,10 +1,12 @@
-import { Download } from "lucide-react";
+import { ChevronRight, Download } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { AckButton } from "@/components/documents/ack-button";
 import { ApproverFunctionSelect } from "@/components/documents/approver-select";
+import { DistributionEditor } from "@/components/documents/distribution-editor";
+import { DocumentFileForm } from "@/components/documents/document-file-form";
 import {
 	DocumentEditor,
 	NewVersionDialog,
@@ -16,11 +18,12 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
-import { EvidenceForm } from "@/components/entity/evidence-form";
 import { ResponsibleEditor } from "@/components/entity/responsible-editor";
 import { StatusButton } from "@/components/entity/status-button";
 import { WatchButton } from "@/components/entity/watch-button";
+import { MarkdownView } from "@/components/markdown-view";
 import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { canDecideNow } from "@/lib/approvals/rules";
 import {
@@ -32,6 +35,7 @@ import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { hidesSecret, restrictedView } from "@/lib/auth/visibility";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
 	listComments,
@@ -43,10 +47,17 @@ import { getDocumentByNumber } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { diffLines } from "@/lib/documents/diff";
 import {
+	currentPublished,
+	type VersionState,
+	validRanges,
+	versionState,
+} from "@/lib/documents/versions";
+import {
 	type ActivityEntry,
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
+import { portalAcknowledgementsFor } from "@/lib/policy-portal/admin";
 
 export default async function DocumentDetailPage({
 	params,
@@ -105,7 +116,10 @@ export default async function DocumentDetailPage({
 		dels,
 		names,
 	} = data;
-	const canEdit = allows(ctx, { document: ["update"] });
+	// Prüfer-Sicht: nur die gültige Fassung, keine Arbeitskopie, Freigabe
+	// oder Verlauf; streng geheim ohne Grant nur der Hinweis
+	const restricted = restrictedView(ctx);
+	const canEdit = allows(ctx, { document: ["update"] }) && !restricted;
 	const me = candidates.find((c) => c.userId === ctx.userId);
 	const step = approval?.steps.find((s) => s.order === approval.currentStep);
 	const eligible = Boolean(
@@ -125,17 +139,79 @@ export default async function DocumentDetailPage({
 				approval.decisions.filter((d) => d.step === approval.currentStep),
 			),
 	);
-	const currentVersion = versions.find((v) => v.version === doc.version);
-	const acksForCurrent = currentVersion
-		? acks.filter((a) => a.documentVersionId === currentVersion.id)
+	// Gültig ist die zuletzt veröffentlichte, nicht zurückgezogene Fassung;
+	// die Arbeitskopie (Entwurf, in Prüfung, freigegeben) steht getrennt
+	const current = currentPublished(versions);
+	if (restricted && !current) notFound();
+	if (hidesSecret(ctx, doc))
+		return (
+			<EntityLayout
+				back={{ href: "/dokumente", label: tNav("documents") }}
+				eyebrow={doc.docNumber}
+				title={t("secretTitle")}
+				aside={null}
+			>
+				<p className="text-muted-foreground text-subhead">{t("secretLead")}</p>
+			</EntityLayout>
+		);
+	const ranges = validRanges(versions);
+	const working =
+		doc.status === "draft" ||
+		doc.status === "in_review" ||
+		doc.status === "approved";
+	const acksForCurrent = current
+		? acks.filter((a) => a.documentVersionId === current.id)
 		: [];
 	const myAck = acksForCurrent.some((a) => a.userId === ctx.userId);
-	const published = versions.filter((v) => v.publishedAt);
-	const prev = published.find((v) => v.version !== doc.version);
+	// Kenntnisnahmen über das Richtlinien-Portal (Leser:innen ohne Konto)
+	const portalAcks =
+		current && !restricted
+			? await readOrg(toOrgCtx(ctx), (tx) =>
+					portalAcknowledgementsFor(tx, ctx.orgId, current.id),
+				)
+			: [];
 	const diff =
-		prev && doc.bodyMarkdown && prev.bodyMarkdown
-			? diffLines(prev.bodyMarkdown, doc.bodyMarkdown)
+		working && current && doc.bodyMarkdown && current.bodyMarkdown
+			? diffLines(current.bodyMarkdown, doc.bodyMarkdown)
 			: null;
+	// Altbestand: veröffentlichte Fassung trägt einen anderen Text als die
+	// Arbeitskopie (vor Migration 0042 möglich) — neu einreichen
+	const stale =
+		!working &&
+		current !== null &&
+		((current.bodyMarkdown ?? "") !== (doc.bodyMarkdown ?? "") ||
+			(current.fileEvidenceId ?? null) !== (doc.fileEvidenceId ?? null));
+	const stateVariant: Record<
+		VersionState,
+		"success" | "default" | "outline" | "muted" | "warning"
+	> = {
+		current: "success",
+		approved: "default",
+		in_review: "warning",
+		draft: "outline",
+		superseded: "muted",
+		retired: "muted",
+	};
+	const basisVersions = versions
+		.filter((v) => v.approvedAt || v.publishedAt)
+		.map((v) => v.version);
+	const workingTitle =
+		doc.status === "in_review"
+			? t("workingCopyReview", { version: doc.version })
+			: doc.status === "approved"
+				? t("workingCopyApproved", { version: doc.version })
+				: t("workingCopy", { version: doc.version });
+	const fileLink = (id: string, label: string) => (
+		<p className="text-subhead">
+			<a
+				href={`/api/nachweise/${id}`}
+				className="hit-area inline-flex items-center gap-1 text-primary hover:underline"
+			>
+				<Download aria-hidden="true" className="size-4" />
+				{label}
+			</a>
+		</p>
+	);
 
 	const entries: ActivityEntry[] = mergeActivity(
 		toHistoryItems(history),
@@ -155,21 +231,33 @@ export default async function DocumentDetailPage({
 	return (
 		<EntityLayout
 			back={{ href: "/dokumente", label: tNav("documents") }}
-			eyebrow={`${doc.docNumber} · ${t(`type_${doc.type}`)} · v${doc.version}`}
+			eyebrow={`${doc.docNumber} · ${t(`type_${doc.type}`)} · v${restricted && current ? current.version : doc.version}`}
 			title={doc.title}
 			status={
-				<StatusButton
-					target={{ kind: "document", documentId: doc.id, status: doc.status }}
-					disabled={!canEdit}
-				/>
+				restricted ? (
+					<Badge variant="success">{t("state_current")}</Badge>
+				) : (
+					<StatusButton
+						target={{
+							kind: "document",
+							documentId: doc.id,
+							status: doc.status,
+						}}
+						disabled={!canEdit}
+					/>
+				)
 			}
 			actions={
 				<>
-					{doc.status === "published" && !myAck && (
+					{current && !myAck && !restricted && (
 						<AckButton documentId={doc.id} />
 					)}
-					{canEdit && doc.status !== "draft" && (
-						<NewVersionDialog documentId={doc.id} />
+					{canEdit && !working && (
+						<NewVersionDialog
+							documentId={doc.id}
+							version={doc.version}
+							basisVersions={basisVersions}
+						/>
 					)}
 					<WatchButton
 						entityType="document"
@@ -180,6 +268,14 @@ export default async function DocumentDetailPage({
 			}
 			meta={
 				<>
+					<MetaItem label={t("current")}>
+						{current
+							? t("inForceSince", {
+									version: current.version,
+									date: fmtDate.format(current.publishedAt ?? new Date()),
+								})
+							: t("currentNone")}
+					</MetaItem>
 					<MetaItem label={t("owner")}>
 						<ResponsibleEditor
 							entity="document"
@@ -199,6 +295,13 @@ export default async function DocumentDetailPage({
 						/>
 					</MetaItem>
 					<MetaItem label={t("classification")}>{doc.classification}</MetaItem>
+					<MetaItem label={t("distribution")}>
+						<DistributionEditor
+							documentId={doc.id}
+							value={doc.distribution}
+							canEdit={canEdit}
+						/>
+					</MetaItem>
 					<MetaItem label={t("nextReview")}>
 						{doc.nextReviewAt
 							? fmtDate.format(new Date(doc.nextReviewAt))
@@ -208,29 +311,33 @@ export default async function DocumentDetailPage({
 			}
 			aside={
 				<>
-					<DecisionRequestsBlock
-						ctx={ctx}
-						kind="document"
-						id={doc.id}
-						title={`${doc.docNumber} ${doc.title}`}
-					/>
-					<Section title={te("activity")}>
-						<CommentForm
-							entityType="document"
-							entityId={doc.id}
-							link={`/dokumente/${encodeURIComponent(doc.docNumber)}`}
+					{!restricted && (
+						<DecisionRequestsBlock
+							ctx={ctx}
+							kind="document"
+							id={doc.id}
+							title={`${doc.docNumber} ${doc.title}`}
 						/>
-						<ActivityStream
-							entries={entries}
-							names={names}
-							labels={{
-								empty: te("activityEmpty"),
-								changed: te("changed"),
-								commented: te("commented"),
-								system: te("system"),
-							}}
-						/>
-					</Section>
+					)}
+					{!restricted && (
+						<Section title={te("activity")}>
+							<CommentForm
+								entityType="document"
+								entityId={doc.id}
+								link={`/dokumente/${encodeURIComponent(doc.docNumber)}`}
+							/>
+							<ActivityStream
+								entries={entries}
+								names={names}
+								labels={{
+									empty: te("activityEmpty"),
+									changed: te("changed"),
+									commented: te("commented"),
+									system: te("system"),
+								}}
+							/>
+						</Section>
+					)}
 					<Section title={t("controls")}>
 						{controls.length === 0 ? (
 							<p className="text-muted-foreground text-subhead">—</p>
@@ -258,53 +365,113 @@ export default async function DocumentDetailPage({
 				</>
 			}
 		>
-			<ApprovalBar
-				data={
-					approval
-						? {
-								...approval,
-								decisions: approval.decisions.map((d) => ({
-									step: d.step,
-									approverUserId: d.approverUserId,
-									decision: d.decision,
-									note: d.note,
-									decidedAt: d.decidedAt,
-								})),
-							}
-						: null
-				}
-				names={names}
-				eligible={eligible}
-				currentUserId={ctx.userId}
-			/>
+			{!restricted && (
+				<ApprovalBar
+					data={
+						approval
+							? {
+									...approval,
+									decisions: approval.decisions.map((d) => ({
+										step: d.step,
+										approverUserId: d.approverUserId,
+										decision: d.decision,
+										note: d.note,
+										decidedAt: d.decidedAt,
+									})),
+								}
+							: null
+					}
+					names={names}
+					eligible={eligible}
+					currentUserId={ctx.userId}
+				/>
+			)}
 
-			<Section
-				title={t("content")}
-				actions={
-					canEdit && doc.status === "draft" ? (
-						<EvidenceForm label={t("file")} />
-					) : null
-				}
-			>
-				{doc.fileEvidenceId && (
-					<p className="text-subhead">
-						<a
-							href={`/api/nachweise/${doc.fileEvidenceId}`}
-							className="inline-flex items-center gap-1 text-primary hover:underline"
-						>
-							<Download aria-hidden="true" className="size-4" />
-							{t("file")}
-						</a>
+			<Section title={t("inForce")}>
+				{current ? (
+					<>
+						<p className="text-muted-foreground text-footnote">
+							{t("inForceSince", {
+								version: current.version,
+								date: fmtDate.format(current.publishedAt ?? new Date()),
+							})}
+						</p>
+						{stale && (
+							<Alert variant="warning">
+								<AlertDescription>{t("staleText")}</AlertDescription>
+							</Alert>
+						)}
+						{current.fileEvidenceId &&
+							fileLink(
+								current.fileEvidenceId,
+								t("fileOfVersion", { version: current.version }),
+							)}
+						{current.bodyMarkdown && working ? (
+							// während ein Entwurf läuft: Text eingeklappt, der Unterschied
+							// steht unten
+							<details className="group rounded-2xl bg-card text-subhead">
+								<summary className="flex min-h-(--control-h) cursor-pointer items-center gap-2 px-4 text-primary">
+									<ChevronRight
+										aria-hidden="true"
+										className="size-4 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+									/>
+									{t("showCurrentText", { version: current.version })}
+								</summary>
+								<div className="border-border/60 border-t px-4 pb-4">
+									<MarkdownView source={current.bodyMarkdown} />
+								</div>
+							</details>
+						) : current.bodyMarkdown ? (
+							<MarkdownView source={current.bodyMarkdown} />
+						) : (
+							!current.fileEvidenceId && (
+								<p className="text-muted-foreground text-subhead">
+									{t("noContent")}
+								</p>
+							)
+						)}
+					</>
+				) : (
+					<p className="text-muted-foreground text-subhead">
+						{doc.status === "retired" ? t("inForceRetired") : t("inForceNone")}
 					</p>
 				)}
-				<DocumentEditor
-					documentId={doc.id}
-					body={doc.bodyMarkdown ?? ""}
-					editable={canEdit && doc.status === "draft"}
-				/>
 			</Section>
 
-			{diff && (
+			{working && !restricted && (
+				<Section
+					title={workingTitle}
+					actions={
+						canEdit && doc.status === "draft" ? (
+							<DocumentFileForm
+								documentId={doc.id}
+								hasFile={doc.fileEvidenceId !== null}
+							/>
+						) : null
+					}
+				>
+					{current && (
+						<p className="text-muted-foreground text-footnote">
+							{t("workingCopyLead", { version: current.version })}
+						</p>
+					)}
+					{doc.changeSummary && (
+						<p className="text-subhead">{doc.changeSummary}</p>
+					)}
+					{doc.fileEvidenceId &&
+						fileLink(
+							doc.fileEvidenceId,
+							t("fileOfVersion", { version: doc.version }),
+						)}
+					<DocumentEditor
+						documentId={doc.id}
+						body={doc.bodyMarkdown ?? ""}
+						editable={canEdit && doc.status === "draft"}
+					/>
+				</Section>
+			)}
+
+			{diff && !restricted && (
 				<Section title={t("diff")}>
 					<pre className="max-h-96 overflow-auto rounded-xl bg-muted p-3 font-mono text-footnote">
 						{diff.map((l, i) => (
@@ -327,44 +494,77 @@ export default async function DocumentDetailPage({
 				</Section>
 			)}
 
-			<Section title={t("versions")}>
-				{versions.length === 0 ? (
-					<p className="text-muted-foreground text-subhead">
-						{t("versionsEmpty")}
-					</p>
-				) : (
-					<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
-						{versions.map((v) => (
-							<li
-								key={v.id}
-								className="flex flex-wrap items-center gap-2 px-3 py-2"
-							>
-								<Badge
-									variant={v.version === doc.version ? "default" : "outline"}
-								>
-									v{v.version}
-								</Badge>
-								<span className="min-w-0 flex-1 truncate">
-									{v.changeSummary}
-								</span>
-								<span className="text-muted-foreground text-footnote">
-									{v.approvedAt
-										? t("approvedBy", {
-												name: names.get(v.approvedByUserId ?? "") ?? "—",
-												date: fmtDate.format(v.approvedAt),
-											})
-										: ""}
-									{v.publishedAt ? ` · ${fmtDate.format(v.publishedAt)}` : ""}
-								</span>
-							</li>
-						))}
-					</ul>
-				)}
-			</Section>
+			{!restricted && (
+				<Section title={t("versions")}>
+					{versions.length === 0 ? (
+						<p className="text-muted-foreground text-subhead">
+							{t("versionsEmpty")}
+						</p>
+					) : (
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
+							{versions.map((v) => {
+								const state = versionState(v, doc, versions);
+								const range = ranges.get(v.id);
+								return (
+									<li key={v.id} className="flex flex-col gap-1 px-4 py-2.5">
+										<div className="flex flex-wrap items-center gap-2">
+											<span className="font-medium tabular-nums">
+												v{v.version}
+											</span>
+											<Badge variant={stateVariant[state]}>
+												{t(`state_${state}`)}
+											</Badge>
+											<span className="min-w-0 flex-1 break-words">
+												{v.changeSummary}
+											</span>
+										</div>
+										<p className="flex flex-wrap gap-x-3 text-muted-foreground text-footnote">
+											{range && (
+												<span>
+													{range.until
+														? t("validRange", {
+																from: fmtDate.format(range.from),
+																until: fmtDate.format(range.until),
+															})
+														: t("validFrom", {
+																from: fmtDate.format(range.from),
+															})}
+												</span>
+											)}
+											{v.approvedAt && (
+												<span>
+													{names.get(v.approvedByUserId ?? "")
+														? t("approvedBy", {
+																name: names.get(v.approvedByUserId ?? "") ?? "",
+																date: fmtDate.format(v.approvedAt),
+															})
+														: t("approvedOn", {
+																date: fmtDate.format(v.approvedAt),
+															})}
+												</span>
+											)}
+											{v.fileEvidenceId && (
+												<a
+													href={`/api/nachweise/${v.fileEvidenceId}`}
+													className="hit-area inline-flex items-center gap-1 text-primary hover:underline"
+												>
+													<Download aria-hidden="true" className="size-3.5" />
+													{t("file")}
+												</a>
+											)}
+										</p>
+									</li>
+								);
+							})}
+						</ul>
+					)}
+				</Section>
+			)}
 
-			{doc.status === "published" && (
+			{current && !restricted && (
 				<Section title={t("acknowledgements")}>
 					<p className="text-subhead">
+						{t("ackFor", { version: current.version })} ·{" "}
 						{t("ackQuota", {
 							done: acksForCurrent.length,
 							total: members.length,
@@ -380,6 +580,23 @@ export default async function DocumentDetailPage({
 							);
 						})}
 					</ul>
+					{portalAcks.length > 0 && (
+						<div className="flex flex-col gap-1.5">
+							<p className="text-subhead">
+								{t("ackPortal", { count: portalAcks.length })}
+							</p>
+							<ul className="flex flex-wrap gap-1.5 text-footnote">
+								{portalAcks.map((a) => (
+									<Badge key={a.email} variant="success">
+										<span translate="no">{a.email}</span>
+									</Badge>
+								))}
+							</ul>
+							<p className="text-muted-foreground text-footnote">
+								{t("ackPortalNote")}
+							</p>
+						</div>
+					)}
 				</Section>
 			)}
 		</EntityLayout>

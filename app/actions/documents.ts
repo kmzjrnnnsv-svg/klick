@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
 	controls,
@@ -12,28 +12,41 @@ import {
 	orgSettings,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
-import { requestApproval } from "@/lib/approvals/service";
+import { requestApproval, withdrawOpenRequests } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import { allows } from "@/lib/auth/permissions";
+import { restrictedView } from "@/lib/auth/visibility";
 import {
 	DOCUMENT_TEMPLATES,
 	defaultApproverFunction,
 	TEMPLATE_BY_CODE,
 } from "@/lib/compliance/catalog/document-templates";
+import { functionsOf } from "@/lib/compliance/function-holders";
 import {
+	loadAssignments,
 	ownerColumns,
 	resolveResponsible,
 } from "@/lib/compliance/function-holders-service";
 import { listMembersForPicker } from "@/lib/compliance/queries";
-import { mutateOrg } from "@/lib/db/with-org";
+import { mutateOrg, readOrg } from "@/lib/db/with-org";
+import { inDistribution } from "@/lib/documents/distribution";
 import {
 	bumpVersion,
 	guessDocType,
 	nextDocNumber,
 	titleFromFileName,
 } from "@/lib/documents/numbering";
+import {
+	markVersionApproved,
+	snapshotForReview,
+} from "@/lib/documents/version-service";
+import { currentPublished } from "@/lib/documents/versions";
 import { DOCUMENT_STATUS_MACHINE } from "@/lib/entities/document";
 import { canTransition } from "@/lib/entities/status-machine";
+import { currentEvidence } from "@/lib/evidence/current";
+import { screenUpload, storeEncryptedEvidence } from "@/lib/evidence/store";
 import { notify } from "@/lib/notifications/notify";
+import { getOrgLimiter } from "@/lib/rate-limit";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	acknowledgeSchema,
@@ -45,6 +58,20 @@ import {
 } from "@/lib/validation/registers";
 
 type Tx = Parameters<Parameters<typeof mutateOrg>[1]>[0];
+
+// Fassungen eines Dokuments für die Ableitung der gültigen Fassung
+async function versionRows(tx: Tx, documentId: string) {
+	return tx
+		.select({
+			id: documentVersions.id,
+			version: documentVersions.version,
+			approvedAt: documentVersions.approvedAt,
+			publishedAt: documentVersions.publishedAt,
+			retiredAt: documentVersions.retiredAt,
+		})
+		.from(documentVersions)
+		.where(eq(documentVersions.documentId, documentId));
+}
 
 function plusMonths(months: number): string {
 	const d = new Date();
@@ -108,6 +135,8 @@ async function createDocumentImpl(
 	input: unknown,
 ): Promise<ActionResult<{ id: string; docNumber: string }>> {
 	const c = await requireOrg({ document: ["create"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = createDocumentSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
@@ -171,6 +200,8 @@ async function createDocumentImpl(
 
 async function updateDocumentImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ document: ["update"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = updateDocumentSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { documentId, controlCodes, ...patch } = parsed.data;
@@ -230,12 +261,47 @@ async function updateDocumentImpl(input: unknown): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
-// Neue Version: Snapshot des aktuellen Stands als Version mit Pflicht-
-// changeSummary; Dokument zurück in Entwurf mit erhöhter Versionsnummer.
+// Neue Fassung beginnen: Nummer erhöhen, Arbeitskopie in den Entwurf. Die
+// Fassung entsteht erst beim Einreichen (fester Text + Prüfsumme);
+// freigegebene und veröffentlichte Fassungen bleiben unverändert.
+async function beginNewVersion(
+	tx: Tx,
+	orgId: string,
+	doc: typeof documents.$inferSelect,
+	opts: {
+		bump: "minor" | "major";
+		changeSummary: string;
+		bodyMarkdown?: string | null;
+		fileEvidenceId?: string | null;
+	},
+): Promise<string> {
+	const next = bumpVersion(doc.version, opts.bump);
+	await withdrawOpenRequests(tx, orgId, "document", doc.id);
+	await tx
+		.update(documents)
+		.set({
+			version: next,
+			status: "draft",
+			changeSummary: opts.changeSummary,
+			bodyMarkdown:
+				opts.bodyMarkdown !== undefined ? opts.bodyMarkdown : doc.bodyMarkdown,
+			fileEvidenceId:
+				opts.fileEvidenceId !== undefined
+					? opts.fileEvidenceId
+					: doc.fileEvidenceId,
+		})
+		.where(eq(documents.id, doc.id));
+	return next;
+}
+
+// Neue Fassung nur aus einem freigegebenen, veröffentlichten oder
+// zurückgezogenen Stand; optional auf Grundlage einer älteren Fassung
 async function newDocumentVersionImpl(
 	input: unknown,
 ): Promise<ActionResult<{ version: string }>> {
 	const c = await requireOrg({ document: ["update"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = newDocumentVersionSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
@@ -253,28 +319,36 @@ async function newDocumentVersionImpl(
 				)
 				.limit(1);
 			if (!doc) return { result: { ok: false, error: "notFound" }, audit: [] };
-			const next = bumpVersion(doc.version, d.bump);
-			await tx
-				.update(documents)
-				.set({
-					version: next,
-					status: "draft",
-					bodyMarkdown: d.bodyMarkdown ?? doc.bodyMarkdown,
-					fileEvidenceId: d.fileEvidenceId ?? doc.fileEvidenceId,
-				})
-				.where(eq(documents.id, doc.id));
-			await tx
-				.insert(documentVersions)
-				.values({
-					organizationId: c.orgId,
-					documentId: doc.id,
-					version: next,
-					bodyMarkdown: d.bodyMarkdown ?? doc.bodyMarkdown,
-					fileEvidenceId: d.fileEvidenceId ?? doc.fileEvidenceId,
-					changeSummary: d.changeSummary,
-					createdByUserId: c.userId,
-				})
-				.onConflictDoNothing();
+			if (doc.status === "draft" || doc.status === "in_review")
+				return {
+					result: { ok: false, error: `document_${doc.status}` },
+					audit: [],
+				};
+			let base: { bodyMarkdown: string | null; fileEvidenceId: string | null } =
+				{ bodyMarkdown: doc.bodyMarkdown, fileEvidenceId: doc.fileEvidenceId };
+			if (d.fromVersion) {
+				const [from] = await tx
+					.select({
+						bodyMarkdown: documentVersions.bodyMarkdown,
+						fileEvidenceId: documentVersions.fileEvidenceId,
+					})
+					.from(documentVersions)
+					.where(
+						and(
+							eq(documentVersions.documentId, doc.id),
+							eq(documentVersions.version, d.fromVersion),
+						),
+					)
+					.limit(1);
+				if (!from)
+					return { result: { ok: false, error: "notFound" }, audit: [] };
+				base = from;
+			}
+			const next = await beginNewVersion(tx, c.orgId, doc, {
+				bump: d.bump,
+				changeSummary: d.changeSummary,
+				...base,
+			});
 			return {
 				result: { ok: true, data: { version: next } },
 				audit: {
@@ -285,6 +359,7 @@ async function newDocumentVersionImpl(
 						version: next,
 						status: "draft",
 						changeSummary: d.changeSummary,
+						fromVersion: d.fromVersion ?? null,
 					},
 				},
 			};
@@ -294,12 +369,23 @@ async function newDocumentVersionImpl(
 	return res;
 }
 
+// Einreichen ohne Antrag (z. B. niemand darf freigeben): ganze Transaktion
+// zurückrollen, damit Nummer und Fassung unverändert bleiben
+class SubmitBlocked extends Error {
+	constructor(readonly code: string) {
+		super(code);
+		this.name = "SubmitBlocked";
+	}
+}
+
 // Statusübergang: in_review/approved laufen über den Workflow document_publish;
 // published verteilt (Kenntnisnahmen werden durch die neue Version-ID frisch).
 async function transitionDocumentImpl(
 	input: unknown,
 ): Promise<ActionResult<{ status: string; approvalRequested: boolean }>> {
 	const c = await requireOrg({ document: ["update"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = documentTransitionSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const { documentId, to, note, selfApprovalReason } = parsed.data;
@@ -327,20 +413,33 @@ async function transitionDocumentImpl(
 				audit: [],
 			};
 
+		// Zurück in den Entwurf: aus der Prüfung bleibt die Nummer (Antrag
+		// endet), aus einem freigegebenen, veröffentlichten oder
+		// zurückgezogenen Stand beginnt eine neue Fassung
+		if (to === "draft" && doc.status !== "in_review") {
+			const next = await beginNewVersion(tx, c.orgId, doc, {
+				bump: "minor",
+				changeSummary: note?.trim() || "Neue Fassung",
+			});
+			return {
+				result: {
+					ok: true,
+					data: { status: "draft", approvalRequested: false },
+				},
+				audit: {
+					action: "document.version",
+					target: `document:${doc.id}`,
+					before: { version: doc.version, status: doc.status },
+					after: { version: next, status: "draft", note: note ?? null },
+				},
+			};
+		}
+		if (to === "draft")
+			await withdrawOpenRequests(tx, c.orgId, "document", doc.id);
+
 		if (to === "in_review") {
-			// Version-Snapshot sicherstellen, dann Workflow starten.
-			await tx
-				.insert(documentVersions)
-				.values({
-					organizationId: c.orgId,
-					documentId: doc.id,
-					version: doc.version,
-					bodyMarkdown: doc.bodyMarkdown,
-					fileEvidenceId: doc.fileEvidenceId,
-					changeSummary: note?.trim() || "Zur Prüfung eingereicht",
-					createdByUserId: c.userId,
-				})
-				.onConflictDoNothing();
+			// Fassung festschreiben: Text, Datei und Prüfsumme der Arbeitskopie
+			doc.version = await snapshotForReview(tx, c.orgId, doc, c.userId, note);
 			const r = await requestApproval(
 				tx,
 				{ orgId: c.orgId, userId: c.userId, name: c.name },
@@ -365,6 +464,7 @@ async function transitionDocumentImpl(
 						.update(documents)
 						.set({ status: "approved" })
 						.where(eq(documents.id, doc.id));
+					await markVersionApproved(tx, doc.id, doc.version, c.userId);
 					return {
 						result: {
 							ok: true,
@@ -378,7 +478,8 @@ async function transitionDocumentImpl(
 						},
 					};
 				}
-				return { result: { ok: false, error: r.error }, audit: [] };
+				// zurückrollen: die Fassung bleibt, wie sie vor dem Einreichen war
+				throw new SubmitBlocked(r.error);
 			}
 			const status = r.status === "approved" ? "approved" : "in_review";
 			await tx
@@ -386,15 +487,7 @@ async function transitionDocumentImpl(
 				.set({ status })
 				.where(eq(documents.id, doc.id));
 			if (status === "approved") {
-				await tx
-					.update(documentVersions)
-					.set({ approvedByUserId: c.userId, approvedAt: new Date() })
-					.where(
-						and(
-							eq(documentVersions.documentId, doc.id),
-							eq(documentVersions.version, doc.version),
-						),
-					);
+				await markVersionApproved(tx, doc.id, doc.version, c.userId);
 			}
 			return {
 				result: {
@@ -434,6 +527,7 @@ async function transitionDocumentImpl(
 					and(
 						eq(documentVersions.documentId, doc.id),
 						eq(documentVersions.version, doc.version),
+						isNull(documentVersions.publishedAt),
 					),
 				);
 			const members = await listMembersForPicker(tx, c.orgId);
@@ -462,6 +556,20 @@ async function transitionDocumentImpl(
 			.update(documents)
 			.set({ status: to })
 			.where(eq(documents.id, doc.id));
+		// Zurückgezogen: die gültige Fassung gilt ab jetzt nicht mehr
+		if (to === "retired") {
+			const current = currentPublished(await versionRows(tx, doc.id));
+			if (current)
+				await tx
+					.update(documentVersions)
+					.set({ retiredAt: new Date() })
+					.where(
+						and(
+							eq(documentVersions.id, current.id),
+							isNull(documentVersions.retiredAt),
+						),
+					);
+		}
 		return {
 			result: { ok: true, data: { status: to, approvalRequested: false } },
 			audit: {
@@ -471,6 +579,10 @@ async function transitionDocumentImpl(
 				after: { status: to, note: note ?? null },
 			},
 		};
+	}).catch((e: unknown) => {
+		if (e instanceof SubmitBlocked)
+			return { ok: false as const, error: e.code };
+		throw e;
 	});
 	revalidatePath("/dokumente", "layout");
 	revalidatePath("/heute", "layout");
@@ -478,9 +590,12 @@ async function transitionDocumentImpl(
 }
 
 async function acknowledgeDocumentImpl(input: unknown): Promise<ActionResult> {
-	const c = await requireOrg({ document: ["read"] });
+	const c = await requireOrg({ acknowledgement: ["create"] });
 	const parsed = acknowledgeSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
+	// Mitarbeitende (ohne Dokument-Lesen) bestätigen nur, was sie unter
+	// /richtlinien sehen: Verteiler erreicht sie, nicht vertraulich
+	const readsDocuments = allows(c, { document: ["read"] });
 	const ok = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const [doc] = await tx
 			.select({
@@ -488,6 +603,8 @@ async function acknowledgeDocumentImpl(input: unknown): Promise<ActionResult> {
 				version: documents.version,
 				docNumber: documents.docNumber,
 				status: documents.status,
+				classification: documents.classification,
+				distribution: documents.distribution,
 			})
 			.from(documents)
 			.where(
@@ -497,17 +614,22 @@ async function acknowledgeDocumentImpl(input: unknown): Promise<ActionResult> {
 				),
 			)
 			.limit(1);
-		if (!doc || doc.status !== "published") return { result: false, audit: [] };
-		const [v] = await tx
-			.select({ id: documentVersions.id })
-			.from(documentVersions)
-			.where(
-				and(
-					eq(documentVersions.documentId, doc.id),
-					eq(documentVersions.version, doc.version),
-				),
-			)
-			.limit(1);
+		if (!doc) return { result: false, audit: [] };
+		if (
+			!readsDocuments &&
+			((doc.classification !== "public" && doc.classification !== "internal") ||
+				!inDistribution(doc.distribution, {
+					role: c.orgRole,
+					functions: functionsOf(
+						await loadAssignments(tx, c.orgId),
+						c.userId,
+					).map((f) => f.function as string),
+				}))
+		)
+			return { result: false, audit: [] };
+		// bestätigt wird die gültige Fassung — auch während eine neue
+		// Fassung in Arbeit ist
+		const v = currentPublished(await versionRows(tx, doc.id));
 		if (!v) return { result: false, audit: [] };
 		await tx
 			.insert(documentAcknowledgements)
@@ -524,7 +646,7 @@ async function acknowledgeDocumentImpl(input: unknown): Promise<ActionResult> {
 			audit: {
 				action: "document.acknowledged",
 				target: `document:${doc.id}`,
-				after: { version: doc.version },
+				after: { version: v.version },
 			},
 		};
 	});
@@ -538,6 +660,8 @@ async function applyDocumentTemplatesImpl(
 	input: unknown,
 ): Promise<ActionResult<{ created: number }>> {
 	const c = await requireOrg({ document: ["create"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	const parsed = applyTemplatesSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const created = await mutateOrg(toOrgCtx(c), async (tx) => {
@@ -603,6 +727,8 @@ async function importDocumentsFromEvidenceImpl(
 	evidenceIds: string[],
 ): Promise<ActionResult<{ created: number }>> {
 	const c = await requireOrg({ document: ["create"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
 	if (!Array.isArray(evidenceIds) || evidenceIds.length === 0)
 		return { ok: false, error: "empty" };
 	const created = await mutateOrg(toOrgCtx(c), async (tx) => {
@@ -613,6 +739,7 @@ async function importDocumentsFromEvidenceImpl(
 				and(
 					eq(evidence.organizationId, c.orgId),
 					inArray(evidence.id, evidenceIds.slice(0, 50)),
+					currentEvidence(),
 				),
 			);
 		let n = 0;
@@ -657,6 +784,114 @@ async function importDocumentsFromEvidenceImpl(
 	return { ok: true, data: { created } };
 }
 
+// Datei der Fassung in Arbeit: nur im Entwurf, über die Upload-Pipeline;
+// Einstufung = die des Dokuments (DLP hebt sie höchstens an). Die bisherige
+// Datei bleibt als Nachweis erhalten (ältere Fassungen verweisen darauf).
+async function uploadDocumentFileImpl(
+	formData: FormData,
+): Promise<ActionResult<{ id: string }>> {
+	const c = await requireOrg({ document: ["update"] });
+	// Externe ohne „Entwürfe und Verlauf“ ändern keine Entwürfe
+	if (restrictedView(c)) return { ok: false, error: "forbidden" };
+	const documentId = formData.get("documentId");
+	const file = formData.get("file");
+	if (typeof documentId !== "string" || !/^[0-9a-f-]{36}$/i.test(documentId))
+		return { ok: false, error: "invalid" };
+	if (!(file instanceof File)) return { ok: false, error: "fileMissing" };
+	if (!getOrgLimiter().check(c.orgId).allowed)
+		return { ok: false, error: "rate_limited" };
+	const doc = await readOrg(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select({
+				id: documents.id,
+				docNumber: documents.docNumber,
+				title: documents.title,
+				version: documents.version,
+				status: documents.status,
+				classification: documents.classification,
+			})
+			.from(documents)
+			.where(
+				and(
+					eq(documents.id, documentId),
+					eq(documents.organizationId, c.orgId),
+				),
+			)
+			.limit(1);
+		return row ?? null;
+	});
+	if (!doc) return { ok: false, error: "notFound" };
+	if (doc.status !== "draft") return { ok: false, error: "document_not_draft" };
+	const bytes = new Uint8Array(await file.arrayBuffer());
+	const v = await screenUpload(toOrgCtx(c), {
+		name: file.name,
+		bytes,
+		declaredMime: file.type,
+		classification: doc.classification,
+		dlpAcknowledged: formData.get("dlpAcknowledged") === "1",
+	});
+	if (!v.ok)
+		return {
+			ok: false,
+			error: v.error,
+			fieldErrors: v.detail ? { dlp: v.detail } : undefined,
+		};
+	const res = await mutateOrg<ActionResult<{ id: string }>>(
+		toOrgCtx(c),
+		async (tx) => {
+			// erneut prüfen: zwischen Lesen und Speichern eingereicht?
+			const [cur] = await tx
+				.select({
+					status: documents.status,
+					version: documents.version,
+					fileEvidenceId: documents.fileEvidenceId,
+				})
+				.from(documents)
+				.where(eq(documents.id, doc.id))
+				.limit(1)
+				.for("update");
+			if (!cur || cur.status !== "draft")
+				return {
+					result: { ok: false, error: "document_not_draft" },
+					audit: [],
+				};
+			const stored = await storeEncryptedEvidence(tx, {
+				orgId: c.orgId,
+				bytes,
+				safeName: v.safeName,
+				mime: v.mime,
+				title: `${doc.docNumber} ${doc.title} v${cur.version}`,
+				type: "document",
+				classification: v.classification,
+				createdByUserId: c.userId,
+				dlp: v.dlp,
+				source: "document",
+			});
+			await tx
+				.update(documents)
+				.set({ fileEvidenceId: stored.id })
+				.where(eq(documents.id, doc.id));
+			return {
+				result: { ok: true, data: { id: stored.id } },
+				audit: {
+					action: "document.file_uploaded",
+					target: `document:${doc.id}`,
+					before: { fileEvidenceId: cur.fileEvidenceId },
+					after: {
+						fileEvidenceId: stored.id,
+						version: cur.version,
+						fileName: v.safeName,
+						size: bytes.byteLength,
+						classification: v.classification,
+					},
+				},
+			};
+		},
+	);
+	if (res.ok) revalidatePath(`/dokumente/${encodeURIComponent(doc.docNumber)}`);
+	return res;
+}
+
 async function listTemplateOptionsImpl() {
 	await requireOrg({ document: ["read"] });
 	return DOCUMENT_TEMPLATES.map((t) => ({
@@ -673,6 +908,10 @@ async function listTemplateOptionsImpl() {
 // statt Error-Boundary (lib/actions/safe.ts).
 export const createDocument = safeAction("createDocument", createDocumentImpl);
 export const updateDocument = safeAction("updateDocument", updateDocumentImpl);
+export const uploadDocumentFile = safeAction(
+	"uploadDocumentFile",
+	uploadDocumentFileImpl,
+);
 export const newDocumentVersion = safeAction(
 	"newDocumentVersion",
 	newDocumentVersionImpl,

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
 	type AnyPgColumn,
 	boolean,
@@ -135,6 +136,15 @@ export const evidence = pgTable(
 		supersedesId: uuid().references((): AnyPgColumn => evidence.id, {
 			onDelete: "set null",
 		}),
+		// ersetzt durch eine neue Fassung (supersedeEvidence, Migration 0043):
+		// zählt nicht mehr, nur die aktuelle Fassung (currentEvidence())
+		supersededAt: ts(),
+		supersededById: uuid().references((): AnyPgColumn => evidence.id, {
+			onDelete: "set null",
+		}),
+		// für Mitarbeitende freigegeben (/richtlinien); nur öffentlich/intern,
+		// wandert mit der neuen Fassung mit (Migration 0045)
+		staffVisible: boolean().notNull().default(false),
 		// Herkunft (manuell, Gap-Analyse, Scan-Import, API, Portal …)
 		source: text({ enum: EVIDENCE_SOURCES }).notNull().default("manual"),
 		// DLP-Ergebnis beim Upload: Treffer je Detektor (nur Zähler), Aktion,
@@ -157,6 +167,9 @@ export const evidence = pgTable(
 	},
 	(t) => [
 		index("evidence_org_idx").on(t.organizationId),
+		index("evidence_current_idx")
+			.on(t.organizationId)
+			.where(sql`${t.supersededAt} is null`),
 		orgPolicy("evidence"),
 	],
 ).enableRLS();
@@ -339,6 +352,9 @@ export const documents = pgTable(
 			onDelete: "set null",
 		}),
 		version: text().notNull().default("0.1"),
+		// Änderungsnotiz der Fassung in Arbeit; geht beim Einreichen in die
+		// Fassung (document_versions.change_summary)
+		changeSummary: text(),
 		status: text({ enum: DOCUMENT_STATUS }).notNull().default("draft"),
 		effectiveFrom: date(),
 		reviewCycleMonths: integer().notNull().default(12),
@@ -379,12 +395,18 @@ export const documentVersions = pgTable(
 			onDelete: "set null",
 		}),
 		changeSummary: text().notNull(),
+		// Prüfsumme über Text und Datei beim Einreichen (versionContentHash)
+		contentSha256: text(),
 		approvedByUserId: userRef(),
 		approvedAt: ts(),
 		publishedAt: ts(),
+		// zurückgezogen: gilt ab hier nicht mehr (ohne Nachfolgerin)
+		retiredAt: ts(),
 		createdByUserId: userRef(),
 		createdAt: ts().notNull().defaultNow(),
 	},
+	// Freigegebene oder veröffentlichte Fassungen sind unveränderlich
+	// (Trigger document_versions_frozen, Migration 0042)
 	(t) => [unique().on(t.documentId, t.version), orgPolicy("document_versions")],
 ).enableRLS();
 

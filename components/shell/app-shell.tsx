@@ -6,6 +6,7 @@ import type { OrgContext } from "@/lib/auth/guards";
 import { isExternal, ROLE_LABEL } from "@/lib/auth/memberships";
 import type { NavGroup } from "@/lib/nav";
 import { CommandPalette } from "./command-palette";
+import { HelpLink } from "./help-link";
 import { LegalLinks } from "./legal-links";
 import type { BellItem } from "./notification-bell";
 import { NotificationBell } from "./notification-bell";
@@ -81,6 +82,7 @@ export async function AppShell({
 					</Link>
 					<div className="ml-auto flex items-center gap-1">
 						<CommandPalette groups={groups} tabBar />
+						<HelpLink />
 						<NotificationBell items={bell.items} unread={bell.unread} />
 						<UserMenu
 							name={ctx.name}

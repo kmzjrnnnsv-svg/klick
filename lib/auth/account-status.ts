@@ -9,6 +9,8 @@ export type AccountStatus = "active" | "pending" | "blocked";
 // meldet jeden Fehler dort nur als AUTHENTICATION_FAILED; /login zeigt
 // damit „gesperrt“. Erfährt nur, wer den Passkey hält.
 export const BLOCKED_HINT_COOKIE = "klick_blocked";
+// SSO erzwungen: /login zeigt „Bitte mit dem Firmenkonto anmelden“
+export const SSO_HINT_COOKIE = "klick_sso";
 
 export type AccountFacts = {
 	banned: boolean | null;

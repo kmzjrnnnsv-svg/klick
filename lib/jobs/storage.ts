@@ -131,6 +131,7 @@ export async function runStorageOrphans(
 		await platformTx(async (tx) => {
 			const refs = await tx
 				.select({ key: evidence.storageKey })
+				// evidence:any-version — Speicher-Abgleich: alle Dateien
 				.from(evidence)
 				.where(eq(evidence.organizationId, orgId));
 			const queued = await tx

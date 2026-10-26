@@ -291,6 +291,8 @@ export const ACCESS_TOKEN_KINDS = [
 	"trust_center",
 	// both.money → Klick (Plan both.money, K2): Subjekt = wallet_links.id
 	"wallet",
+	// Richtlinien-Portal (M2): Subjekt = policy_readers.id
+	"policy_reader",
 ] as const;
 export type AccessTokenKind = (typeof ACCESS_TOKEN_KINDS)[number];
 export const INGEST_SCOPES = ["scan:write", "sbom:write"] as const;
@@ -322,6 +324,8 @@ export const EVIDENCE_SOURCES = [
 	"klick",
 	// in Klick verfasst (Rohling)
 	"authored",
+	// Datei einer Dokumentfassung (Dokumente, hochgeladen am Dokument)
+	"document",
 ] as const;
 export type EvidenceSource = (typeof EVIDENCE_SOURCES)[number];
 

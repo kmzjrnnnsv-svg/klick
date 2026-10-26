@@ -68,9 +68,21 @@ describe("checkSessionRules", () => {
 	it("MFA-Pflicht: Enrolment, dann Verifikation", () => {
 		expect(
 			code(() =>
-				checkSessionRules({ ...ok, user: { twoFactorEnabled: false } }, now),
+				checkSessionRules(
+					{
+						session: { ...ok.session, mfaVerifiedAt: null },
+						user: { twoFactorEnabled: false },
+					},
+					now,
+				),
 			),
 		).toBe("mfa_enrol");
+		// Firmen-MFA (SSO, je Org eingeschaltet): bestätigt ohne eigenen Faktor
+		expect(
+			code(() =>
+				checkSessionRules({ ...ok, user: { twoFactorEnabled: false } }, now),
+			),
+		).toBeNull();
 		expect(
 			code(() =>
 				checkSessionRules(

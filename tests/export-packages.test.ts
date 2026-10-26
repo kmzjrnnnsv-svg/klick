@@ -6,7 +6,7 @@ import { buildSupplierPack } from "@/lib/export/supplier-pack";
 const at = new Date("2026-10-07T10:00:00Z");
 
 describe("Prüfungspaket", () => {
-	const entries = buildAuditPackage({
+	const input: Parameters<typeof buildAuditPackage>[0] = {
 		org: { id: "org-1", name: "Test GmbH" },
 		generatedAt: at,
 		period: { from: "2026-01-01", to: "2026-06-30" },
@@ -44,6 +44,8 @@ describe("Prüfungspaket", () => {
 				nextReviewAt: null,
 				versions: [
 					{
+						id: crypto.randomUUID(),
+						retiredAt: null,
 						version: "1.0",
 						publishedAt: new Date("2026-03-01T00:00:00Z"),
 						approvedAt: new Date("2026-02-28T00:00:00Z"),
@@ -54,6 +56,8 @@ describe("Prüfungspaket", () => {
 						fileSha256: null,
 					},
 					{
+						id: crypto.randomUUID(),
+						retiredAt: null,
 						version: "1.1",
 						publishedAt: new Date("2026-09-01T00:00:00Z"),
 						approvedAt: null,
@@ -92,6 +96,9 @@ describe("Prüfungspaket", () => {
 				createdAt: at,
 				createdByName: "Alex",
 				controlCodes: ["CC-TST-02", "CC-CRY-01"],
+				version: 2,
+				state: "valid",
+				source: "manual",
 			},
 			{
 				id: "e2",
@@ -107,6 +114,9 @@ describe("Prüfungspaket", () => {
 				createdAt: at,
 				createdByName: null,
 				controlCodes: [],
+				version: 1,
+				state: "valid",
+				source: "manual",
 			},
 		],
 		incidents: [
@@ -183,7 +193,8 @@ describe("Prüfungspaket", () => {
 				},
 			],
 		},
-	});
+	};
+	const entries = buildAuditPackage(input);
 	const names = entries.map((e) => e.name);
 	const text = (n: string) => String(entries.find((e) => e.name === n)?.data);
 
@@ -205,12 +216,28 @@ describe("Prüfungspaket", () => {
 		]);
 	});
 
+	it("Fassung, die vor dem Zeitraum veröffentlicht wurde und darin galt, ist enthalten", () => {
+		const later = buildAuditPackage({
+			...input,
+			period: { from: "2026-05-01", to: "2026-06-30" },
+		});
+		const idx = String(
+			later.find((e) => e.name === "05-dokumente/index.csv")?.data,
+		);
+		expect(idx).toContain(";1.0;");
+		expect(idx).not.toContain(";1.1;");
+	});
+
 	it("Zeitraum filtert Dokumentversionen und Vorfälle; secret nur gezählt", () => {
 		const idx = text("05-dokumente/index.csv");
 		expect(idx).toContain(
 			"RL-001;ISMS-Leitlinie;policy;published;internal;1.0",
 		);
 		expect(idx).not.toContain(";1.1;");
+		// gilt von 01.03. bis zur Nachfolgerin am 01.09.
+		expect(idx).toContain(
+			";2026-03-01T00:00:00.000Z;2026-03-01T00:00:00.000Z;2026-09-01T00:00:00.000Z;",
+		);
 		expect(idx).not.toContain("KZ-009");
 		expect(text("05-dokumente/RL-001-v1.0.md")).toContain(
 			"freigegeben von Kim",
@@ -220,7 +247,7 @@ describe("Prüfungspaket", () => {
 		expect(inc).not.toContain("V-002");
 		const ev = text("06-nachweise-index.csv");
 		expect(ev).toContain("Pentest-Bericht");
-		expect(ev).toContain("CC-TST-02 CC-CRY-01");
+		expect(ev).toContain("CC-TST-02 CC-CRY-01;2;gültig;manual");
 		expect(ev).not.toContain("HSM-Konfiguration");
 		const readme = text("README.md");
 		expect(readme).toContain(

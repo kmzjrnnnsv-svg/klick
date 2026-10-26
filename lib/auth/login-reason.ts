@@ -27,7 +27,9 @@ export async function loginReason(
 						? t("accountBlocked")
 						: failure === "not_activated"
 							? t("accountNotActivated")
-							: t("genericError");
+							: failure === "sso_required"
+								? t("ssoRequired")
+								: t("genericError");
 		default:
 			return null;
 	}
