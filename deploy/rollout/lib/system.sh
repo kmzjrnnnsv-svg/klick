@@ -300,7 +300,9 @@ phase_virenscanner() {
 	local mem wahl risks env=/etc/klick/klick.env i
 	mem="$(speicher_kb MemTotal)"
 	wahl="$(virenscanner_entscheidung "$mem")"
-	risks="$(env_wert "$env" PROD_ACCEPT_RISKS)"
+	# wirksamer Wert: klick.env und eine Not-Freigabe (Drop-in) zusammen; der
+	# Block in klick.env gilt danach vor dem Drop-in (EnvironmentFile)
+	risks="$(risks_union "$(env_wert "$env" PROD_ACCEPT_RISKS)" "$(dropin_wert "$NOTFREIGABE" PROD_ACCEPT_RISKS)")"
 	info "Arbeitsspeicher: $((mem / 1024)) MB → $wahl"
 	if [ "$wahl" = no_av ]; then
 		hinweis "zu wenig Arbeitsspeicher für clamd (ab 8 GB, z. B. Hetzner CX32/CPX31): Risiko no_av wird hingenommen"

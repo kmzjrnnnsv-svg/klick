@@ -133,6 +133,35 @@ describe("Dateien", () => {
 		expect(apps).toContain("gpg.ssh.program=ssh-keygen");
 	});
 
+	it("Phase klick räumt die Not-Freigabe nach der neuen Unit auf, mit Rückweg", () => {
+		const apps = read(`${DIR}/lib/apps.sh`);
+		const klick = apps.slice(
+			apps.indexOf("phase_klick() {"),
+			apps.indexOf("phase_both() {"),
+		);
+		const unit = klick.indexOf("units_einspielen klick.service");
+		const auf = klick.indexOf("not_freigabe_aufraeumen");
+		expect(unit).toBeGreaterThan(0);
+		expect(auf).toBeGreaterThan(unit);
+		expect(auf).toBeLessThan(klick.indexOf("systemctl restart klick"));
+		// startet Klick nicht, kommt die alte Freigabe vor dem Abbruch zurück
+		const zurueck = klick.indexOf("not_freigabe_zurueck");
+		expect(zurueck).toBeGreaterThan(klick.indexOf("warte_bereit"));
+		expect(zurueck).toBeLessThan(klick.indexOf("Klick startet nicht"));
+		const fn = apps.slice(apps.indexOf("not_freigabe_aufraeumen() {"));
+		expect(fn).toContain('risiken_nach_update "$env" "$NOTFREIGABE"');
+		expect(fn).toContain('sichern "$NOTFREIGABE"');
+		expect(fn).toContain('aendern rm -f "$NOTFREIGABE"');
+		expect(fn).toMatch(/schreibe_inhalt "\$env" 0600 root:root geheim/);
+		expect(read(`${DIR}/lib/common.sh`)).toContain(
+			"NOTFREIGABE=/etc/systemd/system/klick.service.d/risiken.conf",
+		);
+		// Virenscanner rechnet vom wirksamen Wert aus, inklusive Not-Freigabe
+		expect(read(`${DIR}/lib/system.sh`)).toContain(
+			'dropin_wert "$NOTFREIGABE" PROD_ACCEPT_RISKS',
+		);
+	});
+
 	it("CrowdSec-Paketquelle ohne Installationsskript, mit signed-by", () => {
 		const sys = read(`${DIR}/lib/system.sh`);
 		expect(code(sys)).not.toContain("install.crowdsec.net");
@@ -189,6 +218,59 @@ describe("reine Hilfen", () => {
 		expect(
 			rein('risks_merge "no_av,parser_in_app,no_av" remove no_av').trim(),
 		).toBe("parser_in_app");
+	});
+
+	it("Not-Freigabe lesen und nach dem Update ohne admin_anywhere übernehmen", () => {
+		const dropin = join(tmp, "risiken.conf");
+		const env = join(tmp, "klick-notfall.env");
+		const fehlt = join(tmp, "fehlt.conf");
+		writeFileSync(
+			dropin,
+			"[Service]\nEnvironment=PROD_ACCEPT_RISKS=no_av,admin_anywhere\n",
+		);
+		expect(rein(`dropin_wert ${dropin} PROD_ACCEPT_RISKS`)).toBe(
+			"no_av,admin_anywhere",
+		);
+		expect(rein(`dropin_wert ${fehlt} PROD_ACCEPT_RISKS`)).toBe("");
+		writeFileSync(
+			join(tmp, "mehr.conf"),
+			'[Service]\n# Environment=PROD_ACCEPT_RISKS=mail_us\nEnvironment="LOG_LEVEL=debug" "PROD_ACCEPT_RISKS=no_av"\n',
+		);
+		expect(
+			rein(`dropin_wert ${join(tmp, "mehr.conf")} PROD_ACCEPT_RISKS`),
+		).toBe("no_av");
+		writeFileSync(
+			join(tmp, "leer.conf"),
+			"[Service]\nEnvironment=PROD_ACCEPT_RISKS=no_av\nEnvironment=\n",
+		);
+		expect(
+			rein(`dropin_wert ${join(tmp, "leer.conf")} PROD_ACCEPT_RISKS`),
+		).toBe("");
+		expect(
+			rein('risks_union "mail_us,no_av" "no_av, admin_anywhere"').trim(),
+		).toBe("mail_us,no_av,admin_anywhere");
+		expect(rein('risks_union "" ""').trim()).toBe("");
+
+		// Störung vom 27.10.: Drop-in und angehängte Zeile in klick.env
+		writeFileSync(
+			env,
+			"BREVO_API_KEY=x\nPROD_ACCEPT_RISKS=no_av,admin_anywhere\n",
+		);
+		expect(rein(`risiken_nach_update ${env} ${dropin}`).trim()).toBe("no_av");
+		expect(rein(`risiken_nach_update ${fehlt} ${dropin}`).trim()).toBe("no_av");
+		writeFileSync(env, "PROD_ACCEPT_RISKS=mail_us\n");
+		expect(rein(`risiken_nach_update ${env} ${fehlt}`).trim()).toBe("mail_us");
+		expect(rein(`risiken_nach_update ${env} ${dropin}`).trim()).toBe(
+			"mail_us,no_av",
+		);
+		// klick.env leert das Admin-Netz ausdrücklich: Freigabe bleibt
+		writeFileSync(env, "ADMIN_NETWORKS=\n");
+		expect(rein(`risiken_nach_update ${env} ${dropin}`).trim()).toBe(
+			"no_av,admin_anywhere",
+		);
+		// eigenes Admin-Netz in klick.env: admin_anywhere fällt weg
+		writeFileSync(env, "ADMIN_NETWORKS=10.20.0.0/24\n");
+		expect(rein(`risiken_nach_update ${env} ${dropin}`).trim()).toBe("no_av");
 	});
 
 	it("verwalteter Env-Block: idempotent, fremde Zeilen bleiben, ein Wert gilt", () => {

@@ -121,6 +121,7 @@ phase_klick() {
 	units_einspielen klick.service klick-parse.socket klick-parse@.service klick-parse.slice
 	units_wenn_da klick-backup-db.service klick-backup-db.timer klick-backup-objects.service \
 		klick-backup-objects.timer klick-backup-verify.service klick-backup-verify.timer klick-alert@.service
+	not_freigabe_aufraeumen
 	aendern systemctl daemon-reload
 	aendern systemctl enable --now klick-parse.socket
 	aendern systemctl enable klick
@@ -130,9 +131,52 @@ phase_klick() {
 	trocken && return 0
 	if ! warte_bereit http://127.0.0.1:3000/api/ready 180; then
 		journalctl -u klick -n 40 --no-pager | sed 's/^/    /'
-		die "Klick startet nicht (Start-Prüfung oben; PROD_ACCEPT_RISKS in /etc/klick/klick.env)"
+		not_freigabe_zurueck
+		die "Klick startet nicht (Start-Prüfung oben; PROD_ACCEPT_RISKS in /etc/klick/klick.env, Runbook „Klick startet nach einem Update nicht“)"
 	fi
 	journalctl -u klick --since "-5min" --no-pager 2>/dev/null | grep -iE 'start-prüfung|prod_accept|risiko' | tail -5 | sed 's/^/    /' || true
+	systemctl is-active --quiet wg-quick@wg-admin 2>/dev/null ||
+		hinweis "Admin-Bereich (/admin) geht ab jetzt nur aus dem Admin-Netz: Phase wireguard einrichten"
+}
+
+# Die Not-Freigabe (Drop-in $NOTFREIGABE) aus einer Störung nach dem Update
+# entfernen, sobald die neue Unit mit ADMIN_NETWORKS liegt: admin_anywhere
+# fällt weg, übrige Risiken (z. B. no_av) wandern in den verwalteten Block
+# von klick.env. NOTFREIGABE_ENTFERNT=1 merkt sich das für den Rückweg.
+NOTFREIGABE_ENTFERNT=0
+not_freigabe_aufraeumen() {
+	local env=/etc/klick/klick.env risks
+	NOTFREIGABE_ENTFERNT=0
+	risks="$(risiken_nach_update "$env" "$NOTFREIGABE")"
+	[ -f "$NOTFREIGABE" ] || [ "$risks" != "$(env_wert "$env" PROD_ACCEPT_RISKS)" ] || return 0
+	sichern "$env"
+	sichern "$NOTFREIGABE"
+	env_block_render "$env" "PROD_ACCEPT_RISKS=$risks" | schreibe_inhalt "$env" 0600 root:root geheim
+	[ -f "$NOTFREIGABE" ] && aendern rm -f "$NOTFREIGABE"
+	if trocken; then
+		info "(Trockenlauf) würde die Not-Freigabe entfernen, hingenommen bliebe: ${risks:-nichts}"
+		return 0
+	fi
+	NOTFREIGABE_ENTFERNT=1
+	ok "Not-Freigabe entfernt (Admin-Netz jetzt in der Unit), hingenommen bleibt: ${risks:-nichts}"
+}
+
+# Startet Klick danach nicht, Drop-in und klick.env aus der Sicherung zurück
+# und mit der alten Freigabe neu starten; die Ursache steht im Journal oben.
+not_freigabe_zurueck() {
+	[ "$NOTFREIGABE_ENTFERNT" = 1 ] || return 0
+	local env=/etc/klick/klick.env
+	hinweis "Not-Freigabe und klick.env aus $SICHERUNG zurück"
+	if [ -f "$(gesichert "$env")" ]; then cp -a "$(gesichert "$env")" "$env"; fi
+	if [ -f "$(gesichert "$NOTFREIGABE")" ]; then
+		install -d -m 0755 "$(dirname "$NOTFREIGABE")"
+		cp -a "$(gesichert "$NOTFREIGABE")" "$NOTFREIGABE"
+	fi
+	systemctl daemon-reload
+	systemctl restart klick
+	if warte_bereit http://127.0.0.1:3000/api/ready 180; then
+		hinweis "Klick läuft wieder mit der Not-Freigabe; Start-Prüfung oben lesen, Ursache beheben, Phase klick erneut"
+	fi
 }
 
 phase_both() {

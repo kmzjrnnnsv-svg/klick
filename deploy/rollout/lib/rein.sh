@@ -48,6 +48,54 @@ env_wert() {
 	' "$file"
 }
 
+# Wert eines Schlüssels aus den `Environment=`-Zeilen einer systemd-Datei
+# (Drop-in): mehrere Zuweisungen je Zeile, spätere gewinnen, leeres
+# `Environment=` setzt zurück. Werte mit Leerzeichen kennt sie nicht.
+dropin_wert() {
+	local file="$1" key="$2"
+	[ -r "$file" ] || return 0
+	awk -v k="$key" '
+		/^[[:space:]]*[#;]/ { next }
+		/^[[:space:]]*Environment[[:space:]]*=/ {
+			rest = substr($0, index($0, "=") + 1)
+			if (rest ~ /^[[:space:]]*$/) { v = ""; next }
+			n = split(rest, t, /[[:space:]]+/)
+			for (i = 1; i <= n; i++) {
+				gsub(/^"|"$/, "", t[i])
+				if (index(t[i], k "=") == 1) v = substr(t[i], length(k) + 2)
+			}
+		}
+		END { printf "%s", v }
+	' "$file"
+}
+
+# Zwei Komma-Listen vereinen, Reihenfolge der ersten zuerst, ohne Doppelte.
+risks_union() {
+	local out="" x
+	local -a teile=()
+	IFS=',' read -r -a teile <<<"${1-},${2-}"
+	for x in "${teile[@]}"; do
+		x="${x//[[:space:]]/}"
+		[ -n "$x" ] && out="$(risks_merge "$out" add "$x")"
+	done
+	printf '%s\n' "$out"
+}
+
+# Risiken nach dem Klick-Update: was in klick.env und in der Not-Freigabe
+# (Drop-in risiken.conf) hingenommen ist, ohne admin_anywhere — die neue
+# Unit setzt ADMIN_NETWORKS. Bleibt nur, wenn klick.env das Admin-Netz
+# ausdrücklich leert.
+#   risiken_nach_update <klick.env> <risiken.conf>
+risiken_nach_update() {
+	local env="$1" dropin="$2" liste
+	liste="$(risks_union "$(env_wert "$env" PROD_ACCEPT_RISKS)" "$(dropin_wert "$dropin" PROD_ACCEPT_RISKS)")"
+	if [ -r "$env" ] && grep -qE '^ADMIN_NETWORKS=' "$env" && [ -z "$(env_wert "$env" ADMIN_NETWORKS)" ]; then
+		printf '%s\n' "$liste"
+	else
+		risks_merge "$liste" remove admin_anywhere
+	fi
+}
+
 # Env-Datei mit verwaltetem Block neu schreiben (stdout).
 #   env_block_render <datei> KEY=WERT …   (KEY= entfernt den Schlüssel)
 # Gleiche Schlüssel außerhalb des Blocks werden auskommentiert, damit genau

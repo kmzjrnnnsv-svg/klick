@@ -42,8 +42,12 @@ phase_pruefen() {
 	stand postgres "$([ -n "$pgv" ] && gleich "$DEPLOY/postgres/klick.conf" "/etc/postgresql/$pgv/main/conf.d/klick.conf" && echo erledigt || echo offen)"
 	local av="offen"
 	systemctl is-active --quiet clamav-daemon 2>/dev/null && av="clamd aktiv"
-	case ",$(env_wert /etc/klick/klick.env PROD_ACCEPT_RISKS)," in *,no_av,*) av="Risiko no_av hingenommen" ;; esac
+	local risks
+	risks="$(risks_union "$(env_wert /etc/klick/klick.env PROD_ACCEPT_RISKS)" "$(dropin_wert "$NOTFREIGABE" PROD_ACCEPT_RISKS)")"
+	case ",$risks," in *,no_av,*) av="Risiko no_av hingenommen" ;; esac
 	stand virenscanner "$av"
+	[ -f "$NOTFREIGABE" ] &&
+		stand notfreigabe "aktiv ($NOTFREIGABE: $(dropin_wert "$NOTFREIGABE" PROD_ACCEPT_RISKS)); Phase klick räumt sie auf"
 	local d u dir port
 	for d in klick:"$KLICK_DIR":3000 both:"$BOTH_DIR":3010; do
 		IFS=: read -r u dir port <<<"$d"
@@ -88,7 +92,8 @@ phase_abschluss() {
 		abschnitt "WireGuard (nur öffentliche Schlüssel)" wg show wg-admin
 		abschnitt "Sandbox der Dienste (systemd-analyze security)" sh -c 'for u in klick both klick-signer; do systemctl cat $u >/dev/null 2>&1 && systemd-analyze security --no-pager $u 2>/dev/null | tail -1 | sed "s/^/$u: /"; done; true'
 		abschnitt "CrowdSec" sh -c 'cscli bouncers list 2>/dev/null; cscli metrics show appsec 2>/dev/null | head -20; true'
-		abschnitt "Start-Prüfung Klick" sh -c "journalctl -u klick --since '-1day' --no-pager 2>/dev/null | grep -iE 'start-prüfung|prod_accept' | tail -5; grep -h '^PROD_ACCEPT_RISKS=' /etc/klick/klick.env 2>/dev/null | tail -1; true"
+		abschnitt "Start-Prüfung Klick" sh -c "journalctl -u klick --since '-1day' --no-pager 2>/dev/null | grep -iE 'start-prüfung|prod_accept' | tail -5; true"
+		abschnitt "Klick: wirksames Admin-Netz und hingenommene Risiken" klick_wirksam
 		abschnitt "OpenTimestamps-Kalender (https)" ots_erreichbar
 		abschnitt "Verlauf: letzte Anker" runuser -u postgres -- psql -d klick -Atc \
 			"select created_at, reason, status, bitcoin_height, coalesce(error, '') from ledger_anchors order by created_at desc limit 5"
@@ -103,6 +108,19 @@ phase_abschluss() {
 	local saml
 	saml="$(runuser -u postgres -- psql -d klick -Atc "select count(*) from sso_provider where saml_config is not null and (saml_config::jsonb -> 'spMetadata' ->> 'entityID') is null" 2>/dev/null || echo 0)"
 	[ "${saml:-0}" = 0 ] || hinweis "$saml SAML-Anbieter vor A7 angelegt: in Einstellungen > SSO neu registrieren (eigene Entity-ID)"
+}
+
+# Die zwei Werte, die der laufende Prozess wirklich hat (Unit, Drop-ins und
+# klick.env zusammen); nur diese Schlüssel, die Umgebung trägt auch Geheimnisse.
+klick_wirksam() {
+	local pid
+	pid="$(systemctl show klick -p MainPID --value 2>/dev/null || echo 0)"
+	if [ "${pid:-0}" -gt 0 ] && [ -r "/proc/$pid/environ" ]; then
+		tr '\0' '\n' <"/proc/$pid/environ" | grep -E '^(ADMIN_NETWORKS|PROD_ACCEPT_RISKS)=' || echo "weder ADMIN_NETWORKS noch PROD_ACCEPT_RISKS gesetzt"
+	else
+		echo "klick läuft nicht"
+	fi
+	if [ -f "$NOTFREIGABE" ]; then echo "Not-Freigabe aktiv: $NOTFREIGABE"; fi
 }
 
 abschnitt() {
