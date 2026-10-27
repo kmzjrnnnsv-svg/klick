@@ -52,6 +52,31 @@ sudo systemctl restart klick && curl -f https://raza.work/api/ready
 
 **Rollback:** `scripts/restore-db.sh <dump> <url>` + `git checkout recruiting-final` + `pnpm release`.
 
+### Klick startet nach einem Update nicht (Start-Prüfung)
+Zeigt raza.work „Internal Server Error“ und `curl -fsS http://127.0.0.1:3000/api/ready` endet mit 500,
+hat meist die Start-Prüfung (`lib/env-checks.ts`) den Start verweigert. Ursache ablesen:
+```bash
+sudo journalctl -u klick -n 50 --no-pager | grep -i "unsichere produktions"
+```
+Die Meldung nennt jeden Punkt; hinnehmbar sind nur diese (Kürzel für `PROD_ACCEPT_RISKS`):
+„Kein Virenscanner“ = `no_av`, „Kein Admin-Netz“ = `admin_anywhere`, „AUTH_ALLOW_SIGNUP“ =
+`signup_open`, „MAIL_ALLOW_RESEND“ = `mail_us`, „PARSER_SOCKET fehlt“ = `parser_in_app`. Alles andere
+(`BETTER_AUTH_URL` ohne https, falscher `PASSKEY_RP_ID`, `HOSTNAME` ≠ 127.0.0.1) muss behoben werden.
+
+**Notweg** (typisch nach einem `git pull` mit noch alter Unit ohne `ADMIN_NETWORKS` und ohne clamd): eine
+Not-Freigabe als Drop-in mit genau den Kürzeln aus der Meldung. Ein Eintrag in `/etc/klick/klick.env`
+reicht dafür nicht, die alte Unit liest die Datei nicht zuverlässig (`EnvironmentFile` kommt mit der neuen).
+```bash
+sudo mkdir -p /etc/systemd/system/klick.service.d && printf '[Service]\nEnvironment=PROD_ACCEPT_RISKS=no_av,admin_anywhere\n' | sudo tee /etc/systemd/system/klick.service.d/risiken.conf && sudo systemctl daemon-reload && sudo systemctl restart klick && sleep 20 && curl -fsS http://127.0.0.1:3000/api/ready && echo OK
+```
+**Danach aufräumen** (aus dem root-eigenen Checkout, Abschnitt „Rollout-Skript“):
+`sudo deploy/rollout/rollout.sh grundlage virenscanner klick`. Die Phase `klick` spielt die neue Unit
+ein (mit Admin-Netz), übernimmt die übrigen Kürzel (z. B. `no_av`) in den verwalteten Block von
+`klick.env`, entfernt `risiken.conf` samt `admin_anywhere` und legt beides zurück, falls Klick danach
+nicht startet. `rollout.sh pruefen` zeigt eine noch aktive Not-Freigabe, der Bericht von `abschluss` die
+Werte, mit denen Klick wirklich läuft. Ab dann ist `/admin` nur noch über WireGuard erreichbar
+(Phase `wireguard`).
+
 ## Prüfen
 - `systemd-analyze security klick` ≤ 2.0
 - `curl -I https://raza.work` zeigt CSP, HSTS, COOP/CORP, Permissions-Policy

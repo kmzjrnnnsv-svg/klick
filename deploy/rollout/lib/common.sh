@@ -17,6 +17,9 @@ BOTH_DIR="${BOTH_DIR:-/opt/both/current}"
 # deploy/signer/install.sh)
 ANKER=/etc/klick-release/allowed_signers
 WG_CONF=/etc/wireguard/wg-admin.conf
+# Not-Freigabe, wenn Klick nach einem Update an der Start-Prüfung scheitert
+# (Runbook „Klick startet nach einem Update nicht“); Phase klick räumt sie auf
+NOTFREIGABE=/etc/systemd/system/klick.service.d/risiken.conf
 
 die() {
 	printf 'rollout: %s\n' "$*" >&2
