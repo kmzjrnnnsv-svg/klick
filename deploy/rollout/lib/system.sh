@@ -113,7 +113,8 @@ phase_nginx() {
 	local f andere pub neu_link=0
 	einspielen "$DEPLOY/nginx/snippets/klick-admin-net.conf" /etc/nginx/snippets/klick-admin-net.conf
 	einspielen "$DEPLOY/logrotate/nginx" /etc/logrotate.d/nginx
-	andere="$(grep -rlE 'default_server' /etc/nginx/sites-enabled/ 2>/dev/null | grep -v '00-default' || true)"
+	# -R folgt den Links in sites-enabled; die Ubuntu-Standardseite fällt unten weg
+	andere="$(grep -RlE 'default_server' /etc/nginx/sites-enabled/ /etc/nginx/conf.d/ 2>/dev/null | grep -vE '/(00-default\.conf|default)$' || true)"
 	if [ -n "$andere" ]; then
 		hinweis "default_server steht schon in: $andere — 00-default.conf übersprungen"
 	else

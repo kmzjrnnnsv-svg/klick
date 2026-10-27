@@ -227,6 +227,47 @@ describe("Aufruf", () => {
 });
 
 describe("reine Hilfen", () => {
+	it("öffentliche Ports mit Programm und Wirkung der Härtung", () => {
+		// Ausgabe von `ss -tulnpH` auf raza.work (27.10.), gekürzt
+		const ss = join(tmp, "ss.txt");
+		writeFileSync(
+			ss,
+			[
+				'tcp LISTEN 0 511 0.0.0.0:443 0.0.0.0:* users:(("nginx",pid=900,fd=8))',
+				'tcp LISTEN 0 4096 0.0.0.0:22 0.0.0.0:* users:(("sshd",pid=800,fd=3))',
+				'tcp LISTEN 0 511 *:3001 *:* users:(("node /home/nrpl",pid=1078,fd=26))',
+				'tcp LISTEN 0 511 127.0.0.1:3000 0.0.0.0:* users:(("next-server",pid=1100,fd=20))',
+				"udp UNCONN 0 0 0.0.0.0:45426 0.0.0.0:*",
+				'udp UNCONN 0 0 178.104.89.45%eth0:68 0.0.0.0:* users:(("systemd-network",pid=600,fd=22))',
+				'tcp LISTEN 0 4096 10.9.0.1:22 0.0.0.0:* users:(("sshd",pid=800,fd=4))',
+			].join("\n"),
+		);
+		const out = rein(`ports_bewerten < ${ss}`);
+		expect(out).toContain("tcp 0.0.0.0:443 (nginx): bleibt offen (nginx)");
+		expect(out).toContain(
+			"tcp 0.0.0.0:22 (sshd): nach Phase ssh nur im Tunnel",
+		);
+		expect(out).toContain(
+			"tcp *:3001 (node /home/nrpl): nach Phase firewall von außen zu",
+		);
+		expect(out).toContain(
+			"udp 0.0.0.0:45426 (Kernel): nach Phase firewall von außen zu",
+		);
+		expect(out).toContain("(systemd-network): DHCP, bleibt");
+		// localhost und Admin-Netz sind nicht öffentlich
+		expect(out).not.toContain("3000");
+		expect(out).not.toContain("10.9.0.1");
+	});
+
+	it("nginx: default_server auch hinter den Links in sites-enabled finden", () => {
+		const sys = read(`${DIR}/lib/system.sh`);
+		const fn = sys.slice(sys.indexOf("phase_nginx() {"));
+		expect(fn).toContain(
+			"grep -RlE 'default_server' /etc/nginx/sites-enabled/",
+		);
+		expect(fn).not.toMatch(/grep -rl/);
+	});
+
 	it("Virenscanner nach Arbeitsspeicher", () => {
 		expect(rein("virenscanner_entscheidung 3900000").trim()).toBe("no_av");
 		expect(rein("virenscanner_entscheidung 7900000").trim()).toBe("clamd");
