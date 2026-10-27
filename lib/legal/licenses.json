@@ -1635,7 +1635,7 @@
 	},
 	{
 		"name": "fast-uri",
-		"version": "3.1.8",
+		"version": "3.1.9",
 		"license": "BSD-3-Clause",
 		"author": "Vincent Le Goff",
 		"homepage": "https://github.com/fastify/fast-uri"
@@ -1698,7 +1698,7 @@
 	},
 	{
 		"name": "happy-dom",
-		"version": "20.14.5",
+		"version": "21.0.4",
 		"license": "MIT",
 		"author": "David Ortner",
 		"homepage": "https://github.com/capricorn86/happy-dom"
@@ -2292,7 +2292,7 @@
 	},
 	{
 		"name": "nodemailer",
-		"version": "10.0.13",
+		"version": "10.1.7",
 		"license": "MIT-0",
 		"author": "Andris Reinman",
 		"homepage": "https://nodemailer.com/"
