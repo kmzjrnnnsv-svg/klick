@@ -34,6 +34,13 @@ phase_pruefen() {
 		grep -q '^PubkeyAcceptedAlgorithms sk-' /etc/ssh/sshd_config.d/10-klick.conf && ssh="nur Sicherheitsschlüssel" || ssh="nur Tunnel"
 	fi
 	stand ssh "$ssh"
+	local upd="offen"
+	gleich "$DEPLOY/apt/50unattended-upgrades" /etc/apt/apt.conf.d/50unattended-upgrades && upd="täglich automatisch"
+	if [ -x /usr/lib/update-notifier/apt-check ]; then
+		upd="$upd, ausstehend: $(/usr/lib/update-notifier/apt-check 2>&1 | awk -F';' '{print $1 " Pakete, davon " $2 " Sicherheit"}')"
+	fi
+	[ -f /var/run/reboot-required ] && upd="$upd, Neustart nötig"
+	stand updates "$upd"
 	stand system "$(gleich "$DEPLOY/sysctl/99-klick.conf" /etc/sysctl.d/99-klick.conf && echo erledigt || echo offen)"
 	stand nginx "$(gleich "$DEPLOY/nginx/snippets/klick-admin-net.conf" /etc/nginx/snippets/klick-admin-net.conf && echo erledigt || echo offen)"
 	stand crowdsec "$(systemctl is-active --quiet crowdsec 2>/dev/null && echo aktiv || echo offen)"

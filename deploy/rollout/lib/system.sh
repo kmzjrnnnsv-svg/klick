@@ -59,14 +59,34 @@ phase_grundlage() {
 	fi
 }
 
-phase_system() {
-	titel "Kernel, Updates, Protokoll, Integrität"
-	GEAENDERT=0
-	einspielen "$DEPLOY/sysctl/99-klick.conf" /etc/sysctl.d/99-klick.conf
-	[ "$GEAENDERT" = 1 ] && aendern sysctl --system -q
+# Sicherheits-Updates: täglich automatisch (nur Sicherheitsquellen, Neustart
+# bei Bedarf 04:30) und die gerade ausstehenden sofort. needrestart startet
+# betroffene Dienste neu, die Apps und den Signer nicht (needrestart-klick.conf).
+phase_updates() {
+	titel "Sicherheits-Updates (jetzt und danach täglich automatisch)"
+	pakete unattended-upgrades needrestart
 	einspielen "$DEPLOY/apt/50unattended-upgrades" /etc/apt/apt.conf.d/50unattended-upgrades
 	einspielen "$DEPLOY/apt/20auto-upgrades" /etc/apt/apt.conf.d/20auto-upgrades
 	einspielen "$DEPLOY/apt/needrestart-klick.conf" /etc/needrestart/conf.d/klick.conf
+	aendern systemctl enable --now apt-daily.timer apt-daily-upgrade.timer
+	aendern apt-get update -q
+	info "ausstehende Sicherheits-Updates einspielen (einige Minuten) …"
+	aendern unattended-upgrade -v ||
+		die "Updates fehlgeschlagen: /var/log/unattended-upgrades/unattended-upgrades.log"
+	trocken && return 0
+	ok "Sicherheits-Updates eingespielt, ab jetzt täglich automatisch"
+	if [ -f /var/run/reboot-required ]; then
+		hinweis "Neustart nötig ($(tr '\n' ' ' </var/run/reboot-required.pkgs 2>/dev/null | cut -c1-100)): am Ende „sudo reboot“, sonst nachts um 04:30 von selbst"
+	else
+		ok "kein Neustart nötig"
+	fi
+}
+
+phase_system() {
+	titel "Kernel, Protokoll, Integrität"
+	GEAENDERT=0
+	einspielen "$DEPLOY/sysctl/99-klick.conf" /etc/sysctl.d/99-klick.conf
+	[ "$GEAENDERT" = 1 ] && aendern sysctl --system -q
 	GEAENDERT=0
 	einspielen "$DEPLOY/audit/klick.rules" /etc/audit/rules.d/klick.rules 0640
 	if [ "$GEAENDERT" = 1 ]; then
