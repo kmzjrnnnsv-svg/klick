@@ -20,7 +20,7 @@ DEPLOY="$ROOT_DIR/deploy"
 LIB="$ROOT_DIR/deploy/rollout/lib"
 
 # Reihenfolge von `alles`
-PHASEN=(pruefen grundlage firewall wireguard ssh firewall-final system nginx crowdsec
+PHASEN=(pruefen grundlage updates firewall wireguard ssh firewall-final system nginx crowdsec
 	postgres virenscanner klick both signer ueberwachung abschluss)
 # einzeln aufrufbar, nicht Teil von `alles`
 EINZELN=(ssh-schluessel bestaetigen)
@@ -32,11 +32,12 @@ Aufruf: sudo $0 <phase>… [optionen]
 Phasen (Reihenfolge von „alles“):
   pruefen         Stand anzeigen, ändert nichts
   grundlage       Pakete, Ordner, Swap, Release-Schlüssel (/etc/klick-release)
+  updates         Sicherheits-Updates jetzt und danach täglich automatisch
   firewall        nftables im Übergang (SSH noch öffentlich, WireGuard offen)
   wireguard       Admin-Netz wg-admin, Geräte mit QR-Code, Split-DNS
   ssh             SSH nur über den Tunnel (bisherige Schlüssel), Admin-Konto
   firewall-final  SSH öffentlich zu; danach Hetzner-Firewall angleichen
-  system          sysctl, Updates, auditd, AppArmor, AIDE-Regeln
+  system          sysctl, auditd, AppArmor, AIDE-Regeln
   nginx           Admin-Netz, Standard-Server, vHosts (mit Rückfrage)
   crowdsec        CrowdSec mit WAF und Bouncern
   postgres        SCRAM, nur localhost, pg_hba
@@ -163,6 +164,7 @@ phase_ausfuehren() {
 	case "$p" in
 	pruefen) phase_pruefen ;;
 	grundlage) phase_grundlage ;;
+	updates) phase_updates ;;
 	firewall) phase_firewall ;;
 	wireguard) phase_wireguard ;;
 	ssh) phase_ssh ;;
@@ -202,6 +204,9 @@ done
 
 titel "Fertig"
 [ -d "$SICHERUNG" ] && info "Gesicherte Dateien: $SICHERUNG"
+if ! trocken && [ -f /var/run/reboot-required ]; then
+	hinweis "Neustart nötig (Updates): sudo reboot, sonst nachts um 04:30 von selbst"
+fi
 info "Protokoll: $LOG"
 if ! trocken && [ -f /etc/ssh/sshd_config.d/10-klick.conf ] &&
 	! grep -q '^PubkeyAcceptedAlgorithms sk-' /etc/ssh/sshd_config.d/10-klick.conf; then

@@ -273,7 +273,9 @@ Später neu holen: `sudo git -C /usr/local/src/klick-rollout pull --ff-only` (bz
 
 **Phasen** (Reihenfolge von `alles`, jede einzeln aufrufbar, `--ab <phase>` setzt fort):
 `pruefen` · `grundlage` (Pakete, `/var/log/klick`, `/var/www/letsencrypt`, 4 GB Swap ohne Swap,
-Release-Anker) · `firewall` (Übergang: SSH noch öffentlich, UDP 51820 offen) · `wireguard` (Geräte mit
+Release-Anker) · `updates` (ausstehende Sicherheits-Updates sofort, danach täglich automatisch; Neustart
+bei Bedarf nachts um 04:30, die Apps startet needrestart nicht neu) · `firewall` (Übergang: SSH noch
+öffentlich, UDP 51820 offen) · `wireguard` (Geräte mit
 QR-Code, Konfiguration nur auf dem Bildschirm; wartet auf die Verbindung) · `ssh` (Admin-Konto, SSH nur
 über den Tunnel, bisherige Schlüssel) · `firewall-final` (SSH öffentlich zu) · `system` · `nginx` (vHosts
 mit `diff` und Rückfrage) · `crowdsec` (Paketquelle mit `signed-by`, Fingerprint bestätigen oder

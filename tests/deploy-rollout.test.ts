@@ -162,6 +162,28 @@ describe("Dateien", () => {
 		);
 	});
 
+	it("Sicherheits-Updates: früh im Lauf, sofort und danach täglich", () => {
+		const main = read(`${DIR}/rollout.sh`);
+		const phasen = main.slice(
+			main.indexOf("PHASEN=("),
+			main.indexOf(")", main.indexOf("PHASEN=(")),
+		);
+		expect(phasen).toMatch(/grundlage updates firewall/);
+		const sys = read(`${DIR}/lib/system.sh`);
+		const upd = sys.slice(
+			sys.indexOf("phase_updates() {"),
+			sys.indexOf("phase_system() {"),
+		);
+		expect(upd).toContain("$DEPLOY/apt/50unattended-upgrades");
+		expect(upd).toContain("apt-daily-upgrade.timer");
+		expect(upd).toMatch(/aendern unattended-upgrade -v \|\|/);
+		expect(upd).toContain("/var/run/reboot-required");
+		// die Apps startet needrestart nie selbst neu
+		const nr = read("deploy/apt/needrestart-klick.conf");
+		expect(nr).toContain("klick\\.service");
+		expect(nr).toContain("both\\.service");
+	});
+
 	it("CrowdSec-Paketquelle ohne Installationsskript, mit signed-by", () => {
 		const sys = read(`${DIR}/lib/system.sh`);
 		expect(code(sys)).not.toContain("install.crowdsec.net");
@@ -181,6 +203,7 @@ describe("Aufruf", () => {
 		for (const p of [
 			"pruefen",
 			"grundlage",
+			"updates",
 			"firewall-final",
 			"wireguard",
 			"virenscanner",
