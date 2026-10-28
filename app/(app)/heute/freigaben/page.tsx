@@ -14,6 +14,7 @@ import {
 	listRequestsForUser,
 	type PendingForUser,
 } from "@/lib/approvals/service";
+import { signDocumentOf } from "@/lib/approvals/signature";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { decisionRequestDetails } from "@/lib/compliance/decision-service";
@@ -171,6 +172,7 @@ export default async function ApprovalsInboxPage({
 									eligible={r.eligible}
 									mine={r.mine}
 									compact
+									signDocumentId={signDocumentOf(r)}
 									options={
 										r.entityType === "decision_request"
 											? (questions.get(r.entityId)?.options ?? [])

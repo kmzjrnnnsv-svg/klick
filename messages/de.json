@@ -1552,7 +1552,10 @@
 		"published": "Veröffentlicht — Kenntnisnahmen laufen.",
 		"empty": "Noch keine Dokumente.",
 		"emptyLead": "Firmen haben ihre Richtlinien schon: importiere sie oder starte aus den Vorlagen.",
-		"requiredBy": "Gefordert von CC-GOV-08 · ISO 27001 7.5 · MaRisk AT 5/6"
+		"requiredBy": "Gefordert von CC-GOV-08 · ISO 27001 7.5 · MaRisk AT 5/6",
+		"signedBy": "Unterschrieben von {name} am {date}",
+		"signatureValid": "Unterschrift geprüft und gültig",
+		"signatureInvalid": "Unterschrift passt nicht zur Fassung oder ist ungültig"
 	},
 	"Policies": {
 		"title": "Richtlinien",
@@ -1890,7 +1893,17 @@
 		"chooseOption": "Entscheidung für",
 		"chooseOptionPlaceholder": "Option wählen …",
 		"errors_optionRequired": "Wähle eine Option, bevor du freigibst.",
-		"errors_invalidOption": "Diese Option gehört nicht zur Anfrage — lade die Seite neu."
+		"errors_invalidOption": "Diese Option gehört nicht zur Anfrage — lade die Seite neu.",
+		"sign_approve": "Freigeben und unterschreiben",
+		"sign_signing": "Unterschreibt …",
+		"sign_noPasskey": "Für Unterschriften brauchst du einen Passkey oder Sicherheitsschlüssel. Leg ihn unter Einstellungen > Dein Konto an.",
+		"sign_notInReview": "Diese Fassung ist nicht mehr im Umlauf. Lade die Seite neu.",
+		"sign_cancelled": "Unterschrift abgebrochen.",
+		"sign_expired": "Die Bestätigung hat zu lange gedauert. Versuch es noch einmal.",
+		"sign_invalid": "Die Unterschrift passt nicht zur eingereichten Fassung. Lade die Seite neu und versuch es noch einmal.",
+		"sign_signed": "Unterschrieben. Die Freigabe wartet noch auf weitere Unterschriften.",
+		"sign_signedFinal": "Unterschrieben und freigegeben.",
+		"errors_signature_required": "Diese Stufe verlangt eine Unterschrift. Nutze „Freigeben und unterschreiben“."
 	},
 	"Providers": {
 		"linked": "Prozesse · Assets",

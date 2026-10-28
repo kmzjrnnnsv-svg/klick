@@ -53,11 +53,14 @@ export async function ApprovalBar({
 	names,
 	eligible,
 	currentUserId,
+	signDocumentId,
 }: {
 	data: ApprovalBarData | null;
 	names: Map<string, string>;
 	eligible: boolean;
 	currentUserId: string;
+	// Dokument: Stufen mit Unterschrift zeigen „Freigeben und unterschreiben“
+	signDocumentId?: string;
 }) {
 	if (!data) return null;
 	const ta = await getTranslations("Approvals");
@@ -119,6 +122,11 @@ export async function ApprovalBar({
 					eligible={eligible}
 					mine={data.requestedByUserId === currentUserId}
 					compact
+					signDocumentId={
+						data.steps.find((s) => s.order === data.currentStep)?.signature
+							? signDocumentId
+							: undefined
+					}
 				/>
 			)}
 		</div>

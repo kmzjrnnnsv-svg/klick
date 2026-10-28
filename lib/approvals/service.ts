@@ -232,8 +232,8 @@ export async function ensureOrgWorkflows(
 		if (row.custom) continue;
 		// Altfassungen angleichen, eigene Anpassungen bleiben
 		const patch: Partial<typeof approvalWorkflows.$inferInsert> = {};
-		const legacySteps = LEGACY_STEPS[t.kind];
-		if (legacySteps && sameSteps(row.steps, legacySteps)) {
+		const legacySteps = LEGACY_STEPS[t.kind] ?? [];
+		if (legacySteps.some((l) => sameSteps(row.steps, l))) {
 			patch.steps = t.steps;
 			patch.entityType = t.entityType;
 			patch.name = t.name;
@@ -771,7 +771,8 @@ export type DecideResult =
 				| "not_pending"
 				| "four_eyes"
 				| "rule_not_met"
-				| "already_decided";
+				| "already_decided"
+				| "signature_required";
 	  };
 
 export async function decide(
@@ -781,6 +782,8 @@ export async function decide(
 		requestId: string;
 		decision: "approved" | "rejected" | "changes_requested";
 		note?: string;
+		// Zustimmung als Unterschrift gespeichert (lib/signatures/document.ts)
+		signed?: boolean;
 	},
 ): Promise<DecideResult> {
 	const [req] = await tx
@@ -828,6 +831,10 @@ export async function decide(
 		candidates,
 	);
 	if (!elig.eligible) return { ok: false, error: elig.reason };
+	// Stufe mit Unterschrift: Zustimmung nur über „Freigeben und
+	// unterschreiben“ (Ablehnen und Rückfrage gehen weiter ohne)
+	if (step.signature && input.decision === "approved" && !input.signed)
+		return { ok: false, error: "signature_required" };
 
 	const before = await tx
 		.select({

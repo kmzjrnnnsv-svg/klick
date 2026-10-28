@@ -20,6 +20,7 @@ import {
 } from "@/components/today/today-list";
 import { orgSettings } from "@/db/schema";
 import { listRequestsForUser } from "@/lib/approvals/service";
+import { signDocumentOf } from "@/lib/approvals/signature";
 import { catalogQuestions } from "@/lib/assessments/catalog-template";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -321,6 +322,7 @@ export default async function TodayPage() {
 												eligible={r.eligible}
 												mine={false}
 												compact
+												signDocumentId={signDocumentOf(r)}
 											/>
 										}
 									/>

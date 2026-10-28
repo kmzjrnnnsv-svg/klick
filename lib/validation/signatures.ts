@@ -38,3 +38,13 @@ export const submitSignatureSchema = z.object({
 		}),
 	}),
 });
+
+// Dokument-Fassung im Umlauf unterschreiben (Dokumentenlenkung)
+export const prepareDocumentSignatureSchema = z.object({
+	documentId: z.uuid(),
+	function: fn.default("-"),
+});
+
+export const submitDocumentSignatureSchema = submitSignatureSchema
+	.omit({ evidenceIds: true })
+	.extend({ documentId: z.uuid() });

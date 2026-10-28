@@ -11,6 +11,10 @@ import {
 	DocumentEditor,
 	NewVersionDialog,
 } from "@/components/documents/document-forms";
+import {
+	type SignatureLine,
+	SignatureList,
+} from "@/components/documents/signature-list";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
@@ -34,6 +38,7 @@ import {
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { SIGN_ORIGIN, SIGN_RP_ID } from "@/lib/auth/passkey-sign";
 import { allows } from "@/lib/auth/permissions";
 import { hidesSecret, restrictedView } from "@/lib/auth/visibility";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -52,12 +57,17 @@ import {
 	validRanges,
 	versionState,
 } from "@/lib/documents/versions";
+import { functionLabel } from "@/lib/evidence-studio/generate/doc";
 import {
 	type ActivityEntry,
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
 import { portalAcknowledgementsFor } from "@/lib/policy-portal/admin";
+import {
+	checkDocumentSignature,
+	documentSignaturesFor,
+} from "@/lib/signatures/document";
 
 export default async function DocumentDetailPage({
 	params,
@@ -83,6 +93,7 @@ export default async function DocumentDetailPage({
 				loadCandidates(tx, ctx.orgId),
 				activeDelegations(tx, ctx.orgId),
 			]);
+		const signatures = await documentSignaturesFor(tx, ctx.orgId, d.doc.id);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
@@ -99,6 +110,7 @@ export default async function DocumentDetailPage({
 			candidates,
 			dels,
 			names,
+			signatures,
 		};
 	});
 	if (!data) notFound();
@@ -115,7 +127,26 @@ export default async function DocumentDetailPage({
 		candidates,
 		dels,
 		names,
+		signatures,
 	} = data;
+	// Unterschriften je Fassung mit Prüfung (Prüfsumme der Fassung jetzt)
+	const signEnv = { origin: SIGN_ORIGIN, rpId: SIGN_RP_ID };
+	const signLines = new Map<string, SignatureLine[]>();
+	for (const sig of signatures) {
+		const v = versions.find((x) => x.id === sig.versionId);
+		const line: SignatureLine = {
+			id: sig.id,
+			signerName: sig.signerName,
+			functionLabel: sig.function ? functionLabel(sig.function) : null,
+			signedAt: sig.signedAt,
+			valid: checkDocumentSignature(sig, signEnv, v?.contentSha256 ?? null)
+				.valid,
+		};
+		signLines.set(sig.versionId, [
+			...(signLines.get(sig.versionId) ?? []),
+			line,
+		]);
+	}
 	// Prüfer-Sicht: nur die gültige Fassung, keine Arbeitskopie, Freigabe
 	// oder Verlauf; streng geheim ohne Grant nur der Hinweis
 	const restricted = restrictedView(ctx);
@@ -384,6 +415,7 @@ export default async function DocumentDetailPage({
 					names={names}
 					eligible={eligible}
 					currentUserId={ctx.userId}
+					signDocumentId={doc.id}
 				/>
 			)}
 
@@ -401,6 +433,7 @@ export default async function DocumentDetailPage({
 								<AlertDescription>{t("staleText")}</AlertDescription>
 							</Alert>
 						)}
+						<SignatureList lines={signLines.get(current.id) ?? []} />
 						{current.fileEvidenceId &&
 							fileLink(
 								current.fileEvidenceId,
@@ -553,6 +586,7 @@ export default async function DocumentDetailPage({
 												</a>
 											)}
 										</p>
+										<SignatureList lines={signLines.get(v.id) ?? []} />
 									</li>
 								);
 							})}

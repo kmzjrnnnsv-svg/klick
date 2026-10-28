@@ -11,9 +11,10 @@ export type SignPurpose = (typeof SIGN_PURPOSES)[number];
 
 export type SignFields = {
 	org: string;
-	// evidence:<uuid> oder batch:<uuid> (Sammelunterschrift über Merkle-Wurzel)
+	// evidence:<uuid>, batch:<uuid> (Sammelunterschrift über Merkle-Wurzel)
+	// oder docver:<uuid> (Fassung eines Dokuments, Dokumentenlenkung)
 	target: string;
-	// SHA-256 der Datei bzw. Merkle-Wurzel, 64 hex
+	// SHA-256 der Datei, Merkle-Wurzel bzw. Prüfsumme der Fassung, 64 hex
 	hash: string;
 	signer: string;
 	// Funktion (role function) oder „-“
@@ -28,7 +29,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const PATTERNS: Record<keyof SignFields, RegExp> = {
 	org: UUID,
 	target:
-		/^(evidence|batch):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+		/^(evidence|batch|docver):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
 	hash: /^[0-9a-f]{64}$/,
 	signer: UUID,
 	// Funktion, eigene Rolle `role:<uuid>` (ADR-024) oder "-" (ohne)

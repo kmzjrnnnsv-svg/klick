@@ -568,6 +568,10 @@ export type ApprovalStep = {
 	// alle Personen der Stellen stimmen zu (z. B. die ganze Geschäftsleitung):
 	// beim Antrag aufgelöst zu user:-Stellen mit mode "all"
 	everyone?: boolean;
+	// Zustimmung nur als Unterschrift per Passkey über die eingereichte
+	// Fassung (Dokumentenlenkung, lib/signatures/document.ts); ein einfaches
+	// „Freigeben“ wird abgelehnt (signature_required)
+	signature?: boolean;
 	// im Schnappschuss: Stellen vor der Auflösung (Anzeige „Geschäftsleitung“)
 	expandedFrom?: string[];
 	// im Schnappschuss: Personen, deren Zustimmung mit dem Antrag gegeben ist

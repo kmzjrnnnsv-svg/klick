@@ -32,11 +32,21 @@ export const LEGACY_DOCUMENT_PUBLISH_STEPS: ApprovalStep[] = [
 ];
 
 // Altfassungen je Ablauf: unverändert übernommene Stufen werden angeglichen
-export const LEGACY_STEPS: Readonly<Record<string, ApprovalStep[]>> = {
-	document_publish: LEGACY_DOCUMENT_PUBLISH_STEPS,
+// (je Ablauf alle früheren Standard-Fassungen)
+export const LEGACY_STEPS: Readonly<Record<string, ApprovalStep[][]>> = {
+	document_publish: [
+		LEGACY_DOCUMENT_PUBLISH_STEPS,
+		// bis 28.10.2026: Freigabe ohne Unterschrift
+		[
+			{ order: 1, approverRule: "owner_of_entity", slaDays: 5 },
+			{ order: 2, approverRule: "approver_of_entity", slaDays: 10 },
+		],
+	],
 	change: [
-		{ order: 1, approverRule: "function:ict_risk_function", slaDays: 5 },
-		{ order: 2, approverRule: "function:management_body", slaDays: 10 },
+		[
+			{ order: 1, approverRule: "function:ict_risk_function", slaDays: 5 },
+			{ order: 2, approverRule: "function:management_body", slaDays: 10 },
+		],
 	],
 };
 
@@ -89,10 +99,16 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		name: "Dokument veröffentlichen",
 		entityType: "document",
 		description:
-			"Eigner:in, dann die Freigabe-Funktion des Dokuments (Richtlinien: Geschäftsleitung). Ist keine hinterlegt oder die Funktion nicht besetzt, entfällt die Stufe.",
+			"Eigner:in, dann unterschreiben alle Personen der Freigabe-Funktion des Dokuments mit ihrem Passkey (Richtlinien: die ganze Geschäftsleitung). Ist keine hinterlegt oder die Funktion nicht besetzt, entfällt die Stufe.",
 		steps: [
 			{ order: 1, approverRule: "owner_of_entity", slaDays: 5 },
-			{ order: 2, approverRule: "approver_of_entity", slaDays: 10 },
+			{
+				order: 2,
+				approverRule: "approver_of_entity",
+				slaDays: 10,
+				everyone: true,
+				signature: true,
+			},
 		],
 		defaultEnabled: true,
 	},
