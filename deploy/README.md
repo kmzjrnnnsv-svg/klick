@@ -365,7 +365,7 @@ und Parser „OK“). Test: `sudo -u klick ls /opt/both` → „Permission denie
 **6. nginx und CrowdSec (mit WAF)**
 1. `cp deploy/nginx/snippets/klick-admin-net.conf /etc/nginx/snippets/`,
    `cp deploy/nginx/00-default.conf /etc/nginx/sites-available/` + Link in `sites-enabled`
-   (vorher `grep -rn default_server /etc/nginx/sites-enabled/` — andere Sites dürfen keinen tragen),
+   (vorher `grep -Rn default_server /etc/nginx/sites-enabled/` — andere Sites dürfen keinen tragen),
    vHosts neu kopieren, `nginx -t && systemctl reload nginx`.
 2. Prüfen: von außen `curl -sI https://raza.work/admin` → 403, über den Tunnel → 200/307;
    `curl -sI -H 'Host: x.example' http://<ip>` → keine Antwort.

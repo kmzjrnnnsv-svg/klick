@@ -18,7 +18,7 @@ phase_pruefen() {
 	if [ -n "${TMUX:-}${STY:-}" ]; then ok "läuft in tmux/screen"; else hinweis "nicht in tmux: bei Verbindungsabbruch endet das Skript (sudo tmux new -s rollout)"; fi
 	if root_passwort_gesetzt; then ok "root-Passwort gesetzt (Hetzner-Konsole)"; else hinweis "root-Passwort fehlt: Rückweg über die Hetzner-Konsole braucht es (passwd root)"; fi
 	info "Öffentlich lauschend:"
-	ss -tulnH 2>/dev/null | awk '{print $1, $5}' | grep -vE ' (127\.|\[::1\]|10\.9\.0\.1|\[fd10:9::1\])' | sort -u | sed 's/^/    /' || true
+	ss -tulnpH 2>/dev/null | ports_bewerten | sed 's/^/    /' || true
 
 	printf '\n  Stand der Phasen:\n'
 	local fw="offen"

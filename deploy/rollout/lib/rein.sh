@@ -96,6 +96,25 @@ risiken_nach_update() {
 	fi
 }
 
+# Öffentlich lauschende Ports aus `ss -tulnpH` (stdin): Protokoll, Adresse,
+# Programm und was nach der Härtung von außen noch geht. Adressen nur auf
+# localhost oder im Admin-Netz fallen weg.
+ports_bewerten() {
+	awk '
+		$5 ~ /^(127\.|\[::1\]|10\.9\.0\.1|\[fd10:9::1\])/ { next }
+		{
+			n = split($5, a, ":"); port = a[n]
+			prog = "Kernel"
+			if (match($0, /users:\(\("[^"]+"/)) prog = substr($0, RSTART + 9, RLENGTH - 10)
+			if ($1 == "tcp" && (port == 80 || port == 443)) note = "bleibt offen (nginx)"
+			else if ($1 == "udp" && port == 51820) note = "bleibt offen (WireGuard)"
+			else if ($1 == "tcp" && port == 22) note = "nach Phase ssh nur im Tunnel"
+			else if ($1 == "udp" && (port == 68 || port == 546)) note = "DHCP, bleibt"
+			else note = "nach Phase firewall von außen zu"
+			printf "%s %s (%s): %s\n", $1, $5, prog, note
+		}' | sort -u
+}
+
 # Env-Datei mit verwaltetem Block neu schreiben (stdout).
 #   env_block_render <datei> KEY=WERT …   (KEY= entfernt den Schlüssel)
 # Gleiche Schlüssel außerhalb des Blocks werden auskommentiert, damit genau
