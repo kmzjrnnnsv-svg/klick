@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { orgSettings } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { auditPlatform } from "@/lib/audit";
 import {
@@ -10,12 +9,6 @@ import {
 	createAccount as createAccountService,
 } from "@/lib/auth/admin-accounts";
 import { requirePlatformAdmin, requirePlatformStepUp } from "@/lib/auth/guards";
-import { initializeOrg } from "@/lib/compliance/initialize-org";
-import {
-	appetiteFromMethod,
-	defaultRiskMethod,
-} from "@/lib/compliance/risk-method";
-import { generateDek, wrapDek } from "@/lib/crypto/envelope";
 import {
 	accountExists,
 	adminOrg,
@@ -31,8 +24,8 @@ import { logger } from "@/lib/log";
 import { PLATFORM_MAIL } from "@/lib/mail/address";
 import { sendTransactionalMail } from "@/lib/mail/send";
 import { orgResumedEmail, orgSuspendedEmail } from "@/lib/mail/templates";
+import { seedEmptyOrg } from "@/lib/org/seed";
 import { invalidateSuspension } from "@/lib/org/suspension";
-import { SETUP_FLAG } from "@/lib/setup/steps";
 import {
 	adminCreateOrgSchema,
 	orgContractSchema,
@@ -154,31 +147,13 @@ async function createOrganizationByAdminImpl(
 			fieldErrors: { slug: ["slug_taken"] },
 		};
 	try {
-		const wrapped = await wrapDek(await generateDek());
-		const method = defaultRiskMethod([]);
 		await mutateOrg(
 			{ orgId, userId: a.userId, ip: a.ip, userAgent: a.userAgent },
 			async (tx) => {
-				const now = new Date();
-				await tx.insert(orgSettings).values({
-					organizationId: orgId,
-					encryptedDek: wrapped.wrapped,
-					keyVersion: wrapped.keyVersion,
-					riskMethod: method,
-					riskAppetite: appetiteFromMethod(method),
-					onboardingCompletedAt: now,
-					priceGroupId: d.priceGroupId ?? null,
-					// Inhaber:in startet in der geführten Einrichtung (D0)
-					setupFlags: { [SETUP_FLAG.started]: now.toISOString() },
-				});
-				const init = await initializeOrg(tx, {
+				const seeded = await seedEmptyOrg(tx, {
 					orgId,
 					userId: null,
-					frameworks: [],
-					sector: "other",
-					licenceStage: "0_vorbereitung",
-					caspServices: [],
-					applyBaseline: false,
+					priceGroupId: d.priceGroupId ?? null,
 				});
 				return {
 					result: undefined,
@@ -189,8 +164,7 @@ async function createOrganizationByAdminImpl(
 							name: d.name,
 							slug: d.slug,
 							via: "platform_admin",
-							keyVersion: wrapped.keyVersion,
-							init,
+							...seeded,
 						},
 					},
 				};

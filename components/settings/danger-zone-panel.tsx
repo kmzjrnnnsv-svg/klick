@@ -3,7 +3,10 @@
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { ensureFullExport } from "@/app/actions/security-changes";
-import { deleteOrganizationAction } from "@/app/actions/settings";
+import {
+	deleteOrganizationAction,
+	resetOrganizationAction,
+} from "@/app/actions/settings";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { ExportLink } from "@/components/entity/export-link";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -71,6 +74,7 @@ export function DangerZonePanel({
 						{t("exportOrg")}
 					</ExportLink>
 				</div>
+				{canDelete && <ResetOrgSection orgSlug={orgSlug} />}
 				{canDelete && (
 					<div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-start sm:justify-between">
 						<div>
@@ -172,5 +176,129 @@ export function DangerZonePanel({
 				)}
 			</CardContent>
 		</Card>
+	);
+}
+
+// Neu beginnen: alle Inhalte weg, dieselbe Organisation leer neu angelegt
+// (gleicher Name und Kurzname, interne Mitglieder, Preisgruppe, Vertrag).
+function ResetOrgSection({ orgSlug }: { orgSlug: string }) {
+	const t = useTranslations("Settings");
+	const tc = useTranslations("Common");
+	const [pending, start] = useTransition();
+	const [confirm, setConfirm] = useState("");
+	const [exported, setExported] = useState(false);
+	const [open, setOpen] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	return (
+		<div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-start sm:justify-between">
+			<div>
+				<p className="font-medium">{t("resetOrg")}</p>
+				<p className="text-muted-foreground text-footnote">
+					{t("resetOrgLead")}
+				</p>
+			</div>
+			<Dialog
+				open={open}
+				onOpenChange={(o) => {
+					setOpen(o);
+					if (o) {
+						setConfirm("");
+						setExported(false);
+						setError(null);
+					}
+				}}
+			>
+				<DialogTrigger asChild>
+					<Button variant="destructive" size="sm">
+						{t("resetOrg")}
+					</Button>
+				</DialogTrigger>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{t("resetOrgTitle")}</DialogTitle>
+						<DialogDescription>{t("resetOrgLead")}</DialogDescription>
+					</DialogHeader>
+					<div className="flex flex-col gap-4 text-subhead">
+						<div className="rounded-xl bg-warning/12 p-3 text-footnote">
+							<p className="font-medium">{t("resetOrgLosesTitle")}</p>
+							<p>{t("resetOrgLoses")}</p>
+							<p className="mt-2 font-medium">{t("resetOrgKeepsTitle")}</p>
+							<p>{t("resetOrgKeeps")}</p>
+						</div>
+						<label className="flex items-start gap-2">
+							<Checkbox
+								checked={exported}
+								onCheckedChange={(v) => setExported(v === true)}
+								aria-label={t("deleteOrgConfirmExport")}
+							/>
+							<span>{t("deleteOrgConfirmExport")}</span>
+						</label>
+						<div className="flex flex-col gap-1">
+							<Label htmlFor="reset-slug">
+								{t("deleteOrgSlug", { slug: orgSlug })}
+							</Label>
+							<Input
+								id="reset-slug"
+								value={confirm}
+								onChange={(e) => setConfirm(e.target.value)}
+								autoComplete="off"
+								spellCheck={false}
+								className="font-mono"
+							/>
+						</div>
+					</div>
+					<FormAlert message={error} />
+					<DialogFooter>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setOpen(false)}
+							disabled={pending}
+						>
+							{tc("cancel")}
+						</Button>
+						<Button
+							variant="destructive"
+							size="sm"
+							disabled={pending || !exported || confirm.trim() !== orgSlug}
+							onClick={() =>
+								start(async () => {
+									setError(null);
+									const res = await withStepUp(() =>
+										resetOrganizationAction({
+											confirmSlug: confirm.trim(),
+											exportConfirmed: exported,
+										}),
+									);
+									if (!res.ok && isFourEyesNotice(res)) {
+										setOpen(false);
+										toast.notice(errorText(tc, res));
+										return;
+									}
+									if (!res.ok) {
+										if (res.error === "reset_partial") {
+											window.location.assign("/onboarding");
+											return;
+										}
+										setError(
+											res.error === "step_up_required"
+												? t("stepUp")
+												: res.error === "slugMismatch"
+													? t("deleteOrgSlugMismatch")
+													: errorText(tc, res),
+										);
+										return;
+									}
+									toast.success(t("resetOrgDone"));
+									window.location.assign("/einrichtung/rollen");
+								})
+							}
+						>
+							{t("resetOrgButton")}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		</div>
 	);
 }

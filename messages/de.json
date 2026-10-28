@@ -620,7 +620,16 @@
 		"subscriptionDue_agreed": "nach Vereinbarung",
 		"subscriptionAgreed": "im Gespräch",
 		"tabNetwork": "Netzwerk",
-		"tabLedger": "Verlauf"
+		"tabLedger": "Verlauf",
+		"resetOrg": "Neu beginnen",
+		"resetOrgTitle": "Organisation neu beginnen?",
+		"resetOrgLead": "Alle Inhalte deiner Organisation werden gelöscht, dann legt Klick sie mit demselben Namen und Kurznamen leer neu an. Du startest in der geführten Einrichtung.",
+		"resetOrgLosesTitle": "Was weg ist",
+		"resetOrgLoses": "Alle Inhalte, Nachweise und Dateien, Rollen-Besetzungen und Freigaben, SSO, IP-Liste, Integrationen und Token, die both.money-Verbindung, das Trust Center und alle externen Zugänge (Prüfer:innen, Berater:innen). Andere Mitglieder werden abgemeldet.",
+		"resetOrgKeepsTitle": "Was bleibt",
+		"resetOrgKeeps": "Name und Kurzname, die internen Mitglieder mit ihrer Rolle, Preisgruppe und Vertrag, deine Zustimmung zu den Nutzungsbedingungen. Der alte Verlauf bleibt als Spur erhalten, die neue Organisation beginnt einen neuen.",
+		"resetOrgButton": "Endgültig neu beginnen",
+		"resetOrgDone": "Neu begonnen. Weiter in der Einrichtung."
 	},
 	"Team": {
 		"title": "Team",
@@ -6586,7 +6595,8 @@
 		"err_four_eyes_not_open": "Der Antrag ist nicht mehr offen. Lade die Seite neu.",
 		"err_four_eyes_self": "Deiner eigenen Änderung stimmt eine andere Person zu.",
 		"err_four_eyes_stale": "Die Einstellung hat sich seit dem Antrag geändert, darum ist er verfallen. Stell ihn neu.",
-		"err_forbidden": "Zustimmen dürfen nur Inhaber:innen und die Geschäftsleitung."
+		"err_forbidden": "Zustimmen dürfen nur Inhaber:innen und die Geschäftsleitung.",
+		"where_org_reset": "Führe es jetzt aus: Einstellungen > Organisation, „Neu beginnen“."
 	},
 	"AdminLockbox": {
 		"title": "Zugriffe auf Organisationen",
@@ -6773,7 +6783,9 @@
 		"created": "Organisation angelegt.",
 		"createLinkHint": "Gib diesen Link nur der Inhaber:in. Er gilt 7 Tage und nur einmal.",
 		"err_slug_taken": "Diesen Kurznamen gibt es schon. Wähle einen anderen.",
-		"err_account_exists": "Zu dieser Adresse gibt es schon ein Konto. Lege die Organisation mit einer anderen Adresse an, oder die Person legt ihre Organisation selbst an."
+		"err_account_exists": "Zu dieser Adresse gibt es schon ein Konto. Lege die Organisation mit einer anderen Adresse an, oder die Person legt ihre Organisation selbst an.",
+		"ownOrgHint": "Das ist deine eigene Organisation. Sperren geht hier nicht; zurücksetzen kannst du sie unter Einstellungen > Organisation, „Neu beginnen“.",
+		"ownOrgLink": "Zu den Einstellungen"
 	},
 	"TermsGate": {
 		"title": "Willkommen bei Klick",

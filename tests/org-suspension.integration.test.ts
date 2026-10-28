@@ -3,18 +3,22 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { schema } from "@/db";
-import { auditLog } from "@/db/schema";
+import { auditLog, orgSettings } from "@/db/schema";
 import { verifyAuditChain } from "@/lib/audit";
+import { LocalKms, setKmsForTests } from "@/lib/crypto/kms";
 import {
 	accountExists,
 	deleteEmptyOrganization,
+	insertMembers,
 	insertOrganization,
+	internalMembersOf,
 } from "@/lib/db/admin-orgs";
 import {
 	orgAccount,
 	saveOrgAccount,
 	setOrgSuspension,
 } from "@/lib/db/org-accounts";
+import { seedEmptyOrg } from "@/lib/org/seed";
 import {
 	invalidateSuspension,
 	orgSuspended,
@@ -141,5 +145,46 @@ d("Sperre einer Organisation (Postgres)", () => {
 		expect(
 			(await client`select 1 from organization where id = ${id}`).length,
 		).toBe(0);
+	});
+
+	it("Neu beginnen: interne Mitglieder und Grundausstattung in der neuen Org", async () => {
+		setKmsForTests(new LocalKms(new Map([[1, new Uint8Array(32)]]), 1));
+		try {
+			await client`insert into member (organization_id, user_id, role, created_at) values (${orgB}, ${u.admin}, 'auditor', now())`;
+			const kept = await internalMembersOf(orgA);
+			expect(kept.map((m) => m.role).sort()).toEqual(["editor", "owner"]);
+			expect(await internalMembersOf(orgB)).toEqual([]);
+			const fresh = await insertOrganization({
+				name: "Neu begonnen",
+				slug: `neu-begonnen-${stamp}`,
+			});
+			expect(fresh).toBeTruthy();
+			const id = fresh ?? "";
+			await insertMembers(id, kept);
+			const seeded = await db.transaction(async (tx) => {
+				await tx.execute(sql`select set_config('app.org_id', ${id}, true)`);
+				return seedEmptyOrg(tx, {
+					orgId: id,
+					userId: u.owner,
+					flags: { termsAcceptedAt: "2026-10-01T00:00:00.000Z" },
+				});
+			});
+			expect(seeded.keyVersion).toBe(1);
+			const settings = await db.transaction(async (tx) => {
+				await tx.execute(sql`select set_config('app.org_id', ${id}, true)`);
+				return tx
+					.select({ flags: orgSettings.setupFlags })
+					.from(orgSettings)
+					.where(eq(orgSettings.organizationId, id));
+			});
+			expect(settings[0]?.flags.termsAcceptedAt).toBe(
+				"2026-10-01T00:00:00.000Z",
+			);
+			expect(settings[0]?.flags.setupStartedAt).toBeTruthy();
+			expect((await internalMembersOf(id)).length).toBe(2);
+			await client`delete from organization where id = ${id}`;
+		} finally {
+			setKmsForTests(null);
+		}
 	});
 });

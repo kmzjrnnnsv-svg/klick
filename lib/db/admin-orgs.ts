@@ -165,3 +165,37 @@ export async function accountExists(email: string): Promise<boolean> {
 		.limit(1);
 	return Boolean(row);
 }
+
+// „Neu beginnen“: interne Mitglieder (ohne Externe) merken und in der neu
+// angelegten Org mit derselben Rolle wieder eintragen.
+const INTERNAL_ROLES = ["owner", "editor", "viewer", "employee"];
+
+export async function internalMembersOf(
+	orgId: string,
+): Promise<{ userId: string; role: string }[]> {
+	return globalDb
+		.select({ userId: member.userId, role: member.role })
+		.from(member)
+		.where(
+			and(
+				eq(member.organizationId, orgId),
+				inArray(member.role, INTERNAL_ROLES),
+			),
+		);
+}
+
+export async function insertMembers(
+	orgId: string,
+	rows: readonly { userId: string; role: string }[],
+): Promise<void> {
+	if (rows.length === 0) return;
+	const now = new Date();
+	await globalDb.insert(member).values(
+		rows.map((r) => ({
+			organizationId: orgId,
+			userId: r.userId,
+			role: r.role,
+			createdAt: now,
+		})),
+	);
+}

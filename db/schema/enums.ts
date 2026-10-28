@@ -633,6 +633,8 @@ export const SECURITY_CHANGE_KINDS = [
 	"network_policy",
 	// „erlaubt“: einmalige Erlaubnis für die anfragende Person (24 h)
 	"org_delete",
+	// Neu beginnen: alle Daten weg, Org leer neu angelegt
+	"org_reset",
 	"full_export",
 	"member_reset_access",
 	"integration_token",

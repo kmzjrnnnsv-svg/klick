@@ -197,6 +197,14 @@ export default async function AdminOrgPage({
 						<SuspendDialog orgId={id} orgName={org.name} />
 					)}
 				</div>
+				{isMember && (
+					<p className="text-subhead text-muted-foreground">
+						{t("ownOrgHint")}{" "}
+						<Link href="/einstellungen" className="underline">
+							{t("ownOrgLink")}
+						</Link>
+					</p>
+				)}
 
 				<ListSection title={t("sectionPrice")} footer={t("priceFooter")}>
 					<ListRow title={ta("priceGroup")}>

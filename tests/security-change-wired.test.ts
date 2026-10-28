@@ -40,7 +40,13 @@ const WIRES: Wire[] = [
 		file: "app/actions/settings.ts",
 		fn: "deleteOrganizationActionImpl",
 		gate: "requirePermit",
-		effect: "auth.api.deleteOrganization",
+		effect: "wipeOrganization(",
+	},
+	{
+		file: "app/actions/settings.ts",
+		fn: "resetOrganizationActionImpl",
+		gate: "requirePermit",
+		effect: "wipeOrganization(",
 	},
 	{
 		file: "app/actions/team.ts",
@@ -115,6 +121,19 @@ describe("Vier-Augen ist an jeder kritischen Änderung angeschlossen", () => {
 			expect(effect, `Wirkung ${w.effect} fehlt`).toBeGreaterThan(-1);
 			expect(gate).toBeLessThan(effect);
 		});
+
+	it("Organisation entfernen nur über wipeOrganization (nach dem Vier-Augen-Dienst)", () => {
+		const callers = walkFiles(["app", "lib", "scripts"]).filter((f) =>
+			readFileSync(join(ROOT, f), "utf8").includes("api.deleteOrganization("),
+		);
+		expect(callers).toEqual(["lib/org/wipe.ts"]);
+		const users = walkFiles(["app", "lib", "scripts"]).filter(
+			(f) =>
+				f !== "lib/org/wipe.ts" &&
+				readFileSync(join(ROOT, f), "utf8").includes("wipeOrganization("),
+		);
+		expect(users).toEqual(["app/actions/settings.ts"]);
+	});
 
 	it("SSO-, DLP- und Netz-Regeln schreiben nur die Actions, der Dienst und der Notweg", () => {
 		const allowed = new Set([
