@@ -7,6 +7,7 @@ import {
 	orgSettings,
 } from "@/db/schema";
 import type { DocumentSignature } from "@/db/schema/signatures";
+import { historyFor } from "@/lib/audit";
 import { roleLabel } from "@/lib/auth/memberships";
 import {
 	type FunctionKey,
@@ -29,7 +30,9 @@ import {
 	type ControlledVersion,
 	controlledDocModel,
 } from "./controlled-pdf";
+import { diffLines } from "./diff";
 import { DISTRIBUTION_ALL } from "./distribution";
+import { diffStat, type VersionTrail, versionTrails } from "./trail";
 import {
 	currentPublished,
 	validInPeriod,
@@ -153,9 +156,23 @@ export async function loadControlledSource(
 	const roleNames = await orgRoleNames(tx, orgId);
 	const fnLabel = (k: string) =>
 		functionKeyLabel(k as FunctionKey, catalogFunctionLabel, roleNames);
+	// Verlauf je Fassung (wer bearbeitet hat) — nicht in der Prüfer-Sicht
+	const trails =
+		opts.view === "current"
+			? new Map<string, VersionTrail>()
+			: versionTrails(
+					versions.at(-1)?.version ?? doc.version,
+					(await historyFor(tx, `document:${doc.id}`, 2000)).map((h) => ({
+						at: h.at,
+						actorUserId: h.actorUserId,
+						action: h.action,
+						after: h.after,
+					})),
+				);
 	const names = await userNames(tx, [
 		doc.ownerUserId,
 		...versions.map((v) => v.approvedByUserId),
+		...[...trails.values()].flatMap((t) => t.editors.map((e) => e.userId)),
 	]);
 
 	let file: FileRef | null = null;
@@ -218,6 +235,14 @@ export async function loadControlledSource(
 		signatures
 			.filter((s) => s.versionId === versionId)
 			.map((s) => s.signerName);
+	// Zeilen gegenüber der Vorgängerin (versions: neueste zuerst)
+	const statsOf = (v: (typeof versions)[number]) => {
+		if (opts.view === "current") return null;
+		const prev = versions[versions.indexOf(v) + 1];
+		return prev
+			? diffStat(diffLines(prev.bodyMarkdown ?? "", v.bodyMarkdown ?? ""))
+			: null;
+	};
 	const asControlled = (v: (typeof versions)[number]): ControlledVersion => ({
 		version: v.version,
 		changeSummary: v.changeSummary,
@@ -228,6 +253,10 @@ export async function loadControlledSource(
 		validUntil: ranges.get(v.id)?.until ?? null,
 		approvedBy: names.get(v.approvedByUserId ?? "") ?? null,
 		signers: signersOf(v.id),
+		lines: statsOf(v),
+		editors: (trails.get(v.version)?.editors ?? [])
+			.map((e) => names.get(e.userId ?? "") ?? null)
+			.filter((n): n is string => n !== null),
 	});
 	// Verlauf je Ansicht (Prüfer-Sicht nur die gültige Fassung, ADR-025)
 	const history = versions.filter(visible).map(asControlled);
@@ -281,6 +310,8 @@ export async function loadControlledSource(
 							validUntil: null,
 							approvedBy: null,
 							signers: [],
+							lines: null,
+							editors: [],
 						}),
 				state,
 				bodyMarkdown: body,

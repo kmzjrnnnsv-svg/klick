@@ -112,6 +112,16 @@ export const REGISTERS: HelpArticle[] = [
 				tip: "Eine Freigabe wirkt nur auf die Fassung, für die sie beantragt wurde. Kommt eine späte Zustimmung zu einer alten Fassung, bleibt sie ohne Wirkung.",
 			},
 			{
+				id: "aenderungen",
+				heading: "Änderungen von Fassung zu Fassung",
+				list: [
+					"In der Fassungsliste klappst du je Fassung „Änderungen gegenüber …“ auf: entfernte Zeilen durchgestrichen, neue hervorgehoben, dazu die Zahl der Zeilen.",
+					"Darunter steht, wer die Fassung begonnen, bearbeitet (mit den geänderten Angaben), eingereicht und veröffentlicht hat. So gehst du von der neuesten Fassung Schritt für Schritt zurück.",
+					"Unter „Fassungen vergleichen“ wählst du zwei beliebige Fassungen und siehst den Unterschied im Text.",
+					"Bei hochgeladenen Dateien zeigt Klick, wann die Datei ersetzt wurde; den Inhalt vergleichst du über die Dateien der Fassungen.",
+				],
+			},
+			{
 				id: "umlauf",
 				heading: "Im Umlauf unterschreiben",
 				steps: [

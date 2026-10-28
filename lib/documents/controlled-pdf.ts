@@ -18,6 +18,10 @@ export type ControlledVersion = {
 	validUntil: Date | null;
 	approvedBy: string | null;
 	signers: string[];
+	// Zeilen gegenüber der Vorgängerin und wer bearbeitet hat (leer in der
+	// Prüfer-Sicht)
+	lines: { added: number; removed: number } | null;
+	editors: string[];
 };
 
 export type ControlledSignature = {
@@ -191,7 +195,15 @@ export function controlledDocModel(input: ControlledInput): DocModel {
 			h.validFrom
 				? `${day(h.validFrom)}${h.validUntil ? ` bis ${day(h.validUntil)}` : ""}`
 				: "—",
-			h.changeSummary,
+			[
+				h.changeSummary,
+				h.lines
+					? `${h.lines.added} Zeilen neu, ${h.lines.removed} entfernt`
+					: null,
+				h.editors.length > 0 ? `bearbeitet von ${h.editors.join(", ")}` : null,
+			]
+				.filter(Boolean)
+				.join(" · "),
 			h.signers.length > 0
 				? `${h.signers.join(", ")} (unterschrieben)`
 				: h.approvedAt

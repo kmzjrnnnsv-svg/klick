@@ -31,6 +31,8 @@ const input = (over: Partial<ControlledInput> = {}): ControlledInput => ({
 		validUntil: null,
 		approvedBy: "Erika Muster",
 		signers: ["Erika Muster", "Max Muster"],
+		lines: { added: 3, removed: 1 },
+		editors: ["Mara Beispiel"],
 		state: "current",
 		bodyMarkdown:
 			"# Zweck\n\nDiese Leitlinie gilt.\n\n- Punkt eins\n- Punkt zwei",
@@ -63,6 +65,8 @@ const input = (over: Partial<ControlledInput> = {}): ControlledInput => ({
 			validUntil: null,
 			approvedBy: "Erika Muster",
 			signers: ["Erika Muster", "Max Muster"],
+			lines: { added: 3, removed: 1 },
+			editors: ["Mara Beispiel"],
 		},
 		{
 			version: "1.0",
@@ -74,6 +78,8 @@ const input = (over: Partial<ControlledInput> = {}): ControlledInput => ({
 			validUntil: new Date("2026-10-21T09:00:00Z"),
 			approvedBy: "Erika Muster",
 			signers: [],
+			lines: null,
+			editors: [],
 		},
 	],
 	distribution: ["Alle Mitglieder"],
@@ -116,6 +122,9 @@ describe("PDF „Gelenkte Fassung“", () => {
 		if (table?.type !== "table") throw new Error("keine Tabelle");
 		expect(table.rows).toHaveLength(2);
 		expect(table.rows[0]?.[3]).toContain("Erika Muster, Max Muster");
+		expect(table.rows[0]?.[2]).toBe(
+			"Rollen ergänzt · 3 Zeilen neu, 1 entfernt · bearbeitet von Mara Beispiel",
+		);
 		expect(table.rows[1]?.[2]).toBe("Erste Fassung");
 	});
 
