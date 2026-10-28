@@ -112,6 +112,26 @@ export const REGISTERS: HelpArticle[] = [
 				tip: "Eine Freigabe wirkt nur auf die Fassung, für die sie beantragt wurde. Kommt eine späte Zustimmung zu einer alten Fassung, bleibt sie ohne Wirkung.",
 			},
 			{
+				id: "umlauf",
+				heading: "Im Umlauf unterschreiben",
+				steps: [
+					"Verlangt die Vorlage Unterschriften (Leitlinie und Richtlinien: alle bestellten Mitglieder der Geschäftsleitung), steht im Posteingang „Freigeben und unterschreiben“.",
+					"Du bestätigst mit deinem Passkey oder Sicherheitsschlüssel (Fingerabdruck oder PIN). Die Unterschrift deckt die Prüfsumme genau dieser Fassung.",
+					"Erst wenn alle unterschrieben haben, ist die Fassung freigegeben. Am Dokument steht, wer wann unterschrieben hat und ob die Prüfung gültig ist.",
+				],
+				tip: "Unterschriften lassen sich weder ändern noch löschen. Eine Änderung am Text ist eine neue Fassung mit neuem Umlauf; die alte bleibt samt Unterschriften erhalten.",
+			},
+			{
+				id: "pdf",
+				heading: "Als PDF exportieren",
+				list: [
+					"„Als PDF herunterladen“ an der gültigen Fassung (und „PDF“ an jeder Fassung) erzeugt die gelenkte Fassung: Deckblatt mit Prüfsumme, Freigabe und Unterschriften, Änderungshistorie, Verteiler und Inhalt.",
+					"Im PDF stecken signaturen.json zum Prüfen ohne Klick und bei hochgeladenen Dokumenten die Originaldatei.",
+					"„Gültige Dokumente (ZIP)“ im Register packt alle gültigen Fassungen mit Prüfsummenliste zusammen; das Prüfungspaket enthält je Fassung im Zeitraum das PDF.",
+					"Jeder Export braucht eine frische Bestätigung und steht mit Export-ID im Verlauf. Ein Ausdruck ist eine ungelenkte Kopie, gültig ist die Fassung in Klick.",
+				],
+			},
+			{
 				id: "verteiler",
 				heading: "Verteiler und Kenntnisnahme",
 				list: [

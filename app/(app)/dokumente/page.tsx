@@ -6,10 +6,12 @@ import {
 	TemplatesDialog,
 } from "@/components/documents/document-forms";
 import { EmptyState } from "@/components/entity/empty-state";
+import { ExportLink } from "@/components/entity/export-link";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UserChip } from "@/components/entity/user-chip";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { DOCUMENT_STATUS, DOCUMENT_TYPES } from "@/db/schema/grc";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -166,13 +168,29 @@ export default async function DocumentsPage({
 		},
 	];
 
-	const actions = canCreate ? (
-		<>
-			<ImportDialog />
-			<TemplatesDialog templates={templates} />
-			<DocumentCreate templates={templates.filter((x) => !x.present)} />
-		</>
-	) : undefined;
+	// Paket aller gültigen Fassungen als PDF „Gelenkte Fassung“ (Step-up)
+	const zip = allows(ctx, { export: ["create"] }) &&
+		rows.some((r) => r.current !== null) && (
+			<ExportLink
+				href="/api/export/dokumente.zip"
+				className={buttonVariants({ variant: "outline", size: "sm" })}
+			>
+				{t("zipAll")}
+			</ExportLink>
+		);
+	const actions =
+		canCreate || zip ? (
+			<>
+				{zip}
+				{canCreate && (
+					<>
+						<ImportDialog />
+						<TemplatesDialog templates={templates} />
+						<DocumentCreate templates={templates.filter((x) => !x.present)} />
+					</>
+				)}
+			</>
+		) : undefined;
 
 	return (
 		<RegisterPage

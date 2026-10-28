@@ -218,3 +218,57 @@ export function checkDocumentSignature(
 	});
 	return { text, assertion, valid: text && assertion.ok };
 }
+
+// signaturen.json einer Dokument-Fassung (pure): alles, um die Unterschriften
+// ohne Klick zu prüfen. Liegt dem PDF „Gelenkte Fassung“ als Anhang bei.
+export function documentSignaturesJson(input: {
+	document: {
+		id: string;
+		docNumber: string;
+		title: string;
+		versionId: string;
+		version: string;
+		contentSha256: string | null;
+		fileSha256: string | null;
+	};
+	rows: DocumentSignature[];
+	env: { origin: string; rpId: string };
+}) {
+	return {
+		format: "klick-dokument-signaturen/v1",
+		document: input.document,
+		verification: {
+			rpId: input.env.rpId,
+			origin: input.env.origin,
+			steps: [
+				'contentSha256 nachrechnen: SHA-256 über das JSON {"v":1,"body":"<Text der Fassung>","file":"<SHA-256 der Datei oder null>"} (genau diese Reihenfolge, ohne Leerzeichen).',
+				"signText zerlegen (klick-sign/v1|org|target|hash|signer|function|purpose|nonce|expires); target = docver:<versionId>, hash = contentSha256.",
+				"challenge = base64url(SHA-256(signText)); clientDataJSON muss type webauthn.get, diese challenge und origin enthalten.",
+				"authenticatorData: die ersten 32 Byte = SHA-256(rpId); Flags UP (0x01) und UV (0x04) gesetzt.",
+				"Signatur über authenticatorData ‖ SHA-256(clientDataJSON) mit publicKey (COSE, base64url) prüfen.",
+			],
+		},
+		signatures: input.rows.map((r) => ({
+			signer: r.signerName,
+			signerUserId: r.signerUserId,
+			function: r.function,
+			purpose: r.purpose,
+			version: r.version,
+			signedAt: r.signedAt.toISOString(),
+			signText: r.signText,
+			challenge: signChallenge(r.signText),
+			credentialId: r.credentialId,
+			publicKeyCose: r.publicKey,
+			authenticatorData: r.authenticatorData,
+			clientDataJSON: r.clientDataJSON,
+			signature: r.signature,
+			flags: {
+				userVerified: r.userVerified,
+				backupEligible: r.backupEligible,
+				backupState: r.backupState,
+			},
+			signCount: r.signCount,
+			check: checkDocumentSignature(r, input.env, input.document.contentSha256),
+		})),
+	};
+}

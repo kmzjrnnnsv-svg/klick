@@ -1,4 +1,4 @@
-import { ChevronRight, Download } from "lucide-react";
+import { ChevronRight, Download, FileText } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -22,6 +22,7 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import { ExportLink } from "@/components/entity/export-link";
 import { ResponsibleEditor } from "@/components/entity/responsible-editor";
 import { StatusButton } from "@/components/entity/status-button";
 import { WatchButton } from "@/components/entity/watch-button";
@@ -232,6 +233,19 @@ export default async function DocumentDetailPage({
 			: doc.status === "approved"
 				? t("workingCopyApproved", { version: doc.version })
 				: t("workingCopy", { version: doc.version });
+	// PDF „Gelenkte Fassung“ (Step-up im Dialog, dann Download)
+	const canExport = allows(ctx, { export: ["create"] });
+	const pdfHref = (version: string) =>
+		`/api/export/dokument.pdf?nr=${encodeURIComponent(doc.docNumber)}&fassung=${encodeURIComponent(version)}`;
+	const pdfLink = (version: string, label: string) => (
+		<ExportLink
+			href={pdfHref(version)}
+			className="hit-area inline-flex items-center gap-1 text-primary hover:underline"
+		>
+			<FileText aria-hidden="true" className="size-4" />
+			{label}
+		</ExportLink>
+	);
 	const fileLink = (id: string, label: string) => (
 		<p className="text-subhead">
 			<a
@@ -419,7 +433,14 @@ export default async function DocumentDetailPage({
 				/>
 			)}
 
-			<Section title={t("inForce")}>
+			<Section
+				title={t("inForce")}
+				actions={
+					current && canExport
+						? pdfLink(current.version, t("pdfDownload"))
+						: null
+				}
+			>
 				{current ? (
 					<>
 						<p className="text-muted-foreground text-footnote">
@@ -490,6 +511,11 @@ export default async function DocumentDetailPage({
 					)}
 					{doc.changeSummary && (
 						<p className="text-subhead">{doc.changeSummary}</p>
+					)}
+					{canExport && (
+						<p className="text-subhead">
+							{pdfLink(doc.version, t("pdfWorking", { version: doc.version }))}
+						</p>
 					)}
 					{doc.fileEvidenceId &&
 						fileLink(
@@ -576,6 +602,7 @@ export default async function DocumentDetailPage({
 															})}
 												</span>
 											)}
+											{canExport && pdfLink(v.version, t("pdfShort"))}
 											{v.fileEvidenceId && (
 												<a
 													href={`/api/nachweise/${v.fileEvidenceId}`}

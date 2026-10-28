@@ -507,7 +507,7 @@ export function buildAuditPackage(input: AuditPackageInput): ZipEntry[] {
 		),
 		`- \`03-controls.csv\` — ${input.controls.length} Controls, davon ${implemented} umgesetzt (${withoutEvidence} ohne Nachweis)`,
 		`- \`04-risiken.csv\` — Risikoregister (${input.risks.rows.length} Zeilen)`,
-		`- \`05-dokumente/\` — Index und freigegebene Versionen (${docIndex.length} Zeilen${secretDocs ? `, ${secretDocs} als „geheim“ klassifizierte Dokumente nicht enthalten` : ""})`,
+		`- \`05-dokumente/\` — Index, freigegebene Versionen und je Fassung das PDF „Gelenkte Fassung“ mit Unterschriftenblatt und signaturen.json als Anhang (${docIndex.length} Zeilen${secretDocs ? `, ${secretDocs} als „geheim“ klassifizierte Dokumente nicht enthalten` : ""})`,
 		`- \`06-nachweise-index.csv\` — Nachweise mit SHA-256 (${input.evidence.length - secretEvidence} Zeilen${secretEvidence ? `, ${secretEvidence} geheime nicht enthalten` : ""}); Dateien über /api/nachweise/<id> (auditiert)`,
 		`- \`07-vorfaelle.csv\` — Vorfälle im Zeitraum (${incidents.length})`,
 		`- \`08-audit-log.csv\` — Audit-Log-Auszug (${input.auditLog.length} Einträge, ohne Feldinhalte; Hash-Kette: ${

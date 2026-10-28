@@ -14,6 +14,10 @@ import { decide } from "@/lib/approvals/service";
 import type { SignedAssertion } from "@/lib/auth/passkey-sign";
 import type { OrgTx } from "@/lib/db/with-org";
 import {
+	loadControlledSource,
+	renderControlledPdf,
+} from "@/lib/documents/controlled-export";
+import {
 	prepareDocumentSignText,
 	storeDocumentSignature,
 } from "@/lib/signatures/document";
@@ -216,5 +220,53 @@ d("Dokument-Freigabe mit Unterschrift (Postgres)", () => {
 				.where(eq(documents.id, docId)),
 		);
 		expect(await sign("anna", 3)).toBeNull();
+	});
+
+	it("PDF „Gelenkte Fassung“: Unterschriften, Prüfer-Sicht, Anhang", async () => {
+		const env = { origin: "https://example.com", rpId: "example.com" };
+		await inOrg(async (tx) => {
+			const at = new Date("2026-10-20T10:00:00Z");
+			await tx
+				.update(documentVersions)
+				.set({ approvedAt: at, publishedAt: at })
+				.where(eq(documentVersions.documentId, docId));
+			await tx
+				.update(documents)
+				.set({ status: "published" })
+				.where(eq(documents.id, docId));
+		});
+		const src = await inOrg((tx) =>
+			loadControlledSource(tx, orgId, docId, {
+				view: "full",
+				env,
+				orgName: "Unterschrift",
+			}),
+		);
+		expect(src?.version).toBe("1.0");
+		expect(src?.input.version.state).toBe("current");
+		expect(src?.signatures.map((x) => x.signerName).sort()).toEqual([
+			"bert",
+			"cleo",
+		]);
+		expect(src?.input.history[0]?.signers.sort()).toEqual(["bert", "cleo"]);
+		// Prüfer-Sicht: nur die gültige Fassung
+		const other = await inOrg((tx) =>
+			loadControlledSource(tx, orgId, docId, {
+				version: "0.9",
+				view: "current",
+				env,
+				orgName: "Unterschrift",
+			}),
+		);
+		expect(other).toBeNull();
+		if (!src) return;
+		const pdf = await renderControlledPdf(
+			src,
+			{ exportId: "e-1", by: "Test", at: new Date("2026-10-28T10:00:00Z") },
+			env,
+		);
+		const text = Buffer.from(pdf).toString("latin1");
+		expect(text.startsWith("%PDF-")).toBe(true);
+		expect(text).toContain("signaturen.json");
 	});
 });
