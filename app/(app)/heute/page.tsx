@@ -43,6 +43,7 @@ import {
 import { readOrg } from "@/lib/db/with-org";
 import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
 import { TASK_STATUS } from "@/lib/entities/task";
+import { termsAccepted } from "@/lib/legal/terms";
 import { listNotifications } from "@/lib/notifications/query";
 import { safeInternalPath } from "@/lib/safe-path";
 import {
@@ -143,6 +144,10 @@ export default async function TodayPage() {
 	// Geführte Einrichtung (D0): neue Orgs landen dort, bis die Rahmenwerke
 	// stehen; danach (und für Bestands-Orgs) eine Karte, bis alles erledigt ist.
 	const canSetup = allows(ctx, { settings: ["update"] });
+	// Vom Klick-Betrieb angelegte Organisation: Inhaber:in bestätigt zuerst
+	// die Nutzungsbedingungen
+	if (ctx.orgRole === "owner" && !termsAccepted(setupFlags))
+		redirect("/zustimmung");
 	const setup = setupState(setupFlags);
 	if (canSetup && shouldRedirectToSetup(setup))
 		redirect(stepHref(setup.next ?? "rollen"));

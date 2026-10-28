@@ -655,3 +655,7 @@ export const SECURITY_CHANGE_STATUS = [
 	"expired",
 ] as const;
 export type SecurityChangeStatus = (typeof SECURITY_CHANGE_STATUS)[number];
+
+// Vertrag je Organisation (Admin-Portal, platform_org_accounts)
+export const ORG_ACCOUNT_STATUS = ["trial", "active", "cancelled"] as const;
+export type OrgAccountStatus = (typeof ORG_ACCOUNT_STATUS)[number];

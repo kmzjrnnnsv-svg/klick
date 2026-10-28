@@ -3,12 +3,14 @@
 // lib/admin/overview.ts.
 import { sql } from "drizzle-orm";
 import { globalDb } from "@/db";
+import { accountState, feeState } from "@/lib/admin/contract";
 import type { OverviewInput } from "@/lib/admin/overview";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/log";
 import { platformCounts } from "./global";
 import { inquiryCounts } from "./inquiries";
 import { latestAnchor } from "./ledger";
+import { orgAccounts } from "./org-accounts";
 import { allGrants } from "./platform-access";
 
 /** Fehlgeschlagene Hintergrundaufgaben der letzten 24 h (pg-boss), null = nicht lesbar. */
@@ -26,13 +28,16 @@ export async function failedJobs24h(): Promise<number | null> {
 }
 
 export async function loadOverviewInput(now: Date): Promise<OverviewInput> {
-	const [counts, inquiries, grants, failed, anchor] = await Promise.all([
-		platformCounts(),
-		inquiryCounts(),
-		allGrants(500),
-		failedJobs24h(),
-		latestAnchor({}),
-	]);
+	const [counts, inquiries, grants, failed, anchor, accounts] =
+		await Promise.all([
+			platformCounts(),
+			inquiryCounts(),
+			allGrants(500),
+			failedJobs24h(),
+			latestAnchor({}),
+			orgAccounts(),
+		]);
+	const accs = [...accounts.values()];
 	return {
 		now,
 		counts,
@@ -44,5 +49,7 @@ export async function loadOverviewInput(now: Date): Promise<OverviewInput> {
 			: null,
 		acceptedRisks:
 			env().NODE_ENV === "production" ? env().PROD_ACCEPT_RISKS : [],
+		feesDue: accs.filter((a) => feeState(a, now).kind === "due").length,
+		suspended: accs.filter((a) => accountState(a, now) === "suspended").length,
 	};
 }

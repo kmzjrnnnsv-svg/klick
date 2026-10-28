@@ -11,6 +11,7 @@ import { ipFromHeaders } from "@/lib/auth/session-rules";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { publicTrustCenter } from "@/lib/db/trust";
 import { orgNetworkAllows } from "@/lib/net/org-network";
+import { orgSuspended } from "@/lib/org/suspension";
 import { isServiceType, trustDocumentHref } from "@/lib/trust/labels";
 
 // /vertrauen/<slug> — öffentliches Trust Center einer Org. Gezeigt wird nur
@@ -51,6 +52,8 @@ export default async function PublicTrustCenterPage({
 		))
 	)
 		redirect("/netz?bereich=portal");
+	// gesperrt durch den Plattform-Betrieb: wie nicht veröffentlicht
+	if (await orgSuspended(center.organizationId)) notFound();
 	const s = center.snapshot;
 	const t = await getTranslations("TrustCenter");
 	const tc = await getTranslations("Controls");

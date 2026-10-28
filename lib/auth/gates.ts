@@ -34,6 +34,8 @@ export function redirectFor(code: AuthErrorCode): string {
 			return "/netz?bereich=admin";
 		case "network_denied":
 			return "/netz";
+		case "org_suspended":
+			return "/gesperrt";
 		default:
 			return "/login";
 	}

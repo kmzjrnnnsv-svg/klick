@@ -11,6 +11,7 @@ import {
 } from "@/lib/evidence/read";
 import { s3Configured } from "@/lib/evidence/store";
 import { orgNetworkAllows } from "@/lib/net/org-network";
+import { orgSuspended } from "@/lib/org/suspension";
 import { getOrgLimiter, SlidingWindowLimiter } from "@/lib/rate-limit";
 import { clientIp, ingestRoute } from "@/lib/security/ingest";
 import {
@@ -54,6 +55,7 @@ export const GET = ingestRoute("trust.document", async (req: Request) => {
 		))
 	)
 		return status(403);
+	if (await orgSuspended(center.organizationId)) return status(404);
 	const doc = snapshotDocument(center.snapshot, versionId);
 	if (!doc) return status(404);
 	const orgId = center.organizationId;

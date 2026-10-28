@@ -59,6 +59,12 @@ export default async function AdminHome() {
 	const tileValue = (tile: Tile) => {
 		switch (tile.key) {
 			case "orgs":
+				return tile.suspended > 0
+					? t("orgsSuspended", {
+							n: num.format(tile.n),
+							s: tile.suspended,
+						})
+					: num.format(tile.n);
 			case "users":
 				return num.format(tile.n);
 			case "jobs":
@@ -99,6 +105,8 @@ export default async function AdminHome() {
 				return t("todoAnchor");
 			case "risks":
 				return t("todoRisks");
+			case "fees":
+				return t("todoFees", { n });
 		}
 	};
 
@@ -125,7 +133,8 @@ export default async function AdminHome() {
 			</ListSection>
 			<ListSection title={t("state")}>
 				{tiles.map((tile) =>
-					tile.key === "orgs" || tile.key === "users" ? (
+					(tile.key === "orgs" && tile.suspended === 0) ||
+					tile.key === "users" ? (
 						// Zähler ohne Ampel: Anzahl rechts in Grau
 						<ListRow
 							key={tile.key}

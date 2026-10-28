@@ -1,7 +1,7 @@
 import { and, eq, isNull, ne } from "drizzle-orm";
 import { Check } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { GovernanceModeControl } from "@/components/settings/governance-mode-control";
 import { ActivityStep } from "@/components/setup/activity-step";
@@ -45,6 +45,7 @@ import {
 	userNames,
 } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
+import { termsAccepted } from "@/lib/legal/terms";
 import { loadRoleBoard } from "@/lib/org/role-board-data";
 import {
 	isSetupStep,
@@ -201,6 +202,9 @@ export default async function SetupStepPage({
 				return base;
 		}
 	});
+	// Vom Klick-Betrieb angelegte Organisation: zuerst Nutzungsbedingungen
+	if (ctx.orgRole === "owner" && !termsAccepted(data.flags))
+		redirect("/zustimmung");
 	if (!data.profile) notFound();
 	const { profile, entity } = data;
 	const state = setupState(data.flags);

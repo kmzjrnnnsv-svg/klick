@@ -320,3 +320,34 @@ export function trustAccessEmail(input: {
 			"Wenn du diese Unterlagen nicht angefragt hast, ignoriere diese Mail.",
 	});
 }
+
+// Organisation gesperrt bzw. entsperrt (Admin-Portal): an alle Inhaber:innen.
+// Der Grund steht in der Mail und in der Kette der Org.
+export function orgSuspendedEmail(input: {
+	organization: string;
+	reason: string;
+	contact: string;
+}): { subject: string; text: string; html: string } {
+	return transactionalEmail({
+		subject: `${input.organization} ist in Klick gesperrt`,
+		eyebrow: "Organisation gesperrt",
+		title: `${input.organization} ist vorübergehend gesperrt.`,
+		body: `Bis auf Weiteres kommt niemand aus deiner Organisation in Klick, auch Portale, Trust Center und Token sind gesperrt. Deine Daten bleiben unverändert erhalten.\n\nGrund: ${input.reason}\n\nFragen und Klärung: ${input.contact}`,
+		footnote:
+			"Diese Mail geht an alle Inhaber:innen der Organisation. Die Sperre steht auch im Verlauf eurer Organisation.",
+	});
+}
+
+export function orgResumedEmail(input: { organization: string; url: string }): {
+	subject: string;
+	text: string;
+	html: string;
+} {
+	return transactionalEmail({
+		subject: `${input.organization} ist in Klick wieder freigegeben`,
+		eyebrow: "Sperre aufgehoben",
+		title: `${input.organization} ist wieder freigegeben.`,
+		body: "Alle Mitglieder kommen wieder in Klick, Portale, Trust Center und Token arbeiten wie vorher.",
+		cta: { label: "Klick öffnen", url: input.url },
+	});
+}

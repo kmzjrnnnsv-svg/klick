@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ipFromHeaders } from "@/lib/auth/session-rules";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { orgNetworkAllows } from "@/lib/net/org-network";
+import { orgSuspended } from "@/lib/org/suspension";
 import { portalCookieName } from "@/lib/policy-portal/rules";
 import {
 	publicPortal,
@@ -38,6 +39,7 @@ export default async function PortalPolicyPage({
 		))
 	)
 		redirect("/netz?bereich=portal");
+	if (await orgSuspended(portal.organizationId)) notFound();
 	const reader = await resolvePortalReader(
 		portal,
 		(await cookies()).get(portalCookieName(slug))?.value,

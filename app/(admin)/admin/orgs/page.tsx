@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { OrgPriceGroupSelect } from "@/components/admin/org-price-group-select";
+import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
 	Table,
 	TableBody,
@@ -8,131 +11,231 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import {
+	type AccountState,
+	accountState,
+	feeState,
+} from "@/lib/admin/contract";
 import { requirePlatformAdminPage } from "@/lib/auth/gates";
 import { listOrganizationsWithCounts } from "@/lib/db/global";
+import { orgAccounts } from "@/lib/db/org-accounts";
 import { orgProfilesForAdmin } from "@/lib/db/org-profiles";
 import { listPriceGroups, orgPriceGroupIds } from "@/lib/db/pricing";
 import { withPlatform } from "@/lib/db/with-org";
 
-export default async function AdminOrgsPage() {
+const STATE_BADGE: Record<
+	AccountState,
+	"success" | "warning" | "destructive" | "secondary"
+> = {
+	active: "success",
+	trial: "secondary",
+	cancelled: "warning",
+	ended: "secondary",
+	suspended: "destructive",
+};
+const FILTERS = [
+	"all",
+	"active",
+	"trial",
+	"cancelled",
+	"suspended",
+	"fee_due",
+] as const;
+type Filter = (typeof FILTERS)[number];
+
+// Admin > Organisationen (Admin-Portal, Teil 2): Liste mit Suche und Filter
+// über die URL; Details, Vertrag, Preisgruppe und Sperre auf der Detailseite.
+export default async function AdminOrgsPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ q?: string; status?: string }>;
+}) {
 	const admin = await requirePlatformAdminPage();
-	const t = await getTranslations("Admin");
+	const t = await getTranslations("AdminOrgs");
+	const ta = await getTranslations("Admin");
 	const ts = await getTranslations("Setup");
-	const [orgs, groups, assignments, profiles] = await Promise.all([
+	const sp = await searchParams;
+	const q = (sp.q ?? "").trim().toLowerCase();
+	const filter: Filter = (FILTERS as readonly string[]).includes(
+		sp.status ?? "",
+	)
+		? (sp.status as Filter)
+		: "all";
+	const ctx = {
+		userId: admin.userId,
+		ip: admin.ip,
+		userAgent: admin.userAgent,
+	};
+	const [orgs, accounts, groups, assignments, profiles] = await Promise.all([
 		listOrganizationsWithCounts(),
+		orgAccounts(),
 		listPriceGroups(),
 		withPlatform(
-			{
-				userId: admin.userId,
-				reason: "Admin: Organisationen mit Preisgruppen",
-				ip: admin.ip,
-				userAgent: admin.userAgent,
-			},
+			{ ...ctx, reason: "Admin: Organisationen mit Preisgruppen" },
 			(tx) => orgPriceGroupIds(tx),
 		),
 		withPlatform(
 			{
-				userId: admin.userId,
+				...ctx,
 				reason: "Admin: Organisationen mit Profil aus der Einrichtung",
-				ip: admin.ip,
-				userAgent: admin.userAgent,
 			},
 			(tx) => orgProfilesForAdmin(tx),
 		),
 	]);
-	// Vorschlag aus der Größe → Preisgruppe gleichen Namens (geseedet)
-	const SUGGESTED_GROUP: Record<string, string> = {
-		small: "Kleine Unternehmen",
-		standard: "Standard",
-		large: "Große Unternehmen",
-	};
+	const now = new Date();
 	const defaultGroup = groups.find((r) => r.group.isDefault)?.group ?? null;
-	const options = groups.map((r) => ({ id: r.group.id, name: r.group.name }));
+	const groupName = new Map(groups.map((r) => [r.group.id, r.group.name]));
 	const fmt = new Intl.DateTimeFormat("de-DE", {
 		dateStyle: "medium",
 		timeZone: "Europe/Berlin",
 	});
+
+	const rows = orgs
+		.map((o) => {
+			const acc = accounts.get(o.id) ?? null;
+			return {
+				...o,
+				state: accountState(acc, now),
+				fee: feeState(acc, now),
+				group:
+					groupName.get(assignments.get(o.id) ?? "") ??
+					defaultGroup?.name ??
+					"—",
+				onboarded: assignments.has(o.id),
+				profile: profiles.get(o.id),
+			};
+		})
+		.filter(
+			(r) =>
+				!q ||
+				r.name.toLowerCase().includes(q) ||
+				r.slug.toLowerCase().includes(q),
+		)
+		.filter((r) =>
+			filter === "all"
+				? true
+				: filter === "fee_due"
+					? r.fee.kind === "due"
+					: r.state === filter,
+		);
+
+	const href = (f: Filter) => {
+		const p = new URLSearchParams();
+		if (q) p.set("q", q);
+		if (f !== "all") p.set("status", f);
+		const s = p.toString();
+		return s ? `/admin/orgs?${s}` : "/admin/orgs";
+	};
+
 	return (
-		<>
-			<h1 className="mb-6 font-bold text-title-1">{t("orgs")}</h1>
-			<Table>
-				<TableHeader>
-					<TableRow>
-						<TableHead>Name</TableHead>
-						<TableHead>Slug</TableHead>
-						<TableHead>Mitglieder</TableHead>
-						<TableHead>{t("orgProfile")}</TableHead>
-						<TableHead>{t("priceGroup")}</TableHead>
-						<TableHead>Angelegt</TableHead>
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{orgs.map((o) => {
-						const assigned = assignments.has(o.id);
-						const groupId = assignments.get(o.id) ?? null;
-						const profile = profiles.get(o.id);
-						const suggested = profile?.classification.priceGroup
-							? SUGGESTED_GROUP[profile.classification.priceGroup]
-							: undefined;
-						const current =
-							options.find((g) => g.id === groupId)?.name ?? defaultGroup?.name;
-						return (
+		<div className="flex flex-col gap-6">
+			<PageHeader title={ta("orgs")} lead={t("listLead")} />
+			<form className="flex max-w-md gap-2">
+				<label htmlFor="org-q" className="sr-only">
+					{t("search")}
+				</label>
+				<Input
+					id="org-q"
+					name="q"
+					type="search"
+					defaultValue={sp.q ?? ""}
+					placeholder={t("searchPlaceholder")}
+					autoComplete="off"
+				/>
+				{filter !== "all" && (
+					<input type="hidden" name="status" value={filter} />
+				)}
+			</form>
+			<nav aria-label={t("filter")} className="flex flex-wrap gap-2">
+				{FILTERS.map((f) => (
+					<Link
+						key={f}
+						href={href(f)}
+						aria-current={filter === f ? "page" : undefined}
+						className={`inline-flex h-(--control-h-sm) items-center rounded-full px-3 text-subhead transition-colors ${
+							filter === f
+								? "bg-foreground text-background"
+								: "bg-muted text-foreground hover:bg-muted/70"
+						}`}
+					>
+						{t(`filter_${f}`)}
+					</Link>
+				))}
+			</nav>
+			{rows.length === 0 ? (
+				<p className="text-muted-foreground">{t("listEmpty")}</p>
+			) : (
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead>{t("colName")}</TableHead>
+							<TableHead>{t("field_status")}</TableHead>
+							<TableHead>{t("colMembers")}</TableHead>
+							<TableHead>{ta("orgProfile")}</TableHead>
+							<TableHead>{ta("priceGroup")}</TableHead>
+							<TableHead>{t("fee")}</TableHead>
+							<TableHead>{t("colCreated")}</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{rows.map((o) => (
 							<TableRow key={o.id}>
-								<TableCell className="font-medium">{o.name}</TableCell>
-								<TableCell className="whitespace-nowrap font-mono text-footnote">
-									{o.slug}
+								<TableCell>
+									<Link
+										href={`/admin/orgs/${o.id}`}
+										className="font-medium hover:underline"
+									>
+										{o.name}
+									</Link>
+									<span
+										className="block whitespace-nowrap font-mono text-footnote text-muted-foreground"
+										translate="no"
+									>
+										{o.slug}
+									</span>
 								</TableCell>
-								<TableCell>{Number(o.members)}</TableCell>
+								<TableCell>
+									<Badge variant={STATE_BADGE[o.state]}>
+										{t(`state_${o.state}`)}
+									</Badge>
+								</TableCell>
+								<TableCell className="tabular-nums">{o.members}</TableCell>
 								<TableCell className="text-footnote">
-									{profile ? (
+									{o.profile ? (
 										<>
-											<span>
-												{profile.classification.size
-													? ts(`size_${profile.classification.size}`)
-													: ts("sizeUnknown")}
-												{profile.employees != null
-													? ` · ${profile.employees} MA`
-													: ""}
-											</span>
-											<span className="block text-muted-foreground">
-												{ts(`nis2_${profile.classification.nis2}`)} ·{" "}
-												{t("orgSites", { n: profile.sites })}
-											</span>
+											{o.profile.classification.size
+												? ts(`size_${o.profile.classification.size}`)
+												: ts("sizeUnknown")}
+											{o.profile.employees != null
+												? ` · ${o.profile.employees} MA`
+												: ""}
 										</>
 									) : (
 										"—"
 									)}
 								</TableCell>
-								<TableCell>
-									{assigned ? (
-										<>
-											<OrgPriceGroupSelect
-												orgId={o.id}
-												orgName={o.name}
-												value={groupId}
-												groups={options}
-												defaultName={defaultGroup?.name ?? null}
-											/>
-											{suggested && suggested !== current && (
-												<span className="mt-1 block text-muted-foreground text-footnote">
-													{t("priceGroupSuggested", { name: suggested })}
-												</span>
-											)}
-										</>
+								<TableCell className="text-footnote">
+									{o.onboarded ? o.group : t("onboardingOpen")}
+								</TableCell>
+								<TableCell className="text-footnote">
+									{o.fee.kind === "due" ? (
+										<Badge variant="warning">{t("feeDueShort")}</Badge>
+									) : o.fee.kind === "invoiced" ? (
+										t("feeInvoicedShort")
+									) : o.fee.kind === "before_audit" ? (
+										t("feeBeforeAuditShort")
 									) : (
-										<span className="text-muted-foreground text-footnote">
-											Onboarding offen
-										</span>
+										"—"
 									)}
 								</TableCell>
-								<TableCell className="text-muted-foreground">
+								<TableCell className="whitespace-nowrap text-muted-foreground">
 									{fmt.format(o.createdAt)}
 								</TableCell>
 							</TableRow>
-						);
-					})}
-				</TableBody>
-			</Table>
-		</>
+						))}
+					</TableBody>
+				</Table>
+			)}
+		</div>
 	);
 }

@@ -21,6 +21,8 @@ const base = (over: Partial<OverviewInput> = {}): OverviewInput => ({
 	jobs: { failed24h: 0 },
 	anchor: { createdAt: new Date(NOW.getTime() - 2 * H), status: "confirmed" },
 	acceptedRisks: [],
+	feesDue: 0,
+	suspended: 0,
 	...over,
 });
 
@@ -94,6 +96,16 @@ describe("Admin-Übersicht", () => {
 	it("Jobs nicht lesbar: unbekannt statt grün", () => {
 		const o = buildOverview(base({ jobs: null }));
 		expect(o.tiles.find((t) => t.key === "jobs")?.level).toBe("unknown");
+	});
+
+	it("fällige Jahresgebühren und gesperrte Orgs", () => {
+		const o = buildOverview(base({ feesDue: 2, suspended: 1 }));
+		expect(o.todos).toEqual([
+			{ key: "fees", level: "warn", n: 2, href: "/admin/orgs?status=fee_due" },
+		]);
+		const orgs = o.tiles.find((t) => t.key === "orgs");
+		expect(orgs?.level).toBe("warn");
+		expect(orgs?.href).toBe("/admin/orgs?status=suspended");
 	});
 
 	it("hingenommene Risiken erscheinen als To-do", () => {

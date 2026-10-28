@@ -19,6 +19,10 @@ export type OverviewInput = {
 	anchor: { createdAt: Date; status: string } | null;
 	/** hingenommene Risiken (PROD_ACCEPT_RISKS), z. B. ["no_av"] */
 	acceptedRisks: string[];
+	/** Orgs mit fälliger Jahresgebühr (bestandenes Audit, noch nicht berechnet) */
+	feesDue: number;
+	/** gesperrte Orgs */
+	suspended: number;
 };
 
 export type TodoKey =
@@ -27,7 +31,8 @@ export type TodoKey =
 	| "requests"
 	| "jobs"
 	| "anchor"
-	| "risks";
+	| "risks"
+	| "fees";
 
 export type Todo = {
 	key: TodoKey;
@@ -37,7 +42,8 @@ export type Todo = {
 };
 
 export type Tile =
-	| { key: "orgs" | "users"; level: "ok"; n: number; href: string }
+	| { key: "orgs"; level: Level; n: number; suspended: number; href: string }
+	| { key: "users"; level: "ok"; n: number; href: string }
 	| {
 			key: "jobs";
 			level: Level;
@@ -124,14 +130,24 @@ export function buildOverview(input: OverviewInput): Overview {
 			href: "/admin",
 		});
 
+	if (input.feesDue > 0)
+		todos.push({
+			key: "fees",
+			level: "warn",
+			n: input.feesDue,
+			href: "/admin/orgs?status=fee_due",
+		});
+
 	todos.sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]);
 
 	const tiles: Tile[] = [
 		{
 			key: "orgs",
-			level: "ok",
+			level: input.suspended > 0 ? "warn" : "ok",
 			n: input.counts.organizations,
-			href: "/admin/orgs",
+			suspended: input.suspended,
+			href:
+				input.suspended > 0 ? "/admin/orgs?status=suspended" : "/admin/orgs",
 		},
 		{ key: "users", level: "ok", n: input.counts.users, href: "/admin/users" },
 		{
