@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { CreateOrgDialog } from "@/components/admin/org-actions";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -129,7 +130,16 @@ export default async function AdminOrgsPage({
 
 	return (
 		<div className="flex flex-col gap-6">
-			<PageHeader title={ta("orgs")} lead={t("listLead")} />
+			<PageHeader
+				title={ta("orgs")}
+				lead={t("listLead")}
+				actions={
+					<CreateOrgDialog
+						groups={groups.map((r) => ({ id: r.group.id, name: r.group.name }))}
+						defaultGroupName={defaultGroup?.name ?? null}
+					/>
+				}
+			/>
 			<form className="flex max-w-md gap-2">
 				<label htmlFor="org-q" className="sr-only">
 					{t("search")}

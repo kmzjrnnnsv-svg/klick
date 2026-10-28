@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ORG_ACCOUNT_STATUS } from "@/db/schema/enums";
 import { SUSPEND_REASON_MIN } from "@/lib/admin/contract";
 import { ORG_ROLES } from "@/lib/auth/session-rules";
-import { email } from "./common";
+import { email, shortText, slug } from "./common";
 
 // Plattform-Admin: Konten anlegen und sperren.
 
@@ -56,3 +56,17 @@ export const suspendOrgSchema = z.object({
 	orgId: z.uuid(),
 	reason: z.string().trim().min(SUSPEND_REASON_MIN).max(300),
 });
+
+// Organisation anlegen (Admin-Portal): Org + Vertrag + erste Inhaber:in
+// (Konto mit Aktivierungslink, Passkey Pflicht).
+export const adminCreateOrgSchema = z.object({
+	name: shortText,
+	slug,
+	status: z.enum(["trial", "active"]),
+	startedAt: optDate,
+	priceGroupId: z.uuid().nullish(),
+	ownerName: z.string().trim().min(1).max(120),
+	ownerEmail: email,
+	sendMail: z.boolean().default(true),
+});
+export type AdminCreateOrgInput = z.input<typeof adminCreateOrgSchema>;

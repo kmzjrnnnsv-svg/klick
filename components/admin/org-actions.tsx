@@ -4,12 +4,15 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import {
+	createOrganizationByAdmin,
 	resumeOrganization,
 	saveOrgContract,
 	suspendOrganization,
 } from "@/app/actions/admin-orgs";
 import { withStepUp } from "@/components/auth/step-up-dialog";
+import { InviteLinkPanel } from "@/components/team/invite-form";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useConfirm } from "@/components/ui/confirm-alert";
 import {
 	Dialog,
@@ -35,6 +38,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import { ORG_ACCOUNT_STATUS, type OrgAccountStatus } from "@/db/schema/enums";
 import { SUSPEND_REASON_MIN } from "@/lib/admin/contract";
+import { slugify } from "@/lib/setup/labels";
 
 // Admin > Organisationen > [Org]: Vertrag bearbeiten, sperren, entsperren.
 
@@ -308,5 +312,291 @@ export function ResumeButton({ orgId }: { orgId: string }) {
 			</Button>
 			{confirm.node}
 		</>
+	);
+}
+
+const DEFAULT_GROUP = "__default";
+
+// Organisation anlegen: Name, Kurzname, Vertrag, Preisgruppe, erste
+// Inhaber:in. Ergebnis ist der Aktivierungslink zum Kopieren (Passkey
+// Pflicht); die Inhaber:in bestätigt danach die Nutzungsbedingungen und
+// richtet die Organisation geführt ein.
+export function CreateOrgDialog({
+	groups,
+	defaultGroupName,
+}: {
+	groups: readonly { id: string; name: string }[];
+	defaultGroupName: string | null;
+}) {
+	const t = useTranslations("AdminOrgs");
+	const tc = useTranslations("Common");
+	const router = useRouter();
+	const today = new Date().toISOString().slice(0, 10);
+	const empty = {
+		name: "",
+		slug: "",
+		status: "trial" as "trial" | "active",
+		startedAt: today,
+		group: DEFAULT_GROUP,
+		ownerName: "",
+		ownerEmail: "",
+		sendMail: true,
+	};
+	const [open, setOpen] = useState(false);
+	const [form, setForm] = useState(empty);
+	const [slugTouched, setSlugTouched] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [result, setResult] = useState<{
+		url: string;
+		mailed: boolean | null;
+		orgId: string;
+	} | null>(null);
+	const [pending, start] = useTransition();
+	const set =
+		<K extends keyof typeof empty>(k: K) =>
+		(v: (typeof empty)[K]) =>
+			setForm((f) => ({ ...f, [k]: v }));
+
+	const reset = () => {
+		setForm(empty);
+		setSlugTouched(false);
+		setError(null);
+		setResult(null);
+	};
+
+	return (
+		<Dialog
+			open={open}
+			onOpenChange={(o) => {
+				setOpen(o);
+				if (!o) {
+					if (result) router.refresh();
+					reset();
+				}
+			}}
+		>
+			<DialogTrigger asChild>
+				<Button>{t("create")}</Button>
+			</DialogTrigger>
+			<DialogContent className="sm:max-w-lg">
+				<DialogHeader>
+					<DialogTitle>{t("createTitle")}</DialogTitle>
+					<DialogDescription>{t("createLead")}</DialogDescription>
+				</DialogHeader>
+				{result ? (
+					<InviteLinkPanel
+						url={result.url}
+						mailed={result.mailed}
+						hint={t("createLinkHint")}
+						onDone={() => {
+							setOpen(false);
+							router.push(`/admin/orgs/${result.orgId}`);
+							reset();
+						}}
+					/>
+				) : (
+					<form
+						className="flex flex-col gap-4"
+						onSubmit={(e) => {
+							e.preventDefault();
+							setError(null);
+							start(async () => {
+								const res = await withStepUp(() =>
+									createOrganizationByAdmin({
+										name: form.name,
+										slug: form.slug,
+										status: form.status,
+										startedAt: form.startedAt,
+										priceGroupId:
+											form.group === DEFAULT_GROUP ? null : form.group,
+										ownerName: form.ownerName,
+										ownerEmail: form.ownerEmail,
+										sendMail: form.sendMail,
+									}),
+								);
+								if (!res.ok) {
+									setError(
+										res.error === "slug_taken"
+											? t("err_slug_taken")
+											: res.error === "account_exists"
+												? t("err_account_exists")
+												: errorText(tc, res),
+									);
+									return;
+								}
+								setResult({
+									url: res.data.url,
+									mailed: res.data.mailed,
+									orgId: res.data.orgId,
+								});
+								toast.success(t("created"));
+							});
+						}}
+					>
+						<fieldset className="flex flex-col gap-4">
+							<legend className="mb-2 font-semibold text-headline">
+								{t("createStepOrg")}
+							</legend>
+							<div className="grid gap-2">
+								<Label htmlFor="org-name">{t("orgName")}</Label>
+								<Input
+									id="org-name"
+									name="name"
+									required
+									maxLength={200}
+									autoComplete="organization"
+									placeholder={t("orgNamePlaceholder")}
+									value={form.name}
+									onChange={(e) => {
+										set("name")(e.target.value);
+										if (!slugTouched) set("slug")(slugify(e.target.value));
+									}}
+								/>
+							</div>
+							<div className="grid gap-2">
+								<Label htmlFor="org-slug">{t("orgSlug")}</Label>
+								<Input
+									id="org-slug"
+									name="slug"
+									required
+									maxLength={48}
+									pattern="[a-z0-9](?:[a-z0-9\-]*[a-z0-9])?"
+									autoComplete="off"
+									spellCheck={false}
+									translate="no"
+									value={form.slug}
+									onChange={(e) => {
+										setSlugTouched(true);
+										set("slug")(e.target.value);
+									}}
+								/>
+								<p className="text-footnote text-muted-foreground">
+									{t("orgSlugHint")}
+								</p>
+							</div>
+						</fieldset>
+						<fieldset className="flex flex-col gap-4">
+							<legend className="mb-2 font-semibold text-headline">
+								{t("createStepContract")}
+							</legend>
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								<div className="grid gap-2">
+									<Label htmlFor="org-status">{t("field_status")}</Label>
+									<Select
+										value={form.status}
+										onValueChange={(v) =>
+											set("status")(v as "trial" | "active")
+										}
+									>
+										<SelectTrigger id="org-status" className="w-full">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="trial">{t("status_trial")}</SelectItem>
+											<SelectItem value="active">
+												{t("status_active")}
+											</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="grid gap-2">
+									<Label htmlFor="org-started">{t("field_startedAt")}</Label>
+									<Input
+										id="org-started"
+										name="startedAt"
+										type="date"
+										value={form.startedAt}
+										onChange={(e) => set("startedAt")(e.target.value)}
+									/>
+								</div>
+							</div>
+							<div className="grid gap-2">
+								<Label htmlFor="org-group">{t("priceGroup")}</Label>
+								<Select value={form.group} onValueChange={set("group")}>
+									<SelectTrigger id="org-group" className="w-full">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value={DEFAULT_GROUP}>
+											{t("priceGroupDefault", {
+												name: defaultGroupName ?? "—",
+											})}
+										</SelectItem>
+										{groups.map((g) => (
+											<SelectItem key={g.id} value={g.id}>
+												{g.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						</fieldset>
+						<fieldset className="flex flex-col gap-4">
+							<legend className="mb-2 font-semibold text-headline">
+								{t("createStepOwner")}
+							</legend>
+							<div className="grid gap-2">
+								<Label htmlFor="owner-name">{t("ownerName")}</Label>
+								<Input
+									id="owner-name"
+									name="ownerName"
+									required
+									maxLength={120}
+									autoComplete="off"
+									value={form.ownerName}
+									onChange={(e) => set("ownerName")(e.target.value)}
+								/>
+							</div>
+							<div className="grid gap-2">
+								<Label htmlFor="owner-email">{t("ownerEmail")}</Label>
+								<Input
+									id="owner-email"
+									name="ownerEmail"
+									type="email"
+									required
+									autoComplete="off"
+									spellCheck={false}
+									placeholder={t("ownerEmailPlaceholder")}
+									value={form.ownerEmail}
+									onChange={(e) => set("ownerEmail")(e.target.value)}
+								/>
+							</div>
+							<label className="flex items-center gap-2 text-subhead">
+								<Checkbox
+									checked={form.sendMail}
+									onCheckedChange={(v) => set("sendMail")(v === true)}
+								/>
+								{t("sendMail")}
+							</label>
+							<p className="text-footnote text-muted-foreground">
+								{t("ownerHint")}
+							</p>
+						</fieldset>
+						<FormAlert message={error} />
+						<DialogFooter>
+							<Button
+								type="button"
+								variant="secondary"
+								onClick={() => setOpen(false)}
+							>
+								{tc("cancel")}
+							</Button>
+							<Button
+								type="submit"
+								disabled={
+									pending ||
+									!form.name.trim() ||
+									!form.slug ||
+									!form.ownerName.trim() ||
+									!form.ownerEmail.trim()
+								}
+							>
+								{pending ? tc("creating") : t("createSubmit")}
+							</Button>
+						</DialogFooter>
+					</form>
+				)}
+			</DialogContent>
+		</Dialog>
 	);
 }

@@ -124,3 +124,44 @@ export async function adminOrgSettings(tx: DbTx, orgId: string) {
 		pendingSecurityChanges: Number(pending?.n ?? 0),
 	};
 }
+
+// Organisation anlegen (Admin-Portal): die Zeile in organization ohne
+// Mitglied — die erste Inhaber:in kommt über den Aktivierungslink dazu.
+// null = Kurzname vergeben.
+export async function insertOrganization(input: {
+	name: string;
+	slug: string;
+}): Promise<string | null> {
+	const [taken] = await globalDb
+		.select({ id: organization.id })
+		.from(organization)
+		.where(eq(organization.slug, input.slug))
+		.limit(1);
+	if (taken) return null;
+	const [row] = await globalDb
+		.insert(organization)
+		.values({ name: input.name, slug: input.slug, createdAt: new Date() })
+		.onConflictDoNothing({ target: organization.slug })
+		.returning({ id: organization.id });
+	return row?.id ?? null;
+}
+
+// Nur für eine eben angelegte, leere Organisation (Anlage gescheitert)
+export async function deleteEmptyOrganization(orgId: string): Promise<void> {
+	const [anyMember] = await globalDb
+		.select({ id: member.id })
+		.from(member)
+		.where(eq(member.organizationId, orgId))
+		.limit(1);
+	if (anyMember) return;
+	await globalDb.delete(organization).where(eq(organization.id, orgId));
+}
+
+export async function accountExists(email: string): Promise<boolean> {
+	const [row] = await globalDb
+		.select({ id: user.id })
+		.from(user)
+		.where(eq(user.email, email.trim().toLowerCase()))
+		.limit(1);
+	return Boolean(row);
+}

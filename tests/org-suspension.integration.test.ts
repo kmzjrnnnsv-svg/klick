@@ -6,6 +6,11 @@ import { schema } from "@/db";
 import { auditLog } from "@/db/schema";
 import { verifyAuditChain } from "@/lib/audit";
 import {
+	accountExists,
+	deleteEmptyOrganization,
+	insertOrganization,
+} from "@/lib/db/admin-orgs";
+import {
 	orgAccount,
 	saveOrgAccount,
 	setOrgSuspension,
@@ -119,5 +124,22 @@ d("Sperre einer Organisation (Postgres)", () => {
 		expect(await orgActions(orgA)).toContain("org.resumed");
 		// Vertragsänderungen stehen nur im Plattform-Protokoll
 		expect(await orgActions(orgA)).not.toContain("org.account_updated");
+	});
+
+	it("Organisation anlegen: Kurzname nur einmal, leere Org wieder weg", async () => {
+		const slug = `neu-${stamp}`;
+		const id = await insertOrganization({ name: "Neu GmbH", slug });
+		expect(id).toBeTruthy();
+		expect(await insertOrganization({ name: "Doppelt", slug })).toBeNull();
+		expect(await accountExists(`SP-OWNER-${stamp}@example.org`)).toBe(true);
+		// mit Mitglied bleibt sie stehen
+		await deleteEmptyOrganization(orgA);
+		expect(
+			(await client`select 1 from organization where id = ${orgA}`).length,
+		).toBe(1);
+		await deleteEmptyOrganization(id ?? "");
+		expect(
+			(await client`select 1 from organization where id = ${id}`).length,
+		).toBe(0);
 	});
 });
