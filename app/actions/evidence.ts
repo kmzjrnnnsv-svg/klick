@@ -108,6 +108,8 @@ async function uploadEvidenceImpl(
 		declaredMime: file.type,
 		classification: d.classification,
 		dlpAcknowledged: formData.get("dlpAcknowledged") === "1",
+		// Text für den Vergleich der Fassungen
+		withText: true,
 	});
 	if (!v.ok)
 		return {
@@ -129,6 +131,7 @@ async function uploadEvidenceImpl(
 			validUntil: d.validUntil,
 			createdByUserId: c.userId,
 			dlp: v.dlp,
+			text: v.text,
 		});
 		if (d.implementationId)
 			await linkEvidenceToControl(tx, c.orgId, d.implementationId, stored.id);
@@ -224,6 +227,8 @@ async function uploadEvidenceVersionImpl(
 		declaredMime: file.type,
 		classification: d.classification,
 		dlpAcknowledged: formData.get("dlpAcknowledged") === "1",
+		// Text für den Vergleich der Fassungen
+		withText: true,
 	});
 	if (!v.ok)
 		return {
@@ -251,6 +256,7 @@ async function uploadEvidenceVersionImpl(
 				validUntil: d.validUntil,
 				createdByUserId: c.userId,
 				dlp: v.dlp,
+				text: v.text,
 				source: prev.source,
 			});
 			await tx

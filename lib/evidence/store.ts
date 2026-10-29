@@ -24,6 +24,7 @@ import { env } from "@/lib/env";
 import { parseIsolated, screenResultSchema } from "@/lib/parse/client";
 import { clamdConfigured, scanBytes } from "@/lib/uploads/clamav";
 import { DB_STORAGE_PREFIX, evidenceAad } from "./aad";
+import { type ExtractedText, extractedFrom, storeEvidenceText } from "./text";
 
 // Gemeinsame Upload-Pipeline für Nachweise — Nachweis-Dialog, Gap-Analyse,
 // Scan-Import, Lieferantenportal nutzen dieselben Schritte:
@@ -57,6 +58,8 @@ export type ScreenedUpload =
 			// ggf. durch DLP angehoben, nie abgesenkt
 			classification: Classification;
 			dlp: EvidenceDlp;
+			// nur mit withText: Text der Datei für den Fassungsvergleich
+			text?: ExtractedText;
 	  }
 	| { ok: false; error: string; detail?: string[] };
 
@@ -72,11 +75,18 @@ export async function screenUpload(
 		// Scan-Berichte (gitleaks u. a.) enthalten Secrets erwartungsgemäß —
 		// der Import redigiert sie; Secret-Treffer entscheiden dann nicht.
 		secretsExpected?: boolean;
+		// Text der Datei mitliefern (Dokumente, Nachweise: Fassungsvergleich)
+		withText?: boolean;
 	},
 ): Promise<ScreenedUpload> {
 	// Typprüfung, Textauszug und DLP-Erkennung nie im App-Prozess (N6)
 	const parsed = await parseIsolated(
-		{ op: "screen", name: input.name, declaredMime: input.declaredMime },
+		{
+			op: "screen",
+			name: input.name,
+			declaredMime: input.declaredMime,
+			...(input.withText ? { withText: true } : {}),
+		},
 		input.bytes,
 		screenResultSchema,
 	);
@@ -166,6 +176,9 @@ export async function screenUpload(
 		mime: v.mime,
 		classification: decision.classification,
 		dlp,
+		...(input.withText
+			? { text: extractedFrom(parsed.data.extraction, parsed.data.text) }
+			: {}),
 	};
 }
 
@@ -184,6 +197,8 @@ export type StoreEvidenceInput = {
 	dlp?: EvidenceDlp | null;
 	// vorab vergebene ID (erzeugte Nachweise drucken sie ins Dokument)
 	id?: string;
+	// Text der Datei (screenUpload mit withText) — für den Fassungsvergleich
+	text?: ExtractedText;
 };
 
 export async function storeEncryptedEvidence(
@@ -242,6 +257,7 @@ export async function storeEncryptedEvidence(
 			organizationId: input.orgId,
 			envelope: packed,
 		});
+	if (input.text) await storeEvidenceText(tx, input.orgId, id, input.text);
 	return { id, storageKey, sha256 };
 }
 

@@ -829,6 +829,8 @@ async function uploadDocumentFileImpl(
 		declaredMime: file.type,
 		classification: doc.classification,
 		dlpAcknowledged: formData.get("dlpAcknowledged") === "1",
+		// Text für den Vergleich der Fassungen
+		withText: true,
 	});
 	if (!v.ok)
 		return {
@@ -865,6 +867,7 @@ async function uploadDocumentFileImpl(
 				classification: v.classification,
 				createdByUserId: c.userId,
 				dlp: v.dlp,
+				text: v.text,
 				source: "document",
 			});
 			await tx

@@ -229,6 +229,34 @@ export const evidenceBlobs = pgTable(
 	],
 ).enableRLS();
 
+// Text einer hochgeladenen Datei für den Vergleich von Fassungen (Dokumente,
+// Nachweise): vom isolierten Parser gelesen, ein Absatz je Zeile, mit dem
+// Org-DEK verschlüsselt (enc1, AAD evidence_texts:<id>:text_enc). id = ID des
+// Nachweises; weg mit der Datei. Schreiben nur über lib/evidence/text.ts.
+export const evidenceTexts = pgTable(
+	"evidence_texts",
+	{
+		id: uuid()
+			.primaryKey()
+			.references(() => evidence.id, { onDelete: "cascade" }),
+		organizationId: orgId(),
+		// ok · unsupported (Format) · no_text (Bild, Scan) · error · encrypted
+		status: text({
+			enum: ["ok", "unsupported", "no_text", "encrypted", "error"],
+		}).notNull(),
+		truncated: boolean().notNull().default(false),
+		chars: integer().notNull().default(0),
+		textEnc: text(),
+		extractedAt: ts().notNull().defaultNow(),
+	},
+	(t) => [
+		index("evidence_texts_org_idx").on(t.organizationId),
+		orgPolicy("evidence_texts"),
+	],
+).enableRLS();
+
+export type EvidenceText = typeof evidenceTexts.$inferSelect;
+
 // Verzögertes Löschen von Objekten im Speicher: Nachweis-Zeilen verschwinden
 // sofort, die (verschlüsselten) Objekte erst nach Ablauf der Backup-
 // Aufbewahrung (Job storage-purge). So findet ein DB-Restore jede Datei, die

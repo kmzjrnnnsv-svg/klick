@@ -13,6 +13,7 @@ import {
 } from "@/lib/security/quick-check-service";
 import { runComplianceTick } from "./compliance-tick-runner";
 import { runDigest, runImmediateMails } from "./digest";
+import { runEvidenceTexts } from "./evidence-texts";
 import { runPostureSnapshot } from "./posture";
 import { runRetention } from "./retention";
 import { runSecurityChanges } from "./security-changes";
@@ -33,6 +34,8 @@ import { runStorageOrphans, runStoragePurge } from "./storage";
 //   ledger-anchor      alle 10 min Verlauf verankern: täglich ab 02:30 und nach
 //                                  kritischen Ereignissen (OpenTimestamps)
 //   ledger-upgrade     stündlich   Bitcoin-Beglaubigung offener Anker holen
+//   evidence-texts     alle 15 min Text vorhandener Dateien für den Fassungs-
+//                                  vergleich lesen (isolierter Parser)
 // Die Wallet-Jobs (wallet-sync, price-tick, wallet-payouts) laufen seit K6 nur
 // noch in both.money (apps/wallet/lib/jobs); alte Zeitpläne räumt der Start ab.
 
@@ -48,6 +51,7 @@ export const JOBS = {
 	securityChanges: "security-changes",
 	ledgerAnchor: "ledger-anchor",
 	ledgerUpgrade: "ledger-upgrade",
+	evidenceTexts: "evidence-texts",
 	quickCheck: QUICK_CHECK_JOB,
 } as const;
 
@@ -71,6 +75,7 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.schedule(JOBS.securityChanges, "*/5 * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.ledgerAnchor, "*/10 * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.ledgerUpgrade, "17 * * * *", {}, { tz: TZ });
+	await boss.schedule(JOBS.evidenceTexts, "*/15 * * * *", {}, { tz: TZ });
 
 	await boss.work(JOBS.complianceTick, async () => {
 		await runComplianceTick();
@@ -108,6 +113,9 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	});
 	await boss.work(JOBS.ledgerUpgrade, async () => {
 		await upgradePendingAnchors();
+	});
+	await boss.work(JOBS.evidenceTexts, async () => {
+		await runEvidenceTexts();
 	});
 	// Schnellcheck auf Anfrage: höchstens zwei gleichzeitig je Prozess
 	await boss.work<QuickCheckJob>(
