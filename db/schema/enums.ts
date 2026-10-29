@@ -633,6 +633,8 @@ export const SECURITY_CHANGE_KINDS = [
 	"network_policy",
 	// „erlaubt“: einmalige Erlaubnis für die anfragende Person (24 h)
 	"org_delete",
+	// Neu beginnen: alle Daten weg, Org leer neu angelegt
+	"org_reset",
 	"full_export",
 	"member_reset_access",
 	"integration_token",
@@ -655,3 +657,7 @@ export const SECURITY_CHANGE_STATUS = [
 	"expired",
 ] as const;
 export type SecurityChangeStatus = (typeof SECURITY_CHANGE_STATUS)[number];
+
+// Vertrag je Organisation (Admin-Portal, platform_org_accounts)
+export const ORG_ACCOUNT_STATUS = ["trial", "active", "cancelled"] as const;
+export type OrgAccountStatus = (typeof ORG_ACCOUNT_STATUS)[number];

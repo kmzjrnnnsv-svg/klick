@@ -8,25 +8,32 @@ import { type EntityProfile, evidence, orgSettings } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { auditPlatform } from "@/lib/audit";
 import { requireStepUp, toOrgCtx } from "@/lib/auth/guards";
-import { getOrgSummary, revokeSessionsOfOrgMembers } from "@/lib/auth/org";
+import { getOrgSummary } from "@/lib/auth/org";
 import { auth } from "@/lib/auth/server";
 import { AuthError } from "@/lib/auth/session-rules";
 import type { OrgAuditSettings } from "@/lib/compliance/audit-follow-up";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import { appetiteFromMethod } from "@/lib/compliance/risk-method";
+import {
+	insertMembers,
+	insertOrganization,
+	internalMembersOf,
+} from "@/lib/db/admin-orgs";
+import { orgAccount, saveOrgAccount } from "@/lib/db/org-accounts";
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
 import { DEFAULT_PREFIXES } from "@/lib/documents/numbering";
-import { env } from "@/lib/env";
+import { TERMS_FLAG, termsAccepted } from "@/lib/legal/terms";
 import { logger } from "@/lib/log";
 import { sendTransactionalMail } from "@/lib/mail/send";
 import { transactionalEmail } from "@/lib/mail/templates";
+import { seedEmptyOrg } from "@/lib/org/seed";
+import { wipeOrganization } from "@/lib/org/wipe";
 import { dlpRelaxed } from "@/lib/security-changes/rules";
 import {
 	requestApplyChange,
 	requirePermit,
 } from "@/lib/security-changes/service";
-import { writeTombstone } from "@/lib/storage/tombstones";
 import { auditRegimeSchema } from "@/lib/validation/audit-regimes";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { dlpPolicySchema, entityProfileSchema } from "@/lib/validation/org";
@@ -355,35 +362,14 @@ async function deleteOrganizationActionImpl(
 		};
 	});
 
-	// 2) Dateien im Objektspeicher löschen (verschlüsselt, aber weg ist weg).
-	let filesDeleted = 0;
-	const e = env();
-	if (e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY) {
-		const { deleteObjects, listKeys } = await import("@/lib/storage/s3");
-		const keys = await listKeys(`org/${c.orgId}/`);
-		filesDeleted = keys.length === 0 ? 0 : await deleteObjects(keys);
-	}
-
-	// 3) Fremde Sitzungen beenden, dann Organisation löschen (Kaskade).
-	const sessionsRevoked = await revokeSessionsOfOrgMembers(c.orgId, c.userId);
-	await auth.api.deleteOrganization({
-		body: { organizationId: c.orgId },
+	// 2) Dateien, fremde Sitzungen, Organisation samt Kaskade, Tombstone.
+	const { filesDeleted, sessionsRevoked, deletedAt } = await wipeOrganization({
+		orgId: c.orgId,
+		keepUserId: c.userId,
 		headers: await headers(),
 	});
-	const deletedAt = new Date().toISOString();
-	// Tombstone außerhalb der DB: ein später eingespieltes Backup holt die
-	// Löschung nach (scripts/replay-deletions.ts).
-	if (e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY) {
-		await writeTombstone({
-			kind: "organization",
-			orgId: c.orgId,
-			deletedAt,
-		}).catch((err) =>
-			logger.error({ err, orgId: c.orgId }, "org tombstone failed"),
-		);
-	}
 
-	// 4) Plattform-Audit + Löschbestätigung.
+	// 3) Plattform-Audit + Löschbestätigung.
 	await auditPlatform(
 		{ userId: c.userId, ip: c.ip, userAgent: c.userAgent },
 		{
@@ -410,8 +396,168 @@ async function deleteOrganizationActionImpl(
 	return { ok: true, data: { deletedAt } };
 }
 
+// Neu beginnen (Admin-Portal Teil 8): alle Daten der Organisation weg und
+// dieselbe Organisation leer neu angelegt — gleicher Name und Kurzname, die
+// internen Mitglieder mit ihrer Rolle, Preisgruppe, Vertrag und Zustimmung
+// zu den Nutzungsbedingungen bleiben. Gleiche Sicherungen wie Löschen:
+// Step-up, Inhaber:in, Kurzname abtippen, Export bestätigt, Vier-Augen.
+// Externe (Prüfer:innen, Berater:innen), SSO, IP-Liste, Integrationen,
+// Trust Center und Rollen-Besetzungen fallen weg und werden neu eingerichtet.
+async function resetOrganizationActionImpl(
+	input: unknown,
+): Promise<ActionResult<{ orgId: string }>> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const parsed = deleteOrgSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const org = await getOrgSummary(c.orgId);
+	if (!org) return { ok: false, error: "notFound" };
+	if (parsed.data.confirmSlug !== org.slug)
+		return {
+			ok: false,
+			error: "slugMismatch",
+			fieldErrors: { confirmSlug: ["slugMismatch"] },
+		};
+	const permit = await requirePermit(c, {
+		kind: "org_reset",
+		targetKey: null,
+		summary: `Organisation „${org.name}“ neu beginnen`,
+	});
+	if (!permit.ok) return permit;
+
+	// 1) Bestand merken, was bleibt; letzter Eintrag in der alten Kette.
+	const members = (await internalMembersOf(c.orgId)).map((m) =>
+		m.userId === c.userId ? { ...m, role: "owner" } : m,
+	);
+	const account = await orgAccount(c.orgId);
+	const kept = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [s] = await tx
+			.select({
+				flags: orgSettings.setupFlags,
+				group: orgSettings.priceGroupId,
+			})
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		const flags = s?.flags ?? {};
+		return {
+			result: {
+				priceGroupId: s?.group ?? null,
+				terms: (termsAccepted(flags)
+					? {
+							[TERMS_FLAG.acceptedAt]: flags[TERMS_FLAG.acceptedAt] ?? "",
+							[TERMS_FLAG.version]: flags[TERMS_FLAG.version] ?? "",
+						}
+					: {}) as Record<string, string>,
+			},
+			audit: {
+				action: "org.reset_requested",
+				target: `organization:${c.orgId}`,
+				after: { slug: org.slug, members: members.length },
+			},
+		};
+	});
+
+	// 2) Alles weg (wie Löschen).
+	const h = await headers();
+	const wiped = await wipeOrganization({
+		orgId: c.orgId,
+		keepUserId: c.userId,
+		headers: h,
+	});
+
+	// 3) Leer neu anlegen. Scheitert das, ist die Org gelöscht und die
+	// Person landet im Onboarding — sie kann sie dort selbst neu anlegen.
+	const newOrgId = await insertOrganization({ name: org.name, slug: org.slug });
+	if (!newOrgId) {
+		logger.error({ orgId: c.orgId }, "org reset: slug not free after wipe");
+		return { ok: false, error: "reset_partial" };
+	}
+	try {
+		await insertMembers(newOrgId, members);
+		await mutateOrg(
+			{ orgId: newOrgId, userId: c.userId, ip: c.ip, userAgent: c.userAgent },
+			async (tx) => {
+				const seeded = await seedEmptyOrg(tx, {
+					orgId: newOrgId,
+					userId: c.userId,
+					priceGroupId: kept.priceGroupId,
+					flags: kept.terms,
+				});
+				return {
+					result: undefined,
+					audit: {
+						action: "org.reset_from",
+						target: `organization:${newOrgId}`,
+						after: {
+							previousOrgId: c.orgId,
+							members: members.length,
+							...seeded,
+						},
+					},
+				};
+			},
+		);
+		if (account)
+			await saveOrgAccount(
+				{ userId: c.userId, ip: c.ip, userAgent: c.userAgent },
+				newOrgId,
+				{
+					status: account.status,
+					startedAt: account.startedAt,
+					auditPassedAt: account.auditPassedAt,
+					feeInvoicedFor: account.feeInvoicedFor,
+					cancelledAt: account.cancelledAt,
+					note: account.note,
+				},
+			);
+		await auth.api.setActiveOrganization({
+			body: { organizationId: newOrgId },
+			headers: h,
+		});
+	} catch (err) {
+		logger.error(
+			{ err, orgId: c.orgId, newOrgId },
+			"org reset: recreate failed",
+		);
+		return { ok: false, error: "reset_partial" };
+	}
+
+	await auditPlatform(
+		{ userId: c.userId, ip: c.ip, userAgent: c.userAgent },
+		{
+			action: "org.reset",
+			organizationId: newOrgId,
+			target: `organization:${newOrgId}`,
+			after: {
+				previousOrgId: c.orgId,
+				slug: org.slug,
+				members: members.length,
+				filesDeleted: wiped.filesDeleted,
+				sessionsRevoked: wiped.sessionsRevoked,
+				at: wiped.deletedAt,
+			},
+		},
+	);
+	const mail = transactionalEmail({
+		subject: `Neu begonnen: ${org.name}`,
+		eyebrow: "Organisation zurückgesetzt",
+		title: `„${org.name}“ beginnt neu`,
+		body: `Zeitpunkt: ${wiped.deletedAt}\nKurzname: ${org.slug}\nGelöschte Nachweis-Dateien: ${wiped.filesDeleted}\nMitglieder übernommen: ${members.length}\n\nAlle Inhalte, Nachweise und Dateien sind gelöscht, der alte Mandantenschlüssel ist vernichtet. Externe Zugänge, SSO, IP-Liste, Integrationen und Trust Center richtest du neu ein. Sicherungen enthalten die alten Daten noch höchstens bis zum Ende der Backup-Aufbewahrung.`,
+	});
+	await sendTransactionalMail({ to: c.email, ...mail }).catch(() => undefined);
+	revalidatePath("/", "layout");
+	return { ok: true, data: { orgId: newOrgId } };
+}
+
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
+export const resetOrganizationAction = safeAction(
+	"resetOrganizationAction",
+	resetOrganizationActionImpl,
+);
 export const updateRiskMethod = safeAction(
 	"updateRiskMethod",
 	updateRiskMethodImpl,

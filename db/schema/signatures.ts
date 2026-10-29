@@ -9,7 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { appendOnlyOrgPolicies } from "../rls";
 import { json, orgId, pk, ts } from "./_shared";
-import { evidence } from "./grc";
+import { approvalRequests, documents, documentVersions, evidence } from "./grc";
 
 // Unterschriften per Passkey unter Nachweisen (N4). Nur anhängend: keine
 // UPDATE-/DELETE-Policy (RLS + FORCE). Gespeichert wird alles, was eine
@@ -61,3 +61,52 @@ export const evidenceSignatures = pgTable(
 ).enableRLS();
 
 export type EvidenceSignature = typeof evidenceSignatures.$inferSelect;
+
+// Unterschriften per Passkey unter einer Dokument-Fassung (Dokumentenlenkung,
+// ISO 27001 7.5/A.5.1): Freigabe im Umlauf. Wie evidence_signatures nur
+// anhängend; die Unterschrift deckt die Prüfsumme der eingereichten Fassung
+// (document_versions.content_sha256), die der Trigger ab der Freigabe
+// festhält. Ziel im kanonischen Text: docver:<Fassung>.
+export const documentSignatures = pgTable(
+	"document_signatures",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		documentId: uuid()
+			.notNull()
+			.references(() => documents.id, { onDelete: "cascade" }),
+		versionId: uuid()
+			.notNull()
+			.references(() => documentVersions.id, { onDelete: "cascade" }),
+		// Fassungsnummer und Prüfsumme zum Zeitpunkt der Unterschrift
+		version: text().notNull(),
+		contentSha256: text().notNull(),
+		// Freigabe-Antrag, in dem die Unterschrift als Zustimmung zählte
+		approvalRequestId: uuid().references(() => approvalRequests.id, {
+			onDelete: "set null",
+		}),
+		signerUserId: uuid().notNull(),
+		signerName: text().notNull(),
+		function: text(),
+		purpose: text({ enum: ["approve", "acknowledge", "review"] }).notNull(),
+		signText: text().notNull(),
+		nonce: text().notNull(),
+		credentialId: text().notNull(),
+		publicKey: text().notNull(),
+		authenticatorData: text().notNull(),
+		clientDataJSON: text().notNull(),
+		signature: text().notNull(),
+		userVerified: boolean().notNull(),
+		backupEligible: boolean().notNull(),
+		backupState: boolean().notNull(),
+		signCount: integer().notNull(),
+		signedAt: ts().notNull().defaultNow(),
+	},
+	(t) => [
+		index("document_signatures_version_idx").on(t.versionId),
+		unique("document_signatures_nonce_unique").on(t.organizationId, t.nonce),
+		...appendOnlyOrgPolicies("document_signatures"),
+	],
+).enableRLS();
+
+export type DocumentSignature = typeof documentSignatures.$inferSelect;

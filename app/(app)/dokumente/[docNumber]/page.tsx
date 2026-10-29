@@ -1,4 +1,6 @@
-import { ChevronRight, Download } from "lucide-react";
+import { and, eq, inArray } from "drizzle-orm";
+import { ChevronRight, Download, FileText } from "lucide-react";
+import Form from "next/form";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -11,6 +13,16 @@ import {
 	DocumentEditor,
 	NewVersionDialog,
 } from "@/components/documents/document-forms";
+import {
+	type SignatureLine,
+	SignatureList,
+} from "@/components/documents/signature-list";
+import {
+	DiffView,
+	type TrailVersion,
+	textDiff,
+	VersionChanges,
+} from "@/components/documents/version-trail";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
@@ -18,6 +30,7 @@ import {
 	MetaItem,
 	Section,
 } from "@/components/entity/entity-layout";
+import { ExportLink } from "@/components/entity/export-link";
 import { ResponsibleEditor } from "@/components/entity/responsible-editor";
 import { StatusButton } from "@/components/entity/status-button";
 import { WatchButton } from "@/components/entity/watch-button";
@@ -25,6 +38,9 @@ import { MarkdownView } from "@/components/markdown-view";
 import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { nativeSelectCompactClass } from "@/components/ui/input";
+import { evidence } from "@/db/schema";
 import { canDecideNow } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
@@ -34,6 +50,7 @@ import {
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { SIGN_ORIGIN, SIGN_RP_ID } from "@/lib/auth/passkey-sign";
 import { allows } from "@/lib/auth/permissions";
 import { hidesSecret, restrictedView } from "@/lib/auth/visibility";
 import { fmtDate } from "@/lib/compliance/page-data";
@@ -46,25 +63,36 @@ import {
 import { getDocumentByNumber } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { diffLines } from "@/lib/documents/diff";
+import { compactDiff, versionTrails } from "@/lib/documents/trail";
 import {
 	currentPublished,
 	type VersionState,
 	validRanges,
 	versionState,
 } from "@/lib/documents/versions";
+import { functionLabel } from "@/lib/evidence-studio/generate/doc";
 import {
 	type ActivityEntry,
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
 import { portalAcknowledgementsFor } from "@/lib/policy-portal/admin";
+import {
+	checkDocumentSignature,
+	documentSignaturesFor,
+} from "@/lib/signatures/document";
 
 export default async function DocumentDetailPage({
 	params,
+	searchParams,
 }: {
 	params: Promise<{ docNumber: string }>;
+	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
 	const { docNumber: raw } = await params;
+	const sp = await searchParams;
+	const one = (v: string | string[] | undefined) =>
+		Array.isArray(v) ? v[0] : v;
 	const docNumber = decodeURIComponent(raw);
 	const ctx = await requireOrgPage({ document: ["read"] });
 	const t = await getTranslations("Documents");
@@ -76,13 +104,37 @@ export default async function DocumentDetailPage({
 		const [comments, history, watcherIds, members, approval, candidates, dels] =
 			await Promise.all([
 				listComments(tx, ctx.orgId, "document", d.doc.id),
-				historyFor(tx, `document:${d.doc.id}`),
+				// länger als der Aktivitätsstrom: der Verlauf je Fassung reicht
+				// bis zur ersten Fassung zurück
+				historyFor(tx, `document:${d.doc.id}`, 2000),
 				listWatcherIds(tx, ctx.orgId, "document", d.doc.id),
 				listMembersForPicker(tx, ctx.orgId),
 				latestRequestFor(tx, ctx.orgId, "document", d.doc.id),
 				loadCandidates(tx, ctx.orgId),
 				activeDelegations(tx, ctx.orgId),
 			]);
+		const signatures = await documentSignaturesFor(tx, ctx.orgId, d.doc.id);
+		// Dateien der Fassungen (Name, Prüfsumme) für „Datei ersetzt“
+		const fileIds = d.versions
+			.map((v) => v.fileEvidenceId)
+			.filter((x): x is string => x !== null);
+		const files =
+			fileIds.length > 0
+				? await tx
+						.select({
+							id: evidence.id,
+							fileName: evidence.fileName,
+							sha256: evidence.sha256,
+						})
+						// evidence:any-version — Dateien von Dokumentfassungen per ID
+						.from(evidence)
+						.where(
+							and(
+								eq(evidence.organizationId, ctx.orgId),
+								inArray(evidence.id, fileIds),
+							),
+						)
+				: [];
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
@@ -99,6 +151,8 @@ export default async function DocumentDetailPage({
 			candidates,
 			dels,
 			names,
+			signatures,
+			files,
 		};
 	});
 	if (!data) notFound();
@@ -115,7 +169,27 @@ export default async function DocumentDetailPage({
 		candidates,
 		dels,
 		names,
+		signatures,
+		files,
 	} = data;
+	// Unterschriften je Fassung mit Prüfung (Prüfsumme der Fassung jetzt)
+	const signEnv = { origin: SIGN_ORIGIN, rpId: SIGN_RP_ID };
+	const signLines = new Map<string, SignatureLine[]>();
+	for (const sig of signatures) {
+		const v = versions.find((x) => x.id === sig.versionId);
+		const line: SignatureLine = {
+			id: sig.id,
+			signerName: sig.signerName,
+			functionLabel: sig.function ? functionLabel(sig.function) : null,
+			signedAt: sig.signedAt,
+			valid: checkDocumentSignature(sig, signEnv, v?.contentSha256 ?? null)
+				.valid,
+		};
+		signLines.set(sig.versionId, [
+			...(signLines.get(sig.versionId) ?? []),
+			line,
+		]);
+	}
 	// Prüfer-Sicht: nur die gültige Fassung, keine Arbeitskopie, Freigabe
 	// oder Verlauf; streng geheim ohne Grant nur der Hinweis
 	const restricted = restrictedView(ctx);
@@ -201,6 +275,19 @@ export default async function DocumentDetailPage({
 			: doc.status === "approved"
 				? t("workingCopyApproved", { version: doc.version })
 				: t("workingCopy", { version: doc.version });
+	// PDF „Gelenkte Fassung“ (Step-up im Dialog, dann Download)
+	const canExport = allows(ctx, { export: ["create"] });
+	const pdfHref = (version: string) =>
+		`/api/export/dokument.pdf?nr=${encodeURIComponent(doc.docNumber)}&fassung=${encodeURIComponent(version)}`;
+	const pdfLink = (version: string, label: string) => (
+		<ExportLink
+			href={pdfHref(version)}
+			className="hit-area inline-flex items-center gap-1 text-primary hover:underline"
+		>
+			<FileText aria-hidden="true" className="size-4" />
+			{label}
+		</ExportLink>
+	);
 	const fileLink = (id: string, label: string) => (
 		<p className="text-subhead">
 			<a
@@ -213,8 +300,45 @@ export default async function DocumentDetailPage({
 		</p>
 	);
 
+	// Verlauf je Fassung aus dem Protokoll (wer begonnen, bearbeitet,
+	// eingereicht, veröffentlicht hat) und Text/Datei je Fassung
+	const trails = versionTrails(
+		versions.at(-1)?.version ?? doc.version,
+		history.map((h) => ({
+			at: h.at,
+			actorUserId: h.actorUserId,
+			action: h.action,
+			after: h.after,
+		})),
+	);
+	const fileById = new Map(files.map((f) => [f.id, f]));
+	const trailVersion = (v: (typeof versions)[number]): TrailVersion => {
+		const f = v.fileEvidenceId ? fileById.get(v.fileEvidenceId) : undefined;
+		return {
+			version: v.version,
+			bodyMarkdown: v.bodyMarkdown,
+			file: f ? { name: f.fileName ?? "Datei", sha256: f.sha256 } : null,
+		};
+	};
+	// Vergleich zweier beliebiger Fassungen (?von=&bis=)
+	const cmpFrom = versions.find((v) => v.version === one(sp.von));
+	const cmpTo = versions.find((v) => v.version === one(sp.bis));
+	const compare =
+		!restricted && cmpFrom && cmpTo
+			? (() => {
+					const d = textDiff(cmpFrom.bodyMarkdown, cmpTo.bodyMarkdown);
+					return {
+						from: cmpFrom,
+						to: cmpTo,
+						added: d.added,
+						removed: d.removed,
+						lines: compactDiff(d.lines, 2),
+					};
+				})()
+			: null;
+
 	const entries: ActivityEntry[] = mergeActivity(
-		toHistoryItems(history),
+		toHistoryItems(history.slice(0, 200)),
 		comments.map((c) => ({
 			type: "comment" as const,
 			at: c.createdAt,
@@ -384,10 +508,18 @@ export default async function DocumentDetailPage({
 					names={names}
 					eligible={eligible}
 					currentUserId={ctx.userId}
+					signDocumentId={doc.id}
 				/>
 			)}
 
-			<Section title={t("inForce")}>
+			<Section
+				title={t("inForce")}
+				actions={
+					current && canExport
+						? pdfLink(current.version, t("pdfDownload"))
+						: null
+				}
+			>
 				{current ? (
 					<>
 						<p className="text-muted-foreground text-footnote">
@@ -401,6 +533,7 @@ export default async function DocumentDetailPage({
 								<AlertDescription>{t("staleText")}</AlertDescription>
 							</Alert>
 						)}
+						<SignatureList lines={signLines.get(current.id) ?? []} />
 						{current.fileEvidenceId &&
 							fileLink(
 								current.fileEvidenceId,
@@ -458,6 +591,11 @@ export default async function DocumentDetailPage({
 					{doc.changeSummary && (
 						<p className="text-subhead">{doc.changeSummary}</p>
 					)}
+					{canExport && (
+						<p className="text-subhead">
+							{pdfLink(doc.version, t("pdfWorking", { version: doc.version }))}
+						</p>
+					)}
 					{doc.fileEvidenceId &&
 						fileLink(
 							doc.fileEvidenceId,
@@ -502,7 +640,7 @@ export default async function DocumentDetailPage({
 						</p>
 					) : (
 						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
-							{versions.map((v) => {
+							{versions.map((v, i) => {
 								const state = versionState(v, doc, versions);
 								const range = ranges.get(v.id);
 								return (
@@ -543,6 +681,7 @@ export default async function DocumentDetailPage({
 															})}
 												</span>
 											)}
+											{canExport && pdfLink(v.version, t("pdfShort"))}
 											{v.fileEvidenceId && (
 												<a
 													href={`/api/nachweise/${v.fileEvidenceId}`}
@@ -553,10 +692,82 @@ export default async function DocumentDetailPage({
 												</a>
 											)}
 										</p>
+										<SignatureList lines={signLines.get(v.id) ?? []} />
+										<VersionChanges
+											version={trailVersion(v)}
+											previous={
+												versions[i + 1] ? trailVersion(versions[i + 1]) : null
+											}
+											trail={trails.get(v.version)}
+											names={names}
+										/>
 									</li>
 								);
 							})}
 						</ul>
+					)}
+				</Section>
+			)}
+
+			{!restricted && versions.length > 1 && (
+				<Section title={t("compareTitle")}>
+					<Form
+						action={`/dokumente/${encodeURIComponent(doc.docNumber)}`}
+						scroll={false}
+						className="flex flex-wrap items-end gap-2"
+					>
+						<label className="flex flex-col gap-1 text-footnote">
+							<span className="text-muted-foreground">{t("compareFrom")}</span>
+							<select
+								name="von"
+								defaultValue={compare?.from.version ?? versions[1]?.version}
+								className={nativeSelectCompactClass}
+							>
+								{versions.map((v) => (
+									<option key={v.id} value={v.version}>
+										v{v.version}
+									</option>
+								))}
+							</select>
+						</label>
+						<label className="flex flex-col gap-1 text-footnote">
+							<span className="text-muted-foreground">{t("compareTo")}</span>
+							<select
+								name="bis"
+								defaultValue={compare?.to.version ?? versions[0]?.version}
+								className={nativeSelectCompactClass}
+							>
+								{versions.map((v) => (
+									<option key={v.id} value={v.version}>
+										v{v.version}
+									</option>
+								))}
+							</select>
+						</label>
+						<button
+							type="submit"
+							className={buttonVariants({ variant: "secondary", size: "sm" })}
+						>
+							{t("compareApply")}
+						</button>
+					</Form>
+					{compare && (
+						<>
+							<p className="text-subhead">
+								{compare.added + compare.removed === 0
+									? t("compareSame", {
+											from: compare.from.version,
+											to: compare.to.version,
+										})
+									: t("compareResult", {
+											from: compare.from.version,
+											to: compare.to.version,
+											added: compare.added,
+											removed: compare.removed,
+										})}
+							</p>
+							{compare.lines.length > 0 && <DiffView lines={compare.lines} />}
+						</>
 					)}
 				</Section>
 			)}

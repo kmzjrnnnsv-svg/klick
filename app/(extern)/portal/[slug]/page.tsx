@@ -10,6 +10,7 @@ import {
 } from "@/components/policy-portal/portal-client";
 import { ipFromHeaders } from "@/lib/auth/session-rules";
 import { orgNetworkAllows } from "@/lib/net/org-network";
+import { orgSuspended } from "@/lib/org/suspension";
 import { portalCookieName } from "@/lib/policy-portal/rules";
 import {
 	publicPortal,
@@ -40,6 +41,7 @@ export default async function PortalPage({
 		))
 	)
 		redirect("/netz?bereich=portal");
+	if (await orgSuspended(portal.organizationId)) notFound();
 	const t = await getTranslations("PolicyPortal");
 	const tp = await getTranslations("Policies");
 	const reader = await resolvePortalReader(

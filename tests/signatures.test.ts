@@ -9,6 +9,7 @@ import {
 	sealSignText,
 	signChallenge,
 } from "@/lib/signatures/canonical";
+import { checkDocumentSignature } from "@/lib/signatures/document";
 import {
 	merkleLeaf,
 	merkleProof,
@@ -291,5 +292,61 @@ describe("Prüfbericht gespeicherter Unterschriften", () => {
 		);
 		expect(wrong.merkle).toBe(false);
 		expect(wrong.valid).toBe(false);
+	});
+});
+
+describe("Unterschrift unter einer Dokument-Fassung", () => {
+	const rpId = "raza.work";
+	const origin = "https://raza.work";
+	const env = { origin, rpId };
+	const a = authenticator(rpId);
+	const versionId = "7b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d";
+	const fields: SignFields = {
+		...FIELDS,
+		target: `docver:${versionId}`,
+		hash: "cd".repeat(32),
+	};
+	const text = encodeSignText(fields);
+	const x = a.assert(signChallenge(text));
+	const row = {
+		organizationId: fields.org,
+		versionId,
+		contentSha256: fields.hash,
+		signerUserId: fields.signer,
+		signText: text,
+		publicKey: a.cose.toString("base64url"),
+		authenticatorData: x.authData.toString("base64url"),
+		clientDataJSON: x.clientDataJSON.toString("base64url"),
+		signature: x.signature.toString("base64url"),
+	};
+
+	it("Ziel docver: Rundreise", () => {
+		expect(parseSignText(text)).toEqual(fields);
+		expect(parseSignText(text.replace("docver:", "document:"))).toBeNull();
+	});
+
+	it("gültig, solange die Fassung ihre Prüfsumme behält", () => {
+		expect(checkDocumentSignature(row, env, fields.hash).valid).toBe(true);
+		expect(checkDocumentSignature(row, env).valid).toBe(true);
+	});
+
+	it("ungültig bei geändertem Text, anderer Fassung oder Person", () => {
+		expect(checkDocumentSignature(row, env, "ef".repeat(32)).valid).toBe(false);
+		expect(
+			checkDocumentSignature(
+				{ ...row, versionId: "00000000-0000-4000-8000-000000000000" },
+				env,
+			).valid,
+		).toBe(false);
+		expect(
+			checkDocumentSignature(
+				{ ...row, signerUserId: "00000000-0000-4000-8000-000000000001" },
+				env,
+			).valid,
+		).toBe(false);
+		expect(
+			checkDocumentSignature(row, { origin: "https://evil.example", rpId })
+				.valid,
+		).toBe(false);
 	});
 });

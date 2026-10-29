@@ -9,6 +9,7 @@ export * from "./schema/grc";
 export * from "./schema/inquiries";
 export * from "./schema/ledger";
 export * from "./schema/management";
+export * from "./schema/org-accounts";
 export * from "./schema/platform";
 export * from "./schema/platform-access";
 export * from "./schema/policy-portal";

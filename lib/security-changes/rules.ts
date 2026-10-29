@@ -27,6 +27,7 @@ export const APPLY_KINDS = [
 ] as const satisfies readonly SecurityChangeKind[];
 export const PERMIT_KINDS = [
 	"org_delete",
+	"org_reset",
 	"full_export",
 	"member_reset_access",
 	"integration_token",

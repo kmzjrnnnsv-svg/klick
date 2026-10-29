@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/log";
 import { orgNetworkAllows } from "@/lib/net/org-network";
+import { orgSuspended } from "@/lib/org/suspension";
 import { clientIp } from "@/lib/security/ingest";
 import { cookieValue } from "@/lib/trust/access";
 import { portalCookieName } from "./rules";
@@ -63,6 +64,8 @@ export function portalRoute<P extends { slug: string }>(
 				))
 			)
 				return json(403, { error: "network_denied" });
+			if (portal && (await orgSuspended(portal.organizationId)))
+				return json(404, { error: "not_found" });
 			return await handler(req, params);
 		} catch (err) {
 			const ref = randomUUID().slice(0, 8);

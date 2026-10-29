@@ -9,6 +9,7 @@ import {
 import { verifyAuditChain } from "@/lib/audit";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { getOrgSummary } from "@/lib/auth/org";
+import { SIGN_ORIGIN, SIGN_RP_ID } from "@/lib/auth/passkey-sign";
 import { ledgerExportAllowed } from "@/lib/auth/visibility";
 import { frameworkNameMap } from "@/lib/compliance/page-data";
 import {
@@ -25,6 +26,10 @@ import {
 import { getAudit } from "@/lib/compliance/queries-p3";
 import { resolveRiskMethod } from "@/lib/compliance/risk-method";
 import { readOrg } from "@/lib/db/with-org";
+import {
+	ATTACH_MAX_BYTES,
+	controlledPeriodEntries,
+} from "@/lib/documents/controlled-export";
 import { evidenceValidity } from "@/lib/evidence/current";
 import { berlinToday } from "@/lib/evidence-studio/queries";
 import {
@@ -383,6 +388,25 @@ export async function GET(req: Request) {
 		logger.warn({ err }, "pruefungspaket: Nachweise aus Klick nicht lesbar");
 		return [];
 	});
+	// Gelenkte Fassungen: je Dokumentfassung im Zeitraum das PDF mit
+	// Unterschriftenblatt und signaturen.json (Dokumentenlenkung)
+	const pdfExportId = crypto.randomUUID();
+	const controlled = await controlledPeriodEntries(toOrgCtx(ctx), {
+		from: data.period?.from
+			? new Date(`${data.period.from}T00:00:00Z`)
+			: new Date(0),
+		to: data.period?.to
+			? new Date(`${data.period.to}T23:59:59.999Z`)
+			: new Date(8.64e15),
+		orgName: org.name,
+		mark: { exportId: pdfExportId, by: ctx.name || ctx.email, at: generatedAt },
+		env: { origin: SIGN_ORIGIN, rpId: SIGN_RP_ID },
+		prefix: "05-dokumente/",
+		filesBudget: 4 * ATTACH_MAX_BYTES,
+	}).catch((err) => {
+		logger.warn({ err }, "pruefungspaket: gelenkte Fassungen nicht lesbar");
+		return [];
+	});
 	// Verlauf mit Bitcoin-Anker (Härtung V): Kette, Anker und pruefen.mjs —
 	// nur für Inhaber:innen und Prüfer:innen (IP und Browser je Eintrag)
 	const ledger = ledgerExportAllowed(ctx.orgRole)
@@ -396,7 +420,7 @@ export async function GET(req: Request) {
 				})
 		: [];
 	const { entries, manifest } = withManifest(
-		[...buildAuditPackage(input), ...extra, ...ledger],
+		[...buildAuditPackage(input), ...controlled, ...extra, ...ledger],
 		{
 			title: "Prüfungspaket",
 			generatedAt,
@@ -413,6 +437,8 @@ export async function GET(req: Request) {
 		frameworks: data.frameworks,
 		bytes: zip.byteLength,
 		chainOk: data.chain.ok,
+		controlledPdfs: controlled.length,
+		pdfExportId,
 	});
 	return zipResponse(`pruefungspaket-${org.slug}-${stamp()}.zip`, zip);
 }

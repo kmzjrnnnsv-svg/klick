@@ -8,3 +8,12 @@ export const TERMS_FLAG = {
 	acceptedAt: "termsAcceptedAt",
 	version: "termsVersion",
 } as const;
+
+// Bestätigt, wenn beim Anlegen (Onboarding) oder beim ersten Einstieg einer
+// Inhaber:in (/zustimmung, Organisation vom Plattform-Admin angelegt) die
+// Bestätigung gespeichert wurde.
+export function termsAccepted(
+	flags: Readonly<Record<string, string>>,
+): boolean {
+	return Boolean(flags[TERMS_FLAG.acceptedAt]);
+}

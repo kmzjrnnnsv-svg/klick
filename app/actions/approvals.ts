@@ -11,6 +11,7 @@ import {
 	roleAssignments,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import { approvalEffects } from "@/lib/approvals/effects";
 import { applyApprovalOutcome } from "@/lib/approvals/outcomes";
 import { type DecideResult, decide, withdraw } from "@/lib/approvals/service";
 import { triggerOf } from "@/lib/approvals/triggers";
@@ -107,22 +108,13 @@ async function decideApprovalImpl(
 				.update(decisionRequests)
 				.set({ chosenOption: d.chosenOption, decisionNote: d.note ?? null })
 				.where(eq(decisionRequests.id, question.id));
-		const extra =
-			r.status !== "pending"
-				? [
-						...(await applyApprovalOutcome(
-							tx,
-							{ orgId: c.orgId, userId: c.userId },
-							r,
-						)),
-						// Entscheidung der Geschäftsleitung → Beschluss (E1)
-						...(await resolutionForApproval(
-							tx,
-							{ orgId: c.orgId, userId: c.userId, name: c.name },
-							d.requestId,
-						)),
-					]
-				: [];
+		// Wirkung und — bei der Geschäftsleitung — Beschluss (E1)
+		const extra = await approvalEffects(
+			tx,
+			{ orgId: c.orgId, userId: c.userId, name: c.name },
+			r,
+			d.requestId,
+		);
 		return {
 			result: r,
 			audit: [

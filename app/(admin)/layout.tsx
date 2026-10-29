@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { AdminNav } from "@/components/admin/admin-nav";
+import { AdminNav, type AdminNavSection } from "@/components/admin/admin-nav";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import { LegalLinks } from "@/components/shell/legal-links";
 import { buttonVariants } from "@/components/ui/button";
+import { ADMIN_NAV } from "@/lib/admin/nav";
 import { gateAdmin } from "@/lib/auth/gates";
 import { getSessionCtx } from "@/lib/auth/guards";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+// Rahmen des Plattform-Admins: Kopf mit „Zur App“, ab 1024 px Seitenleiste mit
+// Gruppen (lib/admin/nav.ts), darunter Kapseln.
 export default async function AdminLayout({
 	children,
 }: {
@@ -21,45 +24,44 @@ export default async function AdminLayout({
 		getTranslations("Admin"),
 		getSessionCtx(),
 	]);
-	const tabs = [
-		{ href: "/admin", label: t("overview") },
-		{ href: "/admin/orgs", label: t("orgs") },
-		{ href: "/admin/users", label: t("users") },
-		{ href: "/admin/audit", label: t("audit") },
-		{ href: "/admin/zugriffe", label: t("access") },
-		{ href: "/admin/anfragen", label: t("inquiries") },
-		{ href: "/admin/preise", label: t("prices") },
-		{ href: "/admin/cms", label: t("cms") },
-	];
+	const sections: AdminNavSection[] = ADMIN_NAV.map((g) => ({
+		label: t(g.labelKey),
+		items: g.items.map((i) => ({
+			href: i.href,
+			label: t(i.labelKey),
+			icon: i.icon,
+		})),
+	}));
 	return (
 		<>
 			<header className="material-bar sticky top-0 z-30 shrink-0 border-border/60 border-b">
-				<div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
+				<div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
 					<Link href="/heute" className="font-bold text-headline">
 						Klick
 					</Link>
 					<span className="font-medium text-footnote text-muted-foreground">
 						{t("title")}
 					</span>
-					<AdminNav tabs={tabs} variant="bar" />
 					<div className="ml-auto flex items-center gap-1">
 						<Link
 							href="/heute"
 							className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
 						>
-							Zur App
+							{t("toApp")}
 						</Link>
 					</div>
 				</div>
-				{/* Handy: dieselben Reiter als waagrecht scrollende Leiste */}
-				<AdminNav tabs={tabs} variant="chips" />
+				{/* Handy und Tablet: dieselben Seiten als waagrecht scrollende Leiste */}
+				<AdminNav sections={sections} variant="chips" />
 			</header>
-			<main
-				id="inhalt"
-				className="mx-auto w-full max-w-6xl grow px-4 py-8 sm:px-6"
-			>
-				{children}
-			</main>
+			<div className="mx-auto flex w-full max-w-7xl grow gap-8 px-4 py-8 sm:px-6">
+				<aside className="sticky top-22 hidden h-fit w-56 shrink-0 lg:block">
+					<AdminNav sections={sections} variant="sidebar" />
+				</aside>
+				<main id="inhalt" className="min-w-0 grow">
+					{children}
+				</main>
+			</div>
 			<LegalLinks />
 			<StepUpDialog
 				passkey={Boolean(sctx?.user.hasPasskey)}

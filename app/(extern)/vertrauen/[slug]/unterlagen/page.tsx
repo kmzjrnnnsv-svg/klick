@@ -6,6 +6,7 @@ import { TrustAccessGate } from "@/components/trust-center/access-gate";
 import { ipFromHeaders } from "@/lib/auth/session-rules";
 import { publicTrustCenter } from "@/lib/db/trust";
 import { orgNetworkAllows } from "@/lib/net/org-network";
+import { orgSuspended } from "@/lib/org/suspension";
 
 // /vertrauen/<slug>/unterlagen — vertrauliche Unterlagen nach Freigabe. Der
 // Token kommt im Fragment (#klk_trust_…) und wird im Browser gegen ein
@@ -34,6 +35,7 @@ export default async function TrustDocumentsPage({
 		))
 	)
 		redirect("/netz?bereich=portal");
+	if (await orgSuspended(center.organizationId)) notFound();
 	const s = center.snapshot;
 	const t = await getTranslations("TrustCenter");
 	return (

@@ -11,6 +11,7 @@ import {
 import type { OrgCtx } from "@/lib/db/with-org";
 import { type ResolvedToken, resolveToken } from "@/lib/db/with-token";
 import { orgNetworkAllows } from "@/lib/net/org-network";
+import { orgSuspended } from "@/lib/org/suspension";
 import { adminNetworkAllows } from "./admin-network";
 import { userHasPasskey } from "./endpoint-guard";
 import {
@@ -204,6 +205,8 @@ export async function requireOrg(
 		}))
 	)
 		throw new AuthErr("network_denied");
+	// Gesperrt durch den Plattform-Betrieb (Vertrag, Missbrauch): jede Fläche
+	if (await orgSuspended(orgId)) throw new AuthErr("org_suspended");
 	const permissions = effectivePermissions(
 		orgRole,
 		roles.map((r) => r.permissions),
@@ -342,6 +345,8 @@ export async function requirePortal(): Promise<PortalContext> {
 		))
 	)
 		throw new AuthErr("network_denied");
+	if (await orgSuspended(r.token.organizationId))
+		throw new AuthErr("org_suspended");
 	return {
 		token: r.token,
 		assessmentId: r.token.subjectId,

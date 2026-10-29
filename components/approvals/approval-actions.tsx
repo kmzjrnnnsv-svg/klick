@@ -1,9 +1,15 @@
 "use client";
 
+import { startAuthentication } from "@simplewebauthn/browser";
+import { PenLine } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { decideApproval, withdrawApproval } from "@/app/actions/approvals";
+import {
+	prepareDocumentSignature,
+	submitDocumentSignature,
+} from "@/app/actions/document-signatures";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Button } from "@/components/ui/button";
 import { errorText } from "@/components/ui/error-text";
@@ -26,9 +32,13 @@ export function ApprovalActions({
 	mine,
 	compact,
 	options = [],
+	signDocumentId,
 }: {
 	requestId: string;
 	options?: string[];
+	// Stufe mit Unterschrift: Zustimmung nur als Passkey-Unterschrift über die
+	// eingereichte Fassung dieses Dokuments (Dokumentenlenkung)
+	signDocumentId?: string;
 	eligible: boolean;
 	mine: boolean;
 	compact?: boolean;
@@ -63,7 +73,8 @@ export function ApprovalActions({
 					res.error.startsWith("not_pending") ||
 					res.error === "already_decided" ||
 					res.error === "optionRequired" ||
-					res.error === "invalidOption"
+					res.error === "invalidOption" ||
+					res.error === "signature_required"
 				)
 					toast.error(t(`errors_${res.error}` as "errors_four_eyes"));
 				else toast.error(tc("error"));
@@ -72,6 +83,60 @@ export function ApprovalActions({
 			toast.success(t(`decided_${decision}`));
 			setNote("");
 			setChosen("");
+			router.refresh();
+		});
+	}
+
+	// Freigeben und unterschreiben: Text ausstellen, Schlüssel bestätigen
+	// lassen (Fingerabdruck, Gesicht oder PIN), Unterschrift zählt als
+	// Zustimmung
+	function sign(documentId: string) {
+		const tsig = (k: string) => t(`sign_${k}` as "sign_cancelled");
+		start(async () => {
+			const prep = await prepareDocumentSignature({ documentId });
+			if (!prep.ok) {
+				toast.error(
+					prep.error === "no_passkey"
+						? tsig("noPasskey")
+						: prep.error === "not_in_review"
+							? tsig("notInReview")
+							: errorText(tc, prep),
+				);
+				return;
+			}
+			let response: Awaited<ReturnType<typeof startAuthentication>>;
+			try {
+				response = await startAuthentication({
+					optionsJSON: prep.data.options,
+				});
+			} catch {
+				toast(tsig("cancelled"));
+				return;
+			}
+			const res = await submitDocumentSignature({
+				documentId,
+				text: prep.data.text,
+				seal: prep.data.seal,
+				response,
+			});
+			if (!res.ok) {
+				toast.error(
+					res.error === "expired"
+						? tsig("expired")
+						: res.error === "invalid"
+							? tsig("invalid")
+							: res.error === "already_decided" ||
+									res.error.startsWith("rule_not_met") ||
+									res.error.startsWith("four_eyes") ||
+									res.error === "not_pending"
+								? t(`errors_${res.error}` as "errors_four_eyes")
+								: errorText(tc, res),
+				);
+				return;
+			}
+			toast.success(
+				res.data.status === "pending" ? tsig("signed") : tsig("signedFinal"),
+			);
 			router.refresh();
 		});
 	}
@@ -115,13 +180,25 @@ export function ApprovalActions({
 						/>
 					)}
 					<div className="flex flex-wrap gap-2">
-						<Button
-							size="sm"
-							disabled={pending || (withOptions && !chosen)}
-							onClick={() => run("approved")}
-						>
-							{t("approve")}
-						</Button>
+						{signDocumentId ? (
+							<Button
+								size="sm"
+								className="gap-1.5"
+								disabled={pending}
+								onClick={() => sign(signDocumentId)}
+							>
+								<PenLine className="size-3.5" aria-hidden="true" />
+								{pending ? t("sign_signing") : t("sign_approve")}
+							</Button>
+						) : (
+							<Button
+								size="sm"
+								disabled={pending || (withOptions && !chosen)}
+								onClick={() => run("approved")}
+							>
+								{t("approve")}
+							</Button>
+						)}
 						<Button
 							size="sm"
 							variant="outline"

@@ -3,6 +3,7 @@ import { publicTrustCenter } from "@/lib/db/trust";
 import { mutateOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { orgNetworkAllows } from "@/lib/net/org-network";
+import { orgSuspended } from "@/lib/org/suspension";
 import { SlidingWindowLimiter } from "@/lib/rate-limit";
 import {
 	clientIp,
@@ -59,6 +60,8 @@ export const POST = ingestRoute("trust.session", async (req: Request) => {
 		))
 	)
 		return ingestJson(403, { error: "network_denied" });
+	if (await orgSuspended(center.organizationId))
+		return ingestJson(404, { error: "not_found" });
 	const r = await resolveTrustAccess(raw, center);
 	if (!r.ok) return ingestJson(401, { error: r.error });
 	const { token, request } = r.access;
@@ -114,6 +117,8 @@ export const GET = ingestRoute("trust.session_state", async (req: Request) => {
 		))
 	)
 		return ingestJson(403, { error: "network_denied" });
+	if (await orgSuspended(center.organizationId))
+		return ingestJson(404, { error: "not_found" });
 	const r = await resolveTrustAccess(raw, center);
 	if (!r.ok) return ingestJson(200, { active: false, reason: r.error });
 	return ingestJson(200, {
