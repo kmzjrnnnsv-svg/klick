@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import type { ReactNode } from "react";
 import { RevealWithStepUp } from "@/components/entity/reveal-with-step-up";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
@@ -140,11 +141,14 @@ export async function VersionChanges({
 	previous,
 	trail,
 	names,
+	ai,
 }: {
 	version: TrailVersion;
 	previous: TrailVersion | null;
 	trail: VersionTrail | undefined;
 	names: ReadonlyMap<string, string>;
+	// „Mit KI zusammenfassen“ (ADR-032), nur wenn es Änderungen gibt
+	ai?: ReactNode;
 }) {
 	const t = await getTranslations("Documents");
 	const name = (id: string | null) =>
@@ -219,6 +223,9 @@ export async function VersionChanges({
 					{fileChange && <li>{fileChange}</li>}
 				</ul>
 				{diff && <ContentChanges diff={diff} />}
+				{diff &&
+					(diff.added + diff.removed > 0 || diff.file.kind !== "none") &&
+					ai}
 			</div>
 		</details>
 	);

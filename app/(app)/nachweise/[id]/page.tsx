@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ensureEvidenceStepUp } from "@/app/actions/evidence";
+import { AiCompare, AiEvidenceCheck } from "@/components/ai/ai-actions";
 import { ContentChanges } from "@/components/documents/version-trail";
+import { ActivityStream } from "@/components/entity/activity-stream";
 import { DeleteEvidenceButton } from "@/components/entity/evidence-delete";
 import { EvidenceStaffSwitch } from "@/components/entity/evidence-staff-switch";
 import { EvidenceVersionForm } from "@/components/entity/evidence-version-form";
@@ -17,6 +19,7 @@ import { PageHeader } from "@/components/page-header";
 import { SignButton } from "@/components/signatures/sign-button";
 import { BackLink } from "@/components/ui/back-link";
 import { Badge } from "@/components/ui/badge";
+import { AI_NONE, aiAvailability } from "@/lib/ai/service";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
@@ -27,7 +30,9 @@ import { fmtDate } from "@/lib/compliance/page-data";
 import {
 	evidenceDetail,
 	evidenceVersionSides,
+	listComments,
 	listMembersForPicker,
+	userNames,
 } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
 import { type ContentSide, contentDiff } from "@/lib/documents/content-diff";
@@ -49,6 +54,7 @@ import { functionLabel } from "@/lib/evidence-studio/generate/doc";
 import { evidenceSignState } from "@/lib/evidence-studio/generate/service";
 import { berlinToday } from "@/lib/evidence-studio/queries";
 import { renderBlocksMarkdown } from "@/lib/export/doc-model";
+import { type ActivityEntry, mergeActivity } from "@/lib/history";
 import { orgRoleNames } from "@/lib/org/roles";
 
 const fmtSize = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
@@ -98,8 +104,17 @@ export default async function EvidenceDetailPage({
 			pair && !locked && row.templateKey && pair.before.templateKey
 				? await authoredContentOf(tx, ctx.orgId, pair.before.id)
 				: null;
+		// Kommentare (z. B. gespeicherte KI-Hinweise); nicht in der Prüfer-Sicht
+		const comments = restrictedView(ctx)
+			? []
+			: await listComments(tx, ctx.orgId, "evidence", row.id);
 		return {
 			...detail,
+			comments,
+			commentNames: await userNames(
+				tx,
+				comments.map((c) => c.authorUserId),
+			),
 			pair,
 			locked,
 			texts,
@@ -162,6 +177,23 @@ export default async function EvidenceDetailPage({
 	// Grant nur der Hinweis (kein Titel, keine Beschreibung, kein Link)
 	const restricted = restrictedView(ctx);
 	if (restricted && (row.supersededAt || !data.fileInForce)) notFound();
+	// KI mit eigenem Schlüssel (ADR-032): Knöpfe nur, wenn die Funktion an ist
+	const ai =
+		restricted || hidesSecret(ctx, row) ? AI_NONE : await aiAvailability(ctx);
+	const commentEntries: ActivityEntry[] = mergeActivity(
+		[],
+		data.comments.map((c) => ({
+			type: "comment" as const,
+			at: c.createdAt,
+			comment: {
+				id: c.id,
+				authorUserId: c.authorUserId,
+				bodyMarkdown: c.bodyMarkdown,
+				parentId: c.parentId,
+				editedAt: c.editedAt,
+			},
+		})),
+	);
 	if (hidesSecret(ctx, row))
 		return (
 			<>
@@ -545,8 +577,52 @@ export default async function EvidenceDetailPage({
 										: t("changesFileOnly")}
 							</p>
 							<ContentChanges diff={changes.diff} />
+							{ai.features.includes("compare") &&
+								(changes.diff.added + changes.diff.removed > 0 ||
+									changes.diff.file.kind !== "none") && (
+									<AiCompare
+										target={{ kind: "evidence", evidenceId: row.id }}
+									/>
+								)}
 						</>
 					)}
+				</section>
+			)}
+			{ai.features.includes("evidence_check") && data.controls.length > 0 && (
+				<section
+					aria-labelledby="ev-ai-check"
+					className="mt-10 flex flex-col gap-3 rounded-2xl bg-card p-4"
+				>
+					<h2 id="ev-ai-check" className="font-semibold text-headline">
+						{t("aiCheckTitle")}
+					</h2>
+					<p className="text-muted-foreground text-subhead">
+						{t("aiCheckLead")}
+					</p>
+					<AiEvidenceCheck
+						evidenceId={row.id}
+						canComment={allows(ctx, { comment: ["create"] })}
+					/>
+				</section>
+			)}
+			{commentEntries.length > 0 && (
+				<section
+					aria-labelledby="ev-comments"
+					className="mt-10 flex flex-col gap-3"
+				>
+					<h2 id="ev-comments" className="font-semibold text-headline">
+						{t("commentsTitle")}
+					</h2>
+					<ActivityStream
+						entries={commentEntries}
+						names={data.commentNames}
+						labels={{
+							empty: te("activityEmpty"),
+							changed: te("changed"),
+							commented: te("commented"),
+							system: te("system"),
+						}}
+					/>
 				</section>
 			)}
 		</>

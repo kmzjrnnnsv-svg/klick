@@ -6,22 +6,27 @@ import { schema } from "@/db";
 import {
 	aiCredentials,
 	auditLog,
+	evidence,
 	orgSettings,
 	securityChanges,
 } from "@/db/schema";
 import { storeCredential } from "@/lib/ai/credentials";
 import type { AiTransport } from "@/lib/ai/http";
+import { evidenceCompareInput } from "@/lib/ai/inputs";
 import {
 	AI_POLICY_OFF,
 	type AiPolicy,
 	aiPolicyOf,
 	aiPolicyRelaxed,
 } from "@/lib/ai/policy";
+import { comparePrompt, helpPrompt } from "@/lib/ai/prompts";
 import { runAi, setAiTransportForTests } from "@/lib/ai/service";
 import type { OrgContext } from "@/lib/auth/guards";
 import { generateDek, wrapDek } from "@/lib/crypto/envelope";
 import { LocalKms, setKmsForTests } from "@/lib/crypto/kms";
 import { setOrgAi } from "@/lib/db/org-accounts";
+import { storeEncryptedEvidence } from "@/lib/evidence/store";
+import { articlePlain, articlesFor, rankHelp } from "@/lib/help";
 import {
 	decideSecurityChange,
 	requestApplyChange,
@@ -51,9 +56,11 @@ d("KI mit eigenem Schlüssel (Postgres)", () => {
 			userId,
 			orgId,
 			orgRole: "owner",
+			grants: [],
+			stepUpFresh: false,
 			ip: null,
 			userAgent: null,
-		}) as OrgContext;
+		}) as unknown as OrgContext;
 	const inOrg = <T>(
 		orgId: string,
 		fn: (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => Promise<T>,
@@ -292,6 +299,122 @@ d("KI mit eigenem Schlüssel (Postgres)", () => {
 			}),
 		).toEqual({ ok: false, error: "ai_feature_off" });
 		expect(sent).toEqual([]);
+	});
+
+	it("Nachweis-Vergleich: nur Änderungen, geschwärzt; Prüfer-Sicht und vertraulich", async () => {
+		const store = (text: string) =>
+			inOrg(
+				orgA,
+				async (tx) =>
+					(
+						await storeEncryptedEvidence(tx, {
+							orgId: orgA,
+							bytes: new TextEncoder().encode(text),
+							mime: "text/plain",
+							safeName: "notfallplan.txt",
+							title: "Notfallplan",
+							type: "document",
+							classification: "internal",
+							createdByUserId: null,
+							text: { status: "ok", text, truncated: false },
+						})
+					).id,
+			);
+		const v1 = await store(
+			"Notfallplan\nKontakt max.muster@beispiel.de\nÜbung alle zwei Jahre",
+		);
+		const v2 = await store(
+			"Notfallplan\nKontakt max.muster@beispiel.de\nÜbung jährlich",
+		);
+		await inOrg(orgA, async (tx) => {
+			await tx
+				.update(evidence)
+				.set({ supersedesId: v1 })
+				.where(eq(evidence.id, v2));
+			await tx
+				.update(evidence)
+				.set({ supersededAt: new Date(), supersededById: v2 })
+				.where(eq(evidence.id, v1));
+		});
+		const owner = ctx(u.o1, orgA);
+		const loaded = await inOrg(orgA, (tx) =>
+			evidenceCompareInput(tx, owner, v2, false),
+		);
+		if (!loaded.ok) throw new Error(loaded.error);
+		expect([loaded.diff.added, loaded.diff.removed]).toEqual([1, 1]);
+		sent = [];
+		const p = comparePrompt({ ...loaded, withFiles: false });
+		const r = await runAi(owner, {
+			feature: "compare",
+			classification: loaded.classification,
+			target: loaded.target,
+			system: p.system,
+			messages: [{ role: "user", content: p.user }],
+		});
+		expect(r.ok).toBe(true);
+		expect(sent[0]?.body).toContain("Übung jährlich");
+		expect(sent[0]?.body).not.toContain("max.muster");
+		// Prüfer:in ohne „Entwürfe und Verlauf“: keine ersetzte Fassung
+		const auditor = { ...owner, orgRole: "auditor" } as OrgContext;
+		expect(
+			await inOrg(orgA, (tx) => evidenceCompareInput(tx, auditor, v2, false)),
+		).toEqual({ ok: false, error: "forbidden" });
+		// vertraulich: erst nach frischer Bestätigung, dann greift die
+		// Obergrenze der Org (intern)
+		await inOrg(orgA, (tx) =>
+			tx
+				.update(evidence)
+				.set({ classification: "confidential" })
+				.where(eq(evidence.id, v2)),
+		);
+		expect(
+			await inOrg(orgA, (tx) => evidenceCompareInput(tx, owner, v2, false)),
+		).toEqual({ ok: false, error: "step_up_required" });
+		const fresh = { ...owner, stepUpFresh: true } as OrgContext;
+		const again = await inOrg(orgA, (tx) =>
+			evidenceCompareInput(tx, fresh, v2, false),
+		);
+		if (!again.ok) throw new Error(again.error);
+		expect(again.classification).toBe("confidential");
+		sent = [];
+		expect(
+			await runAi(fresh, {
+				feature: "compare",
+				classification: again.classification,
+				target: again.target,
+				system: "x",
+				messages: [{ role: "user", content: "y" }],
+			}),
+		).toEqual({ ok: false, error: "ai_class_too_high" });
+		expect(sent).toEqual([]);
+	}, 60_000);
+
+	it("Hilfe-Frage: nur Hilfetexte gehen raus", async () => {
+		await inOrg(orgA, (tx) =>
+			tx
+				.update(orgSettings)
+				.set({ aiPolicy: { ...enabled, features: ["compare", "help"] } })
+				.where(eq(orgSettings.organizationId, orgA)),
+		);
+		const question = "Wie lade ich eine neue Fassung eines Nachweises hoch?";
+		const articles = rankHelp(articlesFor("owner"), question);
+		const p = helpPrompt({
+			question,
+			articles: articles.map((a) => ({
+				title: a.title,
+				text: articlePlain(a),
+			})),
+		});
+		sent = [];
+		const r = await runAi(ctx(u.o1, orgA), {
+			feature: "help",
+			classification: null,
+			target: "help",
+			system: p.system,
+			messages: [{ role: "user", content: p.user }],
+		});
+		expect(r.ok).toBe(true);
+		expect(sent[0]?.body).toContain("Nachweise: hochladen");
 	});
 
 	it("fremde Org: eigene Regel aus, kein Schlüssel", async () => {

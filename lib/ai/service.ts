@@ -11,14 +11,16 @@ import { logger } from "@/lib/log";
 import { SlidingWindowLimiter } from "@/lib/rate-limit";
 import type { ActionResult } from "@/lib/validation/common";
 import { credentialInfo, credentialKey, markTested } from "./credentials";
-import { type AiDenied, aiDecision } from "./guard";
+import { type AiDenied, aiDecision, aiFeatureAvailable } from "./guard";
 import { type AiTransport, httpsTransport } from "./http";
 import {
+	AI_FEATURES,
 	type AiAdmin,
 	type AiFeature,
 	type AiPolicy,
 	aiAdminOf,
 	aiPolicyOf,
+	FILE_PROVIDERS,
 } from "./policy";
 import { type AiFile, type AiMessage, complete } from "./providers";
 
@@ -61,6 +63,35 @@ export async function aiState(tx: OrgTx, orgId: string): Promise<AiState> {
 	};
 }
 
+// Für Seiten: welche KI-Funktionen hier gehen (Knöpfe nur dann zeigen)
+export type AiAvailability = {
+	features: AiFeature[];
+	// Dateien gehen selbst an die KI (Modus „KI vergleicht auch“)
+	files: boolean;
+};
+
+export const AI_NONE: AiAvailability = { features: [], files: false };
+
+export function availabilityOf(state: AiState): AiAvailability {
+	const features = AI_FEATURES.filter((f) =>
+		aiFeatureAvailable(state.admin, state.policy, f),
+	);
+	return {
+		features,
+		files:
+			features.length > 0 &&
+			state.admin.mode === "full" &&
+			state.policy.provider !== null &&
+			FILE_PROVIDERS.includes(state.policy.provider),
+	};
+}
+
+export async function aiAvailability(c: OrgContext): Promise<AiAvailability> {
+	return availabilityOf(
+		await readOrg(toOrgCtx(c), (tx) => aiState(tx, c.orgId)),
+	);
+}
+
 export type AiRequest = {
 	feature: AiFeature;
 	// Einstufung der Inhalte; null = keine Firmendaten (Hilfe)
@@ -81,7 +112,7 @@ export type AiAnswer = {
 };
 
 // Gründe der Prüfung als Fehlercode (ein „ai_“ vorn, nie zwei)
-const aiCode = (reason: AiDenied): string =>
+export const aiCode = (reason: AiDenied): string =>
 	reason.startsWith("ai_") ? reason : `ai_${reason}`;
 
 export async function runAi(

@@ -217,7 +217,10 @@ async function updateDocumentImpl(input: unknown): Promise<ActionResult> {
 			)
 			.limit(1);
 		if (!before) return { result: false, audit: [] };
-		if (before.status !== "draft" && patch.bodyMarkdown !== undefined) {
+		if (
+			before.status !== "draft" &&
+			(patch.bodyMarkdown !== undefined || patch.changeSummary !== undefined)
+		) {
 			return { result: "locked" as const, audit: [] };
 		}
 		const { ownerUserId: ownerRef, ...rest } = patch;

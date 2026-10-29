@@ -40,3 +40,20 @@ export const aiPolicyInputSchema = aiPolicySchema
 		dpaConfirmed: z.boolean(),
 	});
 export type AiPolicyInput = z.input<typeof aiPolicyInputSchema>;
+
+// Die vier Funktionen (ADR-032): Eingaben sind nur Kennungen, die Inhalte
+// lädt die Action selbst
+export const aiCompareDocumentSchema = z.object({
+	docNumber: z.string().trim().min(1).max(60),
+	from: z.string().trim().min(1).max(20),
+	// Fassung oder „working“ = Arbeitskopie
+	to: z.string().trim().min(1).max(20),
+});
+
+export const aiEvidenceSchema = z.object({ evidenceId: z.uuid() });
+
+export const aiDraftSchema = z.object({ documentId: z.uuid() });
+
+export const aiHelpSchema = z.object({
+	question: z.string().trim().min(5).max(500),
+});

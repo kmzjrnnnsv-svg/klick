@@ -4,6 +4,7 @@ import Form from "next/form";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { AiCompare } from "@/components/ai/ai-actions";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { AckButton } from "@/components/documents/ack-button";
 import { ApproverFunctionSelect } from "@/components/documents/approver-select";
@@ -40,6 +41,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { nativeSelectCompactClass } from "@/components/ui/input";
 import { evidence } from "@/db/schema";
+import { AI_NONE, aiAvailability } from "@/lib/ai/service";
 import { canDecideNow } from "@/lib/approvals/rules";
 import {
 	activeDelegations,
@@ -231,6 +233,9 @@ export default async function DocumentDetailPage({
 	// oder Verlauf; streng geheim ohne Grant nur der Hinweis
 	const restricted = restrictedView(ctx);
 	const canEdit = allows(ctx, { document: ["update"] }) && !restricted;
+	// KI mit eigenem Schlüssel (ADR-032): Knöpfe nur, wenn die Funktion an ist
+	const ai = restricted ? AI_NONE : await aiAvailability(ctx);
+	const aiCompare = ai.features.includes("compare");
 	const me = candidates.find((c) => c.userId === ctx.userId);
 	const step = approval?.steps.find((s) => s.order === approval.currentStep);
 	const eligible = Boolean(
@@ -646,6 +651,7 @@ export default async function DocumentDetailPage({
 						documentId={doc.id}
 						body={doc.bodyMarkdown ?? ""}
 						editable={canEdit && doc.status === "draft"}
+						aiDraft={ai.features.includes("draft")}
 					/>
 				</Section>
 			)}
@@ -669,6 +675,21 @@ export default async function DocumentDetailPage({
 						</p>
 					)}
 					<ContentChanges diff={diff} />
+					{aiCompare && current && (
+						<AiCompare
+							target={{
+								kind: "document",
+								docNumber: doc.docNumber,
+								from: current.version,
+								to: "working",
+							}}
+							noteFor={
+								canEdit && doc.status === "draft"
+									? { documentId: doc.id }
+									: undefined
+							}
+						/>
+					)}
 				</Section>
 			)}
 
@@ -740,6 +761,18 @@ export default async function DocumentDetailPage({
 											}
 											trail={trails.get(v.version)}
 											names={names}
+											ai={
+												aiCompare && versions[i + 1] ? (
+													<AiCompare
+														target={{
+															kind: "document",
+															docNumber: doc.docNumber,
+															from: versions[i + 1]?.version ?? "",
+															to: v.version,
+														}}
+													/>
+												) : undefined
+											}
 										/>
 									</li>
 								);
@@ -824,6 +857,18 @@ export default async function DocumentDetailPage({
 								</p>
 							)}
 							<ContentChanges diff={compare.diff} />
+							{aiCompare &&
+								(compare.diff.added + compare.diff.removed > 0 ||
+									compare.diff.file.kind !== "none") && (
+									<AiCompare
+										target={{
+											kind: "document",
+											docNumber: doc.docNumber,
+											from: compare.from.version,
+											to: compare.to.version,
+										}}
+									/>
+								)}
 						</>
 					)}
 				</Section>

@@ -6,6 +6,7 @@ import {
 	type AiClassLevel,
 	type AiMode,
 	type AiProvider,
+	CLASSIFICATIONS,
 	type Classification,
 } from "@/db/schema/enums";
 
@@ -169,4 +170,17 @@ export function aiPolicyComplete(p: AiPolicy): boolean {
 	if (p.provider === "azure_openai") return Boolean(p.endpoint && p.deployment);
 	if (p.provider === "openai_compatible") return Boolean(p.endpoint);
 	return true;
+}
+
+// Höchste Einstufung mehrerer Inhalte (Dokument und seine Dateien); ohne
+// bekannte Einstufung gilt intern
+export function highestClass(
+	list: readonly (string | null | undefined)[],
+): Classification {
+	let best = -1;
+	for (const c of list) {
+		const i = CLASSIFICATIONS.indexOf(c as Classification);
+		if (i > best) best = i;
+	}
+	return CLASSIFICATIONS[best] ?? "internal";
 }
