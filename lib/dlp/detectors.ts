@@ -4,7 +4,7 @@
 // Prüfziffern (IBAN mod 97, Luhn, Steuer-ID) halten die Fehlalarme klein.
 // Dieselben Muster nutzt der passive Schnellcheck für JS-Bundles.
 
-export const DLP_ENGINE_VERSION = "1";
+export const DLP_ENGINE_VERSION = "2";
 
 export type DlpCategory =
 	| "secret"

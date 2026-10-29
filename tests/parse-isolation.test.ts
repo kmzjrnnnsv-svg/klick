@@ -4,6 +4,7 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { renderPdf } from "@/lib/export/pdf";
 import {
 	parseIsolated,
 	sbomResultSchema,
@@ -63,6 +64,49 @@ describe("Parser-Aufgaben", () => {
 		expect(r.validation.ok).toBe(true);
 		expect(r.findings?.some((f) => f.detector === "iban")).toBe(true);
 		expect(JSON.stringify(r)).not.toContain("DE8937");
+	});
+
+	it("screen mit withText: Text kommt nur auf Anfrage zurück", async () => {
+		const r = screenResultSchema.parse(
+			await runJob({ op: "screen", name: "liste.csv", withText: true }, CSV),
+		);
+		expect(r.text).toContain("DE89370400440532013000");
+	});
+
+	it("screen: PDF wird gelesen und auf DLP geprüft", async () => {
+		const pdf = renderPdf(
+			{
+				title: "Vertrag",
+				org: "Muster GmbH",
+				meta: [],
+				blocks: [
+					{
+						type: "paragraph",
+						text: "Zahlung an IBAN DE89370400440532013000.",
+					},
+				],
+			},
+			{ now: new Date("2026-10-29T08:00:00Z") },
+		);
+		const r = screenResultSchema.parse(
+			await runJob({ op: "screen", name: "vertrag.pdf" }, pdf),
+		);
+		expect(r.extraction?.status).toBe("ok");
+		expect(r.findings?.some((f) => f.detector === "iban")).toBe(true);
+		expect(r.text).toBeUndefined();
+		const enc = screenResultSchema.parse(
+			await runJob(
+				{ op: "screen", name: "geheim.pdf", withText: true },
+				new Uint8Array(
+					readFileSync(path.join(__dirname, "fixtures/pdf/encrypted.pdf")),
+				),
+			),
+		);
+		expect(enc.extraction).toEqual({
+			status: "unsupported",
+			reason: "encrypted",
+		});
+		expect(enc.text).toBeUndefined();
 	});
 
 	it("sbom: CycloneDX erkannt, kaputtes UTF-8 abgelehnt", async () => {
