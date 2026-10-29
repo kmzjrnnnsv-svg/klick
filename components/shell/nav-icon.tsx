@@ -30,6 +30,7 @@ import {
 	ShieldAlert,
 	ShieldCheck,
 	Siren,
+	Sparkles,
 	Sun,
 	TriangleAlert,
 	Truck,
@@ -82,6 +83,7 @@ const ICONS = {
 	search: Search,
 	layers: Layers,
 	"circle-help": CircleHelp,
+	sparkles: Sparkles,
 } as const;
 
 export function NavIcon({

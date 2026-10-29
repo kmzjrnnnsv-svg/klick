@@ -39,7 +39,7 @@
 | Trust Center (Inhalte Dritter) | ✅ behoben | Öffentliche Seiten mit Rechtslinks und „Inhalt melden“ (DSA Art. 16, gilt auch für kleine Hosting-Anbieter); Meldungen stehen in Admin → Anfragen oben. NDA-Formular nennt Verantwortliche und Löschfrist; Anfragen werden 12 Monate nach Ablauf gelöscht. |
 | Server-Logs | ✅ behoben | Zugriffslogs 14 Tage (`deploy/logrotate/nginx`), CrowdSec dokumentiert. **Community-Blockliste:** teilen nur, wenn in der Datenschutzerklärung genannt, sonst abschalten. |
 | Barrierefreiheit | ✅ Grundlagen | BFSG gilt nur für Verbraucher:innen-Angebote — bei B2B keine Pflicht. Trotzdem: Sprunglink, `<main>` überall, Fokus sichtbar. |
-| KI-Kennzeichnung | ✅ in Ordnung | Keine KI-Funktionen (AI Act Art. 50 seit 02.08.2026 nicht einschlägig). |
+| KI-Kennzeichnung | ⚠ prüfen | Seit 29.10.2026 KI-Funktionen nur mit eigenem Schlüssel der Kundin und nur auf Klick (ADR-032); jede Antwort steht als „KI-Vorschlag · Anbieter, Modell“, gespeicherte Kommentare tragen „KI-Hinweis“, nichts wird automatisch übernommen. Ob das Art. 50 AI Act (Hinweis auf KI, Kennzeichnung) genügt, prüfen lassen; Datenschutzerklärung und AVV um die Übermittlung an den gewählten Anbieter ergänzen. |
 | Umweltaussagen | ✅ in Ordnung | Keine „grün/klimaneutral“-Aussagen (EmpCo-Umsetzung im UWG seit 27.09.2026). |
 | Bewertungen, Logos, Referenzen | ✅ in Ordnung | Keine erfundenen Kund:innen, Bewertungen oder Siegel; „Zertifiziert“ nur mit gültigem Zertifikat. |
 

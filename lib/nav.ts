@@ -60,6 +60,7 @@ export type NavGroupKey =
 
 export type NavIcon =
 	| "sun"
+	| "sparkles"
 	| "gauge"
 	| "list-checks"
 	| "package"
