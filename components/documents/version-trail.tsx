@@ -1,26 +1,25 @@
 import { ChevronRight } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { RevealWithStepUp } from "@/components/entity/reveal-with-step-up";
 import { fmtDate } from "@/lib/compliance/page-data";
-import { type DiffLine, diffLines } from "@/lib/documents/diff";
 import {
-	type CompactLine,
-	compactDiff,
-	diffStat,
-	type VersionTrail,
-} from "@/lib/documents/trail";
+	type ContentDiff,
+	type ContentSide,
+	contentDiff,
+} from "@/lib/documents/content-diff";
+import type { DisplayLine, VersionTrail } from "@/lib/documents/trail";
 
 // Änderungen einer Fassung gegenüber ihrer Vorgängerin: Zähler, wer
 // begonnen, bearbeitet, eingereicht und veröffentlicht hat, und die
-// geänderten Zeilen (entfernt durchgestrichen, neu hervorgehoben). Ohne
-// Skript über <details>; Server-Komponente.
+// geänderten Zeilen von Text und Dateiinhalt (entfernt durchgestrichen, neu
+// hervorgehoben, geänderte Absätze Wort für Wort). Ohne Skript über
+// <details>; Server-Komponente. Umbrochene Zeilen hängen unter dem Text,
+// nicht unter dem Zeichen am Zeilenanfang.
+const LINE = "ps-[2ch] -indent-[2ch]";
 
-export type TrailVersion = {
-	version: string;
-	bodyMarkdown: string | null;
-	file: { name: string; sha256: string | null } | null;
-};
+export type TrailVersion = ContentSide & { version: string };
 
-export function DiffView({ lines }: { lines: readonly CompactLine[] }) {
+export function DiffView({ lines }: { lines: readonly DisplayLine[] }) {
 	return (
 		<pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-muted p-3 font-mono text-footnote">
 			{lines.map((l, i) =>
@@ -28,21 +27,51 @@ export function DiffView({ lines }: { lines: readonly CompactLine[] }) {
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: Diff-Zeilen haben keine eigene Identität
 						key={`${i}-gap`}
-						className="text-muted-foreground"
+						className={`${LINE} text-muted-foreground`}
 					>
 						{"  …"}
+					</div>
+				) : l.type === "change" ? (
+					<div
+						// biome-ignore lint/suspicious/noArrayIndexKey: Diff-Zeilen haben keine eigene Identität
+						key={`${i}-change`}
+						className={LINE}
+					>
+						{"± "}
+						{l.parts.map((p, k) =>
+							p.type === "del" ? (
+								<del
+									// biome-ignore lint/suspicious/noArrayIndexKey: Wortteile haben keine eigene Identität
+									key={k}
+									className="bg-destructive/10"
+								>
+									{p.text}
+								</del>
+							) : p.type === "add" ? (
+								<ins
+									// biome-ignore lint/suspicious/noArrayIndexKey: Wortteile haben keine eigene Identität
+									key={k}
+									className={`bg-success/15 no-underline ${l.parts[k - 1]?.type === "del" ? "ms-1" : ""}`}
+								>
+									{p.text}
+								</ins>
+							) : (
+								// biome-ignore lint/suspicious/noArrayIndexKey: Wortteile haben keine eigene Identität
+								<span key={k}>{p.text}</span>
+							),
+						)}
 					</div>
 				) : (
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: Diff-Zeilen haben keine eigene Identität
 						key={`${i}-${l.type}`}
-						className={
+						className={`${LINE} ${
 							l.type === "add"
 								? "bg-success/15"
 								: l.type === "del"
 									? "bg-destructive/10 line-through"
 									: ""
-						}
+						}`}
 					>
 						{l.type === "add" ? "+ " : l.type === "del" ? "− " : "  "}
 						{l.text}
@@ -53,12 +82,57 @@ export function DiffView({ lines }: { lines: readonly CompactLine[] }) {
 	);
 }
 
-export function textDiff(
-	before: string | null,
-	after: string | null,
-): { lines: DiffLine[]; added: number; removed: number } {
-	const lines = diffLines(before ?? "", after ?? "");
-	return { lines, ...diffStat(lines) };
+// Text in Klick und Inhalt der Datei je als eigener Block; Überschriften nur,
+// wenn es beide gibt bzw. die Datei ersetzt wurde
+export async function ContentChanges({ diff }: { diff: ContentDiff }) {
+	const t = await getTranslations("Documents");
+	const file = diff.file.kind === "replaced" ? diff.file : null;
+	if (!diff.text && !file) return null;
+	const hint = file?.hint
+		? {
+				locked: t("fileTextLocked"),
+				pending: t("fileTextPending"),
+				no_text: t("fileTextNoText"),
+				encrypted: t("fileTextEncrypted"),
+				error: t("fileTextError"),
+			}[file.hint]
+		: null;
+	const shown = Boolean(diff.text || file?.diff);
+	return (
+		<div className="flex flex-col gap-2">
+			{diff.text && (
+				<div className="flex flex-col gap-1">
+					{file && <p className="font-medium text-footnote">{t("diffText")}</p>}
+					<DiffView lines={diff.text.lines} />
+				</div>
+			)}
+			{file && (
+				<div className="flex flex-col gap-1">
+					<p className="font-medium text-footnote">{t("diffFile")}</p>
+					{file.diff ? (
+						<DiffView lines={file.diff.lines} />
+					) : (
+						<p className="text-muted-foreground text-footnote">
+							{hint ?? t("fileTextSame")}
+						</p>
+					)}
+					{file.hint === "locked" && (
+						<div>
+							<RevealWithStepUp />
+						</div>
+					)}
+					{file.truncated && (
+						<p className="text-muted-foreground text-footnote">
+							{t("fileTextTruncated")}
+						</p>
+					)}
+				</div>
+			)}
+			{shown && (
+				<p className="text-muted-foreground text-footnote">{t("diffLegend")}</p>
+			)}
+		</div>
+	);
 }
 
 export async function VersionChanges({
@@ -75,33 +149,27 @@ export async function VersionChanges({
 	const t = await getTranslations("Documents");
 	const name = (id: string | null) =>
 		(id && names.get(id)) || t("trailUnknown");
-	const diff = previous
-		? textDiff(previous.bodyMarkdown, version.bodyMarkdown)
-		: null;
-	const compact = diff ? compactDiff(diff.lines, 1) : [];
-	const fileChange = previous
-		? previous.file?.sha256 !== version.file?.sha256
-			? version.file && previous.file
-				? t("fileReplaced", {
-						before: previous.file.name,
-						after: version.file.name,
+	const diff = previous ? contentDiff(previous, version) : null;
+	const fileChange =
+		diff?.file.kind === "replaced"
+			? t("fileReplaced", { before: diff.file.before, after: diff.file.after })
+			: diff?.file.kind === "added"
+				? t("fileAdded", { name: diff.file.name })
+				: diff?.file.kind === "removed"
+					? t("fileRemoved")
+					: null;
+	const summary =
+		previous && diff
+			? diff.added > 0 || diff.removed > 0
+				? t("changesVs", {
+						version: previous.version,
+						added: diff.added,
+						removed: diff.removed,
 					})
-				: version.file
-					? t("fileAdded", { name: version.file.name })
-					: previous.file
-						? t("fileRemoved")
-						: null
-			: null
-		: null;
-	const summary = previous
-		? diff && (diff.added > 0 || diff.removed > 0)
-			? t("changesVs", {
-					version: previous.version,
-					added: diff.added,
-					removed: diff.removed,
-				})
-			: t("changesVsNone", { version: previous.version })
-		: t("changesFirst");
+				: diff.file.kind !== "none"
+					? t("changesVsFile", { version: previous.version })
+					: t("changesVsNone", { version: previous.version })
+			: t("changesFirst");
 	const fields = (f: readonly string[]) =>
 		f.map((x) => t(`field_${x}` as "field_other")).join(", ");
 	return (
@@ -150,7 +218,7 @@ export async function VersionChanges({
 					)}
 					{fileChange && <li>{fileChange}</li>}
 				</ul>
-				{compact.length > 0 && <DiffView lines={compact} />}
+				{diff && <ContentChanges diff={diff} />}
 			</div>
 		</details>
 	);

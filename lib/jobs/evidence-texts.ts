@@ -5,7 +5,12 @@ import { evidence, evidenceTexts } from "@/db/schema";
 import { readOrg, withOrg } from "@/lib/db/with-org";
 import { decryptEvidenceObject } from "@/lib/evidence/read";
 import { evidenceFileFor } from "@/lib/evidence/serve";
-import { extractedFrom, storeEvidenceText } from "@/lib/evidence/text";
+import {
+	extractedFrom,
+	storeEvidenceText,
+	TEXT_MIMES,
+	TEXT_SOURCES,
+} from "@/lib/evidence/text";
 import { logger } from "@/lib/log";
 import { parseIsolated, screenResultSchema } from "@/lib/parse/client";
 
@@ -15,17 +20,6 @@ import { parseIsolated, screenResultSchema } from "@/lib/parse/client";
 // Uploads bringen ihren Text selbst mit (screenUpload withText). Je Lauf
 // höchstens maxFiles Dateien bzw. maxBytes; Fehler werden als „error“
 // vermerkt, damit nichts endlos wiederholt wird.
-
-// Dateien mit Text (Uploads und Dateien von Dokumentfassungen)
-export const TEXT_SOURCES = ["manual", "document"] as const;
-export const TEXT_MIMES = [
-	"application/pdf",
-	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-	"application/vnd.openxmlformats-officedocument.presentationml.presentation",
-	"text/plain",
-	"text/csv",
-] as const;
 
 export async function runEvidenceTexts(
 	opts: { maxFiles?: number; maxBytes?: number; orgIds?: string[] } = {},

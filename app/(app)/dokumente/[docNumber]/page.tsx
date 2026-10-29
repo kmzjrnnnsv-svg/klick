@@ -18,9 +18,8 @@ import {
 	SignatureList,
 } from "@/components/documents/signature-list";
 import {
-	DiffView,
+	ContentChanges,
 	type TrailVersion,
-	textDiff,
 	VersionChanges,
 } from "@/components/documents/version-trail";
 import { ActivityStream } from "@/components/entity/activity-stream";
@@ -62,14 +61,19 @@ import {
 } from "@/lib/compliance/queries";
 import { getDocumentByNumber } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
-import { diffLines } from "@/lib/documents/diff";
-import { compactDiff, versionTrails } from "@/lib/documents/trail";
+import { contentDiff } from "@/lib/documents/content-diff";
+import { versionTrails } from "@/lib/documents/trail";
 import {
 	currentPublished,
 	type VersionState,
 	validRanges,
 	versionState,
 } from "@/lib/documents/versions";
+import {
+	evidenceTextsFor,
+	fileTextOf,
+	type FileText as StoredFileText,
+} from "@/lib/evidence/text";
 import { functionLabel } from "@/lib/evidence-studio/generate/doc";
 import {
 	type ActivityEntry,
@@ -95,6 +99,9 @@ export default async function DocumentDetailPage({
 		Array.isArray(v) ? v[0] : v;
 	const docNumber = decodeURIComponent(raw);
 	const ctx = await requireOrgPage({ document: ["read"] });
+	const lockedFile = (f: { classification: string }) =>
+		(f.classification === "confidential" || f.classification === "secret") &&
+		!ctx.stepUpFresh;
 	const t = await getTranslations("Documents");
 	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
@@ -114,10 +121,24 @@ export default async function DocumentDetailPage({
 				activeDelegations(tx, ctx.orgId),
 			]);
 		const signatures = await documentSignaturesFor(tx, ctx.orgId, d.doc.id);
-		// Dateien der Fassungen (Name, Prüfsumme) für „Datei ersetzt“
-		const fileIds = d.versions
-			.map((v) => v.fileEvidenceId)
-			.filter((x): x is string => x !== null);
+		// Dateien der Fassungen und der Arbeitskopie (Name, Prüfsumme) für
+		// „Datei ersetzt“, dazu der ausgelesene Text der letzten 20 Fassungen
+		// für den Vergleich des Inhalts
+		const fileIds = [
+			...new Set(
+				[
+					d.doc.fileEvidenceId,
+					...d.versions.map((v) => v.fileEvidenceId),
+				].filter((x): x is string => x !== null),
+			),
+		];
+		const wanted = new Set([one(sp.von), one(sp.bis)]);
+		const textIds = [
+			d.doc.fileEvidenceId,
+			...d.versions
+				.filter((v, i) => i < 21 || wanted.has(v.version))
+				.map((v) => v.fileEvidenceId),
+		].filter((x): x is string => x !== null);
 		const files =
 			fileIds.length > 0
 				? await tx
@@ -125,6 +146,9 @@ export default async function DocumentDetailPage({
 							id: evidence.id,
 							fileName: evidence.fileName,
 							sha256: evidence.sha256,
+							classification: evidence.classification,
+							mimeType: evidence.mimeType,
+							source: evidence.source,
 						})
 						// evidence:any-version — Dateien von Dokumentfassungen per ID
 						.from(evidence)
@@ -135,6 +159,17 @@ export default async function DocumentDetailPage({
 							),
 						)
 				: [];
+		// vertrauliche Dateien nur nach frischer Bestätigung (wie der Download)
+		const readable = new Set(
+			files.filter((f) => !lockedFile(f)).map((f) => f.id),
+		);
+		const fileTexts = restrictedView(ctx)
+			? new Map<string, StoredFileText>()
+			: await evidenceTextsFor(
+					tx,
+					ctx.orgId,
+					textIds.filter((x) => readable.has(x)),
+				);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
@@ -153,6 +188,7 @@ export default async function DocumentDetailPage({
 			names,
 			signatures,
 			files,
+			fileTexts,
 		};
 	});
 	if (!data) notFound();
@@ -171,6 +207,7 @@ export default async function DocumentDetailPage({
 		names,
 		signatures,
 		files,
+		fileTexts,
 	} = data;
 	// Unterschriften je Fassung mit Prüfung (Prüfsumme der Fassung jetzt)
 	const signEnv = { origin: SIGN_ORIGIN, rpId: SIGN_RP_ID };
@@ -244,10 +281,25 @@ export default async function DocumentDetailPage({
 					portalAcknowledgementsFor(tx, ctx.orgId, current.id),
 				)
 			: [];
+	const fileById = new Map(files.map((f) => [f.id, f]));
+	const side = (v: {
+		bodyMarkdown: string | null;
+		fileEvidenceId: string | null;
+	}) => {
+		const f = v.fileEvidenceId ? fileById.get(v.fileEvidenceId) : undefined;
+		return {
+			bodyMarkdown: v.bodyMarkdown,
+			file: f ? { name: f.fileName ?? "Datei", sha256: f.sha256 } : null,
+			fileText: f
+				? lockedFile(f)
+					? { status: "locked" as const }
+					: fileTextOf(fileTexts, f)
+				: null,
+		};
+	};
+	// Arbeitskopie gegenüber der gültigen Fassung (Text und Dateiinhalt)
 	const diff =
-		working && current && doc.bodyMarkdown && current.bodyMarkdown
-			? diffLines(current.bodyMarkdown, doc.bodyMarkdown)
-			: null;
+		working && current ? contentDiff(side(current), side(doc), 2) : null;
 	// Altbestand: veröffentlichte Fassung trägt einen anderen Text als die
 	// Arbeitskopie (vor Migration 0042 möglich) — neu einreichen
 	const stale =
@@ -311,29 +363,18 @@ export default async function DocumentDetailPage({
 			after: h.after,
 		})),
 	);
-	const fileById = new Map(files.map((f) => [f.id, f]));
-	const trailVersion = (v: (typeof versions)[number]): TrailVersion => {
-		const f = v.fileEvidenceId ? fileById.get(v.fileEvidenceId) : undefined;
-		return {
-			version: v.version,
-			bodyMarkdown: v.bodyMarkdown,
-			file: f ? { name: f.fileName ?? "Datei", sha256: f.sha256 } : null,
-		};
-	};
+	const trailVersion = (v: (typeof versions)[number]): TrailVersion => ({
+		version: v.version,
+		...side(v),
+	});
 	// Vergleich zweier beliebiger Fassungen (?von=&bis=)
 	const cmpFrom = versions.find((v) => v.version === one(sp.von));
 	const cmpTo = versions.find((v) => v.version === one(sp.bis));
 	const compare =
 		!restricted && cmpFrom && cmpTo
 			? (() => {
-					const d = textDiff(cmpFrom.bodyMarkdown, cmpTo.bodyMarkdown);
-					return {
-						from: cmpFrom,
-						to: cmpTo,
-						added: d.added,
-						removed: d.removed,
-						lines: compactDiff(d.lines, 2),
-					};
+					const d = contentDiff(side(cmpFrom), side(cmpTo), 2);
+					return { from: cmpFrom, to: cmpTo, diff: d };
 				})()
 			: null;
 
@@ -609,26 +650,25 @@ export default async function DocumentDetailPage({
 				</Section>
 			)}
 
-			{diff && !restricted && (
+			{diff && !restricted && (diff.text || diff.file.kind !== "none") && (
 				<Section title={t("diff")}>
-					<pre className="max-h-96 overflow-auto rounded-xl bg-muted p-3 font-mono text-footnote">
-						{diff.map((l, i) => (
-							<div
-								// biome-ignore lint/suspicious/noArrayIndexKey: Diff-Zeilen haben keine eigene Identität
-								key={`${i}-${l.type}`}
-								className={
-									l.type === "add"
-										? "bg-success/15"
-										: l.type === "del"
-											? "bg-destructive/10 line-through"
-											: ""
-								}
-							>
-								{l.type === "add" ? "+ " : l.type === "del" ? "− " : "  "}
-								{l.text}
-							</div>
-						))}
-					</pre>
+					{diff.file.kind === "added" && (
+						<p className="text-subhead">
+							{t("fileAdded", { name: diff.file.name })}
+						</p>
+					)}
+					{diff.file.kind === "removed" && (
+						<p className="text-subhead">{t("fileRemoved")}</p>
+					)}
+					{diff.file.kind === "replaced" && (
+						<p className="text-subhead">
+							{t("fileReplaced", {
+								before: diff.file.before,
+								after: diff.file.after,
+							})}
+						</p>
+					)}
+					<ContentChanges diff={diff} />
 				</Section>
 			)}
 
@@ -754,7 +794,8 @@ export default async function DocumentDetailPage({
 					{compare && (
 						<>
 							<p className="text-subhead">
-								{compare.added + compare.removed === 0
+								{compare.diff.added + compare.diff.removed === 0 &&
+								compare.diff.file.kind === "none"
 									? t("compareSame", {
 											from: compare.from.version,
 											to: compare.to.version,
@@ -762,11 +803,27 @@ export default async function DocumentDetailPage({
 									: t("compareResult", {
 											from: compare.from.version,
 											to: compare.to.version,
-											added: compare.added,
-											removed: compare.removed,
+											added: compare.diff.added,
+											removed: compare.diff.removed,
 										})}
 							</p>
-							{compare.lines.length > 0 && <DiffView lines={compare.lines} />}
+							{compare.diff.file.kind === "added" && (
+								<p className="text-subhead">
+									{t("fileAdded", { name: compare.diff.file.name })}
+								</p>
+							)}
+							{compare.diff.file.kind === "removed" && (
+								<p className="text-subhead">{t("fileRemoved")}</p>
+							)}
+							{compare.diff.file.kind === "replaced" && (
+								<p className="text-subhead">
+									{t("fileReplaced", {
+										before: compare.diff.file.before,
+										after: compare.diff.file.after,
+									})}
+								</p>
+							)}
+							<ContentChanges diff={compare.diff} />
 						</>
 					)}
 				</Section>

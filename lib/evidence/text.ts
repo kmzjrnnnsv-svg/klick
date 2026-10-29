@@ -24,6 +24,32 @@ export type FileText =
 	| { status: "ok"; text: string; truncated: boolean }
 	| { status: Exclude<TextStatus, "ok"> | "pending" };
 
+// Dateien mit Text (Uploads und Dateien von Dokumentfassungen); nur diese
+// liest der Job evidence-texts für den Bestand nach
+export const TEXT_SOURCES = ["manual", "document"] as const;
+export const TEXT_MIMES = [
+	"application/pdf",
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	"application/vnd.openxmlformats-officedocument.presentationml.presentation",
+	"text/plain",
+	"text/csv",
+] as const;
+
+// Stand für die Anzeige: gespeicherter Text, sonst „wird gelesen“, wenn der
+// Job die Datei noch nachliest, sonst „nicht vergleichbar“ (Bild, erzeugt)
+export function fileTextOf(
+	texts: ReadonlyMap<string, FileText>,
+	row: { id: string; mimeType: string | null; source: string },
+): FileText {
+	const stored = texts.get(row.id);
+	if (stored && stored.status !== "pending") return stored;
+	const readable =
+		(TEXT_SOURCES as readonly string[]).includes(row.source) &&
+		(TEXT_MIMES as readonly string[]).includes(row.mimeType ?? "");
+	return readable ? { status: "pending" } : { status: "no_text" };
+}
+
 export const evidenceTextAad = (id: string) =>
 	fieldAad("evidence_texts", id, "text_enc");
 

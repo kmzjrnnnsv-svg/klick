@@ -255,6 +255,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 					"Beim Einreichen schreibt Klick Text und Datei in eine Fassung mit Nummer und Prüfsumme fest.",
 					"Die Freigabe gilt genau dieser Fassung; veröffentlicht lässt sie sich auch in der Datenbank nicht mehr ändern.",
 					"Eine neue Nachweis-Fassung übernimmt Controls und Einstufung, die alte zählt nicht mehr.",
+					"Je Fassung siehst du, was sich geändert hat: im Text und im Inhalt hochgeladener Dateien (PDF, Word, Excel), Absatz für Absatz, geänderte Wörter markiert.",
 					"Prüfer:innen sehen nur gültige Fassungen, abgelaufene Nachweise deutlich markiert; Berater:innen sehen auch Entwürfe und Verlauf.",
 				],
 				result:

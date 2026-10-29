@@ -16,6 +16,7 @@ import {
 import { userNames } from "@/lib/compliance/queries";
 import { type OrgCtx, type OrgTx, readOrg } from "@/lib/db/with-org";
 import { dbEnvelope, decryptEvidenceObject } from "@/lib/evidence/read";
+import { evidenceTextsFor, type FileText } from "@/lib/evidence/text";
 import { functionLabel as catalogFunctionLabel } from "@/lib/evidence-studio/generate/doc";
 import { type PdfAttachment, renderPdf } from "@/lib/export/pdf";
 import type { ExportMark } from "@/lib/export/respond";
@@ -235,13 +236,41 @@ export async function loadControlledSource(
 		signatures
 			.filter((s) => s.versionId === versionId)
 			.map((s) => s.signerName);
-	// Zeilen gegenüber der Vorgängerin (versions: neueste zuerst)
+	// Zeilen gegenüber der Vorgängerin (versions: neueste zuerst): Text in
+	// Klick und Inhalt der Datei, soweit der Parser ihn gelesen hat
+	const fileTexts =
+		opts.view === "current"
+			? new Map<string, FileText>()
+			: await evidenceTextsFor(
+					tx,
+					orgId,
+					versions
+						.map((v) => v.fileEvidenceId)
+						.filter((x): x is string => x !== null),
+				);
+	const textOf = (id: string | null) => {
+		const t = id ? fileTexts.get(id) : undefined;
+		return t?.status === "ok" ? t.text : null;
+	};
 	const statsOf = (v: (typeof versions)[number]) => {
 		if (opts.view === "current") return null;
 		const prev = versions[versions.indexOf(v) + 1];
-		return prev
-			? diffStat(diffLines(prev.bodyMarkdown ?? "", v.bodyMarkdown ?? ""))
-			: null;
+		if (!prev) return null;
+		const text = diffStat(
+			diffLines(prev.bodyMarkdown ?? "", v.bodyMarkdown ?? ""),
+		);
+		const before = textOf(prev.fileEvidenceId);
+		const after = textOf(v.fileEvidenceId);
+		const file =
+			prev.fileEvidenceId !== v.fileEvidenceId &&
+			before !== null &&
+			after !== null
+				? diffStat(diffLines(before, after))
+				: { added: 0, removed: 0 };
+		return {
+			added: text.added + file.added,
+			removed: text.removed + file.removed,
+		};
 	};
 	const asControlled = (v: (typeof versions)[number]): ControlledVersion => ({
 		version: v.version,

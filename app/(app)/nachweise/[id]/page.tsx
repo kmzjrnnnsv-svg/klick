@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ensureEvidenceStepUp } from "@/app/actions/evidence";
+import { ContentChanges } from "@/components/documents/version-trail";
 import { DeleteEvidenceButton } from "@/components/entity/evidence-delete";
 import { EvidenceStaffSwitch } from "@/components/entity/evidence-staff-switch";
 import { EvidenceVersionForm } from "@/components/entity/evidence-version-form";
@@ -23,10 +24,20 @@ import { hidesSecret, restrictedView } from "@/lib/auth/visibility";
 import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
 import { ownRoleIdOf } from "@/lib/compliance/function-key";
 import { fmtDate } from "@/lib/compliance/page-data";
-import { evidenceDetail, listMembersForPicker } from "@/lib/compliance/queries";
+import {
+	evidenceDetail,
+	evidenceVersionSides,
+	listMembersForPicker,
+} from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
+import { type ContentSide, contentDiff } from "@/lib/documents/content-diff";
 import { isDbStorageKey } from "@/lib/evidence/aad";
 import { s3Configured } from "@/lib/evidence/store";
+import {
+	evidenceTextsFor,
+	type FileText,
+	fileTextOf,
+} from "@/lib/evidence/text";
 import { documentFileInForce } from "@/lib/evidence/visibility";
 import { authoredBlocks } from "@/lib/evidence-authoring/render";
 import {
@@ -67,8 +78,32 @@ export default async function EvidenceDetailPage({
 		const detail = await evidenceDetail(tx, ctx.orgId, id);
 		if (!detail) return null;
 		const { row } = detail;
+		// Vergleich mit der ersetzten Fassung (nicht in der Prüfer-Sicht, dort
+		// gibt es ersetzte Fassungen nicht)
+		const pair =
+			row.supersedesId && !restrictedView(ctx)
+				? await evidenceVersionSides(tx, ctx.orgId, row.supersedesId, row.id)
+				: null;
+		const sensitiveRow = (c: string) =>
+			(c === "confidential" || c === "secret") && !ctx.stepUpFresh;
+		const locked = pair
+			? sensitiveRow(pair.before.classification) ||
+				sensitiveRow(pair.after.classification)
+			: false;
+		const texts =
+			pair && !locked
+				? await evidenceTextsFor(tx, ctx.orgId, [pair.before.id, pair.after.id])
+				: new Map<string, FileText>();
+		const authoredBefore =
+			pair && !locked && row.templateKey && pair.before.templateKey
+				? await authoredContentOf(tx, ctx.orgId, pair.before.id)
+				: null;
 		return {
 			...detail,
+			pair,
+			locked,
+			texts,
+			authoredBefore,
 			// Datei eines Dokuments: nur die der gültigen Fassung zählt (Prüfer-Sicht)
 			fileInForce: (await documentFileInForce(tx, row.id)) !== "not_current",
 			members: await listMembersForPicker(tx, ctx.orgId),
@@ -91,6 +126,38 @@ export default async function EvidenceDetailPage({
 	});
 	if (!data) notFound();
 	const { row, authored, sign, roleNames } = data;
+	// Änderungen gegenüber der ersetzten Fassung: verfasster Inhalt bzw.
+	// Inhalt der Datei (Text aus dem isolierten Parser)
+	const changes = (() => {
+		const { pair, locked, texts, authoredBefore } = data;
+		if (!pair) return null;
+		if (locked) return { locked: true as const };
+		const md = (a: typeof authored) =>
+			a
+				? renderBlocksMarkdown(authoredBlocks(a.template, a.content, a.preset))
+				: null;
+		const side = (
+			r: typeof pair.before,
+			content: string | null,
+		): ContentSide => {
+			const withFile = r.storageKey !== null && r.templateKey === null;
+			return {
+				bodyMarkdown: content,
+				file: withFile
+					? { name: r.fileName ?? "Datei", sha256: r.sha256 }
+					: null,
+				fileText: withFile ? fileTextOf(texts, r) : null,
+			};
+		};
+		return {
+			locked: false as const,
+			diff: contentDiff(
+				side(pair.before, md(authoredBefore)),
+				side(pair.after, md(authored)),
+				2,
+			),
+		};
+	})();
 	// Prüfer-Sicht: ersetzte Fassungen gibt es nicht; streng geheim ohne
 	// Grant nur der Hinweis (kein Titel, keine Beschreibung, kein Link)
 	const restricted = restrictedView(ctx);
@@ -446,6 +513,40 @@ export default async function EvidenceDetailPage({
 							),
 						)}
 					/>
+				</section>
+			)}
+			{changes && (
+				<section
+					aria-labelledby="ev-changes"
+					className="mt-10 flex flex-col gap-3 rounded-2xl bg-card p-4"
+				>
+					<h2 id="ev-changes" className="font-semibold text-headline">
+						{t("changesTitle")}
+					</h2>
+					{changes.locked ? (
+						<>
+							<p className="text-muted-foreground text-subhead">
+								{t("changesLocked")}
+							</p>
+							<div>
+								<RevealWithStepUp />
+							</div>
+						</>
+					) : (
+						<>
+							<p className="text-subhead">
+								{changes.diff.added + changes.diff.removed > 0
+									? t("changesSummary", {
+											added: changes.diff.added,
+											removed: changes.diff.removed,
+										})
+									: changes.diff.file.kind === "none" && !changes.diff.text
+										? t("changesNone")
+										: t("changesFileOnly")}
+							</p>
+							<ContentChanges diff={changes.diff} />
+						</>
+					)}
 				</section>
 			)}
 		</>
