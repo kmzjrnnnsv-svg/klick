@@ -631,6 +631,9 @@ export const SECURITY_CHANGE_KINDS = [
 	"dlp_policy",
 	// IP-Liste der Organisation (Härtung A5), jede Änderung
 	"network_policy",
+	// KI mit eigenem Schlüssel (ADR-032): einschalten, lockern, neuer
+	// Anbieter oder Schlüssel
+	"ai_policy",
 	// „erlaubt“: einmalige Erlaubnis für die anfragende Person (24 h)
 	"org_delete",
 	// Neu beginnen: alle Daten weg, Org leer neu angelegt
@@ -661,3 +664,25 @@ export type SecurityChangeStatus = (typeof SECURITY_CHANGE_STATUS)[number];
 // Vertrag je Organisation (Admin-Portal, platform_org_accounts)
 export const ORG_ACCOUNT_STATUS = ["trial", "active", "cancelled"] as const;
 export type OrgAccountStatus = (typeof ORG_ACCOUNT_STATUS)[number];
+
+// KI mit eigenem Schlüssel je Organisation (ADR-032, lib/ai/policy.ts)
+export const AI_PROVIDERS = [
+	"anthropic",
+	"gemini",
+	"openai",
+	"azure_openai",
+	"mistral",
+	"openai_compatible",
+] as const;
+export type AiProvider = (typeof AI_PROVIDERS)[number];
+// höchste Einstufung, deren Inhalte an die KI dürfen; none = keine Inhalte
+export const AI_CLASS_LEVELS = [
+	"none",
+	"public",
+	"internal",
+	"confidential",
+] as const;
+export type AiClassLevel = (typeof AI_CLASS_LEVELS)[number];
+// assist = Klick vergleicht, KI erklärt; full = KI vergleicht auch (Dateien)
+export const AI_MODES = ["assist", "full"] as const;
+export type AiMode = (typeof AI_MODES)[number];
