@@ -17,6 +17,7 @@ import {
 	Receipt,
 	ShieldCheck,
 	ShieldHalf,
+	Sparkles,
 	Truck,
 	Users,
 } from "lucide-react";
@@ -24,6 +25,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
+import { AiPanel } from "@/components/settings/ai-panel";
 import { AuditRegimesPanel } from "@/components/settings/audit-regimes-panel";
 import { DangerZonePanel } from "@/components/settings/danger-zone-panel";
 import { DlpPanel } from "@/components/settings/dlp-panel";
@@ -53,6 +55,9 @@ import {
 	platformAccessGrants,
 	securityChanges,
 } from "@/db/schema";
+import { latestCredential } from "@/lib/ai/credentials";
+import { aiAdminOf } from "@/lib/ai/policy";
+import { loadAiPolicy } from "@/lib/ai/service";
 import {
 	factInfos,
 	ruleNames,
@@ -103,6 +108,7 @@ import {
 } from "@/lib/compliance/risk-method";
 import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
 import { topManagementOf } from "@/lib/compliance/top-management";
+import { orgAiRow } from "@/lib/db/org-accounts";
 import { userLabels } from "@/lib/db/platform-access";
 import { loadPriceTable } from "@/lib/db/pricing";
 import { flushQueuedAudits, readOrg, withOrg } from "@/lib/db/with-org";
@@ -149,6 +155,7 @@ const SECTION_LABEL = {
 	zugriffe: "tabPlatformAccess",
 	sicherheitsaenderungen: "tabSecurityChanges",
 	netzwerk: "tabNetwork",
+	ki: "tabAi",
 	verlauf: "tabLedger",
 	abo: "tabSubscription",
 	workflows: "tabWorkflows",
@@ -170,6 +177,7 @@ const SECTION_ICON: Record<SettingsSectionKey, React.ReactNode> = {
 	zugriffe: <LockKeyhole />,
 	sicherheitsaenderungen: <ShieldHalf />,
 	netzwerk: <Network />,
+	ki: <Sparkles />,
 	verlauf: <History />,
 	abo: <Receipt />,
 	workflows: <GitBranch />,
@@ -825,6 +833,48 @@ async function renderSection(
 					myIp={normalizeIp(ctx.ip)}
 					canEdit={ctx.orgRole === "owner"}
 					pendingChange={open}
+				/>
+			);
+		}
+		case "ki": {
+			const [aiRow, data] = await Promise.all([
+				orgAiRow(ctx.orgId),
+				readOrg(octx, async (tx) => {
+					const policy = await loadAiPolicy(tx, ctx.orgId);
+					const latest = await latestCredential(tx, ctx.orgId);
+					const changes = await tx
+						.select()
+						.from(securityChanges)
+						.where(
+							and(
+								eq(securityChanges.organizationId, ctx.orgId),
+								eq(securityChanges.kind, "ai_policy"),
+							),
+						);
+					return {
+						policy,
+						latest,
+						open: changes.some((c) => isOpen(c, new Date())),
+					};
+				}),
+			]);
+			return (
+				<AiPanel
+					admin={aiAdminOf(aiRow)}
+					policy={data.policy}
+					keyView={
+						data.latest
+							? {
+									id: data.latest.id,
+									provider: data.latest.provider,
+									keyHint: data.latest.keyHint,
+									active: data.latest.id === data.policy.credentialId,
+									lastTestOk: data.latest.lastTestOk,
+								}
+							: null
+					}
+					canEdit={ctx.orgRole === "owner"}
+					pendingChange={data.open}
 				/>
 			);
 		}

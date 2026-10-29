@@ -15,6 +15,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import type { AiClassLevel } from "@/db/schema/enums";
 import type { EntityProfile } from "@/db/schema/platform";
 import type { PROVIDER_CATEGORIES } from "@/db/schema/registers";
 import { useStepRunner } from "./step-footer";
@@ -51,12 +52,18 @@ type ProviderRow = {
 
 // Schritt 5 (D3): IT-Betrieb, wichtige Dienstleister (direkt ins Register),
 // personenbezogene Daten und Kundenländer
+// Darf eine KI Inhalte lesen? (ADR-032) Schlüssel und Freischaltung kommen
+// später unter Einstellungen > KI.
+const AI_ANSWERS = ["none", "internal", "confidential"] as const;
+
 export function ItDataStep({
 	initial,
+	aiMaxClass,
 	existingProviders,
 	nextHref,
 }: {
 	initial: EntityProfile;
+	aiMaxClass: AiClassLevel;
 	existingProviders: string[];
 	nextHref: string;
 }) {
@@ -77,6 +84,13 @@ export function ItDataStep({
 		{ key: 1, name: "", service: "", category: "cloud", critical: true },
 	]);
 	const known = new Set(existingProviders.map((n) => n.toLowerCase()));
+	const [ai, setAi] = useState<(typeof AI_ANSWERS)[number]>(
+		aiMaxClass === "confidential"
+			? "confidential"
+			: aiMaxClass === "none"
+				? "none"
+				: "internal",
+	);
 
 	return (
 		<form
@@ -90,6 +104,7 @@ export function ItDataStep({
 							personalData: pd,
 							specialCategories: special,
 							dataSubjects: subjects as (typeof SUBJECTS)[number],
+							aiMaxClass: ai,
 							customerCountries: countries
 								.split(/[,\s]+/)
 								.map((c) => c.trim().toUpperCase())
@@ -309,6 +324,24 @@ export function ItDataStep({
 					/>
 				</div>
 			</div>
+
+			<fieldset className="flex flex-col gap-2 text-subhead">
+				<legend className="mb-1.5 font-medium">{t("aiQuestion")}</legend>
+				<p className="text-footnote text-muted-foreground">{t("aiLead")}</p>
+				{AI_ANSWERS.map((x) => (
+					<label key={x} className="flex items-center gap-2">
+						<input
+							type="radio"
+							name="ai"
+							value={x}
+							checked={ai === x}
+							onChange={() => setAi(x)}
+							className="size-4 accent-primary"
+						/>
+						{t(`ai_${x}`)}
+					</label>
+				))}
+			</fieldset>
 
 			<div className="flex justify-end">
 				<Button type="submit" disabled={pending}>

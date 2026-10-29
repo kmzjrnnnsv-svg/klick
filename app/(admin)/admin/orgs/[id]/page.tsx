@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import {
+	AiAdminDialog,
 	ContractDialog,
 	ResumeButton,
 	SuspendDialog,
@@ -17,6 +18,7 @@ import {
 	accountState,
 	feeState,
 } from "@/lib/admin/contract";
+import { aiAdminOf } from "@/lib/ai/policy";
 import { requirePlatformAdminPage } from "@/lib/auth/gates";
 import { isExternal } from "@/lib/auth/memberships";
 import { ORG_ROLES, type OrgRole } from "@/lib/auth/session-rules";
@@ -85,6 +87,7 @@ export default async function AdminOrgPage({
 		]);
 
 	const acc = accountOrDefault(account);
+	const ai = aiAdminOf(account);
 	const state = accountState(acc, now);
 	const fee = feeState(acc, now);
 	const fmt = new Intl.DateTimeFormat("de-DE", {
@@ -294,6 +297,32 @@ export default async function AdminOrgPage({
 						</Link>
 					</p>
 				)}
+
+				<ListSection title={t("sectionAi")} footer={t("aiFooter")}>
+					<ListRow
+						title={t("aiEnabled")}
+						value={ai.enabled ? t("on") : t("off")}
+					/>
+					{ai.enabled && (
+						<>
+							<ListRow title={t("aiMode")} value={t(`aiMode_${ai.mode}`)} />
+							<ListRow
+								title={t("aiMaxClass")}
+								value={t(`aiClass_${ai.maxClass}`)}
+							/>
+						</>
+					)}
+				</ListSection>
+				<div>
+					<AiAdminDialog
+						orgId={id}
+						values={{
+							aiEnabled: ai.enabled,
+							aiMode: ai.mode,
+							aiMaxClass: ai.maxClass,
+						}}
+					/>
+				</div>
 
 				<ListSection title={t("sectionSecurity")}>
 					<ListRow

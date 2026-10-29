@@ -7,6 +7,8 @@ import {
 } from "@/db/schema";
 import type { SecurityChangeKind } from "@/db/schema/enums";
 import type { SecurityChange } from "@/db/schema/security-changes";
+import { credentialInfo, pruneCredentials } from "@/lib/ai/credentials";
+import { aiPolicyOf } from "@/lib/ai/policy";
 import { audit } from "@/lib/audit";
 import { type OrgContext, toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers, listSsoProvidersForOrg } from "@/lib/auth/org";
@@ -283,6 +285,7 @@ const APPLY_COLUMN = {
 	sso_policy: "ssoPolicy",
 	dlp_policy: "dlpPolicy",
 	network_policy: "networkPolicy",
+	ai_policy: "aiPolicy",
 } as const satisfies Record<ApplyKind, keyof typeof orgSettings.$inferSelect>;
 
 async function applyChange(tx: OrgTx, row: SecurityChange): Promise<void> {
@@ -311,11 +314,27 @@ async function applyChange(tx: OrgTx, row: SecurityChange): Promise<void> {
 		)
 			throw new FourEyesError("sso_enforce_unverified");
 	}
+	if (kind === "ai_policy") {
+		// Schlüssel muss noch da sein (Entfernen wirkt sofort)
+		const next = aiPolicyOf(value);
+		if (
+			next.credentialId &&
+			!(await credentialInfo(tx, row.organizationId, next.credentialId))
+		)
+			throw new FourEyesError("four_eyes_stale");
+	}
 	await tx
 		.update(orgSettings)
 		.set({ [column]: value })
 		.where(eq(orgSettings.organizationId, row.organizationId));
 	if (kind === "network_policy") invalidateNetworkPolicy(row.organizationId);
+	// alte, nicht mehr wirksame KI-Schlüssel weg
+	if (kind === "ai_policy")
+		await pruneCredentials(
+			tx,
+			row.organizationId,
+			aiPolicyOf(value).credentialId,
+		);
 }
 
 // ── „erlaubt“: einmalige Erlaubnis für die anfragende Person ──────────────

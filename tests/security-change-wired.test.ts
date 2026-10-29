@@ -37,6 +37,12 @@ const WIRES: Wire[] = [
 		effect: ".set({ dlpPolicy",
 	},
 	{
+		file: "app/actions/ai-settings.ts",
+		fn: "saveAiPolicyImpl",
+		gate: "requestApplyChange",
+		effect: ".set({ aiPolicy",
+	},
+	{
 		file: "app/actions/settings.ts",
 		fn: "deleteOrganizationActionImpl",
 		gate: "requirePermit",
@@ -135,17 +141,21 @@ describe("Vier-Augen ist an jeder kritischen Änderung angeschlossen", () => {
 		expect(users).toEqual(["app/actions/settings.ts"]);
 	});
 
-	it("SSO-, DLP- und Netz-Regeln schreiben nur die Actions, der Dienst und der Notweg", () => {
+	it("SSO-, DLP-, Netz- und KI-Regeln schreiben nur die Actions, der Dienst und der Notweg", () => {
 		const allowed = new Set([
 			"app/actions/sso.ts",
 			"app/actions/settings.ts",
+			// KI (ADR-032): strenger sofort, lockerer über Vier-Augen
+			"app/actions/ai-settings.ts",
+			// Einrichtung: nur die Einstufung, solange die KI aus ist
+			"lib/ai/setup.ts",
 			"lib/security-changes/service.ts",
 			// Notweg am Terminal (root, auditiert): IP-Liste ausschalten
 			"scripts/org-network-reset.ts",
 		]);
 		const writers = walkFiles(["app", "lib", "scripts"])
 			.filter((f) =>
-				/\.set\(\{\s*(ssoPolicy|dlpPolicy|networkPolicy)\b/.test(
+				/\.set\(\{\s*(ssoPolicy|dlpPolicy|networkPolicy|aiPolicy)\b/.test(
 					readFileSync(join(ROOT, f), "utf8"),
 				),
 			)

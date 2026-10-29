@@ -23,6 +23,8 @@ export const SETTINGS_SECTIONS = [
 	{ key: "sicherheitsaenderungen", group: "org" },
 	// IP-Liste je Org (Härtung A5): ändern nur Inhaber:innen (Vier-Augen)
 	{ key: "netzwerk", group: "org", needs: "settings" },
+	// KI mit eigenem Schlüssel (ADR-032): ändern nur Inhaber:innen
+	{ key: "ki", group: "org", needs: "settings" },
 	// Verlauf mit Bitcoin-Anker (Härtung V): alle Mitglieder und Prüfer:innen
 	{ key: "verlauf", group: "org" },
 	{ key: "abo", group: "org", needs: "settings" },
