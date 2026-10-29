@@ -275,10 +275,10 @@ export const IMPLEMENT: HelpArticle[] = [
 				steps: [
 					"Öffne das Control oder Nachweise und tipp auf „Nachweis hinzufügen“.",
 					"Wähl die Datei, gib Titel, Einstufung (öffentlich, intern, vertraulich, streng geheim) und, wenn sinnvoll, ein Gültig-bis an.",
-					"Erkennt Klick Zahlungs-, Bank- oder Steuerdaten oder viele Personendaten, hebt es die Einstufung an und fragt nach. Geheimnisse wie Passwörter oder Schlüssel werden abgelehnt.",
+					"Erkennt Klick Zahlungs-, Bank- oder Steuerdaten oder viele Personendaten, hebt es die Einstufung an und fragt nach. Geheimnisse wie Passwörter oder Schlüssel werden abgelehnt. Das gilt für PDF, Word, Excel, PowerPoint und Textdateien; Bilder und eingescannte PDFs enthalten keinen lesbaren Text.",
 					"Verknüpf den Nachweis mit weiteren Controls, wenn er mehr belegt.",
 				],
-				tip: "Für eine neue Fassung nutz auf der Nachweis-Seite „Neue Fassung hochladen“. Sie übernimmt Controls und Einstufung, die alte zählt dann nicht mehr.",
+				tip: "Für eine neue Fassung nutz auf der Nachweis-Seite „Neue Fassung hochladen“. Sie übernimmt Controls und Einstufung, die alte zählt dann nicht mehr. Unter „Änderungen gegenüber der ersetzten Fassung“ siehst du, was sich im Inhalt geändert hat.",
 			},
 			{
 				id: "werkstatt",

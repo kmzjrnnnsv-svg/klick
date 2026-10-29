@@ -11,6 +11,7 @@ import { evidenceAad } from "@/lib/evidence/aad";
 import { dbEnvelope } from "@/lib/evidence/read";
 import {
 	decryptRows,
+	EXPORT_EXCLUDED,
 	type ExportRow,
 	orgTablesFromSchema,
 	redactSettings,
@@ -52,7 +53,7 @@ export async function GET(req: Request) {
 	if (!org) return new NextResponse(null, { status: 404 });
 	const members = await listOrgMembers(ctx.orgId);
 	// Datei-Umschläge (ohne S3) stehen entschlüsselt unter nachweise/
-	const tables = orgTablesFromSchema(appSchema, new Set(["evidence_blobs"]));
+	const tables = orgTablesFromSchema(appSchema, EXPORT_EXCLUDED);
 	const e = env();
 	const s3Ready = Boolean(
 		e.S3_ENDPOINT && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY,

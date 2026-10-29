@@ -190,6 +190,8 @@ export const updateDocumentSchema = z.object({
 	assigneeUserId: uuid.nullable().optional(),
 	approverFunction: z.enum(ROLE_FUNCTIONS).nullable().optional(),
 	bodyMarkdown: z.string().max(200_000).nullable().optional(),
+	// Änderungsnotiz der Arbeitskopie (nur im Entwurf)
+	changeSummary: z.string().trim().min(3).max(2000).optional(),
 	reviewCycleMonths: z.coerce.number().int().min(1).max(60).optional(),
 	controlCodes: z.array(z.string().min(1)).max(50).optional(),
 	// „all“, Grundrolle oder „function:<key>“ (auch eigene Rollen)

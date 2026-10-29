@@ -6,8 +6,9 @@ import { validateUpload } from "@/lib/uploads/validate";
 import type { ParseJob } from "./protocol";
 
 // Was im Parser-Prozess läuft: Typprüfung (Magic Bytes), Text aus
-// PDF/Office/ZIP, DLP-Erkennung, SBOM- und Scan-Parser. Zurück gehen nur
-// Ergebnisse — nie der extrahierte Text.
+// PDF/Office/ZIP, DLP-Erkennung, SBOM- und Scan-Parser. Zurück gehen
+// Ergebnisse; der extrahierte Text nur, wenn die App ihn ausdrücklich für den
+// Fassungsvergleich anfordert (withText).
 
 const decode = (b: Uint8Array): string | null => {
 	try {
@@ -35,8 +36,13 @@ export async function runJob(
 				extraction:
 					extraction.status === "ok"
 						? { status: "ok", truncated: extraction.truncated }
-						: { status: extraction.status },
+						: extraction.status === "unsupported"
+							? { status: "unsupported", reason: extraction.reason }
+							: { status: "error" },
 				findings: extraction.status === "ok" ? scanText(extraction.text) : [],
+				...(job.withText && extraction.status === "ok"
+					? { text: extraction.text }
+					: {}),
 			};
 		}
 		case "sbom": {

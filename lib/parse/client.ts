@@ -11,6 +11,7 @@ import {
 import type { DlpCategory, DlpDetector } from "@/lib/dlp/detectors";
 import type { ScanParseError } from "@/lib/security/parsers";
 import type { SbomParseError } from "@/lib/security/sbom-check";
+import { MAX_TEXT_CHARS } from "@/lib/uploads/limits";
 import type { UploadValidation } from "@/lib/uploads/validate";
 import {
 	decodeResponse,
@@ -107,8 +108,11 @@ export const screenResultSchema = z.object({
 		.object({
 			status: z.enum(["ok", "unsupported", "error"]),
 			truncated: z.boolean().optional(),
+			reason: z.enum(["encrypted", "no_text"]).optional(),
 		})
 		.optional(),
+	// nur mit withText: Text der Datei, ein Absatz je Zeile
+	text: z.string().max(MAX_TEXT_CHARS).optional(),
 	findings: z
 		.array(
 			z.object({

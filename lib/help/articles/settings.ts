@@ -1,6 +1,6 @@
 import type { HelpArticle } from "../types";
 
-// Einstellungen, SSO, Richtlinien-Portal, Integrationen, Datenschutz in Klick.
+// Einstellungen, SSO, KI, Richtlinien-Portal, Integrationen, Datenschutz in Klick.
 
 export const SETTINGS: HelpArticle[] = [
 	{
@@ -8,7 +8,7 @@ export const SETTINGS: HelpArticle[] = [
 		area: "settings",
 		title: "Einstellungen",
 		summary:
-			"Dein Konto, Organisation, Rahmenwerke, Rollen, SSO, Richtlinien-Portal, Integrationen, Zugriffe durch Klick, Sicherheitsänderungen, Netzwerk, Verlauf, Abo und die Methoden für Freigaben, Audits, Risiken, Lieferanten und Nummernkreise.",
+			"Dein Konto, Organisation, Rahmenwerke, Rollen, SSO, KI, Richtlinien-Portal, Integrationen, Zugriffe durch Klick, Sicherheitsänderungen, Netzwerk, Verlauf, Abo und die Methoden für Freigaben, Audits, Risiken, Lieferanten und Nummernkreise.",
 		sections: [
 			{
 				id: "konto",
@@ -84,6 +84,13 @@ export const SETTINGS: HelpArticle[] = [
 				],
 			},
 			{
+				id: "ki",
+				heading: "KI",
+				body: [
+					"Hier richtest du die KI deiner Organisation ein, sobald Klick sie freigeschaltet hat: Anbieter, Modell und API-Schlüssel, die Funktionen und bis zu welcher Einstufung Inhalte hinausgehen dürfen. Einschalten und Lockern bestätigt eine zweite Person. Mehr unter „KI mit eigenem Schlüssel“.",
+				],
+			},
+			{
 				id: "portal",
 				heading: "Richtlinien-Portal",
 				body: [
@@ -133,7 +140,91 @@ export const SETTINGS: HelpArticle[] = [
 				why: "Zugriffsrechte auf das Nötige beschränken.",
 			},
 		],
-		related: ["anmeldung", "rollen-rechte", "freigaben"],
+		related: ["anmeldung", "rollen-rechte", "freigaben", "ki"],
+	},
+	{
+		slug: "ki",
+		area: "settings",
+		title: "KI mit eigenem Schlüssel",
+		summary:
+			"Fassungen zusammenfassen, Dokumente entwerfen, Nachweise prüfen und Fragen an die Hilfe stellen: mit dem KI-Anbieter deiner Organisation und nur, wenn du es antippst.",
+		sections: [
+			{
+				id: "grundsatz",
+				heading: "So arbeitet Klick mit KI",
+				body: [
+					"Klick nutzt eine KI nur mit dem API-Schlüssel deiner Organisation und nur, wenn du einen KI-Knopf antippst; im Hintergrund läuft nichts. Die Antwort ist immer ein Vorschlag mit Anbieter und Modell. Übernommen wird sie nur, wenn du sie selbst übernimmst (in den Editor, als Änderungsnotiz oder als Kommentar); danach gelten Speichern, Freigabe und Unterschrift wie sonst.",
+					"Vor dem Senden entfernt Klick Zugangsschlüssel, Karten- und Kontonummern, Steuer-IDs, E-Mail-Adressen und Telefonnummern. Jeder Aufruf steht im Verlauf deiner Organisation mit Funktion, Anbieter, Modell, Zeichenzahl und Ergebnis, nie mit Inhalten.",
+				],
+			},
+			{
+				id: "einrichten",
+				heading: "Einrichten",
+				steps: [
+					"Klick schaltet die KI für deine Organisation frei und legt fest, bis zu welcher Einstufung Inhalte hinausgehen dürfen und ob die KI auch Dateien liest. Frag dafür unter Einstellungen > Abo & Leistungen an.",
+					"Unter Einstellungen > KI wählst du den Anbieter: Anthropic (Claude), Google (Gemini), OpenAI, Microsoft (Azure OpenAI), Mistral oder einen Dienst mit OpenAI-kompatibler Adresse, zum Beispiel IONOS AI Model Hub oder STACKIT.",
+					"Trag den API-Schlüssel ein. Klick speichert ihn verschlüsselt und zeigt danach nur die letzten vier Zeichen.",
+					"Teste die Verbindung; dabei gehen keine Inhalte deiner Organisation hinaus.",
+					"Wähl die Funktionen und bis zu welcher Einstufung Inhalte an die KI dürfen, bestätige den Vertrag mit dem Anbieter und speichere die Regel.",
+					"Eine zweite Person (Inhaber:in oder Geschäftsleitung) stimmt unter Einstellungen > Sicherheitsänderungen zu. Gibt es niemanden, wirkt die Regel nach 24 Stunden.",
+				],
+				tip: "Ausschalten, Verschärfen und „Schlüssel entfernen“ wirken sofort.",
+			},
+			{
+				id: "funktionen",
+				heading: "Die vier Funktionen",
+				list: [
+					"Fassungen zusammenfassen: an den Änderungen eines Dokuments oder Nachweises „Mit KI zusammenfassen“. Die KI sagt, was neu, entfallen oder inhaltlich anders ist und welche Folgen das haben kann. Im Entwurf übernimmst du das Ergebnis nach dem Bearbeiten als Änderungsnotiz.",
+					"Dokument entwerfen: im Editor eines Entwurfs „Mit KI entwerfen“. Grundlage sind die Vorlage, die verknüpften Controls mit ihren Anforderungen und dein Firmenprofil (Branche, Größe, Rahmenwerke), keine anderen Dokumente und keine Namen. Was die KI nicht weiß, steht als Platzhalter in eckigen Klammern.",
+					"Nachweis prüfen: auf der Seite eines Nachweises „Mit KI prüfen“. Die KI sagt je Anforderung der verknüpften Controls, ob sie erkennbar belegt ist und was fehlt; das Ergebnis speicherst du auf Wunsch als Kommentar. Ob der Nachweis genügt, entscheidest du.",
+					"Fragen an die Hilfe: auf der Hilfe-Seite „Frage stellen“. An die KI gehen nur deine Frage und die passenden Hilfe-Artikel, keine Daten deiner Organisation; die Artikel stehen als Links unter der Antwort.",
+				],
+			},
+			{
+				id: "inhalte",
+				heading: "Welche Inhalte hinausgehen",
+				list: [
+					"Nur bis zu der Einstufung, die Klick und deine Organisation erlauben; es gilt die strengere Grenze.",
+					"Streng geheime Inhalte gehen nie an eine KI.",
+					"Vertrauliche Inhalte erst nach frischer Bestätigung mit Passkey, wie beim Anzeigen und Herunterladen.",
+					"Dateien selbst (zum Beispiel ein eingescanntes PDF) nur im Modus „KI vergleicht auch“, nur bei Anbietern, die Dateien lesen, und nie, wenn die Datei Zugangsdaten, Zahlungs- oder Bankdaten enthält.",
+					"Prüfer:innen und Berater:innen ohne „Entwürfe und Verlauf“ sehen an Dokumenten und Nachweisen keine KI-Knöpfe.",
+				],
+			},
+		],
+		roles: [
+			"Freischalten: der Klick-Betrieb, je Organisation.",
+			"Anbieter, Schlüssel und Regel: Inhaber:innen, mit Bestätigung und zweiter Person.",
+			"Nutzen: wer den Inhalt sehen darf; entwerfen nur, wer Dokumente bearbeiten darf; Fragen an die Hilfe auch Mitarbeitende.",
+		],
+		automation: [
+			"Klick ruft die KI nie von selbst auf.",
+			"Je Organisation höchstens 30 Aufrufe in 10 Minuten.",
+		],
+		faq: [
+			{
+				q: "Wer trägt die Kosten?",
+				a: "Deine Organisation, über den eigenen Schlüssel beim Anbieter. Klick rechnet KI nicht ab.",
+			},
+			{
+				q: "Lernt der Anbieter aus den Daten deiner Organisation?",
+				a: "Das regelt dein Vertrag mit dem Anbieter. Klick verlangt beim Einschalten die Bestätigung, dass ein Auftragsverarbeitungsvertrag besteht und die Daten nicht zum Training genutzt werden (bezahlte API-Stufe). Die kostenlose Stufe von Gemini nutzt Eingaben zum Training.",
+			},
+			{
+				q: "Kann eine Anweisung in einem Dokument die KI steuern?",
+				a: "Inhalte gehen getrennt von der Aufgabe als Daten an die KI, mit der Regel, Anweisungen darin nicht zu befolgen. Die KI hat keine Werkzeuge und kann in Klick nichts ändern; ihre Antwort ist nur Text, den du liest und selbst übernimmst.",
+			},
+		],
+		norms: [
+			{ key: "dsgvo:Art.28", why: "Der KI-Anbieter verarbeitet im Auftrag." },
+			{ key: "dsgvo:Art.32", why: "Schwärzen und Begrenzen vor dem Senden." },
+			{
+				key: "iso27001:A.5.23",
+				why: "Informationssicherheit bei Cloud-Diensten.",
+			},
+			{ key: "dora:Art.28(1-2)", why: "Risiko aus IKT-Drittdienstleistern." },
+		],
+		related: ["einstellungen", "datensicherheit", "fassungen"],
 	},
 	{
 		slug: "datensicherheit",
@@ -177,9 +268,10 @@ export const SETTINGS: HelpArticle[] = [
 			},
 			{
 				id: "ki",
-				heading: "Keine KI im Hintergrund",
+				heading: "KI nur mit eurem Schlüssel und auf Klick",
 				body: [
-					"Klick verarbeitet deine Daten nicht mit KI. Vorschläge (Risiken, Maßnahmen, Messwerte) kommen aus festen Regeln und Katalogen.",
+					"Klick verarbeitet deine Daten nicht im Hintergrund mit KI. Vorschläge (Risiken, Maßnahmen, Messwerte) kommen aus festen Regeln und Katalogen.",
+					"Eine KI nutzt Klick nur, wenn deine Organisation sie mit eigenem Schlüssel eingerichtet hat und jemand einen KI-Knopf antippt. Vorher entfernt Klick Zugangsdaten, Konten- und Kontaktdaten; streng geheime Inhalte gehen nie hinaus, und jeder Aufruf steht im Protokoll, ohne Inhalte.",
 				],
 			},
 		],
@@ -195,6 +287,6 @@ export const SETTINGS: HelpArticle[] = [
 			{ key: "dsgvo:Art.32", why: "Sicherheit der Verarbeitung." },
 			{ key: "soc2:C1.1", why: "Vertrauliche Informationen schützen." },
 		],
-		related: ["rahmenwerke", "nachweise"],
+		related: ["rahmenwerke", "nachweise", "ki"],
 	},
 ];

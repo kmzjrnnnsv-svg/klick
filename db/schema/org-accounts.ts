@@ -1,7 +1,7 @@
-import { pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, uuid } from "drizzle-orm/pg-core";
 import { organization } from "../auth-schema";
 import { ts, userRef } from "./_shared";
-import { ORG_ACCOUNT_STATUS } from "./enums";
+import { AI_CLASS_LEVELS, AI_MODES, ORG_ACCOUNT_STATUS } from "./enums";
 
 // Vertrag und Sperre je Organisation (Admin-Portal, Teil 2). Plattform-Daten
 // über die Kund:in, keine Inhalte der Org — darum wie andere Plattform-
@@ -25,6 +25,12 @@ export const platformOrgAccounts = pgTable("platform_org_accounts", {
 	suspendedAt: ts(),
 	suspendedReason: text(),
 	suspendedBy: userRef(),
+	// KI je Org (ADR-032): Freischaltung, Modus (assist = Klick vergleicht,
+	// KI erklärt; full = KI vergleicht auch, auch Dateien) und Obergrenze der
+	// Einstufung; gelesen über aiAdminOf (lib/ai/policy.ts)
+	aiEnabled: boolean().notNull().default(false),
+	aiMode: text({ enum: AI_MODES }).notNull().default("assist"),
+	aiMaxClass: text({ enum: AI_CLASS_LEVELS }).notNull().default("none"),
 	// interne Notiz der Plattform, nie für die Org sichtbar
 	note: text(),
 	updatedAt: ts().notNull().defaultNow(),

@@ -103,6 +103,8 @@ export const itDataSchema = z.object({
 	specialCategories: z.boolean().default(false),
 	dataSubjects: z.enum(["lt1k", "1k_100k", "gt100k"]).optional(),
 	customerCountries: z.array(z.string().length(2)).max(60).default([]),
+	// Darf eine KI Inhalte lesen? (ADR-032; wirkt nur, solange die KI aus ist)
+	aiMaxClass: z.enum(["none", "internal", "confidential"]).optional(),
 	providers: z
 		.array(
 			z.object({

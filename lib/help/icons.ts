@@ -36,4 +36,5 @@ export const HELP_ICONS: Record<string, NavIcon> = {
 	casp: "vault",
 	einstellungen: "settings",
 	datensicherheit: "shield-check",
+	ki: "sparkles",
 };

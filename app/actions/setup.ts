@@ -15,6 +15,7 @@ import {
 import type { AppointmentStatus, RoleFunction } from "@/db/schema/enums";
 import type { EntityProfile } from "@/db/schema/platform";
 import { safeAction } from "@/lib/actions/safe";
+import { setupAiClass } from "@/lib/ai/setup";
 import {
 	type ModeSwitchSummary,
 	setGovernanceModeTx,
@@ -575,10 +576,11 @@ async function saveItDataImpl(
 	const c = await requireOrg({ settings: ["update"], provider: ["create"] });
 	const parsed = itDataSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
-	const { providers: list, ...data } = parsed.data;
+	const { providers: list, aiMaxClass, ...data } = parsed.data;
 	const created = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const s = await loadSettings(tx, c.orgId);
 		if (!s) return { result: 0, audit: [] };
+		const ai = aiMaxClass ? await setupAiClass(tx, c.orgId, aiMaxClass) : null;
 		await tx
 			.update(orgSettings)
 			.set({ entityProfile: { ...s.entity, ...data } })
@@ -599,6 +601,13 @@ async function saveItDataImpl(
 				after: data,
 			},
 		];
+		if (ai)
+			audit.push({
+				action: "settings.ai_policy",
+				target: `organization:${c.orgId}`,
+				before: { maxClass: ai.before },
+				after: { maxClass: ai.after, via: "setup" },
+			});
 		let n = 0;
 		for (const p of list) {
 			const key = p.name.trim().toLowerCase();

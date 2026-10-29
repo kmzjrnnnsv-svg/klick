@@ -217,7 +217,10 @@ async function updateDocumentImpl(input: unknown): Promise<ActionResult> {
 			)
 			.limit(1);
 		if (!before) return { result: false, audit: [] };
-		if (before.status !== "draft" && patch.bodyMarkdown !== undefined) {
+		if (
+			before.status !== "draft" &&
+			(patch.bodyMarkdown !== undefined || patch.changeSummary !== undefined)
+		) {
 			return { result: "locked" as const, audit: [] };
 		}
 		const { ownerUserId: ownerRef, ...rest } = patch;
@@ -829,6 +832,8 @@ async function uploadDocumentFileImpl(
 		declaredMime: file.type,
 		classification: doc.classification,
 		dlpAcknowledged: formData.get("dlpAcknowledged") === "1",
+		// Text für den Vergleich der Fassungen
+		withText: true,
 	});
 	if (!v.ok)
 		return {
@@ -865,6 +870,7 @@ async function uploadDocumentFileImpl(
 				classification: v.classification,
 				createdByUserId: c.userId,
 				dlp: v.dlp,
+				text: v.text,
 				source: "document",
 			});
 			await tx

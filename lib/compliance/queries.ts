@@ -406,6 +406,38 @@ export async function evidenceDetail(tx: OrgTx, orgId: string, id: string) {
 	};
 }
 
+// Zwei Fassungen eines Nachweises für den Vergleich (Datei, Einstufung,
+// Rohling); null, wenn eine fehlt
+export async function evidenceVersionSides(
+	tx: OrgTx,
+	orgId: string,
+	beforeId: string,
+	afterId: string,
+) {
+	const rows = await tx
+		.select({
+			id: evidence.id,
+			fileName: evidence.fileName,
+			sha256: evidence.sha256,
+			mimeType: evidence.mimeType,
+			source: evidence.source,
+			storageKey: evidence.storageKey,
+			classification: evidence.classification,
+			templateKey: evidence.templateKey,
+		})
+		// evidence:any-version — Vergleich mit der ersetzten Fassung
+		.from(evidence)
+		.where(
+			and(
+				eq(evidence.organizationId, orgId),
+				inArray(evidence.id, [beforeId, afterId]),
+			),
+		);
+	const before = rows.find((r) => r.id === beforeId);
+	const after = rows.find((r) => r.id === afterId);
+	return before && after ? { before, after } : null;
+}
+
 export type TaskRow = typeof tasks.$inferSelect & {
 	assigneeName: string | null;
 };

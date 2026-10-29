@@ -16,7 +16,11 @@ import {
 	deleteEmptyOrganization,
 	insertOrganization,
 } from "@/lib/db/admin-orgs";
-import { saveOrgAccount, setOrgSuspension } from "@/lib/db/org-accounts";
+import {
+	saveOrgAccount,
+	setOrgAi,
+	setOrgSuspension,
+} from "@/lib/db/org-accounts";
 import { getPriceGroup } from "@/lib/db/pricing";
 import { mutateOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
@@ -28,6 +32,7 @@ import { seedEmptyOrg } from "@/lib/org/seed";
 import { invalidateSuspension } from "@/lib/org/suspension";
 import {
 	adminCreateOrgSchema,
+	orgAiSchema,
 	orgContractSchema,
 	suspendOrgSchema,
 } from "@/lib/validation/admin";
@@ -59,6 +64,20 @@ async function saveOrgContractImpl(input: unknown): Promise<ActionResult> {
 	await saveOrgAccount(actor(a), orgId, patch);
 	revalidatePath(`/admin/orgs/${orgId}`);
 	revalidatePath("/admin/orgs");
+	return { ok: true, data: undefined };
+}
+
+// KI für die Org freischalten (ADR-032): Step-up und Admin-Netz, weil damit
+// Inhalte der Org an einen fremden Anbieter gehen können (sobald die Org
+// selbst einschaltet). Steht in ihrer Kette (platform.ai_settings).
+async function setOrgAiSettingsImpl(input: unknown): Promise<ActionResult> {
+	const a = await requirePlatformStepUp();
+	const parsed = orgAiSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const { orgId, ...next } = parsed.data;
+	if (!(await adminOrg(orgId))) return { ok: false, error: "not_found" };
+	await setOrgAi(actor(a), orgId, next);
+	revalidatePath(`/admin/orgs/${orgId}`);
 	return { ok: true, data: undefined };
 }
 
@@ -210,6 +229,10 @@ export const createOrganizationByAdmin = safeAction(
 export const saveOrgContract = safeAction(
 	"saveOrgContract",
 	saveOrgContractImpl,
+);
+export const setOrgAiSettings = safeAction(
+	"setOrgAiSettings",
+	setOrgAiSettingsImpl,
 );
 export const suspendOrganization = safeAction(
 	"suspendOrganization",

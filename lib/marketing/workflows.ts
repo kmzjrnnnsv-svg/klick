@@ -255,10 +255,28 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 					"Beim Einreichen schreibt Klick Text und Datei in eine Fassung mit Nummer und Prüfsumme fest.",
 					"Die Freigabe gilt genau dieser Fassung; veröffentlicht lässt sie sich auch in der Datenbank nicht mehr ändern.",
 					"Eine neue Nachweis-Fassung übernimmt Controls und Einstufung, die alte zählt nicht mehr.",
+					"Je Fassung siehst du, was sich geändert hat: im Text und im Inhalt hochgeladener Dateien (PDF, Word, Excel), Absatz für Absatz, geänderte Wörter markiert.",
 					"Prüfer:innen sehen nur gültige Fassungen, abgelaufene Nachweise deutlich markiert; Berater:innen sehen auch Entwürfe und Verlauf.",
 				],
 				result:
 					"Ein Prüfungspaket mit jeder Fassung, die im Prüfzeitraum galt, samt „gilt von“ und „gilt bis“.",
+			},
+			{
+				key: "ai-own-key",
+				name: "KI mit eigenem Schlüssel",
+				summary:
+					"Fassungen zusammenfassen, Dokumente entwerfen, Nachweise prüfen und Fragen an die Hilfe stellen: mit dem KI-Anbieter deiner Organisation, nur auf Knopfdruck.",
+				where: "Einstellungen > KI, Dokumente, Nachweise, Hilfe",
+				trigger:
+					"Klick hat die KI für deine Organisation freigeschaltet, und du trägst den Schlüssel deines Anbieters ein.",
+				steps: [
+					"Anbieter wählen (Claude, Gemini, OpenAI, Azure OpenAI, Mistral oder eine OpenAI-kompatible Adresse wie IONOS oder STACKIT) und den Schlüssel eintragen; Klick speichert ihn verschlüsselt.",
+					"Funktionen und Einstufung wählen; das Einschalten bestätigt eine zweite Person.",
+					"Auf Knopfdruck entfernt Klick Zugangsdaten, Konten- und Kontaktdaten und schickt nur, was die Einstufung erlaubt; streng geheim geht nie hinaus.",
+					"Die Antwort steht als KI-Vorschlag mit Anbieter und Modell da; übernommen wird sie nur von dir.",
+				],
+				result:
+					"Jeder Aufruf steht im Protokoll, ohne Inhalte; die Kosten laufen über euren eigenen Vertrag mit dem Anbieter.",
 			},
 			{
 				key: "trainings",
@@ -936,7 +954,7 @@ export const FEATURE_FAQ: { q: string; a: string }[] = [
 	},
 	{
 		q: "Rechnet Klick mit KI?",
-		a: "Nein. Alles, was Klick vorschlägt, folgt nachvollziehbaren Regeln aus dem Katalog und deinen Daten. Entscheidungen triffst du.",
+		a: "Nicht von selbst. Alles, was Klick vorschlägt, folgt nachvollziehbaren Regeln aus dem Katalog und deinen Daten. Eine KI nutzt Klick nur, wenn deine Organisation sie mit eigenem Schlüssel einrichtet, und nur auf Knopfdruck; die Antwort ist ein gekennzeichneter Vorschlag, den du selbst übernimmst. Entscheidungen triffst du.",
 	},
 	{
 		q: "Bekomme ich meine Daten wieder heraus?",

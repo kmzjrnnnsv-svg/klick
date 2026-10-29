@@ -23,6 +23,7 @@ const ALLOWED_LIB = [
 	"lib/uploads/zip-read.ts",
 	"lib/dlp/detectors.ts",
 	"lib/dlp/extract.ts",
+	"lib/dlp/pdf-text.ts",
 	"lib/security/parsers.ts",
 	"lib/security/finding-rules.ts",
 	"lib/security/types.ts",

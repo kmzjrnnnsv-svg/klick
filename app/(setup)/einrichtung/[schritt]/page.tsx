@@ -22,6 +22,7 @@ import {
 	sites,
 } from "@/db/schema";
 import { ROLE_FUNCTIONS, type RoleFunction } from "@/db/schema/enums";
+import { loadAiPolicy } from "@/lib/ai/service";
 import { governanceModeOf } from "@/lib/approvals/governance-mode";
 import { approvalProgressFor } from "@/lib/approvals/service";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -191,6 +192,7 @@ export default async function SetupStepPage({
 			case "it-daten":
 				return {
 					...base,
+					aiMaxClass: (await loadAiPolicy(tx, ctx.orgId)).maxClass,
 					providerNames: (
 						await tx
 							.select({ name: providers.name })
@@ -446,6 +448,7 @@ export default async function SetupStepPage({
 			{schritt === "it-daten" && "providerNames" in data && (
 				<ItDataStep
 					initial={entity}
+					aiMaxClass={"aiMaxClass" in data ? data.aiMaxClass : "none"}
 					existingProviders={data.providerNames}
 					nextHref={nextHref}
 				/>

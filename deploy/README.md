@@ -445,6 +445,30 @@ eigenes Guthaben, keine Inhalte nach außen. Jobs `ledger-anchor` (alle 10 min) 
   dem eigenen Knoten abgleichen: `bitcoin-cli getblockheader $(bitcoin-cli getblockhash <höhe>) |
   grep merkleroot` — oder mit dem offiziellen Client `ots verify anker/<zeit>/wurzel.bin.ots`.
 
+## KI mit eigenem Schlüssel (ADR-032)
+Eine Organisation nutzt eine KI nur mit eigenem API-Schlüssel, nachdem der Plattform-Betrieb sie
+freigeschaltet hat: Admin > Organisationen > [Org] > KI (nur aus dem Admin-Netz, Step-up). Dort
+stehen an/aus, der Modus („Klick vergleicht, KI erklärt“ oder „KI vergleicht auch“ = Dateien selbst an
+die KI) und die Obergrenze der Einstufung; die Änderung steht im Plattform-Protokoll und in der Kette
+der Org. Schlüssel, Anbieter und Funktionen legt die Inhaberin unter Einstellungen > KI fest
+(Vier-Augen).
+
+- **Ausgehend nötig** (nur wenn eine Org KI nutzt): https zu `api.anthropic.com`,
+  `generativelanguage.googleapis.com`, `api.openai.com`, `api.mistral.ai`,
+  `<ressource>.openai.azure.com` bzw. `<ressource>.cognitiveservices.azure.com` und, für
+  „OpenAI-kompatibel“, die eigene Adresse der Org (nur Port 443, nur öffentliche IP; die App prüft
+  Host, IP und Zertifikat selbst und folgt keiner Weiterleitung). Eine Ausgangsliste in der Firewall muss
+  diese Hosts erlauben.
+- **Prüfen:** `psql klick -c "select created_at, after->>'feature' as f, after->>'provider' as p,
+  after->>'outcome' as o, after->>'ms' as ms from audit_log where action = 'ai.request' order by
+  created_at desc limit 10"` — `outcome` ist `ok` oder ein Fehlercode (`auth` = Schlüssel falsch,
+  `rate_limited` = Anbieter drosselt, `timeout`, `blocked_address`, `host_not_allowed`). Inhalte stehen
+  dort nie.
+- **Sofort abschalten:** Admin > Organisationen > [Org] > KI aus; oder die Inhaberin schaltet unter
+  Einstellungen > KI aus bzw. entfernt den Schlüssel (wirkt sofort, ohne zweite Person).
+- **Grenzen:** je Org 30 Aufrufe in 10 Minuten (Prozessspeicher, ein Server), Eingabe ≤ 200 000
+  Zeichen, Dateien ≤ 10 MB (nur PDF/PNG/JPEG). Kosten rechnet der Anbieter mit der Org ab.
+
 ## Härtung III (optional, per Env aktiv)
 - **clamd:** `apt install clamav-daemon`, `freshclam` als Timer, `TCPSocket 3310` + `TCPAddr 127.0.0.1`
   in `/etc/clamav/clamd.conf`, `StreamMaxLength 30M`. App: `CLAMD_HOST=127.0.0.1`. Fail closed —

@@ -1,15 +1,19 @@
+import { MAX_TEXT_CHARS } from "@/lib/uploads/limits";
 import { readZipEntries } from "@/lib/uploads/zip-read";
+import { pdfText } from "./pdf-text";
 
-// Text aus einem Upload für die Inhaltsprüfung (DLP). Textformate direkt,
-// Office-Formate (OOXML) über den eigenen ZIP-Leser, XML grob entmarkiert.
-// PDF und Bilder werden nicht inhaltlich geprüft — das Ergebnis sagt das
-// offen („unsupported“), statt Sicherheit vorzutäuschen.
+// Text aus einem Upload für die Inhaltsprüfung (DLP) und den Vergleich von
+// Fassungen. Textformate direkt, Office-Formate (OOXML) über den eigenen
+// ZIP-Leser, XML grob entmarkiert, PDF über den eigenen PDF-Leser
+// (pdf-text.ts). Ein Absatz je Zeile. Bilder, Scans und verschlüsselte PDFs
+// werden nicht inhaltlich geprüft — das Ergebnis sagt das offen
+// („unsupported“ mit Grund), statt Sicherheit vorzutäuschen.
 
-export const MAX_SCAN_CHARS = 5_000_000;
+export const MAX_SCAN_CHARS = MAX_TEXT_CHARS;
 
 export type Extraction =
 	| { status: "ok"; text: string; truncated: boolean }
-	| { status: "unsupported" }
+	| { status: "unsupported"; reason?: "encrypted" | "no_text" }
 	| { status: "error"; reason: string };
 
 const OOXML_PARTS: Record<string, RegExp> = {
@@ -67,8 +71,26 @@ export function extractText(bytes: Uint8Array, mime: string): Extraction {
 			...cap(new TextDecoder("utf-8").decode(bytes)),
 		};
 	}
+	if (mime === "application/pdf") {
+		const r = pdfText(bytes);
+		if (r.status === "ok")
+			return {
+				status: "ok",
+				...cap(r.text),
+				truncated: r.truncated || r.text.length > MAX_SCAN_CHARS,
+			};
+		if (r.status === "no_text")
+			return { status: "unsupported", reason: "no_text" };
+		if (r.status === "unsupported")
+			return { status: "unsupported", reason: r.reason };
+		return { status: "error", reason: r.reason };
+	}
 	const parts = OOXML_PARTS[mime];
-	if (!parts) return { status: "unsupported" };
+	// Bilder tragen keinen Text (OCR gibt es nicht)
+	if (!parts)
+		return mime.startsWith("image/")
+			? { status: "unsupported", reason: "no_text" }
+			: { status: "unsupported" };
 	const zip = readZipEntries(bytes, (name) => parts.test(name));
 	if (!zip.ok) return { status: "error", reason: zip.reason };
 	const decoder = new TextDecoder("utf-8");

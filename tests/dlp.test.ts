@@ -194,7 +194,12 @@ describe("ZIP-Leser und Office-Extraktion", () => {
 			reason: "not_zip",
 		});
 		expect(extractText(new Uint8Array([1, 2]), "application/pdf")).toEqual({
+			status: "error",
+			reason: "not_pdf",
+		});
+		expect(extractText(new Uint8Array([1, 2]), "image/png")).toEqual({
 			status: "unsupported",
+			reason: "no_text",
 		});
 	});
 });

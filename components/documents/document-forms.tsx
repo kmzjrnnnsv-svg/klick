@@ -1,9 +1,10 @@
 "use client";
 
-import { FileUp, Plus } from "lucide-react";
+import { FileUp, Plus, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
+import { aiDraftDocument } from "@/app/actions/ai";
 import {
 	applyDocumentTemplates,
 	createDocument,
@@ -12,12 +13,14 @@ import {
 	updateDocument,
 } from "@/app/actions/documents";
 import { uploadEvidence } from "@/app/actions/evidence";
+import { useAiError } from "@/components/ai/ai-answer";
 import { ApproverFunctionOptions } from "@/components/documents/approver-select";
 import { useUploadFeedback } from "@/components/entity/upload-feedback";
 import { MarkdownView } from "@/components/markdown-view";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import {
 	Dialog,
 	DialogContent,
@@ -383,49 +386,106 @@ export function DocumentEditor({
 	documentId,
 	body,
 	editable,
+	aiDraft = false,
 }: {
 	documentId: string;
 	body: string;
 	editable: boolean;
+	// „Mit KI entwerfen“ (ADR-032), nur wenn die Funktion an ist
+	aiDraft?: boolean;
 }) {
 	const t = useTranslations("Documents");
 	const tc = useTranslations("Common");
+	const ta = useTranslations("Ai");
+	const ts = useTranslations("AiSettings");
 	const router = useRouter();
 	const [value, setValue] = useState(body);
 	const [pending, start] = useTransition();
+	const [drafting, startDraft] = useTransition();
+	// Hinweis über dem Editor, solange der KI-Entwurf nicht gespeichert ist
+	const [drafted, setDrafted] = useState<string | null>(null);
+	const aiFail = useAiError();
+	const replace = useConfirm({
+		title: ta("draftReplaceTitle"),
+		description: ta("draftReplaceLead"),
+		confirmLabel: ta("draftReplace"),
+	});
+	const draft = () =>
+		startDraft(async () => {
+			const res = await aiDraftDocument({ documentId });
+			if (!res.ok) {
+				toast.error(aiFail(res));
+				return;
+			}
+			const key = `provider_${res.data.provider}` as "provider_anthropic";
+			setValue(res.data.text);
+			setDrafted(
+				ta("draftNotice", {
+					provider: ts.has(key) ? ts(key) : res.data.provider,
+					model: res.data.model,
+				}),
+			);
+		});
 	if (!editable) return <MarkdownView source={body || `_${t("noContent")}_`} />;
 	return (
 		<Tabs defaultValue="edit" className="flex flex-col gap-3">
-			<div className="flex items-center justify-between gap-2">
+			{replace.node}
+			<div className="flex flex-wrap items-center justify-between gap-2">
 				<TabsList>
 					<TabsTrigger value="edit">{t("edit")}</TabsTrigger>
 					<TabsTrigger value="preview">{t("preview")}</TabsTrigger>
 				</TabsList>
-				<Button
-					size="sm"
-					disabled={pending || value === body}
-					onClick={() =>
-						start(async () => {
-							const res = await updateDocument({
-								documentId,
-								bodyMarkdown: value,
-							});
-							if (!res.ok)
-								toast.error(
-									res.error === "locked"
-										? t("transitionBlockedApproval")
-										: errorText(tc, res),
-								);
-							else {
-								toast.success(tc("save"));
-								router.refresh();
+				<div className="flex flex-wrap items-center gap-2">
+					{aiDraft && (
+						<Button
+							type="button"
+							size="sm"
+							variant="secondary"
+							disabled={drafting}
+							aria-busy={drafting}
+							onClick={() =>
+								value.trim().length > 0 ? replace.ask(draft) : draft()
 							}
-						})
-					}
-				>
-					{tc("save")}
-				</Button>
+						>
+							<Sparkles aria-hidden="true" className="text-primary" />
+							{drafting ? ta("working") : ta("draftButton")}
+						</Button>
+					)}
+					<Button
+						size="sm"
+						disabled={pending || value === body}
+						onClick={() =>
+							start(async () => {
+								const res = await updateDocument({
+									documentId,
+									bodyMarkdown: value,
+								});
+								if (!res.ok)
+									toast.error(
+										res.error === "locked"
+											? t("transitionBlockedApproval")
+											: errorText(tc, res),
+									);
+								else {
+									toast.success(tc("save"));
+									setDrafted(null);
+									router.refresh();
+								}
+							})
+						}
+					>
+						{tc("save")}
+					</Button>
+				</div>
 			</div>
+			{drafted && (
+				<p
+					role="status"
+					className="rounded-xl bg-primary/10 px-3 py-2 text-subhead"
+				>
+					{drafted}
+				</p>
+			)}
 			<TabsContent value="edit">
 				<Textarea
 					value={value}

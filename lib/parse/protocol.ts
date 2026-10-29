@@ -17,6 +17,8 @@ export const parseJobSchema = z.discriminatedUnion("op", [
 		op: z.literal("screen"),
 		name: z.string().max(300),
 		declaredMime: z.string().max(200).optional(),
+		// Text zurückgeben (Fassungsvergleich) — sonst nie
+		withText: z.boolean().optional(),
 	}),
 	z.object({ op: z.literal("sbom") }),
 	z.object({ op: z.literal("scan"), name: z.string().max(300) }),

@@ -7,6 +7,7 @@ import {
 	createOrganizationByAdmin,
 	resumeOrganization,
 	saveOrgContract,
+	setOrgAiSettings,
 	suspendOrganization,
 } from "@/app/actions/admin-orgs";
 import { withStepUp } from "@/components/auth/step-up-dialog";
@@ -36,11 +37,19 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import { ORG_ACCOUNT_STATUS, type OrgAccountStatus } from "@/db/schema/enums";
+import {
+	AI_CLASS_LEVELS,
+	AI_MODES,
+	type AiClassLevel,
+	type AiMode,
+	ORG_ACCOUNT_STATUS,
+	type OrgAccountStatus,
+} from "@/db/schema/enums";
 import { SUSPEND_REASON_MIN } from "@/lib/admin/contract";
 import { slugify } from "@/lib/setup/labels";
 
-// Admin > Organisationen > [Org]: Vertrag bearbeiten, sperren, entsperren.
+// Admin > Organisationen > [Org]: Vertrag bearbeiten, sperren, entsperren,
+// KI freischalten.
 
 export type ContractValues = {
 	status: OrgAccountStatus;
@@ -596,6 +605,143 @@ export function CreateOrgDialog({
 						</DialogFooter>
 					</form>
 				)}
+			</DialogContent>
+		</Dialog>
+	);
+}
+
+export type AiAdminValues = {
+	aiEnabled: boolean;
+	aiMode: AiMode;
+	aiMaxClass: AiClassLevel;
+};
+
+// KI für die Org freischalten (ADR-032): an/aus, Modus, Obergrenze; Step-up
+export function AiAdminDialog({
+	orgId,
+	values,
+}: {
+	orgId: string;
+	values: AiAdminValues;
+}) {
+	const t = useTranslations("AdminOrgs");
+	const tc = useTranslations("Common");
+	const router = useRouter();
+	const [open, setOpen] = useState(false);
+	const [form, setForm] = useState(values);
+	const [error, setError] = useState<string | null>(null);
+	const [pending, start] = useTransition();
+	return (
+		<Dialog
+			open={open}
+			onOpenChange={(o) => {
+				setOpen(o);
+				if (o) {
+					setForm(values);
+					setError(null);
+				}
+			}}
+		>
+			<DialogTrigger asChild>
+				<Button variant="secondary">{t("aiEdit")}</Button>
+			</DialogTrigger>
+			<DialogContent className="sm:max-w-lg">
+				<DialogHeader>
+					<DialogTitle>{t("aiTitle")}</DialogTitle>
+					<DialogDescription>{t("aiLead")}</DialogDescription>
+				</DialogHeader>
+				<form
+					className="flex flex-col gap-4"
+					onSubmit={(e) => {
+						e.preventDefault();
+						setError(null);
+						start(async () => {
+							const res = await withStepUp(() =>
+								setOrgAiSettings({ orgId, ...form }),
+							);
+							if (!res.ok) {
+								if (res.error !== "step_up_required")
+									setError(errorText(tc, res));
+								return;
+							}
+							toast.success(t("aiSaved"));
+							setOpen(false);
+							router.refresh();
+						});
+					}}
+				>
+					<div className="flex items-center gap-3">
+						<Checkbox
+							id="ai-enabled"
+							checked={form.aiEnabled}
+							onCheckedChange={(v) =>
+								setForm((f) => ({ ...f, aiEnabled: v === true }))
+							}
+						/>
+						<Label htmlFor="ai-enabled">{t("aiEnabled")}</Label>
+					</div>
+					<div className="grid gap-2">
+						<Label htmlFor="ai-mode">{t("aiMode")}</Label>
+						<Select
+							value={form.aiMode}
+							onValueChange={(v) =>
+								setForm((f) => ({ ...f, aiMode: v as AiMode }))
+							}
+							disabled={!form.aiEnabled}
+						>
+							<SelectTrigger id="ai-mode" className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{AI_MODES.map((m) => (
+									<SelectItem key={m} value={m}>
+										{t(`aiMode_${m}`)}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<p className="text-footnote text-muted-foreground">
+							{t(`aiModeHint_${form.aiMode}`)}
+						</p>
+					</div>
+					<div className="grid gap-2">
+						<Label htmlFor="ai-class">{t("aiMaxClass")}</Label>
+						<Select
+							value={form.aiMaxClass}
+							onValueChange={(v) =>
+								setForm((f) => ({ ...f, aiMaxClass: v as AiClassLevel }))
+							}
+							disabled={!form.aiEnabled}
+						>
+							<SelectTrigger id="ai-class" className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{AI_CLASS_LEVELS.map((c) => (
+									<SelectItem key={c} value={c}>
+										{t(`aiClass_${c}`)}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<p className="text-footnote text-muted-foreground">
+							{t("aiClassHint")}
+						</p>
+					</div>
+					<FormAlert message={error} />
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="secondary"
+							onClick={() => setOpen(false)}
+						>
+							{tc("cancel")}
+						</Button>
+						<Button type="submit" disabled={pending}>
+							{pending ? tc("saving") : tc("save")}
+						</Button>
+					</DialogFooter>
+				</form>
 			</DialogContent>
 		</Dialog>
 	);

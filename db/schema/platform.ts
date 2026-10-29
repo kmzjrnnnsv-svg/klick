@@ -245,6 +245,10 @@ export const orgSettings = pgTable(
 		// gelesen nur über networkPolicyOf bzw. orgNetworkPolicy, geändert nur
 		// über Vier-Augen (lib/security-changes)
 		networkPolicy: json<Record<string, unknown>>().notNull().default({}),
+		// KI mit eigenem Schlüssel (ADR-032, lib/ai/policy.ts): Anbieter,
+		// Modell, Funktionen, Einstufung; gelesen nur über aiPolicyOf,
+		// Lockern nur über Vier-Augen (Art ai_policy)
+		aiPolicy: json<Record<string, unknown>>().notNull().default({}),
 		// Standard (nach Rahmenwerk) oder individuell (ADR-024)
 		governanceMode: text({ enum: GOVERNANCE_MODES })
 			.notNull()

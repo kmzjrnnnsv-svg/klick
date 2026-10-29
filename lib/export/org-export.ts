@@ -10,6 +10,14 @@ import { fieldAad } from "@/lib/crypto/org-dek";
 
 export type OrgTable = { name: string };
 
+// Nie im Export: Datei-Umschläge (die Nachweise liegen als Klartext bei) und
+// API-Schlüssel für die KI (ADR-032) — ein Export wäre sonst ein Weg, den
+// Schlüssel im Klartext abzugreifen.
+export const EXPORT_EXCLUDED: ReadonlySet<string> = new Set([
+	"evidence_blobs",
+	"ai_credentials",
+]);
+
 // Alle Tabellen mit organization_id aus dem Drizzle-Schema (Reflexion, wie
 // db/rls.ts) — neue Tabellen landen automatisch im Export.
 export function orgTablesFromSchema(

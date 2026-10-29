@@ -115,10 +115,11 @@ export const REGISTERS: HelpArticle[] = [
 				id: "aenderungen",
 				heading: "Änderungen von Fassung zu Fassung",
 				list: [
-					"In der Fassungsliste klappst du je Fassung „Änderungen gegenüber …“ auf: entfernte Zeilen durchgestrichen, neue hervorgehoben, dazu die Zahl der Zeilen.",
+					"In der Fassungsliste klappst du je Fassung „Änderungen gegenüber …“ auf: entfernte Zeilen durchgestrichen, neue hervorgehoben, dazu die Zahl der Zeilen. Ist ein Absatz nur leicht geändert, steht er als eine Zeile da, mit den alten Wörtern durchgestrichen und den neuen hervorgehoben.",
 					"Darunter steht, wer die Fassung begonnen, bearbeitet (mit den geänderten Angaben), eingereicht und veröffentlicht hat. So gehst du von der neuesten Fassung Schritt für Schritt zurück.",
-					"Unter „Fassungen vergleichen“ wählst du zwei beliebige Fassungen und siehst den Unterschied im Text.",
-					"Bei hochgeladenen Dateien zeigt Klick, wann die Datei ersetzt wurde; den Inhalt vergleichst du über die Dateien der Fassungen.",
+					"Unter „Fassungen vergleichen“ wählst du zwei beliebige Fassungen und siehst den Unterschied im Text und im Inhalt der Datei.",
+					"Hochgeladene Dateien (PDF, Word, Excel, PowerPoint, Text) vergleicht Klick Absatz für Absatz unter „Inhalt der Datei“. Den Text liest Klick beim Hochladen in einem abgeschotteten Prozess; ältere Dateien werden im Hintergrund nachgelesen.",
+					"Bilder und eingescannte PDFs enthalten keinen lesbaren Text; dort steht „Inhalt nicht vergleichbar (Bild oder Scan)“. Bei vertraulichen Dateien zeigt Klick den Inhalt erst nach Bestätigung per Passkey, wie beim Herunterladen.",
 				],
 			},
 			{

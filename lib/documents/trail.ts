@@ -1,4 +1,9 @@
-import type { DiffLine } from "./diff";
+import {
+	type DiffLine,
+	diffWords,
+	type WordPart,
+	wordSimilarity,
+} from "./diff";
 
 // Verlauf je Dokument-Fassung aus dem Protokoll (pure): wer die Fassung
 // begonnen, bearbeitet (mit welchen Angaben), eingereicht und veröffentlicht
@@ -214,5 +219,54 @@ export function compactDiff(
 		} else skipped += 1;
 	});
 	if (skipped > 0 && out.length > 0) out.push({ type: "gap", skipped });
+	return out;
+}
+
+// Geänderte Absatzpaare als eine Zeile: auf entfernte Zeilen folgende neue
+// werden der Reihe nach gepaart, wenn mindestens die Hälfte der Wörter
+// gleich bleibt (je entfernter Zeile Blick auf die nächsten drei neuen); dann
+// zeigt die Zeile alte Wörter durchgestrichen und neue hervorgehoben. Sonst
+// bleiben die Zeilen für sich.
+export type DisplayLine = CompactLine | { type: "change"; parts: WordPart[] };
+
+const PAIR_MIN = 0.5;
+const PAIR_WINDOW = 3;
+
+export function pairChanges(lines: readonly CompactLine[]): DisplayLine[] {
+	const out: DisplayLine[] = [];
+	let i = 0;
+	while (i < lines.length) {
+		const l = lines[i];
+		if (l.type !== "del") {
+			out.push(l);
+			i += 1;
+			continue;
+		}
+		const dels: string[] = [];
+		while (i < lines.length && lines[i].type === "del")
+			dels.push((lines[i++] as DiffLine).text);
+		const adds: string[] = [];
+		while (i < lines.length && lines[i].type === "add")
+			adds.push((lines[i++] as DiffLine).text);
+		let j = 0;
+		for (const d of dels) {
+			let match: { k: number; parts: WordPart[] } | null = null;
+			for (let k = j; k < Math.min(adds.length, j + PAIR_WINDOW); k += 1) {
+				const parts = diffWords(d, adds[k]);
+				if (parts && wordSimilarity(parts) >= PAIR_MIN) {
+					match = { k, parts };
+					break;
+				}
+			}
+			if (!match) {
+				out.push({ type: "del", text: d });
+				continue;
+			}
+			for (; j < match.k; j += 1) out.push({ type: "add", text: adds[j] });
+			out.push({ type: "change", parts: match.parts });
+			j = match.k + 1;
+		}
+		for (; j < adds.length; j += 1) out.push({ type: "add", text: adds[j] });
+	}
 	return out;
 }

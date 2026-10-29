@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { ORG_ACCOUNT_STATUS } from "@/db/schema/enums";
+import {
+	AI_CLASS_LEVELS,
+	AI_MODES,
+	ORG_ACCOUNT_STATUS,
+} from "@/db/schema/enums";
 import { SUSPEND_REASON_MIN } from "@/lib/admin/contract";
 import { ORG_ROLES } from "@/lib/auth/session-rules";
 import { email, shortText, slug } from "./common";
@@ -49,6 +53,14 @@ export const orgContractSchema = z.object({
 		.transform((s) => (s === "" ? null : s)),
 });
 export type OrgContractInput = z.input<typeof orgContractSchema>;
+
+// KI je Organisation (ADR-032): Freischaltung, Modus, Obergrenze
+export const orgAiSchema = z.object({
+	orgId: z.uuid(),
+	aiEnabled: z.boolean(),
+	aiMode: z.enum(AI_MODES),
+	aiMaxClass: z.enum(AI_CLASS_LEVELS),
+});
 
 // Sperre einer Organisation: Grund Pflicht (steht in ihrer Kette und in der
 // Mitteilung an die Inhaber:innen).

@@ -7,3 +7,6 @@
 28fbb49cf7c5bfc37306d891bce3bc02f5129702:tests/storage-backup.test.ts:generic-api-key:23
 # Erste Fassung dieser Datei zitierte ein solches Beispiel im Kommentar.
 24af1242f59f30283cbd8a93a6deec8ec97093dd:.gitleaksignore:generic-api-key:2
+# Platzhalter-Schlüssel im Test der KI-Anbieter (nachgebauter Server), kein
+# echter Schlüssel.
+4d0ecb39fe73cea793a403938abf48976905218d:tests/ai-providers.test.ts:generic-api-key:26

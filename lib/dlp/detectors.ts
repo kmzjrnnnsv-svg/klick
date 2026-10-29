@@ -4,7 +4,7 @@
 // Prüfziffern (IBAN mod 97, Luhn, Steuer-ID) halten die Fehlalarme klein.
 // Dieselben Muster nutzt der passive Schnellcheck für JS-Bundles.
 
-export const DLP_ENGINE_VERSION = "1";
+export const DLP_ENGINE_VERSION = "2";
 
 export type DlpCategory =
 	| "secret"
@@ -37,7 +37,7 @@ export type DlpFinding = {
 	count: number;
 };
 
-type PatternDetector = {
+export type PatternDetector = {
 	detector: DlpDetector;
 	category: DlpCategory;
 	pattern: RegExp;
@@ -123,7 +123,8 @@ export function deTaxIdValid(id: string): boolean {
 	return check === Number(id[10]);
 }
 
-const PATTERNS: PatternDetector[] = [
+// Auch für das Schwärzen vor dem Senden an eine KI (lib/dlp/redact.ts)
+export const PATTERNS: readonly PatternDetector[] = [
 	{
 		detector: "private_key",
 		category: "secret",
@@ -201,9 +202,9 @@ const PATTERNS: PatternDetector[] = [
 // Lokaler Teil nur ab Wortanfang und höchstens 64 Zeichen (RFC 5321): ohne
 // die Grenze probiert die Regex lange Zeichenketten ohne „@“ von jeder
 // Position aus neu — quadratisch, ein 2-MB-Upload blockierte den Server.
-const EMAIL =
+export const EMAIL =
 	/(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,24}/g;
-const PHONE =
+export const PHONE =
 	/(?<![\d+])(?:\+\d{1,3}|00\d{1,3}|0)[ /-]?\(?\d{2,5}\)?(?:[ /-]?\d{2,}){1,4}(?!\d)/g;
 
 function uniqueCount(text: string, re: RegExp, minDigits = 0): number {

@@ -5,6 +5,7 @@ import { encryptField } from "@/lib/crypto/fields";
 import { fieldAad } from "@/lib/crypto/org-dek";
 import {
 	decryptRows,
+	EXPORT_EXCLUDED,
 	orgTablesFromSchema,
 	redactSettings,
 	safeFileName,
@@ -29,6 +30,17 @@ describe("Org-Export", () => {
 		expect(
 			orgTablesFromSchema(appSchema, new Set(["risks"])).map((t) => t.name),
 		).not.toContain("risks");
+	});
+
+	it("KI-Schlüssel und Datei-Umschläge nie im Export", () => {
+		expect(orgTablesFromSchema(appSchema).map((t) => t.name)).toContain(
+			"ai_credentials",
+		);
+		const names = orgTablesFromSchema(appSchema, EXPORT_EXCLUDED).map(
+			(t) => t.name,
+		);
+		expect(names).not.toContain("ai_credentials");
+		expect(names).not.toContain("evidence_blobs");
 	});
 
 	it("entschlüsselt enc1-Felder mit passender AAD, lässt Rest unberührt, markiert Fehlschläge", async () => {

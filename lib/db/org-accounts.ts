@@ -156,3 +156,75 @@ export async function setOrgSuspension(
 		return { changed: true, owners: await ownersOf(tx, orgId) };
 	});
 }
+
+export type OrgAiSettings = Pick<
+	PlatformOrgAccount,
+	"aiEnabled" | "aiMode" | "aiMaxClass"
+>;
+
+/** Freischaltung der KI für die Org (lib/ai/policy.ts aiAdminOf). */
+export async function orgAiRow(orgId: string): Promise<OrgAiSettings | null> {
+	const [row] = await globalDb
+		.select({
+			aiEnabled: platformOrgAccounts.aiEnabled,
+			aiMode: platformOrgAccounts.aiMode,
+			aiMaxClass: platformOrgAccounts.aiMaxClass,
+		})
+		.from(platformOrgAccounts)
+		.where(eq(platformOrgAccounts.orgId, orgId))
+		.limit(1);
+	return row ?? null;
+}
+
+// KI freischalten, Modus und Obergrenze (ADR-032): Plattform-Tabelle,
+// Plattform-Kette und Kette der Org in einer Transaktion — die Inhaber:innen
+// sehen im Verlauf, wann Klick die KI für sie freigeschaltet hat.
+export async function setOrgAi(
+	actor: Actor & { userId: string },
+	orgId: string,
+	next: OrgAiSettings,
+): Promise<{ changed: boolean; owners: OwnerContact[] }> {
+	return platformTx(async (tx) => {
+		const [before] = await tx
+			.select({
+				aiEnabled: platformOrgAccounts.aiEnabled,
+				aiMode: platformOrgAccounts.aiMode,
+				aiMaxClass: platformOrgAccounts.aiMaxClass,
+			})
+			.from(platformOrgAccounts)
+			.where(eq(platformOrgAccounts.orgId, orgId))
+			.for("update");
+		const was: OrgAiSettings = before ?? {
+			aiEnabled: false,
+			aiMode: "assist",
+			aiMaxClass: "none",
+		};
+		if (
+			was.aiEnabled === next.aiEnabled &&
+			was.aiMode === next.aiMode &&
+			was.aiMaxClass === next.aiMaxClass
+		)
+			return { changed: false, owners: [] };
+		await tx
+			.insert(platformOrgAccounts)
+			.values({ orgId, ...next, updatedBy: actor.userId })
+			.onConflictDoUpdate({
+				target: platformOrgAccounts.orgId,
+				set: { ...next, updatedAt: new Date(), updatedBy: actor.userId },
+			});
+		await audit(tx, actor, {
+			action: "platform.ai_settings",
+			organizationId: orgId,
+			target: `organization:${orgId}`,
+			before: was,
+			after: { ...next, via: "platform" },
+		});
+		await audit(tx, actor, {
+			action: "platform.ai_settings",
+			target: `organization:${orgId}`,
+			before: was,
+			after: next,
+		});
+		return { changed: true, owners: await ownersOf(tx, orgId) };
+	});
+}

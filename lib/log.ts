@@ -20,6 +20,11 @@ export const logger = pino({
 			"*.url",
 			"*.email",
 			"*.body",
+			// Schlüssel der KI-Anbieter (ADR-032), falls je Kopfzeilen geloggt werden
+			"*.headers",
+			'*["x-api-key"]',
+			'*["api-key"]',
+			'*["x-goog-api-key"]',
 		],
 		censor: "[redacted]",
 	},
