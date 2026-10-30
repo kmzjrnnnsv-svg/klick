@@ -61,6 +61,30 @@ test.describe("Login", () => {
 		await expect(passkey).toBeEnabled();
 	});
 
+	// Scheitert die Anfrage an Klick auf Netzebene, wirft Better Auth statt
+	// { error } zurückzugeben; das Formular darf dann nicht hängen bleiben
+	test("Anfrage an Klick bricht ab: Meldung mit technischem Hinweis", async ({
+		page,
+	}) => {
+		await page.route(
+			"**/api/auth/passkey/generate-authenticate-options*",
+			(r) => r.abort("connectionreset"),
+		);
+		await page.goto("/login");
+		const passkey = page.getByRole("button", { name: /mit passkey/i });
+		await passkey.click();
+		await expect(
+			page
+				.getByRole("alert")
+				.filter({ hasText: "Anmeldung beim Server nicht starten" }),
+		).toBeVisible();
+		await expect(page.getByText(/Technischer Hinweis: /)).toBeVisible();
+		await expect(passkey).toBeEnabled();
+		await expect(
+			page.getByRole("button", { name: /firmen-login/i }),
+		).toBeEnabled();
+	});
+
 	test("kein horizontales Scrollen bei 375 px", async ({ page }) => {
 		await page.setViewportSize({ width: 375, height: 740 });
 		for (const path of ["/login", "/login/notweg"]) {

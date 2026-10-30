@@ -33,6 +33,15 @@ const takeSsoHint = () => takeHint(SSO_HINT_COOKIE);
 // dieser Zeit wieder frei, statt auf Dauer „Warte …“ zu zeigen
 const TIMEOUT_MS = 90_000;
 
+// Better Auth fängt Netzfehler nicht ab (fetch ohne try): die Anmeldung
+// endet dann mit einer Ausnahme statt mit { error }. Kurzform für den
+// technischen Hinweis unter der Meldung
+function errorDetail(e: unknown): string {
+	const text =
+		e instanceof Error ? `${e.name}: ${e.message}` : String(e ?? "unbekannt");
+	return text.length > 160 ? `${text.slice(0, 159)}…` : text;
+}
+
 // Anmeldung „Passkey zuerst“ (ADR-019): Passkey als Hauptweg — per Knopf
 // oder über das Autofill des E-Mail-Felds (Conditional UI) —, dazu SSO und
 // Microsoft. Der Mail-Link ist der Notweg unter /login/notweg.
@@ -53,7 +62,12 @@ export function LoginForm({
 	const [busy, setBusy] = useState<"passkey" | "microsoft" | "sso" | null>(
 		null,
 	);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setErrorState] = useState<{
+		text: string;
+		detail?: string;
+	} | null>(null);
+	const setError = (text: string | null, detail?: string) =>
+		setErrorState(text ? { text, detail } : null);
 	// Nach dem Knopf-Aufruf startet die Autofill-Anfrage neu
 	const [autofillRound, setAutofillRound] = useState(0);
 	// Zählt Knopf-Aufrufe: ein abgebrochener oder abgelöster Aufruf meldet
@@ -79,9 +93,18 @@ export function LoginForm({
 				| undefined;
 			if (!(await pkc?.isConditionalMediationAvailable?.().catch(() => false)))
 				return;
-			const res = await authClient.signIn.passkey({ autoFill: true });
-			if (active && res?.error && takeSsoHint()) setError(ssoText);
-			else if (active && res?.error && takeBlockedHint()) setError(blockedText);
+			let res: Awaited<ReturnType<typeof authClient.signIn.passkey>>;
+			try {
+				res = await authClient.signIn.passkey({ autoFill: true });
+			} catch (e) {
+				// beim Laden keine Meldung; der Knopf meldet es, wenn es so bleibt
+				console.warn("[login] Passkey-Autofill", e);
+				return;
+			}
+			if (active && res?.error && takeSsoHint())
+				setErrorState({ text: ssoText });
+			else if (active && res?.error && takeBlockedHint())
+				setErrorState({ text: blockedText });
 			if (active && res && !res.error) {
 				router.push(target);
 				router.refresh();
@@ -111,7 +134,18 @@ export function LoginForm({
 		const timeout = new Promise<"timeout">((resolve) => {
 			timer = setTimeout(() => resolve("timeout"), TIMEOUT_MS);
 		});
-		const res = await Promise.race([authClient.signIn.passkey(), timeout]);
+		let res: Awaited<ReturnType<typeof authClient.signIn.passkey>> | "timeout";
+		try {
+			res = await Promise.race([authClient.signIn.passkey(), timeout]);
+		} catch (e) {
+			clearTimeout(timer);
+			if (mine !== attempt.current) return;
+			console.error("[login] Passkey-Anmeldung", e);
+			setBusy(null);
+			setAutofillRound((n) => n + 1);
+			setError(t("signInNoConnection"), errorDetail(e));
+			return;
+		}
 		clearTimeout(timer);
 		if (mine !== attempt.current) return;
 		if (res !== "timeout" && res && !res.error) {
@@ -152,10 +186,16 @@ export function LoginForm({
 		if (busy === "passkey") stopPasskey();
 		setError(null);
 		setBusy("microsoft");
-		await authClient.signIn.social({
-			provider: "microsoft",
-			callbackURL: target,
-		});
+		try {
+			await authClient.signIn.social({
+				provider: "microsoft",
+				callbackURL: target,
+			});
+		} catch (e) {
+			console.error("[login] Microsoft", e);
+			setBusy(null);
+			setError(t("signInNoConnection"), errorDetail(e));
+		}
 	}
 
 	// SSO der eigenen Organisation: Provider wird über die E-Mail-Domain
@@ -169,11 +209,20 @@ export function LoginForm({
 		if (busy === "passkey") stopPasskey();
 		setError(null);
 		setBusy("sso");
-		const res = await authClient.signIn.sso({
-			email: address,
-			callbackURL: target,
-			errorCallbackURL: "/login?grund=sso",
-		});
+		let res: Awaited<ReturnType<typeof authClient.signIn.sso>>;
+		try {
+			res = await authClient.signIn.sso({
+				email: address,
+				callbackURL: target,
+				errorCallbackURL: "/login?grund=sso",
+			});
+		} catch (e) {
+			console.error("[login] SSO", e);
+			setBusy(null);
+			setAutofillRound((n) => n + 1);
+			setError(t("signInNoConnection"), errorDetail(e));
+			return;
+		}
 		if (res?.error || !res?.data?.url) {
 			setBusy(null);
 			setAutofillRound((n) => n + 1);
@@ -186,7 +235,12 @@ export function LoginForm({
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-2">
-				<FormAlert message={error} />
+				<FormAlert message={error?.text} />
+				{error?.detail && (
+					<p className="text-footnote text-muted-foreground" translate="no">
+						{t("technicalHint", { detail: error.detail })}
+					</p>
+				)}
 				<Button
 					type="button"
 					size="lg"

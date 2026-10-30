@@ -251,6 +251,8 @@
 		"passkeyBusy": "Warte auf deinen Passkey …",
 		"passkeyCancel": "Abbrechen",
 		"passkeyTimeout": "Keine Antwort vom Passkey. Lade die Seite neu und versuch es noch einmal. Erscheint kein Fenster, prüf, ob dieses Gerät deinen Passkey für Klick kennt, oder nimm den Notweg unten.",
+		"signInNoConnection": "Klick hat die Anmeldung beim Server nicht starten können. Lade die Seite neu und versuch es noch einmal. Geht es weiter nicht, nimm den Anmelde-Link per Mail.",
+		"technicalHint": "Technischer Hinweis: {detail}",
 		"passkeySignInFailed": "Dieser Passkey wurde nicht erkannt. Nutze einen Passkey für dein Klick-Konto oder den Notweg unten.",
 		"lostPasskey": "Passkey verloren oder kein Gerät zur Hand?",
 		"mailLink": "Anmelde-Link per Mail",
