@@ -249,6 +249,8 @@
 		"loginTitle": "Anmelden",
 		"loginLead": "Mit deinem Passkey — Fingerabdruck, Gesicht oder Geräte-PIN. Kein Passwort, keine App.",
 		"passkeyBusy": "Warte auf deinen Passkey …",
+		"passkeyCancel": "Abbrechen",
+		"passkeyTimeout": "Keine Antwort vom Passkey. Lade die Seite neu und versuch es noch einmal. Erscheint kein Fenster, prüf, ob dieses Gerät deinen Passkey für Klick kennt, oder nimm den Notweg unten.",
 		"passkeySignInFailed": "Dieser Passkey wurde nicht erkannt. Nutze einen Passkey für dein Klick-Konto oder den Notweg unten.",
 		"lostPasskey": "Passkey verloren oder kein Gerät zur Hand?",
 		"mailLink": "Anmelde-Link per Mail",
