@@ -235,3 +235,15 @@ im_admin_netz() {
 	*) return 1 ;;
 	esac
 }
+
+# nftables-Tabellen, die der Rollout nie als „fremde Firewall“ anbietet:
+# die eigene (inet klick) und die Sperrtabellen von CrowdSec und fail2ban
+# (Bans; die Dienste legen sie bei jedem Start neu an)
+tabelle_bekannt() {
+	case "${1:-}/${2:-}" in
+	inet/klick) return 0 ;;
+	ip/crowdsec* | ip6/crowdsec* | inet/crowdsec*) return 0 ;;
+	inet/f2b-table | ip/f2b-* | ip6/f2b-* | inet/f2b-*) return 0 ;;
+	*) return 1 ;;
+	esac
+}
