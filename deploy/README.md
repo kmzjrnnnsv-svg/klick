@@ -52,6 +52,22 @@ sudo systemctl restart klick && curl -f https://raza.work/api/ready
 
 **Rollback:** `scripts/restore-db.sh <dump> <url>` + `git checkout recruiting-final` + `pnpm release`.
 
+### Build bricht ab, danach reagieren die Seiten nicht
+`next build` leert `.next` (außer `cache`) gleich zu Beginn. Bricht der Build danach ab, läuft der
+alte Prozess weiter, aber seine Skripte unter `/_next/static` sind weg: Die Seiten erscheinen, kein
+Knopf reagiert (z. B. „Mit Passkey anmelden“). Prüfen:
+`curl -s https://raza.work/login | grep -o '/_next/static/chunks/[^"]*\.js' | head -3 | while read p; do curl -s -o /dev/null -w "%{http_code} $p\n" "https://raza.work$p"; done`
+(404 = so ein Fall). Das Rollout-Skript sichert `.next` deshalb vor dem Build nach
+`/var/backups/klick-rollout/<lauf>/next-<app>` und spielt es bei einem Fehler zurück, startet die
+App neu und bricht dann ab; die Migrationen sind dann schon eingespielt (additiv, der alte Stand läuft
+damit). Nach dem Handweg oben: neu bauen, bis der Build durchläuft.
+
+Typen prüft der Build nicht (`typescript.ignoreBuildErrors` in `next.config.ts`): Seit Next 16.4
+liefe dafür `tsc` über das ganze Projekt mit ≈ 2,1 GB Heap (Okt 2026), mehr als Node ohne Vorgabe
+zulässt. Geprüft wird in CI (`pnpm typecheck`, 4 GB) — deshalb gilt: **CI rot, kein Release.** Als
+Notweg für einen alten Stand mit Typ-Check im Build: `NODE_OPTIONS=--max-old-space-size=3072` vor
+`rollout.sh klick` (nur mit Arbeitsspeicher und Swap zusammen ≥ 6 GB).
+
 ### Klick startet nach einem Update nicht (Start-Prüfung)
 Zeigt raza.work „Internal Server Error“ und `curl -fsS http://127.0.0.1:3000/api/ready` endet mit 500,
 hat meist die Start-Prüfung (`lib/env-checks.ts`) den Start verweigert. Ursache ablesen:

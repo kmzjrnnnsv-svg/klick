@@ -91,6 +91,60 @@ sichern() {
 }
 gesichert() { printf '%s%s' "$SICHERUNG" "$1"; }
 
+# Einträge eines Build-Ordners (.next) außer cache, je Zeile ein Pfad.
+build_eintraege() {
+	local e
+	for e in "$1"/* "$1"/.[!.]*; do
+		[ -e "$e" ] || continue
+		[ "${e##*/}" = cache ] && continue
+		printf '%s\n' "$e"
+	done
+}
+
+# Build-Stand vor `next build` sichern: Der Build leert .next (außer cache)
+# gleich zu Beginn; scheitert er danach, fehlen der laufenden App ihre
+# Skripte und die Seiten reagieren nicht mehr. Kopie ohne cache nach <ziel>
+# (außerhalb des Checkouts, release-guard bleibt sauber).
+#   build_sichern <.next> <ziel>
+build_sichern() {
+	local quelle="$1" ziel="$2" e kb=0 frei
+	[ -d "$quelle" ] || return 0
+	if trocken; then
+		info "(Trockenlauf) würde $quelle nach $ziel sichern"
+		return 0
+	fi
+	while IFS= read -r e; do
+		kb=$((kb + $(du -sk "$e" | cut -f1)))
+	done < <(build_eintraege "$quelle")
+	install -d -m 0700 "$(dirname "$ziel")"
+	frei="$(df -Pk "$(dirname "$ziel")" | awk 'NR == 2 { print $4 }')"
+	if [ "$frei" -lt $((kb * 2)) ]; then
+		hinweis "zu wenig Platz, um $quelle zu sichern ($((kb / 1024)) MB)"
+		frage "Ohne Sicherung bauen? Scheitert der Build, steht die App bis zum nächsten Build still" ||
+			die "abgebrochen"
+		return 0
+	fi
+	rm -rf "$ziel"
+	install -d -m 0700 "$ziel"
+	while IFS= read -r e; do cp -a "$e" "$ziel/"; done < <(build_eintraege "$quelle")
+	ok "Build-Stand gesichert ($((kb / 1024)) MB)"
+}
+
+# Gesicherten Build-Stand zurücklegen: .next außer cache leeren, Kopie zurück.
+#   build_zurueck <.next> <ziel>
+build_zurueck() {
+	local quelle="$1" ziel="$2" e
+	if [ ! -d "$ziel" ]; then
+		hinweis "keine Sicherung von $quelle vorhanden"
+		return 1
+	fi
+	trocken && return 0
+	while IFS= read -r e; do rm -rf "$e"; done < <(build_eintraege "$quelle")
+	install -d "$quelle"
+	while IFS= read -r e; do cp -a "$e" "$quelle/"; done < <(build_eintraege "$ziel")
+	ok "alter Build-Stand zurück in $quelle"
+}
+
 # Inhalt von stdin nach <ziel> schreiben, nur wenn er sich ändert.
 #   schreibe_inhalt <ziel> [modus] [user:gruppe] [geheim]
 # Setzt GEAENDERT=1 bei Änderung. `geheim` zeigt keinen diff (Env-Dateien).
