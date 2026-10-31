@@ -52,6 +52,7 @@ import {
 } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { getAssessmentDetail } from "@/lib/compliance/queries-assessments";
+import { relationHint } from "@/lib/compliance/relation-hints";
 import { prioritizePlan } from "@/lib/compliance/synergy";
 import { readOrg } from "@/lib/db/with-org";
 import { cn } from "@/lib/utils";
@@ -96,6 +97,7 @@ export default async function AssessmentPage({
 	const sp = await searchParams;
 	const ctx = await requireOrgPage({ assessment: ["read"] });
 	const t = await getTranslations("Assessment");
+	const tes = await getTranslations("EvidenceStudio");
 	const tNav = await getTranslations("Nav");
 	const ts = await getTranslations("Status");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
@@ -352,6 +354,18 @@ export default async function AssessmentPage({
 														.map((d) => ({ ...d, fromControl: true })),
 												],
 											}}
+											hint={
+												q.controlCode && !subjectScoped
+													? relationHint(
+															q.controlCode,
+															{ frameworks: a.frameworks, applicability },
+															(topic) =>
+																tes(
+																	`topic_${topic.replace(":", "_")}` as "topic_retention",
+																),
+														)
+													: undefined
+											}
 											statusLabel={statusLabel(q.controlCode)}
 											frameworkNames={fwNames}
 											members={data.members}

@@ -20,6 +20,7 @@ import {
 import { evidenceKindsForFrameworks } from "@/lib/compliance/catalog/evidence-kinds";
 import { SECTION_SIMPLE } from "@/lib/compliance/catalog/framework-profiles";
 import type { ReqCoverage } from "@/lib/compliance/coverage";
+import { controlsByFramework } from "@/lib/compliance/framework-map";
 import {
 	getOrgCoverageCached,
 	pct,
@@ -188,6 +189,23 @@ export default async function FrameworkPage({
 				})
 			: null;
 
+	// Wie viel davon läuft schon über die anderen Rahmenwerke? (Teil Z7)
+	const tr = await getTranslations("Relations");
+	const sharedWithOthers = (() => {
+		const map = controlsByFramework({
+			frameworks: cov.frameworks,
+			applicability: new Map(
+				[...cov.applicabilityDetail].map(([k, d]) => [k, d.applicable]),
+			),
+		});
+		const own = map.get(slug);
+		if (!own || own.size === 0 || map.size < 2) return null;
+		const others = new Set<string>();
+		for (const [fw, set] of map)
+			if (fw !== slug) for (const c of set) others.add(c);
+		const shared = [...own].filter((c) => others.has(c)).length;
+		return { shared, total: own.size, name: shortFrameworkName(slug) };
+	})();
 	return (
 		<>
 			<PageHeader
@@ -236,6 +254,11 @@ export default async function FrameworkPage({
 						</div>
 					</div>
 				</div>
+			)}
+			{sharedWithOthers && (
+				<p className="mb-6 rounded-2xl bg-card p-3 text-subhead">
+					{tr("sharedWithOthers", sharedWithOthers)}
+				</p>
 			)}
 			<div className="mb-6">
 				<FrameworkProfileCard slug={slug} />

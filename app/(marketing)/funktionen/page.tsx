@@ -343,6 +343,9 @@ export default async function FeaturesPage() {
 						})}{" "}
 						{t("audienceNote")}
 					</p>
+					<p>
+						<Link href="/einfach-erklaert">{t("relationsLink")}</Link>
+					</p>
 				</div>
 			</section>
 

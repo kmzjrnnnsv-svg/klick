@@ -5,6 +5,7 @@ export async function Footer() {
 	const t = await getTranslations("Footer");
 	const links = [
 		{ href: "/funktionen", label: t("features") },
+		{ href: "/einfach-erklaert", label: t("simple") },
 		{ href: "/leistungen", label: t("services") },
 		{ href: "/preise", label: t("pricing") },
 		{ href: "/vertrauen", label: t("trust") },

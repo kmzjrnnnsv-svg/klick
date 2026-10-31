@@ -1,3 +1,4 @@
+import { COMPLIANCE_PROCESS } from "@/lib/compliance/catalog/compliance-process";
 import type { HelpArticle } from "../types";
 
 // Umsetzen: Überblick, Gap-Analyse, Controls und Synergien, Rahmenwerke,
@@ -192,6 +193,92 @@ export const IMPLEMENT: HelpArticle[] = [
 			},
 		],
 		related: ["nachweise", "rahmenwerke", "gap-analyse"],
+	},
+	{
+		slug: "zusammenhaenge",
+		area: "implement",
+		title: "Wie hängt alles zusammen?",
+		summary:
+			"Rahmenwerke, gemeinsame Maßnahmen, strengere Vorgaben und Widersprüche, einfach erklärt mit einem Beispiel.",
+		sections: [
+			{
+				id: "grundbild",
+				heading: "Das Grundbild",
+				body: [
+					"Mama, Schule und Polizei haben jeweils Regeln fürs Radfahren. Jede Regelsammlung ist ein Rahmenwerk. Alle drei sagen „Helm auf“: Du setzt ihn einmal auf, und alle drei sind zufrieden. Das ist eine gemeinsame Maßnahme. Nur die Polizei will Licht am Rad; das gilt nur bei einem Rahmenwerk.",
+					"Mama sagt „um 18 Uhr zu Hause“, Oma sagt „um 17 Uhr“. Wer um 17 Uhr da ist, macht beide froh: Die strengere Vorgabe erfüllt beide. Manchmal passen Regeln nicht zusammen, etwa „alles aufheben“ und „alles wegwerfen“. Dann muss jemand entscheiden. Ein Foto vom Helm ist der Nachweis, und wenn jemand nachschaut, ist das die Prüfung.",
+				],
+			},
+			{
+				id: "praxis",
+				heading: "So läuft es in der Praxis",
+				body: [
+					"Ein Beispiel läuft durch alle Schritte: einen schweren Vorfall melden.",
+				],
+				steps: COMPLIANCE_PROCESS.map(
+					(s) => `${s.title}: ${s.what} ${s.example}`,
+				),
+			},
+			{
+				id: "erklaert",
+				heading: "Einfach erklärt in Klick",
+				list: [
+					"Jedes Rahmenwerk hat oben auf seiner Seite einen Steckbrief: wozu es da ist, für wen es gilt, wer es verlangt, was ohne passiert und wie man es zeigt. Jedes Kapitel hat einen einfachen Satz.",
+					"Jede Maßnahme (Control) hat oben „Einfach erklärt“: was das ist, wozu, und ein Bild aus dem Alltag.",
+					"Darunter steht „Wer verlangt das – und was genau?“: alle Rahmenwerke mit ihren Anforderungen, ob die Maßnahme sie ganz oder nur teilweise erfüllt, und was bei „teilweise“ dazukommt.",
+					"Auf der Seite einer Anforderung steht je Maßnahme, welche Rahmenwerke sie mit erfüllt.",
+				],
+			},
+			{
+				id: "beispiel",
+				heading: "Beispiel: einen Vorfall melden",
+				body: [
+					"Die Maßnahme „Meldeprozess an Behörden mit Fristen“ verlangen unter anderem DORA, NIS2 und die DSGVO. Im Kern wollen alle dasselbe: Schwere Vorfälle gehen rechtzeitig an die Behörde. Die Fristen sind aber verschieden. DORA verlangt die Erstmeldung binnen 4 Stunden, NIS2 und DSGVO lassen mehr Zeit.",
+					"Klick zeigt das unter „Gleiche Maßnahme, andere Strenge“ und markiert DORA als am strengsten. Schaffst du die strengste Frist, passt es für alle. Gemeldet wird trotzdem an jede Stelle einzeln, jeweils mit ihrem Formular.",
+				],
+			},
+			{
+				id: "widerspruch",
+				heading: "Wenn sich Regeln widersprechen",
+				body: [
+					"Manche Rahmenwerke verlangen, Unterlagen lange aufzuheben, die DSGVO verlangt, Daten über Menschen zu löschen, wenn sie nicht mehr gebraucht werden. Klick zeigt das als Widerspruch an der Maßnahme. Üblich ist: sperren statt löschen, solange die Aufbewahrungsfrist läuft, danach löschen. Halte die Entscheidung im Löschkonzept fest.",
+				],
+			},
+			{
+				id: "uebersicht",
+				heading: "Die Übersicht",
+				body: [
+					"Unter Zusammenhänge zeigt eine Übersicht in der Mitte deine Firma, darum neun Themen in Alltagssprache und außen deine Rahmenwerke. Linien zeigen, welches Rahmenwerk Maßnahmen in welchem Thema verlangt; je breiter, desto mehr. Antippen öffnet die Erklärung. Am Handy und als Tabelle stehen dieselben Zahlen als Liste.",
+					"Darunter stehen die Maßnahmen je Thema und wie deine Rahmenwerke zueinander stehen: was aufeinander aufbaut, was vorgeht, was ablöst und welche Paare am meisten gemeinsam haben.",
+				],
+				tip: "Nicht anwendbare Anforderungen zählen hier nicht mit. Gilt NIS2 für dich nicht, weil DORA vorgeht, fehlt NIS2 in der Übersicht.",
+			},
+		],
+		faq: [
+			{
+				q: "Muss ich eine geteilte Maßnahme mehrfach umsetzen?",
+				a: "Nein. Du setzt sie einmal um, und sie zählt für jedes Rahmenwerk, das sie verlangt. Prüf nur, ob ein Rahmenwerk mehr will (teilweise) oder strenger ist.",
+			},
+			{
+				q: "Woher kommen die einfachen Erklärungen?",
+				a: "Aus dem Katalog von Klick. Sie helfen beim Verstehen; fachlich gilt der Text der Anforderung.",
+			},
+		],
+		norms: [
+			{
+				key: "iso27001:4.2",
+				why: "Die Anforderungen der interessierten Parteien kennen, auch die von Gesetzen und Kundschaft.",
+			},
+			{
+				key: "dora:Art.19",
+				why: "Beispiel für eine Maßnahme mit verschiedenen Fristen je Rahmenwerk.",
+			},
+			{
+				key: "dsgvo:Art.33",
+				why: "Meldung einer Datenpanne binnen 72 Stunden, neben den Meldungen nach DORA und NIS2.",
+			},
+		],
+		related: ["controls", "rahmenwerke"],
 	},
 	{
 		slug: "rahmenwerke",

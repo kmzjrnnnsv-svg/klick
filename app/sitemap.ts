@@ -27,6 +27,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			priority: 0.9,
 		},
 		{
+			url: `${base}/einfach-erklaert`,
+			lastModified: now,
+			changeFrequency: "monthly",
+			priority: 0.8,
+		},
+		{
 			url: `${base}/leistungen`,
 			lastModified: now,
 			changeFrequency: "monthly",

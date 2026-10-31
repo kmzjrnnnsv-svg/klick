@@ -11,6 +11,7 @@ export const HELP_ROUTES: readonly (readonly [string, string])[] = [
 	["/gap-analyse", "gap-analyse"],
 	["/controls", "controls"],
 	["/synergien", "controls"],
+	["/zusammenhaenge", "zusammenhaenge"],
 	["/rahmenwerke", "rahmenwerke"],
 	["/baseline", "rahmenwerke"],
 	["/nachweise", "nachweise"],

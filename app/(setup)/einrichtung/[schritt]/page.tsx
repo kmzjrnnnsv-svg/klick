@@ -36,8 +36,10 @@ import {
 	RESPONSIBILITY_AREAS,
 	suggestAreaFunction,
 } from "@/lib/compliance/catalog/domain-functions";
+import { FRAMEWORK_PROFILES } from "@/lib/compliance/catalog/framework-profiles";
 import { requiredFunctions } from "@/lib/compliance/catalog/required-functions";
 import { suggestFrameworks } from "@/lib/compliance/company-profile";
+import { shortFrameworkName } from "@/lib/compliance/framework-names";
 import { whoHoldsWhat } from "@/lib/compliance/function-holders";
 import { isOwnRoleKey } from "@/lib/compliance/function-key";
 import {
@@ -475,6 +477,12 @@ export default async function SetupStepPage({
 						caspServices: [...profile.profile.caspServices],
 					}}
 					names={fwNames}
+					shortNames={Object.fromEntries(
+						CATALOG_FRAMEWORKS.map((f) => [f.slug, shortFrameworkName(f.slug)]),
+					)}
+					simple={Object.fromEntries(
+						Object.entries(FRAMEWORK_PROFILES).map(([k, p]) => [k, p.simple]),
+					)}
 					nextHref={nextHref}
 				/>
 			)}

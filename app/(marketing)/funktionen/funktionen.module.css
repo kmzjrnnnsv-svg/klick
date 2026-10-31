@@ -854,6 +854,15 @@
 	line-height: 18px;
 }
 
+.fitNotes a {
+	color: var(--primary);
+	text-underline-offset: 4px;
+}
+
+.fitNotes a:hover {
+	text-decoration: underline;
+}
+
 /* ── Fragen: Liste links, Antwort rechts ─────────────────────────────── */
 .faq {
 	position: relative;

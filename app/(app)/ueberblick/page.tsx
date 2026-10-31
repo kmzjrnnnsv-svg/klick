@@ -607,6 +607,22 @@ export default async function OverviewPage() {
 							</p>
 						</CardContent>
 					</Card>
+					<Card>
+						<CardHeader>
+							<CardTitle className="text-headline">
+								{t("relationsTitle")}
+							</CardTitle>
+							<CardDescription>{t("relationsLead")}</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<Link
+								href="/zusammenhaenge"
+								className="text-primary text-subhead hover:underline underline-offset-4"
+							>
+								{t("relationsOpen")}
+							</Link>
+						</CardContent>
+					</Card>
 				</div>
 			</div>
 		</>

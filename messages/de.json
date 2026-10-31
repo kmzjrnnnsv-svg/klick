@@ -101,7 +101,8 @@
 		"custody": "Verwahrung",
 		"krypto": "Krypto (both.money)",
 		"search": "Suche",
-		"tabBar": "Bereiche"
+		"tabBar": "Bereiche",
+		"relations": "Zusammenhänge"
 	},
 	"Footer": {
 		"tagline": "Maison Klick — Compliance, die zusammenpasst.",
@@ -114,7 +115,8 @@
 		"terms": "Nutzungsbedingungen",
 		"legalNav": "Rechtliches",
 		"menu": "Menü",
-		"licenses": "Lizenzen"
+		"licenses": "Lizenzen",
+		"simple": "Einfach erklärt"
 	},
 	"Landing": {
 		"title": "Einmal machen. Überall erfüllt.",
@@ -457,7 +459,10 @@
 		"setupTlpt": "TLPT-Benennung prüfen",
 		"trend30": "{delta} Punkte in 30 Tagen",
 		"trendTitle": "Abdeckung der letzten 30 Tage",
-		"setupGap": "Gap-Analyse durchführen"
+		"setupGap": "Gap-Analyse durchführen",
+		"relationsTitle": "Wie hängt alles zusammen?",
+		"relationsLead": "Deine Rahmenwerke, ihre gemeinsamen Maßnahmen und wo sie sich unterscheiden, einfach erklärt.",
+		"relationsOpen": "Zusammenhänge ansehen"
 	},
 	"Settings": {
 		"title": "Einstellungen",
@@ -5221,7 +5226,8 @@
 		"cardDataHint": "Davon hängt ab, ob PCI DSS gilt und welcher Nachweisweg passt. Ändern kannst du das später unter Einstellungen > Rahmenwerke.",
 		"cardData_none": "Nein",
 		"cardData_outsourced": "Ja, die Zahlung läuft vollständig beim Zahlungsdienstleister (Weiterleitung oder eingebettetes Formular)",
-		"cardData_own": "Ja, über eigene Systeme, Kassen oder Kartenterminals"
+		"cardData_own": "Ja, über eigene Systeme, Kassen oder Kartenterminals",
+		"relationsTitle": "So hängen deine Rahmenwerke zusammen"
 	},
 	"Permissions": {
 		"area_register": "Register",
@@ -6074,7 +6080,8 @@
 		"clausesAlso": "Zählt auch für {list}",
 		"tourTitle": "Klick in 24 Sekunden",
 		"tourLead": "Ein kurzer Rundgang: diese Seite und drei Ansichten aus Klick mit Beispieldaten.",
-		"tourText": "Ohne Ton. Zu sehen: der Titel „Einmal machen. Überall erfüllt.“, ein Lauf über diese Seite, dann der Risiko-Assistent, ein Freigabe-Ablauf und die Prüfungsreife je Rahmenwerk (Beispieldaten), am Ende raza.work."
+		"tourText": "Ohne Ton. Zu sehen: der Titel „Einmal machen. Überall erfüllt.“, ein Lauf über diese Seite, dann der Risiko-Assistent, ein Freigabe-Ablauf und die Prüfungsreife je Rahmenwerk (Beispieldaten), am Ende raza.work.",
+		"relationsLink": "Wie hängt alles zusammen? Einfach erklärt"
 	},
 	"Legal": {
 		"imprintFacts": "Angaben nach § 5 DDG",
@@ -7259,6 +7266,54 @@
 		"must_law": "Gilt, sobald deine Firma darunter fällt.",
 		"must_rules": "Gilt, wenn du in dieser Branche arbeitest.",
 		"must_voluntary": "Freiwillig, aber oft von Kundschaft verlangt.",
-		"alsoBy": "Erfüllt auch: {names}"
+		"alsoBy": "Erfüllt auch: {names}",
+		"pageTitle": "Zusammenhänge",
+		"pageLead": "Wie deine Rahmenwerke über gemeinsame Maßnahmen zusammenhängen, einfach erklärt.",
+		"emptyTitle": "Noch kein Rahmenwerk gewählt",
+		"emptyLead": "Wähl unter Einstellungen > Rahmenwerke aus, was für deine Firma gilt. Dann zeigt Klick hier, wie alles zusammenhängt.",
+		"mapHeading": "Alles hängt zusammen",
+		"mapLead": "{frameworks, plural, one {# Rahmenwerk verlangt} other {# Rahmenwerke verlangen}} zusammen {controls, plural, one {# Maßnahme} other {# Maßnahmen}}, gebündelt in neun Themen.",
+		"mapTitle": "Übersicht: Rahmenwerke, Themen und gemeinsame Maßnahmen",
+		"mapDesc": "In der Mitte deine Firma, darum neun Themen mit der Zahl der Maßnahmen, außen die Rahmenwerke. Linien zeigen, welches Rahmenwerk Maßnahmen in welchem Thema verlangt.",
+		"mapCaption": "Je breiter die Linie, desto mehr Maßnahmen verlangt das Rahmenwerk in diesem Thema. Zeig auf ein Thema oder Rahmenwerk, um nur seine Linien zu sehen; Antippen öffnet die Erklärung.",
+		"mapFramework": "{name}: {n, plural, one {# Maßnahme} other {# Maßnahmen}}",
+		"mapTheme": "{title}: {n, plural, one {# Maßnahme} other {# Maßnahmen}}",
+		"centerOrg": "Deine Firma",
+		"centerAll": "Deine Firma",
+		"asTable": "Als Tabelle zeigen",
+		"tableCaption": "Maßnahmen je Rahmenwerk und Thema",
+		"tableFramework": "Rahmenwerk",
+		"themesHeading": "Die Maßnahmen nach Themen",
+		"themesLead": "Jede Maßnahme steht einmal da, auch wenn mehrere Rahmenwerke sie verlangen. Oben stehen die, die am meisten Rahmenwerke teilen.",
+		"themeCount": "{n, plural, one {# Maßnahme} other {# Maßnahmen}}, {shared} davon geteilt",
+		"frameworksCount": "{n, plural, one {# Rahmenwerk} other {# Rahmenwerke}}",
+		"linksHeading": "Rahmenwerke untereinander",
+		"relationsTitle": "Wie sie zueinander stehen",
+		"pairsTitle": "Am meisten gemeinsam",
+		"pairsFooter": "Gemeinsam heißt: dieselbe Maßnahme zählt für beide. Den Vergleich Anforderung für Anforderung zeigt Synergien > Vergleich.",
+		"pairName": "{a} und {b}",
+		"pairShared": "{n, plural, one {# gemeinsame Maßnahme} other {# gemeinsame Maßnahmen}}",
+		"pairShare": "{pct} der Maßnahmen von {small} verlangt auch {big}.",
+		"publicTitle": "Wie alles zusammenhängt",
+		"publicLead": "Gesetze, Aufsicht und Standards verlangen von Firmen viele Dinge. Vieles davon ist gleich. Hier siehst du einfach erklärt, wozu jede Regel da ist, was sie gemeinsam haben und wo sie sich unterscheiden.",
+		"profilesHeading": "Jedes Rahmenwerk einfach erklärt",
+		"profilesLead": "Tipp ein Rahmenwerk an: wozu es da ist, für wen es gilt, wer es verlangt und wie man es zeigt.",
+		"publicNote": "Orientierung nach Rechtsstand Oktober 2026, keine Rechtsberatung. Fachlich gilt der Text der jeweiligen Regel.",
+		"publicForYou": "Was davon gilt für deine Firma?",
+		"hintTitle": "So hängt das zusammen",
+		"hintManyAnswer": "Deine Antwort zählt für {names}. Eine Antwort, eine Umsetzung, ein Nachweis für alle.",
+		"hintMany": "Das verlangen {names}. Einmal umgesetzt, zählt es für alle.",
+		"hintOne": "Das verlangt nur {name}.",
+		"hintStrictest": "{topic}: {names} {count, plural, one {verlangt} other {verlangen}} {value}, das ist am strengsten. Schaffst du das, passt es für alle.",
+		"hintPartialNote": "{name} will mehr: {note}",
+		"hintConflict": "Achtung, Widerspruch: {hint}",
+		"evidenceReach": "Dieser Nachweis zählt für {n, plural, one {# Rahmenwerk} other {# Rahmenwerke}}: {names}. Du lädst ihn einmal hoch, jede Prüfung findet ihn.",
+		"processTitle": "So läuft es in der Praxis",
+		"processLead": "Sechs Schritte mit einem Beispiel, das durch alle läuft:",
+		"processStep": "Schritt {n}:",
+		"processOpen": "In Klick: {place}",
+		"bikeTitle": "Noch einfacher: wie beim Radfahren",
+		"hintPartialMany": "{names} {count, plural, one {will} other {wollen}} hier etwas mehr als diese Maßnahme. Was genau, steht an der Maßnahme unter „Wer verlangt das“.",
+		"sharedWithOthers": "{shared} von {total} Maßnahmen für {name} verlangen auch deine anderen Rahmenwerke. Was du dort umsetzt, zählt hier mit."
 	}
 }
