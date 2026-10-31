@@ -9,6 +9,7 @@ import {
 	type ActivationLink,
 	createAccount as createAccountService,
 	renewActivationLink as renewActivationLinkService,
+	revokeUserSessions as revokeUserSessionsService,
 	withdrawAccount as withdrawAccountService,
 } from "@/lib/auth/admin-accounts";
 import { hasPendingActivation } from "@/lib/auth/allow-list";
@@ -53,7 +54,7 @@ async function banUserImpl(input: unknown): Promise<ActionResult> {
 			body: { userId, banReason: reason, banExpiresIn: seconds },
 			headers: await headers(),
 		});
-		revalidatePath("/admin/users");
+		revalidatePath("/admin/users", "layout");
 		return { ok: true, data: undefined };
 	} catch (e) {
 		return mapError(e);
@@ -142,12 +143,27 @@ async function withdrawAccountImpl(userId: string): Promise<ActionResult> {
 	}
 }
 
+// Alle Sitzungen beenden: schützt wie Sperren, ohne Step-up
+async function revokeUserSessionsImpl(
+	userId: string,
+): Promise<ActionResult<{ revoked: number }>> {
+	const a = await requirePlatformAdmin();
+	if (typeof userId !== "string" || !/^[0-9a-f-]{36}$/i.test(userId))
+		return { ok: false, error: "not_found" };
+	const res = await revokeUserSessionsService(userId, a);
+	if (res.ok) {
+		revalidatePath("/admin/users");
+		revalidatePath(`/admin/users/${userId}`);
+	}
+	return res;
+}
+
 // Entsperren gibt Zugang zurück → Step-up
 async function unbanUserImpl(userId: string): Promise<ActionResult> {
 	await requirePlatformStepUp();
 	try {
 		await auth.api.unbanUser({ body: { userId }, headers: await headers() });
-		revalidatePath("/admin/users");
+		revalidatePath("/admin/users", "layout");
 		return { ok: true, data: undefined };
 	} catch (e) {
 		return mapError(e);
@@ -164,7 +180,7 @@ async function setPlatformRoleImpl(
 			body: { userId, role },
 			headers: await headers(),
 		});
-		revalidatePath("/admin/users");
+		revalidatePath("/admin/users", "layout");
 		return { ok: true, data: undefined };
 	} catch (e) {
 		return mapError(e);
@@ -174,9 +190,14 @@ async function setPlatformRoleImpl(
 async function verifyAuditChainActionImpl(): Promise<
 	ActionResult<{ checked: number; broken: string[] }>
 > {
-	await requirePlatformAdmin();
-	const result = await runVerifyAuditChain();
+	const a = await requirePlatformAdmin();
+	const result = await runVerifyAuditChain({
+		userId: a.userId,
+		ip: a.ip,
+		userAgent: a.userAgent,
+	});
 	revalidatePath("/admin/audit");
+	revalidatePath("/admin/sicherheit");
 	return { ok: true, data: result };
 }
 
@@ -197,6 +218,10 @@ export const resetUserAccessAdmin = safeAction(
 	resetUserAccessImpl,
 );
 export const unbanUser = safeAction("unbanUser", unbanUserImpl);
+export const revokeUserSessions = safeAction(
+	"revokeUserSessions",
+	revokeUserSessionsImpl,
+);
 export const setPlatformRole = safeAction(
 	"setPlatformRole",
 	setPlatformRoleImpl,

@@ -7,7 +7,7 @@ import { controlImplementations, controls } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
-import { EDGES_BY_CONTROL, REQUIREMENT_BY_KEY } from "@/lib/compliance/catalog";
+import { REQUIREMENT_BY_KEY } from "@/lib/compliance/catalog";
 import { coverageDelta } from "@/lib/compliance/coverage";
 import { excludeRequirements } from "@/lib/compliance/exclusion-service";
 import { exclusionAllowedForKey } from "@/lib/compliance/exclusions";
@@ -92,14 +92,16 @@ async function setControlStatusImpl(
 			// damit SoA und Abdeckung stimmen
 			let exclusionAudit: AuditInput[] = [];
 			if (status === "not_applicable" && cov) {
-				const keys = (EDGES_BY_CONTROL.get(row.code) ?? [])
+				const keys = (cov.catalog.edgesByControl.get(row.code) ?? [])
 					.map((e) => e.requirement)
 					.filter(
 						(k) =>
 							cov.frameworks.includes(k.slice(0, k.indexOf(":"))) &&
 							cov.result.byRequirement.get(k) !== "not_applicable",
 					);
-				const blocked = keys.filter((k) => !exclusionAllowedForKey(k));
+				const blocked = keys.filter(
+					(k) => !exclusionAllowedForKey(k, cov.catalog),
+				);
 				if (blocked.length > 0)
 					return {
 						result: {
@@ -113,6 +115,7 @@ async function setControlStatusImpl(
 					c.orgId,
 					keys.map((key) => ({ key, note: note?.trim() ?? "" })),
 					`control:${row.code}`,
+					cov.catalog,
 				);
 			}
 
@@ -138,7 +141,9 @@ async function setControlStatusImpl(
 			const satisfied = (delta?.affected ?? [])
 				.filter((a) => a.after === "covered" && a.before !== "covered")
 				.map((a) => {
-					const req = REQUIREMENT_BY_KEY.get(a.key);
+					const req = (cov?.catalog.requirementByKey ?? REQUIREMENT_BY_KEY).get(
+						a.key,
+					);
 					const idx = a.key.indexOf(":");
 					return {
 						framework: a.key.slice(0, idx),

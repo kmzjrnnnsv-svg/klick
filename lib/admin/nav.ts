@@ -26,11 +26,22 @@ export const ADMIN_NAV: AdminNavGroup[] = [
 			{ href: "/admin", labelKey: "overview", icon: "gauge" },
 			{ href: "/admin/orgs", labelKey: "orgs", icon: "building" },
 			{ href: "/admin/users", labelKey: "users", icon: "users" },
+			{ href: "/admin/betrieb", labelKey: "operations", icon: "server" },
+			{
+				href: "/admin/mitteilungen",
+				labelKey: "announcements",
+				icon: "megaphone",
+			},
 		],
 	},
 	{
 		labelKey: "groupSecurity",
 		items: [
+			{
+				href: "/admin/sicherheit",
+				labelKey: "security",
+				icon: "shield-check",
+			},
 			{ href: "/admin/zugriffe", labelKey: "access", icon: "lock" },
 			{ href: "/admin/audit", labelKey: "audit", icon: "file-text" },
 		],

@@ -67,7 +67,7 @@ export async function GET(req: Request) {
 		orgName: org?.name ?? "",
 		code: a.code,
 		title: a.title,
-		frameworks: a.frameworks.map(shortFrameworkName),
+		frameworks: a.frameworks.map((s) => shortFrameworkName(s)),
 		status: a.status,
 		asOf: a.asOf,
 		questions: a.questions,

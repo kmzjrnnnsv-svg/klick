@@ -27,8 +27,6 @@ import { currentEvidence } from "@/lib/evidence/current";
 
 import { mergeApplicability } from "./applicability";
 import {
-	CATALOG_EDGES,
-	CATALOG_REQ_REFS,
 	type profileApplicability,
 	profileApplicabilityDetail,
 } from "./catalog-view";
@@ -38,6 +36,8 @@ import {
 	deriveCoverage,
 } from "./coverage";
 import { productRolesFrom } from "./cra";
+import { customApplicability, type OrgCatalog } from "./org-catalog";
+import { loadOrgCatalog } from "./org-catalog-server";
 
 // Org-gescopte Lesezugriffe für Controls, Abdeckung, Anforderungen, Aufgaben,
 // Kommentare — immer innerhalb von readOrg/withOrg (RLS). Der Katalog selbst
@@ -168,6 +168,8 @@ export type OrgCoverage = {
 		{ applicable: boolean; source: string; note: string | null }
 	>;
 	implStatus: Map<string, ImplStatus>;
+	// Katalog der Org: Klick-Rahmenwerke + eigene (R4)
+	catalog: OrgCatalog;
 };
 
 // Vollständige Abdeckungsrechnung einer Org — einmal je Request (React.cache
@@ -180,10 +182,13 @@ export async function orgCoverage(
 ): Promise<OrgCoverage | null> {
 	const p = await getOrgProfile(tx, orgId);
 	if (!p) return null;
-	const [stored, implStatus] = await Promise.all([
+	const [stored, implStatus, catalog] = await Promise.all([
 		loadApplicability(tx, orgId),
 		loadImplStatus(tx, orgId),
+		loadOrgCatalog(tx, orgId),
 	]);
+	// eigene Rahmenwerke zählen, sobald sie eingeschaltet sind (R4)
+	const frameworks = [...p.frameworks, ...catalog.activeCustomSlugs];
 	const applicabilityDetail = mergeApplicability(
 		profileApplicabilityDetail({
 			sector: p.profile.sector,
@@ -198,23 +203,26 @@ export async function orgCoverage(
 		}),
 		stored,
 	);
+	for (const [key, d] of customApplicability(catalog))
+		applicabilityDetail.set(key, d);
 	const applicability = new Map<string, boolean>();
 	for (const [key, d] of applicabilityDetail)
 		applicability.set(key, d.applicable);
 	const input: CoverageInput = {
-		frameworks: p.frameworks,
-		requirements: CATALOG_REQ_REFS,
+		frameworks,
+		requirements: catalog.reqRefs,
 		applicability,
-		edges: CATALOG_EDGES,
+		edges: catalog.edgeRefs,
 		implStatus,
 	};
 	return {
-		frameworks: p.frameworks,
+		frameworks,
 		profile: p.profile,
 		input,
 		result: deriveCoverage(input),
 		applicabilityDetail,
 		implStatus,
+		catalog,
 	};
 }
 

@@ -26,6 +26,7 @@ export const APPLY_KINDS = [
 	"network_policy",
 	"ai_policy",
 	"signature_policy",
+	"sso_saml_cert",
 ] as const satisfies readonly SecurityChangeKind[];
 export const PERMIT_KINDS = [
 	"org_delete",

@@ -406,6 +406,11 @@ Units `klick-health.{service,timer}` kopieren, `systemctl enable --now klick-hea
 Probe: `systemctl start klick-health && journalctl -u klick-health -n 20`. Meldet Platte ≥ 85 %,
 Zertifikate < 14 Tage, Dienste mit Fehler, auditd, nftables, CrowdSec-Sperren und ausstehenden
 Neustart; Fehler gehen über `klick-alert@` an `ALERT_MAIL`.
+Zusätzlich schreibt der Lauf `/var/lib/klick-health/status.json` (Ordner
+`install -d -m 2750 -o root -g klick /var/lib/klick-health`, Datei 0640): Platten, Arbeitsspeicher,
+Updates, Neustart, Zertifikate, Dienste, Sicherungen, AIDE, CrowdSec. Admin > Betrieb liest nur diese
+Datei (die App hat kein root); fehlt der Ordner, schreibt das Skript keine Datei. Die Rollout-Phase
+`ueberwachung` legt den Ordner an.
 
 **10. App-Seite: Admin-Netz und Start-Prüfung**
 1. Die Units setzen das Admin-Netz schon (`ADMIN_NETWORKS` in `klick.service`,
@@ -468,6 +473,40 @@ der Org. Schlüssel, Anbieter und Funktionen legt die Inhaberin unter Einstellun
   Einstellungen > KI aus bzw. entfernt den Schlüssel (wirkt sofort, ohne zweite Person).
 - **Grenzen:** je Org 30 Aufrufe in 10 Minuten (Prozessspeicher, ein Server), Eingabe ≤ 200 000
   Zeichen, Dateien ≤ 10 MB (nur PDF/PNG/JPEG). Kosten rechnet der Anbieter mit der Org ab.
+
+## Standort verbinden (Standort-Tunnel, ADR-033)
+Das Büro einer Kundin verbindet sich über IPsec (IKEv2) oder WireGuard mit dem Klick-Server. Im Tunnel ist
+Klick unter der Dienstadresse `10.21.0.1` erreichbar (Schnittstelle `klick-sites`, nginx lauscht ohnehin
+auf allen Adressen); aus dem Tunnel lässt die Firewall nur HTTPS dorthin (`site_peers`/`site_nets` in
+`deploy/firewall.nft`), der Server leitet nichts weiter (`ip_forward = 0`). Den Tunnel richtet der Netz-Agent
+`klick-netz` ein (root, nur `CAP_NET_ADMIN`, vier Befehle über `/run/klick-netz/app.sock`, Gruppe `klick`);
+Klick schickt ihm den Soll-Zustand über den Job `site-tunnels` (jede Minute).
+
+- **Einmalig auf dem Server:** `sudo …/rollout.sh standorte [--endpoint <öffentliche IPv4>]`. Die Phase
+  installiert strongSwan (swanctl, charon-systemd) und wireguard-tools, lädt die Module `wireguard` und
+  `dummy` beim Start, baut den Agenten aus dem root-eigenen Checkout (`pnpm build:netz-agent`) nach
+  `/usr/local/lib/klick-netz/netz-agent.mjs`, startet `klick-netz.socket`/`.service` und trägt
+  `SITE_AGENT_SOCKET`, `SITE_PUBLIC_IP` und `SITE_WG_PUBLIC_KEY` (Schlüssel von `wg-sites`) in den
+  verwalteten Block von `/etc/klick/klick.env` ein. Firewall-Mengen kommen mit `firewall-final`.
+- **Hetzner-Firewall** eingehend ergänzen: UDP 500, UDP 4500 (IKE/NAT-T), Protokoll 50 (ESP), UDP 51821
+  (WireGuard der Standorte). nftables lässt sie nur von eingetragenen Gegenstellen zu.
+- **Anlegen:** Admin > Organisationen > [Org] > „Standort verbinden“ (nur aus dem Admin-Netz, Step-up):
+  Firewall-Marke, öffentliche IPv4 der Gegenstelle, Netz(e) im Büro. Überschneidet sich das Netz mit
+  Klick (Admin `10.9.0.0/24`, Knoten `10.8.0.0/24`, Dienst `10.21.0.0/24`) oder einem anderen Standort,
+  vergibt Klick ein Übergabenetz `10.20.N.0/x`; die Kundin setzt dann 1:1-NAT darauf.
+- **Für die IT der Kundin:** „Link für die IT“ (`/standort#klk_site_…`, 14 Tage, ein neuer sperrt den alten)
+  zeigt Werte, Schritte je Marke und auf Knopfdruck den Schlüssel (Abruf steht in der Kette der Org);
+  das „Blatt“ (PDF) enthält alles außer dem Schlüssel. Die IT trägt im internen DNS `raza.work` auf
+  `10.21.0.1` ein.
+- **Prüfen:** `swanctl --list-sas`, `wg show wg-sites`, `nft list set inet klick site_peers`,
+  `journalctl -u klick-netz`. Klick zeigt „verbunden“, sobald die SA steht bzw. der letzte WireGuard-
+  Handshake jünger als drei Minuten ist; nach zehn Minuten ohne Verbindung bekommen die Inhaber:innen
+  Bescheid. Nach `systemctl reload nftables` sind die Mengen leer, bis der Job sie (≤ 1 min) neu füllt.
+- **Nur noch über den Standort:** die Inhaberin übernimmt unter Einstellungen > Netzwerk die Netze des
+  Standorts in die IP-Liste (Vier-Augen). Abbauen sperrt Klick, solange ein Netz des Standorts in der
+  Liste steht; Notweg `pnpm org:network-reset --org <slug> --reason "…"`.
+- **Grenzen:** ein Server für alle Tunnel, IPv4 und feste IP der Gegenstelle; höchstens fünf Standorte je
+  Org. Ohne `SITE_AGENT_SOCKET` ist alles aus (der Knopf im Admin-Portal ist gesperrt).
 
 ## Microsoft Teams (T5)
 Hinweise erscheinen im Aktivitätsfeed von Teams statt (oder zusätzlich zu) Mails. Eine
@@ -694,10 +733,24 @@ für den IdP (Klick zeigt sie im Formular zum Kopieren, `<id>` = Kennung des Anb
 3. **Okta / andere OIDC:** App-Integration (Authorization Code mit PKCE), Gruppen-Claim `groups`, App den
    Gruppen zuweisen. Issuer = Okta-Domain bzw. Discovery-Adresse; „Verbindung testen“ ruft
    `/.well-known/openid-configuration` über `safeFetch` ab.
-4. **SAML (ADFS, Entra-SAML, Keycloak …):** ACS und Entity-ID eintragen, E-Mail als NameID oder Attribut
-   `email`, Gruppen als Attribut. Metadaten-XML einfügen oder Entity-ID, SSO-URL und Zertifikat einzeln.
-   Firmen-MFA über `authnmethodsreferences` (Entra/ADFS: `…/claims/multipleauthn`) oder
-   `AuthnContextClassRef`.
+4. **SAML in fünf Minuten (AP10):** Anbieter wählen (Entra ID, Google Workspace, Okta, ADFS, JumpCloud,
+   OneLogin, andere; Vorlagen in `lib/auth/sso-saml-vendors.ts`), Domain eintragen → Kennung
+   `saml-<domain>`, Werte zum Kopieren, Metadaten von Klick als Datei. Metadaten des Anbieters als Adresse
+   (Klick holt sie über `safeFetch`, ohne Weiterleitung, nur von den Hosts des Anbieters bzw. der eigenen
+   Domain bei ADFS/anderen), als Datei oder von Hand; „Prüfen“ zeigt Entity-ID, Anmeldeadresse,
+   Zertifikat und Ablauf. Attribute sind je Anbieter vorbelegt. Firmen-MFA über `authnmethodsreferences`
+   (Entra/ADFS: `…/claims/multipleauthn`) oder `AuthnContextClassRef`.
+   - **Probe-Anmeldung** („Mit meinem Firmenkonto testen“, nach bestätigter Domain): eigene AuthnRequest,
+     Klick zeigt unter `/einstellungen/sso/probe/<id>`, was ankam, oder die Ursache in Klartext (Audience,
+     Antwortadresse, Signatur, Uhrzeit, SHA-1, fremde Domain). Es entsteht kein Konto, keine Verknüpfung,
+     keine Sitzung (Hooks in `lib/auth/server.ts`, `lib/auth/sso-probe.ts`).
+   - **Zertifikat beobachten:** Job `sso-metadata` (05:40) holt Metadaten mit Adresse neu, merkt ein neues
+     Zertifikat vor und meldet es; Übernahme nur über Vier-Augen (Art `sso_saml_cert`, gleiche Entity-ID
+     Pflicht). Erinnerung 30/7 Tage vor Ablauf und bei Ablauf. Ausgehend braucht der Server dafür https zu
+     `login.microsoftonline.com`, `*.okta.com`, `*.onelogin.com` bzw. dem ADFS des Kunden.
+   - **IT einbinden:** Blatt als PDF (`/api/export/sso-blatt.pdf`) oder Link `/sso-einrichtung#klk_sso_…`
+     (7 Tage, IP-Liste der Org wie für Externe); die IT schickt Metadaten und Attributnamen, die Inhaberin
+     legt an.
 5. **Domain bestätigen:** TXT `_klick-sso.<domain>` mit dem angezeigten Wert, dann „Prüfen“. Ohne bestätigte
    Domain gibt es keine Anmeldung und kein Erzwingen.
 6. **Regeln:** Gruppen → Rolle (Mitarbeitende, Lesend, Bearbeiter:in; nie Inhaber:in), Standardrolle ohne

@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import type { PgBoss } from "pg-boss";
 import { globalDb } from "@/db";
 import { organization } from "@/db/auth-schema";
-import { verifyAuditChain } from "@/lib/audit";
+import { type Actor, audit, verifyAuditChain } from "@/lib/audit";
 import { runLedgerAnchor, upgradePendingAnchors } from "@/lib/ledger/service";
 import { logger } from "@/lib/log";
 import { notifyPlatformAdmins } from "@/lib/notifications/notify";
@@ -18,6 +18,8 @@ import { runPostureSnapshot } from "./posture";
 import { runPushNotify } from "./push-notify";
 import { runRetention } from "./retention";
 import { runSecurityChanges } from "./security-changes";
+import { runSiteTunnels } from "./site-tunnels";
+import { runSsoMetadata } from "./sso-metadata";
 import { runStorageOrphans, runStoragePurge } from "./storage";
 import { runTeamsNotify } from "./teams-notify";
 
@@ -41,6 +43,10 @@ import { runTeamsNotify } from "./teams-notify";
 //   teams-notify       jede Minute Benachrichtigungen in Microsoft Teams
 //   push-notify        jede Minute Push-Benachrichtigungen (Web Push)
 //                                  zustellen (nur mit TEAMS_CLIENT_ID)
+//   sso-metadata       05:40       SAML-Metadaten neu holen, neues Zertifikat
+//                                  vormerken, Ablauf 30/7 Tage erinnern
+//   site-tunnels       jede Minute Standort-Tunnel mit dem Netz-Agenten abgleichen
+//                                  (nur mit SITE_AGENT_SOCKET)
 // Die Wallet-Jobs (wallet-sync, price-tick, wallet-payouts) laufen seit K6 nur
 // noch in both.money (apps/wallet/lib/jobs); alte Zeitpläne räumt der Start ab.
 
@@ -59,6 +65,8 @@ export const JOBS = {
 	evidenceTexts: "evidence-texts",
 	teamsNotify: "teams-notify",
 	pushNotify: "push-notify",
+	ssoMetadata: "sso-metadata",
+	siteTunnels: "site-tunnels",
 	quickCheck: QUICK_CHECK_JOB,
 } as const;
 
@@ -85,6 +93,8 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.schedule(JOBS.evidenceTexts, "*/15 * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.teamsNotify, "* * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.pushNotify, "* * * * *", {}, { tz: TZ });
+	await boss.schedule(JOBS.ssoMetadata, "40 5 * * *", {}, { tz: TZ });
+	await boss.schedule(JOBS.siteTunnels, "* * * * *", {}, { tz: TZ });
 
 	await boss.work(JOBS.complianceTick, async () => {
 		await runComplianceTick();
@@ -132,6 +142,12 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.work(JOBS.pushNotify, async () => {
 		await runPushNotify();
 	});
+	await boss.work(JOBS.ssoMetadata, async () => {
+		await runSsoMetadata();
+	});
+	await boss.work(JOBS.siteTunnels, async () => {
+		await runSiteTunnels();
+	});
 	// Schnellcheck auf Anfrage: höchstens zwei gleichzeitig je Prozess
 	await boss.work<QuickCheckJob>(
 		JOBS.quickCheck,
@@ -144,16 +160,21 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 
 // Prüft die Plattform-Kette und jede Org-Kette. Ein Bruch ist ein
 // Sicherheitsvorfall: Alarm an alle Plattform-Admins + Fatal-Log.
-export async function runVerifyAuditChain(): Promise<{
+// Ergebnis steht als audit.chain_verified im Plattform-Protokoll (Admin >
+// Sicherheit zeigt den letzten Lauf); Org-IDs nur als Kennung, keine Inhalte.
+export async function runVerifyAuditChain(
+	actor: Actor = { userId: null },
+): Promise<{
 	checked: number;
 	broken: string[];
 }> {
 	const broken: string[] = [];
 	let checked = 0;
+	let chains: (string | null)[] = [];
 	await globalDb.transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		const orgs = await tx.select({ id: organization.id }).from(organization);
-		const chains: (string | null)[] = [null, ...orgs.map((o) => o.id)];
+		chains = [null, ...orgs.map((o) => o.id)];
 		for (const orgId of chains) {
 			const result = await verifyAuditChain(tx, orgId);
 			checked += result.checked;
@@ -170,8 +191,13 @@ export async function runVerifyAuditChain(): Promise<{
 				kind: "security_alert",
 				title: "Audit-Kette gebrochen",
 				body: `Betroffen: ${broken.join(", ")}`,
-				link: "/admin/audit",
+				link: "/admin/sicherheit",
 			});
+		await audit(tx, actor, {
+			action: "audit.chain_verified",
+			outcome: broken.length > 0 ? "failure" : "success",
+			after: { checked, chains: chains.length, broken },
+		});
 	});
 	return { checked, broken };
 }

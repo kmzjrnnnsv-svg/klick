@@ -156,3 +156,102 @@ describe("prefillFromSetup", () => {
 		);
 	});
 });
+
+describe("Vorschläge Stufe 1 (KI, Autoindustrie, USA, UK, Australien)", () => {
+	const base = {
+		sector: "other" as const,
+		licenceStage: "0_vorbereitung" as const,
+		caspServices: [],
+		issuesTokens: "none" as const,
+		hasProducts: false,
+	};
+	const slugs = (entity: Record<string, unknown>) =>
+		suggestFrameworks({ ...base, entity } as Parameters<
+			typeof suggestFrameworks
+		>[0]);
+
+	it("eigene KI schlägt ISO 42001 vor, Nutzung nur als Angebot", () => {
+		expect(
+			slugs({ aiUse: "build" }).find((s) => s.slug === "iso42001")?.recommended,
+		).toBe(true);
+		expect(
+			slugs({ aiUse: "use" }).find((s) => s.slug === "iso42001")?.recommended,
+		).toBe(false);
+		expect(slugs({}).some((s) => s.slug === "iso42001")).toBe(false);
+	});
+
+	it("Autoindustrie, USA, UK und Australien", () => {
+		const all = slugs({
+			automotive: true,
+			usTransfers: true,
+			customerCountries: ["GB", "AU"],
+		}).map((s) => s.slug);
+		for (const s of [
+			"tisax",
+			"eu-us-dpf",
+			"cyber-essentials",
+			"essential-eight",
+		])
+			expect(all).toContain(s);
+	});
+});
+
+describe("Vorschläge Stufe 2 und 3 (USA, Programme von AWS und Microsoft)", () => {
+	const base = {
+		sector: "other" as const,
+		licenceStage: "0_vorbereitung" as const,
+		caspServices: [],
+		issuesTokens: "none" as const,
+		hasProducts: false,
+	};
+	const pick = (entity: Record<string, unknown>) =>
+		suggestFrameworks({ ...base, entity } as Parameters<
+			typeof suggestFrameworks
+		>[0]);
+	const rec = (entity: Record<string, unknown>, slug: string) =>
+		pick(entity).find((s) => s.slug === slug)?.recommended;
+
+	it("ohne Angaben kein US-Rahmenwerk", () => {
+		const all = pick({}).map((s) => s.slug);
+		for (const s of [
+			"nist-csf",
+			"nist-800-53",
+			"nist-800-171",
+			"cmmc",
+			"hipaa",
+			"nycrr-500",
+			"ccpa",
+			"us-privacy",
+			"aws-ftr",
+			"ms-sspa",
+			"mvsp",
+		])
+			expect(all).not.toContain(s);
+	});
+
+	it("Aufträge des Bundes: 800-171 und CMMC vorgewählt, 800-53 angeboten", () => {
+		const e = { usFederal: true };
+		expect(rec(e, "nist-800-171")).toBe(true);
+		expect(rec(e, "cmmc")).toBe(true);
+		expect(rec(e, "nist-800-53")).toBe(false);
+		expect(rec(e, "nist-csf")).toBe(false);
+	});
+
+	it("Gesundheitsdaten, New York, AWS und Microsoft vorgewählt", () => {
+		expect(rec({ usHealth: true }, "hipaa")).toBe(true);
+		expect(rec({ nyFinance: true }, "nycrr-500")).toBe(true);
+		expect(rec({ awsPartner: true }, "aws-ftr")).toBe(true);
+		expect(rec({ msSupplier: true }, "ms-sspa")).toBe(true);
+	});
+
+	it("Kundschaft in den USA mit Personendaten: CCPA und Staaten angeboten", () => {
+		const e = { customerCountries: ["US"], personalData: ["customers"] };
+		expect(rec(e, "ccpa")).toBe(false);
+		expect(rec(e, "us-privacy")).toBe(false);
+		expect(rec({ customerCountries: ["US"] }, "ccpa")).toBeUndefined();
+	});
+
+	it("Software für Firmenkundschaft: MVSP angeboten", () => {
+		expect(rec({ digitalProducts: true }, "mvsp")).toBe(false);
+	});
+});

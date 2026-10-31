@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
@@ -31,8 +32,28 @@ const appOrigin = (() => {
 	}
 })();
 
+// Build-Stand für Admin > Sicherheit: Commit und Tag des gebauten Stands
+// (pnpm release baut nur signierte Tags). Ohne git leer.
+const git = (args: string[]) => {
+	try {
+		return execFileSync("git", args, {
+			stdio: ["ignore", "pipe", "ignore"],
+			timeout: 5000,
+		})
+			.toString()
+			.trim();
+	} catch {
+		return "";
+	}
+};
+
 const nextConfig: NextConfig = {
 	poweredByHeader: false,
+	env: {
+		KLICK_BUILD_COMMIT: git(["rev-parse", "HEAD"]),
+		KLICK_BUILD_TAG: git(["describe", "--tags", "--exact-match"]),
+		KLICK_BUILD_AT: new Date().toISOString(),
+	},
 	// Node-only Pakete nicht bundeln (native Bindings, Worker-Threads).
 	serverExternalPackages: [
 		"postgres",

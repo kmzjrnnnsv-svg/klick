@@ -1,0 +1,19 @@
+# /etc/systemd/system/klick-netz.socket — Netz-Agent, Socket für Klick
+#
+# Klick (Gruppe klick, Job site-tunnels) schickt hier den Soll-Zustand der
+# Standort-Tunnel. Kein anderer Dienst hat Zugriff (both.money, Signer,
+# Parser nicht in der Gruppe).
+[Unit]
+Description=Klick — Netz-Agent (app.sock)
+
+[Socket]
+ListenStream=/run/klick-netz/app.sock
+Service=klick-netz.service
+SocketUser=root
+SocketGroup=klick
+SocketMode=0660
+DirectoryMode=0755
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target

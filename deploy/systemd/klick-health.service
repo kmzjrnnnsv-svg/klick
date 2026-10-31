@@ -14,6 +14,9 @@ ExecStart=/usr/local/lib/klick-health/host-health.sh
 CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_AUDIT_CONTROL
 NoNewPrivileges=yes
 ProtectSystem=strict
+# Statusdatei für Admin > Betrieb (Ordner root:klick 2750 aus der Rollout-
+# Phase ueberwachung; fehlt er, schreibt das Skript keine Datei)
+ReadWritePaths=-/var/lib/klick-health
 ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes

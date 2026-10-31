@@ -61,13 +61,14 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				trigger:
 					"Die Organisation will Konten zentral im eigenen Verzeichnis verwalten.",
 				steps: [
-					"Anbieter wählen und der Anleitung folgen; Klick zeigt Weiterleitungsadresse bzw. SAML-Metadaten zum Kopieren.",
-					"Domain per DNS-Eintrag bestätigen und die Verbindung testen.",
+					"Anbieter wählen und der Anleitung folgen; Klick zeigt Weiterleitungsadresse bzw. SAML-Werte zum Kopieren und die eigenen Metadaten als Datei.",
+					"Metadaten des Anbieters als Adresse, Datei oder von Hand angeben; Klick prüft Zertifikat und Ablauf.",
+					"Domain per DNS-Eintrag bestätigen und mit dem eigenen Firmenkonto testen: Klick zeigt, was ankam, und legt dabei nichts an.",
 					"Gruppen den Rollen zuordnen (Mitarbeitende, Lesend, Bearbeiter:in); neue Konten entstehen bei der ersten Anmeldung.",
 					"Optional die Firmen-MFA anerkennen und SSO für die Firmen-Domain erzwingen; Inhaber:innen behalten einen Notzugang per Passkey.",
 				],
 				result:
-					"Wer im Firmenkonto gesperrt ist, kommt nicht mehr in Klick; Rollen folgen den Gruppen, jede Änderung steht im Protokoll.",
+					"Wer im Firmenkonto gesperrt ist, kommt nicht mehr in Klick; Rollen folgen den Gruppen, jede Änderung steht im Protokoll. Ein neues Zertifikat beim Anbieter meldet Klick vor dem Ablauf; übernommen wird es mit einer zweiten Person.",
 			},
 			{
 				key: "setup",
@@ -159,6 +160,22 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				],
 				result:
 					"Eine SoA mit begründeten Ausschlüssen; Ausschlüsse ohne Grundlage stehen als Blocker in der Prüfungsreife.",
+			},
+			{
+				key: "custom-frameworks",
+				name: "Eigenes Rahmenwerk anlegen",
+				summary:
+					"Anforderungen von Kund:innen, aus dem Konzern oder aus einem lizenzierten Katalog zählen wie jedes Rahmenwerk in Klick.",
+				where: "Einstellungen > Rahmenwerke & Stufe",
+				trigger:
+					"Eine Kundin schickt ihren Sicherheitsfragebogen, der Konzern hat eigene Vorgaben, oder du hast einen Katalog wie HITRUST lizenziert.",
+				steps: [
+					"Leer anlegen, ein Klick-Rahmenwerk als Ausgangspunkt kopieren oder die Anforderungen per CSV laden; vor dem Übernehmen zeigt Klick neu, geändert und Fehler je Zeile.",
+					"Jede Anforderung den Klick-Maßnahmen zuordnen, ganz oder teilweise; Vorschläge passen zum Text der Anforderung, der Filter zeigt, was noch offen ist.",
+					"Eine Inhaber:in schaltet das Rahmenwerk per Passkey ein; fehlende Maßnahmen kommen in den Arbeitsvorrat.",
+				],
+				result:
+					"Abdeckung, Prüfungsreife, Gap-Analyse und Nachweise auch für die Anforderungen deiner Kund:innen, ohne doppelte Arbeit: Was du für ISO 27001 schon umgesetzt hast, zählt sofort.",
 			},
 			{
 				key: "variants",
@@ -971,6 +988,22 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				],
 				result: "Mandantentrennung in der Datenbank, nicht nur im Programm.",
 			},
+			{
+				key: "standort",
+				name: "Standort verbinden",
+				summary:
+					"Euer Büro verbindet sich über einen verschlüsselten Tunnel mit Klick; danach geht Klick auf Wunsch nur noch von dort.",
+				where: "Einstellungen > Netzwerk",
+				trigger:
+					"Klick soll nur aus dem Büro erreichbar sein, nicht über das offene Internet.",
+				steps: [
+					"Der Klick-Betrieb richtet den Tunnel ein: Firewall, öffentliche IP und Netz im Büro reichen, IPsec oder WireGuard.",
+					"Eure IT bekommt einen Link und ein Blatt mit Werten und Schritten für ihre Firewall.",
+					"Steht der Tunnel, meldet Klick „verbunden“; mit zweiter Person beschränkt ihr die IP-Liste auf den Standort.",
+				],
+				result:
+					"Klick ist für euch nur noch aus dem Büro erreichbar; Abbrüche meldet Klick nach zehn Minuten.",
+			},
 		],
 	},
 ];
@@ -1000,6 +1033,22 @@ export const PICKER_FRAMEWORKS: { slug: string; label: string }[] = [
 	{ slug: "bsi-200-2", label: "IT-Grundschutz" },
 	{ slug: "bsi-200-3", label: "BSI 200-3" },
 	{ slug: "bsi-200-4", label: "BSI 200-4" },
+	{ slug: "iso42001", label: "ISO 42001" },
+	{ slug: "tisax", label: "TISAX" },
+	{ slug: "eu-us-dpf", label: "EU-US DPF" },
+	{ slug: "cyber-essentials", label: "Cyber Essentials" },
+	{ slug: "essential-eight", label: "Essential Eight" },
+	{ slug: "nist-csf", label: "NIST CSF" },
+	{ slug: "nist-800-53", label: "NIST 800-53" },
+	{ slug: "nist-800-171", label: "NIST 800-171" },
+	{ slug: "cmmc", label: "CMMC" },
+	{ slug: "hipaa", label: "HIPAA" },
+	{ slug: "nycrr-500", label: "NYDFS 500" },
+	{ slug: "ccpa", label: "CCPA" },
+	{ slug: "us-privacy", label: "US-Datenschutz" },
+	{ slug: "aws-ftr", label: "AWS FTR" },
+	{ slug: "ms-sspa", label: "Microsoft SSPA" },
+	{ slug: "mvsp", label: "MVSP" },
 ];
 export const PICKER_DEFAULT = ["iso27001", "dora", "micar", "gwg"];
 

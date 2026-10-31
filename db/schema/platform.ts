@@ -159,6 +159,21 @@ export type EntityProfile = {
 	// Kartendaten: keine, Zahlung vollständig beim Zahlungsdienstleister
 	// (Weiterleitung, iframe) oder über eigene Systeme bzw. Terminals
 	cardData?: "none" | "outsourced" | "own";
+	// KI: keine, Dienste anderer, eigene KI (ISO 42001)
+	aiUse?: "none" | "use" | "build";
+	// Zulieferer der Autoindustrie (TISAX)
+	automotive?: boolean;
+	// Personendaten an Dienstleister in den USA (EU-US DPF)
+	usTransfers?: boolean;
+	// Aufträge für US-Behörden bzw. das US-Verteidigungsministerium (NIST, CMMC)
+	usFederal?: boolean;
+	// Gesundheitsdaten aus den USA im Auftrag von Kliniken, Kassen (HIPAA)
+	usHealth?: boolean;
+	// Erlaubnis der New Yorker Finanzaufsicht DFS (23 NYCRR 500)
+	nyFinance?: boolean;
+	// Partner von AWS bzw. Lieferant von Microsoft (FTR, SSPA)
+	awsPartner?: boolean;
+	msSupplier?: boolean;
 	// gewählte Variante je Rahmenwerk (BSI-Absicherung, PCI-SAQ)
 	frameworkVariants?: Record<string, string>;
 };

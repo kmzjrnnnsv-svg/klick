@@ -2,9 +2,11 @@
 
 export * from "./schema/ai";
 export * from "./schema/aml";
+export * from "./schema/announcements";
 export * from "./schema/assessments";
 export * from "./schema/catalog";
 export * from "./schema/custody";
+export * from "./schema/custom-frameworks";
 export * from "./schema/enums";
 export * from "./schema/grc";
 export * from "./schema/inquiries";
@@ -20,6 +22,8 @@ export * from "./schema/registers";
 export * from "./schema/security";
 export * from "./schema/security-changes";
 export * from "./schema/signatures";
+export * from "./schema/site-tunnels";
+export * from "./schema/sso";
 export * from "./schema/supplier-ratings";
 export * from "./schema/teams";
 export * from "./schema/trust";

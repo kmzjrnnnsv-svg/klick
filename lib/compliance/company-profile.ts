@@ -288,6 +288,105 @@ export function suggestFrameworks(p: SetupProfile): FrameworkSuggestion[] {
 			"Wenn ihr Kartenzahlungen abwickelt oder Kartendaten speichert: PCI DSS",
 			false,
 		);
+	// KI: ISO 42001 freiwillig; wer eigene KI baut oder anbietet, bekommt den
+	// Vorschlag vorgewählt (AI Act verlangt ein Qualitäts- und Risikosystem)
+	const ai = p.entity.aiUse;
+	if (ai === "build")
+		add(
+			"iso42001",
+			"Eigene KI im Produkt oder für Kundschaft: Managementsystem für KI (ISO/IEC 42001), hilft beim EU AI Act",
+		);
+	else if (ai === "use")
+		add(
+			"iso42001",
+			"KI-Dienste anderer im Einsatz: Managementsystem für KI (ISO/IEC 42001), freiwillig",
+			false,
+		);
+	if (p.entity.automotive)
+		add(
+			"tisax",
+			"Arbeit für Autohersteller oder Zulieferer: Prüfung nach TISAX, von der Kundschaft verlangt",
+		);
+	if (p.entity.usTransfers)
+		add(
+			"eu-us-dpf",
+			"Personendaten an Dienstleister in den USA: Teilnahme am Data Privacy Framework prüfen",
+		);
+	const countries = p.entity.customerCountries ?? [];
+	if (countries.includes("GB"))
+		add(
+			"cyber-essentials",
+			"Kundschaft in Großbritannien: Cyber Essentials, bei Aufträgen der britischen Regierung Pflicht",
+			false,
+		);
+	if (countries.includes("AU"))
+		add(
+			"essential-eight",
+			"Kundschaft in Australien: Essential Eight, oft von Behörden und Kundschaft verlangt",
+			false,
+		);
+	// USA: Aufträge des Bundes, Gesundheitsdaten, New Yorker Finanzaufsicht,
+	// Kundschaft in den USA; Programme von AWS und Microsoft
+	const us = p.entity;
+	if (us.usFederal) {
+		add(
+			"nist-800-171",
+			"Aufträge für US-Behörden: Schutz von CUI nach NIST SP 800-171, im Vertrag verlangt (DFARS)",
+		);
+		add(
+			"cmmc",
+			"Aufträge des US-Verteidigungsministeriums: Nachweis nach CMMC 2.0, Stufe laut Vertrag",
+		);
+		add(
+			"nist-800-53",
+			"Systeme für US-Bundesbehörden betreiben: Maßnahmen nach NIST SP 800-53 (FISMA, FedRAMP)",
+			false,
+		);
+	}
+	if (us.usHealth)
+		add(
+			"hipaa",
+			"Gesundheitsdaten aus den USA: HIPAA Security Rule und Meldung von Datenpannen",
+		);
+	if (us.nyFinance)
+		add(
+			"nycrr-500",
+			"Erlaubnis der New Yorker Finanzaufsicht: Cybersecurity-Regeln 23 NYCRR 500",
+		);
+	if (countries.includes("US") || us.usFederal || us.usHealth)
+		add(
+			"nist-csf",
+			"Kundschaft in den USA: NIST Cybersecurity Framework 2.0, oft für Selbsteinschätzungen verlangt",
+			false,
+		);
+	if (countries.includes("US") && (pd.length > 0 || us.specialCategories)) {
+		add(
+			"ccpa",
+			"Personendaten aus Kalifornien: CCPA/CPRA, sobald die Schwellen erreicht sind",
+			false,
+		);
+		add(
+			"us-privacy",
+			"Personendaten aus weiteren US-Bundesstaaten: deren Datenschutzgesetze, je nach Schwelle",
+			false,
+		);
+	}
+	if (us.awsPartner)
+		add(
+			"aws-ftr",
+			"AWS-Partner: Foundational Technical Review der Lösung auf AWS",
+		);
+	if (us.msSupplier)
+		add(
+			"ms-sspa",
+			"Lieferant von Microsoft: Supplier Security and Privacy Assurance (SSPA)",
+		);
+	if (us.digitalProducts)
+		add(
+			"mvsp",
+			"Software für Firmenkundschaft: Minimum Viable Secure Product, häufige Prüfliste im Einkauf",
+			false,
+		);
 	// IT-Grundschutz: in der öffentlichen Verwaltung meist vorgegeben, sonst
 	// freiwillig neben ISO 27001 (Zertifikat „ISO 27001 auf Basis von
 	// IT-Grundschutz“)

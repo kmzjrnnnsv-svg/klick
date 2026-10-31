@@ -30,6 +30,7 @@ import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { excludeRequirements } from "@/lib/compliance/exclusion-service";
 import { exclusionAllowedForKey } from "@/lib/compliance/exclusions";
+import { loadOrgCatalog } from "@/lib/compliance/org-catalog-server";
 import { getOrgProfile, loadApplicability } from "@/lib/compliance/queries";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { currentEvidence } from "@/lib/evidence/current";
@@ -134,7 +135,11 @@ async function answerQuestionImpl(input: unknown): Promise<ActionResult> {
 				return { result: false, audit: [] };
 			// „Nicht relevant“ nur, wo mindestens ein Rahmenwerk der Frage einen
 			// Ausschluss kennt (ISO Annex A, SOC 2 Zusatzkategorien …)
-			if (d.answer === "na" && a.kind === "self" && !naAllowed(question))
+			if (
+				d.answer === "na" &&
+				a.kind === "self" &&
+				!naAllowed(question, await loadOrgCatalog(tx, c.orgId))
+			)
 				return { result: "na_not_allowed" as const, audit: [] };
 			const values = {
 				answer: d.answer,
@@ -506,11 +511,14 @@ async function applyAssessmentResultsImpl(
 			[...impls].map(([code, v]) => [code, v.status] as const),
 		);
 		const states = answerStates(a.questions, rows);
+		// Katalog der Org: eigene Rahmenwerke nach ihrer Ausschluss-Regel (R4)
+		const catalog = await loadOrgCatalog(tx, c.orgId);
+		const allowedKey = (k: string) => exclusionAllowedForKey(k, catalog);
 		const changes = proposeControlStatus(
 			a.questions,
 			states,
 			current,
-			exclusionAllowedForKey,
+			allowedKey,
 		);
 		// „Nicht relevant“: Ausschluss je Anforderung, wo das Rahmenwerk ihn
 		// kennt (SoA-Begründung = naReason); der Rest bleibt offen
@@ -520,10 +528,12 @@ async function applyAssessmentResultsImpl(
 				.filter(([, v]) => v.source === "manual" && !v.applicable)
 				.map(([k]) => k),
 		);
+		for (const [slug, info] of catalog.custom)
+			for (const code of info.excluded.keys()) excluded.add(`${slug}:${code}`);
 		const exclusions = proposeExclusions(
 			a.questions,
 			states,
-			exclusionAllowedForKey,
+			allowedKey,
 			excluded,
 		);
 		const audits: AuditInput[] = await excludeRequirements(
@@ -531,6 +541,7 @@ async function applyAssessmentResultsImpl(
 			c.orgId,
 			exclusions,
 			`assessment:${a.code}`,
+			catalog,
 		);
 		for (const ch of changes) {
 			const impl = impls.get(ch.controlCode);
@@ -553,7 +564,9 @@ async function applyAssessmentResultsImpl(
 				after: { status: ch.to, via: `assessment:${a.code}` },
 			});
 		}
-		const score = scoreAssessment(a.questions, states, { naOpenShare });
+		const score = scoreAssessment(a.questions, states, {
+			naOpenShare: (q) => naOpenShare(q, catalog),
+		});
 		await tx
 			.update(assessments)
 			.set({
@@ -784,17 +797,20 @@ async function cloneAssessmentImpl(
 		const manual = new Map<string, boolean>();
 		for (const [k, v] of await loadApplicability(tx, c.orgId))
 			if (v.source === "manual") manual.set(k, v.applicable);
-		const frameworks = src.frameworks.filter((s) => p.frameworks.includes(s));
+		const catalog = await loadOrgCatalog(tx, c.orgId);
+		const active = [...p.frameworks, ...catalog.activeCustomSlugs];
+		const frameworks = src.frameworks.filter((s) => active.includes(s));
 		const questions = catalogQuestions({
 			sector: p.profile.sector,
 			licenceStage: p.profile.licenceStage,
 			caspServices: p.profile.caspServices,
-			frameworks: frameworks.length > 0 ? frameworks : p.frameworks,
+			frameworks: frameworks.length > 0 ? frameworks : active,
 			tlptDesignated: p.profile.tlptDesignated,
 			frameworkVariants: p.profile.frameworkVariants,
 			issuesTokens: p.profile.issuesTokens,
 			productRoles: p.profile.productRoles,
 			manual,
+			catalog,
 		});
 		const existing = await tx
 			.select({ code: assessments.code })

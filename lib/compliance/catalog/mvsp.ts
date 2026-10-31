@@ -1,0 +1,263 @@
+import { buildIndex, type Spec } from "./spec";
+import type { CatalogSection } from "./types";
+
+// Minimum Viable Secure Product (MVSP): offene Prüfliste mit Mindestregeln
+// für Software, die Firmen an andere Firmen verkaufen, vor allem Software als
+// Dienst. Entwickelt von großen Softwarefirmen gemeinsam, gedacht für
+// Lieferantenfragebögen und als eigene Messlatte. Stand nach Modellwissen
+// Fassung 2.0 mit 25 Punkten in vier Abschnitten; Nummern sind die
+// offiziellen (`1.1` … `4.4`). Eigene Formulierung nach Modellwissen, gegen
+// mvsp.dev prüfen (ob eine Fassung 3.0 erschienen ist und abweicht).
+
+export const MVSP_SECTIONS: CatalogSection[] = [
+	{ code: "1", title: "Geschäftliche Kontrollen", sortOrder: 10 },
+	{ code: "2", title: "Anwendungsentwurf", sortOrder: 20 },
+	{ code: "3", title: "Umsetzung der Anwendung", sortOrder: 30 },
+	{ code: "4", title: "Betrieb", sortOrder: 40 },
+];
+
+const S: Spec[] = [
+	{
+		code: "1.1",
+		section: "1",
+		title: "Schwachstellenmeldungen",
+		text: "Ein Kontaktweg für Schwachstellenmeldungen ist veröffentlicht, ein Ablauf für die Bearbeitung ist dokumentiert, und Meldungen werden in angemessener Zeit beantwortet.",
+		domain: "development",
+		controls: ["CC-PRD-02"],
+		evidence: ["Veröffentlichte security.txt oder Seite zur Meldung"],
+	},
+	{
+		code: "1.2",
+		section: "1",
+		title: "Tests durch Kundschaft",
+		text: "Kundschaft darf das Produkt auf Wunsch selbst auf Sicherheit testen lassen, oder es gibt dafür eine Umgebung ohne echte Daten.",
+		domain: "development",
+		controls: ["CC-DEV-07", "CC-DEV-04"],
+		partial: true,
+		note: "Die Erlaubnis für Tests der Kundschaft ist vertraglich zu regeln.",
+		questions: [
+			"Wie kann eine Kundin euer Produkt testen lassen, ohne echte Daten anderer zu gefährden?",
+		],
+	},
+	{
+		code: "1.3",
+		section: "1",
+		title: "Selbsteinschätzung",
+		text: "Mindestens jährlich wird die Sicherheit des Produkts anhand dieser Liste selbst geprüft.",
+		domain: "compliance",
+		controls: ["CC-GOV-13"],
+	},
+	{
+		code: "1.4",
+		section: "1",
+		title: "Externe Tests",
+		text: "Mindestens jährlich prüft eine externe Fachfirma das Produkt mit einem umfassenden Penetrationstest; Befunde werden behoben.",
+		domain: "development",
+		controls: ["CC-DEV-04", "CC-TST-01"],
+		evidence: ["Bericht des letzten Penetrationstests mit Nachtest"],
+	},
+	{
+		code: "1.5",
+		section: "1",
+		title: "Schulung",
+		text: "Beschäftigte erhalten Sicherheitsschulungen, die zu ihrer Rolle passen.",
+		domain: "hr",
+		controls: ["CC-HR-03"],
+		related: ["iso27001:A.6.3"],
+	},
+	{
+		code: "1.6",
+		section: "1",
+		title: "Einhaltung von Vorgaben",
+		text: "Einschlägige Branchenstandards und Gesetze werden eingehalten, etwa zum Datenschutz; Vorgaben zum Speicherort von Daten aus Gesetz und Vertrag werden umgesetzt.",
+		domain: "compliance",
+		controls: ["CC-GOV-10", "CC-CMP-01", "CC-CMP-02"],
+		related: ["iso27001:A.5.31"],
+		questions: [
+			"Welche Standards und Gesetze gelten für euer Produkt, und wo ist geregelt, in welchem Land Daten liegen?",
+		],
+	},
+	{
+		code: "1.7",
+		section: "1",
+		title: "Vorfallbehandlung",
+		text: "Kundschaft wird über eine Verletzung der Sicherheit unverzüglich informiert, spätestens binnen 72 Stunden nach Entdeckung, mit Ansprechperson, erster Analyse und Plan zur Behebung.",
+		domain: "incident",
+		controls: ["CC-INC-04", "CC-INC-01", "CC-PRV-05"],
+		questions: [
+			"Wer informiert die Kundschaft bei einem Vorfall, und wie haltet ihr die 72 Stunden ein?",
+		],
+	},
+	{
+		code: "1.8",
+		section: "1",
+		title: "Umgang mit Daten",
+		text: "Datenträger werden nach einem anerkannten Verfahren wie NIST SP 800-88 so gelöscht, dass Daten nicht wiederherstellbar sind.",
+		domain: "physical",
+		controls: ["CC-PHY-05"],
+		related: ["iso27001:A.8.10"],
+	},
+	{
+		code: "2.1",
+		section: "2",
+		title: "Single Sign-on",
+		text: "Die Anwendung unterstützt Single Sign-on über offene Standards wie SAML oder OpenID Connect.",
+		domain: "access",
+		controls: ["CC-IAM-03", "CC-DEV-02"],
+		partial: true,
+		note: "Anbindung an den Identitätsanbieter der Kundschaft ist eine Funktion des Produkts.",
+	},
+	{
+		code: "2.2",
+		section: "2",
+		title: "Nur HTTPS",
+		text: "Die Anwendung ist nur über HTTPS erreichbar, leitet HTTP um und setzt HSTS; die TLS-Einstellungen werden regelmäßig geprüft.",
+		domain: "crypto",
+		controls: ["CC-CRY-05"],
+	},
+	{
+		code: "2.3",
+		section: "2",
+		title: "Sicherheits-Header",
+		text: "Die Anwendung setzt Sicherheits-Header gegen Einbetten in fremde Seiten und gegen falsch erkannte Inhaltstypen, etwa Content-Security-Policy mit frame-ancestors und X-Content-Type-Options; sensible Antworten werden nicht zwischengespeichert.",
+		domain: "development",
+		controls: ["CC-DEV-02", "CC-PRD-10"],
+	},
+	{
+		code: "2.4",
+		section: "2",
+		title: "Passwortregeln",
+		text: "Werden Passwörter genutzt, gelten eine Mindestlänge von acht Zeichen, kein erzwungener Wechsel, eine Prüfung gegen bekannte geleakte Passwörter und keine Sicherheitsfragen; gespeichert werden sie nur mit gesalzenem, aufwendigem Hash.",
+		domain: "access",
+		controls: ["CC-IAM-03", "CC-DEV-02"],
+		questions: [
+			"Wie speichert ihr Passwörter, und prüft ihr neue Passwörter gegen bekannte geleakte?",
+		],
+	},
+	{
+		code: "2.5",
+		section: "2",
+		title: "Sicherheitsbibliotheken",
+		text: "Frameworks und Bibliotheken, die häufige Schwachstellen verhindern, werden genutzt, etwa Vorlagen mit automatischer Maskierung und Datenbankabfragen mit Parametern.",
+		domain: "development",
+		controls: ["CC-DEV-03"],
+	},
+	{
+		code: "2.6",
+		section: "2",
+		title: "Abhängigkeiten aktualisieren",
+		text: "Sicherheitsupdates ab mittlerer Schwere für alle Teile der Anwendung werden binnen eines Monats nach Erscheinen eingespielt, oder gleichwertige Schutzmaßnahmen greifen.",
+		domain: "operations",
+		controls: ["CC-OPS-03", "CC-DEV-05"],
+		related: ["iso27001:A.8.8"],
+	},
+	{
+		code: "2.7",
+		section: "2",
+		title: "Protokollierung",
+		text: "Protokolliert werden An- und Abmeldungen, Lesen, Schreiben und Löschen, Änderungen an Sicherheitseinstellungen und Zugriffe des Anbieters auf Kundendaten, jeweils mit Nutzerkennung, IP-Adresse, Zeit, Aktion und Objekt. Protokolle werden mindestens 30 Tage aufbewahrt und enthalten keine sensiblen Daten.",
+		domain: "operations",
+		controls: ["CC-LOG-01", "CC-LOG-03"],
+		related: ["iso27001:A.8.15"],
+		evidence: ["Beispiel eines Protokolleintrags mit allen Feldern"],
+	},
+	{
+		code: "2.8",
+		section: "2",
+		title: "Verschlüsselung",
+		text: "Sensible Daten werden bei der Übertragung zwischen Systemen sowie im Ruhezustand in Datenspeichern und Backups verschlüsselt.",
+		domain: "crypto",
+		controls: ["CC-CRY-01", "CC-CRY-05"],
+		related: ["iso27001:A.8.24"],
+	},
+	{
+		code: "3.1",
+		section: "3",
+		title: "Liste der Daten",
+		text: "Eine Liste zeigt, welche Arten sensibler Daten die Anwendung verarbeiten soll.",
+		domain: "asset",
+		controls: ["CC-AST-01", "CC-AST-02"],
+	},
+	{
+		code: "3.2",
+		section: "3",
+		title: "Datenflussdiagramm",
+		text: "Ein aktuelles Diagramm zeigt, wie sensible Daten in die Systeme gelangen und wo sie gespeichert werden.",
+		domain: "asset",
+		controls: ["CC-SSP-01", "CC-DEV-02"],
+		questions: [
+			"Wann wurde das Datenflussdiagramm zuletzt an das Produkt angepasst?",
+		],
+		evidence: ["Aktuelles Datenflussdiagramm mit Datum"],
+	},
+	{
+		code: "3.3",
+		section: "3",
+		title: "Schwachstellen verhindern",
+		text: "Entwickelnde werden geschult, und Richtlinien verhindern mindestens häufige Schwachstellen wie umgangene Rechteprüfungen, unsichere Sitzungen, eingeschleuster Code, Cross-Site-Scripting, Cross-Site-Request-Forgery und Server-Side-Request-Forgery.",
+		domain: "development",
+		controls: ["CC-DEV-03", "CC-DEV-01", "CC-HR-03"],
+	},
+	{
+		code: "3.4",
+		section: "3",
+		title: "Frist für Behebungen",
+		text: "Schwachstellen der Anwendung, die die Sicherheit wesentlich betreffen, werden binnen 90 Tagen nach Entdeckung behoben und ausgeliefert.",
+		domain: "development",
+		controls: ["CC-OPS-03", "CC-PRD-05"],
+		questions: ["Wie viele Schwachstellen sind älter als 90 Tage, und warum?"],
+	},
+	{
+		code: "3.5",
+		section: "3",
+		title: "Build- und Release-Prozess",
+		text: "Builds und Releases laufen vollständig automatisiert über Skripte und erzeugen Herkunftsnachweise für die erzeugten Pakete.",
+		domain: "development",
+		controls: ["CC-DEV-06", "CC-DEV-05", "CC-PRD-03"],
+		partial: true,
+		note: "Herkunftsnachweise für Builds (etwa nach SLSA) ergänzen.",
+	},
+	{
+		code: "4.1",
+		section: "4",
+		title: "Physischer Zugang",
+		text: "Für genutzte Räume und Rechenzentren ist geprüft, dass gestaffelte Zugangssperren, verwaltete Schlüssel, Zutrittsprotokolle und ein Plan für Einbruchsalarme bestehen.",
+		domain: "physical",
+		controls: ["CC-PHY-01", "CC-TPR-05"],
+	},
+	{
+		code: "4.2",
+		section: "4",
+		title: "Logischer Zugang",
+		text: "Zugriff auf sensible Daten haben nur Personen mit berechtigtem Bedarf und Freigabe der Verantwortlichen; ungenutzte Konten werden zeitnah gesperrt, Rechte regelmäßig geprüft. Fernzugriff auf Kundendaten oder Produktion verlangt mehrere Faktoren.",
+		domain: "access",
+		controls: ["CC-IAM-01", "CC-IAM-02", "CC-IAM-03"],
+		related: ["iso27001:A.5.15"],
+		questions: [
+			"Wer hat heute Zugriff auf Kundendaten in der Produktion, und wann wurde das zuletzt geprüft?",
+		],
+	},
+	{
+		code: "4.3",
+		section: "4",
+		title: "Unterauftragnehmer",
+		text: "Eine Liste der Drittfirmen mit Zugriff auf Kundendaten ist auf der Webseite veröffentlicht; diese Firmen werden jährlich nach dieser Liste geprüft.",
+		domain: "supplier",
+		controls: ["CC-TPR-05", "CC-TPR-01"],
+		partial: true,
+		note: "Die Liste der Unterauftragnehmer ist öffentlich zu machen.",
+	},
+	{
+		code: "4.4",
+		section: "4",
+		title: "Backup und Notfall",
+		text: "Alle Daten werden sicher an einem anderen Ort gesichert als dem, an dem die Anwendung läuft; Notfallpläne werden gepflegt und geübt, die Wiederherstellung wird regelmäßig getestet.",
+		domain: "continuity",
+		controls: ["CC-BCM-03", "CC-BCM-05", "CC-BCM-01"],
+		related: ["iso27001:A.8.13"],
+	},
+];
+
+const built = buildIndex("mvsp", S);
+export const MVSP_REQUIREMENTS = built.requirements;
+export const MVSP_EDGES = built.edges;

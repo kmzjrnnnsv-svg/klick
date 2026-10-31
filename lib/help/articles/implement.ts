@@ -1,3 +1,4 @@
+import { COMPLIANCE_PROCESS } from "@/lib/compliance/catalog/compliance-process";
 import type { HelpArticle } from "../types";
 
 // Umsetzen: Überblick, Gap-Analyse, Controls und Synergien, Rahmenwerke,
@@ -194,6 +195,92 @@ export const IMPLEMENT: HelpArticle[] = [
 		related: ["nachweise", "rahmenwerke", "gap-analyse"],
 	},
 	{
+		slug: "zusammenhaenge",
+		area: "implement",
+		title: "Wie hängt alles zusammen?",
+		summary:
+			"Rahmenwerke, gemeinsame Maßnahmen, strengere Vorgaben und Widersprüche, einfach erklärt mit einem Beispiel.",
+		sections: [
+			{
+				id: "grundbild",
+				heading: "Das Grundbild",
+				body: [
+					"Mama, Schule und Polizei haben jeweils Regeln fürs Radfahren. Jede Regelsammlung ist ein Rahmenwerk. Alle drei sagen „Helm auf“: Du setzt ihn einmal auf, und alle drei sind zufrieden. Das ist eine gemeinsame Maßnahme. Nur die Polizei will Licht am Rad; das gilt nur bei einem Rahmenwerk.",
+					"Mama sagt „um 18 Uhr zu Hause“, Oma sagt „um 17 Uhr“. Wer um 17 Uhr da ist, macht beide froh: Die strengere Vorgabe erfüllt beide. Manchmal passen Regeln nicht zusammen, etwa „alles aufheben“ und „alles wegwerfen“. Dann muss jemand entscheiden. Ein Foto vom Helm ist der Nachweis, und wenn jemand nachschaut, ist das die Prüfung.",
+				],
+			},
+			{
+				id: "praxis",
+				heading: "So läuft es in der Praxis",
+				body: [
+					"Ein Beispiel läuft durch alle Schritte: einen schweren Vorfall melden.",
+				],
+				steps: COMPLIANCE_PROCESS.map(
+					(s) => `${s.title}: ${s.what} ${s.example}`,
+				),
+			},
+			{
+				id: "erklaert",
+				heading: "Einfach erklärt in Klick",
+				list: [
+					"Jedes Rahmenwerk hat oben auf seiner Seite einen Steckbrief: wozu es da ist, für wen es gilt, wer es verlangt, was ohne passiert und wie man es zeigt. Jedes Kapitel hat einen einfachen Satz.",
+					"Jede Maßnahme (Control) hat oben „Einfach erklärt“: was das ist, wozu, und ein Bild aus dem Alltag.",
+					"Darunter steht „Wer verlangt das – und was genau?“: alle Rahmenwerke mit ihren Anforderungen, ob die Maßnahme sie ganz oder nur teilweise erfüllt, und was bei „teilweise“ dazukommt.",
+					"Auf der Seite einer Anforderung steht je Maßnahme, welche Rahmenwerke sie mit erfüllt.",
+				],
+			},
+			{
+				id: "beispiel",
+				heading: "Beispiel: einen Vorfall melden",
+				body: [
+					"Die Maßnahme „Meldeprozess an Behörden mit Fristen“ verlangen unter anderem DORA, NIS2 und die DSGVO. Im Kern wollen alle dasselbe: Schwere Vorfälle gehen rechtzeitig an die Behörde. Die Fristen sind aber verschieden. DORA verlangt die Erstmeldung binnen 4 Stunden, NIS2 und DSGVO lassen mehr Zeit.",
+					"Klick zeigt das unter „Gleiche Maßnahme, andere Strenge“ und markiert DORA als am strengsten. Schaffst du die strengste Frist, passt es für alle. Gemeldet wird trotzdem an jede Stelle einzeln, jeweils mit ihrem Formular.",
+				],
+			},
+			{
+				id: "widerspruch",
+				heading: "Wenn sich Regeln widersprechen",
+				body: [
+					"Manche Rahmenwerke verlangen, Unterlagen lange aufzuheben, die DSGVO verlangt, Daten über Menschen zu löschen, wenn sie nicht mehr gebraucht werden. Klick zeigt das als Widerspruch an der Maßnahme. Üblich ist: sperren statt löschen, solange die Aufbewahrungsfrist läuft, danach löschen. Halte die Entscheidung im Löschkonzept fest.",
+				],
+			},
+			{
+				id: "uebersicht",
+				heading: "Die Übersicht",
+				body: [
+					"Unter Zusammenhänge zeigt eine Übersicht in der Mitte deine Firma, darum neun Themen in Alltagssprache und außen deine Rahmenwerke. Linien zeigen, welches Rahmenwerk Maßnahmen in welchem Thema verlangt; je breiter, desto mehr. Antippen öffnet die Erklärung. Am Handy und als Tabelle stehen dieselben Zahlen als Liste.",
+					"Darunter stehen die Maßnahmen je Thema und wie deine Rahmenwerke zueinander stehen: was aufeinander aufbaut, was vorgeht, was ablöst und welche Paare am meisten gemeinsam haben.",
+				],
+				tip: "Nicht anwendbare Anforderungen zählen hier nicht mit. Gilt NIS2 für dich nicht, weil DORA vorgeht, fehlt NIS2 in der Übersicht.",
+			},
+		],
+		faq: [
+			{
+				q: "Muss ich eine geteilte Maßnahme mehrfach umsetzen?",
+				a: "Nein. Du setzt sie einmal um, und sie zählt für jedes Rahmenwerk, das sie verlangt. Prüf nur, ob ein Rahmenwerk mehr will (teilweise) oder strenger ist.",
+			},
+			{
+				q: "Woher kommen die einfachen Erklärungen?",
+				a: "Aus dem Katalog von Klick. Sie helfen beim Verstehen; fachlich gilt der Text der Anforderung.",
+			},
+		],
+		norms: [
+			{
+				key: "iso27001:4.2",
+				why: "Die Anforderungen der interessierten Parteien kennen, auch die von Gesetzen und Kundschaft.",
+			},
+			{
+				key: "dora:Art.19",
+				why: "Beispiel für eine Maßnahme mit verschiedenen Fristen je Rahmenwerk.",
+			},
+			{
+				key: "dsgvo:Art.33",
+				why: "Meldung einer Datenpanne binnen 72 Stunden, neben den Meldungen nach DORA und NIS2.",
+			},
+		],
+		related: ["controls", "rahmenwerke"],
+	},
+	{
 		slug: "rahmenwerke",
 		area: "implement",
 		title: "Rahmenwerke, Anforderungen und SoA",
@@ -204,8 +291,8 @@ export const IMPLEMENT: HelpArticle[] = [
 				id: "auswahl",
 				heading: "Rahmenwerke wählen",
 				body: [
-					"Klick kennt über 25 Rahmenwerke: ISO 27001, DORA, NIS2, MiCAR mit KMAG, ZAG und ZAG-MaRisk, GwG und AMLR, Travel Rule (TFR), Sanktionen, DSGVO, DAC8, AWV, Kassenrecht, KWG mit Banken-MaRisk, CRA, SOC 2, CCSS, PCI DSS, die BSI-Standards 200-1 bis 200-4 und die Korridore. Unter Einstellungen > Rahmenwerke & Stufe wählst du aus. Ein entferntes Rahmenwerk lässt sich jederzeit wieder aktivieren; dein Stand an den Controls bleibt.",
-					"Manche Rahmenwerke haben Varianten, die du dort ebenfalls wählst: PCI DSS nach deinem Fragebogen (SAQ A, A-EP, B, B-IP, C, C-VT, P2PE, SPoC, D oder Dienstleister), IT-Grundschutz nach Absicherungsvariante (Basis, Standard, Kern). Es gelten dann nur die Anforderungen dieser Variante; die übrigen stehen mit dem Hinweis „Gilt nicht für die gewählte Variante“ in der Liste. Die Einrichtung schlägt die Variante aus deiner Antwort zu Kartendaten vor.",
+					"Klick kennt über 40 Rahmenwerke: ISO 27001, DORA, NIS2, MiCAR mit KMAG, ZAG und ZAG-MaRisk, GwG und AMLR, Travel Rule (TFR), Sanktionen, DSGVO, DAC8, AWV, Kassenrecht, KWG mit Banken-MaRisk, CRA, SOC 2, CCSS, PCI DSS, die BSI-Standards 200-1 bis 200-4, ISO 42001 für KI, TISAX für die Autoindustrie, das EU-US Data Privacy Framework, Cyber Essentials (UK), Essential Eight (Australien), aus den USA das NIST Cybersecurity Framework 2.0, NIST SP 800-53 und 800-171, CMMC, HIPAA, die Cybersicherheitsregeln der New Yorker Finanzaufsicht (23 NYCRR 500), CCPA und die Datenschutzgesetze der Bundesstaaten, dazu die Programme von Kund:innen und Plattformen AWS FTR, Microsoft SSPA und MVSP sowie die Korridore. Unter Einstellungen > Rahmenwerke & Stufe wählst du aus. Ein entferntes Rahmenwerk lässt sich jederzeit wieder aktivieren; dein Stand an den Controls bleibt.",
+					"Manche Rahmenwerke haben Varianten, die du dort ebenfalls wählst: PCI DSS nach deinem Fragebogen (SAQ A, A-EP, B, B-IP, C, C-VT, P2PE, SPoC, D oder Dienstleister), IT-Grundschutz nach Absicherungsvariante (Basis, Standard, Kern), TISAX nach Prüfziel (mit Prototypenschutz oder Datenschutz), Cyber Essentials als Basis oder Plus, Essential Eight nach Reifegrad 1 bis 3, NIST SP 800-53 nach Baseline (Low, Moderate, High), CMMC nach Stufe 1 bis 3, 23 NYCRR 500 nach Einstufung (Standard, Class A, begrenzte Ausnahme), Microsoft SSPA nach Datenart. Es gelten dann nur die Anforderungen dieser Variante; die übrigen stehen mit dem Hinweis „Gilt nicht für die gewählte Variante“ in der Liste. Die Einrichtung schlägt die Variante aus deiner Antwort zu Kartendaten vor.",
 				],
 			},
 			{
@@ -214,8 +301,8 @@ export const IMPLEMENT: HelpArticle[] = [
 				list: [
 					"Ob eine Anforderung gilt, folgt aus deinem Profil: Lizenzstufe (Vorbereitung bis Bank), Kryptowerte-Dienste, Produkte und Stichtag.",
 					"Anforderungen mit künftigem Stichtag (zum Beispiel AMLR ab 10.07.2027) erscheinen schon im Arbeitsvorrat, damit du rechtzeitig planst.",
-					"Ausschließen kannst du eine Anforderung nur, wo das Rahmenwerk es vorsieht: bei ISO 27001 die Maßnahmen aus Anhang A (in der SoA, Abschnitt 6.1.3 d), bei SOC 2 die wählbaren Kategorien Verfügbarkeit, Vertraulichkeit, Verarbeitungsintegrität und Datenschutz, bei PCI DSS jede Anforderung („Not Applicable“ mit Begründung, die Prüfer:innen nachvollziehen). Der Ausschluss braucht eine Begründung und überschreibt die Ableitung.",
-					"DORA, NIS2, GwG, ZAG, MiCAR, DSGVO, die BSI-Standards und die übrigen Gesetze kennen keinen Ausschluss. Dort setzt du verhältnismäßig um, also passend zu Größe und Risiko, und beschreibst das in der Notiz.",
+					"Ausschließen kannst du eine Anforderung nur, wo das Rahmenwerk es vorsieht: bei ISO 27001 die Maßnahmen aus Anhang A (in der SoA, Abschnitt 6.1.3 d), bei SOC 2 die wählbaren Kategorien Verfügbarkeit, Vertraulichkeit, Verarbeitungsintegrität und Datenschutz, bei PCI DSS jede Anforderung („Not Applicable“ mit Begründung, die Prüfer:innen nachvollziehen), bei ISO 42001 wie bei ISO 27001 nur Anhang A, bei NIST SP 800-53 über das Tailoring der Baseline, bei NIST SP 800-171 und CMMC als „nicht anwendbar“ mit Begründung im Systemsicherheitsplan, beim NIST CSF für Ergebnisse außerhalb deines Ziel-Profils, bei AWS FTR und Microsoft SSPA für Prüfpunkte, die auf deine Lösung nicht zutreffen. Der Ausschluss braucht eine Begründung und überschreibt die Ableitung.",
+					"DORA, NIS2, GwG, ZAG, MiCAR, DSGVO, die BSI-Standards, HIPAA, CCPA, die US-Datenschutzgesetze, 23 NYCRR 500 und die übrigen Gesetze kennen keinen Ausschluss. Dort setzt du verhältnismäßig um, also passend zu Größe und Risiko, und beschreibst das in der Notiz.",
 					"In der Gap-Analyse schließt „Nicht relevant“ nur die Anforderungen aus, die einen Ausschluss kennen; der Rest bleibt offen und zählt in der Bewertung mit. Wo keines der Rahmenwerke einer Frage einen Ausschluss kennt, ist die Antwort gesperrt.",
 					"Ausschlüsse von früher in Rahmenwerken ohne Ausschluss markiert Klick an der Anforderung und als Blocker in der Prüfungsreife, bis du sie zurücknimmst.",
 				],
@@ -228,6 +315,30 @@ export const IMPLEMENT: HelpArticle[] = [
 					"Lücken: was noch fehlt, sortiert nach Hebel.",
 					"SoA: bei ISO 27001 die Erklärung zur Anwendbarkeit mit Begründung je Anhang-A-Control und dem Pflichtdokument-Check; als Markdown exportierbar.",
 				],
+			},
+			{
+				id: "eigene",
+				heading: "Eigene Rahmenwerke",
+				body: [
+					"Anforderungen von Kund:innen, Vorgaben aus dem Konzern oder ein Katalog, den du selbst lizenziert hast (zum Beispiel HITRUST), legst du als eigenes Rahmenwerk an. Du ordnest jede Anforderung einer oder mehreren Klick-Maßnahmen zu. Eingeschaltet zählt das Rahmenwerk wie jedes andere: in Abdeckung, Prüfungsreife, Gap-Analyse, Nachweisbogen und Zusammenhängen.",
+				],
+				steps: [
+					"Öffne Einstellungen > Rahmenwerke & Stufe und wähle „Eigenes Rahmenwerk anlegen“.",
+					"Wähle, womit du beginnst: leer, als Kopie eines Klick-Rahmenwerks oder mit einer CSV-Datei.",
+					"Leg Abschnitte und Anforderungen an. Tippe eine Anforderung an, um sie zu bearbeiten.",
+					"Ordne jede Anforderung Maßnahmen zu. „Vorschläge holen“ sucht passende Maßnahmen zum Text; ganz oder teilweise, mit Notiz.",
+					"Mit dem Filter „Nur nicht zugeordnete“ siehst du, was noch offen ist.",
+					"Eine Inhaber:in schaltet das Rahmenwerk ein und bestätigt per Passkey. Fehlende Maßnahmen kommen dabei in deinen Arbeitsvorrat.",
+				],
+				list: [
+					"Anlegen und pflegen dürfen Inhaber:innen, Bearbeiter:innen und Berater:innen; einschalten, zurückziehen und löschen nur Inhaber:innen.",
+					"CSV-Spalten: abschnitt, abschnitt_titel, code, titel, text, bereich, controls (mit Komma getrennt, „:teilweise“ je Code möglich) und abdeckung. Gleiche Nummer aktualisiert, nichts wird gelöscht. Vor dem Übernehmen zeigt Klick, was neu ist, was sich ändert und welche Zeilen Fehler haben.",
+					"Eine Kopie folgt späteren Änderungen am Klick-Rahmenwerk nicht; sie ist deine eigene Fassung.",
+					"Ausschließen geht nur, wenn du ihn unter Angaben erlaubt hast, und immer mit Begründung.",
+					"Ein eingeschaltetes Rahmenwerk ziehst du zurück, statt es zu löschen: Es zählt dann nicht mehr, bleibt aber erhalten.",
+					"Eigene Rahmenwerke erscheinen nicht im öffentlichen Trust Center. Pflichtdokumente, Audit-Fristen und Pflicht-Freigaben gibt es nur für Klick-Rahmenwerke.",
+				],
+				tip: "Klick liefert keine lizenzierten Inhalte. Einen Katalog mit eigener Lizenz bringst du selbst per CSV ein.",
 			},
 			{
 				id: "baseline",

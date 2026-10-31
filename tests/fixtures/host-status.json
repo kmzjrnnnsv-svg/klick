@@ -1,0 +1,45 @@
+{
+	"version": 1,
+	"checkedAt": "2026-10-31T12:00:00Z",
+	"problems": [],
+	"disks": [
+		{ "mount": "/", "usedPct": 41 },
+		{ "mount": "/var", "usedPct": 63 }
+	],
+	"memory": { "totalMb": 7940, "availableMb": 3120 },
+	"updates": { "total": 4, "security": 0 },
+	"rebootRequired": false,
+	"certs": [
+		{ "name": "raza.work", "notAfter": "2027-01-12T08:00:00Z" },
+		{ "name": "both.money", "notAfter": "2026-12-20T08:00:00Z" }
+	],
+	"services": [
+		{ "name": "klick", "active": "active", "enabled": "enabled" },
+		{ "name": "both", "active": "active", "enabled": "enabled" },
+		{ "name": "klick-signer", "active": "inactive", "enabled": "not-found" },
+		{ "name": "nginx", "active": "active", "enabled": "enabled" },
+		{ "name": "postgresql", "active": "active", "enabled": "enabled" },
+		{ "name": "wg-quick@wg-admin", "active": "active", "enabled": "enabled" },
+		{ "name": "crowdsec", "active": "active", "enabled": "enabled" },
+		{ "name": "clamav-daemon", "active": "inactive", "enabled": "disabled" }
+	],
+	"units": [
+		{
+			"name": "klick-backup-db",
+			"result": "success",
+			"at": "2026-10-31T02:15:04Z"
+		},
+		{
+			"name": "klick-backup-objects",
+			"result": "success",
+			"at": "2026-10-31T02:40:11Z"
+		},
+		{
+			"name": "klick-backup-verify",
+			"result": "success",
+			"at": "2026-10-27T05:02:00Z"
+		},
+		{ "name": "klick-aide", "result": "success", "at": "2026-10-31T05:30:40Z" }
+	],
+	"crowdsecBans": 37
+}

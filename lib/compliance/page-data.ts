@@ -13,8 +13,13 @@ export const getOrgCoverageCached = cache(
 		readOrg(toOrgCtx(ctx), (tx) => orgCoverage(tx, ctx.orgId)),
 );
 
-export function frameworkNameMap(): Record<string, string> {
-	return Object.fromEntries(CATALOG_FRAMEWORKS.map((f) => [f.slug, f.name]));
+// Namen aller Rahmenwerke; mit Katalog der Org auch die eigenen (R4)
+export function frameworkNameMap(catalog?: {
+	frameworks: readonly { slug: string; name: string }[];
+}): Record<string, string> {
+	return Object.fromEntries(
+		(catalog?.frameworks ?? CATALOG_FRAMEWORKS).map((f) => [f.slug, f.name]),
+	);
 }
 
 export { shortFrameworkName } from "./framework-names";

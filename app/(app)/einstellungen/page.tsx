@@ -24,6 +24,7 @@ import {
 import { headers } from "next/headers";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { CustomFrameworkList } from "@/components/custom-frameworks/framework-list";
 import { PageHeader } from "@/components/page-header";
 import { AiPanel } from "@/components/settings/ai-panel";
 import { AuditRegimesPanel } from "@/components/settings/audit-regimes-panel";
@@ -43,6 +44,7 @@ import { RolesPanel } from "@/components/settings/roles-panel";
 import { SecurityChangesPanel } from "@/components/settings/security-changes-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
 import { SignaturePolicyPanel } from "@/components/settings/signature-policy-panel";
+import { SiteTunnelsSection } from "@/components/settings/site-tunnels-section";
 import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
 import { SubscriptionPanel } from "@/components/settings/subscription-panel";
@@ -87,6 +89,8 @@ import { allows, roleStatements } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { orgSsoPolicy } from "@/lib/auth/sso-provisioning";
+import { setupRequests } from "@/lib/auth/sso-setup-link";
+import { providerStates } from "@/lib/auth/sso-setup-service";
 import { ledgerExportAllowed } from "@/lib/auth/visibility";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import { requiredDuties } from "@/lib/compliance/catalog/approval-duties";
@@ -113,6 +117,7 @@ import {
 } from "@/lib/compliance/risk-method";
 import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
 import { topManagementOf } from "@/lib/compliance/top-management";
+import { listCustomFrameworks } from "@/lib/custom-frameworks/service";
 import { orgAiRow } from "@/lib/db/org-accounts";
 import { userLabels } from "@/lib/db/platform-access";
 import { loadPriceTable } from "@/lib/db/pricing";
@@ -156,6 +161,8 @@ import {
 	visibleSettingsSections,
 } from "@/lib/settings/sections";
 import { orgSignaturePolicy } from "@/lib/signatures/policy-server";
+import { effectiveNets } from "@/lib/site-tunnels/rules";
+import { siteTunnelsForOrg } from "@/lib/site-tunnels/service";
 import { teamsConfigured } from "@/lib/teams/config";
 import { teamsIntegrationOf } from "@/lib/teams/service";
 import { cn } from "@/lib/utils";
@@ -403,9 +410,8 @@ async function renderSection(
 		case "frameworks": {
 			const cov = await getOrgCoverageCached(ctx);
 			if (!cov) return null;
-			const { settings, orgFws, retiredSlugs, openAudits } = await readOrg(
-				octx,
-				async (tx) => {
+			const { settings, orgFws, retiredSlugs, openAudits, customFws } =
+				await readOrg(octx, async (tx) => {
 					const rows = await listOrgFrameworks(tx, ctx.orgId);
 					const names = await userNames(
 						tx,
@@ -413,6 +419,9 @@ async function renderSection(
 					);
 					return {
 						settings: await getOrgSettings(tx, ctx.orgId),
+						customFws: allows(ctx, { custom_framework: ["read"] })
+							? await listCustomFrameworks(tx, ctx.orgId)
+							: null,
 						orgFws: rows.map((r) => ({
 							...r,
 							ownerName: r.ownerUserId
@@ -424,8 +433,7 @@ async function renderSection(
 						),
 						openAudits: await listOpenAuditScopes(tx, ctx.orgId),
 					};
-				},
-			);
+				});
 			const activeSlugs = new Set(orgFws.map((f) => f.slug));
 			const applicability = new Map(
 				[...cov.applicabilityDetail].map(([k, d]) => [k, d.applicable]),
@@ -482,6 +490,25 @@ async function renderSection(
 						}}
 						canEdit={canEditSettings}
 					/>
+					{customFws && (
+						<CustomFrameworkList
+							items={customFws.map((f) => ({
+								id: f.id,
+								name: f.name,
+								status: f.status,
+								requirements: f.requirements,
+								mapped: f.mapped,
+							}))}
+							canCreate={allows(ctx, { custom_framework: ["create"] })}
+							copyOptions={CATALOG_FRAMEWORKS.filter(
+								(f) => f.requirements.length > 0,
+							).map((f) => ({
+								slug: f.slug,
+								name: f.name,
+								requirements: f.requirements.length,
+							}))}
+						/>
+					)}
 				</>
 			);
 		}
@@ -749,15 +776,50 @@ async function renderSection(
 				</div>
 			);
 		}
-		case "sso":
+		case "sso": {
+			const [list, states, setups] = await Promise.all([
+				listSsoProvidersForOrg(ctx.orgId),
+				readOrg(octx, (tx) => providerStates(tx, ctx.orgId)),
+				readOrg(octx, (tx) => setupRequests(tx, ctx.orgId)),
+			]);
+			const now = new Date();
+			const byId = new Map(states.map((s) => [s.providerId, s]));
 			return (
 				<SsoPanel
-					providers={await listSsoProvidersForOrg(ctx.orgId)}
+					providers={list.map((p) => {
+						const st = byId.get(p.providerId);
+						return {
+							...p,
+							vendor: st?.vendor ?? null,
+							certNotAfter: st?.certNotAfter?.toISOString() ?? null,
+							metadataUrl: st?.metadataUrl ?? null,
+							probeOkAt: st?.probeOkAt?.toISOString() ?? null,
+							nextCert: Boolean(st?.nextCertFingerprints),
+							nextCertNotAfter: st?.nextCertNotAfter?.toISOString() ?? null,
+							lastFetchError: st?.lastFetchError ?? null,
+						};
+					})}
 					callbackBase={callbackBase()}
 					canEdit={ctx.orgRole === "owner"}
 					policy={await orgSsoPolicy(ctx.orgId)}
+					setupRequests={setups
+						.filter(
+							(r) =>
+								(r.status === "open" || r.status === "submitted") &&
+								r.expiresAt > now,
+						)
+						.map((r) => ({
+							id: r.id,
+							vendor: r.vendor,
+							domain: r.domain,
+							status: r.status,
+							contactName: r.contactName,
+							submittedAt: r.submittedAt?.toISOString() ?? null,
+							expiresAt: r.expiresAt.toISOString(),
+						}))}
 				/>
 			);
+		}
 		case "portal": {
 			const [{ portal, readers }, sso] = await Promise.all([
 				readOrg(octx, async (tx) => ({
@@ -895,12 +957,25 @@ async function renderSection(
 					);
 				return { row, open: changes.some((c) => isOpen(c, new Date())) };
 			});
+			const tunnels = await siteTunnelsForOrg(octx);
+			const owner = ctx.orgRole === "owner";
 			return (
 				<NetworkPanel
 					policy={networkPolicyOf(row?.networkPolicy)}
 					myIp={normalizeIp(ctx.ip)}
-					canEdit={ctx.orgRole === "owner"}
+					canEdit={owner}
 					pendingChange={open}
+					sites={tunnels
+						.filter((tn) => tn.state === "connected")
+						.map((tn) => ({
+							name: tn.name,
+							nets: effectiveNets(tn),
+						}))}
+					siteSection={
+						tunnels.length > 0 ? (
+							<SiteTunnelsSection tunnels={tunnels} canEdit={owner} />
+						) : null
+					}
 				/>
 			);
 		}

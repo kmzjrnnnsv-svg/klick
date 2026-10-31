@@ -1,0 +1,153 @@
+/* Übersicht als Mindmap (Teil Z6). Hervorheben beim Zeigen ohne Skript:
+   :has() dimmt alle Linien außer denen des gezeigten Knotens. Themen haben
+   feste Schlüssel, Rahmenwerke tragen ihre Linien in der eigenen Gruppe. */
+
+.wrap {
+	display: none;
+}
+
+@media (min-width: 768px) {
+	.wrap {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+}
+
+.map {
+	display: block;
+	width: 100%;
+	height: auto;
+	font-family: inherit;
+}
+
+.edge {
+	stroke: var(--primary);
+	stroke-linecap: round;
+	opacity: 0.16;
+	transition: opacity 150ms ease;
+}
+
+.ring {
+	fill: none;
+	stroke: var(--border);
+	stroke-dasharray: 2 6;
+}
+
+.center {
+	fill: var(--primary-fill, var(--primary));
+}
+
+.centerText {
+	fill: #fff;
+	font-size: 1.1875rem;
+	font-weight: 600;
+	text-anchor: middle;
+	dominant-baseline: middle;
+}
+
+.themeNode {
+	fill: var(--card);
+	stroke: var(--border);
+	stroke-width: 1.5;
+	transition: stroke 150ms ease;
+}
+
+.themeCount {
+	fill: var(--foreground);
+	font-size: 1.5rem;
+	font-weight: 700;
+	text-anchor: middle;
+	dominant-baseline: middle;
+	font-variant-numeric: tabular-nums;
+}
+
+.themeLabel {
+	fill: var(--foreground);
+	dominant-baseline: middle;
+	font-weight: 600;
+	paint-order: stroke;
+	stroke: var(--background);
+	stroke-width: 4px;
+	stroke-linejoin: round;
+	font-size: 1.1875rem;
+}
+
+.fwDot {
+	fill: var(--primary);
+}
+
+.fwLabel {
+	fill: var(--foreground);
+	paint-order: stroke;
+	stroke: var(--background);
+	stroke-width: 4px;
+	stroke-linejoin: round;
+	font-size: 1.1875rem;
+	dominant-baseline: middle;
+}
+
+.hit {
+	fill: transparent;
+}
+
+.link {
+	cursor: pointer;
+	outline: none;
+}
+
+.link:focus-visible .themeNode,
+.link:hover .themeNode {
+	stroke: var(--primary);
+	stroke-width: 3;
+}
+
+.link:focus-visible .hit {
+	fill: none;
+	stroke: var(--ring, var(--primary));
+	stroke-width: 2;
+}
+
+.link:hover .fwLabel,
+.link:focus-visible .fwLabel {
+	fill: var(--primary);
+	text-decoration: underline;
+}
+
+/* Rahmenwerk gezeigt: nur seine Linien */
+.map:has(.fw:hover, .fw:focus-within) .edge {
+	opacity: 0.05;
+}
+.map .fw:hover .edge,
+.map .fw:focus-within .edge {
+	opacity: 0.9;
+}
+
+/* Thema gezeigt: nur seine Linien (neun feste Themen) */
+.map:has([data-topic]:hover, [data-topic]:focus-visible) .edge {
+	opacity: 0.05;
+}
+.map:has([data-topic="lead"]:hover, [data-topic="lead"]:focus-visible) .edge[data-t="lead"],
+.map:has([data-topic="access"]:hover, [data-topic="access"]:focus-visible) .edge[data-t="access"],
+.map:has([data-topic="tech"]:hover, [data-topic="tech"]:focus-visible) .edge[data-t="tech"],
+.map:has([data-topic="build"]:hover, [data-topic="build"]:focus-visible) .edge[data-t="build"],
+.map:has([data-topic="incident"]:hover, [data-topic="incident"]:focus-visible) .edge[data-t="incident"],
+.map:has([data-topic="partners"]:hover, [data-topic="partners"]:focus-visible) .edge[data-t="partners"],
+.map:has([data-topic="privacy"]:hover, [data-topic="privacy"]:focus-visible) .edge[data-t="privacy"],
+.map:has([data-topic="money"]:hover, [data-topic="money"]:focus-visible) .edge[data-t="money"],
+.map:has([data-topic="people"]:hover, [data-topic="people"]:focus-visible) .edge[data-t="people"] {
+	opacity: 0.9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.edge,
+	.themeNode {
+		transition: none;
+	}
+}
+
+@media (prefers-contrast: more) {
+	.edge {
+		opacity: 0.45;
+	}
+}

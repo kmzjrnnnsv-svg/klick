@@ -14,6 +14,7 @@ import {
 	DlpWarning,
 	useUploadFeedback,
 } from "@/components/entity/upload-feedback";
+import { RelationHintBox } from "@/components/relations/relation-hint";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { errorText } from "@/components/ui/error-text";
@@ -22,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { AssessmentAnswer, AssessmentQuestion } from "@/db/schema/enums";
+import type { RelationHint } from "@/lib/compliance/relation-hints";
 import { cn } from "@/lib/utils";
 
 const ANSWERS: AssessmentAnswer[] = ["yes", "partial", "no", "unknown", "na"];
@@ -51,7 +53,10 @@ export function QuestionCard({
 	canDelegate,
 	canImportDocument,
 	na = null,
+	hint,
 }: {
+	// So hängt die Frage mit den Rahmenwerken zusammen (Teil Z7)
+	hint?: RelationHint;
 	assessmentId: string;
 	question: AssessmentQuestion;
 	// Gap-Analyse aus dem Katalog: was „Nicht relevant“ bewirkt (Ausschluss
@@ -190,7 +195,7 @@ export function QuestionCard({
 				<h3 id={`${id}-title`} className="text-pretty font-medium">
 					{question.text}
 				</h3>
-				{question.requirements && question.requirements.length > 0 && (
+				{!hint && question.requirements && question.requirements.length > 0 && (
 					<p className="text-muted-foreground text-footnote">
 						{t("covers", {
 							count: question.requirements.length,
@@ -199,6 +204,12 @@ export function QuestionCard({
 					</p>
 				)}
 			</header>
+
+			{hint && (
+				<div className="mt-2">
+					<RelationHintBox hint={hint} />
+				</div>
+			)}
 
 			{question.help && (
 				<p className="mt-2 text-muted-foreground text-subhead">

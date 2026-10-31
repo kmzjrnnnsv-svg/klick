@@ -44,14 +44,17 @@ export const SETTINGS: HelpArticle[] = [
 				id: "sso",
 				heading: "Anmeldung mit dem Firmenkonto (SSO)",
 				steps: [
-					"Wähl den Anbieter: Microsoft Entra ID, Google Workspace, Okta oder ein anderer OIDC-Anbieter, oder SAML 2.0.",
-					"Folg den Schritten für deinen Anbieter. Klick zeigt die Weiterleitungsadresse zum Kopieren; bei SAML die Metadaten von Klick.",
+					"Wähl den Anbieter: Microsoft Entra ID, Google Workspace, Okta oder ein anderer OIDC-Anbieter, oder SAML 2.0. Bei SAML wählst du noch den Anbieter (Entra ID, Google, Okta, ADFS, JumpCloud, OneLogin oder andere).",
+					"Trag die Domain ein. Klick schlägt die Kennung vor und zeigt die Werte für den Anbieter zum Kopieren, bei SAML auch die Metadaten von Klick als Datei.",
+					"Gib bei SAML die Metadaten des Anbieters an: als Adresse (Klick holt sie selbst), als Datei oder von Hand. „Prüfen“ zeigt, was Klick daraus liest, und wie lange das Zertifikat gilt.",
 					"Bestätig die Domain per DNS-TXT-Eintrag.",
-					"Teste die Verbindung.",
+					"Teste die Anmeldung mit „Mit meinem Firmenkonto testen“. Klick zeigt, was ankam (E-Mail, Name, Gruppen, Mehr-Faktor, Rolle), und legt dabei kein Konto und keine Sitzung an.",
 					"Leg die Regeln fest: welche Gruppe welche Rolle bekommt (Mitarbeitende, Lesend, Bearbeiter:in; nie Inhaber:in), die Standardrolle, ob die Firmen-MFA anerkannt wird und ob SSO erzwungen wird.",
 				],
 				body: [
 					"Über einen Anbieter melden sich nur Adressen seiner bestätigten Domain an; eine fremde Adresse lehnt Klick ab, auch wenn der Anbieter sie meldet. Bei SAML nimmt Klick nur signierte Antworten mit SHA-256 oder stärker an, die zu einer eigenen Anfrage gehören (keine Anmeldung, die der Anbieter von sich aus startet).",
+					"Hat jemand anderes Zugang zum Anbieter, schickst du unter „Die IT einbinden“ ein Blatt als PDF oder einen Link. Über den Link sieht die IT nur die Werte dieser Verbindung und schickt die Metadaten zurück; anlegen tust du.",
+					"Mit Metadaten-Adresse prüft Klick jeden Tag, ob der Anbieter ein neues Zertifikat hat. Ein neues Zertifikat wird nie von selbst übernommen: Du übernimmst es, eine zweite Person stimmt zu (sonst wirkt es nach 24 Stunden). 30 und 7 Tage vor dem Ablauf erinnert Klick.",
 				],
 				tip: "Bevor du SSO erzwingst: Inhaber:innen behalten immer einen Notzugang per Passkey. Fällt der Anbieter aus, kommen sie trotzdem hinein; der Zugang wird protokolliert.",
 			},
@@ -84,6 +87,21 @@ export const SETTINGS: HelpArticle[] = [
 					"Prüf mit der Probe, was eine Adresse darf, und beantrag die Änderung.",
 				],
 				tip: "Klick lässt die Liste nur speichern, wenn deine eigene Adresse danach noch hineinkommt. Sperrt ihr euch doch aus, setzt der Klick-Betrieb die Liste nach Rückruf am Terminal zurück.",
+			},
+			{
+				id: "standort",
+				heading: "Standort-Tunnel",
+				body: [
+					"Mit einem Standort-Tunnel ist euer Büro über eine verschlüsselte Verbindung (IPsec oder WireGuard) mit Klick verbunden. Im Tunnel ist Klick unter einer eigenen Adresse erreichbar; aus dem Tunnel geht nur HTTPS an Klick, sonst nichts.",
+					"Einrichten und abbauen macht der Klick-Betrieb, frag dort an. Danach siehst du hier den Stand (wartet, verbunden, getrennt) und stellst eurer IT einen Link und ein Blatt aus: mit den Werten, den Schritten für eure Firewall und dem Schlüssel. Jeder Abruf des Schlüssels steht im Verlauf.",
+				],
+				steps: [
+					"Stell der IT unter „Link für die IT“ einen Link aus (14 Tage gültig; ein neuer sperrt den alten) und gib ihr das Blatt.",
+					"Die IT richtet die Firewall ein und trägt im internen DNS ein, dass der Name von Klick auf die Adresse im Tunnel zeigt.",
+					"Steht der Tunnel, meldet Klick „verbunden“ und schickt dir eine Mitteilung.",
+					"Soll Klick nur noch aus dem Büro gehen, übernimm unter „Nur aus dem Büro“ die Netze des Standorts in die IP-Liste und beantrag die Änderung. Das geht nur aus dem Büro selbst.",
+				],
+				tip: "Bricht der Tunnel länger als zehn Minuten ab, bekommen die Inhaber:innen Bescheid. Gilt die IP-Liste nur für den Standort, kommt bis dahin aus dem Büro niemand in Klick.",
 			},
 			{
 				id: "verlauf",

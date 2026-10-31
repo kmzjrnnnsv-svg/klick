@@ -56,6 +56,7 @@ import {
 } from "./registration-link";
 import { ipFromHeaders, normalizeRole } from "./session-rules";
 import { isSsoCallbackPath, SAML_SECURITY } from "./sso-policy";
+import { interceptProbe } from "./sso-probe";
 import {
 	provisionSsoUser,
 	ssoCallbackAllowsEmail,
@@ -172,6 +173,16 @@ export const auth = betterAuth({
 		session: {
 			create: {
 				async before(session, ctx) {
+					// Probe-Anmeldung (AP10b): festhalten, was ankam, und abbrechen —
+					// keine Sitzung, die Transaktion der Anmeldung rollt zurück
+					if (isSsoCallbackPath(ctx?.path)) {
+						const [u] = await globalDb
+							.select({ email: user.email })
+							.from(user)
+							.where(eq(user.id, session.userId))
+							.limit(1);
+						await interceptProbe(ctx, u?.email ?? null);
+					}
 					// Als Person anmelden (Admin-Plugin): nur mit Freigabe einer Org,
 					// in der die Person Mitglied ist (Lockbox, Härtung A3). Die
 					// Sitzung gilt nur in dieser Org (Wechsel gesperrt), nie länger
@@ -299,12 +310,24 @@ export const auth = betterAuth({
 				},
 			},
 		},
+		// Probe-Anmeldung (AP10b): ein bestehendes Konto wird nicht mit dem
+		// Anbieter verknüpft
+		account: {
+			create: {
+				async before(_account, ctx) {
+					if (isSsoCallbackPath(ctx?.path)) await interceptProbe(ctx, null);
+				},
+			},
+		},
 		user: {
 			create: {
 				// Allow-List-Modus: per Magic-Link entsteht ein Konto nur mit
 				// offener Einladung (zweite Linie hinter sendMagicLink). Die
 				// Ablehnung landet als ?error=new_user_signup_disabled auf /login.
 				async before(newUser, ctx) {
+					// Probe-Anmeldung (AP10b): kein Konto anlegen
+					if (isSsoCallbackPath(ctx?.path))
+						await interceptProbe(ctx, newUser.email);
 					// Passkey-Registrierung über einen Einladungslink: nur für genau
 					// die eingeladene Adresse (zweite Linie hinter passkey-link.ts).
 					if (ctx?.path === "/passkey/verify-registration") {

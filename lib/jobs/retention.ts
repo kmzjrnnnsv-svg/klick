@@ -5,6 +5,7 @@ import {
 	inquiries,
 	notifications,
 	policyReaders,
+	ssoProbes,
 	trustAccessRequests,
 } from "@/db/schema";
 import { logger } from "@/lib/log";
@@ -14,7 +15,8 @@ import { logger } from "@/lib/log";
 // 12 Monate nach der letzten Änderung (Kontaktdaten, Art. 5 Abs. 1 lit. e),
 // NDA-Anfragen an Trust Center 12 Monate nach Ablauf bzw. Entscheidung
 // (docs/legal/datenschutzerklaerung.md, Abschnitt 9), Adressen im
-// Richtlinien-Portal, die nie einen Code eingelöst haben, nach 7 Tagen.
+// Richtlinien-Portal, die nie einen Code eingelöst haben, nach 7 Tagen,
+// SSO-Proben (was der Anbieter über die Testperson schickte) nach einem Tag.
 // Nie: audit_log (Hash-Kette, GwG § 8), fachliche Register, Nachweise —
 // deren Aufbewahrung regelt das Löschkonzept (CC-AST-10), nicht dieser Job.
 
@@ -26,6 +28,7 @@ export const RETENTION = {
 	inquiryDays: 365,
 	trustRequestDays: 365,
 	unconfirmedReaderDays: 7,
+	ssoProbeDays: 1,
 } as const;
 
 export function retentionCutoffs(now = new Date()) {
@@ -38,6 +41,7 @@ export function retentionCutoffs(now = new Date()) {
 		inquiries: minus(RETENTION.inquiryDays),
 		trustRequests: minus(RETENTION.trustRequestDays),
 		unconfirmedReaders: minus(RETENTION.unconfirmedReaderDays),
+		ssoProbes: minus(RETENTION.ssoProbeDays),
 	};
 }
 
@@ -49,6 +53,7 @@ export type RetentionSummary = {
 	inquiries: number;
 	trustRequests: number;
 	unconfirmedReaders: number;
+	ssoProbes: number;
 };
 
 export async function runRetention(
@@ -104,6 +109,10 @@ export async function runRetention(
 				),
 			)
 			.returning({ id: policyReaders.id });
+		const sp = await tx
+			.delete(ssoProbes)
+			.where(lt(ssoProbes.createdAt, cut.ssoProbes))
+			.returning({ id: ssoProbes.id });
 		return {
 			sessions: s.length,
 			verifications: v.length,
@@ -112,6 +121,7 @@ export async function runRetention(
 			inquiries: q.length,
 			trustRequests: tr.length,
 			unconfirmedReaders: ur.length,
+			ssoProbes: sp.length,
 		};
 	});
 	logger.info({ job: "retention", ...summary }, "retention done");

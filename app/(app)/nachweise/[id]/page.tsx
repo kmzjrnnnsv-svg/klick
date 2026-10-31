@@ -26,7 +26,7 @@ import { allows } from "@/lib/auth/permissions";
 import { hidesSecret, restrictedView } from "@/lib/auth/visibility";
 import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
 import { ownRoleIdOf } from "@/lib/compliance/function-key";
-import { fmtDate } from "@/lib/compliance/page-data";
+import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
 	evidenceDetail,
 	evidenceVersionSides,
@@ -34,6 +34,7 @@ import {
 	listMembersForPicker,
 	userNames,
 } from "@/lib/compliance/queries";
+import { evidenceReach } from "@/lib/compliance/relation-hints";
 import { readOrg } from "@/lib/db/with-org";
 import { type ContentSide, contentDiff } from "@/lib/documents/content-diff";
 import { isDbStorageKey } from "@/lib/evidence/aad";
@@ -228,6 +229,25 @@ export default async function EvidenceDetailPage({
 	const btn =
 		"inline-flex h-(--control-h-sm) items-center gap-1.5 rounded-full bg-muted px-3 font-medium text-footnote hover:bg-foreground/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
+	// Wofür zählt dieser Nachweis? (Zusammenhänge im Ablauf, Teil Z7)
+	const tr = await getTranslations("Relations");
+	const relCov = await getOrgCoverageCached(ctx);
+	const reach =
+		data.controls.length > 0
+			? evidenceReach(
+					data.controls.map((c) => c.code),
+					{
+						frameworks: relCov?.frameworks ?? [],
+						applicability: new Map(
+							[...(relCov?.applicabilityDetail ?? [])].map(([k, d]) => [
+								k,
+								d.applicable,
+							]),
+						),
+						catalog: relCov?.catalog,
+					},
+				)
+			: null;
 	return (
 		<>
 			<BackLink href="/nachweise" label={t("back")} />
@@ -434,6 +454,14 @@ export default async function EvidenceDetailPage({
 						<h2 id="ev-controls" className="font-semibold text-headline">
 							{t("controlsTitle")}
 						</h2>
+						{reach && reach.frameworks.length > 0 && (
+							<p className="rounded-xl bg-muted/60 p-3 text-subhead">
+								{tr("evidenceReach", {
+									n: reach.frameworks.length,
+									names: reach.frameworks.join(", "),
+								})}
+							</p>
+						)}
 						{data.controls.length === 0 ? (
 							<p className="text-muted-foreground text-subhead">
 								{t("controlsEmpty")}

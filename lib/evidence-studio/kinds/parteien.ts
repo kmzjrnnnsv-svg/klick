@@ -54,7 +54,7 @@ export function buildParteien(f: ParteienFacts) {
 				TYPE[p.type] ?? p.type,
 				p.expectations ?? "",
 				p.requirements ?? "",
-				p.frameworks.map(shortFrameworkName).join(", "),
+				p.frameworks.map((s) => shortFrameworkName(s)).join(", "),
 				p.howAddressed ?? "offen",
 			]),
 			empty: "Noch keine interessierten Parteien erfasst.",

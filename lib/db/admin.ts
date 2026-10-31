@@ -4,6 +4,8 @@
 import { sql } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { accountState, feeState } from "@/lib/admin/contract";
+import { hostLevel } from "@/lib/admin/host-status";
+import { readHostStatus } from "@/lib/admin/host-status-file";
 import type { OverviewInput } from "@/lib/admin/overview";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/log";
@@ -28,7 +30,7 @@ export async function failedJobs24h(): Promise<number | null> {
 }
 
 export async function loadOverviewInput(now: Date): Promise<OverviewInput> {
-	const [counts, inquiries, grants, failed, anchor, accounts] =
+	const [counts, inquiries, grants, failed, anchor, accounts, host] =
 		await Promise.all([
 			platformCounts(),
 			inquiryCounts(),
@@ -36,6 +38,7 @@ export async function loadOverviewInput(now: Date): Promise<OverviewInput> {
 			failedJobs24h(),
 			latestAnchor({}),
 			orgAccounts(),
+			readHostStatus(),
 		]);
 	const accs = [...accounts.values()];
 	return {
@@ -51,5 +54,6 @@ export async function loadOverviewInput(now: Date): Promise<OverviewInput> {
 			env().NODE_ENV === "production" ? env().PROD_ACCEPT_RISKS : [],
 		feesDue: accs.filter((a) => feeState(a, now).kind === "due").length,
 		suspended: accs.filter((a) => accountState(a, now) === "suspended").length,
+		host: host.ok ? hostLevel(host.status, now) : "unknown",
 	};
 }

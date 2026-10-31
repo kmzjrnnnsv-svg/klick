@@ -428,6 +428,34 @@
       "when": 1793446097746,
       "tag": "0060_push_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1793458828760,
+      "tag": "0061_sso_setup",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793467175071,
+      "tag": "0062_custom_frameworks",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793474656371,
+      "tag": "0063_announcements",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1793477305404,
+      "tag": "0064_site_tunnels",
+      "breakpoints": true
     }
   ]
 }

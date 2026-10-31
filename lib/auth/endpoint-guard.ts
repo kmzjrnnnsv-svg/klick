@@ -20,6 +20,7 @@ import {
 	isStepUpFresh,
 } from "./session-rules";
 import { SAML_SECURITY } from "./sso-policy";
+import { failProbe } from "./sso-probe";
 import { decodeSamlResponse, samlAlgorithmsAllowed } from "./sso-saml";
 
 export async function passkeyCount(userId: string): Promise<number> {
@@ -55,11 +56,15 @@ export const authBeforeHook = createAuthMiddleware(async (ctx) => {
 		if (
 			typeof raw === "string" &&
 			!samlAlgorithmsAllowed(decodeSamlResponse(raw))
-		)
+		) {
+			// Probe-Anmeldung (AP10b): Ergebnis festhalten, zurück zur Probe
+			const probe = await failProbe(ctx, "algorithm");
+			if (probe) throw ctx.redirect(`${probe}?error=algorithm`);
 			throw new APIError("BAD_REQUEST", {
 				code: "SAML_ALGORITHM_NOT_ALLOWED",
 				message: "Signaturverfahren der SAML-Antwort nicht zugelassen.",
 			});
+		}
 		return;
 	}
 	// Übrige HTTP-Pfade nur mit Sitzungs-Cookie nachsehen: eine Impersonation-

@@ -32,6 +32,18 @@ const PERSONAL_DATA = [
 ] as const;
 const SUBJECTS = ["lt1k", "1k_100k", "gt100k"] as const;
 const CARD_DATA = ["none", "outsourced", "own"] as const;
+const AI_USE = ["none", "use", "build"] as const;
+// Ja/Nein-Fragen, aus denen Klick Rahmenwerke vorschlägt
+const MORE = [
+	"automotive",
+	"usTransfers",
+	"usFederal",
+	"usHealth",
+	"nyFinance",
+	"awsPartner",
+	"msSupplier",
+] as const;
+type More = (typeof MORE)[number];
 type Category = (typeof PROVIDER_CATEGORIES)[number];
 // Werte lokal (kein Schema-Import in den Client-Bundle)
 const CATEGORIES: readonly Category[] = [
@@ -78,6 +90,16 @@ export function ItDataStep({
 	const [cards, setCards] = useState<(typeof CARD_DATA)[number]>(
 		initial.cardData ?? "none",
 	);
+	const [aiUse, setAiUse] = useState<(typeof AI_USE)[number]>(
+		initial.aiUse ?? "none",
+	);
+	const [more, setMore] = useState<Record<More, boolean>>(
+		() =>
+			Object.fromEntries(MORE.map((k) => [k, initial[k] ?? false])) as Record<
+				More,
+				boolean
+			>,
+	);
 	const [subjects, setSubjects] = useState<string>(
 		initial.dataSubjects ?? "lt1k",
 	);
@@ -108,6 +130,8 @@ export function ItDataStep({
 							personalData: pd,
 							specialCategories: special,
 							cardData: cards,
+							aiUse,
+							...more,
 							dataSubjects: subjects as (typeof SUBJECTS)[number],
 							aiMaxClass: ai,
 							customerCountries: countries
@@ -318,6 +342,40 @@ export function ItDataStep({
 							className="size-4 accent-primary"
 						/>
 						{t(`cardData_${v}`)}
+					</label>
+				))}
+			</fieldset>
+
+			<fieldset className="flex flex-col gap-2 text-subhead">
+				<legend className="mb-1.5 font-medium">{t("aiUse")}</legend>
+				<p className="text-muted-foreground text-footnote">{t("aiUseHint")}</p>
+				{AI_USE.map((v) => (
+					<label key={v} className="flex items-center gap-2">
+						<input
+							type="radio"
+							name="ai-use"
+							value={v}
+							checked={aiUse === v}
+							onChange={() => setAiUse(v)}
+							className="size-4 accent-primary"
+						/>
+						{t(`aiUse_${v}`)}
+					</label>
+				))}
+			</fieldset>
+
+			<fieldset className="flex flex-col gap-2 text-subhead">
+				<legend className="mb-1.5 font-medium">{t("moreTitle")}</legend>
+				{MORE.map((k) => (
+					<label key={k} className="flex items-start gap-2">
+						<Checkbox
+							className="mt-0.5"
+							checked={more[k]}
+							onCheckedChange={(v) =>
+								setMore((m) => ({ ...m, [k]: Boolean(v) }))
+							}
+						/>
+						{t(k)}
 					</label>
 				))}
 			</fieldset>

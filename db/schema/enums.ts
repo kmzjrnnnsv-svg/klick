@@ -293,6 +293,10 @@ export const ACCESS_TOKEN_KINDS = [
 	"wallet",
 	// Richtlinien-Portal (M2): Subjekt = policy_readers.id
 	"policy_reader",
+	// SSO-Einrichtungslink für die IT (AP10d): Subjekt = sso_setup_requests.id
+	"sso_setup",
+	// Standort-Tunnel für die IT (AP7): Subjekt = site_tunnels.id
+	"site_setup",
 ] as const;
 export type AccessTokenKind = (typeof ACCESS_TOKEN_KINDS)[number];
 export const INGEST_SCOPES = ["scan:write", "sbom:write"] as const;
@@ -636,6 +640,8 @@ export const SECURITY_CHANGE_KINDS = [
 	"ai_policy",
 	// Unterschriften nur mit Sicherheitsschlüssel ausschalten (AP9.1b)
 	"signature_policy",
+	// Neues Signaturzertifikat eines SAML-Anbieters übernehmen (AP10c)
+	"sso_saml_cert",
 	// „erlaubt“: einmalige Erlaubnis für die anfragende Person (24 h)
 	"org_delete",
 	// Neu beginnen: alle Daten weg, Org leer neu angelegt

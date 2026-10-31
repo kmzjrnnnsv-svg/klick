@@ -86,7 +86,7 @@ export function buildZiele(f: ZieleFacts, ctx: { today: string }) {
 				{ label: "Stand", width: 10 },
 			],
 			rows: f.objectives.map((o) => [
-				`${o.title}${o.frameworks.length ? `\n${o.frameworks.map(shortFrameworkName).join(", ")}` : ""}`,
+				`${o.title}${o.frameworks.length ? `\n${o.frameworks.map((s) => shortFrameworkName(s)).join(", ")}` : ""}`,
 				[INDICATOR_DE[o.indicatorType] ?? o.indicatorType, o.kpiName]
 					.filter(Boolean)
 					.join("\n"),

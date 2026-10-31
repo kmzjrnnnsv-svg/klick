@@ -10,6 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { CaspService, LicenceStage } from "@/db/schema/enums";
 import type { WorkflowEnabledByDuty } from "@/lib/compliance/catalog/approval-duties";
+import {
+	FRAMEWORK_RELATIONS,
+	RELATION_LABEL,
+} from "@/lib/compliance/catalog/framework-relations";
 import type { FrameworkSuggestion } from "@/lib/compliance/company-profile";
 import { useStepRunner } from "./step-footer";
 
@@ -21,8 +25,14 @@ export function FrameworksStep({
 	active,
 	profile,
 	names,
+	simple = {},
+	shortNames = {},
 	nextHref,
 }: {
+	// Kurznamen für den Kasten „So hängen deine Rahmenwerke zusammen“
+	shortNames?: Record<string, string>;
+	// Wozu ist jedes Rahmenwerk da? (ein Satz, Teil Z7)
+	simple?: Record<string, string>;
 	suggestions: FrameworkSuggestion[];
 	all: { slug: string; name: string; description: string }[];
 	active: string[];
@@ -45,6 +55,10 @@ export function FrameworksStep({
 	]);
 	const suggested = new Set(suggestions.map((s) => s.slug));
 	const others = all.filter((f) => !suggested.has(f.slug));
+	// Wie stehen die gewählten Rahmenwerke zueinander (geht vor, baut auf …)?
+	const relations = FRAMEWORK_RELATIONS.filter(
+		(r) => selected.includes(r.from) && selected.includes(r.to),
+	);
 	const toggle = (slug: string, on: boolean) =>
 		setSelected(on ? [...selected, slug] : selected.filter((x) => x !== slug));
 	const row = (slug: string, reason: string, recommended?: boolean) => {
@@ -65,6 +79,7 @@ export function FrameworksStep({
 						) : recommended === false ? (
 							<Badge variant="muted">{t("optional")}</Badge>
 						) : null}
+						{simple[slug] && <span className="block">{simple[slug]}</span>}
 						<span className="block text-muted-foreground text-footnote">
 							{reason}
 						</span>
@@ -117,6 +132,30 @@ export function FrameworksStep({
 					{others.map((f) => row(f.slug, f.description))}
 				</ul>
 			</details>
+			{relations.length > 0 && (
+				<section
+					aria-labelledby="fw-relations"
+					className="flex flex-col gap-2 rounded-2xl bg-card p-4"
+				>
+					<h2 id="fw-relations" className="font-semibold text-subhead">
+						{t("relationsTitle")}
+					</h2>
+					<ul className="flex flex-col gap-2 text-subhead">
+						{relations.map((r) => (
+							<li key={`${r.from}|${r.to}`}>
+								<span className="font-medium">
+									{shortNames[r.from] ?? names[r.from] ?? r.from}{" "}
+									<span className="text-muted-foreground">
+										{RELATION_LABEL[r.kind]}
+									</span>{" "}
+									{shortNames[r.to] ?? names[r.to] ?? r.to}:
+								</span>{" "}
+								{r.text}
+							</li>
+						))}
+					</ul>
+				</section>
+			)}
 			{selected.length > 0 && (
 				<SynergyPreviewPanel
 					frameworks={selected}

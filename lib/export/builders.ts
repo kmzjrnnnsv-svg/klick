@@ -3,7 +3,6 @@ import {
 	CONTROL_BY_CODE,
 	EDGES_BY_REQUIREMENT,
 	FRAMEWORK_BY_SLUG,
-	REQUIREMENT_BY_KEY,
 } from "@/lib/compliance/catalog";
 import type { OrgCoverage } from "@/lib/compliance/queries";
 import { assessRisk } from "@/lib/compliance/risk";
@@ -87,10 +86,11 @@ export function buildGapRows(
 	for (const slug of slugs) {
 		for (const [key, status] of cov.result.byRequirement) {
 			if (!key.startsWith(`${slug}:`)) continue;
-			const req = REQUIREMENT_BY_KEY.get(key);
+			// Katalog der Org: eigene Rahmenwerke stehen mit im Export (R4)
+			const req = cov.catalog.requirementByKey.get(key);
 			if (!req) continue;
 			const detail = cov.applicabilityDetail.get(key);
-			const edges = EDGES_BY_REQUIREMENT.get(key) ?? [];
+			const edges = cov.catalog.edgesByRequirement.get(key) ?? [];
 			rows.push([
 				slug,
 				req.code,

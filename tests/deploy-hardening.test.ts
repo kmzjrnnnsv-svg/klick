@@ -71,6 +71,7 @@ describe("systemd-Units", () => {
 					"klick-signer-backup.service",
 					"klick-aide.service",
 					"klick-health.service",
+					"klick-netz.service",
 				],
 				`${file} hat Rechte: ${caps}`,
 			).toContain(file);
@@ -118,6 +119,12 @@ describe("systemd-Units", () => {
 		expect(health).toContain(
 			"ExecStart=/usr/local/lib/klick-health/host-health.sh",
 		);
+		// Statusdatei für Admin > Betrieb: nur dieser Ordner schreibbar, die
+		// App liest ihn nur (Gruppe klick)
+		expect(health).toContain("ReadWritePaths=-/var/lib/klick-health");
+		const app = lines(read(`${UNIT_DIR}/klick.service`));
+		expect(app).toContain("ReadOnlyPaths=-/var/lib/klick-health");
+		expect(app.join("\n")).not.toMatch(/ReadWritePaths=.*klick-health/);
 	});
 });
 
@@ -145,9 +152,18 @@ describe("nftables (App-Server)", () => {
 				.split(",")
 				.map((p) => p.trim());
 			const admin = l.startsWith('iifname "wg-admin"');
+			// Standort-Tunnel: nur von eingetragenen Gegenstellen bzw. nur
+			// HTTPS an die Dienstadresse aus dem Tunnel
+			const sitePeer = l.startsWith("ip saddr @site_peers ");
+			const siteNet = l.startsWith("ip saddr @site_nets ");
 			for (const port of list) {
 				if (admin) expect(["22", "53"]).toContain(port);
-				else expect(["80", "443", "51820"], l).toContain(port);
+				else if (sitePeer) expect(["500", "4500", "51821"], l).toContain(port);
+				else if (siteNet) {
+					expect(port, l).toBe("443");
+					expect(l, l).toMatch(/ip daddr 10\.21\.0\.1 tcp dport 443 accept$/);
+					expect(l, l).toMatch(/meta ipsec exists|iifname "wg-sites"/);
+				} else expect(["80", "443", "51820"], l).toContain(port);
 			}
 		}
 		expect(rules).toContain('iifname "wg-admin" tcp dport 22 accept');

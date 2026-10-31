@@ -3,6 +3,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import type * as React from "react";
 import { useId, useState, useTransition } from "react";
 import { saveNetworkPolicy } from "@/app/actions/network";
 import { withStepUp } from "@/components/auth/step-up-dialog";
@@ -36,11 +37,16 @@ export function NetworkPanel({
 	myIp,
 	canEdit,
 	pendingChange,
+	sites = [],
+	siteSection,
 }: {
 	policy: NetworkPolicy;
 	myIp: string | null;
 	canEdit: boolean;
 	pendingChange: boolean;
+	/** Verbundene Standort-Tunnel (ADR-033): wirksame Netze je Standort */
+	sites?: readonly { name: string; nets: readonly string[] }[];
+	siteSection?: React.ReactNode;
 }) {
 	const t = useTranslations("NetworkSettings");
 	const tc = useTranslations("Common");
@@ -113,6 +119,36 @@ export function NetworkPanel({
 					/>
 				)}
 			</ListSection>
+
+			{siteSection}
+			{canEdit && sites.length > 0 && (
+				<ListSection title={t("siteOnlyTitle")} footer={t("siteOnlyFooter")}>
+					<ListRow
+						title={t("siteOnly")}
+						subtitle={t("siteOnlyHint")}
+						accessory={
+							<Button
+								size="sm"
+								variant="secondary"
+								disabled={pending}
+								onClick={() =>
+									setP({
+										...p,
+										members: sites.flatMap((s) =>
+											s.nets.map((n) => ({
+												cidr: n,
+												note: t("siteNote", { name: s.name }),
+											})),
+										),
+									})
+								}
+							>
+								{t("siteOnlyButton")}
+							</Button>
+						}
+					/>
+				</ListSection>
+			)}
 
 			<EntryList
 				title={t("membersTitle")}

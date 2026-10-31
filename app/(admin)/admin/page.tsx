@@ -54,6 +54,8 @@ export default async function AdminHome() {
 				return t("tileRisks");
 			case "access":
 				return t("tileAccess");
+			case "server":
+				return t("tileServer");
 		}
 	};
 	const tileValue = (tile: Tile) => {
@@ -89,6 +91,12 @@ export default async function AdminHome() {
 						});
 			case "access":
 				return t("accessActive", { n: tile.active });
+			case "server":
+				return tile.level === "unknown"
+					? t("serverUnknown")
+					: tile.level === "ok"
+						? t("serverOk")
+						: t("serverCheck");
 		}
 	};
 	const todoText = (key: (typeof todos)[number]["key"], n: number) => {
@@ -107,6 +115,8 @@ export default async function AdminHome() {
 				return t("todoRisks");
 			case "fees":
 				return t("todoFees", { n });
+			case "server":
+				return t("todoServer");
 		}
 	};
 

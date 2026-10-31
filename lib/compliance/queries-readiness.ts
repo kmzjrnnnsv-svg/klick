@@ -9,17 +9,13 @@ import {
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
 import { inForceStatus } from "@/lib/documents/versions";
-import {
-	ALL_REQUIREMENTS,
-	CONTROL_BY_CODE,
-	REQUIREMENT_BY_KEY,
-} from "./catalog";
+import { CONTROL_BY_CODE, REQUIREMENT_BY_KEY } from "./catalog";
 import { WORKFLOW_BY_KIND } from "./catalog/approval-workflows";
 import { mandatoryTemplatesFor } from "./catalog/document-templates";
-import { CATALOG_EDGES } from "./catalog-view";
 import { craBlockers } from "./cra";
 import { exclusionAllowedForKey } from "./exclusions";
 import { governanceChecks } from "./governance-checks";
+import type { OrgCatalog } from "./org-catalog";
 import {
 	listEvidenceWithControls,
 	type OrgCoverage,
@@ -103,19 +99,22 @@ export function invalidExclusionBlockers(
 		{ applicable: boolean; source: string; note: string | null }
 	>,
 	slugs: readonly string[],
+	// Katalog der Org (R4): eigene Rahmenwerke nach ihrer Ausschluss-Regel
+	catalog?: Pick<OrgCatalog, "frameworkBySlug" | "requirementByKey">,
 ): Map<string, ReadinessBlocker[]> {
 	const out = new Map<string, ReadinessBlocker[]>();
+	const reqByKey = catalog?.requirementByKey ?? REQUIREMENT_BY_KEY;
 	for (const [key, d] of detail) {
 		if (d.source !== "manual" || d.applicable) continue;
 		const i = key.indexOf(":");
 		const slug = key.slice(0, i);
 		const code = key.slice(i + 1);
-		if (!slugs.includes(slug) || exclusionAllowedForKey(key)) continue;
+		if (!slugs.includes(slug) || exclusionAllowedForKey(key, catalog)) continue;
 		const list = out.get(slug) ?? [];
 		list.push({
 			kind: "exclusion_invalid",
 			severity: "high",
-			label: `${code} ${REQUIREMENT_BY_KEY.get(key)?.title ?? ""}`.trim(),
+			label: `${code} ${reqByKey.get(key)?.title ?? ""}`.trim(),
 			ref: key,
 			href: `/rahmenwerke/${slug}/${encodeURIComponent(code)}`,
 			requirements: 1,
@@ -169,6 +168,7 @@ export async function loadReadiness(
 	for (const [slug, list] of invalidExclusionBlockers(
 		cov.applicabilityDetail,
 		slugs,
+		cov.catalog,
 	))
 		extra.set(slug, [...(extra.get(slug) ?? []), ...list]);
 	if (slugs.includes("cra"))
@@ -284,18 +284,18 @@ export async function loadReadiness(
 
 	const results: ReadinessResult[] = [];
 	for (const slug of slugs) {
-		const reqs = ALL_REQUIREMENTS.filter((r) => r.framework === slug).map(
-			(r) => {
+		const reqs = cov.catalog.requirements
+			.filter((r) => r.framework === slug)
+			.map((r) => {
 				const key = `${slug}:${r.code}`;
 				return {
 					key,
 					sectionCode: r.sectionCode,
 					status: cov.result.byRequirement.get(key) ?? "open",
 				};
-			},
-		);
+			});
 		const keys = new Set(reqs.map((r) => r.key));
-		const edges = CATALOG_EDGES.filter((e) => keys.has(e.requirement));
+		const edges = cov.catalog.edgeRefs.filter((e) => keys.has(e.requirement));
 		const controls = new Map<string, ReadinessControl>();
 		for (const e of edges) {
 			if (controls.has(e.control)) continue;

@@ -56,7 +56,17 @@ export type CatalogFrameworkMeta = {
 	name: string;
 	version?: string;
 	authority?: string;
-	jurisdiction: "global" | "eu" | "de" | "uk" | "ae" | "bh" | "ch" | "br";
+	jurisdiction:
+		| "global"
+		| "eu"
+		| "de"
+		| "uk"
+		| "ae"
+		| "bh"
+		| "ch"
+		| "br"
+		| "us"
+		| "au";
 	legalBasis?: string;
 	legalBasisRefs?: string[];
 	description: string;

@@ -14,6 +14,7 @@ export type NavLabelKey =
 	| "security"
 	| "controls"
 	| "synergies"
+	| "relations"
 	| "evidence"
 	| "risks"
 	| "documents"
@@ -67,6 +68,7 @@ export type NavIcon =
 	| "shield-alert"
 	| "shield-check"
 	| "git-merge"
+	| "network"
 	| "file-check"
 	| "triangle-alert"
 	| "file-text"
@@ -88,6 +90,7 @@ export type NavIcon =
 	| "landmark"
 	| "coins"
 	| "bitcoin"
+	| "megaphone"
 	| "message-square"
 	| "folder-open"
 	| "book-open"
@@ -236,6 +239,12 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "synergies",
 					href: "/synergien",
 					icon: "git-merge",
+				},
+				{
+					key: "relations",
+					labelKey: "relations",
+					href: "/zusammenhaenge",
+					icon: "network",
 				},
 				{
 					key: "evidence",

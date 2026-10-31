@@ -43,8 +43,8 @@ describe("Abläufe auf /funktionen", () => {
 
 	it("zählt die Abläufe richtig und bleibt überschaubar", () => {
 		expect(WORKFLOW_COUNT).toBe(all.length);
-		// Obergrenze für eine lesbare Seite; seit „KI mit eigenem Schlüssel“ 51
-		expect(all.length).toBeLessThanOrEqual(55);
+		// Obergrenze für eine lesbare Seite; seit „Standort verbinden“ 57
+		expect(all.length).toBeLessThanOrEqual(57);
 		for (const g of WORKFLOW_GROUPS)
 			expect(g.workflows.length).toBeGreaterThan(0);
 	});
@@ -70,10 +70,10 @@ describe("Abläufe auf /funktionen", () => {
 describe("Zahlen aus dem Katalog", () => {
 	it("stimmen mit dem Katalog überein", () => {
 		const t = catalogTotals();
-		expect(t.frameworks).toBe(28);
-		expect(t.requirements).toBe(816);
-		expect(t.controls).toBe(185);
-		expect(t.edges).toBe(1276);
+		expect(t.frameworks).toBe(44);
+		expect(t.requirements).toBe(1791);
+		expect(t.controls).toBe(194);
+		expect(t.edges).toBe(2965);
 	});
 
 	it("kennt jedes Rahmenwerk der Auswahl", () => {

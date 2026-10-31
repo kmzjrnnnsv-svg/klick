@@ -1,19 +1,43 @@
 "use server";
 
+import { inflateRawSync } from "node:zlib";
 import { APIError } from "better-auth/api";
-import { eq } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { orgSettings } from "@/db/schema";
+import { z } from "zod";
+import { orgSettings, ssoProbes } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { listSsoProvidersForOrg } from "@/lib/auth/org";
+import {
+	authnRequestId,
+	type CertInfo,
+	certificateInfo,
+	certWarnings,
+} from "@/lib/auth/saml-metadata";
 import { auth } from "@/lib/auth/server";
 import { AuthError } from "@/lib/auth/session-rules";
 import { providerPreset, ssoPolicyOf } from "@/lib/auth/sso-policy";
+import { PROBE_TTL_MS, probePath } from "@/lib/auth/sso-probe";
 import { samlRegistration } from "@/lib/auth/sso-saml";
+import { SAML_PRESETS, suggestProviderId } from "@/lib/auth/sso-saml-vendors";
+import {
+	closeSetupLink,
+	createSetupLink,
+	setupRequests,
+} from "@/lib/auth/sso-setup-link";
+import {
+	certPatch,
+	deleteProviderState,
+	fetchIdpMetadata,
+	providerStates,
+	readIdpMetadata,
+	upsertProviderState,
+} from "@/lib/auth/sso-setup-service";
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
+import { checkProviderMetadata } from "@/lib/jobs/sso-metadata";
 import { safeFetch } from "@/lib/security/quick-check/fetcher";
 import {
 	ssoChangeSummary,
@@ -30,6 +54,8 @@ import {
 	registerOidcPresetSchema,
 	registerSamlSchema,
 	registerSsoSchema,
+	samlPreviewSchema,
+	setupLinkSchema,
 	ssoPolicySchema,
 	ssoProviderIdSchema,
 } from "@/lib/validation/sso";
@@ -130,13 +156,16 @@ async function deleteSsoProviderImpl(
 	} catch (e) {
 		return mapError(e);
 	}
-	await mutateOrg(toOrgCtx(c), async () => ({
-		result: null,
-		audit: {
-			action: "sso.provider_deleted",
-			target: `sso_provider:${parsed.data}`,
-		},
-	}));
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		await deleteProviderState(tx, c.orgId, parsed.data);
+		return {
+			result: null,
+			audit: {
+				action: "sso.provider_deleted",
+				target: `sso_provider:${parsed.data}`,
+			},
+		};
+	});
 	revalidatePath("/einstellungen");
 	return { ok: true, data: undefined };
 }
@@ -227,7 +256,10 @@ async function registerOidcPresetImpl(input: unknown): Promise<ActionResult> {
 	});
 }
 
-// SAML 2.0 (S3): Metadaten des IdP oder Entity-ID + SSO-URL + Zertifikat;
+// SAML 2.0 (S3, AP10): Anbieter-Vorlage, Metadaten als Adresse (Klick holt
+// sie über safeFetch, nur Hosts des Anbieters), XML oder Entity-ID + SSO-URL
+// + Zertifikat. Klick prüft Metadaten und Zertifikat selbst und merkt sich
+// Ablauf und Adresse (sso_provider_states) für die tägliche Beobachtung.
 // Klicks SP-Metadaten unter /api/auth/sso/saml2/sp/metadata?providerId=…
 async function registerSamlProviderImpl(input: unknown): Promise<ActionResult> {
 	const g = await stepUp();
@@ -236,9 +268,28 @@ async function registerSamlProviderImpl(input: unknown): Promise<ActionResult> {
 	const parsed = registerSamlSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
-	const base = new URL(env().BETTER_AUTH_URL).origin;
-	const idpEntityId = d.entityId ?? entityIdFromMetadata(d.metadataXml) ?? "";
+	const preset = SAML_PRESETS[d.vendor];
+	// Metadaten: Adresse vor XML vor Einzelfeldern
+	let metadataXml: string | undefined;
+	let certs: CertInfo[] = [];
+	let idpEntityId = d.entityId ?? "";
+	let ssoUrl = d.ssoUrl;
+	if (d.metadataUrl || d.metadataXml) {
+		const m = d.metadataUrl
+			? await fetchIdpMetadata(d.metadataUrl, d.vendor, [d.domain])
+			: readIdpMetadata(d.metadataXml ?? "");
+		if (!m.ok) return { ok: false, error: m.error };
+		metadataXml = m.xml;
+		certs = m.metadata.certificates;
+		idpEntityId = m.metadata.entityId;
+		ssoUrl = m.metadata.ssoUrl ?? undefined;
+	} else {
+		const cert = certificateInfo(d.certificate ?? "");
+		if (!cert) return { ok: false, error: "sso_cert_invalid" };
+		certs = [cert];
+	}
 	if (!idpEntityId) return { ok: false, error: "sso_saml_entity" };
+	const base = new URL(env().BETTER_AUTH_URL).origin;
 	try {
 		await auth.api.registerSSOProvider({
 			body: {
@@ -250,12 +301,13 @@ async function registerSamlProviderImpl(input: unknown): Promise<ActionResult> {
 					origin: base,
 					providerId: d.providerId,
 					idpEntityId,
-					ssoUrl: d.ssoUrl,
+					ssoUrl,
 					certificate: d.certificate,
-					metadataXml: d.metadataXml,
-					emailAttribute: d.emailAttribute,
-					nameAttribute: d.nameAttribute,
-					groupsAttribute: d.groupsAttribute,
+					metadataXml,
+					emailAttribute: d.emailAttribute || preset.attributes.email,
+					nameAttribute: d.nameAttribute || preset.attributes.name,
+					groupsAttribute:
+						d.groupsAttribute || preset.attributes.groups || undefined,
 				}),
 			},
 			headers: await headers(),
@@ -263,20 +315,94 @@ async function registerSamlProviderImpl(input: unknown): Promise<ActionResult> {
 	} catch (e) {
 		return mapError(e);
 	}
-	await mutateOrg(toOrgCtx(c), async () => ({
-		result: null,
-		audit: {
-			action: "sso.provider_registered",
-			target: `sso_provider:${d.providerId}`,
-			after: { domain: d.domain, protocol: "saml", issuer: idpEntityId },
-		},
-	}));
+	const state = certPatch(certs);
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		await upsertProviderState(tx, c.orgId, d.providerId, {
+			vendor: d.vendor,
+			metadataUrl: d.metadataUrl ?? null,
+			...state,
+			lastFetchAt: d.metadataUrl ? new Date() : null,
+			lastFetchError: null,
+		});
+		return {
+			result: null,
+			audit: {
+				action: "sso.provider_registered",
+				target: `sso_provider:${d.providerId}`,
+				after: {
+					domain: d.domain,
+					protocol: "saml",
+					vendor: d.vendor,
+					issuer: idpEntityId,
+					metadataUrl: d.metadataUrl ?? null,
+					certFingerprints: state.certFingerprints,
+					certNotAfter: state.certNotAfter?.toISOString() ?? null,
+				},
+			},
+		};
+	});
 	revalidatePath("/einstellungen");
 	return { ok: true, data: undefined };
 }
 
-function entityIdFromMetadata(xml: string | undefined): string | null {
-	return /entityID="([^"]{1,500})"/.exec(xml ?? "")?.[1] ?? null;
+export type SamlPreview = {
+	entityId: string | null;
+	ssoUrl: string | null;
+	certificates: {
+		fingerprint: string;
+		notAfter: string;
+		subject: string;
+		keyBits: number | null;
+	}[];
+	warnings: string[];
+};
+
+// Vorschau vor dem Anlegen (AP10): Metadaten holen bzw. lesen und zeigen,
+// was Klick daraus übernimmt. Liest nur, kein Step-up.
+async function previewSamlMetadataImpl(
+	input: unknown,
+): Promise<ActionResult<SamlPreview>> {
+	const c = await requireOrg({ settings: ["update"] });
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const parsed = samlPreviewSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const now = new Date();
+	if (d.metadataUrl || d.metadataXml) {
+		const m = d.metadataUrl
+			? await fetchIdpMetadata(d.metadataUrl, d.vendor, [d.domain], now)
+			: readIdpMetadata(d.metadataXml ?? "", now);
+		if (!m.ok) return { ok: false, error: m.error };
+		return {
+			ok: true,
+			data: {
+				entityId: m.metadata.entityId,
+				ssoUrl: m.metadata.ssoUrl,
+				certificates: m.metadata.certificates.map(certView),
+				warnings: m.metadata.warnings,
+			},
+		};
+	}
+	const cert = certificateInfo(d.certificate ?? "");
+	if (!cert) return { ok: false, error: "sso_cert_invalid" };
+	return {
+		ok: true,
+		data: {
+			entityId: null,
+			ssoUrl: null,
+			certificates: [certView(cert)],
+			warnings: certWarnings(cert, now),
+		},
+	};
+}
+
+function certView(c: CertInfo) {
+	return {
+		fingerprint: c.fingerprint,
+		notAfter: c.notAfter,
+		subject: c.subject,
+		keyBits: c.keyBits,
+	};
 }
 
 // Regeln (S1/S2): Gruppen → Rolle, Firmen-MFA, Erzwingen. Erzwingen nur mit
@@ -372,8 +498,252 @@ export const registerSamlProvider = safeAction(
 	"registerSamlProvider",
 	registerSamlProviderImpl,
 );
+export const previewSamlMetadata = safeAction(
+	"previewSamlMetadata",
+	previewSamlMetadataImpl,
+);
 export const saveSsoPolicy = safeAction("saveSsoPolicy", saveSsoPolicyImpl);
 export const testSsoDiscovery = safeAction(
 	"testSsoDiscovery",
 	testSsoDiscoveryImpl,
+);
+
+// Probe-Anmeldung (AP10b): eigene AuthnRequest, deren ID Klick sich merkt.
+// Kommt die Antwort, halten die Hooks fest, was ankam, und brechen ab
+// (lib/auth/sso-probe.ts) — kein Konto, keine Sitzung. Kein Step-up: es
+// entsteht nichts.
+async function startSsoProbeImpl(
+	providerId: string,
+): Promise<ActionResult<{ url: string }>> {
+	const c = await requireOrg({ settings: ["update"] });
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const parsed = providerIdSchema.safeParse(providerId);
+	if (!parsed.success) return fromZod(parsed.error);
+	const provider = (await listSsoProvidersForOrg(c.orgId)).find(
+		(p) => p.providerId === parsed.data,
+	);
+	if (!provider || provider.protocol !== "saml")
+		return { ok: false, error: "not_found" };
+	if (!provider.domainVerified)
+		return { ok: false, error: "sso_probe_unverified" };
+	const probeId = crypto.randomUUID();
+	const back = probePath(probeId);
+	let url: string;
+	try {
+		const r = await auth.api.signInSSO({
+			body: {
+				providerId: parsed.data,
+				callbackURL: back,
+				errorCallbackURL: back,
+			},
+		});
+		url = r.url;
+	} catch (e) {
+		return mapError(e);
+	}
+	const requestId = authnRequestId(url, inflateRawSync);
+	if (!requestId) return { ok: false, error: "sso_probe_failed" };
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		// alte Proben dieser Org nach einem Tag weg (enthalten Personendaten)
+		await tx
+			.delete(ssoProbes)
+			.where(
+				and(
+					eq(ssoProbes.organizationId, c.orgId),
+					lt(ssoProbes.createdAt, new Date(Date.now() - 86_400_000)),
+				),
+			);
+		await tx.insert(ssoProbes).values({
+			id: probeId,
+			organizationId: c.orgId,
+			providerId: parsed.data,
+			requestId,
+			requestedBy: c.userId,
+			expiresAt: new Date(Date.now() + PROBE_TTL_MS),
+		});
+		return {
+			result: null,
+			audit: {
+				action: "sso.probe_started",
+				target: `sso_provider:${parsed.data}`,
+				after: { probeId },
+			},
+		};
+	});
+	return { ok: true, data: { url } };
+}
+
+export const startSsoProbe = safeAction("startSsoProbe", startSsoProbeImpl);
+
+// Neues Zertifikat übernehmen (AP10c): über Vier-Augen (Art sso_saml_cert);
+// das vorgemerkte Zertifikat holt der Job bzw. „Metadaten jetzt prüfen“.
+async function adoptSamlCertImpl(providerId: string): Promise<ActionResult> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = providerIdSchema.safeParse(providerId);
+	if (!parsed.success) return fromZod(parsed.error);
+	const st = (
+		await readOrg(toOrgCtx(c), (tx) => providerStates(tx, c.orgId))
+	).find((s) => s.providerId === parsed.data);
+	if (!st?.nextCertFingerprints)
+		return { ok: false, error: "sso_no_next_cert" };
+	const until = st.nextCertNotAfter?.toISOString().slice(0, 10) ?? "–";
+	return requestApplyChange(c, {
+		kind: "sso_saml_cert",
+		targetKey: parsed.data,
+		summary: `SSO „${parsed.data}“: neues Zertifikat des Anbieters übernehmen (gültig bis ${until})`,
+		payload: {
+			value: { providerId: parsed.data, fingerprints: st.nextCertFingerprints },
+		},
+		before: { fingerprints: st.certFingerprints ?? null },
+	});
+}
+
+// Metadaten jetzt prüfen (AP10c): wie der tägliche Job für einen Anbieter.
+async function refreshSamlMetadataImpl(
+	providerId: string,
+): Promise<ActionResult<{ result: "same" | "new_cert" }>> {
+	const c = await requireOrg({ settings: ["update"] });
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const parsed = providerIdSchema.safeParse(providerId);
+	if (!parsed.success) return fromZod(parsed.error);
+	const [states, providers] = await Promise.all([
+		readOrg(toOrgCtx(c), (tx) => providerStates(tx, c.orgId)),
+		listSsoProvidersForOrg(c.orgId),
+	]);
+	const st = states.find((s) => s.providerId === parsed.data);
+	const provider = providers.find((p) => p.providerId === parsed.data);
+	if (!st?.metadataUrl || !provider) return { ok: false, error: "not_found" };
+	const r = await checkProviderMetadata(
+		c.orgId,
+		st,
+		provider.domain,
+		new Date(),
+	);
+	revalidatePath("/einstellungen");
+	if (r === "error") {
+		const [after] = await readOrg(toOrgCtx(c), (tx) =>
+			providerStates(tx, c.orgId),
+		).then((rows) => rows.filter((s) => s.providerId === parsed.data));
+		return { ok: false, error: after?.lastFetchError ?? "sso_metadata_fetch" };
+	}
+	return { ok: true, data: { result: r === "new_cert" ? "new_cert" : "same" } };
+}
+
+export const adoptSamlCert = safeAction("adoptSamlCert", adoptSamlCertImpl);
+export const refreshSamlMetadata = safeAction(
+	"refreshSamlMetadata",
+	refreshSamlMetadataImpl,
+);
+
+// Einrichtungslink für die IT (AP10d): 7 Tage, nur die Werte dieser einen
+// Verbindung; die IT schlägt Metadaten vor, anlegen tut die Inhaberin.
+async function createSsoSetupLinkImpl(
+	input: unknown,
+): Promise<ActionResult<{ url: string; expiresAt: string }>> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = setupLinkSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const providerId = suggestProviderId(d.domain);
+	const link = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const r = await createSetupLink(
+			tx,
+			{ ...toOrgCtx(c), userId: c.userId },
+			{ vendor: d.vendor, domain: d.domain, providerId },
+		);
+		return {
+			result: r,
+			audit: {
+				action: "sso.setup_link_created",
+				target: `sso_setup_request:${r.requestId}`,
+				after: { vendor: d.vendor, domain: d.domain, providerId },
+			},
+		};
+	});
+	const origin = new URL(env().BETTER_AUTH_URL).origin;
+	revalidatePath("/einstellungen");
+	return {
+		ok: true,
+		data: {
+			url: `${origin}/sso-einrichtung#${link.token}`,
+			expiresAt: link.expiresAt.toISOString(),
+		},
+	};
+}
+
+// Vorschlag der IT übernehmen: legt die Verbindung wie „Verbindung anlegen“
+// an (Step-up, Metadaten erneut geprüft) und beendet den Link.
+async function applySsoSetupRequestImpl(
+	requestId: string,
+): Promise<ActionResult> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const id = z.uuid().safeParse(requestId);
+	if (!id.success) return fromZod(id.error);
+	const req = (
+		await readOrg(toOrgCtx(c), (tx) => setupRequests(tx, c.orgId))
+	).find((r) => r.id === id.data);
+	if (!req || req.status !== "submitted")
+		return { ok: false, error: "not_found" };
+	const res = await registerSamlProviderImpl({
+		vendor: req.vendor,
+		providerId: req.providerId,
+		domain: req.domain,
+		metadataUrl: req.metadataUrl ?? undefined,
+		metadataXml: req.metadataXml ?? undefined,
+		emailAttribute: req.attributes?.email || undefined,
+		nameAttribute: req.attributes?.name || undefined,
+		groupsAttribute: req.attributes?.groups || undefined,
+	});
+	if (!res.ok) return res;
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		await closeSetupLink(tx, c.orgId, req.id, "applied", c.userId);
+		return {
+			result: null,
+			audit: {
+				action: "sso.setup_applied",
+				target: `sso_setup_request:${req.id}`,
+				after: { providerId: req.providerId },
+			},
+		};
+	});
+	revalidatePath("/einstellungen");
+	return { ok: true, data: undefined };
+}
+
+async function withdrawSsoSetupRequestImpl(
+	requestId: string,
+): Promise<ActionResult> {
+	const c = await requireOrg({ settings: ["update"] });
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const id = z.uuid().safeParse(requestId);
+	if (!id.success) return fromZod(id.error);
+	const done = await mutateOrg(toOrgCtx(c), async (tx) => ({
+		result: await closeSetupLink(tx, c.orgId, id.data, "withdrawn", c.userId),
+		audit: {
+			action: "sso.setup_withdrawn",
+			target: `sso_setup_request:${id.data}`,
+		},
+	}));
+	if (!done) return { ok: false, error: "not_found" };
+	revalidatePath("/einstellungen");
+	return { ok: true, data: undefined };
+}
+
+export const createSsoSetupLink = safeAction(
+	"createSsoSetupLink",
+	createSsoSetupLinkImpl,
+);
+export const applySsoSetupRequest = safeAction(
+	"applySsoSetupRequest",
+	applySsoSetupRequestImpl,
+);
+export const withdrawSsoSetupRequest = safeAction(
+	"withdrawSsoSetupRequest",
+	withdrawSsoSetupRequestImpl,
 );

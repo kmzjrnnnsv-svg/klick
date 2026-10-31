@@ -177,6 +177,7 @@ export default async function TodayPage() {
 				frameworkVariants: cov.profile.frameworkVariants,
 				issuesTokens: cov.profile.issuesTokens,
 				productRoles: cov.profile.productRoles,
+				catalog: cov.catalog,
 			}).length;
 	}
 

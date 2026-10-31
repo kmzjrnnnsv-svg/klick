@@ -23,6 +23,8 @@ export type OverviewInput = {
 	feesDue: number;
 	/** gesperrte Orgs */
 	suspended: number;
+	/** Server aus der Statusdatei von klick-health (fehlt = nicht lesbar) */
+	host?: Level;
 };
 
 export type TodoKey =
@@ -32,7 +34,8 @@ export type TodoKey =
 	| "jobs"
 	| "anchor"
 	| "risks"
-	| "fees";
+	| "fees"
+	| "server";
 
 export type Todo = {
 	key: TodoKey;
@@ -58,6 +61,7 @@ export type Tile =
 			href: string;
 	  }
 	| { key: "risks"; level: Level; risks: string[]; href: string }
+	| { key: "server"; level: Level; href: string }
 	| { key: "access"; level: Level; active: number; href: string };
 
 export type Overview = { todos: Todo[]; tiles: Tile[] };
@@ -103,7 +107,14 @@ export function buildOverview(input: OverviewInput): Overview {
 
 	const failed = input.jobs?.failed24h ?? null;
 	if (failed && failed > 0)
-		todos.push({ key: "jobs", level: "bad", n: failed, href: "/admin" });
+		todos.push({
+			key: "jobs",
+			level: "bad",
+			n: failed,
+			href: "/admin/betrieb",
+		});
+	if (input.host === "bad")
+		todos.push({ key: "server", level: "bad", n: 1, href: "/admin/betrieb" });
 
 	let anchorState: "none" | "confirmed" | "pending" | "stale" = "none";
 	let anchorLevel: Level = "warn";
@@ -112,7 +123,12 @@ export function buildOverview(input: OverviewInput): Overview {
 		if (age > ANCHOR_STALE_MS) {
 			anchorState = "stale";
 			anchorLevel = "bad";
-			todos.push({ key: "anchor", level: "bad", n: 1, href: "/admin" });
+			todos.push({
+				key: "anchor",
+				level: "bad",
+				n: 1,
+				href: "/admin/sicherheit",
+			});
 		} else if (input.anchor.status === "confirmed") {
 			anchorState = "confirmed";
 			anchorLevel = "ok";
@@ -127,7 +143,7 @@ export function buildOverview(input: OverviewInput): Overview {
 			key: "risks",
 			level: "warn",
 			n: input.acceptedRisks.length,
-			href: "/admin",
+			href: "/admin/sicherheit",
 		});
 
 	if (input.feesDue > 0)
@@ -154,20 +170,25 @@ export function buildOverview(input: OverviewInput): Overview {
 			key: "jobs",
 			level: failed === null ? "unknown" : failed > 0 ? "bad" : "ok",
 			failed,
-			href: "/admin",
+			href: "/admin/betrieb",
+		},
+		{
+			key: "server",
+			level: input.host ?? "unknown",
+			href: "/admin/betrieb",
 		},
 		{
 			key: "anchor",
 			level: anchorLevel,
 			state: anchorState,
 			at: input.anchor?.createdAt ?? null,
-			href: "/admin",
+			href: "/admin/sicherheit",
 		},
 		{
 			key: "risks",
 			level: input.acceptedRisks.length > 0 ? "warn" : "ok",
 			risks: input.acceptedRisks,
-			href: "/admin",
+			href: "/admin/sicherheit",
 		},
 		{
 			key: "access",

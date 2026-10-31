@@ -15,6 +15,7 @@ export const HELP_ICONS: Record<string, NavIcon> = {
 	ueberblick: "gauge",
 	"gap-analyse": "list-checks",
 	controls: "shield-check",
+	zusammenhaenge: "network",
 	rahmenwerke: "book-open",
 	nachweise: "file-check",
 	sicherheit: "shield-alert",

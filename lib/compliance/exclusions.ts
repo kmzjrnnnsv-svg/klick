@@ -1,5 +1,6 @@
 import { FRAMEWORK_BY_SLUG, REQUIREMENT_BY_KEY } from "./catalog";
 import { shortFrameworkName } from "./framework-names";
+import type { OrgCatalog } from "./org-catalog";
 
 // Ausschluss je Rahmenwerk (pure): nur wo das Rahmenwerk ihn kennt
 // (ExclusionPolicy am Rahmenwerk), sonst bleibt die Anforderung anwendbar
@@ -11,10 +12,22 @@ export type ExclusionRule =
 	| { allowed: true; label: string; basis: string }
 	| { allowed: false };
 
-export function exclusionRule(framework: string, code: string): ExclusionRule {
-	const policy = FRAMEWORK_BY_SLUG.get(framework)?.exclusion;
+// Mit dem Katalog der Org gelten auch eigene Rahmenwerke (R4): dort nach
+// ihrer Einstellung „Ausschluss erlaubt“
+type Lookup = Pick<OrgCatalog, "frameworkBySlug" | "requirementByKey">;
+
+export function exclusionRule(
+	framework: string,
+	code: string,
+	catalog?: Lookup,
+): ExclusionRule {
+	const policy = (catalog?.frameworkBySlug ?? FRAMEWORK_BY_SLUG).get(
+		framework,
+	)?.exclusion;
 	if (!policy) return { allowed: false };
-	const req = REQUIREMENT_BY_KEY.get(`${framework}:${code}`);
+	const req = (catalog?.requirementByKey ?? REQUIREMENT_BY_KEY).get(
+		`${framework}:${code}`,
+	);
 	if (!req) return { allowed: false };
 	const byPrefix =
 		!policy.codePrefixes || policy.codePrefixes.some((p) => code.startsWith(p));
@@ -25,10 +38,10 @@ export function exclusionRule(framework: string, code: string): ExclusionRule {
 		: { allowed: false };
 }
 
-export function exclusionAllowedForKey(key: string): boolean {
+export function exclusionAllowedForKey(key: string, catalog?: Lookup): boolean {
 	const i = key.indexOf(":");
 	if (i < 0) return false;
-	return exclusionRule(key.slice(0, i), key.slice(i + 1)).allowed;
+	return exclusionRule(key.slice(0, i), key.slice(i + 1), catalog).allowed;
 }
 
 // Was „Nicht relevant“ für eine Frage bzw. ein Control bewirkt: welche
@@ -38,15 +51,18 @@ export type NaImpact = {
 	blocked: { key: string; label: string }[];
 };
 
-export function naImpact(keys: readonly string[]): NaImpact {
+export function naImpact(
+	keys: readonly string[],
+	catalog?: Lookup & Pick<OrgCatalog, "frameworkBySlug">,
+): NaImpact {
 	const out: NaImpact = { excludable: [], blocked: [] };
 	for (const key of keys) {
 		const i = key.indexOf(":");
 		if (i < 0) continue;
 		const fw = key.slice(0, i);
 		const code = key.slice(i + 1);
-		const label = `${shortFrameworkName(fw)} ${code}`;
-		const rule = exclusionRule(fw, code);
+		const label = `${shortFrameworkName(fw, catalog)} ${code}`;
+		const rule = exclusionRule(fw, code, catalog);
 		if (rule.allowed) out.excludable.push({ key, label, how: rule.label });
 		else out.blocked.push({ key, label });
 	}

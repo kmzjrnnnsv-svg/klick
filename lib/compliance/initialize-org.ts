@@ -196,36 +196,13 @@ export async function initializeOrg(
 	if (input.applyBaseline) {
 		for (const b of BASELINE.controls) neededCodes.add(b.code);
 	}
-	const controlRows =
-		neededCodes.size === 0
-			? []
-			: await tx
-					.select({
-						id: controls.id,
-						code: controls.code,
-						domain: controls.domain,
-					})
-					.from(controls)
-					.where(inArray(controls.code, [...neededCodes]));
-
-	let controlsCreated = 0;
-	if (controlRows.length > 0) {
-		const owner = await areaOwners(tx, input.orgId, input.userId);
-		const inserted = await tx
-			.insert(controlImplementations)
-			.values(
-				controlRows.map((c) => ({
-					organizationId: input.orgId,
-					controlId: c.id,
-					status: "not_started" as const,
-					source: "onboarding" as const,
-					...owner(c),
-				})),
-			)
-			.onConflictDoNothing()
-			.returning({ id: controlImplementations.id });
-		controlsCreated = inserted.length;
-	}
+	const { rows: controlRows, created: controlsCreated } =
+		await ensureControlImplementations(
+			tx,
+			input.orgId,
+			input.userId,
+			neededCodes,
+		);
 
 	// Baseline-Status übernehmen (nur nicht-manuelle Zeilen).
 	let baselineApplied = 0;
@@ -357,6 +334,43 @@ export async function activeFrameworkSlugs(
 // Verantwortlich für neue Controls: die Funktion des Bereichs aus der
 // Einrichtung (org_settings.areaFunctions) mit ihrer Person, sonst die
 // einrichtende Person
+// Arbeitsvorrat ergänzen: fehlende Umsetzungen für diese Controls anlegen
+// (Verantwortliche nach Bereich → Funktion, sonst die Person); bestehende
+// bleiben unberührt. Aus initializeOrg und beim Einschalten eines eigenen
+// Rahmenwerks (R4).
+export async function ensureControlImplementations(
+	tx: OrgTx,
+	orgId: string,
+	userId: string | null,
+	codes: ReadonlySet<string> | readonly string[],
+): Promise<{
+	rows: { id: string; code: string; domain: Domain }[];
+	created: number;
+}> {
+	const list = [...codes];
+	if (list.length === 0) return { rows: [], created: 0 };
+	const rows = await tx
+		.select({ id: controls.id, code: controls.code, domain: controls.domain })
+		.from(controls)
+		.where(inArray(controls.code, list));
+	if (rows.length === 0) return { rows, created: 0 };
+	const owner = await areaOwners(tx, orgId, userId);
+	const inserted = await tx
+		.insert(controlImplementations)
+		.values(
+			rows.map((c) => ({
+				organizationId: orgId,
+				controlId: c.id,
+				status: "not_started" as const,
+				source: "onboarding" as const,
+				...owner(c),
+			})),
+		)
+		.onConflictDoNothing()
+		.returning({ id: controlImplementations.id });
+	return { rows, created: inserted.length };
+}
+
 async function areaOwners(
 	tx: OrgTx,
 	orgId: string,

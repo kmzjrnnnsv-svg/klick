@@ -13,6 +13,7 @@ import { audit } from "@/lib/audit";
 import { type OrgContext, toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers, listSsoProvidersForOrg } from "@/lib/auth/org";
 import { normalizeRole } from "@/lib/auth/session-rules";
+import { adoptNextMetadata } from "@/lib/auth/sso-setup-service";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { TOP_MANAGEMENT_FUNCTION } from "@/lib/compliance/top-management";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
@@ -287,10 +288,31 @@ const APPLY_COLUMN = {
 	network_policy: "networkPolicy",
 	ai_policy: "aiPolicy",
 	signature_policy: "signaturePolicy",
-} as const satisfies Record<ApplyKind, keyof typeof orgSettings.$inferSelect>;
+} as const satisfies Record<
+	Exclude<ApplyKind, "sso_saml_cert">,
+	keyof typeof orgSettings.$inferSelect
+>;
 
 async function applyChange(tx: OrgTx, row: SecurityChange): Promise<void> {
-	const kind = row.kind as ApplyKind;
+	// Neues Zertifikat eines SAML-Anbieters (AP10c): schreibt die Verbindung,
+	// nicht org_settings; veraltet, wenn sich Zertifikat oder Vormerkung seit
+	// dem Antrag geändert haben
+	if (row.kind === "sso_saml_cert") {
+		const v = (row.payload?.value ?? {}) as {
+			providerId?: unknown;
+			fingerprints?: unknown;
+		};
+		const before = (row.before ?? {}) as { fingerprints?: unknown };
+		const err = await adoptNextMetadata(tx, row.organizationId, {
+			providerId: typeof v.providerId === "string" ? v.providerId : "",
+			next: typeof v.fingerprints === "string" ? v.fingerprints : "",
+			current:
+				typeof before.fingerprints === "string" ? before.fingerprints : null,
+		});
+		if (err) throw new FourEyesError(err);
+		return;
+	}
+	const kind = row.kind as Exclude<ApplyKind, "sso_saml_cert">;
 	const column = APPLY_COLUMN[kind];
 	const [settings] = await tx
 		.select({ current: orgSettings[column] })

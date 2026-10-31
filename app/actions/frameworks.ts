@@ -29,7 +29,13 @@ import {
 	addOrgFrameworks,
 	initializeOrg,
 } from "@/lib/compliance/initialize-org";
+import { loadOrgCatalog } from "@/lib/compliance/org-catalog-server";
 import { getOrgProfile, orgCoverage } from "@/lib/compliance/queries";
+import { isCustomSlug } from "@/lib/custom-frameworks/rules";
+import {
+	CustomFrameworkError,
+	setRequirementExclusion,
+} from "@/lib/custom-frameworks/service";
 import { mutateOrg } from "@/lib/db/with-org";
 import { listOpenAuditScopes } from "@/lib/org/queries";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
@@ -183,6 +189,41 @@ async function removeFrameworkImpl(
 	return { ok: true, data: { removed: slug } };
 }
 
+async function setCustomApplicability(
+	c: Awaited<ReturnType<typeof requireOrg>>,
+	d: { framework: string; code: string; applicable: boolean; note?: string },
+): Promise<ActionResult> {
+	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const catalog = await loadOrgCatalog(tx, c.orgId);
+		const id = catalog.custom.get(d.framework)?.requirementIds.get(d.code);
+		if (!id) return { result: "notFound", audit: [] };
+		try {
+			const audit = await setRequirementExclusion(
+				tx,
+				c,
+				id,
+				!d.applicable,
+				d.note ?? "",
+			);
+			return { result: "ok", audit };
+		} catch (e) {
+			if (e instanceof CustomFrameworkError)
+				return { result: e.code, audit: [] };
+			throw e;
+		}
+	});
+	if (res !== "ok")
+		return res === "reason_required"
+			? {
+					ok: false,
+					error: "noteRequired",
+					fieldErrors: { note: ["noteRequired"] },
+				}
+			: { ok: false, error: res };
+	revalidatePath(`/rahmenwerke/${d.framework}`, "layout");
+	return { ok: true, data: undefined };
+}
+
 // Manuelle Anwendbarkeitsentscheidung (SoA-Begründung) je Anforderung.
 async function setRequirementApplicabilityImpl(
 	input: unknown,
@@ -191,6 +232,8 @@ async function setRequirementApplicabilityImpl(
 	const parsed = setApplicabilitySchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
+	// Eigene Rahmenwerke (R4) führen den Ausschluss an der Anforderung selbst
+	if (isCustomSlug(d.framework)) return setCustomApplicability(c, d);
 	// Ausschließen nur, wo das Rahmenwerk es kennt (ISO Annex A, SOC 2
 	// Zusatzkategorien …); wieder einbeziehen geht immer
 	if (!d.applicable && !exclusionRule(d.framework, d.code).allowed) {

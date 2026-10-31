@@ -6,6 +6,7 @@ import {
 	EDGES,
 } from "@/lib/compliance/catalog";
 import { type ProfileInput, toProfile } from "@/lib/compliance/catalog-view";
+import type { OrgCatalog } from "@/lib/compliance/org-catalog";
 
 // Gap-Analyse als Fragebogen, abgeleitet aus dem Katalog: **eine Frage je
 // Control**, nicht je Anforderung (Hub-and-Spoke — wer ISO + NIS2 wählt,
@@ -44,6 +45,9 @@ export type CatalogTemplateInput = ProfileInput & {
 	manual?: ReadonlyMap<string, boolean>;
 	// nur diese Controls (z. B. neu hinzugekommene nach Rahmenwerk-Zuwachs)
 	onlyControls?: ReadonlySet<string>;
+	// Katalog der Org (R4): eigene Rahmenwerke erhöhen Gewicht und Bezüge
+	// der Control-Frage; ausgeschlossene eigene Anforderungen fallen heraus
+	catalog?: Pick<OrgCatalog, "requirements" | "edges" | "custom">;
 };
 
 export function catalogQuestions(
@@ -52,15 +56,16 @@ export function catalogQuestions(
 	const profile = toProfile(input);
 	const selected = new Set(input.frameworks);
 	const reqKeys = new Set<string>();
-	for (const r of ALL_REQUIREMENTS) {
+	for (const r of input.catalog?.requirements ?? ALL_REQUIREMENTS) {
 		if (!selected.has(r.framework)) continue;
 		const key = `${r.framework}:${r.code}`;
+		if (input.catalog?.custom.get(r.framework)?.excluded.has(r.code)) continue;
 		const m = input.manual?.get(key);
 		if (m === true || (m === undefined && inWorkQueue(r, profile)))
 			reqKeys.add(key);
 	}
 	const byControl = new Map<string, { reqs: Set<string>; fws: Set<string> }>();
-	for (const e of EDGES) {
+	for (const e of input.catalog?.edges ?? EDGES) {
 		if (!reqKeys.has(e.requirement)) continue;
 		if (input.onlyControls && !input.onlyControls.has(e.control)) continue;
 		const agg = byControl.get(e.control) ?? {

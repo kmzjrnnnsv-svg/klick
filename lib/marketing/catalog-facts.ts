@@ -148,7 +148,7 @@ export function evidenceByIsoClause(): {
 			kinds: [...new Set(kinds.map((k) => k.title))],
 			alsoFor: [...others]
 				.sort((a, b) => order.indexOf(a) - order.indexOf(b))
-				.map(shortFrameworkName),
+				.map((s) => shortFrameworkName(s)),
 		};
 	});
 }

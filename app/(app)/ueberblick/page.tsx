@@ -15,16 +15,12 @@ import {
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
-import { CONTROL_BY_CODE, FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
+import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import {
 	requiredResolutions,
 	resolutionCoverage,
 } from "@/lib/compliance/catalog/resolutions-required";
-import {
-	CATALOG_CONTROL_REFS,
-	CATALOG_EDGES,
-	CATALOG_REQ_REFS,
-} from "@/lib/compliance/catalog-view";
+import { CATALOG_CONTROL_REFS } from "@/lib/compliance/catalog-view";
 import { capaState } from "@/lib/compliance/nonconformity";
 import { runState } from "@/lib/compliance/obligations";
 import {
@@ -313,8 +309,8 @@ export default async function OverviewPage() {
 		plan = prioritizePlan(
 			fws,
 			{
-				requirements: CATALOG_REQ_REFS,
-				edges: CATALOG_EDGES,
+				requirements: cov.catalog.reqRefs,
+				edges: cov.catalog.edgeRefs,
 				controls: CATALOG_CONTROL_REFS,
 				applicability,
 			},
@@ -342,7 +338,9 @@ export default async function OverviewPage() {
 					</CardHeader>
 					<CardContent className="flex flex-col gap-4">
 						{fws.filter(
-							(f) => (FRAMEWORK_BY_SLUG.get(f)?.requirements.length ?? 0) > 0,
+							(f) =>
+								(cov?.catalog.frameworkBySlug.get(f)?.requirements.length ??
+									0) > 0,
 						).length === 0 ? (
 							<p className="text-muted-foreground text-subhead">
 								{t("coverageNone")}
@@ -358,7 +356,7 @@ export default async function OverviewPage() {
 												href={`/rahmenwerke/${fw}`}
 												className="font-medium hover:underline underline-offset-4"
 											>
-												{shortFrameworkName(fw)}
+												{shortFrameworkName(fw, cov?.catalog)}
 											</Link>
 											<span className="flex items-baseline gap-3">
 												{(() => {
@@ -529,7 +527,7 @@ export default async function OverviewPage() {
 										<span className="hidden min-w-0 max-w-[45%] flex-wrap justify-end gap-1 sm:flex">
 											{s.frameworks.map((fw) => (
 												<Badge key={fw} variant="outline" className="">
-													{shortFrameworkName(fw)}
+													{shortFrameworkName(fw, cov?.catalog)}
 												</Badge>
 											))}
 										</span>
@@ -605,6 +603,22 @@ export default async function OverviewPage() {
 							<p className="mt-1 text-muted-foreground text-footnote">
 								{t("members")}: {members.length}
 							</p>
+						</CardContent>
+					</Card>
+					<Card>
+						<CardHeader>
+							<CardTitle className="text-headline">
+								{t("relationsTitle")}
+							</CardTitle>
+							<CardDescription>{t("relationsLead")}</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<Link
+								href="/zusammenhaenge"
+								className="text-primary text-subhead hover:underline underline-offset-4"
+							>
+								{t("relationsOpen")}
+							</Link>
 						</CardContent>
 					</Card>
 				</div>

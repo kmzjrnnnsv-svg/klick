@@ -23,6 +23,7 @@ const base = (over: Partial<OverviewInput> = {}): OverviewInput => ({
 	acceptedRisks: [],
 	feesDue: 0,
 	suspended: 0,
+	host: "ok",
 	...over,
 });
 

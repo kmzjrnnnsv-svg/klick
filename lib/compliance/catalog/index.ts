@@ -1,4 +1,5 @@
 import { AMLR_REQUIREMENTS, AMLR_SECTIONS } from "./amlr";
+import { FTR_REQUIREMENTS, FTR_SECTIONS } from "./aws-ftr";
 import { BASELINE } from "./baseline";
 import {
 	BSI_200_1_REQUIREMENTS,
@@ -10,16 +11,23 @@ import {
 	BSI_200_4_REQUIREMENTS,
 	BSI_200_4_SECTIONS,
 } from "./bsi";
+import { CCPA_REQUIREMENTS, CCPA_SECTIONS } from "./ccpa";
 import { CCSS_REQUIREMENTS, CCSS_SECTIONS } from "./ccss";
+import { CMMC_REQUIREMENTS, CMMC_SECTIONS } from "./cmmc";
 import { CONTROL_REQUIREMENTS } from "./control-requirements";
 import { CONTROL_BY_CODE, CONTROLS } from "./controls";
 import { CORRIDOR_INDICES } from "./corridors";
 import { CRA_REQUIREMENTS, CRA_SECTIONS } from "./cra";
+import { CE_REQUIREMENTS, CE_SECTIONS } from "./cyber-essentials";
 import { DORA_REQUIREMENTS, DORA_SECTIONS } from "./dora";
 import { DSGVO_REQUIREMENTS, DSGVO_SECTIONS } from "./dsgvo";
+import { E8_REQUIREMENTS, E8_SECTIONS } from "./essential-eight";
+import { DPF_REQUIREMENTS, DPF_SECTIONS } from "./eu-us-dpf";
 import { FRAMEWORKS } from "./frameworks";
 import { GWG_REQUIREMENTS, GWG_SECTIONS } from "./gwg";
+import { HIPAA_REQUIREMENTS, HIPAA_SECTIONS } from "./hipaa";
 import { ISO27001_REQUIREMENTS, ISO27001_SECTIONS } from "./iso27001";
+import { ISO42001_REQUIREMENTS, ISO42001_SECTIONS } from "./iso42001";
 import { KWG_REQUIREMENTS, KWG_SECTIONS } from "./kwg";
 import { MICAR_REQUIREMENTS, MICAR_SECTIONS } from "./micar";
 import {
@@ -30,12 +38,19 @@ import {
 	KASSEN_REQUIREMENTS,
 	KASSEN_SECTIONS,
 } from "./misc-finance";
+import { SSPA_REQUIREMENTS, SSPA_SECTIONS } from "./ms-sspa";
+import { MVSP_REQUIREMENTS, MVSP_SECTIONS } from "./mvsp";
 import { NIS2_REQUIREMENTS, NIS2_SECTIONS } from "./nis2";
+import { NIST53_REQUIREMENTS, NIST53_SECTIONS } from "./nist-800-53";
+import { NIST171_REQUIREMENTS, NIST171_SECTIONS } from "./nist-800-171";
+import { CSF_REQUIREMENTS, CSF_SECTIONS } from "./nist-csf";
+import { NYCRR_REQUIREMENTS, NYCRR_SECTIONS } from "./nycrr500";
 import { PCI_SECTIONS } from "./pci-dss";
 import { PCI_DSS_REQUIREMENTS } from "./pci-saq";
 import { SANCTIONS_REQUIREMENTS, SANCTIONS_SECTIONS } from "./sanctions";
 import { SOC2_REQUIREMENTS, SOC2_SECTIONS } from "./soc2";
 import { TFR_REQUIREMENTS, TFR_SECTIONS } from "./tfr";
+import { TISAX_REQUIREMENTS, TISAX_SECTIONS } from "./tisax";
 import type {
 	CatalogControl,
 	CatalogControlMapping,
@@ -43,6 +58,7 @@ import type {
 	CatalogRequirement,
 	CatalogSection,
 } from "./types";
+import { USDP_REQUIREMENTS, USDP_SECTIONS } from "./us-privacy";
 import { ZAG_REQUIREMENTS, ZAG_SECTIONS } from "./zag";
 import { ZAG_MARISK_REQUIREMENTS, ZAG_MARISK_SECTIONS } from "./zag-marisk";
 
@@ -98,6 +114,31 @@ const INDICES: Record<
 		requirements: BSI_200_4_REQUIREMENTS,
 	},
 	"pci-dss": { sections: PCI_SECTIONS, requirements: PCI_DSS_REQUIREMENTS },
+	iso42001: {
+		sections: ISO42001_SECTIONS,
+		requirements: ISO42001_REQUIREMENTS,
+	},
+	tisax: { sections: TISAX_SECTIONS, requirements: TISAX_REQUIREMENTS },
+	"eu-us-dpf": { sections: DPF_SECTIONS, requirements: DPF_REQUIREMENTS },
+	"cyber-essentials": { sections: CE_SECTIONS, requirements: CE_REQUIREMENTS },
+	"essential-eight": { sections: E8_SECTIONS, requirements: E8_REQUIREMENTS },
+	"nist-csf": { sections: CSF_SECTIONS, requirements: CSF_REQUIREMENTS },
+	"nist-800-53": {
+		sections: NIST53_SECTIONS,
+		requirements: NIST53_REQUIREMENTS,
+	},
+	"nist-800-171": {
+		sections: NIST171_SECTIONS,
+		requirements: NIST171_REQUIREMENTS,
+	},
+	cmmc: { sections: CMMC_SECTIONS, requirements: CMMC_REQUIREMENTS },
+	hipaa: { sections: HIPAA_SECTIONS, requirements: HIPAA_REQUIREMENTS },
+	"nycrr-500": { sections: NYCRR_SECTIONS, requirements: NYCRR_REQUIREMENTS },
+	ccpa: { sections: CCPA_SECTIONS, requirements: CCPA_REQUIREMENTS },
+	"us-privacy": { sections: USDP_SECTIONS, requirements: USDP_REQUIREMENTS },
+	"aws-ftr": { sections: FTR_SECTIONS, requirements: FTR_REQUIREMENTS },
+	"ms-sspa": { sections: SSPA_SECTIONS, requirements: SSPA_REQUIREMENTS },
+	mvsp: { sections: MVSP_SECTIONS, requirements: MVSP_REQUIREMENTS },
 	...CORRIDOR_INDICES,
 };
 

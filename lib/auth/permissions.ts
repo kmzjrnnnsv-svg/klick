@@ -65,6 +65,9 @@ export const statements = {
 	// Gap-Analyse/Fragebögen: answer = Fragen beantworten, review = Antworten
 	// bewerten, apply = Ergebnis in den Control-Status übernehmen
 	assessment: ["read", "create", "answer", "review", "apply"],
+	// Eigene Rahmenwerke der Org (R4): anlegen und pflegen; einschalten und
+	// zurückziehen braucht settings:update mit Step-up
+	custom_framework: ["read", "create", "update"],
 	product: ["read", "create", "update", "delete"],
 	// Security-Checks: accept = Befund mit Begründung und Ablauf akzeptieren
 	security: ["read", "create", "update", "accept"],
@@ -111,6 +114,7 @@ const readAll = {
 	shareholder: ["read"],
 	privacy: ["read"],
 	assessment: ["read"],
+	custom_framework: ["read"],
 	product: ["read"],
 	security: ["read"],
 	policy: ["read"],
@@ -180,6 +184,7 @@ export const editor = ac.newRole({
 	shareholder: ["read", "create", "update"],
 	privacy: ["read", "create", "update"],
 	assessment: ["read", "create", "answer", "review", "apply"],
+	custom_framework: ["read", "create", "update"],
 	product: ["read", "create", "update", "delete"],
 	security: ["read", "create", "update", "accept"],
 	integration: ["read"],
@@ -230,6 +235,7 @@ export const consultant = ac.newRole({
 	shareholder: ["read", "create", "update"],
 	privacy: ["read", "create", "update"],
 	assessment: ["read", "create", "answer", "review", "apply"],
+	custom_framework: ["read", "create", "update"],
 	product: ["read", "create", "update"],
 	security: ["read", "create", "update"],
 	integration: ["read"],
@@ -273,6 +279,7 @@ export const owner = ac.newRole({
 	shareholder: ["read", "create", "update"],
 	privacy: ["read", "create", "update"],
 	assessment: ["read", "create", "answer", "review", "apply"],
+	custom_framework: ["read", "create", "update"],
 	product: ["read", "create", "update", "delete"],
 	security: ["read", "create", "update", "accept"],
 	integration: ["read", "create", "revoke"],

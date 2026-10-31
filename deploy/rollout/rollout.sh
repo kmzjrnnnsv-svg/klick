@@ -23,7 +23,7 @@ LIB="$ROOT_DIR/deploy/rollout/lib"
 PHASEN=(pruefen grundlage updates firewall wireguard ssh firewall-final system nginx crowdsec
 	postgres virenscanner klick both signer ueberwachung abschluss)
 # einzeln aufrufbar, nicht Teil von `alles`
-EINZELN=(ssh-schluessel bestaetigen)
+EINZELN=(ssh-schluessel standorte bestaetigen)
 
 hilfe() {
 	cat <<EOF
@@ -51,6 +51,7 @@ Phasen (Reihenfolge von „alles“):
 
 Einzeln:
   ssh-schluessel  SSH nur noch mit Sicherheitsschlüssel und PIN (später)
+  standorte       Standort-Tunnel: Netz-Agent klick-netz, strongSwan, wg-sites
   bestaetigen <wort>  aus der neuen Sitzung: Netz-Schritt bestätigen
 
 Optionen:
@@ -135,6 +136,7 @@ export TROCKEN DEPLOY ROOT_DIR
 . "$LIB/system.sh"
 . "$LIB/apps.sh"
 . "$LIB/bericht.sh"
+. "$LIB/standorte.sh"
 
 [ "$(id -u)" = 0 ] || die "nur als root (sudo)"
 pfad_sicher "$ROOT_DIR/deploy/rollout" ||
@@ -180,6 +182,7 @@ phase_ausfuehren() {
 	ueberwachung) phase_ueberwachung ;;
 	abschluss) phase_abschluss ;;
 	ssh-schluessel) phase_ssh_schluessel ;;
+	standorte) phase_standorte ;;
 	*) die "unbekannte Phase $p" ;;
 	esac
 }

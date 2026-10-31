@@ -16,6 +16,17 @@ add table inet klick
 delete table inet klick
 
 table inet klick {
+  # Standort-Tunnel (ADR-033): gefüllt vom Netz-Agenten klick-netz, leer = aus.
+  # Nach `systemctl reload nftables` sind sie leer, bis der Job site-tunnels
+  # sie (höchstens eine Minute später) wieder füllt.
+  set site_peers {
+    type ipv4_addr
+  }
+  set site_nets {
+    type ipv4_addr
+    flags interval
+  }
+
   chain input {
     type filter hook input priority 0; policy drop;
     ct state established,related accept
@@ -34,6 +45,17 @@ table inet klick {
     iifname "wg-admin" tcp dport 22 accept
     iifname "wg-admin" meta l4proto { tcp, udp } th dport 53 accept
     # @rollout: ssh-uebergang (deploy/rollout setzt hier SSH öffentlich ein, bis der Tunnel steht)
+
+    # Standort-Tunnel: IKE/ESP und WireGuard nur von eingetragenen Gegenstellen;
+    # aus den Netzen der Standorte nur HTTPS an die Dienstadresse und nur
+    # durch den Tunnel (IPsec entschlüsselt oder wg-sites), sonst nichts.
+    ip saddr @site_peers udp dport { 500, 4500 } accept
+    ip saddr @site_peers meta l4proto esp accept
+    ip saddr @site_peers udp dport 51821 accept
+    ip saddr @site_nets meta ipsec exists ip daddr 10.21.0.1 tcp dport 443 accept
+    ip saddr @site_nets iifname "wg-sites" ip daddr 10.21.0.1 tcp dport 443 accept
+    ip saddr @site_nets drop
+    ip daddr 10.21.0.1 drop
 
     # Web
     tcp dport { 80, 443 } accept

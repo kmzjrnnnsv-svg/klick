@@ -104,6 +104,21 @@ export const itDataSchema = z.object({
 	dataSubjects: z.enum(["lt1k", "1k_100k", "gt100k"]).optional(),
 	customerCountries: z.array(z.string().length(2)).max(60).default([]),
 	cardData: z.enum(["none", "outsourced", "own"]).optional(),
+	// KI: keine, Dienste anderer nutzen, eigene KI bauen oder anbieten
+	aiUse: z.enum(["none", "use", "build"]).optional(),
+	// arbeitet für Autohersteller oder deren Zulieferer (TISAX)
+	automotive: z.boolean().optional(),
+	// Personendaten gehen an Dienstleister in den USA (DPF prüfen)
+	usTransfers: z.boolean().optional(),
+	// Aufträge für US-Behörden, auch als Unterauftragnehmer (NIST, CMMC)
+	usFederal: z.boolean().optional(),
+	// Gesundheitsdaten aus den USA im Auftrag (HIPAA)
+	usHealth: z.boolean().optional(),
+	// Erlaubnis der New Yorker Finanzaufsicht (23 NYCRR 500)
+	nyFinance: z.boolean().optional(),
+	// AWS-Partner bzw. Lieferant von Microsoft (FTR, SSPA)
+	awsPartner: z.boolean().optional(),
+	msSupplier: z.boolean().optional(),
 	// Darf eine KI Inhalte lesen? (ADR-032; wirkt nur, solange die KI aus ist)
 	aiMaxClass: z.enum(["none", "internal", "confidential"]).optional(),
 	providers: z

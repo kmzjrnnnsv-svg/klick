@@ -17,14 +17,10 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import {
 	ALL_REQUIREMENTS,
 	CONTROL_BY_CODE,
-	EDGES_BY_CONTROL,
 	frameworksWithIndex,
-	REQUIREMENT_BY_KEY,
 } from "@/lib/compliance/catalog";
 import {
 	CATALOG_CONTROL_REFS,
-	CATALOG_EDGES,
-	CATALOG_REQ_REFS,
 	profileApplicability,
 } from "@/lib/compliance/catalog-view";
 import { compareFrameworks } from "@/lib/compliance/compare";
@@ -67,14 +63,15 @@ export default async function SynergiesPage({
 	const applicability = new Map<string, boolean>();
 	const src = cov.input.applicability;
 	if (src instanceof Map) for (const [k, v] of src) applicability.set(k, v);
+	// Katalog der Org: eigene Rahmenwerke rechnen mit (R4)
 	const catalog: SynergyCatalog = {
-		requirements: CATALOG_REQ_REFS,
-		edges: CATALOG_EDGES,
+		requirements: cov.catalog.reqRefs,
+		edges: cov.catalog.edgeRefs,
 		controls: CATALOG_CONTROL_REFS,
 		applicability,
 	};
 	const synergy = computeSynergy(cov.frameworks, catalog);
-	const fwLabel = (s: string) => shortFrameworkName(s);
+	const fwLabel = (s: string) => shortFrameworkName(s, cov.catalog);
 
 	const summary =
 		synergy.overlapPct === null
@@ -154,8 +151,8 @@ export default async function SynergiesPage({
 						a,
 						b,
 						{
-							requirements: CATALOG_REQ_REFS,
-							edges: CATALOG_EDGES,
+							requirements: cov.catalog.reqRefs,
+							edges: cov.catalog.edgeRefs,
 							applicability: applicabilityMap,
 							related,
 						},
@@ -218,7 +215,7 @@ export default async function SynergiesPage({
 												</Link>
 											</TableCell>
 											<TableCell className="text-subhead">
-												{REQUIREMENT_BY_KEY.get(row.key)?.title}
+												{cov.catalog.requirementByKey.get(row.key)?.title}
 											</TableCell>
 											<TableCell>
 												<Badge variant={KIND_TONE[row.kind]}>
@@ -233,7 +230,9 @@ export default async function SynergiesPage({
 																key={c.key}
 																href={`/rahmenwerke/${b}/${encodeURIComponent(c.code)}`}
 																className="mr-1 inline-block hover:underline underline-offset-4"
-																title={REQUIREMENT_BY_KEY.get(c.key)?.title}
+																title={
+																	cov.catalog.requirementByKey.get(c.key)?.title
+																}
 															>
 																{c.code}
 															</Link>
@@ -263,7 +262,8 @@ export default async function SynergiesPage({
 													href={`/rahmenwerke/${b}/${encodeURIComponent(u.code)}`}
 												>
 													<Badge variant="outline" className="">
-														{u.code} · {REQUIREMENT_BY_KEY.get(u.key)?.title}
+														{u.code} ·{" "}
+														{cov.catalog.requirementByKey.get(u.key)?.title}
 													</Badge>
 												</Link>
 											</li>
@@ -326,7 +326,7 @@ export default async function SynergiesPage({
 						<TableBody>
 							{rankByLeverage(cov.result.leverage).map((lev) => {
 								const c = CONTROL_BY_CODE.get(lev.control);
-								const edges = EDGES_BY_CONTROL.get(lev.control) ?? [];
+								const edges = cov.catalog.edgesByControl.get(lev.control) ?? [];
 								const status = cov.implStatus.get(lev.control);
 								return (
 									<TableRow key={lev.control}>

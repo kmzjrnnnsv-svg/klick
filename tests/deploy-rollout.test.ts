@@ -203,6 +203,38 @@ describe("Dateien", () => {
 			"deb [signed-by=%s] https://packagecloud.io/crowdsec/crowdsec/ubuntu/",
 		);
 	});
+
+	it("Standorte: Agent aus dem root-eigenen Checkout, Units, Werte in klick.env", () => {
+		const st = read(`${DIR}/lib/standorte.sh`);
+		const phase = code(st.slice(st.indexOf("phase_standorte()")));
+		expect(phase).toContain('cd "$ROOT_DIR"');
+		expect(phase).toContain("pnpm -s build:netz-agent");
+		expect(phase).toContain(
+			'install -m 0444 -o root -g root "$ROOT_DIR/dist/netz-agent.mjs" /usr/local/lib/klick-netz/netz-agent.mjs',
+		);
+		expect(phase).not.toContain("/opt/klick/current");
+		expect(phase).toContain(
+			"units_einspielen klick-netz.socket klick-netz.service",
+		);
+		for (const k of [
+			"SITE_AGENT_SOCKET=",
+			"SITE_PUBLIC_IP=",
+			"SITE_WG_PUBLIC_KEY=",
+		])
+			expect(phase).toContain(k);
+		expect(phase).toContain("/etc/modules-load.d/klick-sites.conf");
+		const main = read(`${DIR}/rollout.sh`);
+		expect(main).toContain('. "$LIB/standorte.sh"');
+		expect(main).toMatch(/EINZELN=\([^)]*standorte/);
+	});
+
+	it("Überwachung legt den Ordner der Statusdatei an (root schreibt, klick liest)", () => {
+		const sys = read(`${DIR}/lib/system.sh`);
+		const phase = sys.slice(sys.indexOf("phase_ueberwachung()"));
+		expect(phase).toContain(
+			"install -d -m 2750 -o root -g klick /var/lib/klick-health",
+		);
+	});
 });
 
 describe("Aufruf", () => {
@@ -224,6 +256,7 @@ describe("Aufruf", () => {
 			"signer",
 			"abschluss",
 			"ssh-schluessel",
+			"standorte",
 			"bestaetigen",
 		])
 			expect(r.stdout).toContain(p);

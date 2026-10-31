@@ -18,6 +18,10 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { WatchButton } from "@/components/entity/watch-button";
 import { SheetView } from "@/components/evidence-studio/sheet-view";
+import {
+	ControlExplainerCard,
+	ControlRelationsSection,
+} from "@/components/relations/control-relations";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,11 +30,7 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { maskSecret } from "@/lib/auth/visibility";
-import {
-	CONTROL_BY_CODE,
-	EDGES_BY_CONTROL,
-	REQUIREMENT_BY_KEY,
-} from "@/lib/compliance/catalog";
+import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { responsibleOptions } from "@/lib/compliance/function-holders-service";
 import { moduleEvidenceFor } from "@/lib/compliance/module-evidence";
 import {
@@ -61,10 +61,13 @@ import {
 
 export default async function ControlDetailPage({
 	params,
+	searchParams,
 }: {
 	params: Promise<{ code: string }>;
+	searchParams: Promise<{ alle?: string }>;
 }) {
 	const { code } = await params;
+	const showAll = (await searchParams).alle === "1";
 	const ctx = await requireOrgPage();
 	const control = CONTROL_BY_CODE.get(code);
 	if (!control) notFound();
@@ -73,7 +76,6 @@ export default async function ControlDetailPage({
 	const ta = await getTranslations("Authoring");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
-	const tf = await getTranslations("Frameworks");
 	const tt = await getTranslations("Tests");
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
@@ -134,28 +136,10 @@ export default async function ControlDetailPage({
 		names,
 	} = data;
 	const cov = await getOrgCoverageCached(ctx);
-	const fwNames = frameworkNameMap();
+	const fwNames = frameworkNameMap(cov?.catalog);
 	const canEdit = allows(ctx, { control: ["update"] });
 
 	const orgFrameworks = new Set(cov?.frameworks ?? []);
-	const edges = (EDGES_BY_CONTROL.get(code) ?? [])
-		.map((edge) => {
-			const req = REQUIREMENT_BY_KEY.get(edge.requirement);
-			const status = cov?.result.byRequirement.get(edge.requirement);
-			return {
-				edge,
-				req,
-				status,
-				active: req ? orgFrameworks.has(req.framework) : false,
-			};
-		})
-		.filter((x) => x.req)
-		.sort(
-			(a, b) =>
-				Number(b.active) - Number(a.active) ||
-				a.edge.requirement.localeCompare(b.edge.requirement),
-		);
-
 	const entries: ActivityEntry[] = mergeActivity(
 		toHistoryItems(history),
 		comments.map((c) => ({
@@ -201,7 +185,10 @@ export default async function ControlDetailPage({
 						status: row.status,
 					}}
 					frameworkNames={Object.fromEntries(
-						Object.keys(fwNames).map((s) => [s, shortFrameworkName(s)]),
+						Object.keys(fwNames).map((s) => [
+							s,
+							shortFrameworkName(s, cov?.catalog),
+						]),
 					)}
 					disabled={!canEdit}
 				/>
@@ -307,6 +294,17 @@ export default async function ControlDetailPage({
 				</>
 			}
 		>
+			<ControlExplainerCard code={code} />
+			<ControlRelationsSection
+				code={code}
+				orgFrameworks={[...orgFrameworks]}
+				statusByRequirement={cov?.result.byRequirement}
+				showAll={showAll}
+				allHref={`/controls/${encodeURIComponent(code)}?alle=1#wer-verlangt-das`}
+				mineHref={`/controls/${encodeURIComponent(code)}#wer-verlangt-das`}
+				catalog={cov?.catalog}
+			/>
+
 			{row.note && (
 				<Section title={t("note")}>
 					<p className="whitespace-pre-wrap text-subhead">{row.note}</p>
@@ -358,55 +356,6 @@ export default async function ControlDetailPage({
 					/>
 				</Section>
 			)}
-			<Section title={t("satisfies")}>
-				<p className="text-muted-foreground text-subhead">
-					{t("satisfiesLead")}
-				</p>
-				<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
-					{edges.map(({ edge, req, status, active }) => (
-						<li
-							key={edge.requirement}
-							className={`flex flex-wrap items-center gap-2 px-3 py-2 ${active ? "" : "opacity-60"}`}
-						>
-							<Badge variant="outline" className="font-mono">
-								{shortFrameworkName(req?.framework ?? "")} {req?.code}
-							</Badge>
-							<Link
-								href={`/rahmenwerke/${req?.framework}/${encodeURIComponent(req?.code ?? "")}`}
-								className="min-w-0 flex-1 truncate hover:underline underline-offset-4"
-							>
-								{req?.title}
-							</Link>
-							<span className="text-muted-foreground text-footnote">
-								{edge.coverage === "full" ? t("full") : t("partial")}
-							</span>
-							{active && status && (
-								<Badge
-									variant={
-										status === "covered"
-											? "success"
-											: status === "partial"
-												? "warning"
-												: status === "not_applicable"
-													? "muted"
-													: "outline"
-									}
-								>
-									{tf(
-										status === "covered"
-											? "covered"
-											: status === "partial"
-												? "partial"
-												: status === "not_applicable"
-													? "notApplicableShort"
-													: "open",
-									)}
-								</Badge>
-							)}
-						</li>
-					))}
-				</ul>
-			</Section>
 
 			<Section
 				title={t("evidence")}
