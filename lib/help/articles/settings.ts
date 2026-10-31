@@ -14,9 +14,20 @@ export const SETTINGS: HelpArticle[] = [
 				id: "konto",
 				heading: "Dein Konto",
 				list: [
-					"Sicherheit: Passkeys anlegen und entfernen, Code-App (TOTP) als Alternative, laufende Sitzungen.",
-					"Benachrichtigungen: welche Ereignisse per Mail kommen und ob als Tages-Mail.",
+					"Sicherheit: Passkeys anlegen und entfernen, Code-App (TOTP) als Alternative, laufende Sitzungen. Die Liste zeigt je Passkey „Sicherheitsschlüssel“ (gerätegebunden) oder „Synchronisiert“.",
+					"Benachrichtigungen: je Art per Mail, als Push auf deinen Geräten und in Microsoft Teams, auch mehrere Wege zugleich (Teams nur, wenn deine Organisation es eingeschaltet hat), und ob die Tages-Mail kommt.",
 				],
+			},
+			{
+				id: "push",
+				heading: "Push auf deinen Geräten",
+				steps: [
+					"Öffne Einstellungen > Benachrichtigungen auf dem Gerät, das Hinweise bekommen soll, und tipp auf „Push einschalten“. Der Browser fragt einmal, ob Klick dir Mitteilungen schicken darf.",
+					"Auf dem iPhone und iPad füge Klick zuerst über Teilen > Zum Home-Bildschirm hinzu und öffne es von dort. Safari im Browserfenster kann keine Push-Mitteilungen empfangen.",
+					"Wähl je Art, ob sie per Mail, Push oder Teams kommt. Beim ersten Gerät wählt Klick Push für alle Arten vor.",
+					"Mit „Testhinweis senden“ prüfst du, ob alles ankommt. Ein Gerät, das du nicht mehr nutzt, entfernst du in der Liste.",
+				],
+				tip: "Klick schickt nur Titel und Link, verschlüsselt über den Push-Dienst deines Browsers (Apple, Google, Mozilla oder Microsoft). Kommt ein Hinweis dreimal nicht an, geht er per Mail. Blockierte Mitteilungen erlaubst du in den Einstellungen des Browsers bzw. des Systems.",
 			},
 			{
 				id: "organisation",
@@ -107,12 +118,23 @@ export const SETTINGS: HelpArticle[] = [
 				],
 			},
 			{
+				id: "teams",
+				heading: "Microsoft Teams",
+				steps: [
+					"Unter Einstellungen > Integrationen > Microsoft Teams lädst du das App-Paket herunter und gibst es deiner IT. Sie lädt es im Teams Admin Center hoch.",
+					"Trag die Tenant-ID deines Microsoft 365 ein (mit Entra-SSO ist sie vorbelegt) und schick den Freigabe-Link an eine Person mit Administratorrechten. Sie stimmt bei Microsoft zu.",
+					"Nach der Freigabe schaltest du Teams ein und schickst dir einen Testhinweis.",
+					"Jede Person wählt unter Einstellungen > Benachrichtigungen, welche Arten in Teams kommen.",
+				],
+				tip: "An Microsoft gehen nur der Titel und der Link zur Seite in Klick, keine Inhalte. Freigeben und Unterschreiben bleiben in Klick mit Passkey. Klappt die Zustellung dreimal nicht, kommt die Nachricht per Mail.",
+			},
+			{
 				id: "methoden",
 				heading: "Methoden",
 				list: [
-					"Freigaben: Standard oder individuell, Abläufe je Auslöser, Vertretungen, Prüfung der Pflichten.",
+					"Freigaben: Standard oder individuell, Abläufe je Auslöser, Vertretungen, Prüfung der Pflichten. Oben die Regel „Unterschriften nur mit Sicherheitsschlüssel“: dann zählen für Unterschriften nur gerätegebundene Schlüssel wie ein YubiKey, Passkeys aus iCloud, Google oder einem Passwortmanager nur noch für die Anmeldung. Einschalten wirkt sofort, Ausschalten braucht eine zweite Person.",
 					"Audits & Fristen: Turnus und Fristen je Rahmenwerk und Abweichungsklasse.",
-					"Risikomethodik: Rechenweg, Stufen, Schadensarten, Klassen und Appetit.",
+					"Risikomethodik: Rechenweg oder Matrix, vier oder fünf Stufen, Schadensarten, Klassen und Appetit; Vorlage „BSI-Standard 200-3“.",
 					"Lieferantenbewertung: Kriterien, Gewichte und Wiedervorlage.",
 					"Nummernkreise: Präfixe und Zähler für Dokumente.",
 				],

@@ -10,7 +10,8 @@ import {
 const label = (max: number) => z.string().trim().min(1).max(max);
 const anchor = z.string().trim().max(600);
 const key = z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{0,31}$/);
-const five = <T extends z.ZodType>(s: T) => z.tuple([s, s, s, s, s]);
+// vier (BSI 200-3) oder fünf Stufen; gleich viele prüft validateRiskMethod
+const levels = <T extends z.ZodType>(s: T) => z.array(s).min(4).max(5);
 
 export const RISK_METHOD_ISSUE_TEXT: Record<RiskMethodIssue, string> = {
 	no_classes: "Mindestens zwei Risikoklassen anlegen.",
@@ -23,20 +24,23 @@ export const RISK_METHOD_ISSUE_TEXT: Record<RiskMethodIssue, string> = {
 	duplicate_key: "Schlüssel doppelt vergeben.",
 	empty_label: "Jede Stufe, Schadensart und Klasse braucht eine Bezeichnung.",
 	no_dimension: "Mindestens eine Schadensart muss aktiv sein.",
+	level_count:
+		"Eintrittswahrscheinlichkeit, Schadenshöhe und jede Schadensart brauchen gleich viele Stufen (vier oder fünf).",
+	matrix_invalid: "Jedes Feld der Matrix braucht eine Risikoklasse.",
 };
 
 export const riskMethodSchema = z
 	.object({
-		aggregation: z.enum(["sum", "product"]),
-		likelihood: five(z.object({ label: label(40), anchor })),
-		impact: five(label(40)),
+		aggregation: z.enum(["sum", "product", "matrix"]),
+		likelihood: levels(z.object({ label: label(40), anchor })),
+		impact: levels(label(40)),
 		dimensions: z
 			.array(
 				z.object({
 					key,
 					label: label(80),
 					enabled: z.boolean(),
-					anchors: five(anchor),
+					anchors: levels(anchor),
 				}),
 			)
 			.min(1)
@@ -58,6 +62,7 @@ export const riskMethodSchema = z
 			)
 			.min(2)
 			.max(5),
+		matrix: z.array(z.array(key).min(4).max(5)).min(4).max(5).optional(),
 	})
 	.superRefine((m, ctx) => {
 		for (const issue of validateRiskMethod(m))

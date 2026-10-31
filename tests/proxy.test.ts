@@ -36,6 +36,7 @@ describe("buildCsp", () => {
 		expect(csp).not.toContain("unsafe-eval");
 		expect(csp).toContain("frame-ancestors 'none'");
 		expect(csp).toContain("object-src 'none'");
+		expect(csp).toContain("worker-src 'self'");
 		expect(csp).toContain("upgrade-insecure-requests");
 	});
 	it("Dev erlaubt unsafe-eval (React Refresh), kein upgrade-insecure-requests", () => {

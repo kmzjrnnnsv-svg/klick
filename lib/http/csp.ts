@@ -21,6 +21,9 @@ export function buildCsp(
 		"font-src 'self'",
 		["connect-src 'self'", ...(opts.connectSrc ?? [])].join(" "),
 		"frame-src 'self'",
+		// Service Worker für Push (public/sw.js); ohne eigene Angabe fiele
+		// worker-src auf script-src mit 'strict-dynamic' zurück
+		"worker-src 'self'",
 		"frame-ancestors 'none'",
 		"object-src 'none'",
 		"base-uri 'self'",

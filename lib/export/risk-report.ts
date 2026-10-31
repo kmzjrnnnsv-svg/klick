@@ -81,7 +81,19 @@ export function buildRiskReportMarkdown(input: {
 		dateStyle: "long",
 		timeZone: "Europe/Berlin",
 	}).format(asOf);
+	const matrix = method.aggregation === "matrix";
 	const op = method.aggregation === "sum" ? "+" : "×";
+	// Bewertung als Text: Rechnung bzw. bei der Matrix nur die Felder
+	const scoreText = (
+		l: number | null,
+		i: number | null,
+		p: { score: number; cls: { label: string }; zone: keyof typeof ZONE },
+	) =>
+		matrix
+			? `EW ${l}, SH ${i}: ${md(p.cls.label)} (${ZONE[p.zone]})`
+			: `${l} ${op} ${i} = ${p.score} · ${md(p.cls.label)} (${ZONE[p.zone]})`;
+	const range = (c: { min: number; max: number }, i: number) =>
+		matrix ? String(i + 1) : `${c.min}–${c.max}`;
 	const L: string[] = [];
 	L.push(`# Risikoanalyse – ${input.orgName}`, "");
 	L.push(`| | |`, `|---|---|`);
@@ -92,20 +104,24 @@ export function buildRiskReportMarkdown(input: {
 
 	const assessed = input.risks.map((r) => ({ r, a: assessRisk(r, method) }));
 	L.push("## Übersicht je Risikoklasse", "");
-	L.push("| Klasse | Wert | Zone | vor Behandlung | nach Behandlung |");
+	L.push(
+		`| Klasse | ${matrix ? "Rang" : "Wert"} | Zone | vor Behandlung | nach Behandlung |`,
+	);
 	L.push("|---|---|---|---|---|");
 	method.classes.forEach((c, i) => {
 		const before = assessed.filter((x) => x.a.inherent.cls.index === i).length;
 		const after = assessed.filter((x) => x.a.effective.cls.index === i).length;
 		L.push(
-			`| ${md(c.label)} | ${c.min}–${c.max} | ${ZONE[c.zone]} | ${before} | ${after} |`,
+			`| ${md(c.label)} | ${range(c, i)} | ${ZONE[c.zone]} | ${before} | ${after} |`,
 		);
 	});
 	L.push("");
 
 	L.push("## Methodik", "");
 	L.push(
-		`Risikowert = Eintrittswahrscheinlichkeit (EW) ${op} Schadenshöhe (SH). Die Schadenshöhe ist die höchste Stufe über alle bewerteten Schadensarten.`,
+		matrix
+			? "Risikokategorie aus der Matrix von Eintrittswahrscheinlichkeit (EW) und Schadenshöhe (SH), wie im BSI-Standard 200-3. Die Schadenshöhe ist die höchste Stufe über alle bewerteten Schadensarten."
+			: `Risikowert = Eintrittswahrscheinlichkeit (EW) ${op} Schadenshöhe (SH). Die Schadenshöhe ist die höchste Stufe über alle bewerteten Schadensarten.`,
 		"",
 	);
 	L.push("### Eintrittswahrscheinlichkeit", "");
@@ -121,12 +137,29 @@ export function buildRiskReportMarkdown(input: {
 	for (const d of method.dimensions.filter((x) => x.enabled))
 		L.push(`| ${md(d.label)} | ${d.anchors.map(md).join(" | ")} |`);
 	L.push("", "### Risikoklassen", "");
-	L.push("| Klasse | Wert | Zone | Bedeutung |", "|---|---|---|---|");
-	for (const c of method.classes)
+	L.push(
+		`| Klasse | ${matrix ? "Rang" : "Wert"} | Zone | Bedeutung |`,
+		"|---|---|---|---|",
+	);
+	method.classes.forEach((c, i) => {
 		L.push(
-			`| ${md(c.label)} | ${c.min}–${c.max} | ${ZONE[c.zone]} | ${md(c.meaning)} |`,
+			`| ${md(c.label)} | ${range(c, i)} | ${ZONE[c.zone]} | ${md(c.meaning)} |`,
 		);
+	});
 	L.push("");
+	if (matrix && method.matrix) {
+		const label = new Map(method.classes.map((c) => [c.key, c.label]));
+		L.push("### Matrix", "");
+		L.push(
+			`| EW \\ SH | ${method.impact.map((x, i) => `${i + 1} · ${md(x)}`).join(" | ")} |`,
+		);
+		L.push(`|---|${method.impact.map(() => "---").join("|")}|`);
+		for (let l = method.likelihood.length; l >= 1; l--)
+			L.push(
+				`| ${l} · ${md(method.likelihood[l - 1]?.label ?? "")} | ${(method.matrix[l - 1] ?? []).map((k) => md(label.get(k) ?? k)).join(" | ")} |`,
+			);
+		L.push("");
+	}
 
 	L.push("## Risiken", "");
 	const dims = new Map(method.dimensions.map((d) => [d.key, d.label]));
@@ -158,14 +191,14 @@ export function buildRiskReportMarkdown(input: {
 				)} |`,
 			);
 		L.push(
-			`| Risiko (EW ${op} SH) | ${r.likelihood} ${op} ${r.impact} = ${a.inherent.score} · ${md(a.inherent.cls.label)} (${ZONE[a.inherent.zone]}) |`,
+			`| Risiko (EW ${matrix ? "," : op} SH) | ${scoreText(r.likelihood, r.impact, a.inherent)} |`,
 		);
 		L.push(`| Behandlung | ${TREATMENT[r.treatment] ?? r.treatment} |`);
 		if (r.treatmentNote)
 			L.push(`| Beschreibung / Begründung | ${md(r.treatmentNote)} |`);
 		if (a.residual)
 			L.push(
-				`| Restrisiko | ${r.residualLikelihood} ${op} ${r.residualImpact} = ${a.residual.score} · ${md(a.residual.cls.label)} (${ZONE[a.residual.zone]}) |`,
+				`| Restrisiko | ${scoreText(r.residualLikelihood, r.residualImpact, a.residual)} |`,
 			);
 		if (r.residualNote)
 			L.push(`| Beurteilung Restrisiko | ${md(r.residualNote)} |`);

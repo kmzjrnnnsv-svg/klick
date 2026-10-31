@@ -76,6 +76,7 @@ import { loadAuditRegimeContext } from "@/lib/compliance/queries-audit-regimes";
 import { lastReconciliationDay } from "@/lib/custody/queries";
 import { remindOverdueReports } from "@/lib/db/platform-access";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
+import { dueDocumentRetention } from "@/lib/documents/destruction";
 import { inDistribution } from "@/lib/documents/distribution";
 import { currentVersionsByDocument } from "@/lib/documents/in-force";
 import { currentEvidence } from "@/lib/evidence/current";
@@ -179,6 +180,7 @@ async function loadDueRows(
 	// Review fällig: freigegebene oder geltende Dokumente (eine neue Fassung
 	// in Arbeit hebt die Pflicht für die gültige nicht auf)
 	const docsInForce = await currentVersionsByDocument(tx, orgId);
+	const documentRetention = await dueDocumentRetention(tx, orgId, now);
 	const documentReviews = (
 		await tx
 			.select({
@@ -820,6 +822,7 @@ async function loadDueRows(
 		orgOwnerIds,
 		controlReviews,
 		documentReviews,
+		documentRetention,
 		providerAssessments,
 		evidenceExpiring,
 		approvals,

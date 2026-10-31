@@ -47,6 +47,50 @@ export type CatalogObligation = {
 };
 
 export const OBLIGATIONS: readonly CatalogObligation[] = [
+	// ── PCI DSS v4.0.1 (Fristen nach Standard, prüfen) ───────────────────
+	{
+		code: "OBL-PCI-ASV",
+		title: "Externer Schwachstellenscan durch einen ASV",
+		legalBasis: "PCI DSS 11.3.2",
+		frameworks: ["pci-dss"],
+		frequency: "quarterly",
+		dueRule: { kind: "quarterly", dayOfMonthAfterQuarter: 15 },
+		recipient: "intern",
+		leadDays: 21,
+		control: "CC-PCI-06",
+	},
+	{
+		code: "OBL-PCI-SCOPE",
+		title: "Geltungsbereich von PCI DSS bestätigen",
+		legalBasis: "PCI DSS 12.5.2 (Dienstleister halbjährlich, 12.5.2.1)",
+		frameworks: ["pci-dss"],
+		frequency: "annual",
+		dueRule: { kind: "fixed", month: 3, day: 31 },
+		recipient: "intern",
+		leadDays: 30,
+		control: "CC-PCI-01",
+	},
+	{
+		code: "OBL-PCI-TRA",
+		title: "Gezielte Risikoanalysen prüfen",
+		legalBasis: "PCI DSS 12.3.1",
+		frameworks: ["pci-dss"],
+		frequency: "annual",
+		dueRule: { kind: "fixed", month: 4, day: 30 },
+		recipient: "intern",
+		leadDays: 30,
+		control: "CC-PCI-07",
+	},
+	{
+		code: "OBL-PCI-AOC",
+		title: "PCI-DSS-Bewertung abschließen und Bestätigung (AOC) einreichen",
+		legalBasis: "PCI DSS v4.0.1 · Vorgaben des Acquirers",
+		frameworks: ["pci-dss"],
+		frequency: "annual",
+		dueRule: { kind: "fixed", month: 6, day: 30 },
+		recipient: "pruefer",
+		leadDays: 60,
+	},
 	// ── Stufe 0: ISMS-Betrieb ───────────────────────────────────────────
 	{
 		code: "OBL-ISMS-POLICY-REVIEW",

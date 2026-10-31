@@ -2,11 +2,10 @@
 	"name": "Klick",
 	"short_name": "Klick",
 	"description": "Compliance, die zusammenpasst.",
-	"start_url": "/",
+	"start_url": "/heute",
 	"display": "standalone",
-	"background_color": "#f8f6f0",
-	"theme_color": "#1f3fd2",
-	"orientation": "portrait",
+	"background_color": "#f2f2f7",
+	"theme_color": "#f2f2f7",
 	"icons": [
 		{
 			"src": "/icon.svg",
@@ -23,5 +22,7 @@
 			"sizes": "48x48 32x32 16x16",
 			"type": "image/x-icon"
 		}
-	]
+	],
+	"id": "/heute",
+	"scope": "/"
 }

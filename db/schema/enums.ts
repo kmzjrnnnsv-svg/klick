@@ -634,6 +634,8 @@ export const SECURITY_CHANGE_KINDS = [
 	// KI mit eigenem Schlüssel (ADR-032): einschalten, lockern, neuer
 	// Anbieter oder Schlüssel
 	"ai_policy",
+	// Unterschriften nur mit Sicherheitsschlüssel ausschalten (AP9.1b)
+	"signature_policy",
 	// „erlaubt“: einmalige Erlaubnis für die anfragende Person (24 h)
 	"org_delete",
 	// Neu beginnen: alle Daten weg, Org leer neu angelegt

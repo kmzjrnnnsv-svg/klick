@@ -31,6 +31,7 @@ const PERSONAL_DATA = [
 	"ausweisdaten",
 ] as const;
 const SUBJECTS = ["lt1k", "1k_100k", "gt100k"] as const;
+const CARD_DATA = ["none", "outsourced", "own"] as const;
 type Category = (typeof PROVIDER_CATEGORIES)[number];
 // Werte lokal (kein Schema-Import in den Client-Bundle)
 const CATEGORIES: readonly Category[] = [
@@ -74,6 +75,9 @@ export function ItDataStep({
 	);
 	const [pd, setPd] = useState<string[]>(initial.personalData ?? []);
 	const [special, setSpecial] = useState(initial.specialCategories ?? false);
+	const [cards, setCards] = useState<(typeof CARD_DATA)[number]>(
+		initial.cardData ?? "none",
+	);
 	const [subjects, setSubjects] = useState<string>(
 		initial.dataSubjects ?? "lt1k",
 	);
@@ -103,6 +107,7 @@ export function ItDataStep({
 							itOperation: it,
 							personalData: pd,
 							specialCategories: special,
+							cardData: cards,
 							dataSubjects: subjects as (typeof SUBJECTS)[number],
 							aiMaxClass: ai,
 							customerCountries: countries
@@ -295,6 +300,26 @@ export function ItDataStep({
 					/>
 					{t("specialCategories")}
 				</label>
+			</fieldset>
+
+			<fieldset className="flex flex-col gap-2 text-subhead">
+				<legend className="mb-1.5 font-medium">{t("cardData")}</legend>
+				<p className="text-muted-foreground text-footnote">
+					{t("cardDataHint")}
+				</p>
+				{CARD_DATA.map((v) => (
+					<label key={v} className="flex items-center gap-2">
+						<input
+							type="radio"
+							name="card-data"
+							value={v}
+							checked={cards === v}
+							onChange={() => setCards(v)}
+							className="size-4 accent-primary"
+						/>
+						{t(`cardData_${v}`)}
+					</label>
+				))}
 			</fieldset>
 
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

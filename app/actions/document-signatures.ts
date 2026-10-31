@@ -23,6 +23,7 @@ import {
 	prepareDocumentSignText,
 	storeDocumentSignature,
 } from "@/lib/signatures/document";
+import { orgSignaturePolicy } from "@/lib/signatures/policy-server";
 import { holdsFunction, SIGN_VALID_MS } from "@/lib/signatures/service";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
@@ -82,8 +83,15 @@ async function prepareDocumentSignatureImpl(input: unknown): Promise<
 		});
 	});
 	if (!prepared) return { ok: false, error: "not_in_review" };
-	const options = await passkeySignOptions(c.userId, prepared.text);
-	if (!options) return { ok: false, error: "no_passkey" };
+	const { securityKeysOnly } = await orgSignaturePolicy(toOrgCtx(c));
+	const options = await passkeySignOptions(c.userId, prepared.text, {
+		keysOnly: securityKeysOnly,
+	});
+	if (!options)
+		return {
+			ok: false,
+			error: securityKeysOnly ? "security_key_required" : "no_passkey",
+		};
 	return {
 		ok: true,
 		data: {
@@ -114,12 +122,18 @@ async function submitDocumentSignatureImpl(
 	const expires = Date.parse(fields.expires);
 	if (!(expires > now) || expires > now + SIGN_VALID_MS + 60_000)
 		return { ok: false, error: "expired" };
+	const { securityKeysOnly } = await orgSignaturePolicy(toOrgCtx(c));
 	const verified = await verifyPasskeySignature({
 		userId: c.userId,
 		signText: text,
 		response,
+		keysOnly: securityKeysOnly,
 	});
-	if (!verified.ok) return { ok: false, error: "invalid" };
+	if (!verified.ok)
+		return {
+			ok: false,
+			error: securityKeysOnly ? "security_key_required" : "invalid",
+		};
 
 	try {
 		const status = await mutateOrg(toOrgCtx(c), async (tx) => {

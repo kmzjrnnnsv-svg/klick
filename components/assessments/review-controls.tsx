@@ -179,9 +179,12 @@ export function CompleteChecklistButton({
 export function ApplyDialog({
 	assessmentId,
 	changes,
+	exclusions = [],
 }: {
 	assessmentId: string;
 	changes: { controlCode: string; title: string; from: string; to: string }[];
+	// „Nicht relevant“: Anforderungen, die mit Begründung ausgeschlossen werden
+	exclusions?: { key: string; label: string; how: string }[];
 }) {
 	const t = useTranslations("Assessment");
 	const tc = useTranslations("Common");
@@ -218,6 +221,25 @@ export function ApplyDialog({
 							</li>
 						))}
 					</ul>
+				)}
+				{exclusions.length > 0 && (
+					<>
+						<p className="text-subhead">
+							{t("applyExclusions", { count: exclusions.length })}
+						</p>
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
+							{exclusions.map((x) => (
+								<li key={x.key} className="flex flex-col px-3 py-1.5">
+									<span className="min-w-0 truncate" translate="no">
+										{x.label}
+									</span>
+									<span className="text-muted-foreground text-footnote">
+										{x.how}
+									</span>
+								</li>
+							))}
+						</ul>
+					</>
 				)}
 				<DialogFooter>
 					<Button variant="outline" onClick={() => setOpen(false)}>

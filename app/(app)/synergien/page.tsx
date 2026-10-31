@@ -138,6 +138,7 @@ export default async function SynergiesPage({
 							caspServices: cov.profile.caspServices,
 							frameworks: cov.frameworks,
 							tlptDesignated: cov.profile.tlptDesignated,
+							frameworkVariants: cov.profile.frameworkVariants,
 							issuesTokens: cov.profile.issuesTokens,
 							productRoles: cov.profile.productRoles,
 							asOf: new Date(`${asOf}T00:00:00Z`),

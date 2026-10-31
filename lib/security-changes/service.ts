@@ -286,6 +286,7 @@ const APPLY_COLUMN = {
 	dlp_policy: "dlpPolicy",
 	network_policy: "networkPolicy",
 	ai_policy: "aiPolicy",
+	signature_policy: "signaturePolicy",
 } as const satisfies Record<ApplyKind, keyof typeof orgSettings.$inferSelect>;
 
 async function applyChange(tx: OrgTx, row: SecurityChange): Promise<void> {

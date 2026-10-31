@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { ChevronRight, Download, FileText } from "lucide-react";
 import Form from "next/form";
 import Link from "next/link";
@@ -14,10 +14,12 @@ import {
 	DocumentEditor,
 	NewVersionDialog,
 } from "@/components/documents/document-forms";
+import { RetentionPanel } from "@/components/documents/retention-panel";
 import {
 	type SignatureLine,
 	SignatureList,
 } from "@/components/documents/signature-list";
+import { VersionRetention } from "@/components/documents/version-retention";
 import {
 	ContentChanges,
 	type TrailVersion,
@@ -40,7 +42,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { nativeSelectCompactClass } from "@/components/ui/input";
-import { evidence } from "@/db/schema";
+import { approvalRequests, evidence } from "@/db/schema";
 import { AI_NONE, aiAvailability } from "@/lib/ai/service";
 import { canDecideNow } from "@/lib/approvals/rules";
 import {
@@ -64,6 +66,12 @@ import {
 import { getDocumentByNumber } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { contentDiff } from "@/lib/documents/content-diff";
+import {
+	retentionOf,
+	retentionYearsOf,
+	safeExternalUrl,
+	suggestedRetentionYears,
+} from "@/lib/documents/retention";
 import { versionTrails } from "@/lib/documents/trail";
 import {
 	currentPublished,
@@ -107,6 +115,7 @@ export default async function DocumentDetailPage({
 	const t = await getTranslations("Documents");
 	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
+	const tr = await getTranslations("DocumentRetention");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getDocumentByNumber(tx, ctx.orgId, docNumber);
 		if (!d) return null;
@@ -118,11 +127,32 @@ export default async function DocumentDetailPage({
 				historyFor(tx, `document:${d.doc.id}`, 2000),
 				listWatcherIds(tx, ctx.orgId, "document", d.doc.id),
 				listMembersForPicker(tx, ctx.orgId),
-				latestRequestFor(tx, ctx.orgId, "document", d.doc.id),
+				latestRequestFor(tx, ctx.orgId, "document", d.doc.id, {
+					excludeTriggers: ["document.destroy"],
+				}),
 				loadCandidates(tx, ctx.orgId),
 				activeDelegations(tx, ctx.orgId),
 			]);
 		const signatures = await documentSignaturesFor(tx, ctx.orgId, d.doc.id);
+		// offene Anträge auf Vernichtung je Fassung (AP9.3)
+		const destroyPending = new Set(
+			(
+				await tx
+					.select({ ref: approvalRequests.entityVersionRef })
+					.from(approvalRequests)
+					.where(
+						and(
+							eq(approvalRequests.organizationId, ctx.orgId),
+							eq(approvalRequests.entityType, "document"),
+							eq(approvalRequests.entityId, d.doc.id),
+							eq(approvalRequests.status, "pending"),
+							isNotNull(approvalRequests.entityVersionRef),
+						),
+					)
+			)
+				.map((r) => r.ref)
+				.filter((r): r is string => r !== null && r !== d.doc.version),
+		);
 		// Dateien der Fassungen und der Arbeitskopie (Name, Prüfsumme) für
 		// „Datei ersetzt“, dazu der ausgelesene Text der letzten 20 Fassungen
 		// für den Vergleich des Inhalts
@@ -176,6 +206,7 @@ export default async function DocumentDetailPage({
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
 			...(approval?.decisions.map((x) => x.approverUserId) ?? []),
+			...d.versions.map((v) => v.destroyedByUserId),
 		]);
 		for (const [k, v] of d.names) names.set(k, v);
 		return {
@@ -191,6 +222,7 @@ export default async function DocumentDetailPage({
 			signatures,
 			files,
 			fileTexts,
+			destroyPending,
 		};
 	});
 	if (!data) notFound();
@@ -210,6 +242,7 @@ export default async function DocumentDetailPage({
 		signatures,
 		files,
 		fileTexts,
+		destroyPending,
 	} = data;
 	// Unterschriften je Fassung mit Prüfung (Prüfsumme der Fassung jetzt)
 	const signEnv = { origin: SIGN_ORIGIN, rpId: SIGN_RP_ID };
@@ -271,6 +304,11 @@ export default async function DocumentDetailPage({
 			</EntityLayout>
 		);
 	const ranges = validRanges(versions);
+	// Aufbewahrung je Fassung (AP9.3)
+	const retentionYears = retentionYearsOf(doc);
+	const today = new Date();
+	const external = doc.externalSource;
+	const externalUrl = safeExternalUrl(external?.url);
 	const working =
 		doc.status === "draft" ||
 		doc.status === "in_review" ||
@@ -465,6 +503,25 @@ export default async function DocumentDetailPage({
 						/>
 					</MetaItem>
 					<MetaItem label={t("classification")}>{doc.classification}</MetaItem>
+					{external && (
+						<MetaItem label={tr("externalTitle")}>
+							<span className="break-words">
+								{tr(`kind_${external.kind}`)} · {external.issuer} ·{" "}
+								{externalUrl ? (
+									<a
+										href={externalUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-primary hover:underline"
+									>
+										{external.edition}
+									</a>
+								) : (
+									external.edition
+								)}
+							</span>
+						</MetaItem>
+					)}
 					<MetaItem label={t("distribution")}>
 						<DistributionEditor
 							documentId={doc.id}
@@ -742,7 +799,9 @@ export default async function DocumentDetailPage({
 															})}
 												</span>
 											)}
-											{canExport && pdfLink(v.version, t("pdfShort"))}
+											{canExport &&
+												!v.destroyedAt &&
+												pdfLink(v.version, t("pdfShort"))}
 											{v.fileEvidenceId && (
 												<a
 													href={`/api/nachweise/${v.fileEvidenceId}`}
@@ -754,31 +813,72 @@ export default async function DocumentDetailPage({
 											)}
 										</p>
 										<SignatureList lines={signLines.get(v.id) ?? []} />
-										<VersionChanges
-											version={trailVersion(v)}
-											previous={
-												versions[i + 1] ? trailVersion(versions[i + 1]) : null
-											}
-											trail={trails.get(v.version)}
-											names={names}
-											ai={
-												aiCompare && versions[i + 1] ? (
-													<AiCompare
-														target={{
-															kind: "document",
-															docNumber: doc.docNumber,
-															from: versions[i + 1]?.version ?? "",
-															to: v.version,
-														}}
-													/>
-												) : undefined
-											}
-										/>
+										{(() => {
+											const r = retentionOf(v, range, retentionYears, today);
+											return (
+												<VersionRetention
+													versionId={v.id}
+													version={v.version}
+													state={r.state}
+													retainUntil={
+														r.retainUntil ? fmtDate.format(r.retainUntil) : null
+													}
+													destroyedAt={
+														v.destroyedAt ? fmtDate.format(v.destroyedAt) : null
+													}
+													destroyedBy={
+														names.get(v.destroyedByUserId ?? "") ?? null
+													}
+													note={v.destroyedAt ? v.destructionNote : null}
+													pendingDestruction={destroyPending.has(v.version)}
+													canEdit={canEdit}
+												/>
+											);
+										})()}
+										{!v.destroyedAt && (
+											<VersionChanges
+												version={trailVersion(v)}
+												previous={
+													versions[i + 1] && !versions[i + 1]?.destroyedAt
+														? trailVersion(versions[i + 1])
+														: null
+												}
+												trail={trails.get(v.version)}
+												names={names}
+												ai={
+													aiCompare && versions[i + 1] ? (
+														<AiCompare
+															target={{
+																kind: "document",
+																docNumber: doc.docNumber,
+																from: versions[i + 1]?.version ?? "",
+																to: v.version,
+															}}
+														/>
+													) : undefined
+												}
+											/>
+										)}
 									</li>
 								);
 							})}
 						</ul>
 					)}
+				</Section>
+			)}
+
+			{!restricted && (
+				<Section title={tr("title")}>
+					<p className="mb-3 text-muted-foreground text-subhead">
+						{tr("lead")}
+					</p>
+					<RetentionPanel
+						documentId={doc.id}
+						retentionYears={doc.retentionYears}
+						suggestedYears={suggestedRetentionYears(doc.type)}
+						external={external}
+						canEdit={canEdit}
+					/>
 				</Section>
 			)}
 

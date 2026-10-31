@@ -22,6 +22,7 @@ import {
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import type { WorkflowEnabledByDuty } from "@/lib/compliance/catalog/approval-duties";
 import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
+import { exclusionRule } from "@/lib/compliance/exclusions";
 import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import {
 	activeFrameworkSlugs,
@@ -69,6 +70,7 @@ async function addFrameworksImpl(input: unknown): Promise<
 			caspServices: p.profile.caspServices,
 			applyBaseline: p.profile.applyBaseline,
 			tlptDesignated: p.profile.tlptDesignated,
+			frameworkVariants: p.profile.frameworkVariants,
 			issuesTokens: p.profile.issuesTokens,
 			productRoles: p.profile.productRoles,
 		});
@@ -189,6 +191,11 @@ async function setRequirementApplicabilityImpl(
 	const parsed = setApplicabilitySchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
+	// Ausschließen nur, wo das Rahmenwerk es kennt (ISO Annex A, SOC 2
+	// Zusatzkategorien …); wieder einbeziehen geht immer
+	if (!d.applicable && !exclusionRule(d.framework, d.code).allowed) {
+		return { ok: false, error: "exclusion_not_allowed" };
+	}
 	if (!d.applicable && !(d.note && d.note.trim().length >= 3)) {
 		return {
 			ok: false,
@@ -302,6 +309,7 @@ async function updateProfileFlagsImpl(input: unknown): Promise<ActionResult> {
 				tlptDesignated: d.tlptDesignated,
 				issuesTokens: p.profile.issuesTokens,
 				productRoles: p.profile.productRoles,
+				frameworkVariants: p.profile.frameworkVariants,
 			});
 		}
 		return {
@@ -319,6 +327,75 @@ async function updateProfileFlagsImpl(input: unknown): Promise<ActionResult> {
 	});
 	revalidatePath("/", "layout");
 	return { ok: true, data: undefined };
+}
+
+const frameworkVariantSchema = z.object({
+	framework: z.string().min(1).max(40),
+	variant: z.string().min(1).max(40),
+});
+
+// Variante eines Rahmenwerks wählen (BSI 200-2: Absicherung, PCI DSS: SAQ):
+// Anwendbarkeit und Arbeitsvorrat neu ableiten. Step-up.
+async function setFrameworkVariantImpl(
+	input: unknown,
+): Promise<ActionResult<{ controlsCreated: number; notApplicable: number }>> {
+	const guarded = await stepUpOrFail();
+	if (!guarded.ok) return guarded;
+	const c = guarded.ctx;
+	const parsed = frameworkVariantSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const meta = FRAMEWORK_BY_SLUG.get(d.framework);
+	if (!meta?.variants?.some((v) => v.key === d.variant))
+		return { ok: false, error: "invalid" };
+	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const p = await getOrgProfile(tx, c.orgId);
+		if (!p) return { result: null, audit: [] };
+		const [row] = await tx
+			.select({ entityProfile: orgSettings.entityProfile })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		const before = row?.entityProfile?.frameworkVariants?.[d.framework] ?? null;
+		const frameworkVariants = {
+			...(row?.entityProfile?.frameworkVariants ?? {}),
+			[d.framework]: d.variant,
+		};
+		await tx
+			.update(orgSettings)
+			.set({
+				entityProfile: { ...(row?.entityProfile ?? {}), frameworkVariants },
+			})
+			.where(eq(orgSettings.organizationId, c.orgId));
+		const init = await initializeOrg(tx, {
+			orgId: c.orgId,
+			userId: c.userId,
+			frameworks: p.frameworks,
+			sector: p.profile.sector,
+			licenceStage: p.profile.licenceStage,
+			caspServices: p.profile.caspServices,
+			applyBaseline: p.profile.applyBaseline,
+			tlptDesignated: p.profile.tlptDesignated,
+			issuesTokens: p.profile.issuesTokens,
+			productRoles: p.profile.productRoles,
+			frameworkVariants,
+		});
+		return {
+			result: {
+				controlsCreated: init.controlsCreated,
+				notApplicable: init.notApplicable,
+			},
+			audit: {
+				action: "org.framework_variant",
+				target: `framework:${d.framework}`,
+				before: { variant: before },
+				after: { variant: d.variant },
+			},
+		};
+	});
+	if (!out) return { ok: false, error: "notFound" };
+	revalidatePath("/", "layout");
+	return { ok: true, data: out };
 }
 
 const licenceProfileSchema = z.object({
@@ -357,6 +434,7 @@ async function updateLicenceProfileImpl(input: unknown): Promise<
 			caspServices: d.caspServices,
 			applyBaseline: p.profile.applyBaseline,
 			tlptDesignated: p.profile.tlptDesignated,
+			frameworkVariants: p.profile.frameworkVariants,
 			issuesTokens: p.profile.issuesTokens,
 			productRoles: p.profile.productRoles,
 		});
@@ -455,6 +533,10 @@ export const setRequirementApplicability = safeAction(
 export const updateProfileFlags = safeAction(
 	"updateProfileFlags",
 	updateProfileFlagsImpl,
+);
+export const setFrameworkVariant = safeAction(
+	"setFrameworkVariant",
+	setFrameworkVariantImpl,
 );
 export const updateLicenceProfile = safeAction(
 	"updateLicenceProfile",

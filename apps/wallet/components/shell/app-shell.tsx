@@ -4,6 +4,7 @@ import { walletNav } from "@wallet/lib/nav";
 import type { Membership } from "@wallet/lib/orgs/memberships";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { ContainedScroll } from "@/components/ui/contained-scroll";
 import { WALLET_UNLOCK_MS } from "@/lib/auth/session-rules";
 import { StepUpDialog } from "../auth/step-up-dialog";
 import { Bell, type BellItem } from "./bell";
@@ -79,9 +80,12 @@ export async function AppShell({
 				</div>
 			</header>
 			<div className="mx-auto flex w-full max-w-6xl grow gap-8 px-4 py-6 lg:py-8">
-				<aside className="sticky top-20 hidden w-52 shrink-0 self-start lg:block">
+				<ContainedScroll
+					as="aside"
+					className="sticky top-20 hidden max-h-[calc(100dvh-6rem)] w-52 shrink-0 self-start overflow-y-auto overscroll-contain pb-4 lg:block"
+				>
 					<SidebarLinks groups={nav} />
-				</aside>
+				</ContainedScroll>
 				<main id="inhalt" className="min-w-0 grow">
 					{banner}
 					{children}

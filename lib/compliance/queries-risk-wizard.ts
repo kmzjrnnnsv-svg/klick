@@ -62,6 +62,7 @@ export async function loadRiskWizardData(
 			protectionGoals: s.protectionGoals,
 			dimensions: s.dimensions,
 			controls: s.controls,
+			bsiRef: s.bsiRef,
 			applicable: applicable.has(s.code),
 		})),
 	};

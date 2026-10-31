@@ -1,5 +1,6 @@
 import type {
 	Five,
+	Levels,
 	RiskAcceptanceStep,
 	RiskAppetite,
 	RiskClass,
@@ -56,6 +57,66 @@ export const IMPACT_TEMPLATE: Five<string> = [
 type DimensionTemplate = Omit<RiskDimension, "enabled"> & {
 	// leer = immer; sonst genügt eines der Rahmenwerke
 	frameworks?: readonly string[];
+};
+
+// Vier Stufen nach BSI-Standard 200-3 (vernachlässigbar, begrenzt,
+// beträchtlich, existenzbedrohend) je Schadensart; Euro-Grenzen und
+// Beschreibungen sind Vorschläge, je Org anzupassen (prüfen).
+const ANCHORS_4: Record<string, string[]> = {
+	financial: [
+		"Belastung des Ergebnisses bis 5.000 €",
+		"Belastung des Ergebnisses zwischen 5.001 € und 50.000 €",
+		"Belastung des Ergebnisses zwischen 50.001 € und 500.000 €",
+		"Belastung des Ergebnisses über 500.000 €, existenzbedrohend",
+	],
+	outage: [
+		"Unter 4 Stunden, kaum spürbar für Nutzer:innen",
+		"Bis 1 Tag, Arbeit mit Einschränkungen möglich",
+		"Bis 1 Woche oder zeitkritische Prozesse betroffen",
+		"Über 1 Woche oder Aufgabenerfüllung nicht mehr möglich",
+	],
+	data: [
+		"Einzelne Daten mit niedriger Sensibilität",
+		"Interne oder nicht besonders geschützte personenbezogene Daten",
+		"Vertrauliche Daten oder personenbezogene Daten in erheblichem Umfang",
+		"Streng geheime Daten oder besonders geschützte personenbezogene Daten in erheblichem Umfang",
+	],
+	legal: [
+		"Geringfügige Verstöße ohne Folgen",
+		"Verstöße mit geringen Strafen oder Vertragsstrafen",
+		"Verstöße mit erheblichen Strafen oder Haftung der Geschäftsleitung",
+		"Verstöße mit strafrechtlichen oder existenziellen Folgen",
+	],
+	image: [
+		"Keine oder nur interne Wirkung",
+		"Kritische Berichterstattung in lokaler oder Fachpresse",
+		"Negative Berichterstattung in der überregionalen Presse",
+		"Umfassender, dauerhafter Vertrauensverlust in der Öffentlichkeit",
+	],
+	customers: [
+		"Keine Kunden oder Dienstempfänger:innen merklich betroffen",
+		"Einzelne Kunden kurz betroffen, keine Folgeschäden",
+		"Ein spürbarer Teil der Kunden betroffen oder Dienst über 24 Stunden eingeschränkt",
+		"Breite Wirkung auf Kunden, Märkte oder die Allgemeinheit",
+	],
+	clientAssets: [
+		"Kundengelder und Kryptowerte nicht berührt",
+		"Verzögerter Zugriff einzelner Kunden, kein Verlust",
+		"Verzögerte Auszahlung für viele Kunden oder Verlust kleiner Beträge",
+		"Verlust erheblicher Kundengelder oder Kryptowerte",
+	],
+	supervisory: [
+		"Keine aufsichtliche Relevanz",
+		"Meldung oder Rückfrage der Aufsicht ohne Folgen",
+		"Feststellung, Anordnung oder Bußgeld",
+		"Einschränkung oder Entzug der Erlaubnis",
+	],
+	persons: [
+		"Keine oder nur geringfügige Beeinträchtigung",
+		"Geringe Unannehmlichkeiten, leicht zu beheben",
+		"Erhebliche Folgen (finanzielle Verluste, Identitätsdiebstahl)",
+		"Schwere oder dauerhafte Folgen für Gesundheit, Existenz oder Freiheit",
+	],
 };
 
 export const DIMENSION_TEMPLATES: readonly DimensionTemplate[] = [
@@ -209,30 +270,178 @@ export const CLASS_TEMPLATE: readonly RiskClass[] = [
 
 export function templateDimensions(
 	frameworks: readonly string[],
+	levels: LevelCount = 5,
 ): RiskDimension[] {
 	const set = new Set(frameworks);
 	return DIMENSION_TEMPLATES.filter(
 		(d) => !d.frameworks || d.frameworks.some((f) => set.has(f)),
 	).map(({ frameworks: _f, ...d }) => ({
 		...d,
-		anchors: [...d.anchors] as Five<string>,
+		anchors:
+			levels === 4
+				? [...(ANCHORS_4[d.key] ?? rescaleAnchors(d.anchors, 4))]
+				: [...d.anchors],
 		enabled: true,
 	}));
+}
+
+// Anker auf eine andere Stufenzahl bringen (je neuer Stufe der nächste alte
+// Anker); nur für Schadensarten ohne eigene Vorlage
+function rescaleAnchors(anchors: readonly string[], to: LevelCount): string[] {
+	const from = anchors.length;
+	return Array.from(
+		{ length: to },
+		(_, i) => anchors[rescaleLevel(i + 1, to, from) - 1] ?? "",
+	);
 }
 
 export function defaultRiskMethod(frameworks: readonly string[]): RiskMethod {
 	return {
 		aggregation: "sum",
-		likelihood: LIKELIHOOD_TEMPLATE.map((l) => ({
-			...l,
-		})) as Five<RiskLevelText>,
-		impact: [...IMPACT_TEMPLATE] as Five<string>,
+		likelihood: LIKELIHOOD_TEMPLATE.map((l) => ({ ...l })),
+		impact: [...IMPACT_TEMPLATE],
 		dimensions: templateDimensions(frameworks),
 		classes: CLASS_TEMPLATE.map((c) => ({
 			...c,
 			acceptance: c.acceptance ? [...c.acceptance] : undefined,
 		})),
 	};
+}
+
+// Vorlage nach BSI-Standard 200-3: vier Stufen je Achse, Risikokategorie aus
+// der Matrix (Abbildung „Matrix zur Einstufung von Risiken“). Häufigkeiten,
+// Beschreibungen und Matrix nach Modellwissen, gegen den Standard prüfen.
+export const BSI_LIKELIHOOD: Levels<RiskLevelText> = [
+	{
+		label: "selten",
+		anchor:
+			"Das Ereignis könnte nach heutigem Kenntnisstand höchstens alle fünf Jahre eintreten.",
+	},
+	{
+		label: "mittel",
+		anchor: "Das Ereignis tritt einmal alle fünf Jahre bis einmal im Jahr ein.",
+	},
+	{
+		label: "häufig",
+		anchor: "Das Ereignis tritt einmal im Jahr bis einmal pro Monat ein.",
+	},
+	{
+		label: "sehr häufig",
+		anchor: "Das Ereignis tritt mehrmals im Monat ein.",
+	},
+];
+
+export const BSI_IMPACT: Levels<string> = [
+	"vernachlässigbar",
+	"begrenzt",
+	"beträchtlich",
+	"existenzbedrohend",
+];
+
+export const BSI_CLASSES: readonly RiskClass[] = [
+	{
+		key: "gering",
+		label: "gering",
+		min: 1,
+		max: 1,
+		zone: "acceptable",
+		meaning:
+			"Die umgesetzten Sicherheitsmaßnahmen bieten einen ausreichenden Schutz. Das Risiko kann akzeptiert werden.",
+		acceptance: [],
+	},
+	{
+		key: "mittel",
+		label: "mittel",
+		min: 2,
+		max: 2,
+		zone: "tolerable",
+		meaning:
+			"Die umgesetzten Sicherheitsmaßnahmen reichen möglicherweise nicht aus. Prüfe weitere Maßnahmen; ein Restrisiko kann begründet akzeptiert werden.",
+		acceptance: ["department_head"],
+	},
+	{
+		key: "hoch",
+		label: "hoch",
+		min: 3,
+		max: 3,
+		zone: "unacceptable",
+		meaning:
+			"Die umgesetzten Sicherheitsmaßnahmen bieten keinen ausreichenden Schutz. Weitere Maßnahmen sind nötig; akzeptieren nur durch die Leitung.",
+		acceptance: ["department_head", "management_body"],
+	},
+	{
+		key: "sehr_hoch",
+		label: "sehr hoch",
+		min: 4,
+		max: 4,
+		zone: "unacceptable",
+		meaning:
+			"Die umgesetzten Sicherheitsmaßnahmen bieten keinen ausreichenden Schutz. Das Risiko muss umgehend gesenkt werden; akzeptieren nur in begründeten Ausnahmen durch die Leitung.",
+		acceptance: ["department_head", "management_body"],
+	},
+];
+
+// Zeile = Eintrittshäufigkeit (selten … sehr häufig), Spalte = Schadenshöhe
+// (vernachlässigbar … existenzbedrohend)
+export const BSI_MATRIX: readonly (readonly string[])[] = [
+	["gering", "gering", "mittel", "hoch"],
+	["gering", "mittel", "hoch", "sehr_hoch"],
+	["mittel", "mittel", "hoch", "sehr_hoch"],
+	["mittel", "hoch", "sehr_hoch", "sehr_hoch"],
+];
+
+export function bsiRiskMethod(frameworks: readonly string[]): RiskMethod {
+	return {
+		aggregation: "matrix",
+		likelihood: BSI_LIKELIHOOD.map((l) => ({ ...l })),
+		impact: [...BSI_IMPACT],
+		dimensions: templateDimensions(frameworks, 4),
+		classes: BSI_CLASSES.map((c) => ({
+			...c,
+			acceptance: c.acceptance ? [...c.acceptance] : undefined,
+		})),
+		matrix: BSI_MATRIX.map((r) => [...r]),
+	};
+}
+
+export const RISK_METHOD_PRESETS = [
+	{
+		key: "standard",
+		label: "Standardvorlage",
+		hint: "Fünf Stufen, Eintrittswahrscheinlichkeit + Schadenshöhe, drei Klassen",
+	},
+	{
+		key: "bsi-200-3",
+		label: "BSI-Standard 200-3",
+		hint: "Vier Stufen, Risikokategorie aus der Matrix (gering bis sehr hoch)",
+	},
+] as const;
+export type RiskMethodPreset = (typeof RISK_METHOD_PRESETS)[number]["key"];
+
+export function presetRiskMethod(
+	key: RiskMethodPreset,
+	frameworks: readonly string[],
+): RiskMethod {
+	return key === "bsi-200-3"
+		? bsiRiskMethod(frameworks)
+		: defaultRiskMethod(frameworks);
+}
+
+// Matrix als Startwert, wenn eine Org auf „Matrix“ umstellt: jedes Feld
+// bekommt die Klasse, die das Produkt EW × SH auf die Klassen verteilt.
+export function defaultMatrix(
+	levels: number,
+	classes: readonly Pick<RiskClass, "key">[],
+): string[][] {
+	const n = Math.max(1, levels);
+	const k = Math.max(1, classes.length);
+	return Array.from({ length: n }, (_, li) =>
+		Array.from({ length: n }, (_, ii) => {
+			const share = ((li + 1) * (ii + 1) - 1) / (n * n - 1 || 1);
+			const idx = Math.min(k - 1, Math.floor(share * k));
+			return classes[idx]?.key ?? "";
+		}),
+	);
 }
 
 // Bestand: EW × SH, Klassen aus dem Appetit, „kritisch“ ab 15 wie die
@@ -282,22 +491,16 @@ export function legacyRiskMethod(
 			zone: "unacceptable",
 			meaning: high,
 		});
-	const likelihood = LIKELIHOOD_TEMPLATE.map((l, i) => ({
+	const likelihood: Levels<RiskLevelText> = LIKELIHOOD_TEMPLATE.map((l, i) => ({
 		label: scales?.likelihood[i] ?? l.label,
 		anchor: l.anchor,
-	})) as Five<RiskLevelText>;
+	}));
 	return {
 		aggregation: "product",
 		likelihood,
-		impact: (scales?.impact
+		impact: scales?.impact
 			? [...scales.impact]
-			: [
-					"unwesentlich",
-					"gering",
-					"spürbar",
-					"schwer",
-					"existenzbedrohend",
-				]) as Five<string>,
+			: ["unwesentlich", "gering", "spürbar", "schwer", "existenzbedrohend"],
 		dimensions: templateDimensions(frameworks),
 		classes,
 	};
@@ -322,27 +525,62 @@ export function resolveRiskMethod(
 	);
 }
 
-export function scoreRange(method: Pick<RiskMethod, "aggregation">): {
+export type LevelCount = 4 | 5;
+
+// Was Wertebereich und Rechnung brauchen; ohne Stufen gelten fünf
+export type ScoreBasis = Pick<RiskMethod, "aggregation"> & {
+	likelihood?: readonly unknown[];
+	classes?: readonly Pick<RiskClass, "key">[];
+	matrix?: readonly (readonly string[])[];
+};
+
+export function levelCount(method: {
+	likelihood?: readonly unknown[];
+}): LevelCount {
+	return method.likelihood?.length === 4 ? 4 : 5;
+}
+
+export function scoreRange(method: ScoreBasis): {
 	min: number;
 	max: number;
 } {
+	const n = levelCount(method);
+	if (method.aggregation === "matrix")
+		return { min: 1, max: Math.max(1, method.classes?.length ?? n) };
 	return method.aggregation === "sum"
-		? { min: 2, max: 10 }
-		: { min: 1, max: 25 };
+		? { min: 2, max: 2 * n }
+		: { min: 1, max: n * n };
 }
 
-export function clampLevel(n: number): 1 | 2 | 3 | 4 | 5 {
-	const v = Math.round(Number.isFinite(n) ? n : 3);
-	return Math.min(5, Math.max(1, v)) as 1 | 2 | 3 | 4 | 5;
+export function clampLevel(n: number, max = 5): number {
+	const v = Math.round(Number.isFinite(n) ? n : Math.ceil(max / 2));
+	return Math.min(max, Math.max(1, v));
 }
 
+// Stufe auf eine andere Stufenzahl umrechnen (gleiche Lage, ganzzahlig)
+export function rescaleLevel(v: number, from: number, to: number): number {
+	if (from === to || from < 2) return clampLevel(v, to);
+	return clampLevel(
+		1 + ((clampLevel(v, from) - 1) * (to - 1)) / (from - 1),
+		to,
+	);
+}
+
+// Wert einer Bewertung: Summe, Produkt bzw. bei matrix die Nummer der
+// Klasse im Feld (1 = erste Klasse); classify ordnet ihn der Klasse zu.
 export function aggregate(
 	likelihood: number,
 	impact: number,
-	method: Pick<RiskMethod, "aggregation">,
+	method: ScoreBasis,
 ): number {
-	const l = clampLevel(likelihood);
-	const i = clampLevel(impact);
+	const n = levelCount(method);
+	const l = clampLevel(likelihood, n);
+	const i = clampLevel(impact, n);
+	if (method.aggregation === "matrix") {
+		const key = method.matrix?.[l - 1]?.[i - 1];
+		const idx = method.classes?.findIndex((c) => c.key === key) ?? -1;
+		return idx >= 0 ? idx + 1 : 1;
+	}
 	return method.aggregation === "sum" ? l + i : l * i;
 }
 
@@ -395,15 +633,16 @@ export function classify(
 // Schadenshöhe aus den Einzelwerten: höchste aktive Schadensart zählt.
 export function damageFrom(
 	detail: Record<string, number> | null | undefined,
-	method: Pick<RiskMethod, "dimensions">,
+	method: Pick<RiskMethod, "dimensions"> & { likelihood?: readonly unknown[] },
 ): number | null {
 	if (!detail) return null;
+	const n = levelCount(method);
 	let max: number | null = null;
 	for (const d of method.dimensions) {
 		if (!d.enabled) continue;
 		const v = detail[d.key];
 		if (typeof v !== "number" || !Number.isFinite(v)) continue;
-		const c = clampLevel(v);
+		const c = clampLevel(v, n);
 		if (max === null || c > max) max = c;
 	}
 	return max;
@@ -412,18 +651,19 @@ export function damageFrom(
 // Welche Schadensart bestimmt den Wert (für „höchster Wert zählt: … wegen …“)
 export function decisiveDimensions(
 	detail: Record<string, number> | null | undefined,
-	method: Pick<RiskMethod, "dimensions">,
+	method: Pick<RiskMethod, "dimensions"> & { likelihood?: readonly unknown[] },
 ): RiskDimension[] {
 	const max = damageFrom(detail, method);
 	if (max === null || !detail) return [];
+	const n = levelCount(method);
 	return method.dimensions.filter(
-		(d) => d.enabled && clampLevel(detail[d.key] ?? 0) === max,
+		(d) => d.enabled && clampLevel(detail[d.key] ?? 0, n) === max,
 	);
 }
 
 // Appetit für Altcode/Notifications: höchste Grenze je Zone.
 export function appetiteFromMethod(
-	method: Pick<RiskMethod, "classes" | "aggregation">,
+	method: Pick<RiskMethod, "classes" | "aggregation"> & ScoreBasis,
 ): RiskAppetite {
 	const range = scoreRange(method);
 	let acceptable = range.min - 1;
@@ -443,7 +683,9 @@ export type RiskMethodIssue =
 	| "zone_order"
 	| "duplicate_key"
 	| "empty_label"
-	| "no_dimension";
+	| "no_dimension"
+	| "level_count"
+	| "matrix_invalid";
 
 export function validateRiskMethod(method: RiskMethod): RiskMethodIssue[] {
 	const issues = new Set<RiskMethodIssue>();
@@ -479,6 +721,24 @@ export function validateRiskMethod(method: RiskMethod): RiskMethodIssue[] {
 	for (const l of method.likelihood)
 		if (!l.label.trim()) issues.add("empty_label");
 	for (const l of method.impact) if (!l.trim()) issues.add("empty_label");
+	// Stufen: vier oder fünf, gleich viele auf jeder Achse und je Schadensart
+	const n = method.likelihood.length;
+	if (
+		(n !== 4 && n !== 5) ||
+		method.impact.length !== n ||
+		method.dimensions.some((d) => d.anchors.length !== n)
+	)
+		issues.add("level_count");
+	if (method.aggregation === "matrix") {
+		const keys = new Set(cls.map((c) => c.key));
+		const m = method.matrix;
+		if (
+			!m ||
+			m.length !== n ||
+			m.some((row) => row.length !== n || row.some((k) => !keys.has(k)))
+		)
+			issues.add("matrix_invalid");
+	}
 	return [...issues];
 }
 
@@ -486,12 +746,14 @@ export function validateRiskMethod(method: RiskMethod): RiskMethodIssue[] {
 // (gleiche Anteile, ganzzahlig, lückenlos).
 export function rescaleClasses(
 	classes: readonly RiskClass[],
-	from: RiskMethod["aggregation"],
-	to: RiskMethod["aggregation"],
+	from: ScoreBasis,
+	to: ScoreBasis,
 ): RiskClass[] {
-	if (from === to) return classes.map((c) => ({ ...c }));
-	const a = scoreRange({ aggregation: from });
-	const b = scoreRange({ aggregation: to });
+	if (to.aggregation === "matrix")
+		return classes.map((c, i) => ({ ...c, min: i + 1, max: i + 1 }));
+	const a = scoreRange({ ...from, classes });
+	const b = scoreRange({ ...to, classes });
+	if (a.min === b.min && a.max === b.max) return classes.map((c) => ({ ...c }));
 	const scale = (v: number) =>
 		Math.round(b.min + ((v - a.min) / (a.max - a.min)) * (b.max - b.min));
 	const out: RiskClass[] = [];
@@ -525,7 +787,12 @@ export function methodChangePreview(
 				? r.residualImpact
 				: r.impact;
 		const a = classify(aggregate(l, i, from), from);
-		const b = classify(aggregate(l, i, to), to);
+		const nf = levelCount(from);
+		const nt = levelCount(to);
+		const b = classify(
+			aggregate(rescaleLevel(l, nf, nt), rescaleLevel(i, nf, nt), to),
+			to,
+		);
 		if (a.label !== b.label || a.zone !== b.zone) changed++;
 		if (b.zone === "unacceptable" && a.zone !== "unacceptable")
 			nowUnacceptable++;
@@ -553,4 +820,72 @@ export function scaleLabels(
 		likelihood: method.likelihood.map((l) => l.label),
 		impact: [...method.impact],
 	};
+}
+
+// Bewertungen eines Risikos auf eine neue Stufenzahl umrechnen (beim
+// Wechsel der Methode, z. B. von fünf auf vier Stufen)
+export function rescaleRiskValues<
+	T extends {
+		likelihood: number;
+		impact: number;
+		residualLikelihood?: number | null;
+		residualImpact?: number | null;
+		impactDetail?: Record<string, number> | null;
+	},
+>(risk: T, from: number, to: number): T {
+	if (from === to) return risk;
+	const r = (v: number) => rescaleLevel(v, from, to);
+	return {
+		...risk,
+		likelihood: r(risk.likelihood),
+		impact: r(risk.impact),
+		residualLikelihood:
+			risk.residualLikelihood == null
+				? risk.residualLikelihood
+				: r(risk.residualLikelihood),
+		residualImpact:
+			risk.residualImpact == null
+				? risk.residualImpact
+				: r(risk.residualImpact),
+		impactDetail: risk.impactDetail
+			? Object.fromEntries(
+					Object.entries(risk.impactDetail).map(([k, v]) => [k, r(v)]),
+				)
+			: risk.impactDetail,
+	};
+}
+
+// Eingaben auf die Stufen der Methode begrenzen (Formulare bieten nur 1 … n,
+// das hier fängt alte Werte und fremde Aufrufe ab). Nur gesetzte Felder.
+export function fitLevels<
+	T extends {
+		likelihood?: number;
+		impact?: number;
+		residualLikelihood?: number | null;
+		residualImpact?: number | null;
+	},
+>(values: T, method: { likelihood?: readonly unknown[] }): Partial<T> {
+	const n = levelCount(method);
+	const out: Partial<T> = {};
+	for (const k of [
+		"likelihood",
+		"impact",
+		"residualLikelihood",
+		"residualImpact",
+	] as const) {
+		const v = values[k];
+		if (typeof v === "number")
+			(out as Record<string, number>)[k] = clampLevel(v, n);
+	}
+	return out;
+}
+
+// Anzeige einer Bewertung: „12 · hoch“, bei der Matrix nur „hoch“
+export function pointLabel(
+	p: { score: number; cls: { label: string } },
+	method: Pick<RiskMethod, "aggregation">,
+): string {
+	return method.aggregation === "matrix"
+		? p.cls.label
+		: `${p.score} · ${p.cls.label}`;
 }

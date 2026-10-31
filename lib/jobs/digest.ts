@@ -12,7 +12,18 @@ import {
 	MAIL_COLORS,
 	transactionalEmail,
 } from "@/lib/mail/templates";
+import {
+	type ChannelPrefs,
+	channelsFor,
+	digestWanted,
+	mailDecision,
+} from "@/lib/notifications/channels";
 import { IMMEDIATE_MAIL_KINDS } from "@/lib/notifications/notify";
+import {
+	loadChannelPrefs,
+	pushUsersFor,
+	teamsActiveFor,
+} from "@/lib/notifications/prefs";
 import { safeInternalPath } from "@/lib/safe-path";
 
 // Mailversand für Benachrichtigungen (Plan „Benachrichtigungen"):
@@ -164,7 +175,52 @@ type Pending = {
 	createdAt: Date;
 	email: string;
 	name: string;
+	teamsSentAt: Date | null;
+	teamsAttempts: number;
+	pushSentAt: Date | null;
+	pushAttempts: number;
 };
+
+// Kanal-Einstellungen einer Org (Plattform-Pass: keine, also Mail)
+type OrgDelivery = {
+	prefs: Map<string, ChannelPrefs>;
+	teamsActive: boolean;
+	// Personen mit mindestens einem Push-Gerät (Web Push konfiguriert)
+	pushUsers: Set<string>;
+};
+const NO_PREFS: OrgDelivery = {
+	prefs: new Map(),
+	teamsActive: false,
+	pushUsers: new Set(),
+};
+
+async function orgDelivery(tx: OrgTx, orgId: string): Promise<OrgDelivery> {
+	return {
+		prefs: await loadChannelPrefs(tx, orgId),
+		teamsActive: await teamsActiveFor(tx, orgId),
+		pushUsers: await pushUsersFor(tx, orgId),
+	};
+}
+
+function decide(
+	r: Pending,
+	d: OrgDelivery,
+	digest: boolean,
+): "send" | "skip" | "wait" {
+	const prefs = d.prefs.get(r.userId);
+	return mailDecision(
+		channelsFor(prefs, r.kind),
+		{
+			teamsActive: d.teamsActive,
+			teamsSentAt: r.teamsSentAt,
+			teamsAttempts: r.teamsAttempts,
+			pushActive: d.pushUsers.has(r.userId),
+			pushSentAt: r.pushSentAt,
+			pushAttempts: r.pushAttempts,
+		},
+		{ digest, digestEnabled: digestWanted(prefs) },
+	);
+}
 
 async function pendingRows(
 	tx: OrgTx,
@@ -181,6 +237,10 @@ async function pendingRows(
 			createdAt: notifications.createdAt,
 			email: user.email,
 			name: user.name,
+			teamsSentAt: notifications.teamsSentAt,
+			teamsAttempts: notifications.teamsAttempts,
+			pushSentAt: notifications.pushSentAt,
+			pushAttempts: notifications.pushAttempts,
 		})
 		.from(notifications)
 		.innerJoin(user, eq(user.id, notifications.userId))
@@ -202,7 +262,11 @@ export async function runImmediateMails(now = new Date()): Promise<number> {
 	const since = new Date(now.getTime() - IMMEDIATE_MAX_AGE_DAYS * 86_400_000);
 	let sent = 0;
 	const kinds = [...IMMEDIATE_MAIL_KINDS];
-	const handle = async (tx: OrgTx, orgFilter: ReturnType<typeof eq>) => {
+	const handle = async (
+		tx: OrgTx,
+		orgFilter: ReturnType<typeof eq>,
+		delivery: OrgDelivery,
+	) => {
 		const rows = await pendingRows(
 			tx,
 			and(
@@ -213,12 +277,19 @@ export async function runImmediateMails(now = new Date()): Promise<number> {
 			),
 		);
 		const done: string[] = [];
+		const skipped: string[] = [];
 		for (const r of rows) {
+			const decision = decide(r, delivery, false);
+			if (decision === "wait") continue;
+			if (decision === "skip") {
+				skipped.push(r.id);
+				continue;
+			}
 			const mail = buildImmediateMail(r, { baseUrl: base });
 			const out = await sendTransactionalMail({ to: r.email, ...mail });
 			if (out.ok) done.push(r.id);
 		}
-		await markEmailed(tx, done, now);
+		await markEmailed(tx, [...done, ...skipped], now);
 		sent += done.length;
 	};
 	const orgs = await globalDb
@@ -226,13 +297,19 @@ export async function runImmediateMails(now = new Date()): Promise<number> {
 		.from(organization);
 	await forEachOrg(
 		orgs.map((o) => o.id),
-		(tx, orgId) => handle(tx, eq(notifications.organizationId, orgId)),
+		async (tx, orgId) =>
+			handle(
+				tx,
+				eq(notifications.organizationId, orgId),
+				await orgDelivery(tx, orgId),
+			),
 	);
 	await globalDb.transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		await handle(
 			tx,
 			isNull(notifications.organizationId) as ReturnType<typeof eq>,
+			NO_PREFS,
 		);
 	});
 	if (sent > 0) logger.info({ sent }, "immediate notification mails sent");
@@ -243,11 +320,23 @@ export async function runImmediateMails(now = new Date()): Promise<number> {
 export async function runDigest(now = new Date()): Promise<number> {
 	const base = env().BETTER_AUTH_URL;
 	let mails = 0;
-	const handle = async (tx: OrgTx, orgFilter: ReturnType<typeof eq>) => {
-		const rows = await pendingRows(
+	const handle = async (
+		tx: OrgTx,
+		orgFilter: ReturnType<typeof eq>,
+		delivery: OrgDelivery,
+	) => {
+		const all = await pendingRows(
 			tx,
 			and(orgFilter, isNull(notifications.emailedAt)),
 		);
+		const rows: Pending[] = [];
+		const skipped: string[] = [];
+		for (const r of all) {
+			const decision = decide(r, delivery, true);
+			if (decision === "send") rows.push(r);
+			else if (decision === "skip") skipped.push(r.id);
+		}
+		await markEmailed(tx, skipped, now);
 		const byUser = new Map<string, Pending[]>();
 		for (const r of rows) {
 			const list = byUser.get(r.userId) ?? [];
@@ -279,13 +368,19 @@ export async function runDigest(now = new Date()): Promise<number> {
 		.from(organization);
 	await forEachOrg(
 		orgs.map((o) => o.id),
-		(tx, orgId) => handle(tx, eq(notifications.organizationId, orgId)),
+		async (tx, orgId) =>
+			handle(
+				tx,
+				eq(notifications.organizationId, orgId),
+				await orgDelivery(tx, orgId),
+			),
 	);
 	await globalDb.transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		await handle(
 			tx,
 			isNull(notifications.organizationId) as ReturnType<typeof eq>,
+			NO_PREFS,
 		);
 	});
 	logger.info({ mails }, "digest done");

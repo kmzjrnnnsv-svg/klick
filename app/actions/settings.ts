@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
-import { type EntityProfile, evidence, orgSettings } from "@/db/schema";
+import { type EntityProfile, evidence, orgSettings, risks } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { auditPlatform } from "@/lib/audit";
 import { requireStepUp, toOrgCtx } from "@/lib/auth/guards";
@@ -13,7 +13,11 @@ import { auth } from "@/lib/auth/server";
 import { AuthError } from "@/lib/auth/session-rules";
 import type { OrgAuditSettings } from "@/lib/compliance/audit-follow-up";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
-import { appetiteFromMethod } from "@/lib/compliance/risk-method";
+import {
+	appetiteFromMethod,
+	levelCount,
+	rescaleRiskValues,
+} from "@/lib/compliance/risk-method";
 import {
 	insertMembers,
 	insertOrganization,
@@ -72,6 +76,41 @@ async function updateRiskMethodImpl(input: unknown): Promise<ActionResult> {
 			.from(orgSettings)
 			.where(eq(orgSettings.organizationId, c.orgId))
 			.limit(1);
+		// Stufenzahl geändert (z. B. Vorlage BSI 200-3): Bewertungen
+		// umrechnen und zur Prüfung fällig stellen
+		const fromLevels = before?.riskMethod ? levelCount(before.riskMethod) : 5;
+		const toLevels = levelCount(method);
+		let rescaled = 0;
+		if (fromLevels !== toLevels) {
+			const today = new Date().toISOString().slice(0, 10);
+			const rows = await tx
+				.select({
+					id: risks.id,
+					likelihood: risks.likelihood,
+					impact: risks.impact,
+					residualLikelihood: risks.residualLikelihood,
+					residualImpact: risks.residualImpact,
+					impactDetail: risks.impactDetail,
+					reviewAt: risks.reviewAt,
+				})
+				.from(risks)
+				.where(eq(risks.organizationId, c.orgId));
+			for (const r of rows) {
+				const next = rescaleRiskValues(r, fromLevels, toLevels);
+				await tx
+					.update(risks)
+					.set({
+						likelihood: next.likelihood,
+						impact: next.impact,
+						residualLikelihood: next.residualLikelihood,
+						residualImpact: next.residualImpact,
+						impactDetail: next.impactDetail,
+						reviewAt: r.reviewAt && r.reviewAt < today ? r.reviewAt : today,
+					})
+					.where(eq(risks.id, r.id));
+			}
+			rescaled = rows.length;
+		}
 		await tx
 			.update(orgSettings)
 			.set({
@@ -100,6 +139,15 @@ async function updateRiskMethodImpl(input: unknown): Promise<ActionResult> {
 					riskMethod: method,
 					riskAppetite: appetite,
 					allowSelfApproval,
+					...(rescaled > 0
+						? {
+								risksRescaled: {
+									count: rescaled,
+									from: fromLevels,
+									to: toLevels,
+								},
+							}
+						: {}),
 				},
 			},
 		};
@@ -232,7 +280,7 @@ async function updateEntityProfileImpl(input: unknown): Promise<ActionResult> {
 	const c = g.ctx;
 	const parsed = entityProfileSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
-	const next: EntityProfile = Object.fromEntries(
+	const fields: EntityProfile = Object.fromEntries(
 		Object.entries(parsed.data).filter(([, v]) => v !== undefined),
 	);
 	await mutateOrg(toOrgCtx(c), async (tx) => {
@@ -241,6 +289,14 @@ async function updateEntityProfileImpl(input: unknown): Promise<ActionResult> {
 			.from(orgSettings)
 			.where(eq(orgSettings.organizationId, c.orgId))
 			.limit(1);
+		// Nur die Stammdaten des Formulars ersetzen; Angaben aus der
+		// Einrichtung (Größe, Daten, Varianten der Rahmenwerke) bleiben.
+		const kept = Object.fromEntries(
+			Object.entries(before?.entityProfile ?? {}).filter(
+				([k]) => !(k in entityProfileSchema.shape),
+			),
+		);
+		const next: EntityProfile = { ...kept, ...fields };
 		await tx
 			.update(orgSettings)
 			.set({ entityProfile: next })

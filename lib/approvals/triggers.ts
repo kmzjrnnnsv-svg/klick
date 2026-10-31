@@ -205,6 +205,17 @@ export const TRIGGERS: readonly TriggerDef[] = [
 		wired: true,
 	},
 	{
+		// Vernichtung einer Fassung nach Ablauf der Aufbewahrung (AP9.3);
+		// entityVersionRef = Nummer der Fassung
+		key: "document.destroy",
+		kind: "document_destruction",
+		entityType: "document",
+		area: "documents",
+		mode: "pending",
+		facts: [{ key: "classification", type: "enum", options: CLASSIFICATIONS }],
+		wired: true,
+	},
+	{
 		// Dokumente der Art „marketing“ (MiCAR Art. 66)
 		key: "marketing.publish",
 		kind: "marketing",

@@ -122,13 +122,21 @@ describe("risk-method", () => {
 
 	it("Rechenweg wechseln streckt die Klassen lückenlos", () => {
 		const m = defaultRiskMethod([]);
-		const scaled = rescaleClasses(m.classes, "sum", "product");
+		const scaled = rescaleClasses(
+			m.classes,
+			{ aggregation: "sum" },
+			{ aggregation: "product" },
+		);
 		expect(scaled[0]?.min).toBe(1);
 		expect(scaled.at(-1)?.max).toBe(25);
 		expect(
 			validateRiskMethod({ ...m, aggregation: "product", classes: scaled }),
 		).toEqual([]);
-		const back = rescaleClasses(scaled, "product", "sum");
+		const back = rescaleClasses(
+			scaled,
+			{ aggregation: "product" },
+			{ aggregation: "sum" },
+		);
 		expect(validateRiskMethod({ ...m, classes: back })).toEqual([]);
 	});
 

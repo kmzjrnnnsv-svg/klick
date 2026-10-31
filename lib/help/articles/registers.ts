@@ -16,13 +16,14 @@ export const REGISTERS: HelpArticle[] = [
 				heading: "Deine Risikomethodik",
 				body: [
 					"Unter Einstellungen > Risikomethodik legst du fest, wie gerechnet wird: Eintrittswahrscheinlichkeit plus Schadenshöhe oder mal Schadenshöhe, die Stufen mit Ankertexten, die Schadensarten (finanziell, Betrieb, Ruf, Recht, Personen …) und die Risikoklassen mit ihrer Zone akzeptabel, tolerierbar oder nicht tolerierbar. Neue Organisationen starten mit einer Vorlage, die zu ihren Rahmenwerken passt.",
+					"Statt eines Rechenwegs kannst du eine Matrix wählen: Je Feld aus Eintrittshäufigkeit und Schadenshöhe steht die Risikoklasse. Die Vorlage „BSI-Standard 200-3“ bringt vier Stufen (selten, mittel, häufig, sehr häufig bzw. vernachlässigbar, begrenzt, beträchtlich, existenzbedrohend) und die Kategorien gering, mittel, hoch und sehr hoch mit. Wechselst du die Zahl der Stufen, zeigt Klick vorher die Umrechnung je Risiko und merkt die Risiken zur neuen Bewertung vor.",
 				],
 			},
 			{
 				id: "assistent",
 				heading: "Ein Risiko mit dem Assistenten anlegen",
 				steps: [
-					"Tipp auf „Neues Risiko“. Wähl ein Szenario aus dem Katalog (über 60 Szenarien aus Informationssicherheit, Betrieb, Dienstleistern, Zahlungsverkehr, Krypto, Geldwäsche, Datenschutz, CRA) oder beschreib es frei.",
+					"Tipp auf „Neues Risiko“. Wähl ein Szenario aus dem Katalog (über 60 Szenarien aus Informationssicherheit, Betrieb, Dienstleistern, Zahlungsverkehr, Krypto, Geldwäsche, Datenschutz, CRA, dazu die 47 elementaren Gefährdungen G 0.1 bis G 0.47 des BSI) oder beschreib es frei.",
 					"Bewerte die Eintrittswahrscheinlichkeit anhand der Ankertexte.",
 					"Bewerte den Schaden je Schadensart. Die Schadenshöhe rechnet Klick selbst: die höchste Stufe zählt.",
 					"Klick zeigt Risikowert, Klasse und Zone. Liegt das Risiko über dem Appetit, muss es behandelt oder mit Freigabe akzeptiert werden.",
@@ -60,6 +61,14 @@ export const REGISTERS: HelpArticle[] = [
 			{
 				key: "iso27001:6.1.2",
 				why: "Methodik und Assistent setzen die Risikobeurteilung um.",
+			},
+			{
+				key: "bsi-200-3:4.1",
+				why: "Elementare Gefährdungen im Assistenten zuordnen.",
+			},
+			{
+				key: "bsi-200-3:5.2",
+				why: "Risikokategorie aus der Matrix der Vorlage BSI-Standard 200-3.",
 			},
 			{
 				key: "iso27001:6.1.3",
@@ -150,6 +159,17 @@ export const REGISTERS: HelpArticle[] = [
 					"Wer im Verteiler steht, sieht die Kenntnisnahme auf Heute und in der Tages-Mail.",
 					"Die Dokumentseite zeigt, wer welche Fassung wann bestätigt hat, auch aus dem Richtlinien-Portal.",
 					"Marketingmitteilungen sind eine eigene Art und werden von Compliance freigegeben.",
+				],
+			},
+			{
+				id: "aufbewahrung",
+				heading: "Aufbewahrung, Vernichtung und externe Dokumente",
+				list: [
+					"Unter „Aufbewahrung und Herkunft“ legst du fest, wie viele Jahre eine Fassung nach Ende ihrer Gültigkeit aufbewahrt wird. Ohne Angabe gilt ein Vorschlag: Verträge, Aufzeichnungen und Berichte 10 Jahre, alles andere 5. Gesetzliche Fristen (etwa HGB, AO, GwG) gehen vor.",
+					"In der Fassungsliste steht je abgelöster Fassung „Aufbewahren bis …“. Ist die Frist abgelaufen, erinnert Klick die Eigner:in einmal im Monat.",
+					"„Vernichten …“ verlangt eine Begründung und läuft über die Freigabe „Dokument-Fassung vernichten“ (Standard: Geschäftsleitung). Danach sind Text und Datei weg; Nummer, Prüfsumme, Freigaben und Verlauf bleiben als Nachweis. Die gültige Fassung lässt sich nie vernichten.",
+					"„Verlängern …“ schiebt das Ende hinaus, etwa für eine laufende Prüfung oder einen Rechtsstreit. Verkürzen geht nicht.",
+					"Normen, Gesetze, Verträge oder Herstellerunterlagen kennzeichnest du als externes Dokument mit Herkunft, Herausgeber, Ausgabe und Link. So siehst du, auf welchem Stand eure Kopie ist.",
 				],
 			},
 			{

@@ -1,4 +1,5 @@
 import { CORRIDOR_FRAMEWORK_METAS } from "./corridors";
+import { PCI_VARIANTS } from "./pci-saq";
 import type { CatalogFrameworkMeta } from "./types";
 
 // Rahmenwerk-Stammdaten (Rechtsstand Oktober 2026). Die Anforderungs-Indizes
@@ -17,6 +18,11 @@ export const FRAMEWORKS: CatalogFrameworkMeta[] = [
 		sourceUrl: "https://www.iso.org/standard/27001",
 		sortOrder: 10,
 		phase: "P1",
+		exclusion: {
+			label: "Ausschluss in der SoA",
+			basis: "ISO/IEC 27001:2022 6.1.3 d (nur Anhang A, nie die Klauseln 4–10)",
+			codePrefixes: ["A."],
+		},
 	},
 	{
 		slug: "dora",
@@ -244,6 +250,11 @@ export const FRAMEWORKS: CatalogFrameworkMeta[] = [
 			"https://www.aicpa-cima.com/topic/audit-assurance/audit-and-assurance-greater-than-soc-2",
 		sortOrder: 170,
 		phase: "P6",
+		exclusion: {
+			label: "Kategorie nicht im Prüfungsumfang",
+			basis: "AICPA TSC: Security (CC) gilt immer, A, C, PI und P sind wählbar",
+			sections: ["A1", "C1", "PI1", "P"],
+		},
 	},
 	{
 		slug: "ccss",
@@ -258,6 +269,105 @@ export const FRAMEWORKS: CatalogFrameworkMeta[] = [
 		sourceUrl: "https://cryptoconsortium.org/",
 		sortOrder: 180,
 		phase: "P6",
+	},
+	{
+		slug: "bsi-200-1",
+		name: "BSI-Standard 200-1",
+		version: "2017",
+		authority: "BSI",
+		jurisdiction: "de",
+		description:
+			"Managementsysteme für Informationssicherheit: Verantwortung der Leitung, Ressourcen, Leitlinie, Sicherheitsorganisation mit ISB, Dokumentation und kontinuierliche Verbesserung. Kompatibel zu ISO 27001, Grundlage für „ISO 27001 auf der Basis von IT-Grundschutz“. Freiwillig, in der öffentlichen Verwaltung oft vorgegeben.",
+		recommendedApproach:
+			"Zusammen mit 200-2 wählen: 200-1 beschreibt das Managementsystem, 200-2 den Weg dorthin. Mit ISO 27001 teilt sich fast jede Maßnahme.",
+		sourceUrl:
+			"https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/BSI-Standards/bsi-standards_node.html",
+		sortOrder: 185,
+		phase: "P6",
+	},
+	{
+		slug: "bsi-200-2",
+		name: "BSI-Standard 200-2 (IT-Grundschutz-Methodik)",
+		version: "2017",
+		authority: "BSI",
+		jurisdiction: "de",
+		description:
+			"Vorgehen nach IT-Grundschutz: Initiierung, Organisation, Strukturanalyse, Schutzbedarfsfeststellung, Modellierung mit den Bausteinen des Kompendiums, IT-Grundschutz-Check, Umsetzung und Aufrechterhaltung, in drei Absicherungsvarianten.",
+		recommendedApproach:
+			"Mit der Basis-Absicherung beginnen, wenn schnell breite Grundsicherheit nötig ist; Kern-Absicherung für wenige besonders schützenswerte Prozesse; Standard-Absicherung als Ziel für die Zertifizierung.",
+		sourceUrl:
+			"https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/BSI-Standards/bsi-standards_node.html",
+		sortOrder: 190,
+		phase: "P6",
+		variants: [
+			{
+				key: "standard",
+				label: "Standard-Absicherung",
+				hint: "Ganzer Informationsverbund, Basis- und Standard-Anforderungen; Ziel für die Zertifizierung",
+			},
+			{
+				key: "basis",
+				label: "Basis-Absicherung",
+				hint: "Einstieg: breit, nur Basis-Anforderungen, ohne Schutzbedarf und Risikoanalyse",
+			},
+			{
+				key: "kern",
+				label: "Kern-Absicherung",
+				hint: "Nur die Kronjuwelen, dafür vollständig mit Risikoanalyse",
+			},
+		],
+		variantLabel: "Absicherungsvariante",
+	},
+	{
+		slug: "bsi-200-3",
+		name: "BSI-Standard 200-3 (Risikoanalyse)",
+		version: "2017",
+		authority: "BSI",
+		jurisdiction: "de",
+		description:
+			"Risikoanalyse auf der Basis von IT-Grundschutz für Zielobjekte mit hohem Schutzbedarf oder ohne passenden Baustein: Gefährdungsübersicht aus den 47 elementaren Gefährdungen, Einstufung nach Häufigkeit und Schaden, Behandlung, Konsolidierung.",
+		recommendedApproach:
+			"Die Risikomethodik in Klick auf die Matrix von 200-3 stellen (vier Stufen) und die elementaren Gefährdungen im Risiko-Assistenten als Ausgangspunkt nehmen.",
+		sourceUrl:
+			"https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/BSI-Standards/bsi-standards_node.html",
+		sortOrder: 195,
+		phase: "P6",
+	},
+	{
+		slug: "bsi-200-4",
+		name: "BSI-Standard 200-4 (Business Continuity Management)",
+		version: "2023",
+		authority: "BSI",
+		jurisdiction: "de",
+		description:
+			"Aufbau eines Business-Continuity-Managementsystems in drei Stufen (reaktiv, Aufbau, Standard): Leitlinie, BCM-Organisation und BAO, Business-Impact-Analyse, Strategien, Notfallvorsorge, Notfallhandbuch, Übungen. Kompatibel zu ISO 22301.",
+		recommendedApproach:
+			"Mit dem reaktiven BCMS beginnen (Alarmierung, Krisenstab, Notfallhandbuch für die wichtigsten Prozesse), dann die BIA auf alle Prozesse ausweiten. Deckt zugleich DORA Art. 11 und ISO 27001 A.5.29/A.5.30 mit ab.",
+		sourceUrl:
+			"https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/BSI-Standards/bsi-standards_node.html",
+		sortOrder: 200,
+		phase: "P6",
+	},
+	{
+		slug: "pci-dss",
+		name: "PCI DSS v4.0.1",
+		version: "4.0.1",
+		authority: "PCI Security Standards Council",
+		jurisdiction: "global",
+		description:
+			"Sicherheitsstandard der Kartenorganisationen für alle, die Kartendaten speichern, verarbeiten oder übertragen: Händler, Zahlungsdienstleister und deren Dienstleister. Vertraglich verlangt über Acquirer und Kartenorganisationen; welche Anforderungen gelten, hängt vom Nachweisweg ab (SAQ-Typ oder Prüfbericht).",
+		recommendedApproach:
+			"Zuerst den Geltungsbereich klein machen (Zahlung auslagern, Tokenisierung, Segmentierung), dann den Nachweisweg wählen. ISO 27001 deckt rund die Hälfte ab; spezifisch sind Kontodaten, Zahlungsseiten, ASV-Scans und Kartenlesegeräte.",
+		sourceUrl: "https://www.pcisecuritystandards.org/document_library/",
+		sortOrder: 205,
+		phase: "P6",
+		exclusion: {
+			label: "Nicht anwendbar (N/A) mit Begründung",
+			basis:
+				"PCI DSS v4.0.1, Berichtsanleitung: jede Anforderung kann mit Begründung als nicht anwendbar bewertet werden",
+		},
+		variants: PCI_VARIANTS,
+		variantLabel: "Nachweisweg",
 	},
 	...CORRIDOR_FRAMEWORK_METAS,
 ];

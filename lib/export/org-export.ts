@@ -16,6 +16,8 @@ export type OrgTable = { name: string };
 export const EXPORT_EXCLUDED: ReadonlySet<string> = new Set([
 	"evidence_blobs",
 	"ai_credentials",
+	// Push-Abos sind Zugänge der Geräte zum Push-Dienst, keine Inhalte
+	"push_subscriptions",
 ]);
 
 // Alle Tabellen mit organization_id aus dem Drizzle-Schema (Reflexion, wie

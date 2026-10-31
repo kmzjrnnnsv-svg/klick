@@ -79,6 +79,9 @@ export function rate(score: number | null, knockouts: number): Rating | null {
 export function scoreAssessment(
 	questions: readonly AssessmentQuestion[],
 	answers: ReadonlyMap<string, AnswerState>,
+	// Anteil einer Frage, der bei „nicht relevant“ trotzdem offen bleibt
+	// (Anforderungen ohne Ausschluss, Gap-Analyse); zählt mit 0
+	opts: { naOpenShare?: (q: AssessmentQuestion) => number } = {},
 ): AssessmentScore {
 	const counts: Record<Verdict, number> = {
 		fulfilled: 0,
@@ -117,6 +120,10 @@ export function scoreAssessment(
 			s.w += q.weight;
 			s.v += q.weight * value;
 			if (q.critical && value === 0) knockouts.push(q.code);
+		} else if (verdict === "not_applicable" && opts.naOpenShare) {
+			const open = Math.min(1, Math.max(0, opts.naOpenShare(q)));
+			wSum += q.weight * open;
+			s.w += q.weight * open;
 		}
 		sections.set(q.sectionCode, s);
 	}

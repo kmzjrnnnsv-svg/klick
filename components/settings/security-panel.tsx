@@ -36,6 +36,7 @@ export type PasskeyRow = {
 	name: string | null;
 	createdAt: Date | null;
 	deviceType: string;
+	backedUp: boolean;
 };
 
 export function SecurityPanel({
@@ -129,7 +130,9 @@ export function SecurityPanel({
 									/>
 									<span className="font-medium">{p.name ?? "Passkey"}</span>
 									<span className="text-muted-foreground text-footnote">
-										{p.deviceType}
+										{p.deviceType === "singleDevice" && !p.backedUp
+											? t("passkeyBound")
+											: t("passkeySynced")}
 										{p.createdAt ? ` · ${fmt.format(p.createdAt)}` : ""}
 									</span>
 									<Button

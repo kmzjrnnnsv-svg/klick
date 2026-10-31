@@ -1,0 +1,1 @@
+ALTER TABLE "org_settings" ADD COLUMN "signature_policy" jsonb DEFAULT '{}'::jsonb NOT NULL;

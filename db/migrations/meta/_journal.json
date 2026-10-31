@@ -400,6 +400,34 @@
       "when": 1793258920849,
       "tag": "0056_ai_own_key",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1793441355849,
+      "tag": "0057_teams_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1793443765913,
+      "tag": "0058_document_retention",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1793445136167,
+      "tag": "0059_signature_policy",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1793446097746,
+      "tag": "0060_push_notifications",
+      "breakpoints": true
     }
   ]
 }

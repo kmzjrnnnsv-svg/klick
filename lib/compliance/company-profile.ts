@@ -269,6 +269,54 @@ export function suggestFrameworks(p: SetupProfile): FrameworkSuggestion[] {
 			"Prüfbericht, den Banken und institutionelle Kunden häufig verlangen (SOC 2), freiwillig",
 			false,
 		);
+	// Kartendaten: PCI DSS verlangen Acquirer und Kartenorganisationen
+	// vertraglich; ohne Angabe nur angeboten, wo Kartenzahlungen üblich sind
+	const cards = p.entity.cardData;
+	if (cards === "outsourced" || cards === "own")
+		add(
+			"pci-dss",
+			cards === "outsourced"
+				? "Kartenzahlungen über einen Zahlungsdienstleister: PCI DSS mit kleinem Fragebogen (SAQ A)"
+				: "Kartendaten in eigenen Systemen oder Terminals: PCI DSS, vertraglich über Acquirer und Kartenorganisationen",
+		);
+	else if (
+		cards === undefined &&
+		(p.sector === "payment" || p.sector === "emi" || p.sector === "bank")
+	)
+		add(
+			"pci-dss",
+			"Wenn ihr Kartenzahlungen abwickelt oder Kartendaten speichert: PCI DSS",
+			false,
+		);
+	// IT-Grundschutz: in der öffentlichen Verwaltung meist vorgegeben, sonst
+	// freiwillig neben ISO 27001 (Zertifikat „ISO 27001 auf Basis von
+	// IT-Grundschutz“)
+	const publicAdmin = p.entity.nis2Sector === "public_admin";
+	add(
+		"bsi-200-1",
+		publicAdmin
+			? "Öffentliche Verwaltung: Managementsystem nach BSI-Standard 200-1, oft vorgegeben"
+			: "ISMS nach BSI-Standard 200-1, freiwillig, verbreitet in Deutschland",
+		publicAdmin,
+	);
+	add(
+		"bsi-200-2",
+		publicAdmin
+			? "Öffentliche Verwaltung: Vorgehen nach IT-Grundschutz (BSI-Standard 200-2)"
+			: "Vorgehen nach IT-Grundschutz (BSI-Standard 200-2), freiwillig",
+		publicAdmin,
+	);
+	if (publicAdmin)
+		add(
+			"bsi-200-3",
+			"Risikoanalyse für hohen Schutzbedarf nach BSI-Standard 200-3",
+		);
+	if (publicAdmin || cls.nis2 !== "none")
+		add(
+			"bsi-200-4",
+			"Business Continuity Management nach BSI-Standard 200-4, freiwillig",
+			false,
+		);
 	return out;
 }
 

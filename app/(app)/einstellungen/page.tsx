@@ -34,6 +34,7 @@ import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { IntegrationsPanel } from "@/components/settings/integrations-panel";
 import { LedgerPanel } from "@/components/settings/ledger-panel";
 import { NetworkPanel } from "@/components/settings/network-panel";
+import { NotificationPrefsPanel } from "@/components/settings/notification-prefs-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
 import { PlatformAccessPanel } from "@/components/settings/platform-access-panel";
 import { PolicyPortalPanel } from "@/components/settings/policy-portal-panel";
@@ -41,12 +42,15 @@ import { RiskMethodPanel } from "@/components/settings/risk-method-panel";
 import { RolesPanel } from "@/components/settings/roles-panel";
 import { SecurityChangesPanel } from "@/components/settings/security-changes-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
+import { SignaturePolicyPanel } from "@/components/settings/signature-policy-panel";
 import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
 import { SubscriptionPanel } from "@/components/settings/subscription-panel";
 import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel";
+import { TeamsPanel } from "@/components/settings/teams-panel";
 import { WalletLinkPanel } from "@/components/settings/wallet-link-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
+import { ContainedScroll } from "@/components/ui/contained-scroll";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
 import {
 	approvalWorkflows,
@@ -104,6 +108,7 @@ import { loadRecommendInput } from "@/lib/compliance/queries-recommend";
 import { listAccessTokens } from "@/lib/compliance/queries-security";
 import {
 	defaultRiskMethod,
+	presetRiskMethod,
 	resolveRiskMethod,
 } from "@/lib/compliance/risk-method";
 import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
@@ -114,10 +119,18 @@ import { loadPriceTable } from "@/lib/db/pricing";
 import { flushQueuedAudits, readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
 import { berlinToday } from "@/lib/evidence-studio/queries";
+import { KIND_LABELS } from "@/lib/jobs/digest";
 import { orgLedger } from "@/lib/ledger/export";
 import { recommendServices } from "@/lib/marketing/recommend";
 import { normalizeIp } from "@/lib/net/ip";
 import { networkPolicyOf } from "@/lib/net/network-policy";
+import {
+	channelList,
+	channelsFor,
+	PERSONAL_NOTIFICATION_KINDS,
+} from "@/lib/notifications/channels";
+import { IMMEDIATE_MAIL_KINDS } from "@/lib/notifications/notify";
+import { loadChannelPrefs, teamsActiveFor } from "@/lib/notifications/prefs";
 import {
 	getOrgSettings,
 	listOpenAuditScopes,
@@ -127,6 +140,8 @@ import {
 import { listOrgRoles } from "@/lib/org/roles";
 import { grantState, reportOverdue } from "@/lib/platform-access/rules";
 import { portalOf, portalReaders } from "@/lib/policy-portal/admin";
+import { pushConfig } from "@/lib/push/config";
+import { devicesOf, endpointRef } from "@/lib/push/service";
 import {
 	canCancelChange,
 	canDecideChange,
@@ -140,6 +155,9 @@ import {
 	settingsGroups,
 	visibleSettingsSections,
 } from "@/lib/settings/sections";
+import { orgSignaturePolicy } from "@/lib/signatures/policy-server";
+import { teamsConfigured } from "@/lib/teams/config";
+import { teamsIntegrationOf } from "@/lib/teams/service";
 import { cn } from "@/lib/utils";
 import { listWalletLinks } from "@/lib/wallet-link-ingest/queries";
 
@@ -214,10 +232,7 @@ export default async function SettingsPage({
 	const { key: section, chosen } = resolveSettingsSection(tab, visible);
 	const t = await getTranslations("Settings");
 	const sectionTitle = t(SECTION_LABEL[section]);
-	const panel = await renderSection(section, ctx, {
-		canEditSettings,
-		t,
-	});
+	const panel = await renderSection(section, ctx, { canEditSettings });
 	return (
 		<>
 			<div className={cn(chosen && "hidden lg:block")}>
@@ -236,11 +251,13 @@ export default async function SettingsPage({
 				</div>
 			)}
 			<div className="grid grid-cols-1 gap-8 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-				<nav
+				<ContainedScroll
+					as="nav"
 					aria-label={t("title")}
-					// Am Desktop ist die Liste eine Seitenleiste: ohne Pfeile
+					// Am Desktop ist die Liste eine Seitenleiste: ohne Pfeile, mit
+					// eigener Scrollfläche (scrollt für sich, nie den Inhalt mit)
 					className={cn(
-						"lg:sticky lg:top-20 lg:[&_.lucide-chevron-right]:hidden",
+						"lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1 lg:pb-4 lg:[&_.lucide-chevron-right]:hidden",
 						chosen && "hidden lg:block",
 					)}
 				>
@@ -265,7 +282,7 @@ export default async function SettingsPage({
 							</ListSection>
 						))}
 					</ListGroup>
-				</nav>
+				</ContainedScroll>
 				<section
 					aria-labelledby="einstellungen-bereich"
 					className={cn(
@@ -291,13 +308,7 @@ type PageCtx = Awaited<ReturnType<typeof requireOrgPage>>;
 async function renderSection(
 	section: SettingsSectionKey,
 	ctx: PageCtx,
-	{
-		canEditSettings,
-		t,
-	}: {
-		canEditSettings: boolean;
-		t: Awaited<ReturnType<typeof getTranslations<"Settings">>>;
-	},
+	{ canEditSettings }: { canEditSettings: boolean },
 ): Promise<React.ReactNode> {
 	const octx = toOrgCtx(ctx);
 	switch (section) {
@@ -329,6 +340,7 @@ async function renderSection(
 							name: p.name ?? null,
 							createdAt: p.createdAt ?? null,
 							deviceType: p.deviceType,
+							backedUp: p.backedUp,
 						}))}
 					/>
 					{ctx.orgRole !== "employee" && (
@@ -340,12 +352,54 @@ async function renderSection(
 				</>
 			);
 		}
-		case "notifications":
-			return (
-				<p className="text-muted-foreground text-subhead">
-					{t("notificationsLead")}
-				</p>
+		case "notifications": {
+			const push = pushConfig();
+			const { prefs, teamsActive, devices } = await readOrg(
+				octx,
+				async (tx) => ({
+					prefs: (await loadChannelPrefs(tx, ctx.orgId)).get(ctx.userId),
+					teamsActive: await teamsActiveFor(tx, ctx.orgId),
+					devices: push ? await devicesOf(tx, ctx.orgId, ctx.userId) : [],
+				}),
 			);
+			const immediate = new Set<string>(IMMEDIATE_MAIL_KINDS);
+			return (
+				<NotificationPrefsPanel
+					kinds={PERSONAL_NOTIFICATION_KINDS.map((kind) => ({
+						kind,
+						label: KIND_LABELS[kind],
+						immediate: immediate.has(kind),
+					}))}
+					initial={{
+						channels: Object.fromEntries(
+							PERSONAL_NOTIFICATION_KINDS.map((k) => [
+								k,
+								channelList(channelsFor(prefs, k)),
+							]),
+						),
+						digestEnabled: prefs?.digestEnabled ?? true,
+					}}
+					teamsActive={teamsActive}
+					push={
+						push
+							? {
+									publicKey: push.publicKey,
+									// Endpunkt (Kennung beim Push-Dienst) bleibt am Server
+									devices: devices.map((d) => ({
+										id: d.id,
+										label: d.label,
+										createdAt: d.createdAt,
+										lastSuccessAt: d.lastSuccessAt,
+										lastError: d.lastError,
+										host: new URL(d.endpoint).hostname,
+										ref: endpointRef(d.endpoint),
+									})),
+								}
+							: null
+					}
+				/>
+			);
+		}
 		case "frameworks": {
 			const cov = await getOrgCoverageCached(ctx);
 			if (!cov) return null;
@@ -384,6 +438,8 @@ async function renderSection(
 					description: meta?.description ?? null,
 					hasIndex: (meta?.requirements.length ?? 0) > 0,
 					coveragePct: cov.result.byFramework.get(slug)?.coveragePct ?? null,
+					variants: meta?.variants,
+					variantLabel: meta?.variantLabel,
 				};
 			};
 			const activeItems = orgFws.map((f) => ({
@@ -421,6 +477,7 @@ async function renderSection(
 							licenceStage: cov.profile.licenceStage,
 							caspServices: [...cov.profile.caspServices],
 							tlptDesignated: cov.profile.tlptDesignated,
+							frameworkVariants: cov.profile.frameworkVariants ?? {},
 							nis2Status: cov.profile.nis2Status,
 						}}
 						canEdit={canEditSettings}
@@ -572,30 +629,37 @@ async function renderSection(
 					};
 				},
 			);
+			const signaturePolicy = await orgSignaturePolicy(octx);
 			return (
-				<WorkflowsPanel
-					triggers={TRIGGERS.filter((x) => x.wired).map((x) => ({
-						key: x.key,
-						area: x.area,
-						mode: x.mode,
-					}))}
-					texts={await triggerTexts()}
-					facts={await factInfos()}
-					workflows={workflows}
-					names={workflowNames}
-					presets={WORKFLOW_PRESETS.map((p) => ({
-						key: p.key,
-						trigger: p.trigger,
-						name: p.name,
-						description: p.description,
-						variant: Boolean(p.variant),
-						roles: p.roles.map((r) => r.name),
-					}))}
-					canEdit={canEditSettings}
-					mode={mode}
-					findings={findings}
-					isOwner={ctx.orgRole === "owner"}
-				/>
+				<div className="flex flex-col gap-8">
+					<SignaturePolicyPanel
+						securityKeysOnly={signaturePolicy.securityKeysOnly}
+						isOwner={ctx.orgRole === "owner"}
+					/>
+					<WorkflowsPanel
+						triggers={TRIGGERS.filter((x) => x.wired).map((x) => ({
+							key: x.key,
+							area: x.area,
+							mode: x.mode,
+						}))}
+						texts={await triggerTexts()}
+						facts={await factInfos()}
+						workflows={workflows}
+						names={workflowNames}
+						presets={WORKFLOW_PRESETS.map((p) => ({
+							key: p.key,
+							trigger: p.trigger,
+							name: p.name,
+							description: p.description,
+							variant: Boolean(p.variant),
+							roles: p.roles.map((r) => r.name),
+						}))}
+						canEdit={canEditSettings}
+						mode={mode}
+						findings={findings}
+						isOwner={ctx.orgRole === "owner"}
+					/>
+				</div>
 			);
 		}
 		case "audits": {
@@ -633,6 +697,10 @@ async function renderSection(
 					method={resolveRiskMethod(settings, cov?.frameworks ?? [])}
 					stored={Boolean(settings?.riskMethod)}
 					template={defaultRiskMethod(cov?.frameworks ?? [])}
+					presets={{
+						standard: presetRiskMethod("standard", cov?.frameworks ?? []),
+						"bsi-200-3": presetRiskMethod("bsi-200-3", cov?.frameworks ?? []),
+					}}
 					risks={riskPoints}
 					allowSelfApproval={settings?.allowSelfApproval ?? true}
 					canEdit={canEditSettings}
@@ -933,8 +1001,34 @@ async function renderSection(
 			);
 			const canCreate = allows(ctx, { integration: ["create"] });
 			const canRevoke = allows(ctx, { integration: ["revoke"] });
+			const [teams, sso] = await Promise.all([
+				readOrg(octx, (tx) => teamsIntegrationOf(tx, ctx.orgId)),
+				listSsoProvidersForOrg(ctx.orgId),
+			]);
+			const entraTenant =
+				sso
+					.map((p) =>
+						/login\.microsoftonline\.com\/([0-9a-f-]{36})/i.exec(
+							p.issuer ?? "",
+						),
+					)
+					.find(Boolean)?.[1] ?? null;
 			return (
 				<>
+					<TeamsPanel
+						configured={teamsConfigured()}
+						isOwner={ctx.orgRole === "owner"}
+						integration={
+							teams && {
+								tenantId: teams.tenantId,
+								status: teams.status,
+								enabled: teams.enabled,
+								consentedAt: teams.consentedAt,
+								lastError: teams.lastError,
+							}
+						}
+						suggestedTenant={entraTenant}
+					/>
 					<WalletLinkPanel
 						links={walletLinks}
 						origin={callbackBase()}

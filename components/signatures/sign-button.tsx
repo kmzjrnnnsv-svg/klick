@@ -48,7 +48,11 @@ export function SignButton({
 			});
 			if (!prep.ok)
 				return void toast.error(
-					prep.error === "no_passkey" ? t("noPasskey") : t("prepareFailed"),
+					prep.error === "no_passkey"
+						? t("noPasskey")
+						: prep.error === "security_key_required"
+							? t("securityKeyRequired")
+							: t("prepareFailed"),
 				);
 			let response: Awaited<ReturnType<typeof startAuthentication>>;
 			try {
@@ -69,9 +73,11 @@ export function SignButton({
 				return void toast.error(
 					res.error === "expired"
 						? t("expired")
-						: res.error === "invalid"
-							? t("invalid")
-							: errorText(tc, res),
+						: res.error === "security_key_required"
+							? t("securityKeyRequired")
+							: res.error === "invalid"
+								? t("invalid")
+								: errorText(tc, res),
 				);
 			toast.success(t("signed", { count: res.data.count }));
 			router.refresh();

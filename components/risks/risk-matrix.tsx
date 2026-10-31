@@ -5,6 +5,7 @@ import {
 	type RiskLike,
 	riskMatrix,
 } from "@/lib/compliance/risk";
+import { levelCount } from "@/lib/compliance/risk-method";
 import { cn } from "@/lib/utils";
 
 const ZONE_BG: Record<MatrixCell["zone"], string> = {
@@ -13,7 +14,8 @@ const ZONE_BG: Record<MatrixCell["zone"], string> = {
 	unacceptable: "bg-destructive/15",
 };
 
-// 5×5-Matrix mit Chips; Klick auf eine Zelle filtert das Register (?l=&i=).
+// Matrix (4×4 oder 5×5) mit Chips; Klick auf eine Zelle filtert das
+// Register (?l=&i=).
 export function RiskMatrix({
 	risks,
 	view,
@@ -35,6 +37,8 @@ export function RiskMatrix({
 	base?: string;
 }) {
 	const grid = riskMatrix(risks, view, method);
+	const n = levelCount(method);
+	const matrix = method.aggregation === "matrix";
 	return (
 		<div className="overflow-x-auto">
 			<table className="w-full min-w-[40rem] border-separate border-spacing-1 text-footnote">
@@ -43,7 +47,7 @@ export function RiskMatrix({
 						<th className="w-28 text-left align-bottom font-normal text-muted-foreground">
 							{labels.axisL} in Zeilen, {labels.axisI} in Spalten
 						</th>
-						{[1, 2, 3, 4, 5].map((i) => (
+						{Array.from({ length: n }, (_, k) => k + 1).map((i) => (
 							<th key={i} className="pb-1 font-normal text-muted-foreground">
 								{i} · {labels.impact[i - 1]}
 							</th>
@@ -54,7 +58,7 @@ export function RiskMatrix({
 					{grid.map((row, ri) => (
 						<tr key={row[0]?.likelihood}>
 							<th className="pr-2 text-right font-normal text-muted-foreground">
-								{5 - ri} · {labels.likelihood[4 - ri]}
+								{n - ri} · {labels.likelihood[n - 1 - ri]}
 							</th>
 							{row.map((cell) => (
 								<td
@@ -68,10 +72,12 @@ export function RiskMatrix({
 											"flex h-full min-h-16 flex-col gap-1 rounded-sm border border-transparent p-1.5 transition-colors hover:border-foreground/30",
 											ZONE_BG[cell.zone],
 										)}
-										aria-label={`Eintrittswahrscheinlichkeit ${cell.likelihood}, Schadenshöhe ${cell.impact}, Risikowert ${cell.score} (${cell.cls.label}), ${cell.riskIds.length} Risiken`}
+										aria-label={`Eintrittswahrscheinlichkeit ${cell.likelihood}, Schadenshöhe ${cell.impact}, ${matrix ? "Risikokategorie" : `Risikowert ${cell.score}`} (${cell.cls.label}), ${cell.riskIds.length} Risiken`}
 									>
 										<span className="text-muted-foreground">
-											{cell.score} · {cell.cls.label}
+											{matrix
+												? cell.cls.label
+												: `${cell.score} · ${cell.cls.label}`}
 										</span>
 										<span className="flex flex-wrap gap-1">
 											{cell.riskIds.slice(0, 6).map((id) => (

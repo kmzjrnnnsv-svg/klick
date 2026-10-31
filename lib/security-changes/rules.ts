@@ -25,6 +25,7 @@ export const APPLY_KINDS = [
 	"dlp_policy",
 	"network_policy",
 	"ai_policy",
+	"signature_policy",
 ] as const satisfies readonly SecurityChangeKind[];
 export const PERMIT_KINDS = [
 	"org_delete",

@@ -5,9 +5,10 @@ import {
 	clampLevel,
 	classify,
 	legacyRiskMethod,
+	levelCount,
 } from "./risk-method";
 
-// Risikobewertung — reine Funktionen. Skala 1–5 je Achse; Rechenweg,
+// Risikobewertung — reine Funktionen. Skala 1–4 oder 1–5 je Achse; Rechenweg,
 // Klassen und Zonen kommen aus der Risikomethodik der Org
 // (lib/compliance/risk-method.ts). Zone „unacceptable“ = über dem Appetit →
 // Behandlung Pflicht, Akzeptanz nur per Freigabe, Notification an Owner.
@@ -63,8 +64,9 @@ export type RiskAssessment = {
 };
 
 function point(l: number, i: number, method: RiskMethod): RiskPoint {
-	const likelihood = clampLevel(l);
-	const impact = clampLevel(i);
+	const n = levelCount(method);
+	const likelihood = clampLevel(l, n);
+	const impact = clampLevel(i, n);
 	const score = aggregate(likelihood, impact, method);
 	const cls = classify(score, method);
 	return { likelihood, impact, score, cls, zone: cls.zone };
@@ -89,30 +91,32 @@ export function assessRisk(
 }
 
 export type MatrixCell = {
-	likelihood: 1 | 2 | 3 | 4 | 5;
-	impact: 1 | 2 | 3 | 4 | 5;
+	likelihood: number;
+	impact: number;
 	score: number;
 	cls: ClassResult;
 	zone: AppetiteZone;
 	riskIds: string[];
 };
 
-// 5×5-Matrix (Zeilen: Eintrittswahrscheinlichkeit 5 → 1, Spalten:
-// Schadenshöhe 1 → 5), Chips je Zelle; Umschalter inhärent/residual.
+// n×n-Matrix (Zeilen: Eintrittswahrscheinlichkeit von oben n bis 1,
+// Spalten: Schadenshöhe 1 bis n), Chips je Zelle; Umschalter
+// inhärent/residual.
 export function riskMatrix(
 	risks: readonly RiskLike[],
 	view: "inherent" | "residual" = "inherent",
 	method: RiskMethod = LEGACY_METHOD,
 ): MatrixCell[][] {
+	const n = levelCount(method);
 	const rows: MatrixCell[][] = [];
-	for (let l = 5; l >= 1; l--) {
+	for (let l = n; l >= 1; l--) {
 		const row: MatrixCell[] = [];
-		for (let i = 1; i <= 5; i++) {
+		for (let i = 1; i <= n; i++) {
 			const score = aggregate(l, i, method);
 			const cls = classify(score, method);
 			row.push({
-				likelihood: l as MatrixCell["likelihood"],
-				impact: i as MatrixCell["impact"],
+				likelihood: l,
+				impact: i,
 				score,
 				cls,
 				zone: cls.zone,
@@ -124,7 +128,7 @@ export function riskMatrix(
 	for (const r of risks) {
 		const a = assessRisk(r, method);
 		const pos = view === "residual" ? (a.residual ?? a.inherent) : a.inherent;
-		const cell = rows[5 - pos.likelihood]?.[pos.impact - 1];
+		const cell = rows[n - pos.likelihood]?.[pos.impact - 1];
 		cell?.riskIds.push(r.id);
 	}
 	return rows;

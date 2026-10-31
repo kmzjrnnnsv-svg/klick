@@ -469,6 +469,77 @@ der Org. Schlüssel, Anbieter und Funktionen legt die Inhaberin unter Einstellun
 - **Grenzen:** je Org 30 Aufrufe in 10 Minuten (Prozessspeicher, ein Server), Eingabe ≤ 200 000
   Zeichen, Dateien ≤ 10 MB (nur PDF/PNG/JPEG). Kosten rechnet der Anbieter mit der Org ab.
 
+## Microsoft Teams (T5)
+Hinweise erscheinen im Aktivitätsfeed von Teams statt (oder zusätzlich zu) Mails. Eine
+App-Registrierung von Klick gilt für alle Organisationen; jede Kunden-IT gibt sie im eigenen Tenant
+frei. Ohne die Schritte hier ist Teams aus und alles läuft wie bisher per Mail.
+
+1. **App-Registrierung** im Entra Admin Center (Mandant von Klick): „Neue Registrierung“, Name
+   „Klick“, Kontotyp „Konten in einem beliebigen Organisationsverzeichnis (mehrinstanzenfähig)“,
+   Umleitungs-URI (Web) `https://raza.work/api/teams/consent`. Unter „API-Berechtigungen“ die
+   **Anwendungsberechtigungen** von Microsoft Graph hinzufügen: `TeamsActivity.Send`,
+   `TeamsAppInstallation.ReadWriteForUser.All`, `User.ReadBasic.All`, `AppCatalog.Read.All`. Die
+   Anwendungs-ID (Client-ID) notieren.
+2. **Zertifikat statt Geheimnis** (auf dem Server als root, Schlüssel verlässt den Server nicht):
+   ```bash
+   umask 077
+   openssl req -x509 -newkey rsa:3072 -nodes -days 730 -subj "/CN=klick-teams" \
+     -keyout /root/klick-teams.key -out /root/klick-teams.crt
+   cat /root/klick-teams.key /root/klick-teams.crt > /root/klick-teams.pem
+   systemd-creds encrypt --name=teams_cert /root/klick-teams.pem /etc/credstore.encrypted/teams_cert
+   shred -u /root/klick-teams.key /root/klick-teams.pem
+   ```
+   Nur `klick-teams.crt` unter „Zertifikate und Geheimnisse“ der App hochladen, danach löschen.
+   Ablauf im Kalender vormerken (730 Tage); vor Ablauf ein neues Zertifikat hochladen, dann das
+   Credential tauschen.
+3. **Drop-in:** `deploy/systemd/klick.service.d/teams.conf.example` nach
+   `/etc/systemd/system/klick.service.d/teams.conf` kopieren, `TEAMS_CLIENT_ID` eintragen,
+   `systemctl daemon-reload && systemctl restart klick`. `TEAMS_APP_ID` bleibt beim Standard (die
+   App-ID im Paket muss über alle Releases gleich bleiben, sonst finden die Tenants die App nicht).
+4. **Je Kundin** (in Klick, Inhaber:in): Einstellungen > Integrationen > Microsoft Teams. App-Paket
+   herunterladen (die IT lädt es im Teams Admin Center unter „Apps verwalten > Hochladen“ hoch),
+   Tenant-ID eintragen, Freigabe-Link an eine Person mit Rolle „Globaler Administrator“ bzw.
+   „Privilegierter Rollenadministrator“ schicken, nach der Freigabe einschalten und „Testhinweis an
+   mich“.
+
+- **Ausgehend nötig:** https zu `login.microsoftonline.com` und `graph.microsoft.com` (die App prüft
+  Host, IP und Zertifikat selbst und folgt keiner Weiterleitung).
+- **Was an Microsoft geht:** Titel der Benachrichtigung und der Link zur Seite in Klick, in den
+  Tenant der Kundin. Keine Inhalte, keine Anhänge.
+- **Prüfen:** `psql klick -c "select organization_id, status, enabled, last_error, last_error_at from
+  teams_integrations"`; `last_error` = `consent_missing` (Freigabe fehlt oder wurde entzogen, Status
+  „error“), `app_not_in_catalog` (Paket nicht hochgeladen), `user_not_found` (Adresse in Klick ≠ Konto
+  im Tenant, steht dann in `teams_users`), `throttled` (Microsoft drosselt, nächster Lauf versucht es
+  wieder). Nach drei Fehlversuchen je Benachrichtigung geht sie per Mail.
+- **Sofort abschalten:** je Org unter Einstellungen > Integrationen ausschalten oder entfernen; für alle
+  den Drop-in entfernen und Klick neu starten.
+
+## Push-Benachrichtigungen
+Hinweise kommen als Mitteilung auf Mac, Windows, Android und iPhone (dort nur, wenn Klick über
+Teilen > Zum Home-Bildschirm hinzugefügt und von dort geöffnet wurde). Jede Person schaltet Push je
+Gerät unter Einstellungen > Benachrichtigungen ein und wählt je Art Mail, Push und/oder Teams. Ohne die
+Schritte hier ist Push aus und alles läuft wie bisher.
+1. **Schlüsselpaar (VAPID, einmal):** `cd /opt/klick/current && runuser -u klick -- pnpm push:keys`.
+   Das Paar bleibt fest; ein neues Paar meldet alle Geräte ab.
+2. **Privater Schlüssel als Credential:** `systemd-creds encrypt --name=web_push_private_key -
+   /etc/credstore.encrypted/web_push_private_key` (Schlüssel einfügen, Strg+D), danach das Terminal
+   leeren (`clear`). Nie in `klick.env`.
+3. **Drop-in:** `deploy/systemd/klick.service.d/push.conf.example` nach
+   `/etc/systemd/system/klick.service.d/push.conf`, öffentlichen Schlüssel bei `WEB_PUSH_PUBLIC_KEY=`
+   eintragen, `systemctl daemon-reload && systemctl restart klick`.
+4. **Migration 0060** (`push_subscriptions`, `notifications.push_sent_at`/`push_attempts`) kommt mit dem
+   Release.
+5. **Ausgehend (https/443):** `fcm.googleapis.com` (Chrome, Edge, Android), `*.push.apple.com` und
+   `web.push.apple.com` (Safari), `updates.push.services.mozilla.com` (Firefox), `*.notify.windows.com`
+   (ältere Edge-Versionen). Andere Endpunkte lehnt Klick ab (`lib/push/endpoint.ts`, angeheftete
+   öffentliche Adresse, keine Weiterleitung, 15 s).
+- **Was den Server verlässt:** Titel der Benachrichtigung und der Link zur Seite in Klick,
+  Ende-zu-Ende verschlüsselt für das Gerät (RFC 8291). Der Push-Dienst sieht nur Bytes, Größe und Zeit.
+- **Prüfen:** Einstellungen > Benachrichtigungen > „Testhinweis senden“; `psql klick -c "select
+  user_id, label, last_success_at, last_error from push_subscriptions"`. Geräte mit 404/410 löscht der
+  Job `push-notify` selbst; nach drei Fehlversuchen je Benachrichtigung geht sie per Mail.
+- **Sofort abschalten:** Drop-in entfernen, Klick neu starten (Mails laufen weiter).
+
 ## Härtung III (optional, per Env aktiv)
 - **clamd:** `apt install clamav-daemon`, `freshclam` als Timer, `TCPSocket 3310` + `TCPAddr 127.0.0.1`
   in `/etc/clamav/clamd.conf`, `StreamMaxLength 30M`. App: `CLAMD_HOST=127.0.0.1`. Fail closed —

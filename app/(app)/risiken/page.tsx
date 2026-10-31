@@ -42,7 +42,11 @@ import {
 } from "@/lib/compliance/queries-p2";
 import { loadRiskProposals } from "@/lib/compliance/queries-risk-sources";
 import { assessRisk, classDistribution } from "@/lib/compliance/risk";
-import { scaleLabels, ZONE_TONE } from "@/lib/compliance/risk-method";
+import {
+	pointLabel,
+	scaleLabels,
+	ZONE_TONE,
+} from "@/lib/compliance/risk-method";
 import { readOrg } from "@/lib/db/with-org";
 import { RISK_STATUS, RISK_STATUSES } from "@/lib/entities/risk";
 import { getOrgSettings, orgRiskMethod } from "@/lib/org/queries";
@@ -600,7 +604,7 @@ export default async function RisksPage({
 												variant={ZONE_TONE[a.inherent.zone]}
 												title={a.inherent.cls.label}
 											>
-												{a.inherent.score} · {a.inherent.cls.label}
+												{pointLabel(a.inherent, method)}
 											</Badge>
 										</TableCell>
 										<TableCell className="text-right">
@@ -609,7 +613,7 @@ export default async function RisksPage({
 													variant={ZONE_TONE[a.residual.zone]}
 													title={a.residual.cls.label}
 												>
-													{a.residual.score} · {a.residual.cls.label}
+													{pointLabel(a.residual, method)}
 												</Badge>
 											) : (
 												<span className="text-muted-foreground">—</span>

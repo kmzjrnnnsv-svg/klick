@@ -48,13 +48,16 @@ export type RiskAppetite = { acceptable: number; tolerable: number };
 // Stufe, Schadensarten und Risikoklassen. Leer = aus riskScales/riskAppetite
 // abgeleitet (Bestand), neue Orgs bekommen die Vorlage.
 export type Five<T> = [T, T, T, T, T];
+// Stufen einer Risikomethode: vier (BSI 200-3) oder fünf; alle Achsen und
+// Schadensarten einer Methode haben gleich viele (validateRiskMethod)
+export type Levels<T> = T[];
 export type RiskZone = "acceptable" | "tolerable" | "unacceptable";
 export type RiskLevelText = { label: string; anchor: string };
 export type RiskDimension = {
 	key: string;
 	label: string;
 	enabled: boolean;
-	anchors: Five<string>;
+	anchors: Levels<string>;
 };
 // Wer eine Akzeptanz in dieser Klasse freigibt (B4): leer = die
 // verantwortliche Person entscheidet allein; sonst Stufen nacheinander,
@@ -71,11 +74,15 @@ export type RiskClass = {
 	acceptance?: RiskAcceptanceStep[];
 };
 export type RiskMethod = {
-	aggregation: "sum" | "product";
-	likelihood: Five<RiskLevelText>;
-	impact: Five<string>;
+	// sum = EW + SH, product = EW × SH, matrix = Klasse je Feld (BSI 200-3)
+	aggregation: "sum" | "product" | "matrix";
+	likelihood: Levels<RiskLevelText>;
+	impact: Levels<string>;
 	dimensions: RiskDimension[];
 	classes: RiskClass[];
+	// nur bei matrix: Zeile = Eintrittshäufigkeit (1 … n), Spalte =
+	// Schadenshöhe (1 … n), Wert = Schlüssel der Klasse
+	matrix?: string[][];
 };
 // Lieferantenbewertung je Org (lib/compliance/supplier-rating.ts): Bereichs-
 // und Kriteriengewichte, Anker, Schwellen mit Wiedervorlage. Leer = Vorlage.
@@ -149,6 +156,11 @@ export type EntityProfile = {
 	specialCategories?: boolean;
 	dataSubjects?: "lt1k" | "1k_100k" | "gt100k";
 	customerCountries?: string[];
+	// Kartendaten: keine, Zahlung vollständig beim Zahlungsdienstleister
+	// (Weiterleitung, iframe) oder über eigene Systeme bzw. Terminals
+	cardData?: "none" | "outsourced" | "own";
+	// gewählte Variante je Rahmenwerk (BSI-Absicherung, PCI-SAQ)
+	frameworkVariants?: Record<string, string>;
 };
 
 // DLP-Regeln je Org (lib/dlp/policy.ts wertet aus). Gespeichert wird nur,
@@ -249,6 +261,9 @@ export const orgSettings = pgTable(
 		// Modell, Funktionen, Einstufung; gelesen nur über aiPolicyOf,
 		// Lockern nur über Vier-Augen (Art ai_policy)
 		aiPolicy: json<Record<string, unknown>>().notNull().default({}),
+		// Unterschriften nur mit Sicherheitsschlüssel (AP9.1b,
+		// lib/signatures/policy.ts); Lockern nur über Vier-Augen
+		signaturePolicy: json<Record<string, unknown>>().notNull().default({}),
 		// Standard (nach Rahmenwerk) oder individuell (ADR-024)
 		governanceMode: text({ enum: GOVERNANCE_MODES })
 			.notNull()
@@ -417,6 +432,13 @@ export const notifications = pgTable(
 		payload: json<Record<string, unknown>>(),
 		readAt: ts(),
 		emailedAt: ts(),
+		// Zustellung in Microsoft Teams (T5): gesendet bzw. Fehlversuche;
+		// nach drei Fehlversuchen geht die Benachrichtigung per Mail
+		teamsSentAt: ts(),
+		teamsAttempts: integer().notNull().default(0),
+		// Push-Benachrichtigungen (Web Push): zugestellt bzw. Fehlversuche
+		pushSentAt: ts(),
+		pushAttempts: integer().notNull().default(0),
 		createdAt: createdAt(),
 	},
 	(t) => [

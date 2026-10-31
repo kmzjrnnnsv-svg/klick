@@ -1,5 +1,15 @@
 import { AMLR_REQUIREMENTS, AMLR_SECTIONS } from "./amlr";
 import { BASELINE } from "./baseline";
+import {
+	BSI_200_1_REQUIREMENTS,
+	BSI_200_1_SECTIONS,
+	BSI_200_2_REQUIREMENTS,
+	BSI_200_2_SECTIONS,
+	BSI_200_3_REQUIREMENTS,
+	BSI_200_3_SECTIONS,
+	BSI_200_4_REQUIREMENTS,
+	BSI_200_4_SECTIONS,
+} from "./bsi";
 import { CCSS_REQUIREMENTS, CCSS_SECTIONS } from "./ccss";
 import { CONTROL_REQUIREMENTS } from "./control-requirements";
 import { CONTROL_BY_CODE, CONTROLS } from "./controls";
@@ -21,6 +31,8 @@ import {
 	KASSEN_SECTIONS,
 } from "./misc-finance";
 import { NIS2_REQUIREMENTS, NIS2_SECTIONS } from "./nis2";
+import { PCI_SECTIONS } from "./pci-dss";
+import { PCI_DSS_REQUIREMENTS } from "./pci-saq";
 import { SANCTIONS_REQUIREMENTS, SANCTIONS_SECTIONS } from "./sanctions";
 import { SOC2_REQUIREMENTS, SOC2_SECTIONS } from "./soc2";
 import { TFR_REQUIREMENTS, TFR_SECTIONS } from "./tfr";
@@ -69,6 +81,23 @@ const INDICES: Record<
 	cra: { sections: CRA_SECTIONS, requirements: CRA_REQUIREMENTS },
 	soc2: { sections: SOC2_SECTIONS, requirements: SOC2_REQUIREMENTS },
 	ccss: { sections: CCSS_SECTIONS, requirements: CCSS_REQUIREMENTS },
+	"bsi-200-1": {
+		sections: BSI_200_1_SECTIONS,
+		requirements: BSI_200_1_REQUIREMENTS,
+	},
+	"bsi-200-2": {
+		sections: BSI_200_2_SECTIONS,
+		requirements: BSI_200_2_REQUIREMENTS,
+	},
+	"bsi-200-3": {
+		sections: BSI_200_3_SECTIONS,
+		requirements: BSI_200_3_REQUIREMENTS,
+	},
+	"bsi-200-4": {
+		sections: BSI_200_4_SECTIONS,
+		requirements: BSI_200_4_REQUIREMENTS,
+	},
+	"pci-dss": { sections: PCI_SECTIONS, requirements: PCI_DSS_REQUIREMENTS },
 	...CORRIDOR_INDICES,
 };
 

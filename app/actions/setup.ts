@@ -541,6 +541,7 @@ async function saveActivityImpl(input: unknown): Promise<ActionResult> {
 						caspServices: d.caspServices,
 						applyBaseline: p.profile.applyBaseline,
 						tlptDesignated: p.profile.tlptDesignated,
+						frameworkVariants: p.profile.frameworkVariants,
 						issuesTokens: d.issuesTokens,
 						productRoles: p.profile.productRoles,
 					})
@@ -581,9 +582,27 @@ async function saveItDataImpl(
 		const s = await loadSettings(tx, c.orgId);
 		if (!s) return { result: 0, audit: [] };
 		const ai = aiMaxClass ? await setupAiClass(tx, c.orgId, aiMaxClass) : null;
+		// Nachweisweg für PCI DSS vorschlagen, solange noch keiner gewählt ist:
+		// Zahlung ausgelagert = SAQ A, eigene Systeme = SAQ D bzw. Dienstleister
+		const variants = { ...(s.entity.frameworkVariants ?? {}) };
+		if (data.cardData && data.cardData !== "none" && !variants["pci-dss"])
+			variants["pci-dss"] =
+				data.cardData === "outsourced"
+					? "saq_a"
+					: s.sector === "payment" || s.sector === "emi"
+						? "sp"
+						: "saq_d";
 		await tx
 			.update(orgSettings)
-			.set({ entityProfile: { ...s.entity, ...data } })
+			.set({
+				entityProfile: {
+					...s.entity,
+					...data,
+					...(Object.keys(variants).length > 0
+						? { frameworkVariants: variants }
+						: {}),
+				},
+			})
 			.where(eq(orgSettings.organizationId, c.orgId));
 		const existing = await tx
 			.select({ name: providers.name })
@@ -672,6 +691,7 @@ async function saveSetupFrameworksImpl(input: unknown): Promise<
 			caspServices: p.profile.caspServices,
 			applyBaseline: p.profile.applyBaseline,
 			tlptDesignated: p.profile.tlptDesignated,
+			frameworkVariants: p.profile.frameworkVariants,
 			issuesTokens: p.profile.issuesTokens,
 			productRoles: p.profile.productRoles,
 		});

@@ -6,12 +6,13 @@
 set -euo pipefail
 
 # Tabellen anderer Herkunft mit Input-Hook (alte Firewall, Ubuntu-Standard);
-# die CrowdSec-Tabellen bleiben.
+# die eigenen und die Sperrtabellen von CrowdSec und fail2ban bleiben
+# (tabelle_bekannt in rein.sh).
 fremde_tabellen() {
 	local fam name
 	while read -r _ fam name; do
 		[ -n "$name" ] || continue
-		case "$fam/$name" in inet/klick | ip/crowdsec* | ip6/crowdsec* | inet/crowdsec*) continue ;; esac
+		tabelle_bekannt "$fam" "$name" && continue
 		nft list table "$fam" "$name" 2>/dev/null | grep -q 'hook input' && printf '%s %s\n' "$fam" "$name"
 	done < <(nft list tables 2>/dev/null || true)
 }

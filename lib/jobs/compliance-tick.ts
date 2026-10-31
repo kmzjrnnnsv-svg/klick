@@ -47,6 +47,15 @@ export type DueRows = {
 		nextReviewAt: Date | string | null;
 		ownerUserId: string | null;
 	}[];
+	// Fassungen, deren Aufbewahrung abgelaufen ist (AP9.3); Erinnerung
+	// monatlich, bis vernichtet oder verlängert
+	documentRetention?: readonly {
+		docNumber: string;
+		title: string;
+		version: string;
+		retainUntil: Date;
+		ownerUserId: string | null;
+	}[];
 	providerAssessments: readonly {
 		id: string;
 		name: string;
@@ -419,6 +428,16 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			body: `${d.title} — ${dueWording(now, due)}.`,
 			link: `/dokumente/${encodeURIComponent(d.docNumber)}`,
 			dedupeKey: `review:document:${d.docNumber}:${isoDay(due)}`,
+		});
+	}
+	for (const d of rows.documentRetention ?? []) {
+		notifications.push({
+			kind: "review_due",
+			recipients: recipientsOf(d.ownerUserId, rows.orgOwnerIds),
+			title: `Aufbewahrung abgelaufen: ${d.docNumber} v${d.version}`,
+			body: `${d.title}: Die Fassung kann nach Prüfung vernichtet werden (seit ${isoDay(d.retainUntil)}).`,
+			link: `/dokumente/${encodeURIComponent(d.docNumber)}`,
+			dedupeKey: `retention:document:${d.docNumber}:${d.version}:${isoDay(now).slice(0, 7)}`,
 		});
 	}
 	for (const p of rows.providerAssessments) {

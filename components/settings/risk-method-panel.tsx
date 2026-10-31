@@ -16,7 +16,6 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type {
-	Five,
 	RiskAcceptanceStep,
 	RiskClass,
 	RiskDimension,
@@ -24,7 +23,11 @@ import type {
 	RiskZone,
 } from "@/db/schema/platform";
 import {
+	defaultMatrix,
+	levelCount,
 	methodChangePreview,
+	RISK_METHOD_PRESETS,
+	type RiskMethodPreset,
 	rescaleClasses,
 	scoreRange,
 	validateRiskMethod,
@@ -40,7 +43,7 @@ type RiskPoint = {
 };
 
 const ZONES: RiskZone[] = ["acceptable", "tolerable", "unacceptable"];
-const LEVELS = [1, 2, 3, 4, 5] as const;
+const AGGREGATIONS = ["sum", "product", "matrix"] as const;
 
 // Wer gibt eine Akzeptanz frei (B4): „legacy“ = wie bisher nur über dem
 // Appetit (Workflow risk_acceptance), sonst feste Stufen je Klasse.
@@ -65,12 +68,12 @@ function clone(m: RiskMethod): RiskMethod {
 }
 
 // Klassen-„von“ ergibt sich aus der Vorgängerklasse; die letzte endet am
-// Maximum des Rechenwegs. So bleiben die Klassen lückenlos.
-function normalizeClasses(
-	classes: RiskClass[],
-	aggregation: RiskMethod["aggregation"],
-): RiskClass[] {
-	const range = scoreRange({ aggregation });
+// Maximum des Rechenwegs. So bleiben die Klassen lückenlos. Bei der Matrix
+// ist jede Klasse genau eine Stufe (Reihenfolge = Rang).
+function normalizeClasses(classes: RiskClass[], m: RiskMethod): RiskClass[] {
+	if (m.aggregation === "matrix")
+		return classes.map((c, i) => ({ ...c, min: i + 1, max: i + 1 }));
+	const range = scoreRange({ ...m, classes });
 	return classes.map((c, i) => {
 		const min = i === 0 ? range.min : (classes[i - 1]?.max ?? range.min) + 1;
 		const max = i === classes.length - 1 ? range.max : c.max;
@@ -78,10 +81,27 @@ function normalizeClasses(
 	});
 }
 
+// Felder der Matrix, deren Klasse es nicht mehr gibt, bekommen die letzte
+// Klasse (die strengste); so bleibt die Matrix vollständig.
+function repairMatrix(
+	matrix: string[][] | undefined,
+	classes: readonly RiskClass[],
+	levels: number,
+): string[][] {
+	const keys = new Set(classes.map((c) => c.key));
+	const fallback = classes.at(-1)?.key ?? "";
+	const base =
+		matrix && matrix.length === levels
+			? matrix
+			: defaultMatrix(levels, classes);
+	return base.map((row) => row.map((k) => (keys.has(k) ? k : fallback)));
+}
+
 export function RiskMethodPanel({
 	method,
 	stored,
 	template,
+	presets,
 	risks,
 	allowSelfApproval,
 	canEdit,
@@ -89,6 +109,8 @@ export function RiskMethodPanel({
 	method: RiskMethod;
 	stored: boolean;
 	template: RiskMethod;
+	// Vorlagen mit den Schadensarten der aktiven Rahmenwerke
+	presets: Record<RiskMethodPreset, RiskMethod>;
 	risks: RiskPoint[];
 	allowSelfApproval: boolean;
 	canEdit: boolean;
@@ -103,6 +125,12 @@ export function RiskMethodPanel({
 	const [solo, setSolo] = useState(allowSelfApproval);
 	const range = scoreRange(draft);
 	const issues = validateRiskMethod(draft);
+	const n = levelCount(draft);
+	const LEVELS = Array.from({ length: n }, (_, k) => k + 1);
+	const isMatrix = draft.aggregation === "matrix";
+	const levelsChanged = levelCount(method) !== n;
+	// Schadensarten der Vorlage mit gleicher Stufenzahl
+	const dimTemplate = n === 4 ? presets["bsi-200-3"] : template;
 	const preview = useMemo(
 		() => methodChangePreview(risks, method, draft),
 		[risks, method, draft],
@@ -117,10 +145,16 @@ export function RiskMethodPanel({
 	}, [changed, pending, canEdit]);
 
 	const setClasses = (classes: RiskClass[]) =>
-		setDraft((d) => ({
-			...d,
-			classes: normalizeClasses(classes, d.aggregation),
-		}));
+		setDraft((d) => {
+			const next = normalizeClasses(classes, d);
+			return d.aggregation === "matrix"
+				? {
+						...d,
+						classes: next,
+						matrix: repairMatrix(d.matrix, next, levelCount(d)),
+					}
+				: { ...d, classes: next };
+		});
 	const setDim = (idx: number, patch: Partial<RiskDimension>) =>
 		setDraft((d) => ({
 			...d,
@@ -128,7 +162,7 @@ export function RiskMethodPanel({
 				k === idx ? { ...x, ...patch } : x,
 			),
 		}));
-	const templateKeys = new Set(template.dimensions.map((d) => d.key));
+	const templateKeys = new Set(dimTemplate.dimensions.map((d) => d.key));
 
 	const save = () =>
 		start(async () => {
@@ -177,15 +211,42 @@ export function RiskMethodPanel({
 				)}
 			</div>
 
+			{/* Vorlage */}
+			{canEdit && (
+				<section className="flex flex-col gap-3" aria-labelledby="rm-preset">
+					<h3 id="rm-preset" className="font-medium">
+						{t("presetTitle")}
+					</h3>
+					<p className="text-muted-foreground text-footnote">
+						{t("presetLead")}
+					</p>
+					<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+						{RISK_METHOD_PRESETS.map((p) => (
+							<button
+								key={p.key}
+								type="button"
+								className="flex flex-col gap-1 rounded-2xl bg-card p-3 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50"
+								onClick={() => setDraft(clone(presets[p.key]))}
+							>
+								<span className="font-medium">{p.label}</span>
+								<span className="text-muted-foreground text-footnote">
+									{p.hint}
+								</span>
+							</button>
+						))}
+					</div>
+				</section>
+			)}
+
 			{/* 1 · Rechenweg */}
 			<section className="flex flex-col gap-3" aria-labelledby="rm-agg">
 				<h3 id="rm-agg" className="font-medium">
 					1 · {t("aggregationTitle")}
 				</h3>
 				<div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_auto]">
-					<fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+					<fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-3">
 						<legend className="sr-only">{t("aggregationTitle")}</legend>
-						{(["sum", "product"] as const).map((agg) => (
+						{AGGREGATIONS.map((agg) => (
 							<label
 								key={agg}
 								className={cn(
@@ -201,11 +262,21 @@ export function RiskMethodPanel({
 										checked={draft.aggregation === agg}
 										disabled={!canEdit}
 										onChange={() =>
-											setDraft((d) => ({
-												...d,
-												aggregation: agg,
-												classes: rescaleClasses(d.classes, d.aggregation, agg),
-											}))
+											setDraft((d) => {
+												const to = { ...d, aggregation: agg };
+												const classes = rescaleClasses(d.classes, d, to);
+												return agg === "matrix"
+													? {
+															...to,
+															classes,
+															matrix: repairMatrix(
+																d.matrix,
+																classes,
+																levelCount(d),
+															),
+														}
+													: { ...to, classes, matrix: undefined };
+											})
 										}
 									/>
 									{t(`agg_${agg}`)}
@@ -280,7 +351,12 @@ export function RiskMethodPanel({
 					3 · {t("impactTitle")}
 				</h3>
 				<p className="text-muted-foreground text-footnote">{t("impactLead")}</p>
-				<div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
+				<div
+					className={cn(
+						"grid grid-cols-1 gap-2",
+						n === 4 ? "sm:grid-cols-4" : "sm:grid-cols-5",
+					)}
+				>
 					{LEVELS.map((level) => (
 						<div key={level} className="flex flex-col gap-1">
 							<Label
@@ -299,7 +375,7 @@ export function RiskMethodPanel({
 										...d,
 										impact: d.impact.map((x, k) =>
 											k === level - 1 ? e.target.value : x,
-										) as Five<string>,
+										),
 									}))
 								}
 							/>
@@ -382,7 +458,7 @@ export function RiskMethodPanel({
 														setDim(idx, {
 															anchors: dim.anchors.map((x, k) =>
 																k === level - 1 ? e.target.value : x,
-															) as Five<string>,
+															),
 														})
 													}
 												/>
@@ -412,7 +488,10 @@ export function RiskMethodPanel({
 												key: `eigene${n}`,
 												label: t("dimensionNew"),
 												enabled: true,
-												anchors: ["", "", "", "", ""],
+												anchors: Array.from(
+													{ length: levelCount(d) },
+													() => "",
+												),
 											},
 										],
 									};
@@ -423,7 +502,7 @@ export function RiskMethodPanel({
 						</Button>
 					)}
 					{canEdit &&
-						template.dimensions
+						dimTemplate.dimensions
 							.filter((x) => !draft.dimensions.some((d) => d.key === x.key))
 							.map((x) => (
 								<Button
@@ -450,7 +529,9 @@ export function RiskMethodPanel({
 					4 · {t("classesTitle")}
 				</h3>
 				<p className="text-muted-foreground text-footnote">
-					{t("classesLead", { min: range.min, max: range.max })}
+					{isMatrix
+						? t("classesLeadMatrix")
+						: t("classesLead", { min: range.min, max: range.max })}
 				</p>
 				<ol className="flex flex-col gap-3">
 					{draft.classes.map((c, idx) => {
@@ -481,33 +562,45 @@ export function RiskMethodPanel({
 										}
 									/>
 								</div>
-								<div className="flex flex-col gap-1">
-									<Label htmlFor={`rm-cmax-${c.key}`} className="text-footnote">
-										{t("classRange")}
-									</Label>
-									<span className="flex items-center gap-1.5 tabular-nums">
-										{c.min} –
-										<Input
-											id={`rm-cmax-${c.key}`}
-											type="number"
-											inputMode="numeric"
-											className="w-16"
-											min={c.min}
-											max={range.max}
-											value={c.max}
-											disabled={!canEdit || last}
-											onChange={(e) =>
-												setClasses(
-													draft.classes.map((x, k) =>
-														k === idx
-															? { ...x, max: Number(e.target.value) || x.max }
-															: x,
-													),
-												)
-											}
-										/>
-									</span>
-								</div>
+								{isMatrix ? (
+									<div className="flex flex-col gap-1">
+										<span className="font-medium text-footnote">
+											{t("classRank")}
+										</span>
+										<span className="pt-2 tabular-nums">{idx + 1}</span>
+									</div>
+								) : (
+									<div className="flex flex-col gap-1">
+										<Label
+											htmlFor={`rm-cmax-${c.key}`}
+											className="text-footnote"
+										>
+											{t("classRange")}
+										</Label>
+										<span className="flex items-center gap-1.5 tabular-nums">
+											{c.min} –
+											<Input
+												id={`rm-cmax-${c.key}`}
+												type="number"
+												inputMode="numeric"
+												className="w-16"
+												min={c.min}
+												max={range.max}
+												value={c.max}
+												disabled={!canEdit || last}
+												onChange={(e) =>
+													setClasses(
+														draft.classes.map((x, k) =>
+															k === idx
+																? { ...x, max: Number(e.target.value) || x.max }
+																: x,
+														),
+													)
+												}
+											/>
+										</span>
+									</div>
+								)}
 								<div className="flex flex-col gap-1">
 									<Label htmlFor={`rm-cz-${c.key}`} className="text-footnote">
 										{t("classZone")}
@@ -617,6 +710,22 @@ export function RiskMethodPanel({
 							variant="outline"
 							onClick={() => {
 								const lastCls = draft.classes.at(-1);
+								if (isMatrix) {
+									let k = draft.classes.length + 1;
+									while (draft.classes.some((x) => x.key === `rk${k}`)) k++;
+									setClasses([
+										...draft.classes,
+										{
+											key: `rk${k}`,
+											label: t("classNew"),
+											min: 0,
+											max: 0,
+											zone: "unacceptable",
+											meaning: "",
+										},
+									]);
+									return;
+								}
 								if (!lastCls || lastCls.max - lastCls.min < 1) {
 									toast.error(t("classNoRoom"));
 									return;
@@ -641,6 +750,15 @@ export function RiskMethodPanel({
 							{t("addClass")}
 						</Button>
 					</div>
+				)}
+				{isMatrix && (
+					<MatrixEditor
+						draft={draft}
+						disabled={!canEdit}
+						label={t("matrixTitle")}
+						hint={t("matrixHint")}
+						onChange={(matrix) => setDraft((d) => ({ ...d, matrix }))}
+					/>
 				)}
 				{issues.length > 0 && (
 					<ul
@@ -684,6 +802,15 @@ export function RiskMethodPanel({
 			{canEdit && (
 				<div className="sticky bottom-(--bar-offset) flex flex-wrap items-center justify-between gap-3 border-t material-bar py-3">
 					<p className="text-muted-foreground text-footnote" aria-live="polite">
+						{levelsChanged && risks.length > 0 && (
+							<>
+								{t("levelsChanged", {
+									from: levelCount(method),
+									to: n,
+									count: risks.length,
+								})}{" "}
+							</>
+						)}
 						{risks.length > 0 && stored
 							? t("preview", {
 									changed: preview.changed,
@@ -714,5 +841,102 @@ export function RiskMethodPanel({
 			)}
 			<FormAlert message={formError} />
 		</form>
+	);
+}
+
+// Matrix der Risikoklassen: Zeilen Eintrittswahrscheinlichkeit (oben die
+// höchste), Spalten Schadenshöhe; je Feld eine Klasse.
+function MatrixEditor({
+	draft,
+	disabled,
+	label,
+	hint,
+	onChange,
+}: {
+	draft: RiskMethod;
+	disabled: boolean;
+	label: string;
+	hint: string;
+	onChange: (matrix: string[][]) => void;
+}) {
+	const n = levelCount(draft);
+	const matrix = repairMatrix(draft.matrix, draft.classes, n);
+	const byKey = new Map(draft.classes.map((c) => [c.key, c]));
+	const cols = Array.from({ length: n }, (_, k) => k + 1);
+	const rows = [...cols].reverse();
+	return (
+		<div className="flex flex-col gap-2">
+			<h4 className="font-medium">{label}</h4>
+			<p className="text-muted-foreground text-footnote">{hint}</p>
+			<div className="overflow-x-auto">
+				<table className="border-separate border-spacing-1 text-footnote">
+					<thead>
+						<tr>
+							<th className="text-left font-normal text-muted-foreground">
+								<span className="sr-only">{label}</span>
+							</th>
+							{cols.map((i) => (
+								<th
+									key={i}
+									scope="col"
+									className="min-w-28 px-1 text-left font-normal text-muted-foreground"
+								>
+									{i} · {draft.impact[i - 1]}
+								</th>
+							))}
+						</tr>
+					</thead>
+					<tbody>
+						{rows.map((l) => (
+							<tr key={l}>
+								<th
+									scope="row"
+									className="pr-2 text-right font-normal text-muted-foreground"
+								>
+									{l} · {draft.likelihood[l - 1]?.label}
+								</th>
+								{cols.map((i) => {
+									const key = matrix[l - 1]?.[i - 1] ?? "";
+									const cls = byKey.get(key);
+									return (
+										<td
+											key={i}
+											className={cn(
+												"rounded-sm p-1",
+												cls ? ZONE_CELL[cls.zone] : undefined,
+											)}
+										>
+											<select
+												aria-label={`${draft.likelihood[l - 1]?.label}, ${draft.impact[i - 1]}`}
+												className={cn(nativeSelectClass, "bg-background/80")}
+												value={key}
+												disabled={disabled}
+												onChange={(e) =>
+													onChange(
+														matrix.map((row, r) =>
+															r === l - 1
+																? row.map((k, c) =>
+																		c === i - 1 ? e.target.value : k,
+																	)
+																: row,
+														),
+													)
+												}
+											>
+												{draft.classes.map((c) => (
+													<option key={c.key} value={c.key}>
+														{c.label}
+													</option>
+												))}
+											</select>
+										</td>
+									);
+								})}
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</div>
 	);
 }

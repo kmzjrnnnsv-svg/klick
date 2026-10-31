@@ -56,6 +56,7 @@ export async function GET(req: Request) {
 			tlptDesignated: p.tlptDesignated,
 			issuesTokens: p.issuesTokens,
 			productRoles: p.productRoles,
+			frameworkVariants: p.frameworkVariants,
 		}),
 		d.implStatus,
 		300,

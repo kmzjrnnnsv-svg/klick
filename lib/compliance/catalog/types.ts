@@ -33,6 +33,24 @@ export type Recommendation = {
 
 export type Tools = { startup: string[]; scale: string[] };
 
+// Ob ein Rahmenwerk Ausschlüsse kennt (ISO 27001 Annex A über die SoA,
+// SOC 2 Zusatzkategorien, PCI DSS „Not Applicable“). Ohne Eintrag gibt es
+// keinen Ausschluss, nur verhältnismäßige Umsetzung (DORA, NIS2, GwG …).
+export type ExclusionPolicy = {
+	// Wie das Rahmenwerk den Ausschluss nennt, z. B. „Ausschluss in der SoA“
+	label: string;
+	// Fundstelle der Regel
+	basis: string;
+	// Nur diese Codes (Präfix) bzw. Abschnitte; ohne beides jede Anforderung
+	codePrefixes?: string[];
+	sections?: string[];
+};
+
+// Wählbare Variante eines Rahmenwerks, die bestimmt, welche Anforderungen
+// gelten (BSI 200-2: Basis-, Standard- oder Kern-Absicherung; PCI DSS:
+// SAQ-Typ). Gewählt je Org in entity_profile.frameworkVariants.
+export type FrameworkVariant = { key: string; label: string; hint?: string };
+
 export type CatalogFrameworkMeta = {
 	slug: string;
 	name: string;
@@ -49,6 +67,10 @@ export type CatalogFrameworkMeta = {
 	// Für Nicht-Finanz-Kunden relevant (NIS2) oder nur ab Lizenzstufe (KWG).
 	appliesFromStage?: LicenceStage;
 	phase: "P1" | "P4" | "P5" | "P6";
+	exclusion?: ExclusionPolicy;
+	// Varianten; die erste gilt, solange die Org keine gewählt hat
+	variants?: FrameworkVariant[];
+	variantLabel?: string;
 };
 
 export type CatalogSection = { code: string; title: string; sortOrder: number };
@@ -77,6 +99,8 @@ export type CatalogRequirement = {
 	// Fristen, Intervalle, Aufbewahrung — kuratiert; ohne Angabe liest
 	// extractParams sie aus Text, Hinweisen und Umsetzungshilfe
 	params?: Param[];
+	// Gilt nur für diese Varianten des Rahmenwerks (FrameworkVariant.key)
+	variants?: string[];
 	sortOrder: number;
 };
 

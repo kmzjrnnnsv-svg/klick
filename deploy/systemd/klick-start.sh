@@ -7,4 +7,9 @@ export VAULT_KEK_BASE64="$(cred vault_kek_base64)"
 export DATABASE_URL="$(cred database_url)"
 export DATABASE_URL_MIGRATE="$(cred database_url_migrate || true)"
 export SMTP_PASS="$(cred smtp_pass || true)"
+# Microsoft Teams (optional): Zertifikat bevorzugt, sonst Geheimnis
+[ -r "${CREDENTIALS_DIRECTORY:-}/teams_cert" ] && export TEAMS_CERT_FILE="${CREDENTIALS_DIRECTORY}/teams_cert"
+export TEAMS_CLIENT_SECRET="$(cred teams_client_secret || true)"
+# Push-Benachrichtigungen (optional): privater VAPID-Schlüssel nur als Credential
+[ -r "${CREDENTIALS_DIRECTORY:-}/web_push_private_key" ] && export WEB_PUSH_PRIVATE_KEY="$(cred web_push_private_key)"
 exec /usr/bin/env node_modules/.bin/next start -p "${PORT:-3000}" -H "${HOSTNAME:-127.0.0.1}"

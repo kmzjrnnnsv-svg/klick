@@ -5,7 +5,11 @@ import {
 	INCIDENT_REGIMES,
 	ROLE_FUNCTIONS,
 } from "@/db/schema/enums";
-import { DOCUMENT_TYPES, RISK_CATEGORIES } from "@/db/schema/grc";
+import {
+	DOCUMENT_TYPES,
+	EXTERNAL_KINDS,
+	RISK_CATEGORIES,
+} from "@/db/schema/grc";
 import { PROVIDER_CATEGORIES, PROVIDER_STATUSES } from "@/db/schema/registers";
 import { RISK_SOURCE_KINDS } from "@/lib/compliance/risk-sources";
 import { INCIDENT_STATUSES } from "@/lib/entities/incident";
@@ -197,6 +201,31 @@ export const updateDocumentSchema = z.object({
 	// „all“, Grundrolle oder „function:<key>“ (auch eigene Rollen)
 	distribution: z.array(z.string().max(80)).max(30).optional(),
 	retentionYears: z.coerce.number().int().min(0).max(30).nullable().optional(),
+	externalSource: z
+		.lazy(() => externalSourceSchema)
+		.nullable()
+		.optional(),
+});
+
+// Externes Dokument (AP9.3): Herkunft, Herausgeber, Ausgabe, Link (nur http/s)
+export const externalSourceSchema = z.object({
+	kind: z.enum(EXTERNAL_KINDS),
+	issuer: z.string().trim().min(1).max(200),
+	edition: z.string().trim().min(1).max(200),
+	url: httpUrl.nullable().optional(),
+});
+
+// Fassung vernichten: Begründung Pflicht (steht im Verlauf)
+export const destroyVersionSchema = z.object({
+	versionId: uuid,
+	note: z.string().trim().min(10).max(1000),
+});
+
+// Aufbewahrung verlängern bis (Datum), mit Grund
+export const extendRetentionSchema = z.object({
+	versionId: uuid,
+	until: z.iso.date(),
+	reason: z.string().trim().min(5).max(500),
 });
 
 export const newDocumentVersionSchema = z.object({

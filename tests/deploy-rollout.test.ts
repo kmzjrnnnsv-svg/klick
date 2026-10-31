@@ -80,6 +80,18 @@ describe("Dateien", () => {
 			expect(() => statSync(resolve(ROOT, p)), p).not.toThrow();
 	});
 
+	it("Firewall: eigene und Sperrtabellen von CrowdSec/fail2ban sind nie „fremd“", () => {
+		const bekannt = (fam: string, name: string) =>
+			rein(`tabelle_bekannt ${fam} ${name} && echo ja || echo nein`).trim();
+		expect(bekannt("inet", "klick")).toBe("ja");
+		expect(bekannt("ip", "crowdsec")).toBe("ja");
+		expect(bekannt("ip6", "crowdsec6")).toBe("ja");
+		expect(bekannt("inet", "f2b-table")).toBe("ja");
+		expect(bekannt("inet", "filter")).toBe("nein");
+		expect(bekannt("ip", "nat")).toBe("nein");
+		expect(read(`${DIR}/lib/netz.sh`)).toContain("tabelle_bekannt");
+	});
+
 	it("Netz-Änderungen stellen vorher einen Rückweg scharf", () => {
 		const netz = read(`${DIR}/lib/netz.sh`);
 		const fw = netz.slice(netz.indexOf("firewall_einspielen() {"));

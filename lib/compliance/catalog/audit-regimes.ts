@@ -210,6 +210,51 @@ export const AUDIT_REGIMES: readonly AuditRegime[] = [
 		classes: CLASSES(),
 		source: "CCSS v9 (jährliche Prüfung, prüfen)",
 	},
+	{
+		framework: "bsi-200-2",
+		label: "ISO 27001 auf der Basis von IT-Grundschutz",
+		cycles: [
+			{
+				kind: "certification",
+				label: "Zertifizierungsaudit (Auditor:in mit BSI-Lizenz)",
+				everyMonths: 0,
+			},
+			{ kind: "surveillance", label: "Überwachungsaudit", everyMonths: 12 },
+			{
+				kind: "recertification",
+				label: "Re-Zertifizierungsaudit",
+				everyMonths: 36,
+			},
+			INTERNAL_YEARLY,
+		],
+		classes: CLASSES(
+			["Schwerwiegende Abweichung", "Geringfügige Abweichung", "Empfehlung"],
+			{
+				major: { planDays: 30, closeDays: 90 },
+				minor: { planDays: 90, closeDays: 365, untilNextAudit: true },
+			},
+		),
+		source:
+			"Zertifizierungsschema des BSI für ISO 27001 auf der Basis von IT-Grundschutz; Fristen mit der Zertifizierungsstelle (prüfen)",
+	},
+	{
+		framework: "pci-dss",
+		label: "PCI-DSS-Bewertung (Prüfbericht oder SAQ)",
+		cycles: [
+			{
+				kind: "attestation",
+				label: "Jährliche Bewertung mit Bestätigung (AOC)",
+				everyMonths: 12,
+			},
+			INTERNAL_YEARLY,
+		],
+		classes: CLASSES(["Nicht erfüllt", "Teilweise erfüllt", "Hinweis"], {
+			major: { planDays: 14, closeDays: 90 },
+			minor: { planDays: 30, closeDays: 180 },
+		}),
+		source:
+			"PCI DSS v4.0.1; Frist und Nachweisweg legen Acquirer bzw. Kartenorganisationen fest (prüfen)",
+	},
 ];
 
 export const AUDIT_REGIME_BY_FRAMEWORK: ReadonlyMap<string, AuditRegime> =

@@ -40,7 +40,9 @@ import type { FunctionKey } from "@/db/schema/enums";
 import { RISK_CATEGORIES } from "@/db/schema/grc";
 import { responsibleValue } from "@/lib/validation/responsible";
 
-const SCALE = [1, 2, 3, 4, 5] as const;
+// Stufen 1 … n aus den Beschriftungen (vier oder fünf je Methode)
+const steps = (labels: readonly string[]) =>
+	Array.from({ length: labels.length || 5 }, (_, k) => k + 1);
 
 function ScaleSelect({
 	value,
@@ -59,7 +61,7 @@ function ScaleSelect({
 				<SelectValue />
 			</SelectTrigger>
 			<SelectContent>
-				{SCALE.map((n) => (
+				{steps(labels).map((n) => (
 					<SelectItem key={n} value={String(n)}>
 						{n} · {labels[n - 1]}
 					</SelectItem>
@@ -322,7 +324,7 @@ export function RiskEditForm({
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="none">—</SelectItem>
-							{SCALE.map((n) => (
+							{steps(scales.likelihood).map((n) => (
 								<SelectItem key={n} value={String(n)}>
 									{n} · {scales.likelihood[n - 1]}
 								</SelectItem>
@@ -341,7 +343,7 @@ export function RiskEditForm({
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="none">—</SelectItem>
-							{SCALE.map((n) => (
+							{steps(scales.impact).map((n) => (
 								<SelectItem key={n} value={String(n)}>
 									{n} · {scales.impact[n - 1]}
 								</SelectItem>

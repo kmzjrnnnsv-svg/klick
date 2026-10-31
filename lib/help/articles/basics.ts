@@ -120,7 +120,7 @@ export const BASICS: HelpArticle[] = [
 		],
 		automation: [
 			"Der tägliche Tick erinnert an fällige Reviews, ablaufende Nachweise, offene Kenntnisnahmen, Schulungen, Vorfall-Fristen und Freigaben, deren Bearbeitungszeit überschritten ist.",
-			"Wichtige Ereignisse (Sicherheitsmeldungen, Fristen bei Vorfällen) kommen sofort per Mail, der Rest gesammelt in der Tages-Mail um 7 Uhr.",
+			"Wichtige Ereignisse (Sicherheitsmeldungen, Fristen bei Vorfällen) kommen sofort per Mail, der Rest gesammelt in der Tages-Mail um 7 Uhr. Unter Einstellungen > Benachrichtigungen stellst du je Art um, auf Wunsch auch auf Microsoft Teams.",
 		],
 		faq: [
 			{
@@ -244,6 +244,10 @@ export const BASICS: HelpArticle[] = [
 			{
 				q: "Ich sehe „Bitte mit dem Firmenkonto anmelden“. Was nun?",
 				a: "Deine Organisation hat SSO erzwungen. Gib deine geschäftliche Adresse ein und nutz „Mit Firmen-Login (SSO)“.",
+			},
+			{
+				q: "Es erscheint kein Passkey-Fenster, sondern eine Meldung mit „Technischer Hinweis“. Was nun?",
+				a: "Der Browser hat die Anmeldung bei Klick nicht starten können, dein Passkey ist dabei unberührt. Lade die Seite neu. Hilft das nicht, öffne die Anmeldeseite in einem privaten Fenster oder lösch die Website-Daten von Klick in den Browser-Einstellungen. Bleibt es dabei, schick den technischen Hinweis und die Uhrzeit an deine Inhaberin oder deinen Inhaber.",
 			},
 			{
 				q: "Warum fragt Klick noch einmal nach meinem Passkey, obwohl ich angemeldet bin?",

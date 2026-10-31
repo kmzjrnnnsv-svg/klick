@@ -134,19 +134,21 @@ export function StatusButton({
 						? t("transitionBlocked")
 						: error.startsWith("gate_")
 							? t(error as "gate_authorization_missing")
-							: error === "rootCauseRequired"
-								? t("rootCauseRequired")
-								: error === "effectivenessRequired"
-									? t("effectivenessRequired")
-									: error === "correctiveActionRequired"
-										? t("correctiveActionRequired")
-										: error === "no_approver" ||
-												error.startsWith("solo_") ||
-												error === "workflow_disabled"
-											? t(
-													`approvalError_${error}` as "approvalError_no_approver",
-												)
-											: tc("error"),
+							: error === "control_na_not_allowed"
+								? t("controlNaNotAllowed")
+								: error === "rootCauseRequired"
+									? t("rootCauseRequired")
+									: error === "effectivenessRequired"
+										? t("effectivenessRequired")
+										: error === "correctiveActionRequired"
+											? t("correctiveActionRequired")
+											: error === "no_approver" ||
+													error.startsWith("solo_") ||
+													error === "workflow_disabled"
+												? t(
+														`approvalError_${error}` as "approvalError_no_approver",
+													)
+												: tc("error"),
 				);
 				return undefined;
 			};

@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { addFrameworks, updateProfileFlags } from "@/app/actions/frameworks";
+import {
+	addFrameworks,
+	setFrameworkVariant,
+	updateProfileFlags,
+} from "@/app/actions/frameworks";
 import { useWorkflowsEnabledText } from "@/components/approvals/workflows-enabled";
 import { withStepUp } from "@/components/auth/step-up-dialog";
 import { SynergyPreviewPanel } from "@/components/auth/synergy-preview";
@@ -43,6 +47,9 @@ export type FrameworkListItem = {
 	// aktiv: Vorschau für „Entfernen…“; verfügbar: früher aktiv (retired)
 	removal?: FrameworkRemovalImpact;
 	retired?: boolean;
+	// wählbare Varianten (BSI 200-2: Absicherung, PCI DSS: SAQ)
+	variants?: { key: string; label: string; hint?: string }[];
+	variantLabel?: string;
 };
 
 const NIS2 = [
@@ -67,6 +74,7 @@ export function FrameworksPanel({
 		licenceStage: LicenceStage;
 		caspServices: CaspService[];
 		tlptDesignated: boolean;
+		frameworkVariants: Readonly<Record<string, string>>;
 		nis2Status: (typeof NIS2)[number];
 	};
 	canEdit: boolean;
@@ -127,6 +135,37 @@ export function FrameworksPanel({
 										<RemoveFrameworkDialog name={f.name} impact={f.removal} />
 									)}
 								</span>
+								{f.variants && f.variants.length > 1 && (
+									<VariantChoice
+										slug={f.slug}
+										label={f.variantLabel ?? tf("variant")}
+										variants={f.variants}
+										value={
+											profile.frameworkVariants[f.slug] ??
+											f.variants[0]?.key ??
+											""
+										}
+										disabled={!canEdit || pending}
+										onChange={(variant) =>
+											start(async () => {
+												const res = await withStepUp(() =>
+													setFrameworkVariant({ framework: f.slug, variant }),
+												);
+												if (!res.ok) {
+													handleError(res.error);
+													return;
+												}
+												toast.success(
+													tf("variantSaved", {
+														created: res.data.controlsCreated,
+														na: res.data.notApplicable,
+													}),
+												);
+												router.refresh();
+											})
+										}
+									/>
+								)}
 							</li>
 						))}
 					</ul>
@@ -324,6 +363,49 @@ export function FrameworksPanel({
 					)}
 				</CardContent>
 			</Card>
+		</div>
+	);
+}
+
+// Variante eines aktiven Rahmenwerks: Auswahl mit Erklärung der gewählten
+// Variante darunter. Wirkt sofort auf Anwendbarkeit und Arbeitsvorrat.
+function VariantChoice({
+	slug,
+	label,
+	variants,
+	value,
+	disabled,
+	onChange,
+}: {
+	slug: string;
+	label: string;
+	variants: { key: string; label: string; hint?: string }[];
+	value: string;
+	disabled: boolean;
+	onChange: (variant: string) => void;
+}) {
+	const current = variants.find((v) => v.key === value);
+	const id = `variant-${slug}`;
+	return (
+		<div className="flex w-full flex-col gap-1.5 pt-1">
+			<Label htmlFor={id} className="text-footnote text-muted-foreground">
+				{label}
+			</Label>
+			<Select value={value} disabled={disabled} onValueChange={onChange}>
+				<SelectTrigger id={id} className="w-full sm:w-80">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{variants.map((v) => (
+						<SelectItem key={v.key} value={v.key}>
+							{v.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+			{current?.hint && (
+				<p className="text-footnote text-muted-foreground">{current.hint}</p>
+			)}
 		</div>
 	);
 }

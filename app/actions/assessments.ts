@@ -12,17 +12,24 @@ import {
 } from "@/db/schema";
 import type { ImplStatus } from "@/db/schema/enums";
 import { safeAction } from "@/lib/actions/safe";
-import { applyChanges, proposeControlStatus } from "@/lib/assessments/apply";
+import {
+	applyChanges,
+	proposeControlStatus,
+	proposeExclusions,
+} from "@/lib/assessments/apply";
 import {
 	CATALOG_TEMPLATE,
 	catalogQuestions,
 } from "@/lib/assessments/catalog-template";
 import { insertSelfAssessment } from "@/lib/assessments/create-service";
+import { naAllowed, naOpenShare } from "@/lib/assessments/na";
 import { scoreAssessment } from "@/lib/assessments/score";
 import { answerStates, nextAssessmentCode } from "@/lib/assessments/state";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
+import { excludeRequirements } from "@/lib/compliance/exclusion-service";
+import { exclusionAllowedForKey } from "@/lib/compliance/exclusions";
 import { getOrgProfile, loadApplicability } from "@/lib/compliance/queries";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { currentEvidence } from "@/lib/evidence/current";
@@ -113,50 +120,59 @@ async function answerQuestionImpl(input: unknown): Promise<ActionResult> {
 	const parsed = answerQuestionSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
-	const ok = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const a = await loadAssessment(tx, c.orgId, d.assessmentId);
-		if (
-			!a ||
-			a.status === "completed" ||
-			a.status === "cancelled" ||
-			!a.questions.some((q) => q.code === d.questionCode)
-		)
-			return { result: false, audit: [] };
-		const values = {
-			answer: d.answer,
-			comment: d.comment ?? null,
-			naReason: d.answer === "na" ? (d.naReason ?? null) : null,
-			answeredByUserId: c.userId,
-		};
-		await tx
-			.insert(assessmentAnswers)
-			.values({
-				organizationId: c.orgId,
-				assessmentId: a.id,
-				questionCode: d.questionCode,
-				...values,
-			})
-			.onConflictDoUpdate({
-				target: [
-					assessmentAnswers.assessmentId,
-					assessmentAnswers.questionCode,
-				],
-				set: values,
-			});
-		if (a.status === "draft")
+	const ok = await mutateOrg<boolean | "na_not_allowed">(
+		toOrgCtx(c),
+		async (tx) => {
+			const a = await loadAssessment(tx, c.orgId, d.assessmentId);
+			const question = a?.questions.find((q) => q.code === d.questionCode);
+			if (
+				!a ||
+				!question ||
+				a.status === "completed" ||
+				a.status === "cancelled"
+			)
+				return { result: false, audit: [] };
+			// „Nicht relevant“ nur, wo mindestens ein Rahmenwerk der Frage einen
+			// Ausschluss kennt (ISO Annex A, SOC 2 Zusatzkategorien …)
+			if (d.answer === "na" && a.kind === "self" && !naAllowed(question))
+				return { result: "na_not_allowed" as const, audit: [] };
+			const values = {
+				answer: d.answer,
+				comment: d.comment ?? null,
+				naReason: d.answer === "na" ? (d.naReason ?? null) : null,
+				answeredByUserId: c.userId,
+			};
 			await tx
-				.update(assessments)
-				.set({ status: "in_progress" })
-				.where(eq(assessments.id, a.id));
-		return {
-			result: true,
-			audit: {
-				action: "assessment.answer",
-				target: `assessment:${a.id}`,
-				after: { question: d.questionCode, answer: d.answer },
-			},
-		};
-	});
+				.insert(assessmentAnswers)
+				.values({
+					organizationId: c.orgId,
+					assessmentId: a.id,
+					questionCode: d.questionCode,
+					...values,
+				})
+				.onConflictDoUpdate({
+					target: [
+						assessmentAnswers.assessmentId,
+						assessmentAnswers.questionCode,
+					],
+					set: values,
+				});
+			if (a.status === "draft")
+				await tx
+					.update(assessments)
+					.set({ status: "in_progress" })
+					.where(eq(assessments.id, a.id));
+			return {
+				result: true,
+				audit: {
+					action: "assessment.answer",
+					target: `assessment:${a.id}`,
+					after: { question: d.questionCode, answer: d.answer },
+				},
+			};
+		},
+	);
+	if (ok === "na_not_allowed") return { ok: false, error: "na_not_allowed" };
 	if (!ok) return { ok: false, error: "notFound" };
 	// Fortschritt im Kopf und je Kapitel sofort nachziehen
 	revalidatePath(`${PATH}/${d.assessmentId}`);
@@ -490,8 +506,32 @@ async function applyAssessmentResultsImpl(
 			[...impls].map(([code, v]) => [code, v.status] as const),
 		);
 		const states = answerStates(a.questions, rows);
-		const changes = proposeControlStatus(a.questions, states, current);
-		const audits: AuditInput[] = [];
+		const changes = proposeControlStatus(
+			a.questions,
+			states,
+			current,
+			exclusionAllowedForKey,
+		);
+		// „Nicht relevant“: Ausschluss je Anforderung, wo das Rahmenwerk ihn
+		// kennt (SoA-Begründung = naReason); der Rest bleibt offen
+		const stored = await loadApplicability(tx, c.orgId);
+		const excluded = new Set(
+			[...stored]
+				.filter(([, v]) => v.source === "manual" && !v.applicable)
+				.map(([k]) => k),
+		);
+		const exclusions = proposeExclusions(
+			a.questions,
+			states,
+			exclusionAllowedForKey,
+			excluded,
+		);
+		const audits: AuditInput[] = await excludeRequirements(
+			tx,
+			c.orgId,
+			exclusions,
+			`assessment:${a.code}`,
+		);
 		for (const ch of changes) {
 			const impl = impls.get(ch.controlCode);
 			if (!impl) continue;
@@ -513,7 +553,7 @@ async function applyAssessmentResultsImpl(
 				after: { status: ch.to, via: `assessment:${a.code}` },
 			});
 		}
-		const score = scoreAssessment(a.questions, states);
+		const score = scoreAssessment(a.questions, states, { naOpenShare });
 		await tx
 			.update(assessments)
 			.set({
@@ -527,6 +567,7 @@ async function applyAssessmentResultsImpl(
 					counts: score.counts,
 					bySection: score.bySection,
 					changes: changes.length,
+					exclusions: exclusions.length,
 					statusAfter: Object.fromEntries(applyChanges(current, changes)),
 				},
 			})
@@ -541,9 +582,13 @@ async function applyAssessmentResultsImpl(
 				changes: changes.map(
 					(x) => `${x.controlCode}: von ${x.from} auf ${x.to}`,
 				),
+				exclusions: exclusions.map((x) => x.key),
 			},
 		});
-		return { result: { changed: changes.length }, audit: audits };
+		return {
+			result: { changed: changes.length + exclusions.length },
+			audit: audits,
+		};
 	});
 	if (!out) return { ok: false, error: "notFound" };
 	revalidatePath("/", "layout");
@@ -746,6 +791,7 @@ async function cloneAssessmentImpl(
 			caspServices: p.profile.caspServices,
 			frameworks: frameworks.length > 0 ? frameworks : p.frameworks,
 			tlptDesignated: p.profile.tlptDesignated,
+			frameworkVariants: p.profile.frameworkVariants,
 			issuesTokens: p.profile.issuesTokens,
 			productRoles: p.profile.productRoles,
 			manual,

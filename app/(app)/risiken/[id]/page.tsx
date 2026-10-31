@@ -44,7 +44,11 @@ import {
 import { getRisk, listAssets } from "@/lib/compliance/queries-p2";
 import { loadRiskSource } from "@/lib/compliance/queries-risk-sources";
 import { assessRisk } from "@/lib/compliance/risk";
-import { scaleLabels, ZONE_TONE } from "@/lib/compliance/risk-method";
+import {
+	pointLabel,
+	scaleLabels,
+	ZONE_TONE,
+} from "@/lib/compliance/risk-method";
 import { isRiskSourceKind } from "@/lib/compliance/risk-sources";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
@@ -241,17 +245,17 @@ export default async function RiskDetailPage({
 				<>
 					<MetaItem label={t("inherent")}>
 						<Badge variant={ZONE_TONE[a.inherent.zone]}>
-							{a.inherent.score}
+							{pointLabel(a.inherent, method)}
 						</Badge>{" "}
-						{a.inherent.cls.label} · {t(`zone_${a.inherent.zone}`)}
+						{t(`zone_${a.inherent.zone}`)}
 					</MetaItem>
 					<MetaItem label={t("residual")}>
 						{a.residual ? (
 							<>
 								<Badge variant={ZONE_TONE[a.residual.zone]}>
-									{a.residual.score}
+									{pointLabel(a.residual, method)}
 								</Badge>{" "}
-								{a.residual.cls.label} · {t(`zone_${a.residual.zone}`)}
+								{t(`zone_${a.residual.zone}`)}
 							</>
 						) : (
 							"—"

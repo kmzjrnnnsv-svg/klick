@@ -71,6 +71,7 @@ export default async function ControlsPage({
 					caspServices: cov.profile.caspServices,
 					frameworks: cov.frameworks,
 					tlptDesignated: cov.profile.tlptDesignated,
+					frameworkVariants: cov.profile.frameworkVariants,
 					issuesTokens: cov.profile.issuesTokens,
 					productRoles: cov.profile.productRoles,
 				},

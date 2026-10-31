@@ -1,5 +1,6 @@
 import type { LicenceStage } from "@/db/schema/enums";
 import type { RISK_CATEGORIES } from "@/db/schema/grc";
+import { BSI_THREAT_SCENARIOS } from "./bsi-threats";
 import { stageAtLeast } from "./required-functions";
 
 // Risikoszenarien für den Risiko-Assistenten (/risiken/neu): Startpunkte je
@@ -34,7 +35,8 @@ export type ScenarioGroup =
 	| "conduct"
 	| "aml"
 	| "privacy"
-	| "product";
+	| "product"
+	| "bsi";
 
 export const SCENARIO_GROUPS: readonly { key: ScenarioGroup; label: string }[] =
 	[
@@ -48,6 +50,7 @@ export const SCENARIO_GROUPS: readonly { key: ScenarioGroup; label: string }[] =
 		{ key: "aml", label: "Geldwäsche, Sanktionen, Travel Rule" },
 		{ key: "privacy", label: "Datenschutz" },
 		{ key: "product", label: "Produkte mit digitalen Elementen" },
+		{ key: "bsi", label: "BSI: Elementare Gefährdungen" },
 	];
 
 export type RiskScenario = {
@@ -63,6 +66,8 @@ export type RiskScenario = {
 	// typisch betroffene Schadensarten (Schlüssel aus der Risikomethodik)
 	dimensions: readonly string[];
 	controls: readonly string[];
+	// elementare Gefährdung nach IT-Grundschutz (G 0.1 bis G 0.47)
+	bsiRef?: string;
 };
 
 const ISMS = ["iso27001", "nis2", "dora"] as const;
@@ -906,6 +911,7 @@ export const RISK_SCENARIOS: readonly RiskScenario[] = [
 		dimensions: ["legal", "financial"],
 		controls: ["CC-PRD-08", "CC-PRD-07", "CC-PRD-01"],
 	},
+	...BSI_THREAT_SCENARIOS,
 ];
 
 export const SCENARIO_BY_CODE = new Map(RISK_SCENARIOS.map((s) => [s.code, s]));

@@ -28,7 +28,12 @@ import {
 } from "@/lib/compliance/function-holders-service";
 import { loadRiskSource } from "@/lib/compliance/queries-risk-sources";
 import { assessRisk, nextRiskCode } from "@/lib/compliance/risk";
-import { damageFrom } from "@/lib/compliance/risk-method";
+import {
+	clampLevel,
+	damageFrom,
+	fitLevels,
+	levelCount,
+} from "@/lib/compliance/risk-method";
 import {
 	acceptRisk,
 	insertTreatment,
@@ -82,6 +87,7 @@ async function createRiskImpl(
 				.where(eq(risks.organizationId, c.orgId));
 			const code = nextRiskCode(existing.map((r) => r.code));
 			const settings = await riskSettingsFor(tx, c.orgId);
+			Object.assign(d, fitLevels(d, settings.method));
 			const owner = await ownerColumns(tx, c.orgId, d.ownerUserId, c.userId);
 			const [row] = await tx
 				.insert(risks)
@@ -184,6 +190,8 @@ async function updateRiskImpl(input: unknown): Promise<ActionResult> {
 			before.ownerUserId,
 		);
 		if (owner) Object.assign(set, owner);
+		const settings = await riskSettingsFor(tx, c.orgId);
+		Object.assign(set, fitLevels(set, settings.method));
 		// Schadenshöhe von Hand geändert → Einzelwerte passen nicht mehr
 		if (
 			set.impact !== undefined &&
@@ -227,7 +235,6 @@ async function updateRiskImpl(input: unknown): Promise<ActionResult> {
 					)
 					.onConflictDoNothing();
 		}
-		const settings = await riskSettingsFor(tx, c.orgId);
 		const merged = { ...before, ...set };
 		const a = assessRisk(
 			{
@@ -448,10 +455,14 @@ async function saveGuided(
 		async (tx) => {
 			const settings = await riskSettingsFor(tx, c.orgId);
 			const method = settings.method;
+			Object.assign(d, fitLevels(d, method));
 			// Nur Schadensarten der Methode zählen; impact rechnet der Server.
 			const known = new Set(method.dimensions.map((x) => x.key));
+			const levels = levelCount(method);
 			const impactDetail = Object.fromEntries(
-				Object.entries(d.impactDetail).filter(([k]) => known.has(k)),
+				Object.entries(d.impactDetail)
+					.filter(([k]) => known.has(k))
+					.map(([k, v]) => [k, clampLevel(v, levels)]),
 			);
 			const impact = damageFrom(impactDetail, method);
 			if (impact === null)

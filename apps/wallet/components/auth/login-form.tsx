@@ -15,6 +15,15 @@ import { Label } from "@/components/ui/label";
 // dieser Zeit wieder frei, statt auf Dauer „Warte …“ zu zeigen
 const TIMEOUT_MS = 90_000;
 
+// Better Auth fängt Netzfehler nicht ab (fetch ohne try): die Anmeldung
+// endet dann mit einer Ausnahme statt mit { error }. Kurzform für den
+// technischen Hinweis unter der Meldung
+function errorDetail(e: unknown): string {
+	const text =
+		e instanceof Error ? `${e.name}: ${e.message}` : String(e ?? "unbekannt");
+	return text.length > 160 ? `${text.slice(0, 159)}…` : text;
+}
+
 // Grund einer Ablehnung aus dem Hinweis-Cookie (lib/auth/hints.ts), einmal
 function takeSecurityKeyHint(): boolean {
 	const name = SECURITY_KEY_HINT_COOKIE;
@@ -32,6 +41,7 @@ export function LoginForm({ next }: { next: string }) {
 	const router = useRouter();
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [detail, setDetail] = useState<string | null>(null);
 	// Nach einem Abbruch startet die Autofill-Anfrage neu
 	const [autofillRound, setAutofillRound] = useState(0);
 	const cancelled = useRef(false);
@@ -47,7 +57,14 @@ export function LoginForm({ next }: { next: string }) {
 				| undefined;
 			if (!(await pkc?.isConditionalMediationAvailable?.().catch(() => false)))
 				return;
-			const res = await authClient.signIn.passkey({ autoFill: true });
+			let res: Awaited<ReturnType<typeof authClient.signIn.passkey>>;
+			try {
+				res = await authClient.signIn.passkey({ autoFill: true });
+			} catch (e) {
+				// beim Laden keine Meldung; der Knopf meldet es, wenn es so bleibt
+				console.warn("[login] Passkey-Autofill", e);
+				return;
+			}
 			if (active && res && !res.error) {
 				router.push(next);
 				router.refresh();
@@ -62,6 +79,7 @@ export function LoginForm({ next }: { next: string }) {
 	async function passkey() {
 		setBusy(true);
 		setError(null);
+		setDetail(null);
 		cancelled.current = false;
 		// Laufende Autofill-Anfrage vorher beenden: Safari zeigt das
 		// Passkey-Fenster sonst manchmal nicht, wenn Abbruch und neue Anfrage
@@ -71,7 +89,19 @@ export function LoginForm({ next }: { next: string }) {
 		const timeout = new Promise<"timeout">((resolve) => {
 			timer = setTimeout(() => resolve("timeout"), TIMEOUT_MS);
 		});
-		const res = await Promise.race([authClient.signIn.passkey(), timeout]);
+		let res: Awaited<ReturnType<typeof authClient.signIn.passkey>> | "timeout";
+		try {
+			res = await Promise.race([authClient.signIn.passkey(), timeout]);
+		} catch (e) {
+			clearTimeout(timer);
+			setBusy(false);
+			setAutofillRound((n) => n + 1);
+			if (cancelled.current) return;
+			console.error("[login] Passkey-Anmeldung", e);
+			setError(t("signInNoConnection"));
+			setDetail(errorDetail(e));
+			return;
+		}
 		clearTimeout(timer);
 		setBusy(false);
 		if (res !== "timeout" && res && !res.error) {
@@ -101,6 +131,7 @@ export function LoginForm({ next }: { next: string }) {
 		WebAuthnAbortService.cancelCeremony();
 		setBusy(false);
 		setError(null);
+		setDetail(null);
 	}
 
 	return (
@@ -127,6 +158,11 @@ export function LoginForm({ next }: { next: string }) {
 			>
 				{error}
 			</p>
+			{detail && (
+				<p className="-mt-3 text-footnote text-muted-foreground" translate="no">
+					{t("technicalHint", { detail })}
+				</p>
+			)}
 			<div className="grid gap-2">
 				<Label htmlFor="email">{t("email")}</Label>
 				<Input
