@@ -13,6 +13,23 @@ export type ControlExplainer = {
 };
 
 export const CONTROL_EXPLAINERS: Record<string, ControlExplainer> = {
+	"CC-SSP-01": {
+		what: "Für jedes Computersystem gibt es einen Plan. Er zeigt, was dazugehört und wie es geschützt ist.",
+		why: "Wer prüft, sieht auf einen Blick, wo die Grenzen sind und was schon getan ist.",
+		example:
+			"Wie ein Bauplan vom Haus, auf dem jede Tür und jedes Schloss eingezeichnet ist.",
+	},
+	"CC-SSP-02": {
+		what: "Was noch fehlt, steht auf einer Liste. Dazu, wer es macht und bis wann.",
+		why: "So geht nichts vergessen, und jeder sieht, wie weit die Arbeit ist.",
+		example:
+			"Wie eine Liste für den Umzug: Was noch zu tun ist, wer hilft und wann es fertig ist.",
+	},
+	"CC-PRV-07": {
+		what: "Menschen können sagen: Verkauft meine Daten nicht und zeigt mir keine Werbung danach. Das geht auch automatisch über den Browser.",
+		why: "Jeder soll selbst bestimmen, wer seine Daten bekommt.",
+		example: "Wie ein Schild am Briefkasten: Bitte keine Werbung einwerfen.",
+	},
 	"CC-AI-01": {
 		what: "Die Firma schreibt auf, welche KI sie nutzt und wofür. Dazu Regeln, was erlaubt ist und was nicht.",
 		why: "Niemand setzt heimlich KI ein, von der keiner weiß.",

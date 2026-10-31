@@ -1,6 +1,10 @@
+import { CMMC_VARIANTS } from "./cmmc";
 import { CORRIDOR_FRAMEWORK_METAS } from "./corridors";
 import { CE_VARIANTS } from "./cyber-essentials";
 import { E8_VARIANTS } from "./essential-eight";
+import { SSPA_VARIANTS } from "./ms-sspa";
+import { NIST53_VARIANTS } from "./nist-800-53";
+import { NYCRR_VARIANTS } from "./nycrr500";
 import { PCI_VARIANTS } from "./pci-saq";
 import { TISAX_VARIANTS } from "./tisax";
 import type { CatalogFrameworkMeta } from "./types";
@@ -453,6 +457,200 @@ export const FRAMEWORKS: CatalogFrameworkMeta[] = [
 		phase: "P6",
 		variants: E8_VARIANTS,
 		variantLabel: "Reifegrad",
+	},
+	{
+		slug: "nist-csf",
+		name: "NIST Cybersecurity Framework 2.0",
+		version: "2.0",
+		authority: "NIST (USA)",
+		jurisdiction: "us",
+		description:
+			"Freiwilliger Rahmen der US-Normungsbehörde für Cybersicherheit in sechs Funktionen: Steuern, Identifizieren, Schützen, Erkennen, Reagieren, Wiederherstellen. Weltweit verbreitet für Selbsteinschätzungen, Zielprofile und Berichte an Leitung und Kundschaft.",
+		recommendedApproach:
+			"Ist-Profil und Ziel-Profil festlegen: welche Ergebnisse heute erreicht sind und welche ihr bis wann erreichen wollt. Die Umsetzung trägt ein ISMS nach ISO 27001 fast vollständig; neu ist vor allem die Funktion Steuern mit Lieferkette und Rollen.",
+		sourceUrl: "https://www.nist.gov/cyberframework",
+		sortOrder: 212,
+		phase: "P6",
+		exclusion: {
+			label: "Nicht Teil des Ziel-Profils",
+			basis: "NIST CSF 2.0, Abschnitt 3 (Organisationsprofile)",
+		},
+	},
+	{
+		slug: "nist-800-53",
+		name: "NIST SP 800-53 Rev. 5",
+		version: "Rev. 5",
+		authority: "NIST (USA)",
+		jurisdiction: "us",
+		legalBasis: "FISMA; Baselines nach NIST SP 800-53B",
+		description:
+			"Katalog der Sicherheitsmaßnahmen für Informationssysteme der US-Bundesverwaltung, mit Baselines Low, Moderate und High nach Schutzbedarf. Grundlage von FedRAMP für Cloud-Dienste an US-Behörden.",
+		recommendedApproach:
+			"Schutzbedarf je System nach FIPS 199 einstufen und die passende Baseline wählen, dann über Tailoring anpassen. Systemsicherheitsplan und Aktionsplan sind Pflicht; die Maßnahmen deckt ein reifes ISMS großteils ab, die Tiefe ist aber höher.",
+		sourceUrl: "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final",
+		sortOrder: 213,
+		phase: "P6",
+		variants: NIST53_VARIANTS,
+		variantLabel: "Baseline",
+		exclusion: {
+			label: "Tailoring mit Begründung",
+			basis: "NIST SP 800-53B, Abschnitt 2.4 (Tailoring der Baselines)",
+		},
+	},
+	{
+		slug: "nist-800-171",
+		name: "NIST SP 800-171 Rev. 2",
+		version: "Rev. 2",
+		authority: "NIST (USA)",
+		jurisdiction: "us",
+		legalBasis: "DFARS 252.204-7012",
+		description:
+			"110 Sicherheitsanforderungen zum Schutz kontrollierter, nicht eingestufter Informationen (CUI) bei Auftragnehmern der US-Regierung. Diese Fassung prüft CMMC Stufe 2.",
+		recommendedApproach:
+			"Geltungsbereich eng ziehen (nur Systeme mit CUI), Systemsicherheitsplan schreiben, offene Punkte im Aktionsplan führen und die Selbstbewertung nach der DoD-Methodik im SPRS melden.",
+		sourceUrl: "https://csrc.nist.gov/pubs/sp/800/171/r2/upd1/final",
+		sortOrder: 214,
+		phase: "P6",
+		exclusion: {
+			label: "Nicht anwendbar mit Begründung im Systemsicherheitsplan",
+			basis: "NIST SP 800-171 Rev. 2 mit DoD Assessment Methodology",
+		},
+	},
+	{
+		slug: "cmmc",
+		name: "CMMC 2.0",
+		version: "2.0",
+		authority: "US Department of Defense",
+		jurisdiction: "us",
+		legalBasis: "32 CFR Part 170; DFARS 252.204-7021",
+		description:
+			"Zertifizierungsprogramm des US-Verteidigungsministeriums für seine Lieferkette: Stufe 1 für Vertragsinformationen (FCI), Stufe 2 für CUI nach NIST SP 800-171, Stufe 3 zusätzlich mit Anforderungen aus NIST SP 800-172.",
+		recommendedApproach:
+			"Stufe aus dem Vertrag ablesen. Stufe 1 und 2 beginnen mit einer ehrlichen Selbstbewertung; für Stufe 2 mit Prüfung eine C3PAO früh einplanen. Offene Punkte dürfen nur in engen Grenzen und befristet im Aktionsplan stehen.",
+		sourceUrl: "https://dodcio.defense.gov/CMMC/",
+		sortOrder: 215,
+		phase: "P6",
+		variants: CMMC_VARIANTS,
+		variantLabel: "Stufe",
+		exclusion: {
+			label: "Not Applicable (N/A) mit Begründung",
+			basis: "32 CFR 170.24 (Bewertung der Praktiken)",
+		},
+	},
+	{
+		slug: "hipaa",
+		name: "HIPAA Security und Breach Notification Rule",
+		version: "45 CFR 164",
+		authority: "US Department of Health and Human Services",
+		jurisdiction: "us",
+		legalBasis: "45 CFR Part 160 und 164",
+		description:
+			"US-Recht zum Schutz von Gesundheitsdaten (PHI) für Leistungserbringer, Krankenversicherungen und ihre Dienstleister (Business Associates): administrative, physische und technische Schutzmaßnahmen, Verträge, Dokumentation und Meldung von Datenpannen.",
+		recommendedApproach:
+			"Mit der Risikoanalyse beginnen, sie trägt alle adressierbaren Spezifikationen. Business Associate Agreements mit Kundschaft und Unterauftragnehmern schließen und Dokumentation sechs Jahre aufbewahren.",
+		sourceUrl:
+			"https://www.hhs.gov/hipaa/for-professionals/security/index.html",
+		sortOrder: 216,
+		phase: "P6",
+	},
+	{
+		slug: "nycrr-500",
+		name: "23 NYCRR 500 (NYDFS Cybersecurity Regulation)",
+		version: "2023",
+		authority: "New York State Department of Financial Services",
+		jurisdiction: "us",
+		legalBasis: "23 NYCRR Part 500, zweite Änderung vom 01.11.2023",
+		description:
+			"Cybersicherheitsregeln der New Yorker Finanzaufsicht für Banken, Versicherungen, Geldtransfer- und Kryptowerte-Unternehmen mit Erlaubnis in New York: Programm, CISO, Risikobewertung, MFA, Verschlüsselung, Meldung binnen 72 Stunden und jährliche Bescheinigung.",
+		recommendedApproach:
+			"Einstufung klären (Class A, Standard oder begrenzte Ausnahme). Die Leitung muss jährlich bis 15. April die Einhaltung bescheinigen; das setzt eine belegte Risikobewertung und lückenlose Nachweise voraus.",
+		sourceUrl: "https://www.dfs.ny.gov/industry_guidance/cybersecurity",
+		sortOrder: 217,
+		phase: "P6",
+		variants: NYCRR_VARIANTS,
+		variantLabel: "Einstufung",
+	},
+	{
+		slug: "ccpa",
+		name: "CCPA/CPRA (Kalifornien)",
+		version: "CPRA 2023",
+		authority: "California Privacy Protection Agency",
+		jurisdiction: "us",
+		legalBasis: "Cal. Civ. Code § 1798.100 ff.; CCPA Regulations",
+		description:
+			"Datenschutzgesetz Kaliforniens mit den Verordnungen der Datenschutzbehörde: Hinweise, Rechte auf Auskunft, Löschung und Berichtigung, Widerspruch gegen Verkauf und Weitergabe, sensible Daten, Verträge, Risikobewertungen und Cybersecurity-Audits.",
+		recommendedApproach:
+			"Schwellen prüfen (Umsatz, Zahl der Verbraucher:innen, Anteil aus Datenverkauf). Wer DSGVO-Prozesse hat, ergänzt vor allem den Widerspruch gegen Verkauf und Weitergabe samt Browsersignal und die kalifornischen Hinweise.",
+		sourceUrl: "https://cppa.ca.gov/regulations/",
+		sortOrder: 218,
+		phase: "P6",
+	},
+	{
+		slug: "us-privacy",
+		name: "Datenschutzgesetze der US-Bundesstaaten",
+		version: "2026",
+		authority: "Gesetzgeber der US-Bundesstaaten",
+		jurisdiction: "us",
+		description:
+			"Gemeinsamer Nenner der umfassenden Datenschutzgesetze der US-Bundesstaaten ohne Kalifornien, etwa Virginia, Colorado, Connecticut, Texas, Oregon und Maryland: Hinweise, Rechte, Widerspruch gegen Verkauf, Werbung und Profiling, Einwilligung für sensible Daten, Folgenabschätzungen.",
+		recommendedApproach:
+			"Je Staat die Schwellen prüfen und nach dem strengsten gemeinsamen Stand umsetzen (Maryland bei sensiblen Daten, Colorado beim Browsersignal). Eine Datenschutzerklärung für alle Staaten mit Abschnitten für Abweichungen genügt meist.",
+		sortOrder: 219,
+		phase: "P6",
+	},
+	{
+		slug: "aws-ftr",
+		name: "AWS Foundational Technical Review",
+		version: "2026",
+		authority: "Amazon Web Services",
+		jurisdiction: "global",
+		description:
+			"Technische Prüfung von AWS für Partner-Lösungen auf AWS: Root-Konto, Identitäten und Rechte, Protokollierung, Netz, S3, kontoübergreifender Zugriff, Verschlüsselung, Backups und Resilienz. Voraussetzung für Programme im AWS Partner Network.",
+		recommendedApproach:
+			"Die Prüfliste vorab selbst durchgehen; die meisten Punkte decken bestehende Maßnahmen zu Zugriff, Protokollierung und Backup ab, sie müssen aber für das AWS-Konto der Lösung belegt sein.",
+		sourceUrl: "https://aws.amazon.com/partners/foundational-technical-review/",
+		sortOrder: 220,
+		phase: "P6",
+		exclusion: {
+			label: "Prüfpunkt trifft nicht zu",
+			basis: "AWS FTR: Prüfpunkte gelten je nach Aufbau der Lösung",
+		},
+	},
+	{
+		slug: "ms-sspa",
+		name: "Microsoft SSPA (Data Protection Requirements)",
+		version: "DPR",
+		authority: "Microsoft",
+		jurisdiction: "global",
+		description:
+			"Programm von Microsoft für Lieferanten, die personenbezogene oder vertrauliche Daten von Microsoft verarbeiten: jährliche Selbstauskunft zu den Data Protection Requirements, je nach Einstufung mit unabhängiger Prüfung.",
+		recommendedApproach:
+			"Einstufung im Lieferantenportal klären (Datenart, Verarbeitungsort). Die Datenschutz-Abschnitte trägt ein DSGVO-Programm, die Sicherheit ein ISMS; Belege für die Selbstauskunft gleich aus Klick exportieren.",
+		sourceUrl:
+			"https://www.microsoft.com/en-us/procurement/supplier-contracting",
+		sortOrder: 221,
+		phase: "P6",
+		variants: SSPA_VARIANTS,
+		variantLabel: "Datenart",
+		exclusion: {
+			label: "Nicht zutreffend mit Begründung",
+			basis:
+				"Microsoft SSPA: Selbstauskunft zu den Data Protection Requirements",
+		},
+	},
+	{
+		slug: "mvsp",
+		name: "Minimum Viable Secure Product (MVSP)",
+		version: "MVSP",
+		authority: "MVSP-Arbeitsgruppe (Google, Salesforce, Okta u. a.)",
+		jurisdiction: "global",
+		description:
+			"Offene Prüfliste mit Mindestanforderungen an Software für Firmenkundschaft: geschäftliche Abläufe, Entwurf, Umsetzung und Betrieb der Anwendung. Häufig im Einkauf als kurzer Sicherheitsfragebogen genutzt.",
+		recommendedApproach:
+			"Die Liste als Selbstauskunft beantworten und mit Belegen aus Klick hinterlegen; sie ist kurz und passt zu einem ISMS mit sicherem Entwicklungsablauf.",
+		sourceUrl: "https://mvsp.dev/",
+		sortOrder: 222,
+		phase: "P6",
 	},
 	...CORRIDOR_FRAMEWORK_METAS,
 ];

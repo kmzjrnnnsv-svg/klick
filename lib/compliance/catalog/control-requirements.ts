@@ -1,10 +1,21 @@
+import { FTR_EDGES } from "./aws-ftr";
+import { CCPA_EDGES } from "./ccpa";
+import { CMMC_EDGES } from "./cmmc";
 import { CE_EDGES } from "./cyber-essentials";
 import { E8_EDGES } from "./essential-eight";
 import { DPF_EDGES } from "./eu-us-dpf";
+import { HIPAA_EDGES } from "./hipaa";
 import { ISO42001_EDGES } from "./iso42001";
+import { SSPA_EDGES } from "./ms-sspa";
+import { MVSP_EDGES } from "./mvsp";
+import { NIST53_EDGES } from "./nist-800-53";
+import { NIST171_EDGES } from "./nist-800-171";
+import { CSF_EDGES } from "./nist-csf";
+import { NYCRR_EDGES } from "./nycrr500";
 import { PCI_EDGES } from "./pci-edges";
 import { TISAX_EDGES } from "./tisax";
 import type { CatalogControlMapping } from "./types";
+import { USDP_EDGES } from "./us-privacy";
 
 // Synergie-Kanten: welches Common Control erfüllt welche Anforderung in
 // welchem Rahmenwerk — voll oder teilweise. Jede Anforderung mit
@@ -1044,4 +1055,16 @@ export const CONTROL_REQUIREMENTS: CatalogControlMapping[] = [
 	...DPF_EDGES,
 	...CE_EDGES,
 	...E8_EDGES,
+	// ── Stufe 2 und 3 (Okt 2026): USA und Programme von Kund:innen ────────
+	...CSF_EDGES,
+	...NIST53_EDGES,
+	...NIST171_EDGES,
+	...CMMC_EDGES,
+	...HIPAA_EDGES,
+	...NYCRR_EDGES,
+	...CCPA_EDGES,
+	...USDP_EDGES,
+	...FTR_EDGES,
+	...SSPA_EDGES,
+	...MVSP_EDGES,
 ];

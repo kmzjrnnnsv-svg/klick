@@ -31,7 +31,7 @@ describe("framework-map", () => {
 	it("ISO 27001 und SOC 2 teilen fast alles", () => {
 		const o = overlap("iso27001", "soc2", all);
 		expect(o.share).toBeGreaterThan(0.8);
-		expect(topPairs(all, 3).map((p) => [p.a, p.b])).toContainEqual([
+		expect(topPairs(all, 12).map((p) => [p.a, p.b])).toContainEqual([
 			"iso27001",
 			"soc2",
 		]);

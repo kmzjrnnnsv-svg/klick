@@ -11,6 +11,7 @@ export const ISSUER_KINDS = [
 	"law_foreign",
 	"supervisor",
 	"standard",
+	"guide",
 	"industry",
 	"customer",
 ] as const;
@@ -23,6 +24,7 @@ export const ISSUER_LABEL: Record<IssuerKind, string> = {
 	law_foreign: "Gesetz in einem anderen Land",
 	supervisor: "Vorgabe der Aufsicht",
 	standard: "Freiwilliger Standard mit Zertifikat",
+	guide: "Freiwilliger Leitfaden ohne Zertifikat",
 	industry: "Regeln einer Branche",
 	customer: "Verlangen Kundinnen und Kunden",
 };
@@ -35,6 +37,7 @@ export const ISSUER_MUST: Record<IssuerKind, "law" | "rules" | "voluntary"> = {
 	law_foreign: "law",
 	supervisor: "law",
 	standard: "voluntary",
+	guide: "voluntary",
 	industry: "rules",
 	customer: "voluntary",
 };
@@ -68,6 +71,160 @@ function corridor(country: string, region: string): FrameworkProfile {
 }
 
 export const FRAMEWORK_PROFILES: Record<string, FrameworkProfile> = {
+	"nist-csf": {
+		simple:
+			"Ein Bauplan aus den USA, wie eine Firma sich vor Angriffen aus dem Internet schützt.",
+		why: "Eine Firma soll wissen, was sie schützen muss, und Angriffe früh bemerken. Nach einem Angriff soll sie schnell wieder arbeiten können.",
+		forWhom:
+			"Firmen jeder Größe, besonders mit Kundschaft oder Partnern in den USA.",
+		issuer: "guide",
+		ifNot:
+			"Es gibt keine Strafe, denn der Rahmen ist freiwillig. Aber Kundschaft aus den USA fragt oft, wie weit ihr damit seid.",
+		proof:
+			"Es gibt kein Zertifikat. Man schätzt sich selbst ein und zeigt Kundschaft, wie weit man in jedem Bereich ist.",
+		example:
+			"Wie bei Feuer im Haus: wissen, was brennen kann, vorbeugen, Rauch bemerken, löschen und danach aufräumen.",
+	},
+	"nist-800-53": {
+		simple:
+			"Eine sehr genaue Liste von Schutzmaßnahmen für die Computersysteme der US-Regierung.",
+		why: "Daten und Systeme der US-Behörden sollen vor Angriffen, Fehlern und Ausfällen geschützt sein.",
+		forWhom:
+			"US-Behörden und Firmen, die für sie arbeiten oder ihnen Cloud-Dienste anbieten.",
+		issuer: "law_foreign",
+		ifNot:
+			"Ohne Freigabe darf eine US-Behörde ein System nicht nutzen. Cloud-Anbieter brauchen dafür die Prüfung nach FedRAMP.",
+		proof:
+			"Ein Schutzplan je System, eine unabhängige Prüfung und die Freigabe durch die Behörde.",
+		example:
+			"Wie ein Tresor in drei Größen: Je wertvoller der Inhalt, desto mehr Schlösser hat er.",
+	},
+	"nist-800-171": {
+		simple:
+			"Eine US-Liste mit 110 Regeln, wie Firmen vertrauliche Daten aus Regierungsaufträgen schützen.",
+		why: "Angreifer suchen Baupläne und Daten des Militärs oft bei kleinen Zulieferern. Dort ist der Schutz meist schwächer.",
+		forWhom:
+			"Firmen, die für das US-Verteidigungsministerium arbeiten oder Teile dafür liefern, auch in Europa. Das Ministerium schreibt die Regeln in seine Verträge.",
+		issuer: "customer",
+		ifNot:
+			"Ohne diese Regeln bekommt die Firma keine Aufträge mit solchen Daten. Falsche Angaben können teure Klagen bringen.",
+		proof:
+			"Eine Selbstbewertung mit Punktzahl, die in einer Datenbank des US-Militärs steht, dazu ein Sicherheitsplan.",
+		example:
+			"Wie ein Schlüssel zum Haus der Nachbarn: Wer ihn bekommt, muss gut darauf aufpassen.",
+	},
+	cmmc: {
+		simple:
+			"Ein Prüfsystem des US-Militärs, das in drei Stufen zeigt, wie gut Zulieferer Daten schützen.",
+		why: "Früher reichte das Wort der Firma, dass sie ihre Daten schützt. Jetzt prüft oft jemand von außen, ob der Schutz wirklich da ist.",
+		forWhom:
+			"Alle Firmen, die für das US-Verteidigungsministerium arbeiten, auch kleine Zulieferer in Europa.",
+		issuer: "law_foreign",
+		ifNot:
+			"Ohne die verlangte Stufe darf die Firma bei vielen Aufträgen des US-Militärs nicht mitmachen.",
+		proof:
+			"Stufe 1 mit Selbstbewertung jedes Jahr, Stufe 2 oft mit Prüfung von außen, Stufe 3 durch das Militär selbst. Eine Prüfung von außen gilt drei Jahre.",
+		example:
+			"Wie beim Schwimmabzeichen: Je höher die Stufe, desto mehr musst du zeigen, und jemand schaut genau zu.",
+	},
+	hipaa: {
+		simple:
+			"Ein US-Gesetz, das die Gesundheitsdaten von Patientinnen und Patienten schützt.",
+		why: "Gesundheitsdaten sind sehr privat. Niemand Fremdes soll sehen, welche Krankheit jemand hat.",
+		forWhom:
+			"Arztpraxen, Kliniken, Krankenversicherungen und Abrechnungsstellen in den USA. Dazu Firmen, die für sie mit Gesundheitsdaten arbeiten, etwa Anbieter von Software.",
+		issuer: "law_foreign",
+		ifNot:
+			"Die US-Gesundheitsbehörde kann hohe Geldbußen verhängen. In schweren Fällen drohen auch Strafverfahren.",
+		proof:
+			"Es gibt kein Zertifikat. Die Firma zeigt bei einer Prüfung ihre Risikoanalyse, ihre Regeln und ihre Verträge.",
+		example:
+			"Wie die Schweigepflicht beim Arzt: Was im Sprechzimmer gesagt wird, bleibt dort.",
+	},
+	"nycrr-500": {
+		simple:
+			"Regeln der Finanzaufsicht in New York, damit Finanzfirmen sich gegen Hacker schützen.",
+		why: "Banken und Versicherungen haben viel Geld und viele Daten. Ein Angriff kann vielen Menschen schaden.",
+		forWhom:
+			"Banken, Versicherungen und andere Finanzfirmen mit einer Erlaubnis der Finanzaufsicht in New York. Große Firmen haben zusätzliche Pflichten.",
+		issuer: "supervisor",
+		ifNot:
+			"Die Aufsicht kann hohe Geldbußen verhängen. Sie prüft auch, ob die jährliche Bestätigung stimmt.",
+		proof:
+			"Jedes Jahr bis zum 15. April bestätigt die Leitung der Aufsicht, dass die Regeln eingehalten wurden.",
+		example:
+			"Wie ein Tresor in der Bank: Jedes Jahr prüft jemand Schloss, Alarm und die Liste der Schlüssel.",
+	},
+	ccpa: {
+		simple:
+			"Ein Gesetz aus Kalifornien: Menschen erfahren, was Firmen über sie wissen, und können widersprechen.",
+		why: "Firmen sammeln viele Daten über Menschen und verkaufen sie oft weiter. Die Menschen sollen wissen, was passiert, und Nein sagen können.",
+		forWhom:
+			"Größere Firmen, die Daten von Menschen in Kalifornien nutzen, auch wenn sie in Europa sitzen.",
+		issuer: "law_foreign",
+		ifNot:
+			"Dann drohen Strafen der Aufsicht in Kalifornien. Nach einem Datenleck können Betroffene auch selbst vor Gericht gehen.",
+		proof:
+			"Eine klare Datenschutzerklärung, ein Link zum Widersprechen und Aufzeichnungen über alle Anfragen der letzten zwei Jahre.",
+		example:
+			"Wie ein Schild im Laden, auf dem steht, was über dich notiert wird und wie du Nein sagst.",
+	},
+	"us-privacy": {
+		simple:
+			"Gesetze vieler US-Bundesstaaten, die Menschen Rechte an ihren Daten geben.",
+		why: "In den USA gibt es kein Datenschutzgesetz für das ganze Land. Darum regeln immer mehr Staaten das selbst.",
+		forWhom:
+			"Firmen mit vielen Kundinnen und Kunden in diesen Staaten, auch wenn sie in Europa sitzen.",
+		issuer: "law_foreign",
+		ifNot:
+			"Dann kann die Generalstaatsanwaltschaft des Staats hohe Strafen verlangen. Jeder Verstoß kann dabei einzeln zählen.",
+		proof:
+			"Eine Datenschutzerklärung, ein Weg zum Widersprechen, Verträge mit Helfern und schriftliche Prüfungen riskanter Nutzungen.",
+		example:
+			"Wie Hausregeln, die in jedem Haus etwas anders sind, aber fast immer dasselbe wollen.",
+	},
+	"aws-ftr": {
+		simple:
+			"Eine technische Prüfung von AWS für Partner, die ihre Software bei AWS betreiben.",
+		why: "AWS will sicher sein, dass Lösungen von Partnern die Konten und Daten der Kundschaft gut schützen.",
+		forWhom:
+			"Partner von AWS, die ihre Software auf AWS anbieten, zum Beispiel als Dienst im Internet.",
+		issuer: "customer",
+		ifNot:
+			"Ohne bestandene Prüfung bleiben viele Partnerprogramme von AWS verschlossen, etwa der gemeinsame Verkauf.",
+		proof:
+			"Ein ausgefüllter Fragebogen mit Belegen, den eine Fachperson von AWS durchsieht und freigibt.",
+		example:
+			"Wie ein Kaufhaus, das einen Händler erst hineinlässt, wenn sein Stand sicher aufgebaut ist.",
+	},
+	"ms-sspa": {
+		simple:
+			"Regeln von Microsoft für Lieferanten, die mit Daten von Microsoft arbeiten.",
+		why: "Microsoft will, dass Daten von Kundschaft und Beschäftigten auch bei Lieferanten sicher sind.",
+		forWhom:
+			"Firmen, die für Microsoft arbeiten und dabei Daten über Menschen oder geheime Unterlagen bekommen.",
+		issuer: "customer",
+		ifNot:
+			"Ohne bestandene Prüfung bekommt die Firma von Microsoft keine neuen Aufträge.",
+		proof:
+			"Jedes Jahr eine Selbstprüfung im Portal von Microsoft, manchmal dazu eine Prüfung von außen.",
+		example:
+			"Wie ein Nachbar, der deinen Schlüssel bekommt und versprechen muss, gut darauf aufzupassen.",
+	},
+	mvsp: {
+		simple:
+			"Eine offene Liste von Mindestregeln für sichere Software, die Firmen bei Lieferanten abfragen.",
+		why: "Große Firmen wollen schnell sehen, ob eine Software das Nötigste für die Sicherheit mitbringt.",
+		forWhom:
+			"Firmen, die Software für andere Firmen anbieten, vor allem als Dienst im Internet.",
+		issuer: "industry",
+		ifNot:
+			"Ohne diese Grundlagen lehnen viele große Firmen eine Software beim Einkauf ab.",
+		proof:
+			"Eine ausgefüllte Selbstprüfung zur Liste, dazu Belege wie der Bericht über einen Test von außen.",
+		example:
+			"Wie eine Checkliste vor dem Flug: Erst wenn jeder Punkt stimmt, darf das Flugzeug starten.",
+	},
 	iso42001: {
 		simple: "Ein Bauplan, wie eine Firma KI verantwortungsvoll baut und nutzt.",
 		why: "KI soll niemandem schaden, keine Menschen benachteiligen und nachvollziehbar bleiben.",
@@ -393,6 +550,228 @@ export const FRAMEWORK_PROFILES: Record<string, FrameworkProfile> = {
 
 // Je Kapitel ein einfacher Satz, Schlüssel „rahmenwerk:kapitel“
 export const SECTION_SIMPLE: Record<string, string> = {
+	"nist-csf:GV.OC":
+		"Die Firma weiß, wozu sie da ist und wer etwas von ihr erwartet.",
+	"nist-csf:GV.RM":
+		"Die Firma legt fest, wie viel Gefahr sie tragen will und wie sie Gefahren bewertet.",
+	"nist-csf:GV.RR":
+		"Jede Person weiß, wofür sie zuständig ist, und die Leitung steht für alles ein.",
+	"nist-csf:GV.PO":
+		"Es gibt feste Regeln für die Sicherheit, und sie werden aktuell gehalten.",
+	"nist-csf:GV.OV":
+		"Die Leitung prüft regelmäßig, ob der Plan wirkt, und passt ihn an.",
+	"nist-csf:GV.SC":
+		"Auch Lieferanten und Dienstleister müssen sicher arbeiten, vom Vertrag bis zum Ende.",
+	"nist-csf:ID.AM":
+		"Die Firma weiß, welche Geräte, Programme und Daten sie hat.",
+	"nist-csf:ID.RA":
+		"Die Firma sucht Schwachstellen und Gefahren und bewertet, wie schlimm sie wären.",
+	"nist-csf:ID.IM":
+		"Aus Prüfungen, Übungen und Fehlern lernt die Firma und wird besser.",
+	"nist-csf:PR.AA":
+		"Nur wer sich richtig anmeldet, kommt hinein, und nur so weit wie nötig.",
+	"nist-csf:PR.AT":
+		"Alle lernen, wie sie sicher arbeiten, manche Rollen noch genauer.",
+	"nist-csf:PR.DS":
+		"Daten sind geschützt, ob gespeichert, verschickt oder in Gebrauch, und es gibt Sicherungen.",
+	"nist-csf:PR.PS":
+		"Geräte und Programme sind sicher eingestellt, aktuell und erlaubt.",
+	"nist-csf:PR.IR":
+		"Netze sind abgeschottet, und die Technik übersteht Ausfälle, Feuer und Wasser.",
+	"nist-csf:DE.CM":
+		"Netze, Räume, Geräte und Dienstleister werden ständig beobachtet.",
+	"nist-csf:DE.AE":
+		"Auffälliges wird genau angeschaut, um echte Angriffe zu erkennen.",
+	"nist-csf:RS.MA": "Bei einem Angriff gibt es einen Plan, wer was tut.",
+	"nist-csf:RS.AN":
+		"Nach einem Angriff wird geklärt, was passiert ist und warum.",
+	"nist-csf:RS.CO":
+		"Bei einem Angriff werden die richtigen Leute rechtzeitig informiert.",
+	"nist-csf:RS.MI": "Der Angriff wird gestoppt und sein Schaden beseitigt.",
+	"nist-csf:RC.RP":
+		"Nach einem Angriff kommt alles in der richtigen Reihenfolge wieder in Gang.",
+	"nist-csf:RC.CO": "Alle erfahren, wie weit die Wiederherstellung ist.",
+	"nist-800-53:AC": "Nur wer darf, kommt an Daten und Systeme heran.",
+	"nist-800-53:AT":
+		"Alle lernen, wie sie sicher arbeiten und Gefahren erkennen.",
+	"nist-800-53:AU": "Das System schreibt auf, wer wann was gemacht hat.",
+	"nist-800-53:CA":
+		"Jemand prüft, ob der Schutz wirkt, und erlaubt dann den Betrieb.",
+	"nist-800-53:CM":
+		"Einstellungen sind festgelegt, und jede Änderung wird vorher geprüft.",
+	"nist-800-53:CP": "Ein Plan sagt, was bei einem Ausfall zu tun ist.",
+	"nist-800-53:IA": "Jede Person und jedes Gerät muss zeigen, wer es ist.",
+	"nist-800-53:IR": "Bei einem Angriff weiß jede Person, was sie tun muss.",
+	"nist-800-53:MA": "Reparaturen am System laufen geplant und unter Aufsicht.",
+	"nist-800-53:MP":
+		"USB-Sticks, Festplatten und Papier werden sicher verwahrt und gelöscht.",
+	"nist-800-53:PE":
+		"Gebäude und Räume sind vor Fremden, Feuer und Wasser geschützt.",
+	"nist-800-53:PL": "Für jedes System gibt es einen schriftlichen Schutzplan.",
+	"nist-800-53:PM":
+		"Die ganze Firma hat ein gemeinsames Programm für Sicherheit.",
+	"nist-800-53:PS":
+		"Mitarbeitende werden geprüft, und beim Gehen werden ihre Zugänge gesperrt.",
+	"nist-800-53:RA":
+		"Die Firma überlegt, was passieren kann und wie schlimm das wäre.",
+	"nist-800-53:SA":
+		"Beim Kaufen und Bauen von Systemen zählt die Sicherheit von Anfang an.",
+	"nist-800-53:SC": "Daten sind unterwegs und im Speicher gut geschützt.",
+	"nist-800-53:SI":
+		"Lücken werden schnell geschlossen, und Schadsoftware wird erkannt.",
+	"nist-800-53:SR": "Auch Lieferanten und ihre Teile sollen sicher sein.",
+	"nist-800-171:3.1": "Nur wer darf, kommt an die Daten und Systeme.",
+	"nist-800-171:3.2":
+		"Alle lernen, welche Gefahren es gibt und was zu tun ist.",
+	"nist-800-171:3.3": "Systeme schreiben auf, wer wann was gemacht hat.",
+	"nist-800-171:3.4":
+		"Computer sind fest eingestellt, und jede Änderung wird vorher geprüft.",
+	"nist-800-171:3.5":
+		"Jede Person meldet sich mit eigenem Namen und einem zweiten Nachweis an.",
+	"nist-800-171:3.6":
+		"Bei einem Angriff weiß jede Person, was zu tun ist, und er wird gemeldet.",
+	"nist-800-171:3.7":
+		"Reparaturen an Computern laufen sicher und unter Aufsicht.",
+	"nist-800-171:3.8":
+		"USB-Sticks, Festplatten und Papier mit Daten werden sicher verwahrt und vernichtet.",
+	"nist-800-171:3.9":
+		"Neue Leute werden vorher geprüft, und wer geht, hat sofort keinen Zugang mehr.",
+	"nist-800-171:3.10":
+		"Nur Berechtigte kommen in die Räume, Gäste werden begleitet.",
+	"nist-800-171:3.11":
+		"Die Firma prüft regelmäßig, was schiefgehen kann, und sucht nach Lücken.",
+	"nist-800-171:3.12":
+		"Die Firma prüft, ob ihr Schutz wirkt, und plant, was noch fehlt.",
+	"nist-800-171:3.13":
+		"Netze und Verbindungen sind geschützt, und Daten werden verschlüsselt.",
+	"nist-800-171:3.14":
+		"Fehler werden schnell behoben, Schadprogramme und Angriffe werden erkannt.",
+	"cmmc:AC": "Nur wer darf, kommt an die Daten und Systeme.",
+	"cmmc:AT": "Alle lernen, welche Gefahren es gibt und was zu tun ist.",
+	"cmmc:AU": "Systeme schreiben auf, wer wann was gemacht hat.",
+	"cmmc:CM":
+		"Computer sind fest eingestellt, und jede Änderung wird vorher geprüft.",
+	"cmmc:IA":
+		"Jede Person meldet sich mit eigenem Namen und einem zweiten Nachweis an.",
+	"cmmc:IR":
+		"Bei einem Angriff weiß jede Person, was zu tun ist, und er wird gemeldet.",
+	"cmmc:MA": "Reparaturen an Computern laufen sicher und unter Aufsicht.",
+	"cmmc:MP":
+		"USB-Sticks, Festplatten und Papier mit Daten werden sicher verwahrt und vernichtet.",
+	"cmmc:PS":
+		"Neue Leute werden vorher geprüft, und wer geht, hat sofort keinen Zugang mehr.",
+	"cmmc:PE": "Nur Berechtigte kommen in die Räume, Gäste werden begleitet.",
+	"cmmc:RA":
+		"Die Firma prüft regelmäßig, was schiefgehen kann, und sucht nach Angreifern.",
+	"cmmc:CA": "Die Firma prüft, ob ihr Schutz wirkt, und plant, was noch fehlt.",
+	"cmmc:SC":
+		"Netze und Verbindungen sind geschützt, und Daten werden verschlüsselt.",
+	"cmmc:SI":
+		"Fehler werden schnell behoben, Schadprogramme und Angriffe werden erkannt.",
+	"hipaa:ADM":
+		"Die Firma plant den Schutz, schult ihre Leute und übt den Notfall.",
+	"hipaa:PHY":
+		"Räume, Computer und Datenträger mit Gesundheitsdaten sind gut geschützt.",
+	"hipaa:TEC":
+		"Technik regelt, wer Daten sieht, und schreibt auf, wer was tut.",
+	"hipaa:ORG":
+		"Helfer mit Gesundheitsdaten unterschreiben einen Vertrag, der sie zum Schutz verpflichtet.",
+	"hipaa:DOC":
+		"Die Regeln stehen schriftlich fest und werden sechs Jahre aufbewahrt.",
+	"hipaa:BRN":
+		"Gehen Gesundheitsdaten verloren, erfahren es die Menschen spätestens nach 60 Tagen.",
+	"hipaa:PRV":
+		"Nur so viele Daten wie nötig, und jeder darf die eigenen Daten sehen.",
+	"nycrr-500:PRG":
+		"Es gibt einen Plan, schriftliche Regeln und eine Person, die verantwortlich ist.",
+	"nycrr-500:TEC":
+		"Technik schützt die Daten: Updates, wenige Rechte, Anmeldung mit zweitem Nachweis und Verschlüsselung.",
+	"nycrr-500:RSK":
+		"Die Firma schätzt ihre Gefahren ein und prüft ihre Helfer von außen.",
+	"nycrr-500:PPL": "Es gibt genug Fachleute, und alle lernen jedes Jahr dazu.",
+	"nycrr-500:INC":
+		"Für Angriffe und Ausfälle gibt es Pläne, die jedes Jahr geübt werden.",
+	"nycrr-500:NOT":
+		"Schwere Angriffe meldet die Firma binnen 72 Stunden der Aufsicht.",
+	"nycrr-500:CLA":
+		"Große Firmen werden genauer geprüft und überwachen ihre Technik stärker.",
+	"ccpa:SC": "Klären, ob das Gesetz für die Firma gilt.",
+	"ccpa:NT":
+		"Menschen erfahren vorher, welche Daten gesammelt werden und wofür.",
+	"ccpa:RT":
+		"Menschen dürfen ihre Daten sehen, berichtigen, löschen lassen und mitnehmen.",
+	"ccpa:OO":
+		"Menschen können sagen: Verkauft meine Daten nicht und gebt sie nicht weiter.",
+	"ccpa:VP": "Helfer der Firma bekommen feste Regeln für die Daten.",
+	"ccpa:SE":
+		"Daten werden gut geschützt, und es wird nur so viel gesammelt wie nötig.",
+	"ccpa:RA":
+		"Gefährliche Nutzungen von Daten werden vorher geprüft, auch Entscheidungen durch Computer.",
+	"ccpa:RK":
+		"Jede Anfrage wird aufgeschrieben, und das Team weiß, was zu tun ist.",
+	"us-privacy:SC":
+		"Klären, in welchen Staaten die Gesetze für die Firma gelten.",
+	"us-privacy:NT":
+		"Eine Erklärung sagt, welche Daten gesammelt werden und an wen sie gehen.",
+	"us-privacy:RT":
+		"Menschen dürfen ihre Daten sehen, berichtigen, löschen und mitnehmen.",
+	"us-privacy:OO":
+		"Menschen können Werbung nach ihrem Verhalten und den Verkauf ihrer Daten ablehnen.",
+	"us-privacy:SD":
+		"Besonders private Daten gibt es nur, wenn die Person vorher Ja sagt.",
+	"us-privacy:CH":
+		"Daten von Kindern und Jugendlichen sind besonders geschützt.",
+	"us-privacy:PR": "Helfer der Firma bekommen einen Vertrag mit festen Regeln.",
+	"us-privacy:AS":
+		"Riskante Nutzungen von Daten werden vorher schriftlich geprüft.",
+	"us-privacy:SE":
+		"Daten werden gut geschützt, und es wird nur so viel gesammelt wie nötig.",
+	"aws-ftr:SUP":
+		"Hilfe von AWS ist gebucht, und der Aufbau wird regelmäßig geprüft.",
+	"aws-ftr:ROOT":
+		"Der Hauptschlüssel zum Konto bleibt im Tresor und ist doppelt gesichert.",
+	"aws-ftr:IAM":
+		"Jede Person hat ein eigenes Konto mit zweitem Faktor und nur den nötigen Rechten.",
+	"aws-ftr:LOG": "Alles, was im Konto passiert, wird sicher aufgeschrieben.",
+	"aws-ftr:NET": "Nur wenige Türen zum Internet stehen offen.",
+	"aws-ftr:S3": "Ablagen für Dateien sind nicht für jeden im Internet offen.",
+	"aws-ftr:CAA":
+		"Der Zugang zu Konten der Kundschaft läuft über einen eigenen Schlüssel je Kundin.",
+	"aws-ftr:DAT":
+		"Wichtige Daten sind bekannt und werden verschlüsselt gespeichert und verschickt.",
+	"aws-ftr:BAR":
+		"Daten werden von selbst gesichert, und das Zurückholen wird geübt.",
+	"aws-ftr:RES":
+		"Es ist klar, wie schnell alles nach einem Ausfall wieder läuft.",
+	"aws-ftr:SEC":
+		"Lücken werden schnell geschlossen, und für Angriffe gibt es einen Plan.",
+	"ms-sspa:MGT":
+		"Jemand ist verantwortlich, alle lernen die Regeln, und jedes Jahr wird geprüft.",
+	"ms-sspa:NOT": "Menschen erfahren vorher, was mit ihren Daten passiert.",
+	"ms-sspa:CHO":
+		"Menschen dürfen Ja oder Nein sagen und es sich anders überlegen.",
+	"ms-sspa:COL": "Es werden nur die Daten gesammelt, die wirklich nötig sind.",
+	"ms-sspa:RET":
+		"Daten werden nicht länger als nötig behalten und am Ende gelöscht.",
+	"ms-sspa:DSR":
+		"Menschen können fragen, was über sie gespeichert ist, und Fehler korrigieren lassen.",
+	"ms-sspa:TPR":
+		"Andere Firmen bekommen Daten nur, wenn Microsoft vorher zustimmt.",
+	"ms-sspa:QUA": "Gespeicherte Daten sollen stimmen und aktuell sein.",
+	"ms-sspa:MON":
+		"Geht etwas schief, erfährt Microsoft es sofort und bekommt Hilfe beim Aufklären.",
+	"ms-sspa:SEC":
+		"Daten sind verschlossen, verschlüsselt und gesichert, und Lücken werden schnell repariert.",
+	"ms-sspa:AI":
+		"Wer KI nutzt, sagt es vorher und füttert sie nicht mit Daten von Microsoft.",
+	"mvsp:1":
+		"Die Firma lässt sich prüfen, schult ihre Leute und sagt bei Problemen schnell Bescheid.",
+	"mvsp:2":
+		"Die Software ist von Anfang an so gebaut, dass Angriffe es schwer haben.",
+	"mvsp:3":
+		"Beim Programmieren werden typische Fehler vermieden und Lücken schnell repariert.",
+	"mvsp:4":
+		"Räume, Zugänge, Partner und Sicherungen sind im Alltag gut geschützt.",
 	"iso42001:4": "Die Firma klärt, wo sie KI nutzt und wer davon betroffen ist.",
 	"iso42001:5":
 		"Die Leitung übernimmt Verantwortung und schreibt Regeln für KI auf.",
