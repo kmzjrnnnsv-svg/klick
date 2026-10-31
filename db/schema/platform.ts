@@ -429,6 +429,10 @@ export const notifications = pgTable(
 		payload: json<Record<string, unknown>>(),
 		readAt: ts(),
 		emailedAt: ts(),
+		// Zustellung in Microsoft Teams (T5): gesendet bzw. Fehlversuche;
+		// nach drei Fehlversuchen geht die Benachrichtigung per Mail
+		teamsSentAt: ts(),
+		teamsAttempts: integer().notNull().default(0),
 		createdAt: createdAt(),
 	},
 	(t) => [

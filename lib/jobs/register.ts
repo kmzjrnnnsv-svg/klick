@@ -18,6 +18,7 @@ import { runPostureSnapshot } from "./posture";
 import { runRetention } from "./retention";
 import { runSecurityChanges } from "./security-changes";
 import { runStorageOrphans, runStoragePurge } from "./storage";
+import { runTeamsNotify } from "./teams-notify";
 
 // Job-Register (ADR-011). Zeitpläne in Europe/Berlin. Fachjobs laufen je Org
 // in eigenem RLS-Kontext (lib/db/with-org.ts#forEachOrg):
@@ -36,6 +37,8 @@ import { runStorageOrphans, runStoragePurge } from "./storage";
 //   ledger-upgrade     stündlich   Bitcoin-Beglaubigung offener Anker holen
 //   evidence-texts     alle 15 min Text vorhandener Dateien für den Fassungs-
 //                                  vergleich lesen (isolierter Parser)
+//   teams-notify       jede Minute Benachrichtigungen in Microsoft Teams
+//                                  zustellen (nur mit TEAMS_CLIENT_ID)
 // Die Wallet-Jobs (wallet-sync, price-tick, wallet-payouts) laufen seit K6 nur
 // noch in both.money (apps/wallet/lib/jobs); alte Zeitpläne räumt der Start ab.
 
@@ -52,6 +55,7 @@ export const JOBS = {
 	ledgerAnchor: "ledger-anchor",
 	ledgerUpgrade: "ledger-upgrade",
 	evidenceTexts: "evidence-texts",
+	teamsNotify: "teams-notify",
 	quickCheck: QUICK_CHECK_JOB,
 } as const;
 
@@ -76,6 +80,7 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.schedule(JOBS.ledgerAnchor, "*/10 * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.ledgerUpgrade, "17 * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.evidenceTexts, "*/15 * * * *", {}, { tz: TZ });
+	await boss.schedule(JOBS.teamsNotify, "* * * * *", {}, { tz: TZ });
 
 	await boss.work(JOBS.complianceTick, async () => {
 		await runComplianceTick();
@@ -116,6 +121,9 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	});
 	await boss.work(JOBS.evidenceTexts, async () => {
 		await runEvidenceTexts();
+	});
+	await boss.work(JOBS.teamsNotify, async () => {
+		await runTeamsNotify();
 	});
 	// Schnellcheck auf Anfrage: höchstens zwei gleichzeitig je Prozess
 	await boss.work<QuickCheckJob>(

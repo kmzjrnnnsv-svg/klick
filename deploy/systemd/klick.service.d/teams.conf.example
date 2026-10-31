@@ -1,0 +1,16 @@
+# /etc/systemd/system/klick.service.d/teams.conf — Hinweise in Microsoft Teams
+# (Runbook „Microsoft Teams“ in deploy/README.md). Ohne diese Datei ist Teams
+# aus und alles geht wie bisher per Mail.
+#
+# App-Registrierung „Klick“ im Entra Admin Center (mehrere Organisationen),
+# Anwendungsrechte TeamsActivity.Send, TeamsAppInstallation.ReadWriteForUser.All,
+# User.ReadBasic.All, AppCatalog.Read.All; Umleitung https://raza.work/api/teams/consent.
+# Anmeldung mit Zertifikat (Schlüssel + Zertifikat in einer PEM-Datei, nur
+# das Zertifikat bei Entra hochladen):
+#   systemd-creds encrypt --name=teams_cert /root/klick-teams.pem /etc/credstore.encrypted/teams_cert
+#   shred -u /root/klick-teams.pem
+# Notweg statt Zertifikat: ein Geheimnis als Credential teams_client_secret
+# (dann die Zeile darunter entsprechend ändern).
+[Service]
+Environment=TEAMS_CLIENT_ID=00000000-0000-0000-0000-000000000000
+LoadCredentialEncrypted=teams_cert:/etc/credstore.encrypted/teams_cert

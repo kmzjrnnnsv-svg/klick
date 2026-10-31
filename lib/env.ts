@@ -129,6 +129,16 @@ export const envSchema = z.object({
 	MICROSOFT_CLIENT_SECRET: z.string().optional(),
 	MICROSOFT_TENANT_ID: z.string().optional(),
 
+	// Benachrichtigungen in Microsoft Teams (T5): App-Registrierung von Klick
+	// für mehrere Organisationen. Anmeldung bevorzugt mit Zertifikat (PEM mit
+	// privatem Schlüssel und Zertifikat, als systemd-Credential); ein Geheimnis
+	// geht auch. Ohne Client-ID ist Teams aus.
+	TEAMS_CLIENT_ID: z.guid().optional(),
+	TEAMS_CLIENT_SECRET: z.string().optional(),
+	TEAMS_CERT_FILE: z.string().startsWith("/").optional(),
+	// ID der Teams-App im Manifest (fest, damit Kund:innen die App erkennen)
+	TEAMS_APP_ID: z.guid().default("6c7d8f4e-2b1a-4c3d-9e8f-7a6b5c4d3e2f"),
+
 	PASSKEY_RP_ID: z.string().optional(),
 	PASSKEY_RP_NAME: z.string().default("Klick"),
 

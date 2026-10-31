@@ -34,6 +34,7 @@ import { FrameworksPanel } from "@/components/settings/frameworks-panel";
 import { IntegrationsPanel } from "@/components/settings/integrations-panel";
 import { LedgerPanel } from "@/components/settings/ledger-panel";
 import { NetworkPanel } from "@/components/settings/network-panel";
+import { NotificationPrefsPanel } from "@/components/settings/notification-prefs-panel";
 import { NumberingPanel } from "@/components/settings/numbering-panel";
 import { PlatformAccessPanel } from "@/components/settings/platform-access-panel";
 import { PolicyPortalPanel } from "@/components/settings/policy-portal-panel";
@@ -45,6 +46,7 @@ import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
 import { SubscriptionPanel } from "@/components/settings/subscription-panel";
 import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel";
+import { TeamsPanel } from "@/components/settings/teams-panel";
 import { WalletLinkPanel } from "@/components/settings/wallet-link-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
@@ -115,10 +117,14 @@ import { loadPriceTable } from "@/lib/db/pricing";
 import { flushQueuedAudits, readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
 import { berlinToday } from "@/lib/evidence-studio/queries";
+import { KIND_LABELS } from "@/lib/jobs/digest";
 import { orgLedger } from "@/lib/ledger/export";
 import { recommendServices } from "@/lib/marketing/recommend";
 import { normalizeIp } from "@/lib/net/ip";
 import { networkPolicyOf } from "@/lib/net/network-policy";
+import { PERSONAL_NOTIFICATION_KINDS } from "@/lib/notifications/channels";
+import { IMMEDIATE_MAIL_KINDS } from "@/lib/notifications/notify";
+import { loadChannelPrefs, teamsActiveFor } from "@/lib/notifications/prefs";
 import {
 	getOrgSettings,
 	listOpenAuditScopes,
@@ -141,6 +147,8 @@ import {
 	settingsGroups,
 	visibleSettingsSections,
 } from "@/lib/settings/sections";
+import { teamsConfigured } from "@/lib/teams/config";
+import { teamsIntegrationOf } from "@/lib/teams/service";
 import { cn } from "@/lib/utils";
 import { listWalletLinks } from "@/lib/wallet-link-ingest/queries";
 
@@ -215,10 +223,7 @@ export default async function SettingsPage({
 	const { key: section, chosen } = resolveSettingsSection(tab, visible);
 	const t = await getTranslations("Settings");
 	const sectionTitle = t(SECTION_LABEL[section]);
-	const panel = await renderSection(section, ctx, {
-		canEditSettings,
-		t,
-	});
+	const panel = await renderSection(section, ctx, { canEditSettings });
 	return (
 		<>
 			<div className={cn(chosen && "hidden lg:block")}>
@@ -292,13 +297,7 @@ type PageCtx = Awaited<ReturnType<typeof requireOrgPage>>;
 async function renderSection(
 	section: SettingsSectionKey,
 	ctx: PageCtx,
-	{
-		canEditSettings,
-		t,
-	}: {
-		canEditSettings: boolean;
-		t: Awaited<ReturnType<typeof getTranslations<"Settings">>>;
-	},
+	{ canEditSettings }: { canEditSettings: boolean },
 ): Promise<React.ReactNode> {
 	const octx = toOrgCtx(ctx);
 	switch (section) {
@@ -341,12 +340,24 @@ async function renderSection(
 				</>
 			);
 		}
-		case "notifications":
+		case "notifications": {
+			const { prefs, teamsActive } = await readOrg(octx, async (tx) => ({
+				prefs: (await loadChannelPrefs(tx, ctx.orgId)).get(ctx.userId),
+				teamsActive: await teamsActiveFor(tx, ctx.orgId),
+			}));
+			const immediate = new Set<string>(IMMEDIATE_MAIL_KINDS);
 			return (
-				<p className="text-muted-foreground text-subhead">
-					{t("notificationsLead")}
-				</p>
+				<NotificationPrefsPanel
+					kinds={PERSONAL_NOTIFICATION_KINDS.map((kind) => ({
+						kind,
+						label: KIND_LABELS[kind],
+						immediate: immediate.has(kind),
+					}))}
+					initial={prefs ?? { channels: {}, digestEnabled: true }}
+					teamsActive={teamsActive}
+				/>
 			);
+		}
 		case "frameworks": {
 			const cov = await getOrgCoverageCached(ctx);
 			if (!cov) return null;
@@ -941,8 +952,34 @@ async function renderSection(
 			);
 			const canCreate = allows(ctx, { integration: ["create"] });
 			const canRevoke = allows(ctx, { integration: ["revoke"] });
+			const [teams, sso] = await Promise.all([
+				readOrg(octx, (tx) => teamsIntegrationOf(tx, ctx.orgId)),
+				listSsoProvidersForOrg(ctx.orgId),
+			]);
+			const entraTenant =
+				sso
+					.map((p) =>
+						/login\.microsoftonline\.com\/([0-9a-f-]{36})/i.exec(
+							p.issuer ?? "",
+						),
+					)
+					.find(Boolean)?.[1] ?? null;
 			return (
 				<>
+					<TeamsPanel
+						configured={teamsConfigured()}
+						isOwner={ctx.orgRole === "owner"}
+						integration={
+							teams && {
+								tenantId: teams.tenantId,
+								status: teams.status,
+								enabled: teams.enabled,
+								consentedAt: teams.consentedAt,
+								lastError: teams.lastError,
+							}
+						}
+						suggestedTenant={entraTenant}
+					/>
 					<WalletLinkPanel
 						links={walletLinks}
 						origin={callbackBase()}
