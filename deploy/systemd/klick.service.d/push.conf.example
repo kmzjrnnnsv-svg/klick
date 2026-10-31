@@ -1,0 +1,14 @@
+# /etc/systemd/system/klick.service.d/push.conf — Push-Benachrichtigungen
+# (Web Push, Runbook „Push-Benachrichtigungen“ in deploy/README.md). Ohne
+# diese Datei ist Push aus und alles geht wie bisher per Mail (und Teams).
+#
+# Schlüsselpaar einmal erzeugen (bleibt fest; ein neues Paar meldet alle
+# Geräte ab):
+#   cd /opt/klick/current && runuser -u klick -- pnpm push:keys
+# Den privaten Schlüssel als Credential ablegen (nie in eine Env-Datei):
+#   systemd-creds encrypt --name=web_push_private_key - /etc/credstore.encrypted/web_push_private_key
+#   (Schlüssel einfügen, Strg+D)
+# Den öffentlichen Schlüssel unten eintragen.
+[Service]
+Environment=WEB_PUSH_PUBLIC_KEY=
+LoadCredentialEncrypted=web_push_private_key:/etc/credstore.encrypted/web_push_private_key

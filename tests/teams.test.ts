@@ -5,13 +5,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
-import {
-	channelFor,
-	mailDecision,
-	mailWanted,
-	TEAMS_MAX_ATTEMPTS,
-	teamsWanted,
-} from "@/lib/notifications/channels";
 import type { TeamsConfig } from "@/lib/teams/config";
 import {
 	adminConsentUrl,
@@ -33,52 +26,13 @@ import {
 } from "@/lib/teams/manifest";
 import { teamsWebUrl } from "@/lib/teams/service";
 
-// Microsoft Teams (T5) ohne echte Anbieter: Kanalregeln, Freigabe-Siegel,
+// Microsoft Teams (T5) ohne echte Anbieter: Freigabe-Siegel,
 // Graph-Client gegen einen nachgebauten Login- und Graph-Dienst, Manifest.
+// Kanalregeln stehen in notification-channels.test.ts.
 
 const ORG = "2f6c1c1e-4d39-4f0b-9a1e-3a6f0b9c1d22";
 const TENANT_A = "72f988bf-86f1-41af-91ab-2d7cd011db47";
 const TENANT_B = "11111111-2222-4333-8444-555555555555";
-
-describe("Kanal je Benachrichtigung", () => {
-	const active = { teamsActive: true, teamsSentAt: null, teamsAttempts: 0 };
-	it("ohne Einstellung Mail", () => {
-		expect(channelFor(undefined, "task_assigned")).toBe("mail");
-		expect(mailWanted("mail", active)).toBe(true);
-		expect(teamsWanted("mail", active)).toBe(false);
-	});
-	it("nur Teams: keine Mail, solange Teams es versucht", () => {
-		expect(teamsWanted("teams", active)).toBe(true);
-		expect(
-			mailDecision("teams", active, { digest: false, digestEnabled: true }),
-		).toBe("wait");
-		const sent = { ...active, teamsSentAt: new Date() };
-		expect(
-			mailDecision("teams", sent, { digest: true, digestEnabled: true }),
-		).toBe("skip");
-		expect(teamsWanted("teams", sent)).toBe(false);
-	});
-	it("nach drei Fehlversuchen oder ohne Teams: Mail", () => {
-		const failed = { ...active, teamsAttempts: TEAMS_MAX_ATTEMPTS };
-		expect(teamsWanted("teams", failed)).toBe(false);
-		expect(
-			mailDecision("teams", failed, { digest: false, digestEnabled: true }),
-		).toBe("send");
-		const off = { ...active, teamsActive: false };
-		expect(mailWanted("teams", off)).toBe(true);
-		expect(teamsWanted("teams", off)).toBe(false);
-	});
-	it("Mail und Teams: beides; Tages-Mail aus: Digest-Arten entfallen", () => {
-		expect(teamsWanted("both", active)).toBe(true);
-		expect(mailWanted("both", active)).toBe(true);
-		expect(
-			mailDecision("mail", active, { digest: true, digestEnabled: false }),
-		).toBe("skip");
-		expect(
-			mailDecision("mail", active, { digest: false, digestEnabled: false }),
-		).toBe("send");
-	});
-});
 
 describe("Freigabe-Link", () => {
 	const secret = "s".repeat(40);

@@ -12,6 +12,9 @@ export async function generateMetadata(): Promise<Metadata> {
 		title: { default: t("title"), template: "%s · Klick" },
 		description: t("description"),
 		applicationName: "Klick",
+		// Web-App-Manifest: auf dem iPhone Push nur als Web-App vom Home-Bildschirm
+		manifest: "/manifest.json",
+		appleWebApp: { capable: true, title: "Klick", statusBarStyle: "default" },
 		robots: { index: false, follow: false },
 		formatDetection: { telephone: false },
 	};

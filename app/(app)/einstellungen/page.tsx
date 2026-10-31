@@ -124,7 +124,11 @@ import { orgLedger } from "@/lib/ledger/export";
 import { recommendServices } from "@/lib/marketing/recommend";
 import { normalizeIp } from "@/lib/net/ip";
 import { networkPolicyOf } from "@/lib/net/network-policy";
-import { PERSONAL_NOTIFICATION_KINDS } from "@/lib/notifications/channels";
+import {
+	channelList,
+	channelsFor,
+	PERSONAL_NOTIFICATION_KINDS,
+} from "@/lib/notifications/channels";
 import { IMMEDIATE_MAIL_KINDS } from "@/lib/notifications/notify";
 import { loadChannelPrefs, teamsActiveFor } from "@/lib/notifications/prefs";
 import {
@@ -136,6 +140,8 @@ import {
 import { listOrgRoles } from "@/lib/org/roles";
 import { grantState, reportOverdue } from "@/lib/platform-access/rules";
 import { portalOf, portalReaders } from "@/lib/policy-portal/admin";
+import { pushConfig } from "@/lib/push/config";
+import { devicesOf, endpointRef } from "@/lib/push/service";
 import {
 	canCancelChange,
 	canDecideChange,
@@ -347,10 +353,15 @@ async function renderSection(
 			);
 		}
 		case "notifications": {
-			const { prefs, teamsActive } = await readOrg(octx, async (tx) => ({
-				prefs: (await loadChannelPrefs(tx, ctx.orgId)).get(ctx.userId),
-				teamsActive: await teamsActiveFor(tx, ctx.orgId),
-			}));
+			const push = pushConfig();
+			const { prefs, teamsActive, devices } = await readOrg(
+				octx,
+				async (tx) => ({
+					prefs: (await loadChannelPrefs(tx, ctx.orgId)).get(ctx.userId),
+					teamsActive: await teamsActiveFor(tx, ctx.orgId),
+					devices: push ? await devicesOf(tx, ctx.orgId, ctx.userId) : [],
+				}),
+			);
 			const immediate = new Set<string>(IMMEDIATE_MAIL_KINDS);
 			return (
 				<NotificationPrefsPanel
@@ -359,8 +370,33 @@ async function renderSection(
 						label: KIND_LABELS[kind],
 						immediate: immediate.has(kind),
 					}))}
-					initial={prefs ?? { channels: {}, digestEnabled: true }}
+					initial={{
+						channels: Object.fromEntries(
+							PERSONAL_NOTIFICATION_KINDS.map((k) => [
+								k,
+								channelList(channelsFor(prefs, k)),
+							]),
+						),
+						digestEnabled: prefs?.digestEnabled ?? true,
+					}}
 					teamsActive={teamsActive}
+					push={
+						push
+							? {
+									publicKey: push.publicKey,
+									// Endpunkt (Kennung beim Push-Dienst) bleibt am Server
+									devices: devices.map((d) => ({
+										id: d.id,
+										label: d.label,
+										createdAt: d.createdAt,
+										lastSuccessAt: d.lastSuccessAt,
+										lastError: d.lastError,
+										host: new URL(d.endpoint).hostname,
+										ref: endpointRef(d.endpoint),
+									})),
+								}
+							: null
+					}
 				/>
 			);
 		}

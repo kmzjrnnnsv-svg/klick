@@ -11,7 +11,11 @@ import {
 } from "@/db/schema";
 import { withOrg } from "@/lib/db/with-org";
 import { resetEnvCache } from "@/lib/env";
-import { channelFor, mailDecision } from "@/lib/notifications/channels";
+import {
+	channelsFor,
+	mailDecision,
+	NO_REMOTE,
+} from "@/lib/notifications/channels";
 import { loadChannelPrefs, teamsActiveFor } from "@/lib/notifications/prefs";
 import { openConsentState } from "@/lib/teams/consent";
 import type { GraphClient, GraphError, GraphResult } from "@/lib/teams/graph";
@@ -240,24 +244,31 @@ d("Benachrichtigungen in Teams (Postgres)", () => {
 		const active = await inOrg(orgs.A, (tx) => teamsActiveFor(tx, orgs.A));
 		expect(active).toBe(true);
 		const opts = { digest: false, digestEnabled: true };
-		const sent = { teamsActive: active, teamsSentAt: now, teamsAttempts: 0 };
+		const sent = {
+			...NO_REMOTE,
+			teamsActive: active,
+			teamsSentAt: now,
+			teamsAttempts: 0,
+			pushSentAt: null,
+			pushAttempts: 0,
+		};
 		expect(
 			mailDecision(
-				channelFor(prefs.get(users.ana ?? ""), "task_assigned"),
+				channelsFor(prefs.get(users.ana ?? ""), "task_assigned"),
 				sent,
 				opts,
 			),
 		).toBe("skip");
 		expect(
 			mailDecision(
-				channelFor(prefs.get(users.bo ?? ""), "task_assigned"),
+				channelsFor(prefs.get(users.bo ?? ""), "task_assigned"),
 				sent,
 				opts,
 			),
 		).toBe("send");
 		expect(
 			mailDecision(
-				channelFor(prefs.get(users.cara ?? ""), "task_assigned"),
+				channelsFor(prefs.get(users.cara ?? ""), "task_assigned"),
 				{ ...sent, teamsSentAt: null },
 				opts,
 			),
@@ -272,11 +283,14 @@ d("Benachrichtigungen in Teams (Postgres)", () => {
 		expect(st?.teamsAttempts).toBe(3);
 		const prefs = await inOrg(orgs.A, (tx) => loadChannelPrefs(tx, orgs.A));
 		const decision = mailDecision(
-			channelFor(prefs.get(users["nie-dave"] ?? ""), "task_assigned"),
+			channelsFor(prefs.get(users["nie-dave"] ?? ""), "task_assigned"),
 			{
+				...NO_REMOTE,
 				teamsActive: true,
 				teamsSentAt: null,
 				teamsAttempts: st?.teamsAttempts ?? 0,
+				pushSentAt: null,
+				pushAttempts: 0,
 			},
 			{ digest: false, digestEnabled: true },
 		);

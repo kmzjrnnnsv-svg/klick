@@ -14,12 +14,16 @@ import {
 } from "@/lib/mail/templates";
 import {
 	type ChannelPrefs,
-	channelFor,
+	channelsFor,
 	digestWanted,
 	mailDecision,
 } from "@/lib/notifications/channels";
 import { IMMEDIATE_MAIL_KINDS } from "@/lib/notifications/notify";
-import { loadChannelPrefs, teamsActiveFor } from "@/lib/notifications/prefs";
+import {
+	loadChannelPrefs,
+	pushUsersFor,
+	teamsActiveFor,
+} from "@/lib/notifications/prefs";
 import { safeInternalPath } from "@/lib/safe-path";
 
 // Mailversand für Benachrichtigungen (Plan „Benachrichtigungen"):
@@ -173,16 +177,28 @@ type Pending = {
 	name: string;
 	teamsSentAt: Date | null;
 	teamsAttempts: number;
+	pushSentAt: Date | null;
+	pushAttempts: number;
 };
 
 // Kanal-Einstellungen einer Org (Plattform-Pass: keine, also Mail)
-type OrgDelivery = { prefs: Map<string, ChannelPrefs>; teamsActive: boolean };
-const NO_PREFS: OrgDelivery = { prefs: new Map(), teamsActive: false };
+type OrgDelivery = {
+	prefs: Map<string, ChannelPrefs>;
+	teamsActive: boolean;
+	// Personen mit mindestens einem Push-Gerät (Web Push konfiguriert)
+	pushUsers: Set<string>;
+};
+const NO_PREFS: OrgDelivery = {
+	prefs: new Map(),
+	teamsActive: false,
+	pushUsers: new Set(),
+};
 
 async function orgDelivery(tx: OrgTx, orgId: string): Promise<OrgDelivery> {
 	return {
 		prefs: await loadChannelPrefs(tx, orgId),
 		teamsActive: await teamsActiveFor(tx, orgId),
+		pushUsers: await pushUsersFor(tx, orgId),
 	};
 }
 
@@ -193,11 +209,14 @@ function decide(
 ): "send" | "skip" | "wait" {
 	const prefs = d.prefs.get(r.userId);
 	return mailDecision(
-		channelFor(prefs, r.kind),
+		channelsFor(prefs, r.kind),
 		{
 			teamsActive: d.teamsActive,
 			teamsSentAt: r.teamsSentAt,
 			teamsAttempts: r.teamsAttempts,
+			pushActive: d.pushUsers.has(r.userId),
+			pushSentAt: r.pushSentAt,
+			pushAttempts: r.pushAttempts,
 		},
 		{ digest, digestEnabled: digestWanted(prefs) },
 	);
@@ -220,6 +239,8 @@ async function pendingRows(
 			name: user.name,
 			teamsSentAt: notifications.teamsSentAt,
 			teamsAttempts: notifications.teamsAttempts,
+			pushSentAt: notifications.pushSentAt,
+			pushAttempts: notifications.pushAttempts,
 		})
 		.from(notifications)
 		.innerJoin(user, eq(user.id, notifications.userId))

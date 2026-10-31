@@ -9,13 +9,15 @@ import {
 import type { AuditInput } from "@/lib/audit";
 import type { OrgTx } from "@/lib/db/with-org";
 import {
-	channelFor,
+	channelsFor,
+	NO_REMOTE,
 	TEAMS_MAX_ATTEMPTS,
 	teamsWanted,
+	wantsChannel,
 } from "@/lib/notifications/channels";
+import { notificationUrl } from "@/lib/notifications/link";
 import { notify } from "@/lib/notifications/notify";
 import { loadChannelPrefs } from "@/lib/notifications/prefs";
-import { safeInternalPath } from "@/lib/safe-path";
 import {
 	CONSENT_TTL_MS,
 	newNonce,
@@ -215,13 +217,7 @@ export async function removeTeams(
 }
 
 // Link aus der Benachrichtigung als absolute Adresse der eigenen Instanz
-export function teamsWebUrl(baseUrl: string, link: string | null): string {
-	const root = baseUrl.replace(/\/$/, "");
-	if (link && /^https?:\/\//i.test(link))
-		return link.startsWith(`${root}/`) ? link : `${root}/heute`;
-	const path = link ? safeInternalPath(link, "") : "";
-	return `${root}${path || "/heute"}`;
-}
+export const teamsWebUrl = notificationUrl;
 
 const MAX_AGE_DAYS = 3;
 const MAX_PER_RUN = 20;
@@ -241,7 +237,7 @@ export async function deliverTeams(
 		return stats;
 	const prefs = await loadChannelPrefs(tx, orgId);
 	const wantsTeams = [...prefs.entries()]
-		.filter(([, p]) => Object.values(p.channels).some((c) => c !== "mail"))
+		.filter(([, p]) => wantsChannel(p, "teams"))
 		.map(([u]) => u);
 	if (wantsTeams.length === 0) return stats;
 	const since = new Date(opts.now.getTime() - MAX_AGE_DAYS * 86_400_000);
@@ -285,11 +281,14 @@ export async function deliverTeams(
 	const tenant = integration.tenantId;
 	for (const r of rows) {
 		const state = {
+			...NO_REMOTE,
 			teamsActive: true,
 			teamsSentAt: null,
 			teamsAttempts: r.teamsAttempts,
+			pushSentAt: null,
+			pushAttempts: 0,
 		};
-		if (!teamsWanted(channelFor(prefs.get(r.userId), r.kind), state)) {
+		if (!teamsWanted(channelsFor(prefs.get(r.userId), r.kind), state)) {
 			stats.skipped++;
 			continue;
 		}

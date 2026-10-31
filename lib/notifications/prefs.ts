@@ -1,6 +1,11 @@
 import { and, eq } from "drizzle-orm";
-import { notificationPreferences, teamsIntegrations } from "@/db/schema";
+import {
+	notificationPreferences,
+	pushSubscriptions,
+	teamsIntegrations,
+} from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
+import { pushConfigured } from "@/lib/push/config";
 import { teamsConfigured } from "@/lib/teams/config";
 import type { ChannelPrefs } from "./channels";
 
@@ -46,4 +51,18 @@ export async function teamsActiveFor(
 		)
 		.limit(1);
 	return Boolean(row);
+}
+
+// Personen mit mindestens einem Push-Gerät in dieser Org (leer, solange
+// Web Push nicht konfiguriert ist)
+export async function pushUsersFor(
+	tx: OrgTx,
+	orgId: string,
+): Promise<Set<string>> {
+	if (!pushConfigured()) return new Set();
+	const rows = await tx
+		.selectDistinct({ userId: pushSubscriptions.userId })
+		.from(pushSubscriptions)
+		.where(eq(pushSubscriptions.organizationId, orgId));
+	return new Set(rows.map((r) => r.userId));
 }

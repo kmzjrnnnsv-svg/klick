@@ -436,6 +436,9 @@ export const notifications = pgTable(
 		// nach drei Fehlversuchen geht die Benachrichtigung per Mail
 		teamsSentAt: ts(),
 		teamsAttempts: integer().notNull().default(0),
+		// Push-Benachrichtigungen (Web Push): zugestellt bzw. Fehlversuche
+		pushSentAt: ts(),
+		pushAttempts: integer().notNull().default(0),
 		createdAt: createdAt(),
 	},
 	(t) => [
