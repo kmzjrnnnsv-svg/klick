@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import type { PgBoss } from "pg-boss";
 import { globalDb } from "@/db";
 import { organization } from "@/db/auth-schema";
-import { verifyAuditChain } from "@/lib/audit";
+import { type Actor, audit, verifyAuditChain } from "@/lib/audit";
 import { runLedgerAnchor, upgradePendingAnchors } from "@/lib/ledger/service";
 import { logger } from "@/lib/log";
 import { notifyPlatformAdmins } from "@/lib/notifications/notify";
@@ -152,16 +152,21 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 
 // Prüft die Plattform-Kette und jede Org-Kette. Ein Bruch ist ein
 // Sicherheitsvorfall: Alarm an alle Plattform-Admins + Fatal-Log.
-export async function runVerifyAuditChain(): Promise<{
+// Ergebnis steht als audit.chain_verified im Plattform-Protokoll (Admin >
+// Sicherheit zeigt den letzten Lauf); Org-IDs nur als Kennung, keine Inhalte.
+export async function runVerifyAuditChain(
+	actor: Actor = { userId: null },
+): Promise<{
 	checked: number;
 	broken: string[];
 }> {
 	const broken: string[] = [];
 	let checked = 0;
+	let chains: (string | null)[] = [];
 	await globalDb.transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		const orgs = await tx.select({ id: organization.id }).from(organization);
-		const chains: (string | null)[] = [null, ...orgs.map((o) => o.id)];
+		chains = [null, ...orgs.map((o) => o.id)];
 		for (const orgId of chains) {
 			const result = await verifyAuditChain(tx, orgId);
 			checked += result.checked;
@@ -178,8 +183,13 @@ export async function runVerifyAuditChain(): Promise<{
 				kind: "security_alert",
 				title: "Audit-Kette gebrochen",
 				body: `Betroffen: ${broken.join(", ")}`,
-				link: "/admin/audit",
+				link: "/admin/sicherheit",
 			});
+		await audit(tx, actor, {
+			action: "audit.chain_verified",
+			outcome: broken.length > 0 ? "failure" : "success",
+			after: { checked, chains: chains.length, broken },
+		});
 	});
 	return { checked, broken };
 }

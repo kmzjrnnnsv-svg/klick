@@ -31,6 +31,11 @@ export const ADMIN_NAV: AdminNavGroup[] = [
 	{
 		labelKey: "groupSecurity",
 		items: [
+			{
+				href: "/admin/sicherheit",
+				labelKey: "security",
+				icon: "shield-check",
+			},
 			{ href: "/admin/zugriffe", labelKey: "access", icon: "lock" },
 			{ href: "/admin/audit", labelKey: "audit", icon: "file-text" },
 		],

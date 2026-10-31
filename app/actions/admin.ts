@@ -190,9 +190,14 @@ async function setPlatformRoleImpl(
 async function verifyAuditChainActionImpl(): Promise<
 	ActionResult<{ checked: number; broken: string[] }>
 > {
-	await requirePlatformAdmin();
-	const result = await runVerifyAuditChain();
+	const a = await requirePlatformAdmin();
+	const result = await runVerifyAuditChain({
+		userId: a.userId,
+		ip: a.ip,
+		userAgent: a.userAgent,
+	});
 	revalidatePath("/admin/audit");
+	revalidatePath("/admin/sicherheit");
 	return { ok: true, data: result };
 }
 

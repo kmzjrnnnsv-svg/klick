@@ -112,7 +112,12 @@ export function buildOverview(input: OverviewInput): Overview {
 		if (age > ANCHOR_STALE_MS) {
 			anchorState = "stale";
 			anchorLevel = "bad";
-			todos.push({ key: "anchor", level: "bad", n: 1, href: "/admin" });
+			todos.push({
+				key: "anchor",
+				level: "bad",
+				n: 1,
+				href: "/admin/sicherheit",
+			});
 		} else if (input.anchor.status === "confirmed") {
 			anchorState = "confirmed";
 			anchorLevel = "ok";
@@ -127,7 +132,7 @@ export function buildOverview(input: OverviewInput): Overview {
 			key: "risks",
 			level: "warn",
 			n: input.acceptedRisks.length,
-			href: "/admin",
+			href: "/admin/sicherheit",
 		});
 
 	if (input.feesDue > 0)
@@ -161,13 +166,13 @@ export function buildOverview(input: OverviewInput): Overview {
 			level: anchorLevel,
 			state: anchorState,
 			at: input.anchor?.createdAt ?? null,
-			href: "/admin",
+			href: "/admin/sicherheit",
 		},
 		{
 			key: "risks",
 			level: input.acceptedRisks.length > 0 ? "warn" : "ok",
 			risks: input.acceptedRisks,
-			href: "/admin",
+			href: "/admin/sicherheit",
 		},
 		{
 			key: "access",
