@@ -145,6 +145,38 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 					"Abdeckung je Rahmenwerk und Erklärung zur Anwendbarkeit, abgeleitet statt von Hand gepflegt.",
 			},
 			{
+				key: "exclusions",
+				name: "Ausschluss mit Begründung",
+				summary:
+					"Ausschließen geht nur, wo das Rahmenwerk es vorsieht: Anhang A von ISO 27001, PCI DSS, Zusatzkategorien von SOC 2.",
+				where: "Rahmenwerke > Anforderung, Gap-Analyse",
+				trigger:
+					"Eine Anforderung passt nicht zu deinem Unternehmen, oder in der Gap-Analyse antwortest du „nicht relevant“.",
+				steps: [
+					"Klick zeigt je betroffener Anforderung, was passiert: wird in der SoA ausgeschlossen oder bleibt offen, weil das Rahmenwerk keinen Ausschluss kennt.",
+					"Begründung eintragen; sie steht danach in der SoA und im Prüfungspaket.",
+					"Das Control entfällt nur, wenn alle seine Anforderungen ausgeschlossen sind. DORA, NIS2 oder GwG zählen es weiter.",
+				],
+				result:
+					"Eine SoA mit begründeten Ausschlüssen; Ausschlüsse ohne Grundlage stehen als Blocker in der Prüfungsreife.",
+			},
+			{
+				key: "variants",
+				name: "PCI DSS nach SAQ, IT-Grundschutz nach Variante",
+				summary:
+					"Du siehst nur die Anforderungen, die für deinen Fragebogen bzw. deine Absicherungsvariante gelten.",
+				where: "Einstellungen > Rahmenwerke, Einrichtung",
+				trigger:
+					"In der Einrichtung gibst du an, wie ihr mit Kartendaten umgeht, oder du wählst BSI-Standard 200-2.",
+				steps: [
+					"Kartenzahlungen über einen Zahlungsdienstleister: SAQ A mit wenigen Dutzend Anforderungen; Kartendaten im eigenen System: SAQ D bzw. Prüfbericht; Dienstleister: alles.",
+					"IT-Grundschutz: Basis-, Standard- oder Kern-Absicherung wählen; Kapitel der anderen Varianten entfallen.",
+					"Die Gap-Analyse fragt weiter je Control, die Anforderungsseite zeigt jede Nummer wie im Prüfbericht.",
+				],
+				result:
+					"Ein Arbeitsvorrat, der zu deinem Umfang passt; ein Wechsel der Variante rechnet die Anwendbarkeit neu.",
+			},
+			{
 				key: "evidence",
 				name: "Nachweise hochladen",
 				summary:
@@ -332,6 +364,22 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				],
 				result:
 					"Risikoregister mit Matrix, Maßnahmenplan und Bericht zur Risikoanalyse.",
+			},
+			{
+				key: "risk-bsi",
+				name: "Risikoanalyse nach BSI-Standard 200-3",
+				summary:
+					"Vier Stufen, Matrix mit Kategorien von gering bis sehr hoch und die 47 elementaren Gefährdungen.",
+				where: "Einstellungen > Risikomethodik, Risiken > Neu",
+				trigger:
+					"Ein Zielobjekt hat hohen Schutzbedarf, oder deine Organisation arbeitet nach IT-Grundschutz.",
+				steps: [
+					"Vorlage „BSI-Standard 200-3“ wählen: Eintrittshäufigkeit und Schadenshöhe in vier Stufen, Risikokategorie aus der Matrix.",
+					"Wechselst du von fünf auf vier Stufen, zeigt Klick vorher die Umrechnung je Risiko und merkt die Risiken zur neuen Bewertung vor.",
+					"Im Risiko-Assistenten eine Gefährdung von G 0.1 bis G 0.47 wählen; passende Controls sind vorgeschlagen.",
+				],
+				result:
+					"Gefährdungsübersicht und Risikobewertung nach 200-3, mit Behandlung und Bericht wie bei jeder Risikoanalyse.",
 			},
 			{
 				key: "risk-sources",
@@ -666,6 +714,23 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				],
 				result: "Keine Frist, die nur in einem Kopf existiert.",
 			},
+			{
+				key: "teams",
+				name: "Hinweise in Microsoft Teams",
+				summary:
+					"Freigaben, Aufgaben und Fristen erscheinen im Aktivitätsfeed von Teams; ein Klick öffnet die Seite in Klick.",
+				where:
+					"Einstellungen > Integrationen, Einstellungen > Benachrichtigungen",
+				trigger:
+					"Deine Organisation arbeitet in Microsoft 365 und will weniger Mails.",
+				steps: [
+					"Inhaber:in trägt den Tenant ein und schickt der eigenen IT den Freigabe-Link; die IT lädt das App-Paket in Teams hoch.",
+					"Nach der Freigabe schaltet die Inhaber:in Teams ein und schickt sich einen Testhinweis.",
+					"Jede Person wählt je Art: Mail, Teams oder beides, und ob die Tages-Mail kommt.",
+				],
+				result:
+					"An Microsoft gehen nur Titel und Link. Klappt die Zustellung dreimal nicht, kommt die Nachricht per Mail.",
+			},
 		],
 	},
 	{
@@ -932,6 +997,10 @@ export const PICKER_FRAMEWORKS: { slug: string; label: string }[] = [
 	{ slug: "cra", label: "CRA" },
 	{ slug: "soc2", label: "SOC 2" },
 	{ slug: "ccss", label: "CCSS" },
+	{ slug: "pci-dss", label: "PCI DSS" },
+	{ slug: "bsi-200-2", label: "IT-Grundschutz" },
+	{ slug: "bsi-200-3", label: "BSI 200-3" },
+	{ slug: "bsi-200-4", label: "BSI 200-4" },
 ];
 export const PICKER_DEFAULT = ["iso27001", "dora", "micar", "gwg"];
 

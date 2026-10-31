@@ -50,6 +50,10 @@ const SANCTIONS = "Kund:innen und Zahlungen gegen die Sanktionslisten prüfen.";
 const ISO =
 	"Zertifizierbares Managementsystem, das die Nachweise der anderen Rahmenwerke bündelt.";
 const SOC2 = "Prüfbericht, den Banken und große Kund:innen oft verlangen.";
+const PCI_CARDS =
+	"Wickelst du Kartenzahlungen ab oder speicherst Kartendaten, verlangen Acquirer und Kartenorganisationen PCI DSS; der Umfang folgt deinem Fragebogen (SAQ).";
+const GRUNDSCHUTZ =
+	"IT-Grundschutz des BSI: in Deutschland verbreitet, von öffentlichen Auftraggebern oft verlangt, zertifizierbar als ISO 27001 auf Basis von IT-Grundschutz.";
 
 export const AUDIENCES: Audience[] = [
 	{
@@ -73,8 +77,14 @@ export const AUDIENCES: Audience[] = [
 				level: "indirect",
 				why: "Sind Banken, Zahlungsinstitute oder Krypto-Dienstleister deine Kund:innen, verlangen sie Vertragsklauseln nach Art. 30, Prüfrechte und Ausstiegspläne.",
 			},
+			{
+				slug: "pci-dss",
+				level: "depends",
+				why: "Wenn du Kartendaten für andere speicherst, verarbeitest oder übermittelst, etwa als Shop- oder Zahlungsplattform: alle Anforderungen für Dienstleister.",
+			},
 			{ slug: "iso27001", level: "voluntary", why: ISO },
 			{ slug: "soc2", level: "voluntary", why: SOC2 },
+			{ slug: "bsi-200-2", level: "voluntary", why: GRUNDSCHUTZ },
 		],
 	},
 	{
@@ -97,6 +107,11 @@ export const AUDIENCES: Audience[] = [
 				slug: "dora",
 				level: "indirect",
 				why: "Setzen Finanzunternehmen dein Produkt für wichtige Funktionen ein, gelten deren Vertragsklauseln nach Art. 30 auch für dich.",
+			},
+			{
+				slug: "pci-dss",
+				level: "depends",
+				why: "Wenn dein Produkt Kartenzahlungen annimmt, etwa ein Shop, eine App oder ein Kassensystem: der Umfang folgt deinem Fragebogen (SAQ).",
 			},
 			{ slug: "iso27001", level: "voluntary", why: ISO },
 		],
@@ -136,6 +151,7 @@ export const AUDIENCES: Audience[] = [
 				level: "depends",
 				why: "Meldungen zur Zahlungsbilanz, je nach Art und Höhe der Zahlungen.",
 			},
+			{ slug: "pci-dss", level: "depends", why: PCI_CARDS },
 			{ slug: "iso27001", level: "voluntary", why: ISO },
 			{ slug: "soc2", level: "voluntary", why: SOC2 },
 		],
@@ -218,6 +234,11 @@ export const AUDIENCES: Audience[] = [
 				slug: "awv",
 				level: "depends",
 				why: "Meldungen zur Zahlungsbilanz, je nach Art und Höhe der Zahlungen.",
+			},
+			{
+				slug: "pci-dss",
+				level: "depends",
+				why: "Im Kartengeschäft, also bei Ausgabe oder Annahme von Karten, verlangen die Kartenorganisationen PCI DSS.",
 			},
 			{ slug: "iso27001", level: "voluntary", why: ISO },
 			{ slug: "soc2", level: "voluntary", why: SOC2 },
