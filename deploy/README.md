@@ -406,6 +406,11 @@ Units `klick-health.{service,timer}` kopieren, `systemctl enable --now klick-hea
 Probe: `systemctl start klick-health && journalctl -u klick-health -n 20`. Meldet Platte ≥ 85 %,
 Zertifikate < 14 Tage, Dienste mit Fehler, auditd, nftables, CrowdSec-Sperren und ausstehenden
 Neustart; Fehler gehen über `klick-alert@` an `ALERT_MAIL`.
+Zusätzlich schreibt der Lauf `/var/lib/klick-health/status.json` (Ordner
+`install -d -m 2750 -o root -g klick /var/lib/klick-health`, Datei 0640): Platten, Arbeitsspeicher,
+Updates, Neustart, Zertifikate, Dienste, Sicherungen, AIDE, CrowdSec. Admin > Betrieb liest nur diese
+Datei (die App hat kein root); fehlt der Ordner, schreibt das Skript keine Datei. Die Rollout-Phase
+`ueberwachung` legt den Ordner an.
 
 **10. App-Seite: Admin-Netz und Start-Prüfung**
 1. Die Units setzen das Admin-Netz schon (`ADMIN_NETWORKS` in `klick.service`,

@@ -26,6 +26,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
 			{ href: "/admin", labelKey: "overview", icon: "gauge" },
 			{ href: "/admin/orgs", labelKey: "orgs", icon: "building" },
 			{ href: "/admin/users", labelKey: "users", icon: "users" },
+			{ href: "/admin/betrieb", labelKey: "operations", icon: "server" },
 		],
 	},
 	{

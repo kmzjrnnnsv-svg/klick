@@ -182,6 +182,11 @@ export const envSchema = z.object({
 	GLITCHTIP_DSN: z.url().optional(),
 
 	KLICK_RELEASE: z.string().optional(),
+	// Statusdatei von scripts/host-health.sh (Admin > Betrieb, nur lesen)
+	HOST_STATUS_FILE: z
+		.string()
+		.startsWith("/")
+		.default("/var/lib/klick-health/status.json"),
 	ORG_DATABASE_URLS: z
 		.string()
 		.optional()

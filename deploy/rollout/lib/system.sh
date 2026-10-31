@@ -377,6 +377,11 @@ phase_virenscanner() {
 phase_ueberwachung() {
 	titel "Zustand überwachen (klick-health)"
 	einspielen "$ROOT_DIR/scripts/host-health.sh" /usr/local/lib/klick-health/host-health.sh 0755
+	# Statusdatei für Admin > Betrieb: root schreibt, Gruppe klick liest
+	# (setgid, damit neue Dateien die Gruppe erben)
+	if id klick >/dev/null 2>&1; then
+		aendern install -d -m 2750 -o root -g klick /var/lib/klick-health
+	fi
 	local u
 	for u in klick-health.service klick-health.timer klick-alert@.service; do
 		einspielen "$DEPLOY/systemd/$u" "/etc/systemd/system/$u"

@@ -203,6 +203,14 @@ describe("Dateien", () => {
 			"deb [signed-by=%s] https://packagecloud.io/crowdsec/crowdsec/ubuntu/",
 		);
 	});
+
+	it("Überwachung legt den Ordner der Statusdatei an (root schreibt, klick liest)", () => {
+		const sys = read(`${DIR}/lib/system.sh`);
+		const phase = sys.slice(sys.indexOf("phase_ueberwachung()"));
+		expect(phase).toContain(
+			"install -d -m 2750 -o root -g klick /var/lib/klick-health",
+		);
+	});
 });
 
 describe("Aufruf", () => {

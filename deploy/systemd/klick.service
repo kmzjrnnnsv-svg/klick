@@ -72,6 +72,8 @@ UMask=0077
 # Die Apps sehen einander nicht (gleicher Server, Härtung H5)
 InaccessiblePaths=-/opt/both -/etc/both -/var/lib/klick-signer -/var/backups -/var/lib/klick-backup -/root
 SystemCallErrorNumber=EPERM
+# Server-Status aus klick-health (nur lesen, Gruppe klick)
+ReadOnlyPaths=-/var/lib/klick-health
 # Node braucht JIT (kein MemoryDenyWriteExecute); schreibbar nur Caches + Logs.
 # /opt/klick/.cache: @swc/core legt dort beim Laden von next.config.ts sein
 # natives Binding ab (Lifecycle-Skripte sind blockiert).

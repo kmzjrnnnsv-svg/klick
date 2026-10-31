@@ -118,6 +118,12 @@ describe("systemd-Units", () => {
 		expect(health).toContain(
 			"ExecStart=/usr/local/lib/klick-health/host-health.sh",
 		);
+		// Statusdatei für Admin > Betrieb: nur dieser Ordner schreibbar, die
+		// App liest ihn nur (Gruppe klick)
+		expect(health).toContain("ReadWritePaths=-/var/lib/klick-health");
+		const app = lines(read(`${UNIT_DIR}/klick.service`));
+		expect(app).toContain("ReadOnlyPaths=-/var/lib/klick-health");
+		expect(app.join("\n")).not.toMatch(/ReadWritePaths=.*klick-health/);
 	});
 });
 
