@@ -104,7 +104,7 @@ export function oidcMfa(claims: Record<string, unknown> | null | undefined) {
 
 // SAML: Entra/ADFS melden die Methoden im Attribut authnmethodsreferences
 // (…/claims/multipleauthn); andere IdPs per AuthnContextClassRef-Attribut.
-const SAML_MFA = [
+export const SAML_MFA_VALUES: readonly string[] = [
 	"http://schemas.microsoft.com/claims/multipleauthn",
 	"urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract",
 	"urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken",
@@ -117,7 +117,7 @@ export function samlMfa(
 	for (const [k, v] of Object.entries(attributes ?? {})) {
 		if (!/authnmethodsreferences|authncontextclassref/i.test(k)) continue;
 		const vals = Array.isArray(v) ? v : [v];
-		if (vals.some((x) => typeof x === "string" && SAML_MFA.includes(x)))
+		if (vals.some((x) => typeof x === "string" && SAML_MFA_VALUES.includes(x)))
 			return true;
 	}
 	return false;

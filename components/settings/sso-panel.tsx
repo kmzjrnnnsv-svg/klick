@@ -8,6 +8,7 @@ import {
 	registerOidcPreset,
 	requestSsoDomainVerification,
 	saveSsoPolicy,
+	startSsoProbe,
 	testSsoDiscovery,
 	verifySsoDomain,
 } from "@/app/actions/sso";
@@ -74,6 +75,8 @@ const SSO_ERRORS = new Set([
 	"sso_metadata_no_cert",
 	"sso_metadata_cert_invalid",
 	"sso_cert_invalid",
+	"sso_probe_unverified",
+	"sso_probe_failed",
 ]);
 
 export function SsoPanel({
@@ -143,6 +146,14 @@ export function SsoPanel({
 									certNotAfter={p.certNotAfter}
 									metadataUrl={p.metadataUrl}
 								/>
+								{canEdit &&
+									p.protocol === "saml" &&
+									p.domainVerified &&
+									!p.probeOkAt && (
+										<p className="text-footnote text-muted-foreground">
+											{t("probeHint")}
+										</p>
+									)}
 								<CallbackInfo
 									base={callbackBase}
 									providerId={p.providerId}
@@ -202,6 +213,22 @@ export function SsoPanel({
 													{t("verify")}
 												</Button>
 											</>
+										)}
+										{p.protocol === "saml" && p.domainVerified && (
+											<Button
+												size="sm"
+												variant={p.probeOkAt ? "secondary" : "default"}
+												disabled={pending}
+												onClick={() =>
+													start(async () => {
+														const res = await startSsoProbe(p.providerId);
+														if (!res.ok) return fail(res.error);
+														window.location.assign(res.data.url);
+													})
+												}
+											>
+												{t("probe")}
+											</Button>
 										)}
 										<Button
 											size="sm"

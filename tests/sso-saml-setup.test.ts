@@ -282,3 +282,39 @@ describe("Probe: was in der Antwort ankam", () => {
 		).toBeNull();
 	});
 });
+
+describe("Probe: Ursache in Klartext", () => {
+	it("übersetzt die Fehler des Rückrufs", async () => {
+		const { probeErrorKey } = await import("@/lib/auth/sso-probe-errors");
+		expect(probeErrorKey("SSO_PROBE_DONE", null)).toBeNull();
+		expect(probeErrorKey(null, null)).toBeNull();
+		expect(
+			probeErrorKey(
+				"invalid_saml_response",
+				"SAML assertion audience does not match this Service Provider",
+			),
+		).toBe("audience");
+		expect(
+			probeErrorKey(
+				"invalid_saml_response",
+				"SAML bearer SubjectConfirmationData Recipient does not match this Service Provider",
+			),
+		).toBe("recipient");
+		expect(
+			probeErrorKey("invalid_saml_response", "SAML assertion has expired"),
+		).toBe("expired");
+		expect(
+			probeErrorKey("invalid_saml_response", "SAML assertion is not yet valid"),
+		).toBe("clock");
+		expect(
+			probeErrorKey(
+				"invalid_saml_response",
+				"SAML assertion signature is required",
+			),
+		).toBe("signature");
+		expect(probeErrorKey("replay_detected", null)).toBe("replay");
+		expect(probeErrorKey("invalid_state", null)).toBe("state");
+		expect(probeErrorKey("algorithm", null)).toBe("algorithm");
+		expect(probeErrorKey("irgendwas", null)).toBe("other");
+	});
+});

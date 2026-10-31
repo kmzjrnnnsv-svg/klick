@@ -1,14 +1,16 @@
 "use server";
 
+import { inflateRawSync } from "node:zlib";
 import { APIError } from "better-auth/api";
-import { eq } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { orgSettings } from "@/db/schema";
+import { orgSettings, ssoProbes } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { listSsoProvidersForOrg } from "@/lib/auth/org";
 import {
+	authnRequestId,
 	type CertInfo,
 	certificateInfo,
 	certWarnings,
@@ -16,6 +18,7 @@ import {
 import { auth } from "@/lib/auth/server";
 import { AuthError } from "@/lib/auth/session-rules";
 import { providerPreset, ssoPolicyOf } from "@/lib/auth/sso-policy";
+import { PROBE_TTL_MS, probePath } from "@/lib/auth/sso-probe";
 import { samlRegistration } from "@/lib/auth/sso-saml";
 import { SAML_PRESETS } from "@/lib/auth/sso-saml-vendors";
 import {
@@ -495,3 +498,70 @@ export const testSsoDiscovery = safeAction(
 	"testSsoDiscovery",
 	testSsoDiscoveryImpl,
 );
+
+// Probe-Anmeldung (AP10b): eigene AuthnRequest, deren ID Klick sich merkt.
+// Kommt die Antwort, halten die Hooks fest, was ankam, und brechen ab
+// (lib/auth/sso-probe.ts) — kein Konto, keine Sitzung. Kein Step-up: es
+// entsteht nichts.
+async function startSsoProbeImpl(
+	providerId: string,
+): Promise<ActionResult<{ url: string }>> {
+	const c = await requireOrg({ settings: ["update"] });
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const parsed = providerIdSchema.safeParse(providerId);
+	if (!parsed.success) return fromZod(parsed.error);
+	const provider = (await listSsoProvidersForOrg(c.orgId)).find(
+		(p) => p.providerId === parsed.data,
+	);
+	if (!provider || provider.protocol !== "saml")
+		return { ok: false, error: "not_found" };
+	if (!provider.domainVerified)
+		return { ok: false, error: "sso_probe_unverified" };
+	const probeId = crypto.randomUUID();
+	const back = probePath(probeId);
+	let url: string;
+	try {
+		const r = await auth.api.signInSSO({
+			body: {
+				providerId: parsed.data,
+				callbackURL: back,
+				errorCallbackURL: back,
+			},
+		});
+		url = r.url;
+	} catch (e) {
+		return mapError(e);
+	}
+	const requestId = authnRequestId(url, inflateRawSync);
+	if (!requestId) return { ok: false, error: "sso_probe_failed" };
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		// alte Proben dieser Org nach einem Tag weg (enthalten Personendaten)
+		await tx
+			.delete(ssoProbes)
+			.where(
+				and(
+					eq(ssoProbes.organizationId, c.orgId),
+					lt(ssoProbes.createdAt, new Date(Date.now() - 86_400_000)),
+				),
+			);
+		await tx.insert(ssoProbes).values({
+			id: probeId,
+			organizationId: c.orgId,
+			providerId: parsed.data,
+			requestId,
+			requestedBy: c.userId,
+			expiresAt: new Date(Date.now() + PROBE_TTL_MS),
+		});
+		return {
+			result: null,
+			audit: {
+				action: "sso.probe_started",
+				target: `sso_provider:${parsed.data}`,
+				after: { probeId },
+			},
+		};
+	});
+	return { ok: true, data: { url } };
+}
+
+export const startSsoProbe = safeAction("startSsoProbe", startSsoProbeImpl);
