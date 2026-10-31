@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
 import { NavIcon } from "@/components/shell/nav-icon";
+import { ContainedScroll } from "@/components/ui/contained-scroll";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -190,7 +191,10 @@ export default async function HelpArticlePage({
 						</ListGroup>
 					) : null}
 				</article>
-				<aside className="order-first flex flex-col gap-6 self-start lg:sticky lg:top-20 lg:order-none">
+				<ContainedScroll
+					as="aside"
+					className="order-first flex flex-col gap-6 self-start lg:sticky lg:top-20 lg:order-none lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-4"
+				>
 					{pages.length ? (
 						<ListGroup>
 							<ListSection title={t("toPage")}>
@@ -224,7 +228,7 @@ export default async function HelpArticlePage({
 							</ul>
 						</nav>
 					)}
-				</aside>
+				</ContainedScroll>
 			</div>
 		</>
 	);

@@ -50,6 +50,7 @@ import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel
 import { TeamsPanel } from "@/components/settings/teams-panel";
 import { WalletLinkPanel } from "@/components/settings/wallet-link-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
+import { ContainedScroll } from "@/components/ui/contained-scroll";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
 import {
 	approvalWorkflows,
@@ -244,11 +245,13 @@ export default async function SettingsPage({
 				</div>
 			)}
 			<div className="grid grid-cols-1 gap-8 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-				<nav
+				<ContainedScroll
+					as="nav"
 					aria-label={t("title")}
-					// Am Desktop ist die Liste eine Seitenleiste: ohne Pfeile
+					// Am Desktop ist die Liste eine Seitenleiste: ohne Pfeile, mit
+					// eigener Scrollfläche (scrollt für sich, nie den Inhalt mit)
 					className={cn(
-						"lg:sticky lg:top-20 lg:[&_.lucide-chevron-right]:hidden",
+						"lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1 lg:pb-4 lg:[&_.lucide-chevron-right]:hidden",
 						chosen && "hidden lg:block",
 					)}
 				>
@@ -273,7 +276,7 @@ export default async function SettingsPage({
 							</ListSection>
 						))}
 					</ListGroup>
-				</nav>
+				</ContainedScroll>
 				<section
 					aria-labelledby="einstellungen-bereich"
 					className={cn(

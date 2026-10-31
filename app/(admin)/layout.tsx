@@ -5,6 +5,7 @@ import { AdminNav, type AdminNavSection } from "@/components/admin/admin-nav";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import { LegalLinks } from "@/components/shell/legal-links";
 import { buttonVariants } from "@/components/ui/button";
+import { ContainedScroll } from "@/components/ui/contained-scroll";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 import { gateAdmin } from "@/lib/auth/gates";
 import { getSessionCtx } from "@/lib/auth/guards";
@@ -55,9 +56,12 @@ export default async function AdminLayout({
 				<AdminNav sections={sections} variant="chips" />
 			</header>
 			<div className="mx-auto flex w-full max-w-7xl grow gap-8 px-4 py-8 sm:px-6">
-				<aside className="sticky top-22 hidden h-fit w-56 shrink-0 lg:block">
+				<ContainedScroll
+					as="aside"
+					className="sticky top-22 hidden max-h-[calc(100dvh-6.5rem)] w-56 shrink-0 self-start overflow-y-auto overscroll-contain pb-4 lg:block"
+				>
 					<AdminNav sections={sections} variant="sidebar" />
-				</aside>
+				</ContainedScroll>
 				<main id="inhalt" className="min-w-0 grow">
 					{children}
 				</main>

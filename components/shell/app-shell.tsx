@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
+import { ContainedScroll } from "@/components/ui/contained-scroll";
 import type { OrgContext } from "@/lib/auth/guards";
 import { isExternal, ROLE_LABEL } from "@/lib/auth/memberships";
 import type { NavGroup } from "@/lib/nav";
@@ -48,7 +49,7 @@ export async function AppShell({
 						{t("productName")}
 					</Link>
 				</div>
-				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-4">
+				<ContainedScroll className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-4">
 					<div className="mb-3 px-2">
 						{orgs.length > 1 ? (
 							<div className="-mx-1">
@@ -70,7 +71,7 @@ export async function AppShell({
 						)}
 					</div>
 					<SidebarNav groups={groups} />
-				</div>
+				</ContainedScroll>
 			</aside>
 			<div className="flex min-w-0 flex-1 flex-col">
 				<header className="material-bar sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-border/60 border-b pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] sm:px-6">
