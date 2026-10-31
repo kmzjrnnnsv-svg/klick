@@ -6,7 +6,6 @@ import { useState, useTransition } from "react";
 import {
 	deleteSsoProvider,
 	registerOidcPreset,
-	registerSamlProvider,
 	requestSsoDomainVerification,
 	saveSsoPolicy,
 	testSsoDiscovery,
@@ -16,13 +15,13 @@ import { withStepUp } from "@/components/auth/step-up-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-alert";
+import { CopyValue } from "@/components/ui/copy-value";
 import { errorText, isFourEyesNotice } from "@/components/ui/error-text";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ListGroup, ListSection } from "@/components/ui/list";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import {
 	providerPreset,
@@ -31,6 +30,10 @@ import {
 	type SsoPolicy,
 	type SsoRole,
 } from "@/lib/auth/sso-policy";
+import { samlAcsUrl, samlSpEntityId } from "@/lib/auth/sso-saml";
+import { isSamlVendor } from "@/lib/auth/sso-saml-vendors";
+import { ProviderStatus } from "./sso-provider-status";
+import { SamlForm } from "./sso-saml-form";
 
 // Einstellungen > SSO (S1–S3): Anbieter je Kunde mit geführter Einrichtung
 // (Entra ID, Google Workspace, Okta, OIDC, SAML), Domain-Nachweis, Regeln
@@ -45,6 +48,12 @@ export type SsoProviderRow = {
 	domainVerified: boolean;
 	clientId: string | null;
 	discoveryEndpoint: string | null;
+	// Stand aus sso_provider_states (AP10)
+	vendor: string | null;
+	certNotAfter: string | null;
+	metadataUrl: string | null;
+	probeOkAt: string | null;
+	nextCert: boolean;
 };
 
 type Kind = SsoKind | "saml";
@@ -55,6 +64,16 @@ const SSO_ERRORS = new Set([
 	"sso_saml_entity",
 	"sso_enforce_unverified",
 	"sso_discovery_failed",
+	"sso_metadata_url",
+	"sso_metadata_fetch",
+	"sso_metadata_too_large",
+	"sso_metadata_doctype",
+	"sso_metadata_invalid",
+	"sso_metadata_many_entities",
+	"sso_metadata_no_idp",
+	"sso_metadata_no_cert",
+	"sso_metadata_cert_invalid",
+	"sso_cert_invalid",
 ]);
 
 export function SsoPanel({
@@ -106,9 +125,9 @@ export function SsoPanel({
 									<Badge variant="muted">
 										{p.protocol === "saml" ? "SAML 2.0" : "OpenID Connect"}
 									</Badge>
-									<Badge variant={p.domainVerified ? "success" : "warning"}>
-										{p.domainVerified ? t("verified") : t("unverified")}
-									</Badge>
+									{p.vendor && isSamlVendor(p.vendor) && (
+										<Badge variant="muted">{t(`vendor_${p.vendor}`)}</Badge>
+									)}
 								</div>
 								<p
 									className="break-all text-muted-foreground text-footnote"
@@ -116,20 +135,30 @@ export function SsoPanel({
 								>
 									{p.providerId} · {p.issuer}
 								</p>
+								<ProviderStatus
+									protocol={p.protocol}
+									domainVerified={p.domainVerified}
+									probeOk={Boolean(p.probeOkAt)}
+									enforced={policy.enforce && p.domainVerified}
+									certNotAfter={p.certNotAfter}
+									metadataUrl={p.metadataUrl}
+								/>
 								<CallbackInfo
 									base={callbackBase}
 									providerId={p.providerId}
 									protocol={p.protocol}
 								/>
 								{tokens[p.providerId] && (
-									<div className="flex flex-col gap-1 rounded-xl bg-muted/50 p-3 text-footnote">
-										<p>{t("dnsHint")}</p>
-										<p className="break-all font-mono" translate="no">
-											_klick-sso.{p.domain}
-										</p>
-										<p className="break-all font-mono" translate="no">
-											{tokens[p.providerId]}
-										</p>
+									<div className="flex flex-col gap-2 rounded-xl bg-muted/50 p-3">
+										<p className="text-footnote">{t("dnsHint")}</p>
+										<CopyValue
+											label={t("dnsName")}
+											value={`_klick-sso.${p.domain}`}
+										/>
+										<CopyValue
+											label={t("dnsValue")}
+											value={tokens[p.providerId] ?? ""}
+										/>
 									</div>
 								)}
 								{canEdit && (
@@ -226,23 +255,15 @@ function CallbackInfo({
 	const t = useTranslations("SsoSetup");
 	const id = providerId || "<kennung>";
 	return protocol === "saml" ? (
-		<div className="flex flex-col gap-0.5 text-footnote">
-			<span className="text-muted-foreground">{t("samlAcs")}</span>
-			<code className="break-all" translate="no">
-				{base}/api/auth/sso/saml2/sp/acs/{id}
-			</code>
-			<span className="text-muted-foreground">{t("samlEntity")}</span>
-			<code className="break-all" translate="no">
-				{base}/api/auth/sso/saml2/sp/metadata?providerId={id}
-			</code>
+		<div className="flex flex-col gap-2">
+			<CopyValue label={t("valueAcs")} value={samlAcsUrl(base, id)} />
+			<CopyValue label={t("samlEntity")} value={samlSpEntityId(base, id)} />
 		</div>
 	) : (
-		<div className="flex flex-col gap-0.5 text-footnote">
-			<span className="text-muted-foreground">{t("redirectUri")}</span>
-			<code className="break-all" translate="no">
-				{base}/api/auth/sso/callback/{id}
-			</code>
-		</div>
+		<CopyValue
+			label={t("redirectUri")}
+			value={`${base}/api/auth/sso/callback/${id}`}
+		/>
 	);
 }
 
@@ -254,11 +275,6 @@ const EMPTY = {
 	issuer: "",
 	clientId: "",
 	clientSecret: "",
-	metadataXml: "",
-	entityId: "",
-	ssoUrl: "",
-	certificate: "",
-	groupsAttribute: "",
 };
 
 function AddProvider({
@@ -285,7 +301,7 @@ function AddProvider({
 					oktaDomain: form.oktaDomain,
 					issuer: form.issuer,
 				});
-	const steps = t.raw(`steps_${kind}`) as string[];
+	const steps = kind === "saml" ? [] : (t.raw(`steps_${kind}`) as string[]);
 
 	const field = (
 		k: keyof typeof EMPTY,
@@ -335,33 +351,27 @@ function AddProvider({
 					</button>
 				))}
 			</fieldset>
-			<ol className="flex list-decimal flex-col gap-1 pl-5 text-subhead">
-				{steps.map((s) => (
-					<li key={s}>{s}</li>
-				))}
-			</ol>
-			<CallbackInfo
-				base={callbackBase}
-				providerId={form.providerId}
-				protocol={kind === "saml" ? "saml" : "oidc"}
-			/>
-			<form
-				className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-				onSubmit={(e) => {
-					e.preventDefault();
-					start(async () => {
-						const res = await withStepUp(() =>
-							kind === "saml"
-								? registerSamlProvider({
-										providerId: form.providerId,
-										domain: form.domain,
-										metadataXml: form.metadataXml || undefined,
-										entityId: form.entityId || undefined,
-										ssoUrl: form.ssoUrl,
-										certificate: form.certificate || undefined,
-										groupsAttribute: form.groupsAttribute || undefined,
-									})
-								: registerOidcPreset({
+			{kind === "saml" ? (
+				<SamlForm callbackBase={callbackBase} message={message} />
+			) : (
+				<>
+					<ol className="flex list-decimal flex-col gap-1 pl-5 text-subhead">
+						{steps.map((s) => (
+							<li key={s}>{s}</li>
+						))}
+					</ol>
+					<CallbackInfo
+						base={callbackBase}
+						providerId={form.providerId}
+						protocol="oidc"
+					/>
+					<form
+						className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+						onSubmit={(e) => {
+							e.preventDefault();
+							start(async () => {
+								const res = await withStepUp(() =>
+									registerOidcPreset({
 										kind,
 										providerId: form.providerId,
 										domain: form.domain,
@@ -371,112 +381,74 @@ function AddProvider({
 										clientId: form.clientId,
 										clientSecret: form.clientSecret,
 									}),
-						);
-						if (!res.ok) return void setError(message(res.error));
-						setError(null);
-						setForm(EMPTY);
-						toast.success(t("registered"));
-						router.refresh();
-					});
-				}}
-			>
-				{field("providerId", t("providerId"), {
-					placeholder: t("providerIdPlaceholder"),
-					className: "font-mono",
-				})}
-				{field("domain", t("domain"), { placeholder: "z. B. firma.de" })}
-				{kind === "entra" &&
-					field("tenant", t("tenant"), {
-						placeholder: "z. B. 0b6f6a1e-…-944455556666",
-						className: "font-mono",
-					})}
-				{kind === "okta" &&
-					field("oktaDomain", t("oktaDomain"), {
-						placeholder: "z. B. firma.okta.com",
-					})}
-				{kind === "oidc" &&
-					field("issuer", t("issuer"), {
-						placeholder: "z. B. https://login.firma.de",
-						type: "url",
-					})}
-				{kind !== "saml" && (
-					<>
+								);
+								if (!res.ok) return void setError(message(res.error));
+								setError(null);
+								setForm(EMPTY);
+								toast.success(t("registered"));
+								router.refresh();
+							});
+						}}
+					>
+						{field("providerId", t("providerId"), {
+							placeholder: t("providerIdPlaceholder"),
+							className: "font-mono",
+						})}
+						{field("domain", t("domain"), { placeholder: "z. B. firma.de" })}
+						{kind === "entra" &&
+							field("tenant", t("tenant"), {
+								placeholder: "z. B. 0b6f6a1e-…-944455556666",
+								className: "font-mono",
+							})}
+						{kind === "okta" &&
+							field("oktaDomain", t("oktaDomain"), {
+								placeholder: "z. B. firma.okta.com",
+							})}
+						{kind === "oidc" &&
+							field("issuer", t("issuer"), {
+								placeholder: "z. B. https://login.firma.de",
+								type: "url",
+							})}
 						{field("clientId", t("clientId"))}
 						{field("clientSecret", t("clientSecret"), { type: "password" })}
-					</>
-				)}
-				{kind === "saml" && (
-					<>
-						<div className="flex flex-col gap-1 sm:col-span-2">
-							<Label htmlFor="sso-metadataXml">{t("metadataXml")}</Label>
-							<Textarea
-								id="sso-metadataXml"
-								rows={4}
-								value={form.metadataXml}
-								onChange={(e) => set("metadataXml")(e.target.value)}
-								placeholder={t("metadataPlaceholder")}
-								className="font-mono"
-								spellCheck={false}
-							/>
-							<p className="text-muted-foreground text-footnote">
-								{t("metadataHint")}
-							</p>
-						</div>
-						{field("entityId", t("entityId"))}
-						{field("ssoUrl", t("ssoUrl"), { type: "url" })}
-						<div className="flex flex-col gap-1 sm:col-span-2">
-							<Label htmlFor="sso-certificate">{t("certificate")}</Label>
-							<Textarea
-								id="sso-certificate"
-								rows={3}
-								value={form.certificate}
-								onChange={(e) => set("certificate")(e.target.value)}
-								placeholder="-----BEGIN CERTIFICATE-----"
-								className="font-mono"
-								spellCheck={false}
-							/>
-						</div>
-						{field("groupsAttribute", t("groupsAttribute"), {
-							placeholder: t("groupsAttributePlaceholder"),
-						})}
-					</>
-				)}
-				<div className="flex flex-col gap-2 sm:col-span-2">
-					<FormAlert message={error} />
-					{tested && (
-						<p role="status" className="text-footnote text-success">
-							{tested}
-						</p>
-					)}
-					<div className="flex flex-wrap gap-2">
-						<Button type="submit" disabled={pending}>
-							{t("add")}
-						</Button>
-						{preset && (
-							<Button
-								type="button"
-								variant="secondary"
-								disabled={pending}
-								onClick={() =>
-									start(async () => {
-										const res = await testSsoDiscovery({
-											discoveryEndpoint: preset.discoveryEndpoint,
-										});
-										if (!res.ok) {
-											setTested(null);
-											return void setError(message(res.error));
+						<div className="flex flex-col gap-2 sm:col-span-2">
+							<FormAlert message={error} />
+							{tested && (
+								<p role="status" className="text-footnote text-success">
+									{tested}
+								</p>
+							)}
+							<div className="flex flex-wrap gap-2">
+								<Button type="submit" disabled={pending}>
+									{t("add")}
+								</Button>
+								{preset && (
+									<Button
+										type="button"
+										variant="secondary"
+										disabled={pending}
+										onClick={() =>
+											start(async () => {
+												const res = await testSsoDiscovery({
+													discoveryEndpoint: preset.discoveryEndpoint,
+												});
+												if (!res.ok) {
+													setTested(null);
+													return void setError(message(res.error));
+												}
+												setError(null);
+												setTested(t("testOk", { issuer: res.data.issuer }));
+											})
 										}
-										setError(null);
-										setTested(t("testOk", { issuer: res.data.issuer }));
-									})
-								}
-							>
-								{t("test")}
-							</Button>
-						)}
-					</div>
-				</div>
-			</form>
+									>
+										{t("test")}
+									</Button>
+								)}
+							</div>
+						</div>
+					</form>
+				</>
+			)}
 		</section>
 	);
 }

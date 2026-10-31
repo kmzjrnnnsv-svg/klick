@@ -8,10 +8,23 @@ import { orgSettings } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { listSsoProvidersForOrg } from "@/lib/auth/org";
+import {
+	type CertInfo,
+	certificateInfo,
+	certWarnings,
+} from "@/lib/auth/saml-metadata";
 import { auth } from "@/lib/auth/server";
 import { AuthError } from "@/lib/auth/session-rules";
 import { providerPreset, ssoPolicyOf } from "@/lib/auth/sso-policy";
 import { samlRegistration } from "@/lib/auth/sso-saml";
+import { SAML_PRESETS } from "@/lib/auth/sso-saml-vendors";
+import {
+	certPatch,
+	deleteProviderState,
+	fetchIdpMetadata,
+	readIdpMetadata,
+	upsertProviderState,
+} from "@/lib/auth/sso-setup-service";
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { safeFetch } from "@/lib/security/quick-check/fetcher";
@@ -30,6 +43,7 @@ import {
 	registerOidcPresetSchema,
 	registerSamlSchema,
 	registerSsoSchema,
+	samlPreviewSchema,
 	ssoPolicySchema,
 	ssoProviderIdSchema,
 } from "@/lib/validation/sso";
@@ -130,13 +144,16 @@ async function deleteSsoProviderImpl(
 	} catch (e) {
 		return mapError(e);
 	}
-	await mutateOrg(toOrgCtx(c), async () => ({
-		result: null,
-		audit: {
-			action: "sso.provider_deleted",
-			target: `sso_provider:${parsed.data}`,
-		},
-	}));
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		await deleteProviderState(tx, c.orgId, parsed.data);
+		return {
+			result: null,
+			audit: {
+				action: "sso.provider_deleted",
+				target: `sso_provider:${parsed.data}`,
+			},
+		};
+	});
 	revalidatePath("/einstellungen");
 	return { ok: true, data: undefined };
 }
@@ -227,7 +244,10 @@ async function registerOidcPresetImpl(input: unknown): Promise<ActionResult> {
 	});
 }
 
-// SAML 2.0 (S3): Metadaten des IdP oder Entity-ID + SSO-URL + Zertifikat;
+// SAML 2.0 (S3, AP10): Anbieter-Vorlage, Metadaten als Adresse (Klick holt
+// sie über safeFetch, nur Hosts des Anbieters), XML oder Entity-ID + SSO-URL
+// + Zertifikat. Klick prüft Metadaten und Zertifikat selbst und merkt sich
+// Ablauf und Adresse (sso_provider_states) für die tägliche Beobachtung.
 // Klicks SP-Metadaten unter /api/auth/sso/saml2/sp/metadata?providerId=…
 async function registerSamlProviderImpl(input: unknown): Promise<ActionResult> {
 	const g = await stepUp();
@@ -236,9 +256,28 @@ async function registerSamlProviderImpl(input: unknown): Promise<ActionResult> {
 	const parsed = registerSamlSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
-	const base = new URL(env().BETTER_AUTH_URL).origin;
-	const idpEntityId = d.entityId ?? entityIdFromMetadata(d.metadataXml) ?? "";
+	const preset = SAML_PRESETS[d.vendor];
+	// Metadaten: Adresse vor XML vor Einzelfeldern
+	let metadataXml: string | undefined;
+	let certs: CertInfo[] = [];
+	let idpEntityId = d.entityId ?? "";
+	let ssoUrl = d.ssoUrl;
+	if (d.metadataUrl || d.metadataXml) {
+		const m = d.metadataUrl
+			? await fetchIdpMetadata(d.metadataUrl, d.vendor, [d.domain])
+			: readIdpMetadata(d.metadataXml ?? "");
+		if (!m.ok) return { ok: false, error: m.error };
+		metadataXml = m.xml;
+		certs = m.metadata.certificates;
+		idpEntityId = m.metadata.entityId;
+		ssoUrl = m.metadata.ssoUrl ?? undefined;
+	} else {
+		const cert = certificateInfo(d.certificate ?? "");
+		if (!cert) return { ok: false, error: "sso_cert_invalid" };
+		certs = [cert];
+	}
 	if (!idpEntityId) return { ok: false, error: "sso_saml_entity" };
+	const base = new URL(env().BETTER_AUTH_URL).origin;
 	try {
 		await auth.api.registerSSOProvider({
 			body: {
@@ -250,12 +289,13 @@ async function registerSamlProviderImpl(input: unknown): Promise<ActionResult> {
 					origin: base,
 					providerId: d.providerId,
 					idpEntityId,
-					ssoUrl: d.ssoUrl,
+					ssoUrl,
 					certificate: d.certificate,
-					metadataXml: d.metadataXml,
-					emailAttribute: d.emailAttribute,
-					nameAttribute: d.nameAttribute,
-					groupsAttribute: d.groupsAttribute,
+					metadataXml,
+					emailAttribute: d.emailAttribute || preset.attributes.email,
+					nameAttribute: d.nameAttribute || preset.attributes.name,
+					groupsAttribute:
+						d.groupsAttribute || preset.attributes.groups || undefined,
 				}),
 			},
 			headers: await headers(),
@@ -263,20 +303,94 @@ async function registerSamlProviderImpl(input: unknown): Promise<ActionResult> {
 	} catch (e) {
 		return mapError(e);
 	}
-	await mutateOrg(toOrgCtx(c), async () => ({
-		result: null,
-		audit: {
-			action: "sso.provider_registered",
-			target: `sso_provider:${d.providerId}`,
-			after: { domain: d.domain, protocol: "saml", issuer: idpEntityId },
-		},
-	}));
+	const state = certPatch(certs);
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		await upsertProviderState(tx, c.orgId, d.providerId, {
+			vendor: d.vendor,
+			metadataUrl: d.metadataUrl ?? null,
+			...state,
+			lastFetchAt: d.metadataUrl ? new Date() : null,
+			lastFetchError: null,
+		});
+		return {
+			result: null,
+			audit: {
+				action: "sso.provider_registered",
+				target: `sso_provider:${d.providerId}`,
+				after: {
+					domain: d.domain,
+					protocol: "saml",
+					vendor: d.vendor,
+					issuer: idpEntityId,
+					metadataUrl: d.metadataUrl ?? null,
+					certFingerprints: state.certFingerprints,
+					certNotAfter: state.certNotAfter?.toISOString() ?? null,
+				},
+			},
+		};
+	});
 	revalidatePath("/einstellungen");
 	return { ok: true, data: undefined };
 }
 
-function entityIdFromMetadata(xml: string | undefined): string | null {
-	return /entityID="([^"]{1,500})"/.exec(xml ?? "")?.[1] ?? null;
+export type SamlPreview = {
+	entityId: string | null;
+	ssoUrl: string | null;
+	certificates: {
+		fingerprint: string;
+		notAfter: string;
+		subject: string;
+		keyBits: number | null;
+	}[];
+	warnings: string[];
+};
+
+// Vorschau vor dem Anlegen (AP10): Metadaten holen bzw. lesen und zeigen,
+// was Klick daraus übernimmt. Liest nur, kein Step-up.
+async function previewSamlMetadataImpl(
+	input: unknown,
+): Promise<ActionResult<SamlPreview>> {
+	const c = await requireOrg({ settings: ["update"] });
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const parsed = samlPreviewSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const now = new Date();
+	if (d.metadataUrl || d.metadataXml) {
+		const m = d.metadataUrl
+			? await fetchIdpMetadata(d.metadataUrl, d.vendor, [d.domain], now)
+			: readIdpMetadata(d.metadataXml ?? "", now);
+		if (!m.ok) return { ok: false, error: m.error };
+		return {
+			ok: true,
+			data: {
+				entityId: m.metadata.entityId,
+				ssoUrl: m.metadata.ssoUrl,
+				certificates: m.metadata.certificates.map(certView),
+				warnings: m.metadata.warnings,
+			},
+		};
+	}
+	const cert = certificateInfo(d.certificate ?? "");
+	if (!cert) return { ok: false, error: "sso_cert_invalid" };
+	return {
+		ok: true,
+		data: {
+			entityId: null,
+			ssoUrl: null,
+			certificates: [certView(cert)],
+			warnings: certWarnings(cert, now),
+		},
+	};
+}
+
+function certView(c: CertInfo) {
+	return {
+		fingerprint: c.fingerprint,
+		notAfter: c.notAfter,
+		subject: c.subject,
+		keyBits: c.keyBits,
+	};
 }
 
 // Regeln (S1/S2): Gruppen → Rolle, Firmen-MFA, Erzwingen. Erzwingen nur mit
@@ -371,6 +485,10 @@ export const registerOidcPreset = safeAction(
 export const registerSamlProvider = safeAction(
 	"registerSamlProvider",
 	registerSamlProviderImpl,
+);
+export const previewSamlMetadata = safeAction(
+	"previewSamlMetadata",
+	previewSamlMetadataImpl,
 );
 export const saveSsoPolicy = safeAction("saveSsoPolicy", saveSsoPolicyImpl);
 export const testSsoDiscovery = safeAction(

@@ -87,6 +87,7 @@ import { allows, roleStatements } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { orgSsoPolicy } from "@/lib/auth/sso-provisioning";
+import { providerStates } from "@/lib/auth/sso-setup-service";
 import { ledgerExportAllowed } from "@/lib/auth/visibility";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import { requiredDuties } from "@/lib/compliance/catalog/approval-duties";
@@ -749,15 +750,31 @@ async function renderSection(
 				</div>
 			);
 		}
-		case "sso":
+		case "sso": {
+			const [list, states] = await Promise.all([
+				listSsoProvidersForOrg(ctx.orgId),
+				readOrg(octx, (tx) => providerStates(tx, ctx.orgId)),
+			]);
+			const byId = new Map(states.map((s) => [s.providerId, s]));
 			return (
 				<SsoPanel
-					providers={await listSsoProvidersForOrg(ctx.orgId)}
+					providers={list.map((p) => {
+						const st = byId.get(p.providerId);
+						return {
+							...p,
+							vendor: st?.vendor ?? null,
+							certNotAfter: st?.certNotAfter?.toISOString() ?? null,
+							metadataUrl: st?.metadataUrl ?? null,
+							probeOkAt: st?.probeOkAt?.toISOString() ?? null,
+							nextCert: Boolean(st?.nextCertFingerprints),
+						};
+					})}
 					callbackBase={callbackBase()}
 					canEdit={ctx.orgRole === "owner"}
 					policy={await orgSsoPolicy(ctx.orgId)}
 				/>
 			);
+		}
 		case "portal": {
 			const [{ portal, readers }, sso] = await Promise.all([
 				readOrg(octx, async (tx) => ({
