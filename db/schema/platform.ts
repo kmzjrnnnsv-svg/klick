@@ -48,13 +48,16 @@ export type RiskAppetite = { acceptable: number; tolerable: number };
 // Stufe, Schadensarten und Risikoklassen. Leer = aus riskScales/riskAppetite
 // abgeleitet (Bestand), neue Orgs bekommen die Vorlage.
 export type Five<T> = [T, T, T, T, T];
+// Stufen einer Risikomethode: vier (BSI 200-3) oder fünf; alle Achsen und
+// Schadensarten einer Methode haben gleich viele (validateRiskMethod)
+export type Levels<T> = T[];
 export type RiskZone = "acceptable" | "tolerable" | "unacceptable";
 export type RiskLevelText = { label: string; anchor: string };
 export type RiskDimension = {
 	key: string;
 	label: string;
 	enabled: boolean;
-	anchors: Five<string>;
+	anchors: Levels<string>;
 };
 // Wer eine Akzeptanz in dieser Klasse freigibt (B4): leer = die
 // verantwortliche Person entscheidet allein; sonst Stufen nacheinander,
@@ -71,11 +74,15 @@ export type RiskClass = {
 	acceptance?: RiskAcceptanceStep[];
 };
 export type RiskMethod = {
-	aggregation: "sum" | "product";
-	likelihood: Five<RiskLevelText>;
-	impact: Five<string>;
+	// sum = EW + SH, product = EW × SH, matrix = Klasse je Feld (BSI 200-3)
+	aggregation: "sum" | "product" | "matrix";
+	likelihood: Levels<RiskLevelText>;
+	impact: Levels<string>;
 	dimensions: RiskDimension[];
 	classes: RiskClass[];
+	// nur bei matrix: Zeile = Eintrittshäufigkeit (1 … n), Spalte =
+	// Schadenshöhe (1 … n), Wert = Schlüssel der Klasse
+	matrix?: string[][];
 };
 // Lieferantenbewertung je Org (lib/compliance/supplier-rating.ts): Bereichs-
 // und Kriteriengewichte, Anker, Schwellen mit Wiedervorlage. Leer = Vorlage.

@@ -23,6 +23,7 @@ export function buildRisikomethodik(f: RisikomethodikFacts) {
 	const m = f.method;
 	const range = scoreRange(m);
 	const appetite = appetiteFromMethod(m);
+	const isMatrix = m.aggregation === "matrix";
 	const formula =
 		m.aggregation === "sum"
 			? "Eintrittswahrscheinlichkeit + Schadenshöhe"
@@ -35,12 +36,24 @@ export function buildRisikomethodik(f: RisikomethodikFacts) {
 		{
 			type: "keyValue",
 			items: [
-				["Rechenweg", `Risikowert = ${formula}`],
-				["Wertebereich", `${range.min} bis ${range.max}`],
-				[
-					"Risikoappetit",
-					`akzeptabel bis ${appetite.acceptable}, tolerierbar bis ${appetite.tolerable}, darüber nicht tolerierbar`,
-				],
+				isMatrix
+					? [
+							"Rechenweg",
+							"Risikokategorie aus der Matrix von Eintrittswahrscheinlichkeit und Schadenshöhe (BSI-Standard 200-3)",
+						]
+					: ["Rechenweg", `Risikowert = ${formula}`],
+				isMatrix
+					? ["Stufen", `${m.likelihood.length} je Achse`]
+					: ["Wertebereich", `${range.min} bis ${range.max}`],
+				isMatrix
+					? [
+							"Risikoappetit",
+							m.classes.map((c) => `${c.label}: ${ZONE_DE[c.zone]}`).join(", "),
+						]
+					: [
+							"Risikoappetit",
+							`akzeptabel bis ${appetite.acceptable}, tolerierbar bis ${appetite.tolerable}, darüber nicht tolerierbar`,
+						],
 				[
 					"Grundlage",
 					f.stored
@@ -118,6 +131,24 @@ export function buildRisikomethodik(f: RisikomethodikFacts) {
 			empty: "Keine Risikoklassen festgelegt.",
 		},
 	);
+	if (isMatrix && m.matrix) {
+		const label = new Map(m.classes.map((c) => [c.key, c.label]));
+		const n = m.likelihood.length;
+		blocks.push(
+			{ type: "heading", level: 1, text: "Matrix" },
+			{
+				type: "table",
+				columns: [
+					{ label: "Eintrittswahrscheinlichkeit", width: 24 },
+					...m.impact.map((x) => ({ label: x, width: Math.floor(64 / n) })),
+				],
+				rows: Array.from({ length: n }, (_, k) => n - k).map((l) => [
+					`${l} · ${m.likelihood[l - 1]?.label ?? ""}`,
+					...(m.matrix?.[l - 1] ?? []).map((key) => label.get(key) ?? key),
+				]),
+			},
+		);
+	}
 	return { blocks };
 }
 

@@ -104,6 +104,7 @@ import { loadRecommendInput } from "@/lib/compliance/queries-recommend";
 import { listAccessTokens } from "@/lib/compliance/queries-security";
 import {
 	defaultRiskMethod,
+	presetRiskMethod,
 	resolveRiskMethod,
 } from "@/lib/compliance/risk-method";
 import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
@@ -636,6 +637,10 @@ async function renderSection(
 					method={resolveRiskMethod(settings, cov?.frameworks ?? [])}
 					stored={Boolean(settings?.riskMethod)}
 					template={defaultRiskMethod(cov?.frameworks ?? [])}
+					presets={{
+						standard: presetRiskMethod("standard", cov?.frameworks ?? []),
+						"bsi-200-3": presetRiskMethod("bsi-200-3", cov?.frameworks ?? []),
+					}}
 					risks={riskPoints}
 					allowSelfApproval={settings?.allowSelfApproval ?? true}
 					canEdit={canEditSettings}

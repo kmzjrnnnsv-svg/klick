@@ -32,6 +32,7 @@ import { assessRisk } from "@/lib/compliance/risk";
 import {
 	damageFrom,
 	decisiveDimensions,
+	pointLabel,
 	ZONE_TONE,
 } from "@/lib/compliance/risk-method";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ export type WizardScenario = Pick<
 	| "protectionGoals"
 	| "dimensions"
 	| "controls"
+	| "bsiRef"
 > & { applicable: boolean };
 
 type Treatment = "mitigate" | "accept" | "transfer" | "avoid";
@@ -341,7 +343,10 @@ export function RiskWizard({
 	const visible = scenarios.filter(
 		(s) =>
 			(showAll || s.applicable) &&
-			(!q || `${s.title} ${s.impactHint}`.toLowerCase().includes(q)),
+			(!q ||
+				`${s.bsiRef ?? ""} ${s.title} ${s.impactHint}`
+					.toLowerCase()
+					.includes(q)),
 	);
 	const hiddenCount = scenarios.filter((s) => !s.applicable).length;
 
@@ -511,7 +516,14 @@ export function RiskWizard({
 														"border-primary bg-primary/5",
 												)}
 											>
-												<span className="font-medium">{s.title}</span>
+												<span className="font-medium">
+													{s.bsiRef && (
+														<span className="text-muted-foreground tabular-nums">
+															{s.bsiRef}{" "}
+														</span>
+													)}
+													{s.title}
+												</span>
 												<span className="line-clamp-2 text-muted-foreground text-footnote">
 													{s.impactHint}
 												</span>
@@ -1172,7 +1184,7 @@ export function RiskWizard({
 						<dt className="text-muted-foreground">{t("riskBefore")}</dt>
 						<dd>
 							<Badge variant={ZONE_TONE[assessed.inherent.zone]}>
-								{assessed.inherent.score} · {assessed.inherent.cls.label}
+								{pointLabel(assessed.inherent, method)}
 							</Badge>{" "}
 							({t("l")} {d.likelihood} · {t("i")} {impact})
 						</dd>
@@ -1187,7 +1199,7 @@ export function RiskWizard({
 								<dt className="text-muted-foreground">{t("riskAfter")}</dt>
 								<dd>
 									<Badge variant={ZONE_TONE[assessed.residual.zone]}>
-										{assessed.residual.score} · {assessed.residual.cls.label}
+										{pointLabel(assessed.residual, method)}
 									</Badge>
 								</dd>
 							</>

@@ -1,5 +1,5 @@
 import type { RiskMethod } from "@/db/schema/platform";
-import { aggregate, classify } from "@/lib/compliance/risk-method";
+import { aggregate, classify, levelCount } from "@/lib/compliance/risk-method";
 import { cn } from "@/lib/utils";
 
 export const ZONE_CELL: Record<string, string> = {
@@ -8,19 +8,25 @@ export const ZONE_CELL: Record<string, string> = {
 	unacceptable: "bg-destructive/15",
 };
 
-// Kompakte 5×5-Vorschau der Methodik (Einstellungen, Assistent): Zellen
-// zeigen den Risikowert, Farbe nach Zone, optional ein markierter Punkt.
+// Kompakte Vorschau der Methodik (Einstellungen, Assistent), 4×4 oder 5×5:
+// Zellen zeigen den Risikowert (bei Matrix die Klasse), Farbe nach Zone,
+// optional ein markierter Punkt.
 export function MethodMatrix({
 	method,
 	mark,
 	className,
 }: {
-	method: Pick<RiskMethod, "aggregation" | "classes" | "likelihood" | "impact">;
+	method: Pick<
+		RiskMethod,
+		"aggregation" | "classes" | "likelihood" | "impact" | "matrix"
+	>;
 	mark?: { likelihood: number; impact: number } | null;
 	className?: string;
 }) {
-	const rows = [5, 4, 3, 2, 1];
-	const cols = [1, 2, 3, 4, 5];
+	const n = levelCount(method);
+	const cols = Array.from({ length: n }, (_, i) => i + 1);
+	const rows = [...cols].reverse();
+	const matrix = method.aggregation === "matrix";
 	return (
 		<table
 			className={cn(
@@ -29,8 +35,8 @@ export function MethodMatrix({
 			)}
 		>
 			<caption className="sr-only">
-				Risikomatrix: Zeilen Eintrittswahrscheinlichkeit 5 bis 1, Spalten
-				Schadenshöhe 1 bis 5
+				Risikomatrix: Zeilen Eintrittswahrscheinlichkeit {n} bis 1, Spalten
+				Schadenshöhe 1 bis {n}
 			</caption>
 			<thead>
 				<tr>
@@ -66,14 +72,15 @@ export function MethodMatrix({
 							return (
 								<td
 									key={i}
-									title={`${score} · ${cls.label}`}
+									title={matrix ? cls.label : `${score} · ${cls.label}`}
 									className={cn(
-										"size-8 rounded-sm text-center",
+										"rounded-sm text-center",
+										matrix ? "h-8 min-w-12 px-1" : "size-8",
 										ZONE_CELL[cls.zone],
 										marked && "ring-2 ring-foreground font-semibold",
 									)}
 								>
-									{score}
+									{matrix ? cls.label : score}
 								</td>
 							);
 						})}
