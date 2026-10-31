@@ -15,8 +15,19 @@ export const SETTINGS: HelpArticle[] = [
 				heading: "Dein Konto",
 				list: [
 					"Sicherheit: Passkeys anlegen und entfernen, Code-App (TOTP) als Alternative, laufende Sitzungen. Die Liste zeigt je Passkey „Sicherheitsschlüssel“ (gerätegebunden) oder „Synchronisiert“.",
-					"Benachrichtigungen: je Art per Mail, in Microsoft Teams oder beides (Teams nur, wenn deine Organisation es eingeschaltet hat), und ob die Tages-Mail kommt.",
+					"Benachrichtigungen: je Art per Mail, als Push auf deinen Geräten und in Microsoft Teams, auch mehrere Wege zugleich (Teams nur, wenn deine Organisation es eingeschaltet hat), und ob die Tages-Mail kommt.",
 				],
+			},
+			{
+				id: "push",
+				heading: "Push auf deinen Geräten",
+				steps: [
+					"Öffne Einstellungen > Benachrichtigungen auf dem Gerät, das Hinweise bekommen soll, und tipp auf „Push einschalten“. Der Browser fragt einmal, ob Klick dir Mitteilungen schicken darf.",
+					"Auf dem iPhone und iPad füge Klick zuerst über Teilen > Zum Home-Bildschirm hinzu und öffne es von dort. Safari im Browserfenster kann keine Push-Mitteilungen empfangen.",
+					"Wähl je Art, ob sie per Mail, Push oder Teams kommt. Beim ersten Gerät wählt Klick Push für alle Arten vor.",
+					"Mit „Testhinweis senden“ prüfst du, ob alles ankommt. Ein Gerät, das du nicht mehr nutzt, entfernst du in der Liste.",
+				],
+				tip: "Klick schickt nur Titel und Link, verschlüsselt über den Push-Dienst deines Browsers (Apple, Google, Mozilla oder Microsoft). Kommt ein Hinweis dreimal nicht an, geht er per Mail. Blockierte Mitteilungen erlaubst du in den Einstellungen des Browsers bzw. des Systems.",
 			},
 			{
 				id: "organisation",

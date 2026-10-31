@@ -716,20 +716,19 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 			},
 			{
 				key: "teams",
-				name: "Hinweise in Microsoft Teams",
+				name: "Hinweise per Push und in Microsoft Teams",
 				summary:
-					"Freigaben, Aufgaben und Fristen erscheinen im Aktivitätsfeed von Teams; ein Klick öffnet die Seite in Klick.",
+					"Freigaben, Aufgaben und Fristen kommen als Mitteilung auf Mac, Windows, Android und iPhone oder im Aktivitätsfeed von Teams; ein Klick öffnet die Seite in Klick.",
 				where:
-					"Einstellungen > Integrationen, Einstellungen > Benachrichtigungen",
-				trigger:
-					"Deine Organisation arbeitet in Microsoft 365 und will weniger Mails.",
+					"Einstellungen > Benachrichtigungen, Einstellungen > Integrationen",
+				trigger: "Du willst weniger Mails und Dringendes sofort sehen.",
 				steps: [
-					"Inhaber:in trägt den Tenant ein und schickt der eigenen IT den Freigabe-Link; die IT lädt das App-Paket in Teams hoch.",
-					"Nach der Freigabe schaltet die Inhaber:in Teams ein und schickt sich einen Testhinweis.",
-					"Jede Person wählt je Art: Mail, Teams oder beides, und ob die Tages-Mail kommt.",
+					"Jede Person schaltet Push auf ihren Geräten ein; auf dem iPhone über „Zum Home-Bildschirm“.",
+					"Für Teams trägt die Inhaber:in den Tenant ein und schickt der eigenen IT den Freigabe-Link; die IT lädt das App-Paket in Teams hoch.",
+					"Jede Person wählt je Art Mail, Push, Teams oder mehrere Wege, und ob die Tages-Mail kommt.",
 				],
 				result:
-					"An Microsoft gehen nur Titel und Link. Klappt die Zustellung dreimal nicht, kommt die Nachricht per Mail.",
+					"Raus gehen nur Titel und Link, bei Push verschlüsselt fürs Gerät. Klappt die Zustellung dreimal nicht, kommt die Nachricht per Mail.",
 			},
 		],
 	},

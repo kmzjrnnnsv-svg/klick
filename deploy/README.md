@@ -514,6 +514,32 @@ frei. Ohne die Schritte hier ist Teams aus und alles läuft wie bisher per Mail.
 - **Sofort abschalten:** je Org unter Einstellungen > Integrationen ausschalten oder entfernen; für alle
   den Drop-in entfernen und Klick neu starten.
 
+## Push-Benachrichtigungen
+Hinweise kommen als Mitteilung auf Mac, Windows, Android und iPhone (dort nur, wenn Klick über
+Teilen > Zum Home-Bildschirm hinzugefügt und von dort geöffnet wurde). Jede Person schaltet Push je
+Gerät unter Einstellungen > Benachrichtigungen ein und wählt je Art Mail, Push und/oder Teams. Ohne die
+Schritte hier ist Push aus und alles läuft wie bisher.
+1. **Schlüsselpaar (VAPID, einmal):** `cd /opt/klick/current && runuser -u klick -- pnpm push:keys`.
+   Das Paar bleibt fest; ein neues Paar meldet alle Geräte ab.
+2. **Privater Schlüssel als Credential:** `systemd-creds encrypt --name=web_push_private_key -
+   /etc/credstore.encrypted/web_push_private_key` (Schlüssel einfügen, Strg+D), danach das Terminal
+   leeren (`clear`). Nie in `klick.env`.
+3. **Drop-in:** `deploy/systemd/klick.service.d/push.conf.example` nach
+   `/etc/systemd/system/klick.service.d/push.conf`, öffentlichen Schlüssel bei `WEB_PUSH_PUBLIC_KEY=`
+   eintragen, `systemctl daemon-reload && systemctl restart klick`.
+4. **Migration 0060** (`push_subscriptions`, `notifications.push_sent_at`/`push_attempts`) kommt mit dem
+   Release.
+5. **Ausgehend (https/443):** `fcm.googleapis.com` (Chrome, Edge, Android), `*.push.apple.com` und
+   `web.push.apple.com` (Safari), `updates.push.services.mozilla.com` (Firefox), `*.notify.windows.com`
+   (ältere Edge-Versionen). Andere Endpunkte lehnt Klick ab (`lib/push/endpoint.ts`, angeheftete
+   öffentliche Adresse, keine Weiterleitung, 15 s).
+- **Was den Server verlässt:** Titel der Benachrichtigung und der Link zur Seite in Klick,
+  Ende-zu-Ende verschlüsselt für das Gerät (RFC 8291). Der Push-Dienst sieht nur Bytes, Größe und Zeit.
+- **Prüfen:** Einstellungen > Benachrichtigungen > „Testhinweis senden“; `psql klick -c "select
+  user_id, label, last_success_at, last_error from push_subscriptions"`. Geräte mit 404/410 löscht der
+  Job `push-notify` selbst; nach drei Fehlversuchen je Benachrichtigung geht sie per Mail.
+- **Sofort abschalten:** Drop-in entfernen, Klick neu starten (Mails laufen weiter).
+
 ## Härtung III (optional, per Env aktiv)
 - **clamd:** `apt install clamav-daemon`, `freshclam` als Timer, `TCPSocket 3310` + `TCPAddr 127.0.0.1`
   in `/etc/clamav/clamd.conf`, `StreamMaxLength 30M`. App: `CLAMD_HOST=127.0.0.1`. Fail closed —
