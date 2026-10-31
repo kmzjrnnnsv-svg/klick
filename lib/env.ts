@@ -166,6 +166,9 @@ export const envSchema = z.object({
 	// Bewusst hingenommene Abweichungen in Produktion (lib/env-checks.ts),
 	// z. B. "no_av" solange clamd fehlt. Jede Abweichung steht beim Start im Log.
 	PROD_ACCEPT_RISKS: csvList([]),
+	// Messung (scripts/qa/perf.ts): jede SQL-Anweisung als Zeile „[klick-sql]“
+	// ins Log, ohne Parameter. In Produktion nur mit PROD_ACCEPT_RISKS=query_log.
+	KLICK_QUERY_LOG: flag,
 
 	LOG_LEVEL: z
 		.enum(["trace", "debug", "info", "warn", "error", "fatal"])

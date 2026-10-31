@@ -64,6 +64,18 @@ describe("productionConfigReport", () => {
 		expect(r.warnings).toEqual([expect.stringContaining("hingenommen")]);
 	});
 
+	it("SQL-Protokoll nur mit Vermerk", () => {
+		expect(
+			productionConfigReport(prod({ KLICK_QUERY_LOG: "true" }), local).fatal,
+		).toEqual([expect.stringContaining("KLICK_QUERY_LOG")]);
+		expect(
+			productionConfigReport(
+				prod({ KLICK_QUERY_LOG: "true", PROD_ACCEPT_RISKS: "query_log" }),
+				local,
+			).fatal,
+		).toEqual([]);
+	});
+
 	it("offene Registrierung und US-Mail nur mit Vermerk", () => {
 		const r = productionConfigReport(
 			prod({ AUTH_ALLOW_SIGNUP: "true", MAIL_ALLOW_RESEND: "true" }),

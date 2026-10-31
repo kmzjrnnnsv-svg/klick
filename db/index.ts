@@ -22,7 +22,20 @@ function createClient(): SqlClient {
 	// postgres.js verbindet lazy — ohne Query keine Verbindung. Deshalb darf
 	// hier ein Platzhalter stehen (Better-Auth-CLI, Typecheck ohne DB).
 	const url = process.env.DATABASE_URL ?? "postgres://localhost:5432/klick";
-	return postgres(url, { max: 10, idle_timeout: 30, connect_timeout: 10 });
+	return postgres(url, {
+		max: 10,
+		idle_timeout: 30,
+		connect_timeout: 10,
+		...(process.env.KLICK_QUERY_LOG === "true" ? { debug: logQuery } : {}),
+	});
+}
+
+// Messung (scripts/qa/perf.ts zählt die Zeilen je Seitenaufruf): nur der Text
+// der Anweisung, nie die Parameter. Produktion nur mit PROD_ACCEPT_RISKS.
+function logQuery(_conn: number, query: string) {
+	process.stdout.write(
+		`[klick-sql] ${query.replace(/\s+/g, " ").slice(0, 240)}\n`,
+	);
 }
 
 // HMR-Guard: in Dev überlebt der Pool Modul-Neuladungen.

@@ -16,6 +16,8 @@ export const PROD_RISKS = {
 		"MAIL_ALLOW_RESEND=true: Mails dürfen über einen US-Anbieter (Resend) gehen",
 	parser_in_app:
 		"PARSER_SOCKET fehlt: fremde Dateien parst ein Kindprozess mit den Rechten der App",
+	query_log:
+		"KLICK_QUERY_LOG=true: jede SQL-Anweisung steht im Log (ohne Parameter)",
 } as const;
 
 export type ProdRisk = keyof typeof PROD_RISKS;
@@ -39,6 +41,7 @@ type Input = Pick<
 	| "PARSER_SOCKET"
 	| "PROD_ACCEPT_RISKS"
 	| "PASSKEY_RP_ID"
+	| "KLICK_QUERY_LOG"
 >;
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "::1", "localhost"]);
@@ -108,5 +111,6 @@ export function productionConfigReport(
 	risk("signup_open", env.AUTH_ALLOW_SIGNUP);
 	risk("mail_us", env.MAIL_ALLOW_RESEND);
 	risk("parser_in_app", !env.PARSER_SOCKET);
+	risk("query_log", env.KLICK_QUERY_LOG);
 	return { fatal, warnings };
 }
