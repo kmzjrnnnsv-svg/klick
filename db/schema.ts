@@ -2,6 +2,7 @@
 
 export * from "./schema/ai";
 export * from "./schema/aml";
+export * from "./schema/announcements";
 export * from "./schema/assessments";
 export * from "./schema/catalog";
 export * from "./schema/custody";

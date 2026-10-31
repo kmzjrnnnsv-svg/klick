@@ -442,6 +442,13 @@
       "when": 1793467175071,
       "tag": "0062_custom_frameworks",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793474656371,
+      "tag": "0063_announcements",
+      "breakpoints": true
     }
   ]
 }

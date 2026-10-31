@@ -90,6 +90,7 @@ export type NavIcon =
 	| "landmark"
 	| "coins"
 	| "bitcoin"
+	| "megaphone"
 	| "message-square"
 	| "folder-open"
 	| "book-open"
