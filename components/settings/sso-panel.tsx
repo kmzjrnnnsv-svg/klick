@@ -35,6 +35,7 @@ import {
 } from "@/lib/auth/sso-policy";
 import { samlAcsUrl, samlSpEntityId } from "@/lib/auth/sso-saml";
 import { isSamlVendor } from "@/lib/auth/sso-saml-vendors";
+import { type SetupRequestRow, SsoItLink } from "./sso-it-link";
 import { ProviderStatus } from "./sso-provider-status";
 import { SamlForm } from "./sso-saml-form";
 
@@ -90,11 +91,13 @@ export function SsoPanel({
 	callbackBase,
 	canEdit,
 	policy,
+	setupRequests = [],
 }: {
 	providers: SsoProviderRow[];
 	callbackBase: string;
 	canEdit: boolean;
 	policy: SsoPolicy;
+	setupRequests?: SetupRequestRow[];
 }) {
 	const t = useTranslations("SsoSetup");
 	const tc = useTranslations("Common");
@@ -330,6 +333,7 @@ export function SsoPanel({
 			</ListGroup>
 			{del.node}
 			{canEdit && <AddProvider callbackBase={callbackBase} message={message} />}
+			{canEdit && <SsoItLink requests={setupRequests} message={message} />}
 			{canEdit && (
 				<PolicyForm
 					policy={policy}

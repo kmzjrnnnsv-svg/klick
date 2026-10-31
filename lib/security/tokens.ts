@@ -12,6 +12,7 @@ export const TOKEN_PREFIX: Record<AccessTokenKind, string> = {
 	trust_center: "klk_trust_",
 	wallet: "klk_wallet_",
 	policy_reader: "klk_reader_",
+	sso_setup: "klk_sso_",
 };
 
 const BODY = /^[A-Za-z0-9_-]{43}$/;

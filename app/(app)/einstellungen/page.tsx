@@ -87,6 +87,7 @@ import { allows, roleStatements } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { normalizeRole } from "@/lib/auth/session-rules";
 import { orgSsoPolicy } from "@/lib/auth/sso-provisioning";
+import { setupRequests } from "@/lib/auth/sso-setup-link";
 import { providerStates } from "@/lib/auth/sso-setup-service";
 import { ledgerExportAllowed } from "@/lib/auth/visibility";
 import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
@@ -751,10 +752,12 @@ async function renderSection(
 			);
 		}
 		case "sso": {
-			const [list, states] = await Promise.all([
+			const [list, states, setups] = await Promise.all([
 				listSsoProvidersForOrg(ctx.orgId),
 				readOrg(octx, (tx) => providerStates(tx, ctx.orgId)),
+				readOrg(octx, (tx) => setupRequests(tx, ctx.orgId)),
 			]);
+			const now = new Date();
 			const byId = new Map(states.map((s) => [s.providerId, s]));
 			return (
 				<SsoPanel
@@ -774,6 +777,21 @@ async function renderSection(
 					callbackBase={callbackBase()}
 					canEdit={ctx.orgRole === "owner"}
 					policy={await orgSsoPolicy(ctx.orgId)}
+					setupRequests={setups
+						.filter(
+							(r) =>
+								(r.status === "open" || r.status === "submitted") &&
+								r.expiresAt > now,
+						)
+						.map((r) => ({
+							id: r.id,
+							vendor: r.vendor,
+							domain: r.domain,
+							status: r.status,
+							contactName: r.contactName,
+							submittedAt: r.submittedAt?.toISOString() ?? null,
+							expiresAt: r.expiresAt.toISOString(),
+						}))}
 				/>
 			);
 		}

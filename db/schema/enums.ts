@@ -293,6 +293,8 @@ export const ACCESS_TOKEN_KINDS = [
 	"wallet",
 	// Richtlinien-Portal (M2): Subjekt = policy_readers.id
 	"policy_reader",
+	// SSO-Einrichtungslink für die IT (AP10d): Subjekt = sso_setup_requests.id
+	"sso_setup",
 ] as const;
 export type AccessTokenKind = (typeof ACCESS_TOKEN_KINDS)[number];
 export const INGEST_SCOPES = ["scan:write", "sbom:write"] as const;

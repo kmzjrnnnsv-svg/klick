@@ -427,7 +427,7 @@ export function SamlForm({
 				<p className="mt-2 text-footnote text-muted-foreground">
 					{preset.groups ? t("attributesHint") : t("attributesHintNoGroups")}
 				</p>
-				<div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+				<div className="mt-3 grid grid-cols-1 gap-4">
 					{(["email", "name", "groups"] as const).map((k) => (
 						<div key={k} className="flex flex-col gap-1">
 							<Label htmlFor={`saml-attr-${k}`}>{t(`attr_${k}`)}</Label>

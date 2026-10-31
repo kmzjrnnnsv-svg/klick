@@ -5,6 +5,7 @@ import { APIError } from "better-auth/api";
 import { and, eq, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { z } from "zod";
 import { orgSettings, ssoProbes } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
@@ -20,7 +21,12 @@ import { AuthError } from "@/lib/auth/session-rules";
 import { providerPreset, ssoPolicyOf } from "@/lib/auth/sso-policy";
 import { PROBE_TTL_MS, probePath } from "@/lib/auth/sso-probe";
 import { samlRegistration } from "@/lib/auth/sso-saml";
-import { SAML_PRESETS } from "@/lib/auth/sso-saml-vendors";
+import { SAML_PRESETS, suggestProviderId } from "@/lib/auth/sso-saml-vendors";
+import {
+	closeSetupLink,
+	createSetupLink,
+	setupRequests,
+} from "@/lib/auth/sso-setup-link";
 import {
 	certPatch,
 	deleteProviderState,
@@ -49,6 +55,7 @@ import {
 	registerSamlSchema,
 	registerSsoSchema,
 	samlPreviewSchema,
+	setupLinkSchema,
 	ssoPolicySchema,
 	ssoProviderIdSchema,
 } from "@/lib/validation/sso";
@@ -628,4 +635,115 @@ export const adoptSamlCert = safeAction("adoptSamlCert", adoptSamlCertImpl);
 export const refreshSamlMetadata = safeAction(
 	"refreshSamlMetadata",
 	refreshSamlMetadataImpl,
+);
+
+// Einrichtungslink für die IT (AP10d): 7 Tage, nur die Werte dieser einen
+// Verbindung; die IT schlägt Metadaten vor, anlegen tut die Inhaberin.
+async function createSsoSetupLinkImpl(
+	input: unknown,
+): Promise<ActionResult<{ url: string; expiresAt: string }>> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = setupLinkSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const providerId = suggestProviderId(d.domain);
+	const link = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const r = await createSetupLink(
+			tx,
+			{ ...toOrgCtx(c), userId: c.userId },
+			{ vendor: d.vendor, domain: d.domain, providerId },
+		);
+		return {
+			result: r,
+			audit: {
+				action: "sso.setup_link_created",
+				target: `sso_setup_request:${r.requestId}`,
+				after: { vendor: d.vendor, domain: d.domain, providerId },
+			},
+		};
+	});
+	const origin = new URL(env().BETTER_AUTH_URL).origin;
+	revalidatePath("/einstellungen");
+	return {
+		ok: true,
+		data: {
+			url: `${origin}/sso-einrichtung#${link.token}`,
+			expiresAt: link.expiresAt.toISOString(),
+		},
+	};
+}
+
+// Vorschlag der IT übernehmen: legt die Verbindung wie „Verbindung anlegen“
+// an (Step-up, Metadaten erneut geprüft) und beendet den Link.
+async function applySsoSetupRequestImpl(
+	requestId: string,
+): Promise<ActionResult> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const id = z.uuid().safeParse(requestId);
+	if (!id.success) return fromZod(id.error);
+	const req = (
+		await readOrg(toOrgCtx(c), (tx) => setupRequests(tx, c.orgId))
+	).find((r) => r.id === id.data);
+	if (!req || req.status !== "submitted")
+		return { ok: false, error: "not_found" };
+	const res = await registerSamlProviderImpl({
+		vendor: req.vendor,
+		providerId: req.providerId,
+		domain: req.domain,
+		metadataUrl: req.metadataUrl ?? undefined,
+		metadataXml: req.metadataXml ?? undefined,
+		emailAttribute: req.attributes?.email || undefined,
+		nameAttribute: req.attributes?.name || undefined,
+		groupsAttribute: req.attributes?.groups || undefined,
+	});
+	if (!res.ok) return res;
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		await closeSetupLink(tx, c.orgId, req.id, "applied", c.userId);
+		return {
+			result: null,
+			audit: {
+				action: "sso.setup_applied",
+				target: `sso_setup_request:${req.id}`,
+				after: { providerId: req.providerId },
+			},
+		};
+	});
+	revalidatePath("/einstellungen");
+	return { ok: true, data: undefined };
+}
+
+async function withdrawSsoSetupRequestImpl(
+	requestId: string,
+): Promise<ActionResult> {
+	const c = await requireOrg({ settings: ["update"] });
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const id = z.uuid().safeParse(requestId);
+	if (!id.success) return fromZod(id.error);
+	const done = await mutateOrg(toOrgCtx(c), async (tx) => ({
+		result: await closeSetupLink(tx, c.orgId, id.data, "withdrawn", c.userId),
+		audit: {
+			action: "sso.setup_withdrawn",
+			target: `sso_setup_request:${id.data}`,
+		},
+	}));
+	if (!done) return { ok: false, error: "not_found" };
+	revalidatePath("/einstellungen");
+	return { ok: true, data: undefined };
+}
+
+export const createSsoSetupLink = safeAction(
+	"createSsoSetupLink",
+	createSsoSetupLinkImpl,
+);
+export const applySsoSetupRequest = safeAction(
+	"applySsoSetupRequest",
+	applySsoSetupRequestImpl,
+);
+export const withdrawSsoSetupRequest = safeAction(
+	"withdrawSsoSetupRequest",
+	withdrawSsoSetupRequestImpl,
 );

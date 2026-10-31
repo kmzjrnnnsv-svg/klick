@@ -138,6 +138,12 @@ export const registerSamlSchema = z
 		{ message: "saml_incomplete", path: ["metadataXml"] },
 	);
 
+// Einrichtungslink für die IT (AP10d)
+export const setupLinkSchema = z.object({
+	vendor: samlVendorSchema,
+	domain: domainField,
+});
+
 // Vorschau vor dem Anlegen: Metadaten lesen, Zertifikat und Ablauf zeigen
 export const samlPreviewSchema = z
 	.object({

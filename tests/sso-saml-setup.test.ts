@@ -318,3 +318,31 @@ describe("Probe: Ursache in Klartext", () => {
 		expect(probeErrorKey("irgendwas", null)).toBe("other");
 	});
 });
+
+describe("Blatt für die IT", () => {
+	it("enthält Werte, Schritte und Attribute und lässt sich als PDF schreiben", async () => {
+		const { ssoSheet } = await import("@/lib/auth/sso-sheet");
+		const { renderPdf } = await import("@/lib/export/pdf");
+		const doc = ssoSheet({
+			orgName: "Beispiel GmbH",
+			vendor: "entra",
+			vendorLabel: "Microsoft Entra ID",
+			domain: "firma.de",
+			providerId: "saml-firma-de",
+			origin: "https://raza.work",
+			steps: (de.SsoSetup as Record<string, unknown>)
+				.samlSteps_entra as string[],
+			exportLine: "Export-ID test",
+			date: "2026-10-31",
+		});
+		const text = JSON.stringify(doc);
+		expect(text).toContain(
+			"https://raza.work/api/auth/sso/saml2/sp/acs/saml-firma-de",
+		);
+		expect(text).toContain("providerId=saml-firma-de");
+		expect(text).toContain("_klick-sso.firma.de");
+		expect(text).toContain(SAML_PRESETS.entra.attributes.groups ?? "");
+		const pdf = renderPdf(doc, { now: new Date("2026-10-31T12:00:00Z") });
+		expect(Buffer.from(pdf.slice(0, 5)).toString()).toBe("%PDF-");
+	});
+});
