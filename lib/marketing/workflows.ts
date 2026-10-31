@@ -61,13 +61,14 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				trigger:
 					"Die Organisation will Konten zentral im eigenen Verzeichnis verwalten.",
 				steps: [
-					"Anbieter wählen und der Anleitung folgen; Klick zeigt Weiterleitungsadresse bzw. SAML-Metadaten zum Kopieren.",
-					"Domain per DNS-Eintrag bestätigen und die Verbindung testen.",
+					"Anbieter wählen und der Anleitung folgen; Klick zeigt Weiterleitungsadresse bzw. SAML-Werte zum Kopieren und die eigenen Metadaten als Datei.",
+					"Metadaten des Anbieters als Adresse, Datei oder von Hand angeben; Klick prüft Zertifikat und Ablauf.",
+					"Domain per DNS-Eintrag bestätigen und mit dem eigenen Firmenkonto testen: Klick zeigt, was ankam, und legt dabei nichts an.",
 					"Gruppen den Rollen zuordnen (Mitarbeitende, Lesend, Bearbeiter:in); neue Konten entstehen bei der ersten Anmeldung.",
 					"Optional die Firmen-MFA anerkennen und SSO für die Firmen-Domain erzwingen; Inhaber:innen behalten einen Notzugang per Passkey.",
 				],
 				result:
-					"Wer im Firmenkonto gesperrt ist, kommt nicht mehr in Klick; Rollen folgen den Gruppen, jede Änderung steht im Protokoll.",
+					"Wer im Firmenkonto gesperrt ist, kommt nicht mehr in Klick; Rollen folgen den Gruppen, jede Änderung steht im Protokoll. Ein neues Zertifikat beim Anbieter meldet Klick vor dem Ablauf; übernommen wird es mit einer zweiten Person.",
 			},
 			{
 				key: "setup",

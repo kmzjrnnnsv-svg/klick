@@ -694,10 +694,24 @@ für den IdP (Klick zeigt sie im Formular zum Kopieren, `<id>` = Kennung des Anb
 3. **Okta / andere OIDC:** App-Integration (Authorization Code mit PKCE), Gruppen-Claim `groups`, App den
    Gruppen zuweisen. Issuer = Okta-Domain bzw. Discovery-Adresse; „Verbindung testen“ ruft
    `/.well-known/openid-configuration` über `safeFetch` ab.
-4. **SAML (ADFS, Entra-SAML, Keycloak …):** ACS und Entity-ID eintragen, E-Mail als NameID oder Attribut
-   `email`, Gruppen als Attribut. Metadaten-XML einfügen oder Entity-ID, SSO-URL und Zertifikat einzeln.
-   Firmen-MFA über `authnmethodsreferences` (Entra/ADFS: `…/claims/multipleauthn`) oder
-   `AuthnContextClassRef`.
+4. **SAML in fünf Minuten (AP10):** Anbieter wählen (Entra ID, Google Workspace, Okta, ADFS, JumpCloud,
+   OneLogin, andere; Vorlagen in `lib/auth/sso-saml-vendors.ts`), Domain eintragen → Kennung
+   `saml-<domain>`, Werte zum Kopieren, Metadaten von Klick als Datei. Metadaten des Anbieters als Adresse
+   (Klick holt sie über `safeFetch`, ohne Weiterleitung, nur von den Hosts des Anbieters bzw. der eigenen
+   Domain bei ADFS/anderen), als Datei oder von Hand; „Prüfen“ zeigt Entity-ID, Anmeldeadresse,
+   Zertifikat und Ablauf. Attribute sind je Anbieter vorbelegt. Firmen-MFA über `authnmethodsreferences`
+   (Entra/ADFS: `…/claims/multipleauthn`) oder `AuthnContextClassRef`.
+   - **Probe-Anmeldung** („Mit meinem Firmenkonto testen“, nach bestätigter Domain): eigene AuthnRequest,
+     Klick zeigt unter `/einstellungen/sso/probe/<id>`, was ankam, oder die Ursache in Klartext (Audience,
+     Antwortadresse, Signatur, Uhrzeit, SHA-1, fremde Domain). Es entsteht kein Konto, keine Verknüpfung,
+     keine Sitzung (Hooks in `lib/auth/server.ts`, `lib/auth/sso-probe.ts`).
+   - **Zertifikat beobachten:** Job `sso-metadata` (05:40) holt Metadaten mit Adresse neu, merkt ein neues
+     Zertifikat vor und meldet es; Übernahme nur über Vier-Augen (Art `sso_saml_cert`, gleiche Entity-ID
+     Pflicht). Erinnerung 30/7 Tage vor Ablauf und bei Ablauf. Ausgehend braucht der Server dafür https zu
+     `login.microsoftonline.com`, `*.okta.com`, `*.onelogin.com` bzw. dem ADFS des Kunden.
+   - **IT einbinden:** Blatt als PDF (`/api/export/sso-blatt.pdf`) oder Link `/sso-einrichtung#klk_sso_…`
+     (7 Tage, IP-Liste der Org wie für Externe); die IT schickt Metadaten und Attributnamen, die Inhaberin
+     legt an.
 5. **Domain bestätigen:** TXT `_klick-sso.<domain>` mit dem angezeigten Wert, dann „Prüfen“. Ohne bestätigte
    Domain gibt es keine Anmeldung und kein Erzwingen.
 6. **Regeln:** Gruppen → Rolle (Mitarbeitende, Lesend, Bearbeiter:in; nie Inhaber:in), Standardrolle ohne
