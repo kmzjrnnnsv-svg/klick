@@ -1867,7 +1867,17 @@
 		"probe": "Mit meinem Firmenkonto testen",
 		"probeHint": "Klick leitet dich zum Anbieter. Nach der Anmeldung siehst du, was ankam. Es entsteht kein Konto und keine Sitzung.",
 		"err_sso_probe_unverified": "Bestätige zuerst die Domain, dann geht die Probe-Anmeldung.",
-		"err_sso_probe_failed": "Klick konnte die Anfrage an den Anbieter nicht bauen. Prüf die Anmeldeadresse in den Metadaten."
+		"err_sso_probe_failed": "Klick konnte die Anfrage an den Anbieter nicht bauen. Prüf die Anmeldeadresse in den Metadaten.",
+		"nextCertTitle": "Neues Zertifikat beim Anbieter (gültig bis {date})",
+		"nextCertLead": "Klick hat es in den Metadaten gesehen. Übernimm es, damit Anmeldungen nach dem Wechsel weiter klappen. Eine zweite Person stimmt zu, sonst wirkt es nach 24 Stunden.",
+		"nextCertAdopt": "Neues Zertifikat übernehmen",
+		"nextCertAdopted": "Zertifikat übernommen.",
+		"lastFetchFailed": "Letzter Abruf der Metadaten fehlgeschlagen: {reason}",
+		"refresh": "Metadaten jetzt prüfen",
+		"refreshSame": "Metadaten geprüft, nichts geändert.",
+		"refreshNewCert": "Neues Zertifikat gefunden. Prüf es und übernimm es.",
+		"err_sso_no_next_cert": "Es liegt kein neues Zertifikat vor. Prüf zuerst die Metadaten.",
+		"err_sso_cert_entity_changed": "Die neuen Metadaten gehören zu einem anderen Anbieter (andere Entity-ID). Leg die Verbindung neu an."
 	},
 	"PolicyPortal": {
 		"sectionPortal": "Portal",
@@ -6838,7 +6848,8 @@
 		"err_four_eyes_self": "Deiner eigenen Änderung stimmt eine andere Person zu.",
 		"err_four_eyes_stale": "Die Einstellung hat sich seit dem Antrag geändert, darum ist er verfallen. Stell ihn neu.",
 		"err_forbidden": "Zustimmen dürfen nur Inhaber:innen und die Geschäftsleitung.",
-		"where_org_reset": "Führe es jetzt aus: Einstellungen > Organisation, „Neu beginnen“."
+		"where_org_reset": "Führe es jetzt aus: Einstellungen > Organisation, „Neu beginnen“.",
+		"where_sso_saml_cert": ""
 	},
 	"AdminLockbox": {
 		"title": "Zugriffe auf Organisationen",

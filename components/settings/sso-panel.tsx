@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import {
+	adoptSamlCert,
 	deleteSsoProvider,
+	refreshSamlMetadata,
 	registerOidcPreset,
 	requestSsoDomainVerification,
 	saveSsoPolicy,
@@ -55,6 +57,8 @@ export type SsoProviderRow = {
 	metadataUrl: string | null;
 	probeOkAt: string | null;
 	nextCert: boolean;
+	nextCertNotAfter: string | null;
+	lastFetchError: string | null;
 };
 
 type Kind = SsoKind | "saml";
@@ -77,6 +81,8 @@ const SSO_ERRORS = new Set([
 	"sso_cert_invalid",
 	"sso_probe_unverified",
 	"sso_probe_failed",
+	"sso_no_next_cert",
+	"sso_cert_entity_changed",
 ]);
 
 export function SsoPanel({
@@ -92,6 +98,7 @@ export function SsoPanel({
 }) {
 	const t = useTranslations("SsoSetup");
 	const tc = useTranslations("Common");
+	const format = useFormatter();
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const [tokens, setTokens] = useState<Record<string, string>>({});
@@ -146,6 +153,49 @@ export function SsoPanel({
 									certNotAfter={p.certNotAfter}
 									metadataUrl={p.metadataUrl}
 								/>
+								{p.nextCert && (
+									<div className="flex flex-col gap-2 rounded-xl bg-muted/50 p-3">
+										<p className="font-medium text-subhead">
+											{t("nextCertTitle", {
+												date: p.nextCertNotAfter
+													? format.dateTime(new Date(p.nextCertNotAfter), {
+															dateStyle: "medium",
+														})
+													: "–",
+											})}
+										</p>
+										<p className="text-footnote text-muted-foreground">
+											{t("nextCertLead")}
+										</p>
+										{canEdit && (
+											<div>
+												<Button
+													size="sm"
+													disabled={pending}
+													onClick={() =>
+														start(async () => {
+															const res = await withStepUp(() =>
+																adoptSamlCert(p.providerId),
+															);
+															if (!res.ok) return fail(res.error);
+															toast.success(t("nextCertAdopted"));
+															router.refresh();
+														})
+													}
+												>
+													{t("nextCertAdopt")}
+												</Button>
+											</div>
+										)}
+									</div>
+								)}
+								{p.lastFetchError && (
+									<p className="text-footnote text-warning">
+										{t("lastFetchFailed", {
+											reason: message(p.lastFetchError),
+										})}
+									</p>
+								)}
 								{canEdit &&
 									p.protocol === "saml" &&
 									p.domainVerified &&
@@ -213,6 +263,27 @@ export function SsoPanel({
 													{t("verify")}
 												</Button>
 											</>
+										)}
+										{p.metadataUrl && (
+											<Button
+												size="sm"
+												variant="secondary"
+												disabled={pending}
+												onClick={() =>
+													start(async () => {
+														const res = await refreshSamlMetadata(p.providerId);
+														if (!res.ok) return fail(res.error);
+														toast.success(
+															res.data.result === "new_cert"
+																? t("refreshNewCert")
+																: t("refreshSame"),
+														);
+														router.refresh();
+													})
+												}
+											>
+												{t("refresh")}
+											</Button>
 										)}
 										{p.protocol === "saml" && p.domainVerified && (
 											<Button

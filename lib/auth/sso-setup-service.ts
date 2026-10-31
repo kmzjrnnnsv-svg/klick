@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { ssoProvider } from "@/db/auth-schema";
 import { ssoProviderStates } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
 import { safeFetch } from "@/lib/security/quick-check/fetcher";
@@ -97,4 +98,80 @@ export async function deleteProviderState(
 				eq(ssoProviderStates.providerId, providerId),
 			),
 		);
+}
+
+/**
+ * Vorgemerktes Zertifikat übernehmen (AP10c, Wirkung der Vier-Augen-Art
+ * sso_saml_cert). Nur, wenn Vormerkung und heutiges Zertifikat noch dem
+ * Antrag entsprechen und die Metadaten denselben Anbieter beschreiben
+ * (gleiche Entity-ID). Schreibt die Verbindung in derselben Transaktion
+ * (sso_provider ohne RLS, ADR-015, gefiltert über die Org). Rückgabe: Code
+ * bei Ablehnung, sonst null.
+ */
+export async function adoptNextMetadata(
+	tx: OrgTx,
+	orgId: string,
+	input: { providerId: string; next: string; current: string | null },
+	now = new Date(),
+): Promise<string | null> {
+	const [st] = await tx
+		.select()
+		.from(ssoProviderStates)
+		.where(
+			and(
+				eq(ssoProviderStates.organizationId, orgId),
+				eq(ssoProviderStates.providerId, input.providerId),
+			),
+		)
+		.limit(1);
+	if (
+		!st?.nextMetadata ||
+		st.nextCertFingerprints !== input.next ||
+		(st.certFingerprints ?? null) !== input.current
+	)
+		return "four_eyes_stale";
+	const m = readIdpMetadata(st.nextMetadata, now);
+	if (!m.ok || fingerprintSet(m.metadata.certificates) !== input.next)
+		return "four_eyes_stale";
+	const [p] = await tx
+		.select({ issuer: ssoProvider.issuer, samlConfig: ssoProvider.samlConfig })
+		.from(ssoProvider)
+		.where(
+			and(
+				eq(ssoProvider.providerId, input.providerId),
+				eq(ssoProvider.organizationId, orgId),
+			),
+		)
+		.limit(1);
+	if (!p?.samlConfig) return "four_eyes_stale";
+	if (m.metadata.entityId !== p.issuer) return "sso_cert_entity_changed";
+	let cfg: Record<string, unknown>;
+	try {
+		cfg = JSON.parse(p.samlConfig) as Record<string, unknown>;
+	} catch {
+		return "four_eyes_stale";
+	}
+	const next = {
+		...cfg,
+		cert: undefined,
+		entryPoint: m.metadata.ssoUrl ?? cfg.entryPoint,
+		idpMetadata: { metadata: st.nextMetadata },
+	};
+	await tx
+		.update(ssoProvider)
+		.set({ samlConfig: JSON.stringify(next) })
+		.where(
+			and(
+				eq(ssoProvider.providerId, input.providerId),
+				eq(ssoProvider.organizationId, orgId),
+			),
+		);
+	await upsertProviderState(tx, orgId, input.providerId, {
+		...certPatch(m.metadata.certificates),
+		nextMetadata: null,
+		nextCertFingerprints: null,
+		nextCertNotAfter: null,
+		nextSeenAt: null,
+	});
+	return null;
 }

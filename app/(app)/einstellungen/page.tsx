@@ -767,6 +767,8 @@ async function renderSection(
 							metadataUrl: st?.metadataUrl ?? null,
 							probeOkAt: st?.probeOkAt?.toISOString() ?? null,
 							nextCert: Boolean(st?.nextCertFingerprints),
+							nextCertNotAfter: st?.nextCertNotAfter?.toISOString() ?? null,
+							lastFetchError: st?.lastFetchError ?? null,
 						};
 					})}
 					callbackBase={callbackBase()}

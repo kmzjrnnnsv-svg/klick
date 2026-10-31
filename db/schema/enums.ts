@@ -636,6 +636,8 @@ export const SECURITY_CHANGE_KINDS = [
 	"ai_policy",
 	// Unterschriften nur mit Sicherheitsschlüssel ausschalten (AP9.1b)
 	"signature_policy",
+	// Neues Signaturzertifikat eines SAML-Anbieters übernehmen (AP10c)
+	"sso_saml_cert",
 	// „erlaubt“: einmalige Erlaubnis für die anfragende Person (24 h)
 	"org_delete",
 	// Neu beginnen: alle Daten weg, Org leer neu angelegt

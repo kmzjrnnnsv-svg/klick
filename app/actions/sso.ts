@@ -25,11 +25,13 @@ import {
 	certPatch,
 	deleteProviderState,
 	fetchIdpMetadata,
+	providerStates,
 	readIdpMetadata,
 	upsertProviderState,
 } from "@/lib/auth/sso-setup-service";
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
+import { checkProviderMetadata } from "@/lib/jobs/sso-metadata";
 import { safeFetch } from "@/lib/security/quick-check/fetcher";
 import {
 	ssoChangeSummary,
@@ -565,3 +567,65 @@ async function startSsoProbeImpl(
 }
 
 export const startSsoProbe = safeAction("startSsoProbe", startSsoProbeImpl);
+
+// Neues Zertifikat übernehmen (AP10c): über Vier-Augen (Art sso_saml_cert);
+// das vorgemerkte Zertifikat holt der Job bzw. „Metadaten jetzt prüfen“.
+async function adoptSamlCertImpl(providerId: string): Promise<ActionResult> {
+	const g = await stepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = providerIdSchema.safeParse(providerId);
+	if (!parsed.success) return fromZod(parsed.error);
+	const st = (
+		await readOrg(toOrgCtx(c), (tx) => providerStates(tx, c.orgId))
+	).find((s) => s.providerId === parsed.data);
+	if (!st?.nextCertFingerprints)
+		return { ok: false, error: "sso_no_next_cert" };
+	const until = st.nextCertNotAfter?.toISOString().slice(0, 10) ?? "–";
+	return requestApplyChange(c, {
+		kind: "sso_saml_cert",
+		targetKey: parsed.data,
+		summary: `SSO „${parsed.data}“: neues Zertifikat des Anbieters übernehmen (gültig bis ${until})`,
+		payload: {
+			value: { providerId: parsed.data, fingerprints: st.nextCertFingerprints },
+		},
+		before: { fingerprints: st.certFingerprints ?? null },
+	});
+}
+
+// Metadaten jetzt prüfen (AP10c): wie der tägliche Job für einen Anbieter.
+async function refreshSamlMetadataImpl(
+	providerId: string,
+): Promise<ActionResult<{ result: "same" | "new_cert" }>> {
+	const c = await requireOrg({ settings: ["update"] });
+	if (c.orgRole !== "owner") return { ok: false, error: "forbidden" };
+	const parsed = providerIdSchema.safeParse(providerId);
+	if (!parsed.success) return fromZod(parsed.error);
+	const [states, providers] = await Promise.all([
+		readOrg(toOrgCtx(c), (tx) => providerStates(tx, c.orgId)),
+		listSsoProvidersForOrg(c.orgId),
+	]);
+	const st = states.find((s) => s.providerId === parsed.data);
+	const provider = providers.find((p) => p.providerId === parsed.data);
+	if (!st?.metadataUrl || !provider) return { ok: false, error: "not_found" };
+	const r = await checkProviderMetadata(
+		c.orgId,
+		st,
+		provider.domain,
+		new Date(),
+	);
+	revalidatePath("/einstellungen");
+	if (r === "error") {
+		const [after] = await readOrg(toOrgCtx(c), (tx) =>
+			providerStates(tx, c.orgId),
+		).then((rows) => rows.filter((s) => s.providerId === parsed.data));
+		return { ok: false, error: after?.lastFetchError ?? "sso_metadata_fetch" };
+	}
+	return { ok: true, data: { result: r === "new_cert" ? "new_cert" : "same" } };
+}
+
+export const adoptSamlCert = safeAction("adoptSamlCert", adoptSamlCertImpl);
+export const refreshSamlMetadata = safeAction(
+	"refreshSamlMetadata",
+	refreshSamlMetadataImpl,
+);

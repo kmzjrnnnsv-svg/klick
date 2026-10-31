@@ -18,6 +18,7 @@ import { runPostureSnapshot } from "./posture";
 import { runPushNotify } from "./push-notify";
 import { runRetention } from "./retention";
 import { runSecurityChanges } from "./security-changes";
+import { runSsoMetadata } from "./sso-metadata";
 import { runStorageOrphans, runStoragePurge } from "./storage";
 import { runTeamsNotify } from "./teams-notify";
 
@@ -41,6 +42,8 @@ import { runTeamsNotify } from "./teams-notify";
 //   teams-notify       jede Minute Benachrichtigungen in Microsoft Teams
 //   push-notify        jede Minute Push-Benachrichtigungen (Web Push)
 //                                  zustellen (nur mit TEAMS_CLIENT_ID)
+//   sso-metadata       05:40       SAML-Metadaten neu holen, neues Zertifikat
+//                                  vormerken, Ablauf 30/7 Tage erinnern
 // Die Wallet-Jobs (wallet-sync, price-tick, wallet-payouts) laufen seit K6 nur
 // noch in both.money (apps/wallet/lib/jobs); alte Zeitpläne räumt der Start ab.
 
@@ -59,6 +62,7 @@ export const JOBS = {
 	evidenceTexts: "evidence-texts",
 	teamsNotify: "teams-notify",
 	pushNotify: "push-notify",
+	ssoMetadata: "sso-metadata",
 	quickCheck: QUICK_CHECK_JOB,
 } as const;
 
@@ -85,6 +89,7 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.schedule(JOBS.evidenceTexts, "*/15 * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.teamsNotify, "* * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.pushNotify, "* * * * *", {}, { tz: TZ });
+	await boss.schedule(JOBS.ssoMetadata, "40 5 * * *", {}, { tz: TZ });
 
 	await boss.work(JOBS.complianceTick, async () => {
 		await runComplianceTick();
@@ -131,6 +136,9 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	});
 	await boss.work(JOBS.pushNotify, async () => {
 		await runPushNotify();
+	});
+	await boss.work(JOBS.ssoMetadata, async () => {
+		await runSsoMetadata();
 	});
 	// Schnellcheck auf Anfrage: höchstens zwei gleichzeitig je Prozess
 	await boss.work<QuickCheckJob>(
