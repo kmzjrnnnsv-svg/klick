@@ -12,6 +12,7 @@ import {
 	exclusionRule,
 	naImpact,
 } from "@/lib/compliance/exclusions";
+import { invalidExclusionBlockers } from "@/lib/compliance/queries-readiness";
 
 // Ausschluss je Rahmenwerk: nur ISO 27001 Anhang A und die wählbaren
 // SOC-2-Kategorien; DORA, NIS2, GwG … kennen keinen Ausschluss.
@@ -159,5 +160,28 @@ describe("„Nicht relevant“ in der Gap-Analyse", () => {
 		expect(plain.score).toBe(100);
 		// A: Gewicht 1 erfüllt; B: Gewicht 2, davon die Hälfte offen
 		expect(strict.score).toBe(50);
+	});
+});
+
+describe("Prüfungsreife: Ausschluss ohne Grundlage", () => {
+	it("nur manuelle Ausschlüsse in Rahmenwerken ohne Ausschluss werden Blocker", () => {
+		const detail = new Map([
+			[`dora:${dora}`, { applicable: false, source: "manual", note: "alt" }],
+			[
+				`iso27001:${isoAnnex}`,
+				{ applicable: false, source: "manual", note: "SoA" },
+			],
+			[
+				`iso27001:${isoClause}`,
+				{ applicable: false, source: "rule", note: null },
+			],
+		]);
+		const out = invalidExclusionBlockers(detail, ["dora", "iso27001"]);
+		expect([...out.keys()]).toEqual(["dora"]);
+		const b = out.get("dora")?.[0];
+		expect(b?.kind).toBe("exclusion_invalid");
+		expect(b?.href).toBe(`/rahmenwerke/dora/${encodeURIComponent(dora)}`);
+		// nicht gewähltes Rahmenwerk zählt nicht
+		expect(invalidExclusionBlockers(detail, ["iso27001"]).size).toBe(0);
 	});
 });

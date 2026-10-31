@@ -37,6 +37,7 @@ const KIND: Record<BlockerKind, string> = {
 	product_gap: "Produktpflicht erfüllen",
 	security_finding: "Sicherheitsbefund beheben",
 	governance_gap: "Freigabe-Pflicht abdecken",
+	exclusion_invalid: "Ausschluss ohne Grundlage zurücknehmen",
 };
 
 const cell = (v: unknown) =>

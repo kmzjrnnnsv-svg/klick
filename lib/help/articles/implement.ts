@@ -136,7 +136,7 @@ export const IMPLEMENT: HelpArticle[] = [
 				heading: "Status setzen",
 				list: [
 					"Nicht begonnen, in Arbeit, teilweise umgesetzt, umgesetzt oder nicht anwendbar.",
-					"„Nicht anwendbar“ braucht eine Begründung; sie erscheint in der SoA.",
+					"„Nicht anwendbar“ braucht eine Begründung und geht nur, wenn jedes Rahmenwerk des Controls einen Ausschluss kennt (zum Beispiel ISO 27001 Anhang A). Klick schließt die Anforderungen dann mit derselben Begründung aus; sie erscheint in der SoA.",
 					"Mehrere Controls lassen sich in der Liste markieren und gemeinsam ändern.",
 				],
 			},
@@ -213,7 +213,10 @@ export const IMPLEMENT: HelpArticle[] = [
 				list: [
 					"Ob eine Anforderung gilt, folgt aus deinem Profil: Lizenzstufe (Vorbereitung bis Bank), Kryptowerte-Dienste, Produkte und Stichtag.",
 					"Anforderungen mit künftigem Stichtag (zum Beispiel AMLR ab 10.07.2027) erscheinen schon im Arbeitsvorrat, damit du rechtzeitig planst.",
-					"Du kannst eine Anforderung von Hand als nicht anwendbar markieren; das braucht eine Begründung und überschreibt die Ableitung.",
+					"Ausschließen kannst du eine Anforderung nur, wo das Rahmenwerk es vorsieht: bei ISO 27001 die Maßnahmen aus Anhang A (in der SoA, Abschnitt 6.1.3 d), bei SOC 2 die wählbaren Kategorien Verfügbarkeit, Vertraulichkeit, Verarbeitungsintegrität und Datenschutz. Der Ausschluss braucht eine Begründung und überschreibt die Ableitung.",
+					"DORA, NIS2, GwG, ZAG, MiCAR, DSGVO und die übrigen Gesetze kennen keinen Ausschluss. Dort setzt du verhältnismäßig um, also passend zu Größe und Risiko, und beschreibst das in der Notiz.",
+					"In der Gap-Analyse schließt „Nicht relevant“ nur die Anforderungen aus, die einen Ausschluss kennen; der Rest bleibt offen und zählt in der Bewertung mit. Wo keines der Rahmenwerke einer Frage einen Ausschluss kennt, ist die Antwort gesperrt.",
+					"Ausschlüsse von früher in Rahmenwerken ohne Ausschluss markiert Klick an der Anforderung und als Blocker in der Prüfungsreife, bis du sie zurücknimmst.",
 				],
 			},
 			{

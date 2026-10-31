@@ -9,11 +9,16 @@ import {
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
 import { inForceStatus } from "@/lib/documents/versions";
-import { ALL_REQUIREMENTS, CONTROL_BY_CODE } from "./catalog";
+import {
+	ALL_REQUIREMENTS,
+	CONTROL_BY_CODE,
+	REQUIREMENT_BY_KEY,
+} from "./catalog";
 import { WORKFLOW_BY_KIND } from "./catalog/approval-workflows";
 import { mandatoryTemplatesFor } from "./catalog/document-templates";
 import { CATALOG_EDGES } from "./catalog-view";
 import { craBlockers } from "./cra";
+import { exclusionAllowedForKey } from "./exclusions";
 import { governanceChecks } from "./governance-checks";
 import {
 	listEvidenceWithControls,
@@ -92,6 +97,35 @@ async function governanceBlockers(
 	return out;
 }
 
+export function invalidExclusionBlockers(
+	detail: ReadonlyMap<
+		string,
+		{ applicable: boolean; source: string; note: string | null }
+	>,
+	slugs: readonly string[],
+): Map<string, ReadinessBlocker[]> {
+	const out = new Map<string, ReadinessBlocker[]>();
+	for (const [key, d] of detail) {
+		if (d.source !== "manual" || d.applicable) continue;
+		const i = key.indexOf(":");
+		const slug = key.slice(0, i);
+		const code = key.slice(i + 1);
+		if (!slugs.includes(slug) || exclusionAllowedForKey(key)) continue;
+		const list = out.get(slug) ?? [];
+		list.push({
+			kind: "exclusion_invalid",
+			severity: "high",
+			label: `${code} ${REQUIREMENT_BY_KEY.get(key)?.title ?? ""}`.trim(),
+			ref: key,
+			href: `/rahmenwerke/${slug}/${encodeURIComponent(code)}`,
+			requirements: 1,
+			gain: 0,
+		});
+		out.set(slug, list);
+	}
+	return out;
+}
+
 export async function loadReadiness(
 	tx: OrgTx,
 	orgId: string,
@@ -129,6 +163,13 @@ export async function loadReadiness(
 	// Freigabe-Pflichten, die die Abläufe nicht tragen (ADR-024): je
 	// verlangendem Rahmenwerk ein Blocker
 	for (const [slug, list] of await governanceBlockers(tx, orgId, slugs))
+		extra.set(slug, [...(extra.get(slug) ?? []), ...list]);
+	// Ausschlüsse, die das Rahmenwerk nicht kennt (vor dem 31.10. möglich):
+	// zählen bis zur Rücknahme als Blocker
+	for (const [slug, list] of invalidExclusionBlockers(
+		cov.applicabilityDetail,
+		slugs,
+	))
 		extra.set(slug, [...(extra.get(slug) ?? []), ...list]);
 	if (slugs.includes("cra"))
 		extra.set("cra", [

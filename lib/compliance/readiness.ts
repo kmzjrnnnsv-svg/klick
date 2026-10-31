@@ -57,7 +57,9 @@ export type BlockerKind =
 	| "product_gap"
 	| "security_finding"
 	// Freigabe-Pflicht eines Rahmenwerks nicht abgedeckt (ADR-024)
-	| "governance_gap";
+	| "governance_gap"
+	// Anforderung ausgeschlossen, obwohl das Rahmenwerk keinen Ausschluss kennt
+	| "exclusion_invalid";
 
 export type ReadinessBlocker = {
 	kind: BlockerKind;

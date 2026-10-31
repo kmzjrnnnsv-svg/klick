@@ -7,8 +7,10 @@ import { controlImplementations, controls } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
-import { REQUIREMENT_BY_KEY } from "@/lib/compliance/catalog";
+import { EDGES_BY_CONTROL, REQUIREMENT_BY_KEY } from "@/lib/compliance/catalog";
 import { coverageDelta } from "@/lib/compliance/coverage";
+import { excludeRequirements } from "@/lib/compliance/exclusion-service";
+import { exclusionAllowedForKey } from "@/lib/compliance/exclusions";
 import { resolveResponsible } from "@/lib/compliance/function-holders-service";
 import { orgCoverage } from "@/lib/compliance/queries";
 import { mutateOrg } from "@/lib/db/with-org";
@@ -84,6 +86,36 @@ async function setControlStatusImpl(
 			const cov = await orgCoverage(tx, c.orgId);
 			const delta = cov ? coverageDelta(cov.input, row.code, status) : null;
 
+			// „Nicht anwendbar“ nur, wenn jedes Rahmenwerk der anwendbaren
+			// Anforderungen einen Ausschluss kennt (ISO Annex A, SOC 2 …); die
+			// Anforderungen werden dann mit derselben Begründung ausgeschlossen,
+			// damit SoA und Abdeckung stimmen
+			let exclusionAudit: AuditInput[] = [];
+			if (status === "not_applicable" && cov) {
+				const keys = (EDGES_BY_CONTROL.get(row.code) ?? [])
+					.map((e) => e.requirement)
+					.filter(
+						(k) =>
+							cov.frameworks.includes(k.slice(0, k.indexOf(":"))) &&
+							cov.result.byRequirement.get(k) !== "not_applicable",
+					);
+				const blocked = keys.filter((k) => !exclusionAllowedForKey(k));
+				if (blocked.length > 0)
+					return {
+						result: {
+							ok: false as const,
+							error: "control_na_not_allowed",
+						},
+						audit: [],
+					};
+				exclusionAudit = await excludeRequirements(
+					tx,
+					c.orgId,
+					keys.map((key) => ({ key, note: note?.trim() ?? "" })),
+					`control:${row.code}`,
+				);
+			}
+
 			await tx
 				.update(controlImplementations)
 				.set({
@@ -125,12 +157,15 @@ async function setControlStatusImpl(
 						frameworks: delta?.frameworks ?? [],
 					},
 				},
-				audit: {
-					action: "control.status",
-					target: `control:${implementationId}`,
-					before: { status: row.status, note: row.note },
-					after: { status, note: note?.trim() || row.note, code: row.code },
-				},
+				audit: [
+					...exclusionAudit,
+					{
+						action: "control.status",
+						target: `control:${implementationId}`,
+						before: { status: row.status, note: row.note },
+						after: { status, note: note?.trim() || row.note, code: row.code },
+					},
+				],
 			};
 		},
 	);
