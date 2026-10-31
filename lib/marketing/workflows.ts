@@ -1006,6 +1006,17 @@ export const PICKER_FRAMEWORKS: { slug: string; label: string }[] = [
 	{ slug: "eu-us-dpf", label: "EU-US DPF" },
 	{ slug: "cyber-essentials", label: "Cyber Essentials" },
 	{ slug: "essential-eight", label: "Essential Eight" },
+	{ slug: "nist-csf", label: "NIST CSF" },
+	{ slug: "nist-800-53", label: "NIST 800-53" },
+	{ slug: "nist-800-171", label: "NIST 800-171" },
+	{ slug: "cmmc", label: "CMMC" },
+	{ slug: "hipaa", label: "HIPAA" },
+	{ slug: "nycrr-500", label: "NYDFS 500" },
+	{ slug: "ccpa", label: "CCPA" },
+	{ slug: "us-privacy", label: "US-Datenschutz" },
+	{ slug: "aws-ftr", label: "AWS FTR" },
+	{ slug: "ms-sspa", label: "Microsoft SSPA" },
+	{ slug: "mvsp", label: "MVSP" },
 ];
 export const PICKER_DEFAULT = ["iso27001", "dora", "micar", "gwg"];
 

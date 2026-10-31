@@ -151,7 +151,7 @@ export const BASICS: HelpArticle[] = [
 					"Unternehmen: Rechtsform, Beschäftigte, Umsatz und Bilanzsumme. Klick stuft daraus KMU-Status, NIS2-Betroffenheit und DORA-Anwendbarkeit ein (als Orientierung gekennzeichnet).",
 					"Standorte: Büros, Rechenzentren, Lager. Kritische Standorte bekommen später eine Notfallübung im Testprogramm.",
 					"Tätigkeit: Branche, Finanzdienste, Kryptowerte-Dienste, Produkte. Daraus folgen Lizenzstufe und Pflichten.",
-					"IT und Daten: wichtige Systeme, Dienstleister, Art der Daten. Daraus entstehen Assets und Dienstleister im Register.",
+					"IT und Daten: wichtige Systeme, Dienstleister, Art der Daten. Daraus entstehen Assets und Dienstleister im Register. Dazu ein paar Ja/Nein-Fragen, etwa zu KI, Kundschaft aus der Autoindustrie, Aufträgen für US-Behörden, Gesundheitsdaten aus den USA, einer Erlaubnis in New York oder einer Partnerschaft mit AWS oder Microsoft. Sie entscheiden, welche weiteren Rahmenwerke Klick vorschlägt.",
 					"Rahmenwerke: Klick schlägt vor, was für dich gilt; du wählst endgültig aus.",
 					"Gap-Analyse: die vorbelegte Selbsteinschätzung startet. Antworten aus der Einrichtung stehen dort schon als „teilweise“ mit dem Hinweis „Aus der Einrichtung“.",
 				],

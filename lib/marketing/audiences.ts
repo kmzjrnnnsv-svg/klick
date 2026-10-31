@@ -52,6 +52,20 @@ const ISO =
 const SOC2 = "Prüfbericht, den Banken und große Kund:innen oft verlangen.";
 const PCI_CARDS =
 	"Wickelst du Kartenzahlungen ab oder speicherst Kartendaten, verlangen Acquirer und Kartenorganisationen PCI DSS; der Umfang folgt deinem Fragebogen (SAQ).";
+const US_FEDERAL =
+	"Arbeitest du für US-Behörden oder das US-Verteidigungsministerium, auch als Unterauftragnehmer, steht der Schutz von CUI nach NIST SP 800-171 im Vertrag.";
+const CMMC =
+	"Für Aufträge des US-Verteidigungsministeriums: Nachweis nach CMMC, Stufe laut Vertrag, ab Stufe 2 oft mit Prüfung durch eine zugelassene Stelle.";
+const HIPAA =
+	"Verarbeitest du im Auftrag von US-Kliniken, Praxen oder Versicherungen Gesundheitsdaten, bist du Business Associate: Schutzmaßnahmen, Vertrag, Meldung von Datenpannen.";
+const CCPA =
+	"Hast du Kund:innen in Kalifornien und erreichst die Schwellen (Umsatz, Zahl der Personen, Datenverkauf): Rechte, Widerspruch gegen Verkauf und Weitergabe, Hinweise.";
+const US_STATES =
+	"Weitere US-Bundesstaaten wie Virginia, Colorado oder Texas haben eigene Datenschutzgesetze mit Schwellen; der Kern ähnelt dem kalifornischen.";
+const NIST_CSF =
+	"US-Kundschaft fragt oft nach einer Selbsteinschätzung nach dem NIST Cybersecurity Framework.";
+const NYDFS =
+	"Mit einer Erlaubnis der New Yorker Finanzaufsicht (DFS) gelten deren Cybersicherheitsregeln mit Meldung binnen 72 Stunden und jährlicher Bescheinigung.";
 const GRUNDSCHUTZ =
 	"IT-Grundschutz des BSI: in Deutschland verbreitet, von öffentlichen Auftraggebern oft verlangt, zertifizierbar als ISO 27001 auf Basis von IT-Grundschutz.";
 
@@ -91,6 +105,27 @@ export const AUDIENCES: Audience[] = [
 				slug: "tisax",
 				level: "indirect",
 				why: "Sind Autohersteller oder ihre Zulieferer deine Kund:innen, verlangen sie meist ein TISAX-Ergebnis.",
+			},
+			{ slug: "nist-800-171", level: "depends", why: US_FEDERAL },
+			{ slug: "cmmc", level: "depends", why: CMMC },
+			{ slug: "hipaa", level: "depends", why: HIPAA },
+			{ slug: "ccpa", level: "depends", why: CCPA },
+			{ slug: "us-privacy", level: "depends", why: US_STATES },
+			{ slug: "nist-csf", level: "indirect", why: NIST_CSF },
+			{
+				slug: "aws-ftr",
+				level: "indirect",
+				why: "Bist du AWS-Partner, prüft AWS die Technik deiner Lösung mit der Foundational Technical Review.",
+			},
+			{
+				slug: "ms-sspa",
+				level: "indirect",
+				why: "Verarbeitest du als Lieferant Daten von Microsoft, verlangt Microsoft jedes Jahr eine Selbstauskunft nach SSPA.",
+			},
+			{
+				slug: "mvsp",
+				level: "indirect",
+				why: "Große Firmenkundschaft schickt im Einkauf oft die kurze Prüfliste MVSP für sichere Software.",
 			},
 			{ slug: "iso27001", level: "voluntary", why: ISO },
 			{ slug: "soc2", level: "voluntary", why: SOC2 },
@@ -132,6 +167,13 @@ export const AUDIENCES: Audience[] = [
 				slug: "tisax",
 				level: "indirect",
 				why: "Lieferst du an Autohersteller, verlangen sie meist ein TISAX-Ergebnis, mit Prototypenschutz, wenn du neue Modelle siehst.",
+			},
+			{ slug: "cmmc", level: "depends", why: CMMC },
+			{ slug: "nist-csf", level: "indirect", why: NIST_CSF },
+			{
+				slug: "mvsp",
+				level: "indirect",
+				why: "Verkaufst du Software an Firmen, kommt im Einkauf oft die Prüfliste MVSP.",
 			},
 			{ slug: "iso27001", level: "voluntary", why: ISO },
 			{
@@ -177,6 +219,7 @@ export const AUDIENCES: Audience[] = [
 				why: "Meldungen zur Zahlungsbilanz, je nach Art und Höhe der Zahlungen.",
 			},
 			{ slug: "pci-dss", level: "depends", why: PCI_CARDS },
+			{ slug: "nycrr-500", level: "depends", why: NYDFS },
 			{ slug: "iso27001", level: "voluntary", why: ISO },
 			{ slug: "soc2", level: "voluntary", why: SOC2 },
 		],
@@ -216,6 +259,11 @@ export const AUDIENCES: Audience[] = [
 				why: "Wenn du zusätzlich Zahlungsdienste anbietest, etwa Auszahlungen in Euro.",
 			},
 			{ slug: "nis2", level: "depends", why: NIS2_FINANCE },
+			{
+				slug: "nycrr-500",
+				level: "depends",
+				why: "Mit BitLicense oder Treuhand-Erlaubnis der New Yorker Finanzaufsicht (DFS): deren Cybersicherheitsregeln, Meldung binnen 72 Stunden, jährliche Bescheinigung.",
+			},
 			{
 				slug: "ccss",
 				level: "voluntary",
@@ -259,6 +307,11 @@ export const AUDIENCES: Audience[] = [
 				slug: "awv",
 				level: "depends",
 				why: "Meldungen zur Zahlungsbilanz, je nach Art und Höhe der Zahlungen.",
+			},
+			{
+				slug: "nycrr-500",
+				level: "depends",
+				why: "Mit Niederlassung oder Erlaubnis in New York: Cybersicherheitsregeln der New Yorker Finanzaufsicht (DFS).",
 			},
 			{
 				slug: "pci-dss",
