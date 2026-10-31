@@ -10,3 +10,16 @@ reason = "http-cache-semantics via @cyclonedx/cyclonedx-npm → libxmljs2 → no
 id = "GHSA-67mh-4wv8-2f99"
 ignoreUntil = 2027-01-31
 reason = "esbuild 0.18 via drizzle-kit → @esbuild-kit/core-utils: betrifft nur den esbuild-Dev-Server (CORS), den drizzle-kit nicht startet; läuft nie auf dem Server."
+
+# Befristet bis die Fixes die 7-Tage-Wartezeit (minimumReleaseAge) hinter sich
+# haben (veröffentlicht 27.10.2026): danach den SBOM-Generator heben oder
+# overrides setzen und diese Einträge entfernen.
+[[IgnoredVulns]]
+id = "GHSA-3g3m-2fjr-6pw4"
+ignoreUntil = 2026-11-07
+reason = "glob 10.5.0 via @cyclonedx/cyclonedx-npm → libxmljs2 → node-gyp → make-fetch-happen → cacache: SBOM-Generator läuft nur in CI, nie auf dem Server; Fix (14.0.2) seit 27.10.2026, noch in der Wartezeit."
+
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+ignoreUntil = 2026-11-07
+reason = "minimatch 9.0.9 über glob 10.5.0 (gleicher Pfad wie oben, nur CI): Fix (11.0.1) seit 27.10.2026, noch in der Wartezeit."
