@@ -5,6 +5,7 @@ import {
 	member,
 	organization,
 	passkey,
+	session as sessionTable,
 	user,
 } from "@/db/auth-schema";
 import { auditPlatform } from "@/lib/audit";
@@ -294,4 +295,42 @@ export async function withdrawAccount(
 			);
 	await revokeRegistrationLinks({ userId, kind: "activate" });
 	return { ok: true, data: undefined };
+}
+
+// Alle Sitzungen eines Kontos beenden (Admin > Nutzer:innen > [Person]):
+// verlorenes Gerät, Verdacht auf Übernahme. Schützt wie Sperren, deshalb
+// ohne Step-up; nie das eigene Konto (dafür Einstellungen > Dein Konto).
+// Faktoren bleiben, die Person meldet sich mit Passkey neu an.
+export async function revokeUserSessions(
+	userId: string,
+	actor: AdminActor,
+): Promise<Result<{ revoked: number }>> {
+	if (userId === actor.userId) return { ok: false, error: "forbidden" };
+	const [target] = await globalDb
+		.select({ id: user.id })
+		.from(user)
+		.where(eq(user.id, userId))
+		.limit(1);
+	if (!target) return { ok: false, error: "not_found" };
+	// Abgelaufene Zeilen gehen mit, gezählt werden nur laufende Sitzungen
+	const now = Date.now();
+	const deleted = (
+		await globalDb
+			.delete(sessionTable)
+			.where(eq(sessionTable.userId, userId))
+			.returning({ expiresAt: sessionTable.expiresAt })
+	).filter((r) => r.expiresAt.getTime() > now);
+	await auditPlatform(
+		{
+			userId: actor.userId,
+			ip: actor.ip ?? null,
+			userAgent: actor.userAgent ?? null,
+		},
+		{
+			action: "admin.sessions_revoked",
+			target: `user:${userId}`,
+			after: { revoked: deleted.length },
+		},
+	);
+	return { ok: true, data: { revoked: deleted.length } };
 }
