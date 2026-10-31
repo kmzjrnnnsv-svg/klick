@@ -138,6 +138,37 @@ export const FRAMEWORK_RELATIONS: readonly FrameworkRelation[] = [
 		kind: "complements",
 		text: "ISO 27001 gilt für alle Informationen. PCI DSS gilt nur für Kartendaten, dafür sehr genau.",
 	},
+	{
+		from: "iso42001",
+		to: "iso27001",
+		kind: "builds_on",
+		text: "ISO 42001 ist gleich aufgebaut wie ISO 27001. Wer ISO 27001 schon umsetzt, ergänzt vor allem die Regeln für KI.",
+	},
+	{
+		from: "tisax",
+		to: "iso27001",
+		kind: "builds_on",
+		text: "Der TISAX-Katalog lehnt sich eng an ISO 27001 an. Neu sind vor allem der Prototypenschutz und die Bewertung in Reifegraden.",
+	},
+	{
+		from: "eu-us-dpf",
+		to: "dsgvo",
+		kind: "complements",
+		text: "Die DSGVO erlaubt Übermittlungen in die USA, wenn die US-Firma am Data Privacy Framework teilnimmt. Dann braucht es keine eigenen Verträge dafür.",
+		basis: "Art. 45 DSGVO mit Angemessenheitsbeschluss vom 10.07.2023",
+	},
+	{
+		from: "cyber-essentials",
+		to: "iso27001",
+		kind: "complements",
+		text: "Cyber Essentials prüft nur fünf technische Grundmaßnahmen. ISO 27001 enthält sie alle und noch viel mehr.",
+	},
+	{
+		from: "essential-eight",
+		to: "iso27001",
+		kind: "complements",
+		text: "Die acht Maßnahmen sind technisch und sehr genau. ISO 27001 verlangt das Ganze, Essential Eight sagt, wie gut acht Teile davon sein müssen.",
+	},
 	...CORRIDORS.map(
 		(slug): FrameworkRelation => ({
 			from: slug,

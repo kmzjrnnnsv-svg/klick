@@ -68,6 +68,69 @@ function corridor(country: string, region: string): FrameworkProfile {
 }
 
 export const FRAMEWORK_PROFILES: Record<string, FrameworkProfile> = {
+	iso42001: {
+		simple: "Ein Bauplan, wie eine Firma KI verantwortungsvoll baut und nutzt.",
+		why: "KI soll niemandem schaden, keine Menschen benachteiligen und nachvollziehbar bleiben.",
+		forWhom: "Firmen, die KI entwickeln, anbieten oder im Alltag einsetzen.",
+		issuer: "standard",
+		ifNot: "Kein Zertifikat, und Kundschaft fragt nach, wie ihr mit KI umgeht.",
+		proof:
+			"Ein Zertifikat von einer unabhängigen Prüfstelle, jedes Jahr nachgeprüft.",
+		example:
+			"Wie ein Führerschein für Roboter: Erst lernen und prüfen, dann fahren lassen.",
+	},
+	tisax: {
+		simple:
+			"Die Sicherheitsprüfung der Autoindustrie für Firmen, die mit Herstellern arbeiten.",
+		why: "Pläne und Prototypen neuer Autos sollen nicht in falsche Hände geraten.",
+		forWhom: "Zulieferer und Dienstleister von Autoherstellern.",
+		issuer: "industry",
+		ifNot:
+			"Ohne Prüfergebnis bekommt ihr oft keinen Auftrag von Autoherstellern.",
+		proof:
+			"Eine Prüfung durch eine zugelassene Stelle, das Ergebnis steht im Portal der Branche.",
+		example:
+			"Wie ein Werksausweis: Nur wer ihn hat, darf in die Halle mit den neuen Modellen.",
+	},
+	"eu-us-dpf": {
+		simple:
+			"Regeln, damit Daten von Menschen aus Europa in den USA sicher sind.",
+		why: "Daten aus Europa sollen in den USA genauso gut geschützt sein wie hier.",
+		forWhom:
+			"US-Firmen, die Daten aus Europa bekommen, und Firmen in Europa, die US-Dienste nutzen.",
+		issuer: "law_foreign",
+		ifNot:
+			"Ohne Teilnahme braucht es eigene Verträge, sonst ist die Übermittlung verboten.",
+		proof: "Eintrag auf der offiziellen Liste in den USA, jedes Jahr erneuert.",
+		example:
+			"Wie ein Gastland, das verspricht, auf deine Sachen aufzupassen wie zu Hause.",
+	},
+	"cyber-essentials": {
+		simple:
+			"Ein britisches Zertifikat für fünf einfache Schutzmaßnahmen gegen Angriffe aus dem Internet.",
+		why: "Die meisten Angriffe nutzen einfache Lücken, die sich leicht schließen lassen.",
+		forWhom:
+			"Firmen, die für die britische Regierung arbeiten oder Kundschaft in Großbritannien haben.",
+		issuer: "standard",
+		ifNot: "Ohne Zertifikat keine Aufträge der britischen Regierung.",
+		proof:
+			"Ein Fragebogen mit Prüfung, bei der Stufe Plus zusätzlich ein technischer Test.",
+		example:
+			"Wie Tür abschließen, Fenster zu und Licht an: einfach, aber es hält die meisten ab.",
+	},
+	"essential-eight": {
+		simple:
+			"Acht Schutzmaßnahmen aus Australien gegen die häufigsten Angriffe, in drei Stufen.",
+		why: "Mit wenigen gut gemachten Maßnahmen lassen sich die meisten Angriffe stoppen.",
+		forWhom:
+			"Behörden in Australien und Firmen, deren Kundschaft das verlangt.",
+		issuer: "supervisor",
+		ifNot:
+			"Ohne die Stufe, die die Kundschaft verlangt, gibt es dort oft keinen Auftrag.",
+		proof: "Eine Bewertung, welche Stufe jede der acht Maßnahmen erreicht.",
+		example:
+			"Wie acht Schlösser am Fahrrad: Je mehr gut sitzen, desto schwerer der Diebstahl.",
+	},
 	iso27001: {
 		simple:
 			"Ein Bauplan, wie eine Firma ihre Informationen Schritt für Schritt schützt.",
@@ -330,6 +393,69 @@ export const FRAMEWORK_PROFILES: Record<string, FrameworkProfile> = {
 
 // Je Kapitel ein einfacher Satz, Schlüssel „rahmenwerk:kapitel“
 export const SECTION_SIMPLE: Record<string, string> = {
+	"iso42001:4": "Die Firma klärt, wo sie KI nutzt und wer davon betroffen ist.",
+	"iso42001:5":
+		"Die Leitung übernimmt Verantwortung und schreibt Regeln für KI auf.",
+	"iso42001:6":
+		"Die Firma sucht Gefahren durch KI und plant, wie sie damit umgeht.",
+	"iso42001:7": "Leute, Geld, Wissen und Unterlagen für den Umgang mit KI.",
+	"iso42001:8": "Die Firma setzt ihre Pläne für KI im Alltag um.",
+	"iso42001:9": "Die Firma prüft, ob ihr Umgang mit KI funktioniert.",
+	"iso42001:10": "Fehler werden behoben, und alles wird besser.",
+	"iso42001:A.2":
+		"Eine Richtlinie sagt, wofür KI genutzt wird und wofür nicht.",
+	"iso42001:A.3": "Wer für KI zuständig ist und wo man Bedenken melden kann.",
+	"iso42001:A.4":
+		"Was jedes KI-System braucht: Daten, Werkzeuge, Rechner, Menschen.",
+	"iso42001:A.5": "Vorher überlegen, wem ein KI-System schaden könnte.",
+	"iso42001:A.6": "KI-Systeme sorgfältig planen, bauen, prüfen und betreiben.",
+	"iso42001:A.7": "Gute und erlaubte Daten für KI-Systeme.",
+	"iso42001:A.8": "Allen sagen, was ein KI-System kann und was nicht.",
+	"iso42001:A.9": "KI-Systeme nur für ihren Zweck nutzen.",
+	"iso42001:A.10": "Mit Lieferanten und Kundschaft klären, wer wofür sorgt.",
+	"tisax:1.1": "Aufgeschriebene Regeln für den Schutz von Informationen.",
+	"tisax:1.2":
+		"Wer für die Sicherheit zuständig ist und wie sie organisiert ist.",
+	"tisax:1.3": "Alles Wichtige ist erfasst und nach Schutzbedarf eingestuft.",
+	"tisax:1.4": "Gefahren finden und behandeln.",
+	"tisax:1.5": "Regelmäßig prüfen, ob die Regeln eingehalten werden.",
+	"tisax:1.6": "Was bei Vorfällen und Krisen passiert.",
+	"tisax:2.1": "Beschäftigte sind geeignet, verpflichtet und geschult.",
+	"tisax:3.1":
+		"Räume, Technik und Geräte sind gegen Diebstahl und Schäden geschützt.",
+	"tisax:4.1": "Jede Person meldet sich sicher mit eigenem Konto an.",
+	"tisax:4.2": "Jede Person darf nur an das, was sie braucht.",
+	"tisax:5.1": "Wichtige Daten werden verschlüsselt.",
+	"tisax:5.2": "Die Technik läuft sicher und wird gut gepflegt.",
+	"tisax:5.3": "Neue Systeme sind von Anfang an sicher.",
+	"tisax:6.1": "Auch Partner und Lieferanten schützen die Informationen.",
+	"tisax:7.1": "Gesetze und Verträge werden eingehalten.",
+	"tisax:8": "Neue Autos und Bauteile bleiben bis zum Marktstart geheim.",
+	"tisax:9":
+		"Daten von Menschen werden im Auftrag der Kundschaft gut geschützt.",
+	"eu-us-dpf:P": "Die sieben Grundregeln für den Umgang mit Daten aus Europa.",
+	"eu-us-dpf:S":
+		"Zusatzregeln, zum Beispiel für sensible Daten und Beschwerden.",
+	"eu-us-dpf:C": "Wie die Teilnahme angemeldet und geprüft wird.",
+	"cyber-essentials:SC": "Festlegen, welche Geräte und Netze geprüft werden.",
+	"cyber-essentials:FW": "Eine Firewall lässt nur erlaubte Verbindungen durch.",
+	"cyber-essentials:CF":
+		"Geräte haben nur das, was sie brauchen, und keine Standardpasswörter.",
+	"cyber-essentials:UM": "Programme bekommen schnell ihre Updates.",
+	"cyber-essentials:AC": "Jede Person hat nur die Rechte, die sie braucht.",
+	"cyber-essentials:MW": "Schutzprogramme halten Schadsoftware fern.",
+	"cyber-essentials:PL":
+		"Bei der Stufe Plus prüft jemand die Technik selbst nach.",
+	"essential-eight:AC": "Nur erlaubte Programme dürfen laufen.",
+	"essential-eight:PA": "Programme bekommen schnell ihre Updates.",
+	"essential-eight:MA": "Makros in Office-Dateien sind gesperrt oder geprüft.",
+	"essential-eight:UH": "Browser und Office sind gegen Tricks abgesichert.",
+	"essential-eight:RA":
+		"Nur wenige dürfen alles ändern, und nur so lange wie nötig.",
+	"essential-eight:PO": "Betriebssysteme bekommen schnell ihre Updates.",
+	"essential-eight:MF": "Zum Anmelden braucht es einen zweiten Nachweis.",
+	"essential-eight:RB":
+		"Daten werden gesichert, und die Sicherung ist geschützt.",
 	"iso27001:4":
 		"Die Firma klärt, wer etwas von ihr erwartet und was geschützt wird.",
 	"iso27001:5": "Die Leitung übernimmt Verantwortung und verteilt Aufgaben.",

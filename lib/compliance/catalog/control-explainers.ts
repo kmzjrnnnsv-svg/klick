@@ -13,6 +13,42 @@ export type ControlExplainer = {
 };
 
 export const CONTROL_EXPLAINERS: Record<string, ControlExplainer> = {
+	"CC-AI-01": {
+		what: "Die Firma schreibt auf, welche KI sie nutzt und wofür. Dazu Regeln, was erlaubt ist und was nicht.",
+		why: "Niemand setzt heimlich KI ein, von der keiner weiß.",
+		example:
+			"Wie eine Liste aller Haustiere im Haus, mit Namen und wer sie füttert.",
+	},
+	"CC-AI-02": {
+		what: "Bevor eine KI eingesetzt wird, überlegt die Firma, wem sie schaden könnte.",
+		why: "Fehler der KI treffen sonst Menschen, die sich nicht wehren können.",
+		example:
+			"Wie vor dem Fußballspiel prüfen, ob der Platz für alle sicher ist.",
+	},
+	"CC-AI-03": {
+		what: "Eine KI wird sorgfältig geplant, gebaut und getestet, bevor sie arbeiten darf.",
+		why: "Eine ungeprüfte KI macht Fehler, die keiner bemerkt.",
+		example:
+			"Wie ein neues Fahrrad, das erst auf dem Hof fährt und dann auf die Straße darf.",
+	},
+	"CC-AI-04": {
+		what: "Die Daten, mit denen eine KI lernt, sind erlaubt, richtig und passend.",
+		why: "Aus falschen Daten lernt eine KI falsche Dinge.",
+		example:
+			"Wie beim Lernen aus Schulbüchern: Ist das Buch falsch, lernt man Falsches.",
+	},
+	"CC-AI-05": {
+		what: "Menschen erfahren, wenn sie mit einer KI zu tun haben, und was sie kann.",
+		why: "Wer weiß, dass es eine KI ist, kann besser einschätzen, was sie sagt.",
+		example:
+			"Wie ein Schild am Roboter: Ich bin ein Roboter und helfe dir beim Einkaufen.",
+	},
+	"CC-AI-06": {
+		what: "Die Firma beobachtet die KI im Betrieb. Ein Mensch kann jederzeit eingreifen und sie stoppen.",
+		why: "So fällt früh auf, wenn die KI anfängt, Fehler zu machen.",
+		example:
+			"Wie eine Lehrerin, die beim Ausflug immer dabei ist und notfalls Stopp sagt.",
+	},
 	"CC-GOV-01": {
 		what: "Die Firma schreibt auf, wie sie ihre Daten und Computer schützt. Alle können die Regeln nachlesen.",
 		why: "Wer die Regeln kennt, kann sich daran halten.",

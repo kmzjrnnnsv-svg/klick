@@ -119,12 +119,12 @@ describe("Beziehungen und Themen in einfacher Sprache", () => {
 });
 
 describe("Kurznamen in der Übersicht", () => {
-	it("jedes Rahmenwerk hat einen Namen mit höchstens 12 Zeichen", async () => {
+	it("jedes Rahmenwerk hat einen Namen mit höchstens 16 Zeichen", async () => {
 		const { mapFrameworkName } = await import(
 			"@/lib/compliance/framework-names"
 		);
 		const long = CATALOG_FRAMEWORKS.map((f) => mapFrameworkName(f.slug)).filter(
-			(n) => n.length > 12,
+			(n) => n.length > 16,
 		);
 		expect(long).toEqual([]);
 	});

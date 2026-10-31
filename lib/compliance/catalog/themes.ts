@@ -105,6 +105,7 @@ const BY_DOMAIN: Record<Domain, Theme> = {
 const BY_PREFIX: readonly (readonly [string, Theme])[] = [
 	["CC-PRV-", "privacy"],
 	["CC-KEY-", "money"],
+	["CC-AI-", "build"],
 ];
 
 export function themeOf(control: { code: string; domain: Domain }): Theme {

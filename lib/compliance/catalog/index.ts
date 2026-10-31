@@ -15,11 +15,15 @@ import { CONTROL_REQUIREMENTS } from "./control-requirements";
 import { CONTROL_BY_CODE, CONTROLS } from "./controls";
 import { CORRIDOR_INDICES } from "./corridors";
 import { CRA_REQUIREMENTS, CRA_SECTIONS } from "./cra";
+import { CE_REQUIREMENTS, CE_SECTIONS } from "./cyber-essentials";
 import { DORA_REQUIREMENTS, DORA_SECTIONS } from "./dora";
 import { DSGVO_REQUIREMENTS, DSGVO_SECTIONS } from "./dsgvo";
+import { E8_REQUIREMENTS, E8_SECTIONS } from "./essential-eight";
+import { DPF_REQUIREMENTS, DPF_SECTIONS } from "./eu-us-dpf";
 import { FRAMEWORKS } from "./frameworks";
 import { GWG_REQUIREMENTS, GWG_SECTIONS } from "./gwg";
 import { ISO27001_REQUIREMENTS, ISO27001_SECTIONS } from "./iso27001";
+import { ISO42001_REQUIREMENTS, ISO42001_SECTIONS } from "./iso42001";
 import { KWG_REQUIREMENTS, KWG_SECTIONS } from "./kwg";
 import { MICAR_REQUIREMENTS, MICAR_SECTIONS } from "./micar";
 import {
@@ -36,6 +40,7 @@ import { PCI_DSS_REQUIREMENTS } from "./pci-saq";
 import { SANCTIONS_REQUIREMENTS, SANCTIONS_SECTIONS } from "./sanctions";
 import { SOC2_REQUIREMENTS, SOC2_SECTIONS } from "./soc2";
 import { TFR_REQUIREMENTS, TFR_SECTIONS } from "./tfr";
+import { TISAX_REQUIREMENTS, TISAX_SECTIONS } from "./tisax";
 import type {
 	CatalogControl,
 	CatalogControlMapping,
@@ -98,6 +103,14 @@ const INDICES: Record<
 		requirements: BSI_200_4_REQUIREMENTS,
 	},
 	"pci-dss": { sections: PCI_SECTIONS, requirements: PCI_DSS_REQUIREMENTS },
+	iso42001: {
+		sections: ISO42001_SECTIONS,
+		requirements: ISO42001_REQUIREMENTS,
+	},
+	tisax: { sections: TISAX_SECTIONS, requirements: TISAX_REQUIREMENTS },
+	"eu-us-dpf": { sections: DPF_SECTIONS, requirements: DPF_REQUIREMENTS },
+	"cyber-essentials": { sections: CE_SECTIONS, requirements: CE_REQUIREMENTS },
+	"essential-eight": { sections: E8_SECTIONS, requirements: E8_REQUIREMENTS },
 	...CORRIDOR_INDICES,
 };
 

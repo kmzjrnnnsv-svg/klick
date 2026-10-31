@@ -82,8 +82,23 @@ export const AUDIENCES: Audience[] = [
 				level: "depends",
 				why: "Wenn du Kartendaten für andere speicherst, verarbeitest oder übermittelst, etwa als Shop- oder Zahlungsplattform: alle Anforderungen für Dienstleister.",
 			},
+			{
+				slug: "eu-us-dpf",
+				level: "depends",
+				why: "Wenn Personendaten an Dienstleister in den USA gehen: prüfen, ob sie am Data Privacy Framework teilnehmen. US-Anbieter müssen selbst teilnehmen, um Daten aus der EU so zu empfangen.",
+			},
+			{
+				slug: "tisax",
+				level: "indirect",
+				why: "Sind Autohersteller oder ihre Zulieferer deine Kund:innen, verlangen sie meist ein TISAX-Ergebnis.",
+			},
 			{ slug: "iso27001", level: "voluntary", why: ISO },
 			{ slug: "soc2", level: "voluntary", why: SOC2 },
+			{
+				slug: "iso42001",
+				level: "voluntary",
+				why: "Wenn du KI anbietest oder in deinen Diensten nutzt: Managementsystem für KI, zertifizierbar, hilft beim EU AI Act.",
+			},
 			{ slug: "bsi-200-2", level: "voluntary", why: GRUNDSCHUTZ },
 		],
 	},
@@ -113,7 +128,17 @@ export const AUDIENCES: Audience[] = [
 				level: "depends",
 				why: "Wenn dein Produkt Kartenzahlungen annimmt, etwa ein Shop, eine App oder ein Kassensystem: der Umfang folgt deinem Fragebogen (SAQ).",
 			},
+			{
+				slug: "tisax",
+				level: "indirect",
+				why: "Lieferst du an Autohersteller, verlangen sie meist ein TISAX-Ergebnis, mit Prototypenschutz, wenn du neue Modelle siehst.",
+			},
 			{ slug: "iso27001", level: "voluntary", why: ISO },
+			{
+				slug: "iso42001",
+				level: "voluntary",
+				why: "Wenn KI in deinem Produkt steckt: Managementsystem für KI, hilft beim Nachweis für den EU AI Act.",
+			},
 		],
 	},
 	{

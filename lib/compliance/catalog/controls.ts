@@ -1,3 +1,4 @@
+import { PART_H } from "./controls-ai";
 import { PART_C } from "./controls-finance";
 import { PART_F } from "./controls-grundschutz";
 import { PART_G } from "./controls-payment";
@@ -2211,6 +2212,7 @@ export const CONTROLS: CatalogControl[] = [
 	...PART_E,
 	...PART_F,
 	...PART_G,
+	...PART_H,
 ];
 
 export const CONTROL_BY_CODE: ReadonlyMap<string, CatalogControl> = new Map(

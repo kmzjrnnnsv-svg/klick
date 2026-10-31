@@ -1,5 +1,8 @@
 import { CORRIDOR_FRAMEWORK_METAS } from "./corridors";
+import { CE_VARIANTS } from "./cyber-essentials";
+import { E8_VARIANTS } from "./essential-eight";
 import { PCI_VARIANTS } from "./pci-saq";
+import { TISAX_VARIANTS } from "./tisax";
 import type { CatalogFrameworkMeta } from "./types";
 
 // Rahmenwerk-Stammdaten (Rechtsstand Oktober 2026). Die Anforderungs-Indizes
@@ -368,6 +371,88 @@ export const FRAMEWORKS: CatalogFrameworkMeta[] = [
 		},
 		variants: PCI_VARIANTS,
 		variantLabel: "Nachweisweg",
+	},
+	{
+		slug: "iso42001",
+		name: "ISO/IEC 42001:2023",
+		version: "2023",
+		authority: "ISO/IEC",
+		jurisdiction: "global",
+		description:
+			"Managementsystem für Künstliche Intelligenz: Richtlinie, Rollen, Risiko- und Folgenabschätzung, verantwortungsvoller Lebenszyklus, Daten, Transparenz und Lieferanten. Gleicher Aufbau wie ISO 27001, zertifizierbar; hilft beim Nachweis für den EU AI Act.",
+		recommendedApproach:
+			"Auf dem ISMS aufsetzen: Klauseln 4–10 teilt ISO 42001 fast vollständig mit ISO 27001. Neu sind das Verzeichnis der KI-Systeme, die Folgenabschätzung und der Lebenszyklus. Anhang A wird wie bei ISO 27001 über die Erklärung zur Anwendbarkeit ausgewählt.",
+		sourceUrl: "https://www.iso.org/standard/81230.html",
+		sortOrder: 206,
+		phase: "P6",
+		exclusion: {
+			label: "Ausschluss in der Erklärung zur Anwendbarkeit",
+			basis: "ISO/IEC 42001:2023 6.1.3 (nur Anhang A, nie die Klauseln 4–10)",
+			codePrefixes: ["A."],
+		},
+	},
+	{
+		slug: "tisax",
+		name: "TISAX (VDA ISA 6)",
+		version: "ISA 6",
+		authority: "ENX Association / VDA",
+		jurisdiction: "global",
+		description:
+			"Informationssicherheit für die Autoindustrie: Prüfung nach dem VDA-ISA-Katalog durch einen zugelassenen Prüfdienstleister, Ergebnis im ENX-Portal für Hersteller und Zulieferer sichtbar. Module für Informationssicherheit, Prototypenschutz und Datenschutz.",
+		recommendedApproach:
+			"Prüfziel mit der Kundschaft klären (hoher oder sehr hoher Schutzbedarf, Prototypen, Datenschutz). Der Katalog lehnt sich eng an ISO 27001 an; wer ein ISMS hat, ergänzt vor allem Prototypenschutz und die Reifegrad-Bewertung.",
+		sourceUrl: "https://enx.com/tisax",
+		sortOrder: 207,
+		phase: "P6",
+		variants: TISAX_VARIANTS,
+		variantLabel: "Prüfziel",
+	},
+	{
+		slug: "eu-us-dpf",
+		name: "EU-US Data Privacy Framework",
+		version: "2023",
+		authority: "US Department of Commerce / EU-Kommission",
+		jurisdiction: "us",
+		description:
+			"Rahmen für die Übermittlung von Personendaten aus der EU an US-Firmen: Die US-Firma zertifiziert sich selbst und hält die Grundsätze ein; dann genügt der Angemessenheitsbeschluss der EU-Kommission vom 10.07.2023. Für EU-Firmen ein Prüfpunkt bei US-Dienstleistern.",
+		recommendedApproach:
+			"Als US-Firma: Grundsätze umsetzen, Datenschutzerklärung anpassen, Streitbeilegung benennen, jährlich neu zertifizieren. Als EU-Firma: bei jedem US-Dienstleister die DPF-Liste prüfen und im Verzeichnis vermerken.",
+		sourceUrl: "https://www.dataprivacyframework.gov/",
+		sortOrder: 208,
+		phase: "P6",
+	},
+	{
+		slug: "cyber-essentials",
+		name: "Cyber Essentials",
+		version: "v3.2",
+		authority: "NCSC / IASME (UK)",
+		jurisdiction: "uk",
+		description:
+			"Britisches Zertifikat für fünf technische Grundmaßnahmen gegen alltägliche Angriffe: Firewalls, sichere Konfiguration, Updates, Benutzerzugriff, Schutz vor Schadsoftware. Bei vielen Aufträgen der britischen Regierung Pflicht.",
+		recommendedApproach:
+			"Geltungsbereich und Geräteverzeichnis zuerst; die meisten Maßnahmen deckt ein ISMS schon ab. Für Plus die technische Prüfung vorher selbst durchspielen.",
+		sourceUrl: "https://www.ncsc.gov.uk/cyberessentials/overview",
+		sortOrder: 209,
+		phase: "P6",
+		variants: CE_VARIANTS,
+		variantLabel: "Stufe",
+	},
+	{
+		slug: "essential-eight",
+		name: "ACSC Essential Eight",
+		version: "Maturity Model",
+		authority: "Australian Cyber Security Centre",
+		jurisdiction: "au",
+		description:
+			"Acht Maßnahmen des australischen Cyber-Sicherheitszentrums gegen die häufigsten Angriffe, in drei Reifegraden: erlaubte Programme, Updates für Programme und Betriebssysteme, Makros, Härtung, Verwaltungsrechte, zweiter Faktor, Datensicherung.",
+		recommendedApproach:
+			"Reifegrad mit der Kundschaft festlegen und alle acht Maßnahmen gleichmäßig auf diesen Stand bringen, statt eine einzelne sehr weit zu treiben.",
+		sourceUrl:
+			"https://www.cyber.gov.au/resources-business-and-government/essential-cyber-security/essential-eight",
+		sortOrder: 211,
+		phase: "P6",
+		variants: E8_VARIANTS,
+		variantLabel: "Reifegrad",
 	},
 	...CORRIDOR_FRAMEWORK_METAS,
 ];

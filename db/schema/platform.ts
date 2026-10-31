@@ -159,6 +159,12 @@ export type EntityProfile = {
 	// Kartendaten: keine, Zahlung vollständig beim Zahlungsdienstleister
 	// (Weiterleitung, iframe) oder über eigene Systeme bzw. Terminals
 	cardData?: "none" | "outsourced" | "own";
+	// KI: keine, Dienste anderer, eigene KI (ISO 42001)
+	aiUse?: "none" | "use" | "build";
+	// Zulieferer der Autoindustrie (TISAX)
+	automotive?: boolean;
+	// Personendaten an Dienstleister in den USA (EU-US DPF)
+	usTransfers?: boolean;
 	// gewählte Variante je Rahmenwerk (BSI-Absicherung, PCI-SAQ)
 	frameworkVariants?: Record<string, string>;
 };

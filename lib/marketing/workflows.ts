@@ -1000,6 +1000,11 @@ export const PICKER_FRAMEWORKS: { slug: string; label: string }[] = [
 	{ slug: "bsi-200-2", label: "IT-Grundschutz" },
 	{ slug: "bsi-200-3", label: "BSI 200-3" },
 	{ slug: "bsi-200-4", label: "BSI 200-4" },
+	{ slug: "iso42001", label: "ISO 42001" },
+	{ slug: "tisax", label: "TISAX" },
+	{ slug: "eu-us-dpf", label: "EU-US DPF" },
+	{ slug: "cyber-essentials", label: "Cyber Essentials" },
+	{ slug: "essential-eight", label: "Essential Eight" },
 ];
 export const PICKER_DEFAULT = ["iso27001", "dora", "micar", "gwg"];
 

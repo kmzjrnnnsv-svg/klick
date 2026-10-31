@@ -156,3 +156,42 @@ describe("prefillFromSetup", () => {
 		);
 	});
 });
+
+describe("Vorschläge Stufe 1 (KI, Autoindustrie, USA, UK, Australien)", () => {
+	const base = {
+		sector: "other" as const,
+		licenceStage: "0_vorbereitung" as const,
+		caspServices: [],
+		issuesTokens: "none" as const,
+		hasProducts: false,
+	};
+	const slugs = (entity: Record<string, unknown>) =>
+		suggestFrameworks({ ...base, entity } as Parameters<
+			typeof suggestFrameworks
+		>[0]);
+
+	it("eigene KI schlägt ISO 42001 vor, Nutzung nur als Angebot", () => {
+		expect(
+			slugs({ aiUse: "build" }).find((s) => s.slug === "iso42001")?.recommended,
+		).toBe(true);
+		expect(
+			slugs({ aiUse: "use" }).find((s) => s.slug === "iso42001")?.recommended,
+		).toBe(false);
+		expect(slugs({}).some((s) => s.slug === "iso42001")).toBe(false);
+	});
+
+	it("Autoindustrie, USA, UK und Australien", () => {
+		const all = slugs({
+			automotive: true,
+			usTransfers: true,
+			customerCountries: ["GB", "AU"],
+		}).map((s) => s.slug);
+		for (const s of [
+			"tisax",
+			"eu-us-dpf",
+			"cyber-essentials",
+			"essential-eight",
+		])
+			expect(all).toContain(s);
+	});
+});

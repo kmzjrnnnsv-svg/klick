@@ -32,6 +32,7 @@ const PERSONAL_DATA = [
 ] as const;
 const SUBJECTS = ["lt1k", "1k_100k", "gt100k"] as const;
 const CARD_DATA = ["none", "outsourced", "own"] as const;
+const AI_USE = ["none", "use", "build"] as const;
 type Category = (typeof PROVIDER_CATEGORIES)[number];
 // Werte lokal (kein Schema-Import in den Client-Bundle)
 const CATEGORIES: readonly Category[] = [
@@ -78,6 +79,11 @@ export function ItDataStep({
 	const [cards, setCards] = useState<(typeof CARD_DATA)[number]>(
 		initial.cardData ?? "none",
 	);
+	const [aiUse, setAiUse] = useState<(typeof AI_USE)[number]>(
+		initial.aiUse ?? "none",
+	);
+	const [automotive, setAutomotive] = useState(initial.automotive ?? false);
+	const [usTransfers, setUsTransfers] = useState(initial.usTransfers ?? false);
 	const [subjects, setSubjects] = useState<string>(
 		initial.dataSubjects ?? "lt1k",
 	);
@@ -108,6 +114,9 @@ export function ItDataStep({
 							personalData: pd,
 							specialCategories: special,
 							cardData: cards,
+							aiUse,
+							automotive,
+							usTransfers,
 							dataSubjects: subjects as (typeof SUBJECTS)[number],
 							aiMaxClass: ai,
 							customerCountries: countries
@@ -320,6 +329,44 @@ export function ItDataStep({
 						{t(`cardData_${v}`)}
 					</label>
 				))}
+			</fieldset>
+
+			<fieldset className="flex flex-col gap-2 text-subhead">
+				<legend className="mb-1.5 font-medium">{t("aiUse")}</legend>
+				<p className="text-muted-foreground text-footnote">{t("aiUseHint")}</p>
+				{AI_USE.map((v) => (
+					<label key={v} className="flex items-center gap-2">
+						<input
+							type="radio"
+							name="ai-use"
+							value={v}
+							checked={aiUse === v}
+							onChange={() => setAiUse(v)}
+							className="size-4 accent-primary"
+						/>
+						{t(`aiUse_${v}`)}
+					</label>
+				))}
+			</fieldset>
+
+			<fieldset className="flex flex-col gap-2 text-subhead">
+				<legend className="mb-1.5 font-medium">{t("moreTitle")}</legend>
+				<label className="flex items-start gap-2">
+					<Checkbox
+						className="mt-0.5"
+						checked={automotive}
+						onCheckedChange={(v) => setAutomotive(Boolean(v))}
+					/>
+					{t("automotive")}
+				</label>
+				<label className="flex items-start gap-2">
+					<Checkbox
+						className="mt-0.5"
+						checked={usTransfers}
+						onCheckedChange={(v) => setUsTransfers(Boolean(v))}
+					/>
+					{t("usTransfers")}
+				</label>
 			</fieldset>
 
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

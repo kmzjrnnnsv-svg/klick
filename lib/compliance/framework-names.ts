@@ -6,8 +6,10 @@ export function shortFrameworkName(slug: string): string {
 	const f = CATALOG_FRAMEWORKS.find((x) => x.slug === slug);
 	if (!f) return slug;
 	return (
-		f.name.split(" — ")[0]?.replace("ISO/IEC ", "ISO ").replace(":2022", "") ??
 		f.name
+			.split(" — ")[0]
+			?.replace("ISO/IEC ", "ISO ")
+			.replace(/:\d{4}$/, "") ?? f.name
 	);
 }
 
@@ -32,6 +34,10 @@ const MAP_NAMES: Record<string, string> = {
 	"bsi-200-3": "BSI 200-3",
 	"bsi-200-4": "BSI 200-4",
 	amlr: "AMLR",
+	tisax: "TISAX",
+	"eu-us-dpf": "EU-US DPF",
+	"cyber-essentials": "Cyber Essentials",
+	"essential-eight": "Essential Eight",
 	dora: "DORA",
 	"zag-marisk": "ZAG-MaRisk",
 	awv: "AWV",

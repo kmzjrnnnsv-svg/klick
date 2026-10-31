@@ -288,6 +288,43 @@ export function suggestFrameworks(p: SetupProfile): FrameworkSuggestion[] {
 			"Wenn ihr Kartenzahlungen abwickelt oder Kartendaten speichert: PCI DSS",
 			false,
 		);
+	// KI: ISO 42001 freiwillig; wer eigene KI baut oder anbietet, bekommt den
+	// Vorschlag vorgewählt (AI Act verlangt ein Qualitäts- und Risikosystem)
+	const ai = p.entity.aiUse;
+	if (ai === "build")
+		add(
+			"iso42001",
+			"Eigene KI im Produkt oder für Kundschaft: Managementsystem für KI (ISO/IEC 42001), hilft beim EU AI Act",
+		);
+	else if (ai === "use")
+		add(
+			"iso42001",
+			"KI-Dienste anderer im Einsatz: Managementsystem für KI (ISO/IEC 42001), freiwillig",
+			false,
+		);
+	if (p.entity.automotive)
+		add(
+			"tisax",
+			"Arbeit für Autohersteller oder Zulieferer: Prüfung nach TISAX, von der Kundschaft verlangt",
+		);
+	if (p.entity.usTransfers)
+		add(
+			"eu-us-dpf",
+			"Personendaten an Dienstleister in den USA: Teilnahme am Data Privacy Framework prüfen",
+		);
+	const countries = p.entity.customerCountries ?? [];
+	if (countries.includes("GB"))
+		add(
+			"cyber-essentials",
+			"Kundschaft in Großbritannien: Cyber Essentials, bei Aufträgen der britischen Regierung Pflicht",
+			false,
+		);
+	if (countries.includes("AU"))
+		add(
+			"essential-eight",
+			"Kundschaft in Australien: Essential Eight, oft von Behörden und Kundschaft verlangt",
+			false,
+		);
 	// IT-Grundschutz: in der öffentlichen Verwaltung meist vorgegeben, sonst
 	// freiwillig neben ISO 27001 (Zertifikat „ISO 27001 auf Basis von
 	// IT-Grundschutz“)

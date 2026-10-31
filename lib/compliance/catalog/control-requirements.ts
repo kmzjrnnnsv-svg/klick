@@ -1,4 +1,9 @@
+import { CE_EDGES } from "./cyber-essentials";
+import { E8_EDGES } from "./essential-eight";
+import { DPF_EDGES } from "./eu-us-dpf";
+import { ISO42001_EDGES } from "./iso42001";
 import { PCI_EDGES } from "./pci-edges";
+import { TISAX_EDGES } from "./tisax";
 import type { CatalogControlMapping } from "./types";
 
 // Synergie-Kanten: welches Common Control erfüllt welche Anforderung in
@@ -1033,4 +1038,10 @@ export const CONTROL_REQUIREMENTS: CatalogControlMapping[] = [
 	m("CC-GOV-05", "bsi-200-4:10", "partial"),
 	// ── PCI DSS v4.0.1 (Regeln in pci-edges.ts) ───────────────────────────────
 	...PCI_EDGES,
+	// ── Stufe 1 (Okt 2026): Kanten stehen an den Anforderungen (spec.ts) ─────
+	...ISO42001_EDGES,
+	...TISAX_EDGES,
+	...DPF_EDGES,
+	...CE_EDGES,
+	...E8_EDGES,
 ];

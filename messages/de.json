@@ -5227,7 +5227,15 @@
 		"cardData_none": "Nein",
 		"cardData_outsourced": "Ja, die Zahlung läuft vollständig beim Zahlungsdienstleister (Weiterleitung oder eingebettetes Formular)",
 		"cardData_own": "Ja, über eigene Systeme, Kassen oder Kartenterminals",
-		"relationsTitle": "So hängen deine Rahmenwerke zusammen"
+		"relationsTitle": "So hängen deine Rahmenwerke zusammen",
+		"aiUse": "Nutzt ihr Künstliche Intelligenz?",
+		"aiUseHint": "Davon hängt ab, ob Klick ISO 42001 vorschlägt. Für den EU AI Act zählt vor allem eigene KI.",
+		"aiUse_none": "Nein",
+		"aiUse_use": "Ja, KI-Dienste anderer, z. B. Chatbots oder Übersetzung",
+		"aiUse_build": "Ja, eigene KI im Produkt oder für Kundschaft",
+		"moreTitle": "Trifft das auf euch zu?",
+		"automotive": "Kundschaft aus der Autoindustrie: Autohersteller oder deren Zulieferer (dann wird meist TISAX verlangt).",
+		"usTransfers": "Personendaten gehen an Dienstleister in den USA, z. B. Cloud, Mail oder Support-Software."
 	},
 	"Permissions": {
 		"area_register": "Register",
