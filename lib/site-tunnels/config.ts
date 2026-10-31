@@ -23,7 +23,10 @@ export type TunnelValues = {
 	server: string;
 	service: string;
 	peerIp: string;
+	/** Netze, die Klick im Tunnel sieht (nach NAT der Kundin) */
 	nets: string[];
+	/** Netze im Büro der Kundin */
+	customerNets: string[];
 	transferNet: string | null;
 	port: number;
 	/** Name von Klick (aus BETTER_AUTH_URL), z. B. raza.work */
@@ -47,6 +50,7 @@ export function tunnelValues(
 		service: SITE_SERVICE_ADDRESS,
 		peerIp: t.peerIp,
 		nets: effectiveNets(t),
+		customerNets: [...t.customerNets],
 		transferNet: t.transferNet,
 		port: WG_SITES_PORT,
 		serverPublicKey: server.wgPublicKey,
@@ -60,10 +64,15 @@ export function valueRows(v: TunnelValues): { label: string; value: string }[] {
 		{ label: "Gegenstelle (Klick)", value: v.server },
 		{ label: "Deine öffentliche IP", value: v.peerIp },
 		{ label: "Klick im Tunnel", value: `${v.service}/32` },
-		{ label: "Dein Netz im Tunnel", value: v.nets.join(", ") },
+		v.transferNet
+			? { label: "Dein Netz im Büro", value: v.customerNets.join(", ") }
+			: { label: "Dein Netz im Tunnel", value: v.nets.join(", ") },
 	];
 	if (v.transferNet)
-		rows.push({ label: "Übergabenetz (NAT)", value: v.transferNet });
+		rows.push({
+			label: "Übergabenetz (NAT, im Tunnel)",
+			value: v.transferNet,
+		});
 	if (v.tech === "ipsec")
 		rows.push(
 			{ label: "IKE-Version", value: IPSEC.version },

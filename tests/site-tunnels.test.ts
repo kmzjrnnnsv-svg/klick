@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { renderPdf } from "@/lib/export/pdf";
 import { parseCidr } from "@/lib/net/ip";
 import {
 	tunnelValues,
@@ -17,6 +18,7 @@ import {
 	tunnelState,
 	WG_KEY_PATTERN,
 } from "@/lib/site-tunnels/rules";
+import { siteSheet } from "@/lib/site-tunnels/sheet";
 import {
 	fillStep,
 	SITE_VENDORS,
@@ -215,6 +217,9 @@ describe("Standort-Tunnel: Werte und Anleitungen", () => {
 		expect(rows.find((x) => x.label.startsWith("Übergabenetz"))?.value).toBe(
 			"10.20.1.0/24",
 		);
+		expect(rows.find((x) => x.label === "Dein Netz im Büro")?.value).toBe(
+			"192.168.1.0/24",
+		);
 		expect(rows.at(-1)?.value).toBe("raza.work zeigt auf 10.21.0.1");
 		const conf = wireguardConfig(v, {
 			privateKey: "PRIV",
@@ -252,5 +257,31 @@ describe("Standort-Tunnel: Werte und Anleitungen", () => {
 		}
 		expect(VENDOR_GUIDES.fritzbox.supports).toEqual(["wireguard"]);
 		expect(TRANSFER_STEP).toContain("{transfer}");
+	});
+
+	it("Blatt für die IT: Schritte mit Werten, ohne Geheimnis, PDF entsteht", () => {
+		const v = tunnelValues(
+			{
+				tech: "ipsec",
+				peerIp: "80.1.2.3",
+				customerNets: ["192.168.1.0/24"],
+				transferNet: "10.20.1.0/24",
+			},
+			server,
+		);
+		const doc = siteSheet({
+			orgName: "Beispiel GmbH",
+			tunnelName: "Büro Frankfurt",
+			vendor: "fortinet",
+			values: v,
+			exportLine: "Export-ID x",
+			date: "2026-11-01",
+		});
+		const text = JSON.stringify(doc);
+		expect(text).toContain("netmap");
+		expect(text).toContain("88.99.1.2");
+		expect(text).not.toMatch(/\{(server|service|nets|transfer|port|host)\}/);
+		const pdf = renderPdf(doc, { now: new Date("2026-11-01T10:00:00Z") });
+		expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe("%PDF-");
 	});
 });

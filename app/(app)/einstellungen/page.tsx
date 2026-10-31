@@ -44,6 +44,7 @@ import { RolesPanel } from "@/components/settings/roles-panel";
 import { SecurityChangesPanel } from "@/components/settings/security-changes-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
 import { SignaturePolicyPanel } from "@/components/settings/signature-policy-panel";
+import { SiteTunnelsSection } from "@/components/settings/site-tunnels-section";
 import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
 import { SubscriptionPanel } from "@/components/settings/subscription-panel";
@@ -160,6 +161,8 @@ import {
 	visibleSettingsSections,
 } from "@/lib/settings/sections";
 import { orgSignaturePolicy } from "@/lib/signatures/policy-server";
+import { effectiveNets } from "@/lib/site-tunnels/rules";
+import { siteTunnelsForOrg } from "@/lib/site-tunnels/service";
 import { teamsConfigured } from "@/lib/teams/config";
 import { teamsIntegrationOf } from "@/lib/teams/service";
 import { cn } from "@/lib/utils";
@@ -954,12 +957,25 @@ async function renderSection(
 					);
 				return { row, open: changes.some((c) => isOpen(c, new Date())) };
 			});
+			const tunnels = await siteTunnelsForOrg(octx);
+			const owner = ctx.orgRole === "owner";
 			return (
 				<NetworkPanel
 					policy={networkPolicyOf(row?.networkPolicy)}
 					myIp={normalizeIp(ctx.ip)}
-					canEdit={ctx.orgRole === "owner"}
+					canEdit={owner}
 					pendingChange={open}
+					sites={tunnels
+						.filter((tn) => tn.state === "connected")
+						.map((tn) => ({
+							name: tn.name,
+							nets: effectiveNets(tn),
+						}))}
+					siteSection={
+						tunnels.length > 0 ? (
+							<SiteTunnelsSection tunnels={tunnels} canEdit={owner} />
+						) : null
+					}
 				/>
 			);
 		}

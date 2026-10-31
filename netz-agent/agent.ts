@@ -9,7 +9,7 @@ import {
 	writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import { parseCidr } from "@/lib/net/ip";
+import { type IpRange, parseCidr } from "@/lib/net/ip";
 import {
 	rangesOverlap,
 	SITE_DUMMY_INTERFACE,
@@ -69,6 +69,8 @@ export class NetzAgent {
 	private readonly errors = new Map<string, string>();
 	private wgPublicKey: string | null = null;
 	private baseError: string | null = null;
+	/** Netze, die der Server selbst an anderen Schnittstellen hat */
+	private hostNets: IpRange[] = [];
 	private readonly log: (msg: string) => void;
 
 	constructor(private readonly o: Opts) {
@@ -111,6 +113,7 @@ export class NetzAgent {
 
 	/** Schnittstellen und Schlüssel anlegen, gespeicherte Tunnel nachspielen. */
 	async start(): Promise<void> {
+		await this.readHostNets();
 		try {
 			await this.ensureBase();
 			this.baseError = null;
@@ -185,7 +188,23 @@ export class NetzAgent {
 		};
 	}
 
+	/**
+	 * Eigene Netze des Servers (privates Netz beim Hoster, Docker …): ein
+	 * Standort darf sie nie überdecken, sonst lenkte eine Route über
+	 * wg-sites deren Verkehr um. Nicht lesbar = keine (Trockenlauf).
+	 */
+	private async readHostNets() {
+		const r = await this.o.run("ip", ["-j", "-4", "addr", "show"]);
+		if (r.code !== 0) return;
+		this.hostNets = parseHostNets(r.stdout);
+	}
+
 	private conflicts(spec: TunnelSpec): string | null {
+		for (const n of spec.nets) {
+			const r = parseCidr(n);
+			if (r && this.hostNets.some((h) => rangesOverlap(h, r)))
+				return "nets_host";
+		}
 		for (const other of this.specs.values()) {
 			if (other.id === spec.id) continue;
 			if (other.peerIp === spec.peerIp) return "peer_taken";
@@ -377,4 +396,32 @@ export class NetzAgent {
 			}),
 		};
 	}
+}
+
+/** `ip -j -4 addr show` lesen: Netze außer lo, wg-sites und klick-sites. */
+export function parseHostNets(json: string): IpRange[] {
+	let data: unknown;
+	try {
+		data = JSON.parse(json);
+	} catch {
+		return [];
+	}
+	if (!Array.isArray(data)) return [];
+	const out: IpRange[] = [];
+	for (const link of data as {
+		ifname?: unknown;
+		addr_info?: { family?: unknown; local?: unknown; prefixlen?: unknown }[];
+	}[]) {
+		if (
+			typeof link?.ifname !== "string" ||
+			["lo", WG_SITES_INTERFACE, SITE_DUMMY_INTERFACE].includes(link.ifname)
+		)
+			continue;
+		for (const a of link.addr_info ?? []) {
+			if (a.family !== "inet" || typeof a.local !== "string") continue;
+			const r = parseCidr(`${a.local}/${Number(a.prefixlen)}`);
+			if (r) out.push(r);
+		}
+	}
+	return out;
 }

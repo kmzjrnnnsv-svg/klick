@@ -3,7 +3,7 @@ import { connect, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { NetzAgent } from "@/netz-agent/agent";
+import { NetzAgent, parseHostNets } from "@/netz-agent/agent";
 import { parseSwanctlSas, parseWgDump } from "@/netz-agent/parse";
 import { serve } from "@/netz-agent/protocol";
 import { renderSwanctl } from "@/netz-agent/render";
@@ -160,6 +160,46 @@ describe("Netz-Agent: umsetzen (Trockenlauf)", () => {
 		await expect(
 			agent.apply({ ...wg, nets: ["192.168.10.128/25"] }),
 		).rejects.toThrow("nets_overlap");
+	});
+
+	it("Netze des Servers (privates Netz, Docker) darf kein Standort überdecken", async () => {
+		const addrs = JSON.stringify([
+			{
+				ifname: "lo",
+				addr_info: [{ family: "inet", local: "127.0.0.1", prefixlen: 8 }],
+			},
+			{
+				ifname: "eth0",
+				addr_info: [{ family: "inet", local: "88.99.1.2", prefixlen: 32 }],
+			},
+			{
+				ifname: "enp7s0",
+				addr_info: [{ family: "inet", local: "10.0.0.2", prefixlen: 16 }],
+			},
+			{
+				ifname: "docker0",
+				addr_info: [{ family: "inet", local: "172.17.0.1", prefixlen: 16 }],
+			},
+			{
+				ifname: "klick-sites",
+				addr_info: [{ family: "inet", local: "10.21.0.1", prefixlen: 32 }],
+			},
+		]);
+		expect(parseHostNets(addrs).map((r) => r.text)).toEqual([
+			"88.99.1.2/32",
+			"10.0.0.0/16",
+			"172.17.0.0/16",
+		]);
+		expect(parseHostNets("kein json")).toEqual([]);
+		const { agent } = setup({ "ip -j -4 addr show": { stdout: addrs } });
+		await agent.start();
+		await expect(
+			agent.apply({ ...ipsec, nets: ["10.0.4.0/24"] }),
+		).rejects.toThrow("nets_host");
+		await expect(
+			agent.apply({ ...wg, nets: ["172.17.0.0/16"] }),
+		).rejects.toThrow("nets_host");
+		expect(await agent.apply(ipsec)).toEqual({ changed: true });
 	});
 
 	it("Entfernen: Datei, Peer, Route, Mengen weg; Zustand übersteht Neustart", async () => {

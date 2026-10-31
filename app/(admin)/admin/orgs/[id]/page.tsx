@@ -8,6 +8,10 @@ import {
 	SuspendDialog,
 } from "@/components/admin/org-actions";
 import { OrgPriceGroupSelect } from "@/components/admin/org-price-group-select";
+import {
+	SiteTunnelActions,
+	SiteTunnelWizard,
+} from "@/components/admin/site-tunnels";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,8 +35,13 @@ import {
 import { orgAccount } from "@/lib/db/org-accounts";
 import { grantsForOrg } from "@/lib/db/platform-access";
 import { listPriceGroups, orgPriceGroupIds } from "@/lib/db/pricing";
+import { orgSiteTunnels } from "@/lib/db/site-tunnels";
 import { withPlatform } from "@/lib/db/with-org";
 import { grantState } from "@/lib/platform-access/rules";
+import { siteConfig } from "@/lib/site-tunnels/agent-client";
+import type { TunnelState } from "@/lib/site-tunnels/rules";
+import { toView } from "@/lib/site-tunnels/service";
+import { VENDOR_GUIDES } from "@/lib/site-tunnels/vendors";
 
 const STATE_BADGE: Record<
 	AccountState,
@@ -43,6 +52,17 @@ const STATE_BADGE: Record<
 	cancelled: "warning",
 	ended: "secondary",
 	suspended: "destructive",
+};
+
+const SITE_BADGE: Record<
+	TunnelState,
+	"success" | "warning" | "destructive" | "secondary" | "muted"
+> = {
+	connected: "success",
+	pending: "secondary",
+	down: "destructive",
+	error: "destructive",
+	unknown: "muted",
 };
 
 const isoDay = (d: Date | null | undefined) =>
@@ -69,7 +89,7 @@ export default async function AdminOrgPage({
 		ip: admin.ip,
 		userAgent: admin.userAgent,
 	};
-	const [members, sso, account, grants, groups, settings, assignments] =
+	const [members, sso, account, grants, groups, settings, assignments, sites] =
 		await Promise.all([
 			adminOrgMembers(id),
 			adminOrgSso(id),
@@ -84,7 +104,10 @@ export default async function AdminOrgPage({
 				{ ...ctx, reason: "Admin: Organisationen mit Preisgruppen" },
 				(tx) => orgPriceGroupIds(tx),
 			),
+			orgSiteTunnels(id),
 		]);
+	const site = siteConfig();
+	const tunnels = sites.filter((r) => !r.removedAt).map((r) => toView(r, now));
 
 	const acc = accountOrDefault(account);
 	const ai = aiAdminOf(account);
@@ -356,6 +379,55 @@ export default async function AdminOrgPage({
 						})}
 					/>
 				</ListSection>
+
+				<ListSection
+					title={t("sectionSites")}
+					footer={site.enabled ? t("sitesFooter") : t("sitesDisabled")}
+				>
+					{tunnels.length === 0 ? (
+						<ListRow title={t("sitesNone")} />
+					) : (
+						tunnels.map((tn) => (
+							<ListRow
+								key={tn.id}
+								title={tn.name}
+								subtitle={
+									<>
+										{`${VENDOR_GUIDES[tn.vendor].label} · ${t(`siteTech_${tn.tech}`)} · `}
+										<span translate="no" className="font-mono">
+											{tn.peerIp}
+										</span>
+										<span className="block font-mono" translate="no">
+											{tn.transferNet
+												? `${tn.customerNets.join(", ")} (NAT ${tn.transferNet})`
+												: tn.customerNets.join(", ")}
+										</span>
+										{tn.lastError && (
+											<span className="block text-destructive">
+												{tn.lastError}
+											</span>
+										)}
+										<span className="mt-2 block">
+											<SiteTunnelActions orgId={id} id={tn.id} name={tn.name} />
+										</span>
+									</>
+								}
+								accessory={
+									<Badge variant={SITE_BADGE[tn.state]}>
+										{t(`siteState_${tn.state}`)}
+									</Badge>
+								}
+							/>
+						))
+					)}
+				</ListSection>
+				<div>
+					<SiteTunnelWizard
+						orgId={id}
+						enabled={site.enabled}
+						wireguard={Boolean(site.wgPublicKey)}
+					/>
+				</div>
 			</ListGroup>
 			<div>
 				<Button asChild variant="secondary">
