@@ -24,6 +24,7 @@ import {
 import { headers } from "next/headers";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { CustomFrameworkList } from "@/components/custom-frameworks/framework-list";
 import { PageHeader } from "@/components/page-header";
 import { AiPanel } from "@/components/settings/ai-panel";
 import { AuditRegimesPanel } from "@/components/settings/audit-regimes-panel";
@@ -115,6 +116,7 @@ import {
 } from "@/lib/compliance/risk-method";
 import { resolveSupplierMethod } from "@/lib/compliance/supplier-rating";
 import { topManagementOf } from "@/lib/compliance/top-management";
+import { listCustomFrameworks } from "@/lib/custom-frameworks/service";
 import { orgAiRow } from "@/lib/db/org-accounts";
 import { userLabels } from "@/lib/db/platform-access";
 import { loadPriceTable } from "@/lib/db/pricing";
@@ -405,9 +407,8 @@ async function renderSection(
 		case "frameworks": {
 			const cov = await getOrgCoverageCached(ctx);
 			if (!cov) return null;
-			const { settings, orgFws, retiredSlugs, openAudits } = await readOrg(
-				octx,
-				async (tx) => {
+			const { settings, orgFws, retiredSlugs, openAudits, customFws } =
+				await readOrg(octx, async (tx) => {
 					const rows = await listOrgFrameworks(tx, ctx.orgId);
 					const names = await userNames(
 						tx,
@@ -415,6 +416,9 @@ async function renderSection(
 					);
 					return {
 						settings: await getOrgSettings(tx, ctx.orgId),
+						customFws: allows(ctx, { custom_framework: ["read"] })
+							? await listCustomFrameworks(tx, ctx.orgId)
+							: null,
 						orgFws: rows.map((r) => ({
 							...r,
 							ownerName: r.ownerUserId
@@ -426,8 +430,7 @@ async function renderSection(
 						),
 						openAudits: await listOpenAuditScopes(tx, ctx.orgId),
 					};
-				},
-			);
+				});
 			const activeSlugs = new Set(orgFws.map((f) => f.slug));
 			const applicability = new Map(
 				[...cov.applicabilityDetail].map(([k, d]) => [k, d.applicable]),
@@ -484,6 +487,25 @@ async function renderSection(
 						}}
 						canEdit={canEditSettings}
 					/>
+					{customFws && (
+						<CustomFrameworkList
+							items={customFws.map((f) => ({
+								id: f.id,
+								name: f.name,
+								status: f.status,
+								requirements: f.requirements,
+								mapped: f.mapped,
+							}))}
+							canCreate={allows(ctx, { custom_framework: ["create"] })}
+							copyOptions={CATALOG_FRAMEWORKS.filter(
+								(f) => f.requirements.length > 0,
+							).map((f) => ({
+								slug: f.slug,
+								name: f.name,
+								requirements: f.requirements.length,
+							}))}
+						/>
+					)}
 				</>
 			);
 		}

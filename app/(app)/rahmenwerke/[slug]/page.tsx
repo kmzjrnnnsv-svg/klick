@@ -458,7 +458,8 @@ export default async function FrameworkPage({
 				</>
 			)}
 			<p className="mt-8 text-muted-foreground text-footnote">
-				{shortFrameworkName(slug, catalog)} · {fw.legalBasis ?? ""}
+				{shortFrameworkName(slug, catalog)}
+				{fw.legalBasis ? ` · ${fw.legalBasis}` : ""}
 			</p>
 		</>
 	);

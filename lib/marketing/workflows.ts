@@ -162,6 +162,22 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 					"Eine SoA mit begründeten Ausschlüssen; Ausschlüsse ohne Grundlage stehen als Blocker in der Prüfungsreife.",
 			},
 			{
+				key: "custom-frameworks",
+				name: "Eigenes Rahmenwerk anlegen",
+				summary:
+					"Anforderungen von Kund:innen, aus dem Konzern oder aus einem lizenzierten Katalog zählen wie jedes Rahmenwerk in Klick.",
+				where: "Einstellungen > Rahmenwerke & Stufe",
+				trigger:
+					"Eine Kundin schickt ihren Sicherheitsfragebogen, der Konzern hat eigene Vorgaben, oder du hast einen Katalog wie HITRUST lizenziert.",
+				steps: [
+					"Leer anlegen, ein Klick-Rahmenwerk als Ausgangspunkt kopieren oder die Anforderungen per CSV laden; vor dem Übernehmen zeigt Klick neu, geändert und Fehler je Zeile.",
+					"Jede Anforderung den Klick-Maßnahmen zuordnen, ganz oder teilweise; Vorschläge passen zum Text der Anforderung, der Filter zeigt, was noch offen ist.",
+					"Eine Inhaber:in schaltet das Rahmenwerk per Passkey ein; fehlende Maßnahmen kommen in den Arbeitsvorrat.",
+				],
+				result:
+					"Abdeckung, Prüfungsreife, Gap-Analyse und Nachweise auch für die Anforderungen deiner Kund:innen, ohne doppelte Arbeit: Was du für ISO 27001 schon umgesetzt hast, zählt sofort.",
+			},
+			{
 				key: "variants",
 				name: "PCI DSS nach SAQ, IT-Grundschutz nach Variante",
 				summary:

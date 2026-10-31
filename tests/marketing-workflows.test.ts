@@ -43,8 +43,8 @@ describe("Abläufe auf /funktionen", () => {
 
 	it("zählt die Abläufe richtig und bleibt überschaubar", () => {
 		expect(WORKFLOW_COUNT).toBe(all.length);
-		// Obergrenze für eine lesbare Seite; seit „KI mit eigenem Schlüssel“ 51
-		expect(all.length).toBeLessThanOrEqual(55);
+		// Obergrenze für eine lesbare Seite; seit „Eigenes Rahmenwerk anlegen“ 56
+		expect(all.length).toBeLessThanOrEqual(56);
 		for (const g of WORKFLOW_GROUPS)
 			expect(g.workflows.length).toBeGreaterThan(0);
 	});

@@ -317,6 +317,30 @@ export const IMPLEMENT: HelpArticle[] = [
 				],
 			},
 			{
+				id: "eigene",
+				heading: "Eigene Rahmenwerke",
+				body: [
+					"Anforderungen von Kund:innen, Vorgaben aus dem Konzern oder ein Katalog, den du selbst lizenziert hast (zum Beispiel HITRUST), legst du als eigenes Rahmenwerk an. Du ordnest jede Anforderung einer oder mehreren Klick-Maßnahmen zu. Eingeschaltet zählt das Rahmenwerk wie jedes andere: in Abdeckung, Prüfungsreife, Gap-Analyse, Nachweisbogen und Zusammenhängen.",
+				],
+				steps: [
+					"Öffne Einstellungen > Rahmenwerke & Stufe und wähle „Eigenes Rahmenwerk anlegen“.",
+					"Wähle, womit du beginnst: leer, als Kopie eines Klick-Rahmenwerks oder mit einer CSV-Datei.",
+					"Leg Abschnitte und Anforderungen an. Tippe eine Anforderung an, um sie zu bearbeiten.",
+					"Ordne jede Anforderung Maßnahmen zu. „Vorschläge holen“ sucht passende Maßnahmen zum Text; ganz oder teilweise, mit Notiz.",
+					"Mit dem Filter „Nur nicht zugeordnete“ siehst du, was noch offen ist.",
+					"Eine Inhaber:in schaltet das Rahmenwerk ein und bestätigt per Passkey. Fehlende Maßnahmen kommen dabei in deinen Arbeitsvorrat.",
+				],
+				list: [
+					"Anlegen und pflegen dürfen Inhaber:innen, Bearbeiter:innen und Berater:innen; einschalten, zurückziehen und löschen nur Inhaber:innen.",
+					"CSV-Spalten: abschnitt, abschnitt_titel, code, titel, text, bereich, controls (mit Komma getrennt, „:teilweise“ je Code möglich) und abdeckung. Gleiche Nummer aktualisiert, nichts wird gelöscht. Vor dem Übernehmen zeigt Klick, was neu ist, was sich ändert und welche Zeilen Fehler haben.",
+					"Eine Kopie folgt späteren Änderungen am Klick-Rahmenwerk nicht; sie ist deine eigene Fassung.",
+					"Ausschließen geht nur, wenn du ihn unter Angaben erlaubt hast, und immer mit Begründung.",
+					"Ein eingeschaltetes Rahmenwerk ziehst du zurück, statt es zu löschen: Es zählt dann nicht mehr, bleibt aber erhalten.",
+					"Eigene Rahmenwerke erscheinen nicht im öffentlichen Trust Center. Pflichtdokumente, Audit-Fristen und Pflicht-Freigaben gibt es nur für Klick-Rahmenwerke.",
+				],
+				tip: "Klick liefert keine lizenzierten Inhalte. Einen Katalog mit eigener Lizenz bringst du selbst per CSV ein.",
+			},
+			{
 				id: "baseline",
 				heading: "Baseline der Plattform",
 				body: [
