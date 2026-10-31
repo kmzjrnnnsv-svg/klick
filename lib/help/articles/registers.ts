@@ -162,6 +162,17 @@ export const REGISTERS: HelpArticle[] = [
 				],
 			},
 			{
+				id: "aufbewahrung",
+				heading: "Aufbewahrung, Vernichtung und externe Dokumente",
+				list: [
+					"Unter „Aufbewahrung und Herkunft“ legst du fest, wie viele Jahre eine Fassung nach Ende ihrer Gültigkeit aufbewahrt wird. Ohne Angabe gilt ein Vorschlag: Verträge, Aufzeichnungen und Berichte 10 Jahre, alles andere 5. Gesetzliche Fristen (etwa HGB, AO, GwG) gehen vor.",
+					"In der Fassungsliste steht je abgelöster Fassung „Aufbewahren bis …“. Ist die Frist abgelaufen, erinnert Klick die Eigner:in einmal im Monat.",
+					"„Vernichten …“ verlangt eine Begründung und läuft über die Freigabe „Dokument-Fassung vernichten“ (Standard: Geschäftsleitung). Danach sind Text und Datei weg; Nummer, Prüfsumme, Freigaben und Verlauf bleiben als Nachweis. Die gültige Fassung lässt sich nie vernichten.",
+					"„Verlängern …“ schiebt das Ende hinaus, etwa für eine laufende Prüfung oder einen Rechtsstreit. Verkürzen geht nicht.",
+					"Normen, Gesetze, Verträge oder Herstellerunterlagen kennzeichnest du als externes Dokument mit Herkunft, Herausgeber, Ausgabe und Link. So siehst du, auf welchem Stand eure Kopie ist.",
+				],
+			},
+			{
 				id: "pflicht",
 				heading: "Pflichtdokumente",
 				body: [
