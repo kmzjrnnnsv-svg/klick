@@ -269,6 +269,84 @@ export const FRAMEWORKS: CatalogFrameworkMeta[] = [
 		sortOrder: 180,
 		phase: "P6",
 	},
+	{
+		slug: "bsi-200-1",
+		name: "BSI-Standard 200-1",
+		version: "2017",
+		authority: "BSI",
+		jurisdiction: "de",
+		description:
+			"Managementsysteme für Informationssicherheit: Verantwortung der Leitung, Ressourcen, Leitlinie, Sicherheitsorganisation mit ISB, Dokumentation und kontinuierliche Verbesserung. Kompatibel zu ISO 27001, Grundlage für „ISO 27001 auf der Basis von IT-Grundschutz“. Freiwillig, in der öffentlichen Verwaltung oft vorgegeben.",
+		recommendedApproach:
+			"Zusammen mit 200-2 wählen: 200-1 beschreibt das Managementsystem, 200-2 den Weg dorthin. Mit ISO 27001 teilt sich fast jede Maßnahme.",
+		sourceUrl:
+			"https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/BSI-Standards/bsi-standards_node.html",
+		sortOrder: 185,
+		phase: "P6",
+	},
+	{
+		slug: "bsi-200-2",
+		name: "BSI-Standard 200-2 (IT-Grundschutz-Methodik)",
+		version: "2017",
+		authority: "BSI",
+		jurisdiction: "de",
+		description:
+			"Vorgehen nach IT-Grundschutz: Initiierung, Organisation, Strukturanalyse, Schutzbedarfsfeststellung, Modellierung mit den Bausteinen des Kompendiums, IT-Grundschutz-Check, Umsetzung und Aufrechterhaltung, in drei Absicherungsvarianten.",
+		recommendedApproach:
+			"Mit der Basis-Absicherung beginnen, wenn schnell breite Grundsicherheit nötig ist; Kern-Absicherung für wenige besonders schützenswerte Prozesse; Standard-Absicherung als Ziel für die Zertifizierung.",
+		sourceUrl:
+			"https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/BSI-Standards/bsi-standards_node.html",
+		sortOrder: 190,
+		phase: "P6",
+		variants: [
+			{
+				key: "standard",
+				label: "Standard-Absicherung",
+				hint: "Ganzer Informationsverbund, Basis- und Standard-Anforderungen; Ziel für die Zertifizierung",
+			},
+			{
+				key: "basis",
+				label: "Basis-Absicherung",
+				hint: "Einstieg: breit, nur Basis-Anforderungen, ohne Schutzbedarf und Risikoanalyse",
+			},
+			{
+				key: "kern",
+				label: "Kern-Absicherung",
+				hint: "Nur die Kronjuwelen, dafür vollständig mit Risikoanalyse",
+			},
+		],
+		variantLabel: "Absicherungsvariante",
+	},
+	{
+		slug: "bsi-200-3",
+		name: "BSI-Standard 200-3 (Risikoanalyse)",
+		version: "2017",
+		authority: "BSI",
+		jurisdiction: "de",
+		description:
+			"Risikoanalyse auf der Basis von IT-Grundschutz für Zielobjekte mit hohem Schutzbedarf oder ohne passenden Baustein: Gefährdungsübersicht aus den 47 elementaren Gefährdungen, Einstufung nach Häufigkeit und Schaden, Behandlung, Konsolidierung.",
+		recommendedApproach:
+			"Die Risikomethodik in Klick auf die Matrix von 200-3 stellen (vier Stufen) und die elementaren Gefährdungen im Risiko-Assistenten als Ausgangspunkt nehmen.",
+		sourceUrl:
+			"https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/BSI-Standards/bsi-standards_node.html",
+		sortOrder: 195,
+		phase: "P6",
+	},
+	{
+		slug: "bsi-200-4",
+		name: "BSI-Standard 200-4 (Business Continuity Management)",
+		version: "2023",
+		authority: "BSI",
+		jurisdiction: "de",
+		description:
+			"Aufbau eines Business-Continuity-Managementsystems in drei Stufen (reaktiv, Aufbau, Standard): Leitlinie, BCM-Organisation und BAO, Business-Impact-Analyse, Strategien, Notfallvorsorge, Notfallhandbuch, Übungen. Kompatibel zu ISO 22301.",
+		recommendedApproach:
+			"Mit dem reaktiven BCMS beginnen (Alarmierung, Krisenstab, Notfallhandbuch für die wichtigsten Prozesse), dann die BIA auf alle Prozesse ausweiten. Deckt zugleich DORA Art. 11 und ISO 27001 A.5.29/A.5.30 mit ab.",
+		sourceUrl:
+			"https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/BSI-Standards/bsi-standards_node.html",
+		sortOrder: 200,
+		phase: "P6",
+	},
 	...CORRIDOR_FRAMEWORK_METAS,
 ];
 

@@ -35,17 +35,27 @@ export const REQUIRED_FUNCTIONS: readonly RequiredFunction[] = [
 			"zag-marisk",
 			"gwg",
 			"kwg",
+			"bsi-200-1",
+			"bsi-200-4",
 		],
 		legalBasis:
-			"ISO 27001 5.1 · DORA Art. 5(2) · NIS2 Art. 20(1) · MiCAR Art. 68 · ZAG-MaRisk AT 3",
+			"ISO 27001 5.1 · DORA Art. 5(2) · NIS2 Art. 20(1) · MiCAR Art. 68 · ZAG-MaRisk AT 3 · BSI-Standard 200-1 Kap. 4",
 		fitProper: true,
 		hint: "Trägt die Gesamtverantwortung; genehmigt Rahmen, Strategie, Budget und Richtlinien.",
 	},
 	{
 		function: "isb_ciso",
 		title: "Informationssicherheitsbeauftragte:r (ISB/CISO)",
-		frameworks: ["iso27001", "nis2", "dora", "zag-marisk"],
-		legalBasis: "ISO 27001 5.3 / A.5.2 · ZAG-MaRisk AT 7.2 · NIS2 Art. 21",
+		frameworks: [
+			"iso27001",
+			"nis2",
+			"dora",
+			"zag-marisk",
+			"bsi-200-1",
+			"bsi-200-2",
+		],
+		legalBasis:
+			"ISO 27001 5.3 / A.5.2 · ZAG-MaRisk AT 7.2 · NIS2 Art. 21 · BSI-Standard 200-2 Kap. 4.1",
 		deputyRequired: true,
 		hint: "Steuert das ISMS, berichtet direkt an die Leitung; organisatorisch unabhängig vom IT-Betrieb.",
 	},
@@ -75,15 +85,17 @@ export const REQUIRED_FUNCTIONS: readonly RequiredFunction[] = [
 	{
 		function: "bcm_manager",
 		title: "BCM-Verantwortliche:r",
-		frameworks: ["dora", "iso27001", "zag-marisk"],
-		legalBasis: "DORA Art. 11 · ISO 27001 A.5.29/A.5.30 · ZAG-MaRisk AT 7.3",
+		frameworks: ["dora", "iso27001", "zag-marisk", "bsi-200-4"],
+		legalBasis:
+			"DORA Art. 11 · ISO 27001 A.5.29/A.5.30 · ZAG-MaRisk AT 7.3 · BSI-Standard 200-4 Kap. 5",
 		hint: "Pflegt Notfall- und Wiederanlaufpläne, plant Übungen und die BIA.",
 	},
 	{
 		function: "crisis_team",
 		title: "Krisenstab",
-		frameworks: ["dora", "zag-marisk"],
-		legalBasis: "DORA Art. 11(7) / Art. 14 · ZAG-MaRisk AT 7.3",
+		frameworks: ["dora", "zag-marisk", "bsi-200-4"],
+		legalBasis:
+			"DORA Art. 11(7) / Art. 14 · ZAG-MaRisk AT 7.3 · BSI-Standard 200-4 (BAO)",
 		hint: "Entscheidet im Krisenfall; Kontaktliste muss offline verfügbar sein (Kommunikationsmatrix).",
 	},
 	{
