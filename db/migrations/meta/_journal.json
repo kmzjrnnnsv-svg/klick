@@ -435,6 +435,13 @@
       "when": 1793458828760,
       "tag": "0061_sso_setup",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793467175071,
+      "tag": "0062_custom_frameworks",
+      "breakpoints": true
     }
   ]
 }

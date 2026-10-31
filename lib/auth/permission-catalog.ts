@@ -21,7 +21,13 @@ export const PERMISSION_AREAS: readonly PermissionArea[] = [
 	},
 	{
 		key: "documents",
-		resources: ["document", "evidence", "control", "assessment"],
+		resources: [
+			"document",
+			"evidence",
+			"control",
+			"assessment",
+			"custom_framework",
+		],
 	},
 	{
 		key: "operations",

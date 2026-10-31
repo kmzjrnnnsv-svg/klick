@@ -5,6 +5,7 @@ export * from "./schema/aml";
 export * from "./schema/assessments";
 export * from "./schema/catalog";
 export * from "./schema/custody";
+export * from "./schema/custom-frameworks";
 export * from "./schema/enums";
 export * from "./schema/grc";
 export * from "./schema/inquiries";
