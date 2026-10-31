@@ -15,6 +15,7 @@ import {
 	parseSignText,
 	sealSignText,
 } from "@/lib/signatures/canonical";
+import { orgSignaturePolicy } from "@/lib/signatures/policy-server";
 import {
 	prepareSignText,
 	SIGN_VALID_MS,
@@ -50,8 +51,15 @@ async function prepareEvidenceSignatureImpl(input: unknown): Promise<
 		}),
 	);
 	if (!prepared) return { ok: false, error: "invalid" };
-	const options = await passkeySignOptions(c.userId, prepared.text);
-	if (!options) return { ok: false, error: "no_passkey" };
+	const { securityKeysOnly } = await orgSignaturePolicy(toOrgCtx(c));
+	const options = await passkeySignOptions(c.userId, prepared.text, {
+		keysOnly: securityKeysOnly,
+	});
+	if (!options)
+		return {
+			ok: false,
+			error: securityKeysOnly ? "security_key_required" : "no_passkey",
+		};
 	return {
 		ok: true,
 		data: {
@@ -81,12 +89,18 @@ async function submitEvidenceSignatureImpl(
 	const expires = Date.parse(fields.expires);
 	if (!(expires > now) || expires > now + SIGN_VALID_MS + 60_000)
 		return { ok: false, error: "expired" };
+	const { securityKeysOnly } = await orgSignaturePolicy(toOrgCtx(c));
 	const verified = await verifyPasskeySignature({
 		userId: c.userId,
 		signText: text,
 		response,
+		keysOnly: securityKeysOnly,
 	});
-	if (!verified.ok) return { ok: false, error: "invalid" };
+	if (!verified.ok)
+		return {
+			ok: false,
+			error: securityKeysOnly ? "security_key_required" : "invalid",
+		};
 	const res = await mutateOrg(toOrgCtx(c), async (tx) => {
 		const stored = await storeSignatures(tx, {
 			orgId: c.orgId,

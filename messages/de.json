@@ -633,7 +633,9 @@
 		"resetOrgKeepsTitle": "Was bleibt",
 		"resetOrgKeeps": "Name und Kurzname, die internen Mitglieder mit ihrer Rolle, Preisgruppe und Vertrag, deine Zustimmung zu den Nutzungsbedingungen. Der alte Verlauf bleibt als Spur erhalten, die neue Organisation beginnt einen neuen.",
 		"resetOrgButton": "Endgültig neu beginnen",
-		"resetOrgDone": "Neu begonnen. Weiter in der Einrichtung."
+		"resetOrgDone": "Neu begonnen. Weiter in der Einrichtung.",
+		"passkeyBound": "Sicherheitsschlüssel",
+		"passkeySynced": "Synchronisiert"
 	},
 	"Team": {
 		"title": "Team",
@@ -1968,7 +1970,8 @@
 		"sign_invalid": "Die Unterschrift passt nicht zur eingereichten Fassung. Lade die Seite neu und versuch es noch einmal.",
 		"sign_signed": "Unterschrieben. Die Freigabe wartet noch auf weitere Unterschriften.",
 		"sign_signedFinal": "Unterschrieben und freigegeben.",
-		"errors_signature_required": "Diese Stufe verlangt eine Unterschrift. Nutze „Freigeben und unterschreiben“."
+		"errors_signature_required": "Diese Stufe verlangt eine Unterschrift. Nutze „Freigeben und unterschreiben“.",
+		"sign_securityKeyRequired": "Deine Organisation lässt Unterschriften nur mit einem Sicherheitsschlüssel zu (z. B. YubiKey). Lege ihn unter Einstellungen > Sicherheit an; synchronisierte Passkeys zählen hier nicht."
 	},
 	"Providers": {
 		"linked": "Prozesse · Assets",
@@ -6243,7 +6246,8 @@
 		"signedPrefix": "Unterschrieben:",
 		"signedLine": "{name} ({fn}), {date}",
 		"openFor": "wartet auf {fns}",
-		"acknowledge": "Zur Kenntnis nehmen"
+		"acknowledge": "Zur Kenntnis nehmen",
+		"securityKeyRequired": "Deine Organisation lässt Unterschriften nur mit einem Sicherheitsschlüssel zu (z. B. YubiKey). Lege ihn unter Einstellungen > Sicherheit an; synchronisierte Passkeys zählen hier nicht."
 	},
 	"SignatureCheck": {
 		"eyebrow": "Nachweis",
@@ -6697,6 +6701,7 @@
 		"where_sso_policy": "",
 		"where_dlp_policy": "",
 		"where_ai_policy": "",
+		"where_signature_policy": "",
 		"err_four_eyes_not_open": "Der Antrag ist nicht mehr offen. Lade die Seite neu.",
 		"err_four_eyes_self": "Deiner eigenen Änderung stimmt eine andere Person zu.",
 		"err_four_eyes_stale": "Die Einstellung hat sich seit dem Antrag geändert, darum ist er verfallen. Stell ihn neu.",
@@ -7184,5 +7189,15 @@
 		"error_in_force": "Diese Fassung gilt noch oder hat nie gegolten; vernichten geht erst nach Ende der Gültigkeit und der Aufbewahrung.",
 		"error_already_destroyed": "Diese Fassung ist schon vernichtet.",
 		"error_approval_pending": "Für diese Fassung wartet schon ein Antrag auf Vernichtung."
+	},
+	"SignaturePolicy": {
+		"title": "Unterschriften",
+		"lead": "Unterschriften unter Nachweise und Dokumente entstehen per Passkey. Mit dieser Regel zählen nur gerätegebundene Sicherheitsschlüssel (z. B. YubiKey); Passkeys aus iCloud, Google oder einem Passwortmanager bleiben für die Anmeldung gültig.",
+		"keysOnly": "Unterschriften nur mit Sicherheitsschlüssel",
+		"keysOnlyHint": "Einschalten wirkt sofort. Ausschalten braucht eine zweite Person (Inhaber:in oder Geschäftsleitung) oder 24 Stunden Wartezeit.",
+		"saved": "Regel für Unterschriften gespeichert.",
+		"requested": "Ausschalten beantragt. Es wirkt nach Zustimmung einer zweiten Person oder nach der Wartezeit.",
+		"ownerOnly": "Nur Inhaber:innen ändern diese Regel.",
+		"note": "Die Angabe „gerätegebunden“ stammt vom Schlüssel selbst (keine Attestierung)."
 	}
 }

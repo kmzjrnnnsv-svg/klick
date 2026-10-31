@@ -9,6 +9,10 @@ import { and, eq } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { passkey } from "@/db/auth-schema";
 import { signChallenge } from "@/lib/signatures/canonical";
+import {
+	assertionDeviceBound,
+	deviceBoundPasskey,
+} from "@/lib/signatures/policy";
 
 // Unterschrift per Passkey (N4): die Challenge ist kein Zufallswert aus dem
 // Speicher, sondern SHA-256 über den kanonischen Text — die Assertion bindet
@@ -25,14 +29,22 @@ const transportsOf = (t: string | null) =>
 		? (t.split(",").filter(Boolean) as AuthenticatorTransportFuture[])
 		: undefined;
 
+// keysOnly (AP9.1b): nur gerätegebundene Sicherheitsschlüssel anbieten
 export async function passkeySignOptions(
 	userId: string,
 	signText: string,
+	opts: { keysOnly?: boolean } = {},
 ): Promise<PublicKeyCredentialRequestOptionsJSON | null> {
-	const own = await globalDb
-		.select({ id: passkey.credentialID, transports: passkey.transports })
+	const all = await globalDb
+		.select({
+			id: passkey.credentialID,
+			transports: passkey.transports,
+			deviceType: passkey.deviceType,
+			backedUp: passkey.backedUp,
+		})
 		.from(passkey)
 		.where(eq(passkey.userId, userId));
+	const own = opts.keysOnly ? all.filter(deviceBoundPasskey) : all;
 	if (own.length === 0) return null;
 	const options = await generateAuthenticationOptions({
 		rpID: SIGN_RP_ID,
@@ -62,6 +74,8 @@ export async function verifyPasskeySignature(input: {
 	userId: string;
 	signText: string;
 	response: AuthenticationResponseJSON;
+	// nur gerätegebundene Sicherheitsschlüssel (AP9.1b)
+	keysOnly?: boolean;
 }): Promise<{ ok: true; assertion: SignedAssertion } | { ok: false }> {
 	const [pk] = await globalDb
 		.select()
@@ -74,6 +88,7 @@ export async function verifyPasskeySignature(input: {
 		)
 		.limit(1);
 	if (!pk) return { ok: false };
+	if (input.keysOnly && !deviceBoundPasskey(pk)) return { ok: false };
 	const publicKey = new Uint8Array(Buffer.from(pk.publicKey, "base64"));
 	let verified: Awaited<ReturnType<typeof verifyAuthenticationResponse>>;
 	try {
@@ -107,6 +122,10 @@ export async function verifyPasskeySignature(input: {
 		"base64url",
 	);
 	const flags = authData[32] ?? 0;
+	const backupEligible = (flags & 0x08) !== 0;
+	const backupState = (flags & 0x10) !== 0;
+	if (input.keysOnly && !assertionDeviceBound({ backupEligible, backupState }))
+		return { ok: false };
 	return {
 		ok: true,
 		assertion: {
@@ -116,8 +135,8 @@ export async function verifyPasskeySignature(input: {
 			clientDataJSON: input.response.response.clientDataJSON,
 			signature: input.response.response.signature,
 			userVerified: (flags & 0x04) !== 0,
-			backupEligible: (flags & 0x08) !== 0,
-			backupState: (flags & 0x10) !== 0,
+			backupEligible,
+			backupState,
 			signCount: verified.authenticationInfo.newCounter,
 		},
 	};

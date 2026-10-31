@@ -98,9 +98,11 @@ export function ApprovalActions({
 				toast.error(
 					prep.error === "no_passkey"
 						? tsig("noPasskey")
-						: prep.error === "not_in_review"
-							? tsig("notInReview")
-							: errorText(tc, prep),
+						: prep.error === "security_key_required"
+							? tsig("securityKeyRequired")
+							: prep.error === "not_in_review"
+								? tsig("notInReview")
+								: errorText(tc, prep),
 				);
 				return;
 			}
@@ -121,16 +123,18 @@ export function ApprovalActions({
 			});
 			if (!res.ok) {
 				toast.error(
-					res.error === "expired"
-						? tsig("expired")
-						: res.error === "invalid"
-							? tsig("invalid")
-							: res.error === "already_decided" ||
-									res.error.startsWith("rule_not_met") ||
-									res.error.startsWith("four_eyes") ||
-									res.error === "not_pending"
-								? t(`errors_${res.error}` as "errors_four_eyes")
-								: errorText(tc, res),
+					res.error === "security_key_required"
+						? tsig("securityKeyRequired")
+						: res.error === "expired"
+							? tsig("expired")
+							: res.error === "invalid"
+								? tsig("invalid")
+								: res.error === "already_decided" ||
+										res.error.startsWith("rule_not_met") ||
+										res.error.startsWith("four_eyes") ||
+										res.error === "not_pending"
+									? t(`errors_${res.error}` as "errors_four_eyes")
+									: errorText(tc, res),
 				);
 				return;
 			}

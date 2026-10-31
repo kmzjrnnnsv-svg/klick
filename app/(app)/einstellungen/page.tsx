@@ -42,6 +42,7 @@ import { RiskMethodPanel } from "@/components/settings/risk-method-panel";
 import { RolesPanel } from "@/components/settings/roles-panel";
 import { SecurityChangesPanel } from "@/components/settings/security-changes-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
+import { SignaturePolicyPanel } from "@/components/settings/signature-policy-panel";
 import { SsoPanel } from "@/components/settings/sso-panel";
 import { StagePanel } from "@/components/settings/stage-panel";
 import { SubscriptionPanel } from "@/components/settings/subscription-panel";
@@ -147,6 +148,7 @@ import {
 	settingsGroups,
 	visibleSettingsSections,
 } from "@/lib/settings/sections";
+import { orgSignaturePolicy } from "@/lib/signatures/policy-server";
 import { teamsConfigured } from "@/lib/teams/config";
 import { teamsIntegrationOf } from "@/lib/teams/service";
 import { cn } from "@/lib/utils";
@@ -329,6 +331,7 @@ async function renderSection(
 							name: p.name ?? null,
 							createdAt: p.createdAt ?? null,
 							deviceType: p.deviceType,
+							backedUp: p.backedUp,
 						}))}
 					/>
 					{ctx.orgRole !== "employee" && (
@@ -587,30 +590,37 @@ async function renderSection(
 					};
 				},
 			);
+			const signaturePolicy = await orgSignaturePolicy(octx);
 			return (
-				<WorkflowsPanel
-					triggers={TRIGGERS.filter((x) => x.wired).map((x) => ({
-						key: x.key,
-						area: x.area,
-						mode: x.mode,
-					}))}
-					texts={await triggerTexts()}
-					facts={await factInfos()}
-					workflows={workflows}
-					names={workflowNames}
-					presets={WORKFLOW_PRESETS.map((p) => ({
-						key: p.key,
-						trigger: p.trigger,
-						name: p.name,
-						description: p.description,
-						variant: Boolean(p.variant),
-						roles: p.roles.map((r) => r.name),
-					}))}
-					canEdit={canEditSettings}
-					mode={mode}
-					findings={findings}
-					isOwner={ctx.orgRole === "owner"}
-				/>
+				<div className="flex flex-col gap-8">
+					<SignaturePolicyPanel
+						securityKeysOnly={signaturePolicy.securityKeysOnly}
+						isOwner={ctx.orgRole === "owner"}
+					/>
+					<WorkflowsPanel
+						triggers={TRIGGERS.filter((x) => x.wired).map((x) => ({
+							key: x.key,
+							area: x.area,
+							mode: x.mode,
+						}))}
+						texts={await triggerTexts()}
+						facts={await factInfos()}
+						workflows={workflows}
+						names={workflowNames}
+						presets={WORKFLOW_PRESETS.map((p) => ({
+							key: p.key,
+							trigger: p.trigger,
+							name: p.name,
+							description: p.description,
+							variant: Boolean(p.variant),
+							roles: p.roles.map((r) => r.name),
+						}))}
+						canEdit={canEditSettings}
+						mode={mode}
+						findings={findings}
+						isOwner={ctx.orgRole === "owner"}
+					/>
+				</div>
 			);
 		}
 		case "audits": {
