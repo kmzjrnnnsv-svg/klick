@@ -21,6 +21,7 @@ import {
 	FRAMEWORK_BY_SLUG,
 	REQUIREMENT_BY_KEY,
 } from "@/lib/compliance/catalog";
+import { sharedBy } from "@/lib/compliance/control-relations";
 import type { ReqCoverage } from "@/lib/compliance/coverage";
 import { exclusionRule } from "@/lib/compliance/exclusions";
 import {
@@ -46,6 +47,7 @@ export default async function RequirementPage({
 	const t = await getTranslations("Frameworks");
 	const tc = await getTranslations("Controls");
 	const ts = await getTranslations("Status");
+	const tr = await getTranslations("Relations");
 	const cov = await getOrgCoverageCached(ctx);
 	// Querverweise („Siehe auch“, Vergleich) führen auch zu Rahmenwerken, die
 	// die Organisation nicht aktiviert hat: dann Katalogansicht ohne
@@ -308,31 +310,42 @@ export default async function RequirementPage({
 							const c = CONTROL_BY_CODE.get(e.control);
 							const s = implStatus.get(e.control);
 							return (
-								<li
-									key={e.control}
-									className="flex flex-wrap items-center gap-2 px-3 py-2"
-								>
-									<Badge variant="outline" className="font-mono">
-										{e.control}
-									</Badge>
-									<Link
-										href={`/controls/${e.control}`}
-										className="min-w-0 flex-1 truncate hover:underline underline-offset-4"
-									>
-										{c?.title ?? e.control}
-									</Link>
-									<span className="text-muted-foreground text-footnote">
-										{e.coverage === "full" ? tc("full") : tc("partial")}
-									</span>
-									{s ? (
-										<StatusBadge
-											machine={CONTROL_STATUS}
-											status={s}
-											label={ts(CONTROL_STATUS.labelKey[s] as "notStarted")}
-										/>
-									) : (
-										<Badge variant="muted">—</Badge>
-									)}
+								<li key={e.control} className="flex flex-col gap-1 px-3 py-2">
+									<div className="flex flex-wrap items-center gap-2">
+										<Badge variant="outline" className="font-mono">
+											{e.control}
+										</Badge>
+										<Link
+											href={`/controls/${e.control}`}
+											className="min-w-0 flex-1 truncate hover:underline underline-offset-4"
+										>
+											{c?.title ?? e.control}
+										</Link>
+										<span className="text-muted-foreground text-footnote">
+											{e.coverage === "full" ? tc("full") : tc("partial")}
+										</span>
+										{s ? (
+											<StatusBadge
+												machine={CONTROL_STATUS}
+												status={s}
+												label={ts(CONTROL_STATUS.labelKey[s] as "notStarted")}
+											/>
+										) : (
+											<Badge variant="muted">—</Badge>
+										)}
+									</div>
+									{(() => {
+										const also = sharedBy(e.control, {
+											frameworks: cov?.frameworks ?? [],
+										}).filter((f) => f !== slug);
+										return also.length > 0 ? (
+											<p className="text-footnote text-muted-foreground">
+												{tr("alsoBy", {
+													names: also.map(shortFrameworkName).join(", "),
+												})}
+											</p>
+										) : null;
+									})()}
 								</li>
 							);
 						})}

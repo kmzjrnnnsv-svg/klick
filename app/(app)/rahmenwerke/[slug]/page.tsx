@@ -7,6 +7,7 @@ import { FrameworkEvidence } from "@/components/evidence-studio/framework-eviden
 import { SoaTab } from "@/components/frameworks/soa-tab";
 import { PageHeader } from "@/components/page-header";
 import { ReadinessPanel } from "@/components/readiness/readiness-panel";
+import { FrameworkProfileCard } from "@/components/relations/framework-profile";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -17,6 +18,7 @@ import {
 	FRAMEWORK_BY_SLUG,
 } from "@/lib/compliance/catalog";
 import { evidenceKindsForFrameworks } from "@/lib/compliance/catalog/evidence-kinds";
+import { SECTION_SIMPLE } from "@/lib/compliance/catalog/framework-profiles";
 import type { ReqCoverage } from "@/lib/compliance/coverage";
 import {
 	getOrgCoverageCached,
@@ -235,6 +237,9 @@ export default async function FrameworkPage({
 					</div>
 				</div>
 			)}
+			<div className="mb-6">
+				<FrameworkProfileCard slug={slug} />
+			</div>
 			{fw.recommendedApproach && (
 				<p className="mb-6 rounded-2xl bg-card p-3 text-subhead">
 					<span className="font-medium text-footnote mr-2 text-muted-foreground">
@@ -372,6 +377,11 @@ export default async function FrameworkPage({
 												</span>
 											)}
 										</div>
+										{SECTION_SIMPLE[`${slug}:${section.code}`] && (
+											<p className="mb-2 text-subhead">
+												{SECTION_SIMPLE[`${slug}:${section.code}`]}
+											</p>
+										)}
 										<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 											{items.map(({ r, status }) => (
 												<li
