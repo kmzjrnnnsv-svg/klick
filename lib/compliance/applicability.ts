@@ -4,6 +4,9 @@ import type {
 	LicenceStage,
 	OrgRoleLegal,
 } from "@/db/schema/enums";
+import { FRAMEWORKS } from "./catalog/frameworks";
+
+const FRAMEWORK_META = new Map(FRAMEWORKS.map((f) => [f.slug, f]));
 
 // Anwendbarkeit einer Anforderung für eine Organisation — reine Funktion.
 // Quellen (in dieser Reihenfolge, die erste greift):
@@ -14,6 +17,8 @@ import type {
 //                 CRA-Rollen (Hersteller, Einführer, Händler) kommen aus dem
 //                 Produktregister und gelten unabhängig von der Stufe
 //   lex_specialis DORA verdrängt NIS2 Art. 20/21/23 für Finanzunternehmen
+//   variant       gewählte Variante des Rahmenwerks (BSI-Absicherung,
+//                 PCI-SAQ) schließt die Anforderung nicht ein
 // Manuelle Entscheidungen (source "manual") überschreiben alles — die trifft
 // die Org in requirement_applicability, nicht diese Funktion.
 
@@ -22,6 +27,7 @@ export type ApplicabilitySource =
 	| "services"
 	| "stage"
 	| "lex_specialis"
+	| "variant"
 	| "default";
 
 export type ApplicabilityDecision = {
@@ -39,6 +45,7 @@ export type RequirementForApplicability = {
 	effectiveFrom?: string | null;
 	effectiveUntil?: string | null;
 	legalStatus?: LegalStatus | null;
+	variants?: readonly string[] | null;
 };
 
 export type OrgProfile = {
@@ -52,6 +59,8 @@ export type OrgProfile = {
 	// undefined = noch kein Produkt erfasst → alles Gewählte ist
 	// Arbeitsgegenstand; [] = Produkte erfasst, aber keins im Anwendungsbereich.
 	productRoles?: readonly OrgRoleLegal[];
+	// gewählte Variante je Rahmenwerk (Slug → Variante), Standard ergänzt
+	frameworkVariants?: Readonly<Record<string, string>>;
 	asOf?: Date;
 };
 
@@ -130,6 +139,22 @@ export function deriveApplicability(
 			source: "rule",
 			note: "Negativnachweis: nicht von der BaFin für TLPT benannt",
 		};
+	}
+
+	// Variante des Rahmenwerks (BSI-Absicherung, PCI-SAQ)
+	if (req.variants && req.variants.length > 0) {
+		const chosen = profile.frameworkVariants?.[req.framework];
+		if (chosen && !req.variants.includes(chosen)) {
+			const label =
+				FRAMEWORK_META.get(req.framework)?.variants?.find(
+					(v) => v.key === chosen,
+				)?.label ?? chosen;
+			return {
+				applicable: false,
+				source: "variant",
+				note: `Gilt nicht für die gewählte Variante (${label})`,
+			};
+		}
 	}
 
 	// Dienste (MiCAR Art. 75–82 u. ä.)

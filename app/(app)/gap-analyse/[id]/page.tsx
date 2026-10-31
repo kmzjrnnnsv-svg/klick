@@ -566,6 +566,7 @@ export default async function AssessmentPage({
 										caspServices: cov.profile.caspServices,
 										frameworks: a.frameworks,
 										tlptDesignated: cov.profile.tlptDesignated,
+										frameworkVariants: cov.profile.frameworkVariants,
 										issuesTokens: cov.profile.issuesTokens,
 										productRoles: cov.profile.productRoles,
 									}),

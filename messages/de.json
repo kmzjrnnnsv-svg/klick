@@ -1139,6 +1139,7 @@
 		"source_services": "Dienst nicht erbracht",
 		"source_stage": "Lizenzstufe",
 		"source_lex_specialis": "Lex specialis",
+		"source_variant": "Gewählte Variante",
 		"source_manual": "manuell",
 		"source_default": "abgeleitet",
 		"gapsLead": "Anwendbare Anforderungen, die noch nicht voll erfüllt sind — mit dem Control, das sie schließt.",
@@ -1165,7 +1166,9 @@
 		"isoMandatoryComplete": "{present} von {total} Pflichtdokumenten vorhanden",
 		"exportGap": "Gap-Liste (CSV)",
 		"exportSoa": "SoA (Markdown)",
-		"tabReadiness": "Prüfungsreife"
+		"tabReadiness": "Prüfungsreife",
+		"variant": "Variante",
+		"variantSaved": "Variante gespeichert. {created, plural, =0 {Keine neuen Controls} one {# neues Control} other {# neue Controls}}, {na, plural, one {# Anforderung} other {# Anforderungen}} nicht anwendbar."
 	},
 	"Synergies": {
 		"title": "Synergien",

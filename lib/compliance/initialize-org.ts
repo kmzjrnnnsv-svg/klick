@@ -21,7 +21,12 @@ import type {
 import { effectiveAssignment } from "@/lib/compliance/appointments";
 import type { OrgTx } from "@/lib/db/with-org";
 import { deriveApplicability, inWorkQueue } from "./applicability";
-import { BASELINE, EDGES, splitRequirementKey } from "./catalog";
+import {
+	BASELINE,
+	EDGES,
+	REQUIREMENT_BY_KEY,
+	splitRequirementKey,
+} from "./catalog";
 import { areaOf } from "./catalog/domain-functions";
 import { toProfile } from "./catalog-view";
 import { responsibleFor } from "./function-holders";
@@ -50,6 +55,7 @@ export type InitializeOrgInput = {
 	tlptDesignated?: boolean;
 	issuesTokens?: "none" | "art" | "emt" | "other";
 	productRoles?: readonly OrgRoleLegal[];
+	frameworkVariants?: Readonly<Record<string, string>>;
 };
 
 export type InitializeOrgSummary = {
@@ -74,6 +80,7 @@ export async function initializeOrg(
 		tlptDesignated: input.tlptDesignated,
 		issuesTokens: input.issuesTokens,
 		productRoles: input.productRoles,
+		frameworkVariants: input.frameworkVariants,
 	});
 
 	// Anforderungen der gewählten Rahmenwerke (DB-IDs).
@@ -102,7 +109,7 @@ export async function initializeOrg(
 	let notApplicable = 0;
 	const derivedNa: {
 		requirementId: string;
-		source: "services" | "lex_specialis" | "stage" | "rule";
+		source: "services" | "lex_specialis" | "stage" | "rule" | "variant";
 		note: string | null;
 	}[] = [];
 	for (const r of reqRows) {
@@ -115,6 +122,7 @@ export async function initializeOrg(
 			effectiveFrom: r.effectiveFrom,
 			effectiveUntil: r.effectiveUntil,
 			legalStatus: r.legalStatus,
+			variants: REQUIREMENT_BY_KEY.get(`${r.framework}:${r.code}`)?.variants,
 		};
 		const d = deriveApplicability(req, profile);
 		if (inWorkQueue(req, profile)) queueKeys.add(`${r.framework}:${r.code}`);

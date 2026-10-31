@@ -88,7 +88,7 @@ export const requirementApplicability = pgTable(
 		applicable: boolean().notNull().default(true),
 		note: text(),
 		source: text({
-			enum: ["services", "lex_specialis", "stage", "rule", "manual"],
+			enum: ["services", "lex_specialis", "stage", "rule", "variant", "manual"],
 		})
 			.notNull()
 			.default("manual"),

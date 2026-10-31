@@ -6,6 +6,7 @@ import {
 	type OrgProfile,
 } from "./applicability";
 import { ALL_REQUIREMENTS, CONTROLS, EDGES } from "./catalog";
+import { FRAMEWORKS } from "./catalog/frameworks";
 import type { Edge, ReqRef } from "./coverage";
 import type { ControlRef, SynergyCatalog } from "./synergy";
 
@@ -40,8 +41,26 @@ export type ProfileInput = {
 	tlptDesignated?: boolean;
 	issuesTokens?: OrgProfile["issuesTokens"];
 	productRoles?: OrgProfile["productRoles"];
+	frameworkVariants?: OrgProfile["frameworkVariants"];
 	asOf?: Date;
 };
+
+// Gewählte Varianten je Rahmenwerk, ergänzt um die erste Variante als
+// Standard (BSI 200-2: Standard-Absicherung, PCI DSS: SAQ D)
+export function resolveFrameworkVariants(
+	chosen: OrgProfile["frameworkVariants"],
+): Record<string, string> {
+	const out: Record<string, string> = {};
+	for (const f of FRAMEWORKS) {
+		if (!f.variants || f.variants.length === 0) continue;
+		const pick = chosen?.[f.slug];
+		out[f.slug] =
+			pick && f.variants.some((v) => v.key === pick)
+				? pick
+				: (f.variants[0]?.key ?? "");
+	}
+	return out;
+}
 
 export function toProfile(input: ProfileInput): OrgProfile {
 	return {
@@ -52,6 +71,7 @@ export function toProfile(input: ProfileInput): OrgProfile {
 		tlptDesignated: input.tlptDesignated,
 		issuesTokens: input.issuesTokens,
 		productRoles: input.productRoles,
+		frameworkVariants: resolveFrameworkVariants(input.frameworkVariants),
 		asOf: input.asOf,
 	};
 }

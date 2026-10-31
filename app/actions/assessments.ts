@@ -791,6 +791,7 @@ async function cloneAssessmentImpl(
 			caspServices: p.profile.caspServices,
 			frameworks: frameworks.length > 0 ? frameworks : p.frameworks,
 			tlptDesignated: p.profile.tlptDesignated,
+			frameworkVariants: p.profile.frameworkVariants,
 			issuesTokens: p.profile.issuesTokens,
 			productRoles: p.profile.productRoles,
 			manual,

@@ -102,6 +102,7 @@ async function previewStageChangeImpl(
 			sector: p.profile.sector,
 			frameworks: p.frameworks,
 			tlptDesignated: p.profile.tlptDesignated,
+			frameworkVariants: p.profile.frameworkVariants,
 			issuesTokens: p.profile.issuesTokens,
 			productRoles: p.profile.productRoles,
 		};

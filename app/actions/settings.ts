@@ -232,7 +232,7 @@ async function updateEntityProfileImpl(input: unknown): Promise<ActionResult> {
 	const c = g.ctx;
 	const parsed = entityProfileSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
-	const next: EntityProfile = Object.fromEntries(
+	const fields: EntityProfile = Object.fromEntries(
 		Object.entries(parsed.data).filter(([, v]) => v !== undefined),
 	);
 	await mutateOrg(toOrgCtx(c), async (tx) => {
@@ -241,6 +241,14 @@ async function updateEntityProfileImpl(input: unknown): Promise<ActionResult> {
 			.from(orgSettings)
 			.where(eq(orgSettings.organizationId, c.orgId))
 			.limit(1);
+		// Nur die Stammdaten des Formulars ersetzen; Angaben aus der
+		// Einrichtung (Größe, Daten, Varianten der Rahmenwerke) bleiben.
+		const kept = Object.fromEntries(
+			Object.entries(before?.entityProfile ?? {}).filter(
+				([k]) => !(k in entityProfileSchema.shape),
+			),
+		);
+		const next: EntityProfile = { ...kept, ...fields };
 		await tx
 			.update(orgSettings)
 			.set({ entityProfile: next })

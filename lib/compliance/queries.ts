@@ -57,6 +57,8 @@ export type OrgProfileRow = {
 		| "affected_registered";
 	// CRA-Rollen aus dem Produktregister (undefined = kein Produkt erfasst)
 	productRoles?: OrgRoleLegal[];
+	// gewählte Variante je Rahmenwerk (BSI-Absicherung, PCI-SAQ)
+	frameworkVariants?: Record<string, string>;
 };
 
 export async function getOrgProfile(
@@ -72,6 +74,7 @@ export async function getOrgProfile(
 			issuesTokens: orgSettings.issuesTokens,
 			applyBaseline: orgSettings.applyBaseline,
 			nis2Status: orgSettings.nis2Status,
+			entityProfile: orgSettings.entityProfile,
 		})
 		.from(orgSettings)
 		.where(eq(orgSettings.organizationId, orgId))
@@ -96,8 +99,13 @@ export async function getOrgProfile(
 		})
 		.from(products)
 		.where(eq(products.organizationId, orgId));
+	const { entityProfile, ...rest } = s;
 	return {
-		profile: { ...s, productRoles: productRolesFrom(prods) },
+		profile: {
+			...rest,
+			productRoles: productRolesFrom(prods),
+			frameworkVariants: entityProfile?.frameworkVariants ?? {},
+		},
 		frameworks: fws.map((f) => f.slug),
 	};
 }
@@ -183,6 +191,7 @@ export async function orgCoverage(
 			caspServices: p.profile.caspServices,
 			frameworks: p.frameworks,
 			tlptDesignated: p.profile.tlptDesignated,
+			frameworkVariants: p.profile.frameworkVariants,
 			issuesTokens: p.profile.issuesTokens,
 			productRoles: p.profile.productRoles,
 			asOf: opts.asOf,

@@ -541,6 +541,7 @@ async function saveActivityImpl(input: unknown): Promise<ActionResult> {
 						caspServices: d.caspServices,
 						applyBaseline: p.profile.applyBaseline,
 						tlptDesignated: p.profile.tlptDesignated,
+						frameworkVariants: p.profile.frameworkVariants,
 						issuesTokens: d.issuesTokens,
 						productRoles: p.profile.productRoles,
 					})
@@ -672,6 +673,7 @@ async function saveSetupFrameworksImpl(input: unknown): Promise<
 			caspServices: p.profile.caspServices,
 			applyBaseline: p.profile.applyBaseline,
 			tlptDesignated: p.profile.tlptDesignated,
+			frameworkVariants: p.profile.frameworkVariants,
 			issuesTokens: p.profile.issuesTokens,
 			productRoles: p.profile.productRoles,
 		});

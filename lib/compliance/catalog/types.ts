@@ -46,6 +46,11 @@ export type ExclusionPolicy = {
 	sections?: string[];
 };
 
+// Wählbare Variante eines Rahmenwerks, die bestimmt, welche Anforderungen
+// gelten (BSI 200-2: Basis-, Standard- oder Kern-Absicherung; PCI DSS:
+// SAQ-Typ). Gewählt je Org in entity_profile.frameworkVariants.
+export type FrameworkVariant = { key: string; label: string; hint?: string };
+
 export type CatalogFrameworkMeta = {
 	slug: string;
 	name: string;
@@ -63,6 +68,9 @@ export type CatalogFrameworkMeta = {
 	appliesFromStage?: LicenceStage;
 	phase: "P1" | "P4" | "P5" | "P6";
 	exclusion?: ExclusionPolicy;
+	// Varianten; die erste gilt, solange die Org keine gewählt hat
+	variants?: FrameworkVariant[];
+	variantLabel?: string;
 };
 
 export type CatalogSection = { code: string; title: string; sortOrder: number };
@@ -91,6 +99,8 @@ export type CatalogRequirement = {
 	// Fristen, Intervalle, Aufbewahrung — kuratiert; ohne Angabe liest
 	// extractParams sie aus Text, Hinweisen und Umsetzungshilfe
 	params?: Param[];
+	// Gilt nur für diese Varianten des Rahmenwerks (FrameworkVariant.key)
+	variants?: string[];
 	sortOrder: number;
 };
 

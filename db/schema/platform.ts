@@ -149,6 +149,8 @@ export type EntityProfile = {
 	specialCategories?: boolean;
 	dataSubjects?: "lt1k" | "1k_100k" | "gt100k";
 	customerCountries?: string[];
+	// gewählte Variante je Rahmenwerk (BSI-Absicherung, PCI-SAQ)
+	frameworkVariants?: Record<string, string>;
 };
 
 // DLP-Regeln je Org (lib/dlp/policy.ts wertet aus). Gespeichert wird nur,

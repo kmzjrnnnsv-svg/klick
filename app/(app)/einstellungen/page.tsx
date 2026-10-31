@@ -384,6 +384,8 @@ async function renderSection(
 					description: meta?.description ?? null,
 					hasIndex: (meta?.requirements.length ?? 0) > 0,
 					coveragePct: cov.result.byFramework.get(slug)?.coveragePct ?? null,
+					variants: meta?.variants,
+					variantLabel: meta?.variantLabel,
 				};
 			};
 			const activeItems = orgFws.map((f) => ({
@@ -421,6 +423,7 @@ async function renderSection(
 							licenceStage: cov.profile.licenceStage,
 							caspServices: [...cov.profile.caspServices],
 							tlptDesignated: cov.profile.tlptDesignated,
+							frameworkVariants: cov.profile.frameworkVariants ?? {},
 							nis2Status: cov.profile.nis2Status,
 						}}
 						canEdit={canEditSettings}
