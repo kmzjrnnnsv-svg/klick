@@ -89,6 +89,21 @@ export const SETTINGS: HelpArticle[] = [
 				tip: "Klick lässt die Liste nur speichern, wenn deine eigene Adresse danach noch hineinkommt. Sperrt ihr euch doch aus, setzt der Klick-Betrieb die Liste nach Rückruf am Terminal zurück.",
 			},
 			{
+				id: "standort",
+				heading: "Standort-Tunnel",
+				body: [
+					"Mit einem Standort-Tunnel ist euer Büro über eine verschlüsselte Verbindung (IPsec oder WireGuard) mit Klick verbunden. Im Tunnel ist Klick unter einer eigenen Adresse erreichbar; aus dem Tunnel geht nur HTTPS an Klick, sonst nichts.",
+					"Einrichten und abbauen macht der Klick-Betrieb, frag dort an. Danach siehst du hier den Stand (wartet, verbunden, getrennt) und stellst eurer IT einen Link und ein Blatt aus: mit den Werten, den Schritten für eure Firewall und dem Schlüssel. Jeder Abruf des Schlüssels steht im Verlauf.",
+				],
+				steps: [
+					"Stell der IT unter „Link für die IT“ einen Link aus (14 Tage gültig; ein neuer sperrt den alten) und gib ihr das Blatt.",
+					"Die IT richtet die Firewall ein und trägt im internen DNS ein, dass der Name von Klick auf die Adresse im Tunnel zeigt.",
+					"Steht der Tunnel, meldet Klick „verbunden“ und schickt dir eine Mitteilung.",
+					"Soll Klick nur noch aus dem Büro gehen, übernimm unter „Nur aus dem Büro“ die Netze des Standorts in die IP-Liste und beantrag die Änderung. Das geht nur aus dem Büro selbst.",
+				],
+				tip: "Bricht der Tunnel länger als zehn Minuten ab, bekommen die Inhaber:innen Bescheid. Gilt die IP-Liste nur für den Standort, kommt bis dahin aus dem Büro niemand in Klick.",
+			},
+			{
 				id: "verlauf",
 				heading: "Verlauf mit Bitcoin-Anker",
 				body: [

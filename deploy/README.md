@@ -474,6 +474,40 @@ der Org. Schlüssel, Anbieter und Funktionen legt die Inhaberin unter Einstellun
 - **Grenzen:** je Org 30 Aufrufe in 10 Minuten (Prozessspeicher, ein Server), Eingabe ≤ 200 000
   Zeichen, Dateien ≤ 10 MB (nur PDF/PNG/JPEG). Kosten rechnet der Anbieter mit der Org ab.
 
+## Standort verbinden (Standort-Tunnel, ADR-033)
+Das Büro einer Kundin verbindet sich über IPsec (IKEv2) oder WireGuard mit dem Klick-Server. Im Tunnel ist
+Klick unter der Dienstadresse `10.21.0.1` erreichbar (Schnittstelle `klick-sites`, nginx lauscht ohnehin
+auf allen Adressen); aus dem Tunnel lässt die Firewall nur HTTPS dorthin (`site_peers`/`site_nets` in
+`deploy/firewall.nft`), der Server leitet nichts weiter (`ip_forward = 0`). Den Tunnel richtet der Netz-Agent
+`klick-netz` ein (root, nur `CAP_NET_ADMIN`, vier Befehle über `/run/klick-netz/app.sock`, Gruppe `klick`);
+Klick schickt ihm den Soll-Zustand über den Job `site-tunnels` (jede Minute).
+
+- **Einmalig auf dem Server:** `sudo …/rollout.sh standorte [--endpoint <öffentliche IPv4>]`. Die Phase
+  installiert strongSwan (swanctl, charon-systemd) und wireguard-tools, lädt die Module `wireguard` und
+  `dummy` beim Start, baut den Agenten aus dem root-eigenen Checkout (`pnpm build:netz-agent`) nach
+  `/usr/local/lib/klick-netz/netz-agent.mjs`, startet `klick-netz.socket`/`.service` und trägt
+  `SITE_AGENT_SOCKET`, `SITE_PUBLIC_IP` und `SITE_WG_PUBLIC_KEY` (Schlüssel von `wg-sites`) in den
+  verwalteten Block von `/etc/klick/klick.env` ein. Firewall-Mengen kommen mit `firewall-final`.
+- **Hetzner-Firewall** eingehend ergänzen: UDP 500, UDP 4500 (IKE/NAT-T), Protokoll 50 (ESP), UDP 51821
+  (WireGuard der Standorte). nftables lässt sie nur von eingetragenen Gegenstellen zu.
+- **Anlegen:** Admin > Organisationen > [Org] > „Standort verbinden“ (nur aus dem Admin-Netz, Step-up):
+  Firewall-Marke, öffentliche IPv4 der Gegenstelle, Netz(e) im Büro. Überschneidet sich das Netz mit
+  Klick (Admin `10.9.0.0/24`, Knoten `10.8.0.0/24`, Dienst `10.21.0.0/24`) oder einem anderen Standort,
+  vergibt Klick ein Übergabenetz `10.20.N.0/x`; die Kundin setzt dann 1:1-NAT darauf.
+- **Für die IT der Kundin:** „Link für die IT“ (`/standort#klk_site_…`, 14 Tage, ein neuer sperrt den alten)
+  zeigt Werte, Schritte je Marke und auf Knopfdruck den Schlüssel (Abruf steht in der Kette der Org);
+  das „Blatt“ (PDF) enthält alles außer dem Schlüssel. Die IT trägt im internen DNS `raza.work` auf
+  `10.21.0.1` ein.
+- **Prüfen:** `swanctl --list-sas`, `wg show wg-sites`, `nft list set inet klick site_peers`,
+  `journalctl -u klick-netz`. Klick zeigt „verbunden“, sobald die SA steht bzw. der letzte WireGuard-
+  Handshake jünger als drei Minuten ist; nach zehn Minuten ohne Verbindung bekommen die Inhaber:innen
+  Bescheid. Nach `systemctl reload nftables` sind die Mengen leer, bis der Job sie (≤ 1 min) neu füllt.
+- **Nur noch über den Standort:** die Inhaberin übernimmt unter Einstellungen > Netzwerk die Netze des
+  Standorts in die IP-Liste (Vier-Augen). Abbauen sperrt Klick, solange ein Netz des Standorts in der
+  Liste steht; Notweg `pnpm org:network-reset --org <slug> --reason "…"`.
+- **Grenzen:** ein Server für alle Tunnel, IPv4 und feste IP der Gegenstelle; höchstens fünf Standorte je
+  Org. Ohne `SITE_AGENT_SOCKET` ist alles aus (der Knopf im Admin-Portal ist gesperrt).
+
 ## Microsoft Teams (T5)
 Hinweise erscheinen im Aktivitätsfeed von Teams statt (oder zusätzlich zu) Mails. Eine
 App-Registrierung von Klick gilt für alle Organisationen; jede Kunden-IT gibt sie im eigenen Tenant

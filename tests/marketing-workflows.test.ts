@@ -43,8 +43,8 @@ describe("Abläufe auf /funktionen", () => {
 
 	it("zählt die Abläufe richtig und bleibt überschaubar", () => {
 		expect(WORKFLOW_COUNT).toBe(all.length);
-		// Obergrenze für eine lesbare Seite; seit „Eigenes Rahmenwerk anlegen“ 56
-		expect(all.length).toBeLessThanOrEqual(56);
+		// Obergrenze für eine lesbare Seite; seit „Standort verbinden“ 57
+		expect(all.length).toBeLessThanOrEqual(57);
 		for (const g of WORKFLOW_GROUPS)
 			expect(g.workflows.length).toBeGreaterThan(0);
 	});

@@ -988,6 +988,22 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				],
 				result: "Mandantentrennung in der Datenbank, nicht nur im Programm.",
 			},
+			{
+				key: "standort",
+				name: "Standort verbinden",
+				summary:
+					"Euer Büro verbindet sich über einen verschlüsselten Tunnel mit Klick; danach geht Klick auf Wunsch nur noch von dort.",
+				where: "Einstellungen > Netzwerk",
+				trigger:
+					"Klick soll nur aus dem Büro erreichbar sein, nicht über das offene Internet.",
+				steps: [
+					"Der Klick-Betrieb richtet den Tunnel ein: Firewall, öffentliche IP und Netz im Büro reichen, IPsec oder WireGuard.",
+					"Eure IT bekommt einen Link und ein Blatt mit Werten und Schritten für ihre Firewall.",
+					"Steht der Tunnel, meldet Klick „verbunden“; mit zweiter Person beschränkt ihr die IP-Liste auf den Standort.",
+				],
+				result:
+					"Klick ist für euch nur noch aus dem Büro erreichbar; Abbrüche meldet Klick nach zehn Minuten.",
+			},
 		],
 	},
 ];
