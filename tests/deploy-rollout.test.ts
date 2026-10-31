@@ -174,6 +174,93 @@ describe("Dateien", () => {
 		);
 	});
 
+	it("gescheiterter Build: Phasen sichern .next vorher und spielen es zurück", () => {
+		const apps = read(`${DIR}/lib/apps.sh`);
+		const phase = (name: string, next: string) =>
+			apps.slice(apps.indexOf(`${name}() {`), apps.indexOf(`${next}() {`));
+		for (const [p, app, ordner] of [
+			["phase_klick", "klick", '"$KLICK_DIR/.next"'],
+			["phase_both", "both", '"$BOTH_DIR/apps/wallet/.next"'],
+		] as const) {
+			const body = phase(
+				p,
+				p === "phase_klick" ? "not_freigabe_aufraeumen" : "phase_signer",
+			);
+			const sichern = body.indexOf(`build_sichern ${ordner} "$alt"`);
+			const release = body.indexOf("pnpm release");
+			expect(sichern, p).toBeGreaterThan(0);
+			expect(sichern, p).toBeLessThan(release);
+			expect(body, p).toContain(`local alt="$SICHERUNG/next-${app}"`);
+			expect(body, p).toMatch(
+				new RegExp(
+					`\\) \\|\\| build_gescheitert ${app} ${ordner.replace(/[$.]/g, "\\$&")} "\\$alt" http://127\\.0\\.0\\.1:30[01]0/api/ready`,
+				),
+			);
+			// Sicherung liegt außerhalb des Checkouts (release-guard)
+			expect(body, p).not.toMatch(/alt="\$(KLICK|BOTH)_DIR/);
+		}
+		const fn = apps.slice(apps.indexOf("build_gescheitert() {"));
+		expect(fn.indexOf("build_zurueck")).toBeLessThan(
+			fn.indexOf("systemctl restart"),
+		);
+		expect(fn).toContain("warte_bereit");
+		expect(fn).toContain("die ");
+	});
+
+	it("Build-Sicherung: zurück kommt der alte Stand, cache bleibt", () => {
+		const d = join(tmp, "next-probe");
+		const next = join(d, ".next");
+		const alt = join(d, "sicherung", "next-klick");
+		const run = (s: string) =>
+			execFileSync(
+				"bash",
+				[
+					"-c",
+					`set -euo pipefail; source ${DIR}/lib/rein.sh; source ${DIR}/lib/common.sh; ${s}`,
+				],
+				{
+					cwd: ROOT,
+					encoding: "utf8",
+					env: { ...process.env, DEPLOY: "deploy", TROCKEN: "0" },
+				},
+			);
+		run(
+			`mkdir -p "${next}/static/chunks" "${next}/cache/images" "${next}/server" && echo alt > "${next}/static/chunks/a.js" && echo id1 > "${next}/BUILD_ID" && echo c > "${next}/cache/images/x"`,
+		);
+		run(`build_sichern "${next}" "${alt}"`);
+		expect(readdirSync(alt).sort()).toEqual(["BUILD_ID", "server", "static"]);
+		// so sieht .next nach einem abgebrochenen Build aus
+		run(
+			`rm -rf "${next}/static" "${next}/BUILD_ID" && mkdir -p "${next}/halb" && echo neu > "${next}/halb/b.js"`,
+		);
+		run(`build_zurueck "${next}" "${alt}"`);
+		expect(readdirSync(next).sort()).toEqual([
+			"BUILD_ID",
+			"cache",
+			"server",
+			"static",
+		]);
+		expect(readFileSync(join(next, "static/chunks/a.js"), "utf8")).toBe(
+			"alt\n",
+		);
+		expect(readFileSync(join(next, "cache/images/x"), "utf8")).toBe("c\n");
+		// ohne Sicherung: Hinweis und Fehlerstatus, nichts gelöscht
+		const r = spawnSync(
+			"bash",
+			[
+				"-c",
+				`set -euo pipefail; source ${DIR}/lib/rein.sh; source ${DIR}/lib/common.sh; build_zurueck "${next}" "${join(d, "fehlt")}"`,
+			],
+			{
+				cwd: ROOT,
+				encoding: "utf8",
+				env: { ...process.env, DEPLOY: "deploy" },
+			},
+		);
+		expect(r.status).toBe(1);
+		expect(readdirSync(next)).toContain("static");
+	});
+
 	it("Sicherheits-Updates: früh im Lauf, sofort und danach täglich", () => {
 		const main = read(`${DIR}/rollout.sh`);
 		const phasen = main.slice(

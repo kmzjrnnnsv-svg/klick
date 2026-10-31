@@ -288,6 +288,8 @@ pnpm db:wallet:migrate && pnpm wallet:admin org create --name "…" --slug … -
 pnpm wallet:admin account create --email … --name "…" --org … --role owner          # Konto + Aktivierungslink
 pnpm signer:admin status|init|enrol|revoke|policy|freeze|unfreeze    # Signer am Terminal verwalten (admin.sock)
 ```
+**Typ-Check nicht im Build:** `next build` prüft keine Typen (`typescript.ignoreBuildErrors`; Next 16.4 ruft sonst `tsc` über das ganze Projekt mit ≈ 2,1 GB Heap auf, der Server-Build brach daran ab). Typen prüft nur `pnpm typecheck` (4 GB Heap) in CI und preflight — Test `build-config`; CI rot = kein Release. Scheitert ein Build auf dem Server, spielt das Rollout `.next` aus der Sicherung zurück (`build_sichern`/`build_zurueck`/`build_gescheitert`), sonst fehlen der laufenden App ihre Skripte und kein Knopf reagiert.
+
 **Build-Falle:** `.env.local` nie in die Shell exportieren, bevor `pnpm build` läuft (`NODE_ENV=development` → Prerender mit Dev-Runtime → `TypeError … reading 'length'` in `buildFakeCallStack`). Next lädt die Env-Dateien selbst.
 Lokal ohne Docker: Postgres 16 nativ, Rollen aus `deploy/postgres/init-dev.sql`.
 

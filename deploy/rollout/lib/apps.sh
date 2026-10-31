@@ -4,6 +4,9 @@
 # hinein — Skripte für root kommen aus dem root-eigenen Checkout ($ROOT_DIR).
 set -euo pipefail
 
+# Dienste, die platz_fuer_build für den Build angehalten hat
+ANGEHALTEN=()
+
 # Checkout eines App-Ordners auf --ref bringen (als Dienst-User).
 #   app_checkout <user> <ordner>
 app_checkout() {
@@ -54,6 +57,27 @@ platz_fuer_build() {
 	return 0
 }
 
+# Nach einem gescheiterten Build: gesicherten Stand zurück, Dienste wieder
+# an, dann Abbruch. Die Migrationen sind dann schon eingespielt; sie sind
+# additiv, der alte Stand läuft damit.
+#   build_gescheitert <unit> <.next> <sicherung> <ready-url>
+build_gescheitert() {
+	local unit="$1" next="$2" alt="$3" url="$4" u
+	hinweis "Build fehlgeschlagen: der alte Build-Stand kommt zurück"
+	if build_zurueck "$next" "$alt"; then
+		systemctl restart "$unit" || true
+		for u in "${ANGEHALTEN[@]}"; do
+			[ "$u" = "$unit" ] || systemctl start "$u" || true
+		done
+		if warte_bereit "$url" 180; then
+			ok "$unit läuft wieder mit dem alten Stand"
+		else
+			hinweis "$unit startet nicht: journalctl -u $unit"
+		fi
+	fi
+	die "Build fehlgeschlagen (Ausgabe oben). Migrationen sind eingespielt (additiv); Backup von eben und Runbook „Rollback“, falls nötig"
+}
+
 units_einspielen() {
 	local u
 	for u in "$@"; do
@@ -97,16 +121,19 @@ phase_klick() {
 	backup_vorher klick-backup-db.service
 	app_checkout klick "$KLICK_DIR"
 	platz_fuer_build klick
+	local alt="$SICHERUNG/next-klick"
+	build_sichern "$KLICK_DIR/.next" "$alt"
 	if trocken; then
 		info "(Trockenlauf) würde pnpm release als klick bauen"
 	else
 		(
 			app_env klick
 			export RELEASE_ALLOWED_SIGNERS="$ANKER"
-			cd "$KLICK_DIR"
+			cd "$KLICK_DIR" || exit 1
 			runuser -u klick -- pnpm release
-		) || die "pnpm release fehlgeschlagen (Datenbank: Backup von eben, Runbook „Rollback“)"
+		) || build_gescheitert klick "$KLICK_DIR/.next" "$alt" http://127.0.0.1:3000/api/ready
 		ok "Release gebaut, Migrationen eingespielt"
+		rm -rf "$alt"
 	fi
 	# Parser-Bündel root-eigen (klick-parse@ liest nur von dort); das
 	# Backup-Skript aus dem root-eigenen Checkout, nie aus dem App-Ordner
@@ -187,6 +214,8 @@ phase_both() {
 	}
 	backup_vorher both-backup-db.service
 	app_checkout both "$BOTH_DIR"
+	local alt="$SICHERUNG/next-both"
+	build_sichern "$BOTH_DIR/apps/wallet/.next" "$alt"
 	# Build braucht den Speicher des Dienstes (Runbook)
 	aendern systemctl stop both
 	if trocken; then
@@ -195,14 +224,11 @@ phase_both() {
 		(
 			app_env both
 			export RELEASE_ALLOWED_SIGNERS="$ANKER" NODE_OPTIONS=--max-old-space-size=1536
-			cd "$BOTH_DIR"
+			cd "$BOTH_DIR" || exit 1
 			runuser -u both -- pnpm release:wallet
-		) || {
-			hinweis "Build fehlgeschlagen: both.money startet mit dem alten Build"
-			systemctl start both || true
-			die "pnpm release:wallet fehlgeschlagen"
-		}
+		) || build_gescheitert both "$BOTH_DIR/apps/wallet/.next" "$alt" http://127.0.0.1:3010/api/ready
 		ok "Release gebaut, Migrationen eingespielt"
+		rm -rf "$alt"
 	fi
 	app_ordner both /opt/both/.cache "$BOTH_DIR/apps/wallet/.next/cache"
 	units_einspielen both.service

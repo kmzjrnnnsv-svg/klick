@@ -64,6 +64,13 @@ const nextConfig: NextConfig = {
 	],
 	// Keine externen Bilder — CSP img-src ist 'self' data: blob:.
 	images: { remotePatterns: [] },
+	// Typen prüft `pnpm typecheck` (CI-Job „check“, `pnpm preflight`, mit 4 GB
+	// Heap), nicht der Build: Next 16.4 ruft dafür tsc über das ganze Projekt
+	// samt Tests auf (≈ 2,1 GB, Okt 2026) und leert .next schon vorher. Auf dem
+	// Server mit 4 GB brach der Build daran ab, und der laufenden App fehlten
+	// danach ihre Skripte. Das ausgelieferte JavaScript hängt nicht davon ab;
+	// Sperre bleibt „CI rot = kein pnpm release“ (Test build-config).
+	typescript: { ignoreBuildErrors: true },
 	experimental: {
 		// Server Actions akzeptieren nur Aufrufe vom eigenen Origin (CSRF).
 		// Uploads laufen als Action mit FormData: Grenze = 25 MB Datei

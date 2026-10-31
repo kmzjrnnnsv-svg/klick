@@ -22,7 +22,7 @@
 		"lint": "biome check",
 		"lint:fix": "biome check --write",
 		"format": "biome format --write",
-		"typecheck": "tsc --noEmit && tsc --noEmit -p apps/wallet",
+		"typecheck": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit && node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit -p apps/wallet",
 		"preflight": "pnpm typecheck && pnpm lint && pnpm test",
 		"test": "vitest run",
 		"test:watch": "vitest",
