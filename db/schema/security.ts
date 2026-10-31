@@ -66,6 +66,7 @@ export const accessTokens = pgTable(
 				"wallet_link",
 				"policy_reader",
 				"sso_setup_request",
+				"site_tunnel",
 			],
 		}),
 		subjectId: uuid(),

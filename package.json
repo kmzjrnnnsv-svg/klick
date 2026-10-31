@@ -12,6 +12,7 @@
 		"build": "pnpm build:parser && next build",
 		"build:parser": "tsx scripts/build-parse-worker.ts",
 		"build:signer": "tsx scripts/build-signer.ts",
+		"build:netz-agent": "tsx scripts/build-netz-agent.ts",
 		"start": "next start",
 		"dev:wallet": "next dev apps/wallet -p 3400",
 		"build:wallet": "next build apps/wallet",

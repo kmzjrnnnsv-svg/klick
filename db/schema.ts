@@ -22,6 +22,7 @@ export * from "./schema/registers";
 export * from "./schema/security";
 export * from "./schema/security-changes";
 export * from "./schema/signatures";
+export * from "./schema/site-tunnels";
 export * from "./schema/sso";
 export * from "./schema/supplier-ratings";
 export * from "./schema/teams";

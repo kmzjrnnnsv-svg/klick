@@ -295,6 +295,8 @@ export const ACCESS_TOKEN_KINDS = [
 	"policy_reader",
 	// SSO-Einrichtungslink für die IT (AP10d): Subjekt = sso_setup_requests.id
 	"sso_setup",
+	// Standort-Tunnel für die IT (AP7): Subjekt = site_tunnels.id
+	"site_setup",
 ] as const;
 export type AccessTokenKind = (typeof ACCESS_TOKEN_KINDS)[number];
 export const INGEST_SCOPES = ["scan:write", "sbom:write"] as const;

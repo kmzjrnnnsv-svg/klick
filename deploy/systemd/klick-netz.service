@@ -1,0 +1,79 @@
+# /etc/systemd/system/klick-netz.service — Netz-Agent für Standort-Tunnel (ADR-033)
+#
+# Setzt den Soll-Zustand der Standort-Tunnel um, den Klick über
+# /run/klick-netz/app.sock schickt: swanctl-Dateien (IPsec IKEv2), Peers auf
+# wg-sites (WireGuard), Routen, Mengen in der nftables-Tabelle inet klick.
+# Nur vier Befehle (hello, apply, remove, status), strenges Schema.
+# root mit nur CAP_NET_ADMIN; schreibt nur /etc/klick-netz (Zustand, 0700)
+# und /etc/swanctl/conf.d. Code nur aus /usr/local/lib/klick-netz (root,
+# Rollout-Phase `standorte` baut ihn aus dem root-eigenen Checkout).
+# Startet beim Booten (Tunnel nach Neustart wieder da) und per Socket.
+[Unit]
+Description=Klick — Netz-Agent (Standort-Tunnel)
+Requires=klick-netz.socket
+After=klick-netz.socket network-online.target nftables.service strongswan.service
+Wants=network-online.target strongswan.service
+OnFailure=klick-alert@%n.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+Sockets=klick-netz.socket
+# node direkt, damit LISTEN_PID stimmt
+ExecStart=/usr/local/bin/node --jitless --max-old-space-size=128 --disallow-code-generation-from-strings --disable-proto=delete /usr/local/lib/klick-netz/netz-agent.mjs
+Environment=NODE_ENV=production
+Environment=PATH=/usr/sbin:/usr/bin:/sbin:/bin
+# SITE_PUBLIC_IP=<öffentliche IPv4 des Servers> (Rollout-Phase standorte)
+EnvironmentFile=/etc/klick-netz/agent.env
+ConfigurationDirectory=klick-netz
+ConfigurationDirectoryMode=0700
+ReadWritePaths=/etc/swanctl/conf.d
+Restart=on-failure
+RestartSec=5
+
+# Grenzen
+MemoryMax=256M
+MemorySwapMax=0
+TasksMax=32
+LimitCORE=0
+LimitNOFILE=256
+
+# Netz: nur Netlink (ip, wg, nft) und Unix-Sockets (App, charon/vici);
+# selbst kein IP-Verkehr
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+IPAddressDeny=any
+InaccessiblePaths=-/etc/credstore -/etc/credstore.encrypted -/etc/klick -/etc/both -/opt/klick -/opt/both -/var/lib/postgresql -/var/lib/klick-signer -/var/www -/root -/home
+
+# Rechte: nur Netzwerk verwalten
+CapabilityBoundingSet=CAP_NET_ADMIN
+AmbientCapabilities=
+
+# Sandbox
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateIPC=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+KeyringMode=private
+NoNewPrivileges=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallFilter=@system-service
+SystemCallFilter=~@resources @mount @debug @cpu-emulation @obsolete @raw-io @reboot @swap @clock @module
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -177,6 +177,17 @@ export const envSchema = z.object({
 	// Parser-Dienst (N6): Unix-Socket von klick-parse.socket; ohne Angabe
 	// startet die App den Parser als Kindprozess mit Speicher-/Zeitgrenze
 	PARSER_SOCKET: z.string().startsWith("/").optional(),
+	// Standort-Tunnel (ADR-033): Socket des Netz-Agenten klick-netz, öffentliche
+	// IPv4 des Servers (Gegenstelle für die Kundin) und öffentlicher Schlüssel
+	// von wg-sites (Rollout-Phase standorte). Ohne Socket und IP ist der
+	// Standort-Tunnel aus; ohne Schlüssel nur IPsec. Leer = nicht gesetzt.
+	SITE_AGENT_SOCKET: z.string().startsWith("/").optional().or(z.literal("")),
+	SITE_PUBLIC_IP: z.string().optional().or(z.literal("")),
+	SITE_WG_PUBLIC_KEY: z
+		.string()
+		.regex(/^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=$/)
+		.optional()
+		.or(z.literal("")),
 	CLAMD_PORT: z.coerce.number().int().min(1).max(65535).default(3310),
 	ORG_RATE_LIMIT_PER_MIN: z.coerce.number().int().min(0).default(600),
 	GLITCHTIP_DSN: z.url().optional(),
