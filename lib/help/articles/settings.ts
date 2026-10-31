@@ -14,7 +14,7 @@ export const SETTINGS: HelpArticle[] = [
 				id: "konto",
 				heading: "Dein Konto",
 				list: [
-					"Sicherheit: Passkeys anlegen und entfernen, Code-App (TOTP) als Alternative, laufende Sitzungen.",
+					"Sicherheit: Passkeys anlegen und entfernen, Code-App (TOTP) als Alternative, laufende Sitzungen. Die Liste zeigt je Passkey „Sicherheitsschlüssel“ (gerätegebunden) oder „Synchronisiert“.",
 					"Benachrichtigungen: je Art per Mail, in Microsoft Teams oder beides (Teams nur, wenn deine Organisation es eingeschaltet hat), und ob die Tages-Mail kommt.",
 				],
 			},
@@ -121,7 +121,7 @@ export const SETTINGS: HelpArticle[] = [
 				id: "methoden",
 				heading: "Methoden",
 				list: [
-					"Freigaben: Standard oder individuell, Abläufe je Auslöser, Vertretungen, Prüfung der Pflichten.",
+					"Freigaben: Standard oder individuell, Abläufe je Auslöser, Vertretungen, Prüfung der Pflichten. Oben die Regel „Unterschriften nur mit Sicherheitsschlüssel“: dann zählen für Unterschriften nur gerätegebundene Schlüssel wie ein YubiKey, Passkeys aus iCloud, Google oder einem Passwortmanager nur noch für die Anmeldung. Einschalten wirkt sofort, Ausschalten braucht eine zweite Person.",
 					"Audits & Fristen: Turnus und Fristen je Rahmenwerk und Abweichungsklasse.",
 					"Risikomethodik: Rechenweg oder Matrix, vier oder fünf Stufen, Schadensarten, Klassen und Appetit; Vorlage „BSI-Standard 200-3“.",
 					"Lieferantenbewertung: Kriterien, Gewichte und Wiedervorlage.",
