@@ -246,6 +246,10 @@ export const BASICS: HelpArticle[] = [
 				a: "Deine Organisation hat SSO erzwungen. Gib deine geschäftliche Adresse ein und nutz „Mit Firmen-Login (SSO)“.",
 			},
 			{
+				q: "Es erscheint kein Passkey-Fenster, sondern eine Meldung mit „Technischer Hinweis“. Was nun?",
+				a: "Der Browser hat die Anmeldung bei Klick nicht starten können, dein Passkey ist dabei unberührt. Lade die Seite neu. Hilft das nicht, öffne die Anmeldeseite in einem privaten Fenster oder lösch die Website-Daten von Klick in den Browser-Einstellungen. Bleibt es dabei, schick den technischen Hinweis und die Uhrzeit an deine Inhaberin oder deinen Inhaber.",
+			},
+			{
 				q: "Warum fragt Klick noch einmal nach meinem Passkey, obwohl ich angemeldet bin?",
 				a: "Das ist die Bestätigung für einen wichtigen Schritt. Sie schützt davor, dass jemand an einem offenen Gerät etwas freigibt oder exportiert.",
 			},

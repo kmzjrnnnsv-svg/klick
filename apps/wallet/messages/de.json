@@ -32,7 +32,7 @@
 		"passkeyCancelled": "Abgebrochen. Versuch es noch einmal, wenn du so weit bist.",
 		"passkeyCancel": "Abbrechen",
 		"passkeyTimeout": "Keine Antwort vom Passkey. Lade die Seite neu und versuch es noch einmal. Erscheint kein Fenster, prüf, ob dieses Gerät deinen Passkey für both.money kennt.",
-		"signInNoConnection": "both.money hat die Anmeldung beim Server nicht starten können. Lade die Seite neu und versuch es noch einmal.",
+		"signInNoConnection": "both.money hat die Anmeldung beim Server nicht starten können. Lade die Seite neu und versuch es noch einmal. Hilft das nicht, öffne die Seite in einem privaten Fenster.",
 		"technicalHint": "Technischer Hinweis: {detail}",
 		"passkeySignInFailed": "Anmeldung nicht möglich. Nutze den Passkey, den du für both.money angelegt hast.",
 		"passkeyFailed": "Bestätigung fehlgeschlagen. Versuch es noch einmal.",
