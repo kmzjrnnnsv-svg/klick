@@ -15,7 +15,7 @@ export const SETTINGS: HelpArticle[] = [
 				heading: "Dein Konto",
 				list: [
 					"Sicherheit: Passkeys anlegen und entfernen, Code-App (TOTP) als Alternative, laufende Sitzungen.",
-					"Benachrichtigungen: welche Ereignisse per Mail kommen und ob als Tages-Mail.",
+					"Benachrichtigungen: je Art per Mail, in Microsoft Teams oder beides (Teams nur, wenn deine Organisation es eingeschaltet hat), und ob die Tages-Mail kommt.",
 				],
 			},
 			{
@@ -107,12 +107,23 @@ export const SETTINGS: HelpArticle[] = [
 				],
 			},
 			{
+				id: "teams",
+				heading: "Microsoft Teams",
+				steps: [
+					"Unter Einstellungen > Integrationen > Microsoft Teams lädst du das App-Paket herunter und gibst es deiner IT. Sie lädt es im Teams Admin Center hoch.",
+					"Trag die Tenant-ID deines Microsoft 365 ein (mit Entra-SSO ist sie vorbelegt) und schick den Freigabe-Link an eine Person mit Administratorrechten. Sie stimmt bei Microsoft zu.",
+					"Nach der Freigabe schaltest du Teams ein und schickst dir einen Testhinweis.",
+					"Jede Person wählt unter Einstellungen > Benachrichtigungen, welche Arten in Teams kommen.",
+				],
+				tip: "An Microsoft gehen nur der Titel und der Link zur Seite in Klick, keine Inhalte. Freigeben und Unterschreiben bleiben in Klick mit Passkey. Klappt die Zustellung dreimal nicht, kommt die Nachricht per Mail.",
+			},
+			{
 				id: "methoden",
 				heading: "Methoden",
 				list: [
 					"Freigaben: Standard oder individuell, Abläufe je Auslöser, Vertretungen, Prüfung der Pflichten.",
 					"Audits & Fristen: Turnus und Fristen je Rahmenwerk und Abweichungsklasse.",
-					"Risikomethodik: Rechenweg, Stufen, Schadensarten, Klassen und Appetit.",
+					"Risikomethodik: Rechenweg oder Matrix, vier oder fünf Stufen, Schadensarten, Klassen und Appetit; Vorlage „BSI-Standard 200-3“.",
 					"Lieferantenbewertung: Kriterien, Gewichte und Wiedervorlage.",
 					"Nummernkreise: Präfixe und Zähler für Dokumente.",
 				],

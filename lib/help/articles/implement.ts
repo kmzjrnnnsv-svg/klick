@@ -204,7 +204,8 @@ export const IMPLEMENT: HelpArticle[] = [
 				id: "auswahl",
 				heading: "Rahmenwerke wählen",
 				body: [
-					"Klick kennt über 20 Rahmenwerke: ISO 27001, DORA, NIS2, MiCAR mit KMAG, ZAG und ZAG-MaRisk, GwG und AMLR, Travel Rule (TFR), Sanktionen, DSGVO, DAC8, AWV, Kassenrecht, KWG mit Banken-MaRisk, CRA, SOC 2, CCSS und die Korridore. Unter Einstellungen > Rahmenwerke & Stufe wählst du aus. Ein entferntes Rahmenwerk lässt sich jederzeit wieder aktivieren; dein Stand an den Controls bleibt.",
+					"Klick kennt über 25 Rahmenwerke: ISO 27001, DORA, NIS2, MiCAR mit KMAG, ZAG und ZAG-MaRisk, GwG und AMLR, Travel Rule (TFR), Sanktionen, DSGVO, DAC8, AWV, Kassenrecht, KWG mit Banken-MaRisk, CRA, SOC 2, CCSS, PCI DSS, die BSI-Standards 200-1 bis 200-4 und die Korridore. Unter Einstellungen > Rahmenwerke & Stufe wählst du aus. Ein entferntes Rahmenwerk lässt sich jederzeit wieder aktivieren; dein Stand an den Controls bleibt.",
+					"Manche Rahmenwerke haben Varianten, die du dort ebenfalls wählst: PCI DSS nach deinem Fragebogen (SAQ A, A-EP, B, B-IP, C, C-VT, P2PE, SPoC, D oder Dienstleister), IT-Grundschutz nach Absicherungsvariante (Basis, Standard, Kern). Es gelten dann nur die Anforderungen dieser Variante; die übrigen stehen mit dem Hinweis „Gilt nicht für die gewählte Variante“ in der Liste. Die Einrichtung schlägt die Variante aus deiner Antwort zu Kartendaten vor.",
 				],
 			},
 			{
@@ -213,8 +214,8 @@ export const IMPLEMENT: HelpArticle[] = [
 				list: [
 					"Ob eine Anforderung gilt, folgt aus deinem Profil: Lizenzstufe (Vorbereitung bis Bank), Kryptowerte-Dienste, Produkte und Stichtag.",
 					"Anforderungen mit künftigem Stichtag (zum Beispiel AMLR ab 10.07.2027) erscheinen schon im Arbeitsvorrat, damit du rechtzeitig planst.",
-					"Ausschließen kannst du eine Anforderung nur, wo das Rahmenwerk es vorsieht: bei ISO 27001 die Maßnahmen aus Anhang A (in der SoA, Abschnitt 6.1.3 d), bei SOC 2 die wählbaren Kategorien Verfügbarkeit, Vertraulichkeit, Verarbeitungsintegrität und Datenschutz. Der Ausschluss braucht eine Begründung und überschreibt die Ableitung.",
-					"DORA, NIS2, GwG, ZAG, MiCAR, DSGVO und die übrigen Gesetze kennen keinen Ausschluss. Dort setzt du verhältnismäßig um, also passend zu Größe und Risiko, und beschreibst das in der Notiz.",
+					"Ausschließen kannst du eine Anforderung nur, wo das Rahmenwerk es vorsieht: bei ISO 27001 die Maßnahmen aus Anhang A (in der SoA, Abschnitt 6.1.3 d), bei SOC 2 die wählbaren Kategorien Verfügbarkeit, Vertraulichkeit, Verarbeitungsintegrität und Datenschutz, bei PCI DSS jede Anforderung („Not Applicable“ mit Begründung, die Prüfer:innen nachvollziehen). Der Ausschluss braucht eine Begründung und überschreibt die Ableitung.",
+					"DORA, NIS2, GwG, ZAG, MiCAR, DSGVO, die BSI-Standards und die übrigen Gesetze kennen keinen Ausschluss. Dort setzt du verhältnismäßig um, also passend zu Größe und Risiko, und beschreibst das in der Notiz.",
 					"In der Gap-Analyse schließt „Nicht relevant“ nur die Anforderungen aus, die einen Ausschluss kennen; der Rest bleibt offen und zählt in der Bewertung mit. Wo keines der Rahmenwerke einer Frage einen Ausschluss kennt, ist die Antwort gesperrt.",
 					"Ausschlüsse von früher in Rahmenwerken ohne Ausschluss markiert Klick an der Anforderung und als Blocker in der Prüfungsreife, bis du sie zurücknimmst.",
 				],

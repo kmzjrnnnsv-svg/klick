@@ -120,7 +120,7 @@ export const BASICS: HelpArticle[] = [
 		],
 		automation: [
 			"Der tägliche Tick erinnert an fällige Reviews, ablaufende Nachweise, offene Kenntnisnahmen, Schulungen, Vorfall-Fristen und Freigaben, deren Bearbeitungszeit überschritten ist.",
-			"Wichtige Ereignisse (Sicherheitsmeldungen, Fristen bei Vorfällen) kommen sofort per Mail, der Rest gesammelt in der Tages-Mail um 7 Uhr.",
+			"Wichtige Ereignisse (Sicherheitsmeldungen, Fristen bei Vorfällen) kommen sofort per Mail, der Rest gesammelt in der Tages-Mail um 7 Uhr. Unter Einstellungen > Benachrichtigungen stellst du je Art um, auf Wunsch auch auf Microsoft Teams.",
 		],
 		faq: [
 			{

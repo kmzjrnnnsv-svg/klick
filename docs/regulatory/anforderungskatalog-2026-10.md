@@ -511,6 +511,35 @@ Gilt für Produkte mit digitalen Elementen (Software, Apps, SDKs, Firmware, Ger�
 
 **Werkzeuge:** SBOM-Erzeugung Syft, Trivy, cdxgen (CycloneDX ≥ 1.5 / SPDX 2.3); Advisories als CSAF 2.0; Meldungen über die ENISA Single Reporting Platform.
 
+## 10. PCI DSS v4.0.1 (Stand Juni 2024; prüfen)
+
+Kein Gesetz, sondern ein Standard der Kartenorganisationen, den Acquirer vertraglich verlangen. Gilt für alle, die Kontodaten von Zahlungskarten speichern, verarbeiten oder übermitteln, und für Dienstleister, die die Sicherheit dieser Umgebung beeinflussen. Die seit v4.0 „zukünftig gültigen“ Anforderungen gelten seit **31.03.2025**. Klick führt alle Einzelanforderungen der Abschnitte 1–12 und Anhänge A1–A3 (eigene Formulierung, kein Wortlaut des PCI SSC; `catalog/pci-dss.ts`), nur für Dienstleister gekennzeichnet (`PCI_SP_ONLY`). Ausschluss je Anforderung mit Begründung möglich („Not Applicable“).
+
+| Variante (`catalog/pci-saq.ts`) | Für wen | Umfang in Klick |
+|---|---|---|
+| SAQ A | Händler, Kartendaten vollständig beim Zahlungsdienstleister (Weiterleitung, iFrame) | wenige Dutzend Anforderungen, u. a. 6.4.3/11.6.1 nur soweit für die Zahlungsseite |
+| SAQ A-EP | E-Commerce mit eigener Zahlungsseite, Daten gehen direkt an den Dienstleister | Web- und Systemhärtung der Seite |
+| SAQ B, B-IP, C-VT | Terminals bzw. virtuelles Terminal ohne Speicherung | Geräte, Netz, Zugriff |
+| SAQ C | Zahlungsanwendung mit Internetanbindung, keine Speicherung | Netz, Härtung, Protokollierung |
+| SAQ P2PE, SPoC | zugelassene P2PE-Lösung bzw. Kartenleser am Mobilgerät | Geräte, Richtlinien |
+| SAQ D (Händler) / Prüfbericht (ROC) | alle anderen Händler | alle Anforderungen außer Dienstleister-Anforderungen |
+| Dienstleister (`sp`) | Verarbeitung für andere | alle Anforderungen |
+
+**Neue Controls** (`controls-payment.ts`, PART_G): Kartendatenumgebung und Segmentierung (CC-PCI-01), PAN minimieren und keine sensiblen Authentifizierungsdaten (02), PAN unlesbar und maskiert (03), Schlüssel für Kontodaten (04), Skripte auf Zahlungsseiten 6.4.3/11.6.1 (05), ASV-Scans vierteljährlich (06), gezielte Risikoanalysen 12.3.1 (07), Kartenlesegeräte 9.5 (08), Verantwortungsmatrix mit Dienstleistern 12.8.5/12.9.2 (09), Kartendaten-Suche 12.5.2/A3 (10). Übrige Anforderungen über bestehende Controls (Netz, Härtung, Schadsoftware, Patches, Zugriff, MFA, Protokollierung, Tests, Vorfälle, Schulung).
+
+**Register:** Audit-Regime jährlich (QSA oder SAQ), Pflichten OBL-PCI-* (ASV vierteljährlich, Scope-Bestätigung jährlich bzw. halbjährlich für Dienstleister, Pentest jährlich, Segmentierungstest), Einrichtung fragt „Verarbeitet ihr Kreditkartendaten?“ und belegt die Variante vor.
+
+## 11. BSI IT-Grundschutz – BSI-Standards 200-1 bis 200-4 (prüfen)
+
+Freiwillig, in der öffentlichen Verwaltung oft vorgegeben; zertifizierbar als „ISO 27001 auf Basis von IT-Grundschutz“. Ausschluss nicht vorgesehen. Klick führt die Standards als Methodik mit Kapitelbezug (`catalog/bsi.ts`), die Bausteine des IT-Grundschutz-Kompendiums noch nicht. **Grundschutz++** (BSI-Standard 300-1 und Anwenderkatalog) folgt, sobald die Quelle hier abrufbar ist.
+
+| Standard | Inhalt | Variante | Controls |
+|---|---|---|---|
+| 200-1 | ISMS: Leitung, Leitlinie, Organisation, ISB, Ressourcen, Dokumentation, Verbesserung | – | bestehende Governance-Controls |
+| 200-2 | Vorgehen: Initiierung, Absicherungsvariante, Strukturanalyse, Schutzbedarf, Modellierung, IT-Grundschutz-Check, Umsetzung, Aufrechterhaltung | Standard (Vorgabe), Basis, Kern (`frameworkVariants`) | CC-BSI-01 Strukturanalyse, CC-BSI-02 Schutzbedarf, CC-BSI-03 Modellierung und Check |
+| 200-3 | Risikoanalyse: Gefährdungsübersicht (G 0.1–G 0.47 im Risiko-Assistenten), zusätzliche Gefährdungen, Häufigkeit × Auswirkung, Risikokategorie, Behandlung, Konsolidierung, Rückführung | – | Risiko-Controls; Methode „BSI-Standard 200-3“ (vier Stufen, Matrix) |
+| 200-4 | BCM: Vorgehensweisen, BIA, Risikoanalyse, Strategien, Notfallvorsorge, Notfallhandbuch, Übungen, BAO/Krisenstab, Aufrechterhaltung | – | BCM-Controls |
+
 ## Quellen
 
 - Bundesbank – BAIT / DORA
