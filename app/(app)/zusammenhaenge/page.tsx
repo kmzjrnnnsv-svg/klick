@@ -37,7 +37,9 @@ export default async function RelationsPage({
 		applicability: new Map(
 			[...(cov?.applicabilityDetail ?? [])].map(([k, d]) => [k, d.applicable]),
 		),
+		catalog: cov?.catalog,
 	};
+	const names = cov?.catalog;
 	const map = controlsByFramework(opts);
 	const frameworks = [...map.keys()];
 	const groups = themeGroups(opts);
@@ -65,12 +67,17 @@ export default async function RelationsPage({
 								frameworks={frameworks}
 								groups={groups}
 								centerLabel={t("centerOrg")}
+								names={names}
 								frameworkHref={(slug) => `/rahmenwerke/${slug}`}
 								themeHref={(theme) =>
 									`/zusammenhaenge?thema=${theme}#thema-${theme}`
 								}
 							/>
-							<RelationTable frameworks={frameworks} groups={groups} />
+							<RelationTable
+								frameworks={frameworks}
+								groups={groups}
+								names={names}
+							/>
 						</section>
 						<section className="flex flex-col gap-3">
 							<h2 className="font-semibold text-title-3">
@@ -82,6 +89,7 @@ export default async function RelationsPage({
 							<ThemeSections
 								groups={groups}
 								open={open}
+								names={names}
 								controlHref={(code) => `/controls/${code}#wer-verlangt-das`}
 							/>
 						</section>
@@ -93,6 +101,7 @@ export default async function RelationsPage({
 								<FrameworkLinks
 									frameworks={frameworks}
 									pairs={topPairs(map, 6)}
+									names={names}
 									compareHref={(a, b) =>
 										`/synergien?tab=vergleich&a=${a}&b=${b}`
 									}

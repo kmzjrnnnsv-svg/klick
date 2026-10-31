@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
+import { STATIC_CATALOG } from "@/lib/compliance/org-catalog";
 import { fmtDate, getOrgCoverageCached, pct } from "@/lib/compliance/page-data";
 import { userNames } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
@@ -23,20 +23,35 @@ import { listOrgFrameworks } from "@/lib/org/queries";
 export default async function FrameworksPage() {
 	const ctx = await requireOrgPage();
 	const t = await getTranslations("Frameworks");
-	const [cov, fws] = await Promise.all([
-		getOrgCoverageCached(ctx),
-		readOrg(toOrgCtx(ctx), async (tx) => {
-			const rows = await listOrgFrameworks(tx, ctx.orgId);
-			const names = await userNames(
-				tx,
-				rows.map((r) => r.ownerUserId),
-			);
-			return rows.map((r) => ({
-				...r,
-				ownerName: r.ownerUserId ? (names.get(r.ownerUserId) ?? null) : null,
-			}));
-		}),
-	]);
+	const cov = await getOrgCoverageCached(ctx);
+	// eingeschaltete eigene Rahmenwerke (R4) stehen nach den Klick-Rahmenwerken
+	const custom = [...(cov?.catalog.custom ?? [])].filter(
+		([, info]) => info.status === "active",
+	);
+	const fws = await readOrg(toOrgCtx(ctx), async (tx) => {
+		const rows = await listOrgFrameworks(tx, ctx.orgId);
+		const names = await userNames(tx, [
+			...rows.map((r) => r.ownerUserId),
+			...custom.map(([, info]) => info.ownerUserId),
+		]);
+		const nameOf = (id: string | null) => (id ? (names.get(id) ?? null) : null);
+		return [
+			...rows.map((r) => ({
+				slug: r.slug,
+				name: r.name,
+				enabledAt: r.enabledAt,
+				ownerName: nameOf(r.ownerUserId),
+				custom: false,
+			})),
+			...custom.map(([slug, info]) => ({
+				slug,
+				name: cov?.catalog.frameworkBySlug.get(slug)?.name ?? slug,
+				enabledAt: info.activatedAt ?? new Date(),
+				ownerName: nameOf(info.ownerUserId),
+				custom: true,
+			})),
+		];
+	});
 	const labels = {
 		covered: t("covered"),
 		partial: t("partial"),
@@ -60,7 +75,9 @@ export default async function FrameworksPage() {
 			) : (
 				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 					{fws.map((f) => {
-						const meta = FRAMEWORK_BY_SLUG.get(f.slug);
+						const meta = (cov?.catalog ?? STATIC_CATALOG).frameworkBySlug.get(
+							f.slug,
+						);
 						const bucket = cov?.result.byFramework.get(f.slug);
 						const hasIndex = (meta?.requirements.length ?? 0) > 0;
 						return (
@@ -83,6 +100,11 @@ export default async function FrameworksPage() {
 											</Badge>
 										)}
 									</CardTitle>
+									{f.custom && (
+										<Badge variant="muted" className="w-fit">
+											{t("customBadge")}
+										</Badge>
+									)}
 									<CardDescription className="line-clamp-2">
 										{meta?.description}
 									</CardDescription>

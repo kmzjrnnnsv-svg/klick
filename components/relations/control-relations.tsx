@@ -9,7 +9,8 @@ import {
 	controlRelations,
 } from "@/lib/compliance/control-relations";
 import type { ReqCoverage } from "@/lib/compliance/coverage";
-import { shortFrameworkName } from "@/lib/compliance/framework-names";
+import { shortFrameworkName as baseName } from "@/lib/compliance/framework-names";
+import type { OrgCatalog } from "@/lib/compliance/org-catalog";
 import { formatParam } from "@/lib/compliance/params";
 
 // Einfach erklärt (Z3) und „Wer verlangt das – und was genau?“ (Z4) auf der
@@ -51,8 +52,11 @@ export async function ControlRelationsSection({
 	showAll,
 	allHref,
 	mineHref,
+	catalog,
 }: {
 	code: string;
+	// Katalog der Org (R4): eigene Rahmenwerke zählen mit
+	catalog?: OrgCatalog;
 	// Rahmenwerke der Org; leer = alle zeigen
 	orgFrameworks: readonly string[];
 	statusByRequirement?: ReadonlyMap<string, ReqCoverage>;
@@ -62,15 +66,16 @@ export async function ControlRelationsSection({
 }) {
 	const t = await getTranslations("Relations");
 	const tes = await getTranslations("EvidenceStudio");
-	const all = controlRelations(code);
+	const shortFrameworkName = (slug: string) => baseName(slug, catalog);
+	const all = controlRelations(code, { catalog });
 	const scoped =
 		showAll || orgFrameworks.length === 0
 			? all
-			: controlRelations(code, { frameworks: orgFrameworks });
+			: controlRelations(code, { frameworks: orgFrameworks, catalog });
 	const hidden = all.frameworks.length - scoped.frameworks.length;
 	const rel: ControlRelations = scoped;
 	const names = (slugs: readonly string[]) =>
-		slugs.map(shortFrameworkName).join(", ");
+		slugs.map((s) => shortFrameworkName(s)).join(", ");
 	const topicLabel = (topic: string) =>
 		tes(`topic_${topic.replace(":", "_")}` as "topic_retention");
 

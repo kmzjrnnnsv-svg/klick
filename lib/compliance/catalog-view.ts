@@ -111,11 +111,16 @@ export function synergyCatalogFor(input: ProfileInput): SynergyCatalog {
 export function requiredControlCodes(
 	input: ProfileInput,
 	manual: ReadonlyMap<string, boolean>,
+	// Katalog der Org (R4): Anforderungen und Kanten eigener Rahmenwerke
+	catalog?: {
+		requirements: readonly (typeof ALL_REQUIREMENTS)[number][];
+		edges: readonly { control: string; requirement: string }[];
+	},
 ): Set<string> {
 	const profile = toProfile(input);
 	const selected = new Set(input.frameworks);
 	const keys = new Set<string>();
-	for (const r of ALL_REQUIREMENTS) {
+	for (const r of catalog?.requirements ?? ALL_REQUIREMENTS) {
 		if (!selected.has(r.framework)) continue;
 		const key = `${r.framework}:${r.code}`;
 		const m = manual.get(key);
@@ -123,6 +128,7 @@ export function requiredControlCodes(
 			keys.add(key);
 	}
 	const out = new Set<string>();
-	for (const e of EDGES) if (keys.has(e.requirement)) out.add(e.control);
+	for (const e of catalog?.edges ?? EDGES)
+		if (keys.has(e.requirement)) out.add(e.control);
 	return out;
 }

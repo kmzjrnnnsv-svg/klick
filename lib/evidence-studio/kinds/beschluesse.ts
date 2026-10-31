@@ -56,7 +56,7 @@ export function buildBeschluesse(f: BeschluesseFacts) {
 				r.subject,
 				r.decision,
 				[
-					...r.frameworks.map(shortFrameworkName),
+					...r.frameworks.map((s) => shortFrameworkName(s)),
 					...(r.legalBasis ? [r.legalBasis] : []),
 				].join(", "),
 			]),

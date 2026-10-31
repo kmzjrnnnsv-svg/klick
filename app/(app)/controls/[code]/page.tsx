@@ -136,7 +136,7 @@ export default async function ControlDetailPage({
 		names,
 	} = data;
 	const cov = await getOrgCoverageCached(ctx);
-	const fwNames = frameworkNameMap();
+	const fwNames = frameworkNameMap(cov?.catalog);
 	const canEdit = allows(ctx, { control: ["update"] });
 
 	const orgFrameworks = new Set(cov?.frameworks ?? []);
@@ -185,7 +185,10 @@ export default async function ControlDetailPage({
 						status: row.status,
 					}}
 					frameworkNames={Object.fromEntries(
-						Object.keys(fwNames).map((s) => [s, shortFrameworkName(s)]),
+						Object.keys(fwNames).map((s) => [
+							s,
+							shortFrameworkName(s, cov?.catalog),
+						]),
 					)}
 					disabled={!canEdit}
 				/>
@@ -299,6 +302,7 @@ export default async function ControlDetailPage({
 				showAll={showAll}
 				allHref={`/controls/${encodeURIComponent(code)}?alle=1#wer-verlangt-das`}
 				mineHref={`/controls/${encodeURIComponent(code)}#wer-verlangt-das`}
+				catalog={cov?.catalog}
 			/>
 
 			{row.note && (

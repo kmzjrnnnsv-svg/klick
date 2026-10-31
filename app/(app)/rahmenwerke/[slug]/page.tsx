@@ -12,11 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
-import {
-	CONTROL_BY_CODE,
-	EDGES_BY_REQUIREMENT,
-	FRAMEWORK_BY_SLUG,
-} from "@/lib/compliance/catalog";
+import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { evidenceKindsForFrameworks } from "@/lib/compliance/catalog/evidence-kinds";
 import { SECTION_SIMPLE } from "@/lib/compliance/catalog/framework-profiles";
 import type { ReqCoverage } from "@/lib/compliance/coverage";
@@ -60,13 +56,15 @@ export default async function FrameworkPage({
 	const { slug } = await params;
 	const { tab = "anforderungen", stichtag } = await searchParams;
 	const ctx = await requireOrgPage();
-	const fw = FRAMEWORK_BY_SLUG.get(slug);
-	if (!fw) notFound();
+	const cov = await getOrgCoverageCached(ctx);
+	// Katalog der Org: Klick-Rahmenwerke und eingeschaltete eigene (R4)
+	const fw = cov?.catalog.frameworkBySlug.get(slug);
+	if (!fw || !cov?.frameworks.includes(slug)) notFound();
+	const catalog = cov.catalog;
+	const custom = catalog.custom.get(slug);
 	const t = await getTranslations("Frameworks");
 	const tNav = await getTranslations("Nav");
 	const tes = await getTranslations("EvidenceStudio");
-	const cov = await getOrgCoverageCached(ctx);
-	if (!cov?.frameworks.includes(slug)) notFound();
 	const bucket = cov.result.byFramework.get(slug);
 	const labels = {
 		covered: t("covered"),
@@ -128,7 +126,7 @@ export default async function FrameworkPage({
 					const data = await loadSheetData(tx, ctx.orgId, cov);
 					const codes = new Set(
 						fw.requirements.flatMap((r) =>
-							(EDGES_BY_REQUIREMENT.get(`${slug}:${r.code}`) ?? []).map(
+							(catalog.edgesByRequirement.get(`${slug}:${r.code}`) ?? []).map(
 								(e) => e.control,
 							),
 						),
@@ -193,6 +191,7 @@ export default async function FrameworkPage({
 	const tr = await getTranslations("Relations");
 	const sharedWithOthers = (() => {
 		const map = controlsByFramework({
+			catalog,
 			frameworks: cov.frameworks,
 			applicability: new Map(
 				[...cov.applicabilityDetail].map(([k, d]) => [k, d.applicable]),
@@ -204,7 +203,11 @@ export default async function FrameworkPage({
 		for (const [fw, set] of map)
 			if (fw !== slug) for (const c of set) others.add(c);
 		const shared = [...own].filter((c) => others.has(c)).length;
-		return { shared, total: own.size, name: shortFrameworkName(slug) };
+		return {
+			shared,
+			total: own.size,
+			name: shortFrameworkName(slug, catalog),
+		};
 	})();
 	return (
 		<>
@@ -260,9 +263,30 @@ export default async function FrameworkPage({
 					{tr("sharedWithOthers", sharedWithOthers)}
 				</p>
 			)}
-			<div className="mb-6">
-				<FrameworkProfileCard slug={slug} />
-			</div>
+			{custom ? (
+				<div className="mb-6 flex flex-col gap-2 rounded-2xl bg-card p-3 text-subhead">
+					<p>{t("customLead")}</p>
+					{custom.copiedFrom && (
+						<p className="text-muted-foreground text-footnote">
+							{t("customCopied", {
+								name: shortFrameworkName(custom.copiedFrom),
+							})}
+						</p>
+					)}
+					{allows(ctx, { custom_framework: ["update"] }) && (
+						<Link
+							href={`/rahmenwerke/eigene/${custom.id}`}
+							className="w-fit text-primary hover:underline underline-offset-4"
+						>
+							{t("customEdit")}
+						</Link>
+					)}
+				</div>
+			) : (
+				<div className="mb-6">
+					<FrameworkProfileCard slug={slug} />
+				</div>
+			)}
 			{fw.recommendedApproach && (
 				<p className="mb-6 rounded-2xl bg-card p-3 text-subhead">
 					<span className="font-medium text-footnote mr-2 text-muted-foreground">
@@ -336,7 +360,7 @@ export default async function FrameworkPage({
 							) : (
 								<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
 									{gaps.map(({ r, key, status }) => {
-										const edges = EDGES_BY_REQUIREMENT.get(key) ?? [];
+										const edges = catalog.edgesByRequirement.get(key) ?? [];
 										return (
 											<li
 												key={r.code}
@@ -434,7 +458,7 @@ export default async function FrameworkPage({
 				</>
 			)}
 			<p className="mt-8 text-muted-foreground text-footnote">
-				{shortFrameworkName(slug)} · {fw.legalBasis ?? ""}
+				{shortFrameworkName(slug, catalog)} · {fw.legalBasis ?? ""}
 			</p>
 		</>
 	);

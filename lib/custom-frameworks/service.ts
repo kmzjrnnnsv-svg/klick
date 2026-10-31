@@ -15,6 +15,7 @@ import {
 	FRAMEWORK_BY_SLUG,
 } from "@/lib/compliance/catalog";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog/controls";
+import { ensureControlImplementations } from "@/lib/compliance/initialize-org";
 import type { OrgTx } from "@/lib/db/with-org";
 import type {
 	CustomFrameworkInput,
@@ -775,6 +776,18 @@ export async function setFrameworkStatus(
 		)
 		.returning();
 	if (!row) throw new CustomFrameworkError("not_found");
+	// Einschalten: zugeordnete Maßnahmen kommen in den Arbeitsvorrat
+	const created =
+		status === "active"
+			? (
+					await ensureControlImplementations(
+						tx,
+						ctx.orgId,
+						ctx.userId,
+						await mappedControlCodes(tx, ctx.orgId, id),
+					)
+				).created
+			: 0;
 	return {
 		framework: row,
 		audit: {
@@ -784,7 +797,7 @@ export async function setFrameworkStatus(
 					: "custom_framework.retired",
 			target: `custom_framework:${id}`,
 			before: { status: before.status },
-			after: { status },
+			after: { status, controlsCreated: created },
 		},
 	};
 }

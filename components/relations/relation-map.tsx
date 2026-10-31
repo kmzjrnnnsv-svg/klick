@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { THEME_INFO, type Theme } from "@/lib/compliance/catalog/themes";
 import { mapLayout, type ThemeGroup } from "@/lib/compliance/framework-map";
 import {
+	type ExtraFrameworkNames,
 	mapFrameworkName,
 	shortFrameworkName,
 } from "@/lib/compliance/framework-names";
@@ -20,10 +21,13 @@ export async function RelationMap({
 	centerLabel,
 	frameworkHref,
 	themeHref,
+	names,
 }: {
 	frameworks: readonly string[];
 	groups: readonly ThemeGroup[];
 	centerLabel: string;
+	// Namen eigener Rahmenwerke der Org (R4)
+	names?: ExtraFrameworkNames;
 	frameworkHref: (slug: string) => string;
 	themeHref: (theme: Theme) => string;
 }) {
@@ -54,8 +58,8 @@ export async function RelationMap({
 						)}
 					/>
 					{layout.frameworks.map((f) => {
-						const name = mapFrameworkName(f.slug);
-						const fullName = shortFrameworkName(f.slug);
+						const name = mapFrameworkName(f.slug, names);
+						const fullName = shortFrameworkName(f.slug, names);
 						const lx = f.x + labelOffset * Math.sin(f.angle);
 						const ly = f.y - labelOffset * Math.cos(f.angle);
 						const w = name.length * 10.6 + 24;
@@ -179,9 +183,11 @@ export async function RelationMap({
 export async function RelationTable({
 	frameworks,
 	groups,
+	names,
 }: {
 	frameworks: readonly string[];
 	groups: readonly ThemeGroup[];
+	names?: ExtraFrameworkNames;
 }) {
 	const t = await getTranslations("Relations");
 	return (
@@ -212,7 +218,7 @@ export async function RelationTable({
 						{frameworks.map((f) => (
 							<tr key={f} className="border-border/70 border-t">
 								<th scope="row" className="py-2 pr-4 text-left font-normal">
-									{shortFrameworkName(f)}
+									{shortFrameworkName(f, names)}
 								</th>
 								{groups.map((g) => (
 									<td key={g.theme} className="px-2 py-2 text-right">

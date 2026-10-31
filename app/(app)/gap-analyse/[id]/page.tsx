@@ -38,13 +38,10 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
-import {
-	CATALOG_EDGES,
-	CATALOG_REQ_REFS,
-	synergyCatalogFor,
-} from "@/lib/compliance/catalog-view";
+import { synergyCatalogFor } from "@/lib/compliance/catalog-view";
 import { deriveCoverage } from "@/lib/compliance/coverage";
 import { exclusionAllowedForKey, naImpact } from "@/lib/compliance/exclusions";
+import { STATIC_CATALOG } from "@/lib/compliance/org-catalog";
 import {
 	fmtDate,
 	getOrgCoverageCached,
@@ -125,14 +122,17 @@ export default async function AssessmentPage({
 	const canReview = !closed && allows(ctx, { assessment: ["review"] });
 	const canApply = !closed && allows(ctx, { assessment: ["apply"] });
 	const canTasks = allows(ctx, { task: ["create"] });
+	const cov = await getOrgCoverageCached(ctx);
+	const catalog = cov?.catalog ?? STATIC_CATALOG;
 	const fwNames = Object.fromEntries(
-		a.frameworks.map((s) => [s, shortFrameworkName(s)]),
+		a.frameworks.map((s) => [s, shortFrameworkName(s, catalog)]),
 	);
+	const allowedKey = (k: string) => exclusionAllowedForKey(k, catalog);
 
 	const states = answerStates(a.questions, data.answers, data.controlEvidence);
 	const answerBy = new Map(data.answers.map((x) => [x.questionCode, x]));
 	const score = scoreAssessment(a.questions, states, {
-		naOpenShare: subjectScoped ? undefined : naOpenShare,
+		naOpenShare: subjectScoped ? undefined : (q) => naOpenShare(q, catalog),
 	});
 	const sections = sectionsOf(a.questions);
 	const answeredIn = (code: string) =>
@@ -149,10 +149,9 @@ export default async function AssessmentPage({
 		a.questions,
 		states,
 		data.implStatus,
-		exclusionAllowedForKey,
+		allowedKey,
 	);
 	const after = applyChanges(data.implStatus, changes);
-	const cov = await getOrgCoverageCached(ctx);
 	const alreadyExcluded = new Set(
 		[...(cov?.applicabilityDetail ?? [])]
 			.filter(([, d]) => d.source === "manual" && !d.applicable)
@@ -160,21 +159,19 @@ export default async function AssessmentPage({
 	);
 	const exclusions = subjectScoped
 		? []
-		: proposeExclusions(
-				a.questions,
-				states,
-				exclusionAllowedForKey,
-				alreadyExcluded,
-			);
-	const exclusionInfo = naImpact(exclusions.map((x) => x.key)).excludable;
+		: proposeExclusions(a.questions, states, allowedKey, alreadyExcluded);
+	const exclusionInfo = naImpact(
+		exclusions.map((x) => x.key),
+		catalog,
+	).excludable;
 	const applicability = new Map(
 		[...(cov?.applicabilityDetail ?? [])].map(([k, d]) => [k, d.applicable]),
 	);
 	const coverageInput = {
 		frameworks: a.frameworks,
-		requirements: CATALOG_REQ_REFS,
+		requirements: catalog.reqRefs,
 		applicability,
-		edges: CATALOG_EDGES,
+		edges: catalog.edgeRefs,
 	};
 	const covNow = deriveCoverage({
 		...coverageInput,
@@ -221,7 +218,7 @@ export default async function AssessmentPage({
 						)}
 						{a.frameworks.map((s) => (
 							<Badge key={s} variant="muted" className="">
-								{shortFrameworkName(s)}
+								{shortFrameworkName(s, catalog)}
 							</Badge>
 						))}
 					</div>
@@ -339,8 +336,8 @@ export default async function AssessmentPage({
 												subjectScoped || !q.controlCode
 													? null
 													: {
-															allowed: naAllowed(q),
-															...naImpact(q.requirements ?? []),
+															allowed: naAllowed(q, catalog),
+															...naImpact(q.requirements ?? [], catalog),
 														}
 											}
 											initial={{
@@ -358,7 +355,11 @@ export default async function AssessmentPage({
 												q.controlCode && !subjectScoped
 													? relationHint(
 															q.controlCode,
-															{ frameworks: a.frameworks, applicability },
+															{
+																frameworks: a.frameworks,
+																applicability,
+																catalog,
+															},
 															(topic) =>
 																tes(
 																	`topic_${topic.replace(":", "_")}` as "topic_retention",
@@ -442,7 +443,9 @@ export default async function AssessmentPage({
 									<tbody>
 										{a.frameworks.map((s) => (
 											<tr key={s} className="border-t">
-												<td className="py-1">{shortFrameworkName(s)}</td>
+												<td className="py-1">
+													{shortFrameworkName(s, catalog)}
+												</td>
 												<td className="py-1 tabular-nums">
 													{Math.round(
 														covNow.byFramework.get(s)?.coveragePct ?? 0,

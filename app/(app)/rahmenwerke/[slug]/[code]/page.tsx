@@ -15,15 +15,11 @@ import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
-import {
-	CONTROL_BY_CODE,
-	EDGES_BY_REQUIREMENT,
-	FRAMEWORK_BY_SLUG,
-	REQUIREMENT_BY_KEY,
-} from "@/lib/compliance/catalog";
+import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { sharedBy } from "@/lib/compliance/control-relations";
 import type { ReqCoverage } from "@/lib/compliance/coverage";
 import { exclusionRule } from "@/lib/compliance/exclusions";
+import { STATIC_CATALOG } from "@/lib/compliance/org-catalog";
 import {
 	getOrgCoverageCached,
 	shortFrameworkName,
@@ -41,14 +37,16 @@ export default async function RequirementPage({
 	const { slug, code: rawCode } = await params;
 	const code = decodeURIComponent(rawCode);
 	const ctx = await requireOrgPage();
-	const fw = FRAMEWORK_BY_SLUG.get(slug);
-	const req = REQUIREMENT_BY_KEY.get(`${slug}:${code}`);
+	const cov = await getOrgCoverageCached(ctx);
+	// Katalog der Org: Klick-Rahmenwerke und eigene (R4)
+	const catalog = cov?.catalog ?? STATIC_CATALOG;
+	const fw = catalog.frameworkBySlug.get(slug);
+	const req = catalog.requirementByKey.get(`${slug}:${code}`);
 	if (!fw || !req) notFound();
 	const t = await getTranslations("Frameworks");
 	const tc = await getTranslations("Controls");
 	const ts = await getTranslations("Status");
 	const tr = await getTranslations("Relations");
-	const cov = await getOrgCoverageCached(ctx);
 	// Querverweise („Siehe auch“, Vergleich) führen auch zu Rahmenwerken, die
 	// die Organisation nicht aktiviert hat: dann Katalogansicht ohne
 	// Abdeckungsstatus statt 404.
@@ -64,7 +62,7 @@ export default async function RequirementPage({
 		: "inactive";
 	const applicability = cov?.applicabilityDetail.get(key);
 	const applicable = status !== "not_applicable";
-	const exclusion = exclusionRule(slug, code);
+	const exclusion = exclusionRule(slug, code, catalog);
 	// Manueller Ausschluss, den das Rahmenwerk nicht kennt (vor dem 31.10.
 	// möglich): sichtbar machen statt still gelten lassen
 	const exclusionInvalid =
@@ -72,11 +70,11 @@ export default async function RequirementPage({
 		applicability.applicable === false &&
 		!exclusion.allowed;
 	const section = fw.sections.find((s) => s.code === req.sectionCode);
-	const edges = EDGES_BY_REQUIREMENT.get(key) ?? [];
+	const edges = catalog.edgesByRequirement.get(key) ?? [];
 	const related = (req.relatedRequirements ?? [])
 		.map((k) => ({
 			key: k,
-			req: REQUIREMENT_BY_KEY.get(k),
+			req: catalog.requirementByKey.get(k),
 			status: byRequirement.get(k),
 		}))
 		.filter((x) => x.req);
@@ -127,8 +125,11 @@ export default async function RequirementPage({
 
 	return (
 		<EntityLayout
-			back={{ href: `/rahmenwerke/${slug}`, label: shortFrameworkName(slug) }}
-			eyebrow={`${shortFrameworkName(slug)} · ${section ? `${section.code} ${section.title}` : ""}`}
+			back={{
+				href: `/rahmenwerke/${slug}`,
+				label: shortFrameworkName(slug, catalog),
+			}}
+			eyebrow={`${shortFrameworkName(slug, catalog)} · ${section ? `${section.code} ${section.title}` : ""}`}
 			title={`${req.code} · ${req.title}`}
 			subtitle={req.requirementText}
 			status={
@@ -337,11 +338,14 @@ export default async function RequirementPage({
 									{(() => {
 										const also = sharedBy(e.control, {
 											frameworks: cov?.frameworks ?? [],
+											catalog,
 										}).filter((f) => f !== slug);
 										return also.length > 0 ? (
 											<p className="text-footnote text-muted-foreground">
 												{tr("alsoBy", {
-													names: also.map(shortFrameworkName).join(", "),
+													names: also
+														.map((s) => shortFrameworkName(s, catalog))
+														.join(", "),
 												})}
 											</p>
 										) : null;
@@ -387,7 +391,7 @@ export default async function RequirementPage({
 								className="flex flex-wrap items-center gap-2 px-3 py-2"
 							>
 								<Badge variant="outline" className="font-mono">
-									{shortFrameworkName(r?.framework ?? "")} {r?.code}
+									{shortFrameworkName(r?.framework ?? "", catalog)} {r?.code}
 								</Badge>
 								<Link
 									href={`/rahmenwerke/${r?.framework}/${encodeURIComponent(r?.code ?? "")}`}

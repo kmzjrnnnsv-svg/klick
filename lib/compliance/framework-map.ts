@@ -6,6 +6,7 @@ import {
 } from "./catalog";
 import { THEMES, type Theme, themeOf } from "./catalog/themes";
 import { controlRelations } from "./control-relations";
+import type { OrgCatalog } from "./org-catalog";
 import { type ParamTopic, type SourcedParam, strictness } from "./params";
 
 // Rahmenwerke untereinander (Teil Z5, rein): welche Maßnahmen sie teilen,
@@ -17,6 +18,11 @@ export type MapOptions = {
 	frameworks?: readonly string[];
 	// Anforderung → anwendbar; false blendet sie aus
 	applicability?: ReadonlyMap<string, boolean>;
+	// Katalog der Org (R4): eigene Rahmenwerke zählen mit
+	catalog?: Pick<
+		OrgCatalog,
+		"edgesByControl" | "requirementByKey" | "frameworkBySlug"
+	>;
 };
 
 const fwOf = (key: string) => key.slice(0, key.indexOf(":"));
@@ -27,12 +33,14 @@ export function controlsByFramework(
 ): Map<string, Set<string>> {
 	const only = opts.frameworks ? new Set(opts.frameworks) : null;
 	const map = new Map<string, Set<string>>();
+	const edgesByControl = opts.catalog?.edgesByControl ?? EDGES_BY_CONTROL;
+	const requirementByKey = opts.catalog?.requirementByKey ?? REQUIREMENT_BY_KEY;
 	for (const c of CONTROLS) {
-		for (const e of EDGES_BY_CONTROL.get(c.code) ?? []) {
+		for (const e of edgesByControl.get(c.code) ?? []) {
 			const slug = fwOf(e.requirement);
 			if (only && !only.has(slug)) continue;
 			if (opts.applicability?.get(e.requirement) === false) continue;
-			const req = REQUIREMENT_BY_KEY.get(e.requirement);
+			const req = requirementByKey.get(e.requirement);
 			if (!req || req.legalStatus === "repealed") continue;
 			const set = map.get(slug) ?? new Set<string>();
 			set.add(c.code);

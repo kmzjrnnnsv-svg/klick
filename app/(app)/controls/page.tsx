@@ -80,6 +80,7 @@ export default async function ControlsPage({
 						.filter(([, d]) => d.source === "manual")
 						.map(([k, d]) => [k, d.applicable]),
 				),
+				cov.catalog,
 			)
 		: null;
 	if (required && cov?.profile.applyBaseline)

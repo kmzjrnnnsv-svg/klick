@@ -5,7 +5,10 @@ import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { CONTROL_EXPLAINERS } from "@/lib/compliance/catalog/control-explainers";
 import { THEME_INFO } from "@/lib/compliance/catalog/themes";
 import type { ThemeGroup } from "@/lib/compliance/framework-map";
-import { shortFrameworkName } from "@/lib/compliance/framework-names";
+import {
+	type ExtraFrameworkNames,
+	shortFrameworkName,
+} from "@/lib/compliance/framework-names";
 
 // Die Maßnahmen je Thema (Teil Z6): unter der Übersicht und am Handy statt
 // des Bilds. Jedes Thema klappt auf; Maßnahmen mit den meisten Rahmenwerken
@@ -15,8 +18,11 @@ export async function ThemeSections({
 	groups,
 	open,
 	controlHref,
+	names,
 }: {
 	groups: readonly ThemeGroup[];
+	// Namen eigener Rahmenwerke der Org (R4)
+	names?: ExtraFrameworkNames;
 	// Thema, das offen steht (aus ?thema=)
 	open?: string;
 	controlHref?: (code: string) => string;
@@ -87,7 +93,9 @@ export async function ThemeSections({
 											</span>
 											{ex && <span className="text-subhead">{ex.what}</span>}
 											<span className="text-footnote text-muted-foreground">
-												{c.frameworks.map(shortFrameworkName).join(", ")}
+												{c.frameworks
+													.map((s) => shortFrameworkName(s, names))
+													.join(", ")}
 											</span>
 										</li>
 									);

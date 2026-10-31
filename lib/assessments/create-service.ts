@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { assessments } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
+import { loadOrgCatalog } from "@/lib/compliance/org-catalog-server";
 import { getOrgProfile, loadApplicability } from "@/lib/compliance/queries";
 import type { OrgTx } from "@/lib/db/with-org";
 import type { CreateAssessmentInput } from "@/lib/validation/assessments";
@@ -24,9 +25,10 @@ export async function insertSelfAssessment(
 } | null> {
 	const p = await getOrgProfile(tx, ctx.orgId);
 	if (!p) return null;
-	const frameworks = (d.frameworks ?? p.frameworks).filter((s) =>
-		p.frameworks.includes(s),
-	);
+	// eingeschaltete eigene Rahmenwerke zählen mit (R4)
+	const catalog = await loadOrgCatalog(tx, ctx.orgId);
+	const active = [...p.frameworks, ...catalog.activeCustomSlugs];
+	const frameworks = (d.frameworks ?? active).filter((s) => active.includes(s));
 	if (frameworks.length === 0) return null;
 	const manual = new Map<string, boolean>();
 	for (const [k, v] of await loadApplicability(tx, ctx.orgId))
@@ -59,6 +61,7 @@ export async function insertSelfAssessment(
 			productRoles: p.profile.productRoles,
 			asOf: d.asOf ? new Date(`${d.asOf}T12:00:00Z`) : undefined,
 			manual,
+			catalog,
 		});
 		onlyControls = new Set(
 			all.map((q) => q.code).filter((code) => !asked.has(code)),
@@ -76,6 +79,7 @@ export async function insertSelfAssessment(
 		asOf: d.asOf ? new Date(`${d.asOf}T12:00:00Z`) : undefined,
 		manual,
 		onlyControls,
+		catalog,
 	});
 	if (questions.length === 0) return null;
 	const code = nextAssessmentCode(

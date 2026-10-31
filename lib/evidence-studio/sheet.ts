@@ -14,6 +14,7 @@ import {
 	evidenceKindForHint,
 } from "@/lib/compliance/catalog/evidence-kinds";
 import type { Recommendation } from "@/lib/compliance/catalog/types";
+import type { OrgCatalog } from "@/lib/compliance/org-catalog";
 import {
 	exceedsInterval,
 	formatParam,
@@ -86,6 +87,8 @@ export type SheetInput = {
 	documents?: readonly SheetDocument[];
 	ownParams?: readonly OwnSetting[];
 	today: string;
+	// Katalog der Org (R4): eigene Rahmenwerke mit ihren Prüffragen
+	catalog?: Lookups;
 };
 
 export type SheetSource = {
@@ -173,37 +176,51 @@ export type NachweisBogen = {
 	};
 };
 
-const sourceLabel = (key: string): SheetSource => {
-	if (key === "control") return { key, framework: null, label: "Control" };
-	const r = REQUIREMENT_BY_KEY.get(key);
-	const fw = r ? FRAMEWORK_BY_SLUG.get(r.framework) : undefined;
-	return {
-		key,
-		framework: r?.framework ?? null,
-		label: r ? `${fw?.name ?? r.framework} ${r.code}` : key,
+type Lookups = Pick<
+	OrgCatalog,
+	"edgesByControl" | "requirementByKey" | "frameworkBySlug"
+>;
+
+const sourceLabelWith =
+	(
+		reqByKey: Lookups["requirementByKey"],
+		fwBySlug: Lookups["frameworkBySlug"],
+	) =>
+	(key: string): SheetSource => {
+		if (key === "control") return { key, framework: null, label: "Control" };
+		const r = reqByKey.get(key);
+		const fw = r ? fwBySlug.get(r.framework) : undefined;
+		return {
+			key,
+			framework: r?.framework ?? null,
+			label: r ? `${fw?.name ?? r.framework} ${r.code}` : key,
+		};
 	};
-};
 
 const monthsBetween = (a: string, b: string) =>
 	(new Date(b).getTime() - new Date(a).getTime()) / (30.44 * 86_400_000);
 
 export function buildSheet(input: SheetInput): NachweisBogen | null {
+	const reqByKey = input.catalog?.requirementByKey ?? REQUIREMENT_BY_KEY;
+	const fwBySlug = input.catalog?.frameworkBySlug ?? FRAMEWORK_BY_SLUG;
+	const edgesByControl = input.catalog?.edgesByControl ?? EDGES_BY_CONTROL;
+	const sourceLabel = sourceLabelWith(reqByKey, fwBySlug);
 	const control = CONTROL_BY_CODE.get(input.controlCode);
 	if (!control) return null;
 	const active = new Set(input.frameworks);
-	const edges = (EDGES_BY_CONTROL.get(control.code) ?? []).filter((e) =>
+	const edges = (edgesByControl.get(control.code) ?? []).filter((e) =>
 		active.has(e.requirement.slice(0, e.requirement.indexOf(":"))),
 	);
 
 	const requirements: SheetRequirement[] = edges.flatMap((e) => {
-		const r = REQUIREMENT_BY_KEY.get(e.requirement);
+		const r = reqByKey.get(e.requirement);
 		if (!r) return [];
 		if (r.effectiveUntil && r.effectiveUntil < input.today) return [];
 		return [
 			{
 				key: e.requirement,
 				framework: r.framework,
-				frameworkName: FRAMEWORK_BY_SLUG.get(r.framework)?.name ?? r.framework,
+				frameworkName: fwBySlug.get(r.framework)?.name ?? r.framework,
 				code: r.code,
 				title: r.title,
 				coverage: e.coverage,
@@ -224,16 +241,14 @@ export function buildSheet(input: SheetInput): NachweisBogen | null {
 	const qEntries = [
 		...(control.auditQuestions ?? []).map((text) => ({ text, key: "control" })),
 		...live.flatMap((r) =>
-			(REQUIREMENT_BY_KEY.get(r.key)?.auditQuestions ?? []).map((text) => ({
+			(reqByKey.get(r.key)?.auditQuestions ?? []).map((text) => ({
 				text,
 				key: r.key,
 			})),
 		),
 	];
 	const fallback = live
-		.filter(
-			(r) => (REQUIREMENT_BY_KEY.get(r.key)?.auditQuestions ?? []).length === 0,
-		)
+		.filter((r) => (reqByKey.get(r.key)?.auditQuestions ?? []).length === 0)
 		.map((r) => ({
 			text: `Wie erfüllt ihr „${r.title}“ (${r.frameworkName} ${r.code})?`,
 			key: r.key,
@@ -264,7 +279,7 @@ export function buildSheet(input: SheetInput): NachweisBogen | null {
 	const iEntries = [
 		...(control.evidenceHints ?? []).map((text) => ({ text, key: "control" })),
 		...live.flatMap((r) =>
-			(REQUIREMENT_BY_KEY.get(r.key)?.evidenceHints ?? []).map((text) => ({
+			(reqByKey.get(r.key)?.evidenceHints ?? []).map((text) => ({
 				text,
 				key: r.key,
 			})),
@@ -373,7 +388,7 @@ export function buildSheet(input: SheetInput): NachweisBogen | null {
 
 	// Fristen je Rahmenwerk und Abgleich mit eigenen Einstellungen
 	const sourced = live.flatMap((r) => {
-		const req = REQUIREMENT_BY_KEY.get(r.key);
+		const req = reqByKey.get(r.key);
 		return req ? requirementParams(req, r.key) : [];
 	});
 	const params = paramTable(sourced);
@@ -430,7 +445,7 @@ export function buildSheet(input: SheetInput): NachweisBogen | null {
 	const recEntries = [
 		...(control.recommendations ?? []).map((r) => ({ ...r, key: "control" })),
 		...live.flatMap((r) =>
-			(REQUIREMENT_BY_KEY.get(r.key)?.recommendations ?? []).map((x) => ({
+			(reqByKey.get(r.key)?.recommendations ?? []).map((x) => ({
 				...x,
 				key: r.key,
 			})),
@@ -479,7 +494,7 @@ export function buildSheet(input: SheetInput): NachweisBogen | null {
 			text: `Unterschiedliche Vorgaben je Rahmenwerk (${row.perFramework
 				.map(
 					(f) =>
-						`${FRAMEWORK_BY_SLUG.get(f.framework)?.name ?? f.framework}: ${f.params.map(formatParam).join(" / ")}`,
+						`${fwBySlug.get(f.framework)?.name ?? f.framework}: ${f.params.map(formatParam).join(" / ")}`,
 				)
 				.join(
 					"; ",

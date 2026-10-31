@@ -1,12 +1,15 @@
 import { and, eq, inArray } from "drizzle-orm";
 import {
+	customRequirements,
 	frameworks,
 	requirementApplicability,
 	requirements,
 } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
+import { isCustomSlug } from "@/lib/custom-frameworks/rules";
 import type { OrgTx } from "@/lib/db/with-org";
 import { exclusionAllowedForKey } from "./exclusions";
+import type { OrgCatalog } from "./org-catalog";
 
 // Anforderungen mit Begründung ausschließen (manuelle Anwendbarkeit), nur
 // wo das Rahmenwerk Ausschlüsse kennt. Gemeinsam für „Nicht relevant“ in
@@ -17,9 +20,18 @@ export async function excludeRequirements(
 	orgId: string,
 	items: readonly { key: string; note: string }[],
 	via: string,
+	catalog?: OrgCatalog,
 ): Promise<AuditInput[]> {
-	const allowed = items.filter((i) => exclusionAllowedForKey(i.key));
-	if (allowed.length === 0) return [];
+	const permitted = items.filter((i) => exclusionAllowedForKey(i.key, catalog));
+	// Eigene Rahmenwerke (R4) führen den Ausschluss an der Anforderung selbst
+	const custom = catalog
+		? permitted.filter((i) => isCustomSlug(i.key.split(":")[0] ?? ""))
+		: [];
+	const allowed = permitted.filter((i) => !custom.includes(i));
+	const audits: AuditInput[] = catalog
+		? await excludeCustom(tx, orgId, custom, via, catalog)
+		: [];
+	if (allowed.length === 0) return audits;
 	const slugs = [...new Set(allowed.map((i) => i.key.split(":")[0] ?? ""))];
 	const rows = await tx
 		.select({
@@ -31,7 +43,6 @@ export async function excludeRequirements(
 		.innerJoin(frameworks, eq(frameworks.id, requirements.frameworkId))
 		.where(inArray(frameworks.slug, slugs));
 	const idByKey = new Map(rows.map((r) => [`${r.slug}:${r.code}`, r.id]));
-	const audits: AuditInput[] = [];
 	for (const item of allowed) {
 		const requirementId = idByKey.get(item.key);
 		if (!requirementId) continue;
@@ -71,6 +82,41 @@ export async function excludeRequirements(
 			target: `requirement:${item.key}`,
 			before: before ?? { applicable: true, source: "default" },
 			after: { applicable: false, source: "manual", note, via },
+		});
+	}
+	return audits;
+}
+
+async function excludeCustom(
+	tx: OrgTx,
+	orgId: string,
+	items: readonly { key: string; note: string }[],
+	via: string,
+	catalog: OrgCatalog,
+): Promise<AuditInput[]> {
+	const audits: AuditInput[] = [];
+	for (const item of items) {
+		const i = item.key.indexOf(":");
+		const slug = item.key.slice(0, i);
+		const code = item.key.slice(i + 1);
+		const info = catalog.custom.get(slug);
+		const id = info?.requirementIds.get(code);
+		if (!info || !id || info.status === "retired" || info.excluded.has(code))
+			continue;
+		const note = item.note.trim().slice(0, 2000);
+		await tx
+			.update(customRequirements)
+			.set({ excluded: true, exclusionReason: note, updatedAt: new Date() })
+			.where(
+				and(
+					eq(customRequirements.organizationId, orgId),
+					eq(customRequirements.id, id),
+				),
+			);
+		audits.push({
+			action: "custom_framework.requirement_excluded",
+			target: `custom_framework:${info.id}`,
+			after: { code, reason: note, via },
 		});
 	}
 	return audits;

@@ -244,6 +244,7 @@ export default async function EvidenceDetailPage({
 								d.applicable,
 							]),
 						),
+						catalog: relCov?.catalog,
 					},
 				)
 			: null;

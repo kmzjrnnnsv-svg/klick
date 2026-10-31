@@ -6,7 +6,10 @@ import {
 	RELATION_LABEL,
 } from "@/lib/compliance/catalog/framework-relations";
 import type { Overlap } from "@/lib/compliance/framework-map";
-import { shortFrameworkName } from "@/lib/compliance/framework-names";
+import {
+	shortFrameworkName as baseName,
+	type ExtraFrameworkNames,
+} from "@/lib/compliance/framework-names";
 
 // Rahmenwerke untereinander (Teil Z5): gepflegte Beziehungen (baut auf, geht
 // vor, löst ab, ergänzt, fast gleich) und die Paare mit den meisten
@@ -19,12 +22,16 @@ export async function FrameworkLinks({
 	frameworks,
 	pairs,
 	compareHref,
+	names,
 }: {
 	frameworks: readonly string[];
 	pairs: readonly Overlap[];
 	compareHref?: (a: string, b: string) => string;
+	// Namen eigener Rahmenwerke der Org (R4)
+	names?: ExtraFrameworkNames;
 }) {
 	const t = await getTranslations("Relations");
+	const shortFrameworkName = (slug: string) => baseName(slug, names);
 	const set = new Set(frameworks);
 	const relations = FRAMEWORK_RELATIONS.filter(
 		(r) => set.has(r.from) && set.has(r.to),

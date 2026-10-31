@@ -74,7 +74,7 @@ export function buildAuditbericht(f: AuditberichtFacts) {
 				[
 					"Prüfungskriterien",
 					a.frameworks.length > 0
-						? a.frameworks.map(shortFrameworkName).join(", ")
+						? a.frameworks.map((s) => shortFrameworkName(s)).join(", ")
 						: "—",
 				],
 				["Umfang", a.scope ?? "—"],

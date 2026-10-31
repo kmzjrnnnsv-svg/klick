@@ -8,7 +8,11 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
-import { fmtDate, shortFrameworkName } from "@/lib/compliance/page-data";
+import {
+	fmtDate,
+	getOrgCoverageCached,
+	shortFrameworkName,
+} from "@/lib/compliance/page-data";
 import { listAssessments } from "@/lib/compliance/queries-assessments";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgFrameworks } from "@/lib/org/queries";
@@ -31,11 +35,20 @@ export default async function GapAnalysisPage() {
 		frameworks: await listOrgFrameworks(tx, ctx.orgId),
 	}));
 	const canCreate = allows(ctx, { assessment: ["create"] });
-	const fwOptions = frameworks
-		.filter(
-			(f) => (FRAMEWORK_BY_SLUG.get(f.slug)?.requirements.length ?? 0) > 0,
-		)
-		.map((f) => ({ slug: f.slug, name: f.name }));
+	const catalog = (await getOrgCoverageCached(ctx))?.catalog;
+	// eingeschaltete eigene Rahmenwerke stehen zur Wahl wie Klick-Rahmenwerke
+	const custom = (catalog?.activeCustomSlugs ?? []).flatMap((slug) => {
+		const f = catalog?.frameworkBySlug.get(slug);
+		return f && f.requirements.length > 0 ? [{ slug, name: f.name }] : [];
+	});
+	const fwOptions = [
+		...frameworks
+			.filter(
+				(f) => (FRAMEWORK_BY_SLUG.get(f.slug)?.requirements.length ?? 0) > 0,
+			)
+			.map((f) => ({ slug: f.slug, name: f.name })),
+		...custom,
+	];
 	const create = canCreate ? (
 		<NewAssessmentDialog
 			frameworks={fwOptions}
@@ -74,7 +87,7 @@ export default async function GapAnalysisPage() {
 										<span className="flex flex-wrap gap-1">
 											{r.frameworks.map((s) => (
 												<Badge key={s} variant="muted" className="">
-													{shortFrameworkName(s)}
+													{shortFrameworkName(s, catalog)}
 												</Badge>
 											))}
 										</span>

@@ -6,6 +6,7 @@ import {
 	documents,
 } from "@/db/schema";
 import type { ControlSheetState } from "@/db/schema/enums";
+import type { OrgCatalog } from "@/lib/compliance/org-catalog";
 import type { OwnSetting, ParamTopic } from "@/lib/compliance/params";
 import { listEvidenceWithControls } from "@/lib/compliance/queries";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -21,6 +22,8 @@ import {
 
 export type SheetData = {
 	frameworks: string[];
+	// Katalog der Org (R4), wenn die Abdeckung ihn mitbringt
+	catalog?: OrgCatalog;
 	notApplicable: Set<string>;
 	states: Map<string, ControlSheetState>;
 	evidence: SheetEvidence[];
@@ -37,6 +40,7 @@ export async function loadSheetData(
 	coverage: {
 		frameworks: string[];
 		applicabilityDetail: Map<string, { applicable: boolean }>;
+		catalog?: OrgCatalog;
 	},
 ): Promise<SheetData> {
 	const notApplicable = new Set<string>();
@@ -74,6 +78,7 @@ export async function loadSheetData(
 		]);
 	return {
 		frameworks: coverage.frameworks,
+		catalog: coverage.catalog,
 		notApplicable,
 		states: new Map(
 			impl
@@ -115,5 +120,6 @@ export function sheetFor(
 		evidence: data.evidence,
 		documents: data.documents,
 		today: data.today,
+		catalog: data.catalog,
 	});
 }

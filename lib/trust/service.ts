@@ -11,6 +11,7 @@ import {
 import { controlsForFrameworks } from "@/lib/compliance/catalog";
 import { frameworkNameMap } from "@/lib/compliance/page-data";
 import { orgCoverage } from "@/lib/compliance/queries";
+import { isCustomSlug } from "@/lib/custom-frameworks/rules";
 import type { OrgTx } from "@/lib/db/with-org";
 import { currentPublished } from "@/lib/documents/versions";
 import { DEFAULT_NDA_TEXT } from "./rules";
@@ -163,7 +164,9 @@ export async function loadSnapshotInput(
 			settings.documents.map((d) => d.documentId),
 		),
 	]);
-	const frameworks = cov?.frameworks ?? [];
+	// eigene Rahmenwerke (Kundenanforderungen, lizenzierte Kataloge) bleiben
+	// intern und stehen nicht im öffentlichen Trust Center (R4)
+	const frameworks = (cov?.frameworks ?? []).filter((s) => !isCustomSlug(s));
 	const coverage: Record<string, number | null> = {};
 	for (const slug of frameworks)
 		coverage[slug] = cov?.result.byFramework.get(slug)?.coveragePct ?? null;

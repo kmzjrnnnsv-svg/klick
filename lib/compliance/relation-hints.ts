@@ -32,17 +32,19 @@ export function relationHint(
 			const first = t.perFramework.find((p) => t.strictest.includes(p.slug));
 			return {
 				topic: topicLabel(t.topic),
-				names: t.strictest.map(shortFrameworkName),
+				names: t.strictest.map((s) => shortFrameworkName(s, opts.catalog)),
 				value: first ? formatParam(first.param) : "",
 			};
 		});
 	return {
 		simple: CONTROL_EXPLAINERS[control]?.what ?? null,
-		frameworks: rel.frameworks.map((f) => shortFrameworkName(f.slug)),
+		frameworks: rel.frameworks.map((f) =>
+			shortFrameworkName(f.slug, opts.catalog),
+		),
 		partial: rel.frameworks
 			.filter((f) => !f.full)
 			.map((f) => ({
-				name: shortFrameworkName(f.slug),
+				name: shortFrameworkName(f.slug, opts.catalog),
 				note:
 					f.requirements.find((r) => r.coverage === "partial" && r.note)
 						?.note ?? null,
@@ -61,7 +63,7 @@ export function evidenceReach(
 	for (const c of controls)
 		for (const f of controlRelations(c, opts).frameworks) slugs.add(f.slug);
 	return {
-		frameworks: [...slugs].map(shortFrameworkName),
+		frameworks: [...slugs].map((s) => shortFrameworkName(s, opts.catalog)),
 		controls: controls.length,
 	};
 }

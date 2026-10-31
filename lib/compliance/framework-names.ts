@@ -1,9 +1,20 @@
 import { CATALOG_FRAMEWORKS } from "./catalog";
 
+// Rahmenwerke, die nicht im Klick-Katalog stehen (eigene Rahmenwerke der Org,
+// R4): Name je Slug aus dem Katalog der Org
+export type ExtraFrameworkNames = {
+	frameworkBySlug: ReadonlyMap<string, { name: string }>;
+};
+
 // Kurzname eines Rahmenwerks (pure): „ISO/IEC 27001:2022“ → „ISO 27001“,
-// „DORA — …“ → „DORA“
-export function shortFrameworkName(slug: string): string {
-	const f = CATALOG_FRAMEWORKS.find((x) => x.slug === slug);
+// „DORA — …“ → „DORA“; eigene Rahmenwerke mit ihrem Namen
+export function shortFrameworkName(
+	slug: string,
+	extra?: ExtraFrameworkNames,
+): string {
+	const f =
+		CATALOG_FRAMEWORKS.find((x) => x.slug === slug) ??
+		extra?.frameworkBySlug.get(slug);
 	if (!f) return slug;
 	return (
 		f.name
@@ -60,6 +71,9 @@ const MAP_NAMES: Record<string, string> = {
 	"br-bcb": "Brasilien",
 };
 
-export function mapFrameworkName(slug: string): string {
-	return MAP_NAMES[slug] ?? shortFrameworkName(slug);
+export function mapFrameworkName(
+	slug: string,
+	extra?: ExtraFrameworkNames,
+): string {
+	return MAP_NAMES[slug] ?? shortFrameworkName(slug, extra);
 }

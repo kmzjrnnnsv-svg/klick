@@ -3,6 +3,7 @@ import {
 	FRAMEWORK_BY_SLUG,
 	REQUIREMENT_BY_KEY,
 } from "./catalog";
+import type { OrgCatalog } from "./org-catalog";
 import {
 	type ParamTopic,
 	paramFindings,
@@ -54,6 +55,11 @@ export type RelationOptions = {
 	frameworks?: readonly string[];
 	// Anforderung → anwendbar; false blendet sie aus
 	applicability?: ReadonlyMap<string, boolean>;
+	// Katalog der Org (R4): eigene Rahmenwerke zählen mit; fehlt = Klick-Katalog
+	catalog?: Pick<
+		OrgCatalog,
+		"edgesByControl" | "requirementByKey" | "frameworkBySlug"
+	>;
 };
 
 const fwOf = (key: string) => key.slice(0, key.indexOf(":"));
@@ -65,11 +71,14 @@ export function controlRelations(
 	const only = opts.frameworks ? new Set(opts.frameworks) : null;
 	const byFw = new Map<string, RelationRequirement[]>();
 	const sourced: SourcedParam[] = [];
-	for (const e of EDGES_BY_CONTROL.get(control) ?? []) {
+	const edgesByControl = opts.catalog?.edgesByControl ?? EDGES_BY_CONTROL;
+	const requirementByKey = opts.catalog?.requirementByKey ?? REQUIREMENT_BY_KEY;
+	const frameworkBySlug = opts.catalog?.frameworkBySlug ?? FRAMEWORK_BY_SLUG;
+	for (const e of edgesByControl.get(control) ?? []) {
 		const slug = fwOf(e.requirement);
 		if (only && !only.has(slug)) continue;
 		if (opts.applicability?.get(e.requirement) === false) continue;
-		const req = REQUIREMENT_BY_KEY.get(e.requirement);
+		const req = requirementByKey.get(e.requirement);
 		if (!req || req.legalStatus === "repealed") continue;
 		const list = byFw.get(slug) ?? [];
 		if (!list.some((r) => r.key === e.requirement))
@@ -86,7 +95,7 @@ export function controlRelations(
 
 	const frameworks: RelationFramework[] = [...byFw.entries()]
 		.map(([slug, requirements]) => {
-			const meta = FRAMEWORK_BY_SLUG.get(slug);
+			const meta = frameworkBySlug.get(slug);
 			return {
 				slug,
 				name: meta?.name ?? slug,
