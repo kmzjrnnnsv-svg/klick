@@ -4,6 +4,7 @@ import {
 	assets,
 	decisionRequests,
 	documents,
+	documentVersions,
 	exceptions,
 	incidents,
 	nonconformities,
@@ -29,6 +30,7 @@ import { applyChangeDecision } from "@/lib/compliance/change-request-service";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
 import type { OrgTx } from "@/lib/db/with-org";
+import { destroyVersion } from "@/lib/documents/destruction";
 import { markVersionApproved } from "@/lib/documents/version-service";
 import { notify } from "@/lib/notifications/notify";
 import { syncTrainingAssignments } from "@/lib/trainings/assignments";
@@ -71,6 +73,42 @@ export async function applyApprovalOutcome(
 							eq(walletKeyHolders.status, "proposed"),
 						),
 					);
+			return extra;
+		}
+		// Vernichtung einer Fassung (AP9.3): mit der Freigabe vernichtet; die
+		// Begründung steht seit dem Antrag an der Fassung, abgelehnt = weg
+		case "document.destroy": {
+			if (!approved && !rejected) return extra;
+			const [v] = await tx
+				.select({
+					id: documentVersions.id,
+					note: documentVersions.destructionNote,
+				})
+				.from(documentVersions)
+				.where(
+					and(
+						eq(documentVersions.organizationId, ctx.orgId),
+						eq(documentVersions.documentId, r.entityId),
+						eq(documentVersions.version, r.entityVersionRef ?? ""),
+					),
+				)
+				.limit(1);
+			if (!v) return extra;
+			if (rejected) {
+				await tx
+					.update(documentVersions)
+					.set({ destructionNote: null })
+					.where(eq(documentVersions.id, v.id));
+				return extra;
+			}
+			const res = await destroyVersion(tx, {
+				orgId: ctx.orgId,
+				versionId: v.id,
+				userId: r.requesterUserId,
+				note: v.note ?? "",
+				now: new Date(),
+			});
+			if (res.ok) extra.push(res.audit);
 			return extra;
 		}
 		// EU-Konformitätserklärung: mit der Freigabe ausgestellt (heute)

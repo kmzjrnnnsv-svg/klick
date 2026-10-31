@@ -1002,4 +1002,25 @@ describe("both.money-Verbindung im Tick", () => {
 			}),
 		).toEqual([]);
 	});
+
+	it("erinnert monatlich an abgelaufene Aufbewahrung einer Fassung (AP9.3)", () => {
+		const res = collectDueItems(NOW, {
+			...empty,
+			documentRetention: [
+				{
+					docNumber: "POL-001",
+					title: "Leitlinie",
+					version: "1.0",
+					retainUntil: new Date("2026-09-30T00:00:00Z"),
+					ownerUserId: "u-1",
+				},
+			],
+		});
+		const n = res.notifications.find((x) =>
+			x.title.startsWith("Aufbewahrung abgelaufen"),
+		);
+		expect(n?.recipients).toEqual(["u-1"]);
+		expect(n?.link).toBe("/dokumente/POL-001");
+		expect(n?.dedupeKey).toBe("retention:document:POL-001:1.0:2026-10");
+	});
 });

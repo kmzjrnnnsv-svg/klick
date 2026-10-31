@@ -1,4 +1,15 @@
-import { and, desc, eq, gt, inArray, lte, sql } from "drizzle-orm";
+import {
+	and,
+	desc,
+	eq,
+	gt,
+	inArray,
+	isNull,
+	lte,
+	notInArray,
+	or,
+	sql,
+} from "drizzle-orm";
 import { member, user } from "@/db/auth-schema";
 import {
 	approvalDecisions,
@@ -1143,6 +1154,9 @@ export async function latestRequestFor(
 	orgId: string,
 	entityType: EntityKind,
 	entityId: string,
+	// Anträge mit eigener Anzeige ausblenden (z. B. Vernichtung einer
+	// Fassung, AP9.3, steht an der Fassung statt in der Freigabe-Leiste)
+	opts: { excludeTriggers?: readonly string[] } = {},
 ) {
 	const [row] = await tx
 		.select({
@@ -1160,6 +1174,12 @@ export async function latestRequestFor(
 				eq(approvalRequests.organizationId, orgId),
 				eq(approvalRequests.entityType, entityType),
 				eq(approvalRequests.entityId, entityId),
+				opts.excludeTriggers?.length
+					? or(
+							isNull(approvalWorkflows.trigger),
+							notInArray(approvalWorkflows.trigger, [...opts.excludeTriggers]),
+						)
+					: undefined,
 			),
 		)
 		.orderBy(desc(approvalRequests.requestedAt))

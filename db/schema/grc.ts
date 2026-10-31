@@ -267,7 +267,9 @@ export const storagePurgeQueue = pgTable(
 		id: pk(),
 		organizationId: orgId(),
 		storageKey: text().notNull(),
-		reason: text({ enum: ["evidence_deleted", "orphan"] }).notNull(),
+		reason: text({
+			enum: ["evidence_deleted", "orphan", "document_destroyed"],
+		}).notNull(),
 		refId: uuid(),
 		requestedByUserId: userRef(),
 		requestedAt: ts().notNull().defaultNow(),
@@ -349,6 +351,25 @@ export const DOCUMENT_TYPES = [
 	"marketing",
 ] as const;
 
+// Herkunft eines externen Dokuments (ISO 27001 7.5.3, letzter Absatz):
+// Norm, Gesetz, Vertrag, Herstellerunterlage, Vorgabe einer Behörde
+export const EXTERNAL_KINDS = [
+	"standard",
+	"law",
+	"contract",
+	"manufacturer",
+	"authority",
+	"other",
+] as const;
+export type ExternalKind = (typeof EXTERNAL_KINDS)[number];
+export type ExternalSource = {
+	kind: ExternalKind;
+	issuer: string;
+	// Ausgabe bzw. Stand, z. B. „ISO/IEC 27001:2022“
+	edition: string;
+	url?: string | null;
+};
+
 export const DOCUMENT_STATUS = [
 	"draft",
 	"in_review",
@@ -395,7 +416,11 @@ export const documents = pgTable(
 		}),
 		// Rollen/Funktionen, die die Kenntnisnahme bestätigen müssen.
 		distribution: stringList(),
+		// Jahre nach Ende der Gültigkeit einer Fassung; leer = Vorschlag je Art
+		// (lib/documents/retention.ts)
 		retentionYears: integer(),
+		// gesetzt = externes Dokument (AP9.3)
+		externalSource: json<ExternalSource>(),
 		legalBasisRefs: stringList(),
 		language: text().notNull().default("de"),
 		templateCode: text(),
@@ -430,6 +455,13 @@ export const documentVersions = pgTable(
 		publishedAt: ts(),
 		// zurückgezogen: gilt ab hier nicht mehr (ohne Nachfolgerin)
 		retiredAt: ts(),
+		// Aufbewahrung verlängert bis (z. B. Prüfung, Rechtsstreit); sonst Ende
+		// der Gültigkeit + documents.retentionYears
+		retainUntil: date(),
+		// vernichtet: Text und Datei weg, Prüfsumme bleibt (AP9.3)
+		destroyedAt: ts(),
+		destroyedByUserId: userRef(),
+		destructionNote: text(),
 		createdByUserId: userRef(),
 		createdAt: ts().notNull().defaultNow(),
 	},

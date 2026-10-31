@@ -134,6 +134,8 @@ export async function loadControlledSource(
 		return null;
 	const row = versions.find((v) => v.version === wanted) ?? null;
 	if (opts.view === "published" && !row?.publishedAt) return null;
+	// vernichtete Fassung (AP9.3): kein Inhalt mehr, kein PDF
+	if (row?.destroyedAt) return null;
 	// Welche Fassungen die Ansicht kennt (Verlauf, Unterschriften)
 	const visible = (v: { id: string; publishedAt: Date | null }) =>
 		opts.view === "full" ||

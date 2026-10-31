@@ -113,6 +113,23 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		defaultEnabled: true,
 	},
 	{
+		// AP9.3: Vernichtung einer Fassung nach Ablauf der Aufbewahrung
+		kind: "document_destruction",
+		name: "Dokument-Fassung vernichten",
+		entityType: "document",
+		description:
+			"Eine Fassung, deren Aufbewahrung abgelaufen ist, vernichtet Klick erst nach Freigabe der Geschäftsleitung (ISO 27001 7.5.3 f). Text und Datei sind danach weg, Prüfsumme und Verlauf bleiben. Beantragt die Geschäftsleitung selbst, entfällt die Stufe.",
+		steps: [
+			{
+				order: 1,
+				approverRule: "function:management_body",
+				skipIf: ["function:management_body"],
+				slaDays: 10,
+			},
+		],
+		defaultEnabled: true,
+	},
+	{
 		kind: "risk_acceptance",
 		name: "Risiko akzeptieren",
 		entityType: "risk",
