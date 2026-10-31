@@ -1175,7 +1175,13 @@
 		"exportSoa": "SoA (Markdown)",
 		"tabReadiness": "Prüfungsreife",
 		"variant": "Variante",
-		"variantSaved": "Variante gespeichert. {created, plural, =0 {Keine neuen Controls} one {# neues Control} other {# neue Controls}}, {na, plural, one {# Anforderung} other {# Anforderungen}} nicht anwendbar."
+		"variantSaved": "Variante gespeichert. {created, plural, =0 {Keine neuen Controls} one {# neues Control} other {# neue Controls}}, {na, plural, one {# Anforderung} other {# Anforderungen}} nicht anwendbar.",
+		"customBadge": "Eigenes Rahmenwerk",
+		"customLead": "Eigenes Rahmenwerk deiner Organisation. Anforderungen und Zuordnung zu den Maßnahmen pflegst du selbst.",
+		"customCopied": "Kopie von {name}. Spätere Änderungen in Klick erreichen diese Fassung nicht.",
+		"customEdit": "Bearbeiten",
+		"customDraft": "Entwurf: zählt erst, wenn eine Inhaber:in es einschaltet.",
+		"customUnmapped": "keiner Maßnahme zugeordnet"
 	},
 	"Synergies": {
 		"title": "Synergien",
