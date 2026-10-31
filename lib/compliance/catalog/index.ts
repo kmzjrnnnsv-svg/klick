@@ -31,6 +31,8 @@ import {
 	KASSEN_SECTIONS,
 } from "./misc-finance";
 import { NIS2_REQUIREMENTS, NIS2_SECTIONS } from "./nis2";
+import { PCI_SECTIONS } from "./pci-dss";
+import { PCI_DSS_REQUIREMENTS } from "./pci-saq";
 import { SANCTIONS_REQUIREMENTS, SANCTIONS_SECTIONS } from "./sanctions";
 import { SOC2_REQUIREMENTS, SOC2_SECTIONS } from "./soc2";
 import { TFR_REQUIREMENTS, TFR_SECTIONS } from "./tfr";
@@ -95,6 +97,7 @@ const INDICES: Record<
 		sections: BSI_200_4_SECTIONS,
 		requirements: BSI_200_4_REQUIREMENTS,
 	},
+	"pci-dss": { sections: PCI_SECTIONS, requirements: PCI_DSS_REQUIREMENTS },
 	...CORRIDOR_INDICES,
 };
 

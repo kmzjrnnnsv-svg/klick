@@ -46,6 +46,7 @@ describe("catalog shape", () => {
 				"bsi-200-2",
 				"bsi-200-3",
 				"bsi-200-4",
+				"pci-dss",
 				"uk-fca",
 				"ae-vara",
 				"bh-cbb",

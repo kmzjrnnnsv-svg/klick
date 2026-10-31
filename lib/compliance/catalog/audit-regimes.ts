@@ -237,6 +237,24 @@ export const AUDIT_REGIMES: readonly AuditRegime[] = [
 		source:
 			"Zertifizierungsschema des BSI für ISO 27001 auf der Basis von IT-Grundschutz; Fristen mit der Zertifizierungsstelle (prüfen)",
 	},
+	{
+		framework: "pci-dss",
+		label: "PCI-DSS-Bewertung (Prüfbericht oder SAQ)",
+		cycles: [
+			{
+				kind: "attestation",
+				label: "Jährliche Bewertung mit Bestätigung (AOC)",
+				everyMonths: 12,
+			},
+			INTERNAL_YEARLY,
+		],
+		classes: CLASSES(["Nicht erfüllt", "Teilweise erfüllt", "Hinweis"], {
+			major: { planDays: 14, closeDays: 90 },
+			minor: { planDays: 30, closeDays: 180 },
+		}),
+		source:
+			"PCI DSS v4.0.1; Frist und Nachweisweg legen Acquirer bzw. Kartenorganisationen fest (prüfen)",
+	},
 ];
 
 export const AUDIT_REGIME_BY_FRAMEWORK: ReadonlyMap<string, AuditRegime> =

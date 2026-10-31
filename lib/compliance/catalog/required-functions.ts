@@ -53,9 +53,10 @@ export const REQUIRED_FUNCTIONS: readonly RequiredFunction[] = [
 			"zag-marisk",
 			"bsi-200-1",
 			"bsi-200-2",
+			"pci-dss",
 		],
 		legalBasis:
-			"ISO 27001 5.3 / A.5.2 · ZAG-MaRisk AT 7.2 · NIS2 Art. 21 · BSI-Standard 200-2 Kap. 4.1",
+			"ISO 27001 5.3 / A.5.2 · ZAG-MaRisk AT 7.2 · NIS2 Art. 21 · BSI-Standard 200-2 Kap. 4.1 · PCI DSS 12.1.4",
 		deputyRequired: true,
 		hint: "Steuert das ISMS, berichtet direkt an die Leitung; organisatorisch unabhängig vom IT-Betrieb.",
 	},
@@ -77,8 +78,9 @@ export const REQUIRED_FUNCTIONS: readonly RequiredFunction[] = [
 	{
 		function: "incident_manager",
 		title: "Vorfall-Manager:in",
-		frameworks: ["dora", "nis2", "iso27001", "zag"],
-		legalBasis: "DORA Art. 17 · NIS2 Art. 23 · ISO 27001 A.5.24",
+		frameworks: ["dora", "nis2", "iso27001", "zag", "pci-dss"],
+		legalBasis:
+			"DORA Art. 17 · NIS2 Art. 23 · ISO 27001 A.5.24 · PCI DSS 12.10.3",
 		deputyRequired: true,
 		hint: "Klassifiziert Vorfälle, hält die Meldefristen, führt das Vorfallregister.",
 	},

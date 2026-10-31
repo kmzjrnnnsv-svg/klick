@@ -1,4 +1,5 @@
 import { CORRIDOR_FRAMEWORK_METAS } from "./corridors";
+import { PCI_VARIANTS } from "./pci-saq";
 import type { CatalogFrameworkMeta } from "./types";
 
 // Rahmenwerk-Stammdaten (Rechtsstand Oktober 2026). Die Anforderungs-Indizes
@@ -346,6 +347,27 @@ export const FRAMEWORKS: CatalogFrameworkMeta[] = [
 			"https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/BSI-Standards/bsi-standards_node.html",
 		sortOrder: 200,
 		phase: "P6",
+	},
+	{
+		slug: "pci-dss",
+		name: "PCI DSS v4.0.1",
+		version: "4.0.1",
+		authority: "PCI Security Standards Council",
+		jurisdiction: "global",
+		description:
+			"Sicherheitsstandard der Kartenorganisationen für alle, die Kartendaten speichern, verarbeiten oder übertragen: Händler, Zahlungsdienstleister und deren Dienstleister. Vertraglich verlangt über Acquirer und Kartenorganisationen; welche Anforderungen gelten, hängt vom Nachweisweg ab (SAQ-Typ oder Prüfbericht).",
+		recommendedApproach:
+			"Zuerst den Geltungsbereich klein machen (Zahlung auslagern, Tokenisierung, Segmentierung), dann den Nachweisweg wählen. ISO 27001 deckt rund die Hälfte ab; spezifisch sind Kontodaten, Zahlungsseiten, ASV-Scans und Kartenlesegeräte.",
+		sourceUrl: "https://www.pcisecuritystandards.org/document_library/",
+		sortOrder: 205,
+		phase: "P6",
+		exclusion: {
+			label: "Nicht anwendbar (N/A) mit Begründung",
+			basis:
+				"PCI DSS v4.0.1, Berichtsanleitung: jede Anforderung kann mit Begründung als nicht anwendbar bewertet werden",
+		},
+		variants: PCI_VARIANTS,
+		variantLabel: "Nachweisweg",
 	},
 	...CORRIDOR_FRAMEWORK_METAS,
 ];

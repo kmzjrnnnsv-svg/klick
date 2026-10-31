@@ -156,6 +156,9 @@ export type EntityProfile = {
 	specialCategories?: boolean;
 	dataSubjects?: "lt1k" | "1k_100k" | "gt100k";
 	customerCountries?: string[];
+	// Kartendaten: keine, Zahlung vollständig beim Zahlungsdienstleister
+	// (Weiterleitung, iframe) oder über eigene Systeme bzw. Terminals
+	cardData?: "none" | "outsourced" | "own";
 	// gewählte Variante je Rahmenwerk (BSI-Absicherung, PCI-SAQ)
 	frameworkVariants?: Record<string, string>;
 };

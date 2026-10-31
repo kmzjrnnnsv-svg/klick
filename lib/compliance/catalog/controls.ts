@@ -1,5 +1,6 @@
 import { PART_C } from "./controls-finance";
 import { PART_F } from "./controls-grundschutz";
+import { PART_G } from "./controls-payment";
 import { PART_D } from "./controls-privacy";
 import { PART_E } from "./controls-product";
 import type { CatalogControl } from "./types";
@@ -2209,6 +2210,7 @@ export const CONTROLS: CatalogControl[] = [
 	...PART_D,
 	...PART_E,
 	...PART_F,
+	...PART_G,
 ];
 
 export const CONTROL_BY_CODE: ReadonlyMap<string, CatalogControl> = new Map(

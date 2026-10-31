@@ -70,10 +70,10 @@ describe("Abläufe auf /funktionen", () => {
 describe("Zahlen aus dem Katalog", () => {
 	it("stimmen mit dem Katalog überein", () => {
 		const t = catalogTotals();
-		expect(t.frameworks).toBe(27);
-		expect(t.requirements).toBe(556);
-		expect(t.controls).toBe(175);
-		expect(t.edges).toBe(943);
+		expect(t.frameworks).toBe(28);
+		expect(t.requirements).toBe(816);
+		expect(t.controls).toBe(185);
+		expect(t.edges).toBe(1276);
 	});
 
 	it("kennt jedes Rahmenwerk der Auswahl", () => {

@@ -1,3 +1,4 @@
+import { PCI_EDGES } from "./pci-edges";
 import type { CatalogControlMapping } from "./types";
 
 // Synergie-Kanten: welches Common Control erfüllt welche Anforderung in
@@ -1030,4 +1031,6 @@ export const CONTROL_REQUIREMENTS: CatalogControlMapping[] = [
 	m("CC-GOV-06", "bsi-200-4:10", "partial"),
 	m("CC-GOV-07", "bsi-200-4:10", "partial"),
 	m("CC-GOV-05", "bsi-200-4:10", "partial"),
+	// ── PCI DSS v4.0.1 (Regeln in pci-edges.ts) ───────────────────────────────
+	...PCI_EDGES,
 ];

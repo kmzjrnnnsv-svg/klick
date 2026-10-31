@@ -5216,7 +5216,12 @@
 		"cardContinue": "Weiter mit „{step}“",
 		"openSetup": "Geführte Einrichtung öffnen",
 		"providersExisting": "Schon im Register",
-		"assignNow": "Besetzen"
+		"assignNow": "Besetzen",
+		"cardData": "Verarbeitet ihr Kreditkartendaten?",
+		"cardDataHint": "Davon hängt ab, ob PCI DSS gilt und welcher Nachweisweg passt. Ändern kannst du das später unter Einstellungen > Rahmenwerke.",
+		"cardData_none": "Nein",
+		"cardData_outsourced": "Ja, die Zahlung läuft vollständig beim Zahlungsdienstleister (Weiterleitung oder eingebettetes Formular)",
+		"cardData_own": "Ja, über eigene Systeme, Kassen oder Kartenterminals"
 	},
 	"Permissions": {
 		"area_register": "Register",
