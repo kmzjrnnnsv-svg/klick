@@ -22,6 +22,7 @@ import {
 	REQUIREMENT_BY_KEY,
 } from "@/lib/compliance/catalog";
 import type { ReqCoverage } from "@/lib/compliance/coverage";
+import { exclusionRule } from "@/lib/compliance/exclusions";
 import {
 	getOrgCoverageCached,
 	shortFrameworkName,
@@ -61,6 +62,13 @@ export default async function RequirementPage({
 		: "inactive";
 	const applicability = cov?.applicabilityDetail.get(key);
 	const applicable = status !== "not_applicable";
+	const exclusion = exclusionRule(slug, code);
+	// Manueller Ausschluss, den das Rahmenwerk nicht kennt (vor dem 31.10.
+	// möglich): sichtbar machen statt still gelten lassen
+	const exclusionInvalid =
+		applicability?.source === "manual" &&
+		applicability.applicable === false &&
+		!exclusion.allowed;
 	const section = fw.sections.find((s) => s.code === req.sectionCode);
 	const edges = EDGES_BY_REQUIREMENT.get(key) ?? [];
 	const related = (req.relatedRequirements ?? [])
@@ -143,6 +151,7 @@ export default async function RequirementPage({
 						code={code}
 						applicable={applicable}
 						canEdit={allows(ctx, { control: ["update"] })}
+						exclusion={exclusion.allowed ? exclusion : null}
 					/>
 				) : (
 					<Button variant="outline" size="sm" asChild>
@@ -162,6 +171,16 @@ export default async function RequirementPage({
 						{applicability
 							? `${t(`source_${applicability.source as "manual"}`)}${applicability.note ? ` — ${applicability.note}` : ""}`
 							: t("source_default")}
+						{exclusionInvalid && (
+							<span className="mt-1 block text-footnote text-warning">
+								{t("exclusionInvalid")}
+							</span>
+						)}
+					</MetaItem>
+					<MetaItem label={t("exclusion")}>
+						{exclusion.allowed
+							? `${exclusion.label} (${exclusion.basis})`
+							: t("exclusionNone")}
 					</MetaItem>
 					{fw.sourceUrl && (
 						<MetaItem label={t("sourceLink")}>

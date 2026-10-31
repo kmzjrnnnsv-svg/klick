@@ -33,6 +33,19 @@ export type Recommendation = {
 
 export type Tools = { startup: string[]; scale: string[] };
 
+// Ob ein Rahmenwerk Ausschlüsse kennt (ISO 27001 Annex A über die SoA,
+// SOC 2 Zusatzkategorien, PCI DSS „Not Applicable“). Ohne Eintrag gibt es
+// keinen Ausschluss, nur verhältnismäßige Umsetzung (DORA, NIS2, GwG …).
+export type ExclusionPolicy = {
+	// Wie das Rahmenwerk den Ausschluss nennt, z. B. „Ausschluss in der SoA“
+	label: string;
+	// Fundstelle der Regel
+	basis: string;
+	// Nur diese Codes (Präfix) bzw. Abschnitte; ohne beides jede Anforderung
+	codePrefixes?: string[];
+	sections?: string[];
+};
+
 export type CatalogFrameworkMeta = {
 	slug: string;
 	name: string;
@@ -49,6 +62,7 @@ export type CatalogFrameworkMeta = {
 	// Für Nicht-Finanz-Kunden relevant (NIS2) oder nur ab Lizenzstufe (KWG).
 	appliesFromStage?: LicenceStage;
 	phase: "P1" | "P4" | "P5" | "P6";
+	exclusion?: ExclusionPolicy;
 };
 
 export type CatalogSection = { code: string; title: string; sortOrder: number };

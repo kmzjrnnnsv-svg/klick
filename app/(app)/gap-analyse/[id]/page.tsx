@@ -19,9 +19,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import type { ImplStatus } from "@/db/schema/enums";
-import { applyChanges, proposeControlStatus } from "@/lib/assessments/apply";
+import {
+	applyChanges,
+	proposeControlStatus,
+	proposeExclusions,
+} from "@/lib/assessments/apply";
 import { sectionsOf } from "@/lib/assessments/catalog-template";
 import { productMeasures, proposeMeasures } from "@/lib/assessments/measures";
+import { naAllowed, naOpenShare } from "@/lib/assessments/na";
 import {
 	effectiveAnswer,
 	questionVerdict,
@@ -39,6 +44,7 @@ import {
 	synergyCatalogFor,
 } from "@/lib/compliance/catalog-view";
 import { deriveCoverage } from "@/lib/compliance/coverage";
+import { exclusionAllowedForKey, naImpact } from "@/lib/compliance/exclusions";
 import {
 	fmtDate,
 	getOrgCoverageCached,
@@ -123,7 +129,9 @@ export default async function AssessmentPage({
 
 	const states = answerStates(a.questions, data.answers, data.controlEvidence);
 	const answerBy = new Map(data.answers.map((x) => [x.questionCode, x]));
-	const score = scoreAssessment(a.questions, states);
+	const score = scoreAssessment(a.questions, states, {
+		naOpenShare: subjectScoped ? undefined : naOpenShare,
+	});
 	const sections = sectionsOf(a.questions);
 	const answeredIn = (code: string) =>
 		a.questions.filter(
@@ -135,9 +143,28 @@ export default async function AssessmentPage({
 			: null;
 
 	// Abdeckung heute vs. nach Übernahme (nur die Rahmenwerke des Fragebogens)
-	const changes = proposeControlStatus(a.questions, states, data.implStatus);
+	const changes = proposeControlStatus(
+		a.questions,
+		states,
+		data.implStatus,
+		exclusionAllowedForKey,
+	);
 	const after = applyChanges(data.implStatus, changes);
 	const cov = await getOrgCoverageCached(ctx);
+	const alreadyExcluded = new Set(
+		[...(cov?.applicabilityDetail ?? [])]
+			.filter(([, d]) => d.source === "manual" && !d.applicable)
+			.map(([k]) => k),
+	);
+	const exclusions = subjectScoped
+		? []
+		: proposeExclusions(
+				a.questions,
+				states,
+				exclusionAllowedForKey,
+				alreadyExcluded,
+			);
+	const exclusionInfo = naImpact(exclusions.map((x) => x.key)).excludable;
 	const applicability = new Map(
 		[...(cov?.applicabilityDetail ?? [])].map(([k, d]) => [k, d.applicable]),
 	);
@@ -151,7 +178,13 @@ export default async function AssessmentPage({
 		...coverageInput,
 		implStatus: data.implStatus,
 	});
-	const covAfter = deriveCoverage({ ...coverageInput, implStatus: after });
+	const applicabilityAfter = new Map(applicability);
+	for (const x of exclusions) applicabilityAfter.set(x.key, false);
+	const covAfter = deriveCoverage({
+		...coverageInput,
+		applicability: applicabilityAfter,
+		implStatus: after,
+	});
 
 	const base = `/gap-analyse/${a.id}`;
 	const stepHref = (s: Step, extra = "") => `${base}?schritt=${s}${extra}`;
@@ -300,6 +333,14 @@ export default async function AssessmentPage({
 											key={q.code}
 											assessmentId={a.id}
 											question={q}
+											na={
+												subjectScoped || !q.controlCode
+													? null
+													: {
+															allowed: naAllowed(q),
+															...naImpact(q.requirements ?? []),
+														}
+											}
 											initial={{
 												answer: row?.answer ?? null,
 												comment: row?.comment ?? null,
@@ -444,6 +485,7 @@ export default async function AssessmentPage({
 											from: ts(IMPL_KEY[c.from] as "notStarted"),
 											to: ts(IMPL_KEY[c.to] as "notStarted"),
 										}))}
+										exclusions={exclusionInfo}
 									/>
 								</div>
 							)}

@@ -17,6 +17,11 @@ export const FRAMEWORKS: CatalogFrameworkMeta[] = [
 		sourceUrl: "https://www.iso.org/standard/27001",
 		sortOrder: 10,
 		phase: "P1",
+		exclusion: {
+			label: "Ausschluss in der SoA",
+			basis: "ISO/IEC 27001:2022 6.1.3 d (nur Anhang A, nie die Klauseln 4–10)",
+			codePrefixes: ["A."],
+		},
 	},
 	{
 		slug: "dora",
@@ -244,6 +249,11 @@ export const FRAMEWORKS: CatalogFrameworkMeta[] = [
 			"https://www.aicpa-cima.com/topic/audit-assurance/audit-and-assurance-greater-than-soc-2",
 		sortOrder: 170,
 		phase: "P6",
+		exclusion: {
+			label: "Kategorie nicht im Prüfungsumfang",
+			basis: "AICPA TSC: Security (CC) gilt immer, A, C, PI und P sind wählbar",
+			sections: ["A1", "C1", "PI1", "P"],
+		},
 	},
 	{
 		slug: "ccss",

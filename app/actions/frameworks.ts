@@ -22,6 +22,7 @@ import {
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import type { WorkflowEnabledByDuty } from "@/lib/compliance/catalog/approval-duties";
 import { CATALOG_EDGES, CATALOG_REQ_REFS } from "@/lib/compliance/catalog-view";
+import { exclusionRule } from "@/lib/compliance/exclusions";
 import { frameworkRemovalImpact } from "@/lib/compliance/framework-removal";
 import {
 	activeFrameworkSlugs,
@@ -189,6 +190,11 @@ async function setRequirementApplicabilityImpl(
 	const parsed = setApplicabilitySchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
+	// Ausschließen nur, wo das Rahmenwerk es kennt (ISO Annex A, SOC 2
+	// Zusatzkategorien …); wieder einbeziehen geht immer
+	if (!d.applicable && !exclusionRule(d.framework, d.code).allowed) {
+		return { ok: false, error: "exclusion_not_allowed" };
+	}
 	if (!d.applicable && !(d.note && d.note.trim().length >= 3)) {
 		return {
 			ok: false,

@@ -50,9 +50,17 @@ export function QuestionCard({
 	canAnswer,
 	canDelegate,
 	canImportDocument,
+	na = null,
 }: {
 	assessmentId: string;
 	question: AssessmentQuestion;
+	// Gap-Analyse aus dem Katalog: was „Nicht relevant“ bewirkt (Ausschluss
+	// nur, wo das Rahmenwerk ihn kennt); null = Fragebogen ohne Katalogbezug
+	na?: {
+		allowed: boolean;
+		excludable: { key: string; label: string; how: string }[];
+		blocked: { key: string; label: string }[];
+	} | null;
 	initial: {
 		answer: AssessmentAnswer | null;
 		comment: string | null;
@@ -111,7 +119,9 @@ export function QuestionCard({
 			});
 			if (!res.ok) {
 				setStatus("idle");
-				toast.error(errorText(tc, res));
+				toast.error(
+					res.error === "na_not_allowed" ? t("naBlocked") : errorText(tc, res),
+				);
 				return;
 			}
 			setStatus("saved");
@@ -252,30 +262,64 @@ export function QuestionCard({
 					{t("question")}
 				</legend>
 				<div className="flex flex-wrap gap-2">
-					{ANSWERS.map((a) => (
-						<label
-							key={a}
-							className={cn(
-								"cursor-pointer rounded-xl bg-card px-3 py-1.5 text-subhead transition-colors hover:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
-								answer === a && ANSWER_TONE[a],
-								answer === a && "font-medium",
-							)}
-						>
-							<input
-								type="radio"
-								className="sr-only"
-								name={`answer-${question.code}`}
-								value={a}
-								checked={answer === a}
-								onChange={() => {
-									setAnswer(a);
-									save({ answer: a });
-								}}
-							/>
-							{t(`answer_${a}`)}
-						</label>
-					))}
+					{ANSWERS.map((a) => {
+						const blocked = a === "na" && na !== null && !na.allowed;
+						return (
+							<label
+								key={a}
+								className={cn(
+									"cursor-pointer rounded-xl bg-card px-3 py-1.5 text-subhead transition-colors hover:bg-muted has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
+									answer === a && ANSWER_TONE[a],
+									answer === a && "font-medium",
+									blocked && "cursor-not-allowed opacity-50 hover:bg-card",
+								)}
+							>
+								<input
+									type="radio"
+									className="sr-only"
+									name={`answer-${question.code}`}
+									value={a}
+									disabled={blocked}
+									aria-describedby={blocked ? `${id}-na-blocked` : undefined}
+									checked={answer === a}
+									onChange={() => {
+										setAnswer(a);
+										save({ answer: a });
+									}}
+								/>
+								{t(`answer_${a}`)}
+							</label>
+						);
+					})}
 				</div>
+				{na && !na.allowed && (
+					<p
+						id={`${id}-na-blocked`}
+						className="mt-2 text-footnote text-muted-foreground"
+					>
+						{t("naBlocked")}
+					</p>
+				)}
+				{answer === "na" &&
+					na &&
+					(na.excludable.length > 0 || na.blocked.length > 0) && (
+						<div className="mt-3 flex flex-col gap-1 rounded-xl bg-muted px-3 py-2 text-footnote">
+							{na.excludable.length > 0 && (
+								<p>
+									{t("naExcludes", {
+										list: na.excludable.map((x) => x.label).join(", "),
+									})}
+								</p>
+							)}
+							{na.blocked.length > 0 && (
+								<p className="text-muted-foreground">
+									{t("naStaysOpen", {
+										list: na.blocked.map((x) => x.label).join(", "),
+									})}
+								</p>
+							)}
+						</div>
+					)}
 				{answer === "na" && (
 					<div className="mt-3 flex flex-col gap-1.5">
 						<Label htmlFor={`${id}-na`}>{t("naReason")}</Label>
