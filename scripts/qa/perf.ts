@@ -2,13 +2,15 @@
 // JavaScript beim ersten Laden. Gegen einen Server, der mit
 // KLICK_QUERY_LOG=true läuft und dessen Ausgabe in PERF_LOG steht.
 // Die Sitzung legt das Skript selbst in der Mess-Datenbank an (nur *_perf).
+// Tabelle auf stderr, Ergebnis als JSON auf stdout (umleiten), das Skript
+// schreibt selbst keine Dateien.
 //
 //   PERF_BASE=http://localhost:3500 PERF_LOG=…/perf-server.log \
 //   PERF_DATABASE_URL=postgres://postgres:…@localhost:5432/klick_perf \
 //   BETTER_AUTH_SECRET=… pnpm exec tsx scripts/qa/perf.ts \
-//     --user qa+…@example.com --org qa-org-82629 --out …/perf-vorher.json
+//     --user qa+…@example.com --org qa-org-82629 > …/perf-vorher.json
 import { createHmac, randomBytes } from "node:crypto";
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { chromium } from "@playwright/test";
 import postgres from "postgres";
 
@@ -27,11 +29,10 @@ const arg = (name: string) => {
 };
 const email = arg("user");
 const slug = arg("org");
-const out = arg("out");
 const runs = Number(arg("runs") ?? "3");
 // Produktions-Build: useSecureCookies, also mit Präfix „__Secure-“
 const COOKIE = process.env.PERF_COOKIE ?? "__Secure-klick.session_token";
-if (!email || !slug || !out) throw new Error("--user, --org und --out angeben");
+if (!email || !slug) throw new Error("--user und --org angeben");
 
 const PAGES = [
 	"/heute",
@@ -193,12 +194,12 @@ async function main() {
 			repeated,
 		};
 		results.push(row);
-		console.log(
+		console.error(
 			`${path.padEnd(40)} ${String(row.status).padEnd(4)} ${String(row.ms).padStart(6)} ms ${String(row.statements).padStart(5)} SQL  HTML ${row.htmlKb} KB  RSC ${row.rscKb} KB  JS ${row.jsKb} KB`,
 		);
 	}
 	await browser.close();
-	writeFileSync(out as string, JSON.stringify(results, null, 2));
+	process.stdout.write(`${JSON.stringify(results, null, 2)}\n`);
 }
 
 main().catch((e) => {
