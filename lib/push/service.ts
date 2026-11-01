@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { and, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import { notifications, pushSubscriptions } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
-import type { OrgTx } from "@/lib/db/with-org";
+import type { OrgRunner, OrgTx } from "@/lib/db/with-org";
 import {
 	channelsFor,
 	NO_REMOTE,
@@ -121,7 +121,8 @@ export async function removeDevice(
 	};
 }
 
-const MAX_AGE_DAYS = 3;
+// Ältere Hinweise gehen nicht mehr per Push (die Mail fängt sie auf)
+export const PUSH_MAX_AGE_DAYS = 3;
 const MAX_PER_RUN = 50;
 
 export type PushStats = { sent: number; failed: number };
@@ -129,54 +130,64 @@ export type PushStats = { sent: number; failed: number };
 // Offene Benachrichtigungen einer Org als Push zustellen (Job push-notify).
 // Erfolg = mindestens ein Gerät der Person hat angenommen; abgemeldete
 // Geräte (404/410) fallen weg; Drosselung bricht den Lauf ab.
+// Gesendet wird ohne offene Transaktion (OrgRunner): lesen, senden, je
+// Benachrichtigung kurz schreiben. Stürzt der Prozess zwischen Senden und
+// Schreiben ab, kommt der Hinweis einmal doppelt; er trägt nur Titel und Link.
 export async function deliverPush(
-	tx: OrgTx,
+	run: OrgRunner,
 	orgId: string,
 	send: PushSender,
 	opts: { baseUrl: string; now: Date },
 ): Promise<PushStats> {
 	const stats: PushStats = { sent: 0, failed: 0 };
-	const prefs = await loadChannelPrefs(tx, orgId);
-	const wants = [...prefs.entries()]
-		.filter(([, p]) => wantsChannel(p, "push"))
-		.map(([u]) => u);
-	if (wants.length === 0) return stats;
-	const devices = await tx
-		.select()
-		.from(pushSubscriptions)
-		.where(
-			and(
-				eq(pushSubscriptions.organizationId, orgId),
-				inArray(pushSubscriptions.userId, wants),
-			),
-		);
-	const byUser = new Map<string, typeof devices>();
-	for (const d of devices)
-		byUser.set(d.userId, [...(byUser.get(d.userId) ?? []), d]);
-	if (byUser.size === 0) return stats;
-	const since = new Date(opts.now.getTime() - MAX_AGE_DAYS * 86_400_000);
-	const rows = await tx
-		.select({
-			id: notifications.id,
-			userId: notifications.userId,
-			kind: notifications.kind,
-			title: notifications.title,
-			link: notifications.link,
-			pushAttempts: notifications.pushAttempts,
-		})
-		.from(notifications)
-		.where(
-			and(
-				eq(notifications.organizationId, orgId),
-				inArray(notifications.userId, [...byUser.keys()]),
-				isNull(notifications.pushSentAt),
-				lt(notifications.pushAttempts, PUSH_MAX_ATTEMPTS),
-				gte(notifications.createdAt, since),
-			),
-		)
-		.orderBy(notifications.createdAt)
-		.limit(MAX_PER_RUN);
+	const since = new Date(opts.now.getTime() - PUSH_MAX_AGE_DAYS * 86_400_000);
+	const work = await run.read(async (tx) => {
+		const prefs = await loadChannelPrefs(tx, orgId);
+		const wants = [...prefs.entries()]
+			.filter(([, p]) => wantsChannel(p, "push"))
+			.map(([u]) => u);
+		if (wants.length === 0) return null;
+		const devices = await tx
+			.select()
+			.from(pushSubscriptions)
+			.where(
+				and(
+					eq(pushSubscriptions.organizationId, orgId),
+					inArray(pushSubscriptions.userId, wants),
+				),
+			);
+		const byUser = new Map<string, typeof devices>();
+		for (const d of devices)
+			byUser.set(d.userId, [...(byUser.get(d.userId) ?? []), d]);
+		if (byUser.size === 0) return null;
+		const rows = await tx
+			.select({
+				id: notifications.id,
+				userId: notifications.userId,
+				kind: notifications.kind,
+				title: notifications.title,
+				link: notifications.link,
+				pushAttempts: notifications.pushAttempts,
+			})
+			.from(notifications)
+			.where(
+				and(
+					eq(notifications.organizationId, orgId),
+					inArray(notifications.userId, [...byUser.keys()]),
+					isNull(notifications.pushSentAt),
+					lt(notifications.pushAttempts, PUSH_MAX_ATTEMPTS),
+					gte(notifications.createdAt, since),
+				),
+			)
+			.orderBy(notifications.createdAt)
+			.limit(MAX_PER_RUN);
+		return { prefs, byUser, rows };
+	});
+	if (!work) return stats;
+	const { prefs, byUser, rows } = work;
 	const immediate = new Set<string>(IMMEDIATE_MAIL_KINDS);
+	// abgemeldete Geräte nicht noch einmal anschreiben
+	const gone = new Set<string>();
 	for (const r of rows) {
 		const state = {
 			...NO_REMOTE,
@@ -189,7 +200,12 @@ export async function deliverPush(
 		if (!pushWanted(channelsFor(prefs.get(r.userId), r.kind), state)) continue;
 		let delivered = false;
 		let throttled = false;
+		const deviceResults: {
+			id: string;
+			result: "ok" | "gone" | { error: string };
+		}[] = [];
 		for (const d of byUser.get(r.userId) ?? []) {
+			if (gone.has(d.id)) continue;
 			const res = await send(
 				{ endpoint: d.endpoint, p256dh: d.p256dh, auth: d.auth },
 				{
@@ -201,37 +217,46 @@ export async function deliverPush(
 			);
 			if (res.ok) {
 				delivered = true;
-				await tx
-					.update(pushSubscriptions)
-					.set({ lastSuccessAt: opts.now, lastError: null })
-					.where(eq(pushSubscriptions.id, d.id));
+				deviceResults.push({ id: d.id, result: "ok" });
 			} else if (res.error === "gone" || res.error === "host_not_allowed") {
-				await tx
-					.delete(pushSubscriptions)
-					.where(eq(pushSubscriptions.id, d.id));
+				gone.add(d.id);
+				deviceResults.push({ id: d.id, result: "gone" });
 			} else {
 				if (res.error === "throttled") throttled = true;
-				await tx
-					.update(pushSubscriptions)
-					.set({ lastError: res.error })
-					.where(eq(pushSubscriptions.id, d.id));
+				deviceResults.push({ id: d.id, result: { error: res.error } });
 			}
 		}
-		if (delivered) {
-			stats.sent++;
-			await tx
-				.update(notifications)
-				.set({ pushSentAt: opts.now })
-				.where(eq(notifications.id, r.id));
-		} else if (throttled) {
-			break;
-		} else {
-			stats.failed++;
-			await tx
-				.update(notifications)
-				.set({ pushAttempts: r.pushAttempts + 1 })
-				.where(eq(notifications.id, r.id));
-		}
+		await run.write(async (tx) => {
+			for (const d of deviceResults) {
+				if (d.result === "ok")
+					await tx
+						.update(pushSubscriptions)
+						.set({ lastSuccessAt: opts.now, lastError: null })
+						.where(eq(pushSubscriptions.id, d.id));
+				else if (d.result === "gone")
+					await tx
+						.delete(pushSubscriptions)
+						.where(eq(pushSubscriptions.id, d.id));
+				else
+					await tx
+						.update(pushSubscriptions)
+						.set({ lastError: d.result.error })
+						.where(eq(pushSubscriptions.id, d.id));
+			}
+			if (delivered)
+				await tx
+					.update(notifications)
+					.set({ pushSentAt: opts.now })
+					.where(eq(notifications.id, r.id));
+			else if (!throttled)
+				await tx
+					.update(notifications)
+					.set({ pushAttempts: r.pushAttempts + 1 })
+					.where(eq(notifications.id, r.id));
+		});
+		if (delivered) stats.sent++;
+		else if (throttled) break;
+		else stats.failed++;
 	}
 	return stats;
 }

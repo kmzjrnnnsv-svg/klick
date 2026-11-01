@@ -1,9 +1,9 @@
 import { and, eq, gte, inArray, isNull, sql } from "drizzle-orm";
-import { globalDb } from "@/db";
-import { organization, user } from "@/db/auth-schema";
+import { user } from "@/db/auth-schema";
 import { notifications } from "@/db/schema";
 import type { NotificationKind } from "@/db/schema/enums";
-import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
+import { mainDb } from "@/lib/db/job-scope";
+import { type OrgRunner, type OrgTx, orgRunner } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/log";
 import { sendTransactionalMail } from "@/lib/mail/send";
@@ -25,6 +25,7 @@ import {
 	teamsActiveFor,
 } from "@/lib/notifications/prefs";
 import { safeInternalPath } from "@/lib/safe-path";
+import { mailWorkOrgs } from "./work-orgs";
 
 // Mailversand für Benachrichtigungen (Plan „Benachrichtigungen"):
 //   • sofort (alle 5 min): nur IMMEDIATE_MAIL_KINDS, je Benachrichtigung eine Mail
@@ -256,30 +257,71 @@ async function markEmailed(tx: OrgTx, ids: string[], now: Date) {
 		.where(inArray(notifications.id, ids));
 }
 
+// Plattform-Pass (Benachrichtigungen ohne Org, z. B. an Plattform-Admins)
+const platformRunner: OrgRunner = {
+	read: (fn) =>
+		mainDb().transaction(async (tx) => {
+			await tx.execute(sql`set transaction read only`);
+			await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
+			return fn(tx);
+		}),
+	write: (fn) =>
+		mainDb().transaction(async (tx) => {
+			await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
+			return fn(tx);
+		}),
+};
+
+type Scope = {
+	run: OrgRunner;
+	filter: ReturnType<typeof eq>;
+	delivery: (tx: OrgTx) => Promise<OrgDelivery>;
+};
+
+// Orgs mit ungemailten Benachrichtigungen (lib/jobs/work-orgs.ts), danach der
+// Plattform-Pass. Je Org: lesen, ohne Transaktion senden, kurz vermerken.
+function scopes(orgIds: readonly string[]): Scope[] {
+	return [
+		...orgIds.map((orgId) => ({
+			run: orgRunner(orgId),
+			filter: eq(notifications.organizationId, orgId),
+			delivery: (tx: OrgTx) => orgDelivery(tx, orgId),
+		})),
+		{
+			run: platformRunner,
+			filter: isNull(notifications.organizationId) as ReturnType<typeof eq>,
+			delivery: async () => NO_PREFS,
+		},
+	];
+}
+
 // Sofort-Mails je Org (und Plattform-Pass).
 export async function runImmediateMails(now = new Date()): Promise<number> {
 	const base = env().BETTER_AUTH_URL;
 	const since = new Date(now.getTime() - IMMEDIATE_MAX_AGE_DAYS * 86_400_000);
 	let sent = 0;
 	const kinds = [...IMMEDIATE_MAIL_KINDS];
-	const handle = async (
-		tx: OrgTx,
-		orgFilter: ReturnType<typeof eq>,
-		delivery: OrgDelivery,
-	) => {
-		const rows = await pendingRows(
-			tx,
-			and(
-				orgFilter,
-				isNull(notifications.emailedAt),
-				inArray(notifications.kind, kinds),
-				gte(notifications.createdAt, since),
-			),
-		);
+	const orgIds = await mailWorkOrgs({ kinds, since });
+	for (const scope of scopes(orgIds)) {
+		const work = await scope.run.read(async (tx) => {
+			const rows = await pendingRows(
+				tx,
+				and(
+					scope.filter,
+					isNull(notifications.emailedAt),
+					inArray(notifications.kind, kinds),
+					gte(notifications.createdAt, since),
+				),
+			);
+			return rows.length > 0
+				? { rows, delivery: await scope.delivery(tx) }
+				: null;
+		});
+		if (!work) continue;
 		const done: string[] = [];
 		const skipped: string[] = [];
-		for (const r of rows) {
-			const decision = decide(r, delivery, false);
+		for (const r of work.rows) {
+			const decision = decide(r, work.delivery, false);
 			if (decision === "wait") continue;
 			if (decision === "skip") {
 				skipped.push(r.id);
@@ -289,29 +331,9 @@ export async function runImmediateMails(now = new Date()): Promise<number> {
 			const out = await sendTransactionalMail({ to: r.email, ...mail });
 			if (out.ok) done.push(r.id);
 		}
-		await markEmailed(tx, [...done, ...skipped], now);
+		await scope.run.write((tx) => markEmailed(tx, [...done, ...skipped], now));
 		sent += done.length;
-	};
-	const orgs = await globalDb
-		.select({ id: organization.id })
-		.from(organization);
-	await forEachOrg(
-		orgs.map((o) => o.id),
-		async (tx, orgId) =>
-			handle(
-				tx,
-				eq(notifications.organizationId, orgId),
-				await orgDelivery(tx, orgId),
-			),
-	);
-	await globalDb.transaction(async (tx) => {
-		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
-		await handle(
-			tx,
-			isNull(notifications.organizationId) as ReturnType<typeof eq>,
-			NO_PREFS,
-		);
-	});
+	}
 	if (sent > 0) logger.info({ sent }, "immediate notification mails sent");
 	return sent;
 }
@@ -320,23 +342,27 @@ export async function runImmediateMails(now = new Date()): Promise<number> {
 export async function runDigest(now = new Date()): Promise<number> {
 	const base = env().BETTER_AUTH_URL;
 	let mails = 0;
-	const handle = async (
-		tx: OrgTx,
-		orgFilter: ReturnType<typeof eq>,
-		delivery: OrgDelivery,
-	) => {
-		const all = await pendingRows(
-			tx,
-			and(orgFilter, isNull(notifications.emailedAt)),
-		);
+	const orgIds = await mailWorkOrgs();
+	for (const scope of scopes(orgIds)) {
+		const work = await scope.run.read(async (tx) => {
+			const all = await pendingRows(
+				tx,
+				and(scope.filter, isNull(notifications.emailedAt)),
+			);
+			return all.length > 0
+				? { all, delivery: await scope.delivery(tx) }
+				: null;
+		});
+		if (!work) continue;
 		const rows: Pending[] = [];
 		const skipped: string[] = [];
-		for (const r of all) {
-			const decision = decide(r, delivery, true);
+		for (const r of work.all) {
+			const decision = decide(r, work.delivery, true);
 			if (decision === "send") rows.push(r);
 			else if (decision === "skip") skipped.push(r.id);
 		}
-		await markEmailed(tx, skipped, now);
+		if (skipped.length > 0)
+			await scope.run.write((tx) => markEmailed(tx, skipped, now));
 		const byUser = new Map<string, Pending[]>();
 		for (const r of rows) {
 			const list = byUser.get(r.userId) ?? [];
@@ -354,35 +380,19 @@ export async function runDigest(now = new Date()): Promise<number> {
 			if (!digest) continue;
 			const out = await sendTransactionalMail({ to: first.email, ...digest });
 			if (out.ok) {
-				await markEmailed(
-					tx,
-					list.map((r) => r.id),
-					now,
+				// je Person gleich vermerken: ein Abbruch später schickt ihr
+				// den Digest nicht noch einmal
+				await scope.run.write((tx) =>
+					markEmailed(
+						tx,
+						list.map((r) => r.id),
+						now,
+					),
 				);
 				mails += 1;
 			}
 		}
-	};
-	const orgs = await globalDb
-		.select({ id: organization.id })
-		.from(organization);
-	await forEachOrg(
-		orgs.map((o) => o.id),
-		async (tx, orgId) =>
-			handle(
-				tx,
-				eq(notifications.organizationId, orgId),
-				await orgDelivery(tx, orgId),
-			),
-	);
-	await globalDb.transaction(async (tx) => {
-		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
-		await handle(
-			tx,
-			isNull(notifications.organizationId) as ReturnType<typeof eq>,
-			NO_PREFS,
-		);
-	});
+	}
 	logger.info({ mails }, "digest done");
 	return mails;
 }

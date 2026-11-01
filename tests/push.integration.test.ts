@@ -8,7 +8,7 @@ import {
 	notifications,
 	pushSubscriptions,
 } from "@/db/schema";
-import { withOrg } from "@/lib/db/with-org";
+import { orgRunner, withOrg } from "@/lib/db/with-org";
 import { resetEnvCache } from "@/lib/env";
 import {
 	channelsFor,
@@ -107,9 +107,7 @@ d("Push-Benachrichtigungen (Postgres)", () => {
 		});
 
 	const deliver = (org: string, send: PushSender) =>
-		withOrg({ orgId: org, userId: null }, (tx) =>
-			deliverPush(tx, org, send, { baseUrl: base, now }),
-		);
+		deliverPush(orgRunner(org), org, send, { baseUrl: base, now });
 
 	const device = (org: string, userKey: string, endpoint: string, n: number) =>
 		withOrg({ orgId: org, userId: users[userKey] ?? null }, (tx) =>
