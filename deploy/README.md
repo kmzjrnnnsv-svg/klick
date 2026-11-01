@@ -52,6 +52,55 @@ sudo systemctl restart klick && curl -f https://raza.work/api/ready
 
 **Rollback:** `scripts/restore-db.sh <dump> <url>` + `git checkout recruiting-final` + `pnpm release`.
 
+### Release-Artefakt aus CI statt Build auf dem Server (ADR-034)
+Der Server baut nicht mehr selbst. CI baut beide Apps nach grünen Tests auf `main` (Job
+`release-build`) und legt je App eine Datei `klick-<commit>.tar.gz` bzw. `both-<commit>.tar.gz` als
+Artefakt ab (30 Tage). Darin stecken `.next` ohne Cache (≈ 200 MB entpackt, ≈ 40 MB gepackt), bei
+Klick dazu `dist/parse-worker.mjs`, sowie `release.json` mit Commit, Lockfile-Prüfsumme, Node-Version,
+Adresse und SHA-256 je Datei. `rollout.sh klick` bzw. `both` holt das Artefakt für genau den
+ausgecheckten Commit über `deploy/rollout/artefakt.mjs` und prüft es:
+- **Lauf:** nur `ci.yml`, nur `push`, nur dieses Repo, alles grün. Rote CI bricht ab, laufende CI
+  ebenso (später erneut starten).
+- **Paket:** Digest von GitHub, Commit = Checkout, `pnpm-lock.yaml` gleich, Node-Hauptversion
+  gleich, Adresse = `BETTER_AUTH_URL` des Servers (die Sitemap ist fest gerendert), jede Datei gegen
+  ihre Prüfsumme, nur erlaubte Pfade und Verweise nach `node_modules/.pnpm`.
+
+Danach laufen `pnpm release:prepare` (Wächter, `pnpm install`, Migrationen, Seed; bei both.money
+`release:wallet:prepare`), das Umschalten (`.next` → `.next.alt`, neues `.next`, Bild-Cache bleibt)
+und der Neustart. Startet die App nicht, kommt das alte `.next` zurück. Keine Build-Spitze mehr
+(1,5–3 GB), kein Build-Cache auf der Platte (≈ 1,2 GB), both.money läuft beim Klick-Update weiter.
+
+Das Repo ist öffentlich, also kann jede angemeldete Person auf GitHub die Artefakte laden. Das ist
+gewollt: Sie enthalten denselben Code wie das Repo und keine Geheimnisse (der Job baut nur mit
+Platzhaltern und der öffentlichen Adresse). Der Token auf dem Server braucht deshalb nur Leserechte.
+
+**Einmalig einrichten:**
+1. GitHub, Repo > Settings > Secrets and variables > Actions > **Variables:**
+   - `KLICK_PUBLIC_URL` = `https://raza.work`;
+   - `WALLET_PUBLIC_URL` = `https://both.money`.
+
+   Ohne die Variablen wird der Job übersprungen (der Lauf bleibt grün), und der Server findet kein
+   Artefakt; er fragt dann, ob er selbst bauen soll.
+2. Unter GitHub > Settings > Developer settings > Personal access tokens > **Fine-grained tokens**
+   einen Token anlegen:
+   - nur Repository `kmzjrnnnsv-svg/klick`;
+   - Rechte „Actions: Read-only“ (und „Metadata: Read-only“, setzt GitHub selbst);
+   - Ablauf höchstens 1 Jahr.
+3. Auf dem Server den Token eintragen (nach dem Befehl einfügen, Enter, dann Strg+D; der Token
+   erscheint nirgends, nie weitergeben):
+
+   ```bash
+   sudo install -d -m 0755 /etc/klick-release
+   sudo install -m 0600 -o root -g root /dev/stdin /etc/klick-release/github-token
+   ```
+
+**Rückfall:** Fehlt der Token oder das Artefakt (Lauf abgebrochen, älter als 30 Tage, `--ref` auf
+einem anderen Branch als `main`), fragt das Skript, ob es auf dem Server bauen soll; danach löscht es
+den Build-Cache `.next/cache/turbopack`. `--bauen` erzwingt diesen Weg. Prüft ein Artefakt nicht,
+bricht es ab, ohne zu bauen: dann stimmt etwas am Paket nicht (Ausgabe lesen).
+
+**Token erneuern:** Schritt 2 und 3 wiederholen; GitHub meldet den Ablauf vorher per Mail.
+
 ### Build bricht ab, danach reagieren die Seiten nicht
 `next build` leert `.next` (außer `cache`) gleich zu Beginn. Bricht der Build danach ab, läuft der
 alte Prozess weiter, aber seine Skripte unter `/_next/static` sind weg: Die Seiten erscheinen, kein
@@ -1066,6 +1115,8 @@ runuser -u both -- pnpm wallet:admin org list
 ```
 
 ### Release
+Mit `rollout.sh both` kommt das fertige `.next` aus CI („Release-Artefakt aus CI“ oben), ohne Build
+und ohne den Dienst anzuhalten. Von Hand bzw. als Rückfall:
 CI grün → `both-backup-db.service` einmal starten → Dienst stoppen (Speicher für den Build) →
 `sudo -u both git -C /opt/both/current pull --ff-only` → im Block oben statt `wallet:admin`:
 `NODE_OPTIONS=--max-old-space-size=1536 runuser -u both -- pnpm release:wallet` (install →

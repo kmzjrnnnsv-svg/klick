@@ -16,6 +16,11 @@ BOTH_DIR="${BOTH_DIR:-/opt/both/current}"
 # Release-Schlüssel außerhalb jedes Checkouts (scripts/release-guard.ts,
 # deploy/signer/install.sh)
 ANKER=/etc/klick-release/allowed_signers
+# GitHub-Token nur zum Lesen der CI-Artefakte (ADR-034, Runbook „Release“);
+# root-eigen 0600, liest nur deploy/rollout/artefakt.mjs, nie argv
+GITHUB_TOKEN_DATEI=/etc/klick-release/github-token
+# --bauen: auf dem Server bauen statt das Artefakt aus CI zu holen
+BAUEN="${BAUEN:-0}"
 WG_CONF=/etc/wireguard/wg-admin.conf
 # Not-Freigabe, wenn Klick nach einem Update an der Start-Prüfung scheitert
 # (Runbook „Klick startet nach einem Update nicht“); Phase klick räumt sie auf

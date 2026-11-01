@@ -41,3 +41,50 @@ describe("Typ-Check außerhalb des Builds", () => {
 		expect(runs[1]).toContain("-p apps/wallet");
 	});
 });
+
+// Release-Artefakte (ADR-034): CI baut, der Server holt nur das Ergebnis.
+// Der Job darf nur nach grünen Tests laufen, nur auf main, mit der echten
+// Adresse und ohne Geheimnisse.
+describe("Release-Artefakte aus CI", () => {
+	const ci = read(".github/workflows/ci.yml");
+	const job = ci.slice(ci.indexOf("\n  release-build:"));
+
+	it("nur auf main nach check, e2e und wallet-build, ohne Variablen übersprungen", () => {
+		expect(job).toContain(
+			"if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.KLICK_PUBLIC_URL != '' && vars.WALLET_PUBLIC_URL != ''",
+		);
+		expect(job).toContain("needs: [check, e2e, wallet-build]");
+	});
+
+	it("baut mit der Adresse aus den Repo-Variablen, nie mit Geheimnissen", () => {
+		expect(job).toMatch(/BETTER_AUTH_URL: \$\{\{ vars\.KLICK_PUBLIC_URL \}\}/);
+		expect(job).toMatch(/WALLET_AUTH_URL: \$\{\{ vars\.WALLET_PUBLIC_URL \}\}/);
+		expect(job).not.toContain("secrets.");
+		expect(job).toContain(
+			"Repo-Variablen KLICK_PUBLIC_URL und WALLET_PUBLIC_URL fehlen",
+		);
+	});
+
+	it("packt beide Apps und lädt sie ungezippt hoch", () => {
+		expect(job).toContain(
+			"node deploy/rollout/artefakt.mjs packen --app klick",
+		);
+		expect(job).toContain("node deploy/rollout/artefakt.mjs packen --app both");
+		for (const app of ["klick", "both"])
+			expect(job).toContain(`path: release/${app}-\${{ github.sha }}.tar.gz`);
+		expect(job.match(/archive: false/g)).toHaveLength(2);
+		expect(job).toMatch(/- name: Packen\n(?:\s+#.*\n)?\s+shell: bash/);
+	});
+
+	it("ohne Build vorbereiten: Wächter, Abhängigkeiten, Migrationen", () => {
+		const pkg = JSON.parse(read("package.json")) as {
+			scripts: Record<string, string>;
+		};
+		expect(pkg.scripts["release:prepare"]).not.toContain("next build");
+		expect(pkg.scripts["release:prepare"]).toContain("pnpm db:migrate");
+		expect(pkg.scripts["release:wallet:prepare"]).not.toContain("next build");
+		expect(pkg.scripts["release:wallet:prepare"]).toContain(
+			"pnpm db:wallet:migrate",
+		);
+	});
+});

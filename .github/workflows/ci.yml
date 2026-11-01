@@ -233,3 +233,68 @@ jobs:
           name: playwright-report
           path: test-results
           retention-days: 7
+
+  # Release-Artefakte (ADR-034): nur auf main nach grünen Tests. Der Server
+  # holt sie mit deploy/rollout/artefakt.mjs und baut nicht mehr selbst. Gebaut
+  # wird mit der echten Adresse (die Sitemap ist fest gerendert); geheime
+  # Werte gibt es hier keine, nur Platzhalter wie in e2e.
+  release-build:
+    name: Release-Artefakte (Klick, both.money)
+    # Ohne die Repo-Variablen übersprungen statt rot: der Server baut dann
+    # nach Rückfrage selbst (Runbook „Release-Artefakt aus CI“)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.KLICK_PUBLIC_URL != '' && vars.WALLET_PUBLIC_URL != ''
+    needs: [check, e2e, wallet-build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BETTER_AUTH_URL: ${{ vars.KLICK_PUBLIC_URL }}
+      WALLET_AUTH_URL: ${{ vars.WALLET_PUBLIC_URL }}
+      BETTER_AUTH_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+      VAULT_KEK_BASE64: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DATABASE_URL: postgres://klick_app@localhost:5432/klick
+      KLICK_DISABLE_JOBS: "true"
+      WALLET_DISABLE_JOBS: "true"
+      WALLET_DATABASE_URL: postgres://wallet_app@localhost:5432/wallet
+      WALLET_AUTH_SECRET: ci-only-wallet-secret-0123456789abcdef0123456789
+      WALLET_VAULT_KEK_BASE64: AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Adressen gesetzt
+        run: |
+          if [ -z "$BETTER_AUTH_URL" ] || [ -z "$WALLET_AUTH_URL" ]; then
+            echo "::error::Repo-Variablen KLICK_PUBLIC_URL und WALLET_PUBLIC_URL fehlen (Settings > Secrets and variables > Actions > Variables)"
+            exit 1
+          fi
+      - name: Klick bauen
+        run: pnpm build:parser && pnpm exec next build
+      - name: both.money bauen
+        run: pnpm exec next build apps/wallet
+      - name: Packen
+        # shell: bash = mit pipefail, sonst verdeckte tee einen Fehler beim Packen
+        shell: bash
+        run: |
+          mkdir -p release
+          node deploy/rollout/artefakt.mjs packen --app klick --out release | tee release/klick.txt
+          node deploy/rollout/artefakt.mjs packen --app both --out release | tee release/both.txt
+          echo "### Release-Artefakte" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat release/klick.txt release/both.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          path: release/klick-${{ github.sha }}.tar.gz
+          archive: false
+          retention-days: 30
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          path: release/both-${{ github.sha }}.tar.gz
+          archive: false
+          retention-days: 30
+          if-no-files-found: error

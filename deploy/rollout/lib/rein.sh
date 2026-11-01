@@ -16,6 +16,21 @@ virenscanner_entscheidung() {
 	if [ "$kb" -ge "$CLAMD_MIN_KB" ]; then echo clamd; else echo no_av; fi
 }
 
+# GitHub-Repo „owner/name“ aus der origin-Adresse eines Checkouts
+# (https://github.com/o/r(.git) oder git@github.com:o/r(.git)); sonst leer.
+release_repo() {
+	local url="${1-}" r
+	case "$url" in
+	https://github.com/*) r="${url#https://github.com/}" ;;
+	git@github.com:*) r="${url#git@github.com:}" ;;
+	*) return 0 ;;
+	esac
+	r="${r%/}"
+	r="${r%.git}"
+	[[ "$r" =~ ^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$ ]] && printf '%s' "$r"
+	return 0
+}
+
 # Komma-Liste zusammenführen: `risks_merge "<liste>" add|remove <eintrag>`.
 # Reihenfolge bleibt, Doppelte und Leerzeichen fallen weg.
 risks_merge() {

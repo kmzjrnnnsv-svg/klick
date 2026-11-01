@@ -68,6 +68,8 @@ phase_pruefen() {
 	stand ueberwachung "$(systemctl is-active --quiet klick-health.timer 2>/dev/null && echo aktiv || echo offen)"
 	stand abschluss "$([ -f /var/lib/aide/aide.db ] && echo 'AIDE-Basis vorhanden' || echo offen)"
 	stand release-anker "$(anker_schluessel "$ANKER") Schlüssel in $ANKER"
+	# nur ob er liegt und nur root lesen darf; der Inhalt wird nie gelesen
+	stand release-token "$(if [ ! -s "$GITHUB_TOKEN_DATEI" ]; then echo 'fehlt: Artefakt aus CI nicht abrufbar (Runbook „Release-Artefakt aus CI“)'; elif [ "$(stat -c %a "$GITHUB_TOKEN_DATEI")" = 600 ]; then echo 'vorhanden'; else echo "vorhanden, aber Rechte $(stat -c %a "$GITHUB_TOKEN_DATEI") statt 600"; fi)"
 }
 
 phase_abschluss() {

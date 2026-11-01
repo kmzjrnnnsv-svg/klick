@@ -1,5 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import {
+	mkdirSync,
 	mkdtempSync,
 	readdirSync,
 	readFileSync,
@@ -539,5 +540,159 @@ describe("reine Hilfen", () => {
 		expect(rein("im_admin_netz fd10:9::12 && echo ja").trim()).toBe("ja");
 		expect(rein("im_admin_netz 203.0.113.5 || echo nein").trim()).toBe("nein");
 		expect(rein("im_admin_netz 10.9.1.10 || echo nein").trim()).toBe("nein");
+	});
+
+	it("GitHub-Repo aus der origin-Adresse", () => {
+		for (const url of [
+			"https://github.com/kmzjrnnnsv-svg/klick.git",
+			"https://github.com/kmzjrnnnsv-svg/klick",
+			"git@github.com:kmzjrnnnsv-svg/klick.git",
+		])
+			expect(rein(`release_repo "${url}"`), url).toBe("kmzjrnnnsv-svg/klick");
+		for (const url of [
+			"https://gitlab.com/a/b.git",
+			"https://github.com/a/b/c",
+			"https://github.com/a;rm/b",
+			"",
+		])
+			expect(rein(`release_repo "${url}"`), url).toBe("");
+	});
+});
+
+describe("Release-Artefakt (ADR-034)", () => {
+	const apps = read(`${DIR}/lib/apps.sh`);
+	const fn = (name: string) => {
+		const start = apps.indexOf(`${name}() {`);
+		return apps.slice(start, apps.indexOf("\n}\n", start));
+	};
+	const phase = (name: string, next: string) =>
+		apps.slice(apps.indexOf(`${name}() {`), apps.indexOf(`${next}() {`));
+
+	it("Phasen holen zuerst das Artefakt, bauen nur als Rückfall", () => {
+		for (const [p, next, app, ordner, rel] of [
+			["phase_klick", "not_freigabe_aufraeumen", "klick", "KLICK_DIR", ".next"],
+			["phase_both", "phase_signer", "both", "BOTH_DIR", "apps/wallet/.next"],
+		] as const) {
+			const body = phase(p, next);
+			const holen = body.indexOf(
+				`artefakt_holen ${app} "$${ordner}" "$quelle" && artefakt=1`,
+			);
+			expect(holen, p).toBeGreaterThan(0);
+			expect(holen, p).toBeLessThan(body.indexOf("build_sichern"));
+			expect(holen, p).toBeLessThan(body.indexOf("pnpm release"));
+			expect(body, p).toContain(
+				`release_vorbereiten ${app} "$${ordner}" release:${app === "both" ? "wallet:" : ""}prepare`,
+			);
+			expect(body, p).toContain(
+				`artefakt_einsetzen ${app} "$${ordner}" "$quelle" ${rel}`,
+			);
+			// Rückfall: Build-Cache danach weg (≈ 1 GB)
+			expect(body, p).toContain(`build_cache_weg "$${ordner}/${rel}"`);
+			// startet der neue Stand nicht, kommt der alte zurück
+			const zurueck = body.indexOf(`artefakt_zurueck "$${ordner}" ${rel}`);
+			expect(zurueck, p).toBeGreaterThan(body.indexOf("warte_bereit"));
+			expect(body, p).toContain("artefakt_aufraeumen");
+		}
+		expect(phase("phase_klick", "not_freigabe_aufraeumen")).toContain(
+			'"$quelle" .next dist/parse-worker.mjs',
+		);
+		// Klick hält both.money nur für einen Build auf dem Server an
+		const klick = phase("phase_klick", "not_freigabe_aufraeumen");
+		expect(klick.indexOf("platz_fuer_build")).toBeGreaterThan(
+			klick.indexOf("artefakt_holen"),
+		);
+	});
+
+	it("rote oder laufende CI bricht ab, nur ein fehlendes Artefakt fragt nach", () => {
+		const f = fn("artefakt_holen");
+		expect(f).toContain('--token-datei "$GITHUB_TOKEN_DATEI"');
+		expect(f).toMatch(/4\) die "CI für .* ist rot/);
+		expect(f).toMatch(/5\) die "CI für .* läuft noch/);
+		expect(f).toMatch(/\*\) die "Artefakt für .* nicht bestanden/);
+		// gefragt wird nur bei fehlendem Token oder fehlendem Artefakt
+		expect(f.match(/frage "/g)).toHaveLength(2);
+		// der Token wird nie gelesen oder weitergegeben, nur der Pfad
+		expect(code(f)).not.toMatch(
+			/cat\s+"?\$GITHUB_TOKEN_DATEI|<\s*"?\$GITHUB_TOKEN_DATEI/,
+		);
+		expect(read(`${DIR}/lib/common.sh`)).toContain(
+			"GITHUB_TOKEN_DATEI=/etc/klick-release/github-token",
+		);
+		expect(read(`${DIR}/rollout.sh`)).toContain("--bauen) BAUEN=1 ;;");
+	});
+
+	it("Löschen nur mit geschützten Pfaden", () => {
+		for (const name of [
+			"artefakt_holen",
+			"artefakt_einsetzen",
+			"artefakt_zurueck",
+			"artefakt_aufraeumen",
+			"build_cache_weg",
+		])
+			for (const m of code(fn(name)).matchAll(/rm -rf -- ([^\n;]+)/g))
+				for (const target of m[1]?.trim().split(/\s+/) ?? [])
+					expect(target, `${name}: ${target}`).toMatch(/^"\$\{[A-Za-z_]+:\?\}/);
+	});
+
+	it("Einsetzen tauscht .next, behält den Cache, und zurück geht es auch", () => {
+		const d = join(tmp, "einsetzen");
+		const app = join(d, "app");
+		const quelle = join(d, "quelle");
+		const sh = (s: string) =>
+			execFileSync(
+				"bash",
+				[
+					"-c",
+					`set -euo pipefail; source ${DIR}/lib/rein.sh; source ${DIR}/lib/common.sh; source ${DIR}/lib/apps.sh; ${s}`,
+				],
+				{
+					cwd: ROOT,
+					encoding: "utf8",
+					env: { ...process.env, DEPLOY: "deploy", TROCKEN: "0" },
+				},
+			);
+		sh(
+			`mkdir -p "${app}/.next/cache/images" "${quelle}/.next/static" "${quelle}/dist" && echo alt > "${app}/.next/BUILD_ID" && echo bild > "${app}/.next/cache/images/x" && echo neu > "${quelle}/.next/BUILD_ID" && echo p > "${quelle}/dist/parse-worker.mjs"`,
+		);
+		const out = sh(
+			`artefakt_einsetzen "$(id -un)" "${app}" "${quelle}" .next dist/parse-worker.mjs; printf '%s' "$ARTEFAKT_ALT" > "${d}/alt"; artefakt_zurueck "${app}" .next && echo zurueck`,
+		);
+		expect(out).toContain("zurueck");
+		// nach dem Zurückspielen: alter Stand, Cache liegt beim abgelösten neuen
+		expect(readFileSync(join(app, ".next/BUILD_ID"), "utf8")).toBe("alt\n");
+		expect(readFileSync(join(app, ".next.neu/BUILD_ID"), "utf8")).toBe("neu\n");
+		expect(readFileSync(join(app, "dist/parse-worker.mjs"), "utf8")).toBe(
+			"p\n",
+		);
+		expect(readFileSync(join(d, "alt"), "utf8")).toBe(join(app, ".next.alt"));
+		expect(() => statSync(quelle)).toThrow();
+		// erneut einsetzen, dann aufräumen: neu bleibt, Cache wandert mit
+		sh(
+			`mkdir -p "${quelle}/.next" "${quelle}/dist" && echo neu2 > "${quelle}/.next/BUILD_ID" && echo p2 > "${quelle}/dist/parse-worker.mjs"`,
+		);
+		sh(
+			`mkdir -p "${app}/.next/cache/images" && echo bild > "${app}/.next/cache/images/x"; artefakt_einsetzen "$(id -un)" "${app}" "${quelle}" .next dist/parse-worker.mjs; artefakt_aufraeumen`,
+		);
+		expect(readFileSync(join(app, ".next/BUILD_ID"), "utf8")).toBe("neu2\n");
+		expect(readFileSync(join(app, ".next/cache/images/x"), "utf8")).toBe(
+			"bild\n",
+		);
+		expect(() => statSync(join(app, ".next.alt"))).toThrow();
+		// ohne BUILD_ID im Artefakt: Abbruch, nichts getauscht
+		mkdirSync(join(quelle, ".next"), { recursive: true });
+		const r = spawnSync(
+			"bash",
+			[
+				"-c",
+				`set -euo pipefail; source ${DIR}/lib/rein.sh; source ${DIR}/lib/common.sh; source ${DIR}/lib/apps.sh; artefakt_einsetzen "$(id -un)" "${app}" "${quelle}" .next`,
+			],
+			{
+				cwd: ROOT,
+				encoding: "utf8",
+				env: { ...process.env, DEPLOY: "deploy" },
+			},
+		);
+		expect(r.status).toBe(1);
+		expect(readFileSync(join(app, ".next/BUILD_ID"), "utf8")).toBe("neu2\n");
 	});
 });
