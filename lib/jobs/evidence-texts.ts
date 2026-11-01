@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNotNull, notExists, sql } from "drizzle-orm";
-import { globalDb } from "@/db";
 import { organization } from "@/db/auth-schema";
 import { evidence, evidenceTexts } from "@/db/schema";
+import { mainDb } from "@/lib/db/job-scope";
 import { readOrg, withOrg } from "@/lib/db/with-org";
 import { decryptEvidenceObject } from "@/lib/evidence/read";
 import { evidenceFileFor } from "@/lib/evidence/serve";
@@ -30,7 +30,7 @@ export async function runEvidenceTexts(
 	let failed = 0;
 	const orgIds =
 		opts.orgIds ??
-		(await globalDb.select({ id: organization.id }).from(organization)).map(
+		(await mainDb().select({ id: organization.id }).from(organization)).map(
 			(o) => o.id,
 		);
 	for (const orgId of orgIds) {

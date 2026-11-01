@@ -9,7 +9,7 @@ import {
 	teamsIntegrations,
 	teamsUsers,
 } from "@/db/schema";
-import { withOrg } from "@/lib/db/with-org";
+import { orgRunner } from "@/lib/db/with-org";
 import { resetEnvCache } from "@/lib/env";
 import {
 	channelsFor,
@@ -121,9 +121,7 @@ d("Benachrichtigungen in Teams (Postgres)", () => {
 		});
 
 	const deliver = (org: string, graph: GraphClient) =>
-		withOrg({ orgId: org, userId: null }, (tx) =>
-			deliverTeams(tx, org, graph, { baseUrl: base, now }),
-		);
+		deliverTeams(orgRunner(org), org, graph, { baseUrl: base, now });
 
 	beforeAll(async () => {
 		for (const k of [

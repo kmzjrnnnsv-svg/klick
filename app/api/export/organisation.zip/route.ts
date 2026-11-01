@@ -5,7 +5,7 @@ import { toOrgCtx } from "@/lib/auth/guards";
 import { getOrgSummary, listOrgMembers } from "@/lib/auth/org";
 import { decryptBytes, unpackEnvelope } from "@/lib/crypto/envelope";
 import { loadOrgDek } from "@/lib/crypto/org-dek";
-import { readOrg } from "@/lib/db/with-org";
+import { longRunning, readOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { evidenceAad } from "@/lib/evidence/aad";
 import { dbEnvelope } from "@/lib/evidence/read";
@@ -60,6 +60,8 @@ export async function GET(req: Request) {
 	);
 
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
+		// ganze Tabellen (Protokoll, Datei-Umschläge) in je einer Abfrage
+		await longRunning(tx, 10 * 60_000);
 		const { dek } = await loadOrgDek(tx, ctx.orgId);
 		const files: ZipEntry[] = [];
 		const summary: {

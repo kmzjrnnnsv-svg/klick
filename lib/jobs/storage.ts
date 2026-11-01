@@ -1,8 +1,9 @@
 import { and, eq, isNull, lte, sql } from "drizzle-orm";
-import { globalDb } from "@/db";
+import type { globalDb } from "@/db";
 import { organization } from "@/db/auth-schema";
 import { evidence, storagePurgeQueue } from "@/db/schema";
 import { audit } from "@/lib/audit";
+import { mainDb } from "@/lib/db/job-scope";
 import { s3Configured } from "@/lib/evidence/store";
 import { logger } from "@/lib/log";
 
@@ -49,7 +50,7 @@ async function platformTx<T>(
 		tx: Parameters<Parameters<typeof globalDb.transaction>[0]>[0],
 	) => Promise<T>,
 ): Promise<T> {
-	return globalDb.transaction(async (tx) => {
+	return mainDb().transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		return fn(tx);
 	});

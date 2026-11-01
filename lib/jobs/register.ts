@@ -1,8 +1,8 @@
 import { sql } from "drizzle-orm";
 import type { PgBoss } from "pg-boss";
-import { globalDb } from "@/db";
 import { organization } from "@/db/auth-schema";
 import { type Actor, audit, verifyAuditChain } from "@/lib/audit";
+import { mainDb, runAsJob } from "@/lib/db/job-scope";
 import { runLedgerAnchor, upgradePendingAnchors } from "@/lib/ledger/service";
 import { logger } from "@/lib/log";
 import { notifyPlatformAdmins } from "@/lib/notifications/notify";
@@ -30,7 +30,8 @@ import { runTeamsNotify } from "./teams-notify";
 //   notification-mail  alle 5 min  Sofort-Mails (IMMEDIATE_MAIL_KINDS)
 //   digest             07:00       Tages-Digest je Person
 //   verify-audit-chain 04:00       Hash-Kette je Org prüfen
-//   retention          03:00       Sitzungen, Tokens, gelesene Benachrichtigungen > 180 d
+//   retention          03:00       Sitzungen, Tokens, Benachrichtigungen (gelesen
+//                                  > 180 d, ungelesen > 1 Jahr) in Blöcken
 //   posture-snapshot   02:00       Abdeckung je Org/Rahmenwerk → Verlauf auf /ueberblick
 //   storage-purge      03:30       gelöschte Nachweis-Objekte nach Backup-Frist entfernen
 //   storage-orphans    So 04:30    Objekte ohne Nachweis-Zeile in die Purge-Warteschlange
@@ -96,65 +97,71 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.schedule(JOBS.ssoMetadata, "40 5 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.siteTunnels, "* * * * *", {}, { tz: TZ });
 
-	await boss.work(JOBS.complianceTick, async () => {
+	// Jeder Handler läuft im Job-Pool (lib/db/job-scope.ts): eigene
+	// Verbindungen, längere Zeitgrenzen, Seiten warten nicht auf Jobs.
+	const work = (name: string, fn: () => Promise<unknown>) =>
+		boss.work(name, () => runAsJob(fn));
+
+	await work(JOBS.complianceTick, async () => {
 		await runComplianceTick();
 		// Fällige Vorfall-Fristen o. ä. sollen nicht bis zum nächsten 5-min-Lauf warten.
 		await runImmediateMails();
 	});
-	await boss.work(JOBS.notificationMail, async () => {
+	await work(JOBS.notificationMail, async () => {
 		await runImmediateMails();
 	});
-	await boss.work(JOBS.retention, async () => {
+	await work(JOBS.retention, async () => {
 		await runRetention();
 	});
-	await boss.work(JOBS.postureSnapshot, async () => {
+	await work(JOBS.postureSnapshot, async () => {
 		await runPostureSnapshot();
 	});
-	await boss.work(JOBS.digest, async () => {
+	await work(JOBS.digest, async () => {
 		await runDigest();
 	});
-	await boss.work(JOBS.verifyAuditChain, async () => {
+	await work(JOBS.verifyAuditChain, async () => {
 		await runVerifyAuditChain();
 	});
-	await boss.work(JOBS.storagePurge, async () => {
+	await work(JOBS.storagePurge, async () => {
 		await runStoragePurge();
 	});
-	await boss.work(JOBS.storageOrphans, async () => {
+	await work(JOBS.storageOrphans, async () => {
 		await runStorageOrphans();
 	});
-	await boss.work(JOBS.securityChanges, async () => {
+	await work(JOBS.securityChanges, async () => {
 		await runSecurityChanges();
 		// „Nach Wartezeit wirksam“ sofort zustellen
 		await runImmediateMails();
 	});
-	await boss.work(JOBS.ledgerAnchor, async () => {
+	await work(JOBS.ledgerAnchor, async () => {
 		await runLedgerAnchor();
 	});
-	await boss.work(JOBS.ledgerUpgrade, async () => {
+	await work(JOBS.ledgerUpgrade, async () => {
 		await upgradePendingAnchors();
 	});
-	await boss.work(JOBS.evidenceTexts, async () => {
+	await work(JOBS.evidenceTexts, async () => {
 		await runEvidenceTexts();
 	});
-	await boss.work(JOBS.teamsNotify, async () => {
+	await work(JOBS.teamsNotify, async () => {
 		await runTeamsNotify();
 	});
-	await boss.work(JOBS.pushNotify, async () => {
+	await work(JOBS.pushNotify, async () => {
 		await runPushNotify();
 	});
-	await boss.work(JOBS.ssoMetadata, async () => {
+	await work(JOBS.ssoMetadata, async () => {
 		await runSsoMetadata();
 	});
-	await boss.work(JOBS.siteTunnels, async () => {
+	await work(JOBS.siteTunnels, async () => {
 		await runSiteTunnels();
 	});
 	// Schnellcheck auf Anfrage: höchstens zwei gleichzeitig je Prozess
 	await boss.work<QuickCheckJob>(
 		JOBS.quickCheck,
 		{ localConcurrency: 2 },
-		async (jobs) => {
-			for (const job of jobs) await executeQuickCheck(job.data);
-		},
+		(jobs) =>
+			runAsJob(async () => {
+				for (const job of jobs) await executeQuickCheck(job.data);
+			}),
 	);
 }
 
@@ -171,7 +178,7 @@ export async function runVerifyAuditChain(
 	const broken: string[] = [];
 	let checked = 0;
 	let chains: (string | null)[] = [];
-	await globalDb.transaction(async (tx) => {
+	await mainDb().transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		const orgs = await tx.select({ id: organization.id }).from(organization);
 		chains = [null, ...orgs.map((o) => o.id)];

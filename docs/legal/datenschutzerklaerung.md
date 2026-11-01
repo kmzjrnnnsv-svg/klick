@@ -85,7 +85,7 @@ IP-Adresse und Browser-Kennung.
 - **Rechtsgrundlage:** Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag deiner Organisation), lit. f
   (Kontosicherheit) und lit. c (Aufzeichnungspflichten deiner Organisation, z. B. § 8 GwG).
 - **Speicherdauer:** Konto bis zur Löschung; abgelaufene Sitzungen 30 Tage, Anmelde-Codes 1 Tag,
-  Zähler gegen Missbrauch 7 Tage, gelesene Benachrichtigungen 180 Tage. Das Änderungsprotokoll
+  Zähler gegen Missbrauch 7 Tage, gelesene Benachrichtigungen 180 Tage, ungelesene ein Jahr. Das Änderungsprotokoll
   (Audit-Log mit IP-Adresse und Browser-Kennung) ist manipulationssicher verkettet und bleibt so lange
   erhalten, wie die Aufbewahrungspflichten deiner Organisation es verlangen (Löschkonzept der
   Organisation), längstens bis zur Löschung der Organisation.

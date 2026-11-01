@@ -7,7 +7,7 @@ import {
 	teamsUsers,
 } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
-import type { OrgTx } from "@/lib/db/with-org";
+import type { OrgRunner, OrgTx } from "@/lib/db/with-org";
 import {
 	channelsFor,
 	NO_REMOTE,
@@ -219,63 +219,89 @@ export async function removeTeams(
 // Link aus der Benachrichtigung als absolute Adresse der eigenen Instanz
 export const teamsWebUrl = notificationUrl;
 
-const MAX_AGE_DAYS = 3;
+// Ältere Hinweise gehen nicht mehr in Teams (die Mail fängt sie auf)
+export const TEAMS_MAX_AGE_DAYS = 3;
 const MAX_PER_RUN = 20;
 
 export type DeliveryStats = { sent: number; failed: number; skipped: number };
 
-// Offene Benachrichtigungen einer Org in Teams zustellen (Job teams-notify)
+// Offene Benachrichtigungen einer Org in Teams zustellen (Job teams-notify).
+// Graph wird ohne offene Transaktion aufgerufen (OrgRunner): erst alles
+// lesen, dann je Schritt senden und kurz schreiben. Stürzt der Prozess
+// zwischen Senden und Schreiben ab, kommt der Hinweis einmal doppelt; er
+// trägt nur Titel und Link.
 export async function deliverTeams(
-	tx: OrgTx,
+	run: OrgRunner,
 	orgId: string,
 	client: GraphClient,
 	opts: { baseUrl: string; now: Date },
 ): Promise<DeliveryStats> {
 	const stats: DeliveryStats = { sent: 0, failed: 0, skipped: 0 };
-	const integration = await teamsIntegrationOf(tx, orgId);
-	if (!integration || integration.status !== "active" || !integration.enabled)
-		return stats;
-	const prefs = await loadChannelPrefs(tx, orgId);
-	const wantsTeams = [...prefs.entries()]
-		.filter(([, p]) => wantsChannel(p, "teams"))
-		.map(([u]) => u);
-	if (wantsTeams.length === 0) return stats;
-	const since = new Date(opts.now.getTime() - MAX_AGE_DAYS * 86_400_000);
-	const rows = await tx
-		.select({
-			id: notifications.id,
-			userId: notifications.userId,
-			kind: notifications.kind,
-			title: notifications.title,
-			link: notifications.link,
-			teamsAttempts: notifications.teamsAttempts,
-			email: user.email,
-		})
-		.from(notifications)
-		.innerJoin(user, eq(user.id, notifications.userId))
-		.where(
-			and(
-				eq(notifications.organizationId, orgId),
-				inArray(notifications.userId, wantsTeams),
-				isNull(notifications.teamsSentAt),
-				lt(notifications.teamsAttempts, TEAMS_MAX_ATTEMPTS),
-				gte(notifications.createdAt, since),
-			),
-		)
-		.orderBy(notifications.createdAt)
-		.limit(MAX_PER_RUN);
-
-	const failIntegration = async (error: GraphError) => {
-		await tx
-			.update(teamsIntegrations)
-			.set({
-				status: error === "consent_missing" ? "error" : integration.status,
-				lastError: error,
-				lastErrorAt: opts.now,
-				updatedAt: opts.now,
+	const since = new Date(opts.now.getTime() - TEAMS_MAX_AGE_DAYS * 86_400_000);
+	const work = await run.read(async (tx) => {
+		const integration = await teamsIntegrationOf(tx, orgId);
+		if (!integration || integration.status !== "active" || !integration.enabled)
+			return null;
+		const prefs = await loadChannelPrefs(tx, orgId);
+		const wantsTeams = [...prefs.entries()]
+			.filter(([, p]) => wantsChannel(p, "teams"))
+			.map(([u]) => u);
+		if (wantsTeams.length === 0) return null;
+		const rows = await tx
+			.select({
+				id: notifications.id,
+				userId: notifications.userId,
+				kind: notifications.kind,
+				title: notifications.title,
+				link: notifications.link,
+				teamsAttempts: notifications.teamsAttempts,
+				email: user.email,
 			})
-			.where(eq(teamsIntegrations.id, integration.id));
-	};
+			.from(notifications)
+			.innerJoin(user, eq(user.id, notifications.userId))
+			.where(
+				and(
+					eq(notifications.organizationId, orgId),
+					inArray(notifications.userId, wantsTeams),
+					isNull(notifications.teamsSentAt),
+					lt(notifications.teamsAttempts, TEAMS_MAX_ATTEMPTS),
+					gte(notifications.createdAt, since),
+				),
+			)
+			.orderBy(notifications.createdAt)
+			.limit(MAX_PER_RUN);
+		if (rows.length === 0) return null;
+		const known = await tx
+			.select()
+			.from(teamsUsers)
+			.where(
+				and(
+					eq(teamsUsers.organizationId, orgId),
+					inArray(teamsUsers.userId, [...new Set(rows.map((r) => r.userId))]),
+				),
+			);
+		return {
+			integration,
+			prefs,
+			rows,
+			known: new Map(known.map((k) => [k.userId, k])),
+		};
+	});
+	if (!work) return stats;
+	const { integration, prefs, rows, known } = work;
+
+	const failIntegration = (error: GraphError) =>
+		run.write((tx) =>
+			tx
+				.update(teamsIntegrations)
+				.set({
+					status: error === "consent_missing" ? "error" : integration.status,
+					lastError: error,
+					lastErrorAt: opts.now,
+					updatedAt: opts.now,
+				})
+				.where(eq(teamsIntegrations.id, integration.id)),
+		);
 
 	let catalogAppId = integration.catalogAppId;
 	const tenant = integration.tenantId;
@@ -294,23 +320,25 @@ export async function deliverTeams(
 		}
 		const fail = async (error: GraphError, perUser = false) => {
 			stats.failed++;
-			await tx
-				.update(notifications)
-				.set({ teamsAttempts: r.teamsAttempts + 1 })
-				.where(eq(notifications.id, r.id));
-			if (perUser)
+			await run.write(async (tx) => {
 				await tx
-					.insert(teamsUsers)
-					.values({
-						organizationId: orgId,
-						userId: r.userId,
-						lastError: error,
-						updatedAt: opts.now,
-					})
-					.onConflictDoUpdate({
-						target: [teamsUsers.organizationId, teamsUsers.userId],
-						set: { lastError: error, updatedAt: opts.now },
-					});
+					.update(notifications)
+					.set({ teamsAttempts: r.teamsAttempts + 1 })
+					.where(eq(notifications.id, r.id));
+				if (perUser)
+					await tx
+						.insert(teamsUsers)
+						.values({
+							organizationId: orgId,
+							userId: r.userId,
+							lastError: error,
+							updatedAt: opts.now,
+						})
+						.onConflictDoUpdate({
+							target: [teamsUsers.organizationId, teamsUsers.userId],
+							set: { lastError: error, updatedAt: opts.now },
+						});
+			});
 		};
 		// Freigabe fehlt oder Microsoft drosselt: abbrechen, nicht zählen
 		const stopOn = (e: GraphError) =>
@@ -327,24 +355,18 @@ export async function deliverTeams(
 				await fail(app.error);
 				continue;
 			}
-			catalogAppId = app.value;
-			await tx
-				.update(teamsIntegrations)
-				.set({ catalogAppId, updatedAt: opts.now })
-				.where(eq(teamsIntegrations.id, integration.id));
+			const appId = app.value;
+			catalogAppId = appId;
+			await run.write((tx) =>
+				tx
+					.update(teamsIntegrations)
+					.set({ catalogAppId: appId, updatedAt: opts.now })
+					.where(eq(teamsIntegrations.id, integration.id)),
+			);
 		}
 
-		const [known] = await tx
-			.select()
-			.from(teamsUsers)
-			.where(
-				and(
-					eq(teamsUsers.organizationId, orgId),
-					eq(teamsUsers.userId, r.userId),
-				),
-			)
-			.limit(1);
-		let aad = known?.aadObjectId ?? null;
+		const prior = known.get(r.userId);
+		let aad = prior?.aadObjectId ?? null;
 		if (!aad) {
 			const found = await client.findUser(tenant, r.email);
 			if (!found.ok) {
@@ -357,7 +379,7 @@ export async function deliverTeams(
 			}
 			aad = found.value;
 		}
-		if (!known?.appInstalledAt) {
+		if (!prior?.appInstalledAt) {
 			const inst = await client.installApp(tenant, aad, catalogAppId);
 			if (!inst.ok) {
 				if (stopOn(inst.error)) {
@@ -368,26 +390,32 @@ export async function deliverTeams(
 				continue;
 			}
 		}
-		await tx
-			.insert(teamsUsers)
-			.values({
-				organizationId: orgId,
-				userId: r.userId,
-				aadObjectId: aad,
-				appInstalledAt: known?.appInstalledAt ?? opts.now,
-				lastError: null,
-				updatedAt: opts.now,
-			})
-			.onConflictDoUpdate({
-				target: [teamsUsers.organizationId, teamsUsers.userId],
-				set: {
-					aadObjectId: aad,
-					appInstalledAt: known?.appInstalledAt ?? opts.now,
+		const installedAt = prior?.appInstalledAt ?? opts.now;
+		const aadId = aad;
+		const [saved] = await run.write((tx) =>
+			tx
+				.insert(teamsUsers)
+				.values({
+					organizationId: orgId,
+					userId: r.userId,
+					aadObjectId: aadId,
+					appInstalledAt: installedAt,
 					lastError: null,
 					updatedAt: opts.now,
-				},
-			});
-		const sent = await client.sendActivity(tenant, aad, {
+				})
+				.onConflictDoUpdate({
+					target: [teamsUsers.organizationId, teamsUsers.userId],
+					set: {
+						aadObjectId: aadId,
+						appInstalledAt: installedAt,
+						lastError: null,
+						updatedAt: opts.now,
+					},
+				})
+				.returning(),
+		);
+		if (saved) known.set(r.userId, saved);
+		const sent = await client.sendActivity(tenant, aadId, {
 			title: r.title,
 			webUrl: teamsWebUrl(opts.baseUrl, r.link),
 		});
@@ -399,10 +427,12 @@ export async function deliverTeams(
 			await fail(sent.error, true);
 			continue;
 		}
-		await tx
-			.update(notifications)
-			.set({ teamsSentAt: opts.now })
-			.where(eq(notifications.id, r.id));
+		await run.write((tx) =>
+			tx
+				.update(notifications)
+				.set({ teamsSentAt: opts.now })
+				.where(eq(notifications.id, r.id)),
+		);
 		stats.sent++;
 	}
 	return stats;

@@ -1,6 +1,6 @@
 import { and, eq, lte, sql } from "drizzle-orm";
-import { globalDb } from "@/db";
 import { securityChanges } from "@/db/schema";
+import { mainDb } from "@/lib/db/job-scope";
 import { forEachOrg } from "@/lib/db/with-org";
 import { logger } from "@/lib/log";
 import { applyDueChanges } from "@/lib/security-changes/service";
@@ -10,7 +10,7 @@ import { applyDueChanges } from "@/lib/security-changes/service";
 // Erst die Orgs mit fälligen Anträgen im Plattform-Scope finden, dann je Org
 // im eigenen Kontext wirken lassen.
 export async function runSecurityChanges(now = new Date()): Promise<number> {
-	const orgIds = await globalDb.transaction(async (tx) => {
+	const orgIds = await mainDb().transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		const rows = await tx
 			.selectDistinct({ orgId: securityChanges.organizationId })

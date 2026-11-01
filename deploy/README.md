@@ -595,6 +595,21 @@ Schritte hier ist Push aus und alles läuft wie bisher.
   Job `push-notify` selbst; nach drei Fehlversuchen je Benachrichtigung geht sie per Mail.
 - **Sofort abschalten:** Drop-in entfernen, Klick neu starten (Mails laufen weiter).
 
+## Leistung im Betrieb (P4, Nov 2026)
+
+- **Zeitgrenzen** setzt die App selbst, beim Verbindungsaufbau (`lib/db/pool-options.ts`), nur im Server-Prozess. Seiten brechen eine einzelne Anweisung nach 30 s ab und warten höchstens 5 s auf eine Sperre. Jobs haben einen eigenen Pool mit vier Verbindungen und dürfen 10 min bzw. 30 s. Der Org-Export hebt die Grenze für seine Transaktion an (`longRunning`). Skripte am Terminal (Migrationen, KEK-Rotation, Seeds) laufen ohne Grenze. Im Journal zeigt sich ein Abbruch als `canceling statement due to statement timeout` bzw. `lock timeout`; die Seite meldet ihn mit Referenz.
+- **Verbindungen:** Klick nutzt höchstens 10 (Web) + 4 (Jobs) + pg-boss, both.money eigene. `max_connections = 100` (klick.conf) reicht.
+- **`pg_stat_statements`:** Die Phase `postgres` legt es nach dem Neustart in der Verwaltungs-DB `postgres` an. In `klick` liegt es nicht, sonst stünde es im Backup, und ein Restore ohne Superuser bräche ab. Gespeichert werden nur Muster (`$1`), nie Werte. Die langsamsten Abfragen von Klick:
+  ```bash
+  sudo -u postgres psql -c "select calls, round(mean_exec_time) as ms, left(query, 120)
+    from pg_stat_statements s join pg_database d on d.oid = s.dbid
+    where d.datname = 'klick' order by total_exec_time desc limit 20"
+  # Zähler zurücksetzen, z. B. nach einem Release:
+  sudo -u postgres psql -c "select pg_stat_statements_reset()"
+  ```
+- **Indizes:** Migrationen legen Indizes in ihrer Transaktion an und sperren die Tabelle dabei kurz für Schreibzugriffe. Migration 0065 braucht beim heutigen Datenstand Sekunden. Bei Tabellen mit Millionen Zeilen den Release in ein ruhiges Fenster legen.
+- **Retention** (täglich 03:00) löscht Benachrichtigungen in Blöcken zu 5 000 Zeilen, je Block eine eigene Transaktion, höchstens 200 Blöcke je Lauf. Gelesene gehen nach 180 Tagen, ungelesene nach einem Jahr. Dazu: Token 90 Tage nach Ablauf oder Widerruf, SSO-Einrichtungsanfragen 30 Tage nach Ablauf. Ergebnis im Journal: `retention done`.
+
 ## Härtung III (optional, per Env aktiv)
 - **clamd:** `apt install clamav-daemon`, `freshclam` als Timer, `TCPSocket 3310` + `TCPAddr 127.0.0.1`
   in `/etc/clamav/clamd.conf`, `StreamMaxLength 30M`. App: `CLAMD_HOST=127.0.0.1`. Fail closed —

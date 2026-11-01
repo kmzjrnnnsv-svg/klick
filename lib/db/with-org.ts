@@ -1,8 +1,10 @@
 import { sql } from "drizzle-orm";
-import { type DbTx, globalDb } from "@/db";
+import type { DbTx } from "@/db";
 import { type Actor, type AuditInput, audit } from "@/lib/audit";
 import { adminNetworkAllows } from "@/lib/auth/admin-network";
 import { AuthError } from "@/lib/auth/session-rules";
+import { mainDb } from "./job-scope";
+import { clampLongRunning } from "./pool-options";
 import { dbForOrg } from "./router";
 
 // Mandanten-Kontext für jede Datenbankarbeit.
@@ -126,7 +128,8 @@ export async function withPlatform<T>(
 	// Aus einer Anfrage (ip gesetzt) nur aus dem Admin-Netz; Jobs und
 	// Terminal-Skripte laufen ohne ip auf dem Server selbst (Härtung A2)
 	if (ctx.ip && !adminNetworkAllows(ctx.ip)) throw new AuthError("ip_blocked");
-	await globalDb.transaction(async (tx) => {
+	const db = mainDb();
+	await db.transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		await audit(
 			tx,
@@ -138,10 +141,36 @@ export async function withPlatform<T>(
 			{ action: "platform.access", after: { reason: ctx.reason } },
 		);
 	});
-	return globalDb.transaction(async (tx) => {
+	return db.transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		return fn(tx);
 	});
+}
+
+// Zeitgrenze je Anweisung für diese Transaktion anheben (Org-Export mit
+// großen Tabellen); sonst gilt die Grenze des Pools (lib/db/pool-options.ts).
+// set_config(…, true) wirkt nur bis zum Ende der Transaktion.
+export async function longRunning(tx: OrgTx, ms: number): Promise<void> {
+	await tx.execute(
+		sql`select set_config('statement_timeout', ${String(clampLongRunning(ms))}, true)`,
+	);
+}
+
+// Für Abläufe mit Netzaufrufen (Teams, Push, Mail): lesen und schreiben in
+// je eigener kurzer Transaktion, das Senden dazwischen ohne offene
+// Transaktion — sonst hält ein langsamer Dienst eine Verbindung und ihre
+// Zeilensperren fest.
+export type OrgRunner = {
+	read<T>(fn: (tx: OrgTx) => Promise<T>): Promise<T>;
+	write<T>(fn: (tx: OrgTx) => Promise<T>): Promise<T>;
+};
+
+export function orgRunner(orgId: string): OrgRunner {
+	const ctx: OrgCtx = { orgId, userId: null };
+	return {
+		read: (fn) => readOrg(ctx, fn),
+		write: (fn) => withOrg(ctx, fn),
+	};
 }
 
 // Für Jobs: eine Org nach der anderen, jede in eigenem Kontext.

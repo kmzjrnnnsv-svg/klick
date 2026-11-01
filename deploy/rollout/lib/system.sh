@@ -298,7 +298,11 @@ print("ALTER ROLE \"%s\" PASSWORD %s;" % (os.environ["ROLLE"], q(pw)))
 	done
 	[ "$fehlt" = 0 ] || die "erst die Rollen ohne SCRAM von Hand setzen, dann Phase postgres erneut"
 	einspielen "$DEPLOY/postgres/pg_hba.conf.example" "$dir/pg_hba.conf" 0640 postgres:postgres
-	[ "$GEAENDERT" = 1 ] || { ok "Postgres unverändert"; return 0; }
+	[ "$GEAENDERT" = 1 ] || {
+		ok "Postgres unverändert"
+		pg_stat_anlegen
+		return 0
+	}
 	trocken && return 0
 	systemctl restart postgresql
 	local u
@@ -314,6 +318,28 @@ print("ALTER ROLE \"%s\" PASSWORD %s;" % (os.environ["ROLLE"], q(pw)))
 	fi
 	ss -tlnH 'sport = :5432' | awk '{print $4}' | grep -vqE '^(127\.0\.0\.1|\[::1\]):5432$' &&
 		hinweis "Postgres lauscht nicht nur auf localhost" || ok "Postgres nur auf localhost"
+	pg_stat_anlegen
+}
+
+# Messung im Betrieb: pg_stat_statements braucht shared_preload_libraries
+# (klick.conf, also erst nach dem Neustart) und die Erweiterung — in der
+# Verwaltungs-DB postgres, nicht in klick: sonst stünde sie im Backup
+# (pg_dump), und ein Restore ohne Superuser bräche daran ab. Die Sicht
+# zeigt trotzdem alle Datenbanken (Spalte dbid).
+pg_stat_anlegen() {
+	if trocken; then
+		info "(Trockenlauf) würde pg_stat_statements anlegen"
+		return 0
+	fi
+	if ! pg_sql -c "show shared_preload_libraries" | grep -q pg_stat_statements; then
+		hinweis "pg_stat_statements wirkt erst nach einem Neustart von Postgres (klick.conf)"
+		return 0
+	fi
+	if pg_sql -c "create extension if not exists pg_stat_statements"; then
+		ok "pg_stat_statements bereit (Datenbank postgres)"
+	else
+		hinweis "pg_stat_statements ließ sich nicht anlegen"
+	fi
 }
 
 phase_virenscanner() {

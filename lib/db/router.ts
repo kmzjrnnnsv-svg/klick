@@ -1,6 +1,8 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { type GlobalDb, globalDb, schema } from "@/db";
+import { type GlobalDb, schema } from "@/db";
+import { mainDb } from "./job-scope";
+import { poolConnection } from "./pool-options";
 
 // Option „eigene Datenbank je Enterprise-Mandant“: ORG_DATABASE_URLS ist ein
 // JSON-Objekt { "<orgId>": "postgres://…" }. withOrg/readOrg/mutateOrg wählen
@@ -41,16 +43,28 @@ let routes: Record<string, string> | null = null;
 export function dbForOrg(orgId: string): GlobalDb {
 	if (!routes) routes = parseOrgDatabaseUrls(process.env.ORG_DATABASE_URLS);
 	const url = routes[orgId.toLowerCase()];
-	if (!url) return globalDb;
+	// Haupt-DB: im Job der Job-Pool (lib/db/job-scope.ts), sonst Web
+	if (!url) return mainDb();
 	let client = clients.get(url);
 	if (!client) {
 		client = drizzle(
-			postgres(url, { max: 5, idle_timeout: 30, connect_timeout: 10 }),
+			postgres(url, {
+				max: 5,
+				idle_timeout: 30,
+				connect_timeout: 10,
+				...connectionFor(),
+			}),
 			{ schema, casing: "snake_case" },
 		) as unknown as GlobalDb;
 		clients.set(url, client);
 	}
 	return client;
+}
+
+// Eigene DB einer Org: Zeitgrenzen wie der Web-Pool (auch Jobs nutzen ihn)
+function connectionFor() {
+	const connection = poolConnection("web");
+	return connection ? { connection } : {};
 }
 
 // Nur für Tests.

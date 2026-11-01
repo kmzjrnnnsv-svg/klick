@@ -14,6 +14,10 @@ describe("retention cutoffs", () => {
 		expect(c.inquiries.toISOString().slice(0, 10)).toBe("2025-10-07");
 		// NDA-Anfragen an Trust Center: 12 Monate nach Ablauf/Entscheidung
 		expect(c.trustRequests.toISOString().slice(0, 10)).toBe("2025-10-07");
+		// ungelesene nach einem Jahr, Token 90 Tage nach Ablauf/Widerruf
+		expect(c.unreadNotifications.toISOString().slice(0, 10)).toBe("2025-10-07");
+		expect(c.tokens.toISOString().slice(0, 10)).toBe("2026-07-09");
+		expect(c.ssoSetupRequests.toISOString().slice(0, 10)).toBe("2026-09-07");
 		expect(Object.keys(c)).not.toContain("auditLog");
 	});
 });

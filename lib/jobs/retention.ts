@@ -1,13 +1,12 @@
-import { and, isNotNull, isNull, lt, sql } from "drizzle-orm";
-import { globalDb } from "@/db";
+import { and, isNull, lt, type SQL, sql } from "drizzle-orm";
 import { rateLimit, session, verification } from "@/db/auth-schema";
 import {
 	inquiries,
-	notifications,
 	policyReaders,
 	ssoProbes,
 	trustAccessRequests,
 } from "@/db/schema";
+import { mainDb } from "@/lib/db/job-scope";
 import { logger } from "@/lib/log";
 
 // Retention (täglich 03:00): abgelaufene Sitzungen, Verifikations-Tokens,
@@ -16,7 +15,12 @@ import { logger } from "@/lib/log";
 // NDA-Anfragen an Trust Center 12 Monate nach Ablauf bzw. Entscheidung
 // (docs/legal/datenschutzerklaerung.md, Abschnitt 9), Adressen im
 // Richtlinien-Portal, die nie einen Code eingelöst haben, nach 7 Tagen,
-// SSO-Proben (was der Anbieter über die Testperson schickte) nach einem Tag.
+// SSO-Proben (was der Anbieter über die Testperson schickte) nach einem Tag,
+// ungelesene Benachrichtigungen nach einem Jahr, abgelaufene oder widerrufene
+// Zugangs-Token nach 90 Tagen, abgelaufene SSO-Einrichtungsanfragen der IT
+// nach 30 Tagen. Große Tabellen (Benachrichtigungen) in Blöcken zu je
+// RETENTION_BLOCK Zeilen, jeder Block eine eigene kurze Transaktion — so
+// sperrt der Hausputz nichts lange und bleibt unter der Zeitgrenze (P4).
 // Nie: audit_log (Hash-Kette, GwG § 8), fachliche Register, Nachweise —
 // deren Aufbewahrung regelt das Löschkonzept (CC-AST-10), nicht dieser Job.
 
@@ -24,6 +28,9 @@ export const RETENTION = {
 	sessionGraceDays: 30,
 	verificationGraceDays: 1,
 	readNotificationDays: 180,
+	unreadNotificationDays: 365,
+	expiredTokenDays: 90,
+	ssoSetupRequestDays: 30,
 	rateLimitDays: 7,
 	inquiryDays: 365,
 	trustRequestDays: 365,
@@ -37,6 +44,9 @@ export function retentionCutoffs(now = new Date()) {
 		sessions: minus(RETENTION.sessionGraceDays),
 		verifications: minus(RETENTION.verificationGraceDays),
 		notifications: minus(RETENTION.readNotificationDays),
+		unreadNotifications: minus(RETENTION.unreadNotificationDays),
+		tokens: minus(RETENTION.expiredTokenDays),
+		ssoSetupRequests: minus(RETENTION.ssoSetupRequestDays),
 		rateLimit: minus(RETENTION.rateLimitDays),
 		inquiries: minus(RETENTION.inquiryDays),
 		trustRequests: minus(RETENTION.trustRequestDays),
@@ -45,10 +55,15 @@ export function retentionCutoffs(now = new Date()) {
 	};
 }
 
+// Rohes SQL nimmt Zeitpunkte als Text (postgres.js bindet Date dort nicht)
+const iso = (d: Date) => d.toISOString();
+
 export type RetentionSummary = {
 	sessions: number;
 	verifications: number;
 	notifications: number;
+	tokens: number;
+	ssoSetupRequests: number;
 	rateLimit: number;
 	inquiries: number;
 	trustRequests: number;
@@ -60,7 +75,7 @@ export async function runRetention(
 	now = new Date(),
 ): Promise<RetentionSummary> {
 	const cut = retentionCutoffs(now);
-	const summary = await globalDb.transaction(async (tx) => {
+	const summary = await mainDb().transaction(async (tx) => {
 		// notifications ist RLS-geschützt → Plattform-Kontext für den Hausputz.
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		const s = await tx
@@ -71,15 +86,15 @@ export async function runRetention(
 			.delete(verification)
 			.where(lt(verification.expiresAt, cut.verifications))
 			.returning({ id: verification.id });
-		const n = await tx
-			.delete(notifications)
-			.where(
-				and(
-					isNotNull(notifications.readAt),
-					lt(notifications.createdAt, cut.notifications),
-				),
-			)
-			.returning({ id: notifications.id });
+		const tok = await tx.execute<{ n: number }>(sql`
+			with d as (delete from access_tokens
+			  where revoked_at < ${iso(cut.tokens)} or expires_at < ${iso(cut.tokens)}
+			  returning 1)
+			select count(*)::int as n from d`);
+		const ssr = await tx.execute<{ n: number }>(sql`
+			with d as (delete from sso_setup_requests
+			  where expires_at < ${iso(cut.ssoSetupRequests)} returning 1)
+			select count(*)::int as n from d`);
 		const r = await tx
 			.delete(rateLimit)
 			.where(lt(rateLimit.lastRequest, cut.rateLimit.getTime()))
@@ -92,10 +107,9 @@ export async function runRetention(
 		const tr = await tx
 			.delete(trustAccessRequests)
 			.where(
-				lt(
-					sql`coalesce(${trustAccessRequests.expiresAt}, ${trustAccessRequests.decidedAt}, ${trustAccessRequests.createdAt})`,
-					cut.trustRequests,
-				),
+				// Rohes SQL: Zeitpunkt als Text (postgres.js bindet Date dort
+				// nicht; bis Nov 2026 brach der ganze Lauf hier ab)
+				sql`coalesce(${trustAccessRequests.expiresAt}, ${trustAccessRequests.decidedAt}, ${trustAccessRequests.createdAt}) < ${iso(cut.trustRequests)}`,
 			)
 			.returning({ id: trustAccessRequests.id });
 		// Richtlinien-Portal: angefragt, nie bestätigt (Kenntnisnahmen gibt
@@ -114,9 +128,11 @@ export async function runRetention(
 			.where(lt(ssoProbes.createdAt, cut.ssoProbes))
 			.returning({ id: ssoProbes.id });
 		return {
+			notifications: 0,
 			sessions: s.length,
 			verifications: v.length,
-			notifications: n.length,
+			tokens: Number(tok[0]?.n ?? 0),
+			ssoSetupRequests: Number(ssr[0]?.n ?? 0),
 			rateLimit: r.length,
 			inquiries: q.length,
 			trustRequests: tr.length,
@@ -124,6 +140,41 @@ export async function runRetention(
 			ssoProbes: sp.length,
 		};
 	});
+	summary.notifications =
+		(await deleteInBlocks(
+			"notifications",
+			sql`read_at is not null and created_at < ${iso(cut.notifications)}`,
+		)) +
+		(await deleteInBlocks(
+			"notifications",
+			sql`read_at is null and created_at < ${iso(cut.unreadNotifications)}`,
+		));
 	logger.info({ job: "retention", ...summary }, "retention done");
 	return summary;
+}
+
+export const RETENTION_BLOCK = 5_000;
+// höchstens so viele Blöcke je Lauf (der Rest folgt am nächsten Tag)
+const MAX_BLOCKS = 200;
+
+// Löschen in Blöcken, jeder Block eine eigene Transaktion im Plattform-Scope
+async function deleteInBlocks(
+	table: "notifications",
+	where: SQL,
+): Promise<number> {
+	let total = 0;
+	for (let i = 0; i < MAX_BLOCKS; i++) {
+		const n = await mainDb().transaction(async (tx) => {
+			await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
+			const res = await tx.execute<{ n: number }>(sql`
+				with d as (delete from ${sql.identifier(table)} where id in (
+				  select id from ${sql.identifier(table)} where ${where}
+				  limit ${RETENTION_BLOCK}) returning 1)
+				select count(*)::int as n from d`);
+			return Number(res[0]?.n ?? 0);
+		});
+		total += n;
+		if (n < RETENTION_BLOCK) break;
+	}
+	return total;
 }

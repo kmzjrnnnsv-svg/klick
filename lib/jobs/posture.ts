@@ -1,8 +1,8 @@
 import { sql } from "drizzle-orm";
-import { globalDb } from "@/db";
 import { organization } from "@/db/auth-schema";
 import { frameworks, postureSnapshots } from "@/db/schema";
 import { orgCoverage } from "@/lib/compliance/queries";
+import { mainDb } from "@/lib/db/job-scope";
 import { forEachOrg } from "@/lib/db/with-org";
 import { logger } from "@/lib/log";
 
@@ -12,7 +12,7 @@ import { logger } from "@/lib/log";
 
 export async function runPostureSnapshot(now = new Date()): Promise<number> {
 	const date = now.toISOString().slice(0, 10);
-	const orgs = await globalDb.transaction(async (tx) => {
+	const orgs = await mainDb().transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		return tx.select({ id: organization.id }).from(organization);
 	});
