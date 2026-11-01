@@ -59,9 +59,14 @@ describe("releaseDecision", () => {
 		expect(r).toEqual({ ok: true, errors: [], warnings: [] });
 	});
 
-	it("beide Releases laufen zuerst durch den Wächter", () => {
+	it("beide Releases laufen zuerst durch den Wächter, auch ohne Build", () => {
 		const pkg = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8"));
-		for (const s of ["release", "release:wallet"])
+		for (const s of [
+			"release",
+			"release:wallet",
+			"release:prepare",
+			"release:wallet:prepare",
+		])
 			expect(pkg.scripts[s]).toMatch(/^tsx scripts\/release-guard\.ts && /);
 	});
 });

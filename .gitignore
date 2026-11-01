@@ -15,9 +15,14 @@
 
 # next.js
 /.next/
+# Umschalten auf ein Release-Artefakt (deploy/rollout, ADR-034)
+/.next.neu/
+/.next.alt/
 /out/
 # both.money (apps/wallet)
 apps/*/.next/
+apps/*/.next.neu/
+apps/*/.next.alt/
 apps/*/next-env.d.ts
 
 # production
