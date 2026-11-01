@@ -179,7 +179,10 @@ export function QuestionCard({
 		<article
 			id={id}
 			aria-labelledby={`${id}-title`}
-			className="scroll-mt-24 rounded-2xl bg-card p-4"
+			// Sprungziel für „Nächste offene Frage“ (ChapterPane)
+			data-answered={answer ? "true" : "false"}
+			tabIndex={-1}
+			className="scroll-mt-32 rounded-2xl bg-card p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 		>
 			<header className="flex flex-col gap-1">
 				<div className="flex flex-wrap items-center gap-2 text-footnote">

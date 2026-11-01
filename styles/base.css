@@ -320,3 +320,50 @@ h1 {
 		color: color-mix(in srgb, var(--muted-foreground) 70%, transparent);
 	}
 }
+
+/* Geteilte Ansicht (wie Mail oder Einstellungen am Mac/iPad): ab 1024 px
+   Breite und 640 px Höhe steht der Kopf der Seite, Liste und Inhalt
+   scrollen je für sich. Seite: data-split-page, Raster darin
+   data-split-body, scrollende Spalten data-split-pane. Darunter scrollt die
+   Seite wie jede andere. main füllt dafür die Höhe der rechten Spalte
+   (data-scroll-root, lg:h-dvh), die selbst nicht mehr scrollt. */
+@media (min-width: 64rem) and (min-height: 40rem) {
+	main:has(> [data-split-page]) {
+		display: flex;
+		flex-direction: column;
+		flex: 1 1 0%;
+		min-height: 0;
+	}
+	[data-split-page] {
+		display: flex;
+		flex-direction: column;
+		flex: 1 1 0%;
+		min-height: 0;
+	}
+	[data-split-body] {
+		flex: 1 1 0%;
+		min-height: 0;
+		grid-template-rows: minmax(0, 1fr);
+	}
+	/* relative: auch absolut positionierte Kinder (versteckte Datei-Felder,
+	   sr-only) gehören in die Spalte, sonst wächst die Seite mit */
+	[data-split-pane] {
+		position: relative;
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+	/* Kopfzeile der Spalte klebt an ihrem oberen Rand, nicht unter der
+	   Kopfleiste der App; Sprungziele landen knapp darunter */
+	[data-split-pane] > [data-pane-head] {
+		top: 0;
+	}
+	[data-split-pane] [data-answered] {
+		scroll-margin-top: 5rem;
+	}
+	/* Liste neben dem Inhalt: weicher Rand unten statt harter Kante */
+	nav[data-split-pane] {
+		padding-bottom: 2rem;
+		mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
+	}
+}
