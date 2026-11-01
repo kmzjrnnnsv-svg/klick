@@ -1,5 +1,4 @@
 import { and, eq, sql } from "drizzle-orm";
-import { globalDb } from "@/db";
 import { member } from "@/db/auth-schema";
 import { notifications, ssoProviderStates } from "@/db/schema";
 import { listSsoProvidersForOrg } from "@/lib/auth/org";
@@ -11,6 +10,7 @@ import {
 	providerStates,
 	upsertProviderState,
 } from "@/lib/auth/sso-setup-service";
+import { mainDb } from "@/lib/db/job-scope";
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { logger } from "@/lib/log";
 import { notify } from "@/lib/notifications/notify";
@@ -31,7 +31,7 @@ export type Fetcher = (
 type State = Awaited<ReturnType<typeof providerStates>>[number];
 
 async function ownersOf(orgId: string): Promise<string[]> {
-	const rows = await globalDb
+	const rows = await mainDb()
 		.select({ userId: member.userId })
 		.from(member)
 		.where(and(eq(member.organizationId, orgId), eq(member.role, "owner")));
@@ -138,7 +138,7 @@ export async function runSsoMetadata(
 	now = new Date(),
 	fetcher: Fetcher = fetchIdpMetadata,
 ): Promise<{ checked: number; newCerts: number; reminders: number }> {
-	const orgIds = await globalDb.transaction(async (tx) => {
+	const orgIds = await mainDb().transaction(async (tx) => {
 		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
 		const rows = await tx
 			.selectDistinct({ orgId: ssoProviderStates.organizationId })

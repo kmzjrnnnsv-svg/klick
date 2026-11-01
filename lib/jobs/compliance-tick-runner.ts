@@ -9,7 +9,6 @@ import {
 	or,
 	sql,
 } from "drizzle-orm";
-import { globalDb } from "@/db";
 import { member, organization, user } from "@/db/auth-schema";
 import {
 	accessTokens,
@@ -74,6 +73,7 @@ import { shortFrameworkName } from "@/lib/compliance/page-data";
 import { getOrgProfile } from "@/lib/compliance/queries";
 import { loadAuditRegimeContext } from "@/lib/compliance/queries-audit-regimes";
 import { lastReconciliationDay } from "@/lib/custody/queries";
+import { mainDb } from "@/lib/db/job-scope";
 import { remindOverdueReports } from "@/lib/db/platform-access";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
 import { dueDocumentRetention } from "@/lib/documents/destruction";
@@ -106,7 +106,7 @@ export type TickSummary = {
 export async function runComplianceTick(
 	now = new Date(),
 ): Promise<TickSummary> {
-	const orgs = await globalDb
+	const orgs = await mainDb()
 		.select({ id: organization.id })
 		.from(organization);
 	const summary: TickSummary = {

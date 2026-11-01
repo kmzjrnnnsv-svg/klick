@@ -6,6 +6,7 @@
 // die den RLS-Kontext (app.org_id) transaktionslokal setzen.
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { poolConnection } from "../lib/db/pool-options";
 import { ensureEnvLoaded } from "../lib/env";
 import * as authSchema from "./auth-schema";
 import * as appSchema from "./schema";
@@ -22,10 +23,13 @@ function createClient(): SqlClient {
 	// postgres.js verbindet lazy — ohne Query keine Verbindung. Deshalb darf
 	// hier ein Platzhalter stehen (Better-Auth-CLI, Typecheck ohne DB).
 	const url = process.env.DATABASE_URL ?? "postgres://localhost:5432/klick";
+	// Zeitgrenzen nur im Server (lib/db/pool-options.ts), nicht für Skripte
+	const connection = poolConnection("web");
 	return postgres(url, {
 		max: 10,
 		idle_timeout: 30,
 		connect_timeout: 10,
+		...(connection ? { connection } : {}),
 		...(process.env.KLICK_QUERY_LOG === "true" ? { debug: logQuery } : {}),
 	});
 }
