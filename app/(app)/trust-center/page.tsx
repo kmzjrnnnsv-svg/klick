@@ -2,6 +2,7 @@ import { and, desc, eq, notInArray } from "drizzle-orm";
 import { ArrowUpRight } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { PublishControls } from "@/components/trust-center/publish-controls";
 import { RequestActions } from "@/components/trust-center/request-actions";
@@ -35,7 +36,7 @@ const TABS = ["inhalt", "anfragen"] as const;
 
 // /trust-center — öffentliche Vertrauensseite der Org pflegen und
 // Anfragen nach vertraulichen Unterlagen freigeben.
-export default async function TrustCenterAdminPage({
+async function TrustCenterAdminPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ tab?: string }>;
@@ -259,3 +260,11 @@ export default async function TrustCenterAdminPage({
 		</>
 	);
 }
+
+export default withMessages(TrustCenterAdminPage, [
+	"Auth",
+	"Common",
+	"Roles",
+	"Team",
+	"TrustCenter",
+]);

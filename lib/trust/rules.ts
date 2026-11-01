@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import type {
 	Classification,
 	TrustDocumentAccess,
@@ -50,15 +49,6 @@ export function documentAccessAllowed(
 	if (classification === "secret") return false;
 	if (classification === "confidential") return access === "nda";
 	return true;
-}
-
-// Fingerabdruck des NDA-Texts: die Anfrage speichert, welcher Fassung
-// zugestimmt wurde.
-export function ndaVersion(text: string): string {
-	return createHash("sha256")
-		.update(text.trim(), "utf8")
-		.digest("hex")
-		.slice(0, 16);
 }
 
 export type TrustRequestState =

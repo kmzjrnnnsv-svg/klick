@@ -15,6 +15,7 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
+import { withMessages } from "@/components/i18n/with-messages";
 import {
 	ProcessForm,
 	ProcessLinksEditor,
@@ -51,7 +52,7 @@ import {
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 const IMPL_KEY = {
 	not_started: "notStarted",
@@ -73,7 +74,7 @@ const CRIT_TONE = {
 	standard: "outline",
 } as const;
 
-export default async function ProcessDetailPage({
+async function ProcessDetailPage({
 	params,
 }: {
 	params: Promise<{ code: string }>;
@@ -574,3 +575,16 @@ export default async function ProcessDetailPage({
 		</EntityLayout>
 	);
 }
+
+export default withMessages(ProcessDetailPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Organisation",
+	"Processes",
+	"Settings",
+	"Status",
+	"Tasks",
+]);

@@ -9,6 +9,10 @@ import {
 	CLASSIFICATIONS,
 	type Classification,
 } from "@/db/schema/enums";
+import { AI_FEATURES } from "./options";
+
+export type { AiFeature } from "./options";
+export { AI_FEATURES, ANTHROPIC_MODELS, DEFAULT_MODEL } from "./options";
 
 export {
 	AI_CLASS_LEVELS,
@@ -29,36 +33,12 @@ export {
 //    Funktionen und bis zu welcher Einstufung Inhalte an die KI dürfen.
 // Wirksam ist immer das Strengere. „Streng geheim“ geht nie an eine KI.
 
-export const AI_FEATURES = [
-	// Fassungen von Dokumenten und Nachweisen zusammenfassen
-	"compare",
-	// Dokument-Entwurf aus einer Vorlage
-	"draft",
-	// Nachweis gegen die Anforderungen der verknüpften Controls prüfen
-	"evidence_check",
-	// Fragen an die Hilfe (nur Hilfetexte, keine Firmendaten)
-	"help",
-] as const;
-export type AiFeature = (typeof AI_FEATURES)[number];
-
 // Anbieter, die Dateien (PDF, Bild) selbst lesen; die übrigen nur Text
 export const FILE_PROVIDERS: readonly AiProvider[] = [
 	"anthropic",
 	"gemini",
 	"openai",
 ];
-
-// Modelle zur Auswahl (Anthropic); bei den übrigen ist das Modell frei,
-// der Verbindungstest prüft es
-export const ANTHROPIC_MODELS = [
-	"claude-sonnet-5-5",
-	"claude-opus-5-5",
-	"claude-haiku-5-5",
-] as const;
-
-export const DEFAULT_MODEL: Partial<Record<AiProvider, string>> = {
-	anthropic: "claude-sonnet-5-5",
-};
 
 const RANK: Record<AiClassLevel, number> = {
 	none: 0,

@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import {
 	ApplyRequirementsButton,
@@ -36,7 +37,7 @@ import {
 import { readOrg } from "@/lib/db/with-org";
 import { currentTrainings } from "@/lib/trainings/assignments";
 
-export default async function TrainingsPage({
+async function TrainingsPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ tab?: string }>;
@@ -444,3 +445,13 @@ export default async function TrainingsPage({
 		</>
 	);
 }
+
+export default withMessages(TrainingsPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Organisation",
+	"Trainings",
+]);

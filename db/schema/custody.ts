@@ -20,9 +20,24 @@ import {
 	ts,
 	userRef,
 } from "./_shared";
+import {
+	CEREMONY_KINDS,
+	KEY_HOLDER_ROLES,
+	WALLET_KINDS,
+	WALLET_PURPOSES,
+	WALLET_TECHNOLOGIES,
+} from "./enums";
 import { evidence, tasks } from "./grc";
 import { nonconformities } from "./management";
 import { assets, providers, sites } from "./registers";
+
+export {
+	CEREMONY_KINDS,
+	KEY_HOLDER_ROLES,
+	WALLET_KINDS,
+	WALLET_PURPOSES,
+	WALLET_TECHNOLOGIES,
+} from "./enums";
 
 // Verwahrung von Kryptowerten (MiCAR Art. 70/75, CCSS 1.01–1.06):
 // Wallet-Register mit Quorum und Schlüsselinhaber:innen, Zeremonien und
@@ -30,27 +45,10 @@ import { assets, providers, sites } from "./registers";
 // Kundenvermögens (on-chain gegen internes Kundenbuch). Schlüsselmaterial
 // gehört nie hierher — nur öffentliche Adressen bzw. Bezeichnungen.
 
-export const WALLET_KINDS = ["hot", "warm", "cold"] as const;
 export type WalletKind = (typeof WALLET_KINDS)[number];
-export const WALLET_TECHNOLOGIES = [
-	"multisig",
-	"mpc",
-	"single_key",
-	"hsm",
-	"sub_custodian",
-] as const;
 export type WalletTechnology = (typeof WALLET_TECHNOLOGIES)[number];
-export const WALLET_PURPOSES = ["client", "own", "operational"] as const;
 export type WalletPurpose = (typeof WALLET_PURPOSES)[number];
-export const KEY_HOLDER_ROLES = ["signer", "backup", "recovery"] as const;
 export type KeyHolderRole = (typeof KEY_HOLDER_ROLES)[number];
-export const CEREMONY_KINDS = [
-	"generation",
-	"rotation",
-	"backup_test",
-	"recovery_test",
-	"destruction",
-] as const;
 export type CeremonyKind = (typeof CEREMONY_KINDS)[number];
 export const RECONCILIATION_STATUS = [
 	"matched",

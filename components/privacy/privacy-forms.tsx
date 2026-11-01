@@ -34,7 +34,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
-import { DSR_TYPES, INSURANCE_TYPES } from "@/lib/validation/privacy";
+import { DSR_TYPES, INSURANCE_TYPES } from "@/lib/validation/options";
 
 function nowLocal(): string {
 	const d = new Date();

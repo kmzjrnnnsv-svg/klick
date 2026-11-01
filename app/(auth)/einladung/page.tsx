@@ -1,9 +1,10 @@
 import { getTranslations } from "next-intl/server";
 import { LinkRegistration } from "@/components/auth/link-registration";
+import { withMessages } from "@/components/i18n/with-messages";
 import { getSessionCtx } from "@/lib/auth/guards";
 
 // Einladungslink mit Passkey (ADR-019): /einladung#klk_invite_…
-export default async function InvitationLinkPage() {
+async function InvitationLinkPage() {
 	const t = await getTranslations("Invitation");
 	const ctx = await getSessionCtx();
 	return (
@@ -18,3 +19,10 @@ export default async function InvitationLinkPage() {
 		</div>
 	);
 }
+
+export default withMessages(InvitationLinkPage, [
+	"Activate",
+	"Auth",
+	"Invitation",
+	"Recover",
+]);

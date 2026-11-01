@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import { GovernanceModeControl } from "@/components/settings/governance-mode-control";
 import { ActivityStep } from "@/components/setup/activity-step";
 import { BoardStep } from "@/components/setup/board-step";
@@ -72,7 +73,7 @@ const BASE_FUNCTIONS: readonly RoleFunction[] = [
 	"internal_audit",
 ];
 
-export default async function SetupStepPage({
+async function SetupStepPage({
 	params,
 	searchParams,
 }: {
@@ -502,3 +503,18 @@ export default async function SetupStepPage({
 		</div>
 	);
 }
+
+export default withMessages(SetupStepPage, [
+	"Appointments",
+	"Auth",
+	"Board",
+	"Common",
+	"Dnd",
+	"Entity",
+	"Onboarding",
+	"RiskSources",
+	"Roles",
+	"Setup",
+	"Team",
+	"Workflows",
+]);

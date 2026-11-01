@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/entity/empty-state";
 import { OwnerChip } from "@/components/entity/owner-chip";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { DeleteRowButton } from "@/components/organisation/governance-forms";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -40,7 +41,7 @@ import {
 } from "@/lib/compliance/queries-p5";
 import { decryptMany, fieldAad } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -60,7 +61,7 @@ const fmtTs = new Intl.DateTimeFormat("de-DE", {
 // /datenschutz — VVT (Art. 30), DSFA (Art. 35), Betroffenenanfragen
 // (Art. 12–22 mit Monatsfrist). Pseudonyme feldverschlüsselt; Prüfer:innen
 // ohne Grant sehen Anfragen nur aggregiert.
-export default async function PrivacyPage({
+async function PrivacyPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -460,3 +461,13 @@ export default async function PrivacyPage({
 		</>
 	);
 }
+
+export default withMessages(PrivacyPage, [
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Insurance",
+	"Organisation",
+	"Privacy",
+]);

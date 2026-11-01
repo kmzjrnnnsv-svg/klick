@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/entity/empty-state";
 import { EvidenceForm } from "@/components/entity/evidence-form";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -21,7 +22,7 @@ type Row = Awaited<ReturnType<typeof listEvidenceWithControls>>[number];
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function EvidencePage({
+async function EvidencePage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -229,3 +230,10 @@ export default async function EvidencePage({
 		/>
 	);
 }
+
+export default withMessages(EvidencePage, [
+	"Common",
+	"Dlp",
+	"Entity",
+	"Evidence",
+]);

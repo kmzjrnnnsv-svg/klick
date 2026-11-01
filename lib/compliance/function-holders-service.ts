@@ -11,7 +11,7 @@ import {
 import { functionKeyOf } from "@/lib/compliance/function-key";
 import { userNames } from "@/lib/compliance/queries";
 import type { OrgTx } from "@/lib/db/with-org";
-import { functionOfRef } from "@/lib/validation/responsible";
+import { functionOfRef } from "@/lib/validation/responsible-ref";
 
 // Lader zu lib/compliance/function-holders.ts (im Org-Kontext)
 

@@ -8,7 +8,7 @@ import { encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import type { OrgTx } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { orgOwnerIds } from "@/lib/org/queries";
-import { functionOfRef } from "@/lib/validation/responsible";
+import { functionOfRef } from "@/lib/validation/responsible-ref";
 
 // Verdachtsfälle (§ 43 GwG, goAML) und STOR (Art. 92 MiCAR) anlegen — aus der
 // Oberfläche und ohne Sitzung (Export aus both.money). Kein PII-Feld; die

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { PolicyBody } from "@/components/policies/policy-list";
 import { PortalAckButton } from "@/components/policy-portal/portal-client";
@@ -21,7 +22,7 @@ import {
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 // Eine Richtlinie im Portal: gültige Fassung, Datei, Kenntnisnahme.
-export default async function PortalPolicyPage({
+async function PortalPolicyPage({
 	params,
 }: {
 	params: Promise<{ slug: string; docNumber: string }>;
@@ -81,3 +82,9 @@ export default async function PortalPolicyPage({
 		</>
 	);
 }
+
+export default withMessages(PortalPolicyPage, [
+	"Common",
+	"Documents",
+	"PolicyPortal",
+]);

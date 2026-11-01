@@ -3,6 +3,7 @@ import {
 	AnnouncementDialog,
 	WithdrawAnnouncementButton,
 } from "@/components/admin/announcement-dialog";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ListRow, ListSection } from "@/components/ui/list";
@@ -33,7 +34,7 @@ const STATE_BADGE: Record<
 // Admin > Mitteilungen (Admin-Portal, Teil 6): Hinweise an alle oder
 // ausgewählte Organisationen. Ein Sicherheitsvorfall geht sofort per Mail
 // an Inhaber:innen und Geschäftsleitung, jede Org nimmt ihn zur Kenntnis.
-export default async function AdminAnnouncementsPage() {
+async function AdminAnnouncementsPage() {
 	const admin = await requirePlatformAdminPage();
 	const t = await getTranslations("AdminAnnouncements");
 	const ta = await getTranslations("Admin");
@@ -135,3 +136,9 @@ export default async function AdminAnnouncementsPage() {
 		</div>
 	);
 }
+
+export default withMessages(AdminAnnouncementsPage, [
+	"AdminAnnouncements",
+	"Auth",
+	"Common",
+]);

@@ -29,14 +29,14 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
+import type { Wallet } from "@/db/schema/custody";
 import {
 	CEREMONY_KINDS,
 	KEY_HOLDER_ROLES,
 	WALLET_KINDS,
 	WALLET_PURPOSES,
 	WALLET_TECHNOLOGIES,
-	type Wallet,
-} from "@/db/schema/custody";
+} from "@/db/schema/enums";
 
 type Member = { userId: string; name: string; email: string };
 type Option = { id: string; name: string };

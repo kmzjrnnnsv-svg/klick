@@ -2,12 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { OnboardingWizard } from "@/components/auth/onboarding-wizard";
+import { withMessages } from "@/components/i18n/with-messages";
 import { pendingInvitationId } from "@/lib/auth/allow-list";
 import { gateAuth } from "@/lib/auth/gates";
 import { getSessionCtx, primaryMembershipCount } from "@/lib/auth/guards";
 import { listUserMemberships } from "@/lib/auth/org";
 
-export default async function OnboardingPage() {
+async function OnboardingPage() {
 	await gateAuth("/onboarding");
 	const ctx = await getSessionCtx();
 	if (!ctx) redirect("/login");
@@ -39,3 +40,9 @@ export default async function OnboardingPage() {
 		</div>
 	);
 }
+
+export default withMessages(OnboardingPage, [
+	"Common",
+	"Functions",
+	"Onboarding",
+]);

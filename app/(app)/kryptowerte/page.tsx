@@ -4,6 +4,7 @@ import {
 	CryptoAssetForm,
 } from "@/components/casp/crypto-asset-form";
 import { EmptyState } from "@/components/entity/empty-state";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -30,7 +31,7 @@ const eur = new Intl.NumberFormat("de-DE", {
 // /kryptowerte — Kryptowerte, auf die sich die Dienste beziehen (MiCAR
 // Art. 62(2)(r)); Annahme nur mit zugelassenem EMT-Emittenten (Art. 48)
 // oder bei nativen Werten ohne Emittent.
-export default async function CryptoAssetsPage() {
+async function CryptoAssetsPage() {
 	const ctx = await requireOrgPage({ crypto_asset: ["read"] });
 	const t = await getTranslations("CryptoAssets");
 	const canEdit = allows(ctx, { crypto_asset: ["update"] });
@@ -177,3 +178,12 @@ export default async function CryptoAssetsPage() {
 		</>
 	);
 }
+
+export default withMessages(CryptoAssetsPage, [
+	"Auth",
+	"Common",
+	"CryptoAssets",
+	"Entity",
+	"Functions",
+	"Organisation",
+]);

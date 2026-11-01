@@ -5,6 +5,7 @@ import { ApprovalActions } from "@/components/approvals/approval-actions";
 import { AckButton } from "@/components/documents/ack-button";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import {
 	CompleteTrainingButton,
@@ -57,7 +58,7 @@ import { currentTrainings } from "@/lib/trainings/assignments";
 
 // Startseite nach Login: gestapelte Abschnitte, je max. fünf Einträge —
 // Freigaben, Aufgaben, Fälliges, Kenntnisnahmen, Erwähnungen.
-export default async function TodayPage() {
+async function TodayPage() {
 	const ctx = await requireOrgPage(undefined, { employees: true });
 	// Mitarbeitende: ihre Startseite sind die Richtlinien
 	if (ctx.orgRole === "employee") redirect("/richtlinien");
@@ -503,3 +504,16 @@ export default async function TodayPage() {
 		</>
 	);
 }
+
+export default withMessages(TodayPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Documents",
+	"Entity",
+	"Functions",
+	"Organisation",
+	"Settings",
+	"Tasks",
+	"Trainings",
+]);

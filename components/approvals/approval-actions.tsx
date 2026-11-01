@@ -1,6 +1,6 @@
 "use client";
 
-import { startAuthentication } from "@simplewebauthn/browser";
+import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { PenLine } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -106,8 +106,9 @@ export function ApprovalActions({
 				);
 				return;
 			}
-			let response: Awaited<ReturnType<typeof startAuthentication>>;
+			let response: AuthenticationResponseJSON;
 			try {
+				const { startAuthentication } = await import("@simplewebauthn/browser");
 				response = await startAuthentication({
 					optionsJSON: prep.data.options,
 				});

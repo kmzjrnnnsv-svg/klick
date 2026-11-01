@@ -6,6 +6,7 @@ import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { DependencyMap } from "@/components/processes/dependency-map";
 import {
@@ -40,7 +41,7 @@ const CRIT_TONE = {
 } as const;
 const CATEGORIES = ["core", "support", "management", "control"] as const;
 
-export default async function ProcessesPage({
+async function ProcessesPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -379,3 +380,13 @@ export default async function ProcessesPage({
 		</>
 	);
 }
+
+export default withMessages(ProcessesPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Organisation",
+	"Processes",
+]);

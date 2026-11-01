@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { NewAssessmentDialog } from "@/components/assessments/new-assessment-dialog";
 import { EmptyState } from "@/components/entity/empty-state";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -27,7 +28,7 @@ const STATUS_TONE = {
 } as const;
 
 // Gap-Analysen der Org: Fragebogen → Bewertung → Maßnahmen → Ergebnis.
-export default async function GapAnalysisPage() {
+async function GapAnalysisPage() {
 	const ctx = await requireOrgPage({ assessment: ["read"] });
 	const t = await getTranslations("Assessment");
 	const { rows, frameworks } = await readOrg(toOrgCtx(ctx), async (tx) => ({
@@ -125,3 +126,5 @@ export default async function GapAnalysisPage() {
 		</>
 	);
 }
+
+export default withMessages(GapAnalysisPage, ["Assessment", "Common"]);

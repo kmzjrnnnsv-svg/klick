@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/entity/empty-state";
 import { OwnerChip } from "@/components/entity/owner-chip";
 import { UserChip } from "@/components/entity/user-chip";
 import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
+import { withMessages } from "@/components/i18n/with-messages";
 import { ReviewDigestView } from "@/components/management-review/review-digest";
 import {
 	CompleteReviewForm,
@@ -26,7 +27,7 @@ import { getOrgProfile, listMembersForPicker } from "@/lib/compliance/queries";
 import { listManagementReviews } from "@/lib/compliance/queries-p3";
 import { buildReviewDigest } from "@/lib/compliance/queries-review-digest";
 import { readOrg } from "@/lib/db/with-org";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 const STATUS_TONE = {
 	planned: "outline",
@@ -34,7 +35,7 @@ const STATUS_TONE = {
 	done: "success",
 } as const;
 
-export default async function ManagementReviewPage() {
+async function ManagementReviewPage() {
 	const ctx = await requireOrgPage({ management_review: ["read"] });
 	const t = await getTranslations("ManagementReview");
 	const canEdit = allows(ctx, { management_review: ["update"] });
@@ -341,3 +342,16 @@ export default async function ManagementReviewPage() {
 		</>
 	);
 }
+
+export default withMessages(ManagementReviewPage, [
+	"Auth",
+	"Common",
+	"Entity",
+	"EvidenceStudio",
+	"Functions",
+	"ManagementReview",
+	"Organisation",
+	"Resolutions",
+	"Signatures",
+	"Status",
+]);

@@ -7,6 +7,7 @@ import {
 } from "@/components/casp/own-funds-form";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -40,7 +41,7 @@ const money = (v: string | null | undefined) =>
 
 // /eigenmittel — Eigenmittel-Rechner (MiCAR Art. 67 + ZAG §§ 12/15) mit
 // GL-Freigabe (Workflow own_funds) und Tab Risikotragfähigkeit (AT 4.1).
-export default async function OwnFundsPage({
+async function OwnFundsPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -401,3 +402,13 @@ export default async function OwnFundsPage({
 		</>
 	);
 }
+
+export default withMessages(OwnFundsPage, [
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Organisation",
+	"OwnFunds",
+	"Status",
+]);

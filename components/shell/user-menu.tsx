@@ -13,7 +13,6 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { authClient } from "@/lib/auth/client";
 
 export function initialsOf(
 	name: string | null | undefined,
@@ -44,7 +43,9 @@ export function UserMenu({
 	const tNav = useTranslations("Nav");
 	const router = useRouter();
 
+	// Better Auth erst beim Abmelden laden (nicht im Rahmen jeder Seite)
 	async function signOut() {
+		const { authClient } = await import("@/lib/auth/client");
 		await authClient.signOut();
 		router.replace("/login");
 		router.refresh();

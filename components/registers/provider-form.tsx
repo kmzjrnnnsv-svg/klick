@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import { PROVIDER_CATEGORIES, PROVIDER_STATUSES } from "@/db/schema/registers";
+import { PROVIDER_CATEGORIES, PROVIDER_STATUSES } from "@/db/schema/enums";
 
 const PARTNER = [
 	"ict",

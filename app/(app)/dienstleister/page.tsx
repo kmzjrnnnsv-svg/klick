@@ -8,6 +8,7 @@ import { LinkChips } from "@/components/entity/link-chips";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { ProviderForm } from "@/components/registers/provider-form";
 import { RatingOverview } from "@/components/supplier/rating-overview";
@@ -35,13 +36,13 @@ import { latestRatingsByProvider } from "@/lib/compliance/queries-ratings";
 import { TRAFFIC_TONE } from "@/lib/compliance/supplier-rating";
 import { readOrg } from "@/lib/db/with-org";
 import { cn } from "@/lib/utils";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 type Row = Awaited<ReturnType<typeof listProviders>>[number];
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function ProvidersPage({
+async function ProvidersPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -474,3 +475,14 @@ export default async function ProvidersPage({
 		/>
 	);
 }
+
+export default withMessages(ProvidersPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Import",
+	"Organisation",
+	"Providers",
+]);

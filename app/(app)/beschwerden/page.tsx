@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/entity/empty-state";
 import { OwnerChip } from "@/components/entity/owner-chip";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -31,7 +32,7 @@ import {
 } from "@/lib/compliance/queries-p3";
 import { decryptMany, fieldAad } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -50,7 +51,7 @@ const fmt = new Intl.DateTimeFormat("de-DE", {
 
 // Beschwerden & Hinweise: Prüfer:innen ohne Grant sehen nur Zähler; Details
 // (Pseudonym, Zusammenfassung) sind feldverschlüsselt und nur für Bearbeitende.
-export default async function ComplaintsPage({
+async function ComplaintsPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -511,3 +512,12 @@ export default async function ComplaintsPage({
 		</>
 	);
 }
+
+export default withMessages(ComplaintsPage, [
+	"Auth",
+	"Common",
+	"Complaints",
+	"Entity",
+	"Functions",
+	"Organisation",
+]);

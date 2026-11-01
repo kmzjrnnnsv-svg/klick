@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { cache } from "react";
+import { withMessages } from "@/components/i18n/with-messages";
 import { TrustRequestForm } from "@/components/trust-center/request-form";
 import { Badge } from "@/components/ui/badge";
 import { DOMAINS, type Domain } from "@/db/schema/enums";
@@ -35,7 +36,7 @@ export async function generateMetadata({
 	};
 }
 
-export default async function PublicTrustCenterPage({
+async function PublicTrustCenterPage({
 	params,
 }: {
 	params: Promise<{ slug: string }>;
@@ -295,3 +296,5 @@ export default async function PublicTrustCenterPage({
 		</div>
 	);
 }
+
+export default withMessages(PublicTrustCenterPage, ["TrustCenter"]);

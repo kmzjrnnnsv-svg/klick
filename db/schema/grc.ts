@@ -25,21 +25,36 @@ import {
 	userRef,
 } from "./_shared";
 import { controls, requirements } from "./catalog";
+import type { ExternalSource } from "./enums";
 import {
 	CHANGE_KINDS,
 	CHANGE_STATUS,
 	CLASSIFICATIONS,
 	CONTROL_TEST_METHODS,
 	type ControlSheetState,
+	DOCUMENT_STATUS,
+	DOCUMENT_TYPES,
 	ENTITY_KINDS,
 	EVIDENCE_SOURCES,
 	type EvidenceDlp,
 	IMPL_STATUS,
 	type INCIDENT_REGIMES,
+	RISK_CATEGORIES,
 	ROLE_FUNCTIONS,
 } from "./enums";
 import { products } from "./products";
 import { assets, processes, providers, sites } from "./registers";
+
+export type {
+	ExternalKind,
+	ExternalSource,
+} from "./enums";
+export {
+	DOCUMENT_STATUS,
+	DOCUMENT_TYPES,
+	EXTERNAL_KINDS,
+	RISK_CATEGORIES,
+} from "./enums";
 
 // GRC-Kern je Organisation: Control-Status, Anwendbarkeit, Nachweise,
 // Dokumentenlenkung, Freigaben, Beschlüsse, Risiken, Vorfälle, Aufgaben,
@@ -335,49 +350,6 @@ export const controlTests = pgTable(
 ).enableRLS();
 
 // ── Dokumentenlenkung ──────────────────────────────────────────────────────
-
-export const DOCUMENT_TYPES = [
-	"policy",
-	"procedure",
-	"concept",
-	"plan",
-	"manual",
-	"template",
-	"record",
-	"report",
-	"contract",
-	"form",
-	// Marketingmitteilung (MiCAR Art. 66): eigene Freigabe marketing.publish
-	"marketing",
-] as const;
-
-// Herkunft eines externen Dokuments (ISO 27001 7.5.3, letzter Absatz):
-// Norm, Gesetz, Vertrag, Herstellerunterlage, Vorgabe einer Behörde
-export const EXTERNAL_KINDS = [
-	"standard",
-	"law",
-	"contract",
-	"manufacturer",
-	"authority",
-	"other",
-] as const;
-export type ExternalKind = (typeof EXTERNAL_KINDS)[number];
-export type ExternalSource = {
-	kind: ExternalKind;
-	issuer: string;
-	// Ausgabe bzw. Stand, z. B. „ISO/IEC 27001:2022“
-	edition: string;
-	url?: string | null;
-};
-
-export const DOCUMENT_STATUS = [
-	"draft",
-	"in_review",
-	"approved",
-	"published",
-	"retired",
-	"superseded",
-] as const;
 
 export const documents = pgTable(
 	"documents",
@@ -838,18 +810,6 @@ export const decisionRequests = pgTable(
 ).enableRLS();
 
 // ── Risiken ────────────────────────────────────────────────────────────────
-
-export const RISK_CATEGORIES = [
-	"strategic",
-	"operational",
-	"ict_cyber",
-	"compliance_legal",
-	"financial",
-	"third_party",
-	"aml_fraud",
-	"custody_keys",
-	"market_liquidity",
-] as const;
 
 export const risks = pgTable(
 	"risks",

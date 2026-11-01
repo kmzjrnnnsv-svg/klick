@@ -8,6 +8,7 @@ import { LinkChips } from "@/components/entity/link-chips";
 import { OwnerChip } from "@/components/entity/owner-chip";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { AssetForm } from "@/components/registers/asset-form";
 import { Badge } from "@/components/ui/badge";
 import { sites } from "@/db/schema";
@@ -22,17 +23,13 @@ import { linkIndex } from "@/lib/compliance/queries-links";
 import { listAssets, listProviders } from "@/lib/compliance/queries-p2";
 import { newRiskHref } from "@/lib/compliance/risk-sources";
 import { readOrg } from "@/lib/db/with-org";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 type Row = Awaited<ReturnType<typeof listAssets>>[number];
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function AssetsPage({
-	searchParams,
-}: {
-	searchParams: Promise<Search>;
-}) {
+async function AssetsPage({ searchParams }: { searchParams: Promise<Search> }) {
 	const ctx = await requireOrgPage({ asset: ["read"] });
 	const sp = await searchParams;
 	const t = await getTranslations("Assets");
@@ -323,3 +320,14 @@ export default async function AssetsPage({
 		/>
 	);
 }
+
+export default withMessages(AssetsPage, [
+	"Approvals",
+	"Assets",
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Import",
+	"Organisation",
+]);

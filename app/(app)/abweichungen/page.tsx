@@ -5,6 +5,7 @@ import { OwnerChip } from "@/components/entity/owner-chip";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { NonconformityForm } from "@/components/nonconformities/nc-forms";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +36,7 @@ import {
 	NONCONFORMITY_STATUSES,
 	NC_PRIORITY_TONE as PRIORITY_TONE,
 } from "@/lib/entities/nonconformity";
-import { NC_SOURCES } from "@/lib/validation/governance";
+import { NC_SOURCES } from "@/lib/validation/options";
 
 type Search = Record<string, string | string[] | undefined>;
 const PRIORITY_RANK = {
@@ -48,7 +49,7 @@ const PRIORITY_RANK = {
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function NonconformitiesPage({
+async function NonconformitiesPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -290,3 +291,12 @@ export default async function NonconformitiesPage({
 		</>
 	);
 }
+
+export default withMessages(NonconformitiesPage, [
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Nonconformities",
+	"Organisation",
+]);

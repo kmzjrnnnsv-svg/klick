@@ -32,7 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import { NC_PRIORITIES, type NcPriority } from "@/db/schema/enums";
 import type { FollowUpClass } from "@/lib/compliance/catalog/audit-regimes";
-import { NC_SOURCES } from "@/lib/validation/governance";
+import { NC_SOURCES } from "@/lib/validation/options";
 
 export type NcDraft = {
 	id?: string;

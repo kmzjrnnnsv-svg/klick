@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { PolicyList } from "@/components/policies/policy-list";
 import {
@@ -24,11 +25,7 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 // Richtlinien-Portal (M2): ohne Konto, Zugang per Einmal-Code an eine
 // bestätigte Firmen-Domain. Gezeigt wird, was der Verteiler „alle“ oder
 // „Mitarbeitende“ erreicht, dazu die freigegebenen Nachweise.
-export default async function PortalPage({
-	params,
-}: {
-	params: Promise<{ slug: string }>;
-}) {
+async function PortalPage({ params }: { params: Promise<{ slug: string }> }) {
 	const { slug } = await params;
 	const portal = await publicPortal(slug);
 	if (!portal) notFound();
@@ -81,3 +78,9 @@ export default async function PortalPage({
 		</>
 	);
 }
+
+export default withMessages(PortalPage, [
+	"Common",
+	"Documents",
+	"PolicyPortal",
+]);

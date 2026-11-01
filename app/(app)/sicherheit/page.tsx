@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/entity/empty-state";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { NewEngagementDialog } from "@/components/security/engagement-forms";
 import {
@@ -61,7 +62,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 // Security-Checks: Befunde aus Scan-Import, CI-Ingest und passivem
 // Schnellcheck — mit SLA, Eskalation und Wirkung auf die Prüfungsreife.
-export default async function SecurityPage({
+async function SecurityPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -620,3 +621,11 @@ export default async function SecurityPage({
 		</>
 	);
 }
+
+export default withMessages(SecurityPage, [
+	"Common",
+	"Dlp",
+	"Engagements",
+	"Entity",
+	"Security",
+]);

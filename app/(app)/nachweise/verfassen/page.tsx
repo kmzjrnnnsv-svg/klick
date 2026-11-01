@@ -5,6 +5,7 @@ import {
 	DeleteDraftButton,
 	StartDraft,
 } from "@/components/evidence-authoring/start-draft";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/ui/back-link";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +29,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 // Nachweise in Klick verfassen: Rohling wählen (aus dem Nachweisbogen mit
 // Vorschlag, Control und Titel vorbelegt) und offene Entwürfe der Org.
-export default async function AuthoringGalleryPage({
+async function AuthoringGalleryPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -234,3 +235,5 @@ export default async function AuthoringGalleryPage({
 		</>
 	);
 }
+
+export default withMessages(AuthoringGalleryPage, ["Authoring", "Common"]);

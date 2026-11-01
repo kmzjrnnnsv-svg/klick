@@ -5,6 +5,7 @@ import { OwnerChip } from "@/components/entity/owner-chip";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { NewProductDialog } from "@/components/products/product-forms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -33,7 +34,7 @@ const STATE_TONE = {
 
 // Produktregister (CRA): Rolle, Anwendungsbereich, Einstufung und Stand der
 // Pflichten je Produkt — daraus leitet Klick die Anwendbarkeit des CRA ab.
-export default async function ProductsPage({
+async function ProductsPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -209,3 +210,12 @@ export default async function ProductsPage({
 		/>
 	);
 }
+
+export default withMessages(ProductsPage, [
+	"Approvals",
+	"Common",
+	"Dlp",
+	"Entity",
+	"Functions",
+	"Products",
+]);

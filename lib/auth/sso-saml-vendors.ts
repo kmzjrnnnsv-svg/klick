@@ -1,4 +1,4 @@
-import { isPublicHttpsUrl } from "@/lib/validation/sso";
+import { isPublicHttpsUrl } from "@/lib/net/public-url";
 
 // SAML in fünf Minuten (AP10) — rein, ohne Server-Importe (auch im Browser).
 // Vorlagen je Anbieter: Attributnamen, woher die Metadaten kommen, welche

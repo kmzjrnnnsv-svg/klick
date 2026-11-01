@@ -19,7 +19,7 @@ import { Input, nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import { RISK_CATEGORIES } from "@/db/schema/grc";
+import { RISK_CATEGORIES } from "@/db/schema/enums";
 import type { RiskMethod } from "@/db/schema/platform";
 import {
 	PROTECTION_GOALS,
@@ -36,7 +36,7 @@ import {
 	ZONE_TONE,
 } from "@/lib/compliance/risk-method";
 import { cn } from "@/lib/utils";
-import { functionOfRef } from "@/lib/validation/responsible";
+import { functionOfRef } from "@/lib/validation/responsible-ref";
 
 export type WizardScenario = Pick<
 	RiskScenario,

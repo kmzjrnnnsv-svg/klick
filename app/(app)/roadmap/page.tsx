@@ -5,6 +5,7 @@ import {
 } from "@/components/calendar/date-entries";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import {
 	AdoptDateButton,
@@ -37,7 +38,7 @@ type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 const QUARTERS = 8;
 
-export default async function RoadmapPage({
+async function RoadmapPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -281,3 +282,13 @@ function Timeline({
 		</section>
 	);
 }
+
+export default withMessages(RoadmapPage, [
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Onboarding",
+	"Organisation",
+	"Roadmap",
+]);

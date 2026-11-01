@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import { InquiryForm } from "@/components/marketing/inquiry-form";
 import { RevealRoot } from "@/components/marketing/reveal";
 import { loadPriceTable } from "@/lib/db/pricing";
@@ -25,7 +26,7 @@ const TONES = [s.toneBlue, s.toneBrown, s.toneSky] as const;
 // /leistungen — unsere Beratung, übersichtlich: was, für wen, wie es
 // abläuft, was am Ende vorliegt. Preise der Beratung gibt es im Gespräch;
 // Software und Berater-Zugänge stehen mit Betrag auf /preise.
-export default async function ServicesPage({
+async function ServicesPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ leistung?: string; meldung?: string }>;
@@ -236,3 +237,5 @@ export default async function ServicesPage({
 		</RevealRoot>
 	);
 }
+
+export default withMessages(ServicesPage, ["Services"]);

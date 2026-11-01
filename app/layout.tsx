@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { pickMessages, SHELL_NAMESPACES } from "@/lib/i18n/messages";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -51,8 +52,10 @@ export default async function RootLayout({
 				>
 					{t("skipToContent")}
 				</a>
+				{/* Nur die Texte der Rahmen; Seiten bringen ihre eigenen mit
+				    (withMessages, Test client-messages) */}
 				<NextIntlClientProvider
-					messages={messages}
+					messages={pickMessages(messages, SHELL_NAMESPACES)}
 					locale={locale}
 					timeZone="Europe/Berlin"
 				>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { CompareControls } from "@/components/synergies/compare-controls";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +38,7 @@ import {
 	whatIfAddFramework,
 } from "@/lib/compliance/synergy";
 
-export default async function SynergiesPage({
+async function SynergiesPage({
 	searchParams,
 }: {
 	searchParams: Promise<{
@@ -546,3 +547,5 @@ export default async function SynergiesPage({
 		</>
 	);
 }
+
+export default withMessages(SynergiesPage, ["Synergies"]);

@@ -15,6 +15,7 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
+import { withMessages } from "@/components/i18n/with-messages";
 import {
 	EffectivenessForm,
 	NonconformityForm,
@@ -52,7 +53,7 @@ import {
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 const SOURCE_KIND = {
 	audit: "audit_finding",
@@ -65,7 +66,7 @@ const SOURCE_KIND = {
 	custody_reconciliation: "custody_reconciliation",
 } as const;
 
-export default async function NonconformityDetailPage({
+async function NonconformityDetailPage({
 	params,
 }: {
 	params: Promise<{ id: string }>;
@@ -486,3 +487,19 @@ export default async function NonconformityDetailPage({
 		</EntityLayout>
 	);
 }
+
+export default withMessages(NonconformityDetailPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Decisions",
+	"Dlp",
+	"Entity",
+	"Functions",
+	"Nonconformities",
+	"Organisation",
+	"Resolutions",
+	"Settings",
+	"Status",
+	"Tasks",
+]);

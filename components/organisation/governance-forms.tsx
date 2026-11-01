@@ -52,7 +52,7 @@ import {
 } from "@/db/schema/enums";
 import { isOwnRoleKey } from "@/lib/compliance/function-key";
 import type { ActionResult } from "@/lib/validation/common";
-import { AUTHORITIES, PARTY_TYPES } from "@/lib/validation/governance";
+import { AUTHORITIES, PARTY_TYPES } from "@/lib/validation/options";
 
 // Gemeinsame Bausteine der Organisation-Formulare: Dialog-Hülle, Personen-
 // und Funktionsauswahl, Löschen mit Bestätigung.

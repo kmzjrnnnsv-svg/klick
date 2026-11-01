@@ -13,6 +13,7 @@ import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { ProviderForm } from "@/components/registers/provider-form";
 import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
@@ -46,7 +47,7 @@ import { TRAFFIC_TONE } from "@/lib/compliance/supplier-rating";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { mergeActivity, toHistoryItems } from "@/lib/history";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 const TABS = [
 	"stammdaten",
@@ -69,7 +70,7 @@ const RATING_TONE = {
 // Dienstleister: Stammdaten, Lieferantenbewertungen (Fragebogen mit
 // Portal-Link), Vertrag nach DORA Art. 30, Nachweise aus den Bewertungen,
 // verknüpfte Prozesse und Assets.
-export default async function ProviderPage({
+async function ProviderPage({
 	params,
 	searchParams,
 }: {
@@ -723,3 +724,20 @@ export default async function ProviderPage({
 		</EntityLayout>
 	);
 }
+
+export default withMessages(ProviderPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Decisions",
+	"Dlp",
+	"Entity",
+	"Functions",
+	"Providers",
+	"Rating",
+	"Resolutions",
+	"Settings",
+	"Status",
+	"Suppliers",
+	"Tasks",
+]);

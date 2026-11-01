@@ -10,7 +10,28 @@ import { type FunctionKey, isFunctionKey } from "@/lib/compliance/function-key";
 import { NONCONFORMITY_STATUSES } from "@/lib/entities/nonconformity";
 import { PROCESS_STATUSES } from "@/lib/entities/process";
 import { frameworkSlugs, longText, shortText, uuid } from "./common";
+import {
+	ACCESS_GRANTS,
+	AUDIT_STATUSES,
+	AUDIT_TYPES,
+	AUTHORITIES,
+	FINDING_SEVERITIES,
+	FINDING_STATUSES,
+	NC_SOURCES,
+	PARTY_TYPES,
+} from "./options";
 import { responsibleRef } from "./responsible";
+
+export {
+	ACCESS_GRANTS,
+	AUDIT_STATUSES,
+	AUDIT_TYPES,
+	AUTHORITIES,
+	FINDING_SEVERITIES,
+	FINDING_STATUSES,
+	NC_SOURCES,
+	PARTY_TYPES,
+} from "./options";
 
 const isoDate = z.iso.date();
 const optionalDate = isoDate.nullable().optional();
@@ -89,17 +110,6 @@ export const contextIssueSchema = z.object({
 	ownerUserId: responsibleRef,
 	reviewAt: optionalDate,
 });
-
-export const PARTY_TYPES = [
-	"regulator",
-	"customer",
-	"employee",
-	"supplier",
-	"shareholder",
-	"partner",
-	"public",
-	"community",
-] as const;
 
 export const interestedPartySchema = z.object({
 	id: uuid.optional(),
@@ -244,17 +254,6 @@ export const communicationSchema = z.object({
 	contact: z.string().max(400).optional(),
 });
 
-export const AUTHORITIES = [
-	"bafin",
-	"bundesbank",
-	"bsi",
-	"fiu",
-	"dsb",
-	"esma",
-	"eba",
-	"other",
-] as const;
-
 export const regulatorInteractionSchema = z.object({
 	id: uuid.optional(),
 	authority: z.enum(AUTHORITIES).default("bafin"),
@@ -321,19 +320,6 @@ export const auditProgrammeItemSchema = z.object({
 
 export const removeProgrammeItemSchema = z.object({ id: uuid });
 
-export const AUDIT_TYPES = [
-	"internal",
-	"external",
-	"certification",
-	"regulator",
-] as const;
-export const AUDIT_STATUSES = [
-	"planned",
-	"in_progress",
-	"reported",
-	"closed",
-] as const;
-
 export const auditSchema = z.object({
 	id: uuid.optional(),
 	programmeId: uuid.nullable().optional(),
@@ -355,19 +341,6 @@ export const setAuditStatusSchema = z.object({
 	auditId: uuid,
 	status: z.enum(AUDIT_STATUSES),
 });
-
-export const FINDING_SEVERITIES = [
-	"observation",
-	"minor",
-	"major",
-	"critical",
-] as const;
-export const FINDING_STATUSES = [
-	"open",
-	"accepted",
-	"in_remediation",
-	"closed",
-] as const;
 
 export const auditFindingSchema = z.object({
 	auditId: uuid,
@@ -408,18 +381,6 @@ export const decideAuditRequestSchema = z.object({
 	decision: z.enum(["accepted", "rejected"]),
 	note: z.string().max(2000).optional(),
 });
-
-// ── Abweichungen (CAPA) ────────────────────────────────────────────────────
-export const NC_SOURCES = [
-	"audit",
-	"incident",
-	"control_test",
-	"complaint",
-	"management_review",
-	"self_identified",
-	"security_finding",
-	"custody_reconciliation",
-] as const;
 
 export const nonconformitySchema = z.object({
 	id: uuid.optional(),
@@ -493,17 +454,6 @@ export const completeReviewSchema = z.object({
 		.max(30)
 		.optional(),
 });
-
-// ── Prüfer-Zugang ──────────────────────────────────────────────────────────
-export const ACCESS_GRANTS = [
-	"aml_detail",
-	"hr_detail",
-	"whistleblowing_detail",
-	"complaints_detail",
-	"secret_evidence",
-	// Entwürfe, Arbeitskopien und ersetzte Fassungen (lib/auth/visibility.ts)
-	"work_in_progress",
-] as const;
 
 export const memberAccessSchema = z.object({
 	memberId: uuid,

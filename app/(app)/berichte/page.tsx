@@ -4,6 +4,7 @@ import { deleteManagementReport } from "@/app/actions/management-reports";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UserChip } from "@/components/entity/user-chip";
 import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
+import { withMessages } from "@/components/i18n/with-messages";
 import {
 	ReportForm,
 	SubmitReportButton,
@@ -34,7 +35,7 @@ import { berlinToday } from "@/lib/evidence-studio/queries";
 // Einschätzung, Kennzahlen aus Klick und Maßnahmen; vorgelegt wird er zum
 // Nachweis NW-GL-BERICHT, den die Geschäftsleitung per Passkey zur
 // Kenntnis nimmt.
-export default async function ReportsPage() {
+async function ReportsPage() {
 	const ctx = await requireOrgPage({ management_review: ["read"] });
 	const t = await getTranslations("Reports");
 	const tf = await getTranslations("Functions");
@@ -294,3 +295,14 @@ export default async function ReportsPage() {
 		</>
 	);
 }
+
+export default withMessages(ReportsPage, [
+	"Auth",
+	"Common",
+	"Entity",
+	"EvidenceStudio",
+	"Functions",
+	"Organisation",
+	"Reports",
+	"Signatures",
+]);

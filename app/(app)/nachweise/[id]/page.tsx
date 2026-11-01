@@ -14,6 +14,7 @@ import { ResponsibleEditor } from "@/components/entity/responsible-editor";
 import { RevealWithStepUp } from "@/components/entity/reveal-with-step-up";
 import { UserChip } from "@/components/entity/user-chip";
 import { NewVersionButton } from "@/components/evidence-authoring/start-draft";
+import { withMessages } from "@/components/i18n/with-messages";
 import { MarkdownView } from "@/components/markdown-view";
 import { PageHeader } from "@/components/page-header";
 import { SignButton } from "@/components/signatures/sign-button";
@@ -67,7 +68,7 @@ const size = (bytes: number) =>
 // Ein Nachweis: Angaben, Datei oder Link, belegte Controls, Fassungen,
 // Unterschriften. Herunterladen läuft auditiert über /api/nachweise/[id]
 // (vertraulich und geheim nur nach Step-up).
-export default async function EvidenceDetailPage({
+async function EvidenceDetailPage({
 	params,
 }: {
 	params: Promise<{ id: string }>;
@@ -656,3 +657,16 @@ export default async function EvidenceDetailPage({
 		</>
 	);
 }
+
+export default withMessages(EvidenceDetailPage, [
+	"Ai",
+	"AiSettings",
+	"Auth",
+	"Authoring",
+	"Common",
+	"Dlp",
+	"Entity",
+	"Evidence",
+	"Functions",
+	"Signatures",
+]);

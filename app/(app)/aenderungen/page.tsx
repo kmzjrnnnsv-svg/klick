@@ -6,6 +6,7 @@ import {
 	WithdrawChangeButton,
 } from "@/components/changes/change-forms";
 import { EmptyState } from "@/components/entity/empty-state";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { assets, changeRequests, processes, risks } from "@/db/schema";
@@ -26,7 +27,7 @@ const STATUS_VARIANT = {
 // Neues Produkt, neuer Markt oder Vertriebsweg, wesentliche IT-Änderung
 // (ZAG-MaRisk/MaRisk AT 8, DORA Art. 8 Abs. 3): Antrag mit Freigabe,
 // Umsetzung als Aufgabe.
-export default async function ChangesPage() {
+async function ChangesPage() {
 	const ctx = await requireOrgPage({ task: ["read"] });
 	const t = await getTranslations("Changes");
 	const canCreate = allows(ctx, { task: ["create"] });
@@ -171,3 +172,13 @@ export default async function ChangesPage() {
 		return (id ? data.names.get(id) : null) ?? "—";
 	}
 }
+
+export default withMessages(ChangesPage, [
+	"Approvals",
+	"Auth",
+	"Changes",
+	"Common",
+	"Entity",
+	"Functions",
+	"Organisation",
+]);

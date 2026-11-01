@@ -16,6 +16,7 @@ import { ExportLink } from "@/components/entity/export-link";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import {
 	BlockerList,
@@ -66,7 +67,7 @@ import { readOrg } from "@/lib/db/with-org";
 import { NONCONFORMITY_STATUS } from "@/lib/entities/nonconformity";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import { cn } from "@/lib/utils";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -100,7 +101,7 @@ const IMPL_KEY = {
 // Prüfungs-Cockpit: Scope → Prüfpfad (Anforderung → Control → Nachweis) →
 // Nachweisanfragen (PBC) → Findings. Lesend für Prüfer:innen; Antworten durch
 // die Org, Entscheidungen durch Prüfer:innen/Owner.
-export default async function AuditCockpitPage({
+async function AuditCockpitPage({
 	params,
 	searchParams,
 }: {
@@ -732,3 +733,15 @@ export default async function AuditCockpitPage({
 		</>
 	);
 }
+
+export default withMessages(AuditCockpitPage, [
+	"Audits",
+	"Auth",
+	"Common",
+	"Entity",
+	"EvidenceStudio",
+	"Functions",
+	"Organisation",
+	"Readiness",
+	"Signatures",
+]);

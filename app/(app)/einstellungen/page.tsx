@@ -25,6 +25,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CustomFrameworkList } from "@/components/custom-frameworks/framework-list";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { AiPanel } from "@/components/settings/ai-panel";
 import { AuditRegimesPanel } from "@/components/settings/audit-regimes-panel";
@@ -221,7 +222,7 @@ const GROUP_LABEL = {
 // Einstellungen nach Apple HIG (iOS-Einstellungen): gruppierte Liste der
 // Bereiche; am Handy erst die Liste, dann der Bereich mit Rückweg, ab Desktop
 // Liste links und Bereich rechts. Geladen wird nur, was der Bereich braucht.
-export default async function SettingsPage({
+async function SettingsPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ tab?: string }>;
@@ -1157,3 +1158,37 @@ async function renderSection(
 function callbackBase(): string {
 	return (process.env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
 }
+
+export default withMessages(SettingsPage, [
+	"AiSettings",
+	"Approvals",
+	"AuditRegimes",
+	"Auth",
+	"Common",
+	"CustomFrameworks",
+	"Documents",
+	"Entity",
+	"Frameworks",
+	"Functions",
+	"Integrations",
+	"Ledger",
+	"NetworkSettings",
+	"NotificationPrefs",
+	"Onboarding",
+	"Organisation",
+	"Permissions",
+	"PlatformAccess",
+	"PolicyPortal",
+	"RiskMethod",
+	"Roles",
+	"SecurityChanges",
+	"Settings",
+	"Setup",
+	"SignaturePolicy",
+	"SiteTunnels",
+	"SsoSetup",
+	"SupplierMethod",
+	"Teams",
+	"WalletLink",
+	"Workflows",
+]);

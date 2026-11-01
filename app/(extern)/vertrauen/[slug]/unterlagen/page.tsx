@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import { TrustAccessGate } from "@/components/trust-center/access-gate";
 import { ipFromHeaders } from "@/lib/auth/session-rules";
 import { publicTrustCenter } from "@/lib/db/trust";
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 	referrer: "no-referrer",
 };
 
-export default async function TrustDocumentsPage({
+async function TrustDocumentsPage({
 	params,
 }: {
 	params: Promise<{ slug: string }>;
@@ -65,3 +66,5 @@ export default async function TrustDocumentsPage({
 		</div>
 	);
 }
+
+export default withMessages(TrustDocumentsPage, ["TrustCenter"]);

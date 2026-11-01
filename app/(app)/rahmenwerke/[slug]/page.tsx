@@ -5,6 +5,7 @@ import { CoverageBar } from "@/components/entity/coverage-bar";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { FrameworkEvidence } from "@/components/evidence-studio/framework-evidence";
 import { SoaTab } from "@/components/frameworks/soa-tab";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { ReadinessPanel } from "@/components/readiness/readiness-panel";
 import { FrameworkProfileCard } from "@/components/relations/framework-profile";
@@ -46,7 +47,7 @@ const TONE: Record<ReqCoverage, "success" | "warning" | "outline" | "muted"> = {
 	not_applicable: "muted",
 };
 
-export default async function FrameworkPage({
+async function FrameworkPage({
 	params,
 	searchParams,
 }: {
@@ -464,3 +465,10 @@ export default async function FrameworkPage({
 		</>
 	);
 }
+
+export default withMessages(FrameworkPage, [
+	"Common",
+	"EvidenceStudio",
+	"Readiness",
+	"Signatures",
+]);

@@ -9,6 +9,7 @@ import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import {
 	ExceptionForm,
@@ -54,11 +55,7 @@ import { getOrgSettings, orgRiskMethod } from "@/lib/org/queries";
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function RisksPage({
-	searchParams,
-}: {
-	searchParams: Promise<Search>;
-}) {
+async function RisksPage({ searchParams }: { searchParams: Promise<Search> }) {
 	const ctx = await requireOrgPage({ risk: ["read"] });
 	const sp = await searchParams;
 	const tab = one(sp.tab) ?? "register";
@@ -646,3 +643,15 @@ export default async function RisksPage({
 		</>
 	);
 }
+
+export default withMessages(RisksPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Import",
+	"Organisation",
+	"RiskSources",
+	"Risks",
+]);

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import {
 	PortalLogout,
 	PortalQuestion,
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
 // Lieferantenportal (ADR-017): Fragebogen ohne Konto. Zugang über das
 // Portal-Cookie; ohne Cookie tauscht PortalSession den Token aus dem
 // URL-Fragment. Der Lieferant sieht nur seine Fragen, Antworten und Dateien.
-export default async function SupplierPortalPage() {
+async function SupplierPortalPage() {
 	const t = await getTranslations("Portal");
 	let p: PortalContext | null = null;
 	let expired = false;
@@ -167,3 +168,10 @@ export default async function SupplierPortalPage() {
 		</div>
 	);
 }
+
+export default withMessages(SupplierPortalPage, [
+	"Assessment",
+	"Common",
+	"Dlp",
+	"Portal",
+]);

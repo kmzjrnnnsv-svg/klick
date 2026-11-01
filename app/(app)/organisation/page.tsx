@@ -15,6 +15,7 @@ import { Sparkline } from "@/components/entity/sparkline";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
+import { withMessages } from "@/components/i18n/with-messages";
 import {
 	ConfirmMatrixButton,
 	RevokeAssignmentButton,
@@ -115,7 +116,7 @@ import { listOrgFrameworks } from "@/lib/org/queries";
 import { loadRoleBoard } from "@/lib/org/role-board-data";
 import { orgRoleNames } from "@/lib/org/roles";
 import type { FitProperChecklist } from "@/lib/validation/governance";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -143,7 +144,7 @@ const TABS = [
 	"standorte",
 ] as const;
 
-export default async function OrganisationPage({
+async function OrganisationPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -2128,3 +2129,25 @@ function AssetOwners({
 		</div>
 	);
 }
+
+export default withMessages(OrganisationPage, [
+	"Appointments",
+	"Approvals",
+	"Auth",
+	"Board",
+	"Common",
+	"Dnd",
+	"Entity",
+	"EvidenceStudio",
+	"Functions",
+	"Insurance",
+	"OrgChartEditor",
+	"Organisation",
+	"Privacy",
+	"RiskSources",
+	"Settings",
+	"Setup",
+	"Shareholders",
+	"Signatures",
+	"Status",
+]);

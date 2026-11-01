@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { EnrolFactor } from "@/components/auth/enrol-factor";
+import { withMessages } from "@/components/i18n/with-messages";
 import { getSessionCtx } from "@/lib/auth/guards";
 
-export default async function EnrolPage() {
+async function EnrolPage() {
 	const ctx = await getSessionCtx();
 	if (!ctx) redirect("/login");
 	if (ctx.user.twoFactorEnabled || ctx.user.hasPasskey) redirect("/heute");
@@ -20,3 +21,5 @@ export default async function EnrolPage() {
 		</div>
 	);
 }
+
+export default withMessages(EnrolPage, ["Auth", "Settings"]);

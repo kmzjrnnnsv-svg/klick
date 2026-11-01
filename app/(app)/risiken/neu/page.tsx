@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { type RiskDraft, RiskWizard } from "@/components/risks/risk-wizard";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -25,7 +26,7 @@ const UUID = /^[0-9a-f-]{36}$/i;
 // bis zur Behandlung. Vorbelegung über ?szenario= und jede Herkunft
 // (?dienstleister=, ?asset=, ?vorfall=, ?anforderung=, ?befund= …, siehe
 // RISK_SOURCE_PARAM) — Titel, Szenario, Bezüge und Herkunft am Risiko.
-export default async function NewRiskPage({
+async function NewRiskPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -128,3 +129,12 @@ export default async function NewRiskPage({
 		</>
 	);
 }
+
+export default withMessages(NewRiskPage, [
+	"Approvals",
+	"Entity",
+	"Functions",
+	"RiskWizard",
+	"Risks",
+	"Status",
+]);

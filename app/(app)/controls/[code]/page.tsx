@@ -18,6 +18,7 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { WatchButton } from "@/components/entity/watch-button";
 import { SheetView } from "@/components/evidence-studio/sheet-view";
+import { withMessages } from "@/components/i18n/with-messages";
 import {
 	ControlExplainerCard,
 	ControlRelationsSection,
@@ -59,7 +60,7 @@ import {
 	toHistoryItems,
 } from "@/lib/history";
 
-export default async function ControlDetailPage({
+async function ControlDetailPage({
 	params,
 	searchParams,
 }: {
@@ -525,3 +526,15 @@ export default async function ControlDetailPage({
 		</EntityLayout>
 	);
 }
+
+export default withMessages(ControlDetailPage, [
+	"Common",
+	"Dlp",
+	"Entity",
+	"Evidence",
+	"EvidenceStudio",
+	"Functions",
+	"Status",
+	"Tasks",
+	"Tests",
+]);

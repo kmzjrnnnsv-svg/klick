@@ -5,6 +5,7 @@ import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusButton } from "@/components/entity/status-button";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -18,11 +19,7 @@ import { TASK_STATUSES } from "@/lib/entities/task";
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function TasksPage({
-	searchParams,
-}: {
-	searchParams: Promise<Search>;
-}) {
+async function TasksPage({ searchParams }: { searchParams: Promise<Search> }) {
 	const ctx = await requireOrgPage({ task: ["read"] });
 	const sp = await searchParams;
 	const t = await getTranslations("Tasks");
@@ -151,3 +148,5 @@ export default async function TasksPage({
 		</>
 	);
 }
+
+export default withMessages(TasksPage, ["Common", "Entity", "Status", "Tasks"]);

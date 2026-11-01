@@ -10,6 +10,7 @@ import { ExportLink } from "@/components/entity/export-link";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { DOCUMENT_STATUS, DOCUMENT_TYPES } from "@/db/schema/grc";
@@ -27,7 +28,7 @@ type Row = Awaited<ReturnType<typeof listDocuments>>[number];
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function DocumentsPage({
+async function DocumentsPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -241,3 +242,15 @@ export default async function DocumentsPage({
 		/>
 	);
 }
+
+export default withMessages(DocumentsPage, [
+	"Ai",
+	"AiSettings",
+	"Auth",
+	"Common",
+	"Dlp",
+	"Documents",
+	"Entity",
+	"Evidence",
+	"Functions",
+]);

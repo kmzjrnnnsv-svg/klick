@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { VerifyChainButton } from "@/components/admin/verify-chain-button";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
@@ -42,7 +43,7 @@ const LEVEL_BADGE: Record<
 // aus dem Plattform-Protokoll, Zugriffe durch Klick (Lockbox), Prüfung der
 // Ketten, Verlauf-Anker, hingenommene Risiken und Release-Stand. Nur
 // Plattform-Metadaten; Ereignisse in der Kette einer Org bleiben dort.
-export default async function AdminSecurityPage() {
+async function AdminSecurityPage() {
 	const admin = await requirePlatformAdminPage();
 	const t = await getTranslations("AdminSecurity");
 	const ta = await getTranslations("Admin");
@@ -285,3 +286,5 @@ export default async function AdminSecurityPage() {
 		</div>
 	);
 }
+
+export default withMessages(AdminSecurityPage, ["Admin"]);

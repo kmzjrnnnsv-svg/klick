@@ -30,16 +30,17 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
 import {
 	AI_CLASS_LEVELS,
-	AI_FEATURES,
 	AI_PROVIDERS,
-	type AiAdmin,
 	type AiClassLevel,
-	type AiFeature,
-	type AiPolicy,
 	type AiProvider,
+} from "@/db/schema/enums";
+import {
+	AI_FEATURES,
+	type AiFeature,
 	ANTHROPIC_MODELS,
 	DEFAULT_MODEL,
-} from "@/lib/ai/policy";
+} from "@/lib/ai/options";
+import type { AiAdmin, AiPolicy } from "@/lib/ai/policy";
 
 // Einstellungen > KI (ADR-032): eigener Schlüssel der Organisation, Anbieter,
 // Modell, welche Inhalte an die KI dürfen und welche Funktionen an sind.

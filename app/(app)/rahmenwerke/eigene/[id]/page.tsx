@@ -9,6 +9,7 @@ import {
 } from "@/components/custom-frameworks/framework-actions";
 import { STATUS_TONE } from "@/components/custom-frameworks/framework-list";
 import { RequirementEditor } from "@/components/custom-frameworks/requirement-editor";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -44,7 +45,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 // Editor eines eigenen Rahmenwerks (R4): Angaben, Abschnitte, Anforderungen
 // mit Zuordnung zu Klick-Maßnahmen, CSV-Import; Einschalten und Zurückziehen
 // nur Inhaber:innen. Die Anforderung öffnet sich über die URL (?anf=, ?neu=1).
-export default async function CustomFrameworkPage({
+async function CustomFrameworkPage({
 	params,
 	searchParams,
 }: {
@@ -344,3 +345,13 @@ export default async function CustomFrameworkPage({
 		</>
 	);
 }
+
+export default withMessages(CustomFrameworkPage, [
+	"Auth",
+	"Common",
+	"Controls",
+	"CustomFrameworks",
+	"Entity",
+	"Functions",
+	"Organisation",
+]);

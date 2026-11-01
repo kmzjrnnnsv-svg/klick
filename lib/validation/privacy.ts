@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { longText, shortText, uuid } from "./common";
+import { DSR_TYPES, INSURANCE_TYPES } from "./options";
 import { responsibleRef } from "./responsible";
+
+export { DSR_TYPES, INSURANCE_TYPES } from "./options";
 
 // Datenschutz (P5): Verarbeitungsverzeichnis, Betroffenenanfragen,
 // Versicherungen (Organisation).
@@ -24,14 +27,6 @@ export const processingActivitySchema = z.object({
 	ownerUserId: responsibleRef,
 });
 
-export const DSR_TYPES = [
-	"auskunft",
-	"loeschung",
-	"berichtigung",
-	"widerspruch",
-	"portabilitaet",
-	"einschraenkung",
-] as const;
 export const DSR_STATUSES = [
 	"open",
 	"in_progress",
@@ -58,14 +53,6 @@ export const dsrExtendSchema = z.object({
 	id: uuid,
 	reason: z.string().trim().min(3).max(1000),
 });
-
-export const INSURANCE_TYPES = [
-	"do",
-	"cyber",
-	"crime",
-	"crypto_custody",
-	"liability",
-] as const;
 
 export const insurancePolicySchema = z.object({
 	id: uuid.optional(),

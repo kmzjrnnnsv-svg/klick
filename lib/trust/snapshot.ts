@@ -8,7 +8,8 @@ import type { Classification, Domain, ImplStatus } from "@/db/schema/enums";
 
 type DocumentStatus = (typeof DOCUMENT_STATUS)[number];
 
-import { documentAccessAllowed, ndaVersion } from "./rules";
+import { ndaVersion } from "./nda-version";
+import { documentAccessAllowed } from "./rules";
 
 // Snapshot beim Veröffentlichen — rein. Öffentlich ist nur, was hier
 // herauskommt; unzulässige oder nicht veröffentlichte Einträge fallen mit

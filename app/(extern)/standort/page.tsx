@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withMessages } from "@/components/i18n/with-messages";
 import { SitePortal } from "@/components/site-tunnels/site-portal";
 
 // /standort#klk_site_… — Link für die IT (Standort-Tunnel, ADR-033). Ohne
@@ -11,6 +12,8 @@ export const metadata: Metadata = {
 	referrer: "no-referrer",
 };
 
-export default function SitePortalPage() {
+function SitePortalPage() {
 	return <SitePortal />;
 }
+
+export default withMessages(SitePortalPage, ["Common", "SitePortal"]);
