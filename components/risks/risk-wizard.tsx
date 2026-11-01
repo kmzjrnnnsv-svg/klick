@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { scrollAppToTop } from "@/components/ui/scroll";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import { RISK_CATEGORIES } from "@/db/schema/enums";
@@ -35,7 +36,6 @@ import {
 	pointLabel,
 	ZONE_TONE,
 } from "@/lib/compliance/risk-method";
-import { scrollAppToTop } from "@/lib/ui/scroll";
 import { cn } from "@/lib/utils";
 import { functionOfRef } from "@/lib/validation/responsible-ref";
 

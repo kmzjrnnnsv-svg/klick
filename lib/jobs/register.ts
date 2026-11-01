@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import type { PgBoss } from "pg-boss";
+import type { DbTx } from "@/db";
 import { organization } from "@/db/auth-schema";
 import { type Actor, audit, verifyAuditChain } from "@/lib/audit";
 import { mainDb, runAsJob } from "@/lib/db/job-scope";
@@ -177,22 +178,29 @@ export async function runVerifyAuditChain(
 }> {
 	const broken: string[] = [];
 	let checked = 0;
-	let chains: (string | null)[] = [];
-	await mainDb().transaction(async (tx) => {
-		await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
-		const orgs = await tx.select({ id: organization.id }).from(organization);
-		chains = [null, ...orgs.map((o) => o.id)];
-		for (const orgId of chains) {
-			const result = await verifyAuditChain(tx, orgId);
-			checked += result.checked;
-			if (!result.ok) {
-				broken.push(orgId ?? "platform");
-				logger.fatal(
-					{ orgId, brokenAtSeq: result.brokenAtSeq, reason: result.reason },
-					"audit chain broken",
-				);
-			}
+	// je Kette eine eigene kurze Transaktion (Block für Block, lib/audit.ts),
+	// statt alle Ketten in einer langen Transaktion zu halten
+	const platformTx = <T>(fn: (tx: DbTx) => Promise<T>) =>
+		mainDb().transaction(async (tx) => {
+			await tx.execute(sql`select set_config('app.scope', 'platform', true)`);
+			return fn(tx);
+		});
+	const orgs = await platformTx((tx) =>
+		tx.select({ id: organization.id }).from(organization),
+	);
+	const chains: (string | null)[] = [null, ...orgs.map((o) => o.id)];
+	for (const orgId of chains) {
+		const result = await platformTx((tx) => verifyAuditChain(tx, orgId));
+		checked += result.checked;
+		if (!result.ok) {
+			broken.push(orgId ?? "platform");
+			logger.fatal(
+				{ orgId, brokenAtSeq: result.brokenAtSeq, reason: result.reason },
+				"audit chain broken",
+			);
 		}
+	}
+	await platformTx(async (tx) => {
 		if (broken.length > 0)
 			await notifyPlatformAdmins(tx, {
 				kind: "security_alert",

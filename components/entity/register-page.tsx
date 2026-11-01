@@ -64,7 +64,16 @@ export function RegisterPage<T extends { id: string }>({
 	// `rows` ist dann eine Seite; ohne zeichnet die Seite alle Zeilen
 	paging?: Paging;
 }) {
+	// Jede Zeile nur einmal ausliefern (P3, Nov 2026): eine Tabelle, die unter
+	// 640 px per CSS als gruppierte Liste erscheint (erste Spalte als Titel,
+	// weitere mit Kopf als Zeile darunter, ganze Zeile tippbar, Pfeil für
+	// Drill-down). Vorher standen Tabelle und Liste beide im HTML und im
+	// RSC-Strom, also jede Zeile doppelt.
 	const linkKey = columns.find((c) => !c.interactive)?.key;
+	const mobileCols = columns.filter((c) => c.mobile !== false);
+	const titleKey = mobileCols[0]?.key;
+	// Link der Liste: erste Spalte, die auch am Handy steht
+	const mobileLinkKey = mobileCols.find((c) => !c.interactive)?.key;
 	return (
 		<>
 			<PageHeader
@@ -83,89 +92,62 @@ export function RegisterPage<T extends { id: string }>({
 			{rows.length === 0 ? (
 				empty
 			) : (
-				<>
-					<div className="hidden overflow-hidden rounded-2xl bg-card sm:block">
-						<Table className="[&_td:first-child]:pl-4 [&_td:last-child]:pr-4 [&_th:first-child]:pl-4 [&_th:last-child]:pr-4">
-							<TableHeader>
-								<TableRow>
-									{columns.map((c) => (
-										<TableHead key={c.key} className={c.className}>
-											{c.header}
-										</TableHead>
-									))}
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{rows.map((row) => (
-									<TableRow key={row.id} className="group">
-										{columns.map((c) => (
+				<div className="overflow-hidden rounded-2xl bg-card">
+					<Table className="register-table sm:[&_td:first-child]:pl-4 sm:[&_td:last-child]:pr-4 sm:[&_th:first-child]:pl-4 sm:[&_th:last-child]:pr-4">
+						<TableHeader>
+							<TableRow>
+								{columns.map((c) => (
+									<TableHead key={c.key} className={c.className}>
+										{c.header}
+									</TableHead>
+								))}
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{rows.map((row) => (
+								<TableRow key={row.id} className="group">
+									{columns.map((c) => {
+										const asLink = c.key === linkKey || c.key === mobileLinkKey;
+										const m =
+											c.mobile === false
+												? "hide"
+												: c.key === titleKey
+													? "title"
+													: "meta";
+										return (
 											<TableCell
 												key={c.key}
 												className={cn(c.className, "align-top")}
+												data-m={m}
+												data-interactive={c.interactive ? "" : undefined}
 											>
-												{c.key === linkKey ? (
+												{m === "meta" && (
+													<span data-m-label="">{c.header}</span>
+												)}
+												{asLink ? (
 													<Link
 														href={rowHref(row)}
 														className="hit-area block underline-offset-4 hover:underline"
+														data-row-link={
+															c.key === mobileLinkKey ? "" : undefined
+														}
 													>
 														{c.cell(row)}
 													</Link>
 												) : (
 													c.cell(row)
 												)}
+												{m === "title" && (
+													<ChevronRight aria-hidden="true" data-chevron="" />
+												)}
 											</TableCell>
-										))}
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
-					</div>
-					<ul className="overflow-hidden rounded-2xl bg-card sm:hidden">
-						{rows.map((row) => {
-							const [first, ...rest] = columns.filter(
-								(c) => c.mobile !== false,
-							);
-							return (
-								<li
-									key={row.id}
-									className="relative before:pointer-events-none before:absolute before:top-0 before:right-0 before:left-4 before:h-px before:bg-border/70 first:before:hidden"
-								>
-									<Link
-										href={rowHref(row)}
-										className="flex items-center gap-3 py-3 pr-3 pl-4 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset active:bg-muted"
-									>
-										<div className="flex min-w-0 flex-1 flex-col gap-1">
-											{first && (
-												<div className="min-w-0 break-words font-medium text-body">
-													{first.cell(row)}
-												</div>
-											)}
-											{rest.length > 0 && (
-												<dl className="flex flex-wrap gap-x-3 gap-y-1 text-footnote">
-													{rest.map((c) => (
-														<div
-															key={c.key}
-															className="flex min-w-0 items-baseline gap-1"
-														>
-															<dt className="text-muted-foreground">
-																{c.header}
-															</dt>
-															<dd className="min-w-0">{c.cell(row)}</dd>
-														</div>
-													))}
-												</dl>
-											)}
-										</div>
-										<ChevronRight
-											aria-hidden="true"
-											className="size-4 shrink-0 text-muted-foreground/70"
-										/>
-									</Link>
-								</li>
-							);
-						})}
-					</ul>
-				</>
+										);
+									})}
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				</div>
 			)}
 			{paging && rows.length > 0 && <Pagination {...paging} />}
 			{footer && (

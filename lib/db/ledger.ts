@@ -25,28 +25,57 @@ export type ChainHead = {
 	head: string;
 };
 
-/** Letzter Eintrag und Anzahl je Kette (bestehende Orgs + Plattform). */
+/** Letzter Eintrag und Anzahl je Kette (bestehende Orgs + Plattform).
+ * Läuft alle 10 min (ledger-anchor): der Kopf kommt über den Index
+ * (organization_id, seq), die Anzahl baut auf dem zuletzt verankerten Kopf
+ * auf (ledger_heads bzw. ledger_anchors.platform) und zählt nur die Einträge
+ * danach — vorher zählte jeder Lauf das ganze Protokoll (P3). Die Kette ist
+ * nur anhängend, also bleibt die alte Anzahl gültig. */
 export function chainHeads(): Promise<ChainHead[]> {
 	return platform(async (tx) => {
-		const rows = await tx.execute<{
+		type Row = {
 			organization_id: string | null;
 			seq: string;
 			hash: string;
 			n: string;
-		}>(sql`
-			select distinct on (a.organization_id)
-				a.organization_id, a.seq::text as seq, a.hash, c.n::text as n
-			from audit_log a
-			join (
-				select organization_id, count(*) as n
-				from audit_log group by organization_id
-			) c on c.organization_id is not distinct from a.organization_id
-			-- gelöschte Orgs: ihre Kette bleibt im Protokoll, wird aber nicht
-			-- mehr verankert (kein Kopf ohne Org)
-			where a.organization_id is null
-				or exists (select 1 from organization o where o.id = a.organization_id)
-			order by a.organization_id, a.seq desc`);
-		return rows.map((r) => ({
+		};
+		const orgs = await tx.execute<Row>(sql`
+			select o.id as organization_id, h.seq::text as seq, h.hash,
+				(coalesce(p.count, 0) + c.n)::text as n
+			from organization o
+			cross join lateral (
+				select a.seq, a.hash from audit_log a
+				where a.organization_id = o.id
+				order by a.seq desc limit 1
+			) h
+			left join lateral (
+				select lh.seq, lh.count from ledger_heads lh
+				where lh.organization_id = o.id
+				order by lh.created_at desc limit 1
+			) p on true
+			cross join lateral (
+				select count(*) as n from audit_log a
+				where a.organization_id = o.id and a.seq > coalesce(p.seq, 0)
+			) c`);
+		const plat = await tx.execute<Row>(sql`
+			select null::uuid as organization_id, h.seq::text as seq, h.hash,
+				(coalesce((p.platform->>'count')::bigint, 0) + c.n)::text as n
+			from (
+				select a.seq, a.hash from audit_log a
+				where a.organization_id is null
+				order by a.seq desc limit 1
+			) h
+			left join lateral (
+				select la.platform from ledger_anchors la
+				where la.platform is not null
+				order by la.created_at desc limit 1
+			) p on true
+			cross join lateral (
+				select count(*) as n from audit_log a
+				where a.organization_id is null
+					and a.seq > coalesce((p.platform->>'seq')::bigint, 0)
+			) c`);
+		return [...plat, ...orgs].map((r) => ({
 			orgId: r.organization_id,
 			seq: r.seq,
 			count: Number(r.n),

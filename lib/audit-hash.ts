@@ -92,28 +92,35 @@ export type ChainVerification =
 
 // Erwartet die Zeilen EINER Kette, aufsteigend nach seq sortiert.
 export function verifyChain(rows: HashedAuditRow[]): ChainVerification {
-	let expectedPrev: string | null = null;
-	let checked = 0;
+	return continueChain(rows).result;
+}
+
+// Für lange Ketten in Blöcken: `from` = Prüfsumme des letzten Eintrags vor
+// dem Block (null = Anfang der Kette) und die bisher geprüfte Zahl; `last`
+// geht in den nächsten Block. Das Ergebnis ist dasselbe wie am Stück.
+export function continueChain(
+	rows: HashedAuditRow[],
+	from: { prevHash: string | null; checked: number } = {
+		prevHash: null,
+		checked: 0,
+	},
+): { result: ChainVerification; last: string | null } {
+	let expectedPrev: string | null = from.prevHash;
+	let checked = from.checked;
 	for (const row of rows) {
-		if (row.prevHash !== expectedPrev) {
+		const reason =
+			row.prevHash !== expectedPrev
+				? "prev_mismatch"
+				: computeAuditHash(row.prevHash, row) !== row.hash
+					? "hash_mismatch"
+					: null;
+		if (reason)
 			return {
-				ok: false,
-				checked,
-				brokenAtSeq: String(row.seq),
-				reason: "prev_mismatch",
+				result: { ok: false, checked, brokenAtSeq: String(row.seq), reason },
+				last: expectedPrev,
 			};
-		}
-		const recomputed = computeAuditHash(row.prevHash, row);
-		if (recomputed !== row.hash) {
-			return {
-				ok: false,
-				checked,
-				brokenAtSeq: String(row.seq),
-				reason: "hash_mismatch",
-			};
-		}
 		expectedPrev = row.hash;
 		checked++;
 	}
-	return { ok: true, checked };
+	return { result: { ok: true, checked }, last: expectedPrev };
 }

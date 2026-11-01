@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { scrollRoot } from "@/lib/ui/scroll";
+import { scrollRoot } from "@/components/ui/scroll";
 
 // Ab 1024 px scrollt nicht das Fenster, sondern die rechte Spalte
 // (data-scroll-root). Next setzt dort beim Seitenwechsel nicht zurück:

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildSheet, type SheetEvidence } from "@/lib/evidence-studio/sheet";
+import {
+	buildSheet,
+	indexSheetEvidence,
+	type SheetEvidence,
+} from "@/lib/evidence-studio/sheet";
 import { similarity, stableId } from "@/lib/evidence-studio/text";
 
 const today = "2026-10-23";
@@ -203,6 +207,51 @@ describe("Nachweisbogen je Control", () => {
 		expect(kinds).toContain("duplicate_upload");
 		expect(kinds).toContain("document_cycle");
 		expect(kinds).toContain("evidence_validity");
+	});
+
+	it("Index: gleiches Ergebnis, Reihenfolge der Eingabe, doppelte Zuordnung einmal", () => {
+		const base = buildSheet({
+			controlCode: "CC-IAM-01",
+			frameworks: ["iso27001"],
+			today,
+		});
+		const item = base?.items[0];
+		expect(item).toBeTruthy();
+		if (!item) return;
+		const evidence = [
+			ev({ id: "x2", sha256: "s1", controls: ["CC-IAM-02"] }),
+			ev({
+				id: "x1",
+				sha256: "s1",
+				controls: ["CC-IAM-01", "CC-IAM-01"],
+			}),
+			ev({ id: "x3", sha256: "s1", controls: ["CC-OPS-01"] }),
+			ev({ id: "x4", sha256: "s2", controls: ["CC-OPS-01"] }),
+		];
+		const input = {
+			controlCode: "CC-IAM-01",
+			frameworks: ["iso27001"],
+			evidence,
+			items: { [item.id]: { mode: "evidence" as const, evidenceIds: ["x1"] } },
+			today,
+		};
+		const plain = buildSheet(input);
+		const indexed = buildSheet({
+			...input,
+			index: indexSheetEvidence(evidence),
+		});
+		expect(indexed).toEqual(plain);
+		const it0 = plain?.items.find((i) => i.id === item.id);
+		expect(it0?.done).toBe(true);
+		// gleiche Prüfsumme an anderen Controls, in der Reihenfolge der Eingabe
+		expect(it0?.coveredElsewhere.map((c) => c.evidence.id)).toEqual([
+			"x2",
+			"x3",
+		]);
+		// doppelt zugeordnet ist kein doppelter Upload
+		expect(
+			plain?.findings.filter((f) => f.kind === "duplicate_upload"),
+		).toEqual([]);
 	});
 
 	it("Ähnlichkeit erkennt gleiche Fragen in anderem Wortlaut", () => {

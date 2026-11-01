@@ -10,3 +10,12 @@
 @import "../../../styles/tokens.css";
 
 @import "../../../styles/base.css";
+
+/* Ab 1024 px steht das Fenster im App-Rahmen (components/shell/app-shell):
+   die Rechtslinks sitzen klein unten in der Seitenleiste, die Fußzeile des
+   Root-Layouts entfällt dort — sonst scrollte das Fenster zu ihr. */
+@media (width >= 64rem) {
+	body:has([data-app-shell]) [data-legal-root] {
+		display: none;
+	}
+}
