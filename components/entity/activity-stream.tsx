@@ -10,14 +10,19 @@ export function ActivityStream({
 	names,
 	external,
 	labels,
+	maxChanges,
 }: {
 	entries: ActivityEntry[];
 	names: Map<string, string>;
 	// User-IDs externer Mitglieder (Prüfer:innen, Berater:innen)
 	external?: ReadonlySet<string>;
 	labels: { empty: string; changed: string; commented: string; system: string };
+	// org-weiter Feed: nur die ersten Felder je Eintrag, der Rest steht an
+	// der Entität (hält die Seite klein)
+	maxChanges?: number;
 }) {
 	const tf = useTranslations("Functions");
+	const te = useTranslations("Entity");
 	// Funktionen mit ihrem Namen statt des Schlüssels (z. B. isb_ciso)
 	const show = (field: string, v: unknown) =>
 		/(^|[a-z])(f|F)unction$/.test(field) &&
@@ -78,7 +83,10 @@ export function ActivityStream({
 						</div>
 						{e.item.changes.length > 0 ? (
 							<ul className="flex flex-col gap-0.5 pl-1 text-footnote">
-								{e.item.changes.map((ch) => (
+								{(maxChanges
+									? e.item.changes.slice(0, maxChanges)
+									: e.item.changes
+								).map((ch) => (
 									<li
 										key={ch.field}
 										className="flex flex-wrap items-baseline gap-1.5"
@@ -94,6 +102,13 @@ export function ActivityStream({
 										</ins>
 									</li>
 								))}
+								{maxChanges && e.item.changes.length > maxChanges && (
+									<li className="text-muted-foreground">
+										{te("moreChanges", {
+											n: e.item.changes.length - maxChanges,
+										})}
+									</li>
+								)}
 							</ul>
 						) : (
 							<p className="pl-1 text-muted-foreground text-footnote">

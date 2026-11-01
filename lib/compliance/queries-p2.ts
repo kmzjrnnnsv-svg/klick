@@ -6,6 +6,8 @@ import {
 	getTableColumns,
 	inArray,
 	isNotNull,
+	lt,
+	sql,
 } from "drizzle-orm";
 import {
 	assets,
@@ -32,6 +34,12 @@ import {
 	trainingRequirements,
 	trainings,
 } from "@/db/schema";
+import {
+	ACTIVITY_PAGE_SIZE,
+	type ActivityCursor,
+	START_CURSOR,
+	takeActivityPage,
+} from "@/lib/activity-page";
 import { functionsOf } from "@/lib/compliance/function-holders";
 import { loadAssignments } from "@/lib/compliance/function-holders-service";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -393,26 +401,74 @@ export async function listTaskBundles(tx: OrgTx, orgId: string) {
 }
 
 // ── Aktivität (Org-Feed) ───────────────────────────────────────────────────
-export async function orgActivity(tx: OrgTx, orgId: string, limit = 100) {
-	const [audit, recentComments] = await Promise.all([
+// Org-weiter Feed seitenweise: je Liste höchstens eine Seite + 1 ab dem
+// Cursor (lib/activity-page.ts), Spalten ausdrücklich — Aufwand hängt nicht
+// davon ab, wie weit hinten die Seite liegt.
+export async function orgActivity(
+	tx: OrgTx,
+	orgId: string,
+	cursor: ActivityCursor = START_CURSOR,
+	size = ACTIVITY_PAGE_SIZE,
+) {
+	const [auditRows, commentRows] = await Promise.all([
 		tx
-			.select()
+			.select({
+				id: auditLog.id,
+				seq: auditLog.seq,
+				at: auditLog.at,
+				actorUserId: auditLog.actorUserId,
+				action: auditLog.action,
+				target: auditLog.target,
+				before: auditLog.before,
+				after: auditLog.after,
+			})
 			.from(auditLog)
-			.where(eq(auditLog.organizationId, orgId))
+			.where(
+				and(
+					eq(auditLog.organizationId, orgId),
+					cursor.auditSeq === null
+						? undefined
+						: lt(auditLog.seq, cursor.auditSeq),
+				),
+			)
 			.orderBy(desc(auditLog.seq))
-			.limit(limit),
+			.limit(size + 1),
 		tx
-			.select()
+			.select({
+				id: comments.id,
+				createdAt: comments.createdAt,
+				// exakt (Mikrosekunden) für den nächsten Cursor
+				cursorAt: sql<string>`to_char(${comments.createdAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+				authorUserId: comments.authorUserId,
+				bodyMarkdown: comments.bodyMarkdown,
+				parentId: comments.parentId,
+				editedAt: comments.editedAt,
+			})
 			.from(comments)
-			.where(eq(comments.organizationId, orgId))
-			.orderBy(desc(comments.createdAt))
-			.limit(limit),
+			.where(
+				and(
+					eq(comments.organizationId, orgId),
+					// Zeitpunkt als text binden: ein timestamptz-Parameter läuft je
+					// nach Treiberweg über Date und verlöre die Mikrosekunden
+					cursor.comment
+						? sql`(${comments.createdAt}, ${comments.id}) < (${cursor.comment.at}::text::timestamptz, ${cursor.comment.id}::uuid)`
+						: undefined,
+				),
+			)
+			.orderBy(desc(comments.createdAt), desc(comments.id))
+			.limit(size + 1),
 	]);
+	const page = takeActivityPage(
+		auditRows.map((r) => ({ ...r, seq: r.seq as bigint })),
+		commentRows,
+		cursor,
+		size,
+	);
 	const names = await userNames(tx, [
-		...audit.map((a) => a.actorUserId),
-		...recentComments.map((c) => c.authorUserId),
+		...page.audit.map((a) => a.actorUserId),
+		...page.comments.map((c) => c.authorUserId),
 	]);
-	return { audit, comments: recentComments, names };
+	return { audit: page.audit, comments: page.comments, names, next: page.next };
 }
 
 // Maßnahmenplan über alle Risiken (Reiter /risiken?tab=massnahmen, Bericht).

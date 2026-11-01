@@ -1,0 +1,1 @@
+CREATE INDEX "comments_org_created_idx" ON "comments" USING btree ("organization_id","created_at","id");
