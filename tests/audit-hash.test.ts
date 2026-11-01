@@ -72,7 +72,7 @@ describe("computeAuditHash", () => {
 
 describe("verifyChain", () => {
 	it("akzeptiert eine intakte Kette", () => {
-		expect(verifyChain(chain(5))).toEqual({ ok: true, checked: 5 });
+		expect(verifyChain(chain(5))).toMatchObject({ ok: true, checked: 5 });
 	});
 	it("erkennt einen manipulierten Eintrag", () => {
 		const rows = chain(5);
@@ -92,6 +92,23 @@ describe("verifyChain", () => {
 		if (!res.ok) expect(res.reason).toBe("prev_mismatch");
 	});
 	it("leere Kette ist gültig", () => {
-		expect(verifyChain([])).toEqual({ ok: true, checked: 0 });
+		expect(verifyChain([])).toMatchObject({ ok: true, checked: 0 });
+	});
+	it("in Blöcken wie am Stück, Bruch über die Blockgrenze erkannt", () => {
+		const rows = chain(10);
+		const whole = verifyChain(rows);
+		const first = verifyChain(rows.slice(0, 4));
+		const second = verifyChain(rows.slice(4), {
+			prevHash: first.last,
+			checked: first.checked,
+		});
+		expect(second).toEqual(whole);
+		// fehlt der erste Eintrag des zweiten Blocks, passt prevHash nicht
+		const broken = verifyChain(rows.slice(5), {
+			prevHash: first.last,
+			checked: first.checked,
+		});
+		expect(broken.ok).toBe(false);
+		if (!broken.ok) expect(broken.reason).toBe("prev_mismatch");
 	});
 });

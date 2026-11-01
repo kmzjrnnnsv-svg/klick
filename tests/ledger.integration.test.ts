@@ -201,6 +201,28 @@ d("Verlauf mit Bitcoin-Anker (Postgres)", () => {
 		expect(wrong.code).toBe(1);
 	});
 
+	it("zählt ab dem letzten Anker weiter, Download bleibt stimmig", async () => {
+		for (const i of [4, 5])
+			await mutateOrg({ orgId: orgs[0] as string, userId: null }, async () => ({
+				result: null,
+				audit: { action: "test.entry", target: `test:${i}`, after: { i } },
+			}));
+		const r = await anchorNow("manual", {
+			calendars: [calendar],
+			nonce: Uint8Array.from(new Array(16).fill(2)),
+		});
+		expect(r.kind).toBe("anchored");
+		if (r.kind !== "anchored") return;
+		const seen = await readOrg(
+			{ orgId: orgs[0] as string, userId: null },
+			(tx) =>
+				tx.select().from(ledgerHeads).where(eq(ledgerHeads.anchorId, r.id)),
+		);
+		expect(seen[0]?.count).toBe(5);
+		const out = verify(await exportTo(orgs[0] as string, "a3"));
+		expect(out.out).toContain("5 Einträge, lückenlos verkettet");
+	});
+
 	it("erkennt eine nachträglich geänderte Kette", async () => {
 		const dir = await exportTo(orgs[1] as string, "b1");
 		// stimmig, der Bitcoin-Block ist nur nicht abgeglichen

@@ -1,4 +1,4 @@
-import { desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import type { DbTx, GlobalDb } from "@/db";
 import { globalDb } from "@/db";
 import { auditLog } from "@/db/schema";
@@ -92,20 +92,44 @@ export async function auditPlatform(
 }
 
 // Prüft die Kette einer Org (oder der Plattform) vollständig.
+// Block für Block (P3): eine lange Kette liegt nie ganz im Speicher der
+// Web-App, nur je CHAIN_BLOCK Einträge über den Index (organization_id, seq).
+export const CHAIN_BLOCK = 5_000;
+
 export async function verifyAuditChain(
 	tx: Executor,
 	organizationId: string | null,
 ): Promise<ChainVerification> {
-	const rows = await tx
-		.select()
-		.from(auditLog)
-		.where(
-			organizationId
-				? eq(auditLog.organizationId, organizationId)
-				: isNull(auditLog.organizationId),
-		)
-		.orderBy(auditLog.seq);
-	return verifyChain(rows as unknown as HashedAuditRow[]);
+	let state = { prevHash: null as string | null, checked: 0 };
+	let lastSeq: bigint | null = null;
+	for (;;) {
+		const rows = await tx
+			.select()
+			.from(auditLog)
+			.where(
+				and(
+					organizationId
+						? eq(auditLog.organizationId, organizationId)
+						: isNull(auditLog.organizationId),
+					lastSeq === null ? undefined : gt(auditLog.seq, lastSeq),
+				),
+			)
+			.orderBy(auditLog.seq)
+			.limit(CHAIN_BLOCK);
+		const result = verifyChain(rows as unknown as HashedAuditRow[], state);
+		if (!result.ok)
+			return {
+				ok: false,
+				checked: result.checked,
+				brokenAtSeq: result.brokenAtSeq,
+				reason: result.reason,
+			};
+		state = { prevHash: result.last, checked: result.checked };
+		const tail = rows.at(-1);
+		if (!tail || rows.length < CHAIN_BLOCK)
+			return { ok: true, checked: state.checked };
+		lastSeq = tail.seq as bigint;
+	}
 }
 
 // Feld-Historie einer Entität ("risk:<id>") für den Aktivitätsstrom.

@@ -90,10 +90,18 @@ export type ChainVerification =
 			reason: "hash_mismatch" | "prev_mismatch";
 	  };
 
-// Erwartet die Zeilen EINER Kette, aufsteigend nach seq sortiert.
-export function verifyChain(rows: HashedAuditRow[]): ChainVerification {
-	let expectedPrev: string | null = null;
-	let checked = 0;
+// Erwartet die Zeilen EINER Kette, aufsteigend nach seq sortiert. Für
+// lange Ketten in Blöcken: `from` = Prüfsumme des letzten Eintrags vor dem
+// Block (null = Anfang der Kette), `last` geht in den nächsten Block.
+export function verifyChain(
+	rows: HashedAuditRow[],
+	from: { prevHash: string | null; checked: number } = {
+		prevHash: null,
+		checked: 0,
+	},
+): ChainVerification & { last: string | null } {
+	let expectedPrev: string | null = from.prevHash;
+	let checked = from.checked;
 	for (const row of rows) {
 		if (row.prevHash !== expectedPrev) {
 			return {
@@ -101,6 +109,7 @@ export function verifyChain(rows: HashedAuditRow[]): ChainVerification {
 				checked,
 				brokenAtSeq: String(row.seq),
 				reason: "prev_mismatch",
+				last: expectedPrev,
 			};
 		}
 		const recomputed = computeAuditHash(row.prevHash, row);
@@ -110,10 +119,11 @@ export function verifyChain(rows: HashedAuditRow[]): ChainVerification {
 				checked,
 				brokenAtSeq: String(row.seq),
 				reason: "hash_mismatch",
+				last: expectedPrev,
 			};
 		}
 		expectedPrev = row.hash;
 		checked++;
 	}
-	return { ok: true, checked };
+	return { ok: true, checked, last: expectedPrev };
 }
