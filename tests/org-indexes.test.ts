@@ -24,9 +24,9 @@ const EXCEPTIONS: Record<string, string> = {
 const isOrg = (name: string) =>
 	name === "organization_id" || name === "organizationId";
 
-const tables = [...Object.values(schema), ...Object.values(authSchema)].filter(
-	(v): v is PgTable => v instanceof PgTable,
-);
+const tables: PgTable[] = (
+	[...Object.values(schema), ...Object.values(authSchema)] as unknown[]
+).filter((v): v is PgTable => v instanceof PgTable);
 
 function leadsWithOrg(t: PgTable): boolean {
 	const cfg = getTableConfig(t);
