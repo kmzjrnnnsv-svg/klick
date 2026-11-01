@@ -22,7 +22,17 @@ import {
 	catalogQuestions,
 } from "@/lib/assessments/catalog-template";
 import { insertSelfAssessment } from "@/lib/assessments/create-service";
-import { naAllowed, naOpenShare } from "@/lib/assessments/na";
+import {
+	type NaConfirmation,
+	naAllowed,
+	naDropsControl,
+	naOpenShare,
+} from "@/lib/assessments/na";
+import {
+	naConfirmations,
+	requestNaConfirmation,
+	withdrawNaConfirmation,
+} from "@/lib/assessments/na-approval";
 import { scoreAssessment } from "@/lib/assessments/score";
 import { answerStates, nextAssessmentCode } from "@/lib/assessments/state";
 import type { AuditInput } from "@/lib/audit";
@@ -30,6 +40,7 @@ import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { excludeRequirements } from "@/lib/compliance/exclusion-service";
 import { exclusionAllowedForKey } from "@/lib/compliance/exclusions";
+import { ensureControlImplementations } from "@/lib/compliance/initialize-org";
 import { loadOrgCatalog } from "@/lib/compliance/org-catalog-server";
 import { getOrgProfile, loadApplicability } from "@/lib/compliance/queries";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
@@ -116,72 +127,102 @@ async function createAssessmentImpl(
 	return { ok: true, data: out };
 }
 
-async function answerQuestionImpl(input: unknown): Promise<ActionResult> {
+async function answerQuestionImpl(
+	input: unknown,
+): Promise<ActionResult<{ na: NaConfirmation | null }>> {
 	const c = await requireOrg({ assessment: ["answer"] });
 	const parsed = answerQuestionSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
-	const ok = await mutateOrg<boolean | "na_not_allowed">(
-		toOrgCtx(c),
-		async (tx) => {
-			const a = await loadAssessment(tx, c.orgId, d.assessmentId);
-			const question = a?.questions.find((q) => q.code === d.questionCode);
-			if (
-				!a ||
-				!question ||
-				a.status === "completed" ||
-				a.status === "cancelled"
-			)
-				return { result: false, audit: [] };
-			// „Nicht relevant“ nur, wo mindestens ein Rahmenwerk der Frage einen
-			// Ausschluss kennt (ISO Annex A, SOC 2 Zusatzkategorien …)
-			if (
-				d.answer === "na" &&
-				a.kind === "self" &&
-				!naAllowed(question, await loadOrgCatalog(tx, c.orgId))
-			)
-				return { result: "na_not_allowed" as const, audit: [] };
-			const values = {
-				answer: d.answer,
-				comment: d.comment ?? null,
-				naReason: d.answer === "na" ? (d.naReason ?? null) : null,
-				answeredByUserId: c.userId,
-			};
+	const ok = await mutateOrg<
+		{ na: NaConfirmation | null } | false | "na_not_allowed"
+	>(toOrgCtx(c), async (tx) => {
+		const a = await loadAssessment(tx, c.orgId, d.assessmentId);
+		const question = a?.questions.find((q) => q.code === d.questionCode);
+		if (!a || !question || a.status === "completed" || a.status === "cancelled")
+			return { result: false, audit: [] };
+		// „Nicht relevant“ nur, wo ein Rahmenwerk der Frage einen Ausschluss
+		// kennt oder die Maßnahme keine Anforderung allein trägt
+		const catalogNa =
+			a.kind === "self" &&
+			Boolean(question.controlCode) &&
+			(question.requirements?.length ?? 0) > 0;
+		if (
+			d.answer === "na" &&
+			catalogNa &&
+			!naAllowed(question, await loadOrgCatalog(tx, c.orgId))
+		)
+			return { result: "na_not_allowed" as const, audit: [] };
+		const values = {
+			answer: d.answer,
+			comment: d.comment ?? null,
+			naReason: d.answer === "na" ? (d.naReason ?? null) : null,
+			answeredByUserId: c.userId,
+		};
+		await tx
+			.insert(assessmentAnswers)
+			.values({
+				organizationId: c.orgId,
+				assessmentId: a.id,
+				questionCode: d.questionCode,
+				...values,
+			})
+			.onConflictDoUpdate({
+				target: [
+					assessmentAnswers.assessmentId,
+					assessmentAnswers.questionCode,
+				],
+				set: values,
+			});
+		if (a.status === "draft")
 			await tx
-				.insert(assessmentAnswers)
-				.values({
-					organizationId: c.orgId,
-					assessmentId: a.id,
-					questionCode: d.questionCode,
-					...values,
-				})
-				.onConflictDoUpdate({
-					target: [
-						assessmentAnswers.assessmentId,
-						assessmentAnswers.questionCode,
-					],
-					set: values,
-				});
-			if (a.status === "draft")
-				await tx
-					.update(assessments)
-					.set({ status: "in_progress" })
-					.where(eq(assessments.id, a.id));
-			return {
-				result: true,
-				audit: {
-					action: "assessment.answer",
-					target: `assessment:${a.id}`,
-					after: { question: d.questionCode, answer: d.answer },
+				.update(assessments)
+				.set({ status: "in_progress" })
+				.where(eq(assessments.id, a.id));
+		// Bestätigung durch eine zweite Person (Standard: Geschäftsleitung);
+		// wirkt erst beim Übernehmen und nur bestätigt
+		let na: NaConfirmation | null = null;
+		if (catalogNa && question.controlCode) {
+			if (d.answer === "na") {
+				const code = question.controlCode;
+				let impl = (await implementationIds(tx, c.orgId, [code])).get(code);
+				if (!impl) {
+					await ensureControlImplementations(tx, c.orgId, c.userId, [code]);
+					impl = (await implementationIds(tx, c.orgId, [code])).get(code);
+				}
+				na = impl
+					? await requestNaConfirmation(
+							tx,
+							{ orgId: c.orgId, userId: c.userId, name: c.name },
+							{
+								assessmentId: a.id,
+								assessmentCode: a.code,
+								questionCode: d.questionCode,
+								controlImplementationId: impl.id,
+								reason: d.naReason ?? "",
+							},
+						)
+					: null;
+			} else await withdrawNaConfirmation(tx, c.orgId, a.id, d.questionCode);
+		}
+		return {
+			result: { na },
+			audit: {
+				action: "assessment.answer",
+				target: `assessment:${a.id}`,
+				after: {
+					question: d.questionCode,
+					answer: d.answer,
+					...(na ? { naConfirmation: na.status } : {}),
 				},
-			};
-		},
-	);
+			},
+		};
+	});
 	if (ok === "na_not_allowed") return { ok: false, error: "na_not_allowed" };
 	if (!ok) return { ok: false, error: "notFound" };
 	// Fortschritt im Kopf und je Kapitel sofort nachziehen
 	revalidatePath(`${PATH}/${d.assessmentId}`);
-	return { ok: true, data: undefined };
+	return { ok: true, data: ok };
 }
 
 // Dokument direkt an der Frage hochladen: gemeinsame Pipeline (DLP, clamd,
@@ -514,11 +555,17 @@ async function applyAssessmentResultsImpl(
 		// Katalog der Org: eigene Rahmenwerke nach ihrer Ausschluss-Regel (R4)
 		const catalog = await loadOrgCatalog(tx, c.orgId);
 		const allowedKey = (k: string) => exclusionAllowedForKey(k, catalog);
+		// „Nicht relevant“ wirkt nur bestätigt (zweite Person); später
+		// bestätigte wirken beim Freigeben (applyConfirmedNa)
+		const confirmations = await naConfirmations(tx, c.orgId, a.id, rows);
+		const naConfirmed = (q: { code: string }) =>
+			confirmations.get(q.code)?.status === "confirmed";
 		const changes = proposeControlStatus(
 			a.questions,
 			states,
 			current,
 			allowedKey,
+			{ dropsControl: (q) => naDropsControl(q, catalog), naConfirmed },
 		);
 		// „Nicht relevant“: Ausschluss je Anforderung, wo das Rahmenwerk ihn
 		// kennt (SoA-Begründung = naReason); der Rest bleibt offen
@@ -535,6 +582,7 @@ async function applyAssessmentResultsImpl(
 			states,
 			allowedKey,
 			excluded,
+			naConfirmed,
 		);
 		const audits: AuditInput[] = await excludeRequirements(
 			tx,
@@ -596,6 +644,10 @@ async function applyAssessmentResultsImpl(
 					(x) => `${x.controlCode}: von ${x.from} auf ${x.to}`,
 				),
 				exclusions: exclusions.map((x) => x.key),
+				// „Nicht relevant“ noch ohne Bestätigung: wirkt erst danach
+				naOpen: [...confirmations]
+					.filter(([, v]) => v.status !== "confirmed")
+					.map(([k]) => k),
 			},
 		});
 		return {

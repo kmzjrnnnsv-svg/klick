@@ -21,8 +21,10 @@ export const answerQuestionSchema = z
 		comment: z.string().trim().max(4000).optional(),
 		naReason: z.string().trim().max(1000).optional(),
 	})
-	.refine((v) => v.answer !== "na" || (v.naReason ?? "").length >= 3, {
-		message: "Begründung für „nicht anwendbar“ fehlt",
+	// „Nicht relevant“ braucht eine Begründung, die eine zweite Person
+	// bestätigen kann (gleich NA_REASON_MIN in der Fragekarte)
+	.refine((v) => v.answer !== "na" || (v.naReason ?? "").length >= 10, {
+		message: "Begründung für „nicht relevant“ fehlt (mindestens 10 Zeichen)",
 		path: ["naReason"],
 	});
 

@@ -10,6 +10,7 @@ import {
 	uploadAnswerEvidence,
 } from "@/app/actions/assessments";
 import { importDocumentsFromEvidence } from "@/app/actions/documents";
+import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
 import {
 	DlpWarning,
 	useUploadFeedback,
@@ -23,10 +24,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { AssessmentAnswer, AssessmentQuestion } from "@/db/schema/enums";
+import type { NaConfirmation } from "@/lib/assessments/na";
 import type { RelationHint } from "@/lib/compliance/relation-hints";
 import { cn } from "@/lib/utils";
 
 const ANSWERS: AssessmentAnswer[] = ["yes", "partial", "no", "unknown", "na"];
+// Begründung für „nicht relevant“ (gleich lib/validation/assessments.ts)
+const NA_REASON_MIN = 10;
 const ANSWER_TONE: Record<AssessmentAnswer, string> = {
 	yes: "border-success/60 bg-success/10",
 	partial: "border-warning/60 bg-warning/15",
@@ -60,16 +64,20 @@ export function QuestionCard({
 	assessmentId: string;
 	question: AssessmentQuestion;
 	// Gap-Analyse aus dem Katalog: was „Nicht relevant“ bewirkt (Ausschluss
-	// nur, wo das Rahmenwerk ihn kennt); null = Fragebogen ohne Katalogbezug
+	// nur, wo das Rahmenwerk ihn kennt; nur teilweise getragene Anforderungen
+	// bleiben über andere Maßnahmen); null = Fragebogen ohne Katalogbezug
 	na?: {
 		allowed: boolean;
 		excludable: { key: string; label: string; how: string }[];
+		kept: { key: string; label: string }[];
 		blocked: { key: string; label: string }[];
 	} | null;
 	initial: {
 		answer: AssessmentAnswer | null;
 		comment: string | null;
 		naReason: string | null;
+		// Bestätigung von „Nicht relevant“ durch eine zweite Person
+		naConfirmation?: NaConfirmation | null;
 		documents: Doc[];
 	};
 	statusLabel: string | null;
@@ -88,6 +96,9 @@ export function QuestionCard({
 	const [answer, setAnswer] = useState(initial.answer);
 	const [comment, setComment] = useState(initial.comment ?? "");
 	const [naReason, setNaReason] = useState(initial.naReason ?? "");
+	const [naConfirmation, setNaConfirmation] = useState(
+		initial.naConfirmation ?? null,
+	);
 	const [docs, setDocs] = useState<Doc[]>(initial.documents);
 	const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
 	const [dlp, setDlp] = useState<{ file: File; reasons: string[] } | null>(
@@ -109,7 +120,7 @@ export function QuestionCard({
 	}) {
 		const a = next.answer !== undefined ? next.answer : answer;
 		const reason = next.naReason ?? naReason;
-		if (a === "na" && reason.trim().length < 3) {
+		if (a === "na" && reason.trim().length < NA_REASON_MIN) {
 			reasonRef.current?.focus();
 			return;
 		}
@@ -129,6 +140,7 @@ export function QuestionCard({
 				);
 				return;
 			}
+			setNaConfirmation(res.data.na);
 			setStatus("saved");
 		});
 	}
@@ -316,12 +328,21 @@ export function QuestionCard({
 				)}
 				{answer === "na" &&
 					na &&
-					(na.excludable.length > 0 || na.blocked.length > 0) && (
+					(na.excludable.length > 0 ||
+						na.kept.length > 0 ||
+						na.blocked.length > 0) && (
 						<div className="mt-3 flex flex-col gap-1 rounded-xl bg-muted px-3 py-2 text-footnote">
 							{na.excludable.length > 0 && (
 								<p>
 									{t("naExcludes", {
 										list: na.excludable.map((x) => x.label).join(", "),
+									})}
+								</p>
+							)}
+							{na.kept.length > 0 && (
+								<p>
+									{t("naKeeps", {
+										list: na.kept.map((x) => x.label).join(", "),
 									})}
 								</p>
 							)}
@@ -350,6 +371,16 @@ export function QuestionCard({
 									save({ naReason });
 							}}
 						/>
+						<p className="text-footnote text-muted-foreground">
+							{t("naReasonHint", { min: NA_REASON_MIN })}
+						</p>
+						{na && naConfirmation && (
+							<NaConfirmationLine
+								state={naConfirmation}
+								busy={pending || readOnly}
+								onRequest={() => save({})}
+							/>
+						)}
 					</div>
 				)}
 				<div className="mt-3 flex flex-col gap-1.5">
@@ -587,5 +618,74 @@ export function QuestionCard({
 						: ""}
 			</p>
 		</article>
+	);
+}
+
+// Stand der Bestätigung von „Nicht relevant“: wirkt erst bestätigt
+function NaConfirmationLine({
+	state,
+	busy,
+	onRequest,
+}: {
+	state: NaConfirmation;
+	busy: boolean;
+	onRequest: () => void;
+}) {
+	const t = useTranslations("Assessment");
+	const tc = useTranslations("Common");
+	const gate = useGateFeedback();
+	const text = (() => {
+		switch (state.status) {
+			case "confirmed":
+				return state.by
+					? t("naConfirmedBy", { name: state.by })
+					: t("naConfirmed");
+			case "pending":
+				return t("naPending");
+			case "rejected":
+				return t("naRejected", { name: state.by ?? "—" });
+			case "changes":
+				return t("naChanges", { name: state.by ?? "—" });
+			case "missing":
+				return t("naMissing");
+			case "blocked":
+				return `${t("naBlockedApprover")} ${gate.errorText(state.error) ?? errorText(tc, { error: state.error })}`;
+		}
+	})();
+	const note =
+		state.status === "rejected" || state.status === "changes"
+			? state.note
+			: null;
+	return (
+		<div
+			role="status"
+			className={cn(
+				"rounded-xl px-3 py-2 text-footnote",
+				state.status === "confirmed"
+					? "bg-success/10"
+					: state.status === "rejected" || state.status === "blocked"
+						? "bg-destructive/10"
+						: "bg-warning/15",
+			)}
+		>
+			<p className="font-medium">{text}</p>
+			{note && <p className="mt-0.5 text-muted-foreground">„{note}“</p>}
+			{(state.status === "rejected" || state.status === "changes") && (
+				<p className="mt-0.5 text-muted-foreground">{t("naRequestAgain")}</p>
+			)}
+			{/* vor dieser Regel beantwortet: Antrag nachholen */}
+			{state.status === "missing" && (
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					className="mt-2"
+					disabled={busy}
+					onClick={onRequest}
+				>
+					{t("naRequest")}
+				</Button>
+			)}
+		</div>
 	);
 }

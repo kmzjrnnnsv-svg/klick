@@ -16,6 +16,7 @@ import {
 	type PendingForUser,
 } from "@/lib/approvals/service";
 import { signDocumentOf } from "@/lib/approvals/signature";
+import { naRequestDetails } from "@/lib/assessments/na-approval";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { decisionRequestDetails } from "@/lib/compliance/decision-service";
@@ -35,7 +36,7 @@ async function ApprovalsInboxPage({
 	const tNav = await getTranslations("Nav");
 	const ts = await getTranslations("Status");
 	const td = await getTranslations("Decisions");
-	const { rows, members, entityTitles, questions } = await readOrg(
+	const { rows, members, entityTitles, questions, naDetails } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => {
 			const rows = await listRequestsForUser(tx, ctx.orgId, ctx.userId, {
@@ -52,6 +53,12 @@ async function ApprovalsInboxPage({
 						.map((r) => r.entityId),
 				),
 				members: await listMembersForPicker(tx, ctx.orgId),
+				// „Nicht relevant“ bestätigen: Frage, Begründung, Folgen
+				naDetails: await naRequestDetails(
+					tx,
+					ctx.orgId,
+					rows.filter((r) => r.kind === "not_relevant"),
+				),
 				entityTitles: await resolveEntityTitles(
 					tx,
 					ctx.orgId,
@@ -103,6 +110,7 @@ async function ApprovalsInboxPage({
 						const title =
 							entityTitles.get(`${r.entityType}:${r.entityId}`) ??
 							`${r.entityType}`;
+						const na = naDetails.get(r.id);
 						return (
 							<li
 								key={r.id}
@@ -114,7 +122,9 @@ async function ApprovalsInboxPage({
 										{r.workflowName}
 									</Badge>
 									<Link
-										href={entityHref(r.entityType, r.entityId, title)}
+										href={
+											na?.link ?? entityHref(r.entityType, r.entityId, title)
+										}
 										className="min-w-0 flex-1 truncate font-medium hover:underline underline-offset-4"
 									>
 										{title}
@@ -142,6 +152,35 @@ async function ApprovalsInboxPage({
 										decisions={r.decisions}
 										names={ruleNames}
 									/>
+								)}
+								{na && (
+									<div className="flex flex-col gap-1 text-footnote">
+										<p>
+											<span className="text-muted-foreground">
+												{na.assessmentCode}:
+											</span>{" "}
+											{na.questionText}
+										</p>
+										<p>
+											<span className="text-muted-foreground">
+												{t("naReason")}:
+											</span>{" "}
+											„{na.reason}“
+										</p>
+										{na.excludes.length > 0 && (
+											<p className="text-muted-foreground">
+												{t("naExcludes", { list: na.excludes.join(", ") })}
+											</p>
+										)}
+										{na.keeps.length > 0 && (
+											<p className="text-muted-foreground">
+												{t("naKeeps", { list: na.keeps.join(", ") })}
+											</p>
+										)}
+										{!na.current && (
+											<p className="text-muted-foreground">{t("naOutdated")}</p>
+										)}
+									</div>
 								)}
 								{(() => {
 									const q = questions.get(r.entityId);

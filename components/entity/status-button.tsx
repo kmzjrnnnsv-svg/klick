@@ -159,9 +159,12 @@ export function StatusButton({
 					note: withNote,
 				});
 				if (!res.ok) return fail(res.error);
+				// „Nicht anwendbar“ wartet auf Bestätigung durch eine zweite Person
 				const sat = res.data.satisfied;
 				const fw = res.data.frameworks.filter((f) => f.before !== f.after);
-				if (sat.length > 0 || fw.length > 0) {
+				if (res.data.approvalRequested) {
+					toast.success(t("approvalRequested"));
+				} else if (sat.length > 0 || fw.length > 0) {
 					const names = frameworkNames ?? {};
 					const satText = sat
 						.slice(0, 4)

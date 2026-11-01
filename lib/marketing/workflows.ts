@@ -155,8 +155,8 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 					"Eine Anforderung passt nicht zu deinem Unternehmen, oder in der Gap-Analyse antwortest du „nicht relevant“.",
 				steps: [
 					"Klick zeigt je betroffener Anforderung, was passiert: wird in der SoA ausgeschlossen oder bleibt offen, weil das Rahmenwerk keinen Ausschluss kennt.",
-					"Begründung eintragen; sie steht danach in der SoA und im Prüfungspaket.",
-					"Das Control entfällt nur, wenn alle seine Anforderungen ausgeschlossen sind. DORA, NIS2 oder GwG zählen es weiter.",
+					"Begründung eintragen; eine zweite Person, meist die Geschäftsleitung, bestätigt sie im Posteingang. Erst dann wirkt der Ausschluss und steht in der SoA und im Prüfungspaket.",
+					"Das Control entfällt nur, wenn danach nichts offen bliebe: Anforderungen, die es nur teilweise trägt, zählen über andere Maßnahmen. DORA, NIS2 oder GwG zählen es sonst weiter.",
 				],
 				result:
 					"Eine SoA mit begründeten Ausschlüssen; Ausschlüsse ohne Grundlage stehen als Blocker in der Prüfungsreife.",

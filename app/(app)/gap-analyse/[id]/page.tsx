@@ -29,7 +29,14 @@ import {
 } from "@/lib/assessments/apply";
 import { sectionsOf } from "@/lib/assessments/catalog-template";
 import { productMeasures, proposeMeasures } from "@/lib/assessments/measures";
-import { naAllowed, naOpenShare } from "@/lib/assessments/na";
+import {
+	type NaConfirmation,
+	naAllowed,
+	naDropsControl,
+	naImpactOf,
+	naOpenShare,
+} from "@/lib/assessments/na";
+import { naConfirmations } from "@/lib/assessments/na-approval";
 import {
 	effectiveAnswer,
 	questionVerdict,
@@ -105,7 +112,15 @@ async function AssessmentPage({
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const detail = await getAssessmentDetail(tx, ctx.orgId, id);
 		if (!detail) return null;
-		return { ...detail, members: await listMembersForPicker(tx, ctx.orgId) };
+		return {
+			...detail,
+			members: await listMembersForPicker(tx, ctx.orgId),
+			// „Nicht relevant“: Stand der Bestätigung je Frage
+			naConfirmations:
+				detail.assessment.kind === "self"
+					? await naConfirmations(tx, ctx.orgId, id, detail.answers)
+					: new Map<string, NaConfirmation>(),
+		};
 	});
 	if (!data || data.assessment.kind === "engagement") notFound();
 	const a = data.assessment;
@@ -149,13 +164,30 @@ async function AssessmentPage({
 			? ts(IMPL_KEY[data.implStatus.get(code) ?? "not_started"] as "notStarted")
 			: null;
 
-	// Abdeckung heute vs. nach Übernahme (nur die Rahmenwerke des Fragebogens)
+	// Abdeckung heute vs. nach Übernahme (nur die Rahmenwerke des Fragebogens);
+	// „Nicht relevant“ zählt nur bestätigt
+	const naConfirmed = (q: { code: string }) =>
+		data.naConfirmations.get(q.code)?.status === "confirmed";
 	const changes = proposeControlStatus(
 		a.questions,
 		states,
 		data.implStatus,
 		allowedKey,
+		{ dropsControl: (q) => naDropsControl(q, catalog), naConfirmed },
 	);
+	// noch nicht bestätigt: wirkt, sobald die zweite Person bestätigt
+	const naOpen = a.questions.flatMap((q) => {
+		const c = data.naConfirmations.get(q.code);
+		if (!c || c.status === "confirmed" || !q.controlCode) return [];
+		if (effectiveAnswer(states.get(q.code)) !== "na") return [];
+		return [
+			{
+				controlCode: q.controlCode,
+				title: CONTROL_BY_CODE.get(q.controlCode)?.title ?? "",
+				status: c.status,
+			},
+		];
+	});
 	const after = applyChanges(data.implStatus, changes);
 	const alreadyExcluded = new Set(
 		[...(cov?.applicabilityDetail ?? [])]
@@ -164,7 +196,13 @@ async function AssessmentPage({
 	);
 	const exclusions = subjectScoped
 		? []
-		: proposeExclusions(a.questions, states, allowedKey, alreadyExcluded);
+		: proposeExclusions(
+				a.questions,
+				states,
+				allowedKey,
+				alreadyExcluded,
+				naConfirmed,
+			);
 	const exclusionInfo = naImpact(
 		exclusions.map((x) => x.key),
 		catalog,
@@ -369,13 +407,15 @@ async function AssessmentPage({
 													? null
 													: {
 															allowed: naAllowed(q, catalog),
-															...naImpact(q.requirements ?? [], catalog),
+															...naImpactOf(q, catalog),
 														}
 											}
 											initial={{
 												answer: row?.answer ?? null,
 												comment: row?.comment ?? null,
 												naReason: row?.naReason ?? null,
+												naConfirmation:
+													data.naConfirmations.get(q.code) ?? null,
 												documents: [
 													...own,
 													...fromControl
@@ -535,6 +575,7 @@ async function AssessmentPage({
 											to: ts(IMPL_KEY[c.to] as "notStarted"),
 										}))}
 										exclusions={exclusionInfo}
+										naOpen={naOpen}
 									/>
 								</div>
 							)}
@@ -734,6 +775,7 @@ async function AssessmentPage({
 }
 
 export default withMessages(AssessmentPage, [
+	"Approvals",
 	"Assessment",
 	"Common",
 	"Dlp",

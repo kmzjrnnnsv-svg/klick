@@ -60,6 +60,23 @@ export async function applyApprovalOutcome(
 			if (rejected) return rejectAppointment(tx, ctx, r.entityId, r.trigger);
 			return extra;
 		}
+		// „Nicht relevant“ (Gap-Analyse) bzw. „nicht anwendbar“ (Control-Seite):
+		// wirkt mit der Bestätigung (lib/assessments/na-approval); vor dem
+		// Übernehmen einer Gap-Analyse liest das Übernehmen sie selbst
+		case "control.not_applicable": {
+			if (!approved) return extra;
+			// dynamisch: na-approval nutzt selbst den Freigabe-Dienst
+			const { applyConfirmedNa, applyControlNa } = await import(
+				"@/lib/assessments/na-approval"
+			);
+			const ref = r.entityVersionRef ?? "";
+			return [
+				...extra,
+				...(ref.startsWith("ctl:")
+					? await applyControlNa(tx, ctx.orgId, r.entityId, ref)
+					: await applyConfirmedNa(tx, ctx.orgId, ref)),
+			];
+		}
 		// Schlüsselinhaber:in (CCSS 1.06): erst mit der Freigabe im Quorum
 		case "key_holder.appoint": {
 			if (approved || rejected)
