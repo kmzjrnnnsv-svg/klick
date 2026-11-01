@@ -4147,7 +4147,10 @@
 		"ratingLabel": "Rating {rating}",
 		"decision_accept": "freigegeben",
 		"decision_accept_with_conditions": "freigegeben mit Auflagen",
-		"decision_reject": "abgelehnt"
+		"decision_reject": "abgelehnt",
+		"nextOpen": "Nächste offene Frage",
+		"chapterDone": "Kapitel beantwortet",
+		"moreFrameworks": "+{count} weitere"
 	},
 	"Changes": {
 		"title": "Änderungen",

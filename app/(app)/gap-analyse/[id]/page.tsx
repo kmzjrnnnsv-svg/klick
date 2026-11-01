@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ChapterPane } from "@/components/assessments/chapter-pane";
 import { MeasuresForm } from "@/components/assessments/measures-form";
 import { QuestionCard } from "@/components/assessments/question-card";
 import {
@@ -19,6 +20,7 @@ import {
 } from "@/components/supplier/supplier-forms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { KeepActiveVisible } from "@/components/ui/keep-active-visible";
 import type { ImplStatus } from "@/db/schema/enums";
 import {
 	applyChanges,
@@ -56,6 +58,8 @@ import { readOrg } from "@/lib/db/with-org";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["fragen", "bewertung", "massnahmen", "ergebnis"] as const;
+// Kopf der Seite bleibt bei den Fragen stehen: höchstens so viele Rahmenwerke
+const SHOWN_FRAMEWORKS = 4;
 type Step = (typeof STEPS)[number];
 
 const VERDICT_TONE: Record<
@@ -190,8 +194,11 @@ async function AssessmentPage({
 	const stepHref = (s: Step, extra = "") => `${base}?schritt=${s}${extra}`;
 
 	return (
-		<>
+		// Fragen als geteilte Ansicht: ab 1024 px steht der Kopf, Kapitel und
+		// Fragen scrollen je für sich (data-split-*, styles/base.css)
+		<div data-split-page={step === "fragen" ? "" : undefined}>
 			<PageHeader
+				compact
 				back={{ href: "/gap-analyse", label: tNav("gapAnalysis") }}
 				eyebrow={`${a.code} · ${t(`status_${a.status}`)}${a.asOf ? ` · Stichtag ${fmtDate.format(new Date(a.asOf))}` : ""}`}
 				title={a.title}
@@ -217,16 +224,30 @@ async function AssessmentPage({
 								{t("toProvider")}
 							</Link>
 						)}
-						{a.frameworks.map((s) => (
-							<Badge key={s} variant="muted" className="">
+						{/* Kopf bleibt stehen: höchstens vier Rahmenwerke, Rest gezählt */}
+						{a.frameworks.slice(0, SHOWN_FRAMEWORKS).map((s) => (
+							<Badge key={s} variant="muted">
 								{shortFrameworkName(s, catalog)}
 							</Badge>
 						))}
+						{a.frameworks.length > SHOWN_FRAMEWORKS && (
+							<Badge
+								variant="muted"
+								title={a.frameworks
+									.slice(SHOWN_FRAMEWORKS)
+									.map((s) => shortFrameworkName(s, catalog))
+									.join(", ")}
+							>
+								{t("moreFrameworks", {
+									count: a.frameworks.length - SHOWN_FRAMEWORKS,
+								})}
+							</Badge>
+						)}
 					</div>
 				}
 			/>
 
-			<nav aria-label="Schritte" className="mb-6">
+			<nav aria-label="Schritte" className="mb-5">
 				<ol className="flex flex-wrap gap-2 text-subhead">
 					{STEPS.map((s) => (
 						<li key={s}>
@@ -282,8 +303,12 @@ async function AssessmentPage({
 						title: e.title,
 					}));
 					return (
-						<div className="grid grid-cols-1 gap-6 lg:grid-cols-[14rem_1fr]">
-							<nav aria-label={t("chapters")}>
+						<div
+							data-split-body
+							className="grid grid-cols-1 gap-6 lg:grid-cols-[14rem_1fr]"
+						>
+							<nav aria-label={t("chapters")} data-split-pane>
+								<KeepActiveVisible active={chapter} />
 								<ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
 									{sections.map((s) => {
 										const done = answeredIn(s.code);
@@ -317,7 +342,13 @@ async function AssessmentPage({
 									})}
 								</ul>
 							</nav>
-							<div className="flex min-w-0 flex-col gap-4">
+							{/* key: ein neues Kapitel beginnt oben */}
+							<ChapterPane
+								key={chapter}
+								title={sections[idx]?.title ?? ""}
+								total={questions.length}
+								answered={answeredIn(chapter)}
+							>
 								{questions.map((q) => {
 									const row = answerBy.get(q.code);
 									const fromControl = q.controlCode
@@ -406,7 +437,7 @@ async function AssessmentPage({
 										</>
 									)}
 								</div>
-							</div>
+							</ChapterPane>
 						</div>
 					);
 				})()}
@@ -698,7 +729,7 @@ async function AssessmentPage({
 					</div>
 				</div>
 			)}
-		</>
+		</div>
 	);
 }
 

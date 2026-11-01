@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BackLink } from "@/components/ui/back-link";
+import { cn } from "@/lib/utils";
 
 // Seitenkopf nach Apple HIG: Large Title (fett, Vordergrundfarbe), darunter
 // ein Satz Zweck; Aktionen hinten, höchstens eine hervorgehoben. eyebrow ist
@@ -10,6 +11,7 @@ export function PageHeader({
 	title,
 	lead,
 	actions,
+	compact,
 }: {
 	// Zurück zur Elternseite (Chevron links + Titel, docs/design/hig.md)
 	back?: { href: string; label: string };
@@ -17,9 +19,17 @@ export function PageHeader({
 	title: string;
 	lead?: string;
 	actions?: ReactNode;
+	// Kopf bleibt stehen (geteilte Ansicht): Titel statt Large Title, weniger
+	// Abstand — wie die Leiste in iOS, wenn der große Titel eingeklappt ist
+	compact?: boolean;
 }) {
 	return (
-		<div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+		<div
+			className={cn(
+				"flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between",
+				compact ? "mb-4" : "mb-6 sm:mb-8",
+			)}
+		>
 			<div className="min-w-0">
 				{back && <BackLink href={back.href} label={back.label} />}
 				{eyebrow && (
@@ -27,11 +37,23 @@ export function PageHeader({
 						{eyebrow}
 					</p>
 				)}
-				<h1 className="mt-0.5 hyphens-auto break-words font-bold text-foreground text-title-1 text-balance sm:text-large-title">
+				<h1
+					// in der geteilten Ansicht kompakt (styles/base.css)
+					data-split-title=""
+					className={cn(
+						"mt-0.5 hyphens-auto break-words font-bold text-foreground text-balance",
+						compact ? "text-title-2" : "text-title-1 sm:text-large-title",
+					)}
+				>
 					{title}
 				</h1>
 				{lead && (
-					<p className="mt-2 max-w-2xl text-callout text-muted-foreground text-pretty">
+					<p
+						className={cn(
+							"max-w-2xl text-muted-foreground text-pretty",
+							compact ? "mt-1 text-subhead" : "mt-2 text-callout",
+						)}
+					>
 						{lead}
 					</p>
 				)}
