@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import { assessmentAnswers, assessments, evidence } from "@/db/schema";
 import type { AssessmentKind } from "@/db/schema/enums";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -7,13 +7,22 @@ import { listEvidenceWithControls, loadImplStatus, userNames } from "./queries";
 // Fragebögen (Gap-Analyse, Lieferanten, Produkte) — Lesezugriffe im
 // RLS-Kontext.
 
+// Liste ohne den Fragen-Schnappschuss (kann groß sein): Zahl der Fragen und
+// der beantworteten rechnet die Datenbank
 export async function listAssessments(
 	tx: OrgTx,
 	orgId: string,
 	kind?: AssessmentKind,
 ) {
+	const { questions: _questions, ...columns } = getTableColumns(assessments);
 	const rows = await tx
-		.select()
+		.select({
+			...columns,
+			total: sql<number>`json_array_length(${assessments.questions})::int`,
+			answered: sql<number>`(select count(*)::int from assessment_answers aa
+				where aa.organization_id = ${orgId} and aa.assessment_id = ${assessments.id}
+				  and (aa.answer is not null or aa.reviewer_answer is not null))`,
+		})
 		.from(assessments)
 		.where(
 			kind
@@ -22,31 +31,12 @@ export async function listAssessments(
 		)
 		.orderBy(desc(assessments.createdAt));
 	if (rows.length === 0) return [];
-	const answers = await tx
-		.select({
-			assessmentId: assessmentAnswers.assessmentId,
-			answer: assessmentAnswers.answer,
-			reviewerAnswer: assessmentAnswers.reviewerAnswer,
-		})
-		.from(assessmentAnswers)
-		.where(
-			inArray(
-				assessmentAnswers.assessmentId,
-				rows.map((r) => r.id),
-			),
-		);
-	const answered = new Map<string, number>();
-	for (const a of answers)
-		if (a.answer || a.reviewerAnswer)
-			answered.set(a.assessmentId, (answered.get(a.assessmentId) ?? 0) + 1);
 	const names = await userNames(
 		tx,
 		rows.map((r) => r.ownerUserId),
 	);
 	return rows.map((r) => ({
 		...r,
-		answered: answered.get(r.id) ?? 0,
-		total: r.questions.length,
 		ownerName: r.ownerUserId ? (names.get(r.ownerUserId) ?? null) : null,
 	}));
 }

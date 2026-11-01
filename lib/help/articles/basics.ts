@@ -93,12 +93,12 @@ export const BASICS: HelpArticle[] = [
 				id: "karten",
 				heading: "Was auf Heute steht",
 				list: [
+					"Ganz oben „Als Nächstes“: höchstens fünf Schritte, geordnet nach Wirkung, zum Beispiel die Einrichtung fortsetzen, die Gap-Analyse starten, eine überfällige Pflicht erledigen oder eine Pflichtfunktion besetzen.",
 					"Aufgaben, die dir zugewiesen sind oder die du verantwortest, mit Fälligkeit und Status.",
 					"Freigaben, über die du entscheiden darfst (Posteingang unter Heute > Freigaben).",
 					"Dokumente, deren Kenntnisnahme von dir erwartet wird.",
 					"Schulungen, die in den nächsten 30 Tagen fällig sind oder überfällig sind.",
 					"Fällige Reviews, Pflichten-Läufe, Abweichungen und Termine aus dem Kalender.",
-					"Die Karte zur Gap-Analyse, solange noch keine abgeschlossen ist.",
 				],
 			},
 			{

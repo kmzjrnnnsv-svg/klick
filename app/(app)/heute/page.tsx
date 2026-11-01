@@ -11,6 +11,7 @@ import {
 	CompleteTrainingButton,
 	CourseLink,
 } from "@/components/registers/training-plan-forms";
+import { NextStepsList } from "@/components/today/next-steps";
 import {
 	DueBadge,
 	TodayCard,
@@ -22,10 +23,10 @@ import {
 import { orgSettings } from "@/db/schema";
 import { listRequestsForUser } from "@/lib/approvals/service";
 import { signDocumentOf } from "@/lib/approvals/signature";
-import { catalogQuestions } from "@/lib/assessments/catalog-template";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { nextSteps } from "@/lib/compliance/next-steps";
 import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
 	listControlRows,
@@ -33,6 +34,10 @@ import {
 	listTasks,
 } from "@/lib/compliance/queries";
 import { listAssessments } from "@/lib/compliance/queries-assessments";
+import {
+	loadOrgNextStepFacts,
+	personalStepFacts,
+} from "@/lib/compliance/queries-next-steps";
 import {
 	listTrainingAssignments,
 	listTrainingRequirements,
@@ -49,7 +54,6 @@ import { termsAccepted } from "@/lib/legal/terms";
 import { listNotifications } from "@/lib/notifications/query";
 import { safeInternalPath } from "@/lib/safe-path";
 import {
-	SETUP_STEPS,
 	setupState,
 	shouldRedirectToSetup,
 	stepHref,
@@ -84,6 +88,7 @@ async function TodayPage() {
 		trainingReqs,
 		gapAnalyses,
 		setupFlags,
+		orgFacts,
 	} = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const requests = (
 			await listRequestsForUser(tx, ctx.orgId, ctx.userId)
@@ -125,6 +130,8 @@ async function TodayPage() {
 			),
 			trainingReqs: await listTrainingRequirements(tx, ctx.orgId),
 			gapAnalyses: await listAssessments(tx, ctx.orgId, "self"),
+			// gilt für die ganze Org, zwischengespeichert bis zur nächsten Änderung
+			orgFacts: await loadOrgNextStepFacts(tx, ctx.orgId),
 			setupFlags:
 				(
 					await tx
@@ -153,34 +160,19 @@ async function TodayPage() {
 	const setup = setupState(setupFlags);
 	if (canSetup && shouldRedirectToSetup(setup))
 		redirect(stepHref(setup.next ?? "rollen"));
-	const tsu = await getTranslations("Setup");
 
-	// Geführter Einstieg: offene Gap-Analyse fortsetzen oder die erste starten.
-	const ta = await getTranslations("Assessment");
-	const openGap = gapAnalyses.find(
-		(a) =>
-			a.status === "in_progress" ||
-			a.status === "submitted" ||
-			a.status === "in_review" ||
-			a.status === "draft",
-	);
-	const anyGap = gapAnalyses.some((a) => a.status !== "cancelled");
-	let gapStartCount = 0;
-	if (!anyGap && allows(ctx, { assessment: ["create"] })) {
-		const cov = await getOrgCoverageCached(ctx);
-		if (cov)
-			gapStartCount = catalogQuestions({
-				sector: cov.profile.sector,
-				licenceStage: cov.profile.licenceStage,
-				caspServices: cov.profile.caspServices,
-				frameworks: cov.frameworks,
-				tlptDesignated: cov.profile.tlptDesignated,
-				frameworkVariants: cov.profile.frameworkVariants,
-				issuesTokens: cov.profile.issuesTokens,
-				productRoles: cov.profile.productRoles,
-				catalog: cov.catalog,
-			}).length;
-	}
+	// „Als Nächstes“: Einrichtung und Gap-Analyse für diese Person, der Rest
+	// gilt für die Org (S2)
+	const steps = nextSteps({
+		...orgFacts,
+		...(await personalStepFacts({
+			setup,
+			canSetup,
+			canCreateGap: allows(ctx, { assessment: ["create"] }),
+			gapAnalyses,
+			coverage: () => getOrgCoverageCached(ctx),
+		})),
+	});
 
 	const dueTasks = tasks.filter((x) => x.dueAt && x.dueAt <= weekAhead);
 	const reqById = new Map(trainingReqs.map((r) => [r.id, r]));
@@ -209,57 +201,7 @@ async function TodayPage() {
 				actions={<QuickCreateTask members={members} label={t("newTask")} />}
 			/>
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-				{canSetup && !setup.completed && setup.next && (
-					<TodayCard
-						title={tsu("cardTitle")}
-						link={{
-							href: stepHref(setup.next),
-							label: tsu("cardContinue", { step: tsu(`step_${setup.next}`) }),
-						}}
-						className="border-primary/40 md:col-span-2"
-					>
-						<p className="text-subhead">
-							{tsu("cardLead", {
-								done: setup.done.length,
-								total: SETUP_STEPS.length,
-							})}
-						</p>
-					</TodayCard>
-				)}
-				{(openGap || gapStartCount > 0) && (
-					<TodayCard
-						title={ta("cardTitle")}
-						link={{
-							href: openGap ? `/gap-analyse/${openGap.id}` : "/gap-analyse",
-							label: openGap ? ta("continue") : ta("new"),
-						}}
-						className="border-primary/40 md:col-span-2"
-					>
-						{openGap ? (
-							<div className="flex flex-col gap-2 text-subhead">
-								<p>
-									{openGap.title} ·{" "}
-									{ta("cardLead", {
-										answered: openGap.answered,
-										total: openGap.total,
-									})}
-								</p>
-								<div className="h-1.5 overflow-hidden rounded-full bg-muted">
-									<div
-										className="h-full rounded-full bg-primary"
-										style={{
-											width: `${openGap.total > 0 ? (100 * openGap.answered) / openGap.total : 0}%`,
-										}}
-									/>
-								</div>
-							</div>
-						) : (
-							<TodayEmpty>
-								{ta("cardStart", { count: gapStartCount })}
-							</TodayEmpty>
-						)}
-					</TodayCard>
-				)}
+				<NextStepsList steps={steps} className="md:col-span-2" />
 				{myTrainings.length > 0 && (
 					<TodayCard
 						title={tt("heuteTitle")}

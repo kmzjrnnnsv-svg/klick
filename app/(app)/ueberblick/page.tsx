@@ -1,9 +1,9 @@
-import { CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CoverageBar } from "@/components/entity/coverage-bar";
 import { Sparkline } from "@/components/entity/sparkline";
 import { PageHeader } from "@/components/page-header";
+import { NextStepsList } from "@/components/today/next-steps";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -14,47 +14,32 @@ import {
 } from "@/components/ui/card";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
-import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
+import { listOrgMembers } from "@/lib/auth/org";
+import { allows } from "@/lib/auth/permissions";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
-import {
-	requiredResolutions,
-	resolutionCoverage,
-} from "@/lib/compliance/catalog/resolutions-required";
 import { CATALOG_CONTROL_REFS } from "@/lib/compliance/catalog-view";
-import { capaState } from "@/lib/compliance/nonconformity";
-import { runState } from "@/lib/compliance/obligations";
+import { nextSteps } from "@/lib/compliance/next-steps";
 import {
 	getOrgCoverageCached,
 	pct,
 	shortFrameworkName,
 } from "@/lib/compliance/page-data";
 import { postureTrend } from "@/lib/compliance/posture";
-import {
-	listControlRows,
-	listEvidenceWithControls,
-	listTasks,
-} from "@/lib/compliance/queries";
+import { listControlRows } from "@/lib/compliance/queries";
 import { listAssessments } from "@/lib/compliance/queries-assessments";
 import {
-	listDocuments,
-	listProviders,
-	listRisks,
-} from "@/lib/compliance/queries-p2";
+	countOpenTasks,
+	implementedWithoutEvidenceCount,
+} from "@/lib/compliance/queries-counts";
 import {
-	dependencyMap,
-	governanceStatus,
-	listNonconformities,
-	listObligationRuns,
-	listProcesses,
-	listResolutions,
-} from "@/lib/compliance/queries-p3";
+	loadOrgStatus,
+	personalStepFacts,
+} from "@/lib/compliance/queries-next-steps";
 import { listPostureSnapshots } from "@/lib/compliance/queries-p4";
-import { loadReadiness } from "@/lib/compliance/queries-readiness";
-import { loadRiskProposals } from "@/lib/compliance/queries-risk-sources";
-import { DEFAULT_RISK_APPETITE } from "@/lib/compliance/risk";
 import { prioritizePlan } from "@/lib/compliance/synergy";
 import { readOrg } from "@/lib/db/with-org";
 import { getOrgSettings } from "@/lib/org/queries";
+import { setupState } from "@/lib/setup/steps";
 
 const STAGE_LABEL: Record<string, string> = {
 	"0_vorbereitung": "0 · Vorbereitung",
@@ -69,231 +54,47 @@ export default async function OverviewPage() {
 	const t = await getTranslations("Overview");
 	const tc = await getTranslations("Controls");
 	const tr = await getTranslations("Readiness");
-	const [members, invitations, cov] = await Promise.all([
+	const [members, cov] = await Promise.all([
 		listOrgMembers(ctx.orgId),
-		listPendingInvitations(ctx.orgId),
 		getOrgCoverageCached(ctx),
 	]);
 	const settings = cov?.profile;
 	const fws = cov?.frameworks ?? [];
-	const stage = settings?.licenceStage ?? "0_vorbereitung";
 	const now = new Date();
+	// Leistung bei wachsenden Daten: nur Zahlen und die Liste „Als Nächstes“
+	// (zwischengespeichert je Org), keine ganzen Register
 	const g = await readOrg(toOrgCtx(ctx), async (tx) => {
-		const [
-			controls,
-			evidence,
-			tasks,
-			orgSettings,
-			docs,
-			providers,
-			risks,
-			procs,
-			deps,
-			gov,
-			resolutions,
-			ncs,
-			runs,
-			snapshots,
-		] = await Promise.all([
-			listControlRows(tx, ctx.orgId),
-			listEvidenceWithControls(tx, ctx.orgId),
-			listTasks(tx, ctx.orgId, { openOnly: true }),
-			getOrgSettings(tx, ctx.orgId),
-			listDocuments(tx, ctx.orgId),
-			listProviders(tx, ctx.orgId),
-			listRisks(tx, ctx.orgId),
-			listProcesses(tx, ctx.orgId),
-			dependencyMap(tx, ctx.orgId),
-			governanceStatus(tx, ctx.orgId, fws, stage),
-			listResolutions(tx, ctx.orgId),
-			listNonconformities(tx, ctx.orgId),
-			listObligationRuns(tx, ctx.orgId),
-			listPostureSnapshots(tx, ctx.orgId, 35),
-		]);
-		// Risikovorschläge ohne Lücken (die stehen schon in der Abdeckung)
-		const proposals = (await loadRiskProposals(tx, ctx.orgId, null)).proposals
-			.length;
-		const gaps = await listAssessments(tx, ctx.orgId, "self");
+		const [controls, withoutEvidence, openTasks, flags, snapshots, gaps] =
+			await Promise.all([
+				listControlRows(tx, ctx.orgId),
+				implementedWithoutEvidenceCount(tx, ctx.orgId),
+				countOpenTasks(tx, ctx.orgId),
+				getOrgSettings(tx, ctx.orgId).then((x) => x?.setupFlags ?? {}),
+				listPostureSnapshots(tx, ctx.orgId, 35),
+				listAssessments(tx, ctx.orgId, "self"),
+			]);
 		return {
-			gapDone: gaps.some((a) => a.status === "completed"),
 			controls,
-			evidence,
-			openTasks: tasks.length,
-			orgSettings,
-			docs,
-			providers,
-			risks,
-			procs,
-			deps,
-			gov,
-			resolutions,
-			ncs,
-			runs,
+			withoutEvidence,
+			openTasks,
+			flags,
 			snapshots,
-			proposals,
+			gaps,
+			status: await loadOrgStatus(tx, ctx.orgId, now),
 		};
 	});
-	const { controls, evidence, openTasks } = g;
-	const appetiteConfirmed =
-		g.risks.length > 0 ||
-		Boolean(g.orgSettings?.setupFlags?.riskMethodConfirmedAt) ||
-		JSON.stringify(g.orgSettings?.riskAppetite ?? DEFAULT_RISK_APPETITE) !==
-			JSON.stringify(DEFAULT_RISK_APPETITE);
-	const resCov = resolutionCoverage(
-		requiredResolutions(fws, stage),
-		g.resolutions
-			.filter((r) => r.effective)
-			.map((r) => ({
-				requiredCode: r.requiredCode,
-				date: r.date,
-				resolutionNumber: r.resolutionNumber,
-			})),
-		now,
-	);
-	const processesWithoutA = g.procs.filter(
-		(p) => p.status !== "retired" && !p.accountable,
-	);
-	const overdueNcs = g.ncs.filter((n) => capaState(n, now).overdue);
-	const overdueRuns = g.runs.filter(
-		(r) => runState(r, r.leadDays, now) === "overdue",
-	);
-	const sodBlocks = g.gov.sod.filter((v) => v.rule.severity === "block");
-	const gaps: { key: string; label: string; count: number; href: string }[] = [
-		{
-			key: "roles",
-			label: t("gapRoles"),
-			count: g.gov.coverage.gaps.length,
-			href: "/organisation?tab=rollen",
-		},
-		{
-			key: "sod",
-			label: t("gapSod"),
-			count: sodBlocks.length,
-			href: "/organisation?tab=rollen",
-		},
-		{
-			key: "resolutions",
-			label: t("gapResolutions"),
-			count: resCov.gaps.length,
-			href: "/beschluesse?tab=pflicht",
-		},
-		{
-			key: "processes",
-			label: t("gapProcessesA"),
-			count: processesWithoutA.length,
-			href: "/prozesse",
-		},
-		{
-			key: "ncs",
-			label: t("gapNcs"),
-			count: overdueNcs.length,
-			href: "/abweichungen?overdue=1",
-		},
-		{
-			key: "runs",
-			label: t("gapRuns"),
-			count: overdueRuns.length,
-			href: "/kalender",
-		},
-		{
-			key: "riskProposals",
-			label: t("gapRiskProposals"),
-			count: g.proposals,
-			href: "/risiken?tab=vorschlaege",
-		},
-	].filter((x) => x.count > 0);
-	const hasNis2 = fws.includes("nis2");
-	const hasDora = fws.includes("dora");
-	const accepted = controls.filter((c) => c.status !== "not_started").length;
-	const withEvidence = new Set(evidence.flatMap((e) => e.controlCodes));
-	const implementedWithoutEvidence = controls.filter(
-		(c) => c.status === "implemented" && !withEvidence.has(c.code),
-	);
+	const { controls, openTasks } = g;
 	const withoutOwner = controls.filter((c) => !c.ownerUserId);
-
-	const steps: {
-		key: string;
-		label: string;
-		done: boolean;
-		href: string;
-		phase?: string;
-	}[] = [
-		{ key: "mfa", label: t("setupMfa"), done: true, href: "/einstellungen" },
-		{
-			key: "gap",
-			label: t("setupGap"),
-			done: g.gapDone,
-			href: "/gap-analyse",
-		},
-		{
-			key: "team",
-			label: t("setupTeam"),
-			done: members.length > 1 || invitations.length > 0,
-			href: "/team",
-		},
-		...(hasNis2
-			? [
-					{
-						key: "nis2",
-						label: t("setupNis2"),
-						done: settings?.nis2Status !== "unchecked",
-						href: "/einstellungen?tab=frameworks",
-					},
-				]
-			: []),
-		...(hasDora
-			? [
-					{
-						key: "tlpt",
-						label: t("setupTlpt"),
-						done:
-							Boolean(g.orgSettings?.setupFlags?.tlptConfirmedAt) ||
-							Boolean(settings?.tlptDesignated),
-						href: "/einstellungen?tab=frameworks",
-					},
-				]
-			: []),
-		{
-			key: "roles",
-			label: t("setupRoles"),
-			done: g.gov.required.length > 0 && g.gov.coverage.gaps.length === 0,
-			href: "/organisation?tab=rollen",
-		},
-		{
-			key: "controls",
-			label:
-				accepted >= 10
-					? t("setupControlsDone", { n: accepted })
-					: t("setupControls"),
-			done: accepted >= 10,
-			href: "/controls",
-		},
-		{
-			key: "appetite",
-			label: t("setupAppetite"),
-			done: appetiteConfirmed,
-			href: "/einstellungen?tab=risk",
-		},
-		{
-			key: "templates",
-			label: t("setupTemplates"),
-			done: g.docs.length > 0,
-			href: "/dokumente",
-		},
-		{
-			key: "providers",
-			label: t("setupProviders"),
-			done: g.providers.length > 0,
-			href: "/dienstleister",
-		},
-		{
-			key: "process",
-			label: t("setupProcess"),
-			done: g.deps.some((d) => d.assets.length > 0 && d.providers.length > 0),
-			href: "/prozesse",
-		},
-	];
-	const open = steps.filter((s) => !s.done);
+	const steps = nextSteps({
+		...g.status.next,
+		...(await personalStepFacts({
+			setup: setupState(g.flags),
+			canSetup: allows(ctx, { settings: ["update"] }),
+			canCreateGap: allows(ctx, { assessment: ["create"] }),
+			gapAnalyses: g.gaps,
+			coverage: async () => cov,
+		})),
+	});
 	const labels = {
 		covered: t("covered"),
 		partial: t("partial"),
@@ -319,13 +120,8 @@ export default async function OverviewPage() {
 		);
 	}
 
-	// Prüfungsreife heute je Rahmenwerk (Abdeckung + Belege + offene Punkte).
-	const readiness = await readOrg(toOrgCtx(ctx), (tx) =>
-		loadReadiness(tx, ctx.orgId, { asOf: now }),
-	);
-	const readinessBy = new Map(
-		(readiness?.results ?? []).map((r) => [r.framework, r]),
-	);
+	// Prüfungsreife heute je Rahmenwerk, aus derselben Rechnung wie „Als Nächstes“
+	const readinessBy = new Map(g.status.readiness.map((r) => [r.framework, r]));
 
 	return (
 		<>
@@ -405,88 +201,7 @@ export default async function OverviewPage() {
 						)}
 					</CardContent>
 				</Card>
-				<div className="flex flex-col gap-4">
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-headline">{t("setupTitle")}</CardTitle>
-							<CardDescription>{t("setupLead")}</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<ul className="flex flex-col divide-y divide-border/60">
-								{steps.map((s) => (
-									<li
-										key={s.key}
-										className="flex items-center gap-3 py-2 text-subhead"
-									>
-										{s.done ? (
-											<CheckCircle2
-												aria-hidden="true"
-												className="size-4 shrink-0 text-success"
-												strokeWidth={1.5}
-											/>
-										) : (
-											<Circle
-												aria-hidden="true"
-												className="size-4 shrink-0 text-muted-foreground"
-												strokeWidth={1.5}
-											/>
-										)}
-										{s.phase && !s.done ? (
-											<span className="text-muted-foreground">{s.label}</span>
-										) : (
-											<Link
-												href={s.href}
-												className={
-													s.done
-														? "text-muted-foreground line-through"
-														: "hover:underline"
-												}
-											>
-												{s.label}
-											</Link>
-										)}
-										{s.phase && !s.done && (
-											<span className="ml-auto text-footnote text-muted-foreground">
-												{s.phase}
-											</span>
-										)}
-									</li>
-								))}
-							</ul>
-							<p className="mt-3 text-muted-foreground text-footnote">
-								{steps.length - open.length} {t("done")} · {open.length}{" "}
-								{t("open")}
-							</p>
-						</CardContent>
-					</Card>
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-headline">{t("gapsTitle")}</CardTitle>
-							<CardDescription>{t("gapsLead")}</CardDescription>
-						</CardHeader>
-						<CardContent>
-							{gaps.length === 0 ? (
-								<p className="text-muted-foreground text-subhead">
-									{t("gapsNone")}
-								</p>
-							) : (
-								<ul className="flex flex-col divide-y divide-border/60 text-subhead">
-									{gaps.map((x) => (
-										<li
-											key={x.key}
-											className="flex items-center justify-between gap-2 py-2"
-										>
-											<Link href={x.href} className="hover:underline">
-												{x.label}
-											</Link>
-											<Badge variant="destructive">{x.count}</Badge>
-										</li>
-									))}
-								</ul>
-							)}
-						</CardContent>
-					</Card>
-				</div>
+				<NextStepsList steps={steps} />
 			</div>
 
 			<div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -552,7 +267,7 @@ export default async function OverviewPage() {
 						</CardHeader>
 						<CardContent className="flex items-baseline justify-between">
 							<span className="font-bold text-title-1">
-								{implementedWithoutEvidence.length}
+								{g.withoutEvidence}
 							</span>
 							<Link
 								href="/controls?status=implemented"
