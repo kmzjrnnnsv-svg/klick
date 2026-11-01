@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
 	bigint,
 	boolean,
@@ -344,7 +345,10 @@ export const memberAccess = pgTable(
 		createdByUserId: userRef(),
 		createdAt: createdAt(),
 	},
-	() => [orgPolicy("member_access")],
+	(t) => [
+		index("member_access_org_idx").on(t.organizationId),
+		orgPolicy("member_access"),
+	],
 ).enableRLS();
 
 // Eigene Rollen je Organisation (ADR-020): Rechte aus dem Katalog
@@ -426,6 +430,9 @@ export const auditLog = pgTable(
 		index("audit_log_org_seq_idx").on(t.organizationId, t.seq),
 		index("audit_log_target_idx").on(t.target),
 		index("audit_log_actor_idx").on(t.actorUserId),
+		// Verlauf je Eintrag (historyFor) und Zeitfenster (Anker, Admin-Sicherheit)
+		index("audit_log_org_target_seq_idx").on(t.organizationId, t.target, t.seq),
+		index("audit_log_at_idx").on(t.at),
 		...appendOnlyOrgPolicies("audit_log"),
 	],
 ).enableRLS();
@@ -458,6 +465,14 @@ export const notifications = pgTable(
 	},
 	(t) => [
 		index("notifications_user_read_idx").on(t.userId, t.readAt),
+		index("notifications_org_user_created_idx").on(
+			t.organizationId,
+			t.userId,
+			t.createdAt,
+		),
+		index("notifications_org_unmailed_idx")
+			.on(t.organizationId, t.createdAt)
+			.where(sql`${t.emailedAt} is null`),
 		orgPolicy("notifications"),
 	],
 ).enableRLS();

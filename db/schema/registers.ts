@@ -255,6 +255,7 @@ export const processRaci = pgTable(
 	},
 	(t) => [
 		index("process_raci_process_idx").on(t.processId),
+		index("process_raci_org_idx").on(t.organizationId),
 		orgPolicy("process_raci"),
 	],
 ).enableRLS();

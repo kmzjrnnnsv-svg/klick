@@ -77,6 +77,7 @@ export const customFrameworkSections = pgTable(
 	},
 	(t) => [
 		uniqueIndex("custom_framework_sections_uq").on(t.frameworkId, t.code),
+		index("custom_framework_sections_org_idx").on(t.organizationId),
 		orgPolicy("custom_framework_sections"),
 	],
 ).enableRLS();
@@ -126,6 +127,7 @@ export const customRequirementControls = pgTable(
 			t.requirementId,
 			t.controlCode,
 		),
+		index("custom_requirement_controls_org_idx").on(t.organizationId),
 		orgPolicy("custom_requirement_controls"),
 	],
 ).enableRLS();

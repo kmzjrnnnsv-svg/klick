@@ -1,0 +1,36 @@
+CREATE INDEX "assessment_answers_org_idx" ON "assessment_answers" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "custom_framework_sections_org_idx" ON "custom_framework_sections" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "custom_requirement_controls_org_idx" ON "custom_requirement_controls" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "approval_decisions_org_idx" ON "approval_decisions" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "comments_org_entity_idx" ON "comments" USING btree ("organization_id","entity_type","entity_id");--> statement-breakpoint
+CREATE INDEX "control_evidence_org_evidence_idx" ON "control_evidence" USING btree ("organization_id","evidence_id");--> statement-breakpoint
+CREATE INDEX "control_tests_org_idx" ON "control_tests" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "delegations_org_idx" ON "delegations" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "document_acknowledgements_org_user_idx" ON "document_acknowledgements" USING btree ("organization_id","user_id");--> statement-breakpoint
+CREATE INDEX "document_controls_org_idx" ON "document_controls" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "document_processes_org_idx" ON "document_processes" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "document_requirements_org_idx" ON "document_requirements" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "document_versions_org_doc_idx" ON "document_versions" USING btree ("organization_id","document_id");--> statement-breakpoint
+CREATE INDEX "incident_updates_org_idx" ON "incident_updates" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "milestone_controls_org_idx" ON "milestone_controls" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "process_assets_org_idx" ON "process_assets" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "process_controls_org_idx" ON "process_controls" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "process_providers_org_idx" ON "process_providers" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "process_risks_org_idx" ON "process_risks" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "risk_assets_org_idx" ON "risk_assets" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "risk_controls_org_idx" ON "risk_controls" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "risk_treatments_org_idx" ON "risk_treatments" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "tasks_org_status_due_idx" ON "tasks" USING btree ("organization_id","status","due_at");--> statement-breakpoint
+CREATE INDEX "training_assignments_org_user_idx" ON "training_assignments" USING btree ("organization_id","user_id");--> statement-breakpoint
+CREATE INDEX "watchers_org_idx" ON "watchers" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "audit_findings_org_idx" ON "audit_findings" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "audit_programme_items_org_idx" ON "audit_programme_items" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "audit_requests_org_idx" ON "audit_requests" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "kpi_measurements_org_idx" ON "kpi_measurements" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "audit_log_org_target_seq_idx" ON "audit_log" USING btree ("organization_id","target","seq");--> statement-breakpoint
+CREATE INDEX "audit_log_at_idx" ON "audit_log" USING btree ("at");--> statement-breakpoint
+CREATE INDEX "member_access_org_idx" ON "member_access" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "notifications_org_user_created_idx" ON "notifications" USING btree ("organization_id","user_id","created_at");--> statement-breakpoint
+CREATE INDEX "notifications_org_unmailed_idx" ON "notifications" USING btree ("organization_id","created_at") WHERE "notifications"."emailed_at" is null;--> statement-breakpoint
+CREATE INDEX "policy_reader_acknowledgements_org_idx" ON "policy_reader_acknowledgements" USING btree ("organization_id");--> statement-breakpoint
+CREATE INDEX "process_raci_org_idx" ON "process_raci" USING btree ("organization_id");

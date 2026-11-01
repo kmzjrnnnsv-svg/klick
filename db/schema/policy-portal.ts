@@ -90,6 +90,7 @@ export const policyReaderAcknowledgements = pgTable(
 	(t) => [
 		uniqueIndex("policy_reader_ack_uq").on(t.readerId, t.documentVersionId),
 		index("policy_reader_ack_version_idx").on(t.documentVersionId),
+		index("policy_reader_acknowledgements_org_idx").on(t.organizationId),
 		orgPolicy("policy_reader_acknowledgements"),
 	],
 ).enableRLS();
