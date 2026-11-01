@@ -1081,6 +1081,8 @@ export const comments = pgTable(
 			t.entityType,
 			t.entityId,
 		),
+		// Feed /aktivitaet blättert über (created_at, id) je Org
+		index("comments_org_created_idx").on(t.organizationId, t.createdAt, t.id),
 		orgPolicy("comments"),
 	],
 ).enableRLS();

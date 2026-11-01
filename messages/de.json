@@ -987,6 +987,7 @@
 		"activity": "Aktivität",
 		"activityEmpty": "Noch keine Aktivität.",
 		"changed": "hat geändert",
+		"moreChanges": "{n, plural, one {und # weiteres Feld} other {und # weitere Felder}}",
 		"commented": "hat kommentiert",
 		"system": "System",
 		"comment": "Kommentieren",
@@ -2386,7 +2387,10 @@
 	"Activity": {
 		"title": "Aktivität",
 		"lead": "Alles, was in der Organisation passiert — Statuswechsel, Freigaben, Kommentare, Nachweise.",
-		"empty": "Noch keine Aktivität."
+		"empty": "Noch keine Aktivität.",
+		"pageNav": "Weitere Einträge",
+		"newest": "Zu den neuesten",
+		"older": "Ältere Einträge"
 	},
 	"Bundles": {
 		"title": "Aufgabenpakete",
