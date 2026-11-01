@@ -2,10 +2,11 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { scrollRoot } from "@/components/ui/scroll";
+import { scrollRoot, splitPanes } from "@/components/ui/scroll";
 
 // Ab 1024 px scrollt nicht das Fenster, sondern die rechte Spalte
-// (data-scroll-root). Next setzt dort beim Seitenwechsel nicht zurück:
+// (data-scroll-root) bzw. die Spalten der geteilten Ansicht. Next setzt dort
+// beim Seitenwechsel nicht zurück:
 // neue Seite = oben, außer der Link zeigt auf einen Anker. Filter auf
 // derselben Seite (nur die Suche ändert sich) behalten die Position.
 export function ScrollReset() {
@@ -16,6 +17,8 @@ export function ScrollReset() {
 		prev.current = pathname;
 		if (window.location.hash) return;
 		scrollRoot()?.scrollTo({ top: 0 });
+		// geteilte Ansicht: Spalten bleiben beim Wechsel oft dieselben Elemente
+		for (const pane of splitPanes()) pane.scrollTo({ top: 0 });
 	}, [pathname]);
 	return null;
 }

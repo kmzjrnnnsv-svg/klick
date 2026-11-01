@@ -2,8 +2,10 @@
 
 import { useEffect, useRef } from "react";
 
-// Hält das aktive Kapitel in der Kapitelliste sichtbar: ab 1024 px in der
-// eigenen Spalte (senkrecht), am Handy in der Chip-Leiste (waagrecht).
+// Hält den aktiven Eintrag einer Liste ([aria-current="page"]) sichtbar:
+// ab 1024 px in der eigenen Spalte der geteilten Ansicht (senkrecht), am
+// Handy z. B. in einer Chip-Leiste (waagrecht). Als erstes Kind der Liste
+// einsetzen; active = Schlüssel des Eintrags, damit es bei Wechsel neu läuft.
 // Bewegt nur den Scrollbereich der Liste selbst, nie Fenster oder Seite.
 export function KeepActiveVisible({ active }: { active: string }) {
 	const marker = useRef<HTMLSpanElement>(null);

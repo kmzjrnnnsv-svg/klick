@@ -1,11 +1,11 @@
 import { ChevronDown } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { HelpToc } from "@/components/help/toc";
 import { PageHeader } from "@/components/page-header";
 import { NavIcon } from "@/components/shell/nav-icon";
-import { ContainedScroll } from "@/components/ui/contained-scroll";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
+import { SplitPane } from "@/components/ui/split-pane";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
@@ -115,14 +115,23 @@ export default async function HelpArticlePage({
 		...(norms.length ? [{ id: "normen", label: t("norms") }] : []),
 	];
 	return (
-		<>
+		// Ab 1024 px geteilte Ansicht: Artikel und Verzeichnis scrollen für sich
+		<div data-split-page="">
 			<PageHeader
+				compact
 				back={{ href: "/hilfe", label: t("title") }}
 				title={a.title}
 				lead={a.summary}
 			/>
-			<div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
-				<article className="flex min-w-0 max-w-prose flex-col gap-10">
+			<div
+				data-split-body=""
+				className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_16rem]"
+			>
+				<SplitPane
+					as="article"
+					main
+					className="flex max-w-prose flex-col gap-10 lg:pr-2 lg:pb-6"
+				>
 					{a.sections.map((s) => (
 						<Section key={s.id} section={s} tip={t("tip")} />
 					))}
@@ -204,10 +213,11 @@ export default async function HelpArticlePage({
 							</ListSection>
 						</ListGroup>
 					) : null}
-				</article>
-				<ContainedScroll
+				</SplitPane>
+				<SplitPane
 					as="aside"
-					className="order-first flex flex-col gap-6 self-start lg:sticky lg:top-20 lg:order-none lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-4"
+					list
+					className="order-first flex flex-col gap-6 lg:order-none"
 				>
 					{pages.length ? (
 						<ListGroup>
@@ -223,28 +233,10 @@ export default async function HelpArticlePage({
 							</ListSection>
 						</ListGroup>
 					) : null}
-					{toc.length > 1 && (
-						<nav aria-label={t("onThisPage")} className="hidden lg:block">
-							<h2 className="mb-2 px-4 font-semibold text-foreground text-subhead">
-								{t("onThisPage")}
-							</h2>
-							<ul className="flex flex-col">
-								{toc.map((x) => (
-									<li key={x.id}>
-										<Link
-											href={`#${x.id}`}
-											className="block rounded-lg px-4 py-1.5 text-footnote text-muted-foreground hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-										>
-											{x.label}
-										</Link>
-									</li>
-								))}
-							</ul>
-						</nav>
-					)}
-				</ContainedScroll>
+					{toc.length > 1 && <HelpToc label={t("onThisPage")} items={toc} />}
+				</SplitPane>
 			</div>
-		</>
+		</div>
 	);
 }
 

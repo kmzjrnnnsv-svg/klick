@@ -54,8 +54,9 @@ import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel
 import { TeamsPanel } from "@/components/settings/teams-panel";
 import { WalletLinkPanel } from "@/components/settings/wallet-link-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
-import { ContainedScroll } from "@/components/ui/contained-scroll";
+import { KeepActiveVisible } from "@/components/ui/keep-active-visible";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
+import { SplitPane } from "@/components/ui/split-pane";
 import {
 	approvalWorkflows,
 	auditLog,
@@ -245,9 +246,10 @@ async function SettingsPage({
 	const sectionTitle = t(SECTION_LABEL[section]);
 	const panel = await renderSection(section, ctx, { canEditSettings });
 	return (
-		<>
+		// Ab 1024 px geteilte Ansicht: Liste und Bereich scrollen je für sich
+		<div data-split-page="">
 			<div className={cn(chosen && "hidden lg:block")}>
-				<PageHeader title={t("title")} />
+				<PageHeader compact title={t("title")} />
 			</div>
 			{chosen && (
 				<div className="lg:hidden">
@@ -261,17 +263,22 @@ async function SettingsPage({
 					<PageHeader title={sectionTitle} />
 				</div>
 			)}
-			<div className="grid grid-cols-1 gap-8 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-				<ContainedScroll
+			<div
+				data-split-body=""
+				className="grid grid-cols-1 gap-8 lg:grid-cols-[18rem_minmax(0,1fr)]"
+			>
+				<SplitPane
 					as="nav"
+					list
 					aria-label={t("title")}
 					// Am Desktop ist die Liste eine Seitenleiste: ohne Pfeile, mit
 					// eigener Scrollfläche (scrollt für sich, nie den Inhalt mit)
 					className={cn(
-						"lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1 lg:pb-4 lg:[&_.lucide-chevron-right]:hidden",
+						"lg:pr-1 lg:[&_.lucide-chevron-right]:hidden",
 						chosen && "hidden lg:block",
 					)}
 				>
+					<KeepActiveVisible active={section} />
 					<SettingsSearch
 						items={visible.map((k) => ({
 							key: k,
@@ -313,11 +320,15 @@ async function SettingsPage({
 							))}
 						</ListGroup>
 					</SettingsSearch>
-				</ContainedScroll>
-				<section
+				</SplitPane>
+				{/* key: ein anderer Bereich beginnt oben */}
+				<SplitPane
+					key={section}
+					as="section"
+					main
 					aria-labelledby="einstellungen-bereich"
 					className={cn(
-						"flex min-w-0 flex-col gap-6",
+						"flex flex-col gap-6 lg:pr-1 lg:pb-6",
 						!chosen && "hidden lg:flex",
 					)}
 				>
@@ -331,9 +342,9 @@ async function SettingsPage({
 						{t(`hint_${section}`)}
 					</p>
 					{panel}
-				</section>
+				</SplitPane>
 			</div>
-		</>
+		</div>
 	);
 }
 

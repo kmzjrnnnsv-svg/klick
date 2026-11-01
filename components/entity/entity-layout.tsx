@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BackLink } from "@/components/ui/back-link";
+import { SplitPane } from "@/components/ui/split-pane";
 
 // Seitentyp Detail: Kopf (Code, Titel, Status-Button, Verantwortliche,
 // Fälligkeit), Hauptspalte mit Fachsektionen, Seitenleiste mit EINEM
@@ -7,6 +8,9 @@ import { BackLink } from "@/components/ui/back-link";
 // Verknüpfungen. Mobil rutscht die Seitenleiste unter die Hauptspalte.
 // Gestaltung nach Apple HIG: Titel fett, Eckdaten als gruppierter Abschnitt,
 // Abschnittsköpfe in Satzschreibung (Headline), keine Versalien.
+// Ab 1024 px geteilte Ansicht (data-split-*, styles/base.css): Kopf und
+// Eckdaten stehen, Hauptspalte und Seitenleiste scrollen je für sich — der
+// Status-Knopf und die Aktionen bleiben so immer erreichbar.
 export function EntityLayout({
 	back,
 	eyebrow,
@@ -30,15 +34,18 @@ export function EntityLayout({
 	aside: ReactNode;
 }) {
 	return (
-		<>
-			<div className="mb-8 flex flex-col gap-4">
+		<div data-split-page="">
+			<div className="mb-6 flex flex-col gap-4 sm:mb-8">
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0">
 						{back && <BackLink href={back.href} label={back.label} />}
 						<p className="font-medium text-footnote text-muted-foreground">
 							{eyebrow}
 						</p>
-						<h1 className="mt-0.5 hyphens-auto break-words font-bold text-foreground text-title-1 text-balance">
+						<h1
+							data-split-title=""
+							className="mt-0.5 hyphens-auto break-words font-bold text-foreground text-title-1 text-balance"
+						>
 							{title}
 						</h1>
 						{subtitle && (
@@ -58,11 +65,18 @@ export function EntityLayout({
 					</dl>
 				)}
 			</div>
-			<div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-				<div className="flex min-w-0 flex-col gap-8">{children}</div>
-				<aside className="flex min-w-0 flex-col gap-6">{aside}</aside>
+			<div
+				data-split-body=""
+				className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]"
+			>
+				<SplitPane main className="flex flex-col gap-8 lg:pr-1 lg:pb-6">
+					{children}
+				</SplitPane>
+				<SplitPane as="aside" className="flex flex-col gap-6 lg:pr-1 lg:pb-6">
+					{aside}
+				</SplitPane>
 			</div>
-		</>
+		</div>
 	);
 }
 

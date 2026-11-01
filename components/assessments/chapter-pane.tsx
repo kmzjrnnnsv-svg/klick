@@ -10,7 +10,7 @@ import {
 	useState,
 } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { EdgeFade, useScrollMore } from "@/components/ui/split-pane";
 
 // Fragen eines Kapitels als eigene Spalte der geteilten Ansicht (ab 1024 px
 // scrollt nur sie, data-split-pane in styles/base.css; darunter scrollt die
@@ -33,7 +33,7 @@ export function ChapterPane({
 	const pane = useRef<HTMLDivElement>(null);
 	const head = useRef<HTMLDivElement>(null);
 	const [answered, setAnswered] = useState(initial);
-	const [more, setMore] = useState(false);
+	const edge = useScrollMore(pane);
 
 	const recount = useCallback(() => {
 		const el = pane.current;
@@ -50,21 +50,7 @@ export function ChapterPane({
 			attributes: true,
 			attributeFilter: ["data-answered"],
 		});
-		// Verlauf nur, wenn die Spalte selbst scrollt und unten noch Inhalt ist
-		const edge = () =>
-			setMore(
-				getComputedStyle(el).overflowY === "auto" &&
-					el.scrollTop + el.clientHeight < el.scrollHeight - 8,
-			);
-		edge();
-		el.addEventListener("scroll", edge, { passive: true });
-		const size = new ResizeObserver(edge);
-		size.observe(el);
-		return () => {
-			answers.disconnect();
-			el.removeEventListener("scroll", edge);
-			size.disconnect();
-		};
+		return () => answers.disconnect();
 	}, [recount]);
 
 	// Nächste offene Frage unterhalb der Kapitelzeile, sonst die erste offene
@@ -95,7 +81,8 @@ export function ChapterPane({
 	return (
 		<div
 			ref={pane}
-			data-split-pane
+			data-split-pane=""
+			data-split-main=""
 			className="flex min-w-0 flex-col gap-4 lg:pb-6"
 		>
 			<div
@@ -130,13 +117,7 @@ export function ChapterPane({
 				)}
 			</div>
 			{children}
-			<div
-				aria-hidden
-				className={cn(
-					"pointer-events-none sticky bottom-0 -mt-16 h-12 shrink-0 bg-gradient-to-t from-background to-transparent transition-opacity duration-200",
-					more ? "opacity-100" : "opacity-0",
-				)}
-			/>
+			<EdgeFade state={edge} />
 		</div>
 	);
 }

@@ -15,4 +15,15 @@ export function scrollAppToTop(behavior: ScrollBehavior = "auto"): void {
 	const root = scrollRoot();
 	if (root) root.scrollTo({ top: 0, behavior: b });
 	else window.scrollTo({ top: 0, behavior: b });
+	// geteilte Ansicht: die Hauptspalte scrollt für sich (data-split-main)
+	for (const pane of splitPanes(true)) pane.scrollTo({ top: 0, behavior: b });
+}
+
+/** Spalten der geteilten Ansicht, die gerade selbst scrollen */
+export function splitPanes(mainOnly = false): HTMLElement[] {
+	return [
+		...document.querySelectorAll<HTMLElement>(
+			mainOnly ? "[data-split-main]" : "[data-split-pane]",
+		),
+	].filter((el) => getComputedStyle(el).overflowY === "auto");
 }

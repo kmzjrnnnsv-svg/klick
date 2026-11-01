@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ChapterPane } from "@/components/assessments/chapter-pane";
-import { KeepActiveVisible } from "@/components/assessments/keep-active-visible";
 import { MeasuresForm } from "@/components/assessments/measures-form";
 import { QuestionCard } from "@/components/assessments/question-card";
 import {
@@ -21,6 +20,7 @@ import {
 } from "@/components/supplier/supplier-forms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { KeepActiveVisible } from "@/components/ui/keep-active-visible";
 import type { ImplStatus } from "@/db/schema/enums";
 import {
 	applyChanges,

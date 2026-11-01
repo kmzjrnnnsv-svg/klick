@@ -38,6 +38,8 @@ export function PageHeader({
 					</p>
 				)}
 				<h1
+					// in der geteilten Ansicht kompakt (styles/base.css)
+					data-split-title=""
 					className={cn(
 						"mt-0.5 hyphens-auto break-words font-bold text-foreground text-balance",
 						compact ? "text-title-2" : "text-title-1 sm:text-large-title",
