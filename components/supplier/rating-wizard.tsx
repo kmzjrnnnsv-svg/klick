@@ -48,6 +48,7 @@ import {
 	summarizeRating,
 	TRAFFIC_TONE,
 } from "@/lib/compliance/supplier-rating";
+import { scrollAppToTop } from "@/lib/ui/scroll";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
@@ -175,7 +176,7 @@ export function RatingWizard({
 	function goto(s: Step) {
 		setStep(s);
 		router.replace(`?schritt=${s}`, { scroll: false });
-		if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+		if (typeof window !== "undefined") scrollAppToTop();
 	}
 
 	async function rate(code: string, score: number | null, noteText?: string) {

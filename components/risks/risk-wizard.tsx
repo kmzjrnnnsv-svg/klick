@@ -35,6 +35,7 @@ import {
 	pointLabel,
 	ZONE_TONE,
 } from "@/lib/compliance/risk-method";
+import { scrollAppToTop } from "@/lib/ui/scroll";
 import { cn } from "@/lib/utils";
 import { functionOfRef } from "@/lib/validation/responsible-ref";
 
@@ -213,13 +214,7 @@ export function RiskWizard({
 		}
 		setErrors({});
 		setStep(to);
-		if (typeof window !== "undefined")
-			window.scrollTo({
-				top: 0,
-				behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-					? "auto"
-					: "smooth",
-			});
+		if (typeof window !== "undefined") scrollAppToTop("smooth");
 	}
 
 	function pickScenario(s: WizardScenario | null) {

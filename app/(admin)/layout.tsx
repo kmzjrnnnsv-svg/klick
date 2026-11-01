@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { AdminNav, type AdminNavSection } from "@/components/admin/admin-nav";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import { LegalLinks } from "@/components/shell/legal-links";
+import { ScrollReset } from "@/components/shell/scroll-reset";
 import { buttonVariants } from "@/components/ui/button";
 import { ContainedScroll } from "@/components/ui/contained-scroll";
 import { ADMIN_NAV } from "@/lib/admin/nav";
@@ -33,8 +34,10 @@ export default async function AdminLayout({
 			icon: i.icon,
 		})),
 	}));
+	// Ab 1024 px wie die App: Kopf steht, Seitenleiste und Inhalt scrollen je
+	// für sich, die Fußzeile sitzt unten in der Seitenleiste
 	return (
-		<>
+		<div className="flex min-h-dvh flex-col lg:h-dvh lg:overflow-hidden">
 			<header className="material-bar sticky top-0 z-30 shrink-0 border-border/60 border-b">
 				<div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
 					<Link href="/heute" className="font-bold text-headline">
@@ -55,22 +58,30 @@ export default async function AdminLayout({
 				{/* Handy und Tablet: dieselben Seiten als waagrecht scrollende Leiste */}
 				<AdminNav sections={sections} variant="chips" />
 			</header>
-			<div className="mx-auto flex w-full max-w-7xl grow gap-8 px-4 py-8 sm:px-6">
-				<ContainedScroll
-					as="aside"
-					className="sticky top-22 hidden max-h-[calc(100dvh-6.5rem)] w-56 shrink-0 self-start overflow-y-auto overscroll-contain pb-4 lg:block"
+			<div className="mx-auto flex w-full max-w-7xl grow gap-8 px-4 py-8 sm:px-6 lg:min-h-0 lg:py-0">
+				<div className="hidden w-56 shrink-0 flex-col lg:flex">
+					<ContainedScroll
+						as="aside"
+						className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-8"
+					>
+						<AdminNav sections={sections} variant="sidebar" />
+					</ContainedScroll>
+					<LegalLinks compact className="shrink-0 [&_nav]:px-0" />
+				</div>
+				<main
+					id="inhalt"
+					data-scroll-root
+					className="relative min-w-0 grow lg:overflow-y-auto lg:overscroll-contain lg:py-8"
 				>
-					<AdminNav sections={sections} variant="sidebar" />
-				</ContainedScroll>
-				<main id="inhalt" className="min-w-0 grow">
+					<ScrollReset />
 					{children}
 				</main>
 			</div>
-			<LegalLinks />
+			<LegalLinks className="lg:hidden" />
 			<StepUpDialog
 				passkey={Boolean(sctx?.user.hasPasskey)}
 				totp={Boolean(sctx?.user.twoFactorEnabled)}
 			/>
-		</>
+		</div>
 	);
 }

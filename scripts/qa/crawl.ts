@@ -189,8 +189,17 @@ async function checkPage(page: Page, where: string, action?: string) {
 async function checkOverflow(page: Page, where: string) {
 	const r = await page
 		.evaluate(() => {
-			const vw = document.documentElement.clientWidth;
-			const sw = document.documentElement.scrollWidth;
+			// ab 1024 px scrollt die rechte Spalte (data-scroll-root), nicht das Fenster
+			const root = document.querySelector<HTMLElement>("[data-scroll-root]");
+			const inner =
+				root && getComputedStyle(root).overflowY === "auto" ? root : null;
+			const vw = inner
+				? inner.getBoundingClientRect().right
+				: document.documentElement.clientWidth;
+			const sw = Math.max(
+				document.documentElement.scrollWidth,
+				inner ? inner.getBoundingClientRect().left + inner.scrollWidth : 0,
+			);
 			if (sw <= vw + 1) return null;
 			const els = [...document.querySelectorAll("main *")];
 			const el = els.find((e) => {

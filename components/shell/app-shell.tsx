@@ -12,6 +12,7 @@ import { LegalLinks } from "./legal-links";
 import type { BellItem } from "./notification-bell";
 import { NotificationBell } from "./notification-bell";
 import { OrgSwitcher, type SwitcherOrg } from "./org-switcher";
+import { ScrollReset } from "./scroll-reset";
 import { SidebarNav } from "./sidebar-nav";
 import { TabBar } from "./tab-bar";
 import { UserMenu } from "./user-menu";
@@ -35,7 +36,11 @@ export async function AppShell({
 	const t = await getTranslations("Common");
 	const home = "/heute";
 	return (
-		<div className="flex min-h-dvh">
+		// Ab 1024 px wie in iPad-/Mac-Apps: das Fenster steht, Seitenleiste und
+		// Inhalt scrollen je für sich (rechte Spalte = data-scroll-root, die
+		// Kopfleiste klebt darin). Darunter scrollt das Fenster — nur so gehen
+		// am iPhone das Antippen der Statusleiste und die einklappende Leiste.
+		<div className="flex min-h-dvh lg:h-dvh lg:overflow-hidden">
 			{/* Sidebar klebt in Fensterhöhe; nur die Navigation scrollt. Flex-Kinder
 			    in Spalten ohne feste Höhe nie mit `flex-1` (Basis 0 %) — Safari
 			    rechnet die Shell sonst auf Fensterhöhe herunter, der Header
@@ -72,8 +77,13 @@ export async function AppShell({
 					</div>
 					<SidebarNav groups={groups} />
 				</ContainedScroll>
+				<LegalLinks compact className="shrink-0" />
 			</aside>
-			<div className="flex min-w-0 flex-1 flex-col">
+			<div
+				data-scroll-root
+				className="relative flex min-w-0 flex-1 flex-col lg:h-dvh lg:overflow-y-auto lg:overscroll-contain"
+			>
+				<ScrollReset />
 				<header className="material-bar sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-border/60 border-b pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] sm:px-6">
 					<Link
 						href={home}
@@ -99,7 +109,7 @@ export async function AppShell({
 				>
 					{children}
 				</main>
-				<LegalLinks />
+				<LegalLinks className="lg:hidden" />
 				<TabBar groups={groups} />
 				<StepUpDialog passkey={ctx.hasPasskey} totp={ctx.hasTotp} />
 			</div>

@@ -31,8 +31,11 @@ const ONLY = (() => {
 })();
 
 // Entwicklerhinweise und Toasts gehören nicht ins Bild
+// Ab 1024 px scrollt in der App die rechte Spalte (data-scroll-root); für
+// ganzseitige Aufnahmen wieder das Fenster
 const HIDE =
-	"nextjs-portal,[data-sonner-toaster]{display:none!important}*{caret-color:transparent!important}";
+	"nextjs-portal,[data-sonner-toaster]{display:none!important}*{caret-color:transparent!important}" +
+	"[data-scroll-root],*:has([data-scroll-root]){height:auto!important;max-height:none!important;overflow:visible!important}";
 
 type Box = { x: number; y: number; width: number; height: number };
 type Clip = Box | "fail";
