@@ -75,6 +75,70 @@ export type SheetDocument = {
 	controls: string[];
 };
 
+// Nachweise und Dokumente einmal je Seite gruppiert (P2, Nov 2026). Der
+// Nachweisbogen läuft je Control; ohne Index ging jede Position über alle
+// Nachweise der Org (Rahmenwerk-Reiter „Nachweise“: Controls × Positionen ×
+// Nachweise). Reihenfolge wie in der Eingabe (pos), damit das Ergebnis
+// gleich bleibt.
+export type SheetEvidenceIndex = {
+	pos: ReadonlyMap<string, number>;
+	byId: ReadonlyMap<string, SheetEvidence>;
+	byControl: ReadonlyMap<string, readonly SheetEvidence[]>;
+	byKind: ReadonlyMap<string, readonly SheetEvidence[]>;
+	// neuester Nachweis je Art (bei gleicher Zeit der erste der Eingabe)
+	latestByKind: ReadonlyMap<string, SheetEvidence>;
+	bySha: ReadonlyMap<string, readonly SheetEvidence[]>;
+	documentsByControl: ReadonlyMap<string, readonly SheetDocument[]>;
+	// erstes Dokument je Vorlage
+	documentByTemplate: ReadonlyMap<string, SheetDocument>;
+};
+
+export function indexSheetEvidence(
+	evidence: readonly SheetEvidence[],
+	documents: readonly SheetDocument[] = [],
+): SheetEvidenceIndex {
+	const pos = new Map<string, number>();
+	const byId = new Map<string, SheetEvidence>();
+	const byControl = new Map<string, SheetEvidence[]>();
+	const byKind = new Map<string, SheetEvidence[]>();
+	const latestByKind = new Map<string, SheetEvidence>();
+	const bySha = new Map<string, SheetEvidence[]>();
+	const push = <K, V>(m: Map<K, V[]>, k: K, v: V) => {
+		const list = m.get(k);
+		if (list) list.push(v);
+		else m.set(k, [v]);
+	};
+	evidence.forEach((e, i) => {
+		pos.set(e.id, i);
+		byId.set(e.id, e);
+		for (const c of new Set(e.controls)) push(byControl, c, e);
+		if (e.kindCode) {
+			push(byKind, e.kindCode, e);
+			const prev = latestByKind.get(e.kindCode);
+			if (!prev || e.createdAt > prev.createdAt)
+				latestByKind.set(e.kindCode, e);
+		}
+		if (e.sha256) push(bySha, e.sha256, e);
+	});
+	const documentsByControl = new Map<string, SheetDocument[]>();
+	const documentByTemplate = new Map<string, SheetDocument>();
+	for (const d of documents) {
+		for (const c of new Set(d.controls)) push(documentsByControl, c, d);
+		if (d.templateCode && !documentByTemplate.has(d.templateCode))
+			documentByTemplate.set(d.templateCode, d);
+	}
+	return {
+		pos,
+		byId,
+		byControl,
+		byKind,
+		latestByKind,
+		bySha,
+		documentsByControl,
+		documentByTemplate,
+	};
+}
+
 export type SheetInput = {
 	controlCode: string;
 	frameworks: readonly string[];
@@ -89,6 +153,9 @@ export type SheetInput = {
 	today: string;
 	// Katalog der Org (R4): eigene Rahmenwerke mit ihren Prüffragen
 	catalog?: Lookups;
+	// vorab gebauter Index (mehrere Bögen auf einer Seite); sonst aus
+	// evidence und documents
+	index?: SheetEvidenceIndex;
 };
 
 export type SheetSource = {
@@ -285,13 +352,15 @@ export function buildSheet(input: SheetInput): NachweisBogen | null {
 			})),
 		),
 	];
-	const evidence = input.evidence ?? [];
-	const producedByKind = new Map<string, SheetEvidence>();
-	for (const e of [...evidence].sort((a, b) =>
-		b.createdAt.localeCompare(a.createdAt),
-	))
-		if (e.kindCode && !producedByKind.has(e.kindCode))
-			producedByKind.set(e.kindCode, e);
+	const ix =
+		input.index ??
+		indexSheetEvidence(input.evidence ?? [], input.documents ?? []);
+	const producedByKind = ix.latestByKind;
+	const ownEvidence = ix.byControl.get(control.code) ?? [];
+	const inOrder = (list: Iterable<SheetEvidence>) =>
+		[...new Set(list)].sort(
+			(a, b) => (ix.pos.get(a.id) ?? 0) - (ix.pos.get(b.id) ?? 0),
+		);
 	const templates = DOCUMENT_TEMPLATES.filter((t) =>
 		t.controls.includes(control.code),
 	);
@@ -322,8 +391,7 @@ export function buildSheet(input: SheetInput): NachweisBogen | null {
 			return {
 				type: "template",
 				template: tpl,
-				document:
-					input.documents?.find((d) => d.templateCode === tpl.code) ?? null,
+				document: ix.documentByTemplate.get(tpl.code) ?? null,
 			};
 		return { type: "free" };
 	};
@@ -350,20 +418,22 @@ export function buildSheet(input: SheetInput): NachweisBogen | null {
 		const texts = g.members.map((m) => m.text);
 		const resolution = resolve(texts);
 		const state = input.items?.[id] ?? null;
-		const own = new Set(state?.evidenceIds ?? []);
-		const linked = evidence.filter(
-			(e) =>
-				own.has(e.id) ||
-				(e.controls.includes(control.code) && e.title === g.text),
-		);
-		const coveredElsewhere = evidence
-			.filter(
-				(e) =>
-					!e.controls.includes(control.code) &&
-					((resolution.type === "kind" &&
-						e.kindCode === resolution.kind.code) ||
-						(e.sha256 !== null && linked.some((l) => l.sha256 === e.sha256))),
-			)
+		const linked = inOrder([
+			...(state?.evidenceIds ?? []).flatMap((id) => {
+				const e = ix.byId.get(id);
+				return e ? [e] : [];
+			}),
+			...ownEvidence.filter((e) => e.title === g.text),
+		]);
+		const coveredElsewhere = inOrder([
+			...(resolution.type === "kind"
+				? (ix.byKind.get(resolution.kind.code) ?? [])
+				: []),
+			...linked.flatMap((l) =>
+				l.sha256 ? (ix.bySha.get(l.sha256) ?? []) : [],
+			),
+		])
+			.filter((e) => !e.controls.includes(control.code))
 			.map((e) => ({ evidence: e, controls: e.controls }));
 		const valid = (e: SheetEvidence | null) =>
 			!!e && (!e.validUntil || e.validUntil >= input.today);
@@ -399,21 +469,16 @@ export function buildSheet(input: SheetInput): NachweisBogen | null {
 	const review = params.find((p) => p.topic === "interval:review");
 	for (const fw of review?.perFramework ?? []) {
 		const required = fw.params[0];
-		for (const d of input.documents ?? [])
-			if (
-				d.controls.includes(control.code) &&
-				exceedsInterval(d.reviewCycleMonths, required) &&
-				required
-			)
+		for (const d of ix.documentsByControl.get(control.code) ?? [])
+			if (exceedsInterval(d.reviewCycleMonths, required) && required)
 				findings.push({
 					kind: "document_cycle",
 					document: d,
 					framework: fw.framework,
 					required,
 				});
-		for (const e of evidence)
+		for (const e of ownEvidence)
 			if (
-				e.controls.includes(control.code) &&
 				e.validUntil &&
 				required &&
 				exceedsInterval(
@@ -429,9 +494,7 @@ export function buildSheet(input: SheetInput): NachweisBogen | null {
 				});
 	}
 	const bySha = new Map<string, SheetEvidence[]>();
-	for (const e of evidence.filter(
-		(x) => x.controls.includes(control.code) && x.sha256,
-	))
+	for (const e of ownEvidence.filter((x) => x.sha256))
 		bySha.set(e.sha256 as string, [
 			...(bySha.get(e.sha256 as string) ?? []),
 			e,
