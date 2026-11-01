@@ -42,8 +42,8 @@ Phasen (Reihenfolge von „alles“):
   crowdsec        CrowdSec mit WAF und Bouncern
   postgres        SCRAM, nur localhost, pg_hba
   virenscanner    clamd ab ≈ 7,5 GiB RAM, sonst Risiko no_av
-  klick           Backup, pnpm release (Migrationen), Units, Neustart
-  both            Backup, pnpm release:wallet, Units, Neustart
+  klick           Backup, Artefakt aus CI (sonst Build), Migrationen, Units, Neustart
+  both            Backup, Artefakt aus CI (sonst Build), Migrationen, Units, Neustart
   signer          Signer neu bauen (braucht --signer-tag und --signer-sha)
   ueberwachung    klick-health
   abschluss       AIDE-Basis, Lynis, Bericht als Nachweis
@@ -61,6 +61,7 @@ Optionen:
   --ref <tag|branch>   Stand für klick/both (Standard: main; mit Release-Schlüssel nur Tags)
   --signer-tag <tag>   Tag für den Signer
   --signer-sha <hex>   SHA-256 aus CI („Signer bündeln“)
+  --bauen              klick/both auf dem Server bauen statt das Artefakt aus CI zu holen
   --ab <phase>         „alles“ ab dieser Phase fortsetzen
   --trocken            nur zeigen, was sich ändern würde
   --ja                 Rückfrage „Phase jetzt?“ bei „alles“ weglassen
@@ -74,7 +75,7 @@ ist_phase() {
 	return 1
 }
 
-ADMIN="" ENDPOINT="" REF="" SIGNER_TAG="" SIGNER_SHA="" AB="" TROCKEN=0 JA=0
+ADMIN="" ENDPOINT="" REF="" SIGNER_TAG="" SIGNER_SHA="" AB="" TROCKEN=0 JA=0 BAUEN=0
 GERAETE=()
 AUFTRAG=()
 WORT=""
@@ -92,6 +93,7 @@ while [ $# -gt 0 ]; do
 	--signer-sha) SIGNER_SHA="${2:?}"; shift ;;
 	--ab) AB="${2:?}"; shift ;;
 	--trocken) TROCKEN=1 ;;
+	--bauen) BAUEN=1 ;;
 	--ja) JA=1 ;;
 	-*)
 		echo "rollout: unbekannte Option $1 (--hilfe)" >&2
@@ -127,7 +129,7 @@ done
 	exit 2
 }
 
-export TROCKEN DEPLOY ROOT_DIR
+export TROCKEN DEPLOY ROOT_DIR BAUEN
 # shellcheck source=deploy/rollout/lib/rein.sh
 . "$LIB/rein.sh"
 # shellcheck source=deploy/rollout/lib/common.sh
