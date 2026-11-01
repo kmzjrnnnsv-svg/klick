@@ -283,8 +283,17 @@ describe("Postgres", () => {
 			"log_connections = on",
 			"log_statement = 'ddl'",
 			"log_parameter_max_length = 0",
+			// Messung im Betrieb (P4), nur Muster ohne Werte
+			"shared_preload_libraries = 'pg_stat_statements'",
 		])
 			expect(conf).toContain(d);
+	});
+
+	it("Rollout legt pg_stat_statements nach dem Neustart an", () => {
+		const sh = read("deploy/rollout/lib/system.sh");
+		expect(sh).toContain("create extension if not exists pg_stat_statements");
+		const phase = sh.slice(sh.indexOf("phase_postgres() {"));
+		expect(phase.indexOf("pg_stat_anlegen")).toBeGreaterThan(0);
 	});
 
 	it("pg_hba: Apps nur über localhost mit SCRAM, Rest abgelehnt", () => {
