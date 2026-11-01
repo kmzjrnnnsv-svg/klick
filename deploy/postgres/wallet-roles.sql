@@ -60,3 +60,7 @@ SELECT 'GRANT USAGE ON SCHEMA drizzle TO wallet_backup'
   WHERE EXISTS (SELECT FROM pg_namespace WHERE nspname = 'drizzle')\gexec
 SELECT 'GRANT SELECT ON ALL TABLES IN SCHEMA drizzle TO wallet_backup'
   WHERE EXISTS (SELECT FROM pg_namespace WHERE nspname = 'drizzle')\gexec
+-- pg_dump liest auch den Stand der Sequenz (__drizzle_migrations_id_seq);
+-- ohne dieses Recht bricht das Backup mit „permission denied for sequence“ ab
+SELECT 'GRANT SELECT ON ALL SEQUENCES IN SCHEMA drizzle TO wallet_backup'
+  WHERE EXISTS (SELECT FROM pg_namespace WHERE nspname = 'drizzle')\gexec

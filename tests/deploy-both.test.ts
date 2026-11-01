@@ -126,3 +126,23 @@ describe("nginx both.money", () => {
 		expect(active).toMatch(/server_name both\.money;/);
 	});
 });
+
+// pg_dump liest jede Tabelle und jede Sequenz der gesicherten Schemas. Fehlt
+// der Backup-Rolle ein Recht, bricht das tägliche Backup ab (Nov 2026:
+// __drizzle_migrations_id_seq in der Wallet-DB).
+describe("Backup-Rollen lesen alles, was pg_dump sichert", () => {
+	const roles = [
+		{ file: "deploy/postgres/roles.sql", role: "klick_backup" },
+		{ file: "deploy/postgres/wallet-roles.sql", role: "wallet_backup" },
+	];
+	for (const { file, role } of roles) {
+		const sql = read(file);
+		for (const schema of ["public", "drizzle"])
+			for (const kind of ["TABLES", "SEQUENCES"])
+				it(`${role}: SELECT auf ${kind.toLowerCase()} in ${schema}`, () => {
+					expect(sql).toContain(
+						`GRANT SELECT ON ALL ${kind} IN SCHEMA ${schema} TO ${role}`,
+					);
+				});
+	}
+});
