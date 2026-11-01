@@ -28,6 +28,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { FormAlert } from "@/components/ui/form-alert";
 import { nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { scrollAppToTop } from "@/components/ui/scroll";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { CRITICALITY } from "@/db/schema/enums";
@@ -48,7 +49,6 @@ import {
 	summarizeRating,
 	TRAFFIC_TONE,
 } from "@/lib/compliance/supplier-rating";
-import { scrollAppToTop } from "@/lib/ui/scroll";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
