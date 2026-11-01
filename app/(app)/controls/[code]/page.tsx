@@ -2,6 +2,7 @@ import { PenLine } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { CommentForm } from "@/components/entity/comment-form";
 import { ControlTestForm } from "@/components/entity/control-test-form";
@@ -26,6 +27,7 @@ import {
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { approvalBarFor } from "@/lib/approvals/bar";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -108,6 +110,12 @@ async function ControlDetailPage({
 			...history.map((h) => h.actorUserId),
 			...comments.map((c) => c.authorUserId),
 		]);
+		// „Nicht anwendbar“ bzw. „Nicht relevant“ wartet auf Bestätigung
+		const bar = await approvalBarFor(tx, ctx.orgId, ctx.userId, {
+			type: "control",
+			id: row.implementationId,
+			ownerUserId: row.ownerUserId,
+		});
 		return {
 			row,
 			evidence,
@@ -119,6 +127,7 @@ async function ControlDetailPage({
 			tests,
 			names,
 			functions,
+			bar,
 		};
 	});
 	if (!data) notFound();
@@ -295,6 +304,12 @@ async function ControlDetailPage({
 				</>
 			}
 		>
+			<ApprovalBar
+				data={data.bar.data}
+				names={data.bar.names}
+				eligible={data.bar.eligible}
+				currentUserId={ctx.userId}
+			/>
 			<ControlExplainerCard code={code} />
 			<ControlRelationsSection
 				code={code}
@@ -528,12 +543,15 @@ async function ControlDetailPage({
 }
 
 export default withMessages(ControlDetailPage, [
+	"Approvals",
+	"Auth",
 	"Common",
 	"Dlp",
 	"Entity",
 	"Evidence",
 	"EvidenceStudio",
 	"Functions",
+	"Settings",
 	"Status",
 	"Tasks",
 	"Tests",

@@ -180,11 +180,14 @@ export function ApplyDialog({
 	assessmentId,
 	changes,
 	exclusions = [],
+	naOpen = [],
 }: {
 	assessmentId: string;
 	changes: { controlCode: string; title: string; from: string; to: string }[];
 	// „Nicht relevant“: Anforderungen, die mit Begründung ausgeschlossen werden
 	exclusions?: { key: string; label: string; how: string }[];
+	// „Nicht relevant“ ohne Bestätigung: wirkt erst, wenn bestätigt
+	naOpen?: { controlCode: string; title: string; status: string }[];
 }) {
 	const t = useTranslations("Assessment");
 	const tc = useTranslations("Common");
@@ -235,6 +238,28 @@ export function ApplyDialog({
 									</span>
 									<span className="text-muted-foreground text-footnote">
 										{x.how}
+									</span>
+								</li>
+							))}
+						</ul>
+					</>
+				)}
+				{naOpen.length > 0 && (
+					<>
+						<p className="text-subhead">
+							{t("applyNaOpen", { count: naOpen.length })}
+						</p>
+						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
+							{naOpen.map((x) => (
+								<li key={x.controlCode} className="flex flex-col px-3 py-1.5">
+									<span className="min-w-0 truncate">
+										<span className="font-mono text-footnote" translate="no">
+											{x.controlCode}
+										</span>{" "}
+										{x.title}
+									</span>
+									<span className="text-muted-foreground text-footnote">
+										{t(`naState_${x.status}` as "naState_pending")}
 									</span>
 								</li>
 							))}

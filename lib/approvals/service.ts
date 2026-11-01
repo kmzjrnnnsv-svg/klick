@@ -1006,6 +1006,8 @@ export type PendingForUser = {
 	workflowName: string;
 	entityType: EntityKind;
 	entityId: string;
+	// Fassung bzw. Bezug des Antrags (z. B. Dokument v1.2, Gap-Analyse-Frage)
+	entityVersionRef: string | null;
 	requestedByUserId: string | null;
 	requestedByName: string | null;
 	requestedAt: Date;
@@ -1134,6 +1136,7 @@ export async function listRequestsForUser(
 			workflowName,
 			entityType: req.entityType,
 			entityId: req.entityId,
+			entityVersionRef: req.entityVersionRef,
 			requestedByUserId: req.requestedByUserId,
 			requestedByName: req.requestedByUserId
 				? (names.get(req.requestedByUserId) ?? null)

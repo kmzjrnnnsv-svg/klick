@@ -142,6 +142,20 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		defaultEnabled: true,
 	},
 	{
+		// Gap-Analyse und Control-Seite: eine zweite Person bestätigt die
+		// Begründung, bevor eine Maßnahme entfällt oder eine Anforderung
+		// ausgeschlossen wird
+		kind: "not_relevant",
+		name: "„Nicht relevant“ bestätigen",
+		entityType: "control",
+		description:
+			"Die Geschäftsleitung bestätigt die Begründung. Erst dann entfällt die Maßnahme bzw. steht der Ausschluss in der SoA (ISO 27001 6.1.3 d).",
+		steps: [
+			{ order: 1, approverRule: "function:management_body", slaDays: 10 },
+		],
+		defaultEnabled: true,
+	},
+	{
 		kind: "management_approval",
 		name: "Genehmigung der Leitung",
 		entityType: "resolution",

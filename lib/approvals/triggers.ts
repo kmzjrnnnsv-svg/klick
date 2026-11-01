@@ -343,6 +343,19 @@ export const TRIGGERS: readonly TriggerDef[] = [
 		wired: true,
 	},
 	{
+		// „Nicht relevant“ (Gap-Analyse) bzw. „nicht anwendbar“ (Control-Seite):
+		// wirkt erst bestätigt (Ausschluss in der SoA, Maßnahme entfällt). Ein
+		// Antrag je Umsetzung und Begründung; entityVersionRef =
+		// na:<Gap-Analyse>:<Frage>:<Prüfsumme> bzw. ctl:<Prüfsumme>
+		key: "control.not_applicable",
+		kind: "not_relevant",
+		entityType: "control",
+		area: "governance",
+		mode: "pending",
+		facts: [],
+		wired: true,
+	},
+	{
 		key: "objective.release",
 		kind: "objective_release",
 		entityType: "objective",

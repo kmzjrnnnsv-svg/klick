@@ -5,12 +5,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { controlImplementations, controls } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
+import {
+	controlNaImpact,
+	requestControlNa,
+} from "@/lib/assessments/na-approval";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { REQUIREMENT_BY_KEY } from "@/lib/compliance/catalog";
 import { coverageDelta } from "@/lib/compliance/coverage";
 import { excludeRequirements } from "@/lib/compliance/exclusion-service";
-import { exclusionAllowedForKey } from "@/lib/compliance/exclusions";
 import { resolveResponsible } from "@/lib/compliance/function-holders-service";
 import { orgCoverage } from "@/lib/compliance/queries";
 import { mutateOrg } from "@/lib/db/with-org";
@@ -37,6 +40,8 @@ export type StatusChangeResult = {
 		before: number | null;
 		after: number | null;
 	}[];
+	// „Nicht anwendbar“ wartet auf Bestätigung (Status bleibt)
+	approvalRequested?: boolean;
 };
 
 async function setControlStatusImpl(
@@ -86,23 +91,15 @@ async function setControlStatusImpl(
 			const cov = await orgCoverage(tx, c.orgId);
 			const delta = cov ? coverageDelta(cov.input, row.code, status) : null;
 
-			// „Nicht anwendbar“ nur, wenn jedes Rahmenwerk der anwendbaren
-			// Anforderungen einen Ausschluss kennt (ISO Annex A, SOC 2 …); die
-			// Anforderungen werden dann mit derselben Begründung ausgeschlossen,
-			// damit SoA und Abdeckung stimmen
+			// „Nicht anwendbar“ nur, wenn jede anwendbare Anforderung entweder
+			// einen Ausschluss kennt (ISO Annex A, SOC 2 …) oder über andere
+			// Maßnahmen zählt (nur teilweise getragen); ausgeschlossen wird mit
+			// derselben Begründung, damit SoA und Abdeckung stimmen. Wirkt erst
+			// bestätigt (zweite Person, Auslöser control.not_applicable)
 			let exclusionAudit: AuditInput[] = [];
 			if (status === "not_applicable" && cov) {
-				const keys = (cov.catalog.edgesByControl.get(row.code) ?? [])
-					.map((e) => e.requirement)
-					.filter(
-						(k) =>
-							cov.frameworks.includes(k.slice(0, k.indexOf(":"))) &&
-							cov.result.byRequirement.get(k) !== "not_applicable",
-					);
-				const blocked = keys.filter(
-					(k) => !exclusionAllowedForKey(k, cov.catalog),
-				);
-				if (blocked.length > 0)
+				const impact = controlNaImpact(cov, row.code);
+				if (impact.blocked.length > 0)
 					return {
 						result: {
 							ok: false as const,
@@ -110,10 +107,54 @@ async function setControlStatusImpl(
 						},
 						audit: [],
 					};
+				const reason = note?.trim() ?? "";
+				const gate = await requestControlNa(
+					tx,
+					{ orgId: c.orgId, userId: c.userId, name: c.name },
+					{
+						implementationId,
+						code: row.code,
+						title: row.title,
+						reason,
+					},
+				);
+				if (gate.status === "blocked")
+					return {
+						result: { ok: false as const, error: gate.error },
+						audit: [],
+					};
+				if (gate.status === "pending") {
+					// Begründung steht schon an der Umsetzung (SoA-Notiz), der
+					// Status wechselt mit der Bestätigung
+					await tx
+						.update(controlImplementations)
+						.set({ note: reason })
+						.where(eq(controlImplementations.id, implementationId));
+					return {
+						result: {
+							ok: true as const,
+							data: {
+								code: row.code,
+								status: row.status,
+								satisfied: [],
+								frameworks: [],
+								approvalRequested: true,
+							},
+						},
+						audit: [
+							{
+								action: "control.na_requested",
+								target: `control:${implementationId}`,
+								before: { status: row.status, note: row.note },
+								after: { note: reason, code: row.code },
+							},
+						],
+					};
+				}
 				exclusionAudit = await excludeRequirements(
 					tx,
 					c.orgId,
-					keys.map((key) => ({ key, note: note?.trim() ?? "" })),
+					impact.excludable.map((x) => ({ key: x.key, note: reason })),
 					`control:${row.code}`,
 					cov.catalog,
 				);

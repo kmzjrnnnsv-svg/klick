@@ -4,14 +4,25 @@ import {
 	proposeControlStatus,
 	proposeExclusions,
 } from "@/lib/assessments/apply";
-import { naAllowed, naOpenShare } from "@/lib/assessments/na";
+import {
+	naAllowed,
+	naDropsControl,
+	naImpactOf,
+	naOpenShare,
+} from "@/lib/assessments/na";
 import { type AnswerState, scoreAssessment } from "@/lib/assessments/score";
-import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
+import {
+	EDGES_BY_CONTROL,
+	EDGES_BY_REQUIREMENT,
+	FRAMEWORK_BY_SLUG,
+} from "@/lib/compliance/catalog";
 import {
 	exclusionAllowedForKey,
 	exclusionRule,
+	naChoosable,
 	naImpact,
 } from "@/lib/compliance/exclusions";
+import { STATIC_CATALOG } from "@/lib/compliance/org-catalog";
 import { invalidExclusionBlockers } from "@/lib/compliance/queries-readiness";
 
 // Ausschluss je Rahmenwerk: nur ISO 27001 Anhang A und die wählbaren
@@ -160,6 +171,109 @@ describe("„Nicht relevant“ in der Gap-Analyse", () => {
 		expect(plain.score).toBe(100);
 		// A: Gewicht 1 erfüllt; B: Gewicht 2, davon die Hälfte offen
 		expect(strict.score).toBe(50);
+	});
+});
+
+describe("„Nicht relevant“: nur teilweise getragene Anforderungen", () => {
+	// CC-OPS-08 trägt ISO 27001 8.1 nur teilweise (andere Maßnahmen tragen
+	// den Rest) und A.5.37 ganz (Anhang A: ausschließbar)
+	const iso = (EDGES_BY_CONTROL.get("CC-OPS-08") ?? []).filter((e) =>
+		e.requirement.startsWith("iso27001:"),
+	);
+	const partial = iso.find((e) => e.coverage === "partial")?.requirement ?? "";
+	const full = iso.find((e) => e.coverage === "full")?.requirement ?? "";
+	const ops: AssessmentQuestion = {
+		...q("O", [partial, full]),
+		controlCode: "CC-OPS-08",
+	};
+
+	it("Beispiel aus dem Katalog trägt, was der Test annimmt", () => {
+		expect(partial).not.toBe("");
+		expect(full.startsWith("iso27001:A.")).toBe(true);
+		expect(
+			(EDGES_BY_REQUIREMENT.get(partial as `${string}:${string}`) ?? []).some(
+				(e) => e.control !== "CC-OPS-08",
+			),
+		).toBe(true);
+	});
+
+	it("bleibt anwendbar und zählt über andere Maßnahmen, nichts bleibt offen", () => {
+		const r = naImpactOf(ops);
+		expect(r.excludable.map((x) => x.key)).toEqual([full]);
+		expect(r.kept.map((x) => x.key)).toEqual([partial]);
+		expect(r.blocked).toEqual([]);
+		expect(naAllowed(ops)).toBe(true);
+		expect(naDropsControl(ops)).toBe(true);
+		expect(naOpenShare(ops)).toBe(0);
+	});
+
+	it("ohne andere Maßnahme bleibt eine nur teilweise getragene Anforderung offen", () => {
+		const alone = new Map(EDGES_BY_REQUIREMENT);
+		alone.set(
+			partial as `${string}:${string}`,
+			(EDGES_BY_REQUIREMENT.get(partial as `${string}:${string}`) ?? []).filter(
+				(e) => e.control === "CC-OPS-08",
+			),
+		);
+		const catalog = { ...STATIC_CATALOG, edgesByRequirement: alone };
+		const r = naImpactOf(ops, catalog);
+		expect(r.kept).toEqual([]);
+		expect(r.blocked.map((x) => x.key)).toEqual([partial]);
+		expect(naDropsControl(ops, catalog)).toBe(false);
+	});
+
+	it("wählbar, wenn etwas ausgeschlossen wird oder nichts offen bliebe", () => {
+		const k = { key: "x:1", label: "x 1" };
+		expect(naChoosable({ excludable: [], kept: [k], blocked: [] })).toBe(true);
+		expect(naChoosable({ excludable: [], kept: [k], blocked: [k] })).toBe(
+			false,
+		);
+		expect(
+			naChoosable({
+				excludable: [{ ...k, how: "SoA" }],
+				kept: [],
+				blocked: [k],
+			}),
+		).toBe(true);
+	});
+
+	it("wirkt nur bestätigt: ohne Bestätigung weder Ausschluss noch Statuswechsel", () => {
+		const answers = new Map([["O", st("na", "Keine eigene Entwicklung")]]);
+		const opts = { dropsControl: (x: AssessmentQuestion) => naDropsControl(x) };
+		expect(
+			proposeControlStatus([ops], answers, new Map(), exclusionAllowedForKey, {
+				...opts,
+				naConfirmed: () => false,
+			}),
+		).toEqual([]);
+		expect(
+			proposeExclusions(
+				[ops],
+				answers,
+				exclusionAllowedForKey,
+				new Set(),
+				() => false,
+			),
+		).toEqual([]);
+		// bestätigt: Maßnahme entfällt (nichts offen), A.5.37 ausgeschlossen
+		expect(
+			proposeControlStatus([ops], answers, new Map(), exclusionAllowedForKey, {
+				...opts,
+				naConfirmed: () => true,
+			}),
+		).toEqual([
+			{
+				controlCode: "CC-OPS-08",
+				from: "not_started",
+				to: "not_applicable",
+				naReason: "Keine eigene Entwicklung",
+			},
+		]);
+		expect(
+			proposeExclusions([ops], answers, exclusionAllowedForKey).map(
+				(x) => x.key,
+			),
+		).toEqual([full]);
 	});
 });
 
