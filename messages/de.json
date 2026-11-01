@@ -105,7 +105,10 @@
 		"krypto": "Krypto (both.money)",
 		"search": "Suche",
 		"tabBar": "Bereiche",
-		"relations": "Zusammenhänge"
+		"relations": "Zusammenhänge",
+		"frameworks": "Rahmenwerke",
+		"planning": "Planung",
+		"sectionSwitch": "Seiten in diesem Bereich"
 	},
 	"Footer": {
 		"tagline": "Maison Klick — Compliance, die zusammenpasst.",

@@ -4,10 +4,10 @@ import { EmptyState } from "@/components/entity/empty-state";
 import { OwnerChip } from "@/components/entity/owner-chip";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusBadge } from "@/components/entity/status-badge";
-import { UserChip } from "@/components/entity/user-chip";
 import { withMessages } from "@/components/i18n/with-messages";
 import { NonconformityForm } from "@/components/nonconformities/nc-forms";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { Badge } from "@/components/ui/badge";
 import {
 	Table,
@@ -107,6 +107,12 @@ async function NonconformitiesPage({
 
 	return (
 		<>
+			<SectionSwitch
+				group="nonconformities"
+				current="/abweichungen"
+				ctx={ctx}
+			/>
+
 			<PageHeader
 				title={t("title")}
 				lead={t("lead")}

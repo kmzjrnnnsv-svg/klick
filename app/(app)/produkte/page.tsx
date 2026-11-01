@@ -4,7 +4,6 @@ import { EmptyState } from "@/components/entity/empty-state";
 import { OwnerChip } from "@/components/entity/owner-chip";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { StatusBadge } from "@/components/entity/status-badge";
-import { UserChip } from "@/components/entity/user-chip";
 import { withMessages } from "@/components/i18n/with-messages";
 import { NewProductDialog } from "@/components/products/product-forms";
 import { Badge } from "@/components/ui/badge";

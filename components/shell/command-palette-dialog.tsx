@@ -13,7 +13,7 @@ import {
 	CommandList,
 	CommandShortcut,
 } from "@/components/ui/command";
-import type { NavGroup } from "@/lib/nav";
+import { NAV_SECTIONS, type NavGroup } from "@/lib/nav";
 import { NavIcon } from "./nav-icon";
 
 // Inhalt der ⌘K-Palette, nachgeladen von command-palette.tsx
@@ -31,11 +31,36 @@ export function CommandPaletteDialog({
 	const [query, setQuery] = useState("");
 	const setOpen = onOpenChange;
 
-	const navigable = groups.flatMap((g) =>
-		g.items
+	// Einträge der Seitenleiste, dazu die Seiten unter einem geteilten
+	// Eintrag (Umschalter) und die Sprungziele (jedes Rahmenwerk)
+	const navigable = groups.flatMap((g) => {
+		const group = g.labelKey ? t(g.labelKey) : "";
+		return g.items
 			.filter((i) => !i.phase)
-			.map((i) => ({ ...i, group: g.labelKey ? t(g.labelKey) : "" })),
-	);
+			.flatMap((i) => [
+				{
+					key: i.key,
+					label: i.label ?? (i.labelKey ? t(i.labelKey) : i.key),
+					href: i.href,
+					icon: i.icon,
+					group,
+				},
+				...(i.sections ? NAV_SECTIONS[i.sections] : [])
+					.filter((s) => s.href !== i.href)
+					.map((s) => ({
+						key: s.key,
+						label: t(s.labelKey),
+						href: s.href,
+						icon: s.icon,
+						group,
+					})),
+				...(i.jumps ?? []).map((j) => ({
+					...j,
+					icon: i.icon,
+					group: i.labelKey ? t(i.labelKey) : group,
+				})),
+			]);
+	});
 
 	return (
 		<CommandDialog
@@ -70,16 +95,14 @@ export function CommandPaletteDialog({
 					{navigable.map((item) => (
 						<CommandItem
 							key={item.key}
-							value={`${item.label ?? (item.labelKey ? t(item.labelKey) : item.key)} ${item.group}`}
+							value={`${item.label} ${item.group}`}
 							onSelect={() => {
 								setOpen(false);
 								router.push(item.href);
 							}}
 						>
 							<NavIcon name={item.icon} className="size-4" />
-							<span>
-								{item.label ?? (item.labelKey ? t(item.labelKey) : item.key)}
-							</span>
+							<span>{item.label}</span>
 							{item.group && <CommandShortcut>{item.group}</CommandShortcut>}
 						</CommandItem>
 					))}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -10,7 +11,7 @@ import { CONTROL_STATUS } from "@/lib/entities/control";
 
 // Mandant 0: was die Plattform selbst umgesetzt hat — der lebende Nachweis.
 export default async function BaselinePage() {
-	await requireOrgPage();
+	const ctx = await requireOrgPage();
 	const t = await getTranslations("Baseline");
 	const tc = await getTranslations("Controls");
 	const ts = await getTranslations("Status");
@@ -23,6 +24,8 @@ export default async function BaselinePage() {
 	}
 	return (
 		<>
+			<SectionSwitch group="frameworks" current="/baseline" ctx={ctx} />
+
 			<PageHeader
 				eyebrow={t("eyebrow")}
 				title={t("title")}

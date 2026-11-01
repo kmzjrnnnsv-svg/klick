@@ -6,6 +6,7 @@ import { RegisterFilters } from "@/components/entity/register-filters";
 import { UserChip } from "@/components/entity/user-chip";
 import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { PlanTestForm } from "@/components/testprogramme/plan-test-form";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -111,6 +112,12 @@ async function TestProgrammePage({
 
 	return (
 		<>
+			<SectionSwitch
+				group="nonconformities"
+				current="/testprogramm"
+				ctx={ctx}
+			/>
+
 			<PageHeader
 				title={t("title")}
 				lead={t("lead")}

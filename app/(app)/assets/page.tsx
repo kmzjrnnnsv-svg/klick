@@ -7,7 +7,6 @@ import { EmptyState } from "@/components/entity/empty-state";
 import { LinkChips } from "@/components/entity/link-chips";
 import { OwnerChip } from "@/components/entity/owner-chip";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
-import { UserChip } from "@/components/entity/user-chip";
 import { withMessages } from "@/components/i18n/with-messages";
 import { AssetForm } from "@/components/registers/asset-form";
 import { Badge } from "@/components/ui/badge";

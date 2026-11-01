@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useEffect, useRef } from "react";
 import {
 	Tooltip,
 	TooltipContent,
@@ -13,10 +14,29 @@ import { activeNavKey, type NavGroup } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { NavIcon } from "./nav-icon";
 
-// Seitenleiste nach Apple HIG: zwei Ebenen (Gruppe → Seite), Gruppen
-// einklappbar (<details>, der Zustand bleibt beim Navigieren erhalten, weil
-// das Layout nicht neu montiert), Symbole in Akzentfarbe, Auswahl getönt,
-// Zähler als graue Zahl.
+// Seitenleiste nach Apple HIG: zwei Ebenen (Gruppe > Seite), Gruppen
+// einklappbar (<details>; der Zustand bleibt beim Navigieren erhalten, weil
+// das Layout nicht neu montiert, und steht im Browser, damit er auch nach
+// dem Neuladen gilt — die Gruppe mit der offenen Seite bleibt immer auf),
+// Symbole in Akzentfarbe, Auswahl getönt, Zähler als graue Zahl.
+const CLOSED_KEY = "klick.nav.closed";
+
+function readClosed(): Set<string> {
+	try {
+		const raw = window.localStorage.getItem(CLOSED_KEY);
+		return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+	} catch {
+		return new Set();
+	}
+}
+
+function writeClosed(closed: Set<string>) {
+	try {
+		window.localStorage.setItem(CLOSED_KEY, JSON.stringify([...closed]));
+	} catch {
+		// privates Fenster oder gesperrter Speicher: Zustand nur bis zum Neuladen
+	}
+}
 export function SidebarNav({
 	groups,
 	onNavigate,
@@ -27,9 +47,35 @@ export function SidebarNav({
 	const t = useTranslations("Nav");
 	const pathname = usePathname();
 	const activeKey = activeNavKey(groups, pathname);
+	const activeGroup = groups.find((g) =>
+		g.items.some((i) => i.key === activeKey),
+	)?.key;
+	const navRef = useRef<HTMLElement>(null);
+
+	// gemerkte Gruppen einklappen, die mit der offenen Seite aufklappen
+	useEffect(() => {
+		const closed = readClosed();
+		for (const el of navRef.current?.querySelectorAll<HTMLDetailsElement>(
+			"details[data-group]",
+		) ?? []) {
+			const key = el.dataset.group ?? "";
+			el.open = key === activeGroup || !closed.has(key);
+		}
+	}, [activeGroup]);
+
+	function remember(e: React.SyntheticEvent<HTMLDetailsElement>) {
+		const el = e.currentTarget;
+		const key = el.dataset.group;
+		if (!key) return;
+		const closed = readClosed();
+		if (el.open) closed.delete(key);
+		else closed.add(key);
+		writeClosed(closed);
+	}
 
 	return (
 		<nav
+			ref={navRef}
 			aria-label="Hauptnavigation"
 			className="flex flex-col gap-4 text-subhead"
 		>
@@ -96,7 +142,13 @@ export function SidebarNav({
 				);
 				if (!group.labelKey) return <div key={group.key}>{items}</div>;
 				return (
-					<details key={group.key} open className="group/nav">
+					<details
+						key={group.key}
+						open
+						data-group={group.key}
+						onToggle={remember}
+						className="group/nav"
+					>
 						<summary className="mb-0.5 flex h-7 cursor-default list-none pointer-coarse:h-11 items-center justify-between rounded-md px-2 font-semibold text-footnote text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
 							{t(group.labelKey)}
 							<ChevronDown

@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { isExternal } from "@/lib/auth/memberships";
@@ -42,6 +43,8 @@ export default async function ActivityPage() {
 	);
 	return (
 		<>
+			<SectionSwitch group="team" current="/aktivitaet" ctx={ctx} />
+
 			<PageHeader title={t("title")} lead={t("lead")} />
 			<div className="max-w-3xl">
 				<ActivityStream

@@ -5,7 +5,6 @@ import { OwnerChip } from "@/components/entity/owner-chip";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UrlTabs } from "@/components/entity/url-tabs";
-import { UserChip } from "@/components/entity/user-chip";
 import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { DependencyMap } from "@/components/processes/dependency-map";

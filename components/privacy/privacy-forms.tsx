@@ -19,7 +19,6 @@ import {
 	FormDialog,
 	NewTrigger,
 	ResponsibleField,
-	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";

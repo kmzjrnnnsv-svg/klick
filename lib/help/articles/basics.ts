@@ -24,13 +24,14 @@ export const BASICS: HelpArticle[] = [
 				id: "navigation",
 				heading: "So findest du dich zurecht",
 				body: [
-					"Am Computer steht links die Seitenleiste mit den Bereichen. Am Handy gibt es unten eine Leiste mit höchstens fünf Tabs: Heute, Umsetzen, Register, Steuerung und Suche. Umsetzen, Register und Steuerung öffnen eine Liste ihrer Seiten.",
+					"Am Computer steht links die Seitenleiste mit den Bereichen. Ab Tablet-Breite scrollen Seitenleiste und Inhalt je für sich; Impressum und Datenschutz stehen klein unten in der Seitenleiste. Zugeklappte Gruppen bleiben zu, bis du sie wieder öffnest. Am Handy gibt es unten eine Leiste mit höchstens fünf Tabs: Heute, Umsetzen, Register, Steuerung und Suche. Umsetzen, Register und Steuerung öffnen eine Liste ihrer Seiten.",
+					"Verwandte Seiten teilen sich einen Eintrag. Oben auf der Seite wechselst du zwischen ihnen: Synergien und Zusammenhänge, Kalender und Roadmap (Planung), Managementbewertung und Berichte an die GL, Abweichungen und Testprogramm, Team und Aktivität, Rahmenwerke und Plattform-Baseline.",
 				],
 				list: [
 					"Heute: deine Aufgaben, offene Freigaben, Kenntnisnahmen und was bald fällig ist.",
-					"Umsetzen: Überblick, Gap-Analyse, Controls, Synergien, Nachweise, Sicherheit und die Rahmenwerke.",
+					"Umsetzen: Überblick, Gap-Analyse, Rahmenwerke (alle gewählten auf einer Seite), Controls, Nachweise, Synergien und Sicherheit.",
 					"Register: Risiken, Dokumente, Prozesse, Dienstleister, Assets, Vorfälle, Produkte, Schulungen, Datenschutz.",
-					"Steuerung: Organisation, Beschlüsse, Audits, Managementbewertung, Berichte, Trust Center, Abweichungen, Testprogramm, Kalender, Roadmap und, je nach Erlaubnis, Geldwäsche und CASP-Themen.",
+					"Steuerung: Organisation, Beschlüsse, Audits, Managementbewertung, Trust Center, Abweichungen, Planung und, je nach Erlaubnis, Geldwäsche und CASP-Themen.",
 					"Oben rechts: Suche (⌘K bzw. Strg+K), Glocke mit Benachrichtigungen, dein Konto und der Hilfe-Knopf. Der Hilfe-Knopf öffnet immer den Artikel zur aktuellen Seite.",
 				],
 			},

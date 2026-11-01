@@ -9,6 +9,7 @@ import {
 	RelationTable,
 } from "@/components/relations/relation-map";
 import { ThemeSections } from "@/components/relations/theme-sections";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { THEMES } from "@/lib/compliance/catalog/themes";
 import {
@@ -47,6 +48,8 @@ export default async function RelationsPage({
 
 	return (
 		<>
+			<SectionSwitch group="synergies" current="/zusammenhaenge" ctx={ctx} />
+
 			<PageHeader title={t("pageTitle")} lead={t("pageLead")} />
 			<div className="flex flex-col gap-8">
 				<ProcessSteps links />

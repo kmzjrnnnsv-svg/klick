@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { AccessReview } from "@/components/team/access-review";
 import { InviteForm } from "@/components/team/invite-form";
 import { MemberAccessForm } from "@/components/team/member-access-form";
@@ -74,6 +75,8 @@ async function TeamPage() {
 
 	return (
 		<>
+			<SectionSwitch group="team" current="/team" ctx={ctx} />
+
 			<PageHeader
 				title={t("title")}
 				lead={t("lead")}

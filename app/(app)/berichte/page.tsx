@@ -12,6 +12,7 @@ import {
 import { ReviewDigestView } from "@/components/management-review/review-digest";
 import { DeleteRowButton } from "@/components/organisation/governance-forms";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { Badge } from "@/components/ui/badge";
 import { managementReports } from "@/db/schema";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -112,6 +113,8 @@ async function ReportsPage() {
 
 	return (
 		<>
+			<SectionSwitch group="review" current="/berichte" ctx={ctx} />
+
 			<PageHeader
 				title={t("pageTitle")}
 				lead={t("lead")}

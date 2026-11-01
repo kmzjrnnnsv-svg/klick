@@ -15,9 +15,9 @@ import {
 import { EmptyState } from "@/components/entity/empty-state";
 import { OwnerChip } from "@/components/entity/owner-chip";
 import { UrlTabs } from "@/components/entity/url-tabs";
-import { UserChip } from "@/components/entity/user-chip";
 import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { Badge } from "@/components/ui/badge";
 import {
 	Table,
@@ -190,6 +190,8 @@ async function CalendarPage({
 
 	return (
 		<>
+			<SectionSwitch group="planning" current="/kalender" ctx={ctx} />
+
 			<PageHeader
 				title={t("title")}
 				lead={t("lead")}

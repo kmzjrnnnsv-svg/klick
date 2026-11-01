@@ -2,7 +2,6 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { OwnerChip } from "@/components/entity/owner-chip";
-import { UserChip } from "@/components/entity/user-chip";
 import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
 import { withMessages } from "@/components/i18n/with-messages";
 import { ReviewDigestView } from "@/components/management-review/review-digest";
@@ -13,6 +12,7 @@ import {
 } from "@/components/management-review/review-forms";
 import { PageHeader } from "@/components/page-header";
 import { ResolutionForm } from "@/components/resolutions/resolution-form";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -71,6 +71,8 @@ async function ManagementReviewPage() {
 
 	return (
 		<>
+			<SectionSwitch group="review" current="/managementbewertung" ctx={ctx} />
+
 			<PageHeader
 				title={t("title")}
 				lead={t("lead")}

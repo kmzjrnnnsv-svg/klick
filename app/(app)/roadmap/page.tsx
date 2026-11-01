@@ -13,6 +13,7 @@ import {
 	MilestoneForm,
 	RoadmapBoard,
 } from "@/components/roadmap/roadmap-board";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { Badge } from "@/components/ui/badge";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -88,6 +89,8 @@ async function RoadmapPage({
 
 	return (
 		<>
+			<SectionSwitch group="planning" current="/roadmap" ctx={ctx} />
+
 			<PageHeader
 				title={t("title")}
 				lead={t("lead")}

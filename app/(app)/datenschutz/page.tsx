@@ -4,7 +4,6 @@ import { deleteProcessingActivity } from "@/app/actions/privacy";
 import { EmptyState } from "@/components/entity/empty-state";
 import { OwnerChip } from "@/components/entity/owner-chip";
 import { UrlTabs } from "@/components/entity/url-tabs";
-import { UserChip } from "@/components/entity/user-chip";
 import { withMessages } from "@/components/i18n/with-messages";
 import { DeleteRowButton } from "@/components/organisation/governance-forms";
 import { PageHeader } from "@/components/page-header";
