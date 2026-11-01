@@ -661,6 +661,14 @@ describe("Download gegen nachgebauten GitHub-Dienst", () => {
 		chmodSync(f, 0o600);
 		expect(() => readToken(f)).toThrow(/keinen GitHub-Token/);
 		expect(() => readToken(join(tmp, "fehlt"))).toThrow(/fehlt/);
+		// Verweis auf eine Token-Datei: nicht folgen
+		const echt = join(tmp, "echt-token");
+		writeFileSync(echt, `${TOKEN}\n`);
+		chmodSync(echt, 0o600);
+		expect(readToken(echt)).toBe(TOKEN);
+		const verweis = join(tmp, "token-verweis");
+		symlinkSync(echt, verweis);
+		expect(() => readToken(verweis)).toThrow(/keine reguläre Datei/);
 	});
 });
 

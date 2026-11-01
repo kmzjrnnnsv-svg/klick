@@ -22,13 +22,16 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+	closeSync,
+	constants,
 	existsSync,
+	fstatSync,
 	lstatSync,
 	mkdirSync,
+	openSync,
 	readdirSync,
 	readFileSync,
 	readlinkSync,
-	statSync,
 	symlinkSync,
 	writeFileSync,
 } from "node:fs";
@@ -269,14 +272,31 @@ export function readTar(buf) {
 
 // ── packen (CI) ──────────────────────────────────────────────────────────
 
+/**
+ * Datei einmal öffnen (Verweise nicht folgen) und genau diesen Deskriptor
+ * prüfen und lesen: kein Zeitfenster zwischen Prüfen und Lesen.
+ * @param {string} file
+ * @param {(st: import("node:fs").Stats) => void} [check]
+ */
+function readOpened(file, check) {
+	const fd = openSync(file, constants.O_RDONLY | constants.O_NOFOLLOW);
+	try {
+		const st = fstatSync(fd);
+		if (!st.isFile()) throw new ReleaseError(`keine Datei: ${file}`);
+		check?.(st);
+		return readFileSync(fd);
+	} finally {
+		closeSync(fd);
+	}
+}
+
 /** Einträge eines Ordners, sortiert; in `.next` ohne NEXT_EXCLUDE */
 export function collect(root, rel, top = true) {
 	const abs = join(root, rel);
 	const st = lstatSync(abs);
 	if (st.isSymbolicLink())
 		return [{ path: rel, type: "symlink", link: readlinkSync(abs) }];
-	if (st.isFile())
-		return [{ path: rel, type: "file", data: readFileSync(abs) }];
+	if (st.isFile()) return [{ path: rel, type: "file", data: readOpened(abs) }];
 	if (!st.isDirectory()) throw new ReleaseError(`nicht packbar: ${rel}`);
 	const out = [{ path: rel, type: "dir" }];
 	for (const n of readdirSync(abs).sort()) {
@@ -645,17 +665,24 @@ let SECRET = "";
 export const redact = (s) =>
 	SECRET ? String(s).split(SECRET).join("***") : String(s);
 
-/** Token aus einer Datei, die nur dem Besitzer gehört */
+/**
+ * Token aus einer Datei, die nur dem Besitzer gehört; als root muss sie
+ * auch root gehören. Geprüft wird der geöffnete Deskriptor, kein Pfad.
+ */
 export function readToken(file) {
-	let st;
+	let raw;
 	try {
-		st = statSync(file);
-	} catch {
-		throw new ReleaseError(`${file} fehlt`, 2);
+		raw = readOpened(file, (st) => {
+			if ((st.mode & 0o077) !== 0)
+				throw new ReleaseError(`${file} ist für andere lesbar (chmod 600)`, 2);
+			if (process.getuid?.() === 0 && st.uid !== 0)
+				throw new ReleaseError(`${file} gehört nicht root`, 2);
+		});
+	} catch (e) {
+		if (e instanceof ReleaseError) throw e;
+		throw new ReleaseError(`${file} fehlt oder ist keine reguläre Datei`, 2);
 	}
-	if ((st.mode & 0o077) !== 0)
-		throw new ReleaseError(`${file} ist für andere lesbar (chmod 600)`, 2);
-	const t = readFileSync(file, "utf8").trim();
+	const t = raw.toString("utf8").trim();
 	if (!/^[A-Za-z0-9_]{20,255}$/.test(t))
 		throw new ReleaseError(`${file} enthält keinen GitHub-Token`, 2);
 	SECRET = t;
