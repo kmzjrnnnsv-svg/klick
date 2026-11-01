@@ -3,40 +3,138 @@
 // ab Desktop Liste links, Bereich rechts. Der Bereich steht in ?tab= (alte
 // Links bleiben gültig). Pure, getestet.
 
-export const SETTINGS_GROUPS = ["account", "org", "methods"] as const;
+// Fünf Gruppen (S3, Nov 2026): was dich betrifft, die Organisation, wer
+// hinein darf, womit Klick verbunden ist, wie ihr arbeitet.
+export const SETTINGS_GROUPS = [
+	"account",
+	"org",
+	"security",
+	"connections",
+	"methods",
+] as const;
 export type SettingsGroup = (typeof SETTINGS_GROUPS)[number];
 
+// `terms`: Suchwörter neben Name und Satz (klein, ohne Umlaute nötig)
 export const SETTINGS_SECTIONS = [
-	{ key: "security", group: "account" },
-	{ key: "notifications", group: "account" },
-	{ key: "organisation", group: "org" },
-	{ key: "frameworks", group: "org" },
-	{ key: "rollen", group: "org", needs: "settings" },
-	{ key: "sso", group: "org" },
-	{ key: "portal", group: "org", needs: "settings" },
-	{ key: "integrationen", group: "org", needs: "integrations" },
+	{
+		key: "security",
+		group: "account",
+		terms: [
+			"passkey",
+			"zwei-faktor",
+			"totp",
+			"sicherheitsschlüssel",
+			"sitzung",
+		],
+	},
+	{
+		key: "notifications",
+		group: "account",
+		terms: ["mail", "push", "teams", "tages-mail", "benachrichtigung"],
+	},
+	{
+		key: "organisation",
+		group: "org",
+		terms: ["stammdaten", "lei", "name", "löschen", "neu beginnen"],
+	},
+	{
+		key: "frameworks",
+		group: "org",
+		terms: ["iso", "dora", "nis2", "lizenzstufe", "variante", "eigene"],
+	},
+	{
+		key: "rollen",
+		group: "org",
+		needs: "settings",
+		terms: ["rechte", "berechtigung", "abteilung", "eigene rolle"],
+	},
+	{
+		key: "abo",
+		group: "org",
+		needs: "settings",
+		terms: ["preis", "rechnung", "leistung", "anfrage", "berater"],
+	},
+	{
+		key: "sso",
+		group: "security",
+		terms: ["saml", "oidc", "entra", "microsoft", "google", "okta", "domain"],
+	},
+	// IP-Liste je Org (Härtung A5): ändern nur Inhaber:innen (Vier-Augen)
+	{
+		key: "netzwerk",
+		group: "security",
+		needs: "settings",
+		terms: ["ip", "ip-liste", "standort", "tunnel", "vpn", "büro"],
+	},
 	// Lockbox (Härtung A3): alle internen und externen Mitglieder sehen die
 	// Zugriffe durch Klick, entscheiden dürfen Inhaber:innen und GL
-	{ key: "zugriffe", group: "org" },
+	{
+		key: "zugriffe",
+		group: "security",
+		terms: ["lockbox", "support", "impersonation", "freigabe"],
+	},
 	// Vier-Augen (Härtung A4): offene Anträge sehen alle, zustimmen dürfen
 	// andere Inhaber:innen und GL
-	{ key: "sicherheitsaenderungen", group: "org" },
-	// IP-Liste je Org (Härtung A5): ändern nur Inhaber:innen (Vier-Augen)
-	{ key: "netzwerk", group: "org", needs: "settings" },
-	// KI mit eigenem Schlüssel (ADR-032): ändern nur Inhaber:innen
-	{ key: "ki", group: "org", needs: "settings" },
+	{
+		key: "sicherheitsaenderungen",
+		group: "security",
+		terms: ["vier-augen", "wartezeit", "zustimmen", "antrag"],
+	},
 	// Verlauf mit Bitcoin-Anker (Härtung V): alle Mitglieder und Prüfer:innen
-	{ key: "verlauf", group: "org" },
-	{ key: "abo", group: "org", needs: "settings" },
-	{ key: "workflows", group: "methods" },
-	{ key: "audits", group: "methods" },
-	{ key: "risk", group: "methods" },
-	{ key: "lieferanten", group: "methods" },
-	{ key: "numbering", group: "methods" },
+	{
+		key: "verlauf",
+		group: "security",
+		terms: ["audit-log", "protokoll", "bitcoin", "anker", "kette"],
+	},
+	{
+		key: "integrationen",
+		group: "connections",
+		needs: "integrations",
+		terms: ["token", "ci", "scan", "both.money", "teams", "api"],
+	},
+	{
+		key: "portal",
+		group: "connections",
+		needs: "settings",
+		terms: ["mitarbeitende", "richtlinien", "einmal-code", "domain"],
+	},
+	// KI mit eigenem Schlüssel (ADR-032): ändern nur Inhaber:innen
+	{
+		key: "ki",
+		group: "connections",
+		needs: "settings",
+		terms: ["claude", "openai", "gemini", "mistral", "azure", "schlüssel"],
+	},
+	{
+		key: "workflows",
+		group: "methods",
+		terms: ["freigabe", "designer", "vier-augen", "unterschrift", "standard"],
+	},
+	{
+		key: "audits",
+		group: "methods",
+		terms: ["frist", "turnus", "abweichung", "nebenabweichung"],
+	},
+	{
+		key: "risk",
+		group: "methods",
+		terms: ["risikomethode", "matrix", "appetit", "bsi 200-3", "stufen"],
+	},
+	{
+		key: "lieferanten",
+		group: "methods",
+		terms: ["dienstleister", "kriterien", "bewertung", "auslagerung"],
+	},
+	{
+		key: "numbering",
+		group: "methods",
+		terms: ["nummer", "nummernkreis", "präfix", "dokumentnummer"],
+	},
 ] as const satisfies readonly {
 	key: string;
 	group: SettingsGroup;
 	needs?: "settings" | "integrations";
+	terms: readonly string[];
 }[];
 
 export type SettingsSectionKey = (typeof SETTINGS_SECTIONS)[number]["key"];
@@ -82,4 +180,29 @@ export function resolveSettingsSection(
 	return hit
 		? { key: hit, chosen: true }
 		: { key: DEFAULT_SETTINGS_SECTION, chosen: false };
+}
+
+// Suche in der Liste (S3): Name, Satz und Suchwörter; Groß-/Kleinschreibung
+// und Umlaute egal, jedes Wort der Eingabe muss vorkommen
+const fold = (v: string) =>
+	v
+		.toLowerCase()
+		.replace(/ä/g, "a")
+		.replace(/ö/g, "o")
+		.replace(/ü/g, "u")
+		.replace(/ß/g, "ss");
+
+export function matchSettings<T extends { key: SettingsSectionKey }>(
+	query: string,
+	items: readonly (T & { title: string; hint: string })[],
+): T[] {
+	const words = fold(query).split(/\s+/).filter(Boolean);
+	if (words.length === 0) return [...items];
+	const terms = new Map(
+		SETTINGS_SECTIONS.map((s) => [s.key, s.terms.join(" ")] as const),
+	);
+	return items.filter((i) => {
+		const text = fold(`${i.title} ${i.hint} ${terms.get(i.key) ?? ""}`);
+		return words.every((w) => text.includes(w));
+	});
 }

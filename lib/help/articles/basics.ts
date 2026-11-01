@@ -210,7 +210,7 @@ export const BASICS: HelpArticle[] = [
 				steps: [
 					"Öffne die Anmeldeseite und tipp auf „Mit Passkey anmelden“, oder wähl den Passkey direkt im E-Mail-Feld aus.",
 					"Bestätige mit Fingerabdruck, Gesicht oder PIN.",
-					"Unter Einstellungen > Sicherheit legst du weitere Passkeys an, zum Beispiel für Handy und Laptop.",
+					"Unter Einstellungen > Anmeldung & Passkeys legst du weitere Passkeys an, zum Beispiel für Handy und Laptop.",
 				],
 				tip: "Leg mindestens zwei Passkeys an. Den letzten Faktor kannst du nicht löschen, damit du dich nicht aussperrst.",
 			},
