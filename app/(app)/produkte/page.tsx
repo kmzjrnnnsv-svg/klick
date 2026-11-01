@@ -18,6 +18,7 @@ import { fmtDate } from "@/lib/compliance/page-data";
 import { listProducts } from "@/lib/compliance/queries-products";
 import { readOrg } from "@/lib/db/with-org";
 import { PRODUCT_STATUS, PRODUCT_STATUSES } from "@/lib/entities/product";
+import { PAGE_SIZE, pageParam, pageSlice } from "@/lib/paging";
 
 type Row = Awaited<ReturnType<typeof listProducts>>[number] & {
 	cra: ReturnType<typeof productCraStatus>;
@@ -68,6 +69,8 @@ async function ProductsPage({
 		.filter((r) => !status || r.status === status)
 		.filter((r) => !gaps || r.cra.state === "gaps")
 		.filter((r) => !unassessed || r.cra.state === "unassessed");
+	// Liste seitenweise zeichnen (Zähler über alle Treffer)
+	const paged = pageSlice(filtered, pageParam(sp.seite));
 
 	const columns: Column<Row>[] = [
 		{
@@ -181,7 +184,14 @@ async function ProductsPage({
 			]}
 			searchPlaceholder={t("search")}
 			columns={columns}
-			rows={filtered}
+			rows={paged.rows}
+			paging={{
+				page: paged.page,
+				total: paged.total,
+				pageSize: PAGE_SIZE,
+				path: "/produkte",
+				query: sp,
+			}}
 			rowHref={(r) => `/produkte/${r.id}`}
 			empty={
 				rows.length === 0 ? (

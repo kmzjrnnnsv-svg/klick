@@ -23,6 +23,7 @@ import { linkIndex } from "@/lib/compliance/queries-links";
 import { listAssets, listProviders } from "@/lib/compliance/queries-p2";
 import { newRiskHref } from "@/lib/compliance/risk-sources";
 import { readOrg } from "@/lib/db/with-org";
+import { PAGE_SIZE, pageParam, pageSlice } from "@/lib/paging";
 import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 type Row = Awaited<ReturnType<typeof listAssets>>[number];
@@ -79,6 +80,8 @@ async function AssetsPage({ searchParams }: { searchParams: Promise<Search> }) {
 		.filter((r) => !unowned || !r.ownerUserId)
 		// abgelehnte Aufnahmen nur auf Wunsch (?status=declined)
 		.filter((r) => r.status !== "declined" || one(sp.status) === "declined");
+	// Liste seitenweise zeichnen (Zähler über alle Treffer)
+	const paged = pageSlice(filtered, pageParam(sp.seite));
 	const columns: Column<Row>[] = [
 		{
 			key: "name",
@@ -299,7 +302,14 @@ async function AssetsPage({ searchParams }: { searchParams: Promise<Search> }) {
 				{ key: "lebenszyklus", label: t("filterLifecycle") },
 			]}
 			columns={columns}
-			rows={filtered}
+			rows={paged.rows}
+			paging={{
+				page: paged.page,
+				total: paged.total,
+				pageSize: PAGE_SIZE,
+				path: "/assets",
+				query: sp,
+			}}
 			rowHref={() => "/assets"}
 			empty={
 				<EmptyState

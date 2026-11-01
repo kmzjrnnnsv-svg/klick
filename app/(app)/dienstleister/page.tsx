@@ -35,6 +35,7 @@ import { listProviders } from "@/lib/compliance/queries-p2";
 import { latestRatingsByProvider } from "@/lib/compliance/queries-ratings";
 import { TRAFFIC_TONE } from "@/lib/compliance/supplier-rating";
 import { readOrg } from "@/lib/db/with-org";
+import { PAGE_SIZE, pageParam, pageSlice } from "@/lib/paging";
 import { cn } from "@/lib/utils";
 import { responsibleValue } from "@/lib/validation/responsible-ref";
 
@@ -183,6 +184,8 @@ async function ProvidersPage({
 		.filter((r) => !pt || r.partnerType === pt)
 		// abgelehnte Aufnahmen nur auf Wunsch (?status=declined)
 		.filter((r) => (st ? r.status === st : r.status !== "declined"));
+	// Liste seitenweise zeichnen (Zähler über alle Treffer)
+	const paged = pageSlice(filtered, pageParam(sp.seite));
 	const columns: Column<Row>[] = [
 		{
 			key: "name",
@@ -461,7 +464,14 @@ async function ProvidersPage({
 				},
 			]}
 			columns={columns}
-			rows={filtered}
+			rows={paged.rows}
+			paging={{
+				page: paged.page,
+				total: paged.total,
+				pageSize: PAGE_SIZE,
+				path: "/dienstleister",
+				query: sp,
+			}}
 			rowHref={(r) => `/dienstleister/${r.id}`}
 			empty={
 				<EmptyState

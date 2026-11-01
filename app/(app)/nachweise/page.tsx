@@ -11,14 +11,18 @@ import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
-import { maskSecret, restrictedView } from "@/lib/auth/visibility";
+import { maskSecret, restrictedView, seesSecret } from "@/lib/auth/visibility";
 import { fmtDate } from "@/lib/compliance/page-data";
-import { listEvidenceWithControls } from "@/lib/compliance/queries";
+import {
+	type EvidenceListRow,
+	pageEvidenceRegister,
+} from "@/lib/compliance/queries-evidence-register";
 import { readOrg } from "@/lib/db/with-org";
 import { evidenceValidity } from "@/lib/evidence/current";
 import { berlinToday } from "@/lib/evidence-studio/queries";
+import { PAGE_SIZE, pageParam } from "@/lib/paging";
 
-type Row = Awaited<ReturnType<typeof listEvidenceWithControls>>[number];
+type Row = EvidenceListRow;
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
@@ -36,42 +40,32 @@ async function EvidencePage({
 	// ersetzte Fassungen zählen nicht; auf Wunsch sichtbar (Chip)
 	const restricted = restrictedView(ctx);
 	const allVersions = one(sp.fassungen) === "1" && !restricted;
-	const rows = maskSecret(
-		ctx,
-		await readOrg(toOrgCtx(ctx), (tx) =>
-			listEvidenceWithControls(tx, ctx.orgId, {
-				includeSuperseded: allVersions,
-			}),
-		),
-		t("secretTitle"),
-	);
-	const today = berlinToday();
-	const canCreate = allows(ctx, { evidence: ["create"] });
-
 	const q = one(sp.q)?.toLowerCase();
 	const type = one(sp.type);
 	const cls = one(sp.classification);
 	const mine = one(sp.mine) === "1";
 	const dlpOnly = one(sp.dlp) === "1";
+	// eine Seite aus der Datenbank, Filter und Zähler in SQL
+	const result = await readOrg(toOrgCtx(ctx), (tx) =>
+		pageEvidenceRegister(tx, ctx.orgId, {
+			includeSuperseded: allVersions,
+			q,
+			type,
+			classification: cls,
+			createdBy: mine ? ctx.userId : undefined,
+			dlpOnly,
+			seesSecret: seesSecret(ctx),
+			page: pageParam(sp.seite),
+		}),
+	);
+	const filtered = maskSecret(ctx, result.rows, t("secretTitle"));
+	const today = berlinToday();
+	const canCreate = allows(ctx, { evidence: ["create"] });
 	// DLP-Treffer: Funde, die eine Regel ausgelöst haben (nicht nur Info).
 	const dlpHits = (r: Row) =>
 		r.dlp && r.dlp.action !== "allow"
 			? r.dlp.findings.reduce((s, f) => s + f.count, 0)
 			: 0;
-	const filtered = rows
-		// Dateien von Dokumentfassungen gehören zum Dokument (/dokumente)
-		.filter((r) => r.source !== "document")
-		.filter(
-			(r) =>
-				!q ||
-				`${r.title} ${r.fileName ?? ""} ${r.controlCodes.join(" ")}`
-					.toLowerCase()
-					.includes(q),
-		)
-		.filter((r) => !type || r.type === type)
-		.filter((r) => !cls || r.classification === cls)
-		.filter((r) => !mine || r.createdByUserId === ctx.userId)
-		.filter((r) => !dlpOnly || dlpHits(r) > 0);
 
 	const columns: Column<Row>[] = [
 		{
@@ -206,6 +200,13 @@ async function EvidencePage({
 			]}
 			columns={columns}
 			rows={filtered}
+			paging={{
+				page: result.page,
+				total: result.total,
+				pageSize: PAGE_SIZE,
+				path: "/nachweise",
+				query: sp,
+			}}
 			rowHref={(r) => `/nachweise/${r.id}`}
 			empty={
 				<EmptyState

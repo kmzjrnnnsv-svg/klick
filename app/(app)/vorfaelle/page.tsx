@@ -14,6 +14,7 @@ import { fmtDate } from "@/lib/compliance/page-data";
 import { listIncidents } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { INCIDENT_STATUS, INCIDENT_STATUSES } from "@/lib/entities/incident";
+import { PAGE_SIZE, pageParam, pageSlice } from "@/lib/paging";
 
 type Row = Awaited<ReturnType<typeof listIncidents>>[number];
 type Search = Record<string, string | string[] | undefined>;
@@ -50,6 +51,8 @@ export default async function IncidentsPage({
 				r.assigneeUserId === ctx.userId,
 		)
 		.filter((r) => !openOnly || r.status !== "closed");
+	// Liste seitenweise zeichnen (Zähler über alle Treffer)
+	const paged = pageSlice(filtered, pageParam(sp.seite));
 
 	const nextClock = (r: Row) => {
 		const c = [
@@ -180,7 +183,14 @@ export default async function IncidentsPage({
 				{ key: "open", label: ts("incOpen") },
 			]}
 			columns={columns}
-			rows={filtered}
+			rows={paged.rows}
+			paging={{
+				page: paged.page,
+				total: paged.total,
+				pageSize: PAGE_SIZE,
+				path: "/vorfaelle",
+				query: sp,
+			}}
 			rowHref={(r) => `/vorfaelle/${r.id}`}
 			empty={
 				<EmptyState

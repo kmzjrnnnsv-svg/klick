@@ -11,6 +11,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { Pagination, type Paging } from "./pagination";
 import {
 	type ChipDef,
 	type FilterDef,
@@ -46,6 +47,7 @@ export function RegisterPage<T extends { id: string }>({
 	rowHref,
 	empty,
 	footer,
+	paging,
 }: {
 	title: string;
 	lead?: string;
@@ -59,6 +61,8 @@ export function RegisterPage<T extends { id: string }>({
 	rowHref: (row: T) => string;
 	empty: ReactNode;
 	footer?: ReactNode;
+	// `rows` ist dann eine Seite; ohne zeichnet die Seite alle Zeilen
+	paging?: Paging;
 }) {
 	const linkKey = columns.find((c) => !c.interactive)?.key;
 	return (
@@ -163,6 +167,7 @@ export function RegisterPage<T extends { id: string }>({
 					</ul>
 				</>
 			)}
+			{paging && rows.length > 0 && <Pagination {...paging} />}
 			{footer && (
 				<div className="mt-3 px-4 text-footnote text-muted-foreground">
 					{footer}

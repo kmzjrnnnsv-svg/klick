@@ -1002,7 +1002,11 @@
 		"requiredBy": "Gefordert von {list}",
 		"notFound": "Nicht gefunden.",
 		"viewer": "Lesender Zugriff — Änderungen sind in deiner Rolle nicht möglich.",
-		"noMatches": "Keine Treffer für diese Filter."
+		"noMatches": "Keine Treffer für diese Filter.",
+		"pagePrev": "Vorherige Seite",
+		"pageNext": "Nächste Seite",
+		"pageRange": "{from}–{to} von {total}",
+		"pageNav": "Seiten"
 	},
 	"Tasks": {
 		"title": "Aufgaben",
