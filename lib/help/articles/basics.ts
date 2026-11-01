@@ -39,7 +39,7 @@ export const BASICS: HelpArticle[] = [
 				id: "start",
 				heading: "Die ersten zehn Minuten",
 				steps: [
-					"Schließ die geführte Einrichtung ab: Rollen, Unternehmen, Standorte, Tätigkeit, IT und Daten, Rahmenwerke. Klick legt daraus deinen Arbeitsvorrat an.",
+					"Schließ die geführte Einrichtung ab: Rollen, Unternehmen und Standorte, Tätigkeit, IT und Daten, Rahmenwerke. Klick legt daraus deinen Arbeitsvorrat an.",
 					"Starte die Gap-Analyse. Sie stellt je Control eine Frage und zeigt dir, wo du heute stehst.",
 					"Öffne Heute. Dort stehen die Aufgaben, die aus Einrichtung und Gap-Analyse entstanden sind.",
 					"Lade für erledigte Controls Nachweise hoch oder erzeuge sie in Klick (Nachweis-Werkstatt).",
@@ -142,15 +142,14 @@ export const BASICS: HelpArticle[] = [
 		area: "basics",
 		title: "Geführte Einrichtung",
 		summary:
-			"In sieben Schritten von der neuen Organisation zum Arbeitsvorrat: Rollen, Unternehmen, Standorte, Tätigkeit, IT, Rahmenwerke, Gap-Analyse.",
+			"In sechs Schritten von der neuen Organisation zum Arbeitsvorrat: Rollen, Unternehmen und Standorte, Tätigkeit, IT, Rahmenwerke, Gap-Analyse.",
 		sections: [
 			{
 				id: "ablauf",
-				heading: "Die sieben Schritte",
+				heading: "Die sechs Schritte",
 				steps: [
-					"Rollen: Wer ist Geschäftsleitung, wer Informationssicherheitsbeauftragte:r, Datenschutzbeauftragte:r, Geldwäschebeauftragte:r? Eine Person kann mehrere Funktionen tragen, eine Funktion mehrere Personen haben. Dazu legst du fest, welche Funktion für welchen Bereich verantwortlich ist.",
-					"Unternehmen: Rechtsform, Beschäftigte, Umsatz und Bilanzsumme. Klick stuft daraus KMU-Status, NIS2-Betroffenheit und DORA-Anwendbarkeit ein (als Orientierung gekennzeichnet).",
-					"Standorte: Büros, Rechenzentren, Lager. Kritische Standorte bekommen später eine Notfallübung im Testprogramm.",
+					"Rollen: Wer ist Geschäftsleitung, wer Informationssicherheitsbeauftragte:r, Datenschutzbeauftragte:r, Geldwäschebeauftragte:r? Eine Person kann mehrere Funktionen tragen, eine Funktion mehrere Personen haben. Welche Funktion für welchen Bereich verantwortlich ist, legst du auf Wunsch gleich fest; sonst übernimmt Klick beim Weiter den Vorschlag (zum Beispiel Datenschutz bei der oder dem DSB).",
+					"Unternehmen und Standorte: Rechtsform, Beschäftigte, Umsatz und Bilanzsumme. Klick stuft daraus KMU-Status, NIS2-Betroffenheit und DORA-Anwendbarkeit ein (als Orientierung gekennzeichnet). Darunter legst du mindestens einen Standort an; weitere jederzeit unter Organisation > Standorte. Kritische Standorte bekommen später eine Notfallübung im Testprogramm.",
 					"Tätigkeit: Branche, Finanzdienste, Kryptowerte-Dienste, Produkte. Daraus folgen Lizenzstufe und Pflichten.",
 					"IT und Daten: wichtige Systeme, Dienstleister, Art der Daten. Daraus entstehen Assets und Dienstleister im Register. Dazu ein paar Ja/Nein-Fragen, etwa zu KI, Kundschaft aus der Autoindustrie, Aufträgen für US-Behörden, Gesundheitsdaten aus den USA, einer Erlaubnis in New York oder einer Partnerschaft mit AWS oder Microsoft. Sie entscheiden, welche weiteren Rahmenwerke Klick vorschlägt.",
 					"Rahmenwerke: Klick schlägt vor, was für dich gilt; du wählst endgültig aus.",

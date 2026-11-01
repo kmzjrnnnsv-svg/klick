@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { saveCompanyProfile } from "@/app/actions/setup";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,10 +35,13 @@ export function CompanyStep({
 	initial,
 	sector,
 	nextHref,
+	children,
 }: {
 	initial: EntityProfile;
 	sector: Sector;
 	nextHref: string;
+	// Standorte (eigene Formulare) zwischen Angaben und „Weiter“ (S4)
+	children?: ReactNode;
 }) {
 	const t = useTranslations("Setup");
 	const { pending, run } = useStepRunner(nextHref);
@@ -88,114 +91,117 @@ export function CompanyStep({
 	);
 
 	return (
-		<form
-			className="flex flex-col gap-6"
-			onSubmit={(e) => {
-				e.preventDefault();
-				run(() =>
-					saveCompanyProfile({
-						legalForm: d.legalForm,
-						registerNumber: d.registerNumber,
-						country: d.country,
-						employees: num(d.employees),
-						revenueEur: num(d.revenueEur),
-						totalAssetsEur: num(d.totalAssetsEur),
-						nis2Sector: d.nis2Sector === "none" ? "" : d.nis2Sector,
-						customerTypes: d.customerTypes,
-					}),
-				);
-			}}
-		>
-			<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-				{field("legalForm", { placeholder: "GmbH", autoComplete: "off" })}
-				{field("registerNumber", {
-					placeholder: "HRB 12345",
-					autoComplete: "off",
-				})}
-				{field("country", {
-					maxLength: 2,
-					autoComplete: "country",
-					spellCheck: false,
-				})}
-				{money("employees")}
-				{money("revenueEur")}
-				{money("totalAssetsEur")}
-			</div>
-			<div className="flex flex-col gap-1.5">
-				<Label htmlFor="co-nis2">{t("nis2Sector")}</Label>
-				<Select
-					value={d.nis2Sector}
-					onValueChange={(v) => setD({ ...d, nis2Sector: v })}
-				>
-					<SelectTrigger id="co-nis2" className="w-full">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="none">{t("nis2None")}</SelectItem>
-						{NIS2_SECTORS.map((s) => (
-							<SelectItem key={s.key} value={s.key}>
-								{s.label}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-			</div>
-			<fieldset className="flex flex-wrap gap-4 text-subhead">
-				<legend className="mb-1.5 font-medium text-subhead">
-					{t("customerTypes")}
-				</legend>
-				{CUSTOMER_TYPES.map((c) => (
-					<label key={c} className="flex items-center gap-2">
-						<Checkbox
-							checked={d.customerTypes.includes(c)}
-							onCheckedChange={(v) =>
-								setD({
-									...d,
-									customerTypes: v
-										? [...d.customerTypes, c]
-										: d.customerTypes.filter((x) => x !== c),
-								})
-							}
-						/>
-						{t(`customer_${c}`)}
-					</label>
-				))}
-			</fieldset>
-
-			<section
-				aria-live="polite"
-				className="flex flex-col gap-2 rounded-xl bg-muted p-4 text-subhead"
+		<div className="flex flex-col gap-6">
+			<form
+				id="setup-company"
+				className="flex flex-col gap-6"
+				onSubmit={(e) => {
+					e.preventDefault();
+					run(() =>
+						saveCompanyProfile({
+							legalForm: d.legalForm,
+							registerNumber: d.registerNumber,
+							country: d.country,
+							employees: num(d.employees),
+							revenueEur: num(d.revenueEur),
+							totalAssetsEur: num(d.totalAssetsEur),
+							nis2Sector: d.nis2Sector === "none" ? "" : d.nis2Sector,
+							customerTypes: d.customerTypes,
+						}),
+					);
+				}}
 			>
-				<h2 className="font-medium">{t("classification")}</h2>
-				<div className="flex flex-wrap gap-2">
-					<Badge variant="outline">
-						{cls.size ? t(`size_${cls.size}`) : t("sizeUnknown")}
-					</Badge>
-					<Badge
-						variant={
-							cls.nis2 === "essential" || cls.nis2 === "important"
-								? "warning"
-								: "muted"
-						}
-					>
-						{t(`nis2_${cls.nis2}`)}
-					</Badge>
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+					{field("legalForm", { placeholder: "GmbH", autoComplete: "off" })}
+					{field("registerNumber", {
+						placeholder: "HRB 12345",
+						autoComplete: "off",
+					})}
+					{field("country", {
+						maxLength: 2,
+						autoComplete: "country",
+						spellCheck: false,
+					})}
+					{money("employees")}
+					{money("revenueEur")}
+					{money("totalAssetsEur")}
 				</div>
-				<ul className="list-disc pl-5 text-muted-foreground text-footnote">
-					{cls.reasons.map((r) => (
-						<li key={r}>{r}</li>
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor="co-nis2">{t("nis2Sector")}</Label>
+					<Select
+						value={d.nis2Sector}
+						onValueChange={(v) => setD({ ...d, nis2Sector: v })}
+					>
+						<SelectTrigger id="co-nis2" className="w-full">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="none">{t("nis2None")}</SelectItem>
+							{NIS2_SECTORS.map((s) => (
+								<SelectItem key={s.key} value={s.key}>
+									{s.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+				<fieldset className="flex flex-wrap gap-4 text-subhead">
+					<legend className="mb-1.5 font-medium text-subhead">
+						{t("customerTypes")}
+					</legend>
+					{CUSTOMER_TYPES.map((c) => (
+						<label key={c} className="flex items-center gap-2">
+							<Checkbox
+								checked={d.customerTypes.includes(c)}
+								onCheckedChange={(v) =>
+									setD({
+										...d,
+										customerTypes: v
+											? [...d.customerTypes, c]
+											: d.customerTypes.filter((x) => x !== c),
+									})
+								}
+							/>
+							{t(`customer_${c}`)}
+						</label>
 					))}
-				</ul>
-				<p className="text-footnote text-muted-foreground">
-					{t("noLegalAdvice")}
-				</p>
-			</section>
+				</fieldset>
 
+				<section
+					aria-live="polite"
+					className="flex flex-col gap-2 rounded-xl bg-muted p-4 text-subhead"
+				>
+					<h2 className="font-medium">{t("classification")}</h2>
+					<div className="flex flex-wrap gap-2">
+						<Badge variant="outline">
+							{cls.size ? t(`size_${cls.size}`) : t("sizeUnknown")}
+						</Badge>
+						<Badge
+							variant={
+								cls.nis2 === "essential" || cls.nis2 === "important"
+									? "warning"
+									: "muted"
+							}
+						>
+							{t(`nis2_${cls.nis2}`)}
+						</Badge>
+					</div>
+					<ul className="list-disc pl-5 text-muted-foreground text-footnote">
+						{cls.reasons.map((r) => (
+							<li key={r}>{r}</li>
+						))}
+					</ul>
+					<p className="text-footnote text-muted-foreground">
+						{t("noLegalAdvice")}
+					</p>
+				</section>
+			</form>
+			{children}
 			<div className="flex justify-end">
-				<Button type="submit" disabled={pending}>
+				<Button type="submit" form="setup-company" disabled={pending}>
 					{t("saveNext")}
 				</Button>
 			</div>
-		</form>
+		</div>
 	);
 }

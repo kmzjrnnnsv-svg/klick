@@ -127,12 +127,26 @@ export function RolesStep({
 
 			<WhoHoldsWhat people={people} />
 
-			<AreasBlock
-				// neu laden, wenn sich die besetzten Funktionen ändern
-				key={heldFunctions.map((f) => f.function).join()}
-				areas={areas}
-				held={heldFunctions}
-			/>
+			{/* S4: optional. Wer nichts wählt, bekommt beim Weiter den Vorschlag
+			    aus dem Katalog; ändern jederzeit unter Organisation */}
+			<details className="group flex flex-col gap-3">
+				<summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-md font-semibold text-headline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+					<ChevronRight
+						aria-hidden="true"
+						className="size-5 text-muted-foreground transition-transform group-open:rotate-90"
+					/>
+					{t("areasOptional")}
+				</summary>
+				<p className="mb-3 text-muted-foreground text-subhead">
+					{t("areasOptionalLead")}
+				</p>
+				<AreasBlock
+					// neu laden, wenn sich die besetzten Funktionen ändern
+					key={heldFunctions.map((f) => f.function).join()}
+					areas={areas}
+					held={heldFunctions}
+				/>
+			</details>
 
 			<section className="flex flex-col gap-2 rounded-2xl bg-card p-4 text-subhead">
 				<h2 className="font-semibold text-headline">{t("rightsTitle")}</h2>

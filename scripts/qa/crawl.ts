@@ -321,10 +321,7 @@ async function setupWizard(page: Page) {
 		page.getByRole("button", { name }).last().click();
 	await next(/^Weiter$/);
 	await page.waitForURL(/\/einrichtung\/unternehmen/);
-	await page.fill("#co-employees", "25");
-	await page.fill("#co-revenueEur", "5000000");
-	await next(/Speichern und weiter/);
-	await page.waitForURL(/\/einrichtung\/standorte/);
+	// Standorte stehen im selben Schritt (S4): erst den Standort, dann weiter
 	await page.fill("#si-name", "Hauptsitz Frankfurt");
 	await page.fill("#si-city", "Frankfurt am Main");
 	await page
@@ -332,7 +329,9 @@ async function setupWizard(page: Page) {
 		.last()
 		.click();
 	await settle(page, 1500);
-	await next(/^Weiter$/);
+	await page.fill("#co-employees", "25");
+	await page.fill("#co-revenueEur", "5000000");
+	await next(/Speichern und weiter/);
 	await page.waitForURL(/\/einrichtung\/taetigkeit/);
 	await page.locator("#ac-sector").click();
 	await page.getByRole("option", { name: /Krypto-Dienstleister/ }).click();
