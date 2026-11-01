@@ -6,8 +6,8 @@ import {
 	type ChainVerification,
 	chainKey,
 	computeAuditHash,
+	continueChain,
 	type HashedAuditRow,
-	verifyChain,
 } from "./audit-hash";
 
 // Audit-Log: append-only, SHA-256-Hash-Kette je Org (bzw. "platform").
@@ -116,15 +116,12 @@ export async function verifyAuditChain(
 			)
 			.orderBy(auditLog.seq)
 			.limit(CHAIN_BLOCK);
-		const result = verifyChain(rows as unknown as HashedAuditRow[], state);
-		if (!result.ok)
-			return {
-				ok: false,
-				checked: result.checked,
-				brokenAtSeq: result.brokenAtSeq,
-				reason: result.reason,
-			};
-		state = { prevHash: result.last, checked: result.checked };
+		const { result, last } = continueChain(
+			rows as unknown as HashedAuditRow[],
+			state,
+		);
+		if (!result.ok) return result;
+		state = { prevHash: last, checked: result.checked };
 		const tail = rows.at(-1);
 		if (!tail || rows.length < CHAIN_BLOCK)
 			return { ok: true, checked: state.checked };

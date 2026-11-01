@@ -4,6 +4,7 @@ import {
 	canonicalJson,
 	chainKey,
 	computeAuditHash,
+	continueChain,
 	type HashedAuditRow,
 	verifyChain,
 } from "@/lib/audit-hash";
@@ -97,18 +98,20 @@ describe("verifyChain", () => {
 	it("in Blöcken wie am Stück, Bruch über die Blockgrenze erkannt", () => {
 		const rows = chain(10);
 		const whole = verifyChain(rows);
-		const first = verifyChain(rows.slice(0, 4));
-		const second = verifyChain(rows.slice(4), {
+		expect(whole).toEqual({ ok: true, checked: 10 });
+		const first = continueChain(rows.slice(0, 4));
+		const second = continueChain(rows.slice(4), {
 			prevHash: first.last,
-			checked: first.checked,
+			checked: first.result.checked,
 		});
-		expect(second).toEqual(whole);
+		expect(second.result).toEqual(whole);
+		expect(second.last).toBe(rows.at(-1)?.hash);
 		// fehlt der erste Eintrag des zweiten Blocks, passt prevHash nicht
-		const broken = verifyChain(rows.slice(5), {
+		const broken = continueChain(rows.slice(5), {
 			prevHash: first.last,
-			checked: first.checked,
+			checked: first.result.checked,
 		});
-		expect(broken.ok).toBe(false);
-		if (!broken.ok) expect(broken.reason).toBe("prev_mismatch");
+		expect(broken.result.ok).toBe(false);
+		if (!broken.result.ok) expect(broken.result.reason).toBe("prev_mismatch");
 	});
 });
