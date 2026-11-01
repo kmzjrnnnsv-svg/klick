@@ -79,7 +79,8 @@ Platzhaltern und der öffentlichen Adresse). Der Token auf dem Server braucht de
    - `KLICK_PUBLIC_URL` = `https://raza.work`;
    - `WALLET_PUBLIC_URL` = `https://both.money`.
 
-   Ohne die Variablen bricht der Job mit einer Meldung ab, und der Server findet kein Artefakt.
+   Ohne die Variablen wird der Job übersprungen (der Lauf bleibt grün), und der Server findet kein
+   Artefakt; er fragt dann, ob er selbst bauen soll.
 2. Unter GitHub > Settings > Developer settings > Personal access tokens > **Fine-grained tokens**
    einen Token anlegen:
    - nur Repository `kmzjrnnnsv-svg/klick`;

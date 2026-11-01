@@ -49,9 +49,9 @@ describe("Release-Artefakte aus CI", () => {
 	const ci = read(".github/workflows/ci.yml");
 	const job = ci.slice(ci.indexOf("\n  release-build:"));
 
-	it("nur auf main nach check, e2e und wallet-build", () => {
+	it("nur auf main nach check, e2e und wallet-build, ohne Variablen übersprungen", () => {
 		expect(job).toContain(
-			"if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
+			"if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.KLICK_PUBLIC_URL != '' && vars.WALLET_PUBLIC_URL != ''",
 		);
 		expect(job).toContain("needs: [check, e2e, wallet-build]");
 	});
