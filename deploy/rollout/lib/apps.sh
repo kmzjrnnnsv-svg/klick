@@ -151,8 +151,10 @@ release_vorbereiten() {
 # Merkt das alte .next in ARTEFAKT_ALT (artefakt_zurueck, nach Erfolg weg).
 ARTEFAKT_ALT=""
 artefakt_einsetzen() {
-	local user="$1" dir="${2:?Ordner fehlt}" quelle="${3:?Quelle fehlt}" rel="${4:?Pfad fehlt}" f
+	local user="$1" dir="${2:?Ordner fehlt}" quelle="${3:?Quelle fehlt}" rel="${4:?Pfad fehlt}" f grp
 	shift 4
+	# Hauptgruppe des Dienst-Users (auf dem Server klick bzw. both)
+	grp="$(id -gn "$user")" || die "User $user fehlt"
 	local ziel="$dir/$rel" neu="$dir/$rel.neu" alt="$dir/$rel.alt"
 	if trocken; then
 		info "(Trockenlauf) würde $ziel durch das Artefakt ersetzen"
@@ -162,10 +164,10 @@ artefakt_einsetzen() {
 	rm -rf -- "${neu:?}" "${alt:?}"
 	cp -a "$quelle/$rel" "$neu"
 	if [ -d "$ziel/cache" ]; then mv "$ziel/cache" "$neu/cache"; fi
-	chown -R "$user:$user" "$neu"
+	chown -R "$user:$grp" "$neu"
 	for f in "$@"; do
-		install -d -o "$user" -g "$user" -m 0755 "$(dirname "$dir/$f")"
-		install -o "$user" -g "$user" -m 0644 "$quelle/$f" "$dir/$f.neu"
+		install -d -o "$user" -g "$grp" -m 0755 "$(dirname "$dir/$f")"
+		install -o "$user" -g "$grp" -m 0644 "$quelle/$f" "$dir/$f.neu"
 	done
 	if [ -d "$ziel" ]; then mv "$ziel" "$alt"; fi
 	mv "$neu" "$ziel"

@@ -655,7 +655,7 @@ describe("Release-Artefakt (ADR-034)", () => {
 			`mkdir -p "${app}/.next/cache/images" "${quelle}/.next/static" "${quelle}/dist" && echo alt > "${app}/.next/BUILD_ID" && echo bild > "${app}/.next/cache/images/x" && echo neu > "${quelle}/.next/BUILD_ID" && echo p > "${quelle}/dist/parse-worker.mjs"`,
 		);
 		const out = sh(
-			`artefakt_einsetzen root "${app}" "${quelle}" .next dist/parse-worker.mjs; printf '%s' "$ARTEFAKT_ALT" > "${d}/alt"; artefakt_zurueck "${app}" .next && echo zurueck`,
+			`artefakt_einsetzen "$(id -un)" "${app}" "${quelle}" .next dist/parse-worker.mjs; printf '%s' "$ARTEFAKT_ALT" > "${d}/alt"; artefakt_zurueck "${app}" .next && echo zurueck`,
 		);
 		expect(out).toContain("zurueck");
 		// nach dem Zurückspielen: alter Stand, Cache liegt beim abgelösten neuen
@@ -671,7 +671,7 @@ describe("Release-Artefakt (ADR-034)", () => {
 			`mkdir -p "${quelle}/.next" "${quelle}/dist" && echo neu2 > "${quelle}/.next/BUILD_ID" && echo p2 > "${quelle}/dist/parse-worker.mjs"`,
 		);
 		sh(
-			`mkdir -p "${app}/.next/cache/images" && echo bild > "${app}/.next/cache/images/x"; artefakt_einsetzen root "${app}" "${quelle}" .next dist/parse-worker.mjs; artefakt_aufraeumen`,
+			`mkdir -p "${app}/.next/cache/images" && echo bild > "${app}/.next/cache/images/x"; artefakt_einsetzen "$(id -un)" "${app}" "${quelle}" .next dist/parse-worker.mjs; artefakt_aufraeumen`,
 		);
 		expect(readFileSync(join(app, ".next/BUILD_ID"), "utf8")).toBe("neu2\n");
 		expect(readFileSync(join(app, ".next/cache/images/x"), "utf8")).toBe(
@@ -684,7 +684,7 @@ describe("Release-Artefakt (ADR-034)", () => {
 			"bash",
 			[
 				"-c",
-				`set -euo pipefail; source ${DIR}/lib/rein.sh; source ${DIR}/lib/common.sh; source ${DIR}/lib/apps.sh; artefakt_einsetzen root "${app}" "${quelle}" .next`,
+				`set -euo pipefail; source ${DIR}/lib/rein.sh; source ${DIR}/lib/common.sh; source ${DIR}/lib/apps.sh; artefakt_einsetzen "$(id -un)" "${app}" "${quelle}" .next`,
 			],
 			{
 				cwd: ROOT,
