@@ -22,8 +22,9 @@ const arg = (name: string) => {
 	const i = process.argv.indexOf(`--${name}`);
 	return i > 0 ? process.argv[i + 1] : undefined;
 };
-const slug = arg("org");
-if (!slug) throw new Error("--org <kurzname> fehlt");
+const slugArg = arg("org");
+if (!slugArg) throw new Error("--org <kurzname> fehlt");
+const slug: string = slugArg;
 const scale = Number(arg("scale") ?? "1");
 
 const TARGET = {
