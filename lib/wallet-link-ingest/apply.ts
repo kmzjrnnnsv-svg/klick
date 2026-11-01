@@ -148,6 +148,7 @@ async function applyAccount(
 		.from(cryptoAccounts)
 		.where(
 			and(
+				eq(cryptoAccounts.organizationId, link.organizationId),
 				eq(cryptoAccounts.linkId, link.id),
 				eq(cryptoAccounts.walletAccountId, a.id),
 			),
@@ -400,7 +401,11 @@ async function applyCeremony(
 		.select({ walletId: cryptoAccounts.walletId })
 		.from(cryptoAccounts)
 		.where(
-			and(eq(cryptoAccounts.linkId, link.id), eq(cryptoAccounts.kind, "hot")),
+			and(
+				eq(cryptoAccounts.organizationId, link.organizationId),
+				eq(cryptoAccounts.linkId, link.id),
+				eq(cryptoAccounts.kind, "hot"),
+			),
 		);
 	const ids = hot.map((h) => h.walletId).filter((x): x is string => Boolean(x));
 	if (ids.length === 0) return [];
@@ -450,6 +455,7 @@ async function applyAlertRaised(
 		.from(cryptoAlerts)
 		.where(
 			and(
+				eq(cryptoAlerts.organizationId, link.organizationId),
 				eq(cryptoAlerts.linkId, link.id),
 				eq(cryptoAlerts.alertId, d.alertId),
 			),
@@ -472,6 +478,7 @@ async function applyAlertRaised(
 					.from(cryptoAccounts)
 					.where(
 						and(
+							eq(cryptoAccounts.organizationId, link.organizationId),
 							eq(cryptoAccounts.linkId, link.id),
 							eq(cryptoAccounts.walletAccountId, d.subject.id),
 						),
@@ -571,6 +578,7 @@ async function applyAlertResolved(
 		.set({ resolvedAt: new Date(d.resolvedAt) })
 		.where(
 			and(
+				eq(cryptoAlerts.organizationId, link.organizationId),
 				eq(cryptoAlerts.linkId, link.id),
 				eq(cryptoAlerts.alertId, d.alertId),
 				isNull(cryptoAlerts.resolvedAt),

@@ -272,7 +272,12 @@ async function receiveEvent(
 				code: walletLinkEvents.code,
 			})
 			.from(walletLinkEvents)
-			.where(eq(walletLinkEvents.eventId, e.id))
+			.where(
+				and(
+					eq(walletLinkEvents.organizationId, ctx.orgId),
+					eq(walletLinkEvents.eventId, e.id),
+				),
+			)
 			.limit(1);
 		const outcome = eventOutcome(stored ?? null, hash);
 		if (outcome.kind === "known")
