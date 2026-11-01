@@ -224,3 +224,99 @@ h1 {
 .tabular {
 	font-variant-numeric: tabular-nums;
 }
+
+/* Register (RegisterPage): eine Tabelle, unter 640 px als gruppierte Liste
+   nach HIG — erste Spalte als Titel, weitere mit Kopf als Zeile darunter,
+   ganze Zeile tippbar, Pfeil für Drill-down. Als Regel statt Klassen je
+   Zelle, damit HTML und RSC-Strom nicht mit jeder Zeile wachsen (P3). */
+.register-table [data-m-label],
+.register-table [data-chevron] {
+	display: none;
+}
+@media (max-width: 639.98px) {
+	.register-table,
+	.register-table tbody {
+		display: block;
+	}
+	.register-table thead {
+		display: none;
+	}
+	.register-table tbody tr {
+		position: relative;
+		display: block;
+		border: 0;
+		padding: 0.75rem 2.5rem 0.75rem 1rem;
+	}
+	.register-table tbody tr + tr::before {
+		content: "";
+		pointer-events: none;
+		position: absolute;
+		top: 0;
+		right: 0;
+		left: 1rem;
+		height: 1px;
+		background: color-mix(in srgb, var(--border) 70%, transparent);
+	}
+	.register-table tbody tr:active {
+		background: var(--muted);
+	}
+	.register-table td {
+		padding: 0;
+		width: auto;
+		min-width: 0;
+	}
+	.register-table td[data-m="hide"] {
+		display: none;
+	}
+	.register-table td[data-m="title"] {
+		display: block;
+		overflow-wrap: anywhere;
+		font-weight: 500;
+		font-size: var(--text-body);
+		line-height: var(--text-body--line-height);
+		white-space: normal;
+	}
+	.register-table td[data-m="meta"] {
+		display: inline-block;
+		max-width: 100%;
+		margin: 0.25rem 0.75rem 0 0;
+		overflow-wrap: anywhere;
+		white-space: normal;
+		vertical-align: baseline;
+		font-size: var(--text-footnote);
+		line-height: var(--text-footnote--line-height);
+	}
+	.register-table [data-m-label] {
+		display: inline;
+		margin-right: 0.25rem;
+		color: var(--muted-foreground);
+	}
+	/* der Link der ersten Spalte deckt die ganze Zeile */
+	.register-table a[data-row-link] {
+		position: static;
+	}
+	.register-table a[data-row-link]::after {
+		inset: 0;
+	}
+	.register-table a[data-row-link]:focus-visible {
+		outline: none;
+	}
+	.register-table a[data-row-link]:focus-visible::after {
+		box-shadow: inset 0 0 0 2px var(--ring);
+	}
+	.register-table td[data-interactive] {
+		position: relative;
+		z-index: 1;
+	}
+	.register-table [data-chevron] {
+		display: block;
+		pointer-events: none;
+		position: absolute;
+		top: 50%;
+		right: 0.75rem;
+		width: 1rem;
+		height: 1rem;
+		transform: translateY(-50%);
+		color: color-mix(in srgb, var(--muted-foreground) 70%, transparent);
+	}
+}
